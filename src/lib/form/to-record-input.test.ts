@@ -201,4 +201,52 @@ describe('toRecordInput', () => {
 			gallery: ['existing.jpg', file]
 		});
 	});
+
+	test('un valor `json` (objeto) se copia PLANO en el payload (fix F5-b: DataCloneError de un Proxy $state)', () => {
+		const jsonField: Field = {
+			name: 'meta',
+			type: 'json',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		};
+		const withJsonField = makeType([makeField(jsonField, { widget: 'json' })]);
+		const jsonBaseline: FormValues = { meta: null };
+		const current: FormInputValues = { meta: { tema: 'oscuro', nested: [1, 2] } };
+
+		const input = toRecordInput(withJsonField, jsonBaseline, current);
+		expect(input).toEqual({ meta: { tema: 'oscuro', nested: [1, 2] } });
+
+		// Reconstruido PLANO, no la misma referencia: mutar el original de `current` tras
+		// construir el payload no debe filtrarse a lo que ya viaja hacia el puerto.
+		(current.meta as Record<string, unknown>).tema = 'mutado';
+		expect((input.meta as Record<string, unknown>).tema).toBe('oscuro');
+	});
+
+	test('un File pendiente conserva su identidad EXACTA (nunca se clona, a diferencia de `json`)', () => {
+		const file = new File(['x'], 'x.txt');
+		const withFileField = makeType([
+			makeField(
+				{
+					name: 'cover',
+					type: 'file',
+					multiple: false,
+					protected: false,
+					required: false,
+					readonly: false,
+					presentable: false,
+					hidden: false,
+					unique: false
+				},
+				{ widget: 'file' }
+			)
+		]);
+		const fileBaseline: FormValues = { cover: null };
+		const current: FormInputValues = { cover: file };
+
+		const input = toRecordInput(withFileField, fileBaseline, current);
+		expect(input.cover).toBe(file);
+	});
 });

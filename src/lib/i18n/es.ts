@@ -72,8 +72,9 @@ export const es = {
 	'editor.readonlyNotice': 'Esta colección es de solo lectura: no se puede editar.',
 	'editor.load.error.body': 'No se pudo cargar el registro. {message}',
 
-	// ————— Widgets de campo (Fase F5-a del contrato P5) —————
+	// ————— Widgets de campo (Fase F5-a/F5-b del contrato P5) —————
 	'form.unsupported': 'Campo no editable en Vega',
+	'form.select.empty': '— sin selección —',
 	'form.errorCode.validation_required': 'Este campo es obligatorio.',
 	'form.errorCode.validation_min_text_constraint': 'El texto es demasiado corto.',
 	'form.errorCode.validation_max_text_constraint': 'El texto es demasiado largo.',

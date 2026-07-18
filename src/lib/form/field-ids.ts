@@ -10,6 +10,10 @@
 export interface FieldIds {
 	/** Id del control interactivo real (el `<input>`/`<select>`/… que pinta el widget). */
 	inputId: string;
+	/** Id de la etiqueta (`FieldRow`), para `aria-labelledby` en widgets cuyo control NO es un
+	 *  elemento "labelable" por HTML (p.ej. el `role="group"` de `chips`), donde `<label for>` no
+	 *  asocia nativamente. */
+	labelId: string;
 	/** Id del párrafo de ayuda (`field.help`), para `aria-describedby`. */
 	helpId: string;
 	/** Id del párrafo de error, para `aria-describedby`. */
@@ -19,5 +23,10 @@ export interface FieldIds {
 /** Ids para el campo `name` (`ResolvedField.name`, único dentro de un `ContentType`). */
 export function fieldIds(name: string): FieldIds {
 	const base = `vega-field-${name}`;
-	return { inputId: base, helpId: `${base}-help`, errorId: `${base}-error` };
+	return {
+		inputId: base,
+		labelId: `${base}-label`,
+		helpId: `${base}-help`,
+		errorId: `${base}-error`
+	};
 }

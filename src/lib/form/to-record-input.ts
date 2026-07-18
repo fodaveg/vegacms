@@ -38,8 +38,38 @@ export function toRecordInput(
 		// Defensa en profundidad: comprobar tanto el widget resuelto (L8) como el `schema.type`
 		// real (§2.2), por si algún día divergieran.
 		if (field.widget === 'unsupported' || field.schema.type === 'unsupported') continue;
-		input[field.name] = current[field.name];
+		input[field.name] = toPlainValue(current[field.name]);
 	}
 
 	return input;
+}
+
+/**
+ * Desproxifica un valor de `current` antes de que cruce al puerto (fix de F5-b, widget `json`).
+ * `current` es un `$state` de Svelte 5 con reactividad PROFUNDA: asignar un objeto/array a una de
+ * sus propiedades (el valor de un campo `json`, o un array de `select`/`chips` múltiple) lo
+ * envuelve en un Proxy reactivo. Eso no molesta mientras el valor se queda en memoria del shell,
+ * pero el adaptador `memory` normaliza `json` con `structuredClone` (§2.1 del contrato de backend,
+ * `normalize.ts`) — y `structuredClone` de un Proxy de Svelte 5 lanza `DataCloneError` (sus
+ * trampas internas no son "clonables" por el algoritmo nativo del navegador).
+ *
+ * La forma correcta de cruzar esta frontera (estado reactivo del shell → payload de red) es
+ * reconstruir un objeto/array PLANO recorriendo sus claves reales: cada acceso ya atraviesa la
+ * trampa `get` del Proxy, así que el resultado son datos de verdad, sin envoltorio — el mismo
+ * principio que el rune `$state.snapshot()` de Svelte, reimplementado aquí sin depender de él
+ * (este módulo es TypeScript puro, sin Svelte, por convención del repo — L1 del contrato). `File`
+ * se conserva TAL CUAL (Svelte nunca lo proxifica — no es un objeto/array "plano" — y clonarlo
+ * cambiaría su identidad sin ganar nada; el resto de widgets solo emiten `string[]`/`FieldValue`
+ * primitivos, que ya viajan bien sin pasar por aquí, pero aplicarlo a todos los campos por
+ * uniformidad no tiene coste).
+ */
+function toPlainValue<T>(value: T): T {
+	if (value === null || typeof value !== 'object') return value;
+	if (typeof File !== 'undefined' && value instanceof File) return value;
+	if (Array.isArray(value)) return value.map((item) => toPlainValue(item)) as unknown as T;
+	const out: Record<string, unknown> = {};
+	for (const key of Object.keys(value as Record<string, unknown>)) {
+		out[key] = toPlainValue((value as Record<string, unknown>)[key]);
+	}
+	return out as T;
 }

@@ -37,7 +37,7 @@
 </script>
 
 <div class="vega-field-row" data-field={field.name} data-widget={field.widget}>
-	<label for={ids.inputId}>
+	<label id={ids.labelId} for={ids.inputId}>
 		{field.label}{#if field.schema.required}<span class="vega-field-required" aria-hidden="true"
 				>*</span
 			>{/if}

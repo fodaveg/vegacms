@@ -4,29 +4,41 @@
  * nuevo en P2 rompe la build aquí hasta que se le asigne un componente, en vez de un `{#if}` en
  * cascada donde un caso olvidado degrada en silencio.
  *
- * F5-a: los 14 dedicados comparten `GenericInput` (placeholder mínimo, ver su cabecera);
- * `unsupported` es el único REAL (`UnsupportedField`). F5-b sustituye cada entrada dedicada una
- * a una sin tocar el resto del registry ni a `FieldRow.svelte` (su único consumidor).
+ * F5-a: los 14 dedicados compartían `GenericInput` (placeholder mínimo, ver su cabecera);
+ * `unsupported` era el único REAL (`UnsupportedField`). **F5-b** sustituye los 10 widgets
+ * escalares (`text, textarea, number, switch, email, url, datetime, select, chips, json`) por
+ * componentes dedicados — `markdown, richtext, relation, file` siguen en `GenericInput` hasta
+ * F5-d/e/f, sin tocar `FieldRow.svelte` (su único consumidor).
  */
 import type { WidgetId } from '$lib/model/types';
 import type { WidgetComponent } from './types';
 import GenericInput from './GenericInput.svelte';
 import UnsupportedField from './UnsupportedField.svelte';
+import Text from './Text.svelte';
+import Textarea from './Textarea.svelte';
+import NumberWidget from './Number.svelte';
+import Switch from './Switch.svelte';
+import Email from './Email.svelte';
+import Url from './Url.svelte';
+import Datetime from './Datetime.svelte';
+import Select from './Select.svelte';
+import Chips from './Chips.svelte';
+import Json from './Json.svelte';
 
 export const WIDGET_REGISTRY: Record<WidgetId, WidgetComponent> = {
-	text: GenericInput,
-	textarea: GenericInput,
+	text: Text,
+	textarea: Textarea,
 	markdown: GenericInput,
 	richtext: GenericInput,
-	number: GenericInput,
-	switch: GenericInput,
-	email: GenericInput,
-	url: GenericInput,
-	datetime: GenericInput,
-	select: GenericInput,
-	chips: GenericInput,
+	number: NumberWidget,
+	switch: Switch,
+	email: Email,
+	url: Url,
+	datetime: Datetime,
+	select: Select,
+	chips: Chips,
 	relation: GenericInput,
 	file: GenericInput,
-	json: GenericInput,
+	json: Json,
 	unsupported: UnsupportedField
 };

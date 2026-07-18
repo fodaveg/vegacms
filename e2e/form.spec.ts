@@ -17,6 +17,13 @@
  * viaje redondo `update`/`create` → `list`/`get`) SIN salir del documento: se navega DENTRO de
  * la SPA (clics de enlace/botón, `ctx.nav.*`/`goto()` client-side, `page.goBack()` — SvelteKit
  * intercepta el popstate, P3-L9 —), nunca `page.reload()`/`page.goto()`.
+ *
+ * **Añadido en F5-b (contrato P5)**: los describe de más abajo cubren los 10 widgets escalares
+ * dedicados que sustituyeron a `GenericInput` (`text, textarea, number, switch, email, url,
+ * datetime, select, chips, json`), sobre los campos añadidos a `posts`/`authors` en la semilla
+ * (ver `session/demo-seed.ts`, sección "Añadido en F5-b"): control HTML correcto, edición emite
+ * el tipo de dominio correcto, persiste en un viaje redondo, y un campo `readonly` de verdad
+ * (`authors.joinedAt`) nunca acepta edición.
  */
 import { expect, loginAsDemo, test } from './fixtures';
 
@@ -72,8 +79,16 @@ test.describe('crear (D-P5.11)', () => {
 
 		// `title` tiene `maxLength: 120` (demo-seed): el cliente (D-P5.3) solo comprueba
 		// `required`/`maxSelect`, así que esto SOLO lo rechaza el backend — ejercita L-P5.4 de
-		// verdad, no un duplicado de la validación cliente.
-		await page.getByLabel('Title').fill('x'.repeat(200));
+		// verdad, no un duplicado de la validación cliente. Desde F5-b el widget `text` añade el
+		// atributo NATIVO `maxlength` (afordancia del navegador, ver `Text.svelte`): `.fill()`
+		// respeta ese límite (igual que tecleo/pegado reales), así que ya NO basta para forzar el
+		// caso — se asigna el valor por debajo del DOM y se dispara `input` a mano, simulando un
+		// cliente que sí manda más de 120 caracteres (afordancia del navegador, no enforcement).
+		await page.getByLabel('Title').evaluate((el, value) => {
+			const input = el as HTMLInputElement;
+			input.value = value;
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+		}, 'x'.repeat(200));
 		await page.getByRole('button', { name: 'Guardar' }).click();
 
 		await expect(
@@ -174,5 +189,128 @@ test.describe('campo number desde null (fix de code-review, GenericInput.svelte)
 		await page.goBack();
 		await page.waitForURL(/\/c\/metrics\/(?!new)[^/]+$/);
 		await expect(page.getByLabel('Count')).toHaveValue('123');
+	});
+});
+
+test.describe('widgets escalares dedicados (F5-b)', () => {
+	test('posts: text/textarea/select/chips/datetime/url/email/json pintan su control y persisten', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts/new');
+
+		// text
+		const title = page.getByLabel('Title');
+		await expect(title).toHaveAttribute('type', 'text');
+		await title.fill('Post con todos los widgets');
+
+		// textarea (override de manifiesto `widget: 'textarea'` sobre un campo `text`, D-P5/L9)
+		const body = page.getByLabel('Body');
+		expect(await body.evaluate((el) => el.tagName)).toBe('TEXTAREA');
+		await body.fill('Cuerpo largo\ncon varias líneas');
+
+		// select (single)
+		const status = page.getByLabel('Status');
+		expect(await status.evaluate((el) => el.tagName)).toBe('SELECT');
+		await status.selectOption('published');
+
+		// chips (select múltiple, maxSelect: 2 — ver seed): togglear dos opciones agota el límite,
+		// la tercera queda deshabilitada (afordancia UX de `Chips.svelte`).
+		const tagsRow = page.locator('[data-field="tags"]');
+		await tagsRow.getByRole('button', { name: 'vega' }).click();
+		await tagsRow.getByRole('button', { name: 'demo' }).click();
+		await expect(tagsRow.getByRole('button', { name: 'vega' })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+		await expect(tagsRow.getByRole('button', { name: 'news' })).toBeDisabled();
+
+		// datetime (input datetime-local, conversión UTC↔local de `datetime.ts`)
+		const publishedAt = page.getByLabel('Published at');
+		await expect(publishedAt).toHaveAttribute('type', 'datetime-local');
+		await publishedAt.fill('2024-06-01T09:15');
+
+		// url
+		const website = page.getByLabel('Website');
+		await expect(website).toHaveAttribute('type', 'url');
+		await website.fill('https://vega.example.dev');
+
+		// email
+		const contactEmail = page.getByLabel('Contact email');
+		await expect(contactEmail).toHaveAttribute('type', 'email');
+		await contactEmail.fill('demo@vega.dev');
+
+		// json (textarea con parseo best-effort)
+		const meta = page.getByLabel('Meta');
+		await meta.fill('{"tema":"oscuro"}');
+
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+
+		// Cada widget pinta el valor que devolvió `ctx.port.create` (mismo criterio que el test de
+		// `count` de más arriba): confirma tipo Y persistencia a la vez.
+		await expect(page.getByLabel('Title')).toHaveValue('Post con todos los widgets');
+		await expect(page.getByLabel('Website')).toHaveValue('https://vega.example.dev');
+		await expect(page.getByLabel('Contact email')).toHaveValue('demo@vega.dev');
+		await expect(page.getByLabel('Published at')).toHaveValue('2024-06-01T09:15');
+		await expect(page.getByLabel('Meta')).toHaveValue('{\n  "tema": "oscuro"\n}');
+		const tagsRowAfterSave = page.locator('[data-field="tags"]');
+		await expect(tagsRowAfterSave.getByRole('button', { name: 'vega' })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+		await expect(tagsRowAfterSave.getByRole('button', { name: 'demo' })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+
+		// Ronda completa sin recargar el documento (ver nota de cabecera): vuelve al listado (SPA) y
+		// navega atrás por el histórico del router hasta este mismo registro — carga FRESCA vía
+		// `ctx.port.get`, no el estado ya en memoria del componente.
+		await page.getByRole('button', { name: 'Volver' }).click();
+		await page.waitForURL('**/c/posts');
+		await page.goBack();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+		await expect(page.getByLabel('Website')).toHaveValue('https://vega.example.dev');
+		await expect(page.getByLabel('Published at')).toHaveValue('2024-06-01T09:15');
+	});
+
+	test('metrics: switch es un checkbox real y number un input numérico', async ({ page }) => {
+		await loginAndSettle(page);
+		await page.goto('/c/metrics/new');
+
+		const active = page.getByLabel('Active');
+		await expect(active).toHaveAttribute('type', 'checkbox');
+		await expect(active).not.toBeChecked();
+		await active.check();
+		await expect(active).toBeChecked();
+
+		const count = page.getByLabel('Count');
+		await expect(count).toHaveAttribute('type', 'number');
+		await count.fill('7');
+
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		await page.waitForURL(/\/c\/metrics\/(?!new)[^/]+$/);
+		await expect(page.getByLabel('Active')).toBeChecked();
+		await expect(page.getByLabel('Count')).toHaveValue('7');
+	});
+
+	test('readonly de schema (authors.joinedAt): el widget datetime nunca acepta edición', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/authors/new');
+
+		const joinedAt = page.getByLabel('Joined at');
+		await expect(joinedAt).toHaveAttribute('type', 'datetime-local');
+		await expect(joinedAt).toBeDisabled();
+
+		// El formulario sigue siendo utilizable para el resto de campos (readonly es por-CAMPO, no
+		// por-tipo, a diferencia de `pages`): crear con `name` funciona con normalidad.
+		await page.getByLabel('Name').fill('Autora de prueba');
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		await page.waitForURL(/\/c\/authors\/(?!new)[^/]+$/);
+		await expect(page.getByLabel('Name')).toHaveValue('Autora de prueba');
+		await expect(page.getByLabel('Joined at')).toBeDisabled();
 	});
 });

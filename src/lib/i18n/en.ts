@@ -67,8 +67,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.readonlyNotice': 'This collection is read-only: it cannot be edited.',
 	'editor.load.error.body': 'Could not load the record. {message}',
 
-	// ————— Field widgets (P5 contract, Phase F5-a) —————
+	// ————— Field widgets (P5 contract, Phase F5-a/F5-b) —————
 	'form.unsupported': 'Field not editable in Vega',
+	'form.select.empty': '— no selection —',
 	'form.errorCode.validation_required': 'This field is required.',
 	'form.errorCode.validation_min_text_constraint': 'The text is too short.',
 	'form.errorCode.validation_max_text_constraint': 'The text is too long.',

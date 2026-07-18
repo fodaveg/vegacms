@@ -57,6 +57,15 @@
  * Las credenciales están duplicadas (a propósito, sin importar este módulo) en `e2e/` porque
  * Playwright corre en un runtime Node aparte que no resuelve el alias `$lib`; mantenlas en
  * sincronía si cambian.
+ *
+ * **Añadido en F5-b (contrato P5)**: antes de esta fase, `posts` no cubría los widgets `datetime`/
+ * `url`/`email`/`json`/`textarea` — ningún campo de la semilla los ejercitaba. Se añaden cuatro
+ * campos sin datos seed (`publishedAt` date, `website` url, `contactEmail` email, `meta` json) y
+ * un override de manifiesto (`fields.body.widget = 'textarea'`, el ÚNICO mecanismo de override de
+ * schema v1, §4.3/L9) para que `e2e/form.spec.ts` pueda crear/editar un `posts` ejercitando los 10
+ * widgets escalares dedicados de una vez. `tags` (select múltiple) gana `maxSelect: 2` para poder
+ * probar la afordancia de `chips` que deshabilita las opciones no seleccionadas al llegar al
+ * límite.
  */
 import type { ContentType, JsonValue } from '$lib/backend/types';
 import { VEGA_COLLECTION } from '$lib/backend/collections';
@@ -121,12 +130,55 @@ const POSTS_CONTENT_TYPE: ContentType = {
 		// `select` MÚLTIPLE (ver cabecera del módulo): añadido en 4d como el único campo NO escalar
 		// del listado de "posts", forzado a `listFields` vía el manifiesto para ejercer que su
 		// cabecera de columna no ofrece orden (D-P4.6). Sin datos seed: ningún test necesita valores,
-		// solo que la columna exista.
+		// solo que la columna exista. `maxSelect: 2` (añadido en F5-b): para ejercer en e2e la
+		// afordancia del widget `chips` que deshabilita las opciones no seleccionadas al alcanzar el
+		// límite (ver cabecera de `widgets/Chips.svelte`).
 		{
 			name: 'tags',
 			type: 'select',
 			options: ['vega', 'demo', 'news'],
 			multiple: true,
+			maxSelect: 2,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		// Cuatro campos añadidos en F5-b (contrato P5, sustitución de los widgets escalares
+		// placeholder): ninguno estaba cubierto por el seed hasta ahora. Sin datos seed (ningún test
+		// existente los necesita) — solo para poder crear/editar un `posts` ejercitando `datetime`,
+		// `url`, `email` y `json` de verdad en `e2e/form.spec.ts`.
+		{
+			name: 'publishedAt',
+			type: 'date',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'website',
+			type: 'url',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'contactEmail',
+			type: 'email',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'meta',
+			type: 'json',
 			required: false,
 			readonly: false,
 			presentable: false,
@@ -154,7 +206,12 @@ const PAGES_CONTENT_TYPE: ContentType = {
 };
 
 /** Añadido en 4c: tipo normal, SIN registros — cubre el estado vacío-colección CON CTA "Crear"
- *  (ver cabecera del módulo, contraste con `pages`, que cubre el caso SIN CTA). */
+ *  (ver cabecera del módulo, contraste con `pages`, que cubre el caso SIN CTA).
+ *
+ *  `joinedAt` (F5-b): campo `readonly` a nivel de SCHEMA (autodate, `field.schema.readonly`, no
+ *  `contentType.readonly` como `pages`) — el ÚNICO de la semilla. Reutiliza el tipo `date` (widget
+ *  `datetime`) para cubrir a la vez "un widget dedicado en modo readonly nunca acepta edición" sin
+ *  añadir un campo solo para eso. */
 const AUTHORS_CONTENT_TYPE: ContentType = {
 	name: 'authors',
 	readonly: false,
@@ -169,6 +226,15 @@ const AUTHORS_CONTENT_TYPE: ContentType = {
 			hidden: false,
 			unique: false,
 			maxLength: 120
+		},
+		{
+			name: 'joinedAt',
+			type: 'date',
+			required: false,
+			readonly: true,
+			presentable: false,
+			hidden: false,
+			unique: false
 		}
 	]
 };
@@ -236,7 +302,13 @@ const DEMO_MANIFEST: JsonValue = {
 			// `tags` (select múltiple) NO es `listable` por defecto (§4.10): forzado aquí para tener,
 			// en la Fase 4d, una columna NO escalar de verdad que ejercer contra la cabecera SIN
 			// control de orden (ver cabecera del módulo).
-			listFields: ['title', 'status', 'body', 'tags']
+			listFields: ['title', 'status', 'body', 'tags'],
+			// Override de widget (F5-b, §4.3/L9 — el ÚNICO mecanismo de override de schema v1):
+			// `body` (`type:'text', subtype:'plain'`) pinta el widget `textarea` en vez del `text`
+			// por defecto, para poder ejercer ese widget dedicado en `e2e/form.spec.ts`.
+			fields: {
+				body: { widget: 'textarea' }
+			}
 		},
 		pages: {
 			label: 'Páginas',
