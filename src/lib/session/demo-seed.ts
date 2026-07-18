@@ -3,11 +3,26 @@
  * en Fase 2b (P3 §3.3, §4.1, §6) para poder testear la nav LITERAL de verdad: sin esto, la
  * sidebar solo se podía probar en su estado vacío. Escenario cubierto, determinista:
  *
- * - **`posts`**: tipo normal, grupo "Contenido", icono propio (`document`), orden 1. Dos
- *   registros seed (uno `published`, uno `draft`) — contenido real para cuando P4 exista.
+ * - **`posts`**: tipo normal, grupo "Contenido", icono propio (`document`), orden 1. 32
+ *   registros seed (`post_1`/`post_2` originales de 2b + `post_3`..`post_32` de 4c, ver
+ *   `EXTRA_POST_RECORDS`): más de `DEFAULT_PER_PAGE` (30), a propósito, para poder ejercer la
+ *   paginación real de P4/4c (Anterior/Siguiente, deep-link a `?page=2`) sin datos sintéticos
+ *   ad-hoc en cada e2e.
  * - **`pages`**: tipo `readonly` (view), MISMO grupo "Contenido", orden 2 — cubre la insignia
- *   "Solo lectura" de `NavItem` (§4.1). Un registro seed (los `readonly` no se crean desde la
- *   UI, así que necesitan venir ya poblados).
+ *   "Solo lectura" de `NavItem` (§4.1). SIN registros (cambiado en 4c, antes tenía uno): así el
+ *   listado de `pages` cae en el estado vacío-colección de P4 SIN la CTA "Crear" (§4c,
+ *   `!contentType.readonly`) — es la forma más simple de que ese caso (readonly excluye la CTA)
+ *   sea observable, porque la CTA solo existe en la rama vacía.
+ * - **`authors`**: tipo normal AÑADIDO en 4c, MISMO grupo "Contenido", orden 3, icono `user`.
+ *   SIN registros: cubre el estado vacío-colección CON la CTA "Crear" (contraste con `pages`,
+ *   arriba). Un tipo nuevo en el manifiesto aparece en la sidebar (P2: todo tipo visible está en
+ *   `nav`) — `e2e/nav.spec.ts` ya reflejaba el label nuevo antes de tocar este fichero.
+ * - **`metrics`**: tipo normal AÑADIDO en el fix de code-review de 4c (L-P4.15), MISMO grupo
+ *   "Contenido", orden 4, icono `list`. Sus dos únicos campos (`count` number, `active` bool) NO
+ *   son `text`/`email`/`url` ⇒ la cascada de campo-título (P2 §4.4) se agota a `titleField: null`
+ *   — el ÚNICO tipo de la semilla sin columna `isTitle` en su listado, para ejercer que
+ *   `RecordTable` sigue abriendo la fila (fallback a la primera columna) incluso sin ella. Un
+ *   registro seed (`metric_1`) para tener una fila real que abrir.
  * - **`site_info`**: `singleton: true`, SIN grupo (`group` ausente del manifiesto ⇒ grupo
  *   anónimo) y SIN icono propio ⇒ cubre a la vez "grupo anónimo primero" (§4.9) y la afordancia
  *   de singleton sin icono (icono `settings`, P2 §4.8). Sin registros seed a propósito: ejercita
@@ -24,8 +39,13 @@
  * testear el badge de la sidebar y `WarningsList` en `/settings` sin recurrir a un manifiesto
  * inválido. Elegido A PROPÓSITO porque `resolve.ts` resuelve el icono desconocido a `null` (nunca
  * lo deja pasar tal cual), así que NO cambia el label/orden/grupo/href de "Entradas" en la sidebar
- * — solo su icono (de `document` a `generic`) — y por tanto no arriesga los 31 e2e existentes que
+ * — solo su icono (de `document` a `generic`) — y por tanto no arriesga los e2e existentes que
  * localizan la nav por texto/rol, no por icono.
+ *
+ * **Comprobado en 4c** (antes de tocar `posts`/`pages`/añadir `authors`/`metrics`): ningún test de
+ * `e2e/`/`tests/` fuera de `nav.spec.ts` asume el conteo de registros de `posts`/`pages` ni la
+ * ausencia de `authors`/`metrics` — solo `nav.spec.ts` localiza la sidebar por su lista LITERAL de
+ * labels, ya actualizada.
  *
  * Las credenciales están duplicadas (a propósito, sin importar este módulo) en `e2e/` porque
  * Playwright corre en un runtime Node aparte que no resuelve el alias `$lib`; mantenlas en
@@ -111,6 +131,54 @@ const PAGES_CONTENT_TYPE: ContentType = {
 	]
 };
 
+/** Añadido en 4c: tipo normal, SIN registros — cubre el estado vacío-colección CON CTA "Crear"
+ *  (ver cabecera del módulo, contraste con `pages`, que cubre el caso SIN CTA). */
+const AUTHORS_CONTENT_TYPE: ContentType = {
+	name: 'authors',
+	readonly: false,
+	fields: [
+		{
+			name: 'name',
+			type: 'text',
+			subtype: 'plain',
+			required: true,
+			readonly: false,
+			presentable: true,
+			hidden: false,
+			unique: false,
+			maxLength: 120
+		}
+	]
+};
+
+/** Añadido en el fix de code-review de 4c (L-P4.15, ver cabecera del módulo): tipo SIN campo
+ *  título resoluble (cero campos `text`/`email`/`url`). */
+const METRICS_CONTENT_TYPE: ContentType = {
+	name: 'metrics',
+	readonly: false,
+	fields: [
+		{
+			name: 'count',
+			type: 'number',
+			integer: true,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'active',
+			type: 'bool',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		}
+	]
+};
+
 const SITE_INFO_CONTENT_TYPE: ContentType = {
 	name: 'site_info',
 	readonly: false,
@@ -151,6 +219,20 @@ const DEMO_MANIFEST: JsonValue = {
 			group: 'Contenido',
 			order: 2
 		},
+		authors: {
+			label: 'Autores',
+			labelSingular: 'Autor',
+			icon: 'user',
+			group: 'Contenido',
+			order: 3
+		},
+		metrics: {
+			label: 'Métricas',
+			labelSingular: 'Métrica',
+			icon: 'list',
+			group: 'Contenido',
+			order: 4
+		},
 		// Sin `group` (⇒ grupo anónimo, siempre primero, §4.9) ni `icon` (⇒ afordancia de
 		// singleton sin icono propio, P2 §4.8).
 		site_info: {
@@ -160,9 +242,31 @@ const DEMO_MANIFEST: JsonValue = {
 	}
 };
 
+/** Ver cabecera del módulo: 30 entradas más allá de `post_1`/`post_2`, para que `posts` supere
+ *  `DEFAULT_PER_PAGE` (30) y la paginación de 4c tenga una segunda página real que ejercer. Ids
+ *  deterministas `post_3`..`post_32`, sin `body` (ningún test lo necesita), estado alternado. */
+const EXTRA_POST_RECORDS = Array.from({ length: 30 }, (_, i) => {
+	const n = i + 3;
+	return {
+		id: `post_${n}`,
+		values: {
+			title: `Entrada ${n}`,
+			status: n % 2 === 0 ? 'published' : 'draft',
+			body: ''
+		}
+	};
+});
+
 export const DEMO_SEED: MemorySeed = {
 	users: [DEMO_CREDENTIALS],
-	contentTypes: [VEGA_CONTENT_TYPE, POSTS_CONTENT_TYPE, PAGES_CONTENT_TYPE, SITE_INFO_CONTENT_TYPE],
+	contentTypes: [
+		VEGA_CONTENT_TYPE,
+		POSTS_CONTENT_TYPE,
+		PAGES_CONTENT_TYPE,
+		AUTHORS_CONTENT_TYPE,
+		METRICS_CONTENT_TYPE,
+		SITE_INFO_CONTENT_TYPE
+	],
 	records: {
 		[VEGA_COLLECTION.name]: [{ id: 'vega_manifest', values: { manifest: DEMO_MANIFEST } }],
 		posts: [
@@ -174,9 +278,14 @@ export const DEMO_SEED: MemorySeed = {
 					body: 'Primer texto de ejemplo.'
 				}
 			},
-			{ id: 'post_2', values: { title: 'Borrador en curso', status: 'draft', body: '' } }
+			{ id: 'post_2', values: { title: 'Borrador en curso', status: 'draft', body: '' } },
+			...EXTRA_POST_RECORDS
 		],
-		pages: [{ id: 'page_home', values: { title: 'Inicio' } }]
-		// site_info sin registros a propósito (ver cabecera): ejercita el modo creación (0 → new).
+		// SIN registros (ver cabecera, cambiado en 4c): cubre el vacío-colección SIN CTA "Crear"
+		// (readonly).
+		pages: [],
+		metrics: [{ id: 'metric_1', values: { count: 42, active: true } }]
+		// authors/site_info sin registros a propósito (ver cabecera): authors cubre el
+		// vacío-colección CON CTA; site_info ejercita el modo creación (0 → new, §3.3).
 	}
 };

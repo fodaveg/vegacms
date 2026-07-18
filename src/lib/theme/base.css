@@ -27,6 +27,11 @@ html[data-mode='light'] {
 	--vega-color-danger: #c1121f;
 	--vega-color-danger-bg: #fdecec;
 	--vega-color-success: #1a7f37;
+	/* Añadido en P4/4c (D-P4.8, insignia de estado draft/published): valores neutros sobrios,
+	   mismo patrón que `--vega-color-danger`/`-bg`. P7 los revalúa con AA real (§2.6: "P7 los
+	   puede ajustar sin romper el contrato, son valores, no nombres"). */
+	--vega-color-warning: #9a6700;
+	--vega-color-warning-bg: #fdf3dd;
 	--vega-color-focus-ring: #2f6fed;
 }
 
@@ -41,6 +46,9 @@ html[data-mode='dark'] {
 	--vega-color-danger: #ff6b6b;
 	--vega-color-danger-bg: #3a1d1f;
 	--vega-color-success: #63d38b;
+	/* Ver comentario del bloque light: mismo par añadido en P4/4c, valores provisionales. */
+	--vega-color-warning: #e0a941;
+	--vega-color-warning-bg: #3a2f14;
 	--vega-color-focus-ring: #6fa1ff;
 }
 

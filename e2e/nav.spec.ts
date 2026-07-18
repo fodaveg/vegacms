@@ -18,8 +18,9 @@ test('pinta los grupos/items del manifiesto en el orden esperado, con el grupo a
 	await expect(sidebar.getByRole('link', { name: 'Entradas' })).toBeVisible();
 
 	// Orden de render: grupo anónimo (singleton "Información del sitio") primero, después el
-	// grupo "Contenido" (Entradas, order 1; Páginas, order 2). Se aíslan los `.vega-nav-item-label`
-	// (no el `<a>` completo) para no depender de si hay o no espacio en blanco entre el label y la
+	// grupo "Contenido" (Entradas, order 1; Páginas, order 2; Autores, order 3; Métricas, order 4
+	// — añadidos en 4c, ver `session/demo-seed.ts`). Se aíslan los `.vega-nav-item-label` (no el
+	// `<a>` completo) para no depender de si hay o no espacio en blanco entre el label y la
 	// insignia "Solo lectura" de un item readonly.
 	const labels = await sidebar
 		.locator('p.vega-nav-group-label, .vega-nav-item-label')
@@ -28,7 +29,9 @@ test('pinta los grupos/items del manifiesto en el orden esperado, con el grupo a
 		'Información del sitio',
 		'Contenido',
 		'Entradas',
-		'Páginas'
+		'Páginas',
+		'Autores',
+		'Métricas'
 	]);
 });
 

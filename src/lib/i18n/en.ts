@@ -56,13 +56,25 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'errors.notFoundRecord.backToList': 'Back to list',
 	'errors.backToIndex': 'Back to index',
 
-	// ————— Honest placeholders for content routes (gap pre-P4/P5, P3-L10) —————
-	'placeholder.list.title': 'The list is coming soon',
-	'placeholder.list.body': 'The list for "{label}" is coming in P4.',
+	// ————— Honest placeholders for content routes (gap pre-P5, P3-L10) —————
 	'placeholder.create.title': 'The create form is coming soon',
 	'placeholder.create.body': 'The create form for "{label}" is coming in P5.',
 	'placeholder.edit.title': 'Editing is coming soon',
 	'placeholder.edit.body': 'Editing "{label}" #{id} is coming in P5.',
+
+	// ————— List (P4 contract, Phase 4c) —————
+	'list.empty.title': "There's nothing here yet",
+	'list.empty.body': 'Create the first "{label}" record to get started.',
+	'list.empty.cta': 'Create',
+	'list.error.title': 'The list could not be loaded',
+	'list.error.body': '{message}',
+	'list.pagination.prev': 'Previous',
+	'list.pagination.next': 'Next',
+	'list.pagination.pageOf': '{page} of {totalPages}',
+	'list.pagination.total': '{count} records',
+	'list.cell.yes': 'Yes',
+	'list.cell.no': 'No',
+	'list.untitled': '(untitled)',
 
 	// ————— Media (gap pre-P6) —————
 	'media.placeholderTitle': 'Media is coming in a future phase',

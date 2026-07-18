@@ -61,13 +61,25 @@ export const es = {
 	'errors.notFoundRecord.backToList': 'Volver al listado',
 	'errors.backToIndex': 'Volver al índice',
 
-	// ————— Placeholders honestos de rutas de contenido (hueco pre-P4/P5, P3-L10) —————
-	'placeholder.list.title': 'El listado llega pronto',
-	'placeholder.list.body': 'El listado de "{label}" llega en P4.',
+	// ————— Placeholders honestos de rutas de contenido (hueco pre-P5, P3-L10) —————
 	'placeholder.create.title': 'El formulario de creación llega pronto',
 	'placeholder.create.body': 'El formulario de creación de "{label}" llega en P5.',
 	'placeholder.edit.title': 'La edición llega pronto',
 	'placeholder.edit.body': 'La edición de "{label}" #{id} llega en P5.',
+
+	// ————— Listado (Fase 4c del contrato P4) —————
+	'list.empty.title': 'Aquí no hay nada todavía',
+	'list.empty.body': 'Crea el primer registro de "{label}" para empezar.',
+	'list.empty.cta': 'Crear',
+	'list.error.title': 'No se pudo cargar el listado',
+	'list.error.body': '{message}',
+	'list.pagination.prev': 'Anterior',
+	'list.pagination.next': 'Siguiente',
+	'list.pagination.pageOf': '{page} de {totalPages}',
+	'list.pagination.total': '{count} registros',
+	'list.cell.yes': 'Sí',
+	'list.cell.no': 'No',
+	'list.untitled': '(sin título)',
 
 	// ————— Medios (hueco pre-P6) —————
 	'media.placeholderTitle': 'Los medios llegan en una fase próxima',
