@@ -45,10 +45,19 @@ export default defineConfig(
 	},
 	{
 		// Ley L1 del contrato Vega P1: el SDK `pocketbase` SOLO puede importarse dentro de
-		// src/lib/backend/adapters/pocketbase/. El puerto (src/lib/backend/) y todo lo demás
-		// no pueden depender de él, ni siquiera transitivamente.
+		// src/lib/backend/adapters/pocketbase/ EN CÓDIGO DE PRODUCCIÓN. El puerto
+		// (src/lib/backend/) y el resto de la app no pueden depender de él, ni siquiera
+		// transitivamente. El harness de tests de Fase 2 (tests/contract/pb-harness/ y su
+		// fichero de test) queda también excluido a propósito: es infraestructura que arranca
+		// y siembra un PocketBase real para la suite de contrato, no el adaptador — no hay
+		// forma de sembrar el fixture completo (select/relation/vistas…) a través del
+		// vocabulario reducido de `ensureCollections`.
 		files: ['**/*.{js,ts,svelte}'],
-		ignores: ['src/lib/backend/adapters/pocketbase/**'],
+		ignores: [
+			'src/lib/backend/adapters/pocketbase/**',
+			'tests/contract/pb-harness/**',
+			'tests/contract/pocketbase.contract.test.ts'
+		],
 		rules: {
 			'no-restricted-imports': [
 				'error',
