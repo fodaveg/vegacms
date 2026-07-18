@@ -81,6 +81,17 @@ export const es = {
 	'list.cell.no': 'No',
 	'list.untitled': '(sin título)',
 
+	// ————— Toolbar de listado (Fase 4d del contrato P4) —————
+	'list.search.placeholder': 'Buscar…',
+	'list.search.ariaLabel': 'Buscar en el listado',
+	'list.filter.status.label': 'Estado',
+	'list.filter.status.all': 'Todos',
+	'list.sort.ariaLabel': 'Ordenar por {column}',
+	'list.emptySearch.title': 'Sin resultados',
+	'list.emptySearch.body':
+		'Ningún registro de "{label}" coincide con la búsqueda o los filtros activos.',
+	'list.emptySearch.clear': 'Limpiar filtros',
+
 	// ————— Medios (hueco pre-P6) —————
 	'media.placeholderTitle': 'Los medios llegan en una fase próxima',
 	'media.placeholderBody': 'La biblioteca de medios todavía no está disponible.',

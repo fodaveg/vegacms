@@ -6,12 +6,18 @@
  * SIN registros, `authors` normal SIN registros, `metrics` normal SIN campo título resoluble —
  * ver la cabecera de ese fichero).
  *
- * SIN orden/búsqueda (4d) ni borrado (4e): esta suite no los ejercita porque `/c/[type]` no los
- * pinta todavía. `routes.spec.ts` sigue cubriendo que un singleton (`site_info`) nunca cae en esta
- * rama de listado.
+ * SIN borrado (4e): esta suite no lo ejercita porque `/c/[type]` no lo pinta todavía.
+ * `routes.spec.ts` sigue cubriendo que un singleton (`site_info`) nunca cae en esta rama de
+ * listado.
  *
  * Suites `fila siempre abrible sin titleField` y `página fuera de rango`: fixes de code-review de
  * 4c (L-P4.15 y L-P4.13 respectivamente, ver `RecordTable.svelte`/`+page.svelte`).
+ *
+ * **Fase 4d** (búsqueda D-P4.3, filtro de estado D-P4.4, orden por cabecera D-P4.6, vacío-búsqueda
+ * L-P4.12): añadida al final del fichero. Fixture: `posts` tiene EXACTAMENTE un título que
+ * contiene "Bienvenido" (`post_1`), 16 registros `draft`/16 `published` (ver `demo-seed.ts`), y
+ * un cuarto campo `tags` (`select` múltiple, forzado en `listFields` del manifiesto) como ÚNICA
+ * columna NO escalar del listado — para poder ejercer que su cabecera no ofrece orden.
  */
 import { expect, loginAsDemo, test } from './fixtures';
 
@@ -210,5 +216,217 @@ test.describe('página fuera de rango (L-P4.13, fix de code-review)', () => {
 		await expect(table).toBeVisible();
 		await expect(page.locator('[data-list-state="empty-collection"]')).toHaveCount(0);
 		await expect(page.locator('.vega-pagination-status')).toContainText('2 de 2');
+	});
+});
+
+test.describe('búsqueda (D-P4.3, Fase 4d)', () => {
+	test('teclear en el buscador filtra las filas, actualiza el total y refleja ?q= en la URL', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts');
+
+		// "Bienvenido" solo aparece en el título de `post_1` (ver cabecera del fichero): tras el
+		// debounce (~300ms, `ListToolbar`), la URL/tabla convergen a un único resultado.
+		await page.getByLabel('Buscar en el listado').fill('Bienvenido');
+		await expect(page).toHaveURL(/\?q=Bienvenido$/);
+
+		const table = page.locator('[data-list-state="ready"]');
+		await expect(table).toBeVisible();
+		await expect(table.locator('tbody tr')).toHaveCount(1);
+		await expect(page.getByRole('link', { name: 'Bienvenido a Vega' })).toBeVisible();
+		await expect(page.locator('.vega-pagination-status')).toContainText('1 registros');
+	});
+});
+
+test.describe('filtro de estado (D-P4.4, Fase 4d)', () => {
+	test('el select de estado filtra y refleja ?status= en la URL', async ({ page }) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts');
+
+		// 16 draft / 16 published (ver cabecera del fichero, `EXTRA_POST_RECORDS` + post_1/post_2).
+		await page.getByLabel('Estado').selectOption('draft');
+		await expect(page).toHaveURL(/\?status=draft$/);
+		await expect(page.locator('.vega-pagination-status')).toContainText('16 registros');
+
+		await page.getByLabel('Estado').selectOption({ label: 'Todos' });
+		await expect(page).not.toHaveURL(/status=/);
+		await expect(page.locator('.vega-pagination-status')).toContainText('32 registros');
+	});
+});
+
+test.describe('vacío-búsqueda (L-P4.12, Fase 4d): distinto de vacío-colección', () => {
+	test('0 resultados con búsqueda activa cae en empty-search (NO empty-collection), "Limpiar filtros" restaura la lista', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts');
+
+		await page.getByLabel('Buscar en el listado').fill('zzz-no-existe-nada');
+		await expect(page).toHaveURL(/\?q=zzz-no-existe-nada$/);
+
+		const emptySearch = page.locator('[data-list-state="empty-search"]');
+		await expect(emptySearch).toBeVisible();
+		await expect(page.locator('[data-list-state="empty-collection"]')).toHaveCount(0);
+		// NUNCA la CTA "Crear" en vacío-búsqueda (a diferencia de vacío-colección, §4c).
+		await expect(emptySearch.getByRole('button', { name: 'Crear' })).toHaveCount(0);
+
+		await emptySearch.getByRole('button', { name: 'Limpiar filtros' }).click();
+		await expect(page).not.toHaveURL(/q=/);
+		await expect(page.locator('[data-list-state="ready"]')).toBeVisible();
+		await expect(page.locator('.vega-pagination-status')).toContainText('32 registros');
+	});
+
+	test('búsqueda + filtro de estado combinados a 0 resultados también cae en empty-search', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		// `post_1` ("Bienvenido a Vega") es `published`: combinado con `status=draft` no hay ningún
+		// registro que case con ambos a la vez.
+		await page.goto('/c/posts?q=Bienvenido&status=draft');
+
+		await expect(page.locator('[data-list-state="empty-search"]')).toBeVisible();
+	});
+
+	test('carrera "Limpiar filtros" vs debounce pendiente: el timer viejo NO revive el q borrado (fix de code-review)', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		// Deep-link directo a un vacío-búsqueda ya asentado (URL/estado en `q=xyzw-no-existe`, "Limpiar
+		// filtros" visible de entrada) — así el tecleo siguiente arranca un SEGUNDO debounce sobre un
+		// `viewState.q` externo que todavía no ha cambiado.
+		await page.goto('/c/posts?q=xyzw-no-existe');
+		const emptySearch = page.locator('[data-list-state="empty-search"]');
+		await expect(emptySearch).toBeVisible();
+
+		// Teclea un valor NUEVO (arranca el debounce de ~300ms) y, SIN esperarlo, pulsa "Limpiar
+		// filtros" antes de que dispare.
+		await page.getByLabel('Buscar en el listado').fill('otra-busqueda-nunca-emitida');
+		await emptySearch.getByRole('button', { name: 'Limpiar filtros' }).click();
+
+		// El clic gana: la URL vuelve a limpia de inmediato.
+		await expect(page).not.toHaveURL(/q=/);
+		await expect(page.locator('[data-list-state="ready"]')).toBeVisible();
+
+		// Pasado el debounce (> 300ms), el timer viejo NO debe haber revivido `q=` — antes del fix,
+		// `onSearch('otra-busqueda-nunca-emitida')` disparaba igualmente y navegaba de vuelta a
+		// `?q=otra-busqueda-nunca-emitida`, revirtiendo silenciosamente "Limpiar filtros".
+		await page.waitForTimeout(400);
+		await expect(page).not.toHaveURL(/q=/);
+		await expect(page.locator('[data-list-state="ready"]')).toBeVisible();
+	});
+});
+
+test.describe('cambiar filtro resetea a página 1 (D-P4.9, Fase 4d)', () => {
+	test('aplicar el filtro de estado desde la página 2 vuelve a la 1, sin arrastrar ?page=2', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts?page=2');
+		await expect(page.locator('.vega-pagination-status')).toContainText('2 de 2');
+
+		await page.getByLabel('Estado').selectOption('published');
+
+		// `page` es el default (D-P4.9, URLs limpias): no se escribe `?page=1` junto a `?status=`.
+		await expect(page).toHaveURL(/\/c\/posts\?status=published$/);
+		await expect(page.locator('.vega-pagination-status')).toContainText('1 de 1');
+	});
+});
+
+test.describe('orden por cabecera (D-P4.6, Fase 4d)', () => {
+	test('clic en la cabecera "Title" cicla asc → desc → sin-orden, reordena las filas y refleja ?sort=&dir=', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts');
+
+		const table = page.locator('[data-list-state="ready"]');
+		const titleHeader = table.locator('thead th', { hasText: 'Title' });
+		const titleSortButton = titleHeader.locator('button');
+		const firstRow = table.locator('tbody tr').first();
+
+		await titleSortButton.click();
+		await expect(page).toHaveURL(/\?sort=title&dir=asc$/);
+		await expect(titleHeader).toHaveAttribute('aria-sort', 'ascending');
+		// Ascendente por codepoint (§4.6 del contrato P1, `compareValues`): "Bienvenido a Vega" es
+		// el título alfabéticamente menor de los 32 (ver cabecera del fichero).
+		await expect(firstRow).toContainText('Bienvenido a Vega');
+
+		await titleSortButton.click();
+		await expect(page).toHaveURL(/\?sort=title&dir=desc$/);
+		await expect(titleHeader).toHaveAttribute('aria-sort', 'descending');
+		// Descendente: "Entrada 9" es el título alfabéticamente mayor (el dígito "9" supera al
+		// primer dígito de cualquier "Entrada 1x".."Entrada 3x" en comparación de codepoints).
+		await expect(firstRow).toContainText('Entrada 9');
+
+		await titleSortButton.click();
+		await expect(page).not.toHaveURL(/sort=/);
+		await expect(titleHeader).toHaveAttribute('aria-sort', 'none');
+	});
+
+	test('ordenar por una columna distinta arranca siempre en asc (D-P4.6(a), una sola columna a la vez)', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts?sort=title&dir=desc');
+
+		const table = page.locator('[data-list-state="ready"]');
+		await table.locator('thead th', { hasText: 'Status' }).locator('button').click();
+
+		await expect(page).toHaveURL(/\?sort=status&dir=asc$/);
+		await expect(table.locator('thead th', { hasText: 'Title' })).toHaveAttribute(
+			'aria-sort',
+			'none'
+		);
+		await expect(table.locator('thead th', { hasText: 'Status' })).toHaveAttribute(
+			'aria-sort',
+			'ascending'
+		);
+	});
+
+	test('la cabecera "Tags" (select múltiple, NO escalar) no ofrece ningún control de orden', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts');
+
+		const table = page.locator('[data-list-state="ready"]');
+		const tagsHeader = table.locator('thead th', { hasText: 'Tags' });
+		await expect(tagsHeader).toBeVisible();
+		await expect(tagsHeader.locator('button')).toHaveCount(0);
+		expect(await tagsHeader.getAttribute('aria-sort')).toBeNull();
+	});
+});
+
+test.describe('deep-link reconstruye la vista entera (L-P4.13, Fase 4d)', () => {
+	test('?q=&status=&sort=&dir= reconstruyen la toolbar, la cabecera y la tabla tras recargar', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		// "Entrada" + status=draft: 15 registros (n impar 3..31, ver cabecera del fichero), ninguno
+		// vacío, para poder comprobar la tabla poblada además de los controles.
+		await page.goto('/c/posts?q=Entrada&status=draft&sort=title&dir=asc');
+
+		const table = page.locator('[data-list-state="ready"]');
+		await expect(table).toBeVisible();
+		await expect(page.locator('.vega-pagination-status')).toContainText('15 registros');
+		await expect(page.getByLabel('Buscar en el listado')).toHaveValue('Entrada');
+		await expect(page.getByLabel('Estado')).toHaveValue('draft');
+		await expect(table.locator('thead th', { hasText: 'Title' })).toHaveAttribute(
+			'aria-sort',
+			'ascending'
+		);
+
+		await page.reload();
+
+		const tableAfterReload = page.locator('[data-list-state="ready"]');
+		await expect(tableAfterReload).toBeVisible();
+		await expect(page.locator('.vega-pagination-status')).toContainText('15 registros');
+		await expect(page.getByLabel('Buscar en el listado')).toHaveValue('Entrada');
+		await expect(page.getByLabel('Estado')).toHaveValue('draft');
+		await expect(tableAfterReload.locator('thead th', { hasText: 'Title' })).toHaveAttribute(
+			'aria-sort',
+			'ascending'
+		);
 	});
 });

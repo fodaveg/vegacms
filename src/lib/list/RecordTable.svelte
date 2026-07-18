@@ -1,9 +1,8 @@
 <script lang="ts">
 	/**
-	 * `RecordTable.svelte` (Fase 4c del contrato P4, la tabla READ-ONLY): traduce cada
-	 * `VegaRecord` + `ColumnSpec` (4a) a una fila vía `describeCell` (4a) — SIN orden, SIN
-	 * búsqueda, SIN borrado (eso es 4d/4e; `ColumnSpec.sortable` existe pero esta fase no pinta
-	 * ningún control de orden en las cabeceras).
+	 * `RecordTable.svelte` (Fase 4c+4d del contrato P4, la tabla READ-ONLY): traduce cada
+	 * `VegaRecord` + `ColumnSpec` (4a) a una fila vía `describeCell` (4a), con orden por cabecera
+	 * (4d, ver más abajo) — SIN búsqueda (eso vive en `ListToolbar.svelte`) ni borrado (4e).
 	 *
 	 * - **Fila siempre abrible (L-P4.15, fix de code-review de 4c)**: la celda de APERTURA es
 	 *   SIEMPRE un enlace real a `ctx.nav.toRecord` — `href` real (Cmd/Ctrl/Shift+click y click
@@ -28,6 +27,15 @@
 	 * - **Realtime NO se usa en v1 (L-P4.5)**: esta tabla no se auto-refresca; el hueco queda
 	 *   declarado aquí a propósito — el refresco solo llega tras una mutación propia (4e) o una
 	 *   recarga completa.
+	 * - **Orden por cabecera (Fase 4d, D-P4.6)**: las columnas `sortable` (`ColumnSpec.sortable`,
+	 *   §4a) pintan un `<button>` dentro del `<th>` que cicla asc→desc→sin-orden al click (la
+	 *   lógica del ciclo vive en `cycleSort`, 4d — este componente NO decide el próximo estado,
+	 *   solo avisa con `onSort(field)`). Las columnas no escalares se quedan con la cabecera de
+	 *   texto plano de siempre, sin ningún control. `aria-sort` (`ascending`/`descending`/`none`)
+	 *   solo se pone en las cabeceras `sortable`: no tiene sentido ARIA anunciar un estado de orden
+	 *   en una columna que nunca puede ordenar. La navegación real (reflejar el resultado en
+	 *   `?sort=&dir=`) la hace `+page.svelte`, TONTO a propósito, mismo reparto que
+	 *   `Pagination.svelte`/`ListToolbar.svelte`.
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import { recordRoute } from '$lib/nav/routes';
@@ -36,14 +44,20 @@
 	import { resolveTitleCellText } from './list-load';
 	import type { ResolvedContentType } from '$lib/model/types';
 	import type { VegaRecord } from '$lib/backend/types';
+	import type { ViewState } from './query-state';
 
 	interface Props {
 		contentType: ResolvedContentType;
 		columns: ColumnSpec[];
 		records: VegaRecord[];
+		/** Orden activo de la vista (D-P4.6), o `null` si ninguna columna está ordenada. */
+		sort: ViewState['sort'];
+		/** Avisa de un click en la cabecera de `field` (siempre una columna `sortable`); quien
+		 *  escucha decide el próximo estado (`cycleSort`) y navega. */
+		onSort: (field: string) => void;
 	}
 
-	let { contentType, columns, records }: Props = $props();
+	let { contentType, columns, records, sort, onSort }: Props = $props();
 
 	const ctx = getVegaContext();
 
@@ -79,6 +93,14 @@
 		event.preventDefault();
 		ctx.nav.toRecord(contentType.name, id);
 	}
+
+	/** Valor ARIA del estado de orden de la columna `field` (D-P4.6, solo para cabeceras
+	 *  `sortable`): `'ascending'`/`'descending'` si es la columna activa, `'none'` en cualquier
+	 *  otro caso (incluida ninguna columna ordenada). */
+	function ariaSortFor(field: string): 'ascending' | 'descending' | 'none' {
+		if (!sort || sort.field !== field) return 'none';
+		return sort.dir === 'asc' ? 'ascending' : 'descending';
+	}
 </script>
 
 <div class="vega-record-table-wrap">
@@ -91,7 +113,25 @@
 					<th scope="col"></th>
 				{:else}
 					{#each columns as column (column.field.name)}
-						<th scope="col">{column.field.label}</th>
+						{#if column.sortable}
+							<th scope="col" aria-sort={ariaSortFor(column.field.name)}>
+								<button
+									type="button"
+									class="vega-sort-button"
+									aria-label={ctx.t('list.sort.ariaLabel', { column: column.field.label })}
+									onclick={() => onSort(column.field.name)}
+								>
+									{column.field.label}
+									{#if sort && sort.field === column.field.name}
+										<span aria-hidden="true" class="vega-sort-indicator">
+											{sort.dir === 'asc' ? '▲' : '▼'}
+										</span>
+									{/if}
+								</button>
+							</th>
+						{:else}
+							<th scope="col">{column.field.label}</th>
+						{/if}
 					{/each}
 				{/if}
 			</tr>
@@ -203,6 +243,29 @@
 		letter-spacing: 0.03em;
 		color: var(--vega-color-text-muted);
 		border-bottom: 1px solid var(--vega-color-border);
+	}
+
+	.vega-sort-button {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0;
+		border: none;
+		background: none;
+		color: inherit;
+		font: inherit;
+		text-transform: inherit;
+		letter-spacing: inherit;
+		cursor: pointer;
+	}
+
+	.vega-sort-button:hover {
+		color: var(--vega-color-text);
+	}
+
+	.vega-sort-indicator {
+		font-size: 0.65rem;
+		color: var(--vega-color-accent);
 	}
 
 	.vega-record-table tbody tr {

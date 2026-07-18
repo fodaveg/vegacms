@@ -10,12 +10,15 @@
 	 *   con `ctx.nav.toSingleton()`, el MISMO camino que usa un click de sidebar (`NavItem.svelte`)
 	 *   — incluida su captura de errores de transporte vía `feedback.reportError` (P3-L3: ninguna
 	 *   promesa rechazada suelta).
-	 * - `type` normal → la tabla READ-ONLY montada de 4c (columnas de 4a + estado de vista de 4b):
-	 *   loading/vacío-colección/error + paginación, con la insignia "Solo lectura" si
-	 *   `type.readonly` (view). SIN orden/búsqueda (4d) y SIN borrado (4e) todavía. Un `?page=`
-	 *   fuera de rango (`items: []` pero `totalItems > 0`, ningún adaptador clampa `page`) NO se
-	 *   confunde con la colección vacía: redirige a la última página válida (fix de code-review,
-	 *   L-P4.13, ver `pageOutOfRange` más abajo).
+	 * - `type` normal → la tabla READ-ONLY montada de 4c/4d (columnas de 4a + estado de vista de
+	 *   4b) + la toolbar de 4d (búsqueda D-P4.3, filtro de estado D-P4.4, orden por cabecera
+	 *   D-P4.6): loading/vacío-colección/vacío-búsqueda/error + paginación, con la insignia "Solo
+	 *   lectura" si `type.readonly` (view). SIN borrado (4e) todavía. Un `?page=` fuera de rango
+	 *   (`items: []` pero `totalItems > 0`, ningún adaptador clampa `page`) NO se confunde con la
+	 *   colección vacía: redirige a la última página válida (fix de code-review, L-P4.13, ver
+	 *   `pageOutOfRange` más abajo). Un 0-resultados CON búsqueda/filtro activos tampoco se
+	 *   confunde con la colección vacía de verdad: es `empty-search` (L-P4.12, ver `hasActiveFilters`
+	 *   y el orden de ramas del marcado).
 	 *
 	 * Guard P3-L9 (router-ready antes de navegar): esta ruta usa `onMount`, NO el patrón
 	 * `afterNavigate` + `routerReady` del índice (`routes/+page.svelte`). Motivo (bug real
@@ -40,14 +43,17 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { getVegaContext } from '$lib/app-context';
+	import type { ResolvedContentType } from '$lib/model/types';
 	import { resolveVisibleContentType } from '$lib/nav/content-type';
 	import { deriveColumns } from '$lib/list/columns';
-	import { parseViewState, viewStateToParams } from '$lib/list/query-state';
+	import { parseViewState, viewStateToParams, type ViewStatePatch } from '$lib/list/query-state';
+	import { cycleSort } from '$lib/list/sort';
 	import { createListState } from '$lib/list/list-state.svelte';
 	import { listRoute } from '$lib/nav/routes';
 	import RouteState from '$lib/shell/RouteState.svelte';
 	import RecordTable from '$lib/list/RecordTable.svelte';
 	import Pagination from '$lib/list/Pagination.svelte';
+	import ListToolbar from '$lib/list/ListToolbar.svelte';
 
 	const ctx = getVegaContext();
 
@@ -92,15 +98,41 @@
 	const pageOutOfRange = $derived(
 		readyPage !== null && readyPage.items.length === 0 && readyPage.totalItems > 0
 	);
+	// Búsqueda o filtro de estado activos (Fase 4d, L-P4.12): distingue un 0-resultados CON
+	// filtros (empty-search) de la colección REALMENTE vacía (empty-collection). El orden NO
+	// cuenta como filtro para esta distinción (D-P4.6 nunca produce 0 resultados por sí solo).
+	const hasActiveFilters = $derived(viewState.q !== '' || viewState.status !== null);
+	// items.length === 0 SIN datos en ninguna página (totalItems === 0): ni "fuera de rango" (eso
+	// exige totalItems > 0) ni "ready" — se bifurca en empty-search/empty-collection más abajo
+	// según `hasActiveFilters`.
+	const isEmpty = $derived(
+		readyPage !== null && readyPage.items.length === 0 && readyPage.totalItems === 0
+	);
+
+	/** Construye la URL del listado para `params` y navega (D-P4.9). Núcleo compartido de
+	 *  `goToPage` (paginación de 4c, NO resetea nada) y `navigateView` (búsqueda/filtro/orden de
+	 *  4d, SIEMPRE resetea a página 1) — ninguna de las dos duplica el `goto`/`listRoute`. */
+	function navigate(type: ResolvedContentType, params: URLSearchParams): void {
+		const qs = params.toString();
+		void goto(`${listRoute(type.name)}${qs ? `?${qs}` : ''}`);
+	}
 
 	/** Navega a `targetPage` conservando el resto del `ViewState` (D-P4.9, L-P4.13). Guardado tras
 	 *  `routerReady` (P3-L9): en la práctica un click de usuario solo puede ocurrir ya hidratado,
 	 *  pero se guarda igual por consistencia con el resto de navegación programática del shell. */
 	function goToPage(target: number): void {
 		if (!routerReady || !contentType) return;
-		const params = viewStateToParams({ ...viewState, page: target });
-		const qs = params.toString();
-		void goto(`${listRoute(contentType.name)}${qs ? `?${qs}` : ''}`);
+		navigate(contentType, viewStateToParams({ ...viewState, page: target }));
+	}
+
+	/** Navega aplicando `patch` sobre el `viewState` actual y RESETEANDO `page` a 1 (D-P4.3/
+	 *  D-P4.4/D-P4.6): un filtro/búsqueda/orden nuevo siempre debe llevar a la primera página — a
+	 *  diferencia de `goToPage`, que no toca nada más. Es el único punto de navegación que usan
+	 *  `ListToolbar` (búsqueda/estado), la cabecera ordenable de `RecordTable` y la acción "Limpiar
+	 *  filtros" del estado `empty-search`. Guardado tras `routerReady` (P3-L9). */
+	function navigateView(patch: ViewStatePatch): void {
+		if (!routerReady || !contentType) return;
+		navigate(contentType, viewStateToParams({ ...viewState, ...patch, page: 1 }));
 	}
 
 	// Página fuera de rango (fix de code-review, L-P4.13): en vez de un callejón sin salida
@@ -135,6 +167,16 @@
 			{/if}
 		</div>
 
+		<!-- La toolbar (Fase 4d) vive FUERA del switch de `listStatus`: solo depende de
+		     `contentType`/`viewState` (URL), no de si la carga está en curso, en error o vacía — se
+		     mantiene usable (y refleja el deep-link, L-P4.13) en cualquier estado. -->
+		<ListToolbar
+			{contentType}
+			{viewState}
+			onSearch={(q) => navigateView({ q })}
+			onStatusChange={(status) => navigateView({ status })}
+		/>
+
 		{#if listStatus.kind === 'loading'}
 			<p data-list-state="loading" aria-live="polite">{ctx.t('common.loading')}</p>
 		{:else if listStatus.kind === 'error'}
@@ -152,7 +194,19 @@
 			     disparó `goToPage(totalPages)`; mientras esa recarga está en vuelo, un estado de
 			     carga honesto — nunca el vacío-colección (habría datos reales en otra página). -->
 			<p data-list-state="loading" aria-live="polite">{ctx.t('common.loading')}</p>
-		{:else if readyPage && readyPage.items.length === 0}
+		{:else if isEmpty && hasActiveFilters}
+			<!-- Vacío-búsqueda (L-P4.12): 0 resultados CON búsqueda o filtro de estado activos. NO es
+			     la colección vacía de verdad (podría tener registros que la búsqueda/filtro descartan) —
+			     por eso NUNCA la CTA "Crear" aquí, sino "Limpiar filtros" (resetea `q`/`status`, vuelve
+			     a página 1 vía `navigateView`). -->
+			<div class="vega-list-empty" data-list-state="empty-search">
+				<h2>{ctx.t('list.emptySearch.title')}</h2>
+				<p>{ctx.t('list.emptySearch.body', { label: contentType.label })}</p>
+				<button type="button" onclick={() => navigateView({ q: '', status: null })}>
+					{ctx.t('list.emptySearch.clear')}
+				</button>
+			</div>
+		{:else if isEmpty}
 			<div class="vega-list-empty" data-list-state="empty-collection">
 				<h2>{ctx.t('list.empty.title')}</h2>
 				<p>{ctx.t('list.empty.body', { label: contentType.label })}</p>
@@ -164,7 +218,13 @@
 			</div>
 		{:else if readyPage}
 			<div data-list-state="ready">
-				<RecordTable {contentType} {columns} records={readyPage.items} />
+				<RecordTable
+					{contentType}
+					{columns}
+					records={readyPage.items}
+					sort={viewState.sort}
+					onSort={(field) => navigateView({ sort: cycleSort(viewState.sort, field) })}
+				/>
 				<Pagination
 					page={readyPage.page}
 					totalPages={readyPage.totalPages}

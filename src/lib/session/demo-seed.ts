@@ -7,7 +7,14 @@
  *   registros seed (`post_1`/`post_2` originales de 2b + `post_3`..`post_32` de 4c, ver
  *   `EXTRA_POST_RECORDS`): más de `DEFAULT_PER_PAGE` (30), a propósito, para poder ejercer la
  *   paginación real de P4/4c (Anterior/Siguiente, deep-link a `?page=2`) sin datos sintéticos
- *   ad-hoc en cada e2e.
+ *   ad-hoc en cada e2e. **Añadido en 4d**: un cuarto campo `tags` (`select` MÚLTIPLE, sin datos
+ *   seed) forzado en `listFields` vía el manifiesto (`listFields: ['title','status','body','tags']`)
+ *   — el ÚNICO campo NO escalar (`isScalarField` = false) del listado de `posts`, para poder
+ *   ejercer en e2e que su cabecera NO pinta control de orden (D-P4.6) mientras `title`/`status`/
+ *   `body` (todos escalares) sí lo hacen. `status` (16 `draft`/16 `published`, ver
+ *   `EXTRA_POST_RECORDS`) y `title` (con exactamente UN registro, "Bienvenido a Vega", que
+ *   contiene la palabra "Bienvenido") también sirven de fixture determinista para la búsqueda
+ *   (D-P4.3) y el filtro de estado (D-P4.4) de la Fase 4d.
  * - **`pages`**: tipo `readonly` (view), MISMO grupo "Contenido", orden 2 — cubre la insignia
  *   "Solo lectura" de `NavItem` (§4.1). SIN registros (cambiado en 4c, antes tenía uno): así el
  *   listado de `pages` cae en el estado vacío-colección de P4 SIN la CTA "Crear" (§4c,
@@ -105,6 +112,21 @@ const POSTS_CONTENT_TYPE: ContentType = {
 			name: 'body',
 			type: 'text',
 			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		// `select` MÚLTIPLE (ver cabecera del módulo): añadido en 4d como el único campo NO escalar
+		// del listado de "posts", forzado a `listFields` vía el manifiesto para ejercer que su
+		// cabecera de columna no ofrece orden (D-P4.6). Sin datos seed: ningún test necesita valores,
+		// solo que la columna exista.
+		{
+			name: 'tags',
+			type: 'select',
+			options: ['vega', 'demo', 'news'],
+			multiple: true,
 			required: false,
 			readonly: false,
 			presentable: false,
@@ -210,7 +232,11 @@ const DEMO_MANIFEST: JsonValue = {
 			// `icon-unknown` para poder testear el badge/lista de L10 de forma determinista.
 			icon: 'rocket-unknown',
 			group: 'Contenido',
-			order: 1
+			order: 1,
+			// `tags` (select múltiple) NO es `listable` por defecto (§4.10): forzado aquí para tener,
+			// en la Fase 4d, una columna NO escalar de verdad que ejercer contra la cabecera SIN
+			// control de orden (ver cabecera del módulo).
+			listFields: ['title', 'status', 'body', 'tags']
 		},
 		pages: {
 			label: 'Páginas',

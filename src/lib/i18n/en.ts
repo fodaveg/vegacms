@@ -76,6 +76,16 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.cell.no': 'No',
 	'list.untitled': '(untitled)',
 
+	// ————— List toolbar (P4 contract, Phase 4d) —————
+	'list.search.placeholder': 'Search…',
+	'list.search.ariaLabel': 'Search the list',
+	'list.filter.status.label': 'Status',
+	'list.filter.status.all': 'All',
+	'list.sort.ariaLabel': 'Sort by {column}',
+	'list.emptySearch.title': 'No results',
+	'list.emptySearch.body': 'No "{label}" record matches the search or the active filters.',
+	'list.emptySearch.clear': 'Clear filters',
+
 	// ————— Media (gap pre-P6) —————
 	'media.placeholderTitle': 'Media is coming in a future phase',
 	'media.placeholderBody': 'The media library is not available yet.',

@@ -55,6 +55,16 @@ export function parseViewState(params: URLSearchParams): ViewState {
  * propiedad de round-trip: `parseViewState(viewStateToParams(s))` preserva el estado
  * significativo de `s`.
  */
+/**
+ * Subconjunto de `ViewState` que puede parchear una navegación de vista (Fase 4d, D-P4.3/
+ * D-P4.4/D-P4.6): NUNCA incluye `page` — quien aplica el parche (`navigateView` en
+ * `+page.svelte`) SIEMPRE la resetea a 1, un filtro/búsqueda/orden nuevo no debe dejar al
+ * usuario varado en una página que puede ni existir en el resultado nuevo. Vive aquí (`.ts`) y
+ * no en el `.svelte` que lo consume para que el `Partial` (con sus `?` internos) no aparezca
+ * literalmente en ningún fichero `.svelte` del repo.
+ */
+export type ViewStatePatch = Partial<Pick<ViewState, 'q' | 'sort' | 'status'>>;
+
 export function viewStateToParams(state: ViewState): URLSearchParams {
 	const params = new URLSearchParams();
 	if (state.q !== '') params.set('q', state.q);
