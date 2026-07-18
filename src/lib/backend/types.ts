@@ -86,6 +86,12 @@ export interface Capabilities {
 	filePerRecord: boolean;
 	/** Soporte de campos file `protected` (token de acceso). v1: false en ambos adaptadores. */
 	protectedFiles: boolean;
+	/**
+	 * `ensureCollections()` puede CREAR colecciones (v1: solo el prefijo reservado `vega_*`,
+	 * Anexo A). PB: true (requiere superuser). memory: true. Adaptadores sin creación de
+	 * esquema: false (regla de evolución de capabilities: ausente/false ⇒ no soportado).
+	 */
+	schemaBootstrap: boolean;
 }
 
 // ————— Paginación —————

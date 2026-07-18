@@ -21,3 +21,9 @@ Thumbs.db
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Binario de PocketBase para la suite de contrato real (Fase 2, tests/contract/pb-harness/):
+# se descarga con `pnpm test:pb` / `scripts/download-pocketbase.mjs`, nunca se commitea.
+/.pbbin
+# Datos efímeros de instancias de PocketBase levantadas por el harness de tests.
+/.pbdata-*

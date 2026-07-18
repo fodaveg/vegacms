@@ -19,6 +19,7 @@ import type {
 	VegaRecord
 } from './types';
 import type { Query } from './query';
+import type { CollectionSpec, EnsureResult } from './collections';
 
 export interface BackendPort {
 	// ——— Identidad del adaptador ———
@@ -54,4 +55,15 @@ export interface BackendPort {
 
 	// ——— Realtime (§4.5, capability) ———
 	subscribe(type: string, cb: (e: RecordEvent) => void): Promise<() => void>;
+
+	// ——— Bootstrap de esquema acotado a vega_* (Anexo A, capability schemaBootstrap) ———
+	/**
+	 * Crea las colecciones de `specs` que NO existan aún. Idempotente: una segunda llamada con
+	 * los mismos `specs` devuelve `created: []` (todo en `skipped`). NUNCA modifica ni borra una
+	 * colección existente (ni sus campos). SOLO admite nombres `'vega'` o `vega_*`; cualquier
+	 * otro ⇒ `VegaError 'validation'` local, sin tocar red. Sin `capabilities.schemaBootstrap`
+	 * ⇒ `VegaError 'backend'` inmediato (L8). Sin permiso de creación de esquema (PB: superuser)
+	 * ⇒ `VegaError 'forbidden'`.
+	 */
+	ensureCollections(specs: CollectionSpec[]): Promise<EnsureResult>;
 }

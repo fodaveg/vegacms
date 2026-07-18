@@ -81,20 +81,27 @@ export class VegaError extends Error {
 
 /**
  * Códigos de validación pass-through estilo PocketBase (§7: "usa los códigos de PB… para que
- * P5 traduzca una sola tabla"). NOTA de implementación: son una aproximación razonable a los
- * códigos reales del validador de PB ≥0.26; el adaptador `pocketbase` (Fase 2) es la fuente de
- * verdad final y debe ajustar esta lista si el binario real difiere en algún código concreto.
+ * P5 traduzca una sola tabla"). VERIFICADOS en Fase 2 contra el binario real de PocketBase
+ * 0.39.6 (creando cada violación una a una y leyendo `data.<campo>.code` de la respuesta 400;
+ * ver `tests/contract/pb-harness/`). Ya NO son una aproximación: en Fase 1 se habían adivinado
+ * `validation_min_value_constraint`/`validation_max_value_constraint` (genéricos) y
+ * `validation_values_invalid`/`validation_invalid_relation_values` — los cuatro eran
+ * incorrectos; PB usa códigos distintos para number vs date y nombres distintos para select/
+ * relation. El adaptador `pocketbase` NO usa esta tabla (relee el `code` que devuelve la red
+ * tal cual, pass-through): esta tabla es solo para que `memory` emule los mismos códigos.
  */
 export const PB_VALIDATION_CODES = {
 	required: 'validation_required',
 	minLength: 'validation_min_text_constraint',
 	maxLength: 'validation_max_text_constraint',
 	pattern: 'validation_invalid_format',
-	minValue: 'validation_min_value_constraint',
-	maxValue: 'validation_max_value_constraint',
-	selectInvalid: 'validation_values_invalid',
+	minNumber: 'validation_min_number_constraint',
+	maxNumber: 'validation_max_number_constraint',
+	minDate: 'validation_min_greater_equal_than_required',
+	maxDate: 'validation_max_less_equal_than_required',
+	selectInvalid: 'validation_invalid_value',
 	tooManyValues: 'validation_too_many_values',
-	relationInvalid: 'validation_invalid_relation_values'
+	relationInvalid: 'validation_missing_rel_records'
 } as const;
 
 /**

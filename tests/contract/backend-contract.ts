@@ -8,8 +8,15 @@
  */
 
 import { describe, expect, test } from 'vitest';
-import type { BackendPort, Capabilities, RecordEvent, Session, VegaErrorKind } from '$lib/backend';
-import { VegaError } from '$lib/backend';
+import type {
+	BackendPort,
+	Capabilities,
+	CollectionSpec,
+	RecordEvent,
+	Session,
+	VegaErrorKind
+} from '$lib/backend';
+import { VegaError, VEGA_COLLECTION } from '$lib/backend';
 import {
 	CAT_ALPHA,
 	CAT_BETA,
@@ -25,20 +32,50 @@ import {
 
 export type MakePort = (opts?: { sessionTtlMs?: number }) => BackendPort | Promise<BackendPort>;
 
+/**
+ * Hooks SOLO para adaptadores con transporte real (§10.7/§9.4): construir un puerto que no
+ * puede alcanzar el servidor, y uno cuya siguiente respuesta 2xx llega con forma corrupta.
+ * `memory` no los provee (no tiene transporte) y esos casos se saltan declarándolo.
+ */
+export interface TransportFailureHooks {
+	makeUnreachablePort(): BackendPort | Promise<BackendPort>;
+	makeCorruptResponsePort(): Promise<{ port: BackendPort; cleanup: () => Promise<void> }>;
+}
+
 export interface ContractOptions {
 	/** Nombre del adaptador bajo prueba (para los títulos de los tests). */
 	name: string;
 	/** Capabilities del adaptador — se usan para saltar (no ocultar) los casos que no aplican. */
 	capabilities: Capabilities;
+	transportFailures?: TransportFailureHooks;
 	/**
-	 * `true` solo para adaptadores con transporte real (PB): permiten simular caída de red o
-	 * respuesta corrupta. `memory` no tiene transporte, así que se queda en `false`.
+	 * Cuánto esperar para que un `sessionTtlMs` dado a `makePort` haya vencido de verdad.
+	 * Default 30ms (memory usa TTLs en milisegundos, arbitrarios). PB real solo permite fijar
+	 * la duración del token del superuser a nivel de colección (mínimo 10s) — su harness la
+	 * deja pineada y este valor pasa a ser ~11000.
 	 */
-	canSimulateTransportFailures?: boolean;
+	authExpiryWaitMs?: number;
 }
 
 function sleep(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Espera activa con timeout, en vez de un `sleep` fijo: memory despacha en microtask (casi
+ * instantáneo), pero PB real entrega eventos por SSE con latencia de red de verdad. Un
+ * `sleep(0)` bastaba para memory y NUNCA habría bastado para PB.
+ */
+async function waitUntil(
+	predicate: () => boolean,
+	timeoutMs = 2000,
+	intervalMs = 20
+): Promise<void> {
+	const start = Date.now();
+	while (!predicate()) {
+		if (Date.now() - start > timeoutMs) return; // se deja que la aserción de después falle con detalle
+		await sleep(intervalMs);
+	}
 }
 
 async function login(port: BackendPort): Promise<Session> {
@@ -100,13 +137,17 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 
 			test('restoreSession sin sesión previa devuelve null sin lanzar', async () => {
 				const port = await makePort();
+				// Asegura estado limpio: algunos adaptadores persisten el token fuera de la
+				// instancia (PB usa localStorage/fallback compartido por host, a propósito, para
+				// sobrevivir a un reload real) — logout() siempre limpia, nunca lanza.
+				await port.logout();
 				await expect(port.restoreSession()).resolves.toBeNull();
 			});
 
 			test('restoreSession con sesión caducada limpia y devuelve null sin lanzar', async () => {
 				const port = await makePort({ sessionTtlMs: 10 });
 				await login(port);
-				await sleep(25);
+				await sleep(opts.authExpiryWaitMs ?? 30);
 				const reasons: string[] = [];
 				port.onAuthChange((_s, reason) => reasons.push(reason));
 
@@ -118,7 +159,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			test('operación tras expirar → auth-expired + evento expired exactamente una vez, con 2 en vuelo', async () => {
 				const port = await makePort({ sessionTtlMs: 10 });
 				await login(port);
-				await sleep(25);
+				await sleep(opts.authExpiryWaitMs ?? 30);
 
 				const reasons: string[] = [];
 				port.onAuthChange((_s, reason) => reasons.push(reason));
@@ -340,7 +381,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 					port.create('kitchen_sink', { title: 'x', status: 'no-existe' })
 				).rejects.toMatchObject({
 					kind: 'validation',
-					fieldErrors: { status: { code: 'validation_values_invalid' } }
+					fieldErrors: { status: { code: 'validation_invalid_value' } }
 				});
 			});
 
@@ -350,7 +391,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 					port.create('kitchen_sink', { title: 'x', category: 'no-existe' })
 				).rejects.toMatchObject({
 					kind: 'validation',
-					fieldErrors: { category: { code: 'validation_invalid_relation_values' } }
+					fieldErrors: { category: { code: 'validation_missing_rel_records' } }
 				});
 			});
 
@@ -708,8 +749,24 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			test.skipIf(!capabilities.thumbs)(
 				'thumb: URL de miniatura distinta del original y fetchable (requiere capability)',
 				async () => {
-					// Fase 2 (PB real): implementar aquí la comprobación de dimensiones/URL distinta.
-					expect(capabilities.thumbs).toBe(true);
+					const port = await makePort();
+					// PNG 1x1 real (PB necesita bytes de imagen válidos para generar miniatura).
+					const pngBytes = Buffer.from(
+						'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+						'base64'
+					);
+					const cover = new File([pngBytes], 'pixel.png', { type: 'image/png' });
+					const created = await port.create('kitchen_sink', { title: 'con thumb', cover });
+					const ref = created.values.cover as string;
+
+					const original = port.fileUrl(created, 'cover', ref);
+					const thumb = port.fileUrl(created, 'cover', ref, {
+						thumb: { width: 50, height: 50, fit: 'crop' }
+					});
+					expect(thumb).not.toBe(original);
+
+					const res = await fetch(thumb);
+					expect(res.status).toBe(200);
 				}
 			);
 		});
@@ -728,7 +785,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 					await port.update('kitchen_sink', created.id, { title: 'realtime 2' });
 					await port.delete('kitchen_sink', created.id);
 
-					await sleep(0); // los eventos se despachan en microtask
+					await waitUntil(() => events.length >= 3);
 
 					expect(events.map((e) => e.action)).toEqual(['create', 'update', 'delete']);
 					expect(events[0].record.id).toBe(created.id);
@@ -736,7 +793,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 
 					unsubscribe();
 					await port.create('kitchen_sink', { title: 'no debería llegar' });
-					await sleep(0);
+					await waitUntil(() => events.length >= 4, 500); // confirmamos que NO llega un 4º
 					expect(events).toHaveLength(3);
 				}
 			);
@@ -752,22 +809,101 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			);
 		});
 
-		// ————————————————————————————————————————————————————— 7. Errores de transporte —————
+		// ———————————————————————————————————————————————— 7. ensureCollections (Anexo A) —————
+
+		describe('ensureCollections (Anexo A)', () => {
+			function uniqueVegaName(): string {
+				// Nombre distinto en cada test: contra PB real el servidor persiste entre tests
+				// del mismo fichero (a diferencia de memory, que arranca en blanco cada vez), así
+				// que reutilizar un nombre fijo rompería la idempotencia entre tests sin relación.
+				return `vega_test_${Math.random().toString(36).slice(2, 10)}`;
+			}
+
+			test('capability schemaBootstrap presente (Anexo A.2)', () => {
+				expect(capabilities.schemaBootstrap).toBe(true);
+			});
+
+			test('crea lo ausente y es idempotente (2ª llamada: created vacío, todo skipped)', async () => {
+				const port = await makePort();
+				const name = uniqueVegaName();
+				const spec: CollectionSpec = { name, fields: [{ name: 'note', type: 'text' }] };
+
+				const first = await port.ensureCollections([spec]);
+				expect(first.created).toEqual([name]);
+				expect(first.skipped).toEqual([]);
+
+				const types = await port.listContentTypes();
+				expect(types.some((t) => t.name === name)).toBe(true);
+
+				const second = await port.ensureCollections([spec]);
+				expect(second.created).toEqual([]);
+				expect(second.skipped).toEqual([name]);
+			});
+
+			test('no destructiva: si ya existe, se omite SIN tocar sus campos (§A.4.2)', async () => {
+				const port = await makePort();
+				const name = uniqueVegaName();
+				await port.ensureCollections([{ name, fields: [{ name: 'original', type: 'text' }] }]);
+
+				// Segundo spec para el MISMO nombre con un campo distinto: debe seguir omitida,
+				// sin reconciliar ni añadir el campo nuevo.
+				const result = await port.ensureCollections([
+					{ name, fields: [{ name: 'nuevo_campo', type: 'bool' }] }
+				]);
+				expect(result.created).toEqual([]);
+				expect(result.skipped).toEqual([name]);
+
+				const types = await port.listContentTypes();
+				const ct = types.find((t) => t.name === name)!;
+				expect(ct.fields.some((f) => f.name === 'original')).toBe(true);
+				expect(ct.fields.some((f) => f.name === 'nuevo_campo')).toBe(false);
+			});
+
+			test('rechaza nombres fuera de "vega"/"vega_*" → validation local, sin tocar red (§A.4.3)', async () => {
+				const port = await makePort();
+				await expect(
+					port.ensureCollections([{ name: 'not_reserved', fields: [] }])
+				).rejects.toMatchObject({ kind: 'validation', fieldErrors: { not_reserved: {} } });
+			});
+
+			test('crea (o encuentra ya creada) la especificación canónica VEGA_COLLECTION (§A.5)', async () => {
+				const port = await makePort();
+				const result = await port.ensureCollections([VEGA_COLLECTION]);
+				expect([...result.created, ...result.skipped]).toContain('vega');
+				const types = await port.listContentTypes();
+				expect(types.some((t) => t.name === 'vega')).toBe(true);
+			});
+
+			// v1 solo modela una identidad superuser (D1): no hay una sesión autenticada
+			// NO-superuser con la que probar "capability presente pero sin permiso → forbidden"
+			// sin inventar un segundo tipo de usuario que el contrato no define. Skip declarado,
+			// no un caso que desaparece en silencio.
+			test.skip('con capability pero sin permiso de superuser → forbidden (no modelado en v1)', () => {});
+		});
+
+		// ————————————————————————————————————————————————————— 8. Errores de transporte —————
 
 		describe('errores de transporte', () => {
-			test.skipIf(!opts.canSimulateTransportFailures)(
-				'backend caído (puerto cerrado) → network retryable',
+			test.skipIf(!opts.transportFailures)(
+				'backend caído (sin red) → network retryable',
 				async () => {
-					// Fase 2 (harness PB): tumbar el proceso y comprobar VegaError 'network' + retryable.
-					expect(opts.canSimulateTransportFailures).toBe(true);
+					const port = await opts.transportFailures!.makeUnreachablePort();
+					await expect(port.listContentTypes()).rejects.toMatchObject({
+						kind: 'network',
+						retryable: true
+					});
 				}
 			);
 
-			test.skipIf(!opts.canSimulateTransportFailures)(
+			test.skipIf(!opts.transportFailures)(
 				'respuesta 2xx con cuerpo corrupto → backend',
 				async () => {
-					// Fase 2 (harness PB): proxy que devuelve 200 con forma inesperada.
-					expect(opts.canSimulateTransportFailures).toBe(true);
+					const { port, cleanup } = await opts.transportFailures!.makeCorruptResponsePort();
+					try {
+						await expect(port.listContentTypes()).rejects.toMatchObject({ kind: 'backend' });
+					} finally {
+						await cleanup();
+					}
 				}
 			);
 		});

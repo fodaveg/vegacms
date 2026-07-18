@@ -74,10 +74,10 @@ export function validateFieldValue(
 		case 'number': {
 			const num = value as number;
 			if (field.min !== undefined && num < field.min) {
-				return { code: PB_VALIDATION_CODES.minValue, message: `Debe ser >= ${field.min}` };
+				return { code: PB_VALIDATION_CODES.minNumber, message: `Debe ser >= ${field.min}` };
 			}
 			if (field.max !== undefined && num > field.max) {
-				return { code: PB_VALIDATION_CODES.maxValue, message: `Debe ser <= ${field.max}` };
+				return { code: PB_VALIDATION_CODES.maxNumber, message: `Debe ser <= ${field.max}` };
 			}
 			return null;
 		}
@@ -85,10 +85,10 @@ export function validateFieldValue(
 		case 'date': {
 			const date = value as string;
 			if (field.min !== undefined && date < field.min) {
-				return { code: PB_VALIDATION_CODES.minValue, message: `Debe ser posterior a ${field.min}` };
+				return { code: PB_VALIDATION_CODES.minDate, message: `Debe ser posterior a ${field.min}` };
 			}
 			if (field.max !== undefined && date > field.max) {
-				return { code: PB_VALIDATION_CODES.maxValue, message: `Debe ser anterior a ${field.max}` };
+				return { code: PB_VALIDATION_CODES.maxDate, message: `Debe ser anterior a ${field.max}` };
 			}
 			return null;
 		}

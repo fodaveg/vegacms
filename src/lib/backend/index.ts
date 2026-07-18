@@ -40,5 +40,10 @@ export { LOCAL_REJECTION_CODES, PB_VALIDATION_CODES, VegaError } from './errors'
 
 export { isEmptyValue, normalizeFieldValue } from './normalize';
 export { assertContentTypeWritable, checkUnwritableFields } from './write-guards';
+export type { FileField } from './file-guards';
+export { validateFileFieldInput } from './file-guards';
+
+export type { CollectionFieldSpec, CollectionSpec, EnsureResult } from './collections';
+export { checkReservedNames, isReservedCollectionName, VEGA_COLLECTION } from './collections';
 
 export type { BackendPort } from './port';

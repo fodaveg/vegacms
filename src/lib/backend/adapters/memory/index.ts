@@ -28,6 +28,8 @@ import type { BackendPort } from '../../port';
 import type { Query } from '../../query';
 import { normalizeFieldValue } from '../../normalize';
 import { assertContentTypeWritable, checkUnwritableFields } from '../../write-guards';
+import type { CollectionFieldSpec, CollectionSpec, EnsureResult } from '../../collections';
+import { checkReservedNames } from '../../collections';
 import type { MemorySeed } from './seed';
 export type { MemorySeed } from './seed';
 import { validateFieldValue } from './validate';
@@ -44,7 +46,8 @@ const CAPABILITIES: Capabilities = {
 	thumbs: false,
 	schemaDiscovery: true,
 	filePerRecord: true,
-	protectedFiles: false
+	protectedFiles: false,
+	schemaBootstrap: true
 };
 
 const DEFAULT_USER_EMAIL = 'admin@vega.test';
@@ -55,14 +58,20 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 	const users = seed?.users ?? [];
 	const sessionTtlMs = seed?.sessionTtlMs;
 
-	const contentTypes = [...(seed?.contentTypes ?? [])].sort((a, b) =>
-		a.name < b.name ? -1 : a.name > b.name ? 1 : 0
-	);
-	const contentTypesByName = new Map(contentTypes.map((ct) => [ct.name, ct]));
+	// Mapa mutable (no un array fijo): `ensureCollections` (Anexo A) añade colecciones nuevas
+	// después de la construcción. `listContentTypes` ordena en el momento de leer, no aquí.
+	const contentTypesByName = new Map<string, ContentType>();
+	for (const ct of seed?.contentTypes ?? []) contentTypesByName.set(ct.name, ct);
+
+	function getSortedContentTypes(): ContentType[] {
+		return [...contentTypesByName.values()].sort((a, b) =>
+			a.name < b.name ? -1 : a.name > b.name ? 1 : 0
+		);
+	}
 
 	// type -> id -> valores (ya normalizados por completo; leer es solo clonar).
 	const records = new Map<string, Map<RecordId, Record<string, FieldValue>>>();
-	for (const ct of contentTypes) {
+	for (const ct of contentTypesByName.values()) {
 		const byId = new Map<RecordId, Record<string, FieldValue>>();
 		for (const seeded of seed?.records[ct.name] ?? []) {
 			byId.set(seeded.id, buildNormalizedValues(ct.fields, seeded.values));
@@ -272,7 +281,7 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 
 		async listContentTypes() {
 			checkSessionAlive();
-			return structuredClone(contentTypes);
+			return structuredClone(getSortedContentTypes());
 		},
 
 		async list(type, query?: Query) {
@@ -343,6 +352,35 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 			return () => {
 				subs!.delete(cb);
 			};
+		},
+
+		async ensureCollections(specs: CollectionSpec[]): Promise<EnsureResult> {
+			checkSessionAlive();
+			if (!CAPABILITIES.schemaBootstrap) {
+				throw VegaError.backend('schemaBootstrap no disponible (ley L8)');
+			}
+
+			const rejects = checkReservedNames(specs);
+			if (Object.keys(rejects).length > 0) throw VegaError.validation(rejects);
+
+			const created: string[] = [];
+			const skipped: string[] = [];
+			for (const spec of specs) {
+				// No destructiva (§A.4.2): si ya existe, se omite tal cual está, nunca se toca.
+				if (contentTypesByName.has(spec.name)) {
+					skipped.push(spec.name);
+					continue;
+				}
+				const ct: ContentType = {
+					name: spec.name,
+					readonly: false,
+					fields: spec.fields.map(collectionFieldSpecToField)
+				};
+				contentTypesByName.set(spec.name, ct);
+				records.set(spec.name, new Map());
+				created.push(spec.name);
+			}
+			return { created, skipped };
 		}
 	};
 
@@ -362,4 +400,47 @@ function defaultReadonlyValue(field: Field): FieldValue {
 	// Emula un campo `autodate` de PB (readonly: true, siempre `date`): se rellena solo al crear.
 	if (field.type === 'date') return new Date().toISOString();
 	return normalizeFieldValue(field, undefined);
+}
+
+/**
+ * Compila el vocabulario REDUCIDO de `CollectionFieldSpec` (Anexo A §A.3) al `Field` del
+ * puerto. Los defaults (readonly/presentable/hidden/unique = false) son correctos porque el
+ * bootstrap v1 no necesita más: no es una API general de autoría de esquema.
+ */
+function collectionFieldSpecToField(spec: CollectionFieldSpec): Field {
+	const base = {
+		name: spec.name,
+		readonly: false,
+		presentable: false,
+		hidden: false,
+		unique: false
+	};
+	switch (spec.type) {
+		case 'json':
+			return { ...base, type: 'json', required: false };
+		case 'text':
+			return {
+				...base,
+				type: 'text',
+				subtype: 'plain',
+				required: spec.required ?? false,
+				maxLength: spec.max
+			};
+		case 'file':
+			return {
+				...base,
+				type: 'file',
+				required: false,
+				multiple: spec.multiple ?? false,
+				maxSizeBytes: spec.maxSizeBytes,
+				mimeTypes: spec.mimeTypes,
+				protected: false
+			};
+		case 'bool':
+			return { ...base, type: 'bool', required: false };
+		case 'number':
+			return { ...base, type: 'number', required: false, integer: false };
+		case 'date':
+			return { ...base, type: 'date', required: false };
+	}
 }

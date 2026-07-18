@@ -5,9 +5,10 @@
  * a diferencia de un object-URL de `Blob`, que no existe de forma fiable fuera del DOM).
  */
 
-import type { Field, FieldInputValue, FieldValue, FileRef } from '../../types';
-import type { FieldError } from '../../errors';
-import { LOCAL_REJECTION_CODES, PB_VALIDATION_CODES, VegaError } from '../../errors';
+import type { FieldInputValue, FieldValue, FileRef } from '../../types';
+import { VegaError } from '../../errors';
+import type { FileField } from '../../file-guards';
+export { validateFileFieldInput } from '../../file-guards';
 
 interface StoredFile {
 	name: string;
@@ -50,59 +51,6 @@ export function resolveFileUrl(store: MemoryFileStore, ref: FileRef): string {
 	return stored.dataUri;
 }
 
-type FileFieldType = Extract<Field, { type: 'file' }>;
-
-/**
- * Valida (sin efectos secundarios) un valor de entrada para un campo `file`: `required`,
- * `maxSelect` y que cualquier `FileRef` referenciado pertenezca ya al registro (§4.4/§9.9).
- * `existing` es `undefined` en `create` (nada que conservar todavía).
- */
-export function validateFileFieldInput(
-	field: FileFieldType,
-	existing: FieldValue | undefined,
-	input: FieldInputValue
-): FieldError | null {
-	const isEmpty = field.multiple
-		? !Array.isArray(input) || input.length === 0
-		: input === null || input === undefined;
-
-	if (field.required && isEmpty) {
-		return { code: PB_VALIDATION_CODES.required, message: 'Este campo es obligatorio' };
-	}
-	if (isEmpty) return null;
-
-	if (field.multiple) {
-		const items = input as (File | FileRef)[];
-		if (field.maxSelect !== undefined && items.length > field.maxSelect) {
-			return {
-				code: PB_VALIDATION_CODES.tooManyValues,
-				message: `Como mucho ${field.maxSelect} ficheros`
-			};
-		}
-		const existingRefs = new Set(Array.isArray(existing) ? (existing as FileRef[]) : []);
-		for (const item of items) {
-			if (typeof item === 'string' && !existingRefs.has(item)) {
-				return {
-					code: LOCAL_REJECTION_CODES.foreignFileRef,
-					message: `El fichero "${item}" no pertenece a este registro`
-				};
-			}
-		}
-		return null;
-	}
-
-	if (typeof input === 'string') {
-		const currentRef = typeof existing === 'string' ? existing : null;
-		if (input !== currentRef) {
-			return {
-				code: LOCAL_REJECTION_CODES.foreignFileRef,
-				message: `El fichero "${input}" no pertenece a este registro`
-			};
-		}
-	}
-	return null;
-}
-
 /**
  * Aplica el diff de estado-final (§4.4): conserva las `FileRef` presentes, sube los `File`
  * nuevos y libera del almacén los ficheros que ya no aparecen. Se llama SOLO tras
@@ -110,7 +58,7 @@ export function validateFileFieldInput(
  */
 export async function materializeFileField(
 	store: MemoryFileStore,
-	field: FileFieldType,
+	field: FileField,
 	existing: FieldValue | undefined,
 	input: FieldInputValue
 ): Promise<FieldValue> {

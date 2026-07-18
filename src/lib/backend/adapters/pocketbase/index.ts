@@ -1,0 +1,384 @@
+/**
+ * `createPocketBaseBackend({ url })`: adaptador real sobre el SDK `pocketbase` (§1 del
+ * contrato). Único módulo del repo donde puede existir `import ... from 'pocketbase'` (ley L1,
+ * forzada por ESLint). Ver `README.md` de este directorio para la landmine de autocancelación.
+ */
+
+import PocketBase, { getTokenPayload } from 'pocketbase';
+import type { CollectionModel } from 'pocketbase';
+import type {
+	AuthChangeReason,
+	Capabilities,
+	ContentType,
+	Field,
+	FieldValue,
+	RecordEvent,
+	RecordInput,
+	Session,
+	ThumbSpec,
+	VegaRecord
+} from '../../types';
+import type { FieldError } from '../../errors';
+import { VegaError } from '../../errors';
+import type { BackendPort } from '../../port';
+import type { Query } from '../../query';
+import { DEFAULT_PAGE, DEFAULT_PER_PAGE, validateQuery } from '../../query';
+import { normalizeFieldValue } from '../../normalize';
+import { assertContentTypeWritable, checkUnwritableFields } from '../../write-guards';
+import { validateFileFieldInput } from '../../file-guards';
+import type { CollectionSpec, EnsureResult } from '../../collections';
+import { checkReservedNames } from '../../collections';
+import { mapPocketBaseError } from './errors';
+import { mapCollectionsToContentTypes } from './schema';
+import { compileFilter, compileSort } from './query';
+import { planFileFieldWrite, resolveFileUrl } from './files';
+import { ensureCollectionsOnPocketBase } from './collections';
+import { clearPersistedToken, loadPersistedToken, savePersistedToken } from './persistence';
+
+const CAPABILITIES: Capabilities = {
+	realtime: true,
+	thumbs: true,
+	schemaDiscovery: true,
+	filePerRecord: true,
+	protectedFiles: false,
+	schemaBootstrap: true
+};
+
+export interface PocketBaseBackendOptions {
+	url: string;
+}
+
+/** Crea un `BackendPort` sobre un PocketBase real en `url`. */
+export function createPocketBaseBackend({ url }: PocketBaseBackendOptions): BackendPort {
+	const pb = new PocketBase(url);
+	// LANDMINE (ver README): el SDK cancela peticiones "duplicadas" en vuelo por defecto. La
+	// política de cancelación es de los consumidores (P3/P4), no del transporte (§4.6).
+	pb.autoCancellation(false);
+
+	const host = hostOf(url);
+	const authSubscribers = new Set<(s: Session | null, reason: AuthChangeReason) => void>();
+
+	// Nuestra propia noción de "¿creemos tener sesión?", independiente de `pb.authStore`:
+	// la necesitamos para distinguir auth-expired de forbidden en el mapeo de errores (ver
+	// `errors.ts`) y para la deduplicación de eventos "expired" (L7).
+	let hasSession = false;
+	let latchedExpired = false;
+
+	function notifyAuthChange(s: Session | null, reason: AuthChangeReason): void {
+		for (const cb of authSubscribers) cb(s, reason);
+	}
+
+	function sessionFromAuthStore(): Session | null {
+		if (!pb.authStore.isValid || !pb.authStore.record) return null;
+		const payload = getTokenPayload(pb.authStore.token);
+		const expiresAt =
+			typeof payload.exp === 'number' ? new Date(payload.exp * 1000).toISOString() : null;
+		return {
+			token: pb.authStore.token,
+			user: { id: String(pb.authStore.record.id), email: String(pb.authStore.record.email ?? '') },
+			expiresAt
+		};
+	}
+
+	/** Limpia sesión + emite `expired` UNA sola vez, aunque N operaciones lo detecten a la vez (L7). */
+	function handleAuthExpiryOnce(): void {
+		if (latchedExpired) return;
+		latchedExpired = true;
+		hasSession = false;
+		pb.authStore.clear();
+		clearPersistedToken();
+		notifyAuthChange(null, 'expired');
+	}
+
+	/**
+	 * Chequeo proactivo (sin red): `pb.authStore.isValid` ya mira el `exp` del JWT localmente.
+	 * Si detecta que expiró, dispara `handleAuthExpiryOnce` y lanza — igual filosofía que el
+	 * TTL de `memory`, pero basada en el claim real en vez de un TTL inventado.
+	 */
+	function checkSessionAlive(): void {
+		if (latchedExpired) throw VegaError.authExpired();
+		if (hasSession && !pb.authStore.isValid) {
+			handleAuthExpiryOnce();
+			throw VegaError.authExpired();
+		}
+	}
+
+	/** Envuelve toda operación autenticada: chequeo proactivo + mapeo de errores + latch de expiración. */
+	async function guarded<T>(op: () => Promise<T>): Promise<T> {
+		checkSessionAlive();
+		try {
+			return await op();
+		} catch (err) {
+			const mapped = mapPocketBaseError(err, { hadSession: hasSession });
+			if (mapped.kind === 'auth-expired') handleAuthExpiryOnce();
+			throw mapped;
+		}
+	}
+
+	async function fetchAllContentTypes(): Promise<ContentType[]> {
+		const raw: unknown = await pb.collections.getFullList();
+		assertCollectionsShape(raw);
+		return mapCollectionsToContentTypes(raw);
+	}
+
+	async function getContentTypeOrThrow(type: string): Promise<ContentType> {
+		const all = await fetchAllContentTypes();
+		const ct = all.find((c) => c.name === type);
+		if (!ct) throw VegaError.notFound(`El tipo "${type}" no existe`);
+		return ct;
+	}
+
+	function buildValuesFromRaw(
+		fields: Field[],
+		raw: Record<string, unknown>
+	): Record<string, FieldValue> {
+		const values: Record<string, FieldValue> = {};
+		for (const field of fields) values[field.name] = normalizeFieldValue(field, raw[field.name]);
+		return values;
+	}
+
+	function toVegaRecord(type: string, raw: Record<string, unknown>, fields: Field[]): VegaRecord {
+		return { id: String(raw.id), type, values: buildValuesFromRaw(fields, raw) };
+	}
+
+	function buildWriteBody(
+		fields: Field[],
+		data: RecordInput,
+		existingValues: Record<string, FieldValue> | undefined
+	): Record<string, unknown> {
+		const body: Record<string, unknown> = {};
+		for (const name of Object.keys(data)) {
+			const field = fields.find((f) => f.name === name)!;
+			if (field.type === 'file') {
+				Object.assign(body, planFileFieldWrite(field, existingValues?.[field.name], data[name]));
+			} else {
+				body[name] = data[name];
+			}
+		}
+		return body;
+	}
+
+	function validateWrite(
+		fields: Field[],
+		data: RecordInput,
+		existingValues: Record<string, FieldValue> | undefined
+	): void {
+		// Rechazos locales compartidos con memory (§4.3): unsupported/readonly/desconocido.
+		const rejects = checkUnwritableFields(fields, data);
+		if (Object.keys(rejects).length > 0) throw VegaError.validation(rejects);
+
+		// El resto (required/min/max/pattern/opciones/relation-exists) lo valida el SERVIDOR y
+		// llega mapeado por `mapPocketBaseError` (§4.3: "el resto... la hace el backend"). Solo
+		// el FileRef ajeno se comprueba aquí: PB no tiene forma de saber qué ref "pertenece" al
+		// registro en nuestro sentido (§4.4/§9.9).
+		const fieldErrors: Record<string, FieldError> = {};
+		for (const name of Object.keys(data)) {
+			const field = fields.find((f) => f.name === name)!;
+			if (field.type === 'file') {
+				const err = validateFileFieldInput(field, existingValues?.[field.name], data[name]);
+				if (err) fieldErrors[name] = err;
+			}
+		}
+		if (Object.keys(fieldErrors).length > 0) throw VegaError.validation(fieldErrors);
+	}
+
+	const port: BackendPort = {
+		capabilities: CAPABILITIES,
+
+		async login(credentials) {
+			try {
+				await pb
+					.collection('_superusers')
+					.authWithPassword(credentials.email, credentials.password);
+			} catch (err) {
+				const mapped = mapPocketBaseError(err, { hadSession: false });
+				if (mapped.kind === 'network') throw mapped;
+				// Mensaje SIEMPRE neutro (§4.1): nunca reutilizar el mensaje de PB, que podría
+				// distinguir "usuario no existe" de "password incorrecta".
+				throw VegaError.forbidden('Credenciales no válidas');
+			}
+			hasSession = true;
+			latchedExpired = false;
+			savePersistedToken(host, pb.authStore.token);
+			const session = sessionFromAuthStore()!;
+			notifyAuthChange(session, 'login');
+			return session;
+		},
+
+		async logout() {
+			pb.authStore.clear();
+			clearPersistedToken();
+			hasSession = false;
+			latchedExpired = false;
+			notifyAuthChange(null, 'logout');
+		},
+
+		currentSession() {
+			return sessionFromAuthStore();
+		},
+
+		async restoreSession() {
+			const token = loadPersistedToken(host);
+			if (!token) return null;
+
+			pb.authStore.save(token, null);
+			try {
+				await pb.collection('_superusers').authRefresh();
+			} catch (err) {
+				const mapped = mapPocketBaseError(err, { hadSession: false });
+				if (mapped.kind === 'network') {
+					// Sin red: conserva el token, podría ser válido (§4.1); no limpia, no lanza "clear".
+					throw mapped;
+				}
+				// Inválido/caducado (authRefresh da 401 en PB real para token malo/caducado):
+				// limpia y devuelve null SIN lanzar (§4.1).
+				pb.authStore.clear();
+				clearPersistedToken();
+				return null;
+			}
+			hasSession = true;
+			latchedExpired = false;
+			savePersistedToken(host, pb.authStore.token);
+			const session = sessionFromAuthStore()!;
+			notifyAuthChange(session, 'restored');
+			return session;
+		},
+
+		onAuthChange(cb) {
+			authSubscribers.add(cb);
+			return () => authSubscribers.delete(cb);
+		},
+
+		async listContentTypes() {
+			return guarded(() => fetchAllContentTypes());
+		},
+
+		async list(type, query?: Query) {
+			return guarded(async () => {
+				const ct = await getContentTypeOrThrow(type);
+				validateQuery(ct.fields, query);
+				const filter = compileFilter(pb, ct.fields, query?.filter);
+				const sort = compileSort(query?.sort);
+				const page = query?.page ?? DEFAULT_PAGE;
+				const perPage = query?.perPage ?? DEFAULT_PER_PAGE;
+				const result = await pb.collection(type).getList(page, perPage, { filter, sort });
+				return {
+					items: result.items.map((r) =>
+						toVegaRecord(type, r as unknown as Record<string, unknown>, ct.fields)
+					),
+					page: result.page,
+					perPage: result.perPage,
+					totalItems: result.totalItems,
+					totalPages: result.totalPages
+				};
+			});
+		},
+
+		async get(type, id) {
+			return guarded(async () => {
+				const ct = await getContentTypeOrThrow(type);
+				const raw = await pb.collection(type).getOne(id);
+				return toVegaRecord(type, raw as unknown as Record<string, unknown>, ct.fields);
+			});
+		},
+
+		async create(type, data) {
+			return guarded(async () => {
+				const ct = await getContentTypeOrThrow(type);
+				assertContentTypeWritable(ct);
+				validateWrite(ct.fields, data, undefined);
+				const body = buildWriteBody(ct.fields, data, undefined);
+				const raw = await pb.collection(type).create(body);
+				return toVegaRecord(type, raw as unknown as Record<string, unknown>, ct.fields);
+			});
+		},
+
+		async update(type, id, data) {
+			return guarded(async () => {
+				const ct = await getContentTypeOrThrow(type);
+				assertContentTypeWritable(ct);
+				const existingRaw = await pb.collection(type).getOne(id);
+				const existingValues = buildValuesFromRaw(
+					ct.fields,
+					existingRaw as unknown as Record<string, unknown>
+				);
+				validateWrite(ct.fields, data, existingValues);
+				const body = buildWriteBody(ct.fields, data, existingValues);
+				const raw = await pb.collection(type).update(id, body);
+				return toVegaRecord(type, raw as unknown as Record<string, unknown>, ct.fields);
+			});
+		},
+
+		async delete(type, id) {
+			await guarded(async () => {
+				const ct = await getContentTypeOrThrow(type);
+				assertContentTypeWritable(ct);
+				await pb.collection(type).delete(id);
+			});
+		},
+
+		fileUrl(record, field, file, opts?: { thumb?: ThumbSpec }) {
+			return resolveFileUrl(pb, record, field, file, opts);
+		},
+
+		async subscribe(type, cb) {
+			return guarded(async () => {
+				if (!CAPABILITIES.realtime) throw VegaError.backend('realtime no disponible (ley L8)');
+				const ct = await getContentTypeOrThrow(type);
+				const unsubscribe = await pb.collection(type).subscribe('*', (e) => {
+					cb({
+						action: e.action as RecordEvent['action'],
+						record: toVegaRecord(type, e.record as unknown as Record<string, unknown>, ct.fields)
+					});
+				});
+				return () => {
+					unsubscribe().catch(() => {
+						// best-effort: si la desuscripción de red falla, no hay nada más que hacer
+						// desde una función síncrona (§4.5 no exige propagar este error).
+					});
+				};
+			});
+		},
+
+		async ensureCollections(specs: CollectionSpec[]): Promise<EnsureResult> {
+			return guarded(async () => {
+				const rejects = checkReservedNames(specs);
+				if (Object.keys(rejects).length > 0) throw VegaError.validation(rejects);
+				if (!CAPABILITIES.schemaBootstrap) {
+					throw VegaError.backend('schemaBootstrap no disponible (ley L8)');
+				}
+				return ensureCollectionsOnPocketBase(pb, specs);
+			});
+		}
+	};
+
+	return port;
+}
+
+/** Host (incluido el puerto) del backend: para no restaurar por error la sesión de otro PB. */
+function hostOf(url: string): string {
+	try {
+		return new URL(url).host;
+	} catch {
+		return url;
+	}
+}
+
+/**
+ * Comprobación estructural mínima (§9.5): una respuesta 2xx con forma inesperada (p.ej.
+ * colecciones sin `fields[]`) es `backend`, con pista de versión incompatible — nunca se deja
+ * pasar como si fuera un esquema válido y vacío.
+ */
+function assertCollectionsShape(raw: unknown): asserts raw is CollectionModel[] {
+	const isValid =
+		Array.isArray(raw) &&
+		raw.every(
+			(c) =>
+				c !== null && typeof c === 'object' && Array.isArray((c as { fields?: unknown }).fields)
+		);
+	if (!isValid) {
+		throw VegaError.backend(
+			'Respuesta de colecciones con forma inesperada (posible versión de PocketBase incompatible; soportado 0.26.0–0.39.x)'
+		);
+	}
+}
