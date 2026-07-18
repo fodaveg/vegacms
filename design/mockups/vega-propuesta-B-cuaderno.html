@@ -1,0 +1,1657 @@
+<!doctype html>
+<html lang="es" data-pal="miel">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Vega — Propuesta B · Cuaderno (cálida)</title>
+		<style>
+			/* ==========================================================================
+   VEGA — Propuesta B: «Cuaderno»
+   Dirección cálida y cercana, heredera directa de la sensibilidad Lumbre:
+   papel tintado que se nota, radios generosos, superficies blandas, iconos
+   de trazo, acento presente pero amable. Para la persona que mantiene su
+   sitio un rato el domingo: que dé gusto entrar.
+   Esquemas demostrados: miel (#d59a2e / tinta #241905) y brasa (#e8763a /
+   #1f1206) — pares accent/accentInk validados AA por el build de Lumbre.
+   ========================================================================== */
+
+			:root,
+			[data-pal='miel'] {
+				--tint: #d59a2e;
+				--accent: #d59a2e;
+				--accent-ink: #241905;
+			}
+			[data-pal='brasa'] {
+				--tint: #e8763a;
+				--accent: #e8763a;
+				--accent-ink: #1f1206;
+			}
+
+			/* ---------- Neutros CLARO (tinte de papel MÁS presente que en A: bg 10%) -- */
+			:root {
+				--bg: color-mix(in oklab, var(--tint) 10%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 12%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 8%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3.5%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3.5%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 5%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 12%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 10%, #e6e4e0);
+				--line-strong: color-mix(in oklab, var(--tint) 12%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 12%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 6%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 6%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 6%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 6%, #a8a49b);
+
+				--accent-soft: color-mix(in oklab, var(--accent) 16%, var(--paper));
+				--accent-text: color-mix(in oklab, var(--accent) 62%, var(--ink));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+
+				--success: #2e7d54;
+				--success-soft: color-mix(in oklab, #2e7d54 14%, var(--paper));
+				--danger: #b23831;
+				--danger-soft: color-mix(in oklab, #b23831 12%, var(--paper));
+				--warning: #8a6116;
+				--warning-soft: color-mix(in oklab, #c98a1b 18%, var(--paper));
+				--info: #2f6f8f;
+				--info-soft: color-mix(in oklab, #2f6f8f 13%, var(--paper));
+
+				--shadow-card: 0 1px 2px rgb(80 60 20 / 0.06), 0 4px 16px rgb(80 60 20 / 0.05);
+				--shadow-pop: 0 8px 28px rgb(60 40 10 / 0.16);
+				color-scheme: light;
+			}
+
+			@media (prefers-color-scheme: dark) {
+				:root:not([data-theme='light']) {
+					--bg: color-mix(in oklab, var(--tint) 17%, #0b0b0d);
+					--sidebar: color-mix(in oklab, var(--tint) 19%, #0f0f11);
+					--paper: color-mix(in oklab, var(--tint) 17%, #141416);
+					--surface: color-mix(in oklab, var(--tint) 15%, #232327);
+					--surface-2: color-mix(in oklab, var(--tint) 15%, #1c1c1f);
+					--btn: color-mix(in oklab, var(--tint) 15%, #242428);
+					--active: color-mix(in oklab, var(--tint) 19%, #302f37);
+					--line: color-mix(in oklab, var(--tint) 19%, #2a2a30);
+					--line-strong: color-mix(in oklab, var(--tint) 19%, #3c3c44);
+					--ring: color-mix(in oklab, var(--tint) 19%, #49494f);
+					--ink-hi: color-mix(in oklab, var(--tint) 9%, #f4f4f7);
+					--ink: color-mix(in oklab, var(--tint) 9%, #eaeaef);
+					--ink-2: color-mix(in oklab, var(--tint) 9%, #a5a5ad);
+					--ink-3: color-mix(in oklab, var(--tint) 9%, #87878f);
+					--accent-soft: color-mix(in oklab, var(--accent) 24%, var(--paper));
+					--accent-text: color-mix(in oklab, var(--accent) 70%, var(--ink));
+					--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+					--success: #5cbd8e;
+					--success-soft: color-mix(in oklab, #5cbd8e 18%, var(--paper));
+					--danger: #ef8078;
+					--danger-soft: color-mix(in oklab, #ef8078 16%, var(--paper));
+					--warning: #dfae4d;
+					--warning-soft: color-mix(in oklab, #dfae4d 16%, var(--paper));
+					--info: #74b6d6;
+					--info-soft: color-mix(in oklab, #74b6d6 16%, var(--paper));
+					--shadow-card: 0 1px 3px rgb(0 0 0 / 0.45), 0 6px 20px rgb(0 0 0 / 0.3);
+					--shadow-pop: 0 10px 32px rgb(0 0 0 / 0.5);
+					color-scheme: dark;
+				}
+			}
+			:root[data-theme='dark'] {
+				--bg: color-mix(in oklab, var(--tint) 17%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 19%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 17%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 15%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 15%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 15%, #242428);
+				--active: color-mix(in oklab, var(--tint) 19%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 19%, #2a2a30);
+				--line-strong: color-mix(in oklab, var(--tint) 19%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 19%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 9%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 9%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 9%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 9%, #87878f);
+				--accent-soft: color-mix(in oklab, var(--accent) 24%, var(--paper));
+				--accent-text: color-mix(in oklab, var(--accent) 70%, var(--ink));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--success: #5cbd8e;
+				--success-soft: color-mix(in oklab, #5cbd8e 18%, var(--paper));
+				--danger: #ef8078;
+				--danger-soft: color-mix(in oklab, #ef8078 16%, var(--paper));
+				--warning: #dfae4d;
+				--warning-soft: color-mix(in oklab, #dfae4d 16%, var(--paper));
+				--info: #74b6d6;
+				--info-soft: color-mix(in oklab, #74b6d6 16%, var(--paper));
+				--shadow-card: 0 1px 3px rgb(0 0 0 / 0.45), 0 6px 20px rgb(0 0 0 / 0.3);
+				--shadow-pop: 0 10px 32px rgb(0 0 0 / 0.5);
+				color-scheme: dark;
+			}
+
+			/* ---------- Base ---------- */
+			* {
+				box-sizing: border-box;
+				margin: 0;
+			}
+			:root {
+				--sans: 'Avenir Next', 'Avenir', -apple-system, 'Segoe UI', system-ui, sans-serif;
+				--mono: ui-monospace, 'SF Mono', Menlo, monospace;
+				--r: 12px; /* radio de tarjeta */
+				--r-s: 8px; /* radio de control */
+			}
+			body {
+				font-family: var(--sans);
+				font-size: 0.9375rem;
+				line-height: 1.5;
+				background: var(--bg);
+				color: var(--ink);
+				-webkit-font-smoothing: antialiased;
+			}
+			a {
+				color: var(--accent-text);
+				text-decoration: none;
+				font-weight: 500;
+			}
+			a:hover {
+				text-decoration: underline;
+			}
+			button {
+				font: inherit;
+				cursor: pointer;
+			}
+			:focus-visible {
+				outline: 2px solid var(--accent);
+				outline-offset: 2px;
+				border-radius: 4px;
+			}
+			@media (prefers-reduced-motion: reduce) {
+				* {
+					transition: none !important;
+				}
+			}
+			svg {
+				flex: none;
+			}
+
+			.demo-label {
+				max-width: 1280px;
+				margin: 3rem auto 0.75rem;
+				padding: 0 1.5rem;
+				font-size: 0.75rem;
+				letter-spacing: 0.12em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+			}
+			.demo-label:first-of-type {
+				margin-top: 1.5rem;
+			}
+
+			/* ---------- Shell ---------- */
+			.shell {
+				max-width: 1280px;
+				margin: 0 auto;
+				min-height: 720px;
+				display: grid;
+				grid-template-columns: 248px 1fr;
+				background: var(--paper);
+				border: 1px solid var(--line);
+				border-radius: 16px;
+				overflow: hidden;
+				box-shadow: var(--shadow-card);
+			}
+
+			/* Sidebar cálida: items con icono, activo = pastilla accent-soft */
+			.side {
+				background: var(--sidebar);
+				border-right: 1px solid var(--line);
+				padding: 1.25rem 0.9rem 1rem;
+				display: flex;
+				flex-direction: column;
+				gap: 1.4rem;
+			}
+			.brand {
+				display: flex;
+				align-items: center;
+				gap: 0.65rem;
+				padding: 0.25rem 0.5rem;
+			}
+			.brand .logo {
+				width: 34px;
+				height: 34px;
+				border-radius: 10px;
+				background: var(--accent);
+				color: var(--accent-ink);
+				display: grid;
+				place-items: center;
+				font-weight: 700;
+				font-size: 1.05rem;
+			}
+			.brand .t {
+				line-height: 1.2;
+			}
+			.brand .t b {
+				display: block;
+				font-size: 0.95rem;
+				color: var(--ink-hi);
+			}
+			.brand .t span {
+				font-size: 0.75rem;
+				color: var(--ink-3);
+			}
+
+			.navgroup h2 {
+				font-size: 0.6875rem;
+				font-weight: 600;
+				letter-spacing: 0.12em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+				padding: 0 0.6rem 0.45rem;
+			}
+			.navgroup a {
+				display: flex;
+				align-items: center;
+				gap: 0.6rem;
+				padding: 0.5rem 0.6rem;
+				border-radius: var(--r-s);
+				color: var(--ink-2);
+				font-weight: 500;
+				font-size: 0.9rem;
+			}
+			.navgroup a svg {
+				color: var(--ink-3);
+			}
+			.navgroup a:hover {
+				background: var(--active);
+				color: var(--ink-hi);
+				text-decoration: none;
+			}
+			.navgroup a[aria-current='page'] {
+				background: var(--accent-soft);
+				color: var(--accent-text);
+			}
+			.navgroup a[aria-current='page'] svg {
+				color: var(--accent-text);
+			}
+			.navgroup .count {
+				margin-left: auto;
+				font-size: 0.75rem;
+				color: var(--ink-3);
+				font-variant-numeric: tabular-nums;
+			}
+
+			.side .foot {
+				margin-top: auto;
+				border-top: 1px solid var(--line);
+				padding-top: 0.8rem;
+				display: flex;
+				flex-direction: column;
+				gap: 0.1rem;
+			}
+			.side .foot a {
+				display: flex;
+				align-items: center;
+				gap: 0.6rem;
+				padding: 0.45rem 0.6rem;
+				border-radius: var(--r-s);
+				color: var(--ink-2);
+				font-size: 0.875rem;
+			}
+			.side .foot a:hover {
+				background: var(--active);
+				text-decoration: none;
+			}
+			.warnbadge {
+				margin-left: auto;
+				font-size: 0.6875rem;
+				font-weight: 700;
+				background: var(--warning-soft);
+				color: var(--warning);
+				padding: 0.05rem 0.5rem;
+				border-radius: 99px;
+			}
+			.user {
+				display: flex;
+				align-items: center;
+				gap: 0.6rem;
+				padding: 0.5rem 0.6rem 0.1rem;
+			}
+			.avatar {
+				width: 28px;
+				height: 28px;
+				border-radius: 50%;
+				background: var(--accent);
+				color: var(--accent-ink);
+				display: grid;
+				place-items: center;
+				font-size: 0.78rem;
+				font-weight: 700;
+			}
+			.user .n {
+				font-size: 0.85rem;
+				color: var(--ink);
+			}
+			.user .n small {
+				display: block;
+				color: var(--ink-3);
+				font-size: 0.72rem;
+			}
+
+			/* Main */
+			.main {
+				padding: 1.9rem 2.25rem 2.75rem;
+				min-width: 0;
+				background: var(--paper);
+			}
+			.listhead {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 1rem;
+				flex-wrap: wrap;
+				margin-bottom: 1.4rem;
+			}
+			.listhead h1 {
+				font-size: 1.55rem;
+				font-weight: 700;
+				color: var(--ink-hi);
+				letter-spacing: -0.01em;
+			}
+			.listhead .meta {
+				font-size: 0.875rem;
+				color: var(--ink-2);
+				margin-top: 0.15rem;
+			}
+			.tools {
+				display: flex;
+				gap: 0.7rem;
+				align-items: center;
+			}
+			.search {
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				background: var(--surface);
+				border: 1px solid var(--line-strong);
+				border-radius: 99px;
+				padding: 0.5rem 0.9rem;
+				min-width: 240px;
+			}
+			.search svg {
+				color: var(--ink-3);
+			}
+			.search input {
+				border: 0;
+				background: none;
+				font: inherit;
+				color: var(--ink);
+				width: 100%;
+			}
+			.search input::placeholder {
+				color: var(--ink-3);
+			}
+			.search input:focus {
+				outline: none;
+			}
+			.search:focus-within {
+				border-color: var(--accent);
+				box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 25%, transparent);
+			}
+
+			.btn {
+				border: 1px solid var(--line-strong);
+				background: var(--surface);
+				color: var(--ink);
+				border-radius: 99px;
+				padding: 0.5rem 1.1rem;
+				font-size: 0.875rem;
+				font-weight: 600;
+				transition:
+					background 0.12s,
+					transform 0.08s;
+			}
+			.btn:hover {
+				background: var(--btn);
+			}
+			.btn:active {
+				transform: scale(0.98);
+			}
+			.btn:disabled {
+				opacity: 0.45;
+				cursor: not-allowed;
+				transform: none;
+			}
+			.btn.primary {
+				background: var(--accent);
+				border-color: var(--accent);
+				color: var(--accent-ink);
+			}
+			.btn.primary:hover {
+				background: var(--accent-hover);
+				border-color: var(--accent-hover);
+			}
+			.btn.quiet {
+				border-color: transparent;
+				background: none;
+				color: var(--ink-2);
+			}
+			.btn.quiet:hover {
+				background: var(--active);
+				color: var(--ink-hi);
+			}
+
+			/* ---------- Listado como tarjeta con filas ---------- */
+			.card {
+				background: var(--surface);
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				box-shadow: var(--shadow-card);
+				overflow: hidden;
+			}
+			.rowhead,
+			.row {
+				display: grid;
+				grid-template-columns: 1fr 130px 130px 110px;
+				gap: 1rem;
+				align-items: center;
+				padding: 0.7rem 1.2rem;
+			}
+			.rowhead {
+				font-size: 0.6875rem;
+				font-weight: 600;
+				letter-spacing: 0.1em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+				border-bottom: 1px solid var(--line);
+				background: var(--surface-2);
+			}
+			.row {
+				border-bottom: 1px solid var(--line);
+				transition: background 0.1s;
+			}
+			.row:last-child {
+				border-bottom: 0;
+			}
+			.row:hover {
+				background: var(--accent-soft);
+			}
+			.row .t {
+				min-width: 0;
+			}
+			.row .t a {
+				color: var(--ink-hi);
+				font-weight: 600;
+				display: block;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+			.row .t small {
+				display: block;
+				color: var(--ink-3);
+				font-size: 0.78rem;
+				font-weight: 400;
+				margin-top: 0.1rem;
+			}
+			.row .d {
+				color: var(--ink-2);
+				font-size: 0.85rem;
+				font-variant-numeric: tabular-nums;
+				white-space: nowrap;
+			}
+			.row .who {
+				display: flex;
+				align-items: center;
+				gap: 0.45rem;
+				color: var(--ink-2);
+				font-size: 0.85rem;
+			}
+			.row .who .avatar {
+				width: 22px;
+				height: 22px;
+				font-size: 0.65rem;
+			}
+
+			/* Badges pill suaves */
+			.pill {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.35rem;
+				font-size: 0.78rem;
+				font-weight: 600;
+				border-radius: 99px;
+				padding: 0.18rem 0.7rem;
+				width: fit-content;
+			}
+			.pill.pub {
+				background: var(--success-soft);
+				color: var(--success);
+			}
+			.pill.draft {
+				background: var(--active);
+				color: var(--ink-2);
+			}
+			.pill.other {
+				background: var(--info-soft);
+				color: var(--info);
+			}
+
+			.pager {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-top: 1rem;
+				font-size: 0.875rem;
+				color: var(--ink-2);
+			}
+
+			/* Aviso de búsqueda sin resultados */
+			.noresults {
+				padding: 2.5rem 1.2rem;
+				text-align: center;
+				color: var(--ink-2);
+			}
+			.noresults b {
+				color: var(--ink);
+			}
+			.noresults .hint {
+				font-size: 0.85rem;
+				color: var(--ink-3);
+				margin-top: 0.3rem;
+			}
+
+			/* ---------- Editor (dos columnas: hoja + panel meta) ---------- */
+			.edit-top {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 1rem;
+				margin-bottom: 1.4rem;
+				flex-wrap: wrap;
+			}
+			.edit-top .left {
+				display: flex;
+				align-items: center;
+				gap: 0.9rem;
+			}
+			.backlink {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.35rem;
+				color: var(--ink-2);
+				font-weight: 500;
+			}
+			.dirty {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.45rem;
+				font-size: 0.8125rem;
+				color: var(--warning);
+				font-weight: 600;
+				background: var(--warning-soft);
+				border-radius: 99px;
+				padding: 0.2rem 0.75rem;
+			}
+			.edit-actions {
+				display: flex;
+				gap: 0.6rem;
+				align-items: center;
+			}
+			.saved-at {
+				font-size: 0.8125rem;
+				color: var(--ink-3);
+				margin-right: 0.3rem;
+			}
+
+			.editgrid {
+				display: grid;
+				grid-template-columns: minmax(0, 1fr) 300px;
+				gap: 1.4rem;
+				align-items: start;
+			}
+
+			.sheetcard {
+				background: var(--surface);
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				box-shadow: var(--shadow-card);
+				padding: 2rem 2.4rem 2.4rem;
+			}
+			.title-input {
+				width: 100%;
+				border: 0;
+				background: none;
+				font-family: var(--sans);
+				font-size: 1.8rem;
+				font-weight: 700;
+				line-height: 1.25;
+				color: var(--ink-hi);
+				letter-spacing: -0.01em;
+			}
+			.title-input:focus {
+				outline: none;
+			}
+			.slugline {
+				display: flex;
+				align-items: center;
+				gap: 0.2rem;
+				margin-top: 0.5rem;
+				font-family: var(--mono);
+				font-size: 0.78rem;
+				color: var(--ink-3);
+			}
+			.slugline input {
+				border: 0;
+				background: var(--surface-2);
+				border: 1px solid var(--line);
+				border-radius: 6px;
+				font: inherit;
+				color: var(--ink-2);
+				padding: 0.15rem 0.4rem;
+				min-width: 26ch;
+			}
+			.slugline input:focus {
+				outline: none;
+				border-color: var(--accent);
+			}
+
+			.rt-toolbar {
+				display: flex;
+				align-items: center;
+				gap: 0.15rem;
+				margin-top: 1.5rem;
+				background: var(--surface-2);
+				border: 1px solid var(--line);
+				border-radius: 10px;
+				padding: 0.3rem 0.4rem;
+				position: sticky;
+				top: 0.75rem;
+				z-index: 2;
+				box-shadow: var(--shadow-card);
+			}
+			.rt-toolbar button {
+				border: 0;
+				background: none;
+				color: var(--ink-2);
+				border-radius: 7px;
+				min-width: 30px;
+				height: 30px;
+				font-size: 0.8125rem;
+				display: grid;
+				place-items: center;
+			}
+			.rt-toolbar button:hover {
+				background: var(--active);
+				color: var(--ink-hi);
+			}
+			.rt-toolbar button[aria-pressed='true'] {
+				background: var(--accent-soft);
+				color: var(--accent-text);
+			}
+			.rt-toolbar .sep {
+				width: 1px;
+				height: 18px;
+				background: var(--line-strong);
+				margin: 0 0.35rem;
+			}
+
+			.rt-body {
+				font-size: 1.0325rem;
+				line-height: 1.7;
+				color: var(--ink);
+				padding: 1.4rem 0.1rem 0.4rem;
+			}
+			.rt-body h2 {
+				font-size: 1.25rem;
+				margin: 1.4rem 0 0.5rem;
+				color: var(--ink-hi);
+			}
+			.rt-body p + p {
+				margin-top: 0.9rem;
+			}
+			.rt-body mark {
+				background: var(--accent-soft);
+				color: inherit;
+				border-radius: 3px;
+				padding: 0 0.15em;
+			}
+			.rt-body blockquote {
+				border-left: 3px solid var(--accent);
+				background: var(--surface-2);
+				border-radius: 0 var(--r-s) var(--r-s) 0;
+				padding: 0.7rem 1.1rem;
+				color: var(--ink-2);
+				margin: 1rem 0;
+			}
+
+			/* Panel lateral de metadatos */
+			.metacard {
+				background: var(--surface);
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				box-shadow: var(--shadow-card);
+				padding: 1.2rem 1.2rem 1.4rem;
+				display: flex;
+				flex-direction: column;
+				gap: 1.1rem;
+				position: sticky;
+				top: 0.75rem;
+			}
+			.metacard h3 {
+				font-size: 0.6875rem;
+				font-weight: 600;
+				letter-spacing: 0.12em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+			}
+			.field label.flabel {
+				display: block;
+				font-size: 0.8125rem;
+				font-weight: 600;
+				color: var(--ink);
+				margin-bottom: 0.4rem;
+			}
+			.field .help {
+				font-size: 0.78rem;
+				color: var(--ink-3);
+				margin-top: 0.35rem;
+			}
+			.control {
+				width: 100%;
+				border: 1px solid var(--line-strong);
+				background: var(--surface-2);
+				border-radius: var(--r-s);
+				padding: 0.5rem 0.65rem;
+				font: inherit;
+				font-size: 0.875rem;
+				color: var(--ink);
+			}
+			.control:focus {
+				outline: none;
+				border-color: var(--accent);
+				box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 25%, transparent);
+			}
+			textarea.control {
+				resize: vertical;
+				min-height: 76px;
+				line-height: 1.5;
+			}
+			.control.invalid {
+				border-color: var(--danger);
+			}
+			.field-error {
+				display: flex;
+				gap: 0.35rem;
+				align-items: center;
+				font-size: 0.78rem;
+				color: var(--danger);
+				margin-top: 0.35rem;
+				font-weight: 500;
+			}
+
+			.chips {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.4rem;
+				border: 1px solid var(--line-strong);
+				border-radius: var(--r-s);
+				padding: 0.4rem;
+				background: var(--surface-2);
+			}
+			.chip {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.3rem;
+				background: var(--accent-soft);
+				color: var(--accent-text);
+				font-size: 0.78rem;
+				font-weight: 600;
+				border-radius: 99px;
+				padding: 0.15rem 0.3rem 0.15rem 0.6rem;
+			}
+			.chip button {
+				border: 0;
+				background: none;
+				color: inherit;
+				opacity: 0.6;
+				padding: 0 0.2rem;
+				line-height: 1;
+				border-radius: 50%;
+			}
+			.chip button:hover {
+				opacity: 1;
+			}
+			.chips input {
+				border: 0;
+				background: none;
+				font: inherit;
+				font-size: 0.8125rem;
+				color: var(--ink);
+				min-width: 7ch;
+				flex: 1;
+			}
+			.chips input:focus {
+				outline: none;
+			}
+
+			.rel-value {
+				display: flex;
+				align-items: center;
+				gap: 0.55rem;
+				border: 1px solid var(--line-strong);
+				border-radius: var(--r-s);
+				padding: 0.4rem 0.55rem;
+				background: var(--surface-2);
+			}
+			.rel-value .name {
+				flex: 1;
+				font-size: 0.85rem;
+				font-weight: 500;
+			}
+			.rel-value .swap {
+				border: 0;
+				background: none;
+				color: var(--accent-text);
+				font-size: 0.78rem;
+				font-weight: 600;
+			}
+
+			.filew {
+				border: 1px solid var(--line-strong);
+				border-radius: var(--r-s);
+				overflow: hidden;
+				background: var(--surface-2);
+			}
+			.filew .preview {
+				aspect-ratio: 16/9;
+				background: radial-gradient(
+					120% 120% at 20% 10%,
+					color-mix(in oklab, var(--accent) 60%, var(--paper)),
+					color-mix(in oklab, var(--accent) 20%, var(--paper)) 60%,
+					var(--paper)
+				);
+				display: grid;
+				place-items: center;
+				color: var(--accent-ink);
+				font-weight: 600;
+				font-size: 0.85rem;
+			}
+			.filew .frow {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: 0.45rem 0.6rem;
+				font-size: 0.75rem;
+				color: var(--ink-3);
+			}
+			.filew .frow .acts {
+				display: flex;
+				gap: 0.7rem;
+				font-size: 0.78rem;
+			}
+
+			.switch {
+				display: flex;
+				align-items: center;
+				gap: 0.6rem;
+				cursor: pointer;
+			}
+			.switch .track {
+				width: 40px;
+				height: 24px;
+				border-radius: 99px;
+				background: var(--line-strong);
+				position: relative;
+				transition: background 0.15s;
+			}
+			.switch .track::after {
+				content: '';
+				position: absolute;
+				top: 3px;
+				left: 3px;
+				width: 18px;
+				height: 18px;
+				border-radius: 50%;
+				background: var(--surface);
+				box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+				transition: transform 0.15s;
+			}
+			.switch input {
+				position: absolute;
+				opacity: 0;
+			}
+			.switch input:checked + .track {
+				background: var(--success);
+			}
+			.switch input:checked + .track::after {
+				transform: translateX(16px);
+			}
+			.switch input:focus-visible + .track {
+				outline: 2px solid var(--accent);
+				outline-offset: 2px;
+			}
+			.switch .sw-label {
+				font-size: 0.85rem;
+				font-weight: 500;
+			}
+
+			.jsonfold {
+				border: 1px dashed var(--line-strong);
+				border-radius: var(--r-s);
+				padding: 0.5rem 0.65rem;
+				font-family: var(--mono);
+				font-size: 0.75rem;
+				color: var(--ink-3);
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				background: var(--surface-2);
+			}
+
+			/* Barra de guardado pegajosa (la sensación de "cambios sin guardar") */
+			.savebar {
+				position: sticky;
+				bottom: 0.75rem;
+				margin-top: 1.4rem;
+				z-index: 5;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 1rem;
+				background: var(--surface);
+				border: 1px solid var(--line-strong);
+				border-radius: 99px;
+				padding: 0.55rem 0.7rem 0.55rem 1.3rem;
+				box-shadow: var(--shadow-pop);
+			}
+			.savebar .msg {
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				font-size: 0.875rem;
+				color: var(--ink-2);
+				font-weight: 500;
+			}
+			.savebar .msg::before {
+				content: '';
+				width: 9px;
+				height: 9px;
+				border-radius: 50%;
+				background: var(--warning);
+			}
+			.savebar .acts {
+				display: flex;
+				gap: 0.5rem;
+			}
+
+			/* toast */
+			.toast {
+				position: fixed;
+				right: 1.25rem;
+				bottom: 4.5rem;
+				z-index: 40;
+				display: flex;
+				align-items: center;
+				gap: 0.55rem;
+				background: var(--surface);
+				border: 1px solid var(--line-strong);
+				color: var(--ink);
+				border-radius: var(--r);
+				padding: 0.7rem 1rem;
+				font-size: 0.875rem;
+				font-weight: 500;
+				box-shadow: var(--shadow-pop);
+			}
+			.toast .tick {
+				width: 22px;
+				height: 22px;
+				border-radius: 50%;
+				background: var(--success-soft);
+				color: var(--success);
+				display: grid;
+				place-items: center;
+				font-size: 0.8rem;
+			}
+
+			/* notas */
+			.notes {
+				max-width: 1280px;
+				margin: 1rem auto 6rem;
+				padding: 1.5rem;
+				color: var(--ink-2);
+				font-size: 0.875rem;
+			}
+			.notes h2 {
+				color: var(--ink-hi);
+				font-size: 1.15rem;
+				margin-bottom: 0.6rem;
+				font-weight: 700;
+			}
+			.notes li {
+				margin: 0.3rem 0 0.3rem 1.1rem;
+			}
+
+			/* demo controls */
+			.demobar {
+				position: fixed;
+				right: 1rem;
+				bottom: 1rem;
+				z-index: 50;
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				background: var(--surface);
+				border: 1px solid var(--line-strong);
+				border-radius: 99px;
+				padding: 0.4rem 0.6rem;
+				box-shadow: var(--shadow-pop);
+				font-size: 0.78rem;
+				color: var(--ink-2);
+			}
+			.demobar button {
+				border: 1px solid var(--line);
+				background: var(--paper);
+				color: var(--ink);
+				border-radius: 99px;
+				padding: 0.25rem 0.6rem;
+				font-size: 0.75rem;
+			}
+			.demobar button[aria-pressed='true'] {
+				background: var(--accent);
+				border-color: var(--accent);
+				color: var(--accent-ink);
+			}
+			.demobar .sw {
+				width: 22px;
+				height: 22px;
+				border-radius: 50%;
+				padding: 0;
+				border: 2px solid var(--surface);
+				box-shadow: 0 0 0 1px var(--line-strong);
+			}
+			.demobar .sw.miel {
+				background: #d59a2e;
+			}
+			.demobar .sw.brasa {
+				background: #e8763a;
+			}
+			.demobar .sw[aria-pressed='true'] {
+				box-shadow: 0 0 0 2px var(--ink);
+			}
+
+			/* responsive */
+			.burger {
+				display: none;
+			}
+			@media (max-width: 980px) {
+				.editgrid {
+					grid-template-columns: 1fr;
+				}
+				.metacard {
+					position: static;
+				}
+			}
+			@media (max-width: 860px) {
+				.shell {
+					grid-template-columns: 1fr;
+					border-radius: 0;
+					border-inline: 0;
+				}
+				.side {
+					display: none;
+				}
+				.main {
+					padding: 1.1rem 1rem 2.25rem;
+				}
+				.burger {
+					display: inline-flex;
+					align-items: center;
+					gap: 0.5rem;
+					border: 0;
+					background: none;
+					color: var(--ink-2);
+					font-weight: 600;
+					margin-bottom: 0.9rem;
+					padding: 0;
+				}
+				.rowhead {
+					display: none;
+				}
+				.row {
+					grid-template-columns: 1fr auto;
+					grid-template-areas: 't pill' 'd d';
+					row-gap: 0.25rem;
+				}
+				.row .t {
+					grid-area: t;
+				}
+				.row .pill {
+					grid-area: pill;
+				}
+				.row .d {
+					grid-area: d;
+				}
+				.row .who {
+					display: none;
+				}
+				.search {
+					min-width: 0;
+					flex: 1;
+				}
+				.sheetcard {
+					padding: 1.4rem 1.2rem 1.8rem;
+				}
+				.title-input {
+					font-size: 1.4rem;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<!-- ═══════════════ PANTALLA 1 — LISTADO ═══════════════ -->
+		<p class="demo-label">Pantalla 1 · Listado de «Entradas»</p>
+		<div class="shell">
+			<aside class="side" aria-label="Navegación de Vega">
+				<div class="brand">
+					<span class="logo">f</span>
+					<span class="t"><b>fodaveg.net</b><span>con Vega</span></span>
+				</div>
+
+				<nav class="navgroup" aria-label="Contenido">
+					<h2>Contenido</h2>
+					<a href="#" aria-current="page">
+						<svg
+							width="15"
+							height="15"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+						</svg>
+						Entradas <span class="count">46</span></a
+					>
+					<a href="#">
+						<svg
+							width="15"
+							height="15"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+							<path d="M14 2v6h6" />
+						</svg>
+						Páginas <span class="count">5</span></a
+					>
+					<a href="#">
+						<svg
+							width="15"
+							height="15"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<path
+								d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2Z"
+							/>
+						</svg>
+						Proyectos <span class="count">12</span></a
+					>
+				</nav>
+
+				<nav class="navgroup" aria-label="Sitio">
+					<h2>Sitio</h2>
+					<a href="#">
+						<svg
+							width="15"
+							height="15"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<circle cx="12" cy="12" r="3" />
+							<path
+								d="M19.4 15a1.6 1.6 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.6 1.6 0 0 0 15 19.4a1.6 1.6 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.6 1.6 0 0 0 4.6 15a1.6 1.6 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.6 1.6 0 0 0 9 4.6a1.6 1.6 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.6 1.6 0 0 0 1 1.51 1.6 1.6 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.6 1.6 0 0 0 19.4 9c.26.6.85 1 1.51 1H21a2 2 0 1 1 0 4h-.09c-.66 0-1.25.4-1.51 1Z"
+							/>
+						</svg>
+						Ajustes del sitio</a
+					>
+					<a href="#">
+						<svg
+							width="15"
+							height="15"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<rect x="3" y="3" width="18" height="18" rx="2" />
+							<circle cx="9" cy="9" r="2" />
+							<path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21" />
+						</svg>
+						Medios <span class="count">128</span></a
+					>
+				</nav>
+
+				<div class="foot">
+					<a href="#">
+						<svg
+							width="15"
+							height="15"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7" />
+							<path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" />
+						</svg>
+						Manifiesto <span class="warnbadge">2</span></a
+					>
+					<a href="#">
+						<svg
+							width="15"
+							height="15"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<circle cx="12" cy="12" r="5" />
+							<path
+								d="M12 1v3m0 16v3M4.2 4.2l2.1 2.1m11.4 11.4 2.1 2.1M1 12h3m16 0h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"
+							/>
+						</svg>
+						Tema · Miel</a
+					>
+					<div class="user">
+						<span class="avatar">D</span>
+						<span class="n">David<small>superusuario</small></span>
+					</div>
+				</div>
+			</aside>
+
+			<main class="main">
+				<button class="burger" aria-label="Abrir navegación">☰ fodaveg.net</button>
+				<header class="listhead">
+					<div>
+						<h1>Entradas</h1>
+						<p class="meta">42 publicadas · 3 borradores · 1 archivada</p>
+					</div>
+					<div class="tools">
+						<label class="search">
+							<svg
+								width="14"
+								height="14"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<circle cx="11" cy="11" r="7" />
+								<path d="m20 20-3.5-3.5" />
+							</svg>
+							<input type="search" placeholder="Buscar entradas…" aria-label="Buscar entradas" />
+						</label>
+						<button class="btn primary">+ Nueva entrada</button>
+					</div>
+				</header>
+
+				<div class="card">
+					<div class="rowhead" aria-hidden="true">
+						<span>Título</span><span>Estado</span><span>Publicación</span><span>Autor</span>
+					</div>
+
+					<div class="row">
+						<div class="t">
+							<a href="#">Migrar el blog de Hugo a Astro sin romper una sola URL</a
+							><small>blog/hugo-a-astro</small>
+						</div>
+						<span class="pill pub">Publicada</span>
+						<span class="d">12 jul 2026</span>
+						<span class="who"><span class="avatar">D</span> David</span>
+					</div>
+					<div class="row">
+						<div class="t">
+							<a href="#">El dado de paletas: diecinueve temas y un botón</a
+							><small>blog/dado-de-paletas</small>
+						</div>
+						<span class="pill pub">Publicada</span>
+						<span class="d">3 jul 2026</span>
+						<span class="who"><span class="avatar">D</span> David</span>
+					</div>
+					<div class="row">
+						<div class="t">
+							<a href="#"
+								>Lo que aprendí manteniendo un planificador semanal local-first durante un año:
+								CRDTs, sincronización y por qué el papel cuadriculado sigue ganando</a
+							><small>blog/un-anno-local-first</small>
+						</div>
+						<span class="pill draft">Borrador</span>
+						<span class="d">—</span>
+						<span class="who"><span class="avatar">D</span> David</span>
+					</div>
+					<div class="row">
+						<div class="t">
+							<a href="#">Grabar maquetas con lo puesto: un domingo, tres canciones</a
+							><small>blog/grabar-maquetas</small>
+						</div>
+						<span class="pill draft">Borrador</span>
+						<span class="d">—</span>
+						<span class="who"><span class="avatar">D</span> David</span>
+					</div>
+					<div class="row">
+						<div class="t">
+							<a href="#">Notas desde la tailnet: autoalojar sin sufrir</a
+							><small>blog/notas-tailnet</small>
+						</div>
+						<span class="pill pub">Publicada</span>
+						<span class="d">19 jun 2026</span>
+						<span class="who"><span class="avatar">D</span> David</span>
+					</div>
+					<div class="row">
+						<div class="t">
+							<a href="#">Una semana sin pantallas (el experimento)</a
+							><small>blog/semana-sin-pantallas</small>
+						</div>
+						<span class="pill other">Archivada</span>
+						<span class="d">2 may 2026</span>
+						<span class="who"><span class="avatar">D</span> David</span>
+					</div>
+					<div class="row">
+						<div class="t">
+							<a href="#">Sereno: rediseñar una app de rutas sin perder el norte</a
+							><small>blog/redisenno-sereno</small>
+						</div>
+						<span class="pill pub">Publicada</span>
+						<span class="d">8 jun 2026</span>
+						<span class="who"><span class="avatar">D</span> David</span>
+					</div>
+				</div>
+
+				<footer class="pager">
+					<span>1–7 de 46</span>
+					<span style="display: flex; gap: 0.4rem">
+						<button class="btn quiet" disabled>← Anteriores</button>
+						<button class="btn quiet">Siguientes →</button>
+					</span>
+				</footer>
+			</main>
+		</div>
+
+		<!-- ═══════════════ CASO LÍMITE — BÚSQUEDA SIN RESULTADOS ═══════════════ -->
+		<p class="demo-label">Caso límite · Búsqueda sin resultados</p>
+		<div class="shell" style="grid-template-columns: 1fr; min-height: auto">
+			<main class="main">
+				<header class="listhead">
+					<div><h1>Entradas</h1></div>
+					<div class="tools">
+						<label class="search" style="border-color: var(--accent)">
+							<svg
+								width="14"
+								height="14"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<circle cx="11" cy="11" r="7" />
+								<path d="m20 20-3.5-3.5" />
+							</svg>
+							<input type="search" value="sintetizadores" aria-label="Buscar entradas" />
+						</label>
+						<button class="btn primary">+ Nueva entrada</button>
+					</div>
+				</header>
+				<div class="card">
+					<div class="noresults">
+						<p>Ninguna entrada contiene <b>«sintetizadores»</b>.</p>
+						<p class="hint">
+							Prueba con otra palabra, o <a href="#">crea una entrada nueva</a> con ese título.
+						</p>
+					</div>
+				</div>
+			</main>
+		</div>
+
+		<!-- ═══════════════ PANTALLA 2 — EDITOR ═══════════════ -->
+		<p class="demo-label">Pantalla 2 · Editor de una entrada (hoja + panel de metadatos)</p>
+		<div class="shell" style="grid-template-columns: 1fr">
+			<main class="main">
+				<div class="edit-top">
+					<div class="left">
+						<a href="#" class="backlink">← Entradas</a>
+						<span class="pill pub">Publicada</span>
+					</div>
+					<div class="edit-actions">
+						<span class="saved-at">Todo guardado · 18:42</span>
+						<a href="#" class="btn quiet">Ver en el sitio ↗</a>
+						<button class="btn">Despublicar</button>
+						<button class="btn primary">Guardar</button>
+					</div>
+				</div>
+
+				<div class="editgrid">
+					<!-- hoja -->
+					<section class="sheetcard">
+						<input
+							class="title-input"
+							type="text"
+							aria-label="Título"
+							value="El dado de paletas: diecinueve temas y un botón"
+						/>
+						<div class="slugline">
+							<span>fodaveg.net/blog/</span>
+							<input type="text" value="dado-de-paletas" aria-label="Slug" />
+						</div>
+
+						<div class="rt-toolbar" role="toolbar" aria-label="Formato del cuerpo">
+							<button aria-pressed="true">P</button><button>H2</button><button>H3</button>
+							<span class="sep"></span>
+							<button style="font-weight: 700">B</button
+							><button style="font-style: italic">I</button
+							><button style="text-decoration: line-through">S</button>
+							<span class="sep"></span>
+							<button aria-label="Lista">≔</button><button aria-label="Cita">”</button
+							><button aria-label="Enlace">⌁</button><button aria-label="Imagen">▣</button
+							><button aria-label="Código">{}</button>
+						</div>
+
+						<div class="rt-body" aria-label="Cuerpo de la entrada">
+							<p>
+								La web tenía diecinueve paletas de color y un problema precioso: nadie iba a Ajustes
+								a cambiarlas. La solución no fue un menú mejor — fue <mark>un dado</mark>.
+							</p>
+							<h2>Tirar el dado</h2>
+							<p>
+								Cada visita puede pulsar el 🎲 de la esquina y la web se repinta con otra paleta al
+								azar: papel, tinta y acento cambian de golpe, y de repente el sitio parece otro sin
+								dejar de ser el mismo. Es la demo del sistema de temas contada sin una sola palabra.
+							</p>
+							<blockquote>
+								Un sistema de diseño se explica mejor jugando con él que documentándolo.
+							</blockquote>
+							<p>
+								Debajo hay poca magia: cada tema son siete valores hex y un tinte que se mezcla con
+								los neutros. Lo interesante es que el mismo motor sirve para una web pública, un
+								planificador y — pronto — un panel de administración.
+							</p>
+						</div>
+					</section>
+
+					<!-- metadatos -->
+					<aside class="metacard" aria-label="Metadatos de la entrada">
+						<h3>Metadatos</h3>
+
+						<div class="field">
+							<label class="flabel" for="extracto">Extracto</label>
+							<textarea class="control" id="extracto">
+Diecinueve paletas, un botón con un dado, y por qué la mejor documentación de un sistema de temas es dejar que la gente juegue con él.</textarea>
+							<p class="help">Resumen para listados y RSS.</p>
+						</div>
+
+						<div class="field">
+							<label class="flabel">Imagen destacada</label>
+							<div class="filew">
+								<div class="preview">dado-paletas.png</div>
+								<div class="frow">
+									<span>1200 × 675 · 96 KB</span>
+									<span class="acts"
+										><a href="#">Sustituir</a
+										><a href="#" style="color: var(--danger)">Quitar</a></span
+									>
+								</div>
+							</div>
+						</div>
+
+						<div class="field">
+							<label class="flabel">Categorías</label>
+							<div class="chips">
+								<span class="chip">diseño <button aria-label="Quitar diseño">×</button></span>
+								<span class="chip">dev <button aria-label="Quitar dev">×</button></span>
+								<span class="chip">color <button aria-label="Quitar color">×</button></span>
+								<input type="text" placeholder="Añadir…" aria-label="Añadir categoría" />
+							</div>
+						</div>
+
+						<div class="field">
+							<label class="flabel">Autor</label>
+							<div class="rel-value">
+								<span class="avatar">D</span>
+								<span class="name">David Vega</span>
+								<button class="swap">Cambiar</button>
+							</div>
+						</div>
+
+						<div class="field">
+							<label class="flabel" for="fpub">Fecha de publicación</label>
+							<input
+								class="control invalid"
+								id="fpub"
+								type="text"
+								value="03/07/2026 25:10"
+								aria-invalid="true"
+								aria-describedby="fpub-err"
+							/>
+							<p class="field-error" id="fpub-err">
+								Esa hora no existe: usa el formato 03/07/2026 15:10.
+							</p>
+						</div>
+
+						<div class="field">
+							<label class="switch">
+								<input type="checkbox" checked />
+								<span class="track"></span>
+								<span class="sw-label">Destacada en la portada</span>
+							</label>
+						</div>
+
+						<div class="field">
+							<label class="flabel">Datos adicionales</label>
+							<div class="jsonfold">
+								<span>{ 2 claves }</span>
+								<a href="#">Desplegar</a>
+							</div>
+						</div>
+					</aside>
+				</div>
+
+				<div class="savebar">
+					<span class="msg">Tienes cambios sin guardar en «Fecha de publicación»</span>
+					<span class="acts">
+						<button class="btn quiet">Descartar</button>
+						<button class="btn primary">Guardar cambios</button>
+					</span>
+				</div>
+			</main>
+		</div>
+
+		<!-- toast de ejemplo -->
+		<div class="toast" role="status"><span class="tick">✓</span> Entrada guardada</div>
+
+		<!-- notas -->
+		<div class="notes">
+			<h2>Notas de dirección — B · «Cuaderno»</h2>
+			<ul>
+				<li>
+					<b>Idea:</b> el heredero natural de Lumbre: papel tintado que se nota (bg al 10–12% de
+					tinte, más que el 8% de Lumbre), radios generosos, pastillas, sombras cálidas. El admin
+					como cuaderno agradable, no como herramienta fría.
+				</li>
+				<li>
+					<b>Sidebar con iconos de trazo</b> (set propio de Vega, los ids de <code>icon</code> del
+					manifiesto P2) y activo en pastilla <code>accent-soft</code>; contadores por colección.
+				</li>
+				<li>
+					<b>Listado en tarjeta</b> con filas de dos líneas (título + slug), badges pill (publicada
+					= success-soft, borrador = neutro, «archivada» = badge neutro info según P2 §4.5) y hover
+					accent-soft.
+				</li>
+				<li>
+					<b>Editor a dos columnas:</b> hoja de escritura + panel lateral pegajoso de metadatos
+					(extracto, imagen con preview, chips, relación, fecha con error de validación, switch,
+					JSON plegado). La barra de guardado pegajosa inferior encarna «cambios sin guardar» y dice
+					QUÉ campo cambió.
+				</li>
+				<li>
+					<b>Estados mostrados:</b> búsqueda sin resultados con salida («crea una entrada con ese
+					título»), error de datetime, badge de avisos del manifiesto, toast flotante de guardado,
+					título kilométrico en fila de altura fija.
+				</li>
+				<li>
+					<b>Riesgo asumido:</b> es la dirección más «app» de las tres; si Vega debe sentirse neutro
+					para sitios corporativos, A o C viajan mejor.
+				</li>
+			</ul>
+		</div>
+
+		<!-- demo controls -->
+		<div class="demobar" role="group" aria-label="Controles de la demo">
+			<span>Modo</span>
+			<button data-mode="auto" aria-pressed="true">Auto</button>
+			<button data-mode="light" aria-pressed="false">Claro</button>
+			<button data-mode="dark" aria-pressed="false">Oscuro</button>
+			<span>·</span>
+			<button class="sw miel" data-pal="miel" aria-pressed="true" title="Esquema Miel"></button>
+			<button class="sw brasa" data-pal="brasa" aria-pressed="false" title="Esquema Brasa"></button>
+		</div>
+
+		<script>
+			const html = document.documentElement;
+			document.querySelectorAll('.demobar [data-mode]').forEach((b) =>
+				b.addEventListener('click', () => {
+					document
+						.querySelectorAll('.demobar [data-mode]')
+						.forEach((x) => x.setAttribute('aria-pressed', 'false'));
+					b.setAttribute('aria-pressed', 'true');
+					if (b.dataset.mode === 'auto') html.removeAttribute('data-theme');
+					else html.setAttribute('data-theme', b.dataset.mode);
+				})
+			);
+			document.querySelectorAll('.demobar [data-pal]').forEach((b) =>
+				b.addEventListener('click', () => {
+					document
+						.querySelectorAll('.demobar [data-pal]')
+						.forEach((x) => x.setAttribute('aria-pressed', 'false'));
+					b.setAttribute('aria-pressed', 'true');
+					html.setAttribute('data-pal', b.dataset.pal);
+				})
+			);
+		</script>
+	</body>
+</html>

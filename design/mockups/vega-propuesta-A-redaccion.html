@@ -1,0 +1,1577 @@
+<!doctype html>
+<html lang="es" data-pal="marea">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Vega — Propuesta A · Redacción (editorial)</title>
+		<style>
+			/* ==========================================================================
+   VEGA — Propuesta A: «Redacción»
+   Dirección editorial y sobria. Serif para el contenido (lo que se edita es
+   texto: que la tipografía lo diga), sans para el chrome. Hairlines en vez de
+   cajas, aire generoso, el acento aparece poco y por eso manda.
+   Tokens: modelo tinte+neutros de Lumbre (color-mix in oklab sobre base gris)
+   con los roles de Vega (accent/accentInk + success/danger/warning/info).
+   Esquemas demostrados: marea (#147885) y tinta (#6ea3f0) — pares accent/ink
+   ya validados AA por el build de Lumbre.
+   ========================================================================== */
+
+			/* ---------- Paletas (equivalente a [data-pal] de themes.generated.css) --- */
+			:root,
+			[data-pal='marea'] {
+				--tint: #147885;
+				--accent: #147885;
+				--accent-ink: #ffffff;
+			}
+			[data-pal='tinta'] {
+				--tint: #6ea3f0;
+				--accent: #6ea3f0;
+				--accent-ink: #0e1a2e;
+			}
+
+			/* ---------- Neutros modo CLARO (base Lumbre + tinte por bucket) ---------- */
+			:root {
+				--bg: color-mix(in oklab, var(--tint) 8%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 8%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 8%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3.5%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3.5%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3.5%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 10%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 10%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 10%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 10%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 10%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 6%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 6%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 6%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 6%, #a8a49b);
+
+				--accent-soft: color-mix(in oklab, var(--accent) 13%, var(--paper));
+				--accent-text: color-mix(in oklab, var(--accent) 72%, var(--ink));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+
+				/* Semánticos de Vega (por modo, dentro del gate AA desde el día 1) */
+				--success: #2e7d54;
+				--success-soft: color-mix(in oklab, #2e7d54 13%, var(--paper));
+				--danger: #b23831;
+				--danger-soft: color-mix(in oklab, #b23831 12%, var(--paper));
+				--warning: #8a6116;
+				--warning-soft: color-mix(in oklab, #c98a1b 16%, var(--paper));
+				--info: #2f6f8f;
+				--info-soft: color-mix(in oklab, #2f6f8f 13%, var(--paper));
+
+				--shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+				color-scheme: light;
+			}
+
+			/* ---------- Neutros modo OSCURO ---------- */
+			:root[data-theme='dark'] {
+				color-scheme: dark;
+			}
+			@media (prefers-color-scheme: dark) {
+				:root:not([data-theme='light']) {
+					color-scheme: dark;
+				}
+			}
+			/* Tokens oscuros: mismo bloque aplicado por preferencia del sistema o por atributo */
+			@media (prefers-color-scheme: dark) {
+				:root:not([data-theme='light']) {
+					--bg: color-mix(in oklab, var(--tint) 17%, #0b0b0d);
+					--sidebar: color-mix(in oklab, var(--tint) 17%, #0f0f11);
+					--paper: color-mix(in oklab, var(--tint) 17%, #141416);
+					--surface: color-mix(in oklab, var(--tint) 15%, #232327);
+					--surface-2: color-mix(in oklab, var(--tint) 15%, #1c1c1f);
+					--btn: color-mix(in oklab, var(--tint) 15%, #242428);
+					--active: color-mix(in oklab, var(--tint) 19%, #302f37);
+					--line: color-mix(in oklab, var(--tint) 19%, #2a2a30);
+					--line-soft: color-mix(in oklab, var(--tint) 19%, #28282e);
+					--line-strong: color-mix(in oklab, var(--tint) 19%, #3c3c44);
+					--ring: color-mix(in oklab, var(--tint) 19%, #49494f);
+					--ink-hi: color-mix(in oklab, var(--tint) 9%, #f4f4f7);
+					--ink: color-mix(in oklab, var(--tint) 9%, #eaeaef);
+					--ink-2: color-mix(in oklab, var(--tint) 9%, #a5a5ad);
+					--ink-3: color-mix(in oklab, var(--tint) 9%, #87878f);
+					--accent-soft: color-mix(in oklab, var(--accent) 22%, var(--paper));
+					--accent-text: color-mix(in oklab, var(--accent) 62%, var(--ink));
+					--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+					--success: #5cbd8e;
+					--success-soft: color-mix(in oklab, #5cbd8e 18%, var(--paper));
+					--danger: #ef8078;
+					--danger-soft: color-mix(in oklab, #ef8078 16%, var(--paper));
+					--warning: #dfae4d;
+					--warning-soft: color-mix(in oklab, #dfae4d 16%, var(--paper));
+					--info: #74b6d6;
+					--info-soft: color-mix(in oklab, #74b6d6 16%, var(--paper));
+					--shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+				}
+			}
+			:root[data-theme='dark'] {
+				--bg: color-mix(in oklab, var(--tint) 17%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 17%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 17%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 15%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 15%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 15%, #242428);
+				--active: color-mix(in oklab, var(--tint) 19%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 19%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 19%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 19%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 19%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 9%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 9%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 9%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 9%, #87878f);
+				--accent-soft: color-mix(in oklab, var(--accent) 22%, var(--paper));
+				--accent-text: color-mix(in oklab, var(--accent) 62%, var(--ink));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--success: #5cbd8e;
+				--success-soft: color-mix(in oklab, #5cbd8e 18%, var(--paper));
+				--danger: #ef8078;
+				--danger-soft: color-mix(in oklab, #ef8078 16%, var(--paper));
+				--warning: #dfae4d;
+				--warning-soft: color-mix(in oklab, #dfae4d 16%, var(--paper));
+				--info: #74b6d6;
+				--info-soft: color-mix(in oklab, #74b6d6 16%, var(--paper));
+				--shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+			}
+
+			/* ---------- Tipografía y base ---------- */
+			* {
+				box-sizing: border-box;
+				margin: 0;
+			}
+			:root {
+				--serif: 'Iowan Old Style', 'Palatino', Georgia, 'Times New Roman', serif;
+				--sans: -apple-system, 'Segoe UI', system-ui, sans-serif;
+				--mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+				--r: 4px; /* radio contenido: editorial = casi recto */
+			}
+			html {
+				font-size: 16px;
+			}
+			body {
+				font-family: var(--sans);
+				font-size: 0.9375rem;
+				line-height: 1.5;
+				background: var(--bg);
+				color: var(--ink);
+				-webkit-font-smoothing: antialiased;
+			}
+			a {
+				color: var(--accent-text);
+				text-decoration: none;
+			}
+			a:hover {
+				text-decoration: underline;
+			}
+			button {
+				font: inherit;
+				cursor: pointer;
+			}
+			:focus-visible {
+				outline: 2px solid var(--accent);
+				outline-offset: 2px;
+				border-radius: 2px;
+			}
+			@media (prefers-reduced-motion: reduce) {
+				* {
+					transition: none !important;
+				}
+			}
+
+			/* etiqueta de sección de la demo */
+			.demo-label {
+				max-width: 1280px;
+				margin: 3rem auto 0.75rem;
+				padding: 0 1.5rem;
+				font-size: 0.75rem;
+				letter-spacing: 0.12em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+			}
+			.demo-label:first-of-type {
+				margin-top: 1.5rem;
+			}
+
+			/* ---------- Shell del admin ---------- */
+			.shell {
+				max-width: 1280px;
+				margin: 0 auto;
+				min-height: 720px;
+				display: grid;
+				grid-template-columns: 236px 1fr;
+				background: var(--paper);
+				border: 1px solid var(--line);
+				border-radius: 8px;
+				overflow: hidden;
+				box-shadow: var(--shadow);
+			}
+
+			/* Sidebar: texto y hairlines, sin cajas */
+			.side {
+				background: var(--sidebar);
+				border-right: 1px solid var(--line);
+				padding: 1.5rem 0 1rem;
+				display: flex;
+				flex-direction: column;
+				gap: 1.75rem;
+			}
+			.side .site {
+				padding: 0 1.5rem;
+				font-family: var(--serif);
+				font-size: 1.25rem;
+				color: var(--ink-hi);
+			}
+			.side .site small {
+				display: block;
+				font-family: var(--sans);
+				font-size: 0.6875rem;
+				letter-spacing: 0.14em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+				margin-top: 0.2rem;
+			}
+			.navgroup {
+				display: flex;
+				flex-direction: column;
+			}
+			.navgroup h2 {
+				font-size: 0.6875rem;
+				font-weight: 600;
+				letter-spacing: 0.14em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+				padding: 0 1.5rem 0.5rem;
+			}
+			.navgroup a {
+				display: flex;
+				align-items: baseline;
+				justify-content: space-between;
+				padding: 0.45rem 1.5rem;
+				color: var(--ink-2);
+				font-size: 0.9375rem;
+				border-left: 2px solid transparent;
+			}
+			.navgroup a:hover {
+				color: var(--ink-hi);
+				text-decoration: none;
+				background: var(--active);
+			}
+			.navgroup a[aria-current='page'] {
+				color: var(--accent-text);
+				border-left-color: var(--accent);
+				font-weight: 600;
+				background: transparent;
+			}
+			.navgroup .count {
+				font-size: 0.75rem;
+				color: var(--ink-3);
+				font-variant-numeric: tabular-nums;
+			}
+			.side .foot {
+				margin-top: auto;
+				padding: 1rem 1.5rem 0;
+				border-top: 1px solid var(--line);
+				display: flex;
+				flex-direction: column;
+				gap: 0.35rem;
+			}
+			.side .foot a {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				color: var(--ink-2);
+				font-size: 0.875rem;
+				padding: 0.2rem 0;
+			}
+			.warnbadge {
+				font-size: 0.6875rem;
+				font-weight: 700;
+				background: var(--warning-soft);
+				color: var(--warning);
+				border: 1px solid color-mix(in oklab, var(--warning) 30%, transparent);
+				padding: 0 0.45rem;
+				border-radius: 99px;
+				font-variant-numeric: tabular-nums;
+			}
+			.side .vega-mark {
+				padding: 0.75rem 1.5rem 0;
+				font-size: 0.6875rem;
+				letter-spacing: 0.18em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+			}
+
+			/* Main */
+			.main {
+				background: var(--paper);
+				padding: 2.25rem 3rem 3rem;
+				min-width: 0;
+			}
+			.crumbs {
+				font-size: 0.8125rem;
+				color: var(--ink-3);
+				margin-bottom: 1.25rem;
+			}
+			.crumbs a {
+				color: var(--ink-2);
+			}
+
+			.listhead {
+				display: flex;
+				align-items: flex-end;
+				justify-content: space-between;
+				gap: 1rem;
+				flex-wrap: wrap;
+			}
+			.listhead h1 {
+				font-family: var(--serif);
+				font-size: 2.1rem;
+				font-weight: 500;
+				color: var(--ink-hi);
+				letter-spacing: -0.01em;
+			}
+			.listhead .meta {
+				font-size: 0.875rem;
+				color: var(--ink-2);
+				margin-top: 0.3rem;
+			}
+			.listhead .meta b {
+				color: var(--ink);
+				font-weight: 600;
+			}
+
+			.tools {
+				display: flex;
+				align-items: center;
+				gap: 1rem;
+			}
+			.search {
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				border-bottom: 1px solid var(--line-strong);
+				padding: 0.35rem 0.1rem;
+				min-width: 220px;
+			}
+			.search svg {
+				color: var(--ink-3);
+				flex: none;
+			}
+			.search input {
+				border: 0;
+				background: none;
+				font: inherit;
+				color: var(--ink);
+				width: 100%;
+			}
+			.search input::placeholder {
+				color: var(--ink-3);
+			}
+			.search input:focus {
+				outline: none;
+			}
+			.search:focus-within {
+				border-bottom-color: var(--accent);
+			}
+
+			.btn {
+				border: 1px solid var(--line-strong);
+				background: var(--surface);
+				color: var(--ink);
+				border-radius: var(--r);
+				padding: 0.5rem 1rem;
+				font-size: 0.875rem;
+				font-weight: 500;
+				transition:
+					background 0.12s,
+					border-color 0.12s;
+			}
+			.btn:hover {
+				background: var(--btn);
+			}
+			.btn:disabled {
+				opacity: 0.45;
+				cursor: not-allowed;
+			}
+			.btn.primary {
+				background: var(--accent);
+				border-color: var(--accent);
+				color: var(--accent-ink);
+				font-weight: 600;
+			}
+			.btn.primary:hover {
+				background: var(--accent-hover);
+				border-color: var(--accent-hover);
+			}
+			.btn.quiet {
+				border-color: transparent;
+				background: transparent;
+				color: var(--ink-2);
+			}
+			.btn.quiet:hover {
+				color: var(--ink-hi);
+				background: var(--active);
+			}
+			.btn.danger-quiet {
+				border-color: transparent;
+				background: transparent;
+				color: var(--danger);
+			}
+			.btn.danger-quiet:hover {
+				background: var(--danger-soft);
+			}
+
+			/* ---------- Tabla editorial: índice con reglas, no card ---------- */
+			table.index {
+				width: 100%;
+				border-collapse: collapse;
+				margin-top: 1.75rem;
+			}
+			table.index th {
+				text-align: left;
+				font-size: 0.6875rem;
+				font-weight: 600;
+				letter-spacing: 0.12em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+				padding: 0.5rem 0.75rem 0.5rem 0;
+				border-bottom: 2px solid var(--ink-hi);
+			}
+			table.index td {
+				padding: 0.8rem 0.75rem 0.8rem 0;
+				border-bottom: 1px solid var(--line);
+				vertical-align: baseline;
+			}
+			table.index tr:hover td {
+				background: var(--active);
+			}
+			table.index .title a {
+				font-family: var(--serif);
+				font-size: 1.0625rem;
+				color: var(--ink-hi);
+			}
+			table.index .title a:hover {
+				color: var(--accent-text);
+			}
+			table.index .title .clamp {
+				display: block;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				max-width: 46ch;
+			}
+			table.index td.num {
+				font-variant-numeric: tabular-nums;
+				color: var(--ink-2);
+				font-size: 0.875rem;
+				white-space: nowrap;
+			}
+			table.index td.who {
+				color: var(--ink-2);
+				font-size: 0.875rem;
+				white-space: nowrap;
+			}
+
+			/* Estado editorial: punto + versalitas, no pill */
+			.status {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.45rem;
+				font-size: 0.75rem;
+				letter-spacing: 0.1em;
+				text-transform: uppercase;
+				font-weight: 600;
+				white-space: nowrap;
+			}
+			.status::before {
+				content: '';
+				width: 7px;
+				height: 7px;
+				border-radius: 50%;
+				background: currentColor;
+			}
+			.status.pub {
+				color: var(--success);
+			}
+			.status.draft {
+				color: var(--ink-3);
+			}
+			.status.other {
+				color: var(--info);
+			}
+
+			.pager {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-top: 1.25rem;
+				font-size: 0.875rem;
+				color: var(--ink-2);
+			}
+			.pager .pages {
+				display: flex;
+				gap: 0.25rem;
+			}
+
+			/* Estado vacío */
+			.empty {
+				text-align: center;
+				padding: 4.5rem 2rem;
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				margin-top: 1.75rem;
+				background: var(--surface-2);
+			}
+			.empty p.big {
+				font-family: var(--serif);
+				font-size: 1.35rem;
+				color: var(--ink);
+				margin-bottom: 0.4rem;
+			}
+			.empty p.sub {
+				color: var(--ink-2);
+				font-size: 0.9rem;
+				margin-bottom: 1.5rem;
+			}
+
+			/* ---------- Editor ---------- */
+			.edit-top {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 1rem;
+				padding-bottom: 1.25rem;
+				border-bottom: 1px solid var(--line);
+				flex-wrap: wrap;
+			}
+			.edit-top .left {
+				display: flex;
+				align-items: center;
+				gap: 1rem;
+			}
+			.dirty {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.45rem;
+				font-size: 0.8125rem;
+				color: var(--warning);
+				font-weight: 500;
+			}
+			.dirty::before {
+				content: '';
+				width: 8px;
+				height: 8px;
+				border-radius: 50%;
+				background: var(--warning);
+			}
+			.edit-actions {
+				display: flex;
+				align-items: center;
+				gap: 0.6rem;
+			}
+			.saved-at {
+				font-size: 0.8125rem;
+				color: var(--ink-3);
+			}
+
+			.sheet {
+				max-width: 720px;
+				margin: 0 auto;
+				padding-top: 2.5rem;
+			}
+			.title-input {
+				width: 100%;
+				border: 0;
+				background: none;
+				font-family: var(--serif);
+				font-size: 2.35rem;
+				line-height: 1.2;
+				color: var(--ink-hi);
+				letter-spacing: -0.01em;
+			}
+			.title-input:focus {
+				outline: none;
+			}
+			.title-input::placeholder {
+				color: var(--ink-3);
+			}
+			.slugline {
+				display: flex;
+				align-items: baseline;
+				gap: 0.25rem;
+				margin-top: 0.6rem;
+				font-family: var(--mono);
+				font-size: 0.8125rem;
+				color: var(--ink-3);
+			}
+			.slugline input {
+				border: 0;
+				border-bottom: 1px dashed var(--line-strong);
+				background: none;
+				font: inherit;
+				color: var(--ink-2);
+				padding: 0 0.1rem 0.1rem;
+				min-width: 24ch;
+			}
+			.slugline input:focus {
+				outline: none;
+				border-bottom-color: var(--accent);
+			}
+			.slugline.error input {
+				color: var(--danger);
+				border-bottom-color: var(--danger);
+				border-bottom-style: solid;
+			}
+			.field-error {
+				display: flex;
+				gap: 0.4rem;
+				align-items: center;
+				font-size: 0.8125rem;
+				color: var(--danger);
+				margin-top: 0.45rem;
+			}
+
+			/* Richtext */
+			.rt {
+				margin-top: 2.25rem;
+			}
+			.rt-toolbar {
+				display: flex;
+				align-items: center;
+				gap: 0.15rem;
+				border-top: 1px solid var(--line);
+				border-bottom: 1px solid var(--line);
+				padding: 0.3rem 0;
+				position: sticky;
+				top: 0;
+				background: var(--paper);
+				z-index: 2;
+			}
+			.rt-toolbar button {
+				border: 0;
+				background: none;
+				color: var(--ink-2);
+				border-radius: var(--r);
+				min-width: 30px;
+				height: 30px;
+				font-size: 0.8125rem;
+				display: grid;
+				place-items: center;
+			}
+			.rt-toolbar button:hover {
+				background: var(--active);
+				color: var(--ink-hi);
+			}
+			.rt-toolbar button[aria-pressed='true'] {
+				background: var(--accent-soft);
+				color: var(--accent-text);
+			}
+			.rt-toolbar .sep {
+				width: 1px;
+				height: 18px;
+				background: var(--line);
+				margin: 0 0.4rem;
+			}
+			.rt-body {
+				font-family: var(--serif);
+				font-size: 1.125rem;
+				line-height: 1.75;
+				color: var(--ink);
+				padding: 1.75rem 0 1rem;
+			}
+			.rt-body h2 {
+				font-size: 1.45rem;
+				margin: 1.5rem 0 0.6rem;
+				color: var(--ink-hi);
+				font-weight: 600;
+			}
+			.rt-body p + p {
+				margin-top: 1rem;
+			}
+			.rt-body a {
+				text-decoration: underline;
+				text-decoration-color: color-mix(in oklab, var(--accent) 45%, transparent);
+				text-underline-offset: 3px;
+			}
+			.rt-body code {
+				font-family: var(--mono);
+				font-size: 0.85em;
+				background: var(--surface-2);
+				border: 1px solid var(--line);
+				border-radius: 3px;
+				padding: 0.08em 0.35em;
+			}
+			.rt-body blockquote {
+				border-left: 2px solid var(--accent);
+				padding-left: 1.1rem;
+				color: var(--ink-2);
+				font-style: italic;
+				margin: 1.1rem 0;
+			}
+
+			/* Secciones de campos (fieldGroups planas) */
+			.fsection {
+				margin-top: 2.75rem;
+				border-top: 1px solid var(--line);
+				padding-top: 1.5rem;
+			}
+			.fsection > h3 {
+				font-size: 0.6875rem;
+				font-weight: 600;
+				letter-spacing: 0.14em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+				margin-bottom: 1.4rem;
+			}
+			.fgrid {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 1.5rem 2.5rem;
+			}
+			.fgrid .span2 {
+				grid-column: 1 / -1;
+			}
+			.field label.flabel {
+				display: block;
+				font-size: 0.8125rem;
+				font-weight: 600;
+				color: var(--ink);
+				margin-bottom: 0.45rem;
+			}
+			.field .help {
+				font-size: 0.8125rem;
+				color: var(--ink-3);
+				margin-top: 0.4rem;
+			}
+			.control {
+				width: 100%;
+				border: 1px solid var(--line-strong);
+				background: var(--surface);
+				border-radius: var(--r);
+				padding: 0.55rem 0.7rem;
+				font: inherit;
+				color: var(--ink);
+			}
+			.control:focus {
+				outline: none;
+				border-color: var(--accent);
+				box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
+			}
+			textarea.control {
+				resize: vertical;
+				min-height: 84px;
+				line-height: 1.55;
+			}
+			.control::placeholder {
+				color: var(--ink-3);
+			}
+
+			/* chips */
+			.chips {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.45rem;
+				border: 1px solid var(--line-strong);
+				border-radius: var(--r);
+				padding: 0.45rem;
+				background: var(--surface);
+			}
+			.chip {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.35rem;
+				background: var(--accent-soft);
+				color: var(--accent-text);
+				font-size: 0.8125rem;
+				font-weight: 500;
+				border-radius: 3px;
+				padding: 0.18rem 0.3rem 0.18rem 0.55rem;
+			}
+			.chip button {
+				border: 0;
+				background: none;
+				color: inherit;
+				opacity: 0.6;
+				padding: 0 0.15rem;
+				font-size: 0.9rem;
+				line-height: 1;
+			}
+			.chip button:hover {
+				opacity: 1;
+			}
+			.chips input {
+				border: 0;
+				background: none;
+				font: inherit;
+				color: var(--ink);
+				min-width: 8ch;
+				flex: 1;
+			}
+			.chips input:focus {
+				outline: none;
+			}
+
+			/* relación */
+			.relation {
+				position: relative;
+			}
+			.rel-value {
+				display: flex;
+				align-items: center;
+				gap: 0.6rem;
+				border: 1px solid var(--line-strong);
+				border-radius: var(--r);
+				padding: 0.45rem 0.6rem;
+				background: var(--surface);
+			}
+			.avatar {
+				width: 26px;
+				height: 26px;
+				border-radius: 50%;
+				background: var(--accent);
+				color: var(--accent-ink);
+				display: grid;
+				place-items: center;
+				font-size: 0.75rem;
+				font-weight: 700;
+				flex: none;
+			}
+			.rel-value .name {
+				flex: 1;
+				font-size: 0.9rem;
+			}
+			.rel-value .swap {
+				border: 0;
+				background: none;
+				color: var(--accent-text);
+				font-size: 0.8125rem;
+				font-weight: 500;
+			}
+			.rel-pop {
+				position: absolute;
+				inset-inline: 0;
+				top: calc(100% + 6px);
+				z-index: 3;
+				background: var(--surface);
+				border: 1px solid var(--line-strong);
+				border-radius: var(--r);
+				box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+				overflow: hidden;
+			}
+			.rel-pop .q {
+				display: flex;
+				gap: 0.5rem;
+				padding: 0.55rem 0.7rem;
+				border-bottom: 1px solid var(--line);
+				color: var(--ink-3);
+				font-size: 0.875rem;
+			}
+			.rel-pop ul {
+				list-style: none;
+				padding: 0.25rem 0;
+			}
+			.rel-pop li {
+				padding: 0.45rem 0.7rem;
+				font-size: 0.875rem;
+				display: flex;
+				gap: 0.6rem;
+				align-items: center;
+			}
+			.rel-pop li[aria-selected='true'] {
+				background: var(--accent-soft);
+			}
+			.rel-pop li .sub {
+				color: var(--ink-3);
+				font-size: 0.78rem;
+			}
+
+			/* file */
+			.filew {
+				border: 1px solid var(--line-strong);
+				border-radius: var(--r);
+				overflow: hidden;
+				background: var(--surface);
+			}
+			.filew .preview {
+				aspect-ratio: 21/9;
+				background: linear-gradient(
+					140deg,
+					color-mix(in oklab, var(--accent) 55%, var(--paper)),
+					color-mix(in oklab, var(--accent) 18%, var(--paper)) 55%,
+					var(--paper)
+				);
+				display: grid;
+				place-items: center;
+				color: var(--accent-ink);
+				font-family: var(--serif);
+				font-size: 1.1rem;
+			}
+			.filew .frow {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 1rem;
+				padding: 0.5rem 0.7rem;
+				font-size: 0.8125rem;
+				color: var(--ink-2);
+				border-top: 1px solid var(--line);
+			}
+			.filew .frow .acts {
+				display: flex;
+				gap: 0.8rem;
+			}
+
+			/* switch */
+			.switch {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.7rem;
+				cursor: pointer;
+			}
+			.switch .track {
+				width: 38px;
+				height: 22px;
+				border-radius: 99px;
+				background: var(--line-strong);
+				position: relative;
+				transition: background 0.15s;
+				flex: none;
+			}
+			.switch .track::after {
+				content: '';
+				position: absolute;
+				top: 2px;
+				left: 2px;
+				width: 18px;
+				height: 18px;
+				border-radius: 50%;
+				background: var(--surface);
+				box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+				transition: transform 0.15s;
+			}
+			.switch input {
+				position: absolute;
+				opacity: 0;
+			}
+			.switch input:checked + .track {
+				background: var(--accent);
+			}
+			.switch input:checked + .track::after {
+				transform: translateX(16px);
+			}
+			.switch input:focus-visible + .track {
+				outline: 2px solid var(--accent);
+				outline-offset: 2px;
+			}
+			.switch .sw-label {
+				font-size: 0.9rem;
+			}
+
+			/* json plegado */
+			.jsonfold {
+				border: 1px dashed var(--line-strong);
+				border-radius: var(--r);
+				padding: 0.55rem 0.7rem;
+				font-family: var(--mono);
+				font-size: 0.8125rem;
+				color: var(--ink-3);
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				background: var(--surface-2);
+			}
+
+			/* toast */
+			.toast {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.5rem;
+				background: var(--ink-hi);
+				color: var(--paper);
+				border-radius: var(--r);
+				padding: 0.55rem 0.9rem;
+				font-size: 0.875rem;
+				box-shadow: 0 6px 18px rgb(0 0 0 / 0.2);
+			}
+			.toast .ok {
+				color: var(--success);
+			}
+			:root[data-theme='dark'] .toast .ok {
+				color: #7fdcae;
+			}
+
+			/* notas de dirección */
+			.notes {
+				max-width: 1280px;
+				margin: 1rem auto 6rem;
+				padding: 1.5rem;
+				color: var(--ink-2);
+				font-size: 0.875rem;
+			}
+			.notes h2 {
+				font-family: var(--serif);
+				color: var(--ink-hi);
+				font-size: 1.2rem;
+				margin-bottom: 0.6rem;
+			}
+			.notes li {
+				margin: 0.3rem 0 0.3rem 1.1rem;
+			}
+
+			/* ---------- demo controls ---------- */
+			.demobar {
+				position: fixed;
+				right: 1rem;
+				bottom: 1rem;
+				z-index: 50;
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				background: var(--surface);
+				border: 1px solid var(--line-strong);
+				border-radius: 99px;
+				padding: 0.4rem 0.6rem;
+				box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+				font-size: 0.78rem;
+				color: var(--ink-2);
+			}
+			.demobar button {
+				border: 1px solid var(--line);
+				background: var(--paper);
+				color: var(--ink);
+				border-radius: 99px;
+				padding: 0.25rem 0.6rem;
+				font-size: 0.75rem;
+			}
+			.demobar button[aria-pressed='true'] {
+				background: var(--accent);
+				border-color: var(--accent);
+				color: var(--accent-ink);
+			}
+			.demobar .sw {
+				width: 22px;
+				height: 22px;
+				border-radius: 50%;
+				padding: 0;
+				border: 2px solid var(--surface);
+				box-shadow: 0 0 0 1px var(--line-strong);
+			}
+			.demobar .sw.marea {
+				background: #147885;
+			}
+			.demobar .sw.tinta {
+				background: #6ea3f0;
+			}
+			.demobar .sw[aria-pressed='true'] {
+				box-shadow: 0 0 0 2px var(--ink);
+			}
+
+			/* ---------- responsive ---------- */
+			.burger {
+				display: none;
+			}
+			@media (max-width: 920px) {
+				.shell {
+					grid-template-columns: 1fr;
+					border-radius: 0;
+					border-inline: 0;
+				}
+				.side {
+					display: none;
+				}
+				.main {
+					padding: 1.25rem 1.25rem 2.5rem;
+				}
+				.burger {
+					display: inline-flex;
+					align-items: center;
+					gap: 0.5rem;
+					border: 0;
+					background: none;
+					color: var(--ink-2);
+					font-size: 0.875rem;
+					margin-bottom: 1rem;
+					padding: 0;
+				}
+				table.index .hide-sm {
+					display: none;
+				}
+				table.index .title .clamp {
+					max-width: 100%;
+				}
+				.fgrid {
+					grid-template-columns: 1fr;
+				}
+				.listhead h1 {
+					font-size: 1.7rem;
+				}
+				.title-input {
+					font-size: 1.75rem;
+				}
+				.sheet {
+					padding-top: 1.5rem;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<!-- ═══════════════ PANTALLA 1 — LISTADO ═══════════════ -->
+		<p class="demo-label">Pantalla 1 · Listado de «Entradas»</p>
+		<div class="shell">
+			<aside class="side" aria-label="Navegación de Vega">
+				<div class="site">fodaveg.net<small>panel de contenido</small></div>
+
+				<nav class="navgroup" aria-label="Contenido">
+					<h2>Contenido</h2>
+					<a href="#" aria-current="page">Entradas <span class="count">46</span></a>
+					<a href="#">Páginas <span class="count">5</span></a>
+					<a href="#">Proyectos <span class="count">0</span></a>
+				</nav>
+
+				<nav class="navgroup" aria-label="Sitio">
+					<h2>Sitio</h2>
+					<a href="#">Ajustes del sitio</a>
+					<a href="#">Medios <span class="count">128</span></a>
+				</nav>
+
+				<div class="foot">
+					<a href="#"
+						>Manifiesto <span class="warnbadge" title="2 avisos del modelo">2 avisos</span></a
+					>
+					<a href="#">Tema · Marea</a>
+					<a href="#">David · salir</a>
+					<span class="vega-mark">Vega 1.0</span>
+				</div>
+			</aside>
+
+			<main class="main">
+				<button class="burger" aria-label="Abrir navegación">☰ fodaveg.net</button>
+				<p class="crumbs"><a href="#">Contenido</a> / Entradas</p>
+
+				<header class="listhead">
+					<div>
+						<h1>Entradas</h1>
+						<p class="meta"><b>42</b> publicadas · <b>3</b> borradores · <b>1</b> archivada</p>
+					</div>
+					<div class="tools">
+						<label class="search">
+							<svg
+								width="14"
+								height="14"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<circle cx="11" cy="11" r="7" />
+								<path d="m20 20-3.5-3.5" />
+							</svg>
+							<input type="search" placeholder="Buscar por título…" aria-label="Buscar entradas" />
+						</label>
+						<button class="btn primary">Nueva entrada</button>
+					</div>
+				</header>
+
+				<table class="index">
+					<thead>
+						<tr>
+							<th scope="col">Título</th>
+							<th scope="col">Estado</th>
+							<th scope="col" class="hide-sm">Publicación</th>
+							<th scope="col" class="hide-sm">Autor</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td class="title">
+								<a href="#"
+									><span class="clamp"
+										>Migrar el blog de Hugo a Astro sin romper una sola URL</span
+									></a
+								>
+							</td>
+							<td><span class="status pub">Publicada</span></td>
+							<td class="num hide-sm">12 jul 2026</td>
+							<td class="who hide-sm">David</td>
+						</tr>
+						<tr>
+							<td class="title">
+								<a href="#"
+									><span class="clamp">El dado de paletas: diecinueve temas y un botón</span></a
+								>
+							</td>
+							<td><span class="status pub">Publicada</span></td>
+							<td class="num hide-sm">3 jul 2026</td>
+							<td class="who hide-sm">David</td>
+						</tr>
+						<tr>
+							<td class="title">
+								<a href="#"
+									><span class="clamp"
+										>Lo que aprendí manteniendo un planificador semanal local-first durante un año:
+										CRDTs, sincronización y por qué el papel cuadriculado sigue ganando</span
+									></a
+								>
+							</td>
+							<td><span class="status draft">Borrador</span></td>
+							<td class="num hide-sm">—</td>
+							<td class="who hide-sm">David</td>
+						</tr>
+						<tr>
+							<td class="title">
+								<a href="#"
+									><span class="clamp"
+										>Grabar maquetas con lo puesto: un domingo, tres canciones</span
+									></a
+								>
+							</td>
+							<td><span class="status draft">Borrador</span></td>
+							<td class="num hide-sm">—</td>
+							<td class="who hide-sm">David</td>
+						</tr>
+						<tr>
+							<td class="title">
+								<a href="#"
+									><span class="clamp">Notas desde la tailnet: autoalojar sin sufrir</span></a
+								>
+							</td>
+							<td><span class="status pub">Publicada</span></td>
+							<td class="num hide-sm">19 jun 2026</td>
+							<td class="who hide-sm">David</td>
+						</tr>
+						<tr>
+							<td class="title">
+								<a href="#"><span class="clamp">Una semana sin pantallas (el experimento)</span></a>
+							</td>
+							<td><span class="status other">Archivada</span></td>
+							<td class="num hide-sm">2 may 2026</td>
+							<td class="who hide-sm">David</td>
+						</tr>
+						<tr>
+							<td class="title">
+								<a href="#"
+									><span class="clamp"
+										>Sereno: rediseñar una app de rutas sin perder el norte</span
+									></a
+								>
+							</td>
+							<td><span class="status pub">Publicada</span></td>
+							<td class="num hide-sm">8 jun 2026</td>
+							<td class="who hide-sm">David</td>
+						</tr>
+					</tbody>
+				</table>
+
+				<footer class="pager">
+					<span>1–7 de 46 entradas</span>
+					<span class="pages">
+						<button class="btn quiet" disabled>← Anteriores</button>
+						<button class="btn quiet">Siguientes →</button>
+					</span>
+				</footer>
+			</main>
+		</div>
+
+		<!-- ═══════════════ ESTADO VACÍO (Proyectos) ═══════════════ -->
+		<p class="demo-label">Caso límite · Colección vacía («Proyectos»)</p>
+		<div class="shell" style="min-height: auto">
+			<aside class="side" aria-hidden="true" style="gap: 1.75rem">
+				<div class="site">fodaveg.net<small>panel de contenido</small></div>
+				<nav class="navgroup">
+					<h2>Contenido</h2>
+					<a href="#">Entradas <span class="count">46</span></a>
+					<a href="#">Páginas <span class="count">5</span></a>
+					<a href="#" aria-current="page">Proyectos <span class="count">0</span></a>
+				</nav>
+			</aside>
+			<main class="main">
+				<p class="crumbs"><a href="#">Contenido</a> / Proyectos</p>
+				<header class="listhead">
+					<div><h1>Proyectos</h1></div>
+					<div class="tools"><button class="btn primary">Nuevo proyecto</button></div>
+				</header>
+				<div class="empty">
+					<p class="big">Todavía no hay proyectos.</p>
+					<p class="sub">Cuando crees el primero aparecerá aquí, con su estado y su fecha.</p>
+					<button class="btn primary">Crear el primer proyecto</button>
+				</div>
+			</main>
+		</div>
+
+		<!-- ═══════════════ PANTALLA 2 — EDITOR ═══════════════ -->
+		<p class="demo-label">
+			Pantalla 2 · Editor de una entrada (con cambios sin guardar y un error de campo)
+		</p>
+		<div class="shell" style="grid-template-columns: 1fr">
+			<main class="main">
+				<div class="edit-top">
+					<div class="left">
+						<a href="#">← Entradas</a>
+						<span class="status draft">Borrador</span>
+						<span class="dirty">Cambios sin guardar</span>
+					</div>
+					<div class="edit-actions">
+						<span class="saved-at">Guardado por última vez a las 18:42</span>
+						<button class="btn quiet" disabled title="El borrador aún no tiene URL pública">
+							Ver en el sitio
+						</button>
+						<button class="btn">Publicar</button>
+						<button class="btn primary">Guardar</button>
+					</div>
+				</div>
+
+				<div class="sheet">
+					<input
+						class="title-input"
+						type="text"
+						aria-label="Título"
+						value="Grabar maquetas con lo puesto: un domingo, tres canciones"
+					/>
+					<div class="slugline error">
+						<span>fodaveg.net/blog/</span>
+						<input
+							type="text"
+							value="grabar-maquetas"
+							aria-invalid="true"
+							aria-describedby="slug-err"
+						/>
+					</div>
+					<p class="field-error" id="slug-err">
+						<svg
+							width="13"
+							height="13"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<circle cx="12" cy="12" r="9" />
+							<path d="M12 8v5m0 3h.01" />
+						</svg>
+						Ese slug ya lo usa la entrada «Grabar maquetas en casa» (2024).
+					</p>
+
+					<!-- richtext -->
+					<div class="rt field">
+						<div class="rt-toolbar" role="toolbar" aria-label="Formato del cuerpo">
+							<button aria-pressed="true">P</button>
+							<button>H2</button>
+							<button>H3</button>
+							<span class="sep"></span>
+							<button style="font-weight: 700">B</button>
+							<button style="font-style: italic">I</button>
+							<button style="text-decoration: line-through">S</button>
+							<span class="sep"></span>
+							<button aria-label="Lista">≔</button>
+							<button aria-label="Cita">”</button>
+							<button aria-label="Enlace">⌁</button>
+							<button aria-label="Imagen">▣</button>
+							<button aria-label="Código">{}</button>
+						</div>
+						<div class="rt-body" contenteditable="false" aria-label="Cuerpo de la entrada">
+							<p>
+								Hay una regla que me repito cada vez que me siento a grabar:
+								<em>la maqueta que existe le gana a la producción que no</em>. Este domingo la
+								apliqué a rajatabla — micro de mesa, la acústica de siempre y tres ideas que
+								llevaban un mes rondando.
+							</p>
+							<h2>El montaje (o su ausencia)</h2>
+							<p>
+								Nada de interfaz nueva ni plugins: un micro USB, <code>GarageBand</code> con la
+								plantilla vacía y los cascos de diario. La gracia es que al quitar decisiones
+								técnicas solo queda una pregunta: ¿la canción se sostiene sola?
+							</p>
+							<blockquote>
+								Si una maqueta aguanta con guitarra y voz mal grabadas, con producción solo puede
+								mejorar.
+							</blockquote>
+							<p>
+								De las tres, dos aguantaron. La tercera se quedó en un estribillo que igual acaba en
+								otra parte — también para eso sirven los domingos.
+							</p>
+						</div>
+					</div>
+
+					<!-- sección Metadatos -->
+					<section class="fsection">
+						<h3>Metadatos</h3>
+						<div class="fgrid">
+							<div class="field span2">
+								<label class="flabel" for="extracto">Extracto</label>
+								<textarea class="control" id="extracto">
+Tres canciones, un micro de mesa y ninguna excusa: crónica breve de un domingo de maquetas y de por qué grabar rápido enseña más que grabar bien.</textarea>
+								<p class="help">Resumen para listados y RSS.</p>
+							</div>
+
+							<div class="field span2">
+								<label class="flabel">Imagen destacada</label>
+								<div class="filew">
+									<div class="preview">domingo-maquetas.jpg</div>
+									<div class="frow">
+										<span>domingo-maquetas.jpg · 1600 × 686 · 214 KB</span>
+										<span class="acts"
+											><a href="#">Sustituir</a
+											><a href="#" style="color: var(--danger)">Quitar</a></span
+										>
+									</div>
+								</div>
+							</div>
+
+							<div class="field">
+								<label class="flabel">Categorías</label>
+								<div class="chips">
+									<span class="chip">música <button aria-label="Quitar música">×</button></span>
+									<span class="chip">proceso <button aria-label="Quitar proceso">×</button></span>
+									<input type="text" placeholder="Añadir…" aria-label="Añadir categoría" />
+								</div>
+							</div>
+
+							<div class="field">
+								<label class="flabel">Autor</label>
+								<div class="relation">
+									<div class="rel-value">
+										<span class="avatar">D</span>
+										<span class="name">David Vega</span>
+										<button class="swap">Cambiar</button>
+									</div>
+								</div>
+							</div>
+
+							<div class="field">
+								<label class="flabel" for="fpub">Fecha de publicación</label>
+								<input
+									class="control"
+									id="fpub"
+									type="text"
+									value=""
+									placeholder="Se fijará al publicar"
+								/>
+								<p class="help">Vacía en borradores: se rellena sola al publicar.</p>
+							</div>
+
+							<div class="field" style="align-self: end; padding-bottom: 0.35rem">
+								<label class="switch">
+									<input type="checkbox" checked />
+									<span class="track"></span>
+									<span class="sw-label">Destacada en la portada</span>
+								</label>
+							</div>
+						</div>
+					</section>
+
+					<!-- sección SEO -->
+					<section class="fsection">
+						<h3>SEO</h3>
+						<div class="fgrid">
+							<div class="field">
+								<label class="flabel" for="mt">Meta título</label>
+								<input
+									class="control"
+									id="mt"
+									type="text"
+									value="Grabar maquetas con lo puesto — fodaveg"
+								/>
+							</div>
+							<div class="field">
+								<label class="flabel" for="md">Meta descripción</label>
+								<input
+									class="control"
+									id="md"
+									type="text"
+									placeholder="Si se deja vacía se usa el extracto"
+								/>
+							</div>
+						</div>
+					</section>
+
+					<!-- sección Meta técnica -->
+					<section class="fsection">
+						<h3>Meta</h3>
+						<div class="field">
+							<label class="flabel">Datos adicionales (JSON)</label>
+							<div class="jsonfold">
+								<span>{ "soundcloud": "…", 2 claves }</span>
+								<a href="#">Desplegar editor</a>
+							</div>
+						</div>
+					</section>
+
+					<div style="margin-top: 2.5rem; display: flex; justify-content: center">
+						<span class="toast"
+							><span class="ok">✓</span> Entrada guardada · borrador actualizado a las 18:42</span
+						>
+					</div>
+				</div>
+			</main>
+		</div>
+
+		<!-- notas -->
+		<div class="notes">
+			<h2>Notas de dirección — A · «Redacción»</h2>
+			<ul>
+				<li>
+					<b>Idea:</b> el admin como mesa de redacción. Serif (Iowan/Palatino del sistema) para todo
+					lo que es contenido — títulos del listado, título del editor, cuerpo richtext — y sans
+					para el chrome. La jerarquía la hace la tipografía, no las cajas.
+				</li>
+				<li>
+					<b>Tabla = índice editorial:</b> regla gruesa bajo la cabecera, hairlines entre filas,
+					estado como punto + versalitas (publicada verde, borrador gris, opciones extra del select
+					como badge neutro azul, según P2 §4.5).
+				</li>
+				<li>
+					<b>El acento se administra:</b> solo botón primario, item activo de nav, foco y enlaces
+					(vía <code>--accent-text</code>, oscurecido/aclarado por modo para AA). Por eso cambiar de
+					esquema (marea ⇄ tinta) transforma el carácter sin teñirlo todo.
+				</li>
+				<li>
+					<b>Editor de una sola columna (68–72ch):</b> «la edición es el producto» → la página
+					parece la entrada, no un formulario. Los metadatos viven debajo en secciones planas
+					(fieldGroups de P2: Metadatos / SEO / Meta).
+				</li>
+				<li>
+					<b>Estados mostrados:</b> cambios sin guardar (ámbar), error de campo en slug, «Ver en el
+					sitio» deshabilitado con motivo (buildPreviewUrl → null), toast de guardado, badge de
+					avisos del manifiesto (L10) en la sidebar, colección vacía, título kilométrico truncado en
+					tabla y completo en editor.
+				</li>
+			</ul>
+		</div>
+
+		<!-- demo controls -->
+		<div class="demobar" role="group" aria-label="Controles de la demo">
+			<span>Modo</span>
+			<button data-mode="auto" aria-pressed="true">Auto</button>
+			<button data-mode="light" aria-pressed="false">Claro</button>
+			<button data-mode="dark" aria-pressed="false">Oscuro</button>
+			<span>·</span>
+			<button class="sw marea" data-pal="marea" aria-pressed="true" title="Esquema Marea"></button>
+			<button class="sw tinta" data-pal="tinta" aria-pressed="false" title="Esquema Tinta"></button>
+		</div>
+
+		<script>
+			const html = document.documentElement;
+			document.querySelectorAll('.demobar [data-mode]').forEach((b) =>
+				b.addEventListener('click', () => {
+					document
+						.querySelectorAll('.demobar [data-mode]')
+						.forEach((x) => x.setAttribute('aria-pressed', 'false'));
+					b.setAttribute('aria-pressed', 'true');
+					if (b.dataset.mode === 'auto') html.removeAttribute('data-theme');
+					else html.setAttribute('data-theme', b.dataset.mode);
+				})
+			);
+			document.querySelectorAll('.demobar [data-pal]').forEach((b) =>
+				b.addEventListener('click', () => {
+					document
+						.querySelectorAll('.demobar [data-pal]')
+						.forEach((x) => x.setAttribute('aria-pressed', 'false'));
+					b.setAttribute('aria-pressed', 'true');
+					html.setAttribute('data-pal', b.dataset.pal);
+				})
+			);
+		</script>
+	</body>
+</html>

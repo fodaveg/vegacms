@@ -1,0 +1,1736 @@
+<!doctype html>
+<html lang="es" data-pal="niebla">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Vega — Propuesta C · Cabina (compacta/densa)</title>
+		<style>
+			/* ==========================================================================
+   VEGA — Propuesta C: «Cabina»
+   Dirección compacta y densa: el admin como instrumento de precisión.
+   Base 13px, meta en monoespaciada, filas de 36px, retícula visible,
+   atajos de teclado a la vista. Para quien entra, hace, y sale.
+   Esquemas demostrados: niebla (#4f6bd6 / blanco) y salvia (#7a9b78 /
+   #16210f) — pares accent/accentInk validados AA por el build de Lumbre.
+   ========================================================================== */
+
+			:root,
+			[data-pal='niebla'] {
+				--tint: #4f6bd6;
+				--accent: #4f6bd6;
+				--accent-ink: #ffffff;
+			}
+			[data-pal='salvia'] {
+				--tint: #7a9b78;
+				--accent: #7a9b78;
+				--accent-ink: #16210f;
+			}
+
+			/* ---------- Neutros CLARO (tinte contenido: la densidad pide sobriedad) --- */
+			:root {
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 7%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 5%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 4%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 10%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-strong: color-mix(in oklab, var(--tint) 10%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 10%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+
+				--accent-soft: color-mix(in oklab, var(--accent) 13%, var(--paper));
+				--accent-text: color-mix(in oklab, var(--accent) 75%, var(--ink));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+
+				--success: #2e7d54;
+				--success-soft: color-mix(in oklab, #2e7d54 13%, var(--paper));
+				--danger: #b23831;
+				--danger-soft: color-mix(in oklab, #b23831 12%, var(--paper));
+				--warning: #8a6116;
+				--warning-soft: color-mix(in oklab, #c98a1b 16%, var(--paper));
+				--info: #2f6f8f;
+				--info-soft: color-mix(in oklab, #2f6f8f 13%, var(--paper));
+				color-scheme: light;
+			}
+
+			@media (prefers-color-scheme: dark) {
+				:root:not([data-theme='light']) {
+					--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+					--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+					--paper: color-mix(in oklab, var(--tint) 13%, #141416);
+					--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+					--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+					--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+					--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+					--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+					--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+					--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+					--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+					--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+					--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+					--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+					--accent-soft: color-mix(in oklab, var(--accent) 22%, var(--paper));
+					--accent-text: color-mix(in oklab, var(--accent) 65%, var(--ink));
+					--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+					--success: #5cbd8e;
+					--success-soft: color-mix(in oklab, #5cbd8e 17%, var(--paper));
+					--danger: #ef8078;
+					--danger-soft: color-mix(in oklab, #ef8078 15%, var(--paper));
+					--warning: #dfae4d;
+					--warning-soft: color-mix(in oklab, #dfae4d 15%, var(--paper));
+					--info: #74b6d6;
+					--info-soft: color-mix(in oklab, #74b6d6 15%, var(--paper));
+					color-scheme: dark;
+				}
+			}
+			:root[data-theme='dark'] {
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 13%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+				--accent-soft: color-mix(in oklab, var(--accent) 22%, var(--paper));
+				--accent-text: color-mix(in oklab, var(--accent) 65%, var(--ink));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--success: #5cbd8e;
+				--success-soft: color-mix(in oklab, #5cbd8e 17%, var(--paper));
+				--danger: #ef8078;
+				--danger-soft: color-mix(in oklab, #ef8078 15%, var(--paper));
+				--warning: #dfae4d;
+				--warning-soft: color-mix(in oklab, #dfae4d 15%, var(--paper));
+				--info: #74b6d6;
+				--info-soft: color-mix(in oklab, #74b6d6 15%, var(--paper));
+				color-scheme: dark;
+			}
+
+			/* ---------- Base ---------- */
+			* {
+				box-sizing: border-box;
+				margin: 0;
+			}
+			:root {
+				--sans: -apple-system, 'Segoe UI', system-ui, sans-serif;
+				--mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+				--r: 6px;
+			}
+			body {
+				font-family: var(--sans);
+				font-size: 0.8125rem;
+				line-height: 1.45;
+				background: var(--bg);
+				color: var(--ink);
+				-webkit-font-smoothing: antialiased;
+			}
+			a {
+				color: var(--accent-text);
+				text-decoration: none;
+			}
+			a:hover {
+				text-decoration: underline;
+			}
+			button {
+				font: inherit;
+				cursor: pointer;
+			}
+			:focus-visible {
+				outline: 2px solid var(--accent);
+				outline-offset: 1px;
+				border-radius: 3px;
+			}
+			@media (prefers-reduced-motion: reduce) {
+				* {
+					transition: none !important;
+				}
+			}
+			svg {
+				flex: none;
+			}
+			kbd {
+				font-family: var(--mono);
+				font-size: 0.625rem;
+				color: var(--ink-3);
+				border: 1px solid var(--line-strong);
+				border-bottom-width: 2px;
+				border-radius: 4px;
+				padding: 0.05rem 0.3rem;
+				background: var(--surface-2);
+			}
+
+			.demo-label {
+				max-width: 1320px;
+				margin: 3rem auto 0.7rem;
+				padding: 0 1.5rem;
+				font-size: 0.7rem;
+				letter-spacing: 0.12em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+			}
+			.demo-label:first-of-type {
+				margin-top: 1.5rem;
+			}
+
+			/* ---------- Shell: topbar + sidebar + main ---------- */
+			.shell {
+				max-width: 1320px;
+				margin: 0 auto;
+				min-height: 680px;
+				display: grid;
+				grid-template-columns: 208px 1fr;
+				grid-template-rows: 44px 1fr;
+				grid-template-areas: 'top top' 'side main';
+				background: var(--paper);
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				overflow: hidden;
+			}
+			.topbar {
+				grid-area: top;
+				display: flex;
+				align-items: center;
+				gap: 1rem;
+				padding: 0 0.9rem;
+				background: var(--sidebar);
+				border-bottom: 1px solid var(--line);
+			}
+			.topbar .site {
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				font-weight: 600;
+				color: var(--ink-hi);
+				font-size: 0.8125rem;
+				min-width: 190px;
+			}
+			.topbar .site .dot {
+				width: 8px;
+				height: 8px;
+				border-radius: 2px;
+				background: var(--accent);
+			}
+			.gsearch {
+				flex: 1;
+				max-width: 440px;
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				background: var(--surface);
+				border: 1px solid var(--line-strong);
+				border-radius: var(--r);
+				padding: 0.3rem 0.55rem;
+				color: var(--ink-3);
+			}
+			.gsearch input {
+				border: 0;
+				background: none;
+				font: inherit;
+				color: var(--ink);
+				width: 100%;
+			}
+			.gsearch input:focus {
+				outline: none;
+			}
+			.gsearch:focus-within {
+				border-color: var(--accent);
+			}
+			.topbar .right {
+				margin-left: auto;
+				display: flex;
+				align-items: center;
+				gap: 0.8rem;
+				color: var(--ink-2);
+			}
+			.topbar .env {
+				font-family: var(--mono);
+				font-size: 0.65rem;
+				color: var(--ink-3);
+				border: 1px solid var(--line);
+				border-radius: 99px;
+				padding: 0.1rem 0.5rem;
+			}
+			.avatar {
+				width: 24px;
+				height: 24px;
+				border-radius: 50%;
+				background: var(--accent);
+				color: var(--accent-ink);
+				display: grid;
+				place-items: center;
+				font-size: 0.65rem;
+				font-weight: 700;
+			}
+
+			.side {
+				grid-area: side;
+				background: var(--sidebar);
+				border-right: 1px solid var(--line);
+				padding: 0.8rem 0;
+				display: flex;
+				flex-direction: column;
+				gap: 1.1rem;
+			}
+			.navgroup h2 {
+				font-size: 0.625rem;
+				font-weight: 700;
+				letter-spacing: 0.13em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+				padding: 0 0.9rem 0.3rem;
+			}
+			.navgroup a {
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				padding: 0.34rem 0.9rem;
+				color: var(--ink-2);
+				font-size: 0.8125rem;
+				border-left: 2px solid transparent;
+			}
+			.navgroup a svg {
+				color: var(--ink-3);
+			}
+			.navgroup a:hover {
+				background: var(--active);
+				color: var(--ink-hi);
+				text-decoration: none;
+			}
+			.navgroup a[aria-current='page'] {
+				color: var(--accent-text);
+				border-left-color: var(--accent);
+				background: var(--accent-soft);
+				font-weight: 600;
+			}
+			.navgroup a[aria-current='page'] svg {
+				color: var(--accent-text);
+			}
+			.navgroup .count {
+				margin-left: auto;
+				font-family: var(--mono);
+				font-size: 0.65rem;
+				color: var(--ink-3);
+			}
+			.side .foot {
+				margin-top: auto;
+				border-top: 1px solid var(--line);
+				padding: 0.6rem 0 0;
+			}
+			.side .foot a {
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				padding: 0.34rem 0.9rem;
+				color: var(--ink-2);
+				font-size: 0.78rem;
+			}
+			.side .foot a:hover {
+				background: var(--active);
+				text-decoration: none;
+			}
+			.warnbadge {
+				margin-left: auto;
+				font-family: var(--mono);
+				font-size: 0.65rem;
+				font-weight: 700;
+				background: var(--warning-soft);
+				color: var(--warning);
+				padding: 0.02rem 0.4rem;
+				border-radius: 4px;
+			}
+
+			.main {
+				grid-area: main;
+				padding: 1.1rem 1.4rem 2rem;
+				min-width: 0;
+				background: var(--paper);
+			}
+
+			/* ---------- Cabecera de listado ---------- */
+			.listhead {
+				display: flex;
+				align-items: center;
+				gap: 0.8rem;
+				flex-wrap: wrap;
+				margin-bottom: 0.8rem;
+			}
+			.listhead h1 {
+				font-size: 1.05rem;
+				font-weight: 700;
+				color: var(--ink-hi);
+			}
+			.listhead .filters {
+				display: flex;
+				gap: 0.35rem;
+			}
+			.fchip {
+				border: 1px solid var(--line-strong);
+				background: var(--surface);
+				color: var(--ink-2);
+				border-radius: 99px;
+				padding: 0.2rem 0.7rem;
+				font-size: 0.72rem;
+				font-weight: 500;
+			}
+			.fchip[aria-pressed='true'] {
+				background: var(--accent-soft);
+				border-color: var(--accent);
+				color: var(--accent-text);
+				font-weight: 600;
+			}
+			.fchip:hover {
+				border-color: var(--accent);
+			}
+			.listhead .spacer {
+				flex: 1;
+			}
+
+			.btn {
+				border: 1px solid var(--line-strong);
+				background: var(--surface);
+				color: var(--ink);
+				border-radius: var(--r);
+				padding: 0.34rem 0.8rem;
+				font-size: 0.78rem;
+				font-weight: 600;
+			}
+			.btn:hover {
+				background: var(--btn);
+			}
+			.btn:disabled {
+				opacity: 0.45;
+				cursor: not-allowed;
+			}
+			.btn.primary {
+				background: var(--accent);
+				border-color: var(--accent);
+				color: var(--accent-ink);
+			}
+			.btn.primary:hover {
+				background: var(--accent-hover);
+				border-color: var(--accent-hover);
+			}
+			.btn.quiet {
+				border-color: transparent;
+				background: none;
+				color: var(--ink-2);
+			}
+			.btn.quiet:hover {
+				background: var(--active);
+				color: var(--ink-hi);
+			}
+			.btn kbd {
+				margin-left: 0.35rem;
+			}
+
+			/* ---------- Tabla densa ---------- */
+			.grid {
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				overflow: hidden;
+				background: var(--surface);
+			}
+			table {
+				width: 100%;
+				border-collapse: collapse;
+			}
+			th {
+				text-align: left;
+				font-family: var(--mono);
+				font-size: 0.625rem;
+				font-weight: 600;
+				letter-spacing: 0.1em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+				background: var(--surface-2);
+				border-bottom: 1px solid var(--line-strong);
+				padding: 0.45rem 0.8rem;
+				white-space: nowrap;
+			}
+			td {
+				border-bottom: 1px solid var(--line);
+				padding: 0.42rem 0.8rem;
+				height: 36px;
+				vertical-align: middle;
+			}
+			tbody tr:last-child td {
+				border-bottom: 0;
+			}
+			tbody tr:hover td {
+				background: var(--accent-soft);
+			}
+			tbody tr.sel td {
+				background: var(--active);
+				box-shadow: inset 2px 0 0 var(--accent);
+			}
+			td.t {
+				max-width: 0;
+				width: 52%;
+			}
+			td.t a {
+				color: var(--ink-hi);
+				font-weight: 500;
+				display: block;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+			td.mono {
+				font-family: var(--mono);
+				font-size: 0.72rem;
+				color: var(--ink-2);
+				white-space: nowrap;
+			}
+			td.who {
+				color: var(--ink-2);
+				white-space: nowrap;
+			}
+
+			/* tag de estado estilo mono */
+			.tag {
+				display: inline-flex;
+				align-items: center;
+				font-family: var(--mono);
+				font-size: 0.68rem;
+				font-weight: 600;
+				border-radius: 4px;
+				padding: 0.12rem 0.45rem;
+				border: 1px solid transparent;
+				white-space: nowrap;
+			}
+			.tag.pub {
+				color: var(--success);
+				background: var(--success-soft);
+				border-color: color-mix(in oklab, var(--success) 25%, transparent);
+			}
+			.tag.draft {
+				color: var(--ink-2);
+				background: var(--active);
+				border-color: var(--line-strong);
+			}
+			.tag.other {
+				color: var(--info);
+				background: var(--info-soft);
+				border-color: color-mix(in oklab, var(--info) 25%, transparent);
+			}
+
+			.gridfoot {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 1rem;
+				padding: 0.45rem 0.8rem;
+				background: var(--surface-2);
+				border-top: 1px solid var(--line);
+				font-family: var(--mono);
+				font-size: 0.68rem;
+				color: var(--ink-2);
+			}
+			.gridfoot .pages {
+				display: flex;
+				gap: 0.2rem;
+			}
+			.gridfoot button {
+				border: 1px solid var(--line);
+				background: var(--surface);
+				color: var(--ink-2);
+				border-radius: 4px;
+				min-width: 24px;
+				height: 24px;
+				font-size: 0.7rem;
+			}
+			.gridfoot button[aria-current='page'] {
+				background: var(--accent);
+				border-color: var(--accent);
+				color: var(--accent-ink);
+			}
+			.gridfoot button:disabled {
+				opacity: 0.4;
+				cursor: not-allowed;
+			}
+
+			/* ---------- Editor denso ---------- */
+			.edit-top {
+				display: flex;
+				align-items: center;
+				gap: 0.8rem;
+				flex-wrap: wrap;
+				padding-bottom: 0.8rem;
+				border-bottom: 1px solid var(--line);
+				margin-bottom: 1rem;
+				position: sticky;
+				top: 0;
+				background: var(--paper);
+				z-index: 3;
+				padding-top: 0.2rem;
+			}
+			.edit-top .crumb {
+				font-family: var(--mono);
+				font-size: 0.72rem;
+				color: var(--ink-3);
+			}
+			.edit-top .crumb b {
+				color: var(--ink);
+				font-weight: 600;
+			}
+			.dirty {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.4rem;
+				font-family: var(--mono);
+				font-size: 0.68rem;
+				color: var(--warning);
+				font-weight: 600;
+			}
+			.dirty::before {
+				content: '●';
+			}
+			.edit-top .spacer {
+				flex: 1;
+			}
+			.saved-at {
+				font-family: var(--mono);
+				font-size: 0.68rem;
+				color: var(--ink-3);
+			}
+
+			.form {
+				max-width: 860px;
+			}
+			.fsection {
+				margin-bottom: 1.2rem;
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--surface);
+				overflow: hidden;
+			}
+			.fsection > h3 {
+				font-family: var(--mono);
+				font-size: 0.65rem;
+				font-weight: 600;
+				letter-spacing: 0.12em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+				padding: 0.5rem 0.9rem;
+				background: var(--surface-2);
+				border-bottom: 1px solid var(--line);
+			}
+			.frow {
+				display: grid;
+				grid-template-columns: 168px 1fr;
+				gap: 1rem;
+				padding: 0.65rem 0.9rem;
+				border-bottom: 1px solid var(--line);
+				align-items: start;
+			}
+			.frow:last-child {
+				border-bottom: 0;
+			}
+			.frow > label,
+			.frow > .flabel {
+				font-size: 0.78rem;
+				font-weight: 600;
+				color: var(--ink);
+				padding-top: 0.3rem;
+			}
+			.frow .req {
+				color: var(--danger);
+			}
+			.frow .help {
+				font-size: 0.72rem;
+				color: var(--ink-3);
+				margin-top: 0.3rem;
+			}
+			.control {
+				width: 100%;
+				border: 1px solid var(--line-strong);
+				background: var(--surface-2);
+				border-radius: 4px;
+				padding: 0.38rem 0.55rem;
+				font: inherit;
+				font-size: 0.8125rem;
+				color: var(--ink);
+			}
+			.control:focus {
+				outline: none;
+				border-color: var(--accent);
+				box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 25%, transparent);
+			}
+			.control:disabled,
+			.control[readonly] {
+				background: var(--active);
+				color: var(--ink-3);
+				cursor: not-allowed;
+			}
+			.control.invalid {
+				border-color: var(--danger);
+				background: color-mix(in oklab, var(--danger) 4%, var(--surface-2));
+			}
+			textarea.control {
+				resize: vertical;
+				min-height: 64px;
+				line-height: 1.5;
+			}
+			.control.mono {
+				font-family: var(--mono);
+				font-size: 0.72rem;
+			}
+			.field-error {
+				display: flex;
+				gap: 0.35rem;
+				align-items: center;
+				font-size: 0.72rem;
+				color: var(--danger);
+				margin-top: 0.3rem;
+				font-weight: 600;
+			}
+			.inline {
+				display: flex;
+				gap: 0.5rem;
+				align-items: center;
+			}
+			.inline .control {
+				width: auto;
+			}
+
+			.rt-toolbar {
+				display: flex;
+				align-items: center;
+				gap: 0.1rem;
+				border: 1px solid var(--line-strong);
+				border-bottom: 0;
+				border-radius: 4px 4px 0 0;
+				background: var(--surface-2);
+				padding: 0.2rem 0.3rem;
+			}
+			.rt-toolbar button {
+				border: 0;
+				background: none;
+				color: var(--ink-2);
+				border-radius: 3px;
+				min-width: 26px;
+				height: 26px;
+				font-size: 0.72rem;
+				display: grid;
+				place-items: center;
+			}
+			.rt-toolbar button:hover {
+				background: var(--active);
+				color: var(--ink-hi);
+			}
+			.rt-toolbar button[aria-pressed='true'] {
+				background: var(--accent-soft);
+				color: var(--accent-text);
+			}
+			.rt-toolbar .sep {
+				width: 1px;
+				height: 15px;
+				background: var(--line-strong);
+				margin: 0 0.3rem;
+			}
+			.rt-body {
+				border: 1px solid var(--line-strong);
+				border-radius: 0 0 4px 4px;
+				background: var(--surface-2);
+				padding: 0.9rem 1rem;
+				font-size: 0.875rem;
+				line-height: 1.65;
+				color: var(--ink);
+			}
+			.rt-body h2 {
+				font-size: 1rem;
+				margin: 0.9rem 0 0.4rem;
+				color: var(--ink-hi);
+			}
+			.rt-body p + p {
+				margin-top: 0.7rem;
+			}
+			.rt-body code {
+				font-family: var(--mono);
+				font-size: 0.78em;
+				background: var(--active);
+				border-radius: 3px;
+				padding: 0.05em 0.3em;
+			}
+
+			.chips {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.3rem;
+				border: 1px solid var(--line-strong);
+				border-radius: 4px;
+				padding: 0.3rem;
+				background: var(--surface-2);
+			}
+			.chip {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.25rem;
+				background: var(--accent-soft);
+				color: var(--accent-text);
+				font-family: var(--mono);
+				font-size: 0.68rem;
+				font-weight: 600;
+				border-radius: 3px;
+				padding: 0.12rem 0.2rem 0.12rem 0.45rem;
+			}
+			.chip button {
+				border: 0;
+				background: none;
+				color: inherit;
+				opacity: 0.6;
+				padding: 0 0.15rem;
+				line-height: 1;
+			}
+			.chip button:hover {
+				opacity: 1;
+			}
+			.chips input {
+				border: 0;
+				background: none;
+				font: inherit;
+				font-size: 0.75rem;
+				color: var(--ink);
+				min-width: 6ch;
+				flex: 1;
+			}
+			.chips input:focus {
+				outline: none;
+			}
+
+			.rel-value {
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				border: 1px solid var(--line-strong);
+				border-radius: 4px;
+				padding: 0.3rem 0.5rem;
+				background: var(--surface-2);
+				max-width: 340px;
+			}
+			.rel-value .name {
+				flex: 1;
+				font-size: 0.78rem;
+				font-weight: 500;
+			}
+			.rel-value .id {
+				font-family: var(--mono);
+				font-size: 0.62rem;
+				color: var(--ink-3);
+			}
+			.rel-value .swap {
+				border: 0;
+				background: none;
+				color: var(--accent-text);
+				font-size: 0.72rem;
+				font-weight: 600;
+			}
+
+			.filew {
+				display: flex;
+				gap: 0.8rem;
+				align-items: center;
+			}
+			.filew .thumb {
+				width: 132px;
+				aspect-ratio: 16/9;
+				border-radius: 4px;
+				border: 1px solid var(--line-strong);
+				background: linear-gradient(
+					130deg,
+					color-mix(in oklab, var(--accent) 55%, var(--paper)),
+					color-mix(in oklab, var(--accent) 15%, var(--paper))
+				);
+			}
+			.filew .finfo {
+				font-family: var(--mono);
+				font-size: 0.68rem;
+				color: var(--ink-2);
+				line-height: 1.6;
+			}
+			.filew .finfo a {
+				margin-right: 0.6rem;
+			}
+
+			.switch {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.55rem;
+				cursor: pointer;
+			}
+			.switch .track {
+				width: 32px;
+				height: 18px;
+				border-radius: 99px;
+				background: var(--line-strong);
+				position: relative;
+				transition: background 0.12s;
+			}
+			.switch .track::after {
+				content: '';
+				position: absolute;
+				top: 2px;
+				left: 2px;
+				width: 14px;
+				height: 14px;
+				border-radius: 50%;
+				background: var(--surface);
+				box-shadow: 0 1px 1px rgb(0 0 0 / 0.3);
+				transition: transform 0.12s;
+			}
+			.switch input {
+				position: absolute;
+				opacity: 0;
+			}
+			.switch input:checked + .track {
+				background: var(--accent);
+			}
+			.switch input:checked + .track::after {
+				transform: translateX(14px);
+			}
+			.switch input:focus-visible + .track {
+				outline: 2px solid var(--accent);
+				outline-offset: 2px;
+			}
+			.switch .sw-label {
+				font-size: 0.78rem;
+			}
+
+			/* ---------- Editor del manifiesto (Ajustes) ---------- */
+			.manif {
+				display: grid;
+				grid-template-columns: minmax(0, 1fr) 300px;
+				gap: 1rem;
+				align-items: start;
+			}
+			.manif textarea {
+				width: 100%;
+				min-height: 380px;
+				resize: vertical;
+				font-family: var(--mono);
+				font-size: 0.75rem;
+				line-height: 1.6;
+				color: var(--ink);
+				background: var(--surface);
+				border: 1px solid var(--line-strong);
+				border-radius: var(--r);
+				padding: 0.9rem 1rem;
+			}
+			.manif textarea:focus {
+				outline: none;
+				border-color: var(--accent);
+			}
+			.warnpanel {
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--surface);
+				overflow: hidden;
+			}
+			.warnpanel h3 {
+				font-family: var(--mono);
+				font-size: 0.65rem;
+				letter-spacing: 0.12em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+				padding: 0.5rem 0.8rem;
+				background: var(--surface-2);
+				border-bottom: 1px solid var(--line);
+			}
+			.warnitem {
+				padding: 0.6rem 0.8rem;
+				border-bottom: 1px solid var(--line);
+				font-size: 0.75rem;
+			}
+			.warnitem:last-child {
+				border-bottom: 0;
+			}
+			.warnitem .code {
+				font-family: var(--mono);
+				font-size: 0.62rem;
+				font-weight: 700;
+				border-radius: 3px;
+				padding: 0.08rem 0.4rem;
+			}
+			.warnitem.warn .code {
+				background: var(--warning-soft);
+				color: var(--warning);
+			}
+			.warnitem.okk .code {
+				background: var(--success-soft);
+				color: var(--success);
+			}
+			.warnitem p {
+				margin-top: 0.3rem;
+				color: var(--ink-2);
+			}
+			.warnitem .path {
+				font-family: var(--mono);
+				font-size: 0.65rem;
+				color: var(--ink-3);
+				display: block;
+				margin-top: 0.2rem;
+			}
+
+			/* ---------- Tira de estados de widgets ---------- */
+			.strip {
+				display: grid;
+				grid-template-columns: repeat(4, 1fr);
+				gap: 0.8rem;
+			}
+			.stcard {
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--surface);
+				padding: 0.7rem 0.8rem;
+			}
+			.stcard h4 {
+				font-family: var(--mono);
+				font-size: 0.62rem;
+				letter-spacing: 0.1em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+				margin-bottom: 0.5rem;
+			}
+
+			/* notas */
+			.notes {
+				max-width: 1320px;
+				margin: 1rem auto 6rem;
+				padding: 1.5rem;
+				color: var(--ink-2);
+				font-size: 0.8125rem;
+			}
+			.notes h2 {
+				color: var(--ink-hi);
+				font-size: 1.05rem;
+				margin-bottom: 0.6rem;
+				font-weight: 700;
+			}
+			.notes li {
+				margin: 0.3rem 0 0.3rem 1.1rem;
+			}
+
+			/* demo controls */
+			.demobar {
+				position: fixed;
+				right: 1rem;
+				bottom: 1rem;
+				z-index: 50;
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				background: var(--surface);
+				border: 1px solid var(--line-strong);
+				border-radius: 99px;
+				padding: 0.4rem 0.6rem;
+				box-shadow: 0 6px 20px rgb(0 0 0 / 0.2);
+				font-size: 0.72rem;
+				color: var(--ink-2);
+			}
+			.demobar button {
+				border: 1px solid var(--line);
+				background: var(--paper);
+				color: var(--ink);
+				border-radius: 99px;
+				padding: 0.22rem 0.55rem;
+				font-size: 0.7rem;
+			}
+			.demobar button[aria-pressed='true'] {
+				background: var(--accent);
+				border-color: var(--accent);
+				color: var(--accent-ink);
+			}
+			.demobar .sw {
+				width: 20px;
+				height: 20px;
+				border-radius: 50%;
+				padding: 0;
+				border: 2px solid var(--surface);
+				box-shadow: 0 0 0 1px var(--line-strong);
+			}
+			.demobar .sw.niebla {
+				background: #4f6bd6;
+			}
+			.demobar .sw.salvia {
+				background: #7a9b78;
+			}
+			.demobar .sw[aria-pressed='true'] {
+				box-shadow: 0 0 0 2px var(--ink);
+			}
+
+			/* responsive */
+			@media (max-width: 920px) {
+				.shell {
+					grid-template-columns: 1fr;
+					grid-template-areas: 'top' 'main';
+				}
+				.side {
+					display: none;
+				}
+				.topbar .site {
+					min-width: 0;
+				}
+				.hide-sm {
+					display: none;
+				}
+				td.t {
+					width: auto;
+				}
+				.frow {
+					grid-template-columns: 1fr;
+					gap: 0.25rem;
+				}
+				.manif {
+					grid-template-columns: 1fr;
+				}
+				.strip {
+					grid-template-columns: 1fr 1fr;
+				}
+				.main {
+					padding: 0.9rem 0.9rem 1.6rem;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<!-- ═══════════════ PANTALLA 1 — LISTADO ═══════════════ -->
+		<p class="demo-label">Pantalla 1 · Listado de «Entradas» (denso, con filtros de estado)</p>
+		<div class="shell">
+			<header class="topbar">
+				<span class="site"><span class="dot"></span> fodaveg.net</span>
+				<label class="gsearch">
+					<svg
+						width="13"
+						height="13"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+					>
+						<circle cx="11" cy="11" r="7" />
+						<path d="m20 20-3.5-3.5" />
+					</svg>
+					<input
+						type="search"
+						placeholder="Buscar en todo el contenido…"
+						aria-label="Búsqueda global"
+					/>
+					<kbd>/</kbd>
+				</label>
+				<span class="right">
+					<span class="env">PB 0.29 · conectado</span>
+					<span class="avatar">D</span>
+				</span>
+			</header>
+
+			<aside class="side" aria-label="Navegación de Vega">
+				<nav class="navgroup" aria-label="Contenido">
+					<h2>Contenido</h2>
+					<a href="#" aria-current="page">
+						<svg
+							width="13"
+							height="13"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+						</svg>
+						Entradas <span class="count">46</span></a
+					>
+					<a href="#">
+						<svg
+							width="13"
+							height="13"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+							<path d="M14 2v6h6" />
+						</svg>
+						Páginas <span class="count">5</span></a
+					>
+					<a href="#">
+						<svg
+							width="13"
+							height="13"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<path
+								d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2Z"
+							/>
+						</svg>
+						Proyectos <span class="count">12</span></a
+					>
+				</nav>
+				<nav class="navgroup" aria-label="Sitio">
+					<h2>Sitio</h2>
+					<a href="#">
+						<svg
+							width="13"
+							height="13"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<circle cx="12" cy="12" r="3" />
+							<path d="M12 2v4m0 12v4M2 12h4m12 0h4" />
+						</svg>
+						Ajustes del sitio</a
+					>
+					<a href="#">
+						<svg
+							width="13"
+							height="13"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<rect x="3" y="3" width="18" height="18" rx="2" />
+							<circle cx="9" cy="9" r="2" />
+							<path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21" />
+						</svg>
+						Medios <span class="count">128</span></a
+					>
+				</nav>
+				<div class="foot">
+					<a href="#">Manifiesto <span class="warnbadge">2!</span></a>
+					<a href="#">Tema · Niebla</a>
+					<a href="#">Salir</a>
+				</div>
+			</aside>
+
+			<main class="main">
+				<header class="listhead">
+					<h1>Entradas</h1>
+					<span class="filters" role="group" aria-label="Filtrar por estado">
+						<button class="fchip" aria-pressed="true">Todas · 46</button>
+						<button class="fchip" aria-pressed="false">Publicadas · 42</button>
+						<button class="fchip" aria-pressed="false">Borradores · 3</button>
+					</span>
+					<span class="spacer"></span>
+					<button class="btn primary">
+						Nueva entrada
+						<kbd
+							style="
+								border-color: color-mix(in oklab, var(--accent-ink) 40%, transparent);
+								color: var(--accent-ink);
+								background: none;
+							"
+							>N</kbd
+						>
+					</button>
+				</header>
+
+				<div class="grid">
+					<table>
+						<thead>
+							<tr>
+								<th scope="col">Título</th>
+								<th scope="col">Estado</th>
+								<th scope="col" class="hide-sm">Publicación</th>
+								<th scope="col" class="hide-sm">Modificada</th>
+								<th scope="col" class="hide-sm">Autor</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td class="t">
+									<a href="#">Migrar el blog de Hugo a Astro sin romper una sola URL</a>
+								</td>
+								<td><span class="tag pub">published</span></td>
+								<td class="mono hide-sm">2026-07-12</td>
+								<td class="mono hide-sm">hace 2 h</td>
+								<td class="who hide-sm">David</td>
+							</tr>
+							<tr class="sel">
+								<td class="t"><a href="#">El dado de paletas: diecinueve temas y un botón</a></td>
+								<td><span class="tag pub">published</span></td>
+								<td class="mono hide-sm">2026-07-03</td>
+								<td class="mono hide-sm">ayer</td>
+								<td class="who hide-sm">David</td>
+							</tr>
+							<tr>
+								<td class="t">
+									<a href="#"
+										>Lo que aprendí manteniendo un planificador semanal local-first durante un año:
+										CRDTs, sincronización y por qué el papel cuadriculado sigue ganando</a
+									>
+								</td>
+								<td><span class="tag draft">draft</span></td>
+								<td class="mono hide-sm">—</td>
+								<td class="mono hide-sm">hace 3 d</td>
+								<td class="who hide-sm">David</td>
+							</tr>
+							<tr>
+								<td class="t">
+									<a href="#">Grabar maquetas con lo puesto: un domingo, tres canciones</a>
+								</td>
+								<td><span class="tag draft">draft</span></td>
+								<td class="mono hide-sm">—</td>
+								<td class="mono hide-sm">hace 5 d</td>
+								<td class="who hide-sm">David</td>
+							</tr>
+							<tr>
+								<td class="t"><a href="#">Notas desde la tailnet: autoalojar sin sufrir</a></td>
+								<td><span class="tag pub">published</span></td>
+								<td class="mono hide-sm">2026-06-19</td>
+								<td class="mono hide-sm">19 jun</td>
+								<td class="who hide-sm">David</td>
+							</tr>
+							<tr>
+								<td class="t"><a href="#">Una semana sin pantallas (el experimento)</a></td>
+								<td><span class="tag other">archived</span></td>
+								<td class="mono hide-sm">2026-05-02</td>
+								<td class="mono hide-sm">2 may</td>
+								<td class="who hide-sm">David</td>
+							</tr>
+							<tr>
+								<td class="t">
+									<a href="#">Sereno: rediseñar una app de rutas sin perder el norte</a>
+								</td>
+								<td><span class="tag pub">published</span></td>
+								<td class="mono hide-sm">2026-06-08</td>
+								<td class="mono hide-sm">8 jun</td>
+								<td class="who hide-sm">David</td>
+							</tr>
+						</tbody>
+					</table>
+					<div class="gridfoot">
+						<span>46 registros · 7 por página</span>
+						<span class="pages">
+							<button disabled>‹</button>
+							<button aria-current="page">1</button>
+							<button>2</button>
+							<button>3</button>
+							<button>…</button>
+							<button>7</button>
+							<button>›</button>
+						</span>
+					</div>
+				</div>
+			</main>
+		</div>
+
+		<!-- ═══════════════ PANTALLA 2 — EDITOR ═══════════════ -->
+		<p class="demo-label">
+			Pantalla 2 · Editor denso (label a la izquierda, secciones como fichas)
+		</p>
+		<div
+			class="shell"
+			style="grid-template-columns: 1fr; grid-template-areas: 'top' 'main'; min-height: auto"
+		>
+			<header class="topbar">
+				<span class="site"><span class="dot"></span> fodaveg.net</span>
+				<span class="right">
+					<span class="env">PB 0.29 · conectado</span>
+					<span class="avatar">D</span>
+				</span>
+			</header>
+			<main class="main">
+				<div class="edit-top">
+					<span class="crumb"><a href="#">Entradas</a> / <b>grabar-maquetas</b></span>
+					<span class="tag draft">draft</span>
+					<span class="dirty">sin guardar</span>
+					<span class="spacer"></span>
+					<span class="saved-at">último guardado 18:42:07</span>
+					<button class="btn quiet" disabled title="El borrador no tiene URL pública todavía">
+						Ver en el sitio
+					</button>
+					<button class="btn">Publicar</button>
+					<button class="btn primary">
+						Guardar
+						<kbd
+							style="
+								border-color: color-mix(in oklab, var(--accent-ink) 40%, transparent);
+								color: var(--accent-ink);
+								background: none;
+							"
+							>⌘S</kbd
+						>
+					</button>
+				</div>
+
+				<form class="form" onsubmit="return false;">
+					<section class="fsection">
+						<h3>Contenido</h3>
+						<div class="frow">
+							<label for="tit">Título <span class="req" aria-hidden="true">*</span></label>
+							<div>
+								<input
+									class="control"
+									id="tit"
+									type="text"
+									value="Grabar maquetas con lo puesto: un domingo, tres canciones"
+									required
+								/>
+							</div>
+						</div>
+						<div class="frow">
+							<label for="slug">Slug <span class="req" aria-hidden="true">*</span></label>
+							<div>
+								<input
+									class="control mono invalid"
+									id="slug"
+									type="text"
+									value="grabar-maquetas"
+									aria-invalid="true"
+									aria-describedby="slug-err"
+								/>
+								<p class="field-error" id="slug-err">
+									Ya existe otra entrada con este slug (2024/grabar-maquetas-en-casa).
+								</p>
+							</div>
+						</div>
+						<div class="frow">
+							<span class="flabel">Cuerpo</span>
+							<div>
+								<div class="rt-toolbar" role="toolbar" aria-label="Formato">
+									<button aria-pressed="true">P</button><button>H2</button><button>H3</button>
+									<span class="sep"></span>
+									<button style="font-weight: 700">B</button
+									><button style="font-style: italic">I</button>
+									<span class="sep"></span>
+									<button aria-label="Lista">≔</button><button aria-label="Cita">”</button
+									><button aria-label="Enlace">⌁</button><button aria-label="Código">{}</button>
+									<span class="sep"></span>
+									<span
+										style="
+											font-family: var(--mono);
+											font-size: 0.6rem;
+											color: var(--ink-3);
+											padding: 0 0.3rem;
+										"
+										>markdown</span
+									>
+								</div>
+								<div class="rt-body" aria-label="Cuerpo de la entrada">
+									<p>
+										Hay una regla que me repito cada vez que me siento a grabar:
+										<em>la maqueta que existe le gana a la producción que no</em>. Este domingo la
+										apliqué a rajatabla.
+									</p>
+									<h2>El montaje (o su ausencia)</h2>
+									<p>
+										Nada de interfaz nueva ni plugins: un micro USB, <code>GarageBand</code> con la
+										plantilla vacía y los cascos de diario. Al quitar decisiones técnicas solo queda
+										una pregunta: ¿la canción se sostiene sola?
+									</p>
+								</div>
+							</div>
+						</div>
+						<div class="frow">
+							<label for="ext">Extracto</label>
+							<div>
+								<textarea class="control" id="ext">
+Tres canciones, un micro de mesa y ninguna excusa: crónica breve de un domingo de maquetas.</textarea>
+								<p class="help">Resumen para listados y RSS.</p>
+							</div>
+						</div>
+						<div class="frow">
+							<span class="flabel">Imagen destacada</span>
+							<div class="filew">
+								<div
+									class="thumb"
+									role="img"
+									aria-label="Previsualización de domingo-maquetas.jpg"
+								></div>
+								<div class="finfo">
+									domingo-maquetas.jpg<br />1600×686 · 214 KB<br />
+									<a href="#">sustituir</a><a href="#" style="color: var(--danger)">quitar</a>
+								</div>
+							</div>
+						</div>
+					</section>
+
+					<section class="fsection">
+						<h3>Clasificación</h3>
+						<div class="frow">
+							<span class="flabel">Categorías</span>
+							<div class="chips" style="max-width: 420px">
+								<span class="chip">música <button aria-label="Quitar música">×</button></span>
+								<span class="chip">proceso <button aria-label="Quitar proceso">×</button></span>
+								<input type="text" placeholder="añadir…" aria-label="Añadir categoría" />
+							</div>
+						</div>
+						<div class="frow">
+							<span class="flabel">Autor</span>
+							<div class="rel-value">
+								<span class="avatar">D</span>
+								<span class="name">David Vega</span>
+								<span class="id">rel:users·8f2k1</span>
+								<button class="swap">cambiar</button>
+							</div>
+						</div>
+						<div class="frow">
+							<label for="fp">Fecha de publicación</label>
+							<div class="inline">
+								<input
+									class="control mono"
+									id="fp"
+									type="text"
+									value=""
+									placeholder="—"
+									readonly
+									title="Se fija al publicar"
+								/>
+								<span class="help" style="margin: 0">se fija al publicar</span>
+							</div>
+						</div>
+						<div class="frow">
+							<span class="flabel">Destacada</span>
+							<label class="switch">
+								<input type="checkbox" checked />
+								<span class="track"></span>
+								<span class="sw-label">Aparece en la portada</span>
+							</label>
+						</div>
+					</section>
+				</form>
+			</main>
+		</div>
+
+		<!-- ═══════════════ PANTALLA 3 — AJUSTES / MANIFIESTO ═══════════════ -->
+		<p class="demo-label">
+			Pantalla 3 · Ajustes — editor del manifiesto (JSON validado + dry-run, D-P2.1)
+		</p>
+		<div
+			class="shell"
+			style="grid-template-columns: 1fr; grid-template-areas: 'top' 'main'; min-height: auto"
+		>
+			<header class="topbar">
+				<span class="site"><span class="dot"></span> fodaveg.net</span>
+				<span class="right"
+					><span class="env">manifiesto v1</span><span class="avatar">D</span></span
+				>
+			</header>
+			<main class="main">
+				<div class="edit-top">
+					<span class="crumb"><b>Ajustes</b> / manifiesto</span>
+					<span class="spacer"></span>
+					<button class="btn quiet">Insertar plantilla</button>
+					<button class="btn">Validar (dry-run)</button>
+					<button
+						class="btn primary"
+						disabled
+						title="Corrige los avisos de validación estricta antes de guardar"
+					>
+						Guardar
+					</button>
+				</div>
+
+				<div class="manif">
+					<textarea spellcheck="false" aria-label="Manifiesto en JSON">
+{
+  "schemaVersion": 1,
+  "site": { "name": "fodaveg.net", "defaultTheme": "niebla", "locale": "es" },
+  "nav": { "groups": ["Contenido", "Sitio"] },
+  "collections": {
+    "posts": {
+      "label": "Entradas", "labelSingular": "Entrada", "icon": "pencil",
+      "group": "Contenido", "order": 1,
+      "previewUrl": "https://fodaveg.net/blog/{slug}",
+      "listFields": ["title", "status", "published_at", "updated"],
+      "fields": {
+        "body":    { "widget": "markdown", "label": "Cuerpo" },
+        "excerpt": { "widget": "textarea", "help": "Resumen para listados y RSS." },
+        "portada": { "label": "Imagen destacada" }
+      }
+    },
+    "proyectos": { "icon": "carpeta-vieja", "group": "Contenido" },
+    "ajustes": { "label": "Ajustes del sitio", "icon": "settings", "group": "Sitio", "singleton": true }
+  }
+}</textarea>
+
+					<aside class="warnpanel" aria-label="Resultado del dry-run">
+						<h3>Dry-run contra el esquema real</h3>
+						<div class="warnitem okk">
+							<span class="code">OK</span>
+							<p>JSON válido contra el schema v1. 3 colecciones decoradas, 1 singleton.</p>
+						</div>
+						<div class="warnitem warn">
+							<span class="code">icon-unknown</span>
+							<p>El icono «carpeta-vieja» no existe en el set de Vega: se usará el genérico.</p>
+							<span class="path">/collections/proyectos/icon</span>
+						</div>
+						<div class="warnitem warn">
+							<span class="code">list-field-unknown</span>
+							<p>El campo «updated» no existe en «posts»: se omite de las columnas.</p>
+							<span class="path">/collections/posts/listFields/3</span>
+						</div>
+					</aside>
+				</div>
+			</main>
+		</div>
+
+		<!-- ═══════════════ TIRA DE ESTADOS ═══════════════ -->
+		<p class="demo-label">Eje 2 de la checklist · Estados de un mismo widget (text)</p>
+		<div
+			class="shell"
+			style="
+				grid-template-columns: 1fr;
+				grid-template-areas: 'main';
+				grid-template-rows: 1fr;
+				min-height: auto;
+			"
+		>
+			<main class="main">
+				<div class="strip">
+					<div class="stcard">
+						<h4>Normal</h4>
+						<input
+							class="control"
+							type="text"
+							value="Grabar maquetas con lo puesto"
+							aria-label="Ejemplo normal"
+						/>
+					</div>
+					<div class="stcard">
+						<h4>Foco</h4>
+						<input
+							class="control"
+							type="text"
+							value="Grabar maquetas con lo p"
+							style="
+								border-color: var(--accent);
+								box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 25%, transparent);
+							"
+							aria-label="Ejemplo con foco"
+						/>
+					</div>
+					<div class="stcard">
+						<h4>Error</h4>
+						<input
+							class="control invalid"
+							type="text"
+							value="grabar maquetas!!"
+							aria-invalid="true"
+							aria-label="Ejemplo con error"
+						/>
+						<p class="field-error">Solo minúsculas, números y guiones.</p>
+					</div>
+					<div class="stcard">
+						<h4>Solo lectura (view / campo readonly)</h4>
+						<input
+							class="control"
+							type="text"
+							value="8f2k1m3n9"
+							readonly
+							aria-label="Ejemplo solo lectura"
+						/>
+					</div>
+				</div>
+			</main>
+		</div>
+
+		<!-- notas -->
+		<div class="notes">
+			<h2>Notas de dirección — C · «Cabina»</h2>
+			<ul>
+				<li>
+					<b>Idea:</b> instrumento de precisión. Base 13px, filas de 36px, retícula visible, meta y
+					estados en monoespaciada (<code>published</code>/<code>draft</code> tal cual los valores
+					canónicos de P2 §4.5), atajos de teclado a la vista (<kbd>/</kbd> buscar,
+					<kbd>N</kbd> nueva, <kbd>⌘S</kbd> guardar).
+				</li>
+				<li>
+					<b>Topbar propia</b> con búsqueda global y estado de conexión con PB — la dirección que
+					más «panel de control» se siente, la más cercana al usuario dev que instala Vega.
+				</li>
+				<li>
+					<b>Editor con label a la izquierda</b> (168px) y secciones como fichas: máxima densidad de
+					campos por pantalla sin perder escaneabilidad; los fieldGroups de P2 son literalmente las
+					fichas.
+				</li>
+				<li>
+					<b>Pantalla 3 = el editor del manifiesto de P2 §6.4:</b> JSON crudo + dry-run con warnings
+					reales del contrato (icon-unknown, list-field-unknown) con su <code>path</code>, y Guardar
+					deshabilitado hasta validar. En esta dirección esa pantalla no desentona: es una más.
+				</li>
+				<li>
+					<b>Estados mostrados:</b> filtros por estado, fila seleccionada, error de slug, readonly
+					(fecha fijada al publicar + tira de estados), «Ver en el sitio» deshabilitado con motivo,
+					badge de avisos del manifiesto, título kilométrico truncado.
+				</li>
+				<li>
+					<b>Riesgo asumido:</b> es la menos «la edición es el producto» de las tres — eficiente
+					para gestionar, menos agradable para escribir largo. Casaría bien como MODO (densidad
+					compacta) sobre la dirección A o B, más que como identidad única.
+				</li>
+			</ul>
+		</div>
+
+		<!-- demo controls -->
+		<div class="demobar" role="group" aria-label="Controles de la demo">
+			<span>Modo</span>
+			<button data-mode="auto" aria-pressed="true">Auto</button>
+			<button data-mode="light" aria-pressed="false">Claro</button>
+			<button data-mode="dark" aria-pressed="false">Oscuro</button>
+			<span>·</span>
+			<button
+				class="sw niebla"
+				data-pal="niebla"
+				aria-pressed="true"
+				title="Esquema Niebla"
+			></button>
+			<button
+				class="sw salvia"
+				data-pal="salvia"
+				aria-pressed="false"
+				title="Esquema Salvia"
+			></button>
+		</div>
+
+		<script>
+			const html = document.documentElement;
+			document.querySelectorAll('.demobar [data-mode]').forEach((b) =>
+				b.addEventListener('click', () => {
+					document
+						.querySelectorAll('.demobar [data-mode]')
+						.forEach((x) => x.setAttribute('aria-pressed', 'false'));
+					b.setAttribute('aria-pressed', 'true');
+					if (b.dataset.mode === 'auto') html.removeAttribute('data-theme');
+					else html.setAttribute('data-theme', b.dataset.mode);
+				})
+			);
+			document.querySelectorAll('.demobar [data-pal]').forEach((b) =>
+				b.addEventListener('click', () => {
+					document
+						.querySelectorAll('.demobar [data-pal]')
+						.forEach((x) => x.setAttribute('aria-pressed', 'false'));
+					b.setAttribute('aria-pressed', 'true');
+					html.setAttribute('data-pal', b.dataset.pal);
+				})
+			);
+		</script>
+	</body>
+</html>

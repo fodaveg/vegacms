@@ -1,0 +1,1831 @@
+<!doctype html>
+<html lang="es" data-pal="niebla">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Vega — Propuesta C2 · Cabina con aire</title>
+		<style>
+			/* ==========================================================================
+   VEGA — Propuesta C2: «Cabina con aire»  (revisión de C tras feedback)
+   La arquitectura de información de C — cabina/herramienta, estados en mono,
+   atajos visibles, estado de conexión PB, editor del manifiesto — con el
+   ritmo respirado de A/B: base 14px, filas de 44px, secciones que no se
+   tocan, hairlines suaves. La densidad extrema de C queda anotada como
+   MODO opcional (toggle cómoda ⇄ compacta), no como identidad.
+   Esquemas demostrados: niebla (#4f6bd6 / blanco) y miel (#d59a2e / #241905)
+   — pares accent/accentInk validados AA por el build de Lumbre. Miel entra
+   en lugar de salvia: demuestra que la cabina también sabe ser cálida.
+   ========================================================================== */
+
+			:root,
+			[data-pal='niebla'] {
+				--tint: #4f6bd6;
+				--accent: #4f6bd6;
+				--accent-ink: #ffffff;
+			}
+			[data-pal='miel'] {
+				--tint: #d59a2e;
+				--accent: #d59a2e;
+				--accent-ink: #241905;
+			}
+
+			/* ---------- Neutros CLARO (tinte contenido, como en C) ---------- */
+			:root {
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 7%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 5%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 4%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 10%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 10%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 10%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-text: color-mix(in oklab, var(--accent) 72%, var(--ink));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+
+				--success: #2e7d54;
+				--success-soft: color-mix(in oklab, #2e7d54 13%, var(--paper));
+				--danger: #b23831;
+				--danger-soft: color-mix(in oklab, #b23831 12%, var(--paper));
+				--warning: #8a6116;
+				--warning-soft: color-mix(in oklab, #c98a1b 16%, var(--paper));
+				--info: #2f6f8f;
+				--info-soft: color-mix(in oklab, #2f6f8f 13%, var(--paper));
+				--shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 3px 12px rgb(0 0 0 / 0.04);
+				color-scheme: light;
+			}
+
+			@media (prefers-color-scheme: dark) {
+				:root:not([data-theme='light']) {
+					--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+					--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+					--paper: color-mix(in oklab, var(--tint) 13%, #141416);
+					--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+					--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+					--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+					--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+					--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+					--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+					--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+					--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+					--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+					--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+					--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+					--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+					--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+					--accent-text: color-mix(in oklab, var(--accent) 65%, var(--ink));
+					--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+					--success: #5cbd8e;
+					--success-soft: color-mix(in oklab, #5cbd8e 17%, var(--paper));
+					--danger: #ef8078;
+					--danger-soft: color-mix(in oklab, #ef8078 15%, var(--paper));
+					--warning: #dfae4d;
+					--warning-soft: color-mix(in oklab, #dfae4d 15%, var(--paper));
+					--info: #74b6d6;
+					--info-soft: color-mix(in oklab, #74b6d6 15%, var(--paper));
+					--shadow-card: 0 1px 3px rgb(0 0 0 / 0.4), 0 5px 16px rgb(0 0 0 / 0.28);
+					color-scheme: dark;
+				}
+			}
+			:root[data-theme='dark'] {
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 13%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-text: color-mix(in oklab, var(--accent) 65%, var(--ink));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--success: #5cbd8e;
+				--success-soft: color-mix(in oklab, #5cbd8e 17%, var(--paper));
+				--danger: #ef8078;
+				--danger-soft: color-mix(in oklab, #ef8078 15%, var(--paper));
+				--warning: #dfae4d;
+				--warning-soft: color-mix(in oklab, #dfae4d 15%, var(--paper));
+				--info: #74b6d6;
+				--info-soft: color-mix(in oklab, #74b6d6 15%, var(--paper));
+				--shadow-card: 0 1px 3px rgb(0 0 0 / 0.4), 0 5px 16px rgb(0 0 0 / 0.28);
+				color-scheme: dark;
+			}
+
+			/* ---------- Base — AQUÍ está el aflojado respecto a C ---------- */
+			* {
+				box-sizing: border-box;
+				margin: 0;
+			}
+			:root {
+				--sans: -apple-system, 'Segoe UI', system-ui, sans-serif;
+				--mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+				--r: 8px; /* C: 6px */
+				--row-h: 44px; /* C: 36px */
+				--cell-x: 1.1rem; /* C: .8rem */
+			}
+			body {
+				font-family: var(--sans);
+				font-size: 0.875rem;
+				line-height: 1.55; /* C: 13px/1.45 */
+				background: var(--bg);
+				color: var(--ink);
+				-webkit-font-smoothing: antialiased;
+			}
+			a {
+				color: var(--accent-text);
+				text-decoration: none;
+			}
+			a:hover {
+				text-decoration: underline;
+			}
+			button {
+				font: inherit;
+				cursor: pointer;
+			}
+			:focus-visible {
+				outline: 2px solid var(--accent);
+				outline-offset: 2px;
+				border-radius: 4px;
+			}
+			@media (prefers-reduced-motion: reduce) {
+				* {
+					transition: none !important;
+				}
+			}
+			svg {
+				flex: none;
+			}
+			kbd {
+				font-family: var(--mono);
+				font-size: 0.6875rem;
+				color: var(--ink-3);
+				border: 1px solid var(--line-strong);
+				border-bottom-width: 2px;
+				border-radius: 4px;
+				padding: 0.08rem 0.35rem;
+				background: var(--surface-2);
+			}
+
+			.demo-label {
+				max-width: 1320px;
+				margin: 3rem auto 0.75rem;
+				padding: 0 1.5rem;
+				font-size: 0.72rem;
+				letter-spacing: 0.12em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+			}
+			.demo-label:first-of-type {
+				margin-top: 1.5rem;
+			}
+
+			/* ---------- Shell: topbar + sidebar + main ---------- */
+			.shell {
+				max-width: 1320px;
+				margin: 0 auto;
+				min-height: 700px;
+				display: grid;
+				grid-template-columns: 236px 1fr;
+				grid-template-rows: 54px 1fr; /* C: 208px/44px */
+				grid-template-areas: 'top top' 'side main';
+				background: var(--paper);
+				border: 1px solid var(--line);
+				border-radius: 10px;
+				overflow: hidden;
+				box-shadow: var(--shadow-card);
+			}
+			.topbar {
+				grid-area: top;
+				display: flex;
+				align-items: center;
+				gap: 1.25rem;
+				padding: 0 1.25rem;
+				background: var(--sidebar);
+				border-bottom: 1px solid var(--line);
+			}
+			.topbar .site {
+				display: flex;
+				align-items: center;
+				gap: 0.6rem;
+				font-weight: 600;
+				color: var(--ink-hi);
+				min-width: 212px;
+			}
+			.topbar .site .dot {
+				width: 9px;
+				height: 9px;
+				border-radius: 3px;
+				background: var(--accent);
+			}
+			.gsearch {
+				flex: 1;
+				max-width: 460px;
+				display: flex;
+				align-items: center;
+				gap: 0.6rem;
+				background: var(--surface);
+				border: 1px solid var(--line-strong);
+				border-radius: var(--r);
+				padding: 0.42rem 0.75rem;
+				color: var(--ink-3);
+			}
+			.gsearch input {
+				border: 0;
+				background: none;
+				font: inherit;
+				color: var(--ink);
+				width: 100%;
+			}
+			.gsearch input::placeholder {
+				color: var(--ink-3);
+			}
+			.gsearch input:focus {
+				outline: none;
+			}
+			.gsearch:focus-within {
+				border-color: var(--accent);
+				box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent);
+			}
+			.topbar .right {
+				margin-left: auto;
+				display: flex;
+				align-items: center;
+				gap: 1rem;
+				color: var(--ink-2);
+			}
+			.topbar .env {
+				font-family: var(--mono);
+				font-size: 0.6875rem;
+				color: var(--ink-3);
+				border: 1px solid var(--line);
+				border-radius: 99px;
+				padding: 0.18rem 0.6rem;
+				display: inline-flex;
+				align-items: center;
+				gap: 0.4rem;
+			}
+			.topbar .env::before {
+				content: '';
+				width: 6px;
+				height: 6px;
+				border-radius: 50%;
+				background: var(--success);
+			}
+			.density {
+				display: inline-flex;
+				border: 1px solid var(--line-strong);
+				border-radius: 99px;
+				overflow: hidden;
+			}
+			.density button {
+				border: 0;
+				background: none;
+				color: var(--ink-3);
+				font-size: 0.6875rem;
+				padding: 0.22rem 0.65rem;
+			}
+			.density button[aria-pressed='true'] {
+				background: var(--active);
+				color: var(--ink);
+				font-weight: 600;
+			}
+			.avatar {
+				width: 28px;
+				height: 28px;
+				border-radius: 50%;
+				background: var(--accent);
+				color: var(--accent-ink);
+				display: grid;
+				place-items: center;
+				font-size: 0.72rem;
+				font-weight: 700;
+			}
+
+			.side {
+				grid-area: side;
+				background: var(--sidebar);
+				border-right: 1px solid var(--line);
+				padding: 1.25rem 0 1rem;
+				display: flex;
+				flex-direction: column;
+				gap: 1.6rem;
+			} /* C: .8rem/1.1rem */
+			.navgroup h2 {
+				font-size: 0.6875rem;
+				font-weight: 700;
+				letter-spacing: 0.13em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+				padding: 0 1.1rem 0.45rem;
+			}
+			.navgroup a {
+				display: flex;
+				align-items: center;
+				gap: 0.65rem;
+				padding: 0.5rem 1.1rem; /* C: .34rem .9rem */
+				color: var(--ink-2);
+				border-left: 2px solid transparent;
+			}
+			.navgroup a svg {
+				color: var(--ink-3);
+			}
+			.navgroup a:hover {
+				background: var(--active);
+				color: var(--ink-hi);
+				text-decoration: none;
+			}
+			.navgroup a[aria-current='page'] {
+				color: var(--accent-text);
+				border-left-color: var(--accent);
+				background: var(--accent-soft);
+				font-weight: 600;
+			}
+			.navgroup a[aria-current='page'] svg {
+				color: var(--accent-text);
+			}
+			.navgroup .count {
+				margin-left: auto;
+				font-family: var(--mono);
+				font-size: 0.6875rem;
+				color: var(--ink-3);
+			}
+			.side .foot {
+				margin-top: auto;
+				border-top: 1px solid var(--line);
+				padding-top: 0.75rem;
+			}
+			.side .foot a {
+				display: flex;
+				align-items: center;
+				gap: 0.65rem;
+				padding: 0.45rem 1.1rem;
+				color: var(--ink-2);
+				font-size: 0.8125rem;
+			}
+			.side .foot a:hover {
+				background: var(--active);
+				text-decoration: none;
+			}
+			.warnbadge {
+				margin-left: auto;
+				font-family: var(--mono);
+				font-size: 0.6875rem;
+				font-weight: 700;
+				background: var(--warning-soft);
+				color: var(--warning);
+				padding: 0.05rem 0.45rem;
+				border-radius: 5px;
+			}
+
+			.main {
+				grid-area: main;
+				padding: 1.75rem 2rem 2.5rem;
+				min-width: 0;
+				background: var(--paper);
+			} /* C: 1.1/1.4 */
+
+			/* ---------- Cabecera de listado ---------- */
+			.listhead {
+				display: flex;
+				align-items: center;
+				gap: 1rem;
+				flex-wrap: wrap;
+				margin-bottom: 1.25rem;
+			}
+			.listhead h1 {
+				font-size: 1.3rem;
+				font-weight: 700;
+				color: var(--ink-hi);
+				letter-spacing: -0.01em;
+			}
+			.listhead .filters {
+				display: flex;
+				gap: 0.45rem;
+			}
+			.fchip {
+				border: 1px solid var(--line-strong);
+				background: var(--surface);
+				color: var(--ink-2);
+				border-radius: 99px;
+				padding: 0.3rem 0.85rem;
+				font-size: 0.78rem;
+				font-weight: 500;
+			}
+			.fchip[aria-pressed='true'] {
+				background: var(--accent-soft);
+				border-color: var(--accent);
+				color: var(--accent-text);
+				font-weight: 600;
+			}
+			.fchip:hover {
+				border-color: var(--accent);
+			}
+			.listhead .spacer {
+				flex: 1;
+			}
+
+			.btn {
+				border: 1px solid var(--line-strong);
+				background: var(--surface);
+				color: var(--ink);
+				border-radius: var(--r);
+				padding: 0.45rem 1rem;
+				font-size: 0.8125rem;
+				font-weight: 600;
+			}
+			.btn:hover {
+				background: var(--btn);
+			}
+			.btn:disabled {
+				opacity: 0.45;
+				cursor: not-allowed;
+			}
+			.btn.primary {
+				background: var(--accent);
+				border-color: var(--accent);
+				color: var(--accent-ink);
+			}
+			.btn.primary:hover {
+				background: var(--accent-hover);
+				border-color: var(--accent-hover);
+			}
+			.btn.quiet {
+				border-color: transparent;
+				background: none;
+				color: var(--ink-2);
+			}
+			.btn.quiet:hover {
+				background: var(--active);
+				color: var(--ink-hi);
+			}
+			.btn kbd {
+				margin-left: 0.4rem;
+			}
+			.btn.primary kbd {
+				border-color: color-mix(in oklab, var(--accent-ink) 40%, transparent);
+				color: var(--accent-ink);
+				background: none;
+			}
+
+			/* ---------- Tabla: densidad de info, filas que respiran ---------- */
+			.grid {
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				overflow: hidden;
+				background: var(--surface);
+				box-shadow: var(--shadow-card);
+			}
+			table {
+				width: 100%;
+				border-collapse: collapse;
+			}
+			th {
+				text-align: left;
+				font-family: var(--mono);
+				font-size: 0.6563rem;
+				font-weight: 600;
+				letter-spacing: 0.1em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+				background: var(--surface-2);
+				border-bottom: 1px solid var(--line-strong);
+				padding: 0.65rem var(--cell-x);
+				white-space: nowrap;
+			}
+			td {
+				border-bottom: 1px solid var(--line-soft);
+				padding: 0.6rem var(--cell-x);
+				height: var(--row-h);
+				vertical-align: middle;
+			}
+			tbody tr:last-child td {
+				border-bottom: 0;
+			}
+			tbody tr:hover td {
+				background: var(--accent-soft);
+			}
+			tbody tr.sel td {
+				background: var(--active);
+				box-shadow: inset 2px 0 0 var(--accent);
+			}
+			td.t {
+				max-width: 0;
+				width: 52%;
+			}
+			td.t a {
+				color: var(--ink-hi);
+				font-weight: 500;
+				display: block;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+			td.mono {
+				font-family: var(--mono);
+				font-size: 0.75rem;
+				color: var(--ink-2);
+				white-space: nowrap;
+			}
+			td.who {
+				color: var(--ink-2);
+				white-space: nowrap;
+			}
+
+			/* tag de estado mono (identidad C, tamaño C2) */
+			.tag {
+				display: inline-flex;
+				align-items: center;
+				font-family: var(--mono);
+				font-size: 0.72rem;
+				font-weight: 600;
+				border-radius: 5px;
+				padding: 0.18rem 0.55rem;
+				border: 1px solid transparent;
+				white-space: nowrap;
+			}
+			.tag.pub {
+				color: var(--success);
+				background: var(--success-soft);
+				border-color: color-mix(in oklab, var(--success) 25%, transparent);
+			}
+			.tag.draft {
+				color: var(--ink-2);
+				background: var(--active);
+				border-color: var(--line-strong);
+			}
+			.tag.other {
+				color: var(--info);
+				background: var(--info-soft);
+				border-color: color-mix(in oklab, var(--info) 25%, transparent);
+			}
+
+			.gridfoot {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 1rem;
+				padding: 0.6rem var(--cell-x);
+				background: var(--surface-2);
+				border-top: 1px solid var(--line);
+				font-family: var(--mono);
+				font-size: 0.72rem;
+				color: var(--ink-2);
+			}
+			.gridfoot .pages {
+				display: flex;
+				gap: 0.25rem;
+			}
+			.gridfoot button {
+				border: 1px solid var(--line);
+				background: var(--surface);
+				color: var(--ink-2);
+				border-radius: 5px;
+				min-width: 28px;
+				height: 28px;
+				font-size: 0.75rem;
+			}
+			.gridfoot button[aria-current='page'] {
+				background: var(--accent);
+				border-color: var(--accent);
+				color: var(--accent-ink);
+			}
+			.gridfoot button:disabled {
+				opacity: 0.4;
+				cursor: not-allowed;
+			}
+
+			/* estado vacío */
+			.empty {
+				text-align: center;
+				padding: 3.5rem 2rem;
+				color: var(--ink-2);
+			}
+			.empty b {
+				color: var(--ink);
+				font-size: 1rem;
+			}
+			.empty p {
+				margin-top: 0.35rem;
+				font-size: 0.8125rem;
+				color: var(--ink-3);
+			}
+			.empty .btn {
+				margin-top: 1.25rem;
+			}
+
+			/* ---------- Editor: mismas fichas que C, con ritmo ---------- */
+			.edit-top {
+				display: flex;
+				align-items: center;
+				gap: 1rem;
+				flex-wrap: wrap;
+				padding: 0.4rem 0 1rem;
+				border-bottom: 1px solid var(--line);
+				margin-bottom: 1.5rem;
+				position: sticky;
+				top: 0;
+				background: var(--paper);
+				z-index: 3;
+			}
+			.edit-top .crumb {
+				font-family: var(--mono);
+				font-size: 0.75rem;
+				color: var(--ink-3);
+			}
+			.edit-top .crumb b {
+				color: var(--ink);
+				font-weight: 600;
+			}
+			.dirty {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.4rem;
+				font-family: var(--mono);
+				font-size: 0.72rem;
+				color: var(--warning);
+				font-weight: 600;
+			}
+			.dirty::before {
+				content: '●';
+			}
+			.edit-top .spacer {
+				flex: 1;
+			}
+			.saved-at {
+				font-family: var(--mono);
+				font-size: 0.72rem;
+				color: var(--ink-3);
+			}
+
+			.form {
+				max-width: 880px;
+			}
+			.fsection {
+				margin-bottom: 1.75rem;
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--surface);
+				overflow: hidden;
+				box-shadow: var(--shadow-card);
+			} /* C: 1.2rem entre fichas */
+			.fsection > h3 {
+				font-family: var(--mono);
+				font-size: 0.6875rem;
+				font-weight: 600;
+				letter-spacing: 0.12em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+				padding: 0.7rem 1.25rem;
+				background: var(--surface-2);
+				border-bottom: 1px solid var(--line);
+			}
+			.frow {
+				display: grid;
+				grid-template-columns: 184px 1fr;
+				gap: 1.25rem;
+				padding: 1.1rem 1.25rem;
+				border-bottom: 1px solid var(--line-soft);
+				align-items: start;
+			} /* C: .65rem .9rem */
+			.frow:last-child {
+				border-bottom: 0;
+			}
+			.frow > label,
+			.frow > .flabel {
+				font-size: 0.8125rem;
+				font-weight: 600;
+				color: var(--ink);
+				padding-top: 0.4rem;
+			}
+			.frow .req {
+				color: var(--danger);
+			}
+			.frow .help {
+				font-size: 0.75rem;
+				color: var(--ink-3);
+				margin-top: 0.45rem;
+			}
+			.control {
+				width: 100%;
+				border: 1px solid var(--line-strong);
+				background: var(--surface-2);
+				border-radius: 6px;
+				padding: 0.5rem 0.7rem;
+				font: inherit;
+				color: var(--ink);
+			}
+			.control:focus {
+				outline: none;
+				border-color: var(--accent);
+				box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent);
+			}
+			.control:disabled,
+			.control[readonly] {
+				background: var(--active);
+				color: var(--ink-3);
+				cursor: not-allowed;
+			}
+			.control.invalid {
+				border-color: var(--danger);
+				background: color-mix(in oklab, var(--danger) 4%, var(--surface-2));
+			}
+			textarea.control {
+				resize: vertical;
+				min-height: 78px;
+				line-height: 1.55;
+			}
+			.control.mono {
+				font-family: var(--mono);
+				font-size: 0.78rem;
+			}
+			.field-error {
+				display: flex;
+				gap: 0.4rem;
+				align-items: center;
+				font-size: 0.75rem;
+				color: var(--danger);
+				margin-top: 0.45rem;
+				font-weight: 600;
+			}
+			.inline {
+				display: flex;
+				gap: 0.6rem;
+				align-items: center;
+			}
+			.inline .control {
+				width: auto;
+			}
+
+			.rt-toolbar {
+				display: flex;
+				align-items: center;
+				gap: 0.15rem;
+				border: 1px solid var(--line-strong);
+				border-bottom: 0;
+				border-radius: 6px 6px 0 0;
+				background: var(--surface-2);
+				padding: 0.3rem 0.4rem;
+			}
+			.rt-toolbar button {
+				border: 0;
+				background: none;
+				color: var(--ink-2);
+				border-radius: 4px;
+				min-width: 30px;
+				height: 30px;
+				font-size: 0.78rem;
+				display: grid;
+				place-items: center;
+			}
+			.rt-toolbar button:hover {
+				background: var(--active);
+				color: var(--ink-hi);
+			}
+			.rt-toolbar button[aria-pressed='true'] {
+				background: var(--accent-soft);
+				color: var(--accent-text);
+			}
+			.rt-toolbar .sep {
+				width: 1px;
+				height: 16px;
+				background: var(--line-strong);
+				margin: 0 0.35rem;
+			}
+			.rt-body {
+				border: 1px solid var(--line-strong);
+				border-radius: 0 0 6px 6px;
+				background: var(--surface-2);
+				padding: 1.25rem 1.4rem;
+				font-size: 0.9375rem;
+				line-height: 1.7;
+				color: var(--ink);
+			} /* C: .9/1: 14px→15px, 1.65→1.7 */
+			.rt-body h2 {
+				font-size: 1.1rem;
+				margin: 1.1rem 0 0.5rem;
+				color: var(--ink-hi);
+			}
+			.rt-body p + p {
+				margin-top: 0.85rem;
+			}
+			.rt-body code {
+				font-family: var(--mono);
+				font-size: 0.8em;
+				background: var(--active);
+				border-radius: 4px;
+				padding: 0.06em 0.35em;
+			}
+
+			.chips {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.4rem;
+				border: 1px solid var(--line-strong);
+				border-radius: 6px;
+				padding: 0.4rem;
+				background: var(--surface-2);
+			}
+			.chip {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.3rem;
+				background: var(--accent-soft);
+				color: var(--accent-text);
+				font-family: var(--mono);
+				font-size: 0.72rem;
+				font-weight: 600;
+				border-radius: 4px;
+				padding: 0.18rem 0.25rem 0.18rem 0.55rem;
+			}
+			.chip button {
+				border: 0;
+				background: none;
+				color: inherit;
+				opacity: 0.6;
+				padding: 0 0.2rem;
+				line-height: 1;
+			}
+			.chip button:hover {
+				opacity: 1;
+			}
+			.chips input {
+				border: 0;
+				background: none;
+				font: inherit;
+				font-size: 0.8125rem;
+				color: var(--ink);
+				min-width: 7ch;
+				flex: 1;
+			}
+			.chips input:focus {
+				outline: none;
+			}
+
+			.rel-value {
+				display: flex;
+				align-items: center;
+				gap: 0.6rem;
+				border: 1px solid var(--line-strong);
+				border-radius: 6px;
+				padding: 0.45rem 0.65rem;
+				background: var(--surface-2);
+				max-width: 380px;
+			}
+			.rel-value .name {
+				flex: 1;
+				font-weight: 500;
+			}
+			.rel-value .id {
+				font-family: var(--mono);
+				font-size: 0.65rem;
+				color: var(--ink-3);
+			}
+			.rel-value .swap {
+				border: 0;
+				background: none;
+				color: var(--accent-text);
+				font-size: 0.78rem;
+				font-weight: 600;
+			}
+
+			.filew {
+				display: flex;
+				gap: 1rem;
+				align-items: center;
+			}
+			.filew .thumb {
+				width: 156px;
+				aspect-ratio: 16/9;
+				border-radius: 6px;
+				border: 1px solid var(--line-strong);
+				background: linear-gradient(
+					130deg,
+					color-mix(in oklab, var(--accent) 55%, var(--paper)),
+					color-mix(in oklab, var(--accent) 15%, var(--paper))
+				);
+			}
+			.filew .finfo {
+				font-family: var(--mono);
+				font-size: 0.72rem;
+				color: var(--ink-2);
+				line-height: 1.7;
+			}
+			.filew .finfo a {
+				margin-right: 0.7rem;
+			}
+
+			.switch {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.6rem;
+				cursor: pointer;
+			}
+			.switch .track {
+				width: 36px;
+				height: 21px;
+				border-radius: 99px;
+				background: var(--line-strong);
+				position: relative;
+				transition: background 0.12s;
+			}
+			.switch .track::after {
+				content: '';
+				position: absolute;
+				top: 2px;
+				left: 2px;
+				width: 17px;
+				height: 17px;
+				border-radius: 50%;
+				background: var(--surface);
+				box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+				transition: transform 0.12s;
+			}
+			.switch input {
+				position: absolute;
+				opacity: 0;
+			}
+			.switch input:checked + .track {
+				background: var(--accent);
+			}
+			.switch input:checked + .track::after {
+				transform: translateX(15px);
+			}
+			.switch input:focus-visible + .track {
+				outline: 2px solid var(--accent);
+				outline-offset: 2px;
+			}
+			.switch .sw-label {
+				font-size: 0.8125rem;
+			}
+
+			/* ---------- Editor del manifiesto ---------- */
+			.manif {
+				display: grid;
+				grid-template-columns: minmax(0, 1fr) 320px;
+				gap: 1.25rem;
+				align-items: start;
+			}
+			.manif textarea {
+				width: 100%;
+				min-height: 400px;
+				resize: vertical;
+				font-family: var(--mono);
+				font-size: 0.78rem;
+				line-height: 1.65;
+				color: var(--ink);
+				background: var(--surface);
+				border: 1px solid var(--line-strong);
+				border-radius: var(--r);
+				padding: 1.1rem 1.25rem;
+			}
+			.manif textarea:focus {
+				outline: none;
+				border-color: var(--accent);
+			}
+			.warnpanel {
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--surface);
+				overflow: hidden;
+				box-shadow: var(--shadow-card);
+			}
+			.warnpanel h3 {
+				font-family: var(--mono);
+				font-size: 0.6875rem;
+				letter-spacing: 0.12em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+				padding: 0.65rem 1rem;
+				background: var(--surface-2);
+				border-bottom: 1px solid var(--line);
+			}
+			.warnitem {
+				padding: 0.85rem 1rem;
+				border-bottom: 1px solid var(--line-soft);
+				font-size: 0.8125rem;
+			}
+			.warnitem:last-child {
+				border-bottom: 0;
+			}
+			.warnitem .code {
+				font-family: var(--mono);
+				font-size: 0.65rem;
+				font-weight: 700;
+				border-radius: 4px;
+				padding: 0.1rem 0.45rem;
+			}
+			.warnitem.warn .code {
+				background: var(--warning-soft);
+				color: var(--warning);
+			}
+			.warnitem.okk .code {
+				background: var(--success-soft);
+				color: var(--success);
+			}
+			.warnitem p {
+				margin-top: 0.35rem;
+				color: var(--ink-2);
+			}
+			.warnitem .path {
+				font-family: var(--mono);
+				font-size: 0.6875rem;
+				color: var(--ink-3);
+				display: block;
+				margin-top: 0.25rem;
+			}
+
+			/* ---------- Tira de estados ---------- */
+			.strip {
+				display: grid;
+				grid-template-columns: repeat(4, 1fr);
+				gap: 1rem;
+			}
+			.stcard {
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--surface);
+				padding: 1rem 1.1rem;
+				box-shadow: var(--shadow-card);
+			}
+			.stcard h4 {
+				font-family: var(--mono);
+				font-size: 0.65rem;
+				letter-spacing: 0.1em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+				margin-bottom: 0.6rem;
+			}
+
+			/* notas */
+			.notes {
+				max-width: 1320px;
+				margin: 1rem auto 6rem;
+				padding: 1.5rem;
+				color: var(--ink-2);
+				font-size: 0.8438rem;
+			}
+			.notes h2 {
+				color: var(--ink-hi);
+				font-size: 1.1rem;
+				margin-bottom: 0.6rem;
+				font-weight: 700;
+			}
+			.notes li {
+				margin: 0.35rem 0 0.35rem 1.1rem;
+			}
+
+			/* demo controls */
+			.demobar {
+				position: fixed;
+				right: 1rem;
+				bottom: 1rem;
+				z-index: 50;
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				background: var(--surface);
+				border: 1px solid var(--line-strong);
+				border-radius: 99px;
+				padding: 0.4rem 0.6rem;
+				box-shadow: 0 6px 20px rgb(0 0 0 / 0.2);
+				font-size: 0.75rem;
+				color: var(--ink-2);
+			}
+			.demobar button {
+				border: 1px solid var(--line);
+				background: var(--paper);
+				color: var(--ink);
+				border-radius: 99px;
+				padding: 0.25rem 0.6rem;
+				font-size: 0.72rem;
+			}
+			.demobar button[aria-pressed='true'] {
+				background: var(--accent);
+				border-color: var(--accent);
+				color: var(--accent-ink);
+			}
+			.demobar .sw {
+				width: 21px;
+				height: 21px;
+				border-radius: 50%;
+				padding: 0;
+				border: 2px solid var(--surface);
+				box-shadow: 0 0 0 1px var(--line-strong);
+			}
+			.demobar .sw.niebla {
+				background: #4f6bd6;
+			}
+			.demobar .sw.miel {
+				background: #d59a2e;
+			}
+			.demobar .sw[aria-pressed='true'] {
+				box-shadow: 0 0 0 2px var(--ink);
+			}
+
+			/* responsive */
+			@media (max-width: 940px) {
+				.shell {
+					grid-template-columns: 1fr;
+					grid-template-areas: 'top' 'main';
+				}
+				.side {
+					display: none;
+				}
+				.topbar {
+					gap: 0.75rem;
+					padding: 0 0.9rem;
+				}
+				.topbar .site {
+					min-width: 0;
+				}
+				.density,
+				.topbar .env {
+					display: none;
+				}
+				.hide-sm {
+					display: none;
+				}
+				td.t {
+					width: auto;
+				}
+				.frow {
+					grid-template-columns: 1fr;
+					gap: 0.35rem;
+					padding: 0.9rem 1rem;
+				}
+				.frow > label,
+				.frow > .flabel {
+					padding-top: 0;
+				}
+				.manif {
+					grid-template-columns: 1fr;
+				}
+				.strip {
+					grid-template-columns: 1fr 1fr;
+				}
+				.main {
+					padding: 1.1rem 1rem 2rem;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<!-- ═══════════════ PANTALLA 1 — LISTADO ═══════════════ -->
+		<p class="demo-label">Pantalla 1 · Listado de «Entradas» — la cabina, respirada</p>
+		<div class="shell">
+			<header class="topbar">
+				<span class="site"><span class="dot"></span> fodaveg.net</span>
+				<label class="gsearch">
+					<svg
+						width="14"
+						height="14"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+					>
+						<circle cx="11" cy="11" r="7" />
+						<path d="m20 20-3.5-3.5" />
+					</svg>
+					<input
+						type="search"
+						placeholder="Buscar en todo el contenido…"
+						aria-label="Búsqueda global"
+					/>
+					<kbd>/</kbd>
+				</label>
+				<span class="right">
+					<span class="env">PB 0.29 · conectado</span>
+					<span
+						class="density"
+						role="group"
+						aria-label="Densidad de la interfaz"
+						title="Toggle de densidad: el default es Cómoda; Compacta recupera la C original"
+					>
+						<button aria-pressed="true">Cómoda</button>
+						<button aria-pressed="false">Compacta</button>
+					</span>
+					<span class="avatar">D</span>
+				</span>
+			</header>
+
+			<aside class="side" aria-label="Navegación de Vega">
+				<nav class="navgroup" aria-label="Contenido">
+					<h2>Contenido</h2>
+					<a href="#" aria-current="page">
+						<svg
+							width="14"
+							height="14"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+						</svg>
+						Entradas <span class="count">46</span></a
+					>
+					<a href="#">
+						<svg
+							width="14"
+							height="14"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+							<path d="M14 2v6h6" />
+						</svg>
+						Páginas <span class="count">5</span></a
+					>
+					<a href="#">
+						<svg
+							width="14"
+							height="14"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<path
+								d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2Z"
+							/>
+						</svg>
+						Proyectos <span class="count">0</span></a
+					>
+				</nav>
+				<nav class="navgroup" aria-label="Sitio">
+					<h2>Sitio</h2>
+					<a href="#">
+						<svg
+							width="14"
+							height="14"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<circle cx="12" cy="12" r="3" />
+							<path d="M12 2v4m0 12v4M2 12h4m12 0h4" />
+						</svg>
+						Ajustes del sitio</a
+					>
+					<a href="#">
+						<svg
+							width="14"
+							height="14"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<rect x="3" y="3" width="18" height="18" rx="2" />
+							<circle cx="9" cy="9" r="2" />
+							<path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21" />
+						</svg>
+						Medios <span class="count">128</span></a
+					>
+				</nav>
+				<div class="foot">
+					<a href="#">Manifiesto <span class="warnbadge">2</span></a>
+					<a href="#">Tema · Niebla</a>
+					<a href="#">Salir</a>
+				</div>
+			</aside>
+
+			<main class="main">
+				<header class="listhead">
+					<h1>Entradas</h1>
+					<span class="filters" role="group" aria-label="Filtrar por estado">
+						<button class="fchip" aria-pressed="true">Todas · 46</button>
+						<button class="fchip" aria-pressed="false">Publicadas · 42</button>
+						<button class="fchip" aria-pressed="false">Borradores · 3</button>
+					</span>
+					<span class="spacer"></span>
+					<button class="btn primary">Nueva entrada <kbd>N</kbd></button>
+				</header>
+
+				<div class="grid">
+					<table>
+						<thead>
+							<tr>
+								<th scope="col">Título</th>
+								<th scope="col">Estado</th>
+								<th scope="col" class="hide-sm">Publicación</th>
+								<th scope="col" class="hide-sm">Modificada</th>
+								<th scope="col" class="hide-sm">Autor</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td class="t">
+									<a href="#">Migrar el blog de Hugo a Astro sin romper una sola URL</a>
+								</td>
+								<td><span class="tag pub">published</span></td>
+								<td class="mono hide-sm">2026-07-12</td>
+								<td class="mono hide-sm">hace 2 h</td>
+								<td class="who hide-sm">David</td>
+							</tr>
+							<tr class="sel">
+								<td class="t"><a href="#">El dado de paletas: diecinueve temas y un botón</a></td>
+								<td><span class="tag pub">published</span></td>
+								<td class="mono hide-sm">2026-07-03</td>
+								<td class="mono hide-sm">ayer</td>
+								<td class="who hide-sm">David</td>
+							</tr>
+							<tr>
+								<td class="t">
+									<a href="#"
+										>Lo que aprendí manteniendo un planificador semanal local-first durante un año:
+										CRDTs, sincronización y por qué el papel cuadriculado sigue ganando</a
+									>
+								</td>
+								<td><span class="tag draft">draft</span></td>
+								<td class="mono hide-sm">—</td>
+								<td class="mono hide-sm">hace 3 d</td>
+								<td class="who hide-sm">David</td>
+							</tr>
+							<tr>
+								<td class="t">
+									<a href="#">Grabar maquetas con lo puesto: un domingo, tres canciones</a>
+								</td>
+								<td><span class="tag draft">draft</span></td>
+								<td class="mono hide-sm">—</td>
+								<td class="mono hide-sm">hace 5 d</td>
+								<td class="who hide-sm">David</td>
+							</tr>
+							<tr>
+								<td class="t"><a href="#">Notas desde la tailnet: autoalojar sin sufrir</a></td>
+								<td><span class="tag pub">published</span></td>
+								<td class="mono hide-sm">2026-06-19</td>
+								<td class="mono hide-sm">19 jun</td>
+								<td class="who hide-sm">David</td>
+							</tr>
+							<tr>
+								<td class="t"><a href="#">Una semana sin pantallas (el experimento)</a></td>
+								<td><span class="tag other">archived</span></td>
+								<td class="mono hide-sm">2026-05-02</td>
+								<td class="mono hide-sm">2 may</td>
+								<td class="who hide-sm">David</td>
+							</tr>
+							<tr>
+								<td class="t">
+									<a href="#">Sereno: rediseñar una app de rutas sin perder el norte</a>
+								</td>
+								<td><span class="tag pub">published</span></td>
+								<td class="mono hide-sm">2026-06-08</td>
+								<td class="mono hide-sm">8 jun</td>
+								<td class="who hide-sm">David</td>
+							</tr>
+						</tbody>
+					</table>
+					<div class="gridfoot">
+						<span>46 registros · 7 por página</span>
+						<span class="pages">
+							<button disabled aria-label="Página anterior">‹</button>
+							<button aria-current="page">1</button>
+							<button>2</button>
+							<button>3</button>
+							<button>…</button>
+							<button>7</button>
+							<button aria-label="Página siguiente">›</button>
+						</span>
+					</div>
+				</div>
+			</main>
+		</div>
+
+		<!-- ═══════════════ CASO LÍMITE — COLECCIÓN VACÍA ═══════════════ -->
+		<p class="demo-label">Caso límite · Colección vacía («Proyectos»)</p>
+		<div
+			class="shell"
+			style="grid-template-columns: 1fr; grid-template-areas: 'top' 'main'; min-height: auto"
+		>
+			<header class="topbar">
+				<span class="site"><span class="dot"></span> fodaveg.net</span>
+				<span class="right"
+					><span class="env">PB 0.29 · conectado</span><span class="avatar">D</span></span
+				>
+			</header>
+			<main class="main">
+				<header class="listhead">
+					<h1>Proyectos</h1>
+					<span class="spacer"></span>
+					<button class="btn primary">Nuevo proyecto <kbd>N</kbd></button>
+				</header>
+				<div class="grid">
+					<div class="empty">
+						<b>Todavía no hay proyectos.</b>
+						<p>Cuando crees el primero aparecerá aquí, con su estado y su fecha.</p>
+						<button class="btn primary">Crear el primer proyecto</button>
+					</div>
+				</div>
+			</main>
+		</div>
+
+		<!-- ═══════════════ PANTALLA 2 — EDITOR ═══════════════ -->
+		<p class="demo-label">Pantalla 2 · Editor — mismas fichas que C, con ritmo vertical</p>
+		<div
+			class="shell"
+			style="grid-template-columns: 1fr; grid-template-areas: 'top' 'main'; min-height: auto"
+		>
+			<header class="topbar">
+				<span class="site"><span class="dot"></span> fodaveg.net</span>
+				<span class="right">
+					<span class="env">PB 0.29 · conectado</span>
+					<span class="avatar">D</span>
+				</span>
+			</header>
+			<main class="main">
+				<div class="edit-top">
+					<span class="crumb"><a href="#">Entradas</a> / <b>grabar-maquetas</b></span>
+					<span class="tag draft">draft</span>
+					<span class="dirty">sin guardar</span>
+					<span class="spacer"></span>
+					<span class="saved-at">último guardado 18:42</span>
+					<button class="btn quiet" disabled title="El borrador no tiene URL pública todavía">
+						Ver en el sitio
+					</button>
+					<button class="btn">Publicar</button>
+					<button class="btn primary">Guardar <kbd>⌘S</kbd></button>
+				</div>
+
+				<form class="form" onsubmit="return false;">
+					<section class="fsection">
+						<h3>Contenido</h3>
+						<div class="frow">
+							<label for="tit">Título <span class="req" aria-hidden="true">*</span></label>
+							<div>
+								<input
+									class="control"
+									id="tit"
+									type="text"
+									value="Grabar maquetas con lo puesto: un domingo, tres canciones"
+									required
+									style="font-size: 1.05rem; font-weight: 600"
+								/>
+							</div>
+						</div>
+						<div class="frow">
+							<label for="slug">Slug <span class="req" aria-hidden="true">*</span></label>
+							<div>
+								<input
+									class="control mono invalid"
+									id="slug"
+									type="text"
+									value="grabar-maquetas"
+									aria-invalid="true"
+									aria-describedby="slug-err"
+								/>
+								<p class="field-error" id="slug-err">
+									Ya existe otra entrada con este slug (2024/grabar-maquetas-en-casa).
+								</p>
+							</div>
+						</div>
+						<div class="frow">
+							<span class="flabel">Cuerpo</span>
+							<div>
+								<div class="rt-toolbar" role="toolbar" aria-label="Formato">
+									<button aria-pressed="true">P</button><button>H2</button><button>H3</button>
+									<span class="sep"></span>
+									<button style="font-weight: 700">B</button
+									><button style="font-style: italic">I</button>
+									<span class="sep"></span>
+									<button aria-label="Lista">≔</button><button aria-label="Cita">”</button
+									><button aria-label="Enlace">⌁</button><button aria-label="Código">{}</button>
+									<span class="sep"></span>
+									<span
+										style="
+											font-family: var(--mono);
+											font-size: 0.65rem;
+											color: var(--ink-3);
+											padding: 0 0.35rem;
+										"
+										>markdown</span
+									>
+								</div>
+								<div class="rt-body" aria-label="Cuerpo de la entrada">
+									<p>
+										Hay una regla que me repito cada vez que me siento a grabar:
+										<em>la maqueta que existe le gana a la producción que no</em>. Este domingo la
+										apliqué a rajatabla — micro de mesa, la acústica de siempre y tres ideas que
+										llevaban un mes rondando.
+									</p>
+									<h2>El montaje (o su ausencia)</h2>
+									<p>
+										Nada de interfaz nueva ni plugins: un micro USB, <code>GarageBand</code> con la
+										plantilla vacía y los cascos de diario. Al quitar decisiones técnicas solo queda
+										una pregunta: ¿la canción se sostiene sola?
+									</p>
+								</div>
+							</div>
+						</div>
+						<div class="frow">
+							<label for="ext">Extracto</label>
+							<div>
+								<textarea class="control" id="ext">
+Tres canciones, un micro de mesa y ninguna excusa: crónica breve de un domingo de maquetas y de por qué grabar rápido enseña más que grabar bien.</textarea>
+								<p class="help">Resumen para listados y RSS.</p>
+							</div>
+						</div>
+						<div class="frow">
+							<span class="flabel">Imagen destacada</span>
+							<div class="filew">
+								<div
+									class="thumb"
+									role="img"
+									aria-label="Previsualización de domingo-maquetas.jpg"
+								></div>
+								<div class="finfo">
+									domingo-maquetas.jpg<br />1600×686 · 214 KB<br />
+									<a href="#">sustituir</a><a href="#" style="color: var(--danger)">quitar</a>
+								</div>
+							</div>
+						</div>
+					</section>
+
+					<section class="fsection">
+						<h3>Clasificación</h3>
+						<div class="frow">
+							<span class="flabel">Categorías</span>
+							<div class="chips" style="max-width: 460px">
+								<span class="chip">música <button aria-label="Quitar música">×</button></span>
+								<span class="chip">proceso <button aria-label="Quitar proceso">×</button></span>
+								<input type="text" placeholder="añadir…" aria-label="Añadir categoría" />
+							</div>
+						</div>
+						<div class="frow">
+							<span class="flabel">Autor</span>
+							<div class="rel-value">
+								<span class="avatar">D</span>
+								<span class="name">David Vega</span>
+								<span class="id">rel:users·8f2k1</span>
+								<button class="swap">cambiar</button>
+							</div>
+						</div>
+						<div class="frow">
+							<label for="fp">Fecha de publicación</label>
+							<div class="inline">
+								<input
+									class="control mono"
+									id="fp"
+									type="text"
+									value=""
+									placeholder="—"
+									readonly
+									title="Se fija al publicar"
+								/>
+								<span class="help" style="margin: 0">se fija al publicar</span>
+							</div>
+						</div>
+						<div class="frow">
+							<span class="flabel">Destacada</span>
+							<label class="switch">
+								<input type="checkbox" checked />
+								<span class="track"></span>
+								<span class="sw-label">Aparece en la portada</span>
+							</label>
+						</div>
+					</section>
+				</form>
+			</main>
+		</div>
+
+		<!-- ═══════════════ PANTALLA 3 — AJUSTES / MANIFIESTO ═══════════════ -->
+		<p class="demo-label">
+			Pantalla 3 · Ajustes — editor del manifiesto (JSON validado + dry-run, D-P2.1)
+		</p>
+		<div
+			class="shell"
+			style="grid-template-columns: 1fr; grid-template-areas: 'top' 'main'; min-height: auto"
+		>
+			<header class="topbar">
+				<span class="site"><span class="dot"></span> fodaveg.net</span>
+				<span class="right"
+					><span class="env">manifiesto v1</span><span class="avatar">D</span></span
+				>
+			</header>
+			<main class="main">
+				<div class="edit-top">
+					<span class="crumb"><b>Ajustes</b> / manifiesto</span>
+					<span class="spacer"></span>
+					<button class="btn quiet">Insertar plantilla</button>
+					<button class="btn">Validar (dry-run)</button>
+					<button
+						class="btn primary"
+						disabled
+						title="Corrige los avisos de validación estricta antes de guardar"
+					>
+						Guardar
+					</button>
+				</div>
+
+				<div class="manif">
+					<textarea spellcheck="false" aria-label="Manifiesto en JSON">
+{
+  "schemaVersion": 1,
+  "site": { "name": "fodaveg.net", "defaultTheme": "niebla", "locale": "es" },
+  "nav": { "groups": ["Contenido", "Sitio"] },
+  "collections": {
+    "posts": {
+      "label": "Entradas", "labelSingular": "Entrada", "icon": "pencil",
+      "group": "Contenido", "order": 1,
+      "previewUrl": "https://fodaveg.net/blog/{slug}",
+      "listFields": ["title", "status", "published_at", "updated"],
+      "fields": {
+        "body":    { "widget": "markdown", "label": "Cuerpo" },
+        "excerpt": { "widget": "textarea", "help": "Resumen para listados y RSS." },
+        "portada": { "label": "Imagen destacada" }
+      }
+    },
+    "proyectos": { "icon": "carpeta-vieja", "group": "Contenido" },
+    "ajustes": { "label": "Ajustes del sitio", "icon": "settings", "group": "Sitio", "singleton": true }
+  }
+}</textarea>
+
+					<aside class="warnpanel" aria-label="Resultado del dry-run">
+						<h3>Dry-run contra el esquema real</h3>
+						<div class="warnitem okk">
+							<span class="code">OK</span>
+							<p>JSON válido contra el schema v1. 3 colecciones decoradas, 1 singleton.</p>
+						</div>
+						<div class="warnitem warn">
+							<span class="code">icon-unknown</span>
+							<p>El icono «carpeta-vieja» no existe en el set de Vega: se usará el genérico.</p>
+							<span class="path">/collections/proyectos/icon</span>
+						</div>
+						<div class="warnitem warn">
+							<span class="code">list-field-unknown</span>
+							<p>El campo «updated» no existe en «posts»: se omite de las columnas.</p>
+							<span class="path">/collections/posts/listFields/3</span>
+						</div>
+					</aside>
+				</div>
+			</main>
+		</div>
+
+		<!-- ═══════════════ TIRA DE ESTADOS ═══════════════ -->
+		<p class="demo-label">Eje 2 de la checklist · Estados de un mismo widget (text)</p>
+		<div
+			class="shell"
+			style="
+				grid-template-columns: 1fr;
+				grid-template-areas: 'main';
+				grid-template-rows: 1fr;
+				min-height: auto;
+			"
+		>
+			<main class="main">
+				<div class="strip">
+					<div class="stcard">
+						<h4>Normal</h4>
+						<input
+							class="control"
+							type="text"
+							value="Grabar maquetas con lo puesto"
+							aria-label="Ejemplo normal"
+						/>
+					</div>
+					<div class="stcard">
+						<h4>Foco</h4>
+						<input
+							class="control"
+							type="text"
+							value="Grabar maquetas con lo p"
+							style="
+								border-color: var(--accent);
+								box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent);
+							"
+							aria-label="Ejemplo con foco"
+						/>
+					</div>
+					<div class="stcard">
+						<h4>Error</h4>
+						<input
+							class="control invalid"
+							type="text"
+							value="grabar maquetas!!"
+							aria-invalid="true"
+							aria-label="Ejemplo con error"
+						/>
+						<p class="field-error">Solo minúsculas, números y guiones.</p>
+					</div>
+					<div class="stcard">
+						<h4>Solo lectura (view / readonly)</h4>
+						<input
+							class="control"
+							type="text"
+							value="8f2k1m3n9"
+							readonly
+							aria-label="Ejemplo solo lectura"
+						/>
+					</div>
+				</div>
+			</main>
+		</div>
+
+		<!-- notas -->
+		<div class="notes">
+			<h2>Notas de dirección — C2 · «Cabina con aire» (revisión de C)</h2>
+			<ul>
+				<li>
+					<b>Qué se conserva de C</b> (la identidad): la arquitectura de información completa —
+					topbar con búsqueda global y estado de conexión PB, sidebar con contadores, filtros por
+					estado, editor en fichas con label a la izquierda, pantalla del manifiesto con dry-run —
+					más los estados en mono (<code>published</code>/<code>draft</code>) y los atajos visibles
+					(<kbd>/</kbd>, <kbd>N</kbd>, <kbd>⌘S</kbd>).
+				</li>
+				<li>
+					<b>Qué se afloja</b> (densidad = modo, no identidad): base 13px→14px, filas 36px→44px,
+					topbar 44px→54px, sidebar 208px→236px con items más altos, celdas y fichas con ~40% más de
+					padding, separación entre fichas 1.2rem→1.75rem, hairlines internas en
+					<code>--line-soft</code>, radios 6px→8px, cuerpo richtext a 15px/1.7. La eficiencia sigue
+					(mono, atajos, columnas densas de info); deja de gritarla.
+				</li>
+				<li>
+					<b>Toggle de densidad (anotado para P3/P7):</b> el conmutador «Cómoda ⇄ Compacta» de la
+					topbar es la puerta a recuperar la C original como modo. Implementación barata: las
+					diferencias C↔C2 son ~8 tokens (<code>--row-h</code>, <code>--cell-x</code>, base font,
+					paddings de ficha) → un <code>data-density="compact"</code> que los pisa. El DEFAULT es
+					esta versión.
+				</li>
+				<li>
+					<b>Esquemas:</b> niebla se queda (el azul sereno viaja perfecto a corporativo);
+					<b>miel sustituye a salvia</b> — un segundo esquema cálido demuestra mejor el rango del
+					sistema de temas: la misma cabina pasa de despacho técnico a estudio cálido con 7 hexes.
+				</li>
+				<li>
+					<b>Estados y casos límite mostrados:</b> colección vacía, error de slug, readonly («se
+					fija al publicar»), «Ver en el sitio» deshabilitado con motivo, dirty-state mono, badge de
+					avisos del manifiesto (L10), fila seleccionada, título kilométrico truncado, tira de
+					estados del widget text, warnings del dry-run con su <code>path</code>.
+				</li>
+			</ul>
+		</div>
+
+		<!-- demo controls -->
+		<div class="demobar" role="group" aria-label="Controles de la demo">
+			<span>Modo</span>
+			<button data-mode="auto" aria-pressed="true">Auto</button>
+			<button data-mode="light" aria-pressed="false">Claro</button>
+			<button data-mode="dark" aria-pressed="false">Oscuro</button>
+			<span>·</span>
+			<button
+				class="sw niebla"
+				data-pal="niebla"
+				aria-pressed="true"
+				title="Esquema Niebla"
+			></button>
+			<button class="sw miel" data-pal="miel" aria-pressed="false" title="Esquema Miel"></button>
+		</div>
+
+		<script>
+			const html = document.documentElement;
+			document.querySelectorAll('.demobar [data-mode]').forEach((b) =>
+				b.addEventListener('click', () => {
+					document
+						.querySelectorAll('.demobar [data-mode]')
+						.forEach((x) => x.setAttribute('aria-pressed', 'false'));
+					b.setAttribute('aria-pressed', 'true');
+					if (b.dataset.mode === 'auto') html.removeAttribute('data-theme');
+					else html.setAttribute('data-theme', b.dataset.mode);
+				})
+			);
+			document.querySelectorAll('.demobar [data-pal]').forEach((b) =>
+				b.addEventListener('click', () => {
+					document
+						.querySelectorAll('.demobar [data-pal]')
+						.forEach((x) => x.setAttribute('aria-pressed', 'false'));
+					b.setAttribute('aria-pressed', 'true');
+					html.setAttribute('data-pal', b.dataset.pal);
+				})
+			);
+		</script>
+	</body>
+</html>
