@@ -29,7 +29,12 @@ export async function seedPocketBaseSchema(pb: PocketBase): Promise<void> {
 
 /** Trunca y reinserta los registros canónicos del fixture (llamar antes de cada test). */
 export async function resetPocketBaseRecords(pb: PocketBase): Promise<void> {
-	for (const name of ['kitchen_sink', 'category', 'required_probe']) {
+	// Orden de DEPENDENCIA, no alfabético: `required_probe` tiene una relation `required` hacia
+	// `category`, así que truncar `category` primero falla ("required cascade delete record
+	// references") en cuanto `required_probe` tiene filas vivas. Antes pasaba desapercibido
+	// porque esos `create()` fallaban por falta de login (ver el fix de auth en
+	// `backend-contract.ts`) y `required_probe` nunca llegaba a tener filas.
+	for (const name of ['kitchen_sink', 'required_probe', 'category']) {
 		await pb.collections.truncate(name);
 	}
 

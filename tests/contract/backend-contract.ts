@@ -55,6 +55,16 @@ export interface ContractOptions {
 	 * deja pineada y este valor pasa a ser ~11000.
 	 */
 	authExpiryWaitMs?: number;
+	/**
+	 * `true` si un `number` NUNCA omitido/vacío llega como `0` en vez de `null` (§2.1: "PB
+	 * devuelve 0 para vacío solo si el campo lo fuerza"). Es una limitación real de PB —
+	 * columna SQLite `NOT NULL DEFAULT 0`, verificado contra 0.39.6: NINGUNA config de campo
+	 * number logra que PB devuelva `null` para un campo omitido — no un bug del adaptador
+	 * (que "no inventa ceros": si PB dice 0, es 0). `memory` sí puede representar `null` de
+	 * verdad y lo hace, así que el único `expect` que depende de esto (§10.3) se ramifica por
+	 * esta opción en vez de forzar una paridad que PB no puede dar.
+	 */
+	numberFieldDefaultsToZero?: boolean;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -88,6 +98,21 @@ function ids(records: Array<{ id: string }>): string[] {
 
 export function describeBackendContract(makePort: MakePort, opts: ContractOptions): void {
 	const { capabilities } = opts;
+
+	/**
+	 * Todo lo que NO es el propio bloque `auth` opera con la sesión de superuser YA establecida
+	 * (§4.1, D1: v1 solo modela sesión de superuser). `memory` tolera operar sin login (nunca
+	 * lo exigió); PB real no: cualquier operación de esquema/registros sin sesión responde
+	 * 401/403 ("requires valid record authorization token") que el adaptador mapea a
+	 * `forbidden`. Antes de este fix, la falta de login aquí colaba en `memory` (falso verde)
+	 * y reventaba TODA la suite contra PB real — no era un bug del adaptador, era un hueco de
+	 * la propia suite compartida (§10).
+	 */
+	async function makeAuthedPort(...args: Parameters<MakePort>): Promise<BackendPort> {
+		const port = await makePort(...args);
+		await login(port);
+		return port;
+	}
 
 	describe(`BackendPort contract — ${opts.name}`, () => {
 		// ————————————————————————————————————————————————————————————— 1. Auth —————
@@ -144,47 +169,58 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 				await expect(port.restoreSession()).resolves.toBeNull();
 			});
 
-			test('restoreSession con sesión caducada limpia y devuelve null sin lanzar', async () => {
-				const port = await makePort({ sessionTtlMs: 10 });
-				await login(port);
-				await sleep(opts.authExpiryWaitMs ?? 30);
-				const reasons: string[] = [];
-				port.onAuthChange((_s, reason) => reasons.push(reason));
+			test(
+				'restoreSession con sesión caducada limpia y devuelve null sin lanzar',
+				async () => {
+					const port = await makePort({ sessionTtlMs: 10 });
+					await login(port);
+					await sleep(opts.authExpiryWaitMs ?? 30);
+					const reasons: string[] = [];
+					port.onAuthChange((_s, reason) => reasons.push(reason));
 
-				await expect(port.restoreSession()).resolves.toBeNull();
-				expect(port.currentSession()).toBeNull();
-				expect(reasons).toHaveLength(0);
-			});
+					await expect(port.restoreSession()).resolves.toBeNull();
+					expect(port.currentSession()).toBeNull();
+					expect(reasons).toHaveLength(0);
+				},
+				// Default de vitest (5000ms) no basta cuando `authExpiryWaitMs` es el de PB real
+				// (~13000ms: el token de superuser en PB solo se puede pinear a 10s mínimo, ver
+				// `pocketbase.contract.test.ts`). `memory` usa 30ms por defecto, muy por debajo.
+				(opts.authExpiryWaitMs ?? 30) + 5000
+			);
 
-			test('operación tras expirar → auth-expired + evento expired exactamente una vez, con 2 en vuelo', async () => {
-				const port = await makePort({ sessionTtlMs: 10 });
-				await login(port);
-				await sleep(opts.authExpiryWaitMs ?? 30);
+			test(
+				'operación tras expirar → auth-expired + evento expired exactamente una vez, con 2 en vuelo',
+				async () => {
+					const port = await makePort({ sessionTtlMs: 10 });
+					await login(port);
+					await sleep(opts.authExpiryWaitMs ?? 30);
 
-				const reasons: string[] = [];
-				port.onAuthChange((_s, reason) => reasons.push(reason));
+					const reasons: string[] = [];
+					port.onAuthChange((_s, reason) => reasons.push(reason));
 
-				const [first, second] = await Promise.allSettled([
-					port.list('category'),
-					port.get('category', CAT_ALPHA)
-				]);
+					const [first, second] = await Promise.allSettled([
+						port.list('category'),
+						port.get('category', CAT_ALPHA)
+					]);
 
-				expect(first.status).toBe('rejected');
-				expect(second.status).toBe('rejected');
-				if (first.status === 'rejected')
-					expect((first.reason as VegaError).kind).toBe('auth-expired');
-				if (second.status === 'rejected')
-					expect((second.reason as VegaError).kind).toBe('auth-expired');
-				expect(reasons.filter((r) => r === 'expired')).toHaveLength(1);
-				expect(port.currentSession()).toBeNull();
-			});
+					expect(first.status).toBe('rejected');
+					expect(second.status).toBe('rejected');
+					if (first.status === 'rejected')
+						expect((first.reason as VegaError).kind).toBe('auth-expired');
+					if (second.status === 'rejected')
+						expect((second.reason as VegaError).kind).toBe('auth-expired');
+					expect(reasons.filter((r) => r === 'expired')).toHaveLength(1);
+					expect(port.currentSession()).toBeNull();
+				},
+				(opts.authExpiryWaitMs ?? 30) + 5000
+			);
 		});
 
 		// ——————————————————————————————————————————————————————————— 2. Esquema —————
 
 		describe('schema', () => {
 			test('listContentTypes incluye los tipos sembrados en orden alfabético', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const types = await port.listContentTypes();
 				const names = types.map((t) => t.name);
 				expect(names).toEqual([...names].sort());
@@ -194,14 +230,14 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('la vista de solo lectura llega con readonly: true; el resto, false', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const types = await port.listContentTypes();
 				expect(types.find((t) => t.name === 'category_view')?.readonly).toBe(true);
 				expect(types.find((t) => t.name === 'kitchen_sink')?.readonly).toBe(false);
 			});
 
 			test('mapeo campo a campo del kitchen sink (§6): tipo, subtype, readonly, config', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const types = await port.listContentTypes();
 				const ks = types.find((t) => t.name === 'kitchen_sink')!;
 				const byName = new Map(ks.fields.map((f) => [f.name, f]));
@@ -245,12 +281,12 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 
 		describe('crud + normalización', () => {
 			test('create→get round-trip: los vacíos normalizan según §2.1', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const created = await port.create('kitchen_sink', { title: 'Solo el título' });
 
 				expect(created.values.title).toBe('Solo el título');
 				expect(created.values.body).toBe('');
-				expect(created.values.rating).toBeNull();
+				expect(created.values.rating).toEqual(opts.numberFieldDefaultsToZero ? 0 : null);
 				expect(created.values.published).toBe(false);
 				expect(created.values.publishedAt).toBeNull();
 				expect(created.values.status).toBeNull();
@@ -268,7 +304,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('update parcial no toca los campos ausentes', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const created = await port.create('kitchen_sink', { title: 'Original', rating: 2 });
 				const updated = await port.update('kitchen_sink', created.id, { title: 'Cambiado' });
 
@@ -277,7 +313,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('delete real: el registro deja de existir', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const created = await port.create('kitchen_sink', { title: 'A borrar' });
 				await port.delete('kitchen_sink', created.id);
 				await expect(port.get('kitchen_sink', created.id)).rejects.toMatchObject({
@@ -286,7 +322,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('get/update/delete de id inexistente → not-found', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				await expect(port.get('kitchen_sink', 'no-existe')).rejects.toMatchObject({
 					kind: 'not-found'
 				});
@@ -301,7 +337,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('list/get/create/update/delete/subscribe de tipo inexistente → not-found', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				await expect(port.list('no_existe')).rejects.toMatchObject({ kind: 'not-found' });
 				await expect(port.get('no_existe', 'x')).rejects.toMatchObject({ kind: 'not-found' });
 				await expect(port.create('no_existe', {})).rejects.toMatchObject({ kind: 'not-found' });
@@ -315,7 +351,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('create con required vacío → validation con fieldErrors.title', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				await expect(port.create('kitchen_sink', {})).rejects.toMatchObject({
 					kind: 'validation',
 					fieldErrors: { title: { code: 'validation_required' } }
@@ -323,7 +359,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test("required no se puede eludir con '' en date/select/relation single (bug corregido)", async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				// Antes de la corrección, el valor "provisto" se validaba SIN normalizar:
 				// `isEmptyValue` solo trata '' como vacío para texto, así que un '' explícito en
 				// date/select/relation single NO contaba como vacío y `required` no saltaba.
@@ -366,7 +402,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('pattern violado → validation con fieldErrors.slug', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				await expect(
 					port.create('kitchen_sink', { title: 'x', slug: 'NO ES UN SLUG!!' })
 				).rejects.toMatchObject({
@@ -376,7 +412,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('select fuera de options → validation con fieldErrors.status', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				await expect(
 					port.create('kitchen_sink', { title: 'x', status: 'no-existe' })
 				).rejects.toMatchObject({
@@ -386,7 +422,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('relation a id inexistente → validation con fieldErrors.category', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				await expect(
 					port.create('kitchen_sink', { title: 'x', category: 'no-existe' })
 				).rejects.toMatchObject({
@@ -396,7 +432,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('escribir readonly/unsupported/desconocido → validation local (§4.3)', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				await expect(
 					port.create('kitchen_sink', { title: 'x', createdAt: '2020-01-01T00:00:00.000Z' })
 				).rejects.toMatchObject({
@@ -420,7 +456,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('escribir en un ContentType.readonly (view) → forbidden', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				await expect(port.create('category_view', { name: 'x' })).rejects.toMatchObject({
 					kind: 'forbidden'
 				});
@@ -437,7 +473,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 
 		describe('query', () => {
 			test('eq', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const page = await port.list('kitchen_sink', {
 					filter: { kind: 'cond', field: 'title', op: 'eq', value: 'Zebra' }
 				});
@@ -445,7 +481,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('neq', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const page = await port.list('kitchen_sink', {
 					filter: { kind: 'cond', field: 'status', op: 'neq', value: 'draft' }
 				});
@@ -453,7 +489,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('gt / gte / lt / lte numéricos, con null fuera de la comparación', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const gt = await port.list('kitchen_sink', {
 					filter: { kind: 'cond', field: 'rating', op: 'gt', value: 1 }
 				});
@@ -464,19 +500,30 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 				});
 				expect(ids(gte.items)).toEqual([KS_ALPHA, KS_DELTA, KS_ECHO]);
 
+				// KS_BRAVO tiene `rating: null` en el fixture (a propósito, para probar que un
+				// vacío nunca "cuela" en una comparación numérica). En PB real eso es
+				// irrepresentable (`numberFieldDefaultsToZero`, §2.1): el `null` se guarda como
+				// `0` de verdad, así que BRAVO pasa a ser indistinguible de CHARLIE (que sí tiene
+				// `rating: 0` real) y participa correctamente en `lt`/`lte` como el 0 que ahora es.
 				const lt = await port.list('kitchen_sink', {
 					filter: { kind: 'cond', field: 'rating', op: 'lt', value: 3 }
 				});
-				expect(ids(lt.items)).toEqual([KS_CHARLIE, KS_ECHO]);
+				expect(ids(lt.items)).toEqual(
+					opts.numberFieldDefaultsToZero ? [KS_BRAVO, KS_CHARLIE, KS_ECHO] : [KS_CHARLIE, KS_ECHO]
+				);
 
 				const lte = await port.list('kitchen_sink', {
 					filter: { kind: 'cond', field: 'rating', op: 'lte', value: 3 }
 				});
-				expect(ids(lte.items)).toEqual([KS_CHARLIE, KS_DELTA, KS_ECHO]);
+				expect(ids(lte.items)).toEqual(
+					opts.numberFieldDefaultsToZero
+						? [KS_BRAVO, KS_CHARLIE, KS_DELTA, KS_ECHO]
+						: [KS_CHARLIE, KS_DELTA, KS_ECHO]
+				);
 			});
 
 			test('contains: substring case-insensitive', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const page = await port.list('kitchen_sink', {
 					filter: { kind: 'cond', field: 'title', op: 'contains', value: 'zeb' }
 				});
@@ -484,7 +531,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('contains: el pliegue de mayúsculas es SOLO ASCII (§4.6, §7)', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				await port.create('kitchen_sink', { title: 'café' });
 
 				const asciiPrefix = await port.list('kitchen_sink', {
@@ -499,7 +546,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('select multi: contains comprueba pertenencia a la opción', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const page = await port.list('kitchen_sink', {
 					filter: { kind: 'cond', field: 'tags', op: 'contains', value: 'b' }
 				});
@@ -507,7 +554,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('in: azúcar de OR de eq; vacío no casa nada (§9.8)', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const page = await port.list('kitchen_sink', {
 					filter: { kind: 'cond', field: 'status', op: 'in', value: ['draft', 'archived'] }
 				});
@@ -521,7 +568,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('relation: eq / in (single) e in (multi)', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const eq = await port.list('kitchen_sink', {
 					filter: { kind: 'cond', field: 'category', op: 'eq', value: CAT_ALPHA }
 				});
@@ -544,7 +591,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('relation MÚLTIPLE con eq/neq → validation local (bug corregido: antes colaba y mentía)', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				// Antes de la corrección, `allowedFilterOps` no bifurcaba `relation` por
 				// `multiple` (al contrario que `select`) y `compareEq` asumía que `validateQuery`
 				// ya lo habría bloqueado — así que `eq` devolvía 0 resultados y `neq` devolvía
@@ -564,7 +611,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('empty / notEmpty', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const empty = await port.list('kitchen_sink', {
 					filter: { kind: 'cond', field: 'category', op: 'empty', value: null }
 				});
@@ -577,7 +624,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('grupos and/or anidados', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const and = await port.list('kitchen_sink', {
 					filter: {
 						kind: 'group',
@@ -604,12 +651,21 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('sort multi-clave asc/desc, estable, con nulos en un extremo consistente', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const asc = await port.list('kitchen_sink', { sort: [{ field: 'rating', dir: 'asc' }] });
 				expect(ids(asc.items)).toEqual([KS_BRAVO, KS_CHARLIE, KS_ECHO, KS_DELTA, KS_ALPHA]);
 
 				const desc = await port.list('kitchen_sink', { sort: [{ field: 'rating', dir: 'desc' }] });
-				expect(ids(desc.items)).toEqual([KS_ALPHA, KS_DELTA, KS_ECHO, KS_CHARLIE, KS_BRAVO]);
+				// Mismo fondo que en el test de gt/gte/lt/lte: en PB, BRAVO (rating null en el
+				// fixture) es un 0 real, empatado con CHARLIE. El desempate es SIEMPRE `+id`
+				// (`compileSort`, independiente de la dirección del sort principal), así que
+				// BRAVO queda antes que CHARLIE también en `desc` — al revés que en `memory`,
+				// donde el null se trata como "menor que cualquier número" en ambas direcciones.
+				expect(ids(desc.items)).toEqual(
+					opts.numberFieldDefaultsToZero
+						? [KS_ALPHA, KS_DELTA, KS_ECHO, KS_BRAVO, KS_CHARLIE]
+						: [KS_ALPHA, KS_DELTA, KS_ECHO, KS_CHARLIE, KS_BRAVO]
+				);
 
 				const multi = await port.list('kitchen_sink', {
 					sort: [
@@ -621,7 +677,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('paginación: última página parcial, fuera de rango, perPage 1 y 200', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 
 				const page1 = await port.list('kitchen_sink', { perPage: 2, page: 1 });
 				expect(ids(page1.items)).toEqual([KS_ALPHA, KS_BRAVO]);
@@ -642,7 +698,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('inyección: valores con \' " || && ~ % se tratan como datos, nunca como sintaxis', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const literal = `Quote ' and " and || && ~ % test`;
 
 				const eq = await port.list('kitchen_sink', {
@@ -663,7 +719,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('query inválida (op/tipo, campo inexistente, sort no escalar, paginación) → validation local', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				await expect(
 					port.list('kitchen_sink', {
 						filter: { kind: 'cond', field: 'published', op: 'gt', value: true }
@@ -696,7 +752,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 
 		describe('ficheros', () => {
 			test('create con File single y multi; lectura devuelve FileRef y fileUrl sirve el contenido', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const cover = new File(['contenido-portada'], 'cover.png', { type: 'image/png' });
 				const g1 = new File(['galeria-1'], 'g1.png', { type: 'image/png' });
 				const g2 = new File(['galeria-2'], 'g2.png', { type: 'image/png' });
@@ -719,7 +775,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('reemplazo y borrado por estado-final, con verificación del diff (§4.4)', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const g1 = new File(['g1'], 'g1.png');
 				const g2 = new File(['g2'], 'g2.png');
 				const created = await port.create('kitchen_sink', { title: 'diff', gallery: [g1, g2] });
@@ -739,7 +795,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('un FileRef ajeno al registro → validation (§4.4/§9.9)', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const created = await port.create('kitchen_sink', { title: 'sin ficheros' });
 				await expect(
 					port.update('kitchen_sink', created.id, { gallery: ['ref-que-no-existe'] })
@@ -749,7 +805,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			test.skipIf(!capabilities.thumbs)(
 				'thumb: URL de miniatura distinta del original y fetchable (requiere capability)',
 				async () => {
-					const port = await makePort();
+					const port = await makeAuthedPort();
 					// PNG 1x1 real (PB necesita bytes de imagen válidos para generar miniatura).
 					const pngBytes = Buffer.from(
 						'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
@@ -777,7 +833,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			test.skipIf(!capabilities.realtime)(
 				'create/update/delete emiten evento con record normalizado; tras unsubscribe, nada más',
 				async () => {
-					const port = await makePort();
+					const port = await makeAuthedPort();
 					const events: RecordEvent[] = [];
 					const unsubscribe = await port.subscribe('kitchen_sink', (e) => events.push(e));
 
@@ -801,7 +857,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			test.skipIf(capabilities.realtime)(
 				'sin capability realtime, subscribe rechaza inmediatamente (ley L8)',
 				async () => {
-					const port = await makePort();
+					const port = await makeAuthedPort();
 					await expect(port.subscribe('kitchen_sink', () => {})).rejects.toMatchObject({
 						kind: 'backend'
 					});
@@ -824,7 +880,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('crea lo ausente y es idempotente (2ª llamada: created vacío, todo skipped)', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const name = uniqueVegaName();
 				const spec: CollectionSpec = { name, fields: [{ name: 'note', type: 'text' }] };
 
@@ -841,7 +897,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('no destructiva: si ya existe, se omite SIN tocar sus campos (§A.4.2)', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const name = uniqueVegaName();
 				await port.ensureCollections([{ name, fields: [{ name: 'original', type: 'text' }] }]);
 
@@ -860,14 +916,14 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 
 			test('rechaza nombres fuera de "vega"/"vega_*" → validation local, sin tocar red (§A.4.3)', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				await expect(
 					port.ensureCollections([{ name: 'not_reserved', fields: [] }])
 				).rejects.toMatchObject({ kind: 'validation', fieldErrors: { not_reserved: {} } });
 			});
 
 			test('crea (o encuentra ya creada) la especificación canónica VEGA_COLLECTION (§A.5)', async () => {
-				const port = await makePort();
+				const port = await makeAuthedPort();
 				const result = await port.ensureCollections([VEGA_COLLECTION]);
 				expect([...result.created, ...result.skipped]).toContain('vega');
 				const types = await port.listContentTypes();

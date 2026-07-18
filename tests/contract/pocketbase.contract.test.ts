@@ -67,6 +67,7 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 		name: 'pocketbase',
 		capabilities,
 		authExpiryWaitMs: AUTH_EXPIRY_WAIT_MS,
+		numberFieldDefaultsToZero: true,
 		transportFailures: {
 			makeUnreachablePort: () => createPocketBaseBackend({ url: 'http://127.0.0.1:1' }),
 			async makeCorruptResponsePort() {

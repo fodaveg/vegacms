@@ -25,8 +25,17 @@ export function normalizeFieldValue(field: Field, raw: unknown): FieldValue {
 		case 'bool':
 			return typeof raw === 'boolean' ? raw : false;
 
-		case 'date':
-			return typeof raw === 'string' && raw !== '' ? raw : null;
+		case 'date': {
+			// PB devuelve sus fechas como `"YYYY-MM-DD HH:mm:ss.sssZ"` (espacio, no `T`) — no es
+			// ISO 8601 válido tal cual, pese a que el contrato (§2.1) exige ISO 8601 UTC. `Date`
+			// lo parsea igual (JS es laxo con el separador); reemitimos con `toISOString()` la
+			// forma canónica con `T`. Para una fecha `memory` (ya ISO con `T`) esto es un no-op
+			// idempotente. Si `raw` no es parseable (nunca debería, L11: degradar, no crashear),
+			// se deja tal cual en vez de dejar escapar el `RangeError` de `toISOString()`.
+			if (typeof raw !== 'string' || raw === '') return null;
+			const ms = Date.parse(raw);
+			return Number.isNaN(ms) ? raw : new Date(ms).toISOString();
+		}
 
 		case 'select':
 			if (field.multiple) return Array.isArray(raw) ? [...(raw as string[])] : [];

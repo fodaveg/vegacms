@@ -116,9 +116,24 @@ export function createPocketBaseBackend({ url }: PocketBaseBackendOptions): Back
 	}
 
 	async function fetchAllContentTypes(): Promise<ContentType[]> {
-		const raw: unknown = await pb.collections.getFullList();
-		assertCollectionsShape(raw);
-		return mapCollectionsToContentTypes(raw);
+		// `pb.collections.getFullList()` NO sirve aquí (§9.5): por debajo hace
+		// `e.items = e.items?.map(...) || []`, así que una respuesta 2xx sin `items[]` (forma
+		// inesperada) se convierte en silencio en `[]` — indistinguible de "0 colecciones"
+		// genuino. Se pagina a mano con `pb.send` sobre el JSON crudo para poder validar la
+		// forma de CADA página ANTES de que el SDK la "arregle".
+		const all: CollectionModel[] = [];
+		let page = 1;
+		for (;;) {
+			const raw: unknown = await pb.send('/api/collections', {
+				method: 'GET',
+				query: { page, perPage: COLLECTIONS_PAGE_SIZE }
+			});
+			const parsed = assertCollectionsPageShape(raw);
+			all.push(...parsed.items);
+			if (parsed.items.length === 0 || page >= parsed.totalPages) break;
+			page += 1;
+		}
+		return mapCollectionsToContentTypes(all);
 	}
 
 	async function getContentTypeOrThrow(type: string): Promise<ContentType> {
@@ -364,15 +379,26 @@ function hostOf(url: string): string {
 	}
 }
 
+/** Tamaño de página para paginar `/api/collections` a mano en `fetchAllContentTypes`. */
+const COLLECTIONS_PAGE_SIZE = 200;
+
 /**
- * Comprobación estructural mínima (§9.5): una respuesta 2xx con forma inesperada (p.ej.
- * colecciones sin `fields[]`) es `backend`, con pista de versión incompatible — nunca se deja
- * pasar como si fuera un esquema válido y vacío.
+ * Comprobación estructural mínima (§9.5) de UNA página cruda de `/api/collections`: una
+ * respuesta 2xx con forma inesperada (p.ej. sin `items[]`/`totalPages`, o colecciones sin
+ * `fields[]`) es `backend`, con pista de versión incompatible — nunca se deja pasar como si
+ * fuera un esquema válido y vacío.
  */
-function assertCollectionsShape(raw: unknown): asserts raw is CollectionModel[] {
+function assertCollectionsPageShape(raw: unknown): {
+	items: CollectionModel[];
+	totalPages: number;
+} {
+	const page = raw as { items?: unknown; totalPages?: unknown } | null;
 	const isValid =
-		Array.isArray(raw) &&
-		raw.every(
+		page !== null &&
+		typeof page === 'object' &&
+		Array.isArray(page.items) &&
+		typeof page.totalPages === 'number' &&
+		page.items.every(
 			(c) =>
 				c !== null && typeof c === 'object' && Array.isArray((c as { fields?: unknown }).fields)
 		);
@@ -381,4 +407,5 @@ function assertCollectionsShape(raw: unknown): asserts raw is CollectionModel[] 
 			'Respuesta de colecciones con forma inesperada (posible versión de PocketBase incompatible; soportado 0.26.0–0.39.x)'
 		);
 	}
+	return { items: page.items as CollectionModel[], totalPages: page.totalPages as number };
 }
