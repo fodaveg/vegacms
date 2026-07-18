@@ -66,6 +66,11 @@
  * widgets escalares dedicados de una vez. `tags` (select múltiple) gana `maxSelect: 2` para poder
  * probar la afordancia de `chips` que deshabilita las opciones no seleccionadas al llegar al
  * límite.
+ *
+ * **Añadido en F5-d (contrato P5)**: dos campos más, sin datos seed, para el editor TipTap real —
+ * `summary` (`text`/`plain` con override `widget:'markdown'`, D-P5.8) y `content` (`type:'richtext'`,
+ * widget `richtext` por defecto, D-P5.6/D-P5.7). `e2e/form.spec.ts` los ejercita creando/editando
+ * un `posts` con ambos editores.
  */
 import type { ContentType, JsonValue } from '$lib/backend/types';
 import { VEGA_COLLECTION } from '$lib/backend/collections';
@@ -179,6 +184,31 @@ const POSTS_CONTENT_TYPE: ContentType = {
 		{
 			name: 'meta',
 			type: 'json',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		// Dos campos añadidos en F5-d (contrato P5, editor TipTap real): `summary` es un `text`/
+		// `plain` promovido a widget `markdown` por override de manifiesto (§4.3/L9, el ÚNICO
+		// mecanismo — ver `DEMO_MANIFEST` más abajo); `content` es un `type:'richtext'` de verdad
+		// (widget `richtext` por defecto, sin override). Sin datos seed: ningún test existente los
+		// necesita; sirven para que `e2e/form.spec.ts` ejercite ambos editores de verdad.
+		{
+			name: 'summary',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'content',
+			type: 'richtext',
+			subtype: 'html',
 			required: false,
 			readonly: false,
 			presentable: false,
@@ -303,11 +333,12 @@ const DEMO_MANIFEST: JsonValue = {
 			// en la Fase 4d, una columna NO escalar de verdad que ejercer contra la cabecera SIN
 			// control de orden (ver cabecera del módulo).
 			listFields: ['title', 'status', 'body', 'tags'],
-			// Override de widget (F5-b, §4.3/L9 — el ÚNICO mecanismo de override de schema v1):
-			// `body` (`type:'text', subtype:'plain'`) pinta el widget `textarea` en vez del `text`
-			// por defecto, para poder ejercer ese widget dedicado en `e2e/form.spec.ts`.
+			// Override de widget (F5-b/F5-d, §4.3/L9 — el ÚNICO mecanismo de override de schema v1):
+			// `body` pinta `textarea`; `summary` (mismo `type:'text', subtype:'plain'`) pinta
+			// `markdown` — el editor TipTap con `contentType:'markdown'` (D-P5.8).
 			fields: {
-				body: { widget: 'textarea' }
+				body: { widget: 'textarea' },
+				summary: { widget: 'markdown' }
 			}
 		},
 		pages: {
@@ -373,7 +404,15 @@ export const DEMO_SEED: MemorySeed = {
 				values: {
 					title: 'Bienvenido a Vega',
 					status: 'published',
-					body: 'Primer texto de ejemplo.'
+					body: 'Primer texto de ejemplo.',
+					// F5-d: `summary` (markdown) con encabezado+negrita para comprobar que el widget
+					// `markdown` parsea MD crudo de verdad al montar (no lo trata como texto plano).
+					summary: '# Resumen\n\nAlgo de **texto**.',
+					// F5-d: `content` (richtext) con un `<script>` incrustado A PROPÓSITO — fixture
+					// determinista de L-P5.8 (`e2e/form.spec.ts`, "richtext saneado al leer"): el
+					// widget debe sanear ESTE HTML al montarlo en el editor (D-P5.6), nunca ejecutarlo
+					// ni mostrarlo tal cual, incluso viniendo ya guardado con contenido hostil.
+					content: '<p>Hola <strong>mundo</strong></p><script>window.__vegaXssRan = true;</script>'
 				}
 			},
 			{ id: 'post_2', values: { title: 'Borrador en curso', status: 'draft', body: '' } },

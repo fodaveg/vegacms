@@ -24,6 +24,13 @@
  * (ver `session/demo-seed.ts`, sección "Añadido en F5-b"): control HTML correcto, edición emite
  * el tipo de dominio correcto, persiste en un viaje redondo, y un campo `readonly` de verdad
  * (`authors.joinedAt`) nunca acepta edición.
+ *
+ * **Añadido en F5-d (contrato P5)**: el editor TipTap real de los widgets `richtext` (`content`)
+ * y `markdown` (`summary`), sobre los dos campos añadidos a `posts` en la semilla (ver
+ * `session/demo-seed.ts`, sección "Añadido en F5-d"). El contenteditable de TipTap no es un
+ * control HTML nativo `<input>`/`<textarea>`, así que se localiza por `role="textbox"` (el mismo
+ * que fija `editorProps.attributes` en ambos widgets) en vez de `.fill()`: requiere clic + tecleo
+ * real (`pressSequentially`), documentado en la cabecera de ambos widgets.
  */
 import { expect, loginAsDemo, test } from './fixtures';
 
@@ -312,5 +319,82 @@ test.describe('widgets escalares dedicados (F5-b)', () => {
 		await page.waitForURL(/\/c\/authors\/(?!new)[^/]+$/);
 		await expect(page.getByLabel('Name')).toHaveValue('Autora de prueba');
 		await expect(page.getByLabel('Joined at')).toBeDisabled();
+	});
+});
+
+test.describe('editor TipTap real: richtext y markdown (F5-d)', () => {
+	test('richtext (content): el HTML hostil ya guardado se sanea al montar, nunca se ejecuta', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts/post_1');
+
+		// El `<script>` incrustado en la semilla (ver `demo-seed.ts`) NUNCA debe correr: si
+		// `Richtext.svelte` pintara el HTML crudo (o el saneado fallara), esto sería `true`.
+		expect(
+			await page.evaluate(() => (window as unknown as { __vegaXssRan?: boolean }).__vegaXssRan)
+		).toBeUndefined();
+
+		const contentField = page.locator('[data-field="content"]');
+		await expect(contentField.locator('script')).toHaveCount(0);
+		await expect(contentField.getByText('Hola')).toBeVisible();
+		await expect(contentField.locator('strong', { hasText: 'mundo' })).toBeVisible();
+	});
+
+	test('markdown (summary): el Markdown crudo ya guardado se parsea de verdad al montar', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts/post_1');
+
+		const summaryField = page.locator('[data-field="summary"]');
+		await expect(summaryField.locator('h1', { hasText: 'Resumen' })).toBeVisible();
+		await expect(summaryField.locator('strong', { hasText: 'texto' })).toBeVisible();
+	});
+
+	test('crear un post: escribir en richtext (con negrita) y markdown, guardar, y que persista', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts/new');
+		await page.getByLabel('Title').fill('Post con editores enriquecidos');
+
+		const contentField = page.locator('[data-field="content"]');
+		const contentEditable = contentField.getByRole('textbox', { name: 'Content' });
+		await contentEditable.click();
+		await contentEditable.pressSequentially('Texto enriquecido');
+		await page.keyboard.press('Shift+Home');
+		await contentField.getByRole('button', { name: 'Negrita' }).click();
+
+		const summaryField = page.locator('[data-field="summary"]');
+		const summaryEditable = summaryField.getByRole('textbox', { name: 'Summary' });
+		await summaryEditable.click();
+		await summaryEditable.pressSequentially('Resumen escrito a mano');
+
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+
+		// Cada widget pinta el valor que devolvió `ctx.port.create` (mismo criterio que el resto de
+		// widgets escalares, ver más arriba): confirma que lo tecleado sobrevivió al viaje de ida y
+		// vuelta por el backend, ya como Markdown/HTML serializado de verdad.
+		await expect(
+			page.locator('[data-field="content"] strong', { hasText: 'Texto enriquecido' })
+		).toBeVisible();
+		await expect(
+			page.locator('[data-field="summary"]').getByText('Resumen escrito a mano')
+		).toBeVisible();
+
+		// Persistido de verdad (ver nota de cabecera): vuelve al listado (SPA) y navega atrás por el
+		// histórico del router hasta este mismo registro — una carga FRESCA vía `ctx.port.get`.
+		await page.getByRole('button', { name: 'Volver' }).click();
+		await page.waitForURL('**/c/posts');
+		await page.goBack();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+		await expect(
+			page.locator('[data-field="content"] strong', { hasText: 'Texto enriquecido' })
+		).toBeVisible();
+		await expect(
+			page.locator('[data-field="summary"]').getByText('Resumen escrito a mano')
+		).toBeVisible();
 	});
 });

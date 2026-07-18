@@ -86,6 +86,27 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'form.errorCode.vega_unknown_field': 'This field does not exist on the content type.',
 	'form.errorCode.vega_foreign_file_ref': 'That file does not belong to this record.',
 
+	// ————— Richtext/markdown editor (P5 contract, Phase F5-d) —————
+	'form.editor.toolbarLabel': 'Formatting tools',
+	'form.editor.paragraph': 'Paragraph',
+	'form.editor.heading': 'Heading {level}',
+	'form.editor.headingLabel': 'Paragraph style',
+	'form.editor.bold': 'Bold',
+	'form.editor.italic': 'Italic',
+	'form.editor.strike': 'Strikethrough',
+	'form.editor.code': 'Code',
+	'form.editor.codeBlock': 'Code block',
+	'form.editor.blockquote': 'Quote',
+	'form.editor.bulletList': 'Bulleted list',
+	'form.editor.orderedList': 'Numbered list',
+	'form.editor.horizontalRule': 'Horizontal rule',
+	'form.editor.link': 'Link',
+	'form.editor.linkRemove': 'Remove link',
+	'form.editor.linkPrompt': 'Link URL',
+	'form.editor.image': 'Image',
+	'form.editor.imagePrompt': 'Image URL',
+	'form.editor.imageAltPrompt': 'Image alt text',
+
 	// ————— List (P4 contract, Phase 4c) —————
 	'list.empty.title': "There's nothing here yet",
 	'list.empty.body': 'Create the first "{label}" record to get started.',

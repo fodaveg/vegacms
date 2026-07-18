@@ -92,6 +92,27 @@ export const es = {
 	'form.errorCode.vega_unknown_field': 'Este campo no existe en el tipo de contenido.',
 	'form.errorCode.vega_foreign_file_ref': 'Ese fichero no pertenece a este registro.',
 
+	// ————— Editor richtext/markdown (Fase F5-d del contrato P5) —————
+	'form.editor.toolbarLabel': 'Herramientas de formato',
+	'form.editor.paragraph': 'Párrafo',
+	'form.editor.heading': 'Título {level}',
+	'form.editor.headingLabel': 'Estilo de párrafo',
+	'form.editor.bold': 'Negrita',
+	'form.editor.italic': 'Cursiva',
+	'form.editor.strike': 'Tachado',
+	'form.editor.code': 'Código',
+	'form.editor.codeBlock': 'Bloque de código',
+	'form.editor.blockquote': 'Cita',
+	'form.editor.bulletList': 'Lista con viñetas',
+	'form.editor.orderedList': 'Lista numerada',
+	'form.editor.horizontalRule': 'Línea horizontal',
+	'form.editor.link': 'Enlace',
+	'form.editor.linkRemove': 'Quitar enlace',
+	'form.editor.linkPrompt': 'URL del enlace',
+	'form.editor.image': 'Imagen',
+	'form.editor.imagePrompt': 'URL de la imagen',
+	'form.editor.imageAltPrompt': 'Texto alternativo de la imagen',
+
 	// ————— Listado (Fase 4c del contrato P4) —————
 	'list.empty.title': 'Aquí no hay nada todavía',
 	'list.empty.body': 'Crea el primer registro de "{label}" para empezar.',

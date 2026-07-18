@@ -7,8 +7,9 @@
  * F5-a: los 14 dedicados compartían `GenericInput` (placeholder mínimo, ver su cabecera);
  * `unsupported` era el único REAL (`UnsupportedField`). **F5-b** sustituye los 10 widgets
  * escalares (`text, textarea, number, switch, email, url, datetime, select, chips, json`) por
- * componentes dedicados — `markdown, richtext, relation, file` siguen en `GenericInput` hasta
- * F5-d/e/f, sin tocar `FieldRow.svelte` (su único consumidor).
+ * componentes dedicados. **F5-d** sustituye `markdown`/`richtext` por el editor TipTap real
+ * (`Markdown.svelte`/`Richtext.svelte`, `$lib/richtext/*`) — `relation, file` siguen en
+ * `GenericInput` hasta F5-e/f, sin tocar `FieldRow.svelte` (su único consumidor).
  */
 import type { WidgetId } from '$lib/model/types';
 import type { WidgetComponent } from './types';
@@ -24,12 +25,14 @@ import Datetime from './Datetime.svelte';
 import Select from './Select.svelte';
 import Chips from './Chips.svelte';
 import Json from './Json.svelte';
+import Markdown from './Markdown.svelte';
+import Richtext from './Richtext.svelte';
 
 export const WIDGET_REGISTRY: Record<WidgetId, WidgetComponent> = {
 	text: Text,
 	textarea: Textarea,
-	markdown: GenericInput,
-	richtext: GenericInput,
+	markdown: Markdown,
+	richtext: Richtext,
 	number: NumberWidget,
 	switch: Switch,
 	email: Email,
