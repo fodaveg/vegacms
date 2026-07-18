@@ -27,3 +27,9 @@ vite.config.ts.timestamp-*
 /.pbbin
 # Datos efímeros de instancias de PocketBase levantadas por el harness de tests.
 /.pbdata-*
+
+# Salida de Playwright (§7.B del contrato P3, `pnpm test:e2e`): informes/trazas de ejecuciones
+# locales, nunca se commitean.
+/test-results
+/playwright-report
+/blob-report

@@ -8,6 +8,21 @@ declare global {
 		// interface PageState {}
 		// interface Platform {}
 	}
+
+	interface Window {
+		/**
+		 * Gancho de pruebas EXCLUSIVO de la demo/e2e (Fase 2c, ver `src/lib/session/backend.ts`
+		 * para el mismo criterio de confinamiento): dispara un toast arbitrario desde fuera de la
+		 * app, para poder testear `ToastHost.svelte` sin depender de una acción de producto real
+		 * que todavía no exista en el alcance de esta fase (P4/P5 traerán disparadores reales).
+		 * Solo se define cuando el adaptador es `memory` (`src/routes/+layout.svelte`, `onMount`);
+		 * en modo `pocketbase` esta propiedad nunca llega a existir.
+		 */
+		__VEGA_TEST_TOAST__?: (
+			message: string,
+			opts?: { kind?: 'success' | 'error' | 'info'; timeoutMs?: number }
+		) => void;
+	}
 }
 
 export {};

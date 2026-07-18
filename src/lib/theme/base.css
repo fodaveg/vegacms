@@ -1,0 +1,91 @@
+/**
+ * Tema base NEUTRO de Vega (§2.6 del contrato P3) — PROVISIONAL, a REEMPLAZAR por P7.
+ *
+ * P3 no define identidad visual (maestra L6/P3-L7): estos son valores de rol neutros
+ * (grises/azulados sobrios) solo para que el shell sea usable/testeable antes de que P7 exista.
+ * El VOCABULARIO de tokens (nombres `--vega-color-*`/`--vega-size-*`) SÍ lo fija P3 como parte de
+ * la costura de acoplamiento; los VALORES los reescribe P7 sin tocar el marcado que los consume.
+ *
+ * Selectores por atributo (`[data-mode]`/`[data-density]`), escritos en `document.documentElement`
+ * por `theme/apply.ts`. Números de densidad = referencia de C2 Cabina (topbar ~54px, sidebar
+ * ~236px, row ~44px en cómoda); P7 los puede ajustar sin romper el contrato (son valores, no
+ * nombres).
+ */
+
+:root {
+	color-scheme: light dark;
+}
+
+html[data-mode='light'] {
+	--vega-color-bg: #ffffff;
+	--vega-color-bg-raised: #f6f7f9;
+	--vega-color-border: #d9dde3;
+	--vega-color-text: #17181c;
+	--vega-color-text-muted: #5b6270;
+	--vega-color-accent: #2f6fed;
+	--vega-color-accent-contrast: #ffffff;
+	--vega-color-danger: #c1121f;
+	--vega-color-danger-bg: #fdecec;
+	--vega-color-success: #1a7f37;
+	--vega-color-focus-ring: #2f6fed;
+}
+
+html[data-mode='dark'] {
+	--vega-color-bg: #16181d;
+	--vega-color-bg-raised: #1f2229;
+	--vega-color-border: #33363f;
+	--vega-color-text: #eef0f3;
+	--vega-color-text-muted: #a3a9b5;
+	--vega-color-accent: #6fa1ff;
+	--vega-color-accent-contrast: #0c1220;
+	--vega-color-danger: #ff6b6b;
+	--vega-color-danger-bg: #3a1d1f;
+	--vega-color-success: #63d38b;
+	--vega-color-focus-ring: #6fa1ff;
+}
+
+html[data-density='comfortable'] {
+	--vega-size-topbar: 54px;
+	--vega-size-sidebar: 236px;
+	--vega-size-row: 44px;
+	--vega-space-gutter: 1rem;
+}
+
+html[data-density='compact'] {
+	--vega-size-topbar: 44px;
+	--vega-size-sidebar: 200px;
+	--vega-size-row: 32px;
+	--vega-space-gutter: 0.65rem;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	background: var(--vega-color-bg);
+	color: var(--vega-color-text);
+	font-family:
+		system-ui,
+		-apple-system,
+		'Segoe UI',
+		sans-serif;
+}
+
+/* A11y transversal (§4.3 del checklist): foco visible en todo interactivo. */
+:focus-visible {
+	outline: 2px solid var(--vega-color-focus-ring);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.001ms !important;
+	}
+}

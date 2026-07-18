@@ -39,9 +39,19 @@ export default defineConfig(
 		}
 	},
 	{
-		// Override or add rule settings here, such as:
-		// 'svelte/button-has-type': 'error'
-		rules: {}
+		// Contrato Vega P3 §2.2: `$lib/nav/routes.ts` es el ÚNICO sitio del repo que sabe cómo se
+		// ve una URL de Vega ("nadie más compone URLs a mano"); las capas de navegación consumen
+		// el string ya construido (`NavApi`/`goto(url)`), justo lo OPUESTO al patrón que exige
+		// esta regla (`resolve()` por call-site con el route id literal). Además varias rutas de
+		// `nav/routes.ts` (`/c/[type]`, `/settings`, `/media`) aún no existen como ficheros de
+		// ruta (llegan en P4/P5/P6), así que `resolve()` ni type-checkaría contra ellas.
+		//
+		// ACOTADA a las capas que navegan por diseño (rutas + shell + nav): fuera de ellas la
+		// regla sigue ACTIVA, para cazar una navegación cruda accidental en cualquier otro sitio.
+		files: ['src/routes/**', 'src/lib/shell/**', 'src/lib/nav/**'],
+		rules: {
+			'svelte/no-navigation-without-resolve': 'off'
+		}
 	},
 	{
 		// Ley L1 del contrato Vega P1: el SDK `pocketbase` SOLO puede importarse dentro de

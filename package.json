@@ -18,13 +18,15 @@
 		"test": "vitest run",
 		"pb:download": "node scripts/download-pocketbase.mjs",
 		"test:pb": "node scripts/download-pocketbase.mjs && vitest run tests/contract/pocketbase.contract.test.ts",
-		"gate": "pnpm check && pnpm lint && pnpm test && pnpm build"
+		"test:e2e": "playwright test",
+		"gate": "pnpm check && pnpm lint && pnpm test && pnpm build && pnpm test:e2e"
 	},
 	"dependencies": {
 		"pocketbase": "^0.27.0"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
+		"@playwright/test": "^1.61.1",
 		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/kit": "^2.63.0",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",

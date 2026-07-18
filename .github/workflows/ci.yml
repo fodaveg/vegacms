@@ -32,6 +32,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # `pnpm gate` incluye `pnpm test:e2e` (suite humo de Playwright, §7.B/§8.7 del contrato P3):
+      # el navegador DEBE estar instalado o el gate fallaría en CI. Se instala explícitamente aquí
+      # (con dependencias del SO) para que los e2e formen parte del gate obligatorio y no puedan
+      # saltarse en silencio — mismo principio anti-falso-verde que el guard del binario de PB.
+      - name: Install Playwright browser (Chromium)
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: Download PocketBase binary (contract suite)
         run: pnpm pb:download
 
