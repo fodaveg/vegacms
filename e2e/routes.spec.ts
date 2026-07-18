@@ -28,11 +28,11 @@ test.describe('singleton por deep-link (§7.B.12)', () => {
 			'aria-current',
 			'page'
 		);
-		// Aterriza en el placeholder de CREAR (P5) de la propia edición del singleton, nunca en un
-		// listado (§3.3: un singleton no tiene marco de listado que mostrar).
-		await expect(page.locator('[data-route-state="placeholder"]')).toContainText(
-			'Información del sitio'
-		);
+		// Aterriza en el formulario REAL de CREAR (F5-a) de la propia edición del singleton, nunca
+		// en un listado (§3.3: un singleton no tiene marco de listado que mostrar).
+		await expect(
+			page.getByRole('heading', { name: 'Crear «Información del sitio»' })
+		).toBeVisible();
 	});
 });
 

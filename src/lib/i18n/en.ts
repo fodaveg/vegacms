@@ -56,11 +56,34 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'errors.notFoundRecord.backToList': 'Back to list',
 	'errors.backToIndex': 'Back to index',
 
-	// ————— Honest placeholders for content routes (gap pre-P5, P3-L10) —————
-	'placeholder.create.title': 'The create form is coming soon',
-	'placeholder.create.body': 'The create form for "{label}" is coming in P5.',
-	'placeholder.edit.title': 'Editing is coming soon',
-	'placeholder.edit.body': 'Editing "{label}" #{id} is coming in P5.',
+	// ————— Record editor (P5 contract, Phase F5-a) —————
+	'editor.create.title': 'Create «{label}»',
+	'editor.edit.title': 'Edit «{label}»',
+	'editor.cancel': 'Back',
+	'editor.save': 'Save',
+	'editor.saving': 'Saving…',
+	'editor.saveSuccess': 'Saved.',
+	'editor.leaveConfirm': 'There are unsaved changes. Leave anyway?',
+	'editor.readonlyNotice': 'This collection is read-only: it cannot be edited.',
+	'editor.load.error.body': 'Could not load the record. {message}',
+
+	// ————— Field widgets (P5 contract, Phase F5-a) —————
+	'form.unsupported': 'Field not editable in Vega',
+	'form.errorCode.validation_required': 'This field is required.',
+	'form.errorCode.validation_min_text_constraint': 'The text is too short.',
+	'form.errorCode.validation_max_text_constraint': 'The text is too long.',
+	'form.errorCode.validation_invalid_format': 'The format is not valid.',
+	'form.errorCode.validation_min_number_constraint': 'The value is too low.',
+	'form.errorCode.validation_max_number_constraint': 'The value is too high.',
+	'form.errorCode.validation_min_greater_equal_than_required': 'The date is too early.',
+	'form.errorCode.validation_max_less_equal_than_required': 'The date is too late.',
+	'form.errorCode.validation_invalid_value': 'The selected value is not valid.',
+	'form.errorCode.validation_too_many_values': 'You have selected too many items.',
+	'form.errorCode.validation_missing_rel_records': 'Some of the related records no longer exist.',
+	'form.errorCode.vega_unsupported_field': 'Vega cannot write this field.',
+	'form.errorCode.vega_readonly_field': 'This field is read-only.',
+	'form.errorCode.vega_unknown_field': 'This field does not exist on the content type.',
+	'form.errorCode.vega_foreign_file_ref': 'That file does not belong to this record.',
 
 	// ————— List (P4 contract, Phase 4c) —————
 	'list.empty.title': "There's nothing here yet",
