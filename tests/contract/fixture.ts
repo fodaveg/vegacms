@@ -239,6 +239,50 @@ export const readonlyViewType: ContentType = {
 	]
 };
 
+/**
+ * ContentType mínimo, separado de `kitchen_sink`, con un `required: true` en `date`, `select`
+ * single y `relation` single. Existe solo para el test de "required se puede eludir con ''"
+ * (bug corregido): añadir `required` a esos mismos tipos en `kitchen_sink` rompería el resto
+ * de tests de CRUD, que crean registros sin rellenar esos campos.
+ */
+export const requiredProbeType: ContentType = {
+	name: 'required_probe',
+	readonly: false,
+	fields: [
+		{
+			name: 'dueDate',
+			type: 'date',
+			required: true,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'level',
+			type: 'select',
+			options: ['low', 'high'],
+			multiple: false,
+			required: true,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'owner',
+			type: 'relation',
+			target: 'category',
+			multiple: false,
+			required: true,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		}
+	]
+};
+
 // ————— Datos (dataset espejo para las queries doradas) —————
 
 export const CAT_ALPHA = 'cat-alpha';
@@ -255,9 +299,10 @@ export const KS_ECHO = 'ks-echo'; // title "amanecer" (minúscula, para contains
 export function kitchenSinkSeed(overrides?: Partial<Pick<MemorySeed, 'sessionTtlMs'>>): MemorySeed {
 	return {
 		users: [{ email: FIXTURE_ADMIN_EMAIL, password: FIXTURE_ADMIN_PASSWORD }],
-		contentTypes: [categoryType, kitchenSinkType, readonlyViewType],
+		contentTypes: [categoryType, kitchenSinkType, readonlyViewType, requiredProbeType],
 		sessionTtlMs: overrides?.sessionTtlMs,
 		records: {
+			required_probe: [],
 			category: [
 				{ id: CAT_ALPHA, values: { name: 'Alpha' } },
 				{ id: CAT_BETA, values: { name: 'Beta' } },

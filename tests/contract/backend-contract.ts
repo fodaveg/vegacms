@@ -281,6 +281,49 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 				});
 			});
 
+			test("required no se puede eludir con '' en date/select/relation single (bug corregido)", async () => {
+				const port = await makePort();
+				// Antes de la corrección, el valor "provisto" se validaba SIN normalizar:
+				// `isEmptyValue` solo trata '' como vacío para texto, así que un '' explícito en
+				// date/select/relation single NO contaba como vacío y `required` no saltaba.
+				await expect(
+					port.create('required_probe', { dueDate: '', level: 'low', owner: CAT_ALPHA })
+				).rejects.toMatchObject({
+					kind: 'validation',
+					fieldErrors: { dueDate: { code: 'validation_required' } }
+				});
+
+				await expect(
+					port.create('required_probe', {
+						dueDate: '2026-01-01T00:00:00.000Z',
+						level: '',
+						owner: CAT_ALPHA
+					})
+				).rejects.toMatchObject({
+					kind: 'validation',
+					fieldErrors: { level: { code: 'validation_required' } }
+				});
+
+				await expect(
+					port.create('required_probe', {
+						dueDate: '2026-01-01T00:00:00.000Z',
+						level: 'low',
+						owner: ''
+					})
+				).rejects.toMatchObject({
+					kind: 'validation',
+					fieldErrors: { owner: { code: 'validation_required' } }
+				});
+
+				// Control: con valores reales, la creación funciona.
+				const ok = await port.create('required_probe', {
+					dueDate: '2026-01-01T00:00:00.000Z',
+					level: 'low',
+					owner: CAT_ALPHA
+				});
+				expect(ok.values.dueDate).toBe('2026-01-01T00:00:00.000Z');
+			});
+
 			test('pattern violado → validation con fieldErrors.slug', async () => {
 				const port = await makePort();
 				await expect(
@@ -425,12 +468,12 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			test('in: azúcar de OR de eq; vacío no casa nada (§9.8)', async () => {
 				const port = await makePort();
 				const page = await port.list('kitchen_sink', {
-					filter: { kind: 'cond', field: 'status', op: 'in', value: ['draft', 'archived'] as never }
+					filter: { kind: 'cond', field: 'status', op: 'in', value: ['draft', 'archived'] }
 				});
 				expect(ids(page.items)).toEqual([KS_CHARLIE, KS_DELTA]);
 
 				const empty = await port.list('kitchen_sink', {
-					filter: { kind: 'cond', field: 'status', op: 'in', value: [] as never }
+					filter: { kind: 'cond', field: 'status', op: 'in', value: [] }
 				});
 				expect(empty.items).toEqual([]);
 				expect(empty.totalItems).toBe(0);
@@ -448,15 +491,35 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 						kind: 'cond',
 						field: 'category',
 						op: 'in',
-						value: [CAT_ALPHA, CAT_BETA] as never
+						value: [CAT_ALPHA, CAT_BETA]
 					}
 				});
 				expect(ids(inSingle.items)).toEqual([KS_ALPHA, KS_CHARLIE, KS_ECHO]);
 
 				const inMulti = await port.list('kitchen_sink', {
-					filter: { kind: 'cond', field: 'categories', op: 'in', value: [CAT_GAMMA] as never }
+					filter: { kind: 'cond', field: 'categories', op: 'in', value: [CAT_GAMMA] }
 				});
 				expect(ids(inMulti.items)).toEqual([KS_CHARLIE]);
+			});
+
+			test('relation MÚLTIPLE con eq/neq → validation local (bug corregido: antes colaba y mentía)', async () => {
+				const port = await makePort();
+				// Antes de la corrección, `allowedFilterOps` no bifurcaba `relation` por
+				// `multiple` (al contrario que `select`) y `compareEq` asumía que `validateQuery`
+				// ya lo habría bloqueado — así que `eq` devolvía 0 resultados y `neq` devolvía
+				// TODOS, siempre, sin ningún error. Ahora `relation` multi se comporta como
+				// `select` multi: solo `in`/`empty`/`notEmpty`.
+				await expect(
+					port.list('kitchen_sink', {
+						filter: { kind: 'cond', field: 'categories', op: 'eq', value: CAT_ALPHA }
+					})
+				).rejects.toMatchObject({ kind: 'validation', fieldErrors: { categories: {} } });
+
+				await expect(
+					port.list('kitchen_sink', {
+						filter: { kind: 'cond', field: 'categories', op: 'neq', value: CAT_ALPHA }
+					})
+				).rejects.toMatchObject({ kind: 'validation', fieldErrors: { categories: {} } });
 			});
 
 			test('empty / notEmpty', async () => {

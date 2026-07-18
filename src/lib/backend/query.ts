@@ -23,8 +23,19 @@ export interface SortSpec {
 	dir: 'asc' | 'desc';
 }
 
+/**
+ * Se discrimina por `op` para que `in` (que necesita un array) no obligue a "mentir" al tipo
+ * del resto de operadores (que trabajan con un escalar). Evita el `as never`/`as unknown` en
+ * quien construye queries: el valor correcto ya viene forzado por el propio `op`.
+ */
 export type FilterNode =
-	| { kind: 'cond'; field: string; op: FilterOp; value: string | number | boolean | null }
+	| { kind: 'cond'; field: string; op: 'in'; value: (string | number)[] }
+	| {
+			kind: 'cond';
+			field: string;
+			op: Exclude<FilterOp, 'in'>;
+			value: string | number | boolean | null;
+	  }
 	| { kind: 'group'; combinator: 'and' | 'or'; nodes: FilterNode[] }; // nodes.length >= 1; anidamiento libre
 
 export type FilterOp =
@@ -54,7 +65,11 @@ export const FILTER_OPS_BY_FIELD_KIND = {
 	bool: ['eq', 'neq'],
 	selectSingle: ['eq', 'neq', 'in', 'empty', 'notEmpty'],
 	selectMulti: ['contains', 'empty', 'notEmpty'],
-	relation: ['eq', 'neq', 'in', 'empty', 'notEmpty'],
+	relationSingle: ['eq', 'neq', 'in', 'empty', 'notEmpty'],
+	// relation multi: como select multi, "eq"/"neq" no tienen una semántica de igualdad de
+	// array bien definida por contrato — solo "¿el conjunto intersecta?" vía `in` (bug P1: antes
+	// no se bifurcaba por `multiple` y `eq`/`neq` colaban silenciosamente resultados falsos).
+	relationMulti: ['in', 'empty', 'notEmpty'],
 	file: ['empty', 'notEmpty'],
 	none: []
 } as const satisfies Record<string, readonly FilterOp[]>;
@@ -77,7 +92,9 @@ export function allowedFilterOps(field: Field): readonly FilterOp[] {
 				? FILTER_OPS_BY_FIELD_KIND.selectMulti
 				: FILTER_OPS_BY_FIELD_KIND.selectSingle;
 		case 'relation':
-			return FILTER_OPS_BY_FIELD_KIND.relation;
+			return field.multiple
+				? FILTER_OPS_BY_FIELD_KIND.relationMulti
+				: FILTER_OPS_BY_FIELD_KIND.relationSingle;
 		case 'file':
 			return FILTER_OPS_BY_FIELD_KIND.file;
 		case 'json':

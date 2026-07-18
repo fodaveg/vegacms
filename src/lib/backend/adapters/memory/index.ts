@@ -73,6 +73,15 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 	const fileStore = new MemoryFileStore();
 	const listeners = new Map<string, Set<(e: RecordEvent) => void>>();
 
+	// Contador de ids: DENTRO del closure de la factory (antes vivía a nivel de módulo,
+	// compartido por todas las instancias del proceso — rompía el aislamiento entre backends,
+	// p.ej. entre tests que crean varios `createMemoryBackend()` en la misma sesión de Vitest).
+	let idCounter = 0;
+	function generateId(): RecordId {
+		idCounter += 1;
+		return `${crypto.randomUUID().replace(/-/g, '').slice(0, 10)}${idCounter}`;
+	}
+
 	// ————— Auth —————
 	let currentSessionState: { session: Session; expiresAtMs: number | null } | null = null;
 	let latchedExpired = false;
@@ -115,12 +124,21 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 		});
 	}
 
+	/**
+	 * Vista interna SIN clonar (`values` sigue siendo la referencia guardada en el `Map`). Nunca
+	 * debe salir del closure tal cual: solo para trabajo interno (filtrar/ordenar en `list`).
+	 */
+	function viewRecord(type: string, id: RecordId, values: Record<string, FieldValue>): VegaRecord {
+		return { id, type, values };
+	}
+
+	/** La única forma de entregar un registro a quien llama al puerto: siempre clonado. */
 	function toVegaRecord(
 		type: string,
 		id: RecordId,
 		values: Record<string, FieldValue>
 	): VegaRecord {
-		return structuredClone({ id, type, values });
+		return structuredClone(viewRecord(type, id, values));
 	}
 
 	/** create/update comparten esta rutina: valida y, si todo pasa, materializa y guarda. */
@@ -155,9 +173,12 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 				continue;
 			}
 
-			const value = provided
-				? (data[field.name] as FieldValue)
-				: normalizeFieldValue(field, undefined);
+			// Se normaliza SIEMPRE antes de validar (aunque el valor venga provisto): si no, un
+			// '' explícito en un date/select/relation single no cuenta como "vacío" para
+			// `isEmptyValue` (que solo trata '' como vacío en texto) y un campo `required` se
+			// podía eludir escribiendo la cadena vacía en vez de omitir el campo (bug corregido:
+			// "vacío" tiene que ser LA MISMA noción en lectura, query y escritura).
+			const value = normalizeFieldValue(field, provided ? data[field.name] : undefined);
 			const err = validateFieldValue(field, value, { recordExists });
 			if (err) fieldErrors[field.name] = err;
 		}
@@ -258,9 +279,16 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 			checkSessionAlive();
 			const ct = getContentTypeOrThrow(type);
 			const byId = records.get(type)!;
-			const all = [...byId.entries()].map(([id, values]) => toVegaRecord(type, id, values));
+			// Vista sin clonar para filtrar/ordenar/paginar TODO el tipo; clonar aquí ya para
+			// descartarlo enseguida sería doble trabajo (antes: toVegaRecord clonaba cada
+			// registro y luego structuredClone(page) volvía a clonar los ya-clonados). Se clona
+			// una única vez, al final, y solo los `perPage` registros que de verdad salen.
+			const all = [...byId.entries()].map(([id, values]) => viewRecord(type, id, values));
 			const page = applyQuery(all, ct.fields, query);
-			return structuredClone(page) as Page<VegaRecord>;
+			return {
+				...page,
+				items: page.items.map((r) => structuredClone(r))
+			} satisfies Page<VegaRecord>;
 		},
 
 		async get(type, id) {
@@ -334,10 +362,4 @@ function defaultReadonlyValue(field: Field): FieldValue {
 	// Emula un campo `autodate` de PB (readonly: true, siempre `date`): se rellena solo al crear.
 	if (field.type === 'date') return new Date().toISOString();
 	return normalizeFieldValue(field, undefined);
-}
-
-let idCounter = 0;
-function generateId(): RecordId {
-	idCounter += 1;
-	return `${crypto.randomUUID().replace(/-/g, '').slice(0, 10)}${idCounter}`;
 }

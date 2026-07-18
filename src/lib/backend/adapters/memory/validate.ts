@@ -20,6 +20,20 @@ export interface ValidationContext {
 }
 
 /**
+ * `new RegExp(field.pattern)` con un patrón de esquema inválido lanza un `SyntaxError` nativo,
+ * que NO es `VegaError` (violaría L2 si escapase de aquí). Un patrón roto es un problema del
+ * esquema, no del dato que se escribe: se degrada ignorándolo (nunca bloquea la escritura),
+ * en línea con la ley L11 ("evolución degradante… nunca crash").
+ */
+function testPattern(pattern: string, value: string): boolean {
+	try {
+		return new RegExp(pattern).test(value);
+	} catch {
+		return true;
+	}
+}
+
+/**
  * Valida un único valor de campo (ya en forma de dominio, no ficheros: esos se validan aparte
  * en `files.ts`). Devuelve el primer `FieldError` encontrado, o `null` si el valor es válido.
  * Un solo error por campo (coincide con la forma `fieldErrors: Record<string, FieldError>`).
@@ -51,7 +65,7 @@ export function validateFieldValue(
 					message: `No puede superar ${field.maxLength} caracteres`
 				};
 			}
-			if (field.pattern !== undefined && !new RegExp(field.pattern).test(str)) {
+			if (field.pattern !== undefined && !testPattern(field.pattern, str)) {
 				return { code: PB_VALIDATION_CODES.pattern, message: 'Formato no válido' };
 			}
 			return null;

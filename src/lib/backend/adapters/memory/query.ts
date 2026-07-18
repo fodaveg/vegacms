@@ -81,7 +81,7 @@ function matchesFilter(
 		case 'contains':
 			return matchesContains(field, value, node.value as string);
 		case 'in':
-			return matchesIn(field, value, node.value as unknown as (string | number)[]);
+			return matchesIn(field, value, node.value);
 	}
 }
 
@@ -95,7 +95,11 @@ function compareEq(
 	value: FieldValue,
 	target: string | number | boolean | null
 ): boolean {
-	if (isMultiField(field)) return false; // 'eq' no está permitido para multi (validateQuery ya lo bloquea)
+	// Defensa en profundidad: `validateQuery`/`allowedFilterOps` ya rechazan `eq`/`neq` sobre
+	// select/relation múltiples (bug corregido: antes solo se bifurcaba `select` por
+	// `multiple`, no `relation`, y esto devolvía resultados falsos en silencio). Este `false`
+	// nunca debería alcanzarse en la práctica; se deja como cinturón, no como el freno.
+	if (isMultiField(field)) return false;
 	return value === target;
 }
 

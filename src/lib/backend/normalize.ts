@@ -29,23 +29,29 @@ export function normalizeFieldValue(field: Field, raw: unknown): FieldValue {
 			return typeof raw === 'string' && raw !== '' ? raw : null;
 
 		case 'select':
-			if (field.multiple) return Array.isArray(raw) ? (raw as string[]) : [];
+			if (field.multiple) return Array.isArray(raw) ? [...(raw as string[])] : [];
 			return typeof raw === 'string' && raw !== '' ? raw : null;
 
 		case 'relation':
-			if (field.multiple) return Array.isArray(raw) ? (raw as string[]) : [];
+			if (field.multiple) return Array.isArray(raw) ? [...(raw as string[])] : [];
 			return typeof raw === 'string' && raw !== '' ? raw : null;
 
 		case 'file':
-			if (field.multiple) return Array.isArray(raw) ? (raw as string[]) : [];
+			if (field.multiple) return Array.isArray(raw) ? [...(raw as string[])] : [];
 			return typeof raw === 'string' && raw !== '' ? raw : null;
 
 		case 'json':
-			return raw === undefined ? null : (raw as FieldValue);
+			// Copia profunda: sin esto, el llamador conserva una referencia al mismo objeto que
+			// queda "persistido" en el adaptador, y mutarlo tras `create()`/`update()` corrompería
+			// el estado almacenado por la puerta de atrás (bug: aliasing entrada→almacén).
+			return raw === undefined ? null : structuredClone(raw as FieldValue);
 
-		case 'unsupported':
-			// Opaco, solo lectura: se transporta tal cual venga (incluso si es undefined/null).
-			return (raw ?? null) as FieldValue;
+		case 'unsupported': {
+			// Opaco, solo lectura: se transporta tal cual venga (incluso si es undefined/null),
+			// pero copiado si es un objeto/array (mismo riesgo de aliasing que `json`).
+			const value = (raw ?? null) as FieldValue;
+			return typeof value === 'object' && value !== null ? structuredClone(value) : value;
+		}
 	}
 }
 
