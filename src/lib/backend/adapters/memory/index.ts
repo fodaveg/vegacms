@@ -100,14 +100,20 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 		for (const cb of authSubscribers) cb(s, reason);
 	}
 
-	/** Comprueba expiración por TTL. Si ya había expirado, lanza `auth-expired` (§4.1, L7). */
+	/**
+	 * Exige sesión viva antes de cualquier operación de datos/esquema — DECISIÓN de paridad
+	 * §7 ("memory no puede ser mejor que PB"): PB real rechaza list/get/create/update/delete/
+	 * listContentTypes/ensureCollections sin sesión con `forbidden`. Antes de esta corrección,
+	 * esta función SOLO comprobaba expiración de una sesión YA existente: si nunca se había
+	 * hecho `login()`, `currentSessionState` era `null` desde el principio y ninguna de las dos
+	 * ramas disparaba, dejando operar sin autenticar — una asimetría real que enmascaró un bug
+	 * (la suite compartida solo prueba el camino autenticado; un cambio que rompiera la
+	 * exigencia de sesión contra PB real no se habría notado aquí).
+	 */
 	function checkSessionAlive(): void {
 		if (latchedExpired) throw VegaError.authExpired();
-		if (
-			currentSessionState &&
-			currentSessionState.expiresAtMs !== null &&
-			Date.now() >= currentSessionState.expiresAtMs
-		) {
+		if (currentSessionState === null) throw VegaError.forbidden('No autenticado');
+		if (currentSessionState.expiresAtMs !== null && Date.now() >= currentSessionState.expiresAtMs) {
 			latchedExpired = true;
 			currentSessionState = null;
 			notifyAuthChange(null, 'expired');

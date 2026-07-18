@@ -7,7 +7,7 @@
 import { describe, expect, test } from 'vitest';
 import { createMemoryBackend } from '$lib/backend/adapters/memory';
 import { describeBackendContract } from './backend-contract';
-import { kitchenSinkSeed } from './fixture';
+import { FIXTURE_ADMIN_EMAIL, FIXTURE_ADMIN_PASSWORD, kitchenSinkSeed } from './fixture';
 
 describeBackendContract(
 	(overrides) => createMemoryBackend(kitchenSinkSeed({ sessionTtlMs: overrides?.sessionTtlMs })),
@@ -26,6 +26,9 @@ describe('memory: detalles de implementación', () => {
 	test('cada instancia aísla su propio estado (ids únicos, sin fuga de registros entre backends)', async () => {
 		const portA = createMemoryBackend(kitchenSinkSeed());
 		const portB = createMemoryBackend(kitchenSinkSeed());
+		// §7: memory exige sesión igual que PB — sin esto, ambas ops fallarían con `forbidden`.
+		await portA.login({ email: FIXTURE_ADMIN_EMAIL, password: FIXTURE_ADMIN_PASSWORD });
+		await portB.login({ email: FIXTURE_ADMIN_EMAIL, password: FIXTURE_ADMIN_PASSWORD });
 
 		const a1 = await portA.create('kitchen_sink', { title: 'A1' });
 		const b1 = await portB.create('kitchen_sink', { title: 'B1' });
@@ -37,6 +40,7 @@ describe('memory: detalles de implementación', () => {
 
 	test('mutar el valor devuelto por create() no corrompe el almacén (json/select-multi/relation-multi)', async () => {
 		const port = createMemoryBackend(kitchenSinkSeed());
+		await port.login({ email: FIXTURE_ADMIN_EMAIL, password: FIXTURE_ADMIN_PASSWORD });
 		const created = await port.create('kitchen_sink', {
 			title: 'aliasing',
 			tags: ['a'],
@@ -80,11 +84,37 @@ describe('memory: detalles de implementación', () => {
 			],
 			records: { broken_pattern: [] }
 		});
+		await port.login({ email: 'admin@vega.test', password: 'x' });
 
 		// Antes de la corrección, esto lanzaba un SyntaxError nativo (no un VegaError): violaba
 		// L2 ("toda promesa del puerto rechaza con VegaError y solo con VegaError").
 		await expect(port.create('broken_pattern', { code: 'cualquier-cosa' })).resolves.toMatchObject({
 			values: { code: 'cualquier-cosa' }
 		});
+	});
+
+	test('operación de datos/esquema sin login previo → forbidden (§7: memory no puede ser mejor que PB)', async () => {
+		// Decisión de ingeniería (§7): PB real rechaza toda operación de datos/esquema sin
+		// sesión con `forbidden` — `memory` debe hacer lo mismo, nunca ser más permisivo. Cubre
+		// los mismos puntos de entrada que `checkSessionAlive` guarda en el adaptador.
+		const port = createMemoryBackend(kitchenSinkSeed());
+
+		await expect(port.list('kitchen_sink')).rejects.toMatchObject({ kind: 'forbidden' });
+		await expect(port.get('kitchen_sink', 'cualquiera')).rejects.toMatchObject({
+			kind: 'forbidden'
+		});
+		await expect(port.create('kitchen_sink', { title: 'x' })).rejects.toMatchObject({
+			kind: 'forbidden'
+		});
+		await expect(port.update('kitchen_sink', 'cualquiera', { title: 'x' })).rejects.toMatchObject({
+			kind: 'forbidden'
+		});
+		await expect(port.delete('kitchen_sink', 'cualquiera')).rejects.toMatchObject({
+			kind: 'forbidden'
+		});
+		await expect(port.listContentTypes()).rejects.toMatchObject({ kind: 'forbidden' });
+		await expect(port.ensureCollections([{ name: 'vega_test', fields: [] }])).rejects.toMatchObject(
+			{ kind: 'forbidden' }
+		);
 	});
 });

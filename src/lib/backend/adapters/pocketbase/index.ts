@@ -4,7 +4,7 @@
  * forzada por ESLint). Ver `README.md` de este directorio para la landmine de autocancelación.
  */
 
-import PocketBase, { getTokenPayload } from 'pocketbase';
+import PocketBase, { ClientResponseError, getTokenPayload } from 'pocketbase';
 import type { CollectionModel } from 'pocketbase';
 import type {
 	AuthChangeReason,
@@ -103,16 +103,45 @@ export function createPocketBaseBackend({ url }: PocketBaseBackendOptions): Back
 		}
 	}
 
-	/** Envuelve toda operación autenticada: chequeo proactivo + mapeo de errores + latch de expiración. */
+	/**
+	 * Envuelve toda operación autenticada: chequeo proactivo + mapeo de errores + latch de
+	 * expiración.
+	 *
+	 * `hadSessionAtStart` se captura ANTES de `op()`, no dentro del `catch` (bug corregido, L7):
+	 * con dos operaciones hermanas en vuelo, si la primera en fallar ya mutó `hasSession` a
+	 * `false` vía `handleAuthExpiryOnce()`, la segunda leería ese valor YA mutado si lo
+	 * consultase en su propio `catch` — mapeando a `forbidden` en vez de `auth-expired`, pese a
+	 * que AMBAS arrancaron con sesión. Cada operación debe mapear según lo que era cierto
+	 * cuando ELLA arrancó; solo el EVENTO `onAuthChange('expired')` se deduplica (vía
+	 * `handleAuthExpiryOnce`), nunca el `kind` del error.
+	 */
 	async function guarded<T>(op: () => Promise<T>): Promise<T> {
 		checkSessionAlive();
+		const hadSessionAtStart = hasSession;
 		try {
 			return await op();
 		} catch (err) {
-			const mapped = mapPocketBaseError(err, { hadSession: hasSession });
+			const mapped = mapPocketBaseError(err, { hadSession: hadSessionAtStart });
 			if (mapped.kind === 'auth-expired') handleAuthExpiryOnce();
 			throw mapped;
 		}
+	}
+
+	/**
+	 * Mapea localmente el 400-con-`data` de create/update usando los `Field.name` reales del
+	 * `ContentType` (§5: "campos anidados por PB que Vega no reconoce → `''`"). Cualquier OTRO
+	 * caso (401/403/404/5xx/red…) se deja pasar SIN mapear: el catch genérico de `guarded()` lo
+	 * mapeará con la instantánea correcta de `hasSession` capturada al ENTRAR en la operación
+	 * (evita repetir aquí la carrera de L7 corregida arriba, que no depende del status 400).
+	 */
+	function mapKnownFieldWriteError(err: unknown, fields: Field[]): unknown {
+		if (err instanceof ClientResponseError && err.status === 400) {
+			return mapPocketBaseError(err, {
+				hadSession: true, // irrelevante: la rama 400 de mapPocketBaseError no consulta hadSession
+				knownFields: fields.map((f) => f.name)
+			});
+		}
+		return err;
 	}
 
 	async function fetchAllContentTypes(): Promise<ContentType[]> {
@@ -206,11 +235,16 @@ export function createPocketBaseBackend({ url }: PocketBaseBackendOptions): Back
 					.collection('_superusers')
 					.authWithPassword(credentials.email, credentials.password);
 			} catch (err) {
-				const mapped = mapPocketBaseError(err, { hadSession: false });
-				if (mapped.kind === 'network') throw mapped;
-				// Mensaje SIEMPRE neutro (§4.1): nunca reutilizar el mensaje de PB, que podría
-				// distinguir "usuario no existe" de "password incorrecta".
-				throw VegaError.forbidden('Credenciales no válidas');
+				// Solo el 400 (credenciales rechazadas por PB) se re-etiqueta con mensaje SIEMPRE
+				// neutro (§4.1/§5): nunca reutilizar el mensaje de PB, que podría distinguir
+				// "usuario no existe" de "password incorrecta". Cualquier OTRO caso (network,
+				// 5xx→backend, 404→not-found, forma inesperada→backend…) se propaga tal cual
+				// mapeado — un error del SERVIDOR no es lo mismo que "credenciales malas" y
+				// colapsarlo a `forbidden` ocultaría una incidencia real de infraestructura.
+				if (err instanceof ClientResponseError && err.status === 400) {
+					throw VegaError.forbidden('Credenciales no válidas');
+				}
+				throw mapPocketBaseError(err, { hadSession: false });
 			}
 			hasSession = true;
 			latchedExpired = false;
@@ -240,16 +274,18 @@ export function createPocketBaseBackend({ url }: PocketBaseBackendOptions): Back
 			try {
 				await pb.collection('_superusers').authRefresh();
 			} catch (err) {
-				const mapped = mapPocketBaseError(err, { hadSession: false });
-				if (mapped.kind === 'network') {
-					// Sin red: conserva el token, podría ser válido (§4.1); no limpia, no lanza "clear".
-					throw mapped;
+				// Un 401 LITERAL de `authRefresh` es la única señal inequívoca, verificada contra
+				// PB real (ver cabecera de errors.ts), de "token inválido/caducado": SOLO ese caso
+				// limpia la sesión y devuelve null SIN lanzar (§4.1). Cualquier OTRO fallo (sin
+				// red, 5xx, forma inesperada, incluso un 403) es un error TRANSITORIO/del backend
+				// que NO demuestra que el token sea inválido — no se limpia la sesión persistida
+				// (podría seguir siendo válida), se propaga el error mapeado.
+				if (err instanceof ClientResponseError && err.status === 401) {
+					pb.authStore.clear();
+					clearPersistedToken();
+					return null;
 				}
-				// Inválido/caducado (authRefresh da 401 en PB real para token malo/caducado):
-				// limpia y devuelve null SIN lanzar (§4.1).
-				pb.authStore.clear();
-				clearPersistedToken();
-				return null;
+				throw mapPocketBaseError(err, { hadSession: false });
 			}
 			hasSession = true;
 			latchedExpired = false;
@@ -303,8 +339,12 @@ export function createPocketBaseBackend({ url }: PocketBaseBackendOptions): Back
 				assertContentTypeWritable(ct);
 				validateWrite(ct.fields, data, undefined);
 				const body = buildWriteBody(ct.fields, data, undefined);
-				const raw = await pb.collection(type).create(body);
-				return toVegaRecord(type, raw as unknown as Record<string, unknown>, ct.fields);
+				try {
+					const raw = await pb.collection(type).create(body);
+					return toVegaRecord(type, raw as unknown as Record<string, unknown>, ct.fields);
+				} catch (err) {
+					throw mapKnownFieldWriteError(err, ct.fields);
+				}
 			});
 		},
 
@@ -319,8 +359,12 @@ export function createPocketBaseBackend({ url }: PocketBaseBackendOptions): Back
 				);
 				validateWrite(ct.fields, data, existingValues);
 				const body = buildWriteBody(ct.fields, data, existingValues);
-				const raw = await pb.collection(type).update(id, body);
-				return toVegaRecord(type, raw as unknown as Record<string, unknown>, ct.fields);
+				try {
+					const raw = await pb.collection(type).update(id, body);
+					return toVegaRecord(type, raw as unknown as Record<string, unknown>, ct.fields);
+				} catch (err) {
+					throw mapKnownFieldWriteError(err, ct.fields);
+				}
 			});
 		},
 

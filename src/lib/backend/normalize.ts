@@ -31,10 +31,11 @@ export function normalizeFieldValue(field: Field, raw: unknown): FieldValue {
 			// lo parsea igual (JS es laxo con el separador); reemitimos con `toISOString()` la
 			// forma canónica con `T`. Para una fecha `memory` (ya ISO con `T`) esto es un no-op
 			// idempotente. Si `raw` no es parseable (nunca debería, L11: degradar, no crashear),
-			// se deja tal cual en vez de dejar escapar el `RangeError` de `toISOString()`.
+			// se devuelve `null` en vez de dejar escapar un valor NO-ISO (violaría "string ISO
+			// 8601 UTC | null", L5/L10) o el `RangeError` de `toISOString()`.
 			if (typeof raw !== 'string' || raw === '') return null;
 			const ms = Date.parse(raw);
-			return Number.isNaN(ms) ? raw : new Date(ms).toISOString();
+			return Number.isNaN(ms) ? null : new Date(ms).toISOString();
 		}
 
 		case 'select':
