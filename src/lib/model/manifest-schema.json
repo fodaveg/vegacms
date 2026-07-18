@@ -1,0 +1,91 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://vega.dev/manifest.schema.json",
+	"title": "Manifiesto de Vega v1",
+	"type": "object",
+	"additionalProperties": false,
+	"required": ["schemaVersion"],
+	"properties": {
+		"schemaVersion": { "const": 1 },
+
+		"site": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"name": { "type": "string", "minLength": 1, "maxLength": 60 },
+				"defaultTheme": { "type": "string", "minLength": 1 },
+				"locale": { "enum": ["es", "en"] }
+			}
+		},
+
+		"nav": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"groups": {
+					"description": "Orden de render de los grupos de la navegación.",
+					"type": "array",
+					"items": { "type": "string", "minLength": 1 },
+					"uniqueItems": true
+				}
+			}
+		},
+
+		"collections": {
+			"type": "object",
+			"description": "Clave = nombre de la colección en el backend.",
+			"additionalProperties": {
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"label": { "type": "string", "minLength": 1, "maxLength": 60 },
+					"labelSingular": { "type": "string", "minLength": 1, "maxLength": 60 },
+					"icon": { "type": "string", "minLength": 1 },
+					"group": { "type": "string", "minLength": 1 },
+					"order": { "type": "integer", "minimum": 0 },
+					"hidden": { "type": "boolean" },
+					"singleton": { "type": "boolean" },
+					"titleField": { "type": "string", "minLength": 1 },
+					"statusField": {
+						"description": "Nombre del campo de publicación, o false para DESACTIVAR la convención aunque exista un campo 'status'.",
+						"oneOf": [{ "type": "string", "minLength": 1 }, { "const": false }]
+					},
+					"previewUrl": {
+						"description": "Plantilla absoluta http(s) con placeholders {campo} o {id}. Ej.: https://misitio.com/blog/{slug}",
+						"type": "string",
+						"pattern": "^https?://"
+					},
+					"listFields": {
+						"type": "array",
+						"items": { "type": "string" },
+						"maxItems": 8,
+						"uniqueItems": true
+					},
+					"fieldGroups": {
+						"type": "array",
+						"items": { "type": "string", "minLength": 1 },
+						"uniqueItems": true
+					},
+					"fields": {
+						"type": "object",
+						"description": "Clave = nombre del campo en el backend.",
+						"additionalProperties": {
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"label": { "type": "string", "minLength": 1, "maxLength": 60 },
+								"help": { "type": "string", "maxLength": 300 },
+								"placeholder": { "type": "string", "maxLength": 120 },
+								"order": { "type": "integer", "minimum": 0 },
+								"group": { "type": "string", "minLength": 1 },
+								"hidden": { "type": "boolean" },
+								"widget": { "enum": ["textarea", "markdown"] },
+								"listable": { "type": "boolean" }
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
