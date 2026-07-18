@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download PocketBase binary (contract suite)
+        run: pnpm pb:download
+
+      # `pnpm pb:download` falla en silencio (éxito de proceso) si la descarga no funciona,
+      # y en ese caso la suite de contrato contra PB real se auto-salta (describe.skip).
+      # Esta comprobación evita un falso verde: si el binario no está listo, el job falla aquí
+      # en vez de dejar pasar un `pnpm gate` que nunca ejerció PB real.
+      - name: Verify PocketBase binary is present and executable
+        run: |
+          if [ ! -x .pbbin/pocketbase ]; then
+            echo "::error::.pbbin/pocketbase no existe o no es ejecutable tras 'pnpm pb:download'." \
+              "La suite de contrato contra PB real se saltaría silenciosamente y el gate daría un falso verde." \
+              "Revisa la conectividad a GitHub Releases o el script scripts/download-pocketbase.mjs."
+            exit 1
+          fi
+
+      - name: Run gate (check + lint + test + build)
+        run: pnpm gate
