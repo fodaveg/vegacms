@@ -1,0 +1,13 @@
+{
+	"$schema": "./theme.schema.json",
+	"themeSchemaVersion": 1,
+	"id": "niebla",
+	"name": "Niebla",
+	"group": "frios",
+	"aliases": ["grafito"],
+	"roles": {
+		"tint": "#4f6bd6",
+		"accent": "#4f6bd6",
+		"accentInk": "#ffffff"
+	}
+}

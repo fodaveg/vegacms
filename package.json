@@ -6,7 +6,9 @@
 	"type": "module",
 	"packageManager": "pnpm@11.11.0",
 	"scripts": {
+		"predev": "pnpm themes:build",
 		"dev": "vite dev",
+		"prebuild": "pnpm themes:build",
 		"build": "vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
@@ -19,6 +21,8 @@
 		"pb:download": "node scripts/download-pocketbase.mjs",
 		"test:pb": "node scripts/download-pocketbase.mjs && vitest run tests/contract/pocketbase.contract.test.ts",
 		"test:e2e": "playwright test",
+		"themes:build": "node scripts/build-themes.mjs",
+		"themes:check-coverage": "node scripts/check-theme-coverage.mjs",
 		"gate": "pnpm check && pnpm lint && pnpm test && pnpm build && pnpm test:e2e"
 	},
 	"dependencies": {

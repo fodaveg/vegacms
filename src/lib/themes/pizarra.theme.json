@@ -1,0 +1,12 @@
+{
+	"$schema": "./theme.schema.json",
+	"themeSchemaVersion": 1,
+	"id": "pizarra",
+	"name": "Pizarra",
+	"group": "neutros",
+	"roles": {
+		"tint": "#5d6d83",
+		"accent": "#5d6d83",
+		"accentInk": "#ffffff"
+	}
+}

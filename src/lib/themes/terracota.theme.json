@@ -1,0 +1,12 @@
+{
+	"$schema": "./theme.schema.json",
+	"themeSchemaVersion": 1,
+	"id": "terracota",
+	"name": "Terracota",
+	"group": "calidos",
+	"roles": {
+		"tint": "#bd430f",
+		"accent": "#bd430f",
+		"accentInk": "#ffffff"
+	}
+}

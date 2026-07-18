@@ -1,0 +1,105 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://vega.dev/theme.schema.json",
+	"title": "Tema de Vega v1",
+	"description": "Un tema = src/lib/themes/<id>.theme.json (§4 del contrato P7). Papel (tint) desacoplado del acento (accent); neutros compartidos + tinte por defecto, override final opcional por tema; SIN bloque effects (D4, reservado para v2 — additionalProperties:false lo rechaza hoy).",
+	"type": "object",
+	"additionalProperties": false,
+	"required": ["themeSchemaVersion", "id", "name", "group", "roles"],
+	"properties": {
+		"$schema": { "type": "string" },
+		"themeSchemaVersion": { "const": 1 },
+		"id": {
+			"description": "Clave estable persistida (localStorage.vega.theme). Nunca se borra.",
+			"type": "string",
+			"minLength": 1
+		},
+		"name": {
+			"description": "Etiqueta visible en el selector de P3.",
+			"type": "string",
+			"minLength": 1
+		},
+		"group": {
+			"description": "Agrupación del selector (D-P7.1, enum propio de Vega).",
+			"enum": ["frios", "calidos", "neutros", "verdes"]
+		},
+		"aliases": {
+			"description": "Ids antiguos que migran a este (nunca se borran, forward-compat de ids renombrados, §6.4).",
+			"type": "array",
+			"items": { "type": "string", "minLength": 1 },
+			"uniqueItems": true
+		},
+		"roles": {
+			"description": "Lo ÚNICO que el tema escribe de color (§2). SIN date/deadline/done (vocabulario de tareas de Lumbre, no portable).",
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["tint", "accent", "accentInk"],
+			"properties": {
+				"tint": {
+					"description": "Matiz del papel (independiente de accent, L4 papel ⊥ acento).",
+					"$ref": "#/$defs/hexColor"
+				},
+				"accent": { "description": "Marca.", "$ref": "#/$defs/hexColor" },
+				"accentInk": {
+					"description": "Texto sobre relleno de marca. AA ≥4.5 sobre accent (gate §5.3).",
+					"$ref": "#/$defs/hexColor"
+				},
+				"accentText": {
+					"description": "OPCIONAL: acento-como-texto. Default = derivado §4.3; si se declara, AA ≥4.5 sobre paper/surface/surface-2 (gate §5.3).",
+					"$ref": "#/$defs/hexColor"
+				}
+			}
+		},
+		"modes": {
+			"description": "OPCIONAL: overrides por modo (§4.4, escape hatch Opción A de Lumbre).",
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"light": { "$ref": "#/$defs/modeOverride" },
+				"dark": { "$ref": "#/$defs/modeOverride" }
+			}
+		}
+	},
+	"$defs": {
+		"hexColor": {
+			"type": "string",
+			"pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+		},
+		"percent": {
+			"type": "string",
+			"pattern": "^-?[0-9]+(\\.[0-9]+)?%$"
+		},
+		"modeOverride": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"tintBg": {
+					"description": "Pisa el porcentaje de tinte del bucket `bg` para este modo (§4.3).",
+					"$ref": "#/$defs/percent"
+				},
+				"neutrals": {
+					"description": "Override final por neutro (§4.4): gana por especificidad, se pinta TAL CUAL sin re-tintar. Guardarraíles: escala de luminancia ascendente + AA de ink sobre paper si se pisa ink (validateNeutrals).",
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"bg": { "$ref": "#/$defs/hexColor" },
+						"sidebar": { "$ref": "#/$defs/hexColor" },
+						"paper": { "$ref": "#/$defs/hexColor" },
+						"surface": { "$ref": "#/$defs/hexColor" },
+						"surface-2": { "$ref": "#/$defs/hexColor" },
+						"btn": { "$ref": "#/$defs/hexColor" },
+						"active": { "$ref": "#/$defs/hexColor" },
+						"line": { "$ref": "#/$defs/hexColor" },
+						"line-soft": { "$ref": "#/$defs/hexColor" },
+						"line-strong": { "$ref": "#/$defs/hexColor" },
+						"ring": { "$ref": "#/$defs/hexColor" },
+						"ink-hi": { "$ref": "#/$defs/hexColor" },
+						"ink": { "$ref": "#/$defs/hexColor" },
+						"ink-2": { "$ref": "#/$defs/hexColor" },
+						"ink-3": { "$ref": "#/$defs/hexColor" }
+					}
+				}
+			}
+		}
+	}
+}

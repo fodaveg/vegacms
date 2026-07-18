@@ -1,0 +1,12 @@
+{
+	"$schema": "./theme.schema.json",
+	"themeSchemaVersion": 1,
+	"id": "salvia",
+	"name": "Salvia",
+	"group": "verdes",
+	"roles": {
+		"tint": "#4e745a",
+		"accent": "#4e745a",
+		"accentInk": "#ffffff"
+	}
+}

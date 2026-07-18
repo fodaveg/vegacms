@@ -1,0 +1,12 @@
+{
+	"$schema": "./theme.schema.json",
+	"themeSchemaVersion": 1,
+	"id": "miel",
+	"name": "Miel",
+	"group": "calidos",
+	"roles": {
+		"tint": "#a5781d",
+		"accent": "#a5781d",
+		"accentInk": "#000000"
+	}
+}

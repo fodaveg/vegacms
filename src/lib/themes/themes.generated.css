@@ -1,0 +1,282 @@
+/* GENERADO por scripts/build-themes.mjs — NO EDITAR */
+
+:root {
+	--sans: -apple-system, 'Segoe UI', system-ui, sans-serif;
+	--mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+	--r: 8px;
+}
+:root {
+	--row-h: 44px;
+	--cell-x: 1.1rem;
+	--fs-base: 14px;
+	--pad-field: 1.1rem;
+	--gap-field: 1.75rem;
+	--pad-card: 1.5rem;
+	--sidebar-item-h: 40px;
+	--topbar-h: 54px;
+}
+[data-density='compact'] {
+	--row-h: 36px;
+	--cell-x: 0.8rem;
+	--fs-base: 13px;
+	--pad-field: 0.8rem;
+	--gap-field: 1.2rem;
+	--pad-card: 1rem;
+	--sidebar-item-h: 32px;
+	--topbar-h: 44px;
+}
+[data-mode='light'] {
+	--shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 3px 12px rgb(0 0 0 / 0.04);
+	--success: #066f32;
+	--success-soft: color-mix(in oklab, #066f32 12%, var(--paper));
+	--danger: #bf190a;
+	--danger-soft: color-mix(in oklab, #bf190a 12%, var(--paper));
+	--warning: #7e5a07;
+	--warning-soft: color-mix(in oklab, #7e5a07 12%, var(--paper));
+	--info: #08659b;
+	--info-soft: color-mix(in oklab, #08659b 12%, var(--paper));
+}
+[data-mode='dark'] {
+	--shadow-card: 0 1px 3px rgb(0 0 0 / 0.4), 0 5px 16px rgb(0 0 0 / 0.28);
+	--success: #5cbd8e;
+	--success-soft: color-mix(in oklab, #5cbd8e 17%, var(--paper));
+	--danger: #ef8078;
+	--danger-soft: color-mix(in oklab, #ef8078 15%, var(--paper));
+	--warning: #dfae4d;
+	--warning-soft: color-mix(in oklab, #dfae4d 15%, var(--paper));
+	--info: #74b6d6;
+	--info-soft: color-mix(in oklab, #74b6d6 15%, var(--paper));
+}
+
+:where(:root),
+[data-theme='niebla'] {
+	--tint: #4f6bd6;
+	--accent: #4f6bd6;
+	--accent-ink: #ffffff;
+}
+:where(:root)[data-mode='light'],
+[data-theme='niebla'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 72%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+:where(:root)[data-mode='dark'],
+[data-theme='niebla'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 65%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='miel'] {
+	--tint: #a5781d;
+	--accent: #a5781d;
+	--accent-ink: #000000;
+}
+[data-theme='miel'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 72%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='miel'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 65%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='pizarra'] {
+	--tint: #5d6d83;
+	--accent: #5d6d83;
+	--accent-ink: #ffffff;
+}
+[data-theme='pizarra'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 72%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='pizarra'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 65%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='salvia'] {
+	--tint: #4e745a;
+	--accent: #4e745a;
+	--accent-ink: #ffffff;
+}
+[data-theme='salvia'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 72%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='salvia'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 65%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='terracota'] {
+	--tint: #bd430f;
+	--accent: #bd430f;
+	--accent-ink: #ffffff;
+}
+[data-theme='terracota'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 72%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='terracota'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 65%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
