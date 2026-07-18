@@ -12,13 +12,22 @@
 	 *   promesa rechazada suelta).
 	 * - `type` normal → la tabla READ-ONLY montada de 4c/4d (columnas de 4a + estado de vista de
 	 *   4b) + la toolbar de 4d (búsqueda D-P4.3, filtro de estado D-P4.4, orden por cabecera
-	 *   D-P4.6): loading/vacío-colección/vacío-búsqueda/error + paginación, con la insignia "Solo
-	 *   lectura" si `type.readonly` (view). SIN borrado (4e) todavía. Un `?page=` fuera de rango
+	 *   D-P4.6) + el borrado de 4e: loading/vacío-colección/vacío-búsqueda/error + paginación, con
+	 *   la insignia "Solo lectura" si `type.readonly` (view). Un `?page=` fuera de rango
 	 *   (`items: []` pero `totalItems > 0`, ningún adaptador clampa `page`) NO se confunde con la
 	 *   colección vacía: redirige a la última página válida (fix de code-review, L-P4.13, ver
 	 *   `pageOutOfRange` más abajo). Un 0-resultados CON búsqueda/filtro activos tampoco se
 	 *   confunde con la colección vacía de verdad: es `empty-search` (L-P4.12, ver `hasActiveFilters`
 	 *   y el orden de ramas del marcado).
+	 *
+	 * **Borrado (Fase 4e, L-P4.11/L-P4.4/Audit H6)**: `RecordTable` emite `onDeleteRequest` por
+	 * fila (ausente en tipos `readonly`, L-P4.9); esta ruta guarda el registro pendiente
+	 * (`pendingDelete`) y monta `DeleteConfirm` — SIN ese diálogo NUNCA se llama a `ctx.port.delete`
+	 * (L-P4.11). Al confirmar: éxito → toast + `listState.reload()` (repite la carga actual; si la
+	 * fila borrada era la última de la página, el MISMO `$effect` de "página fuera de rango" de
+	 * arriba retrocede solo, sin lógica nueva, L-P4.13); fallo → `ctx.feedback.reportError` (nunca
+	 * el `status.error` del listado, que es solo para fallos de CARGA, L-P4.4) y la fila sigue en
+	 * la tabla porque nunca se quitó de forma optimista (solo `reload()` en el camino de éxito).
 	 *
 	 * Guard P3-L9 (router-ready antes de navegar): esta ruta usa `onMount`, NO el patrón
 	 * `afterNavigate` + `routerReady` del índice (`routes/+page.svelte`). Motivo (bug real
@@ -44,6 +53,8 @@
 	import { page } from '$app/state';
 	import { getVegaContext } from '$lib/app-context';
 	import type { ResolvedContentType } from '$lib/model/types';
+	import type { VegaRecord } from '$lib/backend/types';
+	import { VegaError } from '$lib/backend/errors';
 	import { resolveVisibleContentType } from '$lib/nav/content-type';
 	import { deriveColumns } from '$lib/list/columns';
 	import { parseViewState, viewStateToParams, type ViewStatePatch } from '$lib/list/query-state';
@@ -54,6 +65,7 @@
 	import RecordTable from '$lib/list/RecordTable.svelte';
 	import Pagination from '$lib/list/Pagination.svelte';
 	import ListToolbar from '$lib/list/ListToolbar.svelte';
+	import DeleteConfirm from '$lib/list/DeleteConfirm.svelte';
 
 	const ctx = getVegaContext();
 
@@ -109,6 +121,70 @@
 		readyPage !== null && readyPage.items.length === 0 && readyPage.totalItems === 0
 	);
 
+	// ————— Borrado (Fase 4e, L-P4.11) —————
+	// Registro pendiente de confirmar + su `label` ya resuelto (mismo `openText` de la fila,
+	// reutilizado por `RecordTable` al emitir `onDeleteRequest` — DRY, ver su cabecera). `null` =
+	// diálogo cerrado; es la ÚNICA condición que abre `DeleteConfirm` más abajo.
+	let pendingDelete = $state<{ record: VegaRecord; label: string } | null>(null);
+	// `true` mientras `ctx.port.delete` está en vuelo (deshabilita los botones del diálogo, evita
+	// un doble envío con un doble click).
+	let deleting = $state(false);
+	// Destino de foco de reserva para `DeleteConfirm` (fix de code-review, ver su cabecera): el
+	// `<h1>` del listado, `tabindex="-1"` en el marcado — estable frente a un borrado con éxito,
+	// que se lleva por delante la fila (y su botón "Borrar") a la que el diálogo restauraría el
+	// foco por defecto.
+	let headingEl = $state<HTMLElement | null>(null);
+
+	/** `RecordTable` (fila, `!contentType.readonly`) pide confirmar el borrado de `record`. Defensa
+	 *  en profundidad (fix de code-review de 4e): con un borrado YA en vuelo (`deleting`), ignora
+	 *  la petición — nunca reescribe `pendingDelete` a mitad de un `ctx.port.delete` ajeno (el
+	 *  diálogo solo puede abrirse para un registro a la vez; `DeleteConfirm` ya hace lo mismo por
+	 *  su lado con el guard de `handleConfirm`/`handleCancel`, esto cierra el hueco simétrico). */
+	function requestDelete(record: VegaRecord, label: string): void {
+		if (deleting) return;
+		pendingDelete = { record, label };
+	}
+
+	/** "Cancelar" o `Esc` en `DeleteConfirm` (L-P4.11: cancelar no borra nada). */
+	function cancelDelete(): void {
+		if (deleting) return; // ignora Esc/backdrop mientras el borrado está en vuelo
+		pendingDelete = null;
+	}
+
+	/**
+	 * Confirma el borrado (§ borrado de la cabecera del fichero). Éxito: toast + `listState.reload()`
+	 * (si la fila borrada era la última de la página, el `$effect` de "página fuera de rango" de
+	 * arriba retrocede solo). Fallo: `ctx.feedback.reportError` (NUNCA el `status.error` del
+	 * listado, que es solo para fallos de CARGA, L-P4.4) — el diálogo se cierra y la fila sigue en
+	 * la tabla porque nunca se quitó de forma optimista.
+	 *
+	 * `record`/`label` se desestructuran de `pendingDelete` ANTES del `await` (fix de code-review:
+	 * bug real, no solo defensivo) — `requestDelete()` ahora se ignora mientras `deleting` es
+	 * `true`, así que `pendingDelete` no puede REESCRIBIRSE a mitad de este `await`, pero SÍ puede
+	 * ponerse a `null` (p.ej. si `cancelDelete()` llegara a colarse). Leer `pendingDelete.label`
+	 * DESPUÉS del `await` sería frágil ante ese caso — capturar `label` en una constante local
+	 * ahora es la única lectura, y el toast de éxito queda garantizado correcto pase lo que pase
+	 * con `pendingDelete` mientras tanto.
+	 */
+	async function confirmDelete(): Promise<void> {
+		if (!pendingDelete || !contentType) return;
+		const { record, label } = pendingDelete;
+		deleting = true;
+		try {
+			await ctx.port.delete(contentType.name, record.id);
+			ctx.feedback.toast(ctx.t('list.delete.success', { label }), { kind: 'success' });
+			pendingDelete = null;
+			listState.reload();
+		} catch (err) {
+			ctx.feedback.reportError(
+				err instanceof VegaError ? err : VegaError.backend('Error inesperado al borrar', err)
+			);
+			pendingDelete = null;
+		} finally {
+			deleting = false;
+		}
+	}
+
 	/** Construye la URL del listado para `params` y navega (D-P4.9). Núcleo compartido de
 	 *  `goToPage` (paginación de 4c, NO resetea nada) y `navigateView` (búsqueda/filtro/orden de
 	 *  4d, SIEMPRE resetea a página 1) — ninguna de las dos duplica el `goto`/`listRoute`. */
@@ -161,7 +237,9 @@
 {:else}
 	<div class="vega-list-page">
 		<div class="vega-list-heading">
-			<h1>{contentType.label}</h1>
+			<!-- `tabindex="-1"` (fix de code-review de 4e): destino de foco programático de
+			     `DeleteConfirm.fallbackFocusEl` tras un borrado con éxito, nunca alcanzable por Tab. -->
+			<h1 tabindex="-1" bind:this={headingEl}>{contentType.label}</h1>
 			{#if contentType.readonly}
 				<span class="vega-list-readonly-badge">{ctx.t('nav.readonlyBadge')}</span>
 			{/if}
@@ -224,6 +302,7 @@
 					records={readyPage.items}
 					sort={viewState.sort}
 					onSort={(field) => navigateView({ sort: cycleSort(viewState.sort, field) })}
+					onDeleteRequest={requestDelete}
 				/>
 				<Pagination
 					page={readyPage.page}
@@ -236,6 +315,15 @@
 		{/if}
 	</div>
 {/if}
+
+<DeleteConfirm
+	open={pendingDelete !== null}
+	recordLabel={pendingDelete?.label ?? ''}
+	{deleting}
+	fallbackFocusEl={headingEl}
+	onConfirm={confirmDelete}
+	onCancel={cancelDelete}
+/>
 
 <style>
 	.vega-list-page {

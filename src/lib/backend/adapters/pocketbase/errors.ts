@@ -78,6 +78,13 @@ export function mapPocketBaseError(err: unknown, ctx: ErrorMapContext): VegaErro
 			return VegaError.validation(fieldErrors, body?.message ?? 'Datos no válidos');
 		}
 		// 400 sin data por campo = petición malformada = bug del adaptador; que se vea (§5).
+		//
+		// [Fase 4e, Audit H6] Esta rama también es la que recibe un `delete()` bloqueado por una
+		// relación `required` entrante (PB responde 400 con `message` pero SIN `data` por campo,
+		// verificado): el `body?.message` de PB ya es accionable ("Failed to delete record. Make
+		// sure that the record is not part of a required relation reference.") y se preserva tal
+		// cual — ver el test dedicado en `errors.test.ts`. No necesita un caso aparte: el fallback
+		// genérico de abajo ya hace lo correcto para este escenario concreto.
 		return VegaError.backend(body?.message ?? 'Petición inválida al backend', err);
 	}
 

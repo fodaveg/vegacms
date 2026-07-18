@@ -86,6 +86,16 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.emptySearch.body': 'No "{label}" record matches the search or the active filters.',
 	'list.emptySearch.clear': 'Clear filters',
 
+	// ————— Delete (P4 contract, Phase 4e) —————
+	'list.actions.header': 'Actions',
+	'list.delete.rowButton': 'Delete',
+	'list.delete.rowButtonLabel': 'Delete "{label}"',
+	'list.delete.confirmTitle': 'Delete this record?',
+	'list.delete.confirmBody': '"{label}" will be permanently deleted. This action cannot be undone.',
+	'list.delete.confirm': 'Delete',
+	'list.delete.deleting': 'Deleting…',
+	'list.delete.success': '"{label}" was deleted.',
+
 	// ————— Media (gap pre-P6) —————
 	'media.placeholderTitle': 'Media is coming in a future phase',
 	'media.placeholderBody': 'The media library is not available yet.',

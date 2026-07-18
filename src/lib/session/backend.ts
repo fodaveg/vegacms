@@ -39,8 +39,20 @@
  * honesta de ensayar el banner "sin conexión" contra un backend en memoria. Cubre `login`/
  * `restoreSession` (arranque, §7.B.8/§6.7) y, desde Fase 2c, también `list`/`listContentTypes`
  * (el trigger real de un fallo de red A MITAD de sesión, §3.4/§7.B — p.ej. `nav.toSingleton`
- * reintentando un click, o el "Reintentar" de `GlobalBanner` sondeando la conexión). El resto de
- * operaciones de datos no lo necesitan: ninguna se ejercita desde el alcance actual del shell.
+ * reintentando un click, o el "Reintentar" de `GlobalBanner` sondeando la conexión).
+ *
+ * Y `window.__VEGA_FORCE_DELETE_ERROR__` (Fase 4e del contrato P4, L-P4.4/Audit H6): mismo
+ * patrón que el flag de red — un booleano PERSISTENTE (no se autoconsume) que, mientras esté a
+ * `true`, hace que `delete()` rechace con un `VegaError('backend', …)` en vez de delegar en
+ * `memory`. Es la única forma de ensayar en e2e el camino "borrado bloqueado por una restricción
+ * del backend" (p.ej. PB rechazando el borrado de un registro con una relación entrante
+ * requerida, ver `adapters/pocketbase/errors.ts`) sin que `memory` tenga que saber nada de
+ * relaciones ni de restricciones — el adaptador en sí queda intacto, el gancho vive SOLO en esta
+ * envoltura de demo/e2e. `kind: 'backend'` (no `'validation'`) a propósito: replica el mapeo REAL
+ * verificado contra PocketBase (un 400 de restricción de borrado no trae `data` por campo, así
+ * que `mapPocketBaseError` lo resuelve a `backend` con el `message` de PB intacto, nunca
+ * `fieldErrors` — ver el test dedicado en `errors.test.ts`). El resto de operaciones de datos no
+ * necesitan un gancho equivalente: ninguna se ejercita desde el alcance actual del shell.
  *
  * Y `window.__VEGA_FORCE_EXPIRE__`: gancho de pruebas EXCLUSIVO de la demo/e2e para el overlay de
  * re-login no destructivo (§3.1.3/§3.1.4, D-P3.2-a). A diferencia del flag de red (un booleano
@@ -53,6 +65,17 @@
  * envoltura no conoce su implementación, solo simula el mismo evento observable desde fuera).
  * Confinado por completo a `wrapMemoryPortForDemo`: en modo `pocketbase` esta función nunca se
  * ejecuta, así que ninguna de las dos propiedades llega a existir en `window`.
+ *
+ * Y `window.__VEGA_DELETE_DELAY_MS__` (fix de code-review de 4e): retrasa `delete()` los ms
+ * indicados antes de delegar en `memory` — `memory` en sí resuelve casi instantáneo (sin
+ * transporte real), así que la ventana en la que `DeleteConfirm.svelte` está en su estado
+ * `deleting` (botones `aria-disabled`, trap de foco bajo prueba) es demasiado corta para que
+ * Playwright pueda ejercerla de forma FIABLE (dos acciones reales, con su ida y vuelta al
+ * navegador, casi siempre la dejan atrás). Este gancho abre esa ventana a propósito, para
+ * verificar en e2e (a) que el guard de `requestDelete` de `+page.svelte` (`if (deleting) return`)
+ * de verdad ignora una segunda petición mientras la primera sigue en vuelo, y (b) que el trap de
+ * foco del diálogo (fix de code-review) sigue intacto —`Tab` cicla entre sus dos botones— durante
+ * ese mismo tramo. `0`/ausente = sin retraso (comportamiento normal).
  */
 
 import type { AuthChangeReason, BackendPort, Session } from '$lib/backend';
@@ -74,6 +97,13 @@ declare global {
 		 *  una expiración de sesión real (ver cabecera). Se autoconsume (vuelve a `false`) tras
 		 *  disparar, igual que el `'expired'` real de P1 se emite una sola vez. */
 		__VEGA_FORCE_EXPIRE__?: boolean;
+		/** Flag runtime SOLO para Playwright (Fase 4e): mientras sea `true`, `delete()` rechaza con
+		 *  un `VegaError('backend', …)` que emula una restricción de borrado real de PB (ver
+		 *  cabecera). Persistente como `__VEGA_FORCE_NETWORK_ERROR__` (no se autoconsume). */
+		__VEGA_FORCE_DELETE_ERROR__?: boolean;
+		/** Retraso runtime SOLO para Playwright (fix de code-review de 4e, ver cabecera): milisegundos
+		 *  que `delete()` espera antes de delegar en `memory`. `0`/ausente = sin retraso. */
+		__VEGA_DELETE_DELAY_MS__?: number;
 	}
 }
 
@@ -166,6 +196,16 @@ function throwIfForcedNetworkError(): void {
 	}
 }
 
+/** Ver cabecera del módulo (Fase 4e, L-P4.4/Audit H6): emula un `delete()` bloqueado por una
+ *  restricción del backend, `kind: 'backend'` con `message` accionable, mismo mapeo que PB real. */
+function throwIfForcedDeleteError(): void {
+	if (window.__VEGA_FORCE_DELETE_ERROR__) {
+		throw VegaError.backend(
+			'No se pudo borrar: el registro está referenciado por otros registros (forzado por e2e).'
+		);
+	}
+}
+
 /**
  * Envuelve un `BackendPort` `memory` con persistencia de sesión SOLO para la demo/e2e (ver
  * cabecera del módulo). `credentials` son las de la semilla fija: al "restaurar" tras una
@@ -226,6 +266,19 @@ function wrapMemoryPortForDemo(
 			throwIfForcedNetworkError();
 			throwIfForcedExpire();
 			return inner.list(type, query);
+		},
+
+		async delete(type, id) {
+			// Ver cabecera del módulo (Fase 4e): SOLO los ganchos de borrado, deliberadamente sin
+			// `throwIfForcedNetworkError()/throwIfForcedExpire()` — los escenarios de e2e que
+			// necesitan estos flags son "el borrado lo rechaza el backend" y "el borrado tarda lo
+			// suficiente para ejercer el estado `deleting`", no "no hay red"/"la sesión caducó"
+			// (esos ya los cubren los otros dos ganchos en `list`/`login`/`restoreSession`).
+			throwIfForcedDeleteError();
+			if (window.__VEGA_DELETE_DELAY_MS__) {
+				await new Promise((resolve) => setTimeout(resolve, window.__VEGA_DELETE_DELAY_MS__));
+			}
+			return inner.delete(type, id);
 		},
 
 		async login(creds) {

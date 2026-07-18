@@ -40,8 +40,18 @@ export interface ListState {
 	load(ctx: VegaAppContext, type: ResolvedContentType, viewState: ViewState): Promise<void>;
 	/** Repite la ÚLTIMA carga disparada por `load()` (botón "Reintentar" del estado error). No-op
 	 *  si `load()` no se ha llamado todavía (no debería ocurrir: el botón solo existe en `status`
-	 *  `'error'`, que solo se alcanza tras una `load()` previa). */
+	 *  `'error'`, que solo se alcanza tras una `load()` previa). Alias de `reload()` (misma
+	 *  máquina interna, ver más abajo): dos nombres para el mismo gesto, cada uno documentando su
+	 *  disparador real (fallo de carga vs mutación propia). */
 	retry(): void;
+	/** Repite la ÚLTIMA carga (Fase 4e, tras un `port.delete` con éxito): MISMO mecanismo y
+	 *  MISMO anti-carrera (L-P4.10) que `retry()` — de hecho, la misma función interna, ver
+	 *  `repeatLastLoad` más abajo. Si la fila borrada era la última de la página, la recarga trae
+	 *  `items: []` con `totalItems > 0` y el `$effect` de "página fuera de rango" que YA existe en
+	 *  `+page.svelte` (L-P4.13) hace el retroceso: `reload()` no necesita saber nada de eso. No-op
+	 *  si `load()` no se ha llamado todavía (mismo caso límite que `retry()`, en la práctica nunca
+	 *  ocurre: no hay fila que borrar antes de la primera carga). */
+	reload(): void;
 }
 
 /** Construye un `ListState` vacío (arranca en `'loading'`, sin ninguna carga emitida todavía). */
@@ -83,7 +93,9 @@ export function createListState(): ListState {
 		}
 	}
 
-	function retry(): void {
+	/** Máquina interna compartida de `retry()`/`reload()` (ver JSDoc de la interfaz): repite
+	 *  `lastCall` tal cual, reentrando por el mismo `load()` (mismo `RequestSequencer`, L-P4.10). */
+	function repeatLastLoad(): void {
 		if (!lastCall) return;
 		void load(lastCall.ctx, lastCall.type, lastCall.viewState);
 	}
@@ -93,6 +105,7 @@ export function createListState(): ListState {
 			return status;
 		},
 		load,
-		retry
+		retry: repeatLastLoad,
+		reload: repeatLastLoad
 	};
 }

@@ -36,6 +36,17 @@
 	 *   en una columna que nunca puede ordenar. La navegación real (reflejar el resultado en
 	 *   `?sort=&dir=`) la hace `+page.svelte`, TONTO a propósito, mismo reparto que
 	 *   `Pagination.svelte`/`ListToolbar.svelte`.
+	 * - **Columna de acciones (Fase 4e, borrado, L-P4.9/L-P4.11)**: una `<th>`/`<td>` EXTRA al
+	 *   final de la fila, SOLO si `!contentType.readonly` (un tipo `readonly`/vista nunca ofrece
+	 *   borrar, ni el botón ni la columna) — presente en las dos ramas del marcado (con y sin
+	 *   `columns.length === 0`, para no dejar el caso límite sin acción). El botón vive en SU
+	 *   PROPIA `<td>`, nunca dentro de la `<a>` de apertura (L-P4.15): son celdas hermanas, así un
+	 *   click en "Borrar" nunca dispara `openRecord` (ni falta `preventDefault`/`stopPropagation`
+	 *   para lograrlo — la separación estructural ya lo garantiza). Solo EMITE `onDeleteRequest`
+	 *   con el registro y el mismo texto de apertura (`openText`, reutilizado, DRY) que ya se
+	 *   pinta en la celda-título — así el diálogo de confirmación (`DeleteConfirm.svelte`, dueño
+	 *   de `+page.svelte`) puede decir QUÉ se borra sin recalcularlo. Este componente sigue TONTO:
+	 *   no borra nada, no confirma nada, no navega — eso es responsabilidad de `+page.svelte`.
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import { recordRoute } from '$lib/nav/routes';
@@ -55,9 +66,14 @@
 		/** Avisa de un click en la cabecera de `field` (siempre una columna `sortable`); quien
 		 *  escucha decide el próximo estado (`cycleSort`) y navega. */
 		onSort: (field: string) => void;
+		/** Avisa de un click en "Borrar" de una fila (Fase 4e): `label` es el mismo texto que la
+		 *  celda de apertura de esa fila (`openText`, reutilizado). Solo se invoca cuando
+		 *  `!contentType.readonly` (la columna de acciones ni existe si no). Quien escucha decide
+		 *  si abre la confirmación (`+page.svelte`, dueño del diálogo `DeleteConfirm`). */
+		onDeleteRequest: (record: VegaRecord, label: string) => void;
 	}
 
-	let { contentType, columns, records, sort, onSort }: Props = $props();
+	let { contentType, columns, records, sort, onSort, onDeleteRequest }: Props = $props();
 
 	const ctx = getVegaContext();
 
@@ -134,6 +150,9 @@
 						{/if}
 					{/each}
 				{/if}
+				{#if !contentType.readonly}
+					<th scope="col">{ctx.t('list.actions.header')}</th>
+				{/if}
 			</tr>
 		</thead>
 		<tbody>
@@ -174,6 +193,21 @@
 								{/if}
 							</td>
 						{/each}
+					{/if}
+					{#if !contentType.readonly}
+						<!-- Celda HERMANA de la de apertura, nunca anidada en su `<a>` (ver cabecera): un
+						     click aquí no dispara `openRecord` porque no está dentro de ese enlace. -->
+						<td class="vega-record-actions">
+							<button
+								type="button"
+								class="vega-delete-button"
+								data-action="delete"
+								aria-label={ctx.t('list.delete.rowButtonLabel', { label: openText(record) })}
+								onclick={() => onDeleteRequest(record, openText(record))}
+							>
+								{ctx.t('list.delete.rowButton')}
+							</button>
+						</td>
 					{/if}
 				</tr>
 			{/each}
@@ -302,6 +336,31 @@
 
 	.vega-cell-empty {
 		color: var(--vega-color-text-muted);
+	}
+
+	/* Columna de acciones (Fase 4e): no trunca como el resto de `td` (el botón nunca lleva texto
+	   largo) y no queda pegada a la última columna de datos. */
+	.vega-record-actions {
+		max-width: none;
+		overflow: visible;
+		white-space: nowrap;
+		text-align: right;
+	}
+
+	.vega-delete-button {
+		padding: 0.3rem 0.7rem;
+		border: 1px solid var(--vega-color-danger);
+		border-radius: 6px;
+		background: var(--vega-color-danger-bg);
+		color: var(--vega-color-danger);
+		font-size: 0.8rem;
+		font-weight: 500;
+		cursor: pointer;
+	}
+
+	.vega-delete-button:hover {
+		background: var(--vega-color-danger);
+		color: var(--vega-color-bg);
 	}
 
 	.vega-status-badge {

@@ -92,6 +92,17 @@ export const es = {
 		'Ningún registro de "{label}" coincide con la búsqueda o los filtros activos.',
 	'list.emptySearch.clear': 'Limpiar filtros',
 
+	// ————— Borrado (Fase 4e del contrato P4) —————
+	'list.actions.header': 'Acciones',
+	'list.delete.rowButton': 'Borrar',
+	'list.delete.rowButtonLabel': 'Borrar "{label}"',
+	'list.delete.confirmTitle': '¿Borrar este registro?',
+	'list.delete.confirmBody':
+		'"{label}" se borrará de forma permanente. Esta acción no se puede deshacer.',
+	'list.delete.confirm': 'Borrar',
+	'list.delete.deleting': 'Borrando…',
+	'list.delete.success': '"{label}" se ha borrado.',
+
 	// ————— Medios (hueco pre-P6) —————
 	'media.placeholderTitle': 'Los medios llegan en una fase próxima',
 	'media.placeholderBody': 'La biblioteca de medios todavía no está disponible.',

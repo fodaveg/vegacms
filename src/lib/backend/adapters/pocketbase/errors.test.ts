@@ -78,6 +78,28 @@ describe('mapPocketBaseError — 400 con data (§5, campos anidados/desconocidos
 		const mapped = mapPocketBaseError(err, { hadSession: true });
 		expect(mapped.kind).toBe('backend');
 	});
+
+	test('400 de restricción de borrado por relación entrante → backend con message ACCIONABLE de PB (Fase 4e, Audit H6)', () => {
+		// Verificado contra la forma real de PB (§5 de `errors.ts`, mismo texto que documenta
+		// `tests/contract/backend-contract.ts`/`pb-harness/seed.ts`): un `delete()` bloqueado por
+		// una relación `required` entrante responde 400 CON `message` pero SIN `data` por campo —
+		// cae en la misma rama que "petición malformada" de arriba, y esa rama YA preserva
+		// `body.message` tal cual en vez de perderlo: no hace falta tocar `errors.ts` para este
+		// caso (H6 pedía verificarlo, no asumirlo). `kind: 'backend'` es correcto aquí (no hay
+		// `fieldErrors` que ofrecer: la restricción no es de un campo del formulario) y el
+		// `message` de PB ya explica QUÉ pasó, así que `+page.svelte` puede pintarlo tal cual en
+		// `ctx.feedback.reportError` sin traducirlo (nunca `err.cause`, P1 §5).
+		const err = pbError(400, {
+			message:
+				'Failed to delete record. Make sure that the record is not part of a required relation reference.'
+		});
+		const mapped = mapPocketBaseError(err, { hadSession: true });
+		expect(mapped.kind).toBe('backend');
+		expect(mapped.message).toBe(
+			'Failed to delete record. Make sure that the record is not part of a required relation reference.'
+		);
+		expect(mapped.fieldErrors).toBeUndefined();
+	});
 });
 
 describe('mapPocketBaseError — resto de la tabla §5', () => {
