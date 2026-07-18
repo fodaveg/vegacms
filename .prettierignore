@@ -7,3 +7,6 @@ bun.lockb
 
 # Miscellaneous
 /static/
+
+# Worktrees efímeros de agentes (Claude Code)
+.claude/worktrees/

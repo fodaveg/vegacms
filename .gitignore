@@ -1,5 +1,9 @@
 node_modules
 
+# Git worktrees efímeros de agentes (Claude Code): checkouts aislados con sus propios
+# .svelte-kit/build; nunca se commitean y no deben entrar al lint/prettier del árbol principal.
+.claude/worktrees/
+
 # Output
 .output
 .vercel
