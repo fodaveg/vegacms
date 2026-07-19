@@ -39,6 +39,11 @@ export type CollectionFieldSpec =
 			multiple?: boolean;
 			maxSizeBytes?: number;
 			mimeTypes?: string[];
+			// Tamaños de miniatura (sintaxis PB `WxH`/`WxHf`) que PB debe PRE-GENERAR. Opcional
+			// (el Anexo A no lo requería): PB solo sirve miniaturas para los tamaños listados
+			// aquí, cualquier otro tamaño solicitado devuelve el original completo EN SILENCIO
+			// (200, sin imagen rota) — landmine caracterizada en el shakedown C1 (2026-07-19).
+			thumbs?: string[];
 	  }
 	| { name: string; type: 'bool' }
 	| { name: string; type: 'number' }

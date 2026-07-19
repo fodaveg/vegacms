@@ -224,7 +224,10 @@ export function collectionFieldSpecToPbField(spec: CollectionFieldSpec): Record<
 				// generoso por defecto para "multiple"; P6 podrá ajustar con su propio contrato.
 				maxSelect: spec.multiple ? 99 : 1,
 				maxSize: spec.maxSizeBytes ?? 0,
-				mimeTypes: spec.mimeTypes ?? []
+				mimeTypes: spec.mimeTypes ?? [],
+				// `thumbs: []` es inocuo para PB (equivale a omitirlo = sin miniaturas
+				// predefinidas); ver landmine C1 en la cabecera de `CollectionFieldSpec`.
+				thumbs: spec.thumbs ?? []
 			};
 		case 'bool':
 			return { name: spec.name, type: 'bool' };

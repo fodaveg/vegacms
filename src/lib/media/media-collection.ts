@@ -27,6 +27,15 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
  * - `tags`: `json` — lista de etiquetas libres; el picker/filtro de 6b/6e la interpreta.
  * - `created`: `autodate` (onCreate, sin onUpdate) — el campo que habilita "ordenar por más
  *   reciente" en la biblioteca (los ids que genera PB no son ordenables por tiempo).
+ *
+ * `file.thumbs` declara los tres tamaños EXACTOS que Vega solicita en toda la app (landmine C1,
+ * shakedown 2026-07-19): sin ellos, PB devuelve el original completo en cada miniatura (200, sin
+ * error, sin `<img>` roto — despeñaría el ancho de banda en silencio). `300x300` lo pide el
+ * grid propio de `/media` (`MEDIA_GRID_THUMB_SPEC`, `media-thumb.ts`); `120x120`/`28x28` se
+ * declaran de forma DEFENSIVA — la UI actual de `/media` solo pide `300x300`, pero los otros dos
+ * entrarían en juego si un día un picker/listado renderiza `vega_media` con el widget file
+ * (`FileInput.svelte`, 120×120) o en una celda de tabla (`RecordTable.svelte`, 28×28). Los tres
+ * son `crop` → `compileThumbSpec` (`adapters/pocketbase/files.ts`) los compila a `WxH` plano.
  */
 export const VEGA_MEDIA_COLLECTION: CollectionSpec = {
 	name: 'vega_media',
@@ -37,7 +46,8 @@ export const VEGA_MEDIA_COLLECTION: CollectionSpec = {
 			required: true,
 			multiple: false,
 			maxSizeBytes: MAX_FILE_SIZE_BYTES,
-			mimeTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'application/pdf']
+			mimeTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'application/pdf'],
+			thumbs: ['300x300', '120x120', '28x28']
 		},
 		{ name: 'alt', type: 'text' },
 		{ name: 'title', type: 'text' },
@@ -103,7 +113,10 @@ function collectionFieldSpecToPbImportField(
 				required: spec.required ?? false,
 				maxSelect: spec.multiple ? 99 : 1,
 				maxSize: spec.maxSizeBytes ?? 0,
-				mimeTypes: spec.mimeTypes ?? []
+				mimeTypes: spec.mimeTypes ?? [],
+				// `thumbs: []` es inocuo para PB (= sin miniaturas predefinidas); ver
+				// landmine C1 en la cabecera de `CollectionFieldSpec` (`backend/collections.ts`).
+				thumbs: spec.thumbs ?? []
 			};
 		case 'autodate':
 			return {

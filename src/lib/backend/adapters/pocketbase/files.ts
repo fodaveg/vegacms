@@ -34,8 +34,13 @@ export function resolveFileUrl(
  * Compila `ThumbSpec` (libre, del puerto) a la sintaxis `WxH`/`WxHf` de PB (§4.4): la sintaxis
  * de PB NUNCA sube al puerto. `fit: 'crop'` (default de PB) o `'contain'` (sufijo `f`, "fit
  * dentro de la caja sin recortar"). Sin ancho/alto, se usa `0` (PB permite `0xH`/`Wx0`).
+ *
+ * Exportada (pura, sin efectos) para que el test guardarraíl de `media-collection.test.ts` pueda
+ * comprobar que `VEGA_MEDIA_COLLECTION.file.thumbs` incluye el tamaño REAL que compila el grid de
+ * `/media` — sin este guardarraíl, cambiar `MEDIA_GRID_THUMB_SPEC` sin actualizar `thumbs`
+ * reintroduciría la landmine C1 en silencio.
  */
-function compileThumbSpec(spec: ThumbSpec): string {
+export function compileThumbSpec(spec: ThumbSpec): string {
 	const width = spec.width ?? 0;
 	const height = spec.height ?? 0;
 	const suffix = spec.fit === 'contain' ? 'f' : '';

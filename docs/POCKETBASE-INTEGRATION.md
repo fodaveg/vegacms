@@ -164,6 +164,20 @@ Define las reglas de acceso (**Read** y **Write** rules) en PocketBase:
 
 Ver la documentación de PocketBase sobre [rules](https://pocketbase.io/docs/api-rules-and-filters/) para más detalles.
 
+## Miniaturas (thumbnails)
+
+PocketBase genera y sirve miniaturas **solo para los tamaños declarados explícitamente** en la opción **Thumb sizes** (`thumbs`) de cada campo `file`. Si Vega pide un tamaño no declarado, PB responde **200 con el fichero original a tamaño completo** (sin error, sin imagen rota) — un coste silencioso de ancho de banda y memoria que no se detecta a simple vista.
+
+Vega solicita estos tamaños (todos recorte/crop):
+
+- `300x300` — galería `/media`.
+- `120x120` — widget de subida del editor.
+- `28x28` — miniatura de la celda de listado.
+
+La colección `vega_media` que Vega bootstrapea **ya declara estos tres tamaños automáticamente** (vía el JSON de importación de `/media`), así que su galería funciona sin configuración adicional.
+
+**Para tus colecciones de contenido propias** con campos `file` de imagen que edites o listes en Vega: declara en PB (Collections → tu colección → campo `file` → Thumb sizes) al menos `300x300` y `28x28` (y `120x120` si editas ese campo con el widget file), o Vega mostrará el original completo en cada miniatura. Vega **no** añade thumbs retroactivamente a colecciones que no creó.
+
 ## Autenticación en Vega
 
 Vega autentica contra usuarios de PocketBase:
@@ -206,6 +220,7 @@ Ver [Arquitectura](../README.md#estructura-de-la-app) para más contexto.
 - [ ] Prueba de lectura: lista colecciones → debe estar vacía o mostrar datos existentes.
 - [ ] Prueba de escritura: crea un registro → debe aparecer en PocketBase admin.
 - [ ] Si hay múltiples consumidores (Astro + Vega): verifica que ambos ven los mismos datos.
+- [ ] Los campos `file` de imagen declaran los tamaños de thumb (`300x300`/`120x120`/`28x28`) que Vega pide (ver [Miniaturas](#miniaturas-thumbnails)).
 
 ## Troubleshooting
 

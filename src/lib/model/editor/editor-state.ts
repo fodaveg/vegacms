@@ -122,7 +122,10 @@ function collectionFieldSpecToPbImportField(
 				type: 'file',
 				maxSelect: spec.multiple ? 99 : 1,
 				maxSize: spec.maxSizeBytes ?? 0,
-				mimeTypes: spec.mimeTypes ?? []
+				mimeTypes: spec.mimeTypes ?? [],
+				// `VEGA_COLLECTION` no tiene campo file hoy, pero mantiene el switch coherente
+				// con el vocabulario COMPLETO de `CollectionFieldSpec` (thumbs, landmine C1).
+				thumbs: spec.thumbs ?? []
 			};
 		case 'autodate':
 			// `VEGA_COLLECTION` no usa `autodate` hoy, pero el switch debe seguir siendo
