@@ -32,13 +32,19 @@
 	 * - **Sin identidad (widget fuera de un `RecordForm`, degradado, ver `record-context.ts`)**:
 	 *   `previewSrcFor` devuelve `null` para una `FileRef` (nada que mostrar, cae a chip); un
 	 *   `File` nuevo se sigue previsualizando igual (no depende de la identidad).
-	 * - **Punto de extensión P6 (D-P5.10, "picker de biblioteca")**: HOY `ctx` no expone ningún
-	 *   `mediaPicker` — la costura NO se implementa aquí (fuera de alcance de F5-f), pero queda
-	 *   documentada: cuando P6 añada `ctx.mediaPicker?.pick(field)` a `VegaAppContext`, un botón
-	 *   "Elegir de la biblioteca" en este mismo widget llamaría a esa función y mezclaría el/los
-	 *   `FileRef` resultante(s) en `value` por el MISMO `onChange` (`addFilesToMultiple`/
-	 *   `setSingleFile` no aplican ahí — un `FileRef` de biblioteca no pasa por validación de
-	 *   tamaño/tipo cliente, ya vive en el backend), sin tocar el resto del widget.
+	 * - **Picker de biblioteca (Fase P6·6e, D-P6.6, cablea el punto de extensión que F5-f dejó
+	 *   documentado)**: si `ctx.mediaPicker` existe, un botón "Elegir de la biblioteca" abre
+	 *   `MediaPicker.svelte` (montado UNA vez en el shell, `+layout.svelte`) vía
+	 *   `ctx.mediaPicker.open({ multiple, accept: schema.mimeTypes })`. Su AUSENCIA
+	 *   (`ctx.mediaPicker` `undefined`) oculta el botón SIN error (L-P6.9): el resto del widget
+	 *   sigue funcionando IDÉNTICO. **INVARIANTE L-P6.8 (no negociable)**: el picker devuelve
+	 *   `MediaPickResult[]` (`{file, mediaId, alt}`) — SOLO `result.file` (un `File` real, bytes ya
+	 *   descargados) entra en `value`, por el MISMO camino que una subida nueva
+	 *   (`addFilesToMultiple`/`setSingleFile`, `applyNewFiles` más abajo); `mediaId` NUNCA se
+	 *   persiste (recrearía la referencia fantasma que el audit H3 declara inexistente para
+	 *   `filePerRecord`) y `alt` se IGNORA (este widget edita un campo `file` de un registro de
+	 *   usuario, que no tiene por contrato un campo `alt` propio asociado — [SUP-5], decisión: sin
+	 *   dónde ponerlo, no se fuerza).
 	 *
 	 * LANDMINE (object URLs): un `$effect` reconcilia `objectUrls` cada vez que `items` cambia —
 	 * revoca cualquier entrada cuyo `File` ya no aparezca en el value actual (cubre TANTO quitar un
@@ -145,10 +151,16 @@
 		rejectionMessage = rejections.length > 0 ? rejections.map(messageFor).join(' ') : null;
 	}
 
-	function handleFiles(fileList: FileList | null): void {
-		if (addDisabled || !schema) return;
-		const files = fileList ? Array.from(fileList) : [];
-		if (files.length === 0) return;
+	/**
+	 * Núcleo compartido de "añadir ficheros nuevos" (Fase P6·6e, fix code-review): subida
+	 * directa/drag&drop (`handleFiles`) Y el picker de biblioteca (`handlePickFromLibrary`) llegan
+	 * aquí con un `File[]` ya en mano — cada `File` pasa por la MISMA validación cliente
+	 * (`addFilesToMultiple`/`setSingleFile`, `maxSizeBytes`/`mimeTypes`/`maxSelect`), sin importar
+	 * si vino de `<input type="file">`, un `drop` o la biblioteca (INVARIANTE L-P6.8: el picker
+	 * entrega `File`, nunca un `FileRef` ajeno, así que este único camino de escritura basta).
+	 */
+	function applyNewFiles(files: File[]): void {
+		if (addDisabled || !schema || files.length === 0) return;
 
 		if (multiple) {
 			const current = Array.isArray(value) ? (value as FileItem[]) : [];
@@ -156,8 +168,8 @@
 			applyRejections(outcome.rejections);
 			onChange(outcome.value);
 		} else {
-			// Un `<input>` no-múltiple nunca entrega más de un fichero; un `drop` sí podría — solo
-			// se considera el primero (mismo criterio que el propio input nativo).
+			// Un `<input>` no-múltiple nunca entrega más de un fichero; un `drop`/el picker sí
+			// podrían — solo se considera el primero (mismo criterio que el propio input nativo).
 			const current = (value ?? null) as FileItem | null;
 			const outcome = setSingleFile(schema, current, files[0]);
 			applyRejections(outcome.rejections);
@@ -165,10 +177,35 @@
 		}
 	}
 
+	function handleFiles(fileList: FileList | null): void {
+		applyNewFiles(fileList ? Array.from(fileList) : []);
+	}
+
 	function handleInputChange(event: Event): void {
 		const input = event.currentTarget as HTMLInputElement;
 		handleFiles(input.files);
 		input.value = ''; // permite re-seleccionar el MISMO fichero (si se quitó) y dispara `change`
+	}
+
+	// ————— Picker de biblioteca (Fase P6·6e, D-P6.6) —————
+
+	/** `true` mientras `ctx.mediaPicker.open(...)` está en vuelo: deshabilita el botón para evitar
+	 *  una segunda apertura mientras la primera sigue sin resolver (el store la cancelaría de
+	 *  todos modos, `media-picker-state.svelte.ts`, pero un botón inerte es más honesto). */
+	let pickingFromLibrary = $state(false);
+
+	async function handlePickFromLibrary(): Promise<void> {
+		if (!ctx.mediaPicker || addDisabled || !schema || pickingFromLibrary) return;
+		pickingFromLibrary = true;
+		try {
+			const results = await ctx.mediaPicker.open({ multiple, accept: schema.mimeTypes });
+			// `null` = cancelado (D-P6.6); un array vacío no debería llegar nunca (el picker exige
+			// al menos un elegido para habilitar "Insertar"), pero `applyNewFiles` ya es un no-op
+			// con `files.length === 0` — defensivo, no hace falta un guard explícito aquí.
+			if (results) applyNewFiles(results.map((r) => r.file));
+		} finally {
+			pickingFromLibrary = false;
+		}
 	}
 
 	function handleDragOver(event: DragEvent): void {
@@ -247,6 +284,19 @@
 		<p class="vega-file-hint">{ctx.t('form.file.dropHint')}</p>
 	</div>
 
+	{#if ctx.mediaPicker}
+		<!-- Fase P6·6e (D-P6.6, L-P6.9): oculto por completo sin `ctx.mediaPicker` — nunca un botón
+		     deshabilitado sin explicación. -->
+		<button
+			type="button"
+			class="vega-file-pick-library"
+			onclick={handlePickFromLibrary}
+			disabled={addDisabled || pickingFromLibrary}
+		>
+			{ctx.t('form.file.pickFromLibrary')}
+		</button>
+	{/if}
+
 	{#if rejectionMessage}
 		<p id={rejectionId} class="vega-file-rejection" role="alert">{rejectionMessage}</p>
 	{/if}
@@ -315,6 +365,25 @@
 
 	.vega-file-input:disabled {
 		cursor: not-allowed;
+	}
+
+	/* Botón del picker de biblioteca (Fase P6·6e): mismo tratamiento que un botón secundario del
+	   resto del formulario (`.vega-file-remove` es un link-button, este SÍ tiene borde propio —
+	   es una acción de nivel de campo, no una acción "sobre un item" ya añadido). */
+	.vega-file-pick-library {
+		align-self: flex-start;
+		padding: 0.4rem 0.8rem;
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		background: var(--surface-2);
+		color: var(--ink);
+		font-size: 0.85rem;
+		cursor: pointer;
+	}
+
+	.vega-file-pick-library:disabled {
+		cursor: not-allowed;
+		opacity: 0.6;
 	}
 
 	.vega-file-hint {

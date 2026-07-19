@@ -15,6 +15,7 @@ import type { BackendPort, RecordId, Session, VegaError } from '$lib/backend';
 import type { ContentModel } from '$lib/model/types';
 import type { Locale } from '$lib/i18n';
 import type { IconRegistry } from '$lib/icons/registry';
+import type { MediaPickResult } from '$lib/media/media-picker';
 
 export type { IconRegistry };
 
@@ -45,6 +46,16 @@ export interface FeedbackApi {
 	reportError(err: VegaError, ctx?: { action?: string }): void;
 }
 
+/**
+ * Servicio del picker de biblioteca (Fase P6·6e, D-P6.6): el punto de extensión que la cabecera de
+ * `FileInput.svelte` (F5-f) ya anticipaba. `open()` devuelve los assets elegidos como
+ * `MediaPickResult[]` (copia de bytes, INVARIANTE L-P6.8 — ver `$lib/media/media-picker.ts`) o
+ * `null` si el usuario cancela.
+ */
+export interface MediaPickerService {
+	open(opts: { multiple: boolean; accept?: string[] }): Promise<MediaPickResult[] | null>;
+}
+
 /** El contrato completo que P3 publica en contexto y P4/P5/P6 consumen (§2.1). */
 export interface VegaAppContext {
 	/** El puerto YA autenticado (P3 garantiza sesión válida dentro de rutas protegidas). */
@@ -72,10 +83,25 @@ export interface VegaAppContext {
 	 * el guard devuelve `true` = puede salir.
 	 */
 	registerExitGuard(guard: () => boolean | Promise<boolean>): () => void;
+	/**
+	 * El picker de biblioteca (Fase P6·6e, D-P6.6), OPCIONAL: el shell lo publica SIEMPRE (montaje
+	 * ÚNICO de `<MediaPicker>` en `+layout.svelte`, L-P6.11), pero la interfaz lo deja opcional
+	 * para que un consumidor de `FileInput.svelte` fuera del árbol estándar del shell (hoy no se da
+	 * en producción, pero el tipo no debe asumirlo) siga funcionando: su ausencia oculta el botón
+	 * "Elegir de la biblioteca" SIN error (L-P6.9), nunca revienta.
+	 */
+	mediaPicker?: MediaPickerService;
 }
 
-/** Clave de contexto de Svelte, un símbolo para no colisionar con contexto de terceros. */
-const VEGA_CONTEXT_KEY = Symbol('vega-app-context');
+/**
+ * Clave de contexto de Svelte, un símbolo para no colisionar con contexto de terceros. Exportada
+ * (Fase P6·6e) ÚNICAMENTE para que un test de componente pueda inyectar un `VegaAppContext` de
+ * mentira vía `mount(Componente, { context: new Map([[VEGA_CONTEXT_KEY, fakeCtx]]) })` (Svelte 5,
+ * `FileInput.dom.test.ts`) sin montar el árbol completo del shell — nadie en `src/routes/**`/
+ * `$lib/**` debe usarla directamente, `setVegaContext`/`getVegaContext` siguen siendo el ÚNICO
+ * camino en producción.
+ */
+export const VEGA_CONTEXT_KEY = Symbol('vega-app-context');
 
 /** Publica el `VegaAppContext` para que los componentes descendientes lo lean con `getVegaContext()`. */
 export function setVegaContext(context: VegaAppContext): void {

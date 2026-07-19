@@ -20,6 +20,12 @@
 	 * Tab como cualquier otra colección de controles. El `<img>` lleva `alt` = el `alt` del asset o,
 	 * si está vacío, el nombre de fichero (`mediaImgAlt`, contrato P6 §6b) — nunca `alt=""` (sería
 	 * la única pista para quien no ve la miniatura).
+	 *
+	 * **`isSelected` (Fase P6·6e, opcional, REUTILIZADO por `MediaPicker.svelte`)**: `/media/
+	 * +page.svelte` (6b/6d) sigue sin pasarlo — cada click ahí abre `MediaDetail`, ninguna celda se
+	 * marca "seleccionada". `MediaPicker.svelte` sí lo pasa (compone este mismo grid en vez de
+	 * clonarlo, contrato P6): pinta `aria-pressed`/un borde de acento en la celda elegida, la
+	 * afordancia de selección 1..N del picker.
 	 */
 	import { SvelteSet } from 'svelte/reactivity';
 	import { getVegaContext } from '$lib/app-context';
@@ -30,9 +36,12 @@
 	interface Props {
 		items: MediaItemView[];
 		onSelect: (item: MediaItemView) => void;
+		/** `true` si `item` está seleccionado (Fase P6·6e, ver cabecera). `undefined` = ninguna
+		 *  celda se marca (comportamiento de 6b/6d, sin cambios). */
+		isSelected?: (item: MediaItemView) => boolean;
 	}
 
-	let { items, onSelect }: Props = $props();
+	let { items, onSelect, isSelected }: Props = $props();
 
 	const ctx = getVegaContext();
 
@@ -59,6 +68,8 @@
 				class="vega-media-cell"
 				data-media-item={item.id}
 				data-media-kind={src ? 'image' : 'other'}
+				data-media-selected={isSelected?.(item) ? 'true' : undefined}
+				aria-pressed={isSelected ? isSelected(item) : undefined}
 				onclick={() => onSelect(item)}
 			>
 				<span class="vega-media-thumb-wrap">
@@ -106,6 +117,13 @@
 
 	.vega-media-cell:hover {
 		border-color: var(--line-strong);
+	}
+
+	/* Selección del picker (Fase P6·6e): borde de acento, mismo token que el resto de estados
+	   "elegido" del chrome (`--accent`, §3). */
+	.vega-media-cell[data-media-selected='true'] {
+		border-color: var(--accent);
+		box-shadow: inset 0 0 0 1px var(--accent);
 	}
 
 	.vega-media-thumb-wrap {

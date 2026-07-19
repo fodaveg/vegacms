@@ -106,6 +106,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'form.file.tooLarge': '«{name}» is too large.',
 	'form.file.invalidType': '«{name}» is not an allowed file type.',
 	'form.file.tooMany': '«{name}» was not added: file limit reached.',
+	// Phase P6·6e (D-P6.6): button that opens `MediaPicker.svelte`. Fully hidden without
+	// `ctx.mediaPicker` (L-P6.9), never shown disabled without explanation.
+	'form.file.pickFromLibrary': 'Choose from the library',
 
 	// ————— Richtext/markdown editor (P5 contract, Phase F5-d) —————
 	'form.editor.toolbarLabel': 'Formatting tools',
@@ -213,6 +216,18 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.upload.aborted':
 		'upload cancelled: an earlier file in the batch failed (connection/permission)',
 	'media.upload.summary': '{uploaded} file(s) uploaded, {failed} failed.',
+
+	// ————— Media: library picker (Phase P6·6e) —————
+	// D-P6.6/L-P6.8: the picker COPIES bytes (a record never references a `vega_media` asset), so
+	// the notice is honest about exactly that (D-P6.7, byte duplication is accepted in v1).
+	'media.picker.title': 'Choose from the library',
+	'media.picker.copyNotice': 'A copy of the chosen file will be inserted into this field.',
+	'media.picker.searchLabel': 'Search by title or alt text',
+	'media.picker.searchPlaceholder': 'Search…',
+	'media.picker.empty': 'No asset matches the search or the allowed file type.',
+	'media.picker.selectedCount': '{count} selected',
+	'media.picker.insert': 'Insert',
+	'media.picker.inserting': 'Inserting…',
 
 	// ————— Warnings (P2's L10) —————
 	'warnings.title': 'Model warnings',

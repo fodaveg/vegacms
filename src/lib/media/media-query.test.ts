@@ -22,6 +22,35 @@ describe('buildMediaListQuery', () => {
 	test('respeta la página pedida', () => {
 		expect(buildMediaListQuery(3)).toMatchObject({ page: 3, perPage: MEDIA_PER_PAGE });
 	});
+
+	test('sin `opts` (o `search` en blanco/ausente): sin filtro, idéntico a antes de 6e', () => {
+		expect(buildMediaListQuery(1, {})).toEqual(buildMediaListQuery(1));
+		expect(buildMediaListQuery(1, { search: '' })).toEqual(buildMediaListQuery(1));
+		expect(buildMediaListQuery(1, { search: '   ' })).toEqual(buildMediaListQuery(1));
+		expect(buildMediaListQuery(1)).not.toHaveProperty('filter');
+	});
+
+	test('con `search` no-vacío (Fase P6·6e): filtro OR `contains` sobre alt/title', () => {
+		expect(buildMediaListQuery(1, { search: 'playa' })).toEqual({
+			filter: {
+				kind: 'group',
+				combinator: 'or',
+				nodes: [
+					{ kind: 'cond', field: 'alt', op: 'contains', value: 'playa' },
+					{ kind: 'cond', field: 'title', op: 'contains', value: 'playa' }
+				]
+			},
+			sort: [{ field: 'created', dir: 'desc' }],
+			page: 1,
+			perPage: MEDIA_PER_PAGE
+		});
+	});
+
+	test('`search` se recorta antes de filtrar/comparar contra vacío', () => {
+		expect(buildMediaListQuery(1, { search: '  playa  ' })).toEqual(
+			buildMediaListQuery(1, { search: 'playa' })
+		);
+	});
 });
 
 describe('parseMediaPage (tolerante, nunca lanza)', () => {

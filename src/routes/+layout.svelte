@@ -23,6 +23,10 @@
 	 *   siendo las pantallas completas de más abajo (§3.1.1).
 	 * - `'auth-expired'` no toca ninguno de los dos: `ReloginModal` reacciona directamente a
 	 *   `sessionStore.expired`, que `onAuthChange('expired')` ya marca (session.svelte.ts, §3.1.3).
+	 * - `MediaPicker` (Fase P6·6e, L-P6.11) se monta en el mismo sitio, por el mismo motivo: es el
+	 *   picker de biblioteca que embebe el widget `file` de P5, montaje ÚNICO para toda la app —
+	 *   `ctx.mediaPicker.open(...)` (`mediaPickerState`, patrón promise-based) es la única costura
+	 *   entre quien lo abre y este componente, ninguno de los dos conoce al otro directamente.
 	 */
 	import favicon from '$lib/assets/favicon.svg';
 	// El CSS generado del motor P7 define los tokens §3 (`--bg`/`--ink`/`--accent`/…) por
@@ -56,8 +60,10 @@
 	import ToastHost from '$lib/shell/ToastHost.svelte';
 	import GlobalBanner from '$lib/shell/GlobalBanner.svelte';
 	import ReloginModal from '$lib/shell/ReloginModal.svelte';
+	import MediaPicker from '$lib/media/MediaPicker.svelte';
 	import { toastStore } from '$lib/shell/toasts.svelte';
 	import { transportFeedback } from '$lib/shell/transport-feedback.svelte';
+	import { mediaPickerState } from '$lib/media/media-picker-state.svelte';
 
 	let { children } = $props();
 
@@ -232,7 +238,11 @@
 		},
 		nav,
 		feedback,
-		registerExitGuard
+		registerExitGuard,
+		// Fase P6·6e (D-P6.6/L-P6.11): el shell SIEMPRE lo publica (montaje único de `<MediaPicker>`
+		// más abajo, fuera del árbol condicional) — `mediaPickerState.open` es directamente la
+		// implementación (patrón promise-based, `media-picker-state.svelte.ts`).
+		mediaPicker: { open: mediaPickerState.open }
 	});
 
 	onMount(() => {
@@ -259,6 +269,20 @@
 
 	afterNavigate(() => {
 		routerReady = true;
+	});
+
+	// Fix de code-review de P6·6e (🟡): `<MediaPicker>` vive FUERA del árbol de rutas (L-P6.11,
+	// montado más abajo) — nada cancelaba una petición `ctx.mediaPicker.open(...)` en vuelo si el
+	// usuario navegaba (SPA) mientras el diálogo seguía abierto. Sin esto, un "Insertar" pulsado
+	// tras navegar resolvía la promesa sobre un `FileInput` YA DESMONTADO (closure huérfana): no
+	// corrompe datos (el `onChange` de un componente desmontado es un no-op de Svelte), pero es un
+	// "dead click" — el modal seguiría visible tapando la vista nueva hasta que el usuario lo
+	// cerrara a mano. `afterNavigate` (mismo hook que fija `routerReady` arriba, P3-L9) cierra
+	// cualquier picker abierto en CADA navegación, resolviendo `null` (D-P6.6, "cancelar"): el
+	// widget de origen (si sigue montado) no añade nada; si ya se desmontó, el `settle` es un no-op
+	// seguro sobre una petición que ya no le importa a nadie.
+	afterNavigate(() => {
+		mediaPickerState.settle(null);
 	});
 
 	// Guard de rutas (§2.4, §3.1, P3-L9): NUNCA navega antes de que el router esté listo.
@@ -355,6 +379,7 @@
 <ToastHost />
 <GlobalBanner />
 <ReloginModal />
+<MediaPicker />
 
 <style>
 	.vega-global-state {

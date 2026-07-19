@@ -554,3 +554,212 @@ test.describe('/media borrado de un asset (contrato P6, Fase 6d)', () => {
 		});
 	});
 });
+
+/**
+ * Suite del picker de biblioteca (contrato P6, Fase P6·6e): el botón "Elegir de la biblioteca" del
+ * widget `file` de P5 (`FileInput.svelte`) embebiendo `MediaPicker.svelte` — mismo
+ * `DEMO_SEED_WITH_MEDIA` que el resto de este fichero (3 assets: `media_1` pdf, `media_2`/`media_3`
+ * imágenes), sobre los campos file de `posts` (`coverImage` single+`mimeTypes:['image/*']`,
+ * `attachments` múltiple sin restricción de mime — semilla F5-f, `session/demo-seed.ts`).
+ */
+test.describe('widget file: picker de biblioteca (contrato P6, Fase P6·6e)', () => {
+	async function loginWithMediaSeed(page: import('@playwright/test').Page): Promise<void> {
+		await loginAsDemo(page, { seedMedia: true });
+		await page.waitForURL('**/c/site_info/new');
+	}
+
+	test('single (coverImage, accept image/*): filtra el pdf; Insertar añade una COPIA con FileRef propio que sobrevive a borrar el original', async ({
+		page
+	}) => {
+		await loginWithMediaSeed(page);
+		await page.goto('/c/posts/new');
+		await page.getByLabel('Title').fill('Post con picker de biblioteca');
+
+		const field = page.locator('[data-field="coverImage"]');
+		await field.getByRole('button', { name: 'Elegir de la biblioteca', exact: true }).click();
+
+		const dialog = page.getByRole('dialog', { name: 'Elegir de la biblioteca' });
+		await expect(dialog).toBeVisible();
+
+		// Filtro `accept` CLIENTE (audit H1): `mimeTypes: ['image/*']` de `coverImage` deja fuera el
+		// pdf (`media_1`), aunque el backend nunca lo filtró.
+		await expect(dialog.locator('[data-media-item]')).toHaveCount(2);
+		await expect(dialog.locator('[data-media-item="media_1"]')).toHaveCount(0);
+
+		await dialog.locator('[data-media-item="media_2"]').click();
+		await expect(dialog.locator('[data-media-item="media_2"]')).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+
+		await dialog.getByRole('button', { name: 'Insertar', exact: true }).click();
+		await expect(dialog).not.toBeVisible();
+
+		// Se añadió como `File` NUEVO (mismo camino que subir a mano): preview de object URL, un
+		// `<img>` real.
+		await expect(field.locator('img.vega-file-thumb')).toBeVisible();
+
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+
+		// Persistido: la preview ahora sale de `ctx.port.fileUrl` (memory: data-URI), no del object
+		// URL de antes.
+		const savedField = page.locator('[data-field="coverImage"]');
+		const src = await savedField.locator('img.vega-file-thumb').getAttribute('src');
+		expect(src).toMatch(/^data:image\/png/);
+
+		// INVARIANTE L-P6.8 (copia, no referencia): navega a /media, borra el asset ORIGINAL
+		// (`media_2`) de la biblioteca, y confirma que la copia del post SIGUE viéndose al volver —
+		// borrar el original nunca rompe una copia ya insertada (D-P6.5).
+		await page.getByRole('link', { name: 'Medios', exact: false }).click();
+		await page.waitForURL('**/media');
+		await page.locator('[data-media-item="media_2"]').click();
+		await page
+			.getByRole('dialog', { name: 'Editar medio' })
+			.getByRole('button', { name: 'Borrar', exact: true })
+			.click();
+		await page
+			.getByRole('alertdialog')
+			.getByRole('button', { name: 'Borrar', exact: true })
+			.click();
+		await expect(page.getByText('se ha borrado de la biblioteca')).toBeVisible();
+
+		// Vuelve al post (SPA, historial del router — nunca `page.goto()`/`page.reload()`, ver nota
+		// de cabecera de `e2e/form.spec.ts`: el adaptador `memory` no sobrevive a una carga dura).
+		await page.goBack();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+		const reloadedField = page.locator('[data-field="coverImage"]');
+		await expect(reloadedField.locator('img.vega-file-thumb')).toBeVisible();
+		await expect(reloadedField.locator('img.vega-file-thumb')).toHaveAttribute('src', src ?? '');
+	});
+
+	test('single: elegir OTRO asset antes de "Insertar" reemplaza la selección (selección única)', async ({
+		page
+	}) => {
+		await loginWithMediaSeed(page);
+		await page.goto('/c/posts/new');
+		await page.getByLabel('Title').fill('Post con selección única');
+
+		const field = page.locator('[data-field="coverImage"]');
+		await field.getByRole('button', { name: 'Elegir de la biblioteca', exact: true }).click();
+		const dialog = page.getByRole('dialog', { name: 'Elegir de la biblioteca' });
+
+		const first = dialog.locator('[data-media-item="media_2"]');
+		const second = dialog.locator('[data-media-item="media_3"]');
+		await first.click();
+		await expect(first).toHaveAttribute('aria-pressed', 'true');
+
+		await second.click();
+		await expect(second).toHaveAttribute('aria-pressed', 'true');
+		await expect(first).toHaveAttribute('aria-pressed', 'false');
+
+		await dialog.getByRole('button', { name: 'Insertar', exact: true }).click();
+		await expect(dialog).not.toBeVisible();
+		// Un ÚNICO fichero en el campo (single, no acumula el reemplazado).
+		await expect(field.locator('img.vega-file-thumb')).toHaveCount(1);
+	});
+
+	test('Cancelar no añade nada: el campo sigue vacío', async ({ page }) => {
+		await loginWithMediaSeed(page);
+		await page.goto('/c/posts/new');
+		await page.getByLabel('Title').fill('Post con cancelar el picker');
+
+		const field = page.locator('[data-field="coverImage"]');
+		await field.getByRole('button', { name: 'Elegir de la biblioteca', exact: true }).click();
+		const dialog = page.getByRole('dialog', { name: 'Elegir de la biblioteca' });
+
+		await dialog.locator('[data-media-item="media_2"]').click();
+		await dialog.getByRole('button', { name: 'Cancelar', exact: true }).click();
+		await expect(dialog).not.toBeVisible();
+
+		await expect(field.locator('img.vega-file-thumb')).toHaveCount(0);
+		await expect(field.locator('.vega-file-empty')).toBeVisible();
+	});
+
+	test('múltiple (attachments, sin accept): seleccionar 2 e insertar añade AMBOS ficheros nuevos', async ({
+		page
+	}) => {
+		await loginWithMediaSeed(page);
+		await page.goto('/c/posts/new');
+		await page.getByLabel('Title').fill('Post con picker múltiple');
+
+		const field = page.locator('[data-field="attachments"]');
+		await field.getByRole('button', { name: 'Elegir de la biblioteca', exact: true }).click();
+		const dialog = page.getByRole('dialog', { name: 'Elegir de la biblioteca' });
+
+		// Sin `accept` (attachments no restringe mime): los 3 assets sembrados aparecen, pdf incluido.
+		await expect(dialog.locator('[data-media-item]')).toHaveCount(3);
+
+		await dialog.locator('[data-media-item="media_2"]').click();
+		await dialog.locator('[data-media-item="media_3"]').click();
+		await expect(dialog.locator('[data-media-item="media_2"]')).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+		await expect(dialog.locator('[data-media-item="media_3"]')).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+
+		await dialog.getByRole('button', { name: 'Insertar', exact: true }).click();
+		await expect(dialog).not.toBeVisible();
+
+		// Ambas imágenes entran como `File` nuevo (clasificadas por mime real, no por extensión):
+		// dos thumbs, no chips.
+		await expect(field.locator('img.vega-file-thumb')).toHaveCount(2);
+	});
+
+	test('navegar (SPA, browser back) con el picker abierto lo cierra solo: sin "dead click" flotando tras volver (fix de code-review 6e)', async ({
+		page
+	}) => {
+		await loginWithMediaSeed(page);
+
+		// Llega a `/c/posts/post_1` por clics REALES (SPA), para que `page.goBack()` de más abajo
+		// tenga una entrada de historial de verdad a la que volver — nunca `page.goto()` a mitad de
+		// test (sería una carga DURA, ver nota de cabecera de `e2e/form.spec.ts`).
+		await page.getByRole('link', { name: 'Entradas' }).click();
+		await page.waitForURL('**/c/posts');
+		await page.getByRole('link', { name: 'Bienvenido a Vega' }).click();
+		await page.waitForURL('**/c/posts/post_1');
+
+		const field = page.locator('[data-field="coverImage"]');
+		await field.getByRole('button', { name: 'Elegir de la biblioteca', exact: true }).click();
+		const dialog = page.getByRole('dialog', { name: 'Elegir de la biblioteca' });
+		await expect(dialog).toBeVisible();
+
+		// A mitad de gesto (elegido, sin llegar a pulsar "Insertar") — el caso real que motivó el
+		// fix: una petición `open()` en vuelo cuando el usuario navega.
+		await dialog.locator('[data-media-item="media_2"]').click();
+
+		// `page.goBack()` (botón de atrás del navegador, NUNCA un clic dentro de la página — el
+		// backdrop del modal bloquea cualquier clic de fondo, así que esta es la única vía real por
+		// la que un usuario navega con el diálogo abierto): SvelteKit lo intercepta como navegación
+		// SPA (mismo `afterNavigate` que el resto del router), sin recargar el documento.
+		await page.goBack();
+		await page.waitForURL('**/c/posts');
+
+		// El picker se cerró SOLO (`afterNavigate` → `mediaPickerState.settle(null)`,
+		// `+layout.svelte`): no queda flotando sobre la vista nueva, tapándola.
+		await expect(dialog).toHaveCount(0);
+	});
+
+	test('buscador (server-side, alt/title): filtra a los assets que coinciden', async ({ page }) => {
+		await loginWithMediaSeed(page);
+		await page.goto('/c/posts/new');
+		await page.getByLabel('Title').fill('Post con búsqueda en el picker');
+
+		const field = page.locator('[data-field="attachments"]');
+		await field.getByRole('button', { name: 'Elegir de la biblioteca', exact: true }).click();
+		const dialog = page.getByRole('dialog', { name: 'Elegir de la biblioteca' });
+		await expect(dialog.locator('[data-media-item]')).toHaveCount(3);
+
+		// `media_2.title === 'Foto de portada'`: único que coincide con "portada".
+		await dialog.getByLabel('Buscar por título o texto alternativo').fill('portada');
+		await expect(dialog.locator('[data-media-item]')).toHaveCount(1);
+		await expect(dialog.locator('[data-media-item="media_2"]')).toBeVisible();
+
+		// Vaciar el buscador restaura los 3.
+		await dialog.getByLabel('Buscar por título o texto alternativo').fill('');
+		await expect(dialog.locator('[data-media-item]')).toHaveCount(3);
+	});
+});

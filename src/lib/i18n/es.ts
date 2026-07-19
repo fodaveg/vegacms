@@ -113,6 +113,9 @@ export const es = {
 	'form.file.tooLarge': '«{name}» es demasiado grande.',
 	'form.file.invalidType': '«{name}» no es un tipo de fichero permitido.',
 	'form.file.tooMany': '«{name}» no se añadió: se alcanzó el máximo de ficheros.',
+	// Fase P6·6e (D-P6.6): botón que abre `MediaPicker.svelte`. Oculto por completo sin
+	// `ctx.mediaPicker` (L-P6.9), nunca deshabilitado sin explicación.
+	'form.file.pickFromLibrary': 'Elegir de la biblioteca',
 
 	// ————— Editor richtext/markdown (Fase F5-d del contrato P5) —————
 	'form.editor.toolbarLabel': 'Herramientas de formato',
@@ -221,6 +224,18 @@ export const es = {
 	'media.upload.aborted':
 		'subida cancelada: un fichero anterior del lote falló por conexión/permiso',
 	'media.upload.summary': '{uploaded} fichero(s) subido(s), {failed} fallido(s).',
+
+	// ————— Medios: picker de biblioteca (Fase P6·6e) —————
+	// D-P6.6/L-P6.8: el picker COPIA bytes (nunca referencia un `vega_media` desde un registro),
+	// así que el aviso es honesto sobre eso mismo (D-P6.7, la duplicación de bytes se acepta en v1).
+	'media.picker.title': 'Elegir de la biblioteca',
+	'media.picker.copyNotice': 'Se insertará una copia del fichero elegido en este campo.',
+	'media.picker.searchLabel': 'Buscar por título o texto alternativo',
+	'media.picker.searchPlaceholder': 'Buscar…',
+	'media.picker.empty': 'Ningún asset coincide con la búsqueda o el tipo de fichero admitido.',
+	'media.picker.selectedCount': '{count} elegido(s)',
+	'media.picker.insert': 'Insertar',
+	'media.picker.inserting': 'Insertando…',
 
 	// ————— Warnings (L10 de P2) —————
 	'warnings.title': 'Avisos del modelo',

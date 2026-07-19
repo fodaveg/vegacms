@@ -10,6 +10,12 @@
  * mapeo de error, L-P4.10): son utilidades genéricas de "cualquier listado paginado contra el
  * puerto", no acopladas al modelo de contenido de P4 — el mismo criterio que reutilizar
  * `Pagination.svelte` (contrato P6 §"grid de vega_media").
+ *
+ * **`search` (Fase P6·6e, opcional)**: `load(ctx, page, search)` reenvía `search` a
+ * `buildMediaListQuery` (ver su cabecera) — lo usa `MediaPicker.svelte` (buscador del picker de
+ * biblioteca); `/media/+page.svelte` (6b/6d) sigue llamando `load(ctx, page)` sin él, mismo
+ * comportamiento que antes de 6e. `retry()`/`reload()` repiten `search` junto con `page` (parte de
+ * `lastCall`), para que "Reintentar" tras un fallo del picker no pierda el término tecleado.
  */
 
 import { VegaError } from '$lib/backend/errors';
@@ -25,10 +31,10 @@ export type MediaListStatus =
 
 export interface MediaListState {
 	readonly status: MediaListStatus;
-	/** Dispara una carga de `vega_media` para `page` (1-based). Anti-carrera: una respuesta que ya
-	 *  no es la última emitida se descarta sin tocar `status`. `auth-expired` va SOLO al overlay
-	 *  global (§2.3), nunca al estado local. */
-	load(ctx: VegaAppContext, page: number): Promise<void>;
+	/** Dispara una carga de `vega_media` para `page` (1-based), con `search` opcional (Fase P6·6e,
+	 *  ver cabecera). Anti-carrera: una respuesta que ya no es la última emitida se descarta sin
+	 *  tocar `status`. `auth-expired` va SOLO al overlay global (§2.3), nunca al estado local. */
+	load(ctx: VegaAppContext, page: number, search?: string): Promise<void>;
 	/** Repite la ÚLTIMA carga (botón "Reintentar" del error). Alias de `reload()` (misma máquina
 	 *  interna, ver `list-state.svelte.ts` §4c: dos nombres para el mismo gesto, cada uno
 	 *  documentando su disparador real). */
@@ -43,14 +49,14 @@ export interface MediaListState {
 export function createMediaListState(): MediaListState {
 	let status = $state<MediaListStatus>({ kind: 'loading' });
 	const sequencer = new RequestSequencer();
-	let lastCall: { ctx: VegaAppContext; page: number } | null = null;
+	let lastCall: { ctx: VegaAppContext; page: number; search?: string } | null = null;
 
-	async function load(ctx: VegaAppContext, page: number): Promise<void> {
-		lastCall = { ctx, page };
+	async function load(ctx: VegaAppContext, page: number, search?: string): Promise<void> {
+		lastCall = { ctx, page, search };
 		const seq = sequencer.next();
 		status = { kind: 'loading' };
 		try {
-			const result = await ctx.port.list('vega_media', buildMediaListQuery(page));
+			const result = await ctx.port.list('vega_media', buildMediaListQuery(page, { search }));
 			if (!sequencer.isLatest(seq)) return;
 			status = { kind: 'ready', page: result };
 		} catch (err) {
@@ -66,7 +72,7 @@ export function createMediaListState(): MediaListState {
 
 	function repeatLastLoad(): void {
 		if (!lastCall) return;
-		void load(lastCall.ctx, lastCall.page);
+		void load(lastCall.ctx, lastCall.page, lastCall.search);
 	}
 
 	return {

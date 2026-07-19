@@ -39,6 +39,27 @@ export default defineConfig({
 					environment: 'jsdom',
 					include: ['src/**/*.dom.{test,spec}.{js,ts}']
 				}
+			},
+			// Proyecto `component` (Fase P6·6e): el primer uso REAL de `*.svelte.test.ts` (la
+			// convención ya estaba reservada, ver el comentario de `dom` arriba, pero hasta 6e
+			// ningún test montaba un componente Svelte de verdad — todo era lógica pura o e2e
+			// Playwright). Monta componentes con `mount()`/`unmount()` de Svelte 5 (sin librería
+			// nueva: ambas ya las exporta el propio paquete `svelte`) para cubrir un caso que ni la
+			// lógica pura ni Playwright pueden ejercitar (L-P6.9: el ÚNICO shell real publica
+			// `ctx.mediaPicker` SIEMPRE, así que "sin picker" no tiene ninguna ruta observable en
+			// e2e — solo un montaje aislado con un `VegaAppContext` de mentira lo cubre). `resolve.
+			// conditions: ['browser']` es OBLIGATORIO: sin él, Vite resuelve `svelte` a su build de
+			// SERVIDOR (SSR) bajo Vitest/Node, y `mount()` lanza `lifecycle_function_unavailable`
+			// ("mount(...) is not available on the server") — mismo fix que usa la plantilla
+			// oficial de SvelteKit+Vitest para testing de componentes.
+			{
+				extends: './vite.config.ts',
+				resolve: { conditions: ['browser'] },
+				test: {
+					name: 'component',
+					environment: 'jsdom',
+					include: ['src/**/*.svelte.{test,spec}.{js,ts}']
+				}
 			}
 		]
 	}
