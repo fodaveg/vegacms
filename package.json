@@ -23,6 +23,7 @@
 		"test:e2e": "playwright test",
 		"themes:build": "node scripts/build-themes.mjs",
 		"themes:check-coverage": "node scripts/check-theme-coverage.mjs",
+		"check-bundle-budget": "node scripts/check-bundle-budget.mjs",
 		"gate": "pnpm check && pnpm lint && pnpm test && pnpm build && pnpm test:e2e"
 	},
 	"dependencies": {

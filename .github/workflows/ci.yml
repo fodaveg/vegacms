@@ -18,13 +18,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
@@ -39,7 +39,7 @@ jobs:
       - name: Install Playwright browser (Chromium)
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Download PocketBase binary (contract suite)
+      - name: Download PocketBase binary (contract suite, versión pineada)
         run: pnpm pb:download
 
       # `pnpm pb:download` falla en silencio (éxito de proceso) si la descarga no funciona,
@@ -55,5 +55,73 @@ jobs:
             exit 1
           fi
 
-      - name: Run gate (check + lint + test + build)
+      - name: Run gate (check + lint + test + build + e2e)
         run: pnpm gate
+
+      # P8·F1 (D-P8.6 opción A / L-P8.9): `pnpm gate` ya corrió `pnpm build` (deja `build/`
+      # listo), así que el presupuesto de bundle se comprueba justo después, sin repetir el
+      # build. Aditivo: si esto falla, el job de gate falla con él (mismo criterio que el resto
+      # de pasos obligatorios), pero no cambia nada de lo que `pnpm gate` ya hacía.
+      - name: Check bundle gzip budget
+        run: pnpm check-bundle-budget
+
+  # P8·F1 (D-P8.7 opción B): la suite de contrato contra PB real (ya ejercida arriba, en `gate`,
+  # con la versión PINEADA) se repite aquí en MATRIZ contra el rango soportado completo —
+  # mínimo (0.26.0, D-P1.3) y pineada (0.39.6) — para cazar diferencias de API entre versiones
+  # de PocketBase. Job separado (no una matriz dentro de `gate`) para no acoplar el resultado de
+  # esta comprobación de RANGO con el gate obligatorio de cada PR.
+  pb-contract-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        pb_version: ['0.26.0', '0.39.6']
+    # HALLAZGO (P8·F1, 2026-07-19, verificado a mano contra el binario real): la suite de
+    # contrato entera (54 tests) falla contra PocketBase 0.26.0. Causa raíz localizada: al
+    # sembrar el esquema del fixture (`tests/contract/pb-harness/seed.ts`), la colección
+    # `kitchen_sink` (la única con richtext/select-múltiple/relation-múltiple/file/json/geoPoint)
+    # se crea con SOLO el campo `id` — los otros ~14 campos del fixture se pierden sin que
+    # `pb.collections.create()` lance error — mientras que `category` y `required_probe`
+    # (esquemas más simples) sí se crean completos. `category`/`required_probe` sin problema
+    # sugiere que el contrato base (CRUD/query/auth) es compatible 0.26–0.39, pero algo del
+    # vocabulario de creación de campos "exóticos" del HARNESS DE TEST (no necesariamente el
+    # adaptador de producción, que nunca crea esos tipos vía Anexo A) difiere entre versiones.
+    # NO se ha forzado un workaround (instrucción explícita: si 0.26.0 rompe, documentar y dejar
+    # decidir a David, no forzarlo) — de ahí `continue-on-error` en ESTA pata concreta: no
+    # bloquea el PR mientras se decide (¿bisecar qué campo exacto rompe? ¿ajustar el harness?
+    # ¿bajar el mínimo soportado?), pero el resultado queda visible en el resumen del run.
+    continue-on-error: ${{ matrix.pb_version == '0.26.0' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download PocketBase binary (${{ matrix.pb_version }})
+        env:
+          PB_VERSION: ${{ matrix.pb_version }}
+        run: pnpm pb:download
+
+      # Mismo guard anti-falso-verde que en `gate` (L-P8.5): un binario ausente FALLA aquí,
+      # nunca se salta en silencio la comprobación de esta versión de la matriz.
+      - name: Verify PocketBase binary is present and executable
+        run: |
+          if [ ! -x .pbbin/pocketbase ]; then
+            echo "::error::.pbbin/pocketbase no existe o no es ejecutable tras 'pnpm pb:download' (PB_VERSION=${{ matrix.pb_version }})." \
+              "La suite de contrato contra PB real se saltaría silenciosamente." \
+              "Revisa la conectividad a GitHub Releases o el script scripts/download-pocketbase.mjs."
+            exit 1
+          fi
+
+      - name: Run contract suite against PocketBase ${{ matrix.pb_version }}
+        run: pnpm exec vitest run tests/contract/pocketbase.contract.test.ts
