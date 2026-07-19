@@ -132,6 +132,34 @@ Después copia `build/` a tu servidor web. Asegúrate de que PocketBase permite 
 
 Abre la URL donde hayas desplegado `build/`, inicia sesión con tus credenciales de PocketBase, y verifica que puedas navegar por el admin y crear/editar contenido.
 
+## Actualizar a una versión nueva
+
+Vega se distribuye como un **artefacto versionado independiente**, no como código que se copie dentro de tu proyecto. Cada tag `v*` del repo dispara el workflow de release (`release.yml`), que publica un **zip determinista** con la SPA ya construida (la versión va horneada en el build). Actualizar Vega es **reemplazar esa SPA** por la del zip nuevo — nunca se tocan tus datos.
+
+### Principio clave: SPA y datos están separados
+
+- La **SPA de Vega** son ficheros estáticos (`index.html`, `_app/`, …). Es lo único que cambia entre versiones.
+- Tus **datos** viven en el directorio `pb_data/` de PocketBase, que es **distinto** del directorio público (`pb_public/` / `--publicDir`). Reemplazar la SPA **no** toca `pb_data/`.
+- Como Vega es una SPA cliente puro (no corre migraciones ni lógica de servidor), actualizarla **no migra ni altera datos**. Si una versión nueva exige un cambio de esquema en PocketBase, se indicará en sus notas de release.
+
+### Same-origin (SPA dentro de `pb_public/`)
+
+1. Descarga el zip de la versión deseada desde la [página de releases](https://github.com/fodaveg/vegacms/releases) (verifica el sha256 si lo necesitas).
+2. **Conserva** cualquier fichero propio que tengas en `pb_public/` y que NO venga de Vega — en particular un `vega.config.json` real (el que apunta a otro backend): el zip no lo incluye y se perdería si borras a ciegas.
+3. Sustituye los ficheros de la SPA (`index.html`, `_app/`, `robots.txt`, `vega.config.example.json`) por los del zip. `pb_data/` no se toca en ningún momento.
+4. No hace falta reiniciar PocketBase (solo sirve ficheros estáticos); si acaso, un reinicio es inocuo.
+
+### Origen aparte (servidor web propio)
+
+1. Descarga el zip de la versión nueva.
+2. Reemplaza los ficheros del webroot (p. ej. `/var/www/vega/`) por los del zip.
+3. Si servías con un `vega.config.json` (para `backendUrl`/CORS), vuelve a colocarlo (o re-genéralo antes del build si compilas desde fuentes).
+
+### Verificar la actualización
+
+1. Abre Vega y haz un **recargado duro** (Cmd/Ctrl+Shift+R): los assets bajo `_app/` llevan hash y se refrescan solos, pero `index.html` puede quedar cacheado por el navegador.
+2. Ve a **/settings → «Acerca de»**: debe mostrar la **versión nueva** y el rango de servidor PocketBase soportado. Si sigues viendo la versión anterior, es caché del navegador — repite el recargado duro.
+
 ## Build local para pruebas
 
 Si quieres probar la build de producción en tu máquina antes de desplegar:
