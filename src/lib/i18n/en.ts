@@ -165,7 +165,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// ————— Media: bootstrap + schema (Phase P6·6a) —————
 	'media.loadErrorBody': 'Could not load the media library. Try again.',
 	'media.empty.title': 'The media library is empty',
-	'media.empty.body': 'There are no files yet. Uploading arrives in a later phase.',
+	'media.empty.body': 'There are no files yet. Upload the first one from the section above.',
 	'media.bootstrap.confirmBody':
 		'Vega is going to create the "vega_media" collection in your PocketBase. Continue?',
 	'media.bootstrap.confirm': 'Create collection',
@@ -186,6 +186,20 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.detail.addTag': 'Add',
 	'media.detail.removeTag': 'Remove «{tag}»',
 	'media.detail.saveSuccess': 'Media updated.',
+
+	// ————— Media: drag&drop upload (Phase P6·6c) —————
+	'media.upload.inputLabel': 'Upload files',
+	'media.upload.dropHint':
+		'Drag files here or use the button above to pick them. You can select several at once.',
+	'media.upload.status.pending': 'Pending',
+	'media.upload.status.uploading': 'Uploading…',
+	'media.upload.status.done': 'Uploaded',
+	'media.upload.status.error': 'Error: {message}',
+	'media.upload.reason.tooLarge': 'exceeds the maximum allowed size',
+	'media.upload.reason.invalidType': 'file type not allowed',
+	'media.upload.aborted':
+		'upload cancelled: an earlier file in the batch failed (connection/permission)',
+	'media.upload.summary': '{uploaded} file(s) uploaded, {failed} failed.',
 
 	// ————— Warnings (P2's L10) —————
 	'warnings.title': 'Model warnings',

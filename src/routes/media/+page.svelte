@@ -13,10 +13,12 @@
 	 *   en esta misma fase — audit H6, NO se clona el de `/settings`).
 	 *
 	 * Los tres desenlaces (§9):
-	 * - `'present'`: la biblioteca REAL (Fase 6b): grid de `vega_media` (`MediaGrid`) + paginación
-	 *   (`Pagination`, reutilizado de P4) + panel de detalle (`MediaDetail`) para editar
-	 *   `alt`/`title`/`tags`. La SUBIDA llega en 6c — sin ningún registro todavía, el vacío honesto
-	 *   de 6a (P3-L10 "nada muere en silencio") sigue siendo la única superficie.
+	 * - `'present'`: la biblioteca REAL: zona de subida (`MediaUpload`, Fase 6c) + grid de
+	 *   `vega_media` (`MediaGrid`, Fase 6b) + paginación (`Pagination`, reutilizado de P4) + panel
+	 *   de detalle (`MediaDetail`, 6b) para editar `alt`/`title`/`tags`. `MediaUpload` vive SIEMPRE
+	 *   visible en este estado (antes del `{#if}` de carga/error/vacío/listo del grid, ver más
+	 *   abajo): la subida es una acción independiente del estado de la rejilla, y es también la
+	 *   CTA real del caso "biblioteca vacía" (antes un placeholder honesto sin acción).
 	 * - `'creatable'`: gate de confirmación inline (mismo tono que `ManifestEditor`, nunca
 	 *   `window.confirm`) → al confirmar, `ensureMediaCollection(port)` (L-P6.10: la spec que
 	 *   llega a `ensureCollections` contiene ÚNICAMENTE `vega_media`) → refresca `types` a
@@ -47,9 +49,11 @@
 	import { toMediaItemView, type MediaItemView } from '$lib/media/media-item';
 	import { mediaPageToParams, parseMediaPage } from '$lib/media/media-query';
 	import { createMediaListState } from '$lib/media/media-list-state.svelte';
+	import { findMediaFileFieldSchema } from '$lib/media/media-upload';
 	import { mediaRoute } from '$lib/nav/routes';
 	import MediaGrid from '$lib/media/MediaGrid.svelte';
 	import MediaDetail from '$lib/media/MediaDetail.svelte';
+	import MediaUpload from '$lib/media/MediaUpload.svelte';
 	import Pagination from '$lib/list/Pagination.svelte';
 
 	const ctx = getVegaContext();
@@ -140,6 +144,21 @@
 	// simplemente no pinta el grid pero SÍ la paginación, para que el usuario pueda volver.
 	const mediaIsEmpty = $derived(mediaReadyPage !== null && mediaReadyPage.totalItems === 0);
 
+	// ————— Subida (Fase P6·6c) —————
+
+	/** El campo `file` de `vega_media` YA resuelto contra el esquema DESCUBIERTO (D-P6.3): `null`
+	 *  solo de forma defensiva (en la práctica, si `collectionState === 'present'` la colección
+	 *  existe y `file` es `required`, así que siempre está) — `MediaUpload` no se monta sin él. */
+	const mediaFileSchema = $derived(findMediaFileFieldSchema(types));
+
+	/** Tras cada subida individual con éxito: recarga la página ACTUAL del grid (mismo mecanismo
+	 *  que `handleDetailSaved`) — un asset nuevo siempre entra por `created` desc, así que aparece
+	 *  arriba si el usuario está en la página 1; si está en otra página, el efecto no es visible
+	 *  hasta volver a ella (alcance mínimo: 6c no reordena la navegación del usuario por su cuenta). */
+	function handleMediaUploaded(): void {
+		mediaListState.reload();
+	}
+
 	/** Navega a `target` conservando ningún otro parámetro (6b no tiene más estado de vista que
 	 *  `page`) — mismo guard `routerReady` (P3-L9) que el resto de navegación programática. */
 	function goToMediaPage(target: number): void {
@@ -215,6 +234,13 @@
 		<!-- 'present': biblioteca real (Fase 6b). data-media-state para que los e2e la localicen sin
 		     depender del idioma; data-media-grid-state acota el estado de CARGA del grid en sí. -->
 		<div class="vega-media-library" data-media-state="present">
+			<!-- Zona de subida (Fase 6c): SIEMPRE visible en 'present', independiente del estado del
+			     grid de abajo (loading/error/vacío/listo) — también la CTA real del caso "biblioteca
+			     vacía" (ver cabecera del script). -->
+			{#if mediaFileSchema}
+				<MediaUpload schema={mediaFileSchema} onUploaded={handleMediaUploaded} />
+			{/if}
+
 			{#if mediaStatus.kind === 'loading'}
 				<p data-media-grid-state="loading" aria-live="polite">{ctx.t('common.loading')}</p>
 			{:else if mediaStatus.kind === 'error'}

@@ -174,7 +174,7 @@ export const es = {
 	// ————— Medios: bootstrap + esquema (Fase P6·6a) —————
 	'media.loadErrorBody': 'No se pudo cargar la biblioteca de medios. Vuelve a intentarlo.',
 	'media.empty.title': 'La biblioteca de medios está vacía',
-	'media.empty.body': 'Todavía no hay ningún fichero. La subida llega en una fase próxima.',
+	'media.empty.body': 'Todavía no hay ningún fichero. Sube el primero desde el apartado de arriba.',
 	'media.bootstrap.confirmBody':
 		'Vega va a crear la colección "vega_media" en tu PocketBase. ¿Continuar?',
 	'media.bootstrap.confirm': 'Crear colección',
@@ -195,6 +195,20 @@ export const es = {
 	'media.detail.addTag': 'Añadir',
 	'media.detail.removeTag': 'Quitar «{tag}»',
 	'media.detail.saveSuccess': 'Medio actualizado.',
+
+	// ————— Medios: subida drag&drop (Fase P6·6c) —————
+	'media.upload.inputLabel': 'Subir ficheros',
+	'media.upload.dropHint':
+		'Arrastra ficheros aquí o usa el botón de arriba para elegirlos. Puedes seleccionar varios a la vez.',
+	'media.upload.status.pending': 'Pendiente',
+	'media.upload.status.uploading': 'Subiendo…',
+	'media.upload.status.done': 'Subido',
+	'media.upload.status.error': 'Error: {message}',
+	'media.upload.reason.tooLarge': 'excede el tamaño máximo permitido',
+	'media.upload.reason.invalidType': 'tipo de fichero no permitido',
+	'media.upload.aborted':
+		'subida cancelada: un fichero anterior del lote falló por conexión/permiso',
+	'media.upload.summary': '{uploaded} fichero(s) subido(s), {failed} fallido(s).',
 
 	// ————— Warnings (L10 de P2) —————
 	'warnings.title': 'Avisos del modelo',

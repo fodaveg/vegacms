@@ -598,7 +598,14 @@ const VEGA_MEDIA_CONTENT_TYPE: ContentType = {
 			readonly: false,
 			presentable: false,
 			hidden: false,
-			unique: false
+			unique: false,
+			// Constraints REALES de `VEGA_MEDIA_COLLECTION` (Fase P6·6c, D-P6.3): la semilla replica el
+			// esquema que produciría `ensureMediaCollection` de verdad, para que la zona de subida de
+			// `e2e/media.spec.ts` pre-valide contra el MISMO esquema descubierto que vería un backend
+			// real (nunca una constante propia de la semilla, distinta de la que compila
+			// `media-collection.ts`).
+			maxSizeBytes: 10 * 1024 * 1024,
+			mimeTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'application/pdf']
 		},
 		{
 			name: 'alt',

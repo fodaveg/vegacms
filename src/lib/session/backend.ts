@@ -66,6 +66,17 @@
  * Confinado por completo a `wrapMemoryPortForDemo`: en modo `pocketbase` esta función nunca se
  * ejecuta, así que ninguna de las dos propiedades llega a existir en `window`.
  *
+ * Y `window.__VEGA_FORCE_MEDIA_CREATE_ERROR__` (Fase P6·6c): mientras sea `true`, `create('vega_media',
+ * …)` — y SOLO esa, nunca otro tipo — rechaza con `VegaError.network()` en vez de delegar en
+ * `memory`. Mismo motivo que `__VEGA_FORCE_MEDIA_LIST_ERROR__` (Fase 6b): `__VEGA_FORCE_NETWORK_ERROR__`
+ * es DEMASIADO ancho (tumbaría también el `listContentTypes()` que `/media/+page.svelte` repite en
+ * cada montaje, antes de llegar siquiera a la zona de subida). Es la única forma de ensayar en e2e
+ * la EXCEPCIÓN de la Fase 6c: un `create()` que falla por `'network'`/`'forbidden'` ABORTA el resto
+ * del lote de subida (`media-upload-state.svelte.ts`), a diferencia de un `'validation'` (que solo
+ * marca ESE fichero y sigue con el siguiente) — `VegaError.network()` basta para ejercer esa rama;
+ * `abortsBatch()` trata `'forbidden'` de forma IDÉNTICA (mismo `if`), así que no hace falta un
+ * segundo gancho solo para variar el `kind`.
+ *
  * Y `window.__VEGA_DELETE_DELAY_MS__` (fix de code-review de 4e): retrasa `delete()` los ms
  * indicados antes de delegar en `memory` — `memory` en sí resuelve casi instantáneo (sin
  * transporte real), así que la ventana en la que `DeleteConfirm.svelte` está en su estado
@@ -116,6 +127,10 @@ declare global {
 		 *  `'backend'` (ver cabecera). Persistente (no se autoconsume), mismo criterio que
 		 *  `__VEGA_FORCE_DELETE_ERROR__`. */
 		__VEGA_FORCE_MEDIA_LIST_ERROR__?: boolean;
+		/** Flag runtime SOLO para Playwright (Fase P6·6c): mientras sea `true`, `create('vega_media',
+		 *  …)` — y SOLO esa, nunca otro tipo — rechaza con un `VegaError.network()` (ver cabecera).
+		 *  Persistente (no se autoconsume), mismo criterio que `__VEGA_FORCE_MEDIA_LIST_ERROR__`. */
+		__VEGA_FORCE_MEDIA_CREATE_ERROR__?: boolean;
 	}
 }
 
@@ -235,6 +250,21 @@ function throwIfForcedMediaListError(): void {
 }
 
 /**
+ * Ver cabecera del módulo (Fase P6·6c): fuerza que la PRÓXIMA `create('vega_media', …)` — y solo
+ * esa — rechace con `'network'`, para ejercer la rama de "aborta el resto del lote" de
+ * `media-upload-state.svelte.ts` sin depender de `__VEGA_FORCE_NETWORK_ERROR__` (demasiado ancho,
+ * ver `throwIfForcedMediaListError`).
+ */
+function throwIfForcedMediaCreateError(): void {
+	if (window.__VEGA_FORCE_MEDIA_CREATE_ERROR__) {
+		throw VegaError.network(
+			undefined,
+			'Sin conexión con el backend (forzado por e2e, subida de medios).'
+		);
+	}
+}
+
+/**
  * Envuelve un `BackendPort` `memory` con persistencia de sesión SOLO para la demo/e2e (ver
  * cabecera del módulo). `credentials` son las de la semilla fija: al "restaurar" tras una
  * recarga real, si el marcador de `localStorage` sigue vigente, esta envoltura vuelve a
@@ -295,6 +325,15 @@ function wrapMemoryPortForDemo(
 			throwIfForcedExpire();
 			if (type === 'vega_media') throwIfForcedMediaListError();
 			return inner.list(type, query);
+		},
+
+		async create(type, data) {
+			// Ver cabecera del módulo (Fase P6·6c): SOLO el gancho de subida de medios, deliberadamente
+			// sin `throwIfForcedNetworkError()/throwIfForcedExpire()` genéricos — mismo razonamiento
+			// que `delete()` arriba, este escenario de e2e necesita fallar UN `create('vega_media', …)`
+			// concreto en mitad de un lote, no la sesión/red enteras.
+			if (type === 'vega_media') throwIfForcedMediaCreateError();
+			return inner.create(type, data);
 		},
 
 		async delete(type, id) {
