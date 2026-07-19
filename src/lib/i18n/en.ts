@@ -246,6 +246,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'settings.appearance.light': 'Light',
 	'settings.appearance.dark': 'Dark',
 
+	// ————— About (P8·F2) —————
+	'settings.about.title': 'About',
+	'settings.about.line': 'Vega v{version} · PocketBase {pbServer}',
+
 	// ————— Toasts (§2.3) —————
 	'toast.dismiss': 'Dismiss notification',
 

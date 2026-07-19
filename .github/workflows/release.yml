@@ -1,0 +1,183 @@
+name: Release
+
+# P8·F2: workflow de release, disparado SOLO por push de un tag `v*` (nunca por push a `main` ni
+# por PR — es lo que hace SEGURO mergear este fichero: hasta que alguien empuje un tag, no
+# dispara nada). Publica un `.zip` determinista de `build/` como asset de un GitHub Release.
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # Mínimo privilegio: `gh release create` necesita escritura sobre el repo (crear el release +
+    # subir el asset), pero SOLO este job — `permissions` a nivel de job, no de workflow, para que
+    # `pb-contract-matrix` (que solo corre tests) herede el default de solo lectura.
+    permissions:
+      contents: write
+    # El release NO se publica hasta que la matriz de contrato PB (mínimo 0.26.0 D-P1.3 + pineada
+    # 0.39.6) esté verde: publicar un asset cuyo `package.json` promete `>=0.26.0` sin haber
+    # ejercido nunca ese mínimo sería mentir en el metadato. `needs` serializa el orden.
+    needs: pb-contract-matrix
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # Guard de coherencia tag↔versión LO ANTES POSIBLE (antes de instalar deps o correr el gate):
+      # el tag que disparó el workflow (`v0.1.0`) debe casar EXACTAMENTE con `package.json#version`
+      # (`0.1.0`). Fallar aquí en segundos —en vez de tras minutos de gate/Playwright— si alguien
+      # olvidó bumpear la versión antes del tag. `VERSION` se exporta a `$GITHUB_ENV` para los pasos
+      # de empaquetado/publicación de más abajo (evita repetir el `node -p` en cada uno).
+      - name: Verificar que el tag coincide con package.json#version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="${GITHUB_REF_NAME}"
+          if [ "v$VERSION" != "$TAG" ]; then
+            echo "::error::El tag ($TAG) no coincide con package.json#version (v$VERSION)." \
+              "Corrige el tag o package.json antes de re-publicar."
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Mismo criterio que `ci.yml`: `pnpm gate` incluye `pnpm test:e2e`, así que el navegador
+      # tiene que estar instalado ANTES o el gate fallaría aquí también.
+      - name: Install Playwright browser (Chromium)
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Download PocketBase binary (contract suite, versión pineada)
+        run: pnpm pb:download
+
+      # Mismo guard anti-falso-verde que en `ci.yml` (L-P8.5): sin esto, un `pnpm pb:download`
+      # que falla en silencio dejaría pasar un release cuyo gate nunca ejerció PB real.
+      - name: Verify PocketBase binary is present and executable
+        run: |
+          if [ ! -x .pbbin/pocketbase ]; then
+            echo "::error::.pbbin/pocketbase no existe o no es ejecutable tras 'pnpm pb:download'." \
+              "La suite de contrato contra PB real se saltaría silenciosamente y el release se" \
+              "publicaría sin haberla ejercido de verdad." \
+              "Revisa la conectividad a GitHub Releases o el script scripts/download-pocketbase.mjs."
+            exit 1
+          fi
+
+      # `pnpm gate` = check + lint + test + build + e2e. Un release NUNCA se publica sin pasar el
+      # MISMO gate que un PR normal; además deja `build/` listo para empaquetar más abajo.
+      - name: Run gate (check + lint + test + build + e2e)
+        run: pnpm gate
+
+      # Mismo presupuesto de bundle que `ci.yml` (D-P8.6): un release que se pasa del presupuesto
+      # no se publica.
+      - name: Check bundle gzip budget
+        run: pnpm check-bundle-budget
+
+      # Construcción DETERMINISTA del zip (audit H2: reproducibilidad byte-a-byte). Se stagea el
+      # contenido bajo un directorio contenedor `vega-$VERSION/` (para que al descomprimir NO se
+      # desparrame en el cwd del usuario — "zip-bomb" de higiene), se fija el mtime de TODO a la
+      # época (zip lo clampa a 1980 igualmente, pero fijarlo evita depender de ese clamp) y se
+      # zipea con orden de entradas ESTABLE (`LC_ALL=C sort`, para que no dependa del orden que
+      # devuelva el filesystem) y sin metadatos extra (`-X` quita uid/gid y otros atributos; `-D`
+      # no mete entradas de directorio, solo ficheros). Se zipea desde el PADRE del staging para
+      # que las rutas dentro del zip lleven el prefijo `vega-$VERSION/`.
+      - name: Construir zip determinista
+        run: |
+          STAGE="$(mktemp -d)/vega-$VERSION"
+          mkdir -p "$STAGE"
+          cp -R build/. "$STAGE/"
+          cp LICENSE "$STAGE/"
+          cp README.md "$STAGE/"
+          find "$STAGE" -exec touch -d @0 {} +
+          (cd "$(dirname "$STAGE")" && find "vega-$VERSION" -type f | LC_ALL=C sort | zip -X -D "$OLDPWD/vega-$VERSION.zip" -@)
+
+      # Verificación de determinismo: se repite la MISMA receta pero sobre un staging NUEVO E
+      # INDEPENDIENTE (otro `mktemp -d` — no reutiliza el del paso anterior, cada `run:` es un
+      # shell distinto; esto es MÁS estricto que zipear dos veces el mismo directorio) y se compara
+      # el sha256 de ambos zips. No se rebuildea nada — la reproducibilidad del BUILD es un
+      # invariante distinto (L3). Si difieren, el empaquetado NO es reproducible y el release se
+      # aborta en vez de publicar un asset que nadie puede verificar.
+      - name: Verificar determinismo del zip
+        run: |
+          STAGE="$(mktemp -d)/vega-$VERSION"
+          mkdir -p "$STAGE"
+          cp -R build/. "$STAGE/"
+          cp LICENSE "$STAGE/"
+          cp README.md "$STAGE/"
+          find "$STAGE" -exec touch -d @0 {} +
+          (cd "$(dirname "$STAGE")" && find "vega-$VERSION" -type f | LC_ALL=C sort | zip -X -D "$OLDPWD/vega-$VERSION-check.zip" -@)
+          SUM_A=$(sha256sum "vega-$VERSION.zip" | cut -d' ' -f1)
+          SUM_B=$(sha256sum "vega-$VERSION-check.zip" | cut -d' ' -f1)
+          rm -f "vega-$VERSION-check.zip"
+          if [ "$SUM_A" != "$SUM_B" ]; then
+            echo "::error::El empaquetado no es determinista: dos stagings independientes dan" \
+              "sha256 distintos ($SUM_A vs $SUM_B)."
+            exit 1
+          fi
+          echo "Empaquetado determinista verificado (sha256=$SUM_A)."
+
+      - name: Publicar GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "vega-$VERSION.zip" \
+            --title "Vega $GITHUB_REF_NAME" \
+            --notes "Release automatizada por tag. Ver el README del repositorio."
+
+  # P8·F1 (D-P8.7 opción B): mismo job que `ci.yml`, clonado tal cual — la matriz de contrato
+  # contra el rango de servidor PocketBase soportado (mínimo 0.26.0 D-P1.3, más la pineada
+  # 0.39.6) también se ejerce en cada release, no solo en cada PR.
+  pb-contract-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        pb_version: ['0.26.0', '0.39.6']
+    # Ver el comentario completo del landmine geoPoint en `.github/workflows/ci.yml` (job
+    # homónimo): el campo `geoPoint` de `kitchen_sink.location` no existe en el servidor hasta
+    # PocketBase v0.27.0, así que el harness lo omite al sembrar contra servidores anteriores y
+    # los 2 casos de contrato que dependen de él se saltan declarándolo. El resto de la suite
+    # (CRUD/query/auth/ensureCollections) sí corre completa contra 0.26.0.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download PocketBase binary (${{ matrix.pb_version }})
+        env:
+          PB_VERSION: ${{ matrix.pb_version }}
+        run: pnpm pb:download
+
+      # Mismo guard anti-falso-verde que en `gate` (L-P8.5): un binario ausente FALLA aquí,
+      # nunca se salta en silencio la comprobación de esta versión de la matriz.
+      - name: Verify PocketBase binary is present and executable
+        run: |
+          if [ ! -x .pbbin/pocketbase ]; then
+            echo "::error::.pbbin/pocketbase no existe o no es ejecutable tras 'pnpm pb:download' (PB_VERSION=${{ matrix.pb_version }})." \
+              "La suite de contrato contra PB real se saltaría silenciosamente." \
+              "Revisa la conectividad a GitHub Releases o el script scripts/download-pocketbase.mjs."
+            exit 1
+          fi
+
+      - name: Run contract suite against PocketBase ${{ matrix.pb_version }}
+        run: pnpm exec vitest run tests/contract/pocketbase.contract.test.ts

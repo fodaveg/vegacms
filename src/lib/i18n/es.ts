@@ -254,6 +254,10 @@ export const es = {
 	'settings.appearance.light': 'Claro',
 	'settings.appearance.dark': 'Oscuro',
 
+	// ————— Acerca de (P8·F2) —————
+	'settings.about.title': 'Acerca de',
+	'settings.about.line': 'Vega v{version} · PocketBase {pbServer}',
+
 	// ————— Toasts (§2.3) —————
 	'toast.dismiss': 'Descartar aviso',
 

@@ -23,6 +23,12 @@ declare global {
 			opts?: { kind?: 'success' | 'error' | 'info'; timeoutMs?: number }
 		) => void;
 	}
+
+	// P8·F2: versión de Vega y rango de servidor PocketBase soportado (fuente de verdad única
+	// `package.json`, ver `vite.config.ts`), inyectados por el `define` de Vite en tiempo de
+	// build. No los uses directamente: consume `$lib/version.ts`, que los reexporta con tipo.
+	const __VEGA_VERSION__: string;
+	const __VEGA_PB_SERVER_RANGE__: string;
 }
 
 export {};

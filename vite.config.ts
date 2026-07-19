@@ -1,8 +1,24 @@
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vitest/config';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 
+// P8·F2: versión y rango de servidor PocketBase soportado, hormeados en tiempo de build desde
+// `package.json` (fuente de verdad ÚNICA — nunca dupliques estos literales). Se lee con
+// `readFileSync` + `JSON.parse` en vez de `import ... with { type: 'json' }` para no depender de
+// import attributes en el config de Vite; `node:fs` ya es parte del entorno de Node del propio
+// `vite.config.ts`.
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
+	version: string;
+	vega: { pocketbaseServer: string };
+};
+
 export default defineConfig({
+	// Expone los dos globals declarados en `src/app.d.ts` y consumidos por `src/lib/version.ts`.
+	define: {
+		__VEGA_VERSION__: JSON.stringify(pkg.version),
+		__VEGA_PB_SERVER_RANGE__: JSON.stringify(pkg.vega.pocketbaseServer)
+	},
 	plugins: [
 		sveltekit({
 			compilerOptions: {

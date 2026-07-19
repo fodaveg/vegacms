@@ -58,6 +58,27 @@ test.describe('/settings monta el ManifestEditor de P2 (§7.B.13)', () => {
 	});
 });
 
+test.describe('sección "Acerca de" (P8·F2 — versión + rango de servidor PB horneados)', () => {
+	// Guard de la única feature de F2 que solo existe por el `define` de Vite (`__VEGA_VERSION__`/
+	// `__VEGA_PB_SERVER_RANGE__`, ver `vite.config.ts` + `src/lib/version.ts`): esos globals son
+	// `declare const` ambientes, así que si alguien rompe la relación con `define` NI `check` NI
+	// `lint` NI los unit tests avisarían — solo reventaría en runtime al montar `/settings`. Este
+	// e2e es el único que lo ejercita de verdad (versión REAL horneada, no un literal duplicado).
+	test('muestra la versión de Vega y el rango de servidor PocketBase soportado', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await goToSettings(page);
+
+		const about = page.getByRole('region', { name: 'Acerca de' });
+		await expect(about).toBeVisible();
+		// No fijamos el número exacto (lo hornea `package.json#version` — un bump legítimo no debe
+		// romper el test); sí exigimos el formato "Vega v<semver> · PocketBase <rango>", que prueba
+		// que AMBOS globals se hornearon y se interpolaron por i18n (no quedaron como `{version}`).
+		await expect(about).toContainText(/Vega v\d+\.\d+\.\d+ · PocketBase /);
+	});
+});
+
 test.describe('indicador de warnings (§3.5.1, L10)', () => {
 	test('el badge de la sidebar y la lista de /settings reflejan el warning sembrado', async ({
 		page

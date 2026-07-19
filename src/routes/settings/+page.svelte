@@ -37,6 +37,7 @@
 	import { setMode, setTheme } from '$lib/theme/apply';
 	import type { ThemeMode } from '$lib/theme/preferences';
 	import { FALLBACK_THEME, THEMES } from '$lib/themes/themes.generated';
+	import { VEGA_PB_SERVER_RANGE, VEGA_VERSION } from '$lib/version';
 	import ManifestEditor from '$lib/model/editor/ManifestEditor.svelte';
 	import WarningsList from '$lib/shell/WarningsList.svelte';
 
@@ -223,6 +224,14 @@
 
 		<WarningsList />
 	{/if}
+
+	<!-- "Acerca de" (P8·F2): no depende de la carga del modelo (`status`), así que vive FUERA del
+	     bloque {#if} de arriba — siempre visible, incluso si `/settings` está en 'loading' o
+	     'error'. Misma tarjeta que "Apariencia" (mismos tokens §3). -->
+	<section class="vega-about" aria-labelledby="vega-about-title">
+		<h2 id="vega-about-title">{ctx.t('settings.about.title')}</h2>
+		<p>{ctx.t('settings.about.line', { version: VEGA_VERSION, pbServer: VEGA_PB_SERVER_RANGE })}</p>
+	</section>
 </div>
 
 <style>
@@ -334,5 +343,26 @@
 		height: 0.7rem;
 		border-radius: 50%;
 		flex-shrink: 0;
+	}
+
+	.vega-about {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding: 1rem 1.2rem;
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		background: var(--surface-2);
+	}
+
+	.vega-about h2 {
+		margin: 0;
+		font-size: 1.1rem;
+	}
+
+	.vega-about p {
+		margin: 0;
+		font-size: 0.85rem;
+		color: var(--ink-2);
 	}
 </style>
