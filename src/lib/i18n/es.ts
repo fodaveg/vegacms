@@ -196,6 +196,18 @@ export const es = {
 	'media.detail.removeTag': 'Quitar «{tag}»',
 	'media.detail.saveSuccess': 'Medio actualizado.',
 
+	// ————— Medios: borrado (Fase P6·6d) —————
+	// D-P6.5/audit H3: el modelo de media es COPIA de bytes, no referencia (`filePerRecord`) — borrar
+	// el original de la biblioteca no rompe las copias ya insertadas en registros, así que el aviso
+	// es honesto y genérico, SIN contador de uso (no hay consulta inversa "quién usa este asset").
+	'media.detail.delete': 'Borrar',
+	'media.delete.confirmTitle': '¿Borrar «{label}»?',
+	'media.delete.confirmBody':
+		'Esto elimina el original de la biblioteca. Las copias ya insertadas por la biblioteca en registros no se ven afectadas.',
+	'media.delete.confirm': 'Borrar',
+	'media.delete.deleting': 'Borrando…',
+	'media.delete.success': '"{label}" se ha borrado de la biblioteca.',
+
 	// ————— Medios: subida drag&drop (Fase P6·6c) —————
 	'media.upload.inputLabel': 'Subir ficheros',
 	'media.upload.dropHint':

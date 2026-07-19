@@ -35,6 +35,12 @@
 	 * **`?page=` (Fase 6b, D-P4.9-alike)**: la paginación del grid vive en la URL, mismo mecanismo
 	 * que `/c/[type]` — de ahí que esta ruta SÍ necesite el guard `routerReady` (P3-L9) para
 	 * `goToMediaPage` (`Pagination.onPrev`/`onNext`), aunque no lo necesitara en 6a.
+	 *
+	 * **Borrado (Fase 6d)**: `MediaDetail` es dueño del gesto entero (botón "Borrar" + su propio
+	 * `MediaDeleteConfirm` + `ctx.port.delete`, ver la cabecera de ambos) — esta ruta solo recibe
+	 * `onDeleted` para refrescar el grid (`handleDetailDeleted`, mismo mecanismo que
+	 * `handleDetailSaved`) y presta `headingEl` (el `<h1>` de arriba, `tabindex="-1"`) como destino
+	 * de foco de reserva, mismo patrón que `headingEl` de `/c/[type]` (P4, fix de code-review de 4e).
 	 */
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -185,11 +191,23 @@
 	function handleDetailSaved(_updated: MediaItemView): void {
 		mediaListState.reload();
 	}
+
+	/** Tras borrar un asset en `MediaDetail` (Fase 6d): mismo mecanismo que `handleDetailSaved`, la
+	 *  celda ya no existe y el grid se refresca contra el backend real. `MediaDetail` ya se cierra
+	 *  por su cuenta (`onClose()` tras `onDeleted`), esta función solo refresca el grid. */
+	function handleDetailDeleted(_id: MediaItemView['id']): void {
+		mediaListState.reload();
+	}
+
+	/** Destino de foco de reserva para `MediaDeleteConfirm` (Fase 6d, vía `MediaDetail`): el `<h1>`
+	 *  de esta ruta, `tabindex="-1"` en el marcado — mismo patrón que `headingEl` de `/c/[type]`
+	 *  (P4, fix de code-review de 4e). */
+	let headingEl = $state<HTMLElement | null>(null);
 </script>
 
 <div class="vega-media-page">
 	<header class="vega-media-header">
-		<h1>{ctx.t('nav.media')}</h1>
+		<h1 bind:this={headingEl} tabindex="-1">{ctx.t('nav.media')}</h1>
 	</header>
 
 	{#if status === 'loading'}
@@ -277,7 +295,13 @@
 	{/if}
 </div>
 
-<MediaDetail item={selectedItem} onClose={closeDetail} onSaved={handleDetailSaved} />
+<MediaDetail
+	item={selectedItem}
+	onClose={closeDetail}
+	onSaved={handleDetailSaved}
+	onDeleted={handleDetailDeleted}
+	fallbackFocusEl={headingEl}
+/>
 
 <style>
 	.vega-media-page {

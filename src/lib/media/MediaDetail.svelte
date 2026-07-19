@@ -24,14 +24,31 @@
 	 * 'validation'` → mensaje en contexto (record-level, `role="alert"`; estos 3 campos no tienen
 	 * restricciones propias hoy, así que en la práctica solo se alcanzaría si el backend añadiera
 	 * una regla nueva); cualquier otro kind → `ctx.feedback.reportError` (global, L-P4.4-alike).
+	 *
+	 * **Borrar (Fase P6·6d, D-P6.5/audit H3)**: botón "Borrar" en la fila de acciones → abre
+	 * `MediaDeleteConfirm` (montado SIEMPRE, hermano del `{#if item}` de más abajo — ver su propia
+	 * cabecera para el porqué) con el aviso HONESTO del modelo de media (copia de bytes, no
+	 * referencia: borrar el original nunca rompe una copia ya insertada en un registro). Confirmar →
+	 * `ctx.port.delete('vega_media', item.id)`; éxito → toast + `onDeleted(id)` (el llamador refresca
+	 * el grid, la celda ya no existe) + cierra este panel; fallo → `ctx.feedback.reportError`
+	 * (global, mismo reparto que el borrado de P4 en `/c/[type]`: el diálogo se cierra pero el asset
+	 * NUNCA se quita de forma optimista, sigue en el grid). `dirty` (metadatos sin guardar) NO
+	 * bloquea borrar: el registro entero va a desaparecer, esos drafts dejan de tener sentido.
+	 *
+	 * **Doble trampa de foco mientras `confirmingDelete`**: `handleKeydown` de ESTE componente tiene
+	 * un guard (`if (confirmingDelete) return;`, primera línea) para quedar inerte mientras
+	 * `MediaDeleteConfirm` está abierto — los dos instalan un listener de `keydown` en `document`
+	 * (en captura), y sin este guard un `Escape` dispararía AMBOS handlers (`stopPropagation` no
+	 * cancela un listener hermano en el mismo nodo). Ver la cabecera de `MediaDeleteConfirm.svelte`.
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import { VegaError } from '$lib/backend/errors';
-	import type { VegaRecord } from '$lib/backend/types';
+	import type { RecordId, VegaRecord } from '$lib/backend/types';
 	import Icon from '$lib/icons/Icon.svelte';
 	import { addTag, normalizeTagInput, removeTag, tagsEqual } from './media-tags';
-	import { mediaImgAlt, toMediaItemView, type MediaItemView } from './media-item';
+	import { mediaDisplayName, mediaImgAlt, toMediaItemView, type MediaItemView } from './media-item';
 	import { resolveMediaFullSrc } from './media-thumb';
+	import MediaDeleteConfirm from './MediaDeleteConfirm.svelte';
 
 	interface Props {
 		/** `null` = diálogo cerrado. El grid nunca abre uno nuevo sin cerrar el anterior, pero este
@@ -41,9 +58,17 @@
 		/** El registro `vega_media` YA actualizado (fuente de verdad tras `update`): el llamador
 		 *  refresca su copia local (grid) con `toMediaItemView(saved)`, no con los drafts locales. */
 		onSaved: (updated: MediaItemView) => void;
+		/** Tras un borrado con ÉXITO (Fase 6d): el llamador refresca el grid (la celda ya no existe,
+		 *  mismo mecanismo que `onSaved`). */
+		onDeleted: (id: RecordId) => void;
+		/** Destino de foco de reserva para `MediaDeleteConfirm` (ver su cabecera): el `<h1>` de
+		 *  `/media/+page.svelte`, `tabindex="-1"` — estable frente a un borrado con éxito, que se
+		 *  lleva por delante este panel ENTERO (y con él, el botón "Borrar" al que restauraría el
+		 *  foco por defecto). */
+		fallbackFocusEl: HTMLElement | null;
 	}
 
-	let { item, onClose, onSaved }: Props = $props();
+	let { item, onClose, onSaved, onDeleted, fallbackFocusEl }: Props = $props();
 
 	const ctx = getVegaContext();
 
@@ -53,6 +78,13 @@
 	let tagInput = $state('');
 	let saving = $state(false);
 	let saveError = $state<string | null>(null);
+
+	// ————— Borrado (Fase 6d) —————
+	/** `true` mientras se pide confirmar el borrado del asset abierto (abre `MediaDeleteConfirm`). */
+	let confirmingDelete = $state(false);
+	/** `true` mientras `ctx.port.delete` está en vuelo (deshabilita el botón "Borrar" de aquí y pasa
+	 *  a `MediaDeleteConfirm.deleting`, que evita un doble envío por su lado). */
+	let deletingAsset = $state(false);
 
 	let dialogEl = $state<HTMLElement | null>(null);
 	let altInputEl = $state<HTMLInputElement | null>(null);
@@ -82,6 +114,10 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent): void {
+		// Ver cabecera del componente ("Doble trampa de foco"): mientras `MediaDeleteConfirm` está
+		// abierto, ES SU trampa la que debe reaccionar a Esc/Tab, no la de este diálogo — ambos
+		// listeners viven en `document`, así que sin este guard `Escape` dispararía los dos.
+		if (confirmingDelete) return;
 		if (event.key === 'Escape') {
 			event.preventDefault();
 			event.stopPropagation();
@@ -175,6 +211,49 @@
 			}
 		} finally {
 			saving = false;
+		}
+	}
+
+	/** Abre `MediaDeleteConfirm` (ver cabecera del componente). Guard defensivo (mismo criterio que
+	 *  `requestDelete` de P4, `/c/[type]/+page.svelte`): con un guardado o un borrado YA en vuelo,
+	 *  ignora la petición. */
+	function requestDeleteAsset(): void {
+		if (saving || deletingAsset) return;
+		confirmingDelete = true;
+	}
+
+	/** "Cancelar" o `Esc` en `MediaDeleteConfirm`: no borra nada. */
+	function cancelDeleteAsset(): void {
+		if (deletingAsset) return; // ignora mientras el borrado está en vuelo
+		confirmingDelete = false;
+	}
+
+	/**
+	 * Confirma el borrado (ver cabecera del componente, D-P6.5/audit H3). `label` se captura ANTES
+	 * del `await` (mismo motivo que `confirmDelete` de P4: el toast de éxito debe quedar correcto
+	 * pase lo que pase con `item` mientras el borrado está en vuelo).
+	 */
+	async function confirmDeleteAsset(): Promise<void> {
+		if (!item || deletingAsset) return;
+		const { id } = item;
+		const label = mediaDisplayName(item);
+		deletingAsset = true;
+		try {
+			await ctx.port.delete('vega_media', id);
+			ctx.feedback.toast(ctx.t('media.delete.success', { label }), { kind: 'success' });
+			confirmingDelete = false;
+			onDeleted(id);
+			onClose();
+		} catch (err) {
+			// Cualquier `kind` (incluidos 'forbidden'/'network') va a `reportError` (global, nunca
+			// pantalla blanca): el asset NUNCA se quita de forma optimista, sigue en el grid tras
+			// cerrar este diálogo.
+			const vegaErr =
+				err instanceof VegaError ? err : VegaError.backend('Error al borrar el medio', err);
+			ctx.feedback.reportError(vegaErr, { action: 'media:detail:delete' });
+			confirmingDelete = false;
+		} finally {
+			deletingAsset = false;
 		}
 	}
 </script>
@@ -273,17 +352,40 @@
 				</div>
 
 				<div class="vega-media-detail-actions">
-					<button type="button" onclick={requestClose} disabled={saving}>
-						{ctx.t('common.cancel')}
+					<button
+						type="button"
+						class="vega-media-detail-delete"
+						onclick={requestDeleteAsset}
+						disabled={saving || deletingAsset}
+					>
+						{ctx.t('media.detail.delete')}
 					</button>
-					<button type="submit" disabled={saving}>
-						{saving ? ctx.t('editor.saving') : ctx.t('editor.save')}
-					</button>
+					<div class="vega-media-detail-actions-primary">
+						<button type="button" onclick={requestClose} disabled={saving}>
+							{ctx.t('common.cancel')}
+						</button>
+						<button type="submit" disabled={saving}>
+							{saving ? ctx.t('editor.saving') : ctx.t('editor.save')}
+						</button>
+					</div>
 				</div>
 			</form>
 		</div>
 	</div>
 {/if}
+
+<!-- Montado SIEMPRE (nunca dentro del `{#if item}` de arriba) — ver la cabecera de
+     `MediaDeleteConfirm.svelte`: un borrado con éxito cierra ESTE panel entero en el mismo tick en
+     que se cierra el diálogo de confirmación, y ambos deben poder completar su propia limpieza de
+     foco sin que uno destruya al otro a mitad de esa carrera. -->
+<MediaDeleteConfirm
+	open={confirmingDelete}
+	assetLabel={item ? mediaDisplayName(item) : ''}
+	deleting={deletingAsset}
+	{fallbackFocusEl}
+	onConfirm={confirmDeleteAsset}
+	onCancel={cancelDeleteAsset}
+/>
 
 <style>
 	.vega-media-detail-backdrop {
@@ -445,7 +547,15 @@
 
 	.vega-media-detail-actions {
 		display: flex;
-		justify-content: flex-end;
+		/* "Borrar" (danger) a la izquierda, Cancelar/Guardar agrupados a la derecha (D-P6.5/6d): la
+		   acción destructiva vive separada del par cancelar/guardar, nunca adyacente a "Guardar". */
+		justify-content: space-between;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.vega-media-detail-actions-primary {
+		display: flex;
 		gap: 0.5rem;
 	}
 
@@ -468,6 +578,14 @@
 		background: var(--accent);
 		border-color: var(--accent);
 		color: var(--accent-ink);
+		font-weight: 600;
+	}
+
+	/* Rol `danger` (mismos tokens que `DeleteConfirm`/P4, L-P4.11-alike). */
+	.vega-media-detail-delete {
+		border-color: var(--danger);
+		background: var(--danger-soft);
+		color: var(--danger);
 		font-weight: 600;
 	}
 </style>

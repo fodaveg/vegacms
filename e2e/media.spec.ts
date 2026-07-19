@@ -356,3 +356,201 @@ test.describe('/media subida drag&drop (contrato P6, Fase 6c)', () => {
 		await expect(page.locator('[data-media-item]')).toHaveCount(1);
 	});
 });
+
+/**
+ * Suite del borrado de `vega_media` (contrato P6, Fase 6d, D-P6.5/audit H3): mismo
+ * `DEMO_SEED_WITH_MEDIA` que grid+detalle (Fase 6b) — el botón "Borrar" vive DENTRO de
+ * `MediaDetail` (`e2e/media.spec.ts` ya abre ese diálogo en la suite de 6b), así que estas
+ * pruebas parten siempre de "detalle ya abierto".
+ *
+ * Los 3 tests de foco (foco inicial/Tab cíclico/Escape) están CALCADOS de `e2e/delete.spec.ts`
+ * (P4, mismo patrón `DeleteConfirm`) — protegen el comportamiento delicado que la cabecera de
+ * `MediaDeleteConfirm.svelte` documenta en detalle (foco inicial seguro, trampa de `Tab`, y la
+ * coordinación con la trampa de `MediaDetail` vía el guard `if (confirmingDelete) return;`), que
+ * de otro modo no tenía ninguna prueba propia (fix tras code-review de 6d).
+ */
+test.describe('/media borrado de un asset (contrato P6, Fase 6d)', () => {
+	async function goToMediaWithSeed(page: import('@playwright/test').Page): Promise<void> {
+		await loginAsDemo(page, { seedMedia: true });
+		await page.waitForURL('**/c/site_info/new');
+		await goToMedia(page);
+	}
+
+	test('el botón "Borrar" abre el aviso HONESTO (D-P6.5): cancelar no borra nada', async ({
+		page
+	}) => {
+		await goToMediaWithSeed(page);
+
+		await page.locator('[data-media-item="media_1"]').click();
+		const dialog = page.getByRole('dialog', { name: 'Editar medio' });
+		await expect(dialog).toBeVisible();
+
+		await dialog.getByRole('button', { name: 'Borrar', exact: true }).click();
+
+		// El aviso NUNCA es un contador de referencias (D-P6.5: `filePerRecord` es copia de bytes,
+		// no hay consulta inversa "quién usa este asset") — la redacción exacta nombra las copias
+		// insertadas por la biblioteca, nunca "nada se ve afectado" (matiz del audit H3).
+		const confirmDialog = page.getByRole('alertdialog');
+		await expect(confirmDialog).toBeVisible();
+		await expect(confirmDialog).toContainText('Manual de usuario');
+		await expect(confirmDialog).toContainText(
+			'Esto elimina el original de la biblioteca. Las copias ya insertadas por la biblioteca en registros no se ven afectadas.'
+		);
+
+		await confirmDialog.getByRole('button', { name: 'Cancelar' }).click();
+		await expect(confirmDialog).not.toBeVisible();
+
+		// El detalle sigue abierto (cancelar el aviso no cierra el editor de metadatos) y nada se
+		// borró: los 3 assets sembrados siguen ahí.
+		await expect(dialog).toBeVisible();
+		await expect(page.locator('[data-media-item]')).toHaveCount(3);
+	});
+
+	// Paridad con `e2e/delete.spec.ts` (P4, mismo patrón `DeleteConfirm`): la cabecera de
+	// `MediaDeleteConfirm.svelte` documenta en detalle el foco inicial/trap/Esc y la coordinación
+	// con la trampa de `MediaDetail` (guard `if (confirmingDelete) return;`) — sin estas 3 pruebas,
+	// una regresión en ese guard (p.ej. quitarlo) pasaría el resto de la suite sin que nada la cace.
+	test('foco inicial en "Cancelar" al abrir el aviso (control SEGURO, nunca "Borrar")', async ({
+		page
+	}) => {
+		await goToMediaWithSeed(page);
+
+		await page.locator('[data-media-item="media_1"]').click();
+		const dialog = page.getByRole('dialog', { name: 'Editar medio' });
+		await dialog.getByRole('button', { name: 'Borrar', exact: true }).click();
+
+		const confirmDialog = page.getByRole('alertdialog');
+		await expect(confirmDialog).toBeVisible();
+		await expect(confirmDialog.getByRole('button', { name: 'Cancelar' })).toBeFocused();
+	});
+
+	test('Tab cicla DENTRO del aviso, en las dos direcciones, sin escapar al detalle de detrás', async ({
+		page
+	}) => {
+		await goToMediaWithSeed(page);
+
+		await page.locator('[data-media-item="media_1"]').click();
+		const dialog = page.getByRole('dialog', { name: 'Editar medio' });
+		await dialog.getByRole('button', { name: 'Borrar', exact: true }).click();
+
+		const confirmDialog = page.getByRole('alertdialog');
+		const cancelButton = confirmDialog.getByRole('button', { name: 'Cancelar', exact: true });
+		const confirmButton = confirmDialog.getByRole('button', { name: 'Borrar', exact: true });
+		await expect(cancelButton).toBeFocused();
+
+		// Adelante desde "Cancelar" (foco inicial): al ÚNICO otro control tabbable, "Borrar" — si el
+		// foco escapase al detalle de detrás, aterrizaría en un input/botón de `MediaDetail`
+		// (p.ej. "Texto alternativo"), nunca en "Borrar".
+		await page.keyboard.press('Tab');
+		await expect(confirmButton).toBeFocused();
+
+		// Desde el ÚLTIMO elemento, `Tab` envuelve al primero (mismo criterio que el overlay de
+		// re-login, `relogin.spec.ts`): la trampa cicla, nunca deja escapar el foco.
+		await page.keyboard.press('Tab');
+		await expect(cancelButton).toBeFocused();
+
+		// `Shift+Tab` desde el PRIMERO envuelve al último (rama simétrica del mismo guard).
+		await page.keyboard.press('Shift+Tab');
+		await expect(confirmButton).toBeFocused();
+	});
+
+	test('Escape cierra SOLO el aviso: el detalle sigue abierto y no borra nada', async ({
+		page
+	}) => {
+		await goToMediaWithSeed(page);
+
+		await page.locator('[data-media-item="media_1"]').click();
+		const dialog = page.getByRole('dialog', { name: 'Editar medio' });
+		await dialog.getByRole('button', { name: 'Borrar', exact: true }).click();
+
+		const confirmDialog = page.getByRole('alertdialog');
+		await expect(confirmDialog).toBeVisible();
+
+		await page.keyboard.press('Escape');
+		await expect(confirmDialog).toBeHidden();
+
+		// El detalle SIGUE abierto (Escape solo cerró el aviso, nunca el editor completo): sin el
+		// guard `if (confirmingDelete) return;` de `MediaDetail.handleKeydown`, este MISMO `Escape`
+		// también dispararía `requestClose()` del detalle (los dos listeners viven en `document`),
+		// cerrándolo de rebote — esta aserción es la que cazaría esa regresión.
+		await expect(dialog).toBeVisible();
+		await expect(page.locator('[data-media-item]')).toHaveCount(3);
+	});
+
+	test('confirmar el borrado: desaparece del grid, con toast, y no reaparece al navegar fuera y volver', async ({
+		page
+	}) => {
+		await goToMediaWithSeed(page);
+		await expect(page.locator('[data-media-item]')).toHaveCount(3);
+
+		await page.locator('[data-media-item="media_1"]').click();
+		const dialog = page.getByRole('dialog', { name: 'Editar medio' });
+		await dialog.getByRole('button', { name: 'Borrar', exact: true }).click();
+
+		const confirmDialog = page.getByRole('alertdialog');
+		await confirmDialog.getByRole('button', { name: 'Borrar', exact: true }).click();
+
+		// Éxito: los DOS diálogos se cierran (el de confirmación y el de detalle) y aparece el toast.
+		await expect(confirmDialog).not.toBeVisible();
+		await expect(dialog).not.toBeVisible();
+		await expect(
+			page.getByText('"Manual de usuario" se ha borrado de la biblioteca.')
+		).toBeVisible();
+
+		const cells = page.locator('[data-media-item]');
+		await expect(cells).toHaveCount(2);
+		await expect(page.locator('[data-media-item="media_1"]')).toHaveCount(0);
+
+		// Navegar fuera y volver (SPA, sin recargar documento) confirma que el borrado persistió de
+		// verdad en ESTE backend: sigue ausente. Un hard reload no sirve de prueba (mismo motivo que
+		// la suite de bootstrap, arriba: `memory` no persiste entre recargas por diseño, así que
+		// recargaría un backend nuevo sembrado desde cero, con `media_1` de vuelta).
+		await page.getByRole('link', { name: 'Información del sitio' }).click();
+		await page.waitForURL('**/c/site_info/new');
+		await goToMedia(page);
+		await expect(page.locator('[data-media-item]')).toHaveCount(2);
+		await expect(page.locator('[data-media-item="media_1"]')).toHaveCount(0);
+	});
+
+	test('un fallo de "port.delete" se reporta en el banner global; el asset NUNCA se quita de forma optimista', async ({
+		page
+	}) => {
+		await goToMediaWithSeed(page);
+
+		// `__VEGA_FORCE_DELETE_ERROR__` (ya existente, Fase 4e del contrato P4): genérico para
+		// CUALQUIER `delete()`, `vega_media` incluido — no hace falta un gancho `__VEGA_FORCE_MEDIA_
+		// DELETE_ERROR__` dedicado (ver `session/backend.ts`).
+		await page.evaluate(() => {
+			(window as unknown as { __VEGA_FORCE_DELETE_ERROR__?: boolean }).__VEGA_FORCE_DELETE_ERROR__ =
+				true;
+		});
+
+		await page.locator('[data-media-item="media_2"]').click();
+		const dialog = page.getByRole('dialog', { name: 'Editar medio' });
+		await dialog.getByRole('button', { name: 'Borrar', exact: true }).click();
+
+		const confirmDialog = page.getByRole('alertdialog');
+		await confirmDialog.getByRole('button', { name: 'Borrar', exact: true }).click();
+
+		// El error de una MUTACIÓN va por `reportError` (banner global), igual que el borrado de P4
+		// (L-P4.4/Audit H6) — nunca una pantalla blanca.
+		const banner = page.locator('.vega-global-banner');
+		await expect(banner).toBeVisible();
+		await expect(banner).toHaveAttribute('role', 'alert');
+		await expect(banner).toContainText('referenciado');
+
+		// El aviso se cierra, pero el detalle SIGUE abierto (nada que cerrar, el borrado falló) y el
+		// asset nunca se quitó de forma optimista: sigue en el grid tras cerrar el detalle.
+		await expect(confirmDialog).not.toBeVisible();
+		await expect(dialog).toBeVisible();
+
+		await dialog.getByRole('button', { name: 'Cancelar' }).click();
+		await expect(page.locator('[data-media-item]')).toHaveCount(3);
+		await expect(page.locator('[data-media-item="media_2"]')).toBeVisible();
+
+		await page.evaluate(() => {
+			(window as unknown as { __VEGA_FORCE_DELETE_ERROR__?: boolean }).__VEGA_FORCE_DELETE_ERROR__ =
+				false;
+		});
+	});
+});

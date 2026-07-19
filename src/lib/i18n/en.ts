@@ -187,6 +187,19 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.detail.removeTag': 'Remove «{tag}»',
 	'media.detail.saveSuccess': 'Media updated.',
 
+	// ————— Media: delete (Phase P6·6d) —————
+	// D-P6.5/audit H3: the media model COPIES bytes, it never references (`filePerRecord`) — deleting
+	// the original from the library does not break copies already inserted into records, so the
+	// warning is honest and generic, with NO usage counter (there is no reverse "who uses this asset"
+	// query).
+	'media.detail.delete': 'Delete',
+	'media.delete.confirmTitle': 'Delete "{label}"?',
+	'media.delete.confirmBody':
+		'This deletes the original from the library. Copies already inserted by the library into records are not affected.',
+	'media.delete.confirm': 'Delete',
+	'media.delete.deleting': 'Deleting…',
+	'media.delete.success': '"{label}" was deleted from the library.',
+
 	// ————— Media: drag&drop upload (Phase P6·6c) —————
 	'media.upload.inputLabel': 'Upload files',
 	'media.upload.dropHint':
