@@ -1,0 +1,97 @@
+name: Deploy demo (GitHub Pages)
+
+# P8·F3: construye y publica la demo pública (adaptador `memory`, sin backend real, seed en
+# memoria — ver `src/lib/session/backend.ts`) como una project page de GitHub Pages
+# (`https://fodaveg.github.io/vegacms/`).
+#
+# Disparo SOLO manual (`workflow_dispatch`), NUNCA en `push` a `main`: publicar la demo es una
+# acción outward-facing (visible al público) y es decisión de David cuándo hacerla, igual que
+# `release.yml` solo corre por tag. Mergear este fichero a `main` NO publica nada por sí solo.
+on:
+  workflow_dispatch:
+
+# Mínimo privilegio que exigen las actions oficiales de Pages: `pages: write` + `id-token: write`
+# para que `deploy-pages` pueda autenticar el despliegue con OIDC, `contents: read` para el
+# checkout.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Patrón oficial de GitHub Pages: un solo grupo de concurrencia `pages` y `cancel-in-progress:
+# false` — si se lanza un segundo despliegue mientras el primero está en curso, se encola en vez
+# de cancelarlo a medias (dejaría la demo pública en un estado parcial).
+concurrency:
+  group: 'pages'
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Build de la demo: adaptador `memory` (sin PocketBase real, seed en memoria) + base path
+      # de project page (`/vegacms`, ver `vite.config.ts`). `pnpm build` ya corre
+      # `prebuild: pnpm themes:build` internamente.
+      - name: Build demo (adaptador memory, base /vegacms)
+        env:
+          VEGA_BASE_PATH: /vegacms
+          VITE_VEGA_ADAPTER: memory
+        run: pnpm build
+
+      # Fallback SPA para deep-links: `adapter-static` genera `fallback: 'index.html'` (para el
+      # servidor de la app real), pero GitHub Pages solo respeta `404.html` como fallback de rutas
+      # inexistentes. Copiar el shell aquí evita tocar el `fallback` del adapter compartido con el
+      # build normal (`release.yml`).
+      - name: Copiar el shell SPA a 404.html (fallback de Pages para deep-links)
+        run: cp build/index.html build/404.html
+
+      # Guarda anti-regresión silenciosa: el base path `/vegacms` se pasa aplanado a `sveltekit()`
+      # (ver `vite.config.ts`), un detalle que un futuro cambio de `@sveltejs/kit` podría romper sin
+      # avisar — el build seguiría en verde pero con assets root-relative, y la demo cargaría en
+      # blanco bajo `/vegacms/`. Fallar AQUÍ (antes de subir el artefacto) es barato y caza justo
+      # ese caso en el único momento en que el base importa (el build de la demo).
+      - name: Verificar que el base path /vegacms se horneó en el build
+        run: |
+          if ! grep -q '/vegacms/_app/' build/index.html; then
+            echo "::error::El build de la demo NO tiene el base path /vegacms (assets root-relative)." \
+              "Revisa paths.base en vite.config.ts: @sveltejs/kit pudo cambiar como acepta la config."
+            exit 1
+          fi
+
+      # NOTA para el primer disparo: GitHub Pages debe estar habilitado en el repo con Source =
+      # "GitHub Actions" (Settings → Pages). `configure-pages@v5` lo auto-habilita solo si el
+      # GITHUB_TOKEN tiene permiso de administración; si no, este step falla pidiendo activarlo a
+      # mano. Es una acción de David de una sola vez, antes del primer `workflow_dispatch`.
+      - name: Configurar Pages
+        uses: actions/configure-pages@v5
+
+      - name: Subir artefacto de Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Desplegar a GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

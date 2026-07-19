@@ -13,6 +13,20 @@ const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 
 	vega: { pocketbaseServer: string };
 };
 
+// P8·F3: base path CONDICIONAL, solo para el build de la demo pública en GitHub Pages (project
+// page, servida bajo `/vegacms` en vez de la raíz). El build normal (el que empaqueta
+// `release.yml`) NO define `VEGA_BASE_PATH`, así que `base` queda `''` y el comportamiento
+// root-relative actual no cambia. `paths.base` exige empezar por `/` y SIN barra final, salvo
+// que sea la cadena vacía (tipo `'' | \`/${string}\`` de SvelteKit) — se valida en runtime porque
+// viene de una env var (`string | undefined`, no un literal que TS pueda estrechar solo).
+const rawBase = process.env.VEGA_BASE_PATH ?? '';
+if (rawBase !== '' && (!rawBase.startsWith('/') || rawBase.endsWith('/'))) {
+	throw new Error(
+		`VEGA_BASE_PATH inválido: "${rawBase}". Debe empezar por "/" y no terminar en "/" (o estar vacío).`
+	);
+}
+const base = rawBase as '' | `/${string}`;
+
 export default defineConfig({
 	// Expone los dos globals declarados en `src/app.d.ts` y consumidos por `src/lib/version.ts`.
 	define: {
@@ -28,7 +42,13 @@ export default defineConfig({
 			},
 			// SPA estática: sin servidor, así que hace falta un fallback para las rutas que
 			// el cliente resuelve tras cargar (ver src/routes/+layout.ts: ssr = false).
-			adapter: adapter({ fallback: 'index.html' })
+			adapter: adapter({ fallback: 'index.html' }),
+			// `paths` va SIN anidar bajo `kit:` — `sveltekit(config)` acepta las opciones de
+			// `KitConfig` aplanadas al nivel superior del objeto (ver
+			// `node_modules/@sveltejs/kit/src/core/config/index.js#split_config`, que reparte por
+			// clave contra `Object.keys(defaults.kit)`); `kit: { paths: { base } }` NO funciona,
+			// vite-plugin-svelte se lo traga como opción desconocida sin avisar.
+			paths: { base }
 		})
 	],
 	test: {
