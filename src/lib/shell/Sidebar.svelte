@@ -20,9 +20,25 @@
 	 * controlado por `open`/`onClose` — el hamburguesa de `Topbar.svelte` cambia `open`. El
 	 * overlay atrapa el foco y se cierra con `Esc` o clicando el backdrop (§4.3): al abrirse,
 	 * mueve el foco al primer elemento navegable; al cerrarse, lo devuelve a quien lo abrió.
+	 *
+	 * **Recuentos por item** (R5 del rediseño C2, mockup `.navgroup .count`): `port.list(type,
+	 * { perPage: 1 }).totalItems` es la consulta MÁS barata que expone `BackendPort` para "cuántos
+	 * hay" — `+layout.svelte#toSingleton` ya se apoya en el mismo truco. Los singletons no
+	 * navegan a un listado (P2 §4.8) y no llevan recuento. Un fallo (sin permiso, o `vega_media`
+	 * todavía sin bootstrap — Fase P6·6a) se traga en silencio: el slot queda VACÍO (`undefined`
+	 * en `counts`), NUNCA un número inventado (mismo criterio que el resto del chrome, P3-L10).
+	 *
+	 * **Guard anti-stale** (fix code-review lote-1, 🟡): MISMO patrón epoch que `loadModel()` de
+	 * `+layout.svelte` (`isStale()`/token capturado al lanzar) — si `ctx.session` cambia (re-login)
+	 * o el propio `$effect` se re-ejecuta (nav recargada) MIENTRAS un `list()` está en vuelo, la
+	 * respuesta vieja no debe pisar `counts` con datos de una sesión/modelo que ya no es el
+	 * actual. `counts` se limpia al arrancar cada tanda (una sesión/modelo nuevo no hereda
+	 * recuentos del anterior, aunque coincida el nombre de tipo).
 	 */
+	import { page } from '$app/state';
 	import { getVegaContext } from '$lib/app-context';
 	import { mediaRoute, settingsRoute } from '$lib/nav/routes';
+	import { VEGA_MEDIA_COLLECTION } from '$lib/media/media-collection';
 	import Icon from '$lib/icons/Icon.svelte';
 	import NavItem from './NavItem.svelte';
 	import WarningsBadge from './WarningsBadge.svelte';
@@ -33,6 +49,15 @@
 
 	const hasVisibleNav = $derived(ctx.model.nav.groups.some((group) => group.items.length > 0));
 
+	const mediaHref = mediaRoute();
+	const settingsHref = settingsRoute();
+	const isMediaActive = $derived(
+		page.url.pathname === mediaHref || page.url.pathname.startsWith(`${mediaHref}/`)
+	);
+	const isSettingsActive = $derived(
+		page.url.pathname === settingsHref || page.url.pathname.startsWith(`${settingsHref}/`)
+	);
+
 	function handleFixedClick(event: MouseEvent, action: () => void): void {
 		if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
 			return;
@@ -40,6 +65,52 @@
 		event.preventDefault();
 		action();
 	}
+
+	let counts = $state<Record<string, number>>({});
+	// Bookkeeping puro de orquestación (no reactivo a propósito, mismo criterio que
+	// `resolvedPort` de `session.svelte.ts`): un contador que crece en cada ejecución del
+	// `$effect` de abajo, capturado por cada tanda de `list()` para detectar si una respuesta
+	// llega DESPUÉS de que una tanda más nueva ya haya arrancado.
+	let countsRunId = 0;
+
+	$effect(() => {
+		const runId = ++countsRunId;
+		const port = ctx.port;
+		// Dependencia reactiva explícita: un cambio de sesión (login/logout/relogin) recorta esta
+		// tanda como stale aunque el propio `port` sea el mismo objeto (session.svelte.ts NO hace
+		// reactivo `resolvedPort` — ver su cabecera).
+		const sessionToken = ctx.session.token;
+		const isStale = (): boolean => runId !== countsRunId || ctx.session.token !== sessionToken;
+
+		// Sesión/modelo nuevo no hereda recuentos del anterior (aunque coincida el nombre de tipo):
+		// fuera con los datos de la tanda vieja antes de lanzar la nueva.
+		counts = {};
+
+		const types = ctx.model.nav.groups
+			.flatMap((group) => group.items)
+			.filter((item) => !item.singleton)
+			.map((item) => item.type);
+		for (const type of types) {
+			void port
+				.list(type, { perPage: 1 })
+				.then((res) => {
+					if (isStale()) return;
+					counts[type] = res.totalItems;
+				})
+				.catch(() => {
+					/* sin recuento: slot vacío, ver cabecera del módulo */
+				});
+		}
+		void port
+			.list(VEGA_MEDIA_COLLECTION.name, { perPage: 1 })
+			.then((res) => {
+				if (isStale()) return;
+				counts[VEGA_MEDIA_COLLECTION.name] = res.totalItems;
+			})
+			.catch(() => {
+				/* "vega_media" puede no existir todavía (sin bootstrap, Fase P6·6a): sin recuento. */
+			});
+	});
 
 	// ————— Overlay móvil: foco atrapado + Esc + backdrop (§4.3) —————
 	let navEl = $state<HTMLElement | null>(null);
@@ -124,7 +195,7 @@
 					{/if}
 					<ul>
 						{#each group.items as item (item.type)}
-							<NavItem {item} />
+							<NavItem {item} count={counts[item.type]} />
 						{/each}
 					</ul>
 				</div>
@@ -139,13 +210,28 @@
 
 	<ul class="vega-nav-fixed">
 		<li>
-			<a href={mediaRoute()} onclick={(event) => handleFixedClick(event, ctx.nav.toMedia)}>
-				<Icon id="media" size={16} /><span>{ctx.t('nav.media')}</span>
+			<a
+				href={mediaHref}
+				aria-current={isMediaActive ? 'page' : undefined}
+				onclick={(event) => handleFixedClick(event, ctx.nav.toMedia)}
+			>
+				<Icon id="media" size={16} />
+				<span class="vega-nav-fixed-label">{ctx.t('nav.media')}</span>
+				{#if counts[VEGA_MEDIA_COLLECTION.name] !== undefined}
+					<span class="vega-nav-trailing">
+						<span class="vega-nav-count">{counts[VEGA_MEDIA_COLLECTION.name]}</span>
+					</span>
+				{/if}
 			</a>
 		</li>
 		<li>
-			<a href={settingsRoute()} onclick={(event) => handleFixedClick(event, ctx.nav.toSettings)}>
-				<Icon id="settings" size={16} /><span>{ctx.t('nav.settings')}</span>
+			<a
+				href={settingsHref}
+				aria-current={isSettingsActive ? 'page' : undefined}
+				onclick={(event) => handleFixedClick(event, ctx.nav.toSettings)}
+			>
+				<Icon id="settings" size={16} />
+				<span class="vega-nav-fixed-label">{ctx.t('nav.settings')}</span>
 				<!-- Indicador global de avisos (§3.5.1/L10): solo se pinta con warnings > 0. -->
 				<WarningsBadge />
 			</a>
@@ -176,10 +262,14 @@
 		list-style: none;
 		margin: 0;
 		padding: 0;
+		/* Aire vertical entre items del rail (antes iban pegados de fila a fila). */
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
 	}
 
 	.vega-nav-group-label {
-		margin: 0 0 0.25rem;
+		margin: 0 0 0.4rem;
 		padding: 0 var(--vega-space-gutter);
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -196,19 +286,60 @@
 		border-top: 1px solid var(--line);
 	}
 
+	/* Mismos tokens/estados que `NavItem.svelte` (misma "pestaña" activa, R5): Medios/Ajustes son
+	   accesos fijos de P3 (fuera del `NavModel` de P2), pero visualmente son filas de nav
+	   idénticas — duplicado a propósito, Svelte no comparte CSS scoped entre componentes. */
 	.vega-nav-fixed a {
 		display: flex;
 		align-items: center;
-		gap: 0.6rem;
+		gap: 0.65rem;
 		min-height: var(--row-h);
 		padding: 0 var(--vega-space-gutter);
-		color: var(--ink);
+		border-left: 2px solid transparent;
+		color: var(--ink-2);
 		text-decoration: none;
-		border-radius: 6px;
+	}
+
+	.vega-nav-fixed a :global(svg) {
+		color: var(--ink-3);
 	}
 
 	.vega-nav-fixed a:hover {
-		background: var(--surface);
+		background: var(--active);
+		color: var(--ink-hi);
+	}
+
+	.vega-nav-fixed a[aria-current='page'] {
+		background: var(--accent-soft);
+		border-left-color: var(--accent);
+		color: var(--accent-text);
+		font-weight: 600;
+	}
+
+	.vega-nav-fixed a[aria-current='page'] :global(svg) {
+		color: var(--accent-text);
+	}
+
+	.vega-nav-fixed-label {
+		flex: 1;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.vega-nav-trailing {
+		flex-shrink: 0;
+		margin-left: auto;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.vega-nav-count {
+		flex-shrink: 0;
+		font-family: var(--mono);
+		font-size: 0.6875rem;
+		color: var(--ink-3);
 	}
 
 	.vega-sidebar-empty {

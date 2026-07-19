@@ -86,3 +86,32 @@ test('el item de nav activo lleva aria-current="page" y ningún otro', async ({ 
 		'aria-current'
 	);
 });
+
+test('el recuento por item llega del backend (barato, `perPage: 1`) — nunca inventado', async ({
+	page
+}) => {
+	await loginAsDemo(page);
+	await page.waitForURL('**/c/site_info/new');
+
+	const sidebar = page.getByRole('navigation', { name: 'Navegación principal' });
+
+	// `posts` trae 32 registros seed (`post_1`/`post_2` + `EXTRA_POST_RECORDS`, ver
+	// `session/demo-seed.ts`); `pages` está deliberadamente vacío (§4c, estado vacío-colección).
+	const entradasCount = sidebar.getByRole('link', { name: 'Entradas' }).locator('.vega-nav-count');
+	const paginasCount = sidebar.getByRole('link', { name: 'Páginas' }).locator('.vega-nav-count');
+	await expect(entradasCount).toHaveText('32');
+	await expect(paginasCount).toHaveText('0');
+
+	// El singleton "Información del sitio" no navega a un listado (P2 §4.8): sin recuento, nunca
+	// un slot vacío disfrazado de cero.
+	await expect(
+		sidebar.getByRole('link', { name: 'Información del sitio' }).locator('.vega-nav-count')
+	).toHaveCount(0);
+
+	// "Medios" es un acceso fijo de P3 sobre `vega_media`, que en la semilla por defecto (sin
+	// `seedMedia`) NO está bootstrapeada todavía: el recuento falla en silencio y el slot queda
+	// vacío — nunca un "0" falso para una colección que ni siquiera existe.
+	await expect(
+		sidebar.getByRole('link', { name: 'Medios' }).locator('.vega-nav-count')
+	).toHaveCount(0);
+});

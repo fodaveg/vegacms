@@ -16,6 +16,15 @@
 	 *   depender del icono concreto.
 	 * - **readonly**: insignia visible "Solo lectura" (`data-readonly` también, mismo motivo).
 	 * - **label kilométrico**: `title` con el label completo + `text-overflow: ellipsis`.
+	 * - **recuento** (R5 del rediseño C2, mockup `.navgroup .count`): número mono a la derecha,
+	 *   cuando `count` llega definido — lo resuelve `Sidebar.svelte` (vía `port.list(type,
+	 *   { perPage: 1 }).totalItems`, un recuento barato); `undefined` (sin dato o el fetch falló)
+	 *   = sin badge, nunca un número inventado.
+	 *
+	 * **Activo = "pestaña"** (R5, antes relleno sólido de acento — "pesaba" demasiado): fondo
+	 * `--accent-soft` + borde izquierdo 2px `--accent` + texto `--accent-text`, calcado del
+	 * mockup `.navgroup a[aria-current='page']`. El borde transparente en reposo evita que el
+	 * contenido salte 2px al activarse.
 	 *
 	 * Respeta el *exit-guard* de `NavApi` (§2.1, vía `ctx.nav.toList`/`toSingleton`) y los gestos
 	 * nativos del navegador (Cmd/Ctrl/Shift+click y click central abren en pestaña/ventana nueva
@@ -27,7 +36,7 @@
 	import Icon from '$lib/icons/Icon.svelte';
 	import type { NavItem as NavItemModel } from '$lib/model/types';
 
-	let { item }: { item: NavItemModel } = $props();
+	let { item, count }: { item: NavItemModel; count?: number } = $props();
 
 	const ctx = getVegaContext();
 
@@ -56,8 +65,15 @@
 	>
 		<Icon id={iconId} size={16} />
 		<span class="vega-nav-item-label" title={item.label}>{item.label}</span>
-		{#if item.readonly}
-			<span class="vega-nav-badge">{ctx.t('nav.readonlyBadge')}</span>
+		{#if item.readonly || count !== undefined}
+			<span class="vega-nav-trailing">
+				{#if item.readonly}
+					<span class="vega-nav-badge">{ctx.t('nav.readonlyBadge')}</span>
+				{/if}
+				{#if count !== undefined}
+					<span class="vega-nav-count">{count}</span>
+				{/if}
+			</span>
 		{/if}
 	</a>
 </li>
@@ -70,21 +86,34 @@
 	a {
 		display: flex;
 		align-items: center;
-		gap: 0.6rem;
+		gap: 0.65rem;
 		min-height: var(--row-h);
 		padding: 0 var(--vega-space-gutter);
-		color: var(--ink);
+		border-left: 2px solid transparent;
+		color: var(--ink-2);
 		text-decoration: none;
-		border-radius: 6px;
+	}
+
+	a :global(svg) {
+		color: var(--ink-3);
 	}
 
 	a:hover {
-		background: var(--surface);
+		/* `--active` = rol §3 de "fila/elemento activo" (igual que el hover de fila en
+		   `RecordTable`); antes usaba `--surface` (elevación de tarjeta), semánticamente distinto. */
+		background: var(--active);
+		color: var(--ink-hi);
 	}
 
 	a[aria-current='page'] {
-		background: var(--accent);
-		color: var(--accent-ink);
+		background: var(--accent-soft);
+		border-left-color: var(--accent);
+		color: var(--accent-text);
+		font-weight: 600;
+	}
+
+	a[aria-current='page'] :global(svg) {
+		color: var(--accent-text);
 	}
 
 	.vega-nav-item-label {
@@ -92,6 +121,14 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+	}
+
+	.vega-nav-trailing {
+		flex-shrink: 0;
+		margin-left: auto;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
 	}
 
 	.vega-nav-badge {
@@ -105,8 +142,10 @@
 		background: var(--surface);
 	}
 
-	a[aria-current='page'] .vega-nav-badge {
-		border-color: var(--accent-ink);
-		color: var(--accent-ink);
+	.vega-nav-count {
+		flex-shrink: 0;
+		font-family: var(--mono);
+		font-size: 0.6875rem;
+		color: var(--ink-3);
 	}
 </style>

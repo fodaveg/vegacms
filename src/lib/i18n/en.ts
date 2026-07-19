@@ -26,6 +26,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'topbar.connection.disconnected': 'Disconnected',
 	'topbar.connection.retrying': 'Retrying…',
 	'topbar.connection.retry': 'Retry',
+	'topbar.search.ariaLabel': 'Global search',
+	'topbar.search.placeholder': 'Search all content…',
+	'topbar.avatar.label': 'Signed in as {email}',
 
 	// ————— Login / session —————
 	'login.title': 'Sign in to Vega',

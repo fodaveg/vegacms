@@ -31,6 +31,11 @@ export const es = {
 	'topbar.connection.disconnected': 'Sin conexión',
 	'topbar.connection.retrying': 'Reintentando…',
 	'topbar.connection.retry': 'Reintentar',
+	// Buscador global (R1 del rediseño C2): visual/atajo de teclado, sin backend de búsqueda
+	// global todavía (§ pendiente de un P posterior) — ver `GlobalSearch.svelte`.
+	'topbar.search.ariaLabel': 'Búsqueda global',
+	'topbar.search.placeholder': 'Buscar en todo el contenido…',
+	'topbar.avatar.label': 'Sesión de {email}',
 
 	// ————— Login / sesión —————
 	'login.title': 'Acceder a Vega',

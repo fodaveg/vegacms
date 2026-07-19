@@ -10,6 +10,14 @@
 	 * estado que de verdad se ve aquí en la práctica es `transportFeedback.state`, cableado por
 	 * `feedback.reportError('network')` cuando un fallo de red aflora A MITAD de sesión (§2.3,
 	 * §3.4) — sin desmontar el shell, a diferencia de un fallo de arranque.
+	 *
+	 * Estilo (R1 del rediseño C2, mockup `.topbar .env`): píldora con borde, mono, punto de
+	 * estado. El mockup muestra un literal "PB 0.29 · conectado" (versión del SERVIDOR conectado),
+	 * pero Vega no tiene forma de consultar en runtime qué versión de PocketBase hay al otro lado
+	 * (`BackendPort` no expone esa capacidad hoy) — solo conoce el RANGO soportado en build
+	 * (`VEGA_PB_SERVER_RANGE`, ya mostrado en "Acerca de", P8·F2). Inventar aquí un número de
+	 * versión sería falsear un dato que no se tiene, así que la píldora pinta el estado real
+	 * (conectado/reintentando/sin conexión) sin ese prefijo.
 	 */
 	import { getSessionContext } from '$lib/session/session.svelte';
 	import { getVegaContext } from '$lib/app-context';
@@ -39,14 +47,19 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.4rem;
-		font-size: 0.8rem;
-		color: var(--ink-2);
+		font-family: var(--mono);
+		font-size: 0.6875rem;
+		color: var(--ink-3);
 		white-space: nowrap;
+		border: 1px solid var(--line);
+		border-radius: 99px;
+		padding: 0.18rem 0.6rem;
 	}
 
 	.vega-connection-dot {
-		width: 0.5rem;
-		height: 0.5rem;
+		width: 6px;
+		height: 6px;
+		flex-shrink: 0;
 		border-radius: 50%;
 		background: var(--ink-2);
 	}
