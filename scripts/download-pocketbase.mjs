@@ -106,11 +106,20 @@ function verifyChecksum(zipPath, platformArch) {
  */
 class ChecksumMismatchError extends Error {}
 
+/**
+ * `true` solo si el binario en `.pbbin/` ya existe, es ejecutable Y es la versión pedida
+ * (`PB_VERSION`) — no basta con que exista: un binario de OTRA versión cacheado de una
+ * ejecución anterior (p.ej. la pineada 0.39.6, tras correr sin `PB_VERSION`) se reutilizaría en
+ * silencio, dejando que `PB_VERSION=0.26.0 pnpm test:pb` corra en realidad contra 0.39.6 sin
+ * avisar (hallazgo P8·F1, 2026-07-19: así es como una reproducción local inicial dio un falso
+ * "pasan los 54" contra 0.26.0).
+ */
 async function alreadyUsable() {
 	if (!existsSync(BIN_PATH)) return false;
 	try {
-		execFileSync(BIN_PATH, ['--version'], { stdio: 'ignore' });
-		return true;
+		const out = execFileSync(BIN_PATH, ['--version'], { encoding: 'utf8' });
+		const match = out.match(/(\d+\.\d+\.\d+)/);
+		return match !== null && match[1] === PB_VERSION;
 	} catch {
 		return false;
 	}

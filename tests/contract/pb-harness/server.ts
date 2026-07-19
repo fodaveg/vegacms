@@ -54,15 +54,27 @@ async function waitForHealth(url: string, timeoutMs = 10_000): Promise<void> {
 export async function startPocketBase(): Promise<RunningPocketBase> {
 	const bin = pocketBaseBinaryPath();
 	const dataDir = mkdtempSync(path.join(tmpdir(), 'vega-pbdata-'));
+	// El default de PB para `--migrationsDir` es EL HERMANO de `--dir` (`<padre>/pb_migrations`),
+	// no algo dentro de él — y como `mkdtempSync` crea cada `dataDir` como hijo directo del
+	// MISMO `tmpdir()`, todas las instancias "efímeras" de una máquina comparten ese hermano.
+	// `--automigrate` (default true) escribe ahí una migración por cada colección creada vía
+	// API, y las REPLICA TODAS en cualquier base nueva al arrancar: sin este flag explícito, un
+	// PB "recién creado" en realidad hereda el esquema acumulado de TODAS las ejecuciones
+	// previas en esta máquina (hallazgo P8·F1, 2026-07-19 — confundió una reproducción local:
+	// parecía que `kitchen_sink` ya existía con forma vieja/parcial de una tanda anterior).
+	// Metiéndolo dentro de `dataDir`, se borra junto con él en `stop()`.
+	const migrationsDir = path.join(dataDir, 'pb_migrations');
 	const port = await findFreePort();
 	const url = `http://127.0.0.1:${port}`;
 
 	// Superuser vía CLI (no necesita el servidor arrancado): más rápido y fiable que la API.
 	await execPocketBase(bin, ['superuser', 'upsert', ADMIN_EMAIL, ADMIN_PASSWORD, '--dir', dataDir]);
 
-	const child = spawn(bin, ['serve', `--http=127.0.0.1:${port}`, '--dir', dataDir], {
-		stdio: 'pipe'
-	});
+	const child = spawn(
+		bin,
+		['serve', `--http=127.0.0.1:${port}`, '--dir', dataDir, '--migrationsDir', migrationsDir],
+		{ stdio: 'pipe' }
+	);
 	child.stderr?.on('data', () => {}); // silencia stderr; los tests no dependen de sus logs
 
 	await waitForHealth(url).catch((err) => {

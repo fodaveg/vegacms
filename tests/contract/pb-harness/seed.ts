@@ -14,13 +14,38 @@
 import PocketBase, { ClientResponseError } from 'pocketbase';
 import type { Field } from '$lib/backend';
 import { categoryType, kitchenSinkType, kitchenSinkSeed, requiredProbeType } from '../fixture';
+import { pocketBaseBinaryVersion, pbVersionAtLeast } from './binary';
 
 const CATEGORY_VIEW_QUERY = 'SELECT id, name FROM category';
+
+/**
+ * El campo `geoPoint` (usado por `kitchen_sink.location` para probar que Vega degrada tipos
+ * exóticos a `unsupported`, §6/§9.10) es una capacidad de PocketBase, no un formato de creación:
+ * el tipo de campo `geoPoint` NO EXISTE en el servidor hasta la v0.27.0 (CHANGELOG oficial:
+ * "Added new geoPoint field"; verificado 2026-07-19 contra 0.26.0 real: crearlo devuelve 400
+ * "Failed to load the submitted data due to invalid formatting" — el servidor ni siquiera
+ * reconoce el tipo, no es un problema de shape). Como ninguna instalación 0.26.0 real puede
+ * tener jamás un campo `geoPoint` (el tipo no existía), el escenario "leer un geoPoint ajeno y
+ * degradarlo" es inaplicable contra esa versión — se omite el campo al sembrar, en vez de forzar
+ * un shape que el servidor no puede aceptar.
+ */
+const GEO_POINT_MIN_VERSION = '0.27.0';
+
+function supportsGeoPointField(): boolean {
+	const version = pocketBaseBinaryVersion();
+	// Sin binario detectable, no bloqueamos (el resto del harness ya se salta declarándolo).
+	return version === null || pbVersionAtLeast(version, GEO_POINT_MIN_VERSION);
+}
 
 /** Crea (si no existen) las colecciones del fixture en PB, en orden de dependencia. */
 export async function seedPocketBaseSchema(pb: PocketBase): Promise<void> {
 	const categoryId = await ensureBaseCollection(pb, 'category', categoryType.fields, {});
-	await ensureBaseCollection(pb, 'kitchen_sink', kitchenSinkType.fields, { category: categoryId });
+	const kitchenSinkFields = supportsGeoPointField()
+		? kitchenSinkType.fields
+		: kitchenSinkType.fields.filter(
+				(f) => !(f.type === 'unsupported' && f.backendType === 'geoPoint')
+			);
+	await ensureBaseCollection(pb, 'kitchen_sink', kitchenSinkFields, { category: categoryId });
 	await ensureBaseCollection(pb, 'required_probe', requiredProbeType.fields, {
 		category: categoryId
 	});

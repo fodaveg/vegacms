@@ -65,6 +65,15 @@ export interface ContractOptions {
 	 * esta opción en vez de forzar una paridad que PB no puede dar.
 	 */
 	numberFieldDefaultsToZero?: boolean;
+	/**
+	 * `false` si el servidor bajo prueba no reconoce el TIPO de campo `geoPoint` (PocketBase lo
+	 * introdujo en la v0.27.0 — no existe en absoluto en 0.26.0, D-P1.3: verificado 2026-07-19,
+	 * ver `pb-harness/seed.ts`). Por defecto `true` (memory y PB >= 0.27.0 sí lo soportan). Los
+	 * casos que dependen de que `kitchen_sink.location` exista como `unsupported/geoPoint` se
+	 * saltan declarándolo cuando es `false` — no hay ninguna instalación real de esa versión que
+	 * pueda tener jamás ese campo, así que el escenario es inaplicable, no una regresión.
+	 */
+	hasGeoPointFieldType?: boolean;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -270,11 +279,22 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 				expect(byName.get('cover')).toMatchObject({ type: 'file', multiple: false });
 				expect(byName.get('gallery')).toMatchObject({ type: 'file', multiple: true });
 				expect(byName.get('metadata')).toMatchObject({ type: 'json' });
-				expect(byName.get('location')).toMatchObject({
-					type: 'unsupported',
-					backendType: 'geoPoint'
-				});
 			});
+
+			test.skipIf(opts.hasGeoPointFieldType === false)(
+				'mapeo campo a campo del kitchen sink (§6): geoPoint degrada a unsupported (requiere que el servidor soporte el TIPO geoPoint)',
+				async () => {
+					const port = await makeAuthedPort();
+					const types = await port.listContentTypes();
+					const ks = types.find((t) => t.name === 'kitchen_sink')!;
+					const byName = new Map(ks.fields.map((f) => [f.name, f]));
+
+					expect(byName.get('location')).toMatchObject({
+						type: 'unsupported',
+						backendType: 'geoPoint'
+					});
+				}
+			);
 		});
 
 		// ————————————————————————————————————————————————————— 3. CRUD + normalización —————
@@ -431,7 +451,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 				});
 			});
 
-			test('escribir readonly/unsupported/desconocido → validation local (§4.3)', async () => {
+			test('escribir readonly/desconocido → validation local (§4.3)', async () => {
 				const port = await makeAuthedPort();
 				await expect(
 					port.create('kitchen_sink', { title: 'x', createdAt: '2020-01-01T00:00:00.000Z' })
@@ -441,19 +461,25 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 				});
 
 				await expect(
-					port.create('kitchen_sink', { title: 'x', location: { lat: 0, lng: 0 } })
-				).rejects.toMatchObject({
-					kind: 'validation',
-					fieldErrors: { location: { code: 'vega_unsupported_field' } }
-				});
-
-				await expect(
 					port.create('kitchen_sink', { title: 'x', noExiste: 1 })
 				).rejects.toMatchObject({
 					kind: 'validation',
 					fieldErrors: { noExiste: { code: 'vega_unknown_field' } }
 				});
 			});
+
+			test.skipIf(opts.hasGeoPointFieldType === false)(
+				'escribir unsupported (geoPoint) → validation local (§4.3, requiere que el servidor soporte el TIPO geoPoint)',
+				async () => {
+					const port = await makeAuthedPort();
+					await expect(
+						port.create('kitchen_sink', { title: 'x', location: { lat: 0, lng: 0 } })
+					).rejects.toMatchObject({
+						kind: 'validation',
+						fieldErrors: { location: { code: 'vega_unsupported_field' } }
+					});
+				}
+			);
 
 			test('escribir en un ContentType.readonly (view) → forbidden', async () => {
 				const port = await makeAuthedPort();

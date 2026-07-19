@@ -10,7 +10,11 @@ import PocketBase from 'pocketbase';
 import type { VegaError } from '$lib/backend';
 import { createPocketBaseBackend } from '$lib/backend/adapters/pocketbase';
 import { describeBackendContract } from './backend-contract';
-import { isPocketBaseBinaryAvailable } from './pb-harness/binary';
+import {
+	isPocketBaseBinaryAvailable,
+	pocketBaseBinaryVersion,
+	pbVersionAtLeast
+} from './pb-harness/binary';
 import type { RunningPocketBase } from './pb-harness/server';
 import { startPocketBase } from './pb-harness/server';
 import { resetPocketBaseRecords, seedPocketBaseSchema } from './pb-harness/seed';
@@ -23,6 +27,14 @@ import { startAuthFailureProxy } from './pb-harness/auth-failure-proxy';
 globalThis.EventSource = EventSource as unknown as typeof globalThis.EventSource;
 
 const AVAILABLE = isPocketBaseBinaryAvailable();
+
+// `geoPoint` (tipo de campo) no existe en el servidor hasta PB 0.27.0 (ver `pb-harness/seed.ts`
+// para la evidencia/CHANGELOG): con el binario real presente, el propio binario dice la verdad
+// sobre su versión — nunca el env var `PB_VERSION`, que puede mentir si `alreadyUsable()` (en
+// `scripts/download-pocketbase.mjs`) reutilizó en silencio uno ya descargado.
+const PB_BINARY_VERSION = AVAILABLE ? pocketBaseBinaryVersion() : null;
+const HAS_GEO_POINT_FIELD_TYPE =
+	PB_BINARY_VERSION === null || pbVersionAtLeast(PB_BINARY_VERSION, '0.27.0');
 
 // PB solo permite fijar la duración del token de superuser a nivel de colección, con un
 // mínimo de 10s (verificado en Fase 2). Se pinea aquí, una vez, para toda la suite: los tests
@@ -70,6 +82,7 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 		capabilities,
 		authExpiryWaitMs: AUTH_EXPIRY_WAIT_MS,
 		numberFieldDefaultsToZero: true,
+		hasGeoPointFieldType: HAS_GEO_POINT_FIELD_TYPE,
 		transportFailures: {
 			makeUnreachablePort: () => createPocketBaseBackend({ url: 'http://127.0.0.1:1' }),
 			async makeCorruptResponsePort() {

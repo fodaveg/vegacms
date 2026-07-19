@@ -76,21 +76,19 @@ jobs:
       fail-fast: false
       matrix:
         pb_version: ['0.26.0', '0.39.6']
-    # HALLAZGO (P8·F1, 2026-07-19, verificado a mano contra el binario real): la suite de
-    # contrato entera (54 tests) falla contra PocketBase 0.26.0. Causa raíz localizada: al
-    # sembrar el esquema del fixture (`tests/contract/pb-harness/seed.ts`), la colección
-    # `kitchen_sink` (la única con richtext/select-múltiple/relation-múltiple/file/json/geoPoint)
-    # se crea con SOLO el campo `id` — los otros ~14 campos del fixture se pierden sin que
-    # `pb.collections.create()` lance error — mientras que `category` y `required_probe`
-    # (esquemas más simples) sí se crean completos. `category`/`required_probe` sin problema
-    # sugiere que el contrato base (CRUD/query/auth) es compatible 0.26–0.39, pero algo del
-    # vocabulario de creación de campos "exóticos" del HARNESS DE TEST (no necesariamente el
-    # adaptador de producción, que nunca crea esos tipos vía Anexo A) difiere entre versiones.
-    # NO se ha forzado un workaround (instrucción explícita: si 0.26.0 rompe, documentar y dejar
-    # decidir a David, no forzarlo) — de ahí `continue-on-error` en ESTA pata concreta: no
-    # bloquea el PR mientras se decide (¿bisecar qué campo exacto rompe? ¿ajustar el harness?
-    # ¿bajar el mínimo soportado?), pero el resultado queda visible en el resumen del run.
-    continue-on-error: ${{ matrix.pb_version == '0.26.0' }}
+    # HALLAZGO (P8·F1, 2026-07-19) resuelto: la causa raíz NO era un problema de shape/formato
+    # del harness (la hipótesis inicial de "kitchen_sink se crea con solo el campo id" era un
+    # espejismo — un `pb_migrations` acumulado de sesiones locales anteriores, ver
+    # `pb-harness/server.ts`). La causa real: el TIPO de campo `geoPoint` (usado solo por
+    # `kitchen_sink.location`, para probar que Vega degrada tipos exóticos a `unsupported`) no
+    # existe en el servidor hasta PocketBase v0.27.0 (CHANGELOG oficial) — 0.26.0 devuelve 400
+    # "invalid formatting" al intentar crearlo, porque ni reconoce el tipo. Como ninguna
+    # instalación 0.26.0 real puede tener jamás un campo `geoPoint`, el harness ahora omite ese
+    # campo al sembrar contra servidores < 0.27.0 (`pb-harness/seed.ts`) y los 2 casos de
+    # contrato que dependen de él se saltan declarándolo (`ContractOptions.hasGeoPointFieldType`
+    # en `backend-contract.ts`) — el resto de la suite (CRUD/query/auth/ensureCollections) ya
+    # pasaba sin tocar nada, confirmando que D-P1.3 (mínimo soportado 0.26.0) sigue siendo
+    # correcto. `continue-on-error` ya no hace falta: los 54 tests pasan de verdad contra 0.26.0.
     steps:
       - name: Checkout
         uses: actions/checkout@v5
