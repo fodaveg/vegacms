@@ -395,6 +395,15 @@
 		background: var(--vega-color-accent);
 		color: var(--vega-color-accent-contrast);
 		font-size: 0.85rem;
+		/* Caso límite: un título resuelto (`titleFor`) kilométrico no debe forzar overflow
+		   horizontal — `min-width: 0` deja que el `span` de dentro se encoja y envuelva. */
+		max-width: 100%;
+		min-width: 0;
+	}
+
+	.vega-relation-chip span {
+		overflow-wrap: anywhere;
+		min-width: 0;
 	}
 
 	.vega-relation-not-found {
@@ -460,6 +469,9 @@
 		font: inherit;
 		font-size: 0.85rem;
 		cursor: pointer;
+		/* Caso límite: un título de candidato kilométrico no debe forzar overflow horizontal. */
+		max-width: 100%;
+		overflow-wrap: anywhere;
 	}
 
 	.vega-relation-candidate[aria-pressed='true'] {

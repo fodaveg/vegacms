@@ -81,6 +81,10 @@
 		font: inherit;
 		font-size: 0.85rem;
 		cursor: pointer;
+		/* Caso límite: una opción de una sola palabra kilométrica no debe forzar overflow
+		   horizontal (el grupo ya envuelve por `flex-wrap`, esto evita que UNA chip se salga). */
+		max-width: 100%;
+		overflow-wrap: anywhere;
 	}
 
 	.vega-chip[aria-pressed='true'] {

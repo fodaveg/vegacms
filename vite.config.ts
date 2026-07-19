@@ -24,7 +24,20 @@ export default defineConfig({
 					name: 'server',
 					environment: 'node',
 					include: ['src/**/*.{test,spec}.{js,ts}', 'tests/**/*.{test,spec}.{js,ts}'],
-					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
+					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}', 'src/**/*.dom.{test,spec}.{js,ts}']
+				}
+			},
+			// Proyecto `dom` (F5-g): módulos que manipulan el DOM real (`focus-target.ts`, la
+			// resolución de foco de a11y) pero no montan componentes Svelte — jsdom basta, sin el
+			// coste de un entorno de componente completo. Convención de nombre `*.dom.test.ts`
+			// (distinta de `*.svelte.test.ts`, reservado para tests de runas/componentes) para que
+			// ambos proyectos se repartan los ficheros sin solaparse.
+			{
+				extends: './vite.config.ts',
+				test: {
+					name: 'dom',
+					environment: 'jsdom',
+					include: ['src/**/*.dom.{test,spec}.{js,ts}']
 				}
 			}
 		]

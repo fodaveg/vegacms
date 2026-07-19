@@ -39,9 +39,20 @@
 	 *   no puede dar sin reimplementar manualmente el reintento de la navegación para cada tipo
 	 *   (link/goto/popstate) — la razón por la que `ManifestEditor` evita `confirm()` (una
 	 *   confirmación SIN carrera con el router) no aplica aquí.
+	 * - Foco al primer error (F5-g, L-P5.2, a11y de cierre): tras un envío que deja errores (de
+	 *   cliente `validateForm` O de backend `mapFieldErrors`), el foco se mueve al PRIMER campo con
+	 *   error en el orden EFECTIVO de formulario — `firstErrorFieldName` (`first-error-field.ts`)
+	 *   resuelve el NOMBRE (puro, testeado); `resolveFocusTarget` (`focus-target.ts`, testeado con
+	 *   jsdom) resuelve el ELEMENTO: para los widgets input/select/textarea/`file` (su `inputId` YA
+	 *   es el control focusable) basta el propio id; para los de tipo GRUPO (`chips`/`relation`,
+	 *   `role="group"` sobre un `<div>` no-focusable) cae al primer elemento focusable Y HABILITADO
+	 *   dentro de su `.vega-field-row` (ver esa cabecera para la landmine de `maxSelect`+`disabled`,
+	 *   fix de code-review). Se espera un `tick()` antes de resolver: los errores de backend llegan
+	 *   tras un `await`, el nodo del campo puede no existir todavía en el frame en que se asigna
+	 *   `backendErrors`. NUNCA se dispara en el camino de ÉXITO (guardado ok).
 	 */
 	import { beforeNavigate } from '$app/navigation';
-	import { onMount, untrack } from 'svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	import type { ResolvedContentType } from '$lib/model/types';
 	import type { FieldInputValue, RecordInput, VegaRecord } from '$lib/backend/types';
 	import { VegaError } from '$lib/backend/errors';
@@ -52,6 +63,8 @@
 	import { validateForm } from './validation';
 	import { isFieldValidationError, mapFieldErrors, type FieldErrorsView } from './field-errors';
 	import { fieldErrorMessage } from './field-error-message';
+	import { firstErrorFieldName } from './first-error-field';
+	import { resolveFocusTarget } from './focus-target';
 	import { setRecordIdentity } from './record-context';
 	import FieldRow from './FieldRow.svelte';
 
@@ -164,6 +177,23 @@
 		}
 	}
 
+	/**
+	 * Mueve el foco al primer campo con error de `errorsView` (ver cabecera): espera el `tick()`
+	 * de Svelte (los errores pintan tras esta llamada, no antes), resuelve el ELEMENTO con
+	 * `resolveFocusTarget` (`focus-target.ts`, sobre `document` — el único acceso a él de todo
+	 * este módulo) y hace `scrollIntoView` suave por si el campo queda fuera de la vista. No-op si
+	 * no hay ningún error POR CAMPO (p.ej. solo el de registro, clave `''`, sin campo al que
+	 * asociar el foco).
+	 */
+	async function focusFirstErrorField(errorsView: FieldErrorsView): Promise<void> {
+		const name = firstErrorFieldName(type.fields, errorsView);
+		if (name === null) return;
+		await tick();
+		const target = resolveFocusTarget(document, name);
+		target?.focus();
+		target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+	}
+
 	async function handleSubmit(event: SubmitEvent): Promise<void> {
 		event.preventDefault();
 		if (formDisabled) return;
@@ -173,7 +203,10 @@
 		// contrario: si el cliente lo cree válido, SIEMPRE se envía).
 		const clientView = validateForm(type, current);
 		clientErrors = clientView;
-		if (Object.keys(clientView.byField).length > 0 || clientView.record) return;
+		if (Object.keys(clientView.byField).length > 0 || clientView.record) {
+			await focusFirstErrorField(clientView); // F5-g, L-P5.2: foco al primer campo con error
+			return;
+		}
 
 		// FIX (code-review): `backendErrors` NO se limpia hasta llegar aquí (tras pasar la
 		// validación de cliente), no al entrar en el handler. Si se limpiara antes e incondicional:
@@ -183,6 +216,12 @@
 		// el estado real del registro.
 		backendErrors = EMPTY_ERRORS;
 		saving = true;
+		// LANDMINE (F5-g, cazada en e2e): el foco NO puede pedirse todavía dentro del `catch` — el
+		// campo sigue `disabled` (`formDisabled = saving || typeReadonly`, `saving` aún `true` hasta
+		// el `finally`) y un elemento deshabilitado JAMÁS acepta foco (`.focus()` es un no-op sobre
+		// él). Se pospone la llamada a DESPUÉS del `finally`, con `saving` ya en `false` y el
+		// control re-habilitado.
+		let errorsToFocus: FieldErrorsView | null = null;
 		try {
 			const input = toRecordInput(type, baseline, current);
 			const saved = await onSubmit(input);
@@ -199,6 +238,7 @@
 			if (isFieldValidationError(vegaErr)) {
 				// L-P5.4: mapeo por campo + banner de registro (clave '').
 				backendErrors = mapFieldErrors(vegaErr);
+				errorsToFocus = backendErrors; // F5-g, L-P5.2: foco al primer campo con error
 			} else {
 				// L-P5.5: cualquier otro kind (network/backend/forbidden/auth-expired) es feedback
 				// global de P3, no de este formulario. 'auth-expired' lo tapa el overlay de
@@ -208,6 +248,7 @@
 		} finally {
 			saving = false;
 		}
+		if (errorsToFocus) await focusFirstErrorField(errorsToFocus);
 	}
 
 	beforeNavigate((navigation) => {
@@ -270,6 +311,10 @@
 		flex-direction: column;
 		gap: 1.25rem;
 		max-width: 40rem;
+		/* Casos límite de contenido real (F5-g): sin esto, el formulario es un flex-item cuyo
+		   `min-width` por defecto es el de su contenido — un label/valor kilométrico (una sola
+		   palabra sin espacios) podría forzar overflow horizontal de la página entera. */
+		min-width: 0;
 	}
 
 	.vega-record-form-group {
@@ -282,6 +327,7 @@
 		margin: 0;
 		font-size: 0.95rem;
 		color: var(--vega-color-text-muted);
+		overflow-wrap: anywhere;
 	}
 
 	.vega-record-form-notice {
@@ -302,6 +348,7 @@
 		background: var(--vega-color-danger-bg);
 		color: var(--vega-color-danger);
 		font-size: 0.9rem;
+		overflow-wrap: anywhere;
 	}
 
 	.vega-record-form-actions {

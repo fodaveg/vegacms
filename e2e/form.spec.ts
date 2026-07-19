@@ -55,6 +55,16 @@
  * (single y múltiple, el camino de borrado real de `materializeFileField` que los tests de
  * arriba no ejercían, solo quitaban un `File` pendiente sin guardar) y el readonly de schema del
  * widget `file` (`posts.sourceFile`, mismo criterio que `authors.joinedAt` para `datetime`).
+ *
+ * **Añadido en F5-g (contrato P5)**: foco al primer campo con error tras un envío fallido
+ * (a11y de cierre, L-P5.2) — cliente (`required` de `title`, el único required de `posts`) y
+ * backend (`maxLength`, mismo bypass del `maxlength` nativo que el test de validación de arriba).
+ * Ambos casos ejercitan un widget INPUT normal (`inputId` ya es el control focusable); el
+ * fallback de `RecordForm.svelte` para widgets de tipo GRUPO (`chips`/`relation`, sin control
+ * nativamente focusable en su `inputId`) no tiene un camino practicable en la semilla actual (
+ * ningún campo de ese tipo es `required`, y `maxSelect` ya lo impide la propia UI antes de
+ * llegar a enviar) — cubierto en su lugar por `first-error-field.test.ts` (unit, la lógica de
+ * ORDEN es la misma para cualquier tipo de widget) y por revisión manual del fallback.
  */
 import { expect, loginAsDemo, test } from './fixtures';
 
@@ -126,6 +136,48 @@ test.describe('crear (D-P5.11)', () => {
 			page.getByRole('alert').filter({ hasText: 'El texto es demasiado largo.' })
 		).toBeVisible();
 		await expect(page).toHaveURL(/\/c\/posts\/new$/);
+	});
+});
+
+test.describe('foco al primer error (a11y de cierre, F5-g/L-P5.2)', () => {
+	test('required vacío (cliente): el foco aterriza en el campo con error, no se queda en "Guardar"', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts/new');
+
+		await page.getByRole('button', { name: 'Guardar' }).click();
+
+		await expect(
+			page.getByRole('alert').filter({ hasText: 'Este campo es obligatorio.' })
+		).toBeVisible();
+		// `title` es el ÚNICO campo required de `posts` (demo-seed): el foco debe caer justo ahí,
+		// un `<input>` normal (no un widget de tipo grupo) — camino directo `getElementById`.
+		await expect(page.getByLabel('Title')).toBeFocused();
+	});
+
+	test('error de BACKEND (maxLength, que el cliente no comprueba): el foco aterriza en el campo que lo devolvió', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts/new');
+
+		// Mismo truco que el test de validación de backend de más arriba (bypasea el `maxlength`
+		// nativo del navegador): fuerza un `title` de 200 caracteres para que SOLO el backend lo
+		// rechace (L-P5.4), no la validación cliente (D-P5.3).
+		await page.getByLabel('Title').evaluate((el, value) => {
+			const input = el as HTMLInputElement;
+			input.value = value;
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+		}, 'x'.repeat(200));
+		await page.getByRole('button', { name: 'Guardar' }).click();
+
+		await expect(
+			page.getByRole('alert').filter({ hasText: 'El texto es demasiado largo.' })
+		).toBeVisible();
+		// El foco llega TRAS el `await` del envío fallido (backendErrors se asienta después de la
+		// respuesta) — confirma que `RecordForm` espera el `tick()` antes de resolver el elemento.
+		await expect(page.getByLabel('Title')).toBeFocused();
 	});
 });
 

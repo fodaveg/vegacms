@@ -56,11 +56,16 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.3rem;
+		/* Casos límite de contenido real (F5-g): permite que la fila se encoja por debajo del
+		   ancho de su contenido (default `min-width: auto` de un flex-item) — sin esto, un
+		   label/valor kilométrico de una sola palabra desbordaría horizontalmente el formulario. */
+		min-width: 0;
 	}
 
 	.vega-field-row label {
 		font-size: 0.85rem;
 		font-weight: 600;
+		overflow-wrap: anywhere;
 	}
 
 	.vega-field-required {
@@ -72,11 +77,13 @@
 		margin: 0;
 		font-size: 0.8rem;
 		color: var(--vega-color-text-muted);
+		overflow-wrap: anywhere;
 	}
 
 	.vega-field-error {
 		margin: 0;
 		font-size: 0.8rem;
 		color: var(--vega-color-danger);
+		overflow-wrap: anywhere;
 	}
 </style>
