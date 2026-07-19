@@ -29,6 +29,7 @@ import type {
 	NavModel,
 	ResolvedContentType,
 	ResolvedField,
+	ResolvedFieldGroup,
 	ResolvedSite
 } from './types';
 import {
@@ -85,6 +86,49 @@ function readStringArray(minItemLength: number) {
 		}
 		return items;
 	};
+}
+
+/** Resultado tolerante de leer `collections.<c>.fieldGroups` (§4.9b). */
+interface FieldGroupsDeclaration {
+	/** Nombres en orden de declaración, tal cual los espera `orderByGroups` (misma forma que
+	 *  antes de §4.9b: la forma objeto solo AÑADE `columns`, no cambia el orden). */
+	order: string[];
+	/** `columns` declarado por nombre de grupo, solo para los que llegaron en forma objeto. */
+	columnsByName: Map<string, number>;
+}
+
+/**
+ * Lee `fieldGroups` tolerando las DOS formas de item que admite el schema §3 (`oneOf`): un
+ * string (de siempre) o un objeto `{ name, columns }` (§4.9b). Cualquier item que no case con
+ * NINGUNA de las dos (número, array, objeto sin `name`, `columns` fuera de 1-3…) invalida el
+ * array ENTERO — mismo criterio "todo o nada" que `readStringArray` ya aplicaba a `listFields`/
+ * `nav.groups`, así el llamador solo tiene que emitir UN warning `manifest-invalid-key` por toda
+ * la clave, no uno por item.
+ */
+function readFieldGroups(raw: JsonValue): FieldGroupsDeclaration | undefined {
+	if (!Array.isArray(raw)) return undefined;
+	const order: string[] = [];
+	const columnsByName = new Map<string, number>();
+	for (const el of raw) {
+		if (typeof el === 'string') {
+			if (el.length < 1) return undefined;
+			order.push(el);
+			continue;
+		}
+		const obj = asJsonObject(el);
+		if (!obj) return undefined;
+		const name = obj.name;
+		if (typeof name !== 'string' || name.length < 1) return undefined;
+		order.push(name);
+		if ('columns' in obj) {
+			const columns = obj.columns;
+			if (typeof columns !== 'number' || !Number.isInteger(columns) || columns < 1 || columns > 3) {
+				return undefined;
+			}
+			columnsByName.set(name, columns);
+		}
+	}
+	return { order, columnsByName };
 }
 
 function readStatusFieldRaw(raw: JsonValue): string | false | undefined {
@@ -440,27 +484,36 @@ function resolveContentType(
 		warnings.push(orphanField(type.name, name));
 	}
 
-	const declaredFieldGroups =
-		readKey(
-			collectionRaw,
-			'fieldGroups',
-			readStringArray(1),
-			`${base}/fieldGroups`,
-			`fieldGroups de "${type.name}" no es un array de strings no vacíos; se ignora.`,
-			warnings
-		) ?? [];
+	const fieldGroupsDeclaration = readKey(
+		collectionRaw,
+		'fieldGroups',
+		readFieldGroups,
+		`${base}/fieldGroups`,
+		`fieldGroups de "${type.name}" no es un array de nombres o { name, columns } válidos; se ignora.`,
+		warnings
+	);
+	const declaredFieldGroups = fieldGroupsDeclaration?.order ?? [];
+	const columnsByGroupName = fieldGroupsDeclaration?.columnsByName ?? new Map<string, number>();
 
 	const fieldOrderByName = new Map<string, number | undefined>();
 	const resolvedFieldsBase = type.fields.map((field) =>
 		resolveField(type.name, field, fieldsRaw[field.name], fieldOrderByName, warnings)
 	);
 
-	const { orderedItems: orderedFields, groupOrder: fieldGroups } = orderByGroups(
+	const { orderedItems: orderedFields, groupOrder: fieldGroupNames } = orderByGroups(
 		resolvedFieldsBase,
 		(f) => f.group,
 		(f) => fieldOrderByName.get(f.name),
 		declaredFieldGroups
 	);
+
+	// §4.9b: `columns` viaja aparte de `orderByGroups` (que solo ordena NOMBRES, compartido con
+	// nav) — se cose aquí sobre el orden ya resuelto. El grupo anónimo (`null`) SIEMPRE es 1: no
+	// hay clave de manifiesto que lo declare (no tiene nombre al que colgar `columns`).
+	const fieldGroups: ResolvedFieldGroup[] = fieldGroupNames.map((name) => ({
+		name,
+		columns: ((name !== null ? columnsByGroupName.get(name) : undefined) ?? 1) as 1 | 2 | 3
+	}));
 
 	// ————— listFields (§4.10) —————
 	const listFieldsRawArr = readKey(

@@ -77,8 +77,24 @@ export interface ResolvedContentType {
 	fields: ResolvedField[];
 	/** (D+M) nombres de campos-columna para P4, en orden. Máx 5 por defecto (§4.10). */
 	listFields: string[];
-	/** (D+M) grupos de campos del formulario, en orden de render; null = grupo anónimo. */
-	fieldGroups: (string | null)[];
+	/** (D+M) grupos de campos del formulario, en orden de render (§4.9, §4.9b). */
+	fieldGroups: ResolvedFieldGroup[];
+}
+
+/**
+ * Un grupo de campos del formulario ya resuelto (§4.9b): además del nombre/orden que ya daba
+ * §4.9, lleva `columns` — la rejilla responsive de N columnas que `RecordForm.svelte` pinta para
+ * ESE grupo (feature genérica "editor bilingüe emparejado", pero aplicable a cualquier par/trío
+ * de campos que convenga ver lado a lado: p.ej. `titleEs`|`titleEn`). `columns: 1` (el default,
+ * también el valor SIEMPRE del grupo anónimo — no hay clave de manifiesto de la que heredarlo) es
+ * el layout apilado de siempre; P2 no cambia nada más para un manifiesto que no declara la forma
+ * objeto de `fieldGroups` (compatibilidad hacia atrás total, §4.9b).
+ */
+export interface ResolvedFieldGroup {
+	/** Nombre del grupo, o `null` para el grupo anónimo (campos sin `group`, siempre primero). */
+	name: string | null;
+	/** (M) columnas de la rejilla del grupo (1-3, default 1). >1 colapsa a 1 en viewports estrechos. */
+	columns: 1 | 2 | 3;
 }
 
 export interface ResolvedField {

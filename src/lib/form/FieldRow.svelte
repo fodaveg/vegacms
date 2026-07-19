@@ -24,6 +24,16 @@
 	 * **Responsive (`@media max-width:720px`)**: colapsa a 1 columna (mockup §responsive) — el
 	 * label pierde el `padding-top` que antes lo alineaba con la primera línea del control, porque
 	 * ya no hay nada a su lado con lo que alinearse.
+	 *
+	 * **`stacked` (§4.9b, rejilla de columnas de `fieldGroups`)**: prop opcional, `false` por
+	 * defecto — el layout de siempre, sin cambios. `RecordForm.svelte` la pasa `true` para cada
+	 * `FieldRow` de un grupo con `columns > 1` (p. ej. `titleEs`|`titleEn` lado a lado): con menos
+	 * ancho por campo (la mitad o un tercio del ancho del formulario), el grid `label | control` de
+	 * 184px fijo no cabe bien — de ahí que el label pase a ir SIEMPRE encima del control, sin
+	 * esperar al `@media` de más abajo (que solo mira el ancho de LA PROPIA fila, no el nº de
+	 * columnas de su grupo). También cede su propio padding/borde de fila (que solo tiene sentido
+	 * apilando filas verticalmente en una ficha) al `gap` de la rejilla `.vega-fgroup-grid` de
+	 * `RecordForm.svelte`, que ya separa tanto filas como columnas con el mismo criterio.
 	 */
 	import type { ResolvedField } from '$lib/model/types';
 	import type { FieldInputValue } from '$lib/backend/types';
@@ -40,10 +50,12 @@
 		disabled: boolean;
 		/** `contentType.readonly` (view, L-P5.2): se combina con `field.schema.readonly` aquí. */
 		typeReadonly: boolean;
+		/** `true` dentro de un grupo de columnas (§4.9b, ver cabecera); default `false`. */
+		stacked?: boolean;
 		onChange: (value: FieldInputValue) => void;
 	}
 
-	let { field, value, error, disabled, typeReadonly, onChange }: Props = $props();
+	let { field, value, error, disabled, typeReadonly, stacked = false, onChange }: Props = $props();
 
 	const ctx = getVegaContext();
 	const ids = $derived(fieldIds(field.name));
@@ -51,7 +63,12 @@
 	const Widget = $derived(WIDGET_REGISTRY[field.widget]);
 </script>
 
-<div class="vega-field-row" data-field={field.name} data-widget={field.widget}>
+<div
+	class="vega-field-row"
+	class:vega-field-row--stacked={stacked}
+	data-field={field.name}
+	data-widget={field.widget}
+>
 	<label id={ids.labelId} for={ids.inputId}>
 		{field.label}{#if field.schema.required}<span class="vega-field-required" aria-hidden="true"
 				>*</span
@@ -141,5 +158,20 @@
 		.vega-field-row > label {
 			padding-top: 0;
 		}
+	}
+
+	/* `stacked` (§4.9b, ver cabecera): SIEMPRE 1 columna, con o sin el `@media` de arriba — de ahí
+	   que esta regla vaya DESPUÉS (misma especificidad, gana por orden de cascada a cualquier
+	   ancho). Sin padding/borde propios: la fila pasa a ser una celda de `.vega-fgroup-grid`
+	   (`RecordForm.svelte`), que ya separa filas Y columnas con su propio `gap`. */
+	.vega-field-row--stacked {
+		grid-template-columns: 1fr;
+		gap: 0.35rem;
+		padding: 0;
+		border-bottom: 0;
+	}
+
+	.vega-field-row--stacked > label {
+		padding-top: 0;
 	}
 </style>

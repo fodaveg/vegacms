@@ -62,7 +62,7 @@ function contentType(
 		previewUrl: null,
 		fields: [],
 		listFields: [],
-		fieldGroups: [null],
+		fieldGroups: [{ name: null, columns: 1 }],
 		...overrides
 	};
 }

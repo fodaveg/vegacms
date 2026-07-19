@@ -62,8 +62,27 @@
 						"uniqueItems": true
 					},
 					"fieldGroups": {
+						"description": "Orden de render de los grupos de campos del formulario (el grupo anónimo, campos sin 'group', siempre va primero). Cada item es el nombre de un grupo (string, forma de siempre) o un objeto { name, columns } para pedir además una rejilla responsive de columnas para ESE grupo (p. ej. emparejar 'titleEs'/'titleEn' lado a lado). Sin la forma objeto, o sin 'columns', el grupo se pinta apilado a 1 columna igual que hoy.",
 						"type": "array",
-						"items": { "type": "string", "minLength": 1 },
+						"items": {
+							"oneOf": [
+								{ "type": "string", "minLength": 1 },
+								{
+									"type": "object",
+									"additionalProperties": false,
+									"required": ["name"],
+									"properties": {
+										"name": { "type": "string", "minLength": 1 },
+										"columns": {
+											"description": "Nº de columnas de la rejilla del grupo (1-3, default 1 = apilado). >1 colapsa a 1 columna en viewports estrechos.",
+											"type": "integer",
+											"minimum": 1,
+											"maximum": 3
+										}
+									}
+								}
+							]
+						},
 						"uniqueItems": true
 					},
 					"fields": {

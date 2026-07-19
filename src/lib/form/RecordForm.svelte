@@ -6,9 +6,19 @@
 	 * dirty tracking ni el guard de salida; se lo delegan entero a este componente.
 	 *
 	 * - Itera `type.fields` en el orden efectivo de `type.fieldGroups` (§4.9 de P2), agrupando en
-	 *   secciones (grupo `null` = anónimo, sin cabecera). Un campo cuyo `group` no aparezca en
-	 *   `fieldGroups` (no debería pasar — P2 lo garantiza — pero L11 manda degradar sin
-	 *   crashear) cae en una sección final sin cabecera, en vez de desaparecer.
+	 *   secciones (grupo `null` = anónimo, sin cabecera; ver `form-sections.ts`). Un campo cuyo
+	 *   `group` no aparezca en `fieldGroups` (no debería pasar — P2 lo garantiza — pero L11 manda
+	 *   degradar sin crashear) cae en una sección final sin cabecera, en vez de desaparecer.
+	 * - **Rejilla de columnas por grupo (§4.9b)**: un grupo con `columns > 1` (manifiesto
+	 *   `fieldGroups: [{ name, columns }]`, feature genérica "campos emparejados" —
+	 *   `titleEs`|`titleEn`, no algo específico de fodaveg) pinta sus `FieldRow` en
+	 *   `.vega-fgroup-grid`, una rejilla CSS de N columnas (gap = `--gap-field`, tema P7) que
+	 *   colapsa a 1 columna por debajo de 940px (el mismo breakpoint que ya usan `FieldRow`/
+	 *   `ManifestEditor` para su propio colapso `label|control`). Dentro de esa rejilla, cada
+	 *   `FieldRow` recibe `stacked` (label ENCIMA del control SIEMPRE, no solo bajo el
+	 *   breakpoint — con 2-3 columnas el ancho por campo ya es estrecho de por sí). Un grupo con
+	 *   `columns` 1 o ausente (el caso de siempre) NO pasa por esta rama: markup y layout
+	 *   idénticos a antes de §4.9b.
 	 * - Estado editable `current` (D-P5.1, widget CONTROLADO): arranca clonando `model.baseline`
 	 *   (spread superficial, `dirty.ts`/`form-model.ts` ya garantizan que ninguna mutación
 	 *   in-place alcanza al baseline). Si el padre pasa un `model` NUEVO (deep-link a otro
@@ -119,7 +129,7 @@
 	 */
 	import { beforeNavigate } from '$app/navigation';
 	import { onMount, tick, untrack } from 'svelte';
-	import type { ResolvedContentType } from '$lib/model/types';
+	import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
 	import type { FieldInputValue, RecordInput, VegaRecord } from '$lib/backend/types';
 	import { VegaError } from '$lib/backend/errors';
 	import { getVegaContext } from '$lib/app-context';
@@ -128,6 +138,7 @@
 	import { buildPreviewUrl } from '$lib/model/preview-url';
 	import EditTopBar from '$lib/shell/EditTopBar.svelte';
 	import { buildFormModel, type FormModel, type FormValues } from './form-model';
+	import { buildFormSections } from './form-sections';
 	import { isDirty, type FormInputValues } from './dirty';
 	import { toRecordInput } from './to-record-input';
 	import { validateForm } from './validation';
@@ -235,21 +246,11 @@
 	// a pasar de verdad, la corrección NO es aquí: es que la ruta deje de reconstruir `formModel`
 	// mientras haya un guardado en curso, o que este componente ignore un `model` nuevo si `dirty`.
 
-	// Secciones en el orden efectivo de `fieldGroups` (§4.9 P2); ver cabecera para el fallback de
-	// campos "huérfanos" (defensivo, no debería darse por contrato).
-	const sections = $derived.by(() => {
-		// Objeto plano en vez de `Set` (evita `svelte/prefer-svelte-reactivity`, que no aplica: es
-		// un acumulador LOCAL de esta pasada de cálculo, descartado al terminar, nunca leído fuera).
-		const placed: Record<string, true> = {};
-		const result = type.fieldGroups.map((group) => {
-			const fields = type.fields.filter((f) => f.group === group);
-			for (const f of fields) placed[f.name] = true;
-			return { group, fields };
-		});
-		const leftover = type.fields.filter((f) => !placed[f.name]);
-		if (leftover.length > 0) result.push({ group: null, fields: leftover });
-		return result;
-	});
+	// Secciones en el orden efectivo de `fieldGroups` (§4.9/§4.9b P2), incl. `columns` por grupo
+	// (rejilla responsive, ver cabecera y CSS de `.vega-fgroup-grid` más abajo); ver
+	// `form-sections.ts` para el fallback de campos "huérfanos" (defensivo, no debería darse por
+	// contrato) — extraído a módulo PURO para poder testearlo sin montar este componente.
+	const sections = $derived.by(() => buildFormSections(type));
 
 	const errors = $derived<FieldErrorsView>({
 		byField: { ...clientErrors.byField, ...backendErrors.byField },
@@ -493,22 +494,36 @@
 		<p class="vega-record-form-banner" role="alert">{fieldErrorMessage(ctx.t, errors.record)}</p>
 	{/if}
 
+	{#snippet fieldRow(field: ResolvedField, stacked: boolean)}
+		<FieldRow
+			{field}
+			value={current[field.name]}
+			error={errors.byField[field.name] ?? null}
+			disabled={formDisabled}
+			{typeReadonly}
+			{stacked}
+			onChange={(value) => handleFieldChange(field.name, value)}
+		/>
+	{/snippet}
+
 	{#each sections as section (section.group ?? '')}
 		{#if section.fields.length > 0}
 			<section class="vega-fsection">
 				{#if section.group}
 					<h2>{section.group}</h2>
 				{/if}
-				{#each section.fields as field (field.name)}
-					<FieldRow
-						{field}
-						value={current[field.name]}
-						error={errors.byField[field.name] ?? null}
-						disabled={formDisabled}
-						{typeReadonly}
-						onChange={(value) => handleFieldChange(field.name, value)}
-					/>
-				{/each}
+				{#if section.columns > 1}
+					<!-- §4.9b: rejilla de N columnas (ver cabecera) — cada FieldRow va `stacked`. -->
+					<div class="vega-fgroup-grid" class:vega-fgroup-grid--3={section.columns === 3}>
+						{#each section.fields as field (field.name)}
+							{@render fieldRow(field, true)}
+						{/each}
+					</div>
+				{:else}
+					{#each section.fields as field (field.name)}
+						{@render fieldRow(field, false)}
+					{/each}
+				{/if}
 			</section>
 		{/if}
 	{/each}
@@ -734,6 +749,36 @@
 		background: var(--surface-2);
 		border-bottom: 1px solid var(--line);
 		overflow-wrap: anywhere;
+	}
+
+	/* Rejilla de columnas de un grupo (§4.9b, ver cabecera del módulo): 2 columnas por defecto,
+	   `--3` para el máximo del schema (1-3). `gap` reutiliza `--gap-field` (mismo token de
+	   densidad P7 que ya separa las fichas entre sí, `.vega-record-form` más abajo) en vez de un
+	   valor nuevo — nada hardcodeado. Cada `FieldRow` hijo va `stacked` (ver ese componente): cede
+	   su propio padding/borde de fila a este `gap`, así que el padding de la ficha vive aquí. */
+	.vega-fgroup-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: var(--gap-field);
+		padding: 1.1rem 1.25rem;
+	}
+
+	.vega-fgroup-grid--3 {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+
+	/* Mismo breakpoint que el colapso `label|control` de `FieldRow`/`.manif` de `ManifestEditor`
+	   (940px): grupo, fila y manifiesto rompen a 1 columna juntos. Además aprieta `gap`/`padding`
+	   a los MISMOS valores que `FieldRow` reduce en este `@media` (0.35rem / 0.9rem 1rem): sin
+	   esto, una sección agrupada quedaría más "floja" (más aire) que una fila normal justo al lado,
+	   rompiendo la coherencia de densidad en móvil. */
+	@media (max-width: 940px) {
+		.vega-fgroup-grid,
+		.vega-fgroup-grid--3 {
+			grid-template-columns: 1fr;
+			gap: 0.35rem;
+			padding: 0.9rem 1rem;
+		}
 	}
 
 	.vega-record-form-notice {

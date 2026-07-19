@@ -55,7 +55,7 @@ function contentType(overrides: Partial<ResolvedContentType> = {}): ResolvedCont
 		previewUrl: null,
 		fields: [],
 		listFields: [],
-		fieldGroups: [null],
+		fieldGroups: [{ name: null, columns: 1 }],
 		...overrides
 	};
 }

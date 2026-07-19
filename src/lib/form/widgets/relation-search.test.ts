@@ -65,7 +65,7 @@ function makeTarget(opts: { titleField: string | null; fields: Field[] }): Resol
 		previewUrl: null,
 		fields: [],
 		listFields: [],
-		fieldGroups: [null]
+		fieldGroups: [{ name: null, columns: 1 }]
 	};
 }
 

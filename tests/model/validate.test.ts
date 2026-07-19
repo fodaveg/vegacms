@@ -112,6 +112,30 @@ describe('1. Casos puntuales contra el schema §3', () => {
 		expect(result.ok).toBe(false);
 	});
 
+	test('collections.<c>.fieldGroups con { name, columns } válido (§4.9b) → válido', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: { post: { fieldGroups: ['Contenido', { name: 'SEO', columns: 2 }] } }
+		});
+		expect(result).toEqual({ ok: true });
+	});
+
+	test('fieldGroups[].columns fuera de 1-3 → inválido', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: { post: { fieldGroups: [{ name: 'SEO', columns: 4 }] } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('fieldGroups[] objeto sin "name" → inválido (required)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: { post: { fieldGroups: [{ columns: 2 }] } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
 	test('fields.<f>.widget fuera del vocabulario → inválido (enum)', () => {
 		const result = validateManifestStrict({
 			schemaVersion: 1,
@@ -183,6 +207,22 @@ const VALID_ZERO_WARNING_MANIFESTS: JsonValue[] = [
 	{
 		schemaVersion: 1,
 		collections: { post: { statusField: false, previewUrl: 'https://x.com/{id}' } }
+	},
+	{
+		// §4.9b: forma objeto de fieldGroups (rejilla de columnas), mezclada con la forma string
+		// de siempre. `columns` no referencia campos reales (no puede haber orphan aquí), así que
+		// esto es zero-warning como cualquier otro fieldGroups válido.
+		schemaVersion: 1,
+		collections: {
+			post: {
+				fieldGroups: [{ name: 'Contenido', columns: 2 }, 'SEO'],
+				fields: {
+					title: { group: 'Contenido' },
+					excerpt: { group: 'Contenido' },
+					body: { group: 'SEO' }
+				}
+			}
+		}
 	}
 ];
 
@@ -229,6 +269,11 @@ const INVALID_MANIFESTS: JsonValue[] = [
 	{ schemaVersion: 1, collections: { post: { listFields: Array.from({ length: 9 }, () => 'x') } } },
 	{ schemaVersion: 1, collections: { post: { listFields: ['a', 'a'] } } },
 	{ schemaVersion: 1, collections: { post: { fieldGroups: [''] } } },
+	{ schemaVersion: 1, collections: { post: { fieldGroups: [{ columns: 2 }] } } },
+	{ schemaVersion: 1, collections: { post: { fieldGroups: [{ name: 'X', columns: 0 }] } } },
+	{ schemaVersion: 1, collections: { post: { fieldGroups: [{ name: 'X', columns: 4 }] } } },
+	{ schemaVersion: 1, collections: { post: { fieldGroups: [{ name: 'X', extra: true }] } } },
+	{ schemaVersion: 1, collections: { post: { fieldGroups: [42] } } },
 	{ schemaVersion: 1, collections: { post: { unknownKey: 1 } } },
 	{ schemaVersion: 1, collections: { post: { fields: 'nope' } } },
 	{ schemaVersion: 1, collections: { post: { fields: { body: 'nope' } } } },

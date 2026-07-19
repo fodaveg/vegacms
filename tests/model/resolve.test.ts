@@ -597,6 +597,113 @@ describe('10. previewUrl (§4.7, integración)', () => {
 	});
 });
 
+// ————— 11. fieldGroups: columnas (§4.9b) —————
+
+describe('11. fieldGroups: rejilla de columnas (§4.9b)', () => {
+	test('fieldGroups de siempre (solo strings) → cada grupo resuelve columns: 1', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					post: {
+						fieldGroups: ['Contenido', 'SEO'],
+						fields: { title: { group: 'Contenido' }, excerpt: { group: 'SEO' } }
+					}
+				}
+			}
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.fieldGroups).toEqual([
+			{ name: null, columns: 1 },
+			{ name: 'Contenido', columns: 1 },
+			{ name: 'SEO', columns: 1 }
+		]);
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('{ name, columns } mezclado con strings → columns solo en el grupo que lo declara', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					post: {
+						fieldGroups: ['Contenido', { name: 'SEO', columns: 3 }],
+						fields: { title: { group: 'Contenido' }, excerpt: { group: 'SEO' } }
+					}
+				}
+			}
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.fieldGroups).toEqual([
+			{ name: null, columns: 1 },
+			{ name: 'Contenido', columns: 1 },
+			{ name: 'SEO', columns: 3 }
+		]);
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('el grupo anónimo (campos sin group) siempre es columns: 1', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					post: {
+						fieldGroups: [{ name: 'Contenido', columns: 2 }],
+						fields: { title: { group: 'Contenido' } }
+					}
+				}
+			}
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.fieldGroups[0]).toEqual({ name: null, columns: 1 });
+		expect(post.fieldGroups).toContainEqual({ name: 'Contenido', columns: 2 });
+	});
+
+	test('columns fuera de 1-3 → fieldGroups entero se ignora (manifest-invalid-key), campos siguen agrupados por su group', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					post: {
+						fieldGroups: [{ name: 'Contenido', columns: 4 }],
+						fields: { title: { group: 'Contenido' } }
+					}
+				}
+			}
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		// El grupo "Contenido" sigue existiendo (viene del `group` del CAMPO, independiente de la
+		// declaración de `fieldGroups`) pero sin `columns` propio: cae al default 1.
+		expect(post.fieldGroups).toContainEqual({ name: 'Contenido', columns: 1 });
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'manifest-invalid-key',
+				path: '/collections/post/fieldGroups'
+			})
+		]);
+	});
+
+	test('item objeto sin "name" → fieldGroups entero inválido, se ignora igual que un columns fuera de rango', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { post: { fieldGroups: [{ columns: 2 }] } }
+			}
+		});
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'manifest-invalid-key',
+				path: '/collections/post/fieldGroups'
+			})
+		]);
+	});
+});
+
 // ————— Referencias cruzadas del fixture (evitan que quede código muerto) —————
 
 describe('fixture', () => {

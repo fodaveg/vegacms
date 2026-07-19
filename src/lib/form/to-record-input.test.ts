@@ -52,7 +52,7 @@ function makeType(fields: ResolvedField[]): ResolvedContentType {
 		previewUrl: null,
 		fields,
 		listFields: [],
-		fieldGroups: [null]
+		fieldGroups: [{ name: null, columns: 1 }]
 	};
 }
 

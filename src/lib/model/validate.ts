@@ -56,6 +56,8 @@ const FIELD_ALLOWED_KEYS = [
 	'widget',
 	'listable'
 ] as const;
+/** Claves de la forma-objeto de un item de `fieldGroups` (§4.9b, rejilla de columnas). */
+const FIELD_GROUP_ITEM_ALLOWED_KEYS = ['name', 'columns'] as const;
 
 const PREVIEW_URL_PATTERN = /^https?:\/\//;
 
@@ -136,6 +138,20 @@ function checkNonNegativeInt(
 	}
 }
 
+/** Entero acotado `[min, max]` (usado por `fieldGroups[].columns`, §4.9b). */
+function checkIntInRange(
+	value: JsonValue,
+	path: string,
+	min: number,
+	max: number,
+	errors: ManifestValidationErrorEntry[],
+	label: string
+): void {
+	if (typeof value !== 'number' || !Number.isInteger(value) || value < min || value > max) {
+		fail(errors, path, `${label} debe ser un entero entre ${min} y ${max}.`);
+	}
+}
+
 function checkEnum<T extends string>(
 	value: JsonValue,
 	allowed: readonly T[],
@@ -205,6 +221,51 @@ function checkStringArray(
 		}
 	});
 	if (opts.uniqueItems && hasDuplicates(value)) {
+		fail(errors, path, `${label} no puede tener elementos repetidos.`);
+	}
+}
+
+/**
+ * `fieldGroups` (§4.9b): cada item es un string no vacío (forma de siempre, `uniqueItems`) o un
+ * objeto `{ name, columns? }` — `oneOf` en el schema, así que un item que no case con NINGUNA de
+ * las dos formas (objeto sin `name`, array anidado, número…) es inválido igual que un string
+ * vacío. Replica a mano el mismo veredicto que `manifest-schema.json` (§9.12, oráculo ajv).
+ */
+function checkFieldGroups(
+	value: JsonValue,
+	path: string,
+	errors: ManifestValidationErrorEntry[],
+	label: string
+): void {
+	if (!Array.isArray(value)) {
+		fail(errors, path, `${label} debe ser un array.`);
+		return;
+	}
+	value.forEach((el, i) => {
+		const itemPath = `${path}/${i}`;
+		if (typeof el === 'string') {
+			if (el.length < 1) fail(errors, itemPath, `${label}[${i}] no puede ser un texto vacío.`);
+			return;
+		}
+		if (isPlainObject(el)) {
+			checkAdditionalProperties(el, FIELD_GROUP_ITEM_ALLOWED_KEYS, itemPath, errors);
+			if (!('name' in el)) {
+				fail(errors, `${itemPath}/name`, `${label}[${i}] debe declarar "name".`);
+			} else {
+				checkString(el.name, `${itemPath}/name`, 1, Infinity, errors, `${label}[${i}].name`);
+			}
+			if ('columns' in el) {
+				checkIntInRange(el.columns, `${itemPath}/columns`, 1, 3, errors, `${label}[${i}].columns`);
+			}
+			return;
+		}
+		fail(
+			errors,
+			itemPath,
+			`${label}[${i}] debe ser un texto no vacío o un objeto { name, columns }.`
+		);
+	});
+	if (hasDuplicates(value)) {
 		fail(errors, path, `${label} no puede tener elementos repetidos.`);
 	}
 }
@@ -346,13 +407,7 @@ function validateCollection(
 		);
 	}
 	if ('fieldGroups' in value) {
-		checkStringArray(
-			value.fieldGroups,
-			`${base}/fieldGroups`,
-			{ minItemLength: 1, uniqueItems: true },
-			errors,
-			`fieldGroups de "${name}"`
-		);
+		checkFieldGroups(value.fieldGroups, `${base}/fieldGroups`, errors, `fieldGroups de "${name}"`);
 	}
 	if ('fields' in value) validateFields(name, value.fields, errors);
 }
