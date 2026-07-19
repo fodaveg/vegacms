@@ -185,6 +185,13 @@ export const es = {
 	'settings.saveSuccess': 'Manifiesto guardado.',
 	'settings.loadErrorBody': 'No se pudo cargar Ajustes. Vuelve a intentarlo.',
 
+	// ————— Apariencia: selector de tema + modo (Fase F7w-a, "encender los temas") —————
+	'settings.appearance.title': 'Apariencia',
+	'settings.appearance.theme': 'Tema',
+	'settings.appearance.mode': 'Modo',
+	'settings.appearance.light': 'Claro',
+	'settings.appearance.dark': 'Oscuro',
+
 	// ————— Toasts (§2.3) —————
 	'toast.dismiss': 'Descartar aviso',
 

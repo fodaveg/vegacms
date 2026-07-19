@@ -30,10 +30,46 @@
 	import { VEGA_COLLECTION, VegaError, type ContentType, type JsonValue } from '$lib/backend';
 	import { computeCollectionState } from '$lib/settings/collection-state';
 	import { saveManifest } from '$lib/model/load';
+	import { setMode, setTheme } from '$lib/theme/apply';
+	import type { ThemeMode } from '$lib/theme/preferences';
+	import { FALLBACK_THEME, THEMES } from '$lib/themes/themes.generated';
 	import ManifestEditor from '$lib/model/editor/ManifestEditor.svelte';
 	import WarningsList from '$lib/shell/WarningsList.svelte';
 
 	const ctx = getVegaContext();
+
+	/**
+	 * Sección "Apariencia" (Fase F7w-a, "encender los temas"): selector de tema (5 opciones del
+	 * motor P7, `THEMES`) + toggle de modo claro/oscuro. NO usa el store `theme.svelte.ts` de P7
+	 * (todavía no adoptado como runtime, ver cabecera de `theme/apply.ts`) — solo consume sus datos
+	 * estáticos (`THEMES`/`FALLBACK_THEME`) y llama a los setters de `theme/apply.ts`, el mismo
+	 * runtime que ya usa `DensityToggle` (montado en la topbar, no se duplica aquí).
+	 *
+	 * El estado local (`activeTheme`/`activeMode`) espeja `document.documentElement.dataset.*` —
+	 * ya escrito por `applyInitialTheme()` antes de que este componente monte (§2.6) — para poder
+	 * marcar visualmente la opción activa; se reasigna en el propio `onclick`, sin esperar a que el
+	 * DOM confirme el cambio (idéntico patrón que `DensityToggle.svelte`).
+	 */
+	function currentTheme(): string {
+		return document.documentElement.dataset.theme ?? FALLBACK_THEME;
+	}
+
+	function currentMode(): ThemeMode {
+		return document.documentElement.dataset.mode === 'dark' ? 'dark' : 'light';
+	}
+
+	let activeTheme = $state(currentTheme());
+	let activeMode = $state(currentMode());
+
+	function selectTheme(id: string): void {
+		activeTheme = id;
+		setTheme(id);
+	}
+
+	function selectMode(mode: ThemeMode): void {
+		activeMode = mode;
+		setMode(mode);
+	}
 
 	/** Convención de campo del registro `vega` (P2 §6.1): duplicada a propósito, ver cabecera. */
 	const MANIFEST_FIELD = 'manifest';
@@ -116,6 +152,55 @@
 		</button>
 	</header>
 
+	<section class="vega-appearance" aria-labelledby="vega-appearance-title">
+		<h2 id="vega-appearance-title">{ctx.t('settings.appearance.title')}</h2>
+
+		<div class="vega-appearance-row">
+			<span class="vega-appearance-label">{ctx.t('settings.appearance.theme')}</span>
+			<div class="vega-theme-picker" role="group" aria-label={ctx.t('settings.appearance.theme')}>
+				{#each THEMES as swatch (swatch.id)}
+					<button
+						type="button"
+						class="vega-theme-swatch"
+						aria-pressed={activeTheme === swatch.id}
+						onclick={() => selectTheme(swatch.id)}
+					>
+						<!-- Color RUNTIME del dato del swatch (no un literal en el CSS): la barrera
+						     anti-color-crudo de `check-theme-coverage.mjs` vigila `.svelte`/`.ts` fuera de
+						     `src/lib/themes/`, pero de todos modos NO está encadenada al gate todavía
+						     (ver su cabecera) — esto pinta el swatch con el propio dato, legítimo. -->
+						<span
+							class="vega-theme-swatch-dot"
+							style={`background-color: ${swatch.accent}`}
+							aria-hidden="true"
+						></span>
+						{swatch.name}
+					</button>
+				{/each}
+			</div>
+		</div>
+
+		<div class="vega-appearance-row">
+			<span class="vega-appearance-label">{ctx.t('settings.appearance.mode')}</span>
+			<div class="vega-mode-toggle" role="group" aria-label={ctx.t('settings.appearance.mode')}>
+				<button
+					type="button"
+					aria-pressed={activeMode === 'light'}
+					onclick={() => selectMode('light')}
+				>
+					{ctx.t('settings.appearance.light')}
+				</button>
+				<button
+					type="button"
+					aria-pressed={activeMode === 'dark'}
+					onclick={() => selectMode('dark')}
+				>
+					{ctx.t('settings.appearance.dark')}
+				</button>
+			</div>
+		</div>
+	</section>
+
 	{#if status === 'loading'}
 		<p aria-live="polite">{ctx.t('common.loading')}</p>
 	{:else if status === 'error'}
@@ -183,5 +268,67 @@
 		border-radius: 6px;
 		background: var(--vega-color-bg-raised);
 		cursor: pointer;
+	}
+
+	.vega-appearance {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		padding: 1rem 1.2rem;
+		border: 1px solid var(--vega-color-border);
+		border-radius: 8px;
+		background: var(--vega-color-bg-raised);
+	}
+
+	.vega-appearance h2 {
+		margin: 0;
+		font-size: 1.1rem;
+	}
+
+	.vega-appearance-row {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+	}
+
+	.vega-appearance-label {
+		min-width: 4rem;
+		font-size: 0.85rem;
+		color: var(--vega-color-text-muted);
+	}
+
+	.vega-theme-picker,
+	.vega-mode-toggle {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+	}
+
+	.vega-theme-swatch,
+	.vega-mode-toggle button {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.3rem 0.6rem;
+		border: 1px solid var(--vega-color-border);
+		border-radius: 6px;
+		background: var(--vega-color-bg);
+		color: var(--vega-color-text);
+		font-size: 0.8rem;
+		cursor: pointer;
+	}
+
+	.vega-theme-swatch[aria-pressed='true'],
+	.vega-mode-toggle button[aria-pressed='true'] {
+		border-color: var(--vega-color-accent);
+		color: var(--vega-color-accent);
+	}
+
+	.vega-theme-swatch-dot {
+		width: 0.7rem;
+		height: 0.7rem;
+		border-radius: 50%;
+		flex-shrink: 0;
 	}
 </style>

@@ -40,8 +40,8 @@ describe('resolveDefaultTheme', () => {
 		expect(resolveDefaultTheme('midnight')).toBe('midnight');
 	});
 
-	test('null → tema base neutro de P3', () => {
+	test('null → FALLBACK_THEME del motor P7 (niebla)', () => {
 		expect(resolveDefaultTheme(null)).toBe(DEFAULT_THEME_ID);
-		expect(resolveDefaultTheme(null)).toBe('base');
+		expect(resolveDefaultTheme(null)).toBe('niebla');
 	});
 });

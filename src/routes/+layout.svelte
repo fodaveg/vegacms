@@ -25,6 +25,10 @@
 	 *   `sessionStore.expired`, que `onAuthChange('expired')` ya marca (session.svelte.ts, §3.1.3).
 	 */
 	import favicon from '$lib/assets/favicon.svg';
+	// El CSS generado del motor P7 define los tokens §3 (`--bg`/`--ink`/`--accent`/…) por
+	// `data-theme`/`data-mode`/`data-density`; el shim de `theme/base.css` los REFERENCIA
+	// (`--vega-color-*: var(--token)`), así que tiene que importarse después (Fase F7w-a).
+	import '$lib/themes/themes.generated.css';
 	import '$lib/theme/base.css';
 	import { afterNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';

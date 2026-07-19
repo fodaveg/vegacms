@@ -97,3 +97,17 @@ export function setDensity(density: Density): void {
 	writeStorage(STORAGE_KEYS.density, density);
 	applyDensityToDocument(density);
 }
+
+/**
+ * Cambia el tema, lo persiste y lo refleja en la raíz (Fase F7w-a: setter simétrico a
+ * `setMode`/`setDensity`, para el selector de tema de `/settings`). A diferencia de
+ * `theme.svelte.ts` (el store runtime de P7, todavía NO adoptado como runtime de la app), este
+ * módulo no valida `themeId` contra la lista de temas conocidos: un id desconocido simplemente no
+ * matchea ningún bloque `[data-theme='…']` de `themes.generated.css` y el `:root` de
+ * `FALLBACK_THEME` (emitido sin condicionar a `[data-theme]`) se aplica igual — mismo criterio de
+ * "sin crash, sin flash roto" que el resto del motor (§12.3).
+ */
+export function setTheme(themeId: string): void {
+	writeStorage(STORAGE_KEYS.theme, themeId);
+	applyThemeToDocument(themeId);
+}

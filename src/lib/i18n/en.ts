@@ -176,6 +176,13 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'settings.saveSuccess': 'Manifest saved.',
 	'settings.loadErrorBody': 'Could not load Settings. Try again.',
 
+	// ————— Appearance: theme + mode picker (Phase F7w-a, "turning the themes on") —————
+	'settings.appearance.title': 'Appearance',
+	'settings.appearance.theme': 'Theme',
+	'settings.appearance.mode': 'Mode',
+	'settings.appearance.light': 'Light',
+	'settings.appearance.dark': 'Dark',
+
 	// ————— Toasts (§2.3) —————
 	'toast.dismiss': 'Dismiss notification',
 
