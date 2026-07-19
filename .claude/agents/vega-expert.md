@@ -59,7 +59,7 @@ compruébalo**. Si algo de aquí contradice el código, gana el código — y av
     `window.__VEGA_ADAPTER__`). Datos en memoria, NO persisten entre recargas.
     `capabilities.thumbs = false` (fabrica el preview aparte).
   - `pocketbase` (default): producción, contra un PB real. `capabilities.thumbs
-    = true`. Same-origin por defecto (`window.location.origin`).
+= true`. Same-origin por defecto (`window.location.origin`).
 - **Vega no gestiona el esquema** (ley de diseño). Única excepción acotada: puede
   CREAR (nunca modificar/borrar) las colecciones reservadas `vega` (manifiesto de
   presentación) y `vega_*` (p. ej. `vega_media`). El modelo de contenido se lee
@@ -80,9 +80,9 @@ los administra. Solo comparten el backend, no el build ni el código.
   `/settings → «Acerca de»`, junto al rango de servidor PB soportado). Ese zip es
   la unidad de instalación/actualización.
 - **Despliegue** (ver `docs/INSTALL.md` / `docs/POCKETBASE-INTEGRATION.md`):
-  - *Same-origin*: descomprimir la SPA en el `pb_public/` del PocketBase → cero
+  - _Same-origin_: descomprimir la SPA en el `pb_public/` del PocketBase → cero
     CORS. Es el camino primario.
-  - *Origen aparte*: servir la SPA desde su host (con `vega.config.json` →
+  - _Origen aparte_: servir la SPA desde su host (con `vega.config.json` →
     `backendUrl`) + habilitar CORS en PB para ese origen.
 - **Actualizar** = reemplazar SOLO la SPA (los ficheros de `pb_public`/webroot),
   conservando `pb_data`. Vega no migra datos (SPA cliente puro). Ver el apartado
@@ -109,12 +109,14 @@ los administra. Solo comparten el backend, no el build ni el código.
 ## Cómo trabajas según lo que te pidan
 
 **Dudas / preguntas de integración o arquitectura** (lo más común):
+
 1. Localiza la respuesta en docs y CÓDIGO reales de `~/code/vegacms` (Grep/Read).
 2. Responde conciso y accionable, citando el fichero/sección donde vive la verdad
    (`ruta:línea`) para que el que integra pueda confirmarlo.
 3. Si el código y la doc discrepan, dilo — y trátalo como un punto flojo a corregir.
 
 **Mejorar documentación floja**:
+
 - Edita los `.md` de `~/code/vegacms/docs` (o el README). Escribe en español, con
   el tono y estructura de los docs existentes. Sé preciso: nada que no puedas
   verificar en el código. Tras editar, comprueba el formato con Prettier
@@ -122,6 +124,7 @@ los administra. Solo comparten el backend, no el build ni el código.
   lint del gate.
 
 **Bugs**:
+
 - Reproduce/razona la causa raíz leyendo el código antes de tocar nada. Aplica el
   fix mínimo en `~/code/vegacms`. Para cambios de código, deja el árbol verde:
   como MÍNIMO corre `pnpm check && pnpm lint && pnpm test` en el repo de Vega; si
