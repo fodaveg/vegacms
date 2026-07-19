@@ -18,6 +18,14 @@
  * contiene "Bienvenido" (`post_1`), 16 registros `draft`/16 `published` (ver `demo-seed.ts`), y
  * un cuarto campo `tags` (`select` múltiple, forzado en `listFields` del manifiesto) como ÚNICA
  * columna NO escalar del listado — para poder ejercer que su cabecera no ofrece orden.
+ *
+ * **Fase 4f** (pulido: responsive/densidad/a11y/perf, añadida al final del fichero): `posts` gana
+ * tres columnas más en `listFields` (7 en total, ver `demo-seed.ts`) para poder ejercer que la
+ * tabla scrollea horizontal CONTENIDA dentro de su propio wrapper (`.vega-record-table-wrap`,
+ * `overflow-x: auto` desde 4c) en vez de desbordar la página (L-P4.2/Audit H1). El resto de 4f
+ * (aria-sort, foco de teclado en la cabecera ordenable, densidad vía `--row-h`/`--cell-x`) ya
+ * quedaba cubierto por las suites de orden por cabecera y `e2e/density.spec.ts` — sin test nuevo
+ * ahí, ver el resumen de la fase.
  */
 import { expect, loginAsDemo, test } from './fixtures';
 
@@ -428,5 +436,45 @@ test.describe('deep-link reconstruye la vista entera (L-P4.13, Fase 4d)', () => 
 			'aria-sort',
 			'ascending'
 		);
+	});
+});
+
+test.describe('responsive N columnas (L-P4.2, Audit H1, Fase 4f)', () => {
+	test('con más de 5 columnas (7, ver demo-seed) la tabla scrollea horizontal CONTENIDA, sin desbordar la página', async ({
+		page
+	}) => {
+		// Viewport móvil estrecho (mismo punto que `a11y-smoke.spec.ts`): a ese ancho, 7 columnas +
+		// la de acciones no caben sin scroll horizontal — el escenario real que motiva el wrapper.
+		await page.setViewportSize({ width: 375, height: 700 });
+		await loginAndSettle(page);
+		await page.goto('/c/posts');
+
+		const table = page.locator('[data-list-state="ready"]');
+		await expect(table).toBeVisible();
+
+		const headers = table.locator('thead th');
+		// Labels humanizados por P2 (§4.8, `humanizeLabel`): "contactEmail" → "Contact email" (solo
+		// la primera letra en mayúscula, no Title Case).
+		await expect(headers.filter({ hasText: 'Title' })).toBeVisible();
+		await expect(headers.filter({ hasText: 'Website' })).toBeVisible();
+		await expect(headers.filter({ hasText: 'Contact email' })).toBeVisible();
+
+		// El wrapper (`.vega-record-table-wrap`, `overflow-x: auto` desde 4c) es quien scrollea: su
+		// contenido (la `<table>`) es más ancho que su caja visible.
+		const wrap = page.locator('.vega-record-table-wrap');
+		const [scrollWidth, clientWidth, overflowX] = await wrap.evaluate((el) => [
+			el.scrollWidth,
+			el.clientWidth,
+			getComputedStyle(el).overflowX
+		]);
+		expect(overflowX).toBe('auto');
+		expect(scrollWidth).toBeGreaterThan(clientWidth);
+
+		// La PÁGINA (no el wrapper) nunca gana scroll horizontal propio: el desbordamiento queda
+		// contenido dentro de `.vega-record-table-wrap`, nunca empuja `<body>`/`<html>`.
+		const bodyOverflows = await page.evaluate(
+			() => document.documentElement.scrollWidth > document.documentElement.clientWidth
+		);
+		expect(bodyOverflows).toBe(false);
 	});
 });

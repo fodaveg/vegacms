@@ -89,6 +89,12 @@
  * NO-imagen a propósito — se pinta como chip, sin depender del `MemoryFileStore` real). Cubre que
  * el widget `file` en modo readonly nunca acepta edición, aunque ya tenga contenido que
  * previsualizar (mismo criterio que `authors.joinedAt` para `datetime`, F5-b).
+ *
+ * **Añadido en 4f (pulido del listado, contrato P4 §Fase 4f)**: `listFields` de `posts` gana tres
+ * columnas más (`publishedAt`/`website`/`contactEmail`, ya existían sin datos seed desde F5-b) para
+ * llegar a 7 — el ÚNICO tipo de la semilla con más de 5 columnas, a propósito para poder ejercer en
+ * `e2e/list.spec.ts` (§ "responsive N columnas") que la tabla scrollea horizontal CONTENIDA dentro
+ * de su propio wrapper (`overflow-x: auto`) en vez de desbordar la página.
  */
 import type { ContentType, JsonValue } from '$lib/backend/types';
 import { VEGA_COLLECTION } from '$lib/backend/collections';
@@ -459,8 +465,14 @@ const DEMO_MANIFEST: JsonValue = {
 			order: 1,
 			// `tags` (select múltiple) NO es `listable` por defecto (§4.10): forzado aquí para tener,
 			// en la Fase 4d, una columna NO escalar de verdad que ejercer contra la cabecera SIN
-			// control de orden (ver cabecera del módulo).
-			listFields: ['title', 'status', 'body', 'tags'],
+			// control de orden (ver cabecera del módulo). `publishedAt`/`website`/`contactEmail`
+			// (Fase 4f, pulido P4): tres columnas MÁS forzadas para superar las 5 por defecto de
+			// §4.10 — el ÚNICO manifiesto de la semilla con más de 5 columnas, para poder ejercer en
+			// e2e (`e2e/list.spec.ts`, "responsive N columnas") que la tabla scrollea horizontal
+			// CONTENIDA dentro de su propio wrapper en vez de desbordar la página. Los tres campos ya
+			// existían sin datos seed (F5-b); ningún test previo dependía de que quedaran fuera de
+			// `listFields`.
+			listFields: ['title', 'status', 'body', 'tags', 'publishedAt', 'website', 'contactEmail'],
 			// Override de widget (F5-b/F5-d, §4.3/L9 — el ÚNICO mecanismo de override de schema v1):
 			// `body` pinta `textarea`; `summary` (mismo `type:'text', subtype:'plain'`) pinta
 			// `markdown` — el editor TipTap con `contentType:'markdown'` (D-P5.8).

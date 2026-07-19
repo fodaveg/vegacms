@@ -38,6 +38,12 @@
 	 *   `Pagination.svelte`/`ListToolbar.svelte`.
 	 * - **Fila en hover (F7w-b)**: usa `--active` (rol dedicado §3 para fila/elemento activo), no
 	 *   `--surface-2` — el resaltado de fila es semánticamente "elemento activo", no una elevación.
+	 * - **Densidad = MODO de P3, no control propio (Fase 4f, D-P4.10)**: el alto de fila
+	 *   (`--row-h`) y el padding horizontal de celda/cabecera (`--cell-x`) son los tokens §7 de
+	 *   densidad que conmutan solos con `data-density` en la raíz (`DensityToggle.svelte`, ya en
+	 *   la topbar) — antes de 4f el padding horizontal usaba `--vega-space-gutter` (un espaciado
+	 *   fijo, ajeno a la densidad); migrado a `--cell-x` para que "Compacta" también estreche la
+	 *   celda, no solo el alto de fila (que ya usaba `--row-h` desde 4c).
 	 * - **Acento como texto (F7w-b)**: el enlace de apertura y el indicador de orden pintan con
 	 *   `--accent-text` (AA sobre papel), no `--accent` — ese es el relleno, no el color de texto.
 	 * - **Columna de acciones (Fase 4e, borrado, L-P4.9/L-P4.11)**: una `<th>`/`<td>` EXTRA al
@@ -272,7 +278,7 @@
 	}
 
 	.vega-record-table thead th {
-		padding: 0.5rem var(--vega-space-gutter);
+		padding: 0.5rem var(--cell-x);
 		text-align: left;
 		white-space: nowrap;
 		font-size: 0.75rem;
@@ -321,7 +327,7 @@
 
 	.vega-record-table td {
 		max-width: 24rem;
-		padding: 0.4rem var(--vega-space-gutter);
+		padding: 0.4rem var(--cell-x);
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
