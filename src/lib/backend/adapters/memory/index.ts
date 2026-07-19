@@ -436,7 +436,7 @@ function collectionFieldSpecToField(spec: CollectionFieldSpec): Field {
 			return {
 				...base,
 				type: 'file',
-				required: false,
+				required: spec.required ?? false,
 				multiple: spec.multiple ?? false,
 				maxSizeBytes: spec.maxSizeBytes,
 				mimeTypes: spec.mimeTypes,
@@ -448,5 +448,11 @@ function collectionFieldSpecToField(spec: CollectionFieldSpec): Field {
 			return { ...base, type: 'number', required: false, integer: false };
 		case 'date':
 			return { ...base, type: 'date', required: false };
+		case 'autodate':
+			// Emula un campo `autodate` de PB (§9 del contrato P6): readonly, nunca required (el
+			// backend lo rellena solo). `defaultReadonlyValue` (más abajo, en este mismo fichero)
+			// YA puebla cualquier `date` readonly con `new Date().toISOString()` al crear — la
+			// semántica autodate exacta sin código adicional.
+			return { ...base, type: 'date', readonly: true, required: false };
 	}
 }

@@ -930,6 +930,31 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 				expect(types.some((t) => t.name === 'vega')).toBe(true);
 			});
 
+			test('campo autodate creado vía ensureCollections queda readonly y se auto-puebla al crear (enmienda P6 §9)', async () => {
+				const port = await makeAuthedPort();
+				const name = uniqueVegaName();
+				await port.ensureCollections([
+					{
+						name,
+						fields: [
+							{ name: 'note', type: 'text' },
+							{ name: 'created', type: 'autodate' }
+						]
+					}
+				]);
+
+				const types = await port.listContentTypes();
+				const ct = types.find((t) => t.name === name)!;
+				expect(ct.fields.find((f) => f.name === 'created')).toMatchObject({
+					type: 'date',
+					readonly: true
+				});
+
+				const created = await port.create(name, { note: 'x' });
+				expect(typeof created.values.created).toBe('string');
+				expect(created.values.created).not.toBe('');
+			});
+
 			// v1 solo modela una identidad superuser (D1): no hay una sesión autenticada
 			// NO-superuser con la que probar "capability presente pero sin permiso → forbidden"
 			// sin inventar un segundo tipo de usuario que el contrato no define. Skip declarado,

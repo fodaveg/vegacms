@@ -1,7 +1,7 @@
 /**
  * Anexo A del contrato P1: `ensureCollections` — bootstrap acotado a `vega_*`.
  *
- * Única excepción controlada a la ley "Vega no gestiona el esquema" (L9): el puerto puede
+ * Única excepción controlada a la ley "Vega no gestiona el esquema" (L2): el puerto puede
  * CREAR (nunca modificar ni borrar) las colecciones reservadas `vega`/`vega_*` que P2/P6
  * necesitan para funcionar. Vive en el puerto (no en un adaptador) porque el guardarraíl del
  * prefijo (§A.4.3) DEBE ser idéntico y compartido entre `memory` y `pocketbase`.
@@ -32,10 +32,23 @@ export interface CollectionSpec {
 export type CollectionFieldSpec =
 	| { name: string; type: 'json' }
 	| { name: string; type: 'text'; required?: boolean; max?: number }
-	| { name: string; type: 'file'; multiple?: boolean; maxSizeBytes?: number; mimeTypes?: string[] }
+	| {
+			name: string;
+			type: 'file';
+			required?: boolean;
+			multiple?: boolean;
+			maxSizeBytes?: number;
+			mimeTypes?: string[];
+	  }
 	| { name: string; type: 'bool' }
 	| { name: string; type: 'number' }
-	| { name: string; type: 'date' };
+	| { name: string; type: 'date' }
+	// Micro-enmienda FIRMADA al Anexo A (contrato P6 §9): sin un campo de fecha, no hay forma de
+	// "ordenar por más reciente" (los ids que genera PB no son ordenables por tiempo). Coste
+	// mínimo: lectura (`mapField`, `schema.ts`) y auto-relleno (`defaultReadonlyValue`, adaptador
+	// `memory`) YA existían para `autodate` antes de esta enmienda. `onUpdate` por defecto es
+	// `false` (solo se auto-puebla al crear, el caso de uso de P6 — "creado el").
+	| { name: string; type: 'autodate'; onUpdate?: boolean };
 
 export interface EnsureResult {
 	/** Nombres de las colecciones efectivamente creadas en esta llamada (orden de `specs`). */

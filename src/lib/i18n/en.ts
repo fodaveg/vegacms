@@ -162,9 +162,19 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.delete.deleting': 'Deleting…',
 	'list.delete.success': '"{label}" was deleted.',
 
-	// ————— Media (gap pre-P6) —————
-	'media.placeholderTitle': 'Media is coming in a future phase',
-	'media.placeholderBody': 'The media library is not available yet.',
+	// ————— Media: bootstrap + schema (Phase P6·6a) —————
+	'media.loadErrorBody': 'Could not load the media library. Try again.',
+	'media.empty.title': 'The media library is empty',
+	'media.empty.body': 'There are no files yet. Browsing and uploading arrive in later phases.',
+	'media.bootstrap.confirmBody':
+		'Vega is going to create the "vega_media" collection in your PocketBase. Continue?',
+	'media.bootstrap.confirm': 'Create collection',
+	'media.bootstrap.creating': 'Creating…',
+	'media.bootstrap.create': 'Create the media collection',
+	'media.bootstrap.manualBody':
+		'The "vega_media" collection does not exist in this backend yet and cannot be created automatically. This section stays disabled until you create it by hand.',
+	'media.bootstrap.manualImportHint':
+		'In the PocketBase Admin: Collections → Import collections, paste the following JSON and confirm.',
 
 	// ————— Warnings (P2's L10) —————
 	'warnings.title': 'Model warnings',

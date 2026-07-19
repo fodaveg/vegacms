@@ -13,7 +13,8 @@
 	 *   `ctx.model.warnings`, no hace falta duplicarlo aquí). `'manifest'` es la convención de
 	 *   campo de P2 §6.1 (no exportada desde `model/load.ts`, que es el único módulo de P2 que
 	 *   puede tocar el puerto — esta ruta no puede importar de ahí más que `saveManifest`).
-	 * - `collectionState` ← `computeCollectionState` (Fase 1) sobre esos mismos `types` +
+	 * - `collectionState` ← `computeCollectionState` (Fase 1; generalizada en P6 §9 y movida a
+	 *   `$lib/backend/collection-state`) sobre esos mismos `types` + `VEGA_COLLECTION.name` +
 	 *   `port.capabilities.schemaBootstrap`.
 	 *
 	 * Errores de TRANSPORTE en esta lectura (`VegaError`) → `ctx.feedback.reportError` (P3-L3): el
@@ -31,7 +32,7 @@
 	import { onMount } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
 	import { VEGA_COLLECTION, VegaError, type ContentType, type JsonValue } from '$lib/backend';
-	import { computeCollectionState } from '$lib/settings/collection-state';
+	import { computeCollectionState } from '$lib/backend/collection-state';
 	import { saveManifest } from '$lib/model/load';
 	import { setMode, setTheme } from '$lib/theme/apply';
 	import type { ThemeMode } from '$lib/theme/preferences';
@@ -85,7 +86,7 @@
 	let reloadingModel = $state(false);
 
 	const collectionState = $derived(
-		computeCollectionState(types, ctx.port.capabilities.schemaBootstrap)
+		computeCollectionState(types, VEGA_COLLECTION.name, ctx.port.capabilities.schemaBootstrap)
 	);
 
 	async function load(): Promise<void> {

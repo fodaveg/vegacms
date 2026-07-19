@@ -1,8 +1,8 @@
 /**
  * Suite de la Fase 3a (§7.B.12/14 del contrato P3): los marcos de ruta de contenido — resolución
- * de singleton por deep-link, `not-found`, `forbidden` y el placeholder de `/media` — contra la
- * semilla enriquecida de `session/demo-seed.ts` (`posts` normal, `pages` readonly, `site_info`
- * singleton sin registros).
+ * de singleton por deep-link, `not-found` y `forbidden` — contra la semilla enriquecida de
+ * `session/demo-seed.ts` (`posts` normal, `pages` readonly, `site_info` singleton sin registros).
+ * El bootstrap de `/media` (Fase P6·6a) vive en su propia suite, `media.spec.ts`.
  *
  * No se añade un segundo singleton con registros (caso ">1 registros" de §3.3): la resolución
  * `0/1/>1 → new/edit/edit+aviso` YA está cubierta como función pura en `tests/shell/singleton.test.ts`
@@ -109,20 +109,5 @@ test.describe('forbidden', () => {
 
 		await state.getByRole('button', { name: 'Volver al listado' }).click();
 		await page.waitForURL('**/c/pages');
-	});
-});
-
-test.describe('/media placeholder (§6.11)', () => {
-	test('/media muestra el placeholder honesto, no un error', async ({ page }) => {
-		await loginAsDemo(page);
-		await page.waitForURL('**/c/site_info/new');
-
-		await page.goto('/media');
-
-		const state = page.locator('[data-route-state="placeholder"]');
-		await expect(state).toBeVisible();
-		await expect(state).toHaveText(/llegan en una fase próxima/);
-		// Es informativo, no un error: sin `role="alert"`.
-		await expect(state).not.toHaveAttribute('role', 'alert');
 	});
 });

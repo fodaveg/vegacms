@@ -171,9 +171,20 @@ export const es = {
 	'list.delete.deleting': 'Borrando…',
 	'list.delete.success': '"{label}" se ha borrado.',
 
-	// ————— Medios (hueco pre-P6) —————
-	'media.placeholderTitle': 'Los medios llegan en una fase próxima',
-	'media.placeholderBody': 'La biblioteca de medios todavía no está disponible.',
+	// ————— Medios: bootstrap + esquema (Fase P6·6a) —————
+	'media.loadErrorBody': 'No se pudo cargar la biblioteca de medios. Vuelve a intentarlo.',
+	'media.empty.title': 'La biblioteca de medios está vacía',
+	'media.empty.body':
+		'Todavía no hay ningún fichero. El listado y la subida llegan en próximas fases.',
+	'media.bootstrap.confirmBody':
+		'Vega va a crear la colección "vega_media" en tu PocketBase. ¿Continuar?',
+	'media.bootstrap.confirm': 'Crear colección',
+	'media.bootstrap.creating': 'Creando…',
+	'media.bootstrap.create': 'Crear colección de medios',
+	'media.bootstrap.manualBody':
+		'La colección "vega_media" todavía no existe en este backend y no se puede crear automáticamente. El apartado quedará deshabilitado hasta que la crees a mano.',
+	'media.bootstrap.manualImportHint':
+		'En el Admin de PocketBase: Collections → Import collections, pega el siguiente JSON y confirma.',
 
 	// ————— Warnings (L10 de P2) —————
 	'warnings.title': 'Avisos del modelo',

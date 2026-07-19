@@ -30,7 +30,7 @@ export function recordRoute(type: string, id: RecordId): string {
 	return `/c/${encodeURIComponent(type)}/${encodeURIComponent(id)}`;
 }
 
-/** `/media` — biblioteca de medios (P6; placeholder hasta entonces). */
+/** `/media` — biblioteca de medios (P6; bootstrap desde la Fase 6a, grid/subida en 6b/6c). */
 export function mediaRoute(): string {
 	return '/media';
 }

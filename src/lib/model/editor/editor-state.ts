@@ -124,6 +124,15 @@ function collectionFieldSpecToPbImportField(
 				maxSize: spec.maxSizeBytes ?? 0,
 				mimeTypes: spec.mimeTypes ?? []
 			};
+		case 'autodate':
+			// `VEGA_COLLECTION` no usa `autodate` hoy, pero el switch debe seguir siendo
+			// exhaustivo contra el vocabulario COMPLETO de `CollectionFieldSpec` (enmienda P6 §9).
+			return {
+				name: spec.name,
+				type: 'autodate',
+				onCreate: true,
+				onUpdate: spec.onUpdate ?? false
+			};
 	}
 }
 

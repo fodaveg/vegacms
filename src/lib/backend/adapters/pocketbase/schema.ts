@@ -219,6 +219,7 @@ export function collectionFieldSpecToPbField(spec: CollectionFieldSpec): Record<
 			return {
 				name: spec.name,
 				type: 'file',
+				required: spec.required ?? false,
 				// v1 no expone un número de tope en CollectionFieldSpec: 99 es un límite
 				// generoso por defecto para "multiple"; P6 podrá ajustar con su propio contrato.
 				maxSelect: spec.multiple ? 99 : 1,
@@ -231,5 +232,15 @@ export function collectionFieldSpecToPbField(spec: CollectionFieldSpec): Record<
 			return { name: spec.name, type: 'number' };
 		case 'date':
 			return { name: spec.name, type: 'date' };
+		case 'autodate':
+			// Enmienda del contrato P6 (§9): `onCreate: true` siempre (es la semántica que P6
+			// necesita, "creado el"); `onUpdate` por defecto `false` — el llamador puede pedir
+			// también auto-touch al actualizar (p.ej. "modificado el"), fuera de alcance de P6·6a.
+			return {
+				name: spec.name,
+				type: 'autodate',
+				onCreate: true,
+				onUpdate: spec.onUpdate ?? false
+			};
 	}
 }
