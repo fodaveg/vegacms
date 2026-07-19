@@ -1,34 +1,58 @@
 # Vega
 
-CMS de contenidos genérico y open source (MIT) sobre [PocketBase](https://pocketbase.io/).
+Admin y CMS genérico de contenidos, open source (MIT), construido sobre [PocketBase](https://pocketbase.io/) como una SPA estática de cliente. Vega abstrae el almacenamiento detrás de un **puerto** (`src/lib/backend/`) con adaptadores intercambiables, permitiendo reutilizar la interfaz de administración sobre distintos backends sin cambiar la app.
 
-Vega no es específico de PocketBase: el admin habla contra un **puerto** (`src/lib/backend/`,
-sin dependencias) mediante la interfaz `BackendPort`. Los backends concretos son adaptadores
-intercambiables:
+**Demo en vivo**: [fodaveg.github.io/vegacms/](https://fodaveg.github.io/vegacms/) (adaptador en memoria, sin backend real).
 
-- `src/lib/backend/adapters/memory/` — backend en memoria (tests de contrato + demo).
-- `src/lib/backend/adapters/pocketbase/` — backend real sobre el SDK `pocketbase` (Fase 2;
-  único lugar del repo donde puede importarse ese paquete, forzado por ESLint).
+## Requisitos
 
-## Desarrollo
+- **Node.js**: versión 22 o superior.
+- **pnpm**: versión 11.11.0 o superior (gestor de paquetes).
+- **PocketBase**: versión ≥ 0.26.0 (solo para producción; no necesario en desarrollo con el adaptador en memoria).
 
-Requiere Node 22 y [pnpm](https://pnpm.io/).
+## Inicio rápido
+
+### Desarrollo (con backend en memoria)
 
 ```sh
 pnpm install
-pnpm dev       # servidor de desarrollo
-pnpm check     # svelte-check (TS estricto)
-pnpm lint      # prettier + eslint (incluida la frontera de imports)
-pnpm test      # vitest (unit + contrato)
-pnpm build     # build estático (SPA, @sveltejs/adapter-static)
-pnpm gate      # check + lint + test + build, en ese orden
+VITE_VEGA_ADAPTER=memory pnpm dev
 ```
 
-## Documento normativo
+Abre [http://localhost:5173/](http://localhost:5173/) — inicio de sesión con **demo@vega.dev** / **vega-demo**.
 
-La Parte 1 (puerto + adaptador PocketBase) sigue al pie de la letra el contrato firmado
-`Vega — Contrato P1 (puerto + adaptador PocketBase)`. Lo que ahí dice DEBE/NO DEBE es criterio
-de aceptación; el test de contrato (`tests/contract/`) es su verificación ejecutable.
+### Producción (contra PocketBase)
+
+```sh
+pnpm install
+pnpm build
+# Copia el contenido de `build/` a `pb_public/` de tu instancia de PocketBase,
+# o configura CORS + `static/vega.config.json` si están en orígenes distintos.
+```
+
+**Ver también**: [Guía de instalación](docs/INSTALL.md) · [Despliegue y montaje](docs/DEPLOYMENT.md) · [Integración con PocketBase](docs/POCKETBASE-INTEGRATION.md).
+
+## Estructura de la app
+
+Vega no es específico de PocketBase: el admin habla contra un **puerto** (`src/lib/backend/`, sin dependencias) mediante la interfaz `BackendPort`. Los backends concretos son adaptadores intercambiables:
+
+- `src/lib/backend/adapters/memory/` — backend en memoria (tests de contrato + demo).
+- `src/lib/backend/adapters/pocketbase/` — backend real sobre el SDK `pocketbase`.
+
+## Desarrollo
+
+```sh
+pnpm check     # svelte-check (TS estricto)
+pnpm lint      # prettier + eslint
+pnpm test      # vitest (unit + contrato)
+pnpm build     # SPA estática (@sveltejs/adapter-static)
+pnpm gate      # check + lint + test + build + e2e (la suite completa)
+```
+
+## Referencia
+
+- **Contrato P1**: la arquitectura del puerto (`BackendPort`) y el adaptador PocketBase siguen el documento normativo `Vega — Contrato P1`; el test de contrato (`tests/contract/`) verifica su cumplimiento.
+- **Arquitectura**: la app es una SPA estática sin servidor. Toda la lógica de autenticación y control de acceso vive en el cliente.
 
 ## Licencia
 
