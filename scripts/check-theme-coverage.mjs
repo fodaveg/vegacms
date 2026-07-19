@@ -20,12 +20,13 @@
 //   3. Ningún `[data-theme=` a mano en `src/**` fuera del CSS generado (selector por-tema
 //      prohibido: nace de ahí la superficie sin clasificar, mismo motivo que Lumbre §6.2-7).
 //
-// **NO está encadenado a `pnpm lint`/CI todavía** (ver el comentario en `package.json` y el
-// resumen de la fase P7): la app (`src/app.css`, `src/lib/theme/base.css`, los `.svelte`
-// existentes) sigue pintando con `--vega-color-*`/valores propios de P3 hasta que una fase
-// posterior de MIGRACIÓN cablee P3/P4/P5 al vocabulario §3 — encadenar el checker HOY rompería
-// `pnpm lint` para código que ninguna de estas partes ha tocado todavía. Ejecutar a mano con
-// `node scripts/check-theme-coverage.mjs` mientras tanto.
+// **Encadenado a `pnpm lint`/CI desde F7w-c** (ver `package.json`): F7w-a/b purificaron los 40
+// consumidores al vocabulario §3 y F7w-c cerró los 3 focos de color crudo que quedaban
+// (`ManifestEditor.svelte`, sombras de modal/sidebar/toast → `--shadow-card`, scrims sin token
+// allowlisted abajo) — ya no hay ningún `.svelte`/`.ts` de la app pintando fuera de §3, así que
+// `pnpm lint` (y por tanto `pnpm gate`/CI) muerde si aparece color crudo nuevo o
+// `[data-theme=` a mano. Sigue pudiendo ejecutarse a mano con
+// `node scripts/check-theme-coverage.mjs` (o `pnpm themes:check-coverage`).
 //
 // Las funciones de detección son PURAS `(ficheros, …) => resultado`, igual que los
 // validadores de `build-themes.mjs`, para poder testearlas con fixtures sintéticos sin tocar
@@ -43,12 +44,44 @@ const BUILD_THEMES_SCRIPT = join(ROOT, 'scripts/build-themes.mjs');
 
 // ── ALLOWLIST de color crudo (§5.4 punto 2) ────────────────────────────────
 //
-// Vacía en v1: ningún `.svelte`/`.ts` de la app pinta todavía con el vocabulario §3 (esta fase
-// entrega el MOTOR, no cablea la app), así que no hay ningún caso legítimo que excepcionar
-// hoy. Cuando una fase de migración cablee P3/P4/P5 a `var(--token)`, cualquier hueco genuino
-// (p.ej. un valor de `<canvas>`/SVG que necesite un hex por spec) se añade aquí, con motivo,
-// igual que `ALLOWLIST_BG_ACCENT` en el checker de Lumbre.
-export const ALLOWLIST_RAW_COLOR = [];
+// Ya NO vacía tras F7w-c: dos categorías de caso legítimo, ambas justificadas en su entrada.
+//
+// 1. Scrims/velos de fondo de modales y del overlay móvil del sidebar (`rgb(15 17 21 / N%)`):
+//    §3 es un vocabulario CERRADO (`theme-tokens.ts`) y no tiene token de scrim — un velo
+//    semitransparente sobre el resto de la app no es una superficie del tema (no cambia entre
+//    modos claro/oscuro ni entre paletas), es una constante de UI. Las SOMBRAS de elevación de
+//    esos mismos componentes SÍ son theme-aware y usan `var(--shadow-card)` — solo el velo de
+//    fondo queda crudo.
+// 2. Fixtures de test de `richtext/*.test.ts`: `java&#115;cript:` (entidad HTML decimal de una
+//    `s`, para probar que `safe-uri.ts` decodifica esquemas ofuscados) contiene el substring
+//    `#115` que matchea `RAW_COLOR_RE` como si fuera un hex de 3 dígitos — falso positivo del
+//    regex, no color de ningún tipo.
+export const ALLOWLIST_RAW_COLOR = [
+	{
+		file: 'src/lib/list/DeleteConfirm.svelte',
+		snippet: 'rgb(15 17 21 / 55%)'
+	},
+	{
+		file: 'src/lib/shell/ReloginModal.svelte',
+		snippet: 'rgb(15 17 21 / 55%)'
+	},
+	{
+		file: 'src/lib/shell/Sidebar.svelte',
+		snippet: 'rgb(15 17 21 / 45%)'
+	},
+	{
+		file: 'src/lib/richtext/safe-uri.test.ts',
+		snippet: 'java&#115;cript'
+	},
+	{
+		file: 'src/lib/richtext/sanitize.test.ts',
+		snippet: 'java&#115;cript'
+	},
+	{
+		file: 'src/lib/richtext/markdown.test.ts',
+		snippet: 'java&#115;cript'
+	}
+];
 
 // Todo `src/lib/themes/**` es infraestructura del propio motor: el generador/store/CSS
 // generado legítimamente CONSTRUYEN o CITAN colores crudos / `[data-theme=` como STRING (es

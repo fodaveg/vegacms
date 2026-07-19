@@ -236,7 +236,8 @@
 </section>
 
 <style>
-	/* Sin sistema de temas todavía (P7 lo trae): estilado neutro y autocontenido, sin tokens. */
+	/* Recoloreado a F7w-c: consume el vocabulario de rol §3 (`theme-tokens.ts`), igual que el
+	   resto de la app tras F7w-a/b — ya no pinta con hex crudo. */
 	.manifest-editor {
 		display: flex;
 		flex-direction: column;
@@ -246,7 +247,7 @@
 			system-ui,
 			-apple-system,
 			sans-serif;
-		color: #1a1a1a;
+		color: var(--ink);
 	}
 
 	.manifest-editor-header {
@@ -278,15 +279,17 @@
 		line-height: 1.4;
 		min-height: 24rem;
 		padding: 0.75rem;
-		border: 1px solid #b0b0b0;
+		border: 1px solid var(--line);
 		border-radius: 4px;
+		background: var(--surface);
+		color: var(--ink);
 		resize: vertical;
 		tab-size: 2;
 	}
 
 	.manifest-textarea:disabled {
-		background: #f2f2f2;
-		color: #666;
+		background: var(--btn);
+		color: var(--ink-3);
 	}
 
 	.actions {
@@ -296,9 +299,10 @@
 
 	.actions button {
 		padding: 0.4rem 0.9rem;
-		border: 1px solid #888;
+		border: 1px solid var(--line);
 		border-radius: 4px;
-		background: #f5f5f5;
+		background: var(--btn);
+		color: var(--ink);
 		cursor: pointer;
 	}
 
@@ -314,15 +318,15 @@
 	}
 
 	.notice-bootstrap {
-		border-color: #b45309;
-		background: #fffbeb;
-		color: #7c2d12;
+		border-color: var(--warning);
+		background: var(--warning-soft);
+		color: var(--warning);
 	}
 
 	.notice-confirm {
-		border-color: #1d4ed8;
-		background: #eff6ff;
-		color: #1e3a8a;
+		border-color: var(--info);
+		background: var(--info-soft);
+		color: var(--info);
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
@@ -336,8 +340,8 @@
 		max-height: 16rem;
 		overflow: auto;
 		padding: 0.5rem;
-		background: #fff;
-		border: 1px solid #d6d3d1;
+		background: var(--surface);
+		border: 1px solid var(--line);
 		border-radius: 4px;
 		font-family: ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
 		font-size: 0.8rem;
@@ -361,11 +365,11 @@
 	}
 
 	.strict-errors {
-		color: #991b1b;
+		color: var(--danger);
 	}
 
 	.dry-run-warnings {
-		color: #92400e;
+		color: var(--warning);
 	}
 
 	.message {
@@ -374,10 +378,10 @@
 	}
 
 	.message-error {
-		color: #991b1b;
+		color: var(--danger);
 	}
 
 	.message-ok {
-		color: #166534;
+		color: var(--success);
 	}
 </style>

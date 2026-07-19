@@ -182,6 +182,8 @@
 		align-items: center;
 		justify-content: center;
 		padding: var(--vega-space-gutter);
+		/* Scrim theme-independiente (§3 no tiene token de velo) — allowlisted en
+		   check-theme-coverage.mjs. */
 		background: rgb(15 17 21 / 55%);
 	}
 
@@ -195,7 +197,7 @@
 		border-radius: 10px;
 		background: var(--surface);
 		color: var(--ink);
-		box-shadow: 0 12px 40px rgb(0 0 0 / 35%);
+		box-shadow: var(--shadow-card);
 	}
 
 	.vega-relogin-dialog h2 {

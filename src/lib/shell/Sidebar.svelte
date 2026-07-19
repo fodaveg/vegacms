@@ -243,7 +243,7 @@
 			z-index: 30;
 			width: min(80vw, 300px);
 			max-width: 300px;
-			box-shadow: 2px 0 12px rgba(0, 0, 0, 0.2);
+			box-shadow: var(--shadow-card);
 			transform: translateX(-100%);
 			transition: transform 0.2s ease;
 		}
@@ -276,6 +276,8 @@
 			margin: 0;
 			padding: 0;
 			border: none;
+			/* Scrim theme-independiente (§3 no tiene token de velo) — allowlisted en
+			   check-theme-coverage.mjs. */
 			background: rgb(15 17 21 / 45%);
 			cursor: pointer;
 		}

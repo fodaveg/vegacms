@@ -87,7 +87,7 @@
 		border: 1px solid var(--line);
 		background: var(--surface);
 		color: var(--ink);
-		box-shadow: 0 4px 16px rgb(0 0 0 / 18%);
+		box-shadow: var(--shadow-card);
 		font-size: 0.9rem;
 		pointer-events: auto;
 	}
@@ -120,7 +120,11 @@
 	}
 
 	.vega-toast-dismiss:hover {
-		background: rgb(0 0 0 / 8%);
+		/* `--active` (elemento activo) y no `--btn`: en modo oscuro `--btn` queda a un solo dígito
+		   hex de `--surface` (hover invisible); `--active` sí distingue, y encaja semánticamente con
+		   un estado interactivo momentáneo. Sobre el toast `[data-kind]` teñido da un oscurecimiento
+		   coherente en vez del parche gris neutro de `--btn`. */
+		background: var(--active);
 	}
 
 	@media (prefers-reduced-motion: reduce) {
