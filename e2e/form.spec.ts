@@ -354,8 +354,23 @@ test.describe('widgets escalares dedicados (F5-b)', () => {
 		await page.waitForURL('**/c/posts');
 		await page.goBack();
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
-		await expect(page.getByLabel('Website')).toHaveValue('https://vega.example.dev');
-		await expect(page.getByLabel('Published at')).toHaveValue('2024-06-01T09:15');
+		// `exact: true` (fix de flake, ver diagnóstico junto a este test): `waitForURL` resuelve en
+		// cuanto CAMBIA la URL del navegador (el propio `popstate` de `goBack`, ANTES de que
+		// SvelteKit termine de desmontar el listado y montar `RecordForm` — hueco async normal de
+		// cualquier router de SPA, no un bug de remount de la app). Durante esa ventana el listado de
+		// `/c/posts` sigue en el DOM, con su cabecera de columna ORDENABLE "Website"
+		// (`aria-label="Ordenar por Website"`). Sin `exact`, `getByLabel('Website')` empareja por
+		// SUBSTRING y agarra ese botón de orden en vez de esperar al `<input>` real; el motor lanza
+		// "Not an input element" (no es un input/textarea/select) — un error que Playwright NO
+		// reintenta dentro del polling de `toHaveValue` (a diferencia de "elemento no encontrado",
+		// que sí espera), así que la aserción falla en unos pocos ms en vez de agotar el timeout.
+		// `exact: true` deja de matchear ese botón (su nombre accesible es "Ordenar por Website",
+		// no "Website" a secas) — durante la ventana de transición el locator simplemente no
+		// encuentra nada y SÍ reintenta con normalidad hasta que el input real monta.
+		await expect(page.getByLabel('Website', { exact: true })).toHaveValue(
+			'https://vega.example.dev'
+		);
+		await expect(page.getByLabel('Published at', { exact: true })).toHaveValue('2024-06-01T09:15');
 	});
 
 	test('metrics: switch es un checkbox real y number un input numérico', async ({ page }) => {
