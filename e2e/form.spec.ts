@@ -91,7 +91,9 @@ test.describe('crear (D-P5.11)', () => {
 
 		// Persistido de verdad (ver nota de cabecera): vuelve al listado (SPA) y entra de nuevo al
 		// MISMO registro por su enlace de título — un viaje redondo `create` → `list` → `get`.
-		await page.getByRole('button', { name: 'Volver' }).click();
+		// R7 del rediseño C2: "Volver" ya no es un botón propio — el nombre del tipo en el crumb
+		// de `EditTopBar` ES la afordancia (`RecordForm.svelte`, ver su cabecera).
+		await page.getByRole('button', { name: 'Entradas' }).click();
 		await page.waitForURL('**/c/posts');
 		await page.getByRole('link', { name: 'Entrada nueva de e2e' }).click();
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
@@ -195,7 +197,9 @@ test.describe('editar', () => {
 
 		// Persistido de verdad (ver nota de cabecera): vuelve al listado (SPA) y entra de nuevo al
 		// MISMO registro por su enlace de título — un viaje redondo `update` → `list` → `get`.
-		await page.getByRole('button', { name: 'Volver' }).click();
+		// R7 del rediseño C2: "Volver" ya no es un botón propio — el nombre del tipo en el crumb
+		// de `EditTopBar` ES la afordancia (`RecordForm.svelte`, ver su cabecera).
+		await page.getByRole('button', { name: 'Entradas' }).click();
 		await page.waitForURL('**/c/posts');
 		await page.getByRole('link', { name: 'Bienvenido a Vega (editado)' }).click();
 		await page.waitForURL('**/c/posts/post_1');
@@ -214,14 +218,85 @@ test.describe('guard de salida (D-P5.5)', () => {
 		// Cancelar: el diálogo nativo se descarta → la navegación se cancela, el formulario sigue
 		// aquí con el cambio intacto (no se pierde nada).
 		page.once('dialog', (dialog) => void dialog.dismiss());
-		await page.getByRole('button', { name: 'Volver' }).click();
+		// R7 del rediseño C2: "Volver" ya no es un botón propio — el nombre del tipo en el crumb
+		// de `EditTopBar` ES la afordancia (`RecordForm.svelte`, ver su cabecera).
+		await page.getByRole('button', { name: 'Entradas' }).click();
 		await expect(page).toHaveURL(/\/c\/posts\/post_2$/);
 		await expect(page.getByLabel('Title')).toHaveValue('Borrador en curso (con cambios)');
 
 		// Confirmar: ahora sí navega al listado.
 		page.once('dialog', (dialog) => void dialog.accept());
-		await page.getByRole('button', { name: 'Volver' }).click();
+		// R7 del rediseño C2: "Volver" ya no es un botón propio — el nombre del tipo en el crumb
+		// de `EditTopBar` ES la afordancia (`RecordForm.svelte`, ver su cabecera).
+		await page.getByRole('button', { name: 'Entradas' }).click();
 		await page.waitForURL('**/c/posts');
+	});
+});
+
+test.describe('barra pegajosa del editor (R7 del rediseño C2 «Cabina»)', () => {
+	test('el crumb muestra tipo+nombre+tag de estado, el dirty aparece/desaparece, y ⌘S guarda', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts/post_1');
+
+		// Crumb (RecordForm.svelte): «Entradas» / <nombre derivado del titleField>.
+		await expect(page.getByRole('button', { name: 'Entradas' })).toBeVisible();
+		await expect(page.locator('.vega-editor-crumb-name')).toHaveText('Bienvenido a Vega');
+
+		// Tag de estado (classifyStatusBadge): `post_1.status === 'published'` → kind 'pub'.
+		const tag = page.locator('.vega-editor-tag');
+		await expect(tag).toHaveText('published');
+		await expect(tag).toHaveAttribute('data-status-kind', 'pub');
+
+		// Sin cambios: ningún indicador "sin guardar".
+		await expect(page.locator('.vega-editor-dirty')).toHaveCount(0);
+
+		await page.getByLabel('Title').fill('Bienvenido a Vega (editado por ⌘S)');
+		await expect(page.locator('.vega-editor-dirty')).toBeVisible();
+
+		// Atajo ⌘S/Ctrl+S (`ControlOrMeta`, cross-platform): dispara el MISMO envío que "Guardar".
+		await page.keyboard.press('ControlOrMeta+s');
+		await expect(page.getByText('Guardado.')).toBeVisible();
+
+		// Tras guardar: ya no dirty, y el crumb refleja el nuevo título (misma derivación que
+		// `RecordTable`, ver cabecera de `RecordForm.svelte`).
+		await expect(page.locator('.vega-editor-dirty')).toHaveCount(0);
+		await expect(page.locator('.vega-editor-crumb-name')).toHaveText(
+			'Bienvenido a Vega (editado por ⌘S)'
+		);
+	});
+
+	test('⌘S no hace nada sin cambios (sin dirty, sin roundtrip visible)', async ({ page }) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts/post_2');
+
+		await page.keyboard.press('ControlOrMeta+s');
+		// Sin dirty, ⌘S es un no-op (ver cabecera de `RecordForm.svelte`): nada que confirmar.
+		await expect(page.getByText('Guardado.')).toHaveCount(0);
+	});
+
+	test('"Ver en el sitio" está deshabilitado cuando el tipo no declara `previewUrl` (posts, demo)', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts/post_1');
+
+		const preview = page.getByRole('button', { name: 'Ver en el sitio' });
+		await expect(preview).toBeDisabled();
+		await expect(preview).toHaveAttribute('title', 'El borrador no tiene URL pública todavía');
+	});
+
+	test('en /new el crumb muestra "nuevo" y no hay tag de estado ni indicador de guardado', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts/new');
+
+		await expect(page.getByRole('button', { name: 'Entradas' })).toBeVisible();
+		await expect(page.locator('.vega-editor-crumb-name')).toHaveText('nuevo');
+		await expect(page.locator('.vega-editor-tag')).toHaveCount(0);
+		await expect(page.locator('.vega-editor-saved-at')).toHaveCount(0);
 	});
 });
 
@@ -267,7 +342,9 @@ test.describe('campo number desde null (fix de code-review, GenericInput.svelte)
 		// y navega atrás por el histórico del propio router (`goBack`, también client-side) hasta
 		// este mismo registro — una carga FRESCA vía `ctx.port.get`, no el estado ya en memoria del
 		// componente, para descartar que el valor solo "se viera bien" en el propio formulario.
-		await page.getByRole('button', { name: 'Volver' }).click();
+		// R7 del rediseño C2: "Volver" ya no es un botón propio — el nombre del tipo en el crumb
+		// de `EditTopBar` ES la afordancia (`RecordForm.svelte`, ver su cabecera).
+		await page.getByRole('button', { name: 'Métricas' }).click();
 		await page.waitForURL('**/c/metrics');
 		await page.goBack();
 		await page.waitForURL(/\/c\/metrics\/(?!new)[^/]+$/);
@@ -354,7 +431,9 @@ test.describe('widgets escalares dedicados (F5-b)', () => {
 		// Ronda completa sin recargar el documento (ver nota de cabecera): vuelve al listado (SPA) y
 		// navega atrás por el histórico del router hasta este mismo registro — carga FRESCA vía
 		// `ctx.port.get`, no el estado ya en memoria del componente.
-		await page.getByRole('button', { name: 'Volver' }).click();
+		// R7 del rediseño C2: "Volver" ya no es un botón propio — el nombre del tipo en el crumb
+		// de `EditTopBar` ES la afordancia (`RecordForm.svelte`, ver su cabecera).
+		await page.getByRole('button', { name: 'Entradas' }).click();
 		await page.waitForURL('**/c/posts');
 		await page.goBack();
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
@@ -481,7 +560,9 @@ test.describe('editor TipTap real: richtext y markdown (F5-d)', () => {
 
 		// Persistido de verdad (ver nota de cabecera): vuelve al listado (SPA) y navega atrás por el
 		// histórico del router hasta este mismo registro — una carga FRESCA vía `ctx.port.get`.
-		await page.getByRole('button', { name: 'Volver' }).click();
+		// R7 del rediseño C2: "Volver" ya no es un botón propio — el nombre del tipo en el crumb
+		// de `EditTopBar` ES la afordancia (`RecordForm.svelte`, ver su cabecera).
+		await page.getByRole('button', { name: 'Entradas' }).click();
 		await page.waitForURL('**/c/posts');
 		await page.goBack();
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
@@ -521,7 +602,9 @@ test.describe('widget relation (F5-e)', () => {
 
 		// Persistido de verdad (ver nota de cabecera del fichero): vuelve al listado (SPA) y navega
 		// atrás por el histórico del router hasta este mismo registro — carga FRESCA vía `ctx.port.get`.
-		await page.getByRole('button', { name: 'Volver' }).click();
+		// R7 del rediseño C2: "Volver" ya no es un botón propio — el nombre del tipo en el crumb
+		// de `EditTopBar` ES la afordancia (`RecordForm.svelte`, ver su cabecera).
+		await page.getByRole('button', { name: 'Entradas' }).click();
 		await page.waitForURL('**/c/posts');
 		await page.goBack();
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
@@ -568,7 +651,9 @@ test.describe('widget relation (F5-e)', () => {
 		// mismo patrón de "recarga fría" que el test single de más arriba, aquí con 2 ids a la vez
 		// para ejercer justo el caso que reproducía el bug). Ambos títulos deben resolver, sin
 		// importar el orden de resolución de las dos llamadas `ctx.port.get` concurrentes.
-		await page.getByRole('button', { name: 'Volver' }).click();
+		// R7 del rediseño C2: "Volver" ya no es un botón propio — el nombre del tipo en el crumb
+		// de `EditTopBar` ES la afordancia (`RecordForm.svelte`, ver su cabecera).
+		await page.getByRole('button', { name: 'Entradas' }).click();
 		await page.waitForURL('**/c/posts');
 		await page.goBack();
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
@@ -640,7 +725,9 @@ test.describe('widget file (F5-f)', () => {
 		);
 
 		// Recarga fría dentro de la SPA (vuelve al listado y navega atrás por el histórico).
-		await page.getByRole('button', { name: 'Volver' }).click();
+		// R7 del rediseño C2: "Volver" ya no es un botón propio — el nombre del tipo en el crumb
+		// de `EditTopBar` ES la afordancia (`RecordForm.svelte`, ver su cabecera).
+		await page.getByRole('button', { name: 'Entradas' }).click();
 		await page.waitForURL('**/c/posts');
 		await page.goBack();
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
@@ -716,7 +803,9 @@ test.describe('widget file (F5-f)', () => {
 		await expect(savedField.locator('.vega-file-chip')).toHaveCount(1);
 		await expect(savedField.locator('.vega-file-chip')).toContainText('a.txt');
 
-		await page.getByRole('button', { name: 'Volver' }).click();
+		// R7 del rediseño C2: "Volver" ya no es un botón propio — el nombre del tipo en el crumb
+		// de `EditTopBar` ES la afordancia (`RecordForm.svelte`, ver su cabecera).
+		await page.getByRole('button', { name: 'Entradas' }).click();
 		await page.waitForURL('**/c/posts');
 		await page.goBack();
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
@@ -750,7 +839,9 @@ test.describe('widget file (F5-f)', () => {
 
 		// Recarga fría (ver nota de cabecera del fichero): la portada persistida se ve como `<img>`
 		// de verdad (vía `ctx.port.fileUrl`), no ya el object URL del `File` pendiente de antes.
-		await page.getByRole('button', { name: 'Volver' }).click();
+		// R7 del rediseño C2: "Volver" ya no es un botón propio — el nombre del tipo en el crumb
+		// de `EditTopBar` ES la afordancia (`RecordForm.svelte`, ver su cabecera).
+		await page.getByRole('button', { name: 'Entradas' }).click();
 		await page.waitForURL('**/c/posts');
 		await page.goBack();
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
@@ -770,7 +861,9 @@ test.describe('widget file (F5-f)', () => {
 
 		// Recarga fría OTRA VEZ: el borrado sobrevivió al viaje redondo `update` → `get`, no es un
 		// artefacto del estado en memoria del propio formulario.
-		await page.getByRole('button', { name: 'Volver' }).click();
+		// R7 del rediseño C2: "Volver" ya no es un botón propio — el nombre del tipo en el crumb
+		// de `EditTopBar` ES la afordancia (`RecordForm.svelte`, ver su cabecera).
+		await page.getByRole('button', { name: 'Entradas' }).click();
 		await page.waitForURL('**/c/posts');
 		await page.goBack();
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
@@ -796,7 +889,9 @@ test.describe('widget file (F5-f)', () => {
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
 
-		await page.getByRole('button', { name: 'Volver' }).click();
+		// R7 del rediseño C2: "Volver" ya no es un botón propio — el nombre del tipo en el crumb
+		// de `EditTopBar` ES la afordancia (`RecordForm.svelte`, ver su cabecera).
+		await page.getByRole('button', { name: 'Entradas' }).click();
 		await page.waitForURL('**/c/posts');
 		await page.goBack();
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
@@ -820,7 +915,9 @@ test.describe('widget file (F5-f)', () => {
 
 		// Recarga fría: solo "drop.txt" desapareció de verdad (borrado real del store); "keep.txt"
 		// sobrevivió intacto — el diff de estado-final no toca lo que SÍ sigue en el value.
-		await page.getByRole('button', { name: 'Volver' }).click();
+		// R7 del rediseño C2: "Volver" ya no es un botón propio — el nombre del tipo en el crumb
+		// de `EditTopBar` ES la afordancia (`RecordForm.svelte`, ver su cabecera).
+		await page.getByRole('button', { name: 'Entradas' }).click();
 		await page.waitForURL('**/c/posts');
 		await page.goBack();
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);

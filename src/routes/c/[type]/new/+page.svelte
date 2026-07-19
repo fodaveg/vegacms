@@ -10,6 +10,10 @@
 	 *   baseline (dentro de `RecordForm`, L-P5.6) y esta ruta navega a la EDICIÓN del nuevo id
 	 *   (D-P5.11 "destino post-create"), el mismo camino que resuelve un singleton con 1 registro
 	 *   (§3.3, ya cubierto por P3).
+	 *
+	 * **R7 del rediseño C2**: el `<h1>` que esta ruta pintaba se muda dentro de `RecordForm`
+	 *   (crumb + `<h1>` visualmente oculto, ver su cabecera) — ya no queda ningún marco propio
+	 *   alrededor del formulario más allá del hueco de layout (`vega-editor-page`).
 	 */
 	import { page } from '$app/state';
 	import { getVegaContext } from '$lib/app-context';
@@ -45,7 +49,6 @@
 {:else if formModel}
 	{@const activeType = contentType}
 	<div class="vega-editor-page">
-		<h1>{ctx.t('editor.create.title', { label: activeType.labelSingular })}</h1>
 		<RecordForm
 			type={activeType}
 			model={formModel}
@@ -65,10 +68,5 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--vega-space-gutter);
-	}
-
-	.vega-editor-page h1 {
-		margin: 0;
-		font-size: 1.2rem;
 	}
 </style>

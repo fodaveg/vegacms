@@ -50,6 +50,72 @@
 	 *   fix de code-review). Se espera un `tick()` antes de resolver: los errores de backend llegan
 	 *   tras un `await`, el nodo del campo puede no existir todavía en el frame en que se asigna
 	 *   `backendErrors`. NUNCA se dispara en el camino de ÉXITO (guardado ok).
+	 *
+	 * **R7 del rediseño C2 «Cabina»**: reestilizado a fichas (`.vega-fsection` por grupo, ver el
+	 * `{#each sections}` de más abajo) tras una barra pegajosa `EditTopBar` (crumb + tag de estado +
+	 * indicador dirty + "último guardado" + "Ver en el sitio" + "Guardar"). Toda esta fase es
+	 * ADITIVA/de MARKUP sobre el armazón de arriba — ninguna palabra de lo descrito arriba cambia:
+	 * ni el dirty tracking, ni el guard de salida, ni el foco al primer error, ni la interfaz de
+	 * widget (D-P5.1). Puntos nuevos, documentados aquí para no repetirlos junto a cada variable:
+	 *
+	 * - **La afordancia "Volver" se MUDA al crumb (D-P5.12 intacto)**: antes había un botón
+	 *   `{ctx.t('editor.cancel')}` ("Volver") en una fila de acciones al pie; el mockup no tiene esa
+	 *   fila — el propio nombre del tipo en el crumb (`{type.label} / …`) ES ahora el enlace que
+	 *   llama `onCancel`. Sigue siendo la MISMA función (la ruta decide `toIndex`/`toList`, D-P5.12
+	 *   sin tocar), solo cambia dónde vive el control; los e2e que antes buscaban el rol "Volver"
+	 *   ahora buscan el nombre accesible del tipo (`e2e/form.spec.ts`, actualizado en esta fase).
+	 * - **Sin botón "Publicar" (desviación consciente del mockup)**: el mockup pinta `<button
+	 *   class="btn">Publicar</button>` junto a "Guardar". P5 (el puerto `BackendPort`, §5) NO expone
+	 *   ninguna transición de estado/publicación — solo `create`/`update`/`delete` sobre el mismo
+	 *   registro. Fabricar ese botón sería un elemento decorativo sin acción real detrás, así que
+	 *   esta fase lo omite: la fidelidad 1:1 se detiene donde empezaría a mentir sobre lo que Vega
+	 *   puede hacer. Si un P futuro añade transiciones de estado al puerto, este es el hueco natural.
+	 * - **`<h1>` visualmente oculto, no eliminado del todo**: el mockup no pinta NINGÚN heading
+	 *   visible en el editor (el crumb es un `<span>`, no un heading) — pero dejar la página sin
+	 *   ningún heading de nivel superior sería un agujero de a11y (eje 4 de la checklist: un lector
+	 *   de pantalla que navegue por headings no encontraría ninguno que anuncie "estás editando
+	 *   Entrada X"). Se mantiene el h1 de antes (`editor.create.title`/`editor.edit.title`) pero
+	 *   `.vega-visually-hidden` (técnica clip estándar, WCAG): ocupa 1×1px, invisible a simple
+	 *   vista, presente en el árbol de accesibilidad. Esto deja una jerarquía coherente de UN solo
+	 *   criterio: h1 oculto de página → h2 por cada `.fsection` con nombre de grupo (el grupo
+	 *   anónimo sigue sin cabecera, igual que antes).
+	 * - **Nombre del crumb = MISMA derivación que la celda-título de `RecordTable`** (L-P4.15):
+	 *   `describeCell`+`resolveTitleCellText` (`$lib/list/cell`, `$lib/list/list-load`) sobre
+	 *   `type.titleField`, con el mismo fallback i18n `list.untitled`. Simplificado respecto al
+	 *   fallback de LISTADO (que cae a la primera COLUMNA visible o al id crudo cuando no hay
+	 *   `titleField` — una decisión de "qué celda hago clicable", que no aplica aquí): sin
+	 *   `titleField` el editor no tiene ninguna otra pista de nombre más honesta, así que cae
+	 *   directo a `list.untitled`. En modo creación (`model.mode === 'create'`) el nombre es
+	 *   siempre `editor.new` ("nuevo"), sin mirar `titleField` — no hay nada que derivar todavía.
+	 * - **Tag de estado**: si `type.statusField` existe y `baseline[statusField]` es un string no
+	 *   vacío, se pinta como `.vega-editor-tag` con `classifyStatusBadge` (`$lib/list/cell`, la
+	 *   MISMA función que clasifica la insignia de `RecordTable`, R3 de lote-2) decidiendo el
+	 *   color — pub/draft/other, `data-status-kind` igual que la tabla. Sin `statusField`, o con el
+	 *   campo vacío, no se pinta nada (nunca una insignia "vacía").
+	 * - **"Ver en el sitio"**: `buildPreviewUrl(type, { id: model.recordId ?? '', type: type.name,
+	 *   values: baseline })` (`$lib/model/preview-url`). `null` (borrador sin resolver, o creación
+	 *   sin guardar aún) → botón deshabilitado con `title` explicando por qué (fiel al mockup, que
+	 *   lo pinta disabled con el mismo motivo); si no, `<a target="_blank" rel="noreferrer">`. Solo
+	 *   depende de `type`/`baseline`/`model.recordId` — se re-evalúa solo porque `baseline` cambia
+	 *   tras guardar (p.ej. un slug que se resuelve con el guardado ya entra en la URL).
+	 * - **"Último guardado"**: semilla desde el campo autodate `updated` de `baseline` SI el tipo lo
+	 *   declara (`type.fields`, no todo backend de demo lo modela — PocketBase real siempre lo
+	 *   trae) y tiene un valor parseable; tras cualquier guardado con éxito se actualiza a
+	 *   `new Date()` SIN mirar si el tipo declara `updated` — a partir de ahí sabemos la hora real
+	 *   del guardado por haberlo hecho nosotros mismos, no hace falta que el propio schema lo
+	 *   confirme. Formateado HH:MM con `Intl.DateTimeFormat(ctx.locale, …)`, mismo criterio de
+	 *   locale que `cell.ts`. Ausente (`null`) → la barra no pinta nada ahí (nunca una hora falsa).
+	 * - **Atajo ⌘S/Ctrl+S**: listener `keydown` en `window` (añadido/quitado en el mismo `onMount`
+	 *   que ya gestionaba `beforeunload`, sin abrir un segundo `onMount`). SIEMPRE hace
+	 *   `preventDefault()` sobre la combinación (evita el diálogo nativo "Guardar página" del
+	 *   navegador), pero solo dispara el envío real si `!formDisabled && dirty` — a diferencia del
+	 *   click en "Guardar" (que no mira `dirty`, siempre reenvía si se pulsa), el atajo no tiene
+	 *   sentido disparar un roundtrip cuando no hay nada que guardar. Deliberadamente SIN
+	 *   `isEditableTarget` (`$lib/shell/keyboard`, usado por los atajos de una sola tecla `N`/`/`):
+	 *   ⌘S no es una tecla que un campo de texto interprete como carácter, así que debe funcionar
+	 *   con el foco DENTRO de cualquier input del formulario, no solo fuera de él. Reusa
+	 *   `formEl.requestSubmit()` (referencia al `<form>` vía `bind:this`) para disparar el MISMO
+	 *   `onsubmit={handleSubmit}` que el click nativo — cero lógica de guardado duplicada.
 	 */
 	import { beforeNavigate } from '$app/navigation';
 	import { onMount, tick, untrack } from 'svelte';
@@ -57,7 +123,11 @@
 	import type { FieldInputValue, RecordInput, VegaRecord } from '$lib/backend/types';
 	import { VegaError } from '$lib/backend/errors';
 	import { getVegaContext } from '$lib/app-context';
-	import { buildFormModel, type FormModel } from './form-model';
+	import { classifyStatusBadge, describeCell } from '$lib/list/cell';
+	import { resolveTitleCellText } from '$lib/list/list-load';
+	import { buildPreviewUrl } from '$lib/model/preview-url';
+	import EditTopBar from '$lib/shell/EditTopBar.svelte';
+	import { buildFormModel, type FormModel, type FormValues } from './form-model';
 	import { isDirty, type FormInputValues } from './dirty';
 	import { toRecordInput } from './to-record-input';
 	import { validateForm } from './validation';
@@ -77,7 +147,9 @@
 		onSubmit: (input: RecordInput) => Promise<VegaRecord>;
 		/** Se llama YA con el baseline reasentado (L-P5.6): seguro navegar/toastear aquí dentro. */
 		onSaved: (record: VegaRecord) => void;
-		/** "Volver" (D-P5.12): la ruta decide `toIndex`/`toList` según `type.singleton`. */
+		/** "Volver" (D-P5.12): la ruta decide `toIndex`/`toList` según `type.singleton`. Desde R7
+		 *  del rediseño, el CONTROL que lo dispara es el nombre del tipo en el crumb de `EditTopBar`
+		 *  (ver cabecera), no un botón "Volver" aparte. */
 		onCancel: () => void;
 	}
 
@@ -85,6 +157,10 @@
 
 	const ctx = getVegaContext();
 	const EMPTY_ERRORS: FieldErrorsView = { byField: {}, record: null };
+	/** Referencia al `<form>` (R7): la usa el atajo ⌘S para reenviar por `requestSubmit()`, el
+	 *  mismo camino que un click real en "Guardar" — ver cabecera del módulo. Variable PLANA (no
+	 *  `$state`): solo se LEE dentro del handler de teclado, nunca en el template/`$derived`. */
+	let formEl: HTMLFormElement | undefined;
 
 	// Semilla inicial (`untrack`, mismo patrón que `ListToolbar.svelte`/`ManifestEditor.svelte`):
 	// un `$state` poblado a partir de una prop reactiva solo captura su valor INICIAL — es justo
@@ -112,6 +188,25 @@
 	});
 	setRecordIdentity(recordIdentity);
 
+	/**
+	 * "Último guardado" (R7 del rediseño, ver cabecera): `Date` sembrada del campo autodate
+	 * `updated` de `values` si el tipo declara un campo `updated` que REALMENTE es un autodate
+	 * (tipo `date` + `readonly`, como lo hornea PB) y trae un valor parseable; `null` si no hay
+	 * ninguna pista. El chequeo por tipo+readonly (no solo por nombre) evita que un tipo de
+	 * contenido de usuario con un campo cualquiera llamado `updated` (Vega es un CMS generalista,
+	 * manifest-driven) haga pintar una hora inventada — la barra no pinta nada en ese caso.
+	 */
+	function parseUpdatedAt(values: FormValues): Date | null {
+		const field = type.fields.find((f) => f.name === 'updated');
+		if (!field || field.schema.type !== 'date' || !field.schema.readonly) return null;
+		const raw = values['updated'];
+		if (typeof raw !== 'string') return null;
+		const ms = Date.parse(raw);
+		return Number.isNaN(ms) ? null : new Date(ms);
+	}
+
+	let savedAt = $state<Date | null>(untrack(() => parseUpdatedAt(model.baseline)));
+
 	$effect(() => {
 		if (model !== syncedModel) {
 			syncedModel = model;
@@ -121,6 +216,9 @@
 			backendErrors = EMPTY_ERRORS;
 			recordIdentity.type = type.name;
 			recordIdentity.id = model.recordId;
+			// Un `model` nuevo es un registro DISTINTO (ver LANDMINE de más abajo): "último guardado"
+			// tiene que resembrarse de SU PROPIO baseline, no arrastrar la hora del registro anterior.
+			savedAt = parseUpdatedAt(model.baseline);
 		}
 	});
 
@@ -160,6 +258,51 @@
 
 	const dirty = $derived(isDirty(baseline, current));
 	const formDisabled = $derived(saving || typeReadonly);
+
+	/** `<h1>` visualmente oculto (ver cabecera): mismo texto que antes era la cabecera VISIBLE. */
+	const pageTitle = $derived(
+		model.mode === 'create'
+			? ctx.t('editor.create.title', { label: type.labelSingular })
+			: ctx.t('editor.edit.title', { label: type.labelSingular })
+	);
+
+	/** Nombre del registro en el crumb (ver cabecera: MISMA derivación que `openText` de
+	 *  `RecordTable`). En creación siempre `editor.new` ("nuevo"), sin mirar `titleField`. */
+	const crumbName = $derived.by(() => {
+		if (model.mode === 'create') return ctx.t('editor.new');
+		const titleField = type.titleField;
+		if (titleField === null) return ctx.t('list.untitled');
+		const field = type.fields.find((f) => f.name === titleField);
+		if (!field) return ctx.t('list.untitled');
+		const descriptor = describeCell(field, baseline[titleField] ?? null, ctx.locale);
+		return resolveTitleCellText(descriptor, ctx.t('list.untitled'));
+	});
+
+	/** Tag de estado del crumb (ver cabecera): `null` sin `statusField`, o con el campo vacío. */
+	const statusTag = $derived.by(() => {
+		if (type.statusField === null) return null;
+		const raw = baseline[type.statusField];
+		if (typeof raw !== 'string' || raw === '') return null;
+		return { label: raw, kind: classifyStatusBadge(raw) };
+	});
+
+	/** "Ver en el sitio" (ver cabecera): `null` ⇒ botón deshabilitado, nunca oculto (fiel al
+	 *  mockup, que también lo pinta disabled con motivo en vez de quitarlo del todo). */
+	const previewUrl = $derived(
+		buildPreviewUrl(type, { id: model.recordId ?? '', type: type.name, values: baseline })
+	);
+
+	/** HH:MM localizado (mismo criterio de locale que `cell.ts`), o `null` sin hora conocida
+	 *  todavía (ver `savedAt`/cabecera). */
+	const savedAtText = $derived(
+		savedAt === null
+			? null
+			: ctx.t('editor.savedAt', {
+					time: new Intl.DateTimeFormat(ctx.locale, { hour: '2-digit', minute: '2-digit' }).format(
+						savedAt
+					)
+				})
+	);
 
 	function handleFieldChange(name: string, value: FieldInputValue): void {
 		current = { ...current, [name]: value };
@@ -232,6 +375,9 @@
 			baseline = nextModel.baseline;
 			current = { ...nextModel.baseline };
 			clientErrors = EMPTY_ERRORS;
+			// R7 del rediseño: "último guardado" pasa a la hora REAL de este guardado, sin mirar si
+			// el tipo declara `updated` (ver cabecera) — acabamos de guardar, así que la sabemos.
+			savedAt = new Date();
 			onSaved(saved);
 		} catch (err) {
 			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al guardar', err);
@@ -262,12 +408,84 @@
 			event.preventDefault();
 			event.returnValue = '';
 		}
+		// Atajo ⌘S/Ctrl+S (R7, ver cabecera): a diferencia de los atajos de una tecla (`N`/`/`,
+		// `$lib/shell/keyboard.isEditableTarget`), este SÍ debe funcionar con el foco dentro de
+		// cualquier input del formulario — nunca se comprueba el target.
+		function handleKeydown(event: KeyboardEvent): void {
+			if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 's') return;
+			event.preventDefault(); // siempre: evita el diálogo nativo "Guardar página" del navegador
+			if (formDisabled || !dirty) return; // nada que guardar, o formulario inerte (readonly/saving)
+			formEl?.requestSubmit();
+		}
 		window.addEventListener('beforeunload', handleBeforeUnload);
-		return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+		window.addEventListener('keydown', handleKeydown);
+		return () => {
+			window.removeEventListener('beforeunload', handleBeforeUnload);
+			window.removeEventListener('keydown', handleKeydown);
+		};
 	});
 </script>
 
-<form class="vega-record-form" onsubmit={handleSubmit}>
+<form class="vega-record-form" bind:this={formEl} onsubmit={handleSubmit}>
+	<!-- Ver cabecera del módulo: h1 presente para a11y (jerarquía de headings) pero sin el peso
+	     visual que el mockup no pide — el crumb de `EditTopBar`, abajo, es el título "visible". -->
+	<h1 class="vega-visually-hidden">{pageTitle}</h1>
+
+	<EditTopBar>
+		{#snippet crumb()}
+			<span class="vega-editor-crumb">
+				<button type="button" class="vega-editor-crumb-link" onclick={onCancel}>
+					{type.label}
+				</button>
+				/ <b class="vega-editor-crumb-name">{crumbName}</b>
+			</span>
+			{#if typeReadonly}
+				<span class="vega-editor-readonly-badge">{ctx.t('nav.readonlyBadge')}</span>
+			{/if}
+			{#if statusTag}
+				<span class="vega-editor-tag" data-status-kind={statusTag.kind}>{statusTag.label}</span>
+			{/if}
+			{#if dirty}
+				<span class="vega-editor-dirty">{ctx.t('editor.dirty')}</span>
+			{/if}
+		{/snippet}
+		{#snippet actions()}
+			{#if savedAtText}
+				<span class="vega-editor-saved-at">{savedAtText}</span>
+			{/if}
+			{#if previewUrl}
+				<!-- `rel="external"` (además de `noreferrer`): `previewUrl` es SIEMPRE un sitio ajeno
+				     a esta SPA (el sitio público del propio manifiesto, cualquier dominio) — nunca
+				     una ruta interna de SvelteKit, así que no necesita `resolve()`
+				     (`svelte/no-navigation-without-resolve` reconoce `rel="external"` como la señal
+				     explícita de "esto no es navegación interna", ver `eslint.config.js`). -->
+				<a
+					class="vega-editor-preview-link"
+					href={previewUrl}
+					target="_blank"
+					rel="noreferrer external"
+				>
+					{ctx.t('editor.previewLink')}
+				</a>
+			{:else}
+				<button
+					type="button"
+					class="vega-editor-preview-link"
+					disabled
+					title={ctx.t('editor.previewDisabledTitle')}
+				>
+					{ctx.t('editor.previewLink')}
+				</button>
+			{/if}
+			{#if !typeReadonly}
+				<button type="submit" class="vega-editor-save-button" disabled={formDisabled}>
+					{saving ? ctx.t('editor.saving') : ctx.t('editor.save')}
+					<kbd aria-hidden="true">⌘S</kbd>
+				</button>
+			{/if}
+		{/snippet}
+	</EditTopBar>
+
 	{#if typeReadonly}
 		<p class="vega-record-form-notice">{ctx.t('editor.readonlyNotice')}</p>
 	{/if}
@@ -277,7 +495,7 @@
 
 	{#each sections as section (section.group ?? '')}
 		{#if section.fields.length > 0}
-			<section class="vega-record-form-group">
+			<section class="vega-fsection">
 				{#if section.group}
 					<h2>{section.group}</h2>
 				{/if}
@@ -294,39 +512,227 @@
 			</section>
 		{/if}
 	{/each}
-
-	<div class="vega-record-form-actions">
-		<button type="button" onclick={onCancel} disabled={saving}>{ctx.t('editor.cancel')}</button>
-		{#if !typeReadonly}
-			<button type="submit" disabled={formDisabled}>
-				{saving ? ctx.t('editor.saving') : ctx.t('editor.save')}
-			</button>
-		{/if}
-	</div>
 </form>
 
 <style>
 	.vega-record-form {
 		display: flex;
 		flex-direction: column;
-		gap: 1.25rem;
-		max-width: 40rem;
+		gap: 1.75rem; /* C: ritmo entre fichas (mockup `.fsection { margin-bottom: 1.75rem }`) */
+		max-width: 55rem; /* mockup `.form { max-width: 880px }` */
 		/* Casos límite de contenido real (F5-g): sin esto, el formulario es un flex-item cuyo
 		   `min-width` por defecto es el de su contenido — un label/valor kilométrico (una sola
 		   palabra sin espacios) podría forzar overflow horizontal de la página entera. */
 		min-width: 0;
 	}
 
-	.vega-record-form-group {
-		display: flex;
-		flex-direction: column;
-		gap: 0.9rem;
+	/* Técnica WCAG estándar de "visualmente oculto" (ver cabecera del módulo): 1×1px, invisible a
+	   simple vista, presente en el árbol de accesibilidad (Playwright/lectores de pantalla SÍ lo
+	   ven). NUNCA `display:none`/`visibility:hidden`, que lo sacarían del árbol por completo. */
+	.vega-visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
 	}
 
-	.vega-record-form-group h2 {
-		margin: 0;
-		font-size: 0.95rem;
+	/* Crumb (R7, mockup `.edit-top .crumb`): mono, tenue; el nombre del registro en `--ink-hi`. */
+	.vega-editor-crumb {
+		display: inline-flex;
+		align-items: baseline;
+		gap: 0.3rem;
+		font-family: var(--mono);
+		font-size: 0.75rem;
+		color: var(--ink-3);
+		overflow-wrap: anywhere;
+	}
+
+	/* Botón SIN estilo de botón (la afordancia visual sigue siendo la de un enlace de crumb, ver
+	   cabecera del módulo: "Volver" se mudó aquí) — foco visible SÍ conservado (nunca `outline:none`
+	   sin sustituto). */
+	.vega-editor-crumb-link {
+		border: 0;
+		background: none;
+		padding: 0;
+		font: inherit;
+		color: inherit;
+		text-decoration: underline;
+		text-decoration-color: transparent;
+		cursor: pointer;
+	}
+
+	.vega-editor-crumb-link:hover {
+		color: var(--ink);
+		text-decoration-color: currentColor;
+	}
+
+	.vega-editor-crumb-name {
+		color: var(--ink);
+		font-weight: 600;
+	}
+
+	.vega-editor-readonly-badge {
+		flex-shrink: 0;
+		padding: 0.1rem 0.4rem;
+		border: 1px solid var(--line);
+		border-radius: 999px;
+		font-size: 0.7rem;
+		white-space: nowrap;
 		color: var(--ink-2);
+	}
+
+	/* Tag de estado (R7, mockup `.tag`): mismos tres colores que la insignia de `RecordTable`
+	   (`classifyStatusBadge`, R3 de lote-2) — pub/draft/other. */
+	.vega-editor-tag {
+		display: inline-flex;
+		align-items: center;
+		font-family: var(--mono);
+		font-size: 0.72rem;
+		font-weight: 600;
+		border-radius: 5px;
+		padding: 0.18rem 0.55rem;
+		border: 1px solid transparent;
+		white-space: nowrap;
+	}
+
+	.vega-editor-tag[data-status-kind='pub'] {
+		color: var(--success);
+		background: var(--success-soft);
+		border-color: var(--success);
+	}
+
+	.vega-editor-tag[data-status-kind='draft'] {
+		color: var(--ink-2);
+		background: var(--active);
+		border-color: var(--line-strong);
+	}
+
+	.vega-editor-tag[data-status-kind='other'] {
+		color: var(--info);
+		background: var(--info-soft);
+		border-color: var(--info);
+	}
+
+	/* Indicador "sin guardar" (mockup `.dirty`): el `●` es puramente decorativo (`aria-hidden` vía
+	   `::before`, invisible a lectores de pantalla — el TEXTO ya dice "sin guardar"). */
+	.vega-editor-dirty {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		font-family: var(--mono);
+		font-size: 0.72rem;
+		font-weight: 600;
+		color: var(--warning);
+		white-space: nowrap;
+	}
+
+	.vega-editor-dirty::before {
+		content: '●';
+	}
+
+	.vega-editor-saved-at {
+		font-family: var(--mono);
+		font-size: 0.72rem;
+		color: var(--ink-3);
+		white-space: nowrap;
+	}
+
+	/* Botones de la barra (mockup `.btn`/`.btn.quiet`/`.btn.primary`): namespaced a este componente
+	   (mismo criterio que el resto de la app — cada marco define su propio botón, ver
+	   `.vega-list-new-button` de `/c/[type]/+page.svelte`). */
+	.vega-editor-preview-link {
+		display: inline-flex;
+		align-items: center;
+		border: 1px solid transparent;
+		background: none;
+		color: var(--ink-2);
+		border-radius: var(--r);
+		padding: 0.45rem 1rem;
+		font-size: 0.8125rem;
+		font-weight: 600;
+		text-decoration: none;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	a.vega-editor-preview-link:hover {
+		background: var(--active);
+		color: var(--ink-hi);
+	}
+
+	button.vega-editor-preview-link:disabled {
+		cursor: not-allowed;
+		opacity: 0.45;
+	}
+
+	.vega-editor-save-button {
+		display: inline-flex;
+		align-items: center;
+		border: 1px solid var(--accent);
+		background: var(--accent);
+		color: var(--accent-ink);
+		border-radius: var(--r);
+		padding: 0.45rem 1rem;
+		font-size: 0.8125rem;
+		font-weight: 600;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	.vega-editor-save-button:hover:not(:disabled) {
+		background: var(--accent-hover);
+		border-color: var(--accent-hover);
+	}
+
+	/* Mismo "kbd sobre botón de acento" que `.vega-list-new-button kbd` (R2 de lote-2): el mockup
+	   usa un halo `color-mix(...)` que `check-theme-coverage.mjs` prohíbe fuera de
+	   `src/lib/themes/` (ver `GlobalSearch.svelte`, mismo motivo) — este es el sustituto ya
+	   establecido: borde neutro `--line-strong` + `opacity` en vez de mezclar color. */
+	.vega-editor-save-button kbd {
+		margin-left: 0.4rem;
+		font-family: var(--mono);
+		font-size: 0.6875rem;
+		border: 1px solid var(--line-strong);
+		border-bottom-width: 2px;
+		border-radius: 4px;
+		padding: 0.08rem 0.35rem;
+		color: var(--accent-ink);
+		opacity: 0.75;
+	}
+
+	.vega-editor-save-button:disabled {
+		cursor: not-allowed;
+		opacity: 0.45; /* mockup `.btn:disabled { opacity: 0.45 }` — mismo valor que el manifiesto */
+	}
+
+	/* Fichas (R7, mockup `.fsection`): borde+radio+fondo+sombra de tarjeta, MISMOS tokens que el
+	   resto de tarjetas del rediseño (`.vega-list-card`, `.vega-cabin`). */
+	.vega-fsection {
+		display: flex;
+		flex-direction: column;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
+		overflow: hidden;
+	}
+
+	.vega-fsection h2 {
+		margin: 0;
+		font-family: var(--mono);
+		font-size: 0.6875rem;
+		font-weight: 600;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--ink-3);
+		padding: 0.7rem 1.25rem;
+		background: var(--surface-2);
+		border-bottom: 1px solid var(--line);
 		overflow-wrap: anywhere;
 	}
 
@@ -349,30 +755,5 @@
 		color: var(--danger);
 		font-size: 0.9rem;
 		overflow-wrap: anywhere;
-	}
-
-	.vega-record-form-actions {
-		display: flex;
-		gap: 0.5rem;
-	}
-
-	.vega-record-form-actions button {
-		padding: 0.45rem 0.9rem;
-		border: 1px solid var(--line);
-		border-radius: 6px;
-		background: var(--surface-2);
-		color: var(--ink);
-		cursor: pointer;
-	}
-
-	.vega-record-form-actions button[type='submit'] {
-		border-color: var(--accent);
-		background: var(--accent);
-		color: var(--accent-ink);
-	}
-
-	.vega-record-form-actions button:disabled {
-		cursor: not-allowed;
-		opacity: 0.6;
 	}
 </style>

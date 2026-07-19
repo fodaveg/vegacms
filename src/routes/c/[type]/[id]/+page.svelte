@@ -14,6 +14,12 @@
 	 * - "Guardar" llama `ctx.port.update`; `RecordForm` reasienta baseline internamente
 	 *   (L-P5.6) — esta ruta no navega tras guardar (D-P5.11 solo prescribe destino tras CREAR),
 	 *   solo confirma con un toast.
+	 *
+	 * **R7 del rediseño C2**: el `<h1>`/insignia "Solo lectura" que esta ruta pintaba junto al
+	 *   título se MUDAN dentro de `RecordForm` (crumb + tag, ver su cabecera) — el título visible
+	 *   era redundante con el crumb del mockup, y la insignia de solo-lectura ahora vive junto al
+	 *   resto de indicadores de la barra pegajosa. Esta ruta ya no pinta NINGÚN marco propio
+	 *   alrededor del formulario más allá del hueco de layout (`vega-editor-page`).
 	 */
 	import { page } from '$app/state';
 	import { getVegaContext } from '$lib/app-context';
@@ -98,12 +104,6 @@
 	{:else}
 		{@const readyModel = status.model}
 		<div class="vega-editor-page">
-			<div class="vega-editor-heading">
-				<h1>{ctx.t('editor.edit.title', { label: activeType.labelSingular })}</h1>
-				{#if activeType.readonly}
-					<span class="vega-editor-readonly-badge">{ctx.t('nav.readonlyBadge')}</span>
-				{/if}
-			</div>
 			<RecordForm
 				type={activeType}
 				model={readyModel}
@@ -122,27 +122,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--vega-space-gutter);
-	}
-
-	.vega-editor-heading {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.vega-editor-heading h1 {
-		margin: 0;
-		font-size: 1.2rem;
-	}
-
-	.vega-editor-readonly-badge {
-		flex-shrink: 0;
-		padding: 0.1rem 0.4rem;
-		border: 1px solid var(--line);
-		border-radius: 999px;
-		font-size: 0.7rem;
-		white-space: nowrap;
-		color: var(--ink-2);
 	}
 
 	.vega-editor-error {

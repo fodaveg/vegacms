@@ -60,15 +60,24 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'errors.backToIndex': 'Back to index',
 
 	// ————— Record editor (P5 contract, Phase F5-a) —————
+	// `editor.create.title`/`editor.edit.title`: since redesign C2's R7, these only feed the
+	// VISUALLY HIDDEN `<h1>` of `RecordForm.svelte` (heading-hierarchy a11y) — the editor's visible
+	// title is now the `EditTopBar` crumb, not an on-screen heading.
 	'editor.create.title': 'Create «{label}»',
 	'editor.edit.title': 'Edit «{label}»',
-	'editor.cancel': 'Back',
 	'editor.save': 'Save',
 	'editor.saving': 'Saving…',
 	'editor.saveSuccess': 'Saved.',
 	'editor.leaveConfirm': 'There are unsaved changes. Leave anyway?',
 	'editor.readonlyNotice': 'This collection is read-only: it cannot be edited.',
 	'editor.load.error.body': 'Could not load the record. {message}',
+
+	// ————— Editor sticky bar (redesign C2, Part R7, `.edit-top` mockup) —————
+	'editor.new': 'new',
+	'editor.dirty': 'unsaved',
+	'editor.savedAt': 'last saved {time}',
+	'editor.previewLink': 'View on site',
+	'editor.previewDisabledTitle': 'The draft has no public URL yet',
 
 	// ————— Field widgets (P5 contract, Phase F5-a/F5-b) —————
 	'form.unsupported': 'Field not editable in Vega',

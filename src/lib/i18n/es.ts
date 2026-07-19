@@ -67,15 +67,24 @@ export const es = {
 	'errors.backToIndex': 'Volver al índice',
 
 	// ————— Editor de registro (Fase F5-a del contrato P5) —————
+	// `editor.create.title`/`editor.edit.title`: desde R7 del rediseño C2 solo alimentan el `<h1>`
+	// VISUALMENTE OCULTO de `RecordForm.svelte` (a11y de jerarquía de headings) — el título visible
+	// del editor es ahora el crumb de `EditTopBar`, no un heading en pantalla.
 	'editor.create.title': 'Crear «{label}»',
 	'editor.edit.title': 'Editar «{label}»',
-	'editor.cancel': 'Volver',
 	'editor.save': 'Guardar',
 	'editor.saving': 'Guardando…',
 	'editor.saveSuccess': 'Guardado.',
 	'editor.leaveConfirm': 'Hay cambios sin guardar. ¿Salir de todos modos?',
 	'editor.readonlyNotice': 'Esta colección es de solo lectura: no se puede editar.',
 	'editor.load.error.body': 'No se pudo cargar el registro. {message}',
+
+	// ————— Barra pegajosa del editor (R7 del rediseño C2, mockup `.edit-top`) —————
+	'editor.new': 'nuevo',
+	'editor.dirty': 'sin guardar',
+	'editor.savedAt': 'último guardado {time}',
+	'editor.previewLink': 'Ver en el sitio',
+	'editor.previewDisabledTitle': 'El borrador no tiene URL pública todavía',
 
 	// ————— Widgets de campo (Fase F5-a/F5-b del contrato P5) —————
 	'form.unsupported': 'Campo no editable en Vega',
