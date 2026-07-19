@@ -39,6 +39,22 @@
  * criterio que `chips`, un grupo de botones no es un control "labelable"); los candidatos, por
  * `role="button"` con `exact: true` (algunos títulos de la semilla, "Entrada 3"/"Entrada 30", son
  * substring unos de otros).
+ *
+ * **Añadido en F5-f (contrato P5)**: el widget `file` real, sobre los dos campos añadidos a
+ * `posts` en la semilla (`session/demo-seed.ts`, sección "Añadido en F5-f") — `coverImage`
+ * (single, `mimeTypes:['image/*']`+`maxSizeBytes`, preview de imagen real) y `attachments`
+ * (múltiple, `maxSelect: 2`, chips genéricos). El `<input type="file">` SÍ es nativamente
+ * labelable (a diferencia del `role="group"` de `chips`/`relation`), así que se localiza por
+ * `page.getByLabel(...)` de toda la vida, con `setInputFiles` de Playwright para simular la
+ * elección de fichero. Cubre: subida válida → preview `<img>`; rechazo cliente de
+ * `maxSizeBytes`/`mimeTypes` (mensaje legible, el fichero NO se añade); `maxSelect` recorta el
+ * exceso que llega de golpe y deja el input inerte hasta quitar uno; persistencia de verdad
+ * (`FileRef` + `ctx.port.fileUrl`) en un viaje redondo SPA (ver nota de cabecera).
+ *
+ * **Fix de code-review de F5-f**: dos casos que faltaban — quitar un `FileRef` YA PERSISTIDO
+ * (single y múltiple, el camino de borrado real de `materializeFileField` que los tests de
+ * arriba no ejercían, solo quitaban un `File` pendiente sin guardar) y el readonly de schema del
+ * widget `file` (`posts.sourceFile`, mismo criterio que `authors.joinedAt` para `datetime`).
  */
 import { expect, loginAsDemo, test } from './fixtures';
 
@@ -511,5 +527,264 @@ test.describe('widget relation (F5-e)', () => {
 
 		// Sin titleField, el propio id ES el título (`titleOf`, `relation-search.ts`): persiste igual.
 		await expect(page.getByRole('group', { name: 'Related metric' })).toContainText('metric_1');
+	});
+});
+
+// 1x1 PNG transparente real (no basta un buffer arbitrario con mimeType 'image/png': el `<img>`
+// del widget necesita DECODIFICAR de verdad para no disparar su fallback `onerror`→chip, ver
+// cabecera de `FileInput.svelte`).
+const TINY_PNG_BASE64 =
+	'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
+test.describe('widget file (F5-f)', () => {
+	test('single (coverImage): sube una imagen válida, la previsualiza, guarda y persiste vía fileUrl', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts/new');
+		await page.getByLabel('Title').fill('Post con coverImage');
+
+		const field = page.locator('[data-field="coverImage"]');
+		await field.getByLabel('Cover image').setInputFiles({
+			name: 'photo.png',
+			mimeType: 'image/png',
+			buffer: Buffer.from(TINY_PNG_BASE64, 'base64')
+		});
+
+		// Preview de un `File` nuevo (object URL, `URL.createObjectURL`): un `<img>` de verdad,
+		// nunca degradado a chip (la imagen es válida, decodifica).
+		await expect(field.locator('img.vega-file-thumb')).toBeVisible();
+		await expect(field.locator('.vega-file-chip')).toHaveCount(0);
+
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+
+		// Persistido de verdad (ver nota de cabecera del fichero): la preview ahora sale de
+		// `ctx.port.fileUrl` (memory: un data-URI), no de un object URL — sigue siendo un `<img>`.
+		const savedField = page.locator('[data-field="coverImage"]');
+		await expect(savedField.locator('img.vega-file-thumb')).toBeVisible();
+		await expect(savedField.locator('img.vega-file-thumb')).toHaveAttribute(
+			'src',
+			/^data:image\/png/
+		);
+
+		// Recarga fría dentro de la SPA (vuelve al listado y navega atrás por el histórico).
+		await page.getByRole('button', { name: 'Volver' }).click();
+		await page.waitForURL('**/c/posts');
+		await page.goBack();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+		await expect(page.locator('[data-field="coverImage"] img.vega-file-thumb')).toBeVisible();
+	});
+
+	test('single (coverImage): maxSizeBytes/mimeTypes se rechazan en cliente, con mensaje legible y sin añadir el fichero', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts/new');
+		await page.getByLabel('Title').fill('Post con rechazo de coverImage');
+
+		const field = page.locator('[data-field="coverImage"]');
+
+		// `maxSizeBytes: 1000` (semilla): 2000 bytes de "imagen" ya lo supera.
+		await field.getByLabel('Cover image').setInputFiles({
+			name: 'big.png',
+			mimeType: 'image/png',
+			buffer: Buffer.alloc(2000)
+		});
+		await expect(field.getByRole('alert')).toContainText('big.png');
+		await expect(field.locator('img.vega-file-thumb')).toHaveCount(0);
+		await expect(field.locator('.vega-file-chip')).toHaveCount(0);
+
+		// `mimeTypes: ['image/*']`: un PDF no matchea el comodín.
+		await field.getByLabel('Cover image').setInputFiles({
+			name: 'doc.pdf',
+			mimeType: 'application/pdf',
+			buffer: Buffer.from('%PDF-1.4')
+		});
+		await expect(field.getByRole('alert')).toContainText('doc.pdf');
+		await expect(field.locator('img.vega-file-thumb')).toHaveCount(0);
+		await expect(field.locator('.vega-file-chip')).toHaveCount(0);
+	});
+
+	test('múltiple con maxSelect (attachments): recorta el exceso que llega de golpe, quitar libera hueco, y persiste', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts/new');
+		await page.getByLabel('Title').fill('Post con attachments');
+
+		const field = page.locator('[data-field="attachments"]');
+		const input = field.getByLabel('Attachments');
+
+		// `maxSelect: 2` (semilla): los 3 llegan en la MISMA selección — el 3º se recorta como
+		// `tooMany` (afordancia UX, `addFilesToMultiple`), los 2 primeros SÍ se añaden.
+		await input.setInputFiles([
+			{ name: 'a.txt', mimeType: 'text/plain', buffer: Buffer.from('a') },
+			{ name: 'b.txt', mimeType: 'text/plain', buffer: Buffer.from('b') },
+			{ name: 'c.txt', mimeType: 'text/plain', buffer: Buffer.from('c') }
+		]);
+		await expect(field.locator('.vega-file-chip')).toHaveCount(2);
+		await expect(field.locator('.vega-file-chip').nth(0)).toHaveText('a.txt');
+		await expect(field.locator('.vega-file-chip').nth(1)).toHaveText('b.txt');
+		await expect(field.getByRole('alert')).toContainText('c.txt');
+
+		// Límite alcanzado: el input queda inerte para AÑADIR (mismo criterio que `chips`/`relation`).
+		await expect(input).toBeDisabled();
+
+		// Quitar uno libera hueco: el input vuelve a aceptar ficheros.
+		await field.getByRole('button', { name: 'Quitar «b.txt»' }).click();
+		await expect(field.locator('.vega-file-chip')).toHaveCount(1);
+		await expect(input).toBeEnabled();
+
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+
+		// Persistido de verdad (ver nota de cabecera): un único chip, con el nombre original
+		// todavía reconocible dentro de la `FileRef` que devuelve el adaptador `memory`.
+		const savedField = page.locator('[data-field="attachments"]');
+		await expect(savedField.locator('.vega-file-chip')).toHaveCount(1);
+		await expect(savedField.locator('.vega-file-chip')).toContainText('a.txt');
+
+		await page.getByRole('button', { name: 'Volver' }).click();
+		await page.waitForURL('**/c/posts');
+		await page.goBack();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+		const reloadedField = page.locator('[data-field="attachments"]');
+		await expect(reloadedField.locator('.vega-file-chip')).toHaveCount(1);
+		await expect(reloadedField.locator('.vega-file-chip')).toContainText('a.txt');
+	});
+
+	// Fix de code-review de F5-f (🟡 2): los tests de arriba solo quitan un `File` PENDIENTE (sin
+	// guardar todavía) — nunca un `FileRef` ya persistido tras un `Guardar`+recarga. El camino de
+	// `materializeFileField` que BORRA del `MemoryFileStore` lo que ya no aparece en el value
+	// final (`adapters/memory/files.ts`) quedaba sin ejercer. Los dos tests siguientes cubren
+	// justo ese camino, single y múltiple.
+	test('single (coverImage): quitar un FileRef YA PERSISTIDO lo borra de verdad', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts/new');
+		await page.getByLabel('Title').fill('Post con coverImage a borrar tras persistir');
+
+		await page
+			.locator('[data-field="coverImage"]')
+			.getByLabel('Cover image')
+			.setInputFiles({
+				name: 'photo.png',
+				mimeType: 'image/png',
+				buffer: Buffer.from(TINY_PNG_BASE64, 'base64')
+			});
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+
+		// Recarga fría (ver nota de cabecera del fichero): la portada persistida se ve como `<img>`
+		// de verdad (vía `ctx.port.fileUrl`), no ya el object URL del `File` pendiente de antes.
+		await page.getByRole('button', { name: 'Volver' }).click();
+		await page.waitForURL('**/c/posts');
+		await page.goBack();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+		let field = page.locator('[data-field="coverImage"]');
+		await expect(field.locator('img.vega-file-thumb')).toBeVisible();
+
+		// Quitar el FileRef YA PERSISTIDO (no un `File` pendiente) y guardar: ejercita el camino de
+		// `materializeFileField` que borra del store lo que ya no aparece en el value final.
+		await field.locator('.vega-file-remove').click();
+		await expect(field.locator('img.vega-file-thumb')).toHaveCount(0);
+		await expect(field.locator('.vega-file-empty')).toBeVisible();
+
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		// `.last()`: el toast "Guardado." del `create` de arriba (4s de auto-descarte, `toasts.svelte.ts`)
+		// puede seguir visible cuando llega este SEGUNDO guardado (update) — hay dos apilados.
+		await expect(page.getByText('Guardado.').last()).toBeVisible();
+
+		// Recarga fría OTRA VEZ: el borrado sobrevivió al viaje redondo `update` → `get`, no es un
+		// artefacto del estado en memoria del propio formulario.
+		await page.getByRole('button', { name: 'Volver' }).click();
+		await page.waitForURL('**/c/posts');
+		await page.goBack();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+		field = page.locator('[data-field="coverImage"]');
+		await expect(field.locator('img.vega-file-thumb')).toHaveCount(0);
+		await expect(field.locator('.vega-file-empty')).toBeVisible();
+	});
+
+	test('múltiple (attachments): quitar UN FileRef ya persistido borra solo ese, conserva el resto', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts/new');
+		await page.getByLabel('Title').fill('Post con attachments a borrar tras persistir');
+
+		await page
+			.locator('[data-field="attachments"]')
+			.getByLabel('Attachments')
+			.setInputFiles([
+				{ name: 'keep.txt', mimeType: 'text/plain', buffer: Buffer.from('keep') },
+				{ name: 'drop.txt', mimeType: 'text/plain', buffer: Buffer.from('drop') }
+			]);
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+
+		await page.getByRole('button', { name: 'Volver' }).click();
+		await page.waitForURL('**/c/posts');
+		await page.goBack();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+		let field = page.locator('[data-field="attachments"]');
+		await expect(field.locator('.vega-file-chip')).toHaveCount(2);
+
+		// Quitar SOLO "drop.txt" (ya persistido, no un `File` pendiente): localizado por el `<li>`
+		// que lo contiene (chip + botón "Quitar" son hermanos, mismo criterio que `RecordTable`
+		// separa apertura/borrado en celdas hermanas).
+		await field
+			.locator('.vega-file-item')
+			.filter({ hasText: 'drop.txt' })
+			.getByRole('button', { name: 'Quitar' })
+			.click();
+		await expect(field.locator('.vega-file-chip')).toHaveCount(1);
+		await expect(field.locator('.vega-file-chip')).toContainText('keep.txt');
+
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		// `.last()`: mismo motivo que el test single de arriba (dos "Guardado." apilados, create+update).
+		await expect(page.getByText('Guardado.').last()).toBeVisible();
+
+		// Recarga fría: solo "drop.txt" desapareció de verdad (borrado real del store); "keep.txt"
+		// sobrevivió intacto — el diff de estado-final no toca lo que SÍ sigue en el value.
+		await page.getByRole('button', { name: 'Volver' }).click();
+		await page.waitForURL('**/c/posts');
+		await page.goBack();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+		field = page.locator('[data-field="attachments"]');
+		await expect(field.locator('.vega-file-chip')).toHaveCount(1);
+		await expect(field.locator('.vega-file-chip')).toContainText('keep.txt');
+	});
+
+	// Fix de code-review de F5-f (🟡 3): mismo criterio que `readonly de schema (authors.joinedAt)`
+	// (F5-b) pero para `file` — `posts.sourceFile` (semilla, readonly a nivel de schema, con dato
+	// SOLO en `post_1`, ver `session/demo-seed.ts`).
+	test('readonly de schema (posts.sourceFile): el widget file nunca acepta edición, aunque ya tenga contenido', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts/post_1');
+
+		const field = page.locator('[data-field="sourceFile"]');
+		await expect(field.getByLabel('Source file')).toBeDisabled();
+
+		// El contenido YA existente (sembrado) SÍ se previsualiza: readonly bloquea la EDICIÓN, no
+		// la lectura (chip, mime no-imagen a propósito — ver el seed).
+		await expect(field.locator('.vega-file-chip')).toContainText('seed_archive_notes.txt');
+
+		// Inerte de verdad (L-P5.2): sin botón "Quitar" (nunca se renderiza en modo readonly, ver
+		// `FileInput.svelte`) y el dropzone marcado inerte (ignora drop/diálogo, `addDisabled`).
+		await expect(field.getByRole('button', { name: 'Quitar' })).toHaveCount(0);
+		await expect(field.locator('.vega-file-dropzone')).toHaveAttribute('data-inert', 'true');
+
+		// El resto del formulario sigue editable con normalidad (readonly es por-CAMPO, D-P5.1, a
+		// diferencia de `pages`, que es readonly por-TIPO).
+		await page.getByLabel('Title').fill('Bienvenido a Vega (título editado)');
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		await expect(page.getByText('Guardado.')).toBeVisible();
+		await expect(field.getByLabel('Source file')).toBeDisabled();
+		await expect(field.locator('.vega-file-chip')).toContainText('seed_archive_notes.txt');
 	});
 });

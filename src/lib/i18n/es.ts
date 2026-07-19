@@ -105,6 +105,15 @@ export const es = {
 	'form.relation.degradedNote':
 		'Este tipo no tiene un campo de título con el que buscar: elige de la lista.',
 
+	// ————— Widget file (Fase F5-f del contrato P5) —————
+	'form.file.dropHint': 'Arrastra ficheros aquí o haz clic para elegir',
+	'form.file.empty': 'Sin ficheros',
+	'form.file.remove': 'Quitar',
+	'form.file.removeLabel': 'Quitar «{name}»',
+	'form.file.tooLarge': '«{name}» es demasiado grande.',
+	'form.file.invalidType': '«{name}» no es un tipo de fichero permitido.',
+	'form.file.tooMany': '«{name}» no se añadió: se alcanzó el máximo de ficheros.',
+
 	// ————— Editor richtext/markdown (Fase F5-d del contrato P5) —————
 	'form.editor.toolbarLabel': 'Herramientas de formato',
 	'form.editor.paragraph': 'Párrafo',

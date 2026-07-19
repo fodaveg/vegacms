@@ -24,7 +24,7 @@ export class MemoryFileStore {
 	async store(file: File): Promise<FileRef> {
 		const ref = generateFileRef(file.name);
 		const buffer = await file.arrayBuffer();
-		const base64 = Buffer.from(buffer).toString('base64');
+		const base64 = arrayBufferToBase64(buffer);
 		const mime = file.type || 'application/octet-stream';
 		this.files.set(ref, { name: file.name, mime, dataUri: `data:${mime};base64,${base64}` });
 		return ref;
@@ -42,6 +42,26 @@ export class MemoryFileStore {
 function generateFileRef(originalName: string): FileRef {
 	const token = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
 	return `${token}_${originalName}`;
+}
+
+/**
+ * Codifica un `ArrayBuffer` a base64 SIN `Buffer` (fix F5-f: `Buffer` es global de Node y NO
+ * existe en el navegador — donde este código realmente corre desde que el widget `file` sube
+ * ficheros reales desde un `<input type="file">`; el bug era invisible antes porque ningún test
+ * anterior subía un `File` de verdad a través de un navegador, solo en los tests unitarios de
+ * Node del propio adaptador). Recorre en BLOQUES de `CHUNK_SIZE` en vez de
+ * `String.fromCharCode(...bytes)` de una vez: con un array grande, el spread revienta con
+ * "Maximum call stack size exceeded" (límite de argumentos de una llamada de función). `btoa` SÍ
+ * es global en ambos entornos (navegador y Node 18+).
+ */
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+	const bytes = new Uint8Array(buffer);
+	const CHUNK_SIZE = 0x8000;
+	let binary = '';
+	for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+		binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK_SIZE));
+	}
+	return btoa(binary);
 }
 
 /** Construye la `fileUrl` síncrona (§4.4). `thumb` se ignora siempre: `capabilities.thumbs: false`. */

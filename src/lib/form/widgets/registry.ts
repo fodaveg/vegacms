@@ -9,12 +9,13 @@
  * escalares (`text, textarea, number, switch, email, url, datetime, select, chips, json`) por
  * componentes dedicados. **F5-d** sustituye `markdown`/`richtext` por el editor TipTap real
  * (`Markdown.svelte`/`Richtext.svelte`, `$lib/richtext/*`). **F5-e** sustituye `relation` por
- * `Relation.svelte` (búsqueda por título + degradado sin `titleField`, `relation-search.ts`) —
- * `file` sigue en `GenericInput` hasta F5-f, sin tocar `FieldRow.svelte` (su único consumidor).
+ * `Relation.svelte` (búsqueda por título + degradado sin `titleField`, `relation-search.ts`).
+ * **F5-f** sustituye `file` por `FileInput.svelte` (subida directa + drag&drop, preview, distingue
+ * imagen/otro por mime — Audit Finding 4, `file-value.ts`): con esto los 14 dedicados son TODOS
+ * reales; solo queda `unsupported`, que ya lo era desde F5-a.
  */
 import type { WidgetId } from '$lib/model/types';
 import type { WidgetComponent } from './types';
-import GenericInput from './GenericInput.svelte';
 import UnsupportedField from './UnsupportedField.svelte';
 import Text from './Text.svelte';
 import Textarea from './Textarea.svelte';
@@ -29,6 +30,7 @@ import Json from './Json.svelte';
 import Markdown from './Markdown.svelte';
 import Richtext from './Richtext.svelte';
 import Relation from './Relation.svelte';
+import FileInput from './FileInput.svelte';
 
 export const WIDGET_REGISTRY: Record<WidgetId, WidgetComponent> = {
 	text: Text,
@@ -43,7 +45,7 @@ export const WIDGET_REGISTRY: Record<WidgetId, WidgetComponent> = {
 	select: Select,
 	chips: Chips,
 	relation: Relation,
-	file: GenericInput,
+	file: FileInput,
 	json: Json,
 	unsupported: UnsupportedField
 };

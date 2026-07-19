@@ -77,6 +77,18 @@
  * búsqueda por título de verdad), `relatedPosts` (múltiple→`posts`, `maxSelect: 2`) y
  * `relatedMetric` (single→`metrics`, modo DEGRADADO: `metrics.titleField === null`, Audit Finding 3
  * del contrato P5). `e2e/form.spec.ts` ejercita los tres.
+ *
+ * **Añadido en F5-f (contrato P5)**: dos campos `file` en `posts` (sin datos seed, ver su
+ * comentario en `POSTS_CONTENT_TYPE`) — `coverImage` (single, `mimeTypes:['image/*']`,
+ * `maxSizeBytes: 1000`, cubre el rechazo cliente `tooLarge`/`invalidType`) y `attachments`
+ * (múltiple, `maxSelect: 2`, sin restricción de mime, cubre el chip genérico y la afordancia de
+ * límite). `e2e/form.spec.ts` ejercita ambos: subir, previsualizar, guardar, recargar y quitar.
+ *
+ * **Fix de code-review de F5-f**: un tercer campo `file`, `sourceFile` (single, `readonly` a
+ * nivel de SCHEMA), con dato seed SOLO en `post_1` (`'seed_archive_notes.txt'`, extensión
+ * NO-imagen a propósito — se pinta como chip, sin depender del `MemoryFileStore` real). Cubre que
+ * el widget `file` en modo readonly nunca acepta edición, aunque ya tenga contenido que
+ * previsualizar (mismo criterio que `authors.joinedAt` para `datetime`, F5-b).
  */
 import type { ContentType, JsonValue } from '$lib/backend/types';
 import { VEGA_COLLECTION } from '$lib/backend/collections';
@@ -272,6 +284,61 @@ const POSTS_CONTENT_TYPE: ContentType = {
 			multiple: false,
 			required: false,
 			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		// Dos campos `file` añadidos en F5-f (contrato P5, widget `file` real, Audit Finding 4): sin
+		// datos seed (ningún test existente los necesita), para que `e2e/form.spec.ts` ejercite
+		// subida directa + drag&drop, preview, `maxSizeBytes`/`mimeTypes` (solo UX) y `maxSelect`.
+		//
+		// `coverImage` (single): restringido a `image/*` y un `maxSizeBytes` pequeño (1000 bytes) —
+		// suficiente para disparar `tooLarge` con un fichero de prueba trivial en el e2e sin
+		// depender de un fixture binario real de varios KB.
+		{
+			name: 'coverImage',
+			type: 'file',
+			multiple: false,
+			maxSizeBytes: 1000,
+			mimeTypes: ['image/*'],
+			protected: false,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		// `attachments` (múltiple, `maxSelect: 2`, sin restricción de mime): mismo criterio que
+		// `tags`/`relatedPosts` (afordancia de límite alcanzado) y el destino para ejercer el chip
+		// genérico (no-imagen) del widget, sin las restricciones de `coverImage`.
+		{
+			name: 'attachments',
+			type: 'file',
+			multiple: true,
+			maxSelect: 2,
+			protected: false,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		// `sourceFile` (fix de code-review de F5-f): campo `file` `readonly` a nivel de SCHEMA —
+		// mismo criterio que `authors.joinedAt` (widgets escalares, F5-b) pero para `file`: cubre
+		// que el widget NUNCA acepta edición (ni diálogo, ni drop, ni "Quitar") aunque el registro
+		// YA tenga un fichero (su preview SÍ se ve). Un campo readonly nunca puede recibir un
+		// `File` por el formulario (el adaptador ignora `data[field.name]` para campos readonly,
+		// `defaultReadonlyValue`), así que su ÚNICO valor posible viene sembrado aquí, en
+		// `post_1` — con una extensión NO-imagen a propósito: se pinta como chip (nombre/tipo,
+		// nunca `<img>`), así que no necesita una entrada real en el `MemoryFileStore` (el chip
+		// solo pinta la `FileRef` tal cual, sin llamar a `ctx.port.fileUrl`).
+		{
+			name: 'sourceFile',
+			type: 'file',
+			multiple: false,
+			protected: false,
+			required: false,
+			readonly: true,
 			presentable: false,
 			hidden: false,
 			unique: false
@@ -473,7 +540,11 @@ export const DEMO_SEED: MemorySeed = {
 					// determinista de L-P5.8 (`e2e/form.spec.ts`, "richtext saneado al leer"): el
 					// widget debe sanear ESTE HTML al montarlo en el editor (D-P5.6), nunca ejecutarlo
 					// ni mostrarlo tal cual, incluso viniendo ya guardado con contenido hostil.
-					content: '<p>Hola <strong>mundo</strong></p><script>window.__vegaXssRan = true;</script>'
+					content: '<p>Hola <strong>mundo</strong></p><script>window.__vegaXssRan = true;</script>',
+					// Fix de code-review de F5-f: valor sembrado de un `file` `readonly` (ver su
+					// comentario en `POSTS_CONTENT_TYPE`) — extensión NO-imagen a propósito, así el
+					// widget lo pinta como chip sin necesitar una entrada real en el `MemoryFileStore`.
+					sourceFile: 'seed_archive_notes.txt'
 				}
 			},
 			{ id: 'post_2', values: { title: 'Borrador en curso', status: 'draft', body: '' } },

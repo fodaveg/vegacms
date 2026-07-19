@@ -98,6 +98,15 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'form.relation.notFound': 'not found',
 	'form.relation.degradedNote': 'This type has no title field to search by: pick from the list.',
 
+	// ————— File widget (P5 contract, Phase F5-f) —————
+	'form.file.dropHint': 'Drag files here or click to choose',
+	'form.file.empty': 'No files',
+	'form.file.remove': 'Remove',
+	'form.file.removeLabel': 'Remove «{name}»',
+	'form.file.tooLarge': '«{name}» is too large.',
+	'form.file.invalidType': '«{name}» is not an allowed file type.',
+	'form.file.tooMany': '«{name}» was not added: file limit reached.',
+
 	// ————— Richtext/markdown editor (P5 contract, Phase F5-d) —————
 	'form.editor.toolbarLabel': 'Formatting tools',
 	'form.editor.paragraph': 'Paragraph',

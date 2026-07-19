@@ -52,6 +52,7 @@
 	import { validateForm } from './validation';
 	import { isFieldValidationError, mapFieldErrors, type FieldErrorsView } from './field-errors';
 	import { fieldErrorMessage } from './field-error-message';
+	import { setRecordIdentity } from './record-context';
 	import FieldRow from './FieldRow.svelte';
 
 	interface Props {
@@ -85,6 +86,19 @@
 	// Ver cabecera: variable PLANA (no `$state`) para no crear un ciclo effect↔escritura propia.
 	let syncedModel = untrack(() => model);
 
+	// Costura de identidad de registro (F5-f, `record-context.ts`): el widget `file` necesita
+	// `{type, id}` para `ctx.port.fileUrl`, que `WidgetProps` no lleva (D-P5.1). Se publica un
+	// OBJETO `$state` ESTABLE (nunca reemplazado, solo mutado) para que un widget montado ahora
+	// siga viendo la identidad al día si `model` cambia más tarde (ver cabecera de
+	// `record-context.ts`) — el mismo motivo por el que `titleCache` de `Relation.svelte` es un
+	// objeto reasignado y no esto: aquí SÍ necesitamos que la referencia sobreviva, porque el
+	// widget la captura una única vez con `getContext` al montar.
+	const recordIdentity = $state({
+		type: untrack(() => type.name),
+		id: untrack(() => model.recordId)
+	});
+	setRecordIdentity(recordIdentity);
+
 	$effect(() => {
 		if (model !== syncedModel) {
 			syncedModel = model;
@@ -92,6 +106,8 @@
 			current = { ...model.baseline };
 			clientErrors = EMPTY_ERRORS;
 			backendErrors = EMPTY_ERRORS;
+			recordIdentity.type = type.name;
+			recordIdentity.id = model.recordId;
 		}
 	});
 
