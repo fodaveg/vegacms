@@ -83,7 +83,7 @@ import { VegaError } from '$lib/backend';
 import { createMemoryBackend } from '$lib/backend/adapters/memory';
 import { createPocketBaseBackend } from '$lib/backend/adapters/pocketbase';
 import { resolveBackendUrl, type VegaConfig } from './backend-config';
-import { DEMO_CREDENTIALS, DEMO_SEED } from './demo-seed';
+import { DEMO_CREDENTIALS, DEMO_SEED, DEMO_SEED_WITH_MEDIA } from './demo-seed';
 
 declare global {
 	interface Window {
@@ -104,6 +104,18 @@ declare global {
 		/** Retraso runtime SOLO para Playwright (fix de code-review de 4e, ver cabecera): milisegundos
 		 *  que `delete()` espera antes de delegar en `memory`. `0`/ausente = sin retraso. */
 		__VEGA_DELETE_DELAY_MS__?: number;
+		/** Flag runtime SOLO para Playwright (Fase P6·6b): `true` ⇒ el adaptador `memory` arranca
+		 *  con `DEMO_SEED_WITH_MEDIA` (la colección `vega_media` YA creada, con 2-3 assets) en vez de
+		 *  `DEMO_SEED` — mismo mecanismo que `__VEGA_ADAPTER__`, fijado ANTES de que el bundle
+		 *  arranque (`e2e/fixtures.ts`, `loginAsDemo(page, { seedMedia: true })`). Ausente/`false` =
+		 *  comportamiento previo (`DEMO_SEED`, sin `vega_media`) — `e2e/media.spec.ts` (Fase 6a)
+		 *  depende de esa ausencia para ejercer el estado `'creatable'`. */
+		__VEGA_SEED_MEDIA__?: boolean;
+		/** Flag runtime SOLO para Playwright (Fase P6·6b): mientras sea `true`, `list('vega_media',
+		 *  …)` — y SOLO esa, nunca `listContentTypes`/otro tipo — rechaza con un `VegaError`
+		 *  `'backend'` (ver cabecera). Persistente (no se autoconsume), mismo criterio que
+		 *  `__VEGA_FORCE_DELETE_ERROR__`. */
+		__VEGA_FORCE_MEDIA_LIST_ERROR__?: boolean;
 	}
 }
 
@@ -134,7 +146,8 @@ async function createInstance(): Promise<BackendPort> {
 		throw new Error('getBackend() no puede llamarse durante SSR (P3-L1 / landmine de P1).');
 	}
 	if (useMemoryAdapter()) {
-		return wrapMemoryPortForDemo(createMemoryBackend(DEMO_SEED), DEMO_CREDENTIALS);
+		const seed = window.__VEGA_SEED_MEDIA__ ? DEMO_SEED_WITH_MEDIA : DEMO_SEED;
+		return wrapMemoryPortForDemo(createMemoryBackend(seed), DEMO_CREDENTIALS);
 	}
 	const config = await fetchVegaConfig();
 	const url = resolveBackendUrl({ origin: window.location.origin, config });
@@ -207,6 +220,21 @@ function throwIfForcedDeleteError(): void {
 }
 
 /**
+ * Ver cabecera del módulo (Fase P6·6b): fuerza que la PRÓXIMA `list('vega_media', …)` — y solo
+ * esa, nunca otro tipo — rechace. `__VEGA_FORCE_NETWORK_ERROR__` (arriba) es deliberadamente
+ * DEMASIADO ancho para ejercer "el grid en concreto falla": `/media/+page.svelte` llama a
+ * `listContentTypes()` en CADA montaje (bootstrap de `vega_media`, Fase 6a), así que forzar el
+ * flag genérico ANTES de (re)montar `/media` tumba el marco entero (`status: 'error'` de la
+ * cabecera), no solo la rejilla — nunca se llega al estado `mediaListState.status.kind ===
+ * 'error'` que 6b quiere comprobar EN CONTEXTO. Este gancho, acotado a `type === 'vega_media'`,
+ * es la única forma de ensayar ESE fallo en concreto sin tocar `listContentTypes`. */
+function throwIfForcedMediaListError(): void {
+	if (window.__VEGA_FORCE_MEDIA_LIST_ERROR__) {
+		throw VegaError.backend('No se pudo cargar la biblioteca de medios (forzado por e2e).');
+	}
+}
+
+/**
  * Envuelve un `BackendPort` `memory` con persistencia de sesión SOLO para la demo/e2e (ver
  * cabecera del módulo). `credentials` son las de la semilla fija: al "restaurar" tras una
  * recarga real, si el marcador de `localStorage` sigue vigente, esta envoltura vuelve a
@@ -265,6 +293,7 @@ function wrapMemoryPortForDemo(
 		async list(type, query) {
 			throwIfForcedNetworkError();
 			throwIfForcedExpire();
+			if (type === 'vega_media') throwIfForcedMediaListError();
 			return inner.list(type, query);
 		},
 

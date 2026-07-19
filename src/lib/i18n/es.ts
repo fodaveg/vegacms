@@ -174,8 +174,7 @@ export const es = {
 	// ————— Medios: bootstrap + esquema (Fase P6·6a) —————
 	'media.loadErrorBody': 'No se pudo cargar la biblioteca de medios. Vuelve a intentarlo.',
 	'media.empty.title': 'La biblioteca de medios está vacía',
-	'media.empty.body':
-		'Todavía no hay ningún fichero. El listado y la subida llegan en próximas fases.',
+	'media.empty.body': 'Todavía no hay ningún fichero. La subida llega en una fase próxima.',
 	'media.bootstrap.confirmBody':
 		'Vega va a crear la colección "vega_media" en tu PocketBase. ¿Continuar?',
 	'media.bootstrap.confirm': 'Crear colección',
@@ -185,6 +184,17 @@ export const es = {
 		'La colección "vega_media" todavía no existe en este backend y no se puede crear automáticamente. El apartado quedará deshabilitado hasta que la crees a mano.',
 	'media.bootstrap.manualImportHint':
 		'En el Admin de PocketBase: Collections → Import collections, pega el siguiente JSON y confirma.',
+
+	// ————— Medios: grid + detalle (Fase P6·6b) —————
+	'media.detail.title': 'Editar medio',
+	'media.detail.alt': 'Texto alternativo',
+	'media.detail.titleLabel': 'Título',
+	'media.detail.tags': 'Etiquetas',
+	'media.detail.tagPlaceholder': 'Añadir etiqueta…',
+	'media.detail.tagInputLabel': 'Nueva etiqueta',
+	'media.detail.addTag': 'Añadir',
+	'media.detail.removeTag': 'Quitar «{tag}»',
+	'media.detail.saveSuccess': 'Medio actualizado.',
 
 	// ————— Warnings (L10 de P2) —————
 	'warnings.title': 'Avisos del modelo',

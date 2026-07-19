@@ -81,8 +81,25 @@ export const test = base.extend({
 
 export { expect };
 
-/** Login vía UI con las credenciales de demo; deja la página ya autenticada. */
-export async function loginAsDemo(page: import('@playwright/test').Page): Promise<void> {
+/**
+ * Login vía UI con las credenciales de demo; deja la página ya autenticada.
+ *
+ * `opts.seedMedia` (Fase P6·6b): fija `window.__VEGA_SEED_MEDIA__ = true` ANTES de navegar a
+ * `/login` (mismo momento que el flag `__VEGA_ADAPTER__` de la fixture `page` de arriba: un
+ * `addInitScript` corre antes de que el bundle arranque, así que llega a tiempo para la
+ * PRIMERA construcción del `BackendPort`, `session/backend.ts`) — el adaptador `memory` arranca
+ * entonces con `DEMO_SEED_WITH_MEDIA` (la colección `vega_media` YA creada, con assets) en vez
+ * de `DEMO_SEED`. Ausente/`false` = comportamiento previo, usado por el resto de la suite.
+ */
+export async function loginAsDemo(
+	page: import('@playwright/test').Page,
+	opts?: { seedMedia?: boolean }
+): Promise<void> {
+	if (opts?.seedMedia) {
+		await page.addInitScript(() => {
+			(window as unknown as { __VEGA_SEED_MEDIA__?: boolean }).__VEGA_SEED_MEDIA__ = true;
+		});
+	}
 	await page.goto('/login');
 	await page.getByLabel('Correo electrónico').fill(DEMO_EMAIL);
 	await page.getByLabel('Contraseña').fill(DEMO_PASSWORD);

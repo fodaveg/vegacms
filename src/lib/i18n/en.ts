@@ -165,7 +165,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// ————— Media: bootstrap + schema (Phase P6·6a) —————
 	'media.loadErrorBody': 'Could not load the media library. Try again.',
 	'media.empty.title': 'The media library is empty',
-	'media.empty.body': 'There are no files yet. Browsing and uploading arrive in later phases.',
+	'media.empty.body': 'There are no files yet. Uploading arrives in a later phase.',
 	'media.bootstrap.confirmBody':
 		'Vega is going to create the "vega_media" collection in your PocketBase. Continue?',
 	'media.bootstrap.confirm': 'Create collection',
@@ -175,6 +175,17 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'The "vega_media" collection does not exist in this backend yet and cannot be created automatically. This section stays disabled until you create it by hand.',
 	'media.bootstrap.manualImportHint':
 		'In the PocketBase Admin: Collections → Import collections, paste the following JSON and confirm.',
+
+	// ————— Media: grid + detail (Phase P6·6b) —————
+	'media.detail.title': 'Edit media',
+	'media.detail.alt': 'Alt text',
+	'media.detail.titleLabel': 'Title',
+	'media.detail.tags': 'Tags',
+	'media.detail.tagPlaceholder': 'Add a tag…',
+	'media.detail.tagInputLabel': 'New tag',
+	'media.detail.addTag': 'Add',
+	'media.detail.removeTag': 'Remove «{tag}»',
+	'media.detail.saveSuccess': 'Media updated.',
 
 	// ————— Warnings (P2's L10) —————
 	'warnings.title': 'Model warnings',

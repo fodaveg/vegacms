@@ -570,3 +570,144 @@ export const DEMO_SEED: MemorySeed = {
 		// vacío-colección CON CTA; site_info ejercita el modo creación (0 → new, §3.3).
 	}
 };
+
+// ————— Semilla de `vega_media` (Fase P6·6b, SOLO para `e2e/media.spec.ts`) —————
+//
+// Deliberadamente NO forma parte de `DEMO_SEED` (ver la cabecera de `e2e/media.spec.ts` de la
+// Fase 6a: la ausencia de `vega_media` en `DEMO_SEED` es justo lo que fuerza el estado
+// `'creatable'` que esa suite ejercita) — mezclarla ahí rompería esos tests. En vez de eso,
+// `DEMO_SEED_WITH_MEDIA` es una copia AUMENTADA de `DEMO_SEED` que solo activa el gancho de e2e
+// `window.__VEGA_SEED_MEDIA__` (ver `session/backend.ts`), consumida por `loginAsDemo(page,
+// { seedMedia: true })` (`e2e/fixtures.ts`).
+//
+// Forma del `ContentType`: réplica manual (mismo criterio que el resto de este fichero, ninguno
+// de los tipos de la semilla se deriva programáticamente de otro sitio) de lo que produce
+// `ensureMediaCollection`/`VEGA_MEDIA_COLLECTION` (`$lib/media/media-collection.ts`) al compilar
+// su `CollectionSpec` a `Field` — así el escenario "colección YA creada, con datos" es
+// indistinguible en forma de un `ensureCollections` real.
+const VEGA_MEDIA_CONTENT_TYPE: ContentType = {
+	name: 'vega_media',
+	readonly: false,
+	fields: [
+		{
+			name: 'file',
+			type: 'file',
+			multiple: false,
+			protected: false,
+			required: true,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'alt',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'title',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'tags',
+			type: 'json',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		// autodate (D-P6.1/P6 §9): readonly, nunca required — mismo criterio que `joinedAt`/
+		// `sourceFile` (F5-b/F5-f), el ÚNICO valor posible viene sembrado a mano más abajo.
+		{
+			name: 'created',
+			type: 'date',
+			required: false,
+			readonly: true,
+			presentable: false,
+			hidden: false,
+			unique: false
+		}
+	]
+};
+
+/** PNG de 1×1 transparente (el fixture de imagen MÁS PEQUEÑO posible): el contenido no importa
+ *  para 6b (solo se comprueba que degrada a `<img>`, nunca el píxel en sí), así que el mismo
+ *  data-URI sirve para los dos assets de imagen de la semilla — lo que los distingue es la
+ *  `FileRef` (nombre) de cada uno, no el contenido. */
+const TINY_PNG_BASE64 =
+	'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
+/** Tres registros, `created` deliberadamente escalonado (más antiguo→más reciente) para que el
+ *  grid de 6b (ordenado `created` desc) tenga un orden determinista que comprobar en e2e:
+ * - `media_1` (más antiguo): un PDF — `FileRef` SIN entrada en `files` de abajo (nunca se
+ *   clasifica como imagen, así que el grid nunca llama a `fileUrl` para él, mismo criterio que
+ *   `posts.sourceFile` de F5-f) — cubre el icono por-tipo (no-imagen).
+ * - `media_2` (medio): una imagen CON metadatos ya rellenos — cubre editar unos valores
+ *   EXISTENTES en `MediaDetail` (no crearlos desde vacío).
+ * - `media_3` (más reciente): una imagen SIN `alt`/`title`/`tags` — cubre el fallback de nombre
+ *   (`mediaDisplayName`/`mediaImgAlt`, `$lib/media/media-item.ts`) y rellenar metadatos desde
+ *   cero.
+ */
+const MEDIA_SEED_RECORDS = [
+	{
+		id: 'media_1',
+		values: {
+			file: 'seed_media_manual.pdf',
+			alt: '',
+			title: 'Manual de usuario',
+			tags: ['manual', 'pdf'],
+			created: '2024-01-01T00:00:00.000Z'
+		}
+	},
+	{
+		id: 'media_2',
+		values: {
+			file: 'seed_media_photo1.png',
+			alt: 'Atardecer en la playa',
+			title: 'Foto de portada',
+			tags: ['foto', 'playa'],
+			created: '2024-01-02T00:00:00.000Z'
+		}
+	},
+	{
+		id: 'media_3',
+		values: {
+			file: 'seed_media_photo2.png',
+			alt: '',
+			title: '',
+			tags: [],
+			created: '2024-01-03T00:00:00.000Z'
+		}
+	}
+];
+
+export const DEMO_SEED_WITH_MEDIA: MemorySeed = {
+	...DEMO_SEED,
+	contentTypes: [...DEMO_SEED.contentTypes, VEGA_MEDIA_CONTENT_TYPE],
+	records: { ...DEMO_SEED.records, vega_media: MEDIA_SEED_RECORDS },
+	files: {
+		'seed_media_photo1.png': {
+			name: 'seed_media_photo1.png',
+			mime: 'image/png',
+			dataUri: `data:image/png;base64,${TINY_PNG_BASE64}`
+		},
+		'seed_media_photo2.png': {
+			name: 'seed_media_photo2.png',
+			mime: 'image/png',
+			dataUri: `data:image/png;base64,${TINY_PNG_BASE64}`
+		}
+	}
+};

@@ -80,6 +80,13 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 	}
 
 	const fileStore = new MemoryFileStore();
+	// P6·6b: precarga los ficheros REALES de la semilla (si los hay) ANTES de que nada los
+	// resuelva — así una `FileRef` sembrada en `records` (p.ej. la imagen de un asset de
+	// `vega_media`) responde de verdad a `fileUrl` en vez de lanzar `notFound` (ver cabecera de
+	// `MemorySeed.files`).
+	for (const [ref, stored] of Object.entries(seed?.files ?? {})) {
+		fileStore.preload(ref, stored.name, stored.mime, stored.dataUri);
+	}
 	const listeners = new Map<string, Set<(e: RecordEvent) => void>>();
 
 	// Contador de ids: DENTRO del closure de la factory (antes vivía a nivel de módulo,

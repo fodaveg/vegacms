@@ -37,6 +37,17 @@ export class MemoryFileStore {
 	delete(ref: FileRef): void {
 		this.files.delete(ref);
 	}
+
+	/**
+	 * Registra un fichero YA resuelto bajo una `FileRef` exacta, sin pasar por `store()` (P6·6b,
+	 * `MemorySeed.files`): permite que una semilla (p.ej. la de e2e de `vega_media`) declare un
+	 * `FileRef` en un `values.file` y que `fileUrl` lo resuelva de verdad, sin fabricar una subida
+	 * real. Si `ref` ya existe, la sobrescribe (mismo criterio no-defensivo que el resto de la
+	 * semilla: es responsabilidad de quien la escribe no repetir claves).
+	 */
+	preload(ref: FileRef, name: string, mime: string, dataUri: string): void {
+		this.files.set(ref, { name, mime, dataUri });
+	}
 }
 
 function generateFileRef(originalName: string): FileRef {
