@@ -71,20 +71,20 @@
 		display: flex;
 		align-items: center;
 		gap: 0.6rem;
-		min-height: var(--vega-size-row);
+		min-height: var(--row-h);
 		padding: 0 var(--vega-space-gutter);
-		color: var(--vega-color-text);
+		color: var(--ink);
 		text-decoration: none;
 		border-radius: 6px;
 	}
 
 	a:hover {
-		background: var(--vega-color-bg);
+		background: var(--surface);
 	}
 
 	a[aria-current='page'] {
-		background: var(--vega-color-accent);
-		color: var(--vega-color-accent-contrast);
+		background: var(--accent);
+		color: var(--accent-ink);
 	}
 
 	.vega-nav-item-label {
@@ -97,16 +97,16 @@
 	.vega-nav-badge {
 		flex-shrink: 0;
 		padding: 0.1rem 0.4rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 999px;
 		font-size: 0.7rem;
 		white-space: nowrap;
-		color: var(--vega-color-text-muted);
-		background: var(--vega-color-bg);
+		color: var(--ink-2);
+		background: var(--surface);
 	}
 
 	a[aria-current='page'] .vega-nav-badge {
-		border-color: var(--vega-color-accent-contrast);
-		color: var(--vega-color-accent-contrast);
+		border-color: var(--accent-ink);
+		color: var(--accent-ink);
 	}
 </style>

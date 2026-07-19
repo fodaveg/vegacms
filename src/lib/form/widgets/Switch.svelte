@@ -42,9 +42,9 @@
 		width: 2.4rem;
 		height: 1.4rem;
 		margin: 0;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 999px;
-		background: var(--vega-color-bg-raised);
+		background: var(--surface-2);
 		cursor: pointer;
 		flex-shrink: 0;
 	}
@@ -57,20 +57,20 @@
 		width: 1.1rem;
 		height: 1.1rem;
 		border-radius: 50%;
-		background: var(--vega-color-text-muted);
+		background: var(--ink-2);
 		transition:
 			transform 0.15s ease,
 			background 0.15s ease;
 	}
 
 	.vega-widget-switch:checked {
-		background: var(--vega-color-accent);
-		border-color: var(--vega-color-accent);
+		background: var(--accent);
+		border-color: var(--accent);
 	}
 
 	.vega-widget-switch:checked::after {
 		transform: translateX(1rem);
-		background: var(--vega-color-accent-contrast);
+		background: var(--accent-ink);
 	}
 
 	.vega-widget-switch:disabled {
@@ -79,6 +79,6 @@
 	}
 
 	.vega-widget-switch[aria-invalid='true'] {
-		border-color: var(--vega-color-danger);
+		border-color: var(--danger);
 	}
 </style>

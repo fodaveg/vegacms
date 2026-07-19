@@ -29,15 +29,15 @@
 		align-items: center;
 		gap: 0.5rem;
 		padding: 0.45rem 0.6rem;
-		border: 1px dashed var(--vega-color-border);
+		border: 1px dashed var(--line);
 		border-radius: 6px;
-		color: var(--vega-color-text-muted);
+		color: var(--ink-2);
 		font-size: 0.9rem;
 	}
 
 	.vega-widget-unsupported code {
 		padding: 0.05rem 0.35rem;
 		border-radius: 4px;
-		background: var(--vega-color-bg-raised);
+		background: var(--surface-2);
 	}
 </style>

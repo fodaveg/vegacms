@@ -33,10 +33,10 @@
 		height: 1.3rem;
 		padding: 0 0.35rem;
 		margin-left: auto;
-		border: 1px solid var(--vega-color-danger);
+		border: 1px solid var(--danger);
 		border-radius: 999px;
-		background: var(--vega-color-danger-bg);
-		color: var(--vega-color-danger);
+		background: var(--danger-soft);
+		color: var(--danger);
 		font-size: 0.7rem;
 		font-weight: 600;
 		line-height: 1;

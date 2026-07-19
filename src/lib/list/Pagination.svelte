@@ -45,15 +45,15 @@
 		gap: 0.75rem;
 		margin-top: var(--vega-space-gutter);
 		font-size: 0.85rem;
-		color: var(--vega-color-text-muted);
+		color: var(--ink-2);
 	}
 
 	.vega-pagination button {
 		padding: 0.35rem 0.8rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 6px;
-		background: var(--vega-color-bg);
-		color: var(--vega-color-text);
+		background: var(--surface);
+		color: var(--ink);
 		font-size: 0.85rem;
 		cursor: pointer;
 	}

@@ -299,14 +299,14 @@
 		align-items: flex-start;
 		gap: 0.4rem;
 		padding: 0.6rem;
-		border: 1px dashed var(--vega-color-border);
+		border: 1px dashed var(--line);
 		border-radius: 6px;
-		background: var(--vega-color-bg);
+		background: var(--surface);
 	}
 
 	.vega-file-dropzone--dragging {
-		border-color: var(--vega-color-accent);
-		background: var(--vega-color-bg-raised);
+		border-color: var(--accent);
+		background: var(--surface-2);
 	}
 
 	.vega-file-dropzone[data-inert='true'] {
@@ -320,19 +320,19 @@
 	.vega-file-hint {
 		margin: 0;
 		font-size: 0.8rem;
-		color: var(--vega-color-text-muted);
+		color: var(--ink-2);
 	}
 
 	.vega-file-rejection {
 		margin: 0;
 		font-size: 0.85rem;
-		color: var(--vega-color-danger);
+		color: var(--danger);
 	}
 
 	.vega-file-empty {
 		margin: 0;
 		font-size: 0.85rem;
-		color: var(--vega-color-text-muted);
+		color: var(--ink-2);
 	}
 
 	.vega-file-list {
@@ -349,9 +349,9 @@
 		align-items: center;
 		gap: 0.4rem;
 		padding: 0.3rem 0.5rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 6px;
-		background: var(--vega-color-bg-raised);
+		background: var(--surface-2);
 	}
 
 	.vega-file-thumb {
@@ -363,7 +363,7 @@
 
 	.vega-file-chip {
 		font-size: 0.85rem;
-		color: var(--vega-color-text);
+		color: var(--ink);
 		max-width: 14rem;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -373,7 +373,7 @@
 	.vega-file-remove {
 		border: none;
 		background: transparent;
-		color: var(--vega-color-text-muted);
+		color: var(--ink-2);
 		font: inherit;
 		font-size: 0.8rem;
 		text-decoration: underline;
@@ -382,6 +382,6 @@
 	}
 
 	.vega-widget-file[data-invalid='true'] .vega-file-dropzone {
-		border-color: var(--vega-color-danger);
+		border-color: var(--danger);
 	}
 </style>

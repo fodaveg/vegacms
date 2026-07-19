@@ -61,11 +61,11 @@
 		display: flex;
 		align-items: center;
 		gap: var(--vega-space-gutter);
-		height: var(--vega-size-topbar);
+		height: var(--topbar-h);
 		flex-shrink: 0;
 		padding: 0 var(--vega-space-gutter);
-		border-bottom: 1px solid var(--vega-color-border);
-		background: var(--vega-color-bg-raised);
+		border-bottom: 1px solid var(--line);
+		background: var(--surface-2);
 	}
 
 	.vega-topbar-menu {
@@ -75,10 +75,10 @@
 		flex-shrink: 0;
 		width: 2rem;
 		height: 2rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 6px;
-		background: var(--vega-color-bg);
-		color: var(--vega-color-text);
+		background: var(--surface);
+		color: var(--ink);
 		cursor: pointer;
 	}
 
@@ -101,10 +101,10 @@
 		align-items: center;
 		gap: 0.4rem;
 		padding: 0.35rem 0.7rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 6px;
-		background: var(--vega-color-bg);
-		color: var(--vega-color-text);
+		background: var(--surface);
+		color: var(--ink);
 		cursor: pointer;
 	}
 

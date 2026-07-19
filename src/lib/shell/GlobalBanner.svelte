@@ -59,7 +59,7 @@
 		   tapar los controles de la topbar. z-index 40: sobre el shell y el overlay de sidebar (30),
 		   bajo los toasts (60) y el modal de re-login (80). */
 		position: fixed;
-		top: var(--vega-size-topbar);
+		top: var(--topbar-h);
 		left: 0;
 		right: 0;
 		z-index: 40;
@@ -67,9 +67,9 @@
 		align-items: center;
 		gap: 0.6rem;
 		padding: 0.6rem var(--vega-space-gutter);
-		border-bottom: 1px solid var(--vega-color-danger);
-		background: var(--vega-color-danger-bg);
-		color: var(--vega-color-text);
+		border-bottom: 1px solid var(--danger);
+		background: var(--danger-soft);
+		color: var(--ink);
 	}
 
 	.vega-global-banner-message {
@@ -87,10 +87,10 @@
 
 	.vega-global-banner-actions button {
 		padding: 0.3rem 0.7rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 6px;
-		background: var(--vega-color-bg);
-		color: var(--vega-color-text);
+		background: var(--surface);
+		color: var(--ink);
 		font-size: 0.85rem;
 		cursor: pointer;
 	}

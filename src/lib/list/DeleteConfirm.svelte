@@ -182,8 +182,8 @@
 		max-width: 24rem;
 		padding: 1.5rem;
 		border-radius: 10px;
-		background: var(--vega-color-bg);
-		color: var(--vega-color-text);
+		background: var(--surface);
+		color: var(--ink);
 		box-shadow: 0 12px 40px rgb(0 0 0 / 35%);
 	}
 
@@ -194,7 +194,7 @@
 
 	.vega-delete-dialog p {
 		margin: 0;
-		color: var(--vega-color-text-muted);
+		color: var(--ink-2);
 		font-size: 0.9rem;
 	}
 
@@ -207,10 +207,10 @@
 
 	.vega-delete-actions button {
 		padding: 0.5rem 0.9rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 6px;
-		background: var(--vega-color-bg);
-		color: var(--vega-color-text);
+		background: var(--surface);
+		color: var(--ink);
 		font-size: 0.9rem;
 		cursor: pointer;
 	}
@@ -223,9 +223,9 @@
 	}
 
 	.vega-delete-confirm {
-		border-color: var(--vega-color-danger);
-		background: var(--vega-color-danger-bg);
-		color: var(--vega-color-danger);
+		border-color: var(--danger);
+		background: var(--danger-soft);
+		color: var(--danger);
 		font-weight: 600;
 	}
 </style>

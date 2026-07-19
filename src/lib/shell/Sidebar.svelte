@@ -12,6 +12,9 @@
 	 *
 	 * **Nav vacía** (§6.1): título + guía en vez de una sidebar en blanco.
 	 *
+	 * Fondo del rail (F7w-b): usa `--sidebar` (rol dedicado §3, no `--surface-2`) — el rail es una
+	 * superficie propia distinta de las tarjetas/elevaciones del contenido.
+	 *
 	 * **Responsive** (§4.2): en escritorio, columna fija. Por debajo del punto de colapso
 	 * ESTRUCTURAL (fijado aquí; los valores finos son de P7) se convierte en un overlay
 	 * controlado por `open`/`onClose` — el hamburguesa de `Topbar.svelte` cambia `open`. El
@@ -158,8 +161,8 @@
 		flex-direction: column;
 		gap: var(--vega-space-gutter);
 		padding: var(--vega-space-gutter) 0;
-		border-right: 1px solid var(--vega-color-border);
-		background: var(--vega-color-bg-raised);
+		border-right: 1px solid var(--line);
+		background: var(--sidebar);
 		overflow-y: auto;
 	}
 
@@ -184,28 +187,28 @@
 		font-size: 0.75rem;
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
-		color: var(--vega-color-text-muted);
+		color: var(--ink-2);
 	}
 
 	.vega-nav-fixed {
 		margin-top: auto;
 		padding-top: var(--vega-space-gutter);
-		border-top: 1px solid var(--vega-color-border);
+		border-top: 1px solid var(--line);
 	}
 
 	.vega-nav-fixed a {
 		display: flex;
 		align-items: center;
 		gap: 0.6rem;
-		min-height: var(--vega-size-row);
+		min-height: var(--row-h);
 		padding: 0 var(--vega-space-gutter);
-		color: var(--vega-color-text);
+		color: var(--ink);
 		text-decoration: none;
 		border-radius: 6px;
 	}
 
 	.vega-nav-fixed a:hover {
-		background: var(--vega-color-bg);
+		background: var(--surface);
 	}
 
 	.vega-sidebar-empty {
@@ -219,12 +222,12 @@
 	.vega-sidebar-empty-title {
 		margin: 0;
 		font-weight: 600;
-		color: var(--vega-color-text);
+		color: var(--ink);
 	}
 
 	.vega-sidebar-empty-body {
 		margin: 0;
-		color: var(--vega-color-text-muted);
+		color: var(--ink-2);
 	}
 
 	/* Responsive (§4.2): punto de colapso ESTRUCTURAL que fija P3 (768px, referencia de tableta);
@@ -258,10 +261,10 @@
 			width: 2rem;
 			height: 2rem;
 			margin: 0 var(--vega-space-gutter);
-			border: 1px solid var(--vega-color-border);
+			border: 1px solid var(--line);
 			border-radius: 6px;
-			background: var(--vega-color-bg);
-			color: var(--vega-color-text);
+			background: var(--surface);
+			color: var(--ink);
 			cursor: pointer;
 		}
 

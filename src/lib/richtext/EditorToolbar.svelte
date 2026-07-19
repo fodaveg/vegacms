@@ -229,10 +229,10 @@
 		flex-wrap: wrap;
 		gap: 0.25rem;
 		padding: 0.35rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-bottom: none;
 		border-radius: 6px 6px 0 0;
-		background: var(--vega-color-bg-raised);
+		background: var(--surface-2);
 	}
 
 	.vega-editor-toolbar button {
@@ -241,7 +241,7 @@
 		border: 1px solid transparent;
 		border-radius: 4px;
 		background: transparent;
-		color: var(--vega-color-text);
+		color: var(--ink);
 		font: inherit;
 		font-size: 0.85rem;
 		line-height: 1;
@@ -249,13 +249,13 @@
 	}
 
 	.vega-editor-toolbar button:hover:not(:disabled) {
-		border-color: var(--vega-color-border);
+		border-color: var(--line);
 	}
 
 	.vega-editor-toolbar button[aria-pressed='true'] {
-		border-color: var(--vega-color-accent);
-		background: var(--vega-color-accent);
-		color: var(--vega-color-accent-contrast);
+		border-color: var(--accent);
+		background: var(--accent);
+		color: var(--accent-ink);
 	}
 
 	.vega-editor-toolbar button:disabled,
@@ -266,10 +266,10 @@
 
 	.vega-editor-toolbar-select {
 		padding: 0.25rem 0.4rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 4px;
-		background: var(--vega-color-bg);
-		color: var(--vega-color-text);
+		background: var(--surface);
+		color: var(--ink);
 		font: inherit;
 		font-size: 0.85rem;
 	}

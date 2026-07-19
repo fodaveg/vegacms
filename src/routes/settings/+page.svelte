@@ -24,6 +24,9 @@
 	 * `ctx.reloadModel()` directo — es también el disparador REAL del e2e de expiración durante
 	 * edición (§7.B.10): dispara `listContentTypes`/`list`, el mismo par que el gancho de e2e
 	 * `__VEGA_FORCE_EXPIRE__` intercepta (`session/backend.ts`).
+	 *
+	 * Selectores de tema/modo activos (F7w-b): texto en `--accent-text` (acento como texto sobre
+	 * `--surface`), borde en `--accent`.
 	 */
 	import { onMount } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
@@ -243,10 +246,10 @@
 
 	.vega-settings-header button {
 		padding: 0.4rem 0.9rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 6px;
-		background: var(--vega-color-bg-raised);
-		color: var(--vega-color-text);
+		background: var(--surface-2);
+		color: var(--ink);
 		cursor: pointer;
 	}
 
@@ -264,9 +267,9 @@
 
 	.vega-settings-error button {
 		padding: 0.45rem 0.9rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 6px;
-		background: var(--vega-color-bg-raised);
+		background: var(--surface-2);
 		cursor: pointer;
 	}
 
@@ -275,9 +278,9 @@
 		flex-direction: column;
 		gap: 0.75rem;
 		padding: 1rem 1.2rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 8px;
-		background: var(--vega-color-bg-raised);
+		background: var(--surface-2);
 	}
 
 	.vega-appearance h2 {
@@ -295,7 +298,7 @@
 	.vega-appearance-label {
 		min-width: 4rem;
 		font-size: 0.85rem;
-		color: var(--vega-color-text-muted);
+		color: var(--ink-2);
 	}
 
 	.vega-theme-picker,
@@ -311,18 +314,18 @@
 		align-items: center;
 		gap: 0.4rem;
 		padding: 0.3rem 0.6rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 6px;
-		background: var(--vega-color-bg);
-		color: var(--vega-color-text);
+		background: var(--surface);
+		color: var(--ink);
 		font-size: 0.8rem;
 		cursor: pointer;
 	}
 
 	.vega-theme-swatch[aria-pressed='true'],
 	.vega-mode-toggle button[aria-pressed='true'] {
-		border-color: var(--vega-color-accent);
-		color: var(--vega-color-accent);
+		border-color: var(--accent);
+		color: var(--accent-text);
 	}
 
 	.vega-theme-swatch-dot {

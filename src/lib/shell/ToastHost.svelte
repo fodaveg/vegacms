@@ -13,6 +13,9 @@
 	 * `display:none`): un landmark `role="alert"` vacío y permanente en el DOM colisionaría con
 	 * `getByRole('alert')` de otras superficies honestas del shell (p.ej. el error inline de
 	 * `/login`, `ReloginModal`), que ya usan ese rol y esperan ser el único match.
+	 *
+	 * Fondo del toast (F7w-b): `--surface` (tarjeta), no `--surface-2` — flota sobre el lienzo,
+	 * no está apilado sobre otra tarjeta.
 	 */
 	import { toastStore } from './toasts.svelte';
 	import { getVegaContext } from '$lib/app-context';
@@ -81,9 +84,9 @@
 		gap: 0.6rem;
 		padding: 0.6rem 0.8rem;
 		border-radius: 8px;
-		border: 1px solid var(--vega-color-border);
-		background: var(--vega-color-bg-raised);
-		color: var(--vega-color-text);
+		border: 1px solid var(--line);
+		background: var(--surface);
+		color: var(--ink);
 		box-shadow: 0 4px 16px rgb(0 0 0 / 18%);
 		font-size: 0.9rem;
 		pointer-events: auto;
@@ -94,12 +97,12 @@
 	}
 
 	.vega-toast[data-kind='success'] {
-		border-color: var(--vega-color-success);
+		border-color: var(--success);
 	}
 
 	.vega-toast[data-kind='error'] {
-		border-color: var(--vega-color-danger);
-		background: var(--vega-color-danger-bg);
+		border-color: var(--danger);
+		background: var(--danger-soft);
 	}
 
 	.vega-toast-dismiss {

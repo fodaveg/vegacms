@@ -152,10 +152,10 @@
 		flex: 1 1 16rem;
 		min-width: 10rem;
 		padding: 0.4rem 0.7rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 6px;
-		background: var(--vega-color-bg);
-		color: var(--vega-color-text);
+		background: var(--surface);
+		color: var(--ink);
 		font-size: 0.9rem;
 	}
 
@@ -167,16 +167,16 @@
 	}
 
 	.vega-list-toolbar-field label {
-		color: var(--vega-color-text-muted);
+		color: var(--ink-2);
 		white-space: nowrap;
 	}
 
 	.vega-list-toolbar-field select {
 		padding: 0.35rem 0.5rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 6px;
-		background: var(--vega-color-bg);
-		color: var(--vega-color-text);
+		background: var(--surface);
+		color: var(--ink);
 		font-size: 0.85rem;
 	}
 </style>

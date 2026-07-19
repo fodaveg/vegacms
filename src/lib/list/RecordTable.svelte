@@ -36,6 +36,10 @@
 	 *   en una columna que nunca puede ordenar. La navegación real (reflejar el resultado en
 	 *   `?sort=&dir=`) la hace `+page.svelte`, TONTO a propósito, mismo reparto que
 	 *   `Pagination.svelte`/`ListToolbar.svelte`.
+	 * - **Fila en hover (F7w-b)**: usa `--active` (rol dedicado §3 para fila/elemento activo), no
+	 *   `--surface-2` — el resaltado de fila es semánticamente "elemento activo", no una elevación.
+	 * - **Acento como texto (F7w-b)**: el enlace de apertura y el indicador de orden pintan con
+	 *   `--accent-text` (AA sobre papel), no `--accent` — ese es el relleno, no el color de texto.
 	 * - **Columna de acciones (Fase 4e, borrado, L-P4.9/L-P4.11)**: una `<th>`/`<td>` EXTRA al
 	 *   final de la fila, SOLO si `!contentType.readonly` (un tipo `readonly`/vista nunca ofrece
 	 *   borrar, ni el botón ni la columna) — presente en las dos ramas del marcado (con y sin
@@ -257,7 +261,7 @@
 <style>
 	.vega-record-table-wrap {
 		overflow-x: auto;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 8px;
 	}
 
@@ -275,8 +279,8 @@
 		font-weight: 600;
 		text-transform: uppercase;
 		letter-spacing: 0.03em;
-		color: var(--vega-color-text-muted);
-		border-bottom: 1px solid var(--vega-color-border);
+		color: var(--ink-2);
+		border-bottom: 1px solid var(--line);
 	}
 
 	.vega-sort-button {
@@ -294,17 +298,17 @@
 	}
 
 	.vega-sort-button:hover {
-		color: var(--vega-color-text);
+		color: var(--ink);
 	}
 
 	.vega-sort-indicator {
 		font-size: 0.65rem;
-		color: var(--vega-color-accent);
+		color: var(--accent-text);
 	}
 
 	.vega-record-table tbody tr {
-		height: var(--vega-size-row);
-		border-bottom: 1px solid var(--vega-color-border);
+		height: var(--row-h);
+		border-bottom: 1px solid var(--line);
 	}
 
 	.vega-record-table tbody tr:last-child {
@@ -312,7 +316,7 @@
 	}
 
 	.vega-record-table tbody tr:hover {
-		background: var(--vega-color-bg-raised);
+		background: var(--active);
 	}
 
 	.vega-record-table td {
@@ -325,7 +329,7 @@
 	}
 
 	.vega-record-table td a {
-		color: var(--vega-color-accent);
+		color: var(--accent-text);
 		font-weight: 500;
 		text-decoration: none;
 	}
@@ -335,7 +339,7 @@
 	}
 
 	.vega-cell-empty {
-		color: var(--vega-color-text-muted);
+		color: var(--ink-2);
 	}
 
 	/* Columna de acciones (Fase 4e): no trunca como el resto de `td` (el botón nunca lleva texto
@@ -349,18 +353,18 @@
 
 	.vega-delete-button {
 		padding: 0.3rem 0.7rem;
-		border: 1px solid var(--vega-color-danger);
+		border: 1px solid var(--danger);
 		border-radius: 6px;
-		background: var(--vega-color-danger-bg);
-		color: var(--vega-color-danger);
+		background: var(--danger-soft);
+		color: var(--danger);
 		font-size: 0.8rem;
 		font-weight: 500;
 		cursor: pointer;
 	}
 
 	.vega-delete-button:hover {
-		background: var(--vega-color-danger);
-		color: var(--vega-color-bg);
+		background: var(--danger);
+		color: var(--surface);
 	}
 
 	.vega-status-badge {
@@ -376,12 +380,12 @@
 	}
 
 	.vega-status-badge[data-status='published'] {
-		color: var(--vega-color-success);
+		color: var(--success);
 	}
 
 	.vega-status-badge[data-status='draft'] {
-		color: var(--vega-color-warning);
-		background: var(--vega-color-warning-bg);
+		color: var(--warning);
+		background: var(--warning-soft);
 	}
 
 	.vega-chip-list {
@@ -392,9 +396,9 @@
 
 	.vega-chip {
 		padding: 0.05rem 0.4rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 999px;
-		background: var(--vega-color-bg-raised);
+		background: var(--surface-2);
 		font-size: 0.75rem;
 	}
 
@@ -404,7 +408,7 @@
 	}
 
 	.vega-file-thumbs img {
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 4px;
 		object-fit: cover;
 	}
@@ -412,6 +416,6 @@
 	.vega-file-names {
 		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 		font-size: 0.8rem;
-		color: var(--vega-color-text-muted);
+		color: var(--ink-2);
 	}
 </style>

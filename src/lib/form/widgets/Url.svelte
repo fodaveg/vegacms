@@ -39,10 +39,10 @@
 		width: 100%;
 		box-sizing: border-box;
 		padding: 0.45rem 0.6rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 6px;
-		background: var(--vega-color-bg);
-		color: var(--vega-color-text);
+		background: var(--surface);
+		color: var(--ink);
 		font: inherit;
 	}
 
@@ -52,6 +52,6 @@
 	}
 
 	.vega-widget-url[aria-invalid='true'] {
-		border-color: var(--vega-color-danger);
+		border-color: var(--danger);
 	}
 </style>

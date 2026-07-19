@@ -1,45 +1,23 @@
 /**
- * SHIM de compatibilidad P3→P7 (Fase F7w-a, "encender los temas"): antes de esta fase, este
- * fichero DEFINÍA los valores de `--vega-color-*`/`--vega-size-*` a mano por `[data-mode]`/
- * `[data-density]` (hex crudos neutros, ver historial). Ahora esos valores los define
- * `themes.generated.css` (motor P7, vocabulario cerrado §3: `--bg`/`--ink`/`--accent`/`--line`/
- * `--ring`/…, importado ANTES que este fichero en `+layout.svelte`) y aquí solo se REALIASA el
- * vocabulario viejo de P3 a los tokens §3, para que los 42 ficheros consumidores (que siguen
- * escritos en `var(--vega-color-*)`) hereden el tema/modo activos SIN que nadie los toque.
+ * `base.css` (Fase F7w-b, "purificar los consumidores al vocabulario §3"): tras F7w-a (que
+ * encendió los temas con un SHIM de alias `--vega-color-*`/`--vega-size-topbar`/`--vega-size-row`
+ * → tokens §3), esta fase sustituyó cada consumidor por su token §3 exacto (`var(--surface)`,
+ * `var(--ink)`, `var(--accent)`, …, definidos en `themes.generated.css`, motor P7, importado ANTES
+ * que este fichero en `+layout.svelte`). El shim de color ya no hace falta y se ha borrado entero:
+ * ningún `.svelte`/`.ts` de la app pinta con `--vega-color-*`.
  *
- * Este mapeo es PROVISIONAL: cada alias es un juicio de superficie ("¿qué token §3 hace de
- * `--vega-color-bg-raised` en cada componente real?") que nadie ha verificado visualmente
- * todavía. La fase F7w-b (purificación por-fichero + QA visual de David) sustituye cada
- * consumidor por su token §3 exacto y entonces este bloque se puede borrar entero.
- *
- * Dos tokens NO tienen equivalente en el vocabulario §3 porque no son de color: el ANCHO del
- * sidebar (§3 solo tiene `sidebar-item-h`, el alto de un item) y un "gutter" genérico (§3 no
- * define espaciados de layout, solo paddings/gaps de campo). Son huecos reales del contrato — se
- * mantienen como valores literales por densidad, tal cual antes de esta fase (candidatos a
- * reabrir el vocabulario §3 en una v2 si se decide que sí son de rol).
+ * Lo que queda aquí son solo dos cosas:
+ * 1. Dos tamaños SIN equivalente en el vocabulario §3 porque no son de rol: el ANCHO del sidebar
+ *    (§3 solo tiene `sidebar-item-h`, el alto de un item) y un "gutter" genérico (§3 no define
+ *    espaciados de layout, solo paddings/gaps de campo). Huecos reales del contrato — se
+ *    mantienen como valores literales por densidad (candidatos a reabrir el vocabulario §3 en una
+ *    v2 si se decide que sí son de rol).
+ * 2. Las reglas base transversales del documento (`body`, foco visible, `color-scheme`,
+ *    `prefers-reduced-motion`) que no son alias de nada.
  */
 
 :root {
 	color-scheme: light dark;
-
-	/* ————— Alias de color: vocabulario viejo → tokens §3 (varían por data-theme/data-mode) ————— */
-	--vega-color-bg: var(--surface);
-	--vega-color-bg-raised: var(--surface-2);
-	--vega-color-border: var(--line);
-	--vega-color-text: var(--ink);
-	--vega-color-text-muted: var(--ink-2);
-	--vega-color-accent: var(--accent);
-	--vega-color-accent-contrast: var(--accent-ink);
-	--vega-color-danger: var(--danger);
-	--vega-color-danger-bg: var(--danger-soft);
-	--vega-color-success: var(--success);
-	--vega-color-warning: var(--warning);
-	--vega-color-warning-bg: var(--warning-soft);
-	--vega-color-focus-ring: var(--ring);
-
-	/* ————— Alias de tamaño: idem, varían por data-density ————— */
-	--vega-size-topbar: var(--topbar-h);
-	--vega-size-row: var(--row-h);
 }
 
 /* Huecos del vocabulario §3 (ver cabecera): sin equivalente de rol, valores literales por
@@ -62,7 +40,7 @@ body {
 
 body {
 	/* El lienzo usa `--bg` directamente (tono más "exterior" que `--surface`, ver §3 "papel/
-	   fondos"): no hace falta un alias `--vega-color-*` para esto, es el único sitio que lo pinta. */
+	   fondos"): es el único sitio que lo pinta. */
 	background: var(--bg);
 	color: var(--ink);
 	font-family:

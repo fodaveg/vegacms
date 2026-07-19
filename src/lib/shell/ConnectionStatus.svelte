@@ -40,7 +40,7 @@
 		align-items: center;
 		gap: 0.4rem;
 		font-size: 0.8rem;
-		color: var(--vega-color-text-muted);
+		color: var(--ink-2);
 		white-space: nowrap;
 	}
 
@@ -48,19 +48,19 @@
 		width: 0.5rem;
 		height: 0.5rem;
 		border-radius: 50%;
-		background: var(--vega-color-text-muted);
+		background: var(--ink-2);
 	}
 
 	.vega-connection-status[data-state='connected'] .vega-connection-dot {
-		background: var(--vega-color-success);
+		background: var(--success);
 	}
 
 	.vega-connection-status[data-state='disconnected'] .vega-connection-dot {
-		background: var(--vega-color-danger);
+		background: var(--danger);
 	}
 
 	.vega-connection-status[data-state='retrying'] .vega-connection-dot {
-		background: var(--vega-color-accent);
+		background: var(--accent);
 	}
 
 	/* Mismo punto de colapso ESTRUCTURAL (768px) que Topbar.svelte y Sidebar.svelte (§4.2): en la

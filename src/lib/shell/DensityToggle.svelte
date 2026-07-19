@@ -6,6 +6,9 @@
 	 * escrito quando este componente monta); cada toggle la persiste y la refleja en la raíz vía
 	 * el setter de `theme/apply.ts` (`vega.density.v1`, §2.6). `aria-pressed` = modo compacto
 	 * activo.
+	 *
+	 * Estado activo (F7w-b): texto en `--accent-text` (acento como texto sobre `--surface`), borde
+	 * en `--accent` (relleno/marca, no texto).
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import { setDensity } from '$lib/theme/apply';
@@ -39,17 +42,17 @@
 		display: inline-flex;
 		align-items: center;
 		padding: 0.3rem 0.6rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 6px;
-		background: var(--vega-color-bg);
-		color: var(--vega-color-text);
+		background: var(--surface);
+		color: var(--ink);
 		font-size: 0.8rem;
 		white-space: nowrap;
 		cursor: pointer;
 	}
 
 	.vega-density-toggle[aria-pressed='true'] {
-		border-color: var(--vega-color-accent);
-		color: var(--vega-color-accent);
+		border-color: var(--accent);
+		color: var(--accent-text);
 	}
 </style>

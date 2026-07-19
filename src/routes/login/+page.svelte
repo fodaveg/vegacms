@@ -97,7 +97,7 @@
 		width: 100%;
 		max-width: 22rem;
 		padding: 1.5rem;
-		border: 1px solid var(--vega-color-border, #d9dde3);
+		border: 1px solid var(--line);
 		border-radius: 8px;
 	}
 
@@ -119,27 +119,27 @@
 
 	input {
 		padding: 0.5rem 0.6rem;
-		border: 1px solid var(--vega-color-border, #b0b0b0);
+		border: 1px solid var(--line);
 		border-radius: 6px;
 		font-size: 1rem;
 	}
 
 	input[aria-invalid='true'] {
-		border-color: var(--vega-color-danger, #c1121f);
+		border-color: var(--danger);
 	}
 
 	.vega-login-error {
 		margin: 0;
-		color: var(--vega-color-danger, #c1121f);
+		color: var(--danger);
 		font-size: 0.9rem;
 	}
 
 	button {
 		padding: 0.55rem 0.9rem;
-		border: 1px solid var(--vega-color-border, #888);
+		border: 1px solid var(--line);
 		border-radius: 6px;
-		background: var(--vega-color-accent, #2f6fed);
-		color: var(--vega-color-accent-contrast, #fff);
+		background: var(--accent);
+		color: var(--accent-ink);
 		font-weight: 600;
 		cursor: pointer;
 	}

@@ -138,11 +138,11 @@
 	.vega-editor-readonly-badge {
 		flex-shrink: 0;
 		padding: 0.1rem 0.4rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 999px;
 		font-size: 0.7rem;
 		white-space: nowrap;
-		color: var(--vega-color-text-muted);
+		color: var(--ink-2);
 	}
 
 	.vega-editor-error {
@@ -155,9 +155,9 @@
 
 	.vega-editor-error button {
 		padding: 0.45rem 0.9rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 6px;
-		background: var(--vega-color-bg-raised);
+		background: var(--surface-2);
 		cursor: pointer;
 	}
 </style>

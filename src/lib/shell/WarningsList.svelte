@@ -51,7 +51,7 @@
 
 	.vega-warnings-empty {
 		margin: 0;
-		color: var(--vega-color-text-muted);
+		color: var(--ink-2);
 	}
 
 	ul {
@@ -60,13 +60,13 @@
 		padding: 0;
 		max-height: 20rem;
 		overflow-y: auto;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 6px;
 	}
 
 	.vega-warnings-item {
 		padding: 0.6rem 0.8rem;
-		border-bottom: 1px solid var(--vega-color-border);
+		border-bottom: 1px solid var(--line);
 	}
 
 	.vega-warnings-item:last-child {
@@ -76,7 +76,7 @@
 	.vega-warnings-message {
 		margin: 0 0 0.25rem;
 		font-size: 0.9rem;
-		color: var(--vega-color-text);
+		color: var(--ink);
 	}
 
 	.vega-warnings-meta {
@@ -85,13 +85,13 @@
 		gap: 0.5rem;
 		margin: 0;
 		font-size: 0.75rem;
-		color: var(--vega-color-text-muted);
+		color: var(--ink-2);
 	}
 
 	.vega-warnings-meta code {
 		padding: 0.05rem 0.3rem;
 		border-radius: 3px;
-		background: var(--vega-color-bg-raised);
+		background: var(--surface-2);
 		font-family: ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
 	}
 

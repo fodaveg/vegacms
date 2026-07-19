@@ -162,14 +162,14 @@
 	.vega-widget-markdown-content {
 		min-height: 8rem;
 		padding: 0.45rem 0.6rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 0 0 6px 6px;
-		background: var(--vega-color-bg);
-		color: var(--vega-color-text);
+		background: var(--surface);
+		color: var(--ink);
 	}
 
 	.vega-widget-markdown[data-invalid='true'] .vega-widget-markdown-content {
-		border-color: var(--vega-color-danger);
+		border-color: var(--danger);
 	}
 
 	.vega-widget-markdown-content :global(.tiptap) {
@@ -183,14 +183,14 @@
 	.vega-widget-markdown-content :global(pre) {
 		padding: 0.6rem;
 		border-radius: 4px;
-		background: var(--vega-color-bg-raised);
+		background: var(--surface-2);
 		overflow-x: auto;
 	}
 
 	.vega-widget-markdown-content :global(blockquote) {
 		margin: 0;
 		padding-left: 0.8rem;
-		border-left: 3px solid var(--vega-color-border);
-		color: var(--vega-color-text-muted);
+		border-left: 3px solid var(--line);
+		color: var(--ink-2);
 	}
 </style>

@@ -74,10 +74,10 @@
 
 	.vega-chip {
 		padding: 0.3rem 0.7rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 999px;
-		background: var(--vega-color-bg);
-		color: var(--vega-color-text);
+		background: var(--surface);
+		color: var(--ink);
 		font: inherit;
 		font-size: 0.85rem;
 		cursor: pointer;
@@ -88,9 +88,9 @@
 	}
 
 	.vega-chip[aria-pressed='true'] {
-		border-color: var(--vega-color-accent);
-		background: var(--vega-color-accent);
-		color: var(--vega-color-accent-contrast);
+		border-color: var(--accent);
+		background: var(--accent);
+		color: var(--accent-ink);
 	}
 
 	.vega-chip:disabled {
@@ -99,6 +99,6 @@
 	}
 
 	.vega-widget-chips[data-invalid='true'] .vega-chip {
-		border-color: var(--vega-color-danger);
+		border-color: var(--danger);
 	}
 </style>

@@ -390,10 +390,10 @@
 		align-items: center;
 		gap: 0.35rem;
 		padding: 0.25rem 0.6rem;
-		border: 1px solid var(--vega-color-accent);
+		border: 1px solid var(--accent);
 		border-radius: 999px;
-		background: var(--vega-color-accent);
-		color: var(--vega-color-accent-contrast);
+		background: var(--accent);
+		color: var(--accent-ink);
 		font-size: 0.85rem;
 		/* Caso límite: un título resuelto (`titleFor`) kilométrico no debe forzar overflow
 		   horizontal — `min-width: 0` deja que el `span` de dentro se encoja y envuelva. */
@@ -423,7 +423,7 @@
 	}
 
 	.vega-relation-empty {
-		color: var(--vega-color-text-muted);
+		color: var(--ink-2);
 		font-size: 0.85rem;
 		list-style: none;
 	}
@@ -432,10 +432,10 @@
 		width: 100%;
 		box-sizing: border-box;
 		padding: 0.45rem 0.6rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 6px;
-		background: var(--vega-color-bg);
-		color: var(--vega-color-text);
+		background: var(--surface);
+		color: var(--ink);
 		font: inherit;
 	}
 
@@ -456,16 +456,16 @@
 	}
 
 	.vega-relation-status {
-		color: var(--vega-color-text-muted);
+		color: var(--ink-2);
 		font-size: 0.85rem;
 	}
 
 	.vega-relation-candidate {
 		padding: 0.3rem 0.7rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 999px;
-		background: var(--vega-color-bg);
-		color: var(--vega-color-text);
+		background: var(--surface);
+		color: var(--ink);
 		font: inherit;
 		font-size: 0.85rem;
 		cursor: pointer;
@@ -475,9 +475,9 @@
 	}
 
 	.vega-relation-candidate[aria-pressed='true'] {
-		border-color: var(--vega-color-accent);
-		background: var(--vega-color-accent);
-		color: var(--vega-color-accent-contrast);
+		border-color: var(--accent);
+		background: var(--accent);
+		color: var(--accent-ink);
 	}
 
 	.vega-relation-candidate:disabled {
@@ -487,12 +487,12 @@
 
 	.vega-relation-degraded-note {
 		margin: 0;
-		color: var(--vega-color-text-muted);
+		color: var(--ink-2);
 		font-size: 0.8rem;
 	}
 
 	.vega-widget-relation[data-invalid='true'] .vega-relation-search,
 	.vega-widget-relation[data-invalid='true'] .vega-relation-candidate {
-		border-color: var(--vega-color-danger);
+		border-color: var(--danger);
 	}
 </style>

@@ -70,20 +70,20 @@
 
 	.vega-field-required {
 		margin-left: 0.15rem;
-		color: var(--vega-color-danger);
+		color: var(--danger);
 	}
 
 	.vega-field-help {
 		margin: 0;
 		font-size: 0.8rem;
-		color: var(--vega-color-text-muted);
+		color: var(--ink-2);
 		overflow-wrap: anywhere;
 	}
 
 	.vega-field-error {
 		margin: 0;
 		font-size: 0.8rem;
-		color: var(--vega-color-danger);
+		color: var(--danger);
 		overflow-wrap: anywhere;
 	}
 </style>

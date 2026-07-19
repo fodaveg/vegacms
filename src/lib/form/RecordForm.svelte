@@ -326,27 +326,27 @@
 	.vega-record-form-group h2 {
 		margin: 0;
 		font-size: 0.95rem;
-		color: var(--vega-color-text-muted);
+		color: var(--ink-2);
 		overflow-wrap: anywhere;
 	}
 
 	.vega-record-form-notice {
 		margin: 0;
 		padding: 0.6rem 0.9rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 6px;
-		background: var(--vega-color-bg-raised);
-		color: var(--vega-color-text-muted);
+		background: var(--surface-2);
+		color: var(--ink-2);
 		font-size: 0.85rem;
 	}
 
 	.vega-record-form-banner {
 		margin: 0;
 		padding: 0.6rem 0.9rem;
-		border: 1px solid var(--vega-color-danger);
+		border: 1px solid var(--danger);
 		border-radius: 6px;
-		background: var(--vega-color-danger-bg);
-		color: var(--vega-color-danger);
+		background: var(--danger-soft);
+		color: var(--danger);
 		font-size: 0.9rem;
 		overflow-wrap: anywhere;
 	}
@@ -358,17 +358,17 @@
 
 	.vega-record-form-actions button {
 		padding: 0.45rem 0.9rem;
-		border: 1px solid var(--vega-color-border);
+		border: 1px solid var(--line);
 		border-radius: 6px;
-		background: var(--vega-color-bg-raised);
-		color: var(--vega-color-text);
+		background: var(--surface-2);
+		color: var(--ink);
 		cursor: pointer;
 	}
 
 	.vega-record-form-actions button[type='submit'] {
-		border-color: var(--vega-color-accent);
-		background: var(--vega-color-accent);
-		color: var(--vega-color-accent-contrast);
+		border-color: var(--accent);
+		background: var(--accent);
+		color: var(--accent-ink);
 	}
 
 	.vega-record-form-actions button:disabled {

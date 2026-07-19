@@ -66,9 +66,9 @@
 
 	.vega-empty-nav button {
 		padding: 0.45rem 0.9rem;
-		border: 1px solid var(--vega-color-border, #888);
+		border: 1px solid var(--line);
 		border-radius: 6px;
-		background: var(--vega-color-bg-raised, #f5f5f5);
+		background: var(--surface-2);
 		cursor: pointer;
 	}
 </style>
