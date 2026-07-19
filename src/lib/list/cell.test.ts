@@ -7,7 +7,7 @@
 import { describe, expect, test } from 'vitest';
 import type { Field } from '$lib/backend/types';
 import type { ResolvedField } from '$lib/model/types';
-import { describeCell } from './cell';
+import { classifyStatusBadge, describeCell } from './cell';
 
 function field(overrides: Partial<Field> & Pick<Field, 'name' | 'type'>): Field {
 	return {
@@ -260,5 +260,18 @@ describe('describeCell — json/unsupported: marcador mono, nunca el valor crudo
 		);
 		const descriptor = describeCell(f, { lat: 1, lon: 2 } as never, 'es');
 		expect(descriptor).toEqual({ kind: 'mono', text: 'geoPoint' });
+	});
+});
+
+describe('classifyStatusBadge (R3 del rediseño C2, desviación consciente de D-P4.8)', () => {
+	test('published/draft: los dos literales de la convención', () => {
+		expect(classifyStatusBadge('published')).toBe('pub');
+		expect(classifyStatusBadge('draft')).toBe('draft');
+	});
+
+	test('cualquier otro valor cae en "other" (p.ej. archived, o una opción libre del manifiesto)', () => {
+		expect(classifyStatusBadge('archived')).toBe('other');
+		expect(classifyStatusBadge('en-revision')).toBe('other');
+		expect(classifyStatusBadge('')).toBe('other');
 	});
 });

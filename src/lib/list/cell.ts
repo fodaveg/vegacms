@@ -121,6 +121,26 @@ export function describeCell(
 }
 
 /**
+ * Clasifica el valor CRUDO de una columna de estado en una de las tres insignias del mockup C2
+ * (R3 del rediseño, `.tag.pub`/`.tag.draft`/`.tag.other`): los dos literales de la convención
+ * (`published`/`draft`) más un cajón "other" para CUALQUIER otro valor (p.ej. `archived`, o
+ * cualquier opción que un manifiesto añada a su `select` de estado).
+ *
+ * **Desviación consciente de D-P4.8** (documentada para el code-review): D-P4.8 solo pintaba
+ * insignia para `draft`/`published` y dejaba el resto como texto plano; el mockup 1:1 pinta
+ * TODO valor de una columna de estado como insignia (con `.tag.other` de respaldo) — David pidió
+ * fidelidad 1:1, así que `RecordTable.svelte` amplía la insignia a cualquier valor y usa esta
+ * función para decidir el color. Pura: solo mapea un string, sin conocer Svelte ni el DOM.
+ */
+export type StatusBadgeKind = 'pub' | 'draft' | 'other';
+
+export function classifyStatusBadge(value: string): StatusBadgeKind {
+	if (value === 'published') return 'pub';
+	if (value === 'draft') return 'draft';
+	return 'other';
+}
+
+/**
  * Extrae texto plano de un fragmento HTML de forma segura: NUNCA `innerHTML`/parseo DOM (que
  * en un contexto no confiable abriría la puerta a interpretar markup del backend). Es un
  * strip de etiquetas por regex conservador — suficiente para una celda de tabla, no un

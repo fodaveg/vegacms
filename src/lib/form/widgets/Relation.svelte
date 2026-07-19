@@ -37,6 +37,7 @@
 		buildTitleSearchQuery,
 		candidatesFromPage,
 		idsNeedingTitles,
+		RELATION_SEARCH_PER_PAGE,
 		RelationSearchSequencer,
 		supportsTitleSearch,
 		titleOf,
@@ -326,8 +327,10 @@
 				page={degradedPage}
 				totalPages={degradedTotalPages}
 				totalItems={degradedTotalItems}
+				perPage={RELATION_SEARCH_PER_PAGE}
 				onPrev={() => void loadDegradedPage(degradedPage - 1)}
 				onNext={() => void loadDegradedPage(degradedPage + 1)}
+				onGoToPage={(target) => void loadDegradedPage(target)}
 			/>
 		{/if}
 	{:else}

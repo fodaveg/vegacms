@@ -1,14 +1,15 @@
 /**
- * Tests unitarios de `buildListQuery`/`isSearchEnabled` (Fase 4b, D-P4.3(a)/D-P4.4(a)/
- * D-P4.6(a)). La garantía CRÍTICA (L-P4.3) es que toda `Query` producida pase `validateQuery`
- * sin lanzar: cada test de construcción termina verificándolo explícitamente.
+ * Tests unitarios de `buildListQuery`/`isSearchEnabled`/`statusFilterOptions` (Fase 4b,
+ * D-P4.3(a)/D-P4.4(a)/D-P4.6(a); `statusFilterOptions` es de R2 del rediseño C2, extraída de
+ * `ListToolbar.svelte`). La garantía CRÍTICA (L-P4.3) es que toda `Query` producida pase
+ * `validateQuery` sin lanzar: cada test de construcción termina verificándolo explícitamente.
  */
 
 import { describe, expect, test } from 'vitest';
 import { validateQuery, DEFAULT_PER_PAGE } from '$lib/backend/query';
 import type { Field } from '$lib/backend/types';
-import type { ResolvedContentType } from '$lib/model/types';
-import { buildListQuery, isSearchEnabled } from './search';
+import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
+import { buildListQuery, isSearchEnabled, statusFilterOptions } from './search';
 import type { ViewState } from './query-state';
 
 function field(overrides: Partial<Field> & Pick<Field, 'name' | 'type'>): Field {
@@ -20,6 +21,24 @@ function field(overrides: Partial<Field> & Pick<Field, 'name' | 'type'>): Field 
 		unique: false,
 		...overrides
 	} as Field;
+}
+
+/** `ResolvedField` mínimo a partir de un `Field` ya construido (solo lo usa `statusFilterOptions`,
+ *  que mira `type.fields`, no `type.schema.fields` — el resto de este fichero no lo necesita). */
+function resolvedField(schema: Field, overrides: Partial<ResolvedField> = {}): ResolvedField {
+	return {
+		schema,
+		name: schema.name,
+		label: schema.name,
+		help: null,
+		placeholder: null,
+		hidden: schema.hidden,
+		group: null,
+		widget: 'text',
+		subtype: null,
+		listable: true,
+		...overrides
+	};
 }
 
 /** `ResolvedContentType` mínimo: `search.ts` solo mira `schema.fields`, `titleField`,
@@ -219,6 +238,46 @@ describe('buildListQuery — page/perPage', () => {
 		const query = buildListQuery(type, { ...emptyState, page: 4 });
 		expect(query.page).toBe(4);
 		expect(query.perPage).toBe(DEFAULT_PER_PAGE);
+	});
+});
+
+describe('statusFilterOptions (R2 del rediseño C2, extraído de ListToolbar)', () => {
+	test('sin statusField: null (sin chips de estado)', () => {
+		const title = field({ name: 'title', type: 'text', subtype: 'plain' });
+		const type = contentType([title], {
+			fields: [resolvedField(title)],
+			titleField: 'title',
+			listFields: ['title']
+		});
+
+		expect(statusFilterOptions(type)).toBeNull();
+	});
+
+	test('con statusField resuelto a un select: las opciones tal cual, en orden', () => {
+		const status = field({
+			name: 'status',
+			type: 'select',
+			options: ['draft', 'published'],
+			multiple: false
+		});
+		const type = contentType([status], {
+			fields: [resolvedField(status)],
+			statusField: 'status',
+			listFields: ['status']
+		});
+
+		expect(statusFilterOptions(type)).toEqual(['draft', 'published']);
+	});
+
+	test('statusField que no resuelve a un select (defensivo, no debería ocurrir): null', () => {
+		const status = field({ name: 'status', type: 'text', subtype: 'plain' });
+		const type = contentType([status], {
+			fields: [resolvedField(status)],
+			statusField: 'status',
+			listFields: ['status']
+		});
+
+		expect(statusFilterOptions(type)).toBeNull();
 	});
 });
 

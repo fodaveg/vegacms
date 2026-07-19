@@ -38,6 +38,7 @@
 	import { VegaError } from '$lib/backend/errors';
 	import type { RecordId } from '$lib/backend/types';
 	import { createMediaListState } from './media-list-state.svelte';
+	import { MEDIA_PER_PAGE } from './media-query';
 	import { toMediaItemView, type MediaItemView } from './media-item';
 	import { matchesAccept, type MediaPickResult } from './media-picker';
 	import { mediaPickerState } from './media-picker-state.svelte';
@@ -279,8 +280,10 @@
 							page={status.page.page}
 							totalPages={status.page.totalPages}
 							totalItems={status.page.totalItems}
+							perPage={MEDIA_PER_PAGE}
 							onPrev={() => goToPage(status.page.page - 1)}
 							onNext={() => goToPage(status.page.page + 1)}
+							onGoToPage={goToPage}
 						/>
 					{/if}
 				{/if}

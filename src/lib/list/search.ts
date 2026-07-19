@@ -61,6 +61,22 @@ export function isSearchEnabled(type: ResolvedContentType): boolean {
 	return eligibleSearchFieldNames(type).length > 0;
 }
 
+/**
+ * Opciones del `statusField` resuelto de `type` (D-P4.4, extraído para R2 del rediseño C2):
+ * `null` si el tipo no tiene convención de estado. Antes vivía DUPLICADA como `$derived.by`
+ * privada de `ListToolbar.svelte`; con R2 la necesitan dos consumidores (`ListToolbar` ya no,
+ * pero `FilterChips.svelte` sí, y ambos comparten el mismo criterio de "¿este tipo ofrece
+ * filtro de estado?") — un único punto de verdad, nunca reimplementado dos veces.
+ * `schema.type !== 'select'` es defensivo: la convención de P2 ya lo garantiza, pero este
+ * módulo no confía ciegamente en esa invariante ajena.
+ */
+export function statusFilterOptions(type: ResolvedContentType): string[] | null {
+	if (type.statusField === null) return null;
+	const field = type.fields.find((f) => f.name === type.statusField);
+	if (!field || field.schema.type !== 'select') return null;
+	return field.schema.options;
+}
+
 /** Nodo de búsqueda (OR de `contains` sobre los campos elegibles), o `null` si no aplica. */
 function buildSearchNode(type: ResolvedContentType, q: string): FilterNode | null {
 	if (q === '') return null;

@@ -151,7 +151,6 @@ export const es = {
 	'list.error.body': '{message}',
 	'list.pagination.prev': 'Anterior',
 	'list.pagination.next': 'Siguiente',
-	'list.pagination.pageOf': '{page} de {totalPages}',
 	'list.pagination.total': '{count} registros',
 	'list.cell.yes': 'Sí',
 	'list.cell.no': 'No',
@@ -160,13 +159,20 @@ export const es = {
 	// ————— Toolbar de listado (Fase 4d del contrato P4) —————
 	'list.search.placeholder': 'Buscar…',
 	'list.search.ariaLabel': 'Buscar en el listado',
-	'list.filter.status.label': 'Estado',
 	'list.filter.status.all': 'Todos',
 	'list.sort.ariaLabel': 'Ordenar por {column}',
 	'list.emptySearch.title': 'Sin resultados',
 	'list.emptySearch.body':
 		'Ningún registro de "{label}" coincide con la búsqueda o los filtros activos.',
 	'list.emptySearch.clear': 'Limpiar filtros',
+
+	// ————— Cabecera de listado (R2 del rediseño C2, mockup `.listhead`) —————
+	'list.filter.groupLabel': 'Filtrar por estado',
+	'list.new.button': 'Crear «{label}»',
+
+	// ————— Paginación numerada (R4 del rediseño C2, mockup `.gridfoot`) —————
+	'list.pagination.perPage': '{count} por página',
+	'list.pagination.goToPage': 'Ir a la página {page}',
 
 	// ————— Borrado (Fase 4e del contrato P4) —————
 	'list.actions.header': 'Acciones',

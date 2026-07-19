@@ -17,16 +17,11 @@
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import Icon from '$lib/icons/Icon.svelte';
+	import { isEditableTarget } from './keyboard';
 
 	const ctx = getVegaContext();
 
 	let inputEl = $state<HTMLInputElement | null>(null);
-
-	function isEditableTarget(target: EventTarget | null): boolean {
-		if (!(target instanceof HTMLElement)) return false;
-		if (target.isContentEditable) return true;
-		return target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
-	}
 
 	function handleGlobalKeydown(event: KeyboardEvent): void {
 		if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return;

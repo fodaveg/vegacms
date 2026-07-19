@@ -53,7 +53,7 @@
 		ensureMediaCollection
 	} from '$lib/media/media-collection';
 	import { toMediaItemView, type MediaItemView } from '$lib/media/media-item';
-	import { mediaPageToParams, parseMediaPage } from '$lib/media/media-query';
+	import { MEDIA_PER_PAGE, mediaPageToParams, parseMediaPage } from '$lib/media/media-query';
 	import { createMediaListState } from '$lib/media/media-list-state.svelte';
 	import { findMediaFileFieldSchema } from '$lib/media/media-upload';
 	import { mediaRoute } from '$lib/nav/routes';
@@ -285,8 +285,10 @@
 							page={mediaReadyPage.page}
 							totalPages={mediaReadyPage.totalPages}
 							totalItems={mediaReadyPage.totalItems}
+							perPage={MEDIA_PER_PAGE}
 							onPrev={() => goToMediaPage(mediaReadyPage.page - 1)}
 							onNext={() => goToMediaPage(mediaReadyPage.page + 1)}
+							onGoToPage={goToMediaPage}
 						/>
 					{/if}
 				</div>

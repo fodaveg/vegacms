@@ -7,6 +7,11 @@
  * Confirmación (`DeleteConfirm.svelte`) SIEMPRE de por medio, `role="alertdialog"`, cancelable
  * con `Esc`/"Cancelar" — ningún test de esta suite llama a `port.delete` sin pasar por ella.
  *
+ * **"Borrar" oculto hasta hover/foco (R3 del rediseño C2)**: el botón sigue en el DOM/orden de
+ * tabulación (`opacity`, nunca `display:none`), pero cada test que lo clica hace `row.hover()`
+ * antes — fiel al gesto real (a diferencia de un click síncrono de Playwright, que ignora
+ * `opacity` y clicaría igual sin hover; el hover previo documenta el comportamiento esperado).
+ *
  * El bloque "estado deleting en vuelo" (fix de code-review) usa la afordance de test
  * `__VEGA_DELETE_DELAY_MS__` (`session/backend.ts`) para abrir una ventana FIABLE en la que
  * ejercer `deleting=true` con acciones reales de Playwright — sin ella, `memory` resuelve casi al
@@ -29,6 +34,9 @@ test.describe('borrar con confirmación (L-P4.11)', () => {
 		const row = page.locator('tbody tr', { hasText: 'Bienvenido a Vega' });
 		await expect(row).toBeVisible();
 
+		// "Borrar" está oculto hasta hover/foco de la fila (R3 del rediseño C2, decisión de David):
+		// el hover es lo que lo revela antes de poder clicarlo.
+		await row.hover();
 		await row.getByRole('button', { name: 'Borrar "Bienvenido a Vega"' }).click();
 
 		const dialog = page.getByRole('alertdialog');
@@ -52,6 +60,7 @@ test.describe('borrar con confirmación (L-P4.11)', () => {
 		await page.goto('/c/posts');
 
 		const row = page.locator('tbody tr', { hasText: 'Bienvenido a Vega' });
+		await row.hover();
 		await row.getByRole('button', { name: 'Borrar "Bienvenido a Vega"' }).click();
 
 		const dialog = page.getByRole('alertdialog');
@@ -68,6 +77,7 @@ test.describe('borrar con confirmación (L-P4.11)', () => {
 		await page.goto('/c/posts');
 
 		const row = page.locator('tbody tr', { hasText: 'Bienvenido a Vega' });
+		await row.hover();
 		await row.getByRole('button', { name: 'Borrar "Bienvenido a Vega"' }).click();
 
 		const dialog = page.getByRole('alertdialog');
@@ -88,15 +98,14 @@ test.describe('borrar la última fila de una página > 1 retrocede (L-P4.13, rel
 		// título — el orden por defecto de `memory` es por id, L-P4.2 — así que se opera por
 		// posición, no por texto: el título concreto de esas dos filas no importa para este test).
 		const status = page.locator('.vega-pagination-status');
-		await expect(status).toContainText('2 de 2');
+		await expect(page.locator('[data-pagination] [aria-current="page"]')).toHaveText('2');
 		await expect(page.locator('tbody tr')).toHaveCount(2);
 
 		// Primer borrado: la página 2 queda con 1 fila, sigue siendo una página válida (sin retroceso).
-		await page
-			.locator('tbody tr')
-			.first()
-			.getByRole('button', { name: /^Borrar/ })
-			.click();
+		// "Borrar" oculto hasta hover/foco (R3): la fila se hover primero.
+		const firstRow = page.locator('tbody tr').first();
+		await firstRow.hover();
+		await firstRow.getByRole('button', { name: /^Borrar/ }).click();
 		await page
 			.getByRole('alertdialog')
 			.getByRole('button', { name: 'Borrar', exact: true })
@@ -107,11 +116,9 @@ test.describe('borrar la última fila de una página > 1 retrocede (L-P4.13, rel
 
 		// Segundo borrado: la página 2 queda VACÍA (`items: []`, `totalItems: 30 > 0`) — el mismo
 		// `$effect` de "página fuera de rango" de 4c/L-P4.13 retrocede a la 1, sin lógica nueva.
-		await page
-			.locator('tbody tr')
-			.first()
-			.getByRole('button', { name: /^Borrar/ })
-			.click();
+		const remainingRow = page.locator('tbody tr').first();
+		await remainingRow.hover();
+		await remainingRow.getByRole('button', { name: /^Borrar/ }).click();
 		await page
 			.getByRole('alertdialog')
 			.getByRole('button', { name: 'Borrar', exact: true })
@@ -119,7 +126,7 @@ test.describe('borrar la última fila de una página > 1 retrocede (L-P4.13, rel
 		await expect(page.getByRole('alertdialog')).toBeHidden();
 
 		await expect(page).toHaveURL(/\/c\/posts$/);
-		await expect(status).toContainText('1 de 1');
+		await expect(page.locator('[data-pagination] [aria-current="page"]')).toHaveText('1');
 		await expect(status).toContainText('30 registros');
 		await expect(page.locator('[data-list-state="ready"]')).toBeVisible();
 		await expect(page.locator('[data-list-state="empty-collection"]')).toHaveCount(0);
@@ -144,6 +151,7 @@ test.describe('estado "deleting" en vuelo (fix de code-review de 4e)', () => {
 		});
 
 		const rowA = page.locator('tbody tr', { hasText: 'Bienvenido a Vega' });
+		await rowA.hover();
 		await rowA.getByRole('button', { name: 'Borrar "Bienvenido a Vega"' }).click();
 
 		const dialog = page.getByRole('alertdialog');
@@ -212,6 +220,7 @@ test.describe('borrado que falla (afordance de test, L-P4.4/Audit H6)', () => {
 		});
 
 		const row = page.locator('tbody tr', { hasText: 'Bienvenido a Vega' });
+		await row.hover();
 		await row.getByRole('button', { name: 'Borrar "Bienvenido a Vega"' }).click();
 		await page
 			.getByRole('alertdialog')

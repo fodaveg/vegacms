@@ -47,6 +47,15 @@
 	 * el primer render síncrono, antes de hidratar — ya ha pasado hace rato). El mismo guard cubre
 	 * ahora también la carga del listado (4c) y la navegación de `Pagination.goToPage`: ninguna de
 	 * las dos dispara antes de `routerReady`.
+	 *
+	 * **Lote-2 del rediseño C2 (R2/R3/R4)**: R2 mueve el filtro de estado del `<select>` de
+	 * `ListToolbar` a `FilterChips` (chips con recuento, ver su cabecera) en la misma fila que el
+	 * `<h1>` y el botón "Nueva {label}" (atajo `N`, guardado igual que `GlobalSearch`); R3 es solo
+	 * visual, dentro de `RecordTable`; R4 unifica tabla + paginación numerada en UNA tarjeta
+	 * (`.vega-list-card`, mockup `.grid`) — `RecordTable`/`Pagination` ya no llevan cada uno su
+	 * propio marco. `countsRefreshToken` es la única pieza de estado nueva: un contador que
+	 * `confirmDelete` incrementa en su camino de éxito para que `FilterChips` sepa que sus
+	 * recuentos quedaron obsoletos (ver su declaración más abajo).
 	 */
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -55,16 +64,19 @@
 	import type { ResolvedContentType } from '$lib/model/types';
 	import type { VegaRecord } from '$lib/backend/types';
 	import { VegaError } from '$lib/backend/errors';
+	import { DEFAULT_PER_PAGE } from '$lib/backend/query';
 	import { resolveVisibleContentType } from '$lib/nav/content-type';
 	import { deriveColumns } from '$lib/list/columns';
 	import { parseViewState, viewStateToParams, type ViewStatePatch } from '$lib/list/query-state';
 	import { cycleSort } from '$lib/list/sort';
 	import { createListState } from '$lib/list/list-state.svelte';
 	import { listRoute } from '$lib/nav/routes';
+	import { isEditableTarget } from '$lib/shell/keyboard';
 	import RouteState from '$lib/shell/RouteState.svelte';
 	import RecordTable from '$lib/list/RecordTable.svelte';
 	import Pagination from '$lib/list/Pagination.svelte';
 	import ListToolbar from '$lib/list/ListToolbar.svelte';
+	import FilterChips from '$lib/list/FilterChips.svelte';
 	import DeleteConfirm from '$lib/list/DeleteConfirm.svelte';
 
 	const ctx = getVegaContext();
@@ -134,6 +146,13 @@
 	// que se lleva por delante la fila (y su botón "Borrar") a la que el diálogo restauraría el
 	// foco por defecto.
 	let headingEl = $state<HTMLElement | null>(null);
+	// Dependencia reactiva de `FilterChips` (R2 del rediseño C2): un borrado con éxito no cambia
+	// `contentType`, así que sin este contador sus recuentos se quedarían obsoletos hasta el
+	// próximo cambio de tipo. Se incrementa SOLO en el camino de éxito de `confirmDelete` —
+	// prioriza correctitud (nunca pisar un recuento de OTRO tipo/sesión, ver `FilterChips`) sobre
+	// exactitud instantánea (una ligera obsolescencia tras un fallo es aceptable, D-P4.4 ya manda
+	// ese error al banner global, no aquí).
+	let countsRefreshToken = $state(0);
 
 	/** `RecordTable` (fila, `!contentType.readonly`) pide confirmar el borrado de `record`. Defensa
 	 *  en profundidad (fix de code-review de 4e): con un borrado YA en vuelo (`deleting`), ignora
@@ -175,6 +194,7 @@
 			ctx.feedback.toast(ctx.t('list.delete.success', { label }), { kind: 'success' });
 			pendingDelete = null;
 			listState.reload();
+			countsRefreshToken += 1; // recuentos de FilterChips obsoletos tras el borrado, ver arriba
 		} catch (err) {
 			ctx.feedback.reportError(
 				err instanceof VegaError ? err : VegaError.backend('Error inesperado al borrar', err)
@@ -220,6 +240,33 @@
 		if (!routerReady || !readyPage || !pageOutOfRange) return;
 		goToPage(readyPage.totalPages);
 	});
+
+	// Atajo `N` → "Nueva entrada" (R2 del rediseño C2, mockup `.btn.primary kbd`): mismo guard que
+	// `GlobalSearch.handleGlobalKeydown` (ignora con Cmd/Ctrl/Alt o dentro de un campo editable,
+	// vía el helper compartido `$lib/shell/keyboard`). Ausente para tipos `readonly`/`singleton`
+	// (nunca ofrecen "Nueva"), coherente con el botón.
+	$effect(() => {
+		const type = contentType;
+		if (!type || type.readonly || type.singleton) return;
+		const typeName = type.name; // capturado como string plano: el closure de abajo no depende
+		// del estrechamiento de `type` (`function` con nombre, no una flecha — TS no lo preserva).
+		const handleKeydown = (event: KeyboardEvent): void => {
+			if (event.key.toLowerCase() !== 'n' || event.metaKey || event.ctrlKey || event.altKey) {
+				return;
+			}
+			if (isEditableTarget(event.target)) return;
+			// Con el diálogo de borrado abierto (fix de code-review, 🔴): sus botones "Cancelar"/
+			// "Borrar" NO son campos editables, así que `isEditableTarget` no los filtra — sin este
+			// guard, teclear "no" (empieza por `n`) reflexivamente ABANDONARÍA la confirmación de un
+			// borrado destructivo navegando a "Nueva". `DeleteConfirm` solo detiene la propagación de
+			// `Escape`, no de cualquier tecla, así que el guard vive aquí, único dueño de ambos estados.
+			if (pendingDelete !== null) return;
+			event.preventDefault();
+			ctx.nav.toNew(typeName);
+		};
+		document.addEventListener('keydown', handleKeydown);
+		return () => document.removeEventListener('keydown', handleKeydown);
+	});
 </script>
 
 {#if !contentType}
@@ -236,83 +283,112 @@
 	<p aria-live="polite">{ctx.t('common.loading')}</p>
 {:else}
 	<div class="vega-list-page">
-		<div class="vega-list-heading">
+		<!-- Cabecera de listado (R2 del rediseño C2, mockup `.listhead`): h1 + chips de estado CON
+		     RECUENTO + spacer + "Nueva" en la MISMA fila (flex-wrap: en viewports estrechos, los
+		     chips/botón bajan de línea antes que desbordar). -->
+		<div class="vega-list-header">
 			<!-- `tabindex="-1"` (fix de code-review de 4e): destino de foco programático de
 			     `DeleteConfirm.fallbackFocusEl` tras un borrado con éxito, nunca alcanzable por Tab. -->
 			<h1 tabindex="-1" bind:this={headingEl}>{contentType.label}</h1>
 			{#if contentType.readonly}
 				<span class="vega-list-readonly-badge">{ctx.t('nav.readonlyBadge')}</span>
 			{/if}
+			<FilterChips
+				{contentType}
+				activeStatus={viewState.status}
+				onStatusChange={(status) => navigateView({ status })}
+				reloadToken={countsRefreshToken}
+			/>
+			<span class="vega-list-header-spacer"></span>
+			{#if !contentType.readonly}
+				<button
+					type="button"
+					class="vega-list-new-button"
+					onclick={() => ctx.nav.toNew(contentType.name)}
+				>
+					{ctx.t('list.new.button', { label: contentType.labelSingular })}
+					<kbd aria-hidden="true">N</kbd>
+				</button>
+			{/if}
 		</div>
 
-		<!-- La toolbar (Fase 4d) vive FUERA del switch de `listStatus`: solo depende de
-		     `contentType`/`viewState` (URL), no de si la carga está en curso, en error o vacía — se
-		     mantiene usable (y refleja el deep-link, L-P4.13) en cualquier estado. -->
-		<ListToolbar
-			{contentType}
-			{viewState}
-			onSearch={(q) => navigateView({ q })}
-			onStatusChange={(status) => navigateView({ status })}
-		/>
+		<!-- La toolbar de búsqueda (Fase 4d, reducida a solo el input en R2 — el filtro de estado
+		     vive ahora en `FilterChips` arriba) sigue FUERA del switch de `listStatus`: solo
+		     depende de `contentType`/`viewState` (URL), no de si la carga está en curso, en error o
+		     vacía — se mantiene usable (y refleja el deep-link, L-P4.13) en cualquier estado. -->
+		<ListToolbar {contentType} {viewState} onSearch={(q) => navigateView({ q })} />
 
-		{#if listStatus.kind === 'loading'}
-			<p data-list-state="loading" aria-live="polite">{ctx.t('common.loading')}</p>
-		{:else if listStatus.kind === 'error'}
-			<div class="vega-list-error" data-list-state="error" role="alert">
-				<h2>{ctx.t('list.error.title')}</h2>
-				<p>{ctx.t('list.error.body', { message: listStatus.error.message })}</p>
-				{#if listStatus.error.retryable}
-					<button type="button" onclick={() => listState.retry()}>
-						{ctx.t('common.retry')}
+		<!-- Tarjeta "cabina" C2 (mockup `.grid`): tabla + gridfoot DENTRO del mismo marco
+		     redondeado (R4 del rediseño) — antes cada uno llevaba su propio borde/sombra.
+		     `overflow: hidden` aquí + `overflow-x: auto` en el wrapper interno de `RecordTable`
+		     (que sigue siendo el que scrollea, ver su cabecera): las esquinas quedan limpias y el
+		     scroll horizontal de tablas anchas (L-P4.2/Audit H1) no se pierde. -->
+		<div class="vega-list-card">
+			{#if listStatus.kind === 'loading'}
+				<p class="vega-list-card-pad" data-list-state="loading" aria-live="polite">
+					{ctx.t('common.loading')}
+				</p>
+			{:else if listStatus.kind === 'error'}
+				<div class="vega-list-error vega-list-card-pad" data-list-state="error" role="alert">
+					<h2>{ctx.t('list.error.title')}</h2>
+					<p>{ctx.t('list.error.body', { message: listStatus.error.message })}</p>
+					{#if listStatus.error.retryable}
+						<button type="button" onclick={() => listState.retry()}>
+							{ctx.t('common.retry')}
+						</button>
+					{/if}
+				</div>
+			{:else if pageOutOfRange}
+				<!-- Página fuera de rango (fix de code-review, L-P4.13): el `$effect` de arriba ya
+				     disparó `goToPage(totalPages)`; mientras esa recarga está en vuelo, un estado de
+				     carga honesto — nunca el vacío-colección (habría datos reales en otra página). -->
+				<p class="vega-list-card-pad" data-list-state="loading" aria-live="polite">
+					{ctx.t('common.loading')}
+				</p>
+			{:else if isEmpty && hasActiveFilters}
+				<!-- Vacío-búsqueda (L-P4.12): 0 resultados CON búsqueda o filtro de estado activos. NO es
+				     la colección vacía de verdad (podría tener registros que la búsqueda/filtro descartan) —
+				     por eso NUNCA la CTA "Crear" aquí, sino "Limpiar filtros" (resetea `q`/`status`, vuelve
+				     a página 1 vía `navigateView`). -->
+				<div class="vega-list-empty vega-list-card-pad" data-list-state="empty-search">
+					<h2>{ctx.t('list.emptySearch.title')}</h2>
+					<p>{ctx.t('list.emptySearch.body', { label: contentType.label })}</p>
+					<button type="button" onclick={() => navigateView({ q: '', status: null })}>
+						{ctx.t('list.emptySearch.clear')}
 					</button>
-				{/if}
-			</div>
-		{:else if pageOutOfRange}
-			<!-- Página fuera de rango (fix de code-review, L-P4.13): el `$effect` de arriba ya
-			     disparó `goToPage(totalPages)`; mientras esa recarga está en vuelo, un estado de
-			     carga honesto — nunca el vacío-colección (habría datos reales en otra página). -->
-			<p data-list-state="loading" aria-live="polite">{ctx.t('common.loading')}</p>
-		{:else if isEmpty && hasActiveFilters}
-			<!-- Vacío-búsqueda (L-P4.12): 0 resultados CON búsqueda o filtro de estado activos. NO es
-			     la colección vacía de verdad (podría tener registros que la búsqueda/filtro descartan) —
-			     por eso NUNCA la CTA "Crear" aquí, sino "Limpiar filtros" (resetea `q`/`status`, vuelve
-			     a página 1 vía `navigateView`). -->
-			<div class="vega-list-empty" data-list-state="empty-search">
-				<h2>{ctx.t('list.emptySearch.title')}</h2>
-				<p>{ctx.t('list.emptySearch.body', { label: contentType.label })}</p>
-				<button type="button" onclick={() => navigateView({ q: '', status: null })}>
-					{ctx.t('list.emptySearch.clear')}
-				</button>
-			</div>
-		{:else if isEmpty}
-			<div class="vega-list-empty" data-list-state="empty-collection">
-				<h2>{ctx.t('list.empty.title')}</h2>
-				<p>{ctx.t('list.empty.body', { label: contentType.label })}</p>
-				{#if !contentType.readonly}
-					<button type="button" onclick={() => ctx.nav.toNew(contentType.name)}>
-						{ctx.t('list.empty.cta')}
-					</button>
-				{/if}
-			</div>
-		{:else if readyPage}
-			<div data-list-state="ready">
-				<RecordTable
-					{contentType}
-					{columns}
-					records={readyPage.items}
-					sort={viewState.sort}
-					onSort={(field) => navigateView({ sort: cycleSort(viewState.sort, field) })}
-					onDeleteRequest={requestDelete}
-				/>
-				<Pagination
-					page={readyPage.page}
-					totalPages={readyPage.totalPages}
-					totalItems={readyPage.totalItems}
-					onPrev={() => goToPage(readyPage.page - 1)}
-					onNext={() => goToPage(readyPage.page + 1)}
-				/>
-			</div>
-		{/if}
+				</div>
+			{:else if isEmpty}
+				<div class="vega-list-empty vega-list-card-pad" data-list-state="empty-collection">
+					<h2>{ctx.t('list.empty.title')}</h2>
+					<p>{ctx.t('list.empty.body', { label: contentType.label })}</p>
+					{#if !contentType.readonly}
+						<button type="button" onclick={() => ctx.nav.toNew(contentType.name)}>
+							{ctx.t('list.empty.cta')}
+						</button>
+					{/if}
+				</div>
+			{:else if readyPage}
+				<div data-list-state="ready">
+					<RecordTable
+						{contentType}
+						{columns}
+						records={readyPage.items}
+						sort={viewState.sort}
+						onSort={(field) => navigateView({ sort: cycleSort(viewState.sort, field) })}
+						onDeleteRequest={requestDelete}
+					/>
+					<Pagination
+						page={readyPage.page}
+						totalPages={readyPage.totalPages}
+						totalItems={readyPage.totalItems}
+						perPage={DEFAULT_PER_PAGE}
+						onPrev={() => goToPage(readyPage.page - 1)}
+						onNext={() => goToPage(readyPage.page + 1)}
+						onGoToPage={goToPage}
+					/>
+				</div>
+			{/if}
+		</div>
 	</div>
 {/if}
 
@@ -332,15 +408,25 @@
 		gap: var(--vega-space-gutter);
 	}
 
-	.vega-list-heading {
+	/* Cabecera de listado (R2, mockup `.listhead`): flex-wrap para que en viewports estrechos los
+	   chips/botón bajen de línea en vez de desbordar horizontalmente. */
+	.vega-list-header {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		flex-wrap: wrap;
+		gap: 1rem;
 	}
 
-	.vega-list-heading h1 {
+	.vega-list-header h1 {
 		margin: 0;
-		font-size: 1.2rem;
+		font-size: 1.3rem;
+		font-weight: 700;
+		color: var(--ink-hi);
+		letter-spacing: -0.01em;
+	}
+
+	.vega-list-header-spacer {
+		flex: 1;
 	}
 
 	.vega-list-readonly-badge {
@@ -350,6 +436,63 @@
 		border-radius: 999px;
 		font-size: 0.7rem;
 		white-space: nowrap;
+		color: var(--ink-2);
+	}
+
+	/* Botón primario "Nueva {label}" (R2, mockup `.btn.primary`): mismo tratamiento que el resto
+	   de botones primarios del rediseño — relleno `--accent`, texto `--accent-ink`. */
+	.vega-list-new-button {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		border: 1px solid var(--accent);
+		background: var(--accent);
+		color: var(--accent-ink);
+		border-radius: var(--r);
+		padding: 0.45rem 1rem;
+		font-size: 0.8125rem;
+		font-weight: 600;
+		cursor: pointer;
+		white-space: nowrap;
+	}
+
+	.vega-list-new-button:hover {
+		background: var(--accent-hover);
+		border-color: var(--accent-hover);
+	}
+
+	.vega-list-new-button kbd {
+		font-family: var(--mono);
+		font-size: 0.6875rem;
+		border: 1px solid var(--line-strong);
+		border-bottom-width: 2px;
+		border-radius: 4px;
+		padding: 0.08rem 0.35rem;
+		color: var(--accent-ink);
+		opacity: 0.75;
+	}
+
+	/* Tarjeta "cabina" C2 (R4, mockup `.grid`): tabla + gridfoot en un único marco redondeado —
+	   `overflow: hidden` recorta las esquinas de ambos hijos sin necesidad de que cada uno declare
+	   su propio radio. */
+	.vega-list-card {
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
+		overflow: hidden;
+	}
+
+	/* Padding propio SOLO para los estados no-tabulares (loading/error/vacío): `RecordTable`/
+	   `Pagination` traen el suyo, este NUNCA se aplica a `[data-list-state="ready"]`. */
+	.vega-list-card-pad {
+		padding: 2rem 1.5rem;
+		margin: 0;
+	}
+
+	/* Solo el `<p>` de "Cargando…" es texto plano suelto (sin `h2`/`p` propios que colorear por
+	   separado, a diferencia de `.vega-list-error`/`.vega-list-empty`). */
+	p.vega-list-card-pad {
 		color: var(--ink-2);
 	}
 
