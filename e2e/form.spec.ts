@@ -251,7 +251,7 @@ test.describe('campo number desde null (fix de code-review, GenericInput.svelte)
 		await expect(page.getByRole('heading', { name: 'Crear «Métrica»' })).toBeVisible();
 		// `count` arranca en `null` (default de creación de todo `number`, `normalizeFieldValue`
 		// §2.1) — exactamente el caso que `GenericInput` confundía con "texto" antes del fix.
-		await page.getByLabel('Count').fill('123');
+		await page.getByLabel('Count', { exact: true }).fill('123');
 		await page.getByRole('button', { name: 'Guardar' }).click();
 
 		await page.waitForURL(/\/c\/metrics\/(?!new)[^/]+$/);
@@ -261,7 +261,7 @@ test.describe('campo number desde null (fix de code-review, GenericInput.svelte)
 		// widget). Con el bug, el `RecordInput` viajaba con `count: "123"` (string); el adaptador
 		// `memory` (`normalizeFieldValue`, tipo `number`: `typeof raw === 'number' ? raw : null`)
 		// lo habría degradado a `null` AL ESCRIBIR — este campo se vería VACÍO, no "123".
-		await expect(page.getByLabel('Count')).toHaveValue('123');
+		await expect(page.getByLabel('Count', { exact: true })).toHaveValue('123');
 
 		// Ronda completa sin recargar el documento (ver nota de cabecera): vuelve al listado (SPA)
 		// y navega atrás por el histórico del propio router (`goBack`, también client-side) hasta
@@ -271,7 +271,11 @@ test.describe('campo number desde null (fix de code-review, GenericInput.svelte)
 		await page.waitForURL('**/c/metrics');
 		await page.goBack();
 		await page.waitForURL(/\/c\/metrics\/(?!new)[^/]+$/);
-		await expect(page.getByLabel('Count')).toHaveValue('123');
+		// `exact: true` (mismo flake que el fix de `:357`, familia getByLabel-substring-tras-goBack):
+		// `/c/metrics` no tiene titleField/statusField → `count` entra como columna ORDENABLE con
+		// `aria-label="Ordenar por Count"`; sin `exact`, durante la ventana async de `goBack` (listado
+		// aún montado) `getByLabel('Count')` agarra ese botón en vez del `<input>`.
+		await expect(page.getByLabel('Count', { exact: true })).toHaveValue('123');
 	});
 });
 
