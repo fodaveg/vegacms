@@ -92,6 +92,19 @@ export const es = {
 	'form.errorCode.vega_unknown_field': 'Este campo no existe en el tipo de contenido.',
 	'form.errorCode.vega_foreign_file_ref': 'Ese fichero no pertenece a este registro.',
 
+	// ————— Widget relation (Fase F5-e del contrato P5) —————
+	'form.relation.searchAriaLabel': 'Buscar «{label}»',
+	'form.relation.searchPlaceholder': 'Buscar por título…',
+	'form.relation.typeToSearch': 'Escribe para buscar…',
+	'form.relation.searching': 'Buscando…',
+	'form.relation.noResults': 'Sin resultados',
+	'form.relation.emptySelection': '— sin selección —',
+	'form.relation.remove': 'Quitar',
+	'form.relation.removeLabel': 'Quitar «{title}»',
+	'form.relation.notFound': 'no encontrado',
+	'form.relation.degradedNote':
+		'Este tipo no tiene un campo de título con el que buscar: elige de la lista.',
+
 	// ————— Editor richtext/markdown (Fase F5-d del contrato P5) —————
 	'form.editor.toolbarLabel': 'Herramientas de formato',
 	'form.editor.paragraph': 'Párrafo',

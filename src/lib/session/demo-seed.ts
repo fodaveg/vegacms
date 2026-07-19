@@ -71,6 +71,12 @@
  * `summary` (`text`/`plain` con override `widget:'markdown'`, D-P5.8) y `content` (`type:'richtext'`,
  * widget `richtext` por defecto, D-P5.6/D-P5.7). `e2e/form.spec.ts` los ejercita creando/editando
  * un `posts` con ambos editores.
+ *
+ * **Añadido en F5-e (contrato P5)**: tres campos `relation` en `posts` (sin datos seed, ver su
+ * comentario en `POSTS_CONTENT_TYPE` para el porqué de cada target) — `relatedPost` (single→`posts`,
+ * búsqueda por título de verdad), `relatedPosts` (múltiple→`posts`, `maxSelect: 2`) y
+ * `relatedMetric` (single→`metrics`, modo DEGRADADO: `metrics.titleField === null`, Audit Finding 3
+ * del contrato P5). `e2e/form.spec.ts` ejercita los tres.
  */
 import type { ContentType, JsonValue } from '$lib/backend/types';
 import { VEGA_COLLECTION } from '$lib/backend/collections';
@@ -209,6 +215,61 @@ const POSTS_CONTENT_TYPE: ContentType = {
 			name: 'content',
 			type: 'richtext',
 			subtype: 'html',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		// Tres campos `relation` añadidos en F5-e (contrato P5, widget `relation` real, L-P5.9): sin
+		// datos seed (ningún test existente los necesita), para que `e2e/form.spec.ts` ejercite la
+		// búsqueda por título, el degradado sin `titleField` (Audit Finding 3) y `maxSelect`.
+		//
+		// `relatedPost` (single, target `posts`): AUTO-relación deliberada — `posts` ya tiene
+		// `titleField: 'title'` y de sobra registros de sobra (`post_1`.."Bienvenido a Vega" es el
+		// ÚNICO con esa palabra, ver cabecera del módulo) para buscar/seleccionar de verdad. Se
+		// prefiere sobre `authors` (que el contrato menciona como ejemplo) porque `authors` está a
+		// propósito SIN registros (cubre el vacío-colección de 4c, ver más arriba) — apuntar ahí
+		// dejaría el buscador sin NADA que encontrar.
+		{
+			name: 'relatedPost',
+			type: 'relation',
+			target: 'posts',
+			multiple: false,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		// `relatedPosts` (múltiple, target `posts`, `maxSelect: 2`): mismo destino que arriba, para
+		// ejercer la afordancia de F5-e que deshabilita los candidatos no seleccionados al alcanzar
+		// el límite (mismo criterio que `chips`/`tags`) — buscando "Entrada" hay de sobra (30
+		// registros `post_3`..`post_32`) para seleccionar 2 y ver un tercero deshabilitado en el
+		// MISMO resultado de búsqueda.
+		{
+			name: 'relatedPosts',
+			type: 'relation',
+			target: 'posts',
+			multiple: true,
+			maxSelect: 2,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		// `relatedMetric` (single, target `metrics`): `metrics` es el ÚNICO tipo de la semilla con
+		// `titleField: null` (cascada de P2 agotada, ver cabecera del módulo) — el destino exacto
+		// que ejercita el modo DEGRADADO (Audit Finding 3, sin buscador, listado paginado por id).
+		// `metrics` tiene exactamente un registro (`metric_1`, ver más abajo): suficiente para
+		// seleccionar de verdad sin arriesgar `list.spec.ts` (que localiza esa fila por su ÚNICO
+		// enlace "(sin título)" — un segundo registro rompería ese `getByRole` en modo estricto).
+		{
+			name: 'relatedMetric',
+			type: 'relation',
+			target: 'metrics',
+			multiple: false,
 			required: false,
 			readonly: false,
 			presentable: false,

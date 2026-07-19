@@ -31,6 +31,14 @@
  * control HTML nativo `<input>`/`<textarea>`, así que se localiza por `role="textbox"` (el mismo
  * que fija `editorProps.attributes` en ambos widgets) en vez de `.fill()`: requiere clic + tecleo
  * real (`pressSequentially`), documentado en la cabecera de ambos widgets.
+ *
+ * **Añadido en F5-e (contrato P5)**: el widget `relation` real, sobre los tres campos añadidos a
+ * `posts` en la semilla (`session/demo-seed.ts`, sección "Añadido en F5-e") — búsqueda por título
+ * de verdad (`relatedPost`, single), `maxSelect` (`relatedPosts`, múltiple) y el modo DEGRADADO sin
+ * `titleField` (`relatedMetric`, Audit Finding 3). El grupo se localiza por `role="group"` (mismo
+ * criterio que `chips`, un grupo de botones no es un control "labelable"); los candidatos, por
+ * `role="button"` con `exact: true` (algunos títulos de la semilla, "Entrada 3"/"Entrada 30", son
+ * substring unos de otros).
  */
 import { expect, loginAsDemo, test } from './fixtures';
 
@@ -396,5 +404,112 @@ test.describe('editor TipTap real: richtext y markdown (F5-d)', () => {
 		await expect(
 			page.locator('[data-field="summary"]').getByText('Resumen escrito a mano')
 		).toBeVisible();
+	});
+});
+
+test.describe('widget relation (F5-e)', () => {
+	test('single (relatedPost): buscar por título → seleccionar → persistir → recargar y ver el título resuelto', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts/new');
+		await page.getByLabel('Title').fill('Post con relatedPost');
+
+		const group = page.getByRole('group', { name: 'Related post', exact: true });
+		await group.getByRole('searchbox').fill('Bienvenido');
+
+		const candidate = group.getByRole('button', { name: 'Bienvenido a Vega', exact: true });
+		await expect(candidate).toBeVisible();
+		await candidate.click();
+		await expect(candidate).toHaveAttribute('aria-pressed', 'true');
+		await expect(group.locator('.vega-relation-chip')).toContainText('Bienvenido a Vega');
+
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+
+		// El título resuelto (`ctx.port.get` sin `expand`, D-P5.9) sobrevive al viaje redondo.
+		await expect(page.getByRole('group', { name: 'Related post', exact: true })).toContainText(
+			'Bienvenido a Vega'
+		);
+
+		// Persistido de verdad (ver nota de cabecera del fichero): vuelve al listado (SPA) y navega
+		// atrás por el histórico del router hasta este mismo registro — carga FRESCA vía `ctx.port.get`.
+		await page.getByRole('button', { name: 'Volver' }).click();
+		await page.waitForURL('**/c/posts');
+		await page.goBack();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+		await expect(page.getByRole('group', { name: 'Related post', exact: true })).toContainText(
+			'Bienvenido a Vega'
+		);
+	});
+
+	test('múltiple con maxSelect (relatedPosts): seleccionar 2 agota el límite, el 3º queda deshabilitado', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts/new');
+		await page.getByLabel('Title').fill('Post con relatedPosts');
+
+		const group = page.getByRole('group', { name: 'Related posts', exact: true });
+		await group.getByRole('searchbox').fill('Entrada');
+
+		// Sin `sort` en la query, el adaptador `memory` desempata por ID ASCENDENTE (§4.2/§4.6): de
+		// los 30 "Entrada N" (`post_3`..`post_32`), los primeros 20 por orden lexicográfico de id
+		// son `post_10`..`post_29` ("post_3" ordena DESPUÉS de "post_29", no numéricamente) — de ahí
+		// "Entrada 10"/"Entrada 11"/"Entrada 12" en vez de los títulos "3"/"4"/"5", más intuitivos
+		// pero fuera de la primera página (`RELATION_SEARCH_PER_PAGE`, `relation-search.ts`).
+		const first = group.getByRole('button', { name: 'Entrada 10', exact: true });
+		const second = group.getByRole('button', { name: 'Entrada 11', exact: true });
+		const third = group.getByRole('button', { name: 'Entrada 12', exact: true });
+		await expect(first).toBeVisible();
+		await first.click();
+		await second.click();
+
+		await expect(first).toHaveAttribute('aria-pressed', 'true');
+		await expect(second).toHaveAttribute('aria-pressed', 'true');
+		await expect(third).toBeDisabled(); // maxSelect: 2 alcanzado (afordancia UX, D-P5.9)
+
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+
+		const savedGroup = page.getByRole('group', { name: 'Related posts', exact: true });
+		await expect(savedGroup).toContainText('Entrada 10');
+		await expect(savedGroup).toContainText('Entrada 11');
+
+		// Remount con caché de títulos VACÍA (fix de code-review: `resolveTitle` trackeaba mal las
+		// peticiones en vuelo y duplicaba `get`s en O(n²) para varios ids seleccionados a la vez —
+		// mismo patrón de "recarga fría" que el test single de más arriba, aquí con 2 ids a la vez
+		// para ejercer justo el caso que reproducía el bug). Ambos títulos deben resolver, sin
+		// importar el orden de resolución de las dos llamadas `ctx.port.get` concurrentes.
+		await page.getByRole('button', { name: 'Volver' }).click();
+		await page.waitForURL('**/c/posts');
+		await page.goBack();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+		const reloadedGroup = page.getByRole('group', { name: 'Related posts', exact: true });
+		await expect(reloadedGroup).toContainText('Entrada 10');
+		await expect(reloadedGroup).toContainText('Entrada 11');
+	});
+
+	test('degradado sin titleField (relatedMetric): sin buscador, listado paginado por id', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts/new');
+		await page.getByLabel('Title').fill('Post con relatedMetric');
+
+		const group = page.getByRole('group', { name: 'Related metric' });
+		await expect(group).toHaveAttribute('data-degraded', 'true');
+		await expect(group.getByRole('searchbox')).toHaveCount(0); // Audit Finding 3: sin buscador
+
+		const candidate = group.getByRole('button', { name: 'metric_1', exact: true });
+		await expect(candidate).toBeVisible();
+		await candidate.click();
+		await expect(candidate).toHaveAttribute('aria-pressed', 'true');
+
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+
+		// Sin titleField, el propio id ES el título (`titleOf`, `relation-search.ts`): persiste igual.
+		await expect(page.getByRole('group', { name: 'Related metric' })).toContainText('metric_1');
 	});
 });

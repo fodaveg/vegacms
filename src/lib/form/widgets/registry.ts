@@ -8,8 +8,9 @@
  * `unsupported` era el único REAL (`UnsupportedField`). **F5-b** sustituye los 10 widgets
  * escalares (`text, textarea, number, switch, email, url, datetime, select, chips, json`) por
  * componentes dedicados. **F5-d** sustituye `markdown`/`richtext` por el editor TipTap real
- * (`Markdown.svelte`/`Richtext.svelte`, `$lib/richtext/*`) — `relation, file` siguen en
- * `GenericInput` hasta F5-e/f, sin tocar `FieldRow.svelte` (su único consumidor).
+ * (`Markdown.svelte`/`Richtext.svelte`, `$lib/richtext/*`). **F5-e** sustituye `relation` por
+ * `Relation.svelte` (búsqueda por título + degradado sin `titleField`, `relation-search.ts`) —
+ * `file` sigue en `GenericInput` hasta F5-f, sin tocar `FieldRow.svelte` (su único consumidor).
  */
 import type { WidgetId } from '$lib/model/types';
 import type { WidgetComponent } from './types';
@@ -27,6 +28,7 @@ import Chips from './Chips.svelte';
 import Json from './Json.svelte';
 import Markdown from './Markdown.svelte';
 import Richtext from './Richtext.svelte';
+import Relation from './Relation.svelte';
 
 export const WIDGET_REGISTRY: Record<WidgetId, WidgetComponent> = {
 	text: Text,
@@ -40,7 +42,7 @@ export const WIDGET_REGISTRY: Record<WidgetId, WidgetComponent> = {
 	datetime: Datetime,
 	select: Select,
 	chips: Chips,
-	relation: GenericInput,
+	relation: Relation,
 	file: GenericInput,
 	json: Json,
 	unsupported: UnsupportedField

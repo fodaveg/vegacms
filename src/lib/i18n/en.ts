@@ -86,6 +86,18 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'form.errorCode.vega_unknown_field': 'This field does not exist on the content type.',
 	'form.errorCode.vega_foreign_file_ref': 'That file does not belong to this record.',
 
+	// ————— Relation widget (P5 contract, Phase F5-e) —————
+	'form.relation.searchAriaLabel': 'Search «{label}»',
+	'form.relation.searchPlaceholder': 'Search by title…',
+	'form.relation.typeToSearch': 'Type to search…',
+	'form.relation.searching': 'Searching…',
+	'form.relation.noResults': 'No results',
+	'form.relation.emptySelection': '— no selection —',
+	'form.relation.remove': 'Remove',
+	'form.relation.removeLabel': 'Remove «{title}»',
+	'form.relation.notFound': 'not found',
+	'form.relation.degradedNote': 'This type has no title field to search by: pick from the list.',
+
 	// ————— Richtext/markdown editor (P5 contract, Phase F5-d) —————
 	'form.editor.toolbarLabel': 'Formatting tools',
 	'form.editor.paragraph': 'Paragraph',
