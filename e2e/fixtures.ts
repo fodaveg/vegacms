@@ -90,14 +90,27 @@ export { expect };
  * PRIMERA construcción del `BackendPort`, `session/backend.ts`) — el adaptador `memory` arranca
  * entonces con `DEMO_SEED_WITH_MEDIA` (la colección `vega_media` YA creada, con assets) en vez
  * de `DEMO_SEED`. Ausente/`false` = comportamiento previo, usado por el resto de la suite.
+ *
+ * `opts.editorMode` (lote L6c): mismo mecanismo, fija `window.__VEGA_FORCE_EDITOR_CAPABILITIES__
+ * = true` — el `BackendPort` resultante lleva `capabilities.schemaDiscovery`/`schemaBootstrap` en
+ * `false`, simulando una sesión de rol editor (ver `withEditorCapabilities`, `session/backend.ts`)
+ * sin montar un PocketBase real. Ausente/`false` = comportamiento previo (capabilities de
+ * superuser).
  */
 export async function loginAsDemo(
 	page: import('@playwright/test').Page,
-	opts?: { seedMedia?: boolean }
+	opts?: { seedMedia?: boolean; editorMode?: boolean }
 ): Promise<void> {
 	if (opts?.seedMedia) {
 		await page.addInitScript(() => {
 			(window as unknown as { __VEGA_SEED_MEDIA__?: boolean }).__VEGA_SEED_MEDIA__ = true;
+		});
+	}
+	if (opts?.editorMode) {
+		await page.addInitScript(() => {
+			(
+				window as unknown as { __VEGA_FORCE_EDITOR_CAPABILITIES__?: boolean }
+			).__VEGA_FORCE_EDITOR_CAPABILITIES__ = true;
 		});
 	}
 	await page.goto('/login');

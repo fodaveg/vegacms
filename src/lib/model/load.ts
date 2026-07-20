@@ -6,7 +6,7 @@
  */
 
 import type { BackendPort } from '$lib/backend/port';
-import type { JsonValue } from '$lib/backend/types';
+import type { JsonValue, RecordInput } from '$lib/backend/types';
 import { VEGA_COLLECTION } from '$lib/backend/collections';
 import type { ContentModel } from './types';
 import { resolveContentModel } from './resolve';
@@ -15,6 +15,10 @@ import { multipleVegaRecords } from './warnings';
 
 /** Nombre del campo `json` del registro `vega` (§6.1). */
 const MANIFEST_FIELD = 'manifest';
+
+/** Nombre del campo `json` de snapshot de esquema del registro `vega` (L6b): ver cabecera de
+ *  `saveManifest` para cuándo se escribe. */
+const SCHEMA_SNAPSHOT_FIELD = 'schemaSnapshot';
 
 /**
  * Rechazo de `saveManifest` cuando el manifiesto no pasa `validateManifestStrict` (§6.3.1): la
@@ -75,6 +79,14 @@ export async function loadContentModel(
  *
  * No re-resuelve el modelo: el llamador (el editor, Fase 3) vuelve a llamar a
  * `loadContentModel` tras guardar para ver los warnings resultantes (§6.3.4).
+ *
+ * L6b (rol editor): además del manifiesto, persiste el `ContentType[]` recién descubierto en
+ * `schemaSnapshot` del MISMO registro — una sola escritura, sin duplicar la llamada de red. Es
+ * el snapshot que el adaptador `pocketbase` sirve en modo editor (`schemaDiscovery: false`,
+ * `GET /api/collections` vedado a no-superusers). Solo se escribe si `capabilities.schemaDiscovery`
+ * es `true` (introspección REAL, no ya-servida-desde-snapshot): en modo editor `types` vendría
+ * del propio snapshot (circular), así que reescribirlo sería, en el mejor caso, un no-op y, en
+ * el peor, congelar un esquema potencialmente obsoleto bajo apariencia de estar actualizándose.
  */
 export async function saveManifest(port: BackendPort, manifest: JsonValue): Promise<void> {
 	const validation = validateManifestStrict(manifest);
@@ -83,15 +95,28 @@ export async function saveManifest(port: BackendPort, manifest: JsonValue): Prom
 	// Seguro tras `validation.ok`: el schema exige `type: "object"` en la raíz.
 	const versioned: JsonValue = { ...(manifest as Record<string, JsonValue>), schemaVersion: 1 };
 
-	const types = await port.listContentTypes();
+	let types = await port.listContentTypes();
 	if (!types.some((t) => t.name === VEGA_COLLECTION.name)) {
 		await port.ensureCollections([VEGA_COLLECTION]);
+		// Fix de code-review (L6b, bug BLOQUEANTE): RE-lee `types` tras crear `vega` — el
+		// snapshot que se persiste abajo DEBE incluir la propia colección `vega` (así lo vería
+		// una introspección real en vivo, §4.2). Sin este refresco, el primer guardado desde
+		// `/settings` (bootstrap) dejaba un `schemaSnapshot` SIN `vega`; un editor (modo
+		// snapshot, `schemaDiscovery: false`) leería ESE snapshot vía `fetchAllContentTypes` y
+		// `loadContentModel` (arriba, §6.2) decidiría "manifiesto ausente" pese a que el
+		// manifiesto SÍ existe — rompía el caso central de L6b.
+		types = await port.listContentTypes();
+	}
+
+	const body: RecordInput = { [MANIFEST_FIELD]: versioned };
+	if (port.capabilities.schemaDiscovery) {
+		body[SCHEMA_SNAPSHOT_FIELD] = types as unknown as JsonValue;
 	}
 
 	const page = await port.list(VEGA_COLLECTION.name, { perPage: 1 });
 	if (page.items.length > 0) {
-		await port.update(VEGA_COLLECTION.name, page.items[0].id, { [MANIFEST_FIELD]: versioned });
+		await port.update(VEGA_COLLECTION.name, page.items[0].id, body);
 	} else {
-		await port.create(VEGA_COLLECTION.name, { [MANIFEST_FIELD]: versioned });
+		await port.create(VEGA_COLLECTION.name, body);
 	}
 }

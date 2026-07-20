@@ -23,8 +23,13 @@
 	 *   `window.confirm`) → al confirmar, `ensureMediaCollection(port)` (L-P6.10: la spec que
 	 *   llega a `ensureCollections` contiene ÚNICAMENTE `vega_media`) → refresca `types` a
 	 *   `'present'`.
-	 * - `'manual'`: `capabilities.schemaBootstrap` es `false` → el JSON de importación
-	 *   determinista de `buildMediaBootstrapImportJson()` (L-P6.5), sin botón de crear.
+	 * - `'manual'`: `capabilities.schemaBootstrap` es `false` → sin bootstrap disponible. En modo
+	 *   superuser (adaptador/backend hipotético sin `ensureCollections`) se enseña el JSON de
+	 *   importación determinista de `buildMediaBootstrapImportJson()` (L-P6.5); en modo EDITOR
+	 *   (lote L6c: colección de auth ≠ `_superusers`, L6a — el único caso real hoy, PB reserva
+	 *   `ensureCollections` a superusers) ese JSON no le sirve de nada (no tiene acceso al Admin de
+	 *   PocketBase) y se degrada a un aviso honesto ("pídele a un administrador"). `isEditorMode`
+	 *   (más abajo) es la misma señal de capability que gatea `/settings` — ver su cabecera.
 	 *
 	 * Errores de TRANSPORTE (`VegaError`) → `ctx.feedback.reportError` (nunca pantalla blanca);
 	 * el hueco local solo ofrece "Reintentar", igual que `/settings`. El grid tiene su PROPIO
@@ -78,11 +83,19 @@
 	// resueltos, el router ya está asentado en ese momento).
 	let routerReady = $state(false);
 
+	/** L6c: MISMA señal de capability que gatea `/settings` (ver su cabecera) — un editor nunca
+	 *  tiene `schemaBootstrap: true`, así que en la práctica es la única forma en que `collectionState`
+	 *  llega a `'manual'` hoy (PB solo reserva `ensureCollections` a superusers). Const plano, mismo
+	 *  motivo que `isManifestEditable` en `/settings`: estable durante toda la vida del componente. */
+	const isEditorMode = !ctx.port.capabilities.schemaBootstrap;
+
 	const collectionState = $derived(
 		computeMediaCollectionState(types, ctx.port.capabilities.schemaBootstrap)
 	);
+	/** Solo se compila el JSON de importación cuando de verdad se va a pintar (modo NO editor,
+	 *  ver cabecera): en modo editor el mensaje degradado no lo necesita. */
 	const bootstrapImportJson = $derived(
-		collectionState === 'manual' ? buildMediaBootstrapImportJson() : null
+		collectionState === 'manual' && !isEditorMode ? buildMediaBootstrapImportJson() : null
 	);
 
 	async function load(): Promise<void> {
@@ -218,11 +231,22 @@
 			<button type="button" onclick={() => load()}>{ctx.t('common.retry')}</button>
 		</div>
 	{:else if collectionState === 'manual'}
-		<div class="notice notice-bootstrap" role="alert">
-			<p>{ctx.t('media.bootstrap.manualBody')}</p>
-			<p>{ctx.t('media.bootstrap.manualImportHint')}</p>
-			{#if bootstrapImportJson}
-				<pre class="bootstrap-json">{bootstrapImportJson}</pre>
+		<!-- L6c: `data-media-state="manual-editor"` distingue el aviso degradado del genérico
+		     (`"manual"`, superuser sin bootstrap) para los e2e, mismo criterio que el resto de
+		     `data-media-state`. -->
+		<div
+			class="notice notice-bootstrap"
+			role="alert"
+			data-media-state={isEditorMode ? 'manual-editor' : 'manual'}
+		>
+			{#if isEditorMode}
+				<p>{ctx.t('media.bootstrap.editorBody')}</p>
+			{:else}
+				<p>{ctx.t('media.bootstrap.manualBody')}</p>
+				<p>{ctx.t('media.bootstrap.manualImportHint')}</p>
+				{#if bootstrapImportJson}
+					<pre class="bootstrap-json">{bootstrapImportJson}</pre>
+				{/if}
 			{/if}
 		</div>
 	{:else if collectionState === 'creatable'}

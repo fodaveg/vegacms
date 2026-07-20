@@ -13,12 +13,19 @@
  * `backendUrl` está ausente/no es una URL válida, Vega usa same-origin sin queja (es el caso
  * por defecto: copiar la SPA a `pb_public/`).
  *
+ * `authCollection` (lote L6a, opcional): colección de auth contra la que autentica el adaptador
+ * `pocketbase` (`login`/`restoreSession`). Ausente ⇒ `'_superusers'` (default, camino previo
+ * intacto). Un operador que monte el rol editor plano (§L6, colección dedicada `vega_editors`)
+ * la fija aquí para que TODA instancia de Vega servida desde este `pb_public/` autentique contra
+ * ella sin que cada usuario tenga que introducirla a mano.
+ *
  * ```json
- * { "backendUrl": "https://pb.midominio.com" }
+ * { "backendUrl": "https://pb.midominio.com", "authCollection": "vega_editors" }
  * ```
  */
 export interface VegaConfig {
 	backendUrl?: string;
+	authCollection?: string;
 }
 
 /**
@@ -74,4 +81,33 @@ export function isAbsoluteUrl(value: string): boolean {
 	} catch {
 		return false;
 	}
+}
+
+/** Default espejo del de `createPocketBaseBackend` (`adapters/pocketbase/index.ts`): duplicado a
+ *  propósito, la capa de sesión no puede importar del adaptador concreto (ley L1/P3-L1). */
+const DEFAULT_AUTH_COLLECTION = '_superusers';
+
+/**
+ * Resolución PURA de la colección de auth (lote L6a), MISMO patrón de tres niveles que
+ * `resolveBackendUrl` — de hecho `config` y `override` son los mismos objetos ya resueltos por
+ * la Fase 2 (`session/backend.ts`), ninguna llamada de red/`localStorage` extra:
+ *  1. `override` (no vacío tras `.trim()`) → ese (guardado a mano, gana a cualquier config).
+ *  2. `config.authCollection` (no vacío tras `.trim()`) → ese (D-P3.5-a ampliado por L6a).
+ *  3. `'_superusers'` (default, comportamiento previo — SIN override ni config, resultado
+ *     IDÉNTICO al de antes de L6a).
+ * Un valor en blanco (string vacío, solo espacios) en cualquiera de los dos niveles se ignora y
+ * cae al siguiente, mismo criterio "nunca pantalla blanca" que `resolveBackendUrl` (P3-L3): un
+ * nombre de colección no se valida más allá de "no vacío" (a diferencia de la URL, cualquier
+ * string es sintácticamente un nombre de colección posible; un valor erróneo simplemente fallará
+ * en `login`/`restoreSession`, mapeado como cualquier otro error de PB).
+ */
+export function resolveAuthCollection(opts: {
+	config: VegaConfig | null;
+	override: string | null;
+}): string {
+	const trimmedOverride = opts.override?.trim();
+	if (trimmedOverride) return trimmedOverride;
+	const trimmedCandidate = opts.config?.authCollection?.trim();
+	if (trimmedCandidate) return trimmedCandidate;
+	return DEFAULT_AUTH_COLLECTION;
 }

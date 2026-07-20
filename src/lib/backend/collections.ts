@@ -69,7 +69,14 @@ export interface EnsureResult {
  */
 export const VEGA_COLLECTION: CollectionSpec = {
 	name: 'vega',
-	fields: [{ name: 'manifest', type: 'json' }]
+	fields: [
+		{ name: 'manifest', type: 'json' },
+		// L6b (rol editor): snapshot cacheado del `ContentType[]` que un superuser deja al
+		// guardar desde `/settings` (`saveManifest`, `model/load.ts`). Aditivo: un registro
+		// `vega` creado ANTES de esta enmienda simplemente no lo tiene — se trata como "sin
+		// snapshot" (ver `fetchAllContentTypes` del adaptador pocketbase), nunca rompe.
+		{ name: 'schemaSnapshot', type: 'json' }
+	]
 };
 
 /** `true` si `name` cae dentro del prefijo reservado (§A.4.3): `'vega'` o `/^vega_/`. */

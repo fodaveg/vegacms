@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
-import { resolveBackendUrl } from '$lib/session/backend-config';
+import { resolveAuthCollection, resolveBackendUrl } from '$lib/session/backend-config';
 
 const ORIGIN = 'https://mysite.example';
 
@@ -121,5 +121,63 @@ describe('resolveBackendUrl', () => {
 				override: null
 			})
 		).toBe('https://pb.example.com');
+	});
+});
+
+/**
+ * Suite del lote L6a: `resolveAuthCollection` — MISMO patrón de 3 niveles que
+ * `resolveBackendUrl`, réplica de sus tests (§ "override runtime" arriba). Sin override ni
+ * config, el resultado es `'_superusers'` (default, comportamiento previo a L6a INTACTO).
+ */
+describe('resolveAuthCollection', () => {
+	test('sin config ni override → _superusers (default, aditivo)', () => {
+		expect(resolveAuthCollection({ config: null, override: null })).toBe('_superusers');
+	});
+
+	test('config sin authCollection, sin override → _superusers', () => {
+		expect(resolveAuthCollection({ config: {}, override: null })).toBe('_superusers');
+	});
+
+	test('config con authCollection, sin override → gana la config', () => {
+		expect(
+			resolveAuthCollection({ config: { authCollection: 'vega_editors' }, override: null })
+		).toBe('vega_editors');
+	});
+
+	test('override gana a config (mayor precedencia)', () => {
+		expect(
+			resolveAuthCollection({
+				config: { authCollection: 'vega_editors_del_config' },
+				override: 'vega_editors_del_override'
+			})
+		).toBe('vega_editors_del_override');
+	});
+
+	test('override gana a _superusers cuando no hay config', () => {
+		expect(resolveAuthCollection({ config: null, override: 'vega_editors' })).toBe('vega_editors');
+	});
+
+	test('override vacío/solo-espacios se ignora → cae a config', () => {
+		expect(
+			resolveAuthCollection({ config: { authCollection: 'vega_editors' }, override: '' })
+		).toBe('vega_editors');
+		expect(
+			resolveAuthCollection({ config: { authCollection: 'vega_editors' }, override: '   ' })
+		).toBe('vega_editors');
+	});
+
+	test('config.authCollection vacío/solo-espacios se ignora → cae a _superusers', () => {
+		expect(resolveAuthCollection({ config: { authCollection: '' }, override: null })).toBe(
+			'_superusers'
+		);
+		expect(resolveAuthCollection({ config: { authCollection: '   ' }, override: null })).toBe(
+			'_superusers'
+		);
+	});
+
+	test('override con espacios colgantes → se devuelve recortado', () => {
+		expect(resolveAuthCollection({ config: null, override: '  vega_editors  ' })).toBe(
+			'vega_editors'
+		);
 	});
 });

@@ -186,19 +186,147 @@ La colección `vega_media` que Vega bootstrapea **ya declara estos tres tamaños
 
 ## Autenticación en Vega
 
-Vega autentica contra usuarios de PocketBase:
+Vega autentica contra usuarios de PocketBase. Hay **dos modos** de autenticación: **superuser** (default, para operadores/administradores) y **editor** (para clientes no técnicos).
+
+### Modo superuser (default)
+
+Sin configurar nada, Vega autentica contra la colección `_superusers` de PocketBase (superuser real, todo el poder):
 
 1. Abre el admin de PocketBase (`http://localhost:8090/_/`).
-2. Ve a la colección `_pb_users_auth_` o **Auth collections** en Settings.
-3. Crea un usuario con email y contraseña.
+2. Ve a **Settings** → **Auth collections** o usa la colección `_pb_users_auth_` (el alias built-in).
+3. Crea un usuario superuser con email y contraseña.
 4. En Vega, inicia sesión con esas credenciales.
 
-**Roles y permisos**: Vega NO tiene un sistema de roles propios. Usa los permisos de **lectura/escritura de PocketBase** (Read/Write rules) para controlar quién puede editar qué.
+**Permisos**: un superuser tiene acceso total a todo:
 
-Ejemplo:
+- Introspecciona el schema en vivo (`GET /api/collections`).
+- Crea/modifica colecciones (bootstrap, schema).
+- Edita el manifiesto de Vega en `/settings`.
+- CRUD completo de contenido (subordinado a las reglas de PocketBase).
 
-- Usuario `admin@example.com`: todos los permisos (Write rules = `@request.auth.id != null`).
-- Usuario `editor@example.com`: solo edita `posts` (Write rule en `posts` = `@request.auth.id != null && @request.auth.id == "..."`, si es necesario restringir por usuario específico).
+Es el modo para desarrollo, dogfood interno y administradores técnicos. No hay configuración extra necesaria.
+
+### Modo editor (L6)
+
+Para dar acceso a un cliente NO técnico, crea una colección de autenticación dedicada (`vega_editors` recomendado, NO reusar `users` para no mezclar con cuentas públicas) y configura Vega para autenticar contra ella. Un editor:
+
+- **NO puede** introspeccionar el schema en vivo (PocketBase rechaza `GET /api/collections` a no-superusers).
+- **NO puede** crear ni modificar colecciones en el schema.
+- **NO puede** editar el manifiesto desde `/settings` (la UI se degrada: solo lectura).
+- **Puede** crear, leer, actualizar, borrar registros de contenido (según reglas de PocketBase).
+- **Puede** reordenar registros manualmente en los listados.
+
+#### Setup del modo editor en PocketBase
+
+**1. Crear la colección de auth del editor:**
+
+1. En admin de PocketBase, ve a **Collections** → **Create new**.
+2. Tipo: **Auth collection**.
+3. Nombre: `vega_editors` (o el que prefieras, mientras sea `vega_*` para claridad).
+4. Opcionales: ajusta contraseña y otros campos según necesites.
+5. Guarda.
+
+**2. Crear usuarios editor:**
+
+1. Abre la colección `vega_editors`.
+2. **New record** → introduce email y contraseña.
+3. Guarda.
+
+**3. ⚠ LANDMINE CRÍTICA — Reglas de acceso a la colección `vega`:**
+
+La colección `vega` (donde Vega guarda el manifiesto y el schema snapshot) se crea con reglas de acceso `null` ⇒ **solo superuser puede leerla**. Un editor por defecto la verá PROHIBIDA (403) → la app mostrará VACÍA (sin colecciones ni manifiesto).
+
+**Solución**: en admin de PocketBase, abre **Collections** → **vega** → **Settings** → **Permissions** (tab de lectura):
+
+- **List rule**: `@request.auth.id != null` (cualquier usuario autenticado).
+- **View rule**: `@request.auth.id != null` (cualquier usuario autenticado).
+
+Alterna más restringido si necesitas:
+
+- `@request.auth.collectionName == 'vega_editors'` (solo editores de esa colección concreta).
+
+Guarda. Ahora un editor puede leer el manifiesto y el schema snapshot.
+
+**4. Reglas de acceso al contenido:**
+
+Define qué colecciones puede editar un editor (y cuáles no). Para cada colección de contenido, abre **Settings** → **Permissions** y configura:
+
+- **Create rule**: p. ej. `@request.auth.collectionName == 'vega_editors'` (solo editores pueden crear).
+- **Update rule**: p. ej. `@request.auth.collectionName == 'vega_editors'` (solo editores pueden actualizar).
+- **Delete rule**: p. ej. `@request.auth.collectionName == 'vega_editors'` (solo editores pueden borrar).
+- **List rule**: `@request.auth.id != null` o `true` (depende si quieres que lean anónimos).
+
+Alternativamente, `@request.auth.id != null` permite cualquier usuario autenticado; el editor en Vega vería todas las colecciones y podría editar todas. Ajusta según el control de acceso que quieras.
+
+#### Configurar Vega para usar la colección de auth del editor
+
+**Opción A: Horneado en build** (si distribuyes un zip por cliente):
+
+Antes de hacer `pnpm build`, crea `static/vega.config.json`:
+
+```json
+{
+	"backendUrl": "https://pb.tudominio.com",
+	"authCollection": "vega_editors"
+}
+```
+
+Así todos los que abran ese build autentica contra `vega_editors` sin depender de que lo introduzcan a mano.
+
+**Opción B: Override en runtime** (pantalla de conexión):
+
+Sin tocar ficheros:
+
+1. Abre Vega en `/login` o `/settings`.
+2. En el formulario de conexión, introduce:
+   - **PocketBase**: `https://pb.tudominio.com`
+   - **Colección de autenticación**: `vega_editors`
+3. Guarda.
+
+Queda persistido en `localStorage` (clave `vega.authCollection.v1`) para ese navegador.
+
+#### Mecanismo del schema snapshot
+
+Un editor no puede hacer `GET /api/collections` (PocketBase lo rechaza). ¿Cómo sabe Vega qué colecciones existen y qué campos tienen?
+
+Respuesta: **snapshot de schema cacheado**. Cuando un **superuser** edita el manifiesto desde `/settings` y guarda, Vega persiste el `ContentType[]` (estructura completa del schema en ese momento) en el campo `schemaSnapshot` de la colección `vega`. Un editor luego lee ese snapshot en lugar de introspeccionar en vivo.
+
+**Consecuencia operacional clave**: si el administrador cambia el schema de una colección en PocketBase (añade/quita campos, cambia tipos), DEBE volver a abrir `/settings` en Vega (como superuser) y guardar el manifiesto para refrescar el snapshot — aunque no toque el manifiesto, el guardado actualiza el snapshot. Si no lo hace, los editores verán un schema desactualizado.
+
+**Ejemplo**:
+
+1. Superuser abre `/settings`, edita el manifiesto y guarda → snapshot se actualiza.
+2. Editor abre Vega, ve el schema actualizado (desde el snapshot).
+3. Administrador añade un campo a una colección en PocketBase admin.
+4. Editor abre Vega → sigue viendo el schema antiguo (sin el nuevo campo) hasta que...
+5. Superuser vuelva a guardar desde `/settings` (refrescar el snapshot).
+
+### Roles y permisos generales
+
+Vega **NO tiene un sistema de roles propios**. El control de acceso es enteramente delegado a PocketBase:
+
+- **Superuser**: usa `_superusers` (built-in de PB, acceso total).
+- **Editor**: usa una colección auth propia + reglas de PocketBase (List/View/Create/Update/Delete rules).
+
+Las reglas de PocketBase pueden referir a `@request.auth.id`, `@request.auth.collectionName`, campos del usuario, etc. — tienes toda la expresividad del motor de reglas de PB.
+
+Ejemplo para editores: solo pueden crear/actualizar/borrar, no ver borrados lógicos ni estadísticas:
+
+```
+// En colección 'posts', Create rule:
+@request.auth.collectionName == 'vega_editors'
+
+// Update rule:
+@request.auth.collectionName == 'vega_editors'
+
+// Delete rule:
+@request.auth.collectionName == 'vega_editors'
+
+// List rule (qué ven al listar):
+@request.auth.collectionName == 'vega_editors'
+```
+
+Ver la documentación de PocketBase sobre [rules](https://pocketbase.io/docs/api-rules-and-filters/) para toda la capacidad disponible.
 
 ## Sincronización en tiempo real
 

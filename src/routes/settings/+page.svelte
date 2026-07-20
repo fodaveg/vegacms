@@ -36,7 +36,23 @@
 	 * `confirmBeforeReload` a `true` (fix de code-review de L5): esta sección es VECINA del
 	 * `ManifestEditor` en la misma página, sin dirty-tracking cruzado — sin el `confirm()`, un
 	 * Guardar/Restablecer aquí recargaría la página y descartaría en silencio una edición en
-	 * curso del manifiesto.
+	 * curso del manifiesto. Sigue visible en modo editor (L6c): es precisamente el sitio donde un
+	 * editor introduce SU colección de auth (`vega_editors`, campo añadido en `BackendUrlForm`).
+	 *
+	 * **Degradado del rol editor (lote L6c)**: `isManifestEditable` es la señal de "¿esta sesión
+	 * puede editar el manifiesto?" — literalmente `capabilities.schemaBootstrap` (§5 del contrato
+	 * P1: introspección/creación de esquema en vivo, v1 = solo superuser). Un editor (colección de
+	 * auth ≠ `_superusers`, L6a) SIEMPRE la tiene en `false`: no puede introspeccionar `/api/
+	 * collections` ni crear/migrar la colección `vega`, así que editar el manifiesto no es una
+	 * operación que pueda completar con éxito — en vez de dejarle abrir un `ManifestEditor` que
+	 * fallaría al primer "Guardar" (o peor, quedarse pillado en el gate de bootstrap de §A.4.6 sin
+	 * poder nunca confirmarlo), esta ruta ni siquiera intenta cargar `types`/`initialManifestRaw`
+	 * (ambos exigirían `listContentTypes`/`list('vega', …)`, innecesarios cuando la sección ni se
+	 * va a montar) y en su lugar pinta un aviso honesto. "Apariencia"/"Backend, conexión"/"Acerca
+	 * de" siguen intactas: NINGUNA de las tres depende de `schemaBootstrap`. `WarningsList`
+	 * (`ctx.model.warnings`) tampoco se oculta: ya viene resuelto por el layout (mismo permiso de
+	 * lectura de `vega` que necesita cualquier sesión, editor incluido, para la nav/labels) — es
+	 * informativo, no una operación de superusuario.
 	 */
 	import { onMount } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
@@ -96,6 +112,12 @@
 	let initialManifestRaw = $state<JsonValue | null>(null);
 	let reloadingModel = $state(false);
 
+	/** L6c: señal de "¿esta sesión puede editar el manifiesto?" — ver cabecera del módulo. Estable
+	 *  durante toda la vida del componente (no cambia sin recargar la página, la única forma de
+	 *  reconstruir el `BackendPort`/reautenticar con otra `authCollection`), así que basta un
+	 *  `const` plano, sin `$derived`. */
+	const isManifestEditable = ctx.port.capabilities.schemaBootstrap;
+
 	const collectionState = $derived(
 		computeCollectionState(types, VEGA_COLLECTION.name, ctx.port.capabilities.schemaBootstrap)
 	);
@@ -121,7 +143,10 @@
 	}
 
 	onMount(() => {
-		void load();
+		// L6c: un editor nunca podría completar la carga con provecho (ver cabecera) — se ahorra
+		// por completo `listContentTypes`/`list('vega', …)`, la rama degradada del template no los
+		// necesita.
+		if (isManifestEditable) void load();
 	});
 
 	/** §6.3.4 de P2: tras guardar, re-resuelve el modelo para ver los warnings resultantes. También
@@ -222,7 +247,19 @@
 		<BackendUrlForm t={ctx.t} confirmBeforeReload={true} />
 	</section>
 
-	{#if status === 'loading'}
+	{#if !isManifestEditable}
+		<!-- L6c: rol editor (schemaBootstrap: false) — el mensaje degradado ocupa el hueco donde
+		     iría el ManifestEditor. `data-manifest-state` para que los e2e lo localicen sin
+		     depender del idioma, mismo criterio que `data-media-state` en /media. -->
+		<section
+			class="vega-manifest-gate"
+			aria-labelledby="vega-manifest-gate-title"
+			data-manifest-state="gated"
+		>
+			<h2 id="vega-manifest-gate-title">{ctx.t('settings.manifest.editorGateTitle')}</h2>
+			<p>{ctx.t('settings.manifest.editorGateBody')}</p>
+		</section>
+	{:else if status === 'loading'}
 		<p aria-live="polite">{ctx.t('common.loading')}</p>
 	{:else if status === 'error'}
 		<div class="vega-settings-error" role="alert">
@@ -237,9 +274,12 @@
 			onSave={handleSave}
 			knownIcons={ctx.icons.knownIcons}
 		/>
-
-		<WarningsList />
 	{/if}
+
+	<!-- `ctx.model.warnings` ya lo resuelve el layout (misma lectura de "vega" que necesita
+	     cualquier sesión para la nav, editor incluido, L6c): informativo, NO una operación de
+	     superusuario — visible tanto en modo editor como en modo superuser. -->
+	<WarningsList />
 
 	<!-- "Acerca de" (P8·F2): no depende de la carga del modelo (`status`), así que vive FUERA del
 	     bloque {#if} de arriba — siempre visible, incluso si `/settings` está en 'loading' o
@@ -379,6 +419,29 @@
 	.vega-backend-description {
 		margin: 0;
 		font-size: 0.85rem;
+		color: var(--ink-2);
+	}
+
+	/* L6c: mismo tratamiento de tarjeta que "Apariencia"/"Backend, conexión" — el gate de rol
+	   editor no es un error de transporte (`.vega-settings-error`), es un estado degradado
+	   NORMAL/esperado. */
+	.vega-manifest-gate {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding: 1rem 1.2rem;
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		background: var(--surface-2);
+	}
+
+	.vega-manifest-gate h2 {
+		margin: 0;
+		font-size: 1.1rem;
+	}
+
+	.vega-manifest-gate p {
+		margin: 0;
 		color: var(--ink-2);
 	}
 

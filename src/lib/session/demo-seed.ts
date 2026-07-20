@@ -132,6 +132,18 @@ const VEGA_CONTENT_TYPE: ContentType = {
 			presentable: false,
 			hidden: false,
 			unique: false
+		},
+		// L6b: espejo del campo añadido a `VEGA_COLLECTION` (`backend/collections.ts`) — sin él,
+		// `saveManifest` (que en modo superuser SIEMPRE escribe `schemaSnapshot` junto al
+		// manifiesto) rechazaría con "campo desconocido" contra este seed estático de demo.
+		{
+			name: 'schemaSnapshot',
+			type: 'json',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
 		}
 	]
 };

@@ -8,11 +8,18 @@
  *
  * `t` de prueba es un passthrough que expone la clave (y los params, si los hay) tal cual, para
  * poder aserta sobre el TEXTO renderizado sin acoplarse a la redacción real de `es.ts`/`en.ts`.
+ *
+ * Añadido en el lote L6c: el campo de `authCollection` (mismo formulario, ver cabecera del
+ * componente) — guarda/restablece JUNTO con la URL, nunca por separado.
  */
 import { mount, tick, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import BackendUrlForm from './BackendUrlForm.svelte';
-import { writeBackendOverride } from './backend-override';
+import {
+	readAuthCollectionOverride,
+	writeAuthCollectionOverride,
+	writeBackendOverride
+} from './backend-override';
 
 function t(key: string, params?: Record<string, string | number>): string {
 	return params ? `${key}:${JSON.stringify(params)}` : key;
@@ -273,5 +280,90 @@ describe('BackendUrlForm.svelte', () => {
 		expect(confirmSpy).toHaveBeenCalledTimes(1);
 		expect(localStorage.getItem('vega.backendUrl.v1')).toBe('https://pb.example.com');
 		expect(reloadSpy).not.toHaveBeenCalled();
+	});
+
+	// ————— Colección de autenticación (lote L6c) —————
+
+	test('sin override guardado: campo de colección vacío, texto "por defecto"', () => {
+		mounted = mountForm();
+
+		const input = mounted.target.querySelector<HTMLInputElement>('#backend-auth-collection');
+		expect(input?.value).toBe('');
+		expect(mounted.target.textContent).toContain('connect.current.authCollectionDefault');
+	});
+
+	test('con override guardado: precarga el campo y muestra la colección actual', () => {
+		writeAuthCollectionOverride('vega_editors');
+		mounted = mountForm();
+
+		const input = mounted.target.querySelector<HTMLInputElement>('#backend-auth-collection');
+		expect(input?.value).toBe('vega_editors');
+		expect(mounted.target.textContent).toContain('connect.current.authCollectionOverride');
+		expect(mounted.target.textContent).toContain('vega_editors');
+	});
+
+	test('guardar con colección de auth rellena: persiste AMBOS overrides y recarga', async () => {
+		const reloadSpy = stubLocationReload();
+		mounted = mountForm();
+
+		const urlInput = mounted.target.querySelector<HTMLInputElement>('#backend-url');
+		const authInput = mounted.target.querySelector<HTMLInputElement>('#backend-auth-collection');
+		const form = mounted.target.querySelector('form');
+
+		urlInput!.value = 'https://pb.example.com';
+		urlInput!.dispatchEvent(new Event('input', { bubbles: true }));
+		authInput!.value = 'vega_editors';
+		authInput!.dispatchEvent(new Event('input', { bubbles: true }));
+		form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await tick();
+
+		expect(localStorage.getItem('vega.backendUrl.v1')).toBe('https://pb.example.com');
+		expect(readAuthCollectionOverride()).toBe('vega_editors');
+		expect(reloadSpy).toHaveBeenCalledTimes(1);
+	});
+
+	test('guardar con colección de auth en blanco: limpia un override previo (nunca persiste "")', async () => {
+		writeAuthCollectionOverride('vega_editors');
+		const reloadSpy = stubLocationReload();
+		mounted = mountForm();
+
+		const urlInput = mounted.target.querySelector<HTMLInputElement>('#backend-url');
+		const authInput = mounted.target.querySelector<HTMLInputElement>('#backend-auth-collection');
+		const form = mounted.target.querySelector('form');
+
+		urlInput!.value = 'https://pb.example.com';
+		urlInput!.dispatchEvent(new Event('input', { bubbles: true }));
+		authInput!.value = '   ';
+		authInput!.dispatchEvent(new Event('input', { bubbles: true }));
+		form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await tick();
+
+		expect(readAuthCollectionOverride()).toBeNull();
+		expect(reloadSpy).toHaveBeenCalledTimes(1);
+	});
+
+	test('restablecer: borra TAMBIÉN el override de colección de auth', async () => {
+		writeAuthCollectionOverride('vega_editors');
+		const reloadSpy = stubLocationReload();
+		mounted = mountForm();
+
+		const resetButton = Array.from(mounted.target.querySelectorAll('button')).find((b) =>
+			b.textContent?.includes('connect.reset')
+		);
+		resetButton!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		await tick();
+
+		expect(readAuthCollectionOverride()).toBeNull();
+		expect(reloadSpy).toHaveBeenCalledTimes(1);
+	});
+
+	test('botón de restablecer aparece si SOLO hay override de colección de auth (sin override de URL)', () => {
+		writeAuthCollectionOverride('vega_editors');
+		mounted = mountForm();
+
+		const resetButton = Array.from(mounted.target.querySelectorAll('button')).find((b) =>
+			b.textContent?.includes('connect.reset')
+		);
+		expect(resetButton).not.toBeUndefined();
 	});
 });

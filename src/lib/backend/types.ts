@@ -80,7 +80,11 @@ export interface Capabilities {
 	realtime: boolean;
 	/** fileUrl acepta ThumbSpec con efecto real. PB: true. memory: false. */
 	thumbs: boolean;
-	/** listContentTypes() lee el esquema en vivo (v1: superuser). false = modo snapshot (rol editor futuro). */
+	/**
+	 * listContentTypes() lee el esquema en vivo (v1: superuser). false = modo snapshot: se sirve
+	 * desde `vega.schemaSnapshot` (rol editor, L6b) porque PB reserva `GET /api/collections` a
+	 * superusers.
+	 */
 	schemaDiscovery: boolean;
 	/** Los ficheros viven adjuntos a registros (modelo PB). */
 	filePerRecord: boolean;

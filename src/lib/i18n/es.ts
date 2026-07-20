@@ -69,9 +69,19 @@ export const es = {
 	'connect.testFail':
 		'No se pudo confirmar la conexión (puede ser CORS). Puedes guardar igualmente.',
 	'connect.save': 'Guardar y recargar',
-	'connect.reset': 'Restablecer a same-origin',
+	'connect.reset': 'Restablecer valores por defecto',
 	'connect.reloadConfirm':
 		'Se recargará la página para aplicar el cambio de backend. Si tienes cambios sin guardar en el editor, se perderán. ¿Continuar?',
+	// `authCollection` (lote L6c): colección de auth contra la que autentica el adaptador
+	// `pocketbase` — vacía/ausente ⇒ `_superusers` (superusuario, comportamiento previo). Un
+	// operador que monte el rol editor plano (colección dedicada, p.ej. `vega_editors`) la fija
+	// aquí para entrar como editor en vez de superuser.
+	'connect.authCollectionLabel': 'Colección de autenticación',
+	'connect.authCollectionPlaceholder': '_superusers',
+	'connect.authCollectionHint':
+		'Déjalo en blanco para entrar como superusuario. Los editores usan una colección dedicada (p. ej. "vega_editors") que te indicará quien administre este PocketBase.',
+	'connect.current.authCollectionDefault': 'Autenticando como superusuario (_superusers).',
+	'connect.current.authCollectionOverride': 'Autenticando contra la colección: {authCollection}',
 
 	// ————— Estados globales de transporte (§3.4) —————
 	'errors.network.title': 'Sin conexión con el backend',
@@ -246,6 +256,10 @@ export const es = {
 		'La colección "vega_media" todavía no existe en este backend y no se puede crear automáticamente. El apartado quedará deshabilitado hasta que la crees a mano.',
 	'media.bootstrap.manualImportHint':
 		'En el Admin de PocketBase: Collections → Import collections, pega el siguiente JSON y confirma.',
+	// Rol editor (lote L6c): un editor nunca puede crear/importar colecciones (no tiene acceso al
+	// Admin de PocketBase), así que el JSON de importación de arriba no le sirve de nada.
+	'media.bootstrap.editorBody':
+		'Pídele a un administrador que configure la colección de medios ("vega_media") en PocketBase.',
 
 	// ————— Medios: grid + detalle (Fase P6·6b) —————
 	'media.detail.title': 'Editar medio',
@@ -305,6 +319,14 @@ export const es = {
 	'settings.reloading': 'Recargando…',
 	'settings.saveSuccess': 'Manifiesto guardado.',
 	'settings.loadErrorBody': 'No se pudo cargar Ajustes. Vuelve a intentarlo.',
+
+	// ————— Rol editor (lote L6c): degradado de la edición del manifiesto —————
+	// Sin `schemaBootstrap` (colección de auth distinta de `_superusers`) un editor no puede
+	// introspeccionar ni crear/migrar esquema — la edición del manifiesto es, por definición,
+	// una operación de superusuario. Ver `computeCollectionState`/`Capabilities.schemaBootstrap`.
+	'settings.manifest.editorGateTitle': 'Modelo de contenido',
+	'settings.manifest.editorGateBody':
+		'La edición del manifiesto requiere una cuenta de administrador (superusuario). Pide a quien administre este PocketBase que ajuste el modelo de contenido desde este mismo panel.',
 
 	// ————— Apariencia: selector de tema + modo (Fase F7w-a, "encender los temas") —————
 	'settings.appearance.title': 'Apariencia',

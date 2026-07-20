@@ -23,6 +23,12 @@
  * (`readBackendOverride()`, `backend-override.ts`) que el usuario guarda desde
  * `BackendUrlForm.svelte` en `/login`/`/settings`.
  *
+ * La colección de auth (`authCollection` de `createPocketBaseBackend`, lote L6a) se resuelve por
+ * el MISMO seam, en paralelo, vía `resolveAuthCollection` (mismos 3 niveles: override runtime
+ * `readAuthCollectionOverride()` → `vega.config.json` → default `'_superusers'`). Aditivo puro:
+ * sin override ni config, resultado idéntico al de antes de L6a (el dogfood de fodaveg no ve
+ * ningún cambio).
+ *
  * ## Por qué el adaptador `memory` necesita una envoltura aquí
  *
  * `$lib/backend/adapters/memory` NO persiste nada entre recargas por diseño (documentado en su
@@ -95,8 +101,13 @@ import type { AuthChangeReason, BackendPort, Session } from '$lib/backend';
 import { VegaError } from '$lib/backend';
 import { createMemoryBackend } from '$lib/backend/adapters/memory';
 import { createPocketBaseBackend } from '$lib/backend/adapters/pocketbase';
-import { isAbsoluteUrl, resolveBackendUrl, type VegaConfig } from './backend-config';
-import { readBackendOverride } from './backend-override';
+import {
+	isAbsoluteUrl,
+	resolveAuthCollection,
+	resolveBackendUrl,
+	type VegaConfig
+} from './backend-config';
+import { readAuthCollectionOverride, readBackendOverride } from './backend-override';
 import { DEMO_CREDENTIALS, DEMO_SEED, DEMO_SEED_WITH_MEDIA } from './demo-seed';
 
 declare global {
@@ -134,6 +145,15 @@ declare global {
 		 *  …)` — y SOLO esa, nunca otro tipo — rechaza con un `VegaError.network()` (ver cabecera).
 		 *  Persistente (no se autoconsume), mismo criterio que `__VEGA_FORCE_MEDIA_LIST_ERROR__`. */
 		__VEGA_FORCE_MEDIA_CREATE_ERROR__?: boolean;
+		/** Flag runtime SOLO para Playwright (lote L6c): `true` ⇒ el `BackendPort` del adaptador
+		 *  `memory` arranca con `capabilities.schemaDiscovery`/`schemaBootstrap` en `false` (ver
+		 *  `withEditorCapabilities`), simulando una sesión de rol editor (`authCollection` distinta
+		 *  de `_superusers`, L6a) SIN tener que montar un PocketBase real — `memory` en sí no
+		 *  entiende de `authCollection` (§7 del contrato, adaptador de paridad de puerto). Fijado
+		 *  ANTES de que el bundle arranque, mismo mecanismo que `__VEGA_SEED_MEDIA__`. Ausente/`false`
+		 *  = comportamiento previo (capabilities de superuser, todas `true`/`false` como siempre).
+		 *  Exclusivo del adaptador `memory`/e2e: en modo `pocketbase` esta flag nunca se lee. */
+		__VEGA_FORCE_EDITOR_CAPABILITIES__?: boolean;
 	}
 }
 
@@ -165,16 +185,29 @@ async function createInstance(): Promise<BackendPort> {
 	}
 	if (useMemoryAdapter()) {
 		const seed = window.__VEGA_SEED_MEDIA__ ? DEMO_SEED_WITH_MEDIA : DEMO_SEED;
-		return wrapMemoryPortForDemo(createMemoryBackend(seed), DEMO_CREDENTIALS);
+		const port = wrapMemoryPortForDemo(createMemoryBackend(seed), DEMO_CREDENTIALS);
+		return window.__VEGA_FORCE_EDITOR_CAPABILITIES__ ? withEditorCapabilities(port) : port;
 	}
-	// Fix de code-review de L5 (perf): si ya hay un override runtime VÁLIDO, gana siempre (mayor
-	// precedencia, `backend-config.ts`) — el `fetch('/vega.config.json')` sería trabajo tirado,
-	// nunca vuelve a leerse `config`. Con override ausente/inválido, comportamiento IDÉNTICO al de
-	// antes de este fix (se lee `vega.config.json` como siempre).
 	const override = readBackendOverride();
-	const config = override && isAbsoluteUrl(override) ? null : await fetchVegaConfig();
+	const authCollectionOverride = readAuthCollectionOverride();
+	// Fix de code-review de L5 (perf), ampliado por L6a: si ya hay un override runtime VÁLIDO de
+	// URL Y uno de colección de auth (ambos con mayor precedencia, `backend-config.ts`), el
+	// `fetch('/vega.config.json')` sería trabajo tirado, nunca vuelve a leerse `config` para
+	// resolver ninguno de los dos. Si falta CUALQUIERA de los dos overrides, `config` sigue
+	// haciendo falta (podría traer el que falta) — se lee como siempre. Con ambos overrides
+	// ausentes/inválidos, comportamiento IDÉNTICO al de antes de L5/L6a.
+	// Fix de code-review: `.trim()` en el override de auth-collection, MISMO criterio que
+	// `resolveAuthCollection` (un valor de solo espacios cuenta como "ausente" ahí) — sin esto,
+	// un override en blanco pasaría este `Boolean(...)` como "presente", saltándose la lectura de
+	// `vega.config.json` aunque `resolveAuthCollection` fuese a descartarlo igualmente y caer al
+	// default, en vez de a `config.authCollection` (que sí habría hecho falta leer).
+	const skipConfigFetch = Boolean(
+		override && isAbsoluteUrl(override) && authCollectionOverride?.trim()
+	);
+	const config = skipConfigFetch ? null : await fetchVegaConfig();
 	const url = resolveBackendUrl({ origin: window.location.origin, config, override });
-	return createPocketBaseBackend({ url });
+	const authCollection = resolveAuthCollection({ config, override: authCollectionOverride });
+	return createPocketBaseBackend({ url, authCollection });
 }
 
 function useMemoryAdapter(): boolean {
@@ -396,5 +429,23 @@ function wrapMemoryPortForDemo(
 				return null;
 			}
 		}
+	};
+}
+
+/**
+ * Ver `__VEGA_FORCE_EDITOR_CAPABILITIES__` (cabecera del módulo, lote L6c): envoltura MÍNIMA que
+ * solo sustituye `capabilities` — el resto de operaciones (`list`/`listContentTypes`/`create`/…)
+ * quedan intactas, delegadas tal cual en `port`. El adaptador `memory` en sí (§7 del contrato) no
+ * tiene noción de `authCollection`/rol editor, así que esto NO reproduce el modo snapshot de
+ * `adapters/pocketbase` (L6b, servir `listContentTypes` desde `vega.schemaSnapshot`) — solo la
+ * SEÑAL de capability que la UI consulta (`ley de capacidades`, §5 del contrato P1) para
+ * degradarse. Suficiente para e2e: la persona editor de la Fase L6c ejercita el GATING de la UI
+ * (`/settings`, `/media`), no el camino de red del adaptador `pocketbase`, ya cubierto por
+ * `adapters/pocketbase/auth-collection.test.ts`.
+ */
+function withEditorCapabilities(port: BackendPort): BackendPort {
+	return {
+		...port,
+		capabilities: { ...port.capabilities, schemaDiscovery: false, schemaBootstrap: false }
 	};
 }

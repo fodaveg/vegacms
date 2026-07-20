@@ -11,6 +11,7 @@
 import { describe, expect, test } from 'vitest';
 import { createMemoryBackend } from '$lib/backend/adapters/memory';
 import type { MemorySeed } from '$lib/backend/adapters/memory';
+import type { BackendPort } from '$lib/backend/port';
 import { VEGA_COLLECTION } from '$lib/backend/collections';
 import { loadContentModel, saveManifest, ManifestValidationError } from '$lib/model/load';
 import { categoryType, postType } from './fixture';
@@ -160,5 +161,79 @@ describe('11. Ciclo completo con memory (§9.11)', () => {
 		const model = await loadContentModel(port);
 		expect(model.site.name).toBe('Recién instalado');
 		expect(model.warnings).toEqual([]);
+	});
+
+	// ————— L6b: `schemaSnapshot` — el `ContentType[]` que un superuser deja cacheado junto al
+	// manifiesto, para que el adaptador `pocketbase` lo sirva en modo editor (`schemaDiscovery:
+	// false`, `GET /api/collections` vedado). `memory` tiene `capabilities.schemaDiscovery: true`
+	// SIEMPRE, así que estos tests ejercitan el camino "se escribe" de `saveManifest`. —————
+
+	test('saveManifest (bootstrap) persiste schemaSnapshot con vega YA incluida (fix de code-review, bug bloqueante)', async () => {
+		const port = await loggedInPort(virginSeed());
+
+		await saveManifest(port, { schemaVersion: 1, site: { name: 'Con snapshot' } });
+
+		const page = await port.list('vega', { perPage: 1 });
+		const snapshot = page.items[0].values.schemaSnapshot as unknown as { name: string }[];
+		// `vega` se crea DENTRO de `saveManifest` (vía `ensureCollections`) antes de escribir el
+		// snapshot: éste DEBE re-leer `listContentTypes()` tras crearla, igual que vería una
+		// introspección real en vivo — si no, un editor (modo snapshot) leería un esquema sin
+		// `vega` y `loadContentModel` (§6.2) decidiría "manifiesto ausente" pese a que SÍ existe
+		// (bug bloqueante corregido: ver el test de regresión de abajo).
+		expect(snapshot.map((t) => t.name).sort()).toEqual(['category', 'post', 'vega']);
+	});
+
+	test('REGRESIÓN: snapshot de bootstrap + loadContentModel en modo editor (schemaDiscovery:false) NO ve el manifiesto como ausente', async () => {
+		const port = await loggedInPort(virginSeed());
+		await saveManifest(port, { schemaVersion: 1, site: { name: 'Sitio del editor' } });
+
+		// Simula el adaptador `pocketbase` en modo editor (L6b): `listContentTypes()` sirve
+		// EXCLUSIVAMENTE desde el `schemaSnapshot` ya persistido (nunca introspección en vivo),
+		// tal como haría `fetchContentTypesFromSnapshot` — el resto del puerto (list/get/…) sigue
+		// siendo el `memory` real, solo se sustituye la fuente del esquema.
+		const page = await port.list('vega', { perPage: 1 });
+		const snapshot = page.items[0].values.schemaSnapshot as unknown as Awaited<
+			ReturnType<BackendPort['listContentTypes']>
+		>;
+		const editorPort: BackendPort = {
+			...port,
+			capabilities: { ...port.capabilities, schemaDiscovery: false },
+			listContentTypes: async () => snapshot
+		};
+
+		const model = await loadContentModel(editorPort);
+
+		expect(model.manifest).toEqual({ status: 'loaded', schemaVersion: 1 });
+		expect(model.site.name).toBe('Sitio del editor');
+	});
+
+	test('saveManifest (colección vega ya existente) persiste schemaSnapshot con el esquema COMPLETO, `vega` incluida', async () => {
+		const port = await loggedInPort(virginSeed());
+		await port.ensureCollections([VEGA_COLLECTION]);
+
+		await saveManifest(port, { schemaVersion: 1, site: { name: 'Con snapshot 2' } });
+
+		const page = await port.list('vega', { perPage: 1 });
+		const snapshot = page.items[0].values.schemaSnapshot as unknown as { name: string }[];
+		expect(snapshot.map((t) => t.name).sort()).toEqual(['category', 'post', 'vega']);
+
+		const postSnapshot = snapshot.find((t) => t.name === 'post');
+		const livePost = (await port.listContentTypes()).find((t) => t.name === 'post')!;
+		// Fidelidad estructural: el snapshot no es un resumen, es el `ContentType` REAL serializado.
+		expect(postSnapshot).toEqual(livePost);
+	});
+
+	test('saveManifest sobre un backend SIN capabilities.schemaDiscovery no escribe schemaSnapshot (no-op defensivo)', async () => {
+		const port = await loggedInPort(virginSeed());
+		const noDiscoveryPort: BackendPort = {
+			...port,
+			capabilities: { ...port.capabilities, schemaDiscovery: false }
+		};
+		await port.ensureCollections([VEGA_COLLECTION]);
+
+		await saveManifest(noDiscoveryPort, { schemaVersion: 1, site: { name: 'Modo editor' } });
+
+		const page = await port.list('vega', { perPage: 1 });
+		expect(page.items[0].values.schemaSnapshot ?? null).toBeNull();
 	});
 });

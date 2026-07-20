@@ -27,7 +27,7 @@ import { normalizeFieldValue } from '../../normalize';
 import { assertContentTypeWritable, checkUnwritableFields } from '../../write-guards';
 import { validateFileFieldInput } from '../../file-guards';
 import type { CollectionSpec, EnsureResult } from '../../collections';
-import { checkReservedNames } from '../../collections';
+import { checkReservedNames, VEGA_COLLECTION } from '../../collections';
 import { mapPocketBaseError } from './errors';
 import { mapCollectionsToContentTypes } from './schema';
 import { compileFilter, compileSort } from './query';
@@ -35,26 +35,52 @@ import { planFileFieldWrite, resolveFileUrl } from './files';
 import { ensureCollectionsOnPocketBase } from './collections';
 import { clearPersistedToken, loadPersistedToken, savePersistedToken } from './persistence';
 
-const CAPABILITIES: Capabilities = {
-	realtime: true,
-	thumbs: true,
-	schemaDiscovery: true,
-	filePerRecord: true,
-	protectedFiles: false,
-	schemaBootstrap: true
-};
+/** Colección de auth por defecto (v1, D1): superuser real de PB, sin restricciones de esquema. */
+const DEFAULT_AUTH_COLLECTION = '_superusers';
+
+/**
+ * `Capabilities` derivadas de `authCollection` (lote L6a): `_superusers` (default, camino
+ * previo INTACTO) conserva introspección y bootstrap en vivo; cualquier OTRA colección (modo
+ * editor, p.ej. `vega_editors`) los apaga — PB reserva `GET /api/collections` y la creación de
+ * colecciones a superusers, así que un editor los tiene `false` incondicionalmente (L6b sirve
+ * el esquema desde el snapshot cacheado en su lugar). El resto de capabilities no depende de
+ * quién se autentica.
+ */
+function computeCapabilities(authCollection: string): Capabilities {
+	const isSuperuser = authCollection === DEFAULT_AUTH_COLLECTION;
+	return {
+		realtime: true,
+		thumbs: true,
+		schemaDiscovery: isSuperuser,
+		filePerRecord: true,
+		protectedFiles: false,
+		schemaBootstrap: isSuperuser
+	};
+}
 
 export interface PocketBaseBackendOptions {
 	url: string;
+	/**
+	 * Colección de auth contra la que `login()`/`restoreSession()` autentican (lote L6a).
+	 * Default `'_superusers'` (comportamiento previo, BIT A BIT idéntico si se omite): el
+	 * dogfood de fodaveg y el resto de consumidores existentes no necesitan tocar nada. Cualquier
+	 * otro valor (p.ej. `'vega_editors'`) activa el modo editor: `Capabilities.schemaDiscovery`/
+	 * `schemaBootstrap` pasan a `false` (ver `computeCapabilities`).
+	 */
+	authCollection?: string;
 }
 
 /** Crea un `BackendPort` sobre un PocketBase real en `url`. */
-export function createPocketBaseBackend({ url }: PocketBaseBackendOptions): BackendPort {
+export function createPocketBaseBackend({
+	url,
+	authCollection = DEFAULT_AUTH_COLLECTION
+}: PocketBaseBackendOptions): BackendPort {
 	const pb = new PocketBase(url);
 	// LANDMINE (ver README): el SDK cancela peticiones "duplicadas" en vuelo por defecto. La
 	// política de cancelación es de los consumidores (P3/P4), no del transporte (§4.6).
 	pb.autoCancellation(false);
 
+	const CAPABILITIES = computeCapabilities(authCollection);
 	const host = hostOf(url);
 	const authSubscribers = new Set<(s: Session | null, reason: AuthChangeReason) => void>();
 
@@ -144,7 +170,20 @@ export function createPocketBaseBackend({ url }: PocketBaseBackendOptions): Back
 		return err;
 	}
 
+	// Cachea la PROMESA (no solo el valor ya resuelto) del snapshot leído en modo editor (L6b):
+	// closure de ESTA instancia de backend, vive tanto como ella (recargar la página = nueva
+	// instancia = releer una vez). El snapshot solo cambia cuando un superuser vuelve a guardar
+	// desde `/settings`; sin esta caché, cada `list`/`get`/`create`/… en el camino caliente de
+	// datos releería el registro `vega` entero por red solo para descartar su `schemaSnapshot`.
+	// Cachear la PROMESA (fix de code-review, no solo el valor) deduplica llamadas CONCURRENTES:
+	// dos `list()` en paralelo en el primer render, antes de que la primera resuelva, comparten
+	// la MISMA lectura de red en vez de disparar dos. Si la promesa rechaza, se limpia (`= null`)
+	// para no cachear un fallo permanentemente — una llamada posterior reintenta desde cero.
+	let cachedEditorSnapshotPromise: Promise<ContentType[]> | null = null;
+
 	async function fetchAllContentTypes(): Promise<ContentType[]> {
+		if (!CAPABILITIES.schemaDiscovery) return fetchContentTypesFromSnapshot();
+
 		// `pb.collections.getFullList()` NO sirve aquí (§9.5): por debajo hace
 		// `e.items = e.items?.map(...) || []`, así que una respuesta 2xx sin `items[]` (forma
 		// inesperada) se convierte en silencio en `[]` — indistinguible de "0 colecciones"
@@ -163,6 +202,58 @@ export function createPocketBaseBackend({ url }: PocketBaseBackendOptions): Back
 			page += 1;
 		}
 		return mapCollectionsToContentTypes(all);
+	}
+
+	/**
+	 * Modo editor (L6b, `schemaDiscovery: false`): PB reserva `GET /api/collections` a
+	 * superusers, así que en vez de introspección en vivo se sirve el `ContentType[]` que un
+	 * superuser dejó persistido en `vega.schemaSnapshot` (mismo registro que el manifiesto,
+	 * `saveManifest`/`model/load.ts`) la última vez que guardó desde `/settings`. Deduplica
+	 * llamadas concurrentes cacheando la PROMESA en vuelo (ver `cachedEditorSnapshotPromise`).
+	 */
+	function fetchContentTypesFromSnapshot(): Promise<ContentType[]> {
+		if (!cachedEditorSnapshotPromise) {
+			cachedEditorSnapshotPromise = loadSchemaSnapshotFromVegaRecord().catch((err: unknown) => {
+				// Fix de code-review: NUNCA cachear un fallo permanentemente — una llamada
+				// posterior (p.ej. tras un hipo de red, o una vez el administrador arregla la
+				// regla de API) debe poder reintentar desde cero.
+				cachedEditorSnapshotPromise = null;
+				throw err;
+			});
+		}
+		return cachedEditorSnapshotPromise;
+	}
+
+	/**
+	 * Lectura CRUDA del registro `vega` vía `pb.collection(...).getList` (no `port.list`/
+	 * `port.get`, que exigirían conocer YA el `ContentType` de `vega` — circularidad, esta
+	 * función ES quien lo produce). 404 (la colección `vega` no existe todavía, bootstrap
+	 * pendiente) y 403 (la API rule de lectura de `vega` no incluye a esta `authCollection`, un
+	 * permiso mal configurado por el operador) se tratan IGUAL: `VegaError.backend` con mensaje
+	 * accionable. Ninguno de los dos es "sesión caducada" — un 403 aquí NUNCA debe latchear
+	 * `auth-expired` (el mapeo genérico de `errors.ts` §5 asume superuser y colapsaría cualquier
+	 * 401/403 a expiración, metiendo al editor en un bucle de deslogueo).
+	 */
+	async function loadSchemaSnapshotFromVegaRecord(): Promise<ContentType[]> {
+		let result;
+		try {
+			result = await pb.collection(VEGA_COLLECTION.name).getList(1, 1);
+		} catch (err) {
+			if (err instanceof ClientResponseError && (err.status === 404 || err.status === 403)) {
+				const reason =
+					err.status === 404
+						? 'la colección "vega" todavía no existe'
+						: 'no tienes permiso de lectura sobre la colección "vega"';
+				throw VegaError.backend(
+					`No hay snapshot de esquema disponible para el modo editor: ${reason} (pide a un ` +
+						'administrador que guarde el manifiesto desde /settings y/o ajuste la regla de ' +
+						'API List/View de "vega" para incluir tu rol, L6b).'
+				);
+			}
+			throw err;
+		}
+		const raw = result.items[0] as unknown as Record<string, unknown> | undefined;
+		return assertSchemaSnapshotShape(raw?.[SCHEMA_SNAPSHOT_FIELD]);
 	}
 
 	async function getContentTypeOrThrow(type: string): Promise<ContentType> {
@@ -232,7 +323,7 @@ export function createPocketBaseBackend({ url }: PocketBaseBackendOptions): Back
 		async login(credentials) {
 			try {
 				await pb
-					.collection('_superusers')
+					.collection(authCollection)
 					.authWithPassword(credentials.email, credentials.password);
 			} catch (err) {
 				// Solo el 400 (credenciales rechazadas por PB) se re-etiqueta con mensaje SIEMPRE
@@ -272,7 +363,7 @@ export function createPocketBaseBackend({ url }: PocketBaseBackendOptions): Back
 
 			pb.authStore.save(token, null);
 			try {
-				await pb.collection('_superusers').authRefresh();
+				await pb.collection(authCollection).authRefresh();
 			} catch (err) {
 				// Un 401 LITERAL de `authRefresh` es la única señal inequívoca, verificada contra
 				// PB real (ver cabecera de errors.ts), de "token inválido/caducado": SOLO ese caso
@@ -452,4 +543,35 @@ function assertCollectionsPageShape(raw: unknown): {
 		);
 	}
 	return { items: page.items as CollectionModel[], totalPages: page.totalPages as number };
+}
+
+/** Convención de campo del registro `vega` (P2 §6.1/L6b): duplicada a propósito, mismo criterio
+ *  que `MANIFEST_FIELD` en `model/load.ts`/`settings/+page.svelte` — este adaptador no puede
+ *  importar de `$lib/model` (la capa de puerto va POR DEBAJO, ley L1). */
+const SCHEMA_SNAPSHOT_FIELD = 'schemaSnapshot';
+
+/**
+ * Comprobación estructural mínima (L6b, mismo criterio que `assertCollectionsPageShape`) del
+ * `schemaSnapshot` leído del registro `vega` en modo editor: ausente (registro `vega` creado
+ * ANTES de esta enmienda, o aún sin ningún guardado desde `/settings`), `null`, o con forma
+ * inesperada ⇒ `VegaError.backend` con mensaje accionable — nunca se sirve un `[]` silencioso
+ * que un editor confundiría con "0 tipos de contenido genuinos".
+ */
+function assertSchemaSnapshotShape(raw: unknown): ContentType[] {
+	const isValid =
+		Array.isArray(raw) &&
+		raw.every(
+			(c) =>
+				c !== null &&
+				typeof c === 'object' &&
+				typeof (c as { name?: unknown }).name === 'string' &&
+				Array.isArray((c as { fields?: unknown }).fields)
+		);
+	if (!isValid) {
+		throw VegaError.backend(
+			'No hay snapshot de esquema disponible para el modo editor: pide a un administrador ' +
+				'que guarde el manifiesto desde /settings para generarlo (L6b).'
+		);
+	}
+	return raw as ContentType[];
 }

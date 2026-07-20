@@ -60,9 +60,19 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'connect.testOk': 'Connection succeeded.',
 	'connect.testFail': 'Could not confirm the connection (could be CORS). You can still save.',
 	'connect.save': 'Save and reload',
-	'connect.reset': 'Reset to same-origin',
+	'connect.reset': 'Reset to defaults',
 	'connect.reloadConfirm':
 		'The page will reload to apply the backend change. Any unsaved changes in the editor will be lost. Continue?',
+	// `authCollection` (batch L6c): auth collection the `pocketbase` adapter authenticates against
+	// — empty/absent ⇒ `_superusers` (superuser, previous behavior). An operator setting up the
+	// plain editor role (dedicated collection, e.g. `vega_editors`) fills it here to sign in as an
+	// editor instead of a superuser.
+	'connect.authCollectionLabel': 'Authentication collection',
+	'connect.authCollectionPlaceholder': '_superusers',
+	'connect.authCollectionHint':
+		'Leave blank to sign in as superuser. Editors use a dedicated collection (e.g. "vega_editors") that whoever administers this PocketBase will give you.',
+	'connect.current.authCollectionDefault': 'Authenticating as superuser (_superusers).',
+	'connect.current.authCollectionOverride': 'Authenticating against collection: {authCollection}',
 
 	// ————— Global transport states (§3.4) —————
 	'errors.network.title': 'Could not reach the backend',
@@ -232,6 +242,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'The "vega_media" collection does not exist in this backend yet and cannot be created automatically. This section stays disabled until you create it by hand.',
 	'media.bootstrap.manualImportHint':
 		'In the PocketBase Admin: Collections → Import collections, paste the following JSON and confirm.',
+	// Editor role (batch L6c): an editor never has access to the PocketBase Admin, so the import
+	// JSON above is of no use to them.
+	'media.bootstrap.editorBody':
+		'Ask an administrator to set up the media collection ("vega_media") in PocketBase.',
 
 	// ————— Media: grid + detail (Phase P6·6b) —————
 	'media.detail.title': 'Edit media',
@@ -292,6 +306,14 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'settings.reloading': 'Reloading…',
 	'settings.saveSuccess': 'Manifest saved.',
 	'settings.loadErrorBody': 'Could not load Settings. Try again.',
+
+	// ————— Editor role (batch L6c): manifest-editing gate —————
+	// Without `schemaBootstrap` (auth collection other than `_superusers`) an editor cannot
+	// introspect nor create/migrate schema — editing the manifest is, by definition, a superuser
+	// operation. See `computeCollectionState`/`Capabilities.schemaBootstrap`.
+	'settings.manifest.editorGateTitle': 'Content model',
+	'settings.manifest.editorGateBody':
+		'Editing the manifest requires an administrator (superuser) account. Ask whoever administers this PocketBase to adjust the content model from this same panel.',
 
 	// ————— Appearance: theme + mode picker (Phase F7w-a, "turning the themes on") —————
 	'settings.appearance.title': 'Appearance',

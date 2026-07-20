@@ -7,6 +7,18 @@
 	 * memoizado de `backend.ts` se reconstruye contra la nueva URL en el próximo arranque, es el
 	 * mecanismo honesto (nunca se intenta recrear el `BackendPort` en caliente).
 	 *
+	 * **Colección de autenticación (lote L6c)**: mismo formulario, un segundo campo de texto para
+	 * el override de `authCollection` (`readAuthCollectionOverride`/`writeAuthCollectionOverride`/
+	 * `clearAuthCollectionOverride`, `backend-override.ts` — introducidos en L6a, sin ningún
+	 * consumidor hasta ahora). NO se duplica la mecánica de guardar/recargar/confirmar: "Guardar y
+	 * recargar" persiste AMBOS overrides de una vez (URL + colección) y "Restablecer" los limpia a
+	 * los dos (same-origin + `_superusers`) — un solo viaje de recarga, nunca dos formularios
+	 * independientes. Vacío/solo-espacios al guardar ⇒ se limpia el override de colección (cae a
+	 * `vega.config.json`/`_superusers`, mismo criterio de "ausente" que `resolveAuthCollection`),
+	 * en vez de persistir una cadena vacía en `localStorage`. Es el campo que un operador rellena
+	 * con `vega_editors` (o el nombre que haya elegido) para que este `pb_public/` autentique como
+	 * rol editor en vez de superusuario.
+	 *
 	 * Componente DELIBERADAMENTE sin `VegaAppContext`: se monta en `/login` (§2.4, todavía sin
 	 * sesión ni contexto — mismo motivo por el que esa ruta resuelve `t()` a mano) y en
 	 * `/settings` (con contexto completo). Recibe `t` como prop, igual de válido en ambos sitios.
@@ -14,7 +26,9 @@
 	 * "Probar conexión" es un `fetch` best-effort a `${url}/api/health` (el healthcheck de
 	 * PocketBase): NUNCA bloquea el guardado — si CORS lo bloquea o el servidor no responde, el
 	 * usuario puede guardar igualmente (la URL puede ser correcta y el probe fallar solo porque
-	 * CORS no está configurado TODAVÍA, ver `docs/POCKETBASE-INTEGRATION.md`).
+	 * CORS no está configurado TODAVÍA, ver `docs/POCKETBASE-INTEGRATION.md`). No prueba la
+	 * colección de auth (el healthcheck de PB no autentica): validar esa combinación queda para el
+	 * primer login real tras recargar.
 	 *
 	 * `confirmBeforeReload` (fix de code-review de L5): en `/settings` esta sección es VECINA del
 	 * `ManifestEditor` en la misma página, sin dirty-tracking cruzado — un `Guardar`/`Restablecer`
@@ -22,13 +36,16 @@
 	 * avisar. `/login` (§2.4, sin sesión ni editor que perder) lo deja en `false` (default): ahí
 	 * el `confirm()` extra solo sería fricción. Mismo patrón que `editor.leaveConfirm`
 	 * (`RecordForm.svelte`/`MediaDetail.svelte`): `window.confirm()` directo, sin envoltura —
-	 * best-effort, si el usuario cancela NO se escribe/borra el override ni se recarga (estado
+	 * best-effort, si el usuario cancela NO se escribe/borra ningún override ni se recarga (estado
 	 * consistente).
 	 */
 	import { isAbsoluteUrl } from './backend-config';
 	import {
+		clearAuthCollectionOverride,
 		clearBackendOverride,
+		readAuthCollectionOverride,
 		readBackendOverride,
+		writeAuthCollectionOverride,
 		writeBackendOverride
 	} from './backend-override';
 
@@ -39,11 +56,13 @@
 
 	const { t, confirmBeforeReload = false }: Props = $props();
 
-	/** Override YA guardado al montar (leído una vez: tras guardar/restablecer recargamos la
+	/** Overrides YA guardados al montar (leídos una vez: tras guardar/restablecer recargamos la
 	 *  página entera, así que no hace falta reactividad más fina que un `$state` local). */
 	let currentOverride = $state(readBackendOverride());
+	let currentAuthCollectionOverride = $state(readAuthCollectionOverride());
 
 	let url = $state(currentOverride ?? '');
+	let authCollection = $state(currentAuthCollectionOverride ?? '');
 	let error = $state<string | null>(null);
 
 	type TestStatus = 'idle' | 'testing' | 'ok' | 'fail';
@@ -88,6 +107,12 @@
 		}
 	}
 
+	/** Guarda AMBOS overrides de una vez (ver cabecera): `authCollection` en blanco/solo-espacios
+	 *  limpia el override en vez de persistir `''` (mismo criterio "ausente" que
+	 *  `resolveAuthCollection`). La URL sigue siendo la única que puede bloquear el guardado
+	 *  entero (§ validación); un nombre de colección es sintácticamente libre, cualquier valor no
+	 *  vacío se acepta tal cual (fallará en `login`/`restoreSession` si está mal, como cualquier
+	 *  otro error de PB). */
 	function handleSave(event: SubmitEvent): void {
 		event.preventDefault();
 		const trimmed = normalize(url);
@@ -97,12 +122,20 @@
 		}
 		if (!confirmReloadIfNeeded()) return;
 		writeBackendOverride(trimmed);
+		const trimmedAuthCollection = authCollection.trim();
+		if (trimmedAuthCollection) {
+			writeAuthCollectionOverride(trimmedAuthCollection);
+		} else {
+			clearAuthCollectionOverride();
+		}
 		window.location.reload();
 	}
 
+	/** Restablece AMBOS overrides a la vez (same-origin + `_superusers`, ver cabecera). */
 	function handleReset(): void {
 		if (!confirmReloadIfNeeded()) return;
 		clearBackendOverride();
+		clearAuthCollectionOverride();
 		window.location.reload();
 	}
 </script>
@@ -113,6 +146,15 @@
 			{t('connect.current.override', { url: currentOverride })}
 		{:else}
 			{t('connect.current.sameOrigin')}
+		{/if}
+	</p>
+	<p class="vega-backend-current">
+		{#if currentAuthCollectionOverride}
+			{t('connect.current.authCollectionOverride', {
+				authCollection: currentAuthCollectionOverride
+			})}
+		{:else}
+			{t('connect.current.authCollectionDefault')}
 		{/if}
 	</p>
 
@@ -128,6 +170,18 @@
 				bind:value={url}
 				oninput={handleUrlInput}
 			/>
+		</div>
+
+		<div class="field">
+			<label for="backend-auth-collection">{t('connect.authCollectionLabel')}</label>
+			<input
+				id="backend-auth-collection"
+				name="authCollection"
+				type="text"
+				placeholder={t('connect.authCollectionPlaceholder')}
+				bind:value={authCollection}
+			/>
+			<p class="vega-backend-hint">{t('connect.authCollectionHint')}</p>
 		</div>
 
 		{#if error}
@@ -151,7 +205,7 @@
 				{t('connect.test')}
 			</button>
 			<button type="submit">{t('connect.save')}</button>
-			{#if currentOverride}
+			{#if currentOverride || currentAuthCollectionOverride}
 				<button type="button" onclick={handleReset}>{t('connect.reset')}</button>
 			{/if}
 		</div>
@@ -181,6 +235,12 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.25rem;
+	}
+
+	.vega-backend-hint {
+		margin: 0;
+		font-size: 0.78rem;
+		color: var(--ink-2);
 	}
 
 	label {

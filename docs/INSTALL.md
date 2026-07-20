@@ -139,6 +139,8 @@ Después copia `build/` a tu servidor web. Asegúrate de que PocketBase permite 
 
 Abre la URL donde hayas desplegado `build/`, inicia sesión con tus credenciales de PocketBase, y verifica que puedas navegar por el admin y crear/editar contenido.
 
+**Para editores no-admin**: si quieres dar acceso a clientes NO técnicos (sin superuser), ve a [Autenticación en Vega y rol editor](POCKETBASE-INTEGRATION.md#modo-editor-l6) en la guía de integración con PocketBase. Requiere crear una colección de auth dedicada y configurar reglas de acceso en PocketBase.
+
 ## Actualizar a una versión nueva
 
 Vega se distribuye como un **artefacto versionado independiente**, no como código que se copie dentro de tu proyecto. Cada tag `v*` del repo dispara el workflow de release (`release.yml`), que publica un **zip determinista** con la SPA ya construida (la versión va horneada en el build). Actualizar Vega es **reemplazar esa SPA** por la del zip nuevo — nunca se tocan tus datos.

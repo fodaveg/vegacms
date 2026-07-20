@@ -18,11 +18,12 @@ Sin tocar ningún fichero, puedes apuntar Vega a cualquier PocketBase desde la p
 En ambos sitios, el mismo formulario (`BackendUrlForm.svelte`) permite:
 
 - Introducir la URL del PocketBase (`https://pb.midominio.com`).
+- **Colección de autenticación** (opcional, L6): introducir el nombre de la colección de auth si no es `_superusers` (modo editor). Ausente o `_superusers` ⇒ modo superuser (default). Ver [Autenticación en Vega y rol editor](POCKETBASE-INTEGRATION.md#autenticación-en-vega-y-rol-editor) para explicación y setup.
 - **Probar conexión** (opcional, best-effort): hace `GET {url}/api/health`. Un fallo (p. ej. CORS aún no configurado) no impide guardar — es solo informativo.
-- **Guardar**: valida la URL, la persiste en `localStorage` y recarga la página. Tras recargar, Vega se conecta a la nueva URL.
-- **Restablecer a same-origin**: borra el override guardado y recarga.
+- **Guardar**: valida los valores, persiste en `localStorage` (claves `vega.backendUrl.v1` y `vega.authCollection.v1`) y recarga la página. Tras recargar, Vega se conecta a la nueva URL y autentica contra la colección indicada.
+- **Restablecer a same-origin** / **Restablecer a `_superusers`**: borra los overrides guardados y recarga.
 
-El override vive SOLO en el navegador (`localStorage`), no se comparte entre dispositivos ni usuarios: cada persona que abre Vega en un origen distinto de su PocketBase necesita guardarlo una vez en su propio navegador (o recibir la SPA ya con `vega.config.json` configurado, ver abajo).
+Los overrides viven SOLO en el navegador (`localStorage`), no se comparten entre dispositivos ni usuarios: cada persona que abre Vega en un origen distinto de su PocketBase necesita guardarlos una vez en su propio navegador (o recibir la SPA ya con `vega.config.json` configurado, ver abajo).
 
 ## Configuración de PocketBase remoto
 
@@ -39,6 +40,8 @@ Crea `static/vega.config.json` con la siguiente estructura:
 **Campos**:
 
 - **`backendUrl`** (opcional, string): URL absoluta del servidor PocketBase (http:// o https://). Si está ausente o no es válido, Vega usa same-origin (el valor por defecto).
+
+- **`authCollection`** (opcional, string, L6): nombre de la colección de autenticación contra la que Vega autentica (`login`/`restoreSession`). Ausente ⇒ `'_superusers'` (default, modo superuser — comportamiento previo sin cambios). Cualquier otro valor activa el **modo editor**: la UI degrada la introspección de schema y bootstrap de colecciones (no puede hacerlo un editor) — el schema se sirve desde un snapshot cacheado que un superuser guarda en `/settings`. Útil para dar acceso a un cliente NO técnico con una colección auth dedicada, p. ej. `vega_editors` (ver [Autenticación en Vega y rol editor](POCKETBASE-INTEGRATION.md#autenticación-en-vega-y-rol-editor)).
 
 ### Comportamiento
 
