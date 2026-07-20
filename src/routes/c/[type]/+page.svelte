@@ -69,6 +69,7 @@
 	import { deriveColumns } from '$lib/list/columns';
 	import { parseViewState, viewStateToParams, type ViewStatePatch } from '$lib/list/query-state';
 	import { cycleSort } from '$lib/list/sort';
+	import { computeReorder } from '$lib/list/reorder';
 	import { createListState } from '$lib/list/list-state.svelte';
 	import { listRoute } from '$lib/nav/routes';
 	import { isEditableTarget } from '$lib/shell/keyboard';
@@ -132,6 +133,53 @@
 	const isEmpty = $derived(
 		readyPage !== null && readyPage.items.length === 0 && readyPage.totalItems === 0
 	);
+
+	// ————— Reorder manual (core, `orderField`) —————
+	// Elegible SOLO cuando reordenar a mano tiene sentido inequívoco: el tipo declara `orderField`
+	// (P2), la vista no tiene ningún orden/búsqueda/filtro explícito propio (arrastrar filas sobre
+	// una vista filtrada/ordenada de otra forma daría un orden que no sobrevive a quitar el
+	// filtro), y la colección entera cabe en una página (arrastrar entre páginas no está
+	// soportado). Cualquier otra combinación oculta la columna del asa (`RecordTable`, ver su
+	// cabecera), nunca la deja a medias.
+	const reorderable = $derived(
+		contentType !== null &&
+			contentType.orderField !== null &&
+			viewState.sort === null &&
+			viewState.q === '' &&
+			viewState.status === null &&
+			readyPage !== null &&
+			readyPage.totalPages <= 1
+	);
+
+	/** Handler de `onReorder` de `RecordTable` (ver su cabecera): construye `orderedIds`/
+	 *  `currentValues` a partir de la página actual (`readyPage.items`, la única en juego cuando
+	 *  `reorderable` es `true`), calcula el mínimo conjunto de updates (`computeReorder`, módulo
+	 *  puro) y los persiste uno a uno vía `ctx.port.update`. Sin updates (drop en el mismo sitio)
+	 *  es un no-op, ni siquiera toca el puerto. Éxito → `listState.reload()` (mismo patrón que
+	 *  `confirmDelete`); fallo → `ctx.feedback.reportError` (nunca `status.error` del listado, que
+	 *  es solo para fallos de CARGA, L-P4.4). */
+	async function handleReorder(fromIndex: number, toIndex: number): Promise<void> {
+		if (!contentType || !readyPage || contentType.orderField === null) return;
+		const orderField = contentType.orderField;
+		const orderedIds = readyPage.items.map((record) => record.id);
+		const currentValues: Record<string, number> = {};
+		for (const record of readyPage.items) {
+			const raw = record.values[orderField];
+			currentValues[record.id] = typeof raw === 'number' ? raw : 0;
+		}
+		const updates = computeReorder(orderedIds, currentValues, fromIndex, toIndex);
+		if (updates.length === 0) return;
+		try {
+			for (const update of updates) {
+				await ctx.port.update(contentType.name, update.id, { [orderField]: update.value });
+			}
+			listState.reload();
+		} catch (err) {
+			ctx.feedback.reportError(
+				err instanceof VegaError ? err : VegaError.backend(ctx.t('list.reorder.error'), err)
+			);
+		}
+	}
 
 	// ————— Borrado (Fase 4e, L-P4.11) —————
 	// Registro pendiente de confirmar + su `label` ya resuelto (mismo `openText` de la fila,
@@ -376,6 +424,8 @@
 						sort={viewState.sort}
 						onSort={(field) => navigateView({ sort: cycleSort(viewState.sort, field) })}
 						onDeleteRequest={requestDelete}
+						{reorderable}
+						onReorder={handleReorder}
 					/>
 					<Pagination
 						page={readyPage.page}

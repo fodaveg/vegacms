@@ -19,9 +19,11 @@ test('pinta los grupos/items del manifiesto en el orden esperado, con el grupo a
 
 	// Orden de render: grupo anónimo (singleton "Información del sitio") primero, después el
 	// grupo "Contenido" (Entradas, order 1; Páginas, order 2; Autores, order 3; Métricas, order 4
-	// — añadidos en 4c, ver `session/demo-seed.ts`). Se aíslan los `.vega-nav-item-label` (no el
+	// — añadidos en 4c; Obras, order 5; Pistas, order 6; y la vista fusionada "Catálogo", order 7
+	// — añadidos en L7c, ver `session/demo-seed.ts`). Se aíslan los `.vega-nav-item-label` (no el
 	// `<a>` completo) para no depender de si hay o no espacio en blanco entre el label y la
-	// insignia "Solo lectura" de un item readonly.
+	// insignia "Solo lectura" de un item readonly (o de vista, L7c: `NavItem.kind === 'view'`
+	// también la lleva).
 	const labels = await sidebar
 		.locator('p.vega-nav-group-label, .vega-nav-item-label')
 		.allTextContents();
@@ -31,7 +33,10 @@ test('pinta los grupos/items del manifiesto en el orden esperado, con el grupo a
 		'Entradas',
 		'Páginas',
 		'Autores',
-		'Métricas'
+		'Métricas',
+		'Obras',
+		'Pistas',
+		'Catálogo'
 	]);
 });
 
@@ -55,9 +60,12 @@ test('el item readonly lleva la insignia "Solo lectura"', async ({ page }) => {
 	await loginAsDemo(page);
 	await page.waitForURL('**/c/site_info/new');
 
+	// Localiza el item DE "Páginas" por nombre, no por `[data-readonly="true"]` a secas (desde
+	// L7c, la vista fusionada "Catálogo" TAMBIÉN es `readonly:true` por diseño, ver
+	// `NavItem` en `$lib/model/types` — dos items readonly en la sidebar es esperado, no un bug).
 	const sidebar = page.getByRole('navigation', { name: 'Navegación principal' });
-	const pagesLink = sidebar.locator('a[data-readonly="true"]');
-	await expect(pagesLink).toHaveCount(1);
+	const pagesLink = sidebar.getByRole('link', { name: 'Páginas' });
+	await expect(pagesLink).toHaveAttribute('data-readonly', 'true');
 	await expect(pagesLink.locator('.vega-nav-item-label')).toHaveText('Páginas');
 	await expect(pagesLink.locator('.vega-nav-badge')).toHaveText('Solo lectura');
 });

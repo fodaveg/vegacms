@@ -46,6 +46,11 @@
 					"hidden": { "type": "boolean" },
 					"singleton": { "type": "boolean" },
 					"titleField": { "type": "string", "minLength": 1 },
+					"orderField": {
+						"description": "Nombre de un campo NUMÉRICO que define el orden manual de los registros (reorder por arrastre en el listado). Sin esta clave, la colección no ofrece reorder manual.",
+						"type": "string",
+						"minLength": 1
+					},
 					"statusField": {
 						"description": "Nombre del campo de publicación, o false para DESACTIVAR la convención aunque exista un campo 'status'.",
 						"oneOf": [{ "type": "string", "minLength": 1 }, { "const": false }]
@@ -100,6 +105,63 @@
 								"hidden": { "type": "boolean" },
 								"widget": { "enum": ["textarea", "markdown"] },
 								"listable": { "type": "boolean" }
+							}
+						}
+					}
+				}
+			}
+		},
+
+		"mergedViews": {
+			"description": "Vistas fusionadas (L7a): unen registros de VARIAS colecciones bajo un id-slug. Clave = id-slug de la vista.",
+			"type": "object",
+			"additionalProperties": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["sources"],
+				"properties": {
+					"label": { "type": "string", "minLength": 1, "maxLength": 60 },
+					"icon": { "type": "string", "minLength": 1 },
+					"group": { "type": "string", "minLength": 1 },
+					"order": { "type": "integer", "minimum": 0 },
+					"orderField": {
+						"description": "Nombre por defecto del campo NUMÉRICO de orden manual para las sources que no declaren el suyo propio.",
+						"type": "string",
+						"minLength": 1
+					},
+					"sources": {
+						"description": "Contribución de cada colección a la vista: mínimo una.",
+						"type": "array",
+						"minItems": 1,
+						"items": {
+							"type": "object",
+							"additionalProperties": false,
+							"required": ["collection"],
+							"properties": {
+								"collection": { "type": "string", "minLength": 1 },
+								"where": {
+									"description": "Predicado de membresía: cada par es una condición 'eq'; varios pares se combinan en AND. Ausente u objeto vacío = toda la colección.",
+									"type": "object",
+									"additionalProperties": {
+										"oneOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }]
+									}
+								},
+								"orderField": {
+									"description": "Campo NUMÉRICO de orden manual de esta source; si se omite, hereda el de la vista.",
+									"type": "string",
+									"minLength": 1
+								},
+								"titleField": {
+									"description": "Override de la proyección de título para esta source.",
+									"type": "string",
+									"minLength": 1
+								},
+								"label": {
+									"description": "Rótulo de la insignia de tipo para los registros de esta source.",
+									"type": "string",
+									"minLength": 1,
+									"maxLength": 60
+								}
 							}
 						}
 					}

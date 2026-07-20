@@ -53,6 +53,7 @@ function makeResolvedType(previewUrl: string | null): ResolvedContentType {
 		singleton: false,
 		readonly: false,
 		titleField: 'title',
+		orderField: null,
 		statusField: 'status',
 		previewUrl,
 		fields: [],

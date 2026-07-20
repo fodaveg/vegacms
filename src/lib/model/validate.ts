@@ -28,7 +28,7 @@ export type ManifestValidationResult =
 
 type JsonObject = Record<string, JsonValue>;
 
-const ROOT_ALLOWED_KEYS = ['schemaVersion', 'site', 'nav', 'collections'] as const;
+const ROOT_ALLOWED_KEYS = ['schemaVersion', 'site', 'nav', 'collections', 'mergedViews'] as const;
 const SITE_ALLOWED_KEYS = ['name', 'defaultTheme', 'locale'] as const;
 const NAV_ALLOWED_KEYS = ['groups'] as const;
 const COLLECTION_ALLOWED_KEYS = [
@@ -41,6 +41,7 @@ const COLLECTION_ALLOWED_KEYS = [
 	'singleton',
 	'titleField',
 	'statusField',
+	'orderField',
 	'previewUrl',
 	'listFields',
 	'fieldGroups',
@@ -58,6 +59,23 @@ const FIELD_ALLOWED_KEYS = [
 ] as const;
 /** Claves de la forma-objeto de un item de `fieldGroups` (§4.9b, rejilla de columnas). */
 const FIELD_GROUP_ITEM_ALLOWED_KEYS = ['name', 'columns'] as const;
+/** Claves de una vista fusionada `mergedViews.<id>` (L7a). */
+const MERGED_VIEW_ALLOWED_KEYS = [
+	'label',
+	'icon',
+	'group',
+	'order',
+	'orderField',
+	'sources'
+] as const;
+/** Claves de una source `mergedViews.<id>.sources[]` (L7a). */
+const MERGED_SOURCE_ALLOWED_KEYS = [
+	'collection',
+	'where',
+	'orderField',
+	'titleField',
+	'label'
+] as const;
 
 const PREVIEW_URL_PATTERN = /^https?:\/\//;
 
@@ -300,6 +318,7 @@ function validateRoot(raw: JsonValue, errors: ManifestValidationErrorEntry[]): v
 	if ('site' in raw) validateSite(raw.site, errors);
 	if ('nav' in raw) validateNav(raw.nav, errors);
 	if ('collections' in raw) validateCollections(raw.collections, errors);
+	if ('mergedViews' in raw) validateMergedViews(raw.mergedViews, errors);
 }
 
 function validateSite(value: JsonValue, errors: ManifestValidationErrorEntry[]): void {
@@ -393,6 +412,16 @@ function validateCollection(
 	}
 	if ('statusField' in value) {
 		validateStatusField(value.statusField, `${base}/statusField`, errors, name);
+	}
+	if ('orderField' in value) {
+		checkString(
+			value.orderField,
+			`${base}/orderField`,
+			1,
+			Infinity,
+			errors,
+			`orderField de "${name}"`
+		);
 	}
 	if ('previewUrl' in value) {
 		validatePreviewUrl(value.previewUrl, `${base}/previewUrl`, errors, name);
@@ -498,4 +527,161 @@ function validateField(
 	}
 	if ('listable' in value)
 		checkBoolean(value.listable, `${base}/listable`, errors, `listable de ${label}`);
+}
+
+// ————— Vistas fusionadas (mergedViews, L7a) —————
+
+function validateMergedViews(value: JsonValue, errors: ManifestValidationErrorEntry[]): void {
+	if (!isPlainObject(value)) {
+		fail(errors, '/mergedViews', 'mergedViews debe ser un objeto.');
+		return;
+	}
+	for (const [id, viewValue] of Object.entries(value)) {
+		validateMergedView(id, viewValue, errors);
+	}
+}
+
+function validateMergedView(
+	id: string,
+	value: JsonValue,
+	errors: ManifestValidationErrorEntry[]
+): void {
+	const base = `/mergedViews/${id}`;
+	if (!isPlainObject(value)) {
+		fail(errors, base, `La configuración de la vista fusionada "${id}" debe ser un objeto.`);
+		return;
+	}
+	checkAdditionalProperties(value, MERGED_VIEW_ALLOWED_KEYS, base, errors);
+
+	if (!('sources' in value)) {
+		fail(errors, `${base}/sources`, `sources de la vista fusionada "${id}" es obligatorio.`);
+	} else {
+		validateMergedSources(id, value.sources, errors);
+	}
+
+	if ('label' in value)
+		checkString(value.label, `${base}/label`, 1, 60, errors, `label de "${id}"`);
+	if ('icon' in value)
+		checkString(value.icon, `${base}/icon`, 1, Infinity, errors, `icon de "${id}"`);
+	if ('group' in value)
+		checkString(value.group, `${base}/group`, 1, Infinity, errors, `group de "${id}"`);
+	if ('order' in value)
+		checkNonNegativeInt(value.order, `${base}/order`, errors, `order de "${id}"`);
+	if ('orderField' in value) {
+		checkString(
+			value.orderField,
+			`${base}/orderField`,
+			1,
+			Infinity,
+			errors,
+			`orderField de "${id}"`
+		);
+	}
+}
+
+function validateMergedSources(
+	id: string,
+	value: JsonValue,
+	errors: ManifestValidationErrorEntry[]
+): void {
+	const base = `/mergedViews/${id}/sources`;
+	if (!Array.isArray(value) || value.length < 1) {
+		fail(
+			errors,
+			base,
+			`sources de la vista fusionada "${id}" debe ser un array con al menos un elemento.`
+		);
+		return;
+	}
+	value.forEach((el, i) => validateMergedSource(id, i, el, errors));
+}
+
+function validateMergedSource(
+	id: string,
+	index: number,
+	value: JsonValue,
+	errors: ManifestValidationErrorEntry[]
+): void {
+	const base = `/mergedViews/${id}/sources/${index}`;
+	if (!isPlainObject(value)) {
+		fail(errors, base, `La source ${index} de la vista fusionada "${id}" debe ser un objeto.`);
+		return;
+	}
+	checkAdditionalProperties(value, MERGED_SOURCE_ALLOWED_KEYS, base, errors);
+
+	if (!('collection' in value)) {
+		fail(
+			errors,
+			`${base}/collection`,
+			`collection de la source ${index} de "${id}" es obligatorio.`
+		);
+	} else {
+		checkString(
+			value.collection,
+			`${base}/collection`,
+			1,
+			Infinity,
+			errors,
+			`collection de la source ${index} de "${id}"`
+		);
+	}
+	if ('where' in value) validateWhere(id, index, value.where, errors);
+	if ('orderField' in value) {
+		checkString(
+			value.orderField,
+			`${base}/orderField`,
+			1,
+			Infinity,
+			errors,
+			`orderField de la source ${index} de "${id}"`
+		);
+	}
+	if ('titleField' in value) {
+		checkString(
+			value.titleField,
+			`${base}/titleField`,
+			1,
+			Infinity,
+			errors,
+			`titleField de la source ${index} de "${id}"`
+		);
+	}
+	if ('label' in value) {
+		checkString(
+			value.label,
+			`${base}/label`,
+			1,
+			60,
+			errors,
+			`label de la source ${index} de "${id}"`
+		);
+	}
+}
+
+/** `where`: objeto de valores ESCALARES (string/number/boolean, sin null); cada par es una
+ *  condición `eq` (§ mergedViews doc, L7a). La existencia de la prop en la colección real y si
+ *  admite `eq` para su tipo son problemas de CONTENIDO (`resolveContentModel`, `merged-where-
+ *  invalid`), no de sintaxis: aquí solo se valida la FORMA, igual que `collections.<x>` a nivel
+ *  de schema (§3, ver test "referenciando algo que no existe... VÁLIDO a nivel de schema"). */
+function validateWhere(
+	id: string,
+	index: number,
+	value: JsonValue,
+	errors: ManifestValidationErrorEntry[]
+): void {
+	const base = `/mergedViews/${id}/sources/${index}/where`;
+	if (!isPlainObject(value)) {
+		fail(errors, base, `where de la source ${index} de "${id}" debe ser un objeto.`);
+		return;
+	}
+	for (const [prop, propValue] of Object.entries(value)) {
+		const type = typeof propValue;
+		if (type !== 'string' && type !== 'number' && type !== 'boolean') {
+			fail(
+				errors,
+				`${base}/${prop}`,
+				`where.${prop} de la source ${index} de "${id}" debe ser texto, número o booleano.`
+			);
+		}
+	}
 }

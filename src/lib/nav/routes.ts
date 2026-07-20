@@ -48,6 +48,13 @@ export function mediaRoute(): string {
 	return `${base}/media`;
 }
 
+/** `/v/:id` — vista fusionada (`mergedViews`, L7a resuelve, L7c pinta): listado READ-ONLY
+ *  cruzando varias colecciones. `id` es la clave de `mergedViews` en el manifiesto (id-slug), no
+ *  un `RecordId` — namespace propio, sin relación con `/c/:type`. */
+export function viewRoute(id: string): string {
+	return `${base}/v/${encodeURIComponent(id)}`;
+}
+
 /** `/settings` — monta el `ManifestEditor` de P2. */
 export function settingsRoute(): string {
 	return `${base}/settings`;

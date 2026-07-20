@@ -43,6 +43,27 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'session.reloginSubmit': 'Re-authenticate',
 	'session.logoutConfirm': 'There are unsaved changes. Log out anyway?',
 
+	// ————— Backend connection / generic onboarding (batch L5) —————
+	// `BackendUrlForm.svelte`: runtime override of the PocketBase URL, saved to `localStorage`.
+	// Mounted on `/login` (disclosure, first launch) and `/settings` (reconfiguration, already
+	// signed in).
+	'connect.disclosureLabel': 'PocketBase on another server? Configure it',
+	'connect.title': 'Backend / connection',
+	'connect.description': 'Point Vega to a PocketBase other than this same server, no rebuild.',
+	'connect.urlLabel': 'PocketBase URL',
+	'connect.urlPlaceholder': 'https://pb.yourdomain.com',
+	'connect.invalidUrl': 'Enter a valid URL (http:// or https://).',
+	'connect.current.sameOrigin': 'Using the same origin as this page (default).',
+	'connect.current.override': 'Connected to: {url}',
+	'connect.test': 'Test connection',
+	'connect.testing': 'Testing…',
+	'connect.testOk': 'Connection succeeded.',
+	'connect.testFail': 'Could not confirm the connection (could be CORS). You can still save.',
+	'connect.save': 'Save and reload',
+	'connect.reset': 'Reset to same-origin',
+	'connect.reloadConfirm':
+		'The page will reload to apply the backend change. Any unsaved changes in the editor will be lost. Continue?',
+
 	// ————— Global transport states (§3.4) —————
 	'errors.network.title': 'Could not reach the backend',
 	'errors.network.body': 'The server could not be reached. Check your connection.',
@@ -58,6 +79,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'errors.notFoundRecord.body': 'This record no longer exists.',
 	'errors.notFoundRecord.backToList': 'Back to list',
 	'errors.backToIndex': 'Back to index',
+	// ————— Merged views (mergedViews, Phase L7c) —————
+	'errors.notFoundView.title': 'View not found',
+	'errors.notFoundView.body': 'The merged view "{view}" does not exist.',
 
 	// ————— Record editor (P5 contract, Phase F5-a) —————
 	// `editor.create.title`/`editor.edit.title`: since redesign C2's R7, these only feed the
@@ -182,6 +206,18 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.delete.confirm': 'Delete',
 	'list.delete.deleting': 'Deleting…',
 	'list.delete.success': '"{label}" was deleted.',
+
+	// ————— Manual reorder (orderField) —————
+	'list.reorder.columnHeader': 'Order',
+	'list.reorder.handleLabel': 'Drag to reorder "{label}"',
+	'list.reorder.error': 'Could not save the new order. Please try again.',
+
+	// ————— Merged view (mergedViews, Phase L7c) —————
+	'list.merged.typeHeader': 'Type',
+	'list.merged.titleHeader': 'Title',
+	'list.merged.empty.title': "There's nothing here yet",
+	'list.merged.empty.body': "No record from this view's collections matches yet.",
+	'list.merged.truncatedNotice': "One of this view's collections has more records than shown.",
 
 	// ————— Media: bootstrap + schema (Phase P6·6a) —————
 	'media.loadErrorBody': 'Could not load the media library. Try again.',

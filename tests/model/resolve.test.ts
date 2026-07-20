@@ -348,6 +348,38 @@ describe('7. Matriz de degradación (§5)', () => {
 		]);
 	});
 
+	test('orderField declarado y numérico → se resuelve, sin warning', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, collections: { post: { orderField: 'rating' } } }
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.orderField).toBe('rating');
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('orderField que no es numérico → order-field-invalid + null', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, collections: { post: { orderField: 'title' } } }
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.orderField).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'order-field-invalid', collection: 'post' })
+		]);
+	});
+
+	test('sin orderField en el manifiesto → null, SIN warning (sin autodetección por convención)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, collections: { post: {} } }
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.orderField).toBeNull();
+		expect(model.warnings).toEqual([]);
+	});
+
 	test('previewUrl con placeholder inválido → previewUrl null + preview-url-invalid', () => {
 		const model = resolveContentModel({
 			types: kitchenSinkTypes,
@@ -469,6 +501,7 @@ describe('7. Matriz de degradación (§5)', () => {
 			{ collections: { post: { listFields: 'nope' } } },
 			{ collections: { post: { titleField: 123 } } },
 			{ collections: { post: { statusField: 123 } } },
+			{ collections: { post: { orderField: 123 } } },
 			{ collections: { post: { previewUrl: 'ftp://mal' } } },
 			{ collections: { post: { icon: 123 } } },
 			{ collections: { post: { singleton: 'yes' } } },
@@ -701,6 +734,560 @@ describe('11. fieldGroups: rejilla de columnas (§4.9b)', () => {
 				path: '/collections/post/fieldGroups'
 			})
 		]);
+	});
+});
+
+// ————— 12. Vistas fusionadas (mergedViews, L7a) —————
+
+describe('12. Vistas fusionadas (mergedViews, L7a)', () => {
+	test('manifiesto sin mergedViews → array vacío, sin warnings', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1 }
+		});
+		expect(model.mergedViews).toEqual([]);
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('vista completa: label/icon/group/order propios + overrides por source (titleField/label/where)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				mergedViews: {
+					destacados_home: {
+						label: 'Destacados Home',
+						icon: 'star',
+						group: 'Portada',
+						order: 2,
+						orderField: 'rating',
+						sources: [
+							{ collection: 'post', where: { featured: true } },
+							{
+								collection: 'post',
+								where: { status: 'published' },
+								titleField: 'website', // override explícito (post.website es url, representable)
+								label: 'Entrada destacada'
+							}
+						]
+					}
+				}
+			},
+			knownIcons: ['star', 'pencil']
+		});
+
+		expect(model.warnings).toEqual([]);
+		expect(model.mergedViews).toHaveLength(1);
+		const view = model.mergedViews[0];
+		expect(view).toEqual({
+			id: 'destacados_home',
+			label: 'Destacados Home',
+			icon: 'star',
+			group: 'Portada',
+			order: 2,
+			sources: [
+				{
+					collection: 'post',
+					where: { kind: 'cond', field: 'featured', op: 'eq', value: true },
+					orderField: 'rating', // heredado de la vista (la source no declara el suyo)
+					titleField: 'title', // default = titleField resuelto del tipo (post)
+					label: 'Post' // default = labelSingular resuelto del tipo (post)
+				},
+				{
+					collection: 'post',
+					where: { kind: 'cond', field: 'status', op: 'eq', value: 'published' },
+					orderField: 'rating', // heredado de la vista (la source no declara el suyo)
+					titleField: 'website', // override explícito
+					label: 'Entrada destacada' // override explícito
+				}
+			]
+		});
+	});
+
+	test('sin declarar label/icon/group/order/orderField ni overrides → defaults', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				mergedViews: {
+					destacados_home: { sources: [{ collection: 'post', orderField: 'rating' }] }
+				}
+			}
+		});
+		expect(model.warnings).toEqual([]);
+		const view = model.mergedViews[0];
+		expect(view.label).toBe('Destacados home'); // humanizeLabel(id), §4.8
+		expect(view.icon).toBeNull();
+		expect(view.group).toBeNull();
+		expect(view.order).toBe(0);
+		const source = view.sources[0];
+		expect(source.titleField).toBe('title'); // default = titleField resuelto del tipo (post)
+		expect(source.label).toBe('Post'); // default = labelSingular resuelto del tipo (post)
+	});
+
+	test('colección inexistente → merged-source-orphan, esa source se descarta (el resto sobrevive)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				mergedViews: {
+					destacados_home: {
+						orderField: 'rating',
+						sources: [{ collection: 'no-existe' }, { collection: 'post' }]
+					}
+				}
+			}
+		});
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'merged-source-orphan',
+				mergedView: 'destacados_home',
+				collection: 'no-existe',
+				path: '/mergedViews/destacados_home/sources/0'
+			})
+		]);
+		expect(model.mergedViews[0].sources).toHaveLength(1);
+		expect(model.mergedViews[0].sources[0].collection).toBe('post');
+	});
+
+	test('colección reservada (vega) → merged-source-orphan (reservada) + se descarta', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				mergedViews: {
+					destacados_home: {
+						orderField: 'rating',
+						sources: [{ collection: 'vega' }, { collection: 'post' }]
+					}
+				}
+			}
+		});
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'merged-source-orphan',
+				mergedView: 'destacados_home',
+				collection: 'vega'
+			})
+		]);
+		expect(model.mergedViews[0].sources.map((s) => s.collection)).toEqual(['post']);
+	});
+
+	test('orderField ausente (ni source ni vista) → merged-source-order-invalid, source descartada', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				mergedViews: { destacados_home: { sources: [{ collection: 'post' }] } }
+			}
+		});
+		// 0 sources válidas → además del warning de la source, la vista entera se descarta.
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'merged-source-order-invalid',
+				mergedView: 'destacados_home'
+			}),
+			expect.objectContaining({ code: 'merged-view-invalid', mergedView: 'destacados_home' })
+		]);
+		expect(model.mergedViews).toEqual([]);
+	});
+
+	test('orderField no numérico → merged-source-order-invalid, source descartada', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				mergedViews: {
+					destacados_home: {
+						sources: [
+							{ collection: 'post', orderField: 'title' },
+							{ collection: 'post', orderField: 'rating' }
+						]
+					}
+				}
+			}
+		});
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'merged-source-order-invalid',
+				mergedView: 'destacados_home',
+				path: '/mergedViews/destacados_home/sources/0/orderField'
+			})
+		]);
+		expect(model.mergedViews[0].sources).toHaveLength(1);
+		expect(model.mergedViews[0].sources[0].orderField).toBe('rating');
+	});
+
+	test('where con prop inexistente → merged-where-invalid, esa condición se ignora (el resto sobrevive)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				mergedViews: {
+					destacados_home: {
+						orderField: 'rating',
+						sources: [{ collection: 'post', where: { noExiste: 1, featured: true } }]
+					}
+				}
+			}
+		});
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'merged-where-invalid',
+				mergedView: 'destacados_home',
+				collection: 'post',
+				field: 'noExiste'
+			})
+		]);
+		expect(model.mergedViews[0].sources[0].where).toEqual({
+			kind: 'cond',
+			field: 'featured',
+			op: 'eq',
+			value: true
+		});
+	});
+
+	test('where con prop que no admite "eq" (select múltiple) → merged-where-invalid, where queda null', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				mergedViews: {
+					destacados_home: {
+						orderField: 'rating',
+						sources: [{ collection: 'post', where: { tags: 'a' } }]
+					}
+				}
+			}
+		});
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'merged-where-invalid', field: 'tags' })
+		]);
+		expect(model.mergedViews[0].sources[0].where).toBeNull();
+	});
+
+	test('where con dos condiciones válidas → group AND', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				mergedViews: {
+					destacados_home: {
+						orderField: 'rating',
+						sources: [{ collection: 'post', where: { featured: true, status: 'draft' } }]
+					}
+				}
+			}
+		});
+		expect(model.warnings).toEqual([]);
+		expect(model.mergedViews[0].sources[0].where).toEqual({
+			kind: 'group',
+			combinator: 'and',
+			nodes: [
+				{ kind: 'cond', field: 'featured', op: 'eq', value: true },
+				{ kind: 'cond', field: 'status', op: 'eq', value: 'draft' }
+			]
+		});
+	});
+
+	test('0 sources válidas → merged-view-invalid, la vista no aparece en mergedViews', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				mergedViews: { destacados_home: { sources: [{ collection: 'no-existe' }] } }
+			}
+		});
+		expect(model.mergedViews).toEqual([]);
+		expect(model.warnings).toContainEqual(
+			expect.objectContaining({ code: 'merged-view-invalid', mergedView: 'destacados_home' })
+		);
+	});
+
+	test('sources con UN elemento no-objeto → el array ENTERO se invalida ("todo o nada", como fieldGroups/listFields)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				mergedViews: {
+					destacados_home: {
+						orderField: 'rating',
+						sources: [{ collection: 'post' }, 'nope']
+					}
+				}
+			}
+		});
+		// `sources` entero se trata como ausente (manifest-invalid-key) → 0 sources → la vista se
+		// descarta entera (merged-view-invalid), NO solo el elemento 'nope'.
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'manifest-invalid-key',
+				path: '/mergedViews/destacados_home/sources'
+			}),
+			expect.objectContaining({ code: 'merged-view-invalid', mergedView: 'destacados_home' })
+		]);
+		expect(model.mergedViews).toEqual([]);
+	});
+
+	test('titleField override inexistente → title-field-invalid, cae al titleField resuelto del tipo', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				mergedViews: {
+					destacados_home: {
+						orderField: 'rating',
+						sources: [{ collection: 'post', titleField: 'no-existe' }]
+					}
+				}
+			}
+		});
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'title-field-invalid',
+				mergedView: 'destacados_home',
+				collection: 'post',
+				path: '/mergedViews/destacados_home/sources/0/titleField'
+			})
+		]);
+		expect(model.mergedViews[0].sources[0].titleField).toBe('title');
+	});
+
+	test('icon fuera del set de knownIcons → icon null + icon-unknown, SIN colisionar con collections', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				mergedViews: {
+					destacados_home: {
+						icon: 'no-existe',
+						orderField: 'rating',
+						sources: [{ collection: 'post' }]
+					}
+				}
+			},
+			knownIcons: ['star', 'pencil']
+		});
+		expect(model.mergedViews[0].icon).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'icon-unknown',
+				mergedView: 'destacados_home',
+				path: '/mergedViews/destacados_home/icon'
+			})
+		]);
+		// A diferencia de `iconUnknown` (colecciones), NO debe llevar `collection`: `destacados_home`
+		// no es una colección y colar el id ahí colisionaría si existiera una colección homónima.
+		expect(model.warnings[0].collection).toBeUndefined();
+	});
+
+	test('la misma colección en varias sources de la vista → permitido (dedupe es cosa de L7b)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				mergedViews: {
+					destacados_home: {
+						orderField: 'rating',
+						sources: [
+							{ collection: 'post', where: { featured: true } },
+							{ collection: 'post', where: { status: 'published' } }
+						]
+					}
+				}
+			}
+		});
+		expect(model.warnings).toEqual([]);
+		expect(model.mergedViews[0].sources.map((s) => s.collection)).toEqual(['post', 'post']);
+	});
+
+	test('mergedViews no es un objeto → manifest-invalid-key, mergedViews vacío', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, mergedViews: 'nope' } as unknown as JsonValue
+		});
+		expect(model.mergedViews).toEqual([]);
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'manifest-invalid-key', path: '/mergedViews' })
+		]);
+	});
+
+	test('fuzz ligero (§8.12): mergedViews malformado nunca lanza', () => {
+		const malformed: JsonValue[] = [
+			{ mergedViews: 'nope' },
+			{ mergedViews: { v: 'nope' } },
+			{ mergedViews: { v: { sources: 'nope' } } },
+			{ mergedViews: { v: { sources: [] } } },
+			{ mergedViews: { v: { sources: ['nope'] } } },
+			{ mergedViews: { v: { sources: [{ collection: 123 }] } } },
+			{ mergedViews: { v: { sources: [{ collection: 'post', where: 'nope' }] } } },
+			{ mergedViews: { v: { sources: [{ collection: 'post', where: { x: [1, 2] } }] } } },
+			{ mergedViews: { v: { sources: [{ collection: 'post', where: null }] } } },
+			JSON.parse('{"mergedViews":{"__proto__":{"sources":[{"collection":"post"}]}}}')
+		];
+		for (const manifestRaw of malformed) {
+			expect(() => resolveContentModel({ types: kitchenSinkTypes, manifestRaw })).not.toThrow();
+		}
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		expect((Object.prototype as any).polluted).toBeUndefined();
+	});
+});
+
+// ————— 13. mergedViews plegadas en nav (L7c) —————
+
+describe('13. mergedViews plegadas en nav (L7c)', () => {
+	test('mismo grupo, mismo order → desempate por orden de inserción: la colección va antes que la vista', () => {
+		// `buildNav` (resolve.ts) arma `entries = [...visibleTypes, ...mergedViews]`: con `order`
+		// EMPATADO, `orderByGroups` desempata por `baseIndex` (orden de inserción), así que la
+		// colección (declarada primero en `entries`) gana SIEMPRE a la vista, determinista.
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { category: { group: 'Grupo', order: 5 } },
+				mergedViews: {
+					vista_x: {
+						label: 'Vista X',
+						group: 'Grupo',
+						order: 5,
+						sources: [{ collection: 'post', orderField: 'rating' }]
+					}
+				}
+			}
+		});
+		expect(model.warnings).toEqual([]);
+		const grupo = model.nav.groups.find((g) => g.label === 'Grupo')!;
+		expect(grupo.items.map((i) => ({ kind: i.kind, type: i.type }))).toEqual([
+			{ kind: 'collection', type: 'category' },
+			{ kind: 'view', type: 'vista_x' }
+		]);
+	});
+
+	test('intercalación por order real: una vista con order MENOR que una colección va ANTES (no "colecciones siempre primero")', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { category: { group: 'Grupo', order: 10 } },
+				mergedViews: {
+					vista_y: {
+						group: 'Grupo',
+						order: 1,
+						sources: [{ collection: 'post', orderField: 'rating' }]
+					}
+				}
+			}
+		});
+		expect(model.warnings).toEqual([]);
+		const grupo = model.nav.groups.find((g) => g.label === 'Grupo')!;
+		expect(grupo.items.map((i) => ({ kind: i.kind, type: i.type }))).toEqual([
+			{ kind: 'view', type: 'vista_y' },
+			{ kind: 'collection', type: 'category' }
+		]);
+	});
+
+	test('vista SIN group → cae en el grupo anónimo, igual que una colección sin group', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				mergedViews: {
+					vista_z: { sources: [{ collection: 'post', orderField: 'rating' }] }
+				}
+			}
+		});
+		expect(model.warnings).toEqual([]);
+		// Sin `collections` en el manifiesto, category/post/settings_view caen las tres en el grupo
+		// anónimo (ninguna declara `group`) — `vista_z` (tampoco declara `group`) se pliega en EL
+		// MISMO grupo anónimo, no en uno propio.
+		const anon = model.nav.groups.find((g) => g.label === null)!;
+		expect(anon.items.map((i) => i.type).sort()).toEqual(
+			['category', 'post', 'settings_view', 'vista_z'].sort()
+		);
+		const vista = anon.items.find((i) => i.type === 'vista_z')!;
+		expect(vista.kind).toBe('view');
+		expect(vista.readonly).toBe(true);
+		expect(vista.singleton).toBe(false);
+	});
+
+	test('sin mergedViews (ausente) → nav SOLO colecciones, mismo orden que antes de L7c (regresión)', () => {
+		// MISMO manifiesto que el test de §6 "grupos: anónimo primero, declarados en orden, no
+		// declarados alfabético" (sin `mergedViews`): confirma que plegar vistas en `buildNav` no
+		// cambió el resultado cuando no hay ninguna que plegar.
+		const manifestRaw: JsonValue = {
+			schemaVersion: 1,
+			nav: { groups: ['Contenido'] },
+			collections: {
+				post: { group: 'Contenido' },
+				category: { group: 'Zeta' },
+				settings_view: { group: 'Alfa' }
+			}
+		};
+		const model = resolveContentModel({ types: kitchenSinkTypes, manifestRaw });
+		expect(model.warnings).toEqual([]);
+		expect(model.nav.groups.map((g) => g.label)).toEqual(['Contenido', 'Alfa', 'Zeta']);
+		const allItems = model.nav.groups.flatMap((g) => g.items);
+		expect(allItems.map((i) => i.type)).toEqual(['post', 'settings_view', 'category']);
+		expect(allItems.every((i) => i.kind === 'collection')).toBe(true);
+	});
+});
+
+// ————— 14. Colisión de namespace mergedViews vs collections (L7e) —————
+
+describe('14. Colisión de namespace mergedViews vs collections (L7e)', () => {
+	test('id de mergedViews == name de una colección VISIBLE → vista descartada + merged-view-name-collision', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				mergedViews: {
+					category: { sources: [{ collection: 'post', orderField: 'rating' }] }
+				}
+			}
+		});
+		expect(model.mergedViews).toEqual([]);
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'merged-view-name-collision',
+				mergedView: 'category',
+				path: '/mergedViews/category'
+			})
+		]);
+		// La colección `category` sigue en nav como `collection`; NO hay una segunda entrada `view`
+		// con el mismo `type` — la vista en colisión nunca llega a `buildNav`.
+		const items = model.nav.groups.flatMap((g) => g.items).filter((i) => i.type === 'category');
+		expect(items).toEqual([expect.objectContaining({ kind: 'collection', type: 'category' })]);
+	});
+
+	test('id de mergedViews == name de una colección OCULTA (reservada) → también se descarta (se compara contra TODO el esquema)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				mergedViews: {
+					vega: { sources: [{ collection: 'post', orderField: 'rating' }] }
+				}
+			}
+		});
+		expect(model.mergedViews).toEqual([]);
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'merged-view-name-collision', mergedView: 'vega' })
+		]);
+	});
+
+	test('sin colisión (id distinto de cualquier colección) → sin warning nuevo (regresión)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				mergedViews: {
+					destacados_home: { sources: [{ collection: 'post', orderField: 'rating' }] }
+				}
+			}
+		});
+		expect(model.warnings).toEqual([]);
+		expect(model.mergedViews).toHaveLength(1);
+		expect(model.mergedViews[0].id).toBe('destacados_home');
 	});
 });
 

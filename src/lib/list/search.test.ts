@@ -58,6 +58,7 @@ function contentType(
 		singleton: false,
 		readonly: false,
 		titleField: null,
+		orderField: null,
 		statusField: null,
 		previewUrl: null,
 		fields: [],
@@ -227,6 +228,43 @@ describe('buildListQuery — sort', () => {
 		const query = buildListQuery(type, { ...emptyState, sort: { field: 'related', dir: 'desc' } });
 		expect(query.sort).toBeUndefined();
 		expect(() => validateQuery(type.schema.fields, query)).not.toThrow();
+	});
+});
+
+describe('buildListQuery — sort por defecto de orderField (reorder manual)', () => {
+	test('sin sort explícito y orderField resuelto: ordena por orderField asc', () => {
+		const title = field({ name: 'title', type: 'text', subtype: 'plain' });
+		const sortField = field({ name: 'sort', type: 'number', integer: true });
+		const type = contentType([title, sortField], {
+			titleField: 'title',
+			orderField: 'sort',
+			listFields: ['title']
+		});
+
+		const query = buildListQuery(type, emptyState);
+		expect(query.sort).toEqual([{ field: 'sort', dir: 'asc' }]);
+		expect(() => validateQuery(type.schema.fields, query)).not.toThrow();
+	});
+
+	test('sort explícito del usuario gana al orderField', () => {
+		const title = field({ name: 'title', type: 'text', subtype: 'plain' });
+		const sortField = field({ name: 'sort', type: 'number', integer: true });
+		const type = contentType([title, sortField], {
+			titleField: 'title',
+			orderField: 'sort',
+			listFields: ['title']
+		});
+
+		const query = buildListQuery(type, { ...emptyState, sort: { field: 'title', dir: 'desc' } });
+		expect(query.sort).toEqual([{ field: 'title', dir: 'desc' }]);
+	});
+
+	test('sin orderField: sin sort explícito, sin sort en la query', () => {
+		const title = field({ name: 'title', type: 'text', subtype: 'plain' });
+		const type = contentType([title], { titleField: 'title', listFields: ['title'] });
+
+		const query = buildListQuery(type, emptyState);
+		expect(query.sort).toBeUndefined();
 	});
 });
 

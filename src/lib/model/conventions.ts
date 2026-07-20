@@ -11,6 +11,7 @@ import type { Field, JsonValue } from '$lib/backend/types';
 import type { ModelWarning, WidgetId } from './types';
 import {
 	manifestInvalidKey,
+	orderFieldInvalid,
 	statusFieldInvalid,
 	titleFieldInvalid,
 	widgetIncompatible
@@ -113,6 +114,52 @@ export function resolveStatusField(
 	if (isValidStatusField(statusField)) return 'status';
 
 	return null;
+}
+
+// ————— Orden manual (reorder) —————
+
+/**
+ * Resuelve `orderField` (campo numérico de orden manual). A diferencia de `resolveStatusField`,
+ * NO hay convención de nombre ni autodetección: el reorder manual solo se activa si el
+ * manifiesto lo declara EXPLÍCITAMENTE. `manifestOrderField` es el valor crudo ya tipado por el
+ * llamador (string si la clave tiene el tipo correcto, `undefined` si está ausente o inválida —
+ * ese caso ya generó su `manifest-invalid-key` en el llamador).
+ */
+export function resolveOrderField(
+	fields: Field[],
+	manifestOrderField: string | undefined,
+	collection: string,
+	warnings: ModelWarning[]
+): string | null {
+	if (manifestOrderField === undefined) return null;
+
+	const field = fields.find((f) => f.name === manifestOrderField);
+	if (field && field.type === 'number') return manifestOrderField;
+
+	warnings.push(orderFieldInvalid(collection, manifestOrderField));
+	return null;
+}
+
+/**
+ * Orden manual EFECTIVO de una source de vista fusionada (L7a): el `orderField` declarado en la
+ * propia source tiene prioridad sobre el heredado a nivel de vista; si ninguno de los dos aplica,
+ * o el nombre no resuelve a un campo `number` real de `fields`, no hay orden posible (`null`) —
+ * el llamador (`resolve.ts`) descarta la source entera, no existe aquí un "campo no ordenable
+ * pero source válida" a diferencia de `resolveOrderField` (§ colección, donde el reorder es
+ * opcional). Misma condición de validez que `resolveOrderField`, replicada en vez de reutilizada
+ * porque el warning que emite el llamador es otro (`merged-source-order-invalid`, no
+ * `order-field-invalid`) y con un `requestedField` que puede ser `null` (ausente en los dos
+ * niveles), caso que `resolveOrderField` no contempla.
+ */
+export function resolveMergedSourceOrderField(
+	fields: Field[],
+	sourceOrderField: string | undefined,
+	viewOrderField: string | undefined
+): string | null {
+	const candidate = sourceOrderField ?? viewOrderField;
+	if (candidate === undefined) return null;
+	const field = fields.find((f) => f.name === candidate);
+	return field && field.type === 'number' ? candidate : null;
 }
 
 // ————— 4.2 Widget por tipo —————

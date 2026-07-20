@@ -101,6 +101,10 @@ function buildSearchNode(type: ResolvedContentType, q: string): FilterNode | nul
  *   uno, ese nodo directamente; si ninguno, `filter` queda ausente.
  * - `sort`: solo si `state.sort.field` existe en `type.schema.fields` y es escalar
  *   (`isScalarField`, D-P4.6(a)); si no, se omite por completo (nunca se cuela un sort inválido).
+ *   Sin sort explícito (`state.sort === null`) y con `type.orderField` resuelto (reorder manual,
+ *   P2 §orderField), el listado ordena por ese campo ascendente por defecto: es el orden que el
+ *   reorder manual persiste, así que sin esto el reorder recién guardado no se reflejaría hasta
+ *   que el usuario pidiera orden explícitamente. Un sort explícito del usuario SIEMPRE gana.
  * - `page`/`perPage`: `state.page` y `DEFAULT_PER_PAGE` (P4 v1 no ofrece cambiar el tamaño
  *   de página desde la vista).
  */
@@ -128,6 +132,8 @@ export function buildListQuery(type: ResolvedContentType, state: ViewState): Que
 		if (schemaField && isScalarField(schemaField)) {
 			query.sort = [{ field, dir }];
 		}
+	} else if (type.orderField !== null) {
+		query.sort = [{ field: type.orderField, dir: 'asc' }];
 	}
 
 	return query;

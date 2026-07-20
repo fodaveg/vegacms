@@ -18,7 +18,7 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
-	import { listRoute } from '$lib/nav/routes';
+	import { listRoute, viewRoute } from '$lib/nav/routes';
 
 	const ctx = getVegaContext();
 
@@ -29,10 +29,13 @@
 
 	const firstItem = $derived(ctx.model.nav.groups.flatMap((group) => group.items)[0] ?? null);
 
-	// Guard P3-L9: nunca navega antes de que el router esté listo.
+	// Guard P3-L9: nunca navega antes de que el router esté listo. Una vista fusionada (L7c,
+	// `kind === 'view'`) nunca es singleton (P2 §4.6 no aplica) — enruta directo a `/v/:id`.
 	$effect(() => {
 		if (!routerReady || !firstItem) return;
-		if (firstItem.singleton) {
+		if (firstItem.kind === 'view') {
+			void goto(viewRoute(firstItem.type));
+		} else if (firstItem.singleton) {
 			void ctx.nav.toSingleton(firstItem.type);
 		} else {
 			void goto(listRoute(firstItem.type));

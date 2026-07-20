@@ -47,6 +47,7 @@ function makeType(fields: ResolvedField[], fieldGroups: ResolvedFieldGroup[]): R
 		singleton: false,
 		readonly: false,
 		titleField: null,
+		orderField: null,
 		statusField: null,
 		previewUrl: null,
 		fields,

@@ -95,6 +95,22 @@
  * llegar a 7 — el ÚNICO tipo de la semilla con más de 5 columnas, a propósito para poder ejercer en
  * `e2e/list.spec.ts` (§ "responsive N columnas") que la tabla scrollea horizontal CONTENIDA dentro
  * de su propio wrapper (`overflow-x: auto`) en vez de desbordar la página.
+ *
+ * **Añadido en L7c (roadmap `mergedViews`)**: dos colecciones MÍNIMAS nuevas, `works`/`tracks`
+ * (`WORKS_CONTENT_TYPE`/`TRACKS_CONTENT_TYPE` más abajo) — NO tocan ningún tipo/registro existente
+ * (ningún test previo de `posts`/`pages`/`authors`/`metrics`/`site_info` depende de este cambio).
+ * Cada una lleva un `title` (texto, campo-título) y un `order` (número): el campo NUMÉRICO de orden
+ * manual que la vista fusionada de demo (`mergedViews.catalogo`, ver `DEMO_MANIFEST`) declara como
+ * `orderField` POR DEFECTO de la vista, así ninguna de las dos sources necesita declarar el suyo
+ * propio. Dos registros por colección, con `order` INTERCALADO a propósito (work_1=1, track_1=2,
+ * work_2=3, track_2=4) — así el merge de L7b produce una lista que alterna colecciones en vez de
+ * concatenarlas, la prueba más simple de que `mergeViewResults` fusiona de verdad (no solo
+ * concatena) sin necesitar un test unitario nuevo aquí (eso ya lo cubre `merged-merge.test.ts`).
+ * `works`/`tracks` son colecciones NORMALES y visibles (grupo "Contenido", orden 5/6): aparecen en
+ * la sidebar como cualquier otra, ADEMÁS de alimentar la vista — necesario para que sus registros
+ * sean editables por `/c/works/:id`/`/c/tracks/:id` (una colección `hidden` no lo sería,
+ * `resolveVisibleContentType`), que es justo lo que `e2e/merged-view.spec.ts` ejercita al abrir una
+ * fila. `e2e/nav.spec.ts` ya refleja los labels nuevos.
  */
 import type { ContentType, JsonValue } from '$lib/backend/types';
 import { VEGA_COLLECTION } from '$lib/backend/collections';
@@ -431,6 +447,68 @@ const METRICS_CONTENT_TYPE: ContentType = {
 	]
 };
 
+/** Añadido en L7c (ver cabecera del módulo): fuente 1/2 de `mergedViews.catalogo`. `order` es el
+ *  campo NUMÉRICO de orden manual (§ mergedViews) — la vista lo declara como `orderField` por
+ *  defecto, así esta source no necesita el suyo propio. */
+const WORKS_CONTENT_TYPE: ContentType = {
+	name: 'works',
+	readonly: false,
+	fields: [
+		{
+			name: 'title',
+			type: 'text',
+			subtype: 'plain',
+			required: true,
+			readonly: false,
+			presentable: true,
+			hidden: false,
+			unique: false,
+			maxLength: 120
+		},
+		{
+			name: 'order',
+			type: 'number',
+			integer: true,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		}
+	]
+};
+
+/** Añadido en L7c (ver cabecera del módulo): fuente 2/2 de `mergedViews.catalogo` — MISMA forma
+ *  que `works` (mismo `order` numérico, mismo `orderField` heredado de la vista); solo el nombre y
+ *  los registros cambian, para que el merge intercale filas de las DOS colecciones por `order`. */
+const TRACKS_CONTENT_TYPE: ContentType = {
+	name: 'tracks',
+	readonly: false,
+	fields: [
+		{
+			name: 'title',
+			type: 'text',
+			subtype: 'plain',
+			required: true,
+			readonly: false,
+			presentable: true,
+			hidden: false,
+			unique: false,
+			maxLength: 120
+		},
+		{
+			name: 'order',
+			type: 'number',
+			integer: true,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		}
+	]
+};
+
 const SITE_INFO_CONTENT_TYPE: ContentType = {
 	name: 'site_info',
 	readonly: false,
@@ -502,11 +580,42 @@ const DEMO_MANIFEST: JsonValue = {
 			group: 'Contenido',
 			order: 4
 		},
+		// Añadidas en L7c (ver cabecera del módulo): fuentes de `mergedViews.catalogo` más abajo,
+		// también colecciones normales por derecho propio (mismo grupo "Contenido", orden 5/6).
+		works: {
+			label: 'Obras',
+			labelSingular: 'Obra',
+			group: 'Contenido',
+			order: 5
+		},
+		tracks: {
+			label: 'Pistas',
+			labelSingular: 'Pista',
+			group: 'Contenido',
+			order: 6
+		},
 		// Sin `group` (⇒ grupo anónimo, siempre primero, §4.9) ni `icon` (⇒ afordancia de
 		// singleton sin icono propio, P2 §4.8).
 		site_info: {
 			label: 'Información del sitio',
 			singleton: true
+		}
+	},
+	// Añadido en L7c (roadmap `mergedViews`, P2 §mergedViews): vista fusionada de demo que mezcla
+	// `works`/`tracks` — fixture de `e2e/merged-view.spec.ts` (nav → tabla con filas de las dos
+	// colecciones intercaladas por `order` → abrir una fila en su editor real). MISMO grupo/orden
+	// que las colecciones normales (orden 7, justo tras "Pistas"): `nav` (L7c) las pliega todas con
+	// el mismo `orderByGroups`. Sin `label`/`icon` overrides en las sources (confía en los defaults
+	// de L7a: `titleField`/`label` resueltos de cada tipo) — cubre el camino sin overrides, ya
+	// testeado como función pura en `tests/model/resolve.test.ts` §12.
+	mergedViews: {
+		catalogo: {
+			label: 'Catálogo',
+			icon: 'list',
+			group: 'Contenido',
+			order: 7,
+			orderField: 'order',
+			sources: [{ collection: 'works' }, { collection: 'tracks' }]
 		}
 	}
 };
@@ -534,6 +643,8 @@ export const DEMO_SEED: MemorySeed = {
 		PAGES_CONTENT_TYPE,
 		AUTHORS_CONTENT_TYPE,
 		METRICS_CONTENT_TYPE,
+		WORKS_CONTENT_TYPE,
+		TRACKS_CONTENT_TYPE,
 		SITE_INFO_CONTENT_TYPE
 	],
 	records: {
@@ -565,7 +676,18 @@ export const DEMO_SEED: MemorySeed = {
 		// SIN registros (ver cabecera, cambiado en 4c): cubre el vacío-colección SIN CTA "Crear"
 		// (readonly).
 		pages: [],
-		metrics: [{ id: 'metric_1', values: { count: 42, active: true } }]
+		metrics: [{ id: 'metric_1', values: { count: 42, active: true } }],
+		// Añadidos en L7c (ver cabecera del módulo): `order` INTERCALADO a propósito entre las dos
+		// colecciones (work_1=1, track_1=2, work_2=3, track_2=4) — el merge de `mergedViews.catalogo`
+		// debe alternar `works`/`tracks`, nunca concatenar una colección entera antes que la otra.
+		works: [
+			{ id: 'work_1', values: { title: 'Sinfonía nº1', order: 1 } },
+			{ id: 'work_2', values: { title: 'Concierto en Re', order: 3 } }
+		],
+		tracks: [
+			{ id: 'track_1', values: { title: 'Pista A', order: 2 } },
+			{ id: 'track_2', values: { title: 'Pista B', order: 4 } }
+		]
 		// authors/site_info sin registros a propósito (ver cabecera): authors cubre el
 		// vacío-colección CON CTA; site_info ejercita el modo creación (0 → new, §3.3).
 	}

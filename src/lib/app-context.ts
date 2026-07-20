@@ -27,6 +27,8 @@ export interface NavApi {
 	toRecord(type: string, id: RecordId): void; // /c/:type/:id
 	/** Resuelve el singleton (P2 §4.6) y navega a su edición/creación. Async: consulta el puerto. */
 	toSingleton(type: string): Promise<void>;
+	/** Vista fusionada (`mergedViews`, L7a/L7c): `id` es la clave de `mergedViews`, no un `RecordId`. */
+	toView(id: string): void; // /v/:id
 	toMedia(): void; // /media
 	toSettings(): void; // /settings
 	toLogin(): void;

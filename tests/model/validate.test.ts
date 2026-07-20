@@ -164,6 +164,116 @@ describe('1. Casos puntuales contra el schema §3', () => {
 	});
 });
 
+// ————— 1b. mergedViews (L7a) —————
+
+describe('1b. mergedViews (L7a) contra el schema §3', () => {
+	test('mergedViews mínima válida: solo sources con collection → válido', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			mergedViews: { destacados_home: { sources: [{ collection: 'post' }] } }
+		});
+		expect(result).toEqual({ ok: true });
+	});
+
+	test('mergedViews.<id> sin sources → inválido (required)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			mergedViews: { destacados_home: { label: 'Destacados' } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('mergedViews.<id>.sources vacío → inválido (minItems 1)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			mergedViews: { destacados_home: { sources: [] } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('mergedViews.<id>.sources[] sin collection → inválido (required)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			mergedViews: { destacados_home: { sources: [{ where: { destacado: true } }] } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('mergedViews.<id>.sources[] con clave desconocida → inválido (additionalProperties)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			mergedViews: { destacados_home: { sources: [{ collection: 'post', unknownKey: 1 }] } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('mergedViews.<id> con clave desconocida → inválido (additionalProperties)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			mergedViews: { destacados_home: { sources: [{ collection: 'post' }], unknownKey: 1 } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('where con valor no escalar (array) → inválido', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			mergedViews: {
+				destacados_home: { sources: [{ collection: 'post', where: { tags: ['a'] } }] }
+			}
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('where con valor null → inválido (no es string|number|boolean)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			mergedViews: {
+				destacados_home: { sources: [{ collection: 'post', where: { title: null } }] }
+			}
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('sources con collection en >1 source de la misma vista → VÁLIDO a nivel de schema (dedupe es cosa de L7b)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			mergedViews: {
+				destacados_home: {
+					sources: [{ collection: 'post' }, { collection: 'post', where: { featured: true } }]
+				}
+			}
+		});
+		expect(result).toEqual({ ok: true });
+	});
+
+	test('mergedViews.<id> completa con label/icon/group/order/orderField/where/titleField → válido', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			mergedViews: {
+				destacados_home: {
+					label: 'Destacados Home',
+					icon: 'star',
+					group: 'Portada',
+					order: 0,
+					orderField: 'homeOrder',
+					sources: [
+						{ collection: 'post', where: { featured: true } },
+						{
+							collection: 'category',
+							where: { name: 'x' },
+							orderField: 'homeRank',
+							titleField: 'name',
+							label: 'Categoría'
+						}
+					]
+				}
+			}
+		});
+		expect(result).toEqual({ ok: true });
+	});
+});
+
 // ————— Batería de manifiestos VÁLIDOS (schema-válidos, sin discrepancias de contenido) —————
 
 /**
@@ -221,6 +331,26 @@ const VALID_ZERO_WARNING_MANIFESTS: JsonValue[] = [
 					excerpt: { group: 'Contenido' },
 					body: { group: 'SEO' }
 				}
+			}
+		}
+	},
+	{
+		// mergedViews (L7a): `post.rating` es el ÚNICO campo numérico del kitchen-sink, así que
+		// ambas sources son de `post` (permitido, la dedupe es cosa de L7b) con distinto `where`.
+		// `post.featured` (bool) y `post.status` (select simple) admiten "eq". Cero warnings:
+		// colección/campos reales, orderField numérico heredado de la vista, where admite eq.
+		schemaVersion: 1,
+		mergedViews: {
+			destacados_home: {
+				label: 'Destacados Home',
+				icon: 'star',
+				group: 'Portada',
+				order: 0,
+				orderField: 'rating',
+				sources: [
+					{ collection: 'post', where: { featured: true } },
+					{ collection: 'post', where: { status: 'draft' }, titleField: 'title', label: 'Entrada' }
+				]
 			}
 		}
 	}
@@ -283,7 +413,41 @@ const INVALID_MANIFESTS: JsonValue[] = [
 		schemaVersion: 1,
 		collections: { post: { fields: { body: { placeholder: 'x'.repeat(121) } } } }
 	},
-	{ schemaVersion: 1, collections: { post: { fields: { body: { unknownKey: 1 } } } } }
+	{ schemaVersion: 1, collections: { post: { fields: { body: { unknownKey: 1 } } } } },
+	{ schemaVersion: 1, mergedViews: 'not-an-object' },
+	{ schemaVersion: 1, mergedViews: { destacados: { label: 'X' } } }, // sin sources (required)
+	{ schemaVersion: 1, mergedViews: { destacados: { sources: [] } } }, // minItems 1
+	{ schemaVersion: 1, mergedViews: { destacados: { sources: 'not-an-array' } } },
+	{ schemaVersion: 1, mergedViews: { destacados: { sources: [{ where: {} }] } } }, // sin collection
+	{ schemaVersion: 1, mergedViews: { destacados: { sources: [{ collection: '' }] } } },
+	{
+		schemaVersion: 1,
+		mergedViews: { destacados: { sources: [{ collection: 'post', extra: 1 }] } }
+	},
+	{
+		schemaVersion: 1,
+		mergedViews: { destacados: { sources: [{ collection: 'post' }], extra: 1 } }
+	},
+	{
+		schemaVersion: 1,
+		mergedViews: { destacados: { sources: [{ collection: 'post', where: { tags: ['a'] } }] } }
+	},
+	{
+		schemaVersion: 1,
+		mergedViews: { destacados: { sources: [{ collection: 'post', where: { title: null } }] } }
+	},
+	{
+		schemaVersion: 1,
+		mergedViews: { destacados: { sources: [{ collection: 'post', where: 'not-an-object' }] } }
+	},
+	{
+		schemaVersion: 1,
+		mergedViews: { destacados: { order: -1, sources: [{ collection: 'post' }] } }
+	},
+	{
+		schemaVersion: 1,
+		mergedViews: { destacados: { sources: [{ collection: 'post', label: 'x'.repeat(61) }] } }
+	}
 ];
 
 describe('3. Oráculo: ajv(manifest-schema.json) vs validateManifestStrict', () => {

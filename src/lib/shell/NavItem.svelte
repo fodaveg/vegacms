@@ -14,6 +14,12 @@
 	 * - **singleton sin icono propio**: afordancia distinta (contrato P2 §4.8): icono `'settings'`
 	 *   en vez del genérico. `data-singleton` queda en el DOM para que los tests lo localicen sin
 	 *   depender del icono concreto.
+	 * - **vista fusionada (`item.kind === 'view'`, L7c)**: mismo marcado que una colección, pero
+	 *   enruta a `viewRoute(item.type)`/`ctx.nav.toView` en vez de `listRoute`/`toList`/
+	 *   `toSingleton` — `item.type` guarda el id de la vista, no un `ContentType.name` (namespace
+	 *   distinto, ver `NavItem` en `$lib/model/types`). `item.singleton` es SIEMPRE `false` para
+	 *   una vista, así que el icono cae al genérico si no declara uno propio (nunca al de
+	 *   "ajustes" del caso singleton, que no aplica aquí).
 	 * - **readonly**: insignia visible "Solo lectura" (`data-readonly` también, mismo motivo).
 	 * - **label kilométrico**: `title` con el label completo + `text-overflow: ellipsis`.
 	 * - **recuento** (R5 del rediseño C2, mockup `.navgroup .count`): número mono a la derecha,
@@ -32,7 +38,7 @@
 	 */
 	import { page } from '$app/state';
 	import { getVegaContext } from '$lib/app-context';
-	import { listRoute } from '$lib/nav/routes';
+	import { listRoute, viewRoute } from '$lib/nav/routes';
 	import Icon from '$lib/icons/Icon.svelte';
 	import type { NavItem as NavItemModel } from '$lib/model/types';
 
@@ -40,9 +46,10 @@
 
 	const ctx = getVegaContext();
 
-	const href = $derived(listRoute(item.type));
+	const href = $derived(item.kind === 'view' ? viewRoute(item.type) : listRoute(item.type));
 	// P2 §4.8: un singleton sin icono propio se distingue con el icono de "ajustes" en vez del
-	// genérico neutro — es SU afordancia (§4.1), no un accidente de fallback.
+	// genérico neutro — es SU afordancia (§4.1), no un accidente de fallback. Una vista (L7c)
+	// nunca es singleton, así que siempre cae al genérico si no declara icono propio.
 	const iconId = $derived(item.icon ?? (item.singleton ? 'settings' : 'generic'));
 	const isActive = $derived(page.url.pathname === href || page.url.pathname.startsWith(`${href}/`));
 
@@ -51,6 +58,10 @@
 			return;
 		}
 		event.preventDefault();
+		if (item.kind === 'view') {
+			ctx.nav.toView(item.type);
+			return;
+		}
 		void (item.singleton ? ctx.nav.toSingleton(item.type) : ctx.nav.toList(item.type));
 	}
 </script>

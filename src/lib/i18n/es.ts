@@ -50,6 +50,29 @@ export const es = {
 	'session.reloginSubmit': 'Reautenticar',
 	'session.logoutConfirm': 'Hay cambios sin guardar. ¿Cerrar sesión igualmente?',
 
+	// ————— Conexión a backend / onboarding genérico (lote L5) —————
+	// `BackendUrlForm.svelte`: override runtime de la URL de PocketBase, guardado en
+	// `localStorage`. Montado en `/login` (disclosure, primer arranque) y `/settings`
+	// (reconfiguración, ya autenticado).
+	'connect.disclosureLabel': '¿PocketBase en otro servidor? Configúralo',
+	'connect.title': 'Backend / conexión',
+	'connect.description':
+		'Apunta Vega a un PocketBase distinto de este mismo servidor, sin recompilar.',
+	'connect.urlLabel': 'URL de PocketBase',
+	'connect.urlPlaceholder': 'https://pb.midominio.com',
+	'connect.invalidUrl': 'Introduce una URL válida (http:// o https://).',
+	'connect.current.sameOrigin': 'Usando el mismo origen que esta página (por defecto).',
+	'connect.current.override': 'Conectado a: {url}',
+	'connect.test': 'Probar conexión',
+	'connect.testing': 'Probando…',
+	'connect.testOk': 'Conexión correcta.',
+	'connect.testFail':
+		'No se pudo confirmar la conexión (puede ser CORS). Puedes guardar igualmente.',
+	'connect.save': 'Guardar y recargar',
+	'connect.reset': 'Restablecer a same-origin',
+	'connect.reloadConfirm':
+		'Se recargará la página para aplicar el cambio de backend. Si tienes cambios sin guardar en el editor, se perderán. ¿Continuar?',
+
 	// ————— Estados globales de transporte (§3.4) —————
 	'errors.network.title': 'Sin conexión con el backend',
 	'errors.network.body': 'No se pudo contactar con el servidor. Comprueba tu conexión.',
@@ -65,6 +88,9 @@ export const es = {
 	'errors.notFoundRecord.body': 'Este registro ya no existe.',
 	'errors.notFoundRecord.backToList': 'Volver al listado',
 	'errors.backToIndex': 'Volver al índice',
+	// ————— Vistas fusionadas (mergedViews, Fase L7c) —————
+	'errors.notFoundView.title': 'Vista no encontrada',
+	'errors.notFoundView.body': 'No existe la vista fusionada "{view}".',
 
 	// ————— Editor de registro (Fase F5-a del contrato P5) —————
 	// `editor.create.title`/`editor.edit.title`: desde R7 del rediseño C2 solo alimentan el `<h1>`
@@ -193,6 +219,19 @@ export const es = {
 	'list.delete.confirm': 'Borrar',
 	'list.delete.deleting': 'Borrando…',
 	'list.delete.success': '"{label}" se ha borrado.',
+
+	// ————— Reorder manual (orderField) —————
+	'list.reorder.columnHeader': 'Orden',
+	'list.reorder.handleLabel': 'Arrastra para reordenar "{label}"',
+	'list.reorder.error': 'No se pudo guardar el nuevo orden. Vuelve a intentarlo.',
+
+	// ————— Vista fusionada (mergedViews, Fase L7c) —————
+	'list.merged.typeHeader': 'Tipo',
+	'list.merged.titleHeader': 'Título',
+	'list.merged.empty.title': 'Aquí no hay nada todavía',
+	'list.merged.empty.body': 'Ningún registro de las colecciones de esta vista coincide todavía.',
+	'list.merged.truncatedNotice':
+		'Alguna de las colecciones de esta vista tiene más registros de los mostrados.',
 
 	// ————— Medios: bootstrap + esquema (Fase P6·6a) —————
 	'media.loadErrorBody': 'No se pudo cargar la biblioteca de medios. Vuelve a intentarlo.',

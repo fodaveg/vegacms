@@ -13,6 +13,8 @@ import {
 	humanizeLabel,
 	isRepresentableField,
 	orderByGroups,
+	resolveMergedSourceOrderField,
+	resolveOrderField,
 	resolveStatusField,
 	resolveTitleField,
 	resolveWidget
@@ -208,6 +210,73 @@ describe('resolveStatusField (§4.5)', () => {
 
 	test('sin campo "status" → null', () => {
 		expect(resolveStatusField([numberField('rating')], undefined, 'post', [])).toBeNull();
+	});
+});
+
+// ————— Orden manual (reorder) —————
+
+describe('resolveOrderField', () => {
+	test('declarado y numérico → se resuelve, sin warning', () => {
+		const warnings: ModelWarning[] = [];
+		const fields = [numberField('sort'), textField('title')];
+		expect(resolveOrderField(fields, 'sort', 'post', warnings)).toBe('sort');
+		expect(warnings).toEqual([]);
+	});
+
+	test('declarado pero inexistente → warning + null', () => {
+		const warnings: ModelWarning[] = [];
+		const fields = [textField('title')];
+		expect(resolveOrderField(fields, 'sort', 'post', warnings)).toBeNull();
+		expect(warnings).toEqual([
+			expect.objectContaining({ code: 'order-field-invalid', collection: 'post' })
+		]);
+	});
+
+	test('declarado pero no numérico → warning + null', () => {
+		const warnings: ModelWarning[] = [];
+		const fields = [textField('sort')];
+		expect(resolveOrderField(fields, 'sort', 'post', warnings)).toBeNull();
+		expect(warnings).toEqual([
+			expect.objectContaining({ code: 'order-field-invalid', collection: 'post' })
+		]);
+	});
+
+	test('ausente → null, SIN warning (a diferencia de statusField, no hay autodetección por nombre)', () => {
+		const warnings: ModelWarning[] = [];
+		const fields = [numberField('sort'), numberField('order')];
+		expect(resolveOrderField(fields, undefined, 'post', warnings)).toBeNull();
+		expect(warnings).toEqual([]);
+	});
+});
+
+// ————— Orden manual per-source de vistas fusionadas (mergedViews, L7a) —————
+
+describe('resolveMergedSourceOrderField', () => {
+	const fields = [numberField('rating'), numberField('homeOrder'), textField('title')];
+
+	test('la source declara el suyo → gana sobre el de la vista', () => {
+		expect(resolveMergedSourceOrderField(fields, 'homeOrder', 'rating')).toBe('homeOrder');
+	});
+
+	test('la source no declara nada → hereda el de la vista', () => {
+		expect(resolveMergedSourceOrderField(fields, undefined, 'rating')).toBe('rating');
+	});
+
+	test('ninguno de los dos declara nada → null', () => {
+		expect(resolveMergedSourceOrderField(fields, undefined, undefined)).toBeNull();
+	});
+
+	test('el declarado (source) no existe en la colección → null', () => {
+		expect(resolveMergedSourceOrderField(fields, 'no-existe', 'rating')).toBeNull();
+	});
+
+	test('el declarado (source) existe pero no es numérico → null', () => {
+		expect(resolveMergedSourceOrderField(fields, 'title', 'rating')).toBeNull();
+	});
+
+	test('el de la vista no existe/no es numérico y la source no declara nada → null', () => {
+		expect(resolveMergedSourceOrderField(fields, undefined, 'title')).toBeNull();
+		expect(resolveMergedSourceOrderField(fields, undefined, 'no-existe')).toBeNull();
 	});
 });
 

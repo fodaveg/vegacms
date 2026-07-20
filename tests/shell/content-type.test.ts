@@ -31,6 +31,7 @@ function model(types: ResolvedContentType[]): ContentModel {
 		site: { name: 'Vega', defaultTheme: null, locale: null },
 		types,
 		nav: { groups: [] },
+		mergedViews: [],
 		warnings: [],
 		manifest: { status: 'absent' }
 	};

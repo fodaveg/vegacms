@@ -52,7 +52,8 @@
 		mediaRoute,
 		newRoute,
 		recordRoute,
-		settingsRoute
+		settingsRoute,
+		viewRoute
 	} from '$lib/nav/routes';
 	import { resolveSingletonTarget } from '$lib/nav/singleton';
 	import { VegaError } from '$lib/backend';
@@ -122,6 +123,7 @@
 				);
 			}
 		},
+		toView: (id) => void navigateTo(viewRoute(id)),
 		toMedia: () => void navigateTo(mediaRoute()),
 		toSettings: () => void navigateTo(settingsRoute()),
 		toLogin: () => void navigateTo(loginRoute())

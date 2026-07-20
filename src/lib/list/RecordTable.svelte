@@ -83,12 +83,33 @@
 	 *   marco redondeado). Este wrapper conserva SOLO `overflow-x:auto` (el scroll horizontal de
 	 *   tablas anchas, L-P4.2/Audit H1) — sin su propio borde/radio/sombra, que duplicaría el de
 	 *   la tarjeta exterior.
+	 * - **Reorder manual (`orderField`, core del CMS)**: cuando `reorderable` (calculado por
+	 *   `+page.svelte`: solo con `contentType.orderField` resuelto, SIN sort/búsqueda/filtro
+	 *   explícitos y con la colección entera en una página — reordenar a mano una vista parcial no
+	 *   tiene sentido), se añade una columna EXTRA al principio de la fila (hermana de las de
+	 *   datos, igual que la de acciones al final) con un «asa» de arrastre por fila. El asa es un
+	 *   `<button draggable="true">`: el ratón usa Drag and Drop nativo (`dragstart`/`dragover`/
+	 *   `drop`, con `dragover` en la `<tr>` para permitir soltar ahí); el teclado usa
+	 *   `ArrowUp`/`ArrowDown` con el foco en el asa — mueve la fila una posición de inmediato (sin
+	 *   un paso previo de "agarrar" con Enter): más simple que el patrón grab/drop de dos fases y
+	 *   perfectamente operable, un único control sirve a los dos gestos. Emite `onReorder(from,to)`
+	 *   por índice dentro de `records`; este componente NO llama al puerto (sigue TONTO, mismo
+	 *   reparto que `onDeleteRequest`) — `+page.svelte` decide qué persistir y cuándo recargar. El
+	 *   `each` sigue keyed por `record.id` (§ya presente arriba), así que tras un reorder + reload
+	 *   el nodo del asa que tenía el foco SIGUE siendo el mismo elemento DOM (mismo id), el foco no
+	 *   se pierde.
+	 * - **Glue de arrastre EXTRAÍDA (L7d, roadmap `mergedViews`)**: los cinco manejadores de evento
+	 *   del asa (dragstart/dragover/drop/dragend/keydown) vivían inline aquí hasta L7d; ahora salen
+	 *   de `createReorderDndController` (`reorder-dnd.ts`, módulo puro agnóstico de colección) para
+	 *   que `MergedViewTable.svelte` los reutilice sin duplicar la maquinaria — comportamiento
+	 *   observable IDÉNTICO al de antes de la extracción (mismos nombres de método, mismo cuerpo).
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import { recordRoute } from '$lib/nav/routes';
 	import { classifyStatusBadge, describeCell, type CellDescriptor } from './cell';
 	import type { ColumnSpec } from './columns';
 	import { resolveTitleCellText } from './list-load';
+	import { createReorderDndController } from './reorder-dnd';
 	import type { ResolvedContentType } from '$lib/model/types';
 	import type { VegaRecord } from '$lib/backend/types';
 	import type { ViewState } from './query-state';
@@ -107,9 +128,26 @@
 		 *  `!contentType.readonly` (la columna de acciones ni existe si no). Quien escucha decide
 		 *  si abre la confirmación (`+page.svelte`, dueño del diálogo `DeleteConfirm`). */
 		onDeleteRequest: (record: VegaRecord, label: string) => void;
+		/** `true` cuando `+page.svelte` decide que ESTA vista se puede reordenar a mano (ver
+		 *  cabecera): pinta la columna del asa de arrastre. `false` en cualquier otro caso, ni
+		 *  siquiera se pinta la columna. */
+		reorderable: boolean;
+		/** Avisa de un reorder por arrastre o teclado (ver cabecera): `fromIndex`/`toIndex` son
+		 *  posiciones dentro de `records`, en el orden ya renderizado. Solo se invoca cuando
+		 *  `reorderable`. Quien escucha decide qué persistir (`computeReorder`) y cuándo recargar. */
+		onReorder: (fromIndex: number, toIndex: number) => void;
 	}
 
-	let { contentType, columns, records, sort, onSort, onDeleteRequest }: Props = $props();
+	let {
+		contentType,
+		columns,
+		records,
+		sort,
+		onSort,
+		onDeleteRequest,
+		reorderable,
+		onReorder
+	}: Props = $props();
 
 	const ctx = getVegaContext();
 
@@ -153,12 +191,34 @@
 		if (!sort || sort.field !== field) return 'none';
 		return sort.dir === 'asc' ? 'ascending' : 'descending';
 	}
+
+	// ————— Reorder manual (ver cabecera) —————
+
+	/** Los cinco manejadores dragstart/dragover/drop/dragend/keydown, ahora en `reorder-dnd.ts`
+	 *  (L7d, ver cabecera del módulo) — `records.length` se relee en cada `keydown` vía el getter,
+	 *  nunca capturado una sola vez. `onReorder` se envuelve en una flecha (en vez de pasarlo tal
+	 *  cual): es un prop reactivo (`$props()`), y pasarlo DIRECTO como argumento aquí capturaría su
+	 *  valor INICIAL para siempre (aviso real de `svelte-check`, `state_referenced_locally`) — la
+	 *  flecha difiere la lectura a dentro de un closure, evaluado en cada evento, igual que hacía
+	 *  el código inline antes de esta extracción. */
+	const dnd = createReorderDndController(
+		(from, to) => onReorder(from, to),
+		() => records.length
+	);
 </script>
 
 <div class="vega-record-table-wrap">
 	<table class="vega-record-table">
 		<thead>
 			<tr>
+				{#if reorderable}
+					<!-- Columna del asa de arrastre (ver cabecera): sin texto visible, con el rótulo
+					     accesible en el propio asa de cada fila (mismo criterio que la columna de
+					     apertura, que tampoco repite su cabecera por fila). -->
+					<th scope="col" class="vega-reorder-header">
+						<span class="vega-visually-hidden">{ctx.t('list.reorder.columnHeader')}</span>
+					</th>
+				{/if}
 				{#if columns.length === 0}
 					<!-- listFields vacío (caso límite, ver cabecera): sin columnas que etiquetar, pero la
 					     fila sigue necesitando una celda de apertura sintética (abajo). -->
@@ -192,8 +252,26 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#each records as record (record.id)}
-				<tr>
+			{#each records as record, i (record.id)}
+				<tr
+					ondragover={reorderable ? dnd.handleDragOver : undefined}
+					ondrop={reorderable ? (event) => dnd.handleDrop(event, i) : undefined}
+				>
+					{#if reorderable}
+						<td class="vega-reorder-cell">
+							<button
+								type="button"
+								class="vega-reorder-handle"
+								aria-label={ctx.t('list.reorder.handleLabel', { label: openText(record) })}
+								draggable="true"
+								ondragstart={(event) => dnd.handleDragStart(event, i)}
+								ondragend={dnd.handleDragEnd}
+								onkeydown={(event) => dnd.handleHandleKeydown(event, i)}
+							>
+								<span aria-hidden="true">⠿</span>
+							</button>
+						</td>
+					{/if}
 					{#if columns.length === 0}
 						<td class="vega-cell-title">
 							<a
@@ -351,6 +429,60 @@
 	.vega-sort-indicator {
 		font-size: 0.65rem;
 		color: var(--accent-text);
+	}
+
+	/* Técnica WCAG estándar de "visualmente oculto" (mismo criterio que `RecordForm.svelte`): 1×1px,
+	   invisible a simple vista, presente en el árbol de accesibilidad. NUNCA `display:none`. */
+	.vega-visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
+	/* Columna del asa de arrastre (ver cabecera): estrecha, sin truncar (el asa nunca lleva texto
+	   visible que necesite elipsis). */
+	.vega-reorder-header,
+	.vega-reorder-cell {
+		width: 2rem;
+		max-width: none;
+		overflow: visible;
+		white-space: nowrap;
+	}
+
+	.vega-reorder-handle {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.75rem;
+		height: 1.75rem;
+		padding: 0;
+		border: 1px solid transparent;
+		border-radius: 5px;
+		background: none;
+		color: var(--ink-2);
+		font-size: 1rem;
+		line-height: 1;
+		cursor: grab;
+	}
+
+	.vega-reorder-handle:hover {
+		background: var(--surface-2);
+		color: var(--ink);
+	}
+
+	.vega-reorder-handle:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 1px;
+	}
+
+	.vega-reorder-handle:active {
+		cursor: grabbing;
 	}
 
 	.vega-record-table tbody tr {

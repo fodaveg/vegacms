@@ -86,9 +86,13 @@
 		// fuera con los datos de la tanda vieja antes de lanzar la nueva.
 		counts = {};
 
+		// Vistas fusionadas (L7c, `item.kind === 'view'`) EXCLUIDAS a propósito: `item.type` guarda
+		// el id de la vista, no un `ContentType.name` — `port.list(item.type, ...)` reventaría
+		// contra una colección inexistente. Sin recuento de vista todavía (fuera de alcance de L7c,
+		// una vista no tiene un `totalItems` único: cada source tiene el suyo).
 		const types = ctx.model.nav.groups
 			.flatMap((group) => group.items)
-			.filter((item) => !item.singleton)
+			.filter((item) => item.kind === 'collection' && !item.singleton)
 			.map((item) => item.type);
 		for (const type of types) {
 			void port
