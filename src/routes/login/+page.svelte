@@ -8,9 +8,16 @@
 	 *
 	 * No consume `VegaAppContext` (todavía no hay sesión ni modelo): solo `SessionStore`
 	 * (`getSessionContext`) y un `t()` local resuelto sin `site.locale` (P2 aún no cargó).
+	 *
+	 * Bajo el formulario, un `<details>` discreto ("¿PocketBase en otro servidor?") aloja
+	 * `BackendUrlForm.svelte` (lote L5, distribución/onboarding genérico): es el sitio donde un
+	 * primer arranque SIN sesión puede apuntar Vega a un PocketBase remoto, sin editar
+	 * `vega.config.json` ni recompilar. Cerrado por defecto (`<details>` sin `open`): no distrae
+	 * el caso común (same-origin).
 	 */
 	import { getSessionContext } from '$lib/session/session.svelte';
 	import { resolveLocale, t as translate } from '$lib/i18n';
+	import BackendUrlForm from '$lib/session/BackendUrlForm.svelte';
 
 	const sessionStore = getSessionContext();
 
@@ -81,12 +88,18 @@
 			{submitting ? t('login.submitting') : t('login.submit')}
 		</button>
 	</form>
+
+	<details class="vega-login-connect">
+		<summary>{t('connect.disclosureLabel')}</summary>
+		<BackendUrlForm {t} />
+	</details>
 </div>
 
 <style>
 	.vega-login {
 		display: flex;
-		justify-content: center;
+		flex-direction: column;
+		align-items: center;
 		padding-top: 15vh;
 	}
 
@@ -147,5 +160,22 @@
 	button:disabled {
 		cursor: not-allowed;
 		opacity: 0.6;
+	}
+
+	.vega-login-connect {
+		width: 100%;
+		max-width: 22rem;
+		margin-top: 1rem;
+		padding: 0 0.25rem;
+		font-size: 0.85rem;
+	}
+
+	.vega-login-connect summary {
+		cursor: pointer;
+		color: var(--ink-2);
+	}
+
+	.vega-login-connect[open] summary {
+		margin-bottom: 0.75rem;
 	}
 </style>

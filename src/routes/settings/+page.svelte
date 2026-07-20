@@ -28,12 +28,22 @@
 	 *
 	 * Selectores de tema/modo activos (F7w-b): texto en `--accent-text` (acento como texto sobre
 	 * `--surface`), borde en `--accent`.
+	 *
+	 * "Backend / conexión" (lote L5, distribución/onboarding genérico): monta el mismo
+	 * `BackendUrlForm.svelte` que `/login` (con `ctx.t` en vez del `t()` local de esa ruta), para
+	 * reconfigurar el override de `localStorage` ya autenticado. Vive FUERA del bloque `{#if
+	 * status}` por el mismo motivo que "Apariencia": no depende de la carga del modelo.
+	 * `confirmBeforeReload` a `true` (fix de code-review de L5): esta sección es VECINA del
+	 * `ManifestEditor` en la misma página, sin dirty-tracking cruzado — sin el `confirm()`, un
+	 * Guardar/Restablecer aquí recargaría la página y descartaría en silencio una edición en
+	 * curso del manifiesto.
 	 */
 	import { onMount } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
 	import { VEGA_COLLECTION, VegaError, type ContentType, type JsonValue } from '$lib/backend';
 	import { computeCollectionState } from '$lib/backend/collection-state';
 	import { saveManifest } from '$lib/model/load';
+	import BackendUrlForm from '$lib/session/BackendUrlForm.svelte';
 	import { setMode, setTheme } from '$lib/theme/apply';
 	import type { ThemeMode } from '$lib/theme/preferences';
 	import { FALLBACK_THEME, THEMES } from '$lib/themes/themes.generated';
@@ -206,6 +216,12 @@
 		</div>
 	</section>
 
+	<section class="vega-backend-section" aria-labelledby="vega-backend-title">
+		<h2 id="vega-backend-title">{ctx.t('connect.title')}</h2>
+		<p class="vega-backend-description">{ctx.t('connect.description')}</p>
+		<BackendUrlForm t={ctx.t} confirmBeforeReload={true} />
+	</section>
+
 	{#if status === 'loading'}
 		<p aria-live="polite">{ctx.t('common.loading')}</p>
 	{:else if status === 'error'}
@@ -343,6 +359,27 @@
 		height: 0.7rem;
 		border-radius: 50%;
 		flex-shrink: 0;
+	}
+
+	.vega-backend-section {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		padding: 1rem 1.2rem;
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		background: var(--surface-2);
+	}
+
+	.vega-backend-section h2 {
+		margin: 0;
+		font-size: 1.1rem;
+	}
+
+	.vega-backend-description {
+		margin: 0;
+		font-size: 0.85rem;
+		color: var(--ink-2);
 	}
 
 	.vega-about {

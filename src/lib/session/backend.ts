@@ -17,9 +17,11 @@
  *     PocketBase real, sin tocar código.
  *
  * Si ninguna vale `'memory'`, el adaptador es `pocketbase` contra la URL resuelta por
- * `resolveBackendUrl` (§3.7, D-P3.5-a): same-origin por defecto, con override opcional vía
- * `static/vega.config.json` (fetch best-effort; ausencia/fallo → `null` → same-origin, nunca
- * bloquea el arranque).
+ * `resolveBackendUrl` (§3.7, D-P3.5-a; ampliada por L5): same-origin por defecto, con override
+ * opcional vía `static/vega.config.json` (fetch best-effort; ausencia/fallo → `null` →
+ * same-origin, nunca bloquea el arranque), y por encima de ambos el override RUNTIME de L5
+ * (`readBackendOverride()`, `backend-override.ts`) que el usuario guarda desde
+ * `BackendUrlForm.svelte` en `/login`/`/settings`.
  *
  * ## Por qué el adaptador `memory` necesita una envoltura aquí
  *
@@ -93,7 +95,8 @@ import type { AuthChangeReason, BackendPort, Session } from '$lib/backend';
 import { VegaError } from '$lib/backend';
 import { createMemoryBackend } from '$lib/backend/adapters/memory';
 import { createPocketBaseBackend } from '$lib/backend/adapters/pocketbase';
-import { resolveBackendUrl, type VegaConfig } from './backend-config';
+import { isAbsoluteUrl, resolveBackendUrl, type VegaConfig } from './backend-config';
+import { readBackendOverride } from './backend-override';
 import { DEMO_CREDENTIALS, DEMO_SEED, DEMO_SEED_WITH_MEDIA } from './demo-seed';
 
 declare global {
@@ -164,8 +167,13 @@ async function createInstance(): Promise<BackendPort> {
 		const seed = window.__VEGA_SEED_MEDIA__ ? DEMO_SEED_WITH_MEDIA : DEMO_SEED;
 		return wrapMemoryPortForDemo(createMemoryBackend(seed), DEMO_CREDENTIALS);
 	}
-	const config = await fetchVegaConfig();
-	const url = resolveBackendUrl({ origin: window.location.origin, config });
+	// Fix de code-review de L5 (perf): si ya hay un override runtime VÁLIDO, gana siempre (mayor
+	// precedencia, `backend-config.ts`) — el `fetch('/vega.config.json')` sería trabajo tirado,
+	// nunca vuelve a leerse `config`. Con override ausente/inválido, comportamiento IDÉNTICO al de
+	// antes de este fix (se lee `vega.config.json` como siempre).
+	const override = readBackendOverride();
+	const config = override && isAbsoluteUrl(override) ? null : await fetchVegaConfig();
+	const url = resolveBackendUrl({ origin: window.location.origin, config, override });
 	return createPocketBaseBackend({ url });
 }
 

@@ -93,7 +93,13 @@ pnpm build
 
 Vega ahora apuntará a `https://api.example.com` en lugar de same-origin.
 
-Ver [Configuración de Vega](CONFIG.md) para más detalles.
+### 3. Override runtime (pantalla de conexión)
+
+Sin recompilar, cada persona puede apuntar SU Vega a cualquier PocketBase desde la propia app: en `/login` (antes de sesión) o `/settings` (ya autenticada), introduce la URL y guarda. Gana a `vega.config.json` y a same-origin (es el nivel de mayor precedencia). Útil para distribuir un build genérico (un mismo zip, ver [Despliegue](DEPLOYMENT.md#artefacto-de-distribución-zip)) sin hornear una URL fija por cliente.
+
+En CUALQUIERA de las dos opciones (2 y 3), si Vega y PocketBase quedan en orígenes distintos, sigue haciendo falta habilitar CORS (sección anterior) — la URL correcta no basta si el navegador bloquea la petición.
+
+Ver [Configuración de Vega](CONFIG.md) para más detalles (incluida la precedencia completa de los 3 niveles).
 
 ## Patrón: múltiples consumidores del mismo PocketBase
 

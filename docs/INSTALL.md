@@ -66,15 +66,18 @@ Abre [http://localhost:5173/](http://localhost:5173/).
 
 ### 3. Configurar el origen de PocketBase
 
-Por defecto, Vega busca PocketBase en `http://localhost:8090` (same-origin). Si PocketBase está en otro host/puerto (p. ej. `https://pb.example.com`), crea un fichero `static/vega.config.json`:
+Por defecto, Vega busca PocketBase en `http://localhost:8090` (same-origin). Si PocketBase está en otro host/puerto (p. ej. `https://pb.example.com`), tienes dos opciones:
 
-```json
-{
-	"backendUrl": "https://pb.example.com"
-}
-```
+- **Sin recompilar, desde la propia app**: abre Vega, en `/login` despliega "¿PocketBase en otro servidor? Configúralo", introduce la URL y guarda (recarga sola). Es la vía más rápida para probar contra un PocketBase remoto sin tocar ficheros — ver [Configuración de Vega](CONFIG.md#pantalla-de-conexión-primer-arranque).
+- **Horneado en el build**, para que apunte ahí SIEMPRE (sin depender de que cada usuario lo configure a mano): crea un fichero `static/vega.config.json`:
 
-Reinicia el servidor de desarrollo — Vega ahora apuntará a ese origen.
+  ```json
+  {
+  	"backendUrl": "https://pb.example.com"
+  }
+  ```
+
+  Reinicia el servidor de desarrollo — Vega ahora apuntará a ese origen.
 
 ### 4. Acceder a Vega
 
@@ -127,6 +130,10 @@ pnpm build
 ```
 
 Después copia `build/` a tu servidor web. Asegúrate de que PocketBase permite CORS desde tu dominio (ver [Integración con PocketBase](POCKETBASE-INTEGRATION.md)).
+
+**Alternativa sin `vega.config.json`**: si prefieres distribuir un build genérico (el mismo zip para cualquier cliente/PocketBase, sin hornear una URL fija), omite este paso y deja que cada persona apunte su Vega al PocketBase que le corresponda desde la propia app, en el primer arranque — ver [Pantalla de conexión](CONFIG.md#pantalla-de-conexión-primer-arranque). Es el escenario típico al distribuir Vega como zip (ver [Despliegue](DEPLOYMENT.md#artefacto-de-distribución-zip)).
+
+**Nota de CORS**: en cualquiera de las dos vías (fichero horneado u override en runtime), si Vega se sirve en un origen DISTINTO del de PocketBase, PocketBase debe permitir explícitamente el origen de Vega en **Settings → CORS origins allowed** — de lo contrario el navegador bloquea las peticiones aunque la URL sea correcta (ver [CORS](POCKETBASE-INTEGRATION.md#cors-cross-origin-resource-sharing)).
 
 ### 3. Verificar
 

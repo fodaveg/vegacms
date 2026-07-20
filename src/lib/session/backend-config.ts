@@ -1,7 +1,10 @@
 /**
- * Resolución PURA de la URL de backend (§3.7 del contrato P3, D-P3.5-a). Decide la URL string;
- * NO instancia el puerto (eso vive en `src/lib/session/backend.ts`, Fase 2, el único sitio que
- * crea el adaptador — P3-L1).
+ * Resolución PURA de la URL de backend (§3.7 del contrato P3, D-P3.5-a; ampliada por el lote L5
+ * — distribución/onboarding genérico — con un tercer nivel de precedencia, el override runtime).
+ * Decide la URL string; NO instancia el puerto (eso vive en `src/lib/session/backend.ts`, Fase 2,
+ * el único sitio que crea el adaptador — P3-L1). El override en sí (lectura/escritura de
+ * `localStorage`) vive en `backend-override.ts`, un módulo hermano IMPURO — este sigue sin tocar
+ * `window`/`localStorage`, trivialmente testeable con objetos planos.
  */
 
 /**
@@ -23,25 +26,48 @@ export interface VegaConfig {
  * `config` = el contenido ya parseado de `vega.config.json`, o `null` si no existe/no se pudo
  * leer (la Fase 2 hace el `fetch`/`JSON.parse`; los fallos de red o de parseo se tratan como
  * ausencia de config, nunca bloquean el arranque — L3, "cero build por proyecto").
+ * `override` = el valor crudo persistido en `localStorage` (clave `vega.backendUrl.v1`, L5 —
+ * distribución/onboarding genérico), o `null` si no hay ninguno. Lo lee la capa impura
+ * (`readBackendOverride()` en `backend-override.ts`); este módulo sigue sin tocar
+ * `window`/`localStorage`.
  *
- * Prioridad: `config.backendUrl` si es una URL absoluta válida → esa; si no → `origin`
- * (same-origin, el default). Una `backendUrl` inválida (string vacío, URL malformada) NO lanza:
- * se ignora y cae a same-origin, coherente con "nunca pantalla blanca" (P3-L3).
+ * Prioridad de TRES niveles (L5 amplía §3.7/D-P3.5-a con un tercer nivel por encima, SUPERSET
+ * compatible: sin `override`, el comportamiento es idéntico al de antes de L5):
+ *  1. `override` si es una URL absoluta válida → esa (el usuario lo introdujo a mano en
+ *     `BackendUrlForm.svelte`, gana a cualquier configuración estática).
+ *  2. `config.backendUrl` si es una URL absoluta válida → esa (D-P3.5-a, sin cambios).
+ *  3. `origin` (same-origin, el default).
+ * Un `override`/`backendUrl` inválido (string vacío, URL malformada) NO lanza: se ignora y cae
+ * al siguiente nivel, coherente con "nunca pantalla blanca" (P3-L3).
+ *
+ * Devuelve el `override`/`backendUrl` ganador con `.trim()` (fix de code-review de L5):
+ * `isAbsoluteUrl` acepta espacios colgantes (`new URL()`, WHATWG, los recorta al parsear), pero
+ * sin este `.trim()` la función devolvía el string CRUDO tal cual llegó — con espacios que
+ * `createPocketBaseBackend({ url })` no espera. Deliberadamente NO se usa `new URL(value).href`
+ * (introduciría una barra final que podría afectar al cliente PB); basta el `.trim()`. `origin`
+ * NUNCA se toca: ya llega normalizado de `window.location.origin`.
  */
-export function resolveBackendUrl(opts: { origin: string; config: VegaConfig | null }): string {
+export function resolveBackendUrl(opts: {
+	origin: string;
+	config: VegaConfig | null;
+	override: string | null;
+}): string {
+	if (opts.override && isAbsoluteUrl(opts.override)) return opts.override.trim();
 	const candidate = opts.config?.backendUrl;
-	if (candidate && isAbsoluteUrl(candidate)) return candidate;
+	if (candidate && isAbsoluteUrl(candidate)) return candidate.trim();
 	return opts.origin;
 }
 
 /**
  * Solo `http:`/`https:` cuentan como URL de backend válida. `new URL()` a secas es demasiado
  * laxo: `new URL('pb.example.com:8090')` NO lanza (WHATWG lee `pb.example.com:` como esquema y
- * `8090` como opaque-path), así que un typo muy plausible en `vega.config.json` (host:puerto sin
- * `https://`) pasaría como "válido" y reventaría en Fase 2 al construir el cliente. Exigir el
- * protocolo http(s) hace que ese caso caiga a same-origin, como pide §3.7/§7.A.6.
+ * `8090` como opaque-path), así que un typo muy plausible en `vega.config.json`/el formulario de
+ * conexión (host:puerto sin `https://`) pasaría como "válido" y reventaría en Fase 2 al construir
+ * el cliente. Exigir el protocolo http(s) hace que ese caso caiga al siguiente nivel, como pide
+ * §3.7/§7.A.6. Exportada para que `BackendUrlForm.svelte` (L5) valide con el MISMO criterio antes
+ * de guardar el override, en vez de duplicar la lógica.
  */
-function isAbsoluteUrl(value: string): boolean {
+export function isAbsoluteUrl(value: string): boolean {
 	try {
 		const { protocol } = new URL(value);
 		return protocol === 'http:' || protocol === 'https:';

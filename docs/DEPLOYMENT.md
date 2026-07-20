@@ -2,6 +2,32 @@
 
 Cómo desplegar Vega en distintas configuraciones y bajo subrutas.
 
+## Artefacto de distribución (zip)
+
+Vega se distribuye como un zip de `build/` (lote L5, distribución/onboarding genérico). Hay dos fuentes:
+
+- **Release oficial por tag** (`v*`): `.github/workflows/release.yml` publica `vega-<version>.zip` como asset de un [GitHub Release](https://github.com/fodaveg/vegacms/releases), determinista y verificado en CI (ver [Actualizar a una versión nueva](INSTALL.md#actualizar-a-una-versión-nueva)).
+- **Empaquetado local/ad hoc** (`pnpm package`): genera `dist/vega-<version>.zip` a partir de un `build/` que ya tengas en tu máquina.
+
+  ```sh
+  pnpm build
+  pnpm package
+  ```
+
+  El zip contiene el CONTENIDO de `build/` en su raíz (sin carpeta contenedora), listo para descomprimir directamente sobre un destino. `dist/` no se commitea (ver `.gitignore`).
+
+### Las dos vías de despliegue con el zip
+
+1. **Same-origin, dentro de `pb_public/`**: descomprime el zip directamente sobre `pb_public/` de tu PocketBase.
+
+   ```sh
+   unzip -o dist/vega-<version>.zip -d /ruta/a/pocketbase/pb_public/
+   ```
+
+   Vega usa same-origin sin configuración adicional (nivel 3 de precedencia, ver [Configuración de Vega](CONFIG.md)).
+
+2. **Servidor aparte, apuntando a un PocketBase remoto**: descomprime el zip en tu webroot (Nginx, Apache, un bucket estático…) y apunta a PocketBase con `static/vega.config.json` (antes del build) o, sin recompilar, desde la [pantalla de conexión](CONFIG.md#pantalla-de-conexión-primer-arranque) al abrir la app. En ambos casos, habilita CORS en PocketBase para el origen donde sirvas el zip (ver [Integración con PocketBase](POCKETBASE-INTEGRATION.md#cors-cross-origin-resource-sharing)).
+
 ## Despliegue simple (raíz)
 
 La forma más sencilla: copiar la SPA a `pb_public/` de PocketBase.
