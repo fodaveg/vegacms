@@ -12,7 +12,7 @@
  */
 
 import { describe, expect, test, vi } from 'vitest';
-import { createReorderDndController } from './reorder-dnd';
+import { createReorderDndController, dropIndicatorEdge } from './reorder-dnd';
 
 /** Mock mínimo de `DataTransfer`: solo los tres miembros que toca el módulo. */
 function dataTransfer() {
@@ -168,10 +168,91 @@ describe('createReorderDndController', () => {
 			const dnd = createReorderDndController(vi.fn(), () => 3);
 			const event = dragEvent();
 
-			dnd.handleDragOver(event);
+			dnd.handleDragOver(event, 1);
 
 			expect(event.preventDefault).toHaveBeenCalledOnce();
 			expect(event.dataTransfer?.dropEffect).toBe('move');
+		});
+	});
+
+	describe('#l12-ux (item 2): onDragStateChange — feedback visual del arrastre', () => {
+		test('dragstart notifica fromIndex === overIndex === el índice agarrado', () => {
+			const onDragStateChange = vi.fn();
+			const dnd = createReorderDndController(vi.fn(), () => 3, onDragStateChange);
+
+			dnd.handleDragStart(dragEvent(), 1);
+
+			expect(onDragStateChange).toHaveBeenCalledExactlyOnceWith({ fromIndex: 1, overIndex: 1 });
+		});
+
+		test('dragover sobre un índice nuevo notifica el overIndex actualizado', () => {
+			const onDragStateChange = vi.fn();
+			const dnd = createReorderDndController(vi.fn(), () => 3, onDragStateChange);
+
+			dnd.handleDragStart(dragEvent(), 0);
+			onDragStateChange.mockClear();
+			dnd.handleDragOver(dragEvent(), 2);
+
+			expect(onDragStateChange).toHaveBeenCalledExactlyOnceWith({ fromIndex: 0, overIndex: 2 });
+		});
+
+		test('dragover repetido sobre el MISMO índice no vuelve a notificar (evita repintar de más)', () => {
+			const onDragStateChange = vi.fn();
+			const dnd = createReorderDndController(vi.fn(), () => 3, onDragStateChange);
+
+			dnd.handleDragStart(dragEvent(), 0);
+			onDragStateChange.mockClear();
+			dnd.handleDragOver(dragEvent(), 0); // overIndex ya es 0 (fijado por dragstart)
+
+			expect(onDragStateChange).not.toHaveBeenCalled();
+		});
+
+		test('dragover sin dragstart previo (fuera de esta tabla) no notifica', () => {
+			const onDragStateChange = vi.fn();
+			const dnd = createReorderDndController(vi.fn(), () => 3, onDragStateChange);
+
+			dnd.handleDragOver(dragEvent(), 1);
+
+			expect(onDragStateChange).not.toHaveBeenCalled();
+		});
+
+		test('drop notifica fromIndex/overIndex de vuelta a null', () => {
+			const onDragStateChange = vi.fn();
+			const dnd = createReorderDndController(vi.fn(), () => 3, onDragStateChange);
+
+			dnd.handleDragStart(dragEvent(), 0);
+			onDragStateChange.mockClear();
+			dnd.handleDrop(dragEvent(), 2);
+
+			expect(onDragStateChange).toHaveBeenCalledExactlyOnceWith({
+				fromIndex: null,
+				overIndex: null
+			});
+		});
+
+		test('dragend notifica fromIndex/overIndex de vuelta a null (arrastre cancelado)', () => {
+			const onDragStateChange = vi.fn();
+			const dnd = createReorderDndController(vi.fn(), () => 3, onDragStateChange);
+
+			dnd.handleDragStart(dragEvent(), 0);
+			onDragStateChange.mockClear();
+			dnd.handleDragEnd();
+
+			expect(onDragStateChange).toHaveBeenCalledExactlyOnceWith({
+				fromIndex: null,
+				overIndex: null
+			});
+		});
+
+		test('sin onDragStateChange (ausente): ningún método revienta (opcional, ver cabecera)', () => {
+			const dnd = createReorderDndController(vi.fn(), () => 3);
+
+			expect(() => {
+				dnd.handleDragStart(dragEvent(), 0);
+				dnd.handleDragOver(dragEvent(), 1);
+				dnd.handleDrop(dragEvent(), 1);
+				dnd.handleDragEnd();
+			}).not.toThrow();
 		});
 	});
 
@@ -188,5 +269,33 @@ describe('createReorderDndController', () => {
 			expect(onReorder).toHaveBeenNthCalledWith(1, 1, 2); // ArrowDown en 1 → (1, 2)
 			expect(onReorder).toHaveBeenNthCalledWith(2, 3, 0); // drop de 3 sobre 0 → (3, 0)
 		});
+	});
+});
+
+describe('dropIndicatorEdge (#l12-ux, item 2)', () => {
+	test('sin arrastre en vuelo (ambos null) → null', () => {
+		expect(dropIndicatorEdge(null, null)).toBeNull();
+	});
+
+	test('fromIndex null, overIndex presente → null', () => {
+		expect(dropIndicatorEdge(null, 2)).toBeNull();
+	});
+
+	test('overIndex null, fromIndex presente → null', () => {
+		expect(dropIndicatorEdge(1, null)).toBeNull();
+	});
+
+	test('sobre la propia fila de origen (fromIndex === overIndex) → null', () => {
+		expect(dropIndicatorEdge(2, 2)).toBeNull();
+	});
+
+	test('arrastrando hacia abajo (fromIndex < overIndex) → "after" (el hueco va debajo)', () => {
+		expect(dropIndicatorEdge(0, 2)).toBe('after');
+		expect(dropIndicatorEdge(1, 2)).toBe('after');
+	});
+
+	test('arrastrando hacia arriba (fromIndex > overIndex) → "before" (el hueco va encima)', () => {
+		expect(dropIndicatorEdge(2, 0)).toBe('before');
+		expect(dropIndicatorEdge(2, 1)).toBe('before');
 	});
 });

@@ -216,6 +216,24 @@ function useMemoryAdapter(): boolean {
 }
 
 /**
+ * (#l12-ux, item 1) Resuelve, para MOSTRAR en `/login` ANTES de que el usuario meta credenciales,
+ * a qué PocketBase se conectaría Vega ahora mismo — MISMO seam de tres niveles que `createInstance`
+ * (override runtime → `vega.config.json` → same-origin), pero sin instanciar ningún adaptador ni
+ * tocar `instancePromise`: es una lectura de solo-mostrar, nunca dispara el singleton (llamarla
+ * varias veces, p.ej. si el usuario reabre el disclosure, no tiene coste de crear nada).
+ *
+ * En modo demo (`memory`, e2e/build pública P8) no hay un PocketBase real detrás de la sesión —
+ * devuelve `null`, y la UI de `/login` simplemente no pinta el indicador (P3-L3: nunca un dato
+ * inventado, "conectado a" no significa nada en modo memoria).
+ */
+export async function resolveDisplayBackendUrl(): Promise<string | null> {
+	if (typeof window === 'undefined' || useMemoryAdapter()) return null;
+	const override = readBackendOverride();
+	const config = await fetchVegaConfig();
+	return resolveBackendUrl({ origin: window.location.origin, config, override });
+}
+
+/**
  * Lee `static/vega.config.json` en runtime (§3.7, D-P3.5-a): fetch best-effort, cero build.
  * Ausencia (404), fallo de red o forma inesperada ⇒ `null` (same-origin), NUNCA bloquea ni lanza.
  */

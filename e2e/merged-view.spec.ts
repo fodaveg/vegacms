@@ -148,3 +148,46 @@ test('el asa admite teclado (ArrowDown) con el mismo resultado que el arrastre',
 	await expect(rows.nth(2)).toContainText('Concierto en Re');
 	await expect(rows.nth(3)).toContainText('Pista B');
 });
+
+test('el arrastre pinta feedback visual: fila agarrada + indicador de destino (#l12-ux, item 2)', async ({
+	page
+}) => {
+	await loginAsDemo(page);
+	await page.waitForURL('**/c/site_info/new');
+
+	await page.goto('/v/catalogo');
+	await expect(page.getByRole('heading', { name: 'Catálogo', level: 1 })).toBeVisible();
+
+	const rows = page.locator('tbody tr');
+	const handle = page.getByRole('button', { name: 'Arrastra para reordenar "Sinfonía nº1"' });
+
+	// Arrastre MANUAL en dos pasos (mousedown/move SIN soltar), a diferencia de `dragTo()` (el resto
+	// de la suite): necesitamos observar el estado A MITAD del gesto, antes de que `drop`/`dragend`
+	// limpien `dragFromIndex`/`dragOverIndex` (`reorder-dnd.ts`) — `dragTo()` es atómico y no deja
+	// ventana para inspeccionar nada entre el `down` y el `up`.
+	const handleBox = await handle.boundingBox();
+	const targetBox = await rows.nth(2).boundingBox();
+	if (!handleBox || !targetBox) throw new Error('bounding box ausente (layout no resuelto)');
+
+	await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+	await page.mouse.down();
+	await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, {
+		steps: 15
+	});
+
+	// Fila 0 (origen, work_1): "agarrada" — atenuada, cursor "grabbing".
+	await expect(rows.nth(0)).toHaveClass(/vega-row-dragging/);
+	// Fila 2 (destino, arrastrando HACIA ABAJO desde el índice 0): el hueco va DEBAJO
+	// (`dropIndicatorEdge(0, 2) === 'after'`, testeado en `reorder-dnd.test.ts`).
+	await expect(rows.nth(2)).toHaveClass(/vega-row-drop-after/);
+	// Ninguna otra fila lleva ninguna de las dos clases.
+	await expect(rows.nth(1)).not.toHaveClass(/vega-row-dragging|vega-row-drop-/);
+	await expect(rows.nth(3)).not.toHaveClass(/vega-row-dragging|vega-row-drop-/);
+
+	await page.mouse.up();
+
+	// Tras soltar, el feedback desaparece de TODAS las filas (`handleDrop` limpia el estado) —
+	// tanto si el drop se resolvió sobre una fila válida (aquí sí) como si no.
+	await expect(rows.nth(0)).not.toHaveClass(/vega-row-dragging/);
+	await expect(rows.nth(2)).not.toHaveClass(/vega-row-drop-/);
+});

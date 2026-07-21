@@ -29,6 +29,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'topbar.search.ariaLabel': 'Global search',
 	'topbar.search.placeholder': 'Search all content…',
 	'topbar.avatar.label': 'Signed in as {email}',
+	// User chip → "Settings" menu (#l12-ux, item 3): label of the trigger button itself, DIFFERENT
+	// from `topbar.avatar.label` above (that one describes the session identity of the inner
+	// `<span role="img">`; this one describes the ACTION of opening the menu).
+	'topbar.userMenu.toggle': 'Account menu',
 
 	// ————— Login / session —————
 	'login.title': 'Sign in to Vega',

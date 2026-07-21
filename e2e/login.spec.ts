@@ -51,6 +51,20 @@ test.describe('login', () => {
 	});
 });
 
+test.describe('indicador de servidor (#l12-ux, item 1)', () => {
+	test('en modo demo (adaptador memory) no hay indicador: sin un PocketBase real que mostrar', async ({
+		page
+	}) => {
+		await page.goto('/login');
+		await expect(page.getByRole('button', { name: 'Entrar' })).toBeVisible();
+
+		// `resolveDisplayBackendUrl()` devuelve `null` con el adaptador `memory` (ver
+		// `backend.ts`/`backend.dom.test.ts`): la ausencia del indicador es el comportamiento
+		// CORRECTO aquí, no un olvido — mostrar una URL en modo demo sería un dato inventado.
+		await expect(page.locator('[data-testid="login-server-indicator"]')).toHaveCount(0);
+	});
+});
+
 test.describe('arranque sin red (casos límite §6.7)', () => {
 	test('backend caído al arrancar muestra pantalla honesta con Reintentar', async ({ page }) => {
 		await page.addInitScript(() => {

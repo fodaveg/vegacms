@@ -103,13 +103,22 @@
 	 *   de `createReorderDndController` (`reorder-dnd.ts`, módulo puro agnóstico de colección) para
 	 *   que `MergedViewTable.svelte` los reutilice sin duplicar la maquinaria — comportamiento
 	 *   observable IDÉNTICO al de antes de la extracción (mismos nombres de método, mismo cuerpo).
+	 * - **Feedback visual del arrastre (#l12-ux, item 2)**: hasta ahora un `drag` en curso no
+	 *   pintaba NADA distinto — ni la fila agarrada ni el destino se distinguían del resto.
+	 *   `dragFromIndex`/`dragOverIndex` (`$state` LOCAL, espejo del `ReorderDragState` que notifica
+	 *   el controlador vía `onDragStateChange`, `reorder-dnd.ts`) alimentan dos señales: (a) la fila
+	 *   agarrada baja de opacidad y cambia el cursor a "grabbing" (`.vega-row-dragging`); (b) la
+	 *   fila sobrevolada pinta un hueco (`box-shadow` inset de acento) en el borde por el que
+	 *   entraría el registro al soltar — `dropIndicatorEdge` (puro, testeado en
+	 *   `reorder-dnd.test.ts`) decide `'before'`/`'after'` según el sentido del arrastre. Puramente
+	 *   presentacional: no toca `onReorder` ni la persistencia, que siguen exactamente igual.
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import { recordRoute } from '$lib/nav/routes';
 	import { classifyStatusBadge, describeCell, type CellDescriptor } from './cell';
 	import type { ColumnSpec } from './columns';
 	import { resolveTitleCellText } from './list-load';
-	import { createReorderDndController } from './reorder-dnd';
+	import { createReorderDndController, dropIndicatorEdge } from './reorder-dnd';
 	import type { ResolvedContentType } from '$lib/model/types';
 	import type { VegaRecord } from '$lib/backend/types';
 	import type { ViewState } from './query-state';
@@ -194,6 +203,12 @@
 
 	// ————— Reorder manual (ver cabecera) —————
 
+	/** Espejo LOCAL del `ReorderDragState` que notifica el controlador (#l12-ux, item 2): solo esto
+	 *  necesita ser `$state` (runa, disponible aquí por ser `.svelte`) — el controlador en sí vive
+	 *  en un módulo `.ts` plano, ver cabecera de `reorder-dnd.ts`. */
+	let dragFromIndex = $state<number | null>(null);
+	let dragOverIndex = $state<number | null>(null);
+
 	/** Los cinco manejadores dragstart/dragover/drop/dragend/keydown, ahora en `reorder-dnd.ts`
 	 *  (L7d, ver cabecera del módulo) — `records.length` se relee en cada `keydown` vía el getter,
 	 *  nunca capturado una sola vez. `onReorder` se envuelve en una flecha (en vez de pasarlo tal
@@ -203,7 +218,11 @@
 	 *  el código inline antes de esta extracción. */
 	const dnd = createReorderDndController(
 		(from, to) => onReorder(from, to),
-		() => records.length
+		() => records.length,
+		(state) => {
+			dragFromIndex = state.fromIndex;
+			dragOverIndex = state.overIndex;
+		}
 	);
 </script>
 
@@ -253,8 +272,13 @@
 		</thead>
 		<tbody>
 			{#each records as record, i (record.id)}
+				{@const dropEdge =
+					dragOverIndex === i ? dropIndicatorEdge(dragFromIndex, dragOverIndex) : null}
 				<tr
-					ondragover={reorderable ? dnd.handleDragOver : undefined}
+					class:vega-row-dragging={dragFromIndex === i}
+					class:vega-row-drop-before={dropEdge === 'before'}
+					class:vega-row-drop-after={dropEdge === 'after'}
+					ondragover={reorderable ? (event) => dnd.handleDragOver(event, i) : undefined}
 					ondrop={reorderable ? (event) => dnd.handleDrop(event, i) : undefined}
 				>
 					{#if reorderable}
@@ -483,6 +507,28 @@
 
 	.vega-reorder-handle:active {
 		cursor: grabbing;
+	}
+
+	/* Fila "agarrada" (#l12-ux, item 2): baja de opacidad y cambia el cursor a "grabbing" mientras
+	   dura el arrastre nativo — antes soltar/agarrar no distinguía visualmente ninguna fila del
+	   resto. Solo `opacity`, nunca `visibility`/`display`: la fila sigue siendo el origen real del
+	   `dataTransfer` del navegador durante todo el gesto. */
+	.vega-record-table tbody tr.vega-row-dragging {
+		opacity: 0.5;
+		cursor: grabbing;
+	}
+
+	/* Indicador de destino (#l12-ux, item 2): un hueco de acento en el borde de la fila sobrevolada
+	   — `dropIndicatorEdge` (`reorder-dnd.ts`) decide el borde según el sentido del arrastre. En
+	   cada `<td>` (no en el `<tr>`): `box-shadow` en un `display:table-row` con
+	   `border-collapse:collapse` puede recortarse por los bordes vecinos si se pinta en la propia
+	   fila; en cada celda queda una línea continua y sin salto. */
+	.vega-record-table tbody tr.vega-row-drop-before > td {
+		box-shadow: inset 0 2px 0 0 var(--accent);
+	}
+
+	.vega-record-table tbody tr.vega-row-drop-after > td {
+		box-shadow: inset 0 -2px 0 0 var(--accent);
 	}
 
 	.vega-record-table tbody tr {

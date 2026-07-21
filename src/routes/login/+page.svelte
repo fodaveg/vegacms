@@ -14,8 +14,20 @@
 	 * primer arranque SIN sesión puede apuntar Vega a un PocketBase remoto, sin editar
 	 * `vega.config.json` ni recompilar. Cerrado por defecto (`<details>` sin `open`): no distrae
 	 * el caso común (same-origin).
+	 *
+	 * **Indicador de servidor (#l12-ux, item 1)**: ANTES de que el usuario meta credenciales, una
+	 * línea discreta bajo el título dice a qué backend se conectaría el login — mismo origen o un
+	 * PocketBase remoto (override de `localStorage`/`vega.config.json`, ver `backend-config.ts`).
+	 * Reutiliza `connect.current.sameOrigin`/`connect.current.override`, los MISMOS strings que ya
+	 * pinta `BackendUrlForm.svelte` un poco más abajo — nunca un texto nuevo para decir lo mismo.
+	 * `resolveDisplayBackendUrl()` (`backend.ts`) es puramente informativo: no instancia el
+	 * `BackendPort`, solo resuelve el mismo seam de 3 niveles para mostrar. `null` en modo demo
+	 * (adaptador `memory`, e2e/build pública P8, ver su cabecera) → sin indicador, nunca un dato
+	 * inventado (P3-L3).
 	 */
+	import { onMount } from 'svelte';
 	import { getSessionContext } from '$lib/session/session.svelte';
+	import { resolveDisplayBackendUrl } from '$lib/session/backend';
 	import { resolveLocale, t as translate } from '$lib/i18n';
 	import BackendUrlForm from '$lib/session/BackendUrlForm.svelte';
 
@@ -29,6 +41,23 @@
 	let email = $state('');
 	let password = $state('');
 	let submitting = $state(false);
+
+	/** `undefined` mientras se resuelve (aún sin pintar nada); `null` = modo demo, sin servidor que
+	 *  mostrar (ver cabecera); string = la URL resuelta o el marcador de same-origin. */
+	let displayBackendUrl = $state<string | null | undefined>(undefined);
+
+	onMount(() => {
+		void resolveDisplayBackendUrl().then((url) => {
+			displayBackendUrl = url;
+		});
+	});
+
+	/** El indicador solo se pinta con una URL ya resuelta (`string`), NUNCA mientras
+	 *  `displayBackendUrl` sigue en `undefined` (resolución en vuelo) ni en modo demo (`null`, ver
+	 *  cabecera): un hueco vacío es más honesto que un texto que parpadea o que miente. */
+	const isSameOrigin = $derived(
+		typeof window !== 'undefined' && displayBackendUrl === window.location.origin
+	);
 
 	// Mapeo honesto por `kind` (§2.3, P3-L3): `network` → reintentable; `forbidden` → credenciales
 	// no válidas (mensaje neutro de P1 §4.1, no revela si el email existe); cualquier OTRO fallo de
@@ -53,6 +82,14 @@
 <div class="vega-login">
 	<form onsubmit={handleSubmit} novalidate>
 		<h1>{t('login.title')}</h1>
+
+		{#if typeof displayBackendUrl === 'string'}
+			<p class="vega-login-server" data-testid="login-server-indicator">
+				{isSameOrigin
+					? t('connect.current.sameOrigin')
+					: t('connect.current.override', { url: displayBackendUrl })}
+			</p>
+		{/if}
 
 		<div class="field">
 			<label for="login-email">{t('login.email')}</label>
@@ -117,6 +154,17 @@
 	h1 {
 		margin: 0;
 		font-size: 1.2rem;
+	}
+
+	/* Indicador de servidor (#l12-ux, item 1): discreto, mono (mismo criterio de "solo lectura,
+	   informativo" que `.vega-connection-status` de la topbar) — no compite con el formulario, pero
+	   está visible ANTES de meter credenciales, sin tener que abrir el disclosure de abajo. */
+	.vega-login-server {
+		margin: -0.5rem 0 0;
+		font-family: var(--mono);
+		font-size: 0.75rem;
+		color: var(--ink-2);
+		overflow-wrap: break-word;
 	}
 
 	.field {

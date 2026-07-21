@@ -44,12 +44,17 @@
 	 *   comparte CSS scoped entre componentes (mismo criterio anotado en la cabecera de
 	 *   `RecordTable`) — el subconjunto que aplica aquí (sin orden/estado/acciones/ficheros) vive
 	 *   recortado en este fichero.
+	 * - **Feedback visual del arrastre (#l12-ux, item 2)**: MISMO mecanismo que `RecordTable`
+	 *   (`dragFromIndex`/`dragOverIndex` en `$state` local, espejo del `onDragStateChange` del
+	 *   controlador) — fila agarrada atenuada + hueco de acento en la fila de destino
+	 *   (`dropIndicatorEdge`, puro, `reorder-dnd.ts`). Estilos COPIADOS igual que el resto (ver
+	 *   arriba).
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import { recordRoute } from '$lib/nav/routes';
 	import { describeCell } from './cell';
 	import { resolveTitleCellText } from './list-load';
-	import { createReorderDndController } from './reorder-dnd';
+	import { createReorderDndController, dropIndicatorEdge } from './reorder-dnd';
 	import type { MergedRow } from './merged-merge';
 	import type { ResolvedField } from '$lib/model/types';
 
@@ -80,6 +85,10 @@
 
 	const ctx = getVegaContext();
 
+	/** Espejo LOCAL del `ReorderDragState` (#l12-ux, item 2), MISMO patrón que `RecordTable`. */
+	let dragFromIndex = $state<number | null>(null);
+	let dragOverIndex = $state<number | null>(null);
+
 	/** Controlador de arrastre+teclado (L7d, `reorder-dnd.ts`) — MISMO módulo que `RecordTable`,
 	 *  reutilizado tal cual (ver cabecera). `rows.length` se relee en cada `keydown`, nunca
 	 *  capturado una sola vez. `onReorder` se envuelve en una flecha, mismo motivo que en
@@ -87,7 +96,11 @@
 	 *  cual capturaría su valor inicial para siempre). */
 	const dnd = createReorderDndController(
 		(from, to) => onReorder(from, to),
-		() => rows.length
+		() => rows.length,
+		(state) => {
+			dragFromIndex = state.fromIndex;
+			dragOverIndex = state.overIndex;
+		}
 	);
 
 	/** El `ResolvedField` del campo-título YA resuelto de `row` (`row.source.titleField`, L7a: ya
@@ -153,8 +166,13 @@
 				</thead>
 				<tbody>
 					{#each rows as row, i (`${row.record.type}:${row.record.id}`)}
+						{@const dropEdge =
+							dragOverIndex === i ? dropIndicatorEdge(dragFromIndex, dragOverIndex) : null}
 						<tr
-							ondragover={reorderable ? dnd.handleDragOver : undefined}
+							class:vega-row-dragging={dragFromIndex === i}
+							class:vega-row-drop-before={dropEdge === 'before'}
+							class:vega-row-drop-after={dropEdge === 'after'}
+							ondragover={reorderable ? (event) => dnd.handleDragOver(event, i) : undefined}
 							ondrop={reorderable ? (event) => dnd.handleDrop(event, i) : undefined}
 						>
 							<td class="vega-reorder-cell">
@@ -322,6 +340,21 @@
 	.vega-reorder-handle[aria-disabled='true'] {
 		cursor: default;
 		opacity: 0.5;
+	}
+
+	/* Feedback visual del arrastre (#l12-ux, item 2) — estilos COPIADOS de `RecordTable.svelte`
+	   (ver cabecera del módulo, mismo criterio de Svelte-no-comparte-CSS-scoped). */
+	.vega-record-table tbody tr.vega-row-dragging {
+		opacity: 0.5;
+		cursor: grabbing;
+	}
+
+	.vega-record-table tbody tr.vega-row-drop-before > td {
+		box-shadow: inset 0 2px 0 0 var(--accent);
+	}
+
+	.vega-record-table tbody tr.vega-row-drop-after > td {
+		box-shadow: inset 0 -2px 0 0 var(--accent);
 	}
 
 	.vega-record-table tbody tr {

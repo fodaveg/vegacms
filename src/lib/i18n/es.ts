@@ -36,6 +36,10 @@ export const es = {
 	'topbar.search.ariaLabel': 'Búsqueda global',
 	'topbar.search.placeholder': 'Buscar en todo el contenido…',
 	'topbar.avatar.label': 'Sesión de {email}',
+	// Chip de usuario → menú "Ajustes" (#l12-ux, item 3): rótulo del propio botón disparador,
+	// DISTINTO del `topbar.avatar.label` de arriba (ese describe la identidad de sesión del
+	// `<span role="img">` interior; este describe la ACCIÓN de abrir el menú).
+	'topbar.userMenu.toggle': 'Menú de cuenta',
 
 	// ————— Login / sesión —————
 	'login.title': 'Acceder a Vega',
