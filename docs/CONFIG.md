@@ -108,6 +108,48 @@ Si necesitas cambiar `backendUrl` entre entornos sin recompilar:
 
 **Nota**: esto requiere acceso al servidor web donde está la SPA. Si no lo tienes (o solo quieres cambiar la conexión para TU navegador, no para todo el mundo que use esa SPA), usa la [pantalla de conexión](#pantalla-de-conexión-primer-arranque) en vez de tocar el fichero — es el override de mayor precedencia y no requiere recompilar ni desplegar nada.
 
+## Identidad y navegación del proyecto
+
+El **manifiesto de contenidos** (colección `vega`, campo `manifest`, editable desde
+`/settings`) controla el nombre que aparece en la cabecera y la estructura del menú lateral:
+
+- `site.name` cambia el nombre visible del proyecto. Admite entre 1 y 60 caracteres y usa
+  `Vega` como valor por defecto.
+- `nav.groups` fija el orden de los grupos del menú.
+- `collections.<nombre>.group` coloca una colección dentro de un grupo; `order` fija su posición
+  dentro de ese grupo.
+- `mergedViews.<id>.group` y `order` hacen lo mismo con una vista fusionada. Colecciones y vistas
+  se intercalan por su `order` real: no hay dos menús separados.
+
+Por ejemplo, este fragmento muestra el proyecto como `Mi sitio` y crea el bloque `Contenido` con
+Entradas, Páginas y Destacados, exactamente en ese orden:
+
+```json
+{
+	"schemaVersion": 1,
+	"site": { "name": "Mi sitio" },
+	"nav": { "groups": ["Contenido"] },
+	"collections": {
+		"posts": { "label": "Entradas", "group": "Contenido", "order": 0 },
+		"pages": { "label": "Páginas", "group": "Contenido", "order": 1 }
+	},
+	"mergedViews": {
+		"destacados": {
+			"label": "Destacados",
+			"group": "Contenido",
+			"order": 2,
+			"orderField": "sort",
+			"sources": [{ "collection": "posts" }, { "collection": "pages" }]
+		}
+	}
+}
+```
+
+Los elementos sin `group` aparecen primero en un grupo anónimo. Después se pintan los grupos
+declarados en `nav.groups`; cualquier grupo presente pero no declarado se añade al final en orden
+alfabético. Un grupo vacío no se muestra. Los rótulos de grupo que no caben en el ancho del sidebar
+se truncan visualmente y mantienen el valor completo disponible como `title`.
+
 ## Vistas fusionadas (`mergedViews`)
 
 Además de `backendUrl`, el **manifiesto de contenidos** (colección `vega`, campo `manifest`, editable desde `/settings` con `ManifestEditor`) admite una sección `mergedViews`: vistas de solo lectura que **unen registros de varias colecciones** en un único listado, reordenable a mano por arrastre. Útiles para tableros tipo "destacados de portada" que mezclan, por ejemplo, `posts` y `pages` en un mismo orden manual sin fusionar sus colecciones reales.
