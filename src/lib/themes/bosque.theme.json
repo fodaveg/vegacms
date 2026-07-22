@@ -1,0 +1,12 @@
+{
+	"$schema": "./theme.schema.json",
+	"themeSchemaVersion": 1,
+	"id": "bosque",
+	"name": "Bosque",
+	"group": "verdes",
+	"roles": {
+		"tint": "#8bbf5a",
+		"accent": "#8bbf5a",
+		"accentInk": "#16240c"
+	}
+}

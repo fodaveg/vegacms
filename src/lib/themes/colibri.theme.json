@@ -1,0 +1,49 @@
+{
+	"$schema": "./theme.schema.json",
+	"themeSchemaVersion": 1,
+	"id": "colibri",
+	"name": "Colibrí",
+	"group": "iridiscentes",
+	"roles": {
+		"tint": "#527d8f",
+		"accent": "#2f8f96",
+		"accentInk": "#0a1d1f"
+	},
+	"effects": {
+		"strokeGrad": {
+			"angle": 100,
+			"stops": [
+				{
+					"color": "#2f8f96",
+					"at": "0%"
+				},
+				{
+					"color": "#8a7ad9",
+					"at": "55%"
+				},
+				{
+					"color": "#c9a24e",
+					"at": "100%"
+				}
+			]
+		},
+		"halo": [
+			{
+				"size": "120% 68%",
+				"at": "84% -12%",
+				"color": "#2f8f96",
+				"alpha": "11%",
+				"extent": "46%"
+			},
+			{
+				"size": "100% 60%",
+				"at": "-10% 110%",
+				"color": "#8a7ad9",
+				"alpha": "8%",
+				"extent": "44%"
+			}
+		],
+		"brandStops": ["#2f8f96", "#8a7ad9", "#c9a24e"],
+		"edgeOpacity": 0.3
+	}
+}

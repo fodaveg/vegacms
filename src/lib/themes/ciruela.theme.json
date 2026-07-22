@@ -1,0 +1,12 @@
+{
+	"$schema": "./theme.schema.json",
+	"themeSchemaVersion": 1,
+	"id": "ciruela",
+	"name": "Ciruela",
+	"group": "pastel-firma-mono",
+	"roles": {
+		"tint": "#7d4a9c",
+		"accent": "#7d4a9c",
+		"accentInk": "#ffffff"
+	}
+}

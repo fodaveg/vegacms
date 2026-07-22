@@ -1,0 +1,12 @@
+{
+	"$schema": "./theme.schema.json",
+	"themeSchemaVersion": 1,
+	"id": "marea",
+	"name": "Marea",
+	"group": "frios",
+	"roles": {
+		"tint": "#147885",
+		"accent": "#147885",
+		"accentInk": "#ffffff"
+	}
+}

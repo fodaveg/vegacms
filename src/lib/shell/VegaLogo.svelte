@@ -2,10 +2,10 @@
 	/**
 	 * `VegaLogo.svelte` — isotipo de marca de Vega (concepto «Lyra»: la constelación de la Lira, con
 	 * Vega —su estrella más brillante— como único punto de acento). Sustituye al punto de acento
-	 * provisional que el topbar usaba como «marca». SVG inline (cero recursos externos, CSP-safe):
-	 * la estrella Vega usa `var(--accent)`; el resto de la constelación hereda `currentColor`, así
-	 * que es theme-aware sin variantes por tema. Decorativo por defecto (`aria-hidden`): el nombre
-	 * del sitio contiguo ya aporta el texto accesible.
+	 * provisional que el topbar usaba como «marca». SVG inline (cero recursos externos, CSP-safe).
+	 * L10 enruta las tres paradas de firma (`--brand-a/b/c`) por estrella, trazo y órbita; los
+	 * temas sin firma especial resuelven las tres al acento sólido. Decorativo por defecto
+	 * (`aria-hidden`): el nombre del sitio contiguo ya aporta el texto accesible.
 	 */
 	let { size = 20 }: { size?: number } = $props();
 </script>
@@ -19,7 +19,7 @@
 	aria-hidden="true"
 >
 	<g
-		stroke="currentColor"
+		stroke="var(--brand-b)"
 		stroke-opacity="0.4"
 		stroke-width="1.3"
 		stroke-linecap="round"
@@ -32,7 +32,7 @@
 		cy="6.5"
 		r="5.4"
 		fill="none"
-		stroke="var(--accent)"
+		stroke="var(--brand-c)"
 		stroke-opacity="0.3"
 		stroke-width="0.9"
 	/>
@@ -40,7 +40,7 @@
 	<circle cx="24" cy="16.5" r="1.6" fill="currentColor" />
 	<circle cx="13.5" cy="20" r="1.7" fill="currentColor" />
 	<circle cx="21" cy="25.5" r="1.6" fill="currentColor" />
-	<circle cx="9" cy="6.5" r="3.6" fill="var(--accent)" />
+	<circle cx="9" cy="6.5" r="3.6" fill="var(--brand-a)" />
 </svg>
 
 <style>

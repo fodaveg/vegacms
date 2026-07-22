@@ -1,0 +1,75 @@
+{
+	"$schema": "./theme.schema.json",
+	"themeSchemaVersion": 1,
+	"id": "halloween",
+	"name": "Halloween",
+	"group": "calidos",
+	"roles": {
+		"tint": "#7a3fa0",
+		"accent": "#ef7a26",
+		"accentInk": "#201206"
+	},
+	"derived": {
+		"accentSoft": "color-mix(in oklab, #f6a63b 20%, var(--paper))",
+		"accentLine": "color-mix(in oklab, #ef7a26 52%, var(--line))"
+	},
+	"modes": {
+		"light": {
+			"tintBg": "9%"
+		},
+		"dark": {
+			"tintBg": "21%"
+		}
+	},
+	"effects": {
+		"fillGrad": {
+			"angle": 115,
+			"stops": [
+				{
+					"color": "#f7b13a",
+					"at": "0%"
+				},
+				{
+					"color": "#ef7a26",
+					"at": "42%"
+				},
+				{
+					"color": "#e2542f",
+					"at": "75%"
+				},
+				{
+					"color": "#dd4f52",
+					"at": "100%"
+				}
+			]
+		},
+		"halo": [
+			{
+				"size": "125% 72%",
+				"at": "86% -14%",
+				"color": "#f6a63b",
+				"alpha": "26%",
+				"extent": "48%"
+			},
+			{
+				"size": "110% 66%",
+				"at": "-12% 112%",
+				"color": "#9558cc",
+				"alpha": "20%",
+				"extent": "46%"
+			},
+			{
+				"size": "90% 50%",
+				"at": "50% 128%",
+				"color": "#c9342a",
+				"alpha": "13%",
+				"extent": "42%"
+			}
+		],
+		"brandStops": ["#f7b13a", "#e04f28", "#c9342a"],
+		"edgeOpacity": 0.7,
+		"slots": {
+			"fill": "fillGrad"
+		}
+	}
+}

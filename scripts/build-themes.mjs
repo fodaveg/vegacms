@@ -17,10 +17,10 @@
 //   - src/lib/themes/themes.generated.ts  — THEMES (swatches para el selector de P3), ThemeId
 //     (unión literal, tipado estricto) y THEME_ALIASES.
 //
-// Porta `~/code/lumbre/scripts/build-themes.mjs` (copiar y adaptar, NO librería compartida —
-// audit §7 del maestro: "se extrae si aparece un tercer consumidor") con los roles/superficies
-// PROPIOS de Vega (§2-§4) y SIN el vocabulario de tareas de Lumbre (`date/deadline/done`) ni el
-// bloque `effects` (D4 firmada: sin efectos en v1, namespace reservado §8).
+// Porta `~/code/lumbre/scripts/build-themes.mjs` (copiar y adaptar, NO librería compartida)
+// con los roles/superficies PROPIOS de Vega (§2-§4), sin el vocabulario de tareas de Lumbre
+// (`date/deadline/done`). L10 incorpora el catálogo completo y sus pinturas de marca mediante
+// un subconjunto cerrado de `effects`: gradientes, halo, paradas de marca y slot de relleno.
 //
 // `themeToCss`/`themeToSwatch`/todos los `validate*` son funciones PURAS (JSON de tema → texto/
 // objeto/errores) — la I/O (leer `*.theme.json`, escribir los `.generated.*`) solo ocurre en
@@ -55,19 +55,24 @@ function hexToRgb(hex) {
 }
 
 function relativeLuminance(hex) {
-	const [r, g, b] = hexToRgb(hex).map((v) => {
-		const s = v / 255;
-		return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
-	});
+	return relativeLuminanceSrgb(hexToRgb(hex).map((value) => value / 255));
+}
+
+function relativeLuminanceSrgb(rgb) {
+	const [r, g, b] = rgb.map(srgbChannelToLinear);
 	return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function contrastFromLuminances(a, b) {
+	const [lighter, darker] = a > b ? [a, b] : [b, a];
+	return (lighter + 0.05) / (darker + 0.05);
 }
 
 /** Ratio de contraste WCAG 2 entre dos colores hex (1:1 … 21:1). */
 export function contrastRatio(hexA, hexB) {
 	const la = relativeLuminance(hexA);
 	const lb = relativeLuminance(hexB);
-	const [lighter, darker] = la > lb ? [la, lb] : [lb, la];
-	return (lighter + 0.05) / (darker + 0.05);
+	return contrastFromLuminances(la, lb);
 }
 
 // ── Mezcla OKLab (equivalente JS de `color-mix(in oklab, …)`) ─────────────
@@ -133,6 +138,130 @@ export function mixOklab(hexA, pctA, hexB) {
 	const labA = hexToOklab(hexA);
 	const labB = hexToOklab(hexB);
 	return oklabToHex(labA.map((v, i) => v * t + labB[i] * (1 - t)));
+}
+
+function interpolateSrgb(hexA, hexB, t) {
+	const rgbA = hexToRgb(hexA).map((value) => value / 255);
+	const rgbB = hexToRgb(hexB).map((value) => value / 255);
+	return rgbA.map((value, index) => value * (1 - t) + rgbB[index] * t);
+}
+
+function srgbToHex(rgb) {
+	return `#${rgb
+		.map((value) =>
+			Math.round(Math.min(1, Math.max(0, value)) * 255)
+				.toString(16)
+				.padStart(2, '0')
+		)
+		.join('')}`;
+}
+
+/**
+ * Mínimo CONTINUO de contraste de texto sobre un segmento de gradiente sRGB. La luminancia de
+ * cada canal sRGB interpolado es convexa (la transferencia sRGB es convexa y se compone con una
+ * función afín), por lo que la suma ponderada tiene un único mínimo y su máximo está en uno de
+ * los extremos. Localizamos ese mínimo por ternaria y, si la luminancia del texto cae dentro del
+ * rango recorrido, la intersección por bisección. Así no quedan huecos entre muestras discretas.
+ */
+function minimumSrgbGradientContrast(textHex, from, to) {
+	const textLuminance = relativeLuminance(textHex);
+	const luminanceAt = (t) => relativeLuminanceSrgb(interpolateSrgb(from, to, t));
+	let left = 0;
+	let right = 1;
+	for (let iteration = 0; iteration < 80; iteration += 1) {
+		const third = (right - left) / 3;
+		const a = left + third;
+		const b = right - third;
+		if (luminanceAt(a) <= luminanceAt(b)) right = b;
+		else left = a;
+	}
+	const minimumAt = (left + right) / 2;
+	const minimumLuminance = luminanceAt(minimumAt);
+	const endpointLuminances = [luminanceAt(0), luminanceAt(1)];
+	const maximumAt = endpointLuminances[0] >= endpointLuminances[1] ? 0 : 1;
+	const maximumLuminance = endpointLuminances[maximumAt];
+
+	let worstAt;
+	if (textLuminance < minimumLuminance) {
+		worstAt = minimumAt;
+	} else if (textLuminance > maximumLuminance) {
+		worstAt = maximumAt;
+	} else {
+		// Hay una intersección exacta con la luminancia del texto en al menos una de las dos
+		// ramas monótonas que parten del mínimo.
+		let lo;
+		let hi;
+		if ((endpointLuminances[0] - textLuminance) * (minimumLuminance - textLuminance) <= 0) {
+			lo = 0;
+			hi = minimumAt;
+		} else {
+			lo = minimumAt;
+			hi = 1;
+		}
+		for (let iteration = 0; iteration < 80; iteration += 1) {
+			const mid = (lo + hi) / 2;
+			const loDelta = luminanceAt(lo) - textLuminance;
+			const midDelta = luminanceAt(mid) - textLuminance;
+			if (loDelta * midDelta <= 0) hi = mid;
+			else lo = mid;
+		}
+		worstAt = (lo + hi) / 2;
+	}
+
+	const rgb = interpolateSrgb(from, to, worstAt);
+	return {
+		contrast: contrastFromLuminances(textLuminance, relativeLuminanceSrgb(rgb)),
+		at: worstAt,
+		color: srgbToHex(rgb)
+	};
+}
+
+/**
+ * Peor color de 8 bits que el rasterizador puede producir al cuantizar/ditherizar el segmento.
+ * Entre dos cruces enteros de cualquiera de los tres canales, el conjunto {floor, ceil} de cada
+ * canal es constante. Enumerar esos intervalos y sus 2³ combinaciones cubre por tanto TODOS los
+ * RGB alcanzables, con un máximo de 766 intervalos por segmento.
+ */
+function minimumRasterizedSrgbGradientContrast(textHex, from, to) {
+	const fromRgb = hexToRgb(from);
+	const toRgb = hexToRgb(to);
+	const boundaries = new Set([0, 1]);
+	for (let channel = 0; channel < 3; channel += 1) {
+		const start = fromRgb[channel];
+		const end = toRgb[channel];
+		if (start === end) continue;
+		for (let value = Math.min(start, end) + 1; value < Math.max(start, end); value += 1) {
+			boundaries.add((value - start) / (end - start));
+		}
+	}
+	const ordered = [...boundaries].sort((a, b) => a - b);
+	const probes = new Set(ordered);
+	for (let index = 0; index < ordered.length - 1; index += 1) {
+		probes.add((ordered[index] + ordered[index + 1]) / 2);
+	}
+
+	const textLuminance = relativeLuminance(textHex);
+	let worst = { contrast: Number.POSITIVE_INFINITY, at: 0, color: from };
+	for (const at of probes) {
+		const continuous = fromRgb.map((value, channel) => value * (1 - at) + toRgb[channel] * at);
+		const options = continuous.map((value) => [
+			...new Set(
+				[Math.floor(value), Math.ceil(value)].map((byte) => Math.min(255, Math.max(0, byte)))
+			)
+		]);
+		for (const r of options[0]) {
+			for (const g of options[1]) {
+				for (const b of options[2]) {
+					const rgb = [r / 255, g / 255, b / 255];
+					const contrast = contrastFromLuminances(textLuminance, relativeLuminanceSrgb(rgb));
+					if (contrast < worst.contrast) {
+						worst = { contrast, at, color: srgbToHex(rgb) };
+					}
+				}
+			}
+		}
+	}
+	return worst;
 }
 
 // ── Base neutra + tinte (§4.2/§4.3 del contrato) ───────────────────────────
@@ -231,16 +360,34 @@ export function resolveNeutral(theme, mode, key) {
 	return mixOklab(theme.roles.tint, pct, BASE_NEUTRALS[mode][key]);
 }
 
-/** `--accent-text` (§4.3): el override del tema si lo declara, o el derivado
- * `color-mix(accent 72%(claro)/65%(oscuro), ink)`. */
+/** `--accent-text`: el override del tema si lo declara, o un derivado con suficiente tinta
+ * neutra para conservar AA en todo el catálogo, incluidos amarillos, pasteles y monocromos. */
 export function resolveAccentText(theme, mode, ink) {
 	if (theme.roles.accentText) return theme.roles.accentText;
-	const pct = mode === 'light' ? 72 : 65;
+	const pct = 45;
 	return mixOklab(theme.roles.accent, pct, ink);
 }
 
-/** `--accent-soft` (§4.3): `color-mix(accent 12%(claro)/20%(oscuro), paper)`. */
+const MIX_WEIGHT_SOURCE = String.raw`(?:100(?:\.0+)?|(?:[0-9]|[1-9][0-9])(?:\.[0-9]+)?)`;
+const DERIVED_ACCENT_SOFT_RE = new RegExp(
+	String.raw`^color-mix\(in oklab,\s*(#[0-9a-fA-F]{6})\s+(${MIX_WEIGHT_SOURCE})%,\s*var\(--paper\)\)$`
+);
+const DERIVED_ACCENT_LINE_RE = new RegExp(
+	String.raw`^color-mix\(in oklab,\s*#[0-9a-fA-F]{6}\s+${MIX_WEIGHT_SOURCE}%,\s*var\(--line\)\)$`
+);
+
+/** `--accent-soft`: respeta el override cerrado del tema o deriva desde accent/paper. */
 export function resolveAccentSoft(theme, mode, paper) {
+	const override = theme.derived?.accentSoft;
+	if (override) {
+		const match = DERIVED_ACCENT_SOFT_RE.exec(override);
+		if (!match) {
+			throw new Error(
+				`${theme.id}: derived.accentSoft no tiene el formato color-mix esperado por el gate`
+			);
+		}
+		return mixOklab(match[1], parseFloat(match[2]), paper);
+	}
 	const pct = mode === 'light' ? 12 : 20;
 	return mixOklab(theme.roles.accent, pct, paper);
 }
@@ -263,10 +410,10 @@ export function resolveAccentSoft(theme, mode, paper) {
  */
 export const SEMANTICS = {
 	light: {
-		success: { text: '#066f32', softFrom: '#066f32', softPct: 12 },
-		danger: { text: '#bf190a', softFrom: '#bf190a', softPct: 12 },
-		warning: { text: '#7e5a07', softFrom: '#7e5a07', softPct: 12 },
-		info: { text: '#08659b', softFrom: '#08659b', softPct: 12 }
+		success: { text: '#045a26', softFrom: '#045a26', softPct: 10 },
+		danger: { text: '#a91408', softFrom: '#a91408', softPct: 10 },
+		warning: { text: '#684800', softFrom: '#684800', softPct: 10 },
+		info: { text: '#07517d', softFrom: '#07517d', softPct: 10 }
 	},
 	dark: {
 		success: { text: '#5cbd8e', softFrom: '#5cbd8e', softPct: 17 },
@@ -393,6 +540,15 @@ export function emittedTokenNames() {
 		'accent-text',
 		'accent-soft',
 		'accent-hover',
+		'accent-line',
+		'accent-grad',
+		'sheen',
+		'accent-fill',
+		'halo',
+		'brand-a',
+		'brand-b',
+		'brand-c',
+		'brand-edge-opacity',
 		...FINAL_NEUTRAL_KEYS,
 		...SEMANTIC_KEYS,
 		...SEMANTIC_KEYS.map((key) => `${key}-soft`)
@@ -400,6 +556,24 @@ export function emittedTokenNames() {
 }
 
 // ── themeToCss / themeToSwatch (funciones puras) ───────────────────────────
+
+function gradientCss(gradient) {
+	const stops = gradient.stops.map((stop) => `${stop.color} ${stop.at}`).join(', ');
+	return `linear-gradient(${gradient.angle}deg, ${stops})`;
+}
+
+function radialCss(radial) {
+	if (radial.css) return radial.css;
+	return `radial-gradient(${radial.size} at ${radial.at}, color-mix(in oklab, ${radial.color} ${radial.alpha}, transparent), transparent ${radial.extent})`;
+}
+
+function haloCss(halo) {
+	return halo.map(radialCss).join(',\n\t\t');
+}
+
+function paintVar(key) {
+	return key === 'strokeGrad' ? '--sheen' : '--accent-grad';
+}
 
 /**
  * JSON de tema → texto CSS de sus bloques `[data-theme='<id>']` (+ variantes de modo). Función
@@ -417,18 +591,37 @@ export function emittedTokenNames() {
  * depender del orden de `index.json` — la garantía es estructural, no un accidente de orden.
  */
 export function themeToCss(theme) {
-	const { id, roles } = theme;
+	const { id, roles, derived, effects } = theme;
 	const baseSelector =
 		id === FALLBACK_THEME_ID ? `:where(:root),\n[data-theme='${id}']` : `[data-theme='${id}']`;
 
-	let css = `${baseSelector} {\n\t--tint: ${roles.tint};\n\t--accent: ${roles.accent};\n\t--accent-ink: ${roles.accentInk};\n}\n`;
+	const baseDecls = [
+		`--tint: ${roles.tint};`,
+		`--accent: ${roles.accent};`,
+		`--accent-ink: ${roles.accentInk};`
+	];
+	if (effects?.fillGrad) baseDecls.push(`--accent-grad: ${gradientCss(effects.fillGrad)};`);
+	if (effects?.strokeGrad) baseDecls.push(`--sheen: ${gradientCss(effects.strokeGrad)};`);
+	if (effects?.slots?.fill) {
+		baseDecls.push(`--accent-fill: var(${paintVar(effects.slots.fill)});`);
+	}
+	if (effects?.halo) baseDecls.push(`--halo:\n\t\t${haloCss(effects.halo)};`);
+	if (effects?.brandStops) {
+		baseDecls.push(`--brand-a: ${effects.brandStops[0]};`);
+		baseDecls.push(`--brand-b: ${effects.brandStops[1]};`);
+		baseDecls.push(`--brand-c: ${effects.brandStops[2]};`);
+	}
+	if (effects?.edgeOpacity != null) {
+		baseDecls.push(`--brand-edge-opacity: ${effects.edgeOpacity};`);
+	}
+	let css = `${baseSelector} {\n\t${baseDecls.join('\n\t')}\n}\n`;
 
 	for (const mode of ['light', 'dark']) {
 		const ink = resolveNeutral(theme, mode, 'ink');
 		const paper = resolveNeutral(theme, mode, 'paper');
 		const accentTextDecl = roles.accentText
 			? roles.accentText
-			: `color-mix(in oklab, var(--accent) ${mode === 'light' ? 72 : 65}%, var(--ink))`;
+			: 'color-mix(in oklab, var(--accent) 45%, var(--ink))';
 		const accentSoftPct = mode === 'light' ? 12 : 20;
 		const accentHoverDecl =
 			mode === 'light'
@@ -437,8 +630,9 @@ export function themeToCss(theme) {
 
 		const decls = [
 			`--accent-text: ${accentTextDecl};`,
-			`--accent-soft: color-mix(in oklab, var(--accent) ${accentSoftPct}%, var(--paper));`,
-			`--accent-hover: ${accentHoverDecl};`
+			`--accent-soft: ${derived?.accentSoft ?? `color-mix(in oklab, var(--accent) ${accentSoftPct}%, var(--paper))`};`,
+			`--accent-hover: ${accentHoverDecl};`,
+			`--accent-line: ${derived?.accentLine ?? 'color-mix(in oklab, var(--accent) 42%, var(--line))'};`
 		];
 		for (const key of FINAL_NEUTRAL_KEYS) {
 			const override = theme.modes?.[mode]?.neutrals?.[key];
@@ -468,7 +662,7 @@ export function themeToCss(theme) {
  * compartidos por modo (D-P7.2) — puros color-mix contra `var(--paper)`, que cada tema ya fija
  * en su propio bloque `[data-theme][data-mode]`. */
 export function globalCss() {
-	let css = `:root {\n\t--sans: -apple-system, 'Segoe UI', system-ui, sans-serif;\n\t--mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;\n\t--r: 8px;\n}\n`;
+	let css = `:root {\n\t--sans: -apple-system, 'Segoe UI', system-ui, sans-serif;\n\t--mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;\n\t--r: 8px;\n\t--accent-grad: linear-gradient(115deg, var(--accent), var(--accent-hover));\n\t--sheen: linear-gradient(100deg, var(--accent), var(--accent-text));\n\t--accent-fill: var(--accent);\n\t--halo: none;\n\t--brand-a: var(--accent);\n\t--brand-b: var(--accent);\n\t--brand-c: var(--accent);\n\t--brand-edge-opacity: 0.35;\n}\n`;
 
 	const comfDecls = Object.entries(DENSITY.comfortable).map(([k, v]) => `--${k}: ${v};`);
 	css += `:root {\n\t${comfDecls.join('\n\t')}\n}\n`;
@@ -498,7 +692,13 @@ export function themeToSwatch(theme) {
 		name: theme.name,
 		group: theme.group,
 		tint: theme.roles.tint,
-		accent: theme.roles.accent
+		accent: theme.roles.accent,
+		fill:
+			theme.effects?.slots?.fill === 'strokeGrad' && theme.effects?.strokeGrad
+				? gradientCss(theme.effects.strokeGrad)
+				: theme.effects?.slots?.fill === 'fillGrad' && theme.effects?.fillGrad
+					? gradientCss(theme.effects.fillGrad)
+					: theme.roles.accent
 	};
 }
 
@@ -513,15 +713,54 @@ function fail(errors) {
 
 const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 const PERCENT_RE = /^-?[0-9]+(\.[0-9]+)?%$/;
+const MIX_PERCENT_RE = new RegExp(`^${MIX_WEIGHT_SOURCE}%$`);
 const KNOWN_NEUTRAL_KEYS = new Set(FINAL_NEUTRAL_KEYS);
-const KNOWN_GROUPS = new Set(['frios', 'calidos', 'neutros', 'verdes']);
+const KNOWN_GROUPS = new Set([
+	'frios',
+	'calidos',
+	'neutros',
+	'verdes',
+	'pastel-firma-mono',
+	'iridiscentes'
+]);
 
 /** `FALLBACK_THEME` (§10): el tema al que cae `resolveDefaultTheme` y el que ve un PB virgen. */
 export const FALLBACK_THEME_ID = 'niebla';
 
-/** Validación estructural mínima (equivalente al JSON Schema, sin ajv en el pipeline — §5.2,
- * D-P7.7). `effects`/`derived`/`slots` no forman parte de ningún tipo esperado: si aparecen,
- * `checkAdditionalKeys` los caza como clave desconocida (namespace reservado, §8/L7). */
+function isPlainObject(value) {
+	return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function validateGradient(gradient, where, errors) {
+	if (!gradient || typeof gradient !== 'object' || Array.isArray(gradient)) {
+		errors.push(`${where} debe ser un objeto`);
+		return;
+	}
+	for (const key of Object.keys(gradient)) {
+		if (!['angle', 'stops'].includes(key)) errors.push(`${where}.${key} no permitido`);
+	}
+	if (typeof gradient.angle !== 'number' || !Number.isFinite(gradient.angle)) {
+		errors.push(`${where}.angle debe ser un número finito`);
+	}
+	if (!Array.isArray(gradient.stops) || gradient.stops.length < 2) {
+		errors.push(`${where}.stops necesita al menos 2 paradas`);
+		return;
+	}
+	for (const [index, stop] of gradient.stops.entries()) {
+		const stopWhere = `${where}.stops[${index}]`;
+		if (!stop || typeof stop !== 'object' || Array.isArray(stop)) {
+			errors.push(`${stopWhere} debe ser un objeto`);
+			continue;
+		}
+		for (const key of Object.keys(stop)) {
+			if (!['color', 'at'].includes(key)) errors.push(`${stopWhere}.${key} no permitido`);
+		}
+		if (!HEX_RE.test(stop.color ?? '')) errors.push(`${stopWhere}.color inválido (${stop.color})`);
+		if (!PERCENT_RE.test(stop.at ?? '')) errors.push(`${stopWhere}.at inválido (${stop.at})`);
+	}
+}
+
+/** Validación estructural mínima equivalente al JSON Schema, sin ajv en el pipeline. */
 export function validateSchema(theme, errors) {
 	if (theme === null || typeof theme !== 'object' || Array.isArray(theme)) {
 		errors.push(`(sin id): el tema debe ser un objeto JSON (recibido: ${JSON.stringify(theme)})`);
@@ -536,14 +775,14 @@ export function validateSchema(theme, errors) {
 		'group',
 		'aliases',
 		'roles',
+		'derived',
 		'modes',
+		'effects',
 		'__file'
 	]);
 	for (const key of Object.keys(theme)) {
 		if (!ALLOWED_ROOT.has(key)) {
-			errors.push(
-				`${where}: clave "${key}" no permitida en la raíz (¿effects/derived/slots? reservado v2, §8)`
-			);
+			errors.push(`${where}: clave "${key}" no permitida en la raíz`);
 		}
 	}
 	if (theme.themeSchemaVersion !== 1) {
@@ -558,7 +797,9 @@ export function validateSchema(theme, errors) {
 			`${where}: "group" inválido (${theme.group}) — debe ser uno de ${[...KNOWN_GROUPS].join(', ')}`
 		);
 	}
-	if (theme.aliases) {
+	if (theme.aliases != null && !Array.isArray(theme.aliases)) {
+		errors.push(`${where}: aliases debe ser un array`);
+	} else if (theme.aliases) {
 		for (const alias of theme.aliases) {
 			if (typeof alias !== 'string' || alias.length < 1) {
 				errors.push(`${where}: alias inválido (${alias})`);
@@ -584,7 +825,29 @@ export function validateSchema(theme, errors) {
 		errors.push(`${where}: roles.accentText no es un color hex válido (${roles.accentText})`);
 	}
 
-	if (theme.modes) {
+	if (theme.derived != null && !isPlainObject(theme.derived)) {
+		errors.push(`${where}: derived debe ser un objeto`);
+	} else if (theme.derived) {
+		for (const [key, value] of Object.entries(theme.derived)) {
+			if (!['accentSoft', 'accentLine'].includes(key)) {
+				errors.push(`${where}: derived.${key} no permitido`);
+			} else {
+				const valid =
+					key === 'accentSoft'
+						? typeof value === 'string' && DERIVED_ACCENT_SOFT_RE.test(value)
+						: typeof value === 'string' && DERIVED_ACCENT_LINE_RE.test(value);
+				if (!valid) {
+					errors.push(
+						`${where}: derived.${key} debe ser un color-mix(in oklab, #RRGGBB <porcentaje>, var(--${key === 'accentSoft' ? 'paper' : 'line'})) válido`
+					);
+				}
+			}
+		}
+	}
+
+	if (theme.modes != null && !isPlainObject(theme.modes)) {
+		errors.push(`${where}: modes debe ser un objeto`);
+	} else if (theme.modes) {
 		// Claves de PRIMER nivel de "modes" (fix de code-review): sin esto, `modes: { auto: {} }`
 		// o un typo (`ligth`) pasaba en silencio — el bucle de abajo solo LEE `modes.light`/
 		// `modes.dark` por nombre fijo, nunca enumera qué claves hay REALMENTE declaradas, así
@@ -599,14 +862,20 @@ export function validateSchema(theme, errors) {
 	for (const modeName of ['light', 'dark']) {
 		const mode = theme.modes?.[modeName];
 		if (!mode) continue;
+		if (!isPlainObject(mode)) {
+			errors.push(`${where}: modes.${modeName} debe ser un objeto`);
+			continue;
+		}
 		const ALLOWED_MODE = new Set(['tintBg', 'neutrals']);
 		for (const key of Object.keys(mode)) {
 			if (!ALLOWED_MODE.has(key)) errors.push(`${where}: modes.${modeName}.${key} no permitido`);
 		}
-		if (mode.tintBg != null && !PERCENT_RE.test(mode.tintBg)) {
+		if (mode.tintBg != null && !MIX_PERCENT_RE.test(mode.tintBg)) {
 			errors.push(`${where}: modes.${modeName}.tintBg no es un porcentaje válido (${mode.tintBg})`);
 		}
-		if (mode.neutrals) {
+		if (mode.neutrals != null && !isPlainObject(mode.neutrals)) {
+			errors.push(`${where}: modes.${modeName}.neutrals debe ser un objeto`);
+		} else if (mode.neutrals) {
 			for (const [key, value] of Object.entries(mode.neutrals)) {
 				if (!KNOWN_NEUTRAL_KEYS.has(key)) {
 					errors.push(
@@ -620,18 +889,128 @@ export function validateSchema(theme, errors) {
 			}
 		}
 	}
+
+	const effects = theme.effects;
+	if (effects != null && !isPlainObject(effects)) {
+		errors.push(`${where}: effects debe ser un objeto`);
+	} else if (effects) {
+		const ALLOWED_EFFECTS = new Set([
+			'fillGrad',
+			'strokeGrad',
+			'halo',
+			'brandStops',
+			'edgeOpacity',
+			'slots'
+		]);
+		for (const key of Object.keys(effects)) {
+			if (!ALLOWED_EFFECTS.has(key)) errors.push(`${where}: effects.${key} no permitido`);
+		}
+		if (effects.fillGrad) validateGradient(effects.fillGrad, `${where}: effects.fillGrad`, errors);
+		if (effects.strokeGrad) {
+			validateGradient(effects.strokeGrad, `${where}: effects.strokeGrad`, errors);
+		}
+		if (effects.halo) {
+			if (!Array.isArray(effects.halo) || effects.halo.length < 1 || effects.halo.length > 3) {
+				errors.push(`${where}: effects.halo necesita entre 1 y 3 capas`);
+			} else {
+				for (const [index, radial] of effects.halo.entries()) {
+					const radialWhere = `${where}: effects.halo[${index}]`;
+					if (!radial || typeof radial !== 'object' || Array.isArray(radial)) {
+						errors.push(`${radialWhere} debe ser un objeto`);
+						continue;
+					}
+					if ('css' in radial) {
+						if (
+							Object.keys(radial).length !== 1 ||
+							typeof radial.css !== 'string' ||
+							radial.css.length < 1
+						) {
+							errors.push(`${radialWhere}.css debe ser la única clave y no estar vacío`);
+						}
+						continue;
+					}
+					for (const key of Object.keys(radial)) {
+						if (!['size', 'at', 'color', 'alpha', 'extent'].includes(key)) {
+							errors.push(`${radialWhere}.${key} no permitido`);
+						}
+					}
+					for (const key of ['size', 'at']) {
+						if (typeof radial[key] !== 'string' || radial[key].length < 1) {
+							errors.push(`${radialWhere}.${key} debe ser un string no vacío`);
+						}
+					}
+					if (!HEX_RE.test(radial.color ?? '')) {
+						errors.push(`${radialWhere}.color inválido (${radial.color})`);
+					}
+					if (!MIX_PERCENT_RE.test(radial.alpha ?? '')) {
+						errors.push(`${radialWhere}.alpha inválido (${radial.alpha})`);
+					}
+					if (!PERCENT_RE.test(radial.extent ?? '')) {
+						errors.push(`${radialWhere}.extent inválido (${radial.extent})`);
+					}
+				}
+			}
+		}
+		if (effects.brandStops) {
+			if (
+				!Array.isArray(effects.brandStops) ||
+				effects.brandStops.length !== 3 ||
+				!effects.brandStops.every((stop) => HEX_RE.test(stop))
+			) {
+				errors.push(`${where}: effects.brandStops necesita exactamente 3 colores hex`);
+			}
+		}
+		if (
+			effects.edgeOpacity != null &&
+			(typeof effects.edgeOpacity !== 'number' ||
+				effects.edgeOpacity < 0 ||
+				effects.edgeOpacity > 1)
+		) {
+			errors.push(`${where}: effects.edgeOpacity debe estar entre 0 y 1`);
+		}
+		if (effects.slots != null && !isPlainObject(effects.slots)) {
+			errors.push(`${where}: effects.slots debe ser un objeto`);
+		} else if (effects.slots) {
+			for (const [key, value] of Object.entries(effects.slots)) {
+				if (key !== 'fill') errors.push(`${where}: effects.slots.${key} no permitido`);
+				if (!['fillGrad', 'strokeGrad'].includes(value)) {
+					errors.push(`${where}: effects.slots.${key} referencia una pintura desconocida`);
+				} else if (!effects[value]) {
+					errors.push(`${where}: effects.slots.${key} referencia effects.${value} ausente`);
+				}
+			}
+		}
+	}
 }
 
 /** Contraste AA (§5.3, primera mitad): `accentInk` ≥4.5:1 sobre `accent`. Independiente del
  * modo (tint/accent/accentInk no varían por modo, §6.1 "los tres ejes son independientes" — el
  * PAR accentInk/accent lo es también). */
 export function validateContrast(theme, errors) {
-	const { id, roles } = theme;
+	const { id, roles, effects } = theme;
 	const c = contrastRatio(roles.accentInk, roles.accent);
 	if (c < 4.5) {
 		errors.push(
 			`${id}: accentInk (${roles.accentInk}) sobre accent (${roles.accent}) = ${c.toFixed(2)}:1 — necesita ≥4.5:1 (AA)`
 		);
+	}
+	const fillKey = effects?.slots?.fill;
+	const fill = fillKey ? effects?.[fillKey] : null;
+	if (fill) {
+		for (let segment = 0; segment < fill.stops.length - 1; segment += 1) {
+			const from = fill.stops[segment].color;
+			const to = fill.stops[segment + 1].color;
+			const continuousMinimum = minimumSrgbGradientContrast(roles.accentInk, from, to);
+			const rasterMinimum = minimumRasterizedSrgbGradientContrast(roles.accentInk, from, to);
+			const minimum =
+				continuousMinimum.contrast <= rasterMinimum.contrast ? continuousMinimum : rasterMinimum;
+			if (minimum.contrast < 4.5) {
+				errors.push(
+					`${id}: accentInk (${roles.accentInk}) sobre ${fillKey}, segmento ${segment + 1} al ${(minimum.at * 100).toFixed(3)}% (sRGB, ${minimum.color}) = ${minimum.contrast.toFixed(4)}:1 — necesita ≥4.5:1 (AA)`
+				);
+				return;
+			}
+		}
 	}
 }
 
@@ -846,6 +1225,8 @@ export interface ThemeSwatch {
 	tint: string;
 	/** Marca — lo que pinta el swatch del selector. */
 	accent: string;
+	/** Pintura final del selector: acento sólido o gradiente enrutado por \`effects.slots.fill\`. */
+	fill: string;
 }
 
 /** Swatches para el selector de tema de P3 (§6.1 \`theme.swatches\`), en el orden de

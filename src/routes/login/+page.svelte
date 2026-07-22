@@ -30,6 +30,7 @@
 	import { resolveDisplayBackendUrl } from '$lib/session/backend';
 	import { resolveLocale, t as translate } from '$lib/i18n';
 	import BackendUrlForm from '$lib/session/BackendUrlForm.svelte';
+	import VegaLogo from '$lib/shell/VegaLogo.svelte';
 
 	const sessionStore = getSessionContext();
 
@@ -103,223 +104,387 @@
 	}
 </script>
 
-<div class="vega-login">
-	{#if sessionStore.mfaChallenge}
-		<div class="vega-login-card">
-			<h1>{t('login.mfa.title')}</h1>
-			<p class="vega-login-help">{t('login.mfa.body')}</p>
+<svelte:head>
+	<title>Vega — {t('login.title')}</title>
+</svelte:head>
 
-			{#if sessionStore.mfaChallenge.methods.includes('totp')}
-				<form class="vega-factor-form" onsubmit={handleTotp} novalidate>
-					<div class="field">
-						<label for="login-totp">{t('login.mfa.totpLabel')}</label>
-						<input
-							id="login-totp"
-							name="totp"
-							type="text"
-							inputmode="numeric"
-							autocomplete="one-time-code"
-							pattern="[0-9]*"
-							maxlength="6"
-							required
-							aria-invalid={errorMessage ? 'true' : undefined}
-							bind:value={totpCode}
-						/>
-					</div>
-					<button type="submit" disabled={submitting}>
-						{submitting ? t('login.mfa.verifying') : t('login.mfa.verify')}
-					</button>
-				</form>
-			{/if}
+<main class="vega-login-shell">
+	<section class="vega-login-brand" aria-hidden="true" data-testid="login-brand">
+		<div class="vega-brand-orbit">
+			<VegaLogo size={132} />
+		</div>
+		<p>Vega</p>
+		<span class="vega-brand-rule"></span>
+	</section>
 
-			{#if sessionStore.mfaChallenge.methods.includes('recovery')}
-				<details class="vega-recovery-login">
-					<summary>{t('login.mfa.useRecovery')}</summary>
-					<form class="vega-factor-form" onsubmit={handleRecovery} novalidate>
+	<section class="vega-login-access">
+		<div class="vega-mobile-brand" aria-hidden="true">
+			<VegaLogo size={28} />
+			<span>Vega</span>
+		</div>
+
+		{#if sessionStore.mfaChallenge}
+			<div class="vega-login-card" data-login-state="mfa" aria-busy={submitting}>
+				<header class="vega-login-heading">
+					<p>Vega</p>
+					<h1>{t('login.mfa.title')}</h1>
+					<span>{t('login.mfa.body')}</span>
+				</header>
+
+				{#if sessionStore.mfaChallenge.methods.includes('totp')}
+					<form class="vega-factor-form" onsubmit={handleTotp} novalidate>
 						<div class="field">
-							<label for="login-recovery">{t('login.mfa.recoveryLabel')}</label>
+							<label for="login-totp">{t('login.mfa.totpLabel')}</label>
 							<input
-								id="login-recovery"
-								name="recovery"
+								id="login-totp"
+								name="totp"
 								type="text"
-								autocomplete="off"
-								placeholder="XXXXX-XXXXX"
+								inputmode="numeric"
+								autocomplete="one-time-code"
+								pattern="[0-9]*"
+								maxlength="6"
 								required
 								aria-invalid={errorMessage ? 'true' : undefined}
-								bind:value={recoveryCode}
+								aria-describedby={errorMessage ? 'login-error' : undefined}
+								bind:value={totpCode}
 							/>
 						</div>
-						<button type="submit" disabled={submitting}>{t('login.mfa.recoverySubmit')}</button>
+						<button class="vega-primary-button" type="submit" disabled={submitting}>
+							{submitting ? t('login.mfa.verifying') : t('login.mfa.verify')}
+						</button>
 					</form>
-				</details>
-			{/if}
+				{/if}
 
-			{#if errorMessage}
-				<p class="vega-login-error" role="alert">{errorMessage}</p>
-			{/if}
-			<button class="vega-secondary-button" type="button" onclick={() => sessionStore.cancelMfa()}>
-				{t('login.mfa.cancel')}
-			</button>
-		</div>
-	{:else}
-		<form class="vega-login-form" onsubmit={handleSubmit} novalidate>
-			<h1>{t('login.title')}</h1>
+				{#if sessionStore.mfaChallenge.methods.includes('recovery')}
+					<details class="vega-recovery-login">
+						<summary>{t('login.mfa.useRecovery')}</summary>
+						<form class="vega-factor-form" onsubmit={handleRecovery} novalidate>
+							<div class="field">
+								<label for="login-recovery">{t('login.mfa.recoveryLabel')}</label>
+								<input
+									id="login-recovery"
+									name="recovery"
+									type="text"
+									autocomplete="off"
+									placeholder="XXXXX-XXXXX"
+									required
+									aria-invalid={errorMessage ? 'true' : undefined}
+									aria-describedby={errorMessage ? 'login-error' : undefined}
+									bind:value={recoveryCode}
+								/>
+							</div>
+							<button class="vega-primary-button" type="submit" disabled={submitting}>
+								{t('login.mfa.recoverySubmit')}
+							</button>
+						</form>
+					</details>
+				{/if}
 
-			{#if typeof displayBackendUrl === 'string'}
-				<p class="vega-login-server" data-testid="login-server-indicator">
-					{isSameOrigin
-						? t('connect.current.sameOrigin')
-						: t('connect.current.override', { url: displayBackendUrl })}
-				</p>
-			{/if}
-
-			<div class="field">
-				<label for="login-email">{t('login.email')}</label>
-				<input
-					id="login-email"
-					name="email"
-					type="email"
-					autocomplete="username"
-					required
-					aria-invalid={errorMessage ? 'true' : undefined}
-					bind:value={email}
-				/>
-			</div>
-
-			<div class="field">
-				<label for="login-password">{t('login.password')}</label>
-				<input
-					id="login-password"
-					name="password"
-					type="password"
-					autocomplete="current-password"
-					required
-					aria-invalid={errorMessage ? 'true' : undefined}
-					bind:value={password}
-				/>
-			</div>
-
-			{#if errorMessage}
-				<p class="vega-login-error" role="alert">{errorMessage}</p>
-			{/if}
-
-			<button type="submit" disabled={submitting}>
-				{submitting ? t('login.submitting') : t('login.submit')}
-			</button>
-		</form>
-
-		{#if sessionStore.strongAuthAvailable}
-			<div class="vega-login-alternative">
-				<span>{t('login.or')}</span>
+				{#if errorMessage}
+					<p id="login-error" class="vega-login-error" role="alert">{errorMessage}</p>
+				{/if}
 				<button
-					type="button"
 					class="vega-secondary-button"
-					onclick={handlePasskey}
-					disabled={submitting}
+					type="button"
+					onclick={() => sessionStore.cancelMfa()}
 				>
-					{t('login.passkey')}
+					{t('login.mfa.cancel')}
 				</button>
 			</div>
-		{/if}
-	{/if}
+		{:else}
+			<div class="vega-login-card" data-login-state="password" aria-busy={submitting}>
+				<header class="vega-login-heading">
+					<p>Vega</p>
+					<h1>{t('login.title')}</h1>
+					{#if typeof displayBackendUrl === 'string'}
+						<span class="vega-login-server" data-testid="login-server-indicator">
+							{isSameOrigin
+								? t('connect.current.sameOrigin')
+								: t('connect.current.override', { url: displayBackendUrl })}
+						</span>
+					{/if}
+				</header>
 
-	<details class="vega-login-connect">
-		<summary>{t('connect.disclosureLabel')}</summary>
-		<BackendUrlForm {t} />
-	</details>
-</div>
+				<form class="vega-login-form" onsubmit={handleSubmit} novalidate>
+					<div class="field">
+						<label for="login-email">{t('login.email')}</label>
+						<input
+							id="login-email"
+							name="email"
+							type="email"
+							autocomplete="username"
+							required
+							aria-invalid={errorMessage ? 'true' : undefined}
+							aria-describedby={errorMessage ? 'login-error' : undefined}
+							bind:value={email}
+						/>
+					</div>
+
+					<div class="field">
+						<label for="login-password">{t('login.password')}</label>
+						<input
+							id="login-password"
+							name="password"
+							type="password"
+							autocomplete="current-password"
+							required
+							aria-invalid={errorMessage ? 'true' : undefined}
+							aria-describedby={errorMessage ? 'login-error' : undefined}
+							bind:value={password}
+						/>
+					</div>
+
+					{#if errorMessage}
+						<p id="login-error" class="vega-login-error" role="alert">{errorMessage}</p>
+					{/if}
+
+					<button class="vega-primary-button" type="submit" disabled={submitting}>
+						{submitting ? t('login.submitting') : t('login.submit')}
+					</button>
+				</form>
+
+				{#if sessionStore.strongAuthAvailable}
+					<div class="vega-login-alternative">
+						<span>{t('login.or')}</span>
+						<button
+							type="button"
+							class="vega-secondary-button"
+							onclick={handlePasskey}
+							disabled={submitting}
+						>
+							{t('login.passkey')}
+						</button>
+					</div>
+				{/if}
+			</div>
+		{/if}
+
+		<details class="vega-login-connect">
+			<summary>{t('connect.disclosureLabel')}</summary>
+			<BackendUrlForm {t} />
+		</details>
+	</section>
+</main>
 
 <style>
-	.vega-login {
+	.vega-login-shell {
+		position: relative;
+		display: grid;
+		grid-template-columns: minmax(20rem, 0.85fr) minmax(28rem, 1.15fr);
+		min-height: 100vh;
+		min-height: 100svh;
+		background: var(--bg);
+		overflow: hidden;
+	}
+
+	.vega-login-brand {
+		position: relative;
+		isolation: isolate;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		padding-top: 15vh;
+		justify-content: center;
+		gap: 1.75rem;
+		min-height: 100%;
+		border-right: 1px solid var(--line);
+		background: var(--surface-2);
+		color: var(--ink);
+		overflow: hidden;
 	}
 
-	.vega-login-form,
+	.vega-login-brand::before {
+		position: absolute;
+		z-index: -2;
+		inset: 0;
+		content: '';
+		background: var(--halo);
+	}
+
+	.vega-login-brand::after {
+		position: absolute;
+		z-index: -1;
+		inset: 0 0 0 auto;
+		width: 3px;
+		content: '';
+		background: var(--sheen);
+		opacity: var(--brand-edge-opacity);
+	}
+
+	.vega-brand-orbit {
+		display: grid;
+		width: 13.5rem;
+		height: 13.5rem;
+		place-items: center;
+		border: 1px solid var(--accent-line);
+		border-radius: 50%;
+		background: var(--paper);
+		box-shadow: var(--shadow-card);
+	}
+
+	.vega-login-brand p {
+		margin: 0;
+		color: var(--ink-hi);
+		font-family: var(--sans);
+		font-size: clamp(2.5rem, 6vw, 5.5rem);
+		font-weight: 650;
+		letter-spacing: -0.07em;
+		line-height: 0.8;
+	}
+
+	.vega-brand-rule {
+		width: 6.5rem;
+		height: 3px;
+		border-radius: 999px;
+		background: var(--accent-fill);
+	}
+
+	.vega-login-access {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		min-width: 0;
+		padding: clamp(2rem, 6vw, 5.5rem);
+	}
+
+	.vega-mobile-brand {
+		display: none;
+		align-items: center;
+		gap: 0.65rem;
+		margin-bottom: 1.5rem;
+		color: var(--ink-hi);
+		font-size: 1.1rem;
+		font-weight: 650;
+		letter-spacing: -0.02em;
+	}
+
 	.vega-login-card {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
-		width: 100%;
-		max-width: 22rem;
-		padding: 1.5rem;
-		border: 1px solid var(--line);
-		border-radius: 8px;
+		gap: 1.35rem;
+		width: min(100%, 27.5rem);
+		box-sizing: border-box;
+		padding: clamp(1.5rem, 4vw, 2.25rem);
+		border: 1px solid var(--accent-line);
+		border-radius: calc(var(--r) * 1.5);
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
 	}
 
-	.vega-login-card,
+	.vega-login-heading {
+		display: flex;
+		flex-direction: column;
+		gap: 0.45rem;
+	}
+
+	.vega-login-heading p {
+		margin: 0;
+		color: var(--accent-text);
+		font-family: var(--mono);
+		font-size: 0.72rem;
+		font-weight: 700;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+	}
+
+	.vega-login-heading h1 {
+		margin: 0;
+		color: var(--ink-hi);
+		font-size: clamp(1.45rem, 3vw, 1.85rem);
+		font-weight: 650;
+		letter-spacing: -0.035em;
+		line-height: 1.1;
+	}
+
+	.vega-login-heading > span {
+		color: var(--ink-2);
+		font-size: 0.9rem;
+		line-height: 1.45;
+	}
+
+	.vega-login-server {
+		font-family: var(--mono);
+		font-size: 0.75rem;
+		overflow-wrap: anywhere;
+	}
+
+	.vega-login-form,
 	.vega-factor-form {
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
-	}
-
-	.vega-factor-form {
 		width: 100%;
-	}
-
-	.vega-login-help {
-		margin: 0;
-		color: var(--ink-2);
-		font-size: 0.9rem;
-	}
-
-	h1 {
-		margin: 0;
-		font-size: 1.2rem;
-	}
-
-	/* Indicador de servidor (#l12-ux, item 1): discreto, mono (mismo criterio de "solo lectura,
-	   informativo" que `.vega-connection-status` de la topbar) — no compite con el formulario, pero
-	   está visible ANTES de meter credenciales, sin tener que abrir el disclosure de abajo. */
-	.vega-login-server {
-		margin: -0.5rem 0 0;
-		font-family: var(--mono);
-		font-size: 0.75rem;
-		color: var(--ink-2);
-		overflow-wrap: break-word;
 	}
 
 	.field {
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
+		gap: 0.4rem;
 	}
 
 	label {
-		font-size: 0.85rem;
-		font-weight: 600;
+		color: var(--ink-2);
+		font-size: 0.82rem;
+		font-weight: 650;
 	}
 
 	input {
-		min-height: 44px;
-		padding: 0.5rem 0.6rem;
-		border: 1px solid var(--line);
-		border-radius: 6px;
+		min-height: 46px;
+		box-sizing: border-box;
+		padding: 0.65rem 0.75rem;
+		border: 1px solid var(--line-strong);
+		border-radius: var(--r);
+		background: var(--paper);
+		color: var(--ink);
+		font-family: var(--sans);
 		font-size: 1rem;
+		transition:
+			border-color 150ms ease,
+			background 150ms ease;
+	}
+
+	input::placeholder {
+		color: var(--ink-3);
+	}
+
+	input:hover {
+		border-color: var(--accent-line);
+	}
+
+	input:focus-visible {
+		border-color: var(--accent);
+		outline: 2px solid var(--ring);
+		outline-offset: 2px;
 	}
 
 	input[aria-invalid='true'] {
 		border-color: var(--danger);
 	}
 
-	.vega-login-error {
-		margin: 0;
-		color: var(--danger);
+	button {
+		min-height: 46px;
+		box-sizing: border-box;
+		padding: 0.65rem 1rem;
+		border: 1px solid var(--line-strong);
+		border-radius: var(--r);
+		font-family: var(--sans);
 		font-size: 0.9rem;
+		font-weight: 680;
+		cursor: pointer;
+		transition:
+			transform 150ms ease,
+			border-color 150ms ease;
 	}
 
-	button {
-		min-height: 44px;
-		padding: 0.55rem 0.9rem;
-		border: 1px solid var(--line);
-		border-radius: 6px;
-		background: var(--accent);
+	button:not(:disabled):hover {
+		transform: translateY(-1px);
+	}
+
+	.vega-primary-button {
+		border-color: transparent;
+		background: var(--accent-fill);
 		color: var(--accent-ink);
-		font-weight: 600;
-		cursor: pointer;
 	}
 
 	.vega-secondary-button {
@@ -327,55 +492,111 @@
 		color: var(--ink);
 	}
 
-	.vega-login-alternative {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		width: 100%;
-		max-width: 22rem;
-		margin-top: 1rem;
-		color: var(--ink-2);
-		font-size: 0.85rem;
-	}
-
-	.vega-login-alternative::before,
-	.vega-login-alternative::after {
-		content: '';
-		flex: 1;
-		border-top: 1px solid var(--line);
-	}
-
-	.vega-login-alternative .vega-secondary-button {
-		white-space: nowrap;
-	}
-
-	.vega-recovery-login summary {
-		min-height: 44px;
-		display: flex;
-		align-items: center;
-		color: var(--ink-2);
-		cursor: pointer;
+	.vega-secondary-button:hover {
+		border-color: var(--accent-line);
 	}
 
 	button:disabled {
 		cursor: not-allowed;
-		opacity: 0.6;
+		opacity: 0.58;
+	}
+
+	.vega-login-error {
+		margin: 0;
+		padding: 0.7rem 0.8rem;
+		border-left: 3px solid var(--danger);
+		border-radius: 0 var(--r) var(--r) 0;
+		background: var(--danger-soft);
+		color: var(--danger);
+		font-size: 0.88rem;
+		line-height: 1.4;
+	}
+
+	.vega-login-alternative {
+		display: grid;
+		grid-template-columns: 1fr auto 1fr;
+		align-items: center;
+		gap: 0.75rem;
+		color: var(--ink-2);
+		font-size: 0.8rem;
+	}
+
+	.vega-login-alternative::before,
+	.vega-login-alternative::after {
+		height: 1px;
+		content: '';
+		background: var(--line);
+	}
+
+	.vega-login-alternative .vega-secondary-button {
+		grid-column: 1 / -1;
+		width: 100%;
+	}
+
+	.vega-recovery-login {
+		border-top: 1px solid var(--line);
+	}
+
+	.vega-recovery-login summary,
+	.vega-login-connect summary {
+		display: flex;
+		align-items: center;
+		min-height: 44px;
+		color: var(--ink-2);
+		font-size: 0.85rem;
+		cursor: pointer;
+	}
+
+	.vega-recovery-login[open] summary {
+		margin-bottom: 0.75rem;
 	}
 
 	.vega-login-connect {
-		width: 100%;
-		max-width: 22rem;
-		margin-top: 1rem;
+		width: min(100%, 27.5rem);
+		margin-top: 0.75rem;
 		padding: 0 0.25rem;
-		font-size: 0.85rem;
-	}
-
-	.vega-login-connect summary {
-		cursor: pointer;
-		color: var(--ink-2);
+		box-sizing: border-box;
 	}
 
 	.vega-login-connect[open] summary {
 		margin-bottom: 0.75rem;
+	}
+
+	@media (max-width: 800px) {
+		.vega-login-shell {
+			display: block;
+			min-height: 100svh;
+			overflow: auto;
+		}
+
+		.vega-login-brand {
+			display: none;
+		}
+
+		.vega-login-access {
+			min-height: 100svh;
+			box-sizing: border-box;
+			padding: clamp(1rem, 6vw, 3rem);
+		}
+
+		.vega-mobile-brand {
+			display: flex;
+		}
+	}
+
+	@media (max-width: 420px) {
+		.vega-login-access {
+			justify-content: flex-start;
+			padding-top: 1.25rem;
+		}
+
+		.vega-login-card {
+			padding: 1.25rem;
+		}
+
+		.vega-mobile-brand {
+			align-self: flex-start;
+			margin-bottom: 1rem;
+		}
 	}
 </style>

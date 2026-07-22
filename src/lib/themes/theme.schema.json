@@ -1,8 +1,8 @@
 {
 	"$schema": "https://json-schema.org/draft/2020-12/schema",
 	"$id": "https://vega.dev/theme.schema.json",
-	"title": "Tema de Vega v1",
-	"description": "Un tema = src/lib/themes/<id>.theme.json (§4 del contrato P7). Papel (tint) desacoplado del acento (accent); neutros compartidos + tinte por defecto, override final opcional por tema; SIN bloque effects (D4, reservado para v2 — additionalProperties:false lo rechaza hoy).",
+	"title": "Tema de Vega v2",
+	"description": "Un tema = src/lib/themes/<id>.theme.json. Papel (tint) desacoplado del acento (accent); neutros compartidos + tinte por defecto, override final opcional por tema; efectos visuales portados del catálogo de Lumbre mediante slots semánticos.",
 	"type": "object",
 	"additionalProperties": false,
 	"required": ["themeSchemaVersion", "id", "name", "group", "roles"],
@@ -21,7 +21,7 @@
 		},
 		"group": {
 			"description": "Agrupación del selector (D-P7.1, enum propio de Vega).",
-			"enum": ["frios", "calidos", "neutros", "verdes"]
+			"enum": ["frios", "calidos", "neutros", "verdes", "pastel-firma-mono", "iridiscentes"]
 		},
 		"aliases": {
 			"description": "Ids antiguos que migran a este (nunca se borran, forward-compat de ids renombrados, §6.4).",
@@ -50,6 +50,15 @@
 				}
 			}
 		},
+		"derived": {
+			"description": "Overrides visuales expresados en CSS; el generador solo admite estos dos slots cerrados.",
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"accentSoft": { "$ref": "#/$defs/paperMix" },
+				"accentLine": { "$ref": "#/$defs/lineMix" }
+			}
+		},
 		"modes": {
 			"description": "OPCIONAL: overrides por modo (§4.4, escape hatch Opción A de Lumbre).",
 			"type": "object",
@@ -57,6 +66,35 @@
 			"properties": {
 				"light": { "$ref": "#/$defs/modeOverride" },
 				"dark": { "$ref": "#/$defs/modeOverride" }
+			}
+		},
+		"effects": {
+			"description": "Pinturas de marca opcionales. Ausente equivale al acento sólido.",
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"fillGrad": { "$ref": "#/$defs/gradient" },
+				"strokeGrad": { "$ref": "#/$defs/gradient" },
+				"halo": {
+					"type": "array",
+					"minItems": 1,
+					"maxItems": 3,
+					"items": { "$ref": "#/$defs/radial" }
+				},
+				"brandStops": {
+					"type": "array",
+					"minItems": 3,
+					"maxItems": 3,
+					"items": { "$ref": "#/$defs/hexColor" }
+				},
+				"edgeOpacity": { "type": "number", "minimum": 0, "maximum": 1 },
+				"slots": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"fill": { "type": "string", "enum": ["fillGrad", "strokeGrad"] }
+					}
+				}
 			}
 		}
 	},
@@ -69,13 +107,70 @@
 			"type": "string",
 			"pattern": "^-?[0-9]+(\\.[0-9]+)?%$"
 		},
+		"mixWeightPercent": {
+			"description": "Peso CSS de mezcla, acotado a 0–100 %. No confundir con una posición de gradiente, que puede quedar fuera de ese rango.",
+			"type": "string",
+			"pattern": "^(100(\\.0+)?|([0-9]|[1-9][0-9])(\\.[0-9]+)?)%$"
+		},
+		"paperMix": {
+			"type": "string",
+			"pattern": "^color-mix\\(in oklab,\\s*#[0-9a-fA-F]{6}\\s+(100(\\.0+)?|([0-9]|[1-9][0-9])(\\.[0-9]+)?)%,\\s*var\\(--paper\\)\\)$"
+		},
+		"lineMix": {
+			"type": "string",
+			"pattern": "^color-mix\\(in oklab,\\s*#[0-9a-fA-F]{6}\\s+(100(\\.0+)?|([0-9]|[1-9][0-9])(\\.[0-9]+)?)%,\\s*var\\(--line\\)\\)$"
+		},
+		"gradientStop": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["color", "at"],
+			"properties": {
+				"color": { "$ref": "#/$defs/hexColor" },
+				"at": { "$ref": "#/$defs/percent" }
+			}
+		},
+		"gradient": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["angle", "stops"],
+			"properties": {
+				"angle": { "type": "number" },
+				"stops": {
+					"type": "array",
+					"minItems": 2,
+					"items": { "$ref": "#/$defs/gradientStop" }
+				}
+			}
+		},
+		"radial": {
+			"oneOf": [
+				{
+					"type": "object",
+					"additionalProperties": false,
+					"required": ["size", "at", "color", "alpha", "extent"],
+					"properties": {
+						"size": { "type": "string", "minLength": 1 },
+						"at": { "type": "string", "minLength": 1 },
+						"color": { "$ref": "#/$defs/hexColor" },
+						"alpha": { "$ref": "#/$defs/mixWeightPercent" },
+						"extent": { "$ref": "#/$defs/percent" }
+					}
+				},
+				{
+					"type": "object",
+					"additionalProperties": false,
+					"required": ["css"],
+					"properties": { "css": { "type": "string", "minLength": 1 } }
+				}
+			]
+		},
 		"modeOverride": {
 			"type": "object",
 			"additionalProperties": false,
 			"properties": {
 				"tintBg": {
 					"description": "Pisa el porcentaje de tinte del bucket `bg` para este modo (§4.3).",
-					"$ref": "#/$defs/percent"
+					"$ref": "#/$defs/mixWeightPercent"
 				},
 				"neutrals": {
 					"description": "Override final por neutro (§4.4): gana por especificidad, se pinta TAL CUAL sin re-tintar. Guardarraíles: escala de luminancia ascendente + AA de ink sobre paper si se pisa ink (validateNeutrals).",

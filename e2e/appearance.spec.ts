@@ -21,6 +21,7 @@ test('el selector de tema cambia data-theme en la raíz y persiste tras recargar
 	const html = page.locator('html');
 	// Default de F7w-a (FALLBACK_THEME del motor P7): niebla.
 	await expect(html).toHaveAttribute('data-theme', 'niebla');
+	await expect(page.locator('.vega-theme-swatch')).toHaveCount(21);
 
 	const terracotaButton = page.getByRole('button', { name: 'Terracota' });
 	await expect(terracotaButton).toHaveAttribute('aria-pressed', 'false');
@@ -37,6 +38,19 @@ test('el selector de tema cambia data-theme en la raíz y persiste tras recargar
 		'aria-pressed',
 		'true'
 	);
+});
+
+test('el selector presenta las pinturas especiales del catálogo de Lumbre', async ({ page }) => {
+	await loginAsDemo(page);
+	await page.waitForURL('**/c/site_info/new');
+	await goToSettings(page);
+
+	const aquelarre = page.getByRole('button', { name: 'Aquelarre' });
+	await expect(aquelarre).toBeVisible();
+	const dotBackground = await aquelarre.locator('.vega-theme-swatch-dot').evaluate((dot) => {
+		return getComputedStyle(dot).backgroundImage;
+	});
+	expect(dotBackground).toContain('linear-gradient');
 });
 
 test('el toggle de modo cambia data-mode en la raíz y persiste tras recargar', async ({ page }) => {

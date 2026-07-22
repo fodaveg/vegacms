@@ -1,0 +1,12 @@
+{
+	"$schema": "./theme.schema.json",
+	"themeSchemaVersion": 1,
+	"id": "cereza",
+	"name": "Cereza",
+	"group": "calidos",
+	"roles": {
+		"tint": "#c0466b",
+		"accent": "#c0466b",
+		"accentInk": "#ffffff"
+	}
+}

@@ -1,0 +1,36 @@
+{
+	"$schema": "./theme.schema.json",
+	"themeSchemaVersion": 1,
+	"id": "rescoldo",
+	"name": "Rescoldo",
+	"group": "calidos",
+	"roles": {
+		"tint": "#4a4a52",
+		"accent": "#f0842f",
+		"accentInk": "#201206"
+	},
+	"effects": {
+		"fillGrad": {
+			"angle": 115,
+			"stops": [
+				{
+					"color": "#f6a63b",
+					"at": "0%"
+				},
+				{
+					"color": "#f0842f",
+					"at": "42%"
+				},
+				{
+					"color": "#e4583c",
+					"at": "75%"
+				},
+				{
+					"color": "#dd4f52",
+					"at": "100%"
+				}
+			]
+		},
+		"edgeOpacity": 0.7
+	}
+}

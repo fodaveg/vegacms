@@ -1,12 +1,12 @@
 {
 	"$schema": "./theme.schema.json",
 	"themeSchemaVersion": 1,
-	"id": "miel",
-	"name": "Miel",
+	"id": "faro",
+	"name": "Faro",
 	"group": "calidos",
 	"roles": {
-		"tint": "#d59a2e",
-		"accent": "#d59a2e",
-		"accentInk": "#241905"
+		"tint": "#d1642f",
+		"accent": "#d1642f",
+		"accentInk": "#2a1408"
 	}
 }

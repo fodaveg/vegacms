@@ -1,0 +1,13 @@
+{
+	"$schema": "./theme.schema.json",
+	"themeSchemaVersion": 1,
+	"id": "sea-wingnow",
+	"name": "Sea Wingnow",
+	"group": "frios",
+	"aliases": ["sea wingnow"],
+	"roles": {
+		"tint": "#58a6d8",
+		"accent": "#58a6d8",
+		"accentInk": "#0c1c29"
+	}
+}

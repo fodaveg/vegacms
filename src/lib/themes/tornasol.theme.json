@@ -1,0 +1,64 @@
+{
+	"$schema": "./theme.schema.json",
+	"themeSchemaVersion": 1,
+	"id": "tornasol",
+	"name": "Tornasol",
+	"group": "iridiscentes",
+	"roles": {
+		"tint": "#5b5f8f",
+		"accent": "#2f9a94",
+		"accentInk": "#14102a"
+	},
+	"modes": {
+		"light": {
+			"tintBg": "10%"
+		},
+		"dark": {
+			"tintBg": "20%"
+		}
+	},
+	"effects": {
+		"fillGrad": {
+			"angle": 115,
+			"stops": [
+				{
+					"color": "#2fb7a8",
+					"at": "0%"
+				},
+				{
+					"color": "#8d7bf0",
+					"at": "42%"
+				},
+				{
+					"color": "#d16bb2",
+					"at": "72%"
+				},
+				{
+					"color": "#dda63f",
+					"at": "100%"
+				}
+			]
+		},
+		"halo": [
+			{
+				"size": "120% 68%",
+				"at": "84% -12%",
+				"color": "#2fb7a8",
+				"alpha": "13%",
+				"extent": "46%"
+			},
+			{
+				"size": "100% 60%",
+				"at": "-10% 110%",
+				"color": "#d16bb2",
+				"alpha": "9%",
+				"extent": "44%"
+			}
+		],
+		"brandStops": ["#2fb7a8", "#8d7bf0", "#dda63f"],
+		"edgeOpacity": 0.5,
+		"slots": {
+			"fill": "fillGrad"
+		}
+	}
+}

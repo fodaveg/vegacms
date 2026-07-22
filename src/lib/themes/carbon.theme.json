@@ -1,0 +1,12 @@
+{
+	"$schema": "./theme.schema.json",
+	"themeSchemaVersion": 1,
+	"id": "carbon",
+	"name": "Carbón",
+	"group": "pastel-firma-mono",
+	"roles": {
+		"tint": "#4a4a52",
+		"accent": "#4a4a52",
+		"accentInk": "#ffffff"
+	}
+}

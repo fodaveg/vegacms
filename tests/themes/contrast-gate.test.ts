@@ -1,6 +1,6 @@
 /**
  * Gate de contraste AA MEDIDO (§5.3/§9.1 del contrato P7, L2 "sin excepciones"):
- * 1. Los 5 temas curados de v1 pasan `validateContrast` + `validateComponentContrast` en
+ * 1. Los 21 temas (catálogo Lumbre + ids propios conservados) pasan los gates en
  *    claro Y oscuro — incluidos `accentText` sobre paper/surface/surface-2 y los 4 semánticos
  *    (`danger` incluido) sobre su `-soft` y sobre paper/surface.
  * 2. El gate MUERDE: un fixture con `accentInk` sub-AA sobre `accent` falla; uno con
@@ -31,12 +31,14 @@ function loadRealThemes() {
 	return index.map((id) => byId.get(id));
 }
 
-describe('1. Los 5 temas reales pasan el gate AA en claro y oscuro', () => {
+describe('1. El catálogo completo pasa el gate AA en claro y oscuro', () => {
 	const themes = loadRealThemes();
 
-	test('index.json referencia exactamente 5 temas (D-P7.1: 4-6 curados)', () => {
-		expect(themes.length).toBeGreaterThanOrEqual(4);
-		expect(themes.length).toBeLessThanOrEqual(6);
+	test('index.json conserva los 19 temas de Lumbre y los 2 ids propios de Vega', () => {
+		expect(themes).toHaveLength(21);
+		expect(themes.map((theme) => theme.id)).toEqual(
+			expect.arrayContaining(['aquelarre', 'tornasol', 'pizarra', 'terracota'])
+		);
 	});
 
 	test.each(themes.map((t) => [t.id, t] as const))('%s: accentInk/accent ≥4.5:1', (_id, theme) => {
@@ -91,6 +93,67 @@ describe('2. El gate MUERDE (fixtures sub-AA)', () => {
 		expect(errors.length).toBeGreaterThan(0);
 		expect(errors[0]).toContain('accentInk');
 		expect(errors[0]).toMatch(/necesita ≥4\.5:1/);
+	});
+
+	test('accentInk AA en las paradas pero sub-AA entre ellas → falla por el interior del gradiente', () => {
+		const theme = makeTheme({
+			id: 'sub-aa-gradient-interior',
+			roles: { tint: '#ff0000', accent: '#ff0000', accentInk: '#000000' },
+			effects: {
+				fillGrad: {
+					angle: 90,
+					stops: [
+						{ color: '#ff0000', at: '0%' },
+						{ color: '#00aa00', at: '100%' }
+					]
+				},
+				slots: { fill: 'fillGrad' }
+			}
+		});
+		const errors: string[] = [];
+		validateContrast(theme, errors);
+		expect(errors.some((error) => error.includes('segmento 1'))).toBe(true);
+	});
+
+	test('detecta un mínimo sub-AA entre las muestras enteras (regresión 89,5%)', () => {
+		const theme = makeTheme({
+			id: 'sub-aa-between-integer-samples',
+			roles: { tint: '#10fe4f', accent: '#10fe4f', accentInk: '#000000' },
+			effects: {
+				fillGrad: {
+					angle: 90,
+					stops: [
+						{ color: '#10fe4f', at: '0%' },
+						{ color: '#db3832', at: '100%' }
+					]
+				},
+				slots: { fill: 'fillGrad' }
+			}
+		});
+		const errors: string[] = [];
+		validateContrast(theme, errors);
+		expect(errors.some((error) => error.includes('segmento 1'))).toBe(true);
+	});
+
+	test('detecta un RGB sub-AA producido por cuantización/dithering del rasterizador', () => {
+		const theme = makeTheme({
+			id: 'sub-aa-rasterized-gradient',
+			roles: { tint: '#786db5', accent: '#786db5', accentInk: '#000000' },
+			effects: {
+				fillGrad: {
+					angle: 90,
+					stops: [
+						{ color: '#786db5', at: '0%' },
+						{ color: '#fa3b4e', at: '100%' }
+					]
+				},
+				slots: { fill: 'fillGrad' }
+			}
+		});
+		const errors: string[] = [];
+		validateContrast(theme, errors);
+		expect(errors.some((error) => error.includes('segmento 1'))).toBe(true);
+		expect(errors.some((error) => error.includes('necesita ≥4.5:1'))).toBe(true);
 	});
 
 	test('accentText explícito sub-AA sobre paper → validateComponentContrast falla', () => {

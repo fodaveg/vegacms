@@ -1,0 +1,13 @@
+{
+	"$schema": "./theme.schema.json",
+	"themeSchemaVersion": 1,
+	"id": "brasa",
+	"name": "Brasa",
+	"group": "calidos",
+	"aliases": ["lumbre"],
+	"roles": {
+		"tint": "#e8763a",
+		"accent": "#e8763a",
+		"accentInk": "#1f1206"
+	}
+}

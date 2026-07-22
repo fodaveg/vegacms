@@ -1,15 +1,15 @@
 /**
  * Validador estructural propio (§5.2/§9 del contrato P7, D-P7.7): `validateSchema` (sin ajv en
  * el pipeline, ley de ligereza) validado contra `theme.schema.json` compilado con `ajv` (SOLO
- * devDependency de test — oráculo, mismo criterio que P2 §9.12). Incluye §9.10: el schema
- * RECHAZA un bloque `effects` (namespace reservado v2, D4/L7).
+ * devDependency de test — oráculo, mismo criterio que P2 §9.12). L10 cubre también el contrato
+ * cerrado de efectos portables del catálogo de Lumbre.
  */
 
 import { describe, expect, test } from 'vitest';
 // El schema declara "$schema": draft 2020-12 (igual que manifest-schema.json de P2); el `Ajv`
 // por defecto solo trae el meta-schema de draft-07.
 import Ajv2020 from 'ajv/dist/2020';
-import { validateSchema } from '../../scripts/build-themes.mjs';
+import { themeToCss, validateSchema } from '../../scripts/build-themes.mjs';
 import themeSchema from '$lib/themes/theme.schema.json';
 import { makeTheme } from './fixture';
 
@@ -40,8 +40,8 @@ describe('1. Casos puntuales de validateSchema', () => {
 		expect(isValid(makeTheme({ themeSchemaVersion: 2 }))).toBe(false);
 	});
 
-	test('group fuera del enum de Vega (frios/calidos/neutros/verdes) → inválido', () => {
-		expect(isValid(makeTheme({ group: 'pastel-firma-mono' }))).toBe(false); // enum de LUMBRE, no de Vega
+	test('group fuera del enum ampliado de Vega → inválido', () => {
+		expect(isValid(makeTheme({ group: 'inventado' }))).toBe(false);
 	});
 
 	test('roles.accentInk no hex → inválido', () => {
@@ -80,17 +80,108 @@ describe('1. Casos puntuales de validateSchema', () => {
 	});
 });
 
-describe('2. §9.10 — namespace effects RECHAZADO (D4/L7, sin efectos en v1)', () => {
-	test('un tema con bloque "effects" → validateSchema lo rechaza', () => {
-		const theme = makeTheme({ effects: { fillGrad: { angle: 90, stops: [] } } });
-		expect(isValid(theme)).toBe(false);
+describe('2. L10 — efectos cerrados y referencialmente íntegros', () => {
+	const EFFECTS = {
+		fillGrad: {
+			angle: 115,
+			stops: [
+				{ color: '#102030', at: '0%' },
+				{ color: '#405060', at: '100%' }
+			]
+		},
+		halo: [
+			{
+				size: '120% 70%',
+				at: '85% -10%',
+				color: '#405060',
+				alpha: '15%',
+				extent: '45%'
+			}
+		],
+		brandStops: ['#102030', '#405060', '#708090'],
+		edgeOpacity: 0.5,
+		slots: { fill: 'fillGrad' }
+	};
+
+	test('gradiente, halo, firma y slot válidos → pasan', () => {
+		expect(isValid(makeTheme({ effects: EFFECTS }))).toBe(true);
 	});
 
-	test('el JSON Schema (ajv) también lo rechaza (additionalProperties:false)', () => {
-		const ajv = new Ajv2020({ strict: true, allErrors: true });
-		const validate = ajv.compile(themeSchema);
-		const theme = makeTheme({ effects: { fillGrad: {} } });
-		expect(validate(strip(theme))).toBe(false);
+	test('slot que referencia una pintura ausente → inválido', () => {
+		expect(isValid(makeTheme({ effects: { slots: { fill: 'strokeGrad' } } }))).toBe(false);
+	});
+
+	test('clave de efecto específica de Lumbre que Vega no consume → inválida', () => {
+		expect(isValid(makeTheme({ effects: { todayHairline: { opacity: 0.5 } } }))).toBe(false);
+	});
+
+	test('los contenedores nuevos no aceptan arrays disfrazados de objeto', () => {
+		expect(isValid(makeTheme({ derived: [] }))).toBe(false);
+		expect(isValid(makeTheme({ effects: [] }))).toBe(false);
+		expect(isValid(makeTheme({ effects: { slots: [] } }))).toBe(false);
+	});
+
+	test('derived.accentSoft solo admite el color-mix que el gate sabe resolver', () => {
+		expect(isValid(makeTheme({ derived: { accentSoft: '#fff' } }))).toBe(false);
+		expect(
+			isValid(
+				makeTheme({
+					derived: {
+						accentSoft: 'color-mix(in oklab, #112233 20%, var(--paper))',
+						accentLine: 'color-mix(in oklab, #112233 52%, var(--line))'
+					}
+				})
+			)
+		).toBe(true);
+	});
+
+	test('los pesos de mezcla admiten 0–100 %, pero rechazan negativos y superiores a 100', () => {
+		for (const weight of ['0%', '100%']) {
+			const theme = makeTheme({
+				derived: {
+					accentSoft: `color-mix(in oklab, #112233 ${weight}, var(--paper))`,
+					accentLine: `color-mix(in oklab, #112233 ${weight}, var(--line))`
+				},
+				modes: { light: { tintBg: weight } },
+				effects: {
+					halo: [
+						{ size: '120% 70%', at: '50% 0%', color: '#112233', alpha: weight, extent: '150%' }
+					]
+				}
+			});
+			expect(isValid(theme)).toBe(true);
+			expect(themeToCss(theme)).toContain(`#112233 ${weight}`);
+		}
+
+		for (const weight of ['-1%', '101%']) {
+			expect(
+				isValid(
+					makeTheme({
+						derived: {
+							accentSoft: `color-mix(in oklab, #112233 ${weight}, var(--paper))`
+						}
+					})
+				)
+			).toBe(false);
+			expect(isValid(makeTheme({ modes: { light: { tintBg: weight } } }))).toBe(false);
+			expect(
+				isValid(
+					makeTheme({
+						effects: {
+							halo: [
+								{
+									size: '120% 70%',
+									at: '50% 0%',
+									color: '#112233',
+									alpha: weight,
+									extent: '150%'
+								}
+							]
+						}
+					})
+				)
+			).toBe(false);
+		}
 	});
 });
 
@@ -105,7 +196,25 @@ describe('3. Oráculo: ajv(theme.schema.json) vs validateSchema', () => {
 			roles: { tint: '#5d6d83', accent: '#5d6d83', accentInk: '#ffffff', accentText: '#33488f' }
 		}),
 		makeTheme({ modes: { light: { tintBg: '6%' }, dark: { tintBg: '14%' } } }),
-		makeTheme({ modes: { dark: { neutrals: { paper: '#141416', ink: '#eaeaef' } } } })
+		makeTheme({ modes: { dark: { neutrals: { paper: '#141416', ink: '#eaeaef' } } } }),
+		makeTheme({
+			derived: {
+				accentSoft: 'color-mix(in oklab, #112233 20%, var(--paper))',
+				accentLine: 'color-mix(in oklab, #112233 52%, var(--line))'
+			}
+		}),
+		makeTheme({
+			effects: {
+				fillGrad: {
+					angle: 90,
+					stops: [
+						{ color: '#112233', at: '0%' },
+						{ color: '#445566', at: '100%' }
+					]
+				},
+				slots: { fill: 'fillGrad' }
+			}
+		})
 	];
 
 	const INVALID: unknown[] = [
@@ -116,7 +225,19 @@ describe('3. Oráculo: ajv(theme.schema.json) vs validateSchema', () => {
 		makeTheme({ themeSchemaVersion: 2 }),
 		makeTheme({ group: 'inventado' }),
 		makeTheme({ roles: { tint: 'no-hex', accent: '#000', accentInk: '#fff' } }),
-		makeTheme({ effects: {} }),
+		makeTheme({ effects: { unknown: true } }),
+		makeTheme({ derived: [] }),
+		makeTheme({ effects: [] }),
+		makeTheme({ effects: { slots: [] } }),
+		makeTheme({ derived: { accentSoft: '#fff' } }),
+		makeTheme({ derived: { accentSoft: 'color-mix(in oklab, #112233 -1%, var(--paper))' } }),
+		makeTheme({ derived: { accentLine: 'color-mix(in oklab, #112233 101%, var(--line))' } }),
+		makeTheme({ modes: { light: { tintBg: '-1%' } } }),
+		makeTheme({ modes: { dark: { tintBg: '101%' } } }),
+		makeTheme({ aliases: 'alias-en-string' }),
+		makeTheme({ modes: [] }),
+		makeTheme({ modes: { light: [] } }),
+		makeTheme({ modes: { light: { neutrals: [] } } }),
 		makeTheme({ modes: { light: { neutrals: { colorInventado: '#fff' } } } }),
 		makeTheme({ modes: { light: { tintBg: 'no-porcentaje' } } }),
 		// Cierra la divergencia validador-propio vs oráculo que encontró el code-review: una

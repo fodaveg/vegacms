@@ -65,6 +65,40 @@ test.describe('indicador de servidor (#l12-ux, item 1)', () => {
 	});
 });
 
+test.describe('branding temático L10', () => {
+	test('el login consume gradiente, halo y firma del tema activo', async ({ page }) => {
+		await page.addInitScript(() => localStorage.setItem('vega.theme.v1', 'aquelarre'));
+		await page.goto('/login');
+
+		await expect(page.locator('html')).toHaveAttribute('data-theme', 'aquelarre');
+		await expect(page.getByTestId('login-brand')).toBeVisible();
+		const effects = await page.locator('html').evaluate((root) => {
+			const styles = getComputedStyle(root);
+			return {
+				gradient: styles.getPropertyValue('--accent-grad').trim(),
+				halo: styles.getPropertyValue('--halo').trim()
+			};
+		});
+		expect(effects.gradient).toContain('linear-gradient');
+		expect(effects.halo).toContain('radial-gradient');
+	});
+
+	test('en móvil oculta la escena decorativa y mantiene el formulario dentro del viewport', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: 390, height: 844 });
+		await page.goto('/login');
+
+		await expect(page.getByTestId('login-brand')).toBeHidden();
+		const card = page.locator('[data-login-state="password"]');
+		await expect(card).toBeVisible();
+		const box = await card.boundingBox();
+		expect(box).not.toBeNull();
+		expect(box!.x).toBeGreaterThanOrEqual(0);
+		expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+	});
+});
+
 test.describe('arranque sin red (casos límite §6.7)', () => {
 	test('backend caído al arrancar muestra pantalla honesta con Reintentar', async ({ page }) => {
 		await page.addInitScript(() => {

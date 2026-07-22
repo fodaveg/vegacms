@@ -1,0 +1,107 @@
+{
+	"$schema": "./theme.schema.json",
+	"themeSchemaVersion": 1,
+	"id": "aquelarre",
+	"name": "Aquelarre",
+	"group": "calidos",
+	"roles": {
+		"tint": "#6e3fb5",
+		"accent": "#f0842f",
+		"accentInk": "#201206"
+	},
+	"derived": {
+		"accentSoft": "color-mix(in oklab, #f6a63b 20%, var(--paper))",
+		"accentLine": "color-mix(in oklab, #f0842f 52%, var(--line))"
+	},
+	"modes": {
+		"light": {
+			"tintBg": "13%",
+			"neutrals": {
+				"ink-2": "#68625f"
+			}
+		},
+		"dark": {
+			"neutrals": {
+				"bg": "#0d0913",
+				"sidebar": "#100c17",
+				"paper": "#17121f",
+				"surface-2": "#221a2d",
+				"surface": "#2a2034",
+				"btn": "#2e2136",
+				"active": "#382845"
+			}
+		}
+	},
+	"effects": {
+		"fillGrad": {
+			"angle": 115,
+			"stops": [
+				{
+					"color": "#f6a63b",
+					"at": "0%"
+				},
+				{
+					"color": "#f0842f",
+					"at": "42%"
+				},
+				{
+					"color": "#e4583c",
+					"at": "75%"
+				},
+				{
+					"color": "#dd4f52",
+					"at": "100%"
+				}
+			]
+		},
+		"strokeGrad": {
+			"angle": 100,
+			"stops": [
+				{
+					"color": "#7ac943",
+					"at": "0%"
+				},
+				{
+					"color": "#3fbf8f",
+					"at": "38%"
+				},
+				{
+					"color": "#8a7ae0",
+					"at": "74%"
+				},
+				{
+					"color": "#b05fd6",
+					"at": "100%"
+				}
+			]
+		},
+		"halo": [
+			{
+				"size": "125% 72%",
+				"at": "86% -14%",
+				"color": "#f6a63b",
+				"alpha": "24%",
+				"extent": "48%"
+			},
+			{
+				"size": "110% 66%",
+				"at": "-12% 112%",
+				"color": "#9a7ae8",
+				"alpha": "17%",
+				"extent": "46%"
+			},
+			{
+				"size": "90% 50%",
+				"at": "50% 128%",
+				"color": "#e4583c",
+				"alpha": "12%",
+				"extent": "42%"
+			}
+		],
+		"brandStops": ["#f6a63b", "#e4583c", "#dd4f52"],
+		"edgeOpacity": 0.7,
+		"slots": {
+			"fill": "fillGrad"
+		}
+	}
+}

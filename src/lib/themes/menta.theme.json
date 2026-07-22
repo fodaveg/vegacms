@@ -1,0 +1,12 @@
+{
+	"$schema": "./theme.schema.json",
+	"themeSchemaVersion": 1,
+	"id": "menta",
+	"name": "Menta",
+	"group": "verdes",
+	"roles": {
+		"tint": "#2f9e73",
+		"accent": "#2f9e73",
+		"accentInk": "#08201a"
+	}
+}

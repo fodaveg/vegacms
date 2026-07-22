@@ -1,0 +1,12 @@
+{
+	"$schema": "./theme.schema.json",
+	"themeSchemaVersion": 1,
+	"id": "tinta",
+	"name": "Tinta",
+	"group": "frios",
+	"roles": {
+		"tint": "#6ea3f0",
+		"accent": "#6ea3f0",
+		"accentInk": "#0e1a2e"
+	}
+}

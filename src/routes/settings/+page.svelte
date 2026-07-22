@@ -71,7 +71,7 @@
 	const ctx = getVegaContext();
 
 	/**
-	 * Sección "Apariencia" (Fase F7w-a, "encender los temas"): selector de tema (5 opciones del
+	 * Sección "Apariencia" (Fase F7w-a, "encender los temas"): selector del catálogo completo
 	 * motor P7, `THEMES`) + toggle de modo claro/oscuro. NO usa el store `theme.svelte.ts` de P7
 	 * (todavía no adoptado como runtime, ver cabecera de `theme/apply.ts`) — solo consume sus datos
 	 * estáticos (`THEMES`/`FALLBACK_THEME`) y llama a los setters de `theme/apply.ts`, el mismo
@@ -212,7 +212,7 @@
 						     (ver su cabecera) — esto pinta el swatch con el propio dato, legítimo. -->
 						<span
 							class="vega-theme-swatch-dot"
-							style={`background-color: ${swatch.accent}`}
+							style={`background: ${swatch.fill}`}
 							aria-hidden="true"
 						></span>
 						{swatch.name}
@@ -372,7 +372,13 @@
 		color: var(--ink-2);
 	}
 
-	.vega-theme-picker,
+	.vega-theme-picker {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+		flex: 1 1 32rem;
+		gap: 0.4rem;
+	}
+
 	.vega-mode-toggle {
 		display: flex;
 		flex-wrap: wrap;
@@ -390,6 +396,7 @@
 		background: var(--surface);
 		color: var(--ink);
 		font-size: 0.8rem;
+		min-height: 36px;
 		cursor: pointer;
 	}
 
@@ -400,10 +407,17 @@
 	}
 
 	.vega-theme-swatch-dot {
-		width: 0.7rem;
-		height: 0.7rem;
+		width: 0.8rem;
+		height: 0.8rem;
 		border-radius: 50%;
 		flex-shrink: 0;
+	}
+
+	@media (pointer: coarse) {
+		.vega-theme-swatch,
+		.vega-mode-toggle button {
+			min-height: 44px;
+		}
 	}
 
 	.vega-backend-section {

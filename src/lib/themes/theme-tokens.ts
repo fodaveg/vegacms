@@ -18,7 +18,7 @@
 
 /** Agrupación temática de §3 (columna "Familia" de la tabla del contrato). */
 export type TokenFamily =
-	'papel' | 'lineas' | 'tinta' | 'marca' | 'semanticos' | 'forma' | 'densidad';
+	'papel' | 'lineas' | 'tinta' | 'marca' | 'efectos' | 'semanticos' | 'forma' | 'densidad';
 
 export interface ThemeToken {
 	/** Nombre del custom property SIN el prefijo `--` (p.ej. `"ink"` para `var(--ink)`). */
@@ -29,15 +29,14 @@ export interface ThemeToken {
 	/**
 	 * `true` si un `<id>.theme.json` puede declararlo/pisarlo (roles del tema o
 	 * `modes.<modo>.neutrals`). `false` = lo fija el sistema (semánticos compartidos, densidad,
-	 * forma/tipo) o se deriva de otros tokens (`accent-soft`/`accent-hover`/…) — un tema NUNCA
-	 * lo escribe directamente.
+	 * forma/tipo) o se deriva de otros tokens (`accent-soft`/`accent-hover`/…). Los tokens de
+	 * efectos son escribibles por el bloque opcional `effects` del tema.
 	 */
 	readonly themeWritable: boolean;
 }
 
 /**
- * El vocabulario CERRADO (§3), en el orden de la tabla del contrato. 41 tokens: 7 papel/fondos +
- * 4 líneas + 4 tinta + 6 marca + 8 semánticos (4 pares texto/`-soft`) + 4 forma/tipo + 8 densidad.
+ * El vocabulario CERRADO (§3), en el orden de la tabla del contrato.
  */
 export const THEME_TOKENS: readonly ThemeToken[] = [
 	// ————— Papel/fondos —————
@@ -97,6 +96,62 @@ export const THEME_TOKENS: readonly ThemeToken[] = [
 		family: 'marca',
 		description: 'Hover de relleno (derivado).',
 		themeWritable: false
+	},
+	{
+		name: 'accent-line',
+		family: 'marca',
+		description: 'Línea de marca tenue para contornos y separadores.',
+		themeWritable: true
+	},
+
+	// ————— Efectos de marca (opcionales por tema, con fallback sólido global) —————
+	{
+		name: 'accent-grad',
+		family: 'efectos',
+		description: 'Gradiente principal del tema.',
+		themeWritable: true
+	},
+	{
+		name: 'sheen',
+		family: 'efectos',
+		description: 'Gradiente espectral secundario.',
+		themeWritable: true
+	},
+	{
+		name: 'accent-fill',
+		family: 'efectos',
+		description: 'Pintura enrutada al relleno primario.',
+		themeWritable: true
+	},
+	{
+		name: 'halo',
+		family: 'efectos',
+		description: 'Atmósfera radial de la marca.',
+		themeWritable: true
+	},
+	{
+		name: 'brand-a',
+		family: 'efectos',
+		description: 'Primera parada cromática de marca.',
+		themeWritable: true
+	},
+	{
+		name: 'brand-b',
+		family: 'efectos',
+		description: 'Segunda parada cromática de marca.',
+		themeWritable: true
+	},
+	{
+		name: 'brand-c',
+		family: 'efectos',
+		description: 'Tercera parada cromática de marca.',
+		themeWritable: true
+	},
+	{
+		name: 'brand-edge-opacity',
+		family: 'efectos',
+		description: 'Opacidad de la firma espectral de borde.',
+		themeWritable: true
 	},
 
 	// ————— Semánticos (×modo, compartidos por todos los temas, D-P7.2) —————

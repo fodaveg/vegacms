@@ -1,0 +1,12 @@
+{
+	"$schema": "./theme.schema.json",
+	"themeSchemaVersion": 1,
+	"id": "lavanda",
+	"name": "Lavanda",
+	"group": "pastel-firma-mono",
+	"roles": {
+		"tint": "#8f84cf",
+		"accent": "#8f84cf",
+		"accentInk": "#1a1630"
+	}
+}
