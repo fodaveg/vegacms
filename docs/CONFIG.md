@@ -8,6 +8,13 @@ Vega resuelve la URL de su backend PocketBase en runtime, con **tres niveles de 
 
 Un valor inválido en cualquiera de los dos primeros niveles (string vacío, URL malformada, sin `http(s)://`) se ignora y cae al siguiente nivel — nunca bloquea el arranque (P3-L3).
 
+Una vez resuelta esa URL, Vega intenta leer el contrato versionado del proyecto
+en `GET /api/vega/discovery`. Si existe, PocketBase pasa a ser la fuente de
+verdad de la colección de autenticación, la extensión de auth y la identidad
+del registro de manifiesto. Por tanto, un montaje same-origin no necesita un
+`vega.config.json` específico del proyecto. Consulta el
+[contrato de proyecto v1](PROJECT-CONTRACT-v1.md).
+
 ## Pantalla de conexión (primer arranque)
 
 Sin tocar ningún fichero, puedes apuntar Vega a cualquier PocketBase desde la propia app:
@@ -42,6 +49,9 @@ Crea `static/vega.config.json` con la siguiente estructura:
 - **`backendUrl`** (opcional, string): URL absoluta del servidor PocketBase (http:// o https://). Si está ausente o no es válido, Vega usa same-origin (el valor por defecto).
 
 - **`authCollection`** (opcional, string, L6): nombre de la colección de autenticación contra la que Vega autentica (`login`/`restoreSession`). Ausente ⇒ `'_superusers'` (default, modo superuser — comportamiento previo sin cambios). Cualquier otro valor activa el **modo editor**: la UI degrada la introspección de schema y bootstrap de colecciones (no puede hacerlo un editor) — el schema se sirve desde un snapshot cacheado que un superuser guarda en `/settings`. Útil para dar acceso a un cliente NO técnico con una colección auth dedicada, p. ej. `vega_editors` (ver [Autenticación en Vega y rol editor](POCKETBASE-INTEGRATION.md#autenticación-en-vega-y-rol-editor)).
+
+  Si el PocketBase expone el contrato v1, este valor se descubre del servidor;
+  solo hace falta mantenerlo aquí para servidores legacy o como recuperación.
 
 - **`authApiBasePath`** (opcional, string, L6): base relativa de la extensión de autenticación
   fuerte instalada en ESE PocketBase, por ejemplo `/api/vega-auth`. Al definirla, Vega activa

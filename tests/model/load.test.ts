@@ -117,6 +117,52 @@ describe('11. Ciclo completo con memory (§9.11)', () => {
 		]);
 	});
 
+	test('contrato v1: el registro key=default gana a cualquier registro legacy', async () => {
+		const port = await loggedInPort(virginSeed());
+		await port.ensureCollections([VEGA_COLLECTION]);
+		await port.create('vega', {
+			manifest: { schemaVersion: 1, site: { name: 'Legacy' } }
+		});
+		await port.create('vega', {
+			key: 'default',
+			manifestVersion: 1,
+			manifest: { schemaVersion: 1, site: { name: 'Canónico' } }
+		});
+
+		const model = await loadContentModel(port);
+
+		expect(model.site.name).toBe('Canónico');
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('contrato v1: una key descubierta no-default gobierna lectura y escritura', async () => {
+		const basePort = await loggedInPort(virginSeed());
+		const port: BackendPort = { ...basePort, manifestKey: 'fodaveg-main' };
+		await port.ensureCollections([VEGA_COLLECTION]);
+		await port.create('vega', {
+			key: 'default',
+			manifestVersion: 1,
+			manifest: { schemaVersion: 1, site: { name: 'Otro proyecto' } }
+		});
+		await port.create('vega', {
+			key: 'fodaveg-main',
+			manifestVersion: 1,
+			manifest: { schemaVersion: 1, site: { name: 'Fodaveg' } }
+		});
+
+		expect((await loadContentModel(port)).site.name).toBe('Fodaveg');
+		await saveManifest(port, { schemaVersion: 1, site: { name: 'Fodaveg editado' } });
+
+		const records = await port.list('vega', { perPage: 10 });
+		const byKey = Object.fromEntries(records.items.map((record) => [record.values.key, record]));
+		expect((byKey.default.values.manifest as { site: { name: string } }).site.name).toBe(
+			'Otro proyecto'
+		);
+		expect((byKey['fodaveg-main'].values.manifest as { site: { name: string } }).site.name).toBe(
+			'Fodaveg editado'
+		);
+	});
+
 	test('saveManifest con JSON inválido → rechaza SIN escribir (el registro no cambia)', async () => {
 		const port = await loggedInPort(virginSeed());
 		await port.ensureCollections([VEGA_COLLECTION]);
@@ -144,6 +190,8 @@ describe('11. Ciclo completo con memory (§9.11)', () => {
 
 		const page = await port.list('vega', { perPage: 2 });
 		expect(page.totalItems).toBe(1);
+		expect(page.items[0].values.key).toBe('default');
+		expect(page.items[0].values.manifestVersion).toBe(1);
 
 		const model = await loadContentModel(port);
 		expect(model.site.name).toBe('Después');

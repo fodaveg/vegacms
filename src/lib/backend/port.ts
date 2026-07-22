@@ -50,6 +50,8 @@ export interface BackendPort {
 	readonly capabilities: Capabilities;
 	/** Presente solo cuando `capabilities.strongAuth === true`. */
 	readonly strongAuth?: StrongAuthPort;
+	/** Identidad del registro de manifiesto publicada por el backend; ausente = `default`. */
+	readonly manifestKey?: string;
 
 	// ——— Auth (§4.1) ———
 	login(credentials: { email: string; password: string }): Promise<Session>;

@@ -70,12 +70,17 @@ function pbCollection(name: string, fields: Record<string, unknown>[]): Record<s
 
 /** Enrutador de `fetch` mockeado por PATHNAME exacto (ignora query string): cada test declara
  *  solo los endpoints que necesita, cualquier otro lanza (nunca "red real" por accidente). */
-function stubFetchRoutes(routes: Record<string, () => Response>): { pathnames: string[] } {
+function stubFetchRoutes(routes: Record<string, () => Response>): {
+	pathnames: string[];
+	urls: string[];
+} {
 	const pathnames: string[] = [];
+	const urls: string[] = [];
 	vi.stubGlobal(
 		'fetch',
 		vi.fn(async (input: RequestInfo | URL) => {
 			const raw = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+			urls.push(raw);
 			const { pathname } = new URL(raw);
 			pathnames.push(pathname);
 			const handler = routes[pathname];
@@ -83,7 +88,7 @@ function stubFetchRoutes(routes: Record<string, () => Response>): { pathnames: s
 			return handler();
 		})
 	);
-	return { pathnames };
+	return { pathnames, urls };
 }
 
 afterEach(() => {
@@ -133,7 +138,10 @@ describe('modo superuser (default, sin authCollection) — camino previo INTACTO
 
 describe('modo editor (authCollection: vega_editors, L6a/L6b)', () => {
 	test('capabilities.schemaDiscovery/schemaBootstrap en false', () => {
-		const port = createPocketBaseBackend({ url: BASE_URL, authCollection: 'vega_editors' });
+		const port = createPocketBaseBackend({
+			url: BASE_URL,
+			authCollection: 'vega_editors'
+		});
 		expect(port.capabilities.schemaDiscovery).toBe(false);
 		expect(port.capabilities.schemaBootstrap).toBe(false);
 		// El resto de capabilities no depende de quién se autentica (ver `computeCapabilities`).
@@ -171,7 +179,7 @@ describe('modo editor (authCollection: vega_editors, L6a/L6b)', () => {
 
 	test('listContentTypes sirve del schemaSnapshot cacheado, SIN llamar jamás a /api/collections', async () => {
 		const snapshotTypes = [{ name: 'posts', readonly: false, fields: [] }];
-		const { pathnames } = stubFetchRoutes({
+		const { pathnames, urls } = stubFetchRoutes({
 			'/api/collections/vega_editors/auth-with-password': () =>
 				jsonResponse({
 					token: fakeJwt({ exp: futureExp() }),
@@ -187,7 +195,11 @@ describe('modo editor (authCollection: vega_editors, L6a/L6b)', () => {
 				})
 		});
 
-		const port = createPocketBaseBackend({ url: BASE_URL, authCollection: 'vega_editors' });
+		const port = createPocketBaseBackend({
+			url: BASE_URL,
+			authCollection: 'vega_editors',
+			manifestKey: 'fodaveg-main'
+		});
 		await port.login({ email: 'editor@example.com', password: 'x' });
 
 		const first = await port.listContentTypes();
@@ -195,6 +207,9 @@ describe('modo editor (authCollection: vega_editors, L6a/L6b)', () => {
 
 		expect(first).toEqual(snapshotTypes);
 		expect(second).toEqual(snapshotTypes);
+		expect(port.manifestKey).toBe('fodaveg-main');
+		const manifestRequest = urls.find((url) => new URL(url).pathname.endsWith('/vega/records'));
+		expect(new URL(manifestRequest!).searchParams.get('filter')).toContain('fodaveg-main');
 		// Caché: una sola lectura de red del registro `vega`, aunque `listContentTypes` se haya
 		// llamado dos veces (ver `cachedEditorSnapshot` en `index.ts`).
 		expect(pathnames.filter((p) => p === '/api/collections/vega/records')).toHaveLength(1);

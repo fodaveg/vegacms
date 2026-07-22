@@ -70,6 +70,11 @@ export interface EnsureResult {
 export const VEGA_COLLECTION: CollectionSpec = {
 	name: 'vega',
 	fields: [
+		// Opcional en el bootstrap generico para poder abrir instalaciones v1 con
+		// registros historicos sin clave; el contrato de proyecto recomienda
+		// hacerlo required + UNIQUE en PocketBase y Vega lo escribe al guardar.
+		{ name: 'key', type: 'text', max: 64 },
+		{ name: 'manifestVersion', type: 'number' },
 		{ name: 'manifest', type: 'json' },
 		// L6b (rol editor): snapshot cacheado del `ContentType[]` que un superuser deja al
 		// guardar desde `/settings` (`saveManifest`, `model/load.ts`). Aditivo: un registro
@@ -78,6 +83,12 @@ export const VEGA_COLLECTION: CollectionSpec = {
 		{ name: 'schemaSnapshot', type: 'json' }
 	]
 };
+
+/** Identidad canónica del contrato de proyecto v1. No se elige "el primer"
+ * registro: cada instalación publica exactamente este registro estable. */
+export const VEGA_PROJECT_KEY_FIELD = 'key';
+export const VEGA_PROJECT_KEY = 'default';
+export const VEGA_MANIFEST_VERSION_FIELD = 'manifestVersion';
 
 /** `true` si `name` cae dentro del prefijo reservado (§A.4.3): `'vega'` o `/^vega_/`. */
 export function isReservedCollectionName(name: string): boolean {

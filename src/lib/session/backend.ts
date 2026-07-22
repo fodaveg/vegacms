@@ -107,6 +107,7 @@ import {
 	resolveBackendUrl,
 	type VegaConfig
 } from './backend-config';
+import { applyProjectDiscovery, fetchProjectDiscovery } from './project-discovery';
 import { readAuthCollectionOverride, readBackendOverride } from './backend-override';
 import { DEMO_CREDENTIALS, DEMO_SEED, DEMO_SEED_WITH_MEDIA } from './demo-seed';
 
@@ -194,9 +195,19 @@ async function createInstance(): Promise<BackendPort> {
 	// lectura best-effort ya no se puede omitir aunque URL y colección tengan override runtime.
 	const config = await fetchVegaConfig();
 	const url = resolveBackendUrl({ origin: window.location.origin, config, override });
-	const authCollection = resolveAuthCollection({ config, override: authCollectionOverride });
-	const authApiBasePath = resolveAuthApiBasePath(config);
-	return createPocketBaseBackend({ url, authCollection, authApiBasePath });
+	const discovery = await fetchProjectDiscovery(url);
+	const projectConfig = applyProjectDiscovery(config, discovery);
+	const authCollection = resolveAuthCollection({
+		config: projectConfig,
+		override: authCollectionOverride
+	});
+	const authApiBasePath = resolveAuthApiBasePath(projectConfig);
+	return createPocketBaseBackend({
+		url,
+		authCollection,
+		authApiBasePath,
+		manifestKey: projectConfig?.manifestKey
+	});
 }
 
 function useMemoryAdapter(): boolean {

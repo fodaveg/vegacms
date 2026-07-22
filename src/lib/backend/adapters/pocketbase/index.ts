@@ -27,7 +27,12 @@ import { normalizeFieldValue } from '../../normalize';
 import { assertContentTypeWritable, checkUnwritableFields } from '../../write-guards';
 import { validateFileFieldInput } from '../../file-guards';
 import type { CollectionSpec, EnsureResult } from '../../collections';
-import { checkReservedNames, VEGA_COLLECTION } from '../../collections';
+import {
+	checkReservedNames,
+	VEGA_COLLECTION,
+	VEGA_PROJECT_KEY,
+	VEGA_PROJECT_KEY_FIELD
+} from '../../collections';
 import { mapPocketBaseError } from './errors';
 import { mapCollectionsToContentTypes } from './schema';
 import { compileFilter, compileSort } from './query';
@@ -72,13 +77,16 @@ export interface PocketBaseBackendOptions {
 	authCollection?: string;
 	/** Base de las rutas de auth fuerte (p. ej. `/api/vega-auth` o `/api/fodaveg`). */
 	authApiBasePath?: string | null;
+	/** Clave estable del registro `vega` que contiene manifiesto y snapshot. */
+	manifestKey?: string;
 }
 
 /** Crea un `BackendPort` sobre un PocketBase real en `url`. */
 export function createPocketBaseBackend({
 	url,
 	authCollection = DEFAULT_AUTH_COLLECTION,
-	authApiBasePath = null
+	authApiBasePath = null,
+	manifestKey = VEGA_PROJECT_KEY
 }: PocketBaseBackendOptions): BackendPort {
 	const pb = new PocketBase(url);
 	// LANDMINE (ver README): el SDK cancela peticiones "duplicadas" en vuelo por defecto. La
@@ -86,6 +94,7 @@ export function createPocketBaseBackend({
 	pb.autoCancellation(false);
 
 	const normalizedAuthApiBasePath = authApiBasePath?.trim().replace(/\/+$/, '') || null;
+	const normalizedManifestKey = manifestKey.trim() || VEGA_PROJECT_KEY;
 	const CAPABILITIES = computeCapabilities(authCollection, normalizedAuthApiBasePath !== null);
 	const host = hostOf(url);
 	const authSubscribers = new Set<(s: Session | null, reason: AuthChangeReason) => void>();
@@ -274,7 +283,20 @@ export function createPocketBaseBackend({
 	async function loadSchemaSnapshotFromVegaRecord(): Promise<ContentType[]> {
 		let result;
 		try {
-			result = await pb.collection(VEGA_COLLECTION.name).getList(1, 1);
+			try {
+				result = await pb.collection(VEGA_COLLECTION.name).getList(1, 1, {
+					filter: pb.filter(`${VEGA_PROJECT_KEY_FIELD} = {:key}`, {
+						key: normalizedManifestKey
+					})
+				});
+				if (result.items.length === 0) {
+					result = await pb.collection(VEGA_COLLECTION.name).getList(1, 1);
+				}
+			} catch (err) {
+				// Compatibilidad con colecciones `vega` v1 antiguas, sin campo `key`.
+				if (!(err instanceof ClientResponseError) || err.status !== 400) throw err;
+				result = await pb.collection(VEGA_COLLECTION.name).getList(1, 1);
+			}
 		} catch (err) {
 			if (err instanceof ClientResponseError && (err.status === 404 || err.status === 403)) {
 				const reason =
@@ -368,6 +390,7 @@ export function createPocketBaseBackend({
 	const port: BackendPort = {
 		capabilities: CAPABILITIES,
 		strongAuth,
+		manifestKey: normalizedManifestKey,
 
 		async login(credentials) {
 			try {

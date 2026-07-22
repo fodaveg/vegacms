@@ -63,6 +63,11 @@ Si lo ves, vuelve a Settings → CORS origins en PocketBase y asegúrate de que 
 
 ## Configuración de origen en Vega
 
+Antes de configurar metadatos del proyecto en la SPA, comprueba si tu backend
+puede exponer el [contrato de proyecto v1](PROJECT-CONTRACT-v1.md). Con ese
+endpoint, Vega solo necesita localizar PocketBase; la auth, el manifiesto y el
+singleton de ajustes se descubren desde la base de datos conectada.
+
 Vega detecta automáticamente el origen de PocketBase de dos formas:
 
 ### 1. Same-origin (default)

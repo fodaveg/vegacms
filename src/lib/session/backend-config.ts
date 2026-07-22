@@ -26,6 +26,8 @@
 export interface VegaConfig {
 	backendUrl?: string;
 	authCollection?: string;
+	/** Clave estable del registro `vega` que contiene el manifiesto del proyecto. */
+	manifestKey?: string;
 	/**
 	 * Base RELATIVA de la extensión de auth fuerte instalada en el mismo PocketBase.
 	 * Ejemplos: `/api/vega-auth` (extensión genérica) o `/api/fodaveg` (admin bespoke).

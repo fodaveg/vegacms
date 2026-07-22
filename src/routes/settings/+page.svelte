@@ -58,7 +58,7 @@
 	import { getVegaContext } from '$lib/app-context';
 	import { VEGA_COLLECTION, VegaError, type ContentType, type JsonValue } from '$lib/backend';
 	import { computeCollectionState } from '$lib/backend/collection-state';
-	import { saveManifest } from '$lib/model/load';
+	import { listManifestRecords, saveManifest } from '$lib/model/load';
 	import BackendUrlForm from '$lib/session/BackendUrlForm.svelte';
 	import SecuritySettings from '$lib/session/SecuritySettings.svelte';
 	import { setMode, setTheme } from '$lib/theme/apply';
@@ -128,8 +128,9 @@
 		try {
 			const discovered = await ctx.port.listContentTypes();
 			let manifestRaw: JsonValue | null = null;
-			if (discovered.some((t) => t.name === VEGA_COLLECTION.name)) {
-				const page = await ctx.port.list(VEGA_COLLECTION.name, { perPage: 1 });
+			const vegaType = discovered.find((type) => type.name === VEGA_COLLECTION.name);
+			if (vegaType) {
+				const page = await listManifestRecords(ctx.port, vegaType, 1);
 				manifestRaw = page.items.length > 0 ? (page.items[0].values[MANIFEST_FIELD] ?? null) : null;
 			}
 			types = discovered;

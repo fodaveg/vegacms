@@ -6,8 +6,14 @@
  */
 
 import type { BackendPort } from '$lib/backend/port';
-import type { JsonValue, RecordInput } from '$lib/backend/types';
-import { VEGA_COLLECTION } from '$lib/backend/collections';
+import type { ContentType, JsonValue, RecordInput } from '$lib/backend/types';
+import type { Query } from '$lib/backend/query';
+import {
+	VEGA_COLLECTION,
+	VEGA_MANIFEST_VERSION_FIELD,
+	VEGA_PROJECT_KEY,
+	VEGA_PROJECT_KEY_FIELD
+} from '$lib/backend/collections';
 import type { ContentModel } from './types';
 import { resolveContentModel } from './resolve';
 import { validateManifestStrict, type ManifestValidationErrorEntry } from './validate';
@@ -19,6 +25,45 @@ const MANIFEST_FIELD = 'manifest';
 /** Nombre del campo `json` de snapshot de esquema del registro `vega` (L6b): ver cabecera de
  *  `saveManifest` para cuándo se escribe. */
 const SCHEMA_SNAPSHOT_FIELD = 'schemaSnapshot';
+
+/** Query exacta del registro canónico. Servidores anteriores a este contrato no
+ * tienen `key`; para ellos conserva temporalmente la lectura del primer registro. */
+export function manifestRecordQuery(
+	vegaType: ContentType,
+	perPage: number,
+	manifestKey = VEGA_PROJECT_KEY
+): Query {
+	if (!vegaType.fields.some((field) => field.name === VEGA_PROJECT_KEY_FIELD)) return { perPage };
+	return {
+		perPage,
+		filter: {
+			kind: 'cond',
+			field: VEGA_PROJECT_KEY_FIELD,
+			op: 'eq',
+			value: manifestKey
+		}
+	};
+}
+
+/** Lee primero el registro estable y, si la coleccion ya tiene `key` pero sus
+ * registros son anteriores al contrato, recupera el primer registro legacy. */
+export async function listManifestRecords(
+	port: BackendPort,
+	vegaType: ContentType,
+	perPage: number
+) {
+	const canonical = await port.list(
+		VEGA_COLLECTION.name,
+		manifestRecordQuery(vegaType, perPage, port.manifestKey?.trim() || VEGA_PROJECT_KEY)
+	);
+	if (
+		canonical.items.length > 0 ||
+		!vegaType.fields.some((field) => field.name === VEGA_PROJECT_KEY_FIELD)
+	) {
+		return canonical;
+	}
+	return port.list(VEGA_COLLECTION.name, { perPage });
+}
 
 /**
  * Rechazo de `saveManifest` cuando el manifiesto no pasa `validateManifestStrict` (§6.3.1): la
@@ -51,11 +96,12 @@ export async function loadContentModel(
 ): Promise<ContentModel> {
 	const types = await port.listContentTypes();
 
-	if (!types.some((t) => t.name === VEGA_COLLECTION.name)) {
+	const vegaType = types.find((t) => t.name === VEGA_COLLECTION.name);
+	if (!vegaType) {
 		return resolveContentModel({ types, manifestRaw: null, knownIcons: opts?.knownIcons });
 	}
 
-	const page = await port.list(VEGA_COLLECTION.name, { perPage: 2 });
+	const page = await listManifestRecords(port, vegaType, 2);
 
 	let manifestRaw: JsonValue | null = null;
 	if (page.items.length > 0) {
@@ -108,12 +154,19 @@ export async function saveManifest(port: BackendPort, manifest: JsonValue): Prom
 		types = await port.listContentTypes();
 	}
 
+	const vegaType = types.find((type) => type.name === VEGA_COLLECTION.name)!;
 	const body: RecordInput = { [MANIFEST_FIELD]: versioned };
+	if (vegaType.fields.some((field) => field.name === VEGA_PROJECT_KEY_FIELD)) {
+		body[VEGA_PROJECT_KEY_FIELD] = port.manifestKey?.trim() || VEGA_PROJECT_KEY;
+	}
+	if (vegaType.fields.some((field) => field.name === VEGA_MANIFEST_VERSION_FIELD)) {
+		body[VEGA_MANIFEST_VERSION_FIELD] = 1;
+	}
 	if (port.capabilities.schemaDiscovery) {
 		body[SCHEMA_SNAPSHOT_FIELD] = types as unknown as JsonValue;
 	}
 
-	const page = await port.list(VEGA_COLLECTION.name, { perPage: 1 });
+	const page = await listManifestRecords(port, vegaType, 1);
 	if (page.items.length > 0) {
 		await port.update(VEGA_COLLECTION.name, page.items[0].id, body);
 	} else {
