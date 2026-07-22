@@ -247,6 +247,25 @@ export const es = {
 	'form.editor.image': 'Imagen',
 	'form.editor.imagePrompt': 'URL de la imagen',
 	'form.editor.imageAltPrompt': 'Texto alternativo de la imagen',
+	'form.editor.heading1': 'Título 1',
+	'form.editor.heading2': 'Título 2',
+	// L11: mesa de trabajo Markdown crudo + prueba segura en vivo. Los modos son acciones de
+	// visualización, no cambian ni reserializan el valor del campo.
+	'form.markdown.modeLabel': 'Vista del editor',
+	'form.markdown.mode.write': 'Escribir',
+	'form.markdown.mode.split': 'Dividido',
+	'form.markdown.mode.preview': 'Vista',
+	'form.markdown.previewRegion': 'Vista previa de Markdown',
+	'form.markdown.previewEmpty': 'La vista previa aparecerá aquí.',
+	'form.markdown.previewLoading': 'Preparando la vista previa…',
+	'form.markdown.wordCountOne': '1 palabra',
+	'form.markdown.wordCountMany': '{count} palabras',
+	'form.markdown.shortcutHint': 'Markdown · ⌘/Ctrl B · I · K',
+	'form.markdown.placeholderText': 'texto',
+	'form.markdown.placeholderCode': 'código',
+	'form.markdown.placeholderAlt': 'descripción',
+	'form.markdown.unsafeUri':
+		'El Markdown contiene HTML o una dirección no permitida. Usa sintaxis Markdown y enlaces http, https, mailto o relativos.',
 
 	// ————— Listado (Fase 4c del contrato P4) —————
 	'list.empty.title': 'Aquí no hay nada todavía',

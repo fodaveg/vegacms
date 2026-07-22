@@ -235,6 +235,23 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'form.editor.image': 'Image',
 	'form.editor.imagePrompt': 'Image URL',
 	'form.editor.imageAltPrompt': 'Image alt text',
+	'form.editor.heading1': 'Heading 1',
+	'form.editor.heading2': 'Heading 2',
+	'form.markdown.modeLabel': 'Editor view',
+	'form.markdown.mode.write': 'Write',
+	'form.markdown.mode.split': 'Split',
+	'form.markdown.mode.preview': 'Preview',
+	'form.markdown.previewRegion': 'Markdown preview',
+	'form.markdown.previewEmpty': 'The preview will appear here.',
+	'form.markdown.previewLoading': 'Preparing preview…',
+	'form.markdown.wordCountOne': '1 word',
+	'form.markdown.wordCountMany': '{count} words',
+	'form.markdown.shortcutHint': 'Markdown · ⌘/Ctrl B · I · K',
+	'form.markdown.placeholderText': 'text',
+	'form.markdown.placeholderCode': 'code',
+	'form.markdown.placeholderAlt': 'description',
+	'form.markdown.unsafeUri':
+		'The Markdown contains HTML or a disallowed address. Use Markdown syntax and http, https, mailto, or relative links.',
 
 	// ————— List (P4 contract, Phase 4c) —————
 	'list.empty.title': "There's nothing here yet",

@@ -25,12 +25,11 @@
  * el tipo de dominio correcto, persiste en un viaje redondo, y un campo `readonly` de verdad
  * (`authors.joinedAt`) nunca acepta edición.
  *
- * **Añadido en F5-d (contrato P5)**: el editor TipTap real de los widgets `richtext` (`content`)
- * y `markdown` (`summary`), sobre los dos campos añadidos a `posts` en la semilla (ver
- * `session/demo-seed.ts`, sección "Añadido en F5-d"). El contenteditable de TipTap no es un
- * control HTML nativo `<input>`/`<textarea>`, así que se localiza por `role="textbox"` (el mismo
- * que fija `editorProps.attributes` en ambos widgets) en vez de `.fill()`: requiere clic + tecleo
- * real (`pressSequentially`), documentado en la cabecera de ambos widgets.
+ * **Añadido en F5-d (contrato P5), actualizado en L11**: `richtext` (`content`) conserva el editor
+ * TipTap WYSIWYG; `markdown` (`summary`) usa un `<textarea>` de Markdown CRUDO con helper y una
+ * prueba TipTap segura en vivo. El primero requiere clic + tecleo real (`pressSequentially`); el
+ * segundo es un control nativo y se prueba con `.fill()`/selecciones, además de comprobar que la
+ * preview no sustituye al valor fuente.
  *
  * **Añadido en F5-e (contrato P5)**: el widget `relation` real, sobre los tres campos añadidos a
  * `posts` en la semilla (`session/demo-seed.ts`, sección "Añadido en F5-e") — búsqueda por título
@@ -496,7 +495,7 @@ test.describe('widgets escalares dedicados (F5-b)', () => {
 	});
 });
 
-test.describe('editor TipTap real: richtext y markdown (F5-d)', () => {
+test.describe('editores de texto largo: richtext TipTap y Markdown asistido (F5-d + L11)', () => {
 	test('richtext (content): el HTML hostil ya guardado se sanea al montar, nunca se ejecuta', async ({
 		page
 	}) => {
@@ -515,15 +514,77 @@ test.describe('editor TipTap real: richtext y markdown (F5-d)', () => {
 		await expect(contentField.locator('strong', { hasText: 'mundo' })).toBeVisible();
 	});
 
-	test('markdown (summary): el Markdown crudo ya guardado se parsea de verdad al montar', async ({
+	test('markdown (summary): muestra el crudo byte-exacto y su prueba segura en vivo', async ({
 		page
 	}) => {
 		await loginAndSettle(page);
 		await page.goto('/c/posts/post_1');
 
 		const summaryField = page.locator('[data-field="summary"]');
+		await expect(summaryField.getByRole('textbox', { name: 'Summary' })).toHaveValue(
+			'# Resumen\n\nAlgo de **texto**.'
+		);
 		await expect(summaryField.locator('h1', { hasText: 'Resumen' })).toBeVisible();
 		await expect(summaryField.locator('strong', { hasText: 'texto' })).toBeVisible();
+	});
+
+	test('markdown: cambia entre Escribir/Dividido/Vista sin alterar el contenido', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts/post_1');
+
+		const summaryField = page.locator('[data-field="summary"]');
+		const source = summaryField.getByRole('textbox', { name: 'Summary' });
+		const preview = summaryField.getByRole('region', { name: 'Vista previa de Markdown' });
+		const original = await source.inputValue();
+
+		await summaryField.getByRole('button', { name: 'Escribir' }).click();
+		await expect(source).toBeVisible();
+		await expect(preview).toBeHidden();
+
+		await summaryField.getByRole('button', { name: 'Vista', exact: true }).click();
+		await expect(source).toBeHidden();
+		await expect(preview).toBeVisible();
+
+		await summaryField.getByRole('button', { name: 'Dividido' }).click();
+		await expect(source).toBeVisible();
+		await expect(preview).toBeVisible();
+		await expect(source).toHaveValue(original);
+	});
+
+	test('markdown: rechaza una URI peligrosa antes de propagarla o guardarla', async ({ page }) => {
+		await loginAndSettle(page);
+		await page.goto('/c/posts/post_1');
+
+		const summaryField = page.locator('[data-field="summary"]');
+		const source = summaryField.getByRole('textbox', { name: 'Summary' });
+		const save = page.getByRole('button', { name: 'Guardar' });
+		const original = await source.inputValue();
+
+		await source.fill(`${original}\n\n[peligro](javascript:alert(1))`);
+		await expect(summaryField.getByRole('alert')).toContainText(
+			'HTML o una dirección no permitida'
+		);
+		await expect(page.locator('.vega-editor-dirty')).toBeVisible();
+		expect(
+			await source.evaluate((element) => (element as HTMLTextAreaElement).validity.valid)
+		).toBe(false);
+		await save.click();
+		await expect(summaryField.getByRole('alert')).toBeVisible();
+		await expect(source).toHaveValue(`${original}\n\n[peligro](javascript:alert(1))`);
+		page.once('dialog', (dialog) => void dialog.dismiss());
+		await page.getByRole('button', { name: 'Entradas' }).click();
+		await expect(page).toHaveURL(/\/c\/posts\/post_1$/);
+		await expect(source).toHaveValue(`${original}\n\n[peligro](javascript:alert(1))`);
+
+		const safeValue = `${original}\n\n[seguro](https://example.com)`;
+		await source.fill(safeValue);
+		await expect(summaryField.getByRole('alert')).toBeHidden();
+		await expect(save).toBeEnabled();
+		await save.click();
+		await expect(source).toHaveValue(safeValue);
+		await expect(page.locator('.vega-editor-dirty')).toHaveCount(0);
 	});
 
 	test('crear un post: escribir en richtext (con negrita) y markdown, guardar, y que persista', async ({
@@ -542,8 +603,14 @@ test.describe('editor TipTap real: richtext y markdown (F5-d)', () => {
 
 		const summaryField = page.locator('[data-field="summary"]');
 		const summaryEditable = summaryField.getByRole('textbox', { name: 'Summary' });
-		await summaryEditable.click();
-		await summaryEditable.pressSequentially('Resumen escrito a mano');
+		await summaryEditable.fill('Resumen escrito a mano');
+		await summaryEditable.evaluate((element) => {
+			const textarea = element as HTMLTextAreaElement;
+			textarea.setSelectionRange(0, 'Resumen'.length);
+		});
+		await summaryField.getByRole('button', { name: 'Negrita' }).click();
+		await expect(summaryEditable).toHaveValue('**Resumen** escrito a mano');
+		await expect(summaryField.locator('strong', { hasText: 'Resumen' })).toBeVisible();
 
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
@@ -555,7 +622,7 @@ test.describe('editor TipTap real: richtext y markdown (F5-d)', () => {
 			page.locator('[data-field="content"] strong', { hasText: 'Texto enriquecido' })
 		).toBeVisible();
 		await expect(
-			page.locator('[data-field="summary"]').getByText('Resumen escrito a mano')
+			page.locator('[data-field="summary"] strong', { hasText: 'Resumen' })
 		).toBeVisible();
 
 		// Persistido de verdad (ver nota de cabecera): vuelve al listado (SPA) y navega atrás por el
@@ -570,7 +637,10 @@ test.describe('editor TipTap real: richtext y markdown (F5-d)', () => {
 			page.locator('[data-field="content"] strong', { hasText: 'Texto enriquecido' })
 		).toBeVisible();
 		await expect(
-			page.locator('[data-field="summary"]').getByText('Resumen escrito a mano')
+			page.locator('[data-field="summary"]').getByRole('textbox', { name: 'Summary' })
+		).toHaveValue('**Resumen** escrito a mano');
+		await expect(
+			page.locator('[data-field="summary"] strong', { hasText: 'Resumen' })
 		).toBeVisible();
 	});
 });
