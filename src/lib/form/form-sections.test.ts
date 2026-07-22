@@ -82,6 +82,20 @@ describe('buildFormSections (§4.9/§4.9b)', () => {
 		]);
 	});
 
+	test('campos hidden no se renderizan, aunque el override venga del manifiesto', () => {
+		const visible = makeField('image', 'Contenido');
+		const hiddenGrouped = { ...makeField('filename', 'Contenido'), hidden: true };
+		const hiddenOrphan = { ...makeField('legacy', 'GrupoFantasma'), hidden: true };
+		const type = makeType(
+			[hiddenGrouped, visible, hiddenOrphan],
+			[{ name: 'Contenido', columns: 1 }]
+		);
+
+		expect(buildFormSections(type)).toEqual([
+			{ group: 'Contenido', columns: 1, fields: [visible] }
+		]);
+	});
+
 	test('grupo declarado sin ningún campo real → sección con fields: [] (RecordForm la omite en el render)', () => {
 		const type = makeType([], [{ name: 'Vacío', columns: 2 }]);
 		expect(buildFormSections(type)).toEqual([{ group: 'Vacío', columns: 2, fields: [] }]);
