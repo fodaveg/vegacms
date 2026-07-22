@@ -26,6 +26,11 @@
 export interface VegaConfig {
 	backendUrl?: string;
 	authCollection?: string;
+	/**
+	 * Base RELATIVA de la extensión de auth fuerte instalada en el mismo PocketBase.
+	 * Ejemplos: `/api/vega-auth` (extensión genérica) o `/api/fodaveg` (admin bespoke).
+	 */
+	authApiBasePath?: string;
 }
 
 /**
@@ -110,4 +115,16 @@ export function resolveAuthCollection(opts: {
 	const trimmedCandidate = opts.config?.authCollection?.trim();
 	if (trimmedCandidate) return trimmedCandidate;
 	return DEFAULT_AUTH_COLLECTION;
+}
+
+/**
+ * Resuelve la base de auth fuerte. Es opt-in: ausente o inválida mantiene PocketBase vanilla.
+ * Solo se aceptan paths absolutos del MISMO backend (`/api/...`), nunca `//host` ni una URL
+ * externa; la URL del servidor ya se resuelve por `resolveBackendUrl` y así no se mezclan tokens
+ * de un PocketBase con endpoints de otro origen.
+ */
+export function resolveAuthApiBasePath(config: VegaConfig | null): string | null {
+	const value = config?.authApiBasePath?.trim().replace(/\/+$/, '');
+	if (!value || !value.startsWith('/') || value.startsWith('//')) return null;
+	return value;
 }

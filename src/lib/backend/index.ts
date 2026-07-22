@@ -19,8 +19,12 @@ export type {
 	RecordEvent,
 	RecordId,
 	RecordInput,
+	SecondFactorMethod,
 	Session,
+	StrongAuthLoginOutcome,
+	StrongAuthStatus,
 	ThumbSpec,
+	TotpEnrollment,
 	VegaRecord
 } from './types';
 
@@ -46,4 +50,4 @@ export { validateFileFieldInput } from './file-guards';
 export type { CollectionFieldSpec, CollectionSpec, EnsureResult } from './collections';
 export { checkReservedNames, isReservedCollectionName, VEGA_COLLECTION } from './collections';
 
-export type { BackendPort } from './port';
+export type { BackendPort, StrongAuthPort } from './port';

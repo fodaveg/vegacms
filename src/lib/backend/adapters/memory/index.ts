@@ -47,7 +47,8 @@ const CAPABILITIES: Capabilities = {
 	schemaDiscovery: true,
 	filePerRecord: true,
 	protectedFiles: false,
-	schemaBootstrap: true
+	schemaBootstrap: true,
+	strongAuth: false
 };
 
 const DEFAULT_USER_EMAIL = 'admin@vega.test';

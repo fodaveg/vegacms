@@ -7,6 +7,8 @@ Cómo instalar y ejecutar Vega desde cero, en desarrollo o producción.
 - Node.js 22 o superior
 - pnpm 11.11.0 o superior
 - PocketBase 0.26.0 o superior (solo para producción; no necesario en desarrollo)
+- PocketBase 0.39.7 y Go 1.26 o superiores solo si instalas o modificas la extensión opcional de
+  autenticación fuerte (la SPA sin esa extensión conserva el rango general ≥0.26)
 
 ## Desarrollo con backend en memoria
 
@@ -233,4 +235,4 @@ Gate completo (la suite que CI ejecuta en cada PR):
 pnpm gate
 ```
 
-Esto corre: check + lint + test + build + e2e.
+Esto corre: check + lint + tests TypeScript y Go + build + e2e.

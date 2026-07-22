@@ -13,10 +13,15 @@
  */
 
 import { getContext, setContext } from 'svelte';
-import type { BackendPort, Session } from '$lib/backend';
+import type { BackendPort, SecondFactorMethod, Session } from '$lib/backend';
 import { VegaError } from '$lib/backend';
 
 export type SessionStatus = 'loading' | 'ready' | 'network-error' | 'error';
+
+export interface MfaChallenge {
+	pending: string;
+	methods: SecondFactorMethod[];
+}
 
 export interface SessionStore {
 	/** Sesión activa, o `null` si no la hay (aún cargando, sin token, caducada o tras logout). */
@@ -37,6 +42,10 @@ export interface SessionStore {
 	readonly expired: boolean;
 	/** Último error de `login()`, para que el formulario lo pinte. `null` tras un intento exitoso. */
 	readonly loginError: VegaError | null;
+	/** La instancia configurada ofrece TOTP/recuperación/passkeys además de password. */
+	readonly strongAuthAvailable: boolean;
+	/** Reto abierto tras validar password, o `null` fuera del segundo paso. */
+	readonly mfaChallenge: MfaChallenge | null;
 	/** El `BackendPort` YA resuelto. Solo válido de leer tras un `restore()`/`login()` con sesión
 	 *  (que es justo cuando `VegaAppContext.port`, §2.1, puede necesitarlo — sesión garantizada,
 	 *  P3-L2). Lanza si se lee antes: bug de orquestación del layout, no un estado válido de UI. */
@@ -48,6 +57,10 @@ export interface SessionStore {
 	retryRestore(): Promise<void>;
 	/** Login (§3.1.2). Nunca lanza: el resultado se refleja en `session`/`loginError`. */
 	login(credentials: { email: string; password: string }): Promise<void>;
+	loginWithTotp(code: string): Promise<void>;
+	loginWithRecovery(code: string): Promise<void>;
+	loginWithPasskey(): Promise<void>;
+	cancelMfa(): void;
 	/** Logout (§3.1.5): `logout()` de P1 nunca falla. Limpia sesión vía `onAuthChange('logout')`. */
 	logout(): Promise<void>;
 	/** Descarta la bandera `expired` (la llamará el overlay de Fase 2b tras reautenticar). */
@@ -64,6 +77,8 @@ export function createSessionStore(getPort: () => Promise<BackendPort>): Session
 	let expired = $state(false);
 	let loginError = $state<VegaError | null>(null);
 	let restoreError = $state<VegaError | null>(null);
+	let strongAuthAvailable = $state(false);
+	let mfaChallenge = $state<MfaChallenge | null>(null);
 
 	// No reactivos a propósito: cachés internas de orquestación, no estado que la UI deba pintar.
 	let resolvedPort: BackendPort | null = null;
@@ -86,6 +101,7 @@ export function createSessionStore(getPort: () => Promise<BackendPort>): Session
 			});
 		}
 		resolvedPort = port;
+		strongAuthAvailable = port.capabilities.strongAuth && Boolean(port.strongAuth);
 		return port;
 	}
 
@@ -122,16 +138,61 @@ export function createSessionStore(getPort: () => Promise<BackendPort>): Session
 		loginError = null;
 		try {
 			const port = await ensurePort();
-			session = await port.login(credentials);
+			if (port.capabilities.strongAuth && port.strongAuth) {
+				const outcome = await port.strongAuth.loginWithPassword(credentials);
+				if (outcome.kind === 'mfa-required') {
+					mfaChallenge = { pending: outcome.pending, methods: outcome.methods };
+					return;
+				}
+				session = outcome.session;
+			} else {
+				session = await port.login(credentials);
+			}
+			mfaChallenge = null;
 		} catch (err) {
 			loginError =
 				err instanceof VegaError ? err : VegaError.backend('Error inesperado al entrar', err);
 		}
 	}
 
+	async function completeMfa(method: 'totp' | 'recovery', code: string): Promise<void> {
+		loginError = null;
+		try {
+			const port = await ensurePort();
+			const challenge = mfaChallenge;
+			if (!challenge || !port.strongAuth) {
+				throw VegaError.backend('El reto de verificación ya no está disponible.');
+			}
+			session =
+				method === 'totp'
+					? await port.strongAuth.loginWithTotp(challenge.pending, code)
+					: await port.strongAuth.loginWithRecovery(challenge.pending, code);
+			mfaChallenge = null;
+		} catch (err) {
+			loginError =
+				err instanceof VegaError ? err : VegaError.backend('Error inesperado al verificar', err);
+		}
+	}
+
+	async function loginWithPasskey(): Promise<void> {
+		loginError = null;
+		try {
+			const port = await ensurePort();
+			if (!port.strongAuth) throw VegaError.backend('Las passkeys no están disponibles.');
+			session = await port.strongAuth.loginWithPasskey();
+			mfaChallenge = null;
+		} catch (err) {
+			loginError =
+				err instanceof VegaError
+					? err
+					: VegaError.backend('Error inesperado al entrar con passkey', err);
+		}
+	}
+
 	async function logout(): Promise<void> {
 		if (!resolvedPort) return; // nunca llegó a autenticar: no hay sesión que cerrar
 		await resolvedPort.logout();
+		mfaChallenge = null;
 	}
 
 	return {
@@ -150,6 +211,12 @@ export function createSessionStore(getPort: () => Promise<BackendPort>): Session
 		get restoreError() {
 			return restoreError;
 		},
+		get strongAuthAvailable() {
+			return strongAuthAvailable;
+		},
+		get mfaChallenge() {
+			return mfaChallenge;
+		},
 		get port(): BackendPort {
 			if (!resolvedPort) {
 				throw new Error(
@@ -161,6 +228,17 @@ export function createSessionStore(getPort: () => Promise<BackendPort>): Session
 		restore,
 		retryRestore: restore,
 		login,
+		loginWithTotp(code) {
+			return completeMfa('totp', code);
+		},
+		loginWithRecovery(code) {
+			return completeMfa('recovery', code);
+		},
+		loginWithPasskey,
+		cancelMfa() {
+			mfaChallenge = null;
+			loginError = null;
+		},
 		logout,
 		clearExpired() {
 			expired = false;

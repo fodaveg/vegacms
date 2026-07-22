@@ -188,6 +188,41 @@ La colección `vega_media` que Vega bootstrapea **ya declara estos tres tamaños
 
 Vega autentica contra usuarios de PocketBase. Hay **dos modos** de autenticación: **superuser** (default, para operadores/administradores) y **editor** (para clientes no técnicos).
 
+### Autenticación reforzada opcional
+
+PocketBase vanilla ofrece contraseña, pero no el flujo combinado que Vega puede activar con
+TOTP, códigos de recuperación y passkeys. Para esa variante hace falta ejecutar PocketBase como
+aplicación Go e instalar el módulo reutilizable
+[`extensions/vegaauth`](../extensions/vegaauth/README.md). La SPA sigue siendo estática y esta
+extensión es completamente opt-in.
+
+La extensión Go requiere PocketBase 0.39.7 o superior; el modo estándar de la SPA, sin extensión,
+mantiene el rango general de servidores PocketBase 0.26 o superior.
+
+Cuando el servidor expone `/api/vega-auth`, añade al `vega.config.json`:
+
+```json
+{
+	"authCollection": "vega_editors",
+	"authApiBasePath": "/api/vega-auth"
+}
+```
+
+El login entonces admite contraseña (con reto TOTP o recuperación cuando esté activado) y passkey
+descubrible. En **Ajustes → Seguridad de la cuenta** se puede configurar/desactivar TOTP, generar
+códigos de recuperación y registrar/eliminar passkeys. Si `authApiBasePath` no existe, la UI de
+seguridad no aparece y Vega usa exactamente el login estándar anterior.
+
+El backend bespoke de fodaveg ya implementa ese mismo protocolo de cliente: para reutilizarlo se
+configura `"authApiBasePath": "/api/fodaveg"`, sin duplicar sus handlers. Antes de considerar
+TOTP realmente obligatorio hay que desactivar también sus emisores nativos de token; el módulo
+genérico lo hace automáticamente, pero el backend legacy es anterior a ese endurecimiento.
+
+Usa una colección dedicada como `vega_editors`: al instalarse, la extensión desactiva para ESA
+colección los emisores nativos de token por contraseña, OTP, OAuth y MFA de PocketBase. Es un
+gate de seguridad necesario para que nadie pueda saltarse el TOTP llamando directamente a
+`/auth-with-password`; por eso no debes apuntarla a una colección compartida con otras apps.
+
 ### Modo superuser (default)
 
 Sin configurar nada, Vega autentica contra la colección `_superusers` de PocketBase (superuser real, todo el poder):

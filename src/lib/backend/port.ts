@@ -15,15 +15,41 @@ import type {
 	RecordId,
 	RecordInput,
 	Session,
+	StrongAuthLoginOutcome,
+	StrongAuthStatus,
 	ThumbSpec,
+	TotpEnrollment,
 	VegaRecord
 } from './types';
 import type { Query } from './query';
 import type { CollectionSpec, EnsureResult } from './collections';
 
+/**
+ * Extensión opt-in de autenticación fuerte. Vive separada del CRUD para que PocketBase vanilla
+ * conserve el contrato mínimo; `capabilities.strongAuth` y esta propiedad aparecen juntas.
+ */
+export interface StrongAuthPort {
+	loginWithPassword(credentials: {
+		email: string;
+		password: string;
+	}): Promise<StrongAuthLoginOutcome>;
+	loginWithTotp(pending: string, code: string): Promise<Session>;
+	loginWithRecovery(pending: string, code: string): Promise<Session>;
+	loginWithPasskey(): Promise<Session>;
+	getStatus(): Promise<StrongAuthStatus>;
+	enrollTotp(): Promise<TotpEnrollment>;
+	verifyTotp(code: string): Promise<void>;
+	disableTotp(): Promise<void>;
+	generateRecoveryCodes(): Promise<string[]>;
+	registerPasskey(name: string): Promise<void>;
+	deletePasskey(id: string): Promise<void>;
+}
+
 export interface BackendPort {
 	// ——— Identidad del adaptador ———
 	readonly capabilities: Capabilities;
+	/** Presente solo cuando `capabilities.strongAuth === true`. */
+	readonly strongAuth?: StrongAuthPort;
 
 	// ——— Auth (§4.1) ———
 	login(credentials: { email: string; password: string }): Promise<Session>;

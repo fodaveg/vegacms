@@ -99,7 +99,8 @@ describe('modo superuser (default, sin authCollection) — camino previo INTACTO
 			schemaDiscovery: true,
 			filePerRecord: true,
 			protectedFiles: false,
-			schemaBootstrap: true
+			schemaBootstrap: true,
+			strongAuth: false
 		});
 	});
 
@@ -140,6 +141,18 @@ describe('modo editor (authCollection: vega_editors, L6a/L6b)', () => {
 		expect(port.capabilities.thumbs).toBe(true);
 		expect(port.capabilities.filePerRecord).toBe(true);
 		expect(port.capabilities.protectedFiles).toBe(false);
+		expect(port.capabilities.strongAuth).toBe(false);
+	});
+
+	test('auth fuerte es opt-in y no altera las capabilities del modo editor', () => {
+		const port = createPocketBaseBackend({
+			url: BASE_URL,
+			authCollection: 'vega_editors',
+			authApiBasePath: '/api/vega-auth/'
+		});
+		expect(port.capabilities.strongAuth).toBe(true);
+		expect(port.capabilities.schemaDiscovery).toBe(false);
+		expect(port.strongAuth).toBeDefined();
 	});
 
 	test('login autentica contra vega_editors (no contra _superusers)', async () => {

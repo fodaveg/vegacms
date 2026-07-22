@@ -21,6 +21,7 @@
 		"format": "prettier --write .",
 		"test:unit": "vitest",
 		"test": "vitest run",
+		"test:go": "cd extensions/vegaauth && go test ./...",
 		"pb:download": "node scripts/download-pocketbase.mjs",
 		"test:pb": "node scripts/download-pocketbase.mjs && vitest run tests/contract/pocketbase.contract.test.ts",
 		"test:e2e": "playwright test",
@@ -28,7 +29,7 @@
 		"themes:check-coverage": "node scripts/check-theme-coverage.mjs",
 		"check-bundle-budget": "node scripts/check-bundle-budget.mjs",
 		"package": "node scripts/package-dist.mjs",
-		"gate": "pnpm check && pnpm lint && pnpm test && pnpm build && pnpm test:e2e"
+		"gate": "pnpm check && pnpm lint && pnpm test && pnpm test:go && pnpm build && pnpm test:e2e"
 	},
 	"dependencies": {
 		"@tiptap/core": "^3.28.0",

@@ -102,7 +102,7 @@ import { VegaError } from '$lib/backend';
 import { createMemoryBackend } from '$lib/backend/adapters/memory';
 import { createPocketBaseBackend } from '$lib/backend/adapters/pocketbase';
 import {
-	isAbsoluteUrl,
+	resolveAuthApiBasePath,
 	resolveAuthCollection,
 	resolveBackendUrl,
 	type VegaConfig
@@ -190,24 +190,13 @@ async function createInstance(): Promise<BackendPort> {
 	}
 	const override = readBackendOverride();
 	const authCollectionOverride = readAuthCollectionOverride();
-	// Fix de code-review de L5 (perf), ampliado por L6a: si ya hay un override runtime VÁLIDO de
-	// URL Y uno de colección de auth (ambos con mayor precedencia, `backend-config.ts`), el
-	// `fetch('/vega.config.json')` sería trabajo tirado, nunca vuelve a leerse `config` para
-	// resolver ninguno de los dos. Si falta CUALQUIERA de los dos overrides, `config` sigue
-	// haciendo falta (podría traer el que falta) — se lee como siempre. Con ambos overrides
-	// ausentes/inválidos, comportamiento IDÉNTICO al de antes de L5/L6a.
-	// Fix de code-review: `.trim()` en el override de auth-collection, MISMO criterio que
-	// `resolveAuthCollection` (un valor de solo espacios cuenta como "ausente" ahí) — sin esto,
-	// un override en blanco pasaría este `Boolean(...)` como "presente", saltándose la lectura de
-	// `vega.config.json` aunque `resolveAuthCollection` fuese a descartarlo igualmente y caer al
-	// default, en vez de a `config.authCollection` (que sí habría hecho falta leer).
-	const skipConfigFetch = Boolean(
-		override && isAbsoluteUrl(override) && authCollectionOverride?.trim()
-	);
-	const config = skipConfigFetch ? null : await fetchVegaConfig();
+	// L6 auth fuerte añade una tercera pieza que solo vive en `vega.config.json`; por eso la
+	// lectura best-effort ya no se puede omitir aunque URL y colección tengan override runtime.
+	const config = await fetchVegaConfig();
 	const url = resolveBackendUrl({ origin: window.location.origin, config, override });
 	const authCollection = resolveAuthCollection({ config, override: authCollectionOverride });
-	return createPocketBaseBackend({ url, authCollection });
+	const authApiBasePath = resolveAuthApiBasePath(config);
+	return createPocketBaseBackend({ url, authCollection, authApiBasePath });
 }
 
 function useMemoryAdapter(): boolean {

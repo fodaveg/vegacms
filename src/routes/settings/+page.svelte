@@ -60,6 +60,7 @@
 	import { computeCollectionState } from '$lib/backend/collection-state';
 	import { saveManifest } from '$lib/model/load';
 	import BackendUrlForm from '$lib/session/BackendUrlForm.svelte';
+	import SecuritySettings from '$lib/session/SecuritySettings.svelte';
 	import { setMode, setTheme } from '$lib/theme/apply';
 	import type { ThemeMode } from '$lib/theme/preferences';
 	import { FALLBACK_THEME, THEMES } from '$lib/themes/themes.generated';
@@ -246,6 +247,10 @@
 		<p class="vega-backend-description">{ctx.t('connect.description')}</p>
 		<BackendUrlForm t={ctx.t} confirmBeforeReload={true} />
 	</section>
+
+	{#if ctx.port.capabilities.strongAuth}
+		<SecuritySettings />
+	{/if}
 
 	{#if !isManifestEditable}
 		<!-- L6c: rol editor (schemaBootstrap: false) — el mensaje degradado ocupa el hueco donde

@@ -29,6 +29,12 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      - name: Setup Go (strong-auth extension)
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.x'
+          cache-dependency-path: extensions/vegaauth/go.sum
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -55,7 +61,7 @@ jobs:
             exit 1
           fi
 
-      - name: Run gate (check + lint + test + build + e2e)
+      - name: Run gate (check + lint + TS/Go tests + build + e2e)
         run: pnpm gate
 
       # P8·F1 (D-P8.6 opción A / L-P8.9): `pnpm gate` ya corrió `pnpm build` (deja `build/`

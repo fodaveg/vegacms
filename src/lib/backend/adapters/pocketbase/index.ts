@@ -5,7 +5,7 @@
  */
 
 import PocketBase, { ClientResponseError, getTokenPayload } from 'pocketbase';
-import type { CollectionModel } from 'pocketbase';
+import type { CollectionModel, RecordModel } from 'pocketbase';
 import type {
 	AuthChangeReason,
 	Capabilities,
@@ -34,6 +34,7 @@ import { compileFilter, compileSort } from './query';
 import { planFileFieldWrite, resolveFileUrl } from './files';
 import { ensureCollectionsOnPocketBase } from './collections';
 import { clearPersistedToken, loadPersistedToken, savePersistedToken } from './persistence';
+import { createPocketBaseStrongAuth } from './strong-auth';
 
 /** Colección de auth por defecto (v1, D1): superuser real de PB, sin restricciones de esquema. */
 const DEFAULT_AUTH_COLLECTION = '_superusers';
@@ -46,7 +47,7 @@ const DEFAULT_AUTH_COLLECTION = '_superusers';
  * el esquema desde el snapshot cacheado en su lugar). El resto de capabilities no depende de
  * quién se autentica.
  */
-function computeCapabilities(authCollection: string): Capabilities {
+function computeCapabilities(authCollection: string, strongAuth: boolean): Capabilities {
 	const isSuperuser = authCollection === DEFAULT_AUTH_COLLECTION;
 	return {
 		realtime: true,
@@ -54,7 +55,8 @@ function computeCapabilities(authCollection: string): Capabilities {
 		schemaDiscovery: isSuperuser,
 		filePerRecord: true,
 		protectedFiles: false,
-		schemaBootstrap: isSuperuser
+		schemaBootstrap: isSuperuser,
+		strongAuth
 	};
 }
 
@@ -68,19 +70,23 @@ export interface PocketBaseBackendOptions {
 	 * `schemaBootstrap` pasan a `false` (ver `computeCapabilities`).
 	 */
 	authCollection?: string;
+	/** Base de las rutas de auth fuerte (p. ej. `/api/vega-auth` o `/api/fodaveg`). */
+	authApiBasePath?: string | null;
 }
 
 /** Crea un `BackendPort` sobre un PocketBase real en `url`. */
 export function createPocketBaseBackend({
 	url,
-	authCollection = DEFAULT_AUTH_COLLECTION
+	authCollection = DEFAULT_AUTH_COLLECTION,
+	authApiBasePath = null
 }: PocketBaseBackendOptions): BackendPort {
 	const pb = new PocketBase(url);
 	// LANDMINE (ver README): el SDK cancela peticiones "duplicadas" en vuelo por defecto. La
 	// política de cancelación es de los consumidores (P3/P4), no del transporte (§4.6).
 	pb.autoCancellation(false);
 
-	const CAPABILITIES = computeCapabilities(authCollection);
+	const normalizedAuthApiBasePath = authApiBasePath?.trim().replace(/\/+$/, '') || null;
+	const CAPABILITIES = computeCapabilities(authCollection, normalizedAuthApiBasePath !== null);
 	const host = hostOf(url);
 	const authSubscribers = new Set<(s: Session | null, reason: AuthChangeReason) => void>();
 
@@ -104,6 +110,37 @@ export function createPocketBaseBackend({
 			user: { id: String(pb.authStore.record.id), email: String(pb.authStore.record.email ?? '') },
 			expiresAt
 		};
+	}
+
+	/** Adopta el token que emiten las rutas de auth fuerte y lo integra en el MISMO authStore,
+	 * persistencia y canal de eventos que el login estándar del SDK. */
+	function acceptStrongAuthResponse(response: {
+		token: string;
+		record: { id: string; email?: string };
+	}): Session {
+		pb.authStore.save(response.token, response.record as RecordModel);
+		hasSession = true;
+		latchedExpired = false;
+		savePersistedToken(host, response.token);
+		const session = sessionFromAuthStore();
+		if (!session) throw VegaError.backend('No se pudo adoptar la sesión de autenticación fuerte.');
+		notifyAuthChange(session, 'login');
+		return session;
+	}
+
+	/** `authRefresh()` puede rotar el token. Persiste el valor nuevo sin emitir un login ficticio. */
+	function persistRefreshedSession(): Session {
+		hasSession = true;
+		latchedExpired = false;
+		savePersistedToken(host, pb.authStore.token);
+		const session = sessionFromAuthStore();
+		if (!session) throw VegaError.authExpired();
+		return session;
+	}
+
+	function expireStrongAuthSession(): VegaError {
+		handleAuthExpiryOnce();
+		return VegaError.authExpired();
 	}
 
 	/** Limpia sesión + emite `expired` UNA sola vez, aunque N operaciones lo detecten a la vez (L7). */
@@ -317,8 +354,20 @@ export function createPocketBaseBackend({
 		if (Object.keys(fieldErrors).length > 0) throw VegaError.validation(fieldErrors);
 	}
 
+	const strongAuth = normalizedAuthApiBasePath
+		? createPocketBaseStrongAuth({
+				pb,
+				authCollection,
+				apiBasePath: normalizedAuthApiBasePath,
+				acceptAuthResponse: acceptStrongAuthResponse,
+				persistRefreshedSession,
+				onAuthExpired: expireStrongAuthSession
+			})
+		: undefined;
+
 	const port: BackendPort = {
 		capabilities: CAPABILITIES,
+		strongAuth,
 
 		async login(credentials) {
 			try {

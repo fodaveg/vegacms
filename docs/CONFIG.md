@@ -43,6 +43,22 @@ Crea `static/vega.config.json` con la siguiente estructura:
 
 - **`authCollection`** (opcional, string, L6): nombre de la colección de autenticación contra la que Vega autentica (`login`/`restoreSession`). Ausente ⇒ `'_superusers'` (default, modo superuser — comportamiento previo sin cambios). Cualquier otro valor activa el **modo editor**: la UI degrada la introspección de schema y bootstrap de colecciones (no puede hacerlo un editor) — el schema se sirve desde un snapshot cacheado que un superuser guarda en `/settings`. Útil para dar acceso a un cliente NO técnico con una colección auth dedicada, p. ej. `vega_editors` (ver [Autenticación en Vega y rol editor](POCKETBASE-INTEGRATION.md#autenticación-en-vega-y-rol-editor)).
 
+- **`authApiBasePath`** (opcional, string, L6): base relativa de la extensión de autenticación
+  fuerte instalada en ESE PocketBase, por ejemplo `/api/vega-auth`. Al definirla, Vega activa
+  password + TOTP/recuperación, acceso con passkey y la gestión de factores en Ajustes. Ausente o
+  inválida ⇒ login estándar de PocketBase, sin cambiar el comportamiento previo. Solo admite una
+  ruta `/api/...` del mismo backend; no acepta URLs externas para no enviar el token a otro origen.
+
+Ejemplo completo con el rol editor y la extensión opcional:
+
+```json
+{
+	"backendUrl": "https://pb.example.com",
+	"authCollection": "vega_editors",
+	"authApiBasePath": "/api/vega-auth"
+}
+```
+
 ### Comportamiento
 
 1. **Same-origin (default)**: Si `static/vega.config.json` no existe o `backendUrl` está ausente, Vega busca PocketBase en el mismo origen (`window.location.origin`). Es el caso más común cuando la SPA está copiada a `pb_public/` de PocketBase.

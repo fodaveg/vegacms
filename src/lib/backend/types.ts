@@ -66,6 +66,37 @@ export interface Session {
 	expiresAt: string | null;
 }
 
+/** Segundo factor que el servidor permite usar para completar un login pendiente. */
+export type SecondFactorMethod = 'totp' | 'recovery';
+
+/**
+ * Resultado del primer paso de login cuando la extensión de auth fuerte está activa.
+ * El servidor nunca emite una sesión hasta que todos los factores requeridos han pasado.
+ */
+export type StrongAuthLoginOutcome =
+	| { kind: 'authenticated'; session: Session }
+	| { kind: 'mfa-required'; pending: string; methods: SecondFactorMethod[] };
+
+/** Datos de alta TOTP. El secreto solo se muestra durante este flujo. */
+export interface TotpEnrollment {
+	otpauthUrl: string;
+	secret: string;
+}
+
+/** Metadatos no sensibles de una passkey registrada. */
+export interface PasskeySummary {
+	id: string;
+	name: string;
+	created: string;
+}
+
+/** Estado de los factores del usuario autenticado. */
+export interface StrongAuthStatus {
+	totpEnabled: boolean;
+	recoveryCodesRemaining: number;
+	passkeys: PasskeySummary[];
+}
+
 export type AuthChangeReason = 'login' | 'logout' | 'expired' | 'restored';
 
 // ————— Capacidades —————
@@ -96,6 +127,11 @@ export interface Capabilities {
 	 * esquema: false (regla de evolución de capabilities: ausente/false ⇒ no soportado).
 	 */
 	schemaBootstrap: boolean;
+	/**
+	 * Extensión de autenticación fuerte disponible: password con TOTP/recuperación y passkeys.
+	 * PocketBase vanilla: false. Se activa explícitamente con `authApiBasePath`.
+	 */
+	strongAuth: boolean;
 }
 
 // ————— Paginación —————

@@ -1,3 +1,5 @@
 {
-  "backendUrl": "https://pb.example.com"
+	"backendUrl": "https://pb.example.com",
+	"authCollection": "vega_editors",
+	"authApiBasePath": "/api/vega-auth"
 }

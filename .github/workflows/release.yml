@@ -33,6 +33,12 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      - name: Setup Go (strong-auth extension)
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.x'
+          cache-dependency-path: extensions/vegaauth/go.sum
+
       # Guard de coherencia tag↔versión LO ANTES POSIBLE (antes de instalar deps o correr el gate):
       # el tag que disparó el workflow (`v0.1.0`) debe casar EXACTAMENTE con `package.json#version`
       # (`0.1.0`). Fallar aquí en segundos —en vez de tras minutos de gate/Playwright— si alguien
@@ -74,7 +80,7 @@ jobs:
 
       # `pnpm gate` = check + lint + test + build + e2e. Un release NUNCA se publica sin pasar el
       # MISMO gate que un PR normal; además deja `build/` listo para empaquetar más abajo.
-      - name: Run gate (check + lint + test + build + e2e)
+      - name: Run gate (check + lint + TS/Go tests + build + e2e)
         run: pnpm gate
 
       # Mismo presupuesto de bundle que `ci.yml` (D-P8.6): un release que se pasa del presupuesto

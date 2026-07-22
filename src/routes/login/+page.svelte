@@ -40,6 +40,8 @@
 
 	let email = $state('');
 	let password = $state('');
+	let totpCode = $state('');
+	let recoveryCode = $state('');
 	let submitting = $state(false);
 
 	/** `undefined` mientras se resuelve (aún sin pintar nada); `null` = modo demo, sin servidor que
@@ -67,7 +69,9 @@
 		const err = sessionStore.loginError;
 		if (!err) return null;
 		if (err.kind === 'network') return t('login.networkError');
-		if (err.kind === 'forbidden') return t('login.invalidCredentials');
+		if (err.kind === 'forbidden') {
+			return sessionStore.mfaChallenge ? t('login.mfa.invalidCode') : t('login.invalidCredentials');
+		}
 		return err.message;
 	});
 
@@ -77,54 +81,147 @@
 		await sessionStore.login({ email, password });
 		submitting = false;
 	}
+
+	async function handleTotp(event: SubmitEvent): Promise<void> {
+		event.preventDefault();
+		submitting = true;
+		await sessionStore.loginWithTotp(totpCode);
+		submitting = false;
+	}
+
+	async function handleRecovery(event: SubmitEvent): Promise<void> {
+		event.preventDefault();
+		submitting = true;
+		await sessionStore.loginWithRecovery(recoveryCode);
+		submitting = false;
+	}
+
+	async function handlePasskey(): Promise<void> {
+		submitting = true;
+		await sessionStore.loginWithPasskey();
+		submitting = false;
+	}
 </script>
 
 <div class="vega-login">
-	<form onsubmit={handleSubmit} novalidate>
-		<h1>{t('login.title')}</h1>
+	{#if sessionStore.mfaChallenge}
+		<div class="vega-login-card">
+			<h1>{t('login.mfa.title')}</h1>
+			<p class="vega-login-help">{t('login.mfa.body')}</p>
 
-		{#if typeof displayBackendUrl === 'string'}
-			<p class="vega-login-server" data-testid="login-server-indicator">
-				{isSameOrigin
-					? t('connect.current.sameOrigin')
-					: t('connect.current.override', { url: displayBackendUrl })}
-			</p>
-		{/if}
+			{#if sessionStore.mfaChallenge.methods.includes('totp')}
+				<form class="vega-factor-form" onsubmit={handleTotp} novalidate>
+					<div class="field">
+						<label for="login-totp">{t('login.mfa.totpLabel')}</label>
+						<input
+							id="login-totp"
+							name="totp"
+							type="text"
+							inputmode="numeric"
+							autocomplete="one-time-code"
+							pattern="[0-9]*"
+							maxlength="6"
+							required
+							aria-invalid={errorMessage ? 'true' : undefined}
+							bind:value={totpCode}
+						/>
+					</div>
+					<button type="submit" disabled={submitting}>
+						{submitting ? t('login.mfa.verifying') : t('login.mfa.verify')}
+					</button>
+				</form>
+			{/if}
 
-		<div class="field">
-			<label for="login-email">{t('login.email')}</label>
-			<input
-				id="login-email"
-				name="email"
-				type="email"
-				autocomplete="username"
-				required
-				aria-invalid={errorMessage ? 'true' : undefined}
-				bind:value={email}
-			/>
+			{#if sessionStore.mfaChallenge.methods.includes('recovery')}
+				<details class="vega-recovery-login">
+					<summary>{t('login.mfa.useRecovery')}</summary>
+					<form class="vega-factor-form" onsubmit={handleRecovery} novalidate>
+						<div class="field">
+							<label for="login-recovery">{t('login.mfa.recoveryLabel')}</label>
+							<input
+								id="login-recovery"
+								name="recovery"
+								type="text"
+								autocomplete="off"
+								placeholder="XXXXX-XXXXX"
+								required
+								aria-invalid={errorMessage ? 'true' : undefined}
+								bind:value={recoveryCode}
+							/>
+						</div>
+						<button type="submit" disabled={submitting}>{t('login.mfa.recoverySubmit')}</button>
+					</form>
+				</details>
+			{/if}
+
+			{#if errorMessage}
+				<p class="vega-login-error" role="alert">{errorMessage}</p>
+			{/if}
+			<button class="vega-secondary-button" type="button" onclick={() => sessionStore.cancelMfa()}>
+				{t('login.mfa.cancel')}
+			</button>
 		</div>
+	{:else}
+		<form class="vega-login-form" onsubmit={handleSubmit} novalidate>
+			<h1>{t('login.title')}</h1>
 
-		<div class="field">
-			<label for="login-password">{t('login.password')}</label>
-			<input
-				id="login-password"
-				name="password"
-				type="password"
-				autocomplete="current-password"
-				required
-				aria-invalid={errorMessage ? 'true' : undefined}
-				bind:value={password}
-			/>
-		</div>
+			{#if typeof displayBackendUrl === 'string'}
+				<p class="vega-login-server" data-testid="login-server-indicator">
+					{isSameOrigin
+						? t('connect.current.sameOrigin')
+						: t('connect.current.override', { url: displayBackendUrl })}
+				</p>
+			{/if}
 
-		{#if errorMessage}
-			<p class="vega-login-error" role="alert">{errorMessage}</p>
+			<div class="field">
+				<label for="login-email">{t('login.email')}</label>
+				<input
+					id="login-email"
+					name="email"
+					type="email"
+					autocomplete="username"
+					required
+					aria-invalid={errorMessage ? 'true' : undefined}
+					bind:value={email}
+				/>
+			</div>
+
+			<div class="field">
+				<label for="login-password">{t('login.password')}</label>
+				<input
+					id="login-password"
+					name="password"
+					type="password"
+					autocomplete="current-password"
+					required
+					aria-invalid={errorMessage ? 'true' : undefined}
+					bind:value={password}
+				/>
+			</div>
+
+			{#if errorMessage}
+				<p class="vega-login-error" role="alert">{errorMessage}</p>
+			{/if}
+
+			<button type="submit" disabled={submitting}>
+				{submitting ? t('login.submitting') : t('login.submit')}
+			</button>
+		</form>
+
+		{#if sessionStore.strongAuthAvailable}
+			<div class="vega-login-alternative">
+				<span>{t('login.or')}</span>
+				<button
+					type="button"
+					class="vega-secondary-button"
+					onclick={handlePasskey}
+					disabled={submitting}
+				>
+					{t('login.passkey')}
+				</button>
+			</div>
 		{/if}
-
-		<button type="submit" disabled={submitting}>
-			{submitting ? t('login.submitting') : t('login.submit')}
-		</button>
-	</form>
+	{/if}
 
 	<details class="vega-login-connect">
 		<summary>{t('connect.disclosureLabel')}</summary>
@@ -140,7 +237,8 @@
 		padding-top: 15vh;
 	}
 
-	form {
+	.vega-login-form,
+	.vega-login-card {
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
@@ -149,6 +247,23 @@
 		padding: 1.5rem;
 		border: 1px solid var(--line);
 		border-radius: 8px;
+	}
+
+	.vega-login-card,
+	.vega-factor-form {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.vega-factor-form {
+		width: 100%;
+	}
+
+	.vega-login-help {
+		margin: 0;
+		color: var(--ink-2);
+		font-size: 0.9rem;
 	}
 
 	h1 {
@@ -179,6 +294,7 @@
 	}
 
 	input {
+		min-height: 44px;
 		padding: 0.5rem 0.6rem;
 		border: 1px solid var(--line);
 		border-radius: 6px;
@@ -196,12 +312,48 @@
 	}
 
 	button {
+		min-height: 44px;
 		padding: 0.55rem 0.9rem;
 		border: 1px solid var(--line);
 		border-radius: 6px;
 		background: var(--accent);
 		color: var(--accent-ink);
 		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.vega-secondary-button {
+		background: var(--surface-2);
+		color: var(--ink);
+	}
+
+	.vega-login-alternative {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		width: 100%;
+		max-width: 22rem;
+		margin-top: 1rem;
+		color: var(--ink-2);
+		font-size: 0.85rem;
+	}
+
+	.vega-login-alternative::before,
+	.vega-login-alternative::after {
+		content: '';
+		flex: 1;
+		border-top: 1px solid var(--line);
+	}
+
+	.vega-login-alternative .vega-secondary-button {
+		white-space: nowrap;
+	}
+
+	.vega-recovery-login summary {
+		min-height: 44px;
+		display: flex;
+		align-items: center;
+		color: var(--ink-2);
 		cursor: pointer;
 	}
 
