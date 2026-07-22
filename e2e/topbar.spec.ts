@@ -11,6 +11,9 @@ test('el wordmark del sitio pinta el isotipo de Vega junto al nombre', async ({ 
 	const site = page.locator('.vega-topbar-site');
 	await expect(site).toBeVisible();
 	await expect(site.locator('.vega-logo')).toBeVisible();
+	// L9: el texto procede de `site.name` en el manifiesto, no de un literal del shell.
+	await expect(site).toContainText('Vega Demo');
+	await expect(site).toHaveAttribute('title', 'Vega Demo');
 });
 
 test('el atajo "/" enfoca el buscador global salvo dentro de un campo editable', async ({

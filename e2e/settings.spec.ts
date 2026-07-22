@@ -55,6 +55,13 @@ test.describe('/settings monta el ManifestEditor de P2 (§7.B.13)', () => {
 		// persistencia real es contrato de P1, no de esta suite.
 		await expect(page.getByRole('status')).toContainText('Guardado.');
 		await expect(page.getByText('Manifiesto guardado.')).toBeVisible();
+
+		// L9: `reloadModel()` aplica `site.name` al shell EN CALIENTE. Esta aserción evita una
+		// falsa implementación que guarde el JSON pero deje el nombre de la cabecera hardcodeado
+		// hasta la siguiente recarga completa.
+		const site = page.locator('.vega-topbar-site');
+		await expect(site).toContainText('Vega Demo Editado');
+		await expect(site).toHaveAttribute('title', 'Vega Demo Editado');
 	});
 });
 
