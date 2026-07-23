@@ -27,13 +27,17 @@ check "Vega raíz" "$origin/" "text/html"
 check "Vega deep link" "$origin/login" "text/html"
 check "PocketBase health" "$origin/api/health" "application/json"
 
-asset_path="$(
-	curl --fail --silent --show-error "$origin/" |
-		sed -n 's/.*src="\([^"]*\/_app\/[^"]*\.js\)".*/\1/p' |
-		head -n 1
+index_html="$(curl --fail --silent --show-error "$origin/")"
+asset_candidates="$(
+	printf '%s\n' "$index_html" |
+		sed -n \
+			-e 's/.*<script[^>]*src="\([^"]*\.js\)"[^>]*>.*/\1/p' \
+			-e 's/.*<link[^>]*rel="modulepreload"[^>]*href="\([^"]*\.js\)"[^>]*>.*/\1/p' \
+			-e 's/.*<link[^>]*href="\([^"]*\.js\)"[^>]*rel="modulepreload"[^>]*>.*/\1/p'
 )"
+asset_path="${asset_candidates%%$'\n'*}"
 
-if [[ -z "$asset_path" ]]; then
+if [[ "$asset_path" != */_app/*.js ]]; then
 	echo "ERROR: no se encontró un asset JavaScript de Vega en index.html" >&2
 	exit 1
 fi
