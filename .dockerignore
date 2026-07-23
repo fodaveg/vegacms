@@ -1,0 +1,16 @@
+.git
+.github
+.codebase-memory
+.svelte-kit
+**/.env
+**/.env.*
+**/.pbbin
+**/.pbdata-*
+**/pb_data
+build
+dist
+node_modules
+playwright-report
+test-results
+coverage
+static/vega.config.json

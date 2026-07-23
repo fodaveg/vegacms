@@ -1,0 +1,51 @@
+name: vega
+
+services:
+  pocketbase:
+    build:
+      context: ../..
+      dockerfile: infra/production/Dockerfile
+      args:
+        PB_VERSION: 0.39.9
+        PB_SHA256: 4c5a1aced62ebf658bfbcfeaa944c4bfa88b173dd9d598d3cab55ea63587b36b
+      labels:
+        org.opencontainers.image.revision: ${VEGA_GIT_SHA:?Define VEGA_GIT_SHA en .env}
+        org.opencontainers.image.source: https://github.com/fodaveg/vegacms
+    image: vegacms:${VEGA_IMAGE_TAG:?Define VEGA_IMAGE_TAG en .env}
+    container_name: vega-pb
+    restart: unless-stopped
+    environment:
+      GOMEMLIMIT: 384MiB
+    volumes:
+      - vega_data:/pb/pb_data
+    networks:
+      edge:
+        aliases:
+          - vega-pb
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--spider', 'http://127.0.0.1:8090/api/health']
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+
+volumes:
+  vega_data:
+    name: vega_data
+
+networks:
+  edge:
+    external: true
+    name: edge
