@@ -7,8 +7,13 @@
  */
 import { describe, expect, test } from 'vitest';
 import type { Field } from '$lib/backend/types';
-import type { ResolvedContentType, ResolvedField, ResolvedFieldGroup } from '$lib/model/types';
-import { buildFormSections } from './form-sections';
+import type {
+	ResolvedContentType,
+	ResolvedField,
+	ResolvedFieldGroup,
+	ResolvedLocalization
+} from '$lib/model/types';
+import { buildFormSections, localeForField } from './form-sections';
 
 function makeField(name: string, group: string | null = null): ResolvedField {
 	const schema: Field = {
@@ -35,7 +40,11 @@ function makeField(name: string, group: string | null = null): ResolvedField {
 	};
 }
 
-function makeType(fields: ResolvedField[], fieldGroups: ResolvedFieldGroup[]): ResolvedContentType {
+function makeType(
+	fields: ResolvedField[],
+	fieldGroups: ResolvedFieldGroup[],
+	localization: ResolvedLocalization | null = null
+): ResolvedContentType {
 	return {
 		schema: { name: 'post', readonly: false, fields: fields.map((f) => f.schema) },
 		name: 'post',
@@ -52,7 +61,8 @@ function makeType(fields: ResolvedField[], fieldGroups: ResolvedFieldGroup[]): R
 		previewUrl: null,
 		fields,
 		listFields: [],
-		fieldGroups
+		fieldGroups,
+		localization
 	};
 }
 
@@ -99,5 +109,41 @@ describe('buildFormSections (§4.9/§4.9b)', () => {
 	test('grupo declarado sin ningún campo real → sección con fields: [] (RecordForm la omite en el render)', () => {
 		const type = makeType([], [{ name: 'Vacío', columns: 2 }]);
 		expect(buildFormSections(type)).toEqual([{ group: 'Vacío', columns: 2, fields: [] }]);
+	});
+
+	test('localización sustituye el campo ancla sin duplicar columnas y conserva los campos compartidos', () => {
+		const titleEs = makeField('titleEs', 'Contenido');
+		const titleEn = { ...makeField('titleEn', 'Contenido'), placeholder: 'Title in English' };
+		const slug = makeField('slug', 'Contenido');
+		const localization: ResolvedLocalization = {
+			defaultLocale: 'es',
+			locales: [
+				{ id: 'es', label: 'Español' },
+				{ id: 'en', label: 'English' }
+			],
+			fields: [
+				{
+					name: 'title',
+					label: 'Título',
+					fields: { es: 'titleEs', en: 'titleEn' }
+				}
+			]
+		};
+		const type = makeType(
+			[titleEs, titleEn, slug],
+			[{ name: 'Contenido', columns: 1 }],
+			localization
+		);
+
+		expect(buildFormSections(type, 'es')[0].fields.map((field) => field.name)).toEqual([
+			'titleEs',
+			'slug'
+		]);
+		expect(buildFormSections(type, 'en')[0].fields).toEqual([
+			{ ...titleEn, label: 'Título', group: 'Contenido' },
+			slug
+		]);
+		expect(localeForField(type, 'titleEn')).toBe('en');
+		expect(localeForField(type, 'slug')).toBeNull();
 	});
 });

@@ -12,7 +12,7 @@
  * 2/3 = rejilla. La sección de huérfanos siempre es `columns: 1`: no hay grupo real (ni
  * `ResolvedFieldGroup`) del que heredarlo.
  */
-import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
+import type { ResolvedContentType, ResolvedField, ResolvedLocalizedField } from '$lib/model/types';
 
 export interface FormSection {
 	/** Nombre del grupo, o `null` para el grupo anónimo/huérfanos (sin `<h2>` de cabecera). */
@@ -22,11 +22,59 @@ export interface FormSection {
 	fields: ResolvedField[];
 }
 
-/** API pública de este módulo. Pura: misma entrada ⇒ misma salida, sin depender de Svelte. */
-export function buildFormSections(type: ResolvedContentType): FormSection[] {
+function localizeVisibleFields(
+	type: ResolvedContentType,
+	activeLocale: string | undefined
+): ResolvedField[] {
+	const visibleFields = type.fields.filter((field) => !field.hidden);
+	const localization = type.localization;
+	if (!localization || !activeLocale) return visibleFields;
+
+	const physicalToLogical = new Map<string, ResolvedLocalizedField>();
+	for (const logical of localization.fields) {
+		for (const physicalName of Object.values(logical.fields)) {
+			physicalToLogical.set(physicalName, logical);
+		}
+	}
+	const byName = new Map(visibleFields.map((field) => [field.name, field]));
+	const result: ResolvedField[] = [];
+	for (const field of visibleFields) {
+		const logical = physicalToLogical.get(field.name);
+		if (!logical) {
+			result.push(field);
+			continue;
+		}
+		const anchorName = logical.fields[localization.defaultLocale];
+		if (field.name !== anchorName) continue;
+		const localized = byName.get(logical.fields[activeLocale]);
+		if (!localized) continue;
+		// La posición/grupo pertenece al ancla del locale por defecto; widget/help/placeholder y
+		// nombre pertenecen al campo físico activo. La etiqueta es la del concepto lógico.
+		result.push({ ...localized, label: logical.label, group: field.group });
+	}
+	return result;
+}
+
+/** Locale al que pertenece un campo físico traducible, o `null` si es un campo compartido. */
+export function localeForField(type: ResolvedContentType, fieldName: string): string | null {
+	const localization = type.localization;
+	if (!localization) return null;
+	for (const logical of localization.fields) {
+		for (const [locale, physicalName] of Object.entries(logical.fields)) {
+			if (physicalName === fieldName) return locale;
+		}
+	}
+	return null;
+}
+
+/**
+ * API pública de este módulo. `activeLocale` es opcional para conservar exactamente el
+ * comportamiento histórico en tipos que no declaran localización.
+ */
+export function buildFormSections(type: ResolvedContentType, activeLocale?: string): FormSection[] {
 	// `hidden` es la decisión efectiva del resolver (schema + override del manifiesto). Esos campos
 	// siguen presentes en el FormModel para conservar sus valores, pero no deben producir un widget.
-	const visibleFields = type.fields.filter((field) => !field.hidden);
+	const visibleFields = localizeVisibleFields(type, activeLocale);
 
 	// Objeto plano como acumulador LOCAL de esta pasada (descartado al terminar): idéntico al
 	// que usaba el `$derived.by` de `RecordForm.svelte` antes de extraerse a este módulo.

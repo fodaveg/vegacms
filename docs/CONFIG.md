@@ -160,6 +160,13 @@ declarados en `nav.groups`; cualquier grupo presente pero no declarado se añade
 alfabético. Un grupo vacío no se muestra. Los rótulos de grupo que no caben en el ancho del sidebar
 se truncan visualmente y mantienen el valor completo disponible como `title`.
 
+## Campos traducibles
+
+El manifiesto puede agrupar campos físicos como `titleEs` y `titleEn` en un único campo editorial.
+Vega mostrará un selector global de idioma en el formulario y mantendrá visibles los campos
+compartidos. La referencia completa y versionada está en
+[`PROJECT-CONTRACT-v1.md`](./PROJECT-CONTRACT-v1.md#localized-fields).
+
 ## Vistas fusionadas (`mergedViews`)
 
 Además de `backendUrl`, el **manifiesto de contenidos** (colección `vega`, campo `manifest`, editable desde `/settings` con `ManifestEditor`) admite una sección `mergedViews`: vistas de solo lectura que **unen registros de varias colecciones** en un único listado, reordenable a mano por arrastre. Útiles para tableros tipo "destacados de portada" que mezclan, por ejemplo, `posts` y `pages` en un mismo orden manual sin fusionar sus colecciones reales.

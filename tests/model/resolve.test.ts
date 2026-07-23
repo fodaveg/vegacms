@@ -142,6 +142,101 @@ describe('4/5. Widgets (L8) y markdown (L9)', () => {
 	});
 });
 
+// ————— Campos traducibles por locale (tabs de formulario) —————
+
+describe('5b. Localización declarada por manifiesto', () => {
+	test('resuelve idiomas y campos físicos en un modelo genérico y estable', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				locales: {
+					default: 'es',
+					available: [
+						{ id: 'es', label: 'Español' },
+						{ id: 'en', label: 'English' }
+					]
+				},
+				collections: {
+					post: {
+						localizedFields: {
+							title: { label: 'Título', fields: { es: 'title', en: 'excerpt' } }
+						}
+					}
+				}
+			}
+		});
+
+		expect(model.types.find((type) => type.name === 'post')!.localization).toEqual({
+			defaultLocale: 'es',
+			locales: [
+				{ id: 'es', label: 'Español' },
+				{ id: 'en', label: 'English' }
+			],
+			fields: [
+				{
+					name: 'title',
+					label: 'Título',
+					fields: { es: 'title', en: 'excerpt' }
+				}
+			]
+		});
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('sin locales raíz, un localizedFields se degrada a formulario plano con warning', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					post: {
+						localizedFields: {
+							title: { fields: { es: 'title', en: 'excerpt' } }
+						}
+					}
+				}
+			}
+		});
+		expect(model.types.find((type) => type.name === 'post')!.localization).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'manifest-invalid-key',
+				path: '/collections/post/localizedFields'
+			})
+		]);
+	});
+
+	test('campo físico inexistente invalida solo el grupo traducible afectado', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				locales: {
+					default: 'es',
+					available: [
+						{ id: 'es', label: 'Español' },
+						{ id: 'en', label: 'English' }
+					]
+				},
+				collections: {
+					post: {
+						localizedFields: {
+							title: { fields: { es: 'title', en: 'does_not_exist' } }
+						}
+					}
+				}
+			}
+		});
+		expect(model.types.find((type) => type.name === 'post')!.localization).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				path: '/collections/post/localizedFields/title/fields/en'
+			})
+		]);
+	});
+});
+
 // ————— 6. Visibilidad y nav —————
 
 describe('6. Visibilidad y nav', () => {

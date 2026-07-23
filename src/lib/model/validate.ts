@@ -28,9 +28,18 @@ export type ManifestValidationResult =
 
 type JsonObject = Record<string, JsonValue>;
 
-const ROOT_ALLOWED_KEYS = ['schemaVersion', 'site', 'nav', 'collections', 'mergedViews'] as const;
+const ROOT_ALLOWED_KEYS = [
+	'schemaVersion',
+	'locales',
+	'site',
+	'nav',
+	'collections',
+	'mergedViews'
+] as const;
 const SITE_ALLOWED_KEYS = ['name', 'defaultTheme', 'locale'] as const;
 const NAV_ALLOWED_KEYS = ['groups'] as const;
+const LOCALES_ALLOWED_KEYS = ['default', 'available'] as const;
+const LOCALE_ITEM_ALLOWED_KEYS = ['id', 'label'] as const;
 const COLLECTION_ALLOWED_KEYS = [
 	'label',
 	'labelSingular',
@@ -45,8 +54,10 @@ const COLLECTION_ALLOWED_KEYS = [
 	'previewUrl',
 	'listFields',
 	'fieldGroups',
+	'localizedFields',
 	'fields'
 ] as const;
+const LOCALIZED_FIELD_ALLOWED_KEYS = ['label', 'fields'] as const;
 const FIELD_ALLOWED_KEYS = [
 	'label',
 	'help',
@@ -78,6 +89,7 @@ const MERGED_SOURCE_ALLOWED_KEYS = [
 ] as const;
 
 const PREVIEW_URL_PATTERN = /^https?:\/\//;
+const LOCALE_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 
 /**
  * API pública de P2 (§2, §6.3). Validación ESTRICTA del manifiesto v1: cualquier desviación
@@ -316,9 +328,62 @@ function validateRoot(raw: JsonValue, errors: ManifestValidationErrorEntry[]): v
 	}
 
 	if ('site' in raw) validateSite(raw.site, errors);
+	if ('locales' in raw) validateLocales(raw.locales, errors);
 	if ('nav' in raw) validateNav(raw.nav, errors);
 	if ('collections' in raw) validateCollections(raw.collections, errors);
 	if ('mergedViews' in raw) validateMergedViews(raw.mergedViews, errors);
+}
+
+function validateLocales(value: JsonValue, errors: ManifestValidationErrorEntry[]): void {
+	if (!isPlainObject(value)) {
+		fail(errors, '/locales', 'locales debe ser un objeto.');
+		return;
+	}
+	checkAdditionalProperties(value, LOCALES_ALLOWED_KEYS, '/locales', errors);
+	if (!('default' in value)) {
+		fail(errors, '/locales/default', 'locales.default es obligatorio.');
+	} else if (typeof value.default !== 'string' || !LOCALE_ID_PATTERN.test(value.default)) {
+		fail(errors, '/locales/default', 'locales.default debe ser un identificador de idioma válido.');
+	}
+	if (!('available' in value)) {
+		fail(errors, '/locales/available', 'locales.available es obligatorio.');
+		return;
+	}
+	if (!Array.isArray(value.available)) {
+		fail(errors, '/locales/available', 'locales.available debe ser un array.');
+		return;
+	}
+	if (value.available.length < 1) {
+		fail(errors, '/locales/available', 'locales.available debe contener al menos un idioma.');
+	}
+	value.available.forEach((locale, index) => {
+		const path = `/locales/available/${index}`;
+		if (!isPlainObject(locale)) {
+			fail(errors, path, `locales.available[${index}] debe ser un objeto.`);
+			return;
+		}
+		checkAdditionalProperties(locale, LOCALE_ITEM_ALLOWED_KEYS, path, errors);
+		if (!('id' in locale)) {
+			fail(errors, `${path}/id`, `locales.available[${index}].id es obligatorio.`);
+		} else if (typeof locale.id !== 'string' || !LOCALE_ID_PATTERN.test(locale.id)) {
+			fail(errors, `${path}/id`, `locales.available[${index}].id no es válido.`);
+		}
+		if (!('label' in locale)) {
+			fail(errors, `${path}/label`, `locales.available[${index}].label es obligatorio.`);
+		} else {
+			checkString(
+				locale.label,
+				`${path}/label`,
+				1,
+				60,
+				errors,
+				`locales.available[${index}].label`
+			);
+		}
+	});
+	if (hasDuplicates(value.available)) {
+		fail(errors, '/locales/available', 'locales.available no puede tener elementos repetidos.');
+	}
 }
 
 function validateSite(value: JsonValue, errors: ManifestValidationErrorEntry[]): void {
@@ -438,7 +503,69 @@ function validateCollection(
 	if ('fieldGroups' in value) {
 		checkFieldGroups(value.fieldGroups, `${base}/fieldGroups`, errors, `fieldGroups de "${name}"`);
 	}
+	if ('localizedFields' in value) {
+		validateLocalizedFields(name, value.localizedFields, errors);
+	}
 	if ('fields' in value) validateFields(name, value.fields, errors);
+}
+
+function validateLocalizedFields(
+	collection: string,
+	value: JsonValue,
+	errors: ManifestValidationErrorEntry[]
+): void {
+	const base = `/collections/${collection}/localizedFields`;
+	if (!isPlainObject(value)) {
+		fail(errors, base, `localizedFields de "${collection}" debe ser un objeto.`);
+		return;
+	}
+	for (const [logicalName, localizedValue] of Object.entries(value)) {
+		const path = `${base}/${logicalName}`;
+		if (!isPlainObject(localizedValue)) {
+			fail(errors, path, `El campo traducible "${logicalName}" debe ser un objeto.`);
+			continue;
+		}
+		checkAdditionalProperties(localizedValue, LOCALIZED_FIELD_ALLOWED_KEYS, path, errors);
+		if ('label' in localizedValue) {
+			checkString(
+				localizedValue.label,
+				`${path}/label`,
+				1,
+				60,
+				errors,
+				`label de "${logicalName}" (${collection})`
+			);
+		}
+		if (!('fields' in localizedValue)) {
+			fail(
+				errors,
+				`${path}/fields`,
+				`El campo traducible "${logicalName}" debe declarar "fields".`
+			);
+			continue;
+		}
+		if (!isPlainObject(localizedValue.fields)) {
+			fail(errors, `${path}/fields`, `fields de "${logicalName}" debe ser un objeto.`);
+			continue;
+		}
+		const mappings = Object.entries(localizedValue.fields);
+		if (mappings.length < 1) {
+			fail(errors, `${path}/fields`, `fields de "${logicalName}" debe contener algún idioma.`);
+		}
+		for (const [locale, physicalField] of mappings) {
+			if (!LOCALE_ID_PATTERN.test(locale)) {
+				fail(errors, `${path}/fields/${locale}`, `El id de idioma "${locale}" no es válido.`);
+			}
+			checkString(
+				physicalField,
+				`${path}/fields/${locale}`,
+				1,
+				Infinity,
+				errors,
+				`Campo físico de "${logicalName}" para "${locale}"`
+			);
+		}
+	}
 }
 
 function validateStatusField(

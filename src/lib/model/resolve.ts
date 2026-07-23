@@ -32,6 +32,9 @@ import type {
 	ResolvedContentType,
 	ResolvedField,
 	ResolvedFieldGroup,
+	ResolvedLocale,
+	ResolvedLocalizedField,
+	ResolvedLocalization,
 	ResolvedMergedSource,
 	ResolvedMergedView,
 	ResolvedSite
@@ -145,6 +148,54 @@ function readFieldGroups(raw: JsonValue): FieldGroupsDeclaration | undefined {
 	return { order, columnsByName };
 }
 
+interface LocalesDeclaration {
+	defaultLocale: string;
+	locales: ResolvedLocale[];
+}
+
+const LOCALE_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
+
+/**
+ * Lee la declaración raíz de idiomas como una unidad: el orden de `available` es intencional
+ * (orden de tabs), los ids deben ser únicos y `default` debe existir dentro de la lista.
+ */
+function readLocales(raw: JsonValue): LocalesDeclaration | undefined {
+	const obj = asJsonObject(raw);
+	if (!obj) return undefined;
+	const defaultLocale = obj.default;
+	const available = obj.available;
+	if (
+		typeof defaultLocale !== 'string' ||
+		!LOCALE_ID_PATTERN.test(defaultLocale) ||
+		!Array.isArray(available) ||
+		available.length === 0
+	) {
+		return undefined;
+	}
+	const locales: ResolvedLocale[] = [];
+	const seen = new Set<string>();
+	for (const rawLocale of available) {
+		const locale = asJsonObject(rawLocale);
+		if (!locale) return undefined;
+		const id = locale.id;
+		const label = locale.label;
+		if (
+			typeof id !== 'string' ||
+			!LOCALE_ID_PATTERN.test(id) ||
+			typeof label !== 'string' ||
+			label.length < 1 ||
+			label.length > 60 ||
+			seen.has(id)
+		) {
+			return undefined;
+		}
+		seen.add(id);
+		locales.push({ id, label });
+	}
+	if (!seen.has(defaultLocale)) return undefined;
+	return { defaultLocale, locales };
+}
+
 function readStatusFieldRaw(raw: JsonValue): string | false | undefined {
 	if (raw === false) return false;
 	if (typeof raw === 'string' && raw.length > 0) return raw;
@@ -204,6 +255,14 @@ export function resolveContentModel(input: {
 	const { manifest, doc } = readManifestDoc(input.manifestRaw, warnings);
 
 	const site = resolveSite(doc, warnings);
+	const locales = readKey(
+		doc,
+		'locales',
+		readLocales,
+		'/locales',
+		'locales debe declarar default y una lista available de idiomas únicos que incluya el idioma por defecto; se ignora.',
+		warnings
+	);
 
 	const navRaw = readKey(
 		doc,
@@ -242,7 +301,14 @@ export function resolveContentModel(input: {
 
 	const navOrderByType = new Map<string, number | undefined>();
 	const resolvedTypes: ResolvedContentType[] = input.types.map((type) =>
-		resolveContentType(type, collectionsRaw[type.name], input.knownIcons, navOrderByType, warnings)
+		resolveContentType(
+			type,
+			collectionsRaw[type.name],
+			locales,
+			input.knownIcons,
+			navOrderByType,
+			warnings
+		)
 	);
 
 	const resolvedTypesByName = new Map(resolvedTypes.map((t) => [t.name, t]));
@@ -362,6 +428,7 @@ function resolveSite(doc: JsonObject, warnings: ModelWarning[]): ResolvedSite {
 function resolveContentType(
 	type: ContentType,
 	collectionRawValue: JsonValue | undefined,
+	locales: LocalesDeclaration | undefined,
 	knownIcons: readonly string[] | undefined,
 	navOrderByType: Map<string, number | undefined>,
 	warnings: ModelWarning[]
@@ -572,6 +639,13 @@ function resolveContentType(
 		name,
 		columns: ((name !== null ? columnsByGroupName.get(name) : undefined) ?? 1) as 1 | 2 | 3
 	}));
+	const localization = resolveLocalization(
+		type.name,
+		collectionRaw,
+		locales,
+		orderedFields,
+		warnings
+	);
 
 	// ————— listFields (§4.10) —————
 	const listFieldsRawArr = readKey(
@@ -612,8 +686,153 @@ function resolveContentType(
 		previewUrl,
 		fields: orderedFields,
 		listFields,
-		fieldGroups
+		fieldGroups,
+		localization
 	};
+}
+
+function resolveLocalization(
+	collection: string,
+	collectionRaw: JsonObject | undefined,
+	locales: LocalesDeclaration | undefined,
+	fields: readonly ResolvedField[],
+	warnings: ModelWarning[]
+): ResolvedLocalization | null {
+	if (!collectionRaw || !('localizedFields' in collectionRaw)) return null;
+	const base = `/collections/${collection}/localizedFields`;
+	const localizedRaw = asJsonObject(collectionRaw.localizedFields);
+	if (!localizedRaw) {
+		warnings.push(
+			manifestInvalidKey(base, `localizedFields de "${collection}" no es un objeto; se ignora.`)
+		);
+		return null;
+	}
+	if (!locales) {
+		warnings.push(
+			manifestInvalidKey(
+				base,
+				`"${collection}" declara campos traducibles pero la raíz locales no es válida; se ignoran.`
+			)
+		);
+		return null;
+	}
+
+	const fieldsByName = new Map(fields.map((field) => [field.name, field]));
+	const fieldOrder = new Map(fields.map((field, index) => [field.name, index]));
+	const usedPhysicalFields = new Set<string>();
+	const resolved: ResolvedLocalizedField[] = [];
+
+	// Orden alfabético para que los warnings y la resolución no dependan del orden de claves JSON.
+	for (const logicalName of Object.keys(localizedRaw).sort((a, b) => a.localeCompare(b))) {
+		const path = `${base}/${logicalName}`;
+		const declaration = asJsonObject(localizedRaw[logicalName]);
+		const mappings = declaration ? asJsonObject(declaration.fields) : undefined;
+		if (!declaration || !mappings) {
+			warnings.push(
+				manifestInvalidKey(
+					path,
+					`El campo traducible "${logicalName}" debe declarar un objeto fields; se ignora.`
+				)
+			);
+			continue;
+		}
+
+		const unknownLocales = Object.keys(mappings)
+			.filter((locale) => !locales.locales.some((item) => item.id === locale))
+			.sort((a, b) => a.localeCompare(b));
+		for (const locale of unknownLocales) {
+			warnings.push(
+				manifestInvalidKey(
+					`${path}/fields/${locale}`,
+					`El idioma "${locale}" no está declarado en locales.available; se ignora este campo traducible.`
+				)
+			);
+		}
+
+		const physicalByLocale: Record<string, string> = {};
+		let valid = unknownLocales.length === 0;
+		for (const locale of locales.locales) {
+			const physicalName = mappings[locale.id];
+			if (typeof physicalName !== 'string' || physicalName.length < 1) {
+				warnings.push(
+					manifestInvalidKey(
+						`${path}/fields/${locale.id}`,
+						`Falta el campo físico para el idioma "${locale.id}"; se ignora "${logicalName}".`
+					)
+				);
+				valid = false;
+				continue;
+			}
+			const physicalField = fieldsByName.get(physicalName);
+			if (!physicalField) {
+				warnings.push(
+					manifestInvalidKey(
+						`${path}/fields/${locale.id}`,
+						`El campo "${physicalName}" no existe en "${collection}"; se ignora "${logicalName}".`
+					)
+				);
+				valid = false;
+				continue;
+			}
+			if (usedPhysicalFields.has(physicalName)) {
+				warnings.push(
+					manifestInvalidKey(
+						`${path}/fields/${locale.id}`,
+						`El campo "${physicalName}" ya pertenece a otro campo traducible; se ignora "${logicalName}".`
+					)
+				);
+				valid = false;
+			}
+			physicalByLocale[locale.id] = physicalName;
+		}
+		if (!valid) continue;
+
+		const anchorName = physicalByLocale[locales.defaultLocale];
+		const anchor = fieldsByName.get(anchorName);
+		if (!anchor) continue;
+		const compatible = locales.locales.every((locale) => {
+			const field = fieldsByName.get(physicalByLocale[locale.id]);
+			return (
+				field?.schema.type === anchor.schema.type &&
+				field.widget === anchor.widget &&
+				field.subtype === anchor.subtype
+			);
+		});
+		if (!compatible) {
+			warnings.push(
+				manifestInvalidKey(
+					path,
+					`Los campos físicos de "${logicalName}" no usan el mismo tipo/widget; se ignora el grupo traducible.`
+				)
+			);
+			continue;
+		}
+
+		const rawLabel = declaration.label;
+		if (rawLabel !== undefined && (typeof rawLabel !== 'string' || rawLabel.length < 1)) {
+			warnings.push(
+				manifestInvalidKey(`${path}/label`, `label de "${logicalName}" no es válido; se ignora.`)
+			);
+			continue;
+		}
+		for (const physicalName of Object.values(physicalByLocale)) {
+			usedPhysicalFields.add(physicalName);
+		}
+		resolved.push({
+			name: logicalName,
+			label: typeof rawLabel === 'string' ? rawLabel : anchor.label,
+			fields: physicalByLocale
+		});
+	}
+
+	resolved.sort(
+		(a, b) =>
+			(fieldOrder.get(a.fields[locales.defaultLocale]) ?? Number.MAX_SAFE_INTEGER) -
+			(fieldOrder.get(b.fields[locales.defaultLocale]) ?? Number.MAX_SAFE_INTEGER)
+	);
+	return resolved.length > 0
+		? { defaultLocale: locales.defaultLocale, locales: locales.locales, fields: resolved }
+		: null;
 }
 
 /** `[titleField, statusField, …primeros listables]`, sin duplicar, truncado a 5 (§4.10). */

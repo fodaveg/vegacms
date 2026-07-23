@@ -138,7 +138,8 @@
 	import { buildPreviewUrl } from '$lib/model/preview-url';
 	import EditTopBar from '$lib/shell/EditTopBar.svelte';
 	import { buildFormModel, type FormModel, type FormValues } from './form-model';
-	import { buildFormSections } from './form-sections';
+	import { buildFormSections, localeForField } from './form-sections';
+	import { localeStatus, type LocaleStatus } from './locale-status';
 	import { isDirty, type FormInputValues } from './dirty';
 	import { toRecordInput } from './to-record-input';
 	import { validateForm } from './validation';
@@ -182,6 +183,7 @@
 	let clientErrors = $state<FieldErrorsView>(EMPTY_ERRORS);
 	let backendErrors = $state<FieldErrorsView>(EMPTY_ERRORS);
 	let saving = $state(false);
+	let activeLocale = $state(untrack(() => type.localization?.defaultLocale ?? ''));
 
 	// Ver cabecera: variable PLANA (no `$state`) para no crear un ciclo effect↔escritura propia.
 	let syncedModel = untrack(() => model);
@@ -225,6 +227,7 @@
 			current = { ...model.baseline };
 			clientErrors = EMPTY_ERRORS;
 			backendErrors = EMPTY_ERRORS;
+			activeLocale = type.localization?.defaultLocale ?? '';
 			recordIdentity.type = type.name;
 			recordIdentity.id = model.recordId;
 			// Un `model` nuevo es un registro DISTINTO (ver LANDMINE de más abajo): "último guardado"
@@ -250,7 +253,7 @@
 	// (rejilla responsive, ver cabecera y CSS de `.vega-fgroup-grid` más abajo); ver
 	// `form-sections.ts` para el fallback de campos "huérfanos" (defensivo, no debería darse por
 	// contrato) — extraído a módulo PURO para poder testearlo sin montar este componente.
-	const sections = $derived.by(() => buildFormSections(type));
+	const sections = $derived.by(() => buildFormSections(type, activeLocale));
 
 	const errors = $derived<FieldErrorsView>({
 		byField: { ...clientErrors.byField, ...backendErrors.byField },
@@ -259,6 +262,9 @@
 
 	const dirty = $derived(isDirty(baseline, current));
 	const formDisabled = $derived(saving || typeReadonly);
+	const activeLocaleTabId = $derived(
+		type.localization ? `vega-locale-tab-${type.name}-${activeLocale}` : undefined
+	);
 
 	/** `<h1>` visualmente oculto (ver cabecera): mismo texto que antes era la cabecera VISIBLE. */
 	const pageTitle = $derived(
@@ -332,10 +338,43 @@
 	async function focusFirstErrorField(errorsView: FieldErrorsView): Promise<void> {
 		const name = firstErrorFieldName(type.fields, errorsView);
 		if (name === null) return;
+		const errorLocale = localeForField(type, name);
+		if (errorLocale !== null) activeLocale = errorLocale;
 		await tick();
 		const target = resolveFocusTarget(document, name);
 		target?.focus();
 		target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+	}
+
+	function localeStatusText(label: string, status: LocaleStatus): string {
+		switch (status) {
+			case 'error':
+				return ctx.t('form.locale.status.error', { label });
+			case 'dirty':
+				return ctx.t('form.locale.status.dirty', { label });
+			case 'missing':
+				return ctx.t('form.locale.status.missing', { label });
+			case 'complete':
+				return ctx.t('form.locale.status.complete', { label });
+		}
+	}
+
+	async function handleLocaleTabKeydown(event: KeyboardEvent, index: number): Promise<void> {
+		const locales = type.localization?.locales ?? [];
+		if (locales.length === 0) return;
+		let next: number;
+		if (event.key === 'ArrowRight') next = (index + 1) % locales.length;
+		else if (event.key === 'ArrowLeft') next = (index - 1 + locales.length) % locales.length;
+		else if (event.key === 'Home') next = 0;
+		else if (event.key === 'End') next = locales.length - 1;
+		else return;
+		event.preventDefault();
+		activeLocale = locales[next].id;
+		await tick();
+		const tabs = (event.currentTarget as HTMLElement).parentElement?.querySelectorAll<HTMLElement>(
+			'[role="tab"]'
+		);
+		tabs?.[next]?.focus();
 	}
 
 	async function handleSubmit(event: SubmitEvent): Promise<void> {
@@ -494,6 +533,34 @@
 		<p class="vega-record-form-banner" role="alert">{fieldErrorMessage(ctx.t, errors.record)}</p>
 	{/if}
 
+	{#if type.localization}
+		<div
+			class="vega-locale-tabs"
+			role="tablist"
+			aria-label={ctx.t('form.locale.tabsLabel')}
+			aria-orientation="horizontal"
+		>
+			{#each type.localization.locales as locale, index (locale.id)}
+				{@const status = localeStatus(type, locale.id, baseline, current, errors)}
+				<button
+					id={`vega-locale-tab-${type.name}-${locale.id}`}
+					type="button"
+					role="tab"
+					aria-selected={activeLocale === locale.id}
+					aria-controls={`vega-locale-panel-${type.name}`}
+					aria-label={localeStatusText(locale.label, status)}
+					tabindex={activeLocale === locale.id ? 0 : -1}
+					data-status={status}
+					onclick={() => (activeLocale = locale.id)}
+					onkeydown={(event) => handleLocaleTabKeydown(event, index)}
+				>
+					<span>{locale.label}</span>
+					<span class="vega-locale-status" aria-hidden="true"></span>
+				</button>
+			{/each}
+		</div>
+	{/if}
+
 	{#snippet fieldRow(field: ResolvedField, stacked: boolean)}
 		<FieldRow
 			{field}
@@ -506,27 +573,34 @@
 		/>
 	{/snippet}
 
-	{#each sections as section (section.group ?? '')}
-		{#if section.fields.length > 0}
-			<section class="vega-fsection">
-				{#if section.group}
-					<h2>{section.group}</h2>
-				{/if}
-				{#if section.columns > 1}
-					<!-- §4.9b: rejilla de N columnas (ver cabecera) — cada FieldRow va `stacked`. -->
-					<div class="vega-fgroup-grid" class:vega-fgroup-grid--3={section.columns === 3}>
+	<div
+		id={type.localization ? `vega-locale-panel-${type.name}` : undefined}
+		class="vega-form-content"
+		role={type.localization ? 'tabpanel' : undefined}
+		aria-labelledby={activeLocaleTabId}
+	>
+		{#each sections as section (section.group ?? '')}
+			{#if section.fields.length > 0}
+				<section class="vega-fsection">
+					{#if section.group}
+						<h2>{section.group}</h2>
+					{/if}
+					{#if section.columns > 1}
+						<!-- §4.9b: rejilla de N columnas (ver cabecera) — cada FieldRow va `stacked`. -->
+						<div class="vega-fgroup-grid" class:vega-fgroup-grid--3={section.columns === 3}>
+							{#each section.fields as field (field.name)}
+								{@render fieldRow(field, true)}
+							{/each}
+						</div>
+					{:else}
 						{#each section.fields as field (field.name)}
-							{@render fieldRow(field, true)}
+							{@render fieldRow(field, false)}
 						{/each}
-					</div>
-				{:else}
-					{#each section.fields as field (field.name)}
-						{@render fieldRow(field, false)}
-					{/each}
-				{/if}
-			</section>
-		{/if}
-	{/each}
+					{/if}
+				</section>
+			{/if}
+		{/each}
+	</div>
 </form>
 
 <style>
@@ -539,6 +613,79 @@
 		   `min-width` por defecto es el de su contenido — un label/valor kilométrico (una sola
 		   palabra sin espacios) podría forzar overflow horizontal de la página entera. */
 		min-width: 0;
+	}
+
+	.vega-form-content {
+		display: flex;
+		flex-direction: column;
+		gap: 1.75rem;
+		min-width: 0;
+	}
+
+	.vega-locale-tabs {
+		display: flex;
+		width: fit-content;
+		max-width: 100%;
+		overflow-x: auto;
+		padding: 0.3rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--surface-2);
+		box-shadow: var(--shadow-card);
+		scrollbar-width: thin;
+	}
+
+	.vega-locale-tabs button {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.55rem;
+		flex: 0 0 auto;
+		min-height: 2.35rem;
+		padding: 0.45rem 0.85rem;
+		border: 1px solid transparent;
+		border-radius: calc(var(--r) - 2px);
+		background: transparent;
+		color: var(--ink-2);
+		font-family: var(--mono);
+		font-size: 0.75rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.vega-locale-tabs button:hover {
+		color: var(--ink);
+		background: var(--active);
+	}
+
+	.vega-locale-tabs button[aria-selected='true'] {
+		border-color: var(--line-strong);
+		background: var(--surface);
+		color: var(--ink-hi);
+		box-shadow: var(--shadow-card);
+	}
+
+	.vega-locale-tabs button:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.vega-locale-status {
+		width: 0.5rem;
+		height: 0.5rem;
+		border-radius: 999px;
+		background: var(--success);
+	}
+
+	.vega-locale-tabs button[data-status='missing'] .vega-locale-status {
+		background: var(--ink-3);
+	}
+
+	.vega-locale-tabs button[data-status='dirty'] .vega-locale-status {
+		background: var(--warning);
+	}
+
+	.vega-locale-tabs button[data-status='error'] .vega-locale-status {
+		background: var(--danger);
 	}
 
 	/* Técnica WCAG estándar de "visualmente oculto" (ver cabecera del módulo): 1×1px, invisible a

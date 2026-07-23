@@ -101,6 +101,35 @@ export interface ResolvedContentType {
 	listFields: string[];
 	/** (D+M) grupos de campos del formulario, en orden de render (§4.9, §4.9b). */
 	fieldGroups: ResolvedFieldGroup[];
+	/**
+	 * (M) Configuración de edición traducible. `null` conserva el formulario plano histórico.
+	 * Cuando existe, la UI pinta un único selector de idioma y sustituye solo los campos físicos
+	 * declarados en `fields`; el resto del formulario permanece visible y compartido.
+	 */
+	localization?: ResolvedLocalization | null;
+}
+
+export interface ResolvedLocale {
+	/** Id estable declarado por el proyecto (p. ej. `es`, `en`, `pt-BR`). */
+	id: string;
+	/** Etiqueta humana del tab (p. ej. `Español`). */
+	label: string;
+}
+
+export interface ResolvedLocalizedField {
+	/** Id lógico del campo traducible dentro del manifiesto (p. ej. `title`). */
+	name: string;
+	/** Etiqueta común que sustituye a sufijos físicos como `(ES)`/`(EN)`. */
+	label: string;
+	/** Campo físico del backend por locale. Solo contiene locales válidos y campos existentes. */
+	fields: Record<string, string>;
+}
+
+export interface ResolvedLocalization {
+	defaultLocale: string;
+	locales: ResolvedLocale[];
+	/** En orden del campo físico ancla (el del locale por defecto) dentro del formulario. */
+	fields: ResolvedLocalizedField[];
 }
 
 /**

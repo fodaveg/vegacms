@@ -172,6 +172,13 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.previewLink': 'View on site',
 	'editor.previewDisabledTitle': 'The draft has no public URL yet',
 
+	// ————— Content locale selector (manifest-declared localized fields) —————
+	'form.locale.tabsLabel': 'Content language',
+	'form.locale.status.error': '{label}: contains errors',
+	'form.locale.status.dirty': '{label}: has unsaved changes',
+	'form.locale.status.missing': '{label}: translations are missing',
+	'form.locale.status.complete': '{label}: translation complete',
+
 	// ————— Field widgets (P5 contract, Phase F5-a/F5-b) —————
 	'form.unsupported': 'Field not editable in Vega',
 	'form.select.empty': '— no selection —',

@@ -115,6 +115,52 @@ Legacy path/string fields may remain hidden as migration fallbacks.
 The public site and every other consumer must read the same singleton. This is
 what makes PocketBase, rather than a Vega deployment, the source of truth.
 
+## Localized fields
+
+Projects keep one typed PocketBase field per language and declare how those
+physical fields form one editorial concept. Vega then renders a single
+form-level language switcher; shared fields remain visible while only the
+localized controls change.
+
+```json
+{
+	"schemaVersion": 1,
+	"locales": {
+		"default": "es",
+		"available": [
+			{ "id": "es", "label": "Español" },
+			{ "id": "en", "label": "English" }
+		]
+	},
+	"collections": {
+		"posts": {
+			"localizedFields": {
+				"title": {
+					"label": "Title",
+					"fields": { "es": "titleEs", "en": "titleEn" }
+				},
+				"body": {
+					"label": "Body",
+					"fields": { "es": "bodyEs", "en": "bodyEn" }
+				}
+			}
+		}
+	}
+}
+```
+
+The order of `locales.available` is the tab order. `locales.default` selects
+the initial tab and the physical field that anchors each localized control in
+the existing form order/group. Every localized mapping must cover all declared
+locales, reference real fields, and use structurally compatible field types
+and widgets. Invalid groups degrade independently to normal physical fields
+and produce a model warning.
+
+Tabs expose missing content, unsaved changes, and validation errors. When save
+validation fails in a hidden language, Vega switches to that tab before moving
+focus to the first invalid control. Vega never copies or falls back content on
+write; fallback policy remains the public site's responsibility.
+
 ## Compatibility policy
 
 - Vega v1 consumes discovery protocol `1` and manifest schema `1`.

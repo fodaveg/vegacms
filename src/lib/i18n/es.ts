@@ -182,6 +182,13 @@ export const es = {
 	'editor.previewLink': 'Ver en el sitio',
 	'editor.previewDisabledTitle': 'El borrador no tiene URL pública todavía',
 
+	// ————— Selector de idioma de contenido (campos traducibles del manifiesto) —————
+	'form.locale.tabsLabel': 'Idioma del contenido',
+	'form.locale.status.error': '{label}: contiene errores',
+	'form.locale.status.dirty': '{label}: tiene cambios sin guardar',
+	'form.locale.status.missing': '{label}: faltan traducciones',
+	'form.locale.status.complete': '{label}: traducción completa',
+
 	// ————— Widgets de campo (Fase F5-a/F5-b del contrato P5) —————
 	'form.unsupported': 'Campo no editable en Vega',
 	'form.select.empty': '— sin selección —',

@@ -75,6 +75,42 @@ describe('1. Casos puntuales contra el schema §3', () => {
 		expect(result.ok).toBe(false);
 	});
 
+	test('locales y localizedFields con mapeo explícito → válido', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			locales: {
+				default: 'es',
+				available: [
+					{ id: 'es', label: 'Español' },
+					{ id: 'en', label: 'English' }
+				]
+			},
+			collections: {
+				post: {
+					localizedFields: {
+						title: { label: 'Título', fields: { es: 'titleEs', en: 'titleEn' } }
+					}
+				}
+			}
+		});
+		expect(result).toEqual({ ok: true });
+	});
+
+	test('locales.available vacío y localizedFields sin fields → inválido', () => {
+		expect(
+			validateManifestStrict({
+				schemaVersion: 1,
+				locales: { default: 'es', available: [] }
+			}).ok
+		).toBe(false);
+		expect(
+			validateManifestStrict({
+				schemaVersion: 1,
+				collections: { post: { localizedFields: { title: { label: 'Título' } } } }
+			}).ok
+		).toBe(false);
+	});
+
 	test('nav.groups con duplicados → inválido (uniqueItems)', () => {
 		const result = validateManifestStrict({ schemaVersion: 1, nav: { groups: ['A', 'A'] } });
 		expect(result.ok).toBe(false);
@@ -335,6 +371,23 @@ const VALID_ZERO_WARNING_MANIFESTS: JsonValue[] = [
 		}
 	},
 	{
+		schemaVersion: 1,
+		locales: {
+			default: 'es',
+			available: [
+				{ id: 'es', label: 'Español' },
+				{ id: 'en', label: 'English' }
+			]
+		},
+		collections: {
+			post: {
+				localizedFields: {
+					title: { label: 'Título', fields: { es: 'title', en: 'excerpt' } }
+				}
+			}
+		}
+	},
+	{
 		// mergedViews (L7a): `post.rating` es el ÚNICO campo numérico del kitchen-sink, así que
 		// ambas sources son de `post` (permitido, la dedupe es cosa de L7b) con distinto `where`.
 		// `post.featured` (bool) y `post.status` (select simple) admiten "eq". Cero warnings:
@@ -384,6 +437,21 @@ const INVALID_MANIFESTS: JsonValue[] = [
 	{ schemaVersion: 1, site: { name: 'x'.repeat(61) } },
 	{ schemaVersion: 1, site: { locale: 'de' } },
 	{ schemaVersion: 1, site: { unknown: 1 } },
+	{ schemaVersion: 1, locales: 'not-an-object' },
+	{ schemaVersion: 1, locales: { available: [{ id: 'es', label: 'Español' }] } },
+	{ schemaVersion: 1, locales: { default: 'es', available: [] } },
+	{
+		schemaVersion: 1,
+		locales: { default: 'es!', available: [{ id: 'es', label: 'Español' }] }
+	},
+	{
+		schemaVersion: 1,
+		locales: { default: 'es', available: [{ id: 'es!', label: 'Español' }] }
+	},
+	{
+		schemaVersion: 1,
+		locales: { default: 'es', available: [{ id: 'es', label: '' }] }
+	},
 	{ schemaVersion: 1, nav: { groups: [''] } },
 	{ schemaVersion: 1, nav: { groups: ['A', 'A'] } },
 	{ schemaVersion: 1, nav: { tabs: [] } },
@@ -405,6 +473,19 @@ const INVALID_MANIFESTS: JsonValue[] = [
 	{ schemaVersion: 1, collections: { post: { fieldGroups: [{ name: 'X', extra: true }] } } },
 	{ schemaVersion: 1, collections: { post: { fieldGroups: [42] } } },
 	{ schemaVersion: 1, collections: { post: { unknownKey: 1 } } },
+	{ schemaVersion: 1, collections: { post: { localizedFields: 'nope' } } },
+	{
+		schemaVersion: 1,
+		collections: { post: { localizedFields: { title: { label: 'Título' } } } }
+	},
+	{
+		schemaVersion: 1,
+		collections: { post: { localizedFields: { title: { fields: {} } } } }
+	},
+	{
+		schemaVersion: 1,
+		collections: { post: { localizedFields: { title: { fields: { 'es!': 'title' } } } } }
+	},
 	{ schemaVersion: 1, collections: { post: { fields: 'nope' } } },
 	{ schemaVersion: 1, collections: { post: { fields: { body: 'nope' } } } },
 	{ schemaVersion: 1, collections: { post: { fields: { body: { widget: 'richtext' } } } } },
