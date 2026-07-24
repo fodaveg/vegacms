@@ -534,9 +534,15 @@ const INVALID_MANIFESTS: JsonValue[] = [
 	{ schemaVersion: 1, collections: { post: { defaultSort: 'not-an-object' } } },
 	{ schemaVersion: 1, collections: { post: { defaultSort: { field: 'rating' } } } },
 	{ schemaVersion: 1, collections: { post: { defaultSort: { dir: 'asc' } } } },
-	{ schemaVersion: 1, collections: { post: { defaultSort: { field: 'rating', dir: 'sideways' } } } },
+	{
+		schemaVersion: 1,
+		collections: { post: { defaultSort: { field: 'rating', dir: 'sideways' } } }
+	},
 	{ schemaVersion: 1, collections: { post: { defaultSort: { field: '', dir: 'asc' } } } },
-	{ schemaVersion: 1, collections: { post: { defaultSort: { field: 'rating', dir: 'asc', x: 1 } } } },
+	{
+		schemaVersion: 1,
+		collections: { post: { defaultSort: { field: 'rating', dir: 'asc', x: 1 } } }
+	},
 	{ schemaVersion: 1, collections: { post: { previewUrl: 'not-a-url' } } },
 	{ schemaVersion: 1, collections: { post: { listFields: Array.from({ length: 9 }, () => 'x') } } },
 	{ schemaVersion: 1, collections: { post: { listFields: ['a', 'a'] } } },

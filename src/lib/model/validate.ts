@@ -656,7 +656,13 @@ function validateDefaultSort(
 	if (!('dir' in value)) {
 		fail(errors, `${base}/dir`, `defaultSort de "${collection}" debe declarar "dir".`);
 	} else {
-		checkEnum(value.dir, ['asc', 'desc'], `${base}/dir`, errors, `defaultSort.dir de "${collection}"`);
+		checkEnum(
+			value.dir,
+			['asc', 'desc'],
+			`${base}/dir`,
+			errors,
+			`defaultSort.dir de "${collection}"`
+		);
 	}
 }
 
