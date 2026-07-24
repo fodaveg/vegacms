@@ -13,6 +13,12 @@ Internet
 No se publica ningún puerto de PocketBase en el host. La persistencia vive en el volumen Docker
 `vega_data`; la imagen contiene solo el binario de PocketBase y el build estático de Vega.
 
+> **Sin auth fuerte por defecto.** Este `Dockerfile` despliega PocketBase vanilla: **no** incluye
+> la extensión [`extensions/vegaauth`](../../extensions/vegaauth/README.md) (TOTP, códigos de
+> recuperación y passkeys). Esa auth es opt-in y exige ejecutar PocketBase como app Go aparte,
+> según [`docs/POCKETBASE-INTEGRATION.md`](../../docs/POCKETBASE-INTEGRATION.md). No asumas que
+> `admin.vegacms.com` tiene MFA disponible salvo que se haya desplegado esa variante.
+
 ## Ubicaciones del servidor
 
 - checkout y Compose: `/srv/vega`;
