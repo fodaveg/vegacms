@@ -330,7 +330,6 @@
 				perPage={RELATION_SEARCH_PER_PAGE}
 				onPrev={() => void loadDegradedPage(degradedPage - 1)}
 				onNext={() => void loadDegradedPage(degradedPage + 1)}
-				onGoToPage={(target) => void loadDegradedPage(target)}
 			/>
 		{/if}
 	{:else}

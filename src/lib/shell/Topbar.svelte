@@ -284,7 +284,12 @@
 		align-items: center;
 		gap: 0.75rem;
 		flex-shrink: 0;
-		margin-left: auto;
+		/* SIN `margin-left:auto` propio (a diferencia de antes): `GlobalSearch` ya centra el
+		   buscador con SU PROPIO `margin-inline:auto` (ver su cabecera) — ese margen derecho
+		   absorbe todo el hueco restante y empuja a `.vega-topbar-actions` hasta el borde derecho,
+		   igual que en el mockup (`.topbar-right`, sin margen propio). Si esto vuelve a llevar
+		   `margin-left:auto`, el buscador deja de quedar centrado (el hueco se repartiría entre
+		   TRES márgenes en vez de dos). */
 	}
 
 	.vega-topbar-avatar {

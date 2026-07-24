@@ -283,7 +283,6 @@
 							perPage={MEDIA_PER_PAGE}
 							onPrev={() => goToPage(status.page.page - 1)}
 							onNext={() => goToPage(status.page.page + 1)}
-							onGoToPage={goToPage}
 						/>
 					{/if}
 				{/if}

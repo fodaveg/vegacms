@@ -116,8 +116,7 @@ describe('describeCell — date', () => {
 		const f = resolvedField(field({ name: 'publishedAt', type: 'date' }));
 		const iso = '2026-01-15T10:00:00.000Z';
 		const expected = new Intl.DateTimeFormat('es', {
-			dateStyle: 'medium',
-			timeStyle: 'short'
+			dateStyle: 'medium'
 		}).format(new Date(iso));
 		expect(describeCell(f, iso, 'es')).toEqual({ kind: 'date', text: expected });
 	});
@@ -199,8 +198,7 @@ describe('describeCell — date, relativo (M5, mockup "hace 2 h"/"ayer")', () =>
 		const ms = NOW - 8 * 24 * 60 * 60 * 1000;
 		const iso = new Date(ms).toISOString();
 		const expected = new Intl.DateTimeFormat('es', {
-			dateStyle: 'medium',
-			timeStyle: 'short'
+			dateStyle: 'medium'
 		}).format(new Date(ms));
 		expect(describeCell(f, iso, 'es', NOW)).toEqual({ kind: 'date', text: expected });
 	});
@@ -210,8 +208,7 @@ describe('describeCell — date, relativo (M5, mockup "hace 2 h"/"ayer")', () =>
 		// se comprueba que el default no rompe la firma de 3 argumentos existente.
 		const iso = '2020-01-01T00:00:00.000Z';
 		const expected = new Intl.DateTimeFormat('es', {
-			dateStyle: 'medium',
-			timeStyle: 'short'
+			dateStyle: 'medium'
 		}).format(new Date(iso));
 		expect(describeCell(f, iso, 'es')).toEqual({ kind: 'date', text: expected });
 	});

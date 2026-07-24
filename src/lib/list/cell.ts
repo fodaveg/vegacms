@@ -139,7 +139,8 @@ const DAY_MS = 24 * HOUR_MS;
  * Formatea una fecha de celda (M5, mockup `aquelarre-dark.html` "hace 2 h"/"ayer"): relativo a
  * `now` con `Intl.RelativeTimeFormat` (`numeric:'auto'`, que da "ayer"/"hoy"/"mañana" en vez de
  * "hace 1 día") cuando la diferencia es menor que `RELATIVE_DATE_THRESHOLD_MS`; si no, el
- * `Intl.DateTimeFormat` absoluto de siempre (comportamiento histórico, sin cambios). La unidad
+ * `Intl.DateTimeFormat` absoluto — SOLO fecha, sin hora (match 1:1 con el mockup, "18 jul 2026":
+ * `dateStyle:'medium'`, ya sin `timeStyle`; antes llevaba también la hora). La unidad
  * (segundo/minuto/hora/día) se elige por la magnitud de la diferencia, redondeando al entero más
  * cercano — nunca trunca hacia cero (evitaría que 89 minutos se lea "hace 1 hora" en vez de "hace
  * 2 horas"). Pura: `now` es un parámetro explícito, nunca `Date.now()` leído aquí dentro.
@@ -155,9 +156,7 @@ function formatDateCell(ms: number, locale: Locale, now: number): string {
 	const absDiffMs = Math.abs(diffMs);
 
 	if (absDiffMs >= RELATIVE_DATE_THRESHOLD_MS) {
-		return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(
-			new Date(ms)
-		);
+		return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(ms));
 	}
 
 	const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });

@@ -34,11 +34,11 @@ async function loginAndSettle(page: import('@playwright/test').Page): Promise<vo
 	await page.waitForURL('**/c/site_info/new');
 }
 
-/** El botón de la página ACTIVA del gridfoot numerado (R4 del rediseño C2): sustituye al viejo
- *  "{page} de {totalPages}" de `.vega-pagination-status`, que ya no lleva ese texto (ver
- *  `Pagination.svelte`). */
-function currentPageButton(page: import('@playwright/test').Page) {
-	return page.locator('[data-pagination] [aria-current="page"]');
+/** Rango de registros visibles del "gridfoot" (match 1:1 con el mockup, "1–20 de 24"): ya no hay
+ *  botones numerados de página (ver `Pagination.svelte`) — la página efectiva se comprueba por
+ *  este rango y/o por el estado disabled de Anterior/Siguiente, nunca por un indicador propio. */
+function paginationStatus(page: import('@playwright/test').Page) {
+	return page.locator('.vega-pagination-status');
 }
 
 test.describe('tabla poblada (posts, §4c)', () => {
@@ -85,28 +85,27 @@ test.describe('tabla poblada (posts, §4c)', () => {
 });
 
 test.describe('paginación (D-P4.5, L-P4.10/L-P4.13)', () => {
-	test('Anterior/Siguiente navegan, reflejan la página en la URL y actualizan "{page} de {totalPages}"', async ({
+	test('Anterior/Siguiente navegan, reflejan la página en la URL y actualizan el rango "N–M de T"', async ({
 		page
 	}) => {
 		await loginAndSettle(page);
 		await page.goto('/c/posts');
 
 		// 32 registros seed / perPage 30 (DEFAULT_PER_PAGE) = 2 páginas.
-		const status = page.locator('.vega-pagination-status');
-		await expect(currentPageButton(page)).toHaveText('1');
-		await expect(status).toContainText('32 registros');
+		const status = paginationStatus(page);
+		await expect(status).toHaveText('1–30 de 32');
 		await expect(page.getByRole('button', { name: 'Anterior' })).toBeDisabled();
 
 		await page.getByRole('button', { name: 'Siguiente' }).click();
 		await expect(page).toHaveURL(/\/c\/posts\?page=2$/);
-		await expect(currentPageButton(page)).toHaveText('2');
+		await expect(status).toHaveText('31–32 de 32');
 		await expect(page.getByRole('button', { name: 'Siguiente' })).toBeDisabled();
 		await expect(page.getByRole('button', { name: 'Anterior' })).toBeEnabled();
 
 		await page.getByRole('button', { name: 'Anterior' }).click();
 		// Página 1 es el default: `viewStateToParams` no escribe `?page=1` (D-P4.9, URLs limpias).
 		await expect(page).toHaveURL(/\/c\/posts$/);
-		await expect(currentPageButton(page)).toHaveText('1');
+		await expect(status).toHaveText('1–30 de 32');
 	});
 
 	test('deep-link directo a /c/posts?page=2 reconstruye la vista tras recarga (L-P4.13)', async ({
@@ -118,7 +117,7 @@ test.describe('paginación (D-P4.5, L-P4.10/L-P4.13)', () => {
 
 		const state = page.locator('[data-list-state="ready"]');
 		await expect(state).toBeVisible();
-		await expect(currentPageButton(page)).toHaveText('2');
+		await expect(paginationStatus(page)).toHaveText('31–32 de 32');
 	});
 });
 
@@ -230,7 +229,7 @@ test.describe('página fuera de rango (L-P4.13, fix de code-review)', () => {
 		const table = page.locator('[data-list-state="ready"]');
 		await expect(table).toBeVisible();
 		await expect(page.locator('[data-list-state="empty-collection"]')).toHaveCount(0);
-		await expect(currentPageButton(page)).toHaveText('2');
+		await expect(paginationStatus(page)).toHaveText('31–32 de 32');
 	});
 });
 
@@ -250,7 +249,7 @@ test.describe('búsqueda (D-P4.3, Fase 4d)', () => {
 		await expect(table).toBeVisible();
 		await expect(table.locator('tbody tr')).toHaveCount(1);
 		await expect(page.getByRole('link', { name: 'Bienvenido a Vega' })).toBeVisible();
-		await expect(page.locator('.vega-pagination-status')).toContainText('1 registros');
+		await expect(paginationStatus(page)).toHaveText('1–1 de 1');
 	});
 });
 
@@ -273,7 +272,7 @@ test.describe('filtro de estado (D-P4.4, Fase 4d, chips ACTIVAS de M6, reabre R2
 		await menu.getByRole('menuitem', { name: 'draft', exact: true }).click();
 
 		await expect(page).toHaveURL(/\?status=draft$/);
-		await expect(page.locator('.vega-pagination-status')).toContainText('16 registros');
+		await expect(paginationStatus(page)).toHaveText('1–16 de 16');
 
 		// El chip de filtro ACTIVO aparece con el valor elegido y su ✕.
 		const statusChip = activeChips.getByText('draft');
@@ -282,7 +281,7 @@ test.describe('filtro de estado (D-P4.4, Fase 4d, chips ACTIVAS de M6, reabre R2
 		// La ✕ del chip quita el filtro: vuelve a los 32 registros y a la URL limpia.
 		await activeChips.getByRole('button', { name: 'Quitar filtro de estado' }).click();
 		await expect(page).not.toHaveURL(/status=/);
-		await expect(page.locator('.vega-pagination-status')).toContainText('32 registros');
+		await expect(paginationStatus(page)).toHaveText('1–30 de 32');
 		await expect(activeChips.getByText('Estado:')).toHaveCount(0);
 	});
 });
@@ -306,7 +305,7 @@ test.describe('vacío-búsqueda (L-P4.12, Fase 4d): distinto de vacío-colecció
 		await emptySearch.getByRole('button', { name: 'Limpiar filtros' }).click();
 		await expect(page).not.toHaveURL(/q=/);
 		await expect(page.locator('[data-list-state="ready"]')).toBeVisible();
-		await expect(page.locator('.vega-pagination-status')).toContainText('32 registros');
+		await expect(paginationStatus(page)).toHaveText('1–30 de 32');
 	});
 
 	test('búsqueda + filtro de estado combinados a 0 resultados también cae en empty-search', async ({
@@ -355,7 +354,7 @@ test.describe('cambiar filtro resetea a página 1 (D-P4.9, Fase 4d)', () => {
 	}) => {
 		await loginAndSettle(page);
 		await page.goto('/c/posts?page=2');
-		await expect(currentPageButton(page)).toHaveText('2');
+		await expect(paginationStatus(page)).toHaveText('31–32 de 32');
 
 		await page.getByRole('button', { name: 'Filtrar' }).click();
 		await page
@@ -365,7 +364,8 @@ test.describe('cambiar filtro resetea a página 1 (D-P4.9, Fase 4d)', () => {
 
 		// `page` es el default (D-P4.9, URLs limpias): no se escribe `?page=1` junto a `?status=`.
 		await expect(page).toHaveURL(/\/c\/posts\?status=published$/);
-		await expect(currentPageButton(page)).toHaveText('1');
+		// 16 published: vuelve a la 1, rango "1–16 de 16" (nunca arrastra la página 2 anterior).
+		await expect(paginationStatus(page)).toHaveText('1–16 de 16');
 	});
 });
 
@@ -445,7 +445,7 @@ test.describe('deep-link reconstruye la vista entera (L-P4.13, Fase 4d)', () => 
 
 		const table = page.locator('[data-list-state="ready"]');
 		await expect(table).toBeVisible();
-		await expect(page.locator('.vega-pagination-status')).toContainText('15 registros');
+		await expect(paginationStatus(page)).toHaveText('1–15 de 15');
 		await expect(page.getByLabel('Buscar en el listado')).toHaveValue('Entrada');
 		// El deep-link reconstruye el chip de filtro ACTIVO (M6, reabre R2): "draft" visible en el
 		// grupo "Filtros activos", sin necesidad de haber pasado por el menú "Filtrar".
@@ -461,7 +461,7 @@ test.describe('deep-link reconstruye la vista entera (L-P4.13, Fase 4d)', () => 
 
 		const tableAfterReload = page.locator('[data-list-state="ready"]');
 		await expect(tableAfterReload).toBeVisible();
-		await expect(page.locator('.vega-pagination-status')).toContainText('15 registros');
+		await expect(paginationStatus(page)).toHaveText('1–15 de 15');
 		await expect(page.getByLabel('Buscar en el listado')).toHaveValue('Entrada');
 		await expect(
 			page.getByRole('group', { name: 'Filtros activos' }).getByText('draft')

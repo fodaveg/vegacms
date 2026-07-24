@@ -52,7 +52,7 @@ test.describe('borrar con confirmación (L-P4.11)', () => {
 		await expect(page.getByText('"Bienvenido a Vega" se ha borrado.')).toBeVisible();
 		await expect(page.locator('tbody tr', { hasText: 'Bienvenido a Vega' })).toHaveCount(0);
 		// Un registro menos: 31 en vez de 32 (misma página, sin retroceso — quedan de sobra en la 1).
-		await expect(page.locator('.vega-pagination-status')).toContainText('31 registros');
+		await expect(page.locator('.vega-pagination-status')).toHaveText('1–30 de 31');
 	});
 
 	test('cancelar (botón "Cancelar") no borra nada', async ({ page }) => {
@@ -69,7 +69,7 @@ test.describe('borrar con confirmación (L-P4.11)', () => {
 
 		await expect(dialog).toBeHidden();
 		await expect(row).toBeVisible();
-		await expect(page.locator('.vega-pagination-status')).toContainText('32 registros');
+		await expect(page.locator('.vega-pagination-status')).toHaveText('1–30 de 32');
 	});
 
 	test('cancelar con Esc tampoco borra nada', async ({ page }) => {
@@ -97,8 +97,10 @@ test.describe('borrar la última fila de una página > 1 retrocede (L-P4.13, rel
 		// Página 2 de 32 registros / 30 por página: exactamente 2 filas (§4c, sin desempatar por
 		// título — el orden por defecto de `memory` es por id, L-P4.2 — así que se opera por
 		// posición, no por texto: el título concreto de esas dos filas no importa para este test).
+		// Ya no hay indicador numérico de página propio: el rango "31–32 de 32" confirma que
+		// estamos en la 2 (ver `Pagination.svelte`).
 		const status = page.locator('.vega-pagination-status');
-		await expect(page.locator('[data-pagination] [aria-current="page"]')).toHaveText('2');
+		await expect(status).toHaveText('31–32 de 32');
 		await expect(page.locator('tbody tr')).toHaveCount(2);
 
 		// Primer borrado: la página 2 queda con 1 fila, sigue siendo una página válida (sin retroceso).
@@ -126,8 +128,7 @@ test.describe('borrar la última fila de una página > 1 retrocede (L-P4.13, rel
 		await expect(page.getByRole('alertdialog')).toBeHidden();
 
 		await expect(page).toHaveURL(/\/c\/posts$/);
-		await expect(page.locator('[data-pagination] [aria-current="page"]')).toHaveText('1');
-		await expect(status).toContainText('30 registros');
+		await expect(status).toHaveText('1–30 de 30');
 		await expect(page.locator('[data-list-state="ready"]')).toBeVisible();
 		await expect(page.locator('[data-list-state="empty-collection"]')).toHaveCount(0);
 	});
@@ -238,7 +239,7 @@ test.describe('borrado que falla (afordance de test, L-P4.4/Audit H6)', () => {
 		// El diálogo se cierra, pero la fila NUNCA se quitó de forma optimista: sigue ahí.
 		await expect(page.getByRole('alertdialog')).toBeHidden();
 		await expect(row).toBeVisible();
-		await expect(page.locator('.vega-pagination-status')).toContainText('32 registros');
+		await expect(page.locator('.vega-pagination-status')).toHaveText('1–30 de 32');
 
 		await page.evaluate(() => {
 			(window as unknown as { __VEGA_FORCE_DELETE_ERROR__?: boolean }).__VEGA_FORCE_DELETE_ERROR__ =

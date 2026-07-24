@@ -282,13 +282,15 @@ export const es = {
 	'list.error.body': '{message}',
 	'list.pagination.prev': 'Anterior',
 	'list.pagination.next': 'Siguiente',
-	'list.pagination.total': '{count} registros',
+	// Rango de registros visibles (match 1:1 con el mockup `.table-foot .range`, "1–20 de 24"):
+	// sustituye a `list.pagination.total`/`.perPage` (contador + tamaño de página por separado).
+	'list.pagination.range': '{first}–{last} de {total}',
 	'list.cell.yes': 'Sí',
 	'list.cell.no': 'No',
 	'list.untitled': '(sin título)',
 
 	// ————— Toolbar de listado (Fase 4d del contrato P4) —————
-	'list.search.placeholder': 'Buscar…',
+	'list.search.placeholder': 'Filtrar por título o slug…',
 	'list.search.ariaLabel': 'Buscar en el listado',
 	'list.sort.ariaLabel': 'Ordenar por {column}',
 	'list.emptySearch.title': 'Sin resultados',
@@ -314,19 +316,11 @@ export const es = {
 	'list.activeFilter.groupLabel': 'Filtros activos',
 	'list.activeFilter.status.key': 'Estado:',
 	'list.activeFilter.status.remove': 'Quitar filtro de estado',
-	// Chip de autor: STUB DE DISEÑO, no funcional todavía (ver cabecera de `ActiveFilterChips.svelte`).
-	'list.activeFilter.author.key': 'Autor:',
-	'list.activeFilter.author.stubValue': '—',
-	'list.activeFilter.author.stubHint': 'Filtro de autor: disponible próximamente',
 
 	// ————— Meta de cabecera + exportar (M2, mockup `.page-head .meta`/`.btn`) —————
 	'list.meta.records': 'registros',
 	'list.meta.filters': 'filtros',
 	'list.export.button': 'Exportar',
-
-	// ————— Paginación numerada (R4 del rediseño C2, mockup `.gridfoot`) —————
-	'list.pagination.perPage': '{count} por página',
-	'list.pagination.goToPage': 'Ir a la página {page}',
 
 	// ————— Borrado (Fase 4e del contrato P4) —————
 	'list.delete.rowButton': 'Borrar',

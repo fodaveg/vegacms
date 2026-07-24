@@ -268,13 +268,15 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.error.body': '{message}',
 	'list.pagination.prev': 'Previous',
 	'list.pagination.next': 'Next',
-	'list.pagination.total': '{count} records',
+	// Visible-records range (1:1 match with the `.table-foot .range` mockup, "1–20 of 24"):
+	// replaces `list.pagination.total`/`.perPage` (separate count + page-size strings).
+	'list.pagination.range': '{first}–{last} of {total}',
 	'list.cell.yes': 'Yes',
 	'list.cell.no': 'No',
 	'list.untitled': '(untitled)',
 
 	// ————— List toolbar (P4 contract, Phase 4d) —————
-	'list.search.placeholder': 'Search…',
+	'list.search.placeholder': 'Filter by title or slug…',
 	'list.search.ariaLabel': 'Search the list',
 	'list.sort.ariaLabel': 'Sort by {column}',
 	'list.emptySearch.title': 'No results',
@@ -304,14 +306,6 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.activeFilter.groupLabel': 'Active filters',
 	'list.activeFilter.status.key': 'Status:',
 	'list.activeFilter.status.remove': 'Remove status filter',
-	// Author chip: DESIGN STUB, not functional yet (see `ActiveFilterChips.svelte` header).
-	'list.activeFilter.author.key': 'Author:',
-	'list.activeFilter.author.stubValue': '—',
-	'list.activeFilter.author.stubHint': 'Author filter: coming soon',
-
-	// ————— Numbered pagination (redesign C2, Part R4, `.gridfoot` mockup) —————
-	'list.pagination.perPage': '{count} per page',
-	'list.pagination.goToPage': 'Go to page {page}',
 
 	// ————— Delete (P4 contract, Phase 4e) —————
 	'list.delete.rowButton': 'Delete',

@@ -9,26 +9,23 @@
 	 * recuentos). Componente TONTO en navegación, mismo reparto que el resto de `src/lib/list/**`:
 	 * solo emite `onStatusChange`, `+page.svelte` decide la URL vía `navigateView`.
 	 *
-	 * **v1 pinta dos piezas** (alcance de M6, ver la tarea):
-	 * 1. Chip de **estado**, solo si `activeStatus !== null` — el ÚNICO filtro real de esta fase.
-	 *    Etiqueta legible vía `contentType.statusLabels?.[value] ?? value` (M4, en curso en
-	 *    paralelo): degrada al valor CRUDO si el manifiesto no declara `statusLabels` para ese
-	 *    valor, o si `statusLabels` mismo es `null` — nunca revienta por un campo opcional.
-	 * 2. Chip de **autor**: STUB DE DISEÑO, no funcional (David: "el diseño lo quiero igual, las
-	 *    funciones ya las añadiremos" — no hay todavía ningún filtro de autor real en `ViewState`
-	 *    ni en `buildListQuery`). A diferencia del chip de estado, es un `<span>` NO interactivo
-	 *    (no un `<button>` inerte): un control focusable que no hace nada al activarlo sería peor
-	 *    a11y que no ofrecer ningún control — mismo espíritu que el botón "Exportar" de M2 (visual
-	 *    puro), pero aquí sin siquiera el affordance de "botón". Valor genérico (`—`), NUNCA un
-	 *    nombre de la semilla de demo (`author: 'David'` de `blog` en `demo-seed.ts`): este
-	 *    componente es compartido por CUALQUIER tipo de contenido (§ "Vega es GENÉRICO por
-	 *    contrato"), no puede asumir que existe un campo `author` ni mucho menos su valor.
+	 * **v1 pinta SOLO el chip de estado**, si `activeStatus !== null` — el ÚNICO filtro real de
+	 * esta fase. Etiqueta legible vía `contentType.statusLabels?.[value] ?? value` (M4): degrada
+	 * al valor CRUDO si el manifiesto no declara `statusLabels` para ese valor, o si
+	 * `statusLabels` mismo es `null` — nunca revienta por un campo opcional.
+	 *
+	 * **Sin stub de autor (match 1:1 con el mockup, corrección tras QA de rediseño)**: una versión
+	 * anterior pintaba SIEMPRE un chip "Autor: —" no interactivo como hueco de diseño para cuando
+	 * hubiera un filtro de autor real. El mockup `aquelarre-dark.html` (`.toolbar .chip`) solo
+	 * enseña chips de filtro REALMENTE activos — con 0 filtros, la fila queda vacía. Quitado sin
+	 * sustituto: cuando exista un filtro de autor de verdad, este componente ganará su propio chip
+	 * removible con el mismo patrón que el de estado, gateado por `activeAuthor !== null` (nunca
+	 * un stub permanente).
 	 *
 	 * **Gate de visibilidad (mismo criterio que la extinta `FilterChips`)**: si
 	 * `statusFilterOptions(contentType)` es `null` (el tipo no tiene convención de estado), este
-	 * componente no pinta NADA — ni el chip de estado (no puede haber uno activo) ni el stub de
-	 * autor (sin ninguna capacidad de filtrado, mostrar el stub sería ruido en tipos que ni
-	 * siquiera ofrecen el menú "Filtrar").
+	 * componente no pinta NADA — no puede haber un chip de estado activo si el tipo ni siquiera
+	 * ofrece el menú "Filtrar".
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import Icon from '$lib/icons/Icon.svelte';
@@ -54,30 +51,22 @@
 	);
 </script>
 
-{#if hasFilterCapability}
+{#if hasFilterCapability && activeStatus !== null}
 	<div
 		class="vega-active-filter-chips"
 		role="group"
 		aria-label={ctx.t('list.activeFilter.groupLabel')}
 	>
-		{#if activeStatus !== null}
-			<span class="vega-afchip">
-				<strong>{ctx.t('list.activeFilter.status.key')}</strong>
-				{activeStatusLabel}
-				<button
-					type="button"
-					aria-label={ctx.t('list.activeFilter.status.remove')}
-					onclick={() => onStatusChange(null)}
-				>
-					<Icon id="close" size={10} />
-				</button>
-			</span>
-		{/if}
-
-		<!-- Stub de diseño, ver cabecera: `<span>` no interactivo a propósito, sin `<button>`. -->
-		<span class="vega-afchip vega-afchip-stub" title={ctx.t('list.activeFilter.author.stubHint')}>
-			<strong>{ctx.t('list.activeFilter.author.key')}</strong>
-			{ctx.t('list.activeFilter.author.stubValue')}
+		<span class="vega-afchip">
+			<strong>{ctx.t('list.activeFilter.status.key')}</strong>
+			{activeStatusLabel}
+			<button
+				type="button"
+				aria-label={ctx.t('list.activeFilter.status.remove')}
+				onclick={() => onStatusChange(null)}
+			>
+				<Icon id="close" size={10} />
+			</button>
 		</span>
 	</div>
 {/if}
@@ -125,14 +114,5 @@
 
 	.vega-afchip button:hover {
 		background: var(--active);
-	}
-
-	/* Stub de autor (ver cabecera): tratamiento neutro/apagado (NO `--accent-soft`) para no dar a
-	   entender que es un filtro real ya aplicado — es solo el hueco de diseño para cuando exista
-	   la función. */
-	.vega-afchip-stub {
-		background: var(--surface);
-		color: var(--ink-3);
-		border-color: var(--line-strong);
 	}
 </style>

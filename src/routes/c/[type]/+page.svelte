@@ -504,7 +504,6 @@
 						perPage={DEFAULT_PER_PAGE}
 						onPrev={() => goToPage(readyPage.page - 1)}
 						onNext={() => goToPage(readyPage.page + 1)}
-						onGoToPage={goToPage}
 					/>
 				</div>
 			{/if}

@@ -56,6 +56,14 @@
 		   y el input se queda casi sin área de escritura. Ver también el `min-width` acotado del
 		   wordmark en `Topbar.svelte` para ese mismo rango. */
 		min-width: 8rem;
+		/* Match 1:1 con el mockup (`aquelarre-dark.html` `.topbar-search`, `margin-inline: auto`):
+		   antes quedaba pegado a la izquierda, justo tras el wordmark, porque solo `.vega-topbar-
+		   actions` llevaba `margin-left:auto` (empujándose a sí misma a la derecha, sin centrar
+		   nada más). Con `flex:1` topado en `max-width`, el hueco que le sobra a ese crecimiento
+		   se reparte entre los DOS márgenes automáticos — quedando centrado en la topbar salvo que
+		   el wordmark y las acciones difieran mucho de ancho (mismo trade-off que asume el propio
+		   mockup, no una limitación nueva de este componente). */
+		margin-inline: auto;
 		display: flex;
 		align-items: center;
 		gap: 0.6rem;

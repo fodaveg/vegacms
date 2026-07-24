@@ -312,7 +312,6 @@
 							perPage={MEDIA_PER_PAGE}
 							onPrev={() => goToMediaPage(mediaReadyPage.page - 1)}
 							onNext={() => goToMediaPage(mediaReadyPage.page + 1)}
-							onGoToPage={goToMediaPage}
 						/>
 					{/if}
 				</div>
