@@ -87,7 +87,7 @@ func (x *Extension) beginRegister(e *core.RequestEvent) error {
 	options, session, err := x.webAuthn.BeginRegistration(user,
 		webauthn.WithAuthenticatorSelection(protocol.AuthenticatorSelection{
 			ResidentKey:      protocol.ResidentKeyRequirementRequired,
-			UserVerification: protocol.VerificationPreferred,
+			UserVerification: protocol.VerificationRequired,
 		}),
 	)
 	if err != nil {
