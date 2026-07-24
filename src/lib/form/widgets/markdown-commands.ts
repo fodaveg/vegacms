@@ -7,6 +7,9 @@
  * reserializes the document behind the user's back.
  */
 
+import type { MarkdownManager } from '@tiptap/markdown';
+import { safeUri } from '$lib/richtext/safe-uri';
+
 export type MarkdownCommand =
 	| 'heading1'
 	| 'heading2'
@@ -285,5 +288,3 @@ export function countMarkdownWords(value: string): number {
 	const trimmed = value.trim();
 	return trimmed ? trimmed.split(/\s+/u).length : 0;
 }
-import type { MarkdownManager } from '@tiptap/markdown';
-import { safeUri } from '$lib/richtext/safe-uri';
