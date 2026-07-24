@@ -111,6 +111,27 @@
  * sean editables por `/c/works/:id`/`/c/tracks/:id` (una colección `hidden` no lo sería,
  * `resolveVisibleContentType`), que es justo lo que `e2e/merged-view.spec.ts` ejercita al abrir una
  * fila. `e2e/nav.spec.ts` ya refleja los labels nuevos.
+ *
+ * **Añadida en el lote "aquelarre enriquecido" (M1, escaparate de la vista de LISTA)**: `blog`
+ * (`BLOG_CONTENT_TYPE` más abajo), MISMO grupo "Contenido", orden 8 (tras "Catálogo") — colección
+ * NUEVA a propósito (David, decisión (b): el escaparate del rediseño es una colección de demo, no
+ * un préstamo de `posts`, que está clavada por sus propios e2e y no se toca). Cinco campos:
+ * `title`/`slug`/`author` (texto), `status` (select `draft`/`published`/`scheduled` — tres
+ * opciones, no solo las dos de la convención §4.5: la convención de publicación solo exige que
+ * `draft`+`published` estén presentes, así que `status` se resuelve por nombre sin declarar nada
+ * en el manifiesto, y `scheduled` cae en la insignia "other" de `classifyStatusBadge`, cell.ts)
+ * y `updatedAt` (`date`). `listFields` CURADO a 4 (`title`/`status`/`author`/`updatedAt`): `slug`
+ * queda FUERA de las columnas a propósito, es el campo que `subtitleField` (P2, ver
+ * `DEMO_MANIFEST.collections.blog`) pinta como línea secundaria bajo el título — la razón de ser
+ * de esta colección es ejercer esa capacidad nueva contra datos reales, cosa que `posts` no
+ * ejercita (no declara `subtitleField`, su render no cambia). 12 registros seed, títulos/slugs
+ * calcados del mockup aprobado (`aquelarre-dark.html`) más relleno propio hasta 12: mezcla de los
+ * tres estados, dos autoras/es (`David`/`Marta`) y fechas de `updatedAt` que van de "hace horas" a
+ * "hace semanas" (varias antes y después de la fecha de esta sesión, sin que el orden temporal
+ * importe — nada en P4 ordena por defecto). `blog_6` ("Sin título") deja `slug`/`author` VACÍOS a
+ * propósito (`''`, nunca `undefined`): el mismo caso límite que `describeCell` ya resuelve a
+ * `{kind:'empty'}` para cualquier campo — ejercita que la línea de subtítulo simplemente NO se
+ * pinta cuando el valor está vacío, sin inventar un placeholder.
  */
 import type { ContentType, JsonValue } from '$lib/backend/types';
 import { VEGA_COLLECTION } from '$lib/backend/collections';
@@ -521,6 +542,70 @@ const TRACKS_CONTENT_TYPE: ContentType = {
 	]
 };
 
+/** Añadida en M1 (ver cabecera del módulo): colección de demo del escaparate de la vista de
+ *  LISTA. `slug` es el campo que `DEMO_MANIFEST.collections.blog.subtitleField` (P2) proyecta
+ *  como línea secundaria bajo el título — fuera de `listFields`, no es una columna. */
+const BLOG_CONTENT_TYPE: ContentType = {
+	name: 'blog',
+	readonly: false,
+	fields: [
+		{
+			name: 'title',
+			type: 'text',
+			subtype: 'plain',
+			required: true,
+			readonly: false,
+			presentable: true,
+			hidden: false,
+			unique: false,
+			maxLength: 120
+		},
+		{
+			name: 'slug',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		// Tres opciones (no solo `draft`/`published`, ver cabecera del módulo): la convención de
+		// publicación (§4.5) solo exige que esas dos estén presentes, así que `scheduled` convive
+		// sin declarar nada en el manifiesto y cae en la insignia "other" (`classifyStatusBadge`).
+		{
+			name: 'status',
+			type: 'select',
+			options: ['draft', 'published', 'scheduled'],
+			multiple: false,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'author',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'updatedAt',
+			type: 'date',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		}
+	]
+};
+
 const SITE_INFO_CONTENT_TYPE: ContentType = {
 	name: 'site_info',
 	readonly: false,
@@ -606,6 +691,17 @@ const DEMO_MANIFEST: JsonValue = {
 			group: 'Contenido',
 			order: 6
 		},
+		// Añadida en M1 (ver cabecera del módulo): escaparate de la vista de LISTA. Orden 8 (tras
+		// "Catálogo", order 7 más abajo en `mergedViews`) — comparten el mismo espacio de orden de
+		// nav (`buildNav` pliega colecciones y vistas en una sola pasada, L7c).
+		blog: {
+			label: 'Blog',
+			labelSingular: 'Entrada de blog',
+			icon: 'document',
+			group: 'Contenido',
+			order: 8,
+			listFields: ['title', 'status', 'author', 'updatedAt']
+		},
 		// Sin `group` (⇒ grupo anónimo, siempre primero, §4.9) ni `icon` (⇒ afordancia de
 		// singleton sin icono propio, P2 §4.8).
 		site_info: {
@@ -657,6 +753,7 @@ export const DEMO_SEED: MemorySeed = {
 		METRICS_CONTENT_TYPE,
 		WORKS_CONTENT_TYPE,
 		TRACKS_CONTENT_TYPE,
+		BLOG_CONTENT_TYPE,
 		SITE_INFO_CONTENT_TYPE
 	],
 	records: {
@@ -699,6 +796,132 @@ export const DEMO_SEED: MemorySeed = {
 		tracks: [
 			{ id: 'track_1', values: { title: 'Pista A', order: 2 } },
 			{ id: 'track_2', values: { title: 'Pista B', order: 4 } }
+		],
+		// Añadidos en M1 (ver cabecera del módulo): 12 registros, títulos/slugs calcados del
+		// mockup aprobado más relleno propio. `blog_6` deja `slug`/`author` vacíos a propósito
+		// (caso límite: la línea de subtítulo de M3 no se pinta con un valor vacío).
+		blog: [
+			{
+				id: 'blog_1',
+				values: {
+					title: 'Migrar el blog de Hugo a Astro sin romper las URLs',
+					slug: 'migrar-blog-hugo-astro-sin-romper-urls',
+					status: 'published',
+					author: 'David',
+					updatedAt: '2026-07-23T10:00:00.000Z'
+				}
+			},
+			{
+				id: 'blog_2',
+				values: {
+					title:
+						'Temas claro/oscuro con un solo vocabulario de tokens: lo que aprendí construyendo el motor de paletas de Lumbre y por qué acabó viviendo también en Vega',
+					slug: 'temas-claro-oscuro-vocabulario-tokens-motor-paletas',
+					status: 'draft',
+					author: 'David',
+					updatedAt: '2026-07-23T08:00:00.000Z'
+				}
+			},
+			{
+				id: 'blog_3',
+				values: {
+					title: 'PocketBase como backend de un CMS editor-first',
+					slug: 'pocketbase-backend-cms-editor-first',
+					status: 'published',
+					author: 'David',
+					updatedAt: '2026-07-18T09:00:00.000Z'
+				}
+			},
+			{
+				id: 'blog_4',
+				values: {
+					title: 'Notas del huerto: julio',
+					slug: 'notas-del-huerto-julio',
+					status: 'scheduled',
+					author: 'Marta',
+					updatedAt: '2026-07-15T07:30:00.000Z'
+				}
+			},
+			{
+				id: 'blog_5',
+				values: {
+					title: 'Passkeys en un backend Go: TOTP, WebAuthn y tres factores',
+					slug: 'passkeys-backend-go-totp-webauthn',
+					status: 'published',
+					author: 'David',
+					updatedAt: '2026-07-11T12:00:00.000Z'
+				}
+			},
+			{
+				id: 'blog_6',
+				values: {
+					title: 'Sin título',
+					slug: '',
+					status: 'draft',
+					author: '',
+					updatedAt: '2026-07-02T16:00:00.000Z'
+				}
+			},
+			{
+				id: 'blog_7',
+				values: {
+					title: 'Reseña: teclados de perfil bajo para escribir mucho',
+					slug: 'resena-teclados-perfil-bajo',
+					status: 'published',
+					author: 'Marta',
+					updatedAt: '2026-06-28T11:00:00.000Z'
+				}
+			},
+			{
+				id: 'blog_8',
+				values: {
+					title: 'Autoalojar sin dolor: mi checklist de higiene de servidor',
+					slug: 'autoalojar-checklist-higiene-servidor',
+					status: 'published',
+					author: 'David',
+					updatedAt: '2026-06-20T09:00:00.000Z'
+				}
+			},
+			{
+				id: 'blog_9',
+				values: {
+					title: 'Por qué elegimos Svelte 5 runes para el admin',
+					slug: 'por-que-svelte-5-runes-admin',
+					status: 'draft',
+					author: 'David',
+					updatedAt: '2026-06-14T15:00:00.000Z'
+				}
+			},
+			{
+				id: 'blog_10',
+				values: {
+					title: 'Accesibilidad AA de verdad: contraste medido, no adivinado',
+					slug: 'accesibilidad-aa-contraste-medido',
+					status: 'published',
+					author: 'Marta',
+					updatedAt: '2026-06-05T10:00:00.000Z'
+				}
+			},
+			{
+				id: 'blog_11',
+				values: {
+					title: 'Backups 3-2-1 para un self-host de un solo servidor',
+					slug: 'backups-3-2-1-selfhost',
+					status: 'scheduled',
+					author: 'David',
+					updatedAt: '2026-08-01T09:00:00.000Z'
+				}
+			},
+			{
+				id: 'blog_12',
+				values: {
+					title: 'Diario de un rediseño: del wireframe al pixel',
+					slug: 'diario-rediseno-wireframe-pixel',
+					status: 'draft',
+					author: 'Marta',
+					updatedAt: '2026-05-30T18:00:00.000Z'
+				}
+			}
 		]
 		// authors/site_info sin registros a propósito (ver cabecera): authors cubre el
 		// vacío-colección CON CTA; site_info ejercita el modo creación (0 → new, §3.3).
