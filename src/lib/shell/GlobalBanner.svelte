@@ -53,16 +53,9 @@
 
 <style>
 	.vega-global-banner {
-		/* Se monta como hermano de `AppShell` (fuera de su árbol, para no desmontarlo al aparecer),
-		   así que en flujo normal caería DEBAJO de la carcasa (`min-height:100vh`) y quedaría fuera
-		   de pantalla. `fixed` justo bajo la topbar lo hace visible en cualquier ruta/scroll sin
-		   tapar los controles de la topbar. z-index 40: sobre el shell y el overlay de sidebar (30),
-		   bajo los toasts (60) y el modal de re-login (80). */
-		position: fixed;
-		top: var(--topbar-h);
-		left: 0;
-		right: 0;
-		z-index: 40;
+		/* Posicionamiento FIJO delegado en `.vega-banner-stack` (`+layout.svelte`): ese wrapper es
+		   quien se ancla bajo la topbar y apila este banner con `UpdateBanner` (P8) si ambos están
+		   presentes a la vez, sin que se solapen. Este componente solo aporta su propia franja. */
 		display: flex;
 		align-items: center;
 		gap: 0.6rem;

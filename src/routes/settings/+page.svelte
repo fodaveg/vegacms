@@ -67,6 +67,9 @@
 	import { VEGA_PB_SERVER_RANGE, VEGA_VERSION } from '$lib/version';
 	import ManifestEditor from '$lib/model/editor/ManifestEditor.svelte';
 	import WarningsList from '$lib/shell/WarningsList.svelte';
+	import { updateBannerState } from '$lib/shell/update-banner.svelte';
+	import { checkForUpdate, type UpdateStatus } from '$lib/update/check-update';
+	import { readAutoCheckPreference, writeAutoCheckPreference } from '$lib/update/storage';
 
 	const ctx = getVegaContext();
 
@@ -184,6 +187,36 @@
 			reloadingModel = false;
 		}
 	}
+
+	/**
+	 * "Acerca de" → comprobación de actualizaciones (P8, opt-in): ver la cabecera de
+	 * `update/check-update.ts` para el porqué de todo el módulo. Estado puramente LOCAL a esta
+	 * página (no persistido más allá de la caché que el propio `checkForUpdate` escribe) — al
+	 * volver a entrar en `/settings` el botón arranca en `'idle'` de nuevo, aunque la caché de
+	 * `localStorage` (y por tanto el banner) siga recordando el último resultado.
+	 */
+	type UpdateCheckUiState = 'idle' | 'checking' | 'result';
+
+	let updateCheckUiState = $state<UpdateCheckUiState>('idle');
+	let updateResult = $state<UpdateStatus | null>(null);
+	/** Toggle "comprobar automáticamente al iniciar" (default OFF, L-P8): espeja
+	 *  `readAutoCheckPreference()` igual que `activeTheme`/`activeMode` espejan el DOM arriba. */
+	let autoCheckEnabled = $state(readAutoCheckPreference());
+
+	async function handleCheckForUpdate(): Promise<void> {
+		updateCheckUiState = 'checking';
+		updateResult = await checkForUpdate();
+		updateCheckUiState = 'result';
+		// El banner global lee la MISMA caché que acaba de escribir `checkForUpdate`: sin este
+		// refresco explícito, un "Hay una versión nueva" aquí no aparecería en el banner hasta la
+		// siguiente navegación/recarga que remontase `UpdateBanner` desde cero.
+		updateBannerState.refresh();
+	}
+
+	function handleAutoCheckToggle(enabled: boolean): void {
+		autoCheckEnabled = enabled;
+		writeAutoCheckPreference(enabled);
+	}
 </script>
 
 <div class="vega-settings-page">
@@ -293,6 +326,42 @@
 	<section class="vega-about" aria-labelledby="vega-about-title">
 		<h2 id="vega-about-title">{ctx.t('settings.about.title')}</h2>
 		<p>{ctx.t('settings.about.line', { version: VEGA_VERSION, pbServer: VEGA_PB_SERVER_RANGE })}</p>
+
+		<div class="vega-update-check">
+			<button
+				type="button"
+				onclick={handleCheckForUpdate}
+				disabled={updateCheckUiState === 'checking'}
+			>
+				{updateCheckUiState === 'checking'
+					? ctx.t('settings.about.checking')
+					: ctx.t('settings.about.checkUpdate')}
+			</button>
+			{#if updateCheckUiState === 'result' && updateResult}
+				<p class="vega-update-check-result" role="status" aria-live="polite">
+					{#if updateResult.kind === 'up-to-date'}
+						{ctx.t('settings.about.upToDate', { version: updateResult.current })}
+					{:else if updateResult.kind === 'update-available'}
+						{ctx.t('settings.about.updateAvailable', { version: updateResult.latest })}
+						<a href={updateResult.releaseUrl} target="_blank" rel="noopener noreferrer">
+							{ctx.t('settings.about.updateAvailableLink')}
+						</a>
+					{:else}
+						{ctx.t('settings.about.checkError')}
+					{/if}
+				</p>
+			{/if}
+		</div>
+
+		<label class="vega-update-autocheck">
+			<input
+				type="checkbox"
+				checked={autoCheckEnabled}
+				onchange={(event) => handleAutoCheckToggle(event.currentTarget.checked)}
+			/>
+			{ctx.t('settings.about.autoCheckLabel')}
+		</label>
+		<p class="vega-update-autocheck-help">{ctx.t('settings.about.autoCheckHelp')}</p>
 	</section>
 </div>
 
@@ -483,6 +552,52 @@
 	.vega-about p {
 		margin: 0;
 		font-size: 0.85rem;
+		color: var(--ink-2);
+	}
+
+	.vega-update-check {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.5rem;
+	}
+
+	.vega-update-check button {
+		padding: 0.4rem 0.9rem;
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		background: var(--surface);
+		color: var(--ink);
+		font-size: 0.85rem;
+		cursor: pointer;
+	}
+
+	.vega-update-check button:disabled {
+		cursor: not-allowed;
+		opacity: 0.6;
+	}
+
+	.vega-update-check-result {
+		margin: 0;
+		font-size: 0.85rem;
+	}
+
+	.vega-update-check-result a {
+		margin-left: 0.3rem;
+		color: var(--accent-text);
+	}
+
+	.vega-update-autocheck {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 0.85rem;
+		cursor: pointer;
+	}
+
+	.vega-update-autocheck-help {
+		margin: -0.25rem 0 0;
+		font-size: 0.8rem;
 		color: var(--ink-2);
 	}
 </style>

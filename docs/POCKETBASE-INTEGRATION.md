@@ -416,6 +416,12 @@ Ver [Arquitectura](../README.md#estructura-de-la-app) para más contexto.
 
 **Solución**: en PocketBase admin → Settings → CORS origins allowed, añade `https://admin.example.com` (o el origen real).
 
+### La comprobación de actualizaciones falla ("No se pudo comprobar")
+
+**Causa**: esto es aparte de PocketBase — la comprobación opt-in de `/settings` → "Acerca de" contacta `https://api.github.com`, no tu PocketBase. Si aplicas una `Content-Security-Policy` con `connect-src` restringido en el servidor que sirve la SPA, ese origen externo también necesita permiso explícito.
+
+**Solución**: añade `https://api.github.com` a `connect-src` en tu CSP, o ignora el aviso — es opt-in y degrada con elegancia, el resto de la app (que sí depende de PocketBase) sigue funcionando igual. Ver [Comprobación de actualizaciones](CONFIG.md#comprobación-de-actualizaciones-opt-in) en `CONFIG.md`.
+
 ### Los cambios en PocketBase no se ven en Vega
 
 **Causa**: Vega no sincroniza en tiempo real.

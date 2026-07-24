@@ -81,6 +81,11 @@
 		<circle cx="9" cy="7" r="2" />
 		<line x1="4" y1="17" x2="20" y2="17" />
 		<circle cx="15" cy="17" r="2" />
+	{:else if resolvedId === 'update'}
+		<!-- P8: flecha ascendente en círculo abierto, "hay algo nuevo" (banner/botón de
+		     comprobación de actualizaciones de `/settings`), distinto del triángulo de aviso. -->
+		<path d="M21 12a9 9 0 1 1-3.5-7.14" />
+		<polyline points="21 3 21 9 15 9" />
 	{:else if resolvedId === 'user'}
 		<circle cx="12" cy="8" r="4" />
 		<path d="M4 21c0-4 4-7 8-7s8 3 8 7" />

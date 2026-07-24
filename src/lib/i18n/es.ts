@@ -425,6 +425,22 @@ export const es = {
 	'settings.about.title': 'Acerca de',
 	'settings.about.line': 'Vega v{version} · PocketBase {pbServer}',
 
+	// ————— Comprobación de actualizaciones (P8, opt-in): ver `update/check-update.ts` —————
+	'settings.about.checkUpdate': 'Comprobar actualizaciones',
+	'settings.about.checking': 'Comprobando…',
+	'settings.about.upToDate': 'Estás en la última versión (v{version}).',
+	'settings.about.updateAvailable': 'Hay una versión nueva: v{version}.',
+	'settings.about.updateAvailableLink': 'Ver el release',
+	'settings.about.checkError': 'No se pudo comprobar (revisa tu conexión).',
+	'settings.about.autoCheckLabel': 'Comprobar actualizaciones automáticamente al iniciar',
+	'settings.about.autoCheckHelp':
+		'Al activarlo, Vega contacta con api.github.com cada vez que abres la app para ver si hay una versión nueva. Desactivado por defecto: Vega nunca sale a internet sin que lo pidas.',
+
+	// ————— Banner de actualización disponible (`UpdateBanner.svelte`, P8) —————
+	'update.banner.message': 'Hay una versión nueva de Vega disponible: v{version}.',
+	'update.banner.link': 'Ver el release',
+	'update.banner.dismiss': 'Descartar aviso de actualización',
+
 	// ————— Toasts (§2.3) —————
 	'toast.dismiss': 'Descartar aviso',
 

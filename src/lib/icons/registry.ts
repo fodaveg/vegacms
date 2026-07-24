@@ -41,6 +41,7 @@ const ICON_IDS = [
 	'plus',
 	'search',
 	'settings',
+	'update',
 	'user',
 	'warning'
 ] as const;

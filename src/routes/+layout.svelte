@@ -60,10 +60,12 @@
 	import AppShell from '$lib/shell/AppShell.svelte';
 	import ToastHost from '$lib/shell/ToastHost.svelte';
 	import GlobalBanner from '$lib/shell/GlobalBanner.svelte';
+	import UpdateBanner from '$lib/shell/UpdateBanner.svelte';
 	import ReloginModal from '$lib/shell/ReloginModal.svelte';
 	import MediaPicker from '$lib/media/MediaPicker.svelte';
 	import { toastStore } from '$lib/shell/toasts.svelte';
 	import { transportFeedback } from '$lib/shell/transport-feedback.svelte';
+	import { updateBannerState } from '$lib/shell/update-banner.svelte';
 	import { mediaPickerState } from '$lib/media/media-picker-state.svelte';
 
 	let { children } = $props();
@@ -251,6 +253,11 @@
 		applyInitialTheme();
 		void sessionStore.restore();
 
+		// P8: la mitad "automática" del opt-in de comprobación de actualizaciones — no-op total
+		// si la preferencia de `/settings` sigue en su default (`false`), ver la cabecera de
+		// `updateBannerState`. NUNCA bloquea el arranque: se dispara en paralelo, sin `await`.
+		void updateBannerState.runAutoCheckIfEnabled();
+
 		// Gancho de e2e confinado al adaptador `memory` (tipado en `src/app.d.ts`).
 		if (window.__VEGA_ADAPTER__ === 'memory') {
 			window.__VEGA_TEST_TOAST__ = (message, opts) => feedback.toast(message, opts);
@@ -379,11 +386,28 @@
      que mostrar (`toastStore.entries` vacío / `transportFeedback.bannerError` nulo /
      `sessionStore.expired` falso), así que montarlos siempre es seguro. -->
 <ToastHost />
-<GlobalBanner />
+<!-- `.vega-banner-stack` (P8): ancla FIJA compartida bajo la topbar para `GlobalBanner` (errores
+     de transporte) y `UpdateBanner` (actualización disponible) — cada uno decide por su cuenta si
+     renderiza algo, este wrapper solo los apila en columna para que, en el caso raro de que
+     coincidan los dos a la vez, no se solapen (ver cabecera de ambos componentes). -->
+<div class="vega-banner-stack">
+	<GlobalBanner />
+	<UpdateBanner />
+</div>
 <ReloginModal />
 <MediaPicker />
 
 <style>
+	.vega-banner-stack {
+		position: fixed;
+		top: var(--topbar-h);
+		left: 0;
+		right: 0;
+		z-index: 40;
+		display: flex;
+		flex-direction: column;
+	}
+
 	.vega-global-state {
 		display: flex;
 		flex-direction: column;

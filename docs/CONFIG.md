@@ -240,3 +240,15 @@ Las filas de una vista fusionada se pueden reordenar por arrastre (o teclado) ig
 ```
 
 Aquí `post` y `page` deben tener ambas un campo `rating` numérico (heredado como `orderField` por defecto de la vista); solo se listan los `post` con `featured: true` y las `page` con `status: "published"`, mezclados en un único orden manual reordenable desde `/v/destacados_home`.
+
+## Comprobación de actualizaciones (opt-in)
+
+`/settings` → "Acerca de" incluye un botón **"Comprobar actualizaciones"** que compara la versión instalada contra la última release publicada en `https://api.github.com/repos/fodaveg/vegacms/releases/latest`. Es la **única** petición de red que Vega hace a un origen externo — todo lo demás habla exclusivamente con SU PocketBase (same-origin o el override de arriba) — y por eso es estrictamente **opt-in**:
+
+- Sin acción del usuario, Vega **nunca** contacta con GitHub.
+- El botón dispara una comprobación puntual.
+- El toggle **"Comprobar actualizaciones automáticamente al iniciar"** (mismo panel, **desactivado por defecto**) hace que el layout dispare esa misma comprobación una vez al cargar la app. Actívalo solo si quieres que Vega avise sola de una versión nueva.
+- Si hay una versión más nueva, aparece también un banner descartable en la parte superior del admin (se recuerda por versión: descartarlo no oculta una release posterior).
+- No hay autoupdate: Vega es una SPA estática y no puede reescribir sus propios ficheros. El enlace del aviso lleva a la página del release en GitHub para que actualices el despliegue a mano.
+
+**Nota para operadores con CSP estricta**: si defines `Content-Security-Policy` con `connect-src` restringido, añade `https://api.github.com` a esa directiva o la comprobación de actualizaciones fallará silenciosamente (se degrada a "No se pudo comprobar", nunca rompe el resto de la app).

@@ -409,6 +409,22 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'settings.about.title': 'About',
 	'settings.about.line': 'Vega v{version} · PocketBase {pbServer}',
 
+	// ————— Update check (P8, opt-in): see `update/check-update.ts` —————
+	'settings.about.checkUpdate': 'Check for updates',
+	'settings.about.checking': 'Checking…',
+	'settings.about.upToDate': "You're on the latest version (v{version}).",
+	'settings.about.updateAvailable': 'A new version is available: v{version}.',
+	'settings.about.updateAvailableLink': 'View the release',
+	'settings.about.checkError': "Couldn't check (check your connection).",
+	'settings.about.autoCheckLabel': 'Automatically check for updates on startup',
+	'settings.about.autoCheckHelp':
+		"Turning this on makes Vega contact api.github.com every time you open the app, to see if there's a new version. Off by default: Vega never reaches out to the internet unless you ask it to.",
+
+	// ————— Update available banner (`UpdateBanner.svelte`, P8) —————
+	'update.banner.message': 'A new version of Vega is available: v{version}.',
+	'update.banner.link': 'View the release',
+	'update.banner.dismiss': 'Dismiss update notice',
+
 	// ————— Toasts (§2.3) —————
 	'toast.dismiss': 'Dismiss notification',
 
