@@ -256,7 +256,9 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--vega-space-gutter);
-		padding: var(--vega-space-gutter) 0;
+		/* Inset lateral (mockup: los items de nav flotan con ~0.6rem de margen a cada lado, no van a
+		   sangre): antes el padding horizontal era 0 y las cajas activa/hover tocaban los bordes. */
+		padding: var(--vega-space-gutter);
 		border-right: 1px solid var(--line);
 		background: var(--sidebar);
 		overflow-y: auto;
@@ -330,6 +332,8 @@
 		gap: 0.65rem;
 		min-height: var(--row-h);
 		padding: 0 var(--vega-space-gutter);
+		/* Misma caja redondeada que los items de grupo (`NavItem.svelte`). */
+		border-radius: var(--r);
 		color: var(--ink-2);
 		text-decoration: none;
 	}

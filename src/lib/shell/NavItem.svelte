@@ -101,6 +101,10 @@
 		gap: 0.65rem;
 		min-height: var(--row-h);
 		padding: 0 var(--vega-space-gutter);
+		/* Caja del item redondeada (mockup `.nav-item { border-radius: var(--r) }`): el fondo
+		   activo/hover es un rectángulo redondeado, no una banda cuadrada a sangre. El inset lateral
+		   que lo hace flotar lo pone el padding horizontal del `<nav>` en `Sidebar.svelte`. */
+		border-radius: var(--r);
 		color: var(--ink-2);
 		text-decoration: none;
 	}
