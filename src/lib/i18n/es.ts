@@ -290,16 +290,34 @@ export const es = {
 	// ————— Toolbar de listado (Fase 4d del contrato P4) —————
 	'list.search.placeholder': 'Buscar…',
 	'list.search.ariaLabel': 'Buscar en el listado',
-	'list.filter.status.all': 'Todos',
 	'list.sort.ariaLabel': 'Ordenar por {column}',
 	'list.emptySearch.title': 'Sin resultados',
 	'list.emptySearch.body':
 		'Ningún registro de "{label}" coincide con la búsqueda o los filtros activos.',
 	'list.emptySearch.clear': 'Limpiar filtros',
+	// Menú "Filtrar" (M6, reabre R2): botón que despliega las opciones crudas del `statusField`
+	// (`ListToolbar.svelte`); `list.filter.groupLabel` (abajo) etiqueta el popup en sí.
+	'list.filter.menu.trigger': 'Filtrar',
+	// "Limpiar filtros" siempre visible en la toolbar mientras haya algún filtro/búsqueda activo
+	// (mockup `.toolbar .clear-filters`) — clave DISTINTA de `list.emptySearch.clear` (mismo texto,
+	// contexto distinto: aquella vive dentro del estado vacío-búsqueda).
+	'list.filter.clearAll': 'Limpiar filtros',
 
 	// ————— Cabecera de listado (R2 del rediseño C2, mockup `.listhead`) —————
+	// Etiqueta del POPUP del menú "Filtrar" (M6): antes describía el grupo de chips de la extinta
+	// `FilterChips.svelte`; ahora describe el `role="menu"` con las opciones para ELEGIR un
+	// filtro nuevo (ver `ListToolbar.svelte`).
 	'list.filter.groupLabel': 'Filtrar por estado',
 	'list.new.button': 'Crear «{label}»',
+
+	// ————— Chips de filtro ACTIVO (M6, reabre R2, mockup `.toolbar .chip`) —————
+	'list.activeFilter.groupLabel': 'Filtros activos',
+	'list.activeFilter.status.key': 'Estado:',
+	'list.activeFilter.status.remove': 'Quitar filtro de estado',
+	// Chip de autor: STUB DE DISEÑO, no funcional todavía (ver cabecera de `ActiveFilterChips.svelte`).
+	'list.activeFilter.author.key': 'Autor:',
+	'list.activeFilter.author.stubValue': '—',
+	'list.activeFilter.author.stubHint': 'Filtro de autor: disponible próximamente',
 
 	// ————— Meta de cabecera + exportar (M2, mockup `.page-head .meta`/`.btn`) —————
 	'list.meta.records': 'registros',

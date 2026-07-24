@@ -4,7 +4,7 @@
 	 * una vista fusionada — homóloga de `/c/[type]/+page.svelte` (Fase 4c del contrato P4) pero más
 	 * simple: una vista fusionada NUNCA es singleton, NUNCA ofrece crear/borrar y NUNCA pagina
 	 * (L7b: como mucho `MAX_PER_PAGE` por source, sin `?page=`) — así que esta ruta no necesita
-	 * `ViewState`/`ListToolbar`/`FilterChips`/`Pagination`/`DeleteConfirm`: solo resuelve la vista,
+	 * `ViewState`/`ListToolbar`/`ActiveFilterChips`/`Pagination`/`DeleteConfirm`: solo resuelve la vista,
 	 * dispara la carga (`merged-load.svelte.ts`, L7b) y pinta los tres estados honestos
 	 * (loading/error/tabla) que expone `MergedListState`.
 	 *

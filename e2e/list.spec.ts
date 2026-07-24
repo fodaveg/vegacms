@@ -254,32 +254,36 @@ test.describe('búsqueda (D-P4.3, Fase 4d)', () => {
 	});
 });
 
-test.describe('filtro de estado (D-P4.4, Fase 4d, chips de R2)', () => {
-	test('las chips de estado filtran y reflejan ?status= en la URL', async ({ page }) => {
+test.describe('filtro de estado (D-P4.4, Fase 4d, chips ACTIVAS de M6, reabre R2)', () => {
+	test('el menú "Filtrar" aplica un valor, pinta un chip removible y refleja ?status= en la URL', async ({
+		page
+	}) => {
 		await loginAndSettle(page);
 		await page.goto('/c/posts');
 
+		// Sin filtro activo: ningún chip de estado (el menú "Filtrar" reemplaza a las chips de
+		// recuento de R2, ver `ListToolbar.svelte`).
+		const activeChips = page.getByRole('group', { name: 'Filtros activos' });
+		await expect(activeChips.getByText('Estado:')).toHaveCount(0);
+
 		// 16 draft / 16 published (ver cabecera del fichero, `EXTRA_POST_RECORDS` + post_1/post_2).
-		// Las chips salen de `FilterChips` (R2): grupo con aria-label "Filtrar por estado", una
-		// por valor CRUDO del `statusField` (más "Todos"). El texto puede llevar " · N" (recuento,
-		// carga honesta) o no según haya resuelto la consulta — `getByRole` matchea por substring,
-		// así que no hace falta esperar el recuento para clicar.
-		const chips = page.getByRole('group', { name: 'Filtrar por estado' });
-		await chips.getByRole('button', { name: 'draft', exact: false }).click();
+		// El menú "Filtrar" (M6) lista las opciones CRUDAS del `statusField`, sin recuentos.
+		await page.getByRole('button', { name: 'Filtrar' }).click();
+		const menu = page.getByRole('menu', { name: 'Filtrar por estado' });
+		await menu.getByRole('menuitem', { name: 'draft', exact: true }).click();
+
 		await expect(page).toHaveURL(/\?status=draft$/);
 		await expect(page.locator('.vega-pagination-status')).toContainText('16 registros');
-		await expect(chips.getByRole('button', { name: 'draft', exact: false })).toHaveAttribute(
-			'aria-pressed',
-			'true'
-		);
 
-		await chips.getByRole('button', { name: 'Todos', exact: false }).click();
+		// El chip de filtro ACTIVO aparece con el valor elegido y su ✕.
+		const statusChip = activeChips.getByText('draft');
+		await expect(statusChip).toBeVisible();
+
+		// La ✕ del chip quita el filtro: vuelve a los 32 registros y a la URL limpia.
+		await activeChips.getByRole('button', { name: 'Quitar filtro de estado' }).click();
 		await expect(page).not.toHaveURL(/status=/);
 		await expect(page.locator('.vega-pagination-status')).toContainText('32 registros');
-		await expect(chips.getByRole('button', { name: 'Todos', exact: false })).toHaveAttribute(
-			'aria-pressed',
-			'true'
-		);
+		await expect(activeChips.getByText('Estado:')).toHaveCount(0);
 	});
 });
 
@@ -353,9 +357,10 @@ test.describe('cambiar filtro resetea a página 1 (D-P4.9, Fase 4d)', () => {
 		await page.goto('/c/posts?page=2');
 		await expect(currentPageButton(page)).toHaveText('2');
 
+		await page.getByRole('button', { name: 'Filtrar' }).click();
 		await page
-			.getByRole('group', { name: 'Filtrar por estado' })
-			.getByRole('button', { name: 'published', exact: false })
+			.getByRole('menu', { name: 'Filtrar por estado' })
+			.getByRole('menuitem', { name: 'published', exact: true })
 			.click();
 
 		// `page` es el default (D-P4.9, URLs limpias): no se escribe `?page=1` junto a `?status=`.
@@ -442,11 +447,11 @@ test.describe('deep-link reconstruye la vista entera (L-P4.13, Fase 4d)', () => 
 		await expect(table).toBeVisible();
 		await expect(page.locator('.vega-pagination-status')).toContainText('15 registros');
 		await expect(page.getByLabel('Buscar en el listado')).toHaveValue('Entrada');
+		// El deep-link reconstruye el chip de filtro ACTIVO (M6, reabre R2): "draft" visible en el
+		// grupo "Filtros activos", sin necesidad de haber pasado por el menú "Filtrar".
 		await expect(
-			page
-				.getByRole('group', { name: 'Filtrar por estado' })
-				.getByRole('button', { name: 'draft', exact: false })
-		).toHaveAttribute('aria-pressed', 'true');
+			page.getByRole('group', { name: 'Filtros activos' }).getByText('draft')
+		).toBeVisible();
 		await expect(table.locator('thead th', { hasText: 'Title' })).toHaveAttribute(
 			'aria-sort',
 			'ascending'
@@ -459,10 +464,8 @@ test.describe('deep-link reconstruye la vista entera (L-P4.13, Fase 4d)', () => 
 		await expect(page.locator('.vega-pagination-status')).toContainText('15 registros');
 		await expect(page.getByLabel('Buscar en el listado')).toHaveValue('Entrada');
 		await expect(
-			page
-				.getByRole('group', { name: 'Filtrar por estado' })
-				.getByRole('button', { name: 'draft', exact: false })
-		).toHaveAttribute('aria-pressed', 'true');
+			page.getByRole('group', { name: 'Filtros activos' }).getByText('draft')
+		).toBeVisible();
 		await expect(tableAfterReload.locator('thead th', { hasText: 'Title' })).toHaveAttribute(
 			'aria-sort',
 			'ascending'

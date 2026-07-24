@@ -276,13 +276,22 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// ————— List toolbar (P4 contract, Phase 4d) —————
 	'list.search.placeholder': 'Search…',
 	'list.search.ariaLabel': 'Search the list',
-	'list.filter.status.all': 'All',
 	'list.sort.ariaLabel': 'Sort by {column}',
 	'list.emptySearch.title': 'No results',
 	'list.emptySearch.body': 'No "{label}" record matches the search or the active filters.',
 	'list.emptySearch.clear': 'Clear filters',
+	// "Filter" menu (M6, reopens R2): button that opens the raw options of the `statusField`
+	// (`ListToolbar.svelte`); `list.filter.groupLabel` (below) labels the popup itself.
+	'list.filter.menu.trigger': 'Filter',
+	// Always-visible "Clear filters" in the toolbar while any filter/search is active (mockup
+	// `.toolbar .clear-filters`) — DISTINCT key from `list.emptySearch.clear` (same text,
+	// different context: that one lives inside the empty-search state).
+	'list.filter.clearAll': 'Clear filters',
 
 	// ————— List header (redesign C2, Part R2, `.listhead` mockup) —————
+	// Label of the "Filter" menu POPUP (M6): used to describe the extinct `FilterChips.svelte`
+	// chip group; now describes the `role="menu"` with the options to CHOOSE a new filter (see
+	// `ListToolbar.svelte`).
 	'list.filter.groupLabel': 'Filter by status',
 	'list.new.button': 'Create «{label}»',
 
@@ -290,6 +299,15 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.meta.records': 'records',
 	'list.meta.filters': 'filters',
 	'list.export.button': 'Export',
+
+	// ————— Active filter chips (M6, reopens R2, mockup `.toolbar .chip`) —————
+	'list.activeFilter.groupLabel': 'Active filters',
+	'list.activeFilter.status.key': 'Status:',
+	'list.activeFilter.status.remove': 'Remove status filter',
+	// Author chip: DESIGN STUB, not functional yet (see `ActiveFilterChips.svelte` header).
+	'list.activeFilter.author.key': 'Author:',
+	'list.activeFilter.author.stubValue': '—',
+	'list.activeFilter.author.stubHint': 'Author filter: coming soon',
 
 	// ————— Numbered pagination (redesign C2, Part R4, `.gridfoot` mockup) —————
 	'list.pagination.perPage': '{count} per page',

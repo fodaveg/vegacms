@@ -64,9 +64,10 @@ export function isSearchEnabled(type: ResolvedContentType): boolean {
 /**
  * Opciones del `statusField` resuelto de `type` (D-P4.4, extraído para R2 del rediseño C2):
  * `null` si el tipo no tiene convención de estado. Antes vivía DUPLICADA como `$derived.by`
- * privada de `ListToolbar.svelte`; con R2 la necesitan dos consumidores (`ListToolbar` ya no,
- * pero `FilterChips.svelte` sí, y ambos comparten el mismo criterio de "¿este tipo ofrece
- * filtro de estado?") — un único punto de verdad, nunca reimplementado dos veces.
+ * privada de `ListToolbar.svelte`; con R2 pasó a compartirla con la extinta `FilterChips.svelte`
+ * y, desde M6 (reabre R2), la comparten `ListToolbar` (menú "Filtrar", para ELEGIR un valor) y
+ * `ActiveFilterChips` (gate de visibilidad + chip del valor ya elegido) — un único punto de
+ * verdad de "¿este tipo ofrece filtro de estado?", nunca reimplementado dos veces.
  * `schema.type !== 'select'` es defensivo: la convención de P2 ya lo garantiza, pero este
  * módulo no confía ciegamente en esa invariante ajena.
  */

@@ -49,13 +49,10 @@
 	 * las dos dispara antes de `routerReady`.
 	 *
 	 * **Lote-2 del rediseño C2 (R2/R3/R4)**: R2 mueve el filtro de estado del `<select>` de
-	 * `ListToolbar` a `FilterChips` (chips con recuento, ver su cabecera) en la misma fila que el
-	 * `<h1>` y el botón "Nueva {label}" (atajo `N`, guardado igual que `GlobalSearch`); R3 es solo
-	 * visual, dentro de `RecordTable`; R4 unifica tabla + paginación numerada en UNA tarjeta
-	 * (`.vega-list-card`, mockup `.grid`) — `RecordTable`/`Pagination` ya no llevan cada uno su
-	 * propio marco. `countsRefreshToken` es la única pieza de estado nueva: un contador que
-	 * `confirmDelete` incrementa en su camino de éxito para que `FilterChips` sepa que sus
-	 * recuentos quedaron obsoletos (ver su declaración más abajo).
+	 * `ListToolbar` a chips en la misma fila que el `<h1>` y el botón "Nueva {label}" (atajo `N`,
+	 * guardado igual que `GlobalSearch`); R3 es solo visual, dentro de `RecordTable`; R4 unifica
+	 * tabla + paginación numerada en UNA tarjeta (`.vega-list-card`, mockup `.grid`) —
+	 * `RecordTable`/`Pagination` ya no llevan cada uno su propio marco.
 	 *
 	 * **Lote M2 (deltas CSS-only + meta de cabecera, mockup `aquelarre-dark.html`)**: G7 añade el
 	 * resumen "N registros · M filtros" junto al `<h1>` (`activeFilterCount`, más abajo — cuenta
@@ -65,6 +62,16 @@
 	 * esta tanda, este botón solo deja el hueco pintado 1:1 con el mockup. Visible para CUALQUIER
 	 * tipo (incluido `readonly`, a diferencia de "Nueva"): exportar datos ya existentes tiene
 	 * sentido aunque el tipo no admita crear/borrar.
+	 *
+	 * **M6 (reabre R2, mockup `.toolbar`)**: David sustituyó las chips CON RECUENTO de R2 por
+	 * chips de filtro ACTIVO removibles (`ActiveFilterChips.svelte`) — solo se pinta el filtro que
+	 * el usuario YA aplicó, con una ✕ que lo quita; elegir un filtro NUEVO pasa a un menú diferido
+	 * en `ListToolbar` ("Filtrar", sin recuentos). Con esto, el filtro de estado deja la cabecera
+	 * (`.vega-list-header`, junto al `<h1>`) y se muda a la fila de la TOOLBAR
+	 * (`.vega-list-toolbar`), junto a la búsqueda y "Limpiar filtros" — mismo orden que
+	 * `.toolbar` en el mockup. `countsRefreshToken` (la pieza de estado que R2 añadió para que las
+	 * chips con recuento supieran que sus cifras habían quedado obsoletas tras un borrado) ya NO
+	 * hace falta: `ActiveFilterChips` no consulta el puerto para contar nada, así que se retira.
 	 */
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -87,7 +94,7 @@
 	import RecordTable from '$lib/list/RecordTable.svelte';
 	import Pagination from '$lib/list/Pagination.svelte';
 	import ListToolbar from '$lib/list/ListToolbar.svelte';
-	import FilterChips from '$lib/list/FilterChips.svelte';
+	import ActiveFilterChips from '$lib/list/ActiveFilterChips.svelte';
 	import DeleteConfirm from '$lib/list/DeleteConfirm.svelte';
 
 	const ctx = getVegaContext();
@@ -210,13 +217,6 @@
 	// que se lleva por delante la fila (y su botón "Borrar") a la que el diálogo restauraría el
 	// foco por defecto.
 	let headingEl = $state<HTMLElement | null>(null);
-	// Dependencia reactiva de `FilterChips` (R2 del rediseño C2): un borrado con éxito no cambia
-	// `contentType`, así que sin este contador sus recuentos se quedarían obsoletos hasta el
-	// próximo cambio de tipo. Se incrementa SOLO en el camino de éxito de `confirmDelete` —
-	// prioriza correctitud (nunca pisar un recuento de OTRO tipo/sesión, ver `FilterChips`) sobre
-	// exactitud instantánea (una ligera obsolescencia tras un fallo es aceptable, D-P4.4 ya manda
-	// ese error al banner global, no aquí).
-	let countsRefreshToken = $state(0);
 
 	/** `RecordTable` (fila, `!contentType.readonly`) pide confirmar el borrado de `record`. Defensa
 	 *  en profundidad (fix de code-review de 4e): con un borrado YA en vuelo (`deleting`), ignora
@@ -258,7 +258,6 @@
 			ctx.feedback.toast(ctx.t('list.delete.success', { label }), { kind: 'success' });
 			pendingDelete = null;
 			listState.reload();
-			countsRefreshToken += 1; // recuentos de FilterChips obsoletos tras el borrado, ver arriba
 		} catch (err) {
 			ctx.feedback.reportError(
 				err instanceof VegaError ? err : VegaError.backend('Error inesperado al borrar', err)
@@ -347,9 +346,10 @@
 	<p aria-live="polite">{ctx.t('common.loading')}</p>
 {:else}
 	<div class="vega-list-page">
-		<!-- Cabecera de listado (R2 del rediseño C2, mockup `.listhead`): h1 + chips de estado CON
-		     RECUENTO + spacer + "Nueva" en la MISMA fila (flex-wrap: en viewports estrechos, los
-		     chips/botón bajan de línea antes que desbordar). -->
+		<!-- Cabecera de listado (R2 del rediseño C2, mockup `.listhead`): h1 + meta + spacer +
+		     "Exportar"/"Nueva" en la MISMA fila (flex-wrap: en viewports estrechos, bajan de línea
+		     antes que desbordar). Desde M6 el filtro de estado YA NO vive aquí — se muda a la fila
+		     de la toolbar, mockup `.toolbar`, ver más abajo. -->
 		<div class="vega-list-header">
 			<!-- `tabindex="-1"` (fix de code-review de 4e): destino de foco programático de
 			     `DeleteConfirm.fallbackFocusEl` tras un borrado con éxito, nunca alcanzable por Tab. -->
@@ -367,12 +367,6 @@
 					{ctx.t('list.meta.filters')}
 				</span>
 			{/if}
-			<FilterChips
-				{contentType}
-				activeStatus={viewState.status}
-				onStatusChange={(status) => navigateView({ status })}
-				reloadToken={countsRefreshToken}
-			/>
 			<span class="vega-list-header-spacer"></span>
 			<!-- "Exportar" (M2, G4 del mockup): STUB VISUAL, ver cabecera del fichero — sin `onclick`,
 			     visible también en tipos `readonly` (a diferencia de "Nueva"). -->
@@ -391,11 +385,34 @@
 			{/if}
 		</div>
 
-		<!-- La toolbar de búsqueda (Fase 4d, reducida a solo el input en R2 — el filtro de estado
-		     vive ahora en `FilterChips` arriba) sigue FUERA del switch de `listStatus`: solo
-		     depende de `contentType`/`viewState` (URL), no de si la carga está en curso, en error o
-		     vacía — se mantiene usable (y refleja el deep-link, L-P4.13) en cualquier estado. -->
-		<ListToolbar {contentType} {viewState} onSearch={(q) => navigateView({ q })} />
+		<!-- Toolbar (Fase 4d + M6, mockup `.toolbar`): búsqueda + menú "Filtrar" (`ListToolbar`) +
+		     chips de filtro ACTIVO removibles (`ActiveFilterChips`, reabre R2) + "Limpiar filtros"
+		     (solo con algún filtro/búsqueda activo, mismo `navigateView` que el de `empty-search`
+		     más abajo). Sigue FUERA del switch de `listStatus`: solo depende de `contentType`/
+		     `viewState` (URL), no de si la carga está en curso, en error o vacía — se mantiene
+		     usable (y refleja el deep-link, L-P4.13) en cualquier estado. -->
+		<div class="vega-list-toolbar">
+			<ListToolbar
+				{contentType}
+				{viewState}
+				onSearch={(q) => navigateView({ q })}
+				onStatusChange={(status) => navigateView({ status })}
+			/>
+			<ActiveFilterChips
+				{contentType}
+				activeStatus={viewState.status}
+				onStatusChange={(status) => navigateView({ status })}
+			/>
+			{#if hasActiveFilters}
+				<button
+					type="button"
+					class="vega-list-clear-filters"
+					onclick={() => navigateView({ q: '', status: null })}
+				>
+					{ctx.t('list.filter.clearAll')}
+				</button>
+			{/if}
+		</div>
 
 		<!-- Tarjeta "cabina" C2 (mockup `.grid`): tabla + gridfoot DENTRO del mismo marco
 		     redondeado (R4 del rediseño) — antes cada uno llevaba su propio borde/sombra.
@@ -514,6 +531,34 @@
 
 	.vega-list-header-spacer {
 		flex: 1;
+	}
+
+	/* Toolbar (Fase 4d + M6, mockup `.toolbar`): búsqueda + menú "Filtrar" + chips de filtro
+	   activo + "Limpiar filtros" en la misma fila, con el mismo `flex-wrap` que la cabecera. */
+	.vega-list-toolbar {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.6rem;
+	}
+
+	/* "Limpiar filtros" (mockup `.clear-filters`): enlace de texto discreto, mismo tratamiento
+	   que su homólogo del estado vacío-búsqueda (`.vega-list-empty button`), pero sin marco de
+	   botón — aquí conviene MENOS peso visual porque convive con controles reales de la toolbar. */
+	.vega-list-clear-filters {
+		border: 0;
+		background: transparent;
+		padding: 0;
+		color: var(--ink-2);
+		font-size: 0.85rem;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+		cursor: pointer;
+		white-space: nowrap;
+	}
+
+	.vega-list-clear-filters:hover {
+		color: var(--ink-hi);
 	}
 
 	/* Resumen "N registros · M filtros" (M2, mockup `.page-head .meta`). */
