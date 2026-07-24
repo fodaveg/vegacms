@@ -700,7 +700,12 @@ const DEMO_MANIFEST: JsonValue = {
 			icon: 'document',
 			group: 'Contenido',
 			order: 8,
-			listFields: ['title', 'status', 'author', 'updatedAt']
+			listFields: ['title', 'status', 'author', 'updatedAt'],
+			// Añadido en M3 (P2, `ResolvedContentType.subtitleField`): `slug` pinta como línea
+			// secundaria bajo el título (mockup `.cell-title .slug`), FUERA de `listFields` — no es
+			// una columna. `posts` NO declara esta clave: su render no cambia (opt-in, ley
+			// genérica).
+			subtitleField: 'slug'
 		},
 		// Sin `group` (⇒ grupo anónimo, siempre primero, §4.9) ni `icon` (⇒ afordancia de
 		// singleton sin icono propio, P2 §4.8).

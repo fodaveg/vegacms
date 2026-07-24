@@ -106,6 +106,16 @@ export function orderFieldInvalid(collection: string, requestedField: string): M
 	};
 }
 
+/** `subtitle-field-invalid` — `subtitleField` inexistente o no escalar; sin línea secundaria. */
+export function subtitleFieldInvalid(collection: string, requestedField: string): ModelWarning {
+	return {
+		code: 'subtitle-field-invalid',
+		message: `El campo subtítulo "${requestedField}" declarado para "${collection}" no existe o no es escalar; se ignora (sin línea secundaria en el listado).`,
+		collection,
+		path: `${collectionPath(collection)}/subtitleField`
+	};
+}
+
 /** `preview-url-invalid` — placeholder desconocido o no escalar en `previewUrl`. */
 export function previewUrlInvalid(collection: string): ModelWarning {
 	return {

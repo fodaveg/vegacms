@@ -8,11 +8,13 @@
  */
 
 import type { Field, JsonValue } from '$lib/backend/types';
+import { isScalarField } from '$lib/backend/query';
 import type { ModelWarning, WidgetId } from './types';
 import {
 	manifestInvalidKey,
 	orderFieldInvalid,
 	statusFieldInvalid,
+	subtitleFieldInvalid,
 	titleFieldInvalid,
 	widgetIncompatible
 } from './warnings';
@@ -137,6 +139,32 @@ export function resolveOrderField(
 	if (field && field.type === 'number') return manifestOrderField;
 
 	warnings.push(orderFieldInvalid(collection, manifestOrderField));
+	return null;
+}
+
+/**
+ * Resuelve `subtitleField` (línea secundaria bajo el título en el listado, mockup
+ * `aquelarre-dark.html`). Mismo patrón que `resolveOrderField`: SOLO manifiesto, sin
+ * autodetección por convención — un tipo sin la clave declarada nunca gana línea secundaria.
+ * `isScalarField` (vocabulario ya usado para `sort`, `query.ts`) decide "escalar" — más laxo que
+ * `isRepresentableField` (§4.4, solo texto/email/url): admite cualquier campo cuyo
+ * `CellDescriptor` traiga texto (número, fecha, richtext…), no solo los representables como
+ * título. `manifestSubtitleField` es el valor crudo ya tipado por el llamador (string si la clave
+ * tiene el tipo correcto, `undefined` si está ausente o inválida — ese caso ya generó su
+ * `manifest-invalid-key` en el llamador).
+ */
+export function resolveSubtitleField(
+	fields: Field[],
+	manifestSubtitleField: string | undefined,
+	collection: string,
+	warnings: ModelWarning[]
+): string | null {
+	if (manifestSubtitleField === undefined) return null;
+
+	const field = fields.find((f) => f.name === manifestSubtitleField);
+	if (field && isScalarField(field)) return manifestSubtitleField;
+
+	warnings.push(subtitleFieldInvalid(collection, manifestSubtitleField));
 	return null;
 }
 

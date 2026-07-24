@@ -56,6 +56,7 @@ function makeType(
 		singleton: false,
 		readonly: false,
 		titleField: null,
+		subtitleField: null,
 		orderField: null,
 		statusField: null,
 		previewUrl: null,

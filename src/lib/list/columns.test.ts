@@ -51,6 +51,7 @@ function contentType(overrides: Partial<ResolvedContentType> = {}): ResolvedCont
 		singleton: false,
 		readonly: false,
 		titleField: null,
+		subtitleField: null,
 		orderField: null,
 		statusField: null,
 		previewUrl: null,

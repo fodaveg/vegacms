@@ -87,6 +87,13 @@ export interface ResolvedContentType {
 	readonly: boolean; // (D) = schema.readonly
 	/** (D+M) nombre del campo título, o null ⇒ la UI muestra el id. Cascada §4.4. */
 	titleField: string | null;
+	/** (M) nombre de un campo escalar que se pinta como línea secundaria bajo el título en el
+	 *  listado (mockup `aquelarre-dark.html`, `.cell-title .slug`), o null ⇒ sin línea secundaria.
+	 *  SOLO manifiesto, sin autodetección por convención (mismo criterio que `orderField`): un
+	 *  tipo sin `subtitleField` declarado no cambia su render. No exige que el campo esté en
+	 *  `listFields` — es habitual que NO lo esté (el mockup lo usa justo para un campo, como
+	 *  `slug`, que no merece columna propia). */
+	subtitleField: string | null;
 	/** (D+M) campo de publicación por convención, o null ⇒ tipo sin drafts. §4.5. */
 	statusField: string | null;
 	/** (M) campo numérico de orden manual, o null. Sin autodetección por convención (a diferencia
@@ -262,6 +269,7 @@ export type WarningCode =
 	| 'title-field-invalid' // titleField inexistente o no representable → cascada
 	| 'status-field-invalid' // statusField que no cumple la convención → null
 	| 'order-field-invalid' // orderField inexistente o no numérico → null
+	| 'subtitle-field-invalid' // subtitleField inexistente o no escalar → null
 	| 'preview-url-invalid' // placeholder desconocido o no escalar → null
 	| 'list-field-unknown' // listFields con campo inexistente → se omite
 	| 'icon-unknown' // icono fuera del set → null

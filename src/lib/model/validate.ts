@@ -49,6 +49,7 @@ const COLLECTION_ALLOWED_KEYS = [
 	'hidden',
 	'singleton',
 	'titleField',
+	'subtitleField',
 	'statusField',
 	'orderField',
 	'previewUrl',
@@ -473,6 +474,16 @@ function validateCollection(
 			Infinity,
 			errors,
 			`titleField de "${name}"`
+		);
+	}
+	if ('subtitleField' in value) {
+		checkString(
+			value.subtitleField,
+			`${base}/subtitleField`,
+			1,
+			Infinity,
+			errors,
+			`subtitleField de "${name}"`
 		);
 	}
 	if ('statusField' in value) {

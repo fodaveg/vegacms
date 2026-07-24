@@ -543,6 +543,50 @@ describe('7. Matriz de degradación (§5)', () => {
 		expect(model.warnings).toEqual([]);
 	});
 
+	test('subtitleField declarado y escalar → se resuelve, sin warning', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, collections: { post: { subtitleField: 'excerpt' } } }
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.subtitleField).toBe('excerpt');
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('subtitleField inexistente → subtitle-field-invalid + null', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, collections: { post: { subtitleField: 'no-existe' } } }
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.subtitleField).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'subtitle-field-invalid', collection: 'post' })
+		]);
+	});
+
+	test('subtitleField no escalar (select múltiple, "tags") → subtitle-field-invalid + null', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, collections: { post: { subtitleField: 'tags' } } }
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.subtitleField).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'subtitle-field-invalid', collection: 'post' })
+		]);
+	});
+
+	test('sin subtitleField en el manifiesto → null, SIN warning (sin autodetección por convención)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, collections: { post: {} } }
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.subtitleField).toBeNull();
+		expect(model.warnings).toEqual([]);
+	});
+
 	test('previewUrl con placeholder inválido → previewUrl null + preview-url-invalid', () => {
 		const model = resolveContentModel({
 			types: kitchenSinkTypes,
@@ -665,6 +709,7 @@ describe('7. Matriz de degradación (§5)', () => {
 			{ collections: { post: { titleField: 123 } } },
 			{ collections: { post: { statusField: 123 } } },
 			{ collections: { post: { orderField: 123 } } },
+			{ collections: { post: { subtitleField: 123 } } },
 			{ collections: { post: { previewUrl: 'ftp://mal' } } },
 			{ collections: { post: { icon: 123 } } },
 			{ collections: { post: { singleton: 'yes' } } },

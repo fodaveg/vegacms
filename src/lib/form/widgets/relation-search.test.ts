@@ -61,6 +61,7 @@ function makeTarget(opts: { titleField: string | null; fields: Field[] }): Resol
 		singleton: false,
 		readonly: false,
 		titleField: opts.titleField,
+		subtitleField: null,
 		orderField: null,
 		statusField: null,
 		previewUrl: null,

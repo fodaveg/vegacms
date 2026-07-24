@@ -60,6 +60,14 @@
 	 *   punto de `currentColor` a la izquierda — mismo criterio que el mockup aprobado. Los
 	 *   atributos `data-status`/`data-status-kind` y el TEXTO de la insignia no cambian (los e2e de
 	 *   `posts` los localizan por ahí); solo cambia la forma vía CSS.
+	 * - **Subtítulo bajo el título (M3, config-driven, `ResolvedContentType.subtitleField`,
+	 *   mockup `.cell-title .slug`)**: capacidad OPT-IN por manifiesto (P2) — un tipo que no
+	 *   declara `subtitleField` no cambia su render (`posts`, entre otros, no lo declara). Vive en
+	 *   el snippet `titleLink` (compartido entre las dos ramas de apertura, con/sin `listFields`):
+	 *   además del enlace de título de siempre, pinta una línea secundaria en `--mono`/`--ink-3`
+	 *   con el valor de `subtitleField` para ESE registro, buscado en `contentType.fields`
+	 *   (TODOS los campos del tipo — el subtítulo no tiene por qué ser una columna de
+	 *   `listFields`) — nunca si el valor está vacío (sin placeholder inventado).
 	 * - **Fila seleccionada (`tr.sel` del mockup): FUERA DE ALCANCE (R3)**: el mockup pinta una
 	 *   fila con `box-shadow: inset 2px 0 0 var(--accent)` sobre `--active` para representar
 	 *   "seleccionada", pero Vega v1 no tiene ningún concepto de selección de fila en el listado
@@ -197,6 +205,41 @@
 		return resolveTitleCellText(descriptor, ctx.t('list.untitled'));
 	}
 
+	/** Campo subtítulo ya resuelto (M3, `ResolvedContentType.subtitleField`): `null` si el tipo no
+	 *  lo declara. A propósito NO se busca en `columns` (a diferencia de `openColumn`) — el campo
+	 *  subtítulo no tiene por qué ser una columna de `listFields` (el caso de uso típico, un slug,
+	 *  normalmente no lo es), así que se resuelve contra `contentType.fields` (TODOS los campos del
+	 *  tipo, P2). */
+	const subtitleField = $derived(
+		contentType.subtitleField !== null
+			? (contentType.fields.find((f) => f.name === contentType.subtitleField) ?? null)
+			: null
+	);
+
+	/** Texto de la línea secundaria de `record` (M3), o `null` si no hay `subtitleField` o su valor
+	 *  está vacío (§ caso límite de `demo-seed.ts`, `blog_6`: sin línea secundaria, nunca un
+	 *  placeholder inventado). Solo los `CellDescriptor` con `.text` cuentan como texto — `bool`/
+	 *  `select-multi`/`relation`/`file`/`empty` no tienen una representación de una línea sensata
+	 *  aquí y se ignoran (degradado silencioso, mismo criterio que el resto del módulo). */
+	function subtitleText(record: VegaRecord): string | null {
+		if (!subtitleField) return null;
+		const descriptor = describeCell(
+			subtitleField,
+			record.values[subtitleField.name] ?? null,
+			ctx.locale
+		);
+		switch (descriptor.kind) {
+			case 'text':
+			case 'number':
+			case 'date':
+			case 'mono':
+			case 'richtext':
+				return descriptor.text;
+			default:
+				return null;
+		}
+	}
+
 	/** Abre el registro (L-P4.15), respetando los gestos nativos del navegador — mismo patrón que
 	 *  `NavItem.svelte`: un click normal navega vía `nav.toRecord` (exit-guard incluido); un click
 	 *  modificado (Cmd/Ctrl/Shift/central) sigue el `href` real y abre en pestaña/ventana nueva. */
@@ -319,13 +362,7 @@
 					{/if}
 					{#if columns.length === 0}
 						<td class="vega-cell-title">
-							<a
-								href={recordRoute(contentType.name, record.id)}
-								title={openText(record)}
-								onclick={(event) => openRecord(event, record.id)}
-							>
-								{openText(record)}
-							</a>
+							{@render titleLink(record)}
 						</td>
 					{:else}
 						{#each columns as column (column.field.name)}
@@ -344,13 +381,7 @@
 								class:vega-cell-right={!isOpenColumn && isRightAlignedColumn(column)}
 							>
 								{#if isOpenColumn}
-									<a
-										href={recordRoute(contentType.name, record.id)}
-										title={openText(record)}
-										onclick={(event) => openRecord(event, record.id)}
-									>
-										{openText(record)}
-									</a>
+									{@render titleLink(record)}
 								{:else if column.isStatus && descriptor.kind === 'text'}
 									<span
 										class="vega-status-badge"
@@ -385,6 +416,22 @@
 		</tbody>
 	</table>
 </div>
+
+{#snippet titleLink(record: VegaRecord)}
+	<a
+		href={recordRoute(contentType.name, record.id)}
+		title={openText(record)}
+		onclick={(event) => openRecord(event, record.id)}
+	>
+		{openText(record)}
+	</a>
+	<!-- Línea secundaria (M3, `subtitleField`, ver cabecera): SOLO si el tipo lo declara Y el
+	     registro tiene valor (caso límite `blog_6`, ver demo-seed.ts). -->
+	{@const subtitle = subtitleText(record)}
+	{#if subtitle !== null}
+		<span class="vega-cell-subtitle">{subtitle}</span>
+	{/if}
+{/snippet}
 
 {#snippet cellContent(descriptor: CellDescriptor, record: VegaRecord, column: ColumnSpec)}
 	{#if descriptor.kind === 'empty'}
@@ -643,6 +690,19 @@
 
 	.vega-record-table td a:hover {
 		text-decoration: underline;
+	}
+
+	/* Línea secundaria bajo el título (M3, mockup `.cell-title .slug`): mono, tinta secundaria —
+	   solo se pinta si `contentType.subtitleField` existe y el registro tiene valor. */
+	.vega-cell-subtitle {
+		display: block;
+		font-family: var(--mono);
+		font-size: 0.72rem;
+		color: var(--ink-3);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		margin-top: 1px;
 	}
 
 	/* Celdas de fecha/mono (R3, mockup `td.mono`): `descriptor.kind` `'date'`/`'mono'`. */

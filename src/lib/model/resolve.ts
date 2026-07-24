@@ -47,6 +47,7 @@ import {
 	resolveMergedSourceOrderField,
 	resolveOrderField,
 	resolveStatusField,
+	resolveSubtitleField,
 	resolveTitleField,
 	resolveWidget
 } from './conventions';
@@ -553,6 +554,16 @@ function resolveContentType(
 	);
 	const titleField = resolveTitleField(type.fields, titleFieldRaw, type.name, warnings);
 
+	const subtitleFieldRaw = readKey(
+		collectionRaw,
+		'subtitleField',
+		readString(1, Infinity),
+		`${base}/subtitleField`,
+		`subtitleField de "${type.name}" no es un texto no vacío; se ignora.`,
+		warnings
+	);
+	const subtitleField = resolveSubtitleField(type.fields, subtitleFieldRaw, type.name, warnings);
+
 	const orderFieldRaw = readKey(
 		collectionRaw,
 		'orderField',
@@ -681,6 +692,7 @@ function resolveContentType(
 		singleton,
 		readonly: type.readonly,
 		titleField,
+		subtitleField,
 		orderField,
 		statusField,
 		previewUrl,
