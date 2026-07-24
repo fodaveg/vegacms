@@ -199,6 +199,15 @@
 		border-color: var(--danger);
 	}
 
+	/* Anillo de foco del EDITOR (mockup `.richtext:focus-within`): el `<div contenteditable>` de
+	   TipTap no es un `<input>`, así que el `:focus-visible` global de `theme/base.css` nunca lo
+	   alcanza — `:focus-within` en el contenedor es el equivalente correcto para un widget
+	   compuesto (toolbar + área editable). */
+	.vega-widget-richtext:focus-within .vega-widget-richtext-content {
+		outline: 2px solid var(--ring);
+		outline-offset: 1px;
+	}
+
 	.vega-widget-richtext-content :global(.tiptap) {
 		outline: none;
 	}

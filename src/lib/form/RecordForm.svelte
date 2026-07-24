@@ -569,6 +569,7 @@
 			disabled={formDisabled}
 			{typeReadonly}
 			{stacked}
+			isTitleField={field.name === type.titleField}
 			onChange={(value) => handleFieldChange(field.name, value)}
 		/>
 	{/snippet}
@@ -832,11 +833,15 @@
 		opacity: 0.45;
 	}
 
+	/* Botón primario "Guardar" → --accent-fill (mockups aquelarre-*.html, firma de David: relleno
+	   de marca, gradiente en los temas ricos y acento sólido en los planos — nunca `--sheen`, que
+	   es solo trazo). Hover = anillo de `--accent-line` en vez de oscurecer el relleno (un
+	   `background` sólido de hover no tiene sentido sobre un gradiente). */
 	.vega-editor-save-button {
 		display: inline-flex;
 		align-items: center;
-		border: 1px solid var(--accent);
-		background: var(--accent);
+		border: 1px solid transparent;
+		background: var(--accent-fill);
 		color: var(--accent-ink);
 		border-radius: var(--r);
 		padding: 0.45rem 1rem;
@@ -847,8 +852,7 @@
 	}
 
 	.vega-editor-save-button:hover:not(:disabled) {
-		background: var(--accent-hover);
-		border-color: var(--accent-hover);
+		box-shadow: 0 0 0 1.5px var(--accent-line);
 	}
 
 	/* Mismo "kbd sobre botón de acento" que `.vega-list-new-button kbd` (R2 de lote-2): el mockup

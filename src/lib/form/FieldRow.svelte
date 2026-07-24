@@ -52,10 +52,25 @@
 		typeReadonly: boolean;
 		/** `true` dentro de un grupo de columnas (§4.9b, ver cabecera); default `false`. */
 		stacked?: boolean;
+		/** `true` cuando `field.name === type.titleField` (`RecordForm.svelte`, mockup `.field.
+		 *  title-field`): el subrayado de foco del widget `text` pasa de `--ring` sólido al hilo
+		 *  `--sheen` vía `border-image` — solo afecta al `<input>` que renderiza `Text.svelte` (el
+		 *  selector es `:global`, ver el CSS de abajo), nunca a otro tipo de widget. Default `false`,
+		 *  el resto de campos no cambian. */
+		isTitleField?: boolean;
 		onChange: (value: FieldInputValue) => void;
 	}
 
-	let { field, value, error, disabled, typeReadonly, stacked = false, onChange }: Props = $props();
+	let {
+		field,
+		value,
+		error,
+		disabled,
+		typeReadonly,
+		stacked = false,
+		isTitleField = false,
+		onChange
+	}: Props = $props();
 
 	const ctx = getVegaContext();
 	const ids = $derived(fieldIds(field.name));
@@ -66,6 +81,7 @@
 <div
 	class="vega-field-row"
 	class:vega-field-row--stacked={stacked}
+	class:vega-field-row--title={isTitleField}
 	data-field={field.name}
 	data-widget={field.widget}
 >
@@ -173,5 +189,34 @@
 
 	.vega-field-row--stacked > label {
 		padding-top: 0;
+	}
+
+	/* Campo héroe: el título del registro (mockup `.field.title-field input`, firma de David — el
+	   hilo `--sheen` en trazos-resalte finos, nunca en rellenos). `:global()` porque el `<input>`
+	   real lo pinta `Text.svelte` (D-P5.1: la interfaz de widget no lleva un flag "soy el título",
+	   así que el gancho vive aquí, en el contenedor) — targetea su clase estable
+	   `.vega-widget-text`, nunca un selector de posición.
+	   La caja se aplana a una sola hairline inferior (sin recuadro/radio): un `border-image` NO
+	   respeta `border-radius` (esquinas cuadradas encima de una caja redondeada, artefacto visual
+	   conocido) y pintaría el degradado en las CUATRO aristas si quedara algún `border-width` en
+	   las otras tres — reduciéndolas a 0 aquí es lo que confina el efecto a un subrayado de
+	   verdad. `aria-invalid` (regla de `Text.svelte`) sigue funcionando: solo tiñe la arista que
+	   de verdad tiene ancho. */
+	.vega-field-row--title :global(.vega-widget-text) {
+		border: 0;
+		border-bottom: 1px solid var(--line-soft);
+		border-radius: 0;
+		padding-inline: 0;
+		background: transparent;
+	}
+
+	.vega-field-row--title :global(.vega-widget-text:hover) {
+		border-bottom-color: var(--line-strong);
+	}
+
+	.vega-field-row--title :global(.vega-widget-text:focus-visible) {
+		outline: none;
+		border-bottom: 2px solid transparent;
+		border-image: var(--sheen) 1;
 	}
 </style>

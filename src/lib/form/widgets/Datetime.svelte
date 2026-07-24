@@ -55,6 +55,10 @@
 	}
 
 	.vega-widget-datetime:disabled {
+		/* --mono: un `datetime` deshabilitado es SIEMPRE el autodate readonly del backend
+		   (`created`/`updated`) — un valor canónico, mismo criterio que ids/slugs. Un `datetime`
+		   editable de dominio (fecha de publicación, etc.) sigue en la tipografía normal. */
+		font-family: var(--mono);
 		opacity: 0.6;
 		cursor: not-allowed;
 	}

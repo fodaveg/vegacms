@@ -53,7 +53,10 @@
 		border-radius: 6px;
 		background: var(--surface);
 		color: var(--ink);
-		font-family: ui-monospace, monospace;
+		/* --mono (vocabulario §3, forma/tipo): un JSON crudo es un valor canónico, mismo criterio
+		   tipográfico que ids/slugs/fechas ISO — antes hardcodeaba su propia pila de fuentes en vez
+		   de reutilizar el token. */
+		font-family: var(--mono);
 		font-size: 0.85rem;
 		resize: vertical;
 	}
