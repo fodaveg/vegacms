@@ -166,6 +166,10 @@
 		border: 1px solid var(--line-soft);
 		border-radius: 999px;
 		padding: 0.05rem 0.5rem;
+		/* Altura de la píldora: el mockup la saca del line-height HEREDADO (~1.45); aquí el count
+		   computa `line-height: normal` (más bajo) y el óvalo quedaba demasiado plano — se fija
+		   explícito para que sea una píldora redonda de verdad, no una raya. */
+		line-height: 1.45;
 	}
 
 	/* En el item activo la píldora se vacía (fondo transparente) y toma el borde/texto de acento,
