@@ -329,7 +329,6 @@ export const es = {
 	'list.pagination.goToPage': 'Ir a la página {page}',
 
 	// ————— Borrado (Fase 4e del contrato P4) —————
-	'list.actions.header': 'Acciones',
 	'list.delete.rowButton': 'Borrar',
 	'list.delete.rowButtonLabel': 'Borrar "{label}"',
 	'list.delete.confirmTitle': '¿Borrar este registro?',

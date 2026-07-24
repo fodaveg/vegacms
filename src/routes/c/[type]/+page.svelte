@@ -492,7 +492,7 @@
 						{columns}
 						records={readyPage.items}
 						sort={effectiveSort}
-						onSort={(field) => navigateView({ sort: cycleSort(effectiveSort, field) })}
+						onSort={(field) => navigateView({ sort: cycleSort(viewState.sort, field) })}
 						onDeleteRequest={requestDelete}
 						{reorderable}
 						onReorder={handleReorder}

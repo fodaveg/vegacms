@@ -99,8 +99,16 @@ export { expect };
  */
 export async function loginAsDemo(
 	page: import('@playwright/test').Page,
-	opts?: { seedMedia?: boolean; editorMode?: boolean }
+	opts?: { seedMedia?: boolean; editorMode?: boolean; seedShowcase?: boolean }
 ): Promise<void> {
+	if (opts?.seedShowcase) {
+		// Mismo mecanismo que `seedMedia`: fija `window.__VEGA_SEED_SHOWCASE__ = true` antes de que el
+		// bundle arranque, así el `BackendPort` nace con `SHOWCASE_SEED` (sidebar 1:1 del mockup,
+		// colección `entradas` con `defaultSort` desc). Ausente/`false` = `DEMO_SEED` de siempre.
+		await page.addInitScript(() => {
+			(window as unknown as { __VEGA_SEED_SHOWCASE__?: boolean }).__VEGA_SEED_SHOWCASE__ = true;
+		});
+	}
 	if (opts?.seedMedia) {
 		await page.addInitScript(() => {
 			(window as unknown as { __VEGA_SEED_MEDIA__?: boolean }).__VEGA_SEED_MEDIA__ = true;

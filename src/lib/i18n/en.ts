@@ -314,7 +314,6 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.pagination.goToPage': 'Go to page {page}',
 
 	// ————— Delete (P4 contract, Phase 4e) —————
-	'list.actions.header': 'Actions',
 	'list.delete.rowButton': 'Delete',
 	'list.delete.rowButtonLabel': 'Delete "{label}"',
 	'list.delete.confirmTitle': 'Delete this record?',
