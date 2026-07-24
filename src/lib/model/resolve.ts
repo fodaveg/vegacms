@@ -750,6 +750,7 @@ function resolveLocalization(
 		}
 
 		const physicalByLocale: Record<string, string> = {};
+		const groupPhysicalFields = new Set<string>();
 		let valid = unknownLocales.length === 0;
 		for (const locale of locales.locales) {
 			const physicalName = mappings[locale.id];
@@ -783,6 +784,16 @@ function resolveLocalization(
 				);
 				valid = false;
 			}
+			if (groupPhysicalFields.has(physicalName)) {
+				warnings.push(
+					manifestInvalidKey(
+						`${path}/fields/${locale.id}`,
+						`El campo "${physicalName}" ya está asignado a otro idioma de "${logicalName}"; se ignora el grupo traducible.`
+					)
+				);
+				valid = false;
+			}
+			groupPhysicalFields.add(physicalName);
 			physicalByLocale[locale.id] = physicalName;
 		}
 		if (!valid) continue;

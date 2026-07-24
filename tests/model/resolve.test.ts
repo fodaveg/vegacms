@@ -235,6 +235,74 @@ describe('5b. Localización declarada por manifiesto', () => {
 			})
 		]);
 	});
+
+	test('dos locales apuntando al mismo campo físico invalida el grupo con warning', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				locales: {
+					default: 'es',
+					available: [
+						{ id: 'es', label: 'Español' },
+						{ id: 'en', label: 'English' }
+					]
+				},
+				collections: {
+					post: {
+						localizedFields: {
+							title: { fields: { es: 'title', en: 'title' } }
+						}
+					}
+				}
+			}
+		});
+		expect(model.types.find((type) => type.name === 'post')!.localization).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'manifest-invalid-key',
+				path: '/collections/post/localizedFields/title/fields/en'
+			})
+		]);
+	});
+
+	test('locales con campos físicos distintos por idioma sigue resolviendo bien (no falso positivo)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				locales: {
+					default: 'es',
+					available: [
+						{ id: 'es', label: 'Español' },
+						{ id: 'en', label: 'English' }
+					]
+				},
+				collections: {
+					post: {
+						localizedFields: {
+							title: { label: 'Título', fields: { es: 'title', en: 'excerpt' } }
+						}
+					}
+				}
+			}
+		});
+		expect(model.types.find((type) => type.name === 'post')!.localization).toEqual({
+			defaultLocale: 'es',
+			locales: [
+				{ id: 'es', label: 'Español' },
+				{ id: 'en', label: 'English' }
+			],
+			fields: [
+				{
+					name: 'title',
+					label: 'Título',
+					fields: { es: 'title', en: 'excerpt' }
+				}
+			]
+		});
+		expect(model.warnings).toEqual([]);
+	});
 });
 
 // ————— 6. Visibilidad y nav —————
