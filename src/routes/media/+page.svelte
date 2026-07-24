@@ -455,7 +455,9 @@
 		background: var(--surface);
 		border: 1px solid var(--line);
 		border-radius: 4px;
-		font-family: ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+		/* --mono (vocabulario §3): JSON crudo, valor canónico — sustituye la pila de fuentes
+		   hardcodeada por el token. */
+		font-family: var(--mono);
 		font-size: 0.8rem;
 	}
 </style>

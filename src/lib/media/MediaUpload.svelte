@@ -144,8 +144,19 @@
 					data-media-upload-item
 					data-media-upload-status={statusAttr(item.status)}
 				>
-					<span class="vega-media-upload-name">{item.name}</span>
-					<span class="vega-media-upload-status">{statusText(item.status)}</span>
+					<div class="vega-media-upload-row">
+						<span class="vega-media-upload-name">{item.name}</span>
+						<span class="vega-media-upload-status">{statusText(item.status)}</span>
+					</div>
+					{#if item.status.kind === 'uploading'}
+						<!-- Relleno de progreso (mockup `.progress > span`, firma: --accent-fill SOLO en
+						     rellenos). Sin bytes transferidos reales que reportar (el puerto no expone
+						     progreso incremental de subida), así que es INDETERMINADO — nunca un porcentaje
+						     inventado. -->
+						<span class="vega-media-upload-progress" aria-hidden="true"
+							><span class="vega-media-upload-progress-fill"></span></span
+						>
+					{/if}
 				</li>
 			{/each}
 		</ul>
@@ -206,14 +217,47 @@
 
 	.vega-media-upload-item {
 		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.75rem;
+		flex-direction: column;
+		gap: 0.35rem;
 		padding: 0.4rem 0.6rem;
 		border: 1px solid var(--line);
 		border-radius: 6px;
 		background: var(--surface-2);
 		font-size: 0.85rem;
+	}
+
+	.vega-media-upload-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+	}
+
+	/* Barra de progreso INDETERMINADA (ver marcado): pista neutra + relleno --accent-fill que
+	   recorre la pista — `prefers-reduced-motion` ya la congela globalmente (`theme/base.css`). */
+	.vega-media-upload-progress {
+		display: block;
+		height: 3px;
+		border-radius: 999px;
+		background: var(--line-soft);
+		overflow: hidden;
+	}
+
+	.vega-media-upload-progress-fill {
+		display: block;
+		height: 100%;
+		width: 40%;
+		background: var(--accent-fill);
+		animation: vega-media-upload-indeterminate 1.1s ease-in-out infinite;
+	}
+
+	@keyframes vega-media-upload-indeterminate {
+		0% {
+			transform: translateX(-100%);
+		}
+		100% {
+			transform: translateX(250%);
+		}
 	}
 
 	.vega-media-upload-name {
@@ -226,6 +270,12 @@
 	.vega-media-upload-status {
 		flex-shrink: 0;
 		color: var(--ink-2);
+	}
+
+	/* Estados semánticos (mockup): subiendo = --info (en curso), listo = --success, error =
+	   --danger — antes "subiendo" se quedaba en el `--ink-2` neutro por defecto. */
+	.vega-media-upload-item[data-media-upload-status='uploading'] .vega-media-upload-status {
+		color: var(--info);
 	}
 
 	.vega-media-upload-item[data-media-upload-status='done'] .vega-media-upload-status {

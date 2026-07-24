@@ -85,7 +85,15 @@
 						<Icon id="document" size={28} title={mediaImgAlt(item)} />
 					{/if}
 				</span>
-				<span class="vega-media-caption">{mediaDisplayName(item)}</span>
+				<!-- --mono cuando la leyenda cae al nombre de FICHERO crudo (sin `title`/`alt`
+					     editorial, ver `mediaDisplayName`): un nombre de fichero es un valor canónico,
+					     mismo criterio que ids/slugs — un título/alt escrito a mano sigue en prosa normal. -->
+				<span
+					class="vega-media-caption"
+					class:vega-media-caption--raw={item.title === '' && item.alt === ''}
+				>
+					{mediaDisplayName(item)}
+				</span>
 			</button>
 		</li>
 	{/each}
@@ -102,6 +110,7 @@
 	}
 
 	.vega-media-cell {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		align-items: stretch;
@@ -119,11 +128,33 @@
 		border-color: var(--line-strong);
 	}
 
-	/* Selección del picker (Fase P6·6e): borde de acento, mismo token que el resto de estados
-	   "elegido" del chrome (`--accent`, §3). */
+	/* Selección del picker (Fase P6·6e, ENRIQUECIDO — mockup aquelarre-medios.html): el borde
+	   sólido de acento pasa a un anillo `--sheen` (mismo trazo espectral que la fila activa de
+	   `RecordTable`/el item activo de nav). Técnica del mockup: un pseudo-elemento con el
+	   degradado de fondo, RECORTADO a un anillo vía `mask` de dos capas en XOR — `currentColor` en
+	   los gradientes de la máscara es solo un truco de opacidad (100% alfa, cualquier color
+	   serviría), NO un color de pintura real, así que no es "color crudo" a efectos de la barrera
+	   anti-parches (§5.4 del contrato P7). */
 	.vega-media-cell[data-media-selected='true'] {
-		border-color: var(--accent);
-		box-shadow: inset 0 0 0 1px var(--accent);
+		border-color: transparent;
+	}
+
+	.vega-media-cell[data-media-selected='true']::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		padding: 1.5px;
+		background: var(--sheen);
+		-webkit-mask:
+			linear-gradient(currentColor 0 0) content-box,
+			linear-gradient(currentColor 0 0);
+		-webkit-mask-composite: xor;
+		mask-composite: exclude;
+		mask:
+			linear-gradient(currentColor 0 0) content-box,
+			linear-gradient(currentColor 0 0);
+		pointer-events: none;
 	}
 
 	.vega-media-thumb-wrap {
@@ -149,5 +180,11 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+	}
+
+	.vega-media-caption--raw {
+		font-family: var(--mono);
+		font-size: 0.72rem;
+		color: var(--ink-2);
 	}
 </style>
