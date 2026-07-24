@@ -87,24 +87,27 @@
 	 *   celda, no solo el alto de fila (que ya usaba `--row-h` desde 4c).
 	 * - **Acento como texto (F7w-b)**: el enlace de apertura y el indicador de orden pintan con
 	 *   `--accent-text` (AA sobre papel), no `--accent` — ese es el relleno, no el color de texto.
-	 * - **Columna de acciones (Fase 4e, borrado, L-P4.9/L-P4.11)**: una `<th>`/`<td>` EXTRA al
-	 *   final de la fila, SOLO si `!contentType.readonly` (un tipo `readonly`/vista nunca ofrece
-	 *   borrar, ni el botón ni la columna) — presente en las dos ramas del marcado (con y sin
-	 *   `columns.length === 0`, para no dejar el caso límite sin acción). El botón vive en SU
-	 *   PROPIA `<td>`, nunca dentro de la `<a>` de apertura (L-P4.15): son celdas hermanas, así un
-	 *   click en "Borrar" nunca dispara `openRecord` (ni falta `preventDefault`/`stopPropagation`
-	 *   para lograrlo — la separación estructural ya lo garantiza). Solo EMITE `onDeleteRequest`
-	 *   con el registro y el mismo texto de apertura (`openText`, reutilizado, DRY) que ya se
-	 *   pinta en la celda-título — así el diálogo de confirmación (`DeleteConfirm.svelte`, dueño
-	 *   de `+page.svelte`) puede decir QUÉ se borra sin recalcularlo. Este componente sigue TONTO:
-	 *   no borra nada, no confirma nada, no navega — eso es responsabilidad de `+page.svelte`.
-	 * - **"Borrar" oculto hasta hover/foco (R3, decisión cerrada de David)**: antes era un botón
-	 *   rojo PERMANENTE por fila; el mockup C2 no lo muestra en absoluto de forma constante, así
-	 *   que la revelación al pasar el ratón o al llegar por teclado es el término medio: sigue
-	 *   presente en el DOM y en el orden de tabulación (nunca `display:none`, que lo sacaría del
-	 *   árbol de foco) — solo `opacity` conmutada por `tbody tr:hover`/`tbody tr:focus-within`, así
-	 *   Tab lo alcanza igual y `:focus-within` de la fila lo revela ANTES de que el propio botón
-	 *   tenga el foco (llega ya visible cuando el usuario tabula hasta él).
+	 * - **Borrado SIN columna dedicada (OLA 1 del rediseño visual, mockup `aquelarre-dark.html`
+	 *   no la tiene, decisión de David), overlay sobre la última celda de datos**: hasta esta ola
+	 *   había una `<th>`/`<td>` EXTRA al final de la fila; ahora el botón vive DENTRO de la última
+	 *   `<td>` renderizada (la del último `ColumnSpec`, o la celda sintética de apertura si
+	 *   `columns.length === 0`) como HERMANO del contenido normal de esa celda — nunca anidado en
+	 *   la `<a>` de apertura (L-P4.15) cuando esa celda es además la de título, así un click en
+	 *   "Borrar" sigue sin disparar `openRecord`. La celda se marca `.vega-cell-actions-anchor`
+	 *   (`position: relative`) y el botón se pinta `position: absolute` pegado a su borde derecho,
+	 *   tapando visualmente el contenido truncado de esa celda al revelarse (mismo lenguaje que el
+	 *   hover-reveal de listados tipo GitHub) — SOLO si `!contentType.readonly` (un tipo
+	 *   `readonly`/vista nunca ofrece borrar). Solo EMITE `onDeleteRequest` con el registro y el
+	 *   mismo texto de apertura (`openText`, reutilizado, DRY) que ya se pinta en la celda-título —
+	 *   así el diálogo de confirmación (`DeleteConfirm.svelte`, dueño de `+page.svelte`) puede decir
+	 *   QUÉ se borra sin recalcularlo. Este componente sigue TONTO: no borra nada, no confirma nada,
+	 *   no navega — eso es responsabilidad de `+page.svelte`.
+	 * - **"Borrar" oculto hasta hover/foco (R3, decisión cerrada de David)**: sigue igual tras
+	 *   quitar la columna (arriba) — presente en el DOM y en el orden de tabulación (nunca
+	 *   `display:none`, que lo sacaría del árbol de foco), solo `opacity` conmutada por
+	 *   `tbody tr:hover`/`tbody tr:focus-within`, así Tab lo alcanza igual y `:focus-within` de la
+	 *   fila lo revela ANTES de que el propio botón tenga el foco (llega ya visible cuando el
+	 *   usuario tabula hasta él).
 	 * - **Marco de tarjeta (`.vega-record-table-wrap`), MOVIDO a `+page.svelte` (R4 del
 	 *   rediseño)**: el borde/fondo/sombra de tarjeta que este wrapper llevaba (WIP sin commitear
 	 *   de lote-1, absorbido aquí) suben un nivel — `+page.svelte` envuelve `<RecordTable>` +
@@ -116,7 +119,7 @@
 	 *   `+page.svelte`: solo con `contentType.orderField` resuelto, SIN sort/búsqueda/filtro
 	 *   explícitos y con la colección entera en una página — reordenar a mano una vista parcial no
 	 *   tiene sentido), se añade una columna EXTRA al principio de la fila (hermana de las de
-	 *   datos, igual que la de acciones al final) con un «asa» de arrastre por fila. El asa es un
+	 *   datos) con un «asa» de arrastre por fila. El asa es un
 	 *   `<button draggable="true">`: el ratón usa Drag and Drop nativo (`dragstart`/`dragover`/
 	 *   `drop`, con `dragover` en la `<tr>` para permitir soltar ahí); el teclado usa
 	 *   `ArrowUp`/`ArrowDown` con el foco en el asa — mueve la fila una posición de inmediato (sin
@@ -323,8 +326,10 @@
 								>
 									{column.field.label}
 									{#if sort && sort.field === column.field.name}
+										<!-- Glyph 1:1 con el mockup (`aquelarre-dark.html`, "Actualizado ↓"): flecha
+										     de dirección, no el triángulo genérico de antes. -->
 										<span aria-hidden="true" class="vega-sort-indicator">
-											{sort.dir === 'asc' ? '▲' : '▼'}
+											{sort.dir === 'asc' ? '↑' : '↓'}
 										</span>
 									{/if}
 								</button>
@@ -336,9 +341,9 @@
 						{/if}
 					{/each}
 				{/if}
-				{#if !contentType.readonly}
-					<th scope="col">{ctx.t('list.actions.header')}</th>
-				{/if}
+				<!-- SIN columna de "Acciones" (ver cabecera del módulo): el mockup no la tiene; el
+				     botón "Borrar" se pinta como overlay dentro de la última celda de DATOS de cada
+				     fila (abajo), no aquí. -->
 			</tr>
 		</thead>
 		<tbody>
@@ -368,11 +373,16 @@
 						</td>
 					{/if}
 					{#if columns.length === 0}
-						<td class="vega-cell-title">
+						<!-- Única celda de la fila: también es la "última celda de datos", así que lleva el
+						     overlay de borrado (ver cabecera del módulo). -->
+						<td class="vega-cell-title" class:vega-cell-actions-anchor={!contentType.readonly}>
 							{@render titleLink(record)}
+							{#if !contentType.readonly}
+								{@render deleteOverlay(record)}
+							{/if}
 						</td>
 					{:else}
-						{#each columns as column (column.field.name)}
+						{#each columns as column, colIndex (column.field.name)}
 							{@const descriptor = describeCell(
 								column.field,
 								record.values[column.field.name] ?? null,
@@ -381,11 +391,13 @@
 							{@const isOpenColumn = Boolean(
 								openColumn && column.field.name === openColumn.field.name
 							)}
+							{@const isLastColumn = colIndex === columns.length - 1}
 							<td
 								class:vega-cell-title={isOpenColumn}
 								class:vega-cell-mono={!isOpenColumn &&
 									(descriptor.kind === 'date' || descriptor.kind === 'mono')}
 								class:vega-cell-right={!isOpenColumn && isRightAlignedColumn(column)}
+								class:vega-cell-actions-anchor={isLastColumn && !contentType.readonly}
 							>
 								{#if isOpenColumn}
 									{@render titleLink(record)}
@@ -400,23 +412,11 @@
 								{:else}
 									{@render cellContent(descriptor, record, column)}
 								{/if}
+								{#if isLastColumn && !contentType.readonly}
+									{@render deleteOverlay(record)}
+								{/if}
 							</td>
 						{/each}
-					{/if}
-					{#if !contentType.readonly}
-						<!-- Celda HERMANA de la de apertura, nunca anidada en su `<a>` (ver cabecera): un
-						     click aquí no dispara `openRecord` porque no está dentro de ese enlace. -->
-						<td class="vega-record-actions">
-							<button
-								type="button"
-								class="vega-delete-button"
-								data-action="delete"
-								aria-label={ctx.t('list.delete.rowButtonLabel', { label: openText(record) })}
-								onclick={() => onDeleteRequest(record, openText(record))}
-							>
-								{ctx.t('list.delete.rowButton')}
-							</button>
-						</td>
 					{/if}
 				</tr>
 			{/each}
@@ -438,6 +438,21 @@
 	{#if subtitle !== null}
 		<span class="vega-cell-subtitle">{subtitle}</span>
 	{/if}
+{/snippet}
+
+{#snippet deleteOverlay(record: VegaRecord)}
+	<!-- Overlay de borrado (ver cabecera del módulo): HERMANO del contenido normal de la celda
+	     ancla (`.vega-cell-actions-anchor`), nunca anidado en la `<a>` de `titleLink` — un click
+	     aquí sigue sin disparar `openRecord`. -->
+	<button
+		type="button"
+		class="vega-delete-button"
+		data-action="delete"
+		aria-label={ctx.t('list.delete.rowButtonLabel', { label: openText(record) })}
+		onclick={() => onDeleteRequest(record, openText(record))}
+	>
+		{ctx.t('list.delete.rowButton')}
+	</button>
 {/snippet}
 
 {#snippet cellContent(descriptor: CellDescriptor, record: VegaRecord, column: ColumnSpec)}
@@ -723,18 +738,25 @@
 		color: var(--ink-2);
 	}
 
-	/* Columna de acciones (Fase 4e): no trunca como el resto de `td` (el botón nunca lleva texto
-	   largo) y no queda pegada a la última columna de datos. */
-	.vega-record-actions {
-		max-width: none;
-		overflow: visible;
-		white-space: nowrap;
-		text-align: right;
+	/* Ancla del overlay de borrado (ver cabecera del módulo, "Borrado SIN columna dedicada"): la
+	   ÚLTIMA celda de datos de la fila (o la sintética si `columns.length === 0`) se vuelve el
+	   contenedor posicionado del botón — sin columna dedicada, a diferencia de antes. */
+	.vega-cell-actions-anchor {
+		position: relative;
 	}
 
 	/* "Borrar" oculto hasta hover/foco (R3, decisión de David — ver cabecera): `opacity`, nunca
-	   `display:none`/`visibility:hidden`, para que Tab lo siga alcanzando. */
+	   `display:none`/`visibility:hidden`, para que Tab lo siga alcanzando. Overlay ABSOLUTO (ver
+	   cabecera del módulo): pegado al borde derecho de `.vega-cell-actions-anchor`, por encima de
+	   su contenido truncado (mismo lenguaje que el hover-reveal de listados tipo GitHub) — el
+	   margen (`right`) deja hueco de sobra para el anillo de foco dentro del `overflow:hidden` de
+	   la celda (nunca lo recorta). */
 	.vega-delete-button {
+		position: absolute;
+		top: 50%;
+		right: 0.35rem;
+		transform: translateY(-50%);
+		z-index: 1;
 		padding: 0.25rem 0.6rem;
 		border: 1px solid var(--danger);
 		border-radius: 5px;
