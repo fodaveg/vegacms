@@ -8,6 +8,12 @@
  *
  * La ruta caliente v1 (title + status + text/number/bool/date) es trivial y sin red: son los
  * primeros `case` del switch y no hacen más que formatear con `Intl`.
+ *
+ * **Fechas relativas (M5, mockup `aquelarre-dark.html` "hace 2 h"/"ayer")**: el `case 'date'`
+ * pinta con `Intl.RelativeTimeFormat` (`formatDateCell`) cuando el valor está a menos de una
+ * semana de "ahora"; más allá de ese umbral cae al `Intl.DateTimeFormat` absoluto de siempre.
+ * "Ahora" es el parámetro `now` de `describeCell` (default `Date.now()`, NUNCA leído dentro del
+ * switch): puro y testeable sin mockear el reloj global.
  */
 
 import { isEmptyValue } from '$lib/backend/normalize';
@@ -44,11 +50,16 @@ export type CellDescriptor =
  * del campo (`field.schema.type`). Vacío uniforme primero (null/''/[] → `'empty'`, misma noción
  * que `isEmptyValue` usa para `required`/`empty` en el resto del contrato), luego una rama por
  * tipo siguiendo la tabla §4.
+ *
+ * `now` (M5, default `Date.now()`): instante de referencia para el `case 'date'` relativo
+ * (`formatDateCell`) — parámetro explícito en vez de leer el reloj global dentro del switch, así
+ * los tests pueden fijar "ahora" sin mockear `Date`.
  */
 export function describeCell(
 	field: ResolvedField,
 	value: FieldValue,
-	locale: Locale
+	locale: Locale,
+	now: number = Date.now()
 ): CellDescriptor {
 	if (isEmptyValue(field.schema, value)) return { kind: 'empty' };
 
@@ -81,11 +92,7 @@ export function describeCell(
 			if (typeof value !== 'string') return { kind: 'empty' };
 			const ms = Date.parse(value);
 			if (Number.isNaN(ms)) return { kind: 'empty' };
-			const formatter = new Intl.DateTimeFormat(locale, {
-				dateStyle: 'medium',
-				timeStyle: 'short'
-			});
-			return { kind: 'date', text: formatter.format(new Date(ms)) };
+			return { kind: 'date', text: formatDateCell(ms, locale, now) };
 		}
 
 		case 'select':
@@ -118,6 +125,52 @@ export function describeCell(
 		case 'unsupported':
 			return { kind: 'mono', text: field.schema.backendType };
 	}
+}
+
+/** Umbral de fechas relativas (M5): por debajo de una semana de diferencia con `now`, la celda
+ *  se pinta en relativo; a partir de ahí cae al absoluto (una fecha de hace meses en relativo
+ *  sería ruido, no información — "hace 214 días" no orienta como "18 jul 2026"). */
+const RELATIVE_DATE_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000;
+const MINUTE_MS = 60 * 1000;
+const HOUR_MS = 60 * MINUTE_MS;
+const DAY_MS = 24 * HOUR_MS;
+
+/**
+ * Formatea una fecha de celda (M5, mockup `aquelarre-dark.html` "hace 2 h"/"ayer"): relativo a
+ * `now` con `Intl.RelativeTimeFormat` (`numeric:'auto'`, que da "ayer"/"hoy"/"mañana" en vez de
+ * "hace 1 día") cuando la diferencia es menor que `RELATIVE_DATE_THRESHOLD_MS`; si no, el
+ * `Intl.DateTimeFormat` absoluto de siempre (comportamiento histórico, sin cambios). La unidad
+ * (segundo/minuto/hora/día) se elige por la magnitud de la diferencia, redondeando al entero más
+ * cercano — nunca trunca hacia cero (evitaría que 89 minutos se lea "hace 1 hora" en vez de "hace
+ * 2 horas"). Pura: `now` es un parámetro explícito, nunca `Date.now()` leído aquí dentro.
+ */
+function formatDateCell(ms: number, locale: Locale, now: number): string {
+	const diffMs = ms - now;
+	const absDiffMs = Math.abs(diffMs);
+
+	if (absDiffMs >= RELATIVE_DATE_THRESHOLD_MS) {
+		return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(
+			new Date(ms)
+		);
+	}
+
+	const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+	let value: number;
+	let unit: Intl.RelativeTimeFormatUnit;
+	if (absDiffMs < MINUTE_MS) {
+		value = Math.round(diffMs / 1000);
+		unit = 'second';
+	} else if (absDiffMs < HOUR_MS) {
+		value = Math.round(diffMs / MINUTE_MS);
+		unit = 'minute';
+	} else if (absDiffMs < DAY_MS) {
+		value = Math.round(diffMs / HOUR_MS);
+		unit = 'hour';
+	} else {
+		value = Math.round(diffMs / DAY_MS);
+		unit = 'day';
+	}
+	return rtf.format(value, unit);
 }
 
 /**

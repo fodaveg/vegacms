@@ -128,6 +128,69 @@ describe('describeCell — date', () => {
 	});
 });
 
+describe('describeCell — date, relativo (M5, mockup "hace 2 h"/"ayer")', () => {
+	// "Ahora" fijo (nunca `Date.now()` real): evita tests flaky, ver cabecera de `formatDateCell`.
+	const NOW = Date.parse('2026-07-24T12:00:00.000Z');
+	const f = resolvedField(field({ name: 'updatedAt', type: 'date' }));
+
+	function isoBefore(msAgo: number): string {
+		return new Date(NOW - msAgo).toISOString();
+	}
+
+	test('hace minutos', () => {
+		const iso = isoBefore(5 * 60 * 1000);
+		expect(describeCell(f, iso, 'es', NOW)).toEqual({
+			kind: 'date',
+			text: new Intl.RelativeTimeFormat('es', { numeric: 'auto' }).format(-5, 'minute')
+		});
+	});
+
+	test('hace horas', () => {
+		const iso = isoBefore(2 * 60 * 60 * 1000);
+		expect(describeCell(f, iso, 'es', NOW)).toEqual({
+			kind: 'date',
+			text: new Intl.RelativeTimeFormat('es', { numeric: 'auto' }).format(-2, 'hour')
+		});
+	});
+
+	test('ayer (numeric:"auto", no "hace 1 día")', () => {
+		const iso = isoBefore(26 * 60 * 60 * 1000);
+		expect(describeCell(f, iso, 'es', NOW)).toEqual({
+			kind: 'date',
+			text: new Intl.RelativeTimeFormat('es', { numeric: 'auto' }).format(-1, 'day')
+		});
+	});
+
+	test('hace días (dentro de la semana)', () => {
+		const iso = isoBefore(3 * 24 * 60 * 60 * 1000);
+		expect(describeCell(f, iso, 'es', NOW)).toEqual({
+			kind: 'date',
+			text: new Intl.RelativeTimeFormat('es', { numeric: 'auto' }).format(-3, 'day')
+		});
+	});
+
+	test('corte a formato absoluto (>= 7 días): mismo formatter de siempre', () => {
+		const ms = NOW - 8 * 24 * 60 * 60 * 1000;
+		const iso = new Date(ms).toISOString();
+		const expected = new Intl.DateTimeFormat('es', {
+			dateStyle: 'medium',
+			timeStyle: 'short'
+		}).format(new Date(ms));
+		expect(describeCell(f, iso, 'es', NOW)).toEqual({ kind: 'date', text: expected });
+	});
+
+	test('sin `now` explícito, usa Date.now() por defecto (compat hacia atrás)', () => {
+		// Reutiliza el caso "ISO inválido → empty" con locale/valor de la suite de arriba: aquí solo
+		// se comprueba que el default no rompe la firma de 3 argumentos existente.
+		const iso = '2020-01-01T00:00:00.000Z';
+		const expected = new Intl.DateTimeFormat('es', {
+			dateStyle: 'medium',
+			timeStyle: 'short'
+		}).format(new Date(iso));
+		expect(describeCell(f, iso, 'es')).toEqual({ kind: 'date', text: expected });
+	});
+});
+
 describe('describeCell — select múltiple', () => {
 	test('devuelve los valores; 4c decide contador vs chips', () => {
 		const f = resolvedField(
