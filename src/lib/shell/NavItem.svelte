@@ -116,9 +116,14 @@
 		color: var(--ink-hi);
 	}
 
+	/* Barra del item activo → --sheen (trazo espectral, no relleno — ver `--accent-fill` en los
+	   botones primarios): `border-image` solo pinta la arista con ancho de verdad (`border-left`,
+	   las otras tres siguen a 0), mismo eco vertical que el hilo de la topbar y la fila activa de
+	   `RecordTable`. */
 	a[aria-current='page'] {
 		background: var(--accent-soft);
-		border-left-color: var(--accent);
+		border-left: 2px solid transparent;
+		border-image: var(--sheen) 1;
 		color: var(--accent-text);
 		font-weight: 600;
 	}

@@ -191,11 +191,17 @@
 	</button>
 
 	{#if hasVisibleNav}
-		{#each ctx.model.nav.groups as group (group.label ?? '__anon__')}
+		{#each ctx.model.nav.groups as group, groupIndex (group.label ?? '__anon__')}
 			{#if group.items.length > 0}
 				<div class="vega-nav-group">
 					{#if group.label}
-						<p class="vega-nav-group-label" title={group.label}>{group.label}</p>
+						<!-- Punto de parada cromática de marca (mockups aquelarre-*.html): cada grupo lleva
+						     su propia parada `--brand-a/b/c`, cíclica por índice — en paletas sin firma
+						     propia (p.ej. brasa) el motor resuelve las tres al acento sólido, así que los
+						     tres puntos caen al mismo color sin desentonar. -->
+						<p class="vega-nav-group-label" data-brand={groupIndex % 3} title={group.label}>
+							{group.label}
+						</p>
 					{/if}
 					<ul>
 						{#each group.items as item (item.type)}
@@ -273,8 +279,9 @@
 	}
 
 	.vega-nav-group-label {
+		position: relative;
 		margin: 0 0 0.4rem;
-		padding: 0 var(--vega-space-gutter);
+		padding: 0 var(--vega-space-gutter) 0 calc(var(--vega-space-gutter) + 0.85rem);
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
@@ -282,6 +289,30 @@
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
 		color: var(--ink-2);
+	}
+
+	/* Punto de parada cromática de marca (ver marcado): `data-brand` cicla 0/1/2 por grupo. */
+	.vega-nav-group-label::before {
+		content: '';
+		position: absolute;
+		left: var(--vega-space-gutter);
+		top: 50%;
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		transform: translateY(-50%);
+	}
+
+	.vega-nav-group-label[data-brand='0']::before {
+		background: var(--brand-a);
+	}
+
+	.vega-nav-group-label[data-brand='1']::before {
+		background: var(--brand-b);
+	}
+
+	.vega-nav-group-label[data-brand='2']::before {
+		background: var(--brand-c);
 	}
 
 	.vega-nav-fixed {
@@ -313,9 +344,14 @@
 		color: var(--ink-hi);
 	}
 
+	/* Barra del item activo → --sheen (mismo trazo espectral que la fila activa de `RecordTable`,
+	   el hilo de la topbar y `NavItem.svelte`): `border-image` solo pinta donde hay ancho de
+	   borde de verdad — aquí únicamente `border-left`, así que el degradado queda confinado a esa
+	   única arista sin tocar las otras tres (sin `border-width` en ellas). */
 	.vega-nav-fixed a[aria-current='page'] {
 		background: var(--accent-soft);
-		border-left-color: var(--accent);
+		border-left: 2px solid transparent;
+		border-image: var(--sheen) 1;
 		color: var(--accent-text);
 		font-weight: 600;
 	}

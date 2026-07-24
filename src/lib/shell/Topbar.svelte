@@ -189,14 +189,31 @@
 
 <style>
 	.vega-topbar {
+		position: relative;
 		display: flex;
 		align-items: center;
 		gap: var(--vega-space-gutter);
 		height: var(--topbar-h);
 		flex-shrink: 0;
 		padding: 0 var(--vega-space-gutter);
-		border-bottom: 1px solid var(--line);
 		background: var(--surface-2);
+	}
+
+	/* Hilo iridiscente bajo la topbar (mockups aquelarre-*.html, firma de David): sustituye la
+	   hairline sólida de `--line` por el trazo espectral `--sheen` a la opacidad `--brand-edge-
+	   opacity` del tema — en paletas planas (sin firma propia, p.ej. brasa) el motor resuelve
+	   `--sheen` a un degradado acento→acento-texto y `--brand-edge-opacity` a 0.35, así que nunca
+	   desaparece del todo, solo pierde intensidad. `--sheen` = trazo/resalte (nunca relleno, ver
+	   `--accent-fill` del botón primario), coherente con la barra de fila activa de `RecordTable`. */
+	.vega-topbar::after {
+		content: '';
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		height: 1.5px;
+		background: var(--sheen);
+		opacity: var(--brand-edge-opacity);
 	}
 
 	.vega-topbar-menu {
@@ -219,6 +236,10 @@
 		gap: 0.6rem;
 		min-width: 13rem;
 		flex-shrink: 0;
+		/* --mono (mockups): el nombre del sitio es un valor canónico del manifiesto (como un slug
+		   o un id), no prosa — mismo criterio tipográfico que `--mono` aplica al resto de valores
+		   canónicos de la app (ids, slugs, fechas ISO). */
+		font-family: var(--mono);
 		font-weight: 650;
 		letter-spacing: -0.02em;
 		color: var(--ink-hi);
