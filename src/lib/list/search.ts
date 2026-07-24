@@ -102,10 +102,14 @@ function buildSearchNode(type: ResolvedContentType, q: string): FilterNode | nul
  *   uno, ese nodo directamente; si ninguno, `filter` queda ausente.
  * - `sort`: solo si `state.sort.field` existe en `type.schema.fields` y es escalar
  *   (`isScalarField`, D-P4.6(a)); si no, se omite por completo (nunca se cuela un sort inválido).
- *   Sin sort explícito (`state.sort === null`) y con `type.orderField` resuelto (reorder manual,
- *   P2 §orderField), el listado ordena por ese campo ascendente por defecto: es el orden que el
- *   reorder manual persiste, así que sin esto el reorder recién guardado no se reflejaría hasta
- *   que el usuario pidiera orden explícitamente. Un sort explícito del usuario SIEMPRE gana.
+ *   Sin sort explícito (`state.sort === null`), el fallback es: 1) `type.defaultSort` (P2, orden
+ *   INICIAL declarado por el manifiesto, opt-in, mockup `aquelarre-dark.html`) — ya llega
+ *   validado (`field` existe y es escalar, `resolveDefaultSort`), así que se usa tal cual sin
+ *   volver a comprobarlo (mismo criterio de confianza que `type.orderField` de abajo); 2) si no
+ *   hay `defaultSort`, `type.orderField` resuelto (reorder manual, P2 §orderField) ordena
+ *   ascendente por defecto — es el orden que el reorder manual persiste, así que sin esto el
+ *   reorder recién guardado no se reflejaría hasta que el usuario pidiera orden explícitamente.
+ *   Un sort explícito del usuario (URL) SIEMPRE gana sobre los dos fallbacks.
  * - `page`/`perPage`: `state.page` y `DEFAULT_PER_PAGE` (P4 v1 no ofrece cambiar el tamaño
  *   de página desde la vista).
  */
@@ -133,6 +137,8 @@ export function buildListQuery(type: ResolvedContentType, state: ViewState): Que
 		if (schemaField && isScalarField(schemaField)) {
 			query.sort = [{ field, dir }];
 		}
+	} else if (type.defaultSort !== null) {
+		query.sort = [{ field: type.defaultSort.field, dir: type.defaultSort.dir }];
 	} else if (type.orderField !== null) {
 		query.sort = [{ field: type.orderField, dir: 'asc' }];
 	}

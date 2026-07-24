@@ -108,6 +108,17 @@ export interface ResolvedContentType {
 	 *  de `statusField`): solo existe si el manifiesto lo declara explícitamente y el campo es
 	 *  `number`. Habilita el reorder por arrastre del listado y el orden por defecto. */
 	orderField: string | null;
+	/** (M) orden INICIAL del listado cuando la URL no trae uno explícito (mockup
+	 *  `aquelarre-dark.html`, columna "Actualizado" con `↓`), o null ⇒ sin orden por defecto —
+	 *  comportamiento histórico de P4 ("nunca ordena por defecto"), que esta clave reabre de forma
+	 *  OPT-IN y controlada (decisión de David, lote "match 1:1 con el mockup"): un tipo que no
+	 *  declara `defaultSort` no cambia su render. SOLO manifiesto, sin autodetección — mismo
+	 *  criterio que `subtitleField`/`orderField`. `field` debe ser ESCALAR (mismo criterio que
+	 *  `search.ts`/`cycleSort` usan para un `sort` de URL válido); un `field` inexistente o no
+	 *  escalar invalida la clave entera (`default-sort-field-invalid`) y cae a `null`, nunca a un
+	 *  campo distinto. `dir` usa la MISMA forma que `ViewState.sort` (`query-state.ts`) para que
+	 *  `+page.svelte` pueda usarlo tal cual como fallback sin remapear nada. */
+	defaultSort: { field: string; dir: 'asc' | 'desc' } | null;
 	/** (M) plantilla con placeholders `{campo}`/`{id}` ya validados, o null. §4.7. */
 	previewUrl: string | null;
 	/** (D+M) campos en ORDEN EFECTIVO de formulario (§4.9). Mismo cardinal que schema.fields. */
@@ -278,6 +289,7 @@ export type WarningCode =
 	| 'status-field-invalid' // statusField que no cumple la convención → null
 	| 'order-field-invalid' // orderField inexistente o no numérico → null
 	| 'subtitle-field-invalid' // subtitleField inexistente o no escalar → null
+	| 'default-sort-field-invalid' // defaultSort.field inexistente o no escalar → null
 	| 'status-labels-unknown-value' // clave de statusLabels que no es opción del statusField → se conserva igualmente, solo aviso
 	| 'preview-url-invalid' // placeholder desconocido o no escalar → null
 	| 'list-field-unknown' // listFields con campo inexistente → se omite

@@ -80,6 +80,16 @@
 						"type": "string",
 						"minLength": 1
 					},
+					"defaultSort": {
+						"description": "Orden inicial del listado cuando la URL no trae ?sort=/&dir= explícito (p. ej. { field: 'updatedAt', dir: 'desc' }). Sin esta clave, el listado no ordena por defecto (comportamiento histórico).",
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["field", "dir"],
+						"properties": {
+							"field": { "type": "string", "minLength": 1 },
+							"dir": { "enum": ["asc", "desc"] }
+						}
+					},
 					"statusField": {
 						"description": "Nombre del campo de publicación, o false para DESACTIVAR la convención aunque exista un campo 'status'.",
 						"oneOf": [{ "type": "string", "minLength": 1 }, { "const": false }]

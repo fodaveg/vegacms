@@ -587,6 +587,77 @@ describe('7. Matriz de degradación (§5)', () => {
 		expect(model.warnings).toEqual([]);
 	});
 
+	test('defaultSort declarado sobre un campo escalar → se resuelve tal cual, sin warning', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { post: { defaultSort: { field: 'publishedAt', dir: 'desc' } } }
+			}
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.defaultSort).toEqual({ field: 'publishedAt', dir: 'desc' });
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('defaultSort.field inexistente → default-sort-field-invalid + null', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { post: { defaultSort: { field: 'no-existe', dir: 'asc' } } }
+			}
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.defaultSort).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'default-sort-field-invalid', collection: 'post' })
+		]);
+	});
+
+	test('defaultSort.field no escalar (select múltiple, "tags") → default-sort-field-invalid + null', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { post: { defaultSort: { field: 'tags', dir: 'asc' } } }
+			}
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.defaultSort).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'default-sort-field-invalid', collection: 'post' })
+		]);
+	});
+
+	test('defaultSort con dir inválido → manifest-invalid-key + null (todo o nada)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { post: { defaultSort: { field: 'rating', dir: 'sideways' } } }
+			}
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.defaultSort).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'manifest-invalid-key',
+				path: '/collections/post/defaultSort'
+			})
+		]);
+	});
+
+	test('sin defaultSort en el manifiesto → null, SIN warning (opt-in)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, collections: { post: {} } }
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.defaultSort).toBeNull();
+		expect(model.warnings).toEqual([]);
+	});
+
 	test('statusLabels con claves de statusField → se resuelve tal cual, sin warning', () => {
 		const model = resolveContentModel({
 			types: kitchenSinkTypes,
@@ -780,6 +851,9 @@ describe('7. Matriz de degradación (§5)', () => {
 			{ collections: { post: { statusField: 123 } } },
 			{ collections: { post: { orderField: 123 } } },
 			{ collections: { post: { subtitleField: 123 } } },
+			{ collections: { post: { defaultSort: 'nope' } } },
+			{ collections: { post: { defaultSort: { field: 123, dir: 'asc' } } } },
+			{ collections: { post: { defaultSort: { field: 'rating', dir: 'nope' } } } },
 			{ collections: { post: { statusLabels: 'nope' } } },
 			{ collections: { post: { statusLabels: { draft: 123 } } } },
 			{ collections: { post: { previewUrl: 'ftp://mal' } } },

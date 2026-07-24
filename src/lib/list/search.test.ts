@@ -60,6 +60,7 @@ function contentType(
 		titleField: null,
 		subtitleField: null,
 		orderField: null,
+		defaultSort: null,
 		statusField: null,
 		statusLabels: null,
 		previewUrl: null,
@@ -230,6 +231,50 @@ describe('buildListQuery — sort', () => {
 		const query = buildListQuery(type, { ...emptyState, sort: { field: 'related', dir: 'desc' } });
 		expect(query.sort).toBeUndefined();
 		expect(() => validateQuery(type.schema.fields, query)).not.toThrow();
+	});
+});
+
+describe('buildListQuery — sort por defecto de defaultSort (P2, opt-in)', () => {
+	test('sin sort explícito y defaultSort resuelto: ordena por defaultSort tal cual', () => {
+		const title = field({ name: 'title', type: 'text', subtype: 'plain' });
+		const updatedAt = field({ name: 'updatedAt', type: 'date' });
+		const type = contentType([title, updatedAt], {
+			titleField: 'title',
+			defaultSort: { field: 'updatedAt', dir: 'desc' },
+			listFields: ['title', 'updatedAt']
+		});
+
+		const query = buildListQuery(type, emptyState);
+		expect(query.sort).toEqual([{ field: 'updatedAt', dir: 'desc' }]);
+		expect(() => validateQuery(type.schema.fields, query)).not.toThrow();
+	});
+
+	test('sort explícito del usuario (URL) gana al defaultSort', () => {
+		const title = field({ name: 'title', type: 'text', subtype: 'plain' });
+		const updatedAt = field({ name: 'updatedAt', type: 'date' });
+		const type = contentType([title, updatedAt], {
+			titleField: 'title',
+			defaultSort: { field: 'updatedAt', dir: 'desc' },
+			listFields: ['title', 'updatedAt']
+		});
+
+		const query = buildListQuery(type, { ...emptyState, sort: { field: 'title', dir: 'asc' } });
+		expect(query.sort).toEqual([{ field: 'title', dir: 'asc' }]);
+	});
+
+	test('defaultSort gana al fallback de orderField cuando ambos están resueltos', () => {
+		const title = field({ name: 'title', type: 'text', subtype: 'plain' });
+		const updatedAt = field({ name: 'updatedAt', type: 'date' });
+		const sortField = field({ name: 'sort', type: 'number', integer: true });
+		const type = contentType([title, updatedAt, sortField], {
+			titleField: 'title',
+			defaultSort: { field: 'updatedAt', dir: 'desc' },
+			orderField: 'sort',
+			listFields: ['title', 'updatedAt']
+		});
+
+		const query = buildListQuery(type, emptyState);
+		expect(query.sort).toEqual([{ field: 'updatedAt', dir: 'desc' }]);
 	});
 });
 

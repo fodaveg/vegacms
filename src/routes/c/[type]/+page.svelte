@@ -105,6 +105,13 @@
 	// Estado de vista EFÍMERO de la URL (4b, D-P4.9): esta fase solo escribe `?page=`, pero
 	// respeta el round-trip completo de `q`/`sort`/`status` si ya estuvieran en la URL (L-P4.13).
 	const viewState = $derived(parseViewState(page.url.searchParams));
+	// Orden EFECTIVO para pintar (capacidad `defaultSort`, P2, mockup `aquelarre-dark.html`): un
+	// `?sort=&dir=` explícito en la URL SIEMPRE gana (L-P4.13, deep-link intacto); sin él, cae al
+	// `defaultSort` del tipo (opt-in, `null` si no lo declara ⇒ mismo comportamiento de siempre,
+	// sin orden activo). `buildListQuery` (`search.ts`) aplica el MISMO fallback para la query
+	// real — este derivado solo existe para que la tabla/el ciclo de orden pinten y partan del
+	// mismo estado que los datos que se están mostrando.
+	const effectiveSort = $derived(viewState.sort ?? contentType?.defaultSort ?? null);
 
 	let routerReady = $state(false);
 	onMount(() => {
@@ -164,10 +171,14 @@
 	// filtro), y la colección entera cabe en una página (arrastrar entre páginas no está
 	// soportado). Cualquier otra combinación oculta la columna del asa (`RecordTable`, ver su
 	// cabecera), nunca la deja a medias.
+	// `effectiveSort` (no `viewState.sort` a secas) desde la capacidad `defaultSort`: si el tipo
+	// declara un orden inicial, la tabla YA no está en su orden natural de `orderField` aunque la
+	// URL no traiga `?sort=` — arrastrar filas ahí produciría un reorder que no coincide con lo
+	// que el usuario ve, mismo motivo que ya excluía un `?sort=` explícito.
 	const reorderable = $derived(
 		contentType !== null &&
 			contentType.orderField !== null &&
-			viewState.sort === null &&
+			effectiveSort === null &&
 			viewState.q === '' &&
 			viewState.status === null &&
 			readyPage !== null &&
@@ -475,8 +486,8 @@
 						{contentType}
 						{columns}
 						records={readyPage.items}
-						sort={viewState.sort}
-						onSort={(field) => navigateView({ sort: cycleSort(viewState.sort, field) })}
+						sort={effectiveSort}
+						onSort={(field) => navigateView({ sort: cycleSort(effectiveSort, field) })}
 						onDeleteRequest={requestDelete}
 						{reorderable}
 						onReorder={handleReorder}

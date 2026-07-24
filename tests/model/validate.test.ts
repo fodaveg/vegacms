@@ -148,6 +148,38 @@ describe('1. Casos puntuales contra el schema §3', () => {
 		expect(result.ok).toBe(false);
 	});
 
+	test('collections.<c>.defaultSort con { field, dir } válido → válido', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: { post: { defaultSort: { field: 'publishedAt', dir: 'desc' } } }
+		});
+		expect(result).toEqual({ ok: true });
+	});
+
+	test('collections.<c>.defaultSort sin "dir" → inválido (required)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: { post: { defaultSort: { field: 'publishedAt' } } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('collections.<c>.defaultSort.dir fuera de "asc"/"desc" → inválido (enum)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: { post: { defaultSort: { field: 'publishedAt', dir: 'sideways' } } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('collections.<c>.defaultSort con clave desconocida → inválido (additionalProperties)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: { post: { defaultSort: { field: 'publishedAt', dir: 'asc', weight: 2 } } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
 	test('collections.<c>.previewUrl sin http(s) → inválido (pattern)', () => {
 		const result = validateManifestStrict({
 			schemaVersion: 1,
@@ -371,6 +403,12 @@ const VALID_ZERO_WARNING_MANIFESTS: JsonValue[] = [
 		collections: { post: { statusField: false, previewUrl: 'https://x.com/{id}' } }
 	},
 	{
+		// defaultSort (M "match 1:1 con el mockup", P2 opt-in): `publishedAt` es un campo `date`
+		// real de `post` (kitchen-sink), así que es escalar y ordenable → cero warnings.
+		schemaVersion: 1,
+		collections: { post: { defaultSort: { field: 'publishedAt', dir: 'desc' } } }
+	},
+	{
 		// M4: statusLabels con claves que SÍ son opciones reales de `post.status`
 		// (['draft','published','archived'], ver fixture.ts) → cero warnings de contenido.
 		schemaVersion: 1,
@@ -493,6 +531,12 @@ const INVALID_MANIFESTS: JsonValue[] = [
 	{ schemaVersion: 1, collections: { post: { statusLabels: 'not-an-object' } } },
 	{ schemaVersion: 1, collections: { post: { statusLabels: { draft: 1 } } } },
 	{ schemaVersion: 1, collections: { post: { statusLabels: { draft: 'x'.repeat(61) } } } },
+	{ schemaVersion: 1, collections: { post: { defaultSort: 'not-an-object' } } },
+	{ schemaVersion: 1, collections: { post: { defaultSort: { field: 'rating' } } } },
+	{ schemaVersion: 1, collections: { post: { defaultSort: { dir: 'asc' } } } },
+	{ schemaVersion: 1, collections: { post: { defaultSort: { field: 'rating', dir: 'sideways' } } } },
+	{ schemaVersion: 1, collections: { post: { defaultSort: { field: '', dir: 'asc' } } } },
+	{ schemaVersion: 1, collections: { post: { defaultSort: { field: 'rating', dir: 'asc', x: 1 } } } },
 	{ schemaVersion: 1, collections: { post: { previewUrl: 'not-a-url' } } },
 	{ schemaVersion: 1, collections: { post: { listFields: Array.from({ length: 9 }, () => 'x') } } },
 	{ schemaVersion: 1, collections: { post: { listFields: ['a', 'a'] } } },

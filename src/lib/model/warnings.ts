@@ -116,6 +116,18 @@ export function subtitleFieldInvalid(collection: string, requestedField: string)
 	};
 }
 
+/** `default-sort-field-invalid` — `defaultSort.field` inexistente o no escalar; sin orden por
+ *  defecto (mismo criterio de "escalar" que `subtitleFieldInvalid`, no el más estricto de
+ *  `titleFieldInvalid`). */
+export function defaultSortFieldInvalid(collection: string, requestedField: string): ModelWarning {
+	return {
+		code: 'default-sort-field-invalid',
+		message: `El campo de orden por defecto "${requestedField}" declarado para "${collection}" no existe o no es escalar; se ignora (el listado arranca sin orden por defecto).`,
+		collection,
+		path: `${collectionPath(collection)}/defaultSort/field`
+	};
+}
+
 /** `status-labels-unknown-value` — una clave de `statusLabels` no corresponde a ninguna opción
  *  del `statusField` resuelto de `collection`. NO se descarta esa entrada (la clave puede
  *  corresponder a un valor legítimo que el `select` admite pero que la convención de publicación

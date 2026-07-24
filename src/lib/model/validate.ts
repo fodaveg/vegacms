@@ -53,6 +53,7 @@ const COLLECTION_ALLOWED_KEYS = [
 	'statusField',
 	'statusLabels',
 	'orderField',
+	'defaultSort',
 	'previewUrl',
 	'listFields',
 	'fieldGroups',
@@ -72,6 +73,8 @@ const FIELD_ALLOWED_KEYS = [
 ] as const;
 /** Claves de la forma-objeto de un item de `fieldGroups` (§4.9b, rejilla de columnas). */
 const FIELD_GROUP_ITEM_ALLOWED_KEYS = ['name', 'columns'] as const;
+/** Claves de `collections.<c>.defaultSort` (orden inicial del listado). */
+const DEFAULT_SORT_ALLOWED_KEYS = ['field', 'dir'] as const;
 /** Claves de una vista fusionada `mergedViews.<id>` (L7a). */
 const MERGED_VIEW_ALLOWED_KEYS = [
 	'label',
@@ -503,6 +506,9 @@ function validateCollection(
 			`orderField de "${name}"`
 		);
 	}
+	if ('defaultSort' in value) {
+		validateDefaultSort(name, value.defaultSort, errors);
+	}
 	if ('previewUrl' in value) {
 		validatePreviewUrl(value.previewUrl, `${base}/previewUrl`, errors, name);
 	}
@@ -617,6 +623,40 @@ function validateStatusLabels(
 			errors,
 			`statusLabels["${key}"] de "${collection}"`
 		);
+	}
+}
+
+/** `defaultSort` (orden inicial del listado): objeto `{ field, dir }` con `dir` en
+ *  `'asc'|'desc'`. Igual que `statusLabels`, solo se valida la FORMA a nivel de schema; que
+ *  `field` sea un campo real y escalar de la colección es CONTENIDO (`resolveContentModel`,
+ *  `default-sort-field-invalid`), no sintaxis. */
+function validateDefaultSort(
+	collection: string,
+	value: JsonValue,
+	errors: ManifestValidationErrorEntry[]
+): void {
+	const base = `/collections/${collection}/defaultSort`;
+	if (!isPlainObject(value)) {
+		fail(errors, base, `defaultSort de "${collection}" debe ser un objeto { field, dir }.`);
+		return;
+	}
+	checkAdditionalProperties(value, DEFAULT_SORT_ALLOWED_KEYS, base, errors);
+	if (!('field' in value)) {
+		fail(errors, `${base}/field`, `defaultSort de "${collection}" debe declarar "field".`);
+	} else {
+		checkString(
+			value.field,
+			`${base}/field`,
+			1,
+			Infinity,
+			errors,
+			`defaultSort.field de "${collection}"`
+		);
+	}
+	if (!('dir' in value)) {
+		fail(errors, `${base}/dir`, `defaultSort de "${collection}" debe declarar "dir".`);
+	} else {
+		checkEnum(value.dir, ['asc', 'desc'], `${base}/dir`, errors, `defaultSort.dir de "${collection}"`);
 	}
 }
 

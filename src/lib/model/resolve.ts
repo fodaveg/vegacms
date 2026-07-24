@@ -44,6 +44,7 @@ import {
 	humanizeLabel,
 	isRepresentableField,
 	orderByGroups,
+	resolveDefaultSort,
 	resolveMergedSourceOrderField,
 	resolveOrderField,
 	resolveStatusField,
@@ -223,6 +224,22 @@ function readStatusLabels(raw: JsonValue): Record<string, string> | undefined {
 		result[key] = value;
 	}
 	return result;
+}
+
+/**
+ * Lee `collections.<c>.defaultSort` (orden inicial del listado, §? mockup `aquelarre-dark.html`):
+ * un objeto `{ field, dir }` con `dir` en `'asc'|'desc'`, mismo criterio "todo o nada" que
+ * `readFieldGroups`/`readStatusLabels` — cualquier forma que no case invalida la clave ENTERA. El
+ * CONTENIDO (¿`field` existe y es escalar?) lo valida `resolveDefaultSort`, no aquí.
+ */
+function readDefaultSort(raw: JsonValue): { field: string; dir: 'asc' | 'desc' } | undefined {
+	const obj = asJsonObject(raw);
+	if (!obj) return undefined;
+	const field = obj.field;
+	const dir = obj.dir;
+	if (typeof field !== 'string' || field.length < 1) return undefined;
+	if (dir !== 'asc' && dir !== 'desc') return undefined;
+	return { field, dir };
 }
 
 function readPreviewUrlTemplate(raw: JsonValue): string | undefined {
@@ -596,6 +613,16 @@ function resolveContentType(
 	);
 	const orderField = resolveOrderField(type.fields, orderFieldRaw, type.name, warnings);
 
+	const defaultSortRaw = readKey(
+		collectionRaw,
+		'defaultSort',
+		readDefaultSort,
+		`${base}/defaultSort`,
+		`defaultSort de "${type.name}" debe ser un objeto { field, dir } con dir "asc" o "desc"; se ignora.`,
+		warnings
+	);
+	const defaultSort = resolveDefaultSort(type.fields, defaultSortRaw, type.name, warnings);
+
 	const statusFieldRaw = readKey(
 		collectionRaw,
 		'statusField',
@@ -732,6 +759,7 @@ function resolveContentType(
 		titleField,
 		subtitleField,
 		orderField,
+		defaultSort,
 		statusField,
 		statusLabels,
 		previewUrl,

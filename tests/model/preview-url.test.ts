@@ -55,6 +55,7 @@ function makeResolvedType(previewUrl: string | null): ResolvedContentType {
 		titleField: 'title',
 		subtitleField: null,
 		orderField: null,
+		defaultSort: null,
 		statusField: 'status',
 		statusLabels: null,
 		previewUrl,

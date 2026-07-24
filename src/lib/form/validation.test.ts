@@ -49,6 +49,7 @@ function makeType(fields: ResolvedField[]): ResolvedContentType {
 		titleField: null,
 		subtitleField: null,
 		orderField: null,
+		defaultSort: null,
 		statusField: null,
 		statusLabels: null,
 		previewUrl: null,

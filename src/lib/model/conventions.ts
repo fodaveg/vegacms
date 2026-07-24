@@ -11,6 +11,7 @@ import type { Field, JsonValue } from '$lib/backend/types';
 import { isScalarField } from '$lib/backend/query';
 import type { ModelWarning, WidgetId } from './types';
 import {
+	defaultSortFieldInvalid,
 	manifestInvalidKey,
 	orderFieldInvalid,
 	statusFieldInvalid,
@@ -201,6 +202,33 @@ export function resolveSubtitleField(
 	if (field && isScalarField(field)) return manifestSubtitleField;
 
 	warnings.push(subtitleFieldInvalid(collection, manifestSubtitleField));
+	return null;
+}
+
+/**
+ * Resuelve `defaultSort` (orden inicial del listado sin `?sort=` en la URL, mockup
+ * `aquelarre-dark.html`). Mismo patrón opt-in que `resolveSubtitleField`/`resolveOrderField`: SOLO
+ * manifiesto, sin autodetección — un tipo sin la clave declarada nunca ordena por defecto (P4
+ * histórico intacto). `manifestDefaultSort` llega ya validado en FORMA por el llamador (`{ field,
+ * dir }` con `dir` en `'asc'|'desc'`, §5); aquí solo se valida que `field` exista y sea escalar
+ * (`isScalarField`, MISMO criterio que `search.ts`/`buildListQuery` exige para aceptar un `sort`
+ * de URL — así un `defaultSort` que sobrevive aquí SIEMPRE produce un `query.sort` real, nunca se
+ * descarta en silencio más adelante). Un `field` inválido invalida la clave ENTERA (`null`, con
+ * warning) en vez de degradar solo el campo: a diferencia de `statusLabels`, no hay "etiqueta
+ * inerte" posible aquí — un orden sin campo válido no tiene semántica.
+ */
+export function resolveDefaultSort(
+	fields: Field[],
+	manifestDefaultSort: { field: string; dir: 'asc' | 'desc' } | undefined,
+	collection: string,
+	warnings: ModelWarning[]
+): { field: string; dir: 'asc' | 'desc' } | null {
+	if (manifestDefaultSort === undefined) return null;
+
+	const field = fields.find((f) => f.name === manifestDefaultSort.field);
+	if (field && isScalarField(field)) return manifestDefaultSort;
+
+	warnings.push(defaultSortFieldInvalid(collection, manifestDefaultSort.field));
 	return null;
 }
 

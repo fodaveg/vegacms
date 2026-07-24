@@ -63,6 +63,7 @@ function makeTarget(opts: { titleField: string | null; fields: Field[] }): Resol
 		titleField: opts.titleField,
 		subtitleField: null,
 		orderField: null,
+		defaultSort: null,
 		statusField: null,
 		statusLabels: null,
 		previewUrl: null,
