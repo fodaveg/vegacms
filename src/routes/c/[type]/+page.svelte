@@ -390,7 +390,12 @@
 					class="vega-list-new-button"
 					onclick={() => ctx.nav.toNew(contentType.name)}
 				>
+					<Icon id="plus" size={14} />
 					{ctx.t('list.new.button', { label: contentType.labelSingular })}
+					<!-- Hint de atajo oculto VISUALMENTE (mockup `.btn.primary`, sin `<kbd>`): ya iba
+					     `aria-hidden` (decorativo, nunca anunciado a lectores de pantalla), así que
+					     ocultarlo con CSS no quita nada al atajo REAL — el listener de `N` sigue vivo
+					     en el `$effect` de más abajo, independiente de este `<kbd>`. -->
 					<kbd aria-hidden="true">N</kbd>
 				</button>
 			{/if}
@@ -615,14 +620,17 @@
 		color: var(--ink-2);
 	}
 
-	/* Botón primario "Nueva {label}" (R2, mockup `.btn.primary`): mismo tratamiento que el resto
-	   de botones primarios del rediseño — relleno `--accent`, texto `--accent-ink`. */
+	/* Botón primario "Nueva {label}" (mockup `.btn.primary`, "+ Nueva entrada"): relleno
+	   `--accent-fill` (gradiente en los temas ricos, acento sólido en los planos — MISMA firma
+	   que `.vega-editor-save-button` de `RecordForm.svelte`/`.vega-list-new-button` de siempre,
+	   nunca `--sheen`, que es solo trazo). Hover = anillo de `--accent-line` en vez de oscurecer
+	   el relleno (un `background` sólido de hover no tiene sentido sobre un gradiente). */
 	.vega-list-new-button {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.4rem;
-		border: 1px solid var(--accent);
-		background: var(--accent);
+		border: 1px solid transparent;
+		background: var(--accent-fill);
 		color: var(--accent-ink);
 		border-radius: var(--r);
 		padding: 0.45rem 1rem;
@@ -633,19 +641,16 @@
 	}
 
 	.vega-list-new-button:hover {
-		background: var(--accent-hover);
-		border-color: var(--accent-hover);
+		box-shadow: 0 0 0 1.5px var(--accent-line);
 	}
 
+	/* Hint de atajo "N": oculto VISUALMENTE (mockup sin `<kbd>`, ver el marcado) — el `<kbd>`
+	   sigue en el DOM (por si en el futuro alguna auditoría a11y quiere mostrarlo de nuevo) pero
+	   ya era `aria-hidden` (decorativo puro), así que `display: none` no le quita nada a ningún
+	   lector de pantalla; el atajo de teclado real vive en el `$effect` de arriba, ajeno a este
+	   elemento. */
 	.vega-list-new-button kbd {
-		font-family: var(--mono);
-		font-size: 0.6875rem;
-		border: 1px solid var(--line-strong);
-		border-bottom-width: 2px;
-		border-radius: 4px;
-		padding: 0.08rem 0.35rem;
-		color: var(--accent-ink);
-		opacity: 0.75;
+		display: none;
 	}
 
 	/* Tarjeta "cabina" C2 (R4, mockup `.grid`): tabla + gridfoot en un único marco redondeado —
