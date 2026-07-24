@@ -301,6 +301,11 @@ export const es = {
 	'list.filter.groupLabel': 'Filtrar por estado',
 	'list.new.button': 'Crear «{label}»',
 
+	// ————— Meta de cabecera + exportar (M2, mockup `.page-head .meta`/`.btn`) —————
+	'list.meta.records': 'registros',
+	'list.meta.filters': 'filtros',
+	'list.export.button': 'Exportar',
+
 	// ————— Paginación numerada (R4 del rediseño C2, mockup `.gridfoot`) —————
 	'list.pagination.perPage': '{count} por página',
 	'list.pagination.goToPage': 'Ir a la página {page}',

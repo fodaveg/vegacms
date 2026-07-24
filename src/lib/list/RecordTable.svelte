@@ -46,6 +46,20 @@
 	 *   `--active`; el mockup C2 (`tbody tr:hover td { background: var(--accent-soft) }`) usa el
 	 *   tinte de marca tenue, no el "elemento activo" genérico — más coherente con el resto de
 	 *   estados hover de acento del rediseño (chips, sidebar).
+	 * - **Barra `--sheen` de fila en hover/foco (M2, mockup `aquelarre-dark.html` `.is-active
+	 *   td:first-child::before`), decisión cerrada de David: (c) se dispara en `:hover` +
+	 *   `:focus-within`, GENÉRICA a toda colección — NO reintroduce el concepto de fila
+	 *   "seleccionada" que R3 dejó fuera de alcance (ver la nota de arriba), es puro feedback de
+	 *   fila-bajo-el-puntero/foco, CSS-only. Vive en `::after` de la primera `<td>` (nunca `::before`:
+	 *   ese pseudo-elemento ya lo usa el indicador de destino del arrastre, `.vega-row-drop-before`/
+	 *   `-after` más abajo, y un elemento solo puede tener uno de cada) — `pointer-events: none`
+	 *   para que la barra decorativa nunca intercepte el click/drag de la celda. Sin cambios de DOM
+	 *   ni de `data-status`/texto: solo clases CSS nuevas, respeta la barrera de tokens (§3).
+	 * - **Insignia de estado, píldora + punto (M2, mockup `.status`/`.status::before`)**: la
+	 *   insignia pasa de rectangular (R3) a totalmente redondeada (`border-radius: 999px`) con un
+	 *   punto de `currentColor` a la izquierda — mismo criterio que el mockup aprobado. Los
+	 *   atributos `data-status`/`data-status-kind` y el TEXTO de la insignia no cambian (los e2e de
+	 *   `posts` los localizan por ahí); solo cambia la forma vía CSS.
 	 * - **Fila seleccionada (`tr.sel` del mockup): FUERA DE ALCANCE (R3)**: el mockup pinta una
 	 *   fila con `box-shadow: inset 2px 0 0 var(--accent)` sobre `--active` para representar
 	 *   "seleccionada", pero Vega v1 no tiene ningún concepto de selección de fila en el listado
@@ -581,6 +595,27 @@
 		background: var(--accent-soft);
 	}
 
+	/* Barra `--sheen` de fila en hover/foco (M2, ver cabecera): `::after` de la primera celda (el
+	   `::before` ya lo usa el indicador de destino del arrastre, `.vega-row-drop-before`/`-after`
+	   más abajo) — decorativa, `pointer-events: none` para no interceptar el click/drag de la
+	   celda. */
+	.vega-record-table tbody tr:hover td:first-child,
+	.vega-record-table tbody tr:focus-within td:first-child {
+		position: relative;
+	}
+
+	.vega-record-table tbody tr:hover td:first-child::after,
+	.vega-record-table tbody tr:focus-within td:first-child::after {
+		content: '';
+		position: absolute;
+		left: 0;
+		top: 0;
+		bottom: 0;
+		width: 2.5px;
+		background: var(--sheen);
+		pointer-events: none;
+	}
+
 	.vega-record-table td {
 		max-width: 24rem;
 		padding: 0.4rem var(--cell-x);
@@ -665,19 +700,32 @@
 		color: var(--surface);
 	}
 
-	/* Insignia de estado mono-rectangular (R3, mockup `.tag`): antes píldora `999px`. Color por
-	   `data-status-kind` (`classifyStatusBadge`, `cell.ts`) — `data-status` (valor crudo) se
-	   conserva para no romper los selectores existentes de los tests. */
+	/* Insignia de estado, píldora + punto (M2, mockup `.status`/`.status::before`; antes
+	   rectangular de R3). Color por `data-status-kind` (`classifyStatusBadge`, `cell.ts`) —
+	   `data-status` (valor crudo) y el texto se conservan para no romper los selectores
+	   existentes de los tests. */
 	.vega-status-badge {
 		display: inline-flex;
 		align-items: center;
+		gap: 0.4rem;
 		font-family: var(--mono);
 		font-size: 0.72rem;
 		font-weight: 600;
-		border-radius: 5px;
-		padding: 0.18rem 0.55rem;
+		border-radius: 999px;
+		padding: 0.18rem 0.65rem;
 		border: 1px solid transparent;
 		white-space: nowrap;
+	}
+
+	/* Punto de color a la izquierda (mockup `.status::before`): `currentColor` hereda el color
+	   semántico ya fijado por `[data-status-kind]` más abajo, sin duplicar la paleta aquí. */
+	.vega-status-badge::before {
+		content: '';
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: currentColor;
+		flex-shrink: 0;
 	}
 
 	.vega-status-badge[data-status-kind='pub'] {

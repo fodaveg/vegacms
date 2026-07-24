@@ -56,6 +56,15 @@
 	 * propio marco. `countsRefreshToken` es la única pieza de estado nueva: un contador que
 	 * `confirmDelete` incrementa en su camino de éxito para que `FilterChips` sepa que sus
 	 * recuentos quedaron obsoletos (ver su declaración más abajo).
+	 *
+	 * **Lote M2 (deltas CSS-only + meta de cabecera, mockup `aquelarre-dark.html`)**: G7 añade el
+	 * resumen "N registros · M filtros" junto al `<h1>` (`activeFilterCount`, más abajo — cuenta
+	 * `q`/`status` activos, GENÉRICO a cualquier `ResolvedContentType`, nunca hardcodea nombres de
+	 * filtro de dominio); G4 añade "Exportar" junto a "Nueva {label}" — STUB VISUAL a propósito
+	 * (sin `onclick`, sin capacidad nueva del puerto): la exportación real es fuera de alcance de
+	 * esta tanda, este botón solo deja el hueco pintado 1:1 con el mockup. Visible para CUALQUIER
+	 * tipo (incluido `readonly`, a diferencia de "Nueva"): exportar datos ya existentes tiene
+	 * sentido aunque el tipo no admita crear/borrar.
 	 */
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -128,6 +137,12 @@
 	// filtros (empty-search) de la colección REALMENTE vacía (empty-collection). El orden NO
 	// cuenta como filtro para esta distinción (D-P4.6 nunca produce 0 resultados por sí solo).
 	const hasActiveFilters = $derived(viewState.q !== '' || viewState.status !== null);
+	// Recuento de filtros activos (M2, G7 del mockup, "N registros · M filtros"): mismos dos ejes
+	// que `hasActiveFilters` de arriba, pero como cardinal en vez de booleano — genérico (nunca
+	// cuenta un filtro de dominio concreto, solo `q`/`status` de `ViewState`).
+	const activeFilterCount = $derived(
+		(viewState.q !== '' ? 1 : 0) + (viewState.status !== null ? 1 : 0)
+	);
 	// items.length === 0 SIN datos en ninguna página (totalItems === 0): ni "fuera de rango" (eso
 	// exige totalItems > 0) ni "ready" — se bifurca en empty-search/empty-collection más abajo
 	// según `hasActiveFilters`.
@@ -342,6 +357,16 @@
 			{#if contentType.readonly}
 				<span class="vega-list-readonly-badge">{ctx.t('nav.readonlyBadge')}</span>
 			{/if}
+			<!-- Resumen "N registros · M filtros" (M2, G7 del mockup): solo con la página cargada,
+			     los números vienen del propio listado (nunca inventados durante loading/error). -->
+			{#if readyPage}
+				<span class="vega-list-meta">
+					<b>{readyPage.totalItems}</b>
+					{ctx.t('list.meta.records')} ·
+					<b>{activeFilterCount}</b>
+					{ctx.t('list.meta.filters')}
+				</span>
+			{/if}
 			<FilterChips
 				{contentType}
 				activeStatus={viewState.status}
@@ -349,6 +374,11 @@
 				reloadToken={countsRefreshToken}
 			/>
 			<span class="vega-list-header-spacer"></span>
+			<!-- "Exportar" (M2, G4 del mockup): STUB VISUAL, ver cabecera del fichero — sin `onclick`,
+			     visible también en tipos `readonly` (a diferencia de "Nueva"). -->
+			<button type="button" class="vega-list-export-button">
+				{ctx.t('list.export.button')}
+			</button>
 			{#if !contentType.readonly}
 				<button
 					type="button"
@@ -484,6 +514,39 @@
 
 	.vega-list-header-spacer {
 		flex: 1;
+	}
+
+	/* Resumen "N registros · M filtros" (M2, mockup `.page-head .meta`). */
+	.vega-list-meta {
+		color: var(--ink-2);
+		font-size: 0.9rem;
+		white-space: nowrap;
+	}
+
+	.vega-list-meta b {
+		font-family: var(--mono);
+		font-weight: 500;
+	}
+
+	/* "Exportar" (M2, mockup `.btn`, no primario — mismo tratamiento neutro que el resto de
+	   botones secundarios del rediseño). STUB visual, ver cabecera del fichero. */
+	.vega-list-export-button {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		border: 1px solid var(--line);
+		background: var(--btn);
+		color: var(--ink);
+		border-radius: var(--r);
+		padding: 0.45rem 1rem;
+		font-size: 0.8125rem;
+		font-weight: 550;
+		cursor: pointer;
+		white-space: nowrap;
+	}
+
+	.vega-list-export-button:hover {
+		border-color: var(--line-strong);
 	}
 
 	.vega-list-readonly-badge {

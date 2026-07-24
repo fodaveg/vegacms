@@ -286,6 +286,11 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.filter.groupLabel': 'Filter by status',
 	'list.new.button': 'Create «{label}»',
 
+	// ————— Header meta + export (M2, `.page-head .meta`/`.btn` mockup) —————
+	'list.meta.records': 'records',
+	'list.meta.filters': 'filters',
+	'list.export.button': 'Export',
+
 	// ————— Numbered pagination (redesign C2, Part R4, `.gridfoot` mockup) —————
 	'list.pagination.perPage': '{count} per page',
 	'list.pagination.goToPage': 'Go to page {page}',
