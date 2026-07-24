@@ -143,6 +143,12 @@ const DAY_MS = 24 * HOUR_MS;
  * (segundo/minuto/hora/día) se elige por la magnitud de la diferencia, redondeando al entero más
  * cercano — nunca trunca hacia cero (evitaría que 89 minutos se lea "hace 1 hora" en vez de "hace
  * 2 horas"). Pura: `now` es un parámetro explícito, nunca `Date.now()` leído aquí dentro.
+ *
+ * **La unidad se decide DESPUÉS de redondear** (fix de code-review): si se eligiera por la
+ * magnitud CRUDA y se redondeara luego, el ~1% final de cada ventana daría texto raro — 59.6 s
+ * elegiría `second` pero `Math.round` lo sube a 60 → "hace 60 segundos" en vez de "hace 1 minuto"
+ * (igual con "60 minutos" y "24 horas"). Redondeando en cada unidad de menor a mayor y saltando a
+ * la siguiente cuando el valor llega a su tope (60 s, 60 min, 24 h), el borde promociona limpio.
  */
 function formatDateCell(ms: number, locale: Locale, now: number): string {
 	const diffMs = ms - now;
@@ -155,18 +161,17 @@ function formatDateCell(ms: number, locale: Locale, now: number): string {
 	}
 
 	const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
-	let value: number;
-	let unit: Intl.RelativeTimeFormatUnit;
-	if (absDiffMs < MINUTE_MS) {
-		value = Math.round(diffMs / 1000);
-		unit = 'second';
-	} else if (absDiffMs < HOUR_MS) {
+	let value = Math.round(diffMs / 1000);
+	let unit: Intl.RelativeTimeFormatUnit = 'second';
+	if (Math.abs(value) >= 60) {
 		value = Math.round(diffMs / MINUTE_MS);
 		unit = 'minute';
-	} else if (absDiffMs < DAY_MS) {
+	}
+	if (unit === 'minute' && Math.abs(value) >= 60) {
 		value = Math.round(diffMs / HOUR_MS);
 		unit = 'hour';
-	} else {
+	}
+	if (unit === 'hour' && Math.abs(value) >= 24) {
 		value = Math.round(diffMs / DAY_MS);
 		unit = 'day';
 	}

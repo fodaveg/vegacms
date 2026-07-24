@@ -169,6 +169,32 @@ describe('describeCell — date, relativo (M5, mockup "hace 2 h"/"ayer")', () =>
 		});
 	});
 
+	// Bordes de promoción de unidad (fix de code-review): el redondeo NO debe dejar "hace 60
+	// segundos"/"hace 60 minutos"/"hace 24 horas" — la unidad se elige DESPUÉS de redondear.
+	test('borde 59.6 s → promociona a "hace 1 minuto" (no "60 segundos")', () => {
+		const iso = isoBefore(59_600);
+		expect(describeCell(f, iso, 'es', NOW)).toEqual({
+			kind: 'date',
+			text: new Intl.RelativeTimeFormat('es', { numeric: 'auto' }).format(-1, 'minute')
+		});
+	});
+
+	test('borde 59 min 59.6 s → promociona a "hace 1 hora" (no "60 minutos")', () => {
+		const iso = isoBefore(59 * 60 * 1000 + 59_600);
+		expect(describeCell(f, iso, 'es', NOW)).toEqual({
+			kind: 'date',
+			text: new Intl.RelativeTimeFormat('es', { numeric: 'auto' }).format(-1, 'hour')
+		});
+	});
+
+	test('borde 23 h 59 min 59.9 s → promociona a "ayer" (no "24 horas")', () => {
+		const iso = isoBefore(23 * 60 * 60 * 1000 + 59 * 60 * 1000 + 59_900);
+		expect(describeCell(f, iso, 'es', NOW)).toEqual({
+			kind: 'date',
+			text: new Intl.RelativeTimeFormat('es', { numeric: 'auto' }).format(-1, 'day')
+		});
+	});
+
 	test('corte a formato absoluto (>= 7 días): mismo formatter de siempre', () => {
 		const ms = NOW - 8 * 24 * 60 * 60 * 1000;
 		const iso = new Date(ms).toISOString();
