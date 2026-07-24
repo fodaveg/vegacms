@@ -116,6 +116,20 @@ export function subtitleFieldInvalid(collection: string, requestedField: string)
 	};
 }
 
+/** `status-labels-unknown-value` — una clave de `statusLabels` no corresponde a ninguna opción
+ *  del `statusField` resuelto de `collection`. NO se descarta esa entrada (la clave puede
+ *  corresponder a un valor legítimo que el `select` admite pero que la convención de publicación
+ *  no exige, o a un valor que llegará más adelante): solo se avisa, mismo criterio "informativo,
+ *  no destructivo" que un manifiesto tolerante. */
+export function statusLabelUnknownValue(collection: string, value: string): ModelWarning {
+	return {
+		code: 'status-labels-unknown-value',
+		message: `statusLabels de "${collection}" declara una etiqueta para "${value}", que no es una opción del campo de publicación; se conserva la etiqueta por si acaso pero revisa el valor.`,
+		collection,
+		path: `${collectionPath(collection)}/statusLabels/${value}`
+	};
+}
+
 /** `preview-url-invalid` — placeholder desconocido o no escalar en `previewUrl`. */
 export function previewUrlInvalid(collection: string): ModelWarning {
 	return {

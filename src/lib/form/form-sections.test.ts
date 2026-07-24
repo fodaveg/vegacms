@@ -59,6 +59,7 @@ function makeType(
 		subtitleField: null,
 		orderField: null,
 		statusField: null,
+		statusLabels: null,
 		previewUrl: null,
 		fields,
 		listFields: [],

@@ -51,6 +51,7 @@ const COLLECTION_ALLOWED_KEYS = [
 	'titleField',
 	'subtitleField',
 	'statusField',
+	'statusLabels',
 	'orderField',
 	'previewUrl',
 	'listFields',
@@ -489,6 +490,9 @@ function validateCollection(
 	if ('statusField' in value) {
 		validateStatusField(value.statusField, `${base}/statusField`, errors, name);
 	}
+	if ('statusLabels' in value) {
+		validateStatusLabels(name, value.statusLabels, errors);
+	}
 	if ('orderField' in value) {
 		checkString(
 			value.orderField,
@@ -588,6 +592,32 @@ function validateStatusField(
 	if (value === false) return;
 	if (typeof value === 'string' && value.length >= 1) return;
 	fail(errors, path, `statusField de "${name}" debe ser un texto no vacío o el valor "false".`);
+}
+
+/** `statusLabels` (M4, §4.11): objeto de valor-crudo → etiqueta legible (texto de 1 a 60
+ *  caracteres). Igual que `where` (mergedViews), solo se valida la FORMA a nivel de schema; que
+ *  la clave corresponda a una opción real del `statusField` es un problema de CONTENIDO
+ *  (`resolveContentModel`, `status-labels-unknown-value`), no de sintaxis. */
+function validateStatusLabels(
+	collection: string,
+	value: JsonValue,
+	errors: ManifestValidationErrorEntry[]
+): void {
+	const base = `/collections/${collection}/statusLabels`;
+	if (!isPlainObject(value)) {
+		fail(errors, base, `statusLabels de "${collection}" debe ser un objeto.`);
+		return;
+	}
+	for (const [key, labelValue] of Object.entries(value)) {
+		checkString(
+			labelValue,
+			`${base}/${key}`,
+			1,
+			60,
+			errors,
+			`statusLabels["${key}"] de "${collection}"`
+		);
+	}
 }
 
 function validatePreviewUrl(

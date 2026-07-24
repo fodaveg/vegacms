@@ -587,6 +587,76 @@ describe('7. Matriz de degradación (§5)', () => {
 		expect(model.warnings).toEqual([]);
 	});
 
+	test('statusLabels con claves de statusField → se resuelve tal cual, sin warning', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { post: { statusLabels: { draft: 'Borrador', published: 'Publicado' } } }
+			}
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.statusLabels).toEqual({ draft: 'Borrador', published: 'Publicado' });
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('statusLabels con una clave que no es opción del statusField → status-labels-unknown-value, la etiqueta se conserva', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { post: { statusLabels: { draft: 'Borrador', 'en-revision': 'En revisión' } } }
+			}
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.statusLabels).toEqual({ draft: 'Borrador', 'en-revision': 'En revisión' });
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'status-labels-unknown-value', collection: 'post' })
+		]);
+	});
+
+	test('statusLabels sin statusField resoluble (desactivado con false) → se conserva sin validar contenido', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { post: { statusField: false, statusLabels: { draft: 'Borrador' } } }
+			}
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.statusField).toBeNull();
+		expect(post.statusLabels).toEqual({ draft: 'Borrador' });
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('statusLabels con un valor no-string → manifest-invalid-key + null (todo o nada)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { post: { statusLabels: { draft: 42 } } }
+			}
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.statusLabels).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'manifest-invalid-key',
+				path: '/collections/post/statusLabels'
+			})
+		]);
+	});
+
+	test('sin statusLabels en el manifiesto → null, SIN warning (opt-in)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, collections: { post: {} } }
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.statusLabels).toBeNull();
+		expect(model.warnings).toEqual([]);
+	});
+
 	test('previewUrl con placeholder inválido → previewUrl null + preview-url-invalid', () => {
 		const model = resolveContentModel({
 			types: kitchenSinkTypes,
@@ -710,6 +780,8 @@ describe('7. Matriz de degradación (§5)', () => {
 			{ collections: { post: { statusField: 123 } } },
 			{ collections: { post: { orderField: 123 } } },
 			{ collections: { post: { subtitleField: 123 } } },
+			{ collections: { post: { statusLabels: 'nope' } } },
+			{ collections: { post: { statusLabels: { draft: 123 } } } },
 			{ collections: { post: { previewUrl: 'ftp://mal' } } },
 			{ collections: { post: { icon: 123 } } },
 			{ collections: { post: { singleton: 'yes' } } },

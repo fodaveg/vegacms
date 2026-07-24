@@ -60,6 +60,13 @@
 	 *   punto de `currentColor` a la izquierda — mismo criterio que el mockup aprobado. Los
 	 *   atributos `data-status`/`data-status-kind` y el TEXTO de la insignia no cambian (los e2e de
 	 *   `posts` los localizan por ahí); solo cambia la forma vía CSS.
+	 * - **Estados localizados (M4, config-driven, `ResolvedContentType.statusLabels`, mockup
+	 *   `.status` con "Publicado"/"Borrador"/"Programado")**: capacidad OPT-IN por manifiesto (P2),
+	 *   mismo criterio que `subtitleField` — un tipo que no declara `statusLabels` sigue pintando el
+	 *   valor CRUDO (`posts`, entre otros, no lo declara: su DOM no cambia). Solo cambia el TEXTO de
+	 *   la insignia (`contentType.statusLabels?.[descriptor.text] ?? descriptor.text`); el atributo
+	 *   `data-status` (valor crudo, usado por los e2e) y el COLOR (`data-status-kind`, decidido por
+	 *   `classifyStatusBadge` sobre el valor crudo, nunca sobre la etiqueta) no cambian.
 	 * - **Subtítulo bajo el título (M3, config-driven, `ResolvedContentType.subtitleField`,
 	 *   mockup `.cell-title .slug`)**: capacidad OPT-IN por manifiesto (P2) — un tipo que no
 	 *   declara `subtitleField` no cambia su render (`posts`, entre otros, no lo declara). Vive en
@@ -388,7 +395,7 @@
 										data-status={descriptor.text}
 										data-status-kind={classifyStatusBadge(descriptor.text)}
 									>
-										{descriptor.text}
+										{contentType.statusLabels?.[descriptor.text] ?? descriptor.text}
 									</span>
 								{:else}
 									{@render cellContent(descriptor, record, column)}

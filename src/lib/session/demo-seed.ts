@@ -132,6 +132,16 @@
  * propósito (`''`, nunca `undefined`): el mismo caso límite que `describeCell` ya resuelve a
  * `{kind:'empty'}` para cualquier campo — ejercita que la línea de subtítulo simplemente NO se
  * pinta cuando el valor está vacío, sin inventar un placeholder.
+ *
+ * **Fase 2 del rediseño (M4)**: `DEMO_MANIFEST.collections.blog.statusLabels` localiza los tres
+ * valores crudos de `status` (`draft`/`published`/`scheduled`) a las etiquetas del mockup
+ * aprobado (`Borrador`/`Publicado`/`Programado`) — capacidad opt-in de P2
+ * (`ResolvedContentType.statusLabels`, `RecordTable.svelte`). `posts` NO la declara: su insignia
+ * sigue mostrando el valor crudo. Las fechas `updatedAt` de arriba, además de servir a M3, son
+ * ahora el fixture de M5 (fechas relativas, `cell.ts`): la más reciente (`blog_1`, "hace horas"
+ * relativo a esta sesión) cae en el formato `Intl.RelativeTimeFormat`, las más antiguas (más de
+ * una semana) en el absoluto de siempre — sin necesidad de tocar los registros, el umbral es
+ * puramente temporal.
  */
 import type { ContentType, JsonValue } from '$lib/backend/types';
 import { VEGA_COLLECTION } from '$lib/backend/collections';
@@ -705,7 +715,16 @@ const DEMO_MANIFEST: JsonValue = {
 			// secundaria bajo el título (mockup `.cell-title .slug`), FUERA de `listFields` — no es
 			// una columna. `posts` NO declara esta clave: su render no cambia (opt-in, ley
 			// genérica).
-			subtitleField: 'slug'
+			subtitleField: 'slug',
+			// Añadido en M4 (P2, `ResolvedContentType.statusLabels`, mockup `.status`): localiza
+			// los tres valores crudos del `select` de `blog.status` (ver `BLOG_CONTENT_TYPE`) a las
+			// etiquetas del mockup aprobado. `posts` NO declara esta clave: su insignia sigue
+			// pintando el valor crudo (`draft`/`published`), opt-in igual que `subtitleField`.
+			statusLabels: {
+				draft: 'Borrador',
+				published: 'Publicado',
+				scheduled: 'Programado'
+			}
 		},
 		// Sin `group` (⇒ grupo anónimo, siempre primero, §4.9) ni `icon` (⇒ afordancia de
 		// singleton sin icono propio, P2 §4.8).

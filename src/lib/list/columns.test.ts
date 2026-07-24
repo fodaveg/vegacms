@@ -54,6 +54,7 @@ function contentType(overrides: Partial<ResolvedContentType> = {}): ResolvedCont
 		subtitleField: null,
 		orderField: null,
 		statusField: null,
+		statusLabels: null,
 		previewUrl: null,
 		fields: [],
 		listFields: [],

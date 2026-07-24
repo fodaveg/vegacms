@@ -61,6 +61,7 @@ function contentType(
 		subtitleField: null,
 		orderField: null,
 		statusField: null,
+		statusLabels: null,
 		previewUrl: null,
 		fields: [],
 		listFields: [],

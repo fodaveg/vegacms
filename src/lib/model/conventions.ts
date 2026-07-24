@@ -14,6 +14,7 @@ import {
 	manifestInvalidKey,
 	orderFieldInvalid,
 	statusFieldInvalid,
+	statusLabelUnknownValue,
 	subtitleFieldInvalid,
 	titleFieldInvalid,
 	widgetIncompatible
@@ -116,6 +117,41 @@ export function resolveStatusField(
 	if (isValidStatusField(statusField)) return 'status';
 
 	return null;
+}
+
+/**
+ * Resuelve `statusLabels` (etiquetas legibles por valor crudo de `statusField`, mockup
+ * `aquelarre-dark.html` `.status`): SOLO manifiesto, mismo criterio opt-in que `subtitleField` —
+ * sin la clave, `null` y sin warning (una colección que no la declara no cambia su render).
+ * `manifestStatusLabels` llega ya validado en FORMA por el llamador (objeto de string a string,
+ * §5); aquí solo se comprueba CONTENIDO: cada clave debería ser una de las `options` del
+ * `statusField` ya resuelto (§4.5) — si `statusField` es `null` (sin convención de publicación en
+ * este tipo) o el campo no es un `select`, no hay nada contra lo que comparar y se deja pasar sin
+ * avisar (las etiquetas quedan declaradas pero sin efecto visible, igual que cualquier config
+ * huérfana de una capacidad desactivada). Una clave desconocida NO invalida el mapa entero (a
+ * diferencia de `resolveSubtitleField`): es a lo sumo un dato inerte, nunca rompe el listado.
+ */
+export function resolveStatusLabels(
+	fields: Field[],
+	manifestStatusLabels: Record<string, string> | undefined,
+	statusField: string | null,
+	collection: string,
+	warnings: ModelWarning[]
+): Record<string, string> | null {
+	if (manifestStatusLabels === undefined) return null;
+
+	const field = statusField !== null ? fields.find((f) => f.name === statusField) : undefined;
+	const options = field && field.type === 'select' ? field.options : null;
+
+	if (options) {
+		for (const key of Object.keys(manifestStatusLabels).sort((a, b) => a.localeCompare(b))) {
+			if (!options.includes(key)) {
+				warnings.push(statusLabelUnknownValue(collection, key));
+			}
+		}
+	}
+
+	return manifestStatusLabels;
 }
 
 // ————— Orden manual (reorder) —————

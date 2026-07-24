@@ -84,6 +84,11 @@
 						"description": "Nombre del campo de publicación, o false para DESACTIVAR la convención aunque exista un campo 'status'.",
 						"oneOf": [{ "type": "string", "minLength": 1 }, { "const": false }]
 					},
+					"statusLabels": {
+						"description": "Etiquetas legibles por valor CRUDO del campo de publicación (p. ej. { draft: 'Borrador', published: 'Publicado' }). Sin esta clave, la insignia de estado del listado pinta el valor crudo tal cual.",
+						"type": "object",
+						"additionalProperties": { "type": "string", "minLength": 1, "maxLength": 60 }
+					},
 					"previewUrl": {
 						"description": "Plantilla absoluta http(s) con placeholders {campo} o {id}. Ej.: https://misitio.com/blog/{slug}",
 						"type": "string",

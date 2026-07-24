@@ -47,6 +47,7 @@ import {
 	resolveMergedSourceOrderField,
 	resolveOrderField,
 	resolveStatusField,
+	resolveStatusLabels,
 	resolveSubtitleField,
 	resolveTitleField,
 	resolveWidget
@@ -201,6 +202,27 @@ function readStatusFieldRaw(raw: JsonValue): string | false | undefined {
 	if (raw === false) return false;
 	if (typeof raw === 'string' && raw.length > 0) return raw;
 	return undefined;
+}
+
+/**
+ * Lee `collections.<c>.statusLabels` (M4, §4.11): objeto de valor-crudo → etiqueta legible, cada
+ * etiqueta un texto de 1 a 60 caracteres (mismo rango que `label`/`labelSingular`). Cualquier
+ * clave/valor que no case invalida el objeto ENTERO (mismo criterio "todo o nada" que
+ * `readFieldGroups`) — el llamador emite entonces UN `manifest-invalid-key` por toda la clave. La
+ * comprobación de CONTENIDO (¿la clave es una opción real del statusField?) es de
+ * `resolveStatusLabels`, no de aquí.
+ */
+function readStatusLabels(raw: JsonValue): Record<string, string> | undefined {
+	const obj = asJsonObject(raw);
+	if (!obj) return undefined;
+	const result: Record<string, string> = {};
+	for (const [key, value] of Object.entries(obj)) {
+		if (key.length < 1 || typeof value !== 'string' || value.length < 1 || value.length > 60) {
+			return undefined;
+		}
+		result[key] = value;
+	}
+	return result;
 }
 
 function readPreviewUrlTemplate(raw: JsonValue): string | undefined {
@@ -584,6 +606,22 @@ function resolveContentType(
 	);
 	const statusField = resolveStatusField(type.fields, statusFieldRaw, type.name, warnings);
 
+	const statusLabelsRaw = readKey(
+		collectionRaw,
+		'statusLabels',
+		readStatusLabels,
+		`${base}/statusLabels`,
+		`statusLabels de "${type.name}" no es un objeto de valor→etiqueta (texto de 1 a 60 caracteres); se ignora.`,
+		warnings
+	);
+	const statusLabels = resolveStatusLabels(
+		type.fields,
+		statusLabelsRaw,
+		statusField,
+		type.name,
+		warnings
+	);
+
 	// ————— previewUrl (§4.7) —————
 	const previewUrlTemplate = readKey(
 		collectionRaw,
@@ -695,6 +733,7 @@ function resolveContentType(
 		subtitleField,
 		orderField,
 		statusField,
+		statusLabels,
 		previewUrl,
 		fields: orderedFields,
 		listFields,

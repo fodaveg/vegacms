@@ -96,6 +96,14 @@ export interface ResolvedContentType {
 	subtitleField: string | null;
 	/** (D+M) campo de publicación por convención, o null ⇒ tipo sin drafts. §4.5. */
 	statusField: string | null;
+	/** (M) etiquetas legibles por VALOR CRUDO de `statusField` (p. ej. `{ draft: 'Borrador',
+	 *  published: 'Publicado' }`), o null ⇒ la insignia de estado (`RecordTable.svelte`) pinta el
+	 *  valor crudo tal cual (comportamiento histórico, GENÉRICO por defecto). SOLO manifiesto, sin
+	 *  autodetección — mismo criterio opt-in que `subtitleField`. El COLOR de la insignia lo sigue
+	 *  decidiendo `classifyStatusBadge` sobre el valor crudo (`cell.ts`), nunca la etiqueta: dos
+	 *  claves distintas del manifiesto pueden compartir el mismo valor crudo de facto
+	 *  (`draft`/`published`) sin que localizarlas cambie el color. */
+	statusLabels: Record<string, string> | null;
 	/** (M) campo numérico de orden manual, o null. Sin autodetección por convención (a diferencia
 	 *  de `statusField`): solo existe si el manifiesto lo declara explícitamente y el campo es
 	 *  `number`. Habilita el reorder por arrastre del listado y el orden por defecto. */
@@ -270,6 +278,7 @@ export type WarningCode =
 	| 'status-field-invalid' // statusField que no cumple la convención → null
 	| 'order-field-invalid' // orderField inexistente o no numérico → null
 	| 'subtitle-field-invalid' // subtitleField inexistente o no escalar → null
+	| 'status-labels-unknown-value' // clave de statusLabels que no es opción del statusField → se conserva igualmente, solo aviso
 	| 'preview-url-invalid' // placeholder desconocido o no escalar → null
 	| 'list-field-unknown' // listFields con campo inexistente → se omite
 	| 'icon-unknown' // icono fuera del set → null

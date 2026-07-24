@@ -132,6 +132,22 @@ describe('1. Casos puntuales contra el schema §3', () => {
 		expect(result).toEqual({ ok: true });
 	});
 
+	test('collections.<c>.statusLabels con valores string 1-60 → válido', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: { post: { statusLabels: { draft: 'Borrador', published: 'Publicado' } } }
+		});
+		expect(result).toEqual({ ok: true });
+	});
+
+	test('collections.<c>.statusLabels con un valor no-string → inválido', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: { post: { statusLabels: { draft: 1 } } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
 	test('collections.<c>.previewUrl sin http(s) → inválido (pattern)', () => {
 		const result = validateManifestStrict({
 			schemaVersion: 1,
@@ -355,6 +371,17 @@ const VALID_ZERO_WARNING_MANIFESTS: JsonValue[] = [
 		collections: { post: { statusField: false, previewUrl: 'https://x.com/{id}' } }
 	},
 	{
+		// M4: statusLabels con claves que SÍ son opciones reales de `post.status`
+		// (['draft','published','archived'], ver fixture.ts) → cero warnings de contenido.
+		schemaVersion: 1,
+		collections: {
+			post: {
+				statusField: 'status',
+				statusLabels: { draft: 'Borrador', published: 'Publicado', archived: 'Archivado' }
+			}
+		}
+	},
+	{
 		// §4.9b: forma objeto de fieldGroups (rejilla de columnas), mezclada con la forma string
 		// de siempre. `columns` no referencia campos reales (no puede haber orphan aquí), así que
 		// esto es zero-warning como cualquier otro fieldGroups válido.
@@ -463,6 +490,9 @@ const INVALID_MANIFESTS: JsonValue[] = [
 	{ schemaVersion: 1, collections: { post: { order: 1.5 } } },
 	{ schemaVersion: 1, collections: { post: { hidden: 'yes' } } },
 	{ schemaVersion: 1, collections: { post: { statusField: 0 } } },
+	{ schemaVersion: 1, collections: { post: { statusLabels: 'not-an-object' } } },
+	{ schemaVersion: 1, collections: { post: { statusLabels: { draft: 1 } } } },
+	{ schemaVersion: 1, collections: { post: { statusLabels: { draft: 'x'.repeat(61) } } } },
 	{ schemaVersion: 1, collections: { post: { previewUrl: 'not-a-url' } } },
 	{ schemaVersion: 1, collections: { post: { listFields: Array.from({ length: 9 }, () => 'x') } } },
 	{ schemaVersion: 1, collections: { post: { listFields: ['a', 'a'] } } },
