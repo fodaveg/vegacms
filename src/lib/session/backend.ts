@@ -95,6 +95,12 @@
  * de verdad ignora una segunda petición mientras la primera sigue en vuelo, y (b) que el trap de
  * foco del diálogo (fix de code-review) sigue intacto —`Tab` cicla entre sus dos botones— durante
  * ese mismo tramo. `0`/ausente = sin retraso (comportamiento normal).
+ *
+ * Y `window.__VEGA_SEED_SHOWCASE__`/`localStorage['vega.showcase.v1']` (lote "match 1:1 con el
+ * mockup", Ola 2): mientras cualquiera de los dos esté activo, el adaptador `memory` arranca con
+ * `SHOWCASE_SEED` (`demo-seed.ts`) en vez de `DEMO_SEED` — ver `useShowcaseSeed()` más abajo para
+ * el porqué de los DOS mecanismos (uno para Playwright, otro para QA a mano que sobrevive a un
+ * F5).
  */
 
 import type { AuthChangeReason, BackendPort, Session } from '$lib/backend';
@@ -109,7 +115,7 @@ import {
 } from './backend-config';
 import { applyProjectDiscovery, fetchProjectDiscovery } from './project-discovery';
 import { readAuthCollectionOverride, readBackendOverride } from './backend-override';
-import { DEMO_CREDENTIALS, DEMO_SEED, DEMO_SEED_WITH_MEDIA } from './demo-seed';
+import { DEMO_CREDENTIALS, DEMO_SEED, DEMO_SEED_WITH_MEDIA, SHOWCASE_SEED } from './demo-seed';
 
 declare global {
 	interface Window {
@@ -155,6 +161,35 @@ declare global {
 		 *  = comportamiento previo (capabilities de superuser, todas `true`/`false` como siempre).
 		 *  Exclusivo del adaptador `memory`/e2e: en modo `pocketbase` esta flag nunca se lee. */
 		__VEGA_FORCE_EDITOR_CAPABILITIES__?: boolean;
+		/** Flag runtime SOLO para QA manual/e2e (lote "match 1:1 con el mockup", Ola 2): `true` ⇒ el
+		 *  adaptador `memory` arranca con `SHOWCASE_SEED` (`demo-seed.ts`) en vez de `DEMO_SEED` —
+		 *  la sidebar EXACTA del mockup aprobado (`aquelarre-dark.html`: Entradas/Páginas/Proyectos/
+		 *  Autores/Etiquetas/Medios). Mismo mecanismo que `__VEGA_SEED_MEDIA__`, pero pensado además
+		 *  para QA A MANO desde devtools (`useShowcaseSeed()` honra TAMBIÉN la clave persistente de
+		 *  `localStorage` de más abajo, que sí sobrevive a una recarga — este flag de `window`, como
+		 *  el resto de la familia `__VEGA_*__`, se pierde en cuanto se recarga la página). Tiene
+		 *  prioridad sobre `__VEGA_SEED_MEDIA__` (el showcase ya incluye su propia `vega_media`).
+		 *  Ausente/`false` en ambos sitios = comportamiento previo (`DEMO_SEED`/`DEMO_SEED_WITH_MEDIA`). */
+		__VEGA_SEED_SHOWCASE__?: boolean;
+	}
+}
+
+/** Clave de `localStorage` del flag de showcase (ver `__VEGA_SEED_SHOWCASE__` arriba): a
+ *  diferencia de los ganchos `__VEGA_*__` (pensados para Playwright, que los fija con
+ *  `addInitScript()` en cada carga), esta persiste entre recargas — para QA a mano basta con
+ *  `localStorage.setItem('vega.showcase.v1', 'true')` en devtools UNA vez y recargar. */
+const SHOWCASE_STORAGE_KEY = 'vega.showcase.v1';
+
+/** Ver `__VEGA_SEED_SHOWCASE__`/`SHOWCASE_STORAGE_KEY` arriba: `true` si CUALQUIERA de los dos
+ *  mecanismos está activo. Lectura de `localStorage` best-effort (mismo criterio defensivo que
+ *  `readDemoMarker`/`writeDemoMarker` más abajo: modo privado agresivo/cuota ⇒ `false`, nunca
+ *  lanza). */
+function useShowcaseSeed(): boolean {
+	if (window.__VEGA_SEED_SHOWCASE__) return true;
+	try {
+		return localStorage.getItem(SHOWCASE_STORAGE_KEY) === 'true';
+	} catch {
+		return false;
 	}
 }
 
@@ -185,7 +220,11 @@ async function createInstance(): Promise<BackendPort> {
 		throw new Error('getBackend() no puede llamarse durante SSR (P3-L1 / landmine de P1).');
 	}
 	if (useMemoryAdapter()) {
-		const seed = window.__VEGA_SEED_MEDIA__ ? DEMO_SEED_WITH_MEDIA : DEMO_SEED;
+		const seed = useShowcaseSeed()
+			? SHOWCASE_SEED
+			: window.__VEGA_SEED_MEDIA__
+				? DEMO_SEED_WITH_MEDIA
+				: DEMO_SEED;
 		const port = wrapMemoryPortForDemo(createMemoryBackend(seed), DEMO_CREDENTIALS);
 		return window.__VEGA_FORCE_EDITOR_CAPABILITIES__ ? withEditorCapabilities(port) : port;
 	}

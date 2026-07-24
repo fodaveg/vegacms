@@ -129,9 +129,15 @@
 		<Icon id="menu" size={18} />
 	</button>
 
+	<!-- Wordmark (mockup `aquelarre-dark.html`, `.brand`): «Vega» (marca fija) + el nombre del
+	     sitio (M) en tono TENUE — antes el bloque entero pintaba `site.name` a solas con el mismo
+	     peso (así "Vega Demo" YA hacía de wordmark completo en la demo). `title` se mantiene sobre
+	     TODO el contenedor con `site.name` a solas (nunca "Vega " + site.name): es lo que
+	     `topbar.spec.ts`/`settings.spec.ts` comprueban con igualdad exacta. -->
 	<span class="vega-topbar-site" title={ctx.model.site.name}>
 		<VegaLogo size={20} />
-		{ctx.model.site.name}
+		<span class="vega-topbar-brand">Vega</span>
+		<span class="vega-topbar-sitename">{ctx.model.site.name}</span>
 	</span>
 
 	<GlobalSearch />
@@ -233,19 +239,31 @@
 	.vega-topbar-site {
 		display: flex;
 		align-items: center;
-		gap: 0.6rem;
+		gap: 0.55rem;
 		min-width: 13rem;
 		flex-shrink: 0;
-		/* --mono (mockups): el nombre del sitio es un valor canónico del manifiesto (como un slug
-		   o un id), no prosa — mismo criterio tipográfico que `--mono` aplica al resto de valores
-		   canónicos de la app (ids, slugs, fechas ISO). */
-		font-family: var(--mono);
-		font-weight: 650;
-		letter-spacing: -0.02em;
-		color: var(--ink-hi);
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+	}
+
+	/* «Vega»: la marca fija, sans (no --mono — es prosa, no un valor canónico). */
+	.vega-topbar-brand {
+		font-weight: 650;
+		letter-spacing: -0.02em;
+		color: var(--ink-hi);
+	}
+
+	/* El nombre del sitio (M, mockup `.brand .site`): valor canónico del manifiesto (como un slug
+	   o un id) → --mono, mismo criterio que el resto de valores canónicos de la app (ids, slugs,
+	   fechas ISO) — pero TENUE (--ink-2), para no competir con la marca fija de al lado. */
+	.vega-topbar-sitename {
+		font-family: var(--mono);
+		font-weight: 450;
+		font-size: 0.85em;
+		color: var(--ink-2);
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	/* Fix code-review (lote-1, 🟡): 769-900px el buscador quedaba con un área de escritura

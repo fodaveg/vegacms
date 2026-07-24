@@ -142,6 +142,17 @@
  * relativo a esta sesión) cae en el formato `Intl.RelativeTimeFormat`, las más antiguas (más de
  * una semana) en el absoluto de siempre — sin necesidad de tocar los registros, el umbral es
  * puramente temporal.
+ *
+ * **Añadido en el lote "match 1:1 con el mockup" (Ola 2, decisión de David B-B)**: `SHOWCASE_SEED`
+ * (al final del módulo) es una semilla NUEVA e INDEPENDIENTE de `DEMO_SEED` — mismo criterio que
+ * `DEMO_SEED_WITH_MEDIA` (una copia detrás de un flag, nunca una mutación de la semilla de
+ * e2e) — cuya sidebar reproduce 1:1 la del mockup aprobado (`aquelarre-dark.html`): grupos
+ * "Contenido" (Entradas/Páginas/Proyectos) y "Estructura" (Autores/Etiquetas), más "Medios"
+ * (reutiliza `VEGA_MEDIA_CONTENT_TYPE`/`MEDIA_SEED_RECORDS` de más abajo). `DEMO_SEED` queda
+ * INTACTO: `list/form/merged-view.spec` navegan por URL a `metrics`/`works`/`tracks`, que no caben
+ * en una sidebar "solo lo del mockup" sin volverse `hidden` y romper esos specs. Activación vía
+ * `session/backend.ts` (`__VEGA_SEED_SHOWCASE__`/`localStorage['vega.showcase.v1']`, ver su
+ * cabecera) — nunca se activa por defecto ni en e2e.
  */
 import type { ContentType, JsonValue } from '$lib/backend/types';
 import { VEGA_COLLECTION } from '$lib/backend/collections';
@@ -635,6 +646,14 @@ const SITE_INFO_CONTENT_TYPE: ContentType = {
 
 // ————— Manifiesto (§6 del contrato P2), leído por `loadContentModel` desde el registro `vega` —————
 
+// `defaultSort` (Ola 2, capacidad nueva de `ResolvedContentType`): NINGUNA colección de aquí lo
+// declara — mismo criterio opt-in que `orderField`/`subtitleField` (ausencia de la clave = `null`,
+// nunca se escribe un `defaultSort: null` explícito: a diferencia de `statusLabels`, el schema del
+// manifiesto (`manifest-schema.json`) exige que la clave, SI está presente, sea un objeto `{
+// field, dir }` — un `null` literal fallaría `validateDefaultSort`/produciría
+// `manifest-invalid-key`, así que "sin orden por defecto" se expresa omitiendo la clave, igual que
+// el resto de este manifiesto ya hacía). Solo `SHOWCASE_SEED.entradas` (al final del módulo) la
+// declara.
 const DEMO_MANIFEST: JsonValue = {
 	schemaVersion: 1,
 	site: { name: 'Vega Demo', locale: 'es' },
@@ -1086,6 +1105,422 @@ export const DEMO_SEED_WITH_MEDIA: MemorySeed = {
 	...DEMO_SEED,
 	contentTypes: [...DEMO_SEED.contentTypes, VEGA_MEDIA_CONTENT_TYPE],
 	records: { ...DEMO_SEED.records, vega_media: MEDIA_SEED_RECORDS },
+	files: {
+		'seed_media_photo1.png': {
+			name: 'seed_media_photo1.png',
+			mime: 'image/png',
+			dataUri: `data:image/png;base64,${TINY_PNG_BASE64}`
+		},
+		'seed_media_photo2.png': {
+			name: 'seed_media_photo2.png',
+			mime: 'image/png',
+			dataUri: `data:image/png;base64,${TINY_PNG_BASE64}`
+		}
+	}
+};
+
+// ————— `SHOWCASE_SEED` (Ola 2, "match 1:1 con el mockup" — ver cabecera del módulo) —————
+//
+// Semilla INDEPENDIENTE de `DEMO_SEED` (nunca se deriva de ella): reproduce la sidebar exacta del
+// mockup aprobado (`aquelarre-dark.html`) — dos grupos de nav ("Contenido"/"Estructura") con las
+// cinco colecciones del mockup, más "Medios" (fijo en `Sidebar.svelte`, alimentado aquí por
+// `VEGA_MEDIA_CONTENT_TYPE`/`MEDIA_SEED_RECORDS`, ya definidos arriba) y "Ajustes" (fijo, no
+// depende de ninguna colección de esta semilla). Solo tras el flag de `session/backend.ts`
+// (`__VEGA_SEED_SHOWCASE__`/`vega.showcase.v1`) — nunca en `DEMO_SEED`/e2e.
+
+/** `entradas` (mockup: título de página "Entradas", primera de "Contenido"): MISMA forma que
+ *  `BLOG_CONTENT_TYPE` (título/slug/estado en tres valores/autor/fecha) — el escaparate reutiliza
+ *  el diseño de esa colección de demo, ya validado contra el mockup en M1-M6, en vez de inventar
+ *  uno nuevo. `slug` es el campo de `subtitleField` (línea secundaria bajo el título); `updatedAt`
+ *  lleva `defaultSort` en el manifiesto (única colección de la semilla que lo declara, ver
+ *  cabecera del módulo) para que el listado arranque ya ordenado "Actualizado ↓", como el
+ *  mockup. */
+const ENTRADAS_CONTENT_TYPE: ContentType = {
+	name: 'entradas',
+	readonly: false,
+	fields: [
+		{
+			name: 'title',
+			type: 'text',
+			subtype: 'plain',
+			required: true,
+			readonly: false,
+			presentable: true,
+			hidden: false,
+			unique: false,
+			maxLength: 120
+		},
+		{
+			name: 'slug',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'status',
+			type: 'select',
+			options: ['draft', 'published', 'scheduled'],
+			multiple: false,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'author',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'updatedAt',
+			type: 'date',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		}
+	]
+};
+
+/** `paginas` (mockup: icono `document`, insignia "Solo lectura"): a diferencia de `pages` de
+ *  `DEMO_SEED` (SIN registros a propósito, cubre el vacío-colección), esta lleva registros — la
+ *  sidebar del mockup no necesita ese caso límite, y una colección de escaparate sin filas se ve
+ *  vacía de más. */
+const PAGINAS_CONTENT_TYPE: ContentType = {
+	name: 'paginas',
+	readonly: true,
+	fields: [
+		{
+			name: 'title',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: true,
+			hidden: false,
+			unique: false
+		}
+	]
+};
+
+/** `proyectos` (mockup: icono `box`, añadido por la Ola 1 al registro de iconos). Título solo,
+ *  igual que `paginas` — el mockup solo pinta su fila de nav, ninguna vista de lista curada la
+ *  ejercita todavía. */
+const PROYECTOS_CONTENT_TYPE: ContentType = {
+	name: 'proyectos',
+	readonly: false,
+	fields: [
+		{
+			name: 'title',
+			type: 'text',
+			subtype: 'plain',
+			required: true,
+			readonly: false,
+			presentable: true,
+			hidden: false,
+			unique: false,
+			maxLength: 120
+		}
+	]
+};
+
+/** `autores` (mockup: grupo "Estructura", icono `user`). A diferencia de `authors` de `DEMO_SEED`
+ *  (SIN registros a propósito, cubre el vacío-colección CON CTA), esta lleva registros. */
+const AUTORES_CONTENT_TYPE: ContentType = {
+	name: 'autores',
+	readonly: false,
+	fields: [
+		{
+			name: 'name',
+			type: 'text',
+			subtype: 'plain',
+			required: true,
+			readonly: false,
+			presentable: true,
+			hidden: false,
+			unique: false,
+			maxLength: 120
+		}
+	]
+};
+
+/** `etiquetas` (mockup: grupo "Estructura", icono `tag`, añadido por la Ola 1 al registro). */
+const ETIQUETAS_CONTENT_TYPE: ContentType = {
+	name: 'etiquetas',
+	readonly: false,
+	fields: [
+		{
+			name: 'name',
+			type: 'text',
+			subtype: 'plain',
+			required: true,
+			readonly: false,
+			presentable: true,
+			hidden: false,
+			unique: false,
+			maxLength: 120
+		}
+	]
+};
+
+const SHOWCASE_MANIFEST: JsonValue = {
+	schemaVersion: 1,
+	// Nombre evocador (decisión de David: "site.name pon algo evocador, ej. fodaveg.net"): el
+	// wordmark de `Topbar.svelte` pinta "Vega" (fijo) + este nombre (tenue), como el mockup
+	// (`.brand .site`).
+	site: { name: 'fodaveg.net', locale: 'es' },
+	nav: { groups: ['Contenido', 'Estructura'] },
+	collections: {
+		entradas: {
+			label: 'Entradas',
+			labelSingular: 'Entrada',
+			icon: 'list',
+			group: 'Contenido',
+			order: 1,
+			listFields: ['title', 'status', 'author', 'updatedAt'],
+			subtitleField: 'slug',
+			statusLabels: { draft: 'Borrador', published: 'Publicado', scheduled: 'Programado' },
+			defaultSort: { field: 'updatedAt', dir: 'desc' },
+			// Labels ES por columna (mockup: "Título"/"Estado"/"Autor"/"Actualizado ↓"): `posts`
+			// sigue con headers EN por defecto (humanización de `field.name`), esto es opt-in.
+			fields: {
+				title: { label: 'Título' },
+				status: { label: 'Estado' },
+				author: { label: 'Autor' },
+				updatedAt: { label: 'Actualizado' }
+			}
+		},
+		paginas: {
+			label: 'Páginas',
+			labelSingular: 'Página',
+			icon: 'document',
+			group: 'Contenido',
+			order: 2
+		},
+		proyectos: {
+			label: 'Proyectos',
+			labelSingular: 'Proyecto',
+			icon: 'box',
+			group: 'Contenido',
+			order: 3
+		},
+		autores: {
+			label: 'Autores',
+			labelSingular: 'Autor',
+			icon: 'user',
+			group: 'Estructura',
+			order: 4
+		},
+		etiquetas: {
+			label: 'Etiquetas',
+			labelSingular: 'Etiqueta',
+			icon: 'tag',
+			group: 'Estructura',
+			order: 5
+		}
+	}
+};
+
+/** 12 registros: MISMOS títulos/slugs/estados/autores/fechas que `blog` (ver su cabecera, calcados
+ *  del mockup aprobado) — el escaparate reutiliza el dataset ya validado en vez de inventar uno
+ *  paralelo. `entrada_6` ("Sin título") conserva el mismo caso límite (`slug`/`author` vacíos). */
+const ENTRADAS_RECORDS = [
+	{
+		id: 'entrada_1',
+		values: {
+			title: 'Migrar el blog de Hugo a Astro sin romper las URLs',
+			slug: 'migrar-blog-hugo-astro-sin-romper-urls',
+			status: 'published',
+			author: 'David',
+			updatedAt: '2026-07-23T10:00:00.000Z'
+		}
+	},
+	{
+		id: 'entrada_2',
+		values: {
+			title:
+				'Temas claro/oscuro con un solo vocabulario de tokens: lo que aprendí construyendo el motor de paletas de Lumbre y por qué acabó viviendo también en Vega',
+			slug: 'temas-claro-oscuro-vocabulario-tokens-motor-paletas',
+			status: 'draft',
+			author: 'David',
+			updatedAt: '2026-07-23T08:00:00.000Z'
+		}
+	},
+	{
+		id: 'entrada_3',
+		values: {
+			title: 'PocketBase como backend de un CMS editor-first',
+			slug: 'pocketbase-backend-cms-editor-first',
+			status: 'published',
+			author: 'David',
+			updatedAt: '2026-07-18T09:00:00.000Z'
+		}
+	},
+	{
+		id: 'entrada_4',
+		values: {
+			title: 'Notas del huerto: julio',
+			slug: 'notas-del-huerto-julio',
+			status: 'scheduled',
+			author: 'Marta',
+			updatedAt: '2026-07-15T07:30:00.000Z'
+		}
+	},
+	{
+		id: 'entrada_5',
+		values: {
+			title: 'Passkeys en un backend Go: TOTP, WebAuthn y tres factores',
+			slug: 'passkeys-backend-go-totp-webauthn',
+			status: 'published',
+			author: 'David',
+			updatedAt: '2026-07-11T12:00:00.000Z'
+		}
+	},
+	{
+		id: 'entrada_6',
+		values: {
+			title: 'Sin título',
+			slug: '',
+			status: 'draft',
+			author: '',
+			updatedAt: '2026-07-02T16:00:00.000Z'
+		}
+	},
+	{
+		id: 'entrada_7',
+		values: {
+			title: 'Reseña: teclados de perfil bajo para escribir mucho',
+			slug: 'resena-teclados-perfil-bajo',
+			status: 'published',
+			author: 'Marta',
+			updatedAt: '2026-06-28T11:00:00.000Z'
+		}
+	},
+	{
+		id: 'entrada_8',
+		values: {
+			title: 'Autoalojar sin dolor: mi checklist de higiene de servidor',
+			slug: 'autoalojar-checklist-higiene-servidor',
+			status: 'published',
+			author: 'David',
+			updatedAt: '2026-06-20T09:00:00.000Z'
+		}
+	},
+	{
+		id: 'entrada_9',
+		values: {
+			title: 'Por qué elegimos Svelte 5 runes para el admin',
+			slug: 'por-que-svelte-5-runes-admin',
+			status: 'draft',
+			author: 'David',
+			updatedAt: '2026-06-14T15:00:00.000Z'
+		}
+	},
+	{
+		id: 'entrada_10',
+		values: {
+			title: 'Accesibilidad AA de verdad: contraste medido, no adivinado',
+			slug: 'accesibilidad-aa-contraste-medido',
+			status: 'published',
+			author: 'Marta',
+			updatedAt: '2026-06-05T10:00:00.000Z'
+		}
+	},
+	{
+		id: 'entrada_11',
+		values: {
+			title: 'Backups 3-2-1 para un self-host de un solo servidor',
+			slug: 'backups-3-2-1-selfhost',
+			status: 'scheduled',
+			author: 'David',
+			updatedAt: '2026-08-01T09:00:00.000Z'
+		}
+	},
+	{
+		id: 'entrada_12',
+		values: {
+			title: 'Diario de un rediseño: del wireframe al pixel',
+			slug: 'diario-rediseno-wireframe-pixel',
+			status: 'draft',
+			author: 'Marta',
+			updatedAt: '2026-05-30T18:00:00.000Z'
+		}
+	}
+];
+
+const PAGINAS_RECORDS = [
+	{ id: 'pagina_1', values: { title: 'Inicio' } },
+	{ id: 'pagina_2', values: { title: 'Sobre mí' } },
+	{ id: 'pagina_3', values: { title: 'Contacto' } },
+	{ id: 'pagina_4', values: { title: 'Ahora' } },
+	{ id: 'pagina_5', values: { title: 'Colofón' } }
+];
+
+/** Títulos en eco de los temas ya cubiertos por `entradas`/`blog` (Astro, PocketBase, passkeys,
+ *  self-host, teclados, huerto) — mismo mundo ficticio, sin inventar uno nuevo. */
+const PROYECTOS_RECORDS = [
+	{ id: 'proyecto_1', values: { title: 'Blog en Astro' } },
+	{ id: 'proyecto_2', values: { title: 'CMS sobre PocketBase' } },
+	{ id: 'proyecto_3', values: { title: 'Backend Go con passkeys' } },
+	{ id: 'proyecto_4', values: { title: 'Servidor autoalojado' } },
+	{ id: 'proyecto_5', values: { title: 'Teclado mecánico casero' } },
+	{ id: 'proyecto_6', values: { title: 'Huerto urbano' } }
+];
+
+const AUTORES_RECORDS = [
+	{ id: 'autor_1', values: { name: 'David' } },
+	{ id: 'autor_2', values: { name: 'Marta' } },
+	{ id: 'autor_3', values: { name: 'Diego' } }
+];
+
+const ETIQUETAS_RECORDS = [
+	{ id: 'etiqueta_1', values: { name: 'astro' } },
+	{ id: 'etiqueta_2', values: { name: 'hugo' } },
+	{ id: 'etiqueta_3', values: { name: 'pocketbase' } },
+	{ id: 'etiqueta_4', values: { name: 'svelte' } },
+	{ id: 'etiqueta_5', values: { name: 'accesibilidad' } },
+	{ id: 'etiqueta_6', values: { name: 'autoalojamiento' } },
+	{ id: 'etiqueta_7', values: { name: 'backups' } },
+	{ id: 'etiqueta_8', values: { name: 'passkeys' } },
+	{ id: 'etiqueta_9', values: { name: 'teclados' } },
+	{ id: 'etiqueta_10', values: { name: 'huerto' } },
+	{ id: 'etiqueta_11', values: { name: 'temas' } },
+	{ id: 'etiqueta_12', values: { name: 'self-host' } }
+];
+
+export const SHOWCASE_SEED: MemorySeed = {
+	users: [DEMO_CREDENTIALS],
+	contentTypes: [
+		VEGA_CONTENT_TYPE,
+		ENTRADAS_CONTENT_TYPE,
+		PAGINAS_CONTENT_TYPE,
+		PROYECTOS_CONTENT_TYPE,
+		AUTORES_CONTENT_TYPE,
+		ETIQUETAS_CONTENT_TYPE,
+		VEGA_MEDIA_CONTENT_TYPE
+	],
+	records: {
+		[VEGA_COLLECTION.name]: [{ id: 'vega_manifest', values: { manifest: SHOWCASE_MANIFEST } }],
+		entradas: ENTRADAS_RECORDS,
+		paginas: PAGINAS_RECORDS,
+		proyectos: PROYECTOS_RECORDS,
+		autores: AUTORES_RECORDS,
+		etiquetas: ETIQUETAS_RECORDS,
+		// Mismos 3 assets que `DEMO_SEED_WITH_MEDIA` (ver arriba): da al contador de "Medios" un
+		// valor real (>0) en vez de quedar en 0/vacío en el escaparate.
+		vega_media: MEDIA_SEED_RECORDS
+	},
 	files: {
 		'seed_media_photo1.png': {
 			name: 'seed_media_photo1.png',
