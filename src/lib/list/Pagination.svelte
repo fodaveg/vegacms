@@ -127,7 +127,9 @@
 		cursor: pointer;
 	}
 
-	.vega-pagination-chevron:hover,
+	/* Solo enlaces habilitados reaccionan al hover (fix: un `disabled` bajo el cursor no debe
+	   sugerir que hay algo que pulsar). */
+	.vega-pagination-chevron:hover:not(:disabled),
 	.vega-pagination-page:hover {
 		background: var(--btn);
 	}

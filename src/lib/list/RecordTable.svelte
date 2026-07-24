@@ -117,6 +117,7 @@
 	import { recordRoute } from '$lib/nav/routes';
 	import { classifyStatusBadge, describeCell, type CellDescriptor } from './cell';
 	import type { ColumnSpec } from './columns';
+	import { isRightAlignedColumn } from './column-align';
 	import { resolveTitleCellText } from './list-load';
 	import { createReorderDndController, dropIndicatorEdge } from './reorder-dnd';
 	import type { ResolvedContentType } from '$lib/model/types';
@@ -245,7 +246,11 @@
 				{:else}
 					{#each columns as column (column.field.name)}
 						{#if column.sortable}
-							<th scope="col" aria-sort={ariaSortFor(column.field.name)}>
+							<th
+								scope="col"
+								class:vega-th-right={isRightAlignedColumn(column)}
+								aria-sort={ariaSortFor(column.field.name)}
+							>
 								<button
 									type="button"
 									class="vega-sort-button"
@@ -261,7 +266,9 @@
 								</button>
 							</th>
 						{:else}
-							<th scope="col">{column.field.label}</th>
+							<th scope="col" class:vega-th-right={isRightAlignedColumn(column)}>
+								{column.field.label}
+							</th>
 						{/if}
 					{/each}
 				{/if}
@@ -320,6 +327,7 @@
 								class:vega-cell-title={isOpenColumn}
 								class:vega-cell-mono={!isOpenColumn &&
 									(descriptor.kind === 'date' || descriptor.kind === 'mono')}
+								class:vega-cell-right={!isOpenColumn && isRightAlignedColumn(column)}
 							>
 								{#if isOpenColumn}
 									<a
@@ -455,6 +463,17 @@
 		color: var(--accent-text);
 	}
 
+	/* Columnas fecha/número a la derecha (mockup `.cell-date`/`th.th-date`, `column-align.ts`):
+	   la cabecera hereda `text-align` para que el glifo de orden quede en el mismo lado que el
+	   valor que ordena. */
+	.vega-th-right {
+		text-align: right;
+	}
+
+	.vega-cell-right {
+		text-align: right;
+	}
+
 	/* Técnica WCAG estándar de "visualmente oculto" (mismo criterio que `RecordForm.svelte`): 1×1px,
 	   invisible a simple vista, presente en el árbol de accesibilidad. NUNCA `display:none`. */
 	.vega-visually-hidden {
@@ -518,17 +537,34 @@
 		cursor: grabbing;
 	}
 
-	/* Indicador de destino (#l12-ux, item 2): un hueco de acento en el borde de la fila sobrevolada
-	   — `dropIndicatorEdge` (`reorder-dnd.ts`) decide el borde según el sentido del arrastre. En
-	   cada `<td>` (no en el `<tr>`): `box-shadow` en un `display:table-row` con
-	   `border-collapse:collapse` puede recortarse por los bordes vecinos si se pinta en la propia
-	   fila; en cada celda queda una línea continua y sin salto. */
-	.vega-record-table tbody tr.vega-row-drop-before > td {
-		box-shadow: inset 0 2px 0 0 var(--accent);
+	/* Indicador de destino (#l12-ux, item 2; ENRIQUECIDO — mockups aquelarre-*.html, firma de
+	   David): un hueco en el borde de la fila sobrevolada — `dropIndicatorEdge` (`reorder-dnd.ts`)
+	   decide el borde según el sentido del arrastre. Migrado del inset sólido `--accent` a un
+	   trazo `--sheen` (mismo lenguaje que la barra de fila activa/seleccionada del mockup): un
+	   `box-shadow` no admite gradiente, así que el hueco pasa a un pseudo-elemento posicionado
+	   sobre cada `<td>` (no en el `<tr>`, mismo motivo de siempre: `border-collapse` puede
+	   recortar un efecto pintado en la propia fila). */
+	.vega-record-table tbody tr.vega-row-drop-before > td,
+	.vega-record-table tbody tr.vega-row-drop-after > td {
+		position: relative;
 	}
 
-	.vega-record-table tbody tr.vega-row-drop-after > td {
-		box-shadow: inset 0 -2px 0 0 var(--accent);
+	.vega-record-table tbody tr.vega-row-drop-before > td::before,
+	.vega-record-table tbody tr.vega-row-drop-after > td::before {
+		content: '';
+		position: absolute;
+		left: 0;
+		right: 0;
+		height: 2px;
+		background: var(--sheen);
+	}
+
+	.vega-record-table tbody tr.vega-row-drop-before > td::before {
+		top: -1px;
+	}
+
+	.vega-record-table tbody tr.vega-row-drop-after > td::before {
+		bottom: -1px;
 	}
 
 	.vega-record-table tbody tr {
@@ -565,6 +601,9 @@
 		color: var(--ink-hi);
 		font-weight: 500;
 		text-decoration: none;
+		/* Pulido (mockup `.cell-title a`): interlineado ajustado para respirar dentro de --row-h
+		   cuando el título ocupa dos líneas visuales (título + metadato en un widget compuesto). */
+		line-height: 1.3;
 	}
 
 	.vega-record-table td a:hover {

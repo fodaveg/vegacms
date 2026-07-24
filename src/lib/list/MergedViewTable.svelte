@@ -52,6 +52,7 @@
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import { recordRoute } from '$lib/nav/routes';
+	import Icon from '$lib/icons/Icon.svelte';
 	import { describeCell } from './cell';
 	import { resolveTitleCellText } from './list-load';
 	import { createReorderDndController, dropIndicatorEdge } from './reorder-dnd';
@@ -137,6 +138,8 @@
 
 {#if rows.length === 0}
 	<div class="vega-merged-empty" data-list-state="empty-collection">
+		<!-- Glifo del estado vacío (mockup `.empty .glyph`, coherencia con `/c/[type]`). -->
+		<span class="vega-merged-empty-glyph" aria-hidden="true"><Icon id="list" size={20} /></span>
 		<h2>{ctx.t('list.merged.empty.title')}</h2>
 		<p>{ctx.t('list.merged.empty.body')}</p>
 	</div>
@@ -231,6 +234,17 @@
 		max-width: 32rem;
 		padding: 2rem 1.5rem;
 		margin: 0;
+	}
+
+	.vega-merged-empty-glyph {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.75rem;
+		height: 2.75rem;
+		border-radius: 50%;
+		background: var(--accent-soft);
+		color: var(--accent-text);
 	}
 
 	.vega-merged-empty h2 {
@@ -349,12 +363,29 @@
 		cursor: grabbing;
 	}
 
-	.vega-record-table tbody tr.vega-row-drop-before > td {
-		box-shadow: inset 0 2px 0 0 var(--accent);
+	/* Indicador de destino → --sheen (ENRIQUECIDO, coherencia con `RecordTable.svelte`, ver su
+	   cabecera de estilos para el porqué del pseudo-elemento en vez de `box-shadow`). */
+	.vega-record-table tbody tr.vega-row-drop-before > td,
+	.vega-record-table tbody tr.vega-row-drop-after > td {
+		position: relative;
 	}
 
-	.vega-record-table tbody tr.vega-row-drop-after > td {
-		box-shadow: inset 0 -2px 0 0 var(--accent);
+	.vega-record-table tbody tr.vega-row-drop-before > td::before,
+	.vega-record-table tbody tr.vega-row-drop-after > td::before {
+		content: '';
+		position: absolute;
+		left: 0;
+		right: 0;
+		height: 2px;
+		background: var(--sheen);
+	}
+
+	.vega-record-table tbody tr.vega-row-drop-before > td::before {
+		top: -1px;
+	}
+
+	.vega-record-table tbody tr.vega-row-drop-after > td::before {
+		bottom: -1px;
 	}
 
 	.vega-record-table tbody tr {
@@ -388,6 +419,8 @@
 		color: var(--ink-hi);
 		font-weight: 500;
 		text-decoration: none;
+		/* Pulido, coherencia con `RecordTable.svelte` (mockup `.cell-title a`). */
+		line-height: 1.3;
 	}
 
 	.vega-record-table td a:hover {

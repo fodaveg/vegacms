@@ -74,6 +74,7 @@
 	import { listRoute } from '$lib/nav/routes';
 	import { isEditableTarget } from '$lib/shell/keyboard';
 	import RouteState from '$lib/shell/RouteState.svelte';
+	import Icon from '$lib/icons/Icon.svelte';
 	import RecordTable from '$lib/list/RecordTable.svelte';
 	import Pagination from '$lib/list/Pagination.svelte';
 	import ListToolbar from '$lib/list/ListToolbar.svelte';
@@ -399,6 +400,9 @@
 				     por eso NUNCA la CTA "Crear" aquí, sino "Limpiar filtros" (resetea `q`/`status`, vuelve
 				     a página 1 vía `navigateView`). -->
 				<div class="vega-list-empty vega-list-card-pad" data-list-state="empty-search">
+					<span class="vega-list-empty-glyph" aria-hidden="true"
+						><Icon id="search" size={20} /></span
+					>
 					<h2>{ctx.t('list.emptySearch.title')}</h2>
 					<p>{ctx.t('list.emptySearch.body', { label: contentType.label })}</p>
 					<button type="button" onclick={() => navigateView({ q: '', status: null })}>
@@ -407,6 +411,9 @@
 				</div>
 			{:else if isEmpty}
 				<div class="vega-list-empty vega-list-card-pad" data-list-state="empty-collection">
+					<span class="vega-list-empty-glyph" aria-hidden="true"
+						><Icon id="document" size={20} /></span
+					>
 					<h2>{ctx.t('list.empty.title')}</h2>
 					<p>{ctx.t('list.empty.body', { label: contentType.label })}</p>
 					{#if !contentType.readonly}
@@ -553,6 +560,19 @@
 		align-items: flex-start;
 		gap: 0.75rem;
 		max-width: 32rem;
+	}
+
+	/* Glifo del estado vacío (mockup `.empty .glyph`, ENRIQUECIDO): disco --accent-soft en vez de
+	   flotar sin fondo — un poco de marca tenue en el hueco que antes era puro texto gris. */
+	.vega-list-empty-glyph {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.75rem;
+		height: 2.75rem;
+		border-radius: 50%;
+		background: var(--accent-soft);
+		color: var(--accent-text);
 	}
 
 	.vega-list-error h2,

@@ -120,7 +120,9 @@
 			aria-pressed={activeStatus === null}
 			onclick={() => onStatusChange(null)}
 		>
-			{ctx.t('list.filter.status.all')}{totalCount !== undefined ? ` · ${totalCount}` : ''}
+			<strong>{ctx.t('list.filter.status.all')}</strong>{totalCount !== undefined
+				? ` · ${totalCount}`
+				: ''}
 		</button>
 		{#each options as option (option)}
 			<button
@@ -129,7 +131,9 @@
 				aria-pressed={activeStatus === option}
 				onclick={() => onStatusChange(option)}
 			>
-				{option}{optionCounts[option] !== undefined ? ` · ${optionCounts[option]}` : ''}
+				<strong>{option}</strong>{optionCounts[option] !== undefined
+					? ` · ${optionCounts[option]}`
+					: ''}
 			</button>
 		{/each}
 	</div>
@@ -151,6 +155,12 @@
 		font-size: 0.78rem;
 		font-weight: 500;
 		white-space: nowrap;
+	}
+
+	/* Clave (nombre del filtro) en negrita, recuento en peso normal (mockup `.chip b`): distingue
+	   de un vistazo el VALOR del filtro de su cifra. */
+	.vega-fchip strong {
+		font-weight: 700;
 	}
 
 	.vega-fchip:hover {
