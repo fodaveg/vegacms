@@ -1193,13 +1193,14 @@ const ENTRADAS_CONTENT_TYPE: ContentType = {
 	]
 };
 
-/** `paginas` (mockup: icono `document`, insignia "Solo lectura"): a diferencia de `pages` de
- *  `DEMO_SEED` (SIN registros a propósito, cubre el vacío-colección), esta lleva registros — la
- *  sidebar del mockup no necesita ese caso límite, y una colección de escaparate sin filas se ve
- *  vacía de más. */
+/** `paginas` (mockup: icono `document`): a diferencia de `pages` de `DEMO_SEED` (SIN registros a
+ *  propósito, cubre el vacío-colección), esta lleva registros — la sidebar del mockup no necesita
+ *  ese caso límite, y una colección de escaparate sin filas se ve vacía de más. NO es `readonly`:
+ *  el mockup NO pinta la insignia "Solo lectura" en Páginas, y ese badge truncaba el label a
+ *  «Págin…» (match 1:1). */
 const PAGINAS_CONTENT_TYPE: ContentType = {
 	name: 'paginas',
-	readonly: true,
+	readonly: false,
 	fields: [
 		{
 			name: 'title',
