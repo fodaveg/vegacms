@@ -89,9 +89,15 @@
 		flex: 1;
 		min-width: 0;
 		/* El área de contenido es el "papel" (`--paper`) sobre el que FLOTAN las tarjetas
-		   (listado/ficha), con aire lateral generoso. Padding del mockup: 1.75/2/2.5rem. */
+		   (listado/ficha), con aire lateral generoso. Padding del mockup: 1.75/2/2.5rem.
+		   ENRIQUECIDO (mockups aquelarre-*.html): `--halo` como segunda capa de fondo — una
+		   atmósfera radial MUY tenue de la marca, `background-attachment: fixed` (no se desplaza
+		   con el scroll interno de `.vega-main`). En paletas planas (brasa) el motor resuelve
+		   `--halo` a `none` y queda el `--paper` liso de siempre, degradado limpio. */
 		padding: 1.75rem 2rem 2.5rem;
-		background: var(--paper);
+		background-color: var(--paper);
+		background-image: var(--halo);
+		background-attachment: fixed;
 		overflow-y: auto;
 	}
 </style>
