@@ -29,6 +29,7 @@ export interface IconRegistry {
  * cómoda para listar iconos en un selector futuro sin depender del orden de declaración).
  */
 const ICON_IDS = [
+	'box',
 	'check',
 	'chevron',
 	'close',
@@ -41,6 +42,7 @@ const ICON_IDS = [
 	'plus',
 	'search',
 	'settings',
+	'tag',
 	'update',
 	'user',
 	'warning'

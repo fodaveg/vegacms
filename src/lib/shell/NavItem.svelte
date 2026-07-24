@@ -27,10 +27,11 @@
 	 *   { perPage: 1 }).totalItems`, un recuento barato); `undefined` (sin dato o el fetch falló)
 	 *   = sin badge, nunca un número inventado.
 	 *
-	 * **Activo = "pestaña"** (R5, antes relleno sólido de acento — "pesaba" demasiado): fondo
-	 * `--accent-soft` + borde izquierdo 2px `--accent` + texto `--accent-text`, calcado del
-	 * mockup `.navgroup a[aria-current='page']`. El borde transparente en reposo evita que el
-	 * contenido salte 2px al activarse.
+	 * **Activo = "pestaña"** (R5, antes relleno sólido de acento — "pesaba" demasiado): SOLO
+	 * pastilla — fondo `--accent-soft` + texto `--accent-text`, calcado 1:1 del mockup
+	 * `.nav-item[aria-current='page']` (aquelarre-dark.html). Sin trazo lateral: el `--sheen` de
+	 * aquelarre arranca en verde y un `border-image` con él pintaba una línea verde que no está en
+	 * el mockup (regresión detectada en la ola de paridad visual).
 	 *
 	 * Respeta el *exit-guard* de `NavApi` (§2.1, vía `ctx.nav.toList`/`toSingleton`) y los gestos
 	 * nativos del navegador (Cmd/Ctrl/Shift+click y click central abren en pestaña/ventana nueva
@@ -100,7 +101,6 @@
 		gap: 0.65rem;
 		min-height: var(--row-h);
 		padding: 0 var(--vega-space-gutter);
-		border-left: 2px solid transparent;
 		color: var(--ink-2);
 		text-decoration: none;
 	}
@@ -116,14 +116,10 @@
 		color: var(--ink-hi);
 	}
 
-	/* Barra del item activo → --sheen (trazo espectral, no relleno — ver `--accent-fill` en los
-	   botones primarios): `border-image` solo pinta la arista con ancho de verdad (`border-left`,
-	   las otras tres siguen a 0), mismo eco vertical que el hilo de la topbar y la fila activa de
-	   `RecordTable`. */
+	/* Item activo = SOLO pastilla (mockup `.nav-item[aria-current='page']`, aquelarre-dark.html):
+	   fondo `--accent-soft` + texto `--accent-text`, sin trazo lateral. */
 	a[aria-current='page'] {
 		background: var(--accent-soft);
-		border-left: 2px solid transparent;
-		border-image: var(--sheen) 1;
 		color: var(--accent-text);
 		font-weight: 600;
 	}
@@ -158,10 +154,25 @@
 		background: var(--surface);
 	}
 
+	/* Badge-píldora (mockup `.nav-count`, aquelarre-dark.html): antes número plano, ahora
+	   redondeada con fondo/borde propios — se lee como "recuento", no como parte del label. */
 	.vega-nav-count {
 		flex-shrink: 0;
 		font-family: var(--mono);
 		font-size: 0.6875rem;
+		font-variant-numeric: tabular-nums;
 		color: var(--ink-3);
+		background: var(--surface);
+		border: 1px solid var(--line-soft);
+		border-radius: 999px;
+		padding: 0.05rem 0.5rem;
+	}
+
+	/* En el item activo la píldora se vacía (fondo transparente) y toma el borde/texto de acento,
+	   igual que el mockup: `.nav-item[aria-current='page'] .nav-count`. */
+	a[aria-current='page'] .vega-nav-count {
+		color: var(--accent-text);
+		border-color: var(--accent-line);
+		background: transparent;
 	}
 </style>

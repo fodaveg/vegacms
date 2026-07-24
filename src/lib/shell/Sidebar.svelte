@@ -330,7 +330,6 @@
 		gap: 0.65rem;
 		min-height: var(--row-h);
 		padding: 0 var(--vega-space-gutter);
-		border-left: 2px solid transparent;
 		color: var(--ink-2);
 		text-decoration: none;
 	}
@@ -344,14 +343,11 @@
 		color: var(--ink-hi);
 	}
 
-	/* Barra del item activo → --sheen (mismo trazo espectral que la fila activa de `RecordTable`,
-	   el hilo de la topbar y `NavItem.svelte`): `border-image` solo pinta donde hay ancho de
-	   borde de verdad — aquí únicamente `border-left`, así que el degradado queda confinado a esa
-	   única arista sin tocar las otras tres (sin `border-width` en ellas). */
+	/* Item activo = SOLO pastilla (mockup `.nav-item[aria-current='page']`, aquelarre-dark.html),
+	   igual que `NavItem.svelte`: fondo `--accent-soft` + texto `--accent-text`, sin trazo lateral
+	   (el `--sheen` de aquelarre arranca en verde y pintaba una línea que no está en el mockup). */
 	.vega-nav-fixed a[aria-current='page'] {
 		background: var(--accent-soft);
-		border-left: 2px solid transparent;
-		border-image: var(--sheen) 1;
 		color: var(--accent-text);
 		font-weight: 600;
 	}
@@ -375,11 +371,27 @@
 		gap: 0.5rem;
 	}
 
+	/* Badge-píldora (mockup `.nav-count`, aquelarre-dark.html): duplicada a propósito respecto a
+	   `NavItem.svelte` — mismo motivo que el resto del CSS de `.vega-nav-fixed` (Svelte no
+	   comparte CSS scoped entre componentes). Mantener ambas coherentes. */
 	.vega-nav-count {
 		flex-shrink: 0;
 		font-family: var(--mono);
 		font-size: 0.6875rem;
+		font-variant-numeric: tabular-nums;
 		color: var(--ink-3);
+		background: var(--surface);
+		border: 1px solid var(--line-soft);
+		border-radius: 999px;
+		padding: 0.05rem 0.5rem;
+	}
+
+	/* En el item activo la píldora se vacía y toma el borde/texto de acento (mockup
+	   `.nav-item[aria-current='page'] .nav-count`). */
+	.vega-nav-fixed a[aria-current='page'] .vega-nav-count {
+		color: var(--accent-text);
+		border-color: var(--accent-line);
+		background: transparent;
 	}
 
 	.vega-sidebar-empty {

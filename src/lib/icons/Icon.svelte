@@ -41,7 +41,12 @@
 	aria-label={title}
 	focusable="false"
 >
-	{#if resolvedId === 'check'}
+	{#if resolvedId === 'box'}
+		<!-- Caja/cubo isométrico (nav de contenido, p.ej. "Proyectos"), calcado del mockup
+		     aquelarre-dark.html (`.nav-item` de Proyectos). -->
+		<path d="M12 3 4 7v10l8 4 8-4V7l-8-4z" />
+		<path d="M4 7l8 4 8-4M12 11v10" />
+	{:else if resolvedId === 'check'}
 		<polyline points="5 13 9 17 19 7" />
 	{:else if resolvedId === 'chevron'}
 		<polyline points="9 6 15 12 9 18" />
@@ -81,6 +86,10 @@
 		<circle cx="9" cy="7" r="2" />
 		<line x1="4" y1="17" x2="20" y2="17" />
 		<circle cx="15" cy="17" r="2" />
+	{:else if resolvedId === 'tag'}
+		<!-- Etiqueta (nav de contenido, p.ej. "Etiquetas"), calcado del mockup aquelarre-dark.html. -->
+		<path d="M20 12l-8 8-8-8 8-8 3 3" />
+		<circle cx="15" cy="9" r="1.4" fill="currentColor" stroke="none" />
 	{:else if resolvedId === 'update'}
 		<!-- P8: flecha ascendente en círculo abierto, "hay algo nuevo" (banner/botón de
 		     comprobación de actualizaciones de `/settings`), distinto del triángulo de aviso. -->
