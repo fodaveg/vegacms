@@ -167,6 +167,56 @@ Vega mostrará un selector global de idioma en el formulario y mantendrá visibl
 compartidos. La referencia completa y versionada está en
 [`PROJECT-CONTRACT-v1.md`](./PROJECT-CONTRACT-v1.md#localized-fields).
 
+## Bloques ordenables dentro del formulario (`blocks`)
+
+PocketBase no tiene campos repetidores, así que el contenido compuesto —una página hecha de secciones— se modela como una **colección hija** cuyos registros apuntan al padre. `blocks` le dice a Vega que esa hija no es una colección más de la navegación, sino parte del registro padre: su editor pinta la lista embebida, con crear, reordenar (arrastrando o con el teclado), plegar y borrar en línea.
+
+```json
+{
+	"collections": {
+		"paginas": {
+			"blocks": {
+				"collection": "secciones",
+				"parentField": "pagina",
+				"orderField": "orden"
+			}
+		}
+	}
+}
+```
+
+Las tres claves son obligatorias. `parentField` debe ser un campo `relation` **no múltiple** de la colección hija que apunte de vuelta a este tipo, y `orderField` un campo numérico suyo. Si algo de eso no se cumple —la colección no existe, la relación apunta a otro sitio, el campo de orden no es numérico— la capacidad se descarta entera con un aviso `blocks-invalid` y el formulario sigue funcionando sin la lista.
+
+Dos comportamientos que conviene conocer antes de declararlo:
+
+- **Cada bloque se guarda por su cuenta**, con su propio botón, contra la colección hija. No viaja en el guardado del padre. Lo que sí sube al padre es el estado sucio, para que el aviso de salir sin guardar cuente también los bloques abiertos.
+- **El reorden persiste al soltar**, no al guardar. Son varias escrituras sin transacción: si una falla, el orden persistido puede quedar a medias —incluso con el mismo valor repetido en dos bloques— hasta que Vega relee el backend y repinta. Nunca en silencio: verás el error.
+
+Conviene declarar la colección hija con `hidden: true` para que no aparezca además como lista suelta en la navegación: es el mismo contenido en dos sitios con dos modelos mentales distintos. Y con `labelSingular`, porque el botón de la lista es «Añadir {labelSingular}».
+
+## Vista previa de tarjeta social (`social`)
+
+Cómo queda un registro al compartirlo. Es un mapeo sobre campos que la colección **ya tiene**, no campos nuevos: qué campo es el título social, cuál la descripción y cuál la imagen, más una plantilla de URL opcional.
+
+```json
+{
+	"collections": {
+		"entradas": {
+			"social": {
+				"titleField": "title",
+				"descriptionField": "excerpt",
+				"imageField": "cover",
+				"urlTemplate": "https://ejemplo.net/blog/{slug}"
+			}
+		}
+	}
+}
+```
+
+Presente —aunque sea `{}`— enciende la tarjeta en la columna lateral del editor; sin la clave, no se pinta nada. Cada pieza degrada por separado y con su propio aviso: el título cae al `titleField` del tipo, la URL al `previewUrl`, y la descripción y la imagen simplemente no se pintan. La tarjeta lee el valor **vivo** del formulario, así que responde mientras escribes, y sin imagen enseña un hueco, no una imagen rota.
+
+`urlTemplate` admite los mismos marcadores `{campo}`/`{id}` que `previewUrl` y debe empezar por `http://` o `https://`.
+
 ## Vistas fusionadas (`mergedViews`)
 
 Además de `backendUrl`, el **manifiesto de contenidos** (colección `vega`, campo `manifest`, editable desde `/settings` con `ManifestEditor`) admite una sección `mergedViews`: vistas de solo lectura que **unen registros de varias colecciones** en un único listado, reordenable a mano por arrastre. Útiles para tableros tipo "destacados de portada" que mezclan, por ejemplo, `posts` y `pages` en un mismo orden manual sin fusionar sus colecciones reales.
