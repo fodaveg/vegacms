@@ -104,6 +104,21 @@
 			ed.chain().focus().setImage({ src, alt }).run();
 		});
 	}
+
+	// FIX (debugging de flake e2e, `e2e/form.spec.ts` "escribir en richtext"): sin esto, clicar
+	// CUALQUIER botón de esta barra le roba el foco al editor ANTES de que el `onclick` llegue a
+	// ejecutarse — el navegador enfoca el `<button>` como acción POR DEFECTO de `mousedown`, y esa
+	// pérdida de foco puede colapsar la selección de ProseMirror (llega un `selectionchange` async
+	// que la reduce a un cursor) en la ventana entre `mousedown` y `click`. El resultado es una
+	// carrera real: 2-3 de cada 8 veces, `toggleBold()`/etc. se ejecutaba sobre una selección YA
+	// vacía y no envolvía nada — el usuario veía que "Negrita" no hacía nada, de forma intermitente.
+	// `Markdown.svelte` ya blinda sus PROPIOS botones así por el mismo motivo (selección del
+	// `<textarea>`); esta barra, COMPARTIDA con `Richtext.svelte`, se había quedado sin el mismo
+	// blindaje. Solo en los `<button>` (nunca en el `<select>` de encabezados: prevenir su
+	// `mousedown` le impediría abrir el desplegable/tomar foco, que sí necesita).
+	function keepEditorFocus(event: MouseEvent): void {
+		event.preventDefault();
+	}
 </script>
 
 <div class="vega-editor-toolbar" role="toolbar" aria-label={t('form.editor.toolbarLabel')}>
@@ -126,6 +141,7 @@
 		aria-label={t('form.editor.bold')}
 		disabled={disabled || !editor}
 		title={t('form.editor.bold')}
+		onmousedown={keepEditorFocus}
 		onclick={() => run((ed) => void ed.chain().focus().toggleBold().run())}
 	>
 		<strong>B</strong>
@@ -136,6 +152,7 @@
 		aria-label={t('form.editor.italic')}
 		disabled={disabled || !editor}
 		title={t('form.editor.italic')}
+		onmousedown={keepEditorFocus}
 		onclick={() => run((ed) => void ed.chain().focus().toggleItalic().run())}
 	>
 		<em>I</em>
@@ -146,6 +163,7 @@
 		aria-label={t('form.editor.strike')}
 		disabled={disabled || !editor}
 		title={t('form.editor.strike')}
+		onmousedown={keepEditorFocus}
 		onclick={() => run((ed) => void ed.chain().focus().toggleStrike().run())}
 	>
 		<s>S</s>
@@ -160,6 +178,7 @@
 		aria-label={t('form.editor.code')}
 		disabled={disabled || !editor}
 		title={t('form.editor.code')}
+		onmousedown={keepEditorFocus}
 		onclick={() => run((ed) => void ed.chain().focus().toggleCode().run())}
 	>
 		&lt;/&gt;
@@ -170,6 +189,7 @@
 		aria-label={t('form.editor.codeBlock')}
 		disabled={disabled || !editor}
 		title={t('form.editor.codeBlock')}
+		onmousedown={keepEditorFocus}
 		onclick={() => run((ed) => void ed.chain().focus().toggleCodeBlock().run())}
 	>
 		{'{ }'}
@@ -180,6 +200,7 @@
 		aria-label={t('form.editor.blockquote')}
 		disabled={disabled || !editor}
 		title={t('form.editor.blockquote')}
+		onmousedown={keepEditorFocus}
 		onclick={() => run((ed) => void ed.chain().focus().toggleBlockquote().run())}
 	>
 		"
@@ -191,6 +212,7 @@
 		aria-label={t('form.editor.bulletList')}
 		disabled={disabled || !editor}
 		title={t('form.editor.bulletList')}
+		onmousedown={keepEditorFocus}
 		onclick={() => run((ed) => void ed.chain().focus().toggleBulletList().run())}
 	>
 		•—
@@ -201,6 +223,7 @@
 		aria-label={t('form.editor.orderedList')}
 		disabled={disabled || !editor}
 		title={t('form.editor.orderedList')}
+		onmousedown={keepEditorFocus}
 		onclick={() => run((ed) => void ed.chain().focus().toggleOrderedList().run())}
 	>
 		1.
@@ -210,6 +233,7 @@
 		aria-label={t('form.editor.horizontalRule')}
 		disabled={disabled || !editor}
 		title={t('form.editor.horizontalRule')}
+		onmousedown={keepEditorFocus}
 		onclick={() => run((ed) => void ed.chain().focus().setHorizontalRule().run())}
 	>
 		―
@@ -221,6 +245,7 @@
 		aria-label={isActive('link') ? t('form.editor.linkRemove') : t('form.editor.link')}
 		disabled={disabled || !editor}
 		title={isActive('link') ? t('form.editor.linkRemove') : t('form.editor.link')}
+		onmousedown={keepEditorFocus}
 		onclick={toggleLink}
 	>
 		🔗
@@ -230,6 +255,7 @@
 		aria-label={t('form.editor.image')}
 		disabled={disabled || !editor}
 		title={t('form.editor.image')}
+		onmousedown={keepEditorFocus}
 		onclick={insertImage}
 	>
 		🖼

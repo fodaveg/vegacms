@@ -600,6 +600,11 @@ test.describe('editores de texto largo: richtext TipTap y Markdown asistido (F5-
 		await contentEditable.pressSequentially('Texto enriquecido');
 		await page.keyboard.press('Shift+Home');
 		await contentField.getByRole('button', { name: 'Negrita' }).click();
+		// Verificar la negrita AQUÍ, antes de seguir (el gemelo de lo que ya se hace con `summary`
+		// más abajo): TipTap aplica la marca sobre la selección de forma asíncrona, así que sin esta
+		// espera el test podía llegar a guardar con el `content` todavía sin negrita y fallar
+		// DESPUÉS del guardado, señalando al widget equivocado.
+		await expect(contentField.locator('strong', { hasText: 'Texto enriquecido' })).toBeVisible();
 
 		const summaryField = page.locator('[data-field="summary"]');
 		const summaryEditable = summaryField.getByRole('textbox', { name: 'Summary' });

@@ -301,6 +301,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'form.editor.imageAltPrompt': 'Image alt text',
 	'form.editor.heading1': 'Heading 1',
 	'form.editor.heading2': 'Heading 2',
+	'form.richtext.loading': 'Loading the editor…',
 	'form.markdown.modeLabel': 'Editor view',
 	'form.markdown.mode.write': 'Write',
 	'form.markdown.mode.split': 'Split',

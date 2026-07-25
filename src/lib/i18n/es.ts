@@ -313,6 +313,9 @@ export const es = {
 	'form.editor.imageAltPrompt': 'Texto alternativo de la imagen',
 	'form.editor.heading1': 'Título 1',
 	'form.editor.heading2': 'Título 2',
+	// El editor richtext se carga aparte (`import()` dinámico, ~145 KB): hasta que monta, el hueco
+	// dice que está cargando en vez de fingir un campo vacío ya usable — ver `Richtext.svelte`.
+	'form.richtext.loading': 'Cargando el editor…',
 	// L11: mesa de trabajo Markdown crudo + prueba segura en vivo. Los modos son acciones de
 	// visualización, no cambian ni reserializan el valor del campo.
 	'form.markdown.modeLabel': 'Vista del editor',

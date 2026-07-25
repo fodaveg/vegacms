@@ -40,6 +40,30 @@
 	 * pantalla, y `getByRole('textbox', {name})` de Playwright lo resuelve de forma ambigua,
 	 * detectado en `e2e/form.spec.ts`).
 	 *
+	 * `role="status"` del PLACEHOLDER (bug de producto real, no solo flake de test): el `<div>` de
+	 * más arriba, antes de montar, anunciaba `role="textbox"` PERO no era `contenteditable` ni
+	 * focusable — un clic real (o de Playwright) sobre él no hacía nada visible, y si el usuario
+	 * empezaba a teclear justo después (el `import()` dinámico de más arriba tarda), las teclas no
+	 * iban a ningún sitio: el foco anterior ya se había perdido con el clic y el placeholder no
+	 * puede recibirlo. Resultado: PÉRDIDA SILENCIOSA de lo tecleado, sin ningún aviso — reproducido
+	 * en `e2e/form.spec.ts` ("escribir en richtext") con un accessibility snapshot: el editor
+	 * terminaba montado y VACÍO, con "Negrita" ya activo (marca para el próximo carácter) pero sin
+	 * una sola letra visible. `role="status"` + `aria-busy="true"` deja de anunciar un campo YA
+	 * usable donde no lo hay: un lector de pantalla oye "cargando", no "campo de texto vacío", y
+	 * `getByRole('textbox', {name})` de Playwright (y cualquier código real que dependa del mismo
+	 * criterio de accesibilidad) simplemente NO encuentra nada hasta que el `<div>` REAL de TipTap
+	 * exista — forzando una ESPERA correcta en vez de actuar sobre un decorado inerte. Probado
+	 * "rompiendo el arreglo a propósito" (`git stash` de este cambio): el fallo vuelve de forma
+	 * reproducible con `--repeat-each=30`.
+	 *
+	 * …y la MITAD VISIBLE del mismo bug: quitar la mentira de ARIA no arreglaba nada para quien usa
+	 * el ratón y ve. El contenedor vacío se sigue pareciendo a un campo de texto listo (caja con
+	 * borde y radio), así que clicar y teclear ahí perdía las pulsaciones igual, en silencio. Por eso
+	 * el `role="status"` se pinta ahora con TEXTO ("Cargando el editor…", `form.richtext.loading`) en
+	 * un nodo propio: la única pista que había antes era la barra de herramientas deshabilitada
+	 * encima, que nadie lee como "espera". La barra ya llevaba `disabled={inert}`; esto completa el
+	 * eje de "feedback del sistema" para el caso en el que el widget todavía no existe.
+	 *
 	 * **Mockup final `aquelarre-detalle-post.html` (`.richtext`)**: el marco (borde, radio, fondo,
 	 * anillo de foco) pasa al CONTENEDOR y el área editable se queda solo con su padding — antes el
 	 * borde lo pintaban por separado la barra y el `<div>` de contenido, y el radio inferior había
@@ -181,11 +205,21 @@
 
 <div class="vega-widget-richtext" data-invalid={error ? 'true' : undefined}>
 	<EditorToolbar {editor} disabled={inert} t={ctx.t} />
+	{#if !editor}
+		<!-- El aviso de carga VISIBLE (ver cabecera): el `role="status"` vive aquí y no en el
+		     contenedor de abajo por dos razones. Una, un `role="status"` VACÍO no anuncia nada — hace
+		     falta texto para que un lector de pantalla diga "cargando" en vez de callarse. Y dos,
+		     este nodo es de Svelte en exclusiva: el contenedor es el que TipTap manipula al montar, y
+		     no conviene meterle hijos que otro dueño va a tocar. -->
+		<p class="vega-widget-richtext-loading" role="status" aria-busy="true">
+			{ctx.t('form.richtext.loading')}
+		</p>
+	{/if}
 	<div
 		class="vega-widget-richtext-content"
 		bind:this={container}
+		data-loading={editor ? undefined : 'true'}
 		id={ids.inputId}
-		role={editor ? undefined : 'textbox'}
 		aria-labelledby={ids.labelId}
 		aria-describedby={describedBy}
 		aria-invalid={error ? 'true' : undefined}
@@ -221,6 +255,22 @@
 		min-height: 200px;
 		max-width: 68ch;
 		color: var(--ink);
+	}
+
+	/* Mientras carga, el hueco lo ocupa el aviso de abajo y NO los dos a la vez: el contenedor se
+	   colapsa (queda solo como anclaje para el `<div>` de TipTap) y el aviso hereda su padding y su
+	   `min-height`, así que la caja mide LO MISMO antes y después de montar — sin salto de layout
+	   justo debajo del cursor de quien está a punto de escribir. */
+	.vega-widget-richtext-content[data-loading='true'] {
+		min-height: 0;
+		padding: 0;
+	}
+
+	.vega-widget-richtext-loading {
+		margin: 0;
+		padding: calc(var(--pad-field) * 0.9) calc(var(--pad-field) * 1.1);
+		min-height: 200px;
+		color: var(--ink-2);
 	}
 
 	.vega-widget-richtext-content :global(.tiptap) {
