@@ -26,9 +26,14 @@ import { DEFAULT_PAGE, DEFAULT_PER_PAGE, validateQuery } from '../../query';
 import { normalizeFieldValue } from '../../normalize';
 import { assertContentTypeWritable, checkUnwritableFields } from '../../write-guards';
 import { validateFileFieldInput } from '../../file-guards';
-import type { CollectionSpec, EnsureResult } from '../../collections';
+import type {
+	AddFieldsResult,
+	CollectionFieldSpec,
+	CollectionSpec,
+	EnsureResult
+} from '../../collections';
 import {
-	checkReservedNames,
+	checkCreatableCollectionNames,
 	VEGA_COLLECTION,
 	VEGA_PROJECT_KEY,
 	VEGA_PROJECT_KEY_FIELD
@@ -37,7 +42,7 @@ import { mapPocketBaseError } from './errors';
 import { mapCollectionsToContentTypes } from './schema';
 import { compileFilter, compileSort } from './query';
 import { planFileFieldWrite, resolveFileUrl } from './files';
-import { ensureCollectionsOnPocketBase } from './collections';
+import { addFieldsOnPocketBase, ensureCollectionsOnPocketBase } from './collections';
 import { clearPersistedToken, loadPersistedToken, savePersistedToken } from './persistence';
 import { createPocketBaseStrongAuth } from './strong-auth';
 
@@ -61,6 +66,7 @@ function computeCapabilities(authCollection: string, strongAuth: boolean): Capab
 		filePerRecord: true,
 		protectedFiles: false,
 		schemaBootstrap: isSuperuser,
+		schemaFieldBootstrap: isSuperuser,
 		strongAuth
 	};
 }
@@ -83,6 +89,9 @@ export interface PocketBaseBackendOptions {
 	 *  `session/backend.ts` a partir de `ProjectDiscovery.build`, o `null`/ausente si el proyecto
 	 *  no tiene publicación conectada. Este adaptador no la interpreta, solo la transporta. */
 	buildApiUrl?: string | null;
+	/** Ver `BackendPort.previewApiUrl` (`../../port.ts`): gemela de `buildApiUrl`, resuelta en el
+	 *  mismo sitio a partir de `ProjectDiscovery.preview`. Tampoco se interpreta aquí. */
+	previewApiUrl?: string | null;
 }
 
 /** Crea un `BackendPort` sobre un PocketBase real en `url`. */
@@ -91,7 +100,8 @@ export function createPocketBaseBackend({
 	authCollection = DEFAULT_AUTH_COLLECTION,
 	authApiBasePath = null,
 	manifestKey = VEGA_PROJECT_KEY,
-	buildApiUrl = null
+	buildApiUrl = null,
+	previewApiUrl = null
 }: PocketBaseBackendOptions): BackendPort {
 	const pb = new PocketBase(url);
 	// LANDMINE (ver README): el SDK cancela peticiones "duplicadas" en vuelo por defecto. La
@@ -397,6 +407,7 @@ export function createPocketBaseBackend({
 		strongAuth,
 		manifestKey: normalizedManifestKey,
 		buildApiUrl,
+		previewApiUrl,
 
 		async login(credentials) {
 			try {
@@ -570,12 +581,24 @@ export function createPocketBaseBackend({
 
 		async ensureCollections(specs: CollectionSpec[]): Promise<EnsureResult> {
 			return guarded(async () => {
-				const rejects = checkReservedNames(specs);
+				const rejects = checkCreatableCollectionNames(specs);
 				if (Object.keys(rejects).length > 0) throw VegaError.validation(rejects);
 				if (!CAPABILITIES.schemaBootstrap) {
 					throw VegaError.backend('schemaBootstrap no disponible (ley L8)');
 				}
 				return ensureCollectionsOnPocketBase(pb, specs);
+			});
+		},
+
+		async addCollectionFields(
+			collectionName: string,
+			fields: CollectionFieldSpec[]
+		): Promise<AddFieldsResult> {
+			return guarded(async () => {
+				if (!CAPABILITIES.schemaFieldBootstrap) {
+					throw VegaError.backend('schemaFieldBootstrap no disponible (ley L8)');
+				}
+				return addFieldsOnPocketBase(pb, collectionName, fields);
 			});
 		}
 	};

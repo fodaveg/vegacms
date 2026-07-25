@@ -195,6 +195,20 @@ export const es = {
 	'editor.previewLink': 'Ver en el sitio',
 	'editor.previewDisabledTitle': 'El borrador no tiene URL pública todavía',
 
+	// ————— Panel de vista previa de borrador (lote "publicación", fase B) —————
+	// Solo se pintan cuando el proyecto declaró `preview` en su discovery (`ctx.port.previewApiUrl`,
+	// ver la cabecera de `RecordForm.svelte`) — igual criterio que las claves `topbar.publish.*`
+	// con `build`.
+	'editor.preview.toggle': 'Vista previa',
+	'editor.preview.panel.label': 'Panel de vista previa',
+	'editor.preview.panel.title': 'Vista previa del borrador',
+	'editor.preview.panel.refresh': 'Actualizar vista previa',
+	'editor.preview.panel.close': 'Cerrar vista previa',
+	'editor.preview.panel.frameTitle': 'Vista previa del borrador en el sitio',
+	'editor.preview.panel.loading': 'Cargando vista previa…',
+	'editor.preview.panel.loadError': 'No se pudo cargar la vista previa.',
+	'editor.preview.panel.genericError': 'No se pudo generar la vista previa.',
+
 	// ————— Editor «master-detail» (mockup final `aquelarre-detalle-post.html`) —————
 	// Raíl de hermanos (`.rail`), aside de metadatos (`.kv`) y zona de peligro: piezas GENÉRICAS
 	// opt-in del renderer — los rótulos de las tarjetas del aside salen de `fieldGroups` (dato del
@@ -502,6 +516,62 @@ export const es = {
 	'settings.reloading': 'Recargando…',
 	'settings.saveSuccess': 'Manifiesto guardado.',
 	'settings.loadErrorBody': 'No se pudo cargar Ajustes. Vuelve a intentarlo.',
+
+	// ————— Autoría de esquema (lote "esquema", Fase 1): crear colecciones/añadir campos —————
+	// Visible solo cuando `capabilities.schemaBootstrap`/`schemaFieldBootstrap` lo permiten (ley
+	// de capacidades) — sin superuser, esta sección entera no se ofrece (mismo gate que el
+	// editor del manifiesto, ver L6c más abajo). Ver `SchemaAuthoringPanel.svelte`.
+	'settings.schema.title': 'Esquema',
+	'settings.schema.description':
+		'Crea colecciones nuevas o añade campos a una que ya existe. Estrictamente aditivo: nunca renombra ni borra nada (en PocketBase eso destruye la columna y sus datos, sin deshacer).',
+	'settings.schema.create.title': 'Crear colección',
+	'settings.schema.create.nameLabel': 'Nombre de la colección',
+	'settings.schema.create.namePlaceholder': 'p. ej. posts',
+	'settings.schema.create.nameInvalid':
+		'Debe empezar por una letra y usar solo letras, números o guion bajo.',
+	'settings.schema.create.submit': 'Crear colección',
+	'settings.schema.create.submitting': 'Creando…',
+	'settings.schema.create.nameReserved':
+		'Ese nombre pertenece a Vega («vega» y todo lo que empieza por «vega_»): son colecciones que Vega crea y mantiene por su cuenta. Elige otro.',
+	'settings.schema.create.success': 'Colección "{name}" creada.',
+	'settings.schema.create.alreadyExists':
+		'La colección "{name}" ya existía: no se ha modificado (nunca se sobreescribe una colección real). Usa "Añadir campos" para ampliarla.',
+	'settings.schema.addFields.title': 'Añadir campos',
+	'settings.schema.addFields.targetLabel': 'Colección',
+	'settings.schema.addFields.targetPlaceholder': 'Elige una colección…',
+	'settings.schema.addFields.submit': 'Añadir campos',
+	'settings.schema.addFields.submitting': 'Añadiendo…',
+	'settings.schema.addFields.success': '{count} campo(s) añadido(s) a "{collection}".',
+	'settings.schema.addFields.noneAdded':
+		'Ningún campo nuevo: todos los indicados ya existían en "{collection}" y se han dejado intactos.',
+	'settings.schema.addFields.empty':
+		'Todavía no hay ninguna colección propia. Crea una primero en "Crear colección".',
+	'settings.schema.fields.nameLabel': 'Nombre del campo',
+	'settings.schema.fields.namePlaceholder': 'p. ej. title',
+	'settings.schema.fields.typeLabel': 'Tipo',
+	'settings.schema.fields.requiredLabel': 'Obligatorio',
+	'settings.schema.fields.maxLabel': 'Longitud máx. (opcional)',
+	'settings.schema.fields.addRow': 'Añadir campo',
+	'settings.schema.fields.removeRow': 'Quitar campo',
+	// Landmine real de PocketBase, ya cazada en producción: un `number` `required` rechaza el
+	// valor 0 (PB trata "obligatorio" como "distinto del cero-valor", y 0 ES el cero-valor de
+	// number). Aviso, no bloqueo: hay rangos legítimos que necesitan 0 (p. ej. una valoración
+	// 0–5) sin marcar el campo como obligatorio.
+	'settings.schema.fields.numberRequiredWarning':
+		'PocketBase rechaza el valor 0 en un campo numérico marcado como obligatorio. Si necesitas permitir 0 (p. ej. una valoración de 0 a 5), no lo marques como obligatorio.',
+	'settings.schema.fields.type.text': 'Texto',
+	'settings.schema.fields.type.number': 'Número',
+	'settings.schema.fields.type.bool': 'Sí/No',
+	'settings.schema.fields.type.date': 'Fecha',
+	'settings.schema.fields.type.json': 'JSON',
+	'settings.schema.error': 'Error: {message}',
+	// Migración JS emitida tras crear/añadir con éxito (mitad 2 del lote "esquema"): sin esto,
+	// cada edición de esquema desde Vega aleja producción del repo EN SILENCIO.
+	'settings.schema.migration.title': 'Migración generada',
+	'settings.schema.migration.instructions':
+		'Guarda este fichero como pb_migrations/{filename} en el repositorio de tu proyecto y commítalo: sin él, este cambio de esquema solo existe en tu PocketBase, no en tu control de versiones.',
+	'settings.schema.migration.copy': 'Copiar',
+	'settings.schema.migration.copied': 'Copiado',
 
 	// ————— Rol editor (lote L6c): degradado de la edición del manifiesto —————
 	// Sin `schemaBootstrap` (colección de auth distinta de `_superusers`) un editor no puede

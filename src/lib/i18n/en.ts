@@ -185,6 +185,20 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.previewLink': 'View on site',
 	'editor.previewDisabledTitle': 'The draft has no public URL yet',
 
+	// ————— Draft preview panel ("publishing" batch, phase B) —————
+	// Only rendered when the connected project declared `preview` in its discovery
+	// (`ctx.port.previewApiUrl`, see `RecordForm.svelte`'s header) — same criteria as the
+	// `topbar.publish.*` keys with `build`.
+	'editor.preview.toggle': 'Preview',
+	'editor.preview.panel.label': 'Preview panel',
+	'editor.preview.panel.title': 'Draft preview',
+	'editor.preview.panel.refresh': 'Refresh preview',
+	'editor.preview.panel.close': 'Close preview',
+	'editor.preview.panel.frameTitle': 'Draft preview on the site',
+	'editor.preview.panel.loading': 'Loading preview…',
+	'editor.preview.panel.loadError': 'Could not load the preview.',
+	'editor.preview.panel.genericError': 'Could not generate the preview.',
+
 	// ————— Master-detail editor (final `aquelarre-detalle-post.html` mockup) —————
 	// Sibling rail (`.rail`), metadata aside (`.kv`) and danger zone: GENERIC opt-in renderer
 	// pieces — the aside card headings come from `fieldGroups` (manifest data), so only literals
@@ -485,6 +499,62 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'settings.reloading': 'Reloading…',
 	'settings.saveSuccess': 'Manifest saved.',
 	'settings.loadErrorBody': 'Could not load Settings. Try again.',
+
+	// ————— Schema authoring ("schema" batch, Phase 1): create collections/add fields —————
+	// Visible only when `capabilities.schemaBootstrap`/`schemaFieldBootstrap` allow it (law of
+	// capabilities) — without superuser, this whole section is not offered (same gate as the
+	// manifest editor, see L6c below). See `SchemaAuthoringPanel.svelte`.
+	'settings.schema.title': 'Schema',
+	'settings.schema.description':
+		'Create new collections or add fields to one that already exists. Strictly additive: it never renames or deletes anything (in PocketBase that destroys the column and its data, with no undo).',
+	'settings.schema.create.title': 'Create collection',
+	'settings.schema.create.nameLabel': 'Collection name',
+	'settings.schema.create.namePlaceholder': 'e.g. posts',
+	'settings.schema.create.nameInvalid':
+		'Must start with a letter and use only letters, digits or underscore.',
+	'settings.schema.create.submit': 'Create collection',
+	'settings.schema.create.submitting': 'Creating…',
+	'settings.schema.create.nameReserved':
+		'That name belongs to Vega ("vega" and anything starting with "vega_"): those collections are created and maintained by Vega itself. Pick another one.',
+	'settings.schema.create.success': 'Collection "{name}" created.',
+	'settings.schema.create.alreadyExists':
+		'Collection "{name}" already existed: it was not modified (an existing collection is never overwritten). Use "Add fields" to extend it.',
+	'settings.schema.addFields.title': 'Add fields',
+	'settings.schema.addFields.targetLabel': 'Collection',
+	'settings.schema.addFields.targetPlaceholder': 'Choose a collection…',
+	'settings.schema.addFields.submit': 'Add fields',
+	'settings.schema.addFields.submitting': 'Adding…',
+	'settings.schema.addFields.success': '{count} field(s) added to "{collection}".',
+	'settings.schema.addFields.noneAdded':
+		'No new fields: all of the ones listed already existed in "{collection}" and were left untouched.',
+	'settings.schema.addFields.empty':
+		'There are no collections of your own yet. Create one first in "Create collection".',
+	'settings.schema.fields.nameLabel': 'Field name',
+	'settings.schema.fields.namePlaceholder': 'e.g. title',
+	'settings.schema.fields.typeLabel': 'Type',
+	'settings.schema.fields.requiredLabel': 'Required',
+	'settings.schema.fields.maxLabel': 'Max length (optional)',
+	'settings.schema.fields.addRow': 'Add field',
+	'settings.schema.fields.removeRow': 'Remove field',
+	// Real PocketBase landmine, already caught in production: a required `number` rejects the
+	// value 0 (PB treats "required" as "different from the zero-value", and 0 IS the zero-value
+	// of number). A warning, not a block: there are legitimate ranges that need 0 (e.g. a 0-5
+	// rating) without marking the field as required.
+	'settings.schema.fields.numberRequiredWarning':
+		'PocketBase rejects the value 0 on a number field marked as required. If you need to allow 0 (e.g. a 0-5 rating), do not mark the field as required.',
+	'settings.schema.fields.type.text': 'Text',
+	'settings.schema.fields.type.number': 'Number',
+	'settings.schema.fields.type.bool': 'Yes/No',
+	'settings.schema.fields.type.date': 'Date',
+	'settings.schema.fields.type.json': 'JSON',
+	'settings.schema.error': 'Error: {message}',
+	// JS migration emitted after a successful create/add (schema batch, half 2): without this,
+	// every schema edit made from Vega drifts production away from the repo SILENTLY.
+	'settings.schema.migration.title': 'Migration generated',
+	'settings.schema.migration.instructions':
+		'Save this file as pb_migrations/{filename} in your project repository and commit it: without it, this schema change only exists in your PocketBase, not in your version control.',
+	'settings.schema.migration.copy': 'Copy',
+	'settings.schema.migration.copied': 'Copied',
 
 	// ————— Editor role (batch L6c): manifest-editing gate —————
 	// Without `schemaBootstrap` (auth collection other than `_superusers`) an editor cannot

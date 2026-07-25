@@ -39,6 +39,20 @@ export interface ProjectDiscovery {
 	 * ya usa Vega (`backend/build-client.ts`).
 	 */
 	build: { apiBasePath: string } | null;
+	/**
+	 * Preview de contenido SIN publicar (lote "publicación", fase B, §"Preview endpoint" del
+	 * contrato): mismo criterio que `build` de arriba, campo ADITIVO por el MISMO motivo — no
+	 * sube `PROJECT_DISCOVERY_VERSION` (§"Compatibility policy"), y degrada él solo sin invalidar
+	 * el resto del documento si viene mal formado.
+	 *
+	 * Deliberadamente NO lleva ningún token: un token de preview de larga duración metido aquí
+	 * sería una credencial PÚBLICA (este endpoint no lleva auth) con acceso de lectura a TODOS
+	 * los borradores del sitio — peor que el webhook de despliegue que `build` evita, porque
+	 * sería una llave permanente en vez de un disparador de un solo uso. El secreto sigue viviendo
+	 * detrás de `apiBasePath`, pedido en caliente y autenticado con el MISMO token de editor que
+	 * ya usa `backend/preview-client.ts#createPreviewClient` (igual patrón que `build-client.ts`).
+	 */
+	preview: { apiBasePath: string } | null;
 }
 
 function object(value: unknown): Record<string, unknown> | null {
@@ -109,13 +123,24 @@ export function parseProjectDiscovery(raw: unknown): ProjectDiscovery | null {
 		if (buildApiBasePath) build = { apiBasePath: buildApiBasePath };
 	}
 
+	// Mismo criterio de degradación campo a campo que `build` (ver su comentario arriba y la
+	// cabecera de `ProjectDiscovery.preview`): un `preview` presente pero mal formado NO invalida
+	// el documento entero, solo se trata como ausente.
+	let preview: ProjectDiscovery['preview'] = null;
+	if (root.preview !== null && root.preview !== undefined) {
+		const previewObj = object(root.preview);
+		const previewApiBasePath = apiPath(previewObj?.apiBasePath);
+		if (previewApiBasePath) preview = { apiBasePath: previewApiBasePath };
+	}
+
 	return {
 		protocolVersion: 1,
 		project: { key: projectKey, name: projectName },
 		auth: { collection: authCollection, apiBasePath: apiPath(auth.apiBasePath) },
 		manifest: { collection: 'vega', key: manifestKey, schemaVersion },
 		siteSettings,
-		build
+		build,
+		preview
 	};
 }
 

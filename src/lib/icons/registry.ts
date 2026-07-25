@@ -34,6 +34,7 @@ const ICON_IDS = [
 	'chevron',
 	'close',
 	'document',
+	'eye',
 	'generic',
 	'list',
 	'logout',

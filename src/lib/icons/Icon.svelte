@@ -56,6 +56,12 @@
 	{:else if resolvedId === 'document'}
 		<path d="M6 2h7l5 5v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" />
 		<polyline points="13 2 13 7 18 7" />
+	{:else if resolvedId === 'eye'}
+		<!-- Lote "publicación" fase B: ojo abierto clásico, botón "Vista previa" del panel embebido
+		     de `RecordForm.svelte` (`PreviewPanel.svelte`) — distinto del icono `document` (que ya
+		     representa "un registro"), para no confundir "abrir el registro" con "ver cómo queda". -->
+		<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z" />
+		<circle cx="12" cy="12" r="3" />
 	{:else if resolvedId === 'list'}
 		<line x1="8" y1="6" x2="21" y2="6" />
 		<line x1="8" y1="12" x2="21" y2="12" />

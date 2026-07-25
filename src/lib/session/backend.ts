@@ -250,7 +250,8 @@ async function createInstance(): Promise<BackendPort> {
 		authCollection,
 		authApiBasePath,
 		manifestKey: projectConfig?.manifestKey,
-		buildApiUrl: resolveBuildApiUrl(url, discovery)
+		buildApiUrl: resolveBuildApiUrl(url, discovery),
+		previewApiUrl: resolvePreviewApiUrl(url, discovery)
 	});
 }
 
@@ -274,6 +275,21 @@ function resolveBuildApiUrl(url: string, discovery: ProjectDiscovery | null): st
 	} catch {
 		// `url` inválida no debería llegar aquí (ya pasó por `resolveBackendUrl`), pero degradar en
 		// vez de lanzar es coherente con el resto de este módulo (P3-L3, nunca romper el arranque).
+		return null;
+	}
+}
+
+/**
+ * Ver `resolveBuildApiUrl` (mismo criterio, misma cabecera, misma degradación defensiva): base
+ * ABSOLUTA del endpoint de preview de borrador, o `null` sin `discovery.preview`. Se guarda en
+ * `resolvedPreviewApiUrl` (arriba) en vez de devolverse como campo de `createPocketBaseBackend`
+ * (ver la cabecera de `getPreviewApiUrl` para el porqué de la costura distinta).
+ */
+function resolvePreviewApiUrl(url: string, discovery: ProjectDiscovery | null): string | null {
+	if (!discovery?.preview) return null;
+	try {
+		return new URL(discovery.preview.apiBasePath, url).toString();
+	} catch {
 		return null;
 	}
 }

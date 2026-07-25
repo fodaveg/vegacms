@@ -124,6 +124,16 @@
 	 *   lo pinta disabled con el mismo motivo); si no, `<a target="_blank" rel="noreferrer">`. Solo
 	 *   depende de `type`/`baseline`/`model.recordId` — se re-evalúa solo porque `baseline` cambia
 	 *   tras guardar (p.ej. un slug que se resuelve con el guardado ya entra en la URL).
+	 * - **"Vista previa" (lote "publicación", fase B, §"Preview endpoint" del contrato)**: botón
+	 *   OPT-IN aparte de "Ver en el sitio" — visible solo con `ctx.port.previewApiUrl` no nulo (el
+	 *   proyecto declaró la capacidad en su discovery) Y `model.recordId` no nulo (nada que
+	 *   previsualizar en `/new` sin guardar). Alterna `PreviewPanel.svelte` (`{#if}`, nunca un prop
+	 *   `open` — ver su cabecera para el porqué), un panel FIJO al borde del viewport, no una
+	 *   tarjeta más del aside. `savedCount` (más abajo, ya existía para el raíl) hace doble
+	 *   servicio como `refreshToken` del panel: un guardado con éxito es la única vez que el
+	 *   registro remoto cambia de verdad, así que es también el disparo correcto de refresco del
+	 *   preview. Cambiar de registro (el `$effect` de resincronía, más abajo) cierra el panel: la
+	 *   colección/id que tenía abiertos ya no son los del registro nuevo.
 	 * - **"Último guardado"**: semilla desde el campo autodate `updated` de `baseline` SI el tipo lo
 	 *   declara (`type.fields`, no todo backend de demo lo modela — PocketBase real siempre lo
 	 *   trae) y tiene un valor parseable; tras cualquier guardado con éxito se actualiza a
@@ -194,6 +204,7 @@
 	import EditTopBar from '$lib/shell/EditTopBar.svelte';
 	import RecordBlocks from './RecordBlocks.svelte';
 	import SocialCardPreview from './SocialCardPreview.svelte';
+	import PreviewPanel from './PreviewPanel.svelte';
 	import { buildFormModel, type FormModel } from './form-model';
 	import { buildFormSections, localeForField, type FormSection } from './form-sections';
 	import { autodateInstant, autodateText } from './record-meta';
@@ -256,6 +267,12 @@
 	 *  arranca en `false` y solo cambia si la colección declara la capacidad. */
 	let blocksDirty = $state(false);
 
+	// Lote "publicación" fase B (ver cabecera, "Vista previa"): `true` mientras `PreviewPanel` está
+	// montado. Variable de estado propia (no derivada de `savedCount`/`model`): el usuario decide
+	// cuándo abrir/cerrar, nada más lo cambia salvo un cambio de REGISTRO (ver el `$effect` de
+	// resincronía, más abajo, que la fuerza a `false`).
+	let previewPanelOpen = $state(false);
+
 	// Ver cabecera: variable PLANA (no `$state`) para no crear un ciclo effect↔escritura propia.
 	let syncedModel = untrack(() => model);
 
@@ -296,6 +313,10 @@
 			// Los bloques del registro ANTERIOR ya no aplican (misma LANDMINE): `RecordBlocks` se
 			// remonta con el `parentId`/`parentType` nuevos y recalculará su propio dirty desde cero.
 			blocksDirty = false;
+			// Lote "publicación" fase B: un panel de preview abierto para el registro ANTERIOR ya no
+			// tiene sentido (otra colección/id) — se cierra, `RecordForm` lo reabrirá si el usuario
+			// vuelve a pedirlo para el registro nuevo.
+			previewPanelOpen = false;
 		}
 	});
 
@@ -371,6 +392,13 @@
 		buildPreviewUrl(type, { id: model.recordId ?? '', type: type.name, values: baseline })
 	);
 
+	/** Lote "publicación" fase B (ver cabecera, "Vista previa"): capacidad OPT-IN e independiente de
+	 *  `previewUrl` de arriba — un proyecto puede servir preview de borrador aunque el registro
+	 *  todavía no tenga URL pública resuelta (es justo el caso en el que un preview aporta algo). */
+	const previewCapable = $derived(
+		(ctx.port.previewApiUrl ?? null) !== null && model.recordId !== null
+	);
+
 	/** HH:MM localizado (mismo criterio de locale que `cell.ts`), o `null` sin hora conocida
 	 *  todavía (ver `savedAt`/cabecera). */
 	const savedAtText = $derived(
@@ -390,7 +418,10 @@
 	const showRail = $derived(type.editorRail && !type.singleton);
 
 	/** Token de recarga del raíl: sube en CADA guardado con éxito. Sin esto, renombrar el registro
-	 *  abierto dejaría su fila del índice con el título viejo hasta recargar la página. */
+	 *  abierto dejaría su fila del índice con el título viejo hasta recargar la página. Lote
+	 *  "publicación" fase B: el MISMO contador hace doble servicio como `refreshToken` de
+	 *  `PreviewPanel` (ver cabecera, "Vista previa") — un guardado con éxito es la única señal
+	 *  honesta de que hay algo nuevo que previsualizar. */
 	let savedCount = $state(0);
 
 	/** Tarjeta "Registro" (id/creado/actualizado): solo en edición — en creación no hay id ni
@@ -676,6 +707,20 @@
 			{:else if savedAtText}
 				<span class="vega-editor-saved-at">{savedAtText}</span>
 			{/if}
+			{#if previewCapable}
+				<!-- Lote "publicación" fase B (ver cabecera, "Vista previa"): OPT-IN, independiente de
+				     "Ver en el sitio" — alterna `PreviewPanel`, nunca abre una pestaña. -->
+				<button
+					type="button"
+					class="vega-editor-preview-toggle"
+					class:vega-editor-preview-toggle--active={previewPanelOpen}
+					aria-pressed={previewPanelOpen}
+					onclick={() => (previewPanelOpen = !previewPanelOpen)}
+				>
+					<Icon id="eye" size={14} />
+					{ctx.t('editor.preview.toggle')}
+				</button>
+			{/if}
 			{#if previewUrl}
 				<!-- `rel="external"` (además de `noreferrer`): `previewUrl` es SIEMPRE un sitio ajeno
 				     a esta SPA (el sitio público del propio manifiesto, cualquier dominio) — nunca
@@ -905,6 +950,22 @@
 	onConfirm={confirmDelete}
 	onCancel={() => (deleteOpen = false)}
 />
+
+<!-- Lote "publicación" fase B (ver cabecera, "Vista previa"): panel FIJO fuera del `<form>`, mismo
+     criterio que `DeleteConfirm` arriba — no es contenido del formulario, es un overlay propio. -->
+{#if previewPanelOpen && previewCapable}
+	{@const previewApiUrl = ctx.port.previewApiUrl ?? null}
+	{@const previewRecordId = model.recordId}
+	{#if previewApiUrl !== null && previewRecordId !== null}
+		<PreviewPanel
+			apiBasePath={previewApiUrl}
+			collection={type.name}
+			recordId={previewRecordId}
+			refreshToken={savedCount}
+			onClose={() => (previewPanelOpen = false)}
+		/>
+	{/if}
+{/if}
 
 <style>
 	/* El editor va A SANGRE (mockup final, ver cabecera): `.vega-main` (AppShell) pinta el papel
@@ -1243,6 +1304,44 @@
 	button.vega-editor-preview-link:disabled {
 		cursor: not-allowed;
 		opacity: 0.5; /* mockup `.btn:disabled { opacity: 0.5 }` */
+	}
+
+	/* Botón "Vista previa" (lote "publicación" fase B, ver cabecera): MISMO tamaño/forma que
+	   "Ver en el sitio", con estado `--active` cuando el panel está abierto (mismo lenguaje de
+	   "pulsado" que un toggle, no un color nuevo). */
+	.vega-editor-preview-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		height: 34px;
+		padding: 0 0.9rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--btn);
+		color: var(--ink);
+		font-size: 0.8125rem;
+		font-weight: 550;
+		line-height: 1.2;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	.vega-editor-preview-toggle:hover {
+		border-color: var(--line-strong);
+	}
+
+	.vega-editor-preview-toggle--active {
+		border-color: var(--accent-line);
+		color: var(--accent-text);
+		background: var(--active);
+	}
+
+	/* Mismo breakpoint que `PreviewPanel.svelte` se oculta por completo (ver su cabecera,
+	   "Responsive"): sin panel que abrir, el botón que lo abriría sobraría. */
+	@media (max-width: 900px) {
+		.vega-editor-preview-toggle {
+			display: none;
+		}
 	}
 
 	/* Acción inline junto a un control (mockup `.slug-row .btn`): el MISMO botón secundario de la

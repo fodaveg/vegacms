@@ -123,6 +123,97 @@ backend owns that secret and decides how `/trigger` reaches it. See
 [PocketBase integration](POCKETBASE-INTEGRATION.md#publicación-disparador-de-build)
 for an implementation recipe (a PocketBase Go extension or a thin proxy).
 
+## Preview endpoint (optional)
+
+A draft has no public URL yet — that is exactly the moment a preview is useful.
+`previewUrl` (the content manifest's §4.7 placeholder template) only resolves once every
+placeholder already has a saved value, and for `output: 'static'` sites that in practice
+also means "already built and deployed": the one case where a preview would help most is
+the one case the existing link can't cover.
+
+Discovery can advertise a bridge to a live, unpublished preview, following the SAME
+pattern as `build` above and for the SAME reason: Vega must never learn a credential from
+a public endpoint. Add an ADDITIVE `preview` object:
+
+```json
+{
+	"preview": { "apiBasePath": "/api/vega-preview" }
+}
+```
+
+Omit `preview`, or set it to `null`, when the project can't render unpublished content —
+Vega then shows only the existing "View on site" link (`previewUrl`) and no preview
+panel at all. Because this field is additive, it does not require a `protocolVersion`
+bump (see "Compatibility policy" below): the same reasoning as `build` applies verbatim —
+a server that adds `preview` to an existing discovery document stays fully compatible
+with older Vega builds, which simply ignore the unknown key.
+
+A long-lived preview token embedded in the (public) discovery document would be a
+credential that grants read access to every draft on the site — arguably worse than the
+deploy webhook `build` avoids, because it would be a standing key instead of a one-shot
+trigger. So `preview` carries no token at all. Vega requests a short-lived one on demand,
+the moment an editor opens the preview panel, authenticated with the SAME editor token it
+already sends to the rest of its own PocketBase API (`Authorization: <token>`, no
+`Bearer` prefix — the PocketBase SDK convention, same as `build`):
+
+```http
+POST {apiBasePath}/token
+Authorization: <token>
+Content-Type: application/json
+
+{ "collection": "posts", "id": "6f2c1a90c1b2e34" }
+```
+
+Returns `200` with:
+
+```json
+{
+	"url": "https://example.test/preview/posts/6f2c1a90c1b2e34?token=…",
+	"expiresAt": "2026-07-25T10:15:00.000Z"
+}
+```
+
+- `collection`/`id` identify the record Vega wants a preview of — the same collection
+  name and record id the rest of the API already uses.
+- `url`: an absolute URL Vega embeds in an `<iframe>` as-is. Vega treats it as fully
+  opaque: it never parses, rewrites, decodes, or stores it beyond the lifetime of the
+  open panel.
+- `expiresAt`: ISO 8601 UTC. Vega uses it only to know when to request a fresh token
+  while the panel stays open (a silent renewal, scheduled a little ahead of the
+  deadline); it never extends, shortens, or otherwise second-guesses the token's
+  validity — enforcing that stays entirely the project's call, server-side.
+
+Any other status, or a body without a non-empty `url`, is a failed request: there is no
+draft preview for this record right now (unsupported collection, a record that doesn't
+exist, or a project that has no rendering opinion for this content type). Vega shows that
+as an explicit, actionable error inside the panel — never a blank `<iframe>`.
+
+Behind `/token`, the project decides how a request maps to a page (a per-collection route
+table, a convention such as `/preview/{collection}/{id}`, anything else); Vega does not
+need to know. For an `output: 'static'` site (Astro and similar), the URL that `/token`
+returns has to point at an actual SSR route — a static build cannot reflect a record that
+was never built — which is why this is explicitly the site's own responsibility, not
+Vega's:
+
+- The `/token` handler (a PocketBase Go extension, same shape as `/api/vega-build`) reads
+  `{ collection, id }`, checks the caller authenticates as an editor (the same rule
+  `/api/vega-build` already enforces), mints a short-lived signed value (e.g. an HMAC over
+  `collection`, `id` and an expiry, with a server-only secret — never a bare database id,
+  which would let anyone probe other drafts by guessing), and returns a URL such as
+  `${SITE_ORIGIN}/preview/{collection}/{id}?token=…` alongside the matching `expiresAt`.
+- The preview route itself needs SSR for that one path (`output: 'server'`, a hybrid
+  `output: 'server'` page, or a server island — the rest of the site can stay fully
+  static). It re-checks the signed token against the same secret, fetches the record from
+  PocketBase directly by id (deliberately bypassing whatever "published" filter the public
+  listing pages apply — this route's entire purpose is to show what isn't public yet), and
+  renders it with the SAME template/component the public page uses, so a draft looks
+  exactly like what publishing it would produce.
+
+Vega never stores the preview token beyond the open panel's lifetime, and never fabricates
+a preview URL on its own — unlike `previewUrl`, whose placeholder substitution is a pure
+client-side string match (`$lib/model/preview-url.ts`), every draft preview URL comes from
+a live `/token` response, requested fresh each time the panel opens or a save completes.
+
 ## Canonical `vega` record
 
 Protocol v1 recommends one record selected by `key = "default"`, with a unique
