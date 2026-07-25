@@ -12,11 +12,25 @@
  * ha llegado); si P6 añade binarios grandes servidos por la app, eso necesitará su PROPIO
  * presupuesto (otro criterio, otro umbral), no inflar este.
  *
- * Umbral MEDIDO (P8·F1, 2026-07-19) sobre el MVP actual (P1–P5 + P7·motor, sin P6/media):
- * total gzip real = 267.86 KB (274 292 bytes) repartido en 47 ficheros .js/.css bajo `build/`.
- * BUDGET_BYTES fija ~320 KB (≈ +19 % de margen sobre lo medido) — cabecera para crecimiento
+ * Umbral MEDIDO (P8·F1, 2026-07-19) sobre el MVP de entonces (P1–P5 + P7·motor, sin P6/media):
+ * total gzip real = 267.86 KB (274 292 bytes) en 47 ficheros .js/.css bajo `build/`.
+ * BUDGET_BYTES fijaba ~320 KB (≈ +19 % de margen sobre lo medido) — cabecera para crecimiento
  * normal sin dejar pasar una regresión grande sin darse cuenta. Este número lo firma David
  * (contrato §P8: "David firma el número"): AJÚSTALO aquí si el margen no es el que quieres.
+ *
+ * RE-MEDIDO 2026-07-25 (v0.2.0, rediseño «aquelarre» completo). Medición real, no estimación:
+ *   - v0.1.1 (`22d9791`, build limpio en worktree aparte): 308.46 KB en 61 ficheros — o sea que
+ *     el umbral de 320 KB ya solo tenía un 3.6 % de aire, agotado por P6/media + L6/auth + l10-l12
+ *     + el banner de update, ninguno de los cuales lo re-midió.
+ *   - v0.2.0 (esta versión): 326.34 KB. Delta de la ola 3 = +17.88 KB para el rediseño de shell,
+ *     lista, editor y medios + 3 capacidades de manifiesto (`slugField`, `editorRail`,
+ *     `fieldGroups[].placement`) + `EditorRail`/`MediaSelectionBar`/`media-card`/`media-metrics`/
+ *     `slugify`/`record-meta` + el escaparate de `demo-seed`. Repartido: ~4.7 KB el seed, el resto
+ *     código y CSS de funcionalidad. No hay bulto anómalo que recortar.
+ * Nuevo BUDGET_BYTES = 380 KB, que conserva la MISMA cabecera ABSOLUTA que firmó David en su día
+ * (~52 KB por encima de lo medido, ≈ +16 %) en vez de re-aplicar un porcentaje sobre un total ya
+ * mayor. OJO al code-splitting: este script suma TODO el `build/`, así que trocear en chunks no
+ * baja el número — solo baja si de verdad se deja de compilar código.
  */
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -27,9 +41,9 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BUILD_DIR = path.resolve(__dirname, '..', 'build');
 
-// Medido 2026-07-19: 274 292 bytes gzip (267.86 KB) para el MVP actual. Provisional — pendiente
-// de que David lo firme (o ajuste) según el contrato.
-const BUDGET_BYTES = 320 * 1024;
+// Re-medido 2026-07-25 sobre v0.2.0: 326.34 KB gzip reales (v0.1.1 medía 308.46 KB). Ver la
+// cabecera para el desglose del delta y el criterio de la cabecera absoluta.
+const BUDGET_BYTES = 380 * 1024;
 
 /** Recorre `dir` recursivamente y devuelve la ruta de cada fichero (no directorio). */
 function walk(dir) {
