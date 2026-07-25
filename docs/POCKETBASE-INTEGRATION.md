@@ -346,11 +346,42 @@ Cómo funciona:
 - **Coste**: cada guardado de un registro ya existente hace una lectura y una escritura extra contra
   `vega_revisions`. Ningún otro camino de la app (listados, navegación) paga ningún coste adicional.
 
-La **papelera** (recuperar un registro BORRADO, no solo una versión anterior) es una fase posterior
-de este mismo lote: cuando llegue, el aviso de borrado dejará claro con todas las letras que los
-**ficheros adjuntos de un registro borrado no se recuperan** (PocketBase los destruye al instante al
-borrar el registro, y recrearlo con el mismo id no los resucita) — solo se restauran los VALORES y el
-id original.
+## Papelera
+
+Además del historial de versiones (arriba), Vega guarda una copia de cada registro justo ANTES de
+**borrarlo** (`kind:'delete'` en la misma colección `vega_revisions`), accesible desde **Papelera**
+en la barra lateral. Retención por defecto: 30 días (ajustable en **Ajustes → Historial y
+papelera**, o `revisions.trashDays` en el manifiesto), con poda automática en segundo plano.
+
+Restaurar un registro borrado (**Papelera → Restaurar**) lo recrea con **su id original** —
+imprescindible para no romper en silencio lo que apuntaba a él— vía `create` con un id explícito
+(requiere que el backend lo soporte; PocketBase lo hace desde siempre, verificado contra 0.39.6).
+Dos cosas que **no** se restauran, y que Vega avisa con todas las letras antes de confirmar el
+borrado:
+
+- **Los ficheros adjuntos.** PocketBase destruye el binario al instante al borrar el registro, y
+  recrearlo con el mismo id no lo resucita — se restauran los VALORES y el id, nunca el fichero.
+- **Las relaciones (`relation`) que apuntaban al registro.** Esto sorprende: **PocketBase limpia
+  esas relaciones en el mismo instante del borrado** (single → `null`; múltiple → el id se quita
+  del array — así lo ve Vega, ya normalizado; en la respuesta CRUDA de PB el single es `''`, y
+  `normalizeFieldValue` lo convierte a `null` antes de que llegue a ningún sitio, ver su cabecera),
+  no cuando alguien intenta restaurar. Cuando restauras, el id vuelve a estar vivo,
+  pero el registro que antes apuntaba a él ya perdió esa referencia — restaurar no la repara,
+  porque ya no hay nada que reparar del lado de PocketBase. Lo que SÍ sigue funcionando: cualquier
+  referencia que PocketBase no reconozca como `relation` (p. ej. un id pegado a mano en un campo de
+  texto/URL, el mismo caso que cubre el panel "¿Dónde se usa esto?") nunca se toca al borrar, así
+  que vuelve a resolver en cuanto el id está vivo otra vez.
+- Si el registro sigue existiendo con ese id (alguien lo recreó a mano mientras tanto), restaurar
+  falla con un mensaje claro — nunca pisa un registro vivo.
+
+Si tu backend no soporta id explícito en `create` (fuera de PocketBase, un adaptador propio), la
+papelera **oculta el botón "Restaurar"** en vez de intentar algo que sabe que va a fallar.
+
+Mismo criterio para una colección con un campo `file` **obligatorio**: como los ficheros nunca se
+restauran (punto de arriba), un registro de esa colección no se puede recrear completo — `vega_media
+.file` es el caso real (un asset ES su fichero), pero la papelera lo detecta por esquema, no como un
+caso especial de `vega_media`. La entrada sigue viéndose en la papelera (sus metadatos —alt, título,
+etiquetas— siguen teniendo valor), pero con "Restaurar" **deshabilitado** y el motivo explicado.
 
 ## Autenticación en Vega
 

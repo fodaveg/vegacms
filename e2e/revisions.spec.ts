@@ -5,8 +5,8 @@
  * (`getByLabel('Title')`/`getByLabel('Body')`, mismo criterio que `e2e/form.spec.ts`/
  * `e2e/media-integrity.spec.ts`).
  *
- * La papelera (B2) no se ejercita aquí: `vega_revisions` solo guarda `kind:'update'` en esta
- * fase, no hay nada que borrar/restaurar como papelera todavía.
+ * La papelera (Fase B2: borrar → `/papelera` → restaurar) vive en `e2e/trash.spec.ts`, fichero
+ * dedicado — este cubre solo `kind:'update'` (§8·B1).
  */
 import { expect, loginAsDemo, test } from './fixtures';
 

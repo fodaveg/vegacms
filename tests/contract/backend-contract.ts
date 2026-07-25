@@ -495,6 +495,104 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			});
 		});
 
+		// ———— 3b. create con id explícito (§0/§8·B2, `#lote-integridad` — restaurar un borrado) ————
+
+		describe('create con opts.id (§0/§8·B2, papelera: restaurar un borrado con su id original)', () => {
+			test('capability explicitRecordId presente', () => {
+				expect(capabilities.explicitRecordId).toBe(true);
+			});
+
+			test.skipIf(!capabilities.explicitRecordId)(
+				'reutiliza el id de un registro recién borrado (§0.1/§0.2, MEDIDO contra PB real: create acepta un id explícito, y el id de un borrado se puede reusar)',
+				async () => {
+					const port = await makeAuthedPort();
+					const original = await port.create('category', { name: 'Original' });
+
+					await port.delete('category', original.id);
+					await expect(port.get('category', original.id)).rejects.toMatchObject({
+						kind: 'not-found'
+					});
+
+					const restored = await port.create(
+						'category',
+						{ name: 'Restaurada' },
+						{ id: original.id }
+					);
+					expect(restored.id).toBe(original.id);
+					expect(restored.values.name).toBe('Restaurada');
+
+					const fetched = await port.get('category', original.id);
+					expect(fetched.values.name).toBe('Restaurada');
+				}
+			);
+
+			test.skipIf(!capabilities.explicitRecordId)(
+				'con el id de un registro VIVO: falla, nunca pisa el registro existente (§8·B2)',
+				async () => {
+					const port = await makeAuthedPort();
+					await expect(
+						port.create('category', { name: 'Choque' }, { id: CAT_ALPHA })
+					).rejects.toMatchObject({ kind: 'validation' });
+
+					// El registro vivo original sigue intacto — el intento de choque no lo tocó.
+					const stillAlpha = await port.get('category', CAT_ALPHA);
+					expect(stillAlpha.values.name).toBe('Alpha');
+				}
+			);
+
+			/**
+			 * **Hallazgo, MEDIDO contra PocketBase 0.39.6 real (no estaba en §0 del contrato)**: al
+			 * borrar el DESTINO de un campo `relation` (single o múltiple, ambos no-`required`), PB
+			 * NO deja el id "colgando" en los registros que apuntaban a él — los REESCRIBE en el
+			 * mismo `delete()` (single → `null`; múltiple → el id se quita del array). Es limpieza
+			 * de integridad referencial, no cascada de borrado (el registro que apunta sigue vivo).
+			 * `memory` NO hace esta limpieza (su `delete()` solo toca la colección que borra) — es
+			 * una divergencia real entre adaptadores, no cubierta por la suite compartida (no hay
+			 * `ContractOptions` para ramificarla; el hallazgo vive documentado en
+			 * `pocketbase.contract.test.ts`, que corre SOLO contra el binario real).
+			 *
+			 * Consecuencia para la papelera (§8·B2): un campo `relation` que apuntaba al registro
+			 * borrado YA se limpió ANTES de que exista nada que restaurar — "restaurar con el mismo
+			 * id" no puede reparar una relación que PB reescribió en el instante del borrado. Lo que
+			 * SÍ sobrevive, y es lo que este test comprueba (verificado en AMBOS adaptadores, no una
+			 * rareza de PB): una referencia que PB no reconoce como `relation` — el mismo caso que
+			 * el motor de referencias de Fase A ya trata aparte (`references.ts`, vía "url" en texto
+			 * libre) — nunca se toca al borrar el destino, así que el id vuelto a estar vivo la deja
+			 * resolviendo de nuevo. La promesa real de "restaurar" es "el id vuelve a estar vivo",
+			 * no "las relaciones de PB se reparan solas".
+			 */
+			test.skipIf(!capabilities.explicitRecordId)(
+				'restaurar un borrado revive el id: una referencia en TEXTO LIBRE (no un `relation` de PB) vuelve a resolver (§8·B2, ver cabecera)',
+				async () => {
+					const port = await makeAuthedPort();
+
+					const target = await port.create('category', { name: 'Referenciada' });
+					// `kitchen_sink.body` es texto libre (richtext): PB no sabe que este id vive ahí
+					// dentro, así que nunca lo toca al borrar `target` — a diferencia de un `relation`
+					// de verdad (ver cabecera).
+					const holder = await port.create('kitchen_sink', {
+						title: 'Referencia embebida',
+						body: `<p>ref:${target.id}</p>`
+					});
+
+					await port.delete('category', target.id);
+					await expect(port.get('category', target.id)).rejects.toMatchObject({
+						kind: 'not-found'
+					});
+					// El texto libre sigue intacto, con el id ahora MUERTO dentro (nadie lo tocó).
+					expect((await port.get('kitchen_sink', holder.id)).values.body).toContain(target.id);
+
+					const restored = await port.create('category', { name: 'Restaurada' }, { id: target.id });
+					expect(restored.id).toBe(target.id);
+
+					// El id vuelve a resolver a un registro VIVO — la referencia en texto libre, que
+					// nunca se tocó, ahora es de nuevo accionable.
+					expect((await port.get('category', target.id)).values.name).toBe('Restaurada');
+					expect((await port.get('kitchen_sink', holder.id)).values.body).toContain(target.id);
+				}
+			);
+		});
+
 		// ——————————————————————————————————————————————————————————— 4. Query —————
 
 		describe('query', () => {

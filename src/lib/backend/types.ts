@@ -141,6 +141,16 @@ export interface Capabilities {
 	 * PocketBase vanilla: false. Se activa explícitamente con `authApiBasePath`.
 	 */
 	strongAuth: boolean;
+	/**
+	 * `create()` puede recibir `opts.id` y usarlo como id del registro nuevo (`#lote-integridad`
+	 * Fase B §8·B2: restaurar un borrado de la papelera CON su id original, la única forma de no
+	 * romper en silencio las relaciones que le apuntaban). PB: true (medido contra 0.39.6 real —
+	 * `create` acepta un `id` explícito; ver la cabecera de `port.ts#create`). memory: true. Sin
+	 * esta capability, `create(type, data, { id })` rechaza con `VegaError 'backend'` inmediato
+	 * (L8), igual que `schemaBootstrap`/`schemaFieldBootstrap` — y la papelera OCULTA "Restaurar"
+	 * en vez de intentar un camino que sabe que va a fallar.
+	 */
+	explicitRecordId: boolean;
 }
 
 // ————— Paginación —————

@@ -106,7 +106,8 @@ describe('modo superuser (default, sin authCollection) — camino previo INTACTO
 			protectedFiles: false,
 			schemaBootstrap: true,
 			schemaFieldBootstrap: true,
-			strongAuth: false
+			strongAuth: false,
+			explicitRecordId: true
 		});
 	});
 

@@ -99,6 +99,27 @@ export interface ReferencesReport {
 	partial: boolean;
 }
 
+/**
+ * `true` si `report` trae al menos UNA coincidencia CONFIRMADA (`status: 'ok'`) por la vía
+ * `'relation'` — la señal que gatea el aviso "PocketBase va a limpiar esos enlaces al borrar, y
+ * restaurar no los devuelve" en `DeleteConfirm.svelte`/`MediaDeleteConfirm.svelte` (fix de code
+ * review contra PocketBase 0.39.6: al borrar el destino de una relación, PB pone el campo simple
+ * en `''` o quita el id del array MÚLTIPLE en el mismo instante del borrado — no cuando alguien
+ * restaura — y recrear el registro con su id original nunca reconecta esos campos, ver
+ * `docs/POCKETBASE-INTEGRATION.md`).
+ *
+ * Deliberadamente exige `status: 'ok'` (nunca `'degraded'`): un match degradado por la vía
+ * `'relation'` es "no sabemos si hay relaciones", no "las hay" — pintar el aviso ahí sería
+ * inventar una certeza que no hay. Las referencias por texto/URL quedan fuera a propósito: esas
+ * SÍ se benefician de que el id vuelva a estar vivo (nunca las toca PocketBase al borrar), así
+ * que un aviso de "no vuelven" sería directamente falso para ellas.
+ */
+export function hasRelationMatches(report: ReferencesReport): boolean {
+	return report.groups.some((group) =>
+		group.matches.some((match) => match.via === 'relation' && match.status === 'ok')
+	);
+}
+
 /** El registro destino cuyas referencias se buscan. `fileRef` solo importa para la vía `'url'`
  *  (§1: "SOLO para assets de vega_media") — ausente o `null` ⇒ esa vía se omite entera. */
 export interface FindReferencesTarget {

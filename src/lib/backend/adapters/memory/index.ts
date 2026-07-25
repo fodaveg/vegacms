@@ -27,6 +27,7 @@ import { VegaError } from '../../errors';
 import type { BackendPort } from '../../port';
 import type { Query } from '../../query';
 import { normalizeFieldValue } from '../../normalize';
+import { assertExplicitRecordIdCapability } from '../../capability-guards';
 import { assertContentTypeWritable, checkUnwritableFields } from '../../write-guards';
 import type {
 	AddFieldsResult,
@@ -54,7 +55,8 @@ const CAPABILITIES: Capabilities = {
 	protectedFiles: false,
 	schemaBootstrap: true,
 	schemaFieldBootstrap: true,
-	strongAuth: false
+	strongAuth: false,
+	explicitRecordId: true
 };
 
 const DEFAULT_USER_EMAIL = 'admin@vega.test';
@@ -170,11 +172,18 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 		return structuredClone(viewRecord(type, id, values));
 	}
 
-	/** create/update comparten esta rutina: valida y, si todo pasa, materializa y guarda. */
+	/**
+	 * create/update comparten esta rutina: valida y, si todo pasa, materializa y guarda.
+	 * `explicitId` (§8·B2, `capabilities.explicitRecordId`) SOLO tiene efecto en modo CREATE
+	 * (`id === null`): fija el id del registro nuevo en vez de generarlo. Si ese id ya pertenece a
+	 * un registro VIVO de `type`, la creación falla — `create()` nunca pisa un registro existente,
+	 * ni con id explícito ni sin él (§8·B2 del contrato: "nunca pisar el registro vivo").
+	 */
 	async function writeRecord(
 		type: string,
 		id: RecordId | null,
-		data: RecordInput
+		data: RecordInput,
+		explicitId?: RecordId
 	): Promise<VegaRecord> {
 		checkSessionAlive();
 		const ct = getContentTypeOrThrow(type);
@@ -183,6 +192,11 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 		const byId = records.get(type)!;
 		const existingRaw = id !== null ? byId.get(id) : undefined;
 		if (id !== null && !existingRaw) throw VegaError.notFound(`Registro "${id}" no encontrado`);
+		if (id === null && explicitId !== undefined && byId.has(explicitId)) {
+			throw VegaError.validation({
+				'': { code: 'validation_not_unique', message: 'Ya existe un registro con ese id' }
+			});
+		}
 
 		const rejects = checkUnwritableFields(ct.fields, data);
 		if (Object.keys(rejects).length > 0) throw VegaError.validation(rejects);
@@ -242,7 +256,7 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 			}
 		}
 
-		const finalId = id ?? generateId();
+		const finalId = id ?? explicitId ?? generateId();
 		byId.set(finalId, rawValues);
 		const record = toVegaRecord(type, finalId, rawValues);
 		dispatch(type, { action: isCreate ? 'create' : 'update', record: structuredClone(record) });
@@ -328,8 +342,9 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 			return toVegaRecord(type, id, raw);
 		},
 
-		async create(type, data) {
-			return writeRecord(type, null, data);
+		async create(type, data, opts) {
+			assertExplicitRecordIdCapability(CAPABILITIES, opts?.id !== undefined);
+			return writeRecord(type, null, data, opts?.id);
 		},
 
 		async update(type, id, data) {

@@ -86,6 +86,12 @@ Por defecto, Vega busca PocketBase en `http://localhost:8090` (same-origin). Si 
 - Si es la primera vez, crea un usuario en el admin de PocketBase ([http://localhost:8090/](http://localhost:8090/)).
 - Inicia sesión en Vega con esas credenciales.
 
+**Historial de versiones y papelera** (opcionales): Vega puede crear su propia colección
+`vega_revisions` desde **Ajustes → Historial y papelera** (requiere sesión de superuser) para
+guardar una copia de cada registro antes de sobrescribirlo o borrarlo — la papelera restaura un
+registro borrado con su id original, pero **nunca sus ficheros adjuntos**. Detalle completo (cómo
+funciona, qué se restaura y qué no) en [Historial de versiones y Papelera](POCKETBASE-INTEGRATION.md#historial-de-versiones).
+
 ## Producción contra PocketBase
 
 ### 1. Build de la app

@@ -26,10 +26,11 @@
 	 * desagradable); si estaba colapsado, solo marca la caché como stale para la PRÓXIMA apertura
 	 * (sigue sin pagar la consulta si nadie la pide, misma ley que el resto del panel).
 	 *
-	 * **Etiqueta de cada entrada (fix de code-review, L11)**: `revisionLabel()` deriva el texto
-	 * mostrado del `titleField` YA resuelto de `type` (un `ResolvedContentType`, disponible AQUÍ a
-	 * diferencia de la capa que escribe `vega_revisions.label`, ver `record-label.ts`) — el `label`
-	 * almacenado queda como reserva. La papelera de B2 reutilizará el mismo criterio.
+	 * **Etiqueta de cada entrada (fix de code-review, L11)**: `revisionDisplayLabel()`
+	 * (`revision-label.ts`, extraída en Fase B2 para que `/papelera` la reutilice tal cual, §10.2
+	 * del contrato) deriva el texto mostrado del `titleField` YA resuelto de `type` (un
+	 * `ResolvedContentType`, disponible AQUÍ a diferencia de la capa que escribe
+	 * `vega_revisions.label`, ver `record-label.ts`) — el `label` almacenado queda como reserva.
 	 */
 	import { untrack } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
@@ -39,6 +40,7 @@
 	import type { ResolvedContentType } from '$lib/model/types';
 	import type { FormInputValues } from '$lib/form/dirty';
 	import { parseRevisionRecord, type RevisionRecord } from './revision';
+	import { revisionAuthorLabel, revisionDateLabel, revisionDisplayLabel } from './revision-label';
 	import { VEGA_REVISIONS_COLLECTION } from './revisions-collection';
 	import RevisionDiff from './RevisionDiff.svelte';
 
@@ -137,33 +139,17 @@
 	}
 
 	function dateLabel(revision: RevisionRecord): string {
-		if (revision.created === null) return ctx.t('revisions.panel.unknownDate');
-		const parsed = new Date(revision.created);
-		if (Number.isNaN(parsed.getTime())) return ctx.t('revisions.panel.unknownDate');
-		return new Intl.DateTimeFormat(ctx.locale, {
-			dateStyle: 'medium',
-			timeStyle: 'short'
-		}).format(parsed);
+		return revisionDateLabel(revision.created, ctx.locale, ctx.t('revisions.panel.unknownDate'));
 	}
 
 	function authorLabel(revision: RevisionRecord): string {
-		return revision.author !== '' ? revision.author : ctx.t('revisions.panel.unknownAuthor');
+		return revisionAuthorLabel(revision.author, ctx.t('revisions.panel.unknownAuthor'));
 	}
 
-	/**
-	 * Etiqueta MOSTRADA de una entrada del historial (fix de code-review, §10.1/L11): a diferencia
-	 * del `label` almacenado en el registro (heurístico ciego `guessRecordLabel`, capa P3 SIN
-	 * `ContentModel` — ver la cabecera de `record-label.ts`), aquí sí tenemos el `titleField` YA
-	 * resuelto (prop `type`, un `ResolvedContentType`) — un tipo cuyo campo título se llame p. ej.
-	 * `headline` deja de enseñar el id crudo que `guessRecordLabel` habría devuelto. El `label`
-	 * almacenado queda como RESERVA: sin `titleField` declarado, o si esta revisión concreta no
-	 * trae un valor de texto usable en ese campo (esquema cambiado desde que se guardó). */
+	/** Etiqueta MOSTRADA de una entrada del historial (fix de code-review, §10.1/L11) — delega en
+	 *  `revisionDisplayLabel` (`revision-label.ts`), ver su cabecera. */
 	function revisionLabel(revision: RevisionRecord): string {
-		if (type.titleField !== null) {
-			const raw = revision.values[type.titleField];
-			if (typeof raw === 'string' && raw.trim() !== '') return raw;
-		}
-		return revision.label;
+		return revisionDisplayLabel(type.titleField, revision);
 	}
 
 	function handleRestore(values: FormInputValues): void {

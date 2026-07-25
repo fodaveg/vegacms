@@ -100,7 +100,22 @@ export interface BackendPort {
 	// ——— Registros (§4.2, §4.3) ———
 	list(type: string, query?: Query): Promise<Page<VegaRecord>>;
 	get(type: string, id: RecordId): Promise<VegaRecord>;
-	create(type: string, data: RecordInput): Promise<VegaRecord>;
+	/**
+	 * Crea un registro. `opts.id` es una enmienda ADITIVA (`#lote-integridad` Fase B §8·B2): sin
+	 * él, el comportamiento es BIT A BIT idéntico al de siempre (id generado por el backend) — no
+	 * hay que tocar ningún llamador existente. Con él, el nuevo registro nace con ESE id en vez de
+	 * uno generado: la única forma de que "restaurar un borrado" (la papelera) no rompa en
+	 * silencio las relaciones que apuntaban al registro original (§8·B2 del contrato de Fase B).
+	 * Requiere `capabilities.explicitRecordId` ⇒ sin ella, `VegaError 'backend'` inmediato (L8),
+	 * mismo criterio que `schemaBootstrap`/`schemaFieldBootstrap`. Si `opts.id` ya pertenece a un
+	 * registro VIVO de `type`, la creación falla (`VegaError 'validation'`) — este método NUNCA
+	 * pisa un registro existente, ni con ni sin `opts.id`. **Medido contra PocketBase 0.39.6
+	 * real** (no supuesto): `create` acepta un `id` explícito; el campo `id` por defecto exige
+	 * EXACTAMENTE 15 caracteres (un id inventado a mano casi nunca cabe — solo un id que el propio
+	 * backend generó antes siempre vale), y se puede reusar el id de un registro que se acaba de
+	 * borrar.
+	 */
+	create(type: string, data: RecordInput, opts?: { id?: RecordId }): Promise<VegaRecord>;
 	update(type: string, id: RecordId, data: RecordInput): Promise<VegaRecord>;
 	delete(type: string, id: RecordId): Promise<void>;
 

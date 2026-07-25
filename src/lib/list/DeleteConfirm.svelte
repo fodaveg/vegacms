@@ -55,6 +55,14 @@
 	 * cabecera de `references.ts`) NUNCA añade esa fricción — el borrado sigue con su único
 	 * `aria-disabled` de siempre (`deleting`), con un aviso de "no se pudo comprobar" en contexto.
 	 *
+	 * **La línea "restaurar no reconecta relaciones" (fix de code-review contra PocketBase 0.39.6)**:
+	 * `hasRelationMatches(guard.status.report)` — MEDIDO, no supuesto: al borrar el destino de una
+	 * relación, PB limpia ese campo en el acto (single→`''`, múltiple→quita el id del array), y
+	 * restaurar el registro con su id original NUNCA lo reconecta (ver `docs/POCKETBASE-
+	 * INTEGRATION.md`). Se pinta SOLO si hay al menos una coincidencia CONFIRMADA (`status:'ok'`)
+	 * por la vía `'relation'` — un aviso de más sobre referencias por texto/URL (que sí se
+	 * benefician del id vivo de nuevo) sería tan falso como no avisar nada.
+	 *
 	 * `targetCollection`/`targetId` son OPCIONALES (`''`/`null` por defecto = sin comprobación,
 	 * comportamiento IDÉNTICO al de antes de este lote). Los TRES llamantes que borran un registro
 	 * concreto los pasan siempre: `/c/[type]/+page.svelte` (fila del listado), `RecordForm.svelte`
@@ -63,11 +71,22 @@
 	 * opcionales no es deuda: `MediaDeleteConfirm.svelte` tiene un camino de selección MÚLTIPLE
 	 * donde a propósito no se comprueba nada (ver su cabecera), y un `''`/`null` explícito es cómo
 	 * se dice "aquí no preguntes" sin inventar un tercer prop.
+	 *
+	 * **La línea de la papelera (`#lote-integridad`, Fase B §4/§10.3)**: `isTrashAvailable(ctx.model)`
+	 * (síncrono, sin red, ver su cabecera) decide entre "recuperable N días" (`ctx.model.revisions.
+	 * trashDays`) y "este borrado será DEFINITIVO" — nunca promete papelera si el decorador
+	 * (`with-revisions.ts`) no va a poder cumplirla. `hasFiles` (prop, opcional, `false` por
+	 * defecto) añade la línea "los ficheros adjuntos no se recuperan" cuando el registro pendiente
+	 * tiene campos `file` con valor: el llamador la calcula (ya tiene el `ResolvedContentType` y los
+	 * valores del registro a mano) con `hasFileValues` (`revisions/restore.ts`) — este componente no
+	 * conoce el esquema del registro que borra, solo pinta lo que le dicen.
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import type { RecordId } from '$lib/backend/types';
 	import { createDeleteReferencesGuard } from '$lib/integrity/delete-guard.svelte';
+	import { hasRelationMatches } from '$lib/integrity/references';
 	import ReferencesSummary from '$lib/integrity/ReferencesSummary.svelte';
+	import { isTrashAvailable } from '$lib/revisions/trash-availability';
 
 	interface Props {
 		/** `true` mientras haya un registro pendiente de confirmar (lo decide `+page.svelte`). */
@@ -89,6 +108,9 @@
 		/** Destino de foco si `previouslyFocused` ya no está en el documento al cerrar (ver
 		 *  cabecera: el caso real es un borrado con éxito que se llevó la fila por delante). */
 		fallbackFocusEl: HTMLElement | null;
+		/** `true` si el registro pendiente tiene campos `file` con valor (ver cabecera): añade el
+		 *  aviso "los ficheros adjuntos no se recuperan". Default `false` (comportamiento previo). */
+		hasFiles?: boolean;
 		onConfirm: () => void;
 		onCancel: () => void;
 	}
@@ -100,11 +122,15 @@
 		targetId = null,
 		deleting,
 		fallbackFocusEl,
+		hasFiles = false,
 		onConfirm,
 		onCancel
 	}: Props = $props();
 
 	const ctx = getVegaContext();
+
+	// ————— La línea de la papelera (ver cabecera) —————
+	const trashAvailable = $derived(isTrashAvailable(ctx.model));
 
 	// ————— Diálogo modal cancelable: foco atrapado + foco inicial seguro (ver cabecera) —————
 	let dialogEl = $state<HTMLElement | null>(null);
@@ -210,6 +236,17 @@
 			<h2 id="vega-delete-title">{ctx.t('list.delete.confirmTitle')}</h2>
 			<p id="vega-delete-body">{ctx.t('list.delete.confirmBody', { label: recordLabel })}</p>
 
+			<!-- La línea de la papelera (§4/§10.3, ver cabecera): nunca promete lo que el decorador
+			     no puede cumplir. -->
+			<p class="vega-delete-trash-hint" data-trash-available={trashAvailable}>
+				{trashAvailable
+					? ctx.t('revisions.trash.deleteHint', { days: ctx.model.revisions.trashDays })
+					: ctx.t('revisions.trash.deleteHintUnavailable')}
+			</p>
+			{#if hasFiles}
+				<p class="vega-delete-trash-hint">{ctx.t('revisions.trash.deleteFilesHint')}</p>
+			{/if}
+
 			<!-- Aviso de referencias (ver cabecera del script): cuatro estados posibles, nunca un
 			     quinto silencioso — comprobando / con algo que confirmar / degradado sin bloquear /
 			     nada más que decir (guard sigue en 'ready' con needsExplicitConfirm false, sin marcado
@@ -224,6 +261,11 @@
 				<div class="vega-delete-refs">
 					<p class="vega-delete-refs-warning">{ctx.t('integrity.deleteGuard.warning')}</p>
 					<ReferencesSummary report={guard.status.report} />
+					{#if hasRelationMatches(guard.status.report)}
+						<p class="vega-delete-refs-relation-note">
+							{ctx.t('integrity.deleteGuard.relationWarning')}
+						</p>
+					{/if}
 					<label class="vega-delete-refs-agree">
 						<input type="checkbox" bind:checked={agreedDespiteReferences} />
 						{ctx.t('integrity.deleteGuard.confirmCheckbox')}
@@ -290,6 +332,15 @@
 		font-size: 0.9rem;
 	}
 
+	/* La línea de la papelera (ver script): mismo tono que el resto del cuerpo, nunca --danger —
+	   informa, no advierte (el aviso de referencias de abajo ya usa --warning para lo que sí lo
+	   necesita). */
+	.vega-delete-trash-hint {
+		margin: 0;
+		color: var(--ink-2);
+		font-size: 0.82rem;
+	}
+
 	.vega-delete-refs-checking {
 		margin: 0;
 		color: var(--ink-2);
@@ -321,6 +372,14 @@
 		color: var(--warning);
 		font-weight: 600;
 		font-size: 0.85rem;
+	}
+
+	/* La línea "restaurar no reconecta relaciones" (ver script): mismo tono discreto que las líneas
+	   informativas de fuera de la caja, dentro del recuadro de aviso. */
+	.vega-delete-refs-relation-note {
+		margin: 0;
+		color: var(--ink-2);
+		font-size: 0.8rem;
 	}
 
 	.vega-delete-refs-agree {

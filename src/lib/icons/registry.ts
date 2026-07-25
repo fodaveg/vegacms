@@ -44,6 +44,7 @@ const ICON_IDS = [
 	'search',
 	'settings',
 	'tag',
+	'trash',
 	'update',
 	'upload',
 	'user',

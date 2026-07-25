@@ -24,6 +24,7 @@ import type { BackendPort } from '../../port';
 import type { Query } from '../../query';
 import { DEFAULT_PAGE, DEFAULT_PER_PAGE, validateQuery } from '../../query';
 import { normalizeFieldValue } from '../../normalize';
+import { assertExplicitRecordIdCapability } from '../../capability-guards';
 import { assertContentTypeWritable, checkUnwritableFields } from '../../write-guards';
 import { validateFileFieldInput } from '../../file-guards';
 import type {
@@ -67,7 +68,13 @@ function computeCapabilities(authCollection: string, strongAuth: boolean): Capab
 		protectedFiles: false,
 		schemaBootstrap: isSuperuser,
 		schemaFieldBootstrap: isSuperuser,
-		strongAuth
+		strongAuth,
+		// §8·B2/§0: capability propia, NO ligada a `isSuperuser` — a diferencia de
+		// `schemaBootstrap`/`schemaFieldBootstrap` (que PB reserva a superusers), fijar un `id`
+		// explícito en `create()` es una operación de ESCRITURA DE DATOS normal, gobernada por las
+		// reglas de creación de la colección igual que cualquier otro campo del body — medido
+		// contra PocketBase 0.39.6 real con sesión de superuser (v1 solo modela esa identidad, D1).
+		explicitRecordId: true
 	};
 }
 
@@ -513,12 +520,17 @@ export function createPocketBaseBackend({
 			});
 		},
 
-		async create(type, data) {
+		async create(type, data, opts) {
+			assertExplicitRecordIdCapability(CAPABILITIES, opts?.id !== undefined);
 			return guarded(async () => {
 				const ct = await getContentTypeOrThrow(type);
 				assertContentTypeWritable(ct);
 				validateWrite(ct.fields, data, undefined);
 				const body = buildWriteBody(ct.fields, data, undefined);
+				// `id` es un campo de SISTEMA (fuera de `ct.fields`, §2 de `backend/types.ts`): se
+				// añade DESPUÉS de `buildWriteBody` para que ninguna de sus comprobaciones (que
+				// solo conocen `ct.fields`) lo trate como un campo desconocido de Vega.
+				if (opts?.id !== undefined) body.id = opts.id;
 				try {
 					const raw = await pb.collection(type).create(body);
 					return toVegaRecord(type, raw as unknown as Record<string, unknown>, ct.fields);

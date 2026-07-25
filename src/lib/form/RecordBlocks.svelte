@@ -64,6 +64,7 @@
 	import { normalizeListError, RequestSequencer, resolveTitleCellText } from '$lib/list/list-load';
 	import { createReorderDndController, dropIndicatorEdge } from '$lib/list/reorder-dnd';
 	import { computeReorder } from '$lib/list/reorder';
+	import { hasFileValues } from '$lib/revisions/restore';
 	import DeleteConfirm from '$lib/list/DeleteConfirm.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
 	import BlockEditor from './BlockEditor.svelte';
@@ -428,6 +429,9 @@
 		targetId={pendingDelete?.id ?? null}
 		{deleting}
 		fallbackFocusEl={headingEl}
+		hasFiles={pendingDelete !== null &&
+			childType !== null &&
+			hasFileValues(childType.schema.fields, pendingDelete.values)}
 		onConfirm={confirmDelete}
 		onCancel={() => (pendingDelete = null)}
 	/>

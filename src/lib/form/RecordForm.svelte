@@ -205,6 +205,7 @@
 	import RecordBlocks from './RecordBlocks.svelte';
 	import UsedInPanel from '$lib/integrity/UsedInPanel.svelte';
 	import RevisionsPanel from '$lib/revisions/RevisionsPanel.svelte';
+	import { hasFileValues } from '$lib/revisions/restore';
 	import SocialCardPreview from './SocialCardPreview.svelte';
 	import PreviewPanel from './PreviewPanel.svelte';
 	import { buildFormModel, type FormModel } from './form-model';
@@ -1008,6 +1009,7 @@
 	targetId={existingRecordId}
 	{deleting}
 	fallbackFocusEl={headingEl}
+	hasFiles={hasFileValues(type.schema.fields, model.baseline)}
 	onConfirm={confirmDelete}
 	onCancel={() => (deleteOpen = false)}
 />

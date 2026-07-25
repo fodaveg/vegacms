@@ -96,6 +96,15 @@
 		<!-- Etiqueta (nav de contenido, p.ej. "Etiquetas"), calcado del mockup aquelarre-dark.html. -->
 		<path d="M20 12l-8 8-8-8 8-8 3 3" />
 		<circle cx="15" cy="9" r="1.4" fill="currentColor" stroke="none" />
+	{:else if resolvedId === 'trash'}
+		<!-- `#lote-integridad` Fase B (§10.2): papelera de registros/assets borrados — cubo clásico
+		     con tapa y dos rayas verticales, distinto del icono `close`/`warning` de peligro (esto es
+		     navegación, no una advertencia). -->
+		<polyline points="4 7 20 7" />
+		<path d="M6 7v13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7" />
+		<path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
+		<line x1="10" y1="11" x2="10" y2="17" />
+		<line x1="14" y1="11" x2="14" y2="17" />
 	{:else if resolvedId === 'update'}
 		<!-- P8: flecha ascendente en círculo abierto, "hay algo nuevo" (banner/botón de
 		     comprobación de actualizaciones de `/settings`), distinto del triángulo de aviso. -->

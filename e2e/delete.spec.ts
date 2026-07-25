@@ -247,3 +247,77 @@ test.describe('borrado que falla (afordance de test, L-P4.4/Audit H6)', () => {
 		});
 	});
 });
+
+test.describe('aviso de relaciones antes de borrar (fix de code-review contra PocketBase 0.39.6)', () => {
+	test('con una referencia POR RELACIÓN: el diálogo avisa de que restaurar no la reconecta', async ({
+		page
+	}) => {
+		await loginAndSettle(page);
+
+		// `posts.relatedPost` (single, target `posts`, F5-e) apuntando a "Bienvenido a Vega"
+		// (post_1): la MISMA relación que ejercita `e2e/form.spec.ts`, aquí para dejar una
+		// referencia real que el motor de `findReferences` pueda encontrar antes de borrar el
+		// destino.
+		await page.goto('/c/posts/new');
+		await page.getByLabel('Title').fill('Post enlazado a Bienvenido');
+		const group = page.getByRole('group', { name: 'Related post', exact: true });
+		await group.getByRole('searchbox').fill('Bienvenido');
+		await group.getByRole('button', { name: 'Bienvenido a Vega', exact: true }).click();
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+
+		await page.getByRole('button', { name: 'Entradas' }).click();
+		await page.waitForURL('**/c/posts');
+
+		const row = page.locator('tbody tr', { hasText: 'Bienvenido a Vega' });
+		await row.hover();
+		await row.getByRole('button', { name: 'Borrar "Bienvenido a Vega"' }).click();
+
+		const dialog = page.getByRole('alertdialog');
+		await expect(dialog).toBeVisible();
+		await expect(dialog).toContainText('Hay referencias activas hacia esto');
+		// La línea nueva: SOLO aparece porque la referencia encontrada es por relación (no por
+		// texto/URL) — ver `hasRelationMatches`.
+		await expect(dialog).toContainText('PocketBase limpia esas relaciones al instante');
+		await expect(dialog).toContainText('esos enlaces NO vuelven');
+
+		// El gate de referencias exige el checkbox ADEMÁS: "Borrar" sigue deshabilitado hasta
+		// marcarlo (§3 del contrato de Fase A, sin relación con este fix).
+		const confirmButton = dialog.locator('.vega-delete-confirm');
+		await expect(confirmButton).toHaveAttribute('aria-disabled', 'true');
+		await dialog.getByRole('checkbox').check();
+		await expect(confirmButton).toHaveAttribute('aria-disabled', 'false');
+
+		await confirmButton.click();
+		await expect(dialog).toBeHidden();
+		await expect(page.getByText('"Bienvenido a Vega" se ha borrado.')).toBeVisible();
+	});
+
+	test('con una referencia SOLO por URL (vía "url" del motor): la línea de relaciones NO se pinta', async ({
+		page
+	}) => {
+		// `vega_media` es el único destino con vía `'url'` (ver cabecera de `references.ts`): mismo
+		// gesto que `e2e/media-integrity.spec.ts` (`createPostLinkingMediaPhoto1`) — un post cuyo
+		// `body` (texto plano) contiene la `FileRef` de `media_1` tal cual, sin ninguna relación de
+		// por medio. Esta referencia SÍ se reconecta sola en cuanto el id vuelve (nunca la toca
+		// PocketBase al borrar), así que el aviso de "no vuelven" sería falso aquí.
+		await loginAsDemo(page, { seedMedia: true });
+		await page.waitForURL('**/c/site_info/new');
+
+		await page.goto('/c/posts/new');
+		await page.getByLabel('Title').fill('Post con el fichero de media_1 en el cuerpo');
+		await page.getByLabel('Body').fill('Ver el manual: seed_media_manual.pdf');
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+
+		await page.getByRole('link', { name: 'Medios', exact: false }).click();
+		await page.waitForURL('**/media');
+		await page.locator('[data-media-item="media_1"]').click();
+		const detail = page.getByRole('dialog', { name: 'Editar medio' });
+		await detail.getByRole('button', { name: 'Borrar', exact: true }).click();
+
+		const dialog = page.getByRole('alertdialog');
+		await expect(dialog).toContainText('Hay referencias activas hacia esto');
+		await expect(dialog).not.toContainText('PocketBase limpia esas relaciones al instante');
+	});
+});

@@ -60,6 +60,12 @@ export function settingsRoute(): string {
 	return `${base}/settings`;
 }
 
+/** `/papelera` — la papelera (`#lote-integridad`, Fase B §10.2): registros/assets borrados
+ *  (`kind:'delete'` en `vega_revisions`), "Restaurar"/"Borrar definitivamente"/"Vaciar papelera". */
+export function trashRoute(): string {
+	return `${base}/papelera`;
+}
+
 /** `/login` — única ruta pública. */
 export function loginRoute(): string {
 	return `${base}/login`;

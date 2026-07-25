@@ -9,9 +9,11 @@
  * - el latch de disponibilidad (§6) y su reset;
  * - la poda fire-and-forget tras un snapshot con éxito (§7).
  *
- * Solo `update` está cableado en Fase B1 — no hay un test de "snapshotea antes de borrar" (`delete`
- * no está sobreescrito todavía); el equivalente probado aquí es "antes de ACTUALIZAR", que es el
- * mismo invariante sobre el único camino que existe hoy.
+ * Fase B2 añade `delete` (§8·B2): mismos invariantes, verificados en un bloque dedicado más abajo
+ * — "snapshotea antes de borrar" (orden), las mismas 5 exclusiones (reutilizando `shouldSnapshot`,
+ * no se repiten una a una), INVARIANTE 2 (un fallo nunca rompe el borrado), y la poda GLOBAL de
+ * papelera (`pruneTrashRevisions`/`selectTrashRevisionsToPrune`, distinta de la poda por registro
+ * de `update`).
  */
 
 import { describe, expect, test, vi } from 'vitest';
@@ -367,6 +369,153 @@ describe('withRevisions — poda fire-and-forget tras un snapshot con éxito (§
 		const wrapped = withRevisions(port);
 
 		await expect(wrapped.update('posts', 'p1', {})).resolves.toBeDefined();
+		await Promise.resolve();
+	});
+});
+
+describe('withRevisions — delete (Fase B2, §8·B2)', () => {
+	test('INVARIANTE 1: la revisión guardada contiene los valores del registro ANTES de borrarlo, kind:delete', async () => {
+		const { port } = buildFakePort({ preImageValues: { title: 'a punto de borrarse' } });
+		const wrapped = withRevisions(port);
+
+		await wrapped.delete('posts', 'p1');
+
+		expect(port.create).toHaveBeenCalledWith(
+			'vega_revisions',
+			expect.objectContaining({
+				collection: 'posts',
+				recordId: 'p1',
+				kind: 'delete',
+				values: { title: 'a punto de borrarse' }
+			})
+		);
+		expect(port.delete).toHaveBeenCalledWith('posts', 'p1');
+	});
+
+	test('orden (§3): get(pre-imagen) → create(vega_revisions, kind:delete) → delete real, en ese orden', async () => {
+		const { port, calls } = buildFakePort();
+		const wrapped = withRevisions(port);
+
+		await wrapped.delete('posts', 'p1');
+
+		const writeCalls = calls.filter((c) => !c.startsWith('list:'));
+		expect(writeCalls).toEqual(['get:posts:p1', 'create:vega_revisions', 'delete:posts:p1']);
+	});
+
+	test('las mismas exclusiones que update aplican a delete (reservadas, EXCEPTO vega_media)', async () => {
+		const { port } = buildFakePort();
+		const wrapped = withRevisions(port);
+
+		await wrapped.delete('vega', 'vega1');
+		expect(port.get).not.toHaveBeenCalled();
+		expect(port.create).not.toHaveBeenCalled();
+		expect(port.delete).toHaveBeenCalledWith('vega', 'vega1');
+
+		vi.mocked(port.get).mockClear();
+		await wrapped.delete('vega_media', 'm1');
+		expect(port.get).toHaveBeenCalledWith('vega_media', 'm1');
+		expect(port.create).toHaveBeenCalledWith(
+			'vega_revisions',
+			expect.objectContaining({ collection: 'vega_media', kind: 'delete' })
+		);
+	});
+
+	test('el latch de disponibilidad (armado por update) también apaga el snapshot de delete', async () => {
+		const { port } = buildFakePort({ revisionsCollectionMissing: true });
+		const wrapped = withRevisions(port);
+
+		await wrapped.update('posts', 'p1', {}); // arma la latch (not-found)
+		vi.mocked(port.get).mockClear();
+		vi.mocked(port.create).mockClear();
+
+		await wrapped.delete('posts', 'p2');
+
+		expect(port.get).not.toHaveBeenCalled();
+		expect(port.create).not.toHaveBeenCalled();
+		expect(port.delete).toHaveBeenCalledWith('posts', 'p2');
+	});
+
+	test('revisions.enabled === false: sin snapshot antes de borrar', async () => {
+		const { port } = buildFakePort({ revisionsManifestConfig: { enabled: false } });
+		const wrapped = withRevisions(port);
+
+		await wrapped.delete('posts', 'p1');
+
+		expect(port.get).not.toHaveBeenCalled();
+		expect(port.create).not.toHaveBeenCalled();
+		expect(port.delete).toHaveBeenCalledWith('posts', 'p1');
+	});
+
+	test('INVARIANTE 2: get() de la pre-imagen falla → delete() sigue adelante igual', async () => {
+		const { port } = buildFakePort({ getFails: true });
+		const wrapped = withRevisions(port);
+
+		await wrapped.delete('posts', 'p1');
+
+		expect(port.create).not.toHaveBeenCalled();
+		expect(port.delete).toHaveBeenCalledWith('posts', 'p1');
+	});
+
+	test('INVARIANTE 2: create(vega_revisions) rechaza con not-found → delete() sigue adelante Y arma la latch', async () => {
+		const { port } = buildFakePort({ revisionsCollectionMissing: true });
+		const wrapped = withRevisions(port);
+
+		await wrapped.delete('posts', 'p1');
+
+		expect(port.delete).toHaveBeenCalledWith('posts', 'p1');
+	});
+
+	test('poda GLOBAL de papelera (§7): list(vega_revisions) filtrado por kind:delete, ordenado por created ASC', async () => {
+		const { port } = buildFakePort();
+		const wrapped = withRevisions(port);
+
+		await wrapped.delete('posts', 'p1');
+		await Promise.resolve();
+
+		expect(port.list).toHaveBeenCalledWith(
+			'vega_revisions',
+			expect.objectContaining({
+				filter: { kind: 'cond', field: 'kind', op: 'eq', value: 'delete' },
+				sort: [{ field: 'created', dir: 'asc' }]
+			})
+		);
+	});
+
+	test('borra las entradas de papelera que pasan de trashDays (default 30)', async () => {
+		const now = Date.now();
+		const oldItems: VegaRecord[] = [
+			{
+				id: 'trash-old',
+				type: 'vega_revisions',
+				values: { created: new Date(now - 40 * 24 * 60 * 60 * 1000).toISOString(), kind: 'delete' }
+			},
+			{
+				id: 'trash-recent',
+				type: 'vega_revisions',
+				values: { created: new Date(now - 1 * 24 * 60 * 60 * 1000).toISOString(), kind: 'delete' }
+			}
+		];
+		const { port, calls } = buildFakePort({ pruneListItems: oldItems });
+		const wrapped = withRevisions(port);
+
+		await wrapped.delete('posts', 'p1');
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(calls.filter((c) => c.startsWith('delete:vega_revisions:'))).toEqual([
+			'delete:vega_revisions:trash-old'
+		]);
+	});
+
+	test('un fallo al podar la papelera (list o delete) no se propaga a nada', async () => {
+		const { port } = buildFakePort();
+		vi.mocked(port.list).mockImplementation(async (type: string) => {
+			if (type === 'vega_revisions') throw VegaError.network();
+			return { items: [], page: 1, perPage: 1, totalItems: 0, totalPages: 0 };
+		});
+		const wrapped = withRevisions(port);
+
+		await expect(wrapped.delete('posts', 'p1')).resolves.toBeUndefined();
 		await Promise.resolve();
 	});
 });

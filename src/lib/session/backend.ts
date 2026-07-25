@@ -481,13 +481,15 @@ function wrapMemoryPortForDemo(
 			return inner.list(type, query);
 		},
 
-		async create(type, data) {
+		async create(type, data, opts) {
 			// Ver cabecera del módulo (Fase P6·6c): SOLO el gancho de subida de medios, deliberadamente
 			// sin `throwIfForcedNetworkError()/throwIfForcedExpire()` genéricos — mismo razonamiento
 			// que `delete()` arriba, este escenario de e2e necesita fallar UN `create('vega_media', …)`
 			// concreto en mitad de un lote, no la sesión/red enteras.
 			if (type === 'vega_media') throwIfForcedMediaCreateError();
-			return inner.create(type, data);
+			// `opts` (§8·B2, `explicitRecordId`) se reenvía TAL CUAL: esta envoltura solo añade
+			// ganchos de e2e, nunca decide el id de un registro nuevo.
+			return inner.create(type, data, opts);
 		},
 
 		async delete(type, id) {

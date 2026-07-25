@@ -8,6 +8,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'nav.emptyBody': 'Create collections in your PocketBase, or check the manifest in Settings.',
 	'nav.emptyCta': 'Go to Settings',
 	'nav.media': 'Media',
+	'nav.trash': 'Trash',
 	'nav.settings': 'Settings',
 	'nav.sidebarLabel': 'Main navigation',
 	'nav.warningsBadge': '{count} warnings',
@@ -434,6 +435,12 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'integrity.deleteGuard.checkFailed':
 		'Could not check for active references; you can still delete.',
 	'integrity.deleteGuard.warning': 'There are active references to this. Delete it knowingly:',
+	// Only shown when some reference is BY RELATION (`hasRelationMatches`, code-review fix against
+	// PocketBase 0.39.6): PocketBase clears those fields the instant you delete, and restoring from
+	// the trash does NOT reconnect them — text/URL references DO benefit from the id being alive
+	// again, so this line would be false for them and stays hidden in that case.
+	'integrity.deleteGuard.relationWarning':
+		'When you delete this, PocketBase clears those relations right away (empties the field or removes the id from the array). If you restore this record from the trash later, those links will NOT come back.',
 	'integrity.deleteGuard.confirmCheckbox':
 		'I understand there are active references and I want to delete anyway.',
 
@@ -481,6 +488,56 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'The "vega_revisions" collection cannot be created automatically. In the PocketBase Admin: Collections → Import collections, paste the JSON below and confirm.',
 	'revisions.settings.staleReadError':
 		'Could not check the current manifest before saving. Try again: nothing was saved.',
+
+	// ————— Trash (`#lote-integridad`, Phase B2) — shared line in the 4 delete dialogs —————
+	'revisions.trash.deleteHint': 'You can recover this from the trash for {days} day(s).',
+	'revisions.trash.deleteHintUnavailable':
+		'This deletion will be PERMANENT: the trash is not enabled on this project.',
+	'revisions.trash.deleteFilesHint':
+		'Attached files are not recovered, even if you restore the record.',
+
+	// ————— Trash — /trash route —————
+	'revisions.trash.pageTitle': 'Trash',
+	'revisions.trash.description':
+		'Deleted records and assets. You can restore them with their original id as long as they are still within the retention set in Settings.',
+	'revisions.trash.loading': 'Loading trash…',
+	'revisions.trash.error': 'Could not load the trash.',
+	'revisions.trash.retry': 'Retry',
+	'revisions.trash.unavailable': 'The trash is not enabled on this project.',
+	'revisions.trash.empty': 'The trash is empty.',
+	'revisions.trash.itemCollection': 'Collection: {collection}',
+	'revisions.trash.itemFilesLost': 'Had attached files: they will not be restored.',
+	'revisions.trash.restore': 'Restore',
+	'revisions.trash.restoring': 'Restoring…',
+	'revisions.trash.restoreUnavailable':
+		'This backend does not allow restoring with the original id: "Restore" is not available.',
+	'revisions.trash.restoreUnknownSchema':
+		'The "{collection}" collection no longer exists in the schema: it cannot be safely restored.',
+	// `requiredFileFieldName` (`revisions/restore.ts`): no `file` field survives a restore (PB
+	// destroys the binary on delete, §0.3), so a collection with a REQUIRED one can never be fully
+	// recreated — derived from the schema, not a special case for "vega_media".
+	'revisions.trash.restoreBlockedRequiredFile':
+		'The "{field}" field in "{collection}" is a required file: files are never restored (§0.3), so this record cannot be fully recreated. "Restore" is not available.',
+	'revisions.trash.restoreSuccess': '"{label}" has been restored.',
+	'revisions.trash.deleteForever': 'Delete permanently',
+	'revisions.trash.deleteForeverConfirmTitle': 'Permanently delete "{label}"?',
+	'revisions.trash.deleteForeverConfirmBody':
+		'This trash entry will be gone for good: you will no longer be able to restore this record.',
+	'revisions.trash.deleteForeverConfirm': 'Delete permanently',
+	'revisions.trash.deleteForeverDeleting': 'Deleting…',
+	'revisions.trash.deleteForeverSuccess': '"{label}" has been permanently deleted from the trash.',
+	'revisions.trash.emptyTrash': 'Empty trash',
+	'revisions.trash.emptyTrashConfirmTitle': 'Empty the trash?',
+	'revisions.trash.emptyTrashConfirmBody':
+		'The {count} trash entries will be permanently deleted: you will no longer be able to restore any of these records.',
+	'revisions.trash.emptyTrashConfirm': 'Empty trash',
+	'revisions.trash.emptyTrashEmptying': 'Emptying…',
+	'revisions.trash.emptyTrashSuccess': 'Trash emptied.',
+	// A failure cut the `emptyTrash` loop mid-way (revisions/empty-trash.ts): never "emptied"
+	// while something is left — says what really happened, `remaining` is the backend's last
+	// reliable count.
+	'revisions.trash.emptyTrashPartial':
+		'{deleted} entry/entries deleted; {remaining} left because of an error. Try again.',
 
 	// ————— Media: grid + detail (Phase P6·6b) —————
 	'media.detail.title': 'Edit media',

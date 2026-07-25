@@ -1,10 +1,13 @@
 <script lang="ts">
 	/**
 	 * `Sidebar.svelte` (Fase 2b, §3.3/§4.1/§4.2/§4.3 del contrato P3): pinta `ctx.model.nav`
-	 * LITERAL (P3-L6 — sin reordenar, sin filtrar, sin re-decidir visibilidad) más los dos
-	 * accesos fijos que P3 posee (Medios, Ajustes: NO forman parte del `NavModel` de P2, así que
-	 * viven aparte del `{#each}` de grupos). Landmark `nav` con `aria-label` dedicado
-	 * (`nav.sidebarLabel`).
+	 * LITERAL (P3-L6 — sin reordenar, sin filtrar, sin re-decidir visibilidad) más los accesos
+	 * fijos que P3 posee (Medios, Papelera —`#lote-integridad` Fase B §10.2—, Ajustes: NO forman
+	 * parte del `NavModel` de P2, así que viven aparte del `{#each}` de grupos). Landmark `nav` con
+	 * `aria-label` dedicado (`nav.sidebarLabel`). Papelera no lleva recuento (a diferencia de
+	 * Medios): `vega_revisions` puede no existir todavía, y un `port.list` fallido por "colección
+	 * ausente" en CADA carga de la nav no aporta nada que el recuento de Medios sí aporta (una
+	 * biblioteca que siempre existe una vez creada).
 	 *
 	 * **Grupos**: el anónimo (`label: null`) siempre primero (invariante de P2 §4.9, ya resuelto
 	 * ahí — aquí solo se respeta el orden que llega). Label con `title` + ellipsis para el caso
@@ -37,7 +40,7 @@
 	 */
 	import { page } from '$app/state';
 	import { getVegaContext } from '$lib/app-context';
-	import { mediaRoute, settingsRoute } from '$lib/nav/routes';
+	import { mediaRoute, settingsRoute, trashRoute } from '$lib/nav/routes';
 	import { VEGA_MEDIA_COLLECTION } from '$lib/media/media-collection';
 	import Icon from '$lib/icons/Icon.svelte';
 	import NavItem from './NavItem.svelte';
@@ -51,11 +54,15 @@
 
 	const mediaHref = mediaRoute();
 	const settingsHref = settingsRoute();
+	const trashHref = trashRoute();
 	const isMediaActive = $derived(
 		page.url.pathname === mediaHref || page.url.pathname.startsWith(`${mediaHref}/`)
 	);
 	const isSettingsActive = $derived(
 		page.url.pathname === settingsHref || page.url.pathname.startsWith(`${settingsHref}/`)
+	);
+	const isTrashActive = $derived(
+		page.url.pathname === trashHref || page.url.pathname.startsWith(`${trashHref}/`)
 	);
 
 	function handleFixedClick(event: MouseEvent, action: () => void): void {
@@ -232,6 +239,16 @@
 						<span class="vega-nav-count">{counts[VEGA_MEDIA_COLLECTION.name]}</span>
 					</span>
 				{/if}
+			</a>
+		</li>
+		<li>
+			<a
+				href={trashHref}
+				aria-current={isTrashActive ? 'page' : undefined}
+				onclick={(event) => handleFixedClick(event, ctx.nav.toTrash)}
+			>
+				<Icon id="trash" size={16} />
+				<span class="vega-nav-fixed-label">{ctx.t('nav.trash')}</span>
 			</a>
 		</li>
 		<li>

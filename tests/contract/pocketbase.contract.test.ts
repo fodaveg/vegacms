@@ -219,4 +219,37 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 			expect(secondUrl).not.toBe(firstUrl);
 		});
 	});
+
+	/**
+	 * Hallazgo de la Fase B2 (`#lote-integridad`, papelera — NO estaba en §0 del contrato, se
+	 * descubrió escribiendo el test de "restaurar conserva las relaciones"): borrar el DESTINO de
+	 * un campo `relation` no-`required` (single o múltiple) no lo deja "colgando" en los registros
+	 * que apuntaban a él — PB los REESCRIBE en el mismo `delete()` (limpieza de integridad
+	 * referencial, no cascada de borrado: el registro que apunta sigue vivo, solo pierde la
+	 * referencia). Documentado aquí, ejecutable, porque invalida un supuesto ingenuo ("el id sigue
+	 * ahí, restaurar lo repara") que el propio contrato de Fase B daba por hecho sin medirlo — ver
+	 * la cabecera del test gemelo en `backend-contract.ts` ("restaurar un borrado revive el id...")
+	 * para la consecuencia de diseño: la papelera solo puede prometer "el id vuelve a estar vivo",
+	 * nunca "las relaciones de PB se reparan solas".
+	 */
+	describe('borrar el destino de una relación no-required la limpia en el acto (Fase B2, ver cabecera)', () => {
+		test('relation single: pasa a null; relation múltiple: el id se quita del array', async () => {
+			const port = createPocketBaseBackend({ url: running.url });
+			await port.login({ email: running.adminEmail, password: running.adminPassword });
+
+			const target = await port.create('category', { name: 'A borrar' });
+			const other = await port.create('category', { name: 'Superviviente' });
+			const holder = await port.create('kitchen_sink', {
+				title: 'Con relaciones',
+				category: target.id,
+				categories: [target.id, other.id]
+			});
+
+			await port.delete('category', target.id);
+
+			const reread = await port.get('kitchen_sink', holder.id);
+			expect(reread.values.category).toBeNull();
+			expect(reread.values.categories).toEqual([other.id]);
+		});
+	});
 });

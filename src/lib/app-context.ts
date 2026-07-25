@@ -31,6 +31,8 @@ export interface NavApi {
 	toView(id: string): void; // /v/:id
 	toMedia(): void; // /media
 	toSettings(): void; // /settings
+	/** `/papelera` (`#lote-integridad`, Fase B §10.2): registros/assets borrados. */
+	toTrash(): void;
 	toLogin(): void;
 }
 

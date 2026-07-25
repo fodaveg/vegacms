@@ -88,6 +88,7 @@
 	import { computeReorder } from '$lib/list/reorder';
 	import { createListState } from '$lib/list/list-state.svelte';
 	import { listRoute } from '$lib/nav/routes';
+	import { hasFileValues } from '$lib/revisions/restore';
 	import { isEditableTarget } from '$lib/shell/keyboard';
 	import RouteState from '$lib/shell/RouteState.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
@@ -518,6 +519,9 @@
 	targetId={pendingDelete?.record.id ?? null}
 	{deleting}
 	fallbackFocusEl={headingEl}
+	hasFiles={pendingDelete !== null &&
+		contentType !== null &&
+		hasFileValues(contentType.schema.fields, pendingDelete.record.values)}
 	onConfirm={confirmDelete}
 	onCancel={cancelDelete}
 />

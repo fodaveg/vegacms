@@ -1,18 +1,21 @@
 /**
  * `withRevisions(port)` (`#lote-integridad`, Fase B §3): decorador de `BackendPort` que guarda la
- * PRE-IMAGEN de cada `update` en `vega_revisions`, ANTES de dejar pasar la escritura real. Se
+ * PRE-IMAGEN de cada `update`/`delete` en `vega_revisions`, ANTES de dejar pasar la escritura o el
+ * borrado reales — el segundo caso es la papelera (§8·B2). Se
  * aplica en `session/backend.ts#createInstance()` envolviendo **las dos ramas** (memoria y
  * pocketbase), exactamente como ya hacen ahí `wrapMemoryPortForDemo`/`withEditorCapabilities` —
  * ese es el precedente que justifica "decorador, no una llamada repartida en cada sitio que
  * guarda" (§3 del contrato: hoy hay ≥4 caminos que escriben, un quinto que olvide el enganche
  * reabriría el fallo que este lote existe para cerrar).
  *
- * **Fase B1**: solo `update` está cableado. El gancho de `delete` (§3, exclusión y coste
- * IDÉNTICOS, `kind:'delete'`) queda preparado en `captureUpdateSnapshot`/`pruneAfterSnapshot`
- * —ambas funciones ya son genéricas en `kind`— pero el objeto devuelto NO sobreescribe
- * `port.delete`: el spread `...port` deja pasar el `delete` original tal cual, sin snapshot. Fase
- * B2 solo tiene que añadir un `delete` propio al objeto de retorno que llame a
- * `captureSnapshot('delete', …)` ANTES de `port.delete(...)`, mismo orden que `update` aquí abajo.
+ * **Fase B1** cableó `update` (pre-imagen → `vega_revisions` → escritura real, poda por
+ * `keepPerRecord`). **Fase B2** añade el `delete` que la cabecera anterior dejaba preparado:
+ * mismo orden (`get` de la pre-imagen → `captureSnapshot('delete', …)` → `port.delete(...)` real),
+ * mismas exclusiones (`shouldSnapshot`), mismo criterio de "nunca rompe la escritura" (§4) — la
+ * única diferencia real es la poda que dispara después: `update` conserva `keepPerRecord`
+ * versiones POR REGISTRO (`pruneUpdateRevisions`); `delete` puebla la papelera, y lo que se poda
+ * ahí es la papelera ENTERA por antigüedad (`pruneTrashRevisions`, `selectTrashRevisionsToPrune`,
+ * §7 — "GLOBAL, no por registro", ver `retention.ts`).
  *
  * **INVARIANTE 2 (§4): un fallo de snapshot NUNCA rompe la escritura.** Toda la maquinaria de
  * snapshot vive dentro de `try/catch` que nunca relanza — si `port.get` (pre-imagen), `port.create`
@@ -67,6 +70,7 @@ import { guessRecordLabel } from './record-label';
 import {
 	DEFAULT_KEEP_PER_RECORD,
 	DEFAULT_TRASH_RETENTION_DAYS,
+	selectTrashRevisionsToPrune,
 	selectUpdateRevisionsToPrune,
 	type RevisionPruneCandidate
 } from './retention';
@@ -183,9 +187,38 @@ async function pruneUpdateRevisions(
 }
 
 /**
- * Envuelve `port` con el snapshot de `update` (Fase B1, ver cabecera). El orden dentro de
- * `update()` es el invariante que fija el test dedicado (§3): el snapshot se completa (con éxito
- * o en silencio) ANTES de delegar en `port.update`.
+ * Poda fire-and-forget de la papelera ENTERA (§7, Fase B2) — a diferencia de
+ * `pruneUpdateRevisions` (por registro), esta poda es GLOBAL: cualquier `kind:'delete'` cuyo
+ * `created` pase de `trashDays` cae, con techo `TRASH_PRUNE_BATCH_LIMIT` por pasada
+ * (`selectTrashRevisionsToPrune`, `retention.ts`) — "para no provocar una tormenta de peticiones
+ * en una papelera muy vieja". Se dispara tras cada snapshot de `delete` con éxito, nunca se espera
+ * desde `delete()` y traga cualquier error, mismo criterio que `pruneUpdateRevisions`.
+ */
+async function pruneTrashRevisions(port: BackendPort, trashDays: number): Promise<void> {
+	try {
+		const page = await port.list(VEGA_REVISIONS_COLLECTION.name, {
+			filter: { kind: 'cond', field: 'kind', op: 'eq', value: 'delete' },
+			sort: [{ field: 'created', dir: 'asc' }],
+			perPage: MAX_PER_PAGE
+		});
+		const candidates: RevisionPruneCandidate[] = page.items.map((item) => ({
+			id: item.id,
+			kind: 'delete',
+			created: typeof item.values.created === 'string' ? item.values.created : ''
+		}));
+		const toPrune = selectTrashRevisionsToPrune(candidates, trashDays, Date.now());
+		for (const id of toPrune) {
+			await port.delete(VEGA_REVISIONS_COLLECTION.name, id).catch(() => {});
+		}
+	} catch {
+		// Fire-and-forget (§7): nunca debe afectar a nada fuera de esta función.
+	}
+}
+
+/**
+ * Envuelve `port` con el snapshot de `update`/`delete` (§3/§8·B2, ver cabecera). El orden dentro
+ * de cada método es el invariante que fijan los tests dedicados (§3): el snapshot se completa (con
+ * éxito o en silencio) ANTES de delegar en la operación real.
  */
 export function withRevisions(port: BackendPort): BackendPort {
 	/** Latch (§6): solo se marca desde el `catch` del `create` contra `vega_revisions`. */
@@ -205,10 +238,9 @@ export function withRevisions(port: BackendPort): BackendPort {
 	}
 
 	/**
-	 * Snapshot genérico por `kind` (ver cabecera: listo para que Fase B2 lo reutilice con
-	 * `'delete'`). `preValues` YA es la pre-imagen leída por el llamador — para `update` es
-	 * `port.get(type, id)` ANTES de la escritura; para un futuro `delete` sería el mismo `get`
-	 * ANTES de borrar (§3: "el snapshot va SIEMPRE antes de la operación").
+	 * Snapshot genérico por `kind` (`update`/`delete`, §3/§8·B2). `preValues` YA es la pre-imagen
+	 * leída por el llamador — `port.get(type, id)` ANTES de la escritura o del borrado, en los dos
+	 * casos (§3: "el snapshot va SIEMPRE antes de la operación").
 	 */
 	async function captureSnapshot(
 		kind: 'update' | 'delete',
@@ -255,11 +287,49 @@ export function withRevisions(port: BackendPort): BackendPort {
 		void pruneUpdateRevisions(port, type, id, config.keepPerRecord);
 	}
 
+	/**
+	 * Gemela de `snapshotBeforeUpdate` para `delete` (§8·B2): mismas exclusiones/latch/config
+	 * (`shouldSnapshot`/`loadConfig`), misma pre-imagen vía `port.get` ANTES de borrar (§3), mismo
+	 * criterio de "nunca rompe la escritura" (§4) — la única diferencia es la poda que dispara
+	 * después (`pruneTrashRevisions`, GLOBAL por antigüedad, no por registro).
+	 */
+	async function snapshotBeforeDelete(type: string, id: RecordId): Promise<void> {
+		if (!shouldSnapshot(type)) return;
+
+		let config: RevisionsManifestConfig;
+		try {
+			config = await loadConfig();
+		} catch {
+			return; // defensivo: `fetchRevisionsConfig` ya no debería rechazar, pero nunca romper por esto
+		}
+		if (!config.enabled) return;
+
+		let pre: VegaRecord;
+		try {
+			pre = await port.get(type, id);
+		} catch {
+			return; // sin pre-imagen que guardar (§4): el borrado sigue su curso igual
+		}
+
+		try {
+			await captureSnapshot('delete', type, id, pre.values);
+		} catch (err) {
+			if (err instanceof VegaError && err.kind === 'not-found') revisionsUnavailable = true;
+			return; // §4: un fallo de snapshot NUNCA rompe la escritura
+		}
+
+		void pruneTrashRevisions(port, config.trashDays);
+	}
+
 	const wrapped: BackendPort = {
 		...port,
 		async update(type, id, data) {
 			await snapshotBeforeUpdate(type, id);
 			return port.update(type, id, data);
+		},
+		async delete(type, id) {
+			await snapshotBeforeDelete(type, id);
+			return port.delete(type, id);
 		}
 	};
 

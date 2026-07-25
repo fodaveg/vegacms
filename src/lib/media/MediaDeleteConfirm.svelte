@@ -53,11 +53,24 @@
 	 * pasan (fix de code-review): marcar un asset y borrarlo desde la barra es el mismo acto que
 	 * borrarlo desde su detalle, y tener dos caminos para el mismo borrado con distinta protección es
 	 * justo cómo se cuela el fallo que este lote existe para evitar.
+	 *
+	 * **La línea "restaurar no reconecta relaciones"** (mismo `hasRelationMatches`, ver cabecera de
+	 * `DeleteConfirm.svelte`): en la práctica casi nunca aplica aquí (la vía `'relation'` "casi
+	 * nunca encuentra nada" para un asset, ver arriba), pero corre con el mismo criterio por si
+	 * algún esquema SÍ declarase una relación real — no hay excepción especial para media.
+	 *
+	 * **La línea de la papelera (`#lote-integridad`, Fase B §4/§10.3)**: mismo criterio que
+	 * `DeleteConfirm` — `isTrashAvailable(ctx.model)` decide entre "recuperable N días" y "este
+	 * borrado será DEFINITIVO", sin red. El aviso "los ficheros adjuntos no se recuperan" aquí NO
+	 * es condicional (a diferencia de `DeleteConfirm.hasFiles`): un asset de `vega_media` ES su
+	 * fichero, siempre tiene uno — la línea se pinta siempre, sea borrado único o de la selección.
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import type { FileRef, RecordId } from '$lib/backend/types';
 	import { createDeleteReferencesGuard } from '$lib/integrity/delete-guard.svelte';
+	import { hasRelationMatches } from '$lib/integrity/references';
 	import ReferencesSummary from '$lib/integrity/ReferencesSummary.svelte';
+	import { isTrashAvailable } from '$lib/revisions/trash-availability';
 
 	interface Props {
 		/** `true` mientras se pide confirmar el borrado del asset abierto en `MediaDetail`. */
@@ -98,6 +111,9 @@
 	}: Props = $props();
 
 	const ctx = getVegaContext();
+
+	// ————— La línea de la papelera (ver cabecera) —————
+	const trashAvailable = $derived(isTrashAvailable(ctx.model));
 
 	let dialogEl = $state<HTMLElement | null>(null);
 	let cancelEl = $state<HTMLButtonElement | null>(null);
@@ -194,6 +210,15 @@
 			</h2>
 			<p id="vega-media-delete-body">{ctx.t('media.delete.confirmBody')}</p>
 
+			<!-- La línea de la papelera (§4/§10.3, ver cabecera): nunca promete lo que el decorador
+			     no puede cumplir; la de ficheros siempre se pinta (un asset ES su fichero). -->
+			<p class="vega-media-delete-trash-hint" data-trash-available={trashAvailable}>
+				{trashAvailable
+					? ctx.t('revisions.trash.deleteHint', { days: ctx.model.revisions.trashDays })
+					: ctx.t('revisions.trash.deleteHintUnavailable')}
+			</p>
+			<p class="vega-media-delete-trash-hint">{ctx.t('revisions.trash.deleteFilesHint')}</p>
+
 			<!-- Aviso de referencias (ver cabecera): ausente entero en el borrado MÚLTIPLE
 			     (`targetId === null`, `guard` se queda en `'idle'` por el `$effect` de arriba). -->
 			{#if guard.status.kind === 'loading'}
@@ -206,6 +231,11 @@
 				<div class="vega-media-delete-refs">
 					<p class="vega-media-delete-refs-warning">{ctx.t('integrity.deleteGuard.warning')}</p>
 					<ReferencesSummary report={guard.status.report} />
+					{#if hasRelationMatches(guard.status.report)}
+						<p class="vega-media-delete-refs-relation-note">
+							{ctx.t('integrity.deleteGuard.relationWarning')}
+						</p>
+					{/if}
 					<label class="vega-media-delete-refs-agree">
 						<input type="checkbox" bind:checked={agreedDespiteReferences} />
 						{ctx.t('integrity.deleteGuard.confirmCheckbox')}
@@ -276,6 +306,13 @@
 		font-size: 0.9rem;
 	}
 
+	/* La línea de la papelera (ver script): mismo criterio que `DeleteConfirm.vega-delete-trash-hint`. */
+	.vega-media-delete-trash-hint {
+		margin: 0;
+		color: var(--ink-2);
+		font-size: 0.82rem;
+	}
+
 	.vega-media-delete-refs-checking {
 		margin: 0;
 		color: var(--ink-2);
@@ -307,6 +344,14 @@
 		color: var(--warning);
 		font-weight: 600;
 		font-size: 0.85rem;
+	}
+
+	/* La línea "restaurar no reconecta relaciones" (ver script): mismo criterio que
+	   `DeleteConfirm.vega-delete-refs-relation-note`. */
+	.vega-media-delete-refs-relation-note {
+		margin: 0;
+		color: var(--ink-2);
+		font-size: 0.8rem;
 	}
 
 	.vega-media-delete-refs-agree {

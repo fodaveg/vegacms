@@ -7,7 +7,7 @@
 import { describe, expect, test, vi } from 'vitest';
 import type { ContentType, Field, Page, VegaRecord } from '$lib/backend/types';
 import { VegaError } from '$lib/backend/errors';
-import { findReferences } from './references';
+import { findReferences, hasRelationMatches, type ReferencesReport } from './references';
 
 /** Base común de `FieldBase` para no repetirla en cada fixture (ningún test de este módulo mira
  *  `required`/`presentable`/`hidden`/`unique`, así que un valor fijo basta). */
@@ -306,6 +306,37 @@ describe('findReferences — degradado por colección, nunca global', () => {
 
 		expect(report.partial).toBe(true);
 		expect(report.groups[0].matches[0]).toMatchObject({ status: 'degraded', reason: 'unknown' });
+	});
+});
+
+describe('hasRelationMatches (aviso "restaurar no reconecta relaciones", fix de code-review)', () => {
+	function reportWith(matches: ReferencesReport['groups'][number]['matches']): ReferencesReport {
+		return { groups: [{ collection: 'posts', readonly: false, matches }], partial: false };
+	}
+
+	test('un match "ok" por relación: true', () => {
+		const report = reportWith([
+			{ via: 'relation', status: 'ok', fields: ['author'], count: 1, sample: [] }
+		]);
+		expect(hasRelationMatches(report)).toBe(true);
+	});
+
+	test('solo un match "ok" por url (sin relación): false — esas SÍ se reconectan al restaurar', () => {
+		const report = reportWith([
+			{ via: 'url', status: 'ok', fields: ['body'], count: 1, sample: [] }
+		]);
+		expect(hasRelationMatches(report)).toBe(false);
+	});
+
+	test('un match "degraded" por relación: false — "no se pudo comprobar" no es "las hay"', () => {
+		const report = reportWith([
+			{ via: 'relation', status: 'degraded', fields: ['author'], reason: 'forbidden' }
+		]);
+		expect(hasRelationMatches(report)).toBe(false);
+	});
+
+	test('sin grupos: false', () => {
+		expect(hasRelationMatches({ groups: [], partial: false })).toBe(false);
 	});
 });
 

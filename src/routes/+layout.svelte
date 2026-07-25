@@ -53,6 +53,7 @@
 		newRoute,
 		recordRoute,
 		settingsRoute,
+		trashRoute,
 		viewRoute
 	} from '$lib/nav/routes';
 	import { resolveSingletonTarget } from '$lib/nav/singleton';
@@ -129,6 +130,7 @@
 		toView: (id) => void navigateTo(viewRoute(id)),
 		toMedia: () => void navigateTo(mediaRoute()),
 		toSettings: () => void navigateTo(settingsRoute()),
+		toTrash: () => void navigateTo(trashRoute()),
 		toLogin: () => void navigateTo(loginRoute())
 	};
 

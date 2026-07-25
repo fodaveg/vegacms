@@ -13,6 +13,7 @@ export const es = {
 	'nav.emptyBody': 'Crea colecciones en tu PocketBase o revisa el manifiesto en Ajustes.',
 	'nav.emptyCta': 'Ir a Ajustes',
 	'nav.media': 'Medios',
+	'nav.trash': 'Papelera',
 	'nav.settings': 'Ajustes',
 	'nav.sidebarLabel': 'Navegación principal',
 	'nav.warningsBadge': '{count} avisos',
@@ -436,6 +437,12 @@ export const es = {
 		'No se pudo comprobar si hay referencias activas; puedes borrar igual.',
 	'integrity.deleteGuard.warning':
 		'Hay referencias activas hacia esto. Bórralo con conocimiento de causa:',
+	// Solo se pinta cuando alguna referencia es POR RELACIÓN (`hasRelationMatches`, fix de code
+	// review contra PocketBase 0.39.6): al borrar, PB limpia esos campos en el acto, y restaurar
+	// desde la papelera NO los reconecta — las de texto/URL sí se benefician del id vivo de nuevo,
+	// así que esta línea sería falsa para ellas y no se muestra en ese caso.
+	'integrity.deleteGuard.relationWarning':
+		'Al borrar, PocketBase limpia esas relaciones al instante (vacía el campo o quita el id del array). Si restauras este registro desde la papelera más tarde, esos enlaces NO vuelven.',
 	'integrity.deleteGuard.confirmCheckbox':
 		'Entiendo que hay referencias activas y quiero borrar igualmente.',
 
@@ -484,6 +491,56 @@ export const es = {
 		'La colección "vega_revisions" no se puede crear automáticamente. En el Admin de PocketBase: Collections → Import collections, pega el siguiente JSON y confirma.',
 	'revisions.settings.staleReadError':
 		'No se pudo comprobar el manifiesto actual antes de guardar. Vuelve a intentarlo: nada se ha guardado.',
+
+	// ————— Papelera (`#lote-integridad`, Fase B2) — línea compartida de los 4 diálogos de borrado —————
+	'revisions.trash.deleteHint': 'Podrás recuperarlo desde la papelera durante {days} día(s).',
+	'revisions.trash.deleteHintUnavailable':
+		'Este borrado será DEFINITIVO: la papelera no está activada en este proyecto.',
+	'revisions.trash.deleteFilesHint':
+		'Los ficheros adjuntos no se recuperan, aunque restaures el registro.',
+
+	// ————— Papelera — ruta /papelera —————
+	'revisions.trash.pageTitle': 'Papelera',
+	'revisions.trash.description':
+		'Registros y assets borrados. Puedes restaurarlos con su id original mientras no pasen de la retención configurada en Ajustes.',
+	'revisions.trash.loading': 'Cargando papelera…',
+	'revisions.trash.error': 'No se pudo cargar la papelera.',
+	'revisions.trash.retry': 'Reintentar',
+	'revisions.trash.unavailable': 'La papelera no está activada en este proyecto.',
+	'revisions.trash.empty': 'La papelera está vacía.',
+	'revisions.trash.itemCollection': 'Colección: {collection}',
+	'revisions.trash.itemFilesLost': 'Tenía ficheros adjuntos: no se restaurarán.',
+	'revisions.trash.restore': 'Restaurar',
+	'revisions.trash.restoring': 'Restaurando…',
+	'revisions.trash.restoreUnavailable':
+		'Este backend no permite restaurar con el id original: "Restaurar" no está disponible.',
+	'revisions.trash.restoreUnknownSchema':
+		'La colección "{collection}" ya no existe en el esquema: no se puede restaurar con seguridad.',
+	// `requiredFileFieldName` (`revisions/restore.ts`): ningún campo `file` sobrevive a un
+	// restaurado (PB destruye el binario al borrar, §0.3), así que una colección con uno OBLIGATORIO
+	// no puede recrearse completa — derivado del esquema, no un caso especial de "vega_media".
+	'revisions.trash.restoreBlockedRequiredFile':
+		'El campo "{field}" de "{collection}" es un fichero obligatorio: los ficheros no se restauran nunca (§0.3), así que este registro no se puede recrear completo. "Restaurar" no está disponible.',
+	'revisions.trash.restoreSuccess': '"{label}" se ha restaurado.',
+	'revisions.trash.deleteForever': 'Borrar definitivamente',
+	'revisions.trash.deleteForeverConfirmTitle': '¿Borrar «{label}» definitivamente?',
+	'revisions.trash.deleteForeverConfirmBody':
+		'Esta entrada de la papelera desaparecerá para siempre: ya no podrás restaurar este registro.',
+	'revisions.trash.deleteForeverConfirm': 'Borrar definitivamente',
+	'revisions.trash.deleteForeverDeleting': 'Borrando…',
+	'revisions.trash.deleteForeverSuccess': '"{label}" se ha borrado definitivamente de la papelera.',
+	'revisions.trash.emptyTrash': 'Vaciar papelera',
+	'revisions.trash.emptyTrashConfirmTitle': '¿Vaciar la papelera?',
+	'revisions.trash.emptyTrashConfirmBody':
+		'Se borrarán definitivamente las {count} entrada(s) de la papelera: ya no podrás restaurar ninguno de estos registros.',
+	'revisions.trash.emptyTrashConfirm': 'Vaciar papelera',
+	'revisions.trash.emptyTrashEmptying': 'Vaciando…',
+	'revisions.trash.emptyTrashSuccess': 'Papelera vaciada.',
+	// Un fallo cortó el bucle de `emptyTrash` a mitad (revisions/empty-trash.ts): nunca "vaciada"
+	// con algo pendiente — dice lo que de verdad pasó, `remaining` sale del último recuento
+	// fiable del backend.
+	'revisions.trash.emptyTrashPartial':
+		'Se han borrado {deleted} entrada(s); quedan {remaining} por un error. Vuelve a intentarlo.',
 
 	// ————— Medios: bootstrap + esquema (Fase P6·6a) —————
 	'media.loadErrorBody': 'No se pudo cargar la biblioteca de medios. Vuelve a intentarlo.',
