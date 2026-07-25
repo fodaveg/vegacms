@@ -52,6 +52,7 @@ function makeType(
 		readonly: false,
 		titleField: null,
 		subtitleField: null,
+		slugField: null,
 		orderField: null,
 		defaultSort: null,
 		statusField: null,
@@ -59,7 +60,8 @@ function makeType(
 		previewUrl: null,
 		fields,
 		listFields: [],
-		fieldGroups: [{ name: null, columns: 1 }]
+		fieldGroups: [{ name: null, columns: 1, placement: 'main' }],
+		editorRail: false
 	};
 }
 

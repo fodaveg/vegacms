@@ -212,6 +212,24 @@ describe('1. Casos puntuales contra el schema §3', () => {
 		expect(result.ok).toBe(false);
 	});
 
+	test('collections.<c>.fieldGroups con { name, placement } válido (§4.9c) → válido', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: {
+				post: { fieldGroups: [{ name: 'Publicación', placement: 'aside' }], editorRail: true }
+			}
+		});
+		expect(result).toEqual({ ok: true });
+	});
+
+	test('fieldGroups[].placement fuera de main/aside → inválido (enum)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: { post: { fieldGroups: [{ name: 'SEO', placement: 'derecha' }] } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
 	test('fieldGroups[] objeto sin "name" → inválido (required)', () => {
 		const result = validateManifestStrict({
 			schemaVersion: 1,
@@ -420,6 +438,19 @@ const VALID_ZERO_WARNING_MANIFESTS: JsonValue[] = [
 		}
 	},
 	{
+		// §4.9c + capacidades de editor: `slugField` sobre un campo de texto real, `editorRail` y un
+		// grupo en el aside. Nada de esto referencia campos inexistentes ⇒ cero warnings.
+		schemaVersion: 1,
+		collections: {
+			post: {
+				slugField: 'excerpt',
+				editorRail: true,
+				fieldGroups: [{ name: 'Publicación', placement: 'aside' }],
+				fields: { status: { group: 'Publicación' } }
+			}
+		}
+	},
+	{
 		// §4.9b: forma objeto de fieldGroups (rejilla de columnas), mezclada con la forma string
 		// de siempre. `columns` no referencia campos reales (no puede haber orphan aquí), así que
 		// esto es zero-warning como cualquier otro fieldGroups válido.
@@ -551,7 +582,11 @@ const INVALID_MANIFESTS: JsonValue[] = [
 	{ schemaVersion: 1, collections: { post: { fieldGroups: [{ name: 'X', columns: 0 }] } } },
 	{ schemaVersion: 1, collections: { post: { fieldGroups: [{ name: 'X', columns: 4 }] } } },
 	{ schemaVersion: 1, collections: { post: { fieldGroups: [{ name: 'X', extra: true }] } } },
+	{ schemaVersion: 1, collections: { post: { fieldGroups: [{ name: 'X', placement: 'abajo' }] } } },
 	{ schemaVersion: 1, collections: { post: { fieldGroups: [42] } } },
+	{ schemaVersion: 1, collections: { post: { slugField: '' } } },
+	{ schemaVersion: 1, collections: { post: { slugField: 42 } } },
+	{ schemaVersion: 1, collections: { post: { editorRail: 'sí' } } },
 	{ schemaVersion: 1, collections: { post: { unknownKey: 1 } } },
 	{ schemaVersion: 1, collections: { post: { localizedFields: 'nope' } } },
 	{

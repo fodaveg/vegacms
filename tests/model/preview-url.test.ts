@@ -54,6 +54,7 @@ function makeResolvedType(previewUrl: string | null): ResolvedContentType {
 		readonly: false,
 		titleField: 'title',
 		subtitleField: null,
+		slugField: null,
 		orderField: null,
 		defaultSort: null,
 		statusField: 'status',
@@ -61,7 +62,8 @@ function makeResolvedType(previewUrl: string | null): ResolvedContentType {
 		previewUrl,
 		fields: [],
 		listFields: [],
-		fieldGroups: []
+		fieldGroups: [],
+		editorRail: false
 	};
 }
 

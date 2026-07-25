@@ -61,19 +61,29 @@
 	 *   tras un `await`, el nodo del campo puede no existir todavía en el frame en que se asigna
 	 *   `backendErrors`. NUNCA se dispara en el camino de ÉXITO (guardado ok).
 	 *
-	 * **R7 del rediseño C2 «Cabina»**: reestilizado a fichas (`.vega-fsection` por grupo, ver el
-	 * `{#each sections}` de más abajo) tras una barra pegajosa `EditTopBar` (crumb + tag de estado +
-	 * indicador dirty + "último guardado" + "Ver en el sitio" + "Guardar"). Toda esta fase es
-	 * ADITIVA/de MARKUP sobre el armazón de arriba — ninguna palabra de lo descrito arriba cambia:
-	 * ni el dirty tracking, ni el guard de salida, ni el foco al primer error, ni la interfaz de
-	 * widget (D-P5.1). Puntos nuevos, documentados aquí para no repetirlos junto a cada variable:
+	 * **R7 del rediseño C2 «Cabina» + mockup FINAL `aquelarre-detalle-post.html`**: reestilizado a
+	 * fichas (`.vega-fsection` por grupo, ver el `{#each}` de más abajo) tras una barra pegajosa
+	 * `EditTopBar` (atrás + título del documento + tag de estado + punto dirty + estado de guardado +
+	 * "Ver en el sitio" + "Guardar"), repartidas en la rejilla MAESTRO-DETALLE del mockup final:
+	 * raíl de hermanos | tarjetas de campos | aside de metadatos. Todo esto es ADITIVO/de MARKUP
+	 * sobre el armazón de arriba — ninguna palabra de lo descrito arriba cambia: ni el dirty
+	 * tracking, ni el guard de salida, ni el foco al primer error, ni la interfaz de widget
+	 * (D-P5.1). Puntos nuevos, documentados aquí para no repetirlos junto a cada variable:
 	 *
-	 * - **La afordancia "Volver" se MUDA al crumb (D-P5.12 intacto)**: antes había un botón
-	 *   `{ctx.t('editor.cancel')}` ("Volver") en una fila de acciones al pie; el mockup no tiene esa
-	 *   fila — el propio nombre del tipo en el crumb (`{type.label} / …`) ES ahora el enlace que
-	 *   llama `onCancel`. Sigue siendo la MISMA función (la ruta decide `toIndex`/`toList`, D-P5.12
-	 *   sin tocar), solo cambia dónde vive el control; los e2e que antes buscaban el rol "Volver"
-	 *   ahora buscan el nombre accesible del tipo (`e2e/form.spec.ts`, actualizado en esta fase).
+	 * - **Las piezas nuevas de la rejilla son CAPACIDADES OPT-IN del manifiesto, nunca reglas sobre
+	 *   nombres de campo** (misma ley genérica que `statusLabels`/`subtitleField`): el raíl solo
+	 *   existe si el tipo declara `editorRail: true`; un grupo solo cae en el aside si declara
+	 *   `placement: 'aside'` en `fieldGroups`; el campo héroe y la fila de slug salen de `titleField`
+	 *   y `slugField`. Una colección que no declara nada (p. ej. `posts` en la demo) pinta EXACTAMENTE
+	 *   lo de siempre: una sola columna de tarjetas, sin raíl y con un aside que solo aparece si hay
+	 *   metadatos/zona de peligro que enseñar.
+	 * - **La afordancia "Volver" es el enlace-atrás de la barra (D-P5.12 intacto)**: antes había un
+	 *   botón `{ctx.t('editor.cancel')}` ("Volver") en una fila de acciones al pie; el mockup no tiene
+	 *   esa fila — el `‹ {type.label}` de la barra ES el control que llama `onCancel`. Sigue siendo la
+	 *   MISMA función (la ruta decide `toIndex`/`toList`, D-P5.12 sin tocar), solo cambia dónde vive
+	 *   el control; los e2e que antes buscaban el rol "Volver" buscan el nombre accesible del tipo.
+	 *   Es un `<button>` y no el `<a href>` del mockup A PROPÓSITO: el destino depende de
+	 *   `type.singleton` y lo decide la ruta, así que un enlace mentiría sobre a dónde lleva.
 	 * - **Sin botón "Publicar" (desviación consciente del mockup)**: el mockup pinta `<button
 	 *   class="btn">Publicar</button>` junto a "Guardar". P5 (el puerto `BackendPort`, §5) NO expone
 	 *   ninguna transición de estado/publicación — solo `create`/`update`/`delete` sobre el mismo
@@ -89,7 +99,7 @@
 	 *   vista, presente en el árbol de accesibilidad. Esto deja una jerarquía coherente de UN solo
 	 *   criterio: h1 oculto de página → h2 por cada `.fsection` con nombre de grupo (el grupo
 	 *   anónimo sigue sin cabecera, igual que antes).
-	 * - **Nombre del crumb = MISMA derivación que la celda-título de `RecordTable`** (L-P4.15):
+	 * - **Nombre del documento = MISMA derivación que la celda-título de `RecordTable`** (L-P4.15):
 	 *   `describeCell`+`resolveTitleCellText` (`$lib/list/cell`, `$lib/list/list-load`) sobre
 	 *   `type.titleField`, con el mismo fallback i18n `list.untitled`. Simplificado respecto al
 	 *   fallback de LISTADO (que cae a la primera COLUMNA visible o al id crudo cuando no hay
@@ -100,8 +110,14 @@
 	 * - **Tag de estado**: si `type.statusField` existe y `baseline[statusField]` es un string no
 	 *   vacío, se pinta como `.vega-editor-tag` con `classifyStatusBadge` (`$lib/list/cell`, la
 	 *   MISMA función que clasifica la insignia de `RecordTable`, R3 de lote-2) decidiendo el
-	 *   color — pub/draft/other, `data-status-kind` igual que la tabla. Sin `statusField`, o con el
-	 *   campo vacío, no se pinta nada (nunca una insignia "vacía").
+	 *   color — pub/draft/other, `data-status-kind` igual que la tabla, y la MISMA píldora del
+	 *   mockup (alto 24px, punto + palabra) con la etiqueta legible de `statusLabels` si el tipo la
+	 *   declara. Sin `statusField`, o con el campo vacío, no se pinta nada (nunca una insignia
+	 *   "vacía").
+	 * - **Punto "sin guardar" (mockup `.dirty-dot`)**: el indicador dirty pasa de píldora con texto
+	 *   a un punto de 8px en `--warning` junto al título. El TEXTO (`editor.dirty`) no desaparece,
+	 *   se vuelve `.vega-visually-hidden` dentro del punto: un punto de color sin alternativa
+	 *   textual no es información para un lector de pantalla (eje 4 del checklist).
 	 * - **"Ver en el sitio"**: `buildPreviewUrl(type, { id: model.recordId ?? '', type: type.name,
 	 *   values: baseline })` (`$lib/model/preview-url`). `null` (borrador sin resolver, o creación
 	 *   sin guardar aún) → botón deshabilitado con `title` explicando por qué (fiel al mockup, que
@@ -126,6 +142,41 @@
 	 *   con el foco DENTRO de cualquier input del formulario, no solo fuera de él. Reusa
 	 *   `formEl.requestSubmit()` (referencia al `<form>` vía `bind:this`) para disparar el MISMO
 	 *   `onsubmit={handleSubmit}` que el click nativo — cero lógica de guardado duplicada.
+	 *
+	 * **Piezas del mockup FINAL.** Las que dependen de un DATO de la colección son opt-in (raíl,
+	 * grupos del aside, campo héroe, fila de slug — ver el primer punto de la lista de arriba); las
+	 * dos que dependen solo de "estoy editando un registro que existe" (la tarjeta "Registro" y la
+	 * zona de peligro) valen para CUALQUIER colección, porque su información no la declara nadie:
+	 * el id y los autodates los da el propio registro, y borrarlo es una capacidad del puerto que
+	 * ya existía (hasta ahora solo alcanzable desde la fila del listado).
+	 * - **Rejilla maestro-detalle**: `.vega-editor-grid` = `[raíl] | tarjetas | [aside]`, con las
+	 *   columnas laterales pegajosas y los dos breakpoints del mockup (1180px tira el raíl, 900px
+	 *   colapsa a una columna). El editor va A SANGRE: `.vega-record-form` cancela con márgenes
+	 *   negativos el padding de `.vega-main` (`AppShell.svelte`) para que la hairline de la barra y
+	 *   el fondo lleguen de borde a borde como en el mockup; el aire lateral lo repone la propia
+	 *   rejilla. Es el ÚNICO sitio del repo que conoce ese padding, y por eso se anota aquí.
+	 * - **Raíl** (`EditorRail.svelte`, `$lib/list/`): se carga solo y se documenta allí.
+	 * - **Aside**: los grupos con `placement: 'aside'` + la tarjeta "Registro" (id/creado/
+	 *   actualizado, `record-meta.ts` — solo lo que el schema respalde de verdad) + la zona de
+	 *   peligro. Se pinta si hay ALGO que poner: sin grupos de aside, sin metadatos y sin borrado
+	 *   (p.ej. en `/new`), la columna no existe y la rejilla queda de dos columnas.
+	 * - **Borrado (zona de peligro)**: `onDelete` es OPCIONAL — sin esa prop (ruta `/new`: no hay
+	 *   registro que borrar) la tarjeta no se pinta, igual que en un tipo `readonly`. Este
+	 *   componente NO habla con el puerto (mismo reparto que `onSubmit`): abre el MISMO
+	 *   `DeleteConfirm.svelte` que el listado (L-P4.11: ningún borrado sin confirmación) y delega
+	 *   la llamada real + el toast + la navegación en la ruta. Mientras el borrado está en vuelo se
+	 *   levanta `discarding`, que DESACTIVA el guard de salida: sin eso, borrar un registro con
+	 *   cambios sin guardar preguntaría "¿salir sin guardar?" justo después de haberlo borrado.
+	 * - **Estado legible en el `<select>`**: el campo que sea el `statusField` del tipo recibe
+	 *   `optionLabels` = `type.statusLabels` (P2, opt-in), así que su desplegable pinta «Publicado»
+	 *   donde antes ponía `published` — la MISMA traducción que ya hacían la insignia del listado,
+	 *   los chips de filtro, el raíl y la píldora de esta misma barra. Sin `statusLabels` (p. ej.
+	 *   `posts`) el select sigue pintando el valor crudo. El VALUE nunca cambia: se guarda siempre
+	 *   el valor de dominio.
+	 * - **Fila de slug**: si el tipo declara `slugField`, ese campo recibe una acción inline
+	 *   ("Regenerar") que recalcula el slug desde el valor ACTUAL del `titleField` con `slugify`
+	 *   (módulo puro). Nunca escribe un slug vacío encima de uno bueno: si el título no da nada
+	 *   utilizable, el botón queda deshabilitado.
 	 */
 	import { beforeNavigate } from '$app/navigation';
 	import { onMount, tick, untrack } from 'svelte';
@@ -135,10 +186,15 @@
 	import { getVegaContext } from '$lib/app-context';
 	import { classifyStatusBadge, describeCell } from '$lib/list/cell';
 	import { resolveTitleCellText } from '$lib/list/list-load';
+	import DeleteConfirm from '$lib/list/DeleteConfirm.svelte';
+	import EditorRail from '$lib/list/EditorRail.svelte';
 	import { buildPreviewUrl } from '$lib/model/preview-url';
+	import { slugify } from '$lib/model/slugify';
+	import Icon from '$lib/icons/Icon.svelte';
 	import EditTopBar from '$lib/shell/EditTopBar.svelte';
-	import { buildFormModel, type FormModel, type FormValues } from './form-model';
-	import { buildFormSections, localeForField } from './form-sections';
+	import { buildFormModel, type FormModel } from './form-model';
+	import { buildFormSections, localeForField, type FormSection } from './form-sections';
+	import { autodateInstant, autodateText } from './record-meta';
 	import { localeStatus, type LocaleStatus } from './locale-status';
 	import { isDirty, type FormInputValues } from './dirty';
 	import { toRecordInput } from './to-record-input';
@@ -160,12 +216,19 @@
 		/** Se llama YA con el baseline reasentado (L-P5.6): seguro navegar/toastear aquí dentro. */
 		onSaved: (record: VegaRecord) => void;
 		/** "Volver" (D-P5.12): la ruta decide `toIndex`/`toList` según `type.singleton`. Desde R7
-		 *  del rediseño, el CONTROL que lo dispara es el nombre del tipo en el crumb de `EditTopBar`
-		 *  (ver cabecera), no un botón "Volver" aparte. */
+		 *  del rediseño, el CONTROL que lo dispara es el enlace-atrás de `EditTopBar` (ver cabecera),
+		 *  no un botón "Volver" aparte. */
 		onCancel: () => void;
+		/** Borrado del registro abierto (zona de peligro del aside, mockup final). OPCIONAL: sin
+		 *  esta prop no se pinta la tarjeta — es el caso de `/c/[type]/new`, donde todavía no hay
+		 *  nada que borrar. La ruta hace el `ctx.port.delete` + toast + navegación; este componente
+		 *  solo confirma (`DeleteConfirm`) y le pasa el NOMBRE ya derivado del registro (que es él
+		 *  quien lo resuelve, ver `docName`) para el mensaje de éxito. Rechaza con `VegaError` si el
+		 *  borrado falla; aquí se reporta al feedback global y la tarjeta sigue en su sitio. */
+		onDelete?: (label: string) => Promise<void>;
 	}
 
-	let { type, model, typeReadonly, onSubmit, onSaved, onCancel }: Props = $props();
+	let { type, model, typeReadonly, onSubmit, onSaved, onCancel, onDelete }: Props = $props();
 
 	const ctx = getVegaContext();
 	const EMPTY_ERRORS: FieldErrorsView = { byField: {}, record: null };
@@ -201,24 +264,13 @@
 	});
 	setRecordIdentity(recordIdentity);
 
-	/**
-	 * "Último guardado" (R7 del rediseño, ver cabecera): `Date` sembrada del campo autodate
-	 * `updated` de `values` si el tipo declara un campo `updated` que REALMENTE es un autodate
-	 * (tipo `date` + `readonly`, como lo hornea PB) y trae un valor parseable; `null` si no hay
-	 * ninguna pista. El chequeo por tipo+readonly (no solo por nombre) evita que un tipo de
-	 * contenido de usuario con un campo cualquiera llamado `updated` (Vega es un CMS generalista,
-	 * manifest-driven) haga pintar una hora inventada — la barra no pinta nada en ese caso.
-	 */
-	function parseUpdatedAt(values: FormValues): Date | null {
-		const field = type.fields.find((f) => f.name === 'updated');
-		if (!field || field.schema.type !== 'date' || !field.schema.readonly) return null;
-		const raw = values['updated'];
-		if (typeof raw !== 'string') return null;
-		const ms = Date.parse(raw);
-		return Number.isNaN(ms) ? null : new Date(ms);
-	}
-
-	let savedAt = $state<Date | null>(untrack(() => parseUpdatedAt(model.baseline)));
+	// "Último guardado" (R7 del rediseño, ver cabecera): se siembra del autodate `updated` del
+	// baseline SI el tipo declara uno de verdad (`date` + `readonly`, como lo hornea PB) — la regla
+	// completa, y por qué el nombre a secas no basta, viven en `record-meta.ts`, compartidas con la
+	// tarjeta "Registro" del aside.
+	let savedAt = $state<Date | null>(
+		untrack(() => autodateInstant(type, model.baseline, 'updated'))
+	);
 
 	$effect(() => {
 		if (model !== syncedModel) {
@@ -232,7 +284,7 @@
 			recordIdentity.id = model.recordId;
 			// Un `model` nuevo es un registro DISTINTO (ver LANDMINE de más abajo): "último guardado"
 			// tiene que resembrarse de SU PROPIO baseline, no arrastrar la hora del registro anterior.
-			savedAt = parseUpdatedAt(model.baseline);
+			savedAt = autodateInstant(type, model.baseline, 'updated');
 		}
 	});
 
@@ -249,11 +301,17 @@
 	// a pasar de verdad, la corrección NO es aquí: es que la ruta deje de reconstruir `formModel`
 	// mientras haya un guardado en curso, o que este componente ignore un `model` nuevo si `dirty`.
 
-	// Secciones en el orden efectivo de `fieldGroups` (§4.9/§4.9b P2), incl. `columns` por grupo
-	// (rejilla responsive, ver cabecera y CSS de `.vega-fgroup-grid` más abajo); ver
-	// `form-sections.ts` para el fallback de campos "huérfanos" (defensivo, no debería darse por
-	// contrato) — extraído a módulo PURO para poder testearlo sin montar este componente.
-	const sections = $derived.by(() => buildFormSections(type, activeLocale));
+	// Secciones en el orden efectivo de `fieldGroups` (§4.9/§4.9b/§4.9c P2), incl. `columns` por
+	// grupo (rejilla responsive, ver cabecera y CSS de `.vega-fgroup-grid` más abajo) y `placement`
+	// (columna del editor); ver `form-sections.ts` para el fallback de campos "huérfanos"
+	// (defensivo, no debería darse por contrato) — extraído a módulo PURO para poder testearlo sin
+	// montar este componente. Las secciones VACÍAS se filtran aquí, una sola vez, en vez de repetir
+	// el `{#if section.fields.length > 0}` en las dos columnas del marcado.
+	const sections = $derived.by(() =>
+		buildFormSections(type, activeLocale).filter((section) => section.fields.length > 0)
+	);
+	const mainSections = $derived(sections.filter((section) => section.placement === 'main'));
+	const asideSections = $derived(sections.filter((section) => section.placement === 'aside'));
 
 	const errors = $derived<FieldErrorsView>({
 		byField: { ...clientErrors.byField, ...backendErrors.byField },
@@ -273,9 +331,9 @@
 			: ctx.t('editor.edit.title', { label: type.labelSingular })
 	);
 
-	/** Nombre del registro en el crumb (ver cabecera: MISMA derivación que `openText` de
+	/** Nombre del registro en la barra (ver cabecera: MISMA derivación que `openText` de
 	 *  `RecordTable`). En creación siempre `editor.new` ("nuevo"), sin mirar `titleField`. */
-	const crumbName = $derived.by(() => {
+	const docName = $derived.by(() => {
 		if (model.mode === 'create') return ctx.t('editor.new');
 		const titleField = type.titleField;
 		if (titleField === null) return ctx.t('list.untitled');
@@ -285,12 +343,15 @@
 		return resolveTitleCellText(descriptor, ctx.t('list.untitled'));
 	});
 
-	/** Tag de estado del crumb (ver cabecera): `null` sin `statusField`, o con el campo vacío. */
+	/** Tag de estado de la barra (ver cabecera): `null` sin `statusField`, o con el campo vacío.
+	 *  `label` pasa por `statusLabels` (P2, opt-in) igual que la insignia de `RecordTable`; `raw`
+	 *  se conserva aparte porque es lo que va al atributo `data-status` (valor canónico, estable
+	 *  para tests y para cualquier hoja de estilo que quiera engancharse a un estado concreto). */
 	const statusTag = $derived.by(() => {
 		if (type.statusField === null) return null;
 		const raw = baseline[type.statusField];
 		if (typeof raw !== 'string' || raw === '') return null;
-		return { label: raw, kind: classifyStatusBadge(raw) };
+		return { raw, label: type.statusLabels?.[raw] ?? raw, kind: classifyStatusBadge(raw) };
 	});
 
 	/** "Ver en el sitio" (ver cabecera): `null` ⇒ botón deshabilitado, nunca oculto (fiel al
@@ -310,6 +371,87 @@
 					)
 				})
 	);
+
+	// ————— Piezas del mockup final (todas opt-in, ver cabecera) —————
+
+	/** Raíl de hermanos: capacidad `editorRail` del manifiesto. Nunca en un `singleton` (no hay
+	 *  hermanos que listar: la colección entera es este registro) — inerte, no un error. */
+	const showRail = $derived(type.editorRail && !type.singleton);
+
+	/** Token de recarga del raíl: sube en CADA guardado con éxito. Sin esto, renombrar el registro
+	 *  abierto dejaría su fila del índice con el título viejo hasta recargar la página. */
+	let savedCount = $state(0);
+
+	/** Tarjeta "Registro" (id/creado/actualizado): solo en edición — en creación no hay id ni
+	 *  autodates todavía, y una tarjeta con tres huecos vacíos no informa de nada. */
+	const showMeta = $derived(model.mode === 'edit' && model.recordId !== null);
+	const createdText = $derived(autodateText(type, baseline, 'created', ctx.locale));
+	const updatedText = $derived(autodateText(type, baseline, 'updated', ctx.locale));
+
+	/** Zona de peligro: solo si la ruta cableó `onDelete` (⇒ hay registro), el tipo no es de solo
+	 *  lectura y estamos editando. Mismo criterio que el botón "Borrar" de la fila del listado. */
+	const canDelete = $derived(onDelete !== undefined && !typeReadonly && model.mode === 'edit');
+
+	/** La columna del aside existe si hay ALGO que poner en ella (ver cabecera). */
+	const showAside = $derived(asideSections.length > 0 || showMeta || canDelete);
+
+	/** Texto ACTUAL del campo título (no el del baseline): "Regenerar" deriva de lo que el usuario
+	 *  está escribiendo ahora mismo, no de lo último guardado. `''` sin `titleField`. */
+	const titleText = $derived.by(() => {
+		if (type.titleField === null) return '';
+		const raw = current[type.titleField];
+		return typeof raw === 'string' ? raw : '';
+	});
+
+	/** El slug que produciría "Regenerar" con el título actual; `''` ⇒ nada utilizable (título
+	 *  vacío o en un alfabeto que `slugify` no romaniza) y el botón queda deshabilitado. */
+	const regeneratedSlug = $derived(slugify(titleText));
+
+	/** Escribe el slug derivado del título en el campo `slugField` (ver cabecera). No-op si no hay
+	 *  nada que escribir: JAMÁS pisa un slug bueno con una cadena vacía. */
+	function regenerateSlug(): void {
+		if (type.slugField === null || regeneratedSlug === '' || formDisabled) return;
+		handleFieldChange(type.slugField, regeneratedSlug);
+	}
+
+	// ————— Borrado (zona de peligro; el puerto lo llama la RUTA, ver cabecera) —————
+	let deleteOpen = $state(false);
+	let deleting = $state(false);
+	/** `true` mientras se borra: el guard de salida se calla (ver cabecera). Variable PLANA: solo
+	 *  la lee `beforeNavigate`, nunca el marcado. */
+	let discarding = false;
+	/** Destino de foco de reserva de `DeleteConfirm` (ver su cabecera): el `<h1>` oculto de la
+	 *  página, `tabindex="-1"` en el marcado — mismo truco que el `<h1>` del listado. */
+	let headingEl = $state<HTMLElement | null>(null);
+
+	/**
+	 * Confirmación del diálogo de borrado. `discarding` se levanta ANTES de llamar a la ruta y NO se
+	 * baja en el camino de éxito A PROPÓSITO: la navegación de la ruta (`ctx.nav.toList`) no se
+	 * espera (`goto()` fire-and-forget), así que `beforeNavigate` puede dispararse DESPUÉS de este
+	 * `finally` — bajar la bandera ahí volvería a armar el guard justo a tiempo de preguntar "hay
+	 * cambios sin guardar" por un registro que ya no existe. Solo el camino de ERROR la baja: ahí
+	 * seguimos en la página, con los cambios intactos y el guard tiene que volver a valer.
+	 */
+	async function confirmDelete(): Promise<void> {
+		if (!onDelete || deleting) return;
+		deleting = true;
+		discarding = true;
+		try {
+			await onDelete(docName);
+		} catch (err) {
+			// El borrado NO llegó a hacerse: se vuelve a armar el guard de salida (seguimos en la
+			// página, con los cambios sin guardar intactos) y el error va al feedback global, como
+			// cualquier fallo de puerto que no sea de validación por campo (L-P5.5).
+			discarding = false;
+			ctx.feedback.reportError(
+				err instanceof VegaError ? err : VegaError.backend('Error al borrar el registro', err),
+				{ action: 'record:delete' }
+			);
+		} finally {
+			deleting = false;
+			deleteOpen = false;
+		}
+	}
 
 	function handleFieldChange(name: string, value: FieldInputValue): void {
 		current = { ...current, [name]: value };
@@ -418,6 +560,7 @@
 			// R7 del rediseño: "último guardado" pasa a la hora REAL de este guardado, sin mirar si
 			// el tipo declara `updated` (ver cabecera) — acabamos de guardar, así que la sabemos.
 			savedAt = new Date();
+			savedCount += 1; // el raíl relee la colección: su fila puede haber cambiado de título
 			onSaved(saved);
 		} catch (err) {
 			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al guardar', err);
@@ -438,7 +581,10 @@
 	}
 
 	beforeNavigate((navigation) => {
-		if (!dirty) return;
+		// `discarding` (ver cabecera): la navegación la ha provocado el propio borrado del registro
+		// — preguntar "hay cambios sin guardar, ¿salir igualmente?" por un registro que acaba de
+		// dejar de existir sería absurdo (y la única respuesta útil sería "sí").
+		if (!dirty || discarding) return;
 		if (!window.confirm(ctx.t('editor.leaveConfirm'))) navigation.cancel();
 	});
 
@@ -468,29 +614,53 @@
 
 <form class="vega-record-form" bind:this={formEl} onsubmit={handleSubmit}>
 	<!-- Ver cabecera del módulo: h1 presente para a11y (jerarquía de headings) pero sin el peso
-	     visual que el mockup no pide — el crumb de `EditTopBar`, abajo, es el título "visible". -->
-	<h1 class="vega-visually-hidden">{pageTitle}</h1>
+	     visual que el mockup no pide — el título del documento en `EditTopBar`, abajo, es el título
+	     "visible". `tabindex="-1"`: destino de foco de reserva de `DeleteConfirm` (ver su cabecera),
+	     nunca alcanzable con Tab. -->
+	<h1 class="vega-visually-hidden" tabindex="-1" bind:this={headingEl}>{pageTitle}</h1>
 
-	<EditTopBar>
+	<EditTopBar bleed={true}>
 		{#snippet crumb()}
-			<span class="vega-editor-crumb">
-				<button type="button" class="vega-editor-crumb-link" onclick={onCancel}>
-					{type.label}
-				</button>
-				/ <b class="vega-editor-crumb-name">{crumbName}</b>
+			<!-- Atrás (mockup `.back`): chevron + label del tipo. El icono `chevron` del set apunta a
+			     la DERECHA (es el mismo que usa la nav); se espeja con CSS en vez de añadir un id
+			     nuevo al registro de iconos por un giro de 180°. -->
+			<button type="button" class="vega-editor-back" onclick={onCancel}>
+				<Icon id="chevron" size={14} />
+				{type.label}
+			</button>
+			<span class="vega-editor-doc">
+				<span class="vega-editor-crumb-name">{docName}</span>
+				{#if dirty}
+					<!-- Punto "sin guardar" (mockup `.dirty-dot`): el texto sigue ahí para lectores de
+					     pantalla (ver cabecera), solo deja de verse. -->
+					<span class="vega-editor-dirty" title={ctx.t('editor.dirty')}>
+						<span class="vega-visually-hidden">{ctx.t('editor.dirty')}</span>
+					</span>
+				{/if}
+				{#if typeReadonly}
+					<span class="vega-editor-readonly-badge">{ctx.t('nav.readonlyBadge')}</span>
+				{/if}
+				{#if statusTag}
+					<span
+						class="vega-editor-tag"
+						data-status={statusTag.raw}
+						data-status-kind={statusTag.kind}
+					>
+						{statusTag.label}
+					</span>
+				{/if}
 			</span>
-			{#if typeReadonly}
-				<span class="vega-editor-readonly-badge">{ctx.t('nav.readonlyBadge')}</span>
-			{/if}
-			{#if statusTag}
-				<span class="vega-editor-tag" data-status-kind={statusTag.kind}>{statusTag.label}</span>
-			{/if}
-			{#if dirty}
-				<span class="vega-editor-dirty">{ctx.t('editor.dirty')}</span>
-			{/if}
 		{/snippet}
 		{#snippet actions()}
-			{#if savedAtText}
+			<!-- Estado de guardado (mockup `.save-state`): "Guardando…" mientras el envío está en
+			     vuelo, si no la hora del último guardado conocido. El BOTÓN ya no cambia de texto al
+			     guardar (el mockup lo deja fijo en "Guardar" y solo lo deshabilita): así su nombre
+			     accesible es estable para cualquier locator, y el feedback vive aquí. -->
+			{#if saving}
+				<span class="vega-editor-saved-at vega-editor-saved-at--saving">
+					{ctx.t('editor.saving')}
+				</span>
+			{:else if savedAtText}
 				<span class="vega-editor-saved-at">{savedAtText}</span>
 			{/if}
 			{#if previewUrl}
@@ -519,47 +689,25 @@
 			{/if}
 			{#if !typeReadonly}
 				<button type="submit" class="vega-editor-save-button" disabled={formDisabled}>
-					{saving ? ctx.t('editor.saving') : ctx.t('editor.save')}
+					{ctx.t('editor.save')}
 					<kbd aria-hidden="true">⌘S</kbd>
 				</button>
 			{/if}
 		{/snippet}
 	</EditTopBar>
 
-	{#if typeReadonly}
-		<p class="vega-record-form-notice">{ctx.t('editor.readonlyNotice')}</p>
-	{/if}
-	{#if errors.record}
-		<p class="vega-record-form-banner" role="alert">{fieldErrorMessage(ctx.t, errors.record)}</p>
-	{/if}
-
-	{#if type.localization}
-		<div
-			class="vega-locale-tabs"
-			role="tablist"
-			aria-label={ctx.t('form.locale.tabsLabel')}
-			aria-orientation="horizontal"
+	<!-- "Regenerar" (mockup `.slug-row .btn`): deriva el slug del título ACTUAL. Deshabilitado si
+	     el título no da nada utilizable — nunca borra el slug que ya había. -->
+	{#snippet slugAction()}
+		<button
+			type="button"
+			class="vega-editor-inline-button"
+			disabled={formDisabled || regeneratedSlug === ''}
+			onclick={regenerateSlug}
 		>
-			{#each type.localization.locales as locale, index (locale.id)}
-				{@const status = localeStatus(type, locale.id, baseline, current, errors)}
-				<button
-					id={`vega-locale-tab-${type.name}-${locale.id}`}
-					type="button"
-					role="tab"
-					aria-selected={activeLocale === locale.id}
-					aria-controls={`vega-locale-panel-${type.name}`}
-					aria-label={localeStatusText(locale.label, status)}
-					tabindex={activeLocale === locale.id ? 0 : -1}
-					data-status={status}
-					onclick={() => (activeLocale = locale.id)}
-					onkeydown={(event) => handleLocaleTabKeydown(event, index)}
-				>
-					<span>{locale.label}</span>
-					<span class="vega-locale-status" aria-hidden="true"></span>
-				</button>
-			{/each}
-		</div>
-	{/if}
+			{ctx.t('editor.slug.regenerate')}
+		</button>
+	{/snippet}
 
 	{#snippet fieldRow(field: ResolvedField, stacked: boolean)}
 		<FieldRow
@@ -570,56 +718,260 @@
 			{typeReadonly}
 			{stacked}
 			isTitleField={field.name === type.titleField}
+			isSlugField={field.name === type.slugField}
+			optionLabels={field.name === type.statusField ? (type.statusLabels ?? undefined) : undefined}
+			action={field.name === type.slugField && type.titleField !== null ? slugAction : undefined}
 			onChange={(value) => handleFieldChange(field.name, value)}
 		/>
 	{/snippet}
 
+	{#snippet fieldSection(section: FormSection)}
+		{#if section.columns > 1}
+			<!-- §4.9b: rejilla de N columnas (ver cabecera) — cada FieldRow va `stacked`. -->
+			<div class="vega-fgroup-grid" class:vega-fgroup-grid--3={section.columns === 3}>
+				{#each section.fields as field (field.name)}
+					{@render fieldRow(field, true)}
+				{/each}
+			</div>
+		{:else}
+			<div class="vega-fields">
+				{#each section.fields as field (field.name)}
+					{@render fieldRow(field, false)}
+				{/each}
+			</div>
+		{/if}
+	{/snippet}
+
+	<!-- Rejilla maestro-detalle del mockup final (ver cabecera): las columnas laterales solo
+	     existen si su capacidad está declarada / hay algo que poner en ellas. -->
 	<div
-		id={type.localization ? `vega-locale-panel-${type.name}` : undefined}
-		class="vega-form-content"
-		role={type.localization ? 'tabpanel' : undefined}
-		aria-labelledby={activeLocaleTabId}
+		class="vega-editor-grid"
+		class:vega-editor-grid--rail={showRail}
+		class:vega-editor-grid--aside={showAside}
 	>
-		{#each sections as section (section.group ?? '')}
-			{#if section.fields.length > 0}
-				<section class="vega-fsection">
-					{#if section.group}
-						<h2>{section.group}</h2>
-					{/if}
-					{#if section.columns > 1}
-						<!-- §4.9b: rejilla de N columnas (ver cabecera) — cada FieldRow va `stacked`. -->
-						<div class="vega-fgroup-grid" class:vega-fgroup-grid--3={section.columns === 3}>
-							{#each section.fields as field (field.name)}
-								{@render fieldRow(field, true)}
-							{/each}
-						</div>
-					{:else}
-						{#each section.fields as field (field.name)}
-							{@render fieldRow(field, false)}
-						{/each}
-					{/if}
-				</section>
+		{#if showRail}
+			<EditorRail contentType={type} activeId={model.recordId} reloadToken={savedCount} />
+		{/if}
+
+		<div class="vega-editor-main">
+			{#if typeReadonly}
+				<p class="vega-record-form-notice">{ctx.t('editor.readonlyNotice')}</p>
 			{/if}
-		{/each}
+			{#if errors.record}
+				<p class="vega-record-form-banner" role="alert">
+					{fieldErrorMessage(ctx.t, errors.record)}
+				</p>
+			{/if}
+
+			{#if type.localization}
+				<div
+					class="vega-locale-tabs"
+					role="tablist"
+					aria-label={ctx.t('form.locale.tabsLabel')}
+					aria-orientation="horizontal"
+				>
+					{#each type.localization.locales as locale, index (locale.id)}
+						{@const status = localeStatus(type, locale.id, baseline, current, errors)}
+						<button
+							id={`vega-locale-tab-${type.name}-${locale.id}`}
+							type="button"
+							role="tab"
+							aria-selected={activeLocale === locale.id}
+							aria-controls={`vega-locale-panel-${type.name}`}
+							aria-label={localeStatusText(locale.label, status)}
+							tabindex={activeLocale === locale.id ? 0 : -1}
+							data-status={status}
+							onclick={() => (activeLocale = locale.id)}
+							onkeydown={(event) => handleLocaleTabKeydown(event, index)}
+						>
+							<span>{locale.label}</span>
+							<span class="vega-locale-status" aria-hidden="true"></span>
+						</button>
+					{/each}
+				</div>
+			{/if}
+
+			<div
+				id={type.localization ? `vega-locale-panel-${type.name}` : undefined}
+				class="vega-form-content"
+				role={type.localization ? 'tabpanel' : undefined}
+				aria-labelledby={activeLocaleTabId}
+			>
+				{#each mainSections as section (section.group ?? '')}
+					<section class="vega-fsection">
+						{#if section.group}
+							<h2>{section.group}</h2>
+						{/if}
+						{@render fieldSection(section)}
+					</section>
+				{/each}
+			</div>
+		</div>
+
+		{#if showAside}
+			<aside class="vega-editor-aside">
+				{#each asideSections as section (section.group ?? '')}
+					<section class="vega-fsection vega-fsection--aside">
+						{#if section.group}
+							<h2>{section.group}</h2>
+						{/if}
+						{@render fieldSection(section)}
+					</section>
+				{/each}
+
+				{#if showMeta}
+					<!-- Tarjeta "Registro" (mockup `.kv`): solo filas que el schema respalde de verdad
+					     (ver `record-meta.ts`) — el `id` siempre, las fechas solo si hay autodate. -->
+					<section class="vega-fsection vega-fsection--aside">
+						<h2>{ctx.t('editor.meta.title')}</h2>
+						<dl class="vega-editor-kv">
+							<div>
+								<dt>{ctx.t('editor.meta.id')}</dt>
+								<dd class="vega-editor-kv-mono">{model.recordId}</dd>
+							</div>
+							{#if createdText}
+								<div>
+									<dt>{ctx.t('editor.meta.created')}</dt>
+									<dd>{createdText}</dd>
+								</div>
+							{/if}
+							{#if updatedText}
+								<div>
+									<dt>{ctx.t('editor.meta.updated')}</dt>
+									<dd>{updatedText}</dd>
+								</div>
+							{/if}
+						</dl>
+					</section>
+				{/if}
+
+				{#if canDelete}
+					<section class="vega-fsection vega-fsection--aside vega-editor-danger">
+						<h2>{ctx.t('editor.dangerZone.title')}</h2>
+						<button
+							type="button"
+							class="vega-editor-delete-button"
+							onclick={() => (deleteOpen = true)}
+						>
+							{ctx.t('editor.delete', { label: type.labelSingular })}
+						</button>
+					</section>
+				{/if}
+			</aside>
+		{/if}
 	</div>
 </form>
 
+<!-- L-P4.11 (misma ley que el listado): ningún borrado sin pasar por este diálogo. Fuera del
+     `<form>` a propósito — es un overlay de pantalla completa, no parte del formulario. -->
+<DeleteConfirm
+	open={deleteOpen}
+	recordLabel={docName}
+	{deleting}
+	fallbackFocusEl={headingEl}
+	onConfirm={confirmDelete}
+	onCancel={() => (deleteOpen = false)}
+/>
+
 <style>
+	/* El editor va A SANGRE (mockup final, ver cabecera): `.vega-main` (AppShell) pinta el papel
+	   con `padding: 1.75rem 2rem 2.5rem` para TODAS las rutas, y aquí se cancela con márgenes
+	   negativos para que la hairline de la barra pegajosa y el fondo lleguen de borde a borde —
+	   igual que en el mockup, donde el lienzo del editor no tiene padding y quien lo repone es la
+	   propia rejilla (`.vega-editor-grid`). Es el ÚNICO punto del repo que replica ese valor: si
+	   cambia en `AppShell.svelte`, hay que cambiarlo aquí. */
 	.vega-record-form {
 		display: flex;
 		flex-direction: column;
-		gap: 1.75rem; /* C: ritmo entre fichas (mockup `.fsection { margin-bottom: 1.75rem }`) */
-		max-width: 55rem; /* mockup `.form { max-width: 880px }` */
+		margin: -1.75rem -2rem -2.5rem;
 		/* Casos límite de contenido real (F5-g): sin esto, el formulario es un flex-item cuyo
 		   `min-width` por defecto es el de su contenido — un label/valor kilométrico (una sola
 		   palabra sin espacios) podría forzar overflow horizontal de la página entera. */
 		min-width: 0;
 	}
 
+	/* Rejilla maestro-detalle (mockup `.detail-grid`): raíl | tarjetas | aside. `align-items:
+	   start` es lo que permite que las dos columnas laterales sean pegajosas (si se estiraran a la
+	   altura de la fila, no habría nada que "pegar"). */
+	.vega-editor-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: calc(var(--vega-space-gutter) * 1.25);
+		align-items: start;
+		padding: calc(var(--vega-space-gutter) * 1.25) calc(var(--vega-space-gutter) * 1.5);
+	}
+
+	.vega-editor-grid--rail {
+		grid-template-columns: 264px minmax(0, 1fr);
+	}
+
+	.vega-editor-grid--aside {
+		grid-template-columns: minmax(0, 1fr) 296px;
+	}
+
+	.vega-editor-grid--rail.vega-editor-grid--aside {
+		grid-template-columns: 264px minmax(0, 1fr) 296px;
+	}
+
+	.vega-editor-main {
+		display: flex;
+		flex-direction: column;
+		gap: var(--vega-space-gutter);
+		min-width: 0;
+	}
+
+	/* Columna lateral (mockup `.aside`): tarjetas compactas apiladas, pegajosa bajo la barra. */
+	.vega-editor-aside {
+		display: flex;
+		flex-direction: column;
+		gap: var(--vega-space-gutter);
+		position: sticky;
+		/* Mismo offset (y mismo motivo) que `.vega-rail` en `EditorRail.svelte`: el scroll es el de
+		   `.vega-main`, así que solo hay que descontar el alto de la barra pegajosa del editor. */
+		top: 58px;
+		min-width: 0;
+	}
+
+	/* Responsive del mockup, punto por punto. 1180px: se va el raíl (lo primero que sobra: es una
+	   ayuda de navegación, no contenido) y la rejilla queda en dos columnas. */
+	@media (max-width: 1180px) {
+		.vega-editor-grid--rail {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.vega-editor-grid--rail.vega-editor-grid--aside {
+			grid-template-columns: minmax(0, 1fr) 296px;
+		}
+
+		/* `:global` DELIBERADO (mismo patrón que `FieldRow` con `.vega-widget-text`): el raíl es un
+		   componente hijo con su propio CSS scoped, pero quién sobra y a qué ancho es una decisión
+		   de ESTA rejilla, no suya. Se oculta el hijo directo, no se envuelve en un `<div>`: un
+		   envoltorio de altura ajustada dejaría su `position: sticky` sin recorrido. */
+		.vega-editor-grid--rail > :global(.vega-rail) {
+			display: none;
+		}
+	}
+
+	/* 900px: una sola columna y el aside deja de ser pegajoso (cae bajo el formulario, donde no
+	   tiene sentido que se quede clavado). Los selectores repiten la misma especificidad que el
+	   bloque de 1180px para poder ganarle por orden de cascada. */
+	@media (max-width: 900px) {
+		.vega-editor-grid,
+		.vega-editor-grid--rail,
+		.vega-editor-grid--aside,
+		.vega-editor-grid--rail.vega-editor-grid--aside {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.vega-editor-aside {
+			position: static;
+		}
+	}
+
 	.vega-form-content {
 		display: flex;
 		flex-direction: column;
-		gap: 1.75rem;
+		gap: var(--vega-space-gutter);
 		min-width: 0;
 	}
 
@@ -704,39 +1056,51 @@
 		border: 0;
 	}
 
-	/* Crumb (R7, mockup `.edit-top .crumb`): mono, tenue; el nombre del registro en `--ink-hi`. */
-	.vega-editor-crumb {
+	/* Enlace-atrás de la barra (mockup `.back`): chevron + label del tipo, tenue hasta el hover. */
+	.vega-editor-back {
 		display: inline-flex;
-		align-items: baseline;
-		gap: 0.3rem;
-		font-family: var(--mono);
-		font-size: 0.75rem;
-		color: var(--ink-3);
-		overflow-wrap: anywhere;
-	}
-
-	/* Botón SIN estilo de botón (la afordancia visual sigue siendo la de un enlace de crumb, ver
-	   cabecera del módulo: "Volver" se mudó aquí) — foco visible SÍ conservado (nunca `outline:none`
-	   sin sustituto). */
-	.vega-editor-crumb-link {
+		align-items: center;
+		gap: 0.35rem;
+		flex-shrink: 0;
+		padding: 0.25rem 0.5rem;
 		border: 0;
+		border-radius: var(--r);
 		background: none;
-		padding: 0;
+		color: var(--ink-2);
 		font: inherit;
-		color: inherit;
-		text-decoration: underline;
-		text-decoration-color: transparent;
+		font-size: 0.9em;
+		line-height: 1.2; /* explícito: el `line-height` heredado no viaja a un componente Svelte */
 		cursor: pointer;
 	}
 
-	.vega-editor-crumb-link:hover {
-		color: var(--ink);
-		text-decoration-color: currentColor;
+	.vega-editor-back:hover {
+		background: var(--active);
+		color: var(--ink-hi);
 	}
 
+	/* El chevron del set apunta a la derecha (ver el marcado): se espeja para señalar "atrás". */
+	.vega-editor-back :global(svg) {
+		transform: scaleX(-1);
+	}
+
+	/* Título del documento + indicadores (mockup `.doc`). `min-width: 0` para que la elipsis del
+	   título funcione dentro del flex de la barra. */
+	.vega-editor-doc {
+		display: flex;
+		align-items: center;
+		gap: 0.55rem;
+		min-width: 0;
+	}
+
+	/* Mockup `.doc-title`: el título del registro, acotado a 30ch con elipsis — un título
+	   kilométrico no puede empujar las acciones fuera de la barra (eje 5, contenido real). */
 	.vega-editor-crumb-name {
-		color: var(--ink);
-		font-weight: 600;
+		font-weight: 650;
+		color: var(--ink-hi);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 30ch;
 	}
 
 	.vega-editor-readonly-badge {
@@ -745,92 +1109,133 @@
 		border: 1px solid var(--line);
 		border-radius: 999px;
 		font-size: 0.7rem;
+		line-height: 1.4;
 		white-space: nowrap;
 		color: var(--ink-2);
 	}
 
-	/* Tag de estado (R7, mockup `.tag`): mismos tres colores que la insignia de `RecordTable`
-	   (`classifyStatusBadge`, R3 de lote-2) — pub/draft/other. */
+	/* Tag de estado (mockup final `.status`): la MISMA píldora que la insignia de la tabla
+	   (`.vega-status-badge` en `RecordTable.svelte`) — alto fijo 24px, punto de 6px + palabra, sin
+	   borde, fondo semántico `-soft`. SANS, nunca `--mono`: una etiqueta de estado es un RÓTULO, no
+	   un valor canónico. `line-height` explícito (el heredado no viaja a un componente Svelte: sin
+	   él la palabra queda baja dentro de la píldora). */
 	.vega-editor-tag {
 		display: inline-flex;
 		align-items: center;
-		font-family: var(--mono);
-		font-size: 0.72rem;
+		gap: 0.4rem;
+		flex-shrink: 0;
+		height: 24px;
+		padding: 0 0.65rem;
+		border-radius: 999px;
+		font-size: 0.82em;
 		font-weight: 600;
-		border-radius: 5px;
-		padding: 0.18rem 0.55rem;
-		border: 1px solid transparent;
+		line-height: 24px;
 		white-space: nowrap;
+	}
+
+	.vega-editor-tag::before {
+		content: '';
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: currentColor;
+		flex-shrink: 0;
 	}
 
 	.vega-editor-tag[data-status-kind='pub'] {
 		color: var(--success);
 		background: var(--success-soft);
-		border-color: var(--success);
 	}
 
 	.vega-editor-tag[data-status-kind='draft'] {
 		color: var(--ink-2);
-		background: var(--active);
-		border-color: var(--line-strong);
+		background: var(--btn);
 	}
 
 	.vega-editor-tag[data-status-kind='other'] {
 		color: var(--info);
 		background: var(--info-soft);
-		border-color: var(--info);
 	}
 
-	/* Indicador "sin guardar" (mockup `.dirty`): el `●` es puramente decorativo (`aria-hidden` vía
-	   `::before`, invisible a lectores de pantalla — el TEXTO ya dice "sin guardar"). */
+	/* Punto "sin guardar" (mockup `.dirty-dot`): 8px en `--warning`. El texto va dentro,
+	   visualmente oculto (ver cabecera) — de ahí `overflow: hidden`, para que el clip del texto no
+	   estire el punto. */
 	.vega-editor-dirty {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.4rem;
-		font-family: var(--mono);
-		font-size: 0.72rem;
-		font-weight: 600;
-		color: var(--warning);
-		white-space: nowrap;
+		display: inline-block;
+		flex-shrink: 0;
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--warning);
+		overflow: hidden;
 	}
 
-	.vega-editor-dirty::before {
-		content: '●';
-	}
-
+	/* Estado de guardado (mockup `.save-state`): tenue; con `⟳` en `--info` mientras se guarda. */
 	.vega-editor-saved-at {
 		font-family: var(--mono);
 		font-size: 0.72rem;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		white-space: nowrap;
 	}
 
-	/* Botones de la barra (mockup `.btn`/`.btn.quiet`/`.btn.primary`): namespaced a este componente
-	   (mismo criterio que el resto de la app — cada marco define su propio botón, ver
+	.vega-editor-saved-at--saving::before {
+		content: '⟳ ';
+		color: var(--info);
+	}
+
+	/* Botones de la barra (mockup `.btn`/`.btn-primary`): namespaced a este componente (mismo
+	   criterio que el resto de la app — cada marco define su propio botón, ver
 	   `.vega-list-new-button` de `/c/[type]/+page.svelte`). */
 	.vega-editor-preview-link {
 		display: inline-flex;
 		align-items: center;
-		border: 1px solid transparent;
-		background: none;
-		color: var(--ink-2);
+		height: 34px;
+		padding: 0 0.9rem;
+		border: 1px solid var(--line);
 		border-radius: var(--r);
-		padding: 0.45rem 1rem;
+		background: var(--btn);
+		color: var(--ink);
 		font-size: 0.8125rem;
-		font-weight: 600;
+		font-weight: 550;
+		line-height: 34px;
 		text-decoration: none;
 		white-space: nowrap;
 		cursor: pointer;
 	}
 
 	a.vega-editor-preview-link:hover {
-		background: var(--active);
-		color: var(--ink-hi);
+		border-color: var(--line-strong);
 	}
 
 	button.vega-editor-preview-link:disabled {
 		cursor: not-allowed;
-		opacity: 0.45;
+		opacity: 0.5; /* mockup `.btn:disabled { opacity: 0.5 }` */
+	}
+
+	/* Acción inline junto a un control (mockup `.slug-row .btn`): el MISMO botón secundario de la
+	   barra, en el tamaño de un control de campo. */
+	.vega-editor-inline-button {
+		flex-shrink: 0;
+		height: 34px;
+		padding: 0 0.9rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--btn);
+		color: var(--ink);
+		font: inherit;
+		font-weight: 550;
+		line-height: 1.2;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	.vega-editor-inline-button:hover:not(:disabled) {
+		border-color: var(--line-strong);
+	}
+
+	.vega-editor-inline-button:disabled {
+		cursor: not-allowed;
+		opacity: 0.5;
 	}
 
 	/* Botón primario "Guardar" → --accent-fill (mockups aquelarre-*.html, firma de David: relleno
@@ -840,13 +1245,15 @@
 	.vega-editor-save-button {
 		display: inline-flex;
 		align-items: center;
+		height: 34px; /* mockup `.btn`: los tres botones de la barra comparten alto */
+		padding: 0 0.9rem;
 		border: 1px solid transparent;
+		border-radius: var(--r);
 		background: var(--accent-fill);
 		color: var(--accent-ink);
-		border-radius: var(--r);
-		padding: 0.45rem 1rem;
 		font-size: 0.8125rem;
 		font-weight: 600;
+		line-height: 34px;
 		white-space: nowrap;
 		cursor: pointer;
 	}
@@ -876,60 +1283,135 @@
 		opacity: 0.45; /* mockup `.btn:disabled { opacity: 0.45 }` — mismo valor que el manifiesto */
 	}
 
-	/* Fichas (R7, mockup `.fsection`): borde+radio+fondo+sombra de tarjeta, MISMOS tokens que el
-	   resto de tarjetas del rediseño (`.vega-list-card`, `.vega-cabin`). */
+	/* Tarjeta de campos (mockup final `.card`): papel elevado + borde + sombra, con el padding de
+	   densidad `--pad-card`. `--paper` y no `--surface`: en el vocabulario del rediseño `--paper` es
+	   la superficie de TARJETA y `--surface` la de los CONTROLES que van dentro (inputs, botones);
+	   una tarjeta en `--surface` haría desaparecer sus propios campos. */
 	.vega-fsection {
 		display: flex;
 		flex-direction: column;
+		gap: 0.75rem;
 		border: 1px solid var(--line);
 		border-radius: var(--r);
-		background: var(--surface);
+		background: var(--paper);
 		box-shadow: var(--shadow-card);
-		overflow: hidden;
+		padding: var(--pad-card);
+		min-width: 0;
 	}
 
+	/* Rótulo de tarjeta (mockup `.aside h2`, usado también en las de la columna central para que el
+	   editor tenga UN solo criterio de cabecera): versalita tenue, sin barra de fondo. */
 	.vega-fsection h2 {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
 		margin: 0;
-		font-family: var(--mono);
-		font-size: 0.6875rem;
-		font-weight: 600;
-		letter-spacing: 0.12em;
+		font-size: 0.76em;
+		font-weight: 650;
+		letter-spacing: 0.09em;
 		text-transform: uppercase;
 		color: var(--ink-3);
-		padding: 0.7rem 1.25rem;
-		background: var(--surface-2);
-		border-bottom: 1px solid var(--line);
 		overflow-wrap: anywhere;
+	}
+
+	/* Tarjetas del aside (mockup `.aside .card`): mismo lenguaje, tres cuartos de padding. */
+	.vega-fsection--aside {
+		padding: calc(var(--pad-card) * 0.75);
+	}
+
+	/* Pila de campos de una sección (mockup `.fields`): la separación entre campos es este `gap`
+	   —`--gap-field`, el token de densidad P7— y no un borde por fila, como en el mockup. */
+	.vega-fields {
+		display: flex;
+		flex-direction: column;
+		gap: var(--gap-field);
+		min-width: 0;
+	}
+
+	/* En el aside los campos van más juntos (mockup `.aside .field + .field { margin-top: .9rem }`):
+	   son tarjetas estrechas de metadatos, no el cuerpo del documento. */
+	.vega-fsection--aside .vega-fields {
+		gap: 0.9rem;
 	}
 
 	/* Rejilla de columnas de un grupo (§4.9b, ver cabecera del módulo): 2 columnas por defecto,
 	   `--3` para el máximo del schema (1-3). `gap` reutiliza `--gap-field` (mismo token de
-	   densidad P7 que ya separa las fichas entre sí, `.vega-record-form` más abajo) en vez de un
-	   valor nuevo — nada hardcodeado. Cada `FieldRow` hijo va `stacked` (ver ese componente): cede
-	   su propio padding/borde de fila a este `gap`, así que el padding de la ficha vive aquí. */
+	   densidad P7 que ya separa los campos entre sí) en vez de un valor nuevo — nada hardcodeado. */
 	.vega-fgroup-grid {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: var(--gap-field);
-		padding: 1.1rem 1.25rem;
 	}
 
 	.vega-fgroup-grid--3 {
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 
-	/* Mismo breakpoint que el colapso `label|control` de `FieldRow`/`.manif` de `ManifestEditor`
-	   (940px): grupo, fila y manifiesto rompen a 1 columna juntos. Además aprieta `gap`/`padding`
-	   a los MISMOS valores que `FieldRow` reduce en este `@media` (0.35rem / 0.9rem 1rem): sin
-	   esto, una sección agrupada quedaría más "floja" (más aire) que una fila normal justo al lado,
-	   rompiendo la coherencia de densidad en móvil. */
+	/* Mismo breakpoint que el colapso de `.manif` en `ManifestEditor` (940px): grupo de columnas y
+	   manifiesto rompen a 1 columna juntos. */
 	@media (max-width: 940px) {
 		.vega-fgroup-grid,
 		.vega-fgroup-grid--3 {
 			grid-template-columns: 1fr;
-			gap: 0.35rem;
-			padding: 0.9rem 1rem;
+			gap: 0.9rem;
 		}
+	}
+
+	/* Tarjeta "Registro" (mockup `.kv`): pares clave/valor a lado y lado. El `id` en `--mono`
+	   (VALOR canónico); las fechas en tabular para que no bailen al actualizarse. */
+	.vega-editor-kv {
+		display: flex;
+		flex-direction: column;
+		margin: 0;
+	}
+
+	.vega-editor-kv > div {
+		display: flex;
+		justify-content: space-between;
+		gap: 0.75rem;
+		padding: 0.25rem 0;
+		font-size: 0.86em;
+		color: var(--ink-2);
+	}
+
+	.vega-editor-kv dd {
+		margin: 0;
+		color: var(--ink);
+		font-variant-numeric: tabular-nums;
+		overflow-wrap: anywhere;
+	}
+
+	.vega-editor-kv-mono {
+		font-family: var(--mono);
+		font-size: 0.92em;
+	}
+
+	/* Zona de peligro (mockup `.danger-zone`/`.btn-danger`): el borde de la tarjeta avisa antes de
+	   leer nada, y el botón ocupa todo el ancho para que no se confunda con una acción menor. */
+	.vega-editor-danger {
+		border-color: var(--danger-soft);
+	}
+
+	.vega-editor-delete-button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 34px;
+		padding: 0 0.9rem;
+		border: 1px solid transparent;
+		border-radius: var(--r);
+		background: var(--danger-soft);
+		color: var(--danger);
+		font: inherit;
+		font-size: 0.8125rem;
+		font-weight: 550;
+		line-height: 1.2;
+		cursor: pointer;
+	}
+
+	.vega-editor-delete-button:hover {
+		box-shadow: 0 0 0 1.5px var(--danger);
 	}
 
 	.vega-record-form-notice {

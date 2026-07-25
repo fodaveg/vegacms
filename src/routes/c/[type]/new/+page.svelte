@@ -12,8 +12,12 @@
 	 *   (§3.3, ya cubierto por P3).
 	 *
 	 * **R7 del rediseño C2**: el `<h1>` que esta ruta pintaba se muda dentro de `RecordForm`
-	 *   (crumb + `<h1>` visualmente oculto, ver su cabecera) — ya no queda ningún marco propio
-	 *   alrededor del formulario más allá del hueco de layout (`vega-editor-page`).
+	 *   (barra pegajosa + `<h1>` visualmente oculto, ver su cabecera) — ya no queda ningún marco
+	 *   propio alrededor del formulario más allá del hueco de layout (`vega-editor-page`).
+	 *
+	 * **Sin `onDelete`** (mockup final, zona de peligro): esta ruta NO pasa la prop a propósito —
+	 *   todavía no hay registro que borrar, así que `RecordForm` no pinta la tarjeta. Es la misma
+	 *   asimetría que ya existía con "Ver en el sitio" (deshabilitado hasta que hay algo que ver).
 	 */
 	import { page } from '$app/state';
 	import { getVegaContext } from '$lib/app-context';
@@ -64,9 +68,10 @@
 {/if}
 
 <style>
+	/* Mismo hueco de layout que `/c/[type]/[id]` (ver su CSS): sin padding ni gap propios — el
+	   `RecordForm` va a sangre y repone el aire con su propia rejilla. */
 	.vega-editor-page {
 		display: flex;
 		flex-direction: column;
-		gap: var(--vega-space-gutter);
 	}
 </style>

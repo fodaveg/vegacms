@@ -116,6 +116,20 @@ export function subtitleFieldInvalid(collection: string, requestedField: string)
 	};
 }
 
+/** `slug-field-invalid` — `slugField` inexistente o no representable como texto; el editor no
+ *  pinta la fila de slug (control mono + "Regenerar"). Mismo criterio de "representable" que
+ *  `titleFieldInvalid` (§4.4, solo `text`/`email`/`url`) y NO el más laxo de `subtitleField`: un
+ *  slug se ESCRIBE en un control de texto, no solo se muestra, así que un `number`/`date` no vale
+ *  aunque su celda tenga texto. */
+export function slugFieldInvalid(collection: string, requestedField: string): ModelWarning {
+	return {
+		code: 'slug-field-invalid',
+		message: `El campo slug "${requestedField}" declarado para "${collection}" no existe o no es un campo de texto; se ignora (el editor no ofrece regenerarlo).`,
+		collection,
+		path: `${collectionPath(collection)}/slugField`
+	};
+}
+
 /** `default-sort-field-invalid` — `defaultSort.field` inexistente o no escalar; sin orden por
  *  defecto (mismo criterio de "escalar" que `subtitleFieldInvalid`, no el más estricto de
  *  `titleFieldInvalid`). */

@@ -94,6 +94,14 @@ export interface ResolvedContentType {
 	 *  `listFields` — es habitual que NO lo esté (el mockup lo usa justo para un campo, como
 	 *  `slug`, que no merece columna propia). */
 	subtitleField: string | null;
+	/** (M) nombre del campo de texto DERIVABLE del título (un slug/permalink), o null ⇒ ninguno.
+	 *  Habilita en el editor la fila `.slug-row` del mockup `aquelarre-detalle-post.html`: el
+	 *  control en `--mono` más un botón "Regenerar" que lo recalcula a partir del valor ACTUAL de
+	 *  `titleField` (`slugify`, módulo puro). SOLO manifiesto, sin autodetección por nombre (mismo
+	 *  criterio opt-in que `subtitleField`/`orderField`: un tipo que no lo declara no cambia su
+	 *  render, y Vega nunca asume que un campo llamado "slug" lo sea). Sin `titleField` resoluble
+	 *  la capacidad queda inerte (no hay de dónde derivar): el campo se pinta mono, pero sin botón. */
+	slugField: string | null;
 	/** (D+M) campo de publicación por convención, o null ⇒ tipo sin drafts. §4.5. */
 	statusField: string | null;
 	/** (M) etiquetas legibles por VALOR CRUDO de `statusField` (p. ej. `{ draft: 'Borrador',
@@ -125,8 +133,16 @@ export interface ResolvedContentType {
 	fields: ResolvedField[];
 	/** (D+M) nombres de campos-columna para P4, en orden. Máx 5 por defecto (§4.10). */
 	listFields: string[];
-	/** (D+M) grupos de campos del formulario, en orden de render (§4.9, §4.9b). */
+	/** (D+M) grupos de campos del formulario, en orden de render (§4.9, §4.9b, §4.9c). */
 	fieldGroups: ResolvedFieldGroup[];
+	/** (M) `true` ⇒ el editor de un registro de este tipo pinta a su izquierda el RAÍL de hermanos
+	 *  (mockup `aquelarre-detalle-post.html`, `.rail`): la lista de la colección sigue presente
+	 *  mientras editas, con el registro abierto marcado `aria-current`. `false` (el default, y el
+	 *  comportamiento histórico) ⇒ el editor no pinta ningún raíl. SOLO manifiesto, opt-in — mismo
+	 *  criterio que `subtitleField`/`statusLabels`: una colección que no lo declara no cambia su
+	 *  DOM. Inerte en un `singleton` (no hay hermanos que listar): la UI no lo pinta, sin warning —
+	 *  no es una declaración INVÁLIDA, solo una capacidad sin nada que mostrar. */
+	editorRail: boolean;
 	/**
 	 * (M) Configuración de edición traducible. `null` conserva el formulario plano histórico.
 	 * Cuando existe, la UI pinta un único selector de idioma y sustituye solo los campos físicos
@@ -159,19 +175,30 @@ export interface ResolvedLocalization {
 }
 
 /**
- * Un grupo de campos del formulario ya resuelto (§4.9b): además del nombre/orden que ya daba
+ * DÓNDE pinta el editor un grupo de campos (§4.9c, mockup `aquelarre-detalle-post.html`):
+ * `'main'` = la columna central de tarjetas (el sitio de siempre), `'aside'` = la columna
+ * derecha de tarjetas compactas (publicación, portada…). Genérico por construcción: Vega no
+ * sabe qué es "publicar", solo mueve el grupo que el manifiesto le mande.
+ */
+export type FieldGroupPlacement = 'main' | 'aside';
+
+/**
+ * Un grupo de campos del formulario ya resuelto (§4.9b/§4.9c): además del nombre/orden que ya daba
  * §4.9, lleva `columns` — la rejilla responsive de N columnas que `RecordForm.svelte` pinta para
  * ESE grupo (feature genérica "editor bilingüe emparejado", pero aplicable a cualquier par/trío
- * de campos que convenga ver lado a lado: p.ej. `titleEs`|`titleEn`). `columns: 1` (el default,
- * también el valor SIEMPRE del grupo anónimo — no hay clave de manifiesto de la que heredarlo) es
- * el layout apilado de siempre; P2 no cambia nada más para un manifiesto que no declara la forma
- * objeto de `fieldGroups` (compatibilidad hacia atrás total, §4.9b).
+ * de campos que convenga ver lado a lado: p.ej. `titleEs`|`titleEn`) — y `placement`, la columna
+ * del editor donde cae. `columns: 1` + `placement: 'main'` (los defaults, y también los valores
+ * SIEMPRE del grupo anónimo — no hay clave de manifiesto de la que heredarlos) son el layout de
+ * siempre; P2 no cambia nada para un manifiesto que no declara la forma objeto de `fieldGroups`
+ * (compatibilidad hacia atrás total).
  */
 export interface ResolvedFieldGroup {
 	/** Nombre del grupo, o `null` para el grupo anónimo (campos sin `group`, siempre primero). */
 	name: string | null;
 	/** (M) columnas de la rejilla del grupo (1-3, default 1). >1 colapsa a 1 en viewports estrechos. */
 	columns: 1 | 2 | 3;
+	/** (M) columna del editor donde se pinta el grupo (default `'main'`, §4.9c). */
+	placement: FieldGroupPlacement;
 }
 
 export interface ResolvedField {
@@ -289,6 +316,7 @@ export type WarningCode =
 	| 'status-field-invalid' // statusField que no cumple la convención → null
 	| 'order-field-invalid' // orderField inexistente o no numérico → null
 	| 'subtitle-field-invalid' // subtitleField inexistente o no escalar → null
+	| 'slug-field-invalid' // slugField inexistente o no representable como texto → null
 	| 'default-sort-field-invalid' // defaultSort.field inexistente o no escalar → null
 	| 'status-labels-unknown-value' // clave de statusLabels que no es opción del statusField → se conserva igualmente, solo aviso
 	| 'preview-url-invalid' // placeholder desconocido o no escalar → null

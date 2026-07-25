@@ -14,6 +14,7 @@ import {
 	defaultSortFieldInvalid,
 	manifestInvalidKey,
 	orderFieldInvalid,
+	slugFieldInvalid,
 	statusFieldInvalid,
 	statusLabelUnknownValue,
 	subtitleFieldInvalid,
@@ -202,6 +203,30 @@ export function resolveSubtitleField(
 	if (field && isScalarField(field)) return manifestSubtitleField;
 
 	warnings.push(subtitleFieldInvalid(collection, manifestSubtitleField));
+	return null;
+}
+
+/**
+ * Resuelve `slugField` (el campo derivable del título que el editor pinta como fila de slug —
+ * control `--mono` + botón "Regenerar" —, mockup `aquelarre-detalle-post.html` `.slug-row`). Mismo
+ * patrón opt-in que `resolveSubtitleField`: SOLO manifiesto, sin autodetección por nombre (Vega no
+ * asume que un campo llamado `slug` sea un slug; eso es dominio del proyecto, no convención de
+ * Vega). El criterio de validez es el ESTRICTO de §4.4 (`isRepresentableField`: `text`/`email`/
+ * `url`) y no el laxo de `isScalarField`: el slug se EDITA en un control de texto, así que un
+ * `number`/`date`/`bool` no sirve aunque su celda de listado tenga texto.
+ */
+export function resolveSlugField(
+	fields: Field[],
+	manifestSlugField: string | undefined,
+	collection: string,
+	warnings: ModelWarning[]
+): string | null {
+	if (manifestSlugField === undefined) return null;
+
+	const field = fields.find((f) => f.name === manifestSlugField);
+	if (field && isRepresentableField(field)) return manifestSlugField;
+
+	warnings.push(slugFieldInvalid(collection, manifestSlugField));
 	return null;
 }
 

@@ -57,6 +57,7 @@ function makeType(
 		readonly: false,
 		titleField: null,
 		subtitleField: null,
+		slugField: null,
 		orderField: null,
 		defaultSort: null,
 		statusField: null,
@@ -65,6 +66,7 @@ function makeType(
 		fields,
 		listFields: [],
 		fieldGroups,
+		editorRail: false,
 		localization
 	};
 }
@@ -72,26 +74,31 @@ function makeType(
 describe('buildFormSections (§4.9/§4.9b)', () => {
 	test('grupo anónimo único (sin fieldGroups declarado) → una sección con todos los campos, columns 1', () => {
 		const fields = [makeField('title'), makeField('body')];
-		const type = makeType(fields, [{ name: null, columns: 1 }]);
-		expect(buildFormSections(type)).toEqual([{ group: null, columns: 1, fields }]);
+		const type = makeType(fields, [{ name: null, columns: 1, placement: 'main' }]);
+		expect(buildFormSections(type)).toEqual([
+			{ group: null, columns: 1, placement: 'main', fields }
+		]);
 	});
 
 	test('un grupo con columns: 2 produce una sección con esas columnas (feature "campos emparejados")', () => {
 		const titleEs = makeField('titleEs', 'Título');
 		const titleEn = makeField('titleEn', 'Título');
-		const type = makeType([titleEs, titleEn], [{ name: 'Título', columns: 2 }]);
+		const type = makeType([titleEs, titleEn], [{ name: 'Título', columns: 2, placement: 'main' }]);
 		expect(buildFormSections(type)).toEqual([
-			{ group: 'Título', columns: 2, fields: [titleEs, titleEn] }
+			{ group: 'Título', columns: 2, placement: 'main', fields: [titleEs, titleEn] }
 		]);
 	});
 
 	test('campo huérfano (group no declarado en fieldGroups, L11) cae en una sección final sin cabecera, columns 1', () => {
 		const declared = makeField('title', 'Contenido');
 		const orphan = makeField('legacy', 'GrupoFantasma');
-		const type = makeType([declared, orphan], [{ name: 'Contenido', columns: 3 }]);
+		const type = makeType(
+			[declared, orphan],
+			[{ name: 'Contenido', columns: 3, placement: 'main' }]
+		);
 		expect(buildFormSections(type)).toEqual([
-			{ group: 'Contenido', columns: 3, fields: [declared] },
-			{ group: null, columns: 1, fields: [orphan] }
+			{ group: 'Contenido', columns: 3, placement: 'main', fields: [declared] },
+			{ group: null, columns: 1, placement: 'main', fields: [orphan] }
 		]);
 	});
 
@@ -101,17 +108,19 @@ describe('buildFormSections (§4.9/§4.9b)', () => {
 		const hiddenOrphan = { ...makeField('legacy', 'GrupoFantasma'), hidden: true };
 		const type = makeType(
 			[hiddenGrouped, visible, hiddenOrphan],
-			[{ name: 'Contenido', columns: 1 }]
+			[{ name: 'Contenido', columns: 1, placement: 'main' }]
 		);
 
 		expect(buildFormSections(type)).toEqual([
-			{ group: 'Contenido', columns: 1, fields: [visible] }
+			{ group: 'Contenido', columns: 1, placement: 'main', fields: [visible] }
 		]);
 	});
 
 	test('grupo declarado sin ningún campo real → sección con fields: [] (RecordForm la omite en el render)', () => {
-		const type = makeType([], [{ name: 'Vacío', columns: 2 }]);
-		expect(buildFormSections(type)).toEqual([{ group: 'Vacío', columns: 2, fields: [] }]);
+		const type = makeType([], [{ name: 'Vacío', columns: 2, placement: 'main' }]);
+		expect(buildFormSections(type)).toEqual([
+			{ group: 'Vacío', columns: 2, placement: 'main', fields: [] }
+		]);
 	});
 
 	test('localización sustituye el campo ancla sin duplicar columnas y conserva los campos compartidos', () => {
@@ -134,7 +143,7 @@ describe('buildFormSections (§4.9/§4.9b)', () => {
 		};
 		const type = makeType(
 			[titleEs, titleEn, slug],
-			[{ name: 'Contenido', columns: 1 }],
+			[{ name: 'Contenido', columns: 1, placement: 'main' }],
 			localization
 		);
 

@@ -50,6 +50,7 @@ const COLLECTION_ALLOWED_KEYS = [
 	'singleton',
 	'titleField',
 	'subtitleField',
+	'slugField',
 	'statusField',
 	'statusLabels',
 	'orderField',
@@ -57,6 +58,7 @@ const COLLECTION_ALLOWED_KEYS = [
 	'previewUrl',
 	'listFields',
 	'fieldGroups',
+	'editorRail',
 	'localizedFields',
 	'fields'
 ] as const;
@@ -71,8 +73,11 @@ const FIELD_ALLOWED_KEYS = [
 	'widget',
 	'listable'
 ] as const;
-/** Claves de la forma-objeto de un item de `fieldGroups` (§4.9b, rejilla de columnas). */
-const FIELD_GROUP_ITEM_ALLOWED_KEYS = ['name', 'columns'] as const;
+/** Claves de la forma-objeto de un item de `fieldGroups` (§4.9b rejilla de columnas, §4.9c
+ *  columna del editor donde cae el grupo). */
+const FIELD_GROUP_ITEM_ALLOWED_KEYS = ['name', 'columns', 'placement'] as const;
+/** Valores de `fieldGroups[].placement` (§4.9c). */
+const FIELD_GROUP_PLACEMENTS = ['main', 'aside'] as const;
 /** Claves de `collections.<c>.defaultSort` (orden inicial del listado). */
 const DEFAULT_SORT_ALLOWED_KEYS = ['field', 'dir'] as const;
 /** Claves de una vista fusionada `mergedViews.<id>` (L7a). */
@@ -261,10 +266,10 @@ function checkStringArray(
 }
 
 /**
- * `fieldGroups` (§4.9b): cada item es un string no vacío (forma de siempre, `uniqueItems`) o un
- * objeto `{ name, columns? }` — `oneOf` en el schema, así que un item que no case con NINGUNA de
- * las dos formas (objeto sin `name`, array anidado, número…) es inválido igual que un string
- * vacío. Replica a mano el mismo veredicto que `manifest-schema.json` (§9.12, oráculo ajv).
+ * `fieldGroups` (§4.9b/§4.9c): cada item es un string no vacío (forma de siempre, `uniqueItems`) o
+ * un objeto `{ name, columns?, placement? }` — `oneOf` en el schema, así que un item que no case
+ * con NINGUNA de las dos formas (objeto sin `name`, array anidado, número…) es inválido igual que
+ * un string vacío. Replica a mano el mismo veredicto que `manifest-schema.json` (§9.12, oráculo ajv).
  */
 function checkFieldGroups(
 	value: JsonValue,
@@ -292,12 +297,21 @@ function checkFieldGroups(
 			if ('columns' in el) {
 				checkIntInRange(el.columns, `${itemPath}/columns`, 1, 3, errors, `${label}[${i}].columns`);
 			}
+			if ('placement' in el) {
+				checkEnum(
+					el.placement,
+					FIELD_GROUP_PLACEMENTS,
+					`${itemPath}/placement`,
+					errors,
+					`${label}[${i}].placement`
+				);
+			}
 			return;
 		}
 		fail(
 			errors,
 			itemPath,
-			`${label}[${i}] debe ser un texto no vacío o un objeto { name, columns }.`
+			`${label}[${i}] debe ser un texto no vacío o un objeto { name, columns, placement }.`
 		);
 	});
 	if (hasDuplicates(value)) {
@@ -490,6 +504,16 @@ function validateCollection(
 			`subtitleField de "${name}"`
 		);
 	}
+	if ('slugField' in value) {
+		checkString(
+			value.slugField,
+			`${base}/slugField`,
+			1,
+			Infinity,
+			errors,
+			`slugField de "${name}"`
+		);
+	}
 	if ('statusField' in value) {
 		validateStatusField(value.statusField, `${base}/statusField`, errors, name);
 	}
@@ -523,6 +547,9 @@ function validateCollection(
 	}
 	if ('fieldGroups' in value) {
 		checkFieldGroups(value.fieldGroups, `${base}/fieldGroups`, errors, `fieldGroups de "${name}"`);
+	}
+	if ('editorRail' in value) {
+		checkBoolean(value.editorRail, `${base}/editorRail`, errors, `editorRail de "${name}"`);
 	}
 	if ('localizedFields' in value) {
 		validateLocalizedFields(name, value.localizedFields, errors);

@@ -587,6 +587,82 @@ describe('7. Matriz de degradación (§5)', () => {
 		expect(model.warnings).toEqual([]);
 	});
 
+	test('slugField declarado sobre un campo de texto → se resuelve, sin warning', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, collections: { post: { slugField: 'excerpt' } } }
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.slugField).toBe('excerpt');
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('slugField inexistente → slug-field-invalid + null', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, collections: { post: { slugField: 'no-existe' } } }
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.slugField).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'slug-field-invalid', collection: 'post' })
+		]);
+	});
+
+	// Criterio ESTRICTO (`isRepresentableField`), no el laxo de `subtitleField`: un slug se ESCRIBE
+	// en un control de texto, así que una fecha no vale aunque su celda de listado tenga texto.
+	test('slugField sobre un campo no representable como texto (date) → slug-field-invalid + null', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, collections: { post: { slugField: 'publishedAt' } } }
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.slugField).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'slug-field-invalid', collection: 'post' })
+		]);
+	});
+
+	test('sin slugField en el manifiesto → null, SIN warning (sin autodetección por nombre)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			// `post` NO tiene ningún campo llamado `slug`, pero aunque lo tuviera daría igual: la
+			// capacidad es 100% opt-in, Vega nunca adivina cuál es el slug de una colección.
+			manifestRaw: { schemaVersion: 1, collections: { post: {} } }
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.slugField).toBeNull();
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('editorRail: true → se resuelve; ausente o inválido → false (default), con/sin warning', () => {
+		const on = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, collections: { post: { editorRail: true } } }
+		});
+		expect(on.types.find((t) => t.name === 'post')!.editorRail).toBe(true);
+		expect(on.warnings).toEqual([]);
+
+		const absent = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, collections: { post: {} } }
+		});
+		expect(absent.types.find((t) => t.name === 'post')!.editorRail).toBe(false);
+		expect(absent.warnings).toEqual([]);
+
+		const invalid = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, collections: { post: { editorRail: 'sí' } } }
+		});
+		expect(invalid.types.find((t) => t.name === 'post')!.editorRail).toBe(false);
+		expect(invalid.warnings).toEqual([
+			expect.objectContaining({
+				code: 'manifest-invalid-key',
+				path: '/collections/post/editorRail'
+			})
+		]);
+	});
+
 	test('defaultSort declarado sobre un campo escalar → se resuelve tal cual, sin warning', () => {
 		const model = resolveContentModel({
 			types: kitchenSinkTypes,
@@ -1002,9 +1078,9 @@ describe('11. fieldGroups: rejilla de columnas (§4.9b)', () => {
 		});
 		const post = model.types.find((t) => t.name === 'post')!;
 		expect(post.fieldGroups).toEqual([
-			{ name: null, columns: 1 },
-			{ name: 'Contenido', columns: 1 },
-			{ name: 'SEO', columns: 1 }
+			{ name: null, columns: 1, placement: 'main' },
+			{ name: 'Contenido', columns: 1, placement: 'main' },
+			{ name: 'SEO', columns: 1, placement: 'main' }
 		]);
 		expect(model.warnings).toEqual([]);
 	});
@@ -1024,9 +1100,9 @@ describe('11. fieldGroups: rejilla de columnas (§4.9b)', () => {
 		});
 		const post = model.types.find((t) => t.name === 'post')!;
 		expect(post.fieldGroups).toEqual([
-			{ name: null, columns: 1 },
-			{ name: 'Contenido', columns: 1 },
-			{ name: 'SEO', columns: 3 }
+			{ name: null, columns: 1, placement: 'main' },
+			{ name: 'Contenido', columns: 1, placement: 'main' },
+			{ name: 'SEO', columns: 3, placement: 'main' }
 		]);
 		expect(model.warnings).toEqual([]);
 	});
@@ -1045,8 +1121,8 @@ describe('11. fieldGroups: rejilla de columnas (§4.9b)', () => {
 			}
 		});
 		const post = model.types.find((t) => t.name === 'post')!;
-		expect(post.fieldGroups[0]).toEqual({ name: null, columns: 1 });
-		expect(post.fieldGroups).toContainEqual({ name: 'Contenido', columns: 2 });
+		expect(post.fieldGroups[0]).toEqual({ name: null, columns: 1, placement: 'main' });
+		expect(post.fieldGroups).toContainEqual({ name: 'Contenido', columns: 2, placement: 'main' });
 	});
 
 	test('columns fuera de 1-3 → fieldGroups entero se ignora (manifest-invalid-key), campos siguen agrupados por su group', () => {
@@ -1065,7 +1141,53 @@ describe('11. fieldGroups: rejilla de columnas (§4.9b)', () => {
 		const post = model.types.find((t) => t.name === 'post')!;
 		// El grupo "Contenido" sigue existiendo (viene del `group` del CAMPO, independiente de la
 		// declaración de `fieldGroups`) pero sin `columns` propio: cae al default 1.
-		expect(post.fieldGroups).toContainEqual({ name: 'Contenido', columns: 1 });
+		expect(post.fieldGroups).toContainEqual({ name: 'Contenido', columns: 1, placement: 'main' });
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'manifest-invalid-key',
+				path: '/collections/post/fieldGroups'
+			})
+		]);
+	});
+
+	test('placement: "aside" → se resuelve en ESE grupo; el resto (y el anónimo) siguen en "main"', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					post: {
+						fieldGroups: ['Contenido', { name: 'SEO', placement: 'aside' }],
+						fields: { title: { group: 'Contenido' }, excerpt: { group: 'SEO' } }
+					}
+				}
+			}
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.fieldGroups).toEqual([
+			{ name: null, columns: 1, placement: 'main' },
+			{ name: 'Contenido', columns: 1, placement: 'main' },
+			{ name: 'SEO', columns: 1, placement: 'aside' }
+		]);
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('placement fuera de main/aside → fieldGroups entero se ignora (manifest-invalid-key)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					post: {
+						fieldGroups: [{ name: 'SEO', placement: 'derecha' }],
+						fields: { excerpt: { group: 'SEO' } }
+					}
+				}
+			}
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		// El grupo sigue existiendo (viene del `group` del CAMPO) pero con los defaults de siempre.
+		expect(post.fieldGroups).toContainEqual({ name: 'SEO', columns: 1, placement: 'main' });
 		expect(model.warnings).toEqual([
 			expect.objectContaining({
 				code: 'manifest-invalid-key',

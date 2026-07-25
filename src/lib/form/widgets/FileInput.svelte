@@ -8,13 +8,24 @@
 	 *   `(File | FileRef)[]` (múltiple) — subir = añadir un `File`; conservar = mantener la
 	 *   `FileRef`; borrar = quitarla del array o `null`. La edición (add/remove/reemplazar) es
 	 *   `file-value.ts`, puro; este componente solo cablea DOM↔ese módulo.
-	 * - **Subida directa + drag&drop**: `<input type="file">` VISIBLE (nunca escondido: es la
-	 *   única superficie nativamente operable por teclado, L-P5.2) envuelto en un dropzone que
-	 *   además acepta `dragover`/`drop`. La validación cliente (`maxSizeBytes`/`mimeTypes`,
-	 *   `file-value.ts`) es SOLO-UX — el backend re-valida de verdad (§9.9) — así que un rechazo
-	 *   se pinta en un párrafo local (`rejectionMessage`, `role="alert"`), NUNCA en el `error` de
-	 *   campo (ese slot lo llena `RecordForm`/backend, D-P5.1 no da margen para que un widget lo
-	 *   escriba él mismo).
+	 * - **Subida directa + drag&drop**: el `<input type="file">` sigue siendo el ÚNICO control real
+	 *   (foco-able, con el `<label for>` de `FieldRow` dándole nombre accesible, y la única
+	 *   superficie que ejercitan los e2e con `setInputFiles`), pero desde el mockup final
+	 *   `aquelarre-detalle-post.html` (`.cover`) queda OCULTO VISUALMENTE — clip de 1px, NUNCA
+	 *   `display:none`, que lo sacaría del orden de foco y del árbol de accesibilidad — y quien se
+	 *   ve es una ZONA punteada que lo dispara al hacer click y que acepta `dragover`/`drop`.
+	 *   Misma técnica y mismo motivo que `MediaUpload.svelte` en `/media`: el chrome nativo del
+	 *   `<input type="file">` ("Seleccionar archivo | Ningún archivo seleccionado") lo pinta el
+	 *   sistema operativo, ignora el tema por completo y era lo más feo de la pantalla. La
+	 *   validación cliente (`maxSizeBytes`/`mimeTypes`, `file-value.ts`) es SOLO-UX — el backend
+	 *   re-valida de verdad (§9.9) — así que un rechazo se pinta en un párrafo local
+	 *   (`rejectionMessage`, `role="alert"`), NUNCA en el `error` de campo (ese slot lo llena
+	 *   `RecordForm`/backend, D-P5.1 no da margen para que un widget lo escriba él mismo).
+	 * - **Dos formas de la zona**: VACÍA = el bloque del mockup (16/9, icono + copy centrados, la
+	 *   única cosa que se ve en el campo); CON ficheros = una banda fina sobre la lista/preview,
+	 *   que NO cambia (solo así un campo múltiple sigue pudiendo añadir el segundo fichero). El
+	 *   `aspect-ratio` lleva `max-height`: 16/9 sobre una tarjeta de aside de ~296px da el
+	 *   rectángulo del mockup, pero sobre un campo a ancho completo daría un cajón de 400px.
 	 * - **`maxSelect` (múltiple)**: MISMA afordancia que `chips`/`relation` (F5-b/e) — al
 	 *   alcanzarlo, el dropzone/input quedan inertes para AÑADIR (quitar sigue disponible). La
 	 *   validación dura ya la hace `validation.ts`/backend.
@@ -60,6 +71,7 @@
 	import type { WidgetProps } from './types';
 	import { fieldIds } from '../field-ids';
 	import { getVegaContext } from '$lib/app-context';
+	import Icon from '$lib/icons/Icon.svelte';
 	import { getRecordIdentity } from '../record-context';
 	import {
 		acceptAttr,
@@ -86,6 +98,10 @@
 
 	let rejectionMessage = $state<string | null>(null);
 	let dragging = $state(false);
+	/** El `<input type="file">` real (oculto visualmente, ver cabecera): la zona punteada lo
+	 *  dispara con `.click()`. Variable PLANA (`bind:this` sobre un nodo que solo se usa de forma
+	 *  imperativa, mismo criterio que `formEl` en `RecordForm.svelte`). */
+	let inputEl: HTMLInputElement | undefined;
 	// `SvelteSet` (no un `Set` plano): SÍ se lee en el template (`!failedImages.has(item)`), a
 	// diferencia de `objectUrls`/`pendingTitleFetches` (imperativos, nunca leídos ahí) — necesita
 	// reactividad de verdad para que el fallback imagen→chip repinte al primer `onerror`.
@@ -187,6 +203,13 @@
 		input.value = ''; // permite re-seleccionar el MISMO fichero (si se quitó) y dispara `change`
 	}
 
+	/** Click en la zona punteada → abre el selector del sistema disparando el input REAL (ver
+	 *  cabecera). No-op si el campo no admite añadir (readonly/guardando/`maxSelect` alcanzado). */
+	function openFilePicker(): void {
+		if (addDisabled) return;
+		inputEl?.click();
+	}
+
 	// ————— Picker de biblioteca (Fase P6·6e, D-P6.6) —————
 
 	/** `true` mientras `ctx.mediaPicker.open(...)` está en vuelo: deshabilita el botón para evitar
@@ -258,31 +281,46 @@
 </script>
 
 <div class="vega-widget-file" data-widget="file" data-invalid={error ? 'true' : undefined}>
-	<!-- `role="presentation"` (deliberado, no un silenciador de a11y): esta capa es puramente
-	     decorativa/de conveniencia para ampliar el área de `drop` — el ÚNICO control real, y el
-	     que de verdad es operable por teclado, es el `<input type="file">` de dentro. -->
-	<div
+	<!-- Control REAL (ver cabecera): oculto VISUALMENTE, pero sigue en el orden de foco, conserva
+	     el nombre accesible que le da el `<label for>` de `FieldRow` y sigue siendo lo que los e2e
+	     ejercitan con `setInputFiles`. -->
+	<input
+		bind:this={inputEl}
+		id={ids.inputId}
+		type="file"
+		class="vega-file-input"
+		accept={schema ? acceptAttr(schema) : undefined}
+		{multiple}
+		disabled={addDisabled}
+		onchange={handleInputChange}
+		aria-invalid={error ? 'true' : undefined}
+		aria-describedby={describedBy}
+	/>
+
+	<!-- Zona punteada (mockup `.cover`): un `<button>` de verdad, no un `<div role="presentation">`
+	     — desde que el input no se ve, ESTA es la afordancia visible de "elegir fichero", así que
+	     tiene que ser operable por teclado por sí misma (mismo criterio que la banda de arrastre de
+	     `MediaUpload.svelte`). `data-inert` se conserva como gancho de estado (CSS + e2e). -->
+	<button
+		type="button"
 		class="vega-file-dropzone"
+		class:vega-file-dropzone--empty={items.length === 0}
 		class:vega-file-dropzone--dragging={dragging}
 		data-inert={addDisabled ? 'true' : undefined}
-		role="presentation"
+		disabled={addDisabled}
+		onclick={openFilePicker}
 		ondragover={handleDragOver}
 		ondragleave={handleDragLeave}
 		ondrop={handleDrop}
 	>
-		<input
-			id={ids.inputId}
-			type="file"
-			class="vega-file-input"
-			accept={schema ? acceptAttr(schema) : undefined}
-			{multiple}
-			disabled={addDisabled}
-			onchange={handleInputChange}
-			aria-invalid={error ? 'true' : undefined}
-			aria-describedby={describedBy}
-		/>
-		<p class="vega-file-hint">{ctx.t('form.file.dropHint')}</p>
-	</div>
+		<Icon id="media" size={22} />
+		<span class="vega-file-hint">{ctx.t('form.file.dropHint')}</span>
+		{#if items.length === 0}
+			<!-- "Sin ficheros": el estado del campo, dentro de la propia zona en vez de como un
+			     párrafo suelto debajo (el mockup tiene UN solo bloque). -->
+			<span class="vega-file-empty">{ctx.t('form.file.empty')}</span>
+		{/if}
+	</button>
 
 	{#if ctx.mediaPicker}
 		<!-- Fase P6·6e (D-P6.6, L-P6.9): oculto por completo sin `ctx.mediaPicker` — nunca un botón
@@ -302,6 +340,7 @@
 	{/if}
 
 	{#if items.length > 0}
+		<!-- Estado CON ficheros: intacto (lista de previsualizaciones/chips + "Quitar"). -->
 		<ul class="vega-file-list">
 			{#each items as item (item)}
 				{@const isImage = classifyItem(item) === 'image' && !failedImages.has(item)}
@@ -331,8 +370,6 @@
 				</li>
 			{/each}
 		</ul>
-	{:else}
-		<p class="vega-file-empty">{ctx.t('form.file.empty')}</p>
 	{/if}
 </div>
 
@@ -343,28 +380,61 @@
 		gap: 0.5rem;
 	}
 
+	/* El input REAL, oculto VISUALMENTE (ver cabecera): clip de 1px, nunca `display:none` — sigue
+	   siendo foco-able, sigue en el árbol de accesibilidad y `setInputFiles` lo sigue ejercitando.
+	   MISMA técnica que `.vega-media-upload-sr` en `MediaUpload.svelte`. */
+	.vega-file-input {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		padding: 0;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+		border: 0;
+	}
+
+	/* Zona punteada (mockup `.cover`): la afordancia visible del campo. En su forma compacta (con
+	   ficheros ya añadidos) es una banda de una línea sobre la lista. */
 	.vega-file-dropzone {
 		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 0.4rem;
-		padding: 0.6rem;
-		border: 1px dashed var(--line);
-		border-radius: 6px;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		width: 100%;
+		padding: 0.6rem 0.8rem;
+		border: 1px dashed var(--line-strong);
+		border-radius: var(--r);
 		background: var(--surface);
+		color: var(--ink-3);
+		font: inherit;
+		font-size: 0.86em;
+		line-height: 1.45;
+		cursor: pointer;
 	}
 
+	/* Forma VACÍA (mockup): rectángulo 16/9 con el icono y el copy centrados en columna. El
+	   `max-height` acota el caso que el mockup no tiene: el mismo widget en un campo a ancho
+	   completo de la columna central, donde 16/9 daría un cajón de 400px de alto. */
+	.vega-file-dropzone--empty {
+		flex-direction: column;
+		gap: 0.4rem;
+		padding: 0.8rem;
+		aspect-ratio: 16 / 9;
+		max-height: 200px;
+	}
+
+	.vega-file-dropzone:hover:not(:disabled),
 	.vega-file-dropzone--dragging {
-		border-color: var(--accent);
-		background: var(--surface-2);
+		border-color: var(--accent-line);
+		background: var(--accent-soft);
+		color: var(--accent-text);
 	}
 
-	.vega-file-dropzone[data-inert='true'] {
-		opacity: 0.6;
-	}
-
-	.vega-file-input:disabled {
+	.vega-file-dropzone:disabled {
 		cursor: not-allowed;
+		opacity: 0.6;
 	}
 
 	/* Botón del picker de biblioteca (Fase P6·6e): mismo tratamiento que un botón secundario del
@@ -386,22 +456,22 @@
 		opacity: 0.6;
 	}
 
+	/* Copy de la zona: la línea de acción (hint) manda, el estado del campo ("Sin ficheros") va
+	   debajo en un punto más pequeño. Los dos heredan el color de la zona, así que el hover de
+	   marca los arrastra a `--accent-text` de una pieza. */
 	.vega-file-hint {
-		margin: 0;
-		font-size: 0.8rem;
-		color: var(--ink-2);
+		text-align: center;
+	}
+
+	.vega-file-empty {
+		font-size: 0.86em;
+		opacity: 0.8;
 	}
 
 	.vega-file-rejection {
 		margin: 0;
 		font-size: 0.85rem;
 		color: var(--danger);
-	}
-
-	.vega-file-empty {
-		margin: 0;
-		font-size: 0.85rem;
-		color: var(--ink-2);
 	}
 
 	.vega-file-list {

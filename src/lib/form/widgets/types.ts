@@ -27,6 +27,22 @@ export interface WidgetProps {
 	/** `field.schema.readonly` (autodate) O `contentType.readonly` (view, L-P5.2) — ya combinados
 	 *  por `FieldRow`. Un widget readonly NUNCA llama a `onChange`. */
 	readonly: boolean;
+	/**
+	 * Etiquetas legibles por VALOR CRUDO de opción (`{ draft: 'Borrador' }`), o `undefined` si el
+	 * campo no tiene ninguna declarada — que es el caso de TODOS los campos salvo el `statusField`
+	 * de una colección que declare `statusLabels` (P2, opt-in). Solo la consume `Select.svelte`;
+	 * el resto de widgets la ignoran.
+	 *
+	 * **Por qué es una prop y no un contexto** (D-P5.1 fija esta interfaz "sin más que
+	 * `{field,value,error,disabled,readonly,onChange}`, así que ampliarla es una decisión, no un
+	 * descuido): es un dato POR CAMPO, del mismo orden que `field.label` o `field.help` — viaja por
+	 * el mismo camino que el resto de props de campo (`RecordForm` → `FieldRow` → widget), donde ya
+	 * viajan las otras decisiones de presentación por campo. El contexto de Svelte
+	 * (`record-context.ts`) se reservó para lo que NO es por-campo: la identidad `{type,id}` del
+	 * registro, que habría que enhebrar por todas las invocaciones aunque solo la use un widget.
+	 * Opcional a propósito: ningún widget existente cambia por esto.
+	 */
+	optionLabels?: Record<string, string>;
 	/** Notifica el nuevo valor. Un widget readonly nunca la invoca. */
 	onChange: (value: FieldInputValue) => void;
 }

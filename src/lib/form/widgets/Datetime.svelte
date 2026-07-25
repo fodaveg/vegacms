@@ -46,12 +46,28 @@
 	.vega-widget-datetime {
 		width: 100%;
 		box-sizing: border-box;
-		padding: 0.45rem 0.6rem;
+		/* Caja de control del mockup final `aquelarre-detalle-post.html` (`.field input`), idéntica
+		   en los siete widgets escalares: padding derivado de la densidad (`--pad-field`), radio
+		   `--r` y superficie `--surface` (los CONTROLES; la tarjeta que los contiene es
+		   `--paper`). Hover y foco viven abajo. */
+		padding: calc(var(--pad-field) * 0.55) calc(var(--pad-field) * 0.7);
 		border: 1px solid var(--line);
-		border-radius: 6px;
+		border-radius: var(--r);
 		background: var(--surface);
 		color: var(--ink);
 		font: inherit;
+	}
+
+	/* Hover/foco del mockup: el borde se marca al pasar por encima y el anillo `--ring` sube
+	   al control (nunca `outline: none` sin sustituto). */
+	.vega-widget-datetime:hover:not(:disabled) {
+		border-color: var(--line-strong);
+	}
+
+	.vega-widget-datetime:focus-visible {
+		outline: 2px solid var(--ring);
+		outline-offset: 1px;
+		border-color: var(--line-strong);
 	}
 
 	.vega-widget-datetime:disabled {

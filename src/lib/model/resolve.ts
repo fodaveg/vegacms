@@ -24,6 +24,7 @@ import { allowedFilterOps, type FilterNode } from '$lib/backend/query';
 import { isReservedCollectionName } from '$lib/backend/collections';
 import type {
 	ContentModel,
+	FieldGroupPlacement,
 	ManifestState,
 	ModelWarning,
 	NavGroup,
@@ -47,6 +48,7 @@ import {
 	resolveDefaultSort,
 	resolveMergedSourceOrderField,
 	resolveOrderField,
+	resolveSlugField,
 	resolveStatusField,
 	resolveStatusLabels,
 	resolveSubtitleField,
@@ -108,27 +110,30 @@ function readStringArray(minItemLength: number) {
 	};
 }
 
-/** Resultado tolerante de leer `collections.<c>.fieldGroups` (§4.9b). */
+/** Resultado tolerante de leer `collections.<c>.fieldGroups` (§4.9b, §4.9c). */
 interface FieldGroupsDeclaration {
 	/** Nombres en orden de declaración, tal cual los espera `orderByGroups` (misma forma que
-	 *  antes de §4.9b: la forma objeto solo AÑADE `columns`, no cambia el orden). */
+	 *  antes de §4.9b: la forma objeto solo AÑADE `columns`/`placement`, no cambia el orden). */
 	order: string[];
 	/** `columns` declarado por nombre de grupo, solo para los que llegaron en forma objeto. */
 	columnsByName: Map<string, number>;
+	/** `placement` declarado por nombre de grupo (§4.9c), solo para los que lo traen. */
+	placementByName: Map<string, FieldGroupPlacement>;
 }
 
 /**
  * Lee `fieldGroups` tolerando las DOS formas de item que admite el schema §3 (`oneOf`): un
- * string (de siempre) o un objeto `{ name, columns }` (§4.9b). Cualquier item que no case con
- * NINGUNA de las dos (número, array, objeto sin `name`, `columns` fuera de 1-3…) invalida el
- * array ENTERO — mismo criterio "todo o nada" que `readStringArray` ya aplicaba a `listFields`/
- * `nav.groups`, así el llamador solo tiene que emitir UN warning `manifest-invalid-key` por toda
- * la clave, no uno por item.
+ * string (de siempre) o un objeto `{ name, columns, placement }` (§4.9b/§4.9c). Cualquier item que
+ * no case con NINGUNA de las dos (número, array, objeto sin `name`, `columns` fuera de 1-3,
+ * `placement` fuera de `main`/`aside`…) invalida el array ENTERO — mismo criterio "todo o nada"
+ * que `readStringArray` ya aplicaba a `listFields`/`nav.groups`, así el llamador solo tiene que
+ * emitir UN warning `manifest-invalid-key` por toda la clave, no uno por item.
  */
 function readFieldGroups(raw: JsonValue): FieldGroupsDeclaration | undefined {
 	if (!Array.isArray(raw)) return undefined;
 	const order: string[] = [];
 	const columnsByName = new Map<string, number>();
+	const placementByName = new Map<string, FieldGroupPlacement>();
 	for (const el of raw) {
 		if (typeof el === 'string') {
 			if (el.length < 1) return undefined;
@@ -147,8 +152,13 @@ function readFieldGroups(raw: JsonValue): FieldGroupsDeclaration | undefined {
 			}
 			columnsByName.set(name, columns);
 		}
+		if ('placement' in obj) {
+			const placement = obj.placement;
+			if (placement !== 'main' && placement !== 'aside') return undefined;
+			placementByName.set(name, placement);
+		}
 	}
-	return { order, columnsByName };
+	return { order, columnsByName, placementByName };
 }
 
 interface LocalesDeclaration {
@@ -603,6 +613,16 @@ function resolveContentType(
 	);
 	const subtitleField = resolveSubtitleField(type.fields, subtitleFieldRaw, type.name, warnings);
 
+	const slugFieldRaw = readKey(
+		collectionRaw,
+		'slugField',
+		readString(1, Infinity),
+		`${base}/slugField`,
+		`slugField de "${type.name}" no es un texto no vacío; se ignora.`,
+		warnings
+	);
+	const slugField = resolveSlugField(type.fields, slugFieldRaw, type.name, warnings);
+
 	const orderFieldRaw = readKey(
 		collectionRaw,
 		'orderField',
@@ -690,11 +710,25 @@ function resolveContentType(
 		'fieldGroups',
 		readFieldGroups,
 		`${base}/fieldGroups`,
-		`fieldGroups de "${type.name}" no es un array de nombres o { name, columns } válidos; se ignora.`,
+		`fieldGroups de "${type.name}" no es un array de nombres o { name, columns, placement } válidos; se ignora.`,
 		warnings
 	);
 	const declaredFieldGroups = fieldGroupsDeclaration?.order ?? [];
 	const columnsByGroupName = fieldGroupsDeclaration?.columnsByName ?? new Map<string, number>();
+	const placementByGroupName =
+		fieldGroupsDeclaration?.placementByName ?? new Map<string, FieldGroupPlacement>();
+
+	// §4.9c: el raíl de hermanos del editor (mockup `aquelarre-detalle-post.html`, `.rail`), opt-in
+	// como el resto de capacidades de render — sin la clave, `false` y el editor no cambia.
+	const editorRail =
+		readKey(
+			collectionRaw,
+			'editorRail',
+			readBoolean,
+			`${base}/editorRail`,
+			`editorRail de "${type.name}" no es booleano; se ignora.`,
+			warnings
+		) ?? false;
 
 	const fieldOrderByName = new Map<string, number | undefined>();
 	const resolvedFieldsBase = type.fields.map((field) =>
@@ -708,12 +742,14 @@ function resolveContentType(
 		declaredFieldGroups
 	);
 
-	// §4.9b: `columns` viaja aparte de `orderByGroups` (que solo ordena NOMBRES, compartido con
-	// nav) — se cose aquí sobre el orden ya resuelto. El grupo anónimo (`null`) SIEMPRE es 1: no
-	// hay clave de manifiesto que lo declare (no tiene nombre al que colgar `columns`).
+	// §4.9b/§4.9c: `columns`/`placement` viajan aparte de `orderByGroups` (que solo ordena NOMBRES,
+	// compartido con nav) — se cosen aquí sobre el orden ya resuelto. El grupo anónimo (`null`)
+	// SIEMPRE es `columns: 1` + `placement: 'main'`: no hay clave de manifiesto que lo declare (no
+	// tiene nombre al que colgar nada), y es justo el grupo donde caen título/slug/cuerpo.
 	const fieldGroups: ResolvedFieldGroup[] = fieldGroupNames.map((name) => ({
 		name,
-		columns: ((name !== null ? columnsByGroupName.get(name) : undefined) ?? 1) as 1 | 2 | 3
+		columns: ((name !== null ? columnsByGroupName.get(name) : undefined) ?? 1) as 1 | 2 | 3,
+		placement: (name !== null ? placementByGroupName.get(name) : undefined) ?? 'main'
 	}));
 	const localization = resolveLocalization(
 		type.name,
@@ -758,6 +794,7 @@ function resolveContentType(
 		readonly: type.readonly,
 		titleField,
 		subtitleField,
+		slugField,
 		orderField,
 		defaultSort,
 		statusField,
@@ -766,6 +803,7 @@ function resolveContentType(
 		fields: orderedFields,
 		listFields,
 		fieldGroups,
+		editorRail,
 		localization
 	};
 }

@@ -16,10 +16,17 @@
 	 *   solo confirma con un toast.
 	 *
 	 * **R7 del rediseño C2**: el `<h1>`/insignia "Solo lectura" que esta ruta pintaba junto al
-	 *   título se MUDAN dentro de `RecordForm` (crumb + tag, ver su cabecera) — el título visible
-	 *   era redundante con el crumb del mockup, y la insignia de solo-lectura ahora vive junto al
-	 *   resto de indicadores de la barra pegajosa. Esta ruta ya no pinta NINGÚN marco propio
-	 *   alrededor del formulario más allá del hueco de layout (`vega-editor-page`).
+	 *   título se MUDAN dentro de `RecordForm` (barra pegajosa: título del documento + tag, ver su
+	 *   cabecera) — el título visible era redundante, y la insignia de solo-lectura ahora vive junto
+	 *   al resto de indicadores de la barra. Esta ruta ya no pinta NINGÚN marco propio alrededor del
+	 *   formulario más allá del hueco de layout (`vega-editor-page`).
+	 *
+	 * **Borrado (mockup final, zona de peligro del aside)**: `RecordForm` pinta el botón y confirma
+	 *   con `DeleteConfirm` (L-P4.11: ningún borrado sin diálogo); esta ruta es quien TOCA el puerto
+	 *   (`ctx.port.delete`, mismo reparto que `onSubmit`), avisa con un toast y navega al listado.
+	 *   Se reutilizan las claves i18n del borrado del LISTADO (`list.delete.success`): el mensaje es
+	 *   el mismo hecho ("X se ha borrado"), no un texto propio del editor. Si el borrado falla, la
+	 *   promesa rechaza y `RecordForm` lo reporta al feedback global sin sacar al usuario de aquí.
 	 */
 	import { page } from '$app/state';
 	import { getVegaContext } from '$lib/app-context';
@@ -112,16 +119,26 @@
 				onSaved={() => ctx.feedback.toast(ctx.t('editor.saveSuccess'), { kind: 'success' })}
 				onCancel={() =>
 					activeType.singleton ? ctx.nav.toIndex() : ctx.nav.toList(activeType.name)}
+				onDelete={async (label) => {
+					await ctx.port.delete(activeType.name, idParam);
+					ctx.feedback.toast(ctx.t('list.delete.success', { label }), { kind: 'success' });
+					// Al listado también desde un singleton: si su ÚNICO registro se borra, `/c/[type]`
+					// resuelve solo el siguiente destino (crear uno nuevo, §3.3) — nunca al índice.
+					ctx.nav.toList(activeType.name);
+				}}
 			/>
 		</div>
 	{/if}
 {/if}
 
 <style>
+	/* Hueco de layout del editor (mockup final): el propio `RecordForm` va A SANGRE (cancela con
+	   márgenes negativos el padding de `.vega-main`, ver su CSS), así que este envoltorio no debe
+	   añadir ni padding ni gap propios — solo existe para que el `{#if}` de la ruta tenga un
+	   contenedor estable. */
 	.vega-editor-page {
 		display: flex;
 		flex-direction: column;
-		gap: var(--vega-space-gutter);
 	}
 
 	.vega-editor-error {

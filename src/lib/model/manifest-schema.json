@@ -75,6 +75,11 @@
 						"type": "string",
 						"minLength": 1
 					},
+					"slugField": {
+						"description": "Nombre de un campo de TEXTO derivable del título (un slug/permalink). El editor lo pinta en tipografía mono con un botón 'Regenerar' que lo recalcula desde el titleField. Sin esta clave, el editor no ofrece regenerar nada.",
+						"type": "string",
+						"minLength": 1
+					},
 					"orderField": {
 						"description": "Nombre de un campo NUMÉRICO que define el orden manual de los registros (reorder por arrastre en el listado). Sin esta clave, la colección no ofrece reorder manual.",
 						"type": "string",
@@ -111,7 +116,7 @@
 						"uniqueItems": true
 					},
 					"fieldGroups": {
-						"description": "Orden de render de los grupos de campos del formulario (el grupo anónimo, campos sin 'group', siempre va primero). Cada item es el nombre de un grupo (string, forma de siempre) o un objeto { name, columns } para pedir además una rejilla responsive de columnas para ESE grupo (p. ej. emparejar 'titleEs'/'titleEn' lado a lado). Sin la forma objeto, o sin 'columns', el grupo se pinta apilado a 1 columna igual que hoy.",
+						"description": "Orden de render de los grupos de campos del formulario (el grupo anónimo, campos sin 'group', siempre va primero). Cada item es el nombre de un grupo (string, forma de siempre) o un objeto { name, columns, placement } para pedir además una rejilla responsive de columnas para ESE grupo (p. ej. emparejar 'titleEs'/'titleEn' lado a lado) y/o moverlo a la columna lateral del editor. Sin la forma objeto, el grupo se pinta apilado a 1 columna en la columna central, igual que hoy.",
 						"type": "array",
 						"items": {
 							"oneOf": [
@@ -127,12 +132,20 @@
 											"type": "integer",
 											"minimum": 1,
 											"maximum": 3
+										},
+										"placement": {
+											"description": "Columna del editor donde se pinta el grupo: 'main' (central, el default) o 'aside' (columna lateral de tarjetas compactas, p. ej. publicación o portada).",
+											"enum": ["main", "aside"]
 										}
 									}
 								}
 							]
 						},
 						"uniqueItems": true
+					},
+					"editorRail": {
+						"description": "true ⇒ el editor de un registro pinta a su izquierda el raíl con los registros hermanos de la colección (la lista sigue presente mientras editas). Sin esta clave (o false), el editor no pinta raíl.",
+						"type": "boolean"
 					},
 					"localizedFields": {
 						"description": "Campos lógicos traducibles. Cada entrada mapea un mismo campo editorial a sus campos físicos por idioma.",

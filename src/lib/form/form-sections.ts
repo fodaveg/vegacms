@@ -1,24 +1,34 @@
 /**
- * `buildFormSections` (Fase F5-a + §4.9b): agrupa `type.fields` según `type.fieldGroups` (P2) en
- * las SECCIONES que `RecordForm.svelte` pinta como fichas (`.vega-fsection`) — un `FormSection`
+ * `buildFormSections` (Fase F5-a + §4.9b/§4.9c): agrupa `type.fields` según `type.fieldGroups` (P2)
+ * en las SECCIONES que `RecordForm.svelte` pinta como fichas (`.vega-fsection`) — un `FormSection`
  * por grupo, en su orden efectivo, más una sección final SIN cabecera para cualquier campo
  * "huérfano" visible (su `group` no aparece en `fieldGroups`; no debería pasar, P2 lo garantiza, pero
  * L11 manda degradar sin desaparecer el campo en vez de crashear). Extraído a un módulo PURO
  * para poder testear la agrupación sin montar el componente — mismo patrón que
  * `dirty.ts`/`to-record-input.ts`/`first-error-field.ts` (ver cabecera de `RecordForm.svelte`).
  *
- * `columns` (§4.9b, la rejilla responsive bilingüe: `titleEs`|`titleEn` lado a lado) viaja tal
- * cual desde el `ResolvedFieldGroup` que ya resolvió P2 — 1 = apilado (el layout de siempre),
- * 2/3 = rejilla. La sección de huérfanos siempre es `columns: 1`: no hay grupo real (ni
- * `ResolvedFieldGroup`) del que heredarlo.
+ * `columns` (§4.9b, la rejilla responsive bilingüe: `titleEs`|`titleEn` lado a lado) y `placement`
+ * (§4.9c, la columna del editor donde cae el grupo: central o lateral) viajan tal cual desde el
+ * `ResolvedFieldGroup` que ya resolvió P2 — 1 = apilado (el layout de siempre), 2/3 = rejilla;
+ * `'main'` = columna central (el sitio de siempre), `'aside'` = columna lateral. La sección de
+ * huérfanos siempre es `columns: 1` + `placement: 'main'`: no hay grupo real (ni
+ * `ResolvedFieldGroup`) del que heredarlos, y esconder un campo huérfano en la columna lateral
+ * sería la peor degradación posible.
  */
-import type { ResolvedContentType, ResolvedField, ResolvedLocalizedField } from '$lib/model/types';
+import type {
+	FieldGroupPlacement,
+	ResolvedContentType,
+	ResolvedField,
+	ResolvedLocalizedField
+} from '$lib/model/types';
 
 export interface FormSection {
 	/** Nombre del grupo, o `null` para el grupo anónimo/huérfanos (sin `<h2>` de cabecera). */
 	group: string | null;
 	/** Columnas de la rejilla del grupo (§4.9b): 1 = apilado, el layout de siempre. */
 	columns: 1 | 2 | 3;
+	/** Columna del editor donde se pinta la sección (§4.9c): `'main'` por defecto. */
+	placement: FieldGroupPlacement;
 	fields: ResolvedField[];
 }
 
@@ -82,11 +92,18 @@ export function buildFormSections(type: ResolvedContentType, activeLocale?: stri
 	const sections: FormSection[] = type.fieldGroups.map((fieldGroup) => {
 		const fields = visibleFields.filter((f) => f.group === fieldGroup.name);
 		for (const f of fields) placed[f.name] = true;
-		return { group: fieldGroup.name, columns: fieldGroup.columns, fields };
+		return {
+			group: fieldGroup.name,
+			columns: fieldGroup.columns,
+			placement: fieldGroup.placement,
+			fields
+		};
 	});
 
 	const leftover = visibleFields.filter((f) => !placed[f.name]);
-	if (leftover.length > 0) sections.push({ group: null, columns: 1, fields: leftover });
+	if (leftover.length > 0) {
+		sections.push({ group: null, columns: 1, placement: 'main', fields: leftover });
+	}
 
 	return sections;
 }

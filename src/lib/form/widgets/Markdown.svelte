@@ -335,7 +335,11 @@
 		height: 2rem;
 		padding: 0 0.4rem;
 		border: 1px solid transparent;
-		border-radius: var(--r-s);
+		/* `6px` literal, no `var(--r-s)`: ese token NUNCA ha existido en el vocabulario §3
+		   (`theme-tokens.ts` solo declara `--r`, 8px), así que la declaración entera se descartaba en
+		   silencio y estos elementos salían a esquina viva. 6px = el radio de control pequeño del
+		   mockup (`.rt-toolbar button`), el mismo que ya usa la barra del richtext. */
+		border-radius: 6px;
 		background: transparent;
 		color: var(--ink-2);
 		font: inherit;
@@ -382,7 +386,11 @@
 		gap: 0.1rem;
 		padding: 0.15rem;
 		border: 1px solid var(--line);
-		border-radius: var(--r-s);
+		/* `6px` literal, no `var(--r-s)`: ese token NUNCA ha existido en el vocabulario §3
+		   (`theme-tokens.ts` solo declara `--r`, 8px), así que la declaración entera se descartaba en
+		   silencio y estos elementos salían a esquina viva. 6px = el radio de control pequeño del
+		   mockup (`.rt-toolbar button`), el mismo que ya usa la barra del richtext. */
+		border-radius: 6px;
 		background: var(--surface);
 	}
 
@@ -500,7 +508,11 @@
 
 	.vega-markdown-preview-content :global(pre) {
 		padding: 0.75rem;
-		border-radius: var(--r-s);
+		/* `6px` literal, no `var(--r-s)`: ese token NUNCA ha existido en el vocabulario §3
+		   (`theme-tokens.ts` solo declara `--r`, 8px), así que la declaración entera se descartaba en
+		   silencio y estos elementos salían a esquina viva. 6px = el radio de control pequeño del
+		   mockup (`.rt-toolbar button`), el mismo que ya usa la barra del richtext. */
+		border-radius: 6px;
 		background: var(--surface-2);
 		overflow-x: auto;
 	}
@@ -523,7 +535,11 @@
 		display: block;
 		max-width: 100%;
 		height: auto;
-		border-radius: var(--r-s);
+		/* `6px` literal, no `var(--r-s)`: ese token NUNCA ha existido en el vocabulario §3
+		   (`theme-tokens.ts` solo declara `--r`, 8px), así que la declaración entera se descartaba en
+		   silencio y estos elementos salían a esquina viva. 6px = el radio de control pequeño del
+		   mockup (`.rt-toolbar button`), el mismo que ya usa la barra del richtext. */
+		border-radius: 6px;
 	}
 
 	.vega-markdown-workbench[data-mode='write'] .vega-markdown-body {

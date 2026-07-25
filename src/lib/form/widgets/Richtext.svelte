@@ -40,6 +40,13 @@
 	 * pantalla, y `getByRole('textbox', {name})` de Playwright lo resuelve de forma ambigua,
 	 * detectado en `e2e/form.spec.ts`).
 	 *
+	 * **Mockup final `aquelarre-detalle-post.html` (`.richtext`)**: el marco (borde, radio, fondo,
+	 * anillo de foco) pasa al CONTENEDOR y el área editable se queda solo con su padding — antes el
+	 * borde lo pintaban por separado la barra y el `<div>` de contenido, y el radio inferior había
+	 * que escribirlo a mano (`0 0 6px 6px`). Con una sola caja + `overflow: hidden`, barra y cuerpo
+	 * comparten esquinas sin que ninguno de los dos sepa nada del otro. Solo CSS: ni el editor, ni
+	 * el saneado, ni la a11y de más arriba cambian una línea.
+	 *
 	 * LANDMINES encontradas en QA manual (no en el contrato, documentadas también inline):
 	 * (1) `Editor#setEditable()` de TipTap dispara `onUpdate` SIEMPRE que se llama, incluso sin
 	 * cambio real de estado — el `$effect` que lo invoca guarda el ÚLTIMO `inert` aplicado
@@ -186,26 +193,34 @@
 </div>
 
 <style>
-	.vega-widget-richtext-content {
-		min-height: 8rem;
-		padding: 0.45rem 0.6rem;
+	/* Contenedor del editor (mockup final `.richtext`): UNA sola caja con borde y radio que envuelve
+	   barra + área editable; el `overflow: hidden` es lo que recorta las esquinas de la barra
+	   (`--paper`) contra ese radio. El anillo de foco sube AL CONTENEDOR (mockup
+	   `.richtext:focus-within`): el `<div contenteditable>` de TipTap no es un `<input>`, así que el
+	   `:focus-visible` global de `theme/base.css` nunca lo alcanza. */
+	.vega-widget-richtext {
 		border: 1px solid var(--line);
-		border-radius: 0 0 6px 6px;
+		border-radius: var(--r);
 		background: var(--surface);
-		color: var(--ink);
+		overflow: hidden;
 	}
 
-	.vega-widget-richtext[data-invalid='true'] .vega-widget-richtext-content {
+	.vega-widget-richtext:focus-within {
+		outline: 2px solid var(--ring);
+		outline-offset: 1px;
+	}
+
+	.vega-widget-richtext[data-invalid='true'] {
 		border-color: var(--danger);
 	}
 
-	/* Anillo de foco del EDITOR (mockup `.richtext:focus-within`): el `<div contenteditable>` de
-	   TipTap no es un `<input>`, así que el `:focus-visible` global de `theme/base.css` nunca lo
-	   alcanza — `:focus-within` en el contenedor es el equivalente correcto para un widget
-	   compuesto (toolbar + área editable). */
-	.vega-widget-richtext:focus-within .vega-widget-richtext-content {
-		outline: 2px solid var(--ring);
-		outline-offset: 1px;
+	/* Área editable (mockup `.rt-body`): `max-width: 68ch` es medida de LECTURA, no de caja — un
+	   párrafo de 200 caracteres por línea no hay quien lo edite. */
+	.vega-widget-richtext-content {
+		padding: calc(var(--pad-field) * 0.9) calc(var(--pad-field) * 1.1);
+		min-height: 200px;
+		max-width: 68ch;
+		color: var(--ink);
 	}
 
 	.vega-widget-richtext-content :global(.tiptap) {
@@ -216,11 +231,41 @@
 		margin-top: 0.6em;
 	}
 
+	.vega-widget-richtext-content :global(h2) {
+		font-size: 1.15em;
+		color: var(--ink-hi);
+	}
+
+	/* Enlace del cuerpo (mockup `.rt-body a`): acento como TEXTO (`--accent-text`, el token con
+	   contraste AA sobre papel), nunca `--accent` a secas. */
+	.vega-widget-richtext-content :global(a) {
+		color: var(--accent-text);
+		text-underline-offset: 2px;
+	}
+
+	/* Código en línea (mockup `.rt-body code`): mono sobre `--btn` con hairline — un VALOR
+	   canónico, mismo criterio que ids y slugs. */
+	.vega-widget-richtext-content :global(code) {
+		font-family: var(--mono);
+		font-size: 0.9em;
+		background: var(--btn);
+		border: 1px solid var(--line-soft);
+		border-radius: 4px;
+		padding: 0.05em 0.3em;
+	}
+
 	.vega-widget-richtext-content :global(pre) {
 		padding: 0.6rem;
 		border-radius: 4px;
 		background: var(--surface-2);
 		overflow-x: auto;
+	}
+
+	/* Dentro de un bloque de código el `code` NO lleva su propia cajita (la caja es el `pre`). */
+	.vega-widget-richtext-content :global(pre code) {
+		background: none;
+		border: 0;
+		padding: 0;
 	}
 
 	.vega-widget-richtext-content :global(blockquote) {

@@ -15,6 +15,13 @@
 	 * Enlace/imagen usan `window.prompt` (mismo criterio ya aceptado en el repo para diálogos
 	 * síncronos simples, ver `RecordForm.svelte` con `window.confirm`): no hay presupuesto en
 	 * F5-d para un modal propio, y un prompt nativo no bloquea nada más allá de sí mismo.
+	 *
+	 * **Mockup final `aquelarre-detalle-post.html` (`.rt-toolbar`)**: la barra deja de tener caja
+	 * propia (borde + radio superior) y pasa a ser una franja `--paper` separada del cuerpo por una
+	 * hairline `--line-soft` — el marco entero lo pone ahora el contenedor del widget
+	 * (`Richtext.svelte`), que las recorta a las dos con un solo `overflow: hidden`. Los botones
+	 * pierden el borde y ganan el par hover/`aria-pressed` del mockup (`--active` / `--accent-soft`).
+	 * Solo CSS: ni un comando, ni un `aria-*`, ni la señal de repintado cambian.
 	 */
 	import type { Editor } from '@tiptap/core';
 
@@ -143,6 +150,10 @@
 	>
 		<s>S</s>
 	</button>
+	<!-- Separadores del mockup (`.rt-toolbar .sep`): agrupan marcas | bloques | listas | inserciones.
+	     Decorativos (`aria-hidden`), nunca `role="separator"`: no separan valores, solo dan ritmo
+	     visual dentro de la MISMA barra. -->
+	<span class="vega-editor-toolbar-sep" aria-hidden="true"></span>
 	<button
 		type="button"
 		aria-pressed={isActive('code')}
@@ -173,6 +184,7 @@
 	>
 		"
 	</button>
+	<span class="vega-editor-toolbar-sep" aria-hidden="true"></span>
 	<button
 		type="button"
 		aria-pressed={isActive('bulletList')}
@@ -202,6 +214,7 @@
 	>
 		―
 	</button>
+	<span class="vega-editor-toolbar-sep" aria-hidden="true"></span>
 	<button
 		type="button"
 		aria-pressed={isActive('link')}
@@ -224,38 +237,53 @@
 </div>
 
 <style>
+	/* Franja de la barra (mockup `.rt-toolbar`): sin caja propia — el borde y el radio los pone el
+	   contenedor del widget (ver cabecera). `--paper` sobre el `--surface` del cuerpo editable: la
+	   barra es "chrome", el cuerpo es el control. */
 	.vega-editor-toolbar {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.25rem;
+		align-items: center;
+		gap: 2px;
 		padding: 0.35rem;
-		border: 1px solid var(--line);
-		border-bottom: none;
-		border-radius: 6px 6px 0 0;
-		background: var(--surface-2);
+		border-bottom: 1px solid var(--line-soft);
+		background: var(--paper);
 	}
 
+	/* Botones cuadrados de 30px, sin borde (mockup `.rt-toolbar button`). `line-height` explícito:
+	   el heredado no viaja a un componente Svelte y el glifo quedaría descentrado. */
 	.vega-editor-toolbar button {
-		min-width: 2rem;
-		padding: 0.25rem 0.45rem;
-		border: 1px solid transparent;
-		border-radius: 4px;
+		min-width: 30px;
+		height: 30px;
+		padding: 0 0.45rem;
+		border: 0;
+		border-radius: 6px;
 		background: transparent;
-		color: var(--ink);
+		color: var(--ink-2);
 		font: inherit;
-		font-size: 0.85rem;
-		line-height: 1;
+		font-size: 0.9em;
+		line-height: 30px;
 		cursor: pointer;
 	}
 
 	.vega-editor-toolbar button:hover:not(:disabled) {
-		border-color: var(--line);
+		background: var(--active);
+		color: var(--ink-hi);
 	}
 
+	/* Activo = fondo tenue de marca + acento como texto (mockup `button[aria-pressed='true']`):
+	   NUNCA el relleno `--accent` sólido, que es lenguaje de acción primaria (el botón "Guardar"). */
 	.vega-editor-toolbar button[aria-pressed='true'] {
-		border-color: var(--accent);
-		background: var(--accent);
-		color: var(--accent-ink);
+		background: var(--accent-soft);
+		color: var(--accent-text);
+	}
+
+	/* Separador de 1px (mockup `.sep`), con aire arriba y abajo para que no toque los bordes. */
+	.vega-editor-toolbar-sep {
+		width: 1px;
+		align-self: stretch;
+		margin: 0.25rem 0.3rem;
+		background: var(--line-soft);
 	}
 
 	.vega-editor-toolbar button:disabled,
@@ -264,13 +292,17 @@
 		cursor: not-allowed;
 	}
 
+	/* El selector de estilo de párrafo SÍ conserva caja (es un `<select>`: sin borde no se lee como
+	   desplegable), en el mismo alto de 30px que los botones. */
 	.vega-editor-toolbar-select {
-		padding: 0.25rem 0.4rem;
+		height: 30px;
+		margin-right: 0.3rem;
+		padding: 0 0.4rem;
 		border: 1px solid var(--line);
-		border-radius: 4px;
+		border-radius: 6px;
 		background: var(--surface);
 		color: var(--ink);
 		font: inherit;
-		font-size: 0.85rem;
+		font-size: 0.85em;
 	}
 </style>
