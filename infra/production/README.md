@@ -29,6 +29,32 @@ No se publica ningún puerto de PocketBase en el host. La persistencia vive en e
 
 Nunca guardes credenciales, `pb_data` ni una `.env` real en Git.
 
+## Publicar una versión antes de desplegar
+
+Vega no es una app suelta: es una **dependencia** de varios proyectos (esta instancia oficial, el
+admin de `lumbre.pro`, el embed de `fodaveg.net`). Por eso subirla empieza por **versionarla**, no
+por desplegarla: sin bump nadie puede pedir «la nueva», y sin reconstruir la imagen los consumidores
+se quedan en la que hubiera en el servidor.
+
+1. Sube `package.json#version` — patch si son correcciones, minor si añade capacidades al
+   manifiesto. `release.yml` compara el tag con ese campo y aborta en segundos si no casan.
+2. `chore(release): vX.Y.Z`, push, `git tag vX.Y.Z` y push del tag: el workflow publica
+   `vega-<version>.zip` como asset del Release.
+3. Despliega ese SHA con el procedimiento de abajo.
+4. **Repasa los demás consumidores de la imagen.** El tag de `vegacms:<sha>` es el SHA completo a
+   propósito, así que `docker ps --format '{{.Image}}'` en el servidor los enumera. Un montaje que
+   reutiliza la imagen ya construida (en vez de construir la suya) se queda congelado en la versión
+   que hubiera el día que se montó, sin avisar.
+
+Para saber qué build sirve un host sin entrar al servidor, compara los hashes de sus assets con los
+del zip del Release — Vite los deriva del contenido, así que delatan la versión exacta:
+
+```sh
+curl -s https://admin.vegacms.com/ | grep -o '/_app/immutable/assets/[A-Za-z0-9._-]*\.css'
+gh release download vX.Y.Z --repo fodaveg/vegacms -D /tmp/vega-rel
+unzip -l /tmp/vega-rel/*.zip | grep 'assets/.*\.css'
+```
+
 ## Validar y desplegar
 
 El commit desplegado debe haber pasado `pnpm gate`, `pnpm check-bundle-budget`, revisión final y CI.
