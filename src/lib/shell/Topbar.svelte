@@ -264,6 +264,10 @@
 		color: var(--ink-2);
 		overflow: hidden;
 		text-overflow: ellipsis;
+		/* Item flex: sin `min-width:0` el mínimo automático es su propio contenido y el
+		   `text-overflow: ellipsis` de arriba nunca llega a activarse (el nombre del sitio empuja
+		   la topbar entera en vez de recortarse). Ver el colapso móvil al final del fichero. */
+		min-width: 0;
 	}
 
 	/* Fix code-review (lote-1, 🟡): 769-900px el buscador quedaba con un área de escritura
@@ -409,8 +413,18 @@
 			display: flex;
 		}
 
+		/* El wordmark CEDE (mismo criterio que el rango 769-1100 de arriba: es lo primero que se
+		   comprime). En móvil `GlobalSearch` ya está oculto y `.vega-topbar-actions` es
+		   irreductible —chip de sesión + logout—, así que el wordmark es el único elástico que
+		   queda: sin `flex-shrink:1` la topbar mide `hamburguesa + ancho intrínseco del wordmark +
+		   acciones` y a 375px eso daba EXACTAMENTE 375px de holgura cero. Cualquier métrica de
+		   fuente un pelo más ancha (el Linux del CI frente al macOS local) desbordaba la página y
+		   tumbaba `e2e/list.spec.ts` «sin desbordar la página». Ahora el nombre del sitio se recorta
+		   con elipsis y el desbordamiento horizontal vuelve a ser SOLO el de la tabla, contenido en
+		   su propio wrapper. */
 		.vega-topbar-site {
 			min-width: 0;
+			flex-shrink: 1;
 		}
 	}
 </style>
