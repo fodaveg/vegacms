@@ -35,20 +35,35 @@
 	 * NUNCA se quita de forma optimista, sigue en el grid). `dirty` (metadatos sin guardar) NO
 	 * bloquea borrar: el registro entero va a desaparecer, esos drafts dejan de tener sentido.
 	 *
-	 * **Doble trampa de foco mientras `confirmingDelete`**: `handleKeydown` de ESTE componente tiene
-	 * un guard (`if (confirmingDelete) return;`, primera línea) para quedar inerte mientras
-	 * `MediaDeleteConfirm` está abierto — los dos instalan un listener de `keydown` en `document`
-	 * (en captura), y sin este guard un `Escape` dispararía AMBOS handlers (`stopPropagation` no
-	 * cancela un listener hermano en el mismo nodo). Ver la cabecera de `MediaDeleteConfirm.svelte`.
+	 * **Doble trampa de foco mientras `confirmingDelete`/`confirmingReplace`**: `handleKeydown` de
+	 * ESTE componente tiene un guard (primera línea) para quedar inerte mientras
+	 * `MediaDeleteConfirm`/`MediaReplaceConfirm` están abiertos — los tres instalan un listener de
+	 * `keydown` en `document` (en captura), y sin este guard un `Escape` dispararía VARIOS handlers
+	 * a la vez (`stopPropagation` no cancela un listener hermano en el mismo nodo). Ver la cabecera
+	 * de `MediaDeleteConfirm.svelte`/`MediaReplaceConfirm.svelte`.
+	 *
+	 * **"Se usa en" (`#lote-integridad`, Fase A)**: `UsedInPanel` montado dentro del formulario,
+	 * colapsado por defecto (carga a demanda, ver su cabecera) — nunca paga el coste de red al
+	 * simple abrir un asset.
+	 *
+	 * **"Reemplazar fichero" (`#lote-integridad`, Fase A, punto 4)**: sube un fichero nuevo AL
+	 * MISMO registro (`ctx.port.update('vega_media', id, { file })`, conserva id/metadatos) tras
+	 * pasar por `MediaReplaceConfirm` — igual que el borrado, NUNCA se dispara sin ese diálogo. La
+	 * validación de mime/tamaño reutiliza `validateMediaFile`/`findMediaFileFieldSchema`
+	 * (`media-upload.ts`, la MISMA que usa `MediaUpload` al subir) contra el esquema DESCUBIERTO —
+	 * nunca una copia local de las constraints.
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import { VegaError } from '$lib/backend/errors';
 	import type { RecordId, VegaRecord } from '$lib/backend/types';
 	import Icon from '$lib/icons/Icon.svelte';
+	import UsedInPanel from '$lib/integrity/UsedInPanel.svelte';
 	import { addTag, normalizeTagInput, removeTag, tagsEqual } from './media-tags';
 	import { mediaDisplayName, mediaImgAlt, toMediaItemView, type MediaItemView } from './media-item';
 	import { resolveMediaFullSrc } from './media-thumb';
+	import { findMediaFileFieldSchema, validateMediaFile } from './media-upload';
 	import MediaDeleteConfirm from './MediaDeleteConfirm.svelte';
+	import MediaReplaceConfirm from './MediaReplaceConfirm.svelte';
 
 	interface Props {
 		/** `null` = diálogo cerrado. El grid nunca abre uno nuevo sin cerrar el anterior, pero este
@@ -86,6 +101,21 @@
 	 *  a `MediaDeleteConfirm.deleting`, que evita un doble envío por su lado). */
 	let deletingAsset = $state(false);
 
+	// ————— Reemplazar fichero (`#lote-integridad`, Fase A) —————
+	/** El campo `file` de `vega_media` YA resuelto contra el esquema DESCUBIERTO (ver cabecera):
+	 *  `null` solo de forma defensiva (en la práctica, si este panel está montado la colección
+	 *  existe) — sin él, "Reemplazar" sube sin pre-validar (el backend re-valida igual, §4.4). */
+	const mediaFileSchema = $derived(findMediaFileFieldSchema(ctx.model.types.map((t) => t.schema)));
+	let replaceInputEl = $state<HTMLInputElement | null>(null);
+	/** Fichero YA elegido y pre-validado, a la espera de que se confirme en `MediaReplaceConfirm`. */
+	let pendingReplaceFile = $state<File | null>(null);
+	/** Motivo del último rechazo de la pre-validación cliente (mismos motivos que la subida,
+	 *  `MediaFileRejectionReason`), o `null` sin rechazo pendiente que mostrar. */
+	let replaceRejection = $state<'tooLarge' | 'invalidType' | null>(null);
+	let confirmingReplace = $state(false);
+	/** `true` mientras `ctx.port.update` (reemplazo) está en vuelo. */
+	let replacingAsset = $state(false);
+
 	let dialogEl = $state<HTMLElement | null>(null);
 	let altInputEl = $state<HTMLInputElement | null>(null);
 	let previouslyFocused: HTMLElement | null = null;
@@ -114,10 +144,11 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent): void {
-		// Ver cabecera del componente ("Doble trampa de foco"): mientras `MediaDeleteConfirm` está
-		// abierto, ES SU trampa la que debe reaccionar a Esc/Tab, no la de este diálogo — ambos
-		// listeners viven en `document`, así que sin este guard `Escape` dispararía los dos.
-		if (confirmingDelete) return;
+		// Ver cabecera del componente ("Doble trampa de foco"): mientras `MediaDeleteConfirm`/
+		// `MediaReplaceConfirm` están abiertos, ES SU trampa la que debe reaccionar a Esc/Tab, no
+		// la de este diálogo — todos instalan un listener en `document`, y sin este guard `Escape`
+		// dispararía varios a la vez.
+		if (confirmingDelete || confirmingReplace) return;
 		if (event.key === 'Escape') {
 			event.preventDefault();
 			event.stopPropagation();
@@ -215,10 +246,10 @@
 	}
 
 	/** Abre `MediaDeleteConfirm` (ver cabecera del componente). Guard defensivo (mismo criterio que
-	 *  `requestDelete` de P4, `/c/[type]/+page.svelte`): con un guardado o un borrado YA en vuelo,
-	 *  ignora la petición. */
+	 *  `requestDelete` de P4, `/c/[type]/+page.svelte`): con un guardado, un borrado o un reemplazo
+	 *  YA en vuelo (o su confirmación abierta), ignora la petición. */
 	function requestDeleteAsset(): void {
-		if (saving || deletingAsset) return;
+		if (saving || deletingAsset || confirmingReplace || replacingAsset) return;
 		confirmingDelete = true;
 	}
 
@@ -256,6 +287,76 @@
 			deletingAsset = false;
 		}
 	}
+
+	// ————— Reemplazar fichero (`#lote-integridad`, Fase A) —————
+
+	/** Abre el selector de fichero nativo (mismo patrón `bind:this`+`.click()` que
+	 *  `MediaUpload.openFilePicker`). Guard simétrico a `requestDeleteAsset`. */
+	function requestReplaceFile(): void {
+		if (saving || deletingAsset || confirmingDelete || replacingAsset) return;
+		replaceRejection = null;
+		replaceInputEl?.click();
+	}
+
+	/**
+	 * Fichero elegido en el `<input type="file">` oculto: pre-valida contra el esquema DESCUBIERTO
+	 * (`validateMediaFile`, la MISMA validación que la subida — ver cabecera del componente) antes
+	 * de abrir `MediaReplaceConfirm`. Un rechazo se pinta en contexto y NUNCA llega a abrir el
+	 * diálogo de confirmación (nada que confirmar sobre un fichero que de todos modos no se va a
+	 * subir). `input.value` se limpia SIEMPRE: sin esto, elegir el MISMO fichero dos veces seguidas
+	 * no dispararía un segundo `change` (§4.4-alike, mismo gesto que `MediaUpload`).
+	 */
+	function handleReplaceFileChange(event: Event): void {
+		const input = event.currentTarget as HTMLInputElement;
+		const file = input.files?.[0] ?? null;
+		input.value = '';
+		if (!file) return;
+
+		if (mediaFileSchema) {
+			const rejection = validateMediaFile(mediaFileSchema, file);
+			if (rejection) {
+				replaceRejection = rejection;
+				return;
+			}
+		}
+		replaceRejection = null;
+		pendingReplaceFile = file;
+		confirmingReplace = true;
+	}
+
+	/** "Cancelar" o `Esc` en `MediaReplaceConfirm`: no sube nada, el fichero elegido se descarta. */
+	function cancelReplace(): void {
+		if (replacingAsset) return;
+		confirmingReplace = false;
+		pendingReplaceFile = null;
+	}
+
+	/**
+	 * Confirma el reemplazo (§4 del contrato): `update('vega_media', id, { file })` conserva id y
+	 * metadatos (`alt`/`title`/`tags` intactos, nunca se reenvían) — el backend sustituye SOLO el
+	 * campo `file`. Éxito → toast + `onSaved`/`onClose` (mismo camino que guardar metadatos: el
+	 * llamador refresca el grid con el registro REAL, este panel se cierra). Fallo → `reportError`
+	 * global (nunca deja el fichero "a medio subir" en un estado ambiguo).
+	 */
+	async function confirmReplace(): Promise<void> {
+		if (!item || !pendingReplaceFile || replacingAsset) return;
+		replacingAsset = true;
+		try {
+			const saved = await ctx.port.update('vega_media', item.id, { file: pendingReplaceFile });
+			ctx.feedback.toast(ctx.t('media.replace.success'), { kind: 'success' });
+			confirmingReplace = false;
+			pendingReplaceFile = null;
+			onSaved(toMediaItemView(saved));
+			onClose();
+		} catch (err) {
+			const vegaErr =
+				err instanceof VegaError ? err : VegaError.backend('Error al reemplazar el fichero', err);
+			ctx.feedback.reportError(vegaErr, { action: 'media:detail:replace' });
+			confirmingReplace = false;
+		} finally {
+			replacingAsset = false;
+		}
+	}
 </script>
 
 {#if item}
@@ -284,6 +385,38 @@
 					<img src={fullSrc} alt={mediaImgAlt(item)} class="vega-media-detail-image" />
 				{:else}
 					<Icon id="document" size={48} title={mediaImgAlt(item)} />
+				{/if}
+			</div>
+
+			<!-- Reemplazar fichero (`#lote-integridad`, Fase A): control de fichero REAL, oculto
+			     VISUALMENTE (mismo patrón que `MediaUpload.svelte` — nunca `display: none`, sigue en
+			     el árbol de accesibilidad). El botón visible dispara `.click()` sobre él. -->
+			<div class="vega-media-detail-replace">
+				<label class="vega-media-detail-replace-sr" for="vega-media-detail-replace-input">
+					{ctx.t('media.detail.replace')}
+				</label>
+				<input
+					id="vega-media-detail-replace-input"
+					type="file"
+					class="vega-media-detail-replace-sr"
+					bind:this={replaceInputEl}
+					accept={mediaFileSchema?.mimeTypes?.join(',') || undefined}
+					disabled={saving || deletingAsset || replacingAsset}
+					onchange={handleReplaceFileChange}
+				/>
+				<button
+					type="button"
+					onclick={requestReplaceFile}
+					disabled={saving || deletingAsset || confirmingDelete || replacingAsset}
+				>
+					{ctx.t('media.detail.replace')}
+				</button>
+				{#if replaceRejection}
+					<p class="vega-media-detail-error" role="alert">
+						{replaceRejection === 'tooLarge'
+							? ctx.t('media.replace.rejectedTooLarge')
+							: ctx.t('media.replace.rejectedInvalidType')}
+					</p>
 				{/if}
 			</div>
 
@@ -351,6 +484,17 @@
 					</div>
 				</div>
 
+				<!-- "Se usa en" (`#lote-integridad`, Fase A): colapsado por defecto, ver
+				     `UsedInPanel.svelte`. `targetFileRef` alimenta la vía "url" del motor — el picker de
+				     media COPIA el binario, así que la vía "relation" casi nunca encuentra nada aquí. -->
+				<div class="vega-media-detail-field">
+					<UsedInPanel
+						targetCollection="vega_media"
+						targetId={item.id}
+						targetFileRef={item.fileRef}
+					/>
+				</div>
+
 				<div class="vega-media-detail-actions">
 					<button
 						type="button"
@@ -381,10 +525,25 @@
 <MediaDeleteConfirm
 	open={confirmingDelete}
 	assetLabel={item ? mediaDisplayName(item) : ''}
+	targetId={item?.id ?? null}
+	targetFileRef={item?.fileRef ?? null}
 	deleting={deletingAsset}
 	{fallbackFocusEl}
 	onConfirm={confirmDeleteAsset}
 	onCancel={cancelDeleteAsset}
+/>
+
+<!-- Montado SIEMPRE, mismo motivo que `MediaDeleteConfirm` arriba (§ carrera de foco). -->
+<MediaReplaceConfirm
+	open={confirmingReplace}
+	assetLabel={item ? mediaDisplayName(item) : ''}
+	newFileName={pendingReplaceFile?.name ?? ''}
+	targetId={item?.id ?? ''}
+	targetFileRef={item?.fileRef ?? null}
+	replacing={replacingAsset}
+	{fallbackFocusEl}
+	onConfirm={confirmReplace}
+	onCancel={cancelReplace}
 />
 
 <style>
@@ -451,6 +610,42 @@
 		max-width: 100%;
 		max-height: 16rem;
 		object-fit: contain;
+	}
+
+	.vega-media-detail-replace {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.4rem;
+	}
+
+	.vega-media-detail-replace button {
+		padding: 0.4rem 0.8rem;
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		background: var(--surface-2);
+		color: var(--ink);
+		font-size: 0.85rem;
+		cursor: pointer;
+	}
+
+	.vega-media-detail-replace button:disabled {
+		cursor: not-allowed;
+		opacity: 0.6;
+	}
+
+	/* Oculto VISUALMENTE, presente para teclado y lectores de pantalla (mismo patrón que
+	   `MediaUpload.svelte`, nunca `display: none`). */
+	.vega-media-detail-replace-sr {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		padding: 0;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+		border: 0;
 	}
 
 	form {

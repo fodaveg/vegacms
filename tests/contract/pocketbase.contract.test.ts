@@ -181,4 +181,42 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 			}
 		});
 	});
+
+	/**
+	 * Premisa CORREGIDA de la tarea "reemplazar un asset conservando su URL" (`#lote-integridad`,
+	 * Fase A — ver cabecera del contrato): **NO se puede cumplir con la API de PocketBase**. PB
+	 * nombra el fichero guardado como `<basename>_<sufijo aleatorio>.<ext>` y el cliente no elige
+	 * ese sufijo, así que dos subidas con el MISMO nombre de origen producen `FileRef` (y por
+	 * tanto URL, `fileUrl`) DISTINTOS. Este test es la documentación ejecutable de esa
+	 * restricción: si un día PB empezara a conservar el nombre, se pone ROJO y hay que revisar la
+	 * UI de "Reemplazar" de `MediaDetail.svelte` sobre esa premisa nueva — no se verifica adivinando,
+	 * se verifica contra el binario real.
+	 */
+	describe('premisa "reemplazar sin conservar la URL" (§ contrato integridad, Fase A)', () => {
+		test('dos ficheros con el MISMO nombre de origen producen FileRef (y URL) distintos', async () => {
+			const port = createPocketBaseBackend({ url: running.url });
+			await port.login({ email: running.adminEmail, password: running.adminPassword });
+
+			const first = new File(['contenido-1'], 'foto.png', { type: 'image/png' });
+			const created = await port.create('kitchen_sink', { title: 'reemplazo', cover: first });
+			const firstRef = created.values.cover as string;
+
+			// Mismo NOMBRE DE ORIGEN que el primero, contenido distinto: si PB conservara el
+			// nombre del fichero, el `FileRef` resultante sería idéntico al de arriba.
+			const second = new File(['contenido-2'], 'foto.png', { type: 'image/png' });
+			const updated = await port.update('kitchen_sink', created.id, { cover: second });
+			const secondRef = updated.values.cover as string;
+
+			expect(secondRef).not.toBe(firstRef);
+			// Ambos derivan del MISMO basename ("foto"): PB antepone un sufijo aleatorio al
+			// nombre, nunca lo sustituye por uno irreconocible — de ahí que "misma identidad de
+			// registro" siga siendo verificable a simple vista, aunque la URL cambie.
+			expect(firstRef.startsWith('foto')).toBe(true);
+			expect(secondRef.startsWith('foto')).toBe(true);
+
+			const firstUrl = port.fileUrl(created, 'cover', firstRef);
+			const secondUrl = port.fileUrl(updated, 'cover', secondRef);
+			expect(secondUrl).not.toBe(firstUrl);
+		});
+	});
 });

@@ -403,6 +403,39 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.bootstrap.editorBody':
 		'Ask an administrator to set up the media collection ("vega_media") in PocketBase.',
 
+	// ————— Referential integrity (`#lote-integridad`, Phase A): "where is this used?" engine —————
+	// Shared by `UsedInPanel`/`ReferencesSummary` (passive panel) and by `DeleteConfirm`/
+	// `MediaDeleteConfirm`'s pre-delete warning (gate before deleting) — hence the `integrity.*`
+	// namespace instead of `list.*`/`media.*`: the SAME copy works for a content record or an asset.
+	'integrity.usedIn.toggle': 'Used in',
+	'integrity.usedIn.loading': 'Checking where this is used…',
+	'integrity.usedIn.empty': 'Nothing points to this yet.',
+	'integrity.usedIn.error': 'Could not check where this is used.',
+	'integrity.usedIn.retry': 'Retry',
+	'integrity.usedIn.partial':
+		'Notice: not everything could be checked. There may be more references than shown here.',
+	'integrity.usedIn.countLabel': '{count} record(s)',
+	'integrity.usedIn.moreCount': 'and {count} more',
+	'integrity.usedIn.collectionDegraded': 'Could not check "{collection}" ({reason}).',
+	// Translation of `VegaErrorKind` (plus `'unknown'`, see `ReferenceMatchDegraded`) into the
+	// human reason that fills `integrity.usedIn.collectionDegraded` — NEVER the raw `VegaError`
+	// `message` (P1 §5: it may carry backend syntax/URLs).
+	'integrity.usedIn.reason.forbidden': 'no permission to read this collection',
+	'integrity.usedIn.reason.network': 'no connection to the backend',
+	'integrity.usedIn.reason.backend': 'the backend responded with something unexpected',
+	'integrity.usedIn.reason.not-found': 'the collection no longer exists',
+	'integrity.usedIn.reason.auth-expired': 'the session expired mid-check',
+	'integrity.usedIn.reason.validation': 'the query is not valid against this backend',
+	'integrity.usedIn.reason.unknown': 'unknown reason',
+
+	// ————— References warning BEFORE deleting (same engine, `DeleteConfirm`/`MediaDeleteConfirm`) —————
+	'integrity.deleteGuard.checking': 'Checking for references…',
+	'integrity.deleteGuard.checkFailed':
+		'Could not check for active references; you can still delete.',
+	'integrity.deleteGuard.warning': 'There are active references to this. Delete it knowingly:',
+	'integrity.deleteGuard.confirmCheckbox':
+		'I understand there are active references and I want to delete anyway.',
+
 	// ————— Media: grid + detail (Phase P6·6b) —————
 	'media.detail.title': 'Edit media',
 	'media.detail.alt': 'Alt text',
@@ -415,10 +448,12 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.detail.saveSuccess': 'Media updated.',
 
 	// ————— Media: delete (Phase P6·6d) —————
-	// D-P6.5/audit H3: the media model COPIES bytes, it never references (`filePerRecord`) — deleting
-	// the original from the library does not break copies already inserted into records, so the
-	// warning is honest and generic, with NO usage counter (there is no reverse "who uses this asset"
-	// query).
+	// D-P6.5/audit H3: the media model COPIES bytes, it never references (`filePerRecord`) —
+	// deleting the original from the library does not break copies already inserted into records.
+	// Since `#lote-integridad` Phase A, `MediaDeleteConfirm` also checks vía (b) of the reference
+	// engine (`contains <filename>` on text/richtext fields): the generic warning below is still
+	// true for copies, but a direct URL pasted by hand into a text field CAN break — that's what
+	// the `integrity.deleteGuard.*` keys warn about.
 	'media.detail.delete': 'Delete',
 	'media.delete.confirmTitle': 'Delete "{label}"?',
 	'media.delete.confirmBody':
@@ -426,6 +461,24 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.delete.confirm': 'Delete',
 	'media.delete.deleting': 'Deleting…',
 	'media.delete.success': '"{label}" was deleted from the library.',
+
+	// ————— Media: replace file (`#lote-integridad`, Phase A) —————
+	// CORRECTED premise (see contract header): PB renames the stored file with a random suffix, so
+	// "keeps its URL" CANNOT be promised — only the record's id and metadata (`alt`/`title`/`tags`)
+	// survive, which is why `warningIdentity`/`warningUrl` are two SEPARATE messages and neither
+	// mentions caching (not applicable: the URL changes name, not value).
+	'media.detail.replace': 'Replace file',
+	'media.replace.rejectedTooLarge': 'The chosen file exceeds the maximum allowed size.',
+	'media.replace.rejectedInvalidType': 'The chosen file is not an allowed type.',
+	'media.replace.confirmTitle': 'Replace the file of «{label}»?',
+	'media.replace.warningIdentity':
+		'The record keeps its id and its metadata (alt, title, tags): any reference by relation stays valid.',
+	'media.replace.warningUrl':
+		'The direct file URL WILL CHANGE: anyone with it pasted by hand will lose it.',
+	'media.replace.usedInIntro': 'This is what used the current URL, before replacing it:',
+	'media.replace.confirm': 'Replace',
+	'media.replace.replacing': 'Replacing…',
+	'media.replace.success': 'File replaced. The direct URL has changed.',
 
 	// ————— Media: library header + toolbar («aquelarre-medios» redesign) —————
 	// The header count is the library TOTAL (`totalItems` of the listing), never the page's nor the

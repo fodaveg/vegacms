@@ -203,6 +203,7 @@
 	import Icon from '$lib/icons/Icon.svelte';
 	import EditTopBar from '$lib/shell/EditTopBar.svelte';
 	import RecordBlocks from './RecordBlocks.svelte';
+	import UsedInPanel from '$lib/integrity/UsedInPanel.svelte';
 	import SocialCardPreview from './SocialCardPreview.svelte';
 	import PreviewPanel from './PreviewPanel.svelte';
 	import { buildFormModel, type FormModel } from './form-model';
@@ -427,6 +428,12 @@
 	/** Tarjeta "Registro" (id/creado/actualizado): solo en edición — en creación no hay id ni
 	 *  autodates todavía, y una tarjeta con tres huecos vacíos no informa de nada. */
 	const showMeta = $derived(model.mode === 'edit' && model.recordId !== null);
+	/** Id del registro SOLO cuando ya existe de verdad (`null` en `/new`): es lo que habilita todo lo
+	 *  que necesita apuntar a un registro real —hoy el panel "Se usa en" y la comprobación de
+	 *  referencias del borrado (`#lote-integridad`)—. Se deriva aparte de `showMeta` a propósito
+	 *  aunque hoy la condición coincida: aquello decide si una TARJETA informa de algo, esto es la
+	 *  identidad del registro, y estrecharlo a un `RecordId` no-nulo evita el `?? ''` en cada uso. */
+	const existingRecordId = $derived(model.mode === 'edit' ? model.recordId : null);
 	const createdText = $derived(autodateText(type, baseline, 'created', ctx.locale));
 	const updatedText = $derived(autodateText(type, baseline, 'updated', ctx.locale));
 
@@ -923,6 +930,16 @@
 					</section>
 				{/if}
 
+				{#if existingRecordId !== null}
+					<!-- Panel "Se usa en" (`#lote-integridad`, Fase A): quién apunta a este registro.
+					     Va DEBAJO de la tarjeta "Registro" y ENCIMA de la zona de peligro a propósito —
+					     es la información que hace falta justo antes de borrar. Colapsado por defecto:
+					     abrir un registro no paga las N consultas del motor de referencias si nadie las
+					     pide (ver cabecera de `UsedInPanel.svelte`). Nunca en `/new`: un registro sin
+					     guardar no puede tener referencias. -->
+					<UsedInPanel targetCollection={type.name} targetId={existingRecordId} />
+				{/if}
+
 				{#if canDelete}
 					<section class="vega-fsection vega-fsection--aside vega-editor-danger">
 						<h2>{ctx.t('editor.dangerZone.title')}</h2>
@@ -945,6 +962,8 @@
 <DeleteConfirm
 	open={deleteOpen}
 	recordLabel={docName}
+	targetCollection={type.name}
+	targetId={existingRecordId}
 	{deleting}
 	fallbackFocusEl={headingEl}
 	onConfirm={confirmDelete}

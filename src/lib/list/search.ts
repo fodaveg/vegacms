@@ -15,7 +15,16 @@ import type { ViewState } from './query-state';
 
 /**
  * `true` para la familia texto EXACTA que admite substring libre (Audit H3): text/richtext/
- * email/url. Deliberadamente NO se usa `allowedFilterOps(field).includes('contains')` para esto
+ * email/url.
+ *
+ * **Exportada** (antes privada de este módulo) porque el motor de referencias
+ * (`$lib/integrity/references.ts`) necesita la MISMA clasificación para su vía "url", y la primera
+ * versión de aquel la reimplementó por su cuenta quedándose en `text`/`richtext` — un campo
+ * `type: 'url'` con la URL de un asset pegada a mano no se encontraba, y el panel decía "nadie le
+ * apunta" sobre algo que sí estaba enlazado (hallazgo de code-review). Un criterio duplicado es un
+ * criterio que se desincroniza: este es el único sitio donde vive.
+ *
+ * Deliberadamente NO se usa `allowedFilterOps(field).includes('contains')` para esto
  * (bug de code review): `contains` también aparece en la tabla de `selectMulti` (§4.6), pero ahí
  * es "¿el array contiene este valor exacto?" (`matchesContains` en `adapters/memory/query.ts`),
  * una semántica de MEMBRESÍA, no de substring de texto libre. Un `select` múltiple puede colarse
@@ -23,7 +32,7 @@ import type { ViewState } from './query-state';
  * si se infiriera por `allowedFilterOps` acabaría en el OR de búsqueda con una condición sin
  * sentido para lo que el usuario tecleó.
  */
-function isTextLikeField(field: Field): boolean {
+export function isTextLikeField(field: Field): boolean {
 	return (
 		field.type === 'text' ||
 		field.type === 'richtext' ||

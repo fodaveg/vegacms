@@ -51,7 +51,18 @@ export default defineConfig(
 		// `src/lib/list/**` se sumó en la Fase 4c del contrato P4: la celda-título de
 		// `RecordTable.svelte` es un `href` real hacia `recordRoute(type, id)` (L-P4.15, "toda fila
 		// enlaza SIEMPRE"), mismo patrón y mismo motivo que `NavItem.svelte` en `shell/`.
-		files: ['src/routes/**', 'src/lib/shell/**', 'src/lib/nav/**', 'src/lib/list/**'],
+		// `src/lib/integrity/**` se sumó en el lote "integridad" (Fase A): `ReferencesSummary.svelte`
+		// enlaza cada referencia encontrada a `recordRoute(collection, id)`, MISMO patrón exacto que
+		// la celda-título de `RecordTable` de arriba (la colección de destino es dinámica, resuelta
+		// en runtime contra el esquema descubierto — no hay ID de ruta literal que `resolve()` pueda
+		// tipar en el call-site).
+		files: [
+			'src/routes/**',
+			'src/lib/shell/**',
+			'src/lib/nav/**',
+			'src/lib/list/**',
+			'src/lib/integrity/**'
+		],
 		rules: {
 			'svelte/no-navigation-without-resolve': 'off'
 		}

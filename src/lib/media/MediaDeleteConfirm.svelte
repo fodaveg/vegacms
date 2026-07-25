@@ -40,8 +40,24 @@
 	 * `MediaDetail` que tenía el foco al abrir este diálogo puede no sobrevivir esa carrera. El
 	 * `<h1>` de `/media/+page.svelte` (`tabindex="-1"`), pasado a través de `MediaDetail`, es el
 	 * destino estable cuando `previouslyFocused` ya no está en el documento.
+	 *
+	 * **Aviso de referencias (`#lote-integridad`, Fase A)**: mismo `createDeleteReferencesGuard`
+	 * que `DeleteConfirm`, consultando la vía "url" del motor (`contains <filename>`, la única que
+	 * aplica a un asset — ver cabecera de `references.ts`: el picker de media COPIA el binario, así
+	 * que la vía "relation" casi nunca encuentra nada, pero corre igual por si algún esquema
+	 * declarase una relación real hacia `vega_media`). `targetId`/`targetFileRef` son OPCIONALES
+	 * (`null` de forma deliberada) porque este mismo componente sirve al borrado de la barra de
+	 * selección de `/media`, que puede llevar N assets a la vez: comprobar una selección entera
+	 * multiplica el coste por N y el contrato de esta fase no lo pide, así que ahí el aviso se omite
+	 * y el diálogo se comporta EXACTAMENTE como antes del lote. Con la selección de UNO SOLO sí se
+	 * pasan (fix de code-review): marcar un asset y borrarlo desde la barra es el mismo acto que
+	 * borrarlo desde su detalle, y tener dos caminos para el mismo borrado con distinta protección es
+	 * justo cómo se cuela el fallo que este lote existe para evitar.
 	 */
 	import { getVegaContext } from '$lib/app-context';
+	import type { FileRef, RecordId } from '$lib/backend/types';
+	import { createDeleteReferencesGuard } from '$lib/integrity/delete-guard.svelte';
+	import ReferencesSummary from '$lib/integrity/ReferencesSummary.svelte';
 
 	interface Props {
 		/** `true` mientras se pide confirmar el borrado del asset abierto en `MediaDetail`. */
@@ -53,6 +69,12 @@
 		 *  «¿Borrar «{label}»?» (`assetLabel` entre comillas no sabe pluralizar). Ausente ⇒ el título
 		 *  de siempre a partir de `assetLabel`, sin cambios para `MediaDetail`. */
 		title?: string;
+		/** Id del asset a borrar, o `null` en el borrado MÚLTIPLE (ver cabecera: sin id único no hay
+		 *  contra qué comprobar referencias, el aviso se omite entero). */
+		targetId?: RecordId | null;
+		/** `FileRef` del asset a borrar (vía "url" del motor), o `null` — mismo criterio que
+		 *  `targetId`. */
+		targetFileRef?: FileRef | null;
 		/** `true` mientras `ctx.port.delete` está en vuelo (ver cabecera de `DeleteConfirm`: NUNCA
 		 *  `disabled` HTML, solo `aria-disabled`, para no vaciar el trap de foco). */
 		deleting: boolean;
@@ -63,7 +85,17 @@
 		onCancel: () => void;
 	}
 
-	let { open, assetLabel, title, deleting, fallbackFocusEl, onConfirm, onCancel }: Props = $props();
+	let {
+		open,
+		assetLabel,
+		title,
+		targetId = null,
+		targetFileRef = null,
+		deleting,
+		fallbackFocusEl,
+		onConfirm,
+		onCancel
+	}: Props = $props();
 
 	const ctx = getVegaContext();
 
@@ -71,20 +103,41 @@
 	let cancelEl = $state<HTMLButtonElement | null>(null);
 	let previouslyFocused: HTMLElement | null = null;
 
-	/** Guard compartido de `deleting` (ver `DeleteConfirm`): no-op mientras el borrado está en vuelo. */
+	// ————— Aviso de referencias (ver cabecera) —————
+	const guard = createDeleteReferencesGuard();
+	let agreedDespiteReferences = $state(false);
+
+	$effect(() => {
+		void open;
+		void targetId;
+		void targetFileRef;
+		agreedDespiteReferences = false;
+		if (!open || targetId === null) {
+			guard.reset();
+			return;
+		}
+		guard.check(ctx, { collection: 'vega_media', id: targetId, fileRef: targetFileRef });
+	});
+
+	const blockedByReferences = $derived(guard.needsExplicitConfirm && !agreedDespiteReferences);
+
+	/** Guard compartido de `deleting`/`blockedByReferences` (ver `DeleteConfirm`): no-op mientras el
+	 *  borrado está en vuelo o falta el checkbox exigido. */
 	function handleCancel(): void {
 		if (deleting) return;
 		onCancel();
 	}
 
 	function handleConfirm(): void {
-		if (deleting) return;
+		if (deleting || blockedByReferences) return;
 		onConfirm();
 	}
 
 	function focusableItems(): HTMLElement[] {
 		if (!dialogEl) return [];
-		return Array.from(dialogEl.querySelectorAll<HTMLElement>('button'));
+		return Array.from(
+			dialogEl.querySelectorAll<HTMLElement>('button, input[type="checkbox"], a[href]')
+		);
 	}
 
 	function handleKeydown(event: KeyboardEvent): void {
@@ -141,6 +194,25 @@
 			</h2>
 			<p id="vega-media-delete-body">{ctx.t('media.delete.confirmBody')}</p>
 
+			<!-- Aviso de referencias (ver cabecera): ausente entero en el borrado MÚLTIPLE
+			     (`targetId === null`, `guard` se queda en `'idle'` por el `$effect` de arriba). -->
+			{#if guard.status.kind === 'loading'}
+				<p class="vega-media-delete-refs-checking" aria-live="polite">
+					{ctx.t('integrity.deleteGuard.checking')}
+				</p>
+			{:else if guard.status.kind === 'error'}
+				<p class="vega-media-delete-refs-failed">{ctx.t('integrity.deleteGuard.checkFailed')}</p>
+			{:else if guard.status.kind === 'ready' && guard.needsExplicitConfirm}
+				<div class="vega-media-delete-refs">
+					<p class="vega-media-delete-refs-warning">{ctx.t('integrity.deleteGuard.warning')}</p>
+					<ReferencesSummary report={guard.status.report} />
+					<label class="vega-media-delete-refs-agree">
+						<input type="checkbox" bind:checked={agreedDespiteReferences} />
+						{ctx.t('integrity.deleteGuard.confirmCheckbox')}
+					</label>
+				</div>
+			{/if}
+
 			<div class="vega-media-delete-actions">
 				<button type="button" aria-disabled={deleting} bind:this={cancelEl} onclick={handleCancel}>
 					{ctx.t('common.cancel')}
@@ -148,7 +220,7 @@
 				<button
 					type="button"
 					class="vega-media-delete-confirm"
-					aria-disabled={deleting}
+					aria-disabled={deleting || blockedByReferences}
 					onclick={handleConfirm}
 				>
 					{deleting ? ctx.t('media.delete.deleting') : ctx.t('media.delete.confirm')}
@@ -182,6 +254,10 @@
 		gap: 0.75rem;
 		width: 100%;
 		max-width: 24rem;
+		/* Mismo motivo que `DeleteConfirm`: el aviso de referencias puede traer una lista de
+		   registros (caso límite "asset usado en 200 sitios"). */
+		max-height: calc(100vh - 2 * var(--vega-space-gutter));
+		overflow-y: auto;
 		padding: 1.5rem;
 		border-radius: 10px;
 		background: var(--surface);
@@ -198,6 +274,52 @@
 		margin: 0;
 		color: var(--ink-2);
 		font-size: 0.9rem;
+	}
+
+	.vega-media-delete-refs-checking {
+		margin: 0;
+		color: var(--ink-2);
+		font-size: 0.85rem;
+	}
+
+	.vega-media-delete-refs-failed {
+		margin: 0;
+		padding: 0.5rem 0.7rem;
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		background: var(--surface-2);
+		color: var(--ink-2);
+		font-size: 0.85rem;
+	}
+
+	.vega-media-delete-refs {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding: 0.7rem;
+		border: 1px solid var(--warning);
+		border-radius: 8px;
+		background: var(--warning-soft);
+	}
+
+	.vega-media-delete-refs-warning {
+		margin: 0;
+		color: var(--warning);
+		font-weight: 600;
+		font-size: 0.85rem;
+	}
+
+	.vega-media-delete-refs-agree {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.45rem;
+		color: var(--ink);
+		font-size: 0.85rem;
+		cursor: pointer;
+	}
+
+	.vega-media-delete-refs-agree input {
+		margin-top: 0.15rem;
 	}
 
 	.vega-media-delete-actions {

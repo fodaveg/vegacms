@@ -402,6 +402,40 @@ export const es = {
 	'list.merged.truncatedNotice':
 		'Alguna de las colecciones de esta vista tiene más registros de los mostrados.',
 
+	// ————— Integridad referencial (`#lote-integridad`, Fase A): motor "¿dónde se usa esto?" —————
+	// Compartido por `UsedInPanel`/`ReferencesSummary` (panel pasivo) y por el aviso de
+	// `DeleteConfirm`/`MediaDeleteConfirm` (gate antes de borrar) — de ahí el namespace `integrity.*`
+	// en vez de `list.*`/`media.*`: la MISMA redacción vale para un registro de contenido o un asset.
+	'integrity.usedIn.toggle': 'Se usa en',
+	'integrity.usedIn.loading': 'Comprobando dónde se usa…',
+	'integrity.usedIn.empty': 'Nadie le apunta todavía.',
+	'integrity.usedIn.error': 'No se pudo comprobar dónde se usa.',
+	'integrity.usedIn.retry': 'Reintentar',
+	'integrity.usedIn.partial':
+		'Aviso: no se pudo comprobar todo. Puede haber más referencias de las que se muestran aquí.',
+	'integrity.usedIn.countLabel': '{count} registro(s)',
+	'integrity.usedIn.moreCount': 'y {count} más',
+	'integrity.usedIn.collectionDegraded': 'No se pudo comprobar "{collection}" ({reason}).',
+	// Traducción de `VegaErrorKind` (más `'unknown'`, ver `ReferenceMatchDegraded`) al motivo
+	// humano que rellena `integrity.usedIn.collectionDegraded` — NUNCA el `message` crudo del
+	// `VegaError` (P1 §5: puede llevar sintaxis/URLs del backend).
+	'integrity.usedIn.reason.forbidden': 'sin permiso para leer esta colección',
+	'integrity.usedIn.reason.network': 'sin conexión con el backend',
+	'integrity.usedIn.reason.backend': 'el backend respondió algo inesperado',
+	'integrity.usedIn.reason.not-found': 'la colección ya no existe',
+	'integrity.usedIn.reason.auth-expired': 'la sesión caducó a mitad de la comprobación',
+	'integrity.usedIn.reason.validation': 'la consulta no es válida contra este backend',
+	'integrity.usedIn.reason.unknown': 'motivo desconocido',
+
+	// ————— Aviso de referencias ANTES de borrar (mismo motor, `DeleteConfirm`/`MediaDeleteConfirm`) —————
+	'integrity.deleteGuard.checking': 'Comprobando referencias…',
+	'integrity.deleteGuard.checkFailed':
+		'No se pudo comprobar si hay referencias activas; puedes borrar igual.',
+	'integrity.deleteGuard.warning':
+		'Hay referencias activas hacia esto. Bórralo con conocimiento de causa:',
+	'integrity.deleteGuard.confirmCheckbox':
+		'Entiendo que hay referencias activas y quiero borrar igualmente.',
+
 	// ————— Medios: bootstrap + esquema (Fase P6·6a) —————
 	'media.loadErrorBody': 'No se pudo cargar la biblioteca de medios. Vuelve a intentarlo.',
 	'media.empty.title': 'La biblioteca de medios está vacía',
@@ -433,8 +467,11 @@ export const es = {
 
 	// ————— Medios: borrado (Fase P6·6d) —————
 	// D-P6.5/audit H3: el modelo de media es COPIA de bytes, no referencia (`filePerRecord`) — borrar
-	// el original de la biblioteca no rompe las copias ya insertadas en registros, así que el aviso
-	// es honesto y genérico, SIN contador de uso (no hay consulta inversa "quién usa este asset").
+	// el original de la biblioteca no rompe las copias ya insertadas en registros. Desde
+	// `#lote-integridad` Fase A, `MediaDeleteConfirm` SÍ consulta la vía (b) del motor de
+	// referencias (`contains <filename>` en campos texto/richtext): el aviso genérico de abajo
+	// sigue siendo cierto para las copias, pero una URL directa pegada a mano en un campo de texto
+	// SÍ puede quedar rota — de eso avisan las claves `integrity.deleteGuard.*`.
 	'media.detail.delete': 'Borrar',
 	'media.delete.confirmTitle': '¿Borrar «{label}»?',
 	'media.delete.confirmBody':
@@ -442,6 +479,24 @@ export const es = {
 	'media.delete.confirm': 'Borrar',
 	'media.delete.deleting': 'Borrando…',
 	'media.delete.success': '"{label}" se ha borrado de la biblioteca.',
+
+	// ————— Medios: reemplazar fichero (`#lote-integridad`, Fase A) —————
+	// Premisa CORREGIDA (ver cabecera del contrato): PB renombra el fichero guardado con un sufijo
+	// aleatorio, así que NO se puede prometer "conserva su URL" — solo se conserva el id y los
+	// metadatos del registro (`alt`/`title`/`tags`), por eso `warningIdentity`/`warningUrl` son dos
+	// mensajes DISTINTOS y ninguno menciona caché (no aplica: la URL cambia de nombre, no de valor).
+	'media.detail.replace': 'Reemplazar fichero',
+	'media.replace.rejectedTooLarge': 'El fichero elegido excede el tamaño máximo permitido.',
+	'media.replace.rejectedInvalidType': 'El fichero elegido no es de un tipo admitido.',
+	'media.replace.confirmTitle': '¿Reemplazar el fichero de «{label}»?',
+	'media.replace.warningIdentity':
+		'El registro conserva su id y sus metadatos (alt, título, etiquetas): cualquier referencia por relación sigue siendo válida.',
+	'media.replace.warningUrl':
+		'La URL directa del fichero VA A CAMBIAR: quien la tuviera pegada a mano dejará de verla.',
+	'media.replace.usedInIntro': 'Esto es lo que usaba la URL actual, antes de reemplazarla:',
+	'media.replace.confirm': 'Reemplazar',
+	'media.replace.replacing': 'Reemplazando…',
+	'media.replace.success': 'Fichero reemplazado. La URL directa ha cambiado.',
 
 	// ————— Medios: cabecera + toolbar de la biblioteca (rediseño «aquelarre-medios») —————
 	// El recuento de la cabecera es el TOTAL de la biblioteca (`totalItems` del listado), nunca el

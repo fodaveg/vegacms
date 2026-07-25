@@ -514,6 +514,8 @@
 <DeleteConfirm
 	open={pendingDelete !== null}
 	recordLabel={pendingDelete?.label ?? ''}
+	targetCollection={contentType?.name ?? ''}
+	targetId={pendingDelete?.record.id ?? null}
 	{deleting}
 	fallbackFocusEl={headingEl}
 	onConfirm={confirmDelete}

@@ -44,8 +44,30 @@
 	 *   `fallbackFocusEl` (el `<h1>` del listado, `tabindex="-1"`, pasado por `+page.svelte`) es el
 	 *   destino cuando `previouslyFocused` ya no está en el documento — sin que este componente
 	 *   necesite saber POR QUÉ se cerró, solo si su foco original sigue siendo válido.
+	 *
+	 * **Aviso de referencias (`#lote-integridad`, Fase A)**: al abrirse, consulta el motor de
+	 * referencias (`createDeleteReferencesGuard`, mismo estado reactivo que usa
+	 * `MediaDeleteConfirm`) para `targetCollection`/`targetId`. Con algo que mostrar (referencias
+	 * reales o un degradado parcial que no permite descartarlas, `guard.needsExplicitConfirm`), el
+	 * botón "Borrar" exige ADEMÁS el checkbox de abajo — la "confirmación explícita adicional" del
+	 * contrato — nunca lo bloquea de forma permanente: basta un click más. Un fallo TOTAL de la
+	 * comprobación (`guard.status.kind === 'error'`, en la práctica solo por un bug defensivo, ver
+	 * cabecera de `references.ts`) NUNCA añade esa fricción — el borrado sigue con su único
+	 * `aria-disabled` de siempre (`deleting`), con un aviso de "no se pudo comprobar" en contexto.
+	 *
+	 * `targetCollection`/`targetId` son OPCIONALES (`''`/`null` por defecto = sin comprobación,
+	 * comportamiento IDÉNTICO al de antes de este lote). Los TRES llamantes que borran un registro
+	 * concreto los pasan siempre: `/c/[type]/+page.svelte` (fila del listado), `RecordForm.svelte`
+	 * (registro abierto en el editor) y `RecordBlocks.svelte` (un bloque, cuya colección se lee del
+	 * propio registro y no del padre — un bloque vive en la colección hija). Que sigan siendo
+	 * opcionales no es deuda: `MediaDeleteConfirm.svelte` tiene un camino de selección MÚLTIPLE
+	 * donde a propósito no se comprueba nada (ver su cabecera), y un `''`/`null` explícito es cómo
+	 * se dice "aquí no preguntes" sin inventar un tercer prop.
 	 */
 	import { getVegaContext } from '$lib/app-context';
+	import type { RecordId } from '$lib/backend/types';
+	import { createDeleteReferencesGuard } from '$lib/integrity/delete-guard.svelte';
+	import ReferencesSummary from '$lib/integrity/ReferencesSummary.svelte';
 
 	interface Props {
 		/** `true` mientras haya un registro pendiente de confirmar (lo decide `+page.svelte`). */
@@ -53,6 +75,12 @@
 		/** Texto que identifica el registro a borrar (mismo `openText` de la fila, D-P4.11: "QUÉ se
 		 *  borra"), o el fallback i18n `list.untitled` si no hay campo-título resoluble. */
 		recordLabel: string;
+		/** Colección del registro pendiente (`contentType.name`), o `''` para omitir la comprobación
+		 *  de referencias entera (ver cabecera: caso de los llamantes aún sin actualizar). */
+		targetCollection?: string;
+		/** Id del registro pendiente, o `null` para omitir la comprobación (ver cabecera) — también
+		 *  el valor mientras no hay ningún registro pendiente (`open` es la señal real de apertura). */
+		targetId?: RecordId | null;
 		/** `true` mientras `ctx.port.delete` está en vuelo: `aria-disabled` en ambos botones (evita
 		 *  un doble envío, vía el guard de `handleCancel`/`handleConfirm`) y cambia el texto de
 		 *  "Borrar" a "Borrando…". Deliberadamente NUNCA `disabled` HTML (ver cabecera: vaciaría el
@@ -65,7 +93,16 @@
 		onCancel: () => void;
 	}
 
-	let { open, recordLabel, deleting, fallbackFocusEl, onConfirm, onCancel }: Props = $props();
+	let {
+		open,
+		recordLabel,
+		targetCollection = '',
+		targetId = null,
+		deleting,
+		fallbackFocusEl,
+		onConfirm,
+		onCancel
+	}: Props = $props();
 
 	const ctx = getVegaContext();
 
@@ -74,21 +111,49 @@
 	let cancelEl = $state<HTMLButtonElement | null>(null);
 	let previouslyFocused: HTMLElement | null = null;
 
-	/** Guard compartido de `deleting` (ver cabecera): el click/`Enter` en cualquiera de los dos
-	 *  botones es un no-op mientras el borrado está en vuelo, en vez de sacarlos del `Tab`. */
+	// ————— Aviso de referencias (ver cabecera) —————
+	const guard = createDeleteReferencesGuard();
+	/** Checkbox de confirmación explícita adicional (`guard.needsExplicitConfirm`): se reasienta a
+	 *  `false` en CADA apertura (ver `$effect` de abajo) — nunca hereda el "sí" de un borrado
+	 *  anterior sobre otro registro. */
+	let agreedDespiteReferences = $state(false);
+
+	$effect(() => {
+		// Dependencias explícitas: reabrir (o cambiar de registro pendiente) siempre reinicia el
+		// checkbox y relanza la comprobación — nunca arrastra el resultado de OTRO registro.
+		void open;
+		void targetCollection;
+		void targetId;
+		agreedDespiteReferences = false;
+		if (!open || targetId === null || targetCollection === '') {
+			guard.reset();
+			return;
+		}
+		guard.check(ctx, { collection: targetCollection, id: targetId });
+	});
+
+	/** `true` cuando el gate de referencias impide confirmar TODAVÍA (falta el checkbox) — nunca
+	 *  cuando la comprobación está en vuelo o falló del todo (ver cabecera: eso NUNCA bloquea). */
+	const blockedByReferences = $derived(guard.needsExplicitConfirm && !agreedDespiteReferences);
+
+	/** Guard compartido de `deleting`/`blockedByReferences` (ver cabecera): el click/`Enter` en
+	 *  cualquiera de los dos botones es un no-op mientras el borrado está en vuelo o falta el
+	 *  checkbox exigido, en vez de sacarlos del `Tab`. */
 	function handleCancel(): void {
 		if (deleting) return;
 		onCancel();
 	}
 
 	function handleConfirm(): void {
-		if (deleting) return;
+		if (deleting || blockedByReferences) return;
 		onConfirm();
 	}
 
 	function focusableItems(): HTMLElement[] {
 		if (!dialogEl) return [];
-		return Array.from(dialogEl.querySelectorAll<HTMLElement>('button'));
+		return Array.from(
+			dialogEl.querySelectorAll<HTMLElement>('button, input[type="checkbox"], a[href]')
+		);
 	}
 
 	function handleKeydown(event: KeyboardEvent): void {
@@ -145,6 +210,27 @@
 			<h2 id="vega-delete-title">{ctx.t('list.delete.confirmTitle')}</h2>
 			<p id="vega-delete-body">{ctx.t('list.delete.confirmBody', { label: recordLabel })}</p>
 
+			<!-- Aviso de referencias (ver cabecera del script): cuatro estados posibles, nunca un
+			     quinto silencioso — comprobando / con algo que confirmar / degradado sin bloquear /
+			     nada más que decir (guard sigue en 'ready' con needsExplicitConfirm false, sin marcado
+			     propio). -->
+			{#if guard.status.kind === 'loading'}
+				<p class="vega-delete-refs-checking" aria-live="polite">
+					{ctx.t('integrity.deleteGuard.checking')}
+				</p>
+			{:else if guard.status.kind === 'error'}
+				<p class="vega-delete-refs-failed">{ctx.t('integrity.deleteGuard.checkFailed')}</p>
+			{:else if guard.status.kind === 'ready' && guard.needsExplicitConfirm}
+				<div class="vega-delete-refs">
+					<p class="vega-delete-refs-warning">{ctx.t('integrity.deleteGuard.warning')}</p>
+					<ReferencesSummary report={guard.status.report} />
+					<label class="vega-delete-refs-agree">
+						<input type="checkbox" bind:checked={agreedDespiteReferences} />
+						{ctx.t('integrity.deleteGuard.confirmCheckbox')}
+					</label>
+				</div>
+			{/if}
+
 			<div class="vega-delete-actions">
 				<button type="button" aria-disabled={deleting} bind:this={cancelEl} onclick={handleCancel}>
 					{ctx.t('common.cancel')}
@@ -152,7 +238,7 @@
 				<button
 					type="button"
 					class="vega-delete-confirm"
-					aria-disabled={deleting}
+					aria-disabled={deleting || blockedByReferences}
 					onclick={handleConfirm}
 				>
 					{deleting ? ctx.t('list.delete.deleting') : ctx.t('list.delete.confirm')}
@@ -182,6 +268,10 @@
 		gap: 0.75rem;
 		width: 100%;
 		max-width: 24rem;
+		/* El aviso de referencias (ver script) puede traer una lista de registros: sin este tope el
+		   diálogo crecería más que el viewport en el caso límite "asset usado en 200 sitios". */
+		max-height: calc(100vh - 2 * var(--vega-space-gutter));
+		overflow-y: auto;
 		padding: 1.5rem;
 		border-radius: 10px;
 		background: var(--surface);
@@ -198,6 +288,52 @@
 		margin: 0;
 		color: var(--ink-2);
 		font-size: 0.9rem;
+	}
+
+	.vega-delete-refs-checking {
+		margin: 0;
+		color: var(--ink-2);
+		font-size: 0.85rem;
+	}
+
+	.vega-delete-refs-failed {
+		margin: 0;
+		padding: 0.5rem 0.7rem;
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		background: var(--surface-2);
+		color: var(--ink-2);
+		font-size: 0.85rem;
+	}
+
+	.vega-delete-refs {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding: 0.7rem;
+		border: 1px solid var(--warning);
+		border-radius: 8px;
+		background: var(--warning-soft);
+	}
+
+	.vega-delete-refs-warning {
+		margin: 0;
+		color: var(--warning);
+		font-weight: 600;
+		font-size: 0.85rem;
+	}
+
+	.vega-delete-refs-agree {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.45rem;
+		color: var(--ink);
+		font-size: 0.85rem;
+		cursor: pointer;
+	}
+
+	.vega-delete-refs-agree input {
+		margin-top: 0.15rem;
 	}
 
 	.vega-delete-actions {

@@ -273,12 +273,17 @@
 	let confirmingBulkDelete = $state(false);
 	let bulkDeleting = $state(false);
 
+	/** El único asset de la selección, o `undefined` si hay 0 o varios. Marcar UN asset y borrarlo
+	 *  desde la barra de selección es el mismo acto que borrarlo desde su detalle, así que también
+	 *  merece el aviso de referencias (`#lote-integridad`): dos caminos para el mismo borrado con
+	 *  distinta protección es cómo se cuela el fallo que este lote existe para evitar. Con varios
+	 *  seleccionados sí se omite —comprobar N assets multiplica el coste por N y el contrato de esta
+	 *  fase no lo pide—, y ahí el diálogo se comporta como antes del lote. */
+	const onlySelected = $derived(selectedItems.length === 1 ? selectedItems[0] : undefined);
+
 	/** Etiqueta del asset a borrar cuando la selección es de UNO solo (el diálogo de siempre); con
 	 *  varios manda el `title` pluralizado y esta cadena se ignora. */
-	const bulkDeleteLabel = $derived.by(() => {
-		const only = selectedItems.length === 1 ? selectedItems[0] : undefined;
-		return only ? mediaDisplayName(only) : '';
-	});
+	const bulkDeleteLabel = $derived(onlySelected ? mediaDisplayName(onlySelected) : '');
 
 	function requestBulkDelete(): void {
 		if (selectedItems.length === 0) return;
@@ -595,6 +600,8 @@
 	title={selectedItems.length > 1
 		? ctx.t('media.selection.deleteTitle', { count: selectedItems.length })
 		: undefined}
+	targetId={onlySelected?.id ?? null}
+	targetFileRef={onlySelected?.fileRef ?? null}
 	deleting={bulkDeleting}
 	fallbackFocusEl={headingEl}
 	onConfirm={() => void confirmBulkDelete()}

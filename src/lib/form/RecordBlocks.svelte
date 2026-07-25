@@ -417,9 +417,15 @@
 		{/if}
 	</section>
 
+	<!-- `targetCollection`/`targetId` (`#lote-integridad`, Fase A): el bloque a borrar es un registro
+	     de la colección HIJA, así que la colección se lee del propio registro (`record.type`) y no de
+	     `parentType` — borrar un bloque puede romper referencias igual que borrar cualquier otro
+	     registro. -->
 	<DeleteConfirm
 		open={pendingDelete !== null}
 		recordLabel={pendingDelete ? blockTitle(pendingDelete) : ''}
+		targetCollection={pendingDelete?.type ?? ''}
+		targetId={pendingDelete?.id ?? null}
 		{deleting}
 		fallbackFocusEl={headingEl}
 		onConfirm={confirmDelete}
