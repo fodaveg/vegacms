@@ -47,8 +47,23 @@ export { assertContentTypeWritable, checkUnwritableFields } from './write-guards
 export type { FileField } from './file-guards';
 export { validateFileFieldInput } from './file-guards';
 
-export type { CollectionFieldSpec, CollectionSpec, EnsureResult } from './collections';
-export { checkReservedNames, isReservedCollectionName, VEGA_COLLECTION } from './collections';
+export type {
+	AddFieldsResult,
+	CollectionFieldSpec,
+	CollectionSpec,
+	EnsureResult
+} from './collections';
+export {
+	checkCreatableCollectionNames,
+	checkReservedNames,
+	isCreatableCollectionName,
+	isUserAuthorableCollectionName,
+	isReservedCollectionName,
+	VEGA_COLLECTION
+} from './collections';
+
+export type { GeneratedMigration, SchemaMigrationOp } from './migration';
+export { generateSchemaMigration } from './migration';
 
 export type { BackendPort, StrongAuthPort } from './port';
 

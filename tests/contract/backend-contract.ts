@@ -891,14 +891,17 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			);
 		});
 
-		// ———————————————————————————————————————————————— 7. ensureCollections (Anexo A) —————
+		// ————————————————————————————————————— 7. Autoría de esquema (Anexo A, ampliado) —————
 
-		describe('ensureCollections (Anexo A)', () => {
-			function uniqueVegaName(): string {
+		describe('ensureCollections (Anexo A, ampliado — crear colecciones)', () => {
+			function uniqueCollectionName(): string {
 				// Nombre distinto en cada test: contra PB real el servidor persiste entre tests
 				// del mismo fichero (a diferencia de memory, que arranca en blanco cada vez), así
 				// que reutilizar un nombre fijo rompería la idempotencia entre tests sin relación.
-				return `vega_test_${Math.random().toString(36).slice(2, 10)}`;
+				// Deliberadamente SIN prefijo `vega_`: el guardarraíl ya no lo exige (ver
+				// `checkCreatableCollectionNames`), y el propio test de más abajo prueba
+				// justo eso.
+				return `schema_test_${Math.random().toString(36).slice(2, 10)}`;
 			}
 
 			test('capability schemaBootstrap presente (Anexo A.2)', () => {
@@ -907,7 +910,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 
 			test('crea lo ausente y es idempotente (2ª llamada: created vacío, todo skipped)', async () => {
 				const port = await makeAuthedPort();
-				const name = uniqueVegaName();
+				const name = uniqueCollectionName();
 				const spec: CollectionSpec = { name, fields: [{ name: 'note', type: 'text' }] };
 
 				const first = await port.ensureCollections([spec]);
@@ -924,7 +927,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 
 			test('no destructiva: si ya existe, se omite SIN tocar sus campos (§A.4.2)', async () => {
 				const port = await makeAuthedPort();
-				const name = uniqueVegaName();
+				const name = uniqueCollectionName();
 				await port.ensureCollections([{ name, fields: [{ name: 'original', type: 'text' }] }]);
 
 				// Segundo spec para el MISMO nombre con un campo distinto: debe seguir omitida,
@@ -941,11 +944,26 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 				expect(ct.fields.some((f) => f.name === 'nuevo_campo')).toBe(false);
 			});
 
-			test('rechaza nombres fuera de "vega"/"vega_*" → validation local, sin tocar red (§A.4.3)', async () => {
+			test('acepta nombres de esquema de USUARIO general, fuera del namespace vega/vega_* (decisión de producto del lote "esquema")', async () => {
+				const port = await makeAuthedPort();
+				const name = uniqueCollectionName();
+				expect(name.startsWith('vega')).toBe(false);
+
+				const result = await port.ensureCollections([{ name, fields: [] }]);
+				expect(result.created).toEqual([name]);
+
+				const types = await port.listContentTypes();
+				expect(types.some((t) => t.name === name)).toBe(true);
+			});
+
+			test('rechaza nombres de colección INVÁLIDOS (namespace de sistema `_*`, u otra forma no creable) → validation local, sin tocar red', async () => {
 				const port = await makeAuthedPort();
 				await expect(
-					port.ensureCollections([{ name: 'not_reserved', fields: [] }])
-				).rejects.toMatchObject({ kind: 'validation', fieldErrors: { not_reserved: {} } });
+					port.ensureCollections([{ name: '_system_like', fields: [] }])
+				).rejects.toMatchObject({ kind: 'validation', fieldErrors: { _system_like: {} } });
+				await expect(
+					port.ensureCollections([{ name: '1_starts_with_digit', fields: [] }])
+				).rejects.toMatchObject({ kind: 'validation', fieldErrors: { '1_starts_with_digit': {} } });
 			});
 
 			test('crea (o encuentra ya creada) la especificación canónica VEGA_COLLECTION (§A.5)', async () => {
@@ -958,7 +976,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 
 			test('campo autodate creado vía ensureCollections queda readonly y se auto-puebla al crear (enmienda P6 §9)', async () => {
 				const port = await makeAuthedPort();
-				const name = uniqueVegaName();
+				const name = uniqueCollectionName();
 				await port.ensureCollections([
 					{
 						name,
@@ -985,6 +1003,79 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			// NO-superuser con la que probar "capability presente pero sin permiso → forbidden"
 			// sin inventar un segundo tipo de usuario que el contrato no define. Skip declarado,
 			// no un caso que desaparece en silencio.
+			test.skip('con capability pero sin permiso de superuser → forbidden (no modelado en v1)', () => {});
+		});
+
+		describe('addCollectionFields (Anexo A, ampliado — añadir campos a una colección existente)', () => {
+			function uniqueCollectionName(): string {
+				return `schema_test_${Math.random().toString(36).slice(2, 10)}`;
+			}
+
+			test('capability schemaFieldBootstrap presente', () => {
+				expect(capabilities.schemaFieldBootstrap).toBe(true);
+			});
+
+			test('añade lo ausente y es idempotente (2ª llamada: added vacío, todo skipped)', async () => {
+				const port = await makeAuthedPort();
+				const name = uniqueCollectionName();
+				await port.ensureCollections([{ name, fields: [{ name: 'original', type: 'text' }] }]);
+
+				const first = await port.addCollectionFields(name, [{ name: 'note', type: 'text' }]);
+				expect(first.added).toEqual(['note']);
+				expect(first.skipped).toEqual([]);
+
+				const types = await port.listContentTypes();
+				const ct = types.find((t) => t.name === name)!;
+				expect(ct.fields.some((f) => f.name === 'note')).toBe(true);
+				expect(ct.fields.some((f) => f.name === 'original')).toBe(true); // no destructiva
+
+				const second = await port.addCollectionFields(name, [{ name: 'note', type: 'text' }]);
+				expect(second.added).toEqual([]);
+				expect(second.skipped).toEqual(['note']);
+			});
+
+			test('no destructiva: un campo ya existente se omite SIN tocarlo (mismo `type` que si se reenvía distinto)', async () => {
+				const port = await makeAuthedPort();
+				const name = uniqueCollectionName();
+				await port.ensureCollections([{ name, fields: [{ name: 'flag', type: 'bool' }] }]);
+
+				// Reenvía "flag" con OTRO tipo: debe seguir omitida, nunca reconciliada/cambiada.
+				const result = await port.addCollectionFields(name, [
+					{ name: 'flag', type: 'text' },
+					{ name: 'brand_new', type: 'text' }
+				]);
+				expect(result.added).toEqual(['brand_new']);
+				expect(result.skipped).toEqual(['flag']);
+
+				const types = await port.listContentTypes();
+				const ct = types.find((t) => t.name === name)!;
+				expect(ct.fields.find((f) => f.name === 'flag')).toMatchObject({ type: 'bool' });
+			});
+
+			test('colección inexistente → not-found', async () => {
+				const port = await makeAuthedPort();
+				await expect(
+					port.addCollectionFields('no_existe_esta_coleccion', [{ name: 'x', type: 'text' }])
+				).rejects.toMatchObject({ kind: 'not-found' });
+			});
+
+			test('campo añadido queda usable de inmediato: create() lo acepta y lo devuelve', async () => {
+				const port = await makeAuthedPort();
+				const name = uniqueCollectionName();
+				await port.ensureCollections([{ name, fields: [] }]);
+				await port.addCollectionFields(name, [{ name: 'headline', type: 'text', required: true }]);
+
+				const created = await port.create(name, { headline: 'Hola' });
+				expect(created.values.headline).toBe('Hola');
+
+				await expect(port.create(name, {})).rejects.toMatchObject({
+					kind: 'validation',
+					fieldErrors: { headline: { code: 'validation_required' } }
+				});
+			});
+
+			// Mismo motivo que el `test.skip` gemelo de `ensureCollections`: v1 solo modela una
+			// identidad superuser (D1).
 			test.skip('con capability pero sin permiso de superuser → forbidden (no modelado en v1)', () => {});
 		});
 

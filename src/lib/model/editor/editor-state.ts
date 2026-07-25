@@ -15,7 +15,7 @@ import { isReservedCollectionName, VEGA_COLLECTION } from '$lib/backend/collecti
 import type { ModelWarning } from '../types';
 import { resolveContentModel } from '../resolve';
 import { validateManifestStrict, type ManifestValidationErrorEntry } from '../validate';
-import { humanizeLabel } from '../conventions';
+import { humanizeLabel, resolveTitleField } from '../conventions';
 
 /** Estado completo del editor para un texto de borrador dado (§6.4). */
 export interface EditorState {
@@ -159,18 +159,50 @@ export function buildBootstrapImportJson(): string {
 }
 
 /**
- * Genera el esqueleto de "Insertar plantilla" (§6.4): el ejemplo §3 adaptado, con los NOMBRES
- * REALES de las colecciones descubiertas. Cada colección visible-decorable recibe una entrada
- * mínima (`label` humanizado); las colecciones reservadas `vega`/`vega_*` se omiten (L7: su
- * visibilidad no es anulable por manifiesto, decorarlas en la plantilla no tendría efecto y
- * solo añadiría ruido). Pretty-printed y SIEMPRE estrictamente válido contra
- * `validateManifestStrict` (verificado en tests): es una plantilla, no debe fallar el dry-run.
+ * Genera el esqueleto de "Insertar plantilla" (§6.4) — y, desde el lote "esquema" (Fase 2, "el
+ * manifiesto de partida"), TAMBIÉN la semilla que `ManifestEditor.svelte` precarga en el
+ * `<textarea>` cuando todavía no hay ningún manifiesto guardado (`initialManifestRaw === null`):
+ * el ejemplo §3 adaptado, con los NOMBRES REALES de las colecciones descubiertas, para que la
+ * primera pantalla contra un PocketBase con esquema real sea "edita esto" y no "escribe JSON
+ * desde cero leyendo la documentación". Cada colección visible-decorable recibe:
+ *
+ * - `label` humanizado (comportamiento previo, intacto).
+ * - `titleField`, SOLO si la cascada de §4.4 (`resolveTitleField`, sin override de manifiesto)
+ *   resuelve un campo real — la MISMA convención que ya aplica en runtime como fallback (P2
+ *   §4.4): escribirla aquí la hace EXPLÍCITA y editable en vez de una elección invisible.
+ * - `group`, SOLO si el nombre técnico comparte un prefijo `antes_del_primer_"_"` con OTRA
+ *   colección del mismo lote (`blog_posts`/`blog_authors` → grupo "Blog"). Es una heurística de
+ *   convención de nombres, no un dato del esquema: una colección SOLITARIA con guion bajo
+ *   (`settings_view`) no forma grupo — agruparla sola no aporta nada y sugeriría una relación
+ *   que no existe. El operador puede corregir/quitar cualquier `group` a mano en el editor.
+ *
+ * Las colecciones reservadas `vega`/`vega_*` se omiten (L7: su visibilidad no es anulable por
+ * manifiesto, decorarlas en la plantilla no tendría efecto y solo añadiría ruido).
+ * Pretty-printed y SIEMPRE estrictamente válido contra `validateManifestStrict` (verificado en
+ * tests): es una plantilla, no debe fallar el dry-run.
  */
 export function buildTemplate(types: ContentType[]): string {
+	const candidates = types.filter((type) => !isReservedCollectionName(type.name));
+	const groupPrefixCounts = new Map<string, number>();
+	for (const type of candidates) {
+		const prefix = groupPrefixOf(type.name);
+		if (prefix) groupPrefixCounts.set(prefix, (groupPrefixCounts.get(prefix) ?? 0) + 1);
+	}
+
 	const collections: Record<string, JsonValue> = {};
-	for (const type of types) {
-		if (isReservedCollectionName(type.name)) continue;
-		collections[type.name] = { label: humanizeLabel(type.name) };
+	for (const type of candidates) {
+		const entry: Record<string, JsonValue> = { label: humanizeLabel(type.name) };
+
+		// `resolveTitleField` empuja a `discardedWarnings` si un `titleField` de MANIFIESTO fuera
+		// inválido (§4.4) — aquí no hay ninguno (`undefined`), así que nunca ocurre; el sumidero
+		// es un array desechable solo para cumplir la firma de la función pura.
+		const titleField = resolveTitleField(type.fields, undefined, type.name, []);
+		if (titleField) entry.titleField = titleField;
+
+		const prefix = groupPrefixOf(type.name);
+		if (prefix && (groupPrefixCounts.get(prefix) ?? 0) > 1) entry.group = humanizeLabel(prefix);
+
+		collections[type.name] = entry;
 	}
 
 	const manifest: JsonValue = {
@@ -180,4 +212,13 @@ export function buildTemplate(types: ContentType[]): string {
 	};
 
 	return JSON.stringify(manifest, null, 2);
+}
+
+/** Prefijo de agrupación por convención (ver cabecera de `buildTemplate`): lo que precede al
+ *  PRIMER `_` del nombre técnico, o `null` si no hay `_`, o el `_` está al principio/final
+ *  (`_foo`/`foo_`) — ninguno de los dos casos es un prefijo "compartible" con sentido. */
+function groupPrefixOf(name: string): string | null {
+	const idx = name.indexOf('_');
+	if (idx <= 0 || idx >= name.length - 1) return null;
+	return name.slice(0, idx);
 }

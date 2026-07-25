@@ -270,6 +270,42 @@ o documenta CORS igual que en la sección de arriba).
 - Tras un `trigger()`, el botón "Publicar" de la topbar pasa a "Publicando…" y deja de poder
   pulsarse hasta que `/status` reporte un estado distinto de `"running"`.
 
+## Autoría de esquema desde Vega (crear colecciones, añadir campos)
+
+Vega es el CMS **de** PocketBase: quien tiene superuser puede crear colecciones nuevas y añadir
+campos a las que ya existen directamente desde **Ajustes → Esquema** (`/settings`), sin abrir el
+Admin de PocketBase. Es la misma operación que hace `ensureCollections`/`addCollectionFields` del
+puerto (capabilities `schemaBootstrap`/`schemaFieldBootstrap`) — estrictamente **aditiva**: crea
+lo que falta o añade campos ausentes, pero **nunca renombra ni borra nada**. En PocketBase,
+renombrar/borrar una columna destruye sus datos sin posibilidad de deshacer; por eso esa
+operación sigue sin existir en Vega.
+
+Sin superuser (modo editor, colección de auth distinta de `_superusers`), esta sección no se
+ofrece — mismo gate que el editor del manifiesto (ver [Modo editor](#modo-editor-l6) más abajo).
+
+### Migraciones (`pb_migrations/`)
+
+Cada vez que "Crear colección" o "Añadir campos" tiene éxito, Vega genera al vuelo un fichero de
+[migración JS de PocketBase](https://pocketbase.io/docs/js-migrations/) con el mismo cambio que
+acaba de aplicar por red, listo para copiar. **Guárdalo en `pb_migrations/` del repositorio de tu
+proyecto y commítealo** — es el mismo patrón que ya usan proyectos reales sobre PocketBase (p. ej.
+`lumbre.pro`) para mantener el esquema versionado.
+
+Por qué importa: sin esa migración, cada colección/campo creado desde Vega solo existe en el
+PocketBase que tocaste — production, staging o tu portátil, lo que fuera — y **en ningún sitio
+más**. Si reconstruyes esa instancia desde cero (un nuevo entorno, un desastre, un fork del
+proyecto), el esquema real diverge en silencio de lo que el repositorio documenta. Nada te avisa
+de eso: Vega no vuelve a comprobar si la migración se guardó.
+
+### Landmine: un `number` `required` rechaza el valor 0
+
+Verificada en producción: PocketBase trata "campo obligatorio" como "distinto del cero-valor del
+tipo", y el cero-valor de `number` es `0`. Un campo numérico marcado `required` rechaza cualquier
+intento de guardar `0`, aunque sea un valor perfectamente legítimo (p. ej. una valoración de 0 a
+5, o un contador que empieza en cero). Vega no bloquea la combinación en la UI de creación de
+campos —hay rangos que necesitan 0 como mínimo válido—, pero avisa inline en cuanto marcas
+"Obligatorio" sobre un campo numérico. Si tu campo necesita permitir 0, no lo marques obligatorio.
+
 ## Miniaturas (thumbnails)
 
 PocketBase genera y sirve miniaturas **solo para los tamaños declarados explícitamente** en la opción **Thumb sizes** (`thumbs`) de cada campo `file`. Si Vega pide un tamaño no declarado, PB responde **200 con el fichero original a tamaño completo** (sin error, sin imagen rota) — un coste silencioso de ancho de banda y memoria que no se detecta a simple vista.

@@ -66,6 +66,7 @@
 	import { FALLBACK_THEME, THEMES } from '$lib/themes/themes.generated';
 	import { VEGA_PB_SERVER_RANGE, VEGA_VERSION } from '$lib/version';
 	import ManifestEditor from '$lib/model/editor/ManifestEditor.svelte';
+	import SchemaAuthoringPanel from '$lib/model/editor/SchemaAuthoringPanel.svelte';
 	import WarningsList from '$lib/shell/WarningsList.svelte';
 	import { updateBannerState } from '$lib/shell/update-banner.svelte';
 	import { checkForUpdate, type UpdateStatus } from '$lib/update/check-update';
@@ -177,6 +178,28 @@
 			);
 		}
 		ctx.feedback.toast(ctx.t('settings.saveSuccess'), { kind: 'success' });
+	}
+
+	/**
+	 * `onSchemaChanged` de `SchemaAuthoringPanel` (lote "esquema", Fase 1): tras crear una
+	 * colección o añadir campos con éxito, refresca `types` (para que "Añadir campos" vea la
+	 * colección recién creada y `ManifestEditor` vea el campo nuevo en su dry-run) y re-resuelve
+	 * el modelo — MISMO housekeeping que la cola de `handleSave` tras `saveManifest`, y misma
+	 * razón para no dejarlo reventar hacia el panel: la operación de esquema en sí YA tuvo éxito,
+	 * un hipo de red en el refresco posterior no debe leerse como que falló.
+	 */
+	async function handleSchemaChanged(): Promise<void> {
+		try {
+			types = await ctx.port.listContentTypes();
+			await ctx.reloadModel();
+		} catch (err) {
+			ctx.feedback.reportError(
+				err instanceof VegaError
+					? err
+					: VegaError.backend('Error refrescando tras cambiar el esquema', err),
+				{ action: 'settings:schemaChanged' }
+			);
+		}
 	}
 
 	async function handleReloadModel(): Promise<void> {
@@ -306,6 +329,12 @@
 			<button type="button" onclick={() => load()}>{ctx.t('common.retry')}</button>
 		</div>
 	{:else}
+		<!-- Lote "esquema" (Fase 1): crear colecciones / añadir campos. Vive ANTES del editor del
+		     manifiesto (primero se ensancha el esquema real, luego se decora en el manifiesto) —
+		     `SchemaAuthoringPanel` comprueba sus DOS capabilities por su cuenta, así que no
+		     necesita más gate que `isManifestEditable` (ya cubre esta rama entera). -->
+		<SchemaAuthoringPanel port={ctx.port} {types} t={ctx.t} onSchemaChanged={handleSchemaChanged} />
+
 		<ManifestEditor
 			{types}
 			{initialManifestRaw}

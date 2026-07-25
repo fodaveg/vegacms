@@ -122,11 +122,20 @@ export interface Capabilities {
 	/** Soporte de campos file `protected` (token de acceso). v1: false en ambos adaptadores. */
 	protectedFiles: boolean;
 	/**
-	 * `ensureCollections()` puede CREAR colecciones (v1: solo el prefijo reservado `vega_*`,
-	 * Anexo A). PB: true (requiere superuser). memory: true. Adaptadores sin creación de
-	 * esquema: false (regla de evolución de capabilities: ausente/false ⇒ no soportado).
+	 * `ensureCollections()` puede CREAR colecciones (Anexo A, ampliado en el lote "esquema": ya
+	 * no se restringe al prefijo `vega_*`, cualquier nombre creable vale). PB: true (requiere
+	 * superuser). memory: true. Adaptadores sin creación de esquema: false (regla de evolución
+	 * de capabilities: ausente/false ⇒ no soportado).
 	 */
 	schemaBootstrap: boolean;
+	/**
+	 * `addCollectionFields()` puede AÑADIR campos nuevos a una colección ya existente (mitad 2
+	 * del lote "esquema"): estrictamente aditivo, nunca toca un campo existente. Capability
+	 * PROPIA, independiente de `schemaBootstrap` — v1 las da siempre juntas (ambas ligadas a
+	 * sesión superuser en PB), pero un adaptador futuro podría dar una sin la otra. Adaptadores
+	 * sin autoría de campos: false (misma regla de evolución que el resto de `Capabilities`).
+	 */
+	schemaFieldBootstrap: boolean;
 	/**
 	 * Extensión de autenticación fuerte disponible: password con TOTP/recuperación y passkeys.
 	 * PocketBase vanilla: false. Se activa explícitamente con `authApiBasePath`.

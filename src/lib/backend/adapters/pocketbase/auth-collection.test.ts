@@ -105,6 +105,7 @@ describe('modo superuser (default, sin authCollection) — camino previo INTACTO
 			filePerRecord: true,
 			protectedFiles: false,
 			schemaBootstrap: true,
+			schemaFieldBootstrap: true,
 			strongAuth: false
 		});
 	});
@@ -144,6 +145,7 @@ describe('modo editor (authCollection: vega_editors, L6a/L6b)', () => {
 		});
 		expect(port.capabilities.schemaDiscovery).toBe(false);
 		expect(port.capabilities.schemaBootstrap).toBe(false);
+		expect(port.capabilities.schemaFieldBootstrap).toBe(false);
 		// El resto de capabilities no depende de quién se autentica (ver `computeCapabilities`).
 		expect(port.capabilities.realtime).toBe(true);
 		expect(port.capabilities.thumbs).toBe(true);

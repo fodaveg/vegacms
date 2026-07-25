@@ -1,33 +1,64 @@
 /**
- * Anexo A del contrato P1: `ensureCollections` — bootstrap acotado a `vega_*`.
+ * Autoría de esquema del puerto (Anexo A del contrato P1, ampliado en el lote "esquema"): dos
+ * operaciones ESTRICTAMENTE ADITIVAS —crear colecciones ausentes (`ensureCollections`) y añadir
+ * campos nuevos a una colección ya existente (`addCollectionFields`)— compartidas entre `memory`
+ * y `pocketbase`.
  *
- * Única excepción controlada a la ley "Vega no gestiona el esquema" (L2): el puerto puede
- * CREAR (nunca modificar ni borrar) las colecciones reservadas `vega`/`vega_*` que P2/P6
- * necesitan para funcionar. Vive en el puerto (no en un adaptador) porque el guardarraíl del
- * prefijo (§A.4.3) DEBE ser idéntico y compartido entre `memory` y `pocketbase`.
+ * Historia: el Anexo A nació como un bootstrap acotado A PROPÓSITO al prefijo `vega`/`vega_*`
+ * (las colecciones que P2/P6 necesitan para funcionar), porque en ese momento Vega no pretendía
+ * gestionar esquema de contenido ajeno — "Vega no gestiona el esquema" era la ley (L2). La
+ * decisión de producto cambió: Vega es el CMS *de* PocketBase, no un CMS genérico que
+ * casualmente habla con él, así que ser dueño del esquema es una pareja natural. El usuario crea
+ * SU esquema de contenido (colecciones y campos) desde Vega, además de importar el que ya
+ * existe. Por eso el guardarraíl de nombre se ENSANCHA: de una lista de PERMITIDOS
+ * (`vega`/`vega_*`, antigua §A.4.3) a una lista de PROHIBIDOS (namespace de sistema de
+ * PocketBase, `_*`, y formas que el propio servidor nunca aceptaría) — sigue viviendo aquí, en
+ * el puerto y no en un adaptador, porque debe ser IDÉNTICO y compartido entre `memory` y
+ * `pocketbase`.
+ *
+ * Lo que NO cambia: ninguna de las dos operaciones RENOMBRA ni BORRA nada, y ambas son
+ * idempotentes de la misma manera (un nombre/campo que ya existe se omite tal cual, nunca se
+ * reconcilia). `ensureCollections` sigue sin tocar una colección ya existente (ni sus campos) si
+ * ya está — la crea o la deja intacta. `addCollectionFields` es la ÚNICA operación que SÍ toca
+ * una colección existente, y solo para AÑADIR — nunca modifica un campo que ya estaba ahí (ni su
+ * tipo ni sus reglas) ni lo borra. Cualquiera de las dos, sin permiso de superuser en PB, sigue
+ * rechazando con `forbidden`; sin la capability correspondiente, con `backend` (ley L8).
+ *
+ * `isReservedCollectionName`/`checkReservedNames`/`VEGA_COLLECTION` (namespace `vega`/`vega_*`)
+ * NO tienen relación con este guardarraíl: identifican las colecciones que son plomería INTERNA
+ * de Vega (para excluirlas del modelo de contenido en `model/resolve.ts`/`editor-state.ts`), un
+ * concepto ORTOGONAL a "qué nombres puede crear `ensureCollections`". Siguen intactas.
  */
 
 import type { FieldError } from './errors';
 
-/** Prefijo reservado (§A.1): la única excepción nombrada y acotada a la ley "no gestiona esquema". */
+/** Prefijo reservado del namespace INTERNO de Vega (`vega`/`vega_*`): identifica las colecciones
+ *  propias de Vega (P2/P6), NO limita lo que `ensureCollections` puede crear (ver cabecera). */
 const RESERVED_NAME = 'vega';
 const RESERVED_PREFIX = 'vega_';
 
 /**
- * Especificación de una colección a crear (§A.3). `fields` usa el vocabulario Vega REDUCIDO
- * de `CollectionFieldSpec`: NO es una API general de autoría de esquema (eso sigue siendo
- * no-objetivo), solo el subconjunto mínimo que el bootstrap v1 necesita.
+ * Especificación de una colección a crear (§A.3, ampliado). `fields` usa el vocabulario Vega
+ * REDUCIDO de `CollectionFieldSpec`: NO es una API general de autoría de esquema (soporta un
+ * subconjunto deliberado de tipos), pero SÍ acepta cualquier nombre de colección creable —
+ * `name` ya no se restringe a `vega`/`vega_*`, ver `isCreatableCollectionName`.
  */
 export interface CollectionSpec {
-	/** Debe ser 'vega' o empezar por 'vega_'; si no, `ensureCollections` rechaza con `validation` local. */
+	/** Debe empezar por letra y contener solo letras/dígitos/`_` (`isCreatableCollectionName`);
+	 *  si no, `ensureCollections` rechaza con `validation` local, sin tocar red. */
 	name: string;
 	/** Campos a crear. El id/system los pone el backend. */
 	fields: CollectionFieldSpec[];
 }
 
 /**
- * Subconjunto MÍNIMO de tipos escribibles que el bootstrap v1 necesita (§A.3). NO es una API
- * general de autoría de esquema.
+ * Subconjunto MÍNIMO de tipos escribibles que la autoría de esquema v1 necesita (§A.3). NO es
+ * una API general de autoría de esquema: faltan a propósito `select`/`relation` (necesitan
+ * validar `options`/`target` contra el resto del esquema, fuera de este lote) y el propio campo
+ * `file` sigue reducido a lo que el bootstrap de `vega_media` (P6) usa. `required` en
+ * `number`/`bool`/`date` se añadió en el lote "esquema" (antes solo lo tenían `text`/`file`) para
+ * que la UI de creación de campos pueda ofrecerlo — con el aviso de la landmine de PocketBase
+ * "un `number` `required` rechaza el valor 0" allí donde se ofrece marcarlo (`SchemaAuthoringPanel.svelte`).
  */
 export type CollectionFieldSpec =
 	| { name: string; type: 'json' }
@@ -45,9 +76,9 @@ export type CollectionFieldSpec =
 			// (200, sin imagen rota) — landmine caracterizada en el shakedown C1 (2026-07-19).
 			thumbs?: string[];
 	  }
-	| { name: string; type: 'bool' }
-	| { name: string; type: 'number' }
-	| { name: string; type: 'date' }
+	| { name: string; type: 'bool'; required?: boolean }
+	| { name: string; type: 'number'; required?: boolean }
+	| { name: string; type: 'date'; required?: boolean }
 	// Micro-enmienda FIRMADA al Anexo A (contrato P6 §9): sin un campo de fecha, no hay forma de
 	// "ordenar por más reciente" (los ids que genera PB no son ordenables por tiempo). Coste
 	// mínimo: lectura (`mapField`, `schema.ts`) y auto-relleno (`defaultReadonlyValue`, adaptador
@@ -59,6 +90,17 @@ export interface EnsureResult {
 	/** Nombres de las colecciones efectivamente creadas en esta llamada (orden de `specs`). */
 	created: string[];
 	/** Nombres que ya existían y se omitieron. */
+	skipped: string[];
+}
+
+/**
+ * Resultado de `addCollectionFields` (mitad 2 del lote "esquema"): simétrico a `EnsureResult`,
+ * pero a nivel de CAMPO en vez de colección.
+ */
+export interface AddFieldsResult {
+	/** Nombres de los campos efectivamente añadidos en esta llamada (orden de `fields`). */
+	added: string[];
+	/** Nombres que ya existían en la colección y se omitieron SIN tocarlos. */
 	skipped: string[];
 }
 
@@ -90,15 +132,22 @@ export const VEGA_PROJECT_KEY_FIELD = 'key';
 export const VEGA_PROJECT_KEY = 'default';
 export const VEGA_MANIFEST_VERSION_FIELD = 'manifestVersion';
 
-/** `true` si `name` cae dentro del prefijo reservado (§A.4.3): `'vega'` o `/^vega_/`. */
+/**
+ * `true` si `name` cae dentro del namespace INTERNO de Vega: `'vega'` o `/^vega_/`. Identifica
+ * las colecciones que son plomería de Vega (P2/P6) para EXCLUIRLAS del modelo de contenido
+ * (`model/resolve.ts`, `editor-state.ts`) — no tiene relación con qué puede CREAR
+ * `ensureCollections` (ver `isCreatableCollectionName`, cabecera del fichero).
+ */
 export function isReservedCollectionName(name: string): boolean {
 	return name === RESERVED_NAME || name.startsWith(RESERVED_PREFIX);
 }
 
 /**
- * Guardarraíl del prefijo (§A.4.3), compartido entre adaptadores para que el rechazo sea
- * IDÉNTICO: cualquier `spec.name` fuera de `{'vega'} ∪ {vega_*}` produce un `FieldError`,
- * ANTES de que el adaptador toque red. Devuelve el mapa de errores (vacío si todo es válido).
+ * Guardarraíl histórico del namespace interno (antiguo §A.4.3): cualquier `spec.name` fuera de
+ * `{'vega'} ∪ {vega_*}` produce un `FieldError`. Ya NO lo usa `ensureCollections` (ver
+ * `checkCreatableCollectionNames`, más abajo) — se conserva porque sigue siendo la forma en que
+ * P6 (`media-collection.test.ts`) comprueba que `VEGA_MEDIA_COLLECTION` cae dentro del namespace
+ * reservado, un chequeo real y distinto de "¿es un nombre creable?".
  */
 export function checkReservedNames(specs: CollectionSpec[]): Record<string, FieldError> {
 	const fieldErrors: Record<string, FieldError> = {};
@@ -107,6 +156,62 @@ export function checkReservedNames(specs: CollectionSpec[]): Record<string, Fiel
 			fieldErrors[spec.name] = {
 				code: 'vega_reserved_prefix_required',
 				message: `El nombre "${spec.name}" debe ser "vega" o empezar por "vega_"`
+			};
+		}
+	}
+	return fieldErrors;
+}
+
+/**
+ * Patrón de nombre de colección aceptado por PocketBase: identificador que empieza por una
+ * letra y contiene solo letras/dígitos/`_` en adelante. Un nombre que empieza por `_` es
+ * namespace DE SISTEMA de PocketBase (`_superusers`, `_authOrigins`, `_externalAuths`…) — PB lo
+ * rechaza para colecciones normales; validarlo aquí también falla LOCAL, sin tocar red (antigua
+ * §A.4.3, ahora generalizada: de lista de permitidos a lista de prohibidos, ver cabecera).
+ */
+const CREATABLE_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_]*$/;
+
+/** `true` si `name` es un nombre de colección que `ensureCollections` puede intentar crear
+ *  (validación LOCAL, best-effort — el servidor sigue siendo la autoridad final). */
+export function isCreatableCollectionName(name: string): boolean {
+	return CREATABLE_NAME_PATTERN.test(name);
+}
+
+/**
+ * `true` si un HUMANO puede crear `name` desde la interfaz de autoría de esquema
+ * (`model/editor/SchemaAuthoringPanel.svelte`). Más estricto que `isCreatableCollectionName`: le
+ * resta el namespace interno de Vega.
+ *
+ * La distinción NO es cosmética y por eso son dos funciones y no una. `ensureCollections` tiene
+ * que seguir aceptando `vega`/`vega_*`, porque los que las crean son los bootstraps internos
+ * (`model/load.ts#saveManifest` crea `vega`; `media/media-collection.ts#ensureMediaCollection`
+ * crea `vega_media`). Endurecer el guardarraíl del PUERTO rompería justamente a los únicos
+ * llamadores legítimos.
+ *
+ * El agujero que cierra esto es real y tiene secuencia de repro: ambos bootstraps son PEREZOSOS
+ * (no corren al iniciar sesión, sino al guardar el manifiesto y al entrar en `/media`). Un
+ * superuser que escriba `vega` o `vega_media` en el formulario de autoría ANTES de que ocurra
+ * cualquiera de las dos cosas se crea la colección con el esquema equivocado — y el bootstrap
+ * real, al encontrarla ya existente, la SALTA en silencio (`skipped`, no error). Resultado:
+ * manifiesto o biblioteca de medios rotos de forma permanente y sin un solo aviso.
+ */
+export function isUserAuthorableCollectionName(name: string): boolean {
+	return isCreatableCollectionName(name) && !isReservedCollectionName(name);
+}
+
+/**
+ * Guardarraíl de `ensureCollections` (reemplaza al antiguo `checkReservedNames` en ese punto de
+ * uso): cualquier `spec.name` que no case con `isCreatableCollectionName` produce un
+ * `FieldError`, ANTES de que el adaptador toque red. Compartido entre `memory` y `pocketbase`
+ * para que el rechazo sea IDÉNTICO (misma razón que el guardarraíl histórico).
+ */
+export function checkCreatableCollectionNames(specs: CollectionSpec[]): Record<string, FieldError> {
+	const fieldErrors: Record<string, FieldError> = {};
+	for (const spec of specs) {
+		if (!isCreatableCollectionName(spec.name)) {
+			fieldErrors[spec.name] = {
+				code: 'vega_invalid_collection_name',
+				message: `El nombre "${spec.name}" debe empezar por una letra y contener solo letras, números o guion bajo`
 			};
 		}
 	}

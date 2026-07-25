@@ -28,8 +28,13 @@ import type { BackendPort } from '../../port';
 import type { Query } from '../../query';
 import { normalizeFieldValue } from '../../normalize';
 import { assertContentTypeWritable, checkUnwritableFields } from '../../write-guards';
-import type { CollectionFieldSpec, CollectionSpec, EnsureResult } from '../../collections';
-import { checkReservedNames } from '../../collections';
+import type {
+	AddFieldsResult,
+	CollectionFieldSpec,
+	CollectionSpec,
+	EnsureResult
+} from '../../collections';
+import { checkCreatableCollectionNames } from '../../collections';
 import type { MemorySeed } from './seed';
 export type { MemorySeed } from './seed';
 import { validateFieldValue } from './validate';
@@ -48,6 +53,7 @@ const CAPABILITIES: Capabilities = {
 	filePerRecord: true,
 	protectedFiles: false,
 	schemaBootstrap: true,
+	schemaFieldBootstrap: true,
 	strongAuth: false
 };
 
@@ -374,7 +380,7 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 				throw VegaError.backend('schemaBootstrap no disponible (ley L8)');
 			}
 
-			const rejects = checkReservedNames(specs);
+			const rejects = checkCreatableCollectionNames(specs);
 			if (Object.keys(rejects).length > 0) throw VegaError.validation(rejects);
 
 			const created: string[] = [];
@@ -395,6 +401,53 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 				created.push(spec.name);
 			}
 			return { created, skipped };
+		},
+
+		async addCollectionFields(
+			collectionName: string,
+			fields: CollectionFieldSpec[]
+		): Promise<AddFieldsResult> {
+			checkSessionAlive();
+			if (!CAPABILITIES.schemaFieldBootstrap) {
+				throw VegaError.backend('schemaFieldBootstrap no disponible (ley L8)');
+			}
+			const ct = getContentTypeOrThrow(collectionName);
+
+			const existingNames = new Set(ct.fields.map((f) => f.name));
+			const added: string[] = [];
+			const skipped: string[] = [];
+			const newFields: Field[] = [];
+			for (const spec of fields) {
+				// No destructiva (misma regla que `ensureCollections`): un campo que ya existe se
+				// omite tal cual está, nunca se reconcilia ni se sobreescribe.
+				if (existingNames.has(spec.name)) {
+					skipped.push(spec.name);
+					continue;
+				}
+				newFields.push(collectionFieldSpecToField(spec));
+				added.push(spec.name);
+			}
+
+			if (newFields.length > 0) {
+				contentTypesByName.set(collectionName, {
+					...ct,
+					fields: [...ct.fields, ...newFields]
+				});
+				// Paridad con PB real: una columna nueva en SQLite rellena las filas EXISTENTES
+				// con su valor por defecto (§2.1) — sin este backfill, `get`/`list` devolverían un
+				// registro antiguo SIN la clave nueva en `values`, distinto de lo que vería un
+				// `listContentTypes` en vivo contra PB tras el mismo `ALTER TABLE`.
+				const byId = records.get(collectionName)!;
+				for (const raw of byId.values()) {
+					for (const field of newFields) {
+						raw[field.name] = field.readonly
+							? defaultReadonlyValue(field)
+							: normalizeFieldValue(field, undefined);
+					}
+				}
+			}
+
+			return { added, skipped };
 		}
 	};
 
@@ -451,11 +504,15 @@ function collectionFieldSpecToField(spec: CollectionFieldSpec): Field {
 				protected: false
 			};
 		case 'bool':
-			return { ...base, type: 'bool', required: false };
+			return { ...base, type: 'bool', required: spec.required ?? false };
 		case 'number':
-			return { ...base, type: 'number', required: false, integer: false };
+			// Misma landmine de PocketBase que documenta `collectionFieldSpecToPbField` (adaptador
+			// `pocketbase`): un `number` `required` rechaza 0. `memory` no la reproduce (`validate.ts`
+			// no tiene ese sesgo), pero SÍ debe honrar el flag para que el dry-run de campos
+			// nuevos se comporte igual en ambos adaptadores (paridad, §7 del contrato).
+			return { ...base, type: 'number', required: spec.required ?? false, integer: false };
 		case 'date':
-			return { ...base, type: 'date', required: false };
+			return { ...base, type: 'date', required: spec.required ?? false };
 		case 'autodate':
 			// Emula un campo `autodate` de PB (§9 del contrato P6): readonly, nunca required (el
 			// backend lo rellena solo). `defaultReadonlyValue` (más abajo, en este mismo fichero)

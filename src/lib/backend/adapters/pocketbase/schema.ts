@@ -230,11 +230,17 @@ export function collectionFieldSpecToPbField(spec: CollectionFieldSpec): Record<
 				thumbs: spec.thumbs ?? []
 			};
 		case 'bool':
-			return { name: spec.name, type: 'bool' };
+			return { name: spec.name, type: 'bool', required: spec.required ?? false };
 		case 'number':
-			return { name: spec.name, type: 'number' };
+			// LANDMINE de PocketBase (verificada en producción): un `number` `required` rechaza
+			// el valor 0 (PB trata "campo requerido" como "valor distinto del cero-valor", y 0
+			// ES el cero-valor de `number`). El puerto no bloquea la combinación —hay rangos
+			// legítimos que necesitan 0 como mínimo válido (p.ej. una valoración 0–5)—, pero
+			// `SchemaAuthoringPanel.svelte` avisa inline cuando el operador marca `required` en
+			// un campo `number` nuevo.
+			return { name: spec.name, type: 'number', required: spec.required ?? false };
 		case 'date':
-			return { name: spec.name, type: 'date' };
+			return { name: spec.name, type: 'date', required: spec.required ?? false };
 		case 'autodate':
 			// Enmienda del contrato P6 (§9): `onCreate: true` siempre (es la semántica que P6
 			// necesita, "creado el"); `onUpdate` por defecto `false` — el llamador puede pedir

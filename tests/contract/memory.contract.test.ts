@@ -116,5 +116,8 @@ describe('memory: detalles de implementación', () => {
 		await expect(port.ensureCollections([{ name: 'vega_test', fields: [] }])).rejects.toMatchObject(
 			{ kind: 'forbidden' }
 		);
+		await expect(
+			port.addCollectionFields('vega_test', [{ name: 'x', type: 'text' }])
+		).rejects.toMatchObject({ kind: 'forbidden' });
 	});
 });

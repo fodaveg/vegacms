@@ -28,9 +28,21 @@
 	 * línea. Los strings en español de este componente (a diferencia de `RecordForm.svelte`) siguen
 	 * SIN pasar por `ctx.t(...)` — ya era así antes de esta fase (fuera de alcance, ver instrucción
 	 * del rediseño) y el gate ya lo acepta tal cual.
+	 *
+	 * **Fase 2 del lote "esquema" ("el manifiesto de partida")**: cuando `initialManifestRaw` es
+	 * `null` (todavía no hay ningún manifiesto guardado) Y el esquema descubierto tiene alguna
+	 * colección no reservada, el `<textarea>` NO arranca en el skeleton vacío `{ schemaVersion:
+	 * 1 }` — arranca con `buildTemplate(types)`, la MISMA función de "Insertar plantilla" (ahora
+	 * con `titleField`/`group` derivados del esquema real, ver su cabecera en `editor-state.ts`).
+	 * `isProposal` (más abajo) es la señal de "esto es una PROPUESTA, no un manifiesto real
+	 * todavía": pinta un aviso explicando qué se generó y qué queda fuera de Vega (reglas de
+	 * acceso de PocketBase, relaciones/agrupaciones que no siguen la convención de nombres,
+	 * campos traducibles…) — el operador sigue teniendo que revisar y pulsar "Guardar" como con
+	 * cualquier otro borrador; nada se persiste solo por proponerlo.
 	 */
 	import { untrack } from 'svelte';
 	import type { ContentType, JsonValue } from '$lib/backend/types';
+	import { isReservedCollectionName } from '$lib/backend/collections';
 	import EditTopBar from '$lib/shell/EditTopBar.svelte';
 	import { computeEditorState, buildBootstrapImportJson, buildTemplate } from './editor-state';
 	import manifestSchema from '../manifest-schema.json';
@@ -54,12 +66,28 @@
 
 	type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
-	/** Texto crudo del `<textarea>`, poblado UNA VEZ al montar con el manifiesto actual
-	 *  pretty-printed (`untrack`: es una semilla inicial, no un espejo continuo — no queremos
-	 *  pisar lo que el usuario está escribiendo si el padre vuelve a renderizar con nuevas
-	 *  props). */
+	/** `true` si no hay manifiesto todavía Y el esquema descubierto tiene alguna colección
+	 *  decorable (ver cabecera, Fase 2 del lote "esquema"): la semilla del `<textarea>` de abajo
+	 *  es una PROPUESTA generada, no un manifiesto real. Deliberadamente estático (`untrack`,
+	 *  mismo criterio que `rawText` justo debajo): depende solo de las props DE MONTAJE, no debe
+	 *  recalcularse si el padre vuelve a renderizar con `types` distintos mientras se edita. */
+	const isProposal = untrack(
+		() => initialManifestRaw === null && types.some((type) => !isReservedCollectionName(type.name))
+	);
+
+	/** Texto crudo del `<textarea>`, poblado UNA VEZ al montar (`untrack`: es una semilla
+	 *  inicial, no un espejo continuo — no queremos pisar lo que el usuario está escribiendo si
+	 *  el padre vuelve a renderizar con nuevas props):
+	 *  - Manifiesto real ya guardado → pretty-printed tal cual (comportamiento previo, intacto).
+	 *  - Sin manifiesto pero con esquema propositivo (`isProposal`) → `buildTemplate(types)`, el
+	 *    punto de partida derivado del esquema real (Fase 2, ver cabecera).
+	 *  - Sin manifiesto y sin esquema decorable → skeleton vacío `{ schemaVersion: 1 }`
+	 *    (comportamiento previo, para una instalación que aún no tiene NINGUNA colección propia). */
 	let rawText = $state(
-		untrack(() => JSON.stringify(initialManifestRaw ?? { schemaVersion: 1 }, null, 2))
+		untrack(() => {
+			if (initialManifestRaw !== null) return JSON.stringify(initialManifestRaw, null, 2);
+			return isProposal ? buildTemplate(types) : JSON.stringify({ schemaVersion: 1 }, null, 2);
+		})
 	);
 	/** `true` tras pulsar "Validar" (o "Insertar plantilla", o un intento de guardar): revela el
 	 *  panel de errores/avisos. El botón "Guardar" NO depende de esto — su estado es siempre el
@@ -158,6 +186,29 @@
 			{#if bootstrapImportJson}
 				<pre class="bootstrap-json">{bootstrapImportJson}</pre>
 			{/if}
+		</div>
+	{/if}
+
+	{#if isProposal}
+		<!-- Fase 2 del lote "esquema" (ver cabecera): el texto de abajo NO es un manifiesto
+		     guardado, es una propuesta derivada del esquema real — el operador la revisa/edita
+		     como cualquier borrador y solo se persiste al pulsar "Guardar". -->
+		<div class="notice notice-proposal" role="status">
+			<p>
+				Este es un punto de partida <strong>generado automáticamente</strong> a partir de las
+				colecciones que ya existen en tu PocketBase: etiquetas humanizadas, campo de título por
+				convención (<code>title</code>/<code>name</code>/el primer campo destacado) y agrupación
+				cuando dos o más colecciones comparten un prefijo de nombre (p. ej.
+				<code>blog_posts</code>/<code>blog_authors</code> → grupo "Blog"). Revísalo y ajústalo antes de
+				guardar.
+			</p>
+			<p>
+				Fuera del alcance de esta propuesta (queda por tu cuenta, en PocketBase y/o en este
+				manifiesto): reglas de acceso (Create/Update/Delete rules), relaciones entre colecciones
+				cuyo nombre no sigue una convención clara, campos traducibles (<code>localizedFields</code>)
+				y cualquier vista fusionada (<code>mergedViews</code>). Vega solo puede inferir ESTRUCTURA,
+				nunca permisos ni intención editorial.
+			</p>
 		</div>
 	{/if}
 
@@ -504,6 +555,22 @@
 
 	.notice-confirm .actions {
 		margin: 0;
+	}
+
+	/* Fase 2 del lote "esquema": mismo tratamiento informativo que `.notice-confirm` (tokens
+	   `--info`), pero SIN `display:flex` (no lleva acciones, solo dos párrafos). */
+	.notice-proposal {
+		border-color: var(--info);
+		background: var(--info-soft);
+		color: var(--info);
+	}
+
+	.notice-proposal p {
+		margin: 0;
+	}
+
+	.notice-proposal p + p {
+		margin-top: 0.5rem;
 	}
 
 	.bootstrap-json {

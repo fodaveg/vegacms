@@ -8,6 +8,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
+import type { ContentType } from '$lib/backend/types';
 import { validateManifestStrict } from '$lib/model/validate';
 import {
 	computeEditorState,
@@ -15,7 +16,7 @@ import {
 	buildTemplate,
 	buildBootstrapImportJson
 } from '$lib/model/editor/editor-state';
-import { kitchenSinkTypes, categoryType, postType } from './fixture';
+import { kitchenSinkTypes, categoryType, postType, categoryFields, postFields } from './fixture';
 
 describe('computeEditorState — parseError', () => {
 	test('texto que no es JSON → parseError con mensaje; el resto vacío/false', () => {
@@ -227,5 +228,67 @@ describe('buildTemplate', () => {
 	test('pretty-printed (indentación de 2 espacios, mismo formato que prettyPrint)', () => {
 		const template = buildTemplate([categoryType]);
 		expect(template).toBe(prettyPrint(template));
+	});
+
+	// ————— Fase 2 del lote "esquema": titleField/group derivados del esquema real —————
+
+	test('titleField: cascada de §4.4 (title/name/presentable) por convención, sin override de manifiesto', () => {
+		const parsed = JSON.parse(buildTemplate([categoryType, postType])) as {
+			collections: Record<string, { titleField?: string }>;
+		};
+		expect(parsed.collections.category.titleField).toBe('name');
+		expect(parsed.collections.post.titleField).toBe('title');
+	});
+
+	test('titleField ausente cuando ninguna convención resuelve (sin campo text/email/url/presentable)', () => {
+		const noTitleType: ContentType = {
+			name: 'settings_view',
+			readonly: true,
+			fields: [
+				{
+					name: 'enabled',
+					type: 'bool',
+					required: false,
+					readonly: false,
+					presentable: false,
+					hidden: false,
+					unique: false
+				}
+			]
+		};
+		const parsed = JSON.parse(buildTemplate([noTitleType])) as {
+			collections: Record<string, { titleField?: string }>;
+		};
+		expect(parsed.collections.settings_view.titleField).toBeUndefined();
+	});
+
+	test('group: dos o más colecciones que comparten prefijo antes del primer "_" → group humanizado', () => {
+		const blogPosts: ContentType = { name: 'blog_posts', readonly: false, fields: [] };
+		const blogAuthors: ContentType = { name: 'blog_authors', readonly: false, fields: [] };
+		const parsed = JSON.parse(buildTemplate([blogPosts, blogAuthors])) as {
+			collections: Record<string, { group?: string }>;
+		};
+		expect(parsed.collections.blog_posts.group).toBe('Blog');
+		expect(parsed.collections.blog_authors.group).toBe('Blog');
+	});
+
+	test('group ausente para una colección SOLITARIA con guion bajo (agruparla sola no aporta nada)', () => {
+		// `settings_view` del kitchen-sink no comparte prefijo "settings" con ninguna otra
+		// colección del fixture: no debe ganar `group`.
+		const parsed = JSON.parse(buildTemplate(kitchenSinkTypes)) as {
+			collections: Record<string, { group?: string }>;
+		};
+		expect(parsed.collections.settings_view.group).toBeUndefined();
+	});
+
+	test('sigue estrictamente válido contra validateManifestStrict con titleField/group presentes', () => {
+		const blogPosts: ContentType = { name: 'blog_posts', readonly: false, fields: postFields };
+		const blogAuthors: ContentType = {
+			name: 'blog_authors',
+			readonly: false,
+			fields: categoryFields
+		};
+		const parsed = JSON.parse(buildTemplate([blogPosts, blogAuthors]));
+		expect(validateManifestStrict(parsed)).toEqual({ ok: true });
 	});
 });
