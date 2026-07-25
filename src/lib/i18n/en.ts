@@ -172,6 +172,19 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.previewLink': 'View on site',
 	'editor.previewDisabledTitle': 'The draft has no public URL yet',
 
+	// ————— Master-detail editor (final `aquelarre-detalle-post.html` mockup) —————
+	// Sibling rail (`.rail`), metadata aside (`.kv`) and danger zone: GENERIC opt-in renderer
+	// pieces — the aside card headings come from `fieldGroups` (manifest data), so only literals
+	// that are NOT collection data live here.
+	'editor.rail.label': 'Collection records',
+	'editor.meta.title': 'Record',
+	'editor.meta.id': 'id',
+	'editor.meta.created': 'Created',
+	'editor.meta.updated': 'Updated',
+	'editor.dangerZone.title': 'Danger zone',
+	'editor.delete': 'Delete {label}…',
+	'editor.slug.regenerate': 'Regenerate',
+
 	// ————— Content locale selector (manifest-declared localized fields) —————
 	'form.locale.tabsLabel': 'Content language',
 	'form.locale.status.error': '{label}: contains errors',
@@ -370,10 +383,47 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.delete.deleting': 'Deleting…',
 	'media.delete.success': '"{label}" was deleted from the library.',
 
+	// ————— Media: library header + toolbar («aquelarre-medios» redesign) —————
+	// The header count is the library TOTAL (`totalItems` of the listing), never the page's nor the
+	// filter's. The mockup also shows the total weight in MB: Vega does not know it (§4.4, the port
+	// does not expose the size of an already stored file) and does not make it up.
+	'media.meta.files': 'files',
+	'media.search.placeholder': 'Search by file name…',
+	'media.search.ariaLabel': 'Search the library by file name',
+	'media.filter.groupLabel': 'Filter by type',
+	'media.filter.all': 'All',
+	'media.filter.images': 'Images',
+	'media.filter.video': 'Video',
+	'media.filter.documents': 'Documents',
+	'media.filter.empty': 'No file on this page matches the search or the chosen type.',
+	'media.filter.clear': 'Clear filters',
+
+	// ————— Media: selection bar («aquelarre-medios» redesign) —————
+	// No "Insert" (see `MediaSelectionBar.svelte`): inserting into a field only exists when the
+	// library is opened as a picker from a form (`MediaPicker`).
+	'media.selection.toggle': 'Select «{label}»',
+	// Two keys instead of a "(s)" — see the Spanish file. In English both read the same, but the
+	// key pair has to exist in every locale (es/en parity is a test).
+	'media.selection.labelOne': 'selected',
+	'media.selection.labelMany': 'selected',
+	'media.selection.copy': 'Copy URL',
+	'media.selection.copySuccess': '{count} URL(s) copied to the clipboard.',
+	'media.selection.copyError': 'Could not copy to the clipboard.',
+	'media.selection.delete': 'Delete',
+	'media.selection.deleteTitle': 'Delete {count} files from the library?',
+	'media.selection.deleteSuccess': '{count} file(s) deleted from the library.',
+
 	// ————— Media: drag&drop upload (Phase P6·6c) —————
 	'media.upload.inputLabel': 'Upload files',
-	'media.upload.dropHint':
-		'Drag files here or use the button above to pick them. You can select several at once.',
+	'media.upload.button': 'Upload files',
+	// Drop band (mockup `.dropzone`), split up because each part is painted differently: the
+	// gesture in bold and the limit in `--mono` (canonical value). `{max}` comes from the REAL
+	// `vega_media` schema (`file.maxSizeBytes`), never from a hand-written constant.
+	'media.upload.dropzoneLead': 'Drag files here or',
+	'media.upload.dropzoneAction': 'click to pick them',
+	'media.upload.dropzoneMax': 'max. {max}',
+	'media.upload.dropzoneMaxSuffix': 'per file',
+	'media.upload.retry': 'retry',
 	'media.upload.status.pending': 'Pending',
 	'media.upload.status.uploading': 'Uploading…',
 	'media.upload.status.done': 'Uploaded',

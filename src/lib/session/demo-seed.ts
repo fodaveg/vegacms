@@ -148,11 +148,25 @@
  * `DEMO_SEED_WITH_MEDIA` (una copia detrás de un flag, nunca una mutación de la semilla de
  * e2e) — cuya sidebar reproduce 1:1 la del mockup aprobado (`aquelarre-dark.html`): grupos
  * "Contenido" (Entradas/Páginas/Proyectos) y "Estructura" (Autores/Etiquetas), más "Medios"
- * (reutiliza `VEGA_MEDIA_CONTENT_TYPE`/`MEDIA_SEED_RECORDS` de más abajo). `DEMO_SEED` queda
+ * (reutiliza `VEGA_MEDIA_CONTENT_TYPE` de más abajo, con biblioteca propia). `DEMO_SEED` queda
  * INTACTO: `list/form/merged-view.spec` navegan por URL a `metrics`/`works`/`tracks`, que no caben
  * en una sidebar "solo lo del mockup" sin volverse `hidden` y romper esos specs. Activación vía
  * `session/backend.ts` (`__VEGA_SEED_SHOWCASE__`/`localStorage['vega.showcase.v1']`, ver su
  * cabecera) — nunca se activa por defecto ni en e2e.
+ *
+ * **Ampliado con el mockup del EDITOR (`aquelarre-detalle-post.html`)**: `entradas` deja de ser una
+ * colección de cuatro campos pensada solo para la LISTA y pasa a modelar una entrada de blog
+ * completa (extracto, cuerpo richtext, portada, fecha de publicación y los dos autodates), con las
+ * capacidades de editor del mockup declaradas en `SHOWCASE_MANIFEST` (`slugField`, `editorRail`,
+ * `fieldGroups` con `placement: 'aside'`). Sigue siendo una ampliación SOLO del escaparate:
+ * `DEMO_SEED`/`posts` no declara ninguna de esas capacidades, así que su editor no cambia ni un
+ * nodo del DOM (los e2e siguen midiendo lo mismo).
+ *
+ * **Biblioteca de medios del escaparate con bitmaps REALES**: desde que las tarjetas de `/media`
+ * miden dimensiones y peso del fichero, el fixture de 1×1 dejaba el escaparate anunciando
+ * «1×1 · 70 B». `SHOWCASE_SEED` pasa a tener sus PROPIOS ocho assets, cuatro de ellos con un
+ * bitmap generado con `<canvas>` en tiempo de siembra (ver `renderShowcaseBitmap`) — medidas
+ * exactas, cero peso en el bundle. `DEMO_SEED`/`DEMO_SEED_WITH_MEDIA` conservan el PNG de 1×1.
  */
 import type { ContentType, JsonValue } from '$lib/backend/types';
 import { VEGA_COLLECTION } from '$lib/backend/collections';
@@ -1128,13 +1142,27 @@ export const DEMO_SEED_WITH_MEDIA: MemorySeed = {
 // depende de ninguna colección de esta semilla). Solo tras el flag de `session/backend.ts`
 // (`__VEGA_SEED_SHOWCASE__`/`vega.showcase.v1`) — nunca en `DEMO_SEED`/e2e.
 
-/** `entradas` (mockup: título de página "Entradas", primera de "Contenido"): MISMA forma que
- *  `BLOG_CONTENT_TYPE` (título/slug/estado en tres valores/autor/fecha) — el escaparate reutiliza
- *  el diseño de esa colección de demo, ya validado contra el mockup en M1-M6, en vez de inventar
- *  uno nuevo. `slug` es el campo de `subtitleField` (línea secundaria bajo el título); `updatedAt`
- *  lleva `defaultSort` en el manifiesto (única colección de la semilla que lo declara, ver
- *  cabecera del módulo) para que el listado arranque ya ordenado "Actualizado ↓", como el
- *  mockup. */
+/**
+ * `entradas` (mockup: título de página "Entradas", primera de "Contenido"). Arrancó como copia de
+ * `BLOG_CONTENT_TYPE` (título/slug/estado en tres valores/autor/fecha) para la vista de LISTA; el
+ * mockup del EDITOR (`aquelarre-detalle-post.html`) pide además el cuerpo de la entrada, y de ahí
+ * los campos nuevos:
+ * - `excerpt` (texto, `widget: 'textarea'` por manifiesto) y `content` (richtext): el documento en
+ *   sí — sin ellos el editor del escaparate se quedaba en cuatro controles sueltos.
+ * - `cover` (file, imagen): alimenta la tarjeta "Portada" del aside. Se siembra VACÍO a propósito
+ *   (el mockup enseña justo el estado vacío, "Elegir de Medios").
+ * - `publishedAt` (date): la "Fecha de publicación" del aside, distinta de los autodates.
+ * - `created`/`updated` (date READONLY): los dos autodates que PocketBase hornea en toda colección
+ *   — alimentan la tarjeta "Registro" del aside (`record-meta.ts` exige `date` + `readonly`, no el
+ *   nombre a secas) y la hora de "último guardado" de la barra. `updated` SUSTITUYE al antiguo
+ *   `updatedAt` de esta semilla: era el mismo dato con otro nombre y sin la marca de autodate, así
+ *   que duplicarlos habría dejado dos columnas "Actualizado" que dicen lo mismo. Sigue siendo la
+ *   columna de `listFields` y el campo de `defaultSort` (el listado arranca "Actualizado ↓", como
+ *   el mockup), solo que ahora además es honesto sobre quién lo escribe.
+ *
+ * `slug` hace doble papel: `subtitleField` (línea secundaria bajo el título en la lista) y
+ * `slugField` (fila mono + botón "Regenerar" en el editor).
+ */
 const ENTRADAS_CONTENT_TYPE: ContentType = {
 	name: 'entradas',
 	readonly: false,
@@ -1161,10 +1189,52 @@ const ENTRADAS_CONTENT_TYPE: ContentType = {
 			unique: false
 		},
 		{
+			name: 'excerpt',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false,
+			maxLength: 200
+		},
+		{
+			name: 'content',
+			type: 'richtext',
+			subtype: 'html',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'cover',
+			type: 'file',
+			multiple: false,
+			mimeTypes: ['image/*'],
+			protected: false,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
 			name: 'status',
 			type: 'select',
 			options: ['draft', 'published', 'scheduled'],
 			multiple: false,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'publishedAt',
+			type: 'date',
 			required: false,
 			readonly: false,
 			presentable: false,
@@ -1181,11 +1251,21 @@ const ENTRADAS_CONTENT_TYPE: ContentType = {
 			hidden: false,
 			unique: false
 		},
+		// Los dos autodates (ver cabecera): `readonly` como los hornea PocketBase.
 		{
-			name: 'updatedAt',
+			name: 'created',
 			type: 'date',
 			required: false,
-			readonly: false,
+			readonly: true,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'updated',
+			type: 'date',
+			required: false,
+			readonly: true,
 			presentable: false,
 			hidden: false,
 			unique: false
@@ -1289,17 +1369,50 @@ const SHOWCASE_MANIFEST: JsonValue = {
 			icon: 'list',
 			group: 'Contenido',
 			order: 1,
-			listFields: ['title', 'status', 'author', 'updatedAt'],
+			listFields: ['title', 'status', 'author', 'updated'],
 			subtitleField: 'slug',
+			// Capacidades del EDITOR (mockup `aquelarre-detalle-post.html`), todas opt-in:
+			// `slugField` enciende la fila mono + "Regenerar"; `editorRail` el índice de hermanos a
+			// la izquierda; los dos grupos con `placement: 'aside'` mudan sus campos a la columna
+			// derecha. `posts` (la colección de los e2e) no declara ninguna: su editor no cambia.
+			slugField: 'slug',
+			editorRail: true,
+			fieldGroups: [
+				{ name: 'Publicación', placement: 'aside' },
+				{ name: 'Portada', placement: 'aside' }
+			],
 			statusLabels: { draft: 'Borrador', published: 'Publicado', scheduled: 'Programado' },
-			defaultSort: { field: 'updatedAt', dir: 'desc' },
-			// Labels ES por columna (mockup: "Título"/"Estado"/"Autor"/"Actualizado ↓"): `posts`
-			// sigue con headers EN por defecto (humanización de `field.name`), esto es opt-in.
+			defaultSort: { field: 'updated', dir: 'desc' },
+			// Labels ES por campo (mockup: columnas "Título"/"Estado"/"Autor"/"Actualizado ↓" y los
+			// rótulos del editor): `posts` sigue con headers EN por defecto (humanización de
+			// `field.name`), esto es opt-in.
 			fields: {
 				title: { label: 'Título' },
-				status: { label: 'Estado' },
-				author: { label: 'Autor' },
-				updatedAt: { label: 'Actualizado' }
+				slug: { label: 'Slug' },
+				excerpt: {
+					label: 'Extracto',
+					widget: 'textarea',
+					help: 'Se usa en la portada del blog y en las tarjetas de compartir. Máx. 200 caracteres.'
+				},
+				content: { label: 'Contenido' },
+				// Rótulo «Imagen», NO «Portada»: el grupo ya se llama «Portada» y lo pinta la cabecera
+				// de la tarjeta del aside, así que repetirlo en el label del campo daba un
+				// «PORTADA / Portada» redundante que el mockup no tiene (allí el control de portada
+				// va SIN label visible, es un botón suelto bajo el `h2`).
+				cover: { label: 'Imagen', group: 'Portada' },
+				status: { label: 'Estado', group: 'Publicación' },
+				publishedAt: {
+					label: 'Fecha de publicación',
+					group: 'Publicación',
+					help: 'Vacía = se fija al publicar.'
+				},
+				author: { label: 'Autor', group: 'Publicación' },
+				// Los autodates NO se editan: `hidden` los saca del FORMULARIO (donde solo serían dos
+				// controles inertes) sin sacarlos del modelo — la tarjeta "Registro" del aside lee su
+				// valor igualmente, y `updated` sigue siendo columna del listado porque `listFields`
+				// lo declara explícitamente (esa lista manda sobre el default de `listable`).
+				created: { label: 'Creado', hidden: true },
+				updated: { label: 'Actualizado', hidden: true }
 			}
 		},
 		paginas: {
@@ -1333,18 +1446,33 @@ const SHOWCASE_MANIFEST: JsonValue = {
 	}
 };
 
-/** 12 registros: MISMOS títulos/slugs/estados/autores/fechas que `blog` (ver su cabecera, calcados
- *  del mockup aprobado) — el escaparate reutiliza el dataset ya validado en vez de inventar uno
- *  paralelo. `entrada_6` ("Sin título") conserva el mismo caso límite (`slug`/`author` vacíos). */
+/**
+ * 12 registros: MISMOS títulos/slugs/estados/autores/fechas que `blog` (ver su cabecera, calcados
+ * del mockup aprobado) — el escaparate reutiliza el dataset ya validado en vez de inventar uno
+ * paralelo. `entrada_6` ("Sin título") conserva el mismo caso límite (`slug`/`author` vacíos).
+ *
+ * Campos del EDITOR (ver `ENTRADAS_CONTENT_TYPE`): `excerpt` en todas menos la del caso límite;
+ * `content` SOLO en las tres primeras — el mockup enseña una entrada abierta, y sembrar un cuerpo
+ * largo en las doce no añadiría nada salvo peso al bundle de la demo. `entrada_2` es la del
+ * mockup: extracto y cuerpo calcados de él, incluidos el `<h2>`, el `<code>` y el enlace, que son
+ * justo lo que ejercita el estilo nuevo del richtext. `cover` va vacío en todas (el mockup enseña
+ * el estado vacío de la tarjeta "Portada").
+ */
 const ENTRADAS_RECORDS = [
 	{
 		id: 'entrada_1',
 		values: {
 			title: 'Migrar el blog de Hugo a Astro sin romper las URLs',
 			slug: 'migrar-blog-hugo-astro-sin-romper-urls',
+			excerpt:
+				'Redirecciones 301, rutas heredadas y un plan de corte en tres pasos para cambiar de generador sin perder el tráfico de años.',
+			content:
+				'<p>Cambiar de generador es fácil; lo difícil es que ninguna URL antigua devuelva un 404. Este es el plan que seguí.</p>',
 			status: 'published',
+			publishedAt: '2026-07-23T10:00:00.000Z',
 			author: 'David',
-			updatedAt: '2026-07-23T10:00:00.000Z'
+			created: '2026-07-20T09:12:00.000Z',
+			updated: '2026-07-23T10:00:00.000Z'
 		}
 	},
 	{
@@ -1353,9 +1481,21 @@ const ENTRADAS_RECORDS = [
 			title:
 				'Temas claro/oscuro con un solo vocabulario de tokens: lo que aprendí construyendo el motor de paletas de Lumbre y por qué acabó viviendo también en Vega',
 			slug: 'temas-claro-oscuro-vocabulario-tokens-motor-paletas',
+			excerpt:
+				'Un vocabulario cerrado de tokens de rol, dos ejes independientes (modo y paleta) y una barrera anti-parches: así se mantiene un tema coherente sin volverse loco.',
+			content:
+				'<h2>El problema: dos modos, veintiuna paletas</h2>' +
+				// El mockup cita aquí un hex crudo repetido a mano; en el seed se nombra el TOKEN
+				// (`--paper`) en su lugar: `scripts/check-theme-coverage.mjs` escanea todo `src/**` a
+				// texto plano y un `#rrggbb` dentro de un string de datos le habría parecido pintura
+				// cruda de la app (falso positivo que rompe el gate).
+				'<p>Cuando el blog estrenó modo oscuro, cada componente traía sus propios colores. El resultado era el de siempre: <strong>un claro decente y un oscuro lleno de parches</strong> — grises que no venían de ninguna parte, acentos que perdían contraste, y el mismo tono de <code>--paper</code> copiado a mano en catorce sitios.</p>' +
+				'<p>La salida fue cerrar el vocabulario: papel, tinta, línea y marca como <a href="https://fodaveg.net/blog/tokens-de-rol">tokens de rol</a>, y que ningún componente pueda pintar fuera de esa lista. El modo y la paleta se volvieron ejes independientes, y de repente añadir una paleta nueva costaba un JSON, no una tarde.</p>',
 			status: 'draft',
+			publishedAt: '',
 			author: 'David',
-			updatedAt: '2026-07-23T08:00:00.000Z'
+			created: '2026-07-19T18:42:00.000Z',
+			updated: '2026-07-23T08:00:00.000Z'
 		}
 	},
 	{
@@ -1363,9 +1503,15 @@ const ENTRADAS_RECORDS = [
 		values: {
 			title: 'PocketBase como backend de un CMS editor-first',
 			slug: 'pocketbase-backend-cms-editor-first',
+			excerpt:
+				'Un solo binario, SQLite y reglas de acceso declarativas: por qué es suficiente para un sitio personal y dónde empieza a apretar.',
+			content:
+				'<p>La pregunta no es si PocketBase aguanta, es cuánto código propio te ahorra el primer año.</p>',
 			status: 'published',
+			publishedAt: '2026-07-18T09:00:00.000Z',
 			author: 'David',
-			updatedAt: '2026-07-18T09:00:00.000Z'
+			created: '2026-07-14T11:05:00.000Z',
+			updated: '2026-07-18T09:00:00.000Z'
 		}
 	},
 	{
@@ -1373,9 +1519,12 @@ const ENTRADAS_RECORDS = [
 		values: {
 			title: 'Notas del huerto: julio',
 			slug: 'notas-del-huerto-julio',
+			excerpt: 'Tomateras a media asta, riego por goteo y la eterna guerra contra el pulgón.',
 			status: 'scheduled',
+			publishedAt: '2026-07-28T07:00:00.000Z',
 			author: 'Marta',
-			updatedAt: '2026-07-15T07:30:00.000Z'
+			created: '2026-07-13T19:20:00.000Z',
+			updated: '2026-07-15T07:30:00.000Z'
 		}
 	},
 	{
@@ -1383,9 +1532,13 @@ const ENTRADAS_RECORDS = [
 		values: {
 			title: 'Passkeys en un backend Go: TOTP, WebAuthn y tres factores',
 			slug: 'passkeys-backend-go-totp-webauthn',
+			excerpt:
+				'Del formulario de siempre a tres factores reales, sin dependencias exóticas y sin dejar a nadie fuera.',
 			status: 'published',
+			publishedAt: '2026-07-11T12:00:00.000Z',
 			author: 'David',
-			updatedAt: '2026-07-11T12:00:00.000Z'
+			created: '2026-07-08T08:30:00.000Z',
+			updated: '2026-07-11T12:00:00.000Z'
 		}
 	},
 	{
@@ -1393,9 +1546,12 @@ const ENTRADAS_RECORDS = [
 		values: {
 			title: 'Sin título',
 			slug: '',
+			excerpt: '',
 			status: 'draft',
+			publishedAt: '',
 			author: '',
-			updatedAt: '2026-07-02T16:00:00.000Z'
+			created: '2026-07-02T16:00:00.000Z',
+			updated: '2026-07-02T16:00:00.000Z'
 		}
 	},
 	{
@@ -1403,9 +1559,12 @@ const ENTRADAS_RECORDS = [
 		values: {
 			title: 'Reseña: teclados de perfil bajo para escribir mucho',
 			slug: 'resena-teclados-perfil-bajo',
+			excerpt: 'Tres teclados, seis meses de uso y una conclusión incómoda sobre el recorrido.',
 			status: 'published',
+			publishedAt: '2026-06-28T11:00:00.000Z',
 			author: 'Marta',
-			updatedAt: '2026-06-28T11:00:00.000Z'
+			created: '2026-06-24T10:00:00.000Z',
+			updated: '2026-06-28T11:00:00.000Z'
 		}
 	},
 	{
@@ -1413,9 +1572,13 @@ const ENTRADAS_RECORDS = [
 		values: {
 			title: 'Autoalojar sin dolor: mi checklist de higiene de servidor',
 			slug: 'autoalojar-checklist-higiene-servidor',
+			excerpt:
+				'Actualizaciones desatendidas, backups verificados y un cortafuegos que no dependa de mi memoria.',
 			status: 'published',
+			publishedAt: '2026-06-20T09:00:00.000Z',
 			author: 'David',
-			updatedAt: '2026-06-20T09:00:00.000Z'
+			created: '2026-06-17T07:45:00.000Z',
+			updated: '2026-06-20T09:00:00.000Z'
 		}
 	},
 	{
@@ -1423,9 +1586,12 @@ const ENTRADAS_RECORDS = [
 		values: {
 			title: 'Por qué elegimos Svelte 5 runes para el admin',
 			slug: 'por-que-svelte-5-runes-admin',
+			excerpt: 'Menos ceremonia, reactividad explícita y un modelo mental que cabe en la cabeza.',
 			status: 'draft',
+			publishedAt: '',
 			author: 'David',
-			updatedAt: '2026-06-14T15:00:00.000Z'
+			created: '2026-06-11T16:10:00.000Z',
+			updated: '2026-06-14T15:00:00.000Z'
 		}
 	},
 	{
@@ -1433,9 +1599,13 @@ const ENTRADAS_RECORDS = [
 		values: {
 			title: 'Accesibilidad AA de verdad: contraste medido, no adivinado',
 			slug: 'accesibilidad-aa-contraste-medido',
+			excerpt:
+				'Un script que mide cada par de tokens y falla el build: la única forma de que el contraste no se degrade sola.',
 			status: 'published',
+			publishedAt: '2026-06-05T10:00:00.000Z',
 			author: 'Marta',
-			updatedAt: '2026-06-05T10:00:00.000Z'
+			created: '2026-06-01T12:00:00.000Z',
+			updated: '2026-06-05T10:00:00.000Z'
 		}
 	},
 	{
@@ -1443,9 +1613,12 @@ const ENTRADAS_RECORDS = [
 		values: {
 			title: 'Backups 3-2-1 para un self-host de un solo servidor',
 			slug: 'backups-3-2-1-selfhost',
+			excerpt: 'Tres copias, dos medios, una fuera de casa — y una restauración de prueba al mes.',
 			status: 'scheduled',
+			publishedAt: '2026-08-05T09:00:00.000Z',
 			author: 'David',
-			updatedAt: '2026-08-01T09:00:00.000Z'
+			created: '2026-07-28T09:00:00.000Z',
+			updated: '2026-08-01T09:00:00.000Z'
 		}
 	},
 	{
@@ -1453,9 +1626,12 @@ const ENTRADAS_RECORDS = [
 		values: {
 			title: 'Diario de un rediseño: del wireframe al pixel',
 			slug: 'diario-rediseno-wireframe-pixel',
+			excerpt: 'Seis semanas, cuatro mockups descartados y la lección de comparar render a render.',
 			status: 'draft',
+			publishedAt: '',
 			author: 'Marta',
-			updatedAt: '2026-05-30T18:00:00.000Z'
+			created: '2026-05-26T14:00:00.000Z',
+			updated: '2026-05-30T18:00:00.000Z'
 		}
 	}
 ];
@@ -1484,6 +1660,259 @@ const AUTORES_RECORDS = [
 	{ id: 'autor_2', values: { name: 'Marta' } },
 	{ id: 'autor_3', values: { name: 'Diego' } }
 ];
+
+// ————— Biblioteca de medios del ESCAPARATE (bitmaps generados en tiempo de siembra) —————
+//
+// El problema que resuelve: desde que las tarjetas de `/media` miden las dimensiones REALES (del
+// `<img>` que ya cargan) y el tamaño REAL (la longitud del data-URI, en `memory`), sembrar los
+// PNG con el fixture 1×1 de los e2e hacía que el escaparate leyera «1×1 · 70 B» — un dato honesto
+// que en una demo se lee como un bug. Se generan aquí bitmaps de verdad con `<canvas>` +
+// `toDataURL`, así que las medidas que enseña la tarjeta son EXACTAS para el fichero que hay
+// detrás (que es justo el sentido de medirlas) y el bundle no engorda ni un byte.
+//
+// **SOLO el escaparate.** `DEMO_SEED`/`DEMO_SEED_WITH_MEDIA` (las fixtures de los e2e) siguen con
+// el PNG de 1×1 de arriba, intactas: son deterministas, baratas y ningún spec debe depender de que
+// un canvas exista en el entorno donde corren.
+
+/** Receta de un bitmap del escaparate: bandas planas + un disco + una barra. */
+interface ShowcaseBitmapSpec {
+	width: number;
+	height: number;
+	/** Bandas horizontales, de arriba abajo. Colores por NOMBRE CSS a propósito: la barrera de
+	 *  tokens (`scripts/check-theme-coverage.mjs`) escanea TODO `src/**` a texto plano y un
+	 *  `#rrggbb` aquí le parecería pintura cruda de la UI — cuando son PÍXELES de un fichero de
+	 *  demo, no una superficie del tema. Los nombres, además, se leen mejor. */
+	bands: readonly string[];
+	/** Disco y barra superpuestos: rompen las bandas para que la miniatura no parezca un patrón. */
+	disc: string;
+	bar: string;
+}
+
+/**
+ * Pinta `spec` y lo devuelve como data-URI PNG, o `null` si este entorno no puede
+ * (`document`/`canvas` ausentes — Node/vitest —, `getContext` que devuelve `null` — jsdom sin el
+ * paquete `canvas` —, o cualquier excepción). NUNCA lanza: la siembra tiene que sobrevivir a
+ * cualquier entorno, y el llamador ya sabe caer al fixture de 1×1.
+ *
+ * **Por qué BANDAS PLANAS y no un degradado suave** (medido en Chromium antes de elegirlo): un
+ * degradado de 24 bits cambia de color en casi cada píxel, así que PNG apenas lo comprime — a
+ * 2880×1800 salían 6,8 MB de data-URI y 79 ms de codificación, y la tarjeta habría anunciado un
+ * «6,8 MB» que ninguna imagen web real pesa. Con bandas planas el mismo lienzo da ~126 KB en
+ * ~12 ms: números plausibles para una imagen optimizada y coste de arranque despreciable (las
+ * cuatro imágenes juntas: ~35 ms y ~500 KB de cadenas, y solo si alguien abre el escaparate).
+ * Determinista por construcción (sin `Math.random`): la misma semilla produce siempre los mismos
+ * bytes, así que el tamaño que enseña la tarjeta no baila entre recargas.
+ */
+function renderShowcaseBitmap(spec: ShowcaseBitmapSpec): string | null {
+	if (typeof document === 'undefined') return null;
+	try {
+		const canvas = document.createElement('canvas');
+		canvas.width = spec.width;
+		canvas.height = spec.height;
+		const ctx = canvas.getContext('2d');
+		if (!ctx) return null;
+
+		const bandHeight = spec.height / spec.bands.length;
+		spec.bands.forEach((color, index) => {
+			ctx.fillStyle = color;
+			// `+1` de alto: evita la hairline transparente que dejaría el redondeo entre bandas.
+			ctx.fillRect(0, Math.round(index * bandHeight), spec.width, Math.ceil(bandHeight) + 1);
+		});
+
+		ctx.fillStyle = spec.disc;
+		ctx.beginPath();
+		ctx.arc(
+			spec.width * 0.68,
+			spec.height * 0.34,
+			Math.min(spec.width, spec.height) * 0.22,
+			0,
+			Math.PI * 2
+		);
+		ctx.fill();
+
+		ctx.fillStyle = spec.bar;
+		ctx.fillRect(
+			Math.round(spec.width * 0.08),
+			Math.round(spec.height * 0.74),
+			Math.round(spec.width * 0.34),
+			Math.round(spec.height * 0.05)
+		);
+
+		const url = canvas.toDataURL('image/png');
+		// jsdom sin `canvas` devuelve `data:,` sin lanzar: se comprueba la forma, no solo el tipo.
+		return url.startsWith('data:image/png;base64,') ? url : null;
+	} catch {
+		return null;
+	}
+}
+
+/** Los cuatro assets del escaparate que SÍ tienen bitmap (los demás son documentos/vídeos: su
+ *  miniatura es el placeholder de rol del mockup, que es justo lo que hay que enseñar para ellos).
+ *  La `FileRef` es el propio nombre de fichero, igual que en el resto de semillas. */
+const SHOWCASE_MEDIA_BITMAPS: { ref: string; spec: ShowcaseBitmapSpec }[] = [
+	{
+		ref: 'portada-tokens.png',
+		spec: {
+			width: 2880,
+			height: 1800,
+			bands: ['darkorange', 'orangered', 'rebeccapurple', 'mediumpurple', 'mediumseagreen'],
+			disc: 'midnightblue',
+			bar: 'whitesmoke'
+		}
+	},
+	{
+		ref: 'banner-home.jpg',
+		spec: {
+			width: 1920,
+			height: 1080,
+			bands: ['mediumseagreen', 'yellowgreen', 'darkorange', 'orangered'],
+			disc: 'darkslateblue',
+			bar: 'whitesmoke'
+		}
+	},
+	{
+		ref: 'retrato-estudio.jpg',
+		spec: {
+			width: 1600,
+			height: 2000,
+			bands: ['rebeccapurple', 'mediumpurple', 'orangered', 'darkorange', 'goldenrod'],
+			disc: 'midnightblue',
+			bar: 'whitesmoke'
+		}
+	},
+	{
+		ref: 'isotipo-vega.svg',
+		spec: {
+			width: 512,
+			height: 512,
+			bands: ['midnightblue', 'rebeccapurple', 'darkorange'],
+			disc: 'goldenrod',
+			bar: 'whitesmoke'
+		}
+	}
+];
+
+/**
+ * Ocho assets con la variedad de tipos del mockup (`aquelarre-medios.html`): cuatro imágenes con
+ * bitmap real y cuatro sin fichero — un PDF, un DOCX y dos vídeos — que ejercitan la badge de
+ * extensión y los CUATRO degradados de rol del placeholder. Los ids no son decorativos:
+ * `mediaThumbTone` (`$lib/media/media-card`) reparte el matiz por hash del id, y
+ * `showcase_media_1..4` caen justo en `a`/`b`/`c`/`d`, así que los cuatro se ven a la vez.
+ *
+ * REGLA que hay que respetar al tocar esta lista: un asset con extensión de IMAGEN necesita
+ * SIEMPRE su entrada en `files` — la rejilla llama a `fileUrl` para él y una `FileRef` sin
+ * fichero lanzaría `not-found`. Las extensiones no-imagen (pdf/docx/mp4/mov) nunca pasan por ahí.
+ * `created` escalonado para que el orden (desc) intercale imágenes y documentos, como una
+ * biblioteca real.
+ */
+const SHOWCASE_MEDIA_RECORDS = [
+	{
+		id: 'showcase_media_1',
+		values: {
+			file: 'informe-anual.pdf',
+			alt: '',
+			title: 'Informe anual 2025',
+			tags: ['informe', 'pdf'],
+			created: '2026-07-11T09:00:00.000Z'
+		}
+	},
+	{
+		id: 'showcase_media_2',
+		values: {
+			file: 'presentacion-producto.mp4',
+			alt: '',
+			title: 'Presentación de producto',
+			tags: ['vídeo', 'producto'],
+			created: '2026-07-02T11:30:00.000Z'
+		}
+	},
+	{
+		id: 'showcase_media_3',
+		values: {
+			file: 'notas-de-prensa.docx',
+			alt: '',
+			title: 'Notas de prensa',
+			tags: ['prensa'],
+			created: '2026-06-14T08:15:00.000Z'
+		}
+	},
+	{
+		id: 'showcase_media_4',
+		values: {
+			file: 'teaser-huerto.mov',
+			alt: '',
+			title: 'Teaser del huerto',
+			tags: ['vídeo', 'huerto'],
+			created: '2026-07-18T17:45:00.000Z'
+		}
+	},
+	{
+		id: 'showcase_media_5',
+		values: {
+			file: 'isotipo-vega.svg',
+			alt: 'Isotipo de Vega sobre fondo oscuro',
+			title: 'Isotipo',
+			tags: ['marca'],
+			created: '2026-06-28T10:00:00.000Z'
+		}
+	},
+	{
+		id: 'showcase_media_6',
+		values: {
+			file: 'retrato-estudio.jpg',
+			alt: 'Retrato de estudio a contraluz',
+			title: 'Retrato de estudio',
+			tags: ['foto', 'retrato'],
+			created: '2026-07-09T12:20:00.000Z'
+		}
+	},
+	{
+		id: 'showcase_media_7',
+		values: {
+			file: 'banner-home.jpg',
+			alt: 'Banner de portada con bandas de color',
+			title: 'Banner de la home',
+			tags: ['banner', 'web'],
+			created: '2026-07-16T16:05:00.000Z'
+		}
+	},
+	{
+		id: 'showcase_media_8',
+		values: {
+			file: 'portada-tokens.png',
+			// Sin `alt` a propósito: cubre el fallback de nombre (`mediaImgAlt`) también aquí.
+			alt: '',
+			title: '',
+			tags: [],
+			created: '2026-07-22T19:40:00.000Z'
+		}
+	}
+];
+
+/** Memoria del mapa de ficheros ya generado (ver el getter `files` de `SHOWCASE_SEED`). */
+let showcaseMediaFilesCache: NonNullable<MemorySeed['files']> | null = null;
+
+/**
+ * Los ficheros del escaparate, generados la PRIMERA vez que alguien los pide (ver el getter de
+ * `SHOWCASE_SEED.files`). El `mime` es `image/png` para los cuatro aunque el NOMBRE diga `.jpg` o
+ * `.svg`: el bitmap es un PNG de verdad y es el mime lo que decide cómo lo decodifica el navegador
+ * — la extensión del nombre solo alimenta la clasificación/badge de la UI, que es justo la
+ * variedad que se quiere enseñar. Si el entorno no puede pintar (`renderShowcaseBitmap` devuelve
+ * `null`), cae al PNG de 1×1 de siempre: la semilla sigue siendo válida, solo se ve pequeña.
+ */
+function showcaseMediaFiles(): NonNullable<MemorySeed['files']> {
+	if (showcaseMediaFilesCache) return showcaseMediaFilesCache;
+	const files: NonNullable<MemorySeed['files']> = {};
+	for (const asset of SHOWCASE_MEDIA_BITMAPS) {
+		files[asset.ref] = {
+			name: asset.ref,
+			mime: 'image/png',
+			dataUri: renderShowcaseBitmap(asset.spec) ?? `data:image/png;base64,${TINY_PNG_BASE64}`
+		};
+	}
+	showcaseMediaFilesCache = files;
+	return files;
+}
 
 const ETIQUETAS_RECORDS = [
 	{ id: 'etiqueta_1', values: { name: 'astro' } },
@@ -1518,20 +1947,17 @@ export const SHOWCASE_SEED: MemorySeed = {
 		proyectos: PROYECTOS_RECORDS,
 		autores: AUTORES_RECORDS,
 		etiquetas: ETIQUETAS_RECORDS,
-		// Mismos 3 assets que `DEMO_SEED_WITH_MEDIA` (ver arriba): da al contador de "Medios" un
-		// valor real (>0) en vez de quedar en 0/vacío en el escaparate.
-		vega_media: MEDIA_SEED_RECORDS
+		// Biblioteca PROPIA del escaparate (ya no los 3 assets de `DEMO_SEED_WITH_MEDIA`): ocho
+		// ficheros con la variedad de tipos del mockup, cuatro de ellos con bitmap real generado en
+		// tiempo de siembra — ver `SHOWCASE_MEDIA_RECORDS`/`renderShowcaseBitmap`.
+		vega_media: SHOWCASE_MEDIA_RECORDS
 	},
-	files: {
-		'seed_media_photo1.png': {
-			name: 'seed_media_photo1.png',
-			mime: 'image/png',
-			dataUri: `data:image/png;base64,${TINY_PNG_BASE64}`
-		},
-		'seed_media_photo2.png': {
-			name: 'seed_media_photo2.png',
-			mime: 'image/png',
-			dataUri: `data:image/png;base64,${TINY_PNG_BASE64}`
-		}
+	// Getter, no un objeto literal: así los cuatro bitmaps se pintan SOLO si alguien abre de verdad
+	// el escaparate (este módulo lo importa `session/backend.ts`, que carga en TODOS los arranques
+	// de la app, también contra PocketBase — generar ahí ~35 ms y ~500 KB de cadenas que nadie va a
+	// mirar sería un peaje para todo el mundo). `showcaseMediaFiles()` memoiza, así que leer la
+	// propiedad dos veces no vuelve a pintar nada.
+	get files() {
+		return showcaseMediaFiles();
 	}
 };

@@ -1,7 +1,7 @@
 /**
  * Regresión del bug de `defaultSort` + `cycleSort` (code-review del lote "match 1:1", 2026-07-24).
  *
- * `SHOWCASE_SEED.entradas` declara `defaultSort: { field: 'updatedAt', dir: 'desc' }`, así que la
+ * `SHOWCASE_SEED.entradas` declara `defaultSort: { field: 'updated', dir: 'desc' }`, así que la
  * lista arranca ordenada por "Actualizado" descendente SIN orden explícito en la URL (la flecha ↓
  * del mockup). El `onSort` de `+page.svelte` debe alimentar `cycleSort` con el orden EXPLÍCITO
  * (`viewState.sort`, `null` mientras solo actúa el `defaultSort`), NO con `effectiveSort` (que ya

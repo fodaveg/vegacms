@@ -182,6 +182,19 @@ export const es = {
 	'editor.previewLink': 'Ver en el sitio',
 	'editor.previewDisabledTitle': 'El borrador no tiene URL pública todavía',
 
+	// ————— Editor «master-detail» (mockup final `aquelarre-detalle-post.html`) —————
+	// Raíl de hermanos (`.rail`), aside de metadatos (`.kv`) y zona de peligro: piezas GENÉRICAS
+	// opt-in del renderer — los rótulos de las tarjetas del aside salen de `fieldGroups` (dato del
+	// manifiesto), así que aquí solo viven los literales que NO son dato de colección.
+	'editor.rail.label': 'Registros de la colección',
+	'editor.meta.title': 'Registro',
+	'editor.meta.id': 'id',
+	'editor.meta.created': 'Creado',
+	'editor.meta.updated': 'Actualizado',
+	'editor.dangerZone.title': 'Zona de peligro',
+	'editor.delete': 'Eliminar {label}…',
+	'editor.slug.regenerate': 'Regenerar',
+
 	// ————— Selector de idioma de contenido (campos traducibles del manifiesto) —————
 	'form.locale.tabsLabel': 'Idioma del contenido',
 	'form.locale.status.error': '{label}: contiene errores',
@@ -386,10 +399,48 @@ export const es = {
 	'media.delete.deleting': 'Borrando…',
 	'media.delete.success': '"{label}" se ha borrado de la biblioteca.',
 
+	// ————— Medios: cabecera + toolbar de la biblioteca (rediseño «aquelarre-medios») —————
+	// El recuento de la cabecera es el TOTAL de la biblioteca (`totalItems` del listado), nunca el
+	// de la página ni el del filtro. El mockup añade además el peso total en MB: Vega no lo sabe
+	// (§4.4, el puerto no expone el tamaño de un fichero ya almacenado) y no se inventa.
+	'media.meta.files': 'archivos',
+	'media.search.placeholder': 'Buscar por nombre de archivo…',
+	'media.search.ariaLabel': 'Buscar en la biblioteca por nombre de archivo',
+	'media.filter.groupLabel': 'Filtrar por tipo',
+	'media.filter.all': 'Todos',
+	'media.filter.images': 'Imágenes',
+	'media.filter.video': 'Vídeo',
+	'media.filter.documents': 'Documentos',
+	'media.filter.empty': 'Ningún archivo de esta página coincide con la búsqueda o el tipo elegido.',
+	'media.filter.clear': 'Limpiar filtros',
+
+	// ————— Medios: barra de selección (rediseño «aquelarre-medios») —————
+	// Sin "Insertar" (ver `MediaSelectionBar.svelte`): insertar en un campo solo existe cuando la
+	// biblioteca se abre como selector desde un formulario (`MediaPicker`).
+	'media.selection.toggle': 'Seleccionar «{label}»',
+	// Dos claves en vez de un "(s)": la barra es la única superficie de la app con este recuento a
+	// la vista (el del picker, `media.picker.selectedCount`, es otro contexto y se queda como está),
+	// así que no compensa montar un motor de plurales — se elige por el número, y punto.
+	'media.selection.labelOne': 'seleccionado',
+	'media.selection.labelMany': 'seleccionados',
+	'media.selection.copy': 'Copiar URL',
+	'media.selection.copySuccess': '{count} URL(s) copiada(s) al portapapeles.',
+	'media.selection.copyError': 'No se pudo copiar al portapapeles.',
+	'media.selection.delete': 'Eliminar',
+	'media.selection.deleteTitle': '¿Borrar {count} archivos de la biblioteca?',
+	'media.selection.deleteSuccess': '{count} archivo(s) borrado(s) de la biblioteca.',
+
 	// ————— Medios: subida drag&drop (Fase P6·6c) —————
 	'media.upload.inputLabel': 'Subir ficheros',
-	'media.upload.dropHint':
-		'Arrastra ficheros aquí o usa el botón de arriba para elegirlos. Puedes seleccionar varios a la vez.',
+	'media.upload.button': 'Subir archivos',
+	// Banda de arrastre (mockup `.dropzone`), troceada porque cada parte se pinta distinta: el
+	// gesto en negrita y el límite en `--mono` (valor canónico). `{max}` sale del esquema REAL de
+	// `vega_media` (`file.maxSizeBytes`), nunca de una constante escrita a mano.
+	'media.upload.dropzoneLead': 'Arrastra archivos aquí o',
+	'media.upload.dropzoneAction': 'haz clic para elegirlos',
+	'media.upload.dropzoneMax': 'máx. {max}',
+	'media.upload.dropzoneMaxSuffix': 'por archivo',
+	'media.upload.retry': 'reintentar',
 	'media.upload.status.pending': 'Pendiente',
 	'media.upload.status.uploading': 'Subiendo…',
 	'media.upload.status.done': 'Subido',
