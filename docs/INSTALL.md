@@ -157,8 +157,20 @@ Vega se distribuye como un **artefacto versionado independiente**, no como códi
 
 1. Descarga el zip de la versión deseada desde la [página de releases](https://github.com/fodaveg/vegacms/releases) (verifica el sha256 si lo necesitas).
 2. **Conserva** cualquier fichero propio que tengas en `pb_public/` y que NO venga de Vega — en particular un `vega.config.json` real (el que apunta a otro backend): el zip no lo incluye y se perdería si borras a ciegas.
-3. Sustituye los ficheros de la SPA (`index.html`, `_app/`, `robots.txt`, `vega.config.example.json`) por los del zip. `pb_data/` no se toca en ningún momento.
+3. Sustituye los ficheros de la SPA (`index.html`, `_app/`, `robots.txt`, `vega.config.example.json`) por los del zip. `pb_data/` no se toca en ningún momento. El zip del release lleva **carpeta contenedora** (`vega-<version>/`), así que la fuente a copiar es su interior, no la raíz del zip (el de `pnpm package`, en cambio, trae el contenido en la raíz).
 4. No hace falta reiniciar PocketBase (solo sirve ficheros estáticos); si acaso, un reinicio es inocuo.
+
+> **Si automatizas este paso, compara por CONTENIDO, no por fecha ni tamaño.** El zip del release es
+> _determinista_: fija el mtime de todos sus ficheros a la época (1980 tras el clamp de `zip`). Y los
+> hashes de Vite son de longitud fija, así que `index.html` **pesa exactamente lo mismo** en dos
+> versiones distintas. La combinación engaña a cualquier herramienta que decida "¿cambió?" por
+> metadatos: `rsync -a` (quick-check = tamaño + mtime) y la sincronización del contexto de build de
+> Docker BuildKit **se saltan `index.html`** mientras sí traen los assets nuevos (nombre nuevo, ruta
+> nueva). El resultado es un `index.html` de la versión anterior apuntando a ficheros que ya no
+> existen: **admin en blanco y 404 en todos los assets**. Usa `rsync --checksum` (o `--ignore-times`)
+> y normaliza los mtimes del árbol copiado (`find <destino> -exec touch {} +`) antes de construir una
+> imagen a partir de él. Comprobación de cierre: que el `index.html` servido referencie el mismo hash
+> que el del zip.
 
 ### Origen aparte (servidor web propio)
 
