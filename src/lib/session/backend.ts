@@ -113,7 +113,11 @@ import {
 	resolveBackendUrl,
 	type VegaConfig
 } from './backend-config';
-import { applyProjectDiscovery, fetchProjectDiscovery } from './project-discovery';
+import {
+	applyProjectDiscovery,
+	fetchProjectDiscovery,
+	type ProjectDiscovery
+} from './project-discovery';
 import { readAuthCollectionOverride, readBackendOverride } from './backend-override';
 import { DEMO_CREDENTIALS, DEMO_SEED, DEMO_SEED_WITH_MEDIA, SHOWCASE_SEED } from './demo-seed';
 
@@ -245,8 +249,33 @@ async function createInstance(): Promise<BackendPort> {
 		url,
 		authCollection,
 		authApiBasePath,
-		manifestKey: projectConfig?.manifestKey
+		manifestKey: projectConfig?.manifestKey,
+		buildApiUrl: resolveBuildApiUrl(url, discovery)
 	});
+}
+
+/**
+ * Resuelve `BackendPort.buildApiUrl` (lote "publicación", fase A): la base ABSOLUTA del
+ * disparador de build, calculada UNA vez aquí (el único sitio que conoce a la vez `url`, la
+ * URL de backend YA resuelta, y `discovery.build`, el `apiBasePath` RELATIVO que declaró el
+ * servidor) para que `backend/build-client.ts` no tenga que repetir esta cuenta ni conocer
+ * `resolveBackendUrl`/`fetchProjectDiscovery`. `discovery`/`discovery.build` ausente ⇒ `null`
+ * (proyecto sin publicación conectada, ver la cabecera de `ProjectDiscovery.build`).
+ *
+ * `apiBasePath` ya viene validado como ruta absoluta (`/api/...`, `apiPath()` en
+ * `project-discovery.ts`), así que `new URL(apiBasePath, url)` reemplaza el path entero de `url`
+ * sin necesitar el truco de la barra final que sí hace falta para la ruta de discovery en sí
+ * (`fetchProjectDiscovery`, `project-discovery.ts` — mismo criterio, documentado ahí).
+ */
+function resolveBuildApiUrl(url: string, discovery: ProjectDiscovery | null): string | null {
+	if (!discovery?.build) return null;
+	try {
+		return new URL(discovery.build.apiBasePath, url).toString();
+	} catch {
+		// `url` inválida no debería llegar aquí (ya pasó por `resolveBackendUrl`), pero degradar en
+		// vez de lanzar es coherente con el resto de este módulo (P3-L3, nunca romper el arranque).
+		return null;
+	}
 }
 
 function useMemoryAdapter(): boolean {

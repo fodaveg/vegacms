@@ -52,6 +52,17 @@ export interface BackendPort {
 	readonly strongAuth?: StrongAuthPort;
 	/** Identidad del registro de manifiesto publicada por el backend; ausente = `default`. */
 	readonly manifestKey?: string;
+	/**
+	 * Base ABSOLUTA (`https://…/api/vega-build`) del disparador de build/despliegue (lote
+	 * "publicación", fase A), ya resuelta contra la URL del backend — ausente/`null` = este
+	 * proyecto no tiene publicación conectada (discovery sin `build`, o adaptador sin noción de
+	 * proyecto real, p.ej. `memory`) y `PublishButton.svelte` (`shell/`) no pinta nada, mismo
+	 * criterio de "capability ausente ⇒ false" que el resto de `Capabilities`. Deliberadamente
+	 * FUERA de `Capabilities`: no es una propiedad del ADAPTADOR (`pocketbase` vanilla nunca la
+	 * tiene) sino del PROYECTO concreto conectado (§`ProjectDiscovery.build`,
+	 * `session/project-discovery.ts`), mismo estatus que `manifestKey` arriba. `backend/
+	 * build-client.ts` es el único consumidor que construye peticiones contra esta URL. */
+	readonly buildApiUrl?: string | null;
 
 	// ——— Auth (§4.1) ———
 	login(credentials: { email: string; password: string }): Promise<Session>;

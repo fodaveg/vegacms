@@ -79,6 +79,10 @@ export interface PocketBaseBackendOptions {
 	authApiBasePath?: string | null;
 	/** Clave estable del registro `vega` que contiene manifiesto y snapshot. */
 	manifestKey?: string;
+	/** Ver `BackendPort.buildApiUrl` (`../../port.ts`): base ABSOLUTA ya resuelta por
+	 *  `session/backend.ts` a partir de `ProjectDiscovery.build`, o `null`/ausente si el proyecto
+	 *  no tiene publicación conectada. Este adaptador no la interpreta, solo la transporta. */
+	buildApiUrl?: string | null;
 }
 
 /** Crea un `BackendPort` sobre un PocketBase real en `url`. */
@@ -86,7 +90,8 @@ export function createPocketBaseBackend({
 	url,
 	authCollection = DEFAULT_AUTH_COLLECTION,
 	authApiBasePath = null,
-	manifestKey = VEGA_PROJECT_KEY
+	manifestKey = VEGA_PROJECT_KEY,
+	buildApiUrl = null
 }: PocketBaseBackendOptions): BackendPort {
 	const pb = new PocketBase(url);
 	// LANDMINE (ver README): el SDK cancela peticiones "duplicadas" en vuelo por defecto. La
@@ -391,6 +396,7 @@ export function createPocketBaseBackend({
 		capabilities: CAPABILITIES,
 		strongAuth,
 		manifestKey: normalizedManifestKey,
+		buildApiUrl,
 
 		async login(credentials) {
 			try {

@@ -10,7 +10,8 @@ const DOCUMENT = {
 	project: { key: 'default', name: 'Fodaveg' },
 	auth: { collection: 'vega_editors', apiBasePath: '/api/vega-auth' },
 	manifest: { collection: 'vega', key: 'fodaveg-main', schemaVersion: 1 },
-	siteSettings: { collection: 'site_settings', key: 'default' }
+	siteSettings: { collection: 'site_settings', key: 'default' },
+	build: { apiBasePath: '/api/vega-build' }
 };
 
 describe('project discovery', () => {
@@ -21,6 +22,28 @@ describe('project discovery', () => {
 	it('rejects unsupported or incomplete documents', () => {
 		expect(parseProjectDiscovery({ ...DOCUMENT, protocolVersion: 2 })).toBeNull();
 		expect(parseProjectDiscovery({ ...DOCUMENT, manifest: { key: 'default' } })).toBeNull();
+	});
+
+	it('reads the additive "build" trigger when the server declares it', () => {
+		expect(parseProjectDiscovery(DOCUMENT)?.build).toEqual({ apiBasePath: '/api/vega-build' });
+	});
+
+	it('degrades "build" to null without rejecting the whole document (legacy/opt-out servers)', () => {
+		// Ausente por completo (servidor anterior a esta enmienda del contrato).
+		const { build: _omitted, ...withoutBuild } = DOCUMENT;
+		expect(parseProjectDiscovery(withoutBuild)).toMatchObject({ build: null });
+		// Explícitamente `null` (el proyecto existe pero no tiene publicación conectada).
+		expect(parseProjectDiscovery({ ...DOCUMENT, build: null })).toMatchObject({ build: null });
+		// Presente pero mal formado: NO invalida el resto del documento (a diferencia de
+		// `siteSettings`), solo el propio campo se trata como ausente.
+		expect(parseProjectDiscovery({ ...DOCUMENT, build: {} })).toMatchObject({ build: null });
+		expect(parseProjectDiscovery({ ...DOCUMENT, build: { apiBasePath: '' } })).toMatchObject({
+			build: null
+		});
+		expect(
+			parseProjectDiscovery({ ...DOCUMENT, build: { apiBasePath: 'not-a-path' } })
+		).toMatchObject({ build: null });
+		expect(parseProjectDiscovery({ ...DOCUMENT, build: 'nope' })).toMatchObject({ build: null });
 	});
 
 	it('loads discovery from the selected backend, not from the Vega origin', async () => {

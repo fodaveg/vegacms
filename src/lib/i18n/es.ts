@@ -41,6 +41,19 @@ export const es = {
 	// `<span role="img">` interior; este describe la ACCIÓN de abrir el menú).
 	'topbar.userMenu.toggle': 'Menú de cuenta',
 
+	// ————— Publicación (lote "publicación", fase A): `PublishButton.svelte` —————
+	// Ausente por completo (§cabecera del componente) si el proyecto conectado no declaró `build`
+	// en su discovery — estas claves solo se pintan cuando la funcionalidad existe de verdad.
+	'topbar.publish.loading': 'Comprobando publicación…',
+	'topbar.publish.running': 'Publicando…',
+	'topbar.publish.failed': 'Reintentar publicación',
+	'topbar.publish.noChanges': 'Sin cambios',
+	'topbar.publish.ok': 'Publicado',
+	'topbar.publish.ready': 'Publicar',
+	'topbar.publish.viewLog': 'Ver registro',
+	'topbar.publish.triggerError': 'No se pudo iniciar la publicación.',
+	'topbar.publish.lastPublished': 'Última publicación: {date}',
+
 	// ————— Login / sesión —————
 	'login.title': 'Acceder a Vega',
 	'login.email': 'Correo electrónico',
@@ -194,6 +207,23 @@ export const es = {
 	'editor.dangerZone.title': 'Zona de peligro',
 	'editor.delete': 'Eliminar {label}…',
 	'editor.slug.regenerate': 'Regenerar',
+
+	// ————— Bloques ordenables embebidos (capacidad `blocks`, lote "editor" Fase A) —————
+	// Reutiliza a propósito claves ya existentes para el resto del ciclo de vida de un bloque:
+	// `editor.save`/`editor.saving`/`editor.saveSuccess` (guardar un bloque es lo mismo que
+	// guardar cualquier registro, solo que en miniatura), `list.delete.rowButton*`/`.confirm*`/
+	// `.success` (borrar un bloque es lo mismo que borrar una fila del listado, mismo diálogo
+	// `DeleteConfirm`) y `list.reorder.handleLabel`/`.error` (el asa de arrastre es la MISMA
+	// pieza que la del listado). Aquí solo viven los literales que no tienen ya una clave.
+	'editor.blocks.add': 'Añadir {label}',
+	'editor.blocks.empty': 'Todavía no hay {label}.',
+	'editor.blocks.expandLabel': 'Desplegar «{label}»',
+	'editor.blocks.collapseLabel': 'Plegar «{label}»',
+	'editor.blocks.reorder.moved': '«{label}» movido a la posición {position} de {total}',
+	'editor.blocks.notice.saveParentFirst': 'Guarda el registro para poder añadir {label}.',
+
+	// ————— Vista previa de tarjeta social (capacidad `social`, lote "editor" Fase B) —————
+	'editor.social.title': 'Vista previa social',
 
 	// ————— Selector de idioma de contenido (campos traducibles del manifiesto) —————
 	'form.locale.tabsLabel': 'Idioma del contenido',

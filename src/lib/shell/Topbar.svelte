@@ -1,8 +1,9 @@
 <script lang="ts">
 	/**
 	 * `Topbar.svelte` (R1 del rediseño C2, mockup `vega-propuesta-C2-cabina-con-aire`): wordmark
-	 * (isotipo Lyra de Vega —`VegaLogo`— + nombre del sitio), `GlobalSearch` CENTRADO, `ConnectionStatus` (pill),
-	 * `DensityToggle` (segmentado), avatar con la inicial de la sesión, logout, y el botón
+	 * (isotipo Lyra de Vega —`VegaLogo`— + nombre del sitio), `GlobalSearch` CENTRADO,
+	 * `PublishButton` (lote "publicación" — sin render si el proyecto no lo tiene), `ConnectionStatus`
+	 * (pill), `DensityToggle` (segmentado), avatar con la inicial de la sesión, logout, y el botón
 	 * hamburguesa (visible solo en móvil, vía CSS) que abre/cierra la `Sidebar`. Landmark
 	 * `header`.
 	 *
@@ -33,6 +34,7 @@
 	import ConnectionStatus from './ConnectionStatus.svelte';
 	import DensityToggle from './DensityToggle.svelte';
 	import GlobalSearch from './GlobalSearch.svelte';
+	import PublishButton from './PublishButton.svelte';
 	import VegaLogo from './VegaLogo.svelte';
 
 	let { sidebarOpen, onToggleSidebar }: { sidebarOpen: boolean; onToggleSidebar: () => void } =
@@ -143,6 +145,9 @@
 	<GlobalSearch />
 
 	<div class="vega-topbar-actions">
+		<!-- Ausente por completo (sin render, ni un botón) si el proyecto no tiene publicación
+		     conectada (`ctx.port.buildApiUrl`) — ver la cabecera de `PublishButton.svelte`. -->
+		<PublishButton />
 		<ConnectionStatus />
 		<DensityToggle />
 		<div class="vega-topbar-user" onfocusout={handleUserFocusOut}>

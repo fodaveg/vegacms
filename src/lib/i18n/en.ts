@@ -34,6 +34,19 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// `<span role="img">`; this one describes the ACTION of opening the menu).
 	'topbar.userMenu.toggle': 'Account menu',
 
+	// ————— Publish ("publication" batch, phase A): `PublishButton.svelte` —————
+	// Absent entirely (see the component header) when the connected project didn't declare
+	// `build` in its discovery — these keys only render when the feature actually exists.
+	'topbar.publish.loading': 'Checking publish status…',
+	'topbar.publish.running': 'Publishing…',
+	'topbar.publish.failed': 'Retry publish',
+	'topbar.publish.noChanges': 'No changes',
+	'topbar.publish.ok': 'Published',
+	'topbar.publish.ready': 'Publish',
+	'topbar.publish.viewLog': 'View log',
+	'topbar.publish.triggerError': 'Could not start the publish.',
+	'topbar.publish.lastPublished': 'Last published: {date}',
+
 	// ————— Login / session —————
 	'login.title': 'Sign in to Vega',
 	'login.email': 'Email',
@@ -184,6 +197,23 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.dangerZone.title': 'Danger zone',
 	'editor.delete': 'Delete {label}…',
 	'editor.slug.regenerate': 'Regenerate',
+
+	// ————— Embedded orderable blocks (`blocks` capability, "editor" batch, Phase A) —————
+	// Deliberately reuses existing keys for the rest of a block's lifecycle:
+	// `editor.save`/`editor.saving`/`editor.saveSuccess` (saving a block is the same as saving
+	// any record, just a miniature of it), `list.delete.rowButton*`/`.confirm*`/`.success`
+	// (deleting a block is the same as deleting a list row, same `DeleteConfirm` dialog) and
+	// `list.reorder.handleLabel`/`.error` (the drag handle is the SAME piece as the list's).
+	// Only literals without an existing key live here.
+	'editor.blocks.add': 'Add {label}',
+	'editor.blocks.empty': 'There are no {label} yet.',
+	'editor.blocks.expandLabel': 'Expand «{label}»',
+	'editor.blocks.collapseLabel': 'Collapse «{label}»',
+	'editor.blocks.reorder.moved': '«{label}» moved to position {position} of {total}',
+	'editor.blocks.notice.saveParentFirst': 'Save the record to be able to add {label}.',
+
+	// ————— Social card preview (`social` capability, "editor" batch, Phase B) —————
+	'editor.social.title': 'Social preview',
 
 	// ————— Content locale selector (manifest-declared localized fields) —————
 	'form.locale.tabsLabel': 'Content language',

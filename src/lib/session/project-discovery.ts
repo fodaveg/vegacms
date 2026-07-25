@@ -22,6 +22,23 @@ export interface ProjectDiscovery {
 		collection: string;
 		key: string;
 	} | null;
+	/**
+	 * Disparador de build/despliegue (lote "publicación", fase A), campo ADITIVO — por eso NO
+	 * sube `PROJECT_DISCOVERY_VERSION` (§"Compatibility policy" de `docs/PROJECT-CONTRACT-v1.md`:
+	 * un campo aditivo es compatible con `protocolVersion` sin cambiar). Ausente/`null`/inválido
+	 * ⇒ el proyecto no tiene publicación conectada y `PublishButton.svelte` no pinta nada (§P3-L3,
+	 * "nunca un dato inventado"): a diferencia de `siteSettings` (arriba), un `build` MAL formado
+	 * NO invalida el documento entero, degrada él solo — es opt-in y un servidor que ya lo declara
+	 * mal no debería tumbar login/manifiesto/auth, que sí son imprescindibles para arrancar.
+	 *
+	 * Deliberadamente NO lleva la URL real del webhook de despliegue (GitHub Actions dispatch,
+	 * deploy hook de Netlify…): eso ES una credencial (quien la tiene dispara builds ajenas) y
+	 * este endpoint es público (`docs/PROJECT-CONTRACT-v1.md#discovery-endpoint`, "must not
+	 * contain credentials, tokens, internal URLs, or other secrets"). El secreto vive detrás de
+	 * `apiBasePath`, en el PocketBase del proyecto, autenticado con el mismo token de editor que
+	 * ya usa Vega (`backend/build-client.ts`).
+	 */
+	build: { apiBasePath: string } | null;
 }
 
 function object(value: unknown): Record<string, unknown> | null {
@@ -82,12 +99,23 @@ export function parseProjectDiscovery(raw: unknown): ProjectDiscovery | null {
 		siteSettings = { collection, key };
 	}
 
+	let build: ProjectDiscovery['build'] = null;
+	if (root.build !== null && root.build !== undefined) {
+		const buildObj = object(root.build);
+		// A diferencia de `siteSettings` (arriba), un `build` presente pero mal formado (no es un
+		// objeto, o su `apiBasePath` no pasa `apiPath()`) degrada SOLO a "sin publicación" — nunca
+		// invalida el documento entero (ver el porqué en la cabecera de `ProjectDiscovery.build`).
+		const buildApiBasePath = apiPath(buildObj?.apiBasePath);
+		if (buildApiBasePath) build = { apiBasePath: buildApiBasePath };
+	}
+
 	return {
 		protocolVersion: 1,
 		project: { key: projectKey, name: projectName },
 		auth: { collection: authCollection, apiBasePath: apiPath(auth.apiBasePath) },
 		manifest: { collection: 'vega', key: manifestKey, schemaVersion },
-		siteSettings
+		siteSettings,
+		build
 	};
 }
 

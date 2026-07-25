@@ -51,3 +51,16 @@ export type { CollectionFieldSpec, CollectionSpec, EnsureResult } from './collec
 export { checkReservedNames, isReservedCollectionName, VEGA_COLLECTION } from './collections';
 
 export type { BackendPort, StrongAuthPort } from './port';
+
+export type {
+	BuildClient,
+	BuildClientOptions,
+	BuildState,
+	BuildStatus,
+	BuildTriggerResult,
+	PollBuildStatusOptions
+} from './build-client';
+export { createBuildClient, parseBuildStatus, pollBuildStatus } from './build-client';
+
+export type { UnpublishedChangesResult } from './unpublished-changes';
+export { detectUnpublishedChanges } from './unpublished-changes';

@@ -175,6 +175,101 @@ Define las reglas de acceso (**Read** y **Write** rules) en PocketBase:
 
 Ver la documentación de PocketBase sobre [rules](https://pocketbase.io/docs/api-rules-and-filters/) para más detalles.
 
+## Publicación: disparador de build
+
+Para sitios `output: 'static'` (Astro y similares), guardar un registro en PocketBase no cambia
+nada en el sitio público hasta que alguien corre el build. Vega puede disparar y vigilar ese build
+desde la topbar (botón "Publicar") si — y solo si — el discovery del proyecto declara `build`
+(§["Build trigger endpoint"](PROJECT-CONTRACT-v1.md#build-trigger-endpoint-optional) del contrato
+de proyecto). Sin ese campo, Vega no pinta nada relacionado: no hay que "desactivar" la
+funcionalidad en ningún sitio, basta con no declararla.
+
+### Por qué no hay un campo `deployWebhookUrl` en la config de Vega
+
+El discovery es un endpoint **público** (lo consulta `/login`, antes de autenticar) y el propio
+contrato prohíbe que contenga secretos. La URL real de un webhook de despliegue (un dispatch de
+GitHub Actions, un deploy hook de Netlify/Vercel…) **es** un secreto: quien la tiene puede disparar
+builds ajenos sin autenticarse contra tu PocketBase. Por eso Vega nunca la conoce: solo conoce
+`apiBasePath`, una ruta PROPIA de tu backend, protegida con el mismo token de editor que ya usa
+para leer/escribir contenido. El secreto real vive detrás de esa ruta, en tu servidor.
+
+### Qué implementar
+
+Dos rutas, bajo el `apiBasePath` que declares en el discovery (recomendado: `/api/vega-build`),
+autenticadas con `Authorization: <token>` (el token de PocketBase, SIN prefijo `Bearer` — la
+convención del propio SDK):
+
+- `POST {apiBasePath}/trigger` → dispara el webhook real (server-to-server, con SU credencial
+  propia, nunca expuesta a Vega) y responde `202` con `{ "id": "<algo que identifique la corrida>" }`.
+- `GET {apiBasePath}/status` → devuelve el estado actual (`state`, `startedAt`, `finishedAt`,
+  `lastPublishedAt`, `logUrl`; forma completa en el contrato de proyecto). `state` es uno de
+  `"idle"`, `"running"`, `"ok"`, `"failed"`. Vega sondea esta ruta mientras `state` sea `"running"`.
+
+Quién puede llamar a `/trigger` lo decide tu backend: lo más simple es exigir el MISMO rol que ya
+usa Vega para editar contenido (`_superusers`, o tu colección `vega_editors` si usas el modo
+editor de más abajo) — así no hay una superficie de permisos nueva que mantener.
+
+### Opción A: extensión Go de PocketBase (recomendada si ya ejecutas PocketBase como app Go)
+
+Mismo patrón que [`extensions/vegaauth`](../extensions/vegaauth/README.md): un módulo Go que
+registra dos rutas custom sobre el `core.App` de PocketBase. Boceto ilustrativo (no un paquete
+listo para importar — cada proyecto dispara su build de forma distinta):
+
+```go
+func registerBuildRoutes(app core.App, se *core.ServeEvent, secretWebhookURL string) {
+	group := se.Router.Group("/api/vega-build")
+	group.Bind(apis.RequireAuth()) // cualquier colección auth válida sirve de gate mínimo
+
+	group.POST("/trigger", func(re *core.RequestEvent) error {
+		id, err := triggerRealWebhook(secretWebhookURL) // tu lógica: POST server-to-server,
+		if err != nil {                                  // firmado con TU secreto, nunca el de Vega
+			return apis.NewBadRequestError("no se pudo disparar el build", err)
+		}
+		saveRunState(app, id, "running", time.Now())
+		return re.JSON(http.StatusAccepted, map[string]string{"id": id})
+	})
+
+	group.GET("/status", func(re *core.RequestEvent) error {
+		return re.JSON(http.StatusOK, loadRunState(app))
+	})
+}
+```
+
+`triggerRealWebhook`/`saveRunState`/`loadRunState` son tuyos: el estado puede vivir en una
+colección PocketBase propia (p. ej. `vega_build_runs`, con reglas de acceso que solo el rol editor
+pueda leer) o en memoria si un solo proceso PocketBase basta. Actualiza `state`/`finishedAt`/
+`lastPublishedAt` cuando tu pipeline de build (GitHub Actions, Netlify…) te avise de que terminó —
+un webhook de VUELTA desde el CI hacia PocketBase, o un poll interno tuyo contra su API, según lo
+que ya tengas montado.
+
+### Opción B: proxy delgado delante de tu webhook real
+
+Si no ejecutas PocketBase como aplicación Go (usas el binario prebuilt sin extensiones), monta un
+servicio pequeño aparte (una función serverless, un Worker de Cloudflare, un endpoint de tu propio
+backend si ya tienes uno) que:
+
+1. Valide el token de PocketBase que llega en `Authorization` contra tu instancia
+   (`POST {backendUrl}/api/collections/{authCollection}/auth-refresh` con ese mismo header — un
+   `200` confirma que el token es válido y de quién es).
+2. Si es válido, dispare el webhook real (con SU propio secreto, guardado en el proxy, nunca en
+   Vega ni en PocketBase) y lleve la cuenta del estado (en su propia base de datos, o consultando
+   la API del proveedor de CI/deploy si esta expone el estado de la corrida).
+3. Sirva `/trigger` y `/status` con la misma forma que la Opción A.
+
+El `apiBasePath` del discovery puede apuntar a un origen DISTINTO del propio PocketBase si hace
+falta (es una URL relativa resuelta contra `backendUrl`, así que si el proxy vive en otro dominio,
+usa la variante same-origin poniendo el proxy detrás del mismo reverse proxy que sirve PocketBase,
+o documenta CORS igual que en la sección de arriba).
+
+### Verificación
+
+- `GET {apiBasePath}/status` sin build previo responde `{"state":"idle", ...}` con el resto de
+  campos a `null`.
+- Un `POST {apiBasePath}/trigger` sin `Authorization` (o con un token de otra colección sin
+  permiso) responde `401`/`403`, nunca dispara el webhook real.
+- Tras un `trigger()`, el botón "Publicar" de la topbar pasa a "Publicando…" y deja de poder
+  pulsarse hasta que `/status` reporte un estado distinto de `"running"`.
+
 ## Miniaturas (thumbnails)
 
 PocketBase genera y sirve miniaturas **solo para los tamaños declarados explícitamente** en la opción **Thumb sizes** (`thumbs`) de cada campo `file`. Si Vega pide un tamaño no declarado, PB responde **200 con el fichero original a tamaño completo** (sin error, sin imagen rota) — un coste silencioso de ancho de banda y memoria que no se detecta a simple vista.

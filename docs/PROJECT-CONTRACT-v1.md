@@ -54,6 +54,75 @@ falls back to its existing static/runtime configuration. An explicit
 per-browser auth override still wins, so an operator can recover from an
 incorrect server document.
 
+## Build trigger endpoint (optional)
+
+Static sites (`output: 'static'`, e.g. Astro) don't reflect a saved record until
+someone runs a build by hand. Discovery can advertise a bridge for that,
+entirely inside the project's own PocketBase — Vega never learns the real
+deploy webhook (a GitHub Actions dispatch URL, a Netlify deploy hook…): that
+URL is a credential, and the discovery endpoint above is public. Add an
+ADDITIVE `build` object:
+
+```json
+{
+	"build": { "apiBasePath": "/api/vega-build" }
+}
+```
+
+Omit `build`, or set it to `null`, when the project has no publish step to
+trigger — Vega then renders nothing about publishing (the "Publish" control in
+the shell chrome). Because this field is additive, it does not require a
+`protocolVersion` bump (see "Compatibility policy" below): a server that adds
+`build` to an existing discovery document stays fully compatible with older
+Vega builds, which simply ignore the unknown key.
+
+`apiBasePath` must follow the same `/api/...` absolute-path shape as
+`auth.apiBasePath`. Behind it, the project exposes two routes, authenticated
+with the SAME editor token Vega already sends to the rest of its own
+PocketBase API (`Authorization: <token>`, no `Bearer` prefix — the PocketBase
+SDK convention):
+
+```http
+POST {apiBasePath}/trigger
+Authorization: <token>
+```
+
+Returns `202` with a JSON body `{ "id": "<string>" }` identifying the
+triggered run. Any other status, or a body without a non-empty `id`, is
+treated as a failed trigger.
+
+```http
+GET {apiBasePath}/status
+Authorization: <token>
+```
+
+Returns `200` with:
+
+```json
+{
+	"state": "idle",
+	"startedAt": null,
+	"finishedAt": null,
+	"lastPublishedAt": "2026-07-20T09:00:00.000Z",
+	"logUrl": null
+}
+```
+
+- `state`: one of `"idle"`, `"running"`, `"ok"`, `"failed"`. Vega polls this
+  endpoint while `state` is `"running"` and stops as soon as it sees any other
+  value.
+- `startedAt`/`finishedAt`: ISO 8601 UTC of the CURRENT or LAST run, or `null`.
+- `lastPublishedAt`: ISO 8601 UTC of the last run that finished with
+  `state: "ok"`, or `null` if none ever did. Vega compares this timestamp
+  against recently edited records to flag unpublished changes.
+- `logUrl`: an absolute URL to inspect the run's log (a CI job, a deploy
+  log…), or `null`. Vega only links to it when `state` is `"failed"`.
+
+Vega never stores or exposes the real deploy webhook; the project's own
+backend owns that secret and decides how `/trigger` reaches it. See
+[PocketBase integration](POCKETBASE-INTEGRATION.md#publicación-disparador-de-build)
+for an implementation recipe (a PocketBase Go extension or a thin proxy).
+
 ## Canonical `vega` record
 
 Protocol v1 recommends one record selected by `key = "default"`, with a unique
