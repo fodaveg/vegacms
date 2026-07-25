@@ -147,6 +147,28 @@
 						"description": "true ⇒ el editor de un registro pinta a su izquierda el raíl con los registros hermanos de la colección (la lista sigue presente mientras editas). Sin esta clave (o false), el editor no pinta raíl.",
 						"type": "boolean"
 					},
+					"social": {
+						"description": "Vista previa de tarjeta social (SEO/Open Graph): mapeo de qué campo de esta colección es el título/descripción/imagen social, más una plantilla de URL opcional (mismos placeholders {campo}/{id} que previewUrl; sin ella hereda el previewUrl del tipo). Cada clave es opcional y degrada por separado. Presente (aunque sea {}) activa la tarjeta en el aside del editor; sin esta clave, el editor no la pinta.",
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"titleField": { "type": "string", "minLength": 1 },
+							"descriptionField": { "type": "string", "minLength": 1 },
+							"imageField": { "type": "string", "minLength": 1 },
+							"urlTemplate": { "type": "string", "pattern": "^https?://" }
+						}
+					},
+					"blocks": {
+						"description": "Bloques ordenables embebidos: la colección hija cuyos registros son 'secciones' de este registro (p. ej. una landing hecha de bloques), el campo relation de esa hija que apunta de vuelta a este tipo y el campo numérico que los ordena. El editor pinta una lista embebida con crear/reordenar/plegar/borrar, sin salir del registro. Sin esta clave, el editor no pinta ninguna lista de bloques.",
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["collection", "parentField", "orderField"],
+						"properties": {
+							"collection": { "type": "string", "minLength": 1 },
+							"parentField": { "type": "string", "minLength": 1 },
+							"orderField": { "type": "string", "minLength": 1 }
+						}
+					},
 					"localizedFields": {
 						"description": "Campos lógicos traducibles. Cada entrada mapea un mismo campo editorial a sus campos físicos por idioma.",
 						"type": "object",

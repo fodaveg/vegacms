@@ -149,6 +149,85 @@ export interface ResolvedContentType {
 	 * declarados en `fields`; el resto del formulario permanece visible y compartido.
 	 */
 	localization?: ResolvedLocalization | null;
+	/**
+	 * (M) Bloques ordenables embebidos (lote "editor", Fase A): la colección HIJA cuyos registros
+	 * son "secciones" de este tipo (p. ej. una landing hecha de bloques) — PocketBase no tiene
+	 * repeaters, así que esta es la única forma de modelar una secuencia dentro de un registro.
+	 * `null` (default) ⇒ el editor no pinta ninguna lista de bloques, comportamiento histórico
+	 * intacto. SOLO manifiesto, sin autodetección — mismo criterio opt-in que `orderField`/
+	 * `slugField`: nada en el nombre de una colección o campo hace de esto una convención. Ver
+	 * `ResolvedBlocksConfig` para el detalle de las tres piezas y su validación cruzada contra el
+	 * esquema de la colección hija.
+	 *
+	 * `?:` (opcional, no solo `| null`) a propósito, MISMO criterio que `localization` arriba:
+	 * `resolveContentType` SIEMPRE la escribe (nunca queda `undefined` en un `ContentModel` real),
+	 * pero marcarla opcional evita que cada fixture de test que construye un `ResolvedContentType`
+	 * a mano en otras partes del repo (listado, widgets…) tenga que enumerar esta clave nueva.
+	 */
+	blocks?: ResolvedBlocksConfig | null;
+	/**
+	 * (M) Vista previa de tarjeta social (SEO/OG, lote "editor", Fase B): el mapeo de qué campo de
+	 * ESTE tipo alimenta el título/descripción/imagen social + la URL pública de la tarjeta. `null`
+	 * (default) ⇒ el editor no pinta ninguna tarjeta, comportamiento histórico intacto. A
+	 * diferencia de `blocks` (todo o nada), CADA pieza degrada de forma INDEPENDIENTE — una
+	 * declaración con solo `imageField` válido sigue mostrando la tarjeta, sin descripción/con el
+	 * título por convención (§4.4). Ver `ResolvedSocialCardConfig`.
+	 *
+	 * `?:` por el mismo motivo que `blocks`/`localization` arriba (compatibilidad de fixtures).
+	 */
+	social?: ResolvedSocialCardConfig | null;
+}
+
+/**
+ * (M) Declaración ya validada de `collections.<c>.social` (lote "editor", Fase B): el mapeo de
+ * campos que alimentan la vista previa de tarjeta social (SEO/Open Graph) de un registro. Cada
+ * pieza se valida y degrada de forma INDEPENDIENTE (a diferencia de `ResolvedBlocksConfig`): la
+ * presencia de la CLAVE `social` en el manifiesto (aunque sea `{}`) es lo único opt-in — activa la
+ * tarjeta en el aside del editor — y a partir de ahí cada campo que falte o no valide simplemente
+ * no se pinta (imagen sin marco roto, descripción ausente sin hueco vacío), nunca invalida el
+ * resto (`resolveSocialCard`, `resolve.ts`).
+ */
+export interface ResolvedSocialCardConfig {
+	/** (M, cascada) Campo de título social: manifiesto > `titleField` resuelto del tipo (§4.4) >
+	 *  `null`. Mismo criterio "representable" (`text`/`email`/`url`) que `titleField`/`slugField`:
+	 *  se EDITA/pinta como texto plano, nunca se deriva de una fecha o un número. */
+	titleField: string | null;
+	/** (M) Campo de descripción social: `text`/`richtext` (contenido escrito por el editor), o
+	 *  `null` sin descripción — SIN fallback (a diferencia de `titleField`, no existe una
+	 *  convención Vega de "el campo descripción" a la que caer). */
+	descriptionField: string | null;
+	/** (M) Campo `file` NO múltiple con la imagen social (una tarjeta social tiene UNA imagen, no
+	 *  una galería), o `null` sin imagen — SIN fallback, mismo motivo que `descriptionField`. */
+	imageField: string | null;
+	/** (M, cascada) Plantilla de URL pública de la tarjeta: reusa la MISMA maquinaria de
+	 *  placeholders `{campo}`/`{id}` que `previewUrl` (`preview-url.ts`, §4.7) — manifiesto propio
+	 *  de `social` > `previewUrl` ya resuelto del tipo > `null`. Una tarjeta social casi siempre
+	 *  enlaza al mismo sitio público que "Ver en el sitio", de ahí el fallback. */
+	urlTemplate: string | null;
+}
+
+/**
+ * (M) Declaración ya validada de `collections.<c>.blocks` (lote "editor", Fase A): la colección
+ * hija de bloques + los dos campos que la anclan a ESTE tipo padre. Las tres piezas se validan
+ * juntas contra el esquema REAL (nunca solo la forma JSON, ver `resolveBlocks` en `resolve.ts`):
+ * `collection` debe existir en el esquema descubierto, `parentField` debe ser un campo `relation`
+ * de esa colección hija que apunte de vuelta a este tipo (no-múltiple: un bloque pertenece a UN
+ * padre, nunca se comparte entre varios) y `orderField` debe ser un campo `number` de la misma
+ * colección hija. Cualquiera de las tres inválida invalida la capacidad ENTERA (`blocks-invalid`,
+ * `null`) — no hay "bloques a medias": sin las tres piezas no hay ni colección que listar, ni
+ * campo por el que filtrar, ni campo por el que ordenar.
+ */
+export interface ResolvedBlocksConfig {
+	/** Nombre de la colección hija en el backend (= `ResolvedContentType.name` de los bloques). */
+	collection: string;
+	/** Campo `relation` (no-múltiple) de la colección hija que apunta de vuelta a este tipo. El
+	 *  editor lo escribe al crear un bloque nuevo (`{ [parentField]: idDelPadre }`) y lo mantiene
+	 *  oculto en el mini-formulario del bloque: es estructural, no contenido editorial. */
+	parentField: string;
+	/** Campo `number` de la colección hija que ordena los bloques dentro de ESTE padre (mismo
+	 *  vocabulario que `orderField` a nivel de colección, §"orden manual"): el reorder por
+	 *  arrastre/teclado de la lista embebida lo escribe, nunca lo pinta el mini-formulario. */
+	orderField: string;
 }
 
 export interface ResolvedLocale {
@@ -323,6 +402,11 @@ export type WarningCode =
 	| 'list-field-unknown' // listFields con campo inexistente → se omite
 	| 'icon-unknown' // icono fuera del set → null
 	| 'singleton-invalid' // singleton sobre un tipo readonly (view) → ignorado
+	| 'blocks-invalid' // blocks con colección/parentField/orderField inválido → capacidad ignorada
+	| 'social-title-field-invalid' // social.titleField inexistente o no representable → cascada a titleField
+	| 'social-description-field-invalid' // social.descriptionField inexistente o no texto/richtext → null
+	| 'social-image-field-invalid' // social.imageField inexistente o no file no-múltiple → null
+	| 'social-url-invalid' // social.urlTemplate con placeholder desconocido o no escalar → cascada a previewUrl
 	| 'multiple-vega-records' // la colección vega tiene >1 registros (lo emite load, §6.2)
 	// ————— mergedViews (L7a) —————
 	| 'merged-view-invalid' // 0 sources válidas → la vista fusionada entera se descarta

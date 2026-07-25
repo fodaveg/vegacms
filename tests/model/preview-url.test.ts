@@ -6,7 +6,11 @@
 import { describe, expect, test } from 'vitest';
 import type { VegaRecord } from '$lib/backend/types';
 import type { ResolvedContentType } from '$lib/model/types';
-import { buildPreviewUrl, validatePreviewUrlPlaceholders } from '$lib/model/preview-url';
+import {
+	buildPreviewUrl,
+	buildUrlFromTemplate,
+	validatePreviewUrlPlaceholders
+} from '$lib/model/preview-url';
 import { postFields } from './fixture';
 
 describe('validatePreviewUrlPlaceholders (§4.7)', () => {
@@ -107,5 +111,31 @@ describe('buildPreviewUrl (§2/§4.7)', () => {
 		const type = makeResolvedType('https://example.com/posts/{rating}');
 		const record: VegaRecord = { id: 'r1', type: 'post', values: { rating: 0 } };
 		expect(buildPreviewUrl(type, record)).toBe('https://example.com/posts/0');
+	});
+});
+
+// ————— buildUrlFromTemplate (Fase B, tarjeta social: social.urlTemplate) —————
+//
+// MISMA sustitución que `buildPreviewUrl` (reusada, no reimplementada — ver cabecera del módulo),
+// solo que sobre una plantilla explícita en vez de `type.previewUrl`: los casos ya cubiertos por
+// `buildPreviewUrl` de arriba (encodeURIComponent, {id} vs values, vacío → null, 0 no es vacío) no
+// se repiten uno a uno; aquí solo se comprueba que la MISMA función queda expuesta con una
+// plantilla propia y que `template: null` degrada igual que `type.previewUrl: null`.
+describe('buildUrlFromTemplate (Fase B, §4.7 reusado)', () => {
+	test('template null → null', () => {
+		const record: VegaRecord = { id: 'r1', type: 'post', values: { title: 'X' } };
+		expect(buildUrlFromTemplate(null, record)).toBeNull();
+	});
+
+	test('sustituye {id}/{campo} igual que buildPreviewUrl, con una plantilla propia', () => {
+		const record: VegaRecord = { id: 'r-99', type: 'post', values: { title: 'Café & Té' } };
+		expect(buildUrlFromTemplate('https://x.test/og/{id}/{title}', record)).toBe(
+			`https://x.test/og/r-99/${encodeURIComponent('Café & Té')}`
+		);
+	});
+
+	test('placeholder vacío → null (mismo criterio que buildPreviewUrl)', () => {
+		const record: VegaRecord = { id: 'r1', type: 'post', values: { title: '' } };
+		expect(buildUrlFromTemplate('https://x.test/og/{title}', record)).toBeNull();
 	});
 });

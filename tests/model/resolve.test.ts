@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
-import type { JsonValue } from '$lib/backend/types';
+import type { ContentType, JsonValue } from '$lib/backend/types';
 import { WIDGET_IDS } from '$lib/model/types';
 import { resolveContentModel } from '$lib/model/resolve';
 import {
@@ -1764,6 +1764,508 @@ describe('14. Colisión de namespace mergedViews vs collections (L7e)', () => {
 		expect(model.warnings).toEqual([]);
 		expect(model.mergedViews).toHaveLength(1);
 		expect(model.mergedViews[0].id).toBe('destacados_home');
+	});
+});
+
+// ————— 15. blocks: bloques ordenables embebidos (lote "editor" Fase A) —————
+
+// Fixture LOCAL, deliberadamente fuera de `kitchenSinkTypes` (`./fixture.ts`): `blocks` necesita
+// una colección hija con una relation NO-múltiple de vuelta al padre + un campo numérico, y tocar
+// el fixture compartido para añadir eso arrastraría el riesgo de descuadrar la enorme batería de
+// tests que ya lo usan (cardinalidad de `kitchenSinkTypes`, campos concretos de `post`/`category`…
+// ver el describe "fixture" más abajo). `landing`/`landing_block` son un caso mínimo y realista:
+// una landing hecha de secciones, exactamente el ejemplo del lote.
+const landingType: ContentType = {
+	name: 'landing',
+	readonly: false,
+	fields: [
+		{
+			name: 'title',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: true,
+			hidden: false,
+			unique: false
+		}
+	]
+};
+
+const landingBlockType: ContentType = {
+	name: 'landing_block',
+	readonly: false,
+	fields: [
+		{
+			name: 'parent',
+			type: 'relation',
+			target: 'landing',
+			multiple: false,
+			required: true,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		// Relación de vuelta a `landing`, pero MÚLTIPLE — usada para probar que `multiple: true` se
+		// rechaza aunque el `target` sea el correcto (ver `resolveBlocks`, decisión de diseño).
+		{
+			name: 'parents',
+			type: 'relation',
+			target: 'landing',
+			multiple: true,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'sort',
+			type: 'number',
+			integer: true,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'heading',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: true,
+			hidden: false,
+			unique: false
+		}
+	]
+};
+
+const blocksTypes: ContentType[] = [landingType, landingBlockType];
+
+describe('15. blocks: bloques ordenables embebidos (lote "editor" Fase A)', () => {
+	test('declaración válida → se resuelve, sin warnings', () => {
+		const model = resolveContentModel({
+			types: blocksTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					landing: {
+						blocks: { collection: 'landing_block', parentField: 'parent', orderField: 'sort' }
+					}
+				}
+			}
+		});
+		expect(model.warnings).toEqual([]);
+		expect(model.types.find((t) => t.name === 'landing')!.blocks).toEqual({
+			collection: 'landing_block',
+			parentField: 'parent',
+			orderField: 'sort'
+		});
+	});
+
+	test('sin blocks en el manifiesto → null, SIN warning (opt-in, sin autodetección)', () => {
+		const model = resolveContentModel({
+			types: blocksTypes,
+			manifestRaw: { schemaVersion: 1, collections: { landing: {} } }
+		});
+		expect(model.types.find((t) => t.name === 'landing')!.blocks).toBeNull();
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('forma inválida (falta una clave) → manifest-invalid-key, blocks null', () => {
+		const model = resolveContentModel({
+			types: blocksTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { landing: { blocks: { collection: 'landing_block', parentField: 'parent' } } }
+			}
+		});
+		expect(model.types.find((t) => t.name === 'landing')!.blocks).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'manifest-invalid-key', path: '/collections/landing/blocks' })
+		]);
+	});
+
+	test('colección hija inexistente → blocks-invalid (collection), blocks null', () => {
+		const model = resolveContentModel({
+			types: blocksTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					landing: {
+						blocks: { collection: 'nope', parentField: 'parent', orderField: 'sort' }
+					}
+				}
+			}
+		});
+		expect(model.types.find((t) => t.name === 'landing')!.blocks).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'blocks-invalid',
+				collection: 'landing',
+				path: '/collections/landing/blocks/collection'
+			})
+		]);
+	});
+
+	test('colección hija reservada (vega_*) → blocks-invalid (collection)', () => {
+		const model = resolveContentModel({
+			types: [...blocksTypes, vegaMediaType],
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					landing: {
+						blocks: { collection: 'vega_media', parentField: 'parent', orderField: 'sort' }
+					}
+				}
+			}
+		});
+		expect(model.types.find((t) => t.name === 'landing')!.blocks).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'blocks-invalid',
+				path: '/collections/landing/blocks/collection'
+			})
+		]);
+	});
+
+	test('parentField inexistente → blocks-invalid (parentField)', () => {
+		const model = resolveContentModel({
+			types: blocksTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					landing: {
+						blocks: { collection: 'landing_block', parentField: 'nope', orderField: 'sort' }
+					}
+				}
+			}
+		});
+		expect(model.types.find((t) => t.name === 'landing')!.blocks).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'blocks-invalid',
+				path: '/collections/landing/blocks/parentField'
+			})
+		]);
+	});
+
+	test('parentField que no es relation → blocks-invalid (parentField)', () => {
+		const model = resolveContentModel({
+			types: blocksTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					landing: {
+						blocks: { collection: 'landing_block', parentField: 'heading', orderField: 'sort' }
+					}
+				}
+			}
+		});
+		expect(model.types.find((t) => t.name === 'landing')!.blocks).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'blocks-invalid',
+				path: '/collections/landing/blocks/parentField'
+			})
+		]);
+	});
+
+	test('parentField relation pero MÚLTIPLE → blocks-invalid (parentField, un bloque = un padre)', () => {
+		const model = resolveContentModel({
+			types: blocksTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					landing: {
+						blocks: { collection: 'landing_block', parentField: 'parents', orderField: 'sort' }
+					}
+				}
+			}
+		});
+		expect(model.types.find((t) => t.name === 'landing')!.blocks).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'blocks-invalid',
+				path: '/collections/landing/blocks/parentField'
+			})
+		]);
+	});
+
+	test('parentField relation a OTRA colección (no la que se resuelve) → blocks-invalid', () => {
+		// `category` existe en el esquema pero `landing_block.parent` apunta a `landing`, no a ella:
+		// declarar `blocks` sobre `category` reusando el mismo `parentField` debe rechazarse.
+		const model = resolveContentModel({
+			types: [...blocksTypes, categoryType],
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					category: {
+						blocks: { collection: 'landing_block', parentField: 'parent', orderField: 'sort' }
+					}
+				}
+			}
+		});
+		expect(model.types.find((t) => t.name === 'category')!.blocks).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'blocks-invalid',
+				path: '/collections/category/blocks/parentField'
+			})
+		]);
+	});
+
+	test('orderField inexistente o no numérico → blocks-invalid (orderField)', () => {
+		const missing = resolveContentModel({
+			types: blocksTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					landing: {
+						blocks: { collection: 'landing_block', parentField: 'parent', orderField: 'nope' }
+					}
+				}
+			}
+		});
+		expect(missing.types.find((t) => t.name === 'landing')!.blocks).toBeNull();
+		expect(missing.warnings).toEqual([
+			expect.objectContaining({
+				code: 'blocks-invalid',
+				path: '/collections/landing/blocks/orderField'
+			})
+		]);
+
+		const notNumeric = resolveContentModel({
+			types: blocksTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					landing: {
+						blocks: { collection: 'landing_block', parentField: 'parent', orderField: 'heading' }
+					}
+				}
+			}
+		});
+		expect(notNumeric.types.find((t) => t.name === 'landing')!.blocks).toBeNull();
+		expect(notNumeric.warnings).toEqual([
+			expect.objectContaining({
+				code: 'blocks-invalid',
+				path: '/collections/landing/blocks/orderField'
+			})
+		]);
+	});
+
+	test('determinismo (L1): mismo input → mismo output (deepEqual)', () => {
+		const manifestRaw: JsonValue = {
+			schemaVersion: 1,
+			collections: {
+				landing: {
+					blocks: { collection: 'landing_block', parentField: 'parent', orderField: 'sort' }
+				}
+			}
+		};
+		const a = resolveContentModel({ types: blocksTypes, manifestRaw });
+		const b = resolveContentModel({ types: blocksTypes, manifestRaw });
+		expect(a).toEqual(b);
+	});
+});
+
+// ————— 16. social: tarjeta social SEO/OG (lote "editor" Fase B) —————
+
+// A diferencia de `blocks`, `social` solo mira el PROPIO tipo (sin colección hija) → cabe sin
+// problema en el kitchen-sink (`post`, con text/richtext/file simple/file múltiple/number, todo lo
+// que hace falta para probar las cuatro piezas y sus fallos).
+describe('16. social: tarjeta social SEO/OG (lote "editor" Fase B)', () => {
+	test('sin social en el manifiesto → null, SIN warning (opt-in)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, collections: { post: {} } }
+		});
+		expect(model.types.find((t) => t.name === 'post')!.social).toBeNull();
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('social: {} (presente pero vacío) → activa la tarjeta con la cascada por defecto', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { post: { titleField: 'title', social: {} } }
+			}
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		// Cascadas (ver ResolvedSocialCardConfig): título → titleField del tipo; descripción/imagen
+		// sin fallback; url → previewUrl del tipo (aquí tampoco declarado) → null.
+		expect(post.social).toEqual({
+			titleField: 'title',
+			descriptionField: null,
+			imageField: null,
+			urlTemplate: null
+		});
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('las cuatro piezas declaradas y válidas → se resuelven tal cual, sin warnings', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					post: {
+						social: {
+							titleField: 'excerpt',
+							descriptionField: 'content', // richtext también vale (contenido escrito)
+							imageField: 'cover', // file NO múltiple
+							urlTemplate: 'https://fodaveg.net/blog/{title}'
+						}
+					}
+				}
+			}
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.social).toEqual({
+			titleField: 'excerpt',
+			descriptionField: 'content',
+			imageField: 'cover',
+			urlTemplate: 'https://fodaveg.net/blog/{title}'
+		});
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('titleField inválido → social-title-field-invalid, cascada al titleField del tipo', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				// `rating` es numérico, no representable como título (§4.4).
+				collections: { post: { titleField: 'title', social: { titleField: 'rating' } } }
+			}
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.social?.titleField).toBe('title'); // cascada, NO null
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'social-title-field-invalid',
+				path: '/collections/post/social/titleField'
+			})
+		]);
+	});
+
+	test('descriptionField que no es texto/richtext → social-description-field-invalid, SIN fallback (null)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { post: { social: { descriptionField: 'rating' } } }
+			}
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.social?.descriptionField).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'social-description-field-invalid',
+				path: '/collections/post/social/descriptionField'
+			})
+		]);
+	});
+
+	test('imageField que es file MÚLTIPLE → social-image-field-invalid (una tarjeta = una imagen)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { post: { social: { imageField: 'gallery' } } } // gallery: file multiple:true
+			}
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.social?.imageField).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'social-image-field-invalid',
+				path: '/collections/post/social/imageField'
+			})
+		]);
+	});
+
+	test('imageField que no es file → social-image-field-invalid', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { post: { social: { imageField: 'title' } } }
+			}
+		});
+		expect(model.types.find((t) => t.name === 'post')!.social?.imageField).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'social-image-field-invalid' })
+		]);
+	});
+
+	test('urlTemplate con placeholder inexistente → social-url-invalid, cascada al previewUrl del tipo', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					post: {
+						previewUrl: 'https://fodaveg.net/blog/{title}',
+						social: { urlTemplate: 'https://fodaveg.net/blog/{nope}' }
+					}
+				}
+			}
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.social?.urlTemplate).toBe('https://fodaveg.net/blog/{title}'); // cascada, NO null
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'social-url-invalid',
+				path: '/collections/post/social/urlTemplate'
+			})
+		]);
+	});
+
+	test('urlTemplate propio válido: gana sobre el previewUrl del tipo (no cae a la cascada)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					post: {
+						previewUrl: 'https://fodaveg.net/blog/{title}',
+						social: { urlTemplate: 'https://fodaveg.net/og/{id}' }
+					}
+				}
+			}
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.social?.urlTemplate).toBe('https://fodaveg.net/og/{id}');
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('social no-objeto → manifest-invalid-key, capacidad OFF (null, no un objeto a medias)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, collections: { post: { social: 'nope' } } }
+		});
+		expect(model.types.find((t) => t.name === 'post')!.social).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'manifest-invalid-key', path: '/collections/post/social' })
+		]);
+	});
+
+	test('determinismo (L1): mismo input → mismo output (deepEqual)', () => {
+		const manifestRaw: JsonValue = {
+			schemaVersion: 1,
+			collections: {
+				post: { social: { titleField: 'excerpt', imageField: 'cover' } }
+			}
+		};
+		const a = resolveContentModel({ types: kitchenSinkTypes, manifestRaw });
+		const b = resolveContentModel({ types: kitchenSinkTypes, manifestRaw });
+		expect(a).toEqual(b);
 	});
 });
 

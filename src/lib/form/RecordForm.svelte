@@ -192,6 +192,8 @@
 	import { slugify } from '$lib/model/slugify';
 	import Icon from '$lib/icons/Icon.svelte';
 	import EditTopBar from '$lib/shell/EditTopBar.svelte';
+	import RecordBlocks from './RecordBlocks.svelte';
+	import SocialCardPreview from './SocialCardPreview.svelte';
 	import { buildFormModel, type FormModel } from './form-model';
 	import { buildFormSections, localeForField, type FormSection } from './form-sections';
 	import { autodateInstant, autodateText } from './record-meta';
@@ -247,6 +249,12 @@
 	let backendErrors = $state<FieldErrorsView>(EMPTY_ERRORS);
 	let saving = $state(false);
 	let activeLocale = $state(untrack(() => type.localization?.defaultLocale ?? ''));
+	/** Decisión 2 de `RecordBlocks.svelte` (capacidad `blocks`): `true` mientras AL MENOS un bloque
+	 *  embebido tenga ediciones de campo sin guardar. Se OR-ea con `isDirty(baseline, current)` más
+	 *  abajo — un bloque sucio es tan "hay cambios sin guardar" como un campo del propio registro,
+	 *  aunque viva en otra colección. `RecordBlocks` no existe sin `type.blocks`, así que este
+	 *  arranca en `false` y solo cambia si la colección declara la capacidad. */
+	let blocksDirty = $state(false);
 
 	// Ver cabecera: variable PLANA (no `$state`) para no crear un ciclo effect↔escritura propia.
 	let syncedModel = untrack(() => model);
@@ -285,6 +293,9 @@
 			// Un `model` nuevo es un registro DISTINTO (ver LANDMINE de más abajo): "último guardado"
 			// tiene que resembrarse de SU PROPIO baseline, no arrastrar la hora del registro anterior.
 			savedAt = autodateInstant(type, model.baseline, 'updated');
+			// Los bloques del registro ANTERIOR ya no aplican (misma LANDMINE): `RecordBlocks` se
+			// remonta con el `parentId`/`parentType` nuevos y recalculará su propio dirty desde cero.
+			blocksDirty = false;
 		}
 	});
 
@@ -318,7 +329,7 @@
 		record: backendErrors.record ?? clientErrors.record
 	});
 
-	const dirty = $derived(isDirty(baseline, current));
+	const dirty = $derived(isDirty(baseline, current) || blocksDirty);
 	const formDisabled = $derived(saving || typeReadonly);
 	const activeLocaleTabId = $derived(
 		type.localization ? `vega-locale-tab-${type.name}-${activeLocale}` : undefined
@@ -393,7 +404,9 @@
 	const canDelete = $derived(onDelete !== undefined && !typeReadonly && model.mode === 'edit');
 
 	/** La columna del aside existe si hay ALGO que poner en ella (ver cabecera). */
-	const showAside = $derived(asideSections.length > 0 || showMeta || canDelete);
+	const showAside = $derived(
+		asideSections.length > 0 || showMeta || canDelete || Boolean(type.social)
+	);
 
 	/** Texto ACTUAL del campo título (no el del baseline): "Regenerar" deriva de lo que el usuario
 	 *  está escribiendo ahora mismo, no de lo último guardado. `''` sin `titleField`. */
@@ -806,6 +819,19 @@
 					</section>
 				{/each}
 			</div>
+
+			<!-- Bloques ordenables embebidos (capacidad `blocks`, lote "editor" Fase A): FUERA de
+			     `.vega-form-content`/el tabpanel de idioma a propósito — un bloque no es contenido
+			     LOCALIZADO de este registro, es una lista de registros hijos con su propia identidad.
+			     `RecordBlocks` se carga y se muta a sí misma (ver su cabecera); este componente solo
+			     le pasa el tipo/id del padre y escucha `onDirtyChange` (decisión 2 de su cabecera). -->
+			{#if type.blocks}
+				<RecordBlocks
+					parentType={type}
+					parentId={model.recordId}
+					onDirtyChange={(value) => (blocksDirty = value)}
+				/>
+			{/if}
 		</div>
 
 		{#if showAside}
@@ -818,6 +844,13 @@
 						{@render fieldSection(section)}
 					</section>
 				{/each}
+
+				{#if type.social}
+					<!-- Vista previa de tarjeta social (capacidad `social`, lote "editor" Fase B):
+					     lee `current` (LIVE, no `baseline`) para que la previsualización responda
+					     mientras se escribe, igual que "Regenerar" del slug lee `titleText` actual. -->
+					<SocialCardPreview config={type.social} {type} values={current} />
+				{/if}
 
 				{#if showMeta}
 					<!-- Tarjeta "Registro" (mockup `.kv`): solo filas que el schema respalde de verdad

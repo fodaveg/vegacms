@@ -198,6 +198,81 @@ export function singletonInvalid(collection: string): ModelWarning {
 }
 
 /**
+ * `blocks-invalid` — `collections.<c>.blocks` no resuelve contra el esquema real: la colección
+ * hija declarada no existe (o es reservada), el `parentField` no es una relación NO-múltiple de
+ * esa hija de vuelta a `collection`, o el `orderField` no existe/no es numérico en ella. Las tres
+ * causas comparten código (mismo criterio "todo o nada" que `merged-view-invalid`: sin las tres
+ * piezas válidas no hay semántica parcial de bloques que conservar) pero cada una tiene su propio
+ * mensaje y su propio `path`, para que quien lea el warning sepa exactamente cuál de las tres
+ * claves corregir sin tener que adivinarlo del texto genérico.
+ */
+export function blocksInvalid(
+	collection: string,
+	reason: 'collection' | 'parentField' | 'orderField',
+	requestedValue: string
+): ModelWarning {
+	const message =
+		reason === 'collection'
+			? `blocks de "${collection}" declara la colección hija "${requestedValue}", que no existe en el esquema (o es reservada de Vega); se ignora la capacidad de bloques.`
+			: reason === 'parentField'
+				? `blocks de "${collection}" declara el campo padre "${requestedValue}", que no es una relación simple (no múltiple) de vuelta a "${collection}" en la colección hija; se ignora la capacidad de bloques.`
+				: `blocks de "${collection}" declara el orderField "${requestedValue}", que no existe o no es numérico en la colección hija; se ignora la capacidad de bloques.`;
+	return {
+		code: 'blocks-invalid',
+		message,
+		collection,
+		path: `${collectionPath(collection)}/blocks/${reason}`
+	};
+}
+
+/** `social-title-field-invalid` — `social.titleField` inexistente o no representable; se cae a
+ *  la cascada de `titleField` del tipo (§4.4), igual que si la clave no se hubiera declarado. */
+export function socialTitleFieldInvalid(collection: string, requestedField: string): ModelWarning {
+	return {
+		code: 'social-title-field-invalid',
+		message: `El campo de título social "${requestedField}" declarado para "${collection}" no existe o no es representable como texto; se usa el titleField del tipo.`,
+		collection,
+		path: `${collectionPath(collection)}/social/titleField`
+	};
+}
+
+/** `social-description-field-invalid` — `social.descriptionField` inexistente o no es
+ *  `text`/`richtext`; la tarjeta social se pinta sin descripción (SIN fallback posible). */
+export function socialDescriptionFieldInvalid(
+	collection: string,
+	requestedField: string
+): ModelWarning {
+	return {
+		code: 'social-description-field-invalid',
+		message: `El campo de descripción social "${requestedField}" declarado para "${collection}" no existe o no es un campo de texto; se ignora (la tarjeta se pinta sin descripción).`,
+		collection,
+		path: `${collectionPath(collection)}/social/descriptionField`
+	};
+}
+
+/** `social-image-field-invalid` — `social.imageField` inexistente o no es `file` NO múltiple; la
+ *  tarjeta social se pinta sin imagen (SIN fallback posible). */
+export function socialImageFieldInvalid(collection: string, requestedField: string): ModelWarning {
+	return {
+		code: 'social-image-field-invalid',
+		message: `El campo de imagen social "${requestedField}" declarado para "${collection}" no existe o no es un campo de fichero no múltiple; se ignora (la tarjeta se pinta sin imagen).`,
+		collection,
+		path: `${collectionPath(collection)}/social/imageField`
+	};
+}
+
+/** `social-url-invalid` — `social.urlTemplate` con un placeholder desconocido o no escalar
+ *  (misma validación que `previewUrl`, §4.7); se cae al `previewUrl` ya resuelto del tipo. */
+export function socialUrlInvalid(collection: string): ModelWarning {
+	return {
+		code: 'social-url-invalid',
+		message: `La plantilla social.urlTemplate de "${collection}" referencia un campo inexistente o no escalar; se usa el previewUrl del tipo.`,
+		collection,
+		path: `${collectionPath(collection)}/social/urlTemplate`
+	};
+}
+
+/**
  * `multiple-vega-records` — la colección `vega` tiene más de un registro. La emite
  * `loadContentModel` (§6.2, Fase 2), no `resolveContentModel`; vive aquí porque el
  * vocabulario de warnings es único para todo P2.

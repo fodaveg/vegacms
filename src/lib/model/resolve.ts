@@ -30,6 +30,7 @@ import type {
 	NavGroup,
 	NavItem,
 	NavModel,
+	ResolvedBlocksConfig,
 	ResolvedContentType,
 	ResolvedField,
 	ResolvedFieldGroup,
@@ -38,7 +39,8 @@ import type {
 	ResolvedLocalization,
 	ResolvedMergedSource,
 	ResolvedMergedView,
-	ResolvedSite
+	ResolvedSite,
+	ResolvedSocialCardConfig
 } from './types';
 import {
 	defaultListable,
@@ -56,6 +58,7 @@ import {
 	resolveWidget
 } from './conventions';
 import {
+	blocksInvalid,
 	iconUnknown,
 	listFieldUnknown,
 	manifestInvalidKey,
@@ -71,7 +74,11 @@ import {
 	orphanCollection,
 	orphanField,
 	previewUrlInvalid,
-	singletonInvalid
+	singletonInvalid,
+	socialDescriptionFieldInvalid,
+	socialImageFieldInvalid,
+	socialTitleFieldInvalid,
+	socialUrlInvalid
 } from './warnings';
 import { validatePreviewUrlPlaceholders } from './preview-url';
 
@@ -256,6 +263,32 @@ function readPreviewUrlTemplate(raw: JsonValue): string | undefined {
 	return typeof raw === 'string' && /^https?:\/\//.test(raw) ? raw : undefined;
 }
 
+/** Forma cruda de `collections.<c>.blocks` (lote "editor", Fase A), SOLO tipada — el CONTENIDO
+ *  (¿existe la colección? ¿el campo es una relación? ¿el orden es numérico?) lo valida
+ *  `resolveBlocks`, que es quien conoce el esquema de la colección hija. Las tres claves son
+ *  obligatorias juntas: un objeto al que le falte cualquiera de las tres no es una declaración
+ *  parcial válida, es `undefined` (mismo criterio "todo o nada" que `readDefaultSort`). */
+function readBlocksDeclaration(
+	raw: JsonValue
+): { collection: string; parentField: string; orderField: string } | undefined {
+	const obj = asJsonObject(raw);
+	if (!obj) return undefined;
+	const collection = obj.collection;
+	const parentField = obj.parentField;
+	const orderField = obj.orderField;
+	if (
+		typeof collection !== 'string' ||
+		collection.length < 1 ||
+		typeof parentField !== 'string' ||
+		parentField.length < 1 ||
+		typeof orderField !== 'string' ||
+		orderField.length < 1
+	) {
+		return undefined;
+	}
+	return { collection, parentField, orderField };
+}
+
 /**
  * Lee `obj[key]` con `read`; si la clave está presente pero no pasa `read`, empuja
  * `manifest-invalid-key` con `path` y devuelve `undefined` (la cascada sigue como si la clave
@@ -350,6 +383,11 @@ export function resolveContentModel(input: {
 	}
 
 	const navOrderByType = new Map<string, number | undefined>();
+	// `typesByName` (blocks, lote "editor" Fase A): mapa de TODOS los tipos crudos de P1 por
+	// nombre, para que `resolveBlocks` pueda mirar el esquema de una colección hija DISTINTA de la
+	// que se está resolviendo — construido una vez aquí, no dentro del `map` (evita reconstruirlo
+	// por cada tipo).
+	const typesByName = new Map(input.types.map((t) => [t.name, t]));
 	const resolvedTypes: ResolvedContentType[] = input.types.map((type) =>
 		resolveContentType(
 			type,
@@ -357,6 +395,7 @@ export function resolveContentModel(input: {
 			locales,
 			input.knownIcons,
 			navOrderByType,
+			typesByName,
 			warnings
 		)
 	);
@@ -473,6 +512,153 @@ function resolveSite(doc: JsonObject, warnings: ModelWarning[]): ResolvedSite {
 	return { name, defaultTheme, locale };
 }
 
+// ————— Bloques ordenables embebidos (blocks, lote "editor" Fase A) —————
+
+/**
+ * Resuelve `blocks` (§ tipos ResolvedBlocksConfig): valida las TRES piezas de la declaración
+ * cruda contra el esquema REAL de la colección hija — a diferencia de `orderField`/`slugField`
+ * (que solo miran los campos del PROPIO tipo), `blocks` necesita el esquema de OTRA colección, así
+ * que recibe `typesByName` (los `ContentType` de P1 tal cual, sin pasar por el resolutor: solo
+ * hacen falta sus `fields` crudos, no overrides de manifiesto de la hija). `raw === undefined`
+ * (clave ausente, o presente pero con forma inválida — ya avisado por `readKey`) ⇒ `null` sin
+ * warning nuevo, igual que el resto de capacidades opt-in.
+ *
+ * Las tres comprobaciones son independientes pero SIN semántica parcial: la primera que falla
+ * descarta la capacidad entera con su propio `blocks-invalid` (nunca se acumulan varios warnings
+ * por una sola declaración de `blocks`, mismo criterio "un solo síntoma, no un diagnóstico
+ * completo" que `resolveMergedSource`).
+ */
+function resolveBlocks(
+	type: ContentType,
+	raw: { collection: string; parentField: string; orderField: string } | undefined,
+	typesByName: Map<string, ContentType>,
+	warnings: ModelWarning[]
+): ResolvedBlocksConfig | null {
+	if (raw === undefined) return null;
+
+	const child = typesByName.get(raw.collection);
+	if (!child || isReservedCollectionName(raw.collection)) {
+		warnings.push(blocksInvalid(type.name, 'collection', raw.collection));
+		return null;
+	}
+
+	// `parentField` (§ ResolvedBlocksConfig): relation NO múltiple de la hija que apunta a ESTE
+	// tipo. `multiple: true` se rechaza a propósito (decisión de diseño, más allá de lo que exige
+	// el contrato textual "relación a este tipo"): permitiría que el mismo bloque perteneciera a
+	// varios padres simultáneamente, que ya no es "una landing hecha de secciones" sino una
+	// relación compartida — otra capacidad, que esta no pretende cubrir.
+	const parentField = child.fields.find((f) => f.name === raw.parentField);
+	if (
+		!parentField ||
+		parentField.type !== 'relation' ||
+		parentField.target !== type.name ||
+		parentField.multiple
+	) {
+		warnings.push(blocksInvalid(type.name, 'parentField', raw.parentField));
+		return null;
+	}
+
+	const orderField = child.fields.find((f) => f.name === raw.orderField);
+	if (!orderField || orderField.type !== 'number') {
+		warnings.push(blocksInvalid(type.name, 'orderField', raw.orderField));
+		return null;
+	}
+
+	return { collection: raw.collection, parentField: raw.parentField, orderField: raw.orderField };
+}
+
+// ————— Tarjeta social (social, lote "editor" Fase B) —————
+
+/**
+ * Resuelve `social` (§ tipos `ResolvedSocialCardConfig`) UNA VEZ que `socialRaw` ya se sabe un
+ * objeto (`resolveContentType` solo llama a esto si `readKey` no descartó la clave entera). A
+ * diferencia de `resolveBlocks`, las CUATRO piezas se leen y validan de forma INDEPENDIENTE
+ * (mismo patrón que las claves de nivel de colección: un `readKey` anidado por campo, cada uno
+ * con su propio `path`/warning) — ninguna invalida a las demás.
+ */
+function resolveSocialCard(
+	type: ContentType,
+	socialRaw: JsonObject,
+	resolvedTitleField: string | null,
+	resolvedPreviewUrl: string | null,
+	warnings: ModelWarning[]
+): ResolvedSocialCardConfig {
+	const base = `/collections/${type.name}/social`;
+
+	const titleFieldRaw = readKey(
+		socialRaw,
+		'titleField',
+		readString(1, Infinity),
+		`${base}/titleField`,
+		`social.titleField de "${type.name}" no es un texto no vacío; se ignora.`,
+		warnings
+	);
+	let titleField = resolvedTitleField; // cascada: manifiesto > titleField del tipo (§4.4)
+	if (titleFieldRaw !== undefined) {
+		const field = type.fields.find((f) => f.name === titleFieldRaw);
+		if (field && isRepresentableField(field)) {
+			titleField = titleFieldRaw;
+		} else {
+			warnings.push(socialTitleFieldInvalid(type.name, titleFieldRaw));
+		}
+	}
+
+	const descriptionFieldRaw = readKey(
+		socialRaw,
+		'descriptionField',
+		readString(1, Infinity),
+		`${base}/descriptionField`,
+		`social.descriptionField de "${type.name}" no es un texto no vacío; se ignora.`,
+		warnings
+	);
+	let descriptionField: string | null = null; // SIN fallback (ver ResolvedSocialCardConfig)
+	if (descriptionFieldRaw !== undefined) {
+		const field = type.fields.find((f) => f.name === descriptionFieldRaw);
+		if (field && (field.type === 'text' || field.type === 'richtext')) {
+			descriptionField = descriptionFieldRaw;
+		} else {
+			warnings.push(socialDescriptionFieldInvalid(type.name, descriptionFieldRaw));
+		}
+	}
+
+	const imageFieldRaw = readKey(
+		socialRaw,
+		'imageField',
+		readString(1, Infinity),
+		`${base}/imageField`,
+		`social.imageField de "${type.name}" no es un texto no vacío; se ignora.`,
+		warnings
+	);
+	let imageField: string | null = null; // SIN fallback (ver ResolvedSocialCardConfig)
+	if (imageFieldRaw !== undefined) {
+		const field = type.fields.find((f) => f.name === imageFieldRaw);
+		if (field && field.type === 'file' && !field.multiple) {
+			imageField = imageFieldRaw;
+		} else {
+			warnings.push(socialImageFieldInvalid(type.name, imageFieldRaw));
+		}
+	}
+
+	const urlTemplateRaw = readKey(
+		socialRaw,
+		'urlTemplate',
+		readPreviewUrlTemplate,
+		`${base}/urlTemplate`,
+		`social.urlTemplate de "${type.name}" no es una URL http(s) con placeholders válidos; se ignora.`,
+		warnings
+	);
+	let urlTemplate = resolvedPreviewUrl; // cascada: manifiesto > previewUrl del tipo (§4.7)
+	if (urlTemplateRaw !== undefined) {
+		if (validatePreviewUrlPlaceholders(urlTemplateRaw, type.fields)) {
+			urlTemplate = urlTemplateRaw;
+		} else {
+			warnings.push(socialUrlInvalid(type.name));
+		}
+	}
+
+	return { titleField, descriptionField, imageField, urlTemplate };
+}
+
 // ————— Colección —————
 
 function resolveContentType(
@@ -481,6 +667,7 @@ function resolveContentType(
 	locales: LocalesDeclaration | undefined,
 	knownIcons: readonly string[] | undefined,
 	navOrderByType: Map<string, number | undefined>,
+	typesByName: Map<string, ContentType>,
 	warnings: ModelWarning[]
 ): ResolvedContentType {
 	const base = `/collections/${type.name}`;
@@ -687,6 +874,22 @@ function resolveContentType(
 		}
 	}
 
+	// ————— social (SEO/OG, lote "editor" Fase B) —————
+	// DESPUÉS de `titleField`/`previewUrl`: las dos cascadas de `social` (título y URL) caen sobre
+	// el valor YA resuelto de este mismo tipo, no sobre el crudo del manifiesto.
+	const socialRaw = readKey(
+		collectionRaw,
+		'social',
+		asJsonObject,
+		`${base}/social`,
+		`social de "${type.name}" no es un objeto; se ignora.`,
+		warnings
+	);
+	const social =
+		socialRaw === undefined
+			? null
+			: resolveSocialCard(type, socialRaw, titleField, previewUrl, warnings);
+
 	// ————— campos (§4.2, §4.9, §4.10) —————
 	const fieldsRaw =
 		readKey(
@@ -729,6 +932,17 @@ function resolveContentType(
 			`editorRail de "${type.name}" no es booleano; se ignora.`,
 			warnings
 		) ?? false;
+
+	// ————— blocks (lote "editor" Fase A) —————
+	const blocksRaw = readKey(
+		collectionRaw,
+		'blocks',
+		readBlocksDeclaration,
+		`${base}/blocks`,
+		`blocks de "${type.name}" debe ser un objeto { collection, parentField, orderField } de textos no vacíos; se ignora.`,
+		warnings
+	);
+	const blocks = resolveBlocks(type, blocksRaw, typesByName, warnings);
 
 	const fieldOrderByName = new Map<string, number | undefined>();
 	const resolvedFieldsBase = type.fields.map((field) =>
@@ -804,7 +1018,9 @@ function resolveContentType(
 		listFields,
 		fieldGroups,
 		editorRail,
-		localization
+		localization,
+		blocks,
+		social
 	};
 }
 

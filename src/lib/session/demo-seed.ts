@@ -1377,6 +1377,17 @@ const SHOWCASE_MANIFEST: JsonValue = {
 			// derecha. `posts` (la colección de los e2e) no declara ninguna: su editor no cambia.
 			slugField: 'slug',
 			editorRail: true,
+			// `social`: tarjeta de compartir en el aside, alimentada por campos que la colección YA
+			// tenía (el extracto dice literalmente «se usa en las tarjetas de compartir», así que
+			// ahora se ve mientras se escribe). `cover` va vacío en las 12 entradas sembradas a
+			// propósito: enseña la degradación de la tarjeta sin imagen, que es el estado real de
+			// un borrador recién creado.
+			social: {
+				titleField: 'title',
+				descriptionField: 'excerpt',
+				imageField: 'cover',
+				urlTemplate: 'https://fodaveg.net/blog/{slug}'
+			},
 			fieldGroups: [
 				{ name: 'Publicación', placement: 'aside' },
 				{ name: 'Portada', placement: 'aside' }
@@ -1420,8 +1431,19 @@ const SHOWCASE_MANIFEST: JsonValue = {
 			labelSingular: 'Página',
 			icon: 'document',
 			group: 'Contenido',
-			order: 2
+			order: 2,
+			// `blocks`: la página se compone de secciones ordenables, editadas EN LÍNEA dentro de su
+			// propio formulario. Abre «Inicio» para verlo; el resto de páginas enseñan el estado
+			// vacío de la lista embebida.
+			blocks: { collection: 'secciones', parentField: 'pagina', orderField: 'orden' },
+			fields: { title: { label: 'Título' } }
 		},
+		// La colección hija NO aparece en la nav: se edita dentro de su página, y sacarla también
+		// como lista suelta duplicaría el mismo contenido en dos sitios con dos modelos mentales
+		// distintos. `hidden` es justo para esto.
+		// `labelSingular` NO es decorativo aquí: el botón de la lista embebida es
+		// «Añadir {labelSingular}», y sin él saldría «Añadir Secciones».
+		secciones: { label: 'Secciones', labelSingular: 'Sección', hidden: true },
 		proyectos: {
 			label: 'Proyectos',
 			labelSingular: 'Proyecto',
@@ -1642,6 +1664,97 @@ const PAGINAS_RECORDS = [
 	{ id: 'pagina_3', values: { title: 'Contacto' } },
 	{ id: 'pagina_4', values: { title: 'Ahora' } },
 	{ id: 'pagina_5', values: { title: 'Colofón' } }
+];
+
+/**
+ * Bloques de las páginas: la colección HIJA que ejercita la capacidad `blocks` del manifiesto
+ * (lista embebida y ordenable dentro del editor del padre). Es contenido compuesto — una landing
+ * hecha de secciones —, que es justo el caso que un CMS sobre PocketBase no podía modelar sin
+ * repeaters.
+ *
+ * Los tres campos son deliberadamente los mínimos que exige la capacidad más uno de contenido:
+ * `pagina` (la relación de vuelta al padre, NO múltiple), `orden` (numérico, el que reescribe el
+ * arrastre) y `heading`/`texto`. El escaparate no necesita más para enseñar el gesto.
+ */
+const SECCIONES_CONTENT_TYPE: ContentType = {
+	name: 'secciones',
+	readonly: false,
+	fields: [
+		{
+			name: 'pagina',
+			type: 'relation',
+			target: 'paginas',
+			multiple: false,
+			required: true,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'orden',
+			type: 'number',
+			integer: true,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'heading',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: true,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'texto',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		}
+	]
+};
+
+/** Solo `pagina_1` («Inicio») trae secciones sembradas: es la que se abre para ver la capacidad, y
+ *  dejar el resto vacías enseña además el estado vacío de la lista embebida (un CMS de verdad
+ *  arranca así, no con todo relleno). */
+const SECCIONES_RECORDS = [
+	{
+		id: 'seccion_1',
+		values: {
+			pagina: 'pagina_1',
+			orden: 0,
+			heading: 'Escribe. Publica. Olvídate del resto.',
+			texto: 'Un CMS que se pone encima de tu PocketBase y no te pide cambiar de sitio nada.'
+		}
+	},
+	{
+		id: 'seccion_2',
+		values: {
+			pagina: 'pagina_1',
+			orden: 1,
+			heading: 'Tu contenido, en tu servidor',
+			texto: 'Sin cuentas de terceros ni exportaciones a medianoche: los datos ya son tuyos.'
+		}
+	},
+	{
+		id: 'seccion_3',
+		values: {
+			pagina: 'pagina_1',
+			orden: 2,
+			heading: 'Se adapta a tu modelo',
+			texto: 'El manifiesto describe lo que ya tienes; Vega no te obliga a rehacer el esquema.'
+		}
+	}
 ];
 
 /** Títulos en eco de los temas ya cubiertos por `entradas`/`blog` (Astro, PocketBase, passkeys,
@@ -1935,6 +2048,7 @@ export const SHOWCASE_SEED: MemorySeed = {
 		VEGA_CONTENT_TYPE,
 		ENTRADAS_CONTENT_TYPE,
 		PAGINAS_CONTENT_TYPE,
+		SECCIONES_CONTENT_TYPE,
 		PROYECTOS_CONTENT_TYPE,
 		AUTORES_CONTENT_TYPE,
 		ETIQUETAS_CONTENT_TYPE,
@@ -1944,6 +2058,7 @@ export const SHOWCASE_SEED: MemorySeed = {
 		[VEGA_COLLECTION.name]: [{ id: 'vega_manifest', values: { manifest: SHOWCASE_MANIFEST } }],
 		entradas: ENTRADAS_RECORDS,
 		paginas: PAGINAS_RECORDS,
+		secciones: SECCIONES_RECORDS,
 		proyectos: PROYECTOS_RECORDS,
 		autores: AUTORES_RECORDS,
 		etiquetas: ETIQUETAS_RECORDS,

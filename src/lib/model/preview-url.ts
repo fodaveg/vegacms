@@ -47,15 +47,16 @@ export function validatePreviewUrlPlaceholders(
 }
 
 /**
- * Sustituye los placeholders de `type.previewUrl` con los valores de `record` (§2, §4.7):
- * `encodeURIComponent` por valor; `null` si la plantilla es `null` o algún placeholder
- * resuelve a vacío (`null`/`undefined`/`''`) — mejor sin botón que un botón roto. Pura.
+ * Sustituye los placeholders `{campo}`/`{id}` de CUALQUIER plantilla ya validada contra `record`
+ * (§4.7): `encodeURIComponent` por valor; `null` si algún placeholder resuelve a vacío
+ * (`null`/`undefined`/`''`) — mejor sin URL que una URL rota. Pura, y la ÚNICA sustitución de
+ * placeholders del repo: `buildPreviewUrl` (`type.previewUrl`) y `buildUrlFromTemplate` (Fase B,
+ * `social.urlTemplate` — misma validación en resolución, `ResolvedSocialCardConfig`) la reusan
+ * las dos en vez de reimplementar el `.replace` cada una por su cuenta.
  */
-export function buildPreviewUrl(type: ResolvedContentType, record: VegaRecord): string | null {
-	if (type.previewUrl === null) return null;
-
+function substitutePlaceholders(template: string, record: VegaRecord): string | null {
 	let allResolved = true;
-	const result = type.previewUrl.replace(PLACEHOLDER_RE, (_match, name: string) => {
+	const result = template.replace(PLACEHOLDER_RE, (_match, name: string) => {
 		const raw = name === 'id' ? record.id : record.values[name];
 		if (raw === null || raw === undefined || raw === '') {
 			allResolved = false;
@@ -65,4 +66,24 @@ export function buildPreviewUrl(type: ResolvedContentType, record: VegaRecord): 
 	});
 
 	return allResolved ? result : null;
+}
+
+/**
+ * Sustituye los placeholders de `type.previewUrl` con los valores de `record` (§2, §4.7): `null`
+ * si la plantilla es `null` o algún placeholder no resuelve. Pura.
+ */
+export function buildPreviewUrl(type: ResolvedContentType, record: VegaRecord): string | null {
+	if (type.previewUrl === null) return null;
+	return substitutePlaceholders(type.previewUrl, record);
+}
+
+/**
+ * Misma sustitución que `buildPreviewUrl`, pero sobre una plantilla EXPLÍCITA (lote "editor" Fase
+ * B, la tarjeta social: `social.urlTemplate`, ya validado en resolución con la MISMA
+ * `validatePreviewUrlPlaceholders`). `null` si `template` es `null` o algún placeholder no
+ * resuelve — mismo criterio que `buildPreviewUrl`, del que esta función es la generalización.
+ */
+export function buildUrlFromTemplate(template: string | null, record: VegaRecord): string | null {
+	if (template === null) return null;
+	return substitutePlaceholders(template, record);
 }

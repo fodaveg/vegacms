@@ -59,6 +59,8 @@ const COLLECTION_ALLOWED_KEYS = [
 	'listFields',
 	'fieldGroups',
 	'editorRail',
+	'blocks',
+	'social',
 	'localizedFields',
 	'fields'
 ] as const;
@@ -80,6 +82,15 @@ const FIELD_GROUP_ITEM_ALLOWED_KEYS = ['name', 'columns', 'placement'] as const;
 const FIELD_GROUP_PLACEMENTS = ['main', 'aside'] as const;
 /** Claves de `collections.<c>.defaultSort` (orden inicial del listado). */
 const DEFAULT_SORT_ALLOWED_KEYS = ['field', 'dir'] as const;
+/** Claves de `collections.<c>.blocks` (bloques ordenables embebidos, lote "editor" Fase A). */
+const BLOCKS_ALLOWED_KEYS = ['collection', 'parentField', 'orderField'] as const;
+/** Claves de `collections.<c>.social` (tarjeta social SEO/OG, lote "editor" Fase B). */
+const SOCIAL_ALLOWED_KEYS = [
+	'titleField',
+	'descriptionField',
+	'imageField',
+	'urlTemplate'
+] as const;
 /** Claves de una vista fusionada `mergedViews.<id>` (L7a). */
 const MERGED_VIEW_ALLOWED_KEYS = [
 	'label',
@@ -551,6 +562,12 @@ function validateCollection(
 	if ('editorRail' in value) {
 		checkBoolean(value.editorRail, `${base}/editorRail`, errors, `editorRail de "${name}"`);
 	}
+	if ('blocks' in value) {
+		validateBlocks(name, value.blocks, errors);
+	}
+	if ('social' in value) {
+		validateSocial(name, value.social, errors);
+	}
 	if ('localizedFields' in value) {
 		validateLocalizedFields(name, value.localizedFields, errors);
 	}
@@ -690,6 +707,102 @@ function validateDefaultSort(
 			errors,
 			`defaultSort.dir de "${collection}"`
 		);
+	}
+}
+
+/** `blocks` (bloques ordenables embebidos, lote "editor" Fase A): objeto `{ collection,
+ *  parentField, orderField }`, las tres claves textos no vacíos y OBLIGATORIAS (a diferencia de
+ *  `defaultSort`, ninguna es opcional: sin las tres no hay ni colección que listar, ni campo por
+ *  el que filtrar, ni campo por el que ordenar). Igual que `defaultSort`/`statusLabels`, solo se
+ *  valida la FORMA a nivel de schema; que `collection` exista en el esquema y que `parentField`/
+ *  `orderField` sean del tipo correcto en ELLA es CONTENIDO (`resolveContentModel`,
+ *  `blocks-invalid`), no sintaxis. */
+function validateBlocks(
+	collection: string,
+	value: JsonValue,
+	errors: ManifestValidationErrorEntry[]
+): void {
+	const base = `/collections/${collection}/blocks`;
+	if (!isPlainObject(value)) {
+		fail(
+			errors,
+			base,
+			`blocks de "${collection}" debe ser un objeto { collection, parentField, orderField }.`
+		);
+		return;
+	}
+	checkAdditionalProperties(value, BLOCKS_ALLOWED_KEYS, base, errors);
+	for (const key of BLOCKS_ALLOWED_KEYS) {
+		if (!(key in value)) {
+			fail(errors, `${base}/${key}`, `blocks de "${collection}" debe declarar "${key}".`);
+			continue;
+		}
+		checkString(
+			value[key],
+			`${base}/${key}`,
+			1,
+			Infinity,
+			errors,
+			`blocks.${key} de "${collection}"`
+		);
+	}
+}
+
+/** `social` (tarjeta social SEO/OG, lote "editor" Fase B): objeto `{ titleField?, descriptionField?,
+ *  imageField?, urlTemplate? }`, las CUATRO claves opcionales (a diferencia de `blocks`, ninguna es
+ *  obligatoria: cada una degrada por separado en `resolveContentModel`). Igual que `blocks`/
+ *  `defaultSort`, solo se valida la FORMA aquí; que cada campo exista y sea del tipo correcto es
+ *  CONTENIDO (`social-*-invalid`), no sintaxis. `urlTemplate` reusa el mismo patrón http(s) que
+ *  `previewUrl` (§4.7): es la MISMA plantilla, solo que a nivel de `social` en vez de la colección. */
+function validateSocial(
+	collection: string,
+	value: JsonValue,
+	errors: ManifestValidationErrorEntry[]
+): void {
+	const base = `/collections/${collection}/social`;
+	if (!isPlainObject(value)) {
+		fail(errors, base, `social de "${collection}" debe ser un objeto.`);
+		return;
+	}
+	checkAdditionalProperties(value, SOCIAL_ALLOWED_KEYS, base, errors);
+	if ('titleField' in value) {
+		checkString(
+			value.titleField,
+			`${base}/titleField`,
+			1,
+			Infinity,
+			errors,
+			`social.titleField de "${collection}"`
+		);
+	}
+	if ('descriptionField' in value) {
+		checkString(
+			value.descriptionField,
+			`${base}/descriptionField`,
+			1,
+			Infinity,
+			errors,
+			`social.descriptionField de "${collection}"`
+		);
+	}
+	if ('imageField' in value) {
+		checkString(
+			value.imageField,
+			`${base}/imageField`,
+			1,
+			Infinity,
+			errors,
+			`social.imageField de "${collection}"`
+		);
+	}
+	if ('urlTemplate' in value) {
+		if (typeof value.urlTemplate !== 'string' || !PREVIEW_URL_PATTERN.test(value.urlTemplate)) {
+			fail(
+				errors,
+				`${base}/urlTemplate`,
+				`social.urlTemplate de "${collection}" debe ser una URL que empiece por http:// o https://.`
+			);
+		}
 	}
 }
 

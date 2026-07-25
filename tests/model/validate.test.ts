@@ -180,10 +180,116 @@ describe('1. Casos puntuales contra el schema §3', () => {
 		expect(result.ok).toBe(false);
 	});
 
+	test('collections.<c>.blocks con { collection, parentField, orderField } válido → válido', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: {
+				landing: {
+					blocks: { collection: 'landing_block', parentField: 'parent', orderField: 'sort' }
+				}
+			}
+		});
+		expect(result).toEqual({ ok: true });
+	});
+
+	test('collections.<c>.blocks sin "orderField" → inválido (required)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: {
+				landing: { blocks: { collection: 'landing_block', parentField: 'parent' } }
+			}
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('collections.<c>.blocks.collection vacío → inválido (minLength)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: {
+				landing: { blocks: { collection: '', parentField: 'parent', orderField: 'sort' } }
+			}
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('collections.<c>.blocks con clave desconocida → inválido (additionalProperties)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: {
+				landing: {
+					blocks: {
+						collection: 'landing_block',
+						parentField: 'parent',
+						orderField: 'sort',
+						weight: 2
+					}
+				}
+			}
+		});
+		expect(result.ok).toBe(false);
+	});
+
 	test('collections.<c>.previewUrl sin http(s) → inválido (pattern)', () => {
 		const result = validateManifestStrict({
 			schemaVersion: 1,
 			collections: { post: { previewUrl: 'ftp://x.com/{id}' } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('collections.<c>.social: {} (vacío) → válido, las cuatro claves son opcionales', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: { post: { social: {} } }
+		});
+		expect(result).toEqual({ ok: true });
+	});
+
+	test('collections.<c>.social con las cuatro claves válidas → válido', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: {
+				post: {
+					social: {
+						titleField: 'excerpt',
+						descriptionField: 'content',
+						imageField: 'cover',
+						urlTemplate: 'https://fodaveg.net/og/{id}'
+					}
+				}
+			}
+		});
+		expect(result).toEqual({ ok: true });
+	});
+
+	test('collections.<c>.social.urlTemplate sin http(s) → inválido (pattern)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: { post: { social: { urlTemplate: 'ftp://x.com/{id}' } } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('collections.<c>.social.titleField vacío → inválido (minLength)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: { post: { social: { titleField: '' } } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('collections.<c>.social con clave desconocida → inválido (additionalProperties)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: { post: { social: { titleField: 'excerpt', weight: 2 } } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('collections.<c>.social no-objeto → inválido', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: { post: { social: 'nope' } }
 		});
 		expect(result.ok).toBe(false);
 	});
@@ -502,6 +608,21 @@ const VALID_ZERO_WARNING_MANIFESTS: JsonValue[] = [
 				]
 			}
 		}
+	},
+	{
+		// social (lote "editor" Fase B): las cuatro claves sobre campos reales de `post` (cover:
+		// file NO múltiple, content: richtext) → cero warnings.
+		schemaVersion: 1,
+		collections: {
+			post: {
+				social: {
+					titleField: 'excerpt',
+					descriptionField: 'content',
+					imageField: 'cover',
+					urlTemplate: 'https://fodaveg.net/og/{id}'
+				}
+			}
+		}
 	}
 ];
 
@@ -587,6 +708,22 @@ const INVALID_MANIFESTS: JsonValue[] = [
 	{ schemaVersion: 1, collections: { post: { slugField: '' } } },
 	{ schemaVersion: 1, collections: { post: { slugField: 42 } } },
 	{ schemaVersion: 1, collections: { post: { editorRail: 'sí' } } },
+	{ schemaVersion: 1, collections: { post: { blocks: 'not-an-object' } } },
+	{ schemaVersion: 1, collections: { post: { blocks: { collection: 'x', parentField: 'y' } } } },
+	{
+		schemaVersion: 1,
+		collections: { post: { blocks: { collection: '', parentField: 'y', orderField: 'z' } } }
+	},
+	{
+		schemaVersion: 1,
+		collections: {
+			post: { blocks: { collection: 'x', parentField: 'y', orderField: 'z', extra: 1 } }
+		}
+	},
+	{ schemaVersion: 1, collections: { post: { social: 'not-an-object' } } },
+	{ schemaVersion: 1, collections: { post: { social: { titleField: '' } } } },
+	{ schemaVersion: 1, collections: { post: { social: { urlTemplate: 'not-a-url' } } } },
+	{ schemaVersion: 1, collections: { post: { social: { titleField: 'excerpt', extra: 1 } } } },
 	{ schemaVersion: 1, collections: { post: { unknownKey: 1 } } },
 	{ schemaVersion: 1, collections: { post: { localizedFields: 'nope' } } },
 	{
