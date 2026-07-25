@@ -120,6 +120,7 @@ import {
 } from './project-discovery';
 import { readAuthCollectionOverride, readBackendOverride } from './backend-override';
 import { DEMO_CREDENTIALS, DEMO_SEED, DEMO_SEED_WITH_MEDIA, SHOWCASE_SEED } from './demo-seed';
+import { withRevisions } from '$lib/revisions/with-revisions';
 
 declare global {
 	interface Window {
@@ -230,7 +231,13 @@ async function createInstance(): Promise<BackendPort> {
 				? DEMO_SEED_WITH_MEDIA
 				: DEMO_SEED;
 		const port = wrapMemoryPortForDemo(createMemoryBackend(seed), DEMO_CREDENTIALS);
-		return window.__VEGA_FORCE_EDITOR_CAPABILITIES__ ? withEditorCapabilities(port) : port;
+		const withCapabilities = window.__VEGA_FORCE_EDITOR_CAPABILITIES__
+			? withEditorCapabilities(port)
+			: port;
+		// `#lote-integridad` Fase B (§3): envuelve TAMBIÉN la rama `memory` — el historial de
+		// versiones tiene que funcionar en la demo/e2e igual que en producción, mismo criterio que
+		// `wrapMemoryPortForDemo`/`withEditorCapabilities` de más arriba.
+		return withRevisions(withCapabilities);
 	}
 	const override = readBackendOverride();
 	const authCollectionOverride = readAuthCollectionOverride();
@@ -245,14 +252,18 @@ async function createInstance(): Promise<BackendPort> {
 		override: authCollectionOverride
 	});
 	const authApiBasePath = resolveAuthApiBasePath(projectConfig);
-	return createPocketBaseBackend({
-		url,
-		authCollection,
-		authApiBasePath,
-		manifestKey: projectConfig?.manifestKey,
-		buildApiUrl: resolveBuildApiUrl(url, discovery),
-		previewApiUrl: resolvePreviewApiUrl(url, discovery)
-	});
+	// `#lote-integridad` Fase B (§3): la rama `pocketbase`, envuelta igual que la de `memory`
+	// arriba — las DOS ramas de `createInstance()`, ninguna excepción.
+	return withRevisions(
+		createPocketBaseBackend({
+			url,
+			authCollection,
+			authApiBasePath,
+			manifestKey: projectConfig?.manifestKey,
+			buildApiUrl: resolveBuildApiUrl(url, discovery),
+			previewApiUrl: resolvePreviewApiUrl(url, discovery)
+		})
+	);
 }
 
 /**

@@ -204,6 +204,7 @@
 	import EditTopBar from '$lib/shell/EditTopBar.svelte';
 	import RecordBlocks from './RecordBlocks.svelte';
 	import UsedInPanel from '$lib/integrity/UsedInPanel.svelte';
+	import RevisionsPanel from '$lib/revisions/RevisionsPanel.svelte';
 	import SocialCardPreview from './SocialCardPreview.svelte';
 	import PreviewPanel from './PreviewPanel.svelte';
 	import { buildFormModel, type FormModel } from './form-model';
@@ -422,15 +423,17 @@
 	 *  abierto dejaría su fila del índice con el título viejo hasta recargar la página. Lote
 	 *  "publicación" fase B: el MISMO contador hace doble servicio como `refreshToken` de
 	 *  `PreviewPanel` (ver cabecera, "Vista previa") — un guardado con éxito es la única señal
-	 *  honesta de que hay algo nuevo que previsualizar. */
+	 *  honesta de que hay algo nuevo que previsualizar. `#lote-integridad` Fase B: TERCER uso,
+	 *  `refreshToken` de `RevisionsPanel` — un `update` con éxito es también la única señal
+	 *  honesta de que `withRevisions` acaba de crear una revisión nueva. */
 	let savedCount = $state(0);
 
 	/** Tarjeta "Registro" (id/creado/actualizado): solo en edición — en creación no hay id ni
 	 *  autodates todavía, y una tarjeta con tres huecos vacíos no informa de nada. */
 	const showMeta = $derived(model.mode === 'edit' && model.recordId !== null);
 	/** Id del registro SOLO cuando ya existe de verdad (`null` en `/new`): es lo que habilita todo lo
-	 *  que necesita apuntar a un registro real —hoy el panel "Se usa en" y la comprobación de
-	 *  referencias del borrado (`#lote-integridad`)—. Se deriva aparte de `showMeta` a propósito
+	 *  que necesita apuntar a un registro real —hoy los paneles "Historial" y "Se usa en" y la
+	 *  comprobación de referencias del borrado (`#lote-integridad`)—. Se deriva aparte de `showMeta` a propósito
 	 *  aunque hoy la condición coincida: aquello decide si una TARJETA informa de algo, esto es la
 	 *  identidad del registro, y estrecharlo a un `RecordId` no-nulo evita el `?? ''` en cada uso. */
 	const existingRecordId = $derived(model.mode === 'edit' ? model.recordId : null);
@@ -518,6 +521,32 @@
 			delete rest[name];
 			backendErrors = { ...backendErrors, byField: rest };
 		}
+	}
+
+	/**
+	 * `#lote-integridad` Fase B (§8·B1): "aplica estos valores al formulario y márcalo sucio" — el
+	 * camino que `RevisionsPanel`/`RevisionDiff` necesitan para "Restaurar en el formulario". NO
+	 * escribe nada al puerto (§8: "un 'restaurar' que escribe directo es un segundo pisotón
+	 * silencioso, justo el problema que el lote viene a arreglar"): solo sustituye `current` por
+	 * los valores de la revisión, dejando que `dirty`/el guard de salida/el propio "Guardar" hagan
+	 * su trabajo de siempre — la persona revisa y guarda, lo que a su vez produce OTRA revisión con
+	 * la pre-imagen correcta.
+	 *
+	 * Se EXCLUYEN los campos `readonly` (autodate `created`/`updated`, §4.3 del contrato P1:
+	 * escribirlos es violación de contrato) — `toRecordInput` ya los filtraría del payload de
+	 * guardado, pero cargarlos en `current` de todos modos marcaría "sucio" un campo que la persona
+	 * no puede tocar ni corregir, una fricción sin ningún beneficio. Los campos `file` SÍ se
+	 * restauran (a diferencia de B2/papelera, §8: aquí el registro sigue vivo y PocketBase no
+	 * destruye un fichero al hacer `update` — solo un `delete` de registro lo hace, §0.3).
+	 */
+	function applyRestoredValues(values: FormInputValues): void {
+		const next = { ...current };
+		for (const field of type.fields) {
+			if (field.schema.readonly) continue;
+			if (!(field.name in values)) continue;
+			next[field.name] = values[field.name];
+		}
+		current = next;
 	}
 
 	/**
@@ -931,6 +960,19 @@
 				{/if}
 
 				{#if existingRecordId !== null}
+					<!-- Panel "Historial" (`#lote-integridad`, Fase B §10.1): las revisiones guardadas de
+					     ESTE registro + "Restaurar en el formulario" (`applyRestoredValues`, ver su
+					     cabecera). Va ANTES de "Se usa en": el historial es lo primero que se quiere ver
+					     al reabrir un registro, mientras que "Se usa en" es la información que hace falta
+					     justo antes de BORRAR, así que se queda pegada a la zona de peligro. Colapsado por
+					     defecto, mismo criterio que "Se usa en". Nunca en `/new`. -->
+					<RevisionsPanel
+						{type}
+						recordId={existingRecordId}
+						onRestore={applyRestoredValues}
+						refreshToken={savedCount}
+					/>
+
 					<!-- Panel "Se usa en" (`#lote-integridad`, Fase A): quién apunta a este registro.
 					     Va DEBAJO de la tarjeta "Registro" y ENCIMA de la zona de peligro a propósito —
 					     es la información que hace falta justo antes de borrar. Colapsado por defecto:

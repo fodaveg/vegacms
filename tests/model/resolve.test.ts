@@ -2269,6 +2269,64 @@ describe('16. social: tarjeta social SEO/OG (lote "editor" Fase B)', () => {
 	});
 });
 
+// ————— 17. revisions: historial de versiones y papelera (`#lote-integridad` Fase B §7) —————
+
+describe('17. revisions (§7 de la Fase B "integridad")', () => {
+	test('sin manifiesto: defaults (enabled true, 20/30), sin warnings', () => {
+		const model = resolveContentModel({ types: kitchenSinkTypes, manifestRaw: null });
+		expect(model.revisions).toEqual({ enabled: true, keepPerRecord: 20, trashDays: 30 });
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('manifiesto con revisions completo: se respeta tal cual', () => {
+		const manifestRaw: JsonValue = {
+			schemaVersion: 1,
+			revisions: { enabled: false, keepPerRecord: 5, trashDays: 7 }
+		};
+		const model = resolveContentModel({ types: kitchenSinkTypes, manifestRaw });
+		expect(model.revisions).toEqual({ enabled: false, keepPerRecord: 5, trashDays: 7 });
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('revisions PARCIAL: cada clave ausente cae a su default, sin invalidar las otras', () => {
+		const manifestRaw: JsonValue = { schemaVersion: 1, revisions: { keepPerRecord: 5 } };
+		const model = resolveContentModel({ types: kitchenSinkTypes, manifestRaw });
+		expect(model.revisions).toEqual({ enabled: true, keepPerRecord: 5, trashDays: 30 });
+	});
+
+	test('revisions no es un objeto → se ignora entero, warning manifest-invalid-key', () => {
+		const manifestRaw: JsonValue = { schemaVersion: 1, revisions: 'nope' };
+		const model = resolveContentModel({ types: kitchenSinkTypes, manifestRaw });
+		expect(model.revisions).toEqual({ enabled: true, keepPerRecord: 20, trashDays: 30 });
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'manifest-invalid-key', path: '/revisions' })
+		]);
+	});
+
+	test('keepPerRecord/trashDays negativos o no enteros degradan a su default con warning', () => {
+		const manifestRaw: JsonValue = {
+			schemaVersion: 1,
+			revisions: { keepPerRecord: -1, trashDays: 1.5 }
+		};
+		const model = resolveContentModel({ types: kitchenSinkTypes, manifestRaw });
+		expect(model.revisions).toEqual({ enabled: true, keepPerRecord: 20, trashDays: 30 });
+		expect(model.warnings.map((w) => w.path).sort()).toEqual([
+			'/revisions/keepPerRecord',
+			'/revisions/trashDays'
+		]);
+	});
+
+	test('determinismo (L1): mismo manifiesto con revisions → mismo resultado', () => {
+		const manifestRaw: JsonValue = {
+			schemaVersion: 1,
+			revisions: { enabled: true, keepPerRecord: 10, trashDays: 15 }
+		};
+		const a = resolveContentModel({ types: kitchenSinkTypes, manifestRaw });
+		const b = resolveContentModel({ types: kitchenSinkTypes, manifestRaw });
+		expect(a).toEqual(b);
+	});
+});
+
 // ————— Referencias cruzadas del fixture (evitan que quede código muerto) —————
 
 describe('fixture', () => {

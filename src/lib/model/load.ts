@@ -133,8 +133,14 @@ export async function loadContentModel(
  * es `true` (introspección REAL, no ya-servida-desde-snapshot): en modo editor `types` vendría
  * del propio snapshot (circular), así que reescribirlo sería, en el mejor caso, un no-op y, en
  * el peor, congelar un esquema potencialmente obsoleto bajo apariencia de estar actualizándose.
+ *
+ * Devuelve el `manifest` YA versionado (`schemaVersion: 1` forzado) tal cual quedó escrito en el
+ * campo `manifest` del registro — fix de code-review (`/settings` tiene DOS escritores del
+ * manifiesto, `ManifestEditor` y `RevisionsSettings`; sin este valor de vuelta, el llamador solo
+ * podía refrescar su copia local releyendo la red o confiando en el objeto que le pasó a esta
+ * misma función, ambos caminos con su propio riesgo de arrastrar una copia obsoleta).
  */
-export async function saveManifest(port: BackendPort, manifest: JsonValue): Promise<void> {
+export async function saveManifest(port: BackendPort, manifest: JsonValue): Promise<JsonValue> {
 	const validation = validateManifestStrict(manifest);
 	if (!validation.ok) throw new ManifestValidationError(validation.errors);
 
@@ -172,4 +178,6 @@ export async function saveManifest(port: BackendPort, manifest: JsonValue): Prom
 	} else {
 		await port.create(VEGA_COLLECTION.name, body);
 	}
+
+	return versioned;
 }

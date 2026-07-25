@@ -39,6 +39,7 @@ import type {
 	ResolvedLocalization,
 	ResolvedMergedSource,
 	ResolvedMergedView,
+	ResolvedRevisionsConfig,
 	ResolvedSite,
 	ResolvedSocialCardConfig
 } from './types';
@@ -81,6 +82,15 @@ import {
 	socialUrlInvalid
 } from './warnings';
 import { validatePreviewUrlPlaceholders } from './preview-url';
+
+// Defaults de retención (`#lote-integridad`, Fase B §7): duplicados A PROPÓSITO desde
+// `$lib/revisions/retention` (`DEFAULT_KEEP_PER_RECORD`/`DEFAULT_TRASH_RETENTION_DAYS`, los
+// nombres canónicos con los que el contrato los fija). P2 no importa de `revisions/` —esa capa
+// se construye ENCIMA del modelo (mismo estatus que `media/`), y este módulo es "puro" (L1): solo
+// depende de `backend/` hacia abajo, nunca de una capa de feature hacia arriba. Mismo criterio de
+// duplicación consciente que `classifyMediaFile`/`collectionFieldSpecToPbImportField` en `media/`.
+const DEFAULT_REVISIONS_KEEP_PER_RECORD = 20;
+const DEFAULT_REVISIONS_TRASH_DAYS = 30;
 
 // ————— Lectura tolerante de JSON (§5) —————
 
@@ -338,6 +348,7 @@ export function resolveContentModel(input: {
 	const { manifest, doc } = readManifestDoc(input.manifestRaw, warnings);
 
 	const site = resolveSite(doc, warnings);
+	const revisions = resolveRevisions(doc, warnings);
 	const locales = readKey(
 		doc,
 		'locales',
@@ -436,7 +447,7 @@ export function resolveContentModel(input: {
 	// `buildNav`), así que necesita las dos listas ya resueltas.
 	const nav = buildNav(resolvedTypes, navOrderByType, declaredNavGroups, mergedViews);
 
-	return { site, types: resolvedTypes, nav, mergedViews, warnings, manifest };
+	return { site, revisions, types: resolvedTypes, nav, mergedViews, warnings, manifest };
 }
 
 // ————— Manifiesto raíz —————
@@ -510,6 +521,53 @@ function resolveSite(doc: JsonObject, warnings: ModelWarning[]): ResolvedSite {
 		) ?? null;
 
 	return { name, defaultTheme, locale };
+}
+
+/**
+ * Resuelve `revisions` (§ tipos `ResolvedRevisionsConfig`, `#lote-integridad` Fase B §7): las
+ * tres claves son independientes (mismo criterio que `site`), cada una cae a su default si está
+ * ausente o no pasa `readBoolean`/`readNonNegativeInt` (con warning `manifest-invalid-key` en ese
+ * segundo caso, vía `readKey`) — nunca invalida las otras dos.
+ */
+function resolveRevisions(doc: JsonObject, warnings: ModelWarning[]): ResolvedRevisionsConfig {
+	const revisionsRaw = readKey(
+		doc,
+		'revisions',
+		asJsonObject,
+		'/revisions',
+		'revisions no es un objeto; se ignora.',
+		warnings
+	);
+
+	const enabled =
+		readKey(
+			revisionsRaw,
+			'enabled',
+			readBoolean,
+			'/revisions/enabled',
+			'revisions.enabled no es booleano; se ignora.',
+			warnings
+		) ?? true;
+	const keepPerRecord =
+		readKey(
+			revisionsRaw,
+			'keepPerRecord',
+			readNonNegativeInt,
+			'/revisions/keepPerRecord',
+			'revisions.keepPerRecord no es un entero >= 0; se ignora.',
+			warnings
+		) ?? DEFAULT_REVISIONS_KEEP_PER_RECORD;
+	const trashDays =
+		readKey(
+			revisionsRaw,
+			'trashDays',
+			readNonNegativeInt,
+			'/revisions/trashDays',
+			'revisions.trashDays no es un entero >= 0; se ignora.',
+			warnings
+		) ?? DEFAULT_REVISIONS_TRASH_DAYS;
+
+	return { enabled, keepPerRecord, trashDays };
 }
 
 // ————— Bloques ordenables embebidos (blocks, lote "editor" Fase A) —————

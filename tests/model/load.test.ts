@@ -198,6 +198,18 @@ describe('11. Ciclo completo con memory (§9.11)', () => {
 		expect(model.manifest).toEqual({ status: 'loaded', schemaVersion: 1 });
 	});
 
+	test('saveManifest devuelve el manifiesto YA versionado, IDÉNTICO a lo que quedó en el registro (fix de code-review: /settings tiene dos escritores, `/settings/+page.svelte` refresca su copia local con este valor de vuelta en vez de arrastrar la anterior)', async () => {
+		const port = await loggedInPort(virginSeed());
+		await port.ensureCollections([VEGA_COLLECTION]);
+		await port.create('vega', { manifest: { schemaVersion: 1, site: { name: 'Antes' } } });
+
+		const returned = await saveManifest(port, { schemaVersion: 1, site: { name: 'Después' } });
+
+		const page = await port.list('vega', { perPage: 2 });
+		expect(returned).toEqual(page.items[0].values.manifest);
+		expect(returned).toEqual({ schemaVersion: 1, site: { name: 'Después' } });
+	});
+
 	test('bootstrap: saveManifest sobre un backend sin la colección vega la crea y persiste', async () => {
 		const port = await loggedInPort(virginSeed());
 

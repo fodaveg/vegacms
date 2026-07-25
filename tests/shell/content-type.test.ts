@@ -29,6 +29,7 @@ function type(name: string, hidden: boolean): ResolvedContentType {
 function model(types: ResolvedContentType[]): ContentModel {
 	return {
 		site: { name: 'Vega', defaultTheme: null, locale: null },
+		revisions: { enabled: true, keepPerRecord: 20, trashDays: 30 },
 		types,
 		nav: { groups: [] },
 		mergedViews: [],

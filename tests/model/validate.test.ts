@@ -372,6 +372,63 @@ describe('1. Casos puntuales contra el schema §3', () => {
 	});
 });
 
+// ————— 1a. revisions (`#lote-integridad` Fase B §7) —————
+
+describe('1a. revisions contra el schema §3', () => {
+	test('revisions vacío ({}) → válido (las tres claves son opcionales)', () => {
+		expect(validateManifestStrict({ schemaVersion: 1, revisions: {} })).toEqual({ ok: true });
+	});
+
+	test('revisions completo (enabled/keepPerRecord/trashDays) → válido', () => {
+		expect(
+			validateManifestStrict({
+				schemaVersion: 1,
+				revisions: { enabled: true, keepPerRecord: 20, trashDays: 30 }
+			})
+		).toEqual({ ok: true });
+	});
+
+	test('revisions.keepPerRecord/trashDays: 0 es válido (caso límite, no "ausente")', () => {
+		expect(
+			validateManifestStrict({
+				schemaVersion: 1,
+				revisions: { keepPerRecord: 0, trashDays: 0 }
+			})
+		).toEqual({ ok: true });
+	});
+
+	test('revisions no es un objeto → inválido', () => {
+		expect(validateManifestStrict({ schemaVersion: 1, revisions: 'nope' }).ok).toBe(false);
+	});
+
+	test('revisions.enabled no booleano → inválido', () => {
+		expect(validateManifestStrict({ schemaVersion: 1, revisions: { enabled: 'sí' } }).ok).toBe(
+			false
+		);
+	});
+
+	test('revisions.keepPerRecord negativo o no entero → inválido', () => {
+		expect(validateManifestStrict({ schemaVersion: 1, revisions: { keepPerRecord: -1 } }).ok).toBe(
+			false
+		);
+		expect(validateManifestStrict({ schemaVersion: 1, revisions: { keepPerRecord: 1.5 } }).ok).toBe(
+			false
+		);
+	});
+
+	test('revisions.trashDays negativo → inválido', () => {
+		expect(validateManifestStrict({ schemaVersion: 1, revisions: { trashDays: -1 } }).ok).toBe(
+			false
+		);
+	});
+
+	test('clave desconocida dentro de revisions → inválido (additionalProperties)', () => {
+		expect(validateManifestStrict({ schemaVersion: 1, revisions: { unknownKey: 1 } }).ok).toBe(
+			false
+		);
+	});
+});
+
 // ————— 1b. mergedViews (L7a) —————
 
 describe('1b. mergedViews (L7a) contra el schema §3', () => {
@@ -623,6 +680,11 @@ const VALID_ZERO_WARNING_MANIFESTS: JsonValue[] = [
 				}
 			}
 		}
+	},
+	{
+		// revisions (`#lote-integridad` Fase B §7): las tres claves, forma completa → cero warnings.
+		schemaVersion: 1,
+		revisions: { enabled: false, keepPerRecord: 5, trashDays: 7 }
 	}
 ];
 
@@ -747,6 +809,12 @@ const INVALID_MANIFESTS: JsonValue[] = [
 		collections: { post: { fields: { body: { placeholder: 'x'.repeat(121) } } } }
 	},
 	{ schemaVersion: 1, collections: { post: { fields: { body: { unknownKey: 1 } } } } },
+	{ schemaVersion: 1, revisions: 'not-an-object' },
+	{ schemaVersion: 1, revisions: { enabled: 'yes' } },
+	{ schemaVersion: 1, revisions: { keepPerRecord: -1 } },
+	{ schemaVersion: 1, revisions: { keepPerRecord: 1.5 } },
+	{ schemaVersion: 1, revisions: { trashDays: -1 } },
+	{ schemaVersion: 1, revisions: { unknownKey: 1 } },
 	{ schemaVersion: 1, mergedViews: 'not-an-object' },
 	{ schemaVersion: 1, mergedViews: { destacados: { label: 'X' } } }, // sin sources (required)
 	{ schemaVersion: 1, mergedViews: { destacados: { sources: [] } } }, // minItems 1

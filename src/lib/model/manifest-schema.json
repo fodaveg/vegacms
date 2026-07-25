@@ -209,6 +209,17 @@
 			}
 		},
 
+		"revisions": {
+			"description": "Historial de versiones y papelera (#lote-integridad, Fase B §7): activación y retención. Ausente ⇒ historial activo con los defaults (20 versiones por registro, papelera de 30 días) — un manifiesto que no declara esta clave no avisa de nada.",
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"enabled": { "type": "boolean" },
+				"keepPerRecord": { "type": "integer", "minimum": 0 },
+				"trashDays": { "type": "integer", "minimum": 0 }
+			}
+		},
+
 		"mergedViews": {
 			"description": "Vistas fusionadas (L7a): unen registros de VARIAS colecciones bajo un id-slug. Clave = id-slug de la vista.",
 			"type": "object",

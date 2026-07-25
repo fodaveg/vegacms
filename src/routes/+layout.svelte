@@ -57,6 +57,7 @@
 	} from '$lib/nav/routes';
 	import { resolveSingletonTarget } from '$lib/nav/singleton';
 	import { VegaError } from '$lib/backend';
+	import { resetRevisionsLatch } from '$lib/revisions/with-revisions';
 	import AppShell from '$lib/shell/AppShell.svelte';
 	import ToastHost from '$lib/shell/ToastHost.svelte';
 	import GlobalBanner from '$lib/shell/GlobalBanner.svelte';
@@ -238,6 +239,12 @@
 		},
 		icons: iconRegistry,
 		async reloadModel() {
+			// `#lote-integridad` Fase B (§6): un recargo del modelo es también la señal de "puede
+			// haber cambiado algo del historial de versiones" (se acaba de bootstrapear
+			// `vega_revisions` desde Ajustes, o de tocar `revisions.*` del manifiesto) — resetea la
+			// latch de disponibilidad Y la caché de retención del decorador, para que la PRÓXIMA
+			// escritura no arrastre un "no disponible"/config vieja de antes del recargo.
+			resetRevisionsLatch(sessionStore.port);
 			await loadModel();
 		},
 		nav,

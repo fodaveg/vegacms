@@ -320,6 +320,38 @@ La colección `vega_media` que Vega bootstrapea **ya declara estos tres tamaños
 
 **Para tus colecciones de contenido propias** con campos `file` de imagen que edites o listes en Vega: declara en PB (Collections → tu colección → campo `file` → Thumb sizes) al menos `300x300` y `28x28` (y `120x120` si editas ese campo con el widget file), o Vega mostrará el original completo en cada miniatura. Vega **no** añade thumbs retroactivamente a colecciones que no creó.
 
+## Historial de versiones
+
+Vega puede guardar una copia del estado de un registro justo ANTES de cada guardado, para poder
+compararla con la versión actual o recuperar los valores en el formulario. Vive en una colección
+propia, `vega_revisions`, con el mismo mecanismo de bootstrap que `vega_media`: **Ajustes → Historial
+y papelera → Crear colección de historial** (requiere sesión de superuser; un rol editor no puede
+crearla, solo usarla si ya existe).
+
+Cómo funciona:
+
+- Cada vez que guardas cambios sobre un registro ya existente, Vega lee su estado ANTERIOR y lo
+  guarda en `vega_revisions` antes de aplicar el cambio nuevo. Crear un registro nuevo **no** genera
+  ninguna revisión (no hay "antes" que guardar).
+- El panel **«Historial»** del editor (aside, junto a «Se usa en») lista las revisiones guardadas de
+  ese registro. Al abrir una, se compara contra la versión ACTUAL (nunca revisión contra revisión).
+- **«Restaurar en el formulario»** carga los valores de esa revisión como cambios SIN GUARDAR — nunca
+  escribe directo al backend. Revisas y pulsas «Guardar» tú mismo, como cualquier otro cambio.
+- Si el guardado de una revisión falla (red, colección todavía sin bootstrapear, etc.), el guardado
+  del registro en sí **nunca se ve afectado**: seguirá completándose con normalidad, simplemente sin
+  dejar rastro en el historial esa vez.
+- Retención: por defecto se conservan 20 versiones por registro (las más antiguas se podan solas,
+  en segundo plano, sin bloquear ningún guardado). Ajustable desde **Ajustes → Historial y
+  papelera**, o directamente en el manifiesto (`revisions.keepPerRecord`).
+- **Coste**: cada guardado de un registro ya existente hace una lectura y una escritura extra contra
+  `vega_revisions`. Ningún otro camino de la app (listados, navegación) paga ningún coste adicional.
+
+La **papelera** (recuperar un registro BORRADO, no solo una versión anterior) es una fase posterior
+de este mismo lote: cuando llegue, el aviso de borrado dejará claro con todas las letras que los
+**ficheros adjuntos de un registro borrado no se recuperan** (PocketBase los destruye al instante al
+borrar el registro, y recrearlo con el mismo id no los resucita) — solo se restauran los VALORES y el
+id original.
+
 ## Autenticación en Vega
 
 Vega autentica contra usuarios de PocketBase. Hay **dos modos** de autenticación: **superuser** (default, para operadores/administradores) y **editor** (para clientes no técnicos).

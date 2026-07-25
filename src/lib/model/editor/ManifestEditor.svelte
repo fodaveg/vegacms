@@ -89,6 +89,62 @@
 			return isProposal ? buildTemplate(types) : JSON.stringify({ schemaVersion: 1 }, null, 2);
 		})
 	);
+
+	/**
+	 * Resincronización con `initialManifestRaw` (fix de code-review, `#lote-integridad` Fase B):
+	 * `/settings` tiene DOS escritores del manifiesto (este editor y `RevisionsSettings`, la
+	 * retención del historial) — sin esto, `rawText` solo se sembraba UNA VEZ al montar y un
+	 * guardado del OTRO escritor dejaba el `<textarea>` mostrando contenido obsoleto (y el
+	 * siguiente "Guardar" de AQUÍ lo pisaba en silencio, sin importar el orden).
+	 *
+	 * `lastProcessedManifestRaw`/`seededRawText` son variables PLANAS (no `$state`): solo le
+	 * interesan a este efecto, llevar la cuenta de "la última semilla programática" no debe
+	 * disparar una re-ejecución (a diferencia de leer `rawText` dentro del efecto, que si se
+	 * hiciera sin `untrack` lo reengancharía a CADA tecla).
+	 */
+	let lastProcessedManifestRaw = untrack(() => initialManifestRaw);
+	let seededRawText = untrack(() => rawText);
+	/** `true` justo tras el `onSave` de ESTE editor y hasta que la prop refleje ese guardado
+	 *  (ver `doSave`): evita el falso positivo de "cambiado por otro sitio" que saltaría si el
+	 *  texto reformateado que vuelve por la prop no es BYTE A BYTE idéntico al `<textarea>` (p. ej.
+	 *  la persona guardó JSON con un indentado distinto al canónico de `JSON.stringify(…, null,
+	 *  2)`) — es el propio guardado volviendo, no un cambio ajeno. */
+	let awaitingOwnSaveEcho = false;
+	/** `true` mientras hay un cambio externo detectado que NO se ha podido re-sembrar en silencio
+	 *  (editor con un borrador sin guardar) — ver el aviso `.manifest-editor-external-change`. */
+	let externalChangeDetected = $state(false);
+
+	$effect(() => {
+		const next = initialManifestRaw;
+		if (next === lastProcessedManifestRaw) return;
+		lastProcessedManifestRaw = next;
+
+		if (awaitingOwnSaveEcho) {
+			// Es el eco del guardado que ACABAMOS de hacer: el `<textarea>` ya refleja este
+			// contenido (con su propio formato) — solo se actualiza la contabilidad de "última
+			// semilla conocida", nunca se pisa `rawText` ni se avisa de un cambio externo.
+			seededRawText = untrack(() => rawText);
+			awaitingOwnSaveEcho = false;
+			externalChangeDetected = false;
+			return;
+		}
+
+		const nextText =
+			next !== null ? JSON.stringify(next, null, 2) : JSON.stringify({ schemaVersion: 1 }, null, 2);
+
+		if (untrack(() => rawText) === seededRawText) {
+			// Sin cambios sin guardar desde la última siembra: re-sembrar en silencio, el borrador
+			// (inexistente) no se pierde nada.
+			rawText = nextText;
+			seededRawText = nextText;
+			externalChangeDetected = false;
+		} else {
+			// Hay un borrador sin guardar: no se toca, solo se avisa (§3 del fix: nunca destruir
+			// una edición en curso).
+			externalChangeDetected = true;
+		}
+	});
+
 	/** `true` tras pulsar "Validar" (o "Insertar plantilla", o un intento de guardar): revela el
 	 *  panel de errores/avisos. El botón "Guardar" NO depende de esto — su estado es siempre el
 	 *  `canSave` en vivo, se haya pulsado "Validar" o no. */
@@ -155,10 +211,14 @@
 			// Seguro: `canSave` exige `editorState.canSave`, que solo es `true` tras un
 			// `JSON.parse` correcto seguido de `validateManifestStrict` en verde.
 			const manifest = JSON.parse(rawText) as JsonValue;
+			// Ver la cabecera del efecto de resincronización: marca que el PRÓXIMO cambio de
+			// `initialManifestRaw` es el eco de ESTE guardado, no un cambio ajeno.
+			awaitingOwnSaveEcho = true;
 			await onSave(manifest);
 			saveStatus = 'saved';
 			showValidation = true;
 		} catch (err) {
+			awaitingOwnSaveEcho = false;
 			saveStatus = 'error';
 			saveErrorMessage = err instanceof Error ? err.message : 'Error desconocido al guardar.';
 		}
@@ -208,6 +268,23 @@
 				cuyo nombre no sigue una convención clara, campos traducibles (<code>localizedFields</code>)
 				y cualquier vista fusionada (<code>mergedViews</code>). Vega solo puede inferir ESTRUCTURA,
 				nunca permisos ni intención editorial.
+			</p>
+		</div>
+	{/if}
+
+	{#if externalChangeDetected}
+		<!-- Fix de code-review (dos escritores del manifiesto en /settings, ver el efecto de
+		     resincronización arriba): el borrador de este textarea NO se ha tocado, pero el
+		     manifiesto cambió por otro sitio mientras tanto — aviso discreto, nunca bloqueante. -->
+		<div
+			class="notice notice-external-change manifest-editor-external-change"
+			role="status"
+			aria-live="polite"
+		>
+			<p>
+				El manifiesto se actualizó desde otro sitio de esta página (por ejemplo, la retención del
+				historial) mientras editabas aquí. Tu borrador sin guardar sigue intacto, pero al guardar
+				sobrescribirás esa actualización.
 			</p>
 		</div>
 	{/if}
@@ -571,6 +648,18 @@
 
 	.notice-proposal p + p {
 		margin-top: 0.5rem;
+	}
+
+	/* Fix de code-review: mismo tratamiento de aviso que `.notice-bootstrap` (tokens `--warning`)
+	   — no es un error del editor, pero sí algo que conviene notar antes de pulsar "Guardar". */
+	.notice-external-change {
+		border-color: var(--warning);
+		background: var(--warning-soft);
+		color: var(--warning);
+	}
+
+	.notice-external-change p {
+		margin: 0;
 	}
 
 	.bootstrap-json {

@@ -439,6 +439,52 @@ export const es = {
 	'integrity.deleteGuard.confirmCheckbox':
 		'Entiendo que hay referencias activas y quiero borrar igualmente.',
 
+	// ————— Historial de versiones (`#lote-integridad`, Fase B) — panel del editor —————
+	'revisions.panel.toggle': 'Historial',
+	'revisions.panel.loading': 'Cargando historial…',
+	'revisions.panel.empty': 'Todavía no hay versiones guardadas.',
+	'revisions.panel.error': 'No se pudo cargar el historial.',
+	'revisions.panel.retry': 'Reintentar',
+	'revisions.panel.unavailable': 'El historial de versiones no está activado en este proyecto.',
+	'revisions.panel.unknownDate': 'Fecha desconocida',
+	'revisions.panel.unknownAuthor': 'alguien',
+	'revisions.restoredToast':
+		'Valores cargados en el formulario. Revisa y guarda para conservarlos.',
+
+	// ————— Historial de versiones — diff de una revisión —————
+	'revisions.diff.back': 'Volver al historial',
+	'revisions.diff.loading': 'Comparando versiones…',
+	'revisions.diff.error': 'No se pudo comparar esta versión.',
+	'revisions.diff.noChanges': 'No hay diferencias con la versión actual.',
+	'revisions.diff.restore': 'Restaurar en el formulario',
+	'revisions.diff.empty': '(vacío)',
+	'revisions.diff.absent': '(no existía)',
+	'revisions.diff.relationCount': '{count} vinculado(s)',
+	'revisions.diff.retry': 'Reintentar',
+
+	// ————— Historial de versiones — Ajustes (bootstrap + retención + recuento) —————
+	'revisions.settings.title': 'Historial y papelera',
+	'revisions.settings.description':
+		'Guarda una versión anterior de cada registro antes de sobrescribirlo, para poder compararla o recuperarla.',
+	'revisions.settings.count': '{count} versión(es) guardadas ahora mismo.',
+	'revisions.settings.countError': 'No se pudo obtener el recuento de versiones.',
+	'revisions.settings.enabled': 'Historial activado',
+	'revisions.settings.keepPerRecord': 'Versiones a conservar por registro',
+	'revisions.settings.trashDays': 'Días en la papelera',
+	'revisions.settings.save': 'Guardar retención',
+	'revisions.settings.saving': 'Guardando…',
+	'revisions.settings.creatableBody':
+		'La colección "vega_revisions" todavía no existe en este backend.',
+	'revisions.settings.create': 'Crear colección de historial',
+	'revisions.settings.confirmBody':
+		'Vega va a crear la colección "vega_revisions" en tu PocketBase. ¿Continuar?',
+	'revisions.settings.confirm': 'Crear colección',
+	'revisions.settings.creating': 'Creando…',
+	'revisions.settings.manualBody':
+		'La colección "vega_revisions" no se puede crear automáticamente. En el Admin de PocketBase: Collections → Import collections, pega el siguiente JSON y confirma.',
+	'revisions.settings.staleReadError':
+		'No se pudo comprobar el manifiesto actual antes de guardar. Vuelve a intentarlo: nada se ha guardado.',
+
 	// ————— Medios: bootstrap + esquema (Fase P6·6a) —————
 	'media.loadErrorBody': 'No se pudo cargar la biblioteca de medios. Vuelve a intentarlo.',
 	'media.empty.title': 'La biblioteca de medios está vacía',

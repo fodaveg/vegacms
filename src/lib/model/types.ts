@@ -18,6 +18,18 @@ export interface ContentModel {
 	types: ResolvedContentType[];
 	/** Derivado de `types`: solo visibles, agrupados y ordenados. Lo que P3 pinta tal cual. */
 	nav: NavModel;
+	/**
+	 * (M) Historial de versiones y papelera (`#lote-integridad`, Fase B §7): activación + los dos
+	 * números de retención, YA con los defaults aplicados (`resolveRevisions`, `resolve.ts`) — un
+	 * manifiesto que no declara `revisions` produce este mismo objeto con
+	 * `DEFAULT_KEEP_PER_RECORD`/`DEFAULT_TRASH_RETENTION_DAYS` (`$lib/revisions/retention`), sin
+	 * avisar de nada (mismo criterio "aditivo, sin warning por ausencia" que `ResolvedSite`).
+	 * `with-revisions.ts` (P3, decorador de puerto) NO lee este campo: vive una capa por debajo de
+	 * P2 y no tiene un `ContentModel` resuelto — hace su propia lectura tolerante mínima del
+	 * manifiesto crudo, ver su cabecera para el porqué. Este campo es para la UI de P3/P5
+	 * (`RevisionsSettings.svelte`), que SÍ tiene `ctx.model` a mano.
+	 */
+	revisions: ResolvedRevisionsConfig;
 	/** Vistas fusionadas declaradas en `mergedViews` (L7a), ya resueltas y filtradas a las que
 	 *  tienen al menos una source válida — una vista con 0 sources válidas se descarta entera
 	 *  (`merged-view-invalid`) y no aparece aquí. Cardinal <= nº de claves de `mergedViews` en el
@@ -42,6 +54,16 @@ export interface ResolvedSite {
 	name: string; // (D+M) default 'Vega'
 	defaultTheme: string | null; // (M) pass-through para P7; null = default de P7
 	locale: 'es' | 'en' | null; // (M) null = P3 decide por navigator.language
+}
+
+/** (M) `revisions` ya resuelto, ver `ContentModel.revisions`. Los tres campos SIEMPRE tienen un
+ *  valor (nunca `null`): `enabled` por defecto `true` (el historial se activa BOOTSTRAPEANDO la
+ *  colección `vega_revisions`, no con esta clave — `enabled: false` es la excepción explícita
+ *  para un proyecto que sí tiene la colección pero quiere pausar el historial sin borrarla). */
+export interface ResolvedRevisionsConfig {
+	enabled: boolean;
+	keepPerRecord: number;
+	trashDays: number;
 }
 
 // ————— Navegación (contrato con P3) —————

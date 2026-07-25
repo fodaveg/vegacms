@@ -34,9 +34,12 @@ const ROOT_ALLOWED_KEYS = [
 	'site',
 	'nav',
 	'collections',
+	'revisions',
 	'mergedViews'
 ] as const;
 const SITE_ALLOWED_KEYS = ['name', 'defaultTheme', 'locale'] as const;
+/** Claves de `revisions` (historial/papelera, `#lote-integridad` Fase B §7). */
+const REVISIONS_ALLOWED_KEYS = ['enabled', 'keepPerRecord', 'trashDays'] as const;
 const NAV_ALLOWED_KEYS = ['groups'] as const;
 const LOCALES_ALLOWED_KEYS = ['default', 'available'] as const;
 const LOCALE_ITEM_ALLOWED_KEYS = ['id', 'label'] as const;
@@ -361,7 +364,33 @@ function validateRoot(raw: JsonValue, errors: ManifestValidationErrorEntry[]): v
 	if ('locales' in raw) validateLocales(raw.locales, errors);
 	if ('nav' in raw) validateNav(raw.nav, errors);
 	if ('collections' in raw) validateCollections(raw.collections, errors);
+	if ('revisions' in raw) validateRevisions(raw.revisions, errors);
 	if ('mergedViews' in raw) validateMergedViews(raw.mergedViews, errors);
+}
+
+/** `revisions` (historial/papelera, `#lote-integridad` Fase B §7): las tres claves opcionales,
+ *  cada una degrada por separado a su default (`resolveRevisions`, `resolve.ts`) — mismo criterio
+ *  "todo opcional, aditivo" que `site`. */
+function validateRevisions(value: JsonValue, errors: ManifestValidationErrorEntry[]): void {
+	if (!isPlainObject(value)) {
+		fail(errors, '/revisions', 'revisions debe ser un objeto.');
+		return;
+	}
+	checkAdditionalProperties(value, REVISIONS_ALLOWED_KEYS, '/revisions', errors);
+	if ('enabled' in value) {
+		checkBoolean(value.enabled, '/revisions/enabled', errors, 'revisions.enabled');
+	}
+	if ('keepPerRecord' in value) {
+		checkNonNegativeInt(
+			value.keepPerRecord,
+			'/revisions/keepPerRecord',
+			errors,
+			'revisions.keepPerRecord'
+		);
+	}
+	if ('trashDays' in value) {
+		checkNonNegativeInt(value.trashDays, '/revisions/trashDays', errors, 'revisions.trashDays');
+	}
 }
 
 function validateLocales(value: JsonValue, errors: ManifestValidationErrorEntry[]): void {

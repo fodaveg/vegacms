@@ -67,6 +67,7 @@
 	import { VEGA_PB_SERVER_RANGE, VEGA_VERSION } from '$lib/version';
 	import ManifestEditor from '$lib/model/editor/ManifestEditor.svelte';
 	import SchemaAuthoringPanel from '$lib/model/editor/SchemaAuthoringPanel.svelte';
+	import RevisionsSettings from '$lib/revisions/RevisionsSettings.svelte';
 	import WarningsList from '$lib/shell/WarningsList.svelte';
 	import { updateBannerState } from '$lib/shell/update-banner.svelte';
 	import { checkForUpdate, type UpdateStatus } from '$lib/update/check-update';
@@ -159,11 +160,20 @@
 	 *  refresca `types` en LOCAL: un primer guardado sobre `collectionState: 'creatable'` crea la
 	 *  colección `vega` (`ensureCollections`, dentro de `saveManifest`), así que sin este refresco
 	 *  el editor seguiría pidiendo la confirmación de bootstrap en el SIGUIENTE guardado aunque la
-	 *  colección ya exista. */
+	 *  colección ya exista.
+	 *
+	 *  Fix de code-review (`#lote-integridad` Fase B, dos escritores del manifiesto en esta misma
+	 *  página): `initialManifestRaw` se refresca aquí con lo que `saveManifest` acaba de devolver
+	 *  (el manifiesto YA versionado, IDÉNTICO a lo persistido) — sin esto, `ManifestEditor` seguía
+	 *  arrastrando la copia de la carga inicial (`load()`, solo se ejecuta una vez), y el SEGUNDO
+	 *  escritor que comparte este mismo `handleSave` (`RevisionsSettings`, retención) construía su
+	 *  patch sobre esa copia MUERTA — un guardado pisaba en silencio al otro, sin importar el
+	 *  orden. Se asigna ANTES del housekeeping de abajo (que sí puede fallar sin invalidar el
+	 *  guardado): el valor de vuelta ya refleja una escritura confirmada, no hay nada que esperar. */
 	async function handleSave(manifest: JsonValue): Promise<void> {
 		// El guardado REAL: si falla (validación o transporte) DEBE propagarse al editor de P2, que
 		// lo pinta bajo el textarea ("Error al guardar…"). Este `await` es lo único que puede hacerlo.
-		await saveManifest(ctx.port, manifest);
+		initialManifestRaw = await saveManifest(ctx.port, manifest);
 		// A partir de aquí el manifiesto YA está persistido: la housekeeping posterior (refresco de
 		// `types` para que `collectionState` pase de 'creatable' a 'present', + `reloadModel`) NO
 		// puede reventar hacia el editor — un hipo de red aquí haría reportar "Error al guardar" un
@@ -181,12 +191,18 @@
 	}
 
 	/**
-	 * `onSchemaChanged` de `SchemaAuthoringPanel` (lote "esquema", Fase 1): tras crear una
-	 * colección o añadir campos con éxito, refresca `types` (para que "Añadir campos" vea la
-	 * colección recién creada y `ManifestEditor` vea el campo nuevo en su dry-run) y re-resuelve
-	 * el modelo — MISMO housekeeping que la cola de `handleSave` tras `saveManifest`, y misma
-	 * razón para no dejarlo reventar hacia el panel: la operación de esquema en sí YA tuvo éxito,
-	 * un hipo de red en el refresco posterior no debe leerse como que falló.
+	 * `onSchemaChanged` de `SchemaAuthoringPanel` (lote "esquema", Fase 1) y de `RevisionsSettings`
+	 * (bootstrap de `vega_revisions`): tras crear una colección o añadir campos con éxito, refresca
+	 * `types` (para que "Añadir campos" vea la colección recién creada y `ManifestEditor` vea el
+	 * campo nuevo en su dry-run) y re-resuelve el modelo — MISMO housekeeping que la cola de
+	 * `handleSave` tras `saveManifest`, y misma razón para no dejarlo reventar hacia el panel: la
+	 * operación de esquema en sí YA tuvo éxito, un hipo de red en el refresco posterior no debe
+	 * leerse como que falló.
+	 *
+	 * NO toca `initialManifestRaw` (a diferencia de `handleSave`, ver su cabecera): ninguno de los
+	 * dos llamadores escribe el campo `manifest` del registro `vega` — `ensureCollections`/
+	 * `addCollectionFields` tocan el ESQUEMA (`ContentType[]`), nunca ese campo — así que no hay
+	 * nada nuevo que arrastraría una copia obsoleta.
 	 */
 	async function handleSchemaChanged(): Promise<void> {
 		try {
@@ -341,6 +357,18 @@
 			{collectionState}
 			onSave={handleSave}
 			knownIcons={ctx.icons.knownIcons}
+		/>
+
+		<!-- `#lote-integridad` Fase B (§6/§7/§10.4): bootstrap de `vega_revisions` + retención +
+		     recuento. Reutiliza los MISMOS `handleSchemaChanged`/`handleSave` que las dos secciones
+		     de arriba (ver cabecera del componente para el porqué de compartir esa plomería). -->
+		<RevisionsSettings
+			port={ctx.port}
+			{types}
+			manifestRaw={initialManifestRaw}
+			t={ctx.t}
+			onSchemaChanged={handleSchemaChanged}
+			onSave={handleSave}
 		/>
 	{/if}
 

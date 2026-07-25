@@ -437,6 +437,51 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'integrity.deleteGuard.confirmCheckbox':
 		'I understand there are active references and I want to delete anyway.',
 
+	// ————— Version history (`#lote-integridad`, Phase B) — editor panel —————
+	'revisions.panel.toggle': 'History',
+	'revisions.panel.loading': 'Loading history…',
+	'revisions.panel.empty': 'No saved versions yet.',
+	'revisions.panel.error': 'Could not load the history.',
+	'revisions.panel.retry': 'Retry',
+	'revisions.panel.unavailable': 'Version history is not enabled for this project.',
+	'revisions.panel.unknownDate': 'Unknown date',
+	'revisions.panel.unknownAuthor': 'someone',
+	'revisions.restoredToast': 'Values loaded into the form. Review and save to keep them.',
+
+	// ————— Version history — diff of one revision —————
+	'revisions.diff.back': 'Back to history',
+	'revisions.diff.loading': 'Comparing versions…',
+	'revisions.diff.error': 'Could not compare this version.',
+	'revisions.diff.noChanges': 'No differences with the current version.',
+	'revisions.diff.restore': 'Restore into the form',
+	'revisions.diff.empty': '(empty)',
+	'revisions.diff.absent': '(did not exist)',
+	'revisions.diff.relationCount': '{count} linked',
+	'revisions.diff.retry': 'Retry',
+
+	// ————— Version history — Settings (bootstrap + retention + count) —————
+	'revisions.settings.title': 'History and trash',
+	'revisions.settings.description':
+		'Keeps a previous version of each record before it gets overwritten, so it can be compared or recovered.',
+	'revisions.settings.count': '{count} version(s) saved right now.',
+	'revisions.settings.countError': 'Could not get the version count.',
+	'revisions.settings.enabled': 'History enabled',
+	'revisions.settings.keepPerRecord': 'Versions to keep per record',
+	'revisions.settings.trashDays': 'Days in the trash',
+	'revisions.settings.save': 'Save retention',
+	'revisions.settings.saving': 'Saving…',
+	'revisions.settings.creatableBody':
+		'The "vega_revisions" collection does not exist yet on this backend.',
+	'revisions.settings.create': 'Create history collection',
+	'revisions.settings.confirmBody':
+		'Vega is going to create the "vega_revisions" collection in your PocketBase. Continue?',
+	'revisions.settings.confirm': 'Create collection',
+	'revisions.settings.creating': 'Creating…',
+	'revisions.settings.manualBody':
+		'The "vega_revisions" collection cannot be created automatically. In the PocketBase Admin: Collections → Import collections, paste the JSON below and confirm.',
+	'revisions.settings.staleReadError':
+		'Could not check the current manifest before saving. Try again: nothing was saved.',
+
 	// ————— Media: grid + detail (Phase P6·6b) —————
 	'media.detail.title': 'Edit media',
 	'media.detail.alt': 'Alt text',
