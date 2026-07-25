@@ -69,7 +69,8 @@ export default defineConfig(
 		ignores: [
 			'src/lib/backend/adapters/pocketbase/**',
 			'tests/contract/pb-harness/**',
-			'tests/contract/pocketbase.contract.test.ts'
+			'tests/contract/pocketbase.contract.test.ts',
+			'tests/contract/pocketbase.migration.test.ts'
 		],
 		rules: {
 			'no-restricted-imports': [
