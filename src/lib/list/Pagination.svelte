@@ -83,7 +83,10 @@
 		justify-content: space-between;
 		gap: 1rem;
 		padding: 0.6rem var(--cell-x);
-		background: var(--surface-2);
+		/* Fondo `--paper`: el pie va DENTRO de la misma tarjeta `.vega-list-card` (`--paper`) que la
+		   tabla (mockup `.table-foot { background: var(--paper) }`) — con `--surface-2` quedaba un
+		   escalón más claro visible bajo el cuerpo de la tabla en oscuro. */
+		background: var(--paper);
 		border-top: 1px solid var(--line);
 		font-family: var(--mono);
 		font-size: 0.72rem;
@@ -106,7 +109,7 @@
 		padding: 0 0.35rem;
 		border: 1px solid var(--line);
 		border-radius: 5px;
-		background: var(--surface);
+		background: var(--btn);
 		color: var(--ink-2);
 		font-family: var(--mono);
 		font-size: 0.75rem;
@@ -114,9 +117,11 @@
 	}
 
 	/* Solo el botón habilitado reacciona al hover (fix: un `disabled` bajo el cursor no debe
-	   sugerir que hay algo que pulsar). */
+	   sugerir que hay algo que pulsar). Reposo `--btn`, hover `--active` + borde `--line-strong`
+	   (mockup `.pager button` / `:hover`). */
 	.vega-pagination-chevron:hover:not(:disabled) {
-		background: var(--btn);
+		background: var(--active);
+		border-color: var(--line-strong);
 	}
 
 	.vega-pagination-chevron:disabled {

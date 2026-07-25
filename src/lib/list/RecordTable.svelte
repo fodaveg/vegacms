@@ -508,19 +508,32 @@
 		font-size: 0.9rem;
 	}
 
-	/* Cabecera mono/uppercase (R3 del rediseño C2, mockup `th`): antes sans plana. */
+	/* Cabecera SANS/uppercase (mockup final `aquelarre-dark.html` `thead th`): la etiqueta de
+	   columna es un rótulo, NO un valor canónico — `--mono` se reserva para slugs/ids/counts/fechas
+	   (firma del rediseño), así que aquí va la sans del sistema. Peso 650 + `letter-spacing` corto,
+	   tinta `--ink-2` sobre el propio `--paper` de la tarjeta (sin banda `--surface-2`, la cabecera
+	   se funde con el cuerpo y solo la separa el `border-bottom`). Antes: mono/`--ink-3`/`--surface-2`
+	   (calcado de un mockup intermedio ya superado). */
 	.vega-record-table thead th {
 		padding: 0.5rem var(--cell-x);
 		text-align: left;
 		white-space: nowrap;
-		font-family: var(--mono);
-		font-size: 0.6563rem;
-		font-weight: 600;
+		font-size: 0.6875rem;
+		font-weight: 650;
 		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		color: var(--ink-3);
-		background: var(--surface-2);
+		letter-spacing: 0.06em;
+		color: var(--ink-2);
+		background: var(--paper);
 		border-bottom: 1px solid var(--line-strong);
+	}
+
+	/* Cabecera de la columna ORDENADA en acento (mockup `thead th[aria-sort]`): solo la columna
+	   activa (`ascending`/`descending`), nunca las `sortable` en reposo (`aria-sort="none"`). El
+	   `.vega-sort-button` hereda el color (`color: inherit`), así que la etiqueta ENTERA se tiñe,
+	   no solo el glifo `↓` (que ya iba en acento vía `.vega-sort-indicator`). */
+	.vega-record-table thead th[aria-sort='ascending'],
+	.vega-record-table thead th[aria-sort='descending'] {
+		color: var(--accent-text);
 	}
 
 	.vega-sort-button {
@@ -541,15 +554,27 @@
 		color: var(--ink);
 	}
 
+	/* En la columna ORDENADA la etiqueta ya va en acento (heredada del `th[aria-sort]` de arriba);
+	   sin esto, el hover genérico de arriba la destiñe a `--ink` mientras el glifo `↓`/`↑` sigue en
+	   acento (tono partido, justo en la única columna que debe leerse "encendida"). Mantiene el
+	   acento al pasar el ratón por encima de la columna activa. */
+	.vega-record-table thead th[aria-sort='ascending'] .vega-sort-button:hover,
+	.vega-record-table thead th[aria-sort='descending'] .vega-sort-button:hover {
+		color: var(--accent-text);
+	}
+
 	.vega-sort-indicator {
 		font-size: 0.65rem;
 		color: var(--accent-text);
 	}
 
-	/* Columnas fecha/número a la derecha (mockup `.cell-date`/`th.th-date`, `column-align.ts`):
-	   la cabecera hereda `text-align` para que el glifo de orden quede en el mismo lado que el
-	   valor que ordena. */
-	.vega-th-right {
+	/* Columnas fecha/número a la derecha (mockup `.cell-date`/`th.th-date`, `column-align.ts`): la
+	   cabecera se alinea a la derecha para que el glifo de orden quede en el mismo lado que el valor
+	   que ordena. Selector CALIFICADO a propósito (`.vega-record-table thead th.vega-th-right`): la
+	   base `.vega-record-table thead th { text-align: left }` tiene mayor especificidad que un
+	   `.vega-th-right` a secas y la ganaba en silencio → la cabecera fecha se quedaba a la izquierda
+	   mientras su celda ya iba a la derecha (desalineadas). */
+	.vega-record-table thead th.vega-th-right {
 		text-align: right;
 	}
 
@@ -789,20 +814,20 @@
 		color: var(--surface);
 	}
 
-	/* Insignia de estado, píldora + punto (M2, mockup `.status`/`.status::before`; antes
-	   rectangular de R3). Color por `data-status-kind` (`classifyStatusBadge`, `cell.ts`) —
-	   `data-status` (valor crudo) y el texto se conservan para no romper los selectores
-	   existentes de los tests. */
+	/* Insignia de estado, píldora + punto (mockup final `aquelarre-dark.html` `.status`/
+	   `.status::before`): SANS (una etiqueta de estado no es un valor canónico → sin `--mono`),
+	   SIN borde (solo el fondo `-soft` semántico + el texto de color + el punto) y de alto fijo
+	   24px. Color por `data-status-kind` (`classifyStatusBadge`, `cell.ts`) — `data-status` (valor
+	   crudo) y el texto se conservan para no romper los selectores existentes de los tests. */
 	.vega-status-badge {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.4rem;
-		font-family: var(--mono);
+		height: 24px;
 		font-size: 0.72rem;
 		font-weight: 600;
 		border-radius: 999px;
-		padding: 0.18rem 0.65rem;
-		border: 1px solid transparent;
+		padding: 0 0.65rem;
 		white-space: nowrap;
 	}
 
@@ -820,19 +845,16 @@
 	.vega-status-badge[data-status-kind='pub'] {
 		color: var(--success);
 		background: var(--success-soft);
-		border-color: var(--success);
 	}
 
 	.vega-status-badge[data-status-kind='draft'] {
 		color: var(--ink-2);
-		background: var(--active);
-		border-color: var(--line-strong);
+		background: var(--btn);
 	}
 
 	.vega-status-badge[data-status-kind='other'] {
 		color: var(--info);
 		background: var(--info-soft);
-		border-color: var(--info);
 	}
 
 	.vega-chip-list {

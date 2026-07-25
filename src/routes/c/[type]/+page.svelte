@@ -652,13 +652,15 @@
 		display: none;
 	}
 
-	/* Tarjeta "cabina" C2 (R4, mockup `.grid`): tabla + gridfoot en un único marco redondeado —
-	   `overflow: hidden` recorta las esquinas de ambos hijos sin necesidad de que cada uno declare
-	   su propio radio. */
+	/* Tarjeta "cabina" (mockup final `aquelarre-dark.html` `.table-card`): tabla + gridfoot en un
+	   único marco redondeado — `overflow: hidden` recorta las esquinas de ambos hijos sin necesidad
+	   de que cada uno declare su propio radio. Fondo `--paper` (la superficie de tarjeta elevada del
+	   sistema; `--surface`/`--surface-2` se reservan para controles internos — inputs, botones,
+	   chips), no `--surface` (más claro) como calcaba un mockup intermedio ya superado. */
 	.vega-list-card {
 		border: 1px solid var(--line);
 		border-radius: var(--r);
-		background: var(--surface);
+		background: var(--paper);
 		box-shadow: var(--shadow-card);
 		overflow: hidden;
 	}
