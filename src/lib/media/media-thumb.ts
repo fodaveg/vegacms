@@ -44,12 +44,35 @@ export function resolveMediaGridSrc(port: FileUrlPort, item: MediaItemView): str
 	);
 }
 
+/**
+ * URL del binario ORIGINAL de `item`, sea del tipo que sea (nunca un `thumb`): la que se copia al
+ * portapapeles y a la que se le pide el `Content-Length` para saber cuánto pesa
+ * (`fetchAssetByteSize`, `media-metrics.ts`). Punto ÚNICO de construcción de esa URL: solo el
+ * puerto sabe de rutas/tokens de cada adaptador, aquí nunca se concatena nada a mano (§4.4).
+ *
+ * `null` si el item no tiene `fileRef` (defensivo) o si el puerto no puede resolverla — `memory`
+ * LANZA `notFound` cuando una `FileRef` sembrada no tiene fichero real detrás (el caso del pdf de
+ * la semilla de demo, `demo-seed.ts`), y ni copiar una URL ni medir un tamaño justifica tumbar el
+ * render de una rejilla entera.
+ */
+export function resolveMediaFileUrl(
+	port: Pick<BackendPort, 'fileUrl'>,
+	item: MediaItemView
+): string | null {
+	if (item.fileRef === null) return null;
+	try {
+		return port.fileUrl({ type: 'vega_media', id: item.id }, MEDIA_FILE_FIELD, item.fileRef);
+	} catch {
+		return null;
+	}
+}
+
 /** `src` de la imagen COMPLETA del panel de detalle: sin `opts` (nunca pide `thumb`, ver
  *  cabecera). `null` en el mismo caso que `resolveMediaGridSrc`. */
 export function resolveMediaFullSrc(
 	port: Pick<BackendPort, 'fileUrl'>,
 	item: MediaItemView
 ): string | null {
-	if (item.kind !== 'image' || item.fileRef === null) return null;
-	return port.fileUrl({ type: 'vega_media', id: item.id }, MEDIA_FILE_FIELD, item.fileRef);
+	if (item.kind !== 'image') return null;
+	return resolveMediaFileUrl(port, item);
 }

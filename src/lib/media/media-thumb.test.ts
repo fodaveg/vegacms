@@ -4,12 +4,14 @@
  * respecto a Svelte, pero SÍ recibe el puerto inyectado, así que se simula aquí).
  */
 import { describe, expect, test, vi } from 'vitest';
+import { VegaError } from '$lib/backend/errors';
 import type { Capabilities } from '$lib/backend/types';
 import type { MediaItemView } from './media-item';
 import {
 	type FileUrlPort,
 	MEDIA_GRID_THUMB_SPEC,
 	mediaGridThumbOpts,
+	resolveMediaFileUrl,
 	resolveMediaFullSrc,
 	resolveMediaGridSrc
 } from './media-thumb';
@@ -91,6 +93,29 @@ describe('resolveMediaGridSrc', () => {
 
 		expect(resolveMediaGridSrc(port, NO_FILE_ITEM)).toBeNull();
 		expect(fileUrl).not.toHaveBeenCalled();
+	});
+});
+
+describe('resolveMediaFileUrl (URL del binario ORIGINAL, sea del tipo que sea)', () => {
+	test('un pdf (kind "other") SÍ resuelve URL: es lo que se copia y a lo que se le mide el peso', () => {
+		const fileUrl = vi.fn().mockReturnValue('https://pb.test/f/manual.pdf');
+		const port = { fileUrl };
+
+		expect(resolveMediaFileUrl(port, OTHER_ITEM)).toBe('https://pb.test/f/manual.pdf');
+		expect(fileUrl).toHaveBeenCalledWith({ type: 'vega_media', id: 'm2' }, 'file', 'foto.png');
+	});
+
+	test('sin fileRef: null sin tocar el puerto', () => {
+		const fileUrl = vi.fn();
+		expect(resolveMediaFileUrl({ fileUrl }, NO_FILE_ITEM)).toBeNull();
+		expect(fileUrl).not.toHaveBeenCalled();
+	});
+
+	test('un fileUrl que LANZA (memory: FileRef sembrada sin fichero real) → null, nunca propaga', () => {
+		const fileUrl = vi.fn().mockImplementation(() => {
+			throw VegaError.notFound('Fichero no encontrado');
+		});
+		expect(resolveMediaFileUrl({ fileUrl }, IMAGE_ITEM)).toBeNull();
 	});
 });
 

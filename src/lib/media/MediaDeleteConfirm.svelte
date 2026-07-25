@@ -48,6 +48,11 @@
 		open: boolean;
 		/** `mediaDisplayName(item)` del asset a borrar (ver `media-item.ts`) — QUÉ se borra. */
 		assetLabel: string;
+		/** Título ya compuesto, para cuando el gesto NO es "un asset con nombre": la barra de
+		 *  selección de `/media` borra N assets a la vez y necesita "¿Borrar 3 archivos…?" en vez de
+		 *  «¿Borrar «{label}»?» (`assetLabel` entre comillas no sabe pluralizar). Ausente ⇒ el título
+		 *  de siempre a partir de `assetLabel`, sin cambios para `MediaDetail`. */
+		title?: string;
 		/** `true` mientras `ctx.port.delete` está en vuelo (ver cabecera de `DeleteConfirm`: NUNCA
 		 *  `disabled` HTML, solo `aria-disabled`, para no vaciar el trap de foco). */
 		deleting: boolean;
@@ -58,7 +63,7 @@
 		onCancel: () => void;
 	}
 
-	let { open, assetLabel, deleting, fallbackFocusEl, onConfirm, onCancel }: Props = $props();
+	let { open, assetLabel, title, deleting, fallbackFocusEl, onConfirm, onCancel }: Props = $props();
 
 	const ctx = getVegaContext();
 
@@ -132,7 +137,7 @@
 			bind:this={dialogEl}
 		>
 			<h2 id="vega-media-delete-title">
-				{ctx.t('media.delete.confirmTitle', { label: assetLabel })}
+				{title ?? ctx.t('media.delete.confirmTitle', { label: assetLabel })}
 			</h2>
 			<p id="vega-media-delete-body">{ctx.t('media.delete.confirmBody')}</p>
 

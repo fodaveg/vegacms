@@ -95,9 +95,20 @@
 		     comprobación de actualizaciones de `/settings`), distinto del triángulo de aviso. -->
 		<path d="M21 12a9 9 0 1 1-3.5-7.14" />
 		<polyline points="21 3 21 9 15 9" />
+	{:else if resolvedId === 'upload'}
+		<!-- P6 (biblioteca de medios): flecha ascendente sobre una base — "meter algo aquí"
+		     (botón "Subir archivos" y banda de arrastre), calcado del mockup aquelarre-medios.html. -->
+		<path d="M12 16V4" />
+		<polyline points="8 8 12 4 16 8" />
+		<path d="M4 20h16" />
 	{:else if resolvedId === 'user'}
 		<circle cx="12" cy="8" r="4" />
 		<path d="M4 21c0-4 4-7 8-7s8 3 8 7" />
+	{:else if resolvedId === 'video'}
+		<!-- P6 (biblioteca de medios): cuerpo de cámara + lente triangular, la miniatura de un asset
+		     de vídeo cuando no hay bitmap que enseñar (mockup aquelarre-medios.html). -->
+		<rect x="3" y="5" width="13" height="14" rx="2" />
+		<path d="m16 10 5-3v10l-5-3" />
 	{:else if resolvedId === 'warning'}
 		<path d="M12 3 22 20H2z" />
 		<line x1="12" y1="9" x2="12" y2="14" />

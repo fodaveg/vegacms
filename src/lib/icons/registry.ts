@@ -44,7 +44,9 @@ const ICON_IDS = [
 	'settings',
 	'tag',
 	'update',
+	'upload',
 	'user',
+	'video',
 	'warning'
 ] as const;
 
