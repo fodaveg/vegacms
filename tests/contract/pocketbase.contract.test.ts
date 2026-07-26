@@ -12,8 +12,11 @@ import { createPocketBaseBackend } from '$lib/backend/adapters/pocketbase';
 import { ALL_PERMISSIONS } from '$lib/backend/access';
 import { MAX_PER_PAGE } from '$lib/backend/query';
 import type { Query } from '$lib/backend/query';
-import type { ResolvedContentType } from '$lib/model/types';
+import type { ContentModel, ResolvedContentType } from '$lib/model/types';
 import { exportCollection } from '$lib/transfer/export-collection';
+import { validateTransferDocument } from '$lib/transfer/import-format';
+import { buildImportPreview, runImport } from '$lib/transfer/import-collection';
+import { buildTransferDocument } from '$lib/transfer/transfer-format';
 import { describeBackendContract } from './backend-contract';
 import {
 	isPocketBaseBinaryAvailable,
@@ -438,4 +441,211 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 			}
 		}, 60_000); // 250 creates + un delete + 2 páginas reales contra el binario: más que el timeout por defecto
 	});
+
+	/**
+	 * Guardarraíl de la Fase 2 (importar, `#lote-esquema`) contra el binario real — LO ÚNICO que
+	 * prueba el pilar del contrato (§1/§6: `explicitRecordId`, conservar el id original es lo que
+	 * conserva las relaciones). Toda la Fase 2 hasta aquí solo está verificada contra el adaptador
+	 * `memory` (unit + e2e); sin este test, "el import conserva ids y relaciones" es una promesa
+	 * sin comprobar contra PocketBase de verdad.
+	 *
+	 * Ciclo: dos colecciones NUEVAS (`import_probe_authors` ← `import_probe_posts` por `relation`,
+	 * más un campo `file` en `posts`) → un autor y una entrada reales, con fichero adjunto →
+	 * `exportCollection` de las DOS → se BORRAN los dos registros de origen (las colecciones vuelven
+	 * a estar VÍRGENES, cero registros, mismo esquema) → `validateTransferDocument` +
+	 * `buildImportPreview` + `runImport` del documento exportado → se relee por la API de PB
+	 * (`admin.collection(...).getOne`, nunca a través del propio `port` que se acaba de probar, para
+	 * no validar el resultado con la misma pieza que lo escribió) que el id del autor y el de la
+	 * entrada son EXACTAMENTE los originales, que `posts.author` sigue apuntando al autor
+	 * correcto, y que el fichero adjunto es un binario real y no vacío.
+	 *
+	 * **Origen intacto, destino virgen — DOS pares de colecciones, no uno** (fix tras el primer
+	 * intento de este test, que SÍ falló como debía por el motivo equivocado): borrar el registro
+	 * de origen antes de importar borra TAMBIÉN su fichero adjunto (PB los guarda atados al
+	 * registro, `filePerRecord`), así que la URL que el `.vega.json` exportó dejaba de servir el
+	 * binario justo antes de que `runImport` intentara traerlo — el import "fallaba" por un
+	 * artefacto del test, no por nada real. El caso de uso declarado del contrato es justo "mover
+	 * contenido a OTRO entorno" (§0): aquí se simula con un SEGUNDO par de colecciones
+	 * (`_dst`, con el MISMO esquema pero vacías desde el principio) como destino, y el origen
+	 * (`import_probe_authors`/`import_probe_posts`) nunca se toca — su fichero sigue siendo
+	 * traíble durante todo el test, como lo estaría en el entorno real del que se exportó.
+	 */
+	describe('importar — ciclo completo contra el binario real (Fase 2, pilar del contrato)', () => {
+		test('exportar del origen → importar en un destino virgen: mismos ids, relación intacta, fichero traído de verdad', async () => {
+			const authorsCollection = await admin.collections.create({
+				name: 'import_probe_authors',
+				type: 'base',
+				fields: [{ name: 'name', type: 'text' }]
+			});
+			await admin.collections.create({
+				name: 'import_probe_posts',
+				type: 'base',
+				fields: [
+					{ name: 'title', type: 'text' },
+					{ name: 'author', type: 'relation', collectionId: authorsCollection.id, maxSelect: 1 },
+					{ name: 'cover', type: 'file', maxSelect: 1 }
+				]
+			});
+			// El destino VIRGEN (§6 del contrato): mismo esquema, colección DISTINTA, cero registros
+			// desde el principio — nunca se le escribe nada salvo por el propio `runImport` de abajo.
+			const authorsDstCollection = await admin.collections.create({
+				name: 'import_probe_authors_dst',
+				type: 'base',
+				fields: [{ name: 'name', type: 'text' }]
+			});
+			await admin.collections.create({
+				name: 'import_probe_posts_dst',
+				type: 'base',
+				fields: [
+					{ name: 'title', type: 'text' },
+					{
+						name: 'author',
+						type: 'relation',
+						collectionId: authorsDstCollection.id,
+						maxSelect: 1
+					},
+					{ name: 'cover', type: 'file', maxSelect: 1 }
+				]
+			});
+
+			try {
+				const port = createPocketBaseBackend({ url: running.url });
+				await port.login({ email: running.adminEmail, password: running.adminPassword });
+
+				const author = await port.create('import_probe_authors', { name: 'Autora origen' });
+				const post = await port.create('import_probe_posts', {
+					title: 'Entrada origen',
+					author: author.id,
+					cover: new File(['contenido-original'], 'portada.png', { type: 'image/png' })
+				});
+				expect(post.values.cover).not.toBe(''); // sanity: el fichero SÍ se adjuntó en origen
+
+				// `listContentTypes()` real: el `Field[]` (incluido `relation.target`/`file.multiple`)
+				// tal como PB lo devuelve de verdad, no una forma adivinada a mano — se lee UNA vez,
+				// para origen (exportar) y destino (importar) a la vez.
+				const allTypes = await port.listContentTypes();
+				const byName = (name: string) =>
+					toResolvedContentType(allTypes.find((t) => t.name === name)!);
+				const resolvedAuthorsSrc = byName('import_probe_authors');
+				const resolvedPostsSrc = byName('import_probe_posts');
+				const resolvedAuthorsDst = byName('import_probe_authors_dst');
+				const resolvedPostsDst = byName('import_probe_posts_dst');
+
+				const emptyViewState = { q: '', sort: null, status: null, page: 1 } as const;
+				const { collection: authorsExport } = await exportCollection(
+					port,
+					resolvedAuthorsSrc,
+					'all',
+					emptyViewState
+				);
+				const { collection: postsExport } = await exportCollection(
+					port,
+					resolvedPostsSrc,
+					'all',
+					emptyViewState
+				);
+
+				// El fichero exportado apunta a la URL de ORIGEN — que sigue viva durante todo el
+				// test, ver cabecera. `type` se reescribe al nombre del destino: es EXACTAMENTE lo
+				// que ocurriría al mover un `.vega.json` a un proyecto donde la colección se llama
+				// distinto (aquí, `_dst`) — el resto del documento (ids, `values`) viaja intacto.
+				const doc = buildTransferDocument(
+					[
+						{ ...authorsExport, type: 'import_probe_authors_dst' },
+						{ ...postsExport, type: 'import_probe_posts_dst' }
+					],
+					{ backendUrl: running.url, vegaVersion: 'test' }
+				);
+
+				const model: ContentModel = {
+					site: { name: 'test', defaultTheme: null, locale: null },
+					types: [resolvedAuthorsDst, resolvedPostsDst],
+					nav: { groups: [] },
+					revisions: { enabled: true, keepPerRecord: 20, trashDays: 30 },
+					mergedViews: [],
+					warnings: [],
+					manifest: { status: 'absent' }
+				};
+				const validation = validateTransferDocument(doc, model);
+				expect(validation.ok).toBe(true);
+				if (!validation.ok) return;
+
+				const preview = await buildImportPreview(port, validation.collections);
+				// El destino está VIRGEN: los dos ids son CREA, cero bloqueados (la relación resuelve
+				// dentro del propio fichero, `import_probe_authors_dst` viaja en la misma colección).
+				expect(preview.collections.flatMap((c) => c.entries)).toEqual([
+					{ id: author.id, status: 'create', reasons: [] },
+					{ id: post.id, status: 'create', reasons: [] }
+				]);
+
+				const report = await runImport(port, preview, { overwriteConfirmed: false });
+				expect(report.success).toBe(true);
+				expect(report.createdCount).toBe(2);
+				expect(report.failedCount).toBe(0);
+
+				// Relectura por la API de PB directamente (nunca por `port`, que es justo lo que se
+				// está probando): §6 del contrato — "comprobar por la API que los ids son los mismos y
+				// que la relación sigue apuntando a donde debía".
+				const rereadAuthor = await admin.collection('import_probe_authors_dst').getOne(author.id);
+				expect(rereadAuthor.id).toBe(author.id); // el id ORIGINAL sobrevivió al ciclo completo
+				expect(rereadAuthor.name).toBe('Autora origen');
+
+				const rereadPost = await admin.collection('import_probe_posts_dst').getOne(post.id);
+				expect(rereadPost.id).toBe(post.id);
+				expect(rereadPost.author).toBe(author.id); // la relación sigue apuntando a donde debía
+				expect(rereadPost.title).toBe('Entrada origen');
+				expect(typeof rereadPost.cover).toBe('string');
+				expect(rereadPost.cover).not.toBe(''); // el fichero SÍ se trajo de origen y se adjuntó
+
+				// El fichero traído es un binario REAL (§4.4: "fetch(url) del origen → File"), no un
+				// FileRef vacío colado por casualidad — PB lo renombra (landmine conocida, nunca
+				// conserva la URL), así que se comprueba el CONTENIDO, no el nombre.
+				const rewrittenUrl = port.fileUrl(
+					{ type: 'import_probe_posts_dst', id: post.id },
+					'cover',
+					rereadPost.cover as string
+				);
+				const fileResponse = await fetch(rewrittenUrl);
+				expect(fileResponse.ok).toBe(true);
+				expect(await fileResponse.text()).toBe('contenido-original');
+			} finally {
+				await admin.collections.delete('import_probe_posts_dst').catch(() => undefined);
+				await admin.collections.delete('import_probe_authors_dst').catch(() => undefined);
+				await admin.collections.delete('import_probe_posts').catch(() => undefined);
+				await admin.collections.delete('import_probe_authors').catch(() => undefined);
+			}
+		}, 30_000);
+	});
 });
+
+/** `ContentType` real (`port.listContentTypes()`) → `ResolvedContentType` mínimo: permisos
+ *  totales (sesión de superuser, `ALL_PERMISSIONS`), sin ninguna de las capacidades de manifiesto
+ *  (`titleField`/`listFields`/etc. — `import-format.ts`/`import-preview.ts`/`import-collection.ts`
+ *  solo miran `schema`/`name`/`permissions`, mismo criterio mínimo que el `probeType` del test de
+ *  completitud del export, más arriba). */
+function toResolvedContentType(schema: ResolvedContentType['schema']): ResolvedContentType {
+	return {
+		schema,
+		name: schema.name,
+		label: schema.name,
+		labelSingular: schema.name,
+		icon: null,
+		hidden: false,
+		group: null,
+		singleton: false,
+		permissions: ALL_PERMISSIONS,
+		readonly: false,
+		titleField: null,
+		subtitleField: null,
+		slugField: null,
+		statusField: null,
+		statusLabels: null,
+		orderField: null,
+		defaultSort: null,
+		previewUrl: null,
+		fields: [],
+		listFields: [],
+		fieldGroups: [],
+		editorRail: false
+	};
+}

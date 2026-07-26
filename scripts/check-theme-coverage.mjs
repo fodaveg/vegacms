@@ -90,6 +90,10 @@ export const ALLOWLIST_RAW_COLOR = [
 		snippet: 'rgb(15 17 21 / 55%)'
 	},
 	{
+		file: 'src/lib/transfer/ImportDialog.svelte',
+		snippet: 'rgb(15 17 21 / 55%)'
+	},
+	{
 		file: 'src/lib/richtext/safe-uri.test.ts',
 		snippet: 'java&#115;cript'
 	},

@@ -39,6 +39,19 @@ export interface TransferFileValue {
  *  (ver cabecera). */
 export type TransferFieldValue = FieldValue | TransferFileValue | TransferFileValue[];
 
+/** `true` si `value` es la forma enriquecida `{ file, url }` (y no un `FileRef` crudo, ni un
+ *  array, ni un valor vacío) — exportada para que la Fase 2 (`record-deserializer.ts`,
+ *  `import-collection.ts`) reconozca la MISMA forma que esta serializa, sin reimplementar el
+ *  guard por su cuenta. */
+export function isTransferFileValue(value: unknown): value is TransferFileValue {
+	return (
+		typeof value === 'object' &&
+		value !== null &&
+		typeof (value as { file?: unknown }).file === 'string' &&
+		typeof (value as { url?: unknown }).url === 'string'
+	);
+}
+
 /** Un registro exportado: id + valores (§2 del contrato). */
 export interface TransferRecord {
 	id: RecordId;

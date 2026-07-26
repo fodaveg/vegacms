@@ -416,6 +416,53 @@ export const es = {
 	'list.export.success.many': 'Se han exportado {count} registros de «{label}».',
 	'list.export.error': 'No se pudo completar la exportación. Vuelve a intentarlo.',
 
+	// ————— Importar (`#lote-esquema`, Fase 2): botón + diálogo (ver `ImportDialog.svelte`) —————
+	'list.import.button': 'Importar',
+	'list.import.dialog.title': 'Importar un fichero .vega.json',
+	'list.import.pick.label': 'Elige un fichero .vega.json',
+	'list.import.pick.hint':
+		'Solo ficheros .vega.json generados por "Exportar". Puede traer varias colecciones.',
+	'list.import.reading': 'Leyendo «{fileName}»…',
+
+	// ————— Fichero inválido (§4.1: cabecera/colecciones/campos, todo-o-nada) —————
+	'list.import.invalid.title': 'Este fichero no se puede importar',
+	'list.import.invalid.malformed': 'El fichero no tiene la forma de un .vega.json válido.',
+	'list.import.invalid.unrecognizedVersion':
+		'Este fichero es de una versión del formato que esta versión de Vega no reconoce.',
+	'list.import.invalid.unknownCollection': 'La colección «{type}» no existe en este proyecto.',
+	'list.import.invalid.unknownField':
+		'El campo «{field}» de «{type}» ya no existe en el esquema actual.',
+
+	// ————— Vista previa (§4.2): los tres estados + confirmación aparte del PISA —————
+	'list.import.status.create': 'Nuevo',
+	'list.import.status.overwrite': 'Sobrescribe',
+	'list.import.status.blocked': 'Bloqueado',
+	'list.import.preview.summary':
+		'{create} nuevos · {overwrite} sobrescriben · {blocked} bloqueados',
+	'list.import.preview.confirmOverwrite':
+		'Confirmo que quiero sobrescribir estos {count} registros ya existentes.',
+	'list.import.preview.nothingToImport':
+		'No hay nada que importar: todos los registros están bloqueados.',
+	'list.import.blockedReason.noCreatePermission': 'sin permiso para crear en esta colección',
+	'list.import.blockedReason.noUpdatePermission': 'sin permiso para editar en esta colección',
+	'list.import.blockedReason.danglingRelation':
+		'el campo «{field}» apunta a un registro que no existe',
+	'list.import.blockedReason.unreachableRequiredFile':
+		'el fichero obligatorio del campo «{field}» no se pudo traer del origen',
+
+	// ————— Escritura + informe (§4.3/§4.4) —————
+	'list.import.dialog.confirm': 'Importar',
+	'list.import.progress': 'Importando…',
+	'list.import.report.summary':
+		'{created} creados · {updated} actualizados · {failed} con error · {skipped} omitidos',
+	'list.import.report.failedTitle': 'Registros que fallaron',
+	// Mismo criterio "dos claves, no plural genérico" que `list.export.success.*` de arriba.
+	'list.import.success.one': 'Se ha importado 1 registro.',
+	'list.import.success.many': 'Se han importado {count} registros.',
+	'list.import.partial':
+		'La importación terminó con {failed} registros fallidos. Revisa el informe.',
+	'list.import.error': 'No se pudo preparar la vista previa. Vuelve a intentarlo.',
+
 	// ————— Borrado (Fase 4e del contrato P4) —————
 	'list.delete.rowButton': 'Borrar',
 	'list.delete.rowButtonLabel': 'Borrar "{label}"',

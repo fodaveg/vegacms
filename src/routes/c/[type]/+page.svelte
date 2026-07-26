@@ -73,6 +73,15 @@
 	 * día de mañana el control de flujo de esta ruta cambia, el botón sigue sin ofrecerse solo
 	 * porque la condición vive aquí, no porque "ya no se puede llegar sin permiso".
 	 *
+	 * **`#lote-esquema`, Fase 2**: "Importar" nace junto a "Exportar" (`canImport` más abajo, gate
+	 * por `permissions.create || permissions.update` + `capabilities.explicitRecordId` — fallo
+	 * cerrado, §4.3 del contrato de `import-collection.ts`). `ImportDialog.svelte` NO recibe
+	 * `contentType`: a diferencia del export, un `.vega.json` es multi-colección por formato y el
+	 * diálogo procesa TODAS las que trae el fichero (ver su cabecera) — esta ruta solo decide
+	 * CUÁNDO se ofrece el botón, no qué se importa. `onImported={() => listState.reload()}`: la
+	 * tabla ya pintada no sabe por sí sola que el import escribió registros por debajo — mismo
+	 * patrón que el `reload()` tras un borrado/reorder con éxito, más arriba.
+	 *
 	 * **M6 (reabre R2, mockup `.toolbar`)**: David sustituyó las chips CON RECUENTO de R2 por
 	 * chips de filtro ACTIVO removibles (`ActiveFilterChips.svelte`) — solo se pinta el filtro que
 	 * el usuario YA aplicó, con una ✕ que lo quita; elegir un filtro NUEVO pasa a un menú diferido
@@ -108,6 +117,7 @@
 	import ActiveFilterChips from '$lib/list/ActiveFilterChips.svelte';
 	import DeleteConfirm from '$lib/list/DeleteConfirm.svelte';
 	import ExportDialog from '$lib/transfer/ExportDialog.svelte';
+	import ImportDialog from '$lib/transfer/ImportDialog.svelte';
 
 	const ctx = getVegaContext();
 
@@ -302,17 +312,35 @@
 	// (mismo patrón que `pendingDelete !== null` para `DeleteConfirm`).
 	let exportOpen = $state(false);
 
-	// Cierra el diálogo si `typeParam` cambia con él abierto (fix de code-review): este componente
-	// de ruta NO se remonta al navegar de una colección a otra (solo cambia `[type]`), así que sin
-	// esto un atrás del navegador o el buscador global (su atajo "/" no pasa por el
-	// `stopPropagation` de `ExportDialog`) dejaría el diálogo abierto mientras `contentType` cambia
-	// por debajo — incluso a un tipo sin `permissions.list`. No es una fuga real (el backend
-	// reaplica la regla igual), pero rompe la invariante "el gate está en TODOS los caminos" que
-	// este `#lote-shell` ya tuvo que parchear varias veces; cerrarlo aquí la restablece sin que
-	// `ExportDialog` necesite saber nada de rutas.
+	// ————— Importar (`#lote-esquema`, Fase 2) —————
+	// `true` mientras `ImportDialog` está abierto. `canImport` (§4.3 del contrato: "sin
+	// `explicitRecordId` el import no se ofrece, fallo cerrado") repite el mismo criterio de
+	// defensa en profundidad que `reorderable`/el resto del `#lote-shell`: se comprueba aquí
+	// aunque en la práctica un tipo sin `permissions.create`/`update` ya no debería llegar con la
+	// capability activa por otra vía. `permissions.create || permissions.update` (no solo create,
+	// a diferencia de "Nueva"): un import puede limitarse a PISAR registros existentes en una
+	// colección donde crear está vedado pero editar no.
+	let importOpen = $state(false);
+	const canImport = $derived(
+		contentType !== null &&
+			(contentType.permissions.create || contentType.permissions.update) &&
+			ctx.port.capabilities.explicitRecordId
+	);
+
+	// Cierra los dos diálogos si `typeParam` cambia con alguno abierto (fix de code-review): este
+	// componente de ruta NO se remonta al navegar de una colección a otra (solo cambia `[type]`),
+	// así que sin esto un atrás del navegador o el buscador global (su atajo "/" no pasa por el
+	// `stopPropagation` de `ExportDialog`/`ImportDialog`) dejaría el diálogo abierto mientras
+	// `contentType` cambia por debajo — incluso a un tipo sin `permissions.list`. No es una fuga
+	// real (el backend reaplica la regla igual), pero rompe la invariante "el gate está en TODOS
+	// los caminos" que este `#lote-shell` ya tuvo que parchear varias veces; cerrarlo aquí la
+	// restablece sin que ninguno de los dos diálogos necesite saber nada de rutas. `ImportDialog`
+	// procesa el fichero cargado independientemente del `type` de la ruta (ver su cabecera), así
+	// que cerrarlo aquí es solo higiene de navegación, no una regla de permiso sobre SU contenido.
 	$effect(() => {
 		void typeParam;
 		exportOpen = false;
+		importOpen = false;
 	});
 
 	/** Construye la URL del listado para `params` y navega (D-P4.9). Núcleo compartido de
@@ -433,6 +461,15 @@
 			{#if contentType.permissions.list}
 				<button type="button" class="vega-list-export-button" onclick={() => (exportOpen = true)}>
 					{ctx.t('list.export.button')}
+				</button>
+			{/if}
+			<!-- "Importar" (`#lote-esquema`, Fase 2): gate por permiso de ESCRITURA (create/update, ver
+			     `canImport` arriba) + `capabilities.explicitRecordId` (fallo cerrado, §4.3 del
+			     contrato). A diferencia de "Exportar", nunca se ofrece en un tipo `readonly` (el
+			     writable de `permissions` ya lo pliega) — importar ESCRIBE. -->
+			{#if canImport}
+				<button type="button" class="vega-list-import-button" onclick={() => (importOpen = true)}>
+					{ctx.t('list.import.button')}
 				</button>
 			{/if}
 			<!-- `permissions.create` (`#lote-shell`) en vez de `!readonly`: pliega las DOS razones por
@@ -589,6 +626,12 @@
 	/>
 {/if}
 
+<ImportDialog
+	open={importOpen}
+	onClose={() => (importOpen = false)}
+	onImported={() => listState.reload()}
+/>
+
 <style>
 	.vega-list-page {
 		display: flex;
@@ -675,6 +718,27 @@
 	}
 
 	.vega-list-export-button:hover {
+		border-color: var(--line-strong);
+	}
+
+	/* "Importar" (`#lote-esquema`, Fase 2): mismo tratamiento neutro que "Exportar", contiguo en la
+	   misma fila. */
+	.vega-list-import-button {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		border: 1px solid var(--line);
+		background: var(--btn);
+		color: var(--ink);
+		border-radius: var(--r);
+		padding: 0.45rem 1rem;
+		font-size: 0.8125rem;
+		font-weight: 550;
+		cursor: pointer;
+		white-space: nowrap;
+	}
+
+	.vega-list-import-button:hover {
 		border-color: var(--line-strong);
 	}
 
