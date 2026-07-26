@@ -98,7 +98,12 @@ export async function loadContentModel(
 
 	const vegaType = types.find((t) => t.name === VEGA_COLLECTION.name);
 	if (!vegaType) {
-		return resolveContentModel({ types, manifestRaw: null, knownIcons: opts?.knownIcons });
+		return resolveContentModel({
+			types,
+			manifestRaw: null,
+			knownIcons: opts?.knownIcons,
+			accessBypass: port.capabilities.accessBypass
+		});
 	}
 
 	const page = await listManifestRecords(port, vegaType, 2);
@@ -108,7 +113,12 @@ export async function loadContentModel(
 		manifestRaw = page.items[0].values[MANIFEST_FIELD] ?? null;
 	}
 
-	const model = resolveContentModel({ types, manifestRaw, knownIcons: opts?.knownIcons });
+	const model = resolveContentModel({
+		types,
+		manifestRaw,
+		knownIcons: opts?.knownIcons,
+		accessBypass: port.capabilities.accessBypass
+	});
 	if (page.totalItems <= 1) return model;
 
 	return { ...model, warnings: [...model.warnings, multipleVegaRecords(page.totalItems)] };

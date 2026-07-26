@@ -107,7 +107,10 @@ describe('modo superuser (default, sin authCollection) — camino previo INTACTO
 			schemaBootstrap: true,
 			schemaFieldBootstrap: true,
 			strongAuth: false,
-			explicitRecordId: true
+			explicitRecordId: true,
+			// `#lote-shell`: un superuser de PB IGNORA las API rules de las colecciones, así que la
+			// UI no le esconde nada por `access` (ver `computeCapabilities`).
+			accessBypass: true
 		});
 	});
 
@@ -147,6 +150,9 @@ describe('modo editor (authCollection: vega_editors, L6a/L6b)', () => {
 		expect(port.capabilities.schemaDiscovery).toBe(false);
 		expect(port.capabilities.schemaBootstrap).toBe(false);
 		expect(port.capabilities.schemaFieldBootstrap).toBe(false);
+		// `#lote-shell`: un editor SÍ está sujeto a las API rules de cada colección, así que la UI
+		// debe reflejarlas (`ContentType.access`) en vez de ofrecerle lo que va a dar 403.
+		expect(port.capabilities.accessBypass).toBe(false);
 		// El resto de capabilities no depende de quién se autentica (ver `computeCapabilities`).
 		expect(port.capabilities.realtime).toBe(true);
 		expect(port.capabilities.thumbs).toBe(true);

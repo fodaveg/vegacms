@@ -9,6 +9,7 @@
 
 import type { ContentType, Field, FieldSubtype } from '$lib/backend/types';
 import type { FilterNode } from '$lib/backend/query';
+import type { TypePermissions } from '$lib/backend/access';
 
 // ————— Raíz —————
 
@@ -107,6 +108,18 @@ export interface ResolvedContentType {
 	group: string | null; // (M)
 	singleton: boolean; // (M) SOLO manifiesto; jamás autodetectado (§4.6)
 	readonly: boolean; // (D) = schema.readonly
+	/**
+	 * (D) Lo que la UI PUEDE ofrecer sobre esta colección (`#lote-shell`): las reglas de acceso del
+	 * backend (`ContentType.access`) compuestas con el bypass de la sesión
+	 * (`Capabilities.accessBypass`) y con `readonly`, vía `resolvePermissions`
+	 * (`$lib/backend/access`). Todo `true` cuando el adaptador no sabe leer reglas o la sesión las
+	 * salta — o sea, el comportamiento anterior a este lote, intacto.
+	 *
+	 * **No es control de acceso**: la regla la sigue aplicando el backend. Esto solo evita ofrecer
+	 * lo que se sabe SEGURO que va a dar 403; una regla `'conditional'` (depende del registro o del
+	 * usuario) se ofrece igual y el error de permiso sigue siendo el camino honesto para ella.
+	 */
+	permissions: TypePermissions;
 	/** (D+M) nombre del campo título, o null ⇒ la UI muestra el id. Cascada §4.4. */
 	titleField: string | null;
 	/** (M) nombre de un campo escalar que se pinta como línea secundaria bajo el título en el

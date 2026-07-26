@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
+import { ALL_PERMISSIONS } from '$lib/backend/access';
 import type { Field } from '$lib/backend/types';
 import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
 import { deriveColumns } from './columns';
@@ -49,6 +50,7 @@ function contentType(overrides: Partial<ResolvedContentType> = {}): ResolvedCont
 		hidden: false,
 		group: null,
 		singleton: false,
+		permissions: ALL_PERMISSIONS,
 		readonly: false,
 		titleField: null,
 		subtitleField: null,

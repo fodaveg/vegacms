@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
+import { ALL_PERMISSIONS } from '$lib/backend/access';
 import type { ContentType, Field } from '$lib/backend/types';
 import { PB_VALIDATION_CODES } from '$lib/backend/errors';
 import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
@@ -45,6 +46,7 @@ function makeType(fields: ResolvedField[]): ResolvedContentType {
 		hidden: false,
 		group: null,
 		singleton: false,
+		permissions: ALL_PERMISSIONS,
 		readonly: false,
 		titleField: null,
 		subtitleField: null,

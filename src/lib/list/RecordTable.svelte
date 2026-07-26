@@ -96,8 +96,9 @@
 	 *   "Borrar" sigue sin disparar `openRecord`. La celda se marca `.vega-cell-actions-anchor`
 	 *   (`position: relative`) y el botón se pinta `position: absolute` pegado a su borde derecho,
 	 *   tapando visualmente el contenido truncado de esa celda al revelarse (mismo lenguaje que el
-	 *   hover-reveal de listados tipo GitHub) — SOLO si `!contentType.readonly` (un tipo
-	 *   `readonly`/vista nunca ofrece borrar). Solo EMITE `onDeleteRequest` con el registro y el
+	 *   hover-reveal de listados tipo GitHub) — SOLO si `contentType.permissions.delete` (una vista
+	 *   del backend nunca ofrece borrar, y desde `#lote-shell` tampoco una colección cuya regla de
+	 *   borrado esté vedada a esta sesión: `resolvePermissions` pliega las dos razones en una). Solo EMITE `onDeleteRequest` con el registro y el
 	 *   mismo texto de apertura (`openText`, reutilizado, DRY) que ya se pinta en la celda-título —
 	 *   así el diálogo de confirmación (`DeleteConfirm.svelte`, dueño de `+page.svelte`) puede decir
 	 *   QUÉ se borra sin recalcularlo. Este componente sigue TONTO: no borra nada, no confirma nada,
@@ -167,7 +168,7 @@
 		onSort: (field: string) => void;
 		/** Avisa de un click en "Borrar" de una fila (Fase 4e): `label` es el mismo texto que la
 		 *  celda de apertura de esa fila (`openText`, reutilizado). Solo se invoca cuando
-		 *  `!contentType.readonly` (la columna de acciones ni existe si no). Quien escucha decide
+		 *  `contentType.permissions.delete` (la acción ni se pinta si no). Quien escucha decide
 		 *  si abre la confirmación (`+page.svelte`, dueño del diálogo `DeleteConfirm`). */
 		onDeleteRequest: (record: VegaRecord, label: string) => void;
 		/** `true` cuando `+page.svelte` decide que ESTA vista se puede reordenar a mano (ver
@@ -375,9 +376,12 @@
 					{#if columns.length === 0}
 						<!-- Única celda de la fila: también es la "última celda de datos", así que lleva el
 						     overlay de borrado (ver cabecera del módulo). -->
-						<td class="vega-cell-title" class:vega-cell-actions-anchor={!contentType.readonly}>
+						<td
+							class="vega-cell-title"
+							class:vega-cell-actions-anchor={contentType.permissions.delete}
+						>
 							{@render titleLink(record)}
-							{#if !contentType.readonly}
+							{#if contentType.permissions.delete}
 								{@render deleteOverlay(record)}
 							{/if}
 						</td>
@@ -397,7 +401,7 @@
 								class:vega-cell-mono={!isOpenColumn &&
 									(descriptor.kind === 'date' || descriptor.kind === 'mono')}
 								class:vega-cell-right={!isOpenColumn && isRightAlignedColumn(column)}
-								class:vega-cell-actions-anchor={isLastColumn && !contentType.readonly}
+								class:vega-cell-actions-anchor={isLastColumn && contentType.permissions.delete}
 							>
 								{#if isOpenColumn}
 									{@render titleLink(record)}
@@ -412,7 +416,7 @@
 								{:else}
 									{@render cellContent(descriptor, record, column)}
 								{/if}
-								{#if isLastColumn && !contentType.readonly}
+								{#if isLastColumn && contentType.permissions.delete}
 									{@render deleteOverlay(record)}
 								{/if}
 							</td>

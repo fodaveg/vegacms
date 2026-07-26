@@ -6,6 +6,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
+import { ALL_PERMISSIONS } from '$lib/backend/access';
 import type { Field } from '$lib/backend/types';
 import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
 import { autodateField, autodateInstant, autodateText } from '$lib/form/record-meta';
@@ -69,6 +70,7 @@ function makeType(fields: ResolvedField[]): ResolvedContentType {
 		hidden: false,
 		group: null,
 		singleton: false,
+		permissions: ALL_PERMISSIONS,
 		readonly: false,
 		titleField: null,
 		subtitleField: null,

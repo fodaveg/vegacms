@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
+import { ALL_PERMISSIONS } from '$lib/backend/access';
 import type { ContentType, Field } from '$lib/backend/types';
 import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
 import { checkUnwritableFields } from '$lib/backend/write-guards';
@@ -46,6 +47,7 @@ function makeType(fields: ResolvedField[]): ResolvedContentType {
 		hidden: false,
 		group: null,
 		singleton: false,
+		permissions: ALL_PERMISSIONS,
 		readonly: false,
 		titleField: null,
 		subtitleField: null,

@@ -32,10 +32,18 @@ export const es = {
 	'topbar.connection.disconnected': 'Sin conexión',
 	'topbar.connection.retrying': 'Reintentando…',
 	'topbar.connection.retry': 'Reintentar',
-	// Buscador global (R1 del rediseño C2): visual/atajo de teclado, sin backend de búsqueda
-	// global todavía (§ pendiente de un P posterior) — ver `GlobalSearch.svelte`.
+	// Buscador global (caja y atajo: R1 del rediseño C2 · búsqueda de verdad: `#lote-shell`) —
+	// ver `GlobalSearch.svelte`. `topbar.search.empty` cita el término BUSCADO (el de los
+	// resultados en pantalla), no lo que se esté tecleando en ese instante.
 	'topbar.search.ariaLabel': 'Búsqueda global',
 	'topbar.search.placeholder': 'Buscar en todo el contenido…',
+	'topbar.search.results': 'Resultados de la búsqueda global',
+	'topbar.search.searching': 'Buscando…',
+	'topbar.search.empty': 'Sin resultados para «{q}»',
+	'topbar.search.error': 'No se pudo buscar. Revisa la conexión e inténtalo de nuevo.',
+	'topbar.search.minChars': 'Escribe al menos {count} caracteres',
+	'topbar.search.seeAll': 'Ver los {count} restantes',
+	'topbar.search.partial': 'No se pudo buscar en {count} colección(es).',
 	'topbar.avatar.label': 'Sesión de {email}',
 	// Chip de usuario → menú "Ajustes" (#l12-ux, item 3): rótulo del propio botón disparador,
 	// DISTINTO del `topbar.avatar.label` de arriba (ese describe la identidad de sesión del
@@ -166,6 +174,10 @@ export const es = {
 	'errors.forbidden.body': 'Tu sesión no tiene acceso a este recurso.',
 	'errors.forbidden.readonlyType.body':
 		'"{label}" es una colección de solo lectura: no se pueden crear registros nuevos.',
+	// `#lote-shell`: vedado por una REGLA de acceso del backend, no por la naturaleza de la
+	// colección — la UI ya no ofrece el camino, pero la ruta sigue siendo alcanzable por URL.
+	'errors.forbidden.noCreate.body': 'No tienes permiso para crear registros en "{label}".',
+	'errors.forbidden.noList.body': 'No tienes permiso para ver los registros de "{label}".',
 	'errors.notFoundType.title': 'Colección no encontrada',
 	'errors.notFoundType.body': 'No existe (o está oculta) el tipo de contenido "{type}".',
 	'errors.notFoundRecord.title': 'Registro no encontrado',
@@ -187,6 +199,10 @@ export const es = {
 	'editor.saveSuccess': 'Guardado.',
 	'editor.leaveConfirm': 'Hay cambios sin guardar. ¿Salir de todos modos?',
 	'editor.readonlyNotice': 'Esta colección es de solo lectura: no se puede editar.',
+	// `#lote-shell`: bloqueado por una REGLA de acceso del backend, no por ser una vista — el
+	// registro se puede ver, pero esta sesión no puede guardarlo.
+	'editor.noUpdateNotice':
+		'No tienes permiso para editar registros de esta colección: puedes verlo, pero no guardar cambios.',
 	'editor.load.error.body': 'No se pudo cargar el registro. {message}',
 
 	// ————— Barra pegajosa del editor (R7 del rediseño C2, mockup `.edit-top`) —————

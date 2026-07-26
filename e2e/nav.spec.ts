@@ -37,7 +37,11 @@ test('pinta los grupos/items del manifiesto en el orden esperado, con el grupo a
 		'Obras',
 		'Pistas',
 		'Catálogo',
-		'Blog'
+		'Blog',
+		// `#lote-shell`: `avisos` (order 9) SÍ se lista —lo que sus reglas vedan son las
+		// escrituras—, mientras que `privado` (order 10, `list: 'denied'`) no llega a nav: una
+		// colección que esta sesión no puede listar no se ofrece como enlace.
+		'Avisos'
 	]);
 });
 

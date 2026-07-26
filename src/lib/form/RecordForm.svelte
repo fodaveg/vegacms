@@ -225,7 +225,10 @@
 	interface Props {
 		type: ResolvedContentType;
 		model: FormModel;
-		/** `contentType.readonly` (view, L-P5.2): deshabilita TODOS los campos y oculta "Guardar". */
+		/** `contentType.readonly` (view, L-P5.2): deshabilita TODOS los campos y oculta "Guardar".
+		 *  Desde `#lote-shell` NO es la única razón por la que el formulario puede quedar bloqueado
+		 *  —una regla de acceso que veda actualizar hace lo mismo, ver `locked` más abajo— pero sí la
+		 *  única que pinta el rótulo "Solo lectura". */
 		typeReadonly: boolean;
 		/** La ruta cablea esto a `ctx.port.create`/`ctx.port.update`. Puede rechazar con `VegaError`. */
 		onSubmit: (input: RecordInput) => Promise<VegaRecord>;
@@ -354,7 +357,17 @@
 	});
 
 	const dirty = $derived(isDirty(baseline, current) || blocksDirty);
-	const formDisabled = $derived(saving || typeReadonly);
+	/**
+	 * El formulario está BLOQUEADO (`#lote-shell`): o la colección es una vista del backend
+	 * (`typeReadonly`, prop de la ruta) o las reglas de acceso no dejan ACTUALIZAR a esta sesión
+	 * (`type.permissions.update`). Las dos razones tienen la misma consecuencia —campos
+	 * deshabilitados y sin "Guardar"— y por eso comparten variable; lo que NO comparten es el
+	 * mensaje, ver la nota del cuerpo y el rótulo "Solo lectura" de la cabecera (que sigue colgado
+	 * de `typeReadonly` a secas: describe la naturaleza de la colección, no un permiso).
+	 */
+	const locked = $derived(typeReadonly || !type.permissions.update);
+
+	const formDisabled = $derived(saving || locked);
 	const activeLocaleTabId = $derived(
 		type.localization ? `vega-locale-tab-${type.name}-${activeLocale}` : undefined
 	);
@@ -443,7 +456,9 @@
 
 	/** Zona de peligro: solo si la ruta cableó `onDelete` (⇒ hay registro), el tipo no es de solo
 	 *  lectura y estamos editando. Mismo criterio que el botón "Borrar" de la fila del listado. */
-	const canDelete = $derived(onDelete !== undefined && !typeReadonly && model.mode === 'edit');
+	const canDelete = $derived(
+		onDelete !== undefined && type.permissions.delete && model.mode === 'edit'
+	);
 
 	/** La columna del aside existe si hay ALGO que poner en ella (ver cabecera). */
 	const showAside = $derived(
@@ -782,7 +797,7 @@
 					{ctx.t('editor.previewLink')}
 				</button>
 			{/if}
-			{#if !typeReadonly}
+			{#if !locked}
 				<button type="submit" class="vega-editor-save-button" disabled={formDisabled}>
 					{ctx.t('editor.save')}
 					<kbd aria-hidden="true">⌘S</kbd>
@@ -810,7 +825,7 @@
 			value={current[field.name]}
 			error={errors.byField[field.name] ?? null}
 			disabled={formDisabled}
-			{typeReadonly}
+			typeReadonly={locked}
 			{stacked}
 			isTitleField={field.name === type.titleField}
 			isSlugField={field.name === type.slugField}
@@ -851,6 +866,10 @@
 		<div class="vega-editor-main">
 			{#if typeReadonly}
 				<p class="vega-record-form-notice">{ctx.t('editor.readonlyNotice')}</p>
+			{:else if locked}
+				<!-- Bloqueado por REGLA de acceso, no por ser una vista: el motivo se dice tal cual,
+				     porque "solo lectura" haría pensar que la colección entera es inmutable. -->
+				<p class="vega-record-form-notice">{ctx.t('editor.noUpdateNotice')}</p>
 			{/if}
 			{#if errors.record}
 				<p class="vega-record-form-banner" role="alert">

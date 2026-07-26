@@ -11,6 +11,7 @@
  * `VEGA_CONTEXT_KEY` — mismo patrón que `SocialCardPreview.svelte.test.ts`.
  */
 import { mount, tick, unmount } from 'svelte';
+import { ALL_PERMISSIONS } from '$lib/backend/access';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import type { BackendPort, FieldValue, Page, VegaRecord } from '$lib/backend';
@@ -33,6 +34,7 @@ const ARTICLE_TYPE: ResolvedContentType = {
 	hidden: false,
 	group: null,
 	singleton: false,
+	permissions: ALL_PERMISSIONS,
 	readonly: false,
 	// Campo de título con un nombre que NO es "title"/"name" — el caso que
 	// `guessRecordLabel` (heurístico ciego de P3, sin esquema) no puede acertar.

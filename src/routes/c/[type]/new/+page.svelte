@@ -50,6 +50,19 @@
 			onClick: () => ctx.nav.toList(contentType.name)
 		}}
 	/>
+	<!-- Las reglas del backend no dejan CREAR aquí (`#lote-shell`): la UI no ofrece el botón
+	     "Nueva" en el listado, pero esta ruta sigue siendo alcanzable por URL directa o por un
+	     enlace guardado — mismo estado que un tipo `readonly`, con el motivo REAL en el cuerpo. -->
+{:else if !contentType.permissions.create}
+	<RouteState
+		kind="forbidden"
+		title={ctx.t('errors.forbidden.title')}
+		body={ctx.t('errors.forbidden.noCreate.body', { label: contentType.label })}
+		action={{
+			label: ctx.t('errors.notFoundRecord.backToList'),
+			onClick: () => ctx.nav.toList(contentType.name)
+		}}
+	/>
 {:else if formModel}
 	{@const activeType = contentType}
 	<div class="vega-editor-page">

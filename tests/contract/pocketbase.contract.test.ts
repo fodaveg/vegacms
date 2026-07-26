@@ -252,4 +252,44 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 			expect(reread.values.categories).toEqual([other.id]);
 		});
 	});
+
+	/**
+	 * `#lote-shell` — las reglas de acceso que la UI refleja (`ContentType.access`) MEDIDAS contra
+	 * el binario real, no supuestas. Lo que se comprueba aquí no es el mapeo (eso ya lo cubre
+	 * `schema-access.test.ts` con JSON sintético) sino la PREMISA de la que cuelga: que PocketBase
+	 * devuelve `null` para "solo superuser" y la cadena VACÍA para "abierta a cualquiera", dos
+	 * valores falsy que, confundidos, invertirían el significado de la regla más peligrosa.
+	 */
+	describe('reglas de acceso: `null` (solo superuser) vs `""` (abierta) — medido contra PB real', () => {
+		test('cada forma de regla llega a `ContentType.access` con su nivel correcto', async () => {
+			await admin.collections.create({
+				name: 'access_probe',
+				type: 'base',
+				fields: [{ name: 'title', type: 'text' }],
+				listRule: '',
+				viewRule: null,
+				createRule: '@request.auth.id != ""',
+				updateRule: null,
+				deleteRule: null
+			});
+
+			try {
+				const port = createPocketBaseBackend({ url: running.url });
+				await port.login({ email: running.adminEmail, password: running.adminPassword });
+
+				const types = await port.listContentTypes();
+				const probe = types.find((t) => t.name === 'access_probe');
+
+				expect(probe?.access).toEqual({
+					list: 'allowed', // ''  → abierta
+					view: 'denied', // null → solo superuser
+					create: 'conditional', // expresión → depende del usuario/registro
+					update: 'denied',
+					delete: 'denied'
+				});
+			} finally {
+				await admin.collections.delete('access_probe');
+			}
+		});
+	});
 });

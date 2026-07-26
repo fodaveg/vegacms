@@ -175,6 +175,32 @@ Define las reglas de acceso (**Read** y **Write** rules) en PocketBase:
 
 Ver la documentación de PocketBase sobre [rules](https://pocketbase.io/docs/api-rules-and-filters/) para más detalles.
 
+#### Vega refleja esas reglas en su interfaz
+
+Vega **lee** las cinco reglas de cada colección (`listRule`, `viewRule`, `createRule`,
+`updateRule`, `deleteRule`) y deja de ofrecer lo que sabe que va a dar 403:
+
+| Regla en PocketBase             | Qué hace Vega                                                      |
+| ------------------------------- | ------------------------------------------------------------------ |
+| `null` («solo superuser»)       | No ofrece esa operación                                            |
+| vacía (`""`, abierta a todos)   | La ofrece                                                          |
+| una expresión (`autor = @request.auth.id`) | La ofrece igual: depende del registro y del usuario, y solo el servidor puede decidirlo |
+
+En concreto: una colección que esta sesión no puede **listar** no aparece en la navegación (su ruta
+sigue existiendo y explica el motivo); sin permiso de **creación** no se pinta el botón «Crear» ni
+su atajo `N`; sin permiso de **actualización** el editor se abre en solo lectura, diciendo por qué;
+sin permiso de **borrado** no aparece la acción «Borrar» ni en la fila del listado ni en el editor.
+Lo mismo se aplica a la biblioteca de medios sobre `vega_media` (subir, editar y borrar assets).
+
+Dos aclaraciones que conviene tener presentes:
+
+- **Esto no es control de acceso.** La regla la sigue aplicando PocketBase, siempre. Vega solo evita
+  que un editor rellene un formulario entero para que el guardado muera en un 403.
+- **Un superuser lo ve todo.** PocketBase ignora las API rules para los superusers, así que
+  conectando Vega con la colección de auth por defecto (`_superusers`) la interfaz no oculta nada.
+  Las restricciones se notan al entrar con una colección de editores (`authCollection`, ver
+  «Modo editor» más abajo), que es justo el escenario para el que existen.
+
 ## Publicación: disparador de build
 
 Para sitios `output: 'static'` (Astro y similares), guardar un registro en PocketBase no cambia

@@ -12,6 +12,7 @@
  * fallbacks de título/descripción.
  */
 import { mount, unmount } from 'svelte';
+import { ALL_PERMISSIONS } from '$lib/backend/access';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import type { ResolvedContentType, ResolvedSocialCardConfig } from '$lib/model/types';
@@ -27,6 +28,7 @@ const parentType: ResolvedContentType = {
 	hidden: false,
 	group: null,
 	singleton: false,
+	permissions: ALL_PERMISSIONS,
 	readonly: false,
 	titleField: 'title',
 	subtitleField: null,

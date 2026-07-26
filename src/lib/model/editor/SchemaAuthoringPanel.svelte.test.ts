@@ -33,7 +33,8 @@ const BASE_CAPABILITIES: Capabilities = {
 	schemaBootstrap: false,
 	schemaFieldBootstrap: false,
 	strongAuth: false,
-	explicitRecordId: false
+	explicitRecordId: false,
+	accessBypass: false
 };
 
 function fakePort(overrides: {

@@ -4,6 +4,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
+import { ALL_PERMISSIONS } from '$lib/backend/access';
 import type { VegaRecord } from '$lib/backend/types';
 import type { ResolvedContentType } from '$lib/model/types';
 import {
@@ -55,6 +56,7 @@ function makeResolvedType(previewUrl: string | null): ResolvedContentType {
 		hidden: false,
 		group: null,
 		singleton: false,
+		permissions: ALL_PERMISSIONS,
 		readonly: false,
 		titleField: 'title',
 		subtitleField: null,

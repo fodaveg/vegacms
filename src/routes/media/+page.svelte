@@ -78,8 +78,10 @@
 	import {
 		buildMediaBootstrapImportJson,
 		computeMediaCollectionState,
-		ensureMediaCollection
+		ensureMediaCollection,
+		VEGA_MEDIA_COLLECTION
 	} from '$lib/media/media-collection';
+	import { ALL_PERMISSIONS, permissionsFor } from '$lib/backend/access';
 	import {
 		matchesMediaNameQuery,
 		matchesMediaTypeFilter,
@@ -124,6 +126,18 @@
 	const collectionState = $derived(
 		computeMediaCollectionState(types, ctx.port.capabilities.schemaBootstrap)
 	);
+
+	/** Permisos EFECTIVOS sobre `vega_media` (`#lote-shell`): las reglas de acceso del backend
+	 *  compuestas con el bypass de la sesión (`permissionsFor`, `$lib/backend/access`). La
+	 *  biblioteca es el caso donde más duele no reflejarlas —subir un fichero de 8 MB para que el
+	 *  guardado muera en un 403— así que "Subir" no se ofrece sin permiso de creación, y
+	 *  `MediaDetail` recibe los suyos para editar/borrar. Mientras la colección no exista todavía
+	 *  (`collectionState !== 'present'`) no hay nada que consultar: todo permitido, que es lo que
+	 *  ya asumía este código antes del lote. */
+	const mediaPermissions = $derived.by(() => {
+		const mediaType = types.find((t) => t.name === VEGA_MEDIA_COLLECTION.name);
+		return mediaType ? permissionsFor(mediaType, ctx.port.capabilities) : ALL_PERMISSIONS;
+	});
 	/** Solo se compila el JSON de importación cuando de verdad se va a pintar (modo NO editor,
 	 *  ver cabecera): en modo editor el mensaje degradado no lo necesita. */
 	const bootstrapImportJson = $derived(
@@ -418,7 +432,7 @@
 			</span>
 		{/if}
 		<span class="vega-media-head-spacer"></span>
-		{#if collectionState === 'present' && mediaFileSchema}
+		{#if collectionState === 'present' && mediaFileSchema && mediaPermissions.create}
 			<button
 				type="button"
 				class="vega-media-upload-button"
@@ -588,6 +602,8 @@
 	onSaved={handleDetailSaved}
 	onDeleted={handleDetailDeleted}
 	fallbackFocusEl={headingEl}
+	canUpdate={mediaPermissions.update}
+	canDelete={mediaPermissions.delete}
 />
 
 <!-- Confirmación del borrado de la SELECCIÓN (D-P6.5). Hermano de `MediaDetail` y montado siempre,

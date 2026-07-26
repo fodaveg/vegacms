@@ -5,6 +5,7 @@
  * múltiple respetando `maxSelect`.
  */
 import { describe, expect, it } from 'vitest';
+import { ALL_PERMISSIONS } from '$lib/backend/access';
 import type { ContentType, Field, VegaRecord } from '$lib/backend/types';
 import type { ResolvedContentType } from '$lib/model/types';
 import {
@@ -59,6 +60,7 @@ function makeTarget(opts: { titleField: string | null; fields: Field[] }): Resol
 		hidden: false,
 		group: null,
 		singleton: false,
+		permissions: ALL_PERMISSIONS,
 		readonly: false,
 		titleField: opts.titleField,
 		subtitleField: null,

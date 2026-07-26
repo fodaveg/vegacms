@@ -74,7 +74,11 @@ function computeCapabilities(authCollection: string, strongAuth: boolean): Capab
 		// explícito en `create()` es una operación de ESCRITURA DE DATOS normal, gobernada por las
 		// reglas de creación de la colección igual que cualquier otro campo del body — medido
 		// contra PocketBase 0.39.6 real con sesión de superuser (v1 solo modela esa identidad, D1).
-		explicitRecordId: true
+		explicitRecordId: true,
+		// `#lote-shell`: los superusers de PB IGNORAN las API rules de las colecciones, así que para
+		// ellos un `access.create === 'denied'` (regla `null`) no significa nada — la UI debe seguir
+		// ofreciéndoles todo. Un editor (`authCollection` propia) sí queda sujeto a las reglas.
+		accessBypass: isSuperuser
 	};
 }
 

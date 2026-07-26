@@ -4,7 +4,7 @@
  */
 
 import type { CollectionModel, CollectionField } from 'pocketbase';
-import type { Field, ContentType } from '../../types';
+import type { AccessLevel, Field, ContentType, TypeAccess } from '../../types';
 import type { CollectionFieldSpec } from '../../collections';
 
 /**
@@ -52,7 +52,45 @@ function mapCollectionToContentType(
 	return {
 		name: collection.name,
 		readonly: collection.type === 'view',
-		fields
+		fields,
+		access: mapCollectionAccess(collection)
+	};
+}
+
+/**
+ * Traduce una API rule de PocketBase a `AccessLevel` (`#lote-shell`). Las tres formas que
+ * distingue PB, **medidas contra 0.39.6 real** (`tests/contract/pocketbase.contract.test.ts`), no
+ * supuestas:
+ * - `null` ⇒ la operación está reservada a superusers ⇒ `'denied'` para cualquier sesión normal.
+ * - `''` (cadena VACÍA) ⇒ abierta a todo el mundo ⇒ `'allowed'`. Ojo con el orden de las
+ *   comprobaciones: `null` y `''` son ambos falsy y confundirlos invierte el significado de la
+ *   regla más peligrosa que hay ("solo superuser" pasaría a leerse como "cualquiera").
+ * - Cualquier expresión (`@request.auth.id != ''`, `autor = @request.auth.id`…) ⇒
+ *   `'conditional'`: solo el backend sabe si se cumple para ESTE registro y ESTE usuario.
+ *
+ * El SDK tipa las reglas como `string | undefined`; una regla ausente del JSON se trata igual que
+ * `null` (lo más restrictivo), que es lo que hace el propio PocketBase con una regla sin definir.
+ */
+function mapRule(rule: string | null | undefined): AccessLevel {
+	if (rule === null || rule === undefined) return 'denied';
+	return rule === '' ? 'allowed' : 'conditional';
+}
+
+/**
+ * Las cinco reglas de la colección ya traducidas. Una colección `view` (`readonly: true`) NO
+ * puede crear/actualizar/borrar por construcción —PocketBase ni siquiera expone esos endpoints—
+ * así que sus tres reglas de escritura salen `'denied'` sin mirar el JSON: son `null` de todas
+ * formas, pero dejarlo escrito evita que un futuro cambio de forma en PB las vuelva "conditional"
+ * y la UI ofrezca crear registros en una vista.
+ */
+function mapCollectionAccess(collection: CollectionModel): TypeAccess {
+	const isView = collection.type === 'view';
+	return {
+		list: mapRule(collection.listRule),
+		view: mapRule(collection.viewRule),
+		create: isView ? 'denied' : mapRule(collection.createRule),
+		update: isView ? 'denied' : mapRule(collection.updateRule),
+		delete: isView ? 'denied' : mapRule(collection.deleteRule)
 	};
 }
 

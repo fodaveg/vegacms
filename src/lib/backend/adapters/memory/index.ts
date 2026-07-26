@@ -56,7 +56,12 @@ const CAPABILITIES: Capabilities = {
 	schemaBootstrap: true,
 	schemaFieldBootstrap: true,
 	strongAuth: false,
-	explicitRecordId: true
+	explicitRecordId: true,
+	// `#lote-shell`: `false` A PROPÓSITO aunque este adaptador no tenga reglas de acceso propias —
+	// así el `access` que declare la semilla en un `ContentType` se respeta tal cual y la UI de
+	// permisos es ejercitable en la demo y en los e2e (con `true` quedaría siempre neutralizada).
+	// Una semilla que no declara `access` no restringe nada: ausente ⇒ todo permitido.
+	accessBypass: false
 };
 
 const DEFAULT_USER_EMAIL = 'admin@vega.test';

@@ -6,6 +6,7 @@
  * `form-model.test.ts`.
  */
 import { describe, expect, test } from 'vitest';
+import { ALL_PERMISSIONS } from '$lib/backend/access';
 import type { Field } from '$lib/backend/types';
 import type {
 	ResolvedContentType,
@@ -54,6 +55,7 @@ function makeType(
 		hidden: false,
 		group: null,
 		singleton: false,
+		permissions: ALL_PERMISSIONS,
 		readonly: false,
 		titleField: null,
 		subtitleField: null,

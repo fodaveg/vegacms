@@ -22,6 +22,7 @@
 import type { ContentType, Field, JsonValue } from '$lib/backend/types';
 import { allowedFilterOps, type FilterNode } from '$lib/backend/query';
 import { isReservedCollectionName } from '$lib/backend/collections';
+import { resolvePermissions } from '$lib/backend/access';
 import type {
 	ContentModel,
 	FieldGroupPlacement,
@@ -343,6 +344,14 @@ export function resolveContentModel(input: {
 	types: ContentType[];
 	manifestRaw: JsonValue | null;
 	knownIcons?: readonly string[];
+	/**
+	 * `Capabilities.accessBypass` de la sesión (`#lote-shell`): `true` = salta las reglas de acceso
+	 * del backend (PB: superuser) ⇒ `permissions` sale todo en `true` y la UI se comporta EXACTA-
+	 * MENTE como antes de este lote. Omitirlo equivale a `false`, que es lo restrictivo… salvo que
+	 * los tipos tampoco declaren `access` (adaptador que no lee reglas), en cuyo caso también sale
+	 * todo permitido: los dos caminos por los que "no se sabe" acaban en "no se restringe nada".
+	 */
+	accessBypass?: boolean;
 }): ContentModel {
 	const warnings: ModelWarning[] = [];
 	const { manifest, doc } = readManifestDoc(input.manifestRaw, warnings);
@@ -407,6 +416,7 @@ export function resolveContentModel(input: {
 			input.knownIcons,
 			navOrderByType,
 			typesByName,
+			input.accessBypass ?? false,
 			warnings
 		)
 	);
@@ -726,6 +736,7 @@ function resolveContentType(
 	knownIcons: readonly string[] | undefined,
 	navOrderByType: Map<string, number | undefined>,
 	typesByName: Map<string, ContentType>,
+	accessBypass: boolean,
 	warnings: ModelWarning[]
 ): ResolvedContentType {
 	const base = `/collections/${type.name}`;
@@ -1064,6 +1075,11 @@ function resolveContentType(
 		group,
 		singleton,
 		readonly: type.readonly,
+		// `#lote-shell`: reglas del backend + bypass de la sesión, ya compuestos (`resolvePermissions`
+		// pliega `readonly` dentro). Es lo ÚNICO que la UI debe consultar para decidir si ofrece
+		// crear/editar/borrar; `readonly` se queda para el rótulo "Solo lectura", que describe la
+		// naturaleza de la colección y no un permiso.
+		permissions: resolvePermissions(type, accessBypass),
 		titleField,
 		subtitleField,
 		slugField,
@@ -1419,7 +1435,12 @@ function buildNav(
 	declaredNavGroups: readonly string[],
 	mergedViews: readonly ResolvedMergedView[]
 ): NavModel {
-	const visibleTypes = resolvedTypes.filter((t) => !t.hidden);
+	// `permissions.list` (`#lote-shell`): una colección que las reglas del backend no dejan LISTAR a
+	// esta sesión no entra en la navegación — su enlace solo llevaría a un listado que muere en un
+	// 403. La ruta `/c/:type` sigue existiendo (un enlace guardado, o el registro abierto de otra
+	// pestaña) y pinta su propio estado de "sin permiso": esto es no OFRECER lo imposible, no
+	// esconder la existencia de la colección.
+	const visibleTypes = resolvedTypes.filter((t) => !t.hidden && t.permissions.list);
 	const entries: NavEntry[] = [
 		...visibleTypes.map((contentType): NavEntry => ({ kind: 'collection', contentType })),
 		...mergedViews.map((view): NavEntry => ({ kind: 'view', view }))

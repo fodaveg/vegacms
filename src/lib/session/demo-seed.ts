@@ -487,6 +487,58 @@ const AUTHORS_CONTENT_TYPE: ContentType = {
 	]
 };
 
+/** Añadidas en `#lote-shell` (reglas de acceso reflejadas en la UI): las DOS colecciones de la
+ *  semilla que declaran `access` (el resto lo deja `undefined` ⇒ todo permitido, comportamiento
+ *  previo INTACTO). El adaptador `memory` no tiene reglas propias, así que lo que se declara aquí
+ *  es exactamente lo que la UI debe reflejar — con `capabilities.accessBypass: false`.
+ *
+ * - **`avisos`**: se LISTA y se VE, pero las tres escrituras están vedadas. Ejercita "sin botón
+ *   Nueva", "sin acción Borrar en la fila" y "editor bloqueado con la nota de permiso" — todo ello
+ *   SIN ser una colección `readonly` (que es otra cosa, y ya la cubre `pages`).
+ * - **`privado`**: ni siquiera se puede listar. No aparece en la navegación y su ruta `/c/privado`
+ *   pinta el estado "sin permiso" en vez de morir en un 403 sin explicación. */
+const AVISOS_CONTENT_TYPE: ContentType = {
+	name: 'avisos',
+	readonly: false,
+	access: {
+		list: 'allowed',
+		view: 'allowed',
+		create: 'denied',
+		update: 'denied',
+		delete: 'denied'
+	},
+	fields: [
+		{
+			name: 'title',
+			type: 'text',
+			subtype: 'plain',
+			required: true,
+			readonly: false,
+			presentable: true,
+			hidden: false,
+			unique: false
+		}
+	]
+};
+
+const PRIVADO_CONTENT_TYPE: ContentType = {
+	name: 'privado',
+	readonly: false,
+	access: { list: 'denied', view: 'denied', create: 'denied', update: 'denied', delete: 'denied' },
+	fields: [
+		{
+			name: 'title',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: true,
+			hidden: false,
+			unique: false
+		}
+	]
+};
+
 /** Añadido en el fix de code-review de 4c (L-P4.15, ver cabecera del módulo): tipo SIN campo
  *  título resoluble (cero campos `text`/`email`/`url`). */
 const METRICS_CONTENT_TYPE: ContentType = {
@@ -720,6 +772,22 @@ const DEMO_MANIFEST: JsonValue = {
 			group: 'Contenido',
 			order: 4
 		},
+		// `#lote-shell` (ver `AVISOS_CONTENT_TYPE`): `avisos` se pinta en nav como una colección
+		// normal —la restricción se nota en las ACCIONES, no en el enlace—; `privado` declara su
+		// label igual, pero nunca llega a nav porque no se puede listar.
+		avisos: {
+			label: 'Avisos',
+			labelSingular: 'Aviso',
+			icon: 'document',
+			group: 'Contenido',
+			order: 9
+		},
+		privado: {
+			label: 'Privado',
+			labelSingular: 'Privado',
+			group: 'Contenido',
+			order: 10
+		},
 		// Añadidas en L7c (ver cabecera del módulo): fuentes de `mergedViews.catalogo` más abajo,
 		// también colecciones normales por derecho propio (mismo grupo "Contenido", orden 5/6).
 		works: {
@@ -808,6 +876,8 @@ export const DEMO_SEED: MemorySeed = {
 		PAGES_CONTENT_TYPE,
 		AUTHORS_CONTENT_TYPE,
 		METRICS_CONTENT_TYPE,
+		AVISOS_CONTENT_TYPE,
+		PRIVADO_CONTENT_TYPE,
 		WORKS_CONTENT_TYPE,
 		TRACKS_CONTENT_TYPE,
 		BLOG_CONTENT_TYPE,
@@ -843,6 +913,10 @@ export const DEMO_SEED: MemorySeed = {
 		// (readonly).
 		pages: [],
 		metrics: [{ id: 'metric_1', values: { count: 42, active: true } }],
+		// `#lote-shell`: un registro en cada colección con reglas, para que el editor de una
+		// colección "solo lectura por regla" sea alcanzable de verdad en los e2e.
+		avisos: [{ id: 'aviso_1', values: { title: 'Aviso que no se puede editar' } }],
+		privado: [{ id: 'privado_1', values: { title: 'Contenido reservado' } }],
 		// Añadidos en L7c (ver cabecera del módulo): `order` INTERCALADO a propósito entre las dos
 		// colecciones (work_1=1, track_1=2, work_2=3, track_2=4) — el merge de `mergedViews.catalogo`
 		// debe alternar `works`/`tracks`, nunca concatenar una colección entera antes que la otra.

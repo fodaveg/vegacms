@@ -81,9 +81,24 @@
 		 *  lleva por delante este panel ENTERO (y con él, el botón "Borrar" al que restauraría el
 		 *  foco por defecto). */
 		fallbackFocusEl: HTMLElement | null;
+		/** Permisos EFECTIVOS sobre `vega_media` (`#lote-shell`), ya compuestos por la ruta
+		 *  (`permissionsFor`, `$lib/backend/access`): sin permiso de actualización el panel es de
+		 *  solo lectura (drafts deshabilitados, sin "Guardar" ni "Reemplazar"); sin permiso de
+		 *  borrado, no se pinta "Borrar". Default `true` en ambos — un llamador que no los pase se
+		 *  comporta EXACTAMENTE como antes de este lote. */
+		canUpdate?: boolean;
+		canDelete?: boolean;
 	}
 
-	let { item, onClose, onSaved, onDeleted, fallbackFocusEl }: Props = $props();
+	let {
+		item,
+		onClose,
+		onSaved,
+		onDeleted,
+		fallbackFocusEl,
+		canUpdate = true,
+		canDelete = true
+	}: Props = $props();
 
 	const ctx = getVegaContext();
 
@@ -92,6 +107,11 @@
 	let tagsDraft = $state<string[]>([]);
 	let tagInput = $state('');
 	let saving = $state(false);
+
+	/** Controles de edición inertes (`#lote-shell`): mientras se guarda, como siempre, y también
+	 *  cuando las reglas del backend no dejan actualizar este asset — ahí el panel sigue siendo
+	 *  útil (ver el fichero, su URL y sus metadatos), solo que no se puede tocar. */
+	const editingDisabled = $derived(saving || !canUpdate);
 	let saveError = $state<string | null>(null);
 
 	// ————— Borrado (Fase 6d) —————
@@ -391,7 +411,7 @@
 			<!-- Reemplazar fichero (`#lote-integridad`, Fase A): control de fichero REAL, oculto
 			     VISUALMENTE (mismo patrón que `MediaUpload.svelte` — nunca `display: none`, sigue en
 			     el árbol de accesibilidad). El botón visible dispara `.click()` sobre él. -->
-			<div class="vega-media-detail-replace">
+			<div class="vega-media-detail-replace" hidden={!canUpdate}>
 				<label class="vega-media-detail-replace-sr" for="vega-media-detail-replace-input">
 					{ctx.t('media.detail.replace')}
 				</label>
@@ -432,7 +452,7 @@
 						type="text"
 						bind:value={altDraft}
 						bind:this={altInputEl}
-						disabled={saving}
+						disabled={editingDisabled}
 					/>
 				</div>
 
@@ -442,7 +462,7 @@
 						id="vega-media-detail-title"
 						type="text"
 						bind:value={titleDraft}
-						disabled={saving}
+						disabled={editingDisabled}
 					/>
 				</div>
 
@@ -456,7 +476,7 @@
 									<button
 										type="button"
 										onclick={() => handleRemoveTag(tag)}
-										disabled={saving}
+										disabled={editingDisabled}
 										aria-label={ctx.t('media.detail.removeTag', { tag })}
 									>
 										×
@@ -470,14 +490,14 @@
 							type="text"
 							bind:value={tagInput}
 							onkeydown={handleTagInputKeydown}
-							disabled={saving}
+							disabled={editingDisabled}
 							placeholder={ctx.t('media.detail.tagPlaceholder')}
 							aria-label={ctx.t('media.detail.tagInputLabel')}
 						/>
 						<button
 							type="button"
 							onclick={handleAddTag}
-							disabled={saving || normalizeTagInput(tagInput) === ''}
+							disabled={editingDisabled || normalizeTagInput(tagInput) === ''}
 						>
 							{ctx.t('media.detail.addTag')}
 						</button>
@@ -496,21 +516,25 @@
 				</div>
 
 				<div class="vega-media-detail-actions">
-					<button
-						type="button"
-						class="vega-media-detail-delete"
-						onclick={requestDeleteAsset}
-						disabled={saving || deletingAsset}
-					>
-						{ctx.t('media.detail.delete')}
-					</button>
+					{#if canDelete}
+						<button
+							type="button"
+							class="vega-media-detail-delete"
+							onclick={requestDeleteAsset}
+							disabled={saving || deletingAsset}
+						>
+							{ctx.t('media.detail.delete')}
+						</button>
+					{/if}
 					<div class="vega-media-detail-actions-primary">
 						<button type="button" onclick={requestClose} disabled={saving}>
 							{ctx.t('common.cancel')}
 						</button>
-						<button type="submit" disabled={saving}>
-							{saving ? ctx.t('editor.saving') : ctx.t('editor.save')}
-						</button>
+						{#if canUpdate}
+							<button type="submit" disabled={saving}>
+								{saving ? ctx.t('editor.saving') : ctx.t('editor.save')}
+							</button>
+						{/if}
 					</div>
 				</div>
 			</form>

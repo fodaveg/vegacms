@@ -151,6 +151,19 @@ export interface Capabilities {
 	 * en vez de intentar un camino que sabe que va a fallar.
 	 */
 	explicitRecordId: boolean;
+	/**
+	 * La sesión actual SALTA las reglas de acceso de las colecciones (`#lote-shell`): todo lo que
+	 * `ContentType.access` marque `'denied'` le está permitido igualmente. PB: `true` con sesión de
+	 * superuser (los superusers ignoran las API rules), `false` en modo editor (`authCollection`
+	 * distinta de `_superusers`). memory: `false` — así lo que declare la semilla en `access` se
+	 * respeta tal cual.
+	 *
+	 * Es una capability de SESIÓN, no de adaptador, igual que `schemaDiscovery` (que ya vale
+	 * `false` para un editor y `true` para un superuser en el MISMO adaptador). Vive aquí y no
+	 * dentro de `TypeAccess` justo por lo que explica la cabecera de ese tipo: `access` se
+	 * persiste en el snapshot del esquema y no puede depender de quién lo escribió.
+	 */
+	accessBypass: boolean;
 }
 
 // ————— Paginación —————
@@ -172,6 +185,45 @@ export interface ContentType {
 	readonly: boolean;
 	/** Campos en el orden que declara el backend, EXCLUYENDO la primary key (id). */
 	fields: Field[];
+	/**
+	 * Lo que las REGLAS DE ACCESO del backend conceden sobre esta colección (`#lote-shell`), o
+	 * `undefined` si el adaptador no puede determinarlo — ausente ⇒ la UI no restringe NADA
+	 * (misma regla de evolución que `Capabilities`: lo que no se sabe no se finge). Ver
+	 * `TypeAccess` para la semántica exacta, que NO es "lo que puede la sesión actual".
+	 */
+	access?: TypeAccess;
+}
+
+/**
+ * Qué concede una regla de acceso, desde el punto de vista de la UI:
+ * - `'allowed'`: la operación está permitida sin condiciones.
+ * - `'denied'`: la operación está vedada a cualquier sesión normal (PB: regla `null`, o sea
+ *   "solo superuser"). La UI DEBE dejar de ofrecerla.
+ * - `'conditional'`: depende del registro concreto y/o del usuario (PB: una expresión de filtro
+ *   como `@request.auth.id = author`). La UI la OFRECE igual: evaluar la expresión en cliente
+ *   sería reimplementar el motor de reglas del backend —y desincronizarse con él— así que aquí el
+ *   error de permiso sigue siendo el camino honesto. El objetivo del lote es no ofrecer lo que se
+ *   sabe SEGURO que va a dar 403, no adivinar lo que depende del dato.
+ */
+export type AccessLevel = 'allowed' | 'denied' | 'conditional';
+
+/**
+ * Las cinco reglas de una colección, YA traducidas a `AccessLevel`.
+ *
+ * **Semántica exacta y deliberada**: describe lo que las reglas conceden a una sesión
+ * AUTENTICADA NORMAL, NO lo que puede la sesión ACTUAL. Los dos motivos son el mismo:
+ * `ContentType` es lo que se persiste en `vega.schemaSnapshot` (L6b) para servírselo luego a los
+ * editores, y ese snapshot lo escribe SIEMPRE un superuser — si `access` describiera "lo que
+ * puede quien lo leyó", el snapshot guardaría "todo permitido" y le mentiría a cada editor que lo
+ * lea después. Quien SÍ salta las reglas se declara aparte, en `Capabilities.accessBypass`, y es
+ * la UI (`resolveContentModel`) la que compone las dos mitades.
+ */
+export interface TypeAccess {
+	list: AccessLevel;
+	view: AccessLevel;
+	create: AccessLevel;
+	update: AccessLevel;
+	delete: AccessLevel;
 }
 
 /**

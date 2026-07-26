@@ -6,6 +6,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
+import { ALL_PERMISSIONS } from '$lib/backend/access';
 import { validateQuery, DEFAULT_PER_PAGE } from '$lib/backend/query';
 import type { Field } from '$lib/backend/types';
 import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
@@ -56,6 +57,7 @@ function contentType(
 		hidden: false,
 		group: null,
 		singleton: false,
+		permissions: ALL_PERMISSIONS,
 		readonly: false,
 		titleField: null,
 		subtitleField: null,

@@ -230,7 +230,7 @@
 	// foco por defecto.
 	let headingEl = $state<HTMLElement | null>(null);
 
-	/** `RecordTable` (fila, `!contentType.readonly`) pide confirmar el borrado de `record`. Defensa
+	/** `RecordTable` (fila, `contentType.permissions.delete`) pide confirmar el borrado de `record`. Defensa
 	 *  en profundidad (fix de code-review de 4e): con un borrado YA en vuelo (`deleting`), ignora
 	 *  la petición — nunca reescribe `pendingDelete` a mitad de un `ctx.port.delete` ajeno (el
 	 *  diálogo solo puede abrirse para un registro a la vez; `DeleteConfirm` ya hace lo mismo por
@@ -322,7 +322,9 @@
 	// (nunca ofrecen "Nueva"), coherente con el botón.
 	$effect(() => {
 		const type = contentType;
-		if (!type || type.readonly || type.singleton) return;
+		// `permissions.create` cubre también el caso `readonly` (lo pliega dentro): el atajo nunca
+		// existe si el botón "Nueva" tampoco.
+		if (!type || !type.permissions.create || type.singleton) return;
 		const typeName = type.name; // capturado como string plano: el closure de abajo no depende
 		// del estrechamiento de `type` (`function` con nombre, no una flecha — TS no lo preserva).
 		const handleKeydown = (event: KeyboardEvent): void => {
@@ -349,6 +351,16 @@
 		kind="not-found"
 		title={ctx.t('errors.notFoundType.title')}
 		body={ctx.t('errors.notFoundType.body', { type: typeParam })}
+		action={{ label: ctx.t('errors.backToIndex'), onClick: () => ctx.nav.toIndex() }}
+	/>
+	<!-- Las reglas del backend no dejan LISTAR esta colección con esta sesión (`#lote-shell`): no
+	     está en la navegación, pero la ruta sigue existiendo (URL guardada, enlace de otra pestaña)
+	     y aquí se dice por qué, en vez de dejar que el listado muera en un 403 sin explicación. -->
+{:else if !contentType.permissions.list}
+	<RouteState
+		kind="forbidden"
+		title={ctx.t('errors.forbidden.title')}
+		body={ctx.t('errors.forbidden.noList.body', { label: contentType.label })}
 		action={{ label: ctx.t('errors.backToIndex'), onClick: () => ctx.nav.toIndex() }}
 	/>
 {:else if contentType.singleton}
@@ -385,7 +397,10 @@
 			<button type="button" class="vega-list-export-button">
 				{ctx.t('list.export.button')}
 			</button>
-			{#if !contentType.readonly}
+			<!-- `permissions.create` (`#lote-shell`) en vez de `!readonly`: pliega las DOS razones por
+			     las que no se puede crear aquí —vista del backend, o regla de acceso que lo veda— en
+			     la misma comprobación. Ver `resolvePermissions` (`$lib/backend/access`). -->
+			{#if contentType.permissions.create}
 				<button
 					type="button"
 					class="vega-list-new-button"
@@ -480,7 +495,7 @@
 					>
 					<h2>{ctx.t('list.empty.title')}</h2>
 					<p>{ctx.t('list.empty.body', { label: contentType.label })}</p>
-					{#if !contentType.readonly}
+					{#if contentType.permissions.create}
 						<button type="button" onclick={() => ctx.nav.toNew(contentType.name)}>
 							{ctx.t('list.empty.cta')}
 						</button>

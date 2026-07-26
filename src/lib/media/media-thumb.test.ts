@@ -26,7 +26,8 @@ function capabilitiesWith(thumbs: boolean): Capabilities {
 		schemaBootstrap: true,
 		schemaFieldBootstrap: true,
 		strongAuth: false,
-		explicitRecordId: true
+		explicitRecordId: true,
+		accessBypass: false
 	};
 }
 

@@ -29,6 +29,13 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'topbar.connection.retry': 'Retry',
 	'topbar.search.ariaLabel': 'Global search',
 	'topbar.search.placeholder': 'Search all content…',
+	'topbar.search.results': 'Global search results',
+	'topbar.search.searching': 'Searching…',
+	'topbar.search.empty': 'No results for “{q}”',
+	'topbar.search.error': 'Search failed. Check your connection and try again.',
+	'topbar.search.minChars': 'Type at least {count} characters',
+	'topbar.search.seeAll': 'See the remaining {count}',
+	'topbar.search.partial': 'Could not search {count} collection(s).',
 	'topbar.avatar.label': 'Signed in as {email}',
 	// User chip → "Settings" menu (#l12-ux, item 3): label of the trigger button itself, DIFFERENT
 	// from `topbar.avatar.label` above (that one describes the session identity of the inner
@@ -156,6 +163,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'errors.forbidden.body': "Your session can't access this resource.",
 	'errors.forbidden.readonlyType.body':
 		'"{label}" is a read-only collection: new records cannot be created.',
+	'errors.forbidden.noCreate.body': 'You do not have permission to create records in "{label}".',
+	'errors.forbidden.noList.body': 'You do not have permission to view the records of "{label}".',
 	'errors.notFoundType.title': 'Collection not found',
 	'errors.notFoundType.body': 'The content type "{type}" does not exist (or is hidden).',
 	'errors.notFoundRecord.title': 'Record not found',
@@ -177,6 +186,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.saveSuccess': 'Saved.',
 	'editor.leaveConfirm': 'There are unsaved changes. Leave anyway?',
 	'editor.readonlyNotice': 'This collection is read-only: it cannot be edited.',
+	'editor.noUpdateNotice':
+		'You do not have permission to edit records in this collection: you can view it, but not save changes.',
 	'editor.load.error.body': 'Could not load the record. {message}',
 
 	// ————— Editor sticky bar (redesign C2, Part R7, `.edit-top` mockup) —————

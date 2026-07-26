@@ -6,6 +6,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
+import { ALL_PERMISSIONS } from '$lib/backend/access';
 import type { ContentType, Field, FieldValue, VegaRecord } from '$lib/backend/types';
 import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
 import { buildFormModel } from './form-model';
@@ -49,6 +50,7 @@ function makeType(
 		hidden: false,
 		group: null,
 		singleton: false,
+		permissions: ALL_PERMISSIONS,
 		readonly: false,
 		titleField: null,
 		subtitleField: null,
