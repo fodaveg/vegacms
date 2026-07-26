@@ -176,9 +176,15 @@
 	// declara un orden inicial, la tabla YA no está en su orden natural de `orderField` aunque la
 	// URL no traiga `?sort=` — arrastrar filas ahí produciría un reorder que no coincide con lo
 	// que el usuario ve, mismo motivo que ya excluía un `?sort=` explícito.
+	// `permissions.update` (fix de code-review): el resto del fichero SÍ mira el permiso adecuado
+	// para cada acción (create para "Nueva"/atajo `N`, delete para la fila) — el asa de reorder se
+	// había quedado fuera. Arrastrar una fila es un `ctx.port.update` por registro (ver
+	// `handleReorder`); con `access.update: 'denied'` la UI la ofrecía igual y el primer `update`
+	// del lote moría en un 403 del backend.
 	const reorderable = $derived(
 		contentType !== null &&
 			contentType.orderField !== null &&
+			contentType.permissions.update &&
 			effectiveSort === null &&
 			viewState.q === '' &&
 			viewState.status === null &&

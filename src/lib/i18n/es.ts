@@ -178,6 +178,7 @@ export const es = {
 	// colección — la UI ya no ofrece el camino, pero la ruta sigue siendo alcanzable por URL.
 	'errors.forbidden.noCreate.body': 'No tienes permiso para crear registros en "{label}".',
 	'errors.forbidden.noList.body': 'No tienes permiso para ver los registros de "{label}".',
+	'errors.forbidden.noView.body': 'No tienes permiso para ver este registro de "{label}".',
 	'errors.notFoundType.title': 'Colección no encontrada',
 	'errors.notFoundType.body': 'No existe (o está oculta) el tipo de contenido "{type}".',
 	'errors.notFoundRecord.title': 'Registro no encontrado',

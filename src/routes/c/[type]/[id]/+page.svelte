@@ -3,7 +3,19 @@
 	 * `/c/[type]/[id]` (§2.4 del contrato P3; Fase F5-a del contrato P5): EDICIÓN real.
 	 *
 	 * - `type` inexistente u oculto → `not-found` (P3-L2, mismo criterio que `/c/[type]`).
-	 * - `type` válido: carga el registro con `ctx.port.get`. `VegaError 'not-found'` → `not-found`
+	 * - `!contentType.permissions.view` → `forbidden` (fix de code-review, `#lote-shell`): las
+	 *   reglas del backend pueden dejar `listRule` abierta y `viewRule` cerrada (`viewRule: null`
+	 *   es un caso raro pero real en PocketBase) — `AccessLevel`/`TypeAccess` (`backend/types.ts`)
+	 *   documentan que `'denied'` obliga a la UI a dejar de ofrecer la operación para las CINCO,
+	 *   `view` incluido. Mismo criterio que `/new` con `permissions.create`: ni se ofrece el enlace
+	 *   de fila (`RecordTable`, ver su cabecera) ni, si se llega por URL directa, se intenta el
+	 *   `ctx.port.get` — cierra el hueco ANTES de tocar el puerto, nunca tras un 403.
+	 *   Las OTRAS puertas al detalle (`MergedViewTable`, `EditorRail`, el panel "Se usa en" de
+	 *   `ReferencesSummary`, el buscador global) siguen enlazando sin mirar `view`, porque cruzan
+	 *   tipos y resolverlo por fila cuesta más de lo que arregla en un caso tan raro: aterrizan
+	 *   AQUÍ y se topan con este mismo `forbidden`. O sea, fallo cerrado siempre; lo que no está
+	 *   pulido es evitar el viaje, y esa es la única puerta en la que la afordancia sí se retira.
+	 * - `type` válido y con permiso: carga el registro con `ctx.port.get`. `VegaError 'not-found'` → `not-found`
 	 *   EN CONTEXTO (L-P5.7, cierra el hueco que dejó el marco 3a). Cualquier otro `kind`
 	 *   (network/backend/forbidden/auth-expired) va al feedback global de P3 (L-P5.5) Y a un
 	 *   estado local con "Reintentar" (mismo criterio que `/settings`) — nunca se queda
@@ -72,7 +84,7 @@
 	}
 
 	$effect(() => {
-		if (!contentType) return;
+		if (!contentType || !contentType.permissions.view) return; // sin permiso: ni se intenta el `get`
 		const key = `${contentType.name}:${idParam}`;
 		if (key === loadedKey) return;
 		loadedKey = key;
@@ -86,6 +98,16 @@
 		title={ctx.t('errors.notFoundType.title')}
 		body={ctx.t('errors.notFoundType.body', { type: typeParam })}
 		action={{ label: ctx.t('errors.backToIndex'), onClick: () => ctx.nav.toIndex() }}
+	/>
+{:else if !contentType.permissions.view}
+	<RouteState
+		kind="forbidden"
+		title={ctx.t('errors.forbidden.title')}
+		body={ctx.t('errors.forbidden.noView.body', { label: contentType.label })}
+		action={{
+			label: ctx.t('errors.notFoundRecord.backToList'),
+			onClick: () => ctx.nav.toList(contentType.name)
+		}}
 	/>
 {:else}
 	{@const activeType = contentType}

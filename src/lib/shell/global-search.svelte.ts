@@ -161,6 +161,10 @@ export function createGlobalSearchState(
 		if (!isSearchableTerm(term)) {
 			// Volver por debajo del mínimo (o vaciar la caja) descarta los resultados anteriores: si
 			// se quedaran pintados, el panel enseñaría aciertos de un término que ya no está escrito.
+			// `sequencer.next()` invalida además cualquier `search()` YA EN VUELO (red lenta): sin
+			// avanzar la generación, su respuesta tardía llegaría con `isLatest(seq) === true` y
+			// repoblaría el panel con aciertos de un término que ya no está en la caja.
+			sequencer.next();
 			searchedTerm = '';
 			activeIndex = -1;
 			status = { kind: 'idle' };
@@ -202,6 +206,7 @@ export function createGlobalSearchState(
 		},
 		clear(): void {
 			cancelPending();
+			sequencer.next(); // invalida también un `search()` YA EN VUELO — mismo motivo que en `setInput`
 			input = '';
 			searchedTerm = '';
 			activeIndex = -1;

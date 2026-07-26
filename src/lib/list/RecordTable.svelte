@@ -429,13 +429,21 @@
 </div>
 
 {#snippet titleLink(record: VegaRecord)}
-	<a
-		href={recordRoute(contentType.name, record.id)}
-		title={openText(record)}
-		onclick={(event) => openRecord(event, record.id)}
-	>
-		{openText(record)}
-	</a>
+	<!-- `contentType.permissions.view` (fix de code-review, `#lote-shell`): sin permiso de vista
+	     ("viewRule: null" con "listRule" abierta — raro pero real en PocketBase, ver cabecera de
+	     `/c/[type]/[id]`) la fila NO se ofrece como enlace — el mismo texto plano, sin `<a>` ni
+	     `onclick`, así Tab ya no la trata como destino y el detalle no es alcanzable desde aquí. -->
+	{#if contentType.permissions.view}
+		<a
+			href={recordRoute(contentType.name, record.id)}
+			title={openText(record)}
+			onclick={(event) => openRecord(event, record.id)}
+		>
+			{openText(record)}
+		</a>
+	{:else}
+		<span class="vega-cell-title-text">{openText(record)}</span>
+	{/if}
 	<!-- Línea secundaria (M3, `subtitleField`, ver cabecera): SOLO si el tipo lo declara Y el
 	     registro tiene valor (caso límite `blog_6`, ver demo-seed.ts). -->
 	{@const subtitle = subtitleText(record)}
@@ -741,6 +749,15 @@
 
 	.vega-record-table td a:hover {
 		text-decoration: underline;
+	}
+
+	/* Fila sin permiso de vista (ver `titleLink`): mismo tinte/peso que el enlace, pero SIN
+	   `text-decoration`/`:hover` — no es una afordancia, es solo el texto de apertura de siempre. */
+	.vega-cell-title-text {
+		display: inline-block;
+		color: var(--ink-hi);
+		font-weight: 500;
+		line-height: 1.3;
 	}
 
 	/* Línea secundaria bajo el título (M3, mockup `.cell-title .slug`): mono, tinta secundaria —

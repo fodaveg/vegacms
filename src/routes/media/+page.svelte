@@ -527,10 +527,15 @@
 				</span>
 			</div>
 
-			<!-- Zona de subida (Fase 6c): SIEMPRE visible en 'present', independiente del estado del
-			     grid de abajo (loading/error/vacío/listo) — también la CTA real del caso "biblioteca
-			     vacía" (ver cabecera del script). -->
-			{#if mediaFileSchema}
+			<!-- Zona de subida (Fase 6c): visible en 'present' siempre que haya permiso de creación,
+			     independiente del estado del grid de abajo (loading/error/vacío/listo) — también la CTA
+			     real del caso "biblioteca vacía" (ver cabecera del script). `mediaPermissions.create`
+			     (fix de code-review): mismo guard que el botón "Subir archivos" de la cabecera — sin él,
+			     la banda de arrastre era operable con un `access.create: 'denied'` y soltar un fichero
+			     moría en un 403 del backend. Se OCULTA entera (no "visible deshabilitada"): mismo
+			     criterio que el resto de acciones denegadas del lote (botón "Nueva" y asa de reorder de
+			     `/c/[type]`, fix #3 de este mismo code-review) — sin permiso, la afordancia no se ofrece. -->
+			{#if mediaFileSchema && mediaPermissions.create}
 				<MediaUpload
 					bind:this={uploadRef}
 					schema={mediaFileSchema}

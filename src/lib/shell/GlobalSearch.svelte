@@ -230,6 +230,7 @@
 									id={optionId(index)}
 									class="vega-search-hit"
 									role="option"
+									tabindex="-1"
 									aria-selected={index === search.activeIndex}
 									href={recordRoute(hit.type, hit.id)}
 									onclick={(event) => handleHitClick(event, hit.type, hit.id)}
@@ -251,6 +252,7 @@
 							{#if group.totalItems > group.hits.length}
 								<a
 									class="vega-search-more"
+									tabindex="-1"
 									href={listSearchRoute(group.type, search.searchedTerm)}
 									onclick={(event) => handleSeeAllClick(event, group.type)}
 								>

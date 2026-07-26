@@ -261,6 +261,54 @@ describe('createGlobalSearchState', () => {
 		expect(state.searchedTerm).toBe('');
 	});
 
+	test('una respuesta en vuelo que llega DESPUÉS de bajar del mínimo no repuebla el panel', async () => {
+		// Reproduce la carrera del reviewer: "hola" arranca la búsqueda (red lenta), se borra hasta
+		// "h" (status → idle) y SOLO ENTONCES llega la respuesta tardía. Sin invalidar el
+		// `sequencer` en el camino "por debajo del mínimo", `isLatest(seq)` seguía siendo `true`
+		// (nadie había llamado a `search()` otra vez) y el panel se repoblaba con aciertos de un
+		// término que ya no está en la caja.
+		const pending: ((page: Page<VegaRecord>) => void)[] = [];
+		const { ctx } = harness(
+			() => new Promise<Page<VegaRecord>>((resolve) => pending.push(resolve)),
+			['posts']
+		);
+		const state = createGlobalSearchState(ctx, { debounceMs: 0 });
+
+		state.setInput('hola');
+		await new Promise((resolve) => setTimeout(resolve, 0)); // dispara el timer: search() en vuelo
+		expect(state.status.kind).toBe('searching');
+
+		state.setInput('h'); // baja del mínimo mientras la petición sigue en vuelo
+		expect(state.status.kind).toBe('idle');
+
+		pending[0](pageOf('posts', ['Resultado tardío'])); // llega tarde
+		await settle();
+
+		expect(state.status.kind).toBe('idle');
+		expect(state.hits).toEqual([]);
+	});
+
+	test('clear() también invalida una respuesta en vuelo', async () => {
+		const pending: ((page: Page<VegaRecord>) => void)[] = [];
+		const { ctx } = harness(
+			() => new Promise<Page<VegaRecord>>((resolve) => pending.push(resolve)),
+			['posts']
+		);
+		const state = createGlobalSearchState(ctx, { debounceMs: 0 });
+
+		state.setInput('hola');
+		await new Promise((resolve) => setTimeout(resolve, 0)); // dispara el timer: search() en vuelo
+		expect(state.status.kind).toBe('searching');
+
+		state.clear(); // Escape, o navegar a un resultado, mientras la petición sigue en vuelo
+
+		pending[0](pageOf('posts', ['Resultado tardío']));
+		await settle();
+
+		expect(state.status.kind).toBe('idle');
+		expect(state.hits).toEqual([]);
+	});
+
 	test('el índice activo recorre los aciertos y sobrevive al hover; clear() lo resetea', async () => {
 		const { ctx } = harness(async (type) => pageOf(type, ['Uno', 'Dos']));
 		const state = createGlobalSearchState(ctx, { debounceMs: 0 });

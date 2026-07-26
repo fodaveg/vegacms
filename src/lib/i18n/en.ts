@@ -165,6 +165,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'"{label}" is a read-only collection: new records cannot be created.',
 	'errors.forbidden.noCreate.body': 'You do not have permission to create records in "{label}".',
 	'errors.forbidden.noList.body': 'You do not have permission to view the records of "{label}".',
+	'errors.forbidden.noView.body': 'You do not have permission to view this record of "{label}".',
 	'errors.notFoundType.title': 'Collection not found',
 	'errors.notFoundType.body': 'The content type "{type}" does not exist (or is hidden).',
 	'errors.notFoundRecord.title': 'Record not found',
