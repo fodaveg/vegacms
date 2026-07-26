@@ -22,7 +22,13 @@ export type { IconRegistry };
 /** Navegación tipada (§2.2): único camino, nadie compone URLs a mano. */
 export interface NavApi {
 	toIndex(): void;
-	toList(type: string): void; // /c/:type
+	/**
+	 * `/c/:type` — listado. `opts.q` (aditivo, `#lote-shell`) lo abre con un término de búsqueda ya
+	 * aplicado (`?q=`, `listSearchRoute`): lo usa el "ver todos" del buscador global de la topbar,
+	 * que enseña unos pocos aciertos por colección y delega la lista completa en el listado. Sin
+	 * `opts`, comportamiento idéntico al de siempre — ningún llamador existente cambia.
+	 */
+	toList(type: string, opts?: { q?: string }): void;
 	toNew(type: string): void; // /c/:type/new
 	toRecord(type: string, id: RecordId): void; // /c/:type/:id
 	/** Resuelve el singleton (P2 §4.6) y navega a su edición/creación. Async: consulta el puerto. */

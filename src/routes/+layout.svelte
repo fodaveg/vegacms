@@ -48,6 +48,7 @@
 	import {
 		indexRoute,
 		listRoute,
+		listSearchRoute,
 		loginRoute,
 		mediaRoute,
 		newRoute,
@@ -108,7 +109,12 @@
 
 	const nav: NavApi = {
 		toIndex: () => void navigateTo(indexRoute()),
-		toList: (type) => void navigateTo(listRoute(type)),
+		// `opts.q` (aditivo, `#lote-shell`): listado CON término de búsqueda ya aplicado — misma
+		// URL que escribe la caja de búsqueda del propio listado (`listSearchRoute` serializa con
+		// `viewStateToParams`), así que el "ver todos" del buscador global no inventa un formato de
+		// query string paralelo.
+		toList: (type, opts) =>
+			void navigateTo(opts?.q ? listSearchRoute(type, opts.q) : listRoute(type)),
 		toNew: (type) => void navigateTo(newRoute(type)),
 		toRecord: (type, id) => void navigateTo(recordRoute(type, id)),
 		toSingleton: async (type) => {

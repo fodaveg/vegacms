@@ -180,10 +180,10 @@ Ver la documentación de PocketBase sobre [rules](https://pocketbase.io/docs/api
 Vega **lee** las cinco reglas de cada colección (`listRule`, `viewRule`, `createRule`,
 `updateRule`, `deleteRule`) y deja de ofrecer lo que sabe que va a dar 403:
 
-| Regla en PocketBase             | Qué hace Vega                                                      |
-| ------------------------------- | ------------------------------------------------------------------ |
-| `null` («solo superuser»)       | No ofrece esa operación                                            |
-| vacía (`""`, abierta a todos)   | La ofrece                                                          |
+| Regla en PocketBase                        | Qué hace Vega                                                                           |
+| ------------------------------------------ | --------------------------------------------------------------------------------------- |
+| `null` («solo superuser»)                  | No ofrece esa operación                                                                 |
+| vacía (`""`, abierta a todos)              | La ofrece                                                                               |
 | una expresión (`autor = @request.auth.id`) | La ofrece igual: depende del registro y del usuario, y solo el servidor puede decidirlo |
 
 En concreto: una colección que esta sesión no puede **listar** no aparece en la navegación (su ruta

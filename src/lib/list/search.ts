@@ -87,8 +87,18 @@ export function statusFilterOptions(type: ResolvedContentType): string[] | null 
 	return field.schema.options;
 }
 
-/** Nodo de búsqueda (OR de `contains` sobre los campos elegibles), o `null` si no aplica. */
-function buildSearchNode(type: ResolvedContentType, q: string): FilterNode | null {
+/**
+ * Nodo de búsqueda (OR de `contains` sobre los campos elegibles), o `null` si no aplica (término
+ * vacío, o tipo sin ningún campo elegible).
+ *
+ * **Exportada** (antes privada) para la búsqueda global de la topbar (`#lote-shell`,
+ * `$lib/shell/global-search.ts`), que busca el MISMO término en varias colecciones a la vez: la
+ * alternativa era que aquel módulo reconstruyese el OR por su cuenta y acabase divergiendo de lo
+ * que busca el listado (el mismo fallo que ya cazó el code-review con `isTextLikeField`, ver
+ * arriba). Un `null` aquí significa "esta colección no puede buscarse", y el llamador DEBE
+ * saltársela: emitir la query sin `filter` devolvería la colección ENTERA como si todo casara.
+ */
+export function buildSearchFilter(type: ResolvedContentType, q: string): FilterNode | null {
 	if (q === '') return null;
 	const eligible = eligibleSearchFieldNames(type);
 	if (eligible.length === 0) return null; // sin campos elegibles: la búsqueda queda deshabilitada
@@ -120,19 +130,27 @@ function buildSearchNode(type: ResolvedContentType, q: string): FilterNode | nul
  *   reorder recién guardado no se reflejaría hasta que el usuario pidiera orden explícitamente.
  *   Un sort explícito del usuario (URL) SIEMPRE gana sobre los dos fallbacks.
  * - `page`/`perPage`: `state.page` y `DEFAULT_PER_PAGE` (P4 v1 no ofrece cambiar el tamaño
- *   de página desde la vista).
+ *   de página desde la vista). `opts.perPage` lo sobreescribe para llamadores que NO son el
+ *   listado y necesitan una página corta —hoy solo la búsqueda global de la topbar, que pide unos
+ *   pocos aciertos por colección (`$lib/shell/global-search.ts`)—; el valor sigue pasando por
+ *   `validateQuery` en el adaptador, así que un tamaño fuera de `[1, MAX_PER_PAGE]` se rechaza
+ *   igual que cualquier otra `Query` mal formada.
  */
-export function buildListQuery(type: ResolvedContentType, state: ViewState): Query {
+export function buildListQuery(
+	type: ResolvedContentType,
+	state: ViewState,
+	opts?: { perPage?: number }
+): Query {
 	const topNodes: FilterNode[] = [];
 
-	const searchNode = buildSearchNode(type, state.q);
+	const searchNode = buildSearchFilter(type, state.q);
 	if (searchNode !== null) topNodes.push(searchNode);
 
 	if (state.status !== null && type.statusField !== null) {
 		topNodes.push({ kind: 'cond', field: type.statusField, op: 'eq', value: state.status });
 	}
 
-	const query: Query = { page: state.page, perPage: DEFAULT_PER_PAGE };
+	const query: Query = { page: state.page, perPage: opts?.perPage ?? DEFAULT_PER_PAGE };
 
 	if (topNodes.length === 1) {
 		query.filter = topNodes[0];

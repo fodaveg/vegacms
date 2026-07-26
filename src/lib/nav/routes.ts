@@ -22,6 +22,7 @@
 import { base } from '$app/paths';
 
 import type { RecordId } from '$lib/backend';
+import { viewStateToParams } from '$lib/list/query-state';
 
 /** `/` — índice. */
 export function indexRoute(): string {
@@ -31,6 +32,20 @@ export function indexRoute(): string {
 /** `/c/:type` — listado (P4) o resolutor de singleton (§3.3). */
 export function listRoute(type: string): string {
 	return `${base}/c/${encodeURIComponent(type)}`;
+}
+
+/**
+ * `/c/:type?q=…` — el listado de `type` con un término de búsqueda YA aplicado (`#lote-shell`: el
+ * "ver todos" de cada grupo del buscador global, que enseña unos pocos aciertos por colección y
+ * delega la lista completa —con su paginación— en el listado de siempre).
+ *
+ * La query string se serializa con `viewStateToParams` (P4, el dueño de `?q=&sort=&dir=&status=
+ * &page=`) en vez de concatenar `?q=` a mano: así este atajo y la caja de búsqueda del listado
+ * escriben EXACTAMENTE la misma URL, y un término vacío no deja un `?q=` colgando.
+ */
+export function listSearchRoute(type: string, q: string): string {
+	const params = viewStateToParams({ q, sort: null, status: null, page: 1 }).toString();
+	return params === '' ? listRoute(type) : `${listRoute(type)}?${params}`;
 }
 
 /** `/c/:type/new` — creación (P5). */

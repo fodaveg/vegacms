@@ -22,7 +22,9 @@ test('el atajo "/" enfoca el buscador global salvo dentro de un campo editable',
 	await loginAsDemo(page);
 	await page.waitForURL('**/c/site_info/new');
 
-	const search = page.getByRole('searchbox', { name: 'Búsqueda global' });
+	// Desde `#lote-shell` la caja es un `combobox` (patrón APG: tiene panel de resultados con
+	// `aria-expanded`/`aria-activedescendant`), ya no un `searchbox` a secas.
+	const search = page.getByRole('combobox', { name: 'Búsqueda global' });
 	await expect(search).not.toBeFocused();
 
 	await page.keyboard.press('/');
