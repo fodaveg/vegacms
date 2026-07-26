@@ -119,9 +119,12 @@ Returns `200` with:
   log…), or `null`. Vega only links to it when `state` is `"failed"`.
 
 Vega never stores or exposes the real deploy webhook; the project's own
-backend owns that secret and decides how `/trigger` reaches it. See
+backend owns that secret and decides how `/trigger` reaches it.
+[`extensions/vegabuild`](../extensions/vegabuild/README.md) is a ready
+reference implementation of both routes for a PocketBase Go application; see
 [PocketBase integration](POCKETBASE-INTEGRATION.md#publicación-disparador-de-build)
-for an implementation recipe (a PocketBase Go extension or a thin proxy).
+for how to install it, and for the thin-proxy alternative when PocketBase runs
+as a prebuilt binary.
 
 ## Preview endpoint (optional)
 

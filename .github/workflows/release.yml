@@ -33,11 +33,12 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - name: Setup Go (strong-auth extension)
+      # Mismo criterio que `ci.yml`: un glob para no dejar ninguna extensión sin caché al añadirla.
+      - name: Setup Go (extensiones de PocketBase)
         uses: actions/setup-go@v6
         with:
           go-version: '1.26.x'
-          cache-dependency-path: extensions/vegaauth/go.sum
+          cache-dependency-path: extensions/*/go.sum
 
       # Guard de coherencia tag↔versión LO ANTES POSIBLE (antes de instalar deps o correr el gate):
       # el tag que disparó el workflow (`v0.1.0`) debe casar EXACTAMENTE con `package.json#version`

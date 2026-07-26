@@ -237,36 +237,65 @@ editor de más abajo) — así no hay una superficie de permisos nueva que mante
 
 ### Opción A: extensión Go de PocketBase (recomendada si ya ejecutas PocketBase como app Go)
 
-Mismo patrón que [`extensions/vegaauth`](../extensions/vegaauth/README.md): un módulo Go que
-registra dos rutas custom sobre el `core.App` de PocketBase. Boceto ilustrativo (no un paquete
-listo para importar — cada proyecto dispara su build de forma distinta):
+**No hay que escribirla: es [`extensions/vegabuild`](../extensions/vegabuild/README.md)**, un módulo
+Go de este mismo repositorio, con las dos rutas del contrato ya implementadas y probadas. Se importa
+y se configura, mismo patrón que [`extensions/vegaauth`](../extensions/vegaauth/README.md):
 
 ```go
-func registerBuildRoutes(app core.App, se *core.ServeEvent, secretWebhookURL string) {
-	group := se.Router.Group("/api/vega-build")
-	group.Bind(apis.RequireAuth()) // cualquier colección auth válida sirve de gate mínimo
-
-	group.POST("/trigger", func(re *core.RequestEvent) error {
-		id, err := triggerRealWebhook(secretWebhookURL) // tu lógica: POST server-to-server,
-		if err != nil {                                  // firmado con TU secreto, nunca el de Vega
-			return apis.NewBadRequestError("no se pudo disparar el build", err)
-		}
-		saveRunState(app, id, "running", time.Now())
-		return re.JSON(http.StatusAccepted, map[string]string{"id": id})
-	})
-
-	group.GET("/status", func(re *core.RequestEvent) error {
-		return re.JSON(http.StatusOK, loadRunState(app))
-	})
+runner, err := vegabuild.NewCommandRunner(vegabuild.CommandConfig{
+	Command:        "/opt/ejemplo/deploy.sh", // lo fija el operador, nunca la petición HTTP
+	Dir:            "/opt/ejemplo/sitio",
+	LogDir:         "/var/log/vega-build",
+	LogURLTemplate: "https://admin.ejemplo.com/build-logs/{id}.log",
+})
+if err != nil {
+	log.Fatal(err)
 }
+
+build, err := vegabuild.New(vegabuild.Config{
+	RoutePrefix:     "/api/vega-build",
+	Runner:          runner,
+	AuthCollections: []string{"vega_editors"},
+})
+if err != nil {
+	log.Fatal(err)
+}
+
+app.OnServe().BindFunc(func(event *core.ServeEvent) error {
+	if err := build.EnsureCollections(event.App); err != nil {
+		return err
+	}
+	build.RegisterRoutes(event)
+	return event.Next()
+})
 ```
 
-`triggerRealWebhook`/`saveRunState`/`loadRunState` son tuyos: el estado puede vivir en una
-colección PocketBase propia (p. ej. `vega_build_runs`, con reglas de acceso que solo el rol editor
-pueda leer) o en memoria si un solo proceso PocketBase basta. Actualiza `state`/`finishedAt`/
-`lastPublishedAt` cuando tu pipeline de build (GitHub Actions, Netlify…) te avise de que terminó —
-un webhook de VUELTA desde el CI hacia PocketBase, o un poll interno tuyo contra su API, según lo
-que ya tengas montado.
+Lo que cambia de un proyecto a otro no son las rutas ni el estado: es **cómo se dispara el build**.
+Eso es la interfaz `Runner`, y el módulo trae las dos implementaciones que cubren los dos
+despliegues reales:
+
+- **`CommandRunner`** (el de arriba) ejecuta un comando local: PocketBase y el sitio estático en la
+  misma máquina, que es el caso arquetípico del contrato. El estado que reporta es el REAL, el
+  código de salida del proceso, y el log de cada corrida queda en un fichero propio.
+- **`WebhookRunner`** dispara un webhook secreto (un `workflow_dispatch` de GitHub Actions, un
+  deploy hook de Netlify…) server-to-server. Como el CI corre en otro sitio, PocketBase no puede
+  saber cuándo termina: el módulo añade `POST {apiBasePath}/callback` para que el pipeline avise al
+  acabar, autenticado con un secreto compartido propio. Esa ruta es una extensión de `vegabuild`,
+  **no** parte del contrato Vega↔proyecto: Vega no la conoce ni la llama.
+
+El fichero `main.go` completo de cada variante, y la llamada exacta que tu CI tiene que hacer al
+`callback`, están en el [README del módulo](../extensions/vegabuild/README.md).
+
+Una propiedad que conviene conocer antes de escribir la tuya, porque es el fallo que de verdad
+muerde: si algo se lleva por delante a quien tenía que reportar el final de una corrida (el proceso
+de PocketBase se reinicia a mitad del despliegue, o el CI nunca llama al `callback`), esa corrida se
+queda en `running` y **`/trigger` responde `409` para siempre** — publicar deja de funcionar hasta
+que alguien entre a la base de datos a mano. `vegabuild` lo cierra solo: `Config.StaleRunAfter`
+(1 hora por defecto) da por abandonada la corrida que lleve demasiado tiempo en curso y la marca
+como fallida, así que el botón vuelve a estar disponible.
+
+Si tu forma de publicar no es ninguna de las dos, implementa `Runner` (dos métodos) y reutiliza todo
+lo demás; si no ejecutas PocketBase como app Go, ve a la Opción B.
 
 ### Opción B: proxy delgado delante de tu webhook real
 
@@ -295,6 +324,10 @@ o documenta CORS igual que en la sección de arriba).
   permiso) responde `401`/`403`, nunca dispara el webhook real.
 - Tras un `trigger()`, el botón "Publicar" de la topbar pasa a "Publicando…" y deja de poder
   pulsarse hasta que `/status` reporte un estado distinto de `"running"`.
+
+Con `vegabuild` las tres comprobaciones ya están cubiertas por su suite (`cd extensions/vegabuild
+&& go test ./...`, que corre dentro de `pnpm gate`); vuelve a hacerlas a mano contra tu instalación
+si escribes tu propio `Runner` o si vas por la Opción B.
 
 ## Autoría de esquema desde Vega (crear colecciones, añadir campos)
 

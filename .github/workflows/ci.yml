@@ -29,11 +29,15 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - name: Setup Go (strong-auth extension)
+      # Las extensiones opcionales de `extensions/` son módulos Go independientes y `pnpm gate`
+      # corre los tests de TODAS (`pnpm test:go`). El glob del caché las cubre a las dos sin tener
+      # que tocar esto cada vez que se añade una: un `cache-dependency-path` que nombre solo a una
+      # seguiría funcionando, pero dejaría la otra sin caché en silencio.
+      - name: Setup Go (extensiones de PocketBase)
         uses: actions/setup-go@v6
         with:
           go-version: '1.26.x'
-          cache-dependency-path: extensions/vegaauth/go.sum
+          cache-dependency-path: extensions/*/go.sum
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
