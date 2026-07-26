@@ -400,6 +400,18 @@ export const es = {
 	'list.meta.filters': 'filtros',
 	'list.export.button': 'Exportar',
 
+	// ————— Exportar: diálogo de alcance + progreso (`#lote-esquema`, Fase 1) —————
+	'list.export.dialog.title': 'Exportar «{label}»',
+	'list.export.dialog.scopeLabel': 'Qué exportar',
+	'list.export.scope.all': 'Toda la colección',
+	'list.export.scope.filtered': 'Solo el filtro o búsqueda actual',
+	'list.export.scope.filteredDisabledHint': 'No hay ningún filtro ni búsqueda activos.',
+	'list.export.dialog.confirm': 'Exportar',
+	'list.export.progress.starting': 'Preparando la exportación…',
+	'list.export.progress': 'Exportando… {fetched} de {total}',
+	'list.export.success': 'Se han exportado {count} registros de «{label}».',
+	'list.export.error': 'No se pudo completar la exportación. Vuelve a intentarlo.',
+
 	// ————— Borrado (Fase 4e del contrato P4) —————
 	'list.delete.rowButton': 'Borrar',
 	'list.delete.rowButtonLabel': 'Borrar "{label}"',

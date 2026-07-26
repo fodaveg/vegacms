@@ -57,11 +57,21 @@
 	 * **Lote M2 (deltas CSS-only + meta de cabecera, mockup `aquelarre-dark.html`)**: G7 añade el
 	 * resumen "N registros · M filtros" junto al `<h1>` (`activeFilterCount`, más abajo — cuenta
 	 * `q`/`status` activos, GENÉRICO a cualquier `ResolvedContentType`, nunca hardcodea nombres de
-	 * filtro de dominio); G4 añade "Exportar" junto a "Nueva {label}" — STUB VISUAL a propósito
-	 * (sin `onclick`, sin capacidad nueva del puerto): la exportación real es fuera de alcance de
-	 * esta tanda, este botón solo deja el hueco pintado 1:1 con el mockup. Visible para CUALQUIER
-	 * tipo (incluido `readonly`, a diferencia de "Nueva"): exportar datos ya existentes tiene
-	 * sentido aunque el tipo no admita crear/borrar.
+	 * filtro de dominio); G4 añadió "Exportar" junto a "Nueva {label}" como STUB VISUAL (sin
+	 * `onclick`). Visible para CUALQUIER tipo (incluido `readonly`, a diferencia de "Nueva"):
+	 * exportar datos ya existentes tiene sentido aunque el tipo no admita crear/borrar.
+	 *
+	 * **`#lote-esquema`, Fase 1**: el stub se activa de verdad — `permissions.list` (mismo criterio
+	 * que "Nueva"/el asa de reorder) abre `ExportDialog.svelte` (`$lib/transfer/`), que hace todo
+	 * el trabajo (scope, paginación, descarga) por su cuenta vía `ctx.port`; esta ruta solo decide
+	 * CUÁNDO se ofrece el botón y le pasa `viewState`/`hasActiveFilters` (el MISMO cálculo que ya
+	 * usa "Limpiar filtros", ver más abajo) para que el diálogo pueda ofrecer "solo el filtro
+	 * actual" con criterio, sin reimplementarlo. El gate por `permissions.list` es en la práctica
+	 * SIEMPRE `true` aquí (esta rama del marcado solo se alcanza cuando ya lo es, ver el `{:else
+	 * if}` de más abajo) — se comprueba explícitamente de todos modos, mismo criterio de defensa en
+	 * profundidad que `reorderable`/`permissions.update` (fix de code-review de ese lote): si el
+	 * día de mañana el control de flujo de esta ruta cambia, el botón sigue sin ofrecerse solo
+	 * porque la condición vive aquí, no porque "ya no se puede llegar sin permiso".
 	 *
 	 * **M6 (reabre R2, mockup `.toolbar`)**: David sustituyó las chips CON RECUENTO de R2 por
 	 * chips de filtro ACTIVO removibles (`ActiveFilterChips.svelte`) — solo se pinta el filtro que
@@ -97,6 +107,7 @@
 	import ListToolbar from '$lib/list/ListToolbar.svelte';
 	import ActiveFilterChips from '$lib/list/ActiveFilterChips.svelte';
 	import DeleteConfirm from '$lib/list/DeleteConfirm.svelte';
+	import ExportDialog from '$lib/transfer/ExportDialog.svelte';
 
 	const ctx = getVegaContext();
 
@@ -286,6 +297,11 @@
 		}
 	}
 
+	// ————— Exportar (`#lote-esquema`, Fase 1) —————
+	// `true` mientras `ExportDialog` está abierto; la única condición que lo monta más abajo
+	// (mismo patrón que `pendingDelete !== null` para `DeleteConfirm`).
+	let exportOpen = $state(false);
+
 	/** Construye la URL del listado para `params` y navega (D-P4.9). Núcleo compartido de
 	 *  `goToPage` (paginación de 4c, NO resetea nada) y `navigateView` (búsqueda/filtro/orden de
 	 *  4d, SIEMPRE resetea a página 1) — ninguna de las dos duplica el `goto`/`listRoute`. */
@@ -398,11 +414,14 @@
 				</span>
 			{/if}
 			<span class="vega-list-header-spacer"></span>
-			<!-- "Exportar" (M2, G4 del mockup): STUB VISUAL, ver cabecera del fichero — sin `onclick`,
-			     visible también en tipos `readonly` (a diferencia de "Nueva"). -->
-			<button type="button" class="vega-list-export-button">
-				{ctx.t('list.export.button')}
-			</button>
+			<!-- "Exportar" (M2, G4 del mockup; activado en `#lote-esquema` Fase 1, ver cabecera):
+			     gate por `permissions.list`, visible también en tipos `readonly` (a diferencia de
+			     "Nueva" — exportar lo ya existente no exige poder escribir). -->
+			{#if contentType.permissions.list}
+				<button type="button" class="vega-list-export-button" onclick={() => (exportOpen = true)}>
+					{ctx.t('list.export.button')}
+				</button>
+			{/if}
 			<!-- `permissions.create` (`#lote-shell`) en vez de `!readonly`: pliega las DOS razones por
 			     las que no se puede crear aquí —vista del backend, o regla de acceso que lo veda— en
 			     la misma comprobación. Ver `resolvePermissions` (`$lib/backend/access`). -->
@@ -546,6 +565,16 @@
 	onConfirm={confirmDelete}
 	onCancel={cancelDelete}
 />
+
+{#if contentType}
+	<ExportDialog
+		open={exportOpen}
+		{contentType}
+		{viewState}
+		{hasActiveFilters}
+		onClose={() => (exportOpen = false)}
+	/>
+{/if}
 
 <style>
 	.vega-list-page {

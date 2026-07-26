@@ -373,6 +373,18 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.meta.filters': 'filters',
 	'list.export.button': 'Export',
 
+	// ————— Export: scope + progress dialog (`#lote-esquema`, Phase 1) —————
+	'list.export.dialog.title': 'Export «{label}»',
+	'list.export.dialog.scopeLabel': 'What to export',
+	'list.export.scope.all': 'The whole collection',
+	'list.export.scope.filtered': 'Only the current filter or search',
+	'list.export.scope.filteredDisabledHint': 'No filter or search is currently active.',
+	'list.export.dialog.confirm': 'Export',
+	'list.export.progress.starting': 'Preparing the export…',
+	'list.export.progress': 'Exporting… {fetched} of {total}',
+	'list.export.success': 'Exported {count} records from "{label}".',
+	'list.export.error': 'The export could not be completed. Please try again.',
+
 	// ————— Active filter chips (M6, reopens R2, mockup `.toolbar .chip`) —————
 	'list.activeFilter.groupLabel': 'Active filters',
 	'list.activeFilter.status.key': 'Status:',
