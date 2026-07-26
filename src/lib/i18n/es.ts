@@ -447,6 +447,7 @@ export const es = {
 	'list.import.blockedReason.noUpdatePermission': 'sin permiso para editar en esta colección',
 	'list.import.blockedReason.danglingRelation':
 		'el campo «{field}» apunta a un registro que no existe',
+	'list.import.blockedReason.requiredEmpty': 'el campo obligatorio «{field}» llega sin valor',
 	'list.import.blockedReason.unreachableRequiredFile':
 		'el fichero obligatorio del campo «{field}» no se pudo traer del origen',
 

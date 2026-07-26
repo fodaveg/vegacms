@@ -4,9 +4,26 @@
  * recibe ya resueltos —por `import-collection.ts`, que sí toca el puerto— los tres datos que hacen
  * falta para decidir, y solo decide; ningún `fetch`, ningún `port.list`. Es lo que el §6 del
  * contrato pide testear con los tres estados: CREA/PISA/BLOQUEADO, incluida la relación colgante.
+ *
+ * **Fix de code-review (commit `e4dd164`)**: la primera versión solo comprobaba `required` para
+ * campos `file` — un `text`/`select`/`date`/`relation` `required` que llegara vacío en el fichero
+ * pasaba la vista previa sin avisar y solo se descubría en el informe final de escritura, con el
+ * registro ya "intentado". Rompe la promesa central de esta feature ("la vista previa es la
+ * verdad", §4.2: "todo lo que no casa se informa ANTES de escribir"). `requiredEmptyReasons`
+ * (abajo) generaliza la comprobación a TODOS los tipos `required` — reutilizando `normalizeFieldValue`/
+ * `isEmptyValue` de `$lib/backend/normalize.ts`, la MISMA tabla de "qué cuenta como vacío" que usa
+ * el resto del puerto (nunca una segunda noción de vacío que pueda desincronizarse) — más el caso
+ * especial de PocketBase que esa tabla NO cubre a propósito: un `number` `required` rechaza el
+ * valor `0` aunque `isEmptyValue` lo considere (con razón, para Vega) un valor legítimo no-vacío
+ * (`docs/POCKETBASE-INTEGRATION.md#landmine-un-number-required-rechaza-el-valor-0`, prometido desde
+ * la cabecera de `export-collection.ts` y sin cumplir hasta este fix). Los campos `file` siguen su
+ * propio camino (`isNonEmpty`, no `isEmptyValue`: un `TransferFileValue` `{file,url}` no es la
+ * forma de `FieldValue` que `normalizeFieldValue` sabe normalizar) — «vacío» y «no traíble» son dos
+ * motivos DISTINTOS para un `file` `required`, y ahora los dos bloquean.
  */
 
 import type { Field, RecordId } from '$lib/backend/types';
+import { isEmptyValue, normalizeFieldValue } from '$lib/backend/normalize';
 import type { ResolvedContentType } from '$lib/model/types';
 import type { TransferRecord } from './record-serializer';
 
@@ -18,6 +35,10 @@ export type BlockedReason =
 	| { kind: 'no-create-permission' }
 	| { kind: 'no-update-permission' }
 	| { kind: 'dangling-relation'; field: string; targetId: RecordId }
+	/** Un campo `required` (de CUALQUIER tipo) llega vacío — o, caso especial de PocketBase, un
+	 *  `number` `required` llega con `0` (ver cabecera del módulo). Distinto de
+	 *  `unreachable-required-file`: aquí NO hay nada que traer, el campo simplemente no trae valor. */
+	| { kind: 'required-empty'; field: string }
 	| { kind: 'unreachable-required-file'; field: string };
 
 export interface ImportEntry {
@@ -77,6 +98,12 @@ export function classifyCollectionImport(input: ClassifyCollectionInput): Import
 	const { contentType, records, existingIds, relationTargetExists, requiredFileReachable } = input;
 	const relationFields = contentType.schema.fields.filter((f) => f.type === 'relation');
 	const fileFields = contentType.schema.fields.filter((f) => f.type === 'file');
+	// TODOS los campos `required` de verdad escribibles (ver cabecera: ni `readonly` —el backend
+	// los rellena solo, Vega nunca los envía— ni `unsupported` —`write-guards.ts` los rechazaría
+	// igual que cualquier campo desconocido, nunca se llega a comprobar su `required`).
+	const requiredFields = contentType.schema.fields.filter(
+		(f) => f.required && !f.readonly && f.type !== 'unsupported'
+	);
 
 	return records.map((record) => {
 		const exists = existingIds.has(record.id);
@@ -94,10 +121,31 @@ export function classifyCollectionImport(input: ClassifyCollectionInput): Import
 			}
 		}
 
+		for (const field of requiredFields) {
+			if (field.type === 'file') {
+				// Los `file` siguen su propio criterio de "vacío" (`isNonEmpty`, ver cabecera): un
+				// `TransferFileValue` no es la forma que `normalizeFieldValue` sabe normalizar. El
+				// caso "no vacío pero irresoluble" es el bucle de `fileFields` de más abajo — dos
+				// motivos DISTINTOS para el mismo campo, nunca se pisan (condiciones opuestas).
+				if (!isNonEmpty(record.values[field.name])) {
+					reasons.push({ kind: 'required-empty', field: field.name });
+				}
+				continue;
+			}
+			const normalized = normalizeFieldValue(field, record.values[field.name]);
+			// El `0` de un `number` `required` NO es "vacío" para `isEmptyValue` (con razón: es un
+			// valor legítimo en el modelo de Vega) pero SÍ lo rechaza PocketBase — landmine medida,
+			// ver cabecera del módulo. Mismo motivo (`required-empty`): para quien lee la vista
+			// previa, la distinción "vacío de verdad" vs "vacío según PocketBase" no aporta nada.
+			if (isEmptyValue(field, normalized) || (field.type === 'number' && normalized === 0)) {
+				reasons.push({ kind: 'required-empty', field: field.name });
+			}
+		}
+
 		for (const field of fileFields) {
 			if (!field.required) continue;
-			if (!isNonEmpty(record.values[field.name])) continue; // vacío: el `required` real lo
-			// rechazará la propia escritura si aplica; no es esta clasificación la que decide eso.
+			if (!isNonEmpty(record.values[field.name])) continue; // vacío: ya lo cubrió el bucle de
+			// `requiredFields` de arriba con `required-empty` — esto es solo "no vacío, irresoluble".
 			if (!requiredFileReachable(record.id, field.name)) {
 				reasons.push({ kind: 'unreachable-required-file', field: field.name });
 			}

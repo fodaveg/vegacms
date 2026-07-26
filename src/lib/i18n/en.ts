@@ -418,6 +418,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.import.blockedReason.noUpdatePermission': 'no permission to update in this collection',
 	'list.import.blockedReason.danglingRelation':
 		'field "{field}" points to a record that does not exist',
+	'list.import.blockedReason.requiredEmpty': 'required field "{field}" has no value',
 	'list.import.blockedReason.unreachableRequiredFile':
 		'the required file in field "{field}" could not be fetched from its source',
 

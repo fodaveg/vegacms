@@ -101,12 +101,13 @@
  *   fichero lo avise — habrá que revisar entonces cómo viaja el token, no antes.
  *
  * ## Qué NO promete esta feature (ninguna de las dos fases)
- * No es un backup de desastre (arriba). El import (cuando exista) NUNCA reconstruye las fechas de
- * creación originales, NUNCA conserva la URL de un fichero re-subido (PocketBase renombra todo
- * fichero subido, landmine conocida — ver `docs/POCKETBASE-INTEGRATION.md`), y un `number`
- * `required` que reciba un `0` legítimo se comportará igual de mal que en cualquier otro
- * formulario de Vega (PocketBase rechaza el `0` en un campo numérico obligatorio) — algo que la
- * vista previa de la Fase 2 tendrá que contemplar explícitamente cuando llegue.
+ * No es un backup de desastre (arriba). El import NUNCA reconstruye las fechas de creación
+ * originales, NUNCA conserva la URL de un fichero re-subido (PocketBase renombra todo fichero
+ * subido, landmine conocida — ver `docs/POCKETBASE-INTEGRATION.md`). El caso del `number`
+ * `required` con un `0` legítimo (PocketBase lo rechaza igual que un vacío real) SÍ está
+ * contemplado desde el fix de code-review de la Fase 2: la vista previa (`import-preview.ts`) lo
+ * bloquea explícitamente, con su propio motivo, en vez de dejar que el registro llegue a escribirse
+ * y falle a mitad — ver la cabecera de ese módulo.
  */
 
 import type { BackendPort } from '$lib/backend/port';

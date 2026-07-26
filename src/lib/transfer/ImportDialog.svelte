@@ -205,6 +205,8 @@
 				return ctx.t('list.import.blockedReason.noUpdatePermission');
 			case 'dangling-relation':
 				return ctx.t('list.import.blockedReason.danglingRelation', { field: reason.field });
+			case 'required-empty':
+				return ctx.t('list.import.blockedReason.requiredEmpty', { field: reason.field });
 			case 'unreachable-required-file':
 				return ctx.t('list.import.blockedReason.unreachableRequiredFile', { field: reason.field });
 		}
