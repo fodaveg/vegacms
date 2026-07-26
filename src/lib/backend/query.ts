@@ -5,6 +5,10 @@
  * campo inexistente, sort sobre no-escalar o paginación fuera de rango se rechazan sin tocar
  * red, con el mismo `VegaError 'validation'`, para que ambos adaptadores (y los futuros)
  * compartan la misma decisión (ley L3, paridad de Query).
+ *
+ * **Extensión (§4.6 extendido, `#lote-esquema` Fase 1)**: `filter` admite además el pseudo-campo
+ * reservado `id` (`ID_PSEUDO_FIELD`), que NUNCA aparece en `ContentType.fields` — ver su cabecera
+ * para el porqué y el caso de uso (paginación por cursor de `$lib/transfer/paginate.ts`).
  */
 
 import type { Field } from './types';
@@ -53,6 +57,27 @@ export type FilterOp =
 export const DEFAULT_PAGE = 1;
 export const DEFAULT_PER_PAGE = 30;
 export const MAX_PER_PAGE = 200;
+
+/**
+ * Nombre reservado del pseudo-campo `id` (§4.6 extendido — `#lote-esquema` Fase 1, fix de
+ * code-review sobre la paginación del export): la primary key NUNCA aparece en
+ * `ContentType.fields` (§2.2, "EXCLUYENDO la primary key"), pero SÍ es un objetivo válido de
+ * `filter` — ambos adaptadores YA garantizan un desempate estable por `id` ascendente como orden
+ * por defecto cuando no se pide `sort` explícito (`adapters/memory/query.ts#sortComparator`,
+ * `adapters/pocketbase/query.ts#compileSort`), así que admitirlo en `filter` no inventa ningún
+ * orden nuevo: solo permite ACOTARLO explícitamente. Es la base de la paginación KEYSET de
+ * `$lib/transfer/paginate.ts` (`id > <cursor>`), inmune a inserciones/borrados por delante del
+ * cursor — a diferencia de `page`/`perPage`, que desplazan todo lo posterior cuando algo cambia
+ * por debajo mientras una exportación está en vuelo. Deliberadamente NO se admite en `sort`: la
+ * paginación por cursor nunca necesita pedirlo explícito, el desempate por defecto ya lo da, y
+ * ampliar la superficie de `sort` sin un caso de uso real solo sería deuda sin pagar.
+ */
+export const ID_PSEUDO_FIELD = 'id';
+
+/** Operadores permitidos sobre `id` (ver `ID_PSEUDO_FIELD`): solo comparación de orden/igualdad
+ *  — sin `contains`/`empty`/`notEmpty`, que no tienen sentido sobre una primary key que nunca
+ *  está vacía ni se busca por substring. */
+export const ID_FILTER_OPS: readonly FilterOp[] = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'in'];
 
 /**
  * Tabla de operadores permitidos por "familia" de campo (§4.6, dato consultable). No es 1:1
@@ -169,6 +194,16 @@ function collectFilterErrors(
 ): void {
 	if (node.kind === 'group') {
 		for (const child of node.nodes) collectFilterErrors(child, byName, fieldErrors);
+		return;
+	}
+
+	if (node.field === ID_PSEUDO_FIELD) {
+		if (!ID_FILTER_OPS.includes(node.op)) {
+			fieldErrors[node.field] = {
+				code: 'validation_invalid_operator',
+				message: `Operador "${node.op}" no permitido para "id"`
+			};
+		}
 		return;
 	}
 

@@ -302,6 +302,19 @@
 	// (mismo patrón que `pendingDelete !== null` para `DeleteConfirm`).
 	let exportOpen = $state(false);
 
+	// Cierra el diálogo si `typeParam` cambia con él abierto (fix de code-review): este componente
+	// de ruta NO se remonta al navegar de una colección a otra (solo cambia `[type]`), así que sin
+	// esto un atrás del navegador o el buscador global (su atajo "/" no pasa por el
+	// `stopPropagation` de `ExportDialog`) dejaría el diálogo abierto mientras `contentType` cambia
+	// por debajo — incluso a un tipo sin `permissions.list`. No es una fuga real (el backend
+	// reaplica la regla igual), pero rompe la invariante "el gate está en TODOS los caminos" que
+	// este `#lote-shell` ya tuvo que parchear varias veces; cerrarlo aquí la restablece sin que
+	// `ExportDialog` necesite saber nada de rutas.
+	$effect(() => {
+		void typeParam;
+		exportOpen = false;
+	});
+
 	/** Construye la URL del listado para `params` y navega (D-P4.9). Núcleo compartido de
 	 *  `goToPage` (paginación de 4c, NO resetea nada) y `navigateView` (búsqueda/filtro/orden de
 	 *  4d, SIEMPRE resetea a página 1) — ninguna de las dos duplica el `goto`/`listRoute`. */

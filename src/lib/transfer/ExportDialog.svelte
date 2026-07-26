@@ -104,9 +104,10 @@
 				vegaVersion: VEGA_VERSION
 			});
 			downloadTransferDocument(doc, transferFilename(contentType.name));
+			const count = collection.records.length;
 			ctx.feedback.toast(
-				ctx.t('list.export.success', {
-					count: collection.records.length,
+				ctx.t(count === 1 ? 'list.export.success.one' : 'list.export.success.many', {
+					count,
 					label: contentType.label
 				}),
 				{ kind: 'success' }

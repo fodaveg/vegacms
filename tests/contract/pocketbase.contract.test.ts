@@ -9,6 +9,11 @@ import { EventSource } from 'eventsource';
 import PocketBase from 'pocketbase';
 import type { VegaError } from '$lib/backend';
 import { createPocketBaseBackend } from '$lib/backend/adapters/pocketbase';
+import { ALL_PERMISSIONS } from '$lib/backend/access';
+import { MAX_PER_PAGE } from '$lib/backend/query';
+import type { Query } from '$lib/backend/query';
+import type { ResolvedContentType } from '$lib/model/types';
+import { exportCollection } from '$lib/transfer/export-collection';
 import { describeBackendContract } from './backend-contract';
 import {
 	isPocketBaseBinaryAvailable,
@@ -291,5 +296,146 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 				await admin.collections.delete('access_probe');
 			}
 		});
+	});
+
+	/**
+	 * Guardarraíl de completitud del export (`#lote-esquema`, fix de code-review sobre la
+	 * paginación por cursor de `$lib/transfer/paginate.ts`): todo el valor de la Fase 1 descansa
+	 * en "no falta ni se duplica ningún registro" — hasta este test, esa garantía solo estaba
+	 * probada con paginación SIMULADA (`paginate.test.ts`, `export-collection.test.ts`). Si el
+	 * orden real de PocketBase no fuera exactamente el que se asume (id ascendente por defecto sin
+	 * `sort` explícito, `compileSort`), el export saldría incompleto EN SILENCIO, con el mismo
+	 * toast de éxito — un test que solo mira la simulación se queda ciego precisamente en el caso
+	 * que importa. Corre `exportCollection` (el camino REAL, no una reimplementación de la
+	 * iteración) contra > `MAX_PER_PAGE` registros creados en un PocketBase real.
+	 *
+	 * Sin campo `number` en la colección de prueba a propósito (landmine conocida, §7 del contrato
+	 * de transfer: un `number` `required` rechaza el `0` en PB — aquí ni siquiera hace falta un
+	 * contador, `title` de texto basta para tener algo que exportar).
+	 */
+	describe('completitud del export por cursor (guardarraíl, corre contra > MAX_PER_PAGE registros)', () => {
+		test('250 registros (2 páginas): salen EXACTAMENTE esos 250, sin duplicados, ninguno perdido — ni con un borrado de un registro YA entregado a mitad', async () => {
+			await admin.collections.create({
+				name: 'export_completeness_probe',
+				type: 'base',
+				fields: [{ name: 'title', type: 'text' }]
+			});
+
+			try {
+				const port = createPocketBaseBackend({ url: running.url });
+				await port.login({ email: running.adminEmail, password: running.adminPassword });
+
+				const TOTAL = 250;
+				expect(TOTAL).toBeGreaterThan(MAX_PER_PAGE); // el punto del test: más de una página real
+
+				// Creación en lotes (no las 250 de golpe): un PB local de test también tiene un
+				// límite razonable de conexiones concurrentes.
+				const CHUNK = 25;
+				const createdIds: string[] = [];
+				for (let i = 0; i < TOTAL; i += CHUNK) {
+					const batch = await Promise.all(
+						Array.from({ length: Math.min(CHUNK, TOTAL - i) }, (_, j) =>
+							port.create('export_completeness_probe', { title: `Registro ${i + j}` })
+						)
+					);
+					createdIds.push(...batch.map((r) => r.id));
+				}
+				expect(new Set(createdIds).size).toBe(TOTAL); // sanity: PB no coincidió ningún id
+
+				// Orden REAL de exportación (id ascendente, ver `paginate.ts`): el registro que
+				// cae en la primera página ("ya entregado") frente a los que quedan para la
+				// segunda ("pendientes") se decide por este orden, no por el de creación — los
+				// ids de PB son opacos, nunca se asume que nacen en orden.
+				const sortedIds = [...createdIds].sort();
+				const pendingIds = sortedIds.slice(MAX_PER_PAGE); // los ~50 de la 2ª página
+				const alreadyDeliveredId = sortedIds[50]; // uno cualquiera de la 1ª página
+
+				const probeType: ResolvedContentType = {
+					schema: {
+						name: 'export_completeness_probe',
+						readonly: false,
+						fields: [
+							{
+								name: 'title',
+								type: 'text',
+								subtype: 'plain',
+								required: false,
+								readonly: false,
+								presentable: true,
+								hidden: false,
+								unique: false
+							}
+						]
+					},
+					name: 'export_completeness_probe',
+					label: 'Probe',
+					labelSingular: 'Probe',
+					icon: null,
+					hidden: false,
+					group: null,
+					singleton: false,
+					permissions: ALL_PERMISSIONS,
+					readonly: false,
+					titleField: 'title',
+					subtitleField: null,
+					slugField: null,
+					statusField: null,
+					statusLabels: null,
+					orderField: null,
+					defaultSort: null,
+					previewUrl: null,
+					fields: [],
+					listFields: ['title'],
+					fieldGroups: [],
+					editorRail: false
+				};
+
+				// Envoltorio MÍNIMO de `port` que intercala el borrado ENTRE la 1ª y la 2ª llamada a
+				// `list` — no vía `onProgress` (fire-and-forget en `paginate.ts` a propósito, ver
+				// su cabecera: awaitarlo ahí cambiaría el comportamiento de producción solo para
+				// poder testear esto, justo la instrumentación artificiosa a evitar). Esto NO
+				// toca `exportCollection`/`paginate.ts`: es exactamente el seam que
+				// `exportCollection` ya expone para tests (`Pick<BackendPort, 'list' | 'fileUrl'>`,
+				// ver su cabecera) — aquí se usa contra el PB real de verdad, delegando cada
+				// llamada real y solo intercalando el borrado, awaitado, antes de la 2ª.
+				let listCalls = 0;
+				let deletedOnce = false;
+				const instrumentedPort = {
+					list: async (type: string, query?: Query) => {
+						listCalls += 1;
+						if (listCalls === 2 && !deletedOnce) {
+							deletedOnce = true;
+							await port.delete('export_completeness_probe', alreadyDeliveredId);
+						}
+						return port.list(type, query);
+					},
+					fileUrl: port.fileUrl.bind(port)
+				};
+
+				const { collection, cancelled } = await exportCollection(
+					instrumentedPort,
+					probeType,
+					'all',
+					{ q: '', sort: null, status: null, page: 1 }
+				);
+
+				expect(cancelled).toBe(false);
+				expect(listCalls).toBe(2); // 2 páginas reales: 200 + 50
+				expect(deletedOnce).toBe(true); // el borrado SÍ se disparó (si no, el test no prueba nada)
+
+				const exportedIds = collection.records.map((r) => r.id);
+				expect(exportedIds).toHaveLength(TOTAL); // el borrado NO resta: ya se había capturado
+				expect(new Set(exportedIds).size).toBe(TOTAL); // sin duplicados
+				expect(new Set(exportedIds)).toEqual(new Set(createdIds)); // exactamente los 250 creados
+
+				// La prueba específica del hallazgo: TODOS los pendientes de la 2ª página llegaron
+				// — ninguno se perdió por el desplazamiento que sí habría causado el offset.
+				for (const pendingId of pendingIds) {
+					expect(exportedIds).toContain(pendingId);
+				}
+			} finally {
+				await admin.collections.delete('export_completeness_probe');
+			}
+		}, 60_000); // 250 creates + un delete + 2 páginas reales contra el binario: más que el timeout por defecto
 	});
 });

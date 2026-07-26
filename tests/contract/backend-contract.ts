@@ -870,6 +870,68 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 					kind: 'validation'
 				});
 			});
+
+			test('id: pseudo-campo especial admitido en filter (§4.6 extendido, paginación por cursor de $lib/transfer)', async () => {
+				// La primary key NUNCA está en `ContentType.fields` (§2.2), pero SÍ es un objetivo
+				// válido de `filter` desde este fix — sin declararse en ningún sitio del esquema.
+				// Los ids de la semilla son literales (`ks-alpha` < `ks-bravo` < … < `ks-echo`,
+				// `fixture.ts`), así que el orden esperado es determinista en los dos adaptadores.
+				const port = await makeAuthedPort();
+
+				const gt = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'id', op: 'gt', value: KS_BRAVO }
+				});
+				expect(ids(gt.items)).toEqual([KS_CHARLIE, KS_DELTA, KS_ECHO]);
+
+				const gte = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'id', op: 'gte', value: KS_BRAVO }
+				});
+				expect(ids(gte.items)).toEqual([KS_BRAVO, KS_CHARLIE, KS_DELTA, KS_ECHO]);
+
+				const lt = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'id', op: 'lt', value: KS_CHARLIE }
+				});
+				expect(ids(lt.items)).toEqual([KS_ALPHA, KS_BRAVO]);
+
+				const eq = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'id', op: 'eq', value: KS_DELTA }
+				});
+				expect(ids(eq.items)).toEqual([KS_DELTA]);
+
+				const neq = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'id', op: 'neq', value: KS_DELTA }
+				});
+				expect(ids(neq.items)).toEqual([KS_ALPHA, KS_BRAVO, KS_CHARLIE, KS_ECHO]);
+
+				const inOp = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'id', op: 'in', value: [KS_ALPHA, KS_ECHO] }
+				});
+				expect(ids(inOp.items)).toEqual([KS_ALPHA, KS_ECHO]);
+
+				// Combinado en `and` con un filtro de campo real (la forma que arma
+				// `$lib/transfer/paginate.ts#withCursor` al pedir la siguiente página de un export
+				// con scope "filtrado"): el cursor y el filtro de dominio se aplican los dos.
+				const combined = await port.list('kitchen_sink', {
+					filter: {
+						kind: 'group',
+						combinator: 'and',
+						nodes: [
+							{ kind: 'cond', field: 'status', op: 'neq', value: 'draft' },
+							{ kind: 'cond', field: 'id', op: 'gt', value: KS_ALPHA }
+						]
+					}
+				});
+				expect(ids(combined.items)).toEqual([KS_BRAVO, KS_CHARLIE, KS_ECHO]);
+
+				// `contains`/`empty`/`notEmpty` no tienen sentido sobre `id` (nunca está vacío, no
+				// se busca por substring): `ID_FILTER_OPS` los rechaza, mismo `VegaError
+				// 'validation'` que cualquier otro operador incompatible.
+				await expect(
+					port.list('kitchen_sink', {
+						filter: { kind: 'cond', field: 'id', op: 'contains', value: 'ks' }
+					})
+				).rejects.toMatchObject({ kind: 'validation' });
+			});
 		});
 
 		// —————————————————————————————————————————————————————————— 5. Ficheros —————

@@ -24,7 +24,7 @@ export function applyQuery(
 	const byName = new Map(fields.map((f) => [f.name, f]));
 
 	const filtered = query?.filter
-		? records.filter((r) => matchesFilter(query.filter as FilterNode, r.values, byName))
+		? records.filter((r) => matchesFilter(query.filter as FilterNode, r, byName))
 		: records.slice();
 
 	// Desempate final por id ascendente SIEMPRE, como última clave de la misma pasada de orden
@@ -44,18 +44,31 @@ export function applyQuery(
 
 // ————— Filtro —————
 
-function matchesFilter(
-	node: FilterNode,
-	values: Record<string, FieldValue>,
-	byName: Map<string, Field>
-): boolean {
+/** Campo sintético para evaluar condiciones sobre el pseudo-campo `id` (`backend/query.ts
+ *  #ID_PSEUDO_FIELD`) por el MISMO camino que un campo `text` real, en vez de duplicar la lógica
+ *  de comparación de `matchesFilter` — `id` es siempre un escalar de texto simple. */
+const ID_FIELD: Field = {
+	name: 'id',
+	type: 'text',
+	subtype: 'plain',
+	required: true,
+	readonly: true,
+	presentable: false,
+	hidden: false,
+	unique: true
+};
+
+function matchesFilter(node: FilterNode, record: VegaRecord, byName: Map<string, Field>): boolean {
 	if (node.kind === 'group') {
-		if (node.combinator === 'and') return node.nodes.every((n) => matchesFilter(n, values, byName));
-		return node.nodes.some((n) => matchesFilter(n, values, byName));
+		if (node.combinator === 'and') return node.nodes.every((n) => matchesFilter(n, record, byName));
+		return node.nodes.some((n) => matchesFilter(n, record, byName));
 	}
 
-	const field = byName.get(node.field) as Field; // ya validado por validateQuery
-	const value = values[node.field] ?? null;
+	// `id` (pseudo-campo, ver `ID_FIELD`) nunca está en `byName` (§2.2: la primary key se excluye
+	// de `ContentType.fields`) ni en `record.values` (vive aparte, `record.id`) —
+	// `validateQuery`/`ID_FILTER_OPS` ya validan sus operadores aparte.
+	const field = node.field === 'id' ? ID_FIELD : (byName.get(node.field) as Field); // ya validado por validateQuery
+	const value = node.field === 'id' ? record.id : (record.values[node.field] ?? null);
 
 	switch (node.op) {
 		case 'empty':

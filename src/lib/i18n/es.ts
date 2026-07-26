@@ -409,7 +409,11 @@ export const es = {
 	'list.export.dialog.confirm': 'Exportar',
 	'list.export.progress.starting': 'Preparando la exportación…',
 	'list.export.progress': 'Exportando… {fetched} de {total}',
-	'list.export.success': 'Se han exportado {count} registros de «{label}».',
+	// Dos claves, no un plural genérico (i18n v1 lo deja fuera de alcance a propósito, ver
+	// `$lib/i18n/index.ts`) — mismo idioma que `media.selection.labelOne`/`labelMany`
+	// (`MediaSelectionBar.svelte`): el llamador elige con `count === 1`.
+	'list.export.success.one': 'Se ha exportado 1 registro de «{label}».',
+	'list.export.success.many': 'Se han exportado {count} registros de «{label}».',
 	'list.export.error': 'No se pudo completar la exportación. Vuelve a intentarlo.',
 
 	// ————— Borrado (Fase 4e del contrato P4) —————

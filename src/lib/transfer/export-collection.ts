@@ -21,13 +21,29 @@
  * - `TypePermissions` de `ResolvedContentType` (`#lote-shell`): deciden qué se PUEDE exportar
  *   (`list`, esta fase) e importar (`create`/`update`, Fase 2).
  * - Paginación: `MAX_PER_PAGE = 200` (`backend/query.ts`), sin primitiva "tráelo todo" — se itera
- *   hasta `page >= totalPages` (`paginate.ts`).
+ *   por CURSOR de `id` hasta que una página vuelve corta (`paginate.ts`, ver su cabecera: fix de
+ *   code-review sobre la primera entrega, que paginaba por `page`/`perPage` y podía perder
+ *   registros en silencio si alguien borraba por delante mientras el export estaba en vuelo — el
+ *   caso de uso declarado, "mover lo que un editor preparó en staging", es justo dos personas a
+ *   la vez). `id` es un pseudo-campo admitido en `filter` desde este fix (`ID_PSEUDO_FIELD`,
+ *   `backend/query.ts`) aunque NUNCA aparece en `ContentType.fields` — ver la cabecera de
+ *   `paginate.ts` para el porqué y cómo.
  *
  * ## El formato del fichero (`.vega.json`)
- * Tipos y constructor en `transfer-format.ts`/`record-serializer.ts` (no se duplican aquí). Tres
+ * Tipos y constructor en `transfer-format.ts`/`record-serializer.ts` (no se duplican aquí). Cuatro
  * decisiones que SÍ importan para leer el formato correctamente:
- * - `values` es la forma de `VegaRecord.values`, enriquecida SOLO en los campos `file`
- *   (`{ file, url }` con la URL absoluta de origen) — ver cabecera de `record-serializer.ts`.
+ * - `values` es la forma de `VegaRecord.values`, enriquecida SOLO en los campos `file` que el
+ *   ESQUEMA VIVO conoce como tales (`{ file, url }` con la URL absoluta de origen) — ver cabecera
+ *   de `record-serializer.ts`. Un campo que en `values` todavía trae un `FileRef`/`FileRef[]` pero
+ *   que el esquema YA NO declara como `file` (se cambió de tipo, o se borró el campo, entre que se
+ *   escribió el registro y que se exporta) viaja como el `FileRef` CRUDO, sin `url` — aceptable:
+ *   la Fase 2 tampoco podría reimportarlo como fichero sin saber a qué campo pertenece, así que no
+ *   se pierde nada que fuera a ser útil.
+ * - **El ORDEN de `records` dentro de cada colección es SIEMPRE por `id`** (consecuencia directa
+ *   del cursor, ver `paginate.ts`), NUNCA el `defaultSort`/`orderField` de la tabla — el fichero es
+ *   un CONJUNTO, no una vista; cada registro lleva su propio `orderField` dentro de `values` si lo
+ *   tiene, y la Fase 2 resolverá el orden de ESCRITURA por dependencias (orden topológico), no por
+ *   posición en el fichero. No es una limitación, es cómo se diseñó a propósito.
  * - Los campos de sistema (`created`/`updated`) viajan como INFORMATIVOS: PocketBase los gestiona
  *   y la Fase 2 nunca los escribirá; prometer que un import conserva las fechas de creación
  *   originales sería mentir (`RecordForm`/PocketBase siempre las regenera al crear).
@@ -38,11 +54,14 @@
  * `exportCollection` (este módulo) hace lo que pide el contrato:
  * - **Alcance explícito, nunca adivinado**: `scope: 'all' | 'filtered'` lo elige la UI
  *   (`ExportDialog.svelte`) con dos opciones SIEMPRE visibles — "toda la colección" o "lo que hay
- *   bajo el filtro/búsqueda activos" (reutiliza `buildListQuery`, `$lib/list/search.ts`, la MISMA
- *   query que ya arma el listado — un export "filtrado" nunca puede desincronizarse de lo que el
- *   usuario está viendo en pantalla).
- * - **Iteración paginada + progreso + cancelación**: delegado en `paginate.ts#fetchAllPages` (ver
- *   su cabecera para el porqué de "cancela ENTRE páginas, no a mitad de una petición").
+ *   bajo el filtro/búsqueda activos" (reutiliza SOLO el `.filter` que arma `buildListQuery`,
+ *   `$lib/list/search.ts` — el MISMO que ya usa el listado para la búsqueda/el filtro de estado, un
+ *   export "filtrado" nunca puede desincronizarse de lo que el usuario está viendo en pantalla.
+ *   Deliberadamente se DESCARTA el `.sort` que también trae `buildListQuery`: el orden del export
+ *   es siempre por `id`, ver "El formato del fichero" arriba).
+ * - **Iteración por cursor + progreso + cancelación**: delegado en `paginate.ts#fetchAllPages` (ver
+ *   su cabecera para el porqué del cursor y de "cancela ENTRE páginas, no a mitad de una
+ *   petición").
  * - **Gate por `permissions.list`**: este módulo no lo comprueba él mismo (no tiene ningún permiso
  *   que mirar aparte del que ya usa `ctx.port.list`, que el backend hará cumplir igual) — la UI
  *   (`+page.svelte`) es quien decide NO OFRECER el botón "Exportar" sin `permissions.list`, mismo
@@ -74,6 +93,12 @@
  *   nuevas — un `.zip` autocontenido costaría ~25-30 KB gzip de los ~53 KB de margen del
  *   presupuesto de bundle en aquella medición; queda pendiente SI aparece el caso real de importar
  *   sin acceso al origen.
+ *   **Landmine futura, no bug de hoy**: `url` la construye `resolveFileUrl`/`port.fileUrl` SIN
+ *   ningún token — válido mientras `capabilities.protectedFiles` sea `false` en los dos
+ *   adaptadores (v1, medido — ver `backend/types.ts#Capabilities`). Si algún día deja de serlo
+ *   (campo `file` `protected`), esa URL dejará de servir el binario sin autenticación y el
+ *   `fetch(url)` de la Fase 2 empezará a fallar (o a devolver un 401/403) sin que nada de este
+ *   fichero lo avise — habrá que revisar entonces cómo viaja el token, no antes.
  *
  * ## Qué NO promete esta feature (ninguna de las dos fases)
  * No es un backup de desastre (arriba). El import (cuando exista) NUNCA reconstruye las fechas de
@@ -105,11 +130,11 @@ export interface ExportCollectionResult {
 }
 
 /**
- * Exporta `type` (§3 del contrato, ver cabecera): construye la `Query` según `scope` (solo
- * `filter`/`sort`, `paginate.ts` fija `page`/`perPage`), pagina hasta agotar y serializa cada
- * registro (`record-serializer.ts`). `port` solo necesita `list`/`fileUrl` (`Pick`, no el
- * `BackendPort` completo) para que un test pueda fabricar un doble mínimo sin construir ningún
- * adaptador real.
+ * Exporta `type` (§3 del contrato, ver cabecera): construye el `.filter` según `scope` (el `.sort`
+ * de `buildListQuery` se descarta A PROPÓSITO — el orden del export es siempre por `id`, ver
+ * cabecera), pagina por cursor hasta agotar (`paginate.ts`) y serializa cada registro
+ * (`record-serializer.ts`). `port` solo necesita `list`/`fileUrl` (`Pick`, no el `BackendPort`
+ * completo) para que un test pueda fabricar un doble mínimo sin construir ningún adaptador real.
  */
 export async function exportCollection(
 	port: Pick<BackendPort, 'list' | 'fileUrl'>,
@@ -118,7 +143,8 @@ export async function exportCollection(
 	viewState: ViewState,
 	opts: FetchAllPagesOptions = {}
 ): Promise<ExportCollectionResult> {
-	const baseQuery = scope === 'filtered' ? buildListQuery(type, viewState) : undefined;
+	const baseQuery =
+		scope === 'filtered' ? { filter: buildListQuery(type, viewState).filter } : undefined;
 
 	const { records, cancelled } = await fetchAllPages(
 		(query) => port.list(type.name, query),

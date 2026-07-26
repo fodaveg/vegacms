@@ -84,6 +84,24 @@ test.describe('diálogo de exportar', () => {
 		await page.keyboard.press('Escape');
 		await expect(dialog).not.toBeVisible();
 	});
+
+	test('navegar a OTRA colección con el diálogo abierto lo cierra (fix de code-review: el gate en todos los caminos)', async ({
+		page
+	}) => {
+		await loginAsDemo(page);
+		await page.goto('/c/avisos');
+
+		await page.getByRole('button', { name: 'Exportar' }).click();
+		const avisosDialog = page.getByRole('dialog', { name: 'Exportar «Avisos»' });
+		await expect(avisosDialog).toBeVisible();
+
+		// `/c/[type]` es la MISMA ruta de componente para ambas colecciones (solo cambia el
+		// parámetro): sin el `$effect` que resetea `exportOpen`, el diálogo de "avisos" seguiría
+		// pintado mientras `contentType` pasa a describir "authors" por debajo.
+		await page.goto('/c/authors');
+		await expect(avisosDialog).not.toBeVisible();
+		await expect(page.getByRole('dialog')).toHaveCount(0);
+	});
 });
 
 test.describe('exportar de verdad', () => {
@@ -118,6 +136,8 @@ test.describe('exportar de verdad', () => {
 		]);
 
 		await expect(dialog).not.toBeVisible();
-		await expect(page.getByText('Se han exportado 1 registros de «Avisos».')).toBeVisible();
+		// Singular real (`list.export.success.one`, fix de code-review sobre "1 registros"):
+		// `avisos` tiene un único registro sembrado.
+		await expect(page.getByText('Se ha exportado 1 registro de «Avisos».')).toBeVisible();
 	});
 });

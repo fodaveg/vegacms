@@ -31,6 +31,23 @@ function isMultiField(field: Field): boolean {
 	return (field.type === 'select' || field.type === 'relation') && field.multiple;
 }
 
+/**
+ * Campo sintético para compilar condiciones sobre el pseudo-campo `id` (`backend/query.ts
+ * #ID_PSEUDO_FIELD`) por el MISMO camino que un campo `text` real, en vez de duplicar la lógica
+ * de `compileNode` — `id` es siempre un escalar de texto simple en PB, así que ninguna rama de
+ * abajo (`isMultiField`/`literalEmpty`) necesita un caso especial para él.
+ */
+const ID_FIELD: Field = {
+	name: 'id',
+	type: 'text',
+	subtype: 'plain',
+	required: true,
+	readonly: true,
+	presentable: false,
+	hidden: false,
+	unique: true
+};
+
 /** Compila `query.filter` a una expresión de filtro PB con placeholders `{:pN}` y sus params. */
 export function compileFilter(
 	pb: PocketBase,
@@ -62,7 +79,9 @@ function compileNode(
 		return parts.join(` ${combinator} `);
 	}
 
-	const field = byName.get(node.field) as Field; // ya validado por validateQuery
+	// `id` (pseudo-campo, ver `ID_FIELD`) nunca está en `byName` (§2.2: la primary key se excluye
+	// de `ContentType.fields`) — `validateQuery`/`ID_FILTER_OPS` ya lo validan aparte.
+	const field = node.field === 'id' ? ID_FIELD : (byName.get(node.field) as Field); // ya validado por validateQuery
 	const name = pbFieldExpr(node.field);
 
 	switch (node.op) {

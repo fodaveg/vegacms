@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import { ALL_PERMISSIONS } from '$lib/backend/access';
 import type { Field, Page, VegaRecord } from '$lib/backend/types';
-import type { Query } from '$lib/backend/query';
+import type { FilterNode, Query } from '$lib/backend/query';
 import type { ResolvedContentType } from '$lib/model/types';
 import type { ViewState } from '$lib/list/query-state';
 import { exportCollection } from './export-collection';
@@ -64,8 +64,26 @@ function record(id: string, title: string): VegaRecord {
 	return { id, type: 'posts', values: { id, title } };
 }
 
-/** Doble mínimo de puerto: `list` pagina de verdad sobre `allRecords` (mismo criterio que
- *  `paginate.test.ts`), `fileUrl` es determinista para poder afirmar sobre ella. */
+/** `true` si `record` casa con `node` (subconjunto MÍNIMO de la semántica real, el único que
+ *  ejercitan estos tests): `contains` sobre `title`, y el pseudo-campo `id` con `gt` (el cursor
+ *  que arma `paginate.ts#withCursor`). Grupos `and`/`or` recursivos, igual que un adaptador real. */
+function matchesFakeFilter(node: FilterNode | undefined, record: VegaRecord): boolean {
+	if (!node) return true;
+	if (node.kind === 'group') {
+		return node.combinator === 'and'
+			? node.nodes.every((n) => matchesFakeFilter(n, record))
+			: node.nodes.some((n) => matchesFakeFilter(n, record));
+	}
+	if (node.field === 'id' && node.op === 'gt') return record.id > (node.value as string);
+	if (node.op === 'contains') {
+		return String(record.values[node.field] ?? '').includes(String(node.value));
+	}
+	return true;
+}
+
+/** Doble mínimo de puerto: `list` pagina por CURSOR de verdad sobre `allRecords` (mismo criterio
+ *  keyset que `paginate.test.ts`, ver su cabecera para el porqué — `exportCollection` ya no pasa
+ *  `page`), `fileUrl` es determinista para poder afirmar sobre ella. */
 function fakePort(allRecords: VegaRecord[]) {
 	const listCalls: Query[] = [];
 	return {
@@ -73,22 +91,17 @@ function fakePort(allRecords: VegaRecord[]) {
 		port: {
 			list: async (_type: string, query: Query = {}): Promise<Page<VegaRecord>> => {
 				listCalls.push(query);
-				const page = query.page ?? 1;
 				const perPage = query.perPage ?? 30;
-				const filtered = query.filter
-					? allRecords.filter((r) =>
-							String(r.values.title).includes(
-								String((query.filter as { value?: unknown }).value ?? '')
-							)
-						)
-					: allRecords;
-				const start = (page - 1) * perPage;
+				const matched = allRecords
+					.filter((r) => matchesFakeFilter(query.filter, r))
+					.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+				const items = matched.slice(0, perPage);
 				return {
-					items: filtered.slice(start, start + perPage),
-					page,
+					items,
+					page: 1,
 					perPage,
-					totalItems: filtered.length,
-					totalPages: Math.ceil(filtered.length / perPage) || 0
+					totalItems: matched.length,
+					totalPages: Math.ceil(matched.length / perPage) || 0
 				};
 			},
 			fileUrl: (rec: Pick<VegaRecord, 'type' | 'id'>, f: string, file: string) =>
@@ -145,6 +158,21 @@ describe('exportCollection', () => {
 			file: 'b.jpg',
 			url: 'https://origin.test/posts/r2/cover/b.jpg'
 		});
+	});
+
+	it('colecciones grandes (> MAX_PER_PAGE) se exportan completas, en orden por id, en varias páginas', async () => {
+		const type = contentType([field({ name: 'title', type: 'text', subtype: 'plain' })]);
+		const many = Array.from({ length: 450 }, (_, i) =>
+			record(`r${String(i).padStart(4, '0')}`, `Título ${i}`)
+		);
+		const { port, listCalls } = fakePort(many);
+
+		const result = await exportCollection(port, type, 'all', emptyViewState);
+
+		expect(result.cancelled).toBe(false);
+		expect(result.collection.records).toHaveLength(450);
+		expect(result.collection.records.map((r) => r.id)).toEqual(many.map((r) => r.id));
+		expect(listCalls).toHaveLength(3); // 200 + 200 + 50 (corta)
 	});
 
 	it('propaga la cancelación de fetchAllPages (records descartables por el llamador)', async () => {

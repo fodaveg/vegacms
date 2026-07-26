@@ -382,7 +382,11 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.export.dialog.confirm': 'Export',
 	'list.export.progress.starting': 'Preparing the export…',
 	'list.export.progress': 'Exporting… {fetched} of {total}',
-	'list.export.success': 'Exported {count} records from "{label}".',
+	// Two keys, not a generic plural (out of scope for v1 i18n on purpose, see `$lib/i18n/
+	// index.ts`) — same idiom as `media.selection.labelOne`/`labelMany`
+	// (`MediaSelectionBar.svelte`): the caller picks with `count === 1`.
+	'list.export.success.one': 'Exported 1 record from "{label}".',
+	'list.export.success.many': 'Exported {count} records from "{label}".',
 	'list.export.error': 'The export could not be completed. Please try again.',
 
 	// ————— Active filter chips (M6, reopens R2, mockup `.toolbar .chip`) —————

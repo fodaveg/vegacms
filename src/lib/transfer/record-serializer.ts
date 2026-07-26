@@ -15,6 +15,14 @@
  * escribe, PocketBase los gestiona), pero omitirlos aquí solo le quitaría contexto a quien abra
  * el JSON a mano sin ganar nada — mismo criterio "no esconder lo que no hace daño" que ya usa
  * `RevisionRecord.values`.
+ *
+ * **`fields` es el esquema VIVO, no el que había cuando se escribió el registro** (fix de
+ * code-review): `fileFieldNames(fields)` decide qué enriquecer mirando el esquema ACTUAL. Un
+ * campo que en `record.values` todavía trae un `FileRef`/`FileRef[]` pero que el esquema ya no
+ * declara como `file` (se le cambió el tipo, o se borró el campo, entre que se escribió el
+ * registro y que se exporta) viaja como el `FileRef` CRUDO, sin `{ file, url }` — aceptable: sin
+ * saber a qué campo `file` pertenece hoy, la Fase 2 tampoco podría reimportarlo como fichero, así
+ * que enriquecerlo no ganaría nada y complicaría este módulo con un caso que no tiene salida útil.
  */
 
 import type { Field, FieldValue, RecordId, VegaRecord, FileRef } from '$lib/backend/types';
