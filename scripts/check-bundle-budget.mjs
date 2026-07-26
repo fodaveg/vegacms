@@ -31,6 +31,22 @@
  * (~52 KB por encima de lo medido, ≈ +16 %) en vez de re-aplicar un porcentaje sobre un total ya
  * mayor. OJO al code-splitting: este script suma TODO el `build/`, así que trocear en chunks no
  * baja el número — solo baja si de verdad se deja de compilar código.
+ *
+ * RE-MEDIDO 2026-07-26 (v0.5.0). El techo de 380 KB se había quedado con 2.36 KB de aire, y esta
+ * vez el aviso llegó ANTES de que lo reventara nadie. Mediciones reales de esta sesión, no
+ * estimaciones:
+ *   - `63f9bf1` (fin de `#lote-shell`, build limpio en worktree aparte): 367.75 KB. O sea que los
+ *     41.41 KB que van desde v0.2.0 se los repartieron v0.3.0 (preview + editor de esquema),
+ *     v0.4.0 (`#lote-integridad`: historial, papelera, «¿dónde se usa esto?») y el propio
+ *     `#lote-shell` (buscador global + permisos en la UI). Ninguno de los tres re-midió el techo,
+ *     que es exactamente cómo se agota un presupuesto sin que nadie decida nada.
+ *   - `#lote-esquema` (export/import de contenido) añade 9.89 KB en total: +3.35 KB la fase 1
+ *     (serializador, paginación por cursor, diálogo de export) y +6.54 KB la fase 2 (validación,
+ *     vista previa, deserializador, traída de ficheros y diálogo de import).
+ *   - v0.5.0: 377.64 KB. No hay bulto anómalo: los dos chunks gordos (86.9 y 44.4 KB) son el
+ *     runtime y el editor, no grasa reciente.
+ * Nuevo BUDGET_BYTES = 430 KB, aplicando OTRA VEZ el mismo criterio de cabecera absoluta (~52 KB
+ * sobre lo medido) en vez de inflar por porcentaje. David firmó este número el 26 jul.
  */
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -41,9 +57,9 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BUILD_DIR = path.resolve(__dirname, '..', 'build');
 
-// Re-medido 2026-07-25 sobre v0.2.0: 326.34 KB gzip reales (v0.1.1 medía 308.46 KB). Ver la
+// Re-medido 2026-07-26 sobre v0.5.0: 377.64 KB gzip reales (v0.2.0 medía 326.34 KB). Ver la
 // cabecera para el desglose del delta y el criterio de la cabecera absoluta.
-const BUDGET_BYTES = 380 * 1024;
+const BUDGET_BYTES = 430 * 1024;
 
 /** Recorre `dir` recursivamente y devuelve la ruta de cada fichero (no directorio). */
 function walk(dir) {
