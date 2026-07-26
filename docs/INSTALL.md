@@ -221,7 +221,7 @@ Abre [http://localhost:4173/](http://localhost:4173/). **Nota**: `pnpm preview` 
 
 ### El bundle es muy grande
 
-Vega tiene un presupuesto de bundle de 320 KB (gzip). Si lo superas:
+Vega tiene un presupuesto de bundle de 430 KB (gzip). Si lo superas:
 
 ```sh
 pnpm build
