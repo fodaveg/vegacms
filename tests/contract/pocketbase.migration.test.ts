@@ -177,14 +177,35 @@ describe.skipIf(!AVAILABLE)(
 );
 
 describe.skipIf(!AVAILABLE)(
-	'migración generada contra PocketBase real — kind: "create" con varias colecciones (un solo fichero, down de las dos)',
+	'migración generada contra PocketBase real — kind: "create" ordena relaciones y aplica el fichero completo',
 	() => {
 		let instance: PocketBaseInstanceDir;
 		let server: PocketBaseServerHandle;
 
+		// Orden deliberadamente malo: `blocks_mig` depende de `pages_mig`, que llega después.
 		const specs: CollectionSpec[] = [
-			{ name: 'posts_mig', fields: [{ name: 'title', type: 'text' }] },
-			{ name: 'authors_mig', fields: [{ name: 'name', type: 'text' }] }
+			{
+				name: 'blocks_mig',
+				fields: [
+					{
+						name: 'parent',
+						type: 'relation',
+						target: 'pages_mig',
+						required: true,
+						multiple: false,
+						cascadeDelete: false
+					},
+					{
+						name: 'relatedBlock',
+						type: 'relation',
+						target: 'blocks_mig',
+						required: false,
+						multiple: false,
+						cascadeDelete: false
+					}
+				]
+			},
+			{ name: 'pages_mig', fields: [{ name: 'title', type: 'text' }] }
 		];
 		const migration = generateSchemaMigration(
 			{ kind: 'create', specs },
@@ -209,13 +230,17 @@ describe.skipIf(!AVAILABLE)(
 			if (instance) destroyPocketBaseInstanceDir(instance);
 		});
 
-		test('crea ambas colecciones de un único fichero de migración', async () => {
+		test('crea el destino y la colección dependiente con la relación resuelta', async () => {
 			const pb = await authAdmin(server.url);
-			await expect(pb.collections.getOne('posts_mig')).resolves.toMatchObject({
-				name: 'posts_mig'
+			const pages = await pb.collections.getOne('pages_mig');
+			const blocks = await pb.collections.getOne('blocks_mig');
+			expect(blocks.fields.find((field) => field.name === 'parent')).toMatchObject({
+				type: 'relation',
+				collectionId: pages.id
 			});
-			await expect(pb.collections.getOne('authors_mig')).resolves.toMatchObject({
-				name: 'authors_mig'
+			expect(blocks.fields.find((field) => field.name === 'relatedBlock')).toMatchObject({
+				type: 'relation',
+				collectionId: blocks.id
 			});
 		});
 
@@ -229,8 +254,8 @@ describe.skipIf(!AVAILABLE)(
 			server = await startPocketBaseServerOn(instance);
 			const pb = await authAdmin(server.url);
 
-			await expect(pb.collections.getOne('posts_mig')).rejects.toMatchObject({ status: 404 });
-			await expect(pb.collections.getOne('authors_mig')).rejects.toMatchObject({
+			await expect(pb.collections.getOne('blocks_mig')).rejects.toMatchObject({ status: 404 });
+			await expect(pb.collections.getOne('pages_mig')).rejects.toMatchObject({
 				status: 404
 			});
 		}, 20_000);

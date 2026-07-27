@@ -62,6 +62,87 @@ describe('generateSchemaMigration — create', () => {
 		expect(down.indexOf('"authors"')).toBeLessThan(down.indexOf('"posts"'));
 	});
 
+	test('ordena topológicamente: crea el destino antes que quien lo referencia', () => {
+		const specs: CollectionSpec[] = [
+			{
+				name: 'blocks',
+				fields: [
+					{
+						name: 'parent',
+						type: 'relation',
+						target: 'pages',
+						multiple: false,
+						cascadeDelete: false
+					}
+				]
+			},
+			{ name: 'pages', fields: [] }
+		];
+		const { contents } = generateSchemaMigration({ kind: 'create', specs }, FIXED_NOW);
+		const downStart = contents.indexOf('}, (app) => {');
+		const up = contents.slice(0, downStart);
+		const down = contents.slice(downStart);
+
+		expect(up.indexOf('"name": "pages"')).toBeLessThan(up.indexOf('"name": "blocks"'));
+		expect(down.indexOf('"blocks"')).toBeLessThan(down.indexOf('"pages"'));
+		expect(() => new Function(contents)).not.toThrow();
+	});
+
+	test('rechaza ciclos relation nombrando las colecciones implicadas', () => {
+		const specs: CollectionSpec[] = [
+			{
+				name: 'pages',
+				fields: [
+					{
+						name: 'primaryBlock',
+						type: 'relation',
+						target: 'blocks',
+						multiple: false,
+						cascadeDelete: false
+					}
+				]
+			},
+			{
+				name: 'blocks',
+				fields: [
+					{
+						name: 'parent',
+						type: 'relation',
+						target: 'pages',
+						multiple: false,
+						cascadeDelete: false
+					}
+				]
+			}
+		];
+
+		expect(() => generateSchemaMigration({ kind: 'create', specs }, FIXED_NOW)).toThrow(
+			'Ciclo de dependencias relation entre colecciones: pages -> blocks -> pages.'
+		);
+	});
+
+	test('una autorreferencia no se considera ciclo', () => {
+		const spec: CollectionSpec = {
+			name: 'pages',
+			fields: [
+				{
+					name: 'parent',
+					type: 'relation',
+					target: 'pages',
+					multiple: false,
+					cascadeDelete: false
+				}
+			]
+		};
+
+		const { contents } = generateSchemaMigration({ kind: 'create', specs: [spec] }, FIXED_NOW);
+
+		expect(contents).toContain('app.save(collection);');
+		expect(contents).toContain('collection.fields.add(new Field({');
+		expect(contents).toContain('"collectionId": collection.id');
+		expect(() => new Function(contents)).not.toThrow();
+	});
+
 	test('es JS válido: ninguna llave/paréntesis desbalanceado (parseo con `new Function`)', () => {
 		const spec: CollectionSpec = {
 			name: 'posts',
