@@ -7,7 +7,7 @@
  * PURO (ley L1 del contrato P2): sin Svelte, sin el puerto, sin `pocketbase`.
  */
 
-import type { ContentType, Field, FieldSubtype } from '$lib/backend/types';
+import type { ContentType, Field, FieldSubtype, JsonValue } from '$lib/backend/types';
 import type { FilterNode } from '$lib/backend/query';
 import type { TypePermissions } from '$lib/backend/access';
 
@@ -419,21 +419,20 @@ export interface ResolvedBlockType {
 
 /**
  * Un campo de `blockTypes.<t>.fields[]`: una fila del mini-formulario de ESE tipo de bloque. Un
- * item con `name`/`label`/`widget` ausente o de forma inválida, o con `widget` fuera de
- * `BLOCK_FIELD_WIDGET_IDS`, se descarta SOLO (`block-type-field-invalid`) — el tipo de bloque
- * SOBREVIVE con el resto de sus campos, mismo criterio que un campo huérfano de una colección real
- * no invalida el tipo entero.
+ * item con `name`/`label`/`widget` ausente o de forma inválida, con `widget` fuera de
+ * `BLOCK_FIELD_WIDGET_IDS`, o con `relation`/`file` fuera de `source: 'record'`, se descarta SOLO
+ * (`block-type-field-invalid`) — el tipo de bloque SOBREVIVE con el resto de sus campos, mismo
+ * criterio que un campo huérfano de una colección real no invalida el tipo entero.
  */
 export interface ResolvedBlockField {
 	name: string;
 	label: string;
-	/** Nunca `'relation' | 'file' | 'unsupported'` (§ `BLOCK_FIELD_WIDGET_IDS`): dentro de un
-	 *  bloque JSON no hay relaciones ni gestión de ficheros de PocketBase — las dos EXIGEN columna
-	 *  real, que es justo lo que este campo NO tiene (vive dentro de `dataField`). Las imágenes de
-	 *  un bloque son otra tarea (`#lote-bloques`: una relación a `vega_media`) que colgará de una
-	 *  columna real de la colección hija, no de aquí; esta exclusión es el gancho limpio donde
-	 *  entrará, no un olvido. */
+	/** `relation`/`file` solo sobreviven con `source: 'record'`; `unsupported` nunca. */
 	widget: WidgetId;
+	/** `data` (default) vive dentro del JSON; `record` es una columna real del registro de bloque. */
+	source: 'data' | 'record';
+	/** Valor inicial declarado para un campo nuevo; ausente si el manifiesto no lo proporciona. */
+	default?: JsonValue;
 	required: boolean;
 	/** Solo para `widget: 'select' | 'chips'`; `null` en el resto (declarado o no, se ignora: sin
 	 *  opciones que ofrecer no hay nada que validar contra ellas). */
@@ -593,16 +592,13 @@ export const WIDGET_IDS: readonly WidgetId[] = [
 ];
 
 /**
- * Subconjunto de `WidgetId` permitido DENTRO de un campo de bloque (§ `ResolvedBlockField`): un
- * bloque vive en `ResolvedBlocksConfig.dataField`, una columna JSON, y un JSON no puede expresar
- * ni una relación de PocketBase ni la gestión de un fichero — las dos EXIGEN columna real (la
- * regla que gobierna todo el vocabulario de bloques). `relation`/`file` quedan fuera a propósito:
- * es el gancho limpio donde entrará la imagen de un bloque (`#lote-bloques`, una relación a
- * `vega_media` colgada de una columna real de la colección hija), no un olvido. `unsupported`
- * tampoco: no hay nada que pintar para un tipo de campo que ni P1 sabe representar.
+ * `WidgetId` declarables por un campo de bloque (§ `ResolvedBlockField`). `relation`/`file`
+ * entran porque el bloque también puede describir columnas reales (`source: 'record'`); el
+ * resolutor rechaza esas dos combinadas con `source: 'data'`. `unsupported` queda fuera: no hay
+ * nada que pintar para un tipo de campo que P1 no sabe representar.
  */
 export const BLOCK_FIELD_WIDGET_IDS: readonly WidgetId[] = WIDGET_IDS.filter(
-	(widget) => widget !== 'relation' && widget !== 'file' && widget !== 'unsupported'
+	(widget) => widget !== 'unsupported'
 );
 
 // ————— Warnings —————

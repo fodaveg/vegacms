@@ -887,12 +887,11 @@ function resolveBlockType(
 	// `manifest-invalid-key` por la forma).
 	const fieldsRaw = Array.isArray(obj.fields) ? obj.fields : [];
 	const fields: ResolvedBlockField[] = [];
-	// `name` de un campo de bloque es la CLAVE dentro del `data` JSON, no solo una etiqueta: dos
-	// campos que repitan `name` no son dos campos, son dos filas del formulario escribiendo la
-	// misma clave, donde editar una pisa a la otra en silencio. Aquí no hay quien lo impida por
-	// abajo (a diferencia de una colección real, donde el esquema de PocketBase no admite dos
-	// columnas con el mismo nombre) — es exactamente lo que se apaga al meter contenido en un JSON,
-	// así que lo comprueba Vega. Gana el PRIMERO: el orden de `fields` es el del formulario.
+	// `name` identifica el campo lógico del formulario y direcciona tanto su valor como sus errores:
+	// en `source: 'data'` es una clave del JSON y en `source: 'record'` una columna real. Repetirlo,
+	// incluso entre fuentes distintas, deja dos filas compitiendo por el mismo identificador y hace
+	// ambiguo el consumidor. La unicidad es global dentro del tipo; gana el PRIMERO porque el orden
+	// de `fields` es el del formulario.
 	const seenFieldNames = new Set<string>();
 	fieldsRaw.forEach((fieldRaw, index) => {
 		const resolvedField = resolveBlockField(name, index, fieldRaw, warnings);
@@ -915,12 +914,10 @@ function resolveBlockType(
 
 /**
  * Resuelve un item de `blockTypes.<typeName>.fields[]` (§ `ResolvedBlockField`). `name`/`label`/
- * `widget` son obligatorios: si CUALQUIERA falta o tiene forma inválida (incluido un `widget` fuera
- * de `BLOCK_FIELD_WIDGET_IDS` — excluido o directamente desconocido, mismo tratamiento para los
- * dos, ver `types.ts`), el campo se descarta SOLO (`block-type-field-invalid`) y el tipo de bloque
- * sigue con el resto. `required`/`options` son laxos por comparación: una forma inválida en ellos
- * no descarta el campo, solo cae a su default con un `manifest-invalid-key` (mismo criterio que
- * `hidden`/`listable` de un campo real, `resolveField` más abajo).
+ * `widget` son obligatorios: si CUALQUIERA falta o tiene forma inválida, o `relation`/`file`
+ * aparecen sin `source: 'record'`, el campo se descarta SOLO (`block-type-field-invalid`) y el
+ * tipo de bloque sigue con el resto. `source` ausente cae a `'data'`; una forma inválida cae al
+ * mismo default con `manifest-invalid-key`. `required`/`options` siguen el mismo criterio laxo.
  */
 function resolveBlockField(
 	typeName: string,
@@ -940,6 +937,21 @@ function resolveBlockField(
 			? rawLabel
 			: undefined;
 
+	const rawSource = obj?.source;
+	let source: 'data' | 'record' = 'data';
+	if (rawSource !== undefined) {
+		if (rawSource === 'data' || rawSource === 'record') {
+			source = rawSource;
+		} else {
+			warnings.push(
+				manifestInvalidKey(
+					`${base}/source`,
+					`source del campo ${index} de blockTypes.${typeName} debe ser "data" o "record"; se usa "data".`
+				)
+			);
+		}
+	}
+
 	const rawWidget = obj?.widget;
 	const widget =
 		typeof rawWidget === 'string' &&
@@ -947,7 +959,12 @@ function resolveBlockField(
 			? (rawWidget as WidgetId)
 			: undefined;
 
-	if (name === undefined || label === undefined || widget === undefined) {
+	if (
+		name === undefined ||
+		label === undefined ||
+		widget === undefined ||
+		((widget === 'relation' || widget === 'file') && source !== 'record')
+	) {
 		warnings.push(blockTypeFieldInvalid(typeName, index));
 		return null;
 	}
@@ -988,7 +1005,15 @@ function resolveBlockField(
 		}
 	}
 
-	return { name, label, widget, required, options };
+	return {
+		name,
+		label,
+		widget,
+		source,
+		...(obj && Object.hasOwn(obj, 'default') ? { default: obj.default } : {}),
+		required,
+		options
+	};
 }
 
 // ————— Tarjeta social (social, lote "editor" Fase B) —————

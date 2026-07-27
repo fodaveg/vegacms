@@ -80,6 +80,10 @@ export function validateBlockData(
 
 	const byField = new Map<string, TranslatedError>();
 	for (const field of blockType.fields) {
+		// Los campos de registro son columnas reales: PocketBase conserva la integridad y devuelve
+		// sus errores. Validarlos aquí duplicaría esa autoridad dentro del JSON.
+		if (field.source === 'record') continue;
+
 		const value = Object.hasOwn(data, field.name) ? data[field.name] : undefined;
 		if (field.required && isEmpty(value)) {
 			byField.set(

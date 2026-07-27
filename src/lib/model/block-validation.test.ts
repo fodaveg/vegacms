@@ -8,11 +8,19 @@ const hero: ResolvedBlockType = {
 	label: 'Portada',
 	icon: null,
 	fields: [
-		{ name: 'title', label: 'Título', widget: 'text', required: true, options: null },
+		{
+			name: 'title',
+			label: 'Título',
+			widget: 'text',
+			source: 'data',
+			required: true,
+			options: null
+		},
 		{
 			name: 'tone',
 			label: 'Tono',
 			widget: 'select',
+			source: 'data',
 			required: false,
 			options: ['light', 'dark']
 		},
@@ -20,6 +28,7 @@ const hero: ResolvedBlockType = {
 			name: 'tags',
 			label: 'Etiquetas',
 			widget: 'chips',
+			source: 'data',
 			required: true,
 			options: ['new', 'featured']
 		}
@@ -71,8 +80,22 @@ describe('validateBlockData', () => {
 		const freeform: ResolvedBlockType = {
 			...hero,
 			fields: [
-				{ name: 'body', label: 'Texto', widget: 'text', required: false, options: null },
-				{ name: 'tone', label: 'Tono', widget: 'select', required: false, options: ['light'] }
+				{
+					name: 'body',
+					label: 'Texto',
+					widget: 'text',
+					source: 'data',
+					required: false,
+					options: null
+				},
+				{
+					name: 'tone',
+					label: 'Tono',
+					widget: 'select',
+					source: 'data',
+					required: false,
+					options: ['light']
+				}
 			]
 		};
 
@@ -85,7 +108,16 @@ describe('validateBlockData', () => {
 	it('tolera claves históricas y detecta el campo requerido que las sustituyó', () => {
 		const renamed: ResolvedBlockType = {
 			...hero,
-			fields: [{ name: 'heading', label: 'Título', widget: 'text', required: true, options: null }]
+			fields: [
+				{
+					name: 'heading',
+					label: 'Título',
+					widget: 'text',
+					source: 'data',
+					required: true,
+					options: null
+				}
+			]
 		};
 		const data = { title: 'Nombre anterior', futureKey: { preserved: true } };
 
@@ -130,6 +162,7 @@ describe('validateBlockData', () => {
 					name: 'toString',
 					label: 'Texto',
 					widget: 'text',
+					source: 'data',
 					required: true,
 					options: null
 				}
@@ -149,6 +182,7 @@ describe('validateBlockData', () => {
 					name: '__proto__',
 					label: 'Prototipo',
 					widget: 'text',
+					source: 'data',
 					required: true,
 					options: null
 				}
@@ -159,5 +193,27 @@ describe('validateBlockData', () => {
 		expect(Object.hasOwn(result.byField, '__proto__')).toBe(true);
 		expect(result.byField.__proto__?.code).toBe(PB_VALIDATION_CODES.required);
 		expect(Object.keys(result.byField)).toEqual(['__proto__']);
+	});
+
+	it('deja los campos source=record a la validación real de PocketBase', () => {
+		const withRecordField: ResolvedBlockType = {
+			...hero,
+			fields: [
+				{
+					name: 'image',
+					label: 'Imagen',
+					widget: 'relation',
+					source: 'record',
+					required: true,
+					options: ['asset-permitido']
+				}
+			]
+		};
+
+		expect(validateBlockData(withRecordField, {})).toEqual({ byField: {}, record: null });
+		expect(validateBlockData(withRecordField, { image: 'asset-ajeno' })).toEqual({
+			byField: {},
+			record: null
+		});
 	});
 });

@@ -276,15 +276,12 @@ export function blockTypeInvalid(
  * motivos, mismo código porque la consecuencia es la misma (ese campo no llega al formulario y el
  * tipo de bloque SOBREVIVE con el resto):
  *
- * - `'shape'`: le falta `name`/`label`/`widget`, alguno tiene forma inválida, o `widget` cae fuera
- *   del subconjunto permitido dentro de un bloque (`relation`/`file`/`unsupported`, ver
- *   `BLOCK_FIELD_WIDGET_IDS` en `types.ts`, excluidos porque dentro de un JSON no hay relaciones ni
- *   gestión de ficheros de PocketBase).
- * - `'duplicate'`: su `name` ya lo declaró un campo ANTERIOR del mismo tipo. `name` es la clave
- *   dentro del `data` JSON del bloque, así que dos campos con el mismo `name` no son dos campos:
- *   son dos filas del formulario escribiendo la MISMA clave, donde editar una pisa a la otra sin
- *   que nada lo diga. Gana el primero (el orden de `fields` es el del formulario, así que el
- *   primero es el que el autor del manifiesto vio primero).
+ * - `'shape'`: le falta `name`/`label`/`widget`, alguno tiene forma inválida, `widget` es
+ *   `unsupported`/desconocido, o `relation`/`file` no declara `source: 'record'`.
+ * - `'duplicate'`: su `name` ya lo declaró un campo ANTERIOR del mismo tipo. `name` direcciona el
+ *   valor y los errores del campo lógico, sea una clave `data` o una columna `record`; repetirlo
+ *   deja dos filas compitiendo por el mismo identificador. Gana el primero (el orden de `fields`
+ *   es el del formulario, así que el primero es el que el autor del manifiesto vio primero).
  */
 export function blockTypeFieldInvalid(
 	typeName: string,
@@ -294,8 +291,8 @@ export function blockTypeFieldInvalid(
 ): ModelWarning {
 	const message =
 		reason === 'duplicate'
-			? `El campo ${index} de blockTypes.${typeName} repite el name "${duplicateName}" de un campo anterior; dentro de un bloque el name es la clave del JSON, así que se ignora ese campo (gana el primero).`
-			: `El campo ${index} de blockTypes.${typeName} no es válido (name/label/widget ausente o con forma inválida, o un widget fuera del subconjunto permitido dentro de un bloque); se ignora ese campo.`;
+			? `El campo ${index} de blockTypes.${typeName} repite el name "${duplicateName}" de un campo anterior; name debe identificar un único valor y un único error aunque cambie source, así que se ignora ese campo (gana el primero).`
+			: `El campo ${index} de blockTypes.${typeName} no es válido (name/label/widget ausente o con forma inválida, widget desconocido, o relation/file sin source "record"); se ignora ese campo.`;
 	return {
 		code: 'block-type-field-invalid',
 		message,

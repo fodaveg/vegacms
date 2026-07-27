@@ -658,7 +658,7 @@ describe('1c. blockTypes (vocabulario de tipos de bloque, #4cfd4f7f) contra el s
 		expect(result.ok).toBe(false);
 	});
 
-	test('fields[].widget "relation"/"file"/"unsupported" → inválido (enum, excluidos del vocabulario de bloque)', () => {
+	test('fields[].widget "relation"/"file" sin source=record y "unsupported" → inválido', () => {
 		for (const widget of ['relation', 'file', 'unsupported']) {
 			const result = validateManifestStrict({
 				schemaVersion: 1,
@@ -666,6 +666,67 @@ describe('1c. blockTypes (vocabulario de tipos de bloque, #4cfd4f7f) contra el s
 			});
 			expect(result.ok).toBe(false);
 		}
+	});
+
+	test('source/default son aditivos y relation/file son válidos solo sobre record', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			blockTypes: {
+				hero: {
+					label: 'Portada',
+					fields: [
+						{
+							name: 'title',
+							label: 'Título',
+							widget: 'text',
+							source: 'data',
+							default: ''
+						},
+						{ name: 'image', label: 'Imagen', widget: 'relation', source: 'record' },
+						{ name: 'file', label: 'Fichero', widget: 'file', source: 'record' }
+					]
+				}
+			}
+		});
+
+		expect(result).toEqual({ ok: true });
+	});
+
+	test.each(['data', undefined])('relation con source %s → error propio en /source', (source) => {
+		const field = {
+			name: 'image',
+			label: 'Imagen',
+			widget: 'relation',
+			...(source ? { source } : {})
+		};
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			blockTypes: { hero: { label: 'Portada', fields: [field] } }
+		});
+
+		expect(result).toEqual({
+			ok: false,
+			errors: [
+				expect.objectContaining({
+					path: '/blockTypes/hero/fields/0/source',
+					message: expect.stringContaining('exige source "record"')
+				})
+			]
+		});
+	});
+
+	test('source con valor desconocido → inválido', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			blockTypes: {
+				hero: {
+					label: 'Portada',
+					fields: [{ name: 'a', label: 'A', widget: 'text', source: 'inline' }]
+				}
+			}
+		});
+
+		expect(result.ok).toBe(false);
 	});
 
 	test('fields[] sin "name"/"label"/"widget" → inválido (required)', () => {
@@ -975,8 +1036,11 @@ const VALID_ZERO_WARNING_MANIFESTS: JsonValue[] = [
 						name: 'alineacion',
 						label: 'Alineación',
 						widget: 'select',
+						source: 'data',
+						default: 'izquierda',
 						options: ['izquierda', 'centro']
-					}
+					},
+					{ name: 'imagen', label: 'Imagen', widget: 'relation', source: 'record' }
 				]
 			},
 			texto: { label: 'Texto', fields: [{ name: 'cuerpo', label: 'Cuerpo', widget: 'richtext' }] }

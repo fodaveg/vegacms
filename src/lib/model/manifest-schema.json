@@ -255,7 +255,7 @@
 								"name": { "type": "string", "minLength": 1 },
 								"label": { "type": "string", "minLength": 1, "maxLength": 60 },
 								"widget": {
-									"description": "Subconjunto ESCALAR de los widgets de un campo real: relation/file/unsupported quedan fuera a propósito (dentro de un JSON no hay relaciones ni gestión de ficheros de PocketBase).",
+									"description": "Widget del campo. relation/file exigen source=record porque necesitan una columna real de PocketBase; unsupported queda fuera.",
 									"enum": [
 										"text",
 										"textarea",
@@ -268,8 +268,17 @@
 										"datetime",
 										"select",
 										"chips",
+										"relation",
+										"file",
 										"json"
 									]
+								},
+								"source": {
+									"description": "data (default) guarda el valor dentro del JSON del bloque; record lo lee de una columna real del registro hijo.",
+									"enum": ["data", "record"]
+								},
+								"default": {
+									"description": "Valor inicial aditivo para campos nuevos. Puede ser cualquier valor JSON."
 								},
 								"required": { "type": "boolean" },
 								"options": {
@@ -278,7 +287,19 @@
 									"minItems": 1,
 									"items": { "type": "string", "minLength": 1 }
 								}
-							}
+							},
+							"allOf": [
+								{
+									"if": {
+										"properties": { "widget": { "enum": ["relation", "file"] } },
+										"required": ["widget"]
+									},
+									"then": {
+										"properties": { "source": { "const": "record" } },
+										"required": ["source"]
+									}
+								}
+							]
 						}
 					}
 				}

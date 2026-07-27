@@ -2637,16 +2637,108 @@ describe('19. blockTypes: vocabulario de tipos de bloque (RAÍZ, #4cfd4f7f)', ()
 				label: 'Portada',
 				icon: 'image',
 				fields: [
-					{ name: 'titulo', label: 'Título', widget: 'text', required: true, options: null },
+					{
+						name: 'titulo',
+						label: 'Título',
+						widget: 'text',
+						source: 'data',
+						required: true,
+						options: null
+					},
 					{
 						name: 'alineacion',
 						label: 'Alineación',
 						widget: 'select',
+						source: 'data',
 						required: false,
 						options: ['izquierda', 'centro']
 					}
 				]
 			}
+		]);
+	});
+
+	test('source ausente cae a data; default se conserva y relation/file exigen record', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: {
+						label: 'Portada',
+						fields: [
+							{ name: 'title', label: 'Título', widget: 'text', default: 'Sin título' },
+							{
+								name: 'image',
+								label: 'Imagen',
+								widget: 'relation',
+								source: 'record'
+							},
+							{ name: 'file', label: 'Fichero', widget: 'file', source: 'record' }
+						]
+					}
+				}
+			}
+		});
+
+		expect(model.warnings).toEqual([]);
+		expect(model.blockTypes[0].fields).toEqual([
+			{
+				name: 'title',
+				label: 'Título',
+				widget: 'text',
+				source: 'data',
+				default: 'Sin título',
+				required: false,
+				options: null
+			},
+			{
+				name: 'image',
+				label: 'Imagen',
+				widget: 'relation',
+				source: 'record',
+				required: false,
+				options: null
+			},
+			{
+				name: 'file',
+				label: 'Fichero',
+				widget: 'file',
+				source: 'record',
+				required: false,
+				options: null
+			}
+		]);
+	});
+
+	test('relation/file con source data se descartan como campos inválidos', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: {
+						label: 'Portada',
+						fields: [
+							{ name: 'title', label: 'Título', widget: 'text' },
+							{ name: 'image', label: 'Imagen', widget: 'relation', source: 'data' },
+							{ name: 'file', label: 'Fichero', widget: 'file' }
+						]
+					}
+				}
+			}
+		});
+
+		expect(model.blockTypes[0].fields.map((field) => field.name)).toEqual(['title']);
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'block-type-field-invalid',
+				path: '/blockTypes/hero/fields/1'
+			}),
+			expect.objectContaining({
+				code: 'block-type-field-invalid',
+				path: '/blockTypes/hero/fields/2'
+			})
 		]);
 	});
 
