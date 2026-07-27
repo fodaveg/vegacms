@@ -36,7 +36,8 @@ const ROOT_ALLOWED_KEYS = [
 	'collections',
 	'revisions',
 	'mergedViews',
-	'blockTypes'
+	'blockTypes',
+	'layouts'
 ] as const;
 const SITE_ALLOWED_KEYS = ['name', 'defaultTheme', 'locale'] as const;
 /** Claves de `revisions` (historial/papelera, `#lote-integridad` Fase B §7). */
@@ -65,6 +66,7 @@ const COLLECTION_ALLOWED_KEYS = [
 	'editorRail',
 	'blocks',
 	'social',
+	'page',
 	'localizedFields',
 	'fields'
 ] as const;
@@ -95,6 +97,14 @@ const BLOCKS_REQUIRED_KEYS = ['collection', 'parentField', 'orderField'] as cons
  *  colección hija? ¿las dos a la vez?) es de `resolveContentModel`. */
 const BLOCKS_OPTIONAL_KEYS = ['typeField', 'dataField'] as const;
 const BLOCKS_ALLOWED_KEYS = [...BLOCKS_REQUIRED_KEYS, ...BLOCKS_OPTIONAL_KEYS] as const;
+/** Claves OBLIGATORIAS de `collections.<c>.page` (modelo de páginas, tarea p1 `1dc63001`): a
+ *  diferencia de `blocks`, aquí solo `pathField` es obligatorio — sin ruta pública no hay página
+ *  que servir. */
+const PAGE_REQUIRED_KEYS = ['pathField'] as const;
+/** Claves OPCIONALES de `collections.<c>.page`: `layoutField` degrada SOLA (`resolvePage`,
+ *  `resolve.ts`) — aquí solo se valida la FORMA (texto no vacío). */
+const PAGE_OPTIONAL_KEYS = ['layoutField'] as const;
+const PAGE_ALLOWED_KEYS = [...PAGE_REQUIRED_KEYS, ...PAGE_OPTIONAL_KEYS] as const;
 /** Claves de un tipo de bloque `blockTypes.<t>` (vocabulario de tipos de bloque `#4cfd4f7f`). */
 const BLOCK_TYPE_ALLOWED_KEYS = ['label', 'icon', 'fields'] as const;
 /** Claves de un item de `blockTypes.<t>.fields[]`. */
@@ -104,6 +114,13 @@ const BLOCK_TYPE_FIELD_ALLOWED_KEYS = ['name', 'label', 'widget', 'required', 'o
  *  `resolve.ts`, duplicado a mano a propósito: este módulo no importa de `resolve.ts`, cada uno
  *  replica el schema por su cuenta, L1/§9.12). */
 const BLOCK_TYPE_NAME_PATTERN = /^[a-z][a-z0-9-]*$/;
+/** Claves de una plantilla `layouts.<l>` (modelo de páginas, tarea p1 `1dc63001`). */
+const LAYOUT_ALLOWED_KEYS = ['label', 'icon'] as const;
+/** Patrón de la clave de un layout: MISMO patrón que `BLOCK_TYPE_NAME_PATTERN` y por el MISMO
+ *  motivo (viaja al nombre de plantilla Astro), duplicado a mano por el mismo motivo que
+ *  `BLOCK_TYPE_NAME_PATTERN` está duplicado respecto a `resolve.ts` (§9.12, L1: este módulo no
+ *  importa de `resolve.ts`). */
+const LAYOUT_NAME_PATTERN = /^[a-z][a-z0-9-]*$/;
 /** Subconjunto de widgets permitido DENTRO de un bloque (mismo motivo que `BLOCK_FIELD_WIDGET_IDS`
  *  de `types.ts`, duplicado a mano porque este validador no puede importar el runtime de TS desde
  *  el JSON Schema — ver `manifest-schema.json`, `blockTypes.<t>.fields[].widget`). */
@@ -401,6 +418,7 @@ function validateRoot(raw: JsonValue, errors: ManifestValidationErrorEntry[]): v
 	if ('revisions' in raw) validateRevisions(raw.revisions, errors);
 	if ('mergedViews' in raw) validateMergedViews(raw.mergedViews, errors);
 	if ('blockTypes' in raw) validateBlockTypes(raw.blockTypes, errors);
+	if ('layouts' in raw) validateLayouts(raw.layouts, errors);
 }
 
 /** `revisions` (historial/papelera, `#lote-integridad` Fase B §7): las tres claves opcionales,
@@ -631,6 +649,9 @@ function validateCollection(
 	}
 	if ('social' in value) {
 		validateSocial(name, value.social, errors);
+	}
+	if ('page' in value) {
+		validatePage(name, value.page, errors);
 	}
 	if ('localizedFields' in value) {
 		validateLocalizedFields(name, value.localizedFields, errors);
@@ -885,6 +906,51 @@ function validateSocial(
 	}
 }
 
+/** `page` (modelo de páginas, tarea p1 `1dc63001`): objeto `{ pathField, layoutField? }`.
+ *  `pathField` es OBLIGATORIO (a diferencia de `social`, no hay "página sin ruta"); `layoutField`
+ *  es opcional y degrada solo (`resolveContentModel`/`page-layout-field-invalid`). Igual que
+ *  `blocks`/`social`, solo se valida la FORMA a nivel de schema; que `pathField` sea un campo
+ *  `text` real (y con índice único) es CONTENIDO (`page-invalid`/`page-path-not-unique`), no
+ *  sintaxis. */
+function validatePage(
+	collection: string,
+	value: JsonValue,
+	errors: ManifestValidationErrorEntry[]
+): void {
+	const base = `/collections/${collection}/page`;
+	if (!isPlainObject(value)) {
+		fail(errors, base, `page de "${collection}" debe ser un objeto { pathField, layoutField? }.`);
+		return;
+	}
+	checkAdditionalProperties(value, PAGE_ALLOWED_KEYS, base, errors);
+	for (const key of PAGE_REQUIRED_KEYS) {
+		if (!(key in value)) {
+			fail(errors, `${base}/${key}`, `page de "${collection}" debe declarar "${key}".`);
+			continue;
+		}
+		checkString(
+			value[key],
+			`${base}/${key}`,
+			1,
+			Infinity,
+			errors,
+			`page.${key} de "${collection}"`
+		);
+	}
+	for (const key of PAGE_OPTIONAL_KEYS) {
+		if (key in value) {
+			checkString(
+				value[key],
+				`${base}/${key}`,
+				1,
+				Infinity,
+				errors,
+				`page.${key} de "${collection}"`
+			);
+		}
+	}
+}
+
 function validatePreviewUrl(
 	value: JsonValue,
 	path: string,
@@ -1088,6 +1154,43 @@ function validateBlockTypeField(
 		if (Array.isArray(value.options) && value.options.length < 1) {
 			fail(errors, `${base}/options`, `${label} debe tener al menos un elemento.`);
 		}
+	}
+}
+
+// ————— Vocabulario de plantillas de página (layouts, RAÍZ, tarea p1 `1dc63001`) —————
+
+function validateLayouts(value: JsonValue, errors: ManifestValidationErrorEntry[]): void {
+	if (!isPlainObject(value)) {
+		fail(errors, '/layouts', 'layouts debe ser un objeto.');
+		return;
+	}
+	for (const [name, layoutValue] of Object.entries(value)) {
+		validateLayout(name, layoutValue, errors);
+	}
+}
+
+function validateLayout(
+	name: string,
+	value: JsonValue,
+	errors: ManifestValidationErrorEntry[]
+): void {
+	const base = `/layouts/${name}`;
+	if (!LAYOUT_NAME_PATTERN.test(name)) {
+		fail(errors, base, `La clave "${name}" de layouts no cumple el patrón ^[a-z][a-z0-9-]*$.`);
+	}
+	if (!isPlainObject(value)) {
+		fail(errors, base, `layouts.${name} debe ser un objeto.`);
+		return;
+	}
+	checkAdditionalProperties(value, LAYOUT_ALLOWED_KEYS, base, errors);
+
+	if (!('label' in value)) {
+		fail(errors, `${base}/label`, `layouts.${name} debe declarar "label".`);
+	} else {
+		checkString(value.label, `${base}/label`, 1, 60, errors, `label de layouts.${name}`);
+	}
+	if ('icon' in value) {
+		checkString(value.icon, `${base}/icon`, 1, Infinity, errors, `icon de layouts.${name}`);
 	}
 }
 

@@ -52,6 +52,17 @@ export interface ContentModel {
 	 * cambia nada).
 	 */
 	blockTypes: ResolvedBlockType[];
+	/**
+	 * (M) Vocabulario de plantillas de página declarado en `layouts` (RAÍZ del manifiesto, modelo
+	 * de páginas — tarea p1 `1dc63001`): `default`, `landing`… En ORDEN de declaración del
+	 * manifiesto, MISMO motivo que `blockTypes` (RAÍZ y no per-colección): un sitio tiene UN juego
+	 * de plantillas Astro, igual que tiene UN vocabulario de componentes — per-colección no habría
+	 * nada coherente contra lo que contrastar `collections.<c>.page.layoutField`. Cardinal <= nº de
+	 * claves de `layouts` (una plantilla cuya clave/label no valida se descarta entera,
+	 * `layout-invalid`, y no aparece aquí). `[]` si el manifiesto no declara `layouts` — SIN
+	 * warning (mismo criterio opt-in que `blockTypes`).
+	 */
+	layouts: ResolvedLayout[];
 	/** Discrepancias manifiesto↔esquema y problemas de lectura. Parte del modelo, no un log. */
 	warnings: ModelWarning[];
 	/** Meta de procedencia del manifiesto. */
@@ -223,6 +234,83 @@ export interface ResolvedContentType {
 	 * `?:` por el mismo motivo que `blocks`/`localization` arriba (compatibilidad de fixtures).
 	 */
 	social?: ResolvedSocialCardConfig | null;
+	/**
+	 * (M) Modelo de páginas (`collections.<c>.page`, tarea p1 `1dc63001` de Lumbre): declara que
+	 * los registros de ESTE tipo son PÁGINAS del sitio publicado (el paso de "editor de datos" a
+	 * "constructor de sitio"), no solo contenido que enriquece un registro existente. `null`
+	 * (default) ⇒ la colección no es de páginas, comportamiento histórico intacto. SOLO
+	 * manifiesto, sin autodetección — mismo criterio opt-in que `blocks`/`social`: nada en el
+	 * nombre de una colección o campo hace de esto una convención.
+	 *
+	 * NO duplica lo que Vega ya tiene: `slugField` (con regeneración), `statusField` (estado de
+	 * publicación), `social` (tarjeta SEO/OG) y `previewUrl`, todos en ESTE `ResolvedContentType`,
+	 * siguen siendo la fuente de verdad de publicación y SEO — `page` no inventa un segundo
+	 * concepto de ninguno de ellos. Lo único que le faltaba al modelo para ser un modelo de
+	 * PÁGINAS eran la RUTA y la PLANTILLA, las dos únicas piezas de `ResolvedPageConfig`.
+	 *
+	 * La ruta (`pathField`) NUNCA se deriva de `slugField`: son campos DISTINTOS y ninguno deriva
+	 * del otro a ESTE nivel (decisión de diseño, no un olvido). La ruta de una página publicada es
+	 * su identidad pública; derivarla de un título que alguien retoca después rompería enlaces
+	 * vivos en silencio. Proponer una ruta a partir del slug al CREAR una página — editable
+	 * después — es responsabilidad del EDITOR (otra tarea, aún no construida); este modelo solo
+	 * expone la columna, nunca deriva ni escribe su valor.
+	 *
+	 * `?:` por el mismo motivo que `blocks`/`social` arriba (compatibilidad de fixtures que
+	 * construyen un `ResolvedContentType` a mano en otras partes del repo).
+	 */
+	page?: ResolvedPageConfig | null;
+}
+
+/**
+ * (M) Declaración ya validada de `collections.<c>.page` (modelo de páginas, tarea p1 `1dc63001`):
+ * la ruta pública + la plantilla de una colección de páginas. A diferencia de
+ * `ResolvedBlocksConfig` (tres piezas obligatorias juntas), aquí SOLO `pathField` es obligatorio
+ * — `layoutField` es opcional y degrada SOLO (`page-layout-field-invalid`), sin invalidar `page`
+ * entera: mismo criterio de asimetría que `typeField`/`dataField` en `ResolvedBlocksConfig`, una
+ * capacidad opcional a medias no puede quitarle a la colección una que ya funcionaba.
+ */
+export interface ResolvedPageConfig {
+	/** Campo `text` de ESTA colección con la ruta pública (p. ej. `/sobre-mi`). Obligatorio: sin
+	 *  él no hay página que servir, así que su ausencia o invalidez tumba `page` ENTERA
+	 *  (`page-invalid`), mismo criterio "todo o nada" que las tres piezas de `ResolvedBlocksConfig`. */
+	pathField: string;
+	/**
+	 * `true` si `pathField` resuelve a un campo con índice ÚNICO real de PocketBase (`Field.unique`
+	 * de `$lib/backend/types`, derivado de los índices reales del esquema descubierto — `false`
+	 * significa "no determinable", no necesariamente "no único", ver el comentario de `unique` en
+	 * `FieldBase`). La unicidad de la ruta la impone el BACKEND, no Vega — esta pieza solo la
+	 * COMPRUEBA: `false` no invalida la capacidad (la colección SIGUE siendo de páginas), solo
+	 * dispara `page-path-not-unique` — sin índice único, dos páginas podrían colisionar en la misma
+	 * ruta y Vega no puede prometer que no pase. Es el valor concreto de que la ruta sea COLUMNA
+	 * REAL en vez de JSON: un JSON no tiene un índice que lo compruebe.
+	 */
+	pathFieldUnique: boolean;
+	/** (M, opcional) Campo `text` de esta colección que guarda el NOMBRE de un layout de
+	 *  `ContentModel.layouts` para cada registro, o `null` sin plantilla explícita — una colección
+	 *  de páginas puede tener una sola plantilla implícita y no declarar esto. Si se declara pero
+	 *  no resuelve a un `text` real de esta colección, degrada SOLO a `null` con
+	 *  `page-layout-field-invalid`, SIN tumbar `pathField` (ver la cabecera de `ResolvedPageConfig`). */
+	layoutField: string | null;
+}
+
+/**
+ * Una plantilla de página declarada en `layouts.<l>` (RAÍZ del manifiesto, modelo de páginas
+ * tarea p1 `1dc63001`): el nombre de plantilla Astro que renderiza una página cuyo
+ * `ResolvedPageConfig.layoutField` (en la colección donde vive esa página) vale `l`. RAÍZ y no
+ * per-colección, MISMO motivo que `ResolvedBlockType`: un sitio tiene UN juego de plantillas, y
+ * per-colección no habría nada coherente contra lo que contrastarlo. `resolveContentModel`
+ * descarta ENTERO un layout cuya clave no case `^[a-z][a-z0-9-]*$` o sin `label` (`layout-invalid`,
+ * ver `warnings.ts`) — no hay "layout a medias" para esas dos causas.
+ */
+export interface ResolvedLayout {
+	/** Clave de `layouts` (patrón `^[a-z][a-z0-9-]*$`, ESTRICTO a propósito, MISMO motivo que
+	 *  `ResolvedBlockType.name`): viaja tal cual al nombre de plantilla Astro, no es solo un id
+	 *  interno de Vega. */
+	name: string;
+	label: string;
+	/** (M) validado contra el MISMO set de iconos que `ResolvedContentType.icon`/
+	 *  `ResolvedBlockType.icon` (mismo `knownIcons`, mismo warning `icon-unknown` reutilizado). */
+	icon: string | null;
 }
 
 /**
@@ -545,6 +633,10 @@ export type WarningCode =
 	| 'social-description-field-invalid' // social.descriptionField inexistente o no texto/richtext → null
 	| 'social-image-field-invalid' // social.imageField inexistente o no file no-múltiple → null
 	| 'social-url-invalid' // social.urlTemplate con placeholder desconocido o no escalar → cascada a previewUrl
+	| 'layout-invalid' // layouts.<l>: clave/label/forma inválido → esa plantilla se descarta entera
+	| 'page-invalid' // page.pathField ausente o no resuelve a un text de esta colección → page entera a null
+	| 'page-layout-field-invalid' // page.layoutField declarado pero no resuelve a un text de esta colección → null (page SOBREVIVE)
+	| 'page-path-not-unique' // page.pathField resuelve pero sin índice único real → capacidad INTACTA + aviso
 	| 'multiple-vega-records' // la colección vega tiene >1 registros (lo emite load, §6.2)
 	// ————— mergedViews (L7a) —————
 	| 'merged-view-invalid' // 0 sources válidas → la vista fusionada entera se descarta
@@ -565,6 +657,10 @@ export interface ModelWarning {
 	 *  (vocabulario de tipos de bloque `#4cfd4f7f`) — separado de `collection` porque un tipo de
 	 *  bloque no es una colección, vive en su propio namespace de la raíz del manifiesto. */
 	blockType?: string;
+	/** Nombre de la plantilla de página afectada (`layouts.<l>`), solo en warnings `layout-*`/
+	 *  `icon-unknown` de un layout (modelo de páginas, tarea p1 `1dc63001`) — separado de
+	 *  `collection` porque un layout no es una colección, vive en su propio namespace de la raíz. */
+	layout?: string;
 	/** JSON Pointer a la clave del manifiesto que lo causó, si aplica (p.ej. '/collections/posts/fields/body/widget'). */
 	path?: string;
 }

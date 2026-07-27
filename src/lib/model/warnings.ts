@@ -366,6 +366,113 @@ export function socialUrlInvalid(collection: string): ModelWarning {
 	};
 }
 
+// ————— Modelo de páginas (page/layouts, tarea p1 `1dc63001`) —————
+
+/** JSON Pointer a una plantilla de página: `/layouts/<l>`. */
+function layoutPath(name: string): string {
+	return `/layouts/${name}`;
+}
+
+/**
+ * `layout-invalid` — `layouts.<name>` se descarta ENTERO: la clave no casa el patrón
+ * `^[a-z][a-z0-9-]*$` (`reason: 'name'`, viaja tal cual al nombre de plantilla Astro, de ahí lo
+ * estricto — MISMO motivo que `block-type-invalid` sobre `blockTypes`), la declaración no es un
+ * objeto (`'shape'`), o le falta un `label` de 1 a 60 caracteres (`'label'`). Las tres comparten
+ * código (mismo criterio "todo o nada" que `blockTypeInvalid`) pero cada motivo tiene su propio
+ * mensaje, para que quien lea el warning sepa exactamente qué corregir.
+ */
+export function layoutInvalid(name: string, reason: 'name' | 'shape' | 'label'): ModelWarning {
+	const message =
+		reason === 'name'
+			? `layouts declara la plantilla "${name}", cuya clave no cumple el patrón ^[a-z][a-z0-9-]*$ (ese nombre viaja al nombre de plantilla Astro); se ignora esa plantilla.`
+			: reason === 'shape'
+				? `layouts.${name} no es un objeto; se ignora esa plantilla.`
+				: `layouts.${name} no declara un label de 1 a 60 caracteres; se ignora esa plantilla.`;
+	return { code: 'layout-invalid', message, layout: name, path: layoutPath(name) };
+}
+
+/**
+ * `icon-unknown` (reutilizado) — el icono `icon` declarado en `layouts.<name>` no está en
+ * `knownIcons`. Mismo criterio que `blockTypeIconUnknown`: `path` apunta a
+ * `/layouts/<name>/icon`, no a `/collections/<name>/icon` (un layout no es una colección), y usa
+ * `layout` en vez de `collection`/`blockType`.
+ */
+export function layoutIconUnknown(name: string, icon: string): ModelWarning {
+	return {
+		code: 'icon-unknown',
+		message: `El icono "${icon}" de la plantilla "${name}" no existe en el set de iconos de Vega; se usa el icono genérico.`,
+		layout: name,
+		path: `${layoutPath(name)}/icon`
+	};
+}
+
+/**
+ * `page-invalid` — `collections.<c>.page.pathField` no resuelve a un campo `text` real de esta
+ * colección: el nombre no existe en el tipo, o existe pero no es de tipo `text`. Sin una ruta
+ * pública no hay página que servir, así que invalida `page` ENTERA (mismo criterio "todo o nada"
+ * que `blocksInvalid` sobre `collection`/`parentField`/`orderField`) — `layoutField` ni siquiera
+ * llega a evaluarse si esto falla.
+ */
+export function pageInvalid(collection: string, requestedField: string): ModelWarning {
+	return {
+		code: 'page-invalid',
+		message: `page.pathField de "${collection}" declara "${requestedField}", que no existe o no es un campo de texto en esta colección; se ignora la capacidad de página (sin ruta pública no hay página que servir).`,
+		collection,
+		path: `${collectionPath(collection)}/page/pathField`
+	};
+}
+
+/**
+ * `page-invalid` (mismo código, otra causa) — `page` declarada sobre un tipo de SOLO LECTURA (una
+ * vista de PocketBase). Mismo criterio que `singletonInvalid`, y por el mismo motivo: una vista no
+ * se puede crear ni editar, así que "estas son páginas" no significa nada sobre ella.
+ *
+ * Existe SEPARADO del `pageInvalid` de arriba y se comprueba ANTES a propósito: una vista tampoco
+ * puede tener índices, así que su `pathField` siempre saldría `unique: false` y el aviso que vería
+ * el usuario sería `page-path-not-unique`, o sea un diagnóstico que le manda a arreglar un índice
+ * que en una vista no puede existir. El síntoma tapaba la causa.
+ */
+export function pageOnReadonly(collection: string): ModelWarning {
+	return {
+		code: 'page-invalid',
+		message: `"${collection}" es de solo lectura (vista) y no puede declararse como colección de páginas; se ignora la capacidad de página.`,
+		collection,
+		path: `${collectionPath(collection)}/page`
+	};
+}
+
+/**
+ * `page-layout-field-invalid` — `page.layoutField` no resuelve a un campo `text` real de esta
+ * colección. A diferencia de `pageInvalid`, esto NUNCA invalida `page` entera: `layoutField` es
+ * opcional (una colección de páginas puede tener una sola plantilla implícita), mismo criterio de
+ * asimetría que `typeField`/`dataField` en `blocksHeterogeneousInvalid` — degrada SOLO a `null`.
+ */
+export function pageLayoutFieldInvalid(collection: string): ModelWarning {
+	return {
+		code: 'page-layout-field-invalid',
+		message: `page.layoutField de "${collection}" no resuelve a un campo de texto real de esta colección; se ignora (la página no declara plantilla explícita).`,
+		collection,
+		path: `${collectionPath(collection)}/page/layoutField`
+	};
+}
+
+/**
+ * `page-path-not-unique` — `page.pathField` resuelve a un campo `text` real, pero SIN índice
+ * único (`Field.unique === false`) en el esquema descubierto. NO invalida la capacidad (la
+ * colección SIGUE siendo de páginas): solo avisa de que Vega no puede prometer que dos páginas no
+ * colisionen en la misma ruta — es el valor de que la ruta sea COLUMNA REAL en vez de JSON (un
+ * JSON no tiene un índice que lo compruebe).
+ */
+export function pagePathNotUnique(collection: string, field: string): ModelWarning {
+	return {
+		code: 'page-path-not-unique',
+		message: `El campo de ruta "${field}" de "${collection}" no tiene un índice único en PocketBase; dos páginas podrían colisionar en la misma ruta sin que Vega pueda evitarlo. Añade un índice UNIQUE a esa columna.`,
+		collection,
+		field,
+		path: `${collectionPath(collection)}/page/pathField`
+	};
+}
+
 /**
  * `multiple-vega-records` — la colección `vega` tiene más de un registro. La emite
  * `loadContentModel` (§6.2, Fase 2), no `resolveContentModel`; vive aquí porque el

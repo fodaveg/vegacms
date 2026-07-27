@@ -3063,6 +3063,403 @@ describe('19. blockTypes: vocabulario de tipos de bloque (RAÍZ, #4cfd4f7f)', ()
 	});
 });
 
+// ————— 20. page: modelo de páginas (tarea p1 `1dc63001`) —————
+
+/** Fixture propio (no en `fixture.ts`, mismo criterio que `landingType`/`landingBlockType` de §15):
+ *  `path` es `text` con índice único (el caso feliz), `pathDuplicable` es el MISMO tipo pero SIN
+ *  índice único (§4b de la tarea: `page-path-not-unique`), `layout` es un `text` cualquiera para
+ *  `layoutField`, y `rating` es NO-`text` para probar que `pathField`/`layoutField` exigen texto. */
+const pageType: ContentType = {
+	name: 'site_page',
+	readonly: false,
+	fields: [
+		{
+			name: 'path',
+			type: 'text',
+			subtype: 'plain',
+			required: true,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: true
+		},
+		{
+			name: 'pathDuplicable',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'layout',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'title',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: true,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'rating',
+			type: 'number',
+			integer: true,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		}
+	]
+};
+
+const pageTypes: ContentType[] = [pageType];
+
+describe('20. page: modelo de páginas (tarea p1 "1dc63001")', () => {
+	test('sin page en el manifiesto → null, SIN warning (opt-in, sin autodetección)', () => {
+		const model = resolveContentModel({
+			types: pageTypes,
+			manifestRaw: { schemaVersion: 1, collections: { site_page: {} } }
+		});
+		expect(model.types.find((t) => t.name === 'site_page')!.page).toBeNull();
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('pathField sobre un campo text con índice único → se resuelve, sin warnings', () => {
+		const model = resolveContentModel({
+			types: pageTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { site_page: { page: { pathField: 'path' } } }
+			}
+		});
+		expect(model.warnings).toEqual([]);
+		expect(model.types.find((t) => t.name === 'site_page')!.page).toEqual({
+			pathField: 'path',
+			pathFieldUnique: true,
+			layoutField: null
+		});
+	});
+
+	// Una VISTA se descarta ANTES de mirar la unicidad, y el orden importa: una vista tampoco puede
+	// tener índices, así que llegar a esa comprobación emitiría `page-path-not-unique` y mandaría al
+	// usuario a crear un índice único que en una vista no puede existir. Mismo criterio que
+	// `singleton` sobre una vista, que ya existía.
+	test('page sobre un tipo de SOLO LECTURA (vista) → capacidad ignorada, y avisa de la VISTA, no de la unicidad', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { settings_view: { page: { pathField: 'name' } } }
+			}
+		});
+		expect(model.types.find((t) => t.name === 'settings_view')!.page).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'page-invalid',
+				collection: 'settings_view',
+				path: '/collections/settings_view/page'
+			})
+		]);
+		// Lo que esta prueba defiende de verdad: que NO sale el aviso que confundiría.
+		expect(model.warnings.some((w) => w.code === 'page-path-not-unique')).toBe(false);
+	});
+
+	test('pathField sobre un campo text SIN índice único → capacidad INTACTA + page-path-not-unique', () => {
+		const model = resolveContentModel({
+			types: pageTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { site_page: { page: { pathField: 'pathDuplicable' } } }
+			}
+		});
+		expect(model.types.find((t) => t.name === 'site_page')!.page).toEqual({
+			pathField: 'pathDuplicable',
+			pathFieldUnique: false,
+			layoutField: null
+		});
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'page-path-not-unique',
+				collection: 'site_page',
+				field: 'pathDuplicable',
+				path: '/collections/site_page/page/pathField'
+			})
+		]);
+	});
+
+	test('pathField ausente dentro de page → manifest-invalid-key, page null', () => {
+		const model = resolveContentModel({
+			types: pageTypes,
+			manifestRaw: { schemaVersion: 1, collections: { site_page: { page: {} } } }
+		});
+		expect(model.types.find((t) => t.name === 'site_page')!.page).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'manifest-invalid-key', path: '/collections/site_page/page' })
+		]);
+	});
+
+	test('pathField referenciando un campo inexistente → page-invalid, page null', () => {
+		const model = resolveContentModel({
+			types: pageTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { site_page: { page: { pathField: 'noExiste' } } }
+			}
+		});
+		expect(model.types.find((t) => t.name === 'site_page')!.page).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'page-invalid',
+				collection: 'site_page',
+				path: '/collections/site_page/page/pathField'
+			})
+		]);
+	});
+
+	test('pathField referenciando un campo NO text (number) → page-invalid, page null', () => {
+		const model = resolveContentModel({
+			types: pageTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { site_page: { page: { pathField: 'rating' } } }
+			}
+		});
+		expect(model.types.find((t) => t.name === 'site_page')!.page).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'page-invalid', collection: 'site_page' })
+		]);
+	});
+
+	test('layoutField sobre un campo text válido → se resuelve junto a pathField, sin warnings', () => {
+		const model = resolveContentModel({
+			types: pageTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { site_page: { page: { pathField: 'path', layoutField: 'layout' } } }
+			}
+		});
+		expect(model.warnings).toEqual([]);
+		expect(model.types.find((t) => t.name === 'site_page')!.page).toEqual({
+			pathField: 'path',
+			pathFieldUnique: true,
+			layoutField: 'layout'
+		});
+	});
+
+	test('layoutField inválido (campo NO text) → null + page-layout-field-invalid, PERO pathField sobrevive', () => {
+		const model = resolveContentModel({
+			types: pageTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { site_page: { page: { pathField: 'path', layoutField: 'rating' } } }
+			}
+		});
+		expect(model.types.find((t) => t.name === 'site_page')!.page).toEqual({
+			pathField: 'path',
+			pathFieldUnique: true,
+			layoutField: null
+		});
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'page-layout-field-invalid',
+				collection: 'site_page',
+				path: '/collections/site_page/page/layoutField'
+			})
+		]);
+	});
+
+	test('pathField y slugField son campos DISTINTOS: slugField no deriva ni acopla pathField', () => {
+		const model = resolveContentModel({
+			types: pageTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					site_page: {
+						slugField: 'path', // el mismo campo sirve de slug editorial...
+						page: { pathField: 'path' } // ...y de ruta pública, pero son conceptos DISTINTOS
+					}
+				}
+			}
+		});
+		const resolved = model.types.find((t) => t.name === 'site_page')!;
+		expect(resolved.slugField).toBe('path');
+		expect(resolved.page).toEqual({ pathField: 'path', pathFieldUnique: true, layoutField: null });
+	});
+
+	test('page NO duplica publicación ni SEO: statusField/social del tipo siguen siendo la fuente de verdad', () => {
+		const model = resolveContentModel({
+			types: pageTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					site_page: {
+						page: { pathField: 'path' },
+						social: { titleField: 'title' }
+					}
+				}
+			}
+		});
+		const resolved = model.types.find((t) => t.name === 'site_page')!;
+		expect(resolved.page).toEqual({ pathField: 'path', pathFieldUnique: true, layoutField: null });
+		expect(resolved.social).toEqual({
+			titleField: 'title',
+			descriptionField: null,
+			imageField: null,
+			urlTemplate: null
+		});
+	});
+
+	test('determinismo (L1): mismo input → mismo output (deepEqual)', () => {
+		const manifestRaw: JsonValue = {
+			schemaVersion: 1,
+			collections: { site_page: { page: { pathField: 'path', layoutField: 'layout' } } }
+		};
+		const a = resolveContentModel({ types: pageTypes, manifestRaw });
+		const b = resolveContentModel({ types: pageTypes, manifestRaw });
+		expect(a).toEqual(b);
+	});
+});
+
+// ————— 21. layouts: vocabulario de plantillas de página (RAÍZ, tarea p1 `1dc63001`) —————
+
+describe('21. layouts: vocabulario de plantillas de página (RAÍZ, tarea p1 "1dc63001")', () => {
+	test('sin layouts en el manifiesto → [], SIN warning (opt-in)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1 }
+		});
+		expect(model.layouts).toEqual([]);
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('layouts válidos → se resuelven en ORDEN de declaración', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				layouts: {
+					landing: { label: 'Landing', icon: 'layout' },
+					default: { label: 'Página normal' }
+				}
+			},
+			knownIcons: ['layout']
+		});
+		expect(model.warnings).toEqual([]);
+		expect(model.layouts).toEqual([
+			{ name: 'landing', label: 'Landing', icon: 'layout' },
+			{ name: 'default', label: 'Página normal', icon: null }
+		]);
+	});
+
+	test('sin icon → null; sin knownIcons, cualquier texto no vacío se acepta', () => {
+		const withoutIcon = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, layouts: { default: { label: 'Página normal' } } }
+		});
+		expect(withoutIcon.layouts[0].icon).toBeNull();
+
+		const noKnownIcons = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				layouts: { default: { label: 'Página normal', icon: 'cualquiera' } }
+			}
+		});
+		expect(noKnownIcons.layouts[0].icon).toBe('cualquiera');
+	});
+
+	test('icon fuera de knownIcons → null + icon-unknown (reutilizado, con `layout` en vez de `collection`)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				layouts: { default: { label: 'Página normal', icon: 'inexistente' } }
+			},
+			knownIcons: ['layout']
+		});
+		expect(model.layouts[0].icon).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'icon-unknown',
+				layout: 'default',
+				path: '/layouts/default/icon'
+			})
+		]);
+	});
+
+	test('clave que no casa ^[a-z][a-z0-9-]*$ → se descarta + layout-invalid', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, layouts: { Landing: { label: 'Landing' } } }
+		});
+		expect(model.layouts).toEqual([]);
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'layout-invalid',
+				layout: 'Landing',
+				path: '/layouts/Landing'
+			})
+		]);
+	});
+
+	test('sin label → se descarta + layout-invalid', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, layouts: { default: { icon: 'layout' } } }
+		});
+		expect(model.layouts).toEqual([]);
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'layout-invalid', path: '/layouts/default' })
+		]);
+	});
+
+	test('forma no-objeto → se descarta + layout-invalid', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, layouts: { default: 'not-an-object' } }
+		});
+		expect(model.layouts).toEqual([]);
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'layout-invalid', path: '/layouts/default' })
+		]);
+	});
+
+	test('un layout inválido no tumba a los demás', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				layouts: { Bad: { label: 'x' }, default: { label: 'Página normal' } }
+			}
+		});
+		expect(model.layouts).toEqual([{ name: 'default', label: 'Página normal', icon: null }]);
+	});
+
+	test('determinismo (L1): mismo input → mismo output (deepEqual)', () => {
+		const manifestRaw: JsonValue = {
+			schemaVersion: 1,
+			layouts: { default: { label: 'Página normal' }, landing: { label: 'Landing' } }
+		};
+		const a = resolveContentModel({ types: kitchenSinkTypes, manifestRaw });
+		const b = resolveContentModel({ types: kitchenSinkTypes, manifestRaw });
+		expect(a).toEqual(b);
+	});
+});
+
 // ————— Referencias cruzadas del fixture (evitan que quede código muerto) —————
 
 describe('fixture', () => {

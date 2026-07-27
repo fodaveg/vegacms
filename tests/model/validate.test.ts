@@ -717,6 +717,102 @@ describe('1c. blockTypes (vocabulario de tipos de bloque, #4cfd4f7f) contra el s
 	});
 });
 
+// ————— 1d. page (modelo de páginas, tarea p1 "1dc63001") contra el schema §3 —————
+
+describe('1d. collections.<c>.page (modelo de páginas, tarea p1 "1dc63001") contra el schema §3', () => {
+	test('page con solo pathField → válido (layoutField es opcional)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: { post: { page: { pathField: 'title' } } }
+		});
+		expect(result.ok).toBe(true);
+	});
+
+	test('page con pathField + layoutField → válido', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: { post: { page: { pathField: 'title', layoutField: 'body' } } }
+		});
+		expect(result.ok).toBe(true);
+	});
+
+	test('page sin pathField → inválido (required)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: { post: { page: { layoutField: 'body' } } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('page.pathField vacío → inválido (minLength)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: { post: { page: { pathField: '' } } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('page no-objeto → inválido', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: { post: { page: 'not-an-object' } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('page con clave desconocida → inválido (additionalProperties)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: { post: { page: { pathField: 'title', unknownKey: 1 } } }
+		});
+		expect(result.ok).toBe(false);
+	});
+});
+
+// ————— 1e. layouts (RAÍZ, modelo de páginas p1 "1dc63001") contra el schema §3 —————
+
+describe('1e. layouts (RAÍZ, modelo de páginas p1 "1dc63001") contra el schema §3', () => {
+	test('layouts mínimo válido: solo label → válido', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			layouts: { default: { label: 'Página normal' } }
+		});
+		expect(result.ok).toBe(true);
+	});
+
+	test('layouts completo (label + icon) → válido', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			layouts: { landing: { label: 'Landing', icon: 'layout' } }
+		});
+		expect(result.ok).toBe(true);
+	});
+
+	test('clave que no casa ^[a-z][a-z0-9-]*$ → inválido (propertyNames)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			layouts: { Landing: { label: 'Landing' } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('sin label → inválido (required)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			layouts: { default: { icon: 'layout' } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('layouts.<l> con clave desconocida → inválido (additionalProperties)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			layouts: { default: { label: 'Página normal', fields: [] } }
+		});
+		expect(result.ok).toBe(false);
+	});
+});
+
 // ————— Batería de manifiestos VÁLIDOS (schema-válidos, sin discrepancias de contenido) —————
 
 /**
@@ -884,6 +980,22 @@ const VALID_ZERO_WARNING_MANIFESTS: JsonValue[] = [
 				]
 			},
 			texto: { label: 'Texto', fields: [{ name: 'cuerpo', label: 'Cuerpo', widget: 'richtext' }] }
+		}
+	},
+	{
+		// page (modelo de páginas, tarea p1 1dc63001): `category.name` es el ÚNICO campo `text` con
+		// índice único del kitchen-sink (fixture.ts, `unique: true`) → cero warnings, la capacidad
+		// queda íntegra (`pathFieldUnique: true`, sin `page-path-not-unique`).
+		schemaVersion: 1,
+		collections: { category: { page: { pathField: 'name' } } }
+	},
+	{
+		// layouts (RAÍZ, modelo de páginas p1 1dc63001): completamente independiente de
+		// `collections`/el esquema descubierto, igual que `blockTypes` → zero-warning.
+		schemaVersion: 1,
+		layouts: {
+			default: { label: 'Página normal' },
+			landing: { label: 'Landing', icon: 'layout' }
 		}
 	}
 ];
@@ -1129,7 +1241,21 @@ const INVALID_MANIFESTS: JsonValue[] = [
 	{
 		schemaVersion: 1,
 		mergedViews: { destacados: { sources: [{ collection: 'post', label: 'x'.repeat(61) }] } }
-	}
+	},
+	{ schemaVersion: 1, collections: { post: { page: 'not-an-object' } } },
+	{ schemaVersion: 1, collections: { post: { page: {} } } }, // sin pathField (required)
+	{ schemaVersion: 1, collections: { post: { page: { pathField: '' } } } },
+	{ schemaVersion: 1, collections: { post: { page: { pathField: 'title', layoutField: '' } } } },
+	{
+		schemaVersion: 1,
+		collections: { post: { page: { pathField: 'title', extra: 1 } } }
+	},
+	{ schemaVersion: 1, layouts: 'not-an-object' },
+	{ schemaVersion: 1, layouts: { Landing: { label: 'Landing' } } },
+	{ schemaVersion: 1, layouts: { default: { icon: 'layout' } } }, // sin label (required)
+	{ schemaVersion: 1, layouts: { default: { label: '' } } },
+	{ schemaVersion: 1, layouts: { default: { label: 'x'.repeat(61) } } },
+	{ schemaVersion: 1, layouts: { default: { label: 'Página normal', extra: 1 } } }
 ];
 
 describe('3. Oráculo: ajv(manifest-schema.json) vs validateManifestStrict', () => {

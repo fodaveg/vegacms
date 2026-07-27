@@ -92,6 +92,7 @@ function contentModel(types: ResolvedContentType[]): ContentModel {
 		revisions: { enabled: true, keepPerRecord: 20, trashDays: 30 },
 		mergedViews: [],
 		blockTypes: [],
+		layouts: [],
 		warnings: [],
 		manifest: { status: 'absent' }
 	};

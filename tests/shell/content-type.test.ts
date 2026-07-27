@@ -34,6 +34,7 @@ function model(types: ResolvedContentType[]): ContentModel {
 		nav: { groups: [] },
 		mergedViews: [],
 		blockTypes: [],
+		layouts: [],
 		warnings: [],
 		manifest: { status: 'absent' }
 	};

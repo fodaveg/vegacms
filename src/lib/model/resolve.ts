@@ -37,11 +37,13 @@ import type {
 	ResolvedContentType,
 	ResolvedField,
 	ResolvedFieldGroup,
+	ResolvedLayout,
 	ResolvedLocale,
 	ResolvedLocalizedField,
 	ResolvedLocalization,
 	ResolvedMergedSource,
 	ResolvedMergedView,
+	ResolvedPageConfig,
 	ResolvedRevisionsConfig,
 	ResolvedSite,
 	ResolvedSocialCardConfig,
@@ -70,6 +72,8 @@ import {
 	blockTypeIconUnknown,
 	blockTypeInvalid,
 	iconUnknown,
+	layoutIconUnknown,
+	layoutInvalid,
 	listFieldUnknown,
 	manifestInvalidKey,
 	manifestUnreadable,
@@ -83,6 +87,10 @@ import {
 	mergedWhereInvalid,
 	orphanCollection,
 	orphanField,
+	pageInvalid,
+	pageOnReadonly,
+	pageLayoutFieldInvalid,
+	pagePathNotUnique,
 	previewUrlInvalid,
 	singletonInvalid,
 	socialDescriptionFieldInvalid,
@@ -330,6 +338,40 @@ function readBlocksDeclaration(raw: JsonValue): RawBlocksDeclaration | undefined
 	};
 }
 
+/** Forma cruda de `collections.<c>.page` (modelo de páginas, tarea p1 `1dc63001`), SOLO tipada —
+ *  el CONTENIDO (¿`pathField` es un campo `text` real de esta colección? ¿tiene índice único?
+ *  ¿`layoutField` es un `text` real?) lo valida `resolvePage`, que es quien conoce el esquema del
+ *  tipo. */
+interface RawPageDeclaration {
+	/** Valor CRUDO de `pathField`, ya sabido un texto no vacío (`readPageDeclaration` lo exige).
+	 *  Que ese texto sea además un campo `text` REAL de la colección es contenido, no forma. */
+	pathFieldRaw: string;
+	/** Valor CRUDO de `layoutField`, SIN tipar aquí a propósito — mismo criterio que
+	 *  `typeFieldRaw`/`dataFieldRaw` de `RawBlocksDeclaration`: es opcional y degrada SOLA
+	 *  (`resolvePage` decide), nunca puede tumbar `pathField`. `undefined` = la clave no se
+	 *  declaró en el manifiesto. */
+	layoutFieldRaw: JsonValue | undefined;
+}
+
+/**
+ * Lee `collections.<c>.page` (modelo de páginas, tarea p1 `1dc63001`): `pathField` es
+ * OBLIGATORIO — un objeto al que le falte o que lo declare con forma inválida (no texto no
+ * vacío) no es una declaración parcial válida, es `undefined` (mismo criterio "todo o nada" que
+ * `readBlocksDeclaration` sobre sus tres claves), y el llamador (`readKey`) descarta `page`
+ * entero con un solo `manifest-invalid-key`. `layoutField` viaja tal cual, SIN ese criterio: es
+ * opcional y su validación de contenido vive en `resolvePage`.
+ */
+function readPageDeclaration(raw: JsonValue): RawPageDeclaration | undefined {
+	const obj = asJsonObject(raw);
+	if (!obj) return undefined;
+	const pathFieldRaw = obj.pathField;
+	if (typeof pathFieldRaw !== 'string' || pathFieldRaw.length < 1) return undefined;
+	return {
+		pathFieldRaw,
+		layoutFieldRaw: 'layoutField' in obj ? obj.layoutField : undefined
+	};
+}
+
 /**
  * Lee `obj[key]` con `read`; si la clave está presente pero no pasa `read`, empuja
  * `manifest-invalid-key` con `path` y devuelve `undefined` (la cascada sigue como si la clave
@@ -393,6 +435,10 @@ export function resolveContentModel(input: {
 	// de VALIDACIÓN, solo por convención de nombre en el manifiesto real), así que se resuelve aquí
 	// mismo, junto al resto de claves de raíz independientes de la sesión de esquema.
 	const blockTypes = resolveBlockTypes(doc, input.knownIcons, warnings);
+	// `layouts` (RAÍZ, modelo de páginas p1 `1dc63001`): mismo motivo e independencia que
+	// `blockTypes` de arriba — no depende de `types`/`collectionsRaw`, así que se resuelve aquí
+	// mismo, junto al resto de vocabularios de raíz.
+	const layouts = resolveLayouts(doc, input.knownIcons, warnings);
 	const locales = readKey(
 		doc,
 		'locales',
@@ -499,6 +545,7 @@ export function resolveContentModel(input: {
 		nav,
 		mergedViews,
 		blockTypes,
+		layouts,
 		warnings,
 		manifest
 	};
@@ -1036,6 +1083,180 @@ function resolveSocialCard(
 	return { titleField, descriptionField, imageField, urlTemplate };
 }
 
+// ————— Modelo de páginas (page, tarea p1 `1dc63001`) —————
+
+/**
+ * Resuelve `page` (§ tipos `ResolvedPageConfig`, modelo de páginas — tarea p1 `1dc63001`) UNA VEZ
+ * que `raw` ya se sabe una declaración con forma válida (`readPageDeclaration` ya exigió un
+ * `pathField` de texto no vacío; `raw === undefined` — clave ausente, o presente con forma
+ * inválida, ya avisado por `readKey` — ⇒ `null` sin warning nuevo, igual que el resto de
+ * capacidades opt-in).
+ *
+ * `pathField` debe resolver a un campo `text` REAL de este tipo: si no, `page` ENTERA cae a
+ * `null` (`page-invalid`, mismo criterio "todo o nada" que las tres piezas de `resolveBlocks`) —
+ * sin ruta pública no hay página que servir, así que no hay "página a medias" posible aquí.
+ *
+ * La unicidad (§4b de la tarea) la impone PocketBase, no Vega: `pathFieldSchema.unique` viaja
+ * intacto a `pathFieldUnique` y, si es `false`, se emite `page-path-not-unique` SIN invalidar la
+ * capacidad — la colección sigue siendo de páginas, Vega solo deja constancia de que no puede
+ * prometer que dos páginas no colisionen en la misma ruta.
+ *
+ * `layoutField` (opcional) se resuelve DESPUÉS y de forma independiente: una declaración inválida
+ * solo lo deja en `null` con su propio `page-layout-field-invalid`, nunca toca `pathField`.
+ *
+ * Un tipo de SOLO LECTURA (vista) se descarta ANTES que nada (`pageOnReadonly`, mismo criterio que
+ * `singleton` sobre una vista): no es solo que no se pueda editar, es que una vista tampoco puede
+ * tener índices, así que llegar hasta la comprobación de unicidad emitiría `page-path-not-unique`
+ * y mandaría al usuario a crear un índice único que en una vista no puede existir. El orden de
+ * estas dos comprobaciones ES la diferencia entre avisar de la causa y avisar de un síntoma.
+ */
+function resolvePage(
+	type: ContentType,
+	raw: RawPageDeclaration | undefined,
+	warnings: ModelWarning[]
+): ResolvedPageConfig | null {
+	if (raw === undefined) return null;
+
+	if (type.readonly) {
+		warnings.push(pageOnReadonly(type.name));
+		return null;
+	}
+
+	const pathFieldSchema = type.fields.find((f) => f.name === raw.pathFieldRaw);
+	if (!pathFieldSchema || pathFieldSchema.type !== 'text') {
+		warnings.push(pageInvalid(type.name, raw.pathFieldRaw));
+		return null;
+	}
+
+	const pathFieldUnique = pathFieldSchema.unique;
+	if (!pathFieldUnique) {
+		warnings.push(pagePathNotUnique(type.name, raw.pathFieldRaw));
+	}
+
+	const layoutField = resolvePageLayoutField(type, raw.layoutFieldRaw, warnings);
+
+	return { pathField: raw.pathFieldRaw, pathFieldUnique, layoutField };
+}
+
+/**
+ * Resuelve `page.layoutField` (§ `ResolvedPageConfig.layoutField`): campo `text` real de ESTE
+ * tipo, o `null` si la clave no se declaró (opt-in, sin warning) o no resuelve (`page-layout-
+ * field-invalid`, SIN afectar a `pathField` — ver la cabecera de `resolvePage`).
+ */
+function resolvePageLayoutField(
+	type: ContentType,
+	layoutFieldRaw: JsonValue | undefined,
+	warnings: ModelWarning[]
+): string | null {
+	if (layoutFieldRaw === undefined) return null;
+
+	if (typeof layoutFieldRaw === 'string' && layoutFieldRaw.length > 0) {
+		const field = type.fields.find((f) => f.name === layoutFieldRaw);
+		if (field && field.type === 'text') return layoutFieldRaw;
+	}
+
+	warnings.push(pageLayoutFieldInvalid(type.name));
+	return null;
+}
+
+// ————— Vocabulario de plantillas de página (layouts, RAÍZ, tarea p1 `1dc63001`) —————
+
+/**
+ * Patrón de la clave de un layout (`layouts.<l>`): MISMO patrón que `BLOCK_TYPE_NAME_PATTERN`
+ * (minúsculas/dígitos/guiones, empezando por letra) y por el MISMO motivo — viaja tal cual al
+ * nombre de plantilla Astro. Constante PROPIA en vez de reusar la de `blockTypes`: son dos
+ * vocabularios de la raíz conceptualmente independientes (un sitio puede añadir un tipo de
+ * bloque sin tocar sus plantillas, y viceversa), aunque compartan la misma forma de clave.
+ */
+const LAYOUT_NAME_PATTERN = /^[a-z][a-z0-9-]*$/;
+
+/**
+ * Resuelve `layouts` (RAÍZ del manifiesto, § `ContentModel.layouts`): un layout por clave, en
+ * ORDEN de declaración del manifiesto (mismo criterio que `resolveBlockTypes`: es el orden en que
+ * la UI listaría las plantillas disponibles, no un efecto secundario de cómo JS itera un objeto).
+ * Un layout que no sobrevive `resolveLayout` simplemente no aparece en el resultado
+ * (`layout-invalid`).
+ */
+function resolveLayouts(
+	doc: JsonObject,
+	knownIcons: readonly string[] | undefined,
+	warnings: ModelWarning[]
+): ResolvedLayout[] {
+	const layoutsRaw = readKey(
+		doc,
+		'layouts',
+		asJsonObject,
+		'/layouts',
+		'layouts no es un objeto; se ignora.',
+		warnings
+	);
+	if (!layoutsRaw) return [];
+
+	const result: ResolvedLayout[] = [];
+	for (const [name, rawValue] of Object.entries(layoutsRaw)) {
+		const resolved = resolveLayout(name, rawValue, knownIcons, warnings);
+		if (resolved) result.push(resolved);
+	}
+	return result;
+}
+
+/**
+ * Resuelve un layout (§ `ResolvedLayout`). Tres comprobaciones EXCLUYENTES, la primera que falla
+ * descarta el layout entero de inmediato (mismo criterio "un solo síntoma" que `resolveBlockType`):
+ * patrón de la clave → forma objeto → `label`. `icon` es la ÚNICA pieza que NO puede tumbar el
+ * layout (opcional, mismo criterio que `icon` de una colección/tipo de bloque): una forma
+ * inválida o fuera de `knownIcons` solo lo deja en `null`.
+ */
+function resolveLayout(
+	name: string,
+	rawValue: JsonValue,
+	knownIcons: readonly string[] | undefined,
+	warnings: ModelWarning[]
+): ResolvedLayout | null {
+	if (!LAYOUT_NAME_PATTERN.test(name)) {
+		warnings.push(layoutInvalid(name, 'name'));
+		return null;
+	}
+
+	const obj = asJsonObject(rawValue);
+	if (!obj) {
+		warnings.push(layoutInvalid(name, 'shape'));
+		return null;
+	}
+
+	// `label`: a mano (sin `readKey`) a propósito, mismo motivo que `resolveBlockType`: cualquier
+	// forma inválida descarta el layout ENTERO con el mismo `layout-invalid`, así que un
+	// `manifest-invalid-key` adicional por el mismo problema solo sería ruido.
+	const rawLabel = obj.label;
+	const label =
+		typeof rawLabel === 'string' && rawLabel.length >= 1 && rawLabel.length <= 60
+			? rawLabel
+			: undefined;
+	if (label === undefined) {
+		warnings.push(layoutInvalid(name, 'label'));
+		return null;
+	}
+
+	const iconCandidate = readKey(
+		obj,
+		'icon',
+		readString(1, Infinity),
+		`/layouts/${name}/icon`,
+		`icon de layouts.${name} no es un texto no vacío; se ignora.`,
+		warnings
+	);
+	let icon: string | null = null;
+	if (iconCandidate !== undefined) {
+		if (knownIcons && !knownIcons.includes(iconCandidate)) {
+			warnings.push(layoutIconUnknown(name, iconCandidate));
+		} else {
+			icon = iconCandidate;
+		}
+	}
+
+	return { name, label, icon };
+}
+
 // ————— Colección —————
 
 function resolveContentType(
@@ -1268,6 +1489,21 @@ function resolveContentType(
 			? null
 			: resolveSocialCard(type, socialRaw, titleField, previewUrl, warnings);
 
+	// ————— page (modelo de páginas, tarea p1 `1dc63001`) —————
+	// Independiente de `slugField`/`statusField`/`social`/`previewUrl` de arriba: `page` los REUSA
+	// como conceptos (la publicación y el SEO de una página son los mismos de siempre), pero
+	// `pathField`/`layoutField` no derivan de ninguno de ellos ni se resuelven a partir de sus
+	// valores — ver la cabecera de `ResolvedContentType.page`.
+	const pageRaw = readKey(
+		collectionRaw,
+		'page',
+		readPageDeclaration,
+		`${base}/page`,
+		`page de "${type.name}" debe ser un objeto { pathField, layoutField? } con pathField un texto no vacío; se ignora.`,
+		warnings
+	);
+	const page = resolvePage(type, pageRaw, warnings);
+
 	// ————— campos (§4.2, §4.9, §4.10) —————
 	const fieldsRaw =
 		readKey(
@@ -1403,7 +1639,8 @@ function resolveContentType(
 		editorRail,
 		localization,
 		blocks,
-		social
+		social,
+		page
 	};
 }
 

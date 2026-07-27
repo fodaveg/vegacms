@@ -171,6 +171,16 @@
 							"dataField": { "type": "string", "minLength": 1 }
 						}
 					},
+					"page": {
+						"description": "Modelo de páginas (tarea p1 1dc63001, el paso de 'editor de datos' a 'constructor de sitio'): declara que los registros de esta colección son páginas del sitio publicado. pathField (obligatorio) es un campo text de esta colección con la ruta pública (p. ej. /sobre-mi); la unicidad la impone un índice UNIQUE real de PocketBase sobre esa columna, que Vega solo comprueba y avisa si falta. layoutField (opcional) es un campo text que guarda el nombre de un layout de la raíz 'layouts'. Reusa slugField/statusField/social/previewUrl ya existentes: NO duplica publicación ni SEO, y pathField NUNCA se deriva de slugField. Sin esta clave, la colección no es de páginas.",
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["pathField"],
+						"properties": {
+							"pathField": { "type": "string", "minLength": 1 },
+							"layoutField": { "type": "string", "minLength": 1 }
+						}
+					},
 					"localizedFields": {
 						"description": "Campos lógicos traducibles. Cada entrada mapea un mismo campo editorial a sus campos físicos por idioma.",
 						"type": "object",
@@ -271,6 +281,21 @@
 							}
 						}
 					}
+				}
+			}
+		},
+
+		"layouts": {
+			"description": "Vocabulario de plantillas de página del sitio (modelo de páginas, tarea p1 1dc63001): default, landing... El nombre de plantilla Astro que renderiza una página cuyo collections.<c>.page.layoutField vale esa clave. Clave = nombre de la plantilla; el patrón es estricto porque viaja al nombre de componente Astro, mismo motivo que blockTypes.",
+			"type": "object",
+			"propertyNames": { "pattern": "^[a-z][a-z0-9-]*$" },
+			"additionalProperties": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["label"],
+				"properties": {
+					"label": { "type": "string", "minLength": 1, "maxLength": 60 },
+					"icon": { "type": "string", "minLength": 1 }
 				}
 			}
 		},
