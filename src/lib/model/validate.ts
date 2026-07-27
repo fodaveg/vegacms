@@ -108,7 +108,15 @@ const PAGE_ALLOWED_KEYS = [...PAGE_REQUIRED_KEYS, ...PAGE_OPTIONAL_KEYS] as cons
 /** Claves de un tipo de bloque `blockTypes.<t>` (vocabulario de tipos de bloque `#4cfd4f7f`). */
 const BLOCK_TYPE_ALLOWED_KEYS = ['label', 'icon', 'fields'] as const;
 /** Claves de un item de `blockTypes.<t>.fields[]`. */
-const BLOCK_TYPE_FIELD_ALLOWED_KEYS = ['name', 'label', 'widget', 'required', 'options'] as const;
+const BLOCK_TYPE_FIELD_ALLOWED_KEYS = [
+	'name',
+	'label',
+	'widget',
+	'source',
+	'default',
+	'required',
+	'options'
+] as const;
 /** Patrón de la clave de un tipo de bloque: viaja al nombre de componente Astro y al documento de
  *  discovery del sitio, de ahí lo estricto (mismo patrón que `BLOCK_TYPE_NAME_PATTERN` de
  *  `resolve.ts`, duplicado a mano a propósito: este módulo no importa de `resolve.ts`, cada uno
@@ -121,9 +129,10 @@ const LAYOUT_ALLOWED_KEYS = ['label', 'icon'] as const;
  *  `BLOCK_TYPE_NAME_PATTERN` está duplicado respecto a `resolve.ts` (§9.12, L1: este módulo no
  *  importa de `resolve.ts`). */
 const LAYOUT_NAME_PATTERN = /^[a-z][a-z0-9-]*$/;
-/** Subconjunto de widgets permitido DENTRO de un bloque (mismo motivo que `BLOCK_FIELD_WIDGET_IDS`
- *  de `types.ts`, duplicado a mano porque este validador no puede importar el runtime de TS desde
- *  el JSON Schema — ver `manifest-schema.json`, `blockTypes.<t>.fields[].widget`). */
+/** Widgets declarables por un bloque. `relation`/`file` solo son válidos con `source: "record"`:
+ *  esa regla cruzada se comprueba en `validateBlockTypeField`. Duplicado a mano porque este
+ *  validador no puede importar el runtime de TS desde el JSON Schema — ver
+ *  `manifest-schema.json`, `blockTypes.<t>.fields[].widget`. */
 const BLOCK_FIELD_WIDGETS = [
 	'text',
 	'textarea',
@@ -136,6 +145,8 @@ const BLOCK_FIELD_WIDGETS = [
 	'datetime',
 	'select',
 	'chips',
+	'relation',
+	'file',
 	'json'
 ] as const;
 /** Claves de `collections.<c>.social` (tarjeta social SEO/OG, lote "editor" Fase B). */
@@ -1138,6 +1149,22 @@ function validateBlockTypeField(
 			`${base}/widget`,
 			errors,
 			`widget del campo ${index} de blockTypes.${typeName}`
+		);
+	}
+	if ('source' in value) {
+		checkEnum(
+			value.source,
+			['data', 'record'],
+			`${base}/source`,
+			errors,
+			`source del campo ${index} de blockTypes.${typeName}`
+		);
+	}
+	if ((value.widget === 'relation' || value.widget === 'file') && value.source !== 'record') {
+		fail(
+			errors,
+			`${base}/source`,
+			`El widget "${value.widget}" del campo ${index} de blockTypes.${typeName} exige source "record" porque necesita una columna real.`
 		);
 	}
 	if ('required' in value) {
