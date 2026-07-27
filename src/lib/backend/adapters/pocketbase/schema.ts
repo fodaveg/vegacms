@@ -203,7 +203,8 @@ function mapField(
 				target,
 				multiple: maxSelect > 1,
 				maxSelect: maxSelect > 0 ? maxSelect : undefined,
-				minSelect: raw.minSelect || undefined
+				minSelect: raw.minSelect || undefined,
+				cascadeDelete: !!raw.cascadeDelete
 			};
 		}
 
@@ -242,7 +243,10 @@ function mapField(
  * que espera `POST /api/collections` (inverso parcial del mapeo de arriba). Devuelve un objeto
  * suelto (no tipado por el SDK, que declara `fields` como `any[]`).
  */
-export function collectionFieldSpecToPbField(spec: CollectionFieldSpec): Record<string, unknown> {
+export function collectionFieldSpecToPbField(
+	spec: CollectionFieldSpec,
+	relationCollectionId?: string
+): Record<string, unknown> {
 	switch (spec.type) {
 		case 'json':
 			return { name: spec.name, type: 'json' };
@@ -279,6 +283,20 @@ export function collectionFieldSpecToPbField(spec: CollectionFieldSpec): Record<
 			return { name: spec.name, type: 'number', required: spec.required ?? false };
 		case 'date':
 			return { name: spec.name, type: 'date', required: spec.required ?? false };
+		case 'relation':
+			if (!relationCollectionId) {
+				throw new Error(
+					`No se resolvió el collectionId de la relación "${spec.name}" → "${spec.target}"`
+				);
+			}
+			return {
+				name: spec.name,
+				type: 'relation',
+				required: spec.required ?? false,
+				collectionId: relationCollectionId,
+				maxSelect: spec.multiple ? 99 : 1,
+				cascadeDelete: spec.cascadeDelete
+			};
 		case 'autodate':
 			// Enmienda del contrato P6 (§9): `onCreate: true` siempre (es la semántica que P6
 			// necesita, "creado el"); `onUpdate` por defecto `false` — el llamador puede pedir

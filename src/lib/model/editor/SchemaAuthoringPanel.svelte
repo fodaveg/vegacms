@@ -11,15 +11,15 @@
 	 * (capability PROPIA, `backend/port.ts`).
 	 *
 	 * Vocabulario de campo DELIBERADAMENTE reducido frente a `CollectionFieldSpec` completo:
-	 * texto/número/sí-no/fecha/JSON. Fuera de esta UI (aunque el puerto SÍ los admite):
+	 * texto/número/sí-no/fecha/JSON/relación. Fuera de esta UI (aunque el puerto SÍ los admite):
 	 * - `file`: tiene su propio flujo dedicado (`vega_media`, P6/`/media`) con miniaturas y tipos
 	 *   MIME — reintroducir esa complejidad aquí, para colecciones de contenido genéricas, es un
 	 *   subsistema nuevo que este lote no pide.
 	 * - `autodate`: concepto interno de bootstrap (Anexo A, "creado el"); un operador que quiera
 	 *   un campo de fecha se cubre con el tipo `date` normal de esta UI.
-	 * - `select`/`relation`: el propio `CollectionFieldSpec` (`backend/collections.ts`) todavía no
-	 *   los admite (necesitan validar `options`/`target` contra el resto del esquema) — nada que
-	 *   ocultar aquí, el puerto no los ofrece.
+	 * - `select`: el propio `CollectionFieldSpec` (`backend/collections.ts`) todavía no lo admite
+	 *   porque necesita un contrato para validar sus opciones.
+	 * `relation` sí se ofrece: el destino sale del esquema descubierto, nunca de texto libre.
 	 *
 	 * Cada envío EXITOSO (colección creada, o al menos un campo añadido) genera y muestra la
 	 * migración JS correspondiente (`generateSchemaMigration`, `MigrationPanel.svelte`) y llama a
@@ -46,7 +46,8 @@
 
 	const { port, types, t, onSchemaChanged }: Props = $props();
 
-	type DraftFieldType = 'text' | 'number' | 'bool' | 'date' | 'json';
+	type DraftFieldType = 'text' | 'number' | 'bool' | 'date' | 'json' | 'relation';
+	type RelationDeleteMode = 'unlink' | 'cascade';
 
 	interface FieldDraft {
 		id: string;
@@ -55,10 +56,23 @@
 		required: boolean;
 		/** Solo se usa para `type === 'text'`: cadena cruda del input, `''` = sin límite. */
 		max: string;
+		/** Solo para `relation`: nombre de una colección presente en `types`. */
+		relationTarget: string;
+		relationMultiple: boolean;
+		relationDeleteMode: RelationDeleteMode;
 	}
 
 	function newFieldDraft(): FieldDraft {
-		return { id: crypto.randomUUID(), name: '', type: 'text', required: false, max: '' };
+		return {
+			id: crypto.randomUUID(),
+			name: '',
+			type: 'text',
+			required: false,
+			max: '',
+			relationTarget: '',
+			relationMultiple: false,
+			relationDeleteMode: 'unlink'
+		};
 	}
 
 	/** `null` si la fila no tiene nombre (fila en blanco descartada al enviar, nunca un error). */
@@ -83,7 +97,23 @@
 				return { name, type: 'date', required: draft.required };
 			case 'json':
 				return { name, type: 'json' };
+			case 'relation':
+				if (!draft.relationTarget) return null;
+				return {
+					name,
+					type: 'relation',
+					target: draft.relationTarget,
+					required: draft.required,
+					multiple: draft.relationMultiple,
+					cascadeDelete: draft.relationDeleteMode === 'cascade'
+				};
 		}
+	}
+
+	function draftsAreValid(drafts: FieldDraft[]): boolean {
+		return drafts.every(
+			(draft) => !draft.name.trim() || draft.type !== 'relation' || draft.relationTarget.length > 0
+		);
 	}
 
 	function errorMessage(err: unknown): string {
@@ -106,9 +136,19 @@
 	 *  mensaje de éxito se quedaría sin `{name}` (el `<input>` ya se vació). */
 	let createdName = $state<string | null>(null);
 
+	/** Destinos relation: tipos escribibles descubiertos. PocketBase no permite que una colección
+	 *  base relacione hacia una view (`readonly`). Excluye además la plomería `vega`/`vega_*`,
+	 *  salvo `vega_media`: enlazar assets es precisamente uno de los casos de uso. */
+	const relationTargetCollections = $derived(
+		types.filter(
+			(type) =>
+				!type.readonly && (!isReservedCollectionName(type.name) || type.name === 'vega_media')
+		)
+	);
 	const createNameValid = $derived(
 		createName.trim().length > 0 && isUserAuthorableCollectionName(createName.trim())
 	);
+	const createFieldsValid = $derived(draftsAreValid(createFields));
 
 	function addCreateFieldRow(): void {
 		createFields = [...createFields, newFieldDraft()];
@@ -120,7 +160,7 @@
 
 	async function handleCreateSubmit(event: SubmitEvent): Promise<void> {
 		event.preventDefault();
-		if (!createNameValid || createStatus === 'saving') return;
+		if (!createNameValid || !createFieldsValid || createStatus === 'saving') return;
 
 		const name = createName.trim();
 		const fields = createFields
@@ -164,6 +204,7 @@
 	let addError = $state<string | null>(null);
 	let addMigration = $state<GeneratedMigration | null>(null);
 	let addResultMessage = $state<string | null>(null);
+	const addFieldsValid = $derived(draftsAreValid(addFields));
 
 	function addAddFieldRow(): void {
 		addFields = [...addFields, newFieldDraft()];
@@ -175,7 +216,7 @@
 
 	async function handleAddSubmit(event: SubmitEvent): Promise<void> {
 		event.preventDefault();
-		if (!addTarget || addStatus === 'saving') return;
+		if (!addTarget || !addFieldsValid || addStatus === 'saving') return;
 
 		const specs = addFields.map(draftToSpec).filter((f): f is CollectionFieldSpec => f !== null);
 		if (specs.length === 0) return;
@@ -224,6 +265,7 @@
 			<option value="bool">{t('settings.schema.fields.type.bool')}</option>
 			<option value="date">{t('settings.schema.fields.type.date')}</option>
 			<option value="json">{t('settings.schema.fields.type.json')}</option>
+			<option value="relation">{t('settings.schema.fields.type.relation')}</option>
 		</select>
 		{#if draft.type !== 'json'}
 			<label class="vega-field-checkbox">
@@ -240,6 +282,48 @@
 				aria-label={t('settings.schema.fields.maxLabel')}
 				bind:value={draft.max}
 			/>
+		{/if}
+		{#if draft.type === 'relation'}
+			<div class="vega-field-relation-options">
+				<label>
+					<span>{t('settings.schema.fields.relation.targetLabel')}</span>
+					<select
+						class="vega-field-relation-target"
+						aria-invalid={draft.name.trim() && !draft.relationTarget ? 'true' : undefined}
+						bind:value={draft.relationTarget}
+					>
+						<option value="" disabled>
+							{relationTargetCollections.length > 0
+								? t('settings.schema.fields.relation.targetPlaceholder')
+								: t('settings.schema.fields.relation.targetEmpty')}
+						</option>
+						{#each relationTargetCollections as type (type.name)}
+							<option value={type.name}>{type.name}</option>
+						{/each}
+					</select>
+				</label>
+				<label class="vega-field-checkbox">
+					<input type="checkbox" bind:checked={draft.relationMultiple} />
+					{t('settings.schema.fields.relation.multipleLabel')}
+				</label>
+				<label>
+					<span>{t('settings.schema.fields.relation.onDeleteLabel')}</span>
+					<select bind:value={draft.relationDeleteMode}>
+						<option value="unlink">{t('settings.schema.fields.relation.onDeleteUnlink')}</option>
+						<option value="cascade">{t('settings.schema.fields.relation.onDeleteCascade')}</option>
+					</select>
+				</label>
+			</div>
+			{#if draft.name.trim() && !draft.relationTarget}
+				<p class="vega-schema-field-error">
+					{t('settings.schema.fields.relation.targetRequired')}
+				</p>
+			{/if}
+			{#if draft.relationDeleteMode === 'cascade'}
+				<p class="vega-field-warning">
+					{t('settings.schema.fields.relation.cascadeWarning')}
+				</p>
+			{/if}
 		{/if}
 		<button
 			type="button"
@@ -293,7 +377,7 @@
 				<button
 					type="submit"
 					class="vega-schema-submit"
-					disabled={!createNameValid || createStatus === 'saving'}
+					disabled={!createNameValid || !createFieldsValid || createStatus === 'saving'}
 				>
 					{createStatus === 'saving'
 						? t('settings.schema.create.submitting')
@@ -351,7 +435,7 @@
 					<button
 						type="submit"
 						class="vega-schema-submit"
-						disabled={!addTarget || addStatus === 'saving'}
+						disabled={!addTarget || !addFieldsValid || addStatus === 'saving'}
 					>
 						{addStatus === 'saving'
 							? t('settings.schema.addFields.submitting')
@@ -511,6 +595,37 @@
 		color: var(--warning);
 	}
 
+	.vega-field-relation-options {
+		display: grid;
+		grid-template-columns: minmax(12rem, 1fr) auto minmax(14rem, 1fr);
+		flex-basis: 100%;
+		align-items: end;
+		gap: 0.65rem;
+		padding-top: 0.25rem;
+		border-top: 1px solid var(--line-soft);
+	}
+
+	.vega-field-relation-options > label:not(.vega-field-checkbox) {
+		display: grid;
+		gap: 0.25rem;
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: var(--ink-2);
+	}
+
+	.vega-field-relation-options select {
+		width: 100%;
+	}
+
+	.vega-field-relation-options select[aria-invalid='true'] {
+		border-color: var(--danger);
+	}
+
+	.vega-schema-authoring :is(input, select, button):focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
 	.vega-schema-add-row {
 		align-self: flex-start;
 		padding: 0.3rem 0.7rem;
@@ -549,5 +664,12 @@
 		margin: 0;
 		font-size: 0.82rem;
 		color: var(--danger);
+	}
+
+	@media (max-width: 700px) {
+		.vega-field-relation-options {
+			grid-template-columns: 1fr;
+			align-items: start;
+		}
 	}
 </style>

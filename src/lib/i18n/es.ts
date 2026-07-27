@@ -806,6 +806,18 @@ export const es = {
 	'settings.schema.fields.type.bool': 'Sí/No',
 	'settings.schema.fields.type.date': 'Fecha',
 	'settings.schema.fields.type.json': 'JSON',
+	'settings.schema.fields.type.relation': 'Relación',
+	'settings.schema.fields.relation.targetLabel': 'Colección relacionada',
+	'settings.schema.fields.relation.targetPlaceholder': 'Elige una colección…',
+	'settings.schema.fields.relation.targetEmpty': 'No hay colecciones editables disponibles',
+	'settings.schema.fields.relation.targetRequired':
+		'Elige la colección con la que se relaciona este campo.',
+	'settings.schema.fields.relation.multipleLabel': 'Permitir varios registros',
+	'settings.schema.fields.relation.onDeleteLabel': 'Al borrar el registro relacionado',
+	'settings.schema.fields.relation.onDeleteUnlink': 'Conservar este registro',
+	'settings.schema.fields.relation.onDeleteCascade': 'Borrar este registro',
+	'settings.schema.fields.relation.cascadeWarning':
+		'PocketBase borrará este registro al eliminar su última relación. Esta acción no se puede deshacer.',
 	'settings.schema.error': 'Error: {message}',
 	// Migración JS emitida tras crear/añadir con éxito (mitad 2 del lote "esquema"): sin esto,
 	// cada edición de esquema desde Vega aleja producción del repo EN SILENCIO.

@@ -1159,6 +1159,130 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 				expect(created.values.created).not.toBe('');
 			});
 
+			test('crea una relation hacia una colección anterior del mismo lote y resuelve su destino', async () => {
+				const port = await makeAuthedPort();
+				const target = uniqueCollectionName();
+				const source = uniqueCollectionName();
+
+				await port.ensureCollections([
+					{ name: target, fields: [{ name: 'title', type: 'text' }] },
+					{
+						name: source,
+						fields: [
+							{
+								name: 'parent',
+								type: 'relation',
+								target,
+								required: true,
+								multiple: false,
+								cascadeDelete: true
+							}
+						]
+					}
+				]);
+
+				const types = await port.listContentTypes();
+				expect(types.find((type) => type.name === source)?.fields).toContainEqual(
+					expect.objectContaining({
+						name: 'parent',
+						type: 'relation',
+						target,
+						required: true,
+						multiple: false,
+						cascadeDelete: true
+					})
+				);
+			});
+
+			test('rechaza una relation base hacia una view antes de escribir', async () => {
+				const port = await makeAuthedPort();
+				const source = uniqueCollectionName();
+
+				await expect(
+					port.ensureCollections([
+						{
+							name: source,
+							fields: [
+								{
+									name: 'summary',
+									type: 'relation',
+									target: 'category_view',
+									multiple: false,
+									cascadeDelete: false
+								}
+							]
+						}
+					])
+				).rejects.toMatchObject({
+					kind: 'validation',
+					fieldErrors: {
+						summary: { code: 'vega_relation_target_not_found' }
+					}
+				});
+			});
+
+			test('cascadeDelete elimina el registro raíz solo al borrar su último destino', async () => {
+				const port = await makeAuthedPort();
+				const target = uniqueCollectionName();
+				const source = uniqueCollectionName();
+
+				await port.ensureCollections([
+					{ name: target, fields: [{ name: 'title', type: 'text' }] },
+					{
+						name: source,
+						fields: [
+							{
+								name: 'parents',
+								type: 'relation',
+								target,
+								multiple: true,
+								cascadeDelete: true
+							}
+						]
+					}
+				]);
+
+				const first = await port.create(target, { title: 'Primero' });
+				const second = await port.create(target, { title: 'Segundo' });
+				const owner = await port.create(source, { parents: [first.id, second.id] });
+
+				await port.delete(target, first.id);
+				expect((await port.get(source, owner.id)).values.parents).toEqual([second.id]);
+
+				await port.delete(target, second.id);
+				await expect(port.get(source, owner.id)).rejects.toMatchObject({ kind: 'not-found' });
+			});
+
+			test('una relation required sin cascada bloquea el borrado de forma atómica', async () => {
+				const port = await makeAuthedPort();
+				const target = uniqueCollectionName();
+				const source = uniqueCollectionName();
+
+				await port.ensureCollections([
+					{ name: target, fields: [{ name: 'title', type: 'text' }] },
+					{
+						name: source,
+						fields: [
+							{
+								name: 'parent',
+								type: 'relation',
+								target,
+								required: true,
+								multiple: false,
+								cascadeDelete: false
+							}
+						]
+					}
+				]);
+
+				const parent = await port.create(target, { title: 'Protegido' });
+				const owner = await port.create(source, { parent: parent.id });
+
+				await expect(port.delete(target, parent.id)).rejects.toMatchObject({ kind: 'backend' });
+				expect((await port.get(target, parent.id)).values.title).toBe('Protegido');
+				expect((await port.get(source, owner.id)).values.parent).toBe(parent.id);
+			});
+
 			// v1 solo modela una identidad superuser (D1): no hay una sesión autenticada
 			// NO-superuser con la que probar "capability presente pero sin permiso → forbidden"
 			// sin inventar un segundo tipo de usuario que el contrato no define. Skip declarado,
@@ -1231,6 +1355,29 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 				await expect(port.create(name, {})).rejects.toMatchObject({
 					kind: 'validation',
 					fieldErrors: { headline: { code: 'validation_required' } }
+				});
+			});
+
+			test('relation valida el destino contra el esquema descubierto antes de escribir', async () => {
+				const port = await makeAuthedPort();
+				const source = uniqueCollectionName();
+				await port.ensureCollections([{ name: source, fields: [] }]);
+
+				await expect(
+					port.addCollectionFields(source, [
+						{
+							name: 'parent',
+							type: 'relation',
+							target: 'target_que_no_existe',
+							multiple: false,
+							cascadeDelete: false
+						}
+					])
+				).rejects.toMatchObject({
+					kind: 'validation',
+					fieldErrors: {
+						parent: { code: 'vega_relation_target_not_found' }
+					}
 				});
 			});
 

@@ -776,6 +776,17 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'settings.schema.fields.type.bool': 'Yes/No',
 	'settings.schema.fields.type.date': 'Date',
 	'settings.schema.fields.type.json': 'JSON',
+	'settings.schema.fields.type.relation': 'Relation',
+	'settings.schema.fields.relation.targetLabel': 'Related collection',
+	'settings.schema.fields.relation.targetPlaceholder': 'Choose a collection…',
+	'settings.schema.fields.relation.targetEmpty': 'No writable collections available',
+	'settings.schema.fields.relation.targetRequired': 'Choose the collection this field relates to.',
+	'settings.schema.fields.relation.multipleLabel': 'Allow several records',
+	'settings.schema.fields.relation.onDeleteLabel': 'When the related record is deleted',
+	'settings.schema.fields.relation.onDeleteUnlink': 'Keep this record',
+	'settings.schema.fields.relation.onDeleteCascade': 'Delete this record',
+	'settings.schema.fields.relation.cascadeWarning':
+		'PocketBase will delete this record when deleting its last related record. This cannot be undone.',
 	'settings.schema.error': 'Error: {message}',
 	// JS migration emitted after a successful create/add (schema batch, half 2): without this,
 	// every schema edit made from Vega drifts production away from the repo SILENTLY.

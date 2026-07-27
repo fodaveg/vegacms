@@ -274,6 +274,8 @@ export type Field =
 			multiple: boolean;
 			maxSelect?: number;
 			minSelect?: number;
+			/** Si al borrar destinos no queda ninguno enlazado, el backend elimina el registro raíz. */
+			cascadeDelete?: boolean;
 	  })
 	| (FieldBase & {
 			type: 'file';

@@ -106,6 +106,10 @@ function collectionFieldSpecToPbImportField(
 			return { name: spec.name, type: 'number' };
 		case 'date':
 			return { name: spec.name, type: 'date' };
+		case 'relation':
+			throw new Error(
+				'VEGA_MEDIA_COLLECTION no puede serializar relation sin resolver su collectionId'
+			);
 		case 'file':
 			return {
 				name: spec.name,
