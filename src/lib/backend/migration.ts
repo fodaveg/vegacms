@@ -19,6 +19,13 @@
  * para tocar una ya existente. El `up`/`down` que emite este módulo es el MISMO par de
  * operaciones que el adaptador acaba de ejecutar por red, en el mismo orden — pégalo tal cual en
  * `pb_migrations/` del proyecto y commítalo junto al cambio de esquema.
+ *
+ * Cuando una creación incluye varias colecciones, sus relaciones forman un grafo: el destino
+ * debe guardarse antes que la colección que lo referencia. Este módulo ordena ese grafo y
+ * RECHAZA los ciclos reales, nombrando su recorrido, en vez de emitir una migración que sabemos
+ * inaplicable. Resolver ciclos en dos fases (crear sin relaciones y añadirlas después) queda
+ * deliberadamente fuera: cambiaría la forma de la operación y no hace falta para el caso
+ * desbloqueado aquí. Las autorreferencias no forman arista porque PocketBase las admite.
  */
 
 import type { CollectionFieldSpec, CollectionSpec } from './collections';
@@ -66,30 +73,87 @@ function indent(text: string, level: number): string {
 }
 
 function renderCreateMigration(specs: CollectionSpec[]): string {
+	const orderedSpecs = topologicallySortCollectionSpecs(specs);
 	const single = specs.length === 1;
-	const ups = specs
+	const ups = orderedSpecs
 		.map((spec, i) => {
 			const varName = single ? 'collection' : `collection${i + 1}`;
+			const selfRelations = spec.fields.filter(
+				(field) => field.type === 'relation' && field.target === spec.name
+			);
+			const initialFields = spec.fields.filter(
+				(field) => field.type !== 'relation' || field.target !== spec.name
+			);
 			const payload = {
 				name: spec.name,
 				type: 'base',
-				fields: spec.fields.map(collectionFieldSpecToMigrationField)
+				fields: initialFields.map(collectionFieldSpecToMigrationField)
 			};
-			return (
-				`\tconst ${varName} = new Collection(${indent(renderMigrationPayload(payload, spec.fields), 1)});\n` +
-				`\tapp.save(${varName});`
-			);
+			const create =
+				`\tconst ${varName} = new Collection(${indent(renderMigrationPayload(payload, initialFields), 1)});\n` +
+				`\tapp.save(${varName});`;
+			if (selfRelations.length === 0) return create;
+
+			const addSelfRelations = selfRelations
+				.map((field) => {
+					const fieldPayload = collectionFieldSpecToMigrationField(field);
+					const rendered = renderMigrationPayload(fieldPayload, [field], {
+						collectionName: spec.name,
+						varName
+					});
+					return `\t${varName}.fields.add(new Field(${indent(rendered, 1)}));`;
+				})
+				.join('\n');
+			return `${create}\n\n${addSelfRelations}\n` + `\tapp.save(${varName});`;
 		})
 		.join('\n\n');
 
-	// Borrado en orden INVERSO de creación (defensivo: aunque el vocabulario v1 no tiene
-	// `relation`, si un futuro spec dependiera de otro, deshacer al revés es lo seguro).
-	const downs = [...specs]
+	// Borrado en orden INVERSO al orden topológico de creación: primero desaparecen quienes
+	// referencian y después sus destinos.
+	const downs = [...orderedSpecs]
 		.reverse()
 		.map((spec) => `\tapp.delete(app.findCollectionByNameOrId(${JSON.stringify(spec.name)}));`)
 		.join('\n');
 
 	return migrateTemplate(ups, downs);
+}
+
+/**
+ * Orden topológico determinista: visita antes cada destino `relation` incluido en el mismo lote
+ * e ignora destinos externos (deben existir ya) y autorreferencias. El DFS permite informar el
+ * ciclo REAL, sin mezclar colecciones que solo dependan de él.
+ */
+function topologicallySortCollectionSpecs(specs: CollectionSpec[]): CollectionSpec[] {
+	const byName = new Map(specs.map((spec) => [spec.name, spec]));
+	const state = new Map<string, 'visiting' | 'visited'>();
+	const stack: string[] = [];
+	const ordered: CollectionSpec[] = [];
+
+	const visit = (spec: CollectionSpec): void => {
+		const currentState = state.get(spec.name);
+		if (currentState === 'visited') return;
+		if (currentState === 'visiting') {
+			const cycleStart = stack.indexOf(spec.name);
+			const cycle = [...stack.slice(cycleStart), spec.name];
+			throw new Error(`Ciclo de dependencias relation entre colecciones: ${cycle.join(' -> ')}.`);
+		}
+
+		state.set(spec.name, 'visiting');
+		stack.push(spec.name);
+
+		for (const field of spec.fields) {
+			if (field.type !== 'relation' || field.target === spec.name) continue;
+			const dependency = byName.get(field.target);
+			if (dependency) visit(dependency);
+		}
+
+		stack.pop();
+		state.set(spec.name, 'visited');
+		ordered.push(spec);
+	};
+
+	for (const spec of specs) visit(spec);
+	return ordered;
 }
 
 function renderAddFieldsMigration(op: {
@@ -133,14 +197,19 @@ function migrateTemplate(up: string, down: string): string {
  */
 function renderMigrationPayload(
 	payload: Record<string, unknown>,
-	fields: CollectionFieldSpec[]
+	fields: CollectionFieldSpec[],
+	selfRelation?: { collectionName: string; varName: string }
 ): string {
 	let rendered = JSON.stringify(payload, null, 2);
 	for (const field of fields) {
 		if (field.type !== 'relation') continue;
+		const collectionIdExpression =
+			selfRelation?.collectionName === field.target
+				? `${selfRelation.varName}.id`
+				: `app.findCollectionByNameOrId(${JSON.stringify(field.target)}).id`;
 		rendered = rendered.replace(
 			`"collectionId": ${JSON.stringify(field.target)}`,
-			`"collectionId": app.findCollectionByNameOrId(${JSON.stringify(field.target)}).id`
+			`"collectionId": ${collectionIdExpression}`
 		);
 	}
 	return rendered;
