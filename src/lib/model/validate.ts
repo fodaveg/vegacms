@@ -35,7 +35,8 @@ const ROOT_ALLOWED_KEYS = [
 	'nav',
 	'collections',
 	'revisions',
-	'mergedViews'
+	'mergedViews',
+	'blockTypes'
 ] as const;
 const SITE_ALLOWED_KEYS = ['name', 'defaultTheme', 'locale'] as const;
 /** Claves de `revisions` (historial/papelera, `#lote-integridad` Fase B §7). */
@@ -85,8 +86,41 @@ const FIELD_GROUP_ITEM_ALLOWED_KEYS = ['name', 'columns', 'placement'] as const;
 const FIELD_GROUP_PLACEMENTS = ['main', 'aside'] as const;
 /** Claves de `collections.<c>.defaultSort` (orden inicial del listado). */
 const DEFAULT_SORT_ALLOWED_KEYS = ['field', 'dir'] as const;
-/** Claves de `collections.<c>.blocks` (bloques ordenables embebidos, lote "editor" Fase A). */
-const BLOCKS_ALLOWED_KEYS = ['collection', 'parentField', 'orderField'] as const;
+/** Claves OBLIGATORIAS de `collections.<c>.blocks` (bloques ordenables embebidos, lote "editor"
+ *  Fase A): las tres juntas o ninguna, sin semántica parcial (§ `ResolvedBlocksConfig`). */
+const BLOCKS_REQUIRED_KEYS = ['collection', 'parentField', 'orderField'] as const;
+/** Claves OPCIONALES de `collections.<c>.blocks` (vocabulario de tipos de bloque `#4cfd4f7f`): a
+ *  diferencia de las de arriba, cada una degrada SOLA (`resolveBlockTypeFields`, `resolve.ts`) —
+ *  aquí solo se valida la FORMA (texto no vacío), el contenido (¿campo text/json real de la
+ *  colección hija? ¿las dos a la vez?) es de `resolveContentModel`. */
+const BLOCKS_OPTIONAL_KEYS = ['typeField', 'dataField'] as const;
+const BLOCKS_ALLOWED_KEYS = [...BLOCKS_REQUIRED_KEYS, ...BLOCKS_OPTIONAL_KEYS] as const;
+/** Claves de un tipo de bloque `blockTypes.<t>` (vocabulario de tipos de bloque `#4cfd4f7f`). */
+const BLOCK_TYPE_ALLOWED_KEYS = ['label', 'icon', 'fields'] as const;
+/** Claves de un item de `blockTypes.<t>.fields[]`. */
+const BLOCK_TYPE_FIELD_ALLOWED_KEYS = ['name', 'label', 'widget', 'required', 'options'] as const;
+/** Patrón de la clave de un tipo de bloque: viaja al nombre de componente Astro y al documento de
+ *  discovery del sitio, de ahí lo estricto (mismo patrón que `BLOCK_TYPE_NAME_PATTERN` de
+ *  `resolve.ts`, duplicado a mano a propósito: este módulo no importa de `resolve.ts`, cada uno
+ *  replica el schema por su cuenta, L1/§9.12). */
+const BLOCK_TYPE_NAME_PATTERN = /^[a-z][a-z0-9-]*$/;
+/** Subconjunto de widgets permitido DENTRO de un bloque (mismo motivo que `BLOCK_FIELD_WIDGET_IDS`
+ *  de `types.ts`, duplicado a mano porque este validador no puede importar el runtime de TS desde
+ *  el JSON Schema — ver `manifest-schema.json`, `blockTypes.<t>.fields[].widget`). */
+const BLOCK_FIELD_WIDGETS = [
+	'text',
+	'textarea',
+	'markdown',
+	'richtext',
+	'number',
+	'switch',
+	'email',
+	'url',
+	'datetime',
+	'select',
+	'chips',
+	'json'
+] as const;
 /** Claves de `collections.<c>.social` (tarjeta social SEO/OG, lote "editor" Fase B). */
 const SOCIAL_ALLOWED_KEYS = [
 	'titleField',
@@ -366,6 +400,7 @@ function validateRoot(raw: JsonValue, errors: ManifestValidationErrorEntry[]): v
 	if ('collections' in raw) validateCollections(raw.collections, errors);
 	if ('revisions' in raw) validateRevisions(raw.revisions, errors);
 	if ('mergedViews' in raw) validateMergedViews(raw.mergedViews, errors);
+	if ('blockTypes' in raw) validateBlockTypes(raw.blockTypes, errors);
 }
 
 /** `revisions` (historial/papelera, `#lote-integridad` Fase B §7): las tres claves opcionales,
@@ -739,13 +774,16 @@ function validateDefaultSort(
 	}
 }
 
-/** `blocks` (bloques ordenables embebidos, lote "editor" Fase A): objeto `{ collection,
- *  parentField, orderField }`, las tres claves textos no vacíos y OBLIGATORIAS (a diferencia de
- *  `defaultSort`, ninguna es opcional: sin las tres no hay ni colección que listar, ni campo por
- *  el que filtrar, ni campo por el que ordenar). Igual que `defaultSort`/`statusLabels`, solo se
- *  valida la FORMA a nivel de schema; que `collection` exista en el esquema y que `parentField`/
- *  `orderField` sean del tipo correcto en ELLA es CONTENIDO (`resolveContentModel`,
- *  `blocks-invalid`), no sintaxis. */
+/** `blocks` (bloques ordenables embebidos, lote "editor" Fase A + vocabulario de tipos de bloque
+ *  `#4cfd4f7f`): objeto `{ collection, parentField, orderField, typeField?, dataField? }`. Las
+ *  TRES primeras son textos no vacíos y OBLIGATORIAS JUNTAS (a diferencia de `defaultSort`,
+ *  ninguna es opcional: sin las tres no hay ni colección que listar, ni campo por el que filtrar,
+ *  ni campo por el que ordenar); `typeField`/`dataField` son textos no vacíos pero OPCIONALES
+ *  (cada una por separado, el schema no exige que vengan juntas — esa regla de pareja es
+ *  CONTENIDO, `resolveContentModel`/`blocks-heterogeneous-invalid`, no sintaxis). Igual que
+ *  `defaultSort`/`statusLabels`, solo se valida la FORMA a nivel de schema; que `collection` exista
+ *  en el esquema y que el resto de campos sean del tipo correcto en ELLA es CONTENIDO
+ *  (`blocks-invalid`/`blocks-heterogeneous-invalid`), no sintaxis. */
 function validateBlocks(
 	collection: string,
 	value: JsonValue,
@@ -761,7 +799,7 @@ function validateBlocks(
 		return;
 	}
 	checkAdditionalProperties(value, BLOCKS_ALLOWED_KEYS, base, errors);
-	for (const key of BLOCKS_ALLOWED_KEYS) {
+	for (const key of BLOCKS_REQUIRED_KEYS) {
 		if (!(key in value)) {
 			fail(errors, `${base}/${key}`, `blocks de "${collection}" debe declarar "${key}".`);
 			continue;
@@ -774,6 +812,18 @@ function validateBlocks(
 			errors,
 			`blocks.${key} de "${collection}"`
 		);
+	}
+	for (const key of BLOCKS_OPTIONAL_KEYS) {
+		if (key in value) {
+			checkString(
+				value[key],
+				`${base}/${key}`,
+				1,
+				Infinity,
+				errors,
+				`blocks.${key} de "${collection}"`
+			);
+		}
 	}
 }
 
@@ -910,6 +960,135 @@ function validateField(
 	}
 	if ('listable' in value)
 		checkBoolean(value.listable, `${base}/listable`, errors, `listable de ${label}`);
+}
+
+// ————— Vocabulario de tipos de bloque (blockTypes, RAÍZ, `#4cfd4f7f`) —————
+
+function validateBlockTypes(value: JsonValue, errors: ManifestValidationErrorEntry[]): void {
+	if (!isPlainObject(value)) {
+		fail(errors, '/blockTypes', 'blockTypes debe ser un objeto.');
+		return;
+	}
+	for (const [name, typeValue] of Object.entries(value)) {
+		validateBlockType(name, typeValue, errors);
+	}
+}
+
+function validateBlockType(
+	name: string,
+	value: JsonValue,
+	errors: ManifestValidationErrorEntry[]
+): void {
+	const base = `/blockTypes/${name}`;
+	if (!BLOCK_TYPE_NAME_PATTERN.test(name)) {
+		fail(errors, base, `La clave "${name}" de blockTypes no cumple el patrón ^[a-z][a-z0-9-]*$.`);
+	}
+	if (!isPlainObject(value)) {
+		fail(errors, base, `blockTypes.${name} debe ser un objeto.`);
+		return;
+	}
+	checkAdditionalProperties(value, BLOCK_TYPE_ALLOWED_KEYS, base, errors);
+
+	if (!('label' in value)) {
+		fail(errors, `${base}/label`, `blockTypes.${name} debe declarar "label".`);
+	} else {
+		checkString(value.label, `${base}/label`, 1, 60, errors, `label de blockTypes.${name}`);
+	}
+	if ('icon' in value) {
+		checkString(value.icon, `${base}/icon`, 1, Infinity, errors, `icon de blockTypes.${name}`);
+	}
+	if (!('fields' in value)) {
+		fail(errors, `${base}/fields`, `blockTypes.${name} debe declarar "fields".`);
+		return;
+	}
+	if (!Array.isArray(value.fields) || value.fields.length < 1) {
+		fail(
+			errors,
+			`${base}/fields`,
+			`fields de blockTypes.${name} debe ser un array con al menos un elemento.`
+		);
+		return;
+	}
+	value.fields.forEach((fieldValue, index) => {
+		validateBlockTypeField(name, index, fieldValue, errors);
+	});
+}
+
+function validateBlockTypeField(
+	typeName: string,
+	index: number,
+	value: JsonValue,
+	errors: ManifestValidationErrorEntry[]
+): void {
+	const base = `/blockTypes/${typeName}/fields/${index}`;
+	if (!isPlainObject(value)) {
+		fail(errors, base, `El campo ${index} de blockTypes.${typeName} debe ser un objeto.`);
+		return;
+	}
+	checkAdditionalProperties(value, BLOCK_TYPE_FIELD_ALLOWED_KEYS, base, errors);
+
+	if (!('name' in value)) {
+		fail(
+			errors,
+			`${base}/name`,
+			`El campo ${index} de blockTypes.${typeName} debe declarar "name".`
+		);
+	} else {
+		checkString(
+			value.name,
+			`${base}/name`,
+			1,
+			Infinity,
+			errors,
+			`name del campo ${index} de blockTypes.${typeName}`
+		);
+	}
+	if (!('label' in value)) {
+		fail(
+			errors,
+			`${base}/label`,
+			`El campo ${index} de blockTypes.${typeName} debe declarar "label".`
+		);
+	} else {
+		checkString(
+			value.label,
+			`${base}/label`,
+			1,
+			60,
+			errors,
+			`label del campo ${index} de blockTypes.${typeName}`
+		);
+	}
+	if (!('widget' in value)) {
+		fail(
+			errors,
+			`${base}/widget`,
+			`El campo ${index} de blockTypes.${typeName} debe declarar "widget".`
+		);
+	} else {
+		checkEnum(
+			value.widget,
+			BLOCK_FIELD_WIDGETS,
+			`${base}/widget`,
+			errors,
+			`widget del campo ${index} de blockTypes.${typeName}`
+		);
+	}
+	if ('required' in value) {
+		checkBoolean(
+			value.required,
+			`${base}/required`,
+			errors,
+			`required del campo ${index} de blockTypes.${typeName}`
+		);
+	}
+	if ('options' in value) {
+		const label = `options del campo ${index} de blockTypes.${typeName}`;
+		checkStringArray(value.options, `${base}/options`, { minItemLength: 1 }, errors, label);
+		if (Array.isArray(value.options) && value.options.length < 1) {
+			fail(errors, `${base}/options`, `${label} debe tener al menos un elemento.`);
+		}
+	}
 }
 
 // ————— Vistas fusionadas (mergedViews, L7a) —————

@@ -40,6 +40,18 @@ export interface ContentModel {
 	 *  verdad de las vistas en sí (sources, filtros…), `nav` solo la referencia para pintar el
 	 *  enlace. */
 	mergedViews: ResolvedMergedView[];
+	/**
+	 * (M) Vocabulario de tipos de bloque declarado en `blockTypes` (RAÍZ del manifiesto, vocabulario
+	 * de tipos de bloque `#4cfd4f7f`): hero, texto, galería, cta… En ORDEN de declaración del
+	 * manifiesto. RAÍZ y no per-colección a propósito (ver `ResolvedBlockType`): un sitio tiene UN
+	 * vocabulario de componentes, y `collections.<c>.blocks.typeField` de cualquier colección
+	 * referencia nombres de ESTA lista, no una copia local. Cardinal <= nº de claves de
+	 * `blockTypes` (un tipo cuya clave/label/fields no valida se descarta entero, `block-type-
+	 * invalid`, y no aparece aquí). `[]` si el manifiesto no declara `blockTypes` — SIN warning
+	 * (mismo criterio opt-in que el resto de capacidades nuevas: un manifiesto que no lo declara no
+	 * cambia nada).
+	 */
+	blockTypes: ResolvedBlockType[];
 	/** Discrepancias manifiesto↔esquema y problemas de lectura. Parte del modelo, no un log. */
 	warnings: ModelWarning[];
 	/** Meta de procedencia del manifiesto. */
@@ -242,15 +254,21 @@ export interface ResolvedSocialCardConfig {
 }
 
 /**
- * (M) Declaración ya validada de `collections.<c>.blocks` (lote "editor", Fase A): la colección
- * hija de bloques + los dos campos que la anclan a ESTE tipo padre. Las tres piezas se validan
- * juntas contra el esquema REAL (nunca solo la forma JSON, ver `resolveBlocks` en `resolve.ts`):
- * `collection` debe existir en el esquema descubierto, `parentField` debe ser un campo `relation`
- * de esa colección hija que apunte de vuelta a este tipo (no-múltiple: un bloque pertenece a UN
- * padre, nunca se comparte entre varios) y `orderField` debe ser un campo `number` de la misma
- * colección hija. Cualquiera de las tres inválida invalida la capacidad ENTERA (`blocks-invalid`,
- * `null`) — no hay "bloques a medias": sin las tres piezas no hay ni colección que listar, ni
- * campo por el que filtrar, ni campo por el que ordenar.
+ * (M) Declaración ya validada de `collections.<c>.blocks` (lote "editor", Fase A + vocabulario de
+ * tipos de bloque `#4cfd4f7f`): la colección hija de bloques + los campos que la anclan a ESTE tipo
+ * padre. `collection`/`parentField`/`orderField` se validan juntas contra el esquema REAL (nunca
+ * solo la forma JSON, ver `resolveBlocks` en `resolve.ts`): `collection` debe existir en el esquema
+ * descubierto, `parentField` debe ser un campo `relation` de esa colección hija que apunte de
+ * vuelta a este tipo (no-múltiple: un bloque pertenece a UN padre, nunca se comparte entre varios)
+ * y `orderField` debe ser un campo `number` de la misma colección hija. Cualquiera de las tres
+ * inválida invalida la capacidad ENTERA (`blocks-invalid`, `null`) — no hay "bloques a medias" para
+ * estas tres: sin ellas no hay ni colección que listar, ni campo por el que filtrar, ni campo por
+ * el que ordenar.
+ *
+ * `typeField`/`dataField` (opcionales, ver más abajo) NO comparten ese "todo o nada": son una
+ * capacidad NUEVA que se apoya en las tres de arriba, así que una declaración a medias de ELLAS no
+ * puede quitar una capacidad que YA funcionaba (el modo homogéneo histórico) — degradan solas
+ * (`blocks-heterogeneous-invalid`), nunca invalidan `collection`/`parentField`/`orderField`.
  */
 export interface ResolvedBlocksConfig {
 	/** Nombre de la colección hija en el backend (= `ResolvedContentType.name` de los bloques). */
@@ -263,6 +281,75 @@ export interface ResolvedBlocksConfig {
 	 *  vocabulario que `orderField` a nivel de colección, §"orden manual"): el reorder por
 	 *  arrastre/teclado de la lista embebida lo escribe, nunca lo pinta el mini-formulario. */
 	orderField: string;
+	/**
+	 * (M, opcional) Campo `text` de la colección hija que guarda el NOMBRE de un tipo de
+	 * `ContentModel.blockTypes` para cada registro — COLUMNA REAL a propósito (la regla que
+	 * gobierna todo el vocabulario: lo que haya que consultar/filtrar/agrupar es columna, lo que
+	 * solo se pinte tal cual es JSON): permite que un aviso futuro sea CUANTIFICADO ("vas a dejar
+	 * sin pintar 14 bloques") con una consulta agrupada sobre esta columna, no parseando el `data`
+	 * de cada registro. `null` ⇒ modo HOMOGÉNEO (histórico, intacto): la colección hija es una
+	 * secuencia de secciones todas del mismo esquema, sin vocabulario de tipos heterogéneo.
+	 * Solo no-`null` junto con `dataField` (las DOS o ninguna, `resolveBlockTypeFields` en
+	 * `resolve.ts`).
+	 */
+	typeField: string | null;
+	/**
+	 * (M, opcional) Campo `json` de la colección hija que guarda el CONTENIDO del bloque — la forma
+	 * que declara `blockTypes.<t>.fields` para el tipo que nombra `typeField` en ESE registro,
+	 * pintada tal cual (JSON justificado: una secuencia ORDENADA de elementos HETEROGÉNEOS es lo
+	 * que PocketBase no expresa con columnas, no una renuncia al acoplamiento). Mismo criterio de
+	 * pareja que `typeField`: `null` en modo homogéneo, o si la pareja no valida entera.
+	 */
+	dataField: string | null;
+}
+
+/**
+ * Un tipo de bloque declarado en `blockTypes.<t>` (RAÍZ del manifiesto, vocabulario de tipos de
+ * bloque `#4cfd4f7f`): hero, texto, galería, cta… — el componente concreto que un `dataField` de
+ * `ResolvedBlocksConfig` puede tomar cuando su `typeField` hermano, en ESE registro, vale `t`.
+ * RAÍZ y no per-colección a propósito: un sitio tiene UN vocabulario de componentes (el documento
+ * de discovery del sitio Astro declara `blockTypes: ["hero", ...]` global), y per-colección no
+ * habría nada coherente contra lo que contrastarlo. `resolveContentModel` descarta ENTERO un tipo
+ * cuya clave no case `^[a-z][a-z0-9-]*$`, sin `label`, o que se quede sin ningún campo válido tras
+ * filtrar los inválidos de `fields` (`block-type-invalid`, ver `warnings.ts`) — no hay "tipo de
+ * bloque a medias" para estas tres causas.
+ */
+export interface ResolvedBlockType {
+	/** Clave de `blockTypes` (patrón `^[a-z][a-z0-9-]*$`, ESTRICTO a propósito): viaja tal cual al
+	 *  nombre de componente Astro que pinta el bloque y al documento de discovery del sitio, no es
+	 *  solo un id interno de Vega. */
+	name: string;
+	label: string;
+	/** (M) validado contra el MISMO set de iconos que `ResolvedContentType.icon`/
+	 *  `ResolvedMergedView.icon` (mismo `knownIcons`, mismo warning `icon-unknown` reutilizado). */
+	icon: string | null;
+	/** En ORDEN de declaración del manifiesto: es el orden del formulario del bloque. Al menos uno
+	 *  siempre (un tipo que se queda sin ningún campo válido tras filtrar los inválidos se
+	 *  descarta ENTERO, no llega aquí con `fields: []`). */
+	fields: ResolvedBlockField[];
+}
+
+/**
+ * Un campo de `blockTypes.<t>.fields[]`: una fila del mini-formulario de ESE tipo de bloque. Un
+ * item con `name`/`label`/`widget` ausente o de forma inválida, o con `widget` fuera de
+ * `BLOCK_FIELD_WIDGET_IDS`, se descarta SOLO (`block-type-field-invalid`) — el tipo de bloque
+ * SOBREVIVE con el resto de sus campos, mismo criterio que un campo huérfano de una colección real
+ * no invalida el tipo entero.
+ */
+export interface ResolvedBlockField {
+	name: string;
+	label: string;
+	/** Nunca `'relation' | 'file' | 'unsupported'` (§ `BLOCK_FIELD_WIDGET_IDS`): dentro de un
+	 *  bloque JSON no hay relaciones ni gestión de ficheros de PocketBase — las dos EXIGEN columna
+	 *  real, que es justo lo que este campo NO tiene (vive dentro de `dataField`). Las imágenes de
+	 *  un bloque son otra tarea (`#lote-bloques`: una relación a `vega_media`) que colgará de una
+	 *  columna real de la colección hija, no de aquí; esta exclusión es el gancho limpio donde
+	 *  entrará, no un olvido. */
+	widget: WidgetId;
+	required: boolean;
+	/** Solo para `widget: 'select' | 'chips'`; `null` en el resto (declarado o no, se ignora: sin
+	 *  opciones que ofrecer no hay nada que validar contra ellas). */
+	options: string[] | null;
 }
 
 export interface ResolvedLocale {
@@ -417,6 +504,19 @@ export const WIDGET_IDS: readonly WidgetId[] = [
 	'unsupported'
 ];
 
+/**
+ * Subconjunto de `WidgetId` permitido DENTRO de un campo de bloque (§ `ResolvedBlockField`): un
+ * bloque vive en `ResolvedBlocksConfig.dataField`, una columna JSON, y un JSON no puede expresar
+ * ni una relación de PocketBase ni la gestión de un fichero — las dos EXIGEN columna real (la
+ * regla que gobierna todo el vocabulario de bloques). `relation`/`file` quedan fuera a propósito:
+ * es el gancho limpio donde entrará la imagen de un bloque (`#lote-bloques`, una relación a
+ * `vega_media` colgada de una columna real de la colección hija), no un olvido. `unsupported`
+ * tampoco: no hay nada que pintar para un tipo de campo que ni P1 sabe representar.
+ */
+export const BLOCK_FIELD_WIDGET_IDS: readonly WidgetId[] = WIDGET_IDS.filter(
+	(widget) => widget !== 'relation' && widget !== 'file' && widget !== 'unsupported'
+);
+
 // ————— Warnings —————
 
 export type WarningCode =
@@ -438,6 +538,9 @@ export type WarningCode =
 	| 'icon-unknown' // icono fuera del set → null
 	| 'singleton-invalid' // singleton sobre un tipo readonly (view) → ignorado
 	| 'blocks-invalid' // blocks con colección/parentField/orderField inválido → capacidad ignorada
+	| 'blocks-heterogeneous-invalid' // blocks.typeField/dataField a medias o inválido → degrada a homogéneo (NO invalida blocks entera)
+	| 'block-type-invalid' // blockTypes.<t>: clave/label/fields inválido → el tipo de bloque entero se descarta
+	| 'block-type-field-invalid' // un item de blockTypes.<t>.fields inválido (forma o widget excluido) → se descarta ESE campo
 	| 'social-title-field-invalid' // social.titleField inexistente o no representable → cascada a titleField
 	| 'social-description-field-invalid' // social.descriptionField inexistente o no texto/richtext → null
 	| 'social-image-field-invalid' // social.imageField inexistente o no file no-múltiple → null
@@ -458,6 +561,10 @@ export interface ModelWarning {
 	field?: string;
 	/** Id de la vista fusionada afectada (`mergedViews.<id>`), solo en warnings `merged-*` (L7a). */
 	mergedView?: string;
+	/** Nombre del tipo de bloque afectado (`blockTypes.<t>`), solo en warnings `block-type-*`
+	 *  (vocabulario de tipos de bloque `#4cfd4f7f`) — separado de `collection` porque un tipo de
+	 *  bloque no es una colección, vive en su propio namespace de la raíz del manifiesto. */
+	blockType?: string;
 	/** JSON Pointer a la clave del manifiesto que lo causó, si aplica (p.ej. '/collections/posts/fields/body/widget'). */
 	path?: string;
 }

@@ -225,6 +225,100 @@ export function blocksInvalid(
 	};
 }
 
+/**
+ * `blocks-heterogeneous-invalid` — la pareja `typeField`/`dataField` de `blocks` no vale: solo una
+ * de las dos se declaró, o alguna no resuelve contra el esquema real de la colección hija
+ * (`typeField` debe ser `text`, `dataField` debe ser `json`). A diferencia de `blocksInvalid`, esto
+ * NUNCA invalida `blocks` entero — `collection`/`parentField`/`orderField` ya se validaron aparte y
+ * siguen en pie; solo la pareja cae a `null`/`null` (modo homogéneo, el histórico).
+ */
+export function blocksHeterogeneousInvalid(collection: string): ModelWarning {
+	return {
+		code: 'blocks-heterogeneous-invalid',
+		message: `blocks de "${collection}" declara typeField/dataField a medias o inválidos (deben ser, las DOS o ninguna, un campo "text" y un campo "json" reales de la colección hija); se degrada al modo homogéneo (una sola plantilla de bloque, sin vocabulario de tipos).`,
+		collection,
+		path: `${collectionPath(collection)}/blocks`
+	};
+}
+
+/** JSON Pointer a un tipo de bloque: `/blockTypes/<t>`. */
+function blockTypePath(name: string): string {
+	return `/blockTypes/${name}`;
+}
+
+/**
+ * `block-type-invalid` — `blockTypes.<name>` se descarta ENTERO: la clave no casa el patrón
+ * `^[a-z][a-z0-9-]*$` (`reason: 'name'`, viaja tal cual al nombre de componente Astro y al
+ * documento de discovery, de ahí lo estricto), la declaración no es un objeto (`'shape'`), le falta
+ * un `label` de 1 a 60 caracteres (`'label'`), o se queda sin NINGÚN campo válido tras filtrar los
+ * inválidos de `fields` (`'fields'`, cada campo descartado ya emitió su propio
+ * `block-type-field-invalid`). Las cuatro comparten código (mismo criterio "todo o nada" que
+ * `blocksInvalid`) pero cada motivo tiene su propio mensaje, para que quien lea el warning sepa
+ * exactamente qué corregir.
+ */
+export function blockTypeInvalid(
+	name: string,
+	reason: 'name' | 'shape' | 'label' | 'fields'
+): ModelWarning {
+	const message =
+		reason === 'name'
+			? `blockTypes declara el tipo de bloque "${name}", cuya clave no cumple el patrón ^[a-z][a-z0-9-]*$ (ese nombre viaja al componente Astro y al documento de discovery del sitio); se ignora ese tipo de bloque.`
+			: reason === 'shape'
+				? `blockTypes.${name} no es un objeto; se ignora ese tipo de bloque.`
+				: reason === 'label'
+					? `blockTypes.${name} no declara un label de 1 a 60 caracteres; se ignora ese tipo de bloque.`
+					: `blockTypes.${name} se queda sin ningún campo válido tras descartar los inválidos; se ignora ese tipo de bloque.`;
+	return { code: 'block-type-invalid', message, blockType: name, path: blockTypePath(name) };
+}
+
+/**
+ * `block-type-field-invalid` — el item `index` de `blockTypes.<typeName>.fields` se descarta. Dos
+ * motivos, mismo código porque la consecuencia es la misma (ese campo no llega al formulario y el
+ * tipo de bloque SOBREVIVE con el resto):
+ *
+ * - `'shape'`: le falta `name`/`label`/`widget`, alguno tiene forma inválida, o `widget` cae fuera
+ *   del subconjunto permitido dentro de un bloque (`relation`/`file`/`unsupported`, ver
+ *   `BLOCK_FIELD_WIDGET_IDS` en `types.ts`, excluidos porque dentro de un JSON no hay relaciones ni
+ *   gestión de ficheros de PocketBase).
+ * - `'duplicate'`: su `name` ya lo declaró un campo ANTERIOR del mismo tipo. `name` es la clave
+ *   dentro del `data` JSON del bloque, así que dos campos con el mismo `name` no son dos campos:
+ *   son dos filas del formulario escribiendo la MISMA clave, donde editar una pisa a la otra sin
+ *   que nada lo diga. Gana el primero (el orden de `fields` es el del formulario, así que el
+ *   primero es el que el autor del manifiesto vio primero).
+ */
+export function blockTypeFieldInvalid(
+	typeName: string,
+	index: number,
+	reason: 'shape' | 'duplicate' = 'shape',
+	duplicateName?: string
+): ModelWarning {
+	const message =
+		reason === 'duplicate'
+			? `El campo ${index} de blockTypes.${typeName} repite el name "${duplicateName}" de un campo anterior; dentro de un bloque el name es la clave del JSON, así que se ignora ese campo (gana el primero).`
+			: `El campo ${index} de blockTypes.${typeName} no es válido (name/label/widget ausente o con forma inválida, o un widget fuera del subconjunto permitido dentro de un bloque); se ignora ese campo.`;
+	return {
+		code: 'block-type-field-invalid',
+		message,
+		blockType: typeName,
+		path: `${blockTypePath(typeName)}/fields/${index}`
+	};
+}
+
+/**
+ * `icon-unknown` (reutilizado) — el icono `icon` declarado en `blockTypes.<typeName>` no está en
+ * `knownIcons`. Mismo criterio que `mergedViewIconUnknown`: `path` apunta a
+ * `/blockTypes/<typeName>/icon`, no a `/collections/<typeName>/icon` (un tipo de bloque no es una
+ * colección), y usa `blockType` en vez de `collection`.
+ */
+export function blockTypeIconUnknown(typeName: string, icon: string): ModelWarning {
+	return {
+		code: 'icon-unknown',
+		message: `El icono "${icon}" del tipo de bloque "${typeName}" no existe en el set de iconos de Vega; se usa el icono genérico.`,
+		blockType: typeName,
+		path: `${blockTypePath(typeName)}/icon`
+	};
+}
+
 /** `social-title-field-invalid` — `social.titleField` inexistente o no representable; se cae a
  *  la cascada de `titleField` del tipo (§4.4), igual que si la clave no se hubiera declarado. */
 export function socialTitleFieldInvalid(collection: string, requestedField: string): ModelWarning {

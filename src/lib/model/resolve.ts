@@ -31,7 +31,9 @@ import type {
 	NavGroup,
 	NavItem,
 	NavModel,
+	ResolvedBlockField,
 	ResolvedBlocksConfig,
+	ResolvedBlockType,
 	ResolvedContentType,
 	ResolvedField,
 	ResolvedFieldGroup,
@@ -42,8 +44,10 @@ import type {
 	ResolvedMergedView,
 	ResolvedRevisionsConfig,
 	ResolvedSite,
-	ResolvedSocialCardConfig
+	ResolvedSocialCardConfig,
+	WidgetId
 } from './types';
+import { BLOCK_FIELD_WIDGET_IDS } from './types';
 import {
 	defaultListable,
 	humanizeLabel,
@@ -60,7 +64,11 @@ import {
 	resolveWidget
 } from './conventions';
 import {
+	blocksHeterogeneousInvalid,
 	blocksInvalid,
+	blockTypeFieldInvalid,
+	blockTypeIconUnknown,
+	blockTypeInvalid,
 	iconUnknown,
 	listFieldUnknown,
 	manifestInvalidKey,
@@ -274,14 +282,30 @@ function readPreviewUrlTemplate(raw: JsonValue): string | undefined {
 	return typeof raw === 'string' && /^https?:\/\//.test(raw) ? raw : undefined;
 }
 
-/** Forma cruda de `collections.<c>.blocks` (lote "editor", Fase A), SOLO tipada — el CONTENIDO
- *  (¿existe la colección? ¿el campo es una relación? ¿el orden es numérico?) lo valida
- *  `resolveBlocks`, que es quien conoce el esquema de la colección hija. Las tres claves son
- *  obligatorias juntas: un objeto al que le falte cualquiera de las tres no es una declaración
- *  parcial válida, es `undefined` (mismo criterio "todo o nada" que `readDefaultSort`). */
-function readBlocksDeclaration(
-	raw: JsonValue
-): { collection: string; parentField: string; orderField: string } | undefined {
+/** Forma cruda de `collections.<c>.blocks`, SOLO tipada — el CONTENIDO (¿existe la colección? ¿el
+ *  campo es una relación? ¿el orden es numérico?) lo valida `resolveBlocks`, que es quien conoce
+ *  el esquema de la colección hija. */
+interface RawBlocksDeclaration {
+	collection: string;
+	parentField: string;
+	orderField: string;
+	/** Valor CRUDO de `typeField`/`dataField` (vocabulario de tipos de bloque `#4cfd4f7f`), SIN
+	 *  tipar aquí a propósito: a diferencia de las tres de arriba, una forma inválida de estas dos
+	 *  NO puede tumbar la declaración ENTERA (`resolveBlockTypeFields`, `resolve.ts`, decide qué
+	 *  hacer con ellas) — invalidar todo `blocks` por un `typeField` mal escrito le quitaría a la
+	 *  colección una capacidad (el modo homogéneo) que ya funcionaba. `undefined` = la clave no se
+	 *  declaró en el manifiesto. */
+	typeFieldRaw: JsonValue | undefined;
+	dataFieldRaw: JsonValue | undefined;
+}
+
+/** Lee `collections.<c>.blocks` (lote "editor", Fase A): `collection`/`parentField`/`orderField`
+ *  son obligatorias juntas — un objeto al que le falte cualquiera de las tres no es una
+ *  declaración parcial válida, es `undefined` (mismo criterio "todo o nada" que
+ *  `readDefaultSort`), y el llamador (`readKey`) descarta `blocks` entero con un solo
+ *  `manifest-invalid-key`. `typeField`/`dataField` (vocabulario de tipos de bloque) viajan tal
+ *  cual, SIN ese criterio: son opcionales y su validación vive en `resolveBlockTypeFields`. */
+function readBlocksDeclaration(raw: JsonValue): RawBlocksDeclaration | undefined {
 	const obj = asJsonObject(raw);
 	if (!obj) return undefined;
 	const collection = obj.collection;
@@ -297,7 +321,13 @@ function readBlocksDeclaration(
 	) {
 		return undefined;
 	}
-	return { collection, parentField, orderField };
+	return {
+		collection,
+		parentField,
+		orderField,
+		typeFieldRaw: 'typeField' in obj ? obj.typeField : undefined,
+		dataFieldRaw: 'dataField' in obj ? obj.dataField : undefined
+	};
 }
 
 /**
@@ -358,6 +388,11 @@ export function resolveContentModel(input: {
 
 	const site = resolveSite(doc, warnings);
 	const revisions = resolveRevisions(doc, warnings);
+	// `blockTypes` (RAÍZ, vocabulario de tipos de bloque `#4cfd4f7f`): no depende de `types`/
+	// `collectionsRaw` (ni al revés — ningún `collections.<c>.blocks` lo referencia todavía a nivel
+	// de VALIDACIÓN, solo por convención de nombre en el manifiesto real), así que se resuelve aquí
+	// mismo, junto al resto de claves de raíz independientes de la sesión de esquema.
+	const blockTypes = resolveBlockTypes(doc, input.knownIcons, warnings);
 	const locales = readKey(
 		doc,
 		'locales',
@@ -457,7 +492,16 @@ export function resolveContentModel(input: {
 	// `buildNav`), así que necesita las dos listas ya resueltas.
 	const nav = buildNav(resolvedTypes, navOrderByType, declaredNavGroups, mergedViews);
 
-	return { site, revisions, types: resolvedTypes, nav, mergedViews, warnings, manifest };
+	return {
+		site,
+		revisions,
+		types: resolvedTypes,
+		nav,
+		mergedViews,
+		blockTypes,
+		warnings,
+		manifest
+	};
 }
 
 // ————— Manifiesto raíz —————
@@ -598,7 +642,7 @@ function resolveRevisions(doc: JsonObject, warnings: ModelWarning[]): ResolvedRe
  */
 function resolveBlocks(
 	type: ContentType,
-	raw: { collection: string; parentField: string; orderField: string } | undefined,
+	raw: RawBlocksDeclaration | undefined,
 	typesByName: Map<string, ContentType>,
 	warnings: ModelWarning[]
 ): ResolvedBlocksConfig | null {
@@ -632,7 +676,272 @@ function resolveBlocks(
 		return null;
 	}
 
-	return { collection: raw.collection, parentField: raw.parentField, orderField: raw.orderField };
+	// typeField/dataField (vocabulario de tipos de bloque, `#4cfd4f7f`): ASIMÉTRICO a propósito
+	// respecto a las tres comprobaciones de arriba. `collection`/`parentField`/`orderField` son la
+	// capacidad `blocks` MISMA (sin ellas no hay ni colección que listar), así que cualquiera
+	// inválida la tumba entera. `typeField`/`dataField` son una FORMA NUEVA de usar una capacidad
+	// que YA funciona: una declaración a medias de ellas nunca puede quitarle a la colección el
+	// modo homogéneo que ya tenía, así que solo degradan ELLAS (`resolveBlockTypeFields`), nunca
+	// `blocks` entero.
+	const { typeField, dataField } = resolveBlockTypeFields(type.name, raw, child, warnings);
+
+	return {
+		collection: raw.collection,
+		parentField: raw.parentField,
+		orderField: raw.orderField,
+		typeField,
+		dataField
+	};
+}
+
+/**
+ * Resuelve la pareja opcional `typeField`/`dataField` de `blocks` (modo HETEROGÉNEO, vocabulario
+ * de tipos de bloque): `typeField` debe ser un campo `text` de la colección hija (columna real a
+ * propósito — la regla que gobierna todo el vocabulario: lo que haya que consultar/filtrar/agrupar
+ * es columna, no JSON) y `dataField` un campo `json` de la misma hija (el contenido del bloque,
+ * heterogéneo por naturaleza: ahí sí encaja un blob). Ninguna de las dos declarada → homogéneo sin
+ * warning (opt-in, como el resto de capacidades nuevas). Las DOS declaradas y válidas →
+ * heterogéneo. Cualquier otra combinación (una sola declarada, o alguna que no resuelve contra el
+ * esquema real) → homogéneo + `blocks-heterogeneous-invalid`, SIN tocar el resto de `blocks`
+ * (ver el comentario de asimetría en `resolveBlocks`).
+ */
+function resolveBlockTypeFields(
+	collection: string,
+	raw: RawBlocksDeclaration,
+	child: ContentType,
+	warnings: ModelWarning[]
+): { typeField: string | null; dataField: string | null } {
+	const typeFieldDeclared = raw.typeFieldRaw !== undefined;
+	const dataFieldDeclared = raw.dataFieldRaw !== undefined;
+	if (!typeFieldDeclared && !dataFieldDeclared) {
+		return { typeField: null, dataField: null };
+	}
+
+	const typeFieldName =
+		typeof raw.typeFieldRaw === 'string' && raw.typeFieldRaw.length > 0 ? raw.typeFieldRaw : null;
+	const dataFieldName =
+		typeof raw.dataFieldRaw === 'string' && raw.dataFieldRaw.length > 0 ? raw.dataFieldRaw : null;
+
+	const typeFieldValid =
+		typeFieldName !== null &&
+		child.fields.some((f) => f.name === typeFieldName && f.type === 'text');
+	const dataFieldValid =
+		dataFieldName !== null &&
+		child.fields.some((f) => f.name === dataFieldName && f.type === 'json');
+
+	if (typeFieldValid && dataFieldValid) {
+		return { typeField: typeFieldName, dataField: dataFieldName };
+	}
+
+	warnings.push(blocksHeterogeneousInvalid(collection));
+	return { typeField: null, dataField: null };
+}
+
+// ————— Vocabulario de tipos de bloque (blockTypes, RAÍZ, `#4cfd4f7f`) —————
+
+/** Patrón de la clave de un tipo de bloque (`blockTypes.<t>`): minúsculas/dígitos/guiones,
+ *  empezando siempre por letra. ESTRICTO a propósito (a diferencia de `group`/`titleField`, que
+ *  admiten cualquier texto no vacío): esta clave viaja tal cual al nombre del componente Astro que
+ *  pinta el bloque y al documento de discovery del sitio (`blockTypes: ["hero", ...]`), no es solo
+ *  un id interno de Vega. */
+const BLOCK_TYPE_NAME_PATTERN = /^[a-z][a-z0-9-]*$/;
+
+/**
+ * Resuelve `blockTypes` (RAÍZ del manifiesto, § `ContentModel.blockTypes`): un tipo por clave, en
+ * el ORDEN de declaración del manifiesto (mismo criterio que `mergedViews` — iterar
+ * `Object.entries` en vez de ordenar alfabéticamente, porque aquí el orden SÍ es información del
+ * manifiesto: es el orden en que Astro/la UI listarían los tipos disponibles, no un efecto
+ * secundario de cómo JS itera un objeto). Un tipo que no sobrevive `resolveBlockType` simplemente
+ * no aparece en el resultado (`block-type-invalid`).
+ */
+function resolveBlockTypes(
+	doc: JsonObject,
+	knownIcons: readonly string[] | undefined,
+	warnings: ModelWarning[]
+): ResolvedBlockType[] {
+	const blockTypesRaw = readKey(
+		doc,
+		'blockTypes',
+		asJsonObject,
+		'/blockTypes',
+		'blockTypes no es un objeto; se ignora.',
+		warnings
+	);
+	if (!blockTypesRaw) return [];
+
+	const result: ResolvedBlockType[] = [];
+	for (const [name, rawValue] of Object.entries(blockTypesRaw)) {
+		const resolved = resolveBlockType(name, rawValue, knownIcons, warnings);
+		if (resolved) result.push(resolved);
+	}
+	return result;
+}
+
+/**
+ * Resuelve un tipo de bloque (§ `ResolvedBlockType`). Cuatro comprobaciones EXCLUYENTES, la
+ * primera que falla descarta el tipo entero de inmediato (mismo criterio "un solo síntoma" que
+ * `resolveBlocks`): patrón de la clave → forma objeto → `label` → al menos un campo válido tras
+ * filtrar `fields` con `resolveBlockField`. `icon` es la ÚNICA pieza que NO puede tumbar el tipo
+ * (opcional, mismo criterio que `icon` de una colección): una forma inválida o fuera de
+ * `knownIcons` solo lo deja en `null`.
+ */
+function resolveBlockType(
+	name: string,
+	rawValue: JsonValue,
+	knownIcons: readonly string[] | undefined,
+	warnings: ModelWarning[]
+): ResolvedBlockType | null {
+	if (!BLOCK_TYPE_NAME_PATTERN.test(name)) {
+		warnings.push(blockTypeInvalid(name, 'name'));
+		return null;
+	}
+
+	const obj = asJsonObject(rawValue);
+	if (!obj) {
+		warnings.push(blockTypeInvalid(name, 'shape'));
+		return null;
+	}
+
+	// `label`: a mano (sin `readKey`) a propósito — cualquier forma inválida (ausente, tipo
+	// equivocado, fuera de rango) descarta el tipo ENTERO con el mismo `block-type-invalid`, así
+	// que emitir además un `manifest-invalid-key` por el mismo problema solo sería ruido: un tipo
+	// de bloque sin label no tiene un default razonable al que caer (a diferencia de `label` de una
+	// colección, que humaniza el nombre).
+	const rawLabel = obj.label;
+	const label =
+		typeof rawLabel === 'string' && rawLabel.length >= 1 && rawLabel.length <= 60
+			? rawLabel
+			: undefined;
+	if (label === undefined) {
+		warnings.push(blockTypeInvalid(name, 'label'));
+		return null;
+	}
+
+	const iconCandidate = readKey(
+		obj,
+		'icon',
+		readString(1, Infinity),
+		`/blockTypes/${name}/icon`,
+		`icon de blockTypes.${name} no es un texto no vacío; se ignora.`,
+		warnings
+	);
+	let icon: string | null = null;
+	if (iconCandidate !== undefined) {
+		if (knownIcons && !knownIcons.includes(iconCandidate)) {
+			warnings.push(blockTypeIconUnknown(name, iconCandidate));
+		} else {
+			icon = iconCandidate;
+		}
+	}
+
+	// `fields`: igual que `label`, a mano — una forma que no sea un array simplemente se trata como
+	// `[]`, que cae en el mismo "cero campos válidos" que un array vacío declarado tal cual (un
+	// solo motivo de descarte, `block-type-invalid` con `reason: 'fields'`, en vez de sumarle un
+	// `manifest-invalid-key` por la forma).
+	const fieldsRaw = Array.isArray(obj.fields) ? obj.fields : [];
+	const fields: ResolvedBlockField[] = [];
+	// `name` de un campo de bloque es la CLAVE dentro del `data` JSON, no solo una etiqueta: dos
+	// campos que repitan `name` no son dos campos, son dos filas del formulario escribiendo la
+	// misma clave, donde editar una pisa a la otra en silencio. Aquí no hay quien lo impida por
+	// abajo (a diferencia de una colección real, donde el esquema de PocketBase no admite dos
+	// columnas con el mismo nombre) — es exactamente lo que se apaga al meter contenido en un JSON,
+	// así que lo comprueba Vega. Gana el PRIMERO: el orden de `fields` es el del formulario.
+	const seenFieldNames = new Set<string>();
+	fieldsRaw.forEach((fieldRaw, index) => {
+		const resolvedField = resolveBlockField(name, index, fieldRaw, warnings);
+		if (!resolvedField) return;
+		if (seenFieldNames.has(resolvedField.name)) {
+			warnings.push(blockTypeFieldInvalid(name, index, 'duplicate', resolvedField.name));
+			return;
+		}
+		seenFieldNames.add(resolvedField.name);
+		fields.push(resolvedField);
+	});
+
+	if (fields.length === 0) {
+		warnings.push(blockTypeInvalid(name, 'fields'));
+		return null;
+	}
+
+	return { name, label, icon, fields };
+}
+
+/**
+ * Resuelve un item de `blockTypes.<typeName>.fields[]` (§ `ResolvedBlockField`). `name`/`label`/
+ * `widget` son obligatorios: si CUALQUIERA falta o tiene forma inválida (incluido un `widget` fuera
+ * de `BLOCK_FIELD_WIDGET_IDS` — excluido o directamente desconocido, mismo tratamiento para los
+ * dos, ver `types.ts`), el campo se descarta SOLO (`block-type-field-invalid`) y el tipo de bloque
+ * sigue con el resto. `required`/`options` son laxos por comparación: una forma inválida en ellos
+ * no descarta el campo, solo cae a su default con un `manifest-invalid-key` (mismo criterio que
+ * `hidden`/`listable` de un campo real, `resolveField` más abajo).
+ */
+function resolveBlockField(
+	typeName: string,
+	index: number,
+	rawValue: JsonValue,
+	warnings: ModelWarning[]
+): ResolvedBlockField | null {
+	const base = `/blockTypes/${typeName}/fields/${index}`;
+	const obj = asJsonObject(rawValue);
+
+	const rawName = obj?.name;
+	const name = typeof rawName === 'string' && rawName.length >= 1 ? rawName : undefined;
+
+	const rawLabel = obj?.label;
+	const label =
+		typeof rawLabel === 'string' && rawLabel.length >= 1 && rawLabel.length <= 60
+			? rawLabel
+			: undefined;
+
+	const rawWidget = obj?.widget;
+	const widget =
+		typeof rawWidget === 'string' &&
+		(BLOCK_FIELD_WIDGET_IDS as readonly string[]).includes(rawWidget)
+			? (rawWidget as WidgetId)
+			: undefined;
+
+	if (name === undefined || label === undefined || widget === undefined) {
+		warnings.push(blockTypeFieldInvalid(typeName, index));
+		return null;
+	}
+
+	const rawRequired = obj?.required;
+	let required = false;
+	if (rawRequired !== undefined) {
+		if (typeof rawRequired === 'boolean') {
+			required = rawRequired;
+		} else {
+			warnings.push(
+				manifestInvalidKey(
+					`${base}/required`,
+					`required del campo ${index} de blockTypes.${typeName} no es booleano; se ignora.`
+				)
+			);
+		}
+	}
+
+	// `options`: solo tiene sentido para select/chips (§ ResolvedBlockField) — para cualquier otro
+	// widget se ignora en silencio si viene declarado (no es un error, solo un dato inerte, mismo
+	// criterio que `statusLabels` sobre un tipo sin convención de publicación).
+	let options: string[] | null = null;
+	if (widget === 'select' || widget === 'chips') {
+		const rawOptions = obj?.options;
+		if (rawOptions !== undefined) {
+			const parsed = readStringArray(1)(rawOptions);
+			if (parsed !== undefined && parsed.length > 0) {
+				options = parsed;
+			} else {
+				warnings.push(
+					manifestInvalidKey(
+						`${base}/options`,
+						`options del campo ${index} de blockTypes.${typeName} no es un array de textos no vacíos; se ignora.`
+					)
+				);
+			}
+		}
+	}
+
+	return { name, label, widget, required, options };
 }
 
 // ————— Tarjeta social (social, lote "editor" Fase B) —————

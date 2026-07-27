@@ -229,6 +229,58 @@ describe('1. Casos puntuales contra el schema §3', () => {
 		expect(result.ok).toBe(false);
 	});
 
+	test('collections.<c>.blocks con typeField/dataField (modo heterogéneo) → válido', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: {
+				landing: {
+					blocks: {
+						collection: 'landing_block',
+						parentField: 'parent',
+						orderField: 'sort',
+						typeField: 'kind',
+						dataField: 'payload'
+					}
+				}
+			}
+		});
+		expect(result).toEqual({ ok: true });
+	});
+
+	test('collections.<c>.blocks con SOLO typeField (sin dataField) → VÁLIDO a nivel de schema (la pareja es contenido, no sintaxis)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: {
+				landing: {
+					blocks: {
+						collection: 'landing_block',
+						parentField: 'parent',
+						orderField: 'sort',
+						typeField: 'kind'
+					}
+				}
+			}
+		});
+		expect(result).toEqual({ ok: true });
+	});
+
+	test('collections.<c>.blocks.typeField vacío → inválido (minLength)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			collections: {
+				landing: {
+					blocks: {
+						collection: 'landing_block',
+						parentField: 'parent',
+						orderField: 'sort',
+						typeField: ''
+					}
+				}
+			}
+		});
+		expect(result.ok).toBe(false);
+	});
+
 	test('collections.<c>.previewUrl sin http(s) → inválido (pattern)', () => {
 		const result = validateManifestStrict({
 			schemaVersion: 1,
@@ -539,6 +591,132 @@ describe('1b. mergedViews (L7a) contra el schema §3', () => {
 	});
 });
 
+describe('1c. blockTypes (vocabulario de tipos de bloque, #4cfd4f7f) contra el schema §3', () => {
+	test('blockTypes mínimo válido: label + un campo → válido', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			blockTypes: {
+				hero: { label: 'Portada', fields: [{ name: 'titulo', label: 'Título', widget: 'text' }] }
+			}
+		});
+		expect(result).toEqual({ ok: true });
+	});
+
+	test('blockTypes completo (icon + varios campos, required/options) → válido', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			blockTypes: {
+				hero: {
+					label: 'Portada',
+					icon: 'image',
+					fields: [
+						{ name: 'titulo', label: 'Título', widget: 'text', required: true },
+						{
+							name: 'alineacion',
+							label: 'Alineación',
+							widget: 'select',
+							options: ['izquierda', 'centro']
+						}
+					]
+				}
+			}
+		});
+		expect(result).toEqual({ ok: true });
+	});
+
+	test('clave que no casa ^[a-z][a-z0-9-]*$ → inválido (propertyNames)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			blockTypes: {
+				Hero: { label: 'Portada', fields: [{ name: 'a', label: 'A', widget: 'text' }] }
+			}
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('sin label → inválido (required)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			blockTypes: { hero: { fields: [{ name: 'a', label: 'A', widget: 'text' }] } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('sin fields → inválido (required)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			blockTypes: { hero: { label: 'Portada' } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('fields vacío → inválido (minItems 1)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			blockTypes: { hero: { label: 'Portada', fields: [] } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('fields[].widget "relation"/"file"/"unsupported" → inválido (enum, excluidos del vocabulario de bloque)', () => {
+		for (const widget of ['relation', 'file', 'unsupported']) {
+			const result = validateManifestStrict({
+				schemaVersion: 1,
+				blockTypes: { hero: { label: 'Portada', fields: [{ name: 'a', label: 'A', widget }] } }
+			});
+			expect(result.ok).toBe(false);
+		}
+	});
+
+	test('fields[] sin "name"/"label"/"widget" → inválido (required)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			blockTypes: { hero: { label: 'Portada', fields: [{ label: 'A', widget: 'text' }] } }
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('fields[].options vacío → inválido (minItems 1)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			blockTypes: {
+				hero: {
+					label: 'Portada',
+					fields: [{ name: 'a', label: 'A', widget: 'select', options: [] }]
+				}
+			}
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('blockTypes.<t> con clave desconocida → inválido (additionalProperties)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			blockTypes: {
+				hero: {
+					label: 'Portada',
+					fields: [{ name: 'a', label: 'A', widget: 'text' }],
+					unknownKey: 1
+				}
+			}
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	test('fields[] con clave desconocida → inválido (additionalProperties)', () => {
+		const result = validateManifestStrict({
+			schemaVersion: 1,
+			blockTypes: {
+				hero: {
+					label: 'Portada',
+					fields: [{ name: 'a', label: 'A', widget: 'text', unknownKey: 1 }]
+				}
+			}
+		});
+		expect(result.ok).toBe(false);
+	});
+});
+
 // ————— Batería de manifiestos VÁLIDOS (schema-válidos, sin discrepancias de contenido) —————
 
 /**
@@ -685,6 +863,28 @@ const VALID_ZERO_WARNING_MANIFESTS: JsonValue[] = [
 		// revisions (`#lote-integridad` Fase B §7): las tres claves, forma completa → cero warnings.
 		schemaVersion: 1,
 		revisions: { enabled: false, keepPerRecord: 5, trashDays: 7 }
+	},
+	{
+		// blockTypes (RAÍZ, vocabulario de tipos de bloque `#4cfd4f7f`): completamente independiente
+		// de `collections`/el esquema descubierto (no referencia ningún campo real), así que es
+		// zero-warning contra el kitchen-sink igual que cualquier otro manifiesto que no lo toque.
+		schemaVersion: 1,
+		blockTypes: {
+			hero: {
+				label: 'Portada',
+				icon: 'image',
+				fields: [
+					{ name: 'titulo', label: 'Título', widget: 'text', required: true },
+					{
+						name: 'alineacion',
+						label: 'Alineación',
+						widget: 'select',
+						options: ['izquierda', 'centro']
+					}
+				]
+			},
+			texto: { label: 'Texto', fields: [{ name: 'cuerpo', label: 'Cuerpo', widget: 'richtext' }] }
+		}
 	}
 ];
 
@@ -780,6 +980,87 @@ const INVALID_MANIFESTS: JsonValue[] = [
 		schemaVersion: 1,
 		collections: {
 			post: { blocks: { collection: 'x', parentField: 'y', orderField: 'z', extra: 1 } }
+		}
+	},
+	{
+		schemaVersion: 1,
+		collections: {
+			post: { blocks: { collection: 'x', parentField: 'y', orderField: 'z', typeField: '' } }
+		}
+	},
+	{
+		schemaVersion: 1,
+		collections: {
+			post: { blocks: { collection: 'x', parentField: 'y', orderField: 'z', typeField: 42 } }
+		}
+	},
+	{ schemaVersion: 1, blockTypes: 'not-an-object' },
+	{
+		schemaVersion: 1,
+		blockTypes: { Hero: { label: 'Portada', fields: [{ name: 'a', label: 'A', widget: 'text' }] } }
+	},
+	{ schemaVersion: 1, blockTypes: { hero: 'not-an-object' } },
+	{
+		schemaVersion: 1,
+		blockTypes: { hero: { fields: [{ name: 'a', label: 'A', widget: 'text' }] } }
+	},
+	{ schemaVersion: 1, blockTypes: { hero: { label: '' } } },
+	{ schemaVersion: 1, blockTypes: { hero: { label: 'x'.repeat(61) } } },
+	{ schemaVersion: 1, blockTypes: { hero: { label: 'Portada' } } },
+	{ schemaVersion: 1, blockTypes: { hero: { label: 'Portada', fields: [] } } },
+	{ schemaVersion: 1, blockTypes: { hero: { label: 'Portada', fields: 'nope' } } },
+	{
+		schemaVersion: 1,
+		blockTypes: { hero: { label: 'Portada', fields: [{ label: 'A', widget: 'text' }] } }
+	},
+	{
+		schemaVersion: 1,
+		blockTypes: { hero: { label: 'Portada', fields: [{ name: 'a', widget: 'text' }] } }
+	},
+	{
+		schemaVersion: 1,
+		blockTypes: { hero: { label: 'Portada', fields: [{ name: 'a', label: 'A' }] } }
+	},
+	{
+		schemaVersion: 1,
+		blockTypes: {
+			hero: { label: 'Portada', fields: [{ name: 'a', label: 'A', widget: 'relation' }] }
+		}
+	},
+	{
+		schemaVersion: 1,
+		blockTypes: { hero: { label: 'Portada', fields: [{ name: 'a', label: 'A', widget: 'file' }] } }
+	},
+	{
+		schemaVersion: 1,
+		blockTypes: {
+			hero: { label: 'Portada', fields: [{ name: 'a', label: 'A', widget: 'unsupported' }] }
+		}
+	},
+	{
+		schemaVersion: 1,
+		blockTypes: { hero: { label: 'Portada', fields: [{ name: 'a', label: 'A', widget: 'wat' }] } }
+	},
+	{
+		schemaVersion: 1,
+		blockTypes: {
+			hero: { label: 'Portada', fields: [{ name: 'a', label: 'A', widget: 'select', options: [] }] }
+		}
+	},
+	{
+		schemaVersion: 1,
+		blockTypes: {
+			hero: {
+				label: 'Portada',
+				fields: [{ name: 'a', label: 'A', widget: 'text' }],
+				unknownKey: 1
+			}
+		}
+	},
+	{
+		schemaVersion: 1,
+		blockTypes: {
+			hero: { label: 'Portada', fields: [{ name: 'a', label: 'A', widget: 'text', unknownKey: 1 }] }
 		}
 	},
 	{ schemaVersion: 1, collections: { post: { social: 'not-an-object' } } },

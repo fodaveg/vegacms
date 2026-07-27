@@ -563,6 +563,7 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 					nav: { groups: [] },
 					revisions: { enabled: true, keepPerRecord: 20, trashDays: 30 },
 					mergedViews: [],
+					blockTypes: [],
 					warnings: [],
 					manifest: { status: 'absent' }
 				};

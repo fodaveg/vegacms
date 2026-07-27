@@ -1839,6 +1839,28 @@ const landingBlockType: ContentType = {
 			presentable: true,
 			hidden: false,
 			unique: false
+		},
+		// `kind`/`payload` (§18, modo heterogéneo): un `text` y un `json` reales para probar
+		// `blocks.typeField`/`blocks.dataField` — ningún test de §15 los referencia, así que
+		// añadirlos aquí no afecta a la batería existente.
+		{
+			name: 'kind',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'payload',
+			type: 'json',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
 		}
 	]
 };
@@ -1862,7 +1884,9 @@ describe('15. blocks: bloques ordenables embebidos (lote "editor" Fase A)', () =
 		expect(model.types.find((t) => t.name === 'landing')!.blocks).toEqual({
 			collection: 'landing_block',
 			parentField: 'parent',
-			orderField: 'sort'
+			orderField: 'sort',
+			typeField: null,
+			dataField: null
 		});
 	});
 
@@ -2323,6 +2347,718 @@ describe('17. revisions (§7 de la Fase B "integridad")', () => {
 		};
 		const a = resolveContentModel({ types: kitchenSinkTypes, manifestRaw });
 		const b = resolveContentModel({ types: kitchenSinkTypes, manifestRaw });
+		expect(a).toEqual(b);
+	});
+});
+
+// ————— 18. blocks: typeField/dataField (modo heterogéneo, vocabulario de tipos de bloque) —————
+
+describe('18. blocks: typeField/dataField (modo heterogéneo, vocabulario de tipos de bloque)', () => {
+	test('las DOS declaradas y válidas → modo heterogéneo, sin warnings', () => {
+		const model = resolveContentModel({
+			types: blocksTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					landing: {
+						blocks: {
+							collection: 'landing_block',
+							parentField: 'parent',
+							orderField: 'sort',
+							typeField: 'kind',
+							dataField: 'payload'
+						}
+					}
+				}
+			}
+		});
+		expect(model.warnings).toEqual([]);
+		expect(model.types.find((t) => t.name === 'landing')!.blocks).toEqual({
+			collection: 'landing_block',
+			parentField: 'parent',
+			orderField: 'sort',
+			typeField: 'kind',
+			dataField: 'payload'
+		});
+	});
+
+	test('ninguna declarada → homogéneo (typeField/dataField null), SIN warning (histórico intacto)', () => {
+		const model = resolveContentModel({
+			types: blocksTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					landing: {
+						blocks: { collection: 'landing_block', parentField: 'parent', orderField: 'sort' }
+					}
+				}
+			}
+		});
+		expect(model.warnings).toEqual([]);
+		expect(model.types.find((t) => t.name === 'landing')!.blocks).toEqual({
+			collection: 'landing_block',
+			parentField: 'parent',
+			orderField: 'sort',
+			typeField: null,
+			dataField: null
+		});
+	});
+
+	test('solo typeField declarada → degrada a homogéneo + blocks-heterogeneous-invalid', () => {
+		const model = resolveContentModel({
+			types: blocksTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					landing: {
+						blocks: {
+							collection: 'landing_block',
+							parentField: 'parent',
+							orderField: 'sort',
+							typeField: 'kind'
+						}
+					}
+				}
+			}
+		});
+		const blocks = model.types.find((t) => t.name === 'landing')!.blocks;
+		expect(blocks).toEqual({
+			collection: 'landing_block',
+			parentField: 'parent',
+			orderField: 'sort',
+			typeField: null,
+			dataField: null
+		});
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'blocks-heterogeneous-invalid',
+				collection: 'landing',
+				path: '/collections/landing/blocks'
+			})
+		]);
+	});
+
+	test('solo dataField declarada → degrada a homogéneo + blocks-heterogeneous-invalid', () => {
+		const model = resolveContentModel({
+			types: blocksTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					landing: {
+						blocks: {
+							collection: 'landing_block',
+							parentField: 'parent',
+							orderField: 'sort',
+							dataField: 'payload'
+						}
+					}
+				}
+			}
+		});
+		expect(model.types.find((t) => t.name === 'landing')!.blocks).toEqual({
+			collection: 'landing_block',
+			parentField: 'parent',
+			orderField: 'sort',
+			typeField: null,
+			dataField: null
+		});
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'blocks-heterogeneous-invalid', collection: 'landing' })
+		]);
+	});
+
+	test('typeField que no es un campo text real (o no existe) → degrada + warning', () => {
+		const notText = resolveContentModel({
+			types: blocksTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					landing: {
+						blocks: {
+							collection: 'landing_block',
+							parentField: 'parent',
+							orderField: 'sort',
+							typeField: 'sort', // number, no text
+							dataField: 'payload'
+						}
+					}
+				}
+			}
+		});
+		expect(notText.types.find((t) => t.name === 'landing')!.blocks).toEqual(
+			expect.objectContaining({ typeField: null, dataField: null })
+		);
+		expect(notText.warnings).toEqual([
+			expect.objectContaining({ code: 'blocks-heterogeneous-invalid' })
+		]);
+
+		const missing = resolveContentModel({
+			types: blocksTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					landing: {
+						blocks: {
+							collection: 'landing_block',
+							parentField: 'parent',
+							orderField: 'sort',
+							typeField: 'nope',
+							dataField: 'payload'
+						}
+					}
+				}
+			}
+		});
+		expect(missing.types.find((t) => t.name === 'landing')!.blocks).toEqual(
+			expect.objectContaining({ typeField: null, dataField: null })
+		);
+		expect(missing.warnings).toEqual([
+			expect.objectContaining({ code: 'blocks-heterogeneous-invalid' })
+		]);
+	});
+
+	test('dataField que no es un campo json real → degrada + warning', () => {
+		const model = resolveContentModel({
+			types: blocksTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					landing: {
+						blocks: {
+							collection: 'landing_block',
+							parentField: 'parent',
+							orderField: 'sort',
+							typeField: 'kind',
+							dataField: 'heading' // text, no json
+						}
+					}
+				}
+			}
+		});
+		expect(model.types.find((t) => t.name === 'landing')!.blocks).toEqual(
+			expect.objectContaining({ typeField: null, dataField: null })
+		);
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'blocks-heterogeneous-invalid' })
+		]);
+	});
+
+	test('degradar typeField/dataField NO invalida collection/parentField/orderField (asimetría)', () => {
+		// Mismo caso que "solo typeField declarada", pero comprobando explícitamente que `blocks`
+		// SIGUE siendo un objeto no-null con las tres piezas base intactas: la asimetría frente a
+		// `blocksInvalid` (que SÍ invalida todo) es justo lo que se pide documentar.
+		const model = resolveContentModel({
+			types: blocksTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: {
+					landing: {
+						blocks: {
+							collection: 'landing_block',
+							parentField: 'parent',
+							orderField: 'sort',
+							typeField: 'kind'
+						}
+					}
+				}
+			}
+		});
+		const blocks = model.types.find((t) => t.name === 'landing')!.blocks;
+		expect(blocks).not.toBeNull();
+		expect(blocks).toEqual(
+			expect.objectContaining({
+				collection: 'landing_block',
+				parentField: 'parent',
+				orderField: 'sort'
+			})
+		);
+	});
+
+	test('determinismo (L1): mismo input → mismo output (deepEqual)', () => {
+		const manifestRaw: JsonValue = {
+			schemaVersion: 1,
+			collections: {
+				landing: {
+					blocks: {
+						collection: 'landing_block',
+						parentField: 'parent',
+						orderField: 'sort',
+						typeField: 'kind',
+						dataField: 'payload'
+					}
+				}
+			}
+		};
+		const a = resolveContentModel({ types: blocksTypes, manifestRaw });
+		const b = resolveContentModel({ types: blocksTypes, manifestRaw });
+		expect(a).toEqual(b);
+	});
+});
+
+// ————— 19. blockTypes: vocabulario de tipos de bloque (RAÍZ, #4cfd4f7f) —————
+
+describe('19. blockTypes: vocabulario de tipos de bloque (RAÍZ, #4cfd4f7f)', () => {
+	test('sin blockTypes en el manifiesto → [], SIN warning (opt-in)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1 }
+		});
+		expect(model.blockTypes).toEqual([]);
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('un tipo válido con label/icon/fields → se resuelve tal cual', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: {
+						label: 'Portada',
+						icon: 'image',
+						fields: [
+							{ name: 'titulo', label: 'Título', widget: 'text', required: true },
+							{
+								name: 'alineacion',
+								label: 'Alineación',
+								widget: 'select',
+								options: ['izquierda', 'centro']
+							}
+						]
+					}
+				}
+			},
+			knownIcons: ['image']
+		});
+		expect(model.warnings).toEqual([]);
+		expect(model.blockTypes).toEqual([
+			{
+				name: 'hero',
+				label: 'Portada',
+				icon: 'image',
+				fields: [
+					{ name: 'titulo', label: 'Título', widget: 'text', required: true, options: null },
+					{
+						name: 'alineacion',
+						label: 'Alineación',
+						widget: 'select',
+						required: false,
+						options: ['izquierda', 'centro']
+					}
+				]
+			}
+		]);
+	});
+
+	test('varios tipos → se preserva el ORDEN de declaración del manifiesto', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					cta: {
+						label: 'Llamada a la acción',
+						fields: [{ name: 'texto', label: 'Texto', widget: 'text' }]
+					},
+					hero: { label: 'Portada', fields: [{ name: 'titulo', label: 'Título', widget: 'text' }] },
+					texto: {
+						label: 'Texto',
+						fields: [{ name: 'cuerpo', label: 'Cuerpo', widget: 'richtext' }]
+					}
+				}
+			}
+		});
+		expect(model.blockTypes.map((t) => t.name)).toEqual(['cta', 'hero', 'texto']);
+	});
+
+	test('sin icon (o sin knownIcons) → icon null / tal cual, sin warning', () => {
+		const withoutIcon = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: { label: 'Portada', fields: [{ name: 'a', label: 'A', widget: 'text' }] }
+				}
+			}
+		});
+		expect(withoutIcon.blockTypes[0].icon).toBeNull();
+		expect(withoutIcon.warnings).toEqual([]);
+
+		const noKnownIcons = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: {
+						label: 'Portada',
+						icon: 'cualquiera',
+						fields: [{ name: 'a', label: 'A', widget: 'text' }]
+					}
+				}
+			}
+			// sin knownIcons: no se valida, se acepta tal cual (mismo criterio que collections.icon)
+		});
+		expect(noKnownIcons.blockTypes[0].icon).toBe('cualquiera');
+		expect(noKnownIcons.warnings).toEqual([]);
+	});
+
+	test('icon fuera de knownIcons → icon null + icon-unknown (reutilizado)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: {
+						label: 'Portada',
+						icon: 'nope',
+						fields: [{ name: 'a', label: 'A', widget: 'text' }]
+					}
+				}
+			},
+			knownIcons: ['image', 'star']
+		});
+		expect(model.blockTypes[0].icon).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'icon-unknown',
+				blockType: 'hero',
+				path: '/blockTypes/hero/icon'
+			})
+		]);
+	});
+
+	test('clave que no casa ^[a-z][a-z0-9-]*$ → se descarta ENTERO, block-type-invalid', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					Hero: { label: 'Portada', fields: [{ name: 'a', label: 'A', widget: 'text' }] }
+				}
+			}
+		});
+		expect(model.blockTypes).toEqual([]);
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'block-type-invalid',
+				blockType: 'Hero',
+				path: '/blockTypes/Hero'
+			})
+		]);
+	});
+
+	test('sin label (o label inválido) → se descarta ENTERO, block-type-invalid', () => {
+		const missing = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: { hero: { fields: [{ name: 'a', label: 'A', widget: 'text' }] } }
+			}
+		});
+		expect(missing.blockTypes).toEqual([]);
+		expect(missing.warnings).toEqual([
+			expect.objectContaining({ code: 'block-type-invalid', path: '/blockTypes/hero' })
+		]);
+
+		const tooLong = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: { label: 'x'.repeat(61), fields: [{ name: 'a', label: 'A', widget: 'text' }] }
+				}
+			}
+		});
+		expect(tooLong.blockTypes).toEqual([]);
+		expect(tooLong.warnings).toEqual([
+			expect.objectContaining({ code: 'block-type-invalid', path: '/blockTypes/hero' })
+		]);
+	});
+
+	test('declaración que no es un objeto → se descarta ENTERO, block-type-invalid', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, blockTypes: { hero: 'not-an-object' } }
+		});
+		expect(model.blockTypes).toEqual([]);
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'block-type-invalid', path: '/blockTypes/hero' })
+		]);
+	});
+
+	test('fields ausente o vacío → se descarta ENTERO, block-type-invalid (fields)', () => {
+		const absent = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, blockTypes: { hero: { label: 'Portada' } } }
+		});
+		expect(absent.blockTypes).toEqual([]);
+		expect(absent.warnings).toEqual([
+			expect.objectContaining({ code: 'block-type-invalid', path: '/blockTypes/hero' })
+		]);
+
+		const empty = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, blockTypes: { hero: { label: 'Portada', fields: [] } } }
+		});
+		expect(empty.blockTypes).toEqual([]);
+		expect(empty.warnings).toEqual([
+			expect.objectContaining({ code: 'block-type-invalid', path: '/blockTypes/hero' })
+		]);
+	});
+
+	test('campo con widget EXCLUIDO (relation/file/unsupported) → se descarta SOLO ese campo', () => {
+		for (const widget of ['relation', 'file', 'unsupported']) {
+			const model = resolveContentModel({
+				types: kitchenSinkTypes,
+				manifestRaw: {
+					schemaVersion: 1,
+					blockTypes: {
+						hero: {
+							label: 'Portada',
+							fields: [
+								{ name: 'titulo', label: 'Título', widget: 'text' },
+								{ name: 'malo', label: 'Malo', widget }
+							]
+						}
+					}
+				}
+			});
+			expect(model.blockTypes).toHaveLength(1);
+			expect(model.blockTypes[0].fields.map((f) => f.name)).toEqual(['titulo']);
+			expect(model.warnings).toEqual([
+				expect.objectContaining({
+					code: 'block-type-field-invalid',
+					blockType: 'hero',
+					path: '/blockTypes/hero/fields/1'
+				})
+			]);
+		}
+	});
+
+	test('campo con widget DESCONOCIDO (fuera del vocabulario) → se descarta SOLO ese campo', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: {
+						label: 'Portada',
+						fields: [
+							{ name: 'titulo', label: 'Título', widget: 'text' },
+							{ name: 'malo', label: 'Malo', widget: 'wat' }
+						]
+					}
+				}
+			}
+		});
+		expect(model.blockTypes[0].fields.map((f) => f.name)).toEqual(['titulo']);
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'block-type-field-invalid',
+				path: '/blockTypes/hero/fields/1'
+			})
+		]);
+	});
+
+	// `name` es la CLAVE dentro del `data` JSON del bloque: dos campos que lo repitan son dos filas
+	// del formulario escribiendo la misma clave, donde editar una pisa a la otra sin que nada lo
+	// diga. En una colección real lo impediría PocketBase (no admite dos columnas con el mismo
+	// nombre); dentro de un JSON no hay quien lo impida por abajo, así que lo comprueba Vega.
+	test('dos campos con el MISMO name → gana el primero y el segundo se descarta', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: {
+						label: 'Portada',
+						fields: [
+							{ name: 'titulo', label: 'Título', widget: 'text' },
+							{ name: 'titulo', label: 'Título otra vez', widget: 'textarea' },
+							{ name: 'pie', label: 'Pie', widget: 'text' }
+						]
+					}
+				}
+			}
+		});
+		expect(model.blockTypes[0].fields.map((f) => f.name)).toEqual(['titulo', 'pie']);
+		// Gana el PRIMERO: el que sobrevive conserva el widget del primero, no el del repetido.
+		expect(model.blockTypes[0].fields[0].widget).toBe('text');
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'block-type-field-invalid',
+				blockType: 'hero',
+				path: '/blockTypes/hero/fields/1'
+			})
+		]);
+	});
+
+	// Un tipo cuyos campos son TODOS repetidos del primero se queda con uno solo, no con cero: la
+	// deduplicación no puede llevarse por delante el tipo entero.
+	test('un tipo cuyo único campo se repite conserva UNA copia y sobrevive', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: {
+						label: 'Portada',
+						fields: [
+							{ name: 'titulo', label: 'Título', widget: 'text' },
+							{ name: 'titulo', label: 'Repetido', widget: 'text' }
+						]
+					}
+				}
+			}
+		});
+		expect(model.blockTypes).toHaveLength(1);
+		expect(model.blockTypes[0].fields.map((f) => f.name)).toEqual(['titulo']);
+	});
+
+	test('campo sin name/label (forma inválida) → se descarta SOLO, el tipo sobrevive', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: {
+						label: 'Portada',
+						fields: [
+							{ name: 'titulo', label: 'Título', widget: 'text' },
+							{ label: 'Sin name', widget: 'text' },
+							{ name: 'sinLabel', widget: 'text' },
+							'not-an-object'
+						]
+					}
+				}
+			}
+		});
+		expect(model.blockTypes[0].fields.map((f) => f.name)).toEqual(['titulo']);
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'block-type-field-invalid',
+				path: '/blockTypes/hero/fields/1'
+			}),
+			expect.objectContaining({
+				code: 'block-type-field-invalid',
+				path: '/blockTypes/hero/fields/2'
+			}),
+			expect.objectContaining({
+				code: 'block-type-field-invalid',
+				path: '/blockTypes/hero/fields/3'
+			})
+		]);
+	});
+
+	test('TODOS los campos inválidos → el tipo se descarta ENTERO (fields, cero campos válidos)', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: { label: 'Portada', fields: [{ name: 'malo', label: 'Malo', widget: 'relation' }] }
+				}
+			}
+		});
+		expect(model.blockTypes).toEqual([]);
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'block-type-field-invalid',
+				path: '/blockTypes/hero/fields/0'
+			}),
+			expect.objectContaining({ code: 'block-type-invalid', path: '/blockTypes/hero' })
+		]);
+	});
+
+	test('options: solo select/chips; ausente → null; widget distinto con options declarado → null silencioso', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: {
+						label: 'Portada',
+						fields: [
+							{ name: 'sinOpciones', label: 'Sin opciones', widget: 'select' },
+							{ name: 'chips', label: 'Chips', widget: 'chips', options: ['a', 'b'] },
+							{ name: 'texto', label: 'Texto', widget: 'text', options: ['ignorado'] }
+						]
+					}
+				}
+			}
+		});
+		expect(model.warnings).toEqual([]);
+		const fields = model.blockTypes[0].fields;
+		expect(fields.find((f) => f.name === 'sinOpciones')!.options).toBeNull();
+		expect(fields.find((f) => f.name === 'chips')!.options).toEqual(['a', 'b']);
+		expect(fields.find((f) => f.name === 'texto')!.options).toBeNull();
+	});
+
+	test('options con forma inválida (array vacío o con elemento no-string) → null + manifest-invalid-key', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: {
+						label: 'Portada',
+						fields: [{ name: 'malas', label: 'Malas', widget: 'select', options: [] }]
+					}
+				}
+			}
+		});
+		expect(model.blockTypes[0].fields[0].options).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'manifest-invalid-key',
+				path: '/blockTypes/hero/fields/0/options'
+			})
+		]);
+	});
+
+	test('required: boolean se respeta; forma inválida → default false + manifest-invalid-key', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: {
+						label: 'Portada',
+						fields: [
+							{ name: 'a', label: 'A', widget: 'text', required: true },
+							{ name: 'b', label: 'B', widget: 'text', required: 'yes' }
+						]
+					}
+				}
+			}
+		});
+		expect(model.blockTypes[0].fields.map((f) => ({ name: f.name, required: f.required }))).toEqual(
+			[
+				{ name: 'a', required: true },
+				{ name: 'b', required: false }
+			]
+		);
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'manifest-invalid-key',
+				path: '/blockTypes/hero/fields/1/required'
+			})
+		]);
+	});
+
+	test('determinismo (L1): mismo input → mismo output (deepEqual)', () => {
+		const manifestRaw: JsonValue = {
+			schemaVersion: 1,
+			blockTypes: {
+				hero: {
+					label: 'Portada',
+					icon: 'image',
+					fields: [{ name: 'titulo', label: 'Título', widget: 'text', required: true }]
+				}
+			}
+		};
+		const a = resolveContentModel({ types: kitchenSinkTypes, manifestRaw, knownIcons: ['image'] });
+		const b = resolveContentModel({ types: kitchenSinkTypes, manifestRaw, knownIcons: ['image'] });
 		expect(a).toEqual(b);
 	});
 });

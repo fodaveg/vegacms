@@ -159,14 +159,16 @@
 						}
 					},
 					"blocks": {
-						"description": "Bloques ordenables embebidos: la colección hija cuyos registros son 'secciones' de este registro (p. ej. una landing hecha de bloques), el campo relation de esa hija que apunta de vuelta a este tipo y el campo numérico que los ordena. El editor pinta una lista embebida con crear/reordenar/plegar/borrar, sin salir del registro. Sin esta clave, el editor no pinta ninguna lista de bloques.",
+						"description": "Bloques ordenables embebidos: la colección hija cuyos registros son 'secciones' de este registro (p. ej. una landing hecha de bloques), el campo relation de esa hija que apunta de vuelta a este tipo y el campo numérico que los ordena. El editor pinta una lista embebida con crear/reordenar/plegar/borrar, sin salir del registro. Sin esta clave, el editor no pinta ninguna lista de bloques. typeField/dataField (opcionales, las DOS o ninguna) activan el modo HETEROGÉNEO: un campo de texto con el nombre de un blockTypes.<t> y un campo json con su contenido; sin ellas (o a medias), la colección hija sigue en modo homogéneo (una sola plantilla de bloque).",
 						"type": "object",
 						"additionalProperties": false,
 						"required": ["collection", "parentField", "orderField"],
 						"properties": {
 							"collection": { "type": "string", "minLength": 1 },
 							"parentField": { "type": "string", "minLength": 1 },
-							"orderField": { "type": "string", "minLength": 1 }
+							"orderField": { "type": "string", "minLength": 1 },
+							"typeField": { "type": "string", "minLength": 1 },
+							"dataField": { "type": "string", "minLength": 1 }
 						}
 					},
 					"localizedFields": {
@@ -217,6 +219,59 @@
 				"enabled": { "type": "boolean" },
 				"keepPerRecord": { "type": "integer", "minimum": 0 },
 				"trashDays": { "type": "integer", "minimum": 0 }
+			}
+		},
+
+		"blockTypes": {
+			"description": "Vocabulario de tipos de bloque del sitio (hero, texto, galería, cta…): la forma del mini-formulario que puede tomar un registro de una colección de bloques (collections.<c>.blocks.dataField) cuando su typeField vale la clave de este tipo. Clave = nombre del tipo de bloque; el patrón es estricto porque viaja al nombre de componente Astro y al documento de discovery del sitio.",
+			"type": "object",
+			"propertyNames": { "pattern": "^[a-z][a-z0-9-]*$" },
+			"additionalProperties": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["label", "fields"],
+				"properties": {
+					"label": { "type": "string", "minLength": 1, "maxLength": 60 },
+					"icon": { "type": "string", "minLength": 1 },
+					"fields": {
+						"description": "Campos del mini-formulario de este tipo de bloque, orden significativo (es el orden del formulario). Al menos uno.",
+						"type": "array",
+						"minItems": 1,
+						"items": {
+							"type": "object",
+							"additionalProperties": false,
+							"required": ["name", "label", "widget"],
+							"properties": {
+								"name": { "type": "string", "minLength": 1 },
+								"label": { "type": "string", "minLength": 1, "maxLength": 60 },
+								"widget": {
+									"description": "Subconjunto ESCALAR de los widgets de un campo real: relation/file/unsupported quedan fuera a propósito (dentro de un JSON no hay relaciones ni gestión de ficheros de PocketBase).",
+									"enum": [
+										"text",
+										"textarea",
+										"markdown",
+										"richtext",
+										"number",
+										"switch",
+										"email",
+										"url",
+										"datetime",
+										"select",
+										"chips",
+										"json"
+									]
+								},
+								"required": { "type": "boolean" },
+								"options": {
+									"description": "Solo tiene efecto con widget select/chips.",
+									"type": "array",
+									"minItems": 1,
+									"items": { "type": "string", "minLength": 1 }
+								}
+							}
+						}
+					}
+				}
 			}
 		},
 

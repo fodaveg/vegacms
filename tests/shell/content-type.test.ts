@@ -33,6 +33,7 @@ function model(types: ResolvedContentType[]): ContentModel {
 		types,
 		nav: { groups: [] },
 		mergedViews: [],
+		blockTypes: [],
 		warnings: [],
 		manifest: { status: 'absent' }
 	};
