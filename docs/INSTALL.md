@@ -253,4 +253,19 @@ Gate completo (la suite que CI ejecuta en cada PR):
 pnpm gate
 ```
 
-Esto corre: check + lint + tests TypeScript y Go + build + e2e.
+Esto corre: check + lint + descarga y verificación del binario de PocketBase + tests TypeScript y
+Go + build + e2e.
+
+El gate **descarga el binario de PocketBase antes de testear** y se niega a seguir si no lo tiene.
+No es un capricho: la suite de contrato contra PB real vive dentro de `pnpm test` y, sin binario, se
+auto-salta con `describe.skip`, de modo que el gate salía **verde habiéndose saltado ~87 tests en
+silencio** justo en la mitad que ejerce PocketBase de verdad. Si trabajas **sin red** y aun así
+necesitas pasar el gate, pídelo explícitamente:
+
+```sh
+VEGA_ALLOW_NO_PB=1 pnpm gate
+```
+
+Con esa variable el gate avisa a gritos de lo que NO está acreditando y continúa. No la uses para
+dar por bueno un cambio en `src/lib/backend/adapters/pocketbase/` ni en las migraciones: eso es
+precisamente lo que deja de comprobarse.

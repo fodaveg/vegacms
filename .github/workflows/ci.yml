@@ -49,21 +49,15 @@ jobs:
       - name: Install Playwright browser (Chromium)
         run: pnpm exec playwright install --with-deps chromium
 
+      # Desde 2026-07-27 el propio `pnpm gate` hace `pb:download` + `check-pb-binary`, así que este
+      # paso ya no es lo que evita el falso verde (lo evita el gate, aquí y en la máquina de cada
+      # cual por igual). Se mantiene explícito para que un fallo de RED se vea como paso propio en
+      # el log de Actions en vez de disfrazado dentro del gate.
       - name: Download PocketBase binary (contract suite, versión pineada)
         run: pnpm pb:download
 
-      # `pnpm pb:download` falla en silencio (éxito de proceso) si la descarga no funciona,
-      # y en ese caso la suite de contrato contra PB real se auto-salta (describe.skip).
-      # Esta comprobación evita un falso verde: si el binario no está listo, el job falla aquí
-      # en vez de dejar pasar un `pnpm gate` que nunca ejerció PB real.
       - name: Verify PocketBase binary is present and executable
-        run: |
-          if [ ! -x .pbbin/pocketbase ]; then
-            echo "::error::.pbbin/pocketbase no existe o no es ejecutable tras 'pnpm pb:download'." \
-              "La suite de contrato contra PB real se saltaría silenciosamente y el gate daría un falso verde." \
-              "Revisa la conectividad a GitHub Releases o el script scripts/download-pocketbase.mjs."
-            exit 1
-          fi
+        run: pnpm check-pb-binary
 
       - name: Run gate (check + lint + TS/Go tests + build + e2e)
         run: pnpm gate
@@ -123,13 +117,7 @@ jobs:
       # Mismo guard anti-falso-verde que en `gate` (L-P8.5): un binario ausente FALLA aquí,
       # nunca se salta en silencio la comprobación de esta versión de la matriz.
       - name: Verify PocketBase binary is present and executable
-        run: |
-          if [ ! -x .pbbin/pocketbase ]; then
-            echo "::error::.pbbin/pocketbase no existe o no es ejecutable tras 'pnpm pb:download' (PB_VERSION=${{ matrix.pb_version }})." \
-              "La suite de contrato contra PB real se saltaría silenciosamente." \
-              "Revisa la conectividad a GitHub Releases o el script scripts/download-pocketbase.mjs."
-            exit 1
-          fi
+        run: pnpm check-pb-binary
 
       - name: Run contract suite against PocketBase ${{ matrix.pb_version }}
         run: pnpm exec vitest run tests/contract/pocketbase.contract.test.ts

@@ -46,7 +46,7 @@ pnpm check     # svelte-check (TS estricto)
 pnpm lint      # prettier + eslint
 pnpm test      # vitest (unit + contrato)
 pnpm build     # SPA estática (@sveltejs/adapter-static)
-pnpm gate      # check + lint + test + build + e2e (la suite completa)
+pnpm gate      # la suite completa: check + lint + PocketBase real + test + build + e2e
 ```
 
 ## Referencia
