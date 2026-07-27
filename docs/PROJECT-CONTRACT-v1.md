@@ -33,7 +33,8 @@ contain credentials, tokens, internal URLs, or other secrets.
 	"siteSettings": {
 		"collection": "site_settings",
 		"key": "default"
-	}
+	},
+	"blockTypes": ["hero", "rich-text", "gallery"]
 }
 ```
 
@@ -53,6 +54,21 @@ Vega treats an absent, invalid, or unsupported response as a legacy server and
 falls back to its existing static/runtime configuration. An explicit
 per-browser auth override still wins, so an operator can recover from an
 incorrect server document.
+
+### Block renderer vocabulary (optional)
+
+An Astro site can advertise the block types for which it has a renderer by adding the
+ADDITIVE `blockTypes` array shown above. Names use the same
+`^[a-z][a-z0-9-]*$` vocabulary as the manifest's root `blockTypes` object.
+
+- Omit the field (or set it to `null`) on legacy sites that do not expose this capability.
+- Use `[]` when the site explicitly supports no block renderers yet.
+- Vega emits one warning listing every manifest block type absent from this array.
+- Because heterogeneous blocks keep their `type` in a real PocketBase column, Vega obtains the
+  affected count with one grouped filter per block collection and its record total; it never
+  parses each block's `data` JSON.
+
+This is an additive field and therefore does not bump `protocolVersion`.
 
 ## Build trigger endpoint (optional)
 

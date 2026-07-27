@@ -83,6 +83,11 @@ export interface BackendPort {
 	 * diseño. Dos capacidades hermanas leídas desde sitios distintos es justo lo que hace que
 	 * dentro de dos meses nadie sepa cuál es el patrón bueno. */
 	readonly previewApiUrl?: string | null;
+	/**
+	 * Vocabulario de renderers anunciado por el sitio en discovery. `null`/ausente = proyecto
+	 * legacy, sin contraste; `[]` = el sitio declara que no sabe pintar ningún tipo.
+	 */
+	readonly renderedBlockTypes?: readonly string[] | null;
 
 	// ——— Auth (§4.1) ———
 	login(credentials: { email: string; password: string }): Promise<Session>;

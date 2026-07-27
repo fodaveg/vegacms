@@ -53,6 +53,12 @@ export interface ProjectDiscovery {
 	 * ya usa `backend/preview-client.ts#createPreviewClient` (igual patrón que `build-client.ts`).
 	 */
 	preview: { apiBasePath: string } | null;
+	/**
+	 * Tipos de bloque que el SITIO conectado sabe renderizar (`@vega/astro`), no los que Vega
+	 * permite editar. Campo aditivo: ausente/`null`/inválido ⇒ servidor legacy, sin contraste;
+	 * `[]` ⇒ el sitio declara explícitamente que todavía no pinta ningún bloque.
+	 */
+	blockTypes: string[] | null;
 }
 
 function object(value: unknown): Record<string, unknown> | null {
@@ -69,6 +75,20 @@ function apiPath(value: unknown): string | null {
 	if (value === null || value === undefined || value === '') return null;
 	const path = nonEmptyString(value)?.replace(/\/+$/, '') ?? null;
 	return path && path.startsWith('/api/') && !path.startsWith('//') ? path : null;
+}
+
+function blockTypeNames(value: unknown): string[] | null {
+	if (value === null || value === undefined) return null;
+	if (!Array.isArray(value)) return null;
+	const names: string[] = [];
+	const seen = new Set<string>();
+	for (const item of value) {
+		const name = nonEmptyString(item);
+		if (!name || !/^[a-z][a-z0-9-]*$/.test(name) || seen.has(name)) return null;
+		seen.add(name);
+		names.push(name);
+	}
+	return names;
 }
 
 /**
@@ -140,7 +160,8 @@ export function parseProjectDiscovery(raw: unknown): ProjectDiscovery | null {
 		manifest: { collection: 'vega', key: manifestKey, schemaVersion },
 		siteSettings,
 		build,
-		preview
+		preview,
+		blockTypes: blockTypeNames(root.blockTypes)
 	};
 }
 

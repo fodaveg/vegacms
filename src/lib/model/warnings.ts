@@ -319,6 +319,33 @@ export function blockTypeIconUnknown(typeName: string, icon: string): ModelWarni
 	};
 }
 
+/**
+ * `block-type-unrendered` — Vega sabe editar estos tipos, pero el sitio no los anunció en
+ * discovery. `affected` es la suma exacta de `totalItems` de UNA consulta filtrada con todos los
+ * tipos por cada colección heterogénea, sobre su columna real `typeField`; `null` degrada a aviso
+ * no cuantificado si alguna colección no se pudo consultar (permisos/red), sin convertir una
+ * capacidad de diagnóstico en fallo de carga.
+ */
+export function blockTypesUnrendered(
+	typeNames: readonly string[],
+	affected: number | null
+): ModelWarning {
+	const impact =
+		affected === null
+			? 'No se pudo contar cuántos bloques quedarían sin pintar.'
+			: affected === 1
+				? 'Hay 1 bloque que quedaría sin pintar.'
+				: `Hay ${affected} bloques que quedarían sin pintar.`;
+	const names = typeNames.map((name) => `"${name}"`).join(', ');
+	const onlyType = typeNames.length === 1 ? typeNames[0] : undefined;
+	return {
+		code: 'block-type-unrendered',
+		message: `El manifiesto declara tipos de bloque que el sitio no anuncia en discovery.blockTypes: ${names}. ${impact}`,
+		blockType: onlyType,
+		path: onlyType ? blockTypePath(onlyType) : '$.blockTypes'
+	};
+}
+
 /** `social-title-field-invalid` — `social.titleField` inexistente o no representable; se cae a
  *  la cascada de `titleField` del tipo (§4.4), igual que si la clave no se hubiera declarado. */
 export function socialTitleFieldInvalid(collection: string, requestedField: string): ModelWarning {

@@ -103,6 +103,8 @@ export interface PocketBaseBackendOptions {
 	/** Ver `BackendPort.previewApiUrl` (`../../port.ts`): gemela de `buildApiUrl`, resuelta en el
 	 *  mismo sitio a partir de `ProjectDiscovery.preview`. Tampoco se interpreta aquí. */
 	previewApiUrl?: string | null;
+	/** Ver `BackendPort.renderedBlockTypes`: transportado desde discovery, sin interpretarlo. */
+	renderedBlockTypes?: readonly string[] | null;
 }
 
 /** Crea un `BackendPort` sobre un PocketBase real en `url`. */
@@ -112,7 +114,8 @@ export function createPocketBaseBackend({
 	authApiBasePath = null,
 	manifestKey = VEGA_PROJECT_KEY,
 	buildApiUrl = null,
-	previewApiUrl = null
+	previewApiUrl = null,
+	renderedBlockTypes = null
 }: PocketBaseBackendOptions): BackendPort {
 	const pb = new PocketBase(url);
 	// LANDMINE (ver README): el SDK cancela peticiones "duplicadas" en vuelo por defecto. La
@@ -419,6 +422,7 @@ export function createPocketBaseBackend({
 		manifestKey: normalizedManifestKey,
 		buildApiUrl,
 		previewApiUrl,
+		renderedBlockTypes,
 
 		async login(credentials) {
 			try {

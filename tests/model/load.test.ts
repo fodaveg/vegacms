@@ -8,10 +8,11 @@
  * login antes de tocar datos/esquema.
  */
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { createMemoryBackend } from '$lib/backend/adapters/memory';
 import type { MemorySeed } from '$lib/backend/adapters/memory';
 import type { BackendPort } from '$lib/backend/port';
+import type { ContentType } from '$lib/backend/types';
 import { VEGA_COLLECTION } from '$lib/backend/collections';
 import { loadContentModel, saveManifest, ManifestValidationError } from '$lib/model/load';
 import { categoryType, postType } from './fixture';
@@ -56,6 +57,70 @@ const EXAMPLE_MANIFEST = {
 		},
 		category: { label: 'Categorías', icon: 'tag', group: 'Sitio' }
 	}
+};
+
+const pageContentType: ContentType = {
+	name: 'page',
+	readonly: false,
+	fields: [
+		{
+			name: 'path',
+			type: 'text',
+			subtype: 'plain',
+			required: true,
+			readonly: false,
+			presentable: true,
+			hidden: false,
+			unique: true
+		}
+	]
+};
+
+const blockContentType: ContentType = {
+	name: 'block',
+	readonly: false,
+	fields: [
+		{
+			name: 'parent',
+			type: 'relation',
+			target: 'page',
+			multiple: false,
+			required: true,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'order',
+			type: 'number',
+			integer: true,
+			required: true,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'type',
+			type: 'text',
+			subtype: 'plain',
+			required: true,
+			readonly: false,
+			presentable: true,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'data',
+			type: 'json',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		}
+	]
 };
 
 describe('11. Ciclo completo con memory (§9.11)', () => {
@@ -295,5 +360,103 @@ describe('11. Ciclo completo con memory (§9.11)', () => {
 
 		const page = await port.list('vega', { perPage: 1 });
 		expect(page.items[0].values.schemaSnapshot ?? null).toBeNull();
+	});
+
+	test('discovery.blockTypes avisa y cuantifica por la columna real type, sin leer data', async () => {
+		const basePort = await loggedInPort({
+			users: [{ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }],
+			contentTypes: [pageContentType, blockContentType],
+			records: {
+				page: [{ id: 'home', values: { path: '/' } }],
+				block: [
+					{
+						id: 'hero1',
+						values: { parent: 'home', order: 0, type: 'hero', data: { title: 'Hola' } }
+					},
+					{
+						id: 'gallery1',
+						values: { parent: 'home', order: 1, type: 'gallery', data: { images: [1] } }
+					},
+					{
+						id: 'gallery2',
+						values: { parent: 'home', order: 2, type: 'gallery', data: { images: [2] } }
+					}
+				]
+			}
+		});
+		await basePort.ensureCollections([VEGA_COLLECTION]);
+		await basePort.create('vega', {
+			manifest: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: { label: 'Hero', fields: [{ name: 'title', label: 'Título', widget: 'text' }] },
+					gallery: {
+						label: 'Galería',
+						fields: [{ name: 'caption', label: 'Pie', widget: 'text' }]
+					},
+					video: {
+						label: 'Vídeo',
+						fields: [{ name: 'url', label: 'URL', widget: 'text' }]
+					}
+				},
+				collections: {
+					page: {
+						page: { pathField: 'path' },
+						blocks: {
+							collection: 'block',
+							parentField: 'parent',
+							orderField: 'order',
+							typeField: 'type',
+							dataField: 'data'
+						}
+					}
+				}
+			}
+		});
+		const port: BackendPort = { ...basePort, renderedBlockTypes: ['hero'] };
+		const listSpy = vi.spyOn(port, 'list');
+
+		const model = await loadContentModel(port);
+
+		expect(model.warnings).toContainEqual(
+			expect.objectContaining({
+				code: 'block-type-unrendered',
+				message: expect.stringContaining('Hay 2 bloques')
+			})
+		);
+		const warning = model.warnings.find((candidate) => candidate.code === 'block-type-unrendered');
+		expect(warning?.message).toContain('"gallery", "video"');
+		const countCalls = listSpy.mock.calls.filter(([collection, options]) => {
+			if (collection !== 'block' || options?.filter?.kind !== 'cond') return false;
+			return options.filter.field === 'type';
+		});
+		expect(countCalls).toHaveLength(1);
+		expect(countCalls[0][1]?.filter).toEqual({
+			kind: 'cond',
+			field: 'type',
+			op: 'in',
+			value: ['gallery', 'video']
+		});
+		expect(warning?.message).not.toContain('"hero"');
+		expect(
+			model.warnings.filter((candidate) => candidate.code === 'block-type-unrendered')
+		).toHaveLength(1);
+	});
+
+	test('discovery sin blockTypes es legacy y no produce falsos avisos', async () => {
+		const basePort = await loggedInPort(virginSeed());
+		await basePort.ensureCollections([VEGA_COLLECTION]);
+		await basePort.create('vega', {
+			manifest: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: { label: 'Hero', fields: [{ name: 'title', label: 'Título', widget: 'text' }] }
+				}
+			}
+		});
+
+		expect((await loadContentModel(basePort)).warnings).not.toContainEqual(
+			expect.objectContaining({ code: 'block-type-unrendered' })
+		);
 	});
 });

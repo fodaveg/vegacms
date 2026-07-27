@@ -17,7 +17,7 @@ import {
 import type { ContentModel } from './types';
 import { resolveContentModel } from './resolve';
 import { validateManifestStrict, type ManifestValidationErrorEntry } from './validate';
-import { multipleVegaRecords } from './warnings';
+import { blockTypesUnrendered, multipleVegaRecords } from './warnings';
 
 /** Nombre del campo `json` del registro `vega` (§6.1). */
 const MANIFEST_FIELD = 'manifest';
@@ -25,6 +25,48 @@ const MANIFEST_FIELD = 'manifest';
 /** Nombre del campo `json` de snapshot de esquema del registro `vega` (L6b): ver cabecera de
  *  `saveManifest` para cuándo se escribe. */
 const SCHEMA_SNAPSHOT_FIELD = 'schemaSnapshot';
+
+async function unsupportedBlockTypeWarnings(
+	port: BackendPort,
+	model: ContentModel
+): Promise<ContentModel['warnings']> {
+	if (port.renderedBlockTypes === null || port.renderedBlockTypes === undefined) return [];
+
+	const rendered = new Set(port.renderedBlockTypes);
+	const unsupported = model.blockTypes.filter((blockType) => !rendered.has(blockType.name));
+	if (unsupported.length === 0) return [];
+
+	const sources = new Map<string, string>();
+	for (const type of model.types) {
+		const blocks = type.blocks;
+		if (!blocks?.typeField) continue;
+		sources.set(blocks.collection, blocks.typeField);
+	}
+
+	const unsupportedNames = unsupported.map((blockType) => blockType.name);
+	try {
+		// Una consulta de COUNT filtrada por colección, no una lectura por tipo ni un recorrido de
+		// `data`: `totalItems` lo calcula PocketBase sobre la columna real `typeField`, y `in`
+		// agrupa todos los tipos que el sitio no sabe pintar en la misma consulta.
+		const counts = await Promise.all(
+			Array.from(sources, ([collection, typeField]) =>
+				port.list(collection, {
+					perPage: 1,
+					filter: {
+						kind: 'cond',
+						field: typeField,
+						op: 'in',
+						value: unsupportedNames
+					}
+				})
+			)
+		);
+		const affected = counts.reduce((sum, page) => sum + page.totalItems, 0);
+		return [blockTypesUnrendered(unsupportedNames, affected)];
+	} catch {
+		return [blockTypesUnrendered(unsupportedNames, null)];
+	}
+}
 
 /** Query exacta del registro canónico. Servidores anteriores a este contrato no
  * tienen `key`; para ellos conserva temporalmente la lectura del primer registro. */
@@ -119,9 +161,14 @@ export async function loadContentModel(
 		knownIcons: opts?.knownIcons,
 		accessBypass: port.capabilities.accessBypass
 	});
-	if (page.totalItems <= 1) return model;
+	const discoveryWarnings = await unsupportedBlockTypeWarnings(port, model);
+	const cardinalityWarnings = page.totalItems <= 1 ? [] : [multipleVegaRecords(page.totalItems)];
+	if (discoveryWarnings.length === 0 && cardinalityWarnings.length === 0) return model;
 
-	return { ...model, warnings: [...model.warnings, multipleVegaRecords(page.totalItems)] };
+	return {
+		...model,
+		warnings: [...model.warnings, ...discoveryWarnings, ...cardinalityWarnings]
+	};
 }
 
 /**

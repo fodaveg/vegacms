@@ -12,7 +12,8 @@ const DOCUMENT = {
 	manifest: { collection: 'vega', key: 'fodaveg-main', schemaVersion: 1 },
 	siteSettings: { collection: 'site_settings', key: 'default' },
 	build: { apiBasePath: '/api/vega-build' },
-	preview: { apiBasePath: '/api/vega-preview' }
+	preview: { apiBasePath: '/api/vega-preview' },
+	blockTypes: ['hero', 'rich-text', 'gallery']
 };
 
 describe('project discovery', () => {
@@ -72,6 +73,19 @@ describe('project discovery', () => {
 		expect(parseProjectDiscovery({ ...DOCUMENT, preview: 'nope' })).toMatchObject({
 			preview: null
 		});
+	});
+
+	it('reads the additive block renderer vocabulary and distinguishes legacy from explicit empty', () => {
+		expect(parseProjectDiscovery(DOCUMENT)?.blockTypes).toEqual(['hero', 'rich-text', 'gallery']);
+		const { blockTypes: _omitted, ...legacy } = DOCUMENT;
+		expect(parseProjectDiscovery(legacy)?.blockTypes).toBeNull();
+		expect(parseProjectDiscovery({ ...DOCUMENT, blockTypes: [] })?.blockTypes).toEqual([]);
+	});
+
+	it('degrades malformed blockTypes without rejecting discovery', () => {
+		for (const blockTypes of ['hero', ['Hero'], ['hero', 'hero'], ['hero', ''], ['hero', 42]]) {
+			expect(parseProjectDiscovery({ ...DOCUMENT, blockTypes })?.blockTypes).toBeNull();
+		}
 	});
 
 	it('loads discovery from the selected backend, not from the Vega origin', async () => {

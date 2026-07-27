@@ -261,7 +261,8 @@ async function createInstance(): Promise<BackendPort> {
 			authApiBasePath,
 			manifestKey: projectConfig?.manifestKey,
 			buildApiUrl: resolveBuildApiUrl(url, discovery),
-			previewApiUrl: resolvePreviewApiUrl(url, discovery)
+			previewApiUrl: resolvePreviewApiUrl(url, discovery),
+			renderedBlockTypes: discovery?.blockTypes ?? null
 		})
 	);
 }
