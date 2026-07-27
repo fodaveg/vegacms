@@ -4,6 +4,11 @@ node_modules
 # .svelte-kit/build; nunca se commitean y no deben entrar al lint/prettier del árbol principal.
 .claude/worktrees/
 
+# Configuración local de Codex (agentes en `.codex/agents/*.toml`). A diferencia de
+# `.claude/agents/`, que SÍ se versiona, esto es setup de la máquina de cada cual y no
+# forma parte del proyecto.
+.codex/
+
 # Output
 .output
 .vercel
