@@ -13,6 +13,7 @@ import type {
 	CollectionSpec,
 	EnsureResult
 } from '../../collections';
+import { checkRelationTargets } from '../../collections';
 import { VegaError } from '../../errors';
 import { collectionFieldSpecToPbField } from './schema';
 
@@ -29,10 +30,11 @@ export async function ensureCollectionsOnPocketBase(
 			skipped.push(spec.name);
 			continue;
 		}
+		const fields = await resolveCollectionFields(pb, spec.fields);
 		await pb.collections.create({
 			name: spec.name,
 			type: 'base',
-			fields: spec.fields.map(collectionFieldSpecToPbField)
+			fields
 			// Reglas de API cerradas por defecto (null = solo superuser), como todo en v1 (§A.4.5).
 		});
 		created.push(spec.name);
@@ -70,7 +72,7 @@ export async function addFieldsOnPocketBase(
 	const existingNames = new Set(collection.fields.map((f) => f.name));
 	const added: string[] = [];
 	const skipped: string[] = [];
-	const newFields: Record<string, unknown>[] = [];
+	const newSpecs: CollectionFieldSpec[] = [];
 	for (const spec of fields) {
 		// No destructiva (misma regla que `ensureCollectionsOnPocketBase`): un campo que ya
 		// existe se omite tal cual está, nunca se reconcilia ni se sobreescribe.
@@ -78,10 +80,11 @@ export async function addFieldsOnPocketBase(
 			skipped.push(spec.name);
 			continue;
 		}
-		newFields.push(collectionFieldSpecToPbField(spec));
+		newSpecs.push(spec);
 		added.push(spec.name);
 	}
 
+	const newFields = await resolveCollectionFields(pb, newSpecs);
 	if (newFields.length > 0) {
 		// RELECTURA justo antes de escribir, y NO por paranoia: esto es un read-modify-write sobre
 		// el array COMPLETO de campos. Entre el `getOne` de arriba y este `update`, otro escritor
@@ -113,6 +116,41 @@ export async function addFieldsOnPocketBase(
 	}
 
 	return { added, skipped };
+}
+
+/**
+ * Resuelve nombres de destino contra el esquema REAL y compila los payloads con sus ids internos.
+ * No se incrusta el nombre en `collectionId`: PocketBase exige el id estable de la colección.
+ */
+async function resolveCollectionFields(
+	pb: PocketBase,
+	fields: CollectionFieldSpec[]
+): Promise<Record<string, unknown>[]> {
+	const targetIds = new Map<string, string>();
+	const relationTargets = [
+		...new Set(fields.flatMap((field) => (field.type === 'relation' ? [field.target] : [])))
+	];
+
+	for (const target of relationTargets) {
+		try {
+			const collection = await pb.collections.getOne(target);
+			// PocketBase solo permite que una view relacione hacia otra view; esta operación
+			// siempre crea o amplía colecciones base, así que una view no es un destino válido.
+			if (collection.type !== 'view') targetIds.set(target, collection.id);
+		} catch (err) {
+			if (!(err instanceof ClientResponseError && err.status === 404)) throw err;
+		}
+	}
+
+	const rejects = checkRelationTargets(fields, targetIds.keys());
+	if (Object.keys(rejects).length > 0) throw VegaError.validation(rejects);
+
+	return fields.map((field) =>
+		collectionFieldSpecToPbField(
+			field,
+			field.type === 'relation' ? targetIds.get(field.target) : undefined
+		)
+	);
 }
 
 /**

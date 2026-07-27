@@ -11,7 +11,7 @@
 
 import { describe, expect, test } from 'vitest';
 import type { CollectionModel } from 'pocketbase';
-import { mapCollectionsToContentTypes } from './schema';
+import { collectionFieldSpecToPbField, mapCollectionsToContentTypes } from './schema';
 
 /**
  * `CollectionModel` mínimo con las cinco reglas explícitas (el resto de campos no lo mira el mapeo
@@ -106,5 +106,42 @@ describe('mapCollectionsToContentTypes — reglas de acceso', () => {
 			update: 'denied',
 			delete: 'denied'
 		});
+	});
+});
+
+describe('collectionFieldSpecToPbField — relation', () => {
+	test('usa el id resuelto del destino y explicita cardinalidad/cascadeDelete', () => {
+		expect(
+			collectionFieldSpecToPbField(
+				{
+					name: 'parent',
+					type: 'relation',
+					target: 'pages',
+					required: true,
+					multiple: true,
+					cascadeDelete: true
+				},
+				'pages_internal_id'
+			)
+		).toEqual({
+			name: 'parent',
+			type: 'relation',
+			required: true,
+			collectionId: 'pages_internal_id',
+			maxSelect: 99,
+			cascadeDelete: true
+		});
+	});
+
+	test('rechaza compilar una relation cuyo id de destino no se resolvió', () => {
+		expect(() =>
+			collectionFieldSpecToPbField({
+				name: 'parent',
+				type: 'relation',
+				target: 'pages',
+				multiple: false,
+				cascadeDelete: false
+			})
+		).toThrow(/collectionId/);
 	});
 });

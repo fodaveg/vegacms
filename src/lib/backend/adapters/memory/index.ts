@@ -35,7 +35,7 @@ import type {
 	CollectionSpec,
 	EnsureResult
 } from '../../collections';
-import { checkCreatableCollectionNames } from '../../collections';
+import { checkCreatableCollectionNames, checkRelationTargets } from '../../collections';
 import type { MemorySeed } from './seed';
 export type { MemorySeed } from './seed';
 import { validateFieldValue } from './validate';
@@ -268,6 +268,127 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 		return record;
 	}
 
+	const recordKey = (type: string, id: RecordId): string => `${type}\u0000${id}`;
+
+	function relationIds(value: FieldValue): RecordId[] {
+		if (Array.isArray(value)) {
+			const ids: RecordId[] = [];
+			for (const item of value) {
+				if (typeof item === 'string') ids.push(item);
+			}
+			return ids;
+		}
+		return typeof value === 'string' && value ? [value] : [];
+	}
+
+	/**
+	 * Calcula primero TODO el cierre de cascada, sin mutar. PocketBase ejecuta el borrado de forma
+	 * atómica: si una relación obligatoria sin cascada quedara vacía, no puede haberse borrado ni
+	 * desvinculado nada cuando se devuelve el error.
+	 */
+	function buildDeletePlan(type: string, id: RecordId): Set<string> {
+		const plan = new Set([recordKey(type, id)]);
+		let changed = true;
+
+		while (changed) {
+			changed = false;
+			for (const ownerType of contentTypesByName.values()) {
+				const ownerRecords = records.get(ownerType.name);
+				if (!ownerRecords) continue;
+
+				for (const field of ownerType.fields) {
+					if (field.type !== 'relation' || !field.cascadeDelete) continue;
+					for (const [ownerId, ownerRaw] of ownerRecords) {
+						const ownerKey = recordKey(ownerType.name, ownerId);
+						if (plan.has(ownerKey)) continue;
+
+						const current = relationIds(ownerRaw[field.name]);
+						const remaining = current.filter(
+							(relatedId) => !plan.has(recordKey(field.target, relatedId))
+						);
+						if (remaining.length < current.length && remaining.length === 0) {
+							plan.add(ownerKey);
+							changed = true;
+						}
+					}
+				}
+			}
+		}
+
+		return plan;
+	}
+
+	function assertDeletePlanAllowed(plan: Set<string>): void {
+		for (const ownerType of contentTypesByName.values()) {
+			const ownerRecords = records.get(ownerType.name);
+			if (!ownerRecords) continue;
+
+			for (const field of ownerType.fields) {
+				if (field.type !== 'relation' || !field.required || field.cascadeDelete) continue;
+				for (const [ownerId, ownerRaw] of ownerRecords) {
+					if (plan.has(recordKey(ownerType.name, ownerId))) continue;
+
+					const current = relationIds(ownerRaw[field.name]);
+					const remaining = current.filter(
+						(relatedId) => !plan.has(recordKey(field.target, relatedId))
+					);
+					if (remaining.length < current.length && remaining.length === 0) {
+						throw VegaError.backend(
+							'No se puede borrar: el registro forma parte de una relación obligatoria.'
+						);
+					}
+				}
+			}
+		}
+	}
+
+	function applyDeletePlan(plan: Set<string>): void {
+		const deleted: Array<{ type: string; id: RecordId; raw: Record<string, FieldValue> }> = [];
+
+		for (const ct of contentTypesByName.values()) {
+			const byId = records.get(ct.name);
+			if (!byId) continue;
+			for (const [id, raw] of [...byId.entries()]) {
+				if (!plan.has(recordKey(ct.name, id))) continue;
+				deleted.push({ type: ct.name, id, raw });
+				byId.delete(id);
+			}
+		}
+
+		for (const ownerType of contentTypesByName.values()) {
+			const ownerRecords = records.get(ownerType.name);
+			if (!ownerRecords) continue;
+			for (const field of ownerType.fields) {
+				if (field.type !== 'relation') continue;
+				for (const [ownerId, ownerRaw] of ownerRecords) {
+					const current = relationIds(ownerRaw[field.name]);
+					const remaining = current.filter(
+						(relatedId) => !plan.has(recordKey(field.target, relatedId))
+					);
+					if (remaining.length === current.length) continue;
+
+					ownerRaw[field.name] = field.multiple ? remaining : (remaining[0] ?? null);
+					dispatch(ownerType.name, {
+						action: 'update',
+						record: toVegaRecord(ownerType.name, ownerId, ownerRaw)
+					});
+				}
+			}
+		}
+
+		for (const { type, id, raw } of deleted) {
+			const ct = contentTypesByName.get(type)!;
+			for (const field of ct.fields) {
+				if (field.type !== 'file') continue;
+				const value = raw[field.name];
+				for (const ref of Array.isArray(value) ? value : value ? [value] : []) {
+					fileStore.delete(ref as FileRef);
+				}
+			}
+			dispatch(type, { action: 'delete', record: toVegaRecord(type, id, raw) });
+		}
+	}
+
 	const port: BackendPort = {
 		capabilities: CAPABILITIES,
 
@@ -363,15 +484,9 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 			const byId = records.get(type)!;
 			const raw = byId.get(id);
 			if (!raw) throw VegaError.notFound(`Registro "${id}" no encontrado`);
-			byId.delete(id);
-			for (const field of ct.fields) {
-				if (field.type !== 'file') continue;
-				const value = raw[field.name];
-				for (const ref of Array.isArray(value) ? value : value ? [value] : []) {
-					fileStore.delete(ref as FileRef);
-				}
-			}
-			dispatch(type, { action: 'delete', record: toVegaRecord(type, id, raw) });
+			const plan = buildDeletePlan(type, id);
+			assertDeletePlanAllowed(plan);
+			applyDeletePlan(plan);
 		},
 
 		fileUrl(_record, _field, file, _opts?: { thumb?: ThumbSpec }) {
@@ -411,6 +526,13 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 					skipped.push(spec.name);
 					continue;
 				}
+				const relationRejects = checkRelationTargets(
+					spec.fields,
+					[...contentTypesByName.values()].filter((type) => !type.readonly).map((type) => type.name)
+				);
+				if (Object.keys(relationRejects).length > 0) {
+					throw VegaError.validation(relationRejects);
+				}
 				const ct: ContentType = {
 					name: spec.name,
 					readonly: false,
@@ -436,7 +558,7 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 			const existingNames = new Set(ct.fields.map((f) => f.name));
 			const added: string[] = [];
 			const skipped: string[] = [];
-			const newFields: Field[] = [];
+			const newSpecs: CollectionFieldSpec[] = [];
 			for (const spec of fields) {
 				// No destructiva (misma regla que `ensureCollections`): un campo que ya existe se
 				// omite tal cual está, nunca se reconcilia ni se sobreescribe.
@@ -444,10 +566,18 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 					skipped.push(spec.name);
 					continue;
 				}
-				newFields.push(collectionFieldSpecToField(spec));
+				newSpecs.push(spec);
 				added.push(spec.name);
 			}
 
+			const relationRejects = checkRelationTargets(
+				newSpecs,
+				[...contentTypesByName.values()].filter((type) => !type.readonly).map((type) => type.name)
+			);
+			if (Object.keys(relationRejects).length > 0) {
+				throw VegaError.validation(relationRejects);
+			}
+			const newFields = newSpecs.map(collectionFieldSpecToField);
 			if (newFields.length > 0) {
 				contentTypesByName.set(collectionName, {
 					...ct,
@@ -533,6 +663,16 @@ function collectionFieldSpecToField(spec: CollectionFieldSpec): Field {
 			return { ...base, type: 'number', required: spec.required ?? false, integer: false };
 		case 'date':
 			return { ...base, type: 'date', required: spec.required ?? false };
+		case 'relation':
+			return {
+				...base,
+				type: 'relation',
+				required: spec.required ?? false,
+				target: spec.target,
+				multiple: spec.multiple,
+				maxSelect: spec.multiple ? 99 : 1,
+				cascadeDelete: spec.cascadeDelete
+			};
 		case 'autodate':
 			// Emula un campo `autodate` de PB (§9 del contrato P6): readonly, nunca required (el
 			// backend lo rellena solo). `defaultReadonlyValue` (más abajo, en este mismo fichero)

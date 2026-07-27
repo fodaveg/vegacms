@@ -282,4 +282,82 @@ describe('SchemaAuthoringPanel.svelte', () => {
 
 		expect(mounted.target.textContent).toContain('settings.schema.fields.numberRequiredWarning');
 	});
+
+	test('relation exige destino descubierto y envía cardinalidad y política de borrado', async () => {
+		const addCollectionFields = vi.fn(async () => ({ added: ['parent'], skipped: [] }));
+		mounted = mountPanel({
+			port: fakePort({ capabilities: { schemaFieldBootstrap: true }, addCollectionFields }),
+			types: [
+				POST_TYPE,
+				{ name: 'pages', readonly: false, fields: [] },
+				{ name: 'report_view', readonly: true, fields: [] },
+				{ name: 'vega_media', readonly: false, fields: [] },
+				VEGA_TYPE
+			]
+		});
+
+		const collectionSelect =
+			mounted.target.querySelector<HTMLSelectElement>('#vega-schema-add-target')!;
+		collectionSelect.value = 'post';
+		collectionSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+		const nameInput = mounted.target.querySelector<HTMLInputElement>(
+			'.vega-field-row input[type="text"]'
+		)!;
+		setInputValue(nameInput, 'parent');
+
+		const typeSelect = mounted.target.querySelector<HTMLSelectElement>(
+			'select[aria-label="settings.schema.fields.typeLabel"]'
+		)!;
+		typeSelect.value = 'relation';
+		typeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+		await tick();
+
+		const submit = mounted.target.querySelector<HTMLButtonElement>('.vega-schema-submit')!;
+		expect(submit.disabled).toBe(true);
+		expect(mounted.target.textContent).toContain('settings.schema.fields.relation.targetRequired');
+
+		const relationTarget = mounted.target.querySelector<HTMLSelectElement>(
+			'.vega-field-relation-target'
+		)!;
+		expect([...relationTarget.options].map((option) => option.value)).toEqual([
+			'',
+			'post',
+			'pages',
+			'vega_media'
+		]);
+		relationTarget.value = 'pages';
+		relationTarget.dispatchEvent(new Event('change', { bubbles: true }));
+
+		const multiple = mounted.target.querySelector<HTMLInputElement>(
+			'.vega-field-relation-options input[type="checkbox"]'
+		)!;
+		multiple.checked = true;
+		multiple.dispatchEvent(new Event('change', { bubbles: true }));
+
+		const deleteMode = mounted.target.querySelector<HTMLSelectElement>(
+			'.vega-field-relation-options label:last-child select'
+		)!;
+		deleteMode.value = 'cascade';
+		deleteMode.dispatchEvent(new Event('change', { bubbles: true }));
+		await tick();
+
+		expect(submit.disabled).toBe(false);
+		expect(mounted.target.textContent).toContain('settings.schema.fields.relation.cascadeWarning');
+		const form = mounted.target.querySelector('form')!;
+		form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await tick();
+		await tick();
+
+		expect(addCollectionFields).toHaveBeenCalledWith('post', [
+			{
+				name: 'parent',
+				type: 'relation',
+				target: 'pages',
+				required: false,
+				multiple: true,
+				cascadeDelete: true
+			}
+		]);
+	});
 });

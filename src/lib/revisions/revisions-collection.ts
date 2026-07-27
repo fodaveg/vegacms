@@ -73,9 +73,9 @@ export function ensureRevisionsCollection(port: BackendPort): Promise<EnsureResu
  * (privado en `media/media-collection.ts`, y a su vez espejo del de `model/editor/editor-state.ts`)
  * — cada área compila su propio JSON de importación a partir de SU spec canónico, sin depender de
  * las otras (mismo razonamiento documentado en `media-collection.ts`). Exhaustivo sobre TODO el
- * vocabulario de `CollectionFieldSpec` aunque esta colección solo use `text`/`json`/`autodate`:
- * `spec` está tipado como el union completo (el literal de arriba es un `CollectionSpec`), así que
- * TS exige los siete casos.
+ * vocabulario de `CollectionFieldSpec`, aunque esta colección solo use
+ * `text`/`json`/`autodate`; para `relation` falla alto porque un JSON de importación necesitaría
+ * resolver un `collectionId` real y esta spec canónica nunca declara ese tipo.
  */
 function collectionFieldSpecToPbImportField(spec: CollectionFieldSpec): Record<string, unknown> {
 	switch (spec.type) {
@@ -94,6 +94,10 @@ function collectionFieldSpecToPbImportField(spec: CollectionFieldSpec): Record<s
 			return { name: spec.name, type: 'number', required: spec.required ?? false };
 		case 'date':
 			return { name: spec.name, type: 'date', required: spec.required ?? false };
+		case 'relation':
+			throw new Error(
+				'VEGA_REVISIONS_COLLECTION no puede serializar relation sin resolver su collectionId'
+			);
 		case 'file':
 			return {
 				name: spec.name,

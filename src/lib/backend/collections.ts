@@ -53,9 +53,10 @@ export interface CollectionSpec {
 
 /**
  * Subconjunto MÍNIMO de tipos escribibles que la autoría de esquema v1 necesita (§A.3). NO es
- * una API general de autoría de esquema: faltan a propósito `select`/`relation` (necesitan
- * validar `options`/`target` contra el resto del esquema, fuera de este lote) y el propio campo
- * `file` sigue reducido a lo que el bootstrap de `vega_media` (P6) usa. `required` en
+ * una API general de autoría de esquema: `select` sigue fuera (necesita validar sus opciones),
+ * mientras que `relation` entra con un contrato explícito y validación del destino contra el
+ * esquema descubierto. El propio campo `file` sigue reducido a lo que el bootstrap de
+ * `vega_media` (P6) usa. `required` en
  * `number`/`bool`/`date` se añadió en el lote "esquema" (antes solo lo tenían `text`/`file`) para
  * que la UI de creación de campos pueda ofrecerlo — con el aviso de la landmine de PocketBase
  * "un `number` `required` rechaza el valor 0" allí donde se ofrece marcarlo (`SchemaAuthoringPanel.svelte`).
@@ -79,6 +80,21 @@ export type CollectionFieldSpec =
 	| { name: string; type: 'bool'; required?: boolean }
 	| { name: string; type: 'number'; required?: boolean }
 	| { name: string; type: 'date'; required?: boolean }
+	| {
+			name: string;
+			type: 'relation';
+			/** Nombre estable de una colección ya presente en el esquema descubierto. */
+			target: string;
+			required?: boolean;
+			/** `true` compila a `maxSelect: 99`; `false`, a relación simple (`maxSelect: 1`). */
+			multiple: boolean;
+			/**
+			 * Semántica PocketBase: al borrar relaciones, borra también el registro propietario
+			 * cuando ya no le queda ningún destino enlazado. Es una decisión explícita porque
+			 * cambia el comportamiento destructivo del esquema.
+			 */
+			cascadeDelete: boolean;
+	  }
 	// Micro-enmienda FIRMADA al Anexo A (contrato P6 §9): sin un campo de fecha, no hay forma de
 	// "ordenar por más reciente" (los ids que genera PB no son ordenables por tiempo). Coste
 	// mínimo: lectura (`mapField`, `schema.ts`) y auto-relleno (`defaultReadonlyValue`, adaptador
@@ -212,6 +228,29 @@ export function checkCreatableCollectionNames(specs: CollectionSpec[]): Record<s
 			fieldErrors[spec.name] = {
 				code: 'vega_invalid_collection_name',
 				message: `El nombre "${spec.name}" debe empezar por una letra y contener solo letras, números o guion bajo`
+			};
+		}
+	}
+	return fieldErrors;
+}
+
+/**
+ * Valida los destinos de todos los campos `relation` antes de tocar esquema. `availableTargets`
+ * procede del esquema descubierto por cada adaptador (PB real o el mapa de `memory`), no del
+ * texto que escribió el operador: así un nombre plausible pero inexistente falla localmente con
+ * `validation` en vez de llegar como payload inválido al backend.
+ */
+export function checkRelationTargets(
+	fields: CollectionFieldSpec[],
+	availableTargets: Iterable<string>
+): Record<string, FieldError> {
+	const available = new Set(availableTargets);
+	const fieldErrors: Record<string, FieldError> = {};
+	for (const field of fields) {
+		if (field.type === 'relation' && !available.has(field.target)) {
+			fieldErrors[field.name] = {
+				code: 'vega_relation_target_not_found',
+				message: `La colección destino "${field.target}" del campo "${field.name}" no existe en el esquema disponible`
 			};
 		}
 	}

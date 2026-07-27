@@ -76,7 +76,7 @@ function renderCreateMigration(specs: CollectionSpec[]): string {
 				fields: spec.fields.map(collectionFieldSpecToMigrationField)
 			};
 			return (
-				`\tconst ${varName} = new Collection(${indent(JSON.stringify(payload, null, 2), 1)});\n` +
+				`\tconst ${varName} = new Collection(${indent(renderMigrationPayload(payload, spec.fields), 1)});\n` +
 				`\tapp.save(${varName});`
 			);
 		})
@@ -103,7 +103,7 @@ function renderAddFieldsMigration(op: {
 		op.fields
 			.map((field) => {
 				const payload = collectionFieldSpecToMigrationField(field);
-				return `\tcollection.fields.add(new Field(${indent(JSON.stringify(payload, null, 2), 1)}));`;
+				return `\tcollection.fields.add(new Field(${indent(renderMigrationPayload(payload, [field]), 1)}));`;
 			})
 			.join('\n') +
 		'\n\n\tapp.save(collection);';
@@ -123,6 +123,27 @@ function migrateTemplate(up: string, down: string): string {
 		'/// <reference path="../pb_data/types.d.ts" />\n' +
 		`migrate((app) => {\n${up}\n}, (app) => {\n${down}\n});\n`
 	);
+}
+
+/**
+ * PocketBase guarda una relación por `collectionId`, pero una migración versionada debe poder
+ * aplicarse en entornos donde ese id sea distinto. El payload intermedio conserva el NOMBRE y
+ * aquí se sustituye únicamente el valor de su clave `collectionId` por una resolución JSVM en
+ * tiempo de ejecución. El resto continúa siendo JSON determinista.
+ */
+function renderMigrationPayload(
+	payload: Record<string, unknown>,
+	fields: CollectionFieldSpec[]
+): string {
+	let rendered = JSON.stringify(payload, null, 2);
+	for (const field of fields) {
+		if (field.type !== 'relation') continue;
+		rendered = rendered.replace(
+			`"collectionId": ${JSON.stringify(field.target)}`,
+			`"collectionId": app.findCollectionByNameOrId(${JSON.stringify(field.target)}).id`
+		);
+	}
+	return rendered;
 }
 
 /**
@@ -158,6 +179,16 @@ function collectionFieldSpecToMigrationField(spec: CollectionFieldSpec): Record<
 			return { name: spec.name, type: 'number', required: spec.required ?? false };
 		case 'date':
 			return { name: spec.name, type: 'date', required: spec.required ?? false };
+		case 'relation':
+			return {
+				name: spec.name,
+				type: 'relation',
+				required: spec.required ?? false,
+				// Marcador por NOMBRE: `renderMigrationPayload` lo convierte a id en runtime.
+				collectionId: spec.target,
+				maxSelect: spec.multiple ? 99 : 1,
+				cascadeDelete: spec.cascadeDelete
+			};
 		case 'autodate':
 			return {
 				name: spec.name,

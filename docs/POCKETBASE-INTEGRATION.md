@@ -309,6 +309,20 @@ operación sigue sin existir en Vega.
 Sin superuser (modo editor, colección de auth distinta de `_superusers`), esta sección no se
 ofrece — mismo gate que el editor del manifiesto (ver [Modo editor](#modo-editor-l6) más abajo).
 
+El tipo **Relación** solo permite elegir una colección presente en el esquema descubierto; no
+acepta un nombre libre. La persona que crea el campo decide además si admite uno o varios
+registros y qué ocurre al borrar el destino:
+
+- **Conservar este registro**: PocketBase elimina el enlace y mantiene el registro propietario.
+- **Borrar este registro**: activa
+  [`cascadeDelete`](https://pocketbase.io/jsvm/interfaces/core.RelationField.html#cascadedelete);
+  PocketBase borra el registro propietario cuando desaparece su última relación. Vega lo presenta
+  como una decisión destructiva explícita.
+
+El payload aplicado por red usa el `collectionId` real del entorno. La migración generada no
+incrusta ese id —resuelve `app.findCollectionByNameOrId("<nombre>").id` al ejecutarse—, por lo que
+el mismo fichero sirve en local, staging y producción aunque cada PocketBase asigne ids distintos.
+
 ### Migraciones (`pb_migrations/`)
 
 Cada vez que "Crear colección" o "Añadir campos" tiene éxito, Vega genera al vuelo un fichero de

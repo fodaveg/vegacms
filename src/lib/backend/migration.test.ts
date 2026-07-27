@@ -150,4 +150,26 @@ describe('generateSchemaMigration — mapeo de campos (paridad con el adaptador 
 		expect(contents).toContain('"onCreate": true');
 		expect(contents).toContain('"onUpdate": false');
 	});
+
+	test('relation resuelve collectionId por nombre en runtime y conserva cardinalidad/borrado', () => {
+		const fields: CollectionFieldSpec[] = [
+			{
+				name: 'parent',
+				type: 'relation',
+				target: 'pages',
+				required: true,
+				multiple: false,
+				cascadeDelete: true
+			}
+		];
+		const { contents } = generateSchemaMigration(
+			{ kind: 'add-fields', collection: 'blocks', fields },
+			FIXED_NOW
+		);
+
+		expect(contents).toContain('"collectionId": app.findCollectionByNameOrId("pages").id');
+		expect(contents).toContain('"maxSelect": 1');
+		expect(contents).toContain('"cascadeDelete": true');
+		expect(() => new Function(contents)).not.toThrow();
+	});
 });
