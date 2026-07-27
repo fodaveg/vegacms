@@ -245,9 +245,12 @@
 		 *  quien lo resuelve, ver `docName`) para el mensaje de éxito. Rechaza con `VegaError` si el
 		 *  borrado falla; aquí se reporta al feedback global y la tarjeta sigue en su sitio. */
 		onDelete?: (label: string) => Promise<void>;
+		/** Duplicado de una página existente; la ruta clona el registro y sus bloques y navega. */
+		onDuplicate?: () => Promise<void>;
 	}
 
-	let { type, model, typeReadonly, onSubmit, onSaved, onCancel, onDelete }: Props = $props();
+	let { type, model, typeReadonly, onSubmit, onSaved, onCancel, onDelete, onDuplicate }: Props =
+		$props();
 
 	const ctx = getVegaContext();
 	const EMPTY_ERRORS: FieldErrorsView = { byField: {}, record: null };
@@ -265,6 +268,7 @@
 	let clientErrors = $state<FieldErrorsView>(EMPTY_ERRORS);
 	let backendErrors = $state<FieldErrorsView>(EMPTY_ERRORS);
 	let saving = $state(false);
+	let duplicating = $state(false);
 	let activeLocale = $state(untrack(() => type.localization?.defaultLocale ?? ''));
 	/** Decisión 2 de `RecordBlocks.svelte` (capacidad `blocks`): `true` mientras AL MENOS un bloque
 	 *  embebido tenga ediciones de campo sin guardar. Se OR-ea con `isDirty(baseline, current)` más
@@ -272,6 +276,8 @@
 	 *  aunque viva en otra colección. `RecordBlocks` no existe sin `type.blocks`, así que este
 	 *  arranca en `false` y solo cambia si la colección declara la capacidad. */
 	let blocksDirty = $state(false);
+	/** Mutación estructural de bloques en vuelo: no se puede clonar una instantánea intermedia. */
+	let blocksBusy = $state(false);
 
 	// Lote "publicación" fase B (ver cabecera, "Vista previa"): `true` mientras `PreviewPanel` está
 	// montado. Variable de estado propia (no derivada de `savedCount`/`model`): el usuario decide
@@ -319,6 +325,7 @@
 			// Los bloques del registro ANTERIOR ya no aplican (misma LANDMINE): `RecordBlocks` se
 			// remonta con el `parentId`/`parentType` nuevos y recalculará su propio dirty desde cero.
 			blocksDirty = false;
+			blocksBusy = false;
 			// Lote "publicación" fase B: un panel de preview abierto para el registro ANTERIOR ya no
 			// tiene sentido (otra colección/id) — se cierra, `RecordForm` lo reabrirá si el usuario
 			// vuelve a pedirlo para el registro nuevo.
@@ -367,7 +374,7 @@
 	 */
 	const locked = $derived(typeReadonly || !type.permissions.update);
 
-	const formDisabled = $derived(saving || locked);
+	const formDisabled = $derived(saving || duplicating || locked);
 	const activeLocaleTabId = $derived(
 		type.localization ? `vega-locale-tab-${type.name}-${activeLocale}` : undefined
 	);
@@ -520,6 +527,20 @@
 		} finally {
 			deleting = false;
 			deleteOpen = false;
+		}
+	}
+
+	async function handleDuplicate(): Promise<void> {
+		if (!onDuplicate || duplicating || dirty || blocksBusy) return;
+		duplicating = true;
+		try {
+			await onDuplicate();
+		} catch (err) {
+			const vegaErr =
+				err instanceof VegaError ? err : VegaError.backend('No se pudo duplicar la página', err);
+			ctx.feedback.reportError(vegaErr, { action: 'record:duplicate' });
+		} finally {
+			duplicating = false;
 		}
 	}
 
@@ -720,7 +741,14 @@
 			<!-- Atrás (mockup `.back`): chevron + label del tipo. El icono `chevron` del set apunta a
 			     la DERECHA (es el mismo que usa la nav); se espeja con CSS en vez de añadir un id
 			     nuevo al registro de iconos por un giro de 180°. -->
-			<button type="button" class="vega-editor-back" onclick={onCancel}>
+			<button
+				type="button"
+				class="vega-editor-back"
+				disabled={duplicating}
+				onclick={() => {
+					if (!duplicating) onCancel();
+				}}
+			>
 				<Icon id="chevron" size={14} />
 				{type.label}
 			</button>
@@ -798,6 +826,17 @@
 				</button>
 			{/if}
 			{#if !locked}
+				{#if onDuplicate && model.mode === 'edit'}
+					<button
+						type="button"
+						class="vega-editor-duplicate-button"
+						disabled={formDisabled || dirty || blocksBusy}
+						title={dirty ? ctx.t('editor.duplicate.saveFirst') : undefined}
+						onclick={handleDuplicate}
+					>
+						{duplicating ? ctx.t('editor.duplicating') : ctx.t('editor.duplicate')}
+					</button>
+				{/if}
 				<button type="submit" class="vega-editor-save-button" disabled={formDisabled}>
 					{ctx.t('editor.save')}
 					<kbd aria-hidden="true">⌘S</kbd>
@@ -931,6 +970,8 @@
 					parentType={type}
 					parentId={model.recordId}
 					onDirtyChange={(value) => (blocksDirty = value)}
+					onBusyChange={(value) => (blocksBusy = value)}
+					disabled={duplicating}
 				/>
 			{/if}
 		</div>
@@ -1249,9 +1290,14 @@
 		cursor: pointer;
 	}
 
-	.vega-editor-back:hover {
+	.vega-editor-back:hover:not(:disabled) {
 		background: var(--active);
 		color: var(--ink-hi);
+	}
+
+	.vega-editor-back:disabled {
+		cursor: not-allowed;
+		opacity: 0.5;
 	}
 
 	/* El chevron del set apunta a la derecha (ver el marcado): se espeja para señalar "atrás". */
@@ -1418,11 +1464,42 @@
 		background: var(--active);
 	}
 
+	.vega-editor-duplicate-button {
+		display: inline-flex;
+		align-items: center;
+		height: 34px;
+		padding: 0 0.9rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--btn);
+		color: var(--ink);
+		font-size: 0.8125rem;
+		font-weight: 550;
+		line-height: 1.2;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	.vega-editor-duplicate-button:hover:not(:disabled) {
+		border-color: var(--line-strong);
+	}
+
+	.vega-editor-duplicate-button:disabled {
+		cursor: not-allowed;
+		opacity: 0.5;
+	}
+
 	/* Mismo breakpoint que `PreviewPanel.svelte` se oculta por completo (ver su cabecera,
 	   "Responsive"): sin panel que abrir, el botón que lo abriría sobraría. */
 	@media (max-width: 900px) {
 		.vega-editor-preview-toggle {
 			display: none;
+		}
+	}
+
+	@media (pointer: coarse) {
+		.vega-editor-duplicate-button {
+			min-height: 44px;
 		}
 	}
 

@@ -198,6 +198,10 @@ export const es = {
 	'editor.save': 'Guardar',
 	'editor.saving': 'Guardando…',
 	'editor.saveSuccess': 'Guardado.',
+	'editor.duplicate': 'Duplicar',
+	'editor.duplicating': 'Duplicando…',
+	'editor.duplicate.saveFirst': 'Guarda los cambios antes de duplicar.',
+	'editor.duplicate.success': 'Página y bloques duplicados.',
 	'editor.leaveConfirm': 'Hay cambios sin guardar. ¿Salir de todos modos?',
 	'editor.readonlyNotice': 'Esta colección es de solo lectura: no se puede editar.',
 	// `#lote-shell`: bloqueado por una REGLA de acceso del backend, no por ser una vista — el
@@ -249,6 +253,8 @@ export const es = {
 	// pieza que la del listado). Aquí solo viven los literales que no tienen ya una clave.
 	'editor.blocks.add': 'Añadir {label}',
 	'editor.blocks.empty': 'Todavía no hay {label}.',
+	'editor.blocks.duplicateLabel': 'Duplicar «{label}»',
+	'editor.blocks.duplicateSuccess': 'Bloque duplicado.',
 	'editor.blocks.expandLabel': 'Desplegar «{label}»',
 	'editor.blocks.collapseLabel': 'Plegar «{label}»',
 	'editor.blocks.reorder.moved': '«{label}» movido a la posición {position} de {total}',

@@ -65,6 +65,7 @@
 	import { createReorderDndController, dropIndicatorEdge } from '$lib/list/reorder-dnd';
 	import { computeReorder } from '$lib/list/reorder';
 	import { hasFileValues } from '$lib/revisions/restore';
+	import { canDuplicateBlock, duplicateInput } from '$lib/duplicate/records';
 	import DeleteConfirm from '$lib/list/DeleteConfirm.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
 	import BlockEditor from './BlockEditor.svelte';
@@ -77,9 +78,19 @@
 		parentId: RecordId | null;
 		/** Sube a `true` en cuanto AL MENOS un bloque tenga ediciones sin guardar (decisión 2). */
 		onDirtyChange: (dirty: boolean) => void;
+		/** Sube el mutex estructural para que el padre no clone una instantánea intermedia. */
+		onBusyChange?: (busy: boolean) => void;
+		/** Mutex inverso: el padre clona la página y congela todas las mutaciones hijas. */
+		disabled?: boolean;
 	}
 
-	let { parentType, parentId, onDirtyChange }: Props = $props();
+	let {
+		parentType,
+		parentId,
+		onDirtyChange,
+		onBusyChange = () => {},
+		disabled = false
+	}: Props = $props();
 
 	const ctx = getVegaContext();
 	// `untrack`: captura DELIBERADA del valor inicial de `parentType` (mismo patrón que
@@ -95,6 +106,7 @@
 	 *  (mismo criterio que `EditorRail` con un `port.list` que falla).
 	 */
 	const childType = ctx.model.types.find((t) => t.name === blocksConfig?.collection) ?? null;
+	const blockDuplicateAllowed = childType !== null && canDuplicateBlock(childType);
 	/** Campos estructurales del hijo (parentField + orderField): el mini-formulario nunca los
 	 *  pinta, `RecordBlocks` es su único escritor. Array ESTABLE (no `$derived`): `blocksConfig` no
 	 *  cambia tras el montaje (ver arriba), así que no hace falta recalcularlo por render. */
@@ -114,7 +126,12 @@
 	const expandedIds = new SvelteSet<string>();
 	/** Ids de bloque con ediciones sin guardar (decisión 2, ver cabecera). Mismo criterio. */
 	const dirtyIds = new SvelteSet<string>();
-	let creating = $state(false);
+	const savingIds = new SvelteSet<string>();
+	const duplicatingIds = new SvelteSet<string>();
+	/** Mutex UI de TODAS las mutaciones que cambian la estructura/orden. PocketBase no ofrece una
+	 * transacción multi-registro: dos snapshots de `records` en vuelo podrían asignar el mismo
+	 * order y el último `status=` ocultaría el resultado del otro aunque ambos existieran. */
+	let structuralBusy = $state(false);
 	let pendingDelete = $state<VegaRecord | null>(null);
 	let deleting = $state(false);
 	/** Texto de la región `aria-live` (accesibilidad del reorden, ver cabecera). Se reasigna con un
@@ -124,6 +141,25 @@
 
 	const sequencer = new RequestSequencer();
 	let loadedKey: string | null = null;
+	let viewRevision = 0;
+
+	$effect(() => {
+		onBusyChange(structuralBusy || savingIds.size > 0);
+	});
+
+	interface ViewIdentity {
+		key: string | null;
+		parentId: RecordId | null;
+		revision: number;
+	}
+
+	function captureViewIdentity(): ViewIdentity {
+		return { key: loadedKey, parentId, revision: viewRevision };
+	}
+
+	function isCurrentView(view: ViewIdentity): boolean {
+		return view.revision === viewRevision && view.key === loadedKey && view.parentId === parentId;
+	}
 
 	async function load(collection: string, id: RecordId): Promise<void> {
 		const seq = sequencer.next();
@@ -151,6 +187,7 @@
 		const key =
 			blocksConfig && childType && parentId !== null ? `${childType.name}:${parentId}` : null;
 		if (key === loadedKey) return;
+		viewRevision += 1;
 		loadedKey = key;
 		// Cambiar de registro padre NO remonta este componente: `/c/[type]/[id]/+page.svelte` no
 		// envuelve `RecordForm` en un `{#key}`, solo cambia props. Sin esta limpieza, el estado por
@@ -159,6 +196,7 @@
 		// salida atascado), y `expandedIds` desplegaría bloques que ya no existen aquí.
 		expandedIds.clear();
 		dirtyIds.clear();
+		savingIds.clear();
 		pendingDelete = null;
 		onDirtyChange(false);
 		if (key !== null && childType) void load(childType.name, parentId!);
@@ -184,6 +222,11 @@
 		onDirtyChange(dirtyIds.size > 0);
 	}
 
+	function setSaving(id: string, saving: boolean): void {
+		if (saving) savingIds.add(id);
+		else savingIds.delete(id);
+	}
+
 	function handleBlockSaved(id: string, saved: VegaRecord): void {
 		status =
 			status.kind === 'ready'
@@ -192,18 +235,29 @@
 	}
 
 	async function handleCreate(): Promise<void> {
-		if (!blocksConfig || !childType || parentId === null || creating) return;
-		creating = true;
+		if (
+			!blocksConfig ||
+			!childType ||
+			parentId === null ||
+			disabled ||
+			structuralBusy ||
+			savingIds.size > 0
+		)
+			return;
+		const view = captureViewIdentity();
+		const sourceRecords = [...records];
+		structuralBusy = true;
 		try {
-			const maxOrder = records.reduce((max, r) => {
+			const maxOrder = sourceRecords.reduce((max, r) => {
 				const raw = r.values[blocksConfig.orderField];
 				return typeof raw === 'number' && raw > max ? raw : max;
 			}, -1);
 			const created = await ctx.port.create(childType.name, {
-				[blocksConfig.parentField]: parentId,
+				[blocksConfig.parentField]: view.parentId,
 				[blocksConfig.orderField]: maxOrder + 1
 			});
-			status = { kind: 'ready', records: [...records, created] };
+			if (!isCurrentView(view)) return;
+			status = { kind: 'ready', records: [...sourceRecords, created] };
 			// El bloque nuevo arranca DESPLEGADO: es lo que el usuario acaba de pedir, tiene sentido
 			// que vea de inmediato sus campos para rellenarlos (mismo criterio que abrir un registro
 			// recién creado en `/c/[type]/new`).
@@ -213,17 +267,84 @@
 				err instanceof VegaError ? err : VegaError.backend('No se pudo crear el bloque', err);
 			ctx.feedback.reportError(vegaErr, { action: 'blocks:create' });
 		} finally {
-			creating = false;
+			structuralBusy = false;
+		}
+	}
+
+	async function handleDuplicate(record: VegaRecord): Promise<void> {
+		if (
+			!blocksConfig ||
+			!childType ||
+			parentId === null ||
+			disabled ||
+			structuralBusy ||
+			savingIds.size > 0 ||
+			!blockDuplicateAllowed ||
+			dirtyIds.size > 0
+		)
+			return;
+		const view = captureViewIdentity();
+		const sourceRecords = [...records];
+		const sourceIndex = sourceRecords.findIndex((item) => item.id === record.id);
+		if (sourceIndex < 0) return;
+		structuralBusy = true;
+		duplicatingIds.add(record.id);
+		try {
+			const maxOrder = sourceRecords.reduce((max, item) => {
+				const raw = item.values[blocksConfig.orderField];
+				return typeof raw === 'number' && raw > max ? raw : max;
+			}, -1);
+			const created = await ctx.port.create(
+				childType.name,
+				duplicateInput(childType, record, {
+					[blocksConfig.parentField]: view.parentId,
+					[blocksConfig.orderField]: maxOrder + 1
+				})
+			);
+			const appended = [...sourceRecords, created];
+			if (isCurrentView(view)) {
+				status = { kind: 'ready', records: appended };
+				expandedIds.add(created.id);
+			}
+			const reordered = await handleReorder(
+				appended.length - 1,
+				sourceIndex + 1,
+				appended,
+				true,
+				view
+			);
+			if (reordered && isCurrentView(view)) {
+				ctx.feedback.toast(ctx.t('editor.blocks.duplicateSuccess'), { kind: 'success' });
+			}
+		} catch (err) {
+			const vegaErr =
+				err instanceof VegaError ? err : VegaError.backend('No se pudo duplicar el bloque', err);
+			ctx.feedback.reportError(vegaErr, { action: 'blocks:duplicate' });
+		} finally {
+			duplicatingIds.delete(record.id);
+			structuralBusy = false;
 		}
 	}
 
 	async function confirmDelete(): Promise<void> {
-		if (!blocksConfig || !childType || !pendingDelete || deleting) return;
+		if (
+			!blocksConfig ||
+			!childType ||
+			!pendingDelete ||
+			disabled ||
+			structuralBusy ||
+			savingIds.size > 0
+		)
+			return;
 		const id = pendingDelete.id;
+		const view = captureViewIdentity();
+		const sourceRecords = [...records];
+		structuralBusy = true;
 		deleting = true;
 		try {
 			await ctx.port.delete(childType.name, id);
-			status = { kind: 'ready', records: records.filter((r) => r.id !== id) };
+			if (!isCurrentView(view)) return;
+			status = { kind: 'ready', records: sourceRecords.filter((r) => r.id !== id) };
 			expandedIds.delete(id);
 			setDirty(id, false); // un bloque borrado nunca puede seguir contando como sucio
 			pendingDelete = null;
@@ -233,6 +354,7 @@
 			ctx.feedback.reportError(vegaErr, { action: 'blocks:delete' });
 		} finally {
 			deleting = false;
+			structuralBusy = false;
 		}
 	}
 
@@ -241,27 +363,47 @@
 	 *  (`computeReorder`, misma lógica que el listado) + anuncio de posición. Si la escritura falla
 	 *  a medias, se recarga desde el backend en vez de dejar el array local desincronizado del
 	 *  `orderField` real — autocorrección simple, sin intentar reconciliar manualmente. */
-	async function handleReorder(fromIndex: number, toIndex: number): Promise<void> {
-		if (!blocksConfig || !childType) return;
-		const orderedIds = records.map((r) => r.id);
+	async function handleReorder(
+		fromIndex: number,
+		toIndex: number,
+		sourceRecords: readonly VegaRecord[] = records,
+		ownsStructuralLock = false,
+		view: ViewIdentity = captureViewIdentity()
+	): Promise<boolean> {
+		if (
+			!blocksConfig ||
+			!childType ||
+			disabled ||
+			(structuralBusy && !ownsStructuralLock) ||
+			(savingIds.size > 0 && !ownsStructuralLock) ||
+			(dirtyIds.size > 0 && !ownsStructuralLock)
+		)
+			return false;
+		if (!ownsStructuralLock) structuralBusy = true;
+		const orderedIds = sourceRecords.map((r) => r.id);
 		const currentValues = Object.fromEntries(
-			records.map((r) => {
+			sourceRecords.map((r) => {
 				const raw = r.values[blocksConfig.orderField];
 				return [r.id, typeof raw === 'number' ? raw : 0];
 			})
 		);
 		const updates = computeReorder(orderedIds, currentValues, fromIndex, toIndex);
-		if (updates.length === 0) return;
+		if (updates.length === 0) {
+			if (!ownsStructuralLock) structuralBusy = false;
+			return true;
+		}
 
-		const reordered = [...records];
+		const reordered = [...sourceRecords];
 		const [moved] = reordered.splice(fromIndex, 1);
 		reordered.splice(toIndex, 0, moved);
-		status = { kind: 'ready', records: reordered };
-		announce = ctx.t('editor.blocks.reorder.moved', {
-			label: blockTitle(moved),
-			position: toIndex + 1,
-			total: reordered.length
-		});
+		if (isCurrentView(view)) {
+			status = { kind: 'ready', records: reordered };
+			announce = ctx.t('editor.blocks.reorder.moved', {
+				label: blockTitle(moved),
+				position: toIndex + 1,
+				total: reordered.length
+			});
+		}
 
 		try {
 			await Promise.all(
@@ -270,14 +412,17 @@
 				)
 			);
 			const byId = new Map(updates.map((u) => [u.id, u.value]));
-			status = {
-				kind: 'ready',
-				records: reordered.map((r) =>
-					byId.has(r.id)
-						? { ...r, values: { ...r.values, [blocksConfig.orderField]: byId.get(r.id)! } }
-						: r
-				)
-			};
+			if (isCurrentView(view)) {
+				status = {
+					kind: 'ready',
+					records: reordered.map((r) =>
+						byId.has(r.id)
+							? { ...r, values: { ...r.values, [blocksConfig.orderField]: byId.get(r.id)! } }
+							: r
+					)
+				};
+			}
+			return true;
 		} catch (err) {
 			const vegaErr =
 				err instanceof VegaError
@@ -289,7 +434,12 @@
 			// —y con `orderField` posiblemente REPETIDO entre dos bloques, no solo "en otro orden"—
 			// hasta que este `load()` relee la verdad. Se acepta a cambio de que la divergencia
 			// nunca sea silenciosa: el usuario ve el error y la lista se repinta con lo persistido.
-			void load(childType.name, parentId!);
+			if (isCurrentView(view) && view.parentId !== null) {
+				void load(childType.name, view.parentId);
+			}
+			return false;
+		} finally {
+			if (!ownsStructuralLock) structuralBusy = false;
 		}
 	}
 
@@ -326,7 +476,12 @@
 					>{/if}
 			</h2>
 			{#if parentId !== null}
-				<button type="button" class="vega-blocks-add" disabled={creating} onclick={handleCreate}>
+				<button
+					type="button"
+					class="vega-blocks-add"
+					disabled={disabled || structuralBusy || savingIds.size > 0}
+					onclick={handleCreate}
+				>
 					{ctx.t('editor.blocks.add', { label: type.labelSingular })}
 				</button>
 			{/if}
@@ -364,13 +519,31 @@
 								type="button"
 								class="vega-block-handle"
 								aria-label={ctx.t('list.reorder.handleLabel', { label: title })}
-								draggable="true"
+								disabled={disabled || structuralBusy || savingIds.size > 0 || dirtyIds.size > 0}
+								draggable={!disabled &&
+									!structuralBusy &&
+									savingIds.size === 0 &&
+									dirtyIds.size === 0}
 								ondragstart={(event) => dnd.handleDragStart(event, i)}
 								ondragend={dnd.handleDragEnd}
 								onkeydown={(event) => dnd.handleHandleKeydown(event, i)}
 							>
 								<span aria-hidden="true">⠿</span>
 							</button>
+							{#if blockDuplicateAllowed}
+								<button
+									type="button"
+									class="vega-block-duplicate"
+									disabled={disabled || dirtyIds.size > 0 || savingIds.size > 0 || structuralBusy}
+									title={dirtyIds.size > 0 ? ctx.t('editor.duplicate.saveFirst') : undefined}
+									aria-label={ctx.t('editor.blocks.duplicateLabel', { label: title })}
+									onclick={() => handleDuplicate(record)}
+								>
+									{duplicatingIds.has(record.id)
+										? ctx.t('editor.duplicating')
+										: ctx.t('editor.duplicate')}
+								</button>
+							{/if}
 							<button
 								type="button"
 								class="vega-block-toggle"
@@ -394,6 +567,7 @@
 							<button
 								type="button"
 								class="vega-block-delete"
+								disabled={disabled || structuralBusy || savingIds.size > 0}
 								aria-label={ctx.t('list.delete.rowButtonLabel', { label: title })}
 								onclick={() => (pendingDelete = record)}
 							>
@@ -410,6 +584,8 @@
 								onSubmit={(input) => ctx.port.update(type.name, record.id, input)}
 								onSaved={(saved) => handleBlockSaved(record.id, saved)}
 								onDirtyChange={(dirty) => setDirty(record.id, dirty)}
+								disabled={disabled || structuralBusy}
+								onBusyChange={(saving) => setSaving(record.id, saving)}
 							/>
 						</div>
 					</li>
@@ -637,6 +813,7 @@
 		overflow: hidden;
 	}
 
+	.vega-block-duplicate,
 	.vega-block-delete {
 		flex-shrink: 0;
 		height: 1.8rem;
@@ -651,8 +828,31 @@
 		cursor: pointer;
 	}
 
+	.vega-block-duplicate {
+		color: var(--ink-2);
+	}
+
+	.vega-block-duplicate:hover:not(:disabled) {
+		background: var(--active);
+		color: var(--ink);
+	}
+
+	.vega-block-duplicate:disabled {
+		cursor: not-allowed;
+		opacity: 0.5;
+	}
+
 	.vega-block-delete:hover {
 		background: var(--danger-soft);
+	}
+
+	@media (pointer: coarse) {
+		.vega-block-handle,
+		.vega-block-duplicate,
+		.vega-block-delete {
+			min-width: 44px;
+			min-height: 44px;
+		}
 	}
 
 	.vega-block-body {

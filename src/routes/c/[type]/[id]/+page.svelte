@@ -46,6 +46,7 @@
 	import { buildFormModel, type FormModel } from '$lib/form/form-model';
 	import { VegaError } from '$lib/backend';
 	import type { ResolvedContentType } from '$lib/model/types';
+	import { canDuplicatePage, duplicatePage } from '$lib/duplicate/records';
 	import RouteState from '$lib/shell/RouteState.svelte';
 	import RecordForm from '$lib/form/RecordForm.svelte';
 
@@ -141,6 +142,28 @@
 				onSaved={() => ctx.feedback.toast(ctx.t('editor.saveSuccess'), { kind: 'success' })}
 				onCancel={() =>
 					activeType.singleton ? ctx.nav.toIndex() : ctx.nav.toList(activeType.name)}
+				onDuplicate={canDuplicatePage(activeType, ctx.model.types)
+					? async () => {
+							const sourceContentType = activeType;
+							const sourceId = idParam;
+							// `RecordForm` reasienta SU baseline interno al guardar, pero la ruta conserva
+							// `readyModel` (snapshot de la carga inicial). Releer aquí evita duplicar valores
+							// obsoletos justo después de un guardado.
+							const source = await ctx.port.get(sourceContentType.name, sourceId);
+							const result = await duplicatePage(
+								ctx.port,
+								sourceContentType,
+								source,
+								ctx.model.types
+							);
+							// Clonar muchos bloques puede tardar. Si el usuario salió por historial,
+							// la respuesta vieja no debe secuestrar la ruta y traerlo de vuelta.
+							if (page.params.type !== sourceContentType.name || page.params.id !== sourceId)
+								return;
+							ctx.feedback.toast(ctx.t('editor.duplicate.success'), { kind: 'success' });
+							ctx.nav.toRecord(sourceContentType.name, result.page.id);
+						}
+					: undefined}
 				onDelete={async (label) => {
 					await ctx.port.delete(activeType.name, idParam);
 					ctx.feedback.toast(ctx.t('list.delete.success', { label }), { kind: 'success' });

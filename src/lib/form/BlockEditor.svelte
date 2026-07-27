@@ -51,9 +51,22 @@
 		onSubmit: (input: RecordInput) => Promise<VegaRecord>;
 		onSaved: (record: VegaRecord) => void;
 		onDirtyChange: (dirty: boolean) => void;
+		/** Bloqueo externo durante una mutación estructural de la lista. */
+		disabled?: boolean;
+		/** Permite a la lista impedir la operación inversa mientras este bloque se guarda. */
+		onBusyChange?: (busy: boolean) => void;
 	}
 
-	let { childType, record, structuralFields, onSubmit, onSaved, onDirtyChange }: Props = $props();
+	let {
+		childType,
+		record,
+		structuralFields,
+		onSubmit,
+		onSaved,
+		onDirtyChange,
+		disabled = false,
+		onBusyChange = () => {}
+	}: Props = $props();
 
 	const ctx = getVegaContext();
 	const EMPTY_ERRORS: FieldErrorsView = { byField: {}, record: null };
@@ -81,6 +94,7 @@
 		record: backendErrors.record ?? clientErrors.record
 	});
 	const dirty = $derived(isDirty(baseline, current));
+	const inert = $derived(disabled || saving);
 
 	/** Campos visibles del mini-formulario: todo lo del tipo hijo MENOS `parentField`/`orderField`
 	 *  (estructurales, ver cabecera) y lo que el propio schema/manifiesto ya marca `hidden`. */
@@ -90,6 +104,10 @@
 
 	$effect(() => {
 		onDirtyChange(dirty);
+	});
+
+	$effect(() => {
+		onBusyChange(saving);
 	});
 
 	function handleFieldChange(name: string, value: FieldInputValue): void {
@@ -107,7 +125,7 @@
 	}
 
 	async function handleSave(): Promise<void> {
-		if (saving) return;
+		if (saving || disabled) return;
 
 		const clientView = validateForm(childType, current);
 		clientErrors = clientView;
@@ -147,7 +165,7 @@
 			{field}
 			value={current[field.name]}
 			error={errors.byField[field.name] ?? null}
-			disabled={saving}
+			disabled={inert}
 			typeReadonly={false}
 			stacked
 			onChange={(value) => handleFieldChange(field.name, value)}
@@ -157,7 +175,7 @@
 		<button
 			type="button"
 			class="vega-block-save-button"
-			disabled={saving || !dirty}
+			disabled={inert || !dirty}
 			onclick={handleSave}
 		>
 			{saving ? ctx.t('editor.saving') : ctx.t('editor.save')}

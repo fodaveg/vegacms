@@ -94,12 +94,13 @@ function buildParentType() {
 
 async function mountBlocks(
 	parentId: string | null,
-	onDirtyChange: (dirty: boolean) => void
+	onDirtyChange: (dirty: boolean) => void,
+	onBusyChange: (busy: boolean) => void = vi.fn()
 ): Promise<{
 	target: HTMLElement;
 	instance: ReturnType<typeof mount>;
 	port: ReturnType<typeof createMemoryBackend>;
-	props: { parentType: ResolvedContentType; parentId: string | null };
+	props: { parentType: ResolvedContentType; parentId: string | null; disabled: boolean };
 }> {
 	const { model, parentType } = buildParentType();
 	const port = createMemoryBackend({
@@ -138,7 +139,7 @@ async function mountBlocks(
 	// Props REACTIVAS (`$state`) en vez de un objeto plano: la app cambia de registro padre sin
 	// remontar este componente (`/c/[type]/[id]/+page.svelte` no usa `{#key}`), así que el único
 	// modo de ejercer ese camino en un test es mutar `parentId` sobre un montaje vivo.
-	const props = $state({ parentType, parentId, onDirtyChange });
+	const props = $state({ parentType, parentId, onDirtyChange, onBusyChange, disabled: false });
 	const instance = mount(RecordBlocks, {
 		target,
 		props,
@@ -209,6 +210,219 @@ describe('RecordBlocks.svelte', () => {
 		});
 		expect(created.items).toHaveLength(3);
 		expect(created.items.some((r) => r.values.sort === 2)).toBe(true);
+	});
+
+	test('una mutación estructural diferida sube busy al formulario padre hasta terminar', async () => {
+		const onBusyChange = vi.fn();
+		mounted = await mountBlocks('landing1', vi.fn(), onBusyChange);
+		await settle();
+
+		mounted.target.querySelector<HTMLButtonElement>('.vega-block-toggle')!.click();
+		await settle();
+		const heading = mounted.target.querySelector<HTMLInputElement>(
+			'.vega-block-row input[type="text"]'
+		)!;
+		heading.value = 'Hero en borrador';
+		heading.dispatchEvent(new Event('input', { bubbles: true }));
+		await settle();
+		const saveButton = mounted.target.querySelector<HTMLButtonElement>('.vega-block-save-button')!;
+
+		const originalCreate = mounted.port.create.bind(mounted.port);
+		let releaseCreate!: () => void;
+		const createGate = new Promise<void>((resolve) => {
+			releaseCreate = resolve;
+		});
+		vi.spyOn(mounted.port, 'create').mockImplementation(async (type, input) => {
+			if (type === 'landing_block') await createGate;
+			return originalCreate(type, input);
+		});
+
+		const addButton = mounted.target.querySelector<HTMLButtonElement>('.vega-blocks-add')!;
+		addButton.click();
+		await settle();
+
+		expect(onBusyChange).toHaveBeenLastCalledWith(true);
+		expect(addButton.disabled).toBe(true);
+		expect(saveButton.disabled).toBe(true);
+
+		releaseCreate();
+		await settle();
+		await settle();
+
+		expect(onBusyChange).toHaveBeenLastCalledWith(false);
+		expect(saveButton.disabled).toBe(false);
+	});
+
+	test('un guardado diferido bloquea altas y reorden hasta reasentar el bloque', async () => {
+		const onBusyChange = vi.fn();
+		mounted = await mountBlocks('landing1', vi.fn(), onBusyChange);
+		await settle();
+
+		mounted.target.querySelector<HTMLButtonElement>('.vega-block-toggle')!.click();
+		await settle();
+		const heading = mounted.target.querySelector<HTMLInputElement>(
+			'.vega-block-row input[type="text"]'
+		)!;
+		heading.value = 'Hero guardado';
+		heading.dispatchEvent(new Event('input', { bubbles: true }));
+		await settle();
+
+		const originalUpdate = mounted.port.update.bind(mounted.port);
+		let releaseUpdate!: () => void;
+		const updateGate = new Promise<void>((resolve) => {
+			releaseUpdate = resolve;
+		});
+		vi.spyOn(mounted.port, 'update').mockImplementation(async (type, id, input) => {
+			if (type === 'landing_block' && id === 'b1') await updateGate;
+			return originalUpdate(type, id, input);
+		});
+
+		mounted.target.querySelector<HTMLButtonElement>('.vega-block-save-button')!.click();
+		await settle();
+
+		const addButton = mounted.target.querySelector<HTMLButtonElement>('.vega-blocks-add')!;
+		const handle = mounted.target.querySelector<HTMLButtonElement>('.vega-block-handle')!;
+		expect(onBusyChange).toHaveBeenLastCalledWith(true);
+		expect(addButton.disabled).toBe(true);
+		expect(handle.disabled).toBe(true);
+		addButton.click();
+
+		releaseUpdate();
+		await settle();
+		await settle();
+
+		expect(onBusyChange).toHaveBeenLastCalledWith(false);
+		expect(addButton.disabled).toBe(false);
+		expect(blockTitles(mounted.target)).toEqual(['Hero guardado', 'Features']);
+		const blocks = await mounted.port.list('landing_block', {
+			filter: { kind: 'cond', field: 'parent', op: 'eq', value: 'landing1' }
+		});
+		expect(blocks.items).toHaveLength(2);
+	});
+
+	test('el mutex externo de duplicar página congela estructura y edición de bloques', async () => {
+		mounted = await mountBlocks('landing1', vi.fn());
+		await settle();
+
+		mounted.props.disabled = true;
+		await settle();
+
+		const addButton = mounted.target.querySelector<HTMLButtonElement>('.vega-blocks-add')!;
+		expect(addButton.disabled).toBe(true);
+		expect(mounted.target.querySelector<HTMLButtonElement>('.vega-block-duplicate')!.disabled).toBe(
+			true
+		);
+		expect(mounted.target.querySelector<HTMLButtonElement>('.vega-block-handle')!.disabled).toBe(
+			true
+		);
+		expect(mounted.target.querySelector<HTMLButtonElement>('.vega-block-delete')!.disabled).toBe(
+			true
+		);
+
+		mounted.target.querySelector<HTMLButtonElement>('.vega-block-toggle')!.click();
+		await settle();
+		expect(
+			mounted.target.querySelector<HTMLInputElement>('.vega-block-row input[type="text"]')!.disabled
+		).toBe(true);
+
+		addButton.click();
+		await settle();
+		const blocks = await mounted.port.list('landing_block', {
+			filter: { kind: 'cond', field: 'parent', op: 'eq', value: 'landing1' }
+		});
+		expect(blocks.items).toHaveLength(2);
+	});
+
+	test('duplicar: clona el bloque e inserta la copia justo debajo', async () => {
+		mounted = await mountBlocks('landing1', vi.fn());
+		await settle();
+
+		const duplicateButtons =
+			mounted.target.querySelectorAll<HTMLButtonElement>('.vega-block-duplicate');
+		duplicateButtons[0].click();
+		await settle();
+		await settle();
+
+		expect(blockTitles(mounted.target)).toEqual(['Hero', 'Hero', 'Features']);
+		const reloaded = await mounted.port.list('landing_block', {
+			filter: { kind: 'cond', field: 'parent', op: 'eq', value: 'landing1' },
+			sort: [{ field: 'sort', dir: 'asc' }]
+		});
+		expect(reloaded.items.map((record) => record.values.heading)).toEqual([
+			'Hero',
+			'Hero',
+			'Features'
+		]);
+		expect(reloaded.items.map((record) => record.values.sort)).toEqual([0, 1, 2]);
+	});
+
+	test('duplicar queda bloqueado mientras cualquier otro bloque conserva un borrador', async () => {
+		const onDirtyChange = vi.fn();
+		mounted = await mountBlocks('landing1', onDirtyChange);
+		await settle();
+
+		const toggles = mounted.target.querySelectorAll<HTMLButtonElement>('.vega-block-toggle');
+		toggles[1].click();
+		await settle();
+		const secondRow = mounted.target.querySelectorAll<HTMLElement>('.vega-block-row')[1];
+		const heading = secondRow.querySelector<HTMLInputElement>('input[type="text"]')!;
+		heading.value = 'Features en borrador';
+		heading.dispatchEvent(new Event('input', { bubbles: true }));
+		await settle();
+
+		expect(onDirtyChange).toHaveBeenCalledWith(true);
+		const duplicateButtons =
+			mounted.target.querySelectorAll<HTMLButtonElement>('.vega-block-duplicate');
+		expect(Array.from(duplicateButtons).every((button) => button.disabled)).toBe(true);
+		duplicateButtons[0].click();
+		await settle();
+
+		expect(blockTitles(mounted.target)).toEqual(['Hero', 'Features']);
+		expect(heading.isConnected).toBe(true);
+		expect(heading.value).toBe('Features en borrador');
+	});
+
+	test('duplicar usa el snapshot del padre original si se navega durante la creación', async () => {
+		mounted = await mountBlocks('landing1', vi.fn());
+		await settle();
+
+		const originalCreate = mounted.port.create.bind(mounted.port);
+		let releaseCreate!: () => void;
+		const createGate = new Promise<void>((resolve) => {
+			releaseCreate = resolve;
+		});
+		vi.spyOn(mounted.port, 'create').mockImplementation(async (type, input) => {
+			if (type === 'landing_block') await createGate;
+			return originalCreate(type, input);
+		});
+
+		mounted.target.querySelector<HTMLButtonElement>('.vega-block-duplicate')!.click();
+		mounted.props.parentId = 'landing2';
+		await settle();
+		expect(blockTitles(mounted.target)).toEqual(['Planes']);
+
+		releaseCreate();
+		await settle();
+		await settle();
+
+		// La respuesta tardía no mezcla el bloque de landing1 con la vista ya cargada de landing2.
+		expect(blockTitles(mounted.target)).toEqual(['Planes']);
+		const landing1 = await mounted.port.list('landing_block', {
+			filter: { kind: 'cond', field: 'parent', op: 'eq', value: 'landing1' },
+			sort: [{ field: 'sort', dir: 'asc' }]
+		});
+		expect(landing1.items.map((record) => record.values.heading)).toEqual([
+			'Hero',
+			'Hero',
+			'Features'
+		]);
+		expect(landing1.items.map((record) => record.values.sort)).toEqual([0, 1, 2]);
+		const landing2 = await mounted.port.list('landing_block', {
+			filter: { kind: 'cond', field: 'parent', op: 'eq', value: 'landing2' },
+			sort: [{ field: 'sort', dir: 'asc' }]
+		});
+		expect(landing2.items.map((record) => record.values.heading)).toEqual(['Planes']);
+		expect(landing2.items.map((record) => record.values.sort)).toEqual([0]);
 	});
 
 	test('reorden por teclado (ArrowDown en el asa): persiste de inmediato, sin marcar sucio, y anuncia la posición', async () => {

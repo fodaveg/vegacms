@@ -185,6 +185,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.save': 'Save',
 	'editor.saving': 'Saving…',
 	'editor.saveSuccess': 'Saved.',
+	'editor.duplicate': 'Duplicate',
+	'editor.duplicating': 'Duplicating…',
+	'editor.duplicate.saveFirst': 'Save your changes before duplicating.',
+	'editor.duplicate.success': 'Page and blocks duplicated.',
 	'editor.leaveConfirm': 'There are unsaved changes. Leave anyway?',
 	'editor.readonlyNotice': 'This collection is read-only: it cannot be edited.',
 	'editor.noUpdateNotice':
@@ -234,6 +238,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// Only literals without an existing key live here.
 	'editor.blocks.add': 'Add {label}',
 	'editor.blocks.empty': 'There are no {label} yet.',
+	'editor.blocks.duplicateLabel': 'Duplicate “{label}”',
+	'editor.blocks.duplicateSuccess': 'Block duplicated.',
 	'editor.blocks.expandLabel': 'Expand «{label}»',
 	'editor.blocks.collapseLabel': 'Collapse «{label}»',
 	'editor.blocks.reorder.moved': '«{label}» moved to position {position} of {total}',
