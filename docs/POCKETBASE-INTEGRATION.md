@@ -329,6 +329,43 @@ Con `vegabuild` las tres comprobaciones ya están cubiertas por su suite (`cd ex
 && go test ./...`, que corre dentro de `pnpm gate`); vuelve a hacerlas a mano contra tu instalación
 si escribes tu propio `Runner` o si vas por la Opción B.
 
+## Vista previa de registros guardados sin publicar
+
+El discovery puede declarar `preview.apiBasePath` para que Vega muestre el panel de vista previa de
+un registro guardado antes de publicarlo. La ruta pública solo anuncia la base de la API; **nunca**
+lleva el secreto ni un token permanente:
+
+```json
+{
+	"preview": { "apiBasePath": "/api/vega-preview" }
+}
+```
+
+La implementación de referencia es
+[`extensions/vegapreview`](../extensions/vegapreview/README.md). Se registra desde `OnServe` con la
+misma forma que `vegabuild`: `POST /api/vega-preview/token` queda detrás de `RequireAuth`, recibe el
+token de la sesión de Vega en `Authorization` sin prefijo `Bearer`, comprueba la `ViewRule` sobre el
+registro exacto y devuelve una URL firmada de corta duración.
+
+El sitio comparte con la extensión un `VEGA_PREVIEW_SECRET` exclusivamente server-side. La firma
+cubre versión, colección, id y caducidad: cambiar el id de la ruta, reutilizar el token para otra
+colección o esperar a que caduque hace que la ruta rechace la petición antes de leer PocketBase.
+Configura además `RecordCollections` con las colecciones que el sitio sabe pintar; la referencia
+del starter Astro usa `pages`.
+
+La ruta SSR necesita además una credencial PocketBase solo-servidor con permiso para leer esos
+borradores y sus bloques. No abras las `ViewRule` al acceso anónimo para hacer funcionar la vista
+previa: la ruta verifica primero la firma y solo entonces usa esa credencial interna.
+
+La segunda mitad vive necesariamente en el sitio: una ruta bajo demanda verifica la firma, carga
+el registro por id **sin** el filtro público de `status = "published"` y usa el mismo componente de
+página que la ruta pública. Si el sitio es Astro estático, activar preview exige un adapter de
+servidor y el modo editor documentado por su starter; omitir `preview` del discovery mantiene todo
+el flujo estático y Vega no ofrece el panel.
+
+No confundas este contrato con una vista previa de cambios sin guardar: el cuerpo actual solo lleva
+`{ collection, id }` y por tanto siempre representa el último estado persistido del registro.
+
 ## Autoría de esquema desde Vega (crear colecciones, añadir campos)
 
 Vega es el CMS **de** PocketBase: quien tiene superuser puede crear colecciones nuevas y añadir
