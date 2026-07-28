@@ -37,6 +37,13 @@ function isDataObject(data: unknown): data is Record<string, JsonValue> {
  *
  * La presencia se decide por la CLAVE, nunca por el contenido: `null` y `''` siguen siendo bytes
  * históricos que una operación destructiva tendría que mostrar antes de limpiar.
+ *
+ * `claimed` mira SOLO `source`, sin preguntar a `blockDataFieldSchema` si ese campo es además
+ * representable, y puede hacerlo porque `resolveBlockField` ya descarta ENTERO un campo
+ * `source: 'data'` con un widget que no cabe en el JSON (`relation`/`file`): a este módulo no le
+ * llega ninguno. Es un invariante prestado de `resolve.ts`, no una comprobación propia — si allí se
+ * relaja, aquí aparece una cuarta clase («declarada pero impintable») y hay que decidirla, no
+ * dejarla caer en `claimed`.
  */
 export function diagnoseBlockDataKeys(
 	blockType: ResolvedBlockType,

@@ -70,6 +70,12 @@ export function blockDataFieldSchema(field: BlockFieldShape): Field | null {
 		case 'relation':
 		case 'file':
 		case 'unsupported':
+			// El modelo resuelto excluye estas variantes de `source: 'data'` (`resolveBlockField`
+			// descarta el campo ENTERO, no solo su widget); no inventamos una representación JSON
+			// para un estado que un manifiesto válido no puede producir. Ese invariante vive en
+			// `resolve.ts` y es del que se fía `block-data-diagnostics.ts` para contar como
+			// `claimed` todo campo `source: 'data'` sin volver a preguntar aquí: si algún día se
+			// relaja, los dos módulos hay que revisarlos juntos.
 			return null;
 	}
 }
