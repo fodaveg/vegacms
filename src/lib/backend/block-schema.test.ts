@@ -1,9 +1,12 @@
 import { describe, expect, test } from 'vitest';
+import type { Field } from './types';
 import type { ResolvedBlockField, ResolvedBlocksConfig, ResolvedBlockType } from '$lib/model/types';
 import {
 	BlockRecordFieldConflictError,
 	addBlockRecordFieldsToCollectionSpecs,
+	diagnoseBlockRecordFields,
 	deriveBlockRecordFields,
+	generateBlockReconciliationMigration,
 	generateBlockSchemaMigration
 } from './block-schema';
 
@@ -34,6 +37,17 @@ const blocks: ResolvedBlocksConfig = {
 	typeField: 'kindCode',
 	dataField: 'payloadJson'
 };
+
+function backendField(field: Pick<Field, 'name' | 'type'> & Partial<Field>): Field {
+	return {
+		required: false,
+		readonly: false,
+		presentable: false,
+		hidden: false,
+		unique: false,
+		...field
+	} as Field;
+}
 
 function expectStructuralConflict(
 	fieldName: string,
@@ -236,5 +250,143 @@ describe('generateBlockSchemaMigration', () => {
 		).toThrow(
 			'blocks.image (spec base) (relation:vega_media:true:single:keep) <> hero.image (relation:vega_media:false:single:keep)'
 		);
+	});
+});
+
+describe('diagnoseBlockRecordFields', () => {
+	test('missing distingue la ausencia y la reconciliación añade esa columna', () => {
+		const diagnostics = diagnoseBlockRecordFields(
+			[blockType('hero', [field('image', 'relation')])],
+			blocks,
+			[]
+		);
+		const migration = generateBlockReconciliationMigration(
+			blocks,
+			diagnostics,
+			new Date('2026-01-05T00:00:00.000Z')
+		);
+
+		expect(diagnostics).toEqual([
+			{
+				status: 'missing',
+				expected: {
+					name: 'image',
+					type: 'relation',
+					target: 'vega_media',
+					required: false,
+					multiple: false,
+					cascadeDelete: false
+				}
+			}
+		]);
+		expect(migration?.contents).toContain('collection.fields.add');
+		expect(migration?.contents).toContain('"name": "image"');
+	});
+
+	test('compatible distingue la misma firma y no emite migración', () => {
+		const diagnostics = diagnoseBlockRecordFields(
+			[blockType('hero', [field('image', 'relation')])],
+			blocks,
+			[
+				backendField({
+					name: 'image',
+					type: 'relation',
+					target: 'vega_media',
+					multiple: false,
+					maxSelect: 1,
+					cascadeDelete: false
+				})
+			]
+		);
+
+		expect(diagnostics).toEqual([
+			expect.objectContaining({
+				status: 'compatible',
+				expected: expect.objectContaining({ name: 'image' }),
+				actual: expect.objectContaining({ name: 'image' })
+			})
+		]);
+		expect(generateBlockReconciliationMigration(blocks, diagnostics)).toBeNull();
+	});
+
+	test('incompatible conserva el error propio y la reconciliación la omite', () => {
+		const diagnostics = diagnoseBlockRecordFields(
+			[
+				blockType('hero', [field('image', 'relation')]),
+				blockType('gallery', [field('images', 'relation')])
+			],
+			blocks,
+			[
+				backendField({
+					name: 'image',
+					type: 'relation',
+					target: 'legacy_media',
+					multiple: true,
+					maxSelect: 99,
+					cascadeDelete: false
+				})
+			]
+		);
+		const migration = generateBlockReconciliationMigration(
+			blocks,
+			diagnostics,
+			new Date('2026-01-05T00:00:00.000Z')
+		);
+		const incompatible = diagnostics[0];
+
+		expect(incompatible).toMatchObject({
+			status: 'incompatible',
+			expected: { name: 'image' },
+			actual: { name: 'image' }
+		});
+		expect(incompatible).toHaveProperty('conflict', expect.any(BlockRecordFieldConflictError));
+		expect(incompatible).toHaveProperty(
+			'conflict.message',
+			expect.stringContaining(
+				'hero.image (relation:vega_media:false:single:keep) <> content_units.image (esquema) (relation:legacy_media:false:multiple:keep)'
+			)
+		);
+		expect(diagnostics[1]).toMatchObject({
+			status: 'missing',
+			expected: { name: 'images' }
+		});
+		expect(migration?.contents).not.toContain('"name": "image"');
+		expect(migration?.contents).toContain('"name": "images"');
+	});
+
+	test.each([
+		[
+			'cardinalidad relation no canónica',
+			field('images', 'relation'),
+			backendField({
+				name: 'images',
+				type: 'relation',
+				target: 'vega_media',
+				multiple: true,
+				maxSelect: 2,
+				cascadeDelete: false
+			})
+		],
+		[
+			'json required',
+			field('metadata', 'json'),
+			backendField({ name: 'metadata', type: 'json', required: true })
+		],
+		[
+			'json unique',
+			field('metadata', 'json'),
+			backendField({ name: 'metadata', type: 'json', unique: true })
+		]
+	])('no absorbe una restricción real no representable: %s', (_label, declared, actual) => {
+		const [diagnostic] = diagnoseBlockRecordFields([blockType('custom', [declared])], blocks, [
+			actual
+		]);
+
+		expect(diagnostic).toMatchObject({
+			status: 'incompatible',
+			expected: { name: declared.name },
+			actual: { name: declared.name }
+		});
+		expect(diagnostic).toHaveProperty('conflict', expect.any(BlockRecordFieldConflictError));
 	});
 });
