@@ -56,6 +56,22 @@ jobs:
           fi
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
+      # MISMA disciplina que el guard de arriba, por la misma razón: el paso de publicación lee las
+      # notas de `.github/release-notes/$GITHUB_REF_NAME.md` con `--notes-file`, y si el fichero no
+      # existe `gh release create` falla en el cliente —limpiamente, sin dejar media release— pero
+      # LO ÚLTIMO DE TODO: después de la matriz de contrato, del gate con Playwright y del doble
+      # empaquetado determinista. Comprobar aquí que el fichero existe cuesta un segundo y convierte
+      # ese "olvidé escribir las notas" en un fallo inmediato en vez de en diez minutos tirados.
+      - name: Verificar que existen las notas de la release
+        run: |
+          NOTES=".github/release-notes/${GITHUB_REF_NAME}.md"
+          if [ ! -s "$NOTES" ]; then
+            echo "::error::Falta $NOTES (o está vacío). Escribe las notas de esta versión y" \
+              "vuelve a empujar el tag antes de publicar."
+            exit 1
+          fi
+          echo "Notas de release encontradas: $NOTES"
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 

@@ -266,6 +266,33 @@ El vocabulario cerrado de `widget` es:
 `text`, `textarea`, `markdown`, `richtext`, `number`, `switch`, `email`, `url`, `datetime`,
 `select`, `chips`, `relation`, `file` y `json`.
 
+### Valores por defecto
+
+El `default` de un campo es el valor con el que nace un bloque NUEVO. Nunca toca un bloque que ya
+existe: si la clave está guardada, se respeta tal cual aunque su forma ya no case con el widget
+actual. Vega escribe valores canónicos y lee valores históricos con tolerancia.
+
+Por eso el default declarado no se guarda literalmente: se **normaliza** a la forma canónica de su
+tipo antes de usarse. Un `datetime` con desfase horario se reescribe a UTC, así que lo que acaba en
+el registro puede no ser, carácter a carácter, lo que escribiste en el manifiesto.
+
+Tres reglas que conviene tener presentes al declararlo:
+
+- **`datetime` exige zona explícita.** Vale una fecha sola (`"2026-07-28"`, que se interpreta como
+  UTC) o un instante con `Z` o desfase (`"2026-07-28T10:00:00+02:00"`). Una fecha con hora y sin
+  zona (`"2026-07-28 10:00:00"`) se descarta: dependería de la zona horaria de la máquina que
+  resuelva el manifiesto, y el mismo proyecto daría valores distintos en dos servidores.
+- **`null` significa «sin default»** en todos los widgets salvo `json`, donde es un valor legítimo y
+  distinguible de no declarar nada.
+- **`select` y `chips` contrastan el default contra sus `options`.** Sin `options` declaradas no hay
+  ningún valor que ofrecer, así que solo el array vacío de `chips` es representable: un default
+  suelto en un desplegable sin opciones sería un valor que el propio formulario no puede mostrar ni
+  volver a elegir.
+
+Cuando un default no es representable se descarta SOLO él, con el aviso
+`block-type-field-default-invalid`. El campo sigue estando ahí y sigue siendo editable; simplemente
+nace vacío.
+
 ### Frontera entre `data` y `record`
 
 Con `source: "data"`, el valor vive como una clave dentro de la columna JSON indicada por
