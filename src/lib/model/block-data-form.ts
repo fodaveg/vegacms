@@ -169,9 +169,8 @@ function setOwnValue(target: Record<string, JsonValue>, name: string, value: Jso
  * impedir. Una clave sobrante es inerte (ni el formulario ni el renderizador del sitio la miran) y
  * es recuperable; un `delete` no lo es.
  *
- * Lo que sigue pendiente es la VISIBILIDAD de esas claves ensombrecidas: hoy nadie sabe decir "este
- * bloque guarda un valor antiguo en `data.image` que ya no usa nadie". Es un aviso de modelo, no
- * una decisión de esta función.
+ * La VISIBILIDAD de esas claves ensombrecidas pertenece al diagnóstico POR REGISTRO de
+ * `block-data-diagnostics.ts`, no al modelo global ni a esta función de escritura.
  */
 export function writeBlockData(
 	blockType: ResolvedBlockType,
