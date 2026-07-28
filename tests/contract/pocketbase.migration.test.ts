@@ -309,7 +309,13 @@ describe.skipIf(!AVAILABLE)(
 					{ name: 'pages_bridge_mig', fields: [{ name: 'title', type: 'text' }] },
 					{ name: 'vega_media', fields: [{ name: 'title', type: 'text' }] }
 				],
-				blockCollection: 'blocks_bridge_mig',
+				blocks: {
+					collection: 'blocks_bridge_mig',
+					parentField: 'parent',
+					orderField: 'order',
+					typeField: 'type',
+					dataField: 'data'
+				},
 				blockTypes: [
 					recordBlockType('hero', [recordBlockField('image', true)]),
 					recordBlockType('image', [recordBlockField('image')]),

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import type { ResolvedBlockField, ResolvedBlockType } from '$lib/model/types';
+import type { ResolvedBlockField, ResolvedBlocksConfig, ResolvedBlockType } from '$lib/model/types';
 import {
 	BlockRecordFieldConflictError,
 	addBlockRecordFieldsToCollectionSpecs,
@@ -27,6 +27,30 @@ function blockType(name: string, fields: ResolvedBlockField[]): ResolvedBlockTyp
 	return { name, label: name, icon: null, fields };
 }
 
+const blocks: ResolvedBlocksConfig = {
+	collection: 'content_units',
+	parentField: 'ownerRef',
+	orderField: 'positionNo',
+	typeField: 'kindCode',
+	dataField: 'payloadJson'
+};
+
+function expectStructuralConflict(
+	fieldName: string,
+	widget: ResolvedBlockField['widget'],
+	expectedDeclaration: string
+): void {
+	let error: unknown;
+	try {
+		deriveBlockRecordFields([blockType('cta', [field(fieldName, widget)])], blocks);
+	} catch (caught) {
+		error = caught;
+	}
+
+	expect(error).toBeInstanceOf(BlockRecordFieldConflictError);
+	expect(error).toHaveProperty('message', expect.stringContaining(expectedDeclaration));
+}
+
 describe('deriveBlockRecordFields', () => {
 	test('el modelo real del starter comparte image y materializa images como múltiple', () => {
 		const blockTypes = [
@@ -39,7 +63,7 @@ describe('deriveBlockRecordFields', () => {
 			blockType('divider', [field('label', 'text', { source: 'data' })])
 		];
 
-		expect(deriveBlockRecordFields(blockTypes)).toEqual([
+		expect(deriveBlockRecordFields(blockTypes, blocks)).toEqual([
 			{
 				name: 'image',
 				type: 'relation',
@@ -61,7 +85,10 @@ describe('deriveBlockRecordFields', () => {
 
 	test('required del formulario nunca vuelve obligatoria la columna compartida', () => {
 		expect(
-			deriveBlockRecordFields([blockType('hero', [field('image', 'relation', { required: true })])])
+			deriveBlockRecordFields(
+				[blockType('hero', [field('image', 'relation', { required: true })])],
+				blocks
+			)
 		).toEqual([
 			expect.objectContaining({
 				name: 'image',
@@ -76,9 +103,43 @@ describe('deriveBlockRecordFields', () => {
 			blockType('download', [field('asset', 'file')])
 		];
 
-		expect(() => deriveBlockRecordFields(blockTypes)).toThrow(BlockRecordFieldConflictError);
-		expect(() => deriveBlockRecordFields(blockTypes)).toThrow(
+		expect(() => deriveBlockRecordFields(blockTypes, blocks)).toThrow(
+			BlockRecordFieldConflictError
+		);
+		expect(() => deriveBlockRecordFields(blockTypes, blocks)).toThrow(
 			'La columna de bloque "asset" tiene declaraciones físicas incompatibles: hero.asset (relation:vega_media:false:single:keep) <> download.asset ({"type":"file","required":false,"multiple":false,"maxSizeBytes":0,"mimeTypes":[],"thumbs":[]}).'
+		);
+	});
+
+	test('rechaza parentField configurado aunque su forma física pudiera variar', () => {
+		expectStructuralConflict(
+			'ownerRef',
+			'relation',
+			'cta.ownerRef (relation:vega_media:false:single:keep) <> content_units.ownerRef (estructural: parentField)'
+		);
+	});
+
+	test('rechaza orderField configurado aunque coincida con number', () => {
+		expectStructuralConflict(
+			'positionNo',
+			'number',
+			'cta.positionNo (number:false) <> content_units.positionNo (estructural: orderField)'
+		);
+	});
+
+	test('rechaza typeField configurado aunque coincida con text', () => {
+		expectStructuralConflict(
+			'kindCode',
+			'text',
+			'cta.kindCode (text:false:0) <> content_units.kindCode (estructural: typeField)'
+		);
+	});
+
+	test('rechaza dataField configurado aunque coincida con json', () => {
+		expectStructuralConflict(
+			'payloadJson',
+			'json',
+			'cta.payloadJson (json) <> content_units.payloadJson (estructural: dataField)'
 		);
 	});
 });
@@ -110,7 +171,7 @@ describe('generateBlockSchemaMigration', () => {
 		];
 
 		const { contents } = generateBlockSchemaMigration(
-			{ specs, blockCollection: 'blocks', blockTypes },
+			{ specs, blocks: { ...blocks, collection: 'blocks' }, blockTypes },
 			new Date('2026-01-04T00:00:00.000Z')
 		);
 		const downStart = contents.indexOf('}, (app) => {');
@@ -135,9 +196,11 @@ describe('generateBlockSchemaMigration', () => {
 			cascadeDelete: false
 		};
 		const specs = [{ name: 'blocks', fields: [image] }];
-		const result = addBlockRecordFieldsToCollectionSpecs(specs, 'blocks', [
-			blockType('hero', [field('image', 'relation')])
-		]);
+		const result = addBlockRecordFieldsToCollectionSpecs(
+			specs,
+			{ ...blocks, collection: 'blocks' },
+			[blockType('hero', [field('image', 'relation')])]
+		);
 
 		expect(result[0].fields).toEqual([image]);
 		expect(result).not.toBe(specs);
@@ -162,9 +225,16 @@ describe('generateBlockSchemaMigration', () => {
 		];
 
 		expect(() =>
-			addBlockRecordFieldsToCollectionSpecs(specs, 'blocks', [
+			addBlockRecordFieldsToCollectionSpecs(specs, { ...blocks, collection: 'blocks' }, [
 				blockType('hero', [field('image', 'relation')])
 			])
 		).toThrow(BlockRecordFieldConflictError);
+		expect(() =>
+			addBlockRecordFieldsToCollectionSpecs(specs, { ...blocks, collection: 'blocks' }, [
+				blockType('hero', [field('image', 'relation')])
+			])
+		).toThrow(
+			'blocks.image (spec base) (relation:vega_media:true:single:keep) <> hero.image (relation:vega_media:false:single:keep)'
+		);
 	});
 });
