@@ -131,7 +131,7 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" "vega-$VERSION.zip" \
             --title "Vega $GITHUB_REF_NAME" \
-            --notes "Release automatizada por tag. Ver el README del repositorio."
+            --notes-file ".github/release-notes/$GITHUB_REF_NAME.md"
 
   # P8·F1 (D-P8.7 opción B): mismo job que `ci.yml`, clonado tal cual — la matriz de contrato
   # contra el rango de servidor PocketBase soportado (mínimo 0.26.0 D-P1.3, más la pineada
