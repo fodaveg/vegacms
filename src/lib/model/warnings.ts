@@ -302,6 +302,23 @@ export function blockTypeFieldInvalid(
 }
 
 /**
+ * `block-type-field-default-invalid` — el campo sobrevive, pero su `default` no cabe en la forma
+ * canónica del widget (o pertenece a `source: 'record'`, que no alimenta el JSON `data`).
+ */
+export function blockTypeFieldDefaultInvalid(
+	typeName: string,
+	index: number,
+	fieldName: string
+): ModelWarning {
+	return {
+		code: 'block-type-field-default-invalid',
+		message: `El default del campo "${fieldName}" de blockTypes.${typeName} no es representable por su widget o no aplica a source "record"; se ignora solo el default y el campo sigue disponible.`,
+		blockType: typeName,
+		path: `${blockTypePath(typeName)}/fields/${index}/default`
+	};
+}
+
+/**
  * `icon-unknown` (reutilizado) — el icono `icon` declarado en `blockTypes.<typeName>` no está en
  * `knownIcons`. Mismo criterio que `mergedViewIconUnknown`: `path` apunta a
  * `/blockTypes/<typeName>/icon`, no a `/collections/<typeName>/icon` (un tipo de bloque no es una

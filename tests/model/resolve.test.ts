@@ -2711,6 +2711,140 @@ describe('19. blockTypes: vocabulario de tipos de bloque (RAÍZ, #4cfd4f7f)', ()
 		]);
 	});
 
+	const validDefaults: Array<{
+		widget: string;
+		value: JsonValue;
+		options?: string[];
+	}> = [
+		{ widget: 'text', value: 'Texto' },
+		{ widget: 'textarea', value: '' },
+		{ widget: 'markdown', value: '# Título' },
+		{ widget: 'richtext', value: '<p>Texto</p>' },
+		{ widget: 'number', value: 3 },
+		{ widget: 'switch', value: false },
+		{ widget: 'email', value: 'editora@example.com' },
+		{ widget: 'url', value: 'https://example.com' },
+		{ widget: 'datetime', value: '2026-07-28 10:11:12.000Z' },
+		{ widget: 'json', value: null },
+		{ widget: 'select', value: 'a', options: ['a', 'b'] },
+		{ widget: 'chips', value: ['a', 'b'], options: ['a', 'b'] }
+	];
+
+	test.each(validDefaults)(
+		'default correcto de $widget llega intacto al campo resuelto',
+		({ widget, value, options }) => {
+			const model = resolveContentModel({
+				types: kitchenSinkTypes,
+				manifestRaw: {
+					schemaVersion: 1,
+					blockTypes: {
+						hero: {
+							label: 'Portada',
+							fields: [
+								{
+									name: 'value',
+									label: 'Valor',
+									widget,
+									default: value,
+									...(options ? { options } : {})
+								}
+							]
+						}
+					}
+				}
+			});
+
+			expect(model.warnings).toEqual([]);
+			expect(model.blockTypes[0].fields[0]).toHaveProperty('default');
+			expect(model.blockTypes[0].fields[0].default).toEqual(value);
+		}
+	);
+
+	const invalidDefaults: Array<{
+		widget: string;
+		value: unknown;
+		options?: string[];
+	}> = [
+		{ widget: 'text', value: 1 },
+		{ widget: 'textarea', value: false },
+		{ widget: 'markdown', value: ['texto'] },
+		{ widget: 'richtext', value: { html: '<p>Texto</p>' } },
+		{ widget: 'number', value: '3' },
+		{ widget: 'switch', value: 'yes' },
+		{ widget: 'email', value: 1 },
+		{ widget: 'url', value: false },
+		{ widget: 'datetime', value: 'mañana' },
+		{ widget: 'json', value: { impossible: 1n } },
+		{ widget: 'select', value: 'fuera', options: ['a', 'b'] },
+		{ widget: 'chips', value: ['a', 'fuera'], options: ['a', 'b'] }
+	];
+
+	test.each(invalidDefaults)(
+		'default no representable de $widget se descarta solo, con aviso propio',
+		({ widget, value, options }) => {
+			const manifestRaw = {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: {
+						label: 'Portada',
+						fields: [
+							{
+								name: 'value',
+								label: 'Valor',
+								widget,
+								default: value,
+								...(options ? { options } : {})
+							}
+						]
+					}
+				}
+			} as unknown as JsonValue;
+			const model = resolveContentModel({ types: kitchenSinkTypes, manifestRaw });
+
+			expect(model.blockTypes).toHaveLength(1);
+			expect(model.blockTypes[0].fields).toHaveLength(1);
+			expect(model.blockTypes[0].fields[0]).not.toHaveProperty('default');
+			expect(model.warnings).toEqual([
+				expect.objectContaining({
+					code: 'block-type-field-default-invalid',
+					blockType: 'hero',
+					path: '/blockTypes/hero/fields/0/default'
+				})
+			]);
+		}
+	);
+
+	test('default en source record no promete la forma de una columna real: se descarta con aviso', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: {
+						label: 'Portada',
+						fields: [
+							{
+								name: 'image',
+								label: 'Imagen',
+								widget: 'relation',
+								source: 'record',
+								default: 'record-id'
+							}
+						]
+					}
+				}
+			}
+		});
+
+		expect(model.blockTypes[0].fields[0]).not.toHaveProperty('default');
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'block-type-field-default-invalid',
+				path: '/blockTypes/hero/fields/0/default'
+			})
+		]);
+	});
+
 	test('relation/file con source data se descartan como campos inválidos', () => {
 		const model = resolveContentModel({
 			types: kitchenSinkTypes,
