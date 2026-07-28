@@ -14,66 +14,10 @@
 
 import { normalizeFieldValue } from '$lib/backend/normalize';
 import type { Field, FieldSubtype, FieldValue, JsonValue } from '$lib/backend/types';
+import { blockDataFieldSchema } from './block-field-schema';
 import type { ResolvedBlockField, ResolvedBlockType, ResolvedField } from './types';
 
 export type BlockDataValues = Record<string, JsonValue>;
-
-const SYNTHETIC_FIELD_BASE = {
-	readonly: false,
-	presentable: false,
-	hidden: false,
-	unique: false
-} as const;
-
-function syntheticSchema(field: ResolvedBlockField): Field | null {
-	const base = {
-		...SYNTHETIC_FIELD_BASE,
-		name: field.name,
-		required: field.required
-	};
-
-	switch (field.widget) {
-		case 'text':
-		case 'textarea':
-			return { ...base, type: 'text', subtype: 'plain' };
-		case 'markdown':
-			return { ...base, type: 'text', subtype: 'markdown' };
-		case 'richtext':
-			return { ...base, type: 'richtext', subtype: 'html' };
-		case 'number':
-			return { ...base, type: 'number', integer: false };
-		case 'switch':
-			return { ...base, type: 'bool' };
-		case 'email':
-			return { ...base, type: 'email' };
-		case 'url':
-			return { ...base, type: 'url' };
-		case 'datetime':
-			return { ...base, type: 'date' };
-		case 'select':
-			return {
-				...base,
-				type: 'select',
-				options: field.options === null ? [] : [...field.options],
-				multiple: false
-			};
-		case 'chips':
-			return {
-				...base,
-				type: 'select',
-				options: field.options === null ? [] : [...field.options],
-				multiple: true
-			};
-		case 'json':
-			return { ...base, type: 'json' };
-		case 'relation':
-		case 'file':
-		case 'unsupported':
-			// El modelo resuelto excluye estas variantes de `source: 'data'`; no inventamos una
-			// representación JSON para un estado que el manifiesto válido no puede producir.
-			return null;
-	}
-}
 
 function resolvedSubtype(schema: Field): FieldSubtype | null {
 	return schema.type === 'text' || schema.type === 'richtext' ? schema.subtype : null;
@@ -81,7 +25,7 @@ function resolvedSubtype(schema: Field): FieldSubtype | null {
 
 function toResolvedDataField(field: ResolvedBlockField): ResolvedField | null {
 	if (field.source === 'record') return null;
-	const schema = syntheticSchema(field);
+	const schema = blockDataFieldSchema(field);
 	if (schema === null) return null;
 
 	return {

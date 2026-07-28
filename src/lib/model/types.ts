@@ -625,6 +625,7 @@ export type WarningCode =
 	| 'blocks-heterogeneous-invalid' // blocks.typeField/dataField a medias o inválido → degrada a homogéneo (NO invalida blocks entera)
 	| 'block-type-invalid' // blockTypes.<t>: clave/label/fields inválido → el tipo de bloque entero se descarta
 	| 'block-type-field-invalid' // un item de blockTypes.<t>.fields inválido (forma o widget excluido) → se descarta ESE campo
+	| 'block-type-field-default-invalid' // default no representable por el widget → se descarta SOLO el default
 	| 'block-type-unrendered' // el manifiesto lo declara pero discovery no: el sitio no sabe pintarlo
 	| 'social-title-field-invalid' // social.titleField inexistente o no representable → cascada a titleField
 	| 'social-description-field-invalid' // social.descriptionField inexistente o no texto/richtext → null

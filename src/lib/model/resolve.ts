@@ -50,6 +50,7 @@ import type {
 	WidgetId
 } from './types';
 import { BLOCK_FIELD_WIDGET_IDS } from './types';
+import { isRepresentableBlockFieldDefault } from './block-field-schema';
 import {
 	defaultListable,
 	humanizeLabel,
@@ -68,6 +69,7 @@ import {
 import {
 	blocksHeterogeneousInvalid,
 	blocksInvalid,
+	blockTypeFieldDefaultInvalid,
 	blockTypeFieldInvalid,
 	blockTypeIconUnknown,
 	blockTypeInvalid,
@@ -1005,15 +1007,24 @@ function resolveBlockField(
 		}
 	}
 
-	return {
+	const resolvedField: ResolvedBlockField = {
 		name,
 		label,
 		widget,
 		source,
-		...(obj && Object.hasOwn(obj, 'default') ? { default: obj.default } : {}),
 		required,
 		options
 	};
+
+	if (obj && Object.hasOwn(obj, 'default')) {
+		if (isRepresentableBlockFieldDefault(resolvedField, obj.default)) {
+			resolvedField.default = obj.default;
+		} else {
+			warnings.push(blockTypeFieldDefaultInvalid(typeName, index, name));
+		}
+	}
+
+	return resolvedField;
 }
 
 // ————— Tarjeta social (social, lote "editor" Fase B) —————
