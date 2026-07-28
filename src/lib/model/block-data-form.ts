@@ -156,8 +156,22 @@ function setOwnValue(target: Record<string, JsonValue>, name: string, value: Jso
  * Escribe únicamente las claves `source: 'data'` sobre una copia profunda del JSON anterior.
  *
  * Partir del objeto previo es el guardarraíl central: una clave de una versión antigua del tipo se
- * conserva aunque el formulario actual ya no la conozca. Las claves de campos `source: 'record'`
- * se eliminan de `data` para no mantener dos autoridades del mismo valor.
+ * conserva aunque el formulario actual ya no la conozca.
+ *
+ * Un campo `source: 'record'` NO SE ESCRIBE aquí (su autoridad es la columna real del registro),
+ * pero su clave homónima dentro de `data` TAMPOCO SE BORRA, y esa asimetría es deliberada. Un
+ * campo puede haber nacido `source: 'data'` y pasar después a `'record'` — es justo la transición
+ * que el proyecto está construyendo. En ese momento el valor histórico sigue SOLO dentro del JSON:
+ * nadie lo copia a la columna nueva (`backend/block-schema.ts` reconcilia la FORMA del esquema,
+ * nunca el contenido), y la columna puede ni existir todavía, porque en un proyecto vivo se crea
+ * bajo demanda. Borrar esa clave al guardar cualquier otro campo del bloque destruiría la única
+ * copia que queda, en silencio y sin vuelta atrás: exactamente el fallo que este módulo existe para
+ * impedir. Una clave sobrante es inerte (ni el formulario ni el renderizador del sitio la miran) y
+ * es recuperable; un `delete` no lo es.
+ *
+ * Lo que sigue pendiente es la VISIBILIDAD de esas claves ensombrecidas: hoy nadie sabe decir "este
+ * bloque guarda un valor antiguo en `data.image` que ya no usa nadie". Es un aviso de modelo, no
+ * una decisión de esta función.
  */
 export function writeBlockData(
 	blockType: ResolvedBlockType,
@@ -167,10 +181,8 @@ export function writeBlockData(
 	const next: BlockDataValues = isDataObject(data) ? structuredClone(data) : {};
 
 	for (const field of blockType.fields) {
-		if (field.source === 'record') {
-			delete next[field.name];
-			continue;
-		}
+		// Ni se escribe ni se borra: ver la cabecera. Su clave, si existe, es un valor histórico.
+		if (field.source === 'record') continue;
 
 		const resolved = toResolvedDataField(field);
 		if (resolved === null) continue;

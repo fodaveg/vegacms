@@ -173,7 +173,7 @@ describe('readBlockData / writeBlockData — tolerancia a evolución del tipo', 
 		expect(writeBlockData(type, legacy, values)).toEqual(legacy);
 	});
 
-	it('5. excluye source=record del adaptador, la lectura y la escritura de data', () => {
+	it('5. excluye source=record del adaptador y la lectura, y NUNCA lo escribe en data', () => {
 		const type = blockType([
 			field('title', 'text'),
 			field('image', 'relation', { source: 'record', required: true })
@@ -186,11 +186,43 @@ describe('readBlockData / writeBlockData — tolerancia a evolución del tipo', 
 
 		expect(resolveBlockDataFields(type).map(({ name }) => name)).toEqual(['title']);
 		expect(readBlockData(type, data)).toEqual({ title: 'Hola' });
+		// `asset-nuevo` NO entra en el JSON (la autoridad es la columna real), pero la clave
+		// histórica tampoco se borra: ver 5-bis, que es el caso en que eso destruye datos.
 		expect(writeBlockData(type, data, values)).toEqual({
 			title: 'Hola',
+			image: 'asset-antiguo',
 			unknown: 'se conserva'
 		});
 	});
+
+	it('5-bis. un campo que pasa de source=data a source=record NO pierde su valor histórico', () => {
+		// Manifiesto v1: `image` vivía dentro del JSON. v2 lo declara columna real. Nadie copia el
+		// contenido al migrar (`backend/block-schema.ts` reconcilia la FORMA, no los datos) y la
+		// columna puede no existir aún, así que el JSON es la ÚNICA copia que queda.
+		const v2 = blockType([field('title', 'text'), field('image', 'text', { source: 'record' })]);
+		const escritoConV1 = { title: 'Antes', image: 'https://cdn/foto.jpg' };
+
+		const written = writeBlockData(v2, escritoConV1, { title: 'Después' });
+
+		expect(written.image).toBe('https://cdn/foto.jpg');
+		expect(written.title).toBe('Después');
+	});
+
+	it.each([undefined, null, [], 'legacy', 42])(
+		'5-ter. writeBlockData sobre un data no-objeto tampoco lanza (%j)',
+		(data) => {
+			const type = blockType([
+				field('title', 'text', { default: 'Inicial' }),
+				field('enabled', 'switch')
+			]);
+
+			expect(() => writeBlockData(type, data, { title: 'Escrito' })).not.toThrow();
+			expect(writeBlockData(type, data, { title: 'Escrito' })).toEqual({
+				title: 'Escrito',
+				enabled: false
+			});
+		}
+	);
 
 	it('6. clona en profundidad data, defaults y valores escritos para mantener el baseline inmutable', () => {
 		const dataNested = { sections: [{ title: 'Persistido' }] };
