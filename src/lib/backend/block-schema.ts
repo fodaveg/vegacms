@@ -16,7 +16,7 @@
 
 import type { CollectionFieldSpec, CollectionSpec } from './collections';
 import { generateSchemaMigration, type GeneratedMigration } from './migration';
-import type { ResolvedBlockField, ResolvedBlockType } from '$lib/model/types';
+import type { ResolvedBlockField, ResolvedBlocksConfig, ResolvedBlockType } from '$lib/model/types';
 
 const MEDIA_COLLECTION = 'vega_media';
 const MULTIPLE_MEDIA_FIELD = 'images';
@@ -41,6 +41,13 @@ interface DerivedField {
 	spec: CollectionFieldSpec;
 	owner: string;
 }
+
+const STRUCTURAL_FIELD_KEYS = [
+	'parentField',
+	'orderField',
+	'typeField',
+	'dataField'
+] as const satisfies readonly (keyof ResolvedBlocksConfig)[];
 
 /**
  * `required` del manifiesto pertenece al formulario de ESE tipo. La colección de bloques es
@@ -77,6 +84,8 @@ function blockFieldToCollectionFieldSpec(field: ResolvedBlockField): CollectionF
 				cascadeDelete: false
 			};
 		case 'file':
+			// `images` es una convención de cardinalidad exclusiva de `relation`. Los campos `file`
+			// son simples en v1 hasta que el manifiesto disponga de vocabulario propio para indicarla.
 			return {
 				...base,
 				type: 'file',
@@ -127,15 +136,23 @@ function assertCompatible(previous: DerivedField, current: DerivedField): void {
 	]);
 }
 
-/**
- * Deriva una sola columna por NOMBRE a partir de todos los tipos. El orden es el de la primera
- * declaración del manifiesto. Dos tipos que comparten nombre comparten columna únicamente si su
- * forma física completa coincide (tipo, destino, cardinalidad y política destructiva).
- */
-export function deriveBlockRecordFields(
-	blockTypes: readonly ResolvedBlockType[]
-): CollectionFieldSpec[] {
+function structuralFieldOwners(
+	blocks: ResolvedBlocksConfig
+): ReadonlyMap<string, (typeof STRUCTURAL_FIELD_KEYS)[number]> {
+	const owners = new Map<string, (typeof STRUCTURAL_FIELD_KEYS)[number]>();
+	for (const key of STRUCTURAL_FIELD_KEYS) {
+		const fieldName = blocks[key];
+		if (fieldName !== null) owners.set(fieldName, key);
+	}
+	return owners;
+}
+
+function deriveBlockRecordFieldsWithOwners(
+	blockTypes: readonly ResolvedBlockType[],
+	blocks: ResolvedBlocksConfig
+): DerivedField[] {
 	const byName = new Map<string, DerivedField>();
+	const structuralOwners = structuralFieldOwners(blocks);
 
 	for (const blockType of blockTypes) {
 		for (const field of blockType.fields) {
@@ -144,6 +161,13 @@ export function deriveBlockRecordFields(
 				spec: blockFieldToCollectionFieldSpec(field),
 				owner: `${blockType.name}.${field.name}`
 			};
+			const structuralOwner = structuralOwners.get(field.name);
+			if (structuralOwner) {
+				throw new BlockRecordFieldConflictError(field.name, [
+					describe(current.owner, current.spec),
+					`${blocks.collection}.${field.name} (estructural: ${structuralOwner})`
+				]);
+			}
 			const previous = byName.get(field.name);
 			if (previous) {
 				assertCompatible(previous, current);
@@ -153,7 +177,20 @@ export function deriveBlockRecordFields(
 		}
 	}
 
-	return Array.from(byName.values(), ({ spec }) => spec);
+	return Array.from(byName.values());
+}
+
+/**
+ * Deriva una sola columna por NOMBRE a partir de todos los tipos. El orden es el de la primera
+ * declaración del manifiesto. Dos tipos que comparten nombre comparten columna únicamente si su
+ * forma física completa coincide (tipo, destino, cardinalidad y política destructiva). Los nombres
+ * estructurales proceden de la declaración de bloques resuelta: nunca se deducen ni se fijan aquí.
+ */
+export function deriveBlockRecordFields(
+	blockTypes: readonly ResolvedBlockType[],
+	blocks: ResolvedBlocksConfig
+): CollectionFieldSpec[] {
+	return deriveBlockRecordFieldsWithOwners(blockTypes, blocks).map(({ spec }) => spec);
 }
 
 /**
@@ -163,29 +200,29 @@ export function deriveBlockRecordFields(
  */
 export function addBlockRecordFieldsToCollectionSpecs(
 	specs: readonly CollectionSpec[],
-	blockCollection: string,
+	blocks: ResolvedBlocksConfig,
 	blockTypes: readonly ResolvedBlockType[]
 ): CollectionSpec[] {
-	const derived = deriveBlockRecordFields(blockTypes);
+	const derived = deriveBlockRecordFieldsWithOwners(blockTypes, blocks);
 	let found = false;
 
 	const enriched = specs.map((spec) => {
-		if (spec.name !== blockCollection) return { ...spec, fields: [...spec.fields] };
+		if (spec.name !== blocks.collection) return { ...spec, fields: [...spec.fields] };
 		found = true;
 		const fields = [...spec.fields];
 		const byName = new Map(fields.map((field) => [field.name, field]));
 
-		for (const field of derived) {
-			const existing = byName.get(field.name);
+		for (const current of derived) {
+			const existing = byName.get(current.spec.name);
 			if (existing) {
 				assertCompatible(
-					{ spec: existing, owner: `${blockCollection}.${existing.name} (spec base)` },
-					{ spec: field, owner: `${blockCollection}.${field.name} (blockTypes)` }
+					{ spec: existing, owner: `${blocks.collection}.${existing.name} (spec base)` },
+					current
 				);
 				continue;
 			}
-			fields.push(field);
-			byName.set(field.name, field);
+			fields.push(current.spec);
+			byName.set(current.spec.name, current.spec);
 		}
 
 		return { ...spec, fields };
@@ -193,7 +230,7 @@ export function addBlockRecordFieldsToCollectionSpecs(
 
 	if (!found) {
 		throw new Error(
-			`No existe el CollectionSpec "${blockCollection}" al materializar sus campos de bloque.`
+			`No existe el CollectionSpec "${blocks.collection}" al materializar sus campos de bloque.`
 		);
 	}
 	return enriched;
@@ -206,15 +243,11 @@ export function addBlockRecordFieldsToCollectionSpecs(
 export function generateBlockSchemaMigration(
 	input: {
 		specs: readonly CollectionSpec[];
-		blockCollection: string;
+		blocks: ResolvedBlocksConfig;
 		blockTypes: readonly ResolvedBlockType[];
 	},
 	now: Date = new Date()
 ): GeneratedMigration {
-	const specs = addBlockRecordFieldsToCollectionSpecs(
-		input.specs,
-		input.blockCollection,
-		input.blockTypes
-	);
+	const specs = addBlockRecordFieldsToCollectionSpecs(input.specs, input.blocks, input.blockTypes);
 	return generateSchemaMigration({ kind: 'create', specs }, now);
 }
