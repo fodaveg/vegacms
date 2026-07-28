@@ -37,8 +37,10 @@ import { unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import PocketBase from 'pocketbase';
+import { generateBlockSchemaMigration } from '$lib/backend/block-schema';
 import { generateSchemaMigration } from '$lib/backend/migration';
 import type { CollectionFieldSpec, CollectionSpec } from '$lib/backend/collections';
+import type { ResolvedBlockField, ResolvedBlockType } from '$lib/model/types';
 import { isPocketBaseBinaryAvailable } from './pb-harness/binary';
 import {
 	ADMIN_EMAIL,
@@ -52,6 +54,21 @@ import {
 import type { PocketBaseInstanceDir, PocketBaseServerHandle } from './pb-harness/server';
 
 const AVAILABLE = isPocketBaseBinaryAvailable();
+
+function recordBlockField(name: string, required = false): ResolvedBlockField {
+	return {
+		name,
+		label: name,
+		widget: 'relation',
+		source: 'record',
+		required,
+		options: null
+	};
+}
+
+function recordBlockType(name: string, fields: ResolvedBlockField[]): ResolvedBlockType {
+	return { name, label: name, icon: null, fields };
+}
 
 /** Escribe el `.js` de una migración GENERADA en `migrationsDir`, tal cual saldría de
  *  `generateSchemaMigration` — nunca se reescribe a mano, es el mismo fichero que se commitea. */
@@ -258,6 +275,117 @@ describe.skipIf(!AVAILABLE)(
 			await expect(pb.collections.getOne('pages_mig')).rejects.toMatchObject({
 				status: 404
 			});
+		}, 20_000);
+	}
+);
+
+describe.skipIf(!AVAILABLE)(
+	'puente blockTypes source=record — migración real con columnas físicas utilizables',
+	() => {
+		let instance: PocketBaseInstanceDir;
+		let server: PocketBaseServerHandle;
+		let pb: PocketBase;
+
+		const migration = generateBlockSchemaMigration(
+			{
+				// Orden malo deliberado: blocks depende de pages y vega_media, que llegan después.
+				specs: [
+					{
+						name: 'blocks_bridge_mig',
+						fields: [
+							{
+								name: 'parent',
+								type: 'relation',
+								target: 'pages_bridge_mig',
+								required: true,
+								multiple: false,
+								cascadeDelete: false
+							},
+							{ name: 'order', type: 'number' },
+							{ name: 'type', type: 'text' },
+							{ name: 'data', type: 'json' }
+						]
+					},
+					{ name: 'pages_bridge_mig', fields: [{ name: 'title', type: 'text' }] },
+					{ name: 'vega_media', fields: [{ name: 'title', type: 'text' }] }
+				],
+				blockCollection: 'blocks_bridge_mig',
+				blockTypes: [
+					recordBlockType('hero', [recordBlockField('image', true)]),
+					recordBlockType('image', [recordBlockField('image')]),
+					recordBlockType('gallery', [recordBlockField('images')])
+				]
+			},
+			new Date('2026-01-02T00:00:10.000Z')
+		);
+
+		beforeAll(async () => {
+			instance = createPocketBaseInstanceDir();
+			writeMigrationFile(instance, migration.filename, migration.contents);
+			await createPocketBaseSuperuser(instance.dataDir);
+
+			const up = await runPocketBaseMigrate(instance, ['up']);
+			expect(up.stdout).toContain(`Applied ${migration.filename}`);
+
+			server = await startPocketBaseServerOn(instance);
+			pb = await authAdmin(server.url);
+		}, 30_000);
+
+		afterAll(async () => {
+			await server?.stop();
+			if (instance) destroyPocketBaseInstanceDir(instance);
+		});
+
+		test('crea image simple e images múltiple después de vega_media', async () => {
+			const media = await pb.collections.getOne('vega_media');
+			const blocks = await pb.collections.getOne('blocks_bridge_mig');
+			expect(blocks.fields.find((field) => field.name === 'image')).toMatchObject({
+				type: 'relation',
+				collectionId: media.id,
+				maxSelect: 1,
+				required: false
+			});
+			expect(blocks.fields.find((field) => field.name === 'images')).toMatchObject({
+				type: 'relation',
+				collectionId: media.id,
+				maxSelect: 99,
+				required: false
+			});
+		});
+
+		test('las dos columnas aceptan registros y conservan sus relaciones', async () => {
+			const page = await pb.collection('pages_bridge_mig').create({ title: 'Inicio' });
+			const first = await pb.collection('vega_media').create({ title: 'Uno' });
+			const second = await pb.collection('vega_media').create({ title: 'Dos' });
+			const block = await pb.collection('blocks_bridge_mig').create({
+				parent: page.id,
+				type: 'gallery',
+				data: {},
+				image: first.id,
+				images: [first.id, second.id]
+			});
+
+			expect(block.image).toBe(first.id);
+			expect(block.images).toEqual([first.id, second.id]);
+		});
+
+		test('down revierte el lote en orden inverso', async () => {
+			await server.stop();
+
+			const down = await runPocketBaseMigrate(instance, ['down', '1']);
+			expect(down.stdout).toContain(`Reverted ${migration.filename}`);
+
+			deleteMigrationFile(instance, migration.filename);
+			server = await startPocketBaseServerOn(instance);
+			pb = await authAdmin(server.url);
+
+			await expect(pb.collections.getOne('blocks_bridge_mig')).rejects.toMatchObject({
+				status: 404
+			});
+			await expect(pb.collections.getOne('pages_bridge_mig')).rejects.toMatchObject({
+				status: 404
+			});
+			await expect(pb.collections.getOne('vega_media')).rejects.toMatchObject({ status: 404 });
 		}, 20_000);
 	}
 );
