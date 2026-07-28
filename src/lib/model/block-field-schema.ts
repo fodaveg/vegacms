@@ -80,30 +80,33 @@ export function blockDataFieldSchema(field: BlockFieldShape): Field | null {
 	}
 }
 
+export type ResolvedBlockFieldDefault =
+	{ status: 'value'; value: JsonValue } | { status: 'absent' } | { status: 'invalid' };
+
 /**
- * Comprueba solo REPRESENTABILIDAD, no validez de contenido. Conserva el valor original si cabe:
- * `normalizeFieldValue` decide la forma, pero aquí no normalizamos el default del manifiesto.
+ * Resuelve solo REPRESENTABILIDAD, no validez de contenido, y devuelve el valor en la forma
+ * canónica de `normalizeFieldValue`. Vega MINTA defaults canónicos; la lectura de valores
+ * históricos ya persistidos sigue siendo tolerante y pertenece a `readBlockData`.
  *
- * `null` es un default legítimo únicamente para `json`, donde es un valor JSON distinguible. En
- * los demás widgets no significa «sin default»: declarar la clave es una decisión explícita y una
- * forma incompatible debe avisarse. Los campos `source: 'record'` tampoco aceptan default aquí:
- * sin el `Field` real descubierto de la columna no se puede prometer su forma y, además, este
- * default solo alimenta el objeto JSON `data`.
+ * `null` significa «sin default» para todos los widgets salvo `json`, donde es un valor JSON
+ * legítimo y distinguible. Los campos `source: 'record'` no aceptan ningún otro default aquí: sin
+ * el `Field` real descubierto de la columna no se puede prometer su forma y, además, este default
+ * solo alimenta el objeto JSON `data`.
  */
-export function isRepresentableBlockFieldDefault(
+export function resolveBlockFieldDefault(
 	field: BlockFieldShape,
 	value: JsonValue
-): boolean {
-	const schema = blockDataFieldSchema(field);
-	if (schema === null) return false;
+): ResolvedBlockFieldDefault {
+	if (value === null && field.widget !== 'json') return { status: 'absent' };
 
-	if (value === null) return schema.type === 'json';
+	const schema = blockDataFieldSchema(field);
+	if (schema === null) return { status: 'invalid' };
 
 	let normalized: unknown;
 	try {
 		normalized = normalizeFieldValue(schema, value);
 	} catch {
-		return false;
+		return { status: 'invalid' };
 	}
 
 	switch (schema.type) {
@@ -111,40 +114,50 @@ export function isRepresentableBlockFieldDefault(
 		case 'richtext':
 		case 'email':
 		case 'url':
-			return typeof value === 'string' && normalized === value;
+			return typeof value === 'string' && normalized === value
+				? { status: 'value', value: normalized }
+				: { status: 'invalid' };
 		case 'number':
-			return typeof normalized === 'number';
+			return typeof normalized === 'number'
+				? { status: 'value', value: normalized }
+				: { status: 'invalid' };
 		case 'bool':
-			return typeof value === 'boolean' && normalized === value;
+			return typeof value === 'boolean' && normalized === value
+				? { status: 'value', value: normalized }
+				: { status: 'invalid' };
 		case 'date':
-			// Exigimos una cadena parseable por la tabla canónica, pero preservamos la forma exacta
-			// declarada (incluida la variante de PocketBase con espacio en vez de `T`).
-			return typeof value === 'string' && typeof normalized === 'string';
+			// Una fecha sola se interpreta como UTC por especificación. Un datetime, en cambio,
+			// necesita zona explícita: `Date.parse` aplicaría la TZ local y el mismo manifiesto
+			// mintaría valores distintos en dos servidores.
+			return typeof value === 'string' &&
+				(/^\d{4}-\d{2}-\d{2}$/.test(value) || /(Z|[+-]\d{2}:?\d{2})$/i.test(value)) &&
+				typeof normalized === 'string'
+				? { status: 'value', value: normalized }
+				: { status: 'invalid' };
 		case 'select': {
-			const options = field.options;
+			const options = schema.options;
 			if (schema.multiple) {
-				return (
-					Array.isArray(value) &&
-					value.every(
-						(item) => typeof item === 'string' && (options === null || options.includes(item))
-					)
-				);
+				return Array.isArray(value) &&
+					Array.isArray(normalized) &&
+					value.every((item) => typeof item === 'string' && options.includes(item))
+					? { status: 'value', value: normalized }
+					: { status: 'invalid' };
 			}
-			return (
-				typeof normalized === 'string' &&
-				typeof value === 'string' &&
-				(options === null || options.includes(value))
-			);
+			return typeof normalized === 'string' && typeof value === 'string' && options.includes(value)
+				? { status: 'value', value: normalized }
+				: { status: 'invalid' };
 		}
 		case 'json':
 			try {
-				return JSON.stringify(normalized) !== undefined;
+				return JSON.stringify(normalized) !== undefined
+					? { status: 'value', value: normalized as JsonValue }
+					: { status: 'invalid' };
 			} catch {
-				return false;
+				return { status: 'invalid' };
 			}
 		case 'relation':
 		case 'file':
 		case 'unsupported':
-			return false;
+			return { status: 'invalid' };
 	}
 }

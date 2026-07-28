@@ -7,6 +7,7 @@
 
 import { describe, expect, test } from 'vitest';
 import type { ContentType, JsonValue } from '$lib/backend/types';
+import { readBlockData } from '$lib/model/block-data-form';
 import { WIDGET_IDS } from '$lib/model/types';
 import { resolveContentModel } from '$lib/model/resolve';
 import {
@@ -2731,7 +2732,7 @@ describe('19. blockTypes: vocabulario de tipos de bloque (RAÍZ, #4cfd4f7f)', ()
 	];
 
 	test.each(validDefaults)(
-		'default correcto de $widget llega intacto al campo resuelto',
+		'default correcto de $widget llega canónico al campo resuelto',
 		({ widget, value, options }) => {
 			const model = resolveContentModel({
 				types: kitchenSinkTypes,
@@ -2756,9 +2757,155 @@ describe('19. blockTypes: vocabulario de tipos de bloque (RAÍZ, #4cfd4f7f)', ()
 
 			expect(model.warnings).toEqual([]);
 			expect(model.blockTypes[0].fields[0]).toHaveProperty('default');
-			expect(model.blockTypes[0].fields[0].default).toEqual(value);
+			if (widget === 'datetime') {
+				expect(model.blockTypes[0].fields[0].default).toBe('2026-07-28T10:11:12.000Z');
+			} else {
+				expect(model.blockTypes[0].fields[0].default).toEqual(value);
+			}
 		}
 	);
+
+	test('datetime minta el default ISO UTC canónico en data, sin normalizar valores históricos', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: {
+						label: 'Portada',
+						fields: [
+							{
+								name: 'publishedAt',
+								label: 'Publicación',
+								widget: 'datetime',
+								default: '2026-07-28'
+							}
+						]
+					}
+				}
+			}
+		});
+		const blockType = model.blockTypes[0];
+
+		expect(blockType.fields[0].default).toBe('2026-07-28T00:00:00.000Z');
+		expect(readBlockData(blockType, {})).toEqual({
+			publishedAt: '2026-07-28T00:00:00.000Z'
+		});
+		expect(readBlockData(blockType, { publishedAt: '2026-07-28' })).toEqual({
+			publishedAt: '2026-07-28'
+		});
+	});
+
+	test('datetime con offset ISO básico también minta la forma UTC canónica', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: {
+						label: 'Portada',
+						fields: [
+							{
+								name: 'publishedAt',
+								label: 'Publicación',
+								widget: 'datetime',
+								default: '2026-07-28T10:11:12+0200'
+							}
+						]
+					}
+				}
+			}
+		});
+
+		expect(model.blockTypes[0].fields[0].default).toBe('2026-07-28T08:11:12.000Z');
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('datetime sin zona se descarta para que el default no dependa de la TZ del servidor', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: {
+						label: 'Portada',
+						fields: [
+							{
+								name: 'publishedAt',
+								label: 'Publicación',
+								widget: 'datetime',
+								default: '2026-07-28 10:11:12'
+							}
+						]
+					}
+				}
+			}
+		});
+
+		expect(model.blockTypes[0].fields[0]).not.toHaveProperty('default');
+		expect(model.warnings.map((warning) => warning.path)).toEqual([
+			'/blockTypes/hero/fields/0/default'
+		]);
+	});
+
+	test('null significa default ausente salvo en json, donde se conserva como valor legítimo', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: {
+						label: 'Portada',
+						fields: [
+							{ name: 'score', label: 'Puntuación', widget: 'number', default: null },
+							{ name: 'publishedAt', label: 'Publicación', widget: 'datetime', default: null },
+							{
+								name: 'tone',
+								label: 'Tono',
+								widget: 'select',
+								options: ['light'],
+								default: null
+							},
+							{ name: 'config', label: 'Configuración', widget: 'json', default: null }
+						]
+					}
+				}
+			}
+		});
+
+		expect(model.warnings).toEqual([]);
+		expect(model.blockTypes[0].fields.slice(0, 3).every((field) => !('default' in field))).toBe(
+			true
+		);
+		expect(model.blockTypes[0].fields[3]).toHaveProperty('default', null);
+	});
+
+	test('select/chips sin options solo aceptan el vacío representable por su schema', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				blockTypes: {
+					hero: {
+						label: 'Portada',
+						fields: [
+							{ name: 'level', label: 'Nivel', widget: 'select', default: 'expert' },
+							{ name: 'tags', label: 'Etiquetas', widget: 'chips', default: ['expert'] },
+							{ name: 'emptyTags', label: 'Etiquetas vacías', widget: 'chips', default: [] }
+						]
+					}
+				}
+			}
+		});
+
+		expect(model.blockTypes[0].fields[0]).not.toHaveProperty('default');
+		expect(model.blockTypes[0].fields[1]).not.toHaveProperty('default');
+		expect(model.blockTypes[0].fields[2]).toHaveProperty('default', []);
+		expect(model.warnings.map((warning) => warning.path)).toEqual([
+			'/blockTypes/hero/fields/0/default',
+			'/blockTypes/hero/fields/1/default'
+		]);
+	});
 
 	const invalidDefaults: Array<{
 		widget: string;

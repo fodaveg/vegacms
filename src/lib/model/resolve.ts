@@ -50,7 +50,7 @@ import type {
 	WidgetId
 } from './types';
 import { BLOCK_FIELD_WIDGET_IDS } from './types';
-import { isRepresentableBlockFieldDefault } from './block-field-schema';
+import { resolveBlockFieldDefault } from './block-field-schema';
 import {
 	defaultListable,
 	humanizeLabel,
@@ -1017,9 +1017,10 @@ function resolveBlockField(
 	};
 
 	if (obj && Object.hasOwn(obj, 'default')) {
-		if (isRepresentableBlockFieldDefault(resolvedField, obj.default)) {
-			resolvedField.default = obj.default;
-		} else {
+		const resolvedDefault = resolveBlockFieldDefault(resolvedField, obj.default);
+		if (resolvedDefault.status === 'value') {
+			resolvedField.default = resolvedDefault.value;
+		} else if (resolvedDefault.status === 'invalid') {
 			warnings.push(blockTypeFieldDefaultInvalid(typeName, index, name));
 		}
 	}
