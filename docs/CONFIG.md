@@ -167,25 +167,135 @@ Vega mostrará un selector global de idioma en el formulario y mantendrá visibl
 compartidos. La referencia completa y versionada está en
 [`PROJECT-CONTRACT-v1.md`](./PROJECT-CONTRACT-v1.md#localized-fields).
 
-## Bloques ordenables dentro del formulario (`blocks`)
+## Bloques ordenables y heterogéneos (`blocks` y `blockTypes`)
 
-PocketBase no tiene campos repetidores, así que el contenido compuesto —una página hecha de secciones— se modela como una **colección hija** cuyos registros apuntan al padre. `blocks` le dice a Vega que esa hija no es una colección más de la navegación, sino parte del registro padre: su editor pinta la lista embebida, con crear, reordenar (arrastrando o con el teclado), plegar y borrar en línea.
+PocketBase no tiene campos repetidores, así que el contenido compuesto —una página hecha de
+secciones— se modela como una **colección hija** cuyos registros apuntan al padre. `blocks` enlaza
+ambas colecciones y `blockTypes`, en la raíz del manifiesto, declara qué clases de bloque puede
+editar Vega.
+
+Este ejemplo completo declara un bloque `hero` con un título guardado en JSON y una imagen guardada
+como relación real:
 
 ```json
 {
+	"schemaVersion": 1,
 	"collections": {
 		"paginas": {
 			"blocks": {
-				"collection": "secciones",
+				"collection": "bloques",
 				"parentField": "pagina",
-				"orderField": "orden"
+				"orderField": "orden",
+				"typeField": "tipo",
+				"dataField": "data"
 			}
+		},
+		"bloques": {
+			"label": "Bloques",
+			"labelSingular": "Bloque",
+			"hidden": true
+		}
+	},
+	"blockTypes": {
+		"hero": {
+			"label": "Portada",
+			"fields": [
+				{
+					"name": "titulo",
+					"label": "Título",
+					"widget": "text",
+					"source": "data",
+					"required": true
+				},
+				{
+					"name": "imagen",
+					"label": "Imagen",
+					"widget": "relation",
+					"source": "record"
+				}
+			]
 		}
 	}
 }
 ```
 
-Las tres claves son obligatorias. `parentField` debe ser un campo `relation` **no múltiple** de la colección hija que apunte de vuelta a este tipo, y `orderField` un campo numérico suyo. Si algo de eso no se cumple —la colección no existe, la relación apunta a otro sitio, el campo de orden no es numérico— la capacidad se descarta entera con un aviso `blocks-invalid` y el formulario sigue funcionando sin la lista.
+La colección `bloques` necesita estos campos estructurales:
+
+- `pagina`: relación **no múltiple** que apunta a `paginas`.
+- `orden`: número.
+- `tipo`: texto.
+- `data`: JSON.
+
+Los nombres no están reservados. `collection` elige la colección hija y
+`parentField`/`orderField`/`typeField`/`dataField` indican los cuatro nombres de campo usados por el
+proyecto. Las tres primeras piezas (`collection`, `parentField` y `orderField`) son obligatorias. La
+pareja `typeField`/`dataField` es opcional, pero debe declararse junta: el primero tiene que ser texto
+y el segundo JSON. Si la pareja está incompleta o no coincide con el esquema, Vega conserva la lista
+en modo homogéneo y emite `blocks-heterogeneous-invalid`. Si falla una de las tres piezas base,
+descarta la capacidad entera con `blocks-invalid`.
+
+### Vocabulario de tipos
+
+`blockTypes` es un objeto en la raíz del manifiesto. Cada clave identifica un tipo y debe cumplir
+`^[a-z][a-z0-9-]*$`: el nombre viaja al componente Astro que lo renderiza y al documento de
+discovery del sitio, por eso solo admite minúsculas, dígitos y guiones. El orden de las claves es el
+orden de presentación.
+
+Cada tipo admite:
+
+| Clave    | Uso                                                                                       |
+| -------- | ----------------------------------------------------------------------------------------- |
+| `label`  | Rótulo obligatorio, de 1 a 60 caracteres.                                                 |
+| `icon`   | Identificador de icono opcional. Un icono desconocido se sustituye por el genérico.       |
+| `fields` | Lista obligatoria con al menos un campo válido. Su orden es el del formulario del bloque. |
+
+Cada elemento de `fields` admite:
+
+| Clave      | Uso                                                                                                           |
+| ---------- | ------------------------------------------------------------------------------------------------------------- |
+| `name`     | Nombre obligatorio del valor o columna. No puede repetirse dentro del mismo tipo.                             |
+| `label`    | Rótulo obligatorio, de 1 a 60 caracteres.                                                                     |
+| `widget`   | Widget obligatorio del vocabulario cerrado indicado abajo.                                                    |
+| `source`   | `"data"` o `"record"`; si se omite, usa `"data"`.                                                             |
+| `required` | Booleano opcional; por defecto `false`. Aplica al formulario de ese tipo, no obliga la columna física global. |
+| `options`  | Array no vacío de textos para `select` y `chips`. En los demás widgets no tiene efecto.                       |
+| `default`  | Valor inicial opcional. Si el widget no puede representarlo, se ignora solo el default.                       |
+
+El vocabulario cerrado de `widget` es:
+
+`text`, `textarea`, `markdown`, `richtext`, `number`, `switch`, `email`, `url`, `datetime`,
+`select`, `chips`, `relation`, `file` y `json`.
+
+### Frontera entre `data` y `record`
+
+Con `source: "data"`, el valor vive como una clave dentro de la columna JSON indicada por
+`dataField`. Es adecuado para texto, números, opciones y otros datos heterogéneos que no necesitas
+consultar como columnas independientes.
+
+Con `source: "record"`, el valor vive en una columna real de cada registro de la colección hija. Esa
+es la opción para datos que PocketBase debe indexar, consultar o gestionar con semántica propia.
+`relation` y `file` solo son válidos con `source: "record"` porque una relación y un fichero
+necesitan una columna física de PocketBase; declararlos en `data` descarta ese campo.
+
+En el vocabulario actual, `relation` está especializado en medios: la columna derivada siempre apunta
+a `vega_media`. Su cardinalidad tampoco es configurable todavía; solo el nombre convencional
+`images` crea una relación múltiple y cualquier otro nombre crea una relación simple. El manifiesto
+no puede expresar hoy una relación a otra colección ni elegir la cardinalidad explícitamente.
+
+Las columnas `record` se derivan del conjunto completo de `blockTypes`. El generador de esquema las
+incluye en la migración de creación. El backend también puede comparar esa derivación con un esquema
+existente y generar una migración aditiva para las columnas ausentes, pero esas piezas **todavía no
+están conectadas a la interfaz ni a un flujo de producción**: Vega no muestra el diagnóstico ni
+ofrece la migración desde Ajustes. Las columnas incompatibles tampoco se cambian automáticamente.
+
+### Avisos de tipos de bloque
+
+- `block-type-invalid`: se descarta el tipo entero porque su clave, forma, `label` o lista de campos
+  no es válida.
+- `block-type-field-invalid`: se descarta solo un campo por forma, widget, nombre duplicado o por
+  usar `relation`/`file` sin `source: "record"`.
+- `block-type-field-default-invalid`: el campo sigue disponible, pero se elimina su `default`
+  porque el widget no puede representarlo o porque el campo pertenece al registro.
 
 Dos comportamientos que conviene conocer antes de declararlo:
 

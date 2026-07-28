@@ -30,7 +30,7 @@ pnpm build
 # o configura CORS + `static/vega.config.json` si están en orígenes distintos.
 ```
 
-**Ver también**: [Guía de instalación](docs/INSTALL.md) · [Despliegue y montaje](docs/DEPLOYMENT.md) · [Integración con PocketBase](docs/POCKETBASE-INTEGRATION.md).
+**Ver también**: [Configuración y manifiesto](docs/CONFIG.md) · [Guía de instalación](docs/INSTALL.md) · [Despliegue y montaje](docs/DEPLOYMENT.md) · [Integración con PocketBase](docs/POCKETBASE-INTEGRATION.md).
 
 ## Estructura de la app
 
