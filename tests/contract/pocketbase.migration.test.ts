@@ -37,7 +37,11 @@ import { unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import PocketBase from 'pocketbase';
-import { generateBlockSchemaMigration } from '$lib/backend/block-schema';
+import {
+	diagnoseBlockRecordFields,
+	generateBlockReconciliationMigration,
+	generateBlockSchemaMigration
+} from '$lib/backend/block-schema';
 import { generateSchemaMigration } from '$lib/backend/migration';
 import type { CollectionFieldSpec, CollectionSpec } from '$lib/backend/collections';
 import type { ResolvedBlockField, ResolvedBlockType } from '$lib/model/types';
@@ -392,6 +396,119 @@ describe.skipIf(!AVAILABLE)(
 				status: 404
 			});
 			await expect(pb.collections.getOne('vega_media')).rejects.toMatchObject({ status: 404 });
+		}, 20_000);
+	}
+);
+
+describe.skipIf(!AVAILABLE)(
+	'reconciliación blockTypes source=record — añade solo las columnas ausentes a blocks existente',
+	() => {
+		let instance: PocketBaseInstanceDir;
+		let server: PocketBaseServerHandle;
+		let pb: PocketBase;
+
+		const blocks = {
+			collection: 'blocks_reconcile_mig',
+			parentField: 'parent',
+			orderField: 'order',
+			typeField: 'type',
+			dataField: 'data'
+		};
+		const blockTypes = [
+			recordBlockType('hero', [recordBlockField('image', true)]),
+			recordBlockType('image', [recordBlockField('image')]),
+			recordBlockType('gallery', [recordBlockField('images')])
+		];
+		const createMigration = generateSchemaMigration(
+			{
+				kind: 'create',
+				specs: [
+					{
+						name: 'blocks_reconcile_mig',
+						fields: [
+							{
+								name: 'parent',
+								type: 'relation',
+								target: 'pages_reconcile_mig',
+								required: true,
+								multiple: false,
+								cascadeDelete: false
+							},
+							{ name: 'order', type: 'number' },
+							{ name: 'type', type: 'text' },
+							{ name: 'data', type: 'json' }
+						]
+					},
+					{ name: 'pages_reconcile_mig', fields: [{ name: 'title', type: 'text' }] },
+					{ name: 'vega_media', fields: [{ name: 'title', type: 'text' }] }
+				]
+			},
+			new Date('2026-01-02T00:00:20.000Z')
+		);
+		const reconciliationMigration = generateBlockReconciliationMigration(
+			blocks,
+			diagnoseBlockRecordFields(blockTypes, blocks, []),
+			new Date('2026-01-02T00:00:25.000Z')
+		);
+		if (!reconciliationMigration) {
+			throw new Error('El escenario de contrato debe producir una migración de reconciliación.');
+		}
+
+		beforeAll(async () => {
+			instance = createPocketBaseInstanceDir();
+			writeMigrationFile(instance, createMigration.filename, createMigration.contents);
+			writeMigrationFile(
+				instance,
+				reconciliationMigration.filename,
+				reconciliationMigration.contents
+			);
+			await createPocketBaseSuperuser(instance.dataDir);
+
+			const up = await runPocketBaseMigrate(instance, ['up']);
+			expect(up.stdout).toContain(`Applied ${createMigration.filename}`);
+			expect(up.stdout).toContain(`Applied ${reconciliationMigration.filename}`);
+
+			server = await startPocketBaseServerOn(instance);
+			pb = await authAdmin(server.url);
+		}, 30_000);
+
+		afterAll(async () => {
+			await server?.stop();
+			if (instance) destroyPocketBaseInstanceDir(instance);
+		});
+
+		test('image e images quedan utilizables en la colección que ya existía', async () => {
+			const page = await pb.collection('pages_reconcile_mig').create({ title: 'Inicio' });
+			const first = await pb.collection('vega_media').create({ title: 'Uno' });
+			const second = await pb.collection('vega_media').create({ title: 'Dos' });
+			const block = await pb.collection('blocks_reconcile_mig').create({
+				parent: page.id,
+				type: 'gallery',
+				data: {},
+				image: first.id,
+				images: [first.id, second.id]
+			});
+
+			expect(block.image).toBe(first.id);
+			expect(block.images).toEqual([first.id, second.id]);
+		});
+
+		test('down elimina solo las columnas reconciliadas y conserva la colección base', async () => {
+			await server.stop();
+
+			const down = await runPocketBaseMigrate(instance, ['down', '1']);
+			expect(down.stdout).toContain(`Reverted ${reconciliationMigration.filename}`);
+
+			deleteMigrationFile(instance, reconciliationMigration.filename);
+			server = await startPocketBaseServerOn(instance);
+			pb = await authAdmin(server.url);
+
+			const collection = await pb.collections.getOne('blocks_reconcile_mig');
+			const names = collection.fields.map((field) => field.name);
+			expect(names).toContain('parent');
+			expect(names).toContain('type');
+			expect(names).not.toContain('image');
+			expect(names).not.toContain('images');
 		}, 20_000);
 	}
 );

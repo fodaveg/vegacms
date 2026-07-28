@@ -16,6 +16,7 @@
 
 import type { CollectionFieldSpec, CollectionSpec } from './collections';
 import { generateSchemaMigration, type GeneratedMigration } from './migration';
+import type { Field } from './types';
 import type { ResolvedBlockField, ResolvedBlocksConfig, ResolvedBlockType } from '$lib/model/types';
 
 const MEDIA_COLLECTION = 'vega_media';
@@ -41,6 +42,23 @@ interface DerivedField {
 	spec: CollectionFieldSpec;
 	owner: string;
 }
+
+export type BlockRecordFieldDiagnostic =
+	| {
+			status: 'missing';
+			expected: CollectionFieldSpec;
+	  }
+	| {
+			status: 'compatible';
+			expected: CollectionFieldSpec;
+			actual: Field;
+	  }
+	| {
+			status: 'incompatible';
+			expected: CollectionFieldSpec;
+			actual: Field;
+			conflict: BlockRecordFieldConflictError;
+	  };
 
 const STRUCTURAL_FIELD_KEYS = [
 	'parentField',
@@ -128,6 +146,73 @@ function describe(owner: string, spec: CollectionFieldSpec): string {
 	return `${owner} (${specSignature(spec)})`;
 }
 
+/**
+ * Baja el campo descubierto por el puerto al MISMO vocabulario físico reducido que usa el
+ * generador. Las propiedades que `CollectionFieldSpec` no sabe declarar tampoco participan en su
+ * firma: este puente no abre un segundo criterio de compatibilidad.
+ */
+function backendFieldToComparableSpec(field: Field): CollectionFieldSpec | null {
+	const base = { name: field.name, required: field.required };
+	const hasUnrepresentableBaseConstraint = field.readonly || field.unique;
+	if (hasUnrepresentableBaseConstraint) return null;
+
+	switch (field.type) {
+		case 'text':
+			return field.subtype === 'plain' &&
+				field.minLength === undefined &&
+				field.pattern === undefined
+				? { ...base, type: 'text', max: field.maxLength ?? 0 }
+				: null;
+		case 'bool':
+			return { ...base, type: 'bool' };
+		case 'number':
+			return !field.integer && field.min === undefined && field.max === undefined
+				? { ...base, type: 'number' }
+				: null;
+		case 'date':
+			return field.min === undefined && field.max === undefined ? { ...base, type: 'date' } : null;
+		case 'relation':
+			if (field.maxSelect !== (field.multiple ? 99 : 1) || field.minSelect !== undefined) {
+				return null;
+			}
+			return {
+				...base,
+				type: 'relation',
+				target: field.target,
+				multiple: field.multiple,
+				cascadeDelete: field.cascadeDelete ?? false
+			};
+		case 'file':
+			if (field.maxSelect !== (field.multiple ? 99 : 1) || field.protected) {
+				return null;
+			}
+			return {
+				...base,
+				type: 'file',
+				multiple: field.multiple,
+				maxSizeBytes: field.maxSizeBytes ?? 0,
+				mimeTypes: field.mimeTypes ?? [],
+				// El puerto no expone miniaturas descubiertas; los campos de bloque v1 tampoco
+				// declaran ninguna, así que la forma comparable canónica es el default vacío.
+				thumbs: []
+			};
+		case 'json':
+			return field.required ? null : { name: field.name, type: 'json' };
+		case 'richtext':
+		case 'email':
+		case 'url':
+		case 'select':
+		case 'unsupported':
+			return null;
+	}
+}
+
+function describeBackendField(owner: string, field: Field): string {
+	const comparable = backendFieldToComparableSpec(field);
+	if (comparable) return describe(owner, comparable);
+	return `${owner} (restricciones no representables: ${JSON.stringify(field)})`;
+}
+
 function assertCompatible(previous: DerivedField, current: DerivedField): void {
 	if (specSignature(previous.spec) === specSignature(current.spec)) return;
 	throw new BlockRecordFieldConflictError(previous.spec.name, [
@@ -191,6 +276,63 @@ export function deriveBlockRecordFields(
 	blocks: ResolvedBlocksConfig
 ): CollectionFieldSpec[] {
 	return deriveBlockRecordFieldsWithOwners(blockTypes, blocks).map(({ spec }) => spec);
+}
+
+/**
+ * Compara las columnas `record` declaradas por el manifiesto con los campos que el puerto descubrió
+ * en la colección de bloques viva. Conserva tres estados porque solo `missing` es automatizable:
+ * una incompatibilidad puede contener datos y siempre queda para decisión humana.
+ */
+export function diagnoseBlockRecordFields(
+	blockTypes: readonly ResolvedBlockType[],
+	blocks: ResolvedBlocksConfig,
+	actualFields: readonly Field[]
+): BlockRecordFieldDiagnostic[] {
+	const actualByName = new Map(actualFields.map((field) => [field.name, field]));
+
+	return deriveBlockRecordFieldsWithOwners(blockTypes, blocks).map((derived) => {
+		const actual = actualByName.get(derived.spec.name);
+		if (!actual) return { status: 'missing', expected: derived.spec };
+
+		const comparable = backendFieldToComparableSpec(actual);
+		if (comparable && specSignature(derived.spec) === specSignature(comparable)) {
+			return { status: 'compatible', expected: derived.spec, actual };
+		}
+
+		return {
+			status: 'incompatible',
+			expected: derived.spec,
+			actual,
+			conflict: new BlockRecordFieldConflictError(derived.spec.name, [
+				describe(derived.owner, derived.spec),
+				describeBackendField(`${blocks.collection}.${actual.name} (esquema)`, actual)
+			])
+		};
+	});
+}
+
+/**
+ * Emite una migración `add-fields` únicamente para los diagnósticos `missing`. Los compatibles no
+ * requieren acción y los incompatibles se omiten deliberadamente: cambiar columnas con datos no
+ * es una reconciliación segura. `null` significa que no hay nada automatizable.
+ */
+export function generateBlockReconciliationMigration(
+	blocks: ResolvedBlocksConfig,
+	diagnostics: readonly BlockRecordFieldDiagnostic[],
+	now: Date = new Date()
+): GeneratedMigration | null {
+	const fields = diagnostics
+		.filter(
+			(diagnostic): diagnostic is Extract<BlockRecordFieldDiagnostic, { status: 'missing' }> =>
+				diagnostic.status === 'missing'
+		)
+		.map(({ expected }) => expected);
+
+	if (fields.length === 0) return null;
+	return generateSchemaMigration(
+		{ kind: 'add-fields', collection: blocks.collection, fields },
+		now
+	);
 }
 
 /**
