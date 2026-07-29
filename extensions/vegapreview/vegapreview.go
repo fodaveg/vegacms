@@ -13,11 +13,13 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"slices"
@@ -34,10 +36,12 @@ const (
 	defaultRoutePrefix   = "/api/vega-preview"
 	defaultPreviewPath   = "/preview"
 	defaultTokenTTL      = 5 * time.Minute
+	maxTokenTTL          = time.Hour
 	minSecretBytes       = 32
 	timestampLayout      = "2006-01-02T15:04:05.000Z"
 	tokenVersion         = "v1"
 	draftTokenVersion    = "v2"
+	payloadDelimiter     = "\n"
 	defaultMaxDraftBytes = 256 * 1024
 	maxRequestOverhead   = 16 * 1024
 	draftKeyLabel        = "vega-preview-draft-v2\naes-256-gcm"
@@ -62,7 +66,7 @@ type Config struct {
 	// RecordCollections restricts which content collections the site knows how to preview. Empty
 	// accepts any collection whose record the editor may view.
 	RecordCollections []string
-	// TokenTTL controls the signed URL lifetime. Default: five minutes.
+	// TokenTTL controls the signed URL lifetime. Default: five minutes; maximum: one hour.
 	TokenTTL time.Duration
 	// MaxDraftBytes limits the canonical JSON encrypted into a draft token. Default: 256 KiB.
 	// Oversized drafts fail with 413 and are never partially encrypted.
@@ -107,6 +111,13 @@ func (c Config) normalized() (Config, error) {
 	}
 	if c.TokenTTL <= 0 {
 		return c, fmt.Errorf("vegapreview: TokenTTL must be greater than zero")
+	}
+	if c.TokenTTL > maxTokenTTL {
+		return c, fmt.Errorf(
+			"vegapreview: TokenTTL %s exceeds maximum %s",
+			c.TokenTTL,
+			maxTokenTTL,
+		)
 	}
 	if c.MaxDraftBytes == 0 {
 		c.MaxDraftBytes = defaultMaxDraftBytes
@@ -175,7 +186,7 @@ type tokenResponse struct {
 func tokenPayload(collection, id string, expiresUnix int64) string {
 	return strings.Join(
 		[]string{tokenVersion, collection, id, strconv.FormatInt(expiresUnix, 10)},
-		"\n",
+		payloadDelimiter,
 	)
 }
 
@@ -189,7 +200,7 @@ func signToken(secret, collection, id string, expiresUnix int64) string {
 func draftPayload(collection, id string, expiresUnix int64) string {
 	return strings.Join(
 		[]string{draftTokenVersion, collection, id, strconv.FormatInt(expiresUnix, 10)},
-		"\n",
+		payloadDelimiter,
 	)
 }
 
@@ -253,6 +264,24 @@ func (x *Extension) collectionIsSupported(name string) bool {
 	return len(x.config.RecordCollections) == 0 || slices.Contains(x.config.RecordCollections, name)
 }
 
+func logRecordLookupFailure(
+	logger *slog.Logger,
+	collection string,
+	id string,
+	err error,
+) {
+	if err == nil || errors.Is(err, sql.ErrNoRows) {
+		return
+	}
+	logger.Error(
+		"vegapreview: record lookup failed",
+		"reason", "database_error",
+		"collection", collection,
+		"id", id,
+		"error_type", fmt.Sprintf("%T", err),
+	)
+}
+
 // tokenHandler mints a URL only after the request's authenticated editor is proven able to view
 // this exact record under the collection's current PocketBase ViewRule. Missing, unsupported, and
 // inaccessible records deliberately collapse to 404 so the endpoint is not an enumeration oracle.
@@ -286,12 +315,20 @@ func (x *Extension) tokenHandler(event *core.RequestEvent) error {
 	if body.Collection == "" || body.ID == "" {
 		return event.BadRequestError("collection and id are required.", nil)
 	}
+	// The v1 HMAC payload and v2 AES-GCM AAD borrow their field boundaries from PocketBase's
+	// newline-free collection names and record ids. Enforce that invariant here so neither wire
+	// format can become ambiguous if PocketBase's validation ever changes.
+	if strings.Contains(body.Collection, payloadDelimiter) ||
+		strings.Contains(body.ID, payloadDelimiter) {
+		return event.BadRequestError("collection and id must not contain newlines.", nil)
+	}
 	if !x.collectionIsSupported(body.Collection) {
 		return event.NotFoundError("", nil)
 	}
 
 	record, err := event.App.FindRecordById(body.Collection, body.ID)
 	if err != nil || record == nil {
+		logRecordLookupFailure(event.App.Logger(), body.Collection, body.ID, err)
 		return event.NotFoundError("", err)
 	}
 	requestInfo, err := event.RequestInfo()
