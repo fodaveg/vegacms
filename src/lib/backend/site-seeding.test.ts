@@ -41,7 +41,6 @@ function emptyType(name: string, list: AccessLevel): ContentType {
 	};
 }
 
-
 async function logicalSnapshot(port: MemoryBackendPort) {
 	const types = await port.listContentTypes();
 	const records: Record<string, unknown> = {};
@@ -418,7 +417,6 @@ describe('seedSiteProject', () => {
 
 		expect(port.inspectCollection('pages')!.rules).toEqual(before);
 	});
-
 
 	test('un manifiesto humano distinto se conserva y aborta antes de otras escrituras', async () => {
 		const port = await authedMemory();
