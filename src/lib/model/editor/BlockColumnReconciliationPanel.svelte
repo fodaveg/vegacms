@@ -83,13 +83,15 @@
 			try {
 				diagnostics = diagnoseBlockRecordFields(model.blockTypes, blocks, actual.fields);
 			} catch (error) {
+				// Solo el conflicto CONOCIDO se degrada a tarjeta. Cualquier otra excepción (p.ej.
+				// una violación de invariante de programación, como el sentinel `unsupported` de
+				// `blockFieldToCollectionFieldSpec`) no es un dato del manifiesto que traducir: se
+				// relanza intacta para no maquillarla de «declaraciones incompatibles».
+				if (!(error instanceof BlockRecordFieldConflictError)) throw error;
 				conflicts.push({
 					collection: blocks.collection,
-					fieldName: error instanceof BlockRecordFieldConflictError ? error.fieldName : '?',
-					declarations:
-						error instanceof BlockRecordFieldConflictError
-							? error.declarations
-							: [error instanceof Error ? error.message : String(error)]
+					fieldName: error.fieldName,
+					declarations: error.declarations
 				});
 				continue;
 			}
