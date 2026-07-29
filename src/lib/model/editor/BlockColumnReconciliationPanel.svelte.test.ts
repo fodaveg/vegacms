@@ -375,6 +375,50 @@ describe('BlockColumnReconciliationPanel.svelte', () => {
 		expect(mounted!.target.querySelector('.vega-block-columns-group > button')).toBeNull();
 	});
 
+	test('excepción ajena al conflicto conocido (violación de invariante, no dato del manifiesto): se propaga intacta', () => {
+		// `widget: 'unsupported'` nunca sobrevive a `resolveBlocks` en un manifiesto real
+		// (`BLOCK_FIELD_WIDGET_IDS` lo excluye), pero forzarlo aquí reproduce la MISMA clase de
+		// fallo que un `new Error(...)` de programación dentro del diagnóstico:
+		// `blockFieldToCollectionFieldSpec` (block-schema.ts) lo lanza para ese sentinel. El panel
+		// no debe traducir esto a «declaraciones incompatibles»: no es información del manifiesto,
+		// es un bug que hay que ver tal cual.
+		const brokenBlockType = {
+			name: 'hero',
+			label: 'Hero',
+			icon: null,
+			fields: [
+				{
+					name: 'broken',
+					widget: 'unsupported',
+					label: 'broken',
+					source: 'record',
+					required: false,
+					options: null
+				}
+			]
+		} as unknown as ResolvedBlockType;
+
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		try {
+			expect(() =>
+				mount(BlockColumnReconciliationPanel, {
+					target,
+					props: {
+						types: [contentType('content_units', [])],
+						model: model({
+							blockTypes: [brokenBlockType],
+							parents: [resolvedParent('pages', blocks('content_units'))]
+						}),
+						t
+					}
+				})
+			).toThrow('El widget unsupported no puede materializar el campo "broken".');
+		} finally {
+			target.remove();
+		}
+	});
+
 	test('explica restricciones localizadas de máximos, readonly, unique y fichero', () => {
 		mounted = mountPanel({
 			types: [
