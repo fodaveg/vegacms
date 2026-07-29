@@ -4,7 +4,7 @@
 
 ```yaml
 task_id: block-image-relation-picker
-prompt_hash: PENDIENTE
+prompt_hash: 0d0cd8ce2761a8f4ce10e2c9bad0d293f8ca962adc50e7f3e6ea3d2c51eed8f4
 prompt_hash_definicion: 'sha256 del fichero COMPLETO con este campo valiendo literalmente
   `PENDIENTE`. Se calcula así porque el hash no puede contenerse a sí mismo; para verificarlo,
   sustituye el valor por `PENDIENTE` y vuelve a hashear'
@@ -22,7 +22,7 @@ no_despachar_hasta:
     despachar, y recalcula el `prompt_hash`'
 repos:
   - repo_id: vegacms
-    base_sha: PENDIENTE_MERGE_DE_LAS_REGLAS
+    base_sha: 982ba7dc50b20a60055c2518b9c90e1c12cfedd0
     branch: feat/block-image-relation-picker
     worktree: /private/tmp/vegacms-block-image-relation-picker
 external_inputs:
