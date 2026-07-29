@@ -28,7 +28,11 @@
  * desbloqueado aquí. Las autorreferencias no forman arista porque PocketBase las admite.
  */
 
-import type { CollectionFieldSpec, CollectionSpec } from './collections';
+import {
+	collectionUniqueIndexes,
+	type CollectionFieldSpec,
+	type CollectionSpec
+} from './collections';
 
 /** Una operación de esquema ya EJECUTADA contra el backend real (§ "Emitir migración"): o bien
  *  colecciones nuevas creadas, o bien campos añadidos a una existente — nunca ambas mezcladas en
@@ -87,7 +91,8 @@ function renderCreateMigration(specs: CollectionSpec[]): string {
 			const payload = {
 				name: spec.name,
 				type: 'base',
-				fields: initialFields.map(collectionFieldSpecToMigrationField)
+				fields: initialFields.map(collectionFieldSpecToMigrationField),
+				indexes: collectionUniqueIndexes(spec.name, initialFields)
 			};
 			const create =
 				`\tconst ${varName} = new Collection(${indent(renderMigrationPayload(payload, initialFields), 1)});\n` +
@@ -161,6 +166,7 @@ function renderAddFieldsMigration(op: {
 	fields: CollectionFieldSpec[];
 }): string {
 	const getCollection = `\tconst collection = app.findCollectionByNameOrId(${JSON.stringify(op.collection)});`;
+	const uniqueIndexes = collectionUniqueIndexes(op.collection, op.fields);
 
 	const ups =
 		`${getCollection}\n\n` +
@@ -170,10 +176,23 @@ function renderAddFieldsMigration(op: {
 				return `\tcollection.fields.add(new Field(${indent(renderMigrationPayload(payload, [field]), 1)}));`;
 			})
 			.join('\n') +
+		(uniqueIndexes.length > 0
+			? `\n${uniqueIndexes
+					.map((index) => `\tcollection.indexes.push(${JSON.stringify(index)});`)
+					.join('\n')}`
+			: '') +
 		'\n\n\tapp.save(collection);';
 
 	const downs =
 		`${getCollection}\n\n` +
+		(uniqueIndexes.length > 0
+			? `${uniqueIndexes
+					.map(
+						(index) =>
+							`\tcollection.indexes = collection.indexes.filter((candidate) => candidate !== ${JSON.stringify(index)});`
+					)
+					.join('\n')}\n`
+			: '') +
 		op.fields
 			.map((field) => `\tcollection.fields.removeByName(${JSON.stringify(field.name)});`)
 			.join('\n') +
@@ -231,6 +250,14 @@ function collectionFieldSpecToMigrationField(spec: CollectionFieldSpec): Record<
 				type: 'text',
 				required: spec.required ?? false,
 				max: spec.max ?? 0
+			};
+		case 'select':
+			return {
+				name: spec.name,
+				type: 'select',
+				required: spec.required ?? false,
+				values: spec.options,
+				maxSelect: spec.multiple ? 99 : 1
 			};
 		case 'file':
 			return {

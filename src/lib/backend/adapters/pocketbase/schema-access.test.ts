@@ -145,3 +145,26 @@ describe('collectionFieldSpecToPbField — relation', () => {
 		).toThrow(/collectionId/);
 	});
 });
+
+describe('collectionFieldSpecToPbField — select', () => {
+	test.each([
+		{ multiple: false, maxSelect: 1 },
+		{ multiple: true, maxSelect: 99 }
+	])('emite values y cardinalidad $maxSelect', ({ multiple, maxSelect }) => {
+		expect(
+			collectionFieldSpecToPbField({
+				name: 'status',
+				type: 'select',
+				options: ['draft', 'published'],
+				multiple,
+				required: true
+			})
+		).toEqual({
+			name: 'status',
+			type: 'select',
+			required: true,
+			values: ['draft', 'published'],
+			maxSelect
+		});
+	});
+});

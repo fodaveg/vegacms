@@ -17,6 +17,7 @@ import type {
 	VegaErrorKind
 } from '$lib/backend';
 import { VegaError, VEGA_COLLECTION } from '$lib/backend';
+import { resolveStatusField } from '$lib/model/conventions';
 import {
 	CAT_ALPHA,
 	CAT_BETA,
@@ -1159,6 +1160,119 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 				expect(created.values.created).not.toBe('');
 			});
 
+			test('GUARDARRAÍL resolveStatusField: un select creado por Vega se descubre con draft/published y cumple la convención pública', async () => {
+				const port = await makeAuthedPort();
+				const name = uniqueCollectionName();
+				await expect(
+					port.ensureCollections([
+						{
+							name,
+							fields: [
+								{ name: 'title', type: 'text' },
+								{
+									name: 'status',
+									type: 'select',
+									options: ['draft', 'published'],
+									multiple: false,
+									required: true
+								}
+							]
+						}
+					])
+				).resolves.toEqual({ created: [name], skipped: [] });
+
+				const types = await port.listContentTypes();
+				const fields = types.find((type) => type.name === name)!.fields;
+				expect(fields.find((field) => field.name === 'status')).toMatchObject({
+					type: 'select',
+					options: ['draft', 'published'],
+					multiple: false,
+					maxSelect: 1
+				});
+				const warnings: Parameters<typeof resolveStatusField>[3] = [];
+				expect(resolveStatusField(fields, undefined, name, warnings)).toBe('status');
+				expect(warnings).toEqual([]);
+			});
+
+			test('select multiple compila a maxSelect 99 y se crea con 99 opciones', async () => {
+				const port = await makeAuthedPort();
+				const name = uniqueCollectionName();
+				const options = Array.from({ length: 99 }, (_, index) => `option_${index + 1}`);
+				await port.ensureCollections([
+					{
+						name,
+						fields: [{ name: 'audiences', type: 'select', options, multiple: true }]
+					}
+				]);
+
+				const fields = (await port.listContentTypes()).find((type) => type.name === name)!.fields;
+				expect(fields.find((field) => field.name === 'audiences')).toMatchObject({
+					type: 'select',
+					options,
+					multiple: true,
+					maxSelect: 99
+				});
+			});
+
+			test('select inválido y unique fuera de text rechazan con validation antes de crear esquema', async () => {
+				const port = await makeAuthedPort();
+				const invalidFields: CollectionSpec['fields'][] = [
+					[{ name: 'status', type: 'select', options: [], multiple: false }],
+					[{ name: 'status', type: 'select', options: [''], multiple: false }],
+					[{ name: 'status', type: 'select', options: [' draft'], multiple: false }],
+					[{ name: 'status', type: 'select', options: ['draft '], multiple: false }],
+					[{ name: 'status', type: 'select', options: ['draft', 'draft'], multiple: false }],
+					[
+						{
+							name: 'status',
+							type: 'select',
+							options: ['draft'],
+							multiple: false,
+							unique: true
+						} as unknown as CollectionSpec['fields'][number]
+					]
+				];
+
+				for (const fields of invalidFields) {
+					const name = uniqueCollectionName();
+					await expect(port.ensureCollections([{ name, fields }])).rejects.toMatchObject({
+						kind: 'validation',
+						fieldErrors: { status: {} }
+					});
+					expect((await port.listContentTypes()).some((type) => type.name === name)).toBe(false);
+				}
+			});
+
+			test('text unique se aplica por efecto: create y update rechazan un valor duplicado', async () => {
+				const port = await makeAuthedPort();
+				const name = uniqueCollectionName();
+				await port.ensureCollections([
+					{
+						name,
+						fields: [
+							{ name: 'title', type: 'text' },
+							{ name: 'path', type: 'text', unique: true }
+						]
+					}
+				]);
+
+				const first = await port.create(name, { title: 'Uno', path: '/igual' });
+				const second = await port.create(name, { title: 'Dos', path: '/distinto' });
+				await expect(
+					port.create(name, { title: 'Duplicado', path: '/igual' })
+				).rejects.toMatchObject({
+					kind: 'validation',
+					fieldErrors: { path: { code: 'validation_not_unique' } }
+				});
+				await expect(port.update(name, second.id, { path: '/igual' })).rejects.toMatchObject({
+					kind: 'validation',
+					fieldErrors: { path: { code: 'validation_not_unique' } }
+				});
+				await expect(port.update(name, first.id, { path: '/igual' })).resolves.toMatchObject({
+					values: { path: '/igual' }
+				});
+			});
+
 			test('crea una relation hacia una colección anterior del mismo lote y resuelve su destino', async () => {
 				const port = await makeAuthedPort();
 				const target = uniqueCollectionName();
@@ -1325,7 +1439,7 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 
 				// Reenvía "flag" con OTRO tipo: debe seguir omitida, nunca reconciliada/cambiada.
 				const result = await port.addCollectionFields(name, [
-					{ name: 'flag', type: 'text' },
+					{ name: 'flag', type: 'text', unique: true },
 					{ name: 'brand_new', type: 'text' }
 				]);
 				expect(result.added).toEqual(['brand_new']);
@@ -1333,7 +1447,10 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 
 				const types = await port.listContentTypes();
 				const ct = types.find((t) => t.name === name)!;
-				expect(ct.fields.find((f) => f.name === 'flag')).toMatchObject({ type: 'bool' });
+				expect(ct.fields.find((f) => f.name === 'flag')).toMatchObject({
+					type: 'bool',
+					unique: false
+				});
 			});
 
 			test('colección inexistente → not-found', async () => {
@@ -1356,6 +1473,45 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 					kind: 'validation',
 					fieldErrors: { headline: { code: 'validation_required' } }
 				});
+			});
+
+			test('text unique nuevo sobre dos filas sin valor falla sin dejar ni campo ni mutar registros', async () => {
+				const port = await makeAuthedPort();
+				const name = uniqueCollectionName();
+				await port.ensureCollections([{ name, fields: [{ name: 'title', type: 'text' }] }]);
+				const first = await port.create(name, { title: 'Uno' });
+				const second = await port.create(name, { title: 'Dos' });
+
+				await expect(
+					port.addCollectionFields(name, [{ name: 'path', type: 'text', unique: true }])
+				).rejects.toMatchObject({
+					kind: 'validation'
+				});
+
+				const type = (await port.listContentTypes()).find((candidate) => candidate.name === name)!;
+				expect(type.fields.some((field) => field.name === 'path')).toBe(false);
+				expect((await port.get(name, first.id)).values.title).toBe('Uno');
+				expect((await port.get(name, second.id)).values.title).toBe('Dos');
+			});
+
+			test('text unique nuevo sobre una sola fila sin valor se acepta; ese vacío ya queda reservado', async () => {
+				const port = await makeAuthedPort();
+				const name = uniqueCollectionName();
+				await port.ensureCollections([{ name, fields: [{ name: 'title', type: 'text' }] }]);
+				const existing = await port.create(name, { title: 'Existente' });
+
+				await expect(
+					port.addCollectionFields(name, [{ name: 'path', type: 'text', unique: true }])
+				).resolves.toEqual({ added: ['path'], skipped: [] });
+				expect((await port.get(name, existing.id)).values.path).toBe('');
+
+				await expect(port.create(name, { title: 'Otro vacío' })).rejects.toMatchObject({
+					kind: 'validation',
+					fieldErrors: { path: { code: 'validation_not_unique' } }
+				});
+				await expect(
+					port.create(name, { title: 'Con path', path: '/distinto' })
+				).resolves.toMatchObject({ values: { path: '/distinto' } });
 			});
 
 			test('relation valida el destino contra el esquema descubierto antes de escribir', async () => {

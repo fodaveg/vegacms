@@ -121,7 +121,14 @@ function specSignature(spec: CollectionFieldSpec): string {
 		case 'json':
 			return spec.type;
 		case 'text':
-			return `${spec.type}:${spec.required ?? false}:${spec.max ?? 0}`;
+			return `${spec.type}:${spec.required ?? false}:${spec.max ?? 0}${spec.unique ? ':unique' : ''}`;
+		case 'select':
+			return JSON.stringify({
+				type: spec.type,
+				required: spec.required ?? false,
+				options: spec.options,
+				multiple: spec.multiple
+			});
 		case 'bool':
 		case 'number':
 		case 'date':
@@ -153,7 +160,8 @@ function describe(owner: string, spec: CollectionFieldSpec): string {
  */
 function backendFieldToComparableSpec(field: Field): CollectionFieldSpec | null {
 	const base = { name: field.name, required: field.required };
-	const hasUnrepresentableBaseConstraint = field.readonly || field.unique;
+	const hasUnrepresentableBaseConstraint =
+		field.readonly || (field.unique && field.type !== 'text');
 	if (hasUnrepresentableBaseConstraint) return null;
 
 	switch (field.type) {
@@ -161,7 +169,21 @@ function backendFieldToComparableSpec(field: Field): CollectionFieldSpec | null 
 			return field.subtype === 'plain' &&
 				field.minLength === undefined &&
 				field.pattern === undefined
-				? { ...base, type: 'text', max: field.maxLength ?? 0 }
+				? {
+						...base,
+						type: 'text',
+						max: field.maxLength ?? 0,
+						...(field.unique ? { unique: true as const } : {})
+					}
+				: null;
+		case 'select':
+			return field.maxSelect === (field.multiple ? 99 : 1)
+				? {
+						...base,
+						type: 'select',
+						options: [...field.options],
+						multiple: field.multiple
+					}
 				: null;
 		case 'bool':
 			return { ...base, type: 'bool' };
@@ -201,7 +223,6 @@ function backendFieldToComparableSpec(field: Field): CollectionFieldSpec | null 
 		case 'richtext':
 		case 'email':
 		case 'url':
-		case 'select':
 		case 'unsupported':
 			return null;
 	}

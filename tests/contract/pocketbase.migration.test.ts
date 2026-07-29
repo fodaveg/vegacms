@@ -43,7 +43,11 @@ import {
 	generateBlockSchemaMigration
 } from '$lib/backend/block-schema';
 import { generateSchemaMigration } from '$lib/backend/migration';
-import type { CollectionFieldSpec, CollectionSpec } from '$lib/backend/collections';
+import {
+	uniqueIndexName,
+	type CollectionFieldSpec,
+	type CollectionSpec
+} from '$lib/backend/collections';
 import type { ResolvedBlockField, ResolvedBlockType } from '$lib/model/types';
 import { isPocketBaseBinaryAvailable } from './pb-harness/binary';
 import {
@@ -107,6 +111,13 @@ describe.skipIf(!AVAILABLE)(
 			name: 'kitchen_sink_mig',
 			fields: [
 				{ name: 'title', type: 'text', required: true, max: 120 },
+				{ name: 'path', type: 'text', unique: true },
+				{
+					name: 'status',
+					type: 'select',
+					options: ['draft', 'published'],
+					multiple: false
+				},
 				{ name: 'featured', type: 'bool' },
 				{ name: 'rating', type: 'number' },
 				{ name: 'releaseDate', type: 'date' },
@@ -154,6 +165,12 @@ describe.skipIf(!AVAILABLE)(
 			const byName = new Map(collection.fields.map((f) => [f.name, f]));
 
 			expect(byName.get('title')).toMatchObject({ type: 'text', required: true, max: 120 });
+			expect(byName.get('path')).toMatchObject({ type: 'text' });
+			expect(byName.get('status')).toMatchObject({
+				type: 'select',
+				values: ['draft', 'published'],
+				maxSelect: 1
+			});
 			expect(byName.get('featured')).toMatchObject({ type: 'bool', required: false });
 			expect(byName.get('rating')).toMatchObject({ type: 'number', required: false });
 			expect(byName.get('releaseDate')).toMatchObject({ type: 'date', required: false });
@@ -174,8 +191,19 @@ describe.skipIf(!AVAILABLE)(
 		});
 
 		test('la colección resultante es usable: crear un registro autopuebla el campo autodate', async () => {
-			const record = await pb.collection('kitchen_sink_mig').create({ title: 'hola' });
+			const record = await pb.collection('kitchen_sink_mig').create({
+				title: 'hola',
+				path: '/igual',
+				status: 'draft'
+			});
 			expect(record.createdAt).toBeTruthy();
+			await expect(
+				pb.collection('kitchen_sink_mig').create({
+					title: 'duplicado',
+					path: '/igual',
+					status: 'published'
+				})
+			).rejects.toMatchObject({ status: 400 });
 		});
 
 		test('down: revierte con "y", exige "Reverted" en la salida, y la colección desaparece', async () => {
@@ -530,7 +558,14 @@ describe.skipIf(!AVAILABLE)(
 		);
 		const newFields: CollectionFieldSpec[] = [
 			{ name: 'excerpt', type: 'text', required: false },
-			{ name: 'featured', type: 'bool', required: true }
+			{ name: 'featured', type: 'bool', required: true },
+			{ name: 'path', type: 'text', unique: true },
+			{
+				name: 'status',
+				type: 'select',
+				options: ['draft', 'published'],
+				multiple: false
+			}
 		];
 		const addFieldsMigration = generateSchemaMigration(
 			{ kind: 'add-fields', collection: 'posts_addfields_mig', fields: newFields },
@@ -569,6 +604,29 @@ describe.skipIf(!AVAILABLE)(
 			expect(byName.get('title')).toMatchObject({ type: 'text', required: true, max: 50 });
 			expect(byName.get('excerpt')).toMatchObject({ type: 'text', required: false });
 			expect(byName.get('featured')).toMatchObject({ type: 'bool', required: true });
+			expect(byName.get('path')).toMatchObject({ type: 'text' });
+			expect(byName.get('status')).toMatchObject({
+				type: 'select',
+				values: ['draft', 'published'],
+				maxSelect: 1
+			});
+		});
+
+		test('el índice del add-fields rechaza el segundo path igual', async () => {
+			await pb.collection('posts_addfields_mig').create({
+				title: 'Uno',
+				featured: true,
+				path: '/igual',
+				status: 'draft'
+			});
+			await expect(
+				pb.collection('posts_addfields_mig').create({
+					title: 'Dos',
+					featured: true,
+					path: '/igual',
+					status: 'published'
+				})
+			).rejects.toMatchObject({ status: 400 });
 		});
 
 		test('down de add-fields: los campos añadidos desaparecen, el previo sigue intacto', async () => {
@@ -586,6 +644,13 @@ describe.skipIf(!AVAILABLE)(
 			expect(names).toContain('title');
 			expect(names).not.toContain('excerpt');
 			expect(names).not.toContain('featured');
+			expect(names).not.toContain('path');
+			expect(names).not.toContain('status');
+			expect(
+				collection.indexes.some((index) =>
+					index.includes(uniqueIndexName('posts_addfields_mig', 'path'))
+				)
+			).toBe(false);
 		}, 20_000);
 	}
 );

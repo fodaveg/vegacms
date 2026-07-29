@@ -35,7 +35,11 @@ import type {
 	CollectionSpec,
 	EnsureResult
 } from '../../collections';
-import { checkCreatableCollectionNames, checkRelationTargets } from '../../collections';
+import {
+	checkCollectionFieldSpecs,
+	checkCreatableCollectionNames,
+	checkRelationTargets
+} from '../../collections';
 import type { MemorySeed } from './seed';
 export type { MemorySeed } from './seed';
 import { validateFieldValue } from './validate';
@@ -152,6 +156,19 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 		return records.get(targetType)?.has(id) ?? false;
 	}
 
+	function uniqueValueExists(
+		type: string,
+		field: Field,
+		value: FieldValue,
+		currentId: RecordId | null
+	): boolean {
+		for (const [recordId, raw] of records.get(type)!) {
+			if (currentId !== null && recordId === currentId) continue;
+			if (raw[field.name] === value) return true;
+		}
+		return false;
+	}
+
 	function dispatch(type: string, event: RecordEvent): void {
 		const subs = listeners.get(type);
 		if (!subs || subs.size === 0) return;
@@ -229,6 +246,12 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 			const value = normalizeFieldValue(field, provided ? data[field.name] : undefined);
 			const err = validateFieldValue(field, value, { recordExists });
 			if (err) fieldErrors[field.name] = err;
+			else if (field.unique && uniqueValueExists(type, field, value, id)) {
+				fieldErrors[field.name] = {
+					code: 'validation_not_unique',
+					message: 'Ya existe un registro con este valor'
+				};
+			}
 		}
 
 		if (Object.keys(fieldErrors).length > 0) throw VegaError.validation(fieldErrors);
@@ -516,7 +539,9 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 			}
 
 			const rejects = checkCreatableCollectionNames(specs);
-			if (Object.keys(rejects).length > 0) throw VegaError.validation(rejects);
+			const fieldRejects = checkCollectionFieldSpecs(specs.flatMap((spec) => spec.fields));
+			const allRejects = { ...rejects, ...fieldRejects };
+			if (Object.keys(allRejects).length > 0) throw VegaError.validation(allRejects);
 
 			const created: string[] = [];
 			const skipped: string[] = [];
@@ -553,6 +578,8 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 			if (!CAPABILITIES.schemaFieldBootstrap) {
 				throw VegaError.backend('schemaFieldBootstrap no disponible (ley L8)');
 			}
+			const fieldRejects = checkCollectionFieldSpecs(fields);
+			if (Object.keys(fieldRejects).length > 0) throw VegaError.validation(fieldRejects);
 			const ct = getContentTypeOrThrow(collectionName);
 
 			const existingNames = new Set(ct.fields.map((f) => f.name));
@@ -579,6 +606,20 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 			}
 			const newFields = newSpecs.map(collectionFieldSpecToField);
 			if (newFields.length > 0) {
+				const byId = records.get(collectionName)!;
+				const uniqueBackfillErrors: Record<string, FieldError> = {};
+				for (const field of newFields) {
+					if (!field.unique || byId.size < 2) continue;
+					uniqueBackfillErrors[field.name] = {
+						code: 'validation_not_unique',
+						message:
+							'El campo unique no puede añadirse: los registros existentes comparten su valor vacío'
+					};
+				}
+				if (Object.keys(uniqueBackfillErrors).length > 0) {
+					throw VegaError.validation(uniqueBackfillErrors);
+				}
+
 				contentTypesByName.set(collectionName, {
 					...ct,
 					fields: [...ct.fields, ...newFields]
@@ -587,7 +628,6 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 				// con su valor por defecto (§2.1) — sin este backfill, `get`/`list` devolverían un
 				// registro antiguo SIN la clave nueva en `values`, distinto de lo que vería un
 				// `listContentTypes` en vivo contra PB tras el mismo `ALTER TABLE`.
-				const byId = records.get(collectionName)!;
 				for (const raw of byId.values()) {
 					for (const field of newFields) {
 						raw[field.name] = field.readonly
@@ -638,10 +678,20 @@ function collectionFieldSpecToField(spec: CollectionFieldSpec): Field {
 		case 'text':
 			return {
 				...base,
+				unique: spec.unique ?? false,
 				type: 'text',
 				subtype: 'plain',
 				required: spec.required ?? false,
 				maxLength: spec.max
+			};
+		case 'select':
+			return {
+				...base,
+				type: 'select',
+				required: spec.required ?? false,
+				options: [...spec.options],
+				multiple: spec.multiple,
+				maxSelect: spec.multiple ? 99 : 1
 			};
 		case 'file':
 			return {

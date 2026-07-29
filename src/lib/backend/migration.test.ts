@@ -153,6 +153,30 @@ describe('generateSchemaMigration — create', () => {
 		// (SyntaxError si no), nunca se ejecuta.
 		expect(() => new Function(contents)).not.toThrow();
 	});
+
+	test('select e índice unique viajan dentro del Collection creado', () => {
+		const spec: CollectionSpec = {
+			name: 'pages',
+			fields: [
+				{ name: 'path', type: 'text', unique: true },
+				{
+					name: 'status',
+					type: 'select',
+					options: ['draft', 'published'],
+					multiple: false
+				}
+			]
+		};
+		const { contents } = generateSchemaMigration({ kind: 'create', specs: [spec] }, FIXED_NOW);
+
+		expect(contents).toContain('"type": "select"');
+		expect(contents).toContain('"values"');
+		expect(contents).toContain('"draft"');
+		expect(contents).toContain('"maxSelect": 1');
+		expect(contents).toContain(
+			'CREATE UNIQUE INDEX `idx_vega_unique_5_pages_4_path` ON `pages` (`path`)'
+		);
+	});
 });
 
 describe('generateSchemaMigration — add-fields', () => {
@@ -168,7 +192,8 @@ describe('generateSchemaMigration — add-fields', () => {
 	test('contenido: findCollectionByNameOrId + fields.add(new Field({...})) por campo', () => {
 		const fields: CollectionFieldSpec[] = [
 			{ name: 'excerpt', type: 'text', required: false },
-			{ name: 'featured', type: 'bool', required: true }
+			{ name: 'featured', type: 'bool', required: true },
+			{ name: 'path', type: 'text', unique: true }
 		];
 		const { contents } = generateSchemaMigration(
 			{ kind: 'add-fields', collection: 'posts', fields },
@@ -184,6 +209,11 @@ describe('generateSchemaMigration — add-fields', () => {
 		// down: quita SOLO por nombre, nunca toca otro campo.
 		expect(contents).toContain('collection.fields.removeByName("excerpt");');
 		expect(contents).toContain('collection.fields.removeByName("featured");');
+		expect(contents).toContain('collection.indexes.push(');
+		expect(contents).toContain('collection.indexes = collection.indexes.filter(');
+		expect(contents.indexOf('collection.indexes = collection.indexes.filter(')).toBeLessThan(
+			contents.indexOf('collection.fields.removeByName("path");')
+		);
 	});
 
 	test('es JS válido (parseo con `new Function`)', () => {
@@ -197,10 +227,16 @@ describe('generateSchemaMigration — add-fields', () => {
 });
 
 describe('generateSchemaMigration — mapeo de campos (paridad con el adaptador pocketbase)', () => {
-	test('json/text/bool/number/date/file/autodate producen el payload esperado', () => {
+	test('json/text/select/bool/number/date/file/autodate producen el payload esperado', () => {
 		const fields: CollectionFieldSpec[] = [
 			{ name: 'metadata', type: 'json' },
-			{ name: 'slug', type: 'text', required: true, max: 64 },
+			{ name: 'slug', type: 'text', required: true, max: 64, unique: true },
+			{
+				name: 'status',
+				type: 'select',
+				options: ['draft', 'published'],
+				multiple: false
+			},
 			{ name: 'featured', type: 'bool', required: true },
 			{ name: 'rating', type: 'number', required: false },
 			{ name: 'publishedAt', type: 'date', required: false },
@@ -222,6 +258,11 @@ describe('generateSchemaMigration — mapeo de campos (paridad con el adaptador 
 
 		expect(contents).toContain('"type": "json"');
 		expect(contents).toContain('"max": 64');
+		expect(contents).toContain('"values"');
+		expect(contents).toContain('"published"');
+		expect(contents).toContain(
+			'CREATE UNIQUE INDEX `idx_vega_unique_5_posts_4_slug` ON `posts` (`slug`)'
+		);
 		expect(contents).toContain('"maxSelect": 99'); // file multiple: true → 99 (mismo criterio que el adaptador)
 		expect(contents).toContain('"maxSize": 1024');
 		expect(contents).toContain('"mimeTypes"');

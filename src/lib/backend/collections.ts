@@ -63,7 +63,14 @@ export interface CollectionSpec {
  */
 export type CollectionFieldSpec =
 	| { name: string; type: 'json' }
-	| { name: string; type: 'text'; required?: boolean; max?: number }
+	| { name: string; type: 'text'; required?: boolean; max?: number; unique?: true }
+	| {
+			name: string;
+			type: 'select';
+			options: string[];
+			multiple: boolean;
+			required?: boolean;
+	  }
 	| {
 			name: string;
 			type: 'file';
@@ -101,6 +108,103 @@ export type CollectionFieldSpec =
 	// `memory`) YA existían para `autodate` antes de esta enmienda. `onUpdate` por defecto es
 	// `false` (solo se auto-puebla al crear, el caso de uso de P6 — "creado el").
 	| { name: string; type: 'autodate'; onUpdate?: boolean };
+
+type RuntimeCollectionFieldSpec = {
+	name: string;
+	type: string;
+	options?: unknown;
+	multiple?: unknown;
+	unique?: unknown;
+};
+
+/**
+ * Valida las restricciones que el tipo estático no puede proteger cuando el spec llega desde
+ * JSON/runtime. Es pura y compartida: ambos adaptadores la ejecutan antes de tocar esquema.
+ */
+export function checkCollectionFieldSpecs(
+	fields: CollectionFieldSpec[]
+): Record<string, FieldError> {
+	const fieldErrors: Record<string, FieldError> = {};
+
+	for (const declared of fields) {
+		const field = declared as unknown as RuntimeCollectionFieldSpec;
+
+		if (field.type !== 'text' && field.unique !== undefined) {
+			fieldErrors[field.name] = {
+				code: 'vega_unique_text_only',
+				message: `El campo "${field.name}" solo puede declarar unique cuando es de tipo text`
+			};
+			continue;
+		}
+		if (field.type === 'text' && field.unique !== undefined && field.unique !== true) {
+			fieldErrors[field.name] = {
+				code: 'vega_unique_invalid',
+				message: `La marca unique del campo "${field.name}" solo admite el valor true`
+			};
+			continue;
+		}
+		if (field.type !== 'select') continue;
+
+		if (!Array.isArray(field.options) || field.options.length === 0) {
+			fieldErrors[field.name] = {
+				code: 'vega_select_options_required',
+				message: `El select "${field.name}" debe declarar al menos una opción`
+			};
+			continue;
+		}
+		if (typeof field.multiple !== 'boolean') {
+			fieldErrors[field.name] = {
+				code: 'vega_select_multiple_required',
+				message: `El select "${field.name}" debe declarar multiple como boolean`
+			};
+			continue;
+		}
+
+		const seen = new Set<string>();
+		for (const option of field.options) {
+			if (typeof option !== 'string' || option.length === 0 || option.trim() !== option) {
+				fieldErrors[field.name] = {
+					code: 'vega_select_option_invalid',
+					message: `Las opciones de "${field.name}" deben ser strings no vacíos y sin espacios al principio ni al final`
+				};
+				break;
+			}
+			if (seen.has(option)) {
+				fieldErrors[field.name] = {
+					code: 'vega_select_option_duplicate',
+					message: `La opción "${option}" está repetida en el select "${field.name}"`
+				};
+				break;
+			}
+			seen.add(option);
+		}
+	}
+
+	return fieldErrors;
+}
+
+function quoteSqlIdentifier(identifier: string): string {
+	return `\`${identifier.replaceAll('`', '``')}\``;
+}
+
+/** Nombre globalmente inequívoco incluso si colección/campo contienen `_`. */
+export function uniqueIndexName(collectionName: string, fieldName: string): string {
+	return `idx_vega_unique_${collectionName.length}_${collectionName}_${fieldName.length}_${fieldName}`;
+}
+
+/** Definiciones SQL exactas que PocketBase espera en `Collection.indexes`. */
+export function collectionUniqueIndexes(
+	collectionName: string,
+	fields: CollectionFieldSpec[]
+): string[] {
+	return fields.flatMap((field) => {
+		if (field.type !== 'text' || field.unique !== true) return [];
+		const indexName = uniqueIndexName(collectionName, field.name);
+		return [
+			`CREATE UNIQUE INDEX ${quoteSqlIdentifier(indexName)} ON ${quoteSqlIdentifier(collectionName)} (${quoteSqlIdentifier(field.name)})`
+		];
+	});
+}
 
 export interface EnsureResult {
 	/** Nombres de las colecciones efectivamente creadas en esta llamada (orden de `specs`). */
