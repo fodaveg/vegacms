@@ -799,8 +799,59 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'settings.schema.migration.title': 'Migration generated',
 	'settings.schema.migration.instructions':
 		'Save this file as pb_migrations/{filename} in your project repository and commit it: without it, this schema change only exists in your PocketBase, not in your version control.',
+	'settings.schema.migration.pendingTitle': 'Migration generated — not applied yet',
+	'settings.schema.migration.pendingInstructions':
+		'Save this file as pb_migrations/{filename}, review it, and apply it outside Vega: generating or copying it does not change PocketBase. Generating it again before applying it creates another file for the same columns. If the schema changes in the meantime, the migration may fail when applied. Its down removes these columns and any data written to them after the up.',
 	'settings.schema.migration.copy': 'Copy',
 	'settings.schema.migration.copied': 'Copied',
+
+	// ————— Physical block-column divergence —————
+	'settings.blockColumns.title': 'Block columns',
+	'settings.blockColumns.missingSummary':
+		'This manifest declares {count} physical column(s) that do not exist.',
+	'settings.blockColumns.migrationPerCollection':
+		'Vega generates a separate file for each block collection and includes only its missing columns.',
+	'settings.blockColumns.collectionMissingTitle': 'Block collection unavailable',
+	'settings.blockColumns.collectionMissingBody':
+		'The child collection declared by "{collection}" does not exist in the schema or is reserved. Vega cannot diagnose or generate a reconciliation until it is created elsewhere.',
+	'settings.blockColumns.collectionMissingCount': '{count} missing column(s) in "{collection}".',
+	'settings.blockColumns.generate': 'Generate migration for {collection}',
+	'settings.blockColumns.incompatibleTitle': '{count} incompatible column(s)',
+	'settings.blockColumns.incompatibleBody':
+		'These columns already exist with a different shape. They are not included in any migration: changing a column that may contain data requires a human decision.',
+	'settings.blockColumns.value.yes': 'yes',
+	'settings.blockColumns.value.no': 'no',
+	'settings.blockColumns.type.text': 'text',
+	'settings.blockColumns.type.richtext': 'rich text',
+	'settings.blockColumns.type.number': 'number',
+	'settings.blockColumns.type.bool': 'yes/no',
+	'settings.blockColumns.type.email': 'email',
+	'settings.blockColumns.type.url': 'URL',
+	'settings.blockColumns.type.date': 'date',
+	'settings.blockColumns.type.select': 'select',
+	'settings.blockColumns.type.relation': 'relation',
+	'settings.blockColumns.type.file': 'file',
+	'settings.blockColumns.type.json': 'JSON',
+	'settings.blockColumns.type.unsupported': 'unsupported type',
+	'settings.blockColumns.type.autodate': 'automatic date',
+	'settings.blockColumns.reason.type': 'expected {expected}, but found {actual}',
+	'settings.blockColumns.reason.required':
+		'expected required is "{expected}" while the actual value is "{actual}"',
+	'settings.blockColumns.reason.readonly': 'the actual column is read-only',
+	'settings.blockColumns.reason.unique': 'the actual column has a UNIQUE constraint',
+	'settings.blockColumns.reason.textConstraints':
+		'text constraints differ (expected maximum {expectedMax}, actual {actualMax})',
+	'settings.blockColumns.reason.numberConstraints':
+		'the actual number column has bounds or requires integers',
+	'settings.blockColumns.reason.dateConstraints': 'the actual date column has bounds',
+	'settings.blockColumns.reason.relationTarget':
+		'expected target is "{expected}" while the actual target is "{actual}"',
+	'settings.blockColumns.reason.cardinality': 'cardinality or its maxima differ',
+	'settings.blockColumns.reason.cascadeDelete': 'cascade-delete policy differs',
+	'settings.blockColumns.reason.fileConstraints':
+		'file constraints (size, MIME types, or protection) differ',
+	'settings.blockColumns.reason.constraints':
+		'the expected physical shape and the actual column have different constraints',
 
 	// ————— Editor role (batch L6c): manifest-editing gate —————
 	// Without `schemaBootstrap` (auth collection other than `_superusers`) an editor cannot
