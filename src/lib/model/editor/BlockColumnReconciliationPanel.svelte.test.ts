@@ -322,6 +322,59 @@ describe('BlockColumnReconciliationPanel.svelte', () => {
 		expect(mounted!.target.querySelector('.vega-block-columns-group > button')).toBeNull();
 	});
 
+	test('conflicto entre dos blockTypes (mismo campo record, formas incompatibles): avisa con ambos nombres', () => {
+		const heroWithFileAsset: ResolvedBlockType = {
+			name: 'hero',
+			label: 'Hero',
+			icon: null,
+			fields: [
+				{
+					name: 'asset',
+					widget: 'file',
+					label: 'asset',
+					source: 'record',
+					required: false,
+					options: null
+				}
+			]
+		};
+		const downloadWithTextAsset: ResolvedBlockType = {
+			name: 'download',
+			label: 'Download',
+			icon: null,
+			fields: [
+				{
+					name: 'asset',
+					widget: 'text',
+					label: 'asset',
+					source: 'record',
+					required: false,
+					options: null
+				}
+			]
+		};
+
+		expect(() => {
+			mounted = mountPanel({
+				types: [contentType('content_units', [])],
+				model: model({
+					blockTypes: [heroWithFileAsset, downloadWithTextAsset],
+					parents: [resolvedParent('pages', blocks('content_units'))]
+				})
+			});
+		}).not.toThrow();
+
+		const text = mounted!.target.textContent ?? '';
+		expect(text).toContain('settings.blockColumns.conflictTitle');
+		expect(text).toContain('"collection":"content_units"');
+		expect(text).toContain('"field":"asset"');
+		// Las dos declaraciones en pugna deben llegar completas a la tarjeta: el propietario
+		// (nombre de blockType) de cada una, no una tarjeta vacía ni solo la primera.
+		expect(text).toContain('hero.asset');
+		expect(text).toContain('download.asset');
+		expect(mounted!.target.querySelector('.vega-block-columns-group > button')).toBeNull();
+	});
+
 	test('explica restricciones localizadas de máximos, readonly, unique y fichero', () => {
 		mounted = mountPanel({
 			types: [
