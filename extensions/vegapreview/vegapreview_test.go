@@ -625,3 +625,40 @@ func TestDraftCrossLanguageEncryptionVector(t *testing.T) {
 		t.Fatalf("draft encryption vector changed:\nwant %s\ngot  %s", expected, actual)
 	}
 }
+
+// TestRecordLookupSilenceRestsOnARealPocketBaseInvariant pins the invariant that
+// logRecordLookupFailure borrows from PocketBase: a record that simply is not there arrives as
+// sql.ErrNoRows, so the ordinary 404 stays out of the operational log.
+//
+// The sibling unit test hands the function a synthetic sql.ErrNoRows, which proves the redaction
+// but cannot notice PocketBase changing the shape of that error. That difference is not academic:
+// with the default empty RecordCollections allowlist, an unauthenticated caller reaches
+// FindRecordById with any collection name it likes, and the identity check happens afterwards. If
+// this invariant ever broke, every routine miss would log at Error level and an anonymous client
+// could flood the log at will. Hence the real app, and hence the missing collection as its own case.
+func TestRecordLookupSilenceRestsOnARealPocketBaseInvariant(t *testing.T) {
+	app, err := tests.NewTestApp()
+	if err != nil {
+		t.Fatalf("failed to start the test PocketBase app: %v", err)
+	}
+	defer app.Cleanup()
+
+	for _, testCase := range []struct {
+		name       string
+		collection string
+		id         string
+	}{
+		{"existing collection, missing id", "users", "thisidwillneverexist"},
+		{"missing collection", "no_such_collection", "anything"},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			if _, err := app.FindRecordById(testCase.collection, testCase.id); !errors.Is(err, sql.ErrNoRows) {
+				t.Fatalf(
+					"PocketBase no longer reports a missing record as sql.ErrNoRows (%T: %v); "+
+						"logRecordLookupFailure would log every ordinary 404 as database_error",
+					err, err,
+				)
+			}
+		})
+	}
+}
