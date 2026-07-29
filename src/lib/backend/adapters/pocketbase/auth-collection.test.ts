@@ -139,6 +139,32 @@ describe('modo superuser (default, sin authCollection) — camino previo INTACTO
 		expect(types.map((t) => t.name)).toEqual(['posts']);
 		expect(pathnames).toContain('/api/collections');
 	});
+
+	test('select inválido se rechaza localmente en ensure/add-fields sin ninguna petición de esquema', async () => {
+		const { pathnames } = stubFetchRoutes({
+			'/api/collections/_superusers/auth-with-password': () =>
+				jsonResponse({
+					token: fakeJwt({ exp: futureExp() }),
+					record: { id: 'su1', email: 'admin@example.com', collectionName: '_superusers' }
+				})
+		});
+		const port = createPocketBaseBackend({ url: BASE_URL });
+		await port.login({ email: 'admin@example.com', password: 'x' });
+
+		const invalid = {
+			name: 'status',
+			type: 'select',
+			multiple: false
+		} as never;
+		await expect(
+			port.ensureCollections([{ name: 'pages', fields: [invalid] }])
+		).rejects.toMatchObject({ kind: 'validation' });
+		await expect(port.addCollectionFields('pages', [invalid])).rejects.toMatchObject({
+			kind: 'validation'
+		});
+
+		expect(pathnames).toEqual(['/api/collections/_superusers/auth-with-password']);
+	});
 });
 
 describe('modo editor (authCollection: vega_editors, L6a/L6b)', () => {

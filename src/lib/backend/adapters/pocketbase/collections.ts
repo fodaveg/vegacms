@@ -13,7 +13,7 @@ import type {
 	CollectionSpec,
 	EnsureResult
 } from '../../collections';
-import { checkRelationTargets } from '../../collections';
+import { checkRelationTargets, collectionUniqueIndexes } from '../../collections';
 import { VegaError } from '../../errors';
 import { collectionFieldSpecToPbField } from './schema';
 
@@ -34,7 +34,8 @@ export async function ensureCollectionsOnPocketBase(
 		await pb.collections.create({
 			name: spec.name,
 			type: 'base',
-			fields
+			fields,
+			indexes: collectionUniqueIndexes(spec.name, spec.fields)
 			// Reglas de API cerradas por defecto (null = solo superuser), como todo en v1 (§A.4.5).
 		});
 		created.push(spec.name);
@@ -85,6 +86,7 @@ export async function addFieldsOnPocketBase(
 	}
 
 	const newFields = await resolveCollectionFields(pb, newSpecs);
+	const newIndexes = collectionUniqueIndexes(collectionName, newSpecs);
 	if (newFields.length > 0) {
 		// RELECTURA justo antes de escribir, y NO por paranoia: esto es un read-modify-write sobre
 		// el array COMPLETO de campos. Entre el `getOne` de arriba y este `update`, otro escritor
@@ -108,10 +110,17 @@ export async function addFieldsOnPocketBase(
 					'Vuelve a intentarlo sobre el esquema ya actualizado.'
 			);
 		}
+		if (newIndexes.length > 0 && !sameIndexIdentity(collection.indexes, fresh.indexes)) {
+			throw VegaError.backend(
+				`Los índices de "${collectionName}" cambiaron mientras se preparaban los campos nuevos. ` +
+					'Vuelve a intentarlo sobre el esquema ya actualizado.'
+			);
+		}
 		// `fresh.fields` (los que YA trae `getOne`, con su `id`) + los nuevos (sin `id`: PB se lo
 		// asigna al guardar) — reenviar los existentes TAL CUAL es lo que los preserva.
 		await pb.collections.update(collectionName, {
-			fields: [...fresh.fields, ...newFields]
+			fields: [...fresh.fields, ...newFields],
+			...(newIndexes.length > 0 ? { indexes: [...fresh.indexes, ...newIndexes] } : {})
 		});
 	}
 
@@ -167,4 +176,11 @@ function sameFieldIdentity(
 	const key = (f: { id: string; name: string }) => `${f.id}\u0000${f.name}`;
 	const beforeKeys = new Set(before.map(key));
 	return after.every((f) => beforeKeys.has(key(f)));
+}
+
+/** Igual que `sameFieldIdentity`, para el array completo de SQL de índices de la colección. */
+function sameIndexIdentity(before: string[], after: string[]): boolean {
+	if (before.length !== after.length) return false;
+	const beforeIndexes = new Set(before);
+	return after.every((index) => beforeIndexes.has(index));
 }

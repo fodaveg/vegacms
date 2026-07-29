@@ -9,6 +9,7 @@ import { EventSource } from 'eventsource';
 import PocketBase from 'pocketbase';
 import type { VegaError } from '$lib/backend';
 import { createPocketBaseBackend } from '$lib/backend/adapters/pocketbase';
+import { uniqueIndexName } from '$lib/backend/collections';
 import { ALL_PERMISSIONS } from '$lib/backend/access';
 import { MAX_PER_PAGE } from '$lib/backend/query';
 import type { Query } from '$lib/backend/query';
@@ -101,6 +102,29 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 				};
 			}
 		}
+	});
+
+	test('fallo del índice revierte campo e índice juntos en PocketBase real', async () => {
+		const name = `atomic_unique_${Math.random().toString(36).slice(2, 10)}`;
+		await admin.collections.create({
+			name,
+			type: 'base',
+			fields: [{ name: 'title', type: 'text' }]
+		});
+		await admin.collection(name).create({ title: 'Uno' });
+		await admin.collection(name).create({ title: 'Dos' });
+
+		const port = createPocketBaseBackend({ url: running.url });
+		await port.login({ email: running.adminEmail, password: running.adminPassword });
+		await expect(
+			port.addCollectionFields(name, [{ name: 'path', type: 'text', unique: true }])
+		).rejects.toMatchObject({ kind: 'validation' });
+
+		const collection = await admin.collections.getOne(name);
+		expect(collection.fields.some((field) => field.name === 'path')).toBe(false);
+		expect(collection.indexes.some((index) => index.includes(uniqueIndexName(name, 'path')))).toBe(
+			false
+		);
 	});
 	/**
 	 * Bugs de correctitud encontrados en code-review (§4.1/§5): la suite de contrato normal

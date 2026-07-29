@@ -100,6 +100,14 @@ function collectionFieldSpecToPbImportField(
 				required: spec.required ?? false,
 				max: spec.max ?? 0
 			};
+		case 'select':
+			return {
+				name: spec.name,
+				type: 'select',
+				required: spec.required ?? false,
+				values: spec.options,
+				maxSelect: spec.multiple ? 99 : 1
+			};
 		case 'bool':
 			return { name: spec.name, type: 'bool' };
 		case 'number':

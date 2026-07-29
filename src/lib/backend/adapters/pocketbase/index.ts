@@ -34,6 +34,7 @@ import type {
 	EnsureResult
 } from '../../collections';
 import {
+	checkCollectionFieldSpecs,
 	checkCreatableCollectionNames,
 	VEGA_COLLECTION,
 	VEGA_PROJECT_KEY,
@@ -601,7 +602,10 @@ export function createPocketBaseBackend({
 
 		async ensureCollections(specs: CollectionSpec[]): Promise<EnsureResult> {
 			return guarded(async () => {
-				const rejects = checkCreatableCollectionNames(specs);
+				const rejects = {
+					...checkCreatableCollectionNames(specs),
+					...checkCollectionFieldSpecs(specs.flatMap((spec) => spec.fields))
+				};
 				if (Object.keys(rejects).length > 0) throw VegaError.validation(rejects);
 				if (!CAPABILITIES.schemaBootstrap) {
 					throw VegaError.backend('schemaBootstrap no disponible (ley L8)');
@@ -615,6 +619,8 @@ export function createPocketBaseBackend({
 			fields: CollectionFieldSpec[]
 		): Promise<AddFieldsResult> {
 			return guarded(async () => {
+				const rejects = checkCollectionFieldSpecs(fields);
+				if (Object.keys(rejects).length > 0) throw VegaError.validation(rejects);
 				if (!CAPABILITIES.schemaFieldBootstrap) {
 					throw VegaError.backend('schemaFieldBootstrap no disponible (ley L8)');
 				}
