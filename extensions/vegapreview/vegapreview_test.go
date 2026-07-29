@@ -5,8 +5,11 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/hmac"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -442,6 +445,25 @@ func TestUnsupportedCollectionDoesNotReceiveToken(t *testing.T) {
 	}
 }
 
+func TestTokenIdentityRejectsTheBorrowedPayloadDelimiter(t *testing.T) {
+	fixture := newPreviewFixture(t)
+	for name, identity := range map[string][2]string{
+		"collection": {"pages\narchive", fixture.pageA},
+		"id":         {"pages", fixture.pageA + "\nother"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			response := requestToken(fixture.mux, fixture.editorA, identity[0], identity[1])
+			if response.Code != http.StatusBadRequest {
+				t.Fatalf(
+					"expected newline-bearing identity to fail with 400, got %d: %s",
+					response.Code,
+					response.Body.String(),
+				)
+			}
+		})
+	}
+}
+
 func TestDraftLimitReturns413WithoutIssuingAToken(t *testing.T) {
 	fixture := newPreviewFixture(t)
 	draft := &previewDraft{
@@ -511,6 +533,47 @@ func TestConfigDefaultsAndFailClosedGuards(t *testing.T) {
 		if _, err := New(config); err == nil {
 			t.Fatalf("expected invalid config to fail closed: %#v", config)
 		}
+	}
+
+	received := maxTokenTTL + time.Second
+	_, err = New(Config{
+		SiteOrigin:    "https://site.example",
+		SigningSecret: testSecret,
+		TokenTTL:      received,
+	})
+	if err == nil {
+		t.Fatal("expected TokenTTL above one hour to fail closed")
+	}
+	if !strings.Contains(err.Error(), received.String()) ||
+		!strings.Contains(err.Error(), maxTokenTTL.String()) {
+		t.Fatalf("TTL error must include received and maximum values, got %q", err)
+	}
+}
+
+func TestRecordLookupLoggingSkipsNotFoundAndRedactsErrorDetails(t *testing.T) {
+	var output bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&output, nil))
+
+	logRecordLookupFailure(logger, "pages", "missing", sql.ErrNoRows)
+	if output.Len() != 0 {
+		t.Fatalf("record-not-found must stay silent, got %q", output.String())
+	}
+
+	sensitive := "draft plaintext " + testSecret
+	logRecordLookupFailure(logger, "pages", "draft-a", errors.New(sensitive))
+	logged := output.String()
+	for _, expected := range []string{
+		"vegapreview: record lookup failed",
+		"reason=database_error",
+		"collection=pages",
+		"id=draft-a",
+	} {
+		if !strings.Contains(logged, expected) {
+			t.Fatalf("operational log is missing %q: %s", expected, logged)
+		}
+	}
+	if strings.Contains(logged, sensitive) || strings.Contains(logged, testSecret) {
+		t.Fatalf("operational log exposed sensitive error details: %s", logged)
 	}
 }
 
