@@ -3,12 +3,19 @@ import { createMemoryBackend, type MemoryBackendPort } from './adapters/memory';
 import type { BackendPort } from './port';
 import type { AccessLevel, ContentType } from './types';
 import {
+	SITE_SEED_BLOCKS_READ_RULE,
 	SITE_SEED_CANONICAL_PAGE_PATH,
+	SITE_SEED_EDITOR_ACCESS_RULE,
 	SITE_SEED_MANIFEST_READ_RULE,
+	SITE_SEED_PAGES_READ_RULE,
 	SiteSeedDivergenceError,
 	seedSiteProject
 } from './site-seeding';
-import { ensureMediaCollection } from '$lib/media/media-collection';
+import {
+	ensureMediaCollection,
+	VEGA_MEDIA_EDITOR_ACCESS_RULE,
+	VEGA_MEDIA_VIEW_RULE
+} from '$lib/media/media-collection';
 
 async function authedMemory(): Promise<MemoryBackendPort> {
 	const port = createMemoryBackend();
@@ -160,6 +167,27 @@ describe('seedSiteProject', () => {
 		expect(port.inspectCollection('vega')?.rules).toMatchObject({
 			listRule: SITE_SEED_MANIFEST_READ_RULE,
 			viewRule: SITE_SEED_MANIFEST_READ_RULE
+		});
+		expect(port.inspectCollection('pages')?.rules).toEqual({
+			listRule: SITE_SEED_PAGES_READ_RULE,
+			viewRule: SITE_SEED_PAGES_READ_RULE,
+			createRule: SITE_SEED_EDITOR_ACCESS_RULE,
+			updateRule: SITE_SEED_EDITOR_ACCESS_RULE,
+			deleteRule: SITE_SEED_EDITOR_ACCESS_RULE
+		});
+		expect(port.inspectCollection('blocks')?.rules).toEqual({
+			listRule: SITE_SEED_BLOCKS_READ_RULE,
+			viewRule: SITE_SEED_BLOCKS_READ_RULE,
+			createRule: SITE_SEED_EDITOR_ACCESS_RULE,
+			updateRule: SITE_SEED_EDITOR_ACCESS_RULE,
+			deleteRule: SITE_SEED_EDITOR_ACCESS_RULE
+		});
+		expect(port.inspectCollection('vega_media')?.rules).toEqual({
+			listRule: VEGA_MEDIA_EDITOR_ACCESS_RULE,
+			viewRule: VEGA_MEDIA_VIEW_RULE,
+			createRule: VEGA_MEDIA_EDITOR_ACCESS_RULE,
+			updateRule: VEGA_MEDIA_EDITOR_ACCESS_RULE,
+			deleteRule: VEGA_MEDIA_EDITOR_ACCESS_RULE
 		});
 
 		const before = await logicalSnapshot(port);
