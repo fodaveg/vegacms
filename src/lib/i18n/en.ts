@@ -239,6 +239,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.blocks.add': 'Add {label}',
 	'editor.blocks.addMenu.label': 'Block types',
 	'editor.blocks.type.unknown': 'Unknown type: {name}',
+	'editor.blocks.type.none': 'No type',
 	'editor.blocks.empty': 'There are no {label} yet.',
 	'editor.blocks.duplicateLabel': 'Duplicate “{label}”',
 	'editor.blocks.duplicateSuccess': 'Block duplicated.',

@@ -54,7 +54,7 @@
 	 * posición"): el arrastre por sí solo no es accesible sin un eco por voz de dónde ha quedado el
 	 * bloque.
 	 */
-	import { untrack } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import type { RecordId, VegaRecord } from '$lib/backend/types';
 	import type { PreviewDraftRecord } from '$lib/backend/preview-client';
@@ -248,7 +248,13 @@
 	// de las dos cosas se conserva el botón simple de siempre, que crea un bloque sin tipo.
 	const typeField = blocksConfig?.typeField ?? null;
 	const blockTypes = ctx.model.blockTypes;
-	const hasTypeMenu = typeField !== null && blockTypes.length > 0;
+	/** Hay COLUMNA de tipo: manda para las insignias de cada fila. Un manifiesto puede retirar todo
+	 *  su vocabulario sin que los registros pierdan su valor, y esas filas siguen teniendo que decir
+	 *  qué son. */
+	const hasTypeColumn = typeField !== null;
+	/** Hay MENÚ: exige además que quede al menos un tipo que ofrecer. Sin vocabulario no hay nada que
+	 *  elegir, así que se conserva el botón simple. */
+	const hasTypeMenu = hasTypeColumn && blockTypes.length > 0;
 
 	/**
 	 * El tipo declarado de un bloque, leído de su COLUMNA REAL. Es el dividendo de la regla de
@@ -318,6 +324,37 @@
 
 	function closeAddMenu(): void {
 		addMenuOpen = false;
+	}
+
+	/** Los `menuitem` del menú abierto, en orden del DOM. Se consultan en el momento en vez de
+	 *  guardarse: el vocabulario no cambia durante un gesto, pero un array de refs paralelo sí se
+	 *  desincroniza. */
+	function menuItems(): HTMLButtonElement[] {
+		return Array.from(addMenuEl?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
+	}
+
+	/** Abrir con teclado deja el foco DENTRO del menú, que es lo que espera el patrón APG: si se
+	 *  queda en el disparador, `ArrowDown` no recorre nada y solo se llega con `Tab`. */
+	function openAddMenu(): void {
+		addMenuOpen = true;
+		void tick().then(() => menuItems()[0]?.focus());
+	}
+
+	/** Navegación APG dentro del menú: flechas CIRCULARES, `Home`/`End` a los extremos. `Escape` no
+	 *  se maneja aquí — lo lleva el handler de ventana, que además devuelve el foco al disparador. */
+	function handleMenuKeydown(event: KeyboardEvent): void {
+		const items = menuItems();
+		if (items.length === 0) return;
+		const current = items.indexOf(document.activeElement as HTMLButtonElement);
+		let next: number | null = null;
+		if (event.key === 'ArrowDown') next = current < 0 ? 0 : (current + 1) % items.length;
+		else if (event.key === 'ArrowUp')
+			next = current < 0 ? items.length - 1 : (current - 1 + items.length) % items.length;
+		else if (event.key === 'Home') next = 0;
+		else if (event.key === 'End') next = items.length - 1;
+		if (next === null) return;
+		event.preventDefault();
+		items[next].focus();
 	}
 
 	function handleAddWindowClick(event: MouseEvent): void {
@@ -613,7 +650,7 @@
 							aria-expanded={addMenuOpen}
 							aria-controls="vega-blocks-add-menu"
 							disabled={disabled || structuralBusy || savingIds.size > 0}
-							onclick={() => (addMenuOpen = !addMenuOpen)}
+							onclick={() => (addMenuOpen ? closeAddMenu() : openAddMenu())}
 						>
 							{ctx.t('editor.blocks.add', { label: type.labelSingular })}
 							<Icon id="chevron" size={12} />
@@ -623,13 +660,16 @@
 								id="vega-blocks-add-menu"
 								class="vega-blocks-add-menu"
 								role="menu"
+								tabindex="-1"
 								aria-label={ctx.t('editor.blocks.addMenu.label')}
 								bind:this={addMenuEl}
+								onkeydown={handleMenuKeydown}
 							>
 								{#each blockTypes as blockType (blockType.name)}
 									<button
 										type="button"
 										role="menuitem"
+										tabindex="-1"
 										class="vega-blocks-add-menu-item"
 										onclick={() => handleAddType(blockType)}
 									>
@@ -717,8 +757,8 @@
 								aria-controls={`vega-block-body-${record.id}`}
 								onclick={() => toggle(record.id)}
 							>
-								<Icon id="chevron" size={14} />
-								{#if hasTypeMenu}
+								<span class="vega-block-chevron"><Icon id="chevron" size={14} /></span>
+								{#if hasTypeColumn}
 									{@const blockType = blockTypeOf(record)}
 									{@const rawType = blockTypeRawName(record)}
 									{#if blockType}
@@ -731,6 +771,12 @@
 										     el valor crudo en vez de esconderlo. -->
 										<span class="vega-block-type vega-block-type--unknown">
 											{ctx.t('editor.blocks.type.unknown', { name: rawType })}
+										</span>
+									{:else}
+										<!-- Columna de tipo vacía: bloque de antes de que existiera el vocabulario. Se
+										     dice, no se calla: «cada fila muestra de qué tipo es» incluye «de ninguno». -->
+										<span class="vega-block-type vega-block-type--none">
+											{ctx.t('editor.blocks.type.none')}
 										</span>
 									{/if}
 								{/if}
@@ -897,6 +943,12 @@
 	}
 
 	/* Un tipo que el manifiesto ya no declara: se ve, pero se ve DISTINTO. */
+	.vega-block-type--none {
+		border-style: dashed;
+		opacity: 0.75;
+		font-weight: 500;
+	}
+
 	.vega-block-type--unknown {
 		border-color: var(--warning);
 		color: var(--warning);
@@ -1039,12 +1091,19 @@
 
 	/* El set de iconos apunta a la derecha (mismo motivo que `.vega-editor-back` de `RecordForm`):
 	   plegado apunta a la derecha, desplegado gira 90° hacia abajo. */
-	.vega-block-toggle :global(svg) {
+	.vega-block-chevron {
+		display: inline-flex;
+		flex-shrink: 0;
+	}
+
+	.vega-block-chevron :global(svg) {
 		flex-shrink: 0;
 		transition: transform 0.15s ease;
 	}
 
-	.vega-block-toggle[aria-expanded='true'] :global(svg) {
+	/* ACOTADA al chevron a propósito: cuando esto alcanzaba a cualquier `svg` descendiente, el
+	   icono del TIPO de bloque giraba 90° al desplegar la fila. */
+	.vega-block-toggle[aria-expanded='true'] .vega-block-chevron :global(svg) {
 		transform: rotate(90deg);
 	}
 

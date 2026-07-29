@@ -602,7 +602,7 @@ const typedBlockType: ContentType = {
 	]
 };
 
-async function mountTypedBlocks(): Promise<{
+async function mountTypedBlocks(options: { withVocabulary?: boolean } = {}): Promise<{
 	target: HTMLElement;
 	instance: ReturnType<typeof mount>;
 	port: ReturnType<typeof createMemoryBackend>;
@@ -612,10 +612,17 @@ async function mountTypedBlocks(): Promise<{
 		types: [landingType, typedBlockType],
 		manifestRaw: {
 			schemaVersion: 1,
-			blockTypes: {
-				hero: { label: 'Portada', fields: [{ name: 'title', label: 'Título', widget: 'text' }] },
-				cta: { label: 'Llamada', fields: [{ name: 'text', label: 'Texto', widget: 'text' }] }
-			},
+			...(options.withVocabulary === false
+				? {}
+				: {
+						blockTypes: {
+							hero: {
+								label: 'Portada',
+								fields: [{ name: 'title', label: 'Título', widget: 'text' }]
+							},
+							cta: { label: 'Llamada', fields: [{ name: 'text', label: 'Texto', widget: 'text' }] }
+						}
+					}),
 			collections: {
 				landing: {
 					blocks: {
@@ -733,8 +740,10 @@ describe('RecordBlocks.svelte — tipos de bloque', () => {
 			el.textContent?.trim()
 		);
 		// `b1` conocido por su label; `b2` desconocido pero VISIBLE; `b3` sin tipo no pinta insignia.
-		expect(badges).toEqual(['Portada', 'Tipo desconocido: carrusel']);
+		// `b1` conocido por su label; `b2` desconocido pero VISIBLE; `b3` sin tipo lo DICE.
+		expect(badges).toEqual(['Portada', 'Tipo desconocido: carrusel', 'Sin tipo']);
 		expect(mounted.target.querySelectorAll('.vega-block-type--unknown')).toHaveLength(1);
+		expect(mounted.target.querySelectorAll('.vega-block-type--none')).toHaveLength(1);
 	});
 
 	test('la columna de tipo NO se ofrece como campo editable dentro del bloque', async () => {
@@ -750,6 +759,52 @@ describe('RecordBlocks.svelte — tipos de bloque', () => {
 		expect(labels.length).toBeGreaterThan(0); // si no pinta NADA, este test no prueba nada
 		expect(labels).not.toContain('type');
 		expect(labels.some((text) => text.includes('heading'))).toBe(true);
+	});
+
+	test('las flechas recorren el menú en círculo y Home/End van a los extremos', async () => {
+		mounted = await mountTypedBlocks();
+		await settle();
+
+		const trigger = mounted.target.querySelector<HTMLButtonElement>('.vega-blocks-add')!;
+		trigger.click();
+		await settle();
+
+		const items = Array.from(
+			mounted.target.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')
+		);
+		// Abrir deja el foco DENTRO del menú: si se queda en el disparador, `ArrowDown` no recorre
+		// nada y al primer elemento solo se llega con `Tab`, que no es el patrón APG.
+		expect(document.activeElement).toBe(items[0]);
+
+		const menu = mounted.target.querySelector<HTMLElement>('[role="menu"]')!;
+		const press = (key: string) => menu.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+
+		press('ArrowDown');
+		expect(document.activeElement).toBe(items[1]);
+		press('ArrowDown'); // circular: del último vuelve al primero
+		expect(document.activeElement).toBe(items[0]);
+		press('ArrowUp'); // y hacia atrás desde el primero, al último
+		expect(document.activeElement).toBe(items[items.length - 1]);
+		press('Home');
+		expect(document.activeElement).toBe(items[0]);
+		press('End');
+		expect(document.activeElement).toBe(items[items.length - 1]);
+	});
+
+	test('sin vocabulario pero CON columna de tipo, las filas siguen diciendo qué son', async () => {
+		// El manifiesto retiró todos los `blockTypes` y los registros conservan su valor. Antes esto
+		// escondía el tipo de TODAS las filas, porque la insignia dependía de que hubiera menú.
+		mounted = await mountTypedBlocks({ withVocabulary: false });
+		await settle();
+
+		// Sin nada que elegir no hay menú, y el botón simple vuelve.
+		const trigger = mounted.target.querySelector<HTMLButtonElement>('.vega-blocks-add')!;
+		expect(trigger.getAttribute('aria-haspopup')).toBeNull();
+
+		const badges = Array.from(mounted.target.querySelectorAll('.vega-block-type')).map((el) =>
+			el.textContent?.trim()
+		);
+		expect(badges).toEqual(['Tipo desconocido: hero', 'Tipo desconocido: carrusel', 'Sin tipo']);
 	});
 
 	test('Escape cierra el menú y devuelve el foco al disparador', async () => {

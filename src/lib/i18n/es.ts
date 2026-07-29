@@ -254,6 +254,7 @@ export const es = {
 	'editor.blocks.add': 'Añadir {label}',
 	'editor.blocks.addMenu.label': 'Tipos de bloque',
 	'editor.blocks.type.unknown': 'Tipo desconocido: {name}',
+	'editor.blocks.type.none': 'Sin tipo',
 	'editor.blocks.empty': 'Todavía no hay {label}.',
 	'editor.blocks.duplicateLabel': 'Duplicar «{label}»',
 	'editor.blocks.duplicateSuccess': 'Bloque duplicado.',

@@ -46,8 +46,11 @@
 		/** El `ResolvedContentType` de la colección HIJA (p.ej. `landing_block`). */
 		childType: ResolvedContentType;
 		record: VegaRecord;
-		/** `parentField`/`orderField` de `blocks` (P2, `ResolvedBlocksConfig`): estructurales, el
-		 *  usuario nunca los edita aquí — los escribe `RecordBlocks` al crear/reordenar. */
+		/** `parentField`/`orderField` y, si la colección lo declara, `typeField` (P2,
+		 *  `ResolvedBlocksConfig`): estructurales, el usuario nunca los edita aquí — los escribe
+		 *  `RecordBlocks`, que es su ÚNICO autor, al crear/reordenar. El tipo se elige en el menú
+		 *  «Añadir», no se reescribe a mano: si se pintara aquí se podría teclear uno que no está en
+		 *  el vocabulario. */
 		structuralFields: readonly string[];
 		onSubmit: (input: RecordInput) => Promise<VegaRecord>;
 		onSaved: (record: VegaRecord) => void;
