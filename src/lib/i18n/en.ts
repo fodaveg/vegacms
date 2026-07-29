@@ -240,6 +240,16 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.blocks.addMenu.label': 'Block types',
 	'editor.blocks.type.unknown': 'Unknown type: {name}',
 	'editor.blocks.type.none': 'No type',
+	'editor.blocks.form.unknownType':
+		'The “{name}” type no longer exists in the manifest. This block is read-only so its data stays intact.',
+	'editor.blocks.form.noType':
+		'This block has no type. It stays read-only until the model says how to edit it.',
+	'editor.blocks.form.invalidData':
+		'The “{field}” column does not contain a JSON object. Saving would replace the existing value, so Vega has blocked this block.',
+	'editor.blocks.form.rawData': 'Raw value of “{field}”',
+	'editor.blocks.form.missingRecordField':
+		'The “{field}” column does not exist in the schema yet. Create it from block reconciliation in Settings.',
+	'editor.blocks.form.openSettings': 'Open Settings',
 	'editor.blocks.empty': 'There are no {label} yet.',
 	'editor.blocks.duplicateLabel': 'Duplicate “{label}”',
 	'editor.blocks.duplicateSuccess': 'Block duplicated.',

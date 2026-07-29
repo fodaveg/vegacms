@@ -13,9 +13,10 @@
 import { mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
-import type { ContentType } from '$lib/backend/types';
-import type { ResolvedContentType } from '$lib/model/types';
+import type { ContentType, FieldValue } from '$lib/backend/types';
+import type { ResolvedBlockType, ResolvedContentType } from '$lib/model/types';
 import { createMemoryBackend } from '$lib/backend/adapters/memory';
+import { diagnoseBlockDataKeys } from '$lib/model/block-data-diagnostics';
 import { resolveContentModel } from '$lib/model/resolve';
 import { t as translate } from '$lib/i18n';
 import RecordBlocks from './RecordBlocks.svelte';
@@ -602,11 +603,16 @@ const typedBlockType: ContentType = {
 	]
 };
 
-async function mountTypedBlocks(options: { withVocabulary?: boolean } = {}): Promise<{
+async function mountTypedBlocks(
+	options: { withVocabulary?: boolean; invalidData?: FieldValue } = {}
+): Promise<{
 	target: HTMLElement;
 	instance: ReturnType<typeof mount>;
 	port: ReturnType<typeof createMemoryBackend>;
 	parentType: ResolvedContentType;
+	heroBlockType: ResolvedBlockType;
+	feedback: { toast: ReturnType<typeof vi.fn>; reportError: ReturnType<typeof vi.fn> };
+	onDraftChange: ReturnType<typeof vi.fn>;
 }> {
 	const model = resolveContentModel({
 		types: [landingType, typedBlockType],
@@ -618,7 +624,21 @@ async function mountTypedBlocks(options: { withVocabulary?: boolean } = {}): Pro
 						blockTypes: {
 							hero: {
 								label: 'Portada',
-								fields: [{ name: 'title', label: 'Título', widget: 'text' }]
+								fields: [
+									{ name: 'title', label: 'Título', widget: 'text' },
+									{
+										name: 'heading',
+										label: 'Encabezado físico',
+										widget: 'text',
+										source: 'record'
+									},
+									{
+										name: 'missing_column',
+										label: 'Columna pendiente',
+										widget: 'text',
+										source: 'record'
+									}
+								]
 							},
 							cta: { label: 'Llamada', fields: [{ name: 'text', label: 'Texto', widget: 'text' }] }
 						}
@@ -638,6 +658,7 @@ async function mountTypedBlocks(options: { withVocabulary?: boolean } = {}): Pro
 	});
 	expect(model.warnings).toEqual([]);
 	const parentType = model.types.find((t) => t.name === 'landing')!;
+	const heroBlockType = model.blockTypes.find((type) => type.name === 'hero')!;
 
 	const port = createMemoryBackend({
 		users: [{ email: 'admin@vega.test', password: 'test-pass' }],
@@ -645,32 +666,78 @@ async function mountTypedBlocks(options: { withVocabulary?: boolean } = {}): Pro
 		records: {
 			landing: [{ id: 'landing1', values: { title: 'Home' } }],
 			landing_block: [
-				{ id: 'b1', values: { parent: 'landing1', sort: 0, type: 'hero', heading: 'Hero' } },
+				{
+					id: 'b1',
+					values: {
+						parent: 'landing1',
+						sort: 0,
+						type: 'hero',
+						heading: 'Hero',
+						// Literal escrito a mano: el test de conservación compara este objeto completo.
+						data: {
+							title: 'Portada inicial',
+							heading: 'sombra histórica',
+							orphanedCopy: { nested: 'conservar también' }
+						}
+					}
+				},
 				// Un tipo que el manifiesto YA NO declara: el registro sigue vivo y hay que verlo.
-				{ id: 'b2', values: { parent: 'landing1', sort: 1, type: 'carrusel', heading: 'Viejo' } },
+				{
+					id: 'b2',
+					values: {
+						parent: 'landing1',
+						sort: 1,
+						type: 'carrusel',
+						heading: 'Viejo',
+						data: { slides: ['uno', 'dos'], legacy: 'no tocar' }
+					}
+				},
 				// Y uno sin tipo, de antes de que existiera el vocabulario.
-				{ id: 'b3', values: { parent: 'landing1', sort: 2, type: '', heading: 'Suelto' } }
+				{
+					id: 'b3',
+					values: {
+						parent: 'landing1',
+						sort: 2,
+						type: '',
+						heading: 'Suelto',
+						data: { untyped: 'rescatable' }
+					}
+				},
+				{
+					id: 'b4',
+					values: {
+						parent: 'landing1',
+						sort: 3,
+						type: 'hero',
+						heading: 'Dato inválido',
+						data: Object.hasOwn(options, 'invalidData')
+							? options.invalidData!
+							: 'valor externo no-objeto'
+					}
+				}
 			]
 		}
 	});
 	await port.login({ email: 'admin@vega.test', password: 'test-pass' });
 
+	const feedback = { toast: vi.fn(), reportError: vi.fn() };
 	const ctx = {
 		port,
 		model,
 		t: (key: string, params?: Record<string, string | number>) => translate('es', key, params),
 		locale: 'es',
-		feedback: { toast: vi.fn(), reportError: vi.fn() }
+		feedback
 	} as unknown as VegaAppContext;
 
 	const target = document.createElement('div');
 	document.body.appendChild(target);
+	const onDraftChange = vi.fn();
 	const props = $state({
 		parentType,
 		parentId: 'landing1',
 		onDirtyChange: vi.fn(),
 		onBusyChange: vi.fn(),
-		onDraftChange: vi.fn(),
+		onDraftChange,
 		disabled: false
 	});
 	const instance = mount(RecordBlocks, {
@@ -678,7 +745,7 @@ async function mountTypedBlocks(options: { withVocabulary?: boolean } = {}): Pro
 		props,
 		context: new Map([[VEGA_CONTEXT_KEY, ctx]])
 	});
-	return { target, instance, port, parentType };
+	return { target, instance, port, parentType, heroBlockType, feedback, onDraftChange };
 }
 
 describe('RecordBlocks.svelte — tipos de bloque', () => {
@@ -724,7 +791,9 @@ describe('RecordBlocks.svelte — tipos de bloque', () => {
 		await settle();
 
 		const rows = await mounted.port.list('landing_block', { perPage: 50 });
-		const created = rows.items.find((r) => r.id !== 'b1' && r.id !== 'b2' && r.id !== 'b3');
+		const created = rows.items.find(
+			(r) => r.id !== 'b1' && r.id !== 'b2' && r.id !== 'b3' && r.id !== 'b4'
+		);
 		expect(created).toBeDefined();
 		// La propiedad que compra la regla de frontera: el tipo está en su columna…
 		expect(created!.values.type).toBe('cta');
@@ -741,24 +810,214 @@ describe('RecordBlocks.svelte — tipos de bloque', () => {
 		);
 		// `b1` conocido por su label; `b2` desconocido pero VISIBLE; `b3` sin tipo no pinta insignia.
 		// `b1` conocido por su label; `b2` desconocido pero VISIBLE; `b3` con la columna vacía lo DICE.
-		expect(badges).toEqual(['Portada', 'Tipo desconocido: carrusel', 'Sin tipo']);
+		expect(badges).toEqual(['Portada', 'Tipo desconocido: carrusel', 'Sin tipo', 'Portada']);
 		expect(mounted.target.querySelectorAll('.vega-block-type--unknown')).toHaveLength(1);
 		expect(mounted.target.querySelectorAll('.vega-block-type--none')).toHaveLength(1);
 	});
 
-	test('la columna de tipo NO se ofrece como campo editable dentro del bloque', async () => {
+	test('el tipo dirige los campos y su orden; data no aparece como JSON crudo', async () => {
 		mounted = await mountTypedBlocks();
 		await settle();
 
-		// El mini-formulario de cada bloque pinta `childType.fields` MENOS los estructurales. Si
-		// `typeField` no estuviera en esa lista, aquí aparecería un campo de texto «type» y el
-		// usuario podría teclear un tipo que no existe en el vocabulario, saltándose el menú.
-		const labels = Array.from(mounted.target.querySelectorAll('.vega-block-row label')).map(
+		const firstRow = mounted.target.querySelectorAll<HTMLElement>('.vega-block-row')[0];
+		const labels = Array.from(firstRow.querySelectorAll('label')).map(
 			(el) => el.textContent?.trim().toLowerCase() ?? ''
 		);
-		expect(labels.length).toBeGreaterThan(0); // si no pinta NADA, este test no prueba nada
+		expect(labels).toEqual(['título', 'encabezado físico', 'columna pendiente']);
 		expect(labels).not.toContain('type');
-		expect(labels.some((text) => text.includes('heading'))).toBe(true);
+		expect(labels).not.toContain('data');
+
+		const missing = firstRow.querySelector<HTMLElement>('[data-field="missing_column"]')!;
+		expect(missing.querySelector('input')?.disabled).toBe(true);
+		expect(missing.textContent).toContain('todavía no existe');
+		const settingsLink = missing.querySelector<HTMLAnchorElement>('.vega-block-settings-link');
+		expect(settingsLink?.textContent).toContain('Abrir Ajustes');
+		expect(settingsLink?.getAttribute('href')).toBe('/settings');
+	});
+
+	test('guardar conserva por separado shadowed y orphaned, y escribe record en su columna', async () => {
+		mounted = await mountTypedBlocks();
+		await settle();
+
+		const firstRow = mounted.target.querySelectorAll<HTMLElement>('.vega-block-row')[0];
+		const title = firstRow.querySelector<HTMLInputElement>('[data-field="title"] input')!;
+		const heading = firstRow.querySelector<HTMLInputElement>('[data-field="heading"] input')!;
+		title.value = 'Portada guardada';
+		title.dispatchEvent(new Event('input', { bubbles: true }));
+		heading.value = 'Columna guardada';
+		heading.dispatchEvent(new Event('input', { bubbles: true }));
+		await settle();
+
+		firstRow.querySelector<HTMLButtonElement>('.vega-block-save-button')!.click();
+		await settle();
+		await settle();
+
+		const saved = await mounted.port.get('landing_block', 'b1');
+		expect(saved.values.data).toEqual({
+			title: 'Portada guardada',
+			heading: 'sombra histórica',
+			orphanedCopy: { nested: 'conservar también' }
+		});
+		expect(saved.values.heading).toBe('Columna guardada');
+		expect(saved.values).not.toHaveProperty('title');
+		expect(
+			diagnoseBlockDataKeys(mounted.heroBlockType, saved.values.data).map(
+				({ key, status }) => `${key}:${status}`
+			)
+		).toEqual(['title:claimed', 'heading:shadowed', 'orphanedCopy:orphaned']);
+
+		// Repetir sin cambios no puede reescribir ni alterar `data`.
+		const save = firstRow.querySelector<HTMLButtonElement>('.vega-block-save-button')!;
+		expect(save.disabled).toBe(true);
+		save.click();
+		await settle();
+		expect((await mounted.port.get('landing_block', 'b1')).values.data).toEqual({
+			title: 'Portada guardada',
+			heading: 'sombra histórica',
+			orphanedCopy: { nested: 'conservar también' }
+		});
+	});
+
+	test('el borrador tipado viaja a preview dentro de dataField, nunca como columna sintética', async () => {
+		mounted = await mountTypedBlocks();
+		await settle();
+
+		const firstRow = mounted.target.querySelectorAll<HTMLElement>('.vega-block-row')[0];
+		const title = firstRow.querySelector<HTMLInputElement>('[data-field="title"] input')!;
+		title.value = 'Preview sin guardar';
+		title.dispatchEvent(new Event('input', { bubbles: true }));
+		await settle();
+
+		const latest = mounted.onDraftChange.mock.calls.at(-1)?.[0] as Array<{
+			id: string;
+			fields: Record<string, unknown>;
+		}>;
+		const draft = latest.find((record) => record.id === 'b1')!;
+		expect(draft.fields.data).toEqual({
+			title: 'Preview sin guardar',
+			heading: 'sombra histórica',
+			orphanedCopy: { nested: 'conservar también' }
+		});
+		expect(draft.fields).not.toHaveProperty('title');
+		expect((await mounted.port.get('landing_block', 'b1')).values.data).toEqual({
+			title: 'Portada inicial',
+			heading: 'sombra histórica',
+			orphanedCopy: { nested: 'conservar también' }
+		});
+	});
+
+	test('tipo retirado: enseña el data crudo, no ofrece guardar y conserva el puerto', async () => {
+		mounted = await mountTypedBlocks();
+		await settle();
+
+		const row = mounted.target.querySelectorAll<HTMLElement>('.vega-block-row')[1];
+		expect(row.querySelector('.vega-block-readonly')?.textContent).toContain('ya no existe');
+		expect(row.querySelector('pre')?.textContent).toContain('"legacy": "no tocar"');
+		expect(row.querySelector('.vega-block-save-button')).toBeNull();
+		expect((await mounted.port.get('landing_block', 'b2')).values.data).toEqual({
+			slides: ['uno', 'dos'],
+			legacy: 'no tocar'
+		});
+	});
+
+	test('columna de tipo vacía: deja salida a Ajustes y conserva el data crudo', async () => {
+		mounted = await mountTypedBlocks();
+		await settle();
+
+		const row = mounted.target.querySelectorAll<HTMLElement>('.vega-block-row')[2];
+		expect(row.querySelector('.vega-block-readonly')?.textContent).toContain('no tiene tipo');
+		expect(row.querySelector('pre')?.textContent).toContain('"untyped": "rescatable"');
+		const settingsLink = row.querySelector<HTMLAnchorElement>('.vega-block-settings-link');
+		expect(settingsLink?.textContent).toContain('Abrir Ajustes');
+		expect(settingsLink?.getAttribute('href')).toBe('/settings');
+		expect(row.querySelector('.vega-block-save-button')).toBeNull();
+	});
+
+	test.each([
+		['null', null],
+		['array', ['valor', 'externo']],
+		['string', 'valor externo no-objeto']
+	] as const)(
+		'data no-objeto (%s): bloquea guardar y enseña el valor crudo',
+		async (_kind, value) => {
+			mounted = await mountTypedBlocks({ invalidData: value as FieldValue });
+			await settle();
+
+			const row = mounted.target.querySelectorAll<HTMLElement>('.vega-block-row')[3];
+			const save = row.querySelector<HTMLButtonElement>('.vega-block-save-button')!;
+			expect(row.querySelector('.vega-block-readonly--danger')?.textContent).toContain(
+				'no contiene un objeto JSON'
+			);
+			expect(row.querySelector('pre')?.textContent).toContain(JSON.stringify(value, null, 2));
+			expect(save.disabled).toBe(true);
+			expect(
+				Array.from(row.querySelectorAll<HTMLInputElement>('input')).every((input) => input.disabled)
+			).toBe(true);
+
+			save.click();
+			await settle();
+			expect((await mounted.port.get('landing_block', 'b4')).values.data).toEqual(value);
+		}
+	);
+
+	test('un fallo del puerto conserva el borrador y permite reintentar', async () => {
+		mounted = await mountTypedBlocks();
+		await settle();
+
+		const originalUpdate = mounted.port.update.bind(mounted.port);
+		vi.spyOn(mounted.port, 'update')
+			.mockRejectedValueOnce(new Error('fallo deliberado'))
+			.mockImplementation(originalUpdate);
+
+		const row = mounted.target.querySelectorAll<HTMLElement>('.vega-block-row')[0];
+		const title = row.querySelector<HTMLInputElement>('[data-field="title"] input')!;
+		title.value = 'Sobrevive al fallo';
+		title.dispatchEvent(new Event('input', { bubbles: true }));
+		await settle();
+		const save = row.querySelector<HTMLButtonElement>('.vega-block-save-button')!;
+		save.click();
+		await settle();
+		await settle();
+
+		expect(title.value).toBe('Sobrevive al fallo');
+		expect(save.disabled).toBe(false);
+		expect(mounted.feedback.reportError).toHaveBeenCalledTimes(1);
+		expect((await mounted.port.get('landing_block', 'b1')).values.data).toEqual({
+			title: 'Portada inicial',
+			heading: 'sombra histórica',
+			orphanedCopy: { nested: 'conservar también' }
+		});
+
+		save.click();
+		await settle();
+		await settle();
+		expect((await mounted.port.get('landing_block', 'b1')).values.data).toEqual({
+			title: 'Sobrevive al fallo',
+			heading: 'sombra histórica',
+			orphanedCopy: { nested: 'conservar también' }
+		});
+	});
+
+	test('plegar y desplegar conserva el borrador tipado sin guardar', async () => {
+		mounted = await mountTypedBlocks();
+		await settle();
+
+		const row = mounted.target.querySelectorAll<HTMLElement>('.vega-block-row')[0];
+		const toggle = row.querySelector<HTMLButtonElement>('.vega-block-toggle')!;
+		toggle.click();
+		await settle();
+		const title = row.querySelector<HTMLInputElement>('[data-field="title"] input')!;
+		title.value = 'Borrador plegado';
+		title.dispatchEvent(new Event('input', { bubbles: true }));
+		await settle();
+
+		toggle.click();
+		await settle();
+		expect(row.querySelector('.vega-block-body')?.hasAttribute('hidden')).toBe(true);
+		toggle.click();
+		await settle();
+		expect(title.isConnected).toBe(true);
+		expect(title.value).toBe('Borrador plegado');
 	});
 
 	test('las flechas recorren el menú en círculo y Home/End van a los extremos', async () => {
@@ -805,7 +1064,12 @@ describe('RecordBlocks.svelte — tipos de bloque', () => {
 		const badges = Array.from(mounted.target.querySelectorAll('.vega-block-type')).map((el) =>
 			el.textContent?.trim()
 		);
-		expect(badges).toEqual(['Tipo desconocido: hero', 'Tipo desconocido: carrusel', 'Sin tipo']);
+		expect(badges).toEqual([
+			'Tipo desconocido: hero',
+			'Tipo desconocido: carrusel',
+			'Sin tipo',
+			'Tipo desconocido: hero'
+		]);
 	});
 
 	test('Escape cierra el menú y devuelve el foco al disparador', async () => {

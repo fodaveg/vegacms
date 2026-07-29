@@ -255,6 +255,16 @@ export const es = {
 	'editor.blocks.addMenu.label': 'Tipos de bloque',
 	'editor.blocks.type.unknown': 'Tipo desconocido: {name}',
 	'editor.blocks.type.none': 'Sin tipo',
+	'editor.blocks.form.unknownType':
+		'El tipo «{name}» ya no existe en el manifiesto. Este bloque queda en solo lectura para conservar sus datos.',
+	'editor.blocks.form.noType':
+		'Este bloque no tiene tipo. Queda en solo lectura hasta que el modelo indique cómo editarlo.',
+	'editor.blocks.form.invalidData':
+		'La columna «{field}» no contiene un objeto JSON. Guardar sustituiría el valor existente, así que Vega ha bloqueado este bloque.',
+	'editor.blocks.form.rawData': 'Valor crudo de «{field}»',
+	'editor.blocks.form.missingRecordField':
+		'La columna «{field}» todavía no existe en el esquema. Créala desde la reconciliación de bloques en Ajustes.',
+	'editor.blocks.form.openSettings': 'Abrir Ajustes',
 	'editor.blocks.empty': 'Todavía no hay {label}.',
 	'editor.blocks.duplicateLabel': 'Duplicar «{label}»',
 	'editor.blocks.duplicateSuccess': 'Bloque duplicado.',
