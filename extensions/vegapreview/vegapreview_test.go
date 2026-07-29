@@ -1,11 +1,16 @@
 package vegapreview
 
 import (
+	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/hmac"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -25,6 +30,7 @@ type previewFixture struct {
 	editorB   string
 	pageA     string
 	pageB     string
+	blockA    string
 	now       time.Time
 }
 
@@ -57,6 +63,25 @@ func newPreviewFixture(t *testing.T) previewFixture {
 	pageA := newDraft(t, app, pages, editorA.Id, "Draft A")
 	pageB := newDraft(t, app, pages, editorB.Id, "Draft B")
 
+	blocks := core.NewBaseCollection("page_blocks")
+	blocks.Fields.Add(
+		&core.TextField{Name: "parent", Required: true},
+		&core.NumberField{Name: "order", Required: true},
+		&core.TextField{Name: "kind", Required: true},
+		&core.TextField{Name: "body", Required: true},
+	)
+	if err := app.Save(blocks); err != nil {
+		t.Fatal(err)
+	}
+	blockA := core.NewRecord(blocks)
+	blockA.Set("parent", pageA.Id)
+	blockA.Set("order", 1)
+	blockA.Set("kind", "text")
+	blockA.Set("body", "saved block text")
+	if err := app.Save(blockA); err != nil {
+		t.Fatal(err)
+	}
+
 	now := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
 	extension, err := New(Config{
 		SiteOrigin:        "https://site.example",
@@ -87,6 +112,7 @@ func newPreviewFixture(t *testing.T) previewFixture {
 		editorB:   authToken(t, editorB),
 		pageA:     pageA.Id,
 		pageB:     pageB.Id,
+		blockA:    blockA.Id,
 		now:       now,
 	}
 }
@@ -130,8 +156,23 @@ func authToken(t *testing.T, record *core.Record) string {
 }
 
 func requestToken(mux http.Handler, token, collection, id string) *httptest.ResponseRecorder {
-	body := `{"collection":"` + collection + `","id":"` + id + `"}`
-	request := httptest.NewRequest(http.MethodPost, "/api/vega-preview/token", strings.NewReader(body))
+	return requestTokenWithDraft(mux, token, collection, id, nil)
+}
+
+func requestTokenWithDraft(
+	mux http.Handler,
+	token, collection, id string,
+	draft *previewDraft,
+) *httptest.ResponseRecorder {
+	body, err := json.Marshal(tokenRequest{Collection: collection, ID: id, Draft: draft})
+	if err != nil {
+		panic(err)
+	}
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/api/vega-preview/token",
+		bytes.NewReader(body),
+	)
 	request.Header.Set("Content-Type", "application/json")
 	if token != "" {
 		request.Header.Set("Authorization", token)
@@ -139,6 +180,55 @@ func requestToken(mux http.Handler, token, collection, id string) *httptest.Resp
 	response := httptest.NewRecorder()
 	mux.ServeHTTP(response, request)
 	return response
+}
+
+func decryptDraftTokenForTest(
+	t *testing.T,
+	token, collection, id string,
+	now time.Time,
+) previewDraft {
+	t.Helper()
+	parts := strings.Split(token, ".")
+	if len(parts) != 4 || parts[0] != draftTokenVersion {
+		t.Fatalf("unexpected draft token shape: %q", token)
+	}
+	expiresUnix, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if expiresUnix <= now.Unix() {
+		t.Fatal("draft token was already expired")
+	}
+	nonce, err := base64.RawURLEncoding.DecodeString(parts[2])
+	if err != nil {
+		t.Fatal(err)
+	}
+	ciphertext, err := base64.RawURLEncoding.DecodeString(parts[3])
+	if err != nil {
+		t.Fatal(err)
+	}
+	block, err := aes.NewCipher(deriveDraftKey(testSecret))
+	if err != nil {
+		t.Fatal(err)
+	}
+	aead, err := cipher.NewGCM(block)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plaintext, err := aead.Open(
+		nil,
+		nonce,
+		ciphertext,
+		[]byte(draftPayload(collection, id, expiresUnix)),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var draft previewDraft
+	if err := json.Unmarshal(plaintext, &draft); err != nil {
+		t.Fatal(err)
+	}
+	return draft
 }
 
 func TestEditorMintsPreviewForSavedUnpublishedRecord(t *testing.T) {
@@ -172,11 +262,142 @@ func TestEditorMintsPreviewForSavedUnpublishedRecord(t *testing.T) {
 	}
 }
 
+func TestUnsavedBlockPreviewIsEncryptedEndToEndAndDoesNotWritePocketBase(t *testing.T) {
+	fixture := newPreviewFixture(t)
+	pageBefore, err := fixture.app.FindRecordById("pages", fixture.pageA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pageBeforeBytes, err := json.Marshal(pageBefore)
+	if err != nil {
+		t.Fatal(err)
+	}
+	savedBefore, err := fixture.app.FindRecordById("page_blocks", fixture.blockA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforeBytes, err := json.Marshal(savedBefore)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	draft := &previewDraft{
+		Record: previewDraftRecord{
+			ID: fixture.pageA,
+			Fields: map[string]any{
+				"owner":  pageBefore.GetString("owner"),
+				"status": "draft",
+				"title":  "Draft A",
+			},
+		},
+		Blocks: []previewDraftRecord{{
+			ID: fixture.blockA,
+			Fields: map[string]any{
+				"parent": fixture.pageA,
+				"order":  0,
+				"kind":   "text",
+				"body":   "new unsaved block text",
+			},
+		}},
+	}
+	response := requestTokenWithDraft(
+		fixture.mux,
+		fixture.editorA,
+		"pages",
+		fixture.pageA,
+		draft,
+	)
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", response.Code, response.Body.String())
+	}
+	if got := response.Header().Get("Cache-Control"); got != "no-store" {
+		t.Fatalf("draft credentials must not be cached, got Cache-Control %q", got)
+	}
+
+	var body tokenResponse
+	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	preview, err := url.Parse(body.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.RawQuery != "" {
+		t.Fatalf("draft token must travel in a POST body, got query %q", preview.RawQuery)
+	}
+	if body.PostToken == "" {
+		t.Fatal("draft response did not contain the encrypted POST token")
+	}
+	if strings.Contains(body.PostToken, "new unsaved block text") ||
+		strings.Contains(body.PostToken, base64.RawURLEncoding.EncodeToString(
+			[]byte("new unsaved block text"),
+		)) {
+		t.Fatal("draft plaintext is legible in the token")
+	}
+
+	opened := decryptDraftTokenForTest(
+		t,
+		body.PostToken,
+		"pages",
+		fixture.pageA,
+		fixture.now,
+	)
+	if got := opened.Blocks[0].Fields["body"]; got != "new unsaved block text" {
+		t.Fatalf("preview rendered %q instead of the editor's unsaved text", got)
+	}
+
+	savedAfter, err := fixture.app.FindRecordById("page_blocks", fixture.blockA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	afterBytes, err := json.Marshal(savedAfter)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(beforeBytes, afterBytes) {
+		t.Fatalf("preview changed the saved block:\nbefore %s\nafter  %s", beforeBytes, afterBytes)
+	}
+	if got := savedAfter.GetString("body"); got != "saved block text" {
+		t.Fatalf("saved block changed to %q", got)
+	}
+	pageAfter, err := fixture.app.FindRecordById("pages", fixture.pageA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pageAfterBytes, err := json.Marshal(pageAfter)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(pageBeforeBytes, pageAfterBytes) {
+		t.Fatalf("preview changed the saved page:\nbefore %s\nafter  %s",
+			pageBeforeBytes, pageAfterBytes)
+	}
+}
+
 func TestEditorCannotMintTokenForARecordTheyCannotView(t *testing.T) {
 	fixture := newPreviewFixture(t)
 	response := requestToken(fixture.mux, fixture.editorA, "pages", fixture.pageB)
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("expected inaccessible records to collapse to 404, got %d: %s",
+			response.Code, response.Body.String())
+	}
+}
+
+func TestEditorCannotMintAnotherEditorsDraft(t *testing.T) {
+	fixture := newPreviewFixture(t)
+	draft := &previewDraft{
+		Record: previewDraftRecord{ID: fixture.pageB, Fields: map[string]any{"title": "stolen"}},
+		Blocks: []previewDraftRecord{},
+	}
+	response := requestTokenWithDraft(
+		fixture.mux,
+		fixture.editorA,
+		"pages",
+		fixture.pageB,
+		draft,
+	)
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("expected editor B's draft to collapse to 404, got %d: %s",
 			response.Code, response.Body.String())
 	}
 }
@@ -193,9 +414,19 @@ func TestTokenIsBoundToTheExactRecord(t *testing.T) {
 
 func TestMissingOrInvalidEditorSessionCannotMintToken(t *testing.T) {
 	fixture := newPreviewFixture(t)
+	draft := &previewDraft{
+		Record: previewDraftRecord{ID: fixture.pageA, Fields: map[string]any{"title": "unsaved"}},
+		Blocks: []previewDraftRecord{},
+	}
 	for name, token := range map[string]string{"missing": "", "invalid": "not-a-pocketbase-token"} {
 		t.Run(name, func(t *testing.T) {
-			response := requestToken(fixture.mux, token, "pages", fixture.pageA)
+			response := requestTokenWithDraft(
+				fixture.mux,
+				token,
+				"pages",
+				fixture.pageA,
+				draft,
+			)
 			if response.Code != http.StatusUnauthorized {
 				t.Fatalf("expected 401, got %d: %s", response.Code, response.Body.String())
 			}
@@ -211,6 +442,50 @@ func TestUnsupportedCollectionDoesNotReceiveToken(t *testing.T) {
 	}
 }
 
+func TestDraftLimitReturns413WithoutIssuingAToken(t *testing.T) {
+	fixture := newPreviewFixture(t)
+	draft := &previewDraft{
+		Record: previewDraftRecord{
+			ID:     fixture.pageA,
+			Fields: map[string]any{"title": strings.Repeat("x", defaultMaxDraftBytes)},
+		},
+		Blocks: []previewDraftRecord{},
+	}
+	response := requestTokenWithDraft(
+		fixture.mux,
+		fixture.editorA,
+		"pages",
+		fixture.pageA,
+		draft,
+	)
+	if response.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("expected 413, got %d: %s", response.Code, response.Body.String())
+	}
+	if strings.Contains(response.Body.String(), draftTokenVersion+".") {
+		t.Fatal("oversized draft response must not contain a partial token")
+	}
+}
+
+func TestRawRequestLimitReturns413BeforeBindingUnknownJSON(t *testing.T) {
+	fixture := newPreviewFixture(t)
+	body := `{"collection":"pages","id":"` + fixture.pageA +
+		`","ignored":"` + strings.Repeat("x", defaultMaxDraftBytes+maxRequestOverhead) + `"}`
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/api/vega-preview/token",
+		strings.NewReader(body),
+	)
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Authorization", fixture.editorA)
+	response := httptest.NewRecorder()
+	fixture.mux.ServeHTTP(response, request)
+
+	if response.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("expected 413 before binding an oversized body, got %d: %s",
+			response.Code, response.Body.String())
+	}
+}
+
 func TestConfigDefaultsAndFailClosedGuards(t *testing.T) {
 	valid := Config{SiteOrigin: "https://site.example", SigningSecret: testSecret}
 	extension, err := New(valid)
@@ -219,7 +494,8 @@ func TestConfigDefaultsAndFailClosedGuards(t *testing.T) {
 	}
 	if extension.config.RoutePrefix != defaultRoutePrefix ||
 		extension.config.PreviewPath != defaultPreviewPath ||
-		extension.config.TokenTTL != defaultTokenTTL {
+		extension.config.TokenTTL != defaultTokenTTL ||
+		extension.config.MaxDraftBytes != defaultMaxDraftBytes {
 		t.Fatalf("unexpected defaults: %#v", extension.config)
 	}
 
@@ -228,6 +504,7 @@ func TestConfigDefaultsAndFailClosedGuards(t *testing.T) {
 		{SiteOrigin: "ftp://site.example", SigningSecret: testSecret},
 		{SiteOrigin: "https://site.example", SigningSecret: "short"},
 		{SiteOrigin: "https://site.example", SigningSecret: testSecret, TokenTTL: -time.Second},
+		{SiteOrigin: "https://site.example", SigningSecret: testSecret, MaxDraftBytes: -1},
 		{SiteOrigin: "https://site.example", SigningSecret: testSecret, RoutePrefix: "/preview"},
 	}
 	for _, config := range invalid {
@@ -242,5 +519,46 @@ func TestCrossLanguageSigningVector(t *testing.T) {
 	actual := signToken(testSecret, "pages", "draft-a", 1785240300)
 	if actual != expected {
 		t.Fatalf("signing vector changed:\nwant %s\ngot  %s", expected, actual)
+	}
+}
+
+func TestDraftCrossLanguageEncryptionVector(t *testing.T) {
+	draft := previewDraft{
+		Record: previewDraftRecord{
+			ID: "draft-a",
+			Fields: map[string]any{
+				"path":   "/draft",
+				"status": "draft",
+				"title":  "Unsaved",
+			},
+		},
+		Blocks: []previewDraftRecord{{
+			ID: "block-a",
+			Fields: map[string]any{
+				"parent": "draft-a",
+				"order":  0,
+				"type":   "text",
+				"data":   map[string]any{"body": "new unsaved block text"},
+			},
+		}},
+	}
+	plaintext, err := json.Marshal(draft)
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual, err := encryptDraft(
+		testSecret,
+		"pages",
+		"draft-a",
+		1785240300,
+		plaintext,
+		bytes.NewReader([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const expected = "v2.1785240300.AAECAwQFBgcICQoL.Oq1lUlDnhT2sgArfEeSdkMf_dLAwRA1iXzCSZCgGUw0RmVrY1rgC50kIvW27kTvwt7dgUBwKh8Q9zB7qFP56lFQ9yYIC-zbHpilKY9l0RlfWbsu9WOeNofyEP0M7lDc_qbxt8o83uRhdoer6fN2fPmImYtafarUedxpe1nF4Acf_SbwhW8vIPogSB4XQ0HtNHZAYiD6R0mADRNqBquSftTCHRDriDXb9jFhHbaGSaPdTm5PaZSB8mhyn0upHWxtgITMI3LwMX2oBCXKNNy_Itz_VlkkF_LI8k0lcnh3Raqxsv3_P"
+	if actual != expected {
+		t.Fatalf("draft encryption vector changed:\nwant %s\ngot  %s", expected, actual)
 	}
 }

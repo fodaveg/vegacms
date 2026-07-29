@@ -192,6 +192,7 @@
 	import { onMount, tick, untrack } from 'svelte';
 	import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
 	import type { FieldInputValue, RecordInput, VegaRecord } from '$lib/backend/types';
+	import type { PreviewDraft, PreviewDraftRecord } from '$lib/backend/preview-client';
 	import { VegaError } from '$lib/backend/errors';
 	import { getVegaContext } from '$lib/app-context';
 	import { classifyStatusBadge, describeCell } from '$lib/list/cell';
@@ -278,6 +279,9 @@
 	let blocksDirty = $state(false);
 	/** Mutación estructural de bloques en vuelo: no se puede clonar una instantánea intermedia. */
 	let blocksBusy = $state(false);
+	/** Snapshot editable de los hijos, incluida cualquier edición aún no guardada publicada por
+	 *  `BlockEditor`. Nunca se envía al puerto; solo alimenta el token cifrado de preview. */
+	let previewBlocks = $state<PreviewDraftRecord[]>([]);
 
 	// Lote "publicación" fase B (ver cabecera, "Vista previa"): `true` mientras `PreviewPanel` está
 	// montado. Variable de estado propia (no derivada de `savedCount`/`model`): el usuario decide
@@ -326,6 +330,7 @@
 			// remonta con el `parentId`/`parentType` nuevos y recalculará su propio dirty desde cero.
 			blocksDirty = false;
 			blocksBusy = false;
+			previewBlocks = [];
 			// Lote "publicación" fase B: un panel de preview abierto para el registro ANTERIOR ya no
 			// tiene sentido (otra colección/id) — se cierra, `RecordForm` lo reabrirá si el usuario
 			// vuelve a pedirlo para el registro nuevo.
@@ -364,6 +369,13 @@
 	});
 
 	const dirty = $derived(isDirty(baseline, current) || blocksDirty);
+	const previewDraft = $derived.by((): PreviewDraft => ({
+		record: {
+			id: model.recordId ?? '',
+			fields: { ...current }
+		},
+		blocks: previewBlocks.map((record) => ({ id: record.id, fields: { ...record.fields } }))
+	}));
 	/**
 	 * El formulario está BLOQUEADO (`#lote-shell`): o la colección es una vista del backend
 	 * (`typeReadonly`, prop de la ruta) o las reglas de acceso no dejan ACTUALIZAR a esta sesión
@@ -970,6 +982,7 @@
 					parentType={type}
 					parentId={model.recordId}
 					onDirtyChange={(value) => (blocksDirty = value)}
+					onDraftChange={(records) => (previewBlocks = records)}
 					onBusyChange={(value) => (blocksBusy = value)}
 					disabled={duplicating}
 				/>
@@ -1084,6 +1097,7 @@
 			apiBasePath={previewApiUrl}
 			collection={type.name}
 			recordId={previewRecordId}
+			draft={previewDraft}
 			refreshToken={savedCount}
 			onClose={() => (previewPanelOpen = false)}
 		/>

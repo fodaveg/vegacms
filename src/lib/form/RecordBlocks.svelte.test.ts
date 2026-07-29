@@ -95,7 +95,8 @@ function buildParentType() {
 async function mountBlocks(
 	parentId: string | null,
 	onDirtyChange: (dirty: boolean) => void,
-	onBusyChange: (busy: boolean) => void = vi.fn()
+	onBusyChange: (busy: boolean) => void = vi.fn(),
+	onDraftChange: (records: { id: string; fields: Record<string, unknown> }[]) => void = vi.fn()
 ): Promise<{
 	target: HTMLElement;
 	instance: ReturnType<typeof mount>;
@@ -139,7 +140,14 @@ async function mountBlocks(
 	// Props REACTIVAS (`$state`) en vez de un objeto plano: la app cambia de registro padre sin
 	// remontar este componente (`/c/[type]/[id]/+page.svelte` no usa `{#key}`), así que el único
 	// modo de ejercer ese camino en un test es mutar `parentId` sobre un montaje vivo.
-	const props = $state({ parentType, parentId, onDirtyChange, onBusyChange, disabled: false });
+	const props = $state({
+		parentType,
+		parentId,
+		onDirtyChange,
+		onBusyChange,
+		onDraftChange,
+		disabled: false
+	});
 	const instance = mount(RecordBlocks, {
 		target,
 		props,
@@ -188,6 +196,29 @@ describe('RecordBlocks.svelte', () => {
 		expect(mounted.target.querySelector('.vega-blocks-notice')).not.toBeNull();
 		expect(mounted.target.querySelector('.vega-blocks-add')).toBeNull();
 		expect(mounted.target.querySelectorAll('.vega-block-row')).toHaveLength(0);
+	});
+
+	test('publica el texto editado sin guardar y deja intacto el registro del puerto', async () => {
+		const onDraftChange = vi.fn();
+		mounted = await mountBlocks('landing1', vi.fn(), vi.fn(), onDraftChange);
+		await settle();
+
+		mounted.target.querySelector<HTMLButtonElement>('.vega-block-toggle')!.click();
+		await settle();
+		const heading = mounted.target.querySelector<HTMLInputElement>(
+			'.vega-block-row input[type="text"]'
+		)!;
+		heading.value = 'Hero en borrador';
+		heading.dispatchEvent(new Event('input', { bubbles: true }));
+		await settle();
+
+		const latest = onDraftChange.mock.calls.at(-1)?.[0] as {
+			id: string;
+			fields: Record<string, unknown>;
+		}[];
+		expect(latest.find((record) => record.id === 'b1')?.fields.heading).toBe('Hero en borrador');
+		const saved = await mounted.port.get('landing_block', 'b1');
+		expect(saved.values.heading).toBe('Hero');
 	});
 
 	test('crear: port.create con parentField/orderField, fila nueva desplegada', async () => {
@@ -427,9 +458,14 @@ describe('RecordBlocks.svelte', () => {
 
 	test('reorden por teclado (ArrowDown en el asa): persiste de inmediato, sin marcar sucio, y anuncia la posición', async () => {
 		const onDirtyChange = vi.fn();
-		mounted = await mountBlocks('landing1', onDirtyChange);
+		const onDraftChange = vi.fn();
+		mounted = await mountBlocks('landing1', onDirtyChange, vi.fn(), onDraftChange);
 		await settle();
 
+		// Montar el editor crea un override editorial para b1. El reorden debe sustituir sus
+		// campos estructurales antiguos por los valores actuales de la lista.
+		mounted.target.querySelector<HTMLButtonElement>('.vega-block-toggle')!.click();
+		await settle();
 		const handle = mounted.target.querySelector<HTMLButtonElement>('.vega-block-handle')!;
 		handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
 		await settle();
@@ -447,6 +483,12 @@ describe('RecordBlocks.svelte', () => {
 			sort: [{ field: 'sort', dir: 'asc' }]
 		});
 		expect(reloaded.items.map((r) => r.values.heading)).toEqual(['Features', 'Hero']);
+		const latestDraft = onDraftChange.mock.calls.at(-1)?.[0] as {
+			id: string;
+			fields: Record<string, unknown>;
+		}[];
+		expect(latestDraft.map((record) => record.id)).toEqual(['b2', 'b1']);
+		expect(latestDraft.map((record) => record.fields.sort)).toEqual([0, 1]);
 		// Decisión 1 de la cabecera: reordenar NUNCA marca sucio (ya está persistido).
 		expect(onDirtyChange).not.toHaveBeenCalledWith(true);
 	});

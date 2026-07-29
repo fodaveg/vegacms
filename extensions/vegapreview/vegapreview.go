@@ -8,10 +8,16 @@
 package vegapreview
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"slices"
@@ -21,15 +27,20 @@ import (
 
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/tools/router"
 )
 
 const (
-	defaultRoutePrefix = "/api/vega-preview"
-	defaultPreviewPath = "/preview"
-	defaultTokenTTL    = 5 * time.Minute
-	minSecretBytes     = 32
-	timestampLayout    = "2006-01-02T15:04:05.000Z"
-	tokenVersion       = "v1"
+	defaultRoutePrefix   = "/api/vega-preview"
+	defaultPreviewPath   = "/preview"
+	defaultTokenTTL      = 5 * time.Minute
+	minSecretBytes       = 32
+	timestampLayout      = "2006-01-02T15:04:05.000Z"
+	tokenVersion         = "v1"
+	draftTokenVersion    = "v2"
+	defaultMaxDraftBytes = 256 * 1024
+	maxRequestOverhead   = 16 * 1024
+	draftKeyLabel        = "vega-preview-draft-v2\naes-256-gcm"
 )
 
 // Config carries every deployment-specific value. SigningSecret is shared only with the site
@@ -53,8 +64,14 @@ type Config struct {
 	RecordCollections []string
 	// TokenTTL controls the signed URL lifetime. Default: five minutes.
 	TokenTTL time.Duration
+	// MaxDraftBytes limits the canonical JSON encrypted into a draft token. Default: 256 KiB.
+	// Oversized drafts fail with 413 and are never partially encrypted.
+	MaxDraftBytes int
 	// Clock is injectable for deterministic tests; default: time.Now.
 	Clock func() time.Time
+	// RandomSource is injectable only for deterministic cross-language vectors; default:
+	// crypto/rand.Reader.
+	RandomSource io.Reader
 }
 
 func (c Config) normalized() (Config, error) {
@@ -91,8 +108,17 @@ func (c Config) normalized() (Config, error) {
 	if c.TokenTTL <= 0 {
 		return c, fmt.Errorf("vegapreview: TokenTTL must be greater than zero")
 	}
+	if c.MaxDraftBytes == 0 {
+		c.MaxDraftBytes = defaultMaxDraftBytes
+	}
+	if c.MaxDraftBytes <= 0 {
+		return c, fmt.Errorf("vegapreview: MaxDraftBytes must be greater than zero")
+	}
 	if c.Clock == nil {
 		c.Clock = time.Now
+	}
+	if c.RandomSource == nil {
+		c.RandomSource = rand.Reader
 	}
 	return c, nil
 }
@@ -121,13 +147,29 @@ func (x *Extension) RegisterRoutes(event *core.ServeEvent) {
 }
 
 type tokenRequest struct {
-	Collection string `json:"collection"`
-	ID         string `json:"id"`
+	Collection string        `json:"collection"`
+	ID         string        `json:"id"`
+	Draft      *previewDraft `json:"draft,omitempty"`
+}
+
+// previewDraft is the transport-neutral snapshot shared with @vega/astro. Fields are the
+// editor's current values, while id stays structural and cannot be shadowed by a field named id.
+type previewDraft struct {
+	Record previewDraftRecord   `json:"record"`
+	Blocks []previewDraftRecord `json:"blocks"`
+}
+
+type previewDraftRecord struct {
+	ID     string         `json:"id"`
+	Fields map[string]any `json:"fields"`
 }
 
 type tokenResponse struct {
 	URL       string `json:"url"`
 	ExpiresAt string `json:"expiresAt"`
+	// PostToken is present only for an unsaved draft. Vega submits it as form field "token" to URL,
+	// keeping the encrypted payload out of query strings, referrers, and intermediary URL logs.
+	PostToken string `json:"postToken,omitempty"`
 }
 
 func tokenPayload(collection, id string, expiresUnix int64) string {
@@ -144,12 +186,66 @@ func signToken(secret, collection, id string, expiresUnix int64) string {
 	return tokenVersion + "." + strconv.FormatInt(expiresUnix, 10) + "." + signature
 }
 
+func draftPayload(collection, id string, expiresUnix int64) string {
+	return strings.Join(
+		[]string{draftTokenVersion, collection, id, strconv.FormatInt(expiresUnix, 10)},
+		"\n",
+	)
+}
+
+func deriveDraftKey(secret string) []byte {
+	mac := hmac.New(sha256.New, []byte(secret))
+	_, _ = mac.Write([]byte(draftKeyLabel))
+	return mac.Sum(nil)
+}
+
+// encryptDraft seals the complete snapshot with AES-256-GCM. The route identity and expiry are
+// additional authenticated data: moving the token to another collection/id or changing its
+// lifetime makes decryption fail before any draft bytes are exposed.
+func encryptDraft(
+	secret, collection, id string,
+	expiresUnix int64,
+	plaintext []byte,
+	randomSource io.Reader,
+) (string, error) {
+	block, err := aes.NewCipher(deriveDraftKey(secret))
+	if err != nil {
+		return "", err
+	}
+	aead, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
+	}
+	nonce := make([]byte, aead.NonceSize())
+	if _, err := io.ReadFull(randomSource, nonce); err != nil {
+		return "", fmt.Errorf("vegapreview: generate draft nonce: %w", err)
+	}
+	ciphertext := aead.Seal(
+		nil,
+		nonce,
+		plaintext,
+		[]byte(draftPayload(collection, id, expiresUnix)),
+	)
+	return strings.Join([]string{
+		draftTokenVersion,
+		strconv.FormatInt(expiresUnix, 10),
+		base64.RawURLEncoding.EncodeToString(nonce),
+		base64.RawURLEncoding.EncodeToString(ciphertext),
+	}, "."), nil
+}
+
 func (x *Extension) previewURL(collection, id, token string) string {
 	target, _ := url.Parse(x.config.SiteOrigin)
 	target.Path = x.config.PreviewPath + "/" + collection + "/" + id
 	query := target.Query()
 	query.Set("token", token)
 	target.RawQuery = query.Encode()
+	return target.String()
+}
+
+func (x *Extension) draftPreviewURL(collection, id string) string {
+	target, _ := url.Parse(x.config.SiteOrigin)
+	target.Path = x.config.PreviewPath + "/" + collection + "/" + id
 	return target.String()
 }
 
@@ -161,8 +257,28 @@ func (x *Extension) collectionIsSupported(name string) bool {
 // this exact record under the collection's current PocketBase ViewRule. Missing, unsupported, and
 // inaccessible records deliberately collapse to 404 so the endpoint is not an enumeration oracle.
 func (x *Extension) tokenHandler(event *core.RequestEvent) error {
+	maxRequestBytes := int64(x.config.MaxDraftBytes + maxRequestOverhead)
+	if event.Request.ContentLength > maxRequestBytes {
+		return apis.NewApiError(
+			http.StatusRequestEntityTooLarge,
+			fmt.Sprintf("preview request exceeds the %d byte request limit.", maxRequestBytes),
+			nil,
+		)
+	}
+	event.Request.Body = &router.RereadableReadCloser{
+		ReadCloser: http.MaxBytesReader(event.Response, event.Request.Body, maxRequestBytes),
+	}
+
 	var body tokenRequest
 	if err := event.BindBody(&body); err != nil {
+		var maxBytesError *http.MaxBytesError
+		if errors.As(err, &maxBytesError) {
+			return apis.NewApiError(
+				http.StatusRequestEntityTooLarge,
+				fmt.Sprintf("preview request exceeds the %d byte request limit.", maxRequestBytes),
+				nil,
+			)
+		}
 		return event.BadRequestError("Invalid preview request.", err)
 	}
 	body.Collection = strings.TrimSpace(body.Collection)
@@ -191,8 +307,47 @@ func (x *Extension) tokenHandler(event *core.RequestEvent) error {
 	}
 
 	expires := x.config.Clock().UTC().Add(x.config.TokenTTL).Truncate(time.Second)
-	token := signToken(x.config.SigningSecret, body.Collection, body.ID, expires.Unix())
 	event.Response.Header().Set("Cache-Control", "no-store")
+	if body.Draft != nil {
+		if strings.TrimSpace(body.Draft.Record.ID) != body.ID ||
+			body.Draft.Record.Fields == nil {
+			return event.BadRequestError("draft.record must describe the requested record.", nil)
+		}
+		for _, block := range body.Draft.Blocks {
+			if strings.TrimSpace(block.ID) == "" || block.Fields == nil {
+				return event.BadRequestError("draft.blocks must contain records with id and fields.", nil)
+			}
+		}
+		plaintext, marshalErr := json.Marshal(body.Draft)
+		if marshalErr != nil {
+			return event.BadRequestError("draft must be valid JSON.", marshalErr)
+		}
+		if len(plaintext) > x.config.MaxDraftBytes {
+			return apis.NewApiError(
+				http.StatusRequestEntityTooLarge,
+				fmt.Sprintf("draft exceeds the %d byte preview limit.", x.config.MaxDraftBytes),
+				nil,
+			)
+		}
+		token, encryptErr := encryptDraft(
+			x.config.SigningSecret,
+			body.Collection,
+			body.ID,
+			expires.Unix(),
+			plaintext,
+			x.config.RandomSource,
+		)
+		if encryptErr != nil {
+			return encryptErr
+		}
+		return event.JSON(http.StatusOK, tokenResponse{
+			URL:       x.draftPreviewURL(body.Collection, body.ID),
+			ExpiresAt: expires.Format(timestampLayout),
+			PostToken: token,
+		})
+	}
+
+	token := signToken(x.config.SigningSecret, body.Collection, body.ID, expires.Unix())
 	return event.JSON(http.StatusOK, tokenResponse{
 		URL:       x.previewURL(body.Collection, body.ID, token),
 		ExpiresAt: expires.Format(timestampLayout),

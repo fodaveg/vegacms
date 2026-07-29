@@ -31,6 +31,21 @@ export interface PreviewToken {
 	 *  token sigue siendo válido; eso lo dice el propio servidor de preview en la respuesta a la
 	 *  siguiente petición. */
 	expiresAt: string;
+	/** Presente solo para un borrador sin guardar. El panel lo envía como campo `token` de un
+	 *  formulario POST dirigido a `url`; el ciphertext nunca entra en la query string. */
+	postToken?: string;
+}
+
+/** Snapshot canónico que viaja cifrado al sitio. `id` queda fuera de `fields` para que un campo
+ *  editorial con ese nombre no pueda cambiar la identidad estructural del registro. */
+export interface PreviewDraftRecord {
+	id: string;
+	fields: Record<string, unknown>;
+}
+
+export interface PreviewDraft {
+	record: PreviewDraftRecord;
+	blocks: PreviewDraftRecord[];
 }
 
 export interface PreviewClientOptions {
@@ -47,7 +62,7 @@ export interface PreviewClient {
 	/** Pide un token de preview NUEVO para `{collection, id}`. Rechaza si la respuesta no es
 	 *  `2xx` o no trae una `url`/`expiresAt` utilizables — nunca inventa una URL a partir de una
 	 *  forma parcial (P3-L3, "nunca un dato inventado"). */
-	requestPreview(collection: string, id: string): Promise<PreviewToken>;
+	requestPreview(collection: string, id: string, draft?: PreviewDraft): Promise<PreviewToken>;
 }
 
 function stringOrNull(value: unknown): string | null {
@@ -67,7 +82,8 @@ export function parsePreviewToken(raw: unknown): PreviewToken | null {
 	const url = stringOrNull(record.url);
 	const expiresAt = stringOrNull(record.expiresAt);
 	if (!url || !expiresAt) return null;
-	return { url, expiresAt };
+	const postToken = stringOrNull(record.postToken);
+	return postToken ? { url, expiresAt, postToken } : { url, expiresAt };
 }
 
 /**
@@ -80,7 +96,7 @@ export function createPreviewClient(opts: PreviewClientOptions): PreviewClient {
 	const base = opts.apiUrl.replace(/\/+$/, '');
 
 	return {
-		async requestPreview(collection, id) {
+		async requestPreview(collection, id, draft) {
 			const response = await fetcher(`${base}/token`, {
 				method: 'POST',
 				headers: {
@@ -88,7 +104,7 @@ export function createPreviewClient(opts: PreviewClientOptions): PreviewClient {
 					'Content-Type': 'application/json',
 					Authorization: opts.token
 				},
-				body: JSON.stringify({ collection, id }),
+				body: JSON.stringify(draft === undefined ? { collection, id } : { collection, id, draft }),
 				cache: 'no-store'
 			});
 			if (!response.ok) {

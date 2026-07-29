@@ -15,15 +15,10 @@
 	 * `RecordForm.svelte` (raíl×aside en 1180px/900px) por una capacidad que ni siquiera todos los
 	 * proyectos declaran — un overlay fijo evita esa combinatoria sin tocar la rejilla existente.
 	 *
-	 * **Cuándo refresca (decisión del encargo)**: NUNCA en cada tecla. El preview lo sirve el
-	 * sitio leyendo PocketBase por SSR (§"Preview endpoint"): antes de guardar, el registro en el
-	 * backend sigue siendo el ANTERIOR, así que refrescar contra cada pulsación no mostraría nada
-	 * nuevo (o exigiría inventar un autoguardado que este lote no tiene). El disparo real es
-	 * `refreshToken` (prop: el `savedCount` de `RecordForm`, que YA sube en cada guardado con
-	 * éxito para el raíl) — cada guardado es la única vez que el estado remoto cambia de verdad.
-	 * Se añade un botón "Actualizar" para pedir el MISMO refresco a mano (reintentar tras un
-	 * error, o simplemente comprobar de nuevo sin haber guardado) — nunca un sondeo tipo
-	 * `pollBuildStatus`, que no tendría nada que sondear entre guardados.
+	 * **Cuándo refresca**: NUNCA en cada tecla. Cada petición sí lleva el snapshot ACTUAL del
+	 * registro y sus bloques, cifrado por el endpoint; se dispara al abrir, con "Actualizar", tras
+	 * guardar y al renovar. Así una edición sin guardar aparece al actualizar sin convertir cada
+	 * pulsación en una petición ni inventar un autoguardado.
 	 *
 	 * **Caducidad del token**: `PreviewToken.expiresAt` (`backend/preview-client.ts`) programa una
 	 * renovación SILENCIOSA (pide un token nuevo, `<iframe src>` nuevo) un poco antes de que
@@ -46,9 +41,13 @@
 	 * móvil la única afordancia de preview que queda es "Ver en el sitio" (degradación honesta:
 	 * nada a medio pintar).
 	 */
-	import { onDestroy, onMount, untrack } from 'svelte';
+	import { onDestroy, onMount, tick, untrack } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
-	import { createPreviewClient, type PreviewToken } from '$lib/backend/preview-client';
+	import {
+		createPreviewClient,
+		type PreviewDraft,
+		type PreviewToken
+	} from '$lib/backend/preview-client';
 	import Icon from '$lib/icons/Icon.svelte';
 
 	interface Props {
@@ -58,13 +57,15 @@
 		collection: string;
 		/** `model.recordId` YA no-nulo (`RecordForm` solo monta este panel en edición, con id real). */
 		recordId: string;
+		/** Registro y bloques tal como están AHORA en los formularios, no el baseline guardado. */
+		draft: PreviewDraft;
 		/** Sube en cada guardado con éxito (`RecordForm.savedCount`): dispara un refresco automático
 		 *  mientras el panel sigue montado (ver cabecera, "Cuándo refresca"). */
 		refreshToken: number;
 		onClose: () => void;
 	}
 
-	let { apiBasePath, collection, recordId, refreshToken, onClose }: Props = $props();
+	let { apiBasePath, collection, recordId, draft, refreshToken, onClose }: Props = $props();
 
 	const ctx = getVegaContext();
 	// Capturado UNA vez (misma sesión durante toda la vida del panel), mismo criterio que
@@ -89,6 +90,8 @@
 	// que cargue, aunque el nodo `<iframe>` del DOM sea el mismo.
 	let frameLoaded = $state(false);
 	let renewTimer: ReturnType<typeof setTimeout> | null = null;
+	let postForm = $state<HTMLFormElement | undefined>(undefined);
+	const frameName = 'vega-preview-draft-frame';
 
 	/** Margen de seguridad antes de `expiresAt` (ver cabecera): pedir el siguiente token con
 	 *  antelación evita una ventana en la que el iframe sirve un token ya muerto. */
@@ -127,10 +130,16 @@
 		panelState = { kind: 'loading' };
 		frameLoaded = false;
 		try {
-			const token = await client.requestPreview(collection, recordId);
+			const token = await client.requestPreview(collection, recordId, draft);
 			if (generation !== requestGeneration) return; // llegó tarde: manda la petición posterior
 			panelState = { kind: 'ready', token };
 			scheduleRenew(token);
+			if (token.postToken) {
+				await tick();
+				if (generation !== requestGeneration) return;
+				frameLoaded = false;
+				postForm?.requestSubmit();
+			}
 		} catch (err) {
 			if (generation !== requestGeneration) return;
 			clearRenewTimer();
@@ -196,12 +205,27 @@
 		{:else}
 			<div class="vega-preview-panel-frame-wrap">
 				{#if panelState.kind === 'ready'}
+					{#if panelState.token.postToken}
+						<!-- Un form target permite que el ciphertext viaje en el BODY de un POST. La URL
+						     queda limpia y el iframe sigue siendo cross-origin/opaco para Vega. -->
+						<form
+							class="vega-preview-panel-post"
+							method="post"
+							action={panelState.token.url}
+							target={frameName}
+							bind:this={postForm}
+						>
+							<input type="hidden" name="token" value={panelState.token.postToken} />
+						</form>
+					{/if}
 					<!-- Cross-origin a propósito (ver cabecera, "Qué NO hace"): SOLO se escuchan
 					     `load`/`error`, nunca se lee ni se toca el contenido del documento remoto. -->
 					<iframe
 						class="vega-preview-panel-frame"
-						src={panelState.token.url}
+						name={frameName}
+						src={panelState.token.postToken ? 'about:blank' : panelState.token.url}
 						title={ctx.t('editor.preview.panel.frameTitle')}
+						referrerpolicy="no-referrer"
 						onload={() => (frameLoaded = true)}
 						onerror={() =>
 							(panelState = { kind: 'error', message: ctx.t('editor.preview.panel.loadError') })}
@@ -308,6 +332,10 @@
 		height: 100%;
 		border: 0;
 		background: var(--surface);
+	}
+
+	.vega-preview-panel-post {
+		display: none;
 	}
 
 	/* Skeleton honesto mientras carga (ver cabecera): cubre el iframe hasta el evento `load`, en
