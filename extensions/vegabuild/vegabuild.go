@@ -122,8 +122,8 @@ type Config struct {
 	RoutePrefix string
 	// Runner is required: it is the actual mechanism that triggers a build.
 	Runner Runner
-	// AuthCollections restricts which auth collections may call /trigger and /status. Empty means
-	// any authenticated record, of any auth collection, is accepted.
+	// AuthCollections restricts which auth collections may call /trigger and /status. It must
+	// contain at least one exact auth collection name, without leading or trailing whitespace.
 	AuthCollections []string
 	// RunsCollection is the PocketBase collection backing every run record, default
 	// "vega_build_runs".
@@ -157,6 +157,34 @@ func (c Config) normalized() (Config, error) {
 	}
 	if strings.Contains(c.RoutePrefix, "//") {
 		return c, fmt.Errorf("vegabuild: RoutePrefix must not contain \"//\"")
+	}
+	if len(c.AuthCollections) == 0 {
+		return c, fmt.Errorf(
+			"vegabuild: AuthCollections must contain at least one exact auth collection name; " +
+				"configure the allowlist before starting",
+		)
+	}
+	for i, collection := range c.AuthCollections {
+		switch {
+		case collection == "":
+			return c, fmt.Errorf(
+				"vegabuild: AuthCollections[%d] %q is empty; remove it or correct it to an exact auth collection name",
+				i,
+				collection,
+			)
+		case strings.TrimSpace(collection) == "":
+			return c, fmt.Errorf(
+				"vegabuild: AuthCollections[%d] %q is blank; remove it or correct it to an exact auth collection name",
+				i,
+				collection,
+			)
+		case strings.TrimSpace(collection) != collection:
+			return c, fmt.Errorf(
+				"vegabuild: AuthCollections[%d] %q has leading or trailing whitespace; remove it or correct it to the exact auth collection name",
+				i,
+				collection,
+			)
+		}
 	}
 	c.RunsCollection = strings.TrimSpace(c.RunsCollection)
 	if c.RunsCollection == "" {
@@ -219,6 +247,8 @@ func New(config Config) (*Extension, error) {
 	return &Extension{config: config}, nil
 }
 
+var requireAuth = apis.RequireAuth
+
 // RegisterRoutes installs the routes under Config.RoutePrefix. /trigger and /status require a
 // valid PocketBase record token (the SAME token Vega already sends to the rest of its own API,
 // with no "Bearer" prefix — see build-client.ts). /callback is registered only when a
@@ -226,8 +256,8 @@ func New(config Config) (*Extension, error) {
 // with no PocketBase account, gated by X-Vega-Build-Secret instead (see callbackHandler).
 func (x *Extension) RegisterRoutes(se *core.ServeEvent) {
 	prefix := x.config.RoutePrefix
-	se.Router.POST(prefix+"/trigger", x.triggerHandler).Bind(apis.RequireAuth(x.config.AuthCollections...))
-	se.Router.GET(prefix+"/status", x.statusHandler).Bind(apis.RequireAuth(x.config.AuthCollections...))
+	se.Router.POST(prefix+"/trigger", x.triggerHandler).Bind(requireAuth(x.config.AuthCollections...))
+	se.Router.GET(prefix+"/status", x.statusHandler).Bind(requireAuth(x.config.AuthCollections...))
 	if x.config.CallbackSecret != "" {
 		se.Router.POST(prefix+"/callback", x.callbackHandler)
 	}
