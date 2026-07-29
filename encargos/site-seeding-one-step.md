@@ -143,6 +143,20 @@ repeat_interrupt_revert_behavior:
   - 'Interrupción a mitad: lo ya creado se queda (no hay rollback implícito, igual que
     `ensureCollections`), y la siguiente pasada lo completa. Decir esto explícitamente'
   - 'Ante divergencia no hay nada que revertir, porque no se escribió nada'
+  - '⚠️ SEGUNDO SUPUESTO DE VALIDEZ, decidido el 29 jul tras un BLOCKED del primer intento, y es
+    la salida que David eligió: la promesa «aborta sin haber escrito nada» vale para un PocketBase
+    donde NINGUNO de `vega`, `pages`, `vega_media` ni `blocks` existe como colección `auth`.
+    Motivo del hueco: `isExcludedCollection` (adapters/pocketbase/schema.ts:16-20) excluye del
+    descubrimiento CUALQUIER colección `type: "auth"`, no solo `vega_editors`, así que una `pages`
+    que fuese auth se clasificaría como AUSENTE en el preflight; el fallo por tipo llegaría al
+    intentar crearla, con `vega_editors` ya escrita. Por qué se ACOTA en vez de arreglarse: en una
+    instalación así Vega no funciona en absoluto —todo el modelo se resuelve descubriendo `pages`—,
+    y creation-only garantiza que nada PREEXISTENTE se altera; a lo sumo queda una colección nueva
+    de más. Exponer una inspección cruda en el puerto para ese caso es otro lote y no se hace aquí.
+    LO QUE SÍ EXIGE ESTA SALIDA: (a) declarar el supuesto en el docblock de la operación y en la
+    documentación que escribas; (b) que el fallo por colisión de tipo sea EXPLÍCITO y diga qué
+    colección es y con qué tipo la encontró, nunca un error genérico; (c) un test que ejercite ese
+    caso y compruebe ese mensaje. No lo dejes como agujero silencioso'
   - '⚠️ SUPUESTO DE VALIDEZ, declarado: la promesa «aborta sin haber escrito nada» vale para un
     PocketBase SIN escritores concurrentes. No hay transacción global posible: entre el preflight y
     las escrituras, otro operador podría crear o cambiar una colección, y esa divergencia aparecería
@@ -230,6 +244,10 @@ required_behavioral_qa:
     manifiesto humano sigue intacto'
   - 'Contra PocketBase REAL: `listRule` Y `viewRule` de `vega` acotadas a `vega_editors`, leídas
     crudas y comparadas como cadena literal'
+  - '⚠️ Contra PocketBase REAL: crear `pages` como colección `auth`, sembrar, y comprobar que el
+    fallo es EXPLÍCITO y nombra la colección y el tipo encontrado. Es el caso que el contrato deja
+    fuera de la garantía de «no escribe nada»: precisamente por eso tiene que fallar de forma
+    legible en vez de en silencio'
 expected_reports:
   - /private/tmp/vega-informes/site-seeding-one-step.md
 known_unverifiable_items:
@@ -289,9 +307,12 @@ validas sobre la marcha, cuando descubras la divergencia ya has escrito.
    y solo la usa el renderizador de migraciones; `ensureCollectionsOnPocketBase` crea en el orden
    que le llegan. El orden lo fijas tú, y está en `invariants`.
 
-3. **`vega_editors` es una colección `auth`, y las `auth` son invisibles al descubrimiento**
-   (`schema.ts:16-20`). Tu preflight NO puede verla. Por eso va primera: si es ella la que diverge,
-   el adaptador lanza cuando todavía no se ha escrito nada más.
+3. **Las colecciones `auth` son invisibles al descubrimiento** (`schema.ts:16-20`), y la exclusión
+   es por TIPO, no por nombre. Dos consecuencias, y la segunda tumbó el primer intento de este lote:
+   tu preflight no puede ver `vega_editors` —por eso va primera, para que su divergencia salte antes
+   de escribir nada más—; y tampoco vería una `pages` que alguien hubiera creado como `auth`. Ese
+   segundo caso está **acotado fuera de la garantía** por decisión de David: ver el segundo supuesto
+   de validez en `repeat_interrupt_revert_behavior`, con las tres cosas que sí te exige.
 
 4. **El manifiesto de partida vive en OTRO REPO**, y va fijado por SHA en `external_inputs`. Cópialo
    desde ese commit, no del `main` móvil. Copiarlo crea una segunda fuente que diverge sola: este
