@@ -1,19 +1,19 @@
 <script lang="ts">
 	/**
-	 * Widget `relation` (F5-e, `type:'relation'`): busca candidatos del tipo destino
-	 * (`field.schema.target`) por su `titleField` y los pinta como una selección de botones-toggle,
-	 * mismo espíritu que `Chips.svelte` (grupo `role="group"`, `aria-labelledby={ids.labelId}` — un
-	 * grupo de botones no es un control "labelable" por `<label for>`) pero con un buscador delante
-	 * en vez de un vocabulario cerrado.
+	 * Widget `relation` (F5-e, `type:'relation'`): ofrece candidatos del tipo destino
+	 * (`field.schema.target`) como una selección de botones-toggle. Los destinos normales usan su
+	 * `titleField`; `vega_media` usa miniatura y nombre de fichero sobre el mismo listado paginado.
+	 * Mantiene el espíritu de `Chips.svelte` (grupo `role="group"`,
+	 * `aria-labelledby={ids.labelId}`; un grupo de botones no es un control "labelable" por
+	 * `<label for>`).
 	 *
 	 * - **Sin `expand` (D-P5.9 opción a)**: los YA seleccionados se resuelven con `ctx.port.get`
 	 *   (uno por id, nunca visto) y se cachean por id (`relation-search.ts`, `TitleCache`) para no
 	 *   re-pedir uno ya resuelto. Un `get` que falla con `not-found` pinta el id con la marca
 	 *   "no encontrado" (registro borrado entre tanto) en vez de reventar.
-	 * - **[Audit Finding 3] Degradado sin `titleField`**: si el destino no admite `contains` sobre
-	 *   su `titleField` (`supportsTitleSearch`, `relation-search.ts`), NO hay buscador — se ofrece
-	 *   un listado paginado (`Pagination.svelte`, reusado tal cual de P4) representando cada
-	 *   candidato por su id.
+	 * - **Listado paginado sin búsqueda**: se usa si el destino no admite `contains` sobre su
+	 *   `titleField` (`supportsTitleSearch`, `relation-search.ts`) y para `vega_media`, donde el
+	 *   nombre visible puede venir del fichero y no sería buscable por `title`.
 	 * - **Anti-carrera (landmine)**: la autocancelación de PB está desactivada, así que dos
 	 *   búsquedas en vuelo pueden resolver fuera de orden. `RelationSearchSequencer`
 	 *   (`relation-search.ts`, mismo patrón que `RequestSequencer` de `$lib/list/list-load.ts`,
@@ -32,6 +32,19 @@
 	import { fieldIds } from '../field-ids';
 	import { getVegaContext } from '$lib/app-context';
 	import Pagination from '$lib/list/Pagination.svelte';
+	import { VEGA_MEDIA_COLLECTION } from '$lib/media/media-collection';
+	import {
+		mediaDisplayName,
+		mediaImgAlt,
+		toMediaItemView,
+		type MediaItemView
+	} from '$lib/media/media-item';
+	import {
+		classifyMediaAssetType,
+		mediaExtensionBadge,
+		type MediaAssetType
+	} from '$lib/media/media-card';
+	import { resolveMediaGridSrc } from '$lib/media/media-thumb';
 	import {
 		buildDegradedListQuery,
 		buildTitleSearchQuery,
@@ -60,15 +73,17 @@
 	const inert = $derived(disabled || readonly);
 	const schema = $derived(field.schema.type === 'relation' ? field.schema : null);
 	const multiple = $derived(schema?.multiple ?? false);
+	// ÚNICA discriminación por destino: a partir de aquí el resto del widget consume este booleano.
+	const isMediaTarget = $derived(schema?.target === VEGA_MEDIA_COLLECTION.name);
 
 	// Destino resuelto vía `ctx.model` (D-P5.9): el widget NUNCA conoce PocketBase, solo el
 	// `ContentModel` ya resuelto por P2 y el `BackendPort` de P1.
 	const target = $derived(
 		schema ? (ctx.model.types.find((t) => t.name === schema.target) ?? null) : null
 	);
-	// Defensivo (no debería pasar — el manifiesto/esquema garantiza `target` válido, L11): sin
-	// destino resuelto, degrada como si no soportara búsqueda (nada que listar/paginar).
-	const degraded = $derived(target ? !supportsTitleSearch(target) : true);
+	// Un destino puede no estar todavía en `ctx.model` si la colección se creó después de cargar
+	// el modelo. El camino genérico conserva su degradación; media explica ese estado por separado.
+	const degraded = $derived(isMediaTarget || (target ? !supportsTitleSearch(target) : true));
 	const titleField = $derived(target?.titleField ?? null);
 
 	const selectedIds = $derived<RecordId[]>(
@@ -97,12 +112,23 @@
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 	const SEARCH_DEBOUNCE_MS = 250;
 
-	// Listado paginado (modo degradado, Audit Finding 3).
-	let degradedItems = $state<RelationCandidate[]>([]);
+	interface MediaRelationCandidate extends RelationCandidate {
+		media: MediaItemView;
+		src: string | null;
+		badge: string;
+		assetType: MediaAssetType;
+	}
+
+	type DisplayCandidate = RelationCandidate | MediaRelationCandidate;
+	type MediaLoadState = 'loading' | 'ready' | 'error';
+
+	// Listado paginado: modo degradado genérico y destino media.
+	let degradedItems = $state<DisplayCandidate[]>([]);
 	let degradedLoading = $state(false);
 	let degradedPage = $state(1);
 	let degradedTotalPages = $state(1);
 	let degradedTotalItems = $state(0);
+	let mediaLoadState = $state<MediaLoadState>('loading');
 	// Variable PLANA (no `$state`, mismo patrón que `lastCall` de `list-state.svelte.ts`): recuerda
 	// para qué destino ya se disparó la carga inicial del listado degradado, para no repetirla en
 	// cada re-render mientras el `$effect` de abajo sigue viendo el mismo `target`.
@@ -171,23 +197,56 @@
 		scheduleSearch(raw);
 	}
 
+	function toMediaCandidate(record: VegaRecord): MediaRelationCandidate {
+		const media = toMediaItemView(record);
+		let src: string | null = null;
+		try {
+			src = resolveMediaGridSrc(ctx.port, media);
+		} catch {
+			// Un FileRef huérfano no puede tumbar la página completa: se pinta su distintivo.
+		}
+		return {
+			id: record.id,
+			title: mediaDisplayName(media) || record.id,
+			media,
+			src,
+			badge: mediaExtensionBadge(media.fileName),
+			assetType: classifyMediaAssetType(media.fileName)
+		};
+	}
+
+	function isMediaCandidate(candidate: DisplayCandidate): candidate is MediaRelationCandidate {
+		return 'media' in candidate;
+	}
+
+	function mediaTypeLabel(candidate: MediaRelationCandidate): string {
+		if (candidate.badge !== '') return candidate.badge;
+		return ctx.t(`form.relation.media.type.${candidate.assetType}`);
+	}
+
 	async function loadDegradedPage(page: number): Promise<void> {
 		if (!target) return;
+		const mediaMode = isMediaTarget;
 		const seq = sequencer.next();
-		degradedLoading = true;
+		if (mediaMode) mediaLoadState = 'loading';
+		else degradedLoading = true;
 		try {
 			const result = await ctx.port.list(target.name, buildDegradedListQuery(page));
 			if (destroyed || !sequencer.isLatest(seq)) return;
-			degradedItems = candidatesFromPage(result, null);
+			degradedItems = mediaMode
+				? result.items.map(toMediaCandidate)
+				: candidatesFromPage(result, null);
 			degradedPage = result.page;
 			degradedTotalPages = result.totalPages;
 			degradedTotalItems = result.totalItems;
+			if (mediaMode) mediaLoadState = 'ready';
 		} catch (err) {
 			if (destroyed || !sequencer.isLatest(seq)) return;
 			degradedItems = [];
+			if (mediaMode) mediaLoadState = 'error';
 			reportUnexpected(err, 'relation:degradedList');
 		} finally {
-			if (!destroyed && sequencer.isLatest(seq)) degradedLoading = false;
+			if (!mediaMode && !destroyed && sequencer.isLatest(seq)) degradedLoading = false;
 		}
 	}
 
@@ -210,7 +269,9 @@
 			if (destroyed) return;
 			titleCache = withCachedTitle(titleCache, id, {
 				status: 'ok',
-				title: titleOf(record, titleField)
+				title: isMediaTarget
+					? mediaDisplayName(toMediaItemView(record)) || record.id
+					: titleOf(record, titleField)
 			});
 		} catch (err) {
 			if (destroyed) return;
@@ -299,30 +360,76 @@
 	</ul>
 
 	{#if degraded}
-		<p class="vega-relation-degraded-note">{ctx.t('form.relation.degradedNote')}</p>
+		<p class="vega-relation-degraded-note">
+			{isMediaTarget ? ctx.t('form.relation.media.note') : ctx.t('form.relation.degradedNote')}
+		</p>
 		<ul class="vega-relation-candidates">
-			{#if degradedLoading}
-				<li class="vega-relation-status">{ctx.t('form.relation.searching')}</li>
-			{:else if degradedItems.length === 0}
-				<li class="vega-relation-status">{ctx.t('form.relation.noResults')}</li>
-			{:else}
-				{#each degradedItems as candidate (candidate.id)}
-					{@const isSelected = selectedIds.includes(candidate.id)}
-					<li>
-						<button
-							type="button"
-							class="vega-relation-candidate"
-							aria-pressed={isSelected}
-							disabled={inert || (limitReached && !isSelected)}
-							onclick={() => selectCandidate(candidate)}
-						>
-							{candidate.title}
-						</button>
+			{#if isMediaTarget}
+				{#if !target}
+					<li class="vega-relation-status">
+						{ctx.t('form.relation.media.targetMissing')}
 					</li>
-				{/each}
+				{:else if mediaLoadState === 'loading'}
+					<li class="vega-relation-status">{ctx.t('form.relation.media.loading')}</li>
+				{:else if mediaLoadState === 'error'}
+					<li class="vega-relation-status" role="alert">
+						{ctx.t('form.relation.media.error')}
+					</li>
+				{:else if degradedItems.length === 0}
+					<li class="vega-relation-status">{ctx.t('form.relation.media.empty')}</li>
+				{:else}
+					{#each degradedItems as candidate (candidate.id)}
+						{@const isSelected = selectedIds.includes(candidate.id)}
+						{#if isMediaCandidate(candidate)}
+							<li>
+								<button
+									type="button"
+									class="vega-relation-candidate vega-relation-media-candidate"
+									aria-pressed={isSelected}
+									disabled={inert || (limitReached && !isSelected)}
+									onclick={() => selectCandidate(candidate)}
+								>
+									{#if candidate.src}
+										<img
+											class="vega-relation-media-thumb"
+											src={candidate.src}
+											alt={mediaImgAlt(candidate.media)}
+										/>
+									{:else}
+										<span class="vega-relation-media-badge" data-media-type={candidate.assetType}>
+											{mediaTypeLabel(candidate)}
+										</span>
+									{/if}
+									<span class="vega-relation-media-name">{candidate.title}</span>
+								</button>
+							</li>
+						{/if}
+					{/each}
+				{/if}
+			{:else}
+				{#if degradedLoading}
+					<li class="vega-relation-status">{ctx.t('form.relation.searching')}</li>
+				{:else if degradedItems.length === 0}
+					<li class="vega-relation-status">{ctx.t('form.relation.noResults')}</li>
+				{:else}
+					{#each degradedItems as candidate (candidate.id)}
+						{@const isSelected = selectedIds.includes(candidate.id)}
+						<li>
+							<button
+								type="button"
+								class="vega-relation-candidate"
+								aria-pressed={isSelected}
+								disabled={inert || (limitReached && !isSelected)}
+								onclick={() => selectCandidate(candidate)}
+							>
+								{candidate.title}
+							</button>
+						</li>
+					{/each}
+				{/if}
 			{/if}
 		</ul>
-		{#if target}
+		{#if target && (!isMediaTarget || mediaLoadState === 'ready')}
 			<Pagination
 				page={degradedPage}
 				totalPages={degradedTotalPages}
@@ -485,6 +592,44 @@
 	.vega-relation-candidate:disabled {
 		opacity: 0.6;
 		cursor: not-allowed;
+	}
+
+	.vega-relation-media-candidate {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		min-height: 44px;
+		border-radius: 6px;
+		text-align: left;
+	}
+
+	.vega-relation-media-thumb,
+	.vega-relation-media-badge {
+		width: 44px;
+		height: 44px;
+		flex: 0 0 44px;
+		border-radius: 4px;
+	}
+
+	.vega-relation-media-thumb {
+		display: block;
+		object-fit: cover;
+	}
+
+	.vega-relation-media-badge {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		background: var(--surface-2);
+		color: var(--ink-2);
+		font-family: var(--mono);
+		font-size: 0.7rem;
+		font-weight: 700;
+	}
+
+	.vega-relation-media-name {
+		min-width: 0;
+		overflow-wrap: anywhere;
 	}
 
 	.vega-relation-degraded-note {
