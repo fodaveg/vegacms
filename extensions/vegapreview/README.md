@@ -52,10 +52,21 @@ func main() {
 }
 ```
 
-`AuthCollections` must match the `auth.collection` advertised by that
-deployment's discovery document. The example uses a dedicated
-`vega_editors` auth collection; the current Astro starter advertises
-`_superusers` instead.
+> [!IMPORTANT]
+> **Breaking configuration change:** `AuthCollections` is required. `New`
+> returns an error for a nil or empty list, blank entries, surrounding
+> whitespace, and `_superusers` in any letter case. Before upgrading, create
+> and seed a dedicated editor auth collection such as `vega_editors`, point
+> the deployment discovery document's `auth.collection` at it, and configure
+> that exact name here. Deployments that already use a valid dedicated
+> allowlist need no change.
+
+`AuthCollections` must match the dedicated editor `auth.collection`
+advertised by that deployment's discovery document. The example assumes the
+`vega_editors` migration and seeding are complete. The current Astro starter
+still advertises `_superusers`; migrate it to a dedicated editor collection
+before enabling or upgrading this extension. `_superusers` is deliberately
+rejected because PocketBase superusers bypass record `ViewRule` checks.
 
 Then advertise the route from the project's public discovery document:
 
@@ -97,6 +108,8 @@ without `draft` still receives the exact v1 response above.
 
 - `POST {RoutePrefix}/token` uses PocketBase's standard `RequireAuth`
   middleware. Vega sends `Authorization: <token>` with no `Bearer` prefix.
+- `AuthCollections` must explicitly name at least one dedicated editor auth
+  collection. Empty lists and `_superusers` fail at startup.
 - Before signing, the extension loads the exact requested record and calls
   PocketBase `CanAccessRecord` with that collection's current `ViewRule`.
   Internal server access alone is never treated as editor permission.

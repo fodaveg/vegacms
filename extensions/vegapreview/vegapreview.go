@@ -60,8 +60,8 @@ type Config struct {
 	// SigningSecret is the server-only HMAC secret shared with the preview route (minimum 32
 	// bytes). It is deliberately independent from PocketBase's own token keys.
 	SigningSecret string
-	// AuthCollections restricts which PocketBase auth collections may mint preview URLs. Empty
-	// accepts any authenticated record, mirroring extensions/vegabuild.
+	// AuthCollections names the dedicated PocketBase editor auth collections that may mint preview
+	// URLs. It is required and must not contain _superusers.
 	AuthCollections []string
 	// RecordCollections restricts which content collections the site knows how to preview. Empty
 	// accepts any collection whose record the editor may view.
@@ -105,6 +105,34 @@ func (c Config) normalized() (Config, error) {
 
 	if len([]byte(c.SigningSecret)) < minSecretBytes {
 		return c, fmt.Errorf("vegapreview: SigningSecret must be at least %d bytes", minSecretBytes)
+	}
+	if len(c.AuthCollections) == 0 {
+		return c, fmt.Errorf(
+			"vegapreview: AuthCollections must name at least one dedicated editor auth collection " +
+				"(for example, \"vega_editors\")",
+		)
+	}
+	for _, collection := range c.AuthCollections {
+		trimmed := strings.TrimSpace(collection)
+		if trimmed == "" {
+			return c, fmt.Errorf(
+				"vegapreview: AuthCollections entries must not be blank; configure a dedicated " +
+					"editor auth collection (for example, \"vega_editors\")",
+			)
+		}
+		if strings.EqualFold(trimmed, core.CollectionNameSuperusers) {
+			return c, fmt.Errorf(
+				"vegapreview: AuthCollections must not include _superusers; configure and name a " +
+					"dedicated editor auth collection (for example, \"vega_editors\")",
+			)
+		}
+		if trimmed != collection {
+			return c, fmt.Errorf(
+				"vegapreview: AuthCollections entry %q has surrounding whitespace; use the exact "+
+					"name of the dedicated editor auth collection",
+				collection,
+			)
+		}
 	}
 	if c.TokenTTL == 0 {
 		c.TokenTTL = defaultTokenTTL
