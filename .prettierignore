@@ -7,6 +7,8 @@ bun.lockb
 
 # Miscellaneous
 /static/
+# Entrada externa fijada por SHA; su igualdad byte a byte se verifica en el lote del sembrado.
+src/lib/backend/site-seeding-manifest.json
 
 # Worktrees efímeros de agentes (Claude Code)
 .claude/worktrees/

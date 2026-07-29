@@ -411,10 +411,10 @@ Dos límites deliberados de esta primera versión:
    backfill dejaría el mismo valor vacío repetido; con una sola fila se acepta y esa fila reserva
    el valor.
 
-La **UI** de Ajustes → Esquema todavía no ofrece `select` ni `unique`, y hoy **ningún camino de
-producción los declara**: están destinados al sembrado de proyecto, que aún no existe. Por ahora solo
-los ejercitan los tests y las migraciones generadas. Que el puerto lo admita, que un consumidor lo
-use y que el panel lo ofrezca son tres cosas distintas.
+La **UI** de Ajustes → Esquema todavía no ofrece `select` ni `unique`. La operación headless
+`seedSiteProject` sí los declara al preparar un proyecto nuevo (`pages.status` y `pages.path`),
+pero todavía no hay botón ni asistente para dispararla desde la SPA. Que el puerto lo admita, que
+el sembrado lo use y que el panel lo ofrezca son tres cosas distintas.
 
 El payload aplicado por red usa el `collectionId` real del entorno. La migración generada no
 incrusta ese id —resuelve `app.findCollectionByNameOrId("<nombre>").id` al ejecutarse—, por lo que
@@ -584,7 +584,10 @@ Es el modo para desarrollo, dogfood interno y administradores técnicos. No hay 
 
 ### Modo editor (L6)
 
-Para dar acceso a un cliente NO técnico, crea una colección de autenticación dedicada (`vega_editors` recomendado, NO reusar `users` para no mezclar con cuentas públicas) y configura Vega para autenticar contra ella. Un editor:
+Para dar acceso a un cliente NO técnico, Vega usa una colección de autenticación dedicada
+(`vega_editors` recomendado, NO reusar `users` para no mezclar con cuentas públicas) y se
+configura para autenticar contra ella. El sembrado la crea en instalaciones nuevas; en las
+existentes se prepara manualmente. Un editor:
 
 - **NO puede** introspeccionar el schema en vivo (PocketBase rechaza `GET /api/collections` a no-superusers).
 - **NO puede** crear ni modificar colecciones en el schema.
@@ -593,6 +596,15 @@ Para dar acceso a un cliente NO técnico, crea una colección de autenticación 
 - **Puede** reordenar registros manualmente en los listados.
 
 #### Setup del modo editor en PocketBase
+
+En una instalación **nueva** preparada con `seedSiteProject`, el sembrado ya crea
+`vega_editors` y deja `listRule` y `viewRule` de `vega` acotadas literalmente a
+`@request.auth.collectionName = "vega_editors"`. La operación es headless: aún no hay botón ni
+asistente en la SPA. No abre las reglas de escritura de las colecciones de contenido; esa política
+sigue siendo decisión del operador.
+
+Los pasos manuales siguientes siguen aplicando a una instalación **existente**. El sembrado es
+`creation-only`: si `vega` o `vega_editors` ya existen, no cambia sus reglas, campos ni usuarios.
 
 **1. Crear la colección de auth del editor:**
 
@@ -610,7 +622,10 @@ Para dar acceso a un cliente NO técnico, crea una colección de autenticación 
 
 **3. ⚠ LANDMINE CRÍTICA — Reglas de acceso a la colección `vega`:**
 
-La colección `vega` (donde Vega guarda el manifiesto y el schema snapshot) se crea con reglas de acceso `null` ⇒ **solo superuser puede leerla**. Un editor por defecto la verá PROHIBIDA (403) → la app mostrará VACÍA (sin colecciones ni manifiesto).
+Una colección `vega` creada manualmente o por el bootstrap histórico puede conservar reglas de
+acceso `null` ⇒ **solo superuser puede leerla**. Un editor por defecto la verá PROHIBIDA (403) →
+la app mostrará VACÍA (sin colecciones ni manifiesto). El sembrado nuevo evita este estado solo
+cuando crea la colección; nunca reescribe una ya existente.
 
 **Solución**: en admin de PocketBase, abre **Collections** → **vega** → **Settings** → **Permissions** (tab de lectura):
 
@@ -619,7 +634,7 @@ La colección `vega` (donde Vega guarda el manifiesto y el schema snapshot) se c
 
 Alterna más restringido si necesitas:
 
-- `@request.auth.collectionName == 'vega_editors'` (solo editores de esa colección concreta).
+- `@request.auth.collectionName = "vega_editors"` (solo editores de esa colección concreta).
 
 Guarda. Ahora un editor puede leer el manifiesto y el schema snapshot.
 
@@ -627,9 +642,9 @@ Guarda. Ahora un editor puede leer el manifiesto y el schema snapshot.
 
 Define qué colecciones puede editar un editor (y cuáles no). Para cada colección de contenido, abre **Settings** → **Permissions** y configura:
 
-- **Create rule**: p. ej. `@request.auth.collectionName == 'vega_editors'` (solo editores pueden crear).
-- **Update rule**: p. ej. `@request.auth.collectionName == 'vega_editors'` (solo editores pueden actualizar).
-- **Delete rule**: p. ej. `@request.auth.collectionName == 'vega_editors'` (solo editores pueden borrar).
+- **Create rule**: p. ej. `@request.auth.collectionName = "vega_editors"` (solo editores pueden crear).
+- **Update rule**: p. ej. `@request.auth.collectionName = "vega_editors"` (solo editores pueden actualizar).
+- **Delete rule**: p. ej. `@request.auth.collectionName = "vega_editors"` (solo editores pueden borrar).
 - **List rule**: `@request.auth.id != null` o `true` (depende si quieres que lean anónimos).
 
 Alternativamente, `@request.auth.id != null` permite cualquier usuario autenticado; el editor en Vega vería todas las colecciones y podría editar todas. Ajusta según el control de acceso que quieras.
@@ -690,16 +705,16 @@ Ejemplo para editores: solo pueden crear/actualizar/borrar, no ver borrados lóg
 
 ```
 // En colección 'posts', Create rule:
-@request.auth.collectionName == 'vega_editors'
+@request.auth.collectionName = "vega_editors"
 
 // Update rule:
-@request.auth.collectionName == 'vega_editors'
+@request.auth.collectionName = "vega_editors"
 
 // Delete rule:
-@request.auth.collectionName == 'vega_editors'
+@request.auth.collectionName = "vega_editors"
 
 // List rule (qué ven al listar):
-@request.auth.collectionName == 'vega_editors'
+@request.auth.collectionName = "vega_editors"
 ```
 
 Ver la documentación de PocketBase sobre [rules](https://pocketbase.io/docs/api-rules-and-filters/) para toda la capacidad disponible.
