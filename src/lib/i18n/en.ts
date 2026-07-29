@@ -819,6 +819,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'settings.blockColumns.incompatibleTitle': '{count} incompatible column(s)',
 	'settings.blockColumns.incompatibleBody':
 		'These columns already exist with a different shape. They are not included in any migration: changing a column that may contain data requires a human decision.',
+	'settings.blockColumns.conflictTitle': 'Conflict in the block manifest',
+	'settings.blockColumns.conflictBody':
+		'Collection "{collection}" cannot be diagnosed: column name "{field}" has incompatible declarations within the manifest itself ({declarations}). Fix the manifest before generating any migration.',
 	'settings.blockColumns.value.yes': 'yes',
 	'settings.blockColumns.value.no': 'no',
 	'settings.blockColumns.type.text': 'text',

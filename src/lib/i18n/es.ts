@@ -851,6 +851,9 @@ export const es = {
 	'settings.blockColumns.incompatibleTitle': '{count} columna(s) incompatible(s)',
 	'settings.blockColumns.incompatibleBody':
 		'Estas columnas ya existen con otra forma. No se incluyen en ninguna migración: cambiar una columna que puede contener datos requiere una decisión humana.',
+	'settings.blockColumns.conflictTitle': 'Conflicto en el manifiesto de bloques',
+	'settings.blockColumns.conflictBody':
+		'La colección "{collection}" no se puede diagnosticar: el nombre de columna "{field}" tiene declaraciones incompatibles en el propio manifiesto ({declarations}). Corrige el manifiesto antes de generar ninguna migración.',
 	'settings.blockColumns.value.yes': 'sí',
 	'settings.blockColumns.value.no': 'no',
 	'settings.blockColumns.type.text': 'texto',

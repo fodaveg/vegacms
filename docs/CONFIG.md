@@ -311,9 +311,10 @@ no puede expresar hoy una relación a otra colección ni elegir la cardinalidad 
 
 Las columnas `record` se derivan del conjunto completo de `blockTypes`. El generador de esquema las
 incluye en la migración de creación. El backend también puede comparar esa derivación con un esquema
-existente y generar una migración aditiva para las columnas ausentes, pero esas piezas **todavía no
-están conectadas a la interfaz ni a un flujo de producción**: Vega no muestra el diagnóstico ni
-ofrece la migración desde Ajustes. Las columnas incompatibles tampoco se cambian automáticamente.
+existente y generar una migración aditiva para las columnas ausentes; Ajustes muestra ese diagnóstico
+y ofrece el botón de generar la migración desde su panel de reconciliación. Las columnas
+incompatibles se señalan igualmente, pero no se cambian automáticamente: alterar una columna que
+puede contener datos requiere una decisión humana.
 
 ### Avisos de tipos de bloque
 

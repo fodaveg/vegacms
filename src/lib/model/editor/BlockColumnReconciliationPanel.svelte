@@ -12,6 +12,7 @@
 	 */
 	import type { CollectionFieldSpec, ContentType, Field, GeneratedMigration } from '$lib/backend';
 	import {
+		BlockRecordFieldConflictError,
 		diagnoseBlockRecordFields,
 		generateBlockReconciliationMigration,
 		type BlockRecordFieldDiagnostic
@@ -38,11 +39,26 @@
 	}
 
 	/**
+	 * `deriveBlockRecordFieldsWithOwners` (bajo `diagnoseBlockRecordFields`) lanza
+	 * `BlockRecordFieldConflictError` SÍNCRONAMENTE cuando el propio manifiesto es contradictorio:
+	 * dos `blockTypes` con el mismo nombre `record` en formas incompatibles, o un nombre `record`
+	 * que colisiona con un campo estructural (`parentField`/`orderField`/`typeField`/`dataField`).
+	 * Ese conflicto vive en el manifiesto, no en el esquema físico descubierto, así que no hay
+	 * `ModelWarning` previo que lo cubra. Degradar aquí a una tarjeta de aviso es la única forma de
+	 * que una sola colección de bloques mal declarada no tire el render de toda `/settings`.
+	 */
+	interface ConflictGroup {
+		collection: string;
+		fieldName: string;
+		declarations: readonly string[];
+	}
+
+	/**
 	 * Una sola entrada por colección física. Dos tipos de contenido pueden compartir colección de
 	 * bloques; diagnosticarla dos veces inflaría N y ofrecería dos ficheros para el mismo destino.
 	 */
-	const groups = $derived.by((): DiagnosticGroup[] => {
-		if (model.blockTypes.length === 0) return [];
+	const diagnosis = $derived.by((): { groups: DiagnosticGroup[]; conflicts: ConflictGroup[] } => {
+		if (model.blockTypes.length === 0) return { groups: [], conflicts: [] };
 
 		const blocksByCollection: ResolvedBlocksConfig[] = [];
 		for (const type of model.types) {
@@ -56,12 +72,28 @@
 		}
 
 		const result: DiagnosticGroup[] = [];
+		const conflicts: ConflictGroup[] = [];
 		for (const blocks of blocksByCollection) {
 			const actual = types.find((type) => type.name === blocks.collection);
 			// `resolveBlocks` ya impide este estado en un ContentModel real. Si el esquema fresco
 			// cambió entre cargas, no se inventa una configuración ni una migración imposible.
 			if (!actual) continue;
-			const diagnostics = diagnoseBlockRecordFields(model.blockTypes, blocks, actual.fields);
+
+			let diagnostics: BlockRecordFieldDiagnostic[];
+			try {
+				diagnostics = diagnoseBlockRecordFields(model.blockTypes, blocks, actual.fields);
+			} catch (error) {
+				conflicts.push({
+					collection: blocks.collection,
+					fieldName: error instanceof BlockRecordFieldConflictError ? error.fieldName : '?',
+					declarations:
+						error instanceof BlockRecordFieldConflictError
+							? error.declarations
+							: [error instanceof Error ? error.message : String(error)]
+				});
+				continue;
+			}
+
 			const missing = diagnostics.filter(
 				(diagnostic): diagnostic is MissingDiagnostic => diagnostic.status === 'missing'
 			);
@@ -72,8 +104,11 @@
 				result.push({ collection: blocks.collection, blocks, missing, incompatible });
 			}
 		}
-		return result;
+		return { groups: result, conflicts };
 	});
+
+	const groups = $derived(diagnosis.groups);
+	const conflicts = $derived(diagnosis.conflicts);
 
 	/**
 	 * `blocks-invalid` con `/blocks/collection` es la única fuente segura cuando `resolveBlocks`
@@ -93,7 +128,10 @@
 		groups.reduce((sum, group) => sum + group.incompatible.length, 0)
 	);
 	const visible = $derived(
-		missingCount > 0 || incompatibleCount > 0 || missingCollectionWarnings.length > 0
+		missingCount > 0 ||
+			incompatibleCount > 0 ||
+			missingCollectionWarnings.length > 0 ||
+			conflicts.length > 0
 	);
 
 	let generatedByCollection = $state<Record<string, GeneratedMigration>>({});
@@ -268,6 +306,19 @@
 			</div>
 		{/each}
 
+		{#each conflicts as conflict (conflict.collection + ':' + conflict.fieldName)}
+			<div class="vega-block-columns-conflict" role="alert">
+				<h3>{t('settings.blockColumns.conflictTitle')}</h3>
+				<p>
+					{t('settings.blockColumns.conflictBody', {
+						collection: conflict.collection,
+						field: conflict.fieldName,
+						declarations: conflict.declarations.join(' <> ')
+					})}
+				</p>
+			</div>
+		{/each}
+
 		{#each groups as group (group.collection)}
 			{#if group.missing.length > 0}
 				<div class="vega-block-columns-group">
@@ -354,7 +405,8 @@
 
 	.vega-block-columns-group,
 	.vega-block-columns-incompatible,
-	.vega-block-columns-collection-missing {
+	.vega-block-columns-collection-missing,
+	.vega-block-columns-conflict {
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;

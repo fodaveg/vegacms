@@ -1,10 +1,13 @@
 /**
  * Generador de migraciones JS de PocketBase (lote "esquema", mitad 2): produce el fichero
- * `pb_migrations/<timestamp>_<slug>.js` que documenta en el repo del proyecto lo que
- * `ensureCollections`/`addCollectionFields` acaban de hacer contra el servidor real. Sin esto,
- * cada edición de esquema desde `/settings` aleja producción del repo EN SILENCIO — ningún
- * commit la registra —, justo el problema que ya resuelven proyectos reales (p.ej. `lumbre.pro`)
- * con migraciones versionadas.
+ * `pb_migrations/<timestamp>_<slug>.js`. Cuando el operador aplica un cambio directamente desde
+ * `/settings`, ese fichero documenta en el repo del proyecto lo que
+ * `ensureCollections`/`addCollectionFields` acaban de hacer contra el servidor real. El camino de
+ * reconciliación de columnas de bloque (`block-schema.ts`) usa el mismo generador al revés: propone
+ * el fichero ANTES de ejecutar nada contra el puerto, y es el operador quien decide aplicarlo. Sin
+ * el primer camino, cada edición de esquema desde `/settings` alejaría producción del repo EN
+ * SILENCIO — ningún commit la registra —, justo el problema que ya resuelven proyectos reales
+ * (p.ej. `lumbre.pro`) con migraciones versionadas.
  *
  * Módulo PURO (ley L1/L5): no toca red, no importa `pocketbase` (el paquete npm) ni conoce el
  * `BackendPort` — solo texto determinista a partir de `CollectionSpec`/`CollectionFieldSpec`.
@@ -16,9 +19,12 @@
  * Formato JS verificado contra la documentación de migraciones de PocketBase (runtime JSVM,
  * disponible en el rango de servidor soportado 0.26+): `migrate(up, down)`, con `new
  * Collection({...})` para crear y `collection.fields.add(new Field({...}))`/`removeByName(...)`
- * para tocar una ya existente. El `up`/`down` que emite este módulo es el MISMO par de
- * operaciones que el adaptador acaba de ejecutar por red, en el mismo orden — pégalo tal cual en
- * `pb_migrations/` del proyecto y commítalo junto al cambio de esquema.
+ * para tocar una ya existente. El `up`/`down` que emite este módulo describe, en el mismo orden,
+ * el mismo par de operaciones que aplicaría el adaptador por red. Cuando el llamador ya ejecutó
+ * ese cambio (flujo directo de `/settings`), pégalo tal cual en `pb_migrations/` del proyecto y
+ * commítalo junto al cambio de esquema. Cuando el llamador genera antes de ejecutar nada
+ * (reconciliación de columnas de bloque), el fichero es la migración PROPUESTA: aplicarla queda a
+ * criterio del operador.
  *
  * Cuando una creación incluye varias colecciones, sus relaciones forman un grafo: el destino
  * debe guardarse antes que la colección que lo referencia. Este módulo ordena ese grafo y
@@ -30,10 +36,12 @@
 
 import type { CollectionFieldSpec, CollectionSpec } from './collections';
 
-/** Una operación de esquema ya EJECUTADA contra el backend real (§ "Emitir migración"): o bien
- *  colecciones nuevas creadas, o bien campos añadidos a una existente — nunca ambas mezcladas en
- *  la misma llamada, así cada acción del operador en la UI genera su propia migración, de una en
- *  una (más fácil de revisar en el PR que un fichero con varias intenciones distintas). */
+/** Una operación de esquema (§ "Emitir migración"): o bien colecciones nuevas, o bien campos
+ *  añadidos a una colección existente — nunca ambas mezcladas en la misma llamada, así cada acción
+ *  del operador en la UI genera su propia migración, de una en una (más fácil de revisar en el PR
+ *  que un fichero con varias intenciones distintas). El flujo directo de `/settings` la construye
+ *  ya EJECUTADA contra el backend real; la reconciliación de columnas de bloque la construye ANTES
+ *  de ejecutar nada, como propuesta pendiente de aplicar. */
 export type SchemaMigrationOp =
 	| { kind: 'create'; specs: CollectionSpec[] }
 	| { kind: 'add-fields'; collection: string; fields: CollectionFieldSpec[] };

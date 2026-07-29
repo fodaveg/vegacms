@@ -288,6 +288,40 @@ describe('BlockColumnReconciliationPanel.svelte', () => {
 		expect(mounted.target.querySelector('.vega-migration-panel')).toBeNull();
 	});
 
+	test('conflicto de manifiesto (campo record choca con estructural): avisa sin reventar el render', () => {
+		const parentCollidesBlockType: ResolvedBlockType = {
+			name: 'hero',
+			label: 'Hero',
+			icon: null,
+			fields: [
+				{
+					name: 'parent',
+					widget: 'text',
+					label: 'parent',
+					source: 'record',
+					required: false,
+					options: null
+				}
+			]
+		};
+
+		expect(() => {
+			mounted = mountPanel({
+				types: [contentType('content_units', [])],
+				model: model({
+					blockTypes: [parentCollidesBlockType],
+					parents: [resolvedParent('pages', blocks('content_units'))]
+				})
+			});
+		}).not.toThrow();
+
+		expect(mounted!.target.textContent).toContain('settings.blockColumns.conflictTitle');
+		expect(mounted!.target.textContent).toContain(
+			'settings.blockColumns.conflictBody:{"collection":"content_units","field":"parent"'
+		);
+		expect(mounted!.target.querySelector('.vega-block-columns-group > button')).toBeNull();
+	});
+
 	test('explica restricciones localizadas de máximos, readonly, unique y fichero', () => {
 		mounted = mountPanel({
 			types: [
