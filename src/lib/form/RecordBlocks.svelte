@@ -811,6 +811,9 @@
 						<div id={`vega-block-body-${record.id}`} class="vega-block-body" hidden={!expanded}>
 							<BlockEditor
 								childType={type}
+								blockType={blockTypeOf(record)}
+								rawBlockType={blockTypeRawName(record)}
+								dataField={blocksConfig!.dataField}
 								{record}
 								{structuralFields}
 								onSubmit={(input) => ctx.port.update(type.name, record.id, input)}
