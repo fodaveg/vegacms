@@ -100,16 +100,16 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'connect.reset': 'Reset to defaults',
 	'connect.reloadConfirm':
 		'The page will reload to apply the backend change. Any unsaved changes in the editor will be lost. Continue?',
-	// `authCollection` (batch L6c): auth collection the `pocketbase` adapter authenticates against
-	// — empty/absent ⇒ `_superusers` (superuser, previous behavior). An operator setting up the
-	// plain editor role (dedicated collection, e.g. `vega_editors`) fills it here to sign in as an
-	// editor instead of a superuser.
+	// `authCollection` (batch L6c): override for the auth collection used by the `pocketbase`
+	// adapter. Empty/absent ⇒ project discovery/configuration and, only if neither declares one,
+	// the runtime's compatible fallback.
 	'connect.authCollectionLabel': 'Authentication collection',
-	'connect.authCollectionPlaceholder': '_superusers',
+	'connect.authCollectionPlaceholder': 'vega_editors',
 	'connect.authCollectionHint':
-		'Leave blank to sign in as superuser. Editors use a dedicated collection (e.g. "vega_editors") that whoever administers this PocketBase will give you.',
-	'connect.current.authCollectionDefault': 'Authenticating as superuser (_superusers).',
-	'connect.current.authCollectionOverride': 'Authenticating against collection: {authCollection}',
+		'Leave blank to use the collection advertised by the project. Fill it only to keep an override for this browser.',
+	'connect.current.authCollectionResolving': 'Resolving the authentication collection…',
+	'connect.current.authCollectionEffective':
+		'Effective authentication collection: {authCollection}',
 
 	// ————— Account security (L6: TOTP, recovery and passkeys) —————
 	'security.title': 'Account security',

@@ -12,9 +12,11 @@
 	 * `clearAuthCollectionOverride`, `backend-override.ts` — introducidos en L6a, sin ningún
 	 * consumidor hasta ahora). NO se duplica la mecánica de guardar/recargar/confirmar: "Guardar y
 	 * recargar" persiste AMBOS overrides de una vez (URL + colección) y "Restablecer" los limpia a
-	 * los dos (same-origin + `_superusers`) — un solo viaje de recarga, nunca dos formularios
+	 * los dos (same-origin + configuración/discovery del proyecto) — un solo viaje de recarga,
+	 * nunca dos formularios
 	 * independientes. Vacío/solo-espacios al guardar ⇒ se limpia el override de colección (cae a
-	 * `vega.config.json`/`_superusers`, mismo criterio de "ausente" que `resolveAuthCollection`),
+	 * discovery/`vega.config.json`/fallback, mismo criterio de "ausente" que
+	 * `resolveAuthCollection`),
 	 * en vez de persistir una cadena vacía en `localStorage`. Es el campo que un operador rellena
 	 * con `vega_editors` (o el nombre que haya elegido) para que este `pb_public/` autentique como
 	 * rol editor en vez de superusuario.
@@ -39,7 +41,13 @@
 	 * best-effort, si el usuario cancela NO se escribe/borra ningún override ni se recarga (estado
 	 * consistente).
 	 */
-	import { isAbsoluteUrl } from './backend-config';
+	import { onMount } from 'svelte';
+	import {
+		isAbsoluteUrl,
+		resolveAuthCollection,
+		resolveBackendUrl,
+		type VegaConfig
+	} from './backend-config';
 	import {
 		clearAuthCollectionOverride,
 		clearBackendOverride,
@@ -48,6 +56,7 @@
 		writeAuthCollectionOverride,
 		writeBackendOverride
 	} from './backend-override';
+	import { applyProjectDiscovery, fetchProjectDiscovery } from './project-discovery';
 
 	interface Props {
 		t: (key: string, params?: Record<string, string | number>) => string;
@@ -60,6 +69,7 @@
 	 *  página entera, así que no hace falta reactividad más fina que un `$state` local). */
 	let currentOverride = $state(readBackendOverride());
 	let currentAuthCollectionOverride = $state(readAuthCollectionOverride());
+	let effectiveAuthCollection = $state<string | null>(currentAuthCollectionOverride);
 
 	let url = $state(currentOverride ?? '');
 	let authCollection = $state(currentAuthCollectionOverride ?? '');
@@ -67,6 +77,45 @@
 
 	type TestStatus = 'idle' | 'testing' | 'ok' | 'fail';
 	let testStatus = $state<TestStatus>('idle');
+
+	onMount(() => {
+		if (currentAuthCollectionOverride) return;
+		void resolveEffectiveAuthCollection().then((resolved) => {
+			effectiveAuthCollection = resolved;
+		});
+	});
+
+	/**
+	 * Resuelve solo el texto informativo con la misma precedencia que `createInstance()`:
+	 * override runtime → discovery/config → fallback. La lectura es best-effort y nunca bloquea
+	 * el formulario. `fetchVegaConfigForDisplay` replica únicamente la frontera de lectura
+	 * privada de `backend.ts`; las decisiones se delegan a los mismos resolvers puros.
+	 */
+	async function resolveEffectiveAuthCollection(): Promise<string> {
+		const config = await fetchVegaConfigForDisplay();
+		const backendUrl = resolveBackendUrl({
+			origin: window.location.origin,
+			config,
+			override: currentOverride
+		});
+		const discovery = await fetchProjectDiscovery(backendUrl);
+		const projectConfig = applyProjectDiscovery(config, discovery);
+		return resolveAuthCollection({
+			config: projectConfig,
+			override: currentAuthCollectionOverride
+		});
+	}
+
+	async function fetchVegaConfigForDisplay(): Promise<VegaConfig | null> {
+		try {
+			const response = await fetch('/vega.config.json', { cache: 'no-store' });
+			if (!response.ok) return null;
+			const data: unknown = await response.json();
+			return typeof data === 'object' && data !== null ? (data as VegaConfig) : null;
+		} catch {
+			return null;
+		}
+	}
 
 	/** Quita una barra final antes de componer `${base}/api/health`: `new URL()` ya normaliza el
 	 *  origen, pero el usuario puede teclear `https://pb.example.com/` con barra incluida. */
@@ -131,7 +180,7 @@
 		window.location.reload();
 	}
 
-	/** Restablece AMBOS overrides a la vez (same-origin + `_superusers`, ver cabecera). */
+	/** Restablece AMBOS overrides a la vez (same-origin + discovery/config/fallback, ver cabecera). */
 	function handleReset(): void {
 		if (!confirmReloadIfNeeded()) return;
 		clearBackendOverride();
@@ -149,12 +198,12 @@
 		{/if}
 	</p>
 	<p class="vega-backend-current">
-		{#if currentAuthCollectionOverride}
-			{t('connect.current.authCollectionOverride', {
-				authCollection: currentAuthCollectionOverride
+		{#if effectiveAuthCollection}
+			{t('connect.current.authCollectionEffective', {
+				authCollection: effectiveAuthCollection
 			})}
 		{:else}
-			{t('connect.current.authCollectionDefault')}
+			{t('connect.current.authCollectionResolving')}
 		{/if}
 	</p>
 

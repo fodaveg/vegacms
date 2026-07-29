@@ -1,12 +1,20 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { createPocketBaseBackend } from '$lib/backend/adapters/pocketbase';
-import { VEGA_COLLECTION } from '$lib/backend/collections';
+import {
+	VEGA_COLLECTION,
+	type CollectionRule,
+	type CollectionSpec
+} from '$lib/backend/collections';
 import type { BackendPort } from '$lib/backend/port';
 import {
+	SITE_SEED_BLOCKS_READ_RULE,
+	SITE_SEED_EDITOR_ACCESS_RULE,
 	SITE_SEED_MANIFEST_READ_RULE,
+	SITE_SEED_PAGES_READ_RULE,
 	SiteSeedDivergenceError,
 	seedSiteProject
 } from '$lib/backend/site-seeding';
+import { VEGA_MEDIA_EDITOR_ACCESS_RULE, VEGA_MEDIA_VIEW_RULE } from '$lib/media/media-collection';
 import { isPocketBaseBinaryAvailable } from './pb-harness/binary';
 import {
 	createSiteSeedingAdmin,
@@ -47,6 +55,7 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 		expect(collections[0]?.type).toBe('auth');
 
 		const media = collections.find((collection) => collection.name === 'vega_media')!;
+		const pagesCollection = collections.find((collection) => collection.name === 'pages')!;
 		const blocks = collections.find((collection) => collection.name === 'blocks')!;
 		const blockFields = new Map(blocks.fields.map((field) => [field.name, field]));
 		expect(blockFields.get('image')).toMatchObject({
@@ -65,6 +74,27 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 		const vega = collections.find((collection) => collection.name === 'vega')!;
 		expect(vega.listRule).toBe(SITE_SEED_MANIFEST_READ_RULE);
 		expect(vega.viewRule).toBe(SITE_SEED_MANIFEST_READ_RULE);
+		expect(rawRules(pagesCollection)).toEqual({
+			listRule: SITE_SEED_PAGES_READ_RULE,
+			viewRule: SITE_SEED_PAGES_READ_RULE,
+			createRule: SITE_SEED_EDITOR_ACCESS_RULE,
+			updateRule: SITE_SEED_EDITOR_ACCESS_RULE,
+			deleteRule: SITE_SEED_EDITOR_ACCESS_RULE
+		});
+		expect(rawRules(blocks)).toEqual({
+			listRule: SITE_SEED_BLOCKS_READ_RULE,
+			viewRule: SITE_SEED_BLOCKS_READ_RULE,
+			createRule: SITE_SEED_EDITOR_ACCESS_RULE,
+			updateRule: SITE_SEED_EDITOR_ACCESS_RULE,
+			deleteRule: SITE_SEED_EDITOR_ACCESS_RULE
+		});
+		expect(rawRules(media)).toEqual({
+			listRule: VEGA_MEDIA_EDITOR_ACCESS_RULE,
+			viewRule: VEGA_MEDIA_VIEW_RULE,
+			createRule: VEGA_MEDIA_EDITOR_ACCESS_RULE,
+			updateRule: VEGA_MEDIA_EDITOR_ACCESS_RULE,
+			deleteRule: VEGA_MEDIA_EDITOR_ACCESS_RULE
+		});
 
 		const manifestRecords = await admin.collection('vega').getFullList();
 		expect(manifestRecords).toHaveLength(1);
@@ -96,6 +126,223 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 		expect(await logicalSnapshot(admin)).toEqual(before);
 	});
 
+	test('anónimo publica sin enumerar medios y editor obtiene CRUD de contenido', async () => {
+		await seedSiteProject(port);
+		const published = await admin.collection('pages').create({
+			title: 'Publicada',
+			path: '/publicada',
+			layout: 'default',
+			status: 'published'
+		});
+		const draft = await admin.collection('pages').create({
+			title: 'Borrador privado',
+			path: '/borrador',
+			layout: 'default',
+			status: 'draft'
+		});
+		const publishedMediaForm = pngFormData('publicada.png', {
+			alt: 'Alt público',
+			title: 'Título público',
+			tags: JSON.stringify(['publicada'])
+		});
+		const publishedMedia = await admin.collection('vega_media').create(publishedMediaForm);
+		await admin.collection('blocks').create({
+			parent: published.id,
+			order: 1,
+			type: 'image',
+			data: { caption: 'Visible' },
+			image: publishedMedia.id
+		});
+		await admin.collection('blocks').create({
+			parent: draft.id,
+			order: 1,
+			type: 'richtext',
+			data: { html: '<p>Privado</p>' }
+		});
+
+		const anonymousPages = await requestJson(
+			running!,
+			'/api/collections/pages/records?perPage=100'
+		);
+		expect(anonymousPages.status).toBe(200);
+		expect(recordItems(anonymousPages.body).map((record) => record.id)).toEqual([published.id]);
+
+		const anonymousDraft = await requestJson(
+			running!,
+			`/api/collections/pages/records/${draft.id}`
+		);
+		expect(anonymousDraft.status).toBe(404);
+
+		const anonymousCreate = await requestJson(running!, '/api/collections/pages/records', {
+			method: 'POST',
+			headers: jsonHeaders(),
+			body: JSON.stringify({
+				title: 'Intrusa',
+				path: '/intrusa',
+				layout: 'default',
+				status: 'published'
+			})
+		});
+		expect(anonymousCreate.status).toBe(403);
+
+		const anonymousMediaList = await requestJson(
+			running!,
+			'/api/collections/vega_media/records?perPage=100'
+		);
+		expect(anonymousMediaList.status).toBe(403);
+		const anonymousMediaView = await requestJson(
+			running!,
+			`/api/collections/vega_media/records/${publishedMedia.id}`
+		);
+		expect(anonymousMediaView.status).toBe(200);
+		expect(anonymousMediaView.body).toMatchObject({
+			id: publishedMedia.id,
+			alt: 'Alt público',
+			title: 'Título público'
+		});
+
+		const publishedFilter = new URLSearchParams({
+			perPage: '100',
+			filter: `parent = "${published.id}"`,
+			expand: 'image'
+		});
+		const anonymousPublishedBlocks = await requestJson(
+			running!,
+			`/api/collections/blocks/records?${publishedFilter}`
+		);
+		expect(anonymousPublishedBlocks.status).toBe(200);
+		const [expandedBlock] = recordItems(anonymousPublishedBlocks.body);
+		expect(expandedBlock?.expand).toMatchObject({
+			image: { id: publishedMedia.id }
+		});
+
+		const draftFilter = new URLSearchParams({
+			perPage: '100',
+			filter: `parent = "${draft.id}"`
+		});
+		const anonymousDraftBlocks = await requestJson(
+			running!,
+			`/api/collections/blocks/records?${draftFilter}`
+		);
+		expect(anonymousDraftBlocks.status).toBe(200);
+		expect(recordItems(anonymousDraftBlocks.body)).toEqual([]);
+
+		await admin.collection('vega_editors').create({
+			email: 'editora@example.test',
+			password: 'password-segura-123',
+			passwordConfirm: 'password-segura-123'
+		});
+		const auth = await requestJson(running!, '/api/collections/vega_editors/auth-with-password', {
+			method: 'POST',
+			headers: jsonHeaders(),
+			body: JSON.stringify({
+				identity: 'editora@example.test',
+				password: 'password-segura-123'
+			})
+		});
+		expect(auth.status).toBe(200);
+		const token = String((auth.body as Record<string, unknown> | null)?.token ?? '');
+		expect(token).not.toBe('');
+
+		const editorDraft = await requestJson(running!, `/api/collections/pages/records/${draft.id}`, {
+			headers: { Authorization: token }
+		});
+		expect(editorDraft.status).toBe(200);
+		const editorMediaList = await requestJson(
+			running!,
+			'/api/collections/vega_media/records?perPage=100',
+			{ headers: { Authorization: token } }
+		);
+		expect(editorMediaList.status).toBe(200);
+
+		const editorPage = await requestJson(running!, '/api/collections/pages/records', {
+			method: 'POST',
+			headers: jsonHeaders(token),
+			body: JSON.stringify({
+				title: 'Página de editora',
+				path: '/editora',
+				layout: 'default',
+				status: 'draft'
+			})
+		});
+		expect(editorPage.status).toBe(200);
+		const editorPageId = String((editorPage.body as Record<string, unknown> | null)?.id ?? '');
+		const editorPageUpdate = await requestJson(
+			running!,
+			`/api/collections/pages/records/${editorPageId}`,
+			{
+				method: 'PATCH',
+				headers: jsonHeaders(token),
+				body: JSON.stringify({ title: 'Página editada' })
+			}
+		);
+		expect(editorPageUpdate.status).toBe(200);
+
+		const editorBlock = await requestJson(running!, '/api/collections/blocks/records', {
+			method: 'POST',
+			headers: jsonHeaders(token),
+			body: JSON.stringify({
+				parent: editorPageId,
+				order: 1,
+				type: 'richtext',
+				data: { html: '<p>Editor</p>' }
+			})
+		});
+		expect(editorBlock.status).toBe(200);
+		const editorBlockId = String((editorBlock.body as Record<string, unknown> | null)?.id ?? '');
+		expect(
+			(
+				await requestJson(running!, `/api/collections/blocks/records/${editorBlockId}`, {
+					method: 'PATCH',
+					headers: jsonHeaders(token),
+					body: JSON.stringify({ order: 2 })
+				})
+			).status
+		).toBe(200);
+		expect(
+			(
+				await requestJson(running!, `/api/collections/blocks/records/${editorBlockId}`, {
+					method: 'DELETE',
+					headers: { Authorization: token }
+				})
+			).status
+		).toBe(204);
+
+		const editorMedia = await requestJson(running!, '/api/collections/vega_media/records', {
+			method: 'POST',
+			headers: { Authorization: token },
+			body: pngFormData('editora.png', { alt: 'Editora' })
+		});
+		expect(editorMedia.status).toBe(200);
+		const editorMediaId = String((editorMedia.body as Record<string, unknown> | null)?.id ?? '');
+		expect(
+			(
+				await requestJson(running!, `/api/collections/vega_media/records/${editorMediaId}`, {
+					method: 'PATCH',
+					headers: jsonHeaders(token),
+					body: JSON.stringify({ title: 'Editado' })
+				})
+			).status
+		).toBe(200);
+		expect(
+			(
+				await requestJson(running!, `/api/collections/vega_media/records/${editorMediaId}`, {
+					method: 'DELETE',
+					headers: { Authorization: token }
+				})
+			).status
+		).toBe(204);
+
+		expect(
+			(
+				await requestJson(running!, `/api/collections/pages/records/${editorPageId}`, {
+					method: 'DELETE',
+					headers: { Authorization: token }
+				})
+			).status
+		).toBe(204);
+	});
+
 	test('si blocks desaparece, la siguiente pasada recrea solo esa colección', async () => {
 		await seedSiteProject(port);
 		const pageBefore = (await admin.collection('pages').getFullList())[0]!;
@@ -108,6 +355,74 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 		await expect(admin.collections.getOne('blocks')).resolves.toMatchObject({ type: 'base' });
 		expect((await admin.collection('pages').getFullList())[0]?.id).toBe(pageBefore.id);
 		expect((await admin.collection('vega').getFullList())[0]?.id).toBe(manifestBefore.id);
+	});
+
+	test('pages preexistente con lectura denegada y blocks ausente aborta antes de escribir', async () => {
+		await port.ensureCollections([pagesCollectionSpec(null)]);
+		const before = await logicalSnapshot(admin);
+
+		await expect(seedSiteProject(port)).rejects.toThrow(
+			'lectura de "pages" denegada; "blocks" quedaría imposible de listar'
+		);
+
+		expect(await logicalSnapshot(admin)).toEqual(before);
+		expect(
+			await admin.collections
+				.getOne('blocks')
+				.then(() => false)
+				.catch(isPocketBaseNotFound)
+		).toBe(true);
+		expect(
+			await admin.collections
+				.getOne('vega_editors')
+				.then(() => false)
+				.catch(isPocketBaseNotFound)
+		).toBe(true);
+
+		await admin.collections.update('pages', { listRule: '' });
+		await expect(seedSiteProject(port)).resolves.toMatchObject({
+			createdCollections: expect.arrayContaining(['blocks'])
+		});
+		await expect(admin.collections.getOne('blocks')).resolves.toMatchObject({ type: 'base' });
+	});
+
+	test.each([
+		['permitida', ''],
+		['condicional', '@request.auth.id != ""']
+	] as const)('pages preexistente con lectura %s permite crear blocks', async (_name, listRule) => {
+		await port.ensureCollections([pagesCollectionSpec(listRule)]);
+
+		await expect(seedSiteProject(port)).resolves.toMatchObject({
+			createdCollections: expect.arrayContaining(['blocks'])
+		});
+		await expect(admin.collections.getOne('blocks')).resolves.toMatchObject({ type: 'base' });
+	});
+
+	test('blocks preexistente y pages ausente no dispara un aborto simétrico', async () => {
+		await admin.collections.create({ name: 'blocks', type: 'base', fields: [] });
+
+		await expect(seedSiteProject(port)).resolves.toMatchObject({
+			createdCollections: expect.arrayContaining(['pages'])
+		});
+		await expect(admin.collections.getOne('pages')).resolves.toMatchObject({ type: 'base' });
+		await expect(admin.collections.getOne('blocks')).resolves.toMatchObject({ type: 'base' });
+	});
+
+	test('pages preexistente conserva sus cinco reglas byte por byte', async () => {
+		await port.ensureCollections([
+			{
+				...pagesCollectionSpec('@request.auth.id != ""'),
+				viewRule: '',
+				createRule: null,
+				updateRule: '@request.auth.collectionName = "legacy_editors"',
+				deleteRule: 'status = "draft"'
+			}
+		]);
+		const before = rawRules(await admin.collections.getOne('pages'));
+
+		await seedSiteProject(port);
+
+		expect(rawRules(await admin.collections.getOne('pages'))).toEqual(before);
 	});
 
 	test('si falta solo blocks.images, lo añade sin tocar los demás campos', async () => {
@@ -353,4 +668,79 @@ function hasSingleFieldUniqueIndex(indexes: string[], fieldName: string): boolea
 	return indexes.some(
 		(index) => /create\s+unique\s+index/i.test(index) && fieldPattern.test(index)
 	);
+}
+
+function rawRules(collection: SiteSeedingCollectionModel) {
+	return {
+		listRule: collection.listRule ?? null,
+		viewRule: collection.viewRule ?? null,
+		createRule: collection.createRule ?? null,
+		updateRule: collection.updateRule ?? null,
+		deleteRule: collection.deleteRule ?? null
+	};
+}
+
+function pagesCollectionSpec(listRule: CollectionRule): CollectionSpec {
+	return {
+		name: 'pages',
+		listRule,
+		viewRule: listRule,
+		createRule: SITE_SEED_EDITOR_ACCESS_RULE,
+		updateRule: SITE_SEED_EDITOR_ACCESS_RULE,
+		deleteRule: SITE_SEED_EDITOR_ACCESS_RULE,
+		fields: [
+			{ name: 'title', type: 'text', required: true, max: 200 },
+			{ name: 'path', type: 'text', required: true, max: 200, unique: true },
+			{ name: 'layout', type: 'text', max: 64 },
+			{
+				name: 'status',
+				type: 'select',
+				options: ['draft', 'published'],
+				multiple: false
+			}
+		]
+	};
+}
+
+type JsonBody = Record<string, unknown> | null;
+
+async function requestJson(
+	running: RunningPocketBase,
+	path: string,
+	init?: RequestInit
+): Promise<{ status: number; body: JsonBody }> {
+	const response = await fetch(`${running.url}${path}`, init);
+	const text = await response.text();
+	return {
+		status: response.status,
+		body: text ? (JSON.parse(text) as Record<string, unknown>) : null
+	};
+}
+
+function recordItems(body: JsonBody): Array<Record<string, unknown>> {
+	const items = body?.items;
+	return Array.isArray(items)
+		? items.filter(
+				(item): item is Record<string, unknown> => typeof item === 'object' && item !== null
+			)
+		: [];
+}
+
+function jsonHeaders(token?: string): Record<string, string> {
+	return token
+		? { 'Content-Type': 'application/json', Authorization: token }
+		: { 'Content-Type': 'application/json' };
+}
+
+function pngFormData(filename: string, fields: Record<string, string>): FormData {
+	const bytes = Uint8Array.from(
+		atob(
+			'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='
+		),
+		(char) => char.charCodeAt(0)
+	);
+	const form = new FormData();
+	form.append('file', new Blob([bytes], { type: 'image/png' }), filename);
+	for (const [key, value] of Object.entries(fields)) form.append(key, value);
+	return form;
 }

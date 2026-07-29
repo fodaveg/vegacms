@@ -15,7 +15,9 @@ import {
 	buildMediaBootstrapImportJson,
 	computeMediaCollectionState,
 	ensureMediaCollection,
-	VEGA_MEDIA_COLLECTION
+	VEGA_MEDIA_COLLECTION,
+	VEGA_MEDIA_EDITOR_ACCESS_RULE,
+	VEGA_MEDIA_VIEW_RULE
 } from './media-collection';
 
 describe('VEGA_MEDIA_COLLECTION (D-P6.1 opción A)', () => {
@@ -70,6 +72,25 @@ describe('VEGA_MEDIA_COLLECTION (D-P6.1 opción A)', () => {
 		expect(fileField.mimeTypes).not.toContain('image/svg+xml');
 		const createdField = json[0].fields.find((f: { name: string }) => f.name === 'created');
 		expect(createdField).toMatchObject({ type: 'autodate', onCreate: true, onUpdate: false });
+	});
+
+	test('buildMediaBootstrapImportJson() emite literalmente las cinco reglas de vega_media', () => {
+		const [collection] = JSON.parse(buildMediaBootstrapImportJson());
+		expect({
+			listRule: collection.listRule,
+			viewRule: collection.viewRule,
+			createRule: collection.createRule,
+			updateRule: collection.updateRule,
+			deleteRule: collection.deleteRule
+		}).toEqual({
+			listRule: '@request.auth.collectionName = "vega_editors"',
+			viewRule: '',
+			createRule: '@request.auth.collectionName = "vega_editors"',
+			updateRule: '@request.auth.collectionName = "vega_editors"',
+			deleteRule: '@request.auth.collectionName = "vega_editors"'
+		});
+		expect(collection.listRule).toBe(VEGA_MEDIA_EDITOR_ACCESS_RULE);
+		expect(collection.viewRule).toBe(VEGA_MEDIA_VIEW_RULE);
 	});
 
 	// Guardarraíl anti-deriva (landmine C1, shakedown 2026-07-19): PB solo sirve miniaturas para

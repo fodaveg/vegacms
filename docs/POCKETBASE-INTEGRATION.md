@@ -598,13 +598,17 @@ existentes se prepara manualmente. Un editor:
 #### Setup del modo editor en PocketBase
 
 En una instalación **nueva** preparada con `seedSiteProject`, el sembrado ya crea
-`vega_editors` y deja `listRule` y `viewRule` de `vega` acotadas literalmente a
-`@request.auth.collectionName = "vega_editors"`. La operación es headless: aún no hay botón ni
-asistente en la SPA. No abre las reglas de escritura de las colecciones de contenido; esa política
-sigue siendo decisión del operador.
+`vega_editors` y escribe las reglas de `vega`, `pages`, `blocks` y `vega_media` al crear cada
+colección. El sitio puede leer anónimamente solo páginas publicadas y sus bloques; los registros de
+`vega_media` se pueden ver por id y expandir, pero no enumerar. Un registro autenticado contra
+`vega_editors` recibe CRUD de las tres colecciones de contenido. La operación es headless: aún no
+hay botón ni asistente en la SPA.
 
 Los pasos manuales siguientes siguen aplicando a una instalación **existente**. El sembrado es
-`creation-only`: si `vega` o `vega_editors` ya existen, no cambia sus reglas, campos ni usuarios.
+`creation-only`: si una colección ya existe, no cambia ninguna de sus reglas, aunque estén vacías,
+sean más abiertas o sean más cerradas. Si `pages` ya existe con `listRule: null` y `blocks` no
+existe, el preflight aborta con un error claro antes de escribir; alinea las reglas manualmente y
+vuelve a sembrar.
 
 **1. Crear la colección de auth del editor:**
 
@@ -620,34 +624,41 @@ Los pasos manuales siguientes siguen aplicando a una instalación **existente**.
 2. **New record** → introduce email y contraseña.
 3. Guarda.
 
-**3. ⚠ LANDMINE CRÍTICA — Reglas de acceso a la colección `vega`:**
+**3. Reglas de acceso a la colección `vega`:**
 
 Una colección `vega` creada manualmente o por el bootstrap histórico puede conservar reglas de
 acceso `null` ⇒ **solo superuser puede leerla**. Un editor por defecto la verá PROHIBIDA (403) →
 la app mostrará VACÍA (sin colecciones ni manifiesto). El sembrado nuevo evita este estado solo
 cuando crea la colección; nunca reescribe una ya existente.
 
-**Solución**: en admin de PocketBase, abre **Collections** → **vega** → **Settings** → **Permissions** (tab de lectura):
+**Solución**: en admin de PocketBase, abre **Collections** → **vega** → **Settings** →
+**Permissions**:
 
-- **List rule**: `@request.auth.id != null` (cualquier usuario autenticado).
-- **View rule**: `@request.auth.id != null` (cualquier usuario autenticado).
-
-Alterna más restringido si necesitas:
-
-- `@request.auth.collectionName = "vega_editors"` (solo editores de esa colección concreta).
+- **List rule**: `@request.auth.collectionName = "vega_editors"`
+- **View rule**: `@request.auth.collectionName = "vega_editors"`
 
 Guarda. Ahora un editor puede leer el manifiesto y el schema snapshot.
 
 **4. Reglas de acceso al contenido:**
 
-Define qué colecciones puede editar un editor (y cuáles no). Para cada colección de contenido, abre **Settings** → **Permissions** y configura:
+Estas son las reglas que el sembrado pone automáticamente solo cuando crea las colecciones. Para
+un proyecto anterior, abre **Settings** → **Permissions** y cópialas a mano:
 
-- **Create rule**: p. ej. `@request.auth.collectionName = "vega_editors"` (solo editores pueden crear).
-- **Update rule**: p. ej. `@request.auth.collectionName = "vega_editors"` (solo editores pueden actualizar).
-- **Delete rule**: p. ej. `@request.auth.collectionName = "vega_editors"` (solo editores pueden borrar).
-- **List rule**: `@request.auth.id != null` o `true` (depende si quieres que lean anónimos).
+- `pages`
+  - **List/View**: `status = "published" || @request.auth.collectionName = "vega_editors"`
+  - **Create/Update/Delete**: `@request.auth.collectionName = "vega_editors"`
+- `blocks`
+  - **List/View**: `parent.status = "published" || @request.auth.collectionName = "vega_editors"`
+    (sustituye `parent` si el manifiesto usa otro `parentField`)
+  - **Create/Update/Delete**: `@request.auth.collectionName = "vega_editors"`
+- `vega_media`
+  - **List**: `@request.auth.collectionName = "vega_editors"`
+  - **View**: deja la regla vacía, que es acceso público por id y permite resolver `expand`
+  - **Create/Update/Delete**: `@request.auth.collectionName = "vega_editors"`
 
-Alternativamente, `@request.auth.id != null` permite cualquier usuario autenticado; el editor en Vega vería todas las colecciones y podría editar todas. Ajusta según el control de acceso que quieras.
+No conviertas `vega_media.listRule` en pública: el sitio solo necesita `viewRule` pública para
+resolver relaciones. Abrir la lista permitiría enumerar también assets no publicados junto con sus
+metadatos.
 
 #### Configurar Vega para usar la colección de auth del editor
 

@@ -64,8 +64,8 @@ func main() {
 `AuthCollections` must match the dedicated editor `auth.collection`
 advertised by that deployment's discovery document. The example assumes the
 `vega_editors` migration and seeding are complete. The current Astro starter
-still advertises `_superusers`; migrate it to a dedicated editor collection
-before enabling or upgrading this extension. `_superusers` is deliberately
+advertises `vega_editors`; existing projects that still advertise `_superusers`
+must migrate before enabling or upgrading this extension. `_superusers` is deliberately
 rejected because PocketBase superusers bypass record `ViewRule` checks.
 
 Then advertise the route from the project's public discovery document:
