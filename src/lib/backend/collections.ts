@@ -423,9 +423,9 @@ export function isCreatableCollectionName(name: string): boolean {
  *
  * La distinción NO es cosmética y por eso son dos funciones y no una. `ensureCollections` tiene
  * que seguir aceptando `vega`/`vega_*`, porque los que las crean son los bootstraps internos
- * (`model/load.ts#saveManifest` crea `vega`; `media/media-collection.ts#ensureMediaCollection`
- * crea `vega_media`). Endurecer el guardarraíl del PUERTO rompería justamente a los únicos
- * llamadores legítimos.
+ * (`backend/site-seeding.ts` prepara el proyecto completo; `model/load.ts#saveManifest` crea
+ * `vega`; `media/media-collection.ts#ensureMediaCollection` crea `vega_media`). Endurecer el
+ * guardarraíl del PUERTO rompería justamente a sus llamadores legítimos.
  *
  * El agujero que cierra esto es real y tiene secuencia de repro: ambos bootstraps son PEREZOSOS
  * (no corren al iniciar sesión, sino al guardar el manifiesto y al entrar en `/media`). Un

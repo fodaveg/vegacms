@@ -1,0 +1,244 @@
+{
+  "schemaVersion": 1,
+  "site": {
+    "name": "Aguja"
+  },
+  "nav": {
+    "groups": ["Sitio"]
+  },
+  "collections": {
+    "pages": {
+      "label": "Páginas",
+      "labelSingular": "Página",
+      "icon": "document",
+      "group": "Sitio",
+      "order": 0,
+      "titleField": "title",
+      "subtitleField": "path",
+      "slugField": "path",
+      "statusField": "status",
+      "statusLabels": {
+        "draft": "Borrador",
+        "published": "Publicado"
+      },
+      "listFields": ["title", "path", "layout", "status"],
+      "blocks": {
+        "collection": "blocks",
+        "parentField": "parent",
+        "orderField": "order",
+        "typeField": "type",
+        "dataField": "data"
+      }
+    },
+    "blocks": {
+      "label": "Bloques",
+      "labelSingular": "Bloque",
+      "icon": "box",
+      "hidden": true,
+      "titleField": "type"
+    }
+  },
+  "blockTypes": {
+    "hero": {
+      "label": "Hero",
+      "icon": "box",
+      "fields": [
+        {
+          "name": "eyebrow",
+          "label": "Antetítulo",
+          "widget": "text",
+          "source": "data",
+          "default": ""
+        },
+        {
+          "name": "title",
+          "label": "Título",
+          "widget": "text",
+          "source": "data",
+          "default": ""
+        },
+        {
+          "name": "body",
+          "label": "Texto",
+          "widget": "textarea",
+          "source": "data",
+          "default": ""
+        },
+        {
+          "name": "actionLabel",
+          "label": "Texto del botón",
+          "widget": "text",
+          "source": "data",
+          "default": ""
+        },
+        {
+          "name": "actionHref",
+          "label": "Enlace",
+          "widget": "url",
+          "source": "data",
+          "default": ""
+        },
+        {
+          "name": "image",
+          "label": "Imagen",
+          "widget": "relation",
+          "source": "record"
+        }
+      ]
+    },
+    "richtext": {
+      "label": "Texto rico",
+      "icon": "document",
+      "fields": [
+        {
+          "name": "eyebrow",
+          "label": "Antetítulo",
+          "widget": "text",
+          "source": "data",
+          "default": ""
+        },
+        {
+          "name": "heading",
+          "label": "Título",
+          "widget": "text",
+          "source": "data",
+          "default": ""
+        },
+        {
+          "name": "body",
+          "label": "Contenido",
+          "widget": "richtext",
+          "source": "data",
+          "default": ""
+        },
+        {
+          "name": "aside",
+          "label": "Nota lateral",
+          "widget": "textarea",
+          "source": "data",
+          "default": ""
+        }
+      ]
+    },
+    "image": {
+      "label": "Imagen",
+      "icon": "media",
+      "fields": [
+        {
+          "name": "image",
+          "label": "Imagen",
+          "widget": "relation",
+          "source": "record"
+        },
+        {
+          "name": "caption",
+          "label": "Pie",
+          "widget": "text",
+          "source": "data",
+          "default": ""
+        },
+        {
+          "name": "label",
+          "label": "Etiqueta",
+          "widget": "text",
+          "source": "data",
+          "default": ""
+        }
+      ]
+    },
+    "gallery": {
+      "label": "Galería",
+      "icon": "media",
+      "fields": [
+        {
+          "name": "eyebrow",
+          "label": "Antetítulo",
+          "widget": "text",
+          "source": "data",
+          "default": ""
+        },
+        {
+          "name": "heading",
+          "label": "Título",
+          "widget": "text",
+          "source": "data",
+          "default": ""
+        },
+        {
+          "name": "images",
+          "label": "Imágenes",
+          "widget": "relation",
+          "source": "record"
+        }
+      ]
+    },
+    "cta": {
+      "label": "Llamada a la acción",
+      "icon": "tag",
+      "fields": [
+        {
+          "name": "eyebrow",
+          "label": "Antetítulo",
+          "widget": "text",
+          "source": "data",
+          "default": ""
+        },
+        {
+          "name": "title",
+          "label": "Título",
+          "widget": "text",
+          "source": "data",
+          "default": ""
+        },
+        {
+          "name": "body",
+          "label": "Texto",
+          "widget": "textarea",
+          "source": "data",
+          "default": ""
+        },
+        {
+          "name": "label",
+          "label": "Texto del botón",
+          "widget": "text",
+          "source": "data",
+          "default": ""
+        },
+        {
+          "name": "href",
+          "label": "Enlace",
+          "widget": "url",
+          "source": "data",
+          "default": ""
+        },
+        {
+          "name": "note",
+          "label": "Nota",
+          "widget": "text",
+          "source": "data",
+          "default": ""
+        }
+      ]
+    },
+    "divider": {
+      "label": "Separador",
+      "icon": "generic",
+      "fields": [
+        {
+          "name": "label",
+          "label": "Etiqueta",
+          "widget": "text",
+          "source": "data",
+          "default": ""
+        },
+        {
+          "name": "mark",
+          "label": "Marca",
+          "widget": "text",
+          "source": "data",
+          "default": ""
+        }
+      ]
+    }
+  }
+}

@@ -56,7 +56,7 @@ export async function ensureCollectionsOnPocketBase(
 								message: `La colección "${spec.name}" ya existe como ${existing.type}, no como ${expectedType}`
 							}
 						},
-						`La colección "${spec.name}" ya existe con otro tipo`
+						`La colección "${spec.name}" ya existe como ${existing.type}, no como ${expectedType}`
 					);
 				}
 				skipped.push(spec.name);
