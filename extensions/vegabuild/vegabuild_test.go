@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -18,6 +19,7 @@ import (
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tests"
+	"github.com/pocketbase/pocketbase/tools/hook"
 )
 
 // fakeRunner is a Runner whose Start behaviour and Completes() answer are entirely controlled by
@@ -84,13 +86,17 @@ func newTestMux(t *testing.T, app core.App, extension *Extension) http.Handler {
 	return mux
 }
 
-// newAuthToken creates a throwaway auth collection with a single record and returns a valid
-// PocketBase token for it, ready to use in an Authorization header.
+// newAuthToken creates a throwaway vega_editors record and returns a valid PocketBase token for
+// it, ready to use in an Authorization header.
 func newAuthToken(t *testing.T, app core.App) string {
+	return newAuthTokenForCollection(t, app, "vega_editors")
+}
+
+func newAuthTokenForCollection(t *testing.T, app core.App, collectionName string) string {
 	t.Helper()
-	collection, err := app.FindCollectionByNameOrId("vega_editors")
+	collection, err := app.FindCollectionByNameOrId(collectionName)
 	if err != nil {
-		collection = core.NewAuthCollection("vega_editors")
+		collection = core.NewAuthCollection(collectionName)
 		if err := app.Save(collection); err != nil {
 			t.Fatal(err)
 		}
@@ -135,7 +141,10 @@ func decodeJSON(t *testing.T, response *httptest.ResponseRecorder, out any) {
 }
 
 func TestConfigDefaultsAndGuards(t *testing.T) {
-	config, err := (Config{Runner: &fakeRunner{completes: true}}).normalized()
+	config, err := (Config{
+		Runner:          &fakeRunner{completes: true},
+		AuthCollections: []string{"vega_editors"},
+	}).normalized()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,26 +160,151 @@ func TestConfigDefaultsAndGuards(t *testing.T) {
 		t.Fatal(`expected a route prefix containing "//" to be rejected`)
 	}
 
-	if _, err := New(Config{}); err == nil {
+	if _, err := New(Config{AuthCollections: []string{"vega_editors"}}); err == nil {
 		t.Fatal("expected a nil Runner to be rejected")
 	}
-	if _, err := New(Config{Runner: &fakeRunner{completes: false}}); err == nil {
+	if _, err := New(Config{
+		Runner:          &fakeRunner{completes: false},
+		AuthCollections: []string{"vega_editors"},
+	}); err == nil {
 		t.Fatal("expected a non-completing Runner without CallbackSecret to be rejected")
 	}
-	if _, err := New(Config{Runner: &fakeRunner{completes: false}, CallbackSecret: "short"}); err == nil {
+	if _, err := New(Config{
+		Runner:          &fakeRunner{completes: false},
+		AuthCollections: []string{"vega_editors"},
+		CallbackSecret:  "short",
+	}); err == nil {
 		t.Fatal("expected a CallbackSecret under 16 characters to be rejected")
 	}
-	if _, err := New(Config{Runner: &fakeRunner{completes: true}, StaleRunAfter: -time.Minute}); err == nil {
+	if _, err := New(Config{
+		Runner:          &fakeRunner{completes: true},
+		AuthCollections: []string{"vega_editors"},
+		StaleRunAfter:   -time.Minute,
+	}); err == nil {
 		t.Fatal("expected a negative StaleRunAfter to be rejected")
 	}
-	if _, err := New(Config{Runner: &fakeRunner{completes: true}}); err != nil {
+	if _, err := New(Config{
+		Runner:          &fakeRunner{completes: true},
+		AuthCollections: []string{"vega_editors"},
+	}); err != nil {
 		t.Fatalf("a completing Runner without CallbackSecret must be accepted: %v", err)
+	}
+}
+
+func TestAuthCollectionsRejectInvalidEntriesWithActionableErrors(t *testing.T) {
+	testCases := []struct {
+		name       string
+		allowlist  []string
+		wantErrMsg string
+	}{
+		{
+			name:       "nil",
+			allowlist:  nil,
+			wantErrMsg: "vegabuild: AuthCollections must contain at least one exact auth collection name; configure the allowlist before starting",
+		},
+		{
+			name:       "empty",
+			allowlist:  []string{},
+			wantErrMsg: "vegabuild: AuthCollections must contain at least one exact auth collection name; configure the allowlist before starting",
+		},
+		{
+			name:       "empty entry",
+			allowlist:  []string{""},
+			wantErrMsg: `vegabuild: AuthCollections[0] "" is empty; remove it or correct it to an exact auth collection name`,
+		},
+		{
+			name:       "blank entry",
+			allowlist:  []string{" "},
+			wantErrMsg: `vegabuild: AuthCollections[0] " " is blank; remove it or correct it to an exact auth collection name`,
+		},
+		{
+			name:       "surrounding whitespace",
+			allowlist:  []string{" vega_editors "},
+			wantErrMsg: `vegabuild: AuthCollections[0] " vega_editors " has leading or trailing whitespace; remove it or correct it to the exact auth collection name`,
+		},
+		{
+			name:       "mixed valid and blank",
+			allowlist:  []string{"vega_editors", " "},
+			wantErrMsg: `vegabuild: AuthCollections[1] " " is blank; remove it or correct it to an exact auth collection name`,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			_, err := New(Config{
+				Runner:          &fakeRunner{completes: true},
+				AuthCollections: testCase.allowlist,
+			})
+			if err == nil {
+				t.Fatal("expected New to reject the invalid AuthCollections")
+			}
+			if err.Error() != testCase.wantErrMsg {
+				t.Fatalf("unexpected error:\n got: %q\nwant: %q", err.Error(), testCase.wantErrMsg)
+			}
+		})
+	}
+}
+
+func TestAuthCollectionsReachRequireAuthWithoutRewriteOrDeduplication(t *testing.T) {
+	originalRequireAuth := requireAuth
+	t.Cleanup(func() { requireAuth = originalRequireAuth })
+
+	var received [][]string
+	requireAuth = func(collections ...string) *hook.Handler[*core.RequestEvent] {
+		received = append(received, collections)
+		return apis.RequireAuth(collections...)
+	}
+
+	allowlist := []string{"vega_editors", "vega_editors"}
+	extension, err := New(Config{
+		Runner:          &fakeRunner{completes: true},
+		AuthCollections: allowlist,
+	})
+	if err != nil {
+		t.Fatalf("a duplicate allowlist entry must be accepted: %v", err)
+	}
+	newTestMux(t, newTestApp(t), extension)
+
+	if len(received) != 2 {
+		t.Fatalf("expected both protected routes to call RequireAuth, got %d calls", len(received))
+	}
+	for i, collections := range received {
+		if !slices.Equal(collections, allowlist) {
+			t.Fatalf("RequireAuth call %d received %#v, want %#v", i, collections, allowlist)
+		}
+		if &collections[0] != &allowlist[0] {
+			t.Fatalf("RequireAuth call %d received a reassigned AuthCollections slice", i)
+		}
+	}
+}
+
+func TestSuperusersCollectionBuildsAndAuthorizes(t *testing.T) {
+	app := newTestApp(t)
+	extension, err := New(Config{
+		Runner:          &fakeRunner{completes: true},
+		AuthCollections: []string{core.CollectionNameSuperusers},
+	})
+	if err != nil {
+		t.Fatalf("_superusers must remain a valid vegabuild allowlist: %v", err)
+	}
+	if err := extension.EnsureCollections(app); err != nil {
+		t.Fatal(err)
+	}
+	mux := newTestMux(t, app, extension)
+	token := newAuthTokenForCollection(t, app, core.CollectionNameSuperusers)
+
+	response := doRequest(mux, http.MethodGet, "/api/vega-build/status", token, "")
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected _superusers to be authorized, got %d %s", response.Code, response.Body.String())
 	}
 }
 
 func TestEnsureCollectionsIsIdempotentAndRejectsHomonym(t *testing.T) {
 	app := newTestApp(t)
-	extension, err := New(Config{Runner: &fakeRunner{completes: true}})
+	extension, err := New(Config{
+		Runner:          &fakeRunner{completes: true},
+		AuthCollections: []string{"vega_editors"},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +316,11 @@ func TestEnsureCollectionsIsIdempotentAndRejectsHomonym(t *testing.T) {
 	}
 
 	other := createPublicCollection(t, app)
-	extension2, err := New(Config{Runner: &fakeRunner{completes: true}, RunsCollection: other})
+	extension2, err := New(Config{
+		Runner:          &fakeRunner{completes: true},
+		AuthCollections: []string{"vega_editors"},
+		RunsCollection:  other,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -206,9 +344,12 @@ func createPublicCollection(t *testing.T, app core.App) string {
 	return name
 }
 
-func TestStatusWithNoRunsIsIdle(t *testing.T) {
+func TestReadmeAuthCollectionBuildsAndServesIdleStatus(t *testing.T) {
 	app := newTestApp(t)
-	extension, err := New(Config{Runner: &fakeRunner{completes: true}})
+	extension, err := New(Config{
+		Runner:          &fakeRunner{completes: true},
+		AuthCollections: []string{"vega_editors"},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,7 +376,10 @@ func TestStatusWithNoRunsIsIdle(t *testing.T) {
 func TestHappyPathCompletingRunner(t *testing.T) {
 	app := newTestApp(t)
 	runner := &fakeRunner{completes: true}
-	extension, err := New(Config{Runner: runner})
+	extension, err := New(Config{
+		Runner:          runner,
+		AuthCollections: []string{"vega_editors"},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -280,7 +424,10 @@ func TestHappyPathCompletingRunner(t *testing.T) {
 
 func TestLastPublishedAtSurvivesALaterFailedRun(t *testing.T) {
 	app := newTestApp(t)
-	extension, err := New(Config{Runner: &fakeRunner{completes: true}})
+	extension, err := New(Config{
+		Runner:          &fakeRunner{completes: true},
+		AuthCollections: []string{"vega_editors"},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -332,7 +479,10 @@ func TestLastPublishedAtSurvivesALaterFailedRun(t *testing.T) {
 
 func TestTimestampFormat(t *testing.T) {
 	app := newTestApp(t)
-	extension, err := New(Config{Runner: &fakeRunner{completes: true}})
+	extension, err := New(Config{
+		Runner:          &fakeRunner{completes: true},
+		AuthCollections: []string{"vega_editors"},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -366,7 +516,10 @@ func TestTimestampFormat(t *testing.T) {
 func TestTriggerWhileRunningConflicts(t *testing.T) {
 	app := newTestApp(t)
 	runner := &fakeRunner{completes: true}
-	extension, err := New(Config{Runner: runner})
+	extension, err := New(Config{
+		Runner:          runner,
+		AuthCollections: []string{"vega_editors"},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -400,7 +553,10 @@ func TestHandoffDoesNotResurrectAnAlreadyClosedRun(t *testing.T) {
 		reportDuringStart: &Result{OK: true, LogURL: "https://logs.example/from-report"},
 		handoff:           Handoff{LogURL: "https://logs.example/stale-handoff", ExternalRef: "stale-ref"},
 	}
-	extension, err := New(Config{Runner: runner})
+	extension, err := New(Config{
+		Runner:          runner,
+		AuthCollections: []string{"vega_editors"},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -434,7 +590,10 @@ func TestHandoffDoesNotResurrectAnAlreadyClosedRun(t *testing.T) {
 func TestTriggerIsSerializedAgainstConcurrentRequests(t *testing.T) {
 	app := newTestApp(t)
 	runner := &fakeRunner{completes: true}
-	extension, err := New(Config{Runner: runner})
+	extension, err := New(Config{
+		Runner:          runner,
+		AuthCollections: []string{"vega_editors"},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -485,7 +644,12 @@ func TestStaleRunIsReconciledAndUnblocksTrigger(t *testing.T) {
 	current := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
 	clock := func() time.Time { return current }
 	runner := &fakeRunner{completes: true}
-	extension, err := New(Config{Runner: runner, Clock: clock, StaleRunAfter: time.Hour})
+	extension, err := New(Config{
+		Runner:          runner,
+		AuthCollections: []string{"vega_editors"},
+		Clock:           clock,
+		StaleRunAfter:   time.Hour,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -527,7 +691,12 @@ func TestFreshRunningRunIsNotReconciled(t *testing.T) {
 	current := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
 	clock := func() time.Time { return current }
 	runner := &fakeRunner{completes: true}
-	extension, err := New(Config{Runner: runner, Clock: clock, StaleRunAfter: time.Hour})
+	extension, err := New(Config{
+		Runner:          runner,
+		AuthCollections: []string{"vega_editors"},
+		Clock:           clock,
+		StaleRunAfter:   time.Hour,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -568,7 +737,10 @@ func TestFreshRunningRunIsNotReconciled(t *testing.T) {
 // state could not even be read anymore.
 func TestReconcileTreatsUnparsableStartedAtAsAbandoned(t *testing.T) {
 	app := newTestApp(t)
-	extension, err := New(Config{Runner: &fakeRunner{completes: true}})
+	extension, err := New(Config{
+		Runner:          &fakeRunner{completes: true},
+		AuthCollections: []string{"vega_editors"},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -609,7 +781,10 @@ func TestReconcileTreatsUnparsableStartedAtAsAbandoned(t *testing.T) {
 func TestStartFailureMarksRunFailed(t *testing.T) {
 	app := newTestApp(t)
 	runner := &fakeRunner{completes: true, startErr: errors.New("provider unreachable")}
-	extension, err := New(Config{Runner: runner})
+	extension, err := New(Config{
+		Runner:          runner,
+		AuthCollections: []string{"vega_editors"},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -635,7 +810,11 @@ func TestStartFailureMarksRunFailed(t *testing.T) {
 
 func TestCallback(t *testing.T) {
 	app := newTestApp(t)
-	extension, err := New(Config{Runner: &fakeRunner{completes: false}, CallbackSecret: "sixteen-char-secret!"})
+	extension, err := New(Config{
+		Runner:          &fakeRunner{completes: false},
+		AuthCollections: []string{"vega_editors"},
+		CallbackSecret:  "sixteen-char-secret!",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -703,7 +882,10 @@ func TestCallback(t *testing.T) {
 
 func TestUnauthenticatedRequestsAreRejected(t *testing.T) {
 	app := newTestApp(t)
-	extension, err := New(Config{Runner: &fakeRunner{completes: true}})
+	extension, err := New(Config{
+		Runner:          &fakeRunner{completes: true},
+		AuthCollections: []string{"vega_editors"},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

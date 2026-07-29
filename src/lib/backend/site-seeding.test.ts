@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { createMemoryBackend, type MemoryBackendPort } from './adapters/memory';
 import type { BackendPort } from './port';
 import {
@@ -37,6 +37,43 @@ async function logicalSnapshot(port: MemoryBackendPort) {
 		),
 		records
 	};
+}
+
+function withActualField(
+	port: BackendPort,
+	collectionName: string,
+	fieldName: string,
+	patch: Record<string, unknown>
+): BackendPort {
+	return {
+		...port,
+		async listContentTypes() {
+			return (await port.listContentTypes()).map((type) =>
+				type.name === collectionName
+					? {
+							...type,
+							fields: type.fields.map((field) =>
+								field.name === fieldName ? ({ ...field, ...patch } as typeof field) : field
+							)
+						}
+					: type
+			);
+		}
+	};
+}
+
+function watchSeedWrites(port: BackendPort) {
+	return [
+		vi.spyOn(port, 'ensureCollections'),
+		vi.spyOn(port, 'addCollectionFields'),
+		vi.spyOn(port, 'create'),
+		vi.spyOn(port, 'update'),
+		vi.spyOn(port, 'delete')
+	];
+}
+
+function expectNoSeedWrites(spies: ReturnType<typeof watchSeedWrites>) {
+	for (const spy of spies) expect(spy).not.toHaveBeenCalled();
 }
 
 describe('seedSiteProject', () => {
@@ -181,6 +218,117 @@ describe('seedSiteProject', () => {
 		});
 		expect(await logicalSnapshot(port)).toEqual(before);
 		expect(port.inspectCollection('vega_editors')).toBeNull();
+	});
+
+	test('pages.status sin una opción esperada diverge y aborta sin escribir', async () => {
+		const port = await authedMemory();
+		await port.ensureCollections([
+			{
+				name: 'pages',
+				fields: [
+					{
+						name: 'status',
+						type: 'select',
+						options: ['draft', 'archived'],
+						multiple: false
+					}
+				]
+			}
+		]);
+		const writes = watchSeedWrites(port);
+
+		await expect(seedSiteProject(port)).rejects.toMatchObject({
+			name: 'SiteSeedDivergenceError',
+			divergences: [
+				expect.objectContaining({
+					piece: 'campo "pages.status"',
+					actual: expect.stringContaining('"options":["draft","archived"]'),
+					expected: expect.stringContaining('"options":["draft","published"]')
+				})
+			]
+		});
+		expectNoSeedWrites(writes);
+		expect(port.inspectCollection('vega_editors')).toBeNull();
+	});
+
+	test('pages.status con un superconjunto desordenado de opciones sigue siendo compatible', async () => {
+		const port = await authedMemory();
+		await port.ensureCollections([
+			{
+				name: 'pages',
+				fields: [
+					{
+						name: 'status',
+						type: 'select',
+						options: ['archived', 'published', 'draft'],
+						multiple: false
+					}
+				]
+			}
+		]);
+
+		await expect(seedSiteProject(port)).resolves.toMatchObject({
+			addedFields: { pages: ['title', 'path', 'layout'] }
+		});
+		const pages = (await port.listContentTypes()).find((type) => type.name === 'pages')!;
+		expect(pages.fields.find((field) => field.name === 'status')).toMatchObject({
+			options: ['archived', 'published', 'draft'],
+			maxSelect: 1
+		});
+	});
+
+	test('pages.status con una opción repetida diverge y aborta sin escribir', async () => {
+		const port = await authedMemory();
+		await seedSiteProject(port);
+		const writes = watchSeedWrites(port);
+		const actualPort = withActualField(port, 'pages', 'status', {
+			options: ['draft', 'published', 'published']
+		});
+
+		await expect(seedSiteProject(actualPort)).rejects.toMatchObject({
+			name: 'SiteSeedDivergenceError',
+			divergences: [
+				expect.objectContaining({
+					piece: 'campo "pages.status"',
+					actual: expect.stringContaining('"options":["draft","published","published"]')
+				})
+			]
+		});
+		expectNoSeedWrites(writes);
+	});
+
+	test('pages.status con maxSelect distinto del creado diverge y aborta sin escribir', async () => {
+		const port = await authedMemory();
+		await seedSiteProject(port);
+		const writes = watchSeedWrites(port);
+		const actualPort = withActualField(port, 'pages', 'status', { maxSelect: undefined });
+
+		await expect(seedSiteProject(actualPort)).rejects.toMatchObject({
+			name: 'SiteSeedDivergenceError',
+			divergences: [
+				expect.objectContaining({
+					piece: 'campo "pages.status"',
+					actual: expect.stringContaining('"maxSelect":null'),
+					expected: expect.stringContaining('"maxSelect":1')
+				})
+			]
+		});
+		expectNoSeedWrites(writes);
+	});
+
+	test('options y maxSelect ajenos en un campo no select no cambian el veredicto', async () => {
+		const port = await authedMemory();
+		await seedSiteProject(port);
+		const actualPort = withActualField(port, 'pages', 'title', {
+			options: ['irrelevant'],
+			maxSelect: 37
+		});
+
+		await expect(seedSiteProject(actualPort)).resolves.toEqual({
+			createdCollections: [],
+			addedFields: {},
+			createdRecords: []
+		});
 	});
 
 	test('un manifiesto humano distinto se conserva y aborta antes de otras escrituras', async () => {

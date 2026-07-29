@@ -374,6 +374,8 @@ interface ComparableFieldShape {
 	multiple: boolean;
 	required: boolean;
 	unique: boolean;
+	options: readonly string[] | null;
+	maxSelect: number | null;
 }
 
 function expectedFieldShape(field: CollectionFieldSpec): ComparableFieldShape {
@@ -385,7 +387,9 @@ function expectedFieldShape(field: CollectionFieldSpec): ComparableFieldShape {
 				? (field.multiple ?? false)
 				: false,
 		required: 'required' in field ? (field.required ?? false) : false,
-		unique: field.type === 'text' ? (field.unique ?? false) : false
+		unique: field.type === 'text' ? (field.unique ?? false) : false,
+		options: field.type === 'select' ? field.options : null,
+		maxSelect: field.type === 'select' ? (field.multiple ? 99 : 1) : null
 	};
 }
 
@@ -400,7 +404,9 @@ function actualFieldShape(field: Field): ComparableFieldShape {
 				? field.multiple
 				: false,
 		required: field.required,
-		unique: field.unique
+		unique: field.unique,
+		options: field.type === 'select' ? field.options : null,
+		maxSelect: field.type === 'select' ? (field.maxSelect ?? null) : null
 	};
 }
 
@@ -410,8 +416,20 @@ function sameShape(left: ComparableFieldShape, right: ComparableFieldShape): boo
 		left.target === right.target &&
 		left.multiple === right.multiple &&
 		left.required === right.required &&
-		left.unique === right.unique
+		left.unique === right.unique &&
+		sameSelectOptions(left.options, right.options) &&
+		left.maxSelect === right.maxSelect
 	);
+}
+
+function sameSelectOptions(
+	expected: readonly string[] | null,
+	actual: readonly string[] | null
+): boolean {
+	if (expected === null || actual === null) return expected === actual;
+	if (new Set(actual).size !== actual.length) return false;
+	const actualOptions = new Set(actual);
+	return expected.every((option) => actualOptions.has(option));
 }
 
 function sameJson(left: unknown, right: JsonValue): boolean {
