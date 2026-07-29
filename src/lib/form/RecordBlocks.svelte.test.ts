@@ -740,7 +740,7 @@ describe('RecordBlocks.svelte — tipos de bloque', () => {
 			el.textContent?.trim()
 		);
 		// `b1` conocido por su label; `b2` desconocido pero VISIBLE; `b3` sin tipo no pinta insignia.
-		// `b1` conocido por su label; `b2` desconocido pero VISIBLE; `b3` sin tipo lo DICE.
+		// `b1` conocido por su label; `b2` desconocido pero VISIBLE; `b3` con la columna vacía lo DICE.
 		expect(badges).toEqual(['Portada', 'Tipo desconocido: carrusel', 'Sin tipo']);
 		expect(mounted.target.querySelectorAll('.vega-block-type--unknown')).toHaveLength(1);
 		expect(mounted.target.querySelectorAll('.vega-block-type--none')).toHaveLength(1);
@@ -777,7 +777,8 @@ describe('RecordBlocks.svelte — tipos de bloque', () => {
 		expect(document.activeElement).toBe(items[0]);
 
 		const menu = mounted.target.querySelector<HTMLElement>('[role="menu"]')!;
-		const press = (key: string) => menu.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+		const press = (key: string) =>
+			menu.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
 
 		press('ArrowDown');
 		expect(document.activeElement).toBe(items[1]);
@@ -822,6 +823,26 @@ describe('RecordBlocks.svelte — tipos de bloque', () => {
 		expect(mounted.target.querySelector('[role="menu"]')).toBeNull();
 		// Sin esto el foco cae a `<body>` y el usuario de teclado pierde el sitio.
 		expect(document.activeElement).toBe(trigger);
+	});
+
+	test('Tab y Shift+Tab sacan el foco del menú y lo cierran', async () => {
+		mounted = await mountTypedBlocks();
+		await settle();
+
+		const trigger = mounted.target.querySelector<HTMLButtonElement>('.vega-blocks-add')!;
+		trigger.click();
+		await settle();
+		const items = Array.from(
+			mounted.target.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')
+		);
+		expect(document.activeElement).toBe(items[0]);
+
+		// `Shift+Tab` desde el primer elemento devuelve el foco al DISPARADOR. Si la condición de
+		// cierre perdonara al disparador, el menú se quedaría abierto con el foco fuera de su
+		// `role="menu"`, que es justo lo que APG prohíbe.
+		items[0].dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: trigger }));
+		await settle();
+		expect(mounted.target.querySelector('[role="menu"]')).toBeNull();
 	});
 
 	test('en modo HOMOGÉNEO no hay menú: el botón simple sigue creando sin tipo', async () => {

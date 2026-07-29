@@ -373,10 +373,14 @@
 		addTriggerEl?.focus();
 	}
 
+	/** El foco sale del menú: se cierra. La condición mira SOLO `addMenuEl` a propósito — si también
+	 *  perdonara el disparador, `Shift+Tab` desde el primer elemento devolvería el foco al botón y el
+	 *  menú se quedaría abierto con el foco fuera de su `role="menu"`, que es lo que APG prohíbe. El
+	 *  tránsito de apertura (disparador → primer elemento) ya entra por `addMenuEl`. */
 	function handleAddFocusOut(event: FocusEvent): void {
 		if (!addMenuOpen) return;
 		const next = event.relatedTarget as Node | null;
-		if (next && (addTriggerEl?.contains(next) || addMenuEl?.contains(next))) return;
+		if (next && addMenuEl?.contains(next)) return;
 		closeAddMenu();
 	}
 

@@ -103,8 +103,9 @@
 	const dirty = $derived(isDirty(baseline, current));
 	const inert = $derived(disabled || saving);
 
-	/** Campos visibles del mini-formulario: todo lo del tipo hijo MENOS `parentField`/`orderField`
-	 *  (estructurales, ver cabecera) y lo que el propio schema/manifiesto ya marca `hidden`. */
+	/** Campos visibles del mini-formulario: todo lo del tipo hijo MENOS los ESTRUCTURALES que le pasa
+	 *  `RecordBlocks` (`parentField`, `orderField` y, si la colección lo declara, `typeField` — ver
+	 *  cabecera) y lo que el propio schema/manifiesto ya marca `hidden`. */
 	const visibleFields = $derived(
 		childType.fields.filter((f) => !f.hidden && !structuralFields.includes(f.name))
 	);
