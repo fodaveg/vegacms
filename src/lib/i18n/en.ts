@@ -237,6 +237,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// `list.reorder.handleLabel`/`.error` (the drag handle is the SAME piece as the list's).
 	// Only literals without an existing key live here.
 	'editor.blocks.add': 'Add {label}',
+	'editor.blocks.addMenu.label': 'Block types',
+	'editor.blocks.type.unknown': 'Unknown type: {name}',
 	'editor.blocks.empty': 'There are no {label} yet.',
 	'editor.blocks.duplicateLabel': 'Duplicate “{label}”',
 	'editor.blocks.duplicateSuccess': 'Block duplicated.',

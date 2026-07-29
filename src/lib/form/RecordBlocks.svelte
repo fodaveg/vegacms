@@ -58,7 +58,7 @@
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import type { RecordId, VegaRecord } from '$lib/backend/types';
 	import type { PreviewDraftRecord } from '$lib/backend/preview-client';
-	import type { ResolvedContentType } from '$lib/model/types';
+	import type { ResolvedBlockType, ResolvedContentType } from '$lib/model/types';
 	import { VegaError } from '$lib/backend/errors';
 	import { getVegaContext } from '$lib/app-context';
 	import { describeCell } from '$lib/list/cell';
@@ -111,10 +111,24 @@
 	 */
 	const childType = ctx.model.types.find((t) => t.name === blocksConfig?.collection) ?? null;
 	const blockDuplicateAllowed = childType !== null && canDuplicateBlock(childType);
-	/** Campos estructurales del hijo (parentField + orderField): el mini-formulario nunca los
-	 *  pinta, `RecordBlocks` es su único escritor. Array ESTABLE (no `$derived`): `blocksConfig` no
-	 *  cambia tras el montaje (ver arriba), así que no hace falta recalcularlo por render. */
-	const structuralFields = blocksConfig ? [blocksConfig.parentField, blocksConfig.orderField] : [];
+	/** Campos estructurales del hijo (parentField + orderField + typeField): el mini-formulario
+	 *  nunca los pinta, `RecordBlocks` es su único escritor. Array ESTABLE (no `$derived`):
+	 *  `blocksConfig` no cambia tras el montaje (ver arriba), así que no hace falta recalcularlo por
+	 *  render.
+	 *
+	 *  `typeField` entró aquí con el menú de tipos, y lo exige el propio menú: en cuanto el tipo se
+	 *  escribe en una COLUMNA REAL, dejarlo fuera de esta lista lo pintaría como un campo de texto
+	 *  editable dentro del bloque, y el usuario podría teclear un tipo que no existe en el
+	 *  vocabulario. El tipo se elige al crear; no se reescribe a mano. */
+	const structuralFields = blocksConfig
+		? [
+				blocksConfig.parentField,
+				blocksConfig.orderField,
+				// `typeField` es opcional (`string | null`): en modo HOMOGÉNEO no existe columna de
+				// tipo y no hay nada que excluir.
+				...(blocksConfig.typeField === null ? [] : [blocksConfig.typeField])
+			]
+		: [];
 
 	type BlocksStatus =
 		{ kind: 'loading' } | { kind: 'ready'; records: VegaRecord[] } | { kind: 'error' };
@@ -226,6 +240,40 @@
 		if (key !== null && childType) void load(childType.name, parentId!);
 	});
 
+	// ————— Vocabulario de tipos de bloque (menú "Añadir" y insignia de cada fila) —————
+	//
+	// El vocabulario vive en la RAÍZ del modelo (`ctx.model.blockTypes`), no en la colección: un
+	// sitio tiene UN juego de componentes. El menú solo aparece en modo HETEROGÉNEO, o sea cuando
+	// `blocksConfig.typeField` existe Y el manifiesto declara al menos un tipo; si falta cualquiera
+	// de las dos cosas se conserva el botón simple de siempre, que crea un bloque sin tipo.
+	const typeField = blocksConfig?.typeField ?? null;
+	const blockTypes = ctx.model.blockTypes;
+	const hasTypeMenu = typeField !== null && blockTypes.length > 0;
+
+	/**
+	 * El tipo declarado de un bloque, leído de su COLUMNA REAL. Es el dividendo de la regla de
+	 * frontera: no se parsea `data` para saber de qué tipo es una fila.
+	 *
+	 * `null` = la fila no dice de qué tipo es (bloque creado antes de que existiera el vocabulario,
+	 * o modo homogéneo). Un valor que NO está en el vocabulario NO es lo mismo: significa que el
+	 * manifiesto retiró ese tipo y el registro sigue vivo, así que se muestra el valor crudo en vez
+	 * de esconderlo — el editor no puede pintar sus campos, pero el usuario tiene derecho a saber
+	 * qué hay ahí antes de borrarlo.
+	 */
+	function blockTypeOf(record: VegaRecord): ResolvedBlockType | null {
+		if (typeField === null) return null;
+		const raw = record.values[typeField];
+		if (typeof raw !== 'string' || raw === '') return null;
+		return blockTypes.find((candidate) => candidate.name === raw) ?? null;
+	}
+
+	/** El nombre crudo del tipo, para el caso "existe pero ya no está en el vocabulario". */
+	function blockTypeRawName(record: VegaRecord): string | null {
+		if (typeField === null) return null;
+		const raw = record.values[typeField];
+		return typeof raw === 'string' && raw !== '' ? raw : null;
+	}
+
 	function blockTitle(record: VegaRecord): string {
 		if (!childType || childType.titleField === null) return ctx.t('list.untitled');
 		const field = childType.fields.find((f) => f.name === childType.titleField);
@@ -263,7 +311,48 @@
 				: status;
 	}
 
-	async function handleCreate(): Promise<void> {
+	// ————— Menú "Añadir bloque" (patrón APG de ListToolbar: click-fuera, Escape y focusout) —————
+	let addMenuOpen = $state(false);
+	let addTriggerEl = $state<HTMLElement | null>(null);
+	let addMenuEl = $state<HTMLElement | null>(null);
+
+	function closeAddMenu(): void {
+		addMenuOpen = false;
+	}
+
+	function handleAddWindowClick(event: MouseEvent): void {
+		if (!addMenuOpen) return;
+		const target = event.target as Node;
+		if (addTriggerEl?.contains(target) || addMenuEl?.contains(target)) return;
+		closeAddMenu();
+	}
+
+	/** `Escape` cierra y DEVUELVE EL FOCO al disparador: sin esto el foco cae a `<body>` y el
+	 *  usuario de teclado pierde el sitio (mismo criterio que `ListToolbar`/`Topbar`). */
+	function handleAddWindowKeydown(event: KeyboardEvent): void {
+		if (!addMenuOpen || event.key !== 'Escape') return;
+		event.preventDefault();
+		closeAddMenu();
+		addTriggerEl?.focus();
+	}
+
+	function handleAddFocusOut(event: FocusEvent): void {
+		if (!addMenuOpen) return;
+		const next = event.relatedTarget as Node | null;
+		if (next && (addTriggerEl?.contains(next) || addMenuEl?.contains(next))) return;
+		closeAddMenu();
+	}
+
+	/** Elegir un tipo cierra el menú y crea. El foco vuelve al disparador ANTES de crear: la fila
+	 *  nueva se monta desplegada y mueve el layout, así que devolverlo después dejaría el foco
+	 *  saltando a un elemento que ya se movió. */
+	function handleAddType(blockType: ResolvedBlockType): void {
+		closeAddMenu();
+		addTriggerEl?.focus();
+		void handleCreate(blockType);
+	}
+
+	async function handleCreate(blockType: ResolvedBlockType | null = null): Promise<void> {
 		if (
 			!blocksConfig ||
 			!childType ||
@@ -283,7 +372,11 @@
 			}, -1);
 			const created = await ctx.port.create(childType.name, {
 				[blocksConfig.parentField]: view.parentId,
-				[blocksConfig.orderField]: maxOrder + 1
+				[blocksConfig.orderField]: maxOrder + 1,
+				// El tipo viaja a su COLUMNA REAL, no al JSON: es lo que permite que la insignia de
+				// la fila, el recuento por tipo y cualquier filtro futuro salgan de una consulta
+				// normal sin parsear `data`.
+				...(blockType !== null && typeField !== null ? { [typeField]: blockType.name } : {})
 			});
 			if (!isCurrentView(view)) return;
 			status = { kind: 'ready', records: [...sourceRecords, created] };
@@ -496,6 +589,10 @@
 	const hidden = $derived(!blocksConfig || !childType || failed);
 </script>
 
+<!-- Nivel superior a la fuerza: `<svelte:window>` no puede vivir dentro de un bloque. No hace
+     falta condicionarlo, porque los dos handlers salen pronto si el menú está cerrado. -->
+<svelte:window onclick={handleAddWindowClick} onkeydown={handleAddWindowKeydown} />
+
 {#if !hidden}
 	{@const type = childType!}
 	<section class="vega-blocks">
@@ -506,14 +603,53 @@
 					>{/if}
 			</h2>
 			{#if parentId !== null}
-				<button
-					type="button"
-					class="vega-blocks-add"
-					disabled={disabled || structuralBusy || savingIds.size > 0}
-					onclick={handleCreate}
-				>
-					{ctx.t('editor.blocks.add', { label: type.labelSingular })}
-				</button>
+				{#if hasTypeMenu}
+					<div class="vega-blocks-add-menu-wrap" onfocusout={handleAddFocusOut}>
+						<button
+							type="button"
+							class="vega-blocks-add"
+							bind:this={addTriggerEl}
+							aria-haspopup="menu"
+							aria-expanded={addMenuOpen}
+							aria-controls="vega-blocks-add-menu"
+							disabled={disabled || structuralBusy || savingIds.size > 0}
+							onclick={() => (addMenuOpen = !addMenuOpen)}
+						>
+							{ctx.t('editor.blocks.add', { label: type.labelSingular })}
+							<Icon id="chevron" size={12} />
+						</button>
+						{#if addMenuOpen}
+							<div
+								id="vega-blocks-add-menu"
+								class="vega-blocks-add-menu"
+								role="menu"
+								aria-label={ctx.t('editor.blocks.addMenu.label')}
+								bind:this={addMenuEl}
+							>
+								{#each blockTypes as blockType (blockType.name)}
+									<button
+										type="button"
+										role="menuitem"
+										class="vega-blocks-add-menu-item"
+										onclick={() => handleAddType(blockType)}
+									>
+										{#if blockType.icon}<Icon id={blockType.icon} size={14} />{/if}
+										{blockType.label}
+									</button>
+								{/each}
+							</div>
+						{/if}
+					</div>
+				{:else}
+					<button
+						type="button"
+						class="vega-blocks-add"
+						disabled={disabled || structuralBusy || savingIds.size > 0}
+						onclick={() => handleCreate()}
+					>
+						{ctx.t('editor.blocks.add', { label: type.labelSingular })}
+					</button>
+				{/if}
 			{/if}
 		</div>
 
@@ -582,6 +718,22 @@
 								onclick={() => toggle(record.id)}
 							>
 								<Icon id="chevron" size={14} />
+								{#if hasTypeMenu}
+									{@const blockType = blockTypeOf(record)}
+									{@const rawType = blockTypeRawName(record)}
+									{#if blockType}
+										<span class="vega-block-type">
+											{#if blockType.icon}<Icon id={blockType.icon} size={12} />{/if}
+											{blockType.label}
+										</span>
+									{:else if rawType}
+										<!-- El manifiesto ya no declara este tipo, pero el registro existe: se enseña
+										     el valor crudo en vez de esconderlo. -->
+										<span class="vega-block-type vega-block-type--unknown">
+											{ctx.t('editor.blocks.type.unknown', { name: rawType })}
+										</span>
+									{/if}
+								{/if}
 								<span class="vega-block-title">{title}</span>
 								{#if dirtyIds.has(record.id)}
 									<span class="vega-block-dirty" title={ctx.t('editor.dirty')}>
@@ -686,7 +838,76 @@
 		color: var(--ink-3);
 	}
 
+	/* El wrap es el ancla de posicionamiento del menú, y por eso es `relative`: sin él, el
+	   `absolute` del menú se resolvería contra el primer ancestro posicionado, que está fuera de
+	   esta sección. */
+	.vega-blocks-add-menu-wrap {
+		position: relative;
+		flex-shrink: 0;
+	}
+
+	.vega-blocks-add-menu {
+		position: absolute;
+		top: calc(100% + 0.4rem);
+		right: 0;
+		z-index: 10;
+		display: flex;
+		flex-direction: column;
+		min-width: 11rem;
+		padding: 0.3rem;
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
+	}
+
+	.vega-blocks-add-menu-item {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		border: 0;
+		background: none;
+		padding: 0.45rem 0.6rem;
+		border-radius: 6px;
+		color: var(--ink);
+		font: inherit;
+		font-size: 0.85rem;
+		text-align: left;
+		cursor: pointer;
+		white-space: nowrap;
+	}
+
+	.vega-blocks-add-menu-item:hover,
+	.vega-blocks-add-menu-item:focus-visible {
+		background: var(--active);
+	}
+
+	.vega-block-type {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		flex-shrink: 0;
+		padding: 0.1rem 0.4rem;
+		border: 1px solid var(--line);
+		border-radius: 999px;
+		background: var(--surface);
+		font-size: 0.72em;
+		font-weight: 600;
+		letter-spacing: 0.02em;
+	}
+
+	/* Un tipo que el manifiesto ya no declara: se ve, pero se ve DISTINTO. */
+	.vega-block-type--unknown {
+		border-color: var(--warning);
+		color: var(--warning);
+		font-family: var(--mono);
+		font-weight: 500;
+	}
+
 	.vega-blocks-add {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
 		flex-shrink: 0;
 		height: 32px;
 		padding: 0 0.75rem;
