@@ -49,6 +49,7 @@ describe('BackendUrlForm.svelte', () => {
 
 	beforeEach(() => {
 		localStorage.clear();
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 404 })));
 	});
 
 	afterEach(async () => {
@@ -284,12 +285,16 @@ describe('BackendUrlForm.svelte', () => {
 
 	// ————— Colección de autenticación (lote L6c) —————
 
-	test('sin override guardado: campo de colección vacío, texto "por defecto"', () => {
+	test('sin override ni discovery/config: muestra el fallback efectivo sin atribuirlo al campo vacío', async () => {
 		mounted = mountForm();
 
 		const input = mounted.target.querySelector<HTMLInputElement>('#backend-auth-collection');
 		expect(input?.value).toBe('');
-		expect(mounted.target.textContent).toContain('connect.current.authCollectionDefault');
+		await vi.waitFor(() => {
+			expect(mounted?.target.textContent).toContain(
+				'connect.current.authCollectionEffective:{"authCollection":"_superusers"}'
+			);
+		});
 	});
 
 	test('con override guardado: precarga el campo y muestra la colección actual', () => {
@@ -298,8 +303,44 @@ describe('BackendUrlForm.svelte', () => {
 
 		const input = mounted.target.querySelector<HTMLInputElement>('#backend-auth-collection');
 		expect(input?.value).toBe('vega_editors');
-		expect(mounted.target.textContent).toContain('connect.current.authCollectionOverride');
+		expect(mounted.target.textContent).toContain('connect.current.authCollectionEffective');
 		expect(mounted.target.textContent).toContain('vega_editors');
+	});
+
+	test('sin override: muestra vega_editors cuando la anuncia el discovery efectivo', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async (input: string | URL | Request) => {
+				const url = String(input);
+				if (url.endsWith('/vega.config.json')) {
+					return new Response(JSON.stringify({}), {
+						status: 200,
+						headers: { 'Content-Type': 'application/json' }
+					});
+				}
+				if (url.endsWith('/api/vega/discovery')) {
+					return new Response(
+						JSON.stringify({
+							protocolVersion: 1,
+							project: { key: 'default', name: 'Aguja' },
+							auth: { collection: 'vega_editors', apiBasePath: null },
+							manifest: { collection: 'vega', key: 'default', schemaVersion: 1 },
+							siteSettings: null
+						}),
+						{ status: 200, headers: { 'Content-Type': 'application/json' } }
+					);
+				}
+				return new Response(null, { status: 404 });
+			})
+		);
+		mounted = mountForm();
+
+		await vi.waitFor(() => {
+			expect(mounted?.target.textContent).toContain(
+				'connect.current.authCollectionEffective:{"authCollection":"vega_editors"}'
+			);
+		});
+		expect(mounted.target.textContent).not.toContain('_superusers');
 	});
 
 	test('guardar con colección de auth rellena: persiste AMBOS overrides y recarga', async () => {

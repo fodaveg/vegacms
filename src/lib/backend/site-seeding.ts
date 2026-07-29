@@ -4,8 +4,10 @@
  * La frontera es por PIEZA: colección, campo, registro de manifiesto o página canónica.
  * Una pieza ausente se añade; una presente y compatible se conserva; una presente e
  * incompatible aborta el lote completo. El preflight recorre todas las piezas visibles antes de
- * la primera escritura. Los campos extra, el orden, los ids internos y los defaults del servidor
- * no participan en la comparación.
+ * la primera escritura. También impide crear `blocks` sobre unas `pages` preexistentes cuya
+ * lectura esté denegada, porque PocketBase no podría listar después la colección cruzada. Los
+ * campos extra, el orden, los ids internos y los defaults del servidor no participan en la
+ * comparación.
  *
  * Única excepción: PocketBase excluye TODA colección `auth` del esquema descubierto, por lo que
  * `vega_editors` no se puede preflightar desde el puerto. `ensureCollections` la aplica como la
@@ -32,6 +34,9 @@ import { resolveContentModel } from '$lib/model/resolve';
 import type { ResolvedBlocksConfig } from '$lib/model/types';
 
 export const SITE_SEED_MANIFEST_READ_RULE = '@request.auth.collectionName = "vega_editors"';
+export const SITE_SEED_EDITOR_ACCESS_RULE = '@request.auth.collectionName = "vega_editors"';
+export const SITE_SEED_PAGES_READ_RULE =
+	'status = "published" || @request.auth.collectionName = "vega_editors"';
 export const SITE_SEED_CANONICAL_PAGE_PATH = '/';
 
 export const SITE_SEED_CANONICAL_PAGE = {
@@ -51,6 +56,11 @@ const VEGA_EDITORS_COLLECTION: CollectionSpec = {
 
 const PAGES_COLLECTION: CollectionSpec = {
 	name: 'pages',
+	listRule: SITE_SEED_PAGES_READ_RULE,
+	viewRule: SITE_SEED_PAGES_READ_RULE,
+	createRule: SITE_SEED_EDITOR_ACCESS_RULE,
+	updateRule: SITE_SEED_EDITOR_ACCESS_RULE,
+	deleteRule: SITE_SEED_EDITOR_ACCESS_RULE,
 	fields: [
 		{ name: 'title', type: 'text', required: true, max: 200 },
 		{ name: 'path', type: 'text', required: true, max: 200, unique: true },
@@ -65,6 +75,7 @@ const PAGES_COLLECTION: CollectionSpec = {
 };
 
 const STARTER_BLOCKS = readStarterBlocksConfig(STARTER_MANIFEST);
+export const SITE_SEED_BLOCKS_READ_RULE = `${STARTER_BLOCKS.parentField}.status = "published" || @request.auth.collectionName = "vega_editors"`;
 const STARTER_BLOCK_TYPES = resolveContentModel({
 	types: [],
 	manifestRaw: STARTER_MANIFEST
@@ -72,6 +83,11 @@ const STARTER_BLOCK_TYPES = resolveContentModel({
 
 const BLOCKS_COLLECTION: CollectionSpec = {
 	name: 'blocks',
+	listRule: SITE_SEED_BLOCKS_READ_RULE,
+	viewRule: SITE_SEED_BLOCKS_READ_RULE,
+	createRule: SITE_SEED_EDITOR_ACCESS_RULE,
+	updateRule: SITE_SEED_EDITOR_ACCESS_RULE,
+	deleteRule: SITE_SEED_EDITOR_ACCESS_RULE,
 	fields: [
 		{
 			name: STARTER_BLOCKS.parentField,
@@ -192,6 +208,17 @@ async function inspectSeedPlan(port: BackendPort): Promise<SeedPlan> {
 		const actual = actualByName.get(spec.name);
 		const plan = inspectCollection(spec, actual, divergences);
 		collections.set(spec.name, plan);
+	}
+
+	const pages = actualByName.get(PAGES_COLLECTION.name);
+	const pagesPlan = collections.get('pages')!;
+	const blocksPlan = collections.get('blocks')!;
+	if (!pagesPlan.missing && blocksPlan.missing && pages?.access?.list === 'denied') {
+		divergences.push({
+			piece: 'creación de "blocks" sobre "pages" preexistente',
+			expected: 'lectura de "pages" permitida o condicional',
+			actual: 'lectura de "pages" denegada; "blocks" quedaría imposible de listar'
+		});
 	}
 
 	const manifestMissing = await inspectManifestRecord(

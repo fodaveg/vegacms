@@ -1,19 +1,27 @@
 /**
  * Esquema canónico de la colección `vega_media` (D-P6.1 opción A, contrato P6 §3/§9): la única
- * especificación que `ensureCollections` puede crear para P6 — L-P6.10 exige que la `spec` que
- * llega al puerto contenga ÚNICAMENTE `'vega_media'` (nunca junto a otras colecciones).
+ * especificación, campos y reglas incluidos, que `ensureCollections` puede crear para P6 —
+ * L-P6.10 exige que la `spec` que llega al puerto contenga ÚNICAMENTE `'vega_media'` (nunca junto
+ * a otras colecciones).
  *
  * `computeMediaCollectionState` reutiliza el cálculo genérico de `$lib/backend/collection-state`
  * (audit H6: NO se clona el gemelo de `/settings`, solo se llama con el nombre de esta colección).
  */
 
-import type { CollectionSpec, EnsureResult } from '$lib/backend/collections';
+import {
+	collectionSpecCreationMetadata,
+	type CollectionSpec,
+	type EnsureResult
+} from '$lib/backend/collections';
 import { computeCollectionState, type CollectionState } from '$lib/backend/collection-state';
 import type { BackendPort } from '$lib/backend/port';
 import type { Capabilities, ContentType } from '$lib/backend/types';
 
 /** Tamaño máximo de fichero (D-P6.1): 10 MiB. */
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
+export const VEGA_MEDIA_VIEW_RULE = '';
+export const VEGA_MEDIA_EDITOR_ACCESS_RULE = '@request.auth.collectionName = "vega_editors"';
 
 /**
  * Campos de `vega_media` (vocabulario `CollectionFieldSpec`, Anexo A §A.3 + enmienda `autodate`
@@ -39,6 +47,11 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
  */
 export const VEGA_MEDIA_COLLECTION: CollectionSpec = {
 	name: 'vega_media',
+	listRule: VEGA_MEDIA_EDITOR_ACCESS_RULE,
+	viewRule: VEGA_MEDIA_VIEW_RULE,
+	createRule: VEGA_MEDIA_EDITOR_ACCESS_RULE,
+	updateRule: VEGA_MEDIA_EDITOR_ACCESS_RULE,
+	deleteRule: VEGA_MEDIA_EDITOR_ACCESS_RULE,
 	fields: [
 		{
 			name: 'file',
@@ -148,8 +161,7 @@ function collectionFieldSpecToPbImportField(
 export function buildMediaBootstrapImportJson(): string {
 	const importPayload = [
 		{
-			name: VEGA_MEDIA_COLLECTION.name,
-			type: 'base',
+			...collectionSpecCreationMetadata(VEGA_MEDIA_COLLECTION),
 			fields: VEGA_MEDIA_COLLECTION.fields.map(collectionFieldSpecToPbImportField)
 		}
 	];

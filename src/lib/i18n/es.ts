@@ -110,16 +110,16 @@ export const es = {
 	'connect.reset': 'Restablecer valores por defecto',
 	'connect.reloadConfirm':
 		'Se recargará la página para aplicar el cambio de backend. Si tienes cambios sin guardar en el editor, se perderán. ¿Continuar?',
-	// `authCollection` (lote L6c): colección de auth contra la que autentica el adaptador
-	// `pocketbase` — vacía/ausente ⇒ `_superusers` (superusuario, comportamiento previo). Un
-	// operador que monte el rol editor plano (colección dedicada, p.ej. `vega_editors`) la fija
-	// aquí para entrar como editor en vez de superuser.
+	// `authCollection` (lote L6c): override de la colección de auth contra la que autentica el
+	// adaptador `pocketbase`. Vacío/ausente ⇒ discovery/configuración del proyecto y, solo si
+	// tampoco declaran una, el fallback compatible del runtime.
 	'connect.authCollectionLabel': 'Colección de autenticación',
-	'connect.authCollectionPlaceholder': '_superusers',
+	'connect.authCollectionPlaceholder': 'vega_editors',
 	'connect.authCollectionHint':
-		'Déjalo en blanco para entrar como superusuario. Los editores usan una colección dedicada (p. ej. "vega_editors") que te indicará quien administre este PocketBase.',
-	'connect.current.authCollectionDefault': 'Autenticando como superusuario (_superusers).',
-	'connect.current.authCollectionOverride': 'Autenticando contra la colección: {authCollection}',
+		'Déjalo en blanco para usar la colección anunciada por el proyecto. Rellénalo solo para mantener un override propio de este navegador.',
+	'connect.current.authCollectionResolving': 'Resolviendo la colección de autenticación…',
+	'connect.current.authCollectionEffective':
+		'Colección de autenticación efectiva: {authCollection}',
 
 	// ————— Seguridad de la cuenta (L6: TOTP, recuperación y passkeys) —————
 	'security.title': 'Seguridad de la cuenta',

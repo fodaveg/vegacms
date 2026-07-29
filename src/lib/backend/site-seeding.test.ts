@@ -1,18 +1,51 @@
 import { describe, expect, test } from 'vitest';
 import { createMemoryBackend, type MemoryBackendPort } from './adapters/memory';
 import type { BackendPort } from './port';
+import type { AccessLevel, ContentType } from './types';
 import {
+	SITE_SEED_BLOCKS_READ_RULE,
 	SITE_SEED_CANONICAL_PAGE_PATH,
+	SITE_SEED_EDITOR_ACCESS_RULE,
 	SITE_SEED_MANIFEST_READ_RULE,
+	SITE_SEED_PAGES_READ_RULE,
 	SiteSeedDivergenceError,
 	seedSiteProject
 } from './site-seeding';
-import { ensureMediaCollection } from '$lib/media/media-collection';
+import {
+	ensureMediaCollection,
+	VEGA_MEDIA_EDITOR_ACCESS_RULE,
+	VEGA_MEDIA_VIEW_RULE
+} from '$lib/media/media-collection';
 
 async function authedMemory(): Promise<MemoryBackendPort> {
 	const port = createMemoryBackend();
 	await port.login({ email: 'admin@vega.test', password: 'test-password' });
 	return port;
+}
+
+async function authedMemoryWithTypes(contentTypes: ContentType[]): Promise<MemoryBackendPort> {
+	const port = createMemoryBackend({
+		users: [{ email: 'admin@vega.test', password: 'test-password' }],
+		contentTypes,
+		records: {}
+	});
+	await port.login({ email: 'admin@vega.test', password: 'test-password' });
+	return port;
+}
+
+function emptyType(name: string, list: AccessLevel): ContentType {
+	return {
+		name,
+		readonly: false,
+		fields: [],
+		access: {
+			list,
+			view: list,
+			create: 'conditional',
+			update: 'conditional',
+			delete: 'conditional'
+		}
+	};
 }
 
 async function logicalSnapshot(port: MemoryBackendPort) {
@@ -98,6 +131,27 @@ describe('seedSiteProject', () => {
 			listRule: SITE_SEED_MANIFEST_READ_RULE,
 			viewRule: SITE_SEED_MANIFEST_READ_RULE
 		});
+		expect(port.inspectCollection('pages')?.rules).toEqual({
+			listRule: SITE_SEED_PAGES_READ_RULE,
+			viewRule: SITE_SEED_PAGES_READ_RULE,
+			createRule: SITE_SEED_EDITOR_ACCESS_RULE,
+			updateRule: SITE_SEED_EDITOR_ACCESS_RULE,
+			deleteRule: SITE_SEED_EDITOR_ACCESS_RULE
+		});
+		expect(port.inspectCollection('blocks')?.rules).toEqual({
+			listRule: SITE_SEED_BLOCKS_READ_RULE,
+			viewRule: SITE_SEED_BLOCKS_READ_RULE,
+			createRule: SITE_SEED_EDITOR_ACCESS_RULE,
+			updateRule: SITE_SEED_EDITOR_ACCESS_RULE,
+			deleteRule: SITE_SEED_EDITOR_ACCESS_RULE
+		});
+		expect(port.inspectCollection('vega_media')?.rules).toEqual({
+			listRule: VEGA_MEDIA_EDITOR_ACCESS_RULE,
+			viewRule: VEGA_MEDIA_VIEW_RULE,
+			createRule: VEGA_MEDIA_EDITOR_ACCESS_RULE,
+			updateRule: VEGA_MEDIA_EDITOR_ACCESS_RULE,
+			deleteRule: VEGA_MEDIA_EDITOR_ACCESS_RULE
+		});
 
 		const before = await logicalSnapshot(port);
 		await expect(seedSiteProject(port)).resolves.toEqual({
@@ -181,6 +235,61 @@ describe('seedSiteProject', () => {
 		});
 		expect(await logicalSnapshot(port)).toEqual(before);
 		expect(port.inspectCollection('vega_editors')).toBeNull();
+	});
+
+	test('pages preexistente con lectura denegada y blocks ausente aborta sin escribir', async () => {
+		const port = await authedMemoryWithTypes([emptyType('pages', 'denied')]);
+		const before = await logicalSnapshot(port);
+
+		await expect(seedSiteProject(port)).rejects.toThrow(
+			'lectura de "pages" denegada; "blocks" quedaría imposible de listar'
+		);
+
+		expect(await logicalSnapshot(port)).toEqual(before);
+		expect(port.inspectCollection('blocks')).toBeNull();
+		expect(port.inspectCollection('vega_editors')).toBeNull();
+	});
+
+	test.each(['allowed', 'conditional'] as const)(
+		'pages preexistente con lectura %s permite crear blocks',
+		async (listAccess) => {
+			const port = await authedMemoryWithTypes([emptyType('pages', listAccess)]);
+
+			await expect(seedSiteProject(port)).resolves.toMatchObject({
+				createdCollections: expect.arrayContaining(['vega_editors', 'vega_media', 'blocks', 'vega'])
+			});
+			expect(port.inspectCollection('blocks')).not.toBeNull();
+		}
+	);
+
+	test('blocks preexistente y pages ausente no dispara un aborto simétrico', async () => {
+		const port = await authedMemoryWithTypes([emptyType('blocks', 'denied')]);
+
+		await expect(seedSiteProject(port)).resolves.toMatchObject({
+			createdCollections: expect.arrayContaining(['pages'])
+		});
+		expect(port.inspectCollection('pages')).not.toBeNull();
+		expect(port.inspectCollection('blocks')).not.toBeNull();
+	});
+
+	test('pages preexistente conserva literalmente sus cinco reglas', async () => {
+		const port = await authedMemory();
+		await port.ensureCollections([
+			{
+				name: 'pages',
+				listRule: 'legacyList = true',
+				viewRule: '',
+				createRule: null,
+				updateRule: '@request.auth.id != ""',
+				deleteRule: 'legacyDelete = true',
+				fields: []
+			}
+		]);
+		const before = port.inspectCollection('pages')!.rules;
+
+		await seedSiteProject(port);
+
+		expect(port.inspectCollection('pages')!.rules).toEqual(before);
 	});
 
 	test('un manifiesto humano distinto se conserva y aborta antes de otras escrituras', async () => {
