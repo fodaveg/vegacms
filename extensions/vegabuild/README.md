@@ -8,6 +8,24 @@ of `src/lib/backend/build-client.ts` and the "Publish" button
 
 Requires **PocketBase 0.39.7 or newer** and Go 1.26 or newer.
 
+It adds:
+
+- `POST {RoutePrefix}/trigger` and `GET {RoutePrefix}/status`, exactly as specified by
+  `PROJECT-CONTRACT-v1.md`, authenticated with the same PocketBase record token Vega already sends
+  to the rest of its own API;
+- a `Runner` abstraction with two ready implementations: `CommandRunner` (run a local command,
+  e.g. `npm run build && rsync ...`, on the same machine as PocketBase) and `WebhookRunner`
+  (dispatch a secret CI/deploy webhook such as a GitHub Actions `workflow_dispatch`);
+- `POST {RoutePrefix}/callback`, an extension of this module and NOT part of
+  `PROJECT-CONTRACT-v1.md`, so an asynchronous CI system can report a run's outcome back;
+- idempotent PocketBase schema setup for the private `vega_build_runs` support collection;
+- automatic reconciliation of a run abandoned mid-flight (PocketBase itself dying, a CI callback
+  that never arrives) so "Publish" cannot get stuck forever — see `Config.StaleRunAfter` below.
+
+The extension is deliberately a separate Go module, same reasoning as `extensions/vegaauth`: Vega
+itself remains a static SPA and continues to work without a publish step configured at all when
+`build` is absent from discovery.
+
 ## When you do NOT need this
 
 **A site rendered on the server does not need a publish step at all.** If the Astro project runs
@@ -27,24 +45,6 @@ Second precondition, easy to miss: whatever runs the build has to be _reachable 
 A pipeline that builds an immutable image on the maintainer's laptop and ships it over SSH leaves
 the running container with no sources and no toolchain, so neither `CommandRunner` nor
 `WebhookRunner` has anything to call. Decide that path before installing, not after.
-
-It adds:
-
-- `POST {RoutePrefix}/trigger` and `GET {RoutePrefix}/status`, exactly as specified by
-  `PROJECT-CONTRACT-v1.md`, authenticated with the same PocketBase record token Vega already sends
-  to the rest of its own API;
-- a `Runner` abstraction with two ready implementations: `CommandRunner` (run a local command,
-  e.g. `npm run build && rsync ...`, on the same machine as PocketBase) and `WebhookRunner`
-  (dispatch a secret CI/deploy webhook such as a GitHub Actions `workflow_dispatch`);
-- `POST {RoutePrefix}/callback`, an extension of this module and NOT part of
-  `PROJECT-CONTRACT-v1.md`, so an asynchronous CI system can report a run's outcome back;
-- idempotent PocketBase schema setup for the private `vega_build_runs` support collection;
-- automatic reconciliation of a run abandoned mid-flight (PocketBase itself dying, a CI callback
-  that never arrives) so "Publish" cannot get stuck forever — see `Config.StaleRunAfter` below.
-
-The extension is deliberately a separate Go module, same reasoning as `extensions/vegaauth`: Vega
-itself remains a static SPA and continues to work without a publish step configured at all when
-`build` is absent from discovery.
 
 ## Integrate it
 
