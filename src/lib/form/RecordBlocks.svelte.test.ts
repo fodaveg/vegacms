@@ -539,3 +539,326 @@ describe('RecordBlocks.svelte', () => {
 		expect(onDirtyChange).toHaveBeenCalledWith(false);
 	});
 });
+
+// ————— Modo HETEROGÉNEO: menú de tipos e insignia de fila —————
+//
+// Fixture propio y aparte del de arriba a propósito: el de arriba es HOMOGÉNEO (sin `typeField`
+// ni `blockTypes`) y sigue siendo el caso que hay que conservar — el menú no puede aparecer ahí.
+
+const typedBlockType: ContentType = {
+	name: 'landing_block',
+	readonly: false,
+	fields: [
+		{
+			name: 'parent',
+			type: 'relation',
+			target: 'landing',
+			multiple: false,
+			required: true,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'sort',
+			type: 'number',
+			integer: true,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'type',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'data',
+			type: 'json',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'heading',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: true,
+			hidden: false,
+			unique: false
+		}
+	]
+};
+
+async function mountTypedBlocks(options: { withVocabulary?: boolean } = {}): Promise<{
+	target: HTMLElement;
+	instance: ReturnType<typeof mount>;
+	port: ReturnType<typeof createMemoryBackend>;
+	parentType: ResolvedContentType;
+}> {
+	const model = resolveContentModel({
+		types: [landingType, typedBlockType],
+		manifestRaw: {
+			schemaVersion: 1,
+			...(options.withVocabulary === false
+				? {}
+				: {
+						blockTypes: {
+							hero: {
+								label: 'Portada',
+								fields: [{ name: 'title', label: 'Título', widget: 'text' }]
+							},
+							cta: { label: 'Llamada', fields: [{ name: 'text', label: 'Texto', widget: 'text' }] }
+						}
+					}),
+			collections: {
+				landing: {
+					blocks: {
+						collection: 'landing_block',
+						parentField: 'parent',
+						orderField: 'sort',
+						typeField: 'type',
+						dataField: 'data'
+					}
+				}
+			}
+		}
+	});
+	expect(model.warnings).toEqual([]);
+	const parentType = model.types.find((t) => t.name === 'landing')!;
+
+	const port = createMemoryBackend({
+		users: [{ email: 'admin@vega.test', password: 'test-pass' }],
+		contentTypes: [landingType, typedBlockType],
+		records: {
+			landing: [{ id: 'landing1', values: { title: 'Home' } }],
+			landing_block: [
+				{ id: 'b1', values: { parent: 'landing1', sort: 0, type: 'hero', heading: 'Hero' } },
+				// Un tipo que el manifiesto YA NO declara: el registro sigue vivo y hay que verlo.
+				{ id: 'b2', values: { parent: 'landing1', sort: 1, type: 'carrusel', heading: 'Viejo' } },
+				// Y uno sin tipo, de antes de que existiera el vocabulario.
+				{ id: 'b3', values: { parent: 'landing1', sort: 2, type: '', heading: 'Suelto' } }
+			]
+		}
+	});
+	await port.login({ email: 'admin@vega.test', password: 'test-pass' });
+
+	const ctx = {
+		port,
+		model,
+		t: (key: string, params?: Record<string, string | number>) => translate('es', key, params),
+		locale: 'es',
+		feedback: { toast: vi.fn(), reportError: vi.fn() }
+	} as unknown as VegaAppContext;
+
+	const target = document.createElement('div');
+	document.body.appendChild(target);
+	const props = $state({
+		parentType,
+		parentId: 'landing1',
+		onDirtyChange: vi.fn(),
+		onBusyChange: vi.fn(),
+		onDraftChange: vi.fn(),
+		disabled: false
+	});
+	const instance = mount(RecordBlocks, {
+		target,
+		props,
+		context: new Map([[VEGA_CONTEXT_KEY, ctx]])
+	});
+	return { target, instance, port, parentType };
+}
+
+describe('RecordBlocks.svelte — tipos de bloque', () => {
+	let mounted: Awaited<ReturnType<typeof mountTypedBlocks>> | null = null;
+
+	afterEach(async () => {
+		if (mounted) {
+			await unmount(mounted.instance);
+			mounted.target.remove();
+			mounted = null;
+		}
+		vi.restoreAllMocks();
+	});
+
+	test('el disparador abre un menú con los tipos del manifiesto, en su orden', async () => {
+		mounted = await mountTypedBlocks();
+		await settle();
+
+		const trigger = mounted.target.querySelector<HTMLButtonElement>('.vega-blocks-add')!;
+		expect(trigger.getAttribute('aria-haspopup')).toBe('menu');
+		expect(trigger.getAttribute('aria-expanded')).toBe('false');
+		expect(mounted.target.querySelector('[role="menu"]')).toBeNull();
+
+		trigger.click();
+		await settle();
+
+		expect(trigger.getAttribute('aria-expanded')).toBe('true');
+		const items = Array.from(
+			mounted.target.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')
+		).map((el) => el.textContent?.trim());
+		expect(items).toEqual(['Portada', 'Llamada']);
+	});
+
+	test('elegir un tipo escribe su nombre en la COLUMNA REAL, no en el JSON', async () => {
+		mounted = await mountTypedBlocks();
+		await settle();
+
+		mounted.target.querySelector<HTMLButtonElement>('.vega-blocks-add')!.click();
+		await settle();
+		const items = mounted.target.querySelectorAll<HTMLButtonElement>('[role="menuitem"]');
+		items[1].click(); // "Llamada" → cta
+		await settle();
+		await settle();
+
+		const rows = await mounted.port.list('landing_block', { perPage: 50 });
+		const created = rows.items.find((r) => r.id !== 'b1' && r.id !== 'b2' && r.id !== 'b3');
+		expect(created).toBeDefined();
+		// La propiedad que compra la regla de frontera: el tipo está en su columna…
+		expect(created!.values.type).toBe('cta');
+		// …y NADIE lo ha escrito dentro de `data`.
+		expect(created!.values.data ?? null).not.toEqual(expect.objectContaining({ type: 'cta' }));
+	});
+
+	test('cada fila enseña su tipo, y un tipo retirado del manifiesto se ve en crudo', async () => {
+		mounted = await mountTypedBlocks();
+		await settle();
+
+		const badges = Array.from(mounted.target.querySelectorAll('.vega-block-type')).map((el) =>
+			el.textContent?.trim()
+		);
+		// `b1` conocido por su label; `b2` desconocido pero VISIBLE; `b3` sin tipo no pinta insignia.
+		// `b1` conocido por su label; `b2` desconocido pero VISIBLE; `b3` con la columna vacía lo DICE.
+		expect(badges).toEqual(['Portada', 'Tipo desconocido: carrusel', 'Sin tipo']);
+		expect(mounted.target.querySelectorAll('.vega-block-type--unknown')).toHaveLength(1);
+		expect(mounted.target.querySelectorAll('.vega-block-type--none')).toHaveLength(1);
+	});
+
+	test('la columna de tipo NO se ofrece como campo editable dentro del bloque', async () => {
+		mounted = await mountTypedBlocks();
+		await settle();
+
+		// El mini-formulario de cada bloque pinta `childType.fields` MENOS los estructurales. Si
+		// `typeField` no estuviera en esa lista, aquí aparecería un campo de texto «type» y el
+		// usuario podría teclear un tipo que no existe en el vocabulario, saltándose el menú.
+		const labels = Array.from(mounted.target.querySelectorAll('.vega-block-row label')).map(
+			(el) => el.textContent?.trim().toLowerCase() ?? ''
+		);
+		expect(labels.length).toBeGreaterThan(0); // si no pinta NADA, este test no prueba nada
+		expect(labels).not.toContain('type');
+		expect(labels.some((text) => text.includes('heading'))).toBe(true);
+	});
+
+	test('las flechas recorren el menú en círculo y Home/End van a los extremos', async () => {
+		mounted = await mountTypedBlocks();
+		await settle();
+
+		const trigger = mounted.target.querySelector<HTMLButtonElement>('.vega-blocks-add')!;
+		trigger.click();
+		await settle();
+
+		const items = Array.from(
+			mounted.target.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')
+		);
+		// Abrir deja el foco DENTRO del menú: si se queda en el disparador, `ArrowDown` no recorre
+		// nada y al primer elemento solo se llega con `Tab`, que no es el patrón APG.
+		expect(document.activeElement).toBe(items[0]);
+
+		const menu = mounted.target.querySelector<HTMLElement>('[role="menu"]')!;
+		const press = (key: string) =>
+			menu.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+
+		press('ArrowDown');
+		expect(document.activeElement).toBe(items[1]);
+		press('ArrowDown'); // circular: del último vuelve al primero
+		expect(document.activeElement).toBe(items[0]);
+		press('ArrowUp'); // y hacia atrás desde el primero, al último
+		expect(document.activeElement).toBe(items[items.length - 1]);
+		press('Home');
+		expect(document.activeElement).toBe(items[0]);
+		press('End');
+		expect(document.activeElement).toBe(items[items.length - 1]);
+	});
+
+	test('sin vocabulario pero CON columna de tipo, las filas siguen diciendo qué son', async () => {
+		// El manifiesto retiró todos los `blockTypes` y los registros conservan su valor. Antes esto
+		// escondía el tipo de TODAS las filas, porque la insignia dependía de que hubiera menú.
+		mounted = await mountTypedBlocks({ withVocabulary: false });
+		await settle();
+
+		// Sin nada que elegir no hay menú, y el botón simple vuelve.
+		const trigger = mounted.target.querySelector<HTMLButtonElement>('.vega-blocks-add')!;
+		expect(trigger.getAttribute('aria-haspopup')).toBeNull();
+
+		const badges = Array.from(mounted.target.querySelectorAll('.vega-block-type')).map((el) =>
+			el.textContent?.trim()
+		);
+		expect(badges).toEqual(['Tipo desconocido: hero', 'Tipo desconocido: carrusel', 'Sin tipo']);
+	});
+
+	test('Escape cierra el menú y devuelve el foco al disparador', async () => {
+		mounted = await mountTypedBlocks();
+		await settle();
+
+		const trigger = mounted.target.querySelector<HTMLButtonElement>('.vega-blocks-add')!;
+		trigger.click();
+		await settle();
+		expect(mounted.target.querySelector('[role="menu"]')).not.toBeNull();
+
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		await settle();
+
+		expect(mounted.target.querySelector('[role="menu"]')).toBeNull();
+		// Sin esto el foco cae a `<body>` y el usuario de teclado pierde el sitio.
+		expect(document.activeElement).toBe(trigger);
+	});
+
+	test('Tab y Shift+Tab sacan el foco del menú y lo cierran', async () => {
+		mounted = await mountTypedBlocks();
+		await settle();
+
+		const trigger = mounted.target.querySelector<HTMLButtonElement>('.vega-blocks-add')!;
+		trigger.click();
+		await settle();
+		const items = Array.from(
+			mounted.target.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')
+		);
+		expect(document.activeElement).toBe(items[0]);
+
+		// `Shift+Tab` desde el primer elemento devuelve el foco al DISPARADOR. Si la condición de
+		// cierre perdonara al disparador, el menú se quedaría abierto con el foco fuera de su
+		// `role="menu"`, que es justo lo que APG prohíbe.
+		items[0].dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: trigger }));
+		await settle();
+		expect(mounted.target.querySelector('[role="menu"]')).toBeNull();
+	});
+
+	test('en modo HOMOGÉNEO no hay menú: el botón simple sigue creando sin tipo', async () => {
+		const homogeneous = await mountBlocks('landing1', vi.fn());
+		await settle();
+		const trigger = homogeneous.target.querySelector<HTMLButtonElement>('.vega-blocks-add')!;
+		expect(trigger.getAttribute('aria-haspopup')).toBeNull();
+
+		trigger.click();
+		await settle();
+		await settle();
+
+		expect(homogeneous.target.querySelector('[role="menu"]')).toBeNull();
+		expect(blockTitles(homogeneous.target)).toHaveLength(3);
+
+		await unmount(homogeneous.instance);
+		homogeneous.target.remove();
+	});
+});

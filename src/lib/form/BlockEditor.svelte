@@ -46,8 +46,11 @@
 		/** El `ResolvedContentType` de la colección HIJA (p.ej. `landing_block`). */
 		childType: ResolvedContentType;
 		record: VegaRecord;
-		/** `parentField`/`orderField` de `blocks` (P2, `ResolvedBlocksConfig`): estructurales, el
-		 *  usuario nunca los edita aquí — los escribe `RecordBlocks` al crear/reordenar. */
+		/** `parentField`/`orderField` y, si la colección lo declara, `typeField` (P2,
+		 *  `ResolvedBlocksConfig`): estructurales, el usuario nunca los edita aquí — los escribe
+		 *  `RecordBlocks`, que es su ÚNICO autor, al crear/reordenar. El tipo se elige en el menú
+		 *  «Añadir», no se reescribe a mano: si se pintara aquí se podría teclear uno que no está en
+		 *  el vocabulario. */
 		structuralFields: readonly string[];
 		onSubmit: (input: RecordInput) => Promise<VegaRecord>;
 		onSaved: (record: VegaRecord) => void;
@@ -100,8 +103,9 @@
 	const dirty = $derived(isDirty(baseline, current));
 	const inert = $derived(disabled || saving);
 
-	/** Campos visibles del mini-formulario: todo lo del tipo hijo MENOS `parentField`/`orderField`
-	 *  (estructurales, ver cabecera) y lo que el propio schema/manifiesto ya marca `hidden`. */
+	/** Campos visibles del mini-formulario: todo lo del tipo hijo MENOS los ESTRUCTURALES que le pasa
+	 *  `RecordBlocks` (`parentField`, `orderField` y, si la colección lo declara, `typeField` — ver
+	 *  cabecera) y lo que el propio schema/manifiesto ya marca `hidden`. */
 	const visibleFields = $derived(
 		childType.fields.filter((f) => !f.hidden && !structuralFields.includes(f.name))
 	);

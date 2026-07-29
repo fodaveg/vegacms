@@ -252,6 +252,9 @@ export const es = {
 	// `DeleteConfirm`) y `list.reorder.handleLabel`/`.error` (el asa de arrastre es la MISMA
 	// pieza que la del listado). Aquí solo viven los literales que no tienen ya una clave.
 	'editor.blocks.add': 'Añadir {label}',
+	'editor.blocks.addMenu.label': 'Tipos de bloque',
+	'editor.blocks.type.unknown': 'Tipo desconocido: {name}',
+	'editor.blocks.type.none': 'Sin tipo',
 	'editor.blocks.empty': 'Todavía no hay {label}.',
 	'editor.blocks.duplicateLabel': 'Duplicar «{label}»',
 	'editor.blocks.duplicateSuccess': 'Bloque duplicado.',
