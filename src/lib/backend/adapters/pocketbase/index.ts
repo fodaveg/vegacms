@@ -34,6 +34,7 @@ import type {
 	EnsureResult
 } from '../../collections';
 import {
+	checkCollectionSpecAccess,
 	checkCollectionFieldSpecs,
 	checkCreatableCollectionNames,
 	VEGA_COLLECTION,
@@ -604,7 +605,8 @@ export function createPocketBaseBackend({
 			return guarded(async () => {
 				const rejects = {
 					...checkCreatableCollectionNames(specs),
-					...checkCollectionFieldSpecs(specs.flatMap((spec) => spec.fields))
+					...checkCollectionFieldSpecs(specs.flatMap((spec) => spec.fields)),
+					...checkCollectionSpecAccess(specs)
 				};
 				if (Object.keys(rejects).length > 0) throw VegaError.validation(rejects);
 				if (!CAPABILITIES.schemaBootstrap) {

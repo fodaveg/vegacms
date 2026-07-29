@@ -38,17 +38,134 @@ const RESERVED_NAME = 'vega';
 const RESERVED_PREFIX = 'vega_';
 
 /**
- * Especificación de una colección a crear (§A.3, ampliado). `fields` usa el vocabulario Vega
- * REDUCIDO de `CollectionFieldSpec`: NO es una API general de autoría de esquema (soporta un
- * subconjunto deliberado de tipos), pero SÍ acepta cualquier nombre de colección creable —
- * `name` ya no se restringe a `vega`/`vega_*`, ver `isCreatableCollectionName`.
+ * Especificación de una colección a crear (§A.3, ampliado). Además de los campos, puede declarar
+ * el tipo (`base` por defecto o `auth`) y las reglas de acceso que PocketBase escribirá SOLO al
+ * crearla. Una colección ya existente nunca se reconcilia: conserva tipo, reglas y campos.
+ *
+ * `fields` usa el vocabulario Vega REDUCIDO de `CollectionFieldSpec`: NO es una API general de
+ * autoría de esquema (soporta un subconjunto deliberado de tipos), pero SÍ acepta cualquier
+ * nombre de colección creable — `name` ya no se restringe a `vega`/`vega_*`, ver
+ * `isCreatableCollectionName`.
  */
-export interface CollectionSpec {
+export type CollectionType = 'base' | 'auth';
+export type CollectionRule = string | null;
+
+export const COMMON_COLLECTION_RULE_KEYS = [
+	'listRule',
+	'viewRule',
+	'createRule',
+	'updateRule',
+	'deleteRule'
+] as const;
+export const AUTH_COLLECTION_RULE_KEYS = ['authRule', 'manageRule'] as const;
+export const COLLECTION_RULE_KEYS = [
+	...COMMON_COLLECTION_RULE_KEYS,
+	...AUTH_COLLECTION_RULE_KEYS
+] as const;
+
+export type CommonCollectionRuleKey = (typeof COMMON_COLLECTION_RULE_KEYS)[number];
+export type AuthCollectionRuleKey = (typeof AUTH_COLLECTION_RULE_KEYS)[number];
+export type CollectionRuleKey = (typeof COLLECTION_RULE_KEYS)[number];
+
+type CommonCollectionRules = Partial<Record<CommonCollectionRuleKey, CollectionRule>>;
+type AuthOnlyCollectionRules = Partial<Record<AuthCollectionRuleKey, CollectionRule>>;
+
+interface CollectionSpecBase {
 	/** Debe empezar por letra y contener solo letras/dígitos/`_` (`isCreatableCollectionName`);
 	 *  si no, `ensureCollections` rechaza con `validation` local, sin tocar red. */
 	name: string;
 	/** Campos a crear. El id/system los pone el backend. */
 	fields: CollectionFieldSpec[];
+}
+
+export type BaseCollectionSpec = CollectionSpecBase &
+	CommonCollectionRules & {
+		/** Omitido conserva el comportamiento histórico: colección `base`. */
+		type?: 'base';
+		authRule?: never;
+		manageRule?: never;
+	};
+
+export type AuthCollectionSpec = CollectionSpecBase &
+	CommonCollectionRules &
+	AuthOnlyCollectionRules & {
+		type: 'auth';
+	};
+
+export type CollectionSpec = BaseCollectionSpec | AuthCollectionSpec;
+
+/** Parte común del payload de creación. Solo incluye reglas declaradas: omitir una clave deja que
+ * PocketBase aplique su default vigente (las reglas comunes de una base nacen cerradas); `null`,
+ * `""` y los filtros viajan sin transformación. */
+export function collectionSpecCreationMetadata(
+	spec: CollectionSpec
+): { name: string; type: CollectionType } & Partial<Record<CollectionRuleKey, CollectionRule>> {
+	const metadata: { name: string; type: CollectionType } & Partial<
+		Record<CollectionRuleKey, CollectionRule>
+	> = {
+		name: spec.name,
+		type: spec.type ?? 'base'
+	};
+
+	for (const key of COLLECTION_RULE_KEYS) {
+		if (Object.prototype.hasOwnProperty.call(spec, key)) {
+			metadata[key] = (spec as unknown as Record<CollectionRuleKey, CollectionRule>)[key];
+		}
+	}
+	return metadata;
+}
+
+const AUTH_SYSTEM_FIELD_NAMES = new Set([
+	'email',
+	'password',
+	'tokenKey',
+	'verified',
+	'emailVisibility'
+]);
+
+/**
+ * Validación local de lo que no depende de la gramática de filtros de PocketBase: tipos
+ * soportados, reglas exclusivas de `auth` y colisiones con campos de sistema de una colección
+ * auth. Las cadenas de filtro se conservan verbatim y las valida el servidor.
+ */
+export function checkCollectionSpecAccess(specs: CollectionSpec[]): Record<string, FieldError> {
+	const fieldErrors: Record<string, FieldError> = {};
+
+	for (const declared of specs) {
+		const spec = declared as unknown as CollectionSpecBase &
+			Partial<Record<CollectionRuleKey, CollectionRule>> & { type?: string };
+		const type = spec.type ?? 'base';
+
+		if (type !== 'base' && type !== 'auth') {
+			fieldErrors[spec.name] = {
+				code: 'vega_collection_type_invalid',
+				message: `La colección "${spec.name}" solo puede ser de tipo base o auth`
+			};
+			continue;
+		}
+
+		if (
+			type === 'base' &&
+			AUTH_COLLECTION_RULE_KEYS.some((key) => Object.prototype.hasOwnProperty.call(spec, key))
+		) {
+			fieldErrors[spec.name] = {
+				code: 'vega_auth_rule_requires_auth_collection',
+				message: `La colección base "${spec.name}" no puede declarar authRule ni manageRule`
+			};
+			continue;
+		}
+
+		if (type !== 'auth') continue;
+		for (const field of spec.fields) {
+			if (!AUTH_SYSTEM_FIELD_NAMES.has(field.name)) continue;
+			fieldErrors[field.name] = {
+				code: 'vega_auth_system_field_conflict',
+				message: `El campo "${field.name}" de "${spec.name}" colisiona con un campo de sistema de las colecciones auth`
+			};
+		}
+	}
+
+	return fieldErrors;
 }
 
 /**

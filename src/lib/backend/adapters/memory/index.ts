@@ -32,13 +32,19 @@ import { assertContentTypeWritable, checkUnwritableFields } from '../../write-gu
 import type {
 	AddFieldsResult,
 	CollectionFieldSpec,
+	CollectionRule,
+	CollectionRuleKey,
 	CollectionSpec,
+	CollectionType,
 	EnsureResult
 } from '../../collections';
 import {
+	AUTH_COLLECTION_RULE_KEYS,
+	checkCollectionSpecAccess,
 	checkCollectionFieldSpecs,
 	checkCreatableCollectionNames,
-	checkRelationTargets
+	checkRelationTargets,
+	COMMON_COLLECTION_RULE_KEYS
 } from '../../collections';
 import type { MemorySeed } from './seed';
 export type { MemorySeed } from './seed';
@@ -70,8 +76,23 @@ const CAPABILITIES: Capabilities = {
 
 const DEFAULT_USER_EMAIL = 'admin@vega.test';
 
+export interface MemoryCollectionSnapshot {
+	name: string;
+	type: CollectionType | 'view';
+	rules: Partial<Record<CollectionRuleKey, CollectionRule>>;
+	fieldNames: string[];
+}
+
+/**
+ * Extensión concreta, sin capability nueva: expone el estado que `memory` modela para que la
+ * suite de contrato pueda medir tipo y reglas sin fingir que ejecuta un motor de permisos.
+ */
+export interface MemoryBackendPort extends BackendPort {
+	inspectCollection(name: string): MemoryCollectionSnapshot | null;
+}
+
 /** Crea un `BackendPort` en memoria. Sin `seed`, acepta `admin@vega.test` + cualquier password no vacía. */
-export function createMemoryBackend(seed?: MemorySeed): BackendPort {
+export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 	const usingDefaultSeed = seed === undefined;
 	const users = seed?.users ?? [];
 	const sessionTtlMs = seed?.sessionTtlMs;
@@ -80,6 +101,18 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 	// después de la construcción. `listContentTypes` ordena en el momento de leer, no aquí.
 	const contentTypesByName = new Map<string, ContentType>();
 	for (const ct of seed?.contentTypes ?? []) contentTypesByName.set(ct.name, ct);
+
+	// Registro interno de colecciones, separado A PROPÓSITO de `ContentType[]`: las auth existen
+	// e idempotizan por nombre, pero siguen invisibles en `listContentTypes`, igual que en PB.
+	const collectionsByName = new Map<string, MemoryCollectionSnapshot>();
+	for (const ct of seed?.contentTypes ?? []) {
+		collectionsByName.set(ct.name, {
+			name: ct.name,
+			type: ct.readonly ? 'view' : 'base',
+			rules: Object.fromEntries(COMMON_COLLECTION_RULE_KEYS.map((key) => [key, null])),
+			fieldNames: ct.fields.map((field) => field.name)
+		});
+	}
 
 	function getSortedContentTypes(): ContentType[] {
 		return [...contentTypesByName.values()].sort((a, b) =>
@@ -412,8 +445,13 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 		}
 	}
 
-	const port: BackendPort = {
+	const port: MemoryBackendPort = {
 		capabilities: CAPABILITIES,
+
+		inspectCollection(name) {
+			const collection = collectionsByName.get(name);
+			return collection ? structuredClone(collection) : null;
+		},
 
 		async login(credentials) {
 			const ok = usingDefaultSeed
@@ -540,31 +578,53 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 
 			const rejects = checkCreatableCollectionNames(specs);
 			const fieldRejects = checkCollectionFieldSpecs(specs.flatMap((spec) => spec.fields));
-			const allRejects = { ...rejects, ...fieldRejects };
+			const accessRejects = checkCollectionSpecAccess(specs);
+			const allRejects = { ...rejects, ...fieldRejects, ...accessRejects };
 			if (Object.keys(allRejects).length > 0) throw VegaError.validation(allRejects);
 
 			const created: string[] = [];
 			const skipped: string[] = [];
 			for (const spec of specs) {
 				// No destructiva (§A.4.2): si ya existe, se omite tal cual está, nunca se toca.
-				if (contentTypesByName.has(spec.name)) {
+				const expectedType = spec.type ?? 'base';
+				const existing = collectionsByName.get(spec.name);
+				if (existing) {
+					if (existing.type !== expectedType) {
+						throw VegaError.validation(
+							{
+								[spec.name]: {
+									code: 'vega_collection_type_mismatch',
+									message: `La colección "${spec.name}" ya existe como ${existing.type}, no como ${expectedType}`
+								}
+							},
+							`La colección "${spec.name}" ya existe con otro tipo`
+						);
+					}
 					skipped.push(spec.name);
 					continue;
 				}
 				const relationRejects = checkRelationTargets(
 					spec.fields,
-					[...contentTypesByName.values()].filter((type) => !type.readonly).map((type) => type.name)
+					[...collectionsByName.values()]
+						.filter((collection) => collection.type !== 'view')
+						.map((collection) => collection.name)
 				);
 				if (Object.keys(relationRejects).length > 0) {
-					throw VegaError.validation(relationRejects);
+					throw VegaError.validation(
+						relationRejects,
+						`No se pudo crear la colección "${spec.name}"`
+					);
 				}
-				const ct: ContentType = {
-					name: spec.name,
-					readonly: false,
-					fields: spec.fields.map(collectionFieldSpecToField)
-				};
-				contentTypesByName.set(spec.name, ct);
-				records.set(spec.name, new Map());
+				collectionsByName.set(spec.name, collectionSpecToMemorySnapshot(spec));
+				if (expectedType === 'base') {
+					const ct: ContentType = {
+						name: spec.name,
+						readonly: false,
+						fields: spec.fields.map(collectionFieldSpecToField)
+					};
+					contentTypesByName.set(spec.name, ct);
+					records.set(spec.name, new Map());
+				}
 				created.push(spec.name);
 			}
 			return { created, skipped };
@@ -624,6 +684,13 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 					...ct,
 					fields: [...ct.fields, ...newFields]
 				});
+				const collection = collectionsByName.get(collectionName);
+				if (collection) {
+					collectionsByName.set(collectionName, {
+						...collection,
+						fieldNames: [...collection.fieldNames, ...newSpecs.map((field) => field.name)]
+					});
+				}
 				// Paridad con PB real: una columna nueva en SQLite rellena las filas EXISTENTES
 				// con su valor por defecto (§2.1) — sin este backfill, `get`/`list` devolverían un
 				// registro antiguo SIN la clave nueva en `values`, distinto de lo que vería un
@@ -642,6 +709,28 @@ export function createMemoryBackend(seed?: MemorySeed): BackendPort {
 	};
 
 	return port;
+}
+
+function collectionSpecToMemorySnapshot(spec: CollectionSpec): MemoryCollectionSnapshot {
+	const type = spec.type ?? 'base';
+	const keys =
+		type === 'auth'
+			? [...COMMON_COLLECTION_RULE_KEYS, ...AUTH_COLLECTION_RULE_KEYS]
+			: COMMON_COLLECTION_RULE_KEYS;
+	const rules: Partial<Record<CollectionRuleKey, CollectionRule>> = {};
+	for (const key of keys) {
+		rules[key] = Object.prototype.hasOwnProperty.call(spec, key)
+			? (spec as unknown as Record<CollectionRuleKey, CollectionRule>)[key]
+			: type === 'auth' && key === 'authRule'
+				? ''
+				: null;
+	}
+	return {
+		name: spec.name,
+		type,
+		rules,
+		fieldNames: spec.fields.map((field) => field.name)
+	};
 }
 
 function buildNormalizedValues(
