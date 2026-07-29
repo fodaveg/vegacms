@@ -36,7 +36,13 @@ function fakeCtx(): VegaAppContext {
 function mountPanel(initial: { refreshToken: number; onClose: () => void }): {
 	target: HTMLElement;
 	instance: ReturnType<typeof mount>;
-	props: { refreshToken: number };
+	props: {
+		refreshToken: number;
+		draft: {
+			record: { id: string; fields: Record<string, unknown> };
+			blocks: { id: string; fields: Record<string, unknown> }[];
+		};
+	};
 } {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
@@ -48,6 +54,10 @@ function mountPanel(initial: { refreshToken: number; onClose: () => void }): {
 		apiBasePath: 'https://pb.test/api/vega-preview',
 		collection: 'posts',
 		recordId: 'rec-1',
+		draft: {
+			record: { id: 'rec-1', fields: { title: 'Sin guardar' } },
+			blocks: [{ id: 'block-1', fields: { body: 'Texto nuevo' } }]
+		},
 		...initial
 	});
 	const instance = mount(PreviewPanel, {
@@ -86,12 +96,40 @@ describe('PreviewPanel.svelte', () => {
 		expect(url).toBe('https://pb.test/api/vega-preview/token');
 		expect(init.method).toBe('POST');
 		expect((init.headers as Record<string, string>).Authorization).toBe('tok-123');
-		expect(JSON.parse(String(init.body))).toEqual({ collection: 'posts', id: 'rec-1' });
+		expect(JSON.parse(String(init.body))).toEqual({
+			collection: 'posts',
+			id: 'rec-1',
+			draft: mounted.props.draft
+		});
 
 		const iframe = mounted.target.querySelector<HTMLIFrameElement>('.vega-preview-panel-frame');
 		expect(iframe?.src).toBe(token.url);
 		// Antes del evento `load` del iframe, sigue el overlay "cargando…" (nunca en blanco).
 		expect(mounted.target.querySelector('.vega-preview-panel-overlay')).not.toBeNull();
+	});
+
+	test('un borrador cifrado se envía al iframe por POST, nunca en la URL', async () => {
+		const requestSubmit = vi
+			.spyOn(HTMLFormElement.prototype, 'requestSubmit')
+			.mockImplementation(() => {});
+		const token = {
+			url: 'https://site.test/preview/posts/rec-1',
+			expiresAt: '2099-01-01T00:00:00.000Z',
+			postToken: 'v2.encrypted-draft'
+		};
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(token)));
+
+		mounted = mountPanel({ refreshToken: 0, onClose: vi.fn() });
+		await flush();
+
+		const form = mounted.target.querySelector<HTMLFormElement>('.vega-preview-panel-post');
+		const hidden = form?.querySelector<HTMLInputElement>('input[name="token"]');
+		const iframe = mounted.target.querySelector<HTMLIFrameElement>('.vega-preview-panel-frame');
+		expect(form?.method).toBe('post');
+		expect(form?.action).toBe(token.url);
+		expect(hidden?.value).toBe(token.postToken);
+		expect(iframe?.src).toBe('about:blank');
+		expect(requestSubmit).toHaveBeenCalledTimes(1);
 	});
 
 	test('el overlay "cargando" desaparece tras el evento `load` del iframe', async () => {

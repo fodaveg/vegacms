@@ -30,6 +30,7 @@
 	import { tick, untrack } from 'svelte';
 	import type { ResolvedContentType } from '$lib/model/types';
 	import type { FieldInputValue, RecordInput, VegaRecord } from '$lib/backend/types';
+	import type { PreviewDraftRecord } from '$lib/backend/preview-client';
 	import { VegaError } from '$lib/backend/errors';
 	import { getVegaContext } from '$lib/app-context';
 	import { buildFormModel } from './form-model';
@@ -51,6 +52,8 @@
 		onSubmit: (input: RecordInput) => Promise<VegaRecord>;
 		onSaved: (record: VegaRecord) => void;
 		onDirtyChange: (dirty: boolean) => void;
+		/** Publica el estado editable ACTUAL para la preview, sin persistirlo. */
+		onDraftChange?: (record: PreviewDraftRecord) => void;
 		/** Bloqueo externo durante una mutación estructural de la lista. */
 		disabled?: boolean;
 		/** Permite a la lista impedir la operación inversa mientras este bloque se guarda. */
@@ -64,6 +67,7 @@
 		onSubmit,
 		onSaved,
 		onDirtyChange,
+		onDraftChange = () => {},
 		disabled = false,
 		onBusyChange = () => {}
 	}: Props = $props();
@@ -104,6 +108,10 @@
 
 	$effect(() => {
 		onDirtyChange(dirty);
+	});
+
+	$effect(() => {
+		onDraftChange({ id: record.id, fields: { ...current } });
 	});
 
 	$effect(() => {

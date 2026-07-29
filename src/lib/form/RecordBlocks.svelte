@@ -55,8 +55,9 @@
 	 * bloque.
 	 */
 	import { untrack } from 'svelte';
-	import { SvelteSet } from 'svelte/reactivity';
+	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import type { RecordId, VegaRecord } from '$lib/backend/types';
+	import type { PreviewDraftRecord } from '$lib/backend/preview-client';
 	import type { ResolvedContentType } from '$lib/model/types';
 	import { VegaError } from '$lib/backend/errors';
 	import { getVegaContext } from '$lib/app-context';
@@ -78,6 +79,8 @@
 		parentId: RecordId | null;
 		/** Sube a `true` en cuanto AL MENOS un bloque tenga ediciones sin guardar (decisión 2). */
 		onDirtyChange: (dirty: boolean) => void;
+		/** Publica la secuencia completa con cada bloque en su estado editable ACTUAL. */
+		onDraftChange?: (records: PreviewDraftRecord[]) => void;
 		/** Sube el mutex estructural para que el padre no clone una instantánea intermedia. */
 		onBusyChange?: (busy: boolean) => void;
 		/** Mutex inverso: el padre clona la página y congela todas las mutaciones hijas. */
@@ -88,6 +91,7 @@
 		parentType,
 		parentId,
 		onDirtyChange,
+		onDraftChange = () => {},
 		onBusyChange = () => {},
 		disabled = false
 	}: Props = $props();
@@ -117,6 +121,25 @@
 
 	let status = $state<BlocksStatus>({ kind: 'loading' });
 	const records = $derived(status.kind === 'ready' ? status.records : []);
+	/** Overrides no persistidos publicados por cada `BlockEditor`. `SvelteMap` hace que el
+	 *  `$effect` siguiente emita tanto al cambiar un campo como al cambiar la estructura. */
+	const draftOverrides = new SvelteMap<string, PreviewDraftRecord>();
+
+	function currentDraftRecords(): PreviewDraftRecord[] {
+		return records.map((record) => {
+			const override = draftOverrides.get(record.id);
+			const fields = { ...(override?.fields ?? record.values) };
+			// La lista es la única autoridad sobre parent/order. Un BlockEditor montado conserva
+			// su snapshot editorial al reordenar, así que esos dos campos deben venir siempre del
+			// registro estructural actual para que la preview respete el orden recién persistido.
+			for (const field of structuralFields) fields[field] = record.values[field];
+			return { id: record.id, fields };
+		});
+	}
+
+	$effect(() => {
+		onDraftChange(currentDraftRecords());
+	});
 
 	/** Ids de bloque EXPANDIDOS (fila desplegada). Fuera de este set, `hidden` (ver cabecera).
 	 *  `SvelteSet` (reactivo POR MUTACIÓN, mismo criterio que `MediaGrid.svelte`/`FileInput.svelte`):
@@ -197,6 +220,7 @@
 		expandedIds.clear();
 		dirtyIds.clear();
 		savingIds.clear();
+		draftOverrides.clear();
 		pendingDelete = null;
 		onDirtyChange(false);
 		if (key !== null && childType) void load(childType.name, parentId!);
@@ -227,7 +251,12 @@
 		else savingIds.delete(id);
 	}
 
+	function handleBlockDraftChange(id: string, draft: PreviewDraftRecord): void {
+		draftOverrides.set(id, draft);
+	}
+
 	function handleBlockSaved(id: string, saved: VegaRecord): void {
+		draftOverrides.set(id, { id: saved.id, fields: { ...saved.values } });
 		status =
 			status.kind === 'ready'
 				? { kind: 'ready', records: status.records.map((r) => (r.id === id ? saved : r)) }
@@ -345,6 +374,7 @@
 			await ctx.port.delete(childType.name, id);
 			if (!isCurrentView(view)) return;
 			status = { kind: 'ready', records: sourceRecords.filter((r) => r.id !== id) };
+			draftOverrides.delete(id);
 			expandedIds.delete(id);
 			setDirty(id, false); // un bloque borrado nunca puede seguir contando como sucio
 			pendingDelete = null;
@@ -584,6 +614,7 @@
 								onSubmit={(input) => ctx.port.update(type.name, record.id, input)}
 								onSaved={(saved) => handleBlockSaved(record.id, saved)}
 								onDirtyChange={(dirty) => setDirty(record.id, dirty)}
+								onDraftChange={(draft) => handleBlockDraftChange(record.id, draft)}
 								disabled={disabled || structuralBusy}
 								onBusyChange={(saving) => setSaving(record.id, saving)}
 							/>
