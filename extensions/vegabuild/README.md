@@ -8,6 +8,26 @@ of `src/lib/backend/build-client.ts` and the "Publish" button
 
 Requires **PocketBase 0.39.7 or newer** and Go 1.26 or newer.
 
+## When you do NOT need this
+
+**A site rendered on the server does not need a publish step at all.** If the Astro project runs
+with `output: "server"` and reads its content from PocketBase per request, an editor's save is
+already live: there is no artifact to rebuild, and wiring the Publish button would trigger a build
+nobody is waiting for. What gates public visibility there is the content itself — the `status`
+field and the collection's read rules that `seedSiteProject` writes.
+
+This is not hypothetical. It is exactly the case of Vega's own dogfood site (`astro_fodaveg`,
+measured 2026-07-29: `output: "server"`, Node adapter, no page prerendered), and the reason
+`vegabuild` is deliberately NOT installed there.
+
+Install it when the site is **prerendered, in whole or in part**, so that content changes only
+reach the public after a rebuild — the starter in `vega-astro` being the canonical case.
+
+Second precondition, easy to miss: whatever runs the build has to be _reachable from the server_.
+A pipeline that builds an immutable image on the maintainer's laptop and ships it over SSH leaves
+the running container with no sources and no toolchain, so neither `CommandRunner` nor
+`WebhookRunner` has anything to call. Decide that path before installing, not after.
+
 It adds:
 
 - `POST {RoutePrefix}/trigger` and `GET {RoutePrefix}/status`, exactly as specified by
