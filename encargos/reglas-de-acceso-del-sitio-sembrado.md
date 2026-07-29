@@ -4,11 +4,19 @@
 
 ```yaml
 task_id: reglas-de-acceso-del-sitio-sembrado
-prompt_hash: a94cb8b2b8888e8ea9bf9c0c1db898cbca6fe2ae967a46c368551e94f0282b7e
+prompt_hash: d2946db49ca62e1cf8c348846b659512f8d62b9e84d15f216a54f41fb108201c
 prompt_hash_definicion: 'sha256 del fichero COMPLETO con este campo valiendo literalmente
   `PENDIENTE`. Se calcula así porque el hash no puede contenerse a sí mismo; para verificarlo,
   sustituye el valor por `PENDIENTE` y vuelve a hashear'
-revision: 2
+revision: 3
+revision_nota_v3: 'La v2 se cayó con DOS bloqueantes más. (a) La precondición que había diseñado era
+  INIMPLEMENTABLE: mandaba comparar reglas literales y el puerto no sabe leerlas (`AccessLevel` es
+  con pérdida). Se ha rediseñado para que compruebe SOLO lo que la proyección sí distingue sin
+  ambigüedad, y eso basta, por lo que se midió después en el código de PocketBase 0.39.7: ver el
+  invariante de la precondición. (b) `vega_media` tenía un SEGUNDO camino de creación,
+  `buildMediaBootstrapImportJson`, que arma su propio payload y se descarga desde `/media`: las
+  reglas también tienen que ir por ahí. Y un ALTO: la pantalla de conexión afirma `_superusers`
+  cuando no hay override, así que tras migrar MIENTE'
 revision_nota: 'La v1 se cayó con TRES bloqueantes de su crítico, y los tres están resueltos aquí:
   (a) las reglas de `vega_media` no llegaban al servidor, porque esa colección no se crea desde una
   spec local sino con `ensureMediaCollection`, que manda siempre la spec canónica; (b) una
@@ -31,7 +39,12 @@ scope_in:
   - 'PIEZA 1 (vegacms): `src/lib/backend/site-seeding.ts` — que el sembrado escriba las REGLAS DE
     ACCESO de las colecciones que CREA, con los valores exactos fijados en `invariants`. Su suite'
   - '⚠️ PIEZA 1 (vegacms): `src/lib/media/media-collection.ts` y su suite. Las reglas de `vega_media`
-    van en la SPEC CANÓNICA, no en una copia local del sembrado. Ver el invariante que lo explica'
+    van en la SPEC CANÓNICA, no en una copia local del sembrado. Ver el invariante que lo explica.
+    Y DENTRO de ese fichero, también `buildMediaBootstrapImportJson()` (:143), que es un SEGUNDO
+    camino de creación y hoy arma su payload a mano con nombre, tipo y campos, sin reglas'
+  - '⚠️ PIEZA 4 (vegacms): `src/lib/session/BackendUrlForm.svelte` y los textos de
+    `src/lib/i18n/es.ts` y `en.ts` que afirman qué colección se usa cuando no hay override, más sus
+    suites. Ver el invariante de la pantalla que miente'
   - '⚠️ PIEZA 1 (vegacms): la PRECONDICIÓN de instalación mixta antes de crear `blocks`. Ver el
     invariante; es una lectura de más en el preflight, no una escritura'
   - 'PIEZA 2 (vega-astro): `starters/default/src/pages/api/vega/discovery.ts` — que el starter
@@ -57,9 +70,10 @@ scope_out:
     no necesita listar a los demás'
   - '⚠️ El CÓDIGO de `extensions/vegapreview` y `extensions/vegabuild`. Hay otro lote en `vegabuild`.
     De `vegapreview` solo tocas la frase de su README que te dice `scope_in`'
-  - '⚠️ `src/lib/form/` y el RESTO de `src/lib/media/`: hay un tercer lote ahí, que toca comentarios
-    de `media-collection.ts`. Tú tocas de ese fichero SOLO la spec canónica y lo que sus reglas
-    dejen falso'
+  - '⚠️ `src/lib/form/` y el RESTO de `src/lib/media/`. De `media-collection.ts` SÍ eres dueño (la
+    spec canónica, `buildMediaBootstrapImportJson` y lo que tus reglas dejen falso): el tercer lote,
+    que solo toca comentarios de ese fichero, va DESPUÉS de ti y se basa en tu merge, así que aquí
+    no hay frontera compartida. Del resto de `src/lib/media/` no tocas nada'
   - '⚠️ El comparador de formas de campo de `site-seeding.ts` (`ComparableFieldShape`,
     `expectedFieldShape`, `actualFieldShape`, `sameShape`): es de OTRO lote en vuelo. No lo toques'
   - 'El resto del documento de discovery del starter: solo cambia `auth.collection`'
@@ -78,9 +92,19 @@ acceptance_criteria:
     alguien «arreglara» la `viewRule`'
   - '⚠️ Sembrar sobre un proyecto donde `pages` YA EXISTE no cambia ni una regla de `pages`, tenga
     las que tenga. Con test'
-  - '⚠️ Sembrar sobre un proyecto donde `pages` YA EXISTE con reglas de lectura DISTINTAS de las
-    nuestras y `blocks` AUSENTE aborta ANTES de crear `blocks`, sin escribir nada, y el error nombra
-    la incompatibilidad. Con test. Ver el invariante de la instalación mixta'
+  - '⚠️ Sembrar sobre un proyecto donde `pages` YA EXISTE con la lectura DENEGADA y `blocks` AUSENTE
+    aborta ANTES de crear `blocks`, sin escribir nada, y el error explica que `blocks` quedaría
+    imposible de listar. Con test. Ver el invariante de la instalación mixta'
+  - '⚠️ Y sus tres hermanos, que NO abortan, cada uno con su test: (a) `pages` preexistente con la
+    lectura PERMITIDA o CONDICIONAL y `blocks` ausente, que sigue adelante; (b) `blocks`
+    preexistente y `pages` ausente, que no dispara ningún aborto simétrico porque no se introduce la
+    regla nueva de `blocks`; (c) un segundo sembrado normal de un proyecto completo, que no aborta
+    porque `blocks` ya existe. Sin estos tres, la precondición puede estar rompiendo el caso normal
+    y nadie se entera'
+  - '⚠️ `buildMediaBootstrapImportJson()` emite las CINCO reglas de `vega_media`, comparadas
+    literalmente como cadenas en un test. Es el segundo camino de creación y hoy las descarta'
+  - '⚠️ La pantalla de conexión NO afirma `_superusers` cuando el discovery resuelve otra cosa.
+    Con test. Ver el invariante de la pantalla que miente'
   - 'Las reglas escritas son LITERALMENTE las fijadas en `invariants`, y el test las compara como
     cadenas, no por su efecto'
   - 'Correr el sembrado dos veces seguidas no cambia ninguna regla la segunda vez'
@@ -145,6 +169,13 @@ invariants:
     `title`, `alt` y `tags`, incluidos los assets que no ha publicado nadie. Decidido: se acepta que
     quien conozca un id vea ese registro (los ids de lo publicado ya viajan en el HTML), y NO se
     acepta la enumeración'
+  - '⚠️ EL INVENTARIO COMPLETO DE LO QUE `view` PÚBLICA EXPONE, para que quede escrito y aceptado a
+    sabiendas: de un registro cuyo id se conozca salen `file` (su nombre), `alt`, `title`, `tags`,
+    `created`, el propio id y los metadatos de registro que PocketBase serializa
+    (`core/record_model.go:1254`), MÁS el binario, porque la descarga de un fichero también se rige
+    por la `ViewRule` (`apis/file.go:132`) y el campo `file` NO se declara protegido
+    (`media-collection.ts:40-55`). Todo eso se acepta: son los assets que el sitio publica. Lo que
+    NO se acepta es poder llegar a ellos SIN conocer el id, y de eso se ocupa la `listRule`'
   - '⚠️ LAS REGLAS DE `vega_media` VAN EN LA SPEC CANÓNICA (`VEGA_MEDIA_COLLECTION`,
     `src/lib/media/media-collection.ts:40-57`), y esta es la corrección del primer bloqueante. El
     sembrado NO crea esa colección desde una spec propia: llama a `ensureMediaCollection(port)`
@@ -153,13 +184,41 @@ invariants:
     el servidor real crear la colección con las reglas en `null`. Y no te saltes el wrapper: es
     «único punto de llamada» documentado y tiene su propio guardarraíl y su test
     (`media-collection.test.ts:123-134`), que tiene que seguir en verde'
-  - '⚠️ LA PRECONDICIÓN DE INSTALACIÓN MIXTA, corrección del tercer bloqueante: ANTES de crear
-    `blocks`, si `pages` NO la ha creado esta misma corrida (o sea, ya existía), hay que LEER sus
-    reglas de lectura y compararlas con las nuestras. Si no coinciden, ABORTA sin escribir nada y di
-    por qué, nombrando las dos políticas. NO las corrijas, NO crees `blocks` con otra regla, NO
-    sigas. El porqué: la regla de `blocks` delega en el estado de la página, así que solo es correcta
-    si la política de `pages` es la que nosotros escribimos; contra unas `pages` privadas ajenas,
-    publica por la puerta de atrás'
+  - '⚠️ LA PRECONDICIÓN DE INSTALACIÓN MIXTA, REDISEÑADA EN LA v3 Y ESTA ES LA FORMA BUENA. ANTES de
+    crear `blocks`, si `pages` NO la ha creado esta misma corrida (o sea, ya existía), hay que mirar
+    su acceso de LECTURA. Si está DENEGADO (regla `null`, solo superusuario), ABORTA sin escribir
+    nada y di por qué. En cualquier otro caso, sigue.
+    ⚠️ Y NO compares la regla LITERAL: no puedes. El puerto no expone la cadena cruda
+    (`port.ts:124`) y la proyección `AccessLevel` es con pérdida
+    (`adapters/pocketbase/schema.ts:42`). Lo ÚNICO que esa proyección distingue sin ambigüedad es
+    «denegado», y resulta que es justo lo que hace falta. NO añadas un método nuevo al puerto para
+    esto: si crees que hace falta, PARA y dilo'
+  - '⚠️ POR QUÉ CON DETECTAR «DENEGADO» BASTA, medido el 29 jul 2026 en el código de PocketBase
+    0.39.7 y NO es lo que uno supone. Cuando una regla atraviesa una relación, PocketBase registra un
+    JOIN hacia la colección de destino y ahí pasan dos cosas: (1) si esa colección tiene la
+    `ListRule` en `null`, la construcción de la regla FALLA ENTERA, con «"pages" fields can be
+    accessed only when allowHiddenFields is enabled or by superusers»
+    (`core/record_field_resolver.go:409-417`); y (2) si la tiene, PocketBase AÑADE esa `ListRule` a
+    la consulta con un `AndWhere` al nivel superior (`updateQueryWithCollectionListRule`, `:160-194`).
+    O sea: contra unas `pages` privadas ajenas NO se publica nada, porque el propio servidor aplica
+    su política; lo que pasa es que `blocks` queda IMPOSIBLE DE LISTAR para quien no sea superusuario,
+    con un error que no explica el motivo. La precondición existe para convertir ese fallo confuso en
+    un aborto claro en el momento de sembrar, NO para tapar una fuga. Si al implementarlo descubres
+    que esta lectura del servidor es falsa, PARA y dilo'
+  - '⚠️ LA SPEC CANÓNICA TIENE DOS CAMINOS DE CREACIÓN, no uno, y este es el segundo bloqueante de la
+    v2. Además del wrapper, `buildMediaBootstrapImportJson()` (`media-collection.ts:143`) arma su
+    PROPIO payload con nombre, tipo y campos, y `/media` lo ofrece como bootstrap manual
+    (`routes/media/+page.svelte:141`). Si las reglas solo viajan por el wrapper, quien se descargue
+    ese JSON y lo importe crea la colección SIN ellas, y el test del wrapper pasa igual. Ya existe el
+    helper que copia bien el metadata de creación, reglas incluidas: `collectionSpecCreationMetadata`
+    (`src/lib/backend/collections.ts:97`). Úsalo, y compara las cinco reglas del JSON en un test'
+  - '⚠️ LA PANTALLA DE CONEXIÓN MIENTE TRAS MIGRAR, y documentarlo NO basta. Cuando no hay override,
+    `BackendUrlForm.svelte:151` enseña el valor FIJO `_superusers`, y los textos dicen que dejarlo
+    vacío equivale a entrar como superusuario (`i18n/es.ts:113`). En cuanto el discovery anuncie
+    `vega_editors`, el usuario quita su override siguiendo la guía, la migración funciona por dentro
+    y la pantalla le sigue diciendo que entra como superusuario. Tiene que mostrar la colección
+    EFECTIVA resuelta, o un texto neutro si no la sabe. NO cambies la PRECEDENCIA del override
+    (`session/backend.ts:242`), solo lo que se enseña'
   - '⚠️ Esa precondición es SOLO LECTURA y vive en el preflight que ya existe (`inspectSeedPlan`,
     site-seeding.ts:185-212), que ya termina TODAS sus lecturas antes de la primera escritura
     (`:154-182`). No inventes un segundo camino de aborto'
@@ -240,6 +299,13 @@ repo_claims_that_may_become_false:
     section_or_quote:
       'Todo lo que el módulo afirme sobre qué declara la spec canónica y sobre el wrapper como
       «único punto de llamada», si tu cambio le añade reglas'
+  - file: src/lib/session/BackendUrlForm.svelte
+    section_or_quote:
+      'La línea 151, que enseña el valor FIJO `_superusers` cuando no hay override'
+  - file: src/lib/i18n/es.ts
+    section_or_quote:
+      'La línea 113 y sus vecinas, que dicen que dejar el campo vacío equivale a autenticarse como
+      superusuario. Y su gemela en `en.ts`'
   - file: docs/POCKETBASE-INTEGRATION.md
     section_or_quote:
       'Las secciones «3. Reglas de acceso al manifiesto» y «4. Reglas de acceso al contenido»
@@ -274,8 +340,11 @@ required_behavioral_qa:
     la expansión resuelve'
   - 'Anónimo: listar los bloques de un borrador y comprobar que no sale ninguno'
   - 'Editor: leer un borrador, crearlo, editarlo y borrarlo; y listar `vega_media`'
-  - 'Sembrar sobre un proyecto con `pages` ya creada con reglas propias y `blocks` ausente, y
-    comprobar que ABORTA sin crear `blocks`'
+  - 'Sembrar sobre un proyecto con `pages` ya creada con la lectura DENEGADA y `blocks` ausente, y
+    comprobar que ABORTA sin crear `blocks`. Y el mismo caso con la lectura permitida, comprobando
+    que NO aborta'
+  - 'Generar el JSON de bootstrap de la mediateca y CITAR sus cinco reglas literales'
+  - 'Abrir la pantalla de conexión sin override y CITAR qué colección dice que se va a usar'
 expected_reports:
   - /private/tmp/vega-informes/reglas-de-acceso-del-sitio-sembrado.md
 known_unverifiable_items:
