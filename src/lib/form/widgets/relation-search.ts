@@ -11,12 +11,14 @@
  *   `$lib/list/list-load.ts` (número de secuencia monotónico; solo la última llamada emitida es
  *   "vigente") — reimplementado aquí en vez de importado para no acoplar P5 a un módulo interno
  *   de P4 (misma forma, cero dependencia cruzada entre fases).
- * - **[Audit Finding 3] Degradación sin `titleField`**: `supportsTitleSearch` decide si el destino
+ * - **Listado paginado sin búsqueda**: `supportsTitleSearch` decide si un destino normal
  *   admite `contains` sobre su `titleField` (P2 §4.4 solo resuelve `titleField` a un campo
- *   `text`/`email`/`url`, familia que SIEMPRE admite `contains` — la comprobación vía
+ *   `text`/`email`/`url`, familia que SIEMPRE admite `contains`; la comprobación vía
  *   `allowedFilterOps` es defensa en profundidad, no un caso que hoy se alcance con un
  *   `titleField` no nulo). `titleField === null` ⇒ el widget deshabilita la búsqueda y ofrece el
- *   listado paginado (`buildDegradedListQuery`), representando cada candidato por su id.
+ *   listado paginado (`buildDegradedListQuery`), representando cada candidato por su id. El
+ *   destino `vega_media` reutiliza esa misma query paginada aunque tenga `titleField`, porque su
+ *   etiqueta visible puede ser el nombre del fichero y el backend solo buscaría por `title`.
  * - **Caché de títulos de los YA seleccionados (D-P5.9 opción a, sin `expand`)**: `TitleCache` es
  *   un `Record<RecordId, TitleCacheEntry>` inmutable (`withCachedTitle` devuelve una copia, nunca
  *   muta — mismo criterio que `toggleValue`/`dirty.ts`); `idsNeedingTitles` decide qué ids todavía
@@ -87,7 +89,7 @@ export function buildTitleSearchQuery(titleField: string, term: string): Query {
 	};
 }
 
-/** `Query` del listado paginado del modo degradado (Audit Finding 3): sin filtro, solo paginación. */
+/** `Query` del listado paginado sin búsqueda: sin filtro, solo paginación. */
 export function buildDegradedListQuery(page: number): Query {
 	return { page, perPage: RELATION_SEARCH_PER_PAGE };
 }

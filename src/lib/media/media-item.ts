@@ -1,6 +1,7 @@
 /**
  * Mapeo de un `VegaRecord` de `vega_media` a un modelo de vista (Fase P6·6b): módulo puro
- * consumido por `MediaGrid.svelte`/`MediaDetail.svelte`/`+page.svelte`, sin Svelte ni el puerto.
+ * consumido por `MediaGrid.svelte`/`MediaDetail.svelte`/`+page.svelte` y por el selector de
+ * relaciones a medios, sin Svelte ni el puerto.
  *
  * **Clasificación imagen-vs-otro por EXTENSIÓN**: mismo criterio que `classifyFileRef` del
  * widget `file` de P5 (`$lib/form/widgets/file-value.ts`, Audit Finding 4 de F5-f) — el puerto no

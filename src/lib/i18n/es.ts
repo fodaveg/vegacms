@@ -315,6 +315,17 @@ export const es = {
 	'form.relation.notFound': 'no encontrado',
 	'form.relation.degradedNote':
 		'Este tipo no tiene un campo de título con el que buscar: elige de la lista.',
+	'form.relation.media.note': 'Elige un archivo de la mediateca.',
+	'form.relation.media.loading': 'Cargando archivos de la mediateca…',
+	'form.relation.media.empty':
+		'La mediateca está vacía. Los archivos se suben desde la sección Medios.',
+	'form.relation.media.error':
+		'No se pudo cargar la mediateca. Comprueba tu conexión y tus permisos.',
+	'form.relation.media.targetMissing':
+		'La colección de medios aún no está disponible en el modelo. Recarga Vega para actualizarla.',
+	'form.relation.media.type.image': 'Imagen',
+	'form.relation.media.type.video': 'Vídeo',
+	'form.relation.media.type.document': 'Archivo',
 
 	// ————— Widget file (Fase F5-f del contrato P5) —————
 	'form.file.dropHint': 'Arrastra ficheros aquí o haz clic para elegir',

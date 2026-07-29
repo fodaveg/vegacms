@@ -39,11 +39,11 @@ export const VEGA_MEDIA_EDITOR_ACCESS_RULE = '@request.auth.collectionName = "ve
  * `file.thumbs` declara los tres tamaños EXACTOS que Vega solicita en toda la app (landmine C1,
  * shakedown 2026-07-19): sin ellos, PB devuelve el original completo en cada miniatura (200, sin
  * error, sin `<img>` roto — despeñaría el ancho de banda en silencio). `300x300` lo pide el
- * grid propio de `/media` (`MEDIA_GRID_THUMB_SPEC`, `media-thumb.ts`); `120x120`/`28x28` se
- * declaran de forma DEFENSIVA — la UI actual de `/media` solo pide `300x300`, pero los otros dos
- * entrarían en juego si un día un picker/listado renderiza `vega_media` con el widget file
- * (`FileInput.svelte`, 120×120) o en una celda de tabla (`RecordTable.svelte`, 28×28). Los tres
- * son `crop` → `compileThumbSpec` (`adapters/pocketbase/files.ts`) los compila a `WxH` plano.
+ * grid propio de `/media` y el selector de relaciones a medios
+ * (`MEDIA_GRID_THUMB_SPEC`, `media-thumb.ts`); `120x120`/`28x28` se declaran de forma defensiva
+ * para el widget file (`FileInput.svelte`, 120×120) o una celda de tabla
+ * (`RecordTable.svelte`, 28×28). Los tres son `crop`; `compileThumbSpec`
+ * (`adapters/pocketbase/files.ts`) los compila a `WxH` plano.
  */
 export const VEGA_MEDIA_COLLECTION: CollectionSpec = {
 	name: 'vega_media',

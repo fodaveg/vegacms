@@ -298,6 +298,16 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'form.relation.removeLabel': 'Remove «{title}»',
 	'form.relation.notFound': 'not found',
 	'form.relation.degradedNote': 'This type has no title field to search by: pick from the list.',
+	'form.relation.media.note': 'Choose a file from the media library.',
+	'form.relation.media.loading': 'Loading files from the media library…',
+	'form.relation.media.empty': 'The media library is empty. Upload files from the Media section.',
+	'form.relation.media.error':
+		'The media library could not be loaded. Check your connection and permissions.',
+	'form.relation.media.targetMissing':
+		'The media collection is not available in the model yet. Reload Vega to update it.',
+	'form.relation.media.type.image': 'Image',
+	'form.relation.media.type.video': 'Video',
+	'form.relation.media.type.document': 'File',
 
 	// ————— File widget (P5 contract, Phase F5-f) —————
 	'form.file.dropHint': 'Drag files here or click to choose',
