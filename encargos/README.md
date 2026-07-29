@@ -19,6 +19,23 @@ shasum -a 256 encargos/<slug>.md
 Se calcula sobre el fichero YA commiteado, y se copia al campo `prompt_hash` del despacho, no al
 propio fichero: un hash que se incluyera a sí mismo no podría cerrarse.
 
+## Rutas: las deriva el script, no las inventes
+
+`~/code/scripts/codex-dispatch.sh` calcula las dos rutas a partir del `slug`, y el `slug` es el
+`task_id`. Si el encargo declara otra cosa, el worker **falla cerrado** por `WF-014` sin tocar nada
+y el despacho se pierde entero:
+
+| campo del contrato | valor obligatorio                                |
+| ------------------ | ------------------------------------------------ |
+| `repos[].worktree` | `/private/tmp/vegacms-<task_id>`                 |
+| `expected_reports` | `/private/tmp/vega-informes/<task_id>.md`        |
+| `repos[].branch`   | el que le pases al script, sin derivación mágica |
+
+Pasó dos veces el 29 jul 2026: un informe escrito en `feat-<slug>.md` que el canario no vio (lote
+perfecto marcado como «sin entrega»), y un `worktree: /private/tmp/vegacms-site-seeding` cuando el
+script crea `/private/tmp/vegacms-site-seeding-one-step`. **Antes de despachar, comprueba que las
+dos rutas del contrato contienen el `task_id` literal.**
+
 ## Ciclo de vida
 
 Un encargo no se borra al completarse el lote. Se queda como registro histórico; el estado vivo

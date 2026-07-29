@@ -9,7 +9,7 @@ repos:
   - repo_id: vegacms
     base_sha: 3f8a2853695f895db743158e24ad77eda0410b85
     branch: feat/site-seeding-one-step
-    worktree: /private/tmp/vegacms-site-seeding
+    worktree: /private/tmp/vegacms-site-seeding-one-step
 external_inputs:
   - repo: vega-astro
     path: starters/default/vega/manifest.json
