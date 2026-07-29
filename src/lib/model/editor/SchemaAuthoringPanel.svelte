@@ -17,8 +17,10 @@
 	 *   subsistema nuevo que este lote no pide.
 	 * - `autodate`: concepto interno de bootstrap (Anexo A, "creado el"); un operador que quiera
 	 *   un campo de fecha se cubre con el tipo `date` normal de esta UI.
-	 * - `select`: el propio `CollectionFieldSpec` (`backend/collections.ts`) todavía no lo admite
-	 *   porque necesita un contrato para validar sus opciones.
+	 * - `select`: desde el lote del sembrado (29 jul 2026) `CollectionFieldSpec` SÍ lo admite, con
+	 *   validación de opciones. Esta UI sigue sin ofrecerlo por decisión de alcance, no por
+	 *   limitación del puerto: falta decidir cómo se editan las opciones sin convertir este panel
+	 *   en un editor de esquema general.
 	 * `relation` sí se ofrece: el destino sale del esquema descubierto, nunca de texto libre.
 	 *
 	 * Cada envío EXITOSO (colección creada, o al menos un campo añadido) genera y muestra la

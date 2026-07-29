@@ -156,7 +156,10 @@ function describe(owner: string, spec: CollectionFieldSpec): string {
 /**
  * Baja el campo descubierto por el puerto al MISMO vocabulario físico reducido que usa el
  * generador. Las propiedades que `CollectionFieldSpec` no sabe declarar tampoco participan en su
- * firma: este puente no abre un segundo criterio de compatibilidad.
+ * firma: este puente no abre un segundo criterio de compatibilidad. Ojo con leer eso de más desde
+ * el lote del sembrado (29 jul 2026): `unique` SÍ se declara ya en `text`, así que SÍ participa en
+ * la firma y en la compatibilidad. Lo que sigue fuera es un `unique` sobre cualquier OTRO tipo, que
+ * es lo que `hasUnrepresentableBaseConstraint` descarta unas líneas más abajo.
  */
 function backendFieldToComparableSpec(field: Field): CollectionFieldSpec | null {
 	const base = { name: field.name, required: field.required };

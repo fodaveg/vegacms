@@ -389,6 +389,31 @@ registros y qué ocurre al borrar el destino:
   PocketBase borra el registro propietario cuando desaparece su última relación. Vega lo presenta
   como una decisión destructiva explícita.
 
+### Vocabulario que el puerto sabe declarar
+
+El puerto NO es una API general de autoría de esquema: declara el subconjunto que el producto
+necesita. Desde el lote del sembrado (29 jul 2026) ese subconjunto incluye dos cosas nuevas:
+
+- **`select`**, con sus opciones **validadas** al declararlas: al menos una, sin cadenas vacías, sin
+  espacios al principio o al final y sin repetidas. Una opción inválida se rechaza **en local, sin
+  tocar la red**. Importa más de lo que parece: la convención de publicación de Vega (borrador /
+  publicado) exige que el campo de estado sea un `select` con `draft` y `published`, así que hasta
+  ahora Vega no podía crear un proyecto que cumpliera su propia convención.
+- **`unique` en campos de texto**, que se materializa como un índice único de PocketBase.
+
+Dos límites deliberados de esta primera versión:
+
+1. El índice viaja **siempre con un campo nuevo**. Añadir un índice a una columna que ya existe es
+   otra operación y todavía no existe.
+2. Campo e índice son **todo o nada**: viajan en la misma mutación de colección, así que si el
+   índice se rechaza no queda creado el campo. Medido contra PocketBase real: añadir un `text`
+   `unique` nuevo a una colección con **dos o más** filas lo rechaza PocketBase entero, porque el
+   backfill dejaría el mismo valor vacío repetido; con una sola fila se acepta y esa fila reserva
+   el valor.
+
+La **UI** de Ajustes → Esquema todavía no ofrece `select` ni `unique`: los usa el sembrado por
+código. Que el puerto lo admita y que el panel lo ofrezca son dos cosas distintas.
+
 El payload aplicado por red usa el `collectionId` real del entorno. La migración generada no
 incrusta ese id —resuelve `app.findCollectionByNameOrId("<nombre>").id` al ejecutarse—, por lo que
 el mismo fichero sirve en local, staging y producción aunque cada PocketBase asigne ids distintos.
@@ -406,6 +431,11 @@ PocketBase que tocaste — production, staging o tu portátil, lo que fuera — 
 más**. Si reconstruyes esa instancia desde cero (un nuevo entorno, un desastre, un fork del
 proyecto), el esquema real diverge en silencio de lo que el repositorio documenta. Nada te avisa
 de eso: Vega no vuelve a comprobar si la migración se guardó.
+
+Los **índices únicos** viajan en esa misma migración: el `up` crea el campo con su índice y el
+`down` retira el índice **antes** que el campo. Si la migración creaba la colección entera, borrarla
+en el `down` ya se lleva sus índices con ella. Ojo con revertir: el `down` **elimina columnas**, y
+con ellas cualquier dato que se haya escrito después de aplicar el `up`.
 
 ### Landmine: un `number` `required` rechaza el valor 0
 

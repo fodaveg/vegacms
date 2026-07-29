@@ -661,8 +661,9 @@ function defaultReadonlyValue(field: Field): FieldValue {
 
 /**
  * Compila el vocabulario REDUCIDO de `CollectionFieldSpec` (Anexo A §A.3) al `Field` del
- * puerto. Los defaults (readonly/presentable/hidden/unique = false) son correctos porque el
- * bootstrap v1 no necesita más: no es una API general de autoría de esquema.
+ * puerto. Los defaults de `readonly`/`presentable`/`hidden` siguen siendo correctos porque el
+ * bootstrap no necesita más. `unique` YA NO es un default: `text` puede declararlo y este
+ * adaptador lo hace cumplir de verdad en `create`/`update`, no solo lo expone.
  */
 function collectionFieldSpecToField(spec: CollectionFieldSpec): Field {
 	const base = {

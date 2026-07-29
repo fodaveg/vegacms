@@ -30,7 +30,7 @@ describe('VEGA_REVISIONS_COLLECTION (§1 del contrato de Fase B)', () => {
 		expect(byName.get('values')).toEqual({ name: 'values', type: 'json' });
 	});
 
-	test('kind es TEXTO plano, nunca select (§1: "CollectionFieldSpec no soporta select a propósito")', () => {
+	test('kind es TEXTO plano, nunca select (§1: elección de Vega, ya no limitación del puerto)', () => {
 		const kind = VEGA_REVISIONS_COLLECTION.fields.find((f) => f.name === 'kind');
 		expect(kind?.type).toBe('text');
 	});

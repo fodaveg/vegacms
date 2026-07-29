@@ -53,9 +53,11 @@ export interface CollectionSpec {
 
 /**
  * Subconjunto MÍNIMO de tipos escribibles que la autoría de esquema v1 necesita (§A.3). NO es
- * una API general de autoría de esquema: `select` sigue fuera (necesita validar sus opciones),
- * mientras que `relation` entra con un contrato explícito y validación del destino contra el
- * esquema descubierto. El propio campo `file` sigue reducido a lo que el bootstrap de
+ * una API general de autoría de esquema, pero el subconjunto ha ido creciendo con lo que el
+ * producto necesita de verdad: `select` YA ENTRÓ (lote del sembrado, 29 jul 2026) con la
+ * validación de opciones que era justo lo que lo dejaba fuera, y `relation` entra con un contrato
+ * explícito y validación del destino contra el esquema descubierto. Que el PUERTO lo admita no
+ * significa que la UI de autoría lo ofrezca: `SchemaAuthoringPanel` sigue sin exponerlo. El propio campo `file` sigue reducido a lo que el bootstrap de
  * `vega_media` (P6) usa. `required` en
  * `number`/`bool`/`date` se añadió en el lote "esquema" (antes solo lo tenían `text`/`file`) para
  * que la UI de creación de campos pueda ofrecerlo — con el aviso de la landmine de PocketBase

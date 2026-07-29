@@ -13,7 +13,11 @@
  * - `collection`/`recordId`: identidad del registro de origen. El id NO va dentro de `values`
  *   (`VegaRecord.values` no lo incluye, §2 de `backend/types.ts`) — va aparte, como estos dos
  *   campos propios.
- * - `kind`: `'update'` | `'delete'`, TEXTO PLANO — `CollectionFieldSpec` no soporta `select` a
+ * - `kind`: `'update'` | `'delete'`, TEXTO PLANO. Ojo, la razón CAMBIÓ: `CollectionFieldSpec` ya
+ *   soporta `select` desde el lote del sembrado (29 jul 2026), así que esto no es una limitación
+ *   sino una elección — `kind` es un valor interno de Vega, no un vocabulario que el operador edite,
+ *   y encerrarlo en un `select` obligaría a migrar el esquema cada vez que se añada un tipo de
+ *   revisión. Lo que sigue siendo cierto es que `CollectionFieldSpec` no soporta `select` a
  *   propósito (ver su cabecera en `backend/collections.ts`), así que un valor fuera de ese
  *   vocabulario cerrado se trata como dato hostil en cualquier lectura (`parseRevisionRecord` en
  *   `revision.ts`), nunca se confía en que PB lo valide por nosotros. Fase B1 solo escribe
