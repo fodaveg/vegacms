@@ -247,6 +247,27 @@ Authorisation does not change: the saved record's `ViewRule` is still evaluated 
 editor's own identity before any token is issued, so previewing a draft never grants
 access the editor did not already have.
 
+#### Two limits the reference extension enforces on both paths
+
+These bind `v1` and `v2` alike, and a project reimplementing `/token` should honour them.
+
+- **A token lives at most one hour.** The `expiresAt` above is what Vega schedules renewals
+  against, but the ceiling is the server's. The reference extension defaults to five
+  minutes and refuses to start if it is configured above an hour, naming the value it got
+  and the maximum. The short life of the token is the premise this whole section rests on
+  when it argues that discovery must carry no credential; a units slip (minutes where
+  seconds were meant) would quietly turn "short-lived" into a standing key, and that is
+  precisely the mistake a configurable ceiling would not catch. **Upgrading:** a project
+  already configured above an hour will now fail closed at startup instead of issuing
+  long-lived URLs.
+- **Collection names and record ids may not contain a newline.** Both wire formats separate
+  their fields with `\n` — the `v1` HMAC payload and the `v2` additional authenticated
+  data. PocketBase does not allow a newline in either identifier today, so the formats are
+  unambiguous; but that is an invariant borrowed from somewhere else, and the extension now
+  rejects such a request with `400` before signing or encrypting anything, rather than
+  relying on it. Without that check, `("a\nb", "c")` and `("a", "b\nc")` would produce
+  identical signed bytes.
+
 Behind `/token`, the project decides how a request maps to a page (a per-collection route
 table, a convention such as `/preview/{collection}/{id}`, anything else); Vega does not
 need to know. For an `output: 'static'` site (Astro and similar), the URL that `/token`
