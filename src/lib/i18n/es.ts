@@ -833,8 +833,63 @@ export const es = {
 	'settings.schema.migration.title': 'Migración generada',
 	'settings.schema.migration.instructions':
 		'Guarda este fichero como pb_migrations/{filename} en el repositorio de tu proyecto y commítalo: sin él, este cambio de esquema solo existe en tu PocketBase, no en tu control de versiones.',
+	'settings.schema.migration.pendingTitle': 'Migración generada — todavía no aplicada',
+	'settings.schema.migration.pendingInstructions':
+		'Guarda este fichero como pb_migrations/{filename}, revísalo y aplícalo fuera de Vega: generarlo o copiarlo no cambia PocketBase. Si lo generas otra vez antes de aplicarlo obtendrás otro fichero para las mismas columnas. Si el esquema cambia entretanto, la migración puede fallar al aplicarse. Su down elimina estas columnas y cualquier dato escrito en ellas después del up.',
 	'settings.schema.migration.copy': 'Copiar',
 	'settings.schema.migration.copied': 'Copiado',
+
+	// ————— Divergencia de columnas físicas de bloque —————
+	'settings.blockColumns.title': 'Columnas de bloques',
+	'settings.blockColumns.missingSummary':
+		'Este manifiesto declara {count} columna(s) física(s) que no existen.',
+	'settings.blockColumns.migrationPerCollection':
+		'Vega genera un fichero separado por cada colección de bloques y solo incluye sus columnas ausentes.',
+	'settings.blockColumns.collectionMissingTitle': 'Colección de bloques no disponible',
+	'settings.blockColumns.collectionMissingBody':
+		'La colección hija declarada por "{collection}" no existe en el esquema o está reservada. No se puede diagnosticar ni generar una reconciliación hasta crearla por otro medio.',
+	'settings.blockColumns.collectionMissingCount':
+		'{count} columna(s) ausente(s) en "{collection}".',
+	'settings.blockColumns.generate': 'Generar migración para {collection}',
+	'settings.blockColumns.incompatibleTitle': '{count} columna(s) incompatible(s)',
+	'settings.blockColumns.incompatibleBody':
+		'Estas columnas ya existen con otra forma. No se incluyen en ninguna migración: cambiar una columna que puede contener datos requiere una decisión humana.',
+	'settings.blockColumns.conflictTitle': 'Conflicto en el manifiesto de bloques',
+	'settings.blockColumns.conflictBody':
+		'La colección "{collection}" no se puede diagnosticar: el nombre de columna "{field}" tiene declaraciones incompatibles en el propio manifiesto ({declarations}). Corrige el manifiesto antes de generar ninguna migración.',
+	'settings.blockColumns.value.yes': 'sí',
+	'settings.blockColumns.value.no': 'no',
+	'settings.blockColumns.type.text': 'texto',
+	'settings.blockColumns.type.richtext': 'texto enriquecido',
+	'settings.blockColumns.type.number': 'número',
+	'settings.blockColumns.type.bool': 'sí/no',
+	'settings.blockColumns.type.email': 'correo',
+	'settings.blockColumns.type.url': 'URL',
+	'settings.blockColumns.type.date': 'fecha',
+	'settings.blockColumns.type.select': 'selección',
+	'settings.blockColumns.type.relation': 'relación',
+	'settings.blockColumns.type.file': 'fichero',
+	'settings.blockColumns.type.json': 'JSON',
+	'settings.blockColumns.type.unsupported': 'tipo no soportado',
+	'settings.blockColumns.type.autodate': 'fecha automática',
+	'settings.blockColumns.reason.type': 'se esperaba {expected}, pero existe {actual}',
+	'settings.blockColumns.reason.required':
+		'la obligatoriedad esperada es "{expected}" y la real es "{actual}"',
+	'settings.blockColumns.reason.readonly': 'la columna real es de solo lectura',
+	'settings.blockColumns.reason.unique': 'la columna real tiene una restricción UNIQUE',
+	'settings.blockColumns.reason.textConstraints':
+		'las restricciones de texto no coinciden (máximo esperado {expectedMax}, real {actualMax})',
+	'settings.blockColumns.reason.numberConstraints':
+		'la columna numérica real tiene límites o exige enteros',
+	'settings.blockColumns.reason.dateConstraints': 'la columna de fecha real tiene límites',
+	'settings.blockColumns.reason.relationTarget':
+		'el destino esperado es "{expected}" y el real es "{actual}"',
+	'settings.blockColumns.reason.cardinality': 'la cardinalidad o sus máximos no coinciden',
+	'settings.blockColumns.reason.cascadeDelete': 'la política de borrado en cascada no coincide',
+	'settings.blockColumns.reason.fileConstraints':
+		'las restricciones de fichero (tamaño, MIME o protección) no coinciden',
+	'settings.blockColumns.reason.constraints':
+		'la forma física esperada y la columna real tienen restricciones distintas',
 
 	// ————— Rol editor (lote L6c): degradado de la edición del manifiesto —————
 	// Sin `schemaBootstrap` (colección de auth distinta de `_superusers`) un editor no puede

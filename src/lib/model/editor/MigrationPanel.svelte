@@ -1,22 +1,31 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	/**
-	 * Muestra la migración JS que `generateSchemaMigration` (`$lib/backend/migration.ts`) acaba de
-	 * producir a partir de una operación de esquema YA EJECUTADA con éxito (crear colección o
-	 * añadir campos, `SchemaAuthoringPanel.svelte`). Componente FINO, sin estado de red: recibe el
-	 * resultado ya calculado y solo ofrece copiarlo al portapapeles — el fichero en sí (nombre +
-	 * contenido) es responsabilidad del operador: pegarlo en `pb_migrations/` de su propio repo y
-	 * commitearlo (mitad 2 del lote "esquema", ver cabecera de `migration.ts` para el porqué: sin
-	 * esto, cada edición de esquema desde Vega aleja producción del repo EN SILENCIO).
+	 * Muestra una migración JS ya calculada. `migrationState: 'applied'` conserva el flujo de
+	 * `SchemaAuthoringPanel` (la operación contra PocketBase ya ocurrió); `'pending'` sirve al
+	 * reconciliador de columnas de bloque (el fichero se generó, pero nadie lo aplicó). El
+	 * componente sigue sin estado de red y solo ofrece copiar el artefacto.
 	 */
 	import type { GeneratedMigration } from '$lib/backend/migration';
 
 	interface Props {
 		migration: GeneratedMigration;
 		t: (key: string, params?: Record<string, string | number>) => string;
+		migrationState?: 'applied' | 'pending';
 	}
 
-	const { migration, t }: Props = $props();
+	const { migration, t, migrationState = 'applied' }: Props = $props();
+
+	const titleKey = $derived(
+		migrationState === 'pending'
+			? 'settings.schema.migration.pendingTitle'
+			: 'settings.schema.migration.title'
+	);
+	const instructionsKey = $derived(
+		migrationState === 'pending'
+			? 'settings.schema.migration.pendingInstructions'
+			: 'settings.schema.migration.instructions'
+	);
 
 	let copied = $state(false);
 	let copyTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -46,8 +55,8 @@
 </script>
 
 <div class="vega-migration-panel">
-	<h4>{t('settings.schema.migration.title')}</h4>
-	<p>{t('settings.schema.migration.instructions', { filename: migration.filename })}</p>
+	<h4>{t(titleKey)}</h4>
+	<p>{t(instructionsKey, { filename: migration.filename })}</p>
 	<pre class="vega-migration-code">{migration.contents}</pre>
 	<button type="button" onclick={handleCopy}>
 		{copied ? t('settings.schema.migration.copied') : t('settings.schema.migration.copy')}

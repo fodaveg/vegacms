@@ -65,6 +65,7 @@
 	import type { ThemeMode } from '$lib/theme/preferences';
 	import { FALLBACK_THEME, THEMES } from '$lib/themes/themes.generated';
 	import { VEGA_PB_SERVER_RANGE, VEGA_VERSION } from '$lib/version';
+	import BlockColumnReconciliationPanel from '$lib/model/editor/BlockColumnReconciliationPanel.svelte';
 	import ManifestEditor from '$lib/model/editor/ManifestEditor.svelte';
 	import SchemaAuthoringPanel from '$lib/model/editor/SchemaAuthoringPanel.svelte';
 	import RevisionsSettings from '$lib/revisions/RevisionsSettings.svelte';
@@ -350,6 +351,11 @@
 		     `SchemaAuthoringPanel` comprueba sus DOS capabilities por su cuenta, así que no
 		     necesita más gate que `isManifestEditable` (ya cubre esta rama entera). -->
 		<SchemaAuthoringPanel port={ctx.port} {types} t={ctx.t} onSchemaChanged={handleSchemaChanged} />
+
+		<!-- Divergencia de columnas `blockTypes.*.fields[source=record]`: solo diagnóstico y
+		     emisión bajo demanda. Vive en esta rama porque exige `schemaBootstrap`; nunca aplica
+		     nada ni reconstruye colecciones inválidas desde el manifiesto crudo. -->
+		<BlockColumnReconciliationPanel {types} model={ctx.model} t={ctx.t} />
 
 		<ManifestEditor
 			{types}

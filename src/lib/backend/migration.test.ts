@@ -4,8 +4,11 @@
  * `new Collection({...})`/`app.delete(...)` para crear, `collection.fields.add(new Field({...}))`/
  * `removeByName(...)` para añadir campos, y que el mapeo de cada `CollectionFieldSpec` produzca
  * exactamente el mismo payload que `collectionFieldSpecToPbField` del adaptador `pocketbase`
- * (paridad DELIBERADA con lo que el adaptador acaba de ejecutar por red — la migración documenta
- * lo mismo que ya pasó, nunca otra cosa).
+ * (paridad DELIBERADA con lo que ejecutaría el adaptador por red). Esta suite cubre el flujo
+ * directo de `/settings`, donde la migración documenta lo mismo que el adaptador acaba de
+ * ejecutar por red, nunca otra cosa; el camino de reconciliación de columnas de bloque reutiliza
+ * el mismo generador para proponer esa migración ANTES de ejecutar nada, y se cubre aparte en
+ * `block-schema.test.ts`.
  */
 import { describe, expect, test } from 'vitest';
 import { generateSchemaMigration } from './migration';
