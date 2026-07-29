@@ -297,23 +297,29 @@ describe('seedSiteProject', () => {
 		expectNoSeedWrites(writes);
 	});
 
-	test('pages.status con maxSelect distinto del creado diverge y aborta sin escribir', async () => {
+	// Regresión de la revisión fría del lote `endurecimiento-pre-despliegue`: comparar `maxSelect`
+	// en un `select` SIMPLE abortaba un sembrado legítimo. PocketBase trata `maxSelect` 0, 1 y
+	// ausente como el mismo single, y el adaptador colapsa el 0 a `undefined`
+	// (`adapters/pocketbase/schema.ts:180-189`), así que una colección creada a mano, por una
+	// versión anterior o migrada desde otra herramienta llegaba con `null` frente al `1` que
+	// produce la creación. El límite solo es información en un `select` múltiple.
+	//
+	// Ojo: la rama MÚLTIPLE no tiene test conductual porque hoy no se puede construir su escenario.
+	// El único `select` que siembra Vega es `pages.status`, que es simple, y el manifiesto del
+	// starter no declara ninguno en sus bloques, así que no hay forma de que el lado ESPERADO sea
+	// múltiple. Se deja escrito antes que fabricar un test que no ejerza lo que dice ejercer.
+	test('pages.status con maxSelect ausente (single crudo de PocketBase) SIGUE siendo compatible', async () => {
 		const port = await authedMemory();
 		await seedSiteProject(port);
-		const writes = watchSeedWrites(port);
 		const actualPort = withActualField(port, 'pages', 'status', { maxSelect: undefined });
 
-		await expect(seedSiteProject(actualPort)).rejects.toMatchObject({
-			name: 'SiteSeedDivergenceError',
-			divergences: [
-				expect.objectContaining({
-					piece: 'campo "pages.status"',
-					actual: expect.stringContaining('"maxSelect":null'),
-					expected: expect.stringContaining('"maxSelect":1')
-				})
-			]
+		// Aquí NO vale `expectNoSeedWrites`: el camino compatible sí llama a `ensureCollections`,
+		// que es idempotente y devuelve `skipped`. Lo que se afirma es que no CREÓ nada.
+		await expect(seedSiteProject(actualPort)).resolves.toEqual({
+			createdCollections: [],
+			addedFields: {},
+			createdRecords: []
 		});
-		expectNoSeedWrites(writes);
 	});
 
 	test('options y maxSelect ajenos en un campo no select no cambian el veredicto', async () => {

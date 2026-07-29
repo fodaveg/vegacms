@@ -389,7 +389,8 @@ function expectedFieldShape(field: CollectionFieldSpec): ComparableFieldShape {
 		required: 'required' in field ? (field.required ?? false) : false,
 		unique: field.type === 'text' ? (field.unique ?? false) : false,
 		options: field.type === 'select' ? field.options : null,
-		maxSelect: field.type === 'select' ? (field.multiple ? 99 : 1) : null
+		// Solo cuenta en un `select` MÚLTIPLE: ver la nota de `actualFieldShape`.
+		maxSelect: field.type === 'select' && field.multiple ? 99 : null
 	};
 }
 
@@ -406,7 +407,14 @@ function actualFieldShape(field: Field): ComparableFieldShape {
 		required: field.required,
 		unique: field.unique,
 		options: field.type === 'select' ? field.options : null,
-		maxSelect: field.type === 'select' ? (field.maxSelect ?? null) : null
+		// El límite SOLO se compara en un `select` múltiple, y la razón es una asimetría del
+		// propio adaptador: PocketBase trata `maxSelect` 0, 1 y ausente como el MISMO single
+		// (`adapters/pocketbase/schema.ts:180-189` deriva `multiple = maxSelect > 1` y colapsa el 0
+		// a `undefined`). Compararlo en un single haría DIVERGENTE una colección legítima cuyo dato
+		// crudo es 0 frente al 1 que produce la creación, y abortaría un sembrado que debería
+		// completar. En un múltiple sí es información: dos límites distintos son cardinalidades
+		// distintas, y el formulario aplica la real.
+		maxSelect: field.type === 'select' && field.multiple ? (field.maxSelect ?? null) : null
 	};
 }
 
