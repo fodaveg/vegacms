@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -437,6 +438,75 @@ func TestMissingOrInvalidEditorSessionCannotMintToken(t *testing.T) {
 	}
 }
 
+func TestAuthAllowlistClosesSuperuserBypassAgainstRealPocketBase(t *testing.T) {
+	fixture := newPreviewFixture(t)
+	superuser, err := fixture.app.FindAuthRecordByEmail(
+		core.CollectionNameSuperusers,
+		"test@example.com",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	superuserToken := authToken(t, superuser)
+
+	editorResponse := requestToken(fixture.mux, fixture.editorA, "pages", fixture.pageA)
+	if editorResponse.Code != http.StatusOK {
+		t.Fatalf(
+			"expected allowed editor to receive 200, got %d: %s",
+			editorResponse.Code,
+			editorResponse.Body.String(),
+		)
+	}
+	var editorBody tokenResponse
+	if err := json.Unmarshal(editorResponse.Body.Bytes(), &editorBody); err != nil {
+		t.Fatal(err)
+	}
+	if editorBody.URL == "" {
+		t.Fatal("allowed editor response did not contain a preview token URL")
+	}
+
+	superuserResponse := requestToken(fixture.mux, superuserToken, "pages", fixture.pageA)
+	if superuserResponse.Code != http.StatusForbidden {
+		t.Fatalf(
+			"expected authenticated superuser to receive exact 403, got %d: %s",
+			superuserResponse.Code,
+			superuserResponse.Body.String(),
+		)
+	}
+	if strings.Contains(superuserResponse.Body.String(), `"url"`) ||
+		strings.Contains(superuserResponse.Body.String(), `"postToken"`) {
+		t.Fatalf("403 response exposed a preview token: %s", superuserResponse.Body.String())
+	}
+
+	// This branch is reachable only if the constructor guard is removed. Keeping the real
+	// PocketBase request here makes the guardrail fail on the actual superuser bypass, not merely
+	// on a unit assertion that New returned the wrong error.
+	unsafeExtension, err := New(Config{
+		SiteOrigin:        "https://site.example",
+		SigningSecret:     testSecret,
+		AuthCollections:   []string{"vega_editors", core.CollectionNameSuperusers},
+		RecordCollections: []string{"pages"},
+	})
+	if err != nil {
+		return
+	}
+	unsafeRouter, err := apis.NewRouter(fixture.app)
+	if err != nil {
+		t.Fatal(err)
+	}
+	unsafeExtension.RegisterRoutes(&core.ServeEvent{App: fixture.app, Router: unsafeRouter})
+	unsafeMux, err := unsafeRouter.BuildMux()
+	if err != nil {
+		t.Fatal(err)
+	}
+	bypassResponse := requestToken(unsafeMux, superuserToken, "pages", fixture.pageA)
+	t.Fatalf(
+		"constructor accepted _superusers and real PocketBase returned %d: %s",
+		bypassResponse.Code,
+		bypassResponse.Body.String(),
+	)
+}
+
 func TestUnsupportedCollectionDoesNotReceiveToken(t *testing.T) {
 	fixture := newPreviewFixture(t)
 	response := requestToken(fixture.mux, fixture.editorA, "other", fixture.pageA)
@@ -509,7 +579,11 @@ func TestRawRequestLimitReturns413BeforeBindingUnknownJSON(t *testing.T) {
 }
 
 func TestConfigDefaultsAndFailClosedGuards(t *testing.T) {
-	valid := Config{SiteOrigin: "https://site.example", SigningSecret: testSecret}
+	valid := Config{
+		SiteOrigin:      "https://site.example",
+		SigningSecret:   testSecret,
+		AuthCollections: []string{"vega_editors"},
+	}
 	extension, err := New(valid)
 	if err != nil {
 		t.Fatal(err)
@@ -522,12 +596,30 @@ func TestConfigDefaultsAndFailClosedGuards(t *testing.T) {
 	}
 
 	invalid := []Config{
-		{SiteOrigin: "https://site.example/path", SigningSecret: testSecret},
-		{SiteOrigin: "ftp://site.example", SigningSecret: testSecret},
-		{SiteOrigin: "https://site.example", SigningSecret: "short"},
-		{SiteOrigin: "https://site.example", SigningSecret: testSecret, TokenTTL: -time.Second},
-		{SiteOrigin: "https://site.example", SigningSecret: testSecret, MaxDraftBytes: -1},
-		{SiteOrigin: "https://site.example", SigningSecret: testSecret, RoutePrefix: "/preview"},
+		{
+			SiteOrigin: "https://site.example/path", SigningSecret: testSecret,
+			AuthCollections: []string{"vega_editors"},
+		},
+		{
+			SiteOrigin: "ftp://site.example", SigningSecret: testSecret,
+			AuthCollections: []string{"vega_editors"},
+		},
+		{
+			SiteOrigin: "https://site.example", SigningSecret: "short",
+			AuthCollections: []string{"vega_editors"},
+		},
+		{
+			SiteOrigin: "https://site.example", SigningSecret: testSecret,
+			AuthCollections: []string{"vega_editors"}, TokenTTL: -time.Second,
+		},
+		{
+			SiteOrigin: "https://site.example", SigningSecret: testSecret,
+			AuthCollections: []string{"vega_editors"}, MaxDraftBytes: -1,
+		},
+		{
+			SiteOrigin: "https://site.example", SigningSecret: testSecret,
+			AuthCollections: []string{"vega_editors"}, RoutePrefix: "/preview",
+		},
 	}
 	for _, config := range invalid {
 		if _, err := New(config); err == nil {
@@ -537,9 +629,10 @@ func TestConfigDefaultsAndFailClosedGuards(t *testing.T) {
 
 	received := maxTokenTTL + time.Second
 	_, err = New(Config{
-		SiteOrigin:    "https://site.example",
-		SigningSecret: testSecret,
-		TokenTTL:      received,
+		SiteOrigin:      "https://site.example",
+		SigningSecret:   testSecret,
+		AuthCollections: []string{"vega_editors"},
+		TokenTTL:        received,
 	})
 	if err == nil {
 		t.Fatal("expected TokenTTL above one hour to fail closed")
@@ -547,6 +640,86 @@ func TestConfigDefaultsAndFailClosedGuards(t *testing.T) {
 	if !strings.Contains(err.Error(), received.String()) ||
 		!strings.Contains(err.Error(), maxTokenTTL.String()) {
 		t.Fatalf("TTL error must include received and maximum values, got %q", err)
+	}
+}
+
+func TestAuthCollectionsRejectInvalidEntriesWithActionableErrors(t *testing.T) {
+	testCases := []struct {
+		name            string
+		authCollections []string
+		errorContains   string
+	}{
+		{"nil", nil, "must name at least one dedicated editor auth collection"},
+		{"empty", []string{}, "must name at least one dedicated editor auth collection"},
+		{"empty entry", []string{""}, "entries must not be blank"},
+		{"blank entry", []string{"   "}, "entries must not be blank"},
+		{
+			"superuser",
+			[]string{core.CollectionNameSuperusers},
+			"must not include _superusers",
+		},
+		{
+			"superuser beside editor",
+			[]string{"vega_editors", core.CollectionNameSuperusers},
+			"must not include _superusers",
+		},
+		{"superuser different case", []string{"_Superusers"}, "must not include _superusers"},
+		{"superuser with spaces", []string{" _superusers "}, "must not include _superusers"},
+		{
+			"editor with surrounding spaces",
+			[]string{" vega_editors "},
+			"has surrounding whitespace",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			extension, err := New(Config{
+				SiteOrigin:      "https://site.example",
+				SigningSecret:   testSecret,
+				AuthCollections: testCase.authCollections,
+			})
+			if err == nil {
+				t.Fatalf("expected invalid AuthCollections to fail closed: %#v", testCase.authCollections)
+			}
+			if extension != nil {
+				t.Fatal("invalid AuthCollections returned a mountable extension")
+			}
+			if !strings.Contains(err.Error(), testCase.errorContains) {
+				t.Fatalf("expected actionable error containing %q, got %q", testCase.errorContains, err)
+			}
+		})
+	}
+}
+
+func TestAuthCollectionsValidationIsSyntacticAndDoesNotRewrite(t *testing.T) {
+	authCollections := []string{"not_provisioned_yet", "not_provisioned_yet"}
+	before := slices.Clone(authCollections)
+	normalized, err := (Config{
+		SiteOrigin:      "https://site.example",
+		SigningSecret:   testSecret,
+		AuthCollections: authCollections,
+	}).normalized()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(normalized.AuthCollections, before) {
+		t.Fatalf(
+			"normalized rewrote AuthCollections:\nbefore %#v\nafter  %#v",
+			before,
+			normalized.AuthCollections,
+		)
+	}
+	if !slices.Equal(authCollections, before) {
+		t.Fatalf("normalized mutated its input slice:\nbefore %#v\nafter  %#v", before, authCollections)
+	}
+
+	normalizedAgain, err := normalized.normalized()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(normalizedAgain.AuthCollections, before) {
+		t.Fatalf("second normalization rewrote AuthCollections: %#v", normalizedAgain.AuthCollections)
 	}
 }
 
