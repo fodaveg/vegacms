@@ -12,3 +12,9 @@ src/lib/backend/site-seeding-manifest.json
 
 # Worktrees efímeros de agentes (Claude Code)
 .claude/worktrees/
+
+# Contratos de tarea: cada uno lleva DENTRO su propio sha256 (`prompt_hash`), calculado sobre el
+# fichero entero, y es lo que ata un despacho a un texto concreto. Un formateador que les mueva un
+# salto de línea invalida ese hash y deja el contrato sin poder verificarse. Mismo criterio que
+# `site-seeding-manifest.json`: se comprueban por igualdad de bytes, no por estilo.
+encargos/
