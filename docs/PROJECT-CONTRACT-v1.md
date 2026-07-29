@@ -207,6 +207,46 @@ draft preview for this record right now (unsupported collection, a record that d
 exist, or a project that has no rendering opinion for this content type). Vega shows that
 as an explicit, actionable error inside the panel — never a blank `<iframe>`.
 
+#### Unsaved editor state (additive, optional)
+
+Everything above previews a record that is already **saved**. A project may additionally
+accept an optional `draft` object in the same request body, carrying the record and its
+blocks exactly as they stand in the editor, so an author building a page out of blocks can
+see what is on screen _now_:
+
+```http
+POST {apiBasePath}/token
+{ "collection": "posts", "id": "6f2c1a90c1b2e34", "draft": { "record": {…}, "blocks": [{…}] } }
+```
+
+This is purely additive: a project that ignores `draft` keeps working, and Vega falls back
+to previewing the saved record. Omitting it is a valid implementation of this contract.
+
+A project that does accept it takes on four obligations, and they are the whole point of
+writing them down here rather than leaving them to each implementation:
+
+- **Previewing must not write.** The draft is content the author has not chosen to save.
+  Materialising it — a temporary record, a drafts table — means writing what nobody asked
+  to write and needing a cleanup whose failure leaves recoverable content behind. Carrying
+  it inside the token avoids both.
+- **The draft must be confidential and bound.** It is unpublished content, so it cannot
+  travel in the clear. Vega's reference extension emits a `v2` token encrypted and
+  authenticated with AES-256-GCM, under a key derived from the signing secret with domain
+  separation (`HMAC-SHA256(secret, "vega-preview-draft-v2\naes-256-gcm")`), a fresh random
+  96-bit nonce per token, and `{version, collection, id, expiresUnix}` as additional
+  authenticated data — which is what stops a token being replayed against another record
+  or with a stretched expiry. Reimplementing this loosely is worse than not offering it:
+  the version prefix must be authenticated, never taken from what the caller sent.
+- **It must not leak through the URL.** A token carrying content cannot sit in a query
+  string, where it reaches history, referrers and access logs. Vega posts it to the
+  preview route as a form field. The response is `Cache-Control: private, no-store`.
+- **It must be bounded.** Vega's reference implementation rejects drafts over 256 KiB of
+  JSON with `413`, and enforces the limit before parsing or decrypting on both ends.
+
+Authorisation does not change: the saved record's `ViewRule` is still evaluated with the
+editor's own identity before any token is issued, so previewing a draft never grants
+access the editor did not already have.
+
 Behind `/token`, the project decides how a request maps to a page (a per-collection route
 table, a convention such as `/preview/{collection}/{id}`, anything else); Vega does not
 need to know. For an `output: 'static'` site (Astro and similar), the URL that `/token`
