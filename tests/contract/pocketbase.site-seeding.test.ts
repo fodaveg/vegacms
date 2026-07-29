@@ -183,13 +183,23 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 				status: 'published'
 			})
 		});
-		expect(anonymousCreate.status).toBe(403);
+		// Medido contra PocketBase real: ante una `createRule` que no casa, responde 400, NO 403.
+		// Lo que hace que esta afirmación signifique algo no es el código en sí, sino su pareja de
+		// más abajo: la editora manda un cuerpo de la misma forma y obtiene 200. Rechazo por
+		// identidad, no por cuerpo mal formado.
+		expect(anonymousCreate.status).toBe(400);
 
 		const anonymousMediaList = await requestJson(
 			running!,
 			'/api/collections/vega_media/records?perPage=100'
 		);
-		expect(anonymousMediaList.status).toBe(403);
+		// Medido contra PocketBase real: NO devuelve 403. Solo lo hace cuando la `listRule` es
+		// `null` (`apis/record_crud.go:52`); con un FILTRO responde 200 y lo aplica, así que un
+		// anónimo recibe una lista VACÍA. La propiedad que importa no es el código de estado, es
+		// que no se pueda enumerar la biblioteca: por eso se afirma que no vuelve NI UN registro,
+		// existiendo uno. Es más fuerte que el 403 que había aquí.
+		expect(anonymousMediaList.status).toBe(200);
+		expect(recordItems(anonymousMediaList.body)).toEqual([]);
 		const anonymousMediaView = await requestJson(
 			running!,
 			`/api/collections/vega_media/records/${publishedMedia.id}`
@@ -449,6 +459,11 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 		await admin.collections.create({
 			name: 'pages',
 			type: 'base',
+			// Lectura abierta a propósito: sin ella salta ADEMÁS la precondición de instalación
+			// mixta y este test dejaría de aislar lo que quiere probar, que es la divergencia de
+			// FORMA. Esa precondición ya tiene su propio test en este mismo fichero.
+			listRule: '',
+			viewRule: '',
 			fields: [{ name: 'title', type: 'number' }]
 		});
 		const record = await admin.collection('pages').create({ title: 7 });
@@ -546,6 +561,13 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 		await port.ensureCollections([
 			{
 				name: 'pages',
+				// Una `pages` ajena con la lectura DENEGADA ya no se puede completar: la precondición
+				// de instalación mixta aborta antes de crear `blocks`, porque con `pages` cerrada
+				// PocketBase no podría listar la colección cruzada. Aquí se le da lectura para probar
+				// lo que este test quiere probar, que es que se conservan las páginas y los campos
+				// ajenos.
+				listRule: '',
+				viewRule: '',
 				fields: [
 					{ name: 'title', type: 'text', required: true, max: 200 },
 					{ name: 'path', type: 'text', required: true, max: 200, unique: true },
