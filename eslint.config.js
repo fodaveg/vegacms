@@ -74,7 +74,7 @@ export default defineConfig(
 		// transitivamente. El harness de tests de Fase 2 (tests/contract/pb-harness/ y su
 		// fichero de test) queda también excluido a propósito: es infraestructura que arranca
 		// y siembra un PocketBase real para la suite de contrato, no el adaptador — no hay
-		// forma de sembrar el fixture completo (select/relation/vistas…) a través del
+		// forma de sembrar el fixture completo (`email`, vistas y tipos completos…) a través del
 		// vocabulario reducido de `ensureCollections`.
 		files: ['**/*.{js,ts,svelte}'],
 		ignores: [

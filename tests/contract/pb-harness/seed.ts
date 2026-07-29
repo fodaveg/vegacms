@@ -2,7 +2,7 @@
  * Siembra el fixture "kitchen sink" (mismo `tests/contract/fixture.ts` que usa `memory`) en un
  * PocketBase real, vía la API de superuser: crea las colecciones (traduciendo los `Field` Vega
  * del fixture al vocabulario COMPLETO de creación de PB — más amplio que el reducido de
- * `ensureCollections`/Anexo A, que no cubre select/relation/email/etc.) y, antes de cada test,
+ * `ensureCollections`/Anexo A, que no cubre relation múltiple con cascade, `email` y las vistas/etc.) y, antes de cada test,
  * trunca+reinserta los registros canónicos para que cada test arranque con el mismo dataset
  * (memory logra esto recreando el backend entero; contra un servidor real y persistente eso
  * sería carísimo, así que aquí se trunca).

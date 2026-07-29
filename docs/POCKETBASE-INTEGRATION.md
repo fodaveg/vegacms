@@ -411,8 +411,10 @@ Dos límites deliberados de esta primera versión:
    backfill dejaría el mismo valor vacío repetido; con una sola fila se acepta y esa fila reserva
    el valor.
 
-La **UI** de Ajustes → Esquema todavía no ofrece `select` ni `unique`: los usa el sembrado por
-código. Que el puerto lo admita y que el panel lo ofrezca son dos cosas distintas.
+La **UI** de Ajustes → Esquema todavía no ofrece `select` ni `unique`, y hoy **ningún camino de
+producción los declara**: están destinados al sembrado de proyecto, que aún no existe. Por ahora solo
+los ejercitan los tests y las migraciones generadas. Que el puerto lo admita, que un consumidor lo
+use y que el panel lo ofrezca son tres cosas distintas.
 
 El payload aplicado por red usa el `collectionId` real del entorno. La migración generada no
 incrusta ese id —resuelve `app.findCollectionByNameOrId("<nombre>").id` al ejecutarse—, por lo que

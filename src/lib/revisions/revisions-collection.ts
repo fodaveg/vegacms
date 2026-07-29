@@ -17,9 +17,9 @@
  *   soporta `select` desde el lote del sembrado (29 jul 2026), así que esto no es una limitación
  *   sino una elección — `kind` es un valor interno de Vega, no un vocabulario que el operador edite,
  *   y encerrarlo en un `select` obligaría a migrar el esquema cada vez que se añada un tipo de
- *   revisión. Lo que sigue siendo cierto es que `CollectionFieldSpec` no soporta `select` a
- *   propósito (ver su cabecera en `backend/collections.ts`), así que un valor fuera de ese
- *   vocabulario cerrado se trata como dato hostil en cualquier lectura (`parseRevisionRecord` en
+ *   revisión. Lo que no cambia es la consecuencia: como `kind` es texto plano, PB no valida su
+ *   vocabulario, así que un valor fuera de ese conjunto cerrado se trata como dato hostil en
+ *   cualquier lectura (`parseRevisionRecord` en
  *   `revision.ts`), nunca se confía en que PB lo valide por nosotros. Fase B1 solo escribe
  *   `'update'` — el gancho de `'delete'` queda preparado en `with-revisions.ts` pero sin usar.
  * - `values`: la PRE-IMAGEN completa (`VegaRecord.values` tal cual, antes de la escritura) —
