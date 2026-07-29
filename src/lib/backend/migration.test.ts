@@ -11,7 +11,8 @@
  * `block-schema.test.ts`.
  */
 import { describe, expect, test } from 'vitest';
-import { generateSchemaMigration } from './migration';
+import { collectionSpecToPocketBasePayload } from './adapters/pocketbase/collections';
+import { collectionSpecToMigrationPayload, generateSchemaMigration } from './migration';
 import type { CollectionFieldSpec, CollectionSpec } from './collections';
 
 const FIXED_NOW = new Date('2026-07-25T12:00:00.000Z'); // 1784980800 segundos unix
@@ -52,6 +53,35 @@ describe('generateSchemaMigration — create', () => {
 		expect(contents).toContain('app.save(collection);');
 		// down: borra por nombre, nunca modifica/renombra.
 		expect(contents).toContain('app.delete(app.findCollectionByNameOrId("posts"));');
+	});
+
+	test('auth y las siete reglas conservan paridad literal con el payload de red', () => {
+		const spec: CollectionSpec = {
+			name: 'editors',
+			type: 'auth',
+			fields: [],
+			listRule: null,
+			viewRule: '',
+			createRule: '@request.auth.id != null',
+			updateRule: 'id = @request.auth.id',
+			deleteRule: null,
+			authRule: 'verified = true',
+			manageRule: 'id = @request.auth.id'
+		};
+
+		expect(collectionSpecToMigrationPayload(spec)).toEqual(
+			collectionSpecToPocketBasePayload(spec, [])
+		);
+
+		const { contents } = generateSchemaMigration({ kind: 'create', specs: [spec] }, FIXED_NOW);
+		expect(contents).toContain('"type": "auth"');
+		expect(contents).toContain('"listRule": null');
+		expect(contents).toContain('"viewRule": ""');
+		expect(contents).toContain('"createRule": "@request.auth.id != null"');
+		expect(contents).toContain('"updateRule": "id = @request.auth.id"');
+		expect(contents).toContain('"deleteRule": null');
+		expect(contents).toContain('"authRule": "verified = true"');
+		expect(contents).toContain('"manageRule": "id = @request.auth.id"');
 	});
 
 	test('varias colecciones: down las borra en orden INVERSO al de creación', () => {

@@ -49,13 +49,25 @@ export { validateFileFieldInput } from './file-guards';
 
 export type {
 	AddFieldsResult,
+	AuthCollectionSpec,
+	AuthCollectionRuleKey,
+	BaseCollectionSpec,
 	CollectionFieldSpec,
+	CollectionRule,
+	CollectionRuleKey,
 	CollectionSpec,
+	CollectionType,
+	CommonCollectionRuleKey,
 	EnsureResult
 } from './collections';
 export {
+	AUTH_COLLECTION_RULE_KEYS,
+	checkCollectionSpecAccess,
 	checkCreatableCollectionNames,
 	checkReservedNames,
+	COLLECTION_RULE_KEYS,
+	collectionSpecCreationMetadata,
+	COMMON_COLLECTION_RULE_KEYS,
 	isCreatableCollectionName,
 	isUserAuthorableCollectionName,
 	isReservedCollectionName,
@@ -63,7 +75,7 @@ export {
 } from './collections';
 
 export type { GeneratedMigration, SchemaMigrationOp } from './migration';
-export { generateSchemaMigration } from './migration';
+export { collectionSpecToMigrationPayload, generateSchemaMigration } from './migration';
 
 export type { BackendPort, StrongAuthPort } from './port';
 

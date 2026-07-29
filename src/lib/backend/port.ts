@@ -139,11 +139,14 @@ export interface BackendPort {
 	/**
 	 * Crea las colecciones de `specs` que NO existan aún. Idempotente: una segunda llamada con
 	 * los mismos `specs` devuelve `created: []` (todo en `skipped`). NUNCA modifica ni borra una
-	 * colección existente (ni sus campos). Admite cualquier nombre de colección "creable"
-	 * (`isCreatableCollectionName`, `backend/collections.ts`) — ya NO se restringe a
-	 * `vega`/`vega_*` (esa restricción vivía en el antiguo Anexo A, cuando Vega solo gestionaba
-	 * su propio namespace interno; ver cabecera de `collections.ts` para la historia completa).
-	 * Un nombre no creable ⇒ `VegaError 'validation'` local, sin tocar red. Sin
+	 * colección existente (ni su tipo, reglas, campos o registros). Si el nombre existe con otro
+	 * tipo, falla explícitamente en vez de mutarlo o fingir idempotencia. Al crear, `CollectionSpec`
+	 * puede declarar `base`/`auth` y sus reglas; las claves omitidas conservan los defaults del
+	 * backend. Admite cualquier nombre de colección "creable" (`isCreatableCollectionName`,
+	 * `backend/collections.ts`) — ya NO se restringe a `vega`/`vega_*` (esa restricción vivía en
+	 * el antiguo Anexo A, cuando Vega solo gestionaba su propio namespace interno; ver cabecera de
+	 * `collections.ts` para la historia completa). Un nombre no creable ⇒ `VegaError 'validation'`
+	 * local, sin tocar red. Sin
 	 * `capabilities.schemaBootstrap` ⇒ `VegaError 'backend'` inmediato (L8). Sin permiso de
 	 * creación de esquema (PB: superuser) ⇒ `VegaError 'forbidden'`.
 	 */

@@ -6,7 +6,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { EventSource } from 'eventsource';
-import PocketBase from 'pocketbase';
+import PocketBase, { ClientResponseError } from 'pocketbase';
 import type { VegaError } from '$lib/backend';
 import { createPocketBaseBackend } from '$lib/backend/adapters/pocketbase';
 import { uniqueIndexName } from '$lib/backend/collections';
@@ -92,6 +92,33 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 		authExpiryWaitMs: AUTH_EXPIRY_WAIT_MS,
 		numberFieldDefaultsToZero: true,
 		hasGeoPointFieldType: HAS_GEO_POINT_FIELD_TYPE,
+		ruleSyntaxRejectedByServer: true,
+		async inspectCollection(_port, name) {
+			try {
+				const collection = await admin.collections.getOne(name);
+				const raw = collection as unknown as Record<string, unknown>;
+				return {
+					type: collection.type,
+					rules: Object.fromEntries(
+						[
+							'listRule',
+							'viewRule',
+							'createRule',
+							'updateRule',
+							'deleteRule',
+							'authRule',
+							'manageRule'
+						]
+							.filter((key) => Object.prototype.hasOwnProperty.call(raw, key))
+							.map((key) => [key, raw[key]])
+					),
+					fieldNames: collection.fields.map((field) => field.name)
+				};
+			} catch (err) {
+				if (err instanceof ClientResponseError && err.status === 404) return null;
+				throw err;
+			}
+		},
 		transportFailures: {
 			makeUnreachablePort: () => createPocketBaseBackend({ url: 'http://127.0.0.1:1' }),
 			async makeCorruptResponsePort() {
@@ -102,6 +129,86 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 				};
 			}
 		}
+	});
+
+	test('creation-only conserva una regla abierta a mano por el operador', async () => {
+		const name = `manual_rule_${Math.random().toString(36).slice(2, 10)}`;
+		const port = createPocketBaseBackend({ url: running.url });
+		await port.login({ email: running.adminEmail, password: running.adminPassword });
+		await port.ensureCollections([
+			{
+				name,
+				fields: [{ name: 'original', type: 'text' }],
+				viewRule: null
+			}
+		]);
+
+		const manualRule = '@request.auth.id != null';
+		await admin.collections.update(name, { viewRule: manualRule });
+		const before = await admin.collections.getOne(name);
+
+		await expect(
+			port.ensureCollections([
+				{
+					name,
+					fields: [{ name: 'nuevo_campo', type: 'bool' }],
+					listRule: '',
+					viewRule: 'id = @request.auth.id'
+				}
+			])
+		).resolves.toEqual({ created: [], skipped: [name] });
+
+		const after = await admin.collections.getOne(name);
+		expect(after.viewRule).toBe(manualRule);
+		expect(after.listRule).toBe(before.listRule);
+		expect(after.fields).toEqual(before.fields);
+	});
+
+	test('creation-only no toca una auth existente ni al usuario que ya vive dentro', async () => {
+		const name = `auth_users_${Math.random().toString(36).slice(2, 10)}`;
+		const port = createPocketBaseBackend({ url: running.url });
+		await port.login({ email: running.adminEmail, password: running.adminPassword });
+		await port.ensureCollections([
+			{
+				name,
+				type: 'auth',
+				fields: [{ name: 'displayName', type: 'text' }],
+				listRule: null,
+				viewRule: '@request.auth.id = id'
+			}
+		]);
+		const user = await admin.collection(name).create({
+			email: `${name}@example.test`,
+			password: 'password-segura-123',
+			passwordConfirm: 'password-segura-123',
+			displayName: 'Editora'
+		});
+		const before = await admin.collections.getOne(name);
+
+		await expect(
+			port.ensureCollections([
+				{
+					name,
+					type: 'auth',
+					fields: [{ name: 'otroCampo', type: 'bool' }],
+					listRule: '',
+					viewRule: null,
+					authRule: ''
+				}
+			])
+		).resolves.toEqual({ created: [], skipped: [name] });
+
+		const after = await admin.collections.getOne(name);
+		expect(after.type).toBe('auth');
+		expect(after.listRule).toBe(before.listRule);
+		expect(after.viewRule).toBe(before.viewRule);
+		expect(after.authRule).toBe(before.authRule);
+		expect(after.fields).toEqual(before.fields);
+		await expect(admin.collection(name).getOne(user.id)).resolves.toMatchObject({
+			id: user.id,
+			email: `${name}@example.test`,
+			displayName: 'Editora'
+		});
 	});
 
 	test('fallo del índice revierte campo e índice juntos en PocketBase real', async () => {

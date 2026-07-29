@@ -1,57 +1,95 @@
 /**
  * `ensureCollections` (Anexo A) sobre PocketBase real: crea, una a una y secuencialmente (para
- * no acumular colisiones de nombre), las colecciones ausentes. El guardarraíl del prefijo
- * (§A.4.3) ya se comprueba ANTES de llegar aquí (compartido con `memory`, ver `collections.ts`
- * del puerto); esta función asume que `specs` ya pasó esa validación.
+ * no acumular colisiones de nombre), las colecciones ausentes. Tipo, reglas y campos son
+ * creation-only: si el nombre ya existe con el mismo tipo, se omite sin enviar ningún PATCH.
  */
 
 import type PocketBase from 'pocketbase';
-import { ClientResponseError } from 'pocketbase';
+import { ClientResponseError, type CollectionModel } from 'pocketbase';
 import type {
 	AddFieldsResult,
 	CollectionFieldSpec,
 	CollectionSpec,
 	EnsureResult
 } from '../../collections';
-import { checkRelationTargets, collectionUniqueIndexes } from '../../collections';
+import {
+	checkCollectionSpecAccess,
+	checkRelationTargets,
+	collectionSpecCreationMetadata,
+	collectionUniqueIndexes
+} from '../../collections';
 import { VegaError } from '../../errors';
+import { mapPocketBaseError } from './errors';
 import { collectionFieldSpecToPbField } from './schema';
+
+export function collectionSpecToPocketBasePayload(
+	spec: CollectionSpec,
+	fields: Record<string, unknown>[]
+): Record<string, unknown> {
+	return {
+		...collectionSpecCreationMetadata(spec),
+		fields,
+		indexes: collectionUniqueIndexes(spec.name, spec.fields)
+	};
+}
 
 export async function ensureCollectionsOnPocketBase(
 	pb: PocketBase,
 	specs: CollectionSpec[]
 ): Promise<EnsureResult> {
+	const accessRejects = checkCollectionSpecAccess(specs);
+	if (Object.keys(accessRejects).length > 0) throw VegaError.validation(accessRejects);
+
 	const created: string[] = [];
 	const skipped: string[] = [];
 
 	for (const spec of specs) {
-		const exists = await collectionExists(pb, spec.name);
-		if (exists) {
-			skipped.push(spec.name);
-			continue;
+		try {
+			const expectedType = spec.type ?? 'base';
+			const existing = await findCollection(pb, spec.name);
+			if (existing) {
+				if (existing.type !== expectedType) {
+					throw VegaError.validation(
+						{
+							[spec.name]: {
+								code: 'vega_collection_type_mismatch',
+								message: `La colección "${spec.name}" ya existe como ${existing.type}, no como ${expectedType}`
+							}
+						},
+						`La colección "${spec.name}" ya existe con otro tipo`
+					);
+				}
+				skipped.push(spec.name);
+				continue;
+			}
+			const fields = await resolveCollectionFields(pb, spec.fields);
+			await pb.collections.create(collectionSpecToPocketBasePayload(spec, fields));
+			created.push(spec.name);
+		} catch (err) {
+			throw withCollectionContext(spec.name, err);
 		}
-		const fields = await resolveCollectionFields(pb, spec.fields);
-		await pb.collections.create({
-			name: spec.name,
-			type: 'base',
-			fields,
-			indexes: collectionUniqueIndexes(spec.name, spec.fields)
-			// Reglas de API cerradas por defecto (null = solo superuser), como todo en v1 (§A.4.5).
-		});
-		created.push(spec.name);
 	}
 
 	return { created, skipped };
 }
 
-async function collectionExists(pb: PocketBase, name: string): Promise<boolean> {
+async function findCollection(pb: PocketBase, name: string): Promise<CollectionModel | null> {
 	try {
-		await pb.collections.getOne(name);
-		return true;
+		return await pb.collections.getOne(name);
 	} catch (err) {
-		if (err instanceof ClientResponseError && err.status === 404) return false;
+		if (err instanceof ClientResponseError && err.status === 404) return null;
 		throw err;
 	}
+}
+
+function withCollectionContext(name: string, err: unknown): VegaError {
+	const mapped = mapPocketBaseError(err, { hadSession: true });
+	if (mapped.message.includes(`"${name}"`)) return mapped;
+	return new VegaError(mapped.kind, `No se pudo crear la colección "${name}": ${mapped.message}`, {
+		fieldErrors: mapped.fieldErrors,
+		retryable: mapped.retryable,
+		cause: mapped.cause ?? err
+	});
 }
 
 /**

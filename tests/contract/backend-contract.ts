@@ -11,6 +11,8 @@ import { describe, expect, test } from 'vitest';
 import type {
 	BackendPort,
 	Capabilities,
+	CollectionRule,
+	CollectionRuleKey,
 	CollectionSpec,
 	RecordEvent,
 	Session,
@@ -43,11 +45,24 @@ export interface TransportFailureHooks {
 	makeCorruptResponsePort(): Promise<{ port: BackendPort; cleanup: () => Promise<void> }>;
 }
 
+export interface InspectedCollection {
+	type: string;
+	rules: Partial<Record<CollectionRuleKey, CollectionRule>>;
+	fieldNames: string[];
+}
+
 export interface ContractOptions {
 	/** Nombre del adaptador bajo prueba (para los títulos de los tests). */
 	name: string;
 	/** Capabilities del adaptador — se usan para saltar (no ocultar) los casos que no aplican. */
 	capabilities: Capabilities;
+	/** Lectura cruda del estado propio de cada adaptador; no pasa por la proyección con pérdida. */
+	inspectCollection(
+		port: BackendPort,
+		name: string
+	): InspectedCollection | null | Promise<InspectedCollection | null>;
+	/** `true` en PB real; `memory` modela la cadena literalmente porque no tiene motor de reglas. */
+	ruleSyntaxRejectedByServer?: boolean;
 	transportFailures?: TransportFailureHooks;
 	/**
 	 * Cuánto esperar para que un `sessionTtlMs` dado a `makePort` haya vencido de verdad.
@@ -1067,6 +1082,239 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 
 			test('capability schemaBootstrap presente (Anexo A.2)', () => {
 				expect(capabilities.schemaBootstrap).toBe(true);
+			});
+
+			test('crea auth con las siete reglas literales, la oculta del descubrimiento y es idempotente por estado interno', async () => {
+				const port = await makeAuthedPort();
+				const name = uniqueCollectionName();
+				const spec: CollectionSpec = {
+					name,
+					type: 'auth',
+					fields: [{ name: 'displayName', type: 'text' }],
+					listRule: null,
+					viewRule: '',
+					createRule: '@request.auth.id != null',
+					updateRule: 'id = @request.auth.id',
+					deleteRule: null,
+					authRule: 'verified = true',
+					manageRule: 'id = @request.auth.id'
+				};
+
+				await expect(port.ensureCollections([spec])).resolves.toEqual({
+					created: [name],
+					skipped: []
+				});
+				const before = await opts.inspectCollection(port, name);
+				expect(before).toMatchObject({
+					type: 'auth',
+					fieldNames: expect.arrayContaining(['displayName'])
+				});
+				expect(before?.rules).toEqual({
+					listRule: null,
+					viewRule: '',
+					createRule: '@request.auth.id != null',
+					updateRule: 'id = @request.auth.id',
+					deleteRule: null,
+					authRule: 'verified = true',
+					manageRule: 'id = @request.auth.id'
+				});
+				expect((await port.listContentTypes()).some((type) => type.name === name)).toBe(false);
+
+				await expect(port.ensureCollections([spec])).resolves.toEqual({
+					created: [],
+					skipped: [name]
+				});
+				expect(await opts.inspectCollection(port, name)).toEqual(before);
+			});
+
+			test('omitir type y reglas conserva base cerrada y los defaults crudos de auth', async () => {
+				const port = await makeAuthedPort();
+				const baseName = uniqueCollectionName();
+				const authName = uniqueCollectionName();
+
+				await port.ensureCollections([
+					{ name: baseName, fields: [] },
+					{ name: authName, type: 'auth', fields: [] }
+				]);
+
+				expect(await opts.inspectCollection(port, baseName)).toMatchObject({
+					type: 'base',
+					rules: {
+						listRule: null,
+						viewRule: null,
+						createRule: null,
+						updateRule: null,
+						deleteRule: null
+					}
+				});
+				expect(await opts.inspectCollection(port, authName)).toMatchObject({
+					type: 'auth',
+					rules: {
+						listRule: null,
+						viewRule: null,
+						createRule: null,
+						updateRule: null,
+						deleteRule: null,
+						authRule: '',
+						manageRule: null
+					}
+				});
+			});
+
+			test('GUARDARRAÍL creation-only: una segunda spec no pisa reglas ni campos existentes', async () => {
+				const port = await makeAuthedPort();
+				const name = uniqueCollectionName();
+				await port.ensureCollections([
+					{
+						name,
+						fields: [{ name: 'original', type: 'text' }],
+						viewRule: '@request.auth.id != null'
+					}
+				]);
+				const before = await opts.inspectCollection(port, name);
+
+				await expect(
+					port.ensureCollections([
+						{
+							name,
+							fields: [{ name: 'nuevo_campo', type: 'bool' }],
+							listRule: '',
+							viewRule: null
+						}
+					])
+				).resolves.toEqual({ created: [], skipped: [name] });
+
+				expect(await opts.inspectCollection(port, name)).toEqual(before);
+			});
+
+			test('rechaza authRule/manageRule sobre base antes de crear nada', async () => {
+				const port = await makeAuthedPort();
+				for (const rule of ['authRule', 'manageRule'] as const) {
+					const name = uniqueCollectionName();
+					const spec = {
+						name,
+						type: 'base',
+						fields: [],
+						[rule]: ''
+					} as unknown as CollectionSpec;
+					await expect(port.ensureCollections([spec])).rejects.toMatchObject({
+						kind: 'validation',
+						fieldErrors: { [name]: { code: 'vega_auth_rule_requires_auth_collection' } }
+					});
+					expect(await opts.inspectCollection(port, name)).toBeNull();
+				}
+			});
+
+			test('un nombre existente con otro tipo falla explícitamente y conserva el tipo real', async () => {
+				const port = await makeAuthedPort();
+				const baseName = uniqueCollectionName();
+				const authName = uniqueCollectionName();
+				await port.ensureCollections([
+					{ name: baseName, fields: [] },
+					{ name: authName, type: 'auth', fields: [] }
+				]);
+
+				await expect(
+					port.ensureCollections([{ name: baseName, type: 'auth', fields: [] }])
+				).rejects.toMatchObject({ kind: 'validation' });
+				await expect(
+					port.ensureCollections([{ name: authName, fields: [] }])
+				).rejects.toMatchObject({ kind: 'validation' });
+				expect((await opts.inspectCollection(port, baseName))?.type).toBe('base');
+				expect((await opts.inspectCollection(port, authName))?.type).toBe('auth');
+			});
+
+			test('auth rechaza los cinco campos de sistema sin dejar colección parcial', async () => {
+				const port = await makeAuthedPort();
+				for (const fieldName of ['email', 'password', 'tokenKey', 'verified', 'emailVisibility']) {
+					const name = uniqueCollectionName();
+					await expect(
+						port.ensureCollections([
+							{
+								name,
+								type: 'auth',
+								fields: [{ name: fieldName, type: 'text' }]
+							}
+						])
+					).rejects.toMatchObject({
+						kind: 'validation',
+						fieldErrors: { [fieldName]: { code: 'vega_auth_system_field_conflict' } }
+					});
+					expect(await opts.inspectCollection(port, name)).toBeNull();
+				}
+			});
+
+			test('el lote no hace rollback: conserva la primera, identifica la segunda y reanuda', async () => {
+				const port = await makeAuthedPort();
+				const first = uniqueCollectionName();
+				const second = uniqueCollectionName();
+				const third = uniqueCollectionName();
+
+				await expect(
+					port.ensureCollections([
+						{ name: first, fields: [{ name: 'title', type: 'text' }] },
+						{
+							name: second,
+							fields: [
+								{
+									name: 'missingParent',
+									type: 'relation',
+									target: 'missing_target',
+									multiple: false,
+									cascadeDelete: false
+								}
+							]
+						},
+						{ name: third, fields: [] }
+					])
+				).rejects.toThrow(second);
+				expect(await opts.inspectCollection(port, first)).not.toBeNull();
+				expect(await opts.inspectCollection(port, second)).toBeNull();
+				expect(await opts.inspectCollection(port, third)).toBeNull();
+
+				await expect(
+					port.ensureCollections([
+						{ name: first, fields: [{ name: 'distinto', type: 'bool' }] },
+						{
+							name: second,
+							fields: [
+								{
+									name: 'parent',
+									type: 'relation',
+									target: first,
+									multiple: false,
+									cascadeDelete: false
+								}
+							]
+						},
+						{ name: third, fields: [] }
+					])
+				).resolves.toEqual({ created: [second, third], skipped: [first] });
+			});
+
+			test('la gramática del filtro no se valida localmente: decide el backend que la ejecuta', async () => {
+				const port = await makeAuthedPort();
+				const name = uniqueCollectionName();
+				const spec: CollectionSpec = {
+					name,
+					fields: [],
+					listRule: 'esto no es un filtro válido ('
+				};
+
+				if (opts.ruleSyntaxRejectedByServer) {
+					await expect(port.ensureCollections([spec])).rejects.toMatchObject({
+						kind: expect.stringMatching(/validation|backend/)
+					});
+					expect(await opts.inspectCollection(port, name)).toBeNull();
+				} else {
+					await expect(port.ensureCollections([spec])).resolves.toEqual({
+						created: [name],
+						skipped: []
+					});
+					expect((await opts.inspectCollection(port, name))?.rules.listRule).toBe(
+						'esto no es un filtro válido ('
+					);
+				}
 			});
 
 			test('crea lo ausente y es idempotente (2ª llamada: created vacío, todo skipped)', async () => {

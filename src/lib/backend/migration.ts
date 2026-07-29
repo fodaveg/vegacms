@@ -36,6 +36,7 @@
 
 import {
 	collectionUniqueIndexes,
+	collectionSpecCreationMetadata,
 	type CollectionFieldSpec,
 	type CollectionSpec
 } from './collections';
@@ -84,6 +85,18 @@ function indent(text: string, level: number): string {
 	return text.split('\n').join(`\n${tabs}`);
 }
 
+/** Payload puro que debe conservar paridad con el enviado por el adaptador PocketBase. */
+export function collectionSpecToMigrationPayload(
+	spec: CollectionSpec,
+	fields: CollectionFieldSpec[] = spec.fields
+): Record<string, unknown> {
+	return {
+		...collectionSpecCreationMetadata(spec),
+		fields: fields.map(collectionFieldSpecToMigrationField),
+		indexes: collectionUniqueIndexes(spec.name, fields)
+	};
+}
+
 function renderCreateMigration(specs: CollectionSpec[]): string {
 	const orderedSpecs = topologicallySortCollectionSpecs(specs);
 	const single = specs.length === 1;
@@ -96,12 +109,7 @@ function renderCreateMigration(specs: CollectionSpec[]): string {
 			const initialFields = spec.fields.filter(
 				(field) => field.type !== 'relation' || field.target !== spec.name
 			);
-			const payload = {
-				name: spec.name,
-				type: 'base',
-				fields: initialFields.map(collectionFieldSpecToMigrationField),
-				indexes: collectionUniqueIndexes(spec.name, initialFields)
-			};
+			const payload = collectionSpecToMigrationPayload(spec, initialFields);
 			const create =
 				`\tconst ${varName} = new Collection(${indent(renderMigrationPayload(payload, initialFields), 1)});\n` +
 				`\tapp.save(${varName});`;

@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
-import { createMemoryBackend } from '$lib/backend/adapters/memory';
+import { createMemoryBackend, type MemoryBackendPort } from '$lib/backend/adapters/memory';
 import { describeBackendContract } from './backend-contract';
 import { FIXTURE_ADMIN_EMAIL, FIXTURE_ADMIN_PASSWORD, kitchenSinkSeed } from './fixture';
 
@@ -13,7 +13,8 @@ describeBackendContract(
 	(overrides) => createMemoryBackend(kitchenSinkSeed({ sessionTtlMs: overrides?.sessionTtlMs })),
 	{
 		name: 'memory',
-		capabilities: createMemoryBackend().capabilities
+		capabilities: createMemoryBackend().capabilities,
+		inspectCollection: (port, name) => (port as MemoryBackendPort).inspectCollection(name)
 	}
 );
 
