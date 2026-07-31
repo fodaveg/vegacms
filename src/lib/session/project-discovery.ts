@@ -52,7 +52,7 @@ export interface ProjectDiscovery {
 	 * detrás de `apiBasePath`, pedido en caliente y autenticado con el MISMO token de editor que
 	 * ya usa `backend/preview-client.ts#createPreviewClient` (igual patrón que `build-client.ts`).
 	 */
-	preview: { apiBasePath: string } | null;
+	preview: { apiBasePath: string; visualEditing: boolean } | null;
 	/**
 	 * Tipos de bloque que el SITIO conectado sabe renderizar (`@vega/astro`), no los que Vega
 	 * permite editar. Campo aditivo: ausente/`null`/inválido ⇒ servidor legacy, sin contraste;
@@ -150,7 +150,18 @@ export function parseProjectDiscovery(raw: unknown): ProjectDiscovery | null {
 	if (root.preview !== null && root.preview !== undefined) {
 		const previewObj = object(root.preview);
 		const previewApiBasePath = apiPath(previewObj?.apiBasePath);
-		if (previewApiBasePath) preview = { apiBasePath: previewApiBasePath };
+		// `visualEditing` degrada DENTRO de `preview` con el mismo criterio que `preview` degrada
+		// dentro del documento: cualquier cosa que no sea el booleano `true` (ausente, `null`, la
+		// cadena `"true"`, un número…) se lee como «este sitio no tiene puente», que es el valor
+		// seguro. Anunciarlo NO es prueba de nada: la capacidad la habilita el saludo del puente
+		// contra el iframe (§"Visual editing bridge" del contrato), porque un discovery puede
+		// sobrevivir perfectamente al código que decía describir.
+		if (previewApiBasePath) {
+			preview = {
+				apiBasePath: previewApiBasePath,
+				visualEditing: previewObj?.visualEditing === true
+			};
+		}
 	}
 
 	return {

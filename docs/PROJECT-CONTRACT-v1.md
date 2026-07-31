@@ -294,6 +294,169 @@ a preview URL on its own — unlike `previewUrl`, whose placeholder substitution
 client-side string match (`$lib/model/preview-url.ts`), every draft preview URL comes from
 a live `/token` response, requested fresh each time the panel opens or a save completes.
 
+### Visual editing bridge (additive, optional)
+
+Everything above renders a preview Vega can only look at. The `<iframe>` is cross-origin, so
+Vega cannot read a single node of it, and the preview panel says so in its own header: it
+never inspects, injects into, or instruments the embedded document.
+
+Visual editing needs the opposite, and the only honest way to get it is for the **site to
+volunteer what Vega cannot see**. A site that opts in annotates its rendered blocks and runs
+a small bridge script that talks to Vega over `postMessage`. Vega then draws selection
+outlines _over_ the iframe using the geometry the bridge reports, and an author clicking a
+section on the page gets that block's fields opened beside it.
+
+The division of labour is deliberate and it is the whole design:
+
+- The site owns rendering. Vega never learns the site's CSS, never injects styles, and never
+  makes any part of the page `contenteditable`. Text is typed in Vega's own form controls.
+- Vega owns the editing UI. The bridge reports positions and clicks; it does not know what a
+  field is, never writes to PocketBase, and has no opinion about content.
+- Everything Vega believes about the canvas came from a message. There is no fallback path
+  that reaches into the frame, because there cannot be one.
+
+This capability is layered strictly on top of the draft preview above. A project that does
+not implement `draft` cannot implement this, because a canvas that only reflects the last
+saved record is not an editor.
+
+Both halves are useful on their own schedule: a site can ship its bridge before any given
+Vega build acts on it, and a bridge nobody ever contacts stays silent, so the site behaves
+exactly like one that never had it. That property is not incidental, it is what lets the two
+repositories move independently, and it is why the handshake decides the feature rather than
+the announcement.
+
+#### Advertising it
+
+Add `visualEditing` to the existing `preview` object. Same additive rules as everywhere else
+in this document, so no `protocolVersion` bump:
+
+```json
+{
+	"preview": { "apiBasePath": "/api/vega-preview", "visualEditing": true }
+}
+```
+
+Omit it, set it to `null`, or set it to `false` on sites without a bridge. A malformed value
+degrades to `false` and never invalidates the surrounding `preview` object, matching how
+`build` and `preview` themselves already degrade field by field
+(`$lib/session/project-discovery.ts`).
+
+**The announcement is a promise, not proof.** Discovery is written by the project and can
+easily outlive the code it describes: a site that advertises `visualEditing` after removing
+the bridge would leave Vega waiting on a frame that will never answer. So the handshake below
+is what actually enables the feature, and a site that claims the capability but fails to
+answer produces an explicit, actionable error, never a silent or half-drawn canvas.
+
+#### Handshake and message envelope
+
+Every message in both directions is a JSON-serialisable object carrying the protocol version:
+
+```json
+{ "vega": "vega-visual-1", "type": "ready", "...": "type-specific fields" }
+```
+
+Messages missing the `vega` key, or carrying an unknown version, are ignored. Neither side
+attempts to interpret a version it does not implement.
+
+Startup is racy in both directions: the site cannot know when Vega finished mounting, and
+Vega cannot know when the document finished evaluating scripts. Both sides therefore speak
+first and both sides tolerate repetition:
+
+- The bridge posts `ready` to its parent as soon as it initialises.
+- Vega posts `hello` when the frame fires `load`, and repeats it a small, bounded number of
+  times until a `ready` arrives.
+- `ready` is idempotent. A bridge that receives `hello` after it already announced itself
+  answers `ready` again rather than assuming the first one was received.
+
+If no `ready` arrives within the timeout, Vega reports that this site has no visual editing
+bridge installed and offers the ordinary preview, which still works.
+
+**Site to Vega**
+
+| `type`   | Payload                                            | When                                                  |
+| -------- | -------------------------------------------------- | ----------------------------------------------------- |
+| `ready`  | `{ collection, id, blocks: [{ id, type, rect }] }` | On init, and in answer to any `hello`                 |
+| `layout` | `{ blocks: [{ id, type, rect }] }`                 | Geometry changed: scroll, resize, late-loading images |
+| `select` | `{ blockId }`                                      | The author clicked inside that block                  |
+| `error`  | `{ code, message }`                                | The bridge cannot do its job (see below)              |
+
+**Vega to site**
+
+| `type`      | Payload       | Meaning                                               |
+| ----------- | ------------- | ----------------------------------------------------- |
+| `hello`     | `{}`          | Vega is listening; answer with `ready`                |
+| `highlight` | `{ blockId }` | Pointer is over this block in Vega's own outline list |
+| `scroll-to` | `{ blockId }` | Bring this block into view                            |
+
+`rect` is `{ top, left, width, height }` in CSS pixels, relative to the **frame's own
+viewport**. Vega applies the frame's offset and any canvas zoom itself; the bridge never
+needs to know it is being scaled.
+
+`layout` is sent at most once per animation frame. Measuring on every scroll event is the
+straightforward way to make a canvas stutter, and the site is the only side that can throttle
+it, because the site is where the scrolling happens.
+
+#### What the site must annotate
+
+The bridge locates blocks through DOM attributes the renderer emits:
+
+- `data-vega-block-id` and `data-vega-block-type` on each rendered block. Vega's own
+  `VegaBlocks` component (`@vega/astro`) emits both, including on the visible fallback it
+  renders for a block type the site has no component for. A block whose type is broken is
+  precisely the one an author wants to open, so it stays selectable like any other.
+- `data-vega-blocks-root` on the element wrapping the whole sequence. This is what live
+  refresh replaces, so it has to be a single element that contains every block and nothing
+  the surrounding page depends on keeping.
+
+#### Security
+
+The bridge is a control channel into a page that renders unpublished content, so it fails
+closed in three independent ways.
+
+- **It only exists in editor mode.** The bridge is never emitted on a published page. A
+  project can verify this the blunt way, by grepping its built output for the bridge before
+  deploying.
+- **It requires an explicit origin allowlist**, configured on the site (an environment
+  variable, exactly like the allowlist `vegapreview` already refuses to start without). The
+  bridge ignores every message from an origin outside it and refuses to initialise when the
+  list is empty. An empty list means nobody, never everybody.
+- **It should be reinforced at the browser level.** The same list belongs in a
+  `Content-Security-Policy: frame-ancestors` header on the preview route, so a page that is
+  not allowed to embed the preview cannot embed it at all, rather than embedding it and being
+  ignored afterwards.
+
+Vega validates symmetrically: it checks `event.origin` against the origin of the URL that
+`/token` returned, and discards anything else without letting it reset the handshake state.
+
+The token already gates the route, so an attacker who cannot mint one sees a `404` and no
+bridge. The allowlist is defence in depth for the case where a valid token leaks, and it is
+cheap enough that leaving it out is not a trade-off worth making.
+
+#### Live refresh
+
+Reloading the whole frame on every edit loses scroll position and re-fetches the stylesheet
+and every image. That is tolerable for a panel refreshed on save and unusable for a canvas
+refreshed while typing.
+
+The path that preserves every guarantee this document already makes:
+
+1. Vega debounces edits, then requests a fresh token carrying the current draft, exactly as
+   the panel does today. The draft stays encrypted and bound to its record and expiry.
+2. Vega hands the token to the bridge.
+3. The bridge posts it to its own preview route, parses the returned document, and replaces
+   the contents of `data-vega-blocks-root`. Scroll position survives untouched.
+
+Passing the draft to the frame in the clear would save one round trip and is explicitly not
+recommended: it would break the "must be confidential and bound" obligation above, letting
+anyone holding a valid token render arbitrary content into the preview.
+
+Two limits worth stating rather than discovering:
+
+- Scripts inside a block do not re-execute when its HTML is replaced. A block with its own
+  client-side behaviour stays inert until the next full reload.
+- If the replacement fails for any reason, the bridge reloads the frame completely. A flicker
+  is strictly better than a canvas that keeps showing something that is no longer true.
+
 ## Canonical `vega` record
 
 Protocol v1 recommends one record selected by `key = "default"`, with a unique

@@ -17,8 +17,12 @@ const DOCUMENT = {
 };
 
 describe('project discovery', () => {
+	/** `DOCUMENT` es un documento de servidor REALISTA, o sea sin `preview.visualEditing`: ese campo
+	 *  lo NORMALIZA el parseo a `false`, y por eso el resultado no es idéntico a la entrada. */
+	const PARSED = { ...DOCUMENT, preview: { ...DOCUMENT.preview, visualEditing: false } };
+
 	it('parses the versioned contract', () => {
-		expect(parseProjectDiscovery(DOCUMENT)).toEqual(DOCUMENT);
+		expect(parseProjectDiscovery(DOCUMENT)).toEqual(PARSED);
 	});
 
 	it('rejects unsupported or incomplete documents', () => {
@@ -50,7 +54,39 @@ describe('project discovery', () => {
 
 	it('reads the additive "preview" capability when the server declares it (fase B)', () => {
 		expect(parseProjectDiscovery(DOCUMENT)?.preview).toEqual({
-			apiBasePath: '/api/vega-preview'
+			apiBasePath: '/api/vega-preview',
+			// Un `preview` sin `visualEditing` es el caso NORMAL (todo servidor anterior a la
+			// enmienda del puente de edición visual): sin puente, no a medias.
+			visualEditing: false
+		});
+	});
+
+	it('reads "preview.visualEditing" only when it is the boolean true (edición visual)', () => {
+		expect(
+			parseProjectDiscovery({
+				...DOCUMENT,
+				preview: { apiBasePath: '/api/vega-preview', visualEditing: true }
+			})?.preview
+		).toEqual({ apiBasePath: '/api/vega-preview', visualEditing: true });
+
+		// Cualquier otra cosa se lee como `false`, que es el valor SEGURO: anunciar el puente sin
+		// tenerlo dejaría a Vega esperando un saludo que no llega. Ojo a `"true"` en cadena, que es
+		// lo que produce un servidor que serializa mal el booleano.
+		for (const value of [false, null, undefined, 'true', 1, {}, []]) {
+			expect(
+				parseProjectDiscovery({
+					...DOCUMENT,
+					preview: { apiBasePath: '/api/vega-preview', visualEditing: value }
+				})?.preview
+			).toEqual({ apiBasePath: '/api/vega-preview', visualEditing: false });
+		}
+	});
+
+	it('ignores "visualEditing" when the preview capability itself degrades to null', () => {
+		// El puente vive DENTRO de `preview`: sin ruta de preview no hay iframe que pilotar, así que
+		// anunciarlo por su cuenta no puede resucitar la capacidad entera.
+		expect(parseProjectDiscovery({ ...DOCUMENT, preview: { visualEditing: true } })).toMatchObject({
+			preview: null
 		});
 	});
 
@@ -91,7 +127,7 @@ describe('project discovery', () => {
 	it('loads discovery from the selected backend, not from the Vega origin', async () => {
 		const fetcher = vi.fn(async () => new Response(JSON.stringify(DOCUMENT), { status: 200 }));
 		await expect(fetchProjectDiscovery('https://pb.example.test/base/', fetcher)).resolves.toEqual(
-			DOCUMENT
+			PARSED
 		);
 		expect(fetcher).toHaveBeenCalledWith(
 			new URL('https://pb.example.test/api/vega/discovery'),
