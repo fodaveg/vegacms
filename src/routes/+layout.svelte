@@ -55,7 +55,8 @@
 		recordRoute,
 		settingsRoute,
 		trashRoute,
-		viewRoute
+		viewRoute,
+		visualRoute
 	} from '$lib/nav/routes';
 	import { resolveSingletonTarget } from '$lib/nav/singleton';
 	import { VegaError } from '$lib/backend';
@@ -117,6 +118,7 @@
 			void navigateTo(opts?.q ? listSearchRoute(type, opts.q) : listRoute(type)),
 		toNew: (type) => void navigateTo(newRoute(type)),
 		toRecord: (type, id) => void navigateTo(recordRoute(type, id)),
+		toVisual: (type, id) => void navigateTo(visualRoute(type, id)),
 		toSingleton: async (type) => {
 			// La resolución consulta el puerto (§3.3): un fallo de red/backend NO debe propagarse
 			// como promesa rechazada sin capturar (dejaría al índice congelado en "Cargando…",

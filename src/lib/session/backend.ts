@@ -262,6 +262,10 @@ async function createInstance(): Promise<BackendPort> {
 			manifestKey: projectConfig?.manifestKey,
 			buildApiUrl: resolveBuildApiUrl(url, discovery),
 			previewApiUrl: resolvePreviewApiUrl(url, discovery),
+			// `BackendPort.previewVisualEditing` (ver su cabecera): promesa del discovery, NADA más —
+			// `project-discovery.ts` ya degradó cualquier valor que no sea el booleano `true` a
+			// `false` campo a campo dentro de `preview`, así que aquí basta leerlo tal cual.
+			previewVisualEditing: discovery?.preview?.visualEditing === true,
 			renderedBlockTypes: discovery?.blockTypes ?? null
 		})
 	);

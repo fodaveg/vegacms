@@ -231,6 +231,43 @@ export const es = {
 	'editor.preview.panel.loadError': 'No se pudo cargar la vista previa.',
 	'editor.preview.panel.genericError': 'No se pudo generar la vista previa.',
 
+	// ————— Pantalla del editor visual (tarea "pantalla del editor visual", §"Visual editing
+	// bridge" del contrato): `/c/[type]/[id]/visual`, aditiva sobre el preview de borrador de
+	// arriba — solo existe si el proyecto declara `previewApiUrl` Y `previewVisualEditing`
+	// (`ctx.port`, ver su cabecera). `unavailable.*` son las TRES puertas propias de la ruta
+	// (`visual-gate.ts`); `error.*` son los CINCO desenlaces de `bridge-client.ts` tras el saludo.
+	'editor.visual.open': 'Editor visual',
+	'editor.visual.title': 'Editor visual',
+	'editor.visual.back': 'Volver al formulario',
+	'editor.visual.frameTitle': 'La página del sitio, dentro del editor visual',
+	'editor.visual.connecting': 'Conectando con el sitio…',
+	'editor.visual.connected': 'Conectado al sitio: {count} bloque(s) en la página.',
+	'editor.visual.token.error': 'No se pudo cargar la página del sitio: {message}',
+	'editor.visual.error.noBridge.title': 'Este sitio no tiene instalado el puente de edición visual',
+	'editor.visual.error.noBridge.body':
+		'Vega no ha recibido respuesta de la página. La vista previa de siempre sí funciona, y el formulario también.',
+	'editor.visual.error.protocolVersion.title': 'El sitio habla otra versión del puente',
+	'editor.visual.error.protocolVersion.body':
+		'La página usa «{found}» y Vega entiende «{expected}». Hay que actualizar uno de los dos.',
+	'editor.visual.error.siteError.title': 'El puente del sitio no puede trabajar',
+	'editor.visual.error.siteError.body': 'La página avisó con el código «{code}».',
+	'editor.visual.error.recordMismatch.title': 'La vista previa está enseñando otro registro',
+	'editor.visual.error.recordMismatch.body':
+		'La página dice estar pintando {collection}/{id}, que no es el que estás editando.',
+	'editor.visual.error.badPreviewUrl.title': 'La dirección de la vista previa no sirve',
+	'editor.visual.error.badPreviewUrl.body':
+		'Sin una dirección válida no se puede comprobar de dónde vienen los mensajes del sitio, así que el editor visual no arranca.',
+	'editor.visual.unavailable.title': 'Este proyecto no tiene editor visual',
+	'editor.visual.unavailable.noPreview':
+		'El sitio conectado no declara vista previa, que es de lo que cuelga el editor visual.',
+	'editor.visual.unavailable.noVisualEditing':
+		'El sitio conectado no anuncia edición visual. Hay que instalarle el puente y declararlo en su discovery.',
+	'editor.visual.unavailable.noBlocks':
+		'La colección «{label}» no compone la página por bloques, así que no hay nada que seleccionar en el lienzo.',
+	'editor.visual.tooNarrow.title': 'El editor visual necesita una pantalla más ancha',
+	'editor.visual.tooNarrow.body':
+		'Por debajo de 900 px no cabe el lienzo junto a sus paneles. El formulario de siempre sí funciona aquí.',
+
 	// ————— Editor «master-detail» (mockup final `aquelarre-detalle-post.html`) —————
 	// Raíl de hermanos (`.rail`), aside de metadatos (`.kv`) y zona de peligro: piezas GENÉRICAS
 	// opt-in del renderer — los rótulos de las tarjetas del aside salen de `fieldGroups` (dato del

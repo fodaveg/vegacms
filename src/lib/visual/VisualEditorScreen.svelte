@@ -1,0 +1,574 @@
+<script lang="ts">
+	/**
+	 * Pantalla del editor visual (tarea "pantalla del editor visual", lote único; §"Visual editing
+	 * bridge" de `docs/PROJECT-CONTRACT-v1.md`): a pantalla completa, enseña la página del sitio en
+	 * un iframe y la conecta al puente (`bridge-client.ts`). La monta la ruta
+	 * `/c/[type]/[id]/visual` tras haber resuelto las cuatro puertas (`visual-gate.ts`) y el
+	 * registro; este componente asume que están abiertas y que `record` existe de verdad — no las
+	 * vuelve a comprobar. El peso de esta pantalla cuenta contra el tope de «pantalla más cara»
+	 * del presupuesto de bundle: la ruta la importa de forma ESTÁTICA justo para eso (el porqué,
+	 * en la cabecera de la ruta).
+	 *
+	 * **Alcance de ESTA entrega, para que quede escrito y no se dé por hecho**: pinta el LIENZO
+	 * (iframe + estados de conexión) y nada más. La rejilla ya se prepara para tres columnas
+	 * (`.vega-visual-grid`, ver el CSS) porque el árbol de secciones y el inspector del bloque son
+	 * tareas APARTE — una de ellas exige antes separar estado de presentación en
+	 * `RecordBlocks.svelte`, así que ninguna de las dos entra aquí. Tampoco entran los CONTORNOS de
+	 * selección sobre el lienzo ni ninguna escritura sobre un bloque: cuando el puente reporta
+	 * `select`, hoy no hay nadie escuchando (`onSelect` no se pasa a `createVisualBridgeClient`) —
+	 * el hueco es intencional, no un olvido.
+	 *
+	 * **Sin borrador, a propósito**: pide el token con `createPreviewClient` para
+	 * `{collection, id}` SIN `draft` (a diferencia de `PreviewPanel.svelte`, que sí lo manda porque
+	 * vive DENTRO de un formulario con cambios sin guardar). Esta pantalla no tiene formulario, así
+	 * que enseña el registro guardado — la MISMA razón por la que el registro llega ya cargado
+	 * desde la ruta (`ctx.port.get`), no como un `FormModel` editable.
+	 *
+	 * **Disciplina del token, copiada de `PreviewPanel.svelte` (no reinventada, ver su cabecera)**:
+	 * contador de generación para peticiones solapadas (`requestGeneration`), renovación programada
+	 * antes de `expiresAt` con el mismo margen y el mismo tope de 32 bits del propio `setTimeout`,
+	 * limpieza del temporizador en `onDestroy`, y `frameLoaded` que se resetea en cada petición
+	 * nueva (una URL nueva es un documento nuevo, aunque el nodo `<iframe>` del DOM sea el mismo).
+	 *
+	 * **Dos relojes distintos, cada uno con su propia superficie** — es la pieza de diseño de este
+	 * componente, documentada para que nadie los funda en uno:
+	 * - El TOKEN (`tokenState`): si no hay una URL que embeber, no hay NADA que enseñar en el
+	 *   lienzo — mientras carga o si falla, el hueco del iframe pinta su propio aviso con
+	 *   "Reintentar" (mismo criterio que el `frame-wrap` de `PreviewPanel`).
+	 * - El PUENTE (`bridgeState`, `createVisualBridgeClient`): gobierna SOLO la barra superior.
+	 *   Un `error/no-bridge` (o cualquier otro `kind`) no tapa el iframe — el contrato es explícito
+	 *   en que un sitio sin puente (o con un puente que falla) "sigue sirviendo la vista previa de
+	 *   siempre, que sí funciona" (§"Handshake and message envelope"). Cubrir el lienzo con un
+	 *   error de PUENTE escondería una vista previa que SÍ está funcionando.
+	 *
+	 * **Por debajo de 900 px no se monta el lienzo, no solo se oculta**: la anchura se mide con
+	 * `matchMedia` y el marco ni siquiera existe, así que en un móvil no se pide token ni se
+	 * descarga el sitio del cliente entero para acabar enseñando un aviso de «no cabe». Ocultarlo
+	 * por CSS habría dejado esa carga en marcha, invisible. Si la ventana se ensancha, se monta y
+	 * se pide el token entonces; si se estrecha, se para el puente y se cancela la renovación.
+	 *
+	 * El cliente del puente se crea UNA VEZ, cuando llega el PRIMER token (necesita su `previewUrl`
+	 * para fijar el origen contra el que valida, `bridge-client.ts#originOf`): las renovaciones
+	 * posteriores conservan el mismo origen (mismo sitio), así que no hace falta recrearlo — solo
+	 * disparar `start()` de nuevo cuando el iframe (con `src` nuevo) vuelve a hacer `load`.
+	 * SUPUESTO, escrito para que se pueda desmentir: que el sitio no cambie de ORIGEN entre dos
+	 * tokens de la misma sesión. Si un proyecto migrara de dominio a media edición, este cliente
+	 * seguiría validando contra el origen viejo y se quedaría sordo al marco nuevo hasta recargar.
+	 * No se defiende porque hoy `previewApiUrl` se resuelve una vez por sesión y el saludo tiene su
+	 * propio plazo, pero es un supuesto, no una garantía.
+	 *
+	 * Esta pantalla se REMONTA entera si el autor navega a otro registro (`{#key}` en la ruta), así que
+	 * tampoco hace falta resincronizar `type`/`record` cambiando por debajo — a diferencia de
+	 * `RecordForm.svelte`, aquí no hay dirty tracking ni bloques con estado propio que perder con un
+	 * remontaje.
+	 */
+	import { onDestroy, onMount, untrack } from 'svelte';
+	import { getVegaContext } from '$lib/app-context';
+	import type { ResolvedContentType } from '$lib/model/types';
+	import type { VegaRecord } from '$lib/backend';
+	import { createPreviewClient, type PreviewToken } from '$lib/backend/preview-client';
+	import {
+		createVisualBridgeClient,
+		VISUAL_PROTOCOL_VERSION,
+		type VisualBridgeClient,
+		type VisualBridgeErrorKind,
+		type VisualBridgeState
+	} from './bridge-client';
+	import { describeCell } from '$lib/list/cell';
+	import { resolveTitleCellText } from '$lib/list/list-load';
+	import EditTopBar from '$lib/shell/EditTopBar.svelte';
+	import Icon from '$lib/icons/Icon.svelte';
+
+	interface Props {
+		type: ResolvedContentType;
+		record: VegaRecord;
+	}
+
+	let { type, record }: Props = $props();
+
+	const ctx = getVegaContext();
+
+	// Capturados UNA vez (`untrack`, mismo patrón que `PreviewPanel.svelte`): esta pantalla se
+	// remonta entera si cambia el registro (ver cabecera), así que el valor INICIAL basta. El gate
+	// de la ruta (`visual-gate.ts`) ya garantiza `previewApiUrl` no-nulo antes de montar esto.
+	const client = createPreviewClient({
+		apiUrl: untrack(() => ctx.port.previewApiUrl ?? ''),
+		token: ctx.session.token
+	});
+
+	type TokenState =
+		| { kind: 'loading' }
+		| { kind: 'ready'; token: PreviewToken }
+		| { kind: 'error'; message: string };
+
+	let tokenState = $state<TokenState>({ kind: 'loading' });
+	// `true` tras el evento `load` del documento ACTUAL del iframe (ver cabecera de
+	// `PreviewPanel.svelte`, "Qué NO hace"): se resetea en cada petición nueva.
+	let frameLoaded = $state(false);
+	let bridgeState = $state<VisualBridgeState>({ status: 'idle' });
+	let iframeEl = $state<HTMLIFrameElement | undefined>(undefined);
+
+	// `true` mientras la ventana da de sí para el lienzo. Arranca en `true` (suposición de
+	// escritorio) pero NADA se pide hasta que `onMount` lo mide de verdad, así que en un móvil no
+	// llega a salir ninguna petición.
+	let canvasActive = $state(true);
+
+	let renewTimer: ReturnType<typeof setTimeout> | null = null;
+	let requestGeneration = 0;
+	let bridgeClient: VisualBridgeClient | null = null;
+	let narrowQuery: MediaQueryList | null = null;
+
+	/** Mismo punto de corte en el que `PreviewPanel.svelte` se retira entera (ver su cabecera). Vive
+	 *  aquí y no solo en el CSS porque decide si se MONTA el lienzo, no si se ve. */
+	const NARROW_QUERY = '(max-width: 900px)';
+
+	/** Margen de seguridad antes de `expiresAt` (ver cabecera de `PreviewPanel.svelte`). */
+	const RENEW_BUFFER_MS = 15000;
+	/** Tope del propio `setTimeout` (entero de 32 bits, ver la misma cabecera para el porqué). */
+	const MAX_RENEW_DELAY_MS = 2_147_483_647;
+
+	function clearRenewTimer(): void {
+		if (renewTimer) clearTimeout(renewTimer);
+		renewTimer = null;
+	}
+
+	function scheduleRenew(token: PreviewToken): void {
+		clearRenewTimer();
+		const delay = Math.min(
+			MAX_RENEW_DELAY_MS,
+			Math.max(0, new Date(token.expiresAt).getTime() - Date.now() - RENEW_BUFFER_MS)
+		);
+		renewTimer = setTimeout(() => void requestPreview(), delay);
+	}
+
+	async function requestPreview(): Promise<void> {
+		const generation = ++requestGeneration;
+		// Pedir token nuevo desmonta el `<iframe>` (`{#if tokenState.kind === 'ready'}`), así que el
+		// documento con el que el puente estaba hablando deja de existir. Sin este `stop()` el
+		// cliente se quedaría en `connected` —enseñando en la barra los bloques de una página que ya
+		// no está— y el `start()` del `load` siguiente sería un no-op, porque desde `connected` no
+		// vuelve a saludar: la reconexión dependería por entero de que el sitio se anuncie solo.
+		bridgeClient?.stop();
+		tokenState = { kind: 'loading' };
+		frameLoaded = false;
+		try {
+			// SIN `draft` (ver cabecera): esta pantalla no tiene formulario, enseña el registro
+			// guardado tal cual `ctx.port.get` lo trajo.
+			const token = await client.requestPreview(type.name, String(record.id));
+			if (generation !== requestGeneration) return; // llegó tarde: manda la petición posterior
+			tokenState = { kind: 'ready', token };
+			scheduleRenew(token);
+		} catch (err) {
+			if (generation !== requestGeneration) return;
+			clearRenewTimer();
+			tokenState = {
+				kind: 'error',
+				message: err instanceof Error ? err.message : ctx.t('editor.preview.panel.genericError')
+			};
+		}
+	}
+
+	/** Crea el cliente del puente la PRIMERA vez que hay un token (ver cabecera): fija el origen
+	 *  contra el que valida a partir de esa `previewUrl`. Llamadas posteriores (tras una renovación)
+	 *  son no-op: el mismo cliente sigue sirviendo mientras el sitio no cambie de origen. */
+	function ensureBridgeClient(previewUrl: string): VisualBridgeClient {
+		if (bridgeClient) return bridgeClient;
+		bridgeClient = createVisualBridgeClient({
+			record: { collection: type.name, id: String(record.id) },
+			previewUrl,
+			documentUrl: location.href,
+			frame: () => iframeEl?.contentWindow ?? null,
+			onState: (state) => (bridgeState = state)
+		});
+		return bridgeClient;
+	}
+
+	/** `load` del iframe (§contrato, "Vega posts `hello` when the frame fires `load`"): dispara
+	 *  también en cada recarga provocada por una renovación de token, que es justo cuando hay que
+	 *  volver a saludar. */
+	function handleFrameLoad(): void {
+		frameLoaded = true;
+		if (tokenState.kind !== 'ready') return;
+		ensureBridgeClient(tokenState.token.url).start();
+	}
+
+	function handleMessage(event: MessageEvent): void {
+		bridgeClient?.handleMessage(event);
+	}
+
+	function retryBridge(): void {
+		bridgeClient?.start();
+	}
+
+	/** Monta o desmonta el lienzo según la anchura. Al desmontarlo NO basta con dejar de pintarlo:
+	 *  hay que parar el puente, cancelar la renovación programada e invalidar la petición en vuelo
+	 *  (`requestGeneration`), o el token seguiría renovándose contra un marco que ya no existe. */
+	function applyWidth(wide: boolean): void {
+		if (wide === canvasActive) return;
+		canvasActive = wide;
+		if (wide) {
+			void requestPreview();
+			return;
+		}
+		requestGeneration++;
+		bridgeClient?.stop();
+		clearRenewTimer();
+		tokenState = { kind: 'loading' };
+		frameLoaded = false;
+	}
+
+	function handleNarrowChange(event: MediaQueryListEvent): void {
+		applyWidth(!event.matches);
+	}
+
+	onMount(() => {
+		window.addEventListener('message', handleMessage);
+		narrowQuery = window.matchMedia(NARROW_QUERY);
+		canvasActive = !narrowQuery.matches;
+		narrowQuery.addEventListener('change', handleNarrowChange);
+		if (canvasActive) void requestPreview();
+	});
+
+	onDestroy(() => {
+		clearRenewTimer();
+		window.removeEventListener('message', handleMessage);
+		narrowQuery?.removeEventListener('change', handleNarrowChange);
+		bridgeClient?.stop();
+	});
+
+	/** Nombre del registro en la barra: MISMA derivación que `docName` de `RecordForm.svelte`
+	 *  (§"Nombre del documento" de su cabecera), sobre el registro YA guardado que trae esta
+	 *  pantalla (nunca hay modo creación aquí). */
+	const docName = $derived.by(() => {
+		const titleField = type.titleField;
+		if (titleField === null) return ctx.t('list.untitled');
+		const field = type.fields.find((f) => f.name === titleField);
+		if (!field) return ctx.t('list.untitled');
+		const descriptor = describeCell(field, record.values[titleField] ?? null, ctx.locale);
+		return resolveTitleCellText(descriptor, ctx.t('list.untitled'));
+	});
+
+	interface BridgeErrorText {
+		title: string;
+		body: string;
+		/** `false` para `bad-preview-url`: la URL se fija al crear el cliente, así que reintentar
+		 *  no puede cambiar nada (ver `bridge-client.ts#start`). Los otros cuatro SÍ pueden curarse
+		 *  solos (un `ready` tardío) o con un reintento (el sitio se redespliega, la versión se
+		 *  actualiza). */
+		canRetry: boolean;
+	}
+
+	function bridgeErrorText(kind: VisualBridgeErrorKind, state: VisualBridgeState): BridgeErrorText {
+		switch (kind) {
+			case 'no-bridge':
+				return {
+					title: ctx.t('editor.visual.error.noBridge.title'),
+					body: ctx.t('editor.visual.error.noBridge.body'),
+					canRetry: true
+				};
+			case 'protocol-version':
+				return {
+					title: ctx.t('editor.visual.error.protocolVersion.title'),
+					body: ctx.t('editor.visual.error.protocolVersion.body', {
+						found: state.status === 'error' ? (state.version ?? '') : '',
+						expected: VISUAL_PROTOCOL_VERSION
+					}),
+					canRetry: true
+				};
+			case 'site-error':
+				return {
+					title: ctx.t('editor.visual.error.siteError.title'),
+					body: ctx.t('editor.visual.error.siteError.body', {
+						code: state.status === 'error' ? (state.code ?? '') : ''
+					}),
+					canRetry: true
+				};
+			case 'record-mismatch':
+				return {
+					title: ctx.t('editor.visual.error.recordMismatch.title'),
+					body: ctx.t('editor.visual.error.recordMismatch.body', {
+						collection: state.status === 'error' ? (state.found?.collection ?? '') : '',
+						id: state.status === 'error' ? (state.found?.id ?? '') : ''
+					}),
+					canRetry: true
+				};
+			case 'bad-preview-url':
+				return {
+					title: ctx.t('editor.visual.error.badPreviewUrl.title'),
+					body: ctx.t('editor.visual.error.badPreviewUrl.body'),
+					canRetry: false
+				};
+		}
+	}
+</script>
+
+<div class="vega-visual-screen">
+	<EditTopBar bleed>
+		{#snippet crumb()}
+			<button
+				type="button"
+				class="vega-visual-back"
+				onclick={() => ctx.nav.toRecord(type.name, record.id)}
+			>
+				<Icon id="chevron" size={14} />
+				{ctx.t('editor.visual.back')}
+			</button>
+			<span class="vega-visual-doc">{docName}</span>
+		{/snippet}
+		{#snippet actions()}
+			<div class="vega-visual-status" aria-live="polite">
+				{#if bridgeState.status === 'connected'}
+					<span class="vega-visual-status-text">
+						{ctx.t('editor.visual.connected', { count: bridgeState.blocks.length })}
+					</span>
+				{:else if bridgeState.status === 'error'}
+					{@const errorText = bridgeErrorText(bridgeState.kind, bridgeState)}
+					<span class="vega-visual-status-text vega-visual-status-text--error">
+						{errorText.title}
+					</span>
+					<span class="vega-visual-status-detail">{errorText.body}</span>
+					{#if errorText.canRetry}
+						<button type="button" class="vega-visual-retry" onclick={retryBridge}>
+							{ctx.t('common.retry')}
+						</button>
+					{/if}
+				{:else if canvasActive && tokenState.kind !== 'error'}
+					<!-- "Conectando" SOLO mientras la conexión sigue viva. Con el token caído no hay
+					     marco con el que saludar, y decir aquí que se está conectando mientras el lienzo
+					     enseña el error del token sería contar dos historias distintas del mismo fallo:
+					     el mensaje lo da el lienzo, que es quien lo sabe. -->
+					<span class="vega-visual-status-text">{ctx.t('editor.visual.connecting')}</span>
+				{/if}
+			</div>
+		{/snippet}
+	</EditTopBar>
+
+	{#if canvasActive}
+		<div class="vega-visual-grid">
+			<!-- Hoy solo se pinta el lienzo (ver cabecera): el árbol de secciones y el inspector son
+		     tareas aparte. `.vega-visual-grid--tree`/`--inspector` seguirán el mismo patrón que
+		     `.vega-editor-grid--rail`/`--aside` de `RecordForm.svelte` el día que lleguen, añadiendo
+		     columnas laterales sin tocar esta regla. -->
+			<div class="vega-visual-canvas">
+				{#if tokenState.kind === 'ready'}
+					<iframe
+						class="vega-visual-frame"
+						bind:this={iframeEl}
+						src={tokenState.token.url}
+						title={ctx.t('editor.visual.frameTitle')}
+						referrerpolicy="no-referrer"
+						onload={handleFrameLoad}
+					></iframe>
+				{/if}
+				{#if tokenState.kind === 'loading' || (tokenState.kind === 'ready' && !frameLoaded)}
+					<div class="vega-visual-overlay" aria-live="polite">
+						<p>{ctx.t('editor.visual.connecting')}</p>
+					</div>
+				{:else if tokenState.kind === 'error'}
+					<div class="vega-visual-overlay vega-visual-overlay--error" role="alert">
+						<p>{ctx.t('editor.visual.token.error', { message: tokenState.message })}</p>
+						<button type="button" onclick={() => void requestPreview()}>
+							{ctx.t('common.retry')}
+						</button>
+					</div>
+				{/if}
+			</div>
+		</div>
+	{:else}
+		<!-- Responsive (ver cabecera): por debajo de 900px (mismo punto de corte en el que
+	     `PreviewPanel.svelte` se retira entera) no tiene sitio un lienzo junto a sus futuros
+	     paneles. Degradación HONESTA y COMPLETA: el lienzo no se oculta, no se monta — así no se
+	     descarga el sitio del cliente para acabar enseñando este aviso. -->
+		<div class="vega-visual-narrow">
+			<p class="vega-visual-narrow-title">{ctx.t('editor.visual.tooNarrow.title')}</p>
+			<p>{ctx.t('editor.visual.tooNarrow.body')}</p>
+			<button type="button" onclick={() => ctx.nav.toRecord(type.name, record.id)}>
+				{ctx.t('editor.visual.back')}
+			</button>
+		</div>
+	{/if}
+</div>
+
+<style>
+	/* A sangre (mismo criterio que `.vega-record-form` de `RecordForm.svelte`, ver su cabecera):
+	   cancela el padding de `.vega-main` (`AppShell.svelte`) con márgenes negativos y ocupa el alto
+	   ENTERO del hueco de contenido — la topbar de la app y el rail se quedan (son la salida, ver
+	   cabecera), solo el `<main>` de `AppShell` desaparece bajo esta pantalla. Altura calculada, no
+	   heredada de `.vega-main` (que scrollearía si el contenido se saliera): el iframe llena el
+	   hueco exacto y el scroll que importa es el del SITIO, dentro del propio marco. */
+	.vega-visual-screen {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		margin: -1.75rem -2rem -2.5rem;
+		height: calc(100vh - var(--topbar-h));
+		height: calc(100dvh - var(--topbar-h));
+	}
+
+	.vega-visual-back {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		min-height: 44px;
+		padding: 0 0.5rem;
+		border: 0;
+		background: none;
+		color: var(--ink-2);
+		font-size: 0.85rem;
+		font-weight: 550;
+		cursor: pointer;
+	}
+
+	.vega-visual-back:hover {
+		color: var(--ink);
+	}
+
+	.vega-visual-doc {
+		font-weight: 650;
+		color: var(--ink-hi);
+	}
+
+	.vega-visual-status {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		font-size: 0.8125rem;
+	}
+
+	.vega-visual-status-text {
+		color: var(--ink-2);
+	}
+
+	.vega-visual-status-text--error {
+		color: var(--danger);
+		font-weight: 600;
+	}
+
+	.vega-visual-status-detail {
+		color: var(--ink-2);
+	}
+
+	.vega-visual-retry {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 44px;
+		min-width: 44px;
+		padding: 0 0.9rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--surface-2);
+		color: var(--ink);
+		font-size: 0.8125rem;
+		font-weight: 550;
+		cursor: pointer;
+	}
+
+	.vega-visual-retry:hover {
+		border-color: var(--line-strong);
+	}
+
+	/* Preparada para tres columnas (ver cabecera): hoy una sola, `minmax(0, 1fr)` — el mismo truco
+	   que `.vega-editor-grid` de `RecordForm.svelte` para que el hijo pueda encogerse por debajo de
+	   su contenido intrínseco (el iframe no debe forzar overflow horizontal). */
+	.vega-visual-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		flex: 1;
+		min-height: 0;
+		padding: 0 calc(var(--vega-space-gutter) * 1.5) calc(var(--vega-space-gutter) * 1.25);
+	}
+
+	.vega-visual-canvas {
+		position: relative;
+		display: flex;
+		min-height: 0;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--surface);
+		overflow: hidden;
+	}
+
+	.vega-visual-frame {
+		flex: 1;
+		border: 0;
+		background: var(--surface);
+	}
+
+	/* Skeleton honesto (mismo criterio que `.vega-preview-panel-overlay` de `PreviewPanel.svelte`):
+	   cubre el hueco del iframe mientras no hay nada que enseñar, en vez de dejarlo en blanco. Solo
+	   reacciona al TOKEN (ver cabecera, "Dos relojes distintos") — un error del PUENTE no pasa por
+	   aquí, el iframe se queda visible. */
+	.vega-visual-overlay {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.75rem;
+		padding: 1.5rem;
+		text-align: center;
+		background: var(--paper);
+		color: var(--ink-2);
+		font-size: 0.85rem;
+	}
+
+	.vega-visual-overlay--error {
+		color: var(--danger);
+	}
+
+	.vega-visual-overlay button {
+		padding: 0.4rem 0.9rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--btn);
+		color: var(--ink);
+		font: inherit;
+		cursor: pointer;
+	}
+
+	.vega-visual-overlay button:hover {
+		border-color: var(--line-strong);
+	}
+
+	/* Aviso de pantalla estrecha. NO lleva `@media` ni `display: none` de partida: quien decide si
+	   existe es `matchMedia` en el script (ver cabecera), porque el punto de corte gobierna si el
+	   lienzo se MONTA, no solo si se ve. Duplicar aquí la condición dejaría dos dueños del mismo
+	   umbral y la puerta abierta a que solo uno de los dos cambie. */
+	.vega-visual-narrow {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.75rem;
+		max-width: 32rem;
+		margin: 0 calc(var(--vega-space-gutter) * 1.5) calc(var(--vega-space-gutter) * 1.25);
+	}
+
+	.vega-visual-narrow-title {
+		margin: 0;
+		font-size: 1.1rem;
+		font-weight: 650;
+		color: var(--ink-hi);
+	}
+
+	.vega-visual-narrow p {
+		margin: 0;
+	}
+
+	.vega-visual-narrow button {
+		padding: 0.45rem 0.9rem;
+		min-height: 44px;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--surface-2);
+		color: var(--ink);
+		font: inherit;
+		cursor: pointer;
+	}
+
+	.vega-visual-narrow button:hover {
+		border-color: var(--line-strong);
+	}
+</style>

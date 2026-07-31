@@ -105,6 +105,10 @@ export interface PocketBaseBackendOptions {
 	/** Ver `BackendPort.previewApiUrl` (`../../port.ts`): gemela de `buildApiUrl`, resuelta en el
 	 *  mismo sitio a partir de `ProjectDiscovery.preview`. Tampoco se interpreta aquí. */
 	previewApiUrl?: string | null;
+	/** Ver `BackendPort.previewVisualEditing` (`../../port.ts`): transportado tal cual desde
+	 *  `ProjectDiscovery.preview.visualEditing`, mismo criterio que `previewApiUrl` — este
+	 *  adaptador no decide nada con él, solo lo expone. */
+	previewVisualEditing?: boolean;
 	/** Ver `BackendPort.renderedBlockTypes`: transportado desde discovery, sin interpretarlo. */
 	renderedBlockTypes?: readonly string[] | null;
 }
@@ -117,6 +121,7 @@ export function createPocketBaseBackend({
 	manifestKey = VEGA_PROJECT_KEY,
 	buildApiUrl = null,
 	previewApiUrl = null,
+	previewVisualEditing = false,
 	renderedBlockTypes = null
 }: PocketBaseBackendOptions): BackendPort {
 	const pb = new PocketBase(url);
@@ -424,6 +429,7 @@ export function createPocketBaseBackend({
 		manifestKey: normalizedManifestKey,
 		buildApiUrl,
 		previewApiUrl,
+		previewVisualEditing,
 		renderedBlockTypes,
 
 		async login(credentials) {

@@ -58,6 +58,12 @@ export function recordRoute(type: string, id: RecordId): string {
 	return `${base}/c/${encodeURIComponent(type)}/${encodeURIComponent(id)}`;
 }
 
+/** `/c/:type/:id/visual` — editor visual (tarea "pantalla del editor visual", aditivo sobre
+ *  `recordRoute`): mismo criterio de codificación, gemela exacta salvo el segmento final. */
+export function visualRoute(type: string, id: RecordId): string {
+	return `${recordRoute(type, id)}/visual`;
+}
+
 /** `/media` — biblioteca de medios (P6; bootstrap desde la Fase 6a, grid/subida en 6b/6c). */
 export function mediaRoute(): string {
 	return `${base}/media`;

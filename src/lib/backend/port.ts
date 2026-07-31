@@ -84,6 +84,20 @@ export interface BackendPort {
 	 * dentro de dos meses nadie sepa cuál es el patrón bueno. */
 	readonly previewApiUrl?: string | null;
 	/**
+	 * Gemela de `previewApiUrl` de arriba: sale del MISMO discovery (`ProjectDiscovery.preview.
+	 * visualEditing`, `session/project-discovery.ts`), resuelta en el mismo sitio
+	 * (`session/backend.ts`). Pero, a diferencia de `previewApiUrl`/`buildApiUrl` (que SÍ bastan
+	 * por sí solos para pintar un botón), **esto es solo una promesa, nunca la prueba**: el
+	 * discovery lo escribe el proyecto y puede sobrevivir perfectamente al código que decía
+	 * describir — un sitio que anuncia el puente después de haberlo quitado dejaría a Vega
+	 * esperando un `ready` que no va a llegar. La capacidad de verdad la habilita el SALUDO del
+	 * puente contra el iframe (§"Visual editing bridge" del contrato,
+	 * `$lib/visual/bridge-client.ts`), no este booleano: la pantalla del editor visual lo usa
+	 * solo para decidir si tiene sentido INTENTAR el saludo, nunca para dar la capacidad por
+	 * demostrada.
+	 */
+	readonly previewVisualEditing?: boolean;
+	/**
 	 * Vocabulario de renderers anunciado por el sitio en discovery. `null`/ausente = proyecto
 	 * legacy, sin contraste; `[]` = el sitio declara que no sabe pintar ningún tipo.
 	 */

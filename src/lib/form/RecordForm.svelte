@@ -434,6 +434,20 @@
 		(ctx.port.previewApiUrl ?? null) !== null && model.recordId !== null
 	);
 
+	/** Tarea "pantalla del editor visual" (aditiva sobre "Vista previa" de arriba): visible SOLO
+	 *  con las MISMAS cuatro puertas que `visual-gate.ts` («forbidden» no aplica aquí — esta ruta
+	 *  ya exige `permissions.view` para estar montada) más `model.recordId` no nulo (nada que
+	 *  editar visualmente en `/new` sin guardar, mismo criterio que `previewCapable`). Repetir las
+	 *  condiciones en vez de importar `resolveVisualGate` es deliberado: esa función decide si la
+	 *  RUTA `/visual` tiene sentido con SOLO `type`/`port` (sin `model`), y esta capa además
+	 *  necesita el id del registro — fundirlas exigiría pasarle un `model` que no le pertenece. */
+	const visualEditorAvailable = $derived(
+		(ctx.port.previewApiUrl ?? null) !== null &&
+			ctx.port.previewVisualEditing === true &&
+			Boolean(type.blocks) &&
+			model.recordId !== null
+	);
+
 	/** HH:MM localizado (mismo criterio de locale que `cell.ts`), o `null` sin hora conocida
 	 *  todavía (ver `savedAt`/cabecera). */
 	const savedAtText = $derived(
@@ -798,6 +812,22 @@
 				</span>
 			{:else if savedAtText}
 				<span class="vega-editor-saved-at">{savedAtText}</span>
+			{/if}
+			{#if visualEditorAvailable}
+				{@const visualRecordId = model.recordId}
+				{#if visualRecordId !== null}
+					<!-- Tarea "pantalla del editor visual" (ver cabecera, `visualEditorAvailable`):
+					     navega a `/c/[type]/[id]/visual` — no abre nada en el sitio, sustituye esta
+					     pantalla. -->
+					<button
+						type="button"
+						class="vega-editor-visual-button"
+						onclick={() => ctx.nav.toVisual(type.name, visualRecordId)}
+					>
+						<Icon id="box" size={14} />
+						{ctx.t('editor.visual.open')}
+					</button>
+				{/if}
 			{/if}
 			{#if previewCapable}
 				<!-- Lote "publicación" fase B (ver cabecera, "Vista previa"): OPT-IN, independiente de
@@ -1476,6 +1506,30 @@
 		border-color: var(--accent-line);
 		color: var(--accent-text);
 		background: var(--active);
+	}
+
+	/* Botón "Editor visual" (tarea "pantalla del editor visual"): MISMO tamaño/forma que "Vista
+	   previa"/"Ver en el sitio" — sin estado `--active` propio, a diferencia del toggle: este
+	   botón NAVEGA (sustituye la pantalla entera), no alterna un panel sobre el propio formulario. */
+	.vega-editor-visual-button {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		height: 34px;
+		padding: 0 0.9rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--btn);
+		color: var(--ink);
+		font-size: 0.8125rem;
+		font-weight: 550;
+		line-height: 1.2;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	.vega-editor-visual-button:hover {
+		border-color: var(--line-strong);
 	}
 
 	.vega-editor-duplicate-button {

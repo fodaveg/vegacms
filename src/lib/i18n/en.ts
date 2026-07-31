@@ -216,6 +216,40 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.preview.panel.loadError': 'Could not load the preview.',
 	'editor.preview.panel.genericError': 'Could not generate the preview.',
 
+	// ————— Visual editor screen (see `es.ts` for the full rationale) —————
+	'editor.visual.open': 'Visual editor',
+	'editor.visual.title': 'Visual editor',
+	'editor.visual.back': 'Back to the form',
+	'editor.visual.frameTitle': 'The site page, inside the visual editor',
+	'editor.visual.connecting': 'Connecting to the site…',
+	'editor.visual.connected': 'Connected to the site: {count} block(s) on the page.',
+	'editor.visual.token.error': 'Could not load the site page: {message}',
+	'editor.visual.error.noBridge.title':
+		'This site does not have the visual editing bridge installed',
+	'editor.visual.error.noBridge.body':
+		'Vega got no response from the page. The usual preview still works, and so does the form.',
+	'editor.visual.error.protocolVersion.title': 'The site speaks another version of the bridge',
+	'editor.visual.error.protocolVersion.body':
+		'The page uses "{found}" and Vega understands "{expected}". One of the two needs updating.',
+	'editor.visual.error.siteError.title': "The site's bridge cannot do its job",
+	'editor.visual.error.siteError.body': 'The page reported the code "{code}".',
+	'editor.visual.error.recordMismatch.title': 'The preview is showing a different record',
+	'editor.visual.error.recordMismatch.body':
+		"The page says it's rendering {collection}/{id}, which is not the one you're editing.",
+	'editor.visual.error.badPreviewUrl.title': "The preview's address does not work",
+	'editor.visual.error.badPreviewUrl.body':
+		"Without a valid address there's no way to check where the site's messages come from, so the visual editor will not start.",
+	'editor.visual.unavailable.title': 'This project has no visual editor',
+	'editor.visual.unavailable.noPreview':
+		'The connected site does not declare a preview, which is what the visual editor hangs off.',
+	'editor.visual.unavailable.noVisualEditing':
+		'The connected site does not advertise visual editing. It needs the bridge installed and declared in its discovery.',
+	'editor.visual.unavailable.noBlocks':
+		'The "{label}" collection does not compose the page from blocks, so there is nothing to select on the canvas.',
+	'editor.visual.tooNarrow.title': 'The visual editor needs a wider screen',
+	'editor.visual.tooNarrow.body':
+		"Below 900px there's no room for the canvas next to its panels. The usual form still works here.",
+
 	// ————— Master-detail editor (final `aquelarre-detalle-post.html` mockup) —————
 	// Sibling rail (`.rail`), metadata aside (`.kv`) and danger zone: GENERIC opt-in renderer
 	// pieces — the aside card headings come from `fieldGroups` (manifest data), so only literals

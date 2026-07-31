@@ -31,6 +31,10 @@ export interface NavApi {
 	toList(type: string, opts?: { q?: string }): void;
 	toNew(type: string): void; // /c/:type/new
 	toRecord(type: string, id: RecordId): void; // /c/:type/:id
+	/** `/c/:type/:id/visual` — pantalla del editor visual (aditivo sobre `toRecord`, ver
+	 *  `visualRoute`). El guard de la propia ruta decide si la pantalla tiene sentido para este
+	 *  `type`/proyecto; este método solo navega. */
+	toVisual(type: string, id: RecordId): void;
 	/** Resuelve el singleton (P2 §4.6) y navega a su edición/creación. Async: consulta el puerto. */
 	toSingleton(type: string): Promise<void>;
 	/** Vista fusionada (`mergedViews`, L7a/L7c): `id` es la clave de `mergedViews`, no un `RecordId`. */
