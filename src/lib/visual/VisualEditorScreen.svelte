@@ -400,9 +400,16 @@
 		display: flex;
 		flex-direction: column;
 		min-width: 0;
-		margin: -1.75rem -2rem -2.5rem;
-		height: calc(100vh - var(--topbar-h));
-		height: calc(100dvh - var(--topbar-h));
+		/* A sangre por los LADOS y por abajo, pero NO por arriba, y el porqué es un bug medido:
+		   `EditTopBar` es `position: sticky; top: 0` contra el scroll de `.vega-main`, así que se
+		   pega 1.75rem por debajo de su posición de flujo (el padding superior de `.vega-main`) y
+		   se traga esa franja del contenido que va detrás. Con `margin-top: -1.75rem` el aviso de
+		   pantalla estrecha quedaba con su TÍTULO entero debajo de la barra (`z-index: 9`), o sea
+		   invisible. Cancelar el padding lateral e inferior no tiene ese problema porque ahí no
+		   hay nada pegajoso. */
+		margin: 0 -2rem -2.5rem;
+		height: calc(100vh - var(--topbar-h) - 1.75rem);
+		height: calc(100dvh - var(--topbar-h) - 1.75rem);
 	}
 
 	.vega-visual-back {
