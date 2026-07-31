@@ -1,42 +1,29 @@
 <script lang="ts">
 	/**
-	 * `RecordBlocks.svelte` (capacidad `blocks`, lote "editor" Fase A, `ResolvedBlocksConfig`): la
-	 * lista embebida de bloques de un registro — "una landing es una secuencia de secciones, y
-	 * PocketBase no tiene repeaters" (enunciado del lote). Vive en `$lib/form/` (a diferencia de
-	 * `EditorRail.svelte`, en `$lib/list/`: no pinta enlaces reales a otra ruta — los bloques no
-	 * tienen ruta propia, se editan aquí mismo — así que no necesita la exención de
-	 * `no-navigation-without-resolve`).
+	 * `RecordBlocks.svelte` (capacidad `blocks`, lote "editor" Fase A, `ResolvedBlocksConfig`):
+	 * PRESENTACIÓN de la lista embebida de bloques de un registro — el marcado, el menú "Añadir
+	 * bloque" con su gestión de foco y teclado, el controlador de arrastre y el CSS. El ESTADO y las
+	 * MUTACIONES (carga, crear, duplicar, borrar, reordenar) viven en `blocks-state.svelte.ts`
+	 * (`createBlocksState`): este componente instancia esa fábrica UNA VEZ (`blocks`, más abajo) y
+	 * consume sus getters/métodos, nunca reimplementa lógica de dominio.
 	 *
-	 * **Se carga y se muta a sí mismo** (mismo reparto que `EditorRail`): pide/crea/reordena/borra
-	 * los hijos por su cuenta contra `ctx.port`, sin pasar por el `onSubmit` del `RecordForm`
-	 * padre. Motivo (ver también la cabecera de `BlockEditor.svelte`): `RecordInput`/`onSubmit`
-	 * del padre son de UN registro (§4.3 del contrato de backend); escribir varios registros de
-	 * una colección distinta en el mismo envío rompería ese contrato. `RecordForm` solo necesita
-	 * saber SI hay algo sucio aquí abajo (`onDirtyChange`), no CÓMO se guarda.
+	 * Motivo del reparto (ver también la cabecera de `blocks-state.svelte.ts`): el editor visual
+	 * (`$lib/visual/VisualEditorScreen.svelte`) va a montar OTRA presentación (árbol de secciones +
+	 * inspector) sobre EL MISMO estado de bloques — dos escritores del mismo estado ya se pisaron en
+	 * silencio una vez en este repo (el manifiesto de `/settings`), así que un único dueño de estado
+	 * con varias presentaciones es la única forma segura de que compartan un padre sin que ninguna
+	 * pierda los cambios de la otra.
 	 *
-	 * **Decisión 1 — cuándo se persiste el reorden (enunciado del lote, a justificar en código)**:
-	 * inmediato, al soltar o al mover con teclado — NUNCA diferido al guardado del padre. Motivos:
-	 * (a) es el ÚNICO precedente real en el repo (`RecordTable.svelte`/`computeReorder`, el reorder
-	 * de listado ya escribe al soltar); reinventar un segundo modelo de persistencia para el mismo
-	 * gesto sería inconsistente sin necesidad. (b) Diferir exigiría que ESTE componente mantuviera
-	 * un `orderField` "sucio" por bloque desacoplado de sus propios registros — exactamente el tipo
-	 * de estado paralelo que `dirty.ts` evita para el registro padre (compara contra un `baseline`
-	 * inmutable); replicarlo aquí solo para el reorden no gana nada, porque el reorden no comparte
-	 * ninguna otra pieza de estado con el padre. (c) Es la operación MÁS barata y MÁS reversible de
-	 * las tres (crear/reordenar/borrar): si el resultado no gusta, se vuelve a arrastrar — mismo
-	 * contrato de "reversible arrastrando otra vez" que ya tiene el listado, no una regresión.
-	 * El precio, honesto: no participa del "descartar cambios" del formulario padre (como tampoco
-	 * participa el reorder del listado). Documentado también en el warning de error de red más
-	 * abajo (`handleReorder`, se auto-corrige recargando si la escritura falla a medias).
+	 * Vive en `$lib/form/` (a diferencia de `EditorRail.svelte`, en `$lib/list/`: no pinta enlaces
+	 * reales a otra ruta — los bloques no tienen ruta propia, se editan aquí mismo — así que no
+	 * necesita la exención de `no-navigation-without-resolve`).
 	 *
-	 * **Decisión 2 — guard de cambios sin guardar (`dirty.ts`)**: un bloque EXPANDIDO con ediciones
-	 * de campo propias sin guardar (`BlockEditor`, que reusa `dirty.ts`/`isDirty` sobre SU PROPIO
-	 * baseline) cuenta como "sucio" para el padre. `handleBlockDirtyChange` mantiene el conjunto de
-	 * ids sucios y el agregado ("¿hay AL MENOS uno?") sube por `onDirtyChange` hasta `RecordForm`,
-	 * que lo OR-ea con su propio `isDirty(baseline, current)` — así el guard de salida
-	 * (`beforeNavigate`/`beforeunload`) y el punto "sin guardar" de la barra ven el estado real
-	 * aunque el campo que cambió no sea del registro padre. Reordenar/crear/borrar NUNCA marcan
-	 * sucio (decisión 1: ya están persistidos en el momento en que ocurren).
+	 * Dos decisiones de `blocks-state.svelte.ts` tienen consecuencias AQUÍ, documentadas allí en
+	 * detalle: la decisión 1 (el reorden persiste al soltar, nunca diferido al guardado del padre)
+	 * es por lo que el asa de arrastre nunca participa del guard "sin guardar"; la decisión 2 (un
+	 * bloque expandido con ediciones sin guardar cuenta como sucio) es por lo que `blocks.anyDirty`
+	 * deshabilita crear/duplicar/reordenar más abajo. `RecordForm` solo necesita saber SI hay algo
+	 * sucio aquí abajo (`onDirtyChange`, que `blocks` invoca por su cuenta), no CÓMO se guarda.
 	 *
 	 * **Estado de cada bloque, siempre MONTADO**: `BlockEditor` de cada fila vive en el DOM aunque
 	 * la fila esté plegada (`hidden`, no `{#if}`) — así plegar/desplegar nunca destruye un borrador
@@ -49,27 +36,22 @@
 	 * (`$lib/list/reorder-dnd`, `$lib/list/reorder`, el MISMO patrón de `RecordTable`) — el asa
 	 * `<button draggable="true">` acepta tanto arrastre como `ArrowUp`/`ArrowDown` sin "agarrar"
 	 * antes (mismo comportamiento que el listado). A diferencia de `RecordTable` (que no anuncia
-	 * nada), aquí SÍ hay una región `aria-live` (`announce`) que anuncia la posición resultante tras
-	 * CUALQUIER reorden (arrastre o teclado) — requisito explícito del lote ("anuncio del cambio de
-	 * posición"): el arrastre por sí solo no es accesible sin un eco por voz de dónde ha quedado el
-	 * bloque.
+	 * nada), aquí SÍ hay una región `aria-live` (`blocks.announce`, la produce `blocks-state.svelte.ts`
+	 * en cada reorden) que anuncia la posición resultante tras CUALQUIER reorden (arrastre o
+	 * teclado) — requisito explícito del lote ("anuncio del cambio de posición"): el arrastre por sí
+	 * solo no es accesible sin un eco por voz de dónde ha quedado el bloque.
 	 */
 	import { tick, untrack } from 'svelte';
-	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
-	import type { RecordId, VegaRecord } from '$lib/backend/types';
-	import type { PreviewDraftRecord } from '$lib/backend/preview-client';
+	import type { RecordId } from '$lib/backend/types';
 	import type { ResolvedBlockType, ResolvedContentType } from '$lib/model/types';
-	import { VegaError } from '$lib/backend/errors';
 	import { getVegaContext } from '$lib/app-context';
-	import { describeCell } from '$lib/list/cell';
-	import { normalizeListError, RequestSequencer, resolveTitleCellText } from '$lib/list/list-load';
+	import type { PreviewDraftRecord } from '$lib/backend/preview-client';
 	import { createReorderDndController, dropIndicatorEdge } from '$lib/list/reorder-dnd';
-	import { computeReorder } from '$lib/list/reorder';
 	import { hasFileValues } from '$lib/revisions/restore';
-	import { canDuplicateBlock, duplicateInput } from '$lib/duplicate/records';
 	import DeleteConfirm from '$lib/list/DeleteConfirm.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
 	import BlockEditor from './BlockEditor.svelte';
+	import { createBlocksState } from './blocks-state.svelte';
 
 	interface Props {
 		/** El tipo padre que declara `blocks` (`ResolvedContentType.blocks`, ya validado por P2). */
@@ -77,7 +59,8 @@
 		/** `model.recordId`: `null` en `/new` — sin id de padre no hay a qué apuntar, ver `notice`
 		 *  más abajo. */
 		parentId: RecordId | null;
-		/** Sube a `true` en cuanto AL MENOS un bloque tenga ediciones sin guardar (decisión 2). */
+		/** Sube a `true` en cuanto AL MENOS un bloque tenga ediciones sin guardar (decisión 2 de
+		 *  `blocks-state.svelte.ts`). */
 		onDirtyChange: (dirty: boolean) => void;
 		/** Publica la secuencia completa con cada bloque en su estado editable ACTUAL. */
 		onDraftChange?: (records: PreviewDraftRecord[]) => void;
@@ -97,225 +80,25 @@
 	}: Props = $props();
 
 	const ctx = getVegaContext();
-	// `untrack`: captura DELIBERADA del valor inicial de `parentType` (mismo patrón que
-	// `RecordForm.svelte` con `model`/`type` — ver su cabecera, "Semilla inicial"). `parentType` no
-	// cambia tras el montaje en la práctica (la ruta remonta este componente si cambia de tipo), y
-	// `blocksConfig`/`childType` alimentan variables `$state`/lógica que asume una identidad
-	// estable durante todo el ciclo de vida (p.ej. `structuralFields`, capturado igual de una vez).
-	const blocksConfig = untrack(() => parentType.blocks) ?? null;
-	/** El `ResolvedContentType` de la colección hija — ya en `ctx.model` (P2 lo resuelve para TODAS
-	 *  las colecciones descubiertas, no solo la que se está editando). `undefined` no debería
-	 *  pasar (P2 ya validó que `blocksConfig.collection` existe, `resolveBlocks`), pero L11 manda
-	 *  degradar sin crashear: sin el tipo hijo no hay nada que pintar, la sección desaparece entera
-	 *  (mismo criterio que `EditorRail` con un `port.list` que falla).
-	 */
-	const childType = ctx.model.types.find((t) => t.name === blocksConfig?.collection) ?? null;
-	const blockDuplicateAllowed = childType !== null && canDuplicateBlock(childType);
-	/** Campos estructurales del hijo (parentField + orderField + typeField): el mini-formulario
-	 *  nunca los pinta, `RecordBlocks` es su único escritor. Array ESTABLE (no `$derived`):
-	 *  `blocksConfig` no cambia tras el montaje (ver arriba), así que no hace falta recalcularlo por
-	 *  render.
-	 *
-	 *  `typeField` entró aquí con el menú de tipos, y lo exige el propio menú: en cuanto el tipo se
-	 *  escribe en una COLUMNA REAL, dejarlo fuera de esta lista lo pintaría como un campo de texto
-	 *  editable dentro del bloque, y el usuario podría teclear un tipo que no existe en el
-	 *  vocabulario. El tipo se elige al crear; no se reescribe a mano. */
-	const structuralFields = blocksConfig
-		? [
-				blocksConfig.parentField,
-				blocksConfig.orderField,
-				// `typeField` es opcional (`string | null`): en modo HOMOGÉNEO no existe columna de
-				// tipo y no hay nada que excluir.
-				...(blocksConfig.typeField === null ? [] : [blocksConfig.typeField])
-			]
-		: [];
-
-	type BlocksStatus =
-		{ kind: 'loading' } | { kind: 'ready'; records: VegaRecord[] } | { kind: 'error' };
-
-	let status = $state<BlocksStatus>({ kind: 'loading' });
-	const records = $derived(status.kind === 'ready' ? status.records : []);
-	/** Overrides no persistidos publicados por cada `BlockEditor`. `SvelteMap` hace que el
-	 *  `$effect` siguiente emita tanto al cambiar un campo como al cambiar la estructura. */
-	const draftOverrides = new SvelteMap<string, PreviewDraftRecord>();
-
-	function currentDraftRecords(): PreviewDraftRecord[] {
-		return records.map((record) => {
-			const override = draftOverrides.get(record.id);
-			const fields = { ...(override?.fields ?? record.values) };
-			// La lista es la única autoridad sobre parent/order. Un BlockEditor montado conserva
-			// su snapshot editorial al reordenar, así que esos dos campos deben venir siempre del
-			// registro estructural actual para que la preview respete el orden recién persistido.
-			for (const field of structuralFields) fields[field] = record.values[field];
-			return { id: record.id, fields };
-		});
-	}
-
-	$effect(() => {
-		onDraftChange(currentDraftRecords());
+	/** Getters, no valores (ver cabecera de `blocks-state.svelte.ts`, "Reactividad de props"):
+	 *  `parentId`/`disabled` son props reactivas que cambian tras el montaje (la ruta NO remonta
+	 *  este componente al cambiar de registro padre); la fábrica necesita leer su valor VIVO en
+	 *  cada punto de una mutación en vuelo, no una foto capturada al instanciarla. */
+	const blocks = createBlocksState({
+		ctx,
+		// Captura DELIBERADA del valor inicial (mismo patrón que la propia fábrica documenta en su
+		// cabecera para `parentType`): `untrack` calla el aviso `state_referenced_locally` de
+		// svelte-check, que de otro modo trataría esta lectura única como un posible bug.
+		parentType: untrack(() => parentType),
+		getParentId: () => parentId,
+		getDisabled: () => disabled,
+		// Reenvío en closure, NO la referencia directa: `onDirtyChange`/`onDraftChange`/
+		// `onBusyChange` son props (getters bajo el compilador) y cada llamada debe leer la
+		// versión VIVA, no la que había en el instante de montar `blocks`.
+		onDirtyChange: (dirty) => onDirtyChange(dirty),
+		onDraftChange: (records) => onDraftChange(records),
+		onBusyChange: (busy) => onBusyChange(busy)
 	});
-
-	/** Ids de bloque EXPANDIDOS (fila desplegada). Fuera de este set, `hidden` (ver cabecera).
-	 *  `SvelteSet` (reactivo POR MUTACIÓN, mismo criterio que `MediaGrid.svelte`/`FileInput.svelte`):
-	 *  el template lo lee con `.has()`, así que basta con mutarlo in-place — reasignar un `Set`
-	 *  plano nuevo en cada toggle también repintaría, pero copia el set entero por gesto y lo
-	 *  prohíbe la regla `svelte/prefer-svelte-reactivity` del lint. */
-	const expandedIds = new SvelteSet<string>();
-	/** Ids de bloque con ediciones sin guardar (decisión 2, ver cabecera). Mismo criterio. */
-	const dirtyIds = new SvelteSet<string>();
-	const savingIds = new SvelteSet<string>();
-	const duplicatingIds = new SvelteSet<string>();
-	/** Mutex UI de TODAS las mutaciones que cambian la estructura/orden. PocketBase no ofrece una
-	 * transacción multi-registro: dos snapshots de `records` en vuelo podrían asignar el mismo
-	 * order y el último `status=` ocultaría el resultado del otro aunque ambos existieran. */
-	let structuralBusy = $state(false);
-	let pendingDelete = $state<VegaRecord | null>(null);
-	let deleting = $state(false);
-	/** Texto de la región `aria-live` (accesibilidad del reorden, ver cabecera). Se reasigna con un
-	 *  string NUEVO en cada reorden (incluso si el texto final coincidiera) para que los lectores
-	 *  de pantalla lo relean — mismo patrón que cualquier `aria-live` de una sola línea. */
-	let announce = $state('');
-
-	const sequencer = new RequestSequencer();
-	let loadedKey: string | null = null;
-	let viewRevision = 0;
-
-	$effect(() => {
-		onBusyChange(structuralBusy || savingIds.size > 0);
-	});
-
-	interface ViewIdentity {
-		key: string | null;
-		parentId: RecordId | null;
-		revision: number;
-	}
-
-	function captureViewIdentity(): ViewIdentity {
-		return { key: loadedKey, parentId, revision: viewRevision };
-	}
-
-	function isCurrentView(view: ViewIdentity): boolean {
-		return view.revision === viewRevision && view.key === loadedKey && view.parentId === parentId;
-	}
-
-	async function load(collection: string, id: RecordId): Promise<void> {
-		const seq = sequencer.next();
-		status = { kind: 'loading' };
-		try {
-			const result = await ctx.port.list(collection, {
-				filter: { kind: 'cond', field: blocksConfig!.parentField, op: 'eq', value: id },
-				sort: [{ field: blocksConfig!.orderField, dir: 'asc' }],
-				page: 1,
-				// Sin paginación real (§ cabecera): una landing "hecha de secciones" nunca se acerca al
-				// máximo del puerto; pedir directamente el máximo evita una segunda página invisible.
-				perPage: 200
-			});
-			if (!sequencer.isLatest(seq)) return;
-			status = { kind: 'ready', records: result.items };
-		} catch (err) {
-			if (!sequencer.isLatest(seq)) return;
-			const vegaErr = normalizeListError(err);
-			if (vegaErr.kind === 'auth-expired') ctx.feedback.reportError(vegaErr);
-			status = { kind: 'error' };
-		}
-	}
-
-	$effect(() => {
-		const key =
-			blocksConfig && childType && parentId !== null ? `${childType.name}:${parentId}` : null;
-		if (key === loadedKey) return;
-		viewRevision += 1;
-		loadedKey = key;
-		// Cambiar de registro padre NO remonta este componente: `/c/[type]/[id]/+page.svelte` no
-		// envuelve `RecordForm` en un `{#key}`, solo cambia props. Sin esta limpieza, el estado por
-		// bloque del padre ANTERIOR sobrevive: `dirtyIds` conservaría ids de otro registro y
-		// `onDirtyChange` seguiría reportando "hay cambios sin guardar" para siempre (guard de
-		// salida atascado), y `expandedIds` desplegaría bloques que ya no existen aquí.
-		expandedIds.clear();
-		dirtyIds.clear();
-		savingIds.clear();
-		draftOverrides.clear();
-		pendingDelete = null;
-		onDirtyChange(false);
-		if (key !== null && childType) void load(childType.name, parentId!);
-	});
-
-	// ————— Vocabulario de tipos de bloque (menú "Añadir" y insignia de cada fila) —————
-	//
-	// El vocabulario vive en la RAÍZ del modelo (`ctx.model.blockTypes`), no en la colección: un
-	// sitio tiene UN juego de componentes. El menú solo aparece en modo HETEROGÉNEO, o sea cuando
-	// `blocksConfig.typeField` existe Y el manifiesto declara al menos un tipo; si falta cualquiera
-	// de las dos cosas se conserva el botón simple de siempre, que crea un bloque sin tipo.
-	const typeField = blocksConfig?.typeField ?? null;
-	const blockTypes = ctx.model.blockTypes;
-	/** Hay COLUMNA de tipo: manda para las insignias de cada fila. Un manifiesto puede retirar todo
-	 *  su vocabulario sin que los registros pierdan su valor, y esas filas siguen teniendo que decir
-	 *  qué son. */
-	const hasTypeColumn = typeField !== null;
-	/** Hay MENÚ: exige además que quede al menos un tipo que ofrecer. Sin vocabulario no hay nada que
-	 *  elegir, así que se conserva el botón simple. */
-	const hasTypeMenu = hasTypeColumn && blockTypes.length > 0;
-
-	/**
-	 * El tipo declarado de un bloque, leído de su COLUMNA REAL. Es el dividendo de la regla de
-	 * frontera: no se parsea `data` para saber de qué tipo es una fila.
-	 *
-	 * `null` = la fila no dice de qué tipo es (bloque creado antes de que existiera el vocabulario,
-	 * o modo homogéneo). Un valor que NO está en el vocabulario NO es lo mismo: significa que el
-	 * manifiesto retiró ese tipo y el registro sigue vivo, así que se muestra el valor crudo en vez
-	 * de esconderlo — el editor no puede pintar sus campos, pero el usuario tiene derecho a saber
-	 * qué hay ahí antes de borrarlo.
-	 */
-	function blockTypeOf(record: VegaRecord): ResolvedBlockType | null {
-		if (typeField === null) return null;
-		const raw = record.values[typeField];
-		if (typeof raw !== 'string' || raw === '') return null;
-		return blockTypes.find((candidate) => candidate.name === raw) ?? null;
-	}
-
-	/** El nombre crudo del tipo, para el caso "existe pero ya no está en el vocabulario". */
-	function blockTypeRawName(record: VegaRecord): string | null {
-		if (typeField === null) return null;
-		const raw = record.values[typeField];
-		return typeof raw === 'string' && raw !== '' ? raw : null;
-	}
-
-	function blockTitle(record: VegaRecord): string {
-		if (!childType || childType.titleField === null) return ctx.t('list.untitled');
-		const field = childType.fields.find((f) => f.name === childType.titleField);
-		if (!field) return ctx.t('list.untitled');
-		const descriptor = describeCell(field, record.values[field.name] ?? null, ctx.locale);
-		return resolveTitleCellText(descriptor, ctx.t('list.untitled'));
-	}
-
-	function toggle(id: string): void {
-		if (expandedIds.has(id)) expandedIds.delete(id);
-		else expandedIds.add(id);
-	}
-
-	function setDirty(id: string, dirty: boolean): void {
-		if (dirtyIds.has(id) === dirty) return; // sin cambio real, evita recalcular el agregado
-		if (dirty) dirtyIds.add(id);
-		else dirtyIds.delete(id);
-		onDirtyChange(dirtyIds.size > 0);
-	}
-
-	function setSaving(id: string, saving: boolean): void {
-		if (saving) savingIds.add(id);
-		else savingIds.delete(id);
-	}
-
-	function handleBlockDraftChange(id: string, draft: PreviewDraftRecord): void {
-		draftOverrides.set(id, draft);
-	}
-
-	function handleBlockSaved(id: string, saved: VegaRecord): void {
-		draftOverrides.set(id, { id: saved.id, fields: { ...saved.values } });
-		status =
-			status.kind === 'ready'
-				? { kind: 'ready', records: status.records.map((r) => (r.id === id ? saved : r)) }
-				: status;
-	}
 
 	// ————— Menú "Añadir bloque" (patrón APG de ListToolbar: click-fuera, Escape y focusout) —————
 	let addMenuOpen = $state(false);
@@ -390,221 +173,7 @@
 	function handleAddType(blockType: ResolvedBlockType): void {
 		closeAddMenu();
 		addTriggerEl?.focus();
-		void handleCreate(blockType);
-	}
-
-	async function handleCreate(blockType: ResolvedBlockType | null = null): Promise<void> {
-		if (
-			!blocksConfig ||
-			!childType ||
-			parentId === null ||
-			disabled ||
-			structuralBusy ||
-			savingIds.size > 0
-		)
-			return;
-		const view = captureViewIdentity();
-		const sourceRecords = [...records];
-		structuralBusy = true;
-		try {
-			const maxOrder = sourceRecords.reduce((max, r) => {
-				const raw = r.values[blocksConfig.orderField];
-				return typeof raw === 'number' && raw > max ? raw : max;
-			}, -1);
-			const created = await ctx.port.create(childType.name, {
-				[blocksConfig.parentField]: view.parentId,
-				[blocksConfig.orderField]: maxOrder + 1,
-				// El tipo viaja a su COLUMNA REAL, no al JSON: es lo que permite que la insignia de
-				// la fila, el recuento por tipo y cualquier filtro futuro salgan de una consulta
-				// normal sin parsear `data`.
-				...(blockType !== null && typeField !== null ? { [typeField]: blockType.name } : {})
-			});
-			if (!isCurrentView(view)) return;
-			status = { kind: 'ready', records: [...sourceRecords, created] };
-			// El bloque nuevo arranca DESPLEGADO: es lo que el usuario acaba de pedir, tiene sentido
-			// que vea de inmediato sus campos para rellenarlos (mismo criterio que abrir un registro
-			// recién creado en `/c/[type]/new`).
-			expandedIds.add(created.id);
-		} catch (err) {
-			const vegaErr =
-				err instanceof VegaError ? err : VegaError.backend('No se pudo crear el bloque', err);
-			ctx.feedback.reportError(vegaErr, { action: 'blocks:create' });
-		} finally {
-			structuralBusy = false;
-		}
-	}
-
-	async function handleDuplicate(record: VegaRecord): Promise<void> {
-		if (
-			!blocksConfig ||
-			!childType ||
-			parentId === null ||
-			disabled ||
-			structuralBusy ||
-			savingIds.size > 0 ||
-			!blockDuplicateAllowed ||
-			dirtyIds.size > 0
-		)
-			return;
-		const view = captureViewIdentity();
-		const sourceRecords = [...records];
-		const sourceIndex = sourceRecords.findIndex((item) => item.id === record.id);
-		if (sourceIndex < 0) return;
-		structuralBusy = true;
-		duplicatingIds.add(record.id);
-		try {
-			const maxOrder = sourceRecords.reduce((max, item) => {
-				const raw = item.values[blocksConfig.orderField];
-				return typeof raw === 'number' && raw > max ? raw : max;
-			}, -1);
-			const created = await ctx.port.create(
-				childType.name,
-				duplicateInput(childType, record, {
-					[blocksConfig.parentField]: view.parentId,
-					[blocksConfig.orderField]: maxOrder + 1
-				})
-			);
-			const appended = [...sourceRecords, created];
-			if (isCurrentView(view)) {
-				status = { kind: 'ready', records: appended };
-				expandedIds.add(created.id);
-			}
-			const reordered = await handleReorder(
-				appended.length - 1,
-				sourceIndex + 1,
-				appended,
-				true,
-				view
-			);
-			if (reordered && isCurrentView(view)) {
-				ctx.feedback.toast(ctx.t('editor.blocks.duplicateSuccess'), { kind: 'success' });
-			}
-		} catch (err) {
-			const vegaErr =
-				err instanceof VegaError ? err : VegaError.backend('No se pudo duplicar el bloque', err);
-			ctx.feedback.reportError(vegaErr, { action: 'blocks:duplicate' });
-		} finally {
-			duplicatingIds.delete(record.id);
-			structuralBusy = false;
-		}
-	}
-
-	async function confirmDelete(): Promise<void> {
-		if (
-			!blocksConfig ||
-			!childType ||
-			!pendingDelete ||
-			disabled ||
-			structuralBusy ||
-			savingIds.size > 0
-		)
-			return;
-		const id = pendingDelete.id;
-		const view = captureViewIdentity();
-		const sourceRecords = [...records];
-		structuralBusy = true;
-		deleting = true;
-		try {
-			await ctx.port.delete(childType.name, id);
-			if (!isCurrentView(view)) return;
-			status = { kind: 'ready', records: sourceRecords.filter((r) => r.id !== id) };
-			draftOverrides.delete(id);
-			expandedIds.delete(id);
-			setDirty(id, false); // un bloque borrado nunca puede seguir contando como sucio
-			pendingDelete = null;
-		} catch (err) {
-			const vegaErr =
-				err instanceof VegaError ? err : VegaError.backend('No se pudo borrar el bloque', err);
-			ctx.feedback.reportError(vegaErr, { action: 'blocks:delete' });
-		} finally {
-			deleting = false;
-			structuralBusy = false;
-		}
-	}
-
-	/** Reorden (decisión 1, ver cabecera): reflejo LOCAL inmediato del nuevo orden (feedback visual
-	 *  instantáneo, sin esperar la red) + persistencia de SOLO los `{id, value}` que cambian
-	 *  (`computeReorder`, misma lógica que el listado) + anuncio de posición. Si la escritura falla
-	 *  a medias, se recarga desde el backend en vez de dejar el array local desincronizado del
-	 *  `orderField` real — autocorrección simple, sin intentar reconciliar manualmente. */
-	async function handleReorder(
-		fromIndex: number,
-		toIndex: number,
-		sourceRecords: readonly VegaRecord[] = records,
-		ownsStructuralLock = false,
-		view: ViewIdentity = captureViewIdentity()
-	): Promise<boolean> {
-		if (
-			!blocksConfig ||
-			!childType ||
-			disabled ||
-			(structuralBusy && !ownsStructuralLock) ||
-			(savingIds.size > 0 && !ownsStructuralLock) ||
-			(dirtyIds.size > 0 && !ownsStructuralLock)
-		)
-			return false;
-		if (!ownsStructuralLock) structuralBusy = true;
-		const orderedIds = sourceRecords.map((r) => r.id);
-		const currentValues = Object.fromEntries(
-			sourceRecords.map((r) => {
-				const raw = r.values[blocksConfig.orderField];
-				return [r.id, typeof raw === 'number' ? raw : 0];
-			})
-		);
-		const updates = computeReorder(orderedIds, currentValues, fromIndex, toIndex);
-		if (updates.length === 0) {
-			if (!ownsStructuralLock) structuralBusy = false;
-			return true;
-		}
-
-		const reordered = [...sourceRecords];
-		const [moved] = reordered.splice(fromIndex, 1);
-		reordered.splice(toIndex, 0, moved);
-		if (isCurrentView(view)) {
-			status = { kind: 'ready', records: reordered };
-			announce = ctx.t('editor.blocks.reorder.moved', {
-				label: blockTitle(moved),
-				position: toIndex + 1,
-				total: reordered.length
-			});
-		}
-
-		try {
-			await Promise.all(
-				updates.map((u) =>
-					ctx.port.update(childType.name, u.id, { [blocksConfig.orderField]: u.value })
-				)
-			);
-			const byId = new Map(updates.map((u) => [u.id, u.value]));
-			if (isCurrentView(view)) {
-				status = {
-					kind: 'ready',
-					records: reordered.map((r) =>
-						byId.has(r.id)
-							? { ...r, values: { ...r.values, [blocksConfig.orderField]: byId.get(r.id)! } }
-							: r
-					)
-				};
-			}
-			return true;
-		} catch (err) {
-			const vegaErr =
-				err instanceof VegaError
-					? err
-					: VegaError.backend('No se pudo guardar el nuevo orden', err);
-			ctx.feedback.reportError(vegaErr, { action: 'blocks:reorder' });
-			// El reorden NO es atómico: son N escrituras independientes y PocketBase no da
-			// transacción para esto. Si falla una y otras ya se aplicaron, el backend queda a mitad
-			// —y con `orderField` posiblemente REPETIDO entre dos bloques, no solo "en otro orden"—
-			// hasta que este `load()` relee la verdad. Se acepta a cambio de que la divergencia
-			// nunca sea silenciosa: el usuario ve el error y la lista se repinta con lo persistido.
-			if (isCurrentView(view) && view.parentId !== null) {
-				void load(childType.name, view.parentId);
-			}
-			return false;
-		} finally {
-			if (!ownsStructuralLock) structuralBusy = false;
-		}
+		void blocks.handleCreate(blockType);
 	}
 
 	// ————— Arrastre + teclado (reusa `reorder-dnd.ts`, ver cabecera) —————
@@ -613,8 +182,8 @@
 		overIndex: null
 	});
 	const dnd = createReorderDndController(
-		(from, to) => void handleReorder(from, to),
-		() => records.length,
+		(from, to) => void blocks.handleReorder(from, to),
+		() => blocks.records.length,
 		(state) => (dragState = state)
 	);
 
@@ -622,29 +191,23 @@
 	 *  existe tras un borrado con éxito) — la cabecera de la propia tarjeta, `tabindex="-1"`, mismo
 	 *  truco que el `<h1>` oculto de `RecordForm`. */
 	let headingEl = $state<HTMLElement | null>(null);
-
-	const loading = $derived(status.kind === 'loading');
-	const failed = $derived(status.kind === 'error');
-	/** La sección entera desaparece si `blocks` no resuelve tipo hijo (defensivo, ver arriba) o si
-	 *  la carga falló (misma degradación "ayuda de navegación, no contenido" que `EditorRail`). */
-	const hidden = $derived(!blocksConfig || !childType || failed);
 </script>
 
 <!-- Nivel superior a la fuerza: `<svelte:window>` no puede vivir dentro de un bloque. No hace
      falta condicionarlo, porque los dos handlers salen pronto si el menú está cerrado. -->
 <svelte:window onclick={handleAddWindowClick} onkeydown={handleAddWindowKeydown} />
 
-{#if !hidden}
-	{@const type = childType!}
+{#if !blocks.hidden}
+	{@const type = blocks.childType!}
 	<section class="vega-blocks">
 		<div class="vega-blocks-head">
 			<h2 bind:this={headingEl} tabindex="-1">
-				{type.label}{#if status.kind === 'ready'}<span class="vega-blocks-count"
-						>{records.length}</span
+				{type.label}{#if blocks.status.kind === 'ready'}<span class="vega-blocks-count"
+						>{blocks.records.length}</span
 					>{/if}
 			</h2>
 			{#if parentId !== null}
-				{#if hasTypeMenu}
+				{#if blocks.hasTypeMenu}
 					<div class="vega-blocks-add-menu-wrap" onfocusout={handleAddFocusOut}>
 						<button
 							type="button"
@@ -653,7 +216,7 @@
 							aria-haspopup="menu"
 							aria-expanded={addMenuOpen}
 							aria-controls="vega-blocks-add-menu"
-							disabled={disabled || structuralBusy || savingIds.size > 0}
+							disabled={disabled || blocks.structuralBusy || blocks.anySaving}
 							onclick={() => (addMenuOpen ? closeAddMenu() : openAddMenu())}
 						>
 							{ctx.t('editor.blocks.add', { label: type.labelSingular })}
@@ -669,7 +232,7 @@
 								bind:this={addMenuEl}
 								onkeydown={handleMenuKeydown}
 							>
-								{#each blockTypes as blockType (blockType.name)}
+								{#each blocks.blockTypes as blockType (blockType.name)}
 									<button
 										type="button"
 										role="menuitem"
@@ -688,8 +251,8 @@
 					<button
 						type="button"
 						class="vega-blocks-add"
-						disabled={disabled || structuralBusy || savingIds.size > 0}
-						onclick={() => handleCreate()}
+						disabled={disabled || blocks.structuralBusy || blocks.anySaving}
+						onclick={() => blocks.handleCreate()}
 					>
 						{ctx.t('editor.blocks.add', { label: type.labelSingular })}
 					</button>
@@ -697,21 +260,21 @@
 			{/if}
 		</div>
 
-		<div aria-live="polite" class="vega-visually-hidden-live">{announce}</div>
+		<div aria-live="polite" class="vega-visually-hidden-live">{blocks.announce}</div>
 
 		{#if parentId === null}
 			<p class="vega-blocks-notice">
 				{ctx.t('editor.blocks.notice.saveParentFirst', { label: type.label })}
 			</p>
-		{:else if loading}
+		{:else if blocks.loading}
 			<p class="vega-blocks-notice" aria-live="polite">{ctx.t('common.loading')}</p>
-		{:else if records.length === 0}
+		{:else if blocks.records.length === 0}
 			<p class="vega-blocks-notice">{ctx.t('editor.blocks.empty', { label: type.label })}</p>
 		{:else}
 			<ul class="vega-blocks-list">
-				{#each records as record, i (record.id)}
-					{@const title = blockTitle(record)}
-					{@const expanded = expandedIds.has(record.id)}
+				{#each blocks.records as record, i (record.id)}
+					{@const title = blocks.blockTitle(record)}
+					{@const expanded = blocks.isExpanded(record.id)}
 					{@const dropEdge =
 						dragState.overIndex === i
 							? dropIndicatorEdge(dragState.fromIndex, dragState.overIndex)
@@ -729,27 +292,30 @@
 								type="button"
 								class="vega-block-handle"
 								aria-label={ctx.t('list.reorder.handleLabel', { label: title })}
-								disabled={disabled || structuralBusy || savingIds.size > 0 || dirtyIds.size > 0}
+								disabled={disabled || blocks.structuralBusy || blocks.anySaving || blocks.anyDirty}
 								draggable={!disabled &&
-									!structuralBusy &&
-									savingIds.size === 0 &&
-									dirtyIds.size === 0}
+									!blocks.structuralBusy &&
+									!blocks.anySaving &&
+									!blocks.anyDirty}
 								ondragstart={(event) => dnd.handleDragStart(event, i)}
 								ondragend={dnd.handleDragEnd}
 								onkeydown={(event) => dnd.handleHandleKeydown(event, i)}
 							>
 								<span aria-hidden="true">⠿</span>
 							</button>
-							{#if blockDuplicateAllowed}
+							{#if blocks.blockDuplicateAllowed}
 								<button
 									type="button"
 									class="vega-block-duplicate"
-									disabled={disabled || dirtyIds.size > 0 || savingIds.size > 0 || structuralBusy}
-									title={dirtyIds.size > 0 ? ctx.t('editor.duplicate.saveFirst') : undefined}
+									disabled={disabled ||
+										blocks.anyDirty ||
+										blocks.anySaving ||
+										blocks.structuralBusy}
+									title={blocks.anyDirty ? ctx.t('editor.duplicate.saveFirst') : undefined}
 									aria-label={ctx.t('editor.blocks.duplicateLabel', { label: title })}
-									onclick={() => handleDuplicate(record)}
+									onclick={() => blocks.handleDuplicate(record)}
 								>
-									{duplicatingIds.has(record.id)
+									{blocks.isDuplicating(record.id)
 										? ctx.t('editor.duplicating')
 										: ctx.t('editor.duplicate')}
 								</button>
@@ -759,12 +325,12 @@
 								class="vega-block-toggle"
 								aria-expanded={expanded}
 								aria-controls={`vega-block-body-${record.id}`}
-								onclick={() => toggle(record.id)}
+								onclick={() => blocks.toggle(record.id)}
 							>
 								<span class="vega-block-chevron"><Icon id="chevron" size={14} /></span>
-								{#if hasTypeColumn}
-									{@const blockType = blockTypeOf(record)}
-									{@const rawType = blockTypeRawName(record)}
+								{#if blocks.hasTypeColumn}
+									{@const blockType = blocks.blockTypeOf(record)}
+									{@const rawType = blocks.blockTypeRawName(record)}
 									{#if blockType}
 										<span class="vega-block-type">
 											{#if blockType.icon}<Icon id={blockType.icon} size={12} />{/if}
@@ -785,7 +351,7 @@
 									{/if}
 								{/if}
 								<span class="vega-block-title">{title}</span>
-								{#if dirtyIds.has(record.id)}
+								{#if blocks.isDirty(record.id)}
 									<span class="vega-block-dirty" title={ctx.t('editor.dirty')}>
 										<span class="vega-visually-hidden">{ctx.t('editor.dirty')}</span>
 									</span>
@@ -799,9 +365,9 @@
 							<button
 								type="button"
 								class="vega-block-delete"
-								disabled={disabled || structuralBusy || savingIds.size > 0}
+								disabled={disabled || blocks.structuralBusy || blocks.anySaving}
 								aria-label={ctx.t('list.delete.rowButtonLabel', { label: title })}
-								onclick={() => (pendingDelete = record)}
+								onclick={() => blocks.requestDelete(record)}
 							>
 								{ctx.t('list.delete.rowButton')}
 							</button>
@@ -811,17 +377,17 @@
 						<div id={`vega-block-body-${record.id}`} class="vega-block-body" hidden={!expanded}>
 							<BlockEditor
 								childType={type}
-								blockType={blockTypeOf(record)}
-								rawBlockType={blockTypeRawName(record)}
-								dataField={blocksConfig!.dataField}
+								blockType={blocks.blockTypeOf(record)}
+								rawBlockType={blocks.blockTypeRawName(record)}
+								dataField={blocks.blocksConfig!.dataField}
 								{record}
-								{structuralFields}
+								structuralFields={blocks.structuralFields}
 								onSubmit={(input) => ctx.port.update(type.name, record.id, input)}
-								onSaved={(saved) => handleBlockSaved(record.id, saved)}
-								onDirtyChange={(dirty) => setDirty(record.id, dirty)}
-								onDraftChange={(draft) => handleBlockDraftChange(record.id, draft)}
-								disabled={disabled || structuralBusy}
-								onBusyChange={(saving) => setSaving(record.id, saving)}
+								onSaved={(saved) => blocks.handleBlockSaved(record.id, saved)}
+								onDirtyChange={(dirty) => blocks.setDirty(record.id, dirty)}
+								onDraftChange={(draft) => blocks.handleBlockDraftChange(record.id, draft)}
+								disabled={disabled || blocks.structuralBusy}
+								onBusyChange={(saving) => blocks.setSaving(record.id, saving)}
 							/>
 						</div>
 					</li>
@@ -835,17 +401,17 @@
 	     `parentType` — borrar un bloque puede romper referencias igual que borrar cualquier otro
 	     registro. -->
 	<DeleteConfirm
-		open={pendingDelete !== null}
-		recordLabel={pendingDelete ? blockTitle(pendingDelete) : ''}
-		targetCollection={pendingDelete?.type ?? ''}
-		targetId={pendingDelete?.id ?? null}
-		{deleting}
+		open={blocks.pendingDelete !== null}
+		recordLabel={blocks.pendingDelete ? blocks.blockTitle(blocks.pendingDelete) : ''}
+		targetCollection={blocks.pendingDelete?.type ?? ''}
+		targetId={blocks.pendingDelete?.id ?? null}
+		deleting={blocks.deleting}
 		fallbackFocusEl={headingEl}
-		hasFiles={pendingDelete !== null &&
-			childType !== null &&
-			hasFileValues(childType.schema.fields, pendingDelete.values)}
-		onConfirm={confirmDelete}
-		onCancel={() => (pendingDelete = null)}
+		hasFiles={blocks.pendingDelete !== null &&
+			blocks.childType !== null &&
+			hasFileValues(blocks.childType.schema.fields, blocks.pendingDelete.values)}
+		onConfirm={blocks.confirmDelete}
+		onCancel={() => blocks.cancelDelete()}
 	/>
 {/if}
 
