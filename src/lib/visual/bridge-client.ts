@@ -15,7 +15,7 @@
  * Por eso este módulo trata el anuncio como una promesa y el `ready` como la prueba.
  *
  * **La degradación es la mitad del módulo, no su apéndice** — es donde se cae este tipo de
- * función. Los cuatro caminos, todos con test propio:
+ * función. Los cinco caminos, todos con test propio:
  * 1. Nadie contesta al saludo dentro del plazo → `error/no-bridge`. Quien lo consume ofrece la
  *    vista previa de siempre, que sí funciona. Nunca un lienzo mudo.
  * 2. Mensaje de un origen que no casa → se descarta EN SILENCIO y no cuenta como respuesta: no
@@ -27,6 +27,13 @@
  *    otro idioma. Se ignora el CONTENIDO y se reporta la CAUSA.
  * 4. El propio puente avisa de que no puede trabajar (`error`) → `error/site-error` con su
  *    código.
+ * 5. El marco saluda diciendo que pinta OTRO registro → `error/record-mismatch`. Es la razón de
+ *    que el saludo lleve `{collection, id}`: sin contrastarlo, el autor editaría una página que
+ *    no es la que está guardando.
+ *
+ * Ninguno de esos estados deja el cliente sordo: sigue escuchando, así que un `ready` que llega
+ * tarde cura el estado, y `start()` (el `load` del marco, o un botón de reintentar) reengancha
+ * desde cero. Lo único que lo apaga es `stop()`, que es el desmontaje.
  *
  * **El texto de la interfaz NO vive aquí**: el estado expone un `kind` cerrado y la pantalla lo
  * traduce por `i18n`. Este módulo no importa Svelte, no toca `window` y no registra ningún
@@ -206,7 +213,9 @@ export type VisualBridgeErrorKind =
 	/** El puente habla otra versión del protocolo. */
 	| 'protocol-version'
 	/** El puente avisó de que no puede hacer su trabajo. */
-	| 'site-error';
+	| 'site-error'
+	/** El marco está pintando OTRO registro del que esta sesión edita. */
+	| 'record-mismatch';
 
 export type VisualBridgeState =
 	| { status: 'idle' }
@@ -228,6 +237,8 @@ export type VisualBridgeState =
 			/** Solo en `site-error`: el código del puente y su texto, ya recortado. */
 			code?: string;
 			detail?: string | null;
+			/** Solo en `record-mismatch`: el registro que dijo estar pintando el marco. */
+			found?: { collection: string; id: string };
 	  };
 
 /** Lo mínimo de una ventana para poder escribirle. Se inyecta como función porque el
@@ -260,9 +271,15 @@ export type MessageVerdict =
 	/** Sobre bueno, cuerpo sin forma. */
 	| 'malformed'
 	/** Válido, pero no aplicable al estado actual (geometría antes del saludo). */
-	| 'out-of-order';
+	| 'out-of-order'
+	/** Saludo bueno, pero el marco pinta otro registro. */
+	| 'record-mismatch';
 
 export interface VisualBridgeClientOptions {
+	/** Registro que esta sesión de edición está editando. El `ready` del sitio dice cuál está
+	 *  pintando, y aquí es donde se contrasta: sin este dato, el `{collection, id}` del contrato
+	 *  sería decorativo y un marco que enseña OTRO registro pasaría por bueno. */
+	record: { collection: string; id: string };
 	/** La `url` que devolvió `POST {apiBasePath}/token` (`backend/preview-client.ts`). Es opaca
 	 *  para Vega salvo por esto: su ORIGEN es el único que se acepta y el único al que se
 	 *  escribe. */
@@ -287,8 +304,14 @@ export interface VisualBridgeClient {
 	readonly state: VisualBridgeState;
 	/** Origen contra el que se valida y al que se escribe; `null` si la URL no daba ninguno. */
 	readonly expectedOrigin: string | null;
-	/** Se llama cuando el iframe dispara `load` (§contrato). Idempotente: llamarlo dos veces sin
-	 *  `stop()` no duplica los saludos. */
+	/**
+	 * Se llama cuando el iframe dispara `load` (§contrato) y para REINTENTAR tras un error.
+	 *
+	 * Estando ya saludando o conectado no hace nada (llamarlo dos veces seguidas no duplica los
+	 * saludos). Desde `idle` o desde CUALQUIER error empieza de cero: el marco dispara `load`
+	 * otra vez cada vez que el puente se recarga entero (§"Live refresh": si la sustitución en
+	 * caliente falla, recarga el marco), y un botón de reintentar necesita exactamente esto.
+	 */
 	start(): void;
 	/** Desmontaje: cancela el temporizador pendiente y deja de aceptar mensajes. */
 	stop(): void;
@@ -351,9 +374,17 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 		}
 	}
 
+	/** Corta el saludo y reporta la causa. NO deja de escuchar a propósito: un `ready` posterior
+	 *  cura el estado (ver `handleMessage`), y `start()` puede reintentar desde aquí. Lo único que
+	 *  deja sordo al cliente es `stop()`, que es el desmontaje. */
 	function fail(
 		kind: VisualBridgeErrorKind,
-		extra?: { version?: string; code?: string; detail?: string | null }
+		extra?: {
+			version?: string;
+			code?: string;
+			detail?: string | null;
+			found?: { collection: string; id: string };
+		}
 	): void {
 		clearTimer();
 		setState({ status: 'error', kind, ...extra });
@@ -379,11 +410,19 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 		expectedOrigin,
 
 		start() {
-			if (active) return;
+			// Desde `connecting`/`connected` no se toca nada; desde `idle` o desde un error se
+			// empieza de cero. Mirar el ESTADO y no una bandera de "arrancado" es lo que hace que
+			// se pueda reintentar: un error deja el cliente escuchando (ver `handleMessage`), así
+			// que una bandera dejaría `start()` mudo para siempre justo cuando hace falta.
+			if (state.status === 'connecting' || state.status === 'connected') return;
 			if (!expectedOrigin) {
 				// Sin origen esperado no hay validación posible, así que no se escucha ni se escribe.
+				// Reintentar no puede cambiarlo (la URL se fija al crear el cliente), así que ni
+				// siquiera se vuelve a anunciar el mismo estado.
 				active = false;
-				setState({ status: 'error', kind: 'bad-preview-url' });
+				if (state.status !== 'error' || state.kind !== 'bad-preview-url') {
+					setState({ status: 'error', kind: 'bad-preview-url' });
+				}
 				return;
 			}
 			active = true;
@@ -418,8 +457,23 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 			const message = parsed.message;
 			switch (message.type) {
 				case 'ready':
+					// El marco tiene que estar pintando EL registro de esta sesión. Es la razón de
+					// que `ready` lleve `{collection, id}`: sin contrastarlo, un iframe apuntado a
+					// otra URL (una vista previa vieja en caché, un token reutilizado) se editaría
+					// como si fuera este, y el autor vería sus cambios en una página que no es la
+					// que está guardando. Se dice explícitamente, nunca se deja pasar.
+					if (message.collection !== opts.record.collection || message.id !== opts.record.id) {
+						fail('record-mismatch', {
+							found: { collection: message.collection, id: message.id }
+						});
+						return 'record-mismatch';
+					}
 					// Idempotente por contrato: un `ready` repetido (el puente contestando a un
-					// `hello` tardío) no reinicia nada, solo refresca lo que describe.
+					// `hello` tardío) no reinicia nada, solo refresca lo que describe. Y un `ready`
+					// que llega DESPUÉS de un error lo cura: el plazo de `no-bridge` es una
+					// suposición sobre un sitio lento, no un hecho, y negarse a atender la respuesta
+					// que llega un instante tarde dejaría al autor con un mensaje falso delante.
+					// `layout` y `select` NO curan: son conversación, no anuncio.
 					clearTimer();
 					setState({
 						status: 'connected',

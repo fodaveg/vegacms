@@ -1,9 +1,9 @@
 /**
  * Suite de `bridge-client.ts` (lote del editor visual, §"Visual editing bridge" del contrato de
  * proyecto): `parseSiteMessage` (sobre, forma y descarte por bloque) y
- * `createVisualBridgeClient` (saludo repetido, validación de origen y las CUATRO degradaciones
- * que son el motivo del módulo: sin puente, origen ajeno, versión desconocida y error del
- * propio puente).
+ * `createVisualBridgeClient` (saludo repetido, validación de origen y las CINCO degradaciones
+ * que son el motivo del módulo: sin puente, origen ajeno, versión desconocida, error del propio
+ * puente y marco pintando otro registro), más el reenganche tras cualquiera de ellas.
  *
  * Sin PocketBase y sin DOM: el cliente recibe mensajes por `handleMessage()` y escribe por un
  * `MessagePoster` de mentira, así que aquí se ejerce el protocolo entero con temporizadores
@@ -134,6 +134,7 @@ describe('createVisualBridgeClient', () => {
 		const states: VisualBridgeState[] = [];
 		const selected: string[] = [];
 		const client = createVisualBridgeClient({
+			record: { collection: 'pages', id: 'abc123' },
 			previewUrl: overrides.previewUrl ?? PREVIEW_URL,
 			documentUrl: overrides.documentUrl,
 			frame: () => frame,
@@ -198,6 +199,16 @@ describe('createVisualBridgeClient', () => {
 		expect(states).toHaveLength(before);
 		expect(client.state).toEqual({ status: 'connecting', attempts: 1 });
 
+		// Y tampoco puede tumbar la sesión mandando un "error" desde fuera: la comprobación de
+		// origen va ANTES de mirar el tipo de mensaje.
+		expect(
+			client.handleMessage({
+				origin: 'https://atacante.test',
+				data: envelope({ type: 'error', code: 'boom', message: 'te tumbo' })
+			})
+		).toBe('foreign-origin');
+		expect(client.state).toEqual({ status: 'connecting', attempts: 1 });
+
 		// No ha adelantado el saludo: el plazo sigue corriendo y acaba en "no-bridge".
 		vi.advanceTimersByTime(300);
 		expect(client.state).toEqual({ status: 'error', kind: 'no-bridge' });
@@ -236,10 +247,11 @@ describe('createVisualBridgeClient', () => {
 		const { client } = harness();
 		client.start();
 		client.handleMessage({ origin: ORIGIN, data: READY });
-		client.handleMessage({
+		const verdict = client.handleMessage({
 			origin: ORIGIN,
 			data: envelope({ type: 'error', code: 'empty-allowlist', message: 'sin orígenes' })
 		});
+		expect(verdict).toBe('accepted');
 		expect(client.state).toEqual({
 			status: 'error',
 			kind: 'site-error',
@@ -248,14 +260,80 @@ describe('createVisualBridgeClient', () => {
 		});
 	});
 
+	test('DEGRADACIÓN 5 — el marco saluda pintando OTRO registro: se dice, no se edita a ciegas', () => {
+		const { client } = harness();
+		client.start();
+		const verdict = client.handleMessage({
+			origin: ORIGIN,
+			data: envelope({ type: 'ready', collection: 'pages', id: 'otro', blocks: [BLOCK] })
+		});
+		expect(verdict).toBe('record-mismatch');
+		expect(client.state).toEqual({
+			status: 'error',
+			kind: 'record-mismatch',
+			found: { collection: 'pages', id: 'otro' }
+		});
+		// La colección también cuenta: mismo id en otra colección es otro registro.
+		client.start();
+		client.handleMessage({
+			origin: ORIGIN,
+			data: envelope({ type: 'ready', collection: 'posts', id: 'abc123', blocks: [BLOCK] })
+		});
+		expect(client.state).toMatchObject({
+			kind: 'record-mismatch',
+			found: { collection: 'posts', id: 'abc123' }
+		});
+	});
+
+	test('un error NO deja el cliente sordo: un "ready" tardío lo cura', () => {
+		// El plazo es una suposición sobre un sitio lento, no un hecho: negarse a atender la
+		// respuesta que llega un instante tarde dejaría al autor con un mensaje falso delante.
+		const { client } = harness();
+		client.start();
+		vi.advanceTimersByTime(300);
+		expect(client.state).toEqual({ status: 'error', kind: 'no-bridge' });
+
+		expect(client.handleMessage({ origin: ORIGIN, data: READY })).toBe('accepted');
+		expect(client.state).toMatchObject({ status: 'connected', collection: 'pages', id: 'abc123' });
+	});
+
+	test('start() REENGANCHA tras un error (el marco recargado, o un botón de reintentar)', () => {
+		const { client, posted } = harness();
+		client.start();
+		vi.advanceTimersByTime(300);
+		expect(posted).toHaveLength(3);
+		expect(client.state).toEqual({ status: 'error', kind: 'no-bridge' });
+
+		// Sin esto, `start()` sería un no-op silencioso justo cuando hace falta: el contrato
+		// recarga el marco entero si falla la sustitución en caliente, y eso dispara otro `load`.
+		client.start();
+		expect(client.state).toEqual({ status: 'connecting', attempts: 1 });
+		expect(posted).toHaveLength(4);
+		client.handleMessage({ origin: ORIGIN, data: READY });
+		expect(client.state).toMatchObject({ status: 'connected' });
+	});
+
+	test('estando conectado, start() no vuelve a saludar', () => {
+		const { client, posted } = harness();
+		client.start();
+		client.handleMessage({ origin: ORIGIN, data: READY });
+		client.start();
+		expect(posted).toHaveLength(1);
+		expect(client.state).toMatchObject({ status: 'connected' });
+	});
+
 	test('una URL de vista previa sin origen utilizable falla CERRADO: ni escucha ni escribe', () => {
 		for (const previewUrl of ['/preview/pages/abc', 'data:text/html,<p>hola', 'no es una url']) {
-			const { client, posted } = harness({ previewUrl });
+			const { client, posted, states } = harness({ previewUrl });
 			client.start();
 			expect(client.expectedOrigin).toBeNull();
 			expect(client.state).toEqual({ status: 'error', kind: 'bad-preview-url' });
 			expect(posted).toEqual([]);
 			expect(client.handleMessage({ origin: ORIGIN, data: READY })).toBe('inactive');
+			// Reintentar no puede arreglarlo (la URL se fija al crear el cliente), así que tampoco
+			// se vuelve a anunciar el mismo estado: es la única rama de error que NO reengancha.
+			client.start();
+			expect(states).toHaveLength(1);
 		}
 	});
 
@@ -329,6 +407,7 @@ describe('createVisualBridgeClient', () => {
 		const targets: string[] = [];
 		const frame: MessagePoster = { postMessage: (_data, target) => void targets.push(target) };
 		const client = createVisualBridgeClient({
+			record: { collection: 'pages', id: 'abc123' },
 			previewUrl: PREVIEW_URL,
 			frame: () => frame,
 			helloAttempts: 3,
@@ -358,6 +437,7 @@ describe('createVisualBridgeClient', () => {
 
 	test('un marco que ya no existe no rompe el saludo: se acaba en el plazo de siempre', () => {
 		const client = createVisualBridgeClient({
+			record: { collection: 'pages', id: 'abc123' },
 			previewUrl: PREVIEW_URL,
 			frame: () => null,
 			helloAttempts: 2,
@@ -376,6 +456,7 @@ describe('createVisualBridgeClient', () => {
 			}
 		};
 		const client = createVisualBridgeClient({
+			record: { collection: 'pages', id: 'abc123' },
 			previewUrl: PREVIEW_URL,
 			frame: () => frame,
 			helloAttempts: 2,
