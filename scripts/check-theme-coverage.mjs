@@ -70,6 +70,13 @@ export const ALLOWLIST_RAW_COLOR = [
 		snippet: 'rgb(15 17 21 / 45%)'
 	},
 	{
+		// Mismo caso que `Sidebar.svelte` arriba (overlay móvil, no un modal): el cajón del árbol
+		// de secciones por debajo de 1180px (`VisualBlockTree.svelte`, tarea "árbol de secciones y
+		// el inspector") reusa el MISMO velo.
+		file: 'src/lib/visual/VisualBlockTree.svelte',
+		snippet: 'rgb(15 17 21 / 45%)'
+	},
+	{
 		file: 'src/lib/media/MediaDetail.svelte',
 		snippet: 'rgb(15 17 21 / 55%)'
 	},

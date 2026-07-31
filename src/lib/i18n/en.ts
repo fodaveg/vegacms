@@ -254,6 +254,16 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.overlay.empty': 'This page has no blocks to select yet.',
 	'editor.visual.overlay.skipped': "{count} block(s) the site described badly: can't be selected.",
 	'editor.visual.overlay.unsupported': 'unsupported',
+	// ————— Section tree (`VisualBlockTree.svelte`) and inspector (`VisualInspector.svelte`): the
+	// ACCESSIBLE way to select a block (the overlay above is `aria-hidden`) and the selected
+	// block's form. See `es.ts` for the full rationale, incl. which existing keys are reused.
+	'editor.visual.tree.title': 'Sections',
+	'editor.visual.tree.selectLabel': 'Select "{label}"',
+	'editor.visual.tree.unavailable': 'Could not load the section tree.',
+	'editor.visual.inspector.title': 'Inspector',
+	'editor.visual.inspector.empty': 'Select a block in the tree or on the canvas to edit it here.',
+	'editor.visual.inspector.unknownBlock':
+		"The site points to a block that's no longer in this record.",
 
 	// ————— Master-detail editor (final `aquelarre-detalle-post.html` mockup) —————
 	// Sibling rail (`.rail`), metadata aside (`.kv`) and danger zone: GENERIC opt-in renderer

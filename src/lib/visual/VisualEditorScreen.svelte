@@ -9,24 +9,42 @@
 	 * del presupuesto de bundle: la ruta la importa de forma ESTÁTICA justo para eso (el porqué,
 	 * en la cabecera de la ruta).
 	 *
-	 * **Alcance de ESTA entrega, para que quede escrito y no se dé por hecho**: pinta el LIENZO
-	 * (iframe + estados de conexión) y los CONTORNOS de selección sobre él (`VisualOverlay.svelte`,
-	 * ver su cabecera para el diseño del overlay en sí). La rejilla ya se prepara para tres
-	 * columnas (`.vega-visual-grid`, ver el CSS) porque el árbol de secciones y el inspector del
-	 * bloque son tareas APARTE — una de ellas exige antes separar estado de presentación en
-	 * `RecordBlocks.svelte`, así que ninguna de las dos entra aquí. Tampoco entra ninguna ESCRITURA
-	 * sobre un bloque (eso sí lo trae el inspector): un `select` del sitio solo mueve qué está
-	 * seleccionado, nunca cambia contenido.
+	 * **Alcance de ESTA entrega (tarea "árbol de secciones y el inspector", ampliada sobre la
+	 * anterior)**: además del LIENZO (iframe + estados de conexión) y los CONTORNOS de selección
+	 * (`VisualOverlay.svelte`), la rejilla ya usa sus TRES columnas (`.vega-visual-grid--tree`/
+	 * `--inspector`, ver el CSS): `VisualBlockTree.svelte` (árbol de secciones, izquierda) y
+	 * `VisualInspector.svelte` (ficha del bloque seleccionado, derecha), las dos sobre el MISMO
+	 * `blocks` (`createBlocksState()`, instanciado UNA vez aquí abajo — "un solo
+	 * `createBlocksState` por pantalla"). La ESCRITURA sobre un bloque ya entra por esta pantalla:
+	 * vive dentro de `BlockEditor.svelte`, montado por `VisualInspector`, nunca aquí — esta pantalla
+	 * solo fija la selección, pasa el estado y pide un token de vista previa nuevo tras cada
+	 * guardado (`requestPreview`, ver `handleBlockSaved` más abajo). Lo que SIGUE sin entrar:
+	 * crear/reordenar/duplicar/borrar bloques (exclusivas de `RecordBlocks.svelte`) y el refresco EN
+	 * VIVO del marco sin recargarlo (pedir un token nuevo SÍ recarga el `<iframe>` entero).
 	 *
 	 * **La selección tiene un solo dueño: `selectedBlockId`, aquí.** No vive en
 	 * `bridge-client.ts` (que es puro transporte, ver su cabecera) ni en `VisualOverlay.svelte`
-	 * (que solo pinta lo que le llega, ver la suya): un segundo dueño del mismo dato es la vía a
-	 * que las dos mitades enseñen cosas distintas, mismo criterio que ya usa `bridge-client.ts`
-	 * para la selección `onSelect` frente al estado del puente. Cuando el sitio manda `select`
-	 * (clic dentro de un bloque, en el iframe), esta pantalla actualiza `selectedBlockId` Y avisa
-	 * al sitio con `highlight`/`scrollTo` (ya expuestos por el cliente) para que el marco reaccione
-	 * a su propia selección — hoy es la ÚNICA fuente de selección; el árbol de secciones de la
-	 * tarea siguiente reusará la misma función.
+	 * (que solo pinta lo que le llega, ver la suya) ni en `VisualBlockTree.svelte` (que también
+	 * solo pinta lo que le llega, mismo criterio): un segundo dueño del mismo dato es la vía a que
+	 * las mitades enseñen cosas distintas, mismo criterio que ya usa `bridge-client.ts` para la
+	 * selección `onSelect` frente al estado del puente. Cuando el sitio manda `select` (clic dentro
+	 * de un bloque, en el iframe) O el autor elige una fila del árbol, esta pantalla actualiza
+	 * `selectedBlockId` Y avisa al sitio con `highlight`/`scrollTo` (ya expuestos por el cliente)
+	 * para que el marco reaccione a su propia selección — `handleBlockSelect`, más abajo, es la
+	 * ÚNICA puerta de entrada para las dos fuentes, así que los dos sentidos ("clic en el lienzo
+	 * selecciona en el árbol" y "elegir en el árbol resalta el lienzo") quedan sincronizados sin
+	 * ningún camino que los pueda desincronizar.
+	 *
+	 * **Guard de salida**: esta pantalla puede tener ediciones sin guardar desde que el inspector
+	 * monta `BlockEditor` de verdad, así que usa `beforeNavigate` + `beforeunload`, **el MISMO
+	 * mecanismo que `RecordForm.svelte` y nunca `registerExitGuard`**. Esto no es preferencia: el
+	 * audit de P5 (Finding 1) ya cambió `RecordForm` por este motivo exacto, y su cabecera lo deja
+	 * escrito — `registerExitGuard` solo intercepta `ctx.nav.*`, así que el atrás/adelante del
+	 * navegador, un clic en un enlace y cerrar o recargar la pestaña se llevarían por delante lo
+	 * escrito sin preguntar. `beforeNavigate` cubre las tres primeras (incluido `ctx.nav.*`, que por
+	 * dentro es `goto()`) y SvelteKit lo da de baja solo al desmontar; `beforeunload` cubre la
+	 * cuarta. `window.confirm` es deliberado por la misma razón que allí: `beforeNavigate` necesita
+	 * una respuesta SÍNCRONA en el mismo tick para poder cancelar.
 	 *
 	 * **Sin borrador, a propósito**: pide el token con `createPreviewClient` para
 	 * `{collection, id}` SIN `draft` (a diferencia de `PreviewPanel.svelte`, que sí lo manda porque
@@ -67,12 +85,16 @@
 	 * No se defiende porque hoy `previewApiUrl` se resuelve una vez por sesión y el saludo tiene su
 	 * propio plazo, pero es un supuesto, no una garantía.
 	 *
-	 * Esta pantalla se REMONTA entera si el autor navega a otro registro (`{#key}` en la ruta), así que
-	 * tampoco hace falta resincronizar `type`/`record` cambiando por debajo — a diferencia de
-	 * `RecordForm.svelte`, aquí no hay dirty tracking ni bloques con estado propio que perder con un
-	 * remontaje.
+	 * Esta pantalla se REMONTA entera si el autor navega a otro registro (`{#key}` en la ruta), así
+	 * que tampoco hace falta resincronizar `type`/`record` cambiando por debajo — a diferencia de
+	 * `RecordForm.svelte`, que sí resincroniza un `model` que cambia por debajo (ver su cabecera):
+	 * esta pantalla es más simple porque el remontaje entero YA hace ese trabajo por ella. Sí que
+	 * hay ahora dirty tracking y bloques con estado propio que perder (`blocks`, más abajo) —
+	 * remontar entero es justo lo que también los limpia, sin necesitar la disciplina de resincronía
+	 * de `RecordForm`.
 	 */
 	import { onDestroy, onMount, untrack } from 'svelte';
+	import { beforeNavigate } from '$app/navigation';
 	import { getVegaContext } from '$lib/app-context';
 	import type { ResolvedContentType } from '$lib/model/types';
 	import type { VegaRecord } from '$lib/backend';
@@ -84,11 +106,14 @@
 		type VisualBridgeErrorKind,
 		type VisualBridgeState
 	} from './bridge-client';
+	import { createBlocksState } from '$lib/form/blocks-state.svelte';
 	import { describeCell } from '$lib/list/cell';
 	import { resolveTitleCellText } from '$lib/list/list-load';
 	import EditTopBar from '$lib/shell/EditTopBar.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
 	import VisualOverlay from './VisualOverlay.svelte';
+	import VisualBlockTree from './VisualBlockTree.svelte';
+	import VisualInspector from './VisualInspector.svelte';
 
 	interface Props {
 		type: ResolvedContentType;
@@ -98,6 +123,29 @@
 	let { type, record }: Props = $props();
 
 	const ctx = getVegaContext();
+
+	// Único `createBlocksState` de esta pantalla (§encargo): árbol e inspector lo reciben como PROP,
+	// ninguno de los dos instancia la fábrica por su cuenta (ver sus cabeceras). `resolveVisualGate`
+	// ya garantiza `type.blocks` no-nulo para que esta ruta exista (`visual-gate.ts`), así que
+	// `parentType: type` siempre resuelve un `blocksConfig` real — `blocks.hidden` solo se activaría
+	// por el camino DEFENSIVO de la propia fábrica (carga fallida, tipo hijo no encontrado), no
+	// porque falte la capacidad. `getDisabled` fijo a `false`: esta pantalla no tiene un mutex
+	// externo tipo "clonando página" que congele la edición de bloques.
+	const blocks = createBlocksState({
+		ctx,
+		parentType: untrack(() => type),
+		getParentId: () => record.id,
+		getDisabled: () => false,
+		onDirtyChange: () => {} // el guard de salida lee `blocks.anyDirty` directo, ver más abajo
+	});
+
+	/** Guard de salida (ver cabecera): mismo mecanismo y mismo texto que `RecordForm.svelte`.
+	 *  `beforeNavigate` se registra en la inicialización del componente y SvelteKit lo da de baja
+	 *  solo al desmontar; `beforeunload` se añade y se quita a mano en `onMount`/`onDestroy`. */
+	beforeNavigate((navigation) => {
+		if (!blocks.anyDirty) return;
+		if (!window.confirm(ctx.t('editor.leaveConfirm'))) navigation.cancel();
+	});
 
 	// Capturados UNA vez (`untrack`, mismo patrón que `PreviewPanel.svelte`): esta pantalla se
 	// remonta entera si cambia el registro (ver cabecera), así que el valor INICIAL basta. El gate
@@ -182,11 +230,11 @@
 		}
 	}
 
-	/** El autor hizo clic dentro de un bloque, en el sitio (§contrato, `select`) — la ÚNICA fuente
-	 *  de selección hoy (ver cabecera). Además de mover el dueño único (`selectedBlockId`), avisa
-	 *  al sitio con `highlight`/`scrollTo`: el marco puede querer resaltar visualmente el bloque
-	 *  que él mismo acaba de anunciar, o desplazarse si el clic vino de fuera de la vista (un
-	 *  disparo futuro desde el árbol de secciones, que reusará esta misma función). Las dos
+	/** Puerta ÚNICA de selección (ver cabecera): la llama tanto el sitio (§contrato, `select`, clic
+	 *  dentro de un bloque en el iframe) como `VisualBlockTree.svelte` (el autor elige una fila).
+	 *  Además de mover el dueño único (`selectedBlockId`), avisa al sitio con `highlight`/
+	 *  `scrollTo`: el marco puede querer resaltar visualmente el bloque que acaba de anunciar, o
+	 *  desplazarse si la selección vino del árbol y el bloque está fuera de la vista. Las dos
 	 *  llamadas son no-op si el puente no está `connected` (`bridge-client.ts#highlight`).
 	 */
 	function handleBlockSelect(blockId: string): void {
@@ -265,8 +313,17 @@
 		applyWidth(!event.matches);
 	}
 
+	/** Cierre o recarga de pestaña: `beforeNavigate` no los ve (no son navegación del router), así
+	 *  que hace falta este segundo escuchador — mismo par que `RecordForm.svelte`. */
+	function handleBeforeUnload(event: BeforeUnloadEvent): void {
+		if (!blocks.anyDirty) return;
+		event.preventDefault();
+		event.returnValue = '';
+	}
+
 	onMount(() => {
 		window.addEventListener('message', handleMessage);
+		window.addEventListener('beforeunload', handleBeforeUnload);
 		narrowQuery = window.matchMedia(NARROW_QUERY);
 		canvasActive = !narrowQuery.matches;
 		narrowQuery.addEventListener('change', handleNarrowChange);
@@ -276,6 +333,7 @@
 	onDestroy(() => {
 		clearRenewTimer();
 		window.removeEventListener('message', handleMessage);
+		window.removeEventListener('beforeunload', handleBeforeUnload);
 		narrowQuery?.removeEventListener('change', handleNarrowChange);
 		bridgeClient?.stop();
 	});
@@ -400,11 +458,14 @@
 	</EditTopBar>
 
 	{#if canvasActive}
-		<div class="vega-visual-grid">
-			<!-- Hoy solo se pinta el lienzo (ver cabecera): el árbol de secciones y el inspector son
-		     tareas aparte. `.vega-visual-grid--tree`/`--inspector` seguirán el mismo patrón que
-		     `.vega-editor-grid--rail`/`--aside` de `RecordForm.svelte` el día que lleguen, añadiendo
-		     columnas laterales sin tocar esta regla. -->
+		<div class="vega-visual-grid vega-visual-grid--tree vega-visual-grid--inspector">
+			<!-- Tres columnas, mismo patrón que `.vega-editor-grid--rail`/`--aside` de
+			     `RecordForm.svelte` (ver su cabecera): árbol | lienzo | inspector. Las dos columnas
+			     laterales SIEMPRE están presentes en esta rama (a diferencia del raíl/aside de
+			     `RecordForm`, opt-in por manifiesto): `resolveVisualGate` ya exige `type.blocks` para
+			     que esta ruta exista, así que el árbol/inspector siempre tienen algo que decir, aunque
+			     sea un aviso ("todavía no hay bloques", "elige uno"). -->
+			<VisualBlockTree {blocks} selectedId={selectedBlockId} onSelect={handleBlockSelect} />
 			<div class="vega-visual-canvas">
 				{#if tokenState.kind === 'ready'}
 					<iframe
@@ -442,6 +503,11 @@
 					</div>
 				{/if}
 			</div>
+			<VisualInspector
+				{blocks}
+				selectedId={selectedBlockId}
+				onBlockSaved={() => void requestPreview()}
+			/>
 		</div>
 	{:else}
 		<!-- Responsive (ver cabecera): por debajo de 900px (mismo punto de corte en el que
@@ -545,15 +611,49 @@
 		border-color: var(--line-strong);
 	}
 
-	/* Preparada para tres columnas (ver cabecera): hoy una sola, `minmax(0, 1fr)` — el mismo truco
-	   que `.vega-editor-grid` de `RecordForm.svelte` para que el hijo pueda encogerse por debajo de
-	   su contenido intrínseco (el iframe no debe forzar overflow horizontal). */
+	/* Tres columnas (ver cabecera): árbol | lienzo | inspector, mismo esquema que
+	   `.vega-editor-grid--rail`/`--aside` de `RecordForm.svelte` (ver la suya) — `minmax(0, 1fr)` en
+	   la del medio para que el iframe pueda encogerse por debajo de su contenido intrínseco, en vez
+	   de forzar overflow horizontal. Sin `align-items` propio: el `stretch` por defecto es lo que
+	   hace que `VisualBlockTree`/`VisualInspector` llenen el alto EXACTO de la fila sin necesitar
+	   `position: sticky` (ver sus cabeceras) — a diferencia de `.vega-editor-grid`, esta rejilla ya
+	   vive dentro de una pantalla de alto FIJO (`.vega-visual-screen`), no de una página que
+	   scrollea. */
 	.vega-visual-grid {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
+		gap: calc(var(--vega-space-gutter) * 1.25);
 		flex: 1;
 		min-height: 0;
 		padding: 0 calc(var(--vega-space-gutter) * 1.5) calc(var(--vega-space-gutter) * 1.25);
+	}
+
+	.vega-visual-grid--tree {
+		grid-template-columns: 280px minmax(0, 1fr);
+	}
+
+	.vega-visual-grid--inspector {
+		grid-template-columns: minmax(0, 1fr) 320px;
+	}
+
+	.vega-visual-grid--tree.vega-visual-grid--inspector {
+		grid-template-columns: 280px minmax(0, 1fr) 320px;
+	}
+
+	/* 1180px (ver cabecera de `VisualBlockTree.svelte`, "Colapsable"): el árbol deja de reservar
+	   columna propia — a esa anchura ya es un cajón `position: fixed` (fuera del flujo del grid, ver
+	   su CSS), así que reservarle 280px aquí sería hueco vacío. El inspector SIGUE con columna fija:
+	   no es la vía accesible de selección (el árbol sí lo es), así que no tiene el mismo motivo para
+	   convertirse en cajón — se queda como columna normal hasta los 900px en los que el lienzo
+	   entero deja de montarse (`canvasActive`, ver el script). */
+	@media (max-width: 1180px) {
+		.vega-visual-grid--tree {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.vega-visual-grid--tree.vega-visual-grid--inspector {
+			grid-template-columns: minmax(0, 1fr) 320px;
+		}
 	}
 
 	.vega-visual-canvas {

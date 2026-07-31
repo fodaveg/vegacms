@@ -274,6 +274,20 @@ export const es = {
 	'editor.visual.overlay.skipped':
 		'{count} bloque(s) que el sitio describió mal: no se pueden seleccionar.',
 	'editor.visual.overlay.unsupported': 'no soportado',
+	// ————— Árbol de secciones (`VisualBlockTree.svelte`) e inspector (`VisualInspector.svelte`):
+	// la vía ACCESIBLE de seleccionar un bloque (el overlay de arriba es `aria-hidden`) y la ficha
+	// del bloque elegido. Reutilizan a propósito claves ya existentes del resto del ciclo de vida
+	// de un bloque (`editor.dirty`/`editor.saving`, `editor.blocks.empty`/`.type.*`, `common.close`/
+	// `.loading`): editar un bloque desde aquí es lo mismo que editarlo desde `RecordBlocks.svelte`,
+	// solo que en otra columna.
+	'editor.visual.tree.title': 'Secciones',
+	'editor.visual.tree.selectLabel': 'Seleccionar «{label}»',
+	'editor.visual.tree.unavailable': 'No se pudo cargar el árbol de secciones.',
+	'editor.visual.inspector.title': 'Inspector',
+	'editor.visual.inspector.empty':
+		'Selecciona un bloque en el árbol o en el lienzo para editarlo aquí.',
+	'editor.visual.inspector.unknownBlock':
+		'El sitio señala un bloque que ya no está en este registro.',
 
 	// ————— Editor «master-detail» (mockup final `aquelarre-detalle-post.html`) —————
 	// Raíl de hermanos (`.rail`), aside de metadatos (`.kv`) y zona de peligro: piezas GENÉRICAS
