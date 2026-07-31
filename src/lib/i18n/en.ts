@@ -249,6 +249,11 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.tooNarrow.title': 'The visual editor needs a wider screen',
 	'editor.visual.tooNarrow.body':
 		"Below 900px there's no room for the canvas next to its panels. The usual form still works here.",
+	// ————— Selection outlines (`VisualOverlay.svelte`), see `es.ts` for the full rationale —————
+	'editor.visual.overlay.waiting': 'Waiting for the page to describe its blocks…',
+	'editor.visual.overlay.empty': 'This page has no blocks to select yet.',
+	'editor.visual.overlay.skipped': "{count} block(s) the site described badly: can't be selected.",
+	'editor.visual.overlay.unsupported': 'unsupported',
 
 	// ————— Master-detail editor (final `aquelarre-detalle-post.html` mockup) —————
 	// Sibling rail (`.rail`), metadata aside (`.kv`) and danger zone: GENERIC opt-in renderer

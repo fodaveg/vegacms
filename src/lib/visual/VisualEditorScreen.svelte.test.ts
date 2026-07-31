@@ -205,6 +205,60 @@ describe('VisualEditorScreen.svelte', () => {
 		);
 	});
 
+	test('un `select` del sitio selecciona ESE bloque: el contorno lo marca, no otro', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		mounted = mountScreen(fakeCtx());
+		await flush();
+
+		const iframe = mounted.target.querySelector<HTMLIFrameElement>('.vega-visual-frame');
+		iframe?.dispatchEvent(new Event('load'));
+		await tick();
+
+		sendSiteMessage({
+			vega: 'vega-visual-1',
+			type: 'ready',
+			collection: 'post',
+			id: 'rec-1',
+			blocks: [
+				{ id: 'b1', type: 'hero', rect: { top: 0, left: 0, width: 100, height: 50 } },
+				{ id: 'b2', type: 'gallery', rect: { top: 60, left: 0, width: 100, height: 50 } }
+			]
+		});
+		await tick();
+
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'select', blockId: 'b2' });
+		await tick();
+
+		const b1 = mounted.target.querySelector('[data-vega-block-id="b1"]');
+		const b2 = mounted.target.querySelector('[data-vega-block-id="b2"]');
+		expect(b1?.classList.contains('vega-visual-overlay-box--selected')).toBe(false);
+		expect(b2?.classList.contains('vega-visual-overlay-box--selected')).toBe(true);
+
+		// Y si el bloque seleccionado desaparece de un `layout` posterior, la selección se LIMPIA.
+		// Ojo con cómo se comprueba: que el contorno seleccionado no se pinte NO prueba nada, porque
+		// ese bloque ya no se pinta de ninguna manera. Lo que distingue "limpiada" de "fantasma" es
+		// lo que pasa si el bloque VUELVE: con la selección limpia no se re-selecciona solo.
+		sendSiteMessage({
+			vega: 'vega-visual-1',
+			type: 'layout',
+			blocks: [{ id: 'b1', type: 'hero', rect: { top: 0, left: 0, width: 100, height: 50 } }]
+		});
+		await tick();
+		expect(mounted.target.querySelector('[data-vega-block-id="b2"]')).toBeNull();
+
+		sendSiteMessage({
+			vega: 'vega-visual-1',
+			type: 'layout',
+			blocks: [
+				{ id: 'b1', type: 'hero', rect: { top: 0, left: 0, width: 100, height: 50 } },
+				{ id: 'b2', type: 'gallery', rect: { top: 60, left: 0, width: 100, height: 50 } }
+			]
+		});
+		await tick();
+		expect(mounted.target.querySelector('[data-vega-block-id="b2"]')).not.toBeNull();
+		expect(mounted.target.querySelector('.vega-visual-overlay-box--selected')).toBeNull();
+	});
+
 	test('un estado de error del puente pinta su texto y "Reintentar" vuelve a llamar a start()', async () => {
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
 		mounted = mountScreen(fakeCtx());

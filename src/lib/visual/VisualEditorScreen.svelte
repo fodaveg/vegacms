@@ -10,13 +10,23 @@
 	 * en la cabecera de la ruta).
 	 *
 	 * **Alcance de ESTA entrega, para que quede escrito y no se dé por hecho**: pinta el LIENZO
-	 * (iframe + estados de conexión) y nada más. La rejilla ya se prepara para tres columnas
-	 * (`.vega-visual-grid`, ver el CSS) porque el árbol de secciones y el inspector del bloque son
-	 * tareas APARTE — una de ellas exige antes separar estado de presentación en
-	 * `RecordBlocks.svelte`, así que ninguna de las dos entra aquí. Tampoco entran los CONTORNOS de
-	 * selección sobre el lienzo ni ninguna escritura sobre un bloque: cuando el puente reporta
-	 * `select`, hoy no hay nadie escuchando (`onSelect` no se pasa a `createVisualBridgeClient`) —
-	 * el hueco es intencional, no un olvido.
+	 * (iframe + estados de conexión) y los CONTORNOS de selección sobre él (`VisualOverlay.svelte`,
+	 * ver su cabecera para el diseño del overlay en sí). La rejilla ya se prepara para tres
+	 * columnas (`.vega-visual-grid`, ver el CSS) porque el árbol de secciones y el inspector del
+	 * bloque son tareas APARTE — una de ellas exige antes separar estado de presentación en
+	 * `RecordBlocks.svelte`, así que ninguna de las dos entra aquí. Tampoco entra ninguna ESCRITURA
+	 * sobre un bloque (eso sí lo trae el inspector): un `select` del sitio solo mueve qué está
+	 * seleccionado, nunca cambia contenido.
+	 *
+	 * **La selección tiene un solo dueño: `selectedBlockId`, aquí.** No vive en
+	 * `bridge-client.ts` (que es puro transporte, ver su cabecera) ni en `VisualOverlay.svelte`
+	 * (que solo pinta lo que le llega, ver la suya): un segundo dueño del mismo dato es la vía a
+	 * que las dos mitades enseñen cosas distintas, mismo criterio que ya usa `bridge-client.ts`
+	 * para la selección `onSelect` frente al estado del puente. Cuando el sitio manda `select`
+	 * (clic dentro de un bloque, en el iframe), esta pantalla actualiza `selectedBlockId` Y avisa
+	 * al sitio con `highlight`/`scrollTo` (ya expuestos por el cliente) para que el marco reaccione
+	 * a su propia selección — hoy es la ÚNICA fuente de selección; el árbol de secciones de la
+	 * tarea siguiente reusará la misma función.
 	 *
 	 * **Sin borrador, a propósito**: pide el token con `createPreviewClient` para
 	 * `{collection, id}` SIN `draft` (a diferencia de `PreviewPanel.svelte`, que sí lo manda porque
@@ -78,6 +88,7 @@
 	import { resolveTitleCellText } from '$lib/list/list-load';
 	import EditTopBar from '$lib/shell/EditTopBar.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
+	import VisualOverlay from './VisualOverlay.svelte';
 
 	interface Props {
 		type: ResolvedContentType;
@@ -107,6 +118,9 @@
 	let frameLoaded = $state(false);
 	let bridgeState = $state<VisualBridgeState>({ status: 'idle' });
 	let iframeEl = $state<HTMLIFrameElement | undefined>(undefined);
+	// Único dueño del bloque seleccionado (ver cabecera, "La selección tiene un solo dueño").
+	// `null` = nada seleccionado, el estado inicial hasta el primer `select` del sitio.
+	let selectedBlockId = $state<string | null>(null);
 
 	// `true` mientras la ventana da de sí para el lienzo. Arranca en `true` (suposición de
 	// escritorio) pero NADA se pide hasta que `onMount` lo mide de verdad, así que en un móvil no
@@ -168,6 +182,19 @@
 		}
 	}
 
+	/** El autor hizo clic dentro de un bloque, en el sitio (§contrato, `select`) — la ÚNICA fuente
+	 *  de selección hoy (ver cabecera). Además de mover el dueño único (`selectedBlockId`), avisa
+	 *  al sitio con `highlight`/`scrollTo`: el marco puede querer resaltar visualmente el bloque
+	 *  que él mismo acaba de anunciar, o desplazarse si el clic vino de fuera de la vista (un
+	 *  disparo futuro desde el árbol de secciones, que reusará esta misma función). Las dos
+	 *  llamadas son no-op si el puente no está `connected` (`bridge-client.ts#highlight`).
+	 */
+	function handleBlockSelect(blockId: string): void {
+		selectedBlockId = blockId;
+		bridgeClient?.highlight(blockId);
+		bridgeClient?.scrollTo(blockId);
+	}
+
 	/** Crea el cliente del puente la PRIMERA vez que hay un token (ver cabecera): fija el origen
 	 *  contra el que valida a partir de esa `previewUrl`. Llamadas posteriores (tras una renovación)
 	 *  son no-op: el mismo cliente sigue sirviendo mientras el sitio no cambie de origen. */
@@ -178,7 +205,24 @@
 			previewUrl,
 			documentUrl: location.href,
 			frame: () => iframeEl?.contentWindow ?? null,
-			onState: (state) => (bridgeState = state)
+			onState: (state) => {
+				bridgeState = state;
+				// Si el bloque seleccionado ya no está en lo que reporta el sitio (lo borró otra
+				// pestaña, cambió la plantilla, o el saludo trae otra página), la selección se
+				// LIMPIA aquí mismo. Dejarla apuntando a un id que ya no existe no se nota hoy —el
+				// contorno simplemente deja de pintarse— pero el inspector de la tarea siguiente
+				// heredaría ese fantasma y abriría la ficha de un bloque que no está. Se hace en
+				// este callback, no en un `$effect`, para que siga habiendo UN solo escritor de
+				// `selectedBlockId` y ningún ciclo entre efectos.
+				if (
+					selectedBlockId !== null &&
+					state.status === 'connected' &&
+					!state.blocks.some((block) => block.id === selectedBlockId)
+				) {
+					selectedBlockId = null;
+				}
+			},
+			onSelect: handleBlockSelect
 		});
 		return bridgeClient;
 	}
@@ -247,6 +291,18 @@
 		const descriptor = describeCell(field, record.values[titleField] ?? null, ctx.locale);
 		return resolveTitleCellText(descriptor, ctx.t('list.untitled'));
 	});
+
+	/** Traduce los CINCO estados de `bridgeState` a los DOS que necesita `VisualOverlay.svelte`
+	 *  (ver su cabecera): solo `connected` trae bloques ciertos. `idle`/`connecting`/`error`
+	 *  caen todos en `'waiting'` — un `error` (p.ej. `no-bridge`) ya lo cuenta la barra superior
+	 *  con su propio texto y botón de reintentar (ver cabecera, "Dos relojes distintos"); el
+	 *  lienzo no necesita repetir esa historia con otras palabras, solo no mentir sobre bloques
+	 *  que no existen. */
+	const overlayStatus = $derived(bridgeState.status === 'connected' ? 'ready' : 'waiting');
+	const overlayBlocks = $derived(bridgeState.status === 'connected' ? bridgeState.blocks : []);
+	const overlaySkippedBlocks = $derived(
+		bridgeState.status === 'connected' ? bridgeState.skippedBlocks : 0
+	);
 
 	interface BridgeErrorText {
 		title: string;
@@ -359,6 +415,19 @@
 						referrerpolicy="no-referrer"
 						onload={handleFrameLoad}
 					></iframe>
+					<!-- ANTES del skeleton de token de abajo en el DOM a propósito: mientras el token
+					     sigue cargando o el `load` del marco no ha disparado, ese skeleton (más
+					     adelante, misma pila de apilamiento) tapa este overlay entero — no hace falta
+					     `z-index`, solo el orden. Una vez visible, no tiene nada que tapar: pinta "sin
+					     bloques todavía" hasta que el puente conteste. -->
+					<VisualOverlay
+						blocks={overlayBlocks}
+						selectedId={selectedBlockId}
+						highlightedId={null}
+						skippedBlocks={overlaySkippedBlocks}
+						status={overlayStatus}
+						renderedBlockTypes={ctx.port.renderedBlockTypes ?? null}
+					/>
 				{/if}
 				{#if tokenState.kind === 'loading' || (tokenState.kind === 'ready' && !frameLoaded)}
 					<div class="vega-visual-overlay" aria-live="polite">

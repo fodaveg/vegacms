@@ -127,10 +127,18 @@ function parseRect(raw: unknown): BlockRect | null {
  * y ADEMÁS los demás se quedarían congelados en una posición vieja mientras la página se mueve.
  * Se descarta el bloque y se CUENTA, para que el lienzo pueda decirlo en vez de que desaparezca
  * en silencio.
+ *
+ * El id REPETIDO entra por la misma puerta, y no es teórico: el lienzo pinta la lista con el id
+ * como clave, y una clave duplicada no degrada, TIRA la pantalla entera (`each_key_duplicate` de
+ * Svelte). Un sitio con un bug de plantilla que emita dos veces el mismo `data-vega-block-id`
+ * dejaría al autor sin editor, que es justo lo contrario de lo que este parseo viene a hacer. Se
+ * queda el PRIMERO (es el que aparece antes en el documento) y el repetido se cuenta como
+ * descartado.
  */
 function parseBlocks(raw: unknown): { blocks: VisualBlock[]; skipped: number } | null {
 	if (!Array.isArray(raw)) return null;
 	const blocks: VisualBlock[] = [];
+	const seen = new Set<string>();
 	let skipped = 0;
 	for (const entry of raw) {
 		if (typeof entry !== 'object' || entry === null) {
@@ -141,10 +149,11 @@ function parseBlocks(raw: unknown): { blocks: VisualBlock[]; skipped: number } |
 		const id = nonEmptyString(record.id);
 		const type = nonEmptyString(record.type);
 		const rect = parseRect(record.rect);
-		if (!id || !type || !rect) {
+		if (!id || !type || !rect || seen.has(id)) {
 			skipped++;
 			continue;
 		}
+		seen.add(id);
 		blocks.push({ id, type, rect });
 	}
 	return { blocks, skipped };

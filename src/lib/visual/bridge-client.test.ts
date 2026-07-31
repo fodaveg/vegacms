@@ -106,6 +106,16 @@ describe('parseSiteMessage', () => {
 		});
 	});
 
+	test('un id REPETIDO se descarta: una clave duplicada no degrada el lienzo, lo tira entero', () => {
+		// El lienzo pinta la lista con el id como clave y Svelte lanza `each_key_duplicate` si se
+		// repite: sin este descarte, un sitio con un bug de plantilla deja al autor sin editor.
+		const otro = { id: 'blk1', type: 'text', rect: { ...RECT, top: 500 } };
+		expect(parseSiteMessage(envelope({ type: 'layout', blocks: [BLOCK, otro] }))).toEqual({
+			status: 'ok',
+			message: { type: 'layout', blocks: [BLOCK], skipped: 1 }
+		});
+	});
+
 	test('un bloque colapsado (0×0) SÍ vale: existe en la secuencia y su ficha se puede abrir', () => {
 		const zero = { id: 'blk2', type: 'text', rect: { top: 0, left: 0, width: 0, height: 0 } };
 		expect(parseSiteMessage(envelope({ type: 'layout', blocks: [zero] }))).toEqual({

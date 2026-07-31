@@ -267,6 +267,13 @@ export const es = {
 	'editor.visual.tooNarrow.title': 'El editor visual necesita una pantalla más ancha',
 	'editor.visual.tooNarrow.body':
 		'Por debajo de 900 px no cabe el lienzo junto a sus paneles. El formulario de siempre sí funciona aquí.',
+	// ————— Contornos de selección (`VisualOverlay.svelte`): estados del propio lienzo, no de
+	// la barra superior — ver la cabecera del componente para el porqué de cada uno.
+	'editor.visual.overlay.waiting': 'Esperando a que la página describa sus bloques…',
+	'editor.visual.overlay.empty': 'Esta página todavía no tiene bloques que seleccionar.',
+	'editor.visual.overlay.skipped':
+		'{count} bloque(s) que el sitio describió mal: no se pueden seleccionar.',
+	'editor.visual.overlay.unsupported': 'no soportado',
 
 	// ————— Editor «master-detail» (mockup final `aquelarre-detalle-post.html`) —————
 	// Raíl de hermanos (`.rail`), aside de metadatos (`.kv`) y zona de peligro: piezas GENÉRICAS
