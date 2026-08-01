@@ -154,6 +154,11 @@
 		font-size: 0.85rem;
 	}
 
+	/* `display: flex` AQUÍ y `hidden` en el marcado es justo la combinación que se rompía sola: una
+	   regla de autor gana a la del navegador, así que `hidden` dejaba de ocultar y salían los N
+	   bloques apilados. Lo sostiene ahora `[hidden] { display: none !important }` de
+	   `src/lib/theme/base.css` (allí está el razonamiento entero). No lo repitas aquí: si dejan de
+	   ocultarse, el fallo está en esa hoja, no en esta clase. */
 	.vega-inspector-body {
 		display: flex;
 		flex-direction: column;

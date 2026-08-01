@@ -50,6 +50,22 @@ body {
 		sans-serif;
 }
 
+/* El atributo `hidden` tiene que ocultar SIEMPRE, y por eso lleva `!important`.
+   La regla que lo oculta (`[hidden] { display: none }`) es del NAVEGADOR, y cualquier regla de
+   autor le gana, por poca especificidad que tenga: basta con que un componente ponga
+   `display: flex` (o grid, o block) en la clase de ese mismo elemento para que `hidden` deje de
+   ocultar nada, EN SILENCIO. Pasó de verdad: la ficha del editor visual monta todos los bloques a
+   la vez y oculta los no elegidos con `hidden`; como su clase traía `display: flex`, se veían
+   TODOS apilados y la ficha parecía no seguir a la selección. No lo caza ningún test unitario,
+   porque en jsdom los tests miran el atributo en el DOM (`:not([hidden])`), que estaba puesto y
+   correcto. Comprobado en Chromium: con `display: flex` el `getComputedStyle` sale `flex`, no
+   `none`. `!important` es la única forma de que la regla base gane a la del componente, y es lo
+   que hacen los reset de siempre (normalize.css) por este mismo motivo. Si algún día un elemento
+   necesita estar `hidden` y verse, eso es una contradicción: que no lleve `hidden`. */
+[hidden] {
+	display: none !important;
+}
+
 /* A11y transversal (§4.3 del checklist): foco visible en todo interactivo. */
 :focus-visible {
 	outline: 2px solid var(--ring);
