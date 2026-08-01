@@ -197,6 +197,20 @@
 	 *   `layoutField`, si existe, sustituye su `Widget` por un `<select>` de `ContentModel.layouts`
 	 *   (`layoutOptions`, `PageLayoutSelect.svelte`); y `page-path-not-unique` (P2) se pinta como
 	 *   `notice` bajo el propio `pathField`, con el mensaje LITERAL de P2, nunca un texto nuevo.
+	 * - **Ruta BILINGÜE** (`type.page.localizedPath`, encargo "la ruta pública de una página puede
+	 *   ser bilingüe"): cuando `pathField` nombra un campo lógico de `localizedFields`, la columna
+	 *   física que juega el papel de `pathField` no es fija: es `type.page.localizedPath.fields[
+	 *   activeLocale]` (`pagePathFieldName`, más abajo) — `localizeVisibleFields`
+	 *   (`form-sections.ts`) ya pinta SOLO la fila de ESE idioma en la posición del campo, así que
+	 *   `FieldRow` no necesita saber nada de idiomas: solo compara `field.name` contra el nombre
+	 *   físico YA resuelto para el idioma activo, igual que antes comparaba contra el `pathField`
+	 *   fijo. "Proponer ruta" (`proposePagePath`/`pathSourceText`) también es por idioma — la regla
+	 *   del encargo es "cada idioma propone su ruta a partir del texto de ESE idioma", así que la
+	 *   fuente (slug o título) se resuelve con `physicalFieldFor` (`form-sections.ts`) para el
+	 *   idioma ACTIVO, no siempre para el ancla por defecto (a diferencia de "Regenerar slug", que
+	 *   sigue siendo global — esta pieza no la toca este encargo). Un tipo sin `page` bilingüe (el
+	 *   caso de siempre) nunca pasa por ninguna de estas ramas: `pagePathLocale` es `null` y todo
+	 *   degrada BYTE A BYTE al comportamiento de antes.
 	 */
 	import { beforeNavigate } from '$app/navigation';
 	import { onMount, tick, untrack } from 'svelte';
@@ -221,7 +235,12 @@
 	import SocialCardPreview from './SocialCardPreview.svelte';
 	import PreviewPanel from './PreviewPanel.svelte';
 	import { buildFormModel, type FormModel } from './form-model';
-	import { buildFormSections, localeForField, type FormSection } from './form-sections';
+	import {
+		buildFormSections,
+		localeForField,
+		physicalFieldFor,
+		type FormSection
+	} from './form-sections';
 	import { autodateInstant, autodateText } from './record-meta';
 	import { localeStatus, type LocaleStatus } from './locale-status';
 	import { isDirty, type FormInputValues } from './dirty';
@@ -529,58 +548,104 @@
 	}
 
 	// ————— Modelo de páginas (`type.page`, tarea p1 `1dc63001`; encargo "crear y editar páginas") —————
+	// Bilingüe (`type.page.localizedPath`, encargo "la ruta pública de una página puede ser
+	// bilingüe"): ver la cabecera del componente para el resumen; el detalle vive junto a cada
+	// derivado de abajo.
+
+	/** `null` para un tipo sin `page` bilingüe (el caso de siempre): TODO lo de abajo degrada al
+	 *  comportamiento histórico, una sola fuente/columna, sin mirar ningún idioma. Con `page`
+	 *  bilingüe, el idioma activo del selector de `type.localization` (ver cabecera del componente,
+	 *  `activeLocale`). */
+	const pagePathLocale = $derived(type.page?.localizedPath ? activeLocale : null);
+
+	/** Columna física que juega HOY el papel de `type.page.pathField`: la propia clave si `page` no
+	 *  es bilingüe, o la del idioma activo (`type.page.localizedPath.fields[activeLocale]`) si lo
+	 *  es — `null` si la colección no es de páginas. Es contra ESTO, no contra `type.page.pathField`
+	 *  directamente, contra lo que se compara `field.name` más abajo (`fieldRow`): con `page`
+	 *  bilingüe, `pathField` es un nombre LÓGICO que no es el `name` de ningún campo físico. */
+	const pagePathFieldName = $derived(
+		type.page?.localizedPath
+			? type.page.localizedPath.fields[activeLocale]
+			: (type.page?.pathField ?? null)
+	);
 
 	/**
-	 * "Proponer ruta" (§1 del encargo): la fuente es el SLUG actual si el tipo lo declara (ya más
-	 * cercano a una URL que el título en prosa) y si no, el TÍTULO actual (`titleText`, ya derivado
-	 * arriba) — el encargo dice "derivándola del título o del slug", y el slug, cuando existe, es
-	 * la mejor de las dos fuentes.
+	 * "Proponer ruta" (§1 del encargo, + "la ruta pública de una página puede ser bilingüe": "cada
+	 * idioma propone su ruta a partir del texto de ESE idioma"): la fuente es el SLUG del idioma
+	 * activo si el tipo lo declara (ya más cercano a una URL que el título en prosa) y si no, el
+	 * TÍTULO del idioma activo — `physicalFieldFor` (`form-sections.ts`) resuelve la columna física
+	 * de `slugField`/`titleField` para `pagePathLocale`; sin `page` bilingüe (`pagePathLocale ===
+	 * null`) esto es EXACTAMENTE `type.slugField`/`titleText` de siempre, sin pasar por ningún
+	 * idioma (mismo comportamiento byte a byte que antes de este encargo).
 	 */
 	const pathSourceText = $derived.by(() => {
-		if (type.slugField !== null) {
-			const raw = current[type.slugField];
+		const locale = pagePathLocale;
+		const slugFieldName =
+			locale !== null ? physicalFieldFor(type, type.slugField, locale) : type.slugField;
+		if (slugFieldName !== null) {
+			const raw = current[slugFieldName];
 			if (typeof raw === 'string' && raw.trim() !== '') return raw;
 		}
-		return titleText;
+		if (locale === null) return titleText;
+		const titleFieldName = physicalFieldFor(type, type.titleField, locale);
+		const raw = titleFieldName !== null ? current[titleFieldName] : undefined;
+		return typeof raw === 'string' ? raw : '';
 	});
 	/** La ruta que produciría "Proponer ruta" con la fuente actual; `''` ⇒ nada utilizable (mismo
 	 *  criterio que `regeneratedSlug`, `suggestPagePath` reutiliza `slugify`). */
 	const suggestedPagePath = $derived(suggestPagePath(pathSourceText));
 
 	/**
-	 * Escribe la ruta propuesta en `type.page.pathField` — SOLO llamable mientras `model.mode ===
+	 * Escribe la ruta propuesta en `pagePathFieldName` (la columna física del idioma activo si
+	 * `page` es bilingüe, `type.page.pathField` si no) — SOLO llamable mientras `model.mode ===
 	 * 'create'` (el snippet `pathAction`, más abajo, ni se pinta fuera de creación; esta guarda es
 	 * solo defensiva). Es la pieza que hace cumplir "la ruta NUNCA se deriva sola después de crear"
-	 * (regla NO negociable, cabecera de `ResolvedContentType.page` en `types.ts`): no hay NINGÚN
-	 * camino, ni siquiera manual, para tocar la ruta a partir del título/slug una vez creada la
-	 * página — la propia desaparición del botón tras el primer guardado es la garantía, no una
-	 * comprobación de valor. No-op si no hay nada que proponer: JAMÁS pisa una ruta buena con "".
+	 * (regla NO negociable, cabecera de `ResolvedContentType.page` en `types.ts`, que sigue
+	 * aplicando IGUAL por idioma en el caso bilingüe): no hay NINGÚN camino, ni siquiera manual,
+	 * para tocar la ruta a partir del título/slug una vez creada la página — la propia desaparición
+	 * del botón tras el primer guardado es la garantía, no una comprobación de valor. No-op si no
+	 * hay nada que proponer: JAMÁS pisa una ruta buena con "".
 	 */
 	function proposePagePath(): void {
-		if (!type.page || model.mode !== 'create' || suggestedPagePath === '' || formDisabled) return;
-		handleFieldChange(type.page.pathField, suggestedPagePath);
+		if (
+			!type.page ||
+			pagePathFieldName === null ||
+			model.mode !== 'create' ||
+			suggestedPagePath === '' ||
+			formDisabled
+		) {
+			return;
+		}
+		handleFieldChange(pagePathFieldName, suggestedPagePath);
 	}
 
 	/** Plantillas disponibles (`ContentModel.layouts`, §3 del encargo) para el `<select>` de
 	 *  `type.page.layoutField`: `undefined` si la colección no declara `layoutField` — "si la
 	 *  colección no lo declara, no aparece nada" (encargo §3), así `FieldRow` sigue pintando su
-	 *  `Widget` de siempre para ese campo. */
+	 *  `Widget` de siempre para ese campo. `layoutField` NUNCA es bilingüe (ver `ResolvedPageConfig`
+	 *  en `types.ts`): una sola plantilla vale para las dos rutas de una misma página. */
 	const pageLayoutOptions = $derived(type.page?.layoutField ? ctx.model.layouts : undefined);
 
 	/**
-	 * Aviso `page-path-not-unique` de ESTA colección (§4 del encargo, "los avisos del modelo se
-	 * ven donde importan"): se busca el `ModelWarning` REAL en `ctx.model.warnings` en vez de
-	 * redactar un texto nuevo aquí — reutiliza LITERAL el mensaje que ya escribió P2
-	 * (`pagePathNotUnique`, `warnings.ts`), la única fuente de verdad de lo que el dato SÍ dice
-	 * ("no se pudo determinar unicidad", nunca "no es único", ver el comentario de
-	 * `pathFieldUnique` en `types.ts`). `null` si la colección no es de páginas o si SÍ tiene
-	 * índice único (nada que avisar).
+	 * Aviso `page-path-not-unique` de ESTA colección Y de la columna física del idioma activo (§4
+	 * del encargo, "los avisos del modelo se ven donde importan"; bilingüe: "un aviso que solo mire
+	 * una columna miente" — así que se filtra también por `field`, no solo por `collection`, y una
+	 * ruta con la columna ES confirmada y la EN sin confirmar solo enseña el aviso en la pestaña
+	 * EN): se busca el `ModelWarning` REAL en `ctx.model.warnings` en vez de redactar un texto
+	 * nuevo aquí — reutiliza LITERAL el mensaje que ya escribió P2 (`pagePathNotUnique`,
+	 * `warnings.ts`), la única fuente de verdad de lo que el dato SÍ dice ("no se pudo confirmar un
+	 * índice único", nunca "no es único", ver el comentario de `pathFieldUnique` en `types.ts`).
+	 * `null` si la colección no es de páginas, si NINGUNA columna tiene el problema, o si la del
+	 * idioma activo en particular SÍ tiene índice único (nada que avisar EN ESTA pestaña).
 	 */
 	const pathNotUniqueNotice = $derived.by(() => {
-		if (!type.page || type.page.pathFieldUnique) return null;
+		if (!type.page || type.page.pathFieldUnique || pagePathFieldName === null) return null;
 		return (
 			ctx.model.warnings.find(
-				(w) => w.code === 'page-path-not-unique' && w.collection === type.name
+				(w) =>
+					w.code === 'page-path-not-unique' &&
+					w.collection === type.name &&
+					w.field === pagePathFieldName
 			)?.message ?? null
 		);
 	});
@@ -991,15 +1056,15 @@
 			{stacked}
 			isTitleField={field.name === type.titleField}
 			isSlugField={field.name === type.slugField}
-			isPathField={field.name === type.page?.pathField}
+			isPathField={field.name === pagePathFieldName}
 			optionLabels={field.name === type.statusField ? (type.statusLabels ?? undefined) : undefined}
 			layoutOptions={field.name === type.page?.layoutField ? pageLayoutOptions : undefined}
 			action={field.name === type.slugField && type.titleField !== null
 				? slugAction
-				: field.name === type.page?.pathField && model.mode === 'create'
+				: field.name === pagePathFieldName && model.mode === 'create'
 					? pathAction
 					: undefined}
-			notice={field.name === type.page?.pathField ? (pathNotUniqueNotice ?? undefined) : undefined}
+			notice={field.name === pagePathFieldName ? (pathNotUniqueNotice ?? undefined) : undefined}
 			onChange={(value) => handleFieldChange(field.name, value)}
 		/>
 	{/snippet}

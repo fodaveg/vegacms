@@ -78,6 +78,32 @@ export function localeForField(type: ResolvedContentType, fieldName: string): st
 }
 
 /**
+ * Dirección OPUESTA a `localeForField`: la columna física de `fieldName` EN `locale`, si
+ * `fieldName` es el ancla de un grupo traducible; `fieldName` sin cambios si es un campo
+ * compartido, o si el tipo no declara `localization` (dos casos que se resuelven igual: no hay
+ * nada que traducir). Usado por el modelo de páginas bilingüe (`RecordForm.svelte`, "Proponer
+ * ruta") para derivar el texto fuente (título/slug) del idioma ACTIVO en vez de siempre el del
+ * campo ancla — a diferencia de `localizeVisibleFields` (que sustituye TODO el formulario
+ * visible), esto resuelve UN nombre de campo suelto que puede no pertenecer a ningún grupo (p. ej.
+ * un `titleField`/`slugField` compartido en un tipo bilingüe, que no cambia con el idioma).
+ */
+export function physicalFieldFor(
+	type: ResolvedContentType,
+	fieldName: string | null,
+	locale: string
+): string | null {
+	if (fieldName === null) return null;
+	const localization = type.localization;
+	if (!localization) return fieldName;
+	for (const logical of localization.fields) {
+		if (Object.values(logical.fields).includes(fieldName)) {
+			return logical.fields[locale] ?? fieldName;
+		}
+	}
+	return fieldName;
+}
+
+/**
  * API pública de este módulo. `activeLocale` es opcional para conservar exactamente el
  * comportamiento histórico en tipos que no declaran localización.
  */

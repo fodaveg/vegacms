@@ -14,7 +14,7 @@ import type {
 	ResolvedFieldGroup,
 	ResolvedLocalization
 } from '$lib/model/types';
-import { buildFormSections, localeForField } from './form-sections';
+import { buildFormSections, localeForField, physicalFieldFor } from './form-sections';
 
 function makeField(name: string, group: string | null = null): ResolvedField {
 	const schema: Field = {
@@ -159,5 +159,43 @@ describe('buildFormSections (§4.9/§4.9b)', () => {
 		]);
 		expect(localeForField(type, 'titleEn')).toBe('en');
 		expect(localeForField(type, 'slug')).toBeNull();
+	});
+});
+
+describe('physicalFieldFor (dirección opuesta a localeForField, modelo de páginas bilingüe)', () => {
+	const titleEs = makeField('titleEs', 'Contenido');
+	const titleEn = makeField('titleEn', 'Contenido');
+	const slug = makeField('slug', 'Contenido');
+	const localization: ResolvedLocalization = {
+		defaultLocale: 'es',
+		locales: [
+			{ id: 'es', label: 'Español' },
+			{ id: 'en', label: 'English' }
+		],
+		fields: [{ name: 'title', label: 'Título', fields: { es: 'titleEs', en: 'titleEn' } }]
+	};
+	const type = makeType(
+		[titleEs, titleEn, slug],
+		[{ name: 'Contenido', columns: 1, placement: 'main' }],
+		localization
+	);
+
+	test('campo ANCLA de un grupo traducible → la columna de CADA idioma pedido', () => {
+		expect(physicalFieldFor(type, 'titleEs', 'es')).toBe('titleEs');
+		expect(physicalFieldFor(type, 'titleEs', 'en')).toBe('titleEn');
+	});
+
+	test('campo compartido (no pertenece a ningún grupo) → sin cambios, cualquier idioma', () => {
+		expect(physicalFieldFor(type, 'slug', 'es')).toBe('slug');
+		expect(physicalFieldFor(type, 'slug', 'en')).toBe('slug');
+	});
+
+	test('tipo SIN localization → sin cambios (mismo criterio que un campo compartido)', () => {
+		const plain = makeType([titleEs, slug], [{ name: 'Contenido', columns: 1, placement: 'main' }]);
+		expect(physicalFieldFor(plain, 'titleEs', 'en')).toBe('titleEs');
+	});
+
+	test('fieldName null → null (degradación de un titleField/slugField ausente)', () => {
+		expect(physicalFieldFor(type, null, 'en')).toBeNull();
 	});
 });

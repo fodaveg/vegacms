@@ -457,7 +457,7 @@ export function layoutIconUnknown(name: string, icon: string): ModelWarning {
 export function pageInvalid(collection: string, requestedField: string): ModelWarning {
 	return {
 		code: 'page-invalid',
-		message: `page.pathField de "${collection}" declara "${requestedField}", que no existe o no es un campo de texto en esta colección; se ignora la capacidad de página (sin ruta pública no hay página que servir).`,
+		message: `page.pathField de "${collection}" declara "${requestedField}", que no existe como campo de texto en esta colección ni como campo traducible (localizedFields) de columnas de texto; se ignora la capacidad de página (sin ruta pública no hay página que servir).`,
 		collection,
 		path: `${collectionPath(collection)}/page/pathField`
 	};
@@ -498,16 +498,21 @@ export function pageLayoutFieldInvalid(collection: string): ModelWarning {
 }
 
 /**
- * `page-path-not-unique` — `page.pathField` resuelve a un campo `text` real, pero SIN índice
- * único (`Field.unique === false`) en el esquema descubierto. NO invalida la capacidad (la
- * colección SIGUE siendo de páginas): solo avisa de que Vega no puede prometer que dos páginas no
- * colisionen en la misma ruta — es el valor de que la ruta sea COLUMNA REAL en vez de JSON (un
- * JSON no tiene un índice que lo compruebe).
+ * `page-path-not-unique` — la columna física `field` de la ruta pública (`page.pathField`, o UNA
+ * de sus columnas por idioma cuando `pathField` es un campo lógico bilingüe, ver
+ * `ResolvedPageConfig.localizedPath`) tiene `Field.unique === false` en el esquema descubierto.
+ * NO invalida la capacidad (la colección SIGUE siendo de páginas): `false` significa "Vega no ha
+ * podido CONFIRMAR un índice único ahí", nunca "esa columna no es única" (mismo matiz que el
+ * comentario de `unique` en `FieldBase`/`ResolvedPageConfig.pathFieldUnique` — el mensaje de este
+ * aviso tiene que ser fiel a eso, no afirmar más de lo que el dato sabe). Se emite UNA VEZ POR
+ * CADA columna física en ese estado: una ruta bilingüe con la columna ES confirmada y la EN sin
+ * confirmar produce SOLO el aviso de la EN, nunca uno agregado que hable de "la ruta" en general —
+ * un aviso que solo mirara una columna mentiría sobre las demás.
  */
 export function pagePathNotUnique(collection: string, field: string): ModelWarning {
 	return {
 		code: 'page-path-not-unique',
-		message: `El campo de ruta "${field}" de "${collection}" no tiene un índice único en PocketBase; dos páginas podrían colisionar en la misma ruta sin que Vega pueda evitarlo. Añade un índice UNIQUE a esa columna.`,
+		message: `Vega no puede confirmar que el campo de ruta "${field}" de "${collection}" tenga un índice único en PocketBase (no significa que no lo tenga: solo que no se ha podido determinar); sin ese índice, dos páginas podrían colisionar en la misma ruta sin que Vega pueda evitarlo. Añade un índice UNIQUE a esa columna para que quede garantizado.`,
 		collection,
 		field,
 		path: `${collectionPath(collection)}/page/pathField`

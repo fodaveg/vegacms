@@ -3523,7 +3523,8 @@ describe('20. page: modelo de páginas (tarea p1 "1dc63001")', () => {
 		expect(model.types.find((t) => t.name === 'site_page')!.page).toEqual({
 			pathField: 'path',
 			pathFieldUnique: true,
-			layoutField: null
+			layoutField: null,
+			localizedPath: null
 		});
 	});
 
@@ -3562,7 +3563,8 @@ describe('20. page: modelo de páginas (tarea p1 "1dc63001")', () => {
 		expect(model.types.find((t) => t.name === 'site_page')!.page).toEqual({
 			pathField: 'pathDuplicable',
 			pathFieldUnique: false,
-			layoutField: null
+			layoutField: null,
+			localizedPath: null
 		});
 		expect(model.warnings).toEqual([
 			expect.objectContaining({
@@ -3629,7 +3631,8 @@ describe('20. page: modelo de páginas (tarea p1 "1dc63001")', () => {
 		expect(model.types.find((t) => t.name === 'site_page')!.page).toEqual({
 			pathField: 'path',
 			pathFieldUnique: true,
-			layoutField: 'layout'
+			layoutField: 'layout',
+			localizedPath: null
 		});
 	});
 
@@ -3644,7 +3647,8 @@ describe('20. page: modelo de páginas (tarea p1 "1dc63001")', () => {
 		expect(model.types.find((t) => t.name === 'site_page')!.page).toEqual({
 			pathField: 'path',
 			pathFieldUnique: true,
-			layoutField: null
+			layoutField: null,
+			localizedPath: null
 		});
 		expect(model.warnings).toEqual([
 			expect.objectContaining({
@@ -3670,7 +3674,12 @@ describe('20. page: modelo de páginas (tarea p1 "1dc63001")', () => {
 		});
 		const resolved = model.types.find((t) => t.name === 'site_page')!;
 		expect(resolved.slugField).toBe('path');
-		expect(resolved.page).toEqual({ pathField: 'path', pathFieldUnique: true, layoutField: null });
+		expect(resolved.page).toEqual({
+			pathField: 'path',
+			pathFieldUnique: true,
+			layoutField: null,
+			localizedPath: null
+		});
 	});
 
 	test('page NO duplica publicación ni SEO: statusField/social del tipo siguen siendo la fuente de verdad', () => {
@@ -3687,7 +3696,12 @@ describe('20. page: modelo de páginas (tarea p1 "1dc63001")', () => {
 			}
 		});
 		const resolved = model.types.find((t) => t.name === 'site_page')!;
-		expect(resolved.page).toEqual({ pathField: 'path', pathFieldUnique: true, layoutField: null });
+		expect(resolved.page).toEqual({
+			pathField: 'path',
+			pathFieldUnique: true,
+			layoutField: null,
+			localizedPath: null
+		});
 		expect(resolved.social).toEqual({
 			titleField: 'title',
 			descriptionField: null,
@@ -3829,6 +3843,317 @@ describe('21. layouts: vocabulario de plantillas de página (RAÍZ, tarea p1 "1d
 		};
 		const a = resolveContentModel({ types: kitchenSinkTypes, manifestRaw });
 		const b = resolveContentModel({ types: kitchenSinkTypes, manifestRaw });
+		expect(a).toEqual(b);
+	});
+});
+
+// ————— 22. page bilingüe: pathField como campo LÓGICO de localizedFields —————
+
+/**
+ * Fixture propio, SEPARADO de `pageType` (§20) a propósito: no toca ni un solo test existente.
+ * `pathEs`/`pathEn` son las columnas físicas de una ruta bilingüe (ambas `unique: true`, el caso
+ * feliz real de fodaveg.net); `pathEnDuplicable` sustituye a `pathEn` en los tests que necesitan
+ * UNA columna sin índice único para probar que el aviso es POR COLUMNA, no agregado. `ratingEs`/
+ * `ratingEn` son un grupo traducible compatible en `resolveLocalization` (mismo `schema.type`
+ * entre locales) pero NO `text`, para probar que `page` exige texto también en el camino lógico.
+ * `plainPath` es una columna física normal, para probar que la resolución FÍSICA sigue ganando
+ * cuando `pathField` casa con las dos formas a la vez (regla ADITIVA del encargo).
+ */
+const bilingualPageType: ContentType = {
+	name: 'site_page_i18n',
+	readonly: false,
+	fields: [
+		{
+			name: 'plainPath',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: true
+		},
+		{
+			name: 'pathEs',
+			type: 'text',
+			subtype: 'plain',
+			required: true,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: true
+		},
+		{
+			name: 'pathEn',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: true
+		},
+		{
+			name: 'pathEnDuplicable',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'titleEs',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: true,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'titleEn',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: true,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'ratingEs',
+			type: 'number',
+			integer: true,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'ratingEn',
+			type: 'number',
+			integer: true,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		}
+	]
+};
+
+const bilingualPageTypes: ContentType[] = [bilingualPageType];
+
+const bilingualLocales: JsonValue = {
+	default: 'es',
+	available: [
+		{ id: 'es', label: 'Español' },
+		{ id: 'en', label: 'English' }
+	]
+};
+
+describe('22. page bilingüe: pathField como campo LÓGICO de localizedFields', () => {
+	test('pathField lógico con las DOS columnas con índice único → se resuelve, sin warnings', () => {
+		const model = resolveContentModel({
+			types: bilingualPageTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				locales: bilingualLocales,
+				collections: {
+					site_page_i18n: {
+						localizedFields: { path: { fields: { es: 'pathEs', en: 'pathEn' } } },
+						page: { pathField: 'path' }
+					}
+				}
+			}
+		});
+		expect(model.warnings).toEqual([]);
+		expect(model.types.find((t) => t.name === 'site_page_i18n')!.page).toEqual({
+			pathField: 'path',
+			pathFieldUnique: true,
+			layoutField: null,
+			localizedPath: { defaultLocale: 'es', fields: { es: 'pathEs', en: 'pathEn' } }
+		});
+	});
+
+	test('UNA columna sin índice único → aviso SOLO de esa columna, la otra no aparece (no miente)', () => {
+		const model = resolveContentModel({
+			types: bilingualPageTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				locales: bilingualLocales,
+				collections: {
+					site_page_i18n: {
+						localizedFields: { path: { fields: { es: 'pathEs', en: 'pathEnDuplicable' } } },
+						page: { pathField: 'path' }
+					}
+				}
+			}
+		});
+		const resolved = model.types.find((t) => t.name === 'site_page_i18n')!;
+		expect(resolved.page).toEqual({
+			pathField: 'path',
+			pathFieldUnique: false,
+			layoutField: null,
+			localizedPath: { defaultLocale: 'es', fields: { es: 'pathEs', en: 'pathEnDuplicable' } }
+		});
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'page-path-not-unique',
+				collection: 'site_page_i18n',
+				field: 'pathEnDuplicable'
+			})
+		]);
+		// La columna ES SÍ tiene índice único: no le corresponde ningún aviso.
+		expect(
+			model.warnings.some((w) => w.code === 'page-path-not-unique' && w.field === 'pathEs')
+		).toBe(false);
+	});
+
+	test('LAS DOS columnas sin índice único → pathFieldUnique false + dos avisos, uno por columna', () => {
+		// Fixture propio de este test: parte de `bilingualPageType` pero con `pathEs` TAMBIÉN sin
+		// índice único (en el fixture compartido solo `pathEnDuplicable` lo está).
+		const typesBothDuplicable: ContentType[] = [
+			{
+				...bilingualPageType,
+				fields: bilingualPageType.fields.map((f) =>
+					f.name === 'pathEs' ? { ...f, unique: false } : f
+				)
+			}
+		];
+		const model = resolveContentModel({
+			types: typesBothDuplicable,
+			manifestRaw: {
+				schemaVersion: 1,
+				locales: bilingualLocales,
+				collections: {
+					site_page_i18n: {
+						localizedFields: { path: { fields: { es: 'pathEs', en: 'pathEnDuplicable' } } },
+						page: { pathField: 'path' }
+					}
+				}
+			}
+		});
+		expect(model.types.find((t) => t.name === 'site_page_i18n')!.page?.pathFieldUnique).toBe(false);
+		const notUniqueFields = model.warnings
+			.filter((w) => w.code === 'page-path-not-unique')
+			.map((w) => w.field)
+			.sort();
+		expect(notUniqueFields).toEqual(['pathEnDuplicable', 'pathEs']);
+	});
+
+	test('pathField NO resuelve como física NI como lógica → page-invalid (comportamiento histórico)', () => {
+		const model = resolveContentModel({
+			types: bilingualPageTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				locales: bilingualLocales,
+				collections: {
+					site_page_i18n: {
+						localizedFields: { path: { fields: { es: 'pathEs', en: 'pathEn' } } },
+						page: { pathField: 'noExiste' }
+					}
+				}
+			}
+		});
+		expect(model.types.find((t) => t.name === 'site_page_i18n')!.page).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({ code: 'page-invalid', collection: 'site_page_i18n' })
+		]);
+	});
+
+	test('campo lógico que resuelve pero NO es text (grupo number compatible) → page-invalid, page null', () => {
+		const model = resolveContentModel({
+			types: bilingualPageTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				locales: bilingualLocales,
+				collections: {
+					site_page_i18n: {
+						localizedFields: {
+							path: { fields: { es: 'pathEs', en: 'pathEn' } },
+							rating: { fields: { es: 'ratingEs', en: 'ratingEn' } }
+						},
+						page: { pathField: 'rating' }
+					}
+				}
+			}
+		});
+		expect(model.types.find((t) => t.name === 'site_page_i18n')!.page).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'page-invalid',
+				collection: 'site_page_i18n',
+				path: '/collections/site_page_i18n/page/pathField'
+			})
+		]);
+	});
+
+	test('pathField que casa con una columna FÍSICA y con un nombre lógico a la vez: gana la FÍSICA (regla aditiva)', () => {
+		const model = resolveContentModel({
+			types: bilingualPageTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				locales: bilingualLocales,
+				collections: {
+					site_page_i18n: {
+						// "plainPath" es el nombre de una columna física real Y TAMBIÉN la clave de un
+						// campo lógico traducible — la física debe ganar, sin activar `localizedPath`.
+						localizedFields: { plainPath: { fields: { es: 'pathEs', en: 'pathEn' } } },
+						page: { pathField: 'plainPath' }
+					}
+				}
+			}
+		});
+		expect(model.types.find((t) => t.name === 'site_page_i18n')!.page).toEqual({
+			pathField: 'plainPath',
+			pathFieldUnique: true,
+			layoutField: null,
+			localizedPath: null
+		});
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('layoutField (NUNCA bilingüe) sigue resolviendo junto a un pathField lógico', () => {
+		const model = resolveContentModel({
+			types: bilingualPageTypes,
+			manifestRaw: {
+				schemaVersion: 1,
+				locales: bilingualLocales,
+				collections: {
+					site_page_i18n: {
+						localizedFields: { path: { fields: { es: 'pathEs', en: 'pathEn' } } },
+						page: { pathField: 'path', layoutField: 'plainPath' }
+					}
+				}
+			}
+		});
+		expect(model.warnings).toEqual([]);
+		expect(model.types.find((t) => t.name === 'site_page_i18n')!.page).toEqual({
+			pathField: 'path',
+			pathFieldUnique: true,
+			layoutField: 'plainPath',
+			localizedPath: { defaultLocale: 'es', fields: { es: 'pathEs', en: 'pathEn' } }
+		});
+	});
+
+	test('determinismo (L1): mismo input bilingüe → mismo output (deepEqual)', () => {
+		const manifestRaw: JsonValue = {
+			schemaVersion: 1,
+			locales: bilingualLocales,
+			collections: {
+				site_page_i18n: {
+					localizedFields: { path: { fields: { es: 'pathEs', en: 'pathEn' } } },
+					page: { pathField: 'path' }
+				}
+			}
+		};
+		const a = resolveContentModel({ types: bilingualPageTypes, manifestRaw });
+		const b = resolveContentModel({ types: bilingualPageTypes, manifestRaw });
 		expect(a).toEqual(b);
 	});
 });

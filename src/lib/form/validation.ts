@@ -28,11 +28,15 @@ import type { FormInputValues } from './dirty';
  * Valida `current` contra `type`. Comprobaciones, en este orden por campo (D-P5.3):
  * 1. `required` (campos `schema.required` NO `readonly`, vía `isEmptyValue`).
  * 2. Formato de la RUTA pública (`type.page.pathField`, modelo de páginas, §2 del encargo "crear
- *    y editar páginas") — capacidad OPT-IN, solo aplica si `type` declara `page` y el campo es
- *    ESE. A diferencia de `pattern`/rangos (fuera de alcance a propósito, ver cabecera del
- *    módulo), esto NO es la regla genérica de un `Field.pattern` de PocketBase: es una convención
- *    PROPIA de Vega sobre un concepto que Vega mismo introduce (la ruta pública), así que sí
- *    tiene sentido evitar aquí un roundtrip evidente.
+ *    y editar páginas"; ruta BILINGÜE, encargo "la ruta pública de una página puede ser
+ *    bilingüe") — capacidad OPT-IN, solo aplica si `type` declara `page` y el campo es ESE (o, en
+ *    el caso bilingüe, UNA de sus columnas físicas por idioma — `checkPagePath` valida TODAS,
+ *    porque `validateForm` recorre `type.fields` entero sin mirar qué pestaña de idioma está
+ *    activa, igual que ya hace hoy `required` con cualquier campo traducible). A diferencia de
+ *    `pattern`/rangos (fuera de alcance a propósito, ver cabecera del módulo), esto NO es la regla
+ *    genérica de un `Field.pattern` de PocketBase: es una convención PROPIA de Vega sobre un
+ *    concepto que Vega mismo introduce (la ruta pública), así que sí tiene sentido evitar aquí un
+ *    roundtrip evidente.
  * 3. `maxSelect` (select/relation/file con `multiple: true` y `maxSelect` definido) — solo si el
  *    campo no era ya inválido por las dos anteriores (un array vacío nunca dispara "demasiados").
  *
@@ -82,16 +86,24 @@ function checkRequired(
 
 /**
  * Formato de la ruta pública (`type.page.pathField`, ver cabecera): no-op para cualquier otro
- * campo o tipo sin `page`. `code: PAGE_PATH_INVALID_CODE` es LOCAL (no de PB) y `known: true` —
- * el mensaje final lo decide la clave `form.errorCode.vega_page_path_invalid` de `$lib/i18n`
- * (mismo patrón que `checkRequired`); `message` aquí es solo el fallback si esa clave faltara.
+ * campo o tipo sin `page`. Con `page` bilingüe (`type.page.localizedPath` no `null`), `field` es
+ * la ruta si es CUALQUIERA de sus columnas físicas por idioma (`Object.values(...fields)`), no
+ * solo la clave lógica de `pathField` (que no es el `name` de ningún campo físico cuando es
+ * bilingüe). `code: PAGE_PATH_INVALID_CODE` es LOCAL (no de PB) y `known: true` — el mensaje final
+ * lo decide la clave `form.errorCode.vega_page_path_invalid` de `$lib/i18n` (mismo patrón que
+ * `checkRequired`); `message` aquí es solo el fallback si esa clave faltara.
  */
 function checkPagePath(
 	type: ResolvedContentType,
 	field: ResolvedField,
 	value: FieldInputValue | undefined
 ): TranslatedError | null {
-	if (type.page?.pathField !== field.name) return null;
+	const page = type.page;
+	if (!page) return null;
+	const isPathField = page.localizedPath
+		? Object.values(page.localizedPath.fields).includes(field.name)
+		: page.pathField === field.name;
+	if (!isPathField) return null;
 	if (typeof value !== 'string' || isValidPagePath(value)) return null;
 	return {
 		code: PAGE_PATH_INVALID_CODE,

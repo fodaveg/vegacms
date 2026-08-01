@@ -251,9 +251,15 @@ export interface ResolvedContentType {
 	 * La ruta (`pathField`) NUNCA se deriva de `slugField`: son campos DISTINTOS y ninguno deriva
 	 * del otro a ESTE nivel (decisión de diseño, no un olvido). La ruta de una página publicada es
 	 * su identidad pública; derivarla de un título que alguien retoca después rompería enlaces
-	 * vivos en silencio. Proponer una ruta a partir del slug al CREAR una página — editable
-	 * después — es responsabilidad del EDITOR (otra tarea, aún no construida); este modelo solo
-	 * expone la columna, nunca deriva ni escribe su valor.
+	 * vivos en silencio. Proponer una ruta a partir del slug o el título al CREAR una página —
+	 * editable después — es responsabilidad del EDITOR (`RecordForm.svelte`, `page-path.ts`); este
+	 * modelo solo expone la(s) columna(s), nunca deriva ni escribe su valor.
+	 *
+	 * **Ruta BILINGÜE** (encargo "la ruta pública de una página puede ser bilingüe"): `pathField`
+	 * puede nombrar, en vez de una columna física, un campo LÓGICO de `localizedFields` de ESTA
+	 * colección — una ruta por idioma, no una. Ver la cabecera de `ResolvedPageConfig` para el
+	 * detalle completo; sigue siendo la MISMA clave de manifiesto (`page.pathField`), Vega decide
+	 * sola cuál de las dos formas es.
 	 *
 	 * `?:` por el mismo motivo que `blocks`/`social` arriba (compatibilidad de fixtures que
 	 * construyen un `ResolvedContentType` a mano en otras partes del repo).
@@ -262,35 +268,71 @@ export interface ResolvedContentType {
 }
 
 /**
- * (M) Declaración ya validada de `collections.<c>.page` (modelo de páginas, tarea p1 `1dc63001`):
- * la ruta pública + la plantilla de una colección de páginas. A diferencia de
- * `ResolvedBlocksConfig` (tres piezas obligatorias juntas), aquí SOLO `pathField` es obligatorio
- * — `layoutField` es opcional y degrada SOLO (`page-layout-field-invalid`), sin invalidar `page`
- * entera: mismo criterio de asimetría que `typeField`/`dataField` en `ResolvedBlocksConfig`, una
- * capacidad opcional a medias no puede quitarle a la colección una que ya funcionaba.
+ * (M) Declaración ya validada de `collections.<c>.page` (modelo de páginas, tarea p1 `1dc63001`;
+ * ruta BILINGÜE, encargo "la ruta pública de una página puede ser bilingüe"): la ruta pública + la
+ * plantilla de una colección de páginas. A diferencia de `ResolvedBlocksConfig` (tres piezas
+ * obligatorias juntas), aquí SOLO `pathField` es obligatorio — `layoutField` es opcional y degrada
+ * SOLO (`page-layout-field-invalid`), sin invalidar `page` entera: mismo criterio de asimetría que
+ * `typeField`/`dataField` en `ResolvedBlocksConfig`, una capacidad opcional a medias no puede
+ * quitarle a la colección una que ya funcionaba.
+ *
+ * **`pathField` puede nombrar DOS cosas distintas** (`resolvePage`, `resolve.ts`, prueba la
+ * PRIMERA y solo si no resuelve prueba la segunda — NUNCA al revés, es la regla que hace esto
+ * aditivo): una columna física `text` de esta colección (el caso de siempre, UNA ruta por página,
+ * `localizedPath: null`), o el nombre LÓGICO de un `collections.<c>.localizedFields` de esta misma
+ * colección (una ruta POR IDIOMA — el vocabulario que Vega ya tiene para campos traducibles, sin
+ * inventar uno paralelo). No hay una tercera clave de manifiesto que active el modo bilingüe: lo
+ * decide, sola, si `pathField` cae dentro de `localizedFields` — un sitio de un solo idioma que
+ * nunca declaró `locales`/`localizedFields` no tiene NADA que resuelva como lógico, así que su
+ * `pathField` de siempre sigue resolviendo EXACTAMENTE igual (misma rama de código, mismo
+ * resultado, sin aviso nuevo).
  */
 export interface ResolvedPageConfig {
-	/** Campo `text` de ESTA colección con la ruta pública (p. ej. `/sobre-mi`). Obligatorio: sin
-	 *  él no hay página que servir, así que su ausencia o invalidez tumba `page` ENTERA
-	 *  (`page-invalid`), mismo criterio "todo o nada" que las tres piezas de `ResolvedBlocksConfig`. */
+	/** Igual al valor CRUDO de `page.pathField` del manifiesto, sea una columna física o un campo
+	 *  lógico (ver la cabecera): esto es lo que declaró el autor del manifiesto, no una forma
+	 *  normalizada. Obligatorio: sin él no hay página que servir, así que su ausencia o invalidez
+	 *  tumba `page` ENTERA (`page-invalid`), mismo criterio "todo o nada" que las tres piezas de
+	 *  `ResolvedBlocksConfig`. */
 	pathField: string;
 	/**
-	 * `true` si `pathField` resuelve a un campo con índice ÚNICO real de PocketBase (`Field.unique`
-	 * de `$lib/backend/types`, derivado de los índices reales del esquema descubierto — `false`
-	 * significa "no determinable", no necesariamente "no único", ver el comentario de `unique` en
-	 * `FieldBase`). La unicidad de la ruta la impone el BACKEND, no Vega — esta pieza solo la
-	 * COMPRUEBA: `false` no invalida la capacidad (la colección SIGUE siendo de páginas), solo
-	 * dispara `page-path-not-unique` — sin índice único, dos páginas podrían colisionar en la misma
-	 * ruta y Vega no puede prometer que no pase. Es el valor concreto de que la ruta sea COLUMNA
-	 * REAL en vez de JSON: un JSON no tiene un índice que lo compruebe.
+	 * `true` solo si TODAS las columnas físicas de la ruta (una si `pathField` es física, una por
+	 * idioma de `localizedPath` si es lógica) tienen índice ÚNICO real de PocketBase (`Field.unique`
+	 * de `$lib/backend/types`, derivado de los índices reales del esquema descubierto — `false` en
+	 * CUALQUIERA de ellas significa "esa columna no es determinable", NUNCA "no es única", ver el
+	 * comentario de `unique` en `FieldBase`). La unicidad de la ruta la impone el BACKEND, no Vega —
+	 * esta pieza solo la COMPRUEBA: `false` no invalida la capacidad (la colección SIGUE siendo de
+	 * páginas), solo dispara `page-path-not-unique` UNA VEZ POR CADA columna no determinable (nunca
+	 * uno solo agregando varias: "dos páginas podrían colisionar en la ruta EN sin que colisionen en
+	 * la ES" es un hecho por columna, no por capacidad) — sin índice único, dos páginas podrían
+	 * colisionar en esa ruta y Vega no puede prometer que no pase. Es el valor concreto de que la
+	 * ruta sea COLUMNA REAL en vez de JSON: un JSON no tiene un índice que lo compruebe.
 	 */
 	pathFieldUnique: boolean;
 	/** (M, opcional) Campo `text` de esta colección que guarda el NOMBRE de un layout de
 	 *  `ContentModel.layouts` para cada registro, o `null` sin plantilla explícita — una colección
 	 *  de páginas puede tener una sola plantilla implícita y no declarar esto. Si se declara pero
 	 *  no resuelve a un `text` real de esta colección, degrada SOLO a `null` con
-	 *  `page-layout-field-invalid`, SIN tumbar `pathField` (ver la cabecera de `ResolvedPageConfig`). */
+	 *  `page-layout-field-invalid`, SIN tumbar `pathField` (ver la cabecera de `ResolvedPageConfig`).
+	 *  NO es bilingüe (a diferencia de `pathField`): una colección de páginas tiene UN vocabulario
+	 *  de plantillas independiente del idioma, no una por locale. */
 	layoutField: string | null;
+	/**
+	 * (M, opcional) `null` cuando `pathField` nombra una columna física — el caso de siempre, y el
+	 * único que existía antes de este campo: NINGÚN consumidor histórico de `pathField` cambia
+	 * (regla aditiva de la cabecera). Cuando `pathField` nombra en cambio un campo LÓGICO de
+	 * `localizedFields`, la columna física de la ruta por cada idioma (`fields`, MISMA forma que
+	 * `ResolvedLocalizedField.fields`) más el locale por defecto (`defaultLocale`, duplicado desde
+	 * `ResolvedContentType.localization.defaultLocale` de este mismo tipo por conveniencia de los
+	 * consumidores que no tienen ese objeto a mano, p. ej. `RecordTable.svelte` listando SIN ninguna
+	 * pestaña de idioma activa) — los locales de `fields` son siempre un subconjunto de
+	 * `ResolvedContentType.localization.locales` de este tipo, nunca un vocabulario propio.
+	 *
+	 * `?:` por el mismo motivo que `blocks`/`social`/`localization` en `ResolvedContentType`:
+	 * `resolvePage` SIEMPRE la escribe cuando `page` no es `null` (nunca queda `undefined` en un
+	 * `ContentModel` real), pero opcional evita que un fixture de test que construye un
+	 * `ResolvedPageConfig` a mano en otra parte del repo tenga que enumerar esta clave nueva.
+	 */
+	localizedPath?: { defaultLocale: string; fields: Record<string, string> } | null;
 }
 
 /**
@@ -634,7 +676,7 @@ export type WarningCode =
 	| 'layout-invalid' // layouts.<l>: clave/label/forma inválido → esa plantilla se descarta entera
 	| 'page-invalid' // page.pathField ausente o no resuelve a un text de esta colección → page entera a null
 	| 'page-layout-field-invalid' // page.layoutField declarado pero no resuelve a un text de esta colección → null (page SOBREVIVE)
-	| 'page-path-not-unique' // page.pathField resuelve pero sin índice único real → capacidad INTACTA + aviso
+	| 'page-path-not-unique' // page.pathField resuelve pero alguna de sus columnas físicas no tiene índice único CONFIRMADO → capacidad INTACTA + un aviso POR COLUMNA afectada
 	| 'multiple-vega-records' // la colección vega tiene >1 registros (lo emite load, §6.2)
 	// ————— mergedViews (L7a) —————
 	| 'merged-view-invalid' // 0 sources válidas → la vista fusionada entera se descarta

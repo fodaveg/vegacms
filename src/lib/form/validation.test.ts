@@ -303,3 +303,61 @@ describe('validateForm — formato de la ruta pública (type.page.pathField)', (
 		expect(validateForm(pageType, current).byField.path?.code).toBe(PAGE_PATH_INVALID_CODE);
 	});
 });
+
+describe('validateForm — ruta pública BILINGÜE (type.page.localizedPath)', () => {
+	const pathEs: Field = {
+		name: 'pathEs',
+		type: 'text',
+		subtype: 'plain',
+		required: false,
+		readonly: false,
+		presentable: true,
+		hidden: false,
+		unique: true
+	};
+	const pathEn: Field = {
+		name: 'pathEn',
+		type: 'text',
+		subtype: 'plain',
+		required: false,
+		readonly: false,
+		presentable: true,
+		hidden: false,
+		unique: true
+	};
+	const bilingualPageType: ResolvedContentType = {
+		...makeType([
+			...type.fields,
+			makeField(pathEs, { widget: 'text' }),
+			makeField(pathEn, { widget: 'text' })
+		]),
+		page: {
+			pathField: 'path',
+			pathFieldUnique: true,
+			layoutField: null,
+			localizedPath: { defaultLocale: 'es', fields: { es: 'pathEs', en: 'pathEn' } }
+		}
+	};
+
+	test('cada columna física por idioma se valida INDEPENDIENTEMENTE, no solo la del locale activo', () => {
+		const current: FormInputValues = { ...validCurrent, pathEs: '/sobre-mi', pathEn: 'about-us' };
+		const view = validateForm(bilingualPageType, current);
+		expect(view.byField.pathEs).toBeUndefined();
+		expect(view.byField.pathEn?.code).toBe(PAGE_PATH_INVALID_CODE);
+	});
+
+	test('las DOS columnas válidas → sin error en ninguna', () => {
+		const current: FormInputValues = { ...validCurrent, pathEs: '/sobre-mi', pathEn: '/about-us' };
+		expect(validateForm(bilingualPageType, current)).toEqual({ byField: {}, record: null });
+	});
+
+	test('un campo llamado "pathField" (el nombre LÓGICO) que no es ninguna columna física no se valida', () => {
+		const current: FormInputValues = {
+			...validCurrent,
+			pathEs: '/sobre-mi',
+			pathEn: '/about-us',
+			path: 'esto no es una columna real'
+		};
+		expect(validateForm(bilingualPageType, current).byField.path).toBeUndefined();
+	});
+});

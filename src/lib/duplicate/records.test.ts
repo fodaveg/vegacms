@@ -272,4 +272,89 @@ describe('duplicado de páginas y bloques', () => {
 			}
 		]);
 	});
+
+	test('página con ruta BILINGÜE: desambigua las DOS columnas físicas, no solo la clave lógica', async () => {
+		const pageTypeI18n: ContentType = {
+			name: 'pages_i18n',
+			readonly: false,
+			fields: [
+				{ ...pageType.fields[0] }, // title
+				{
+					name: 'pathEs',
+					type: 'text',
+					subtype: 'plain',
+					required: true,
+					readonly: false,
+					presentable: true,
+					hidden: false,
+					unique: true
+				},
+				{
+					name: 'pathEn',
+					type: 'text',
+					subtype: 'plain',
+					required: false,
+					readonly: false,
+					presentable: true,
+					hidden: false,
+					unique: true
+				}
+			]
+		};
+		const model = resolveContentModel({
+			types: [pageTypeI18n],
+			manifestRaw: {
+				schemaVersion: 1,
+				locales: {
+					default: 'es',
+					available: [
+						{ id: 'es', label: 'Español' },
+						{ id: 'en', label: 'English' }
+					]
+				},
+				collections: {
+					pages_i18n: {
+						titleField: 'title',
+						localizedFields: { path: { fields: { es: 'pathEs', en: 'pathEn' } } },
+						page: { pathField: 'path' }
+					}
+				}
+			}
+		});
+		expect(model.warnings).toEqual([]);
+		const resolvedPage = model.types.find((candidate) => candidate.name === 'pages_i18n')!;
+		expect(resolvedPage.page?.localizedPath).toEqual({
+			defaultLocale: 'es',
+			fields: { es: 'pathEs', en: 'pathEn' }
+		});
+
+		const port = createMemoryBackend({
+			users: [{ email: 'admin@vega.test', password: 'test-pass' }],
+			contentTypes: [pageTypeI18n],
+			records: {
+				pages_i18n: [
+					{
+						id: 'home',
+						values: { title: 'Inicio', pathEs: '/', pathEn: '/en' }
+					},
+					{
+						id: 'copy1',
+						values: { title: 'Copia previa', pathEs: '/copia', pathEn: '/en-copia' }
+					}
+				]
+			}
+		});
+		await port.login({ email: 'admin@vega.test', password: 'test-pass' });
+		const source = await port.get('pages_i18n', 'home');
+
+		const duplicated = await duplicatePage(port, resolvedPage, source, model.types);
+
+		// Ninguna de las DOS columnas colisiona con "home" NI con "copy1": cada idioma se
+		// desambigua por su cuenta.
+		expect(duplicated.page.values).toMatchObject({
+			title: 'Inicio',
+			pathEs: '/copia-2',
+			pathEn: '/en-copia-2'
+		});
+	});
 });

@@ -1123,23 +1123,33 @@ function resolveSocialCard(
 // ————— Modelo de páginas (page, tarea p1 `1dc63001`) —————
 
 /**
- * Resuelve `page` (§ tipos `ResolvedPageConfig`, modelo de páginas — tarea p1 `1dc63001`) UNA VEZ
- * que `raw` ya se sabe una declaración con forma válida (`readPageDeclaration` ya exigió un
- * `pathField` de texto no vacío; `raw === undefined` — clave ausente, o presente con forma
- * inválida, ya avisado por `readKey` — ⇒ `null` sin warning nuevo, igual que el resto de
- * capacidades opt-in).
+ * Resuelve `page` (§ tipos `ResolvedPageConfig`, modelo de páginas — tarea p1 `1dc63001`; ruta
+ * BILINGÜE, encargo "la ruta pública de una página puede ser bilingüe") UNA VEZ que `raw` ya se
+ * sabe una declaración con forma válida (`readPageDeclaration` ya exigió un `pathField` de texto
+ * no vacío; `raw === undefined` — clave ausente, o presente con forma inválida, ya avisado por
+ * `readKey` — ⇒ `null` sin warning nuevo, igual que el resto de capacidades opt-in).
  *
- * `pathField` debe resolver a un campo `text` REAL de este tipo: si no, `page` ENTERA cae a
- * `null` (`page-invalid`, mismo criterio "todo o nada" que las tres piezas de `resolveBlocks`) —
- * sin ruta pública no hay página que servir, así que no hay "página a medias" posible aquí.
+ * `pathField` prueba DOS resoluciones, EN ESTE ORDEN y nunca al revés (es la regla que hace esto
+ * ADITIVO, ver la cabecera de `ResolvedPageConfig`):
+ * 1. Columna FÍSICA `text` de este tipo — el caso de siempre. Si resuelve, listo: mismo camino,
+ *    mismo resultado, mismo warning que antes de este encargo, byte a byte.
+ * 2. Solo si (1) no resolvió: campo LÓGICO de `localization.fields` (bilingüe) cuyas columnas
+ *    físicas, TODAS, sean `text` real de este tipo — `resolveLocalization` ya garantiza que todas
+ *    comparten `schema.type` entre sí, pero no que ese tipo compartido sea `text` (podría ser un
+ *    grupo traducible de `number`, por ejemplo), así que aquí SÍ hace falta comprobarlo.
  *
- * La unicidad (§4b de la tarea) la impone PocketBase, no Vega: `pathFieldSchema.unique` viaja
- * intacto a `pathFieldUnique` y, si es `false`, se emite `page-path-not-unique` SIN invalidar la
- * capacidad — la colección sigue siendo de páginas, Vega solo deja constancia de que no puede
- * prometer que dos páginas no colisionen en la misma ruta.
+ * Si NINGUNA de las dos resuelve, `page` ENTERA cae a `null` (`page-invalid`, mismo criterio "todo
+ * o nada" que las tres piezas de `resolveBlocks`) — sin ruta pública no hay página que servir, así
+ * que no hay "página a medias" posible aquí.
  *
- * `layoutField` (opcional) se resuelve DESPUÉS y de forma independiente: una declaración inválida
- * solo lo deja en `null` con su propio `page-layout-field-invalid`, nunca toca `pathField`.
+ * La unicidad (§4b de la tarea) la impone PocketBase, no Vega: cada columna física implicada
+ * (una si es física, una por idioma si es lógica) aporta su `Field.unique` a `pathFieldUnique`
+ * (`true` solo si TODAS lo son) y dispara su PROPIO `page-path-not-unique` si no lo es — ninguna
+ * invalida la capacidad, la colección sigue siendo de páginas.
+ *
+ * `layoutField` (opcional, NUNCA bilingüe — ver `ResolvedPageConfig.layoutField`) se resuelve
+ * DESPUÉS y de forma independiente: una declaración inválida solo lo deja en `null` con su propio
+ * `page-layout-field-invalid`, nunca toca `pathField`.
  *
  * Un tipo de SOLO LECTURA (vista) se descarta ANTES que nada (`pageOnReadonly`, mismo criterio que
  * `singleton` sobre una vista): no es solo que no se pueda editar, es que una vista tampoco puede
@@ -1150,6 +1160,7 @@ function resolveSocialCard(
 function resolvePage(
 	type: ContentType,
 	raw: RawPageDeclaration | undefined,
+	localization: ResolvedLocalization | null,
 	warnings: ModelWarning[]
 ): ResolvedPageConfig | null {
 	if (raw === undefined) return null;
@@ -1159,20 +1170,49 @@ function resolvePage(
 		return null;
 	}
 
+	// 1. Columna física (el caso de siempre, EXACTAMENTE igual que antes de la ruta bilingüe).
 	const pathFieldSchema = type.fields.find((f) => f.name === raw.pathFieldRaw);
-	if (!pathFieldSchema || pathFieldSchema.type !== 'text') {
-		warnings.push(pageInvalid(type.name, raw.pathFieldRaw));
-		return null;
+	if (pathFieldSchema && pathFieldSchema.type === 'text') {
+		const pathFieldUnique = pathFieldSchema.unique;
+		if (!pathFieldUnique) warnings.push(pagePathNotUnique(type.name, raw.pathFieldRaw));
+		const layoutField = resolvePageLayoutField(type, raw.layoutFieldRaw, warnings);
+		return { pathField: raw.pathFieldRaw, pathFieldUnique, layoutField, localizedPath: null };
 	}
 
-	const pathFieldUnique = pathFieldSchema.unique;
-	if (!pathFieldUnique) {
-		warnings.push(pagePathNotUnique(type.name, raw.pathFieldRaw));
+	// 2. Campo lógico de localizedFields (bilingüe), SOLO si (1) no resolvió.
+	const logical = localization?.fields.find((f) => f.name === raw.pathFieldRaw) ?? null;
+	if (logical) {
+		const physicalByLocale = logical.fields;
+		const columnsAreText = localization!.locales.every((locale) => {
+			const physicalField = type.fields.find((f) => f.name === physicalByLocale[locale.id]);
+			return physicalField?.type === 'text';
+		});
+		if (columnsAreText) {
+			let pathFieldUnique = true;
+			for (const locale of localization!.locales) {
+				const physicalName = physicalByLocale[locale.id];
+				const physicalField = type.fields.find((f) => f.name === physicalName)!;
+				if (!physicalField.unique) {
+					pathFieldUnique = false;
+					warnings.push(pagePathNotUnique(type.name, physicalName));
+				}
+			}
+			const layoutField = resolvePageLayoutField(type, raw.layoutFieldRaw, warnings);
+			return {
+				pathField: raw.pathFieldRaw,
+				pathFieldUnique,
+				layoutField,
+				localizedPath: {
+					defaultLocale: localization!.defaultLocale,
+					fields: { ...physicalByLocale }
+				}
+			};
+		}
 	}
 
-	const layoutField = resolvePageLayoutField(type, raw.layoutFieldRaw, warnings);
-
-	return { pathField: raw.pathFieldRaw, pathFieldUnique, layoutField };
+	// Ni física ni lógica: sin ruta pública no hay página que servir.
+	warnings.push(pageInvalid(type.name, raw.pathFieldRaw));
+	return null;
 }
 
 /**
@@ -1527,10 +1567,12 @@ function resolveContentType(
 			: resolveSocialCard(type, socialRaw, titleField, previewUrl, warnings);
 
 	// ————— page (modelo de páginas, tarea p1 `1dc63001`) —————
-	// Independiente de `slugField`/`statusField`/`social`/`previewUrl` de arriba: `page` los REUSA
-	// como conceptos (la publicación y el SEO de una página son los mismos de siempre), pero
-	// `pathField`/`layoutField` no derivan de ninguno de ellos ni se resuelven a partir de sus
-	// valores — ver la cabecera de `ResolvedContentType.page`.
+	// La LECTURA (forma cruda) va aquí, junto al resto de claves de nivel de colección — igual que
+	// siempre. La RESOLUCIÓN (`resolvePage`, con warnings de contenido) se aplaza a DESPUÉS de
+	// `localization` más abajo: `pathField` puede nombrar un campo LÓGICO de `localizedFields`
+	// (ruta bilingüe), así que necesita el `ResolvedLocalization` YA resuelto de este mismo tipo
+	// para poder mirarlo — `page` sigue sin derivar NADA de `slugField`/`statusField`/`social`/
+	// `previewUrl` (ver la cabecera de `ResolvedContentType.page`), esto es solo orden de cómputo.
 	const pageRaw = readKey(
 		collectionRaw,
 		'page',
@@ -1539,7 +1581,6 @@ function resolveContentType(
 		`page de "${type.name}" debe ser un objeto { pathField, layoutField? } con pathField un texto no vacío; se ignora.`,
 		warnings
 	);
-	const page = resolvePage(type, pageRaw, warnings);
 
 	// ————— campos (§4.2, §4.9, §4.10) —————
 	const fieldsRaw =
@@ -1623,6 +1664,11 @@ function resolveContentType(
 		orderedFields,
 		warnings
 	);
+
+	// `page`, resolución (ver el comentario de la LECTURA más arriba): necesita `localization` ya
+	// resuelto para poder probar `pathField` como campo lógico cuando no resuelve como columna
+	// física.
+	const page = resolvePage(type, pageRaw, localization, warnings);
 
 	// ————— listFields (§4.10) —————
 	const listFieldsRawArr = readKey(

@@ -222,15 +222,24 @@
 
 	/** Campo subtítulo ya resuelto (M3, `ResolvedContentType.subtitleField`, + modelo de páginas
 	 *  tarea p1 `1dc63001`, encargo "crear y editar páginas" §5): `contentType.subtitleField` si el
-	 *  manifiesto lo declara, y si no, `contentType.page.pathField` cuando la colección es de
-	 *  páginas — "la lista de una colección de páginas enseña la ruta de cada registro, que es su
-	 *  identidad pública" (el manifiesto SIGUE ganando si además declara `subtitleField` a propósito,
-	 *  para no pisar una elección explícita). `null` si ninguna de las dos aplica. A propósito NO se
-	 *  busca en `columns` (a diferencia de `openColumn`) — ni el subtítulo ni la ruta tienen por qué
-	 *  ser una columna de `listFields`, así que se resuelve contra `contentType.fields` (TODOS los
-	 *  campos del tipo, P2). */
+	 *  manifiesto lo declara, y si no, la columna de la ruta cuando la colección es de páginas —
+	 *  "la lista de una colección de páginas enseña la ruta de cada registro, que es su identidad
+	 *  pública" (el manifiesto SIGUE ganando si además declara `subtitleField` a propósito, para no
+	 *  pisar una elección explícita). Con `page` bilingüe (`localizedPath`, encargo "la ruta pública
+	 *  de una página puede ser bilingüe") no hay ninguna pestaña de idioma activa aquí (el listado
+	 *  no es el editor): se pinta la columna del locale POR DEFECTO, mismo criterio que
+	 *  `RecordForm.svelte` usa para sembrar `activeLocale` al abrir un registro. `null` si ninguna
+	 *  de las dos aplica. A propósito NO se busca en `columns` (a diferencia de `openColumn`) — ni
+	 *  el subtítulo ni la ruta tienen por qué ser una columna de `listFields`, así que se resuelve
+	 *  contra `contentType.fields` (TODOS los campos del tipo, P2). */
 	const subtitleField = $derived.by(() => {
-		const name = contentType.subtitleField ?? contentType.page?.pathField ?? null;
+		const page = contentType.page;
+		const name =
+			contentType.subtitleField ??
+			(page?.localizedPath
+				? page.localizedPath.fields[page.localizedPath.defaultLocale]
+				: page?.pathField) ??
+			null;
 		if (name === null) return null;
 		return contentType.fields.find((f) => f.name === name) ?? null;
 	});

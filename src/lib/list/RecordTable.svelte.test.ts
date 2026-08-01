@@ -159,4 +159,51 @@ describe('RecordTable.svelte — fallback de subtítulo a la ruta (modelo de pá
 		const subtitle = mounted.target.querySelector('.vega-cell-subtitle');
 		expect(subtitle?.textContent).toBe('Sobre mí');
 	});
+
+	test('ruta BILINGÜE (page.localizedPath): sin subtitleField, pinta la columna del locale POR DEFECTO', () => {
+		const pathEsFieldSchema: Field = { ...pathFieldSchema, name: 'pathEs' };
+		const pathEnFieldSchema: Field = { ...pathFieldSchema, name: 'pathEn' };
+		const pathEsField: ResolvedField = { ...pathField, schema: pathEsFieldSchema, name: 'pathEs' };
+		const pathEnField: ResolvedField = { ...pathField, schema: pathEnFieldSchema, name: 'pathEn' };
+		const type: ResolvedContentType = {
+			...makePageType(null),
+			schema: {
+				name: 'pages',
+				readonly: false,
+				fields: [titleFieldSchema, pathEsFieldSchema, pathEnFieldSchema]
+			},
+			fields: [titleField, pathEsField, pathEnField],
+			page: {
+				pathField: 'path',
+				pathFieldUnique: true,
+				layoutField: null,
+				localizedPath: { defaultLocale: 'es', fields: { es: 'pathEs', en: 'pathEn' } }
+			}
+		};
+		const bilingualRecord: VegaRecord = {
+			id: 'r1',
+			type: 'pages',
+			values: { title: 'Sobre mí', pathEs: '/sobre-mi', pathEn: '/about-us' }
+		};
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const instance = mount(RecordTable, {
+			target,
+			props: {
+				contentType: type,
+				columns: [{ field: titleField, isTitle: true, isStatus: false, sortable: false }],
+				records: [bilingualRecord],
+				sort: null,
+				onSort: vi.fn(),
+				onDeleteRequest: vi.fn(),
+				reorderable: false,
+				onReorder: vi.fn()
+			},
+			context: new Map([[VEGA_CONTEXT_KEY, fakeCtx()]])
+		});
+		const subtitle = target.querySelector('.vega-cell-subtitle');
+		expect(subtitle?.textContent).toBe('/sobre-mi');
+		unmount(instance);
+		target.remove();
+	});
 });

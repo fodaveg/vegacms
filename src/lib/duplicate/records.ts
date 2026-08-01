@@ -140,7 +140,17 @@ export async function duplicatePage(
 			: [];
 
 	const input = duplicateInput(pageType, source);
-	const uniqueTextFields = new Set<string>([pageType.page.pathField]);
+	// `page.pathField` puede ser una columna física (el caso de siempre) o, con ruta BILINGÜE
+	// (`localizedPath`, encargo "la ruta pública de una página puede ser bilingüe"), el nombre
+	// LÓGICO de un campo traducible — que no es columna de `input`, así que forzar unicidad sobre
+	// él sería un no-op silencioso. Con `localizedPath` se fuerza en cambio CADA columna física por
+	// idioma (misma razón que el aviso `page-path-not-unique` por columna: dos páginas pueden
+	// colisionar en la ruta EN sin colisionar en la ES).
+	const uniqueTextFields = new Set<string>(
+		pageType.page.localizedPath
+			? Object.values(pageType.page.localizedPath.fields)
+			: [pageType.page.pathField]
+	);
 	if (pageType.slugField) uniqueTextFields.add(pageType.slugField);
 	for (const field of pageType.fields) {
 		if (field.schema.type === 'text' && field.schema.unique) uniqueTextFields.add(field.name);
