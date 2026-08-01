@@ -1,25 +1,44 @@
 <script lang="ts">
 	/**
 	 * Contornos de selección del editor visual (tarea "contornos de selección", §"Visual editing
-	 * bridge" de `docs/PROJECT-CONTRACT-v1.md`): pinta, ENCIMA del iframe de
-	 * `VisualEditorScreen.svelte`, una caja por bloque que reporta el puente
-	 * (`bridge-client.ts#VisualBlock`) más los estados que hay antes de que existan bloques que
-	 * dibujar. Vive en un componente propio, y no dentro del `<iframe>`, por la misma razón que
-	 * `bridge-client.ts` documenta en su cabecera: el marco es de OTRO origen, Vega no puede
+	 * bridge" de `docs/PROJECT-CONTRACT-v1.md`, ampliada por la tarea "acciones estructurales desde
+	 * el editor visual"): pinta, ENCIMA del iframe de `VisualEditorScreen.svelte`, una caja por
+	 * bloque que reporta el puente (`bridge-client.ts#VisualBlock`) más los estados que hay antes de
+	 * que existan bloques que dibujar — y, desde esta tarea, TAMBIÉN una barra flotante de acciones
+	 * sobre el contorno seleccionado y los puntos de inserción entre contornos (ver más abajo, "DOS
+	 * capas nuevas"). Vive en un componente propio, y no dentro del `<iframe>`, por la misma razón
+	 * que `bridge-client.ts` documenta en su cabecera: el marco es de OTRO origen, Vega no puede
 	 * inyectar ni un nodo en su DOM — y aunque pudiera, el contorno heredaría (y ensuciaría) el
 	 * CSS del sitio del cliente. Se dibuja fuera, con el `rect` que manda el puente.
 	 *
-	 * **`pointer-events: none` de arriba abajo, en el contenedor y en cada caja — es la pieza de
-	 * diseño de este componente, no un detalle.** El lienzo tiene que poder hacer scroll con
-	 * normalidad y el sitio tiene que seguir recibiendo los clics de sus propios enlaces y
-	 * botones; si una sola caja capturase el puntero, las dos cosas se romperían. Consecuencia
-	 * asumida: **nada de lo que pinta este componente es clicable**, así que no acepta ningún
-	 * `onSelect` ni ningún otro manejador. La selección viaja SIEMPRE por el mensaje `select` del
+	 * **`pointer-events: none` de arriba abajo, en el contenedor RAÍZ y en cada caja — sigue siendo
+	 * la pieza de diseño CENTRAL de este componente, no un detalle.** El lienzo tiene que poder
+	 * hacer scroll con normalidad y el sitio tiene que seguir recibiendo los clics de sus propios
+	 * enlaces y botones; si una sola caja capturase el puntero, las dos cosas se romperían. El
+	 * GRUPO de cajas (`.vega-visual-overlay-boxes`, `aria-hidden`) sigue sin aceptar ningún
+	 * `onSelect` ni ningún otro manejador: la selección viaja SIEMPRE por el mensaje `select` del
 	 * sitio, que escucha `VisualEditorScreen.svelte`, único dueño del id seleccionado (ver su
 	 * cabecera). Se llegó a escribir aquí un prop `onSelect` «para no cambiar la firma cuando
 	 * llegue el árbol de secciones» y se quitó: un prop OBLIGATORIO que no dispara nada le hace
-	 * creer al siguiente que la vía está viva, y el árbol de secciones no va a seleccionar por
-	 * aquí, sino por su propia lista.
+	 * creer al siguiente que la vía está viva, y el árbol de secciones no selecciona por aquí, sino
+	 * por su propia lista.
+	 *
+	 * **Tarea "acciones estructurales desde el editor visual": DOS capas nuevas, HERMANAS del
+	 * grupo de cajas, cada una con su propio `pointer-events: auto` — SOLO en sus botones, nunca en
+	 * el contenedor que las envuelve.** La barra flotante sobre el contorno seleccionado
+	 * (`.vega-visual-overlay-toolbar`: duplicar/mover/borrar) y los puntos de inserción entre
+	 * contornos (`.vega-visual-overlay-insert-points`: crear EN esa posición) pintan controles DE
+	 * VERDAD, así que no pueden vivir dentro de `.vega-visual-overlay-boxes` (que es `aria-hidden`,
+	 * ver más abajo: meter un control enfocable ahí sería el antipatrón que esa misma sección
+	 * evita) ni heredar sin más el `pointer-events: none` del contenedor raíz (los dejaría
+	 * inertes). La solución no rompe la regla de arriba: `pointer-events` es una propiedad
+	 * HEREDABLE, así que el contenedor de cada capa nueva no fija nada (sigue heredando `none` del
+	 * raíz, transparente al puntero como cualquier otro hueco del lienzo) y solo cada `<button>`
+	 * individual pone su propio `pointer-events: auto`, que gana sobre lo heredado. El resultado:
+	 * clicar fuera de un botón concreto —incluso dentro del rectángulo que ocupa la capa— sigue
+	 * atravesando hasta el sitio, exactamente igual que antes de esta tarea; solo los propios
+	 * botones capturan el puntero. Si algún día un clic sobre el sitio deja de seleccionar, la
+	 * pieza rota es esta.
 	 *
 	 * **El resalte por RATÓN queda fuera, y no es un olvido.** Mientras el puntero está sobre un
 	 * iframe de otro origen, la ventana padre no recibe NINGÚN evento de ratón (ni `mousemove` ni
@@ -60,20 +79,58 @@
 	 * (`--warning`/`--warning-soft`, también medida en el mismo gate) para separar "qué tipo es"
 	 * de "está seleccionado", que es un eje aparte (color del contorno, ver CSS).
 	 *
-	 * **Decorativo para el lector de pantalla.** El grupo de cajas lleva `aria-hidden="true"`: la
-	 * vía accesible de seleccionar será el árbol de secciones de la tarea siguiente, no este
-	 * overlay — meter aquí un control real y enfocable dentro de un `aria-hidden` sería el
-	 * antipatrón contrario (interactivo pero invisible para quien no usa ratón), y es justo lo que
-	 * la regla de arriba evita. Los ESTADOS (cargando/sin bloques/bloques mal descritos) sí viven
-	 * en su propia región `aria-live="polite"`, separada del grupo decorativo, porque esos sí son
-	 * información y no adorno.
+	 * **Decorativo para el lector de pantalla — el grupo de cajas, no el componente entero.** El
+	 * grupo de cajas lleva `aria-hidden="true"`: la vía accesible de SELECCIONAR es el árbol de
+	 * secciones (`VisualBlockTree.svelte`), no este overlay — meter aquí un control real y
+	 * enfocable dentro de un `aria-hidden` sería el antipatrón contrario (interactivo pero
+	 * invisible para quien no usa ratón), y es justo lo que la regla de arriba evita. Los ESTADOS
+	 * (cargando/sin bloques/bloques mal descritos) ya vivían en su propia región
+	 * `aria-live="polite"`, separada del grupo decorativo, porque esos sí son información y no
+	 * adorno — la barra flotante y los puntos de inserción (ver más abajo) son la MISMA idea
+	 * llevada a controles interactivos: viven FUERA del `aria-hidden`, con su propio nombre
+	 * accesible por botón, alcanzables por `Tab` como cualquier otro control de la pantalla. No son
+	 * la vía ACCESIBLE que manda (esa sigue siendo el árbol, §encargo de la tarea) — son un atajo
+	 * de conveniencia sobre el lienzo, y por eso no intentan sustituir al árbol ni duplican su
+	 * `aria-live` de anuncio de reorden (`blocks-state.svelte.ts#announce`): esa región ya vive UNA
+	 * vez en `VisualBlockTree.svelte`, y las dos superficies comparten la MISMA instancia de
+	 * `blocksState`, así que un reorden disparado desde aquí se anuncia igual.
 	 *
-	 * Nada de insertar/reordenar/duplicar/borrar bloques: son tareas aparte. Este componente solo
-	 * DIBUJA lo que el puente ya reportó.
+	 * **Duplicar/mover/borrar el bloque SELECCIONADO, e insertar uno EN POSICIÓN — tarea
+	 * "acciones estructurales desde el editor visual".** `blocksState` llega como prop (la MISMA
+	 * instancia de `createBlocksState()` que `VisualEditorScreen.svelte` construyó y que también
+	 * usa `VisualBlockTree.svelte`, ver su cabecera: "un solo `createBlocksState` por pantalla").
+	 * Este componente no reimplementa ninguna mutación, solo llama a las que ya expone ese módulo:
+	 * - **Barra flotante** (`.vega-visual-overlay-toolbar`): SOLO sobre el bloque SELECCIONADO
+	 *   (nunca una por caja) — duplicar/subir/bajar/borrar, mismas claves i18n y misma lógica de
+	 *   guardas (`structuralBusy`/`anySaving`/`anyDirty`) que las filas del árbol. El diálogo de
+	 *   confirmación de borrado vive en `VisualBlockTree.svelte` (comparte `blocksState.pendingDelete`,
+	 *   un solo dato, un solo dueño): este componente solo llama a `requestDelete`, nunca pinta su
+	 *   propio `<DeleteConfirm>`.
+	 * - **Puntos de inserción** (`.vega-visual-overlay-insert-points`): uno ANTES del primer
+	 *   contorno, uno DESPUÉS de cada bloque, N+1 en total para N bloques. `handleCreate` de
+	 *   `blocks-state.svelte.ts` SIEMPRE añade al final (no sabe crear en una posición concreta,
+	 *   ver su cabecera): la forma barata y honesta que pide el encargo es crear y LUEGO reordenar
+	 *   con `handleReorder` hasta la posición pedida — la misma receta que `handleDuplicate` ya usa
+	 *   por dentro, aquí reutilizada desde fuera porque ese camino no está exportado. **Sin selector
+	 *   de tipo**, a diferencia del botón "Añadir" del árbol (que si el manifiesto declara varios
+	 *   abre su menú, §encargo punto 1): un punto de inserción usa el PRIMER tipo declarado (o
+	 *   ninguno en modo homogéneo). Elegir tipo con precisión es lo que el árbol ya resuelve bien;
+	 *   montar aquí un menú desplegable por cada uno de los N+1 huecos no pagaba su complejidad
+	 *   para este lote — documentado para que se pueda desmentir si algún día hace falta.
+	 * - **Tras cada mutación que de verdad cambió algo**, `onStructuralChange()` — el mismo camino
+	 *   que `VisualInspector.svelte#onBlockSaved` ya usa para pedir un token de vista previa nuevo
+	 *   (`VisualEditorScreen.svelte#requestPreview`, ver su cabecera): un bloque insertado/movido/
+	 *   duplicado/borrado no cambia el lienzo solo, hay que recargar el marco.
+	 * - **Borrar el seleccionado limpia la selección SOLA**, sin que este componente escriba nada:
+	 *   `onStructuralChange()` fuerza un token nuevo → el `<iframe>` recarga → el sitio ya no
+	 *   reporta ese id → `VisualEditorScreen.svelte#onState` (único escritor de `selectedBlockId`,
+	 *   ver su cabecera) lo limpia. Un segundo escritor aquí sería el bug de "dos efectos, un solo
+	 *   estado" que ese módulo evita a propósito.
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import Icon from '$lib/icons/Icon.svelte';
 	import type { VisualBlock } from './bridge-client';
+	import type { BlocksState } from '$lib/form/blocks-state.svelte';
 
 	/**
 	 * `'waiting'` mientras el puente no ha contestado al saludo con un `ready` (no hay bloques que
@@ -95,6 +152,11 @@
 		/** Ver cabecera, "Bloque que el sitio no sabe pintar". `undefined`/`null` = sin
 		 *  vocabulario de renderers que contrastar: ningún bloque se marca no soportado. */
 		renderedBlockTypes?: readonly string[] | null;
+		/** Instancia ÚNICA de la pantalla (ver cabecera), la MISMA que `VisualBlockTree.svelte`
+		 *  recibe — nunca construida aquí. */
+		blocksState: BlocksState;
+		/** Una mutación estructural que de verdad cambió algo acaba de completarse (ver cabecera). */
+		onStructuralChange: () => void;
 	}
 
 	let {
@@ -103,7 +165,9 @@
 		highlightedId,
 		skippedBlocks,
 		status,
-		renderedBlockTypes = null
+		renderedBlockTypes = null,
+		blocksState,
+		onStructuralChange
 	}: Props = $props();
 
 	const ctx = getVegaContext();
@@ -117,6 +181,119 @@
 			unsupported: rendered !== null && !rendered.has(block.type)
 		}));
 	});
+
+	// ————— Barra flotante del seleccionado (ver cabecera) —————
+
+	/** Deliberadamente en las DOS listas (registro de `blocksState` Y `rect` que reporta el
+	 *  puente): la barra necesita el registro para actuar (duplicar/borrar/mover) y el `rect` para
+	 *  posicionarse — si cualquiera de los dos falta (id fantasma en cualquier dirección, ver la
+	 *  cabecera del árbol, "Ids"), no hay barra que pintar ni sitio honesto donde ponerla. */
+	const selectedRecord = $derived(
+		selectedId === null ? null : (blocksState.records.find((r) => r.id === selectedId) ?? null)
+	);
+	const selectedBridgeBlock = $derived(
+		selectedId === null ? null : (blocks.find((b) => b.id === selectedId) ?? null)
+	);
+	const selectedIndex = $derived(
+		selectedRecord === null ? -1 : blocksState.records.findIndex((r) => r.id === selectedId)
+	);
+	/** Mismo criterio de guarda que `RecordBlocks.svelte`/`VisualBlockTree.svelte`: crear/duplicar/
+	 *  mover se congelan mientras haya un borrador sin guardar en CUALQUIER bloque, un guardado en
+	 *  vuelo, o ya otra mutación estructural en marcha. */
+	const structuralGuard = $derived(
+		blocksState.anyDirty || blocksState.anySaving || blocksState.structuralBusy
+	);
+	/** Hueco desde el borde SUPERIOR del bloque seleccionado hasta la barra, hacia DENTRO.
+	 *
+	 *  Antes iba hacia fuera (`rect.top - 44`, o sea flotando ENCIMA del contorno) y se veía mal:
+	 *  entre dos bloques pegados no hay hueco, así que la barra del bloque elegido caía dentro del
+	 *  ANTERIOR y parecía pertenecerle. Lo cazó una captura, no el gate — un test que comprueba
+	 *  que la barra existe y apunta al bloque correcto pasa igual con la barra pintada encima del
+	 *  vecino. Dentro y arriba no tiene ese problema: el bloque seleccionado siempre tiene su
+	 *  propia altura por debajo, y de paso desaparece el recorte del bloque pegado al borde de
+	 *  arriba, que es lo que obligaba al `Math.max(0, …)`. */
+	const TOOLBAR_INSET = 8;
+
+	async function handleDuplicateSelected(): Promise<void> {
+		if (!selectedRecord) return;
+		await blocksState.handleDuplicate(selectedRecord);
+		onStructuralChange();
+	}
+
+	/** Ver cabecera, "Borrar el seleccionado limpia la selección SOLA": esta función NO toca
+	 *  `selectedId` para nada, solo abre el diálogo que `VisualBlockTree.svelte` pinta. */
+	function handleDeleteSelected(): void {
+		if (!selectedRecord) return;
+		blocksState.requestDelete(selectedRecord);
+	}
+
+	/** `handleReorder` SÍ trae señal de éxito (a diferencia de crear/duplicar/borrar): solo se pide
+	 *  vista previa nueva si de verdad cambió algo. */
+	async function handleMoveSelected(direction: -1 | 1): Promise<void> {
+		if (selectedIndex < 0) return;
+		const target = selectedIndex + direction;
+		if (target < 0 || target >= blocksState.records.length) return;
+		const moved = await blocksState.handleReorder(selectedIndex, target);
+		if (moved) onStructuralChange();
+	}
+
+	// ————— Puntos de inserción (ver cabecera) —————
+
+	interface InsertPoint {
+		/** Índice, dentro de `blocksState.records`, en el que debería caer una sección insertada
+		 *  ANTES del bloque `position`-ésimo que reporta el puente (`position === blocks.length` ⇒
+		 *  al final). Coincide con el índice bridge por construcción (ver `insertPoints` de abajo). */
+		position: number;
+		/** Coordenada Y, mismo sistema que `block.rect` (coordenadas del `<iframe>`, ver cabecera
+		 *  del componente): borde superior del primer bloque, punto medio entre cada par
+		 *  consecutivo, borde inferior del último. */
+		top: number;
+	}
+
+	/** N+1 puntos para N bloques que el puente reporta — vacío mientras no hay bloques CIERTOS
+	 *  (`status !== 'ready'`) o el sitio no describe ninguno: sin un solo `rect`, no hay coordenada
+	 *  honesta donde pintar "insertar aquí" (el árbol, cuyo botón "Añadir" no depende de rects,
+	 *  sigue siendo el camino cuando el lienzo está vacío). */
+	const insertPoints = $derived.by((): InsertPoint[] => {
+		if (status !== 'ready' || blocks.length === 0) return [];
+		const points: InsertPoint[] = [{ position: 0, top: blocks[0].rect.top }];
+		for (let i = 1; i < blocks.length; i++) {
+			const prevBottom = blocks[i - 1].rect.top + blocks[i - 1].rect.height;
+			const nextTop = blocks[i].rect.top;
+			points.push({ position: i, top: (prevBottom + nextTop) / 2 });
+		}
+		const last = blocks[blocks.length - 1];
+		points.push({ position: blocks.length, top: last.rect.top + last.rect.height });
+		return points;
+	});
+
+	/** Índice, dentro de `blocksState.records`, en el que cae `position` (ver `InsertPoint`).
+	 *  Defensivo (ver cabecera del árbol, "Ids"): si el id que reporta el puente en `position` no
+	 *  casa con ningún registro, cae al final en vez de reventar — degradación, no error. */
+	function recordIndexForInsertion(position: number): number {
+		if (position >= blocks.length) return blocksState.records.length;
+		const targetId = blocks[position].id;
+		const idx = blocksState.records.findIndex((r) => r.id === targetId);
+		return idx === -1 ? blocksState.records.length : idx;
+	}
+
+	/** Crea y LUEGO reordena hasta `position` (ver cabecera, "Puntos de inserción" — la receta que
+	 *  el encargo pide por escrito cuando `handleCreate` no sabe crear en una posición concreta). */
+	async function handleInsert(position: number): Promise<void> {
+		const target = recordIndexForInsertion(position);
+		const before = blocksState.records.length;
+		const blockType = blocksState.hasTypeMenu ? (blocksState.blockTypes[0] ?? null) : null;
+		await blocksState.handleCreate(blockType);
+		if (blocksState.records.length !== before + 1) return; // creación fallida, `ctx.feedback` ya avisó
+		const newIndex = blocksState.records.length - 1;
+		// Si hay bloques con cambios sin guardar, `handleReorder` se niega (guard interno, ver su
+		// cabecera de `blocks-state.svelte.ts`): la sección nueva queda creada pero al FINAL en vez
+		// de en la posición pedida. No se repite aquí un segundo guard delante — el mismo criterio
+		// que ya protege el reorden basta, y el autor sigue viendo la sección nueva (solo que no
+		// exactamente donde la pidió).
+		if (newIndex !== target) await blocksState.handleReorder(newIndex, target);
+		onStructuralChange();
+	}
 </script>
 
 <!-- `pointer-events: none` INLINE (`style:`), no solo en el `<style>` de abajo (ver cabecera,
@@ -153,6 +330,94 @@
 			</div>
 		{/each}
 	</div>
+
+	<!-- Barra flotante del seleccionado (ver cabecera, "Duplicar/mover/borrar"): HERMANA del grupo
+	     de cajas, no `aria-hidden` — controles de verdad. El contenedor NO fija `pointer-events`
+	     (hereda `none` del raíz); solo cada `<button>` lo pone en `auto`. -->
+	{#if !blocksState.hidden && selectedRecord && selectedBridgeBlock}
+		{@const label = blocksState.blockTitle(selectedRecord)}
+		<div
+			class="vega-visual-overlay-toolbar"
+			role="group"
+			aria-label={ctx.t('editor.visual.overlay.toolbar.label', { label })}
+			style:top="{selectedBridgeBlock.rect.top + TOOLBAR_INSET}px"
+			style:left="{selectedBridgeBlock.rect.left +
+				selectedBridgeBlock.rect.width -
+				TOOLBAR_INSET}px"
+		>
+			{#if blocksState.blockDuplicateAllowed}
+				<button
+					type="button"
+					class="vega-visual-overlay-toolbar-btn"
+					style:pointer-events="auto"
+					disabled={structuralGuard}
+					aria-label={ctx.t('editor.blocks.duplicateLabel', { label })}
+					onclick={() => void handleDuplicateSelected()}
+				>
+					<Icon id="copy" size={14} />
+				</button>
+			{/if}
+			<button
+				type="button"
+				class="vega-visual-overlay-toolbar-btn"
+				style:pointer-events="auto"
+				disabled={selectedIndex <= 0 || structuralGuard}
+				aria-label={ctx.t('editor.blocks.moveUpLabel', { label })}
+				onclick={() => void handleMoveSelected(-1)}
+			>
+				<span class="vega-visual-overlay-toolbar-icon vega-visual-overlay-toolbar-icon--up">
+					<Icon id="chevron" size={14} />
+				</span>
+			</button>
+			<button
+				type="button"
+				class="vega-visual-overlay-toolbar-btn"
+				style:pointer-events="auto"
+				disabled={selectedIndex < 0 ||
+					selectedIndex >= blocksState.records.length - 1 ||
+					structuralGuard}
+				aria-label={ctx.t('editor.blocks.moveDownLabel', { label })}
+				onclick={() => void handleMoveSelected(1)}
+			>
+				<span class="vega-visual-overlay-toolbar-icon vega-visual-overlay-toolbar-icon--down">
+					<Icon id="chevron" size={14} />
+				</span>
+			</button>
+			<button
+				type="button"
+				class="vega-visual-overlay-toolbar-btn vega-visual-overlay-toolbar-btn--danger"
+				style:pointer-events="auto"
+				disabled={blocksState.anySaving || blocksState.structuralBusy}
+				aria-label={ctx.t('list.delete.rowButtonLabel', { label })}
+				onclick={handleDeleteSelected}
+			>
+				<Icon id="trash" size={14} />
+			</button>
+		</div>
+	{/if}
+
+	<!-- Puntos de inserción (ver cabecera): mismo criterio de capa hermana + `pointer-events` solo
+	     en los botones. -->
+	{#if !blocksState.hidden && insertPoints.length > 0}
+		<div class="vega-visual-overlay-insert-points">
+			{#each insertPoints as point (point.position)}
+				<button
+					type="button"
+					class="vega-visual-overlay-insert"
+					style:top="{point.top}px"
+					style:pointer-events="auto"
+					disabled={blocksState.structuralBusy || blocksState.anySaving}
+					aria-label={ctx.t('editor.visual.overlay.insertLabel', {
+						position: point.position + 1,
+						total: insertPoints.length
+					})}
+					onclick={() => void handleInsert(point.position)}
+				>
+					<Icon id="plus" size={14} />
+				</button>
+			{/each}
+		</div>
+	{/if}
 
 	<!-- Informativo, NO decorativo (ver cabecera): estados que sí hay que anunciar. -->
 	<div class="vega-visual-overlay-status" aria-live="polite">
@@ -281,5 +546,123 @@
 
 	.vega-visual-overlay-status--warning {
 		color: var(--warning);
+	}
+
+	/* Barra flotante del seleccionado (ver cabecera, "Duplicar/mover/borrar"): posicionada por
+	   `top`/`left` en línea (mismo sistema de coordenadas que `.vega-visual-overlay-box`, ver el
+	   marcado), NUNCA `pointer-events` propio — lo hereda `none` del raíz, solo cada botón lo
+	   reactiva (ver cabecera, "DOS capas nuevas"). */
+	.vega-visual-overlay-toolbar {
+		position: absolute;
+		/* `left` viene con el borde DERECHO del bloque (ver el marcado): esto la trae de vuelta su
+		   propio ancho, que es lo que la deja pegada a la derecha DENTRO del contorno sin tener
+		   que medir la barra en JS. La esquina izquierda ya la ocupa la etiqueta del tipo de
+		   bloque (`.vega-visual-overlay-label`). */
+		transform: translateX(-100%);
+		display: inline-flex;
+		align-items: center;
+		gap: 0.15rem;
+		padding: 0.2rem;
+		border-radius: var(--r);
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
+	}
+
+	.vega-visual-overlay-toolbar-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.7rem;
+		height: 1.7rem;
+		border: 0;
+		border-radius: calc(var(--r) / 1.5);
+		background: transparent;
+		color: var(--ink-2);
+		cursor: pointer;
+	}
+
+	.vega-visual-overlay-toolbar-btn:hover:not(:disabled) {
+		background: var(--active);
+		color: var(--ink);
+	}
+
+	.vega-visual-overlay-toolbar-btn:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.vega-visual-overlay-toolbar-btn:disabled {
+		cursor: not-allowed;
+		opacity: 0.4;
+	}
+
+	.vega-visual-overlay-toolbar-btn--danger:hover:not(:disabled) {
+		background: var(--danger-soft);
+		color: var(--danger);
+	}
+
+	/* Mismo truco que `.vega-tree-action-icon` de `VisualBlockTree.svelte`: el `chevron` apunta a
+	   la derecha por defecto, rotado -90°/90° da arriba/abajo sin un glifo nuevo. */
+	.vega-visual-overlay-toolbar-icon {
+		display: inline-flex;
+	}
+
+	.vega-visual-overlay-toolbar-icon--up {
+		transform: rotate(-90deg);
+	}
+
+	.vega-visual-overlay-toolbar-icon--down {
+		transform: rotate(90deg);
+	}
+
+	/* Puntos de inserción (ver cabecera): un botón circular pequeño, centrado horizontalmente,
+	   sobre cada coordenada Y calculada en el script. `left: 50%` + `translate` en vez de un ancho
+	   del 100% con icono centrado: así la línea entre contornos no reclama el ancho entero como
+	   zona clicable — un punto concreto es más honesto que una franja invisible del ancho del
+	   lienzo capturando el puntero de un `hover` que no puede detectar (ver cabecera del
+	   componente, "El resalte por RATÓN queda fuera"). */
+	.vega-visual-overlay-insert-points {
+		position: absolute;
+		inset: 0;
+	}
+
+	.vega-visual-overlay-insert {
+		position: absolute;
+		left: 50%;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.6rem;
+		height: 1.6rem;
+		border: 1px solid var(--line);
+		border-radius: 50%;
+		background: var(--surface);
+		color: var(--ink-2);
+		box-shadow: var(--shadow-card);
+		cursor: pointer;
+		transform: translate(-50%, -50%);
+	}
+
+	.vega-visual-overlay-insert:hover:not(:disabled) {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+
+	.vega-visual-overlay-insert:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.vega-visual-overlay-insert:disabled {
+		cursor: not-allowed;
+		opacity: 0.4;
+	}
+
+	@media (pointer: coarse) {
+		.vega-visual-overlay-toolbar-btn,
+		.vega-visual-overlay-insert {
+			width: 44px;
+			height: 44px;
+		}
 	}
 </style>

@@ -262,6 +262,13 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.tree.title': 'Sections',
 	'editor.visual.tree.selectLabel': 'Select "{label}"',
 	'editor.visual.tree.unavailable': 'Could not load the section tree.',
+	// ————— Structural tree actions ("structural actions from the visual editor" task): see
+	// `es.ts` for the full rationale (same keys reused by the floating toolbar in
+	// `VisualOverlay.svelte`).
+	'editor.blocks.moveUpLabel': 'Move up «{label}»',
+	'editor.blocks.moveDownLabel': 'Move down «{label}»',
+	'editor.visual.overlay.toolbar.label': 'Actions for «{label}»',
+	'editor.visual.overlay.insertLabel': 'Insert section at position {position} of {total}',
 	'editor.visual.inspector.title': 'Inspector',
 	'editor.visual.inspector.empty': 'Select a block in the tree or on the canvas to edit it here.',
 	'editor.visual.inspector.unknownBlock':

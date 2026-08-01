@@ -806,6 +806,171 @@ describe('VisualEditorScreen.svelte — árbol de secciones e inspector', () => 
 	});
 });
 
+// ————— Acciones estructurales desde el árbol y el lienzo (tarea "acciones estructurales desde el
+// editor visual"): montaje real contra el puerto en memoria (mismo criterio que el resto del
+// fichero) — aquí es donde de verdad importa que `onStructuralChange` pida un token nuevo (se
+// comprueba contando llamadas a `fetch`, igual que el test heredado "guardar un bloque pide un
+// token de vista previa NUEVO"), no solo que el componente aislado llame al método correcto
+// (eso ya lo cubren `VisualBlockTree.svelte.test.ts`/`VisualOverlay.svelte.test.ts` con un
+// `BlocksState` de mentira). -----
+
+describe('VisualEditorScreen.svelte — acciones estructurales (árbol + lienzo)', () => {
+	let mounted: { target: HTMLElement; instance: ReturnType<typeof mount> } | null = null;
+
+	beforeEach(() => {
+		stubMatchMedia(false);
+	});
+
+	afterEach(async () => {
+		if (mounted) {
+			await unmount(mounted.instance);
+			mounted.target.remove();
+			mounted = null;
+		}
+		vi.unstubAllGlobals();
+		vi.restoreAllMocks();
+	});
+
+	test('duplicar desde el árbol: inserta la copia justo debajo y pide un token de vista previa nuevo', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(jsonResponse(tokenBody()));
+		vi.stubGlobal('fetch', fetchMock);
+		const { ctx, type, port } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+
+		const duplicateBtn = Array.from(
+			mounted.target.querySelectorAll<HTMLButtonElement>('.vega-tree-action')
+		).find((btn) => btn.getAttribute('aria-label')?.startsWith('Duplicar'))!;
+		duplicateBtn.click();
+		await flush();
+
+		const rows = await port.list('post_block', {
+			sort: [{ field: 'sort', dir: 'asc' }],
+			perPage: 50
+		});
+		expect(rows.items.map((r) => r.values.heading)).toEqual(['Hero', 'Hero', 'Features']);
+		expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
+	});
+
+	test('mover abajo desde el árbol persiste el nuevo orden y pide vista previa nueva', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(jsonResponse(tokenBody()));
+		vi.stubGlobal('fetch', fetchMock);
+		const { ctx, type, port } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		const downButtons = Array.from(
+			mounted.target.querySelectorAll<HTMLButtonElement>('.vega-tree-action')
+		).filter((btn) => btn.getAttribute('aria-label')?.startsWith('Bajar'));
+		downButtons[0].click(); // "Hero" baja
+		await flush();
+
+		const rows = await port.list('post_block', {
+			sort: [{ field: 'sort', dir: 'asc' }],
+			perPage: 50
+		});
+		expect(rows.items.map((r) => r.values.heading)).toEqual(['Features', 'Hero']);
+		expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
+	});
+
+	test('borrar el bloque seleccionado desde el árbol: borra de verdad, pide vista previa nueva, y la selección se limpia sola al recargar', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(jsonResponse(tokenBody()));
+		vi.stubGlobal('fetch', fetchMock);
+		const { ctx, type, port } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [
+			{ id: 'b1', type: 'hero' },
+			{ id: 'b2', type: 'gallery' }
+		]);
+
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'select', blockId: 'b1' });
+		await tick();
+		expect(mounted.target.querySelector('.vega-tree-row--selected')).not.toBeNull();
+
+		const deleteBtn = Array.from(
+			mounted.target.querySelectorAll<HTMLButtonElement>('.vega-tree-action')
+		).find((btn) => btn.getAttribute('aria-label')?.startsWith('Borrar'))!;
+		deleteBtn.click();
+		await tick();
+		mounted.target.querySelector<HTMLButtonElement>('.vega-delete-confirm')!.click();
+		await flush();
+
+		expect((await port.list('post_block', { perPage: 50 })).totalItems).toBe(1);
+		expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
+
+		// Ver cabecera de `VisualEditorScreen.svelte` ("Borrar el seleccionado limpia la selección
+		// SOLA"): ni `VisualBlockTree`/`VisualOverlay` tocan `selectedBlockId`, es el `onState` del
+		// puente el que la limpia cuando el sitio recargado deja de reportar el id borrado.
+		await connectBridge(mounted.target, [{ id: 'b2', type: 'gallery' }]);
+		expect(mounted.target.querySelector('.vega-tree-row--selected')).toBeNull();
+	});
+
+	test('duplicar desde la barra flotante del lienzo: mismo resultado que desde el árbol', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(jsonResponse(tokenBody()));
+		vi.stubGlobal('fetch', fetchMock);
+		const { ctx, type, port } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [{ id: 'b1', type: 'hero' }]);
+
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'select', blockId: 'b1' });
+		await tick();
+
+		const duplicateBtn = Array.from(
+			mounted.target.querySelectorAll<HTMLButtonElement>('.vega-visual-overlay-toolbar-btn')
+		).find((btn) => btn.getAttribute('aria-label')?.startsWith('Duplicar'))!;
+		duplicateBtn.click();
+		await flush();
+
+		expect((await port.list('post_block', { perPage: 50 })).totalItems).toBe(2);
+		expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
+	});
+
+	test('insertar desde un punto del lienzo: crea la sección EN esa posición, no siempre al final', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(jsonResponse(tokenBody()));
+		vi.stubGlobal('fetch', fetchMock);
+		const { ctx, type, port } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [
+			{ id: 'b1', type: 'hero' },
+			{ id: 'b2', type: 'gallery' }
+		]);
+
+		const points = mounted.target.querySelectorAll<HTMLButtonElement>(
+			'.vega-visual-overlay-insert'
+		);
+		expect(points).toHaveLength(3); // antes de b1, entre b1 y b2, después de b2
+		points[1].click(); // entre b1 y b2
+		await flush();
+
+		const rows = await port.list('post_block', {
+			sort: [{ field: 'sort', dir: 'asc' }],
+			perPage: 50
+		});
+		expect(rows.items).toHaveLength(3);
+		expect(rows.items[0].id).toBe('b1');
+		expect(rows.items[2].id).toBe('b2');
+		expect(rows.items[1].id).not.toBe('b1');
+		expect(rows.items[1].id).not.toBe('b2');
+		expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
+	});
+});
+
 // ————— Anchos de columna ajustables (petición de David tras usar el editor visual en prod) —————
 
 describe('VisualEditorScreen.svelte — manillas de ancho de columna', () => {

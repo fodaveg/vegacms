@@ -1,25 +1,50 @@
 <script lang="ts">
 	/**
-	 * `VisualBlockTree.svelte` (tarea "árbol de secciones y el inspector"): columna IZQUIERDA del
-	 * editor visual — una fila por bloque del registro, en su orden, con el título y el tipo. Lee y
-	 * selecciona; NUNCA muta bloques (crear/reordenar/duplicar/borrar siguen viviendo solo en
-	 * `RecordBlocks.svelte`, que es donde el manifiesto de "un lote por gesto" las documenta): esta
-	 * pantalla no expone ningún botón para esas cuatro acciones.
+	 * `VisualBlockTree.svelte` (tarea "árbol de secciones y el inspector", ampliada por la tarea
+	 * "acciones estructurales desde el editor visual"): columna IZQUIERDA del editor visual — una
+	 * fila por bloque del registro, en su orden, con el título y el tipo. Además de SELECCIONAR,
+	 * esta lista es ahora la vía que MANDA para las cuatro acciones estructurales (§encargo: "esta
+	 * es la vía ACCESIBLE y es la que manda") — crear, duplicar, borrar y mover arriba/abajo. Las
+	 * cuatro siguen viviendo, en NÚCLEO, solo en `blocks-state.svelte.ts` (`handleCreate`/
+	 * `handleDuplicate`/`requestDelete`+`confirmDelete`/`handleReorder`): este componente no
+	 * reimplementa ninguna, solo las llama y pinta su resultado — mismo reparto que
+	 * `RecordBlocks.svelte`, que es de donde sale el patrón de cada botón (menú de tipos,
+	 * confirmación de borrado, guardas de `structuralBusy`/`anySaving`/`anyDirty`).
+	 *
+	 * **Sin asa de arrastre, a propósito.** `RecordBlocks.svelte` reordena con
+	 * `createReorderDndController` (arrastre nativo + flechas de teclado en la misma asa); el
+	 * encargo de esta tarea pide en su lugar "mover arriba/abajo" como botones — dos controles por
+	 * fila en vez de una asa con dos modos. Se sigue ese enunciado tal cual: más barato que meter
+	 * arrastre en una tercera superficie (lienzo, árbol, y ahora encima drag-and-drop) y el
+	 * resultado es el mismo `handleReorder(fromIndex, toIndex)` que ya usa el asa, así que no hay
+	 * un segundo camino de persistencia que mantener sincronizado.
+	 *
+	 * **Vista previa en vivo tras cada mutación estructural.** El lienzo es un `<iframe>` de otro
+	 * origen (`VisualEditorScreen.svelte`, cabecera): crear/duplicar/borrar/mover un bloque no lo
+	 * repinta solo, hay que pedir un token de vista previa NUEVO para que el marco recargue con el
+	 * cambio dentro. `onStructuralChange` es ese aviso — la pantalla lo cablea a `requestPreview()`,
+	 * el MISMO camino que `VisualInspector.svelte#onBlockSaved` ya usa para guardar un campo (ver
+	 * su cabecera). Se llama tras cada `await` a una mutación de `blocks-state.svelte.ts`,
+	 * incondicionalmente para crear/duplicar/borrar (esas tres devuelven `Promise<void>`, sin señal
+	 * de si de verdad cambiaron algo: un fallo reportado por `ctx.feedback` seguido de un refresco
+	 * que no cambia nada visible es el precio aceptado, mismo criterio que el resto de este módulo
+	 * usa para "barato y honesto" sobre "perfecto") y solo si `handleReorder` devuelve `true` para
+	 * mover (esa sí trae la señal, úsala).
+	 *
+	 * **La confirmación de borrado vive AQUÍ**, aunque quien la dispare pueda ser esta lista o la
+	 * barra flotante del lienzo (`VisualOverlay.svelte`, misma instancia de `blocks` compartida):
+	 * las dos llaman a `blocks.requestDelete(record)`, que escribe `blocks.pendingDelete` —un solo
+	 * dato, un solo dueño (el propio `blocks-state.svelte.ts`)—, así que basta con UN
+	 * `<DeleteConfirm>` en todo el árbol de componentes de la pantalla para que sirva a las dos
+	 * superficies. Vive en este componente (y no en `VisualEditorScreen.svelte`) porque este es el
+	 * que ya tiene la cabecera (`vega-tree-heading`) que sirve de `fallbackFocusEl` — mismo truco
+	 * que `RecordBlocks.svelte` usa con su propio `<h2>`.
 	 *
 	 * **Un solo dueño del estado, otra presentación más** (mismo reparto que `RecordBlocks.svelte`,
 	 * ver la cabecera de `blocks-state.svelte.ts`): `blocks` llega como PROP, ya construido por
 	 * `VisualEditorScreen.svelte` con `createBlocksState()` — este componente no instancia la
 	 * fábrica ni una segunda vez ("un solo `createBlocksState` por pantalla" es un requisito del
 	 * lote, no una preferencia de estilo).
-	 *
-	 * **La vía ACCESIBLE de seleccionar** (§tarea): los contornos de `VisualOverlay.svelte` son
-	 * `aria-hidden` a propósito (ver su cabecera) porque el lienzo es un `<iframe>` de otro origen
-	 * sin ningún mensaje de `hover` en el protocolo — un lector de pantalla no puede usarlos para
-	 * elegir un bloque. Esta lista sí: cada fila es un `<button>` normal, en el orden de tabulación
-	 * de siempre (mismo criterio que las filas de `RecordBlocks.svelte`, que tampoco usan foco en
-	 * carrusel/roving-tabindex) — con pocos bloques por página (el propio caso de uso del lote,
-	 * documentado en `blocks-state.svelte.ts`), recorrer la lista con `Tab` es sencillo y no
-	 * necesita reinventar el patrón ARIA `listbox`.
 	 *
 	 * **Ids: el árbol trabaja con registros de PocketBase, el sitio con `data-vega-block-id`.** El
 	 * contrato asume que el sitio anota cada bloque con el id de SU registro (`bridge-client.ts`,
@@ -29,20 +54,22 @@
 	 * `blocks.records` (nunca selecciona "la fila más parecida"), y `VisualInspector.svelte`
 	 * distingue explícitamente ese caso de "nada seleccionado" (ver su cabecera). Un bloque que el
 	 * árbol tiene pero el sitio no reporta (p. ej. `display:none` en la plantilla, o una plantilla
-	 * que aún no anota) simplemente no tiene contorno en el lienzo — sigue siendo editable desde
-	 * aquí, que es justo el motivo por el que esta lista existe aparte del overlay.
+	 * que aún no anota) simplemente no tiene contorno en el lienzo — sigue siendo editable y
+	 * MUTABLE desde aquí, que es justo el motivo por el que esta lista existe aparte del overlay.
 	 *
 	 * **Colapsable por debajo de 1180px** (§tarea, mismo punto de corte que `.vega-editor-grid--rail`
 	 * de `RecordForm.svelte`, ver su cabecera): a diferencia del raíl de `RecordForm` — que
 	 * simplemente DESAPARECE ahí (es una ayuda de navegación, no contenido) — esta lista es la única
-	 * vía accesible de seleccionar, así que no puede desaparecer sin más. Por encima del punto de
-	 * corte es una columna normal, en flujo; por debajo se convierte en un cajón (`position: fixed`,
-	 * mismo patrón de overlay que `Sidebar.svelte`: disparador + fondo + `Escape` cierra y devuelve
-	 * el foco) que se abre con el botón "Secciones". El propio botón está `display:none` por encima
-	 * del punto de corte, así que `open` nunca llega a `true` en escritorio — no hace falta que el
-	 * CSS de escritorio dependa de `open` para nada. Seleccionar una fila CIERRA el cajón (llevarse
-	 * de vuelta al lienzo tras elegir es lo que se espera; en escritorio el cierre es un no-op
-	 * inofensivo, `open` no gobierna nada ahí).
+	 * vía accesible de seleccionar Y de mutar, así que no puede desaparecer sin más. Por encima del
+	 * punto de corte es una columna normal, en flujo; por debajo se convierte en un cajón
+	 * (`position: fixed`, mismo patrón de overlay que `Sidebar.svelte`: disparador + fondo +
+	 * `Escape` cierra y devuelve el foco) que se abre con el botón "Secciones". El propio botón
+	 * está `display:none` por encima del punto de corte, así que `open` nunca llega a `true` en
+	 * escritorio — no hace falta que el CSS de escritorio dependa de `open` para nada. Seleccionar
+	 * una fila CIERRA el cajón (llevarse de vuelta al lienzo tras elegir es lo que se espera; en
+	 * escritorio el cierre es un no-op inofensivo, `open` no gobierna nada ahí); una acción
+	 * estructural (crear/duplicar/borrar/mover) NO lo cierra — el autor puede querer encadenar
+	 * varias sin reabrir el cajón cada vez.
 	 *
 	 * **Selección externa → esta lista se desplaza, no se enfoca.** Cuando `selectedId` cambia
 	 * porque el autor hizo clic en el LIENZO (`VisualEditorScreen.svelte#handleBlockSelect`), la fila
@@ -51,9 +78,14 @@
 	 * tecleando en el inspector en ese mismo instante — el resaltado visual (`--tree-row--selected`)
 	 * ya dice cuál es, sin robarle el cursor a nadie.
 	 */
+	import { tick } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
 	import Icon from '$lib/icons/Icon.svelte';
+	import DeleteConfirm from '$lib/list/DeleteConfirm.svelte';
+	import { hasFileValues } from '$lib/revisions/restore';
 	import type { BlocksState } from '$lib/form/blocks-state.svelte';
+	import type { ResolvedBlockType } from '$lib/model/types';
+	import type { VegaRecord } from '$lib/backend';
 
 	interface Props {
 		/** Instancia ÚNICA de la pantalla (ver cabecera), nunca construida aquí. */
@@ -63,9 +95,12 @@
 		/** El autor eligió esta fila. La pantalla decide qué hacer (fijar la selección, avisar al
 		 *  lienzo, abrir la ficha) — este componente no conoce ese reparto, solo lo dispara. */
 		onSelect: (blockId: string) => void;
+		/** Una mutación estructural (crear/duplicar/borrar/mover) acaba de completarse: la pantalla
+		 *  pide un token de vista previa nuevo (ver cabecera). */
+		onStructuralChange: () => void;
 	}
 
-	let { blocks, selectedId, onSelect }: Props = $props();
+	let { blocks, selectedId, onSelect, onStructuralChange }: Props = $props();
 	const ctx = getVegaContext();
 
 	// ————— Cajón responsive (ver cabecera): estado LOCAL, el botón que lo abre solo existe
@@ -73,6 +108,9 @@
 	let open = $state(false);
 	let toggleEl = $state<HTMLElement | null>(null);
 	let panelEl = $state<HTMLElement | null>(null);
+	/** Destino de foco de reserva de `DeleteConfirm` (ver cabecera, "La confirmación de borrado
+	 *  vive AQUÍ") — la propia cabecera del panel, `tabindex="-1"`, mismo truco que `RecordBlocks`. */
+	let headingEl = $state<HTMLElement | null>(null);
 
 	function closeDrawer(): void {
 		open = false;
@@ -103,15 +141,110 @@
 	});
 
 	const headingText = $derived(blocks.childType?.label ?? ctx.t('editor.visual.tree.title'));
+
+	// ————— Menú "Añadir sección" (patrón APG de `RecordBlocks.svelte`, ver su cabecera: click-fuera,
+	// Escape y focusout) — calcado tal cual, solo cambian los nombres para no chocar con los del
+	// cajón de arriba. —————
+	let addMenuOpen = $state(false);
+	let addTriggerEl = $state<HTMLElement | null>(null);
+	let addMenuEl = $state<HTMLElement | null>(null);
+
+	function closeAddMenu(): void {
+		addMenuOpen = false;
+	}
+
+	function addMenuItems(): HTMLButtonElement[] {
+		return Array.from(addMenuEl?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
+	}
+
+	function openAddMenu(): void {
+		addMenuOpen = true;
+		void tick().then(() => addMenuItems()[0]?.focus());
+	}
+
+	function handleAddMenuKeydown(event: KeyboardEvent): void {
+		const items = addMenuItems();
+		if (items.length === 0) return;
+		const current = items.indexOf(document.activeElement as HTMLButtonElement);
+		let next: number | null = null;
+		if (event.key === 'ArrowDown') next = current < 0 ? 0 : (current + 1) % items.length;
+		else if (event.key === 'ArrowUp')
+			next = current < 0 ? items.length - 1 : (current - 1 + items.length) % items.length;
+		else if (event.key === 'Home') next = 0;
+		else if (event.key === 'End') next = items.length - 1;
+		if (next === null) return;
+		event.preventDefault();
+		items[next].focus();
+	}
+
+	function handleAddWindowClick(event: MouseEvent): void {
+		if (!addMenuOpen) return;
+		const target = event.target as Node;
+		if (addTriggerEl?.contains(target) || addMenuEl?.contains(target)) return;
+		closeAddMenu();
+	}
+
+	function handleAddWindowKeydown(event: KeyboardEvent): void {
+		if (!addMenuOpen || event.key !== 'Escape') return;
+		event.preventDefault();
+		closeAddMenu();
+		addTriggerEl?.focus();
+	}
+
+	function handleAddFocusOut(event: FocusEvent): void {
+		if (!addMenuOpen) return;
+		const next = event.relatedTarget as Node | null;
+		if (next && addMenuEl?.contains(next)) return;
+		closeAddMenu();
+	}
+
+	/** Crea, y solo entonces avisa (ver cabecera, "Vista previa en vivo tras cada mutación"). */
+	async function createBlock(blockType: ResolvedBlockType | null): Promise<void> {
+		await blocks.handleCreate(blockType);
+		onStructuralChange();
+	}
+
+	function handleAddType(blockType: ResolvedBlockType): void {
+		closeAddMenu();
+		addTriggerEl?.focus();
+		void createBlock(blockType);
+	}
+
+	// ————— Acciones por fila (ver cabecera) —————
+
+	async function duplicateBlock(record: VegaRecord): Promise<void> {
+		await blocks.handleDuplicate(record);
+		onStructuralChange();
+	}
+
+	/** `handleReorder` SÍ trae señal de éxito (a diferencia de crear/duplicar/borrar, ver cabecera):
+	 *  solo se pide vista previa nueva si de verdad cambió algo. */
+	async function moveBlock(fromIndex: number, toIndex: number): Promise<void> {
+		const moved = await blocks.handleReorder(fromIndex, toIndex);
+		if (moved) onStructuralChange();
+	}
+
+	/** `onConfirm` de `<DeleteConfirm>`: confirma en `blocks-state.svelte.ts` y SOLO entonces pide
+	 *  vista previa nueva. La limpieza de una selección colgada (si el bloque borrado era el
+	 *  seleccionado) NO se hace aquí: `VisualEditorScreen.svelte` ya la hace dentro del `onState`
+	 *  del puente, cuando el sitio recargado deja de reportar ese id (ver su cabecera) — un segundo
+	 *  escritor de `selectedBlockId` aquí sería justo el bug de "dos efectos, un solo estado" que
+	 *  ese módulo evita a propósito. */
+	async function confirmDeleteAndRefresh(): Promise<void> {
+		await blocks.confirmDelete();
+		onStructuralChange();
+	}
 </script>
 
-<!-- Sin envoltorio propio (mismo criterio que `Sidebar.svelte`, que tampoco lo lleva): Svelte 5
-     admite varios nodos de nivel superior, y un `<div>` extra aquí habría obligado a
-     `display: contents` para no romper el auto-placement de `.vega-visual-grid` (grid del padre) —
-     más indirección para el mismo resultado. Disparador y fondo quedan `position: fixed` en cuanto
-     se activan (ver CSS), así que ninguno de los dos participa del grid del padre: solo
-     `.vega-tree-panel` cuenta como celda. -->
-<svelte:window onkeydown={handleWindowKeydown} />
+<!-- Nivel superior a la fuerza: `<svelte:window>` no puede vivir dentro de un bloque. No hace
+     falta condicionarlo, porque los dos handlers salen pronto si el menú está cerrado. -->
+<svelte:window
+	onclick={handleAddWindowClick}
+	onkeydown={(event) => {
+		handleWindowKeydown(event);
+		handleAddWindowKeydown(event);
+	}}
+/>
 
 <button
 	type="button"
@@ -146,12 +279,64 @@
 	aria-labelledby="vega-tree-heading"
 >
 	<div class="vega-tree-head">
-		<h2 id="vega-tree-heading">
+		<h2 id="vega-tree-heading" bind:this={headingEl} tabindex="-1">
 			{headingText}
 			{#if blocks.status.kind === 'ready'}
 				<span class="vega-tree-count">{blocks.records.length}</span>
 			{/if}
 		</h2>
+		{#if !blocks.hidden}
+			{#if blocks.hasTypeMenu}
+				<div class="vega-tree-add-menu-wrap" onfocusout={handleAddFocusOut}>
+					<button
+						type="button"
+						class="vega-tree-add"
+						bind:this={addTriggerEl}
+						aria-haspopup="menu"
+						aria-expanded={addMenuOpen}
+						aria-controls="vega-tree-add-menu"
+						disabled={blocks.structuralBusy || blocks.anySaving}
+						onclick={() => (addMenuOpen ? closeAddMenu() : openAddMenu())}
+					>
+						{ctx.t('editor.blocks.add', { label: blocks.childType?.labelSingular ?? headingText })}
+						<Icon id="chevron" size={12} />
+					</button>
+					{#if addMenuOpen}
+						<div
+							id="vega-tree-add-menu"
+							class="vega-tree-add-menu"
+							role="menu"
+							tabindex="-1"
+							aria-label={ctx.t('editor.blocks.addMenu.label')}
+							bind:this={addMenuEl}
+							onkeydown={handleAddMenuKeydown}
+						>
+							{#each blocks.blockTypes as blockType (blockType.name)}
+								<button
+									type="button"
+									role="menuitem"
+									tabindex="-1"
+									class="vega-tree-add-menu-item"
+									onclick={() => handleAddType(blockType)}
+								>
+									{#if blockType.icon}<Icon id={blockType.icon} size={14} />{/if}
+									{blockType.label}
+								</button>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			{:else}
+				<button
+					type="button"
+					class="vega-tree-add"
+					disabled={blocks.structuralBusy || blocks.anySaving}
+					onclick={() => void createBlock(null)}
+				>
+					{ctx.t('editor.blocks.add', { label: blocks.childType?.labelSingular ?? headingText })}
+				</button>
+			{/if}
+		{/if}
 		<button
 			type="button"
 			class="vega-tree-close"
@@ -161,6 +346,11 @@
 			<Icon id="close" size={16} />
 		</button>
 	</div>
+
+	<!-- Anuncio del reorden (ver cabecera de `blocks-state.svelte.ts`): la MISMA región que
+	     `RecordBlocks.svelte` monta, sobre el MISMO `blocks.announce` — mover una fila desde aquí
+	     usa `handleReorder`, que es quien produce el texto. -->
+	<div aria-live="polite" class="vega-visually-hidden">{blocks.announce}</div>
 
 	{#if blocks.hidden}
 		<p class="vega-tree-notice" role="alert">{ctx.t('editor.visual.tree.unavailable')}</p>
@@ -172,11 +362,12 @@
 		</p>
 	{:else}
 		<ul class="vega-tree-list">
-			{#each blocks.records as record (record.id)}
+			{#each blocks.records as record, i (record.id)}
 				{@const title = blocks.blockTitle(record)}
 				{@const blockType = blocks.blockTypeOf(record)}
 				{@const rawType = blocks.blockTypeRawName(record)}
-				<li>
+				{@const structuralGuard = blocks.anyDirty || blocks.anySaving || blocks.structuralBusy}
+				<li class="vega-tree-item">
 					<button
 						type="button"
 						class="vega-tree-row"
@@ -211,11 +402,77 @@
 							</span>
 						{/if}
 					</button>
+
+					<!-- Acciones estructurales de ESTA fila (ver cabecera): nombre accesible por botón que
+					     dice sobre QUÉ sección actúa, nunca un rótulo suelto repetido N veces. -->
+					<div class="vega-tree-actions">
+						{#if blocks.blockDuplicateAllowed}
+							<button
+								type="button"
+								class="vega-tree-action"
+								disabled={structuralGuard}
+								aria-label={ctx.t('editor.blocks.duplicateLabel', { label: title })}
+								onclick={() => void duplicateBlock(record)}
+							>
+								<Icon id="copy" size={14} />
+							</button>
+						{/if}
+						<button
+							type="button"
+							class="vega-tree-action"
+							disabled={i === 0 || structuralGuard}
+							aria-label={ctx.t('editor.blocks.moveUpLabel', { label: title })}
+							onclick={() => void moveBlock(i, i - 1)}
+						>
+							<span class="vega-tree-action-icon vega-tree-action-icon--up">
+								<Icon id="chevron" size={14} />
+							</span>
+						</button>
+						<button
+							type="button"
+							class="vega-tree-action"
+							disabled={i === blocks.records.length - 1 || structuralGuard}
+							aria-label={ctx.t('editor.blocks.moveDownLabel', { label: title })}
+							onclick={() => void moveBlock(i, i + 1)}
+						>
+							<span class="vega-tree-action-icon vega-tree-action-icon--down">
+								<Icon id="chevron" size={14} />
+							</span>
+						</button>
+						<button
+							type="button"
+							class="vega-tree-action vega-tree-action--danger"
+							disabled={blocks.anySaving || blocks.structuralBusy}
+							aria-label={ctx.t('list.delete.rowButtonLabel', { label: title })}
+							onclick={() => blocks.requestDelete(record)}
+						>
+							<Icon id="trash" size={14} />
+						</button>
+					</div>
 				</li>
 			{/each}
 		</ul>
 	{/if}
 </div>
+
+<!-- `targetCollection`/`targetId` (`#lote-integridad`, Fase A): el bloque a borrar es un registro
+     de la colección HIJA, así que la colección se lee del propio registro (`record.type`) y no de
+     `blocks.childType` — borrar un bloque puede romper referencias igual que borrar cualquier otro
+     registro. Mismo diálogo, mismos props que `RecordBlocks.svelte`, ver cabecera de este fichero
+     para por qué vive aquí y no en `VisualEditorScreen.svelte` ni duplicado en `VisualOverlay`. -->
+<DeleteConfirm
+	open={blocks.pendingDelete !== null}
+	recordLabel={blocks.pendingDelete ? blocks.blockTitle(blocks.pendingDelete) : ''}
+	targetCollection={blocks.pendingDelete?.type ?? ''}
+	targetId={blocks.pendingDelete?.id ?? null}
+	deleting={blocks.deleting}
+	fallbackFocusEl={headingEl}
+	hasFiles={blocks.pendingDelete !== null &&
+		blocks.childType !== null &&
+		hasFileValues(blocks.childType.schema.fields, blocks.pendingDelete.values)}
+	onConfirm={confirmDeleteAndRefresh}
+	onCancel={() => blocks.cancelDelete()}
+/>
 
 <style>
 	/* Disparador del cajón: invisible por encima del punto de corte (ver cabecera, "Colapsable"),
@@ -248,6 +505,7 @@
 	.vega-tree-head {
 		display: flex;
 		align-items: center;
+		flex-wrap: wrap;
 		justify-content: space-between;
 		gap: 0.5rem;
 		flex-shrink: 0;
@@ -275,6 +533,75 @@
 		color: var(--ink-3);
 	}
 
+	/* Botón "Añadir sección" + su menú de tipos: mismo lenguaje visual que `.vega-blocks-add*` de
+	   `RecordBlocks.svelte` (ver su cabecera), solo con el prefijo `vega-tree-` de este fichero. */
+	.vega-tree-add-menu-wrap {
+		position: relative;
+		flex-shrink: 0;
+	}
+
+	.vega-tree-add {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		flex-shrink: 0;
+		height: 32px;
+		padding: 0 0.7rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--btn);
+		color: var(--ink);
+		font: inherit;
+		font-size: 0.78em;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.vega-tree-add:hover:not(:disabled) {
+		border-color: var(--line-strong);
+	}
+
+	.vega-tree-add:disabled {
+		cursor: not-allowed;
+		opacity: 0.5;
+	}
+
+	.vega-tree-add-menu {
+		position: absolute;
+		top: calc(100% + 0.4rem);
+		right: 0;
+		z-index: 10;
+		display: flex;
+		flex-direction: column;
+		min-width: 11rem;
+		padding: 0.3rem;
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
+	}
+
+	.vega-tree-add-menu-item {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		border: 0;
+		background: none;
+		padding: 0.45rem 0.6rem;
+		border-radius: 6px;
+		color: var(--ink);
+		font: inherit;
+		font-size: 0.85rem;
+		text-align: left;
+		cursor: pointer;
+		white-space: nowrap;
+	}
+
+	.vega-tree-add-menu-item:hover,
+	.vega-tree-add-menu-item:focus-visible {
+		background: var(--active);
+	}
+
 	/* Solo tiene sentido dentro del cajón (ver cabecera): en escritorio el panel nunca se cierra
 	   desde dentro, no hay razón para ofrecer el control. */
 	.vega-tree-close {
@@ -300,12 +627,22 @@
 		overflow-y: auto;
 	}
 
+	/* Fila = botón de selección (crece) + acciones (ancho fijo), lado a lado — antes de esta tarea
+	   `<li>` contenía solo el botón de selección a ancho completo. */
+	.vega-tree-item {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		width: 100%;
+	}
+
 	.vega-tree-row {
 		display: flex;
 		align-items: center;
+		flex: 1;
+		min-width: 0;
 		flex-wrap: wrap;
 		gap: 0.4rem;
-		width: 100%;
 		min-height: 2.5rem;
 		padding: 0.4rem 0.6rem;
 		border: 1px solid transparent;
@@ -386,6 +723,64 @@
 		font-size: 0.72em;
 	}
 
+	/* Acciones de fila (duplicar/subir/bajar/borrar): iconos-solo, mismo tamaño de objetivo que el
+	   asa de arrastre de `RecordBlocks.svelte` (`.vega-block-handle`) — icono decorativo, el nombre
+	   accesible lo lleva el propio `<button>` (`aria-label`), nunca el `title` de `Icon`. */
+	.vega-tree-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.15rem;
+		flex-shrink: 0;
+	}
+
+	.vega-tree-action {
+		flex-shrink: 0;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.6rem;
+		height: 1.6rem;
+		border: 0;
+		border-radius: 6px;
+		background: transparent;
+		color: var(--ink-3);
+		cursor: pointer;
+	}
+
+	.vega-tree-action:hover:not(:disabled) {
+		background: var(--active);
+		color: var(--ink);
+	}
+
+	.vega-tree-action:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.vega-tree-action:disabled {
+		cursor: not-allowed;
+		opacity: 0.4;
+	}
+
+	.vega-tree-action--danger:hover:not(:disabled) {
+		background: var(--danger-soft);
+		color: var(--danger);
+	}
+
+	/* El set de iconos apunta a la derecha (mismo motivo que `.vega-block-chevron` de
+	   `RecordBlocks.svelte`): rotado -90°/90° da arriba/abajo sin dibujar dos glifos nuevos. */
+	.vega-tree-action-icon {
+		display: inline-flex;
+	}
+
+	.vega-tree-action-icon--up {
+		transform: rotate(-90deg);
+	}
+
+	.vega-tree-action-icon--down {
+		transform: rotate(90deg);
+	}
+
 	.vega-visually-hidden {
 		position: absolute;
 		width: 1px;
@@ -404,8 +799,14 @@
 	@media (pointer: coarse) {
 		.vega-tree-row,
 		.vega-tree-toggle,
-		.vega-tree-close {
+		.vega-tree-close,
+		.vega-tree-add,
+		.vega-tree-action {
 			min-height: 44px;
+		}
+
+		.vega-tree-action {
+			min-width: 44px;
 		}
 	}
 

@@ -53,6 +53,12 @@
 	{:else if resolvedId === 'close'}
 		<line x1="6" y1="6" x2="18" y2="18" />
 		<line x1="18" y1="6" x2="6" y2="18" />
+	{:else if resolvedId === 'copy'}
+		<!-- Duplicar (tarea "acciones estructurales desde el editor visual"): dos rectángulos
+		     superpuestos, la hoja de detrás asomando arriba-izquierda — mismo lenguaje que
+		     cualquier icono de "copiar" sin depender de un set externo (§2.7). -->
+		<rect x="8" y="8" width="12" height="12" rx="2" />
+		<path d="M4 16V6a2 2 0 0 1 2-2h10" />
 	{:else if resolvedId === 'document'}
 		<path d="M6 2h7l5 5v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" />
 		<polyline points="13 2 13 7 18 7" />

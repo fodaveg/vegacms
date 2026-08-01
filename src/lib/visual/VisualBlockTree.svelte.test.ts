@@ -1,11 +1,16 @@
 /**
- * Suite de componente de `VisualBlockTree.svelte` (tarea "árbol de secciones y el inspector"):
- * montaje real contra un `BlocksState` de MENTIRA (`fakeBlocksState`, más abajo) — a diferencia de
+ * Suite de componente de `VisualBlockTree.svelte` (tarea "árbol de secciones y el inspector",
+ * ampliada por "acciones estructurales desde el editor visual"): montaje real contra un
+ * `BlocksState` de MENTIRA (`fakeBlocksState`, más abajo) — a diferencia de
  * `VisualEditorScreen.svelte.test.ts` (que monta la pantalla ENTERA sobre `createBlocksState()`
- * real), aquí basta un doble mínimo: este componente solo LEE la interfaz y dispara `onSelect`,
- * nunca muta bloques por su cuenta (ver la cabecera del propio componente). Cubre lo que la
- * suite de la pantalla no aísla tan barato: las insignias de tipo, los avisos por estado
- * (cargando/oculto/vacío) y la mecánica del cajón responsive (abrir/cerrar/`Escape`/fondo).
+ * real), aquí basta un doble mínimo: este componente LEE la interfaz, dispara `onSelect` y llama a
+ * las mutaciones de `BlocksState` (nunca las reimplementa, ver la cabecera del propio componente).
+ * Cubre lo que la suite de la pantalla no aísla tan barato: las insignias de tipo, los avisos por
+ * estado (cargando/oculto/vacío), la mecánica del cajón responsive (abrir/cerrar/`Escape`/fondo), y
+ * ahora también que cada botón de acción llama al método correcto de `blocks` con el argumento
+ * correcto, que las guardas deshabilitan en el momento debido, y que `onStructuralChange` se dispara
+ * tras cada mutación que de verdad cambió algo (integración de verdad con `port`/`fetch`: ver
+ * `VisualEditorScreen.svelte.test.ts`).
  */
 import { mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, test, vi } from 'vitest';
@@ -16,9 +21,22 @@ import type { ResolvedBlockType, ResolvedContentType } from '$lib/model/types';
 import type { VegaRecord } from '$lib/backend';
 import { t as translate } from '$lib/i18n';
 
-const CHILD_TYPE = { label: 'Bloques' } as unknown as ResolvedContentType;
+/** `schema.fields: []` (aunque este doble nunca declara bloques con ficheros): `<DeleteConfirm>`
+ *  (montado por este componente, ver su cabecera) lee `blocks.childType.schema.fields` para el
+ *  aviso "los ficheros adjuntos no se recuperan" — sin este campo, el test de borrado revienta al
+ *  abrir el diálogo, no al comprobar nada de este doble. */
+const CHILD_TYPE = {
+	label: 'Bloques',
+	labelSingular: 'Bloque',
+	schema: { fields: [] }
+} as unknown as ResolvedContentType;
 
 const HERO_TYPE = { name: 'hero', label: 'Portada', icon: null } as unknown as ResolvedBlockType;
+const GALLERY_TYPE = {
+	name: 'gallery',
+	label: 'Galería',
+	icon: null
+} as unknown as ResolvedBlockType;
 
 function record(id: string, heading: string): VegaRecord {
 	return { id, type: 'post_block', values: { heading } };
@@ -34,12 +52,24 @@ interface FakeOptions {
 	blockTypeOf?: (r: VegaRecord) => ResolvedBlockType | null;
 	blockTypeRawName?: (r: VegaRecord) => string | null;
 	childType?: ResolvedContentType | null;
+	blockDuplicateAllowed?: boolean;
+	hasTypeMenu?: boolean;
+	blockTypes?: ResolvedBlockType[];
+	structuralBusy?: boolean;
+	pendingDelete?: VegaRecord | null;
+	deleting?: boolean;
+	announce?: string;
+	handleCreate?: BlocksState['handleCreate'];
+	handleDuplicate?: BlocksState['handleDuplicate'];
+	requestDelete?: BlocksState['requestDelete'];
+	confirmDelete?: BlocksState['confirmDelete'];
+	cancelDelete?: BlocksState['cancelDelete'];
+	handleReorder?: BlocksState['handleReorder'];
 }
 
-/** Doble MÍNIMO de `BlocksState` (ver cabecera): solo implementa lo que `VisualBlockTree` LEE.
- *  El resto de la interfaz (mutaciones estructurales) son no-ops que no debería llamar nunca —
- *  si algún día lo hiciera, sería justo la regresión que el encargo prohíbe ("no reescribas la
- *  lógica de bloques"). */
+/** Doble MÍNIMO de `BlocksState` (ver cabecera): implementa lo que `VisualBlockTree` LEE, más
+ *  espías (`vi.fn`) por defecto para las seis mutaciones que este componente ahora SÍ llama — cada
+ *  test que necesite comprobar una llamada concreta pasa su propio espía en `opts`. */
 function fakeBlocksState(opts: FakeOptions = {}): BlocksState {
 	const records = opts.records ?? [];
 	const status = opts.status ?? { kind: 'ready', records };
@@ -54,14 +84,14 @@ function fakeBlocksState(opts: FakeOptions = {}): BlocksState {
 		blocksConfig: null,
 		childType: opts.childType ?? CHILD_TYPE,
 		structuralFields: [],
-		blockDuplicateAllowed: false,
+		blockDuplicateAllowed: opts.blockDuplicateAllowed ?? false,
 		hasTypeColumn: opts.hasTypeColumn ?? false,
-		hasTypeMenu: false,
-		blockTypes: [],
-		structuralBusy: false,
-		pendingDelete: null,
-		deleting: false,
-		announce: '',
+		hasTypeMenu: opts.hasTypeMenu ?? false,
+		blockTypes: opts.blockTypes ?? [],
+		structuralBusy: opts.structuralBusy ?? false,
+		pendingDelete: opts.pendingDelete ?? null,
+		deleting: opts.deleting ?? false,
+		announce: opts.announce ?? '',
 		anyDirty: dirtyIds.size > 0,
 		anySaving: savingIds.size > 0,
 		isExpanded: () => false,
@@ -78,35 +108,52 @@ function fakeBlocksState(opts: FakeOptions = {}): BlocksState {
 		setSaving: () => {},
 		handleBlockDraftChange: () => {},
 		handleBlockSaved: () => {},
-		handleCreate: async () => {},
-		handleDuplicate: async () => {},
-		requestDelete: () => {},
-		cancelDelete: () => {},
-		confirmDelete: async () => {},
-		handleReorder: async () => false
+		handleCreate: opts.handleCreate ?? vi.fn(async () => {}),
+		handleDuplicate: opts.handleDuplicate ?? vi.fn(async () => {}),
+		requestDelete: opts.requestDelete ?? vi.fn(),
+		cancelDelete: opts.cancelDelete ?? vi.fn(),
+		confirmDelete: opts.confirmDelete ?? vi.fn(async () => {}),
+		handleReorder: opts.handleReorder ?? vi.fn(async () => false)
 	} satisfies BlocksState;
 }
 
+/** `model` MÍNIMO (ver `TrashAvailabilityModel`/`isTrashAvailable`): `<DeleteConfirm>` lo lee de
+ *  forma SÍNCRONA en cuanto `open` es `true` (el test de borrado, más abajo), así que hace falta
+ *  aunque el resto de la suite ni sepa que existe — sin él, `ctx.model.revisions.enabled` revienta
+ *  antes de que el propio diálogo pueda degradar nada. Con `types: []` el aviso de referencias
+ *  (`createDeleteReferencesGuard`) tampoco necesita `ctx.port.list`: sin tipos no hay candidatos
+ *  que consultar. */
 function fakeCtx(): VegaAppContext {
 	return {
 		t: (key: string, params?: Record<string, string | number>) => translate('es', key, params),
-		locale: 'es'
+		locale: 'es',
+		model: { revisions: { enabled: false }, types: [] }
 	} as unknown as VegaAppContext;
 }
 
 function mountTree(
 	blocks: BlocksState,
 	selectedId: string | null,
-	onSelect: (id: string) => void = vi.fn()
+	onSelect: (id: string) => void = vi.fn(),
+	onStructuralChange: () => void = vi.fn()
 ): { target: HTMLElement; instance: ReturnType<typeof mount> } {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const instance = mount(VisualBlockTree, {
 		target,
-		props: { blocks, selectedId, onSelect },
+		props: { blocks, selectedId, onSelect, onStructuralChange },
 		context: new Map([[VEGA_CONTEXT_KEY, fakeCtx()]])
 	});
 	return { target, instance };
+}
+
+/** Drena la cadena de microtasks de una mutación `async` disparada por un `click` (mismo criterio
+ *  que `flush()` de `VisualEditorScreen.svelte.test.ts`, en miniatura: aquí no hay temporizadores
+ *  reales que esperar, solo el propio `await` de la función del componente). */
+async function settle(): Promise<void> {
+	await Promise.resolve();
+	await Promise.resolve();
+	await tick();
 }
 
 describe('VisualBlockTree.svelte', () => {
@@ -249,5 +296,204 @@ describe('VisualBlockTree.svelte', () => {
 		await tick();
 		expect(onSelect).toHaveBeenCalledWith('b1');
 		expect(toggle.getAttribute('aria-expanded')).toBe('false');
+	});
+
+	// ————— Acciones estructurales (tarea "acciones estructurales desde el editor visual") —————
+
+	test('el anuncio de reorden se pinta en una región `aria-live`, la MISMA que produce `blocks-state.svelte.ts`', () => {
+		const blocks = fakeBlocksState({
+			records: [record('b1', 'Hero')],
+			announce: '«Hero» movido a la posición 1 de 2'
+		});
+		mounted = mountTree(blocks, null);
+
+		const live = mounted.target.querySelector('[aria-live="polite"]');
+		expect(live?.textContent).toBe('«Hero» movido a la posición 1 de 2');
+	});
+
+	test('"Añadir" sin menú de tipos: crea sin tipo y pide vista previa nueva', async () => {
+		const handleCreate = vi.fn(async () => {});
+		const onStructuralChange = vi.fn();
+		const blocks = fakeBlocksState({ records: [record('b1', 'Hero')], handleCreate });
+		mounted = mountTree(blocks, null, vi.fn(), onStructuralChange);
+
+		mounted.target.querySelector<HTMLButtonElement>('.vega-tree-add')!.click();
+		await settle();
+
+		expect(handleCreate).toHaveBeenCalledWith(null);
+		expect(onStructuralChange).toHaveBeenCalledTimes(1);
+	});
+
+	test('"Añadir" con menú de tipos: abre el menú, listar tipos y elegir uno crea CON ESE tipo', async () => {
+		const handleCreate = vi.fn(async () => {});
+		const onStructuralChange = vi.fn();
+		const blocks = fakeBlocksState({
+			records: [],
+			hasTypeMenu: true,
+			blockTypes: [HERO_TYPE, GALLERY_TYPE],
+			handleCreate
+		});
+		mounted = mountTree(blocks, null, vi.fn(), onStructuralChange);
+		await settle();
+
+		const trigger = mounted.target.querySelector<HTMLButtonElement>('.vega-tree-add')!;
+		expect(trigger.getAttribute('aria-expanded')).toBe('false');
+		trigger.click();
+		await settle();
+		expect(trigger.getAttribute('aria-expanded')).toBe('true');
+
+		const items = mounted.target.querySelectorAll<HTMLButtonElement>(
+			'.vega-tree-add-menu [role="menuitem"]'
+		);
+		expect(items).toHaveLength(2);
+		items[1].click(); // "Galería"
+		await settle();
+
+		expect(handleCreate).toHaveBeenCalledWith(GALLERY_TYPE);
+		expect(onStructuralChange).toHaveBeenCalledTimes(1);
+		// El menú se cierra y el foco vuelve al disparador (mismo criterio que `RecordBlocks.svelte`).
+		expect(trigger.getAttribute('aria-expanded')).toBe('false');
+		expect(document.activeElement).toBe(trigger);
+	});
+
+	test('duplicar: llama a `handleDuplicate` con ESE registro y pide vista previa nueva; sin permiso, no hay botón', async () => {
+		const handleDuplicate = vi.fn(async () => {});
+		const onStructuralChange = vi.fn();
+		const b1 = record('b1', 'Hero');
+		const b2 = record('b2', 'Features');
+		const blocks = fakeBlocksState({
+			records: [b1, b2],
+			blockDuplicateAllowed: true,
+			handleDuplicate
+		});
+		mounted = mountTree(blocks, null, vi.fn(), onStructuralChange);
+
+		const rows = mounted.target.querySelectorAll('.vega-tree-item');
+		const duplicateButtons = Array.from(
+			mounted.target.querySelectorAll<HTMLButtonElement>('.vega-tree-actions .vega-tree-action')
+		).filter((btn) => btn.getAttribute('aria-label')?.startsWith('Duplicar'));
+		expect(duplicateButtons).toHaveLength(2);
+		expect(rows).toHaveLength(2);
+
+		duplicateButtons[1].click(); // fila de b2
+		await settle();
+
+		expect(handleDuplicate).toHaveBeenCalledWith(b2);
+		expect(onStructuralChange).toHaveBeenCalledTimes(1);
+
+		await unmount(mounted.instance);
+		mounted.target.remove();
+
+		const noPermission = fakeBlocksState({ records: [b1], blockDuplicateAllowed: false });
+		mounted = mountTree(noPermission, null);
+		expect(
+			Array.from(mounted.target.querySelectorAll<HTMLButtonElement>('.vega-tree-action')).some(
+				(btn) => btn.getAttribute('aria-label')?.startsWith('Duplicar')
+			)
+		).toBe(false);
+	});
+
+	test('mover arriba/abajo: llama a `handleReorder(i, i±1)`, deshabilitado en los extremos, solo pide vista previa si de verdad movió algo', async () => {
+		const handleReorder = vi.fn(async (from: number, to: number) => from !== to);
+		const onStructuralChange = vi.fn();
+		const blocks = fakeBlocksState({
+			records: [record('b1', 'Hero'), record('b2', 'Features'), record('b3', 'Precios')],
+			handleReorder
+		});
+		mounted = mountTree(blocks, null, vi.fn(), onStructuralChange);
+
+		const upButtons = Array.from(
+			mounted.target.querySelectorAll<HTMLButtonElement>('.vega-tree-action')
+		).filter((btn) => btn.getAttribute('aria-label')?.startsWith('Subir'));
+		const downButtons = Array.from(
+			mounted.target.querySelectorAll<HTMLButtonElement>('.vega-tree-action')
+		).filter((btn) => btn.getAttribute('aria-label')?.startsWith('Bajar'));
+		expect(upButtons).toHaveLength(3);
+		expect(downButtons).toHaveLength(3);
+
+		// Extremos deshabilitados: la primera fila no sube, la última no baja.
+		expect(upButtons[0].disabled).toBe(true);
+		expect(downButtons[2].disabled).toBe(true);
+		// La fila del medio SÍ puede moverse en las dos direcciones.
+		expect(upButtons[1].disabled).toBe(false);
+		expect(downButtons[1].disabled).toBe(false);
+
+		downButtons[1].click(); // "Features" (índice 1) → índice 2
+		await settle();
+		expect(handleReorder).toHaveBeenCalledWith(1, 2);
+		expect(onStructuralChange).toHaveBeenCalledTimes(1);
+	});
+
+	test('mover no pide vista previa nueva si `handleReorder` no cambió nada (guard interno de `blocks-state.svelte.ts`)', async () => {
+		const handleReorder = vi.fn(async () => false);
+		const onStructuralChange = vi.fn();
+		const blocks = fakeBlocksState({
+			records: [record('b1', 'Hero'), record('b2', 'Features')],
+			handleReorder
+		});
+		mounted = mountTree(blocks, null, vi.fn(), onStructuralChange);
+
+		const downButtons = Array.from(
+			mounted.target.querySelectorAll<HTMLButtonElement>('.vega-tree-action')
+		).filter((btn) => btn.getAttribute('aria-label')?.startsWith('Bajar'));
+		downButtons[0].click();
+		await settle();
+
+		expect(handleReorder).toHaveBeenCalledWith(0, 1);
+		expect(onStructuralChange).not.toHaveBeenCalled();
+	});
+
+	test('borrar: pide `requestDelete`, y confirmar en `DeleteConfirm` llama a `confirmDelete` y pide vista previa nueva', async () => {
+		const requestDelete = vi.fn();
+		const b1 = record('b1', 'Hero');
+		const blocks = fakeBlocksState({ records: [b1], requestDelete });
+		mounted = mountTree(blocks, null);
+
+		const deleteButton = Array.from(
+			mounted.target.querySelectorAll<HTMLButtonElement>('.vega-tree-action')
+		).find((btn) => btn.getAttribute('aria-label')?.startsWith('Borrar'))!;
+		deleteButton.click();
+		await tick();
+
+		expect(requestDelete).toHaveBeenCalledWith(b1);
+
+		// `DeleteConfirm` lo abre `blocks.pendingDelete` (dueño externo, no este componente): se
+		// remonta con `pendingDelete` ya puesto, mismo criterio que `RecordBlocks.svelte.test.ts`.
+		await unmount(mounted.instance);
+		mounted.target.remove();
+
+		const confirmDelete = vi.fn(async () => {});
+		const onStructuralChange = vi.fn();
+		const pendingBlocks = fakeBlocksState({ records: [b1], pendingDelete: b1, confirmDelete });
+		mounted = mountTree(pendingBlocks, null, vi.fn(), onStructuralChange);
+
+		const confirmButton = mounted.target.querySelector<HTMLButtonElement>('.vega-delete-confirm')!;
+		expect(confirmButton).not.toBeNull();
+		confirmButton.click();
+		await settle();
+
+		expect(confirmDelete).toHaveBeenCalledTimes(1);
+		expect(onStructuralChange).toHaveBeenCalledTimes(1);
+	});
+
+	test('acciones de fila deshabilitadas mientras hay algo sin guardar, guardándose, u ocupado en estructura', () => {
+		const blocks = fakeBlocksState({
+			records: [record('b1', 'Hero'), record('b2', 'Features')],
+			blockDuplicateAllowed: true,
+			dirtyIds: new Set(['b1']) // basta UN bloque sucio para congelar TODAS las filas
+		});
+		mounted = mountTree(blocks, null);
+
+		const actions = mounted.target.querySelectorAll<HTMLButtonElement>('.vega-tree-action');
+		// Duplicar/subir/bajar se congelan con `anyDirty`; borrar NO (mismo criterio que
+		// `RecordBlocks.svelte`, que tampoco lo hace para su botón de borrar).
+		const duplicateBtn = Array.from(actions).find((b) =>
+			b.getAttribute('aria-label')?.startsWith('Duplicar')
+		)!;
+		const deleteBtn = Array.from(actions).find((b) =>
+			b.getAttribute('aria-label')?.startsWith('Borrar')
+		)!;
+		expect(duplicateBtn.disabled).toBe(true);
+		expect(deleteBtn.disabled).toBe(false);
 	});
 });

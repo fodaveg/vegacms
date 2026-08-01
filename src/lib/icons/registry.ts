@@ -8,8 +8,8 @@
  * Set de arranque (§2.7 + fallbacks documentados en el contrato): cubre el chrome del shell
  * (nav, ajustes, medios, logout, warning, colapso de sidebar) más los fallbacks genéricos
  * (`NavItem.icon === null` → `generic`; singleton sin icono → `settings`, contrato P2 §4.8) y
- * un puñado de acciones comunes que P4/P5 reutilizarán (crear, buscar, cerrar, ok). Ampliable
- * sin romper compatibilidad: añadir un id nuevo nunca invalida un manifiesto existente.
+ * un puñado de acciones comunes que P4/P5 reutilizarán (crear, buscar, cerrar, ok, duplicar).
+ * Ampliable sin romper compatibilidad: añadir un id nuevo nunca invalida un manifiesto existente.
  */
 
 /**
@@ -33,6 +33,7 @@ const ICON_IDS = [
 	'check',
 	'chevron',
 	'close',
+	'copy',
 	'document',
 	'eye',
 	'generic',

@@ -285,6 +285,17 @@ export const es = {
 	'editor.visual.tree.title': 'Secciones',
 	'editor.visual.tree.selectLabel': 'Seleccionar «{label}»',
 	'editor.visual.tree.unavailable': 'No se pudo cargar el árbol de secciones.',
+	// ————— Acciones estructurales del árbol (tarea "acciones estructurales desde el editor
+	// visual"): crear/duplicar/borrar/mover viven aquí Y en la barra flotante del lienzo
+	// (`VisualOverlay.svelte`), que reutiliza estas MISMAS claves de duplicar/borrar/mover —
+	// actuar sobre un bloque es lo mismo desde cualquiera de las dos superficies, solo cambia
+	// dónde está el botón. `editor.blocks.duplicateLabel`/`list.delete.rowButtonLabel` ya
+	// existían (mismo criterio que `RecordBlocks.svelte`); las de mover son nuevas, esta pantalla
+	// es la primera con botones de mover aparte del asa de arrastre.
+	'editor.blocks.moveUpLabel': 'Subir «{label}»',
+	'editor.blocks.moveDownLabel': 'Bajar «{label}»',
+	'editor.visual.overlay.toolbar.label': 'Acciones de «{label}»',
+	'editor.visual.overlay.insertLabel': 'Insertar sección en la posición {position} de {total}',
 	'editor.visual.inspector.title': 'Inspector',
 	'editor.visual.inspector.empty':
 		'Selecciona un bloque en el árbol o en el lienzo para editarlo aquí.',

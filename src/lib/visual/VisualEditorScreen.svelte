@@ -10,24 +10,35 @@
 	 * en la cabecera de la ruta).
 	 *
 	 * **Alcance de ESTA entrega (tarea "árbol de secciones y el inspector", ampliada sobre la
-	 * anterior)**: además del LIENZO (iframe + estados de conexión) y los CONTORNOS de selección
-	 * (`VisualOverlay.svelte`), la rejilla ya usa sus TRES columnas (`.vega-visual-grid--tree`/
-	 * `--inspector`, ver el CSS): `VisualBlockTree.svelte` (árbol de secciones, izquierda) y
-	 * `VisualInspector.svelte` (ficha del bloque seleccionado, derecha), las dos sobre el MISMO
-	 * `blocks` (`createBlocksState()`, instanciado UNA vez aquí abajo — "un solo
-	 * `createBlocksState` por pantalla"). La ESCRITURA sobre un bloque ya entra por esta pantalla:
-	 * vive dentro de `BlockEditor.svelte`, montado por `VisualInspector`, nunca aquí — esta pantalla
-	 * solo fija la selección, pasa el estado y pide un token de vista previa nuevo tras cada
-	 * guardado (`requestPreview`, ver `handleBlockSaved` más abajo). Lo que SIGUE sin entrar:
-	 * crear/reordenar/duplicar/borrar bloques (exclusivas de `RecordBlocks.svelte`) y el refresco EN
-	 * VIVO del marco sin recargarlo (pedir un token nuevo SÍ recarga el `<iframe>` entero).
+	 * anterior, y por la tarea posterior "acciones estructurales desde el editor visual")**: además
+	 * del LIENZO (iframe + estados de conexión) y los CONTORNOS de selección (`VisualOverlay.svelte`),
+	 * la rejilla ya usa sus TRES columnas (`.vega-visual-grid--tree`/`--inspector`, ver el CSS):
+	 * `VisualBlockTree.svelte` (árbol de secciones, izquierda) y `VisualInspector.svelte` (ficha del
+	 * bloque seleccionado, derecha), las tres sobre el MISMO `blocks` (`createBlocksState()`,
+	 * instanciado UNA vez aquí abajo — "un solo `createBlocksState` por pantalla"). La ESCRITURA
+	 * sobre un CAMPO de un bloque entra por `BlockEditor.svelte`, montado por `VisualInspector`,
+	 * nunca aquí; la ESTRUCTURA (crear/duplicar/borrar/mover) entra por `VisualBlockTree.svelte` (la
+	 * vía que manda) y por la barra flotante + los puntos de inserción de `VisualOverlay.svelte`
+	 * (atajo sobre el lienzo) — las dos llaman a las mutaciones de `blocks-state.svelte.ts`
+	 * DIRECTAMENTE, esta pantalla no las intercepta. Lo que esta pantalla SÍ hace para las tres
+	 * superficies por igual: fijar la selección y pedir un token de vista previa nuevo tras cada
+	 * cambio (`requestPreview`, cableado como `onBlockSaved`/`onStructuralChange` más abajo). Lo que
+	 * SIGUE sin entrar: el refresco EN VIVO del marco sin recargarlo (pedir un token nuevo SÍ recarga
+	 * el `<iframe>` entero) — `RecordBlocks.svelte` deja de ser la única vía de mutar bloques desde
+	 * esta tarea, pero sigue siendo la vía del formulario clásico, sin lienzo.
 	 *
 	 * **La selección tiene un solo dueño: `selectedBlockId`, aquí.** No vive en
 	 * `bridge-client.ts` (que es puro transporte, ver su cabecera) ni en `VisualOverlay.svelte`
-	 * (que solo pinta lo que le llega, ver la suya) ni en `VisualBlockTree.svelte` (que también
-	 * solo pinta lo que le llega, mismo criterio): un segundo dueño del mismo dato es la vía a que
-	 * las mitades enseñen cosas distintas, mismo criterio que ya usa `bridge-client.ts` para la
-	 * selección `onSelect` frente al estado del puente. Cuando el sitio manda `select` (clic dentro
+	 * (que solo pinta lo que le llega y muta bloques sin tocar `selectedBlockId`, ver su cabecera)
+	 * ni en `VisualBlockTree.svelte` (mismo criterio: muta bloques, nunca la selección): un segundo
+	 * dueño del mismo dato es la vía a que las mitades enseñen cosas distintas, mismo criterio que ya
+	 * usa `bridge-client.ts` para la selección `onSelect` frente al estado del puente. Un bloque
+	 * borrado (desde el árbol o desde la barra flotante) se limpia de la selección por esta MISMA
+	 * vía, sin que ninguna de las dos superficies escriba `selectedBlockId`: `onStructuralChange`
+	 * pide un token nuevo, el `<iframe>` recarga, el sitio deja de reportar ese id, y
+	 * `ensureBridgeClient#onState` (más abajo) lo limpia — el mismo camino que ya usaba antes de
+	 * esta tarea para un bloque borrado desde `RecordBlocks.svelte` en OTRA pestaña. Cuando el sitio
+	 * manda `select` (clic dentro
 	 * de un bloque, en el iframe) O el autor elige una fila del árbol, esta pantalla actualiza
 	 * `selectedBlockId` Y avisa al sitio con `highlight`/`scrollTo` (ya expuestos por el cliente)
 	 * para que el marco reaccione a su propia selección — `handleBlockSelect`, más abajo, es la
@@ -540,7 +551,12 @@
 			     sea un aviso ("todavía no hay bloques", "elige uno"). Las manillas (ver cabecera,
 			     "Anchos de columna ajustables") son celdas del MISMO grid, a propósito: su orden en
 			     el marcado tiene que casar con el de `grid-template-columns` del CSS. -->
-			<VisualBlockTree {blocks} selectedId={selectedBlockId} onSelect={handleBlockSelect} />
+			<VisualBlockTree
+				{blocks}
+				selectedId={selectedBlockId}
+				onSelect={handleBlockSelect}
+				onStructuralChange={() => void requestPreview()}
+			/>
 			{#if treeResizerActive}
 				<VisualColumnResizer
 					value={columnWidths.tree}
@@ -575,6 +591,8 @@
 						skippedBlocks={overlaySkippedBlocks}
 						status={overlayStatus}
 						renderedBlockTypes={ctx.port.renderedBlockTypes ?? null}
+						blocksState={blocks}
+						onStructuralChange={() => void requestPreview()}
 					/>
 				{/if}
 				{#if tokenState.kind === 'loading' || (tokenState.kind === 'ready' && !frameLoaded)}
