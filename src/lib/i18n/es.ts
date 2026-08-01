@@ -320,6 +320,12 @@ export const es = {
 	'editor.delete': 'Eliminar {label}…',
 	'editor.slug.regenerate': 'Regenerar',
 
+	// ————— Modelo de páginas (capacidad `page`, tarea p1 `1dc63001`) —————
+	// "Proponer ruta" (`RecordForm.svelte`, ver su cabecera): SOLO en creación, deriva `/` +
+	// slugify(slug o título actual) — nunca resincroniza después de guardar, ver la cabecera de
+	// `ResolvedContentType.page` en `types.ts` para el porqué.
+	'editor.page.proposePath': 'Proponer ruta',
+
 	// ————— Bloques ordenables embebidos (capacidad `blocks`, lote "editor" Fase A) —————
 	// Reutiliza a propósito claves ya existentes para el resto del ciclo de vida de un bloque:
 	// `editor.save`/`editor.saving`/`editor.saveSuccess` (guardar un bloque es lo mismo que
@@ -378,6 +384,11 @@ export const es = {
 	'form.errorCode.vega_readonly_field': 'Este campo es de solo lectura.',
 	'form.errorCode.vega_unknown_field': 'Este campo no existe en el tipo de contenido.',
 	'form.errorCode.vega_foreign_file_ref': 'Ese fichero no pertenece a este registro.',
+	// Código LOCAL, no viene de PB (`page-path.ts`): forma de la ruta pública de una página,
+	// validada en cliente (§2 del encargo "crear y editar páginas") — PocketBase no la conoce,
+	// para él `pathField` es un `text` cualquiera.
+	'form.errorCode.vega_page_path_invalid':
+		'La ruta debe empezar por «/», sin espacios, y sin barra final salvo la raíz «/».',
 
 	// ————— Widget relation (Fase F5-e del contrato P5) —————
 	'form.relation.searchAriaLabel': 'Buscar «{label}»',

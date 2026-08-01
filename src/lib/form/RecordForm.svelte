@@ -187,6 +187,16 @@
 	 *   ("Regenerar") que recalcula el slug desde el valor ACTUAL del `titleField` con `slugify`
 	 *   (módulo puro). Nunca escribe un slug vacío encima de uno bueno: si el título no da nada
 	 *   utilizable, el botón queda deshabilitado.
+	 * - **Modelo de páginas** (`type.page`, tarea p1 `1dc63001`; encargo "crear y editar páginas"),
+	 *   TRES piezas, todas opt-in y todas en `FieldRow` (ver su cabecera, no reimplementadas aquí):
+	 *   el campo `pathField` se pinta en mono (`isPathField`, "es lo que es: la dirección pública",
+	 *   no un texto más) y, SOLO en creación, lleva la acción inline "Proponer ruta"
+	 *   (`proposePagePath`) que deriva `/` + `slugify(slug o título actual)` — el botón desaparece
+	 *   tras el primer guardado, así que no hay NINGÚN camino para resincronizar la ruta después de
+	 *   crear (la regla NO negociable de la cabecera de `ResolvedContentType.page`); el campo
+	 *   `layoutField`, si existe, sustituye su `Widget` por un `<select>` de `ContentModel.layouts`
+	 *   (`layoutOptions`, `PageLayoutSelect.svelte`); y `page-path-not-unique` (P2) se pinta como
+	 *   `notice` bajo el propio `pathField`, con el mensaje LITERAL de P2, nunca un texto nuevo.
 	 */
 	import { beforeNavigate } from '$app/navigation';
 	import { onMount, tick, untrack } from 'svelte';
@@ -201,6 +211,7 @@
 	import EditorRail from '$lib/list/EditorRail.svelte';
 	import { buildPreviewUrl } from '$lib/model/preview-url';
 	import { slugify } from '$lib/model/slugify';
+	import { suggestPagePath } from '$lib/model/page-path';
 	import Icon from '$lib/icons/Icon.svelte';
 	import EditTopBar from '$lib/shell/EditTopBar.svelte';
 	import RecordBlocks from './RecordBlocks.svelte';
@@ -516,6 +527,63 @@
 		if (type.slugField === null || regeneratedSlug === '' || formDisabled) return;
 		handleFieldChange(type.slugField, regeneratedSlug);
 	}
+
+	// ————— Modelo de páginas (`type.page`, tarea p1 `1dc63001`; encargo "crear y editar páginas") —————
+
+	/**
+	 * "Proponer ruta" (§1 del encargo): la fuente es el SLUG actual si el tipo lo declara (ya más
+	 * cercano a una URL que el título en prosa) y si no, el TÍTULO actual (`titleText`, ya derivado
+	 * arriba) — el encargo dice "derivándola del título o del slug", y el slug, cuando existe, es
+	 * la mejor de las dos fuentes.
+	 */
+	const pathSourceText = $derived.by(() => {
+		if (type.slugField !== null) {
+			const raw = current[type.slugField];
+			if (typeof raw === 'string' && raw.trim() !== '') return raw;
+		}
+		return titleText;
+	});
+	/** La ruta que produciría "Proponer ruta" con la fuente actual; `''` ⇒ nada utilizable (mismo
+	 *  criterio que `regeneratedSlug`, `suggestPagePath` reutiliza `slugify`). */
+	const suggestedPagePath = $derived(suggestPagePath(pathSourceText));
+
+	/**
+	 * Escribe la ruta propuesta en `type.page.pathField` — SOLO llamable mientras `model.mode ===
+	 * 'create'` (el snippet `pathAction`, más abajo, ni se pinta fuera de creación; esta guarda es
+	 * solo defensiva). Es la pieza que hace cumplir "la ruta NUNCA se deriva sola después de crear"
+	 * (regla NO negociable, cabecera de `ResolvedContentType.page` en `types.ts`): no hay NINGÚN
+	 * camino, ni siquiera manual, para tocar la ruta a partir del título/slug una vez creada la
+	 * página — la propia desaparición del botón tras el primer guardado es la garantía, no una
+	 * comprobación de valor. No-op si no hay nada que proponer: JAMÁS pisa una ruta buena con "".
+	 */
+	function proposePagePath(): void {
+		if (!type.page || model.mode !== 'create' || suggestedPagePath === '' || formDisabled) return;
+		handleFieldChange(type.page.pathField, suggestedPagePath);
+	}
+
+	/** Plantillas disponibles (`ContentModel.layouts`, §3 del encargo) para el `<select>` de
+	 *  `type.page.layoutField`: `undefined` si la colección no declara `layoutField` — "si la
+	 *  colección no lo declara, no aparece nada" (encargo §3), así `FieldRow` sigue pintando su
+	 *  `Widget` de siempre para ese campo. */
+	const pageLayoutOptions = $derived(type.page?.layoutField ? ctx.model.layouts : undefined);
+
+	/**
+	 * Aviso `page-path-not-unique` de ESTA colección (§4 del encargo, "los avisos del modelo se
+	 * ven donde importan"): se busca el `ModelWarning` REAL en `ctx.model.warnings` en vez de
+	 * redactar un texto nuevo aquí — reutiliza LITERAL el mensaje que ya escribió P2
+	 * (`pagePathNotUnique`, `warnings.ts`), la única fuente de verdad de lo que el dato SÍ dice
+	 * ("no se pudo determinar unicidad", nunca "no es único", ver el comentario de
+	 * `pathFieldUnique` en `types.ts`). `null` si la colección no es de páginas o si SÍ tiene
+	 * índice único (nada que avisar).
+	 */
+	const pathNotUniqueNotice = $derived.by(() => {
+		if (!type.page || type.page.pathFieldUnique) return null;
+		return (
+			ctx.model.warnings.find(
+				(w) => w.code === 'page-path-not-unique' && w.collection === type.name
+			)?.message ?? null
+		);
+	});
 
 	// ————— Borrado (zona de peligro; el puerto lo llama la RUTA, ver cabecera) —————
 	let deleteOpen = $state(false);
@@ -900,6 +968,19 @@
 		</button>
 	{/snippet}
 
+	<!-- "Proponer ruta" (modelo de páginas, ver `proposePagePath` más arriba): SOLO en creación —
+	     `fieldRow`, más abajo, no la ofrece como `action` fuera de `model.mode === 'create'`. -->
+	{#snippet pathAction()}
+		<button
+			type="button"
+			class="vega-editor-inline-button"
+			disabled={formDisabled || suggestedPagePath === ''}
+			onclick={proposePagePath}
+		>
+			{ctx.t('editor.page.proposePath')}
+		</button>
+	{/snippet}
+
 	{#snippet fieldRow(field: ResolvedField, stacked: boolean)}
 		<FieldRow
 			{field}
@@ -910,8 +991,15 @@
 			{stacked}
 			isTitleField={field.name === type.titleField}
 			isSlugField={field.name === type.slugField}
+			isPathField={field.name === type.page?.pathField}
 			optionLabels={field.name === type.statusField ? (type.statusLabels ?? undefined) : undefined}
-			action={field.name === type.slugField && type.titleField !== null ? slugAction : undefined}
+			layoutOptions={field.name === type.page?.layoutField ? pageLayoutOptions : undefined}
+			action={field.name === type.slugField && type.titleField !== null
+				? slugAction
+				: field.name === type.page?.pathField && model.mode === 'create'
+					? pathAction
+					: undefined}
+			notice={field.name === type.page?.pathField ? (pathNotUniqueNotice ?? undefined) : undefined}
 			onChange={(value) => handleFieldChange(field.name, value)}
 		/>
 	{/snippet}

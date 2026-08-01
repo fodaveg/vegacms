@@ -32,13 +32,33 @@
 	 * del que derivarlo). El snippet es genérico: cualquier campo podría llevar una acción inline,
 	 * aunque hoy solo la usa el slug.
 	 *
+	 * **`isPathField` (capacidad `page`, `type.page.pathField`, modelo de páginas)**: la ruta
+	 * pública de una página se pinta en `--mono`, MISMO criterio que `isSlugField` (es un VALOR
+	 * canónico, no prosa) — "se presenta como lo que es: la dirección pública de la página, no un
+	 * campo de texto más" (encargo "crear y editar páginas" §2). `RecordForm.svelte` le cuelga
+	 * además el snippet `action` con el botón "Proponer ruta" (SOLO en creación, ver su cabecera).
+	 *
+	 * **`layoutOptions` (capacidad `page`, `type.page.layoutField`, modelo de páginas §3)**: cuando
+	 * llega (incluso `[]`), este campo NO se pinta con el `Widget` del registry — `layoutField` es
+	 * un `text` cualquiera para P1/P2, pero su vocabulario de valores válidos es CERRADO
+	 * (`ContentModel.layouts`), así que se sustituye por `PageLayoutSelect.svelte` (ver su
+	 * cabecera para por qué no es un widget más del registry). `undefined` (el resto de campos,
+	 * SIEMPRE) ⇒ comportamiento histórico intacto.
+	 *
+	 * **`notice` (capacidad `page`, aviso `page-path-not-unique`)**: texto YA humano de un
+	 * `ModelWarning` del propio modelo (P2), pintado bajo el control con el mismo lenguaje visual
+	 * de aviso que `ReferencesSummary.svelte`/`DeleteConfirm.svelte` (`--warning`/`--warning-soft`)
+	 * — NO es un error (el valor actual sigue siendo válido y se puede guardar), es una limitación
+	 * del MODELO que conviene ver justo donde se edita el campo, no solo en Ajustes (encargo §4).
+	 * Genérico a propósito, aunque hoy solo lo usa la ruta de una página.
+	 *
 	 * **`stacked` (§4.9b, rejilla de columnas de `fieldGroups`)**: prop conservada del layout de
 	 * columnas emparejadas. Desde el mockup final TODA fila es apilada, así que `stacked` ya no
 	 * cambia el eje del label; lo que sigue haciendo es quitar el `margin` de separación de la
 	 * fila cuando quien separa es el `gap` de la rejilla `.vega-fgroup-grid`.
 	 */
 	import type { Snippet } from 'svelte';
-	import type { ResolvedField } from '$lib/model/types';
+	import type { ResolvedField, ResolvedLayout } from '$lib/model/types';
 	import type { FieldInputValue } from '$lib/backend/types';
 	import type { TranslatedError } from './field-errors';
 	import { fieldIds } from './field-ids';
@@ -46,6 +66,7 @@
 	import { WIDGET_REGISTRY } from './widgets/registry';
 	import { getVegaContext } from '$lib/app-context';
 	import Icon from '$lib/icons/Icon.svelte';
+	import PageLayoutSelect from './PageLayoutSelect.svelte';
 
 	interface Props {
 		field: ResolvedField;
@@ -63,11 +84,19 @@
 		/** `true` cuando `field.name === type.slugField` (mockup `.slug-row input.mono`): control en
 		 *  tipografía mono. Default `false`. */
 		isSlugField?: boolean;
+		/** `true` cuando `field.name === type.page.pathField` (modelo de páginas, ver cabecera):
+		 *  control en tipografía mono, mismo criterio que `isSlugField`. Default `false`. */
+		isPathField?: boolean;
 		/** Etiquetas legibles por valor de opción para ESTE campo (P2 `statusLabels`), o nada. Pasa
 		 *  tal cual al widget — solo `Select.svelte` la usa (ver `widgets/types.ts`). */
 		optionLabels?: Record<string, string>;
+		/** Plantillas (`ContentModel.layouts`) cuando `field.name === type.page.layoutField` (ver
+		 *  cabecera); `undefined` en cualquier otro campo. */
+		layoutOptions?: ResolvedLayout[];
 		/** Acción inline a la derecha del control (mockup `.slug-row` + `.btn`), o nada. */
 		action?: Snippet;
+		/** Aviso NO bloqueante bajo el control (ver cabecera, `page-path-not-unique`), o nada. */
+		notice?: string;
 		onChange: (value: FieldInputValue) => void;
 	}
 
@@ -80,8 +109,11 @@
 		stacked = false,
 		isTitleField = false,
 		isSlugField = false,
+		isPathField = false,
 		optionLabels,
+		layoutOptions,
 		action,
+		notice,
 		onChange
 	}: Props = $props();
 
@@ -96,6 +128,7 @@
 	class:vega-field-row--stacked={stacked}
 	class:vega-field-row--title={isTitleField}
 	class:vega-field-row--slug={isSlugField}
+	class:vega-field-row--path={isPathField}
 	data-field={field.name}
 	data-widget={field.widget}
 >
@@ -111,15 +144,43 @@
 			     superior, no con su centro (un widget alto no debe arrastrar el botón al medio). -->
 			<div class="vega-field-inline">
 				<div class="vega-field-inline-widget">
-					<Widget {field} {value} {error} {disabled} {readonly} {optionLabels} {onChange} />
+					{#if layoutOptions}
+						<PageLayoutSelect
+							{field}
+							{value}
+							{error}
+							{disabled}
+							{readonly}
+							layouts={layoutOptions}
+							{onChange}
+						/>
+					{:else}
+						<Widget {field} {value} {error} {disabled} {readonly} {optionLabels} {onChange} />
+					{/if}
 				</div>
 				{@render action()}
 			</div>
+		{:else if layoutOptions}
+			<PageLayoutSelect
+				{field}
+				{value}
+				{error}
+				{disabled}
+				{readonly}
+				layouts={layoutOptions}
+				{onChange}
+			/>
 		{:else}
 			<Widget {field} {value} {error} {disabled} {readonly} {optionLabels} {onChange} />
 		{/if}
 		{#if field.help}
 			<p id={ids.helpId} class="vega-field-help">{field.help}</p>
+		{/if}
+		{#if notice}
+			<!-- Aviso del MODELO (P2), no de este valor concreto (ver cabecera): mismo lenguaje
+			     visual que `ReferencesSummary.svelte`/`DeleteConfirm.svelte`, nunca `role="alert"`
+			     (eso es para lo que SÍ bloquea el guardado). -->
+			<p class="vega-field-notice">{notice}</p>
 		{/if}
 		{#if error}
 			<p id={ids.errorId} class="vega-field-error" role="alert">
@@ -237,9 +298,25 @@
 	}
 
 	/* Campo slug (mockup `.slug-row input.mono`): VALOR canónico ⇒ `--mono`, un punto más pequeño
-	   para compensar el ancho de la mono. Mismo gancho `:global` que el campo héroe. */
-	.vega-field-row--slug :global(.vega-widget-text) {
+	   para compensar el ancho de la mono. Mismo gancho `:global` que el campo héroe.
+	   Campo ruta (`isPathField`, modelo de páginas): MISMO tratamiento — la dirección pública de
+	   una página es un valor canónico igual que un slug, no prosa. */
+	.vega-field-row--slug :global(.vega-widget-text),
+	.vega-field-row--path :global(.vega-widget-text) {
 		font-family: var(--mono);
 		font-size: 0.92em;
+	}
+
+	/* Aviso del modelo bajo un campo (`notice`, ver cabecera): mismo lenguaje visual que
+	   `.vega-refs-partial` de `ReferencesSummary.svelte` — informa, no bloquea (por eso NO
+	   comparte estilo con `.vega-field-error`, que sí impide guardar). */
+	.vega-field-notice {
+		margin: 0.35rem 0 0;
+		padding: 0.4rem 0.6rem;
+		border: 1px solid var(--warning);
+		border-radius: 6px;
+		background: var(--warning-soft);
+		color: var(--warning);
+		font-size: 0.82em;
 	}
 </style>

@@ -292,6 +292,12 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.delete': 'Delete {label}…',
 	'editor.slug.regenerate': 'Regenerate',
 
+	// ————— Page model (`page` capability, p1 task `1dc63001`) —————
+	// "Suggest route" (`RecordForm.svelte`, see its header): CREATION only, derives `/` +
+	// slugify(current slug or title) — never resyncs after saving, see the header of
+	// `ResolvedContentType.page` in `types.ts` for why.
+	'editor.page.proposePath': 'Suggest route',
+
 	// ————— Embedded orderable blocks (`blocks` capability, "editor" batch, Phase A) —————
 	// Deliberately reuses existing keys for the rest of a block's lifecycle:
 	// `editor.save`/`editor.saving`/`editor.saveSuccess` (saving a block is the same as saving
@@ -349,6 +355,11 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'form.errorCode.vega_readonly_field': 'This field is read-only.',
 	'form.errorCode.vega_unknown_field': 'This field does not exist on the content type.',
 	'form.errorCode.vega_foreign_file_ref': 'That file does not belong to this record.',
+	// LOCAL code, not from PB (`page-path.ts`): format of a page's public route, validated
+	// client-side (§2 of the "create and edit pages" batch) — PocketBase does not know it,
+	// `pathField` is just a `text` field to it.
+	'form.errorCode.vega_page_path_invalid':
+		'The route must start with "/", contain no spaces, and not end with "/" unless it is the root "/".',
 
 	// ————— Relation widget (P5 contract, Phase F5-e) —————
 	'form.relation.searchAriaLabel': 'Search «{label}»',

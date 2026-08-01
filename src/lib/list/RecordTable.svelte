@@ -74,7 +74,11 @@
 	 *   además del enlace de título de siempre, pinta una línea secundaria en `--mono`/`--ink-3`
 	 *   con el valor de `subtitleField` para ESE registro, buscado en `contentType.fields`
 	 *   (TODOS los campos del tipo — el subtítulo no tiene por qué ser una columna de
-	 *   `listFields`) — nunca si el valor está vacío (sin placeholder inventado).
+	 *   `listFields`) — nunca si el valor está vacío (sin placeholder inventado). **Fallback a la
+	 *   RUTA (modelo de páginas, tarea p1 `1dc63001`)**: sin `subtitleField` declarado, una colección
+	 *   de páginas (`contentType.page`) enseña `page.pathField` en su lugar — la ruta es la
+	 *   identidad pública del registro (encargo "crear y editar páginas" §5), MISMO render que un
+	 *   subtítulo normal, sin ninguna clase/atributo nuevo.
 	 * - **Fila seleccionada (`tr.sel` del mockup): FUERA DE ALCANCE (R3)**: el mockup pinta una
 	 *   fila con `box-shadow: inset 2px 0 0 var(--accent)` sobre `--active` para representar
 	 *   "seleccionada", pero Vega v1 no tiene ningún concepto de selección de fila en el listado
@@ -216,16 +220,20 @@
 		return resolveTitleCellText(descriptor, ctx.t('list.untitled'));
 	}
 
-	/** Campo subtítulo ya resuelto (M3, `ResolvedContentType.subtitleField`): `null` si el tipo no
-	 *  lo declara. A propósito NO se busca en `columns` (a diferencia de `openColumn`) — el campo
-	 *  subtítulo no tiene por qué ser una columna de `listFields` (el caso de uso típico, un slug,
-	 *  normalmente no lo es), así que se resuelve contra `contentType.fields` (TODOS los campos del
-	 *  tipo, P2). */
-	const subtitleField = $derived(
-		contentType.subtitleField !== null
-			? (contentType.fields.find((f) => f.name === contentType.subtitleField) ?? null)
-			: null
-	);
+	/** Campo subtítulo ya resuelto (M3, `ResolvedContentType.subtitleField`, + modelo de páginas
+	 *  tarea p1 `1dc63001`, encargo "crear y editar páginas" §5): `contentType.subtitleField` si el
+	 *  manifiesto lo declara, y si no, `contentType.page.pathField` cuando la colección es de
+	 *  páginas — "la lista de una colección de páginas enseña la ruta de cada registro, que es su
+	 *  identidad pública" (el manifiesto SIGUE ganando si además declara `subtitleField` a propósito,
+	 *  para no pisar una elección explícita). `null` si ninguna de las dos aplica. A propósito NO se
+	 *  busca en `columns` (a diferencia de `openColumn`) — ni el subtítulo ni la ruta tienen por qué
+	 *  ser una columna de `listFields`, así que se resuelve contra `contentType.fields` (TODOS los
+	 *  campos del tipo, P2). */
+	const subtitleField = $derived.by(() => {
+		const name = contentType.subtitleField ?? contentType.page?.pathField ?? null;
+		if (name === null) return null;
+		return contentType.fields.find((f) => f.name === name) ?? null;
+	});
 
 	/** Texto de la línea secundaria de `record` (M3), o `null` si no hay `subtitleField` o su valor
 	 *  está vacío (§ caso límite de `demo-seed.ts`, `blog_6`: sin línea secundaria, nunca un

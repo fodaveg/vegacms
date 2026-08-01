@@ -9,6 +9,7 @@ import { ALL_PERMISSIONS } from '$lib/backend/access';
 import type { ContentType, Field } from '$lib/backend/types';
 import { PB_VALIDATION_CODES } from '$lib/backend/errors';
 import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
+import { PAGE_PATH_INVALID_CODE } from '$lib/model/page-path';
 import type { FormInputValues } from './dirty';
 import { validateForm } from './validation';
 
@@ -246,5 +247,59 @@ describe('validateForm — maxSelect', () => {
 	test('array vacío nunca dispara maxSelect (required, si aplica, ya lo cubre)', () => {
 		const current: FormInputValues = { ...validCurrent, tags: [] };
 		expect(validateForm(type, current).byField.tags).toBeUndefined();
+	});
+});
+
+describe('validateForm — formato de la ruta pública (type.page.pathField)', () => {
+	const path: Field = {
+		name: 'path',
+		type: 'text',
+		subtype: 'plain',
+		required: false,
+		readonly: false,
+		presentable: true,
+		hidden: false,
+		unique: true
+	};
+	const pageType: ResolvedContentType = {
+		...makeType([...type.fields, makeField(path, { widget: 'text' })]),
+		page: { pathField: 'path', pathFieldUnique: true, layoutField: null }
+	};
+
+	test('sin capacidad `page`: un campo llamado igual NO se valida como ruta', () => {
+		const current: FormInputValues = { ...validCurrent, path: 'sin barra inicial' };
+		expect(validateForm(type, current).byField.path).toBeUndefined();
+	});
+
+	test('ruta válida → sin error', () => {
+		const current: FormInputValues = { ...validCurrent, path: '/sobre-mi' };
+		expect(validateForm(pageType, current).byField.path).toBeUndefined();
+	});
+
+	test('la raíz "/" → sin error', () => {
+		const current: FormInputValues = { ...validCurrent, path: '/' };
+		expect(validateForm(pageType, current).byField.path).toBeUndefined();
+	});
+
+	test('vacía → sin error de FORMATO (required, si aplica, es otra comprobación)', () => {
+		const current: FormInputValues = { ...validCurrent, path: '' };
+		expect(validateForm(pageType, current).byField.path).toBeUndefined();
+	});
+
+	test('sin "/" inicial → error con PAGE_PATH_INVALID_CODE, known: true', () => {
+		const current: FormInputValues = { ...validCurrent, path: 'sobre-mi' };
+		const error = validateForm(pageType, current).byField.path;
+		expect(error?.code).toBe(PAGE_PATH_INVALID_CODE);
+		expect(error?.known).toBe(true);
+	});
+
+	test('con espacio → error', () => {
+		const current: FormInputValues = { ...validCurrent, path: '/sobre mi' };
+		expect(validateForm(pageType, current).byField.path?.code).toBe(PAGE_PATH_INVALID_CODE);
+	});
+
+	test('con barra final (no raíz) → error', () => {
+		const current: FormInputValues = { ...validCurrent, path: '/sobre-mi/' };
+		expect(validateForm(pageType, current).byField.path?.code).toBe(PAGE_PATH_INVALID_CODE);
 	});
 });
