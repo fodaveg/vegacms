@@ -92,6 +92,27 @@
 	 * hay ahora dirty tracking y bloques con estado propio que perder (`blocks`, más abajo) —
 	 * remontar entero es justo lo que también los limpia, sin necesitar la disciplina de resincronía
 	 * de `RecordForm`.
+	 *
+	 * **Anchos de columna ajustables** (petición de David tras usar el editor visual en prod):
+	 * `columnWidths` (dueño único, mismo criterio que `selectedBlockId`) gobierna las columnas
+	 * árbol/inspector vía variables CSS (`style:--vega-visual-tree-w`/`--inspector-w`, ver el
+	 * marcado); `VisualColumnResizer.svelte` traduce arrastre/teclado en llamadas a `setTreeWidth`/
+	 * `setInspectorWidth`, que a su vez persisten con `column-widths-storage.ts` (mismo mecanismo
+	 * que la densidad, ver `theme/apply.ts`). La manilla del árbol solo se MONTA (no solo se
+	 * oculta) por encima de los 1180px del propio punto de corte del árbol
+	 * (`treeResizerActive`, medido con `matchMedia` igual que `canvasActive` un poco más abajo):
+	 * por debajo, el árbol ya es un cajón fijo que no reserva columna en el grid (ver la cabecera
+	 * de `VisualBlockTree.svelte`), así que una manilla ahí no tendría nada que mover. La del
+	 * inspector no necesita ese mismo cuidado: su columna nunca colapsa dentro de este grid (solo
+	 * desaparece entera junto con el lienzo por debajo de 900px, que ya desmonta la rejilla
+	 * completa vía `canvasActive`).
+	 *
+	 * **El escudo del arrastre** (`resizing`/`.vega-visual-shield`): mientras CUALQUIERA de las dos
+	 * manillas está en medio de un gesto (`onDragChange`), una capa transparente cubre el
+	 * `<iframe>` del lienzo. Sin esto, en cuanto el puntero entra en el marco (de otro origen) dejan
+	 * de llegar sus `pointermove` al `window` de esta pantalla — el arrastre se queda "colgado" a
+	 * medio camino la primera vez que el gesto cruza el lienzo entero. La capa no tapa nada más: el
+	 * resto de la rejilla ya recibe los eventos con normalidad porque está en el MISMO documento.
 	 */
 	import { onDestroy, onMount, untrack } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
@@ -114,6 +135,16 @@
 	import VisualOverlay from './VisualOverlay.svelte';
 	import VisualBlockTree from './VisualBlockTree.svelte';
 	import VisualInspector from './VisualInspector.svelte';
+	import VisualColumnResizer from './VisualColumnResizer.svelte';
+	import {
+		INSPECTOR_DEFAULT_WIDTH,
+		INSPECTOR_MAX_WIDTH,
+		INSPECTOR_MIN_WIDTH,
+		TREE_DEFAULT_WIDTH,
+		TREE_MAX_WIDTH,
+		TREE_MIN_WIDTH
+	} from './column-widths';
+	import { readColumnWidths, writeColumnWidths } from './column-widths-storage';
 
 	interface Props {
 		type: ResolvedContentType;
@@ -179,10 +210,22 @@
 	let requestGeneration = 0;
 	let bridgeClient: VisualBridgeClient | null = null;
 	let narrowQuery: MediaQueryList | null = null;
+	// ————— Anchos de columna ajustables (ver cabecera) —————
+	let columnWidths = $state(readColumnWidths());
+	// `true` mientras cualquiera de las dos manillas está en medio de un arrastre: gobierna el
+	// escudo que tapa el iframe (ver cabecera, "El escudo del arrastre").
+	let resizing = $state(false);
+	// Arranca en `true` (suposición de escritorio, mismo criterio que `canvasActive`): `onMount`
+	// lo mide de verdad antes de que se pinte nada que dependa de esto.
+	let treeResizerActive = $state(true);
+	let treeQuery: MediaQueryList | null = null;
 
 	/** Mismo punto de corte en el que `PreviewPanel.svelte` se retira entera (ver su cabecera). Vive
 	 *  aquí y no solo en el CSS porque decide si se MONTA el lienzo, no si se ve. */
 	const NARROW_QUERY = '(max-width: 900px)';
+	/** Mismo punto de corte en el que el árbol deja de reservar columna (ver la cabecera de
+	 *  `VisualBlockTree.svelte`, "Colapsable"): por debajo, su manilla no tiene columna que mover. */
+	const TREE_QUERY = '(max-width: 1180px)';
 
 	/** Margen de seguridad antes de `expiresAt` (ver cabecera de `PreviewPanel.svelte`). */
 	const RENEW_BUFFER_MS = 15000;
@@ -313,6 +356,28 @@
 		applyWidth(!event.matches);
 	}
 
+	function handleTreeQueryChange(event: MediaQueryListEvent): void {
+		treeResizerActive = !event.matches;
+	}
+
+	/** `VisualColumnResizer.svelte` ya llega con el ancho recortado a `[min, max]` (ver su
+	 *  cabecera): estos setters no vuelven a recortar, solo escriben — un segundo recorte aquí
+	 *  escondería una rotura del tope de la manilla detrás de este otro, y entonces romperla a
+	 *  propósito (ver el encargo) no pondría ningún test en rojo. */
+	function setTreeWidth(next: number): void {
+		columnWidths = { ...columnWidths, tree: next };
+		writeColumnWidths(columnWidths);
+	}
+
+	function setInspectorWidth(next: number): void {
+		columnWidths = { ...columnWidths, inspector: next };
+		writeColumnWidths(columnWidths);
+	}
+
+	function setResizing(active: boolean): void {
+		resizing = active;
+	}
+
 	/** Cierre o recarga de pestaña: `beforeNavigate` no los ve (no son navegación del router), así
 	 *  que hace falta este segundo escuchador — mismo par que `RecordForm.svelte`. */
 	function handleBeforeUnload(event: BeforeUnloadEvent): void {
@@ -327,6 +392,9 @@
 		narrowQuery = window.matchMedia(NARROW_QUERY);
 		canvasActive = !narrowQuery.matches;
 		narrowQuery.addEventListener('change', handleNarrowChange);
+		treeQuery = window.matchMedia(TREE_QUERY);
+		treeResizerActive = !treeQuery.matches;
+		treeQuery.addEventListener('change', handleTreeQueryChange);
 		if (canvasActive) void requestPreview();
 	});
 
@@ -335,6 +403,7 @@
 		window.removeEventListener('message', handleMessage);
 		window.removeEventListener('beforeunload', handleBeforeUnload);
 		narrowQuery?.removeEventListener('change', handleNarrowChange);
+		treeQuery?.removeEventListener('change', handleTreeQueryChange);
 		bridgeClient?.stop();
 	});
 
@@ -458,14 +527,32 @@
 	</EditTopBar>
 
 	{#if canvasActive}
-		<div class="vega-visual-grid vega-visual-grid--tree vega-visual-grid--inspector">
+		<div
+			class="vega-visual-grid vega-visual-grid--tree vega-visual-grid--inspector"
+			style:--vega-visual-tree-w="{columnWidths.tree}px"
+			style:--vega-visual-inspector-w="{columnWidths.inspector}px"
+		>
 			<!-- Tres columnas, mismo patrón que `.vega-editor-grid--rail`/`--aside` de
 			     `RecordForm.svelte` (ver su cabecera): árbol | lienzo | inspector. Las dos columnas
 			     laterales SIEMPRE están presentes en esta rama (a diferencia del raíl/aside de
 			     `RecordForm`, opt-in por manifiesto): `resolveVisualGate` ya exige `type.blocks` para
 			     que esta ruta exista, así que el árbol/inspector siempre tienen algo que decir, aunque
-			     sea un aviso ("todavía no hay bloques", "elige uno"). -->
+			     sea un aviso ("todavía no hay bloques", "elige uno"). Las manillas (ver cabecera,
+			     "Anchos de columna ajustables") son celdas del MISMO grid, a propósito: su orden en
+			     el marcado tiene que casar con el de `grid-template-columns` del CSS. -->
 			<VisualBlockTree {blocks} selectedId={selectedBlockId} onSelect={handleBlockSelect} />
+			{#if treeResizerActive}
+				<VisualColumnResizer
+					value={columnWidths.tree}
+					min={TREE_MIN_WIDTH}
+					max={TREE_MAX_WIDTH}
+					defaultValue={TREE_DEFAULT_WIDTH}
+					sign={1}
+					label={ctx.t('editor.visual.resize.tree')}
+					onResize={setTreeWidth}
+					onDragChange={setResizing}
+				/>
+			{/if}
 			<div class="vega-visual-canvas">
 				{#if tokenState.kind === 'ready'}
 					<iframe
@@ -502,7 +589,23 @@
 						</button>
 					</div>
 				{/if}
+				{#if resizing}
+					<!-- Escudo del arrastre (ver cabecera): solo existe mientras dura, así que fuera de
+					     un arrastre el iframe recibe sus eventos de siempre sin ninguna capa de por
+					     medio. -->
+					<div class="vega-visual-shield" aria-hidden="true"></div>
+				{/if}
 			</div>
+			<VisualColumnResizer
+				value={columnWidths.inspector}
+				min={INSPECTOR_MIN_WIDTH}
+				max={INSPECTOR_MAX_WIDTH}
+				defaultValue={INSPECTOR_DEFAULT_WIDTH}
+				sign={-1}
+				label={ctx.t('editor.visual.resize.inspector')}
+				onResize={setInspectorWidth}
+				onDragChange={setResizing}
+			/>
 			<VisualInspector
 				{blocks}
 				selectedId={selectedBlockId}
@@ -628,31 +731,41 @@
 		padding: 0 calc(var(--vega-space-gutter) * 1.5) calc(var(--vega-space-gutter) * 1.25);
 	}
 
+	/* `--vega-visual-tree-w`/`--inspector-w` (ver cabecera, "Anchos de columna ajustables"): el
+	   `8px` intercalado es la celda que ocupa cada `VisualColumnResizer` — su valor tiene que
+	   casar con el `width: 8px` de `.vega-col-resizer` (propio componente) o el grid dejaría un
+	   hueco vacío o recortaría la manilla. El fallback (`280px`/`320px` tras la coma) es el mismo
+	   ancho fijo de antes de este encargo: solo se usaría si la variable no llegara a aplicarse. */
 	.vega-visual-grid--tree {
-		grid-template-columns: 280px minmax(0, 1fr);
+		grid-template-columns: var(--vega-visual-tree-w, 280px) 8px minmax(0, 1fr);
 	}
 
 	.vega-visual-grid--inspector {
-		grid-template-columns: minmax(0, 1fr) 320px;
+		grid-template-columns: minmax(0, 1fr) 8px var(--vega-visual-inspector-w, 320px);
 	}
 
 	.vega-visual-grid--tree.vega-visual-grid--inspector {
-		grid-template-columns: 280px minmax(0, 1fr) 320px;
+		grid-template-columns: var(--vega-visual-tree-w, 280px) 8px minmax(0, 1fr) 8px var(
+				--vega-visual-inspector-w,
+				320px
+			);
 	}
 
 	/* 1180px (ver cabecera de `VisualBlockTree.svelte`, "Colapsable"): el árbol deja de reservar
 	   columna propia — a esa anchura ya es un cajón `position: fixed` (fuera del flujo del grid, ver
-	   su CSS), así que reservarle 280px aquí sería hueco vacío. El inspector SIGUE con columna fija:
-	   no es la vía accesible de selección (el árbol sí lo es), así que no tiene el mismo motivo para
-	   convertirse en cajón — se queda como columna normal hasta los 900px en los que el lienzo
-	   entero deja de montarse (`canvasActive`, ver el script). */
+	   su CSS), así que reservarle una columna aquí sería hueco vacío; su manilla tampoco se MONTA
+	   ahí (`treeResizerActive`, ver el script), así que la columna del 8px desaparece con ella. El
+	   inspector SIGUE con columna fija (y su propia manilla): no es la vía accesible de selección
+	   (el árbol sí lo es), así que no tiene el mismo motivo para convertirse en cajón — se queda
+	   como columna normal hasta los 900px en los que el lienzo entero deja de montarse
+	   (`canvasActive`, ver el script). */
 	@media (max-width: 1180px) {
 		.vega-visual-grid--tree {
 			grid-template-columns: minmax(0, 1fr);
 		}
 
 		.vega-visual-grid--tree.vega-visual-grid--inspector {
-			grid-template-columns: minmax(0, 1fr) 320px;
+			grid-template-columns: minmax(0, 1fr) 8px var(--vega-visual-inspector-w, 320px);
 		}
 	}
 
@@ -670,6 +783,17 @@
 		flex: 1;
 		border: 0;
 		background: var(--surface);
+	}
+
+	/* Escudo del arrastre (ver cabecera, "El escudo del arrastre"): transparente a propósito — no
+	   avisa de nada, solo evita que el `<iframe>` se quede con los eventos del puntero mientras una
+	   manilla está en medio de un gesto. Por encima del `<iframe>` Y de `VisualOverlay` (los dos
+	   anteriores en el DOM, mismo criterio de apilamiento por orden que el resto de este fichero:
+	   sin `z-index` explícito). */
+	.vega-visual-shield {
+		position: absolute;
+		inset: 0;
+		cursor: col-resize;
 	}
 
 	/* Skeleton honesto (mismo criterio que `.vega-preview-panel-overlay` de `PreviewPanel.svelte`):

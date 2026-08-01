@@ -25,6 +25,8 @@ export const es = {
 	'topbar.logout': 'Cerrar sesión',
 	'topbar.menu.open': 'Abrir navegación',
 	'topbar.menu.close': 'Cerrar navegación',
+	'topbar.sidebarCollapse.collapse': 'Plegar la barra lateral',
+	'topbar.sidebarCollapse.expand': 'Desplegar la barra lateral',
 	'topbar.density.toggleLabel': 'Densidad',
 	'topbar.density.comfortable': 'Cómoda',
 	'topbar.density.compact': 'Compacta',
@@ -288,6 +290,11 @@ export const es = {
 		'Selecciona un bloque en el árbol o en el lienzo para editarlo aquí.',
 	'editor.visual.inspector.unknownBlock':
 		'El sitio señala un bloque que ya no está en este registro.',
+
+	// Manillas de ancho entre columnas (petición de David tras usar el editor visual en prod):
+	// una entre árbol y lienzo, otra entre lienzo e inspector — ver `VisualColumnResizer.svelte`.
+	'editor.visual.resize.tree': 'Ajustar ancho del árbol de secciones',
+	'editor.visual.resize.inspector': 'Ajustar ancho de la ficha del bloque',
 
 	// ————— Editor «master-detail» (mockup final `aquelarre-detalle-post.html`) —————
 	// Raíl de hermanos (`.rail`), aside de metadatos (`.kv`) y zona de peligro: piezas GENÉRICAS

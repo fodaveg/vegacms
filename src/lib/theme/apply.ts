@@ -10,6 +10,7 @@ import {
 	resolveDefaultTheme,
 	resolveInitialDensity,
 	resolveInitialMode,
+	resolveInitialSidebarCollapsed,
 	STORAGE_KEYS,
 	type Density,
 	type ThemeMode
@@ -38,6 +39,15 @@ function isThemeMode(value: string | null): value is ThemeMode {
 
 function isDensity(value: string | null): value is Density {
 	return value === 'comfortable' || value === 'compact';
+}
+
+/** `'true'`/`'false'` → booleano; cualquier otra cosa (incluido `null`, sin preferencia guardada
+ *  todavía) → `null`, "no hay dato", nunca un booleano inventado. */
+function readBooleanFlag(key: string): boolean | null {
+	const raw = readStorage(key);
+	if (raw === 'true') return true;
+	if (raw === 'false') return false;
+	return null;
 }
 
 function applyModeToDocument(mode: ThemeMode): void {
@@ -110,4 +120,22 @@ export function setDensity(density: Density): void {
 export function setTheme(themeId: string): void {
 	writeStorage(STORAGE_KEYS.theme, themeId);
 	applyThemeToDocument(themeId);
+}
+
+/**
+ * Plegado de la sidebar en escritorio (petición de David, ver `preferences.ts`): a diferencia
+ * de tema/modo/densidad, esto NO se refleja en un `data-*` de la raíz — lo consume
+ * `AppShell.svelte` como una prop booleana normal de Svelte (`Sidebar.svelte`/`Topbar.svelte` no
+ * necesitan leer CSS por atributo para esto), así que basta con leer/escribir el
+ * almacenamiento. Leída DIRECTA (no en un `$effect`) porque `AppShell` la usa como valor
+ * INICIAL de su `$state`, mismo momento que `DensityToggle.svelte#currentDensity`.
+ */
+export function readSidebarCollapsed(): boolean {
+	return resolveInitialSidebarCollapsed(readBooleanFlag(STORAGE_KEYS.sidebarCollapsed));
+}
+
+/** Persiste el plegado de la sidebar (toggle de `Topbar.svelte`, `AppShell.svelte` es quien
+ *  posee el `$state` y llama a este setter tras cada toggle — mismo reparto que `setDensity`). */
+export function setSidebarCollapsed(collapsed: boolean): void {
+	writeStorage(STORAGE_KEYS.sidebarCollapsed, collapsed ? 'true' : 'false');
 }

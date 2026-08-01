@@ -20,6 +20,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'topbar.logout': 'Log out',
 	'topbar.menu.open': 'Open navigation',
 	'topbar.menu.close': 'Close navigation',
+	'topbar.sidebarCollapse.collapse': 'Collapse the sidebar',
+	'topbar.sidebarCollapse.expand': 'Expand the sidebar',
 	'topbar.density.toggleLabel': 'Density',
 	'topbar.density.comfortable': 'Comfortable',
 	'topbar.density.compact': 'Compact',
@@ -264,6 +266,11 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.inspector.empty': 'Select a block in the tree or on the canvas to edit it here.',
 	'editor.visual.inspector.unknownBlock':
 		"The site points to a block that's no longer in this record.",
+
+	// Column-width resize handles (David's request after using the visual editor in prod): one
+	// between the tree and the canvas, another between the canvas and the inspector.
+	'editor.visual.resize.tree': 'Resize the section tree',
+	'editor.visual.resize.inspector': 'Resize the block panel',
 
 	// ————— Master-detail editor (final `aquelarre-detalle-post.html` mockup) —————
 	// Sibling rail (`.rail`), metadata aside (`.kv`) and danger zone: GENERIC opt-in renderer

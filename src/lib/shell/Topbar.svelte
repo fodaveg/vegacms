@@ -7,6 +7,16 @@
 	 * hamburguesa (visible solo en móvil, vía CSS) que abre/cierra la `Sidebar`. Landmark
 	 * `header`.
 	 *
+	 * **Plegar la sidebar en escritorio** (`vega-topbar-collapse`, petición de David tras usar el
+	 * editor visual en prod): botón NUEVO junto al resto de controles de `.vega-topbar-actions`,
+	 * DISTINTO del hamburguesa de arriba a propósito — ese vive pegado al wordmark, solo existe
+	 * (CSS) por debajo del punto de colapso estructural, y abre/cierra el CAJÓN móvil
+	 * (`sidebarOpen`); este otro es la operación inversa en escritorio (`sidebarCollapsed`, dueño
+	 * en `AppShell.svelte` — ver su cabecera) y por eso vive del lado contrario, "junto a los
+	 * controles que ya hay ahí" tal como pide el encargo. Mismo par `aria-expanded`/
+	 * `aria-controls="vega-sidebar"` que el hamburguesa: los dos controlan el mismo landmark, cada
+	 * uno desde su rango de anchura.
+	 *
 	 * El logout y el hueco de tema (§2.6, P3-L10 — oculto hasta P7, "sin render": ni un `<button>`
 	 * deshabilitado) no aparecen en el mockup de diseño (es una demo sin chrome de auth completo)
 	 * pero son funcionalidad real de Vega que no se retira: viven junto al avatar, al final.
@@ -37,8 +47,17 @@
 	import PublishButton from './PublishButton.svelte';
 	import VegaLogo from './VegaLogo.svelte';
 
-	let { sidebarOpen, onToggleSidebar }: { sidebarOpen: boolean; onToggleSidebar: () => void } =
-		$props();
+	let {
+		sidebarOpen,
+		onToggleSidebar,
+		sidebarCollapsed,
+		onToggleCollapse
+	}: {
+		sidebarOpen: boolean;
+		onToggleSidebar: () => void;
+		sidebarCollapsed: boolean;
+		onToggleCollapse: () => void;
+	} = $props();
 
 	const ctx = getVegaContext();
 	const sessionStore = getSessionContext();
@@ -150,6 +169,18 @@
 		<PublishButton />
 		<ConnectionStatus />
 		<DensityToggle />
+		<button
+			type="button"
+			class="vega-topbar-collapse"
+			aria-expanded={!sidebarCollapsed}
+			aria-controls="vega-sidebar"
+			aria-label={ctx.t(
+				sidebarCollapsed ? 'topbar.sidebarCollapse.expand' : 'topbar.sidebarCollapse.collapse'
+			)}
+			onclick={onToggleCollapse}
+		>
+			<Icon id="menu" size={16} />
+		</button>
 		<div class="vega-topbar-user" onfocusout={handleUserFocusOut}>
 			<button
 				type="button"
@@ -410,12 +441,39 @@
 		cursor: pointer;
 	}
 
+	/* Mismo tratamiento que `.vega-topbar-logout` (botón-icono cuadrado del chrome): el plegado es
+	   un control de ESCRITORIO (ver cabecera), así que se oculta bajo el mismo punto de colapso
+	   estructural en el que el hamburguesa aparece — los dos nunca coexisten. */
+	.vega-topbar-collapse {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		width: 2rem;
+		height: 2rem;
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		background: var(--surface);
+		color: var(--ink);
+		cursor: pointer;
+	}
+
+	.vega-topbar-collapse:hover {
+		border-color: var(--line-strong);
+	}
+
 	/* Mismo punto de colapso ESTRUCTURAL (768px) que Sidebar.svelte y ConnectionStatus.svelte
 	   (§4.2): topbar compacta a íconos, el hamburguesa aparece. CSS `@media` no admite `var()`, así
 	   que el valor se replica; si P7 lo cambia, cambiarlo EN LOS TRES ficheros. */
 	@media (max-width: 768px) {
 		.vega-topbar-menu {
 			display: flex;
+		}
+
+		/* El plegado no significa nada por debajo del punto de colapso (ver cabecera): ahí la
+		   sidebar ya es el cajón de siempre, gobernado por el hamburguesa de arriba. */
+		.vega-topbar-collapse {
+			display: none;
 		}
 
 		/* El wordmark CEDE (mismo criterio que el rango 769-1100 de arriba: es lo primero que se

@@ -24,6 +24,16 @@
 	 * overlay atrapa el foco y se cierra con `Esc` o clicando el backdrop (§4.3): al abrirse,
 	 * mueve el foco al primer elemento navegable; al cerrarse, lo devuelve a quien lo abrió.
 	 *
+	 * **Plegado de escritorio** (`collapsed`, petición de David — ver la cabecera de
+	 * `AppShell.svelte`, dueño del estado): SOLO tiene efecto por ENCIMA del punto de colapso
+	 * estructural (su CSS vive dentro de `@media (min-width: 769px)`, más abajo) — por debajo, la
+	 * sidebar sigue siendo el cajón `open`/`onClose` de siempre y `collapsed` no pinta nada ahí,
+	 * los dos estados no se pisan nunca. Plegada, la barra queda a ancho CERO (no un raíl de solo
+	 * iconos): un raíl habría exigido un modo icono-only con tooltips en `NavItem.svelte` — fuera
+	 * de alcance de este encargo — y "no ocupa ancho" ya es la lectura literal de lo pedido.
+	 * `visibility: hidden` (no solo `width: 0`) saca el contenido del orden de tabulación: sin
+	 * eso, `Tab` seguía aterrizando en enlaces invisibles de 0px de ancho.
+	 *
 	 * **Recuentos por item** (R5 del rediseño C2, mockup `.navgroup .count`): `port.list(type,
 	 * { perPage: 1 }).totalItems` es la consulta MÁS barata que expone `BackendPort` para "cuántos
 	 * hay" — `+layout.svelte#toSingleton` ya se apoya en el mismo truco. Los singletons no
@@ -46,7 +56,8 @@
 	import NavItem from './NavItem.svelte';
 	import WarningsBadge from './WarningsBadge.svelte';
 
-	let { open, onClose }: { open: boolean; onClose: () => void } = $props();
+	let { open, onClose, collapsed }: { open: boolean; onClose: () => void; collapsed: boolean } =
+		$props();
 
 	const ctx = getVegaContext();
 
@@ -185,6 +196,7 @@
 	id="vega-sidebar"
 	class="vega-sidebar"
 	class:vega-sidebar-open={open}
+	class:vega-sidebar-collapsed={collapsed}
 	aria-label={ctx.t('nav.sidebarLabel')}
 	bind:this={navEl}
 >
@@ -488,6 +500,25 @@
 			   check-theme-coverage.mjs. */
 			background: rgb(15 17 21 / 45%);
 			cursor: pointer;
+		}
+	}
+
+	/* Plegado de escritorio (ver cabecera, "Plegado de escritorio"): SOLO por encima del punto de
+	   colapso estructural — por debajo, `.vega-sidebar-open`/el cajón mandan, y esta regla no
+	   compite con ellas (breakpoints mutuamente excluyentes, `min-width` aquí vs `max-width` en el
+	   bloque de arriba). */
+	@media (min-width: 769px) {
+		.vega-sidebar {
+			transition: width 0.2s ease;
+		}
+
+		.vega-sidebar-collapsed {
+			width: 0;
+			padding: 0;
+			border-right: 0;
+			overflow: hidden;
+			/* Ver cabecera: saca el contenido del orden de tabulación, no solo de la vista. */
+			visibility: hidden;
 		}
 	}
 

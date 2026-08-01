@@ -10,7 +10,7 @@
  */
 
 import { beforeEach, describe, expect, test } from 'vitest';
-import { setDensity, setMode, setTheme } from './apply';
+import { readSidebarCollapsed, setDensity, setMode, setSidebarCollapsed, setTheme } from './apply';
 import { STORAGE_KEYS } from './preferences';
 
 beforeEach(() => {
@@ -59,5 +59,26 @@ describe('setDensity', () => {
 	test('persiste la densidad en localStorage (vega.density.v1)', () => {
 		setDensity('compact');
 		expect(localStorage.getItem(STORAGE_KEYS.density)).toBe('compact');
+	});
+});
+
+describe('readSidebarCollapsed / setSidebarCollapsed', () => {
+	test('sin preferencia guardada → desplegada (false)', () => {
+		expect(readSidebarCollapsed()).toBe(false);
+	});
+
+	test('round-trip: lo que se guarda es lo que se lee después', () => {
+		setSidebarCollapsed(true);
+		expect(readSidebarCollapsed()).toBe(true);
+		expect(localStorage.getItem(STORAGE_KEYS.sidebarCollapsed)).toBe('true');
+
+		setSidebarCollapsed(false);
+		expect(readSidebarCollapsed()).toBe(false);
+		expect(localStorage.getItem(STORAGE_KEYS.sidebarCollapsed)).toBe('false');
+	});
+
+	test('valor corrupto en localStorage → desplegada (false), no lanza', () => {
+		localStorage.setItem(STORAGE_KEYS.sidebarCollapsed, 'esto-no-es-un-booleano');
+		expect(readSidebarCollapsed()).toBe(false);
 	});
 });

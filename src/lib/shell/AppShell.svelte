@@ -7,6 +7,18 @@
 	 * poseer cada una por su cuenta porque el hamburguesa que la abre vive en una y el panel que
 	 * la muestra en la otra.
 	 *
+	 * **Plegado de escritorio (`sidebarCollapsed`, petición de David tras usar el editor visual en
+	 * prod) — un estado DISTINTO de `sidebarOpen`, a propósito**: `sidebarOpen` es el cajón móvil
+	 * (por debajo del punto de colapso estructural, §4.2); `sidebarCollapsed` es "la sidebar no
+	 * ocupa ancho en escritorio", y solo tiene efecto POR ENCIMA de ese mismo punto (ver el CSS de
+	 * `Sidebar.svelte`, que lo aplica dentro de su propio `@media (min-width: 769px)`) — mezclar
+	 * los dos en una sola bandera habría hecho que plegar en escritorio y luego achicar la ventana
+	 * dejara el cajón móvil "ya plegado", sin overlay que abrir. Mismo reparto de dueño único que
+	 * `sidebarOpen`: vive aquí porque el botón que lo cambia (`Topbar.svelte`) y el panel que lo
+	 * aplica (`Sidebar.svelte`) tampoco pueden compartirlo entre sí. Se inicializa leyendo la
+	 * preferencia guardada (`theme/apply.ts#readSidebarCollapsed`, mismo mecanismo que la
+	 * densidad — ver su cabecera) y cada toggle la persiste de vuelta.
+	 *
 	 * Responsive (§4.2): en escritorio la sidebar es una columna fija; por debajo del punto de
 	 * colapso estructural (fijado en `Sidebar.svelte`/`Topbar.svelte`) se convierte en un overlay
 	 * con foco atrapado (`Sidebar.svelte`, §4.3). Cierra sola tras cualquier navegación
@@ -31,23 +43,39 @@
 	 * scroll sigue siendo INTERNO (`.vega-main`/`Sidebar`), nunca del documento.
 	 */
 	import { afterNavigate } from '$app/navigation';
+	import { readSidebarCollapsed, setSidebarCollapsed } from '$lib/theme/apply';
 	import Topbar from './Topbar.svelte';
 	import Sidebar from './Sidebar.svelte';
 
 	let { children } = $props();
 
 	let sidebarOpen = $state(false);
+	let sidebarCollapsed = $state(readSidebarCollapsed());
 
 	afterNavigate(() => {
 		sidebarOpen = false;
 	});
+
+	function toggleSidebarCollapsed(): void {
+		sidebarCollapsed = !sidebarCollapsed;
+		setSidebarCollapsed(sidebarCollapsed);
+	}
 </script>
 
 <div class="vega-shell" id="vega-app-shell">
-	<Topbar {sidebarOpen} onToggleSidebar={() => (sidebarOpen = !sidebarOpen)} />
+	<Topbar
+		{sidebarOpen}
+		onToggleSidebar={() => (sidebarOpen = !sidebarOpen)}
+		{sidebarCollapsed}
+		onToggleCollapse={toggleSidebarCollapsed}
+	/>
 
 	<div class="vega-body">
-		<Sidebar open={sidebarOpen} onClose={() => (sidebarOpen = false)} />
+		<Sidebar
+			open={sidebarOpen}
+			onClose={() => (sidebarOpen = false)}
+			collapsed={sidebarCollapsed}
+		/>
 
 		<!-- Mientras la sidebar es overlay modal en móvil (`sidebarOpen`), el contenido de fondo se
 		     marca `inert`: refuerza el trap de foco de teclado impidiendo que un lector de pantalla

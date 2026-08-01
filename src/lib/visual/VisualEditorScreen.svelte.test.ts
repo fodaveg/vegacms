@@ -22,6 +22,8 @@ import type { VegaRecord } from '$lib/backend';
 import { createMemoryBackend, type MemoryBackendPort } from '$lib/backend/adapters/memory';
 import { resolveContentModel } from '$lib/model/resolve';
 import { t as translate } from '$lib/i18n';
+import { INSPECTOR_DEFAULT_WIDTH, TREE_DEFAULT_WIDTH } from './column-widths';
+import { readColumnWidths } from './column-widths-storage';
 
 const PREVIEW_ORIGIN = 'https://sitio.test';
 const TOKEN_URL = `${PREVIEW_ORIGIN}/preview/post/rec-1?token=abc`;
@@ -164,25 +166,43 @@ function expiringTokenBody(): { url: string; expiresAt: string } {
 	return { url: TOKEN_URL, expiresAt: new Date(Date.now() + 15_030).toISOString() };
 }
 
-/** `matchMedia` de mentira (jsdom no lo trae). `narrow` decide de qué lado del punto de corte de
- *  900px cae la ventana; devuelve además el disparador para simular un cambio de tamaño. */
-function stubMatchMedia(narrow = false): (nowNarrow: boolean) => void {
-	const listeners = new Set<(event: MediaQueryListEvent) => void>();
-	let matches = narrow;
-	vi.stubGlobal('matchMedia', (query: string) => ({
-		media: query,
-		get matches() {
-			return matches;
+/** `matchMedia` de mentira (jsdom no lo trae): la pantalla consulta DOS puntos de corte propios
+ *  (900px del lienzo, `canvasActive`; 1180px de la manilla del árbol, `treeResizerActive`) y cada
+ *  uno necesita poder moverse por separado — de ahí que se enruten por el texto de la query en vez
+ *  de compartir un único flag "narrow" como antes de la manilla del árbol. `canvasNarrow`/
+ *  `treeNarrow` fijan el lado inicial de cada uno; los setters devueltos simulan un cambio de
+ *  tamaño de cada uno por su cuenta. */
+function stubMatchMedia(
+	canvasNarrow = false,
+	treeNarrow = false
+): { setCanvasNarrow: (nowNarrow: boolean) => void; setTreeNarrow: (nowNarrow: boolean) => void } {
+	const canvasListeners = new Set<(event: MediaQueryListEvent) => void>();
+	const treeListeners = new Set<(event: MediaQueryListEvent) => void>();
+	let canvasMatches = canvasNarrow;
+	let treeMatches = treeNarrow;
+	vi.stubGlobal('matchMedia', (query: string) => {
+		const isTreeQuery = query.includes('1180px');
+		const listeners = isTreeQuery ? treeListeners : canvasListeners;
+		return {
+			media: query,
+			get matches() {
+				return isTreeQuery ? treeMatches : canvasMatches;
+			},
+			addEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) =>
+				void listeners.add(listener),
+			removeEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) =>
+				void listeners.delete(listener)
+		};
+	});
+	return {
+		setCanvasNarrow: (nowNarrow: boolean) => {
+			canvasMatches = nowNarrow;
+			for (const listener of canvasListeners)
+				listener({ matches: nowNarrow } as MediaQueryListEvent);
 		},
-		addEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) =>
-			void listeners.add(listener),
-		removeEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) =>
-			void listeners.delete(listener)
-	}));
-	return (nowNarrow: boolean) => {
-		matches = nowNarrow;
-		for (const listener of listeners) {
-			listener({ matches: nowNarrow } as MediaQueryListEvent);
+		setTreeNarrow: (nowNarrow: boolean) => {
+			treeMatches = nowNarrow;
+			for (const listener of treeListeners) listener({ matches: nowNarrow } as MediaQueryListEvent);
 		}
 	};
 }
@@ -453,7 +473,7 @@ describe('VisualEditorScreen.svelte', () => {
 	test('ventana estrecha: ni se monta el lienzo ni se pide token, solo el aviso', async () => {
 		const fetchMock = vi.fn().mockResolvedValue(jsonResponse(tokenBody()));
 		vi.stubGlobal('fetch', fetchMock);
-		const setNarrow = stubMatchMedia(true);
+		const { setCanvasNarrow } = stubMatchMedia(true);
 
 		const { ctx, type } = await setup();
 		mounted = mountScreen(ctx, type);
@@ -466,7 +486,7 @@ describe('VisualEditorScreen.svelte', () => {
 		);
 
 		// Y al ensancharse SÍ arranca: el lienzo se monta y entonces se pide el token.
-		setNarrow(false);
+		setCanvasNarrow(false);
 		await flush();
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 		expect(mounted.target.querySelector('.vega-visual-frame')).not.toBeNull();
@@ -783,5 +803,125 @@ describe('VisualEditorScreen.svelte — árbol de secciones e inspector', () => 
 		const trasDesmontar = new Event('beforeunload', { cancelable: true });
 		window.dispatchEvent(trasDesmontar);
 		expect(trasDesmontar.defaultPrevented).toBe(false);
+	});
+});
+
+// ————— Anchos de columna ajustables (petición de David tras usar el editor visual en prod) —————
+
+describe('VisualEditorScreen.svelte — manillas de ancho de columna', () => {
+	let mounted: { target: HTMLElement; instance: ReturnType<typeof mount> } | null = null;
+
+	beforeEach(() => {
+		localStorage.clear();
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+	});
+
+	afterEach(async () => {
+		if (mounted) {
+			await unmount(mounted.instance);
+			mounted.target.remove();
+			mounted = null;
+		}
+		vi.unstubAllGlobals();
+		vi.restoreAllMocks();
+		localStorage.clear();
+	});
+
+	test('ventana ancha: las DOS manillas se montan, cada una con su etiqueta', async () => {
+		stubMatchMedia(false, false);
+		const { ctx, type } = await setup();
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		const handles = mounted.target.querySelectorAll('.vega-col-resizer');
+		expect(handles).toHaveLength(2);
+		expect(handles[0].getAttribute('aria-label')).toBe(
+			translate('es', 'editor.visual.resize.tree')
+		);
+		expect(handles[1].getAttribute('aria-label')).toBe(
+			translate('es', 'editor.visual.resize.inspector')
+		);
+	});
+
+	test('por debajo de 1180px NO se monta la manilla del árbol (la del inspector sigue)', async () => {
+		stubMatchMedia(false, true); // lienzo ancho (>900px), pero por debajo de los 1180px del árbol
+		const { ctx, type } = await setup();
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		const handles = mounted.target.querySelectorAll('.vega-col-resizer');
+		expect(handles).toHaveLength(1);
+		expect(handles[0].getAttribute('aria-label')).toBe(
+			translate('es', 'editor.visual.resize.inspector')
+		);
+	});
+
+	test('al ensancharse por encima de 1180px, la manilla del árbol vuelve a montarse', async () => {
+		const { setTreeNarrow } = stubMatchMedia(false, true);
+		const { ctx, type } = await setup();
+		mounted = mountScreen(ctx, type);
+		await flush();
+		expect(mounted.target.querySelectorAll('.vega-col-resizer')).toHaveLength(1);
+
+		setTreeNarrow(false);
+		await tick();
+		expect(mounted.target.querySelectorAll('.vega-col-resizer')).toHaveLength(2);
+	});
+
+	test('sin preferencia guardada: los anchos de partida de siempre (280/320)', async () => {
+		stubMatchMedia(false, false);
+		const { ctx, type } = await setup();
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		const [treeHandle, inspectorHandle] = mounted.target.querySelectorAll('.vega-col-resizer');
+		expect(treeHandle.getAttribute('aria-valuenow')).toBe(String(TREE_DEFAULT_WIDTH));
+		expect(inspectorHandle.getAttribute('aria-valuenow')).toBe(String(INSPECTOR_DEFAULT_WIDTH));
+	});
+
+	test('con una preferencia ya guardada: el grid arranca con ESE ancho, no con el de siempre', async () => {
+		localStorage.setItem('vega.visual.columns.v1', JSON.stringify({ tree: 340, inspector: 380 }));
+		stubMatchMedia(false, false);
+		const { ctx, type } = await setup();
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		const [treeHandle, inspectorHandle] = mounted.target.querySelectorAll('.vega-col-resizer');
+		expect(treeHandle.getAttribute('aria-valuenow')).toBe('340');
+		expect(inspectorHandle.getAttribute('aria-valuenow')).toBe('380');
+	});
+
+	test('arrastrar la manilla del árbol persiste el ancho nuevo entre sesiones', async () => {
+		stubMatchMedia(false, false);
+		const { ctx, type } = await setup();
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		const [treeHandle] = mounted.target.querySelectorAll('.vega-col-resizer');
+		treeHandle.dispatchEvent(
+			new PointerEvent('pointerdown', { bubbles: true, button: 0, clientX: 0, pointerId: 1 })
+		);
+		window.dispatchEvent(new PointerEvent('pointermove', { clientX: 40, pointerId: 1 }));
+		window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1 }));
+		await tick();
+
+		expect(treeHandle.getAttribute('aria-valuenow')).toBe(String(TREE_DEFAULT_WIDTH + 40));
+		expect(readColumnWidths().tree).toBe(TREE_DEFAULT_WIDTH + 40);
+	});
+
+	test('doble clic en una manilla la devuelve a su ancho por defecto', async () => {
+		localStorage.setItem('vega.visual.columns.v1', JSON.stringify({ tree: 450, inspector: 320 }));
+		stubMatchMedia(false, false);
+		const { ctx, type } = await setup();
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		const [treeHandle] = mounted.target.querySelectorAll('.vega-col-resizer');
+		expect(treeHandle.getAttribute('aria-valuenow')).toBe('450');
+		treeHandle.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+		await tick();
+
+		expect(treeHandle.getAttribute('aria-valuenow')).toBe(String(TREE_DEFAULT_WIDTH));
+		expect(readColumnWidths().tree).toBe(TREE_DEFAULT_WIDTH);
 	});
 });

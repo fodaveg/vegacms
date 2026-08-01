@@ -21,7 +21,8 @@ export const STORAGE_KEYS = {
 	theme: 'vega.theme.v1',
 	mode: 'vega.mode.v1',
 	density: 'vega.density.v1',
-	locale: 'vega.locale.v1'
+	locale: 'vega.locale.v1',
+	sidebarCollapsed: 'vega.sidebar.collapsed.v1'
 } as const;
 
 /**
@@ -53,6 +54,16 @@ export function resolveInitialMode(storedMode: ThemeMode | null, prefersDark: bo
  */
 export function resolveInitialDensity(storedDensity: Density | null): Density {
 	return storedDensity ?? DEFAULT_DENSITY;
+}
+
+/** Plegado de la sidebar en ESCRITORIO (petición de David tras usar el editor visual en prod):
+ *  sin equivalente de `prefers-*` (mismo caso que la densidad), así que sin preferencia guardada
+ *  arranca DESPLEGADA — el default menos sorprendente la primera vez que alguien abre Vega. */
+export const DEFAULT_SIDEBAR_COLLAPSED = false;
+
+/** Mismo escalón que `resolveInitialDensity`, para el plegado de la sidebar. */
+export function resolveInitialSidebarCollapsed(storedCollapsed: boolean | null): boolean {
+	return storedCollapsed ?? DEFAULT_SIDEBAR_COLLAPSED;
 }
 
 /**
