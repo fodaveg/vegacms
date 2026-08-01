@@ -21,11 +21,28 @@
 	 * vía que manda) y por la barra flotante + los puntos de inserción de `VisualOverlay.svelte`
 	 * (atajo sobre el lienzo) — las dos llaman a las mutaciones de `blocks-state.svelte.ts`
 	 * DIRECTAMENTE, esta pantalla no las intercepta. Lo que esta pantalla SÍ hace para las tres
-	 * superficies por igual: fijar la selección y pedir un token de vista previa nuevo tras cada
-	 * cambio (`requestPreview`, cableado como `onBlockSaved`/`onStructuralChange` más abajo). Lo que
-	 * SIGUE sin entrar: el refresco EN VIVO del marco sin recargarlo (pedir un token nuevo SÍ recarga
-	 * el `<iframe>` entero) — `RecordBlocks.svelte` deja de ser la única vía de mutar bloques desde
-	 * esta tarea, pero sigue siendo la vía del formulario clásico, sin lienzo.
+	 * superficies por igual: fijar la selección y refrescar el lienzo tras cada cambio, cableado
+	 * como `onBlockSaved`/`onStructuralChange` más abajo — `RecordBlocks.svelte` deja de ser la
+	 * única vía de mutar bloques desde esta tarea, pero sigue siendo la vía del formulario clásico,
+	 * sin lienzo.
+	 *
+	 * **Refresco en vivo (tarea "refresco en vivo del lienzo"; §"Live refresh" del contrato),
+	 * DOS caminos posibles tras cada cambio, decididos por `scheduleCanvasRefresh`**:
+	 * - **Con puente `connected` y `liveRefresh`**: rebota `REFRESH_DEBOUNCE_MS` (varios cambios
+	 *   seguidos piden UN solo token) y `refreshCanvas()` pide un token nuevo que entrega al puente
+	 *   como `bridgeClient.refresh({ url })` — el marco sustituye `data-vega-blocks-root` por su
+	 *   cuenta y avisa con `ready`; el `<iframe>` de esta pantalla NUNCA cambia de `src` y el scroll
+	 *   del autor sobrevive. `refreshCanvas` por eso NO escribe en `tokenState` (cambiaría el `src`)
+	 *   ni toca `scheduleRenew` (el token del `src`, que sigue siendo el viejo, conserva su propia
+	 *   renovación, independiente de este refresco).
+	 * - **Sin puente, o sin `liveRefresh`, o si el camino de arriba falla en cualquier punto**
+	 *   (la petición del token, que llegue tarde, o que `bridgeClient.refresh()` devuelva `false`):
+	 *   el camino de siempre, `requestPreview()`, que SÍ cambia `tokenState.token.url` y con él el
+	 *   `src` del `<iframe>` — recarga entera, con su flicker y su pérdida de scroll, pero nunca un
+	 *   lienzo mostrando algo que ya dejó de ser verdad.
+	 * El botón "Reintentar" del error de token es la única excepción: sigue en `requestPreview`
+	 * directo, sin pasar por `scheduleCanvasRefresh` — ahí no hay marco vivo al que pedirle un
+	 * refresco en vivo, el `<iframe>` ni siquiera existe.
 	 *
 	 * **La selección tiene un solo dueño: `selectedBlockId`, aquí.** No vive en
 	 * `bridge-client.ts` (que es puro transporte, ver su cabecera) ni en `VisualOverlay.svelte`
@@ -35,10 +52,12 @@
 	 * usa `bridge-client.ts` para la selección `onSelect` frente al estado del puente. Un bloque
 	 * borrado (desde el árbol o desde la barra flotante) se limpia de la selección por esta MISMA
 	 * vía, sin que ninguna de las dos superficies escriba `selectedBlockId`: `onStructuralChange`
-	 * pide un token nuevo, el `<iframe>` recarga, el sitio deja de reportar ese id, y
-	 * `ensureBridgeClient#onState` (más abajo) lo limpia — el mismo camino que ya usaba antes de
-	 * esta tarea para un bloque borrado desde `RecordBlocks.svelte` en OTRA pestaña. Cuando el sitio
-	 * manda `select` (clic dentro
+	 * dispara `scheduleCanvasRefresh` (ver "Refresco en vivo" arriba), que por cualquiera de sus dos
+	 * caminos —refresco en vivo o recarga entera— acaba en un `ready` posterior al cambio; ese
+	 * `ready` ya NO reporta el bloque borrado y `ensureBridgeClient#onState` (más abajo) lo limpia —
+	 * el mismo callback pase lo que pase, así que sigue habiendo UN solo escritor de
+	 * `selectedBlockId` sin que a este componente le importe qué camino tomó el refresco. Cuando el
+	 * sitio manda `select` (clic dentro
 	 * de un bloque, en el iframe) O el autor elige una fila del árbol, esta pantalla actualiza
 	 * `selectedBlockId` Y avisa al sitio con `highlight`/`scrollTo` (ya expuestos por el cliente)
 	 * para que el marco reaccione a su propia selección — `handleBlockSelect`, más abajo, es la
@@ -221,6 +240,15 @@
 	let requestGeneration = 0;
 	let bridgeClient: VisualBridgeClient | null = null;
 	let narrowQuery: MediaQueryList | null = null;
+	// ————— Refresco en vivo (ver cabecera, camino nuevo de esta tarea) —————
+	/** Rebote de `scheduleCanvasRefresh`: PROPIO, no comparte reloj con `renewTimer` (renovación de
+	 *  token) ni con nada de `bridge-client.ts` (su plazo de `refresh()` es interno del cliente). */
+	let refreshDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+	/** Contador de generación de `refreshCanvas` (misma disciplina que `requestGeneration`, ver
+	 *  `requestPreview`): distingue la petición de token EN VUELO de una que ya no importa —
+	 *  `requestPreview()` también lo incrementa, porque una recarga entera deja sin sentido
+	 *  cualquier refresco que siguiera en camino. */
+	let refreshGeneration = 0;
 	// ————— Anchos de columna ajustables (ver cabecera) —————
 	let columnWidths = $state(readColumnWidths());
 	// `true` mientras cualquiera de las dos manillas está en medio de un arrastre: gobierna el
@@ -242,6 +270,9 @@
 	const RENEW_BUFFER_MS = 15000;
 	/** Tope del propio `setTimeout` (entero de 32 bits, ver la misma cabecera para el porqué). */
 	const MAX_RENEW_DELAY_MS = 2_147_483_647;
+	/** Rebote de `scheduleCanvasRefresh` (ver cabecera): varios campos guardados o varias acciones
+	 *  estructurales seguidas piden UN solo token, no uno por cambio. */
+	const REFRESH_DEBOUNCE_MS = 200;
 
 	function clearRenewTimer(): void {
 		if (renewTimer) clearTimeout(renewTimer);
@@ -257,8 +288,17 @@
 		renewTimer = setTimeout(() => void requestPreview(), delay);
 	}
 
+	function clearRefreshDebounce(): void {
+		if (refreshDebounceTimer) clearTimeout(refreshDebounceTimer);
+		refreshDebounceTimer = null;
+	}
+
 	async function requestPreview(): Promise<void> {
 		const generation = ++requestGeneration;
+		// Recarga entera: cualquier rebote de refresco en vivo pendiente y cualquier `refreshCanvas`
+		// en vuelo dejan de tener sentido (el marco que iban a actualizar va a desmontarse igualmente).
+		clearRefreshDebounce();
+		refreshGeneration++;
 		// Pedir token nuevo desmonta el `<iframe>` (`{#if tokenState.kind === 'ready'}`), así que el
 		// documento con el que el puente estaba hablando deja de existir. Sin este `stop()` el
 		// cliente se quedaría en `connected` —enseñando en la barra los bloques de una página que ya
@@ -281,6 +321,57 @@
 				kind: 'error',
 				message: err instanceof Error ? err.message : ctx.t('editor.preview.panel.genericError')
 			};
+		}
+	}
+
+	/** Puerta ÚNICA por la que la estructura o un campo guardado piden refrescar el lienzo (ver
+	 *  cabecera, "Refresco en vivo"). El camino se decide AQUÍ, antes de esperar nada, para que el
+	 *  camino viejo (recarga entera, `requestPreview`) conserve su tiempo exacto de respuesta — si el
+	 *  rebote se aplicara primero a los dos caminos por igual, un sitio SIN refresco en vivo notaría
+	 *  200ms más de retraso en cada guardado sin motivo. */
+	function scheduleCanvasRefresh(): void {
+		const state = bridgeClient?.state;
+		if (!(state?.status === 'connected' && state.liveRefresh)) {
+			void requestPreview();
+			return;
+		}
+		clearRefreshDebounce();
+		refreshDebounceTimer = setTimeout(() => {
+			refreshDebounceTimer = null;
+			void refreshCanvas();
+		}, REFRESH_DEBOUNCE_MS);
+	}
+
+	/** Pide un token nuevo y se lo pasa al puente como `refresh()` en vez de escribirlo en
+	 *  `tokenState` — escribir ahí cambiaría el `src` del `<iframe>` y recargaría el marco, que es
+	 *  justo lo que este camino viene a evitar. Por el mismo motivo NO toca `scheduleRenew`: el token
+	 *  del `src` (el que sigue en el iframe) conserva su propia renovación, independiente de este
+	 *  refresco. Cualquier fallo —la petición del token, que llegue tarde, o que el puente rechace el
+	 *  refresco (sin `liveRefresh`, o su plazo interno venció)— cae al camino de siempre: un flicker
+	 *  es preferible a un lienzo que se queda sin actualizar en silencio. */
+	async function refreshCanvas(): Promise<void> {
+		const generation = ++refreshGeneration;
+		try {
+			// SIN `draft`, mismo motivo que `requestPreview` (ver cabecera): esta pantalla no tiene
+			// formulario.
+			const token = await client.requestPreview(type.name, String(record.id));
+			// Llegó tarde: manda la petición posterior (misma disciplina que `requestPreview`). Callarse
+			// es la ÚNICA salida correcta: caer aquí a la recarga entera no solo tiraría el refresco en
+			// vivo que ya estaba en marcha, es que `requestPreview()` incrementa `refreshGeneration` y
+			// dejaría obsoleta a esa petición posterior, que recargaría otra vez. Dos guardados seguidos
+			// acabarían en dos recargas enteras, justo lo contrario de lo que hace esta pantalla.
+			if (generation !== refreshGeneration) return;
+			// El token se reenvía ENTERO, sin interpretarlo (§contrato: "the same two fields ...
+			// forwarded without being parsed or rewritten"). Hoy `postToken` siempre viene vacío porque
+			// esta pantalla pide sin borrador, pero omitirlo aquí sería una divergencia silenciosa que
+			// solo se notaría el día que alguien le añada borrador a esta pantalla y no se acuerde de
+			// este sitio.
+			if (bridgeClient?.refresh({ url: token.url, postToken: token.postToken }) !== true) {
+				void requestPreview();
+			}
+		} catch {
+			if (generation !== refreshGeneration) return;
+			void requestPreview();
 		}
 	}
 
@@ -324,7 +415,11 @@
 					selectedBlockId = null;
 				}
 			},
-			onSelect: handleBlockSelect
+			onSelect: handleBlockSelect,
+			// El plazo interno de `refresh()` venció, o el propio puente avisó con
+			// `error/refresh-failed` (ver `bridge-client.ts`): en los dos casos el cambio no aterrizó
+			// y el único camino honesto que queda es la recarga entera de siempre.
+			onRefreshFailed: () => void requestPreview()
 		});
 		return bridgeClient;
 	}
@@ -348,7 +443,9 @@
 
 	/** Monta o desmonta el lienzo según la anchura. Al desmontarlo NO basta con dejar de pintarlo:
 	 *  hay que parar el puente, cancelar la renovación programada e invalidar la petición en vuelo
-	 *  (`requestGeneration`), o el token seguiría renovándose contra un marco que ya no existe. */
+	 *  (`requestGeneration`), o el token seguiría renovándose contra un marco que ya no existe. Y
+	 *  también el rebote de refresco en vivo: sin cancelarlo, un `scheduleCanvasRefresh` pendiente de
+	 *  antes de estrechar la ventana dispararía `refreshCanvas` sobre un lienzo que ya no existe. */
 	function applyWidth(wide: boolean): void {
 		if (wide === canvasActive) return;
 		canvasActive = wide;
@@ -357,6 +454,8 @@
 			return;
 		}
 		requestGeneration++;
+		refreshGeneration++;
+		clearRefreshDebounce();
 		bridgeClient?.stop();
 		clearRenewTimer();
 		tokenState = { kind: 'loading' };
@@ -410,7 +509,18 @@
 	});
 
 	onDestroy(() => {
+		// Invalida lo que siga EN VUELO, exactamente igual que `applyWidth` al desmontar el lienzo
+		// (ver su comentario): cancelar los temporizadores no basta. Una petición de token que
+		// resuelva DESPUÉS de esto pasaría su propia guarda de generación (se la asignó ella misma al
+		// empezar), escribiría `tokenState` de un componente que ya no existe y, lo caro, armaría un
+		// `renewTimer` nuevo que ya nadie puede cancelar — `onDestroy` no vuelve a correr, así que
+		// ese temporizador se reprograma solo y pide token para siempre. Es alcanzable de verdad:
+		// guardar un campo limpia el dirty (o sea que el guard de salida ya no pregunta) y deja un
+		// `refreshCanvas` pidiendo token por red; basta con darle a "atrás" en esos milisegundos.
+		requestGeneration++;
+		refreshGeneration++;
 		clearRenewTimer();
+		clearRefreshDebounce();
 		window.removeEventListener('message', handleMessage);
 		window.removeEventListener('beforeunload', handleBeforeUnload);
 		narrowQuery?.removeEventListener('change', handleNarrowChange);
@@ -555,7 +665,7 @@
 				{blocks}
 				selectedId={selectedBlockId}
 				onSelect={handleBlockSelect}
-				onStructuralChange={() => void requestPreview()}
+				onStructuralChange={scheduleCanvasRefresh}
 			/>
 			{#if treeResizerActive}
 				<VisualColumnResizer
@@ -592,7 +702,7 @@
 						status={overlayStatus}
 						renderedBlockTypes={ctx.port.renderedBlockTypes ?? null}
 						blocksState={blocks}
-						onStructuralChange={() => void requestPreview()}
+						onStructuralChange={scheduleCanvasRefresh}
 					/>
 				{/if}
 				{#if tokenState.kind === 'loading' || (tokenState.kind === 'ready' && !frameLoaded)}
@@ -624,11 +734,7 @@
 				onResize={setInspectorWidth}
 				onDragChange={setResizing}
 			/>
-			<VisualInspector
-				{blocks}
-				selectedId={selectedBlockId}
-				onBlockSaved={() => void requestPreview()}
-			/>
+			<VisualInspector {blocks} selectedId={selectedBlockId} onBlockSaved={scheduleCanvasRefresh} />
 		</div>
 	{:else}
 		<!-- Responsive (ver cabecera): por debajo de 900px (mismo punto de corte en el que

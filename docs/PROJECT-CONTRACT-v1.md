@@ -373,20 +373,21 @@ bridge installed and offers the ordinary preview, which still works.
 
 **Site to Vega**
 
-| `type`   | Payload                                            | When                                                  |
-| -------- | -------------------------------------------------- | ----------------------------------------------------- |
-| `ready`  | `{ collection, id, blocks: [{ id, type, rect }] }` | On init, and in answer to any `hello`                 |
-| `layout` | `{ blocks: [{ id, type, rect }] }`                 | Geometry changed: scroll, resize, late-loading images |
-| `select` | `{ blockId }`                                      | The author clicked inside that block                  |
-| `error`  | `{ code, message }`                                | The bridge cannot do its job (see below)              |
+| `type`   | Payload                                                          | When                                                    |
+| -------- | ---------------------------------------------------------------- | ------------------------------------------------------- |
+| `ready`  | `{ collection, id, blocks: [{ id, type, rect }], liveRefresh? }` | On init, after a live refresh, and in answer to `hello` |
+| `layout` | `{ blocks: [{ id, type, rect }] }`                               | Geometry changed: scroll, resize, late-loading images   |
+| `select` | `{ blockId }`                                                    | The author clicked inside that block                    |
+| `error`  | `{ code, message }`                                              | The bridge cannot do its job (see below)                |
 
 **Vega to site**
 
-| `type`      | Payload       | Meaning                                               |
-| ----------- | ------------- | ----------------------------------------------------- |
-| `hello`     | `{}`          | Vega is listening; answer with `ready`                |
-| `highlight` | `{ blockId }` | Pointer is over this block in Vega's own outline list |
-| `scroll-to` | `{ blockId }` | Bring this block into view                            |
+| `type`      | Payload               | Meaning                                               |
+| ----------- | --------------------- | ----------------------------------------------------- |
+| `hello`     | `{}`                  | Vega is listening; answer with `ready`                |
+| `highlight` | `{ blockId }`         | Pointer is over this block in Vega's own outline list |
+| `scroll-to` | `{ blockId }`         | Bring this block into view                            |
+| `refresh`   | `{ url, postToken? }` | Re-render from this preview URL without reloading     |
 
 `rect` is `{ top, left, width, height }` in CSS pixels, relative to the **frame's own
 viewport**. Vega applies the frame's offset and any canvas zoom itself; the bridge never
@@ -440,22 +441,47 @@ refreshed while typing.
 
 The path that preserves every guarantee this document already makes:
 
-1. Vega debounces edits, then requests a fresh token carrying the current draft, exactly as
-   the panel does today. The draft stays encrypted and bound to its record and expiry.
-2. Vega hands the token to the bridge.
-3. The bridge posts it to its own preview route, parses the returned document, and replaces
-   the contents of `data-vega-blocks-root`. Scroll position survives untouched.
+1. Vega debounces edits, then requests a fresh token, carrying the current draft when it has
+   one. The draft stays encrypted and bound to its record and expiry.
+2. Vega hands the token to the bridge as `refresh`: `{ url, postToken? }`, the same two
+   fields `POST {apiBasePath}/token` returned, forwarded without being parsed or rewritten.
+3. The bridge requests that URL itself, exactly the way an ordinary navigation would have
+   (`GET` when there is no `postToken`, otherwise a `POST` with the ciphertext as the `token`
+   form field), parses the returned document, and replaces the contents of
+   `data-vega-blocks-root` with the contents of the same element in the response. Scroll
+   position survives untouched.
+4. The bridge re-measures and posts `ready`. Not `layout`: the block sequence itself may have
+   changed, and `ready` is already idempotent and already carries `{ collection, id }`, so a
+   swap that somehow landed on another record is caught by the check Vega already makes.
 
 Passing the draft to the frame in the clear would save one round trip and is explicitly not
 recommended: it would break the "must be confidential and bound" obligation above, letting
 anyone holding a valid token render arbitrary content into the preview.
 
-Two limits worth stating rather than discovering:
+**Both sides announce before they act, and neither trusts the announcement.** A bridge that
+can do this sets `liveRefresh: true` in its `ready`; anything else (absent, `false`, a
+malformed value) degrades to `false`, and Vega then keeps reloading the frame on every edit,
+which is what it did before this section existed. Vega sends `refresh` only to a bridge that
+claimed the capability, and still arms a deadline: if no `ready` arrives in time, it falls
+back to a full reload. A site can therefore ship the capability before Vega uses it, and a
+site that claims it and then fails to deliver costs the author one flicker, never a canvas
+frozen on content that is no longer true.
+
+Three limits worth stating rather than discovering:
 
 - Scripts inside a block do not re-execute when its HTML is replaced. A block with its own
   client-side behaviour stays inert until the next full reload.
 - If the replacement fails for any reason, the bridge reloads the frame completely. A flicker
-  is strictly better than a canvas that keeps showing something that is no longer true.
+  is strictly better than a canvas that keeps showing something that is no longer true. A
+  bridge that cannot perform that reload on its own — a failed `postToken` refresh, which
+  cannot be re-issued as a plain navigation — reports `error` with code `refresh-failed`
+  instead. Vega treats that one code as "reload this yourself" rather than as a bridge that
+  cannot do its job, so the author gets the reload immediately instead of waiting out the
+  deadline, and the canvas never shows a bridge error for something it already recovered from.
+- The swap replaces the blocks root and nothing else. A site whose `<head>`, navigation, or
+  page-level markup depends on block content will show those parts stale until the next full
+  reload. That is the price of keeping scroll position, and it is why the root is required to
+  contain "every block and nothing the surrounding page depends on keeping".
 
 ## Canonical `vega` record
 

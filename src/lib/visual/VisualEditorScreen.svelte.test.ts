@@ -236,10 +236,12 @@ function sendSiteMessage(data: Record<string, unknown>, origin = PREVIEW_ORIGIN)
 }
 
 /** Conecta el puente hasta `connected` con los bloques dados: ceremonia repetida en varios tests
- *  nuevos (árbol/inspector), no en los heredados (que ya la tenían inline). */
+ *  nuevos (árbol/inspector), no en los heredados (que ya la tenían inline). `liveRefresh` (§"Live
+ *  refresh" del contrato) apagado por defecto: los tests heredados prueban el camino de siempre. */
 async function connectBridge(
 	target: HTMLElement,
-	blocks: { id: string; type: string }[]
+	blocks: { id: string; type: string }[],
+	liveRefresh = false
 ): Promise<void> {
 	const iframe = target.querySelector<HTMLIFrameElement>('.vega-visual-frame');
 	iframe?.dispatchEvent(new Event('load'));
@@ -253,9 +255,18 @@ async function connectBridge(
 			id: b.id,
 			type: b.type,
 			rect: { top: 0, left: 0, width: 100, height: 50 }
-		}))
+		})),
+		liveRefresh
 	});
 	await tick();
+}
+
+/** Ventana de rebote de `scheduleCanvasRefresh` (`REFRESH_DEBOUNCE_MS = 200`), agotada con
+ *  temporizadores REALES (mismo criterio que `flush()`, no falsos): 250ms de margen y una `flush()`
+ *  final para que se resuelva la promesa de `client.requestPreview` que dispara `refreshCanvas`. */
+async function flushRefreshDebounce(): Promise<void> {
+	await new Promise((resolve) => setTimeout(resolve, 250));
+	await flush();
 }
 
 describe('VisualEditorScreen.svelte', () => {
@@ -1088,5 +1099,224 @@ describe('VisualEditorScreen.svelte — manillas de ancho de columna', () => {
 
 		expect(treeHandle.getAttribute('aria-valuenow')).toBe(String(TREE_DEFAULT_WIDTH));
 		expect(readColumnWidths().tree).toBe(TREE_DEFAULT_WIDTH);
+	});
+});
+
+// ————— Refresco en vivo del lienzo (§"Live refresh" del contrato): scheduleCanvasRefresh decide
+// entre el camino nuevo (bridgeClient.refresh(), el `<iframe>` nunca se toca) y el de siempre
+// (requestPreview(), que SÍ le cambia el `src`) según lo que el ÚLTIMO `ready` anunció. -----
+
+describe('VisualEditorScreen.svelte — refresco en vivo del lienzo', () => {
+	let mounted: { target: HTMLElement; instance: ReturnType<typeof mount> } | null = null;
+
+	beforeEach(() => {
+		stubMatchMedia(false);
+	});
+
+	afterEach(async () => {
+		if (mounted) {
+			await unmount(mounted.instance);
+			mounted.target.remove();
+			mounted = null;
+		}
+		vi.unstubAllGlobals();
+		vi.restoreAllMocks();
+	});
+
+	/** `mockResolvedValue` reutilizaría el MISMO `Response` en cada llamada, y su cuerpo solo se
+	 *  puede leer una vez (`createPreviewClient` llama `response.json()`): con dos peticiones de
+	 *  token reales por test (la del montaje y la de `refreshCanvas`/`requestPreview`), hace falta
+	 *  una respuesta NUEVA cada vez. */
+	function freshTokenFetch(): ReturnType<typeof vi.fn> {
+		return vi.fn(async () => jsonResponse(tokenBody()));
+	}
+
+	async function saveHeading(target: HTMLElement, value: string): Promise<void> {
+		target.querySelector<HTMLButtonElement>('.vega-tree-row')!.click();
+		await tick();
+		const headingInput = target.querySelector<HTMLInputElement>(
+			'.vega-inspector-body:not([hidden]) input[type="text"]'
+		)!;
+		headingInput.value = value;
+		headingInput.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		target
+			.querySelector<HTMLButtonElement>(
+				'.vega-inspector-body:not([hidden]) .vega-block-save-button'
+			)!
+			.click();
+		await flush();
+	}
+
+	test('con "liveRefresh" anunciado: guardar un bloque postea "refresh" y el `<iframe>` NUNCA se toca', async () => {
+		const fetchMock = freshTokenFetch();
+		vi.stubGlobal('fetch', fetchMock);
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [{ id: 'b1', type: 'hero' }], true);
+
+		const iframeBefore = mounted.target.querySelector<HTMLIFrameElement>('.vega-visual-frame');
+		const postMessageSpy = vi.spyOn(iframeBefore!.contentWindow!, 'postMessage');
+
+		await saveHeading(mounted.target, 'Hero editado');
+		await flushRefreshDebounce();
+
+		expect(
+			postMessageSpy.mock.calls.some(([msg]) => (msg as Record<string, unknown>).type === 'refresh')
+		).toBe(true);
+		// MISMO nodo del DOM: `refreshCanvas` no escribe en `tokenState`, así que el bloque
+		// `{#if tokenState.kind === 'ready'}` nunca se desmonta ni vuelve a montar el `<iframe>` — a
+		// diferencia del camino de siempre (ver el test de abajo), que sí lo hace.
+		const iframeAfter = mounted.target.querySelector('.vega-visual-frame');
+		expect(iframeAfter).toBe(iframeBefore);
+	});
+
+	test('con "liveRefresh" falso: guardar un bloque recarga el marco entero, camino de siempre', async () => {
+		const fetchMock = freshTokenFetch();
+		vi.stubGlobal('fetch', fetchMock);
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [{ id: 'b1', type: 'hero' }]); // liveRefresh: false
+
+		const iframeBefore = mounted.target.querySelector('.vega-visual-frame');
+
+		await saveHeading(mounted.target, 'Hero editado');
+		await flushRefreshDebounce(); // por si acaso: no hay rebote en este camino, pero no debe fallar
+
+		// Nodo NUEVO: `requestPreview()` pone `tokenState` en `loading` (desmonta el `<iframe>`) y
+		// luego en `ready` con el token nuevo (lo vuelve a montar).
+		const iframeAfter = mounted.target.querySelector('.vega-visual-frame');
+		expect(iframeAfter).not.toBeNull();
+		expect(iframeAfter).not.toBe(iframeBefore);
+		expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
+	});
+
+	test('dos cambios estructurales seguidos dentro de la ventana de rebote piden UN solo token', async () => {
+		const fetchMock = freshTokenFetch();
+		vi.stubGlobal('fetch', fetchMock);
+		const { ctx, type } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(
+			mounted.target,
+			[
+				{ id: 'b1', type: 'hero' },
+				{ id: 'b2', type: 'gallery' }
+			],
+			true
+		);
+		expect(fetchMock).toHaveBeenCalledTimes(1); // solo el token inicial, al montar
+
+		const duplicateFirst = (): void =>
+			Array.from(mounted!.target.querySelectorAll<HTMLButtonElement>('.vega-tree-action'))
+				.find((btn) => btn.getAttribute('aria-label')?.startsWith('Duplicar'))!
+				.click();
+
+		// Las dos mutaciones resuelven (async, pero con `flush()` de 10ms cada una: MUY por debajo de
+		// `REFRESH_DEBOUNCE_MS = 200`) sin que el rebote llegue a vencer entre medias.
+		duplicateFirst();
+		await flush();
+		duplicateFirst();
+		await flush();
+
+		await flushRefreshDebounce();
+
+		// UN solo token para los DOS cambios: el rebote los coalesce en una sola llamada a
+		// `refreshCanvas`, no una por mutación.
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
+	/** Dos `refreshCanvas` solapados: el rebote solo coalesce los cambios que caen DENTRO de su
+	 *  ventana, así que dos guardados separados por más de `REFRESH_DEBOUNCE_MS` sí pueden dejar dos
+	 *  peticiones de token en vuelo a la vez si la primera tarda. La que llega tarde tiene que
+	 *  CALLARSE y dejar mandar a la posterior, nunca caer a la recarga entera: hacerlo tiraría el
+	 *  refresco en vivo que ya estaba en marcha y, como `requestPreview()` incrementa
+	 *  `refreshGeneration`, dejaría obsoleta también a la petición posterior, que recargaría otra
+	 *  vez. Dos guardados acabarían en dos recargas enteras, lo contrario de lo que hace esta
+	 *  pantalla. */
+	test('una petición de token que llega TARDE no recarga el marco: manda la posterior', async () => {
+		const pending: ((response: Response) => void)[] = [];
+		const fetchMock = vi.fn(
+			() => new Promise<Response>((resolve) => pending.push(resolve)) as Promise<Response>
+		);
+		vi.stubGlobal('fetch', fetchMock);
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		// Token del montaje: se resuelve a mano, porque este `fetch` no resuelve solo.
+		pending.shift()!(jsonResponse(tokenBody()));
+		await flush();
+		await connectBridge(mounted.target, [{ id: 'b1', type: 'hero' }], true);
+
+		const iframeBefore = mounted.target.querySelector('.vega-visual-frame');
+		expect(iframeBefore).not.toBeNull();
+
+		// Dos guardados separados por más que la ventana de rebote: dos `refreshCanvas`, y sus dos
+		// peticiones de token quedan en vuelo porque ninguna ha resuelto todavía.
+		await saveHeading(mounted.target, 'Hero uno');
+		await flushRefreshDebounce();
+		await saveHeading(mounted.target, 'Hero dos');
+		await flushRefreshDebounce();
+		expect(pending).toHaveLength(2);
+
+		// Resuelve PRIMERO la vieja (la que llegó tarde) y después la nueva.
+		pending.shift()!(jsonResponse(tokenBody()));
+		await flush();
+		pending.shift()!(jsonResponse(tokenBody()));
+		await flush();
+
+		// Ni una recarga entera: el `<iframe>` sigue siendo el MISMO nodo y nadie pidió un cuarto
+		// token (el del montaje más los dos refrescos, y se acabó).
+		expect(mounted.target.querySelector('.vega-visual-frame')).toBe(iframeBefore);
+		expect(fetchMock).toHaveBeenCalledTimes(3);
+	});
+
+	/** Desmontar con una petición de token EN VUELO (hallazgo de code-review). Cancelar los
+	 *  temporizadores en `onDestroy` no basta: la petición que resuelve después pasaría su propia
+	 *  guarda de generación, escribiría `tokenState` de un componente que ya no existe y armaría un
+	 *  `renewTimer` que nadie puede cancelar, porque `onDestroy` no vuelve a correr. Ese
+	 *  temporizador se reprograma solo y pide token para siempre. Es alcanzable: guardar limpia el
+	 *  dirty (el guard de salida ya no pregunta) y deja un `refreshCanvas` pidiendo token por red. */
+	test('desmontar con una petición de token en vuelo no deja NADA pidiendo tokens detrás', async () => {
+		const pending: ((response: Response) => void)[] = [];
+		const fetchMock = vi.fn(
+			() => new Promise<Response>((resolve) => pending.push(resolve)) as Promise<Response>
+		);
+		vi.stubGlobal('fetch', fetchMock);
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		// Token del montaje NORMAL (una hora), a propósito: uno que caduque enseguida dispararía la
+		// renovación DENTRO de la ventana de rebote, y esa renovación cancela el rebote y se lleva por
+		// delante el refresco que este test quiere dejar en vuelo.
+		pending.shift()!(jsonResponse(tokenBody()));
+		await flush();
+		await connectBridge(mounted.target, [{ id: 'b1', type: 'hero' }], true);
+
+		await saveHeading(mounted.target, 'Hero editado');
+		await flushRefreshDebounce();
+		expect(pending).toHaveLength(1);
+
+		const local = mounted;
+		mounted = null;
+		await unmount(local.instance);
+		local.target.remove();
+
+		// Resuelve DESPUÉS del desmontaje. Sin invalidar la generación, esta continuación seguiría
+		// adelante: el puente ya está parado, así que `refresh()` devuelve `false` y cae a
+		// `requestPreview()`, que pide OTRO token — la tercera petición que este test prohíbe.
+		pending.shift()!(jsonResponse(tokenBody()));
+		await flush();
+		await new Promise((resolve) => setTimeout(resolve, 200));
+		await flush();
+
+		// Dos peticiones y ni una más: la del montaje y la del refresco. Nada pidió token después.
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(pending).toHaveLength(0);
 	});
 });

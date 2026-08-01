@@ -31,12 +31,28 @@ function envelope(body: Record<string, unknown>): Record<string, unknown> {
 }
 
 const READY = envelope({ type: 'ready', collection: 'pages', id: 'abc123', blocks: [BLOCK] });
+/** Mismo saludo, pero anunciando la capacidad de refresco en vivo (§"Live refresh" del contrato) —
+ *  el único `ready` contra el que tiene sentido probar `refresh()`. */
+const READY_LIVE = envelope({
+	type: 'ready',
+	collection: 'pages',
+	id: 'abc123',
+	blocks: [BLOCK],
+	liveRefresh: true
+});
 
 describe('parseSiteMessage', () => {
 	test('acepta los cuatro mensajes del sitio con su forma del contrato', () => {
 		expect(parseSiteMessage(READY)).toEqual({
 			status: 'ok',
-			message: { type: 'ready', collection: 'pages', id: 'abc123', blocks: [BLOCK], skipped: 0 }
+			message: {
+				type: 'ready',
+				collection: 'pages',
+				id: 'abc123',
+				blocks: [BLOCK],
+				skipped: 0,
+				liveRefresh: false
+			}
 		});
 		expect(parseSiteMessage(envelope({ type: 'layout', blocks: [BLOCK] }))).toEqual({
 			status: 'ok',
@@ -138,11 +154,20 @@ describe('createVisualBridgeClient', () => {
 	beforeEach(() => vi.useFakeTimers());
 	afterEach(() => vi.useRealTimers());
 
-	function harness(overrides: { previewUrl?: string; documentUrl?: string } = {}) {
+	function harness(
+		overrides: {
+			previewUrl?: string;
+			documentUrl?: string;
+			/** Pequeño en los tests del plazo de `refresh()`, para no depender del default real
+			 *  (`DEFAULT_REFRESH_TIMEOUT_MS = 4000`) ni de temporizadores reales. */
+			refreshTimeoutMs?: number;
+		} = {}
+	) {
 		const posted: unknown[] = [];
 		const frame: MessagePoster = { postMessage: (data) => void posted.push(data) };
 		const states: VisualBridgeState[] = [];
 		const selected: string[] = [];
+		let refreshFailedCount = 0;
 		const client = createVisualBridgeClient({
 			record: { collection: 'pages', id: 'abc123' },
 			previewUrl: overrides.previewUrl ?? PREVIEW_URL,
@@ -150,10 +175,19 @@ describe('createVisualBridgeClient', () => {
 			frame: () => frame,
 			helloAttempts: 3,
 			helloIntervalMs: 100,
+			refreshTimeoutMs: overrides.refreshTimeoutMs,
 			onState: (state) => void states.push(state),
-			onSelect: (blockId) => void selected.push(blockId)
+			onSelect: (blockId) => void selected.push(blockId),
+			onRefreshFailed: () => refreshFailedCount++
 		});
-		return { client, frame, posted, states, selected };
+		return {
+			client,
+			frame,
+			posted,
+			states,
+			selected,
+			refreshFailed: () => refreshFailedCount
+		};
 	}
 
 	test('saluda al arrancar y repite un número acotado de veces hasta que llega "ready"', () => {
@@ -171,7 +205,8 @@ describe('createVisualBridgeClient', () => {
 			collection: 'pages',
 			id: 'abc123',
 			blocks: [BLOCK],
-			skippedBlocks: 0
+			skippedBlocks: 0,
+			liveRefresh: false
 		});
 
 		// Y deja de saludar: el temporizador se cancela con el saludo contestado.
@@ -383,7 +418,8 @@ describe('createVisualBridgeClient', () => {
 			collection: 'pages',
 			id: 'abc123',
 			blocks: [movido],
-			skippedBlocks: 0
+			skippedBlocks: 0,
+			liveRefresh: false
 		});
 	});
 
@@ -475,5 +511,208 @@ describe('createVisualBridgeClient', () => {
 		expect(() => client.start()).not.toThrow();
 		vi.advanceTimersByTime(200);
 		expect(client.state).toEqual({ status: 'error', kind: 'no-bridge' });
+	});
+
+	// ————— `refresh()` (§"Live refresh" del contrato) — sexto camino, ver la cabecera del módulo.
+	// -----
+	describe('refresh()', () => {
+		test('sin conectar, o conectado sin "liveRefresh": devuelve false y no postea nada', () => {
+			const { client: idle, posted: idlePosted } = harness();
+			expect(idle.refresh({ url: PREVIEW_URL })).toBe(false);
+			expect(idlePosted).toEqual([]);
+
+			const { client: connecting, posted: connectingPosted } = harness();
+			connecting.start(); // "connecting", todavía no "connected"
+			expect(connecting.refresh({ url: PREVIEW_URL })).toBe(false);
+			expect(connectingPosted).toEqual([{ vega: VISUAL_PROTOCOL_VERSION, type: 'hello' }]); // solo el saludo
+
+			const { client: noLive, posted: noLivePosted } = harness();
+			noLive.start();
+			noLive.handleMessage({ origin: ORIGIN, data: READY }); // liveRefresh ausente → false
+			noLivePosted.length = 0;
+			expect(noLive.refresh({ url: PREVIEW_URL })).toBe(false);
+			expect(noLivePosted).toEqual([]);
+		});
+
+		test('conectado con "liveRefresh": postea el sobre correcto, con y sin postToken', () => {
+			const { client, posted } = harness();
+			client.start();
+			client.handleMessage({ origin: ORIGIN, data: READY_LIVE });
+			posted.length = 0; // limpia el saludo/ready previos, solo interesa el "refresh"
+
+			expect(client.refresh({ url: 'https://sitio.test/preview/pages/abc123?token=nuevo' })).toBe(
+				true
+			);
+			expect(posted).toEqual([
+				{
+					vega: VISUAL_PROTOCOL_VERSION,
+					type: 'refresh',
+					url: 'https://sitio.test/preview/pages/abc123?token=nuevo'
+				}
+			]);
+			// La clave "postToken" no viaja NI SIQUIERA como `undefined` cuando no viene (§contrato:
+			// "forwarded without being parsed or rewritten").
+			expect(posted[0]).not.toHaveProperty('postToken');
+
+			posted.length = 0;
+			expect(
+				client.refresh({
+					url: 'https://sitio.test/preview/pages/abc123?token=otro',
+					postToken: 'cifrado'
+				})
+			).toBe(true);
+			expect(posted).toEqual([
+				{
+					vega: VISUAL_PROTOCOL_VERSION,
+					type: 'refresh',
+					url: 'https://sitio.test/preview/pages/abc123?token=otro',
+					postToken: 'cifrado'
+				}
+			]);
+		});
+
+		test('plazo: sin "ready", onRefreshFailed se llama UNA vez al vencer', () => {
+			const { client, refreshFailed } = harness({ refreshTimeoutMs: 500 });
+			client.start();
+			client.handleMessage({ origin: ORIGIN, data: READY_LIVE });
+			expect(client.refresh({ url: PREVIEW_URL })).toBe(true);
+
+			vi.advanceTimersByTime(499);
+			expect(refreshFailed()).toBe(0);
+			vi.advanceTimersByTime(1);
+			expect(refreshFailed()).toBe(1);
+			// Y no otra vez después: el plazo no se repite solo.
+			vi.advanceTimersByTime(5000);
+			expect(refreshFailed()).toBe(1);
+		});
+
+		test('plazo: con "ready" antes del vencimiento, onRefreshFailed no se llama nunca', () => {
+			const { client, refreshFailed } = harness({ refreshTimeoutMs: 500 });
+			client.start();
+			client.handleMessage({ origin: ORIGIN, data: READY_LIVE });
+			client.refresh({ url: PREVIEW_URL });
+
+			vi.advanceTimersByTime(300);
+			client.handleMessage({ origin: ORIGIN, data: READY_LIVE }); // aterriza el cambio
+			vi.advanceTimersByTime(1000);
+			expect(refreshFailed()).toBe(0);
+		});
+
+		test('un "ready" con OTRO registro cancela el plazo Y avisa YA: el lienzo está enseñando otra página', () => {
+			// El `ready` es el ACUSE del contrato, así que corta el plazo pase lo que pase. Pero un
+			// desajuste de registro no es un aterrizaje bueno: el sitio hizo la sustitución ANTES de
+			// contestar (no sabe de registros), o sea que el lienzo ya está enseñando otra página. Se
+			// avisa AL MOMENTO, para que quien consume recargue entero con un token atado a ESTE
+			// registro, en vez de dejar al autor editando campos que no son lo que ve.
+			const { client, refreshFailed } = harness({ refreshTimeoutMs: 500 });
+			client.start();
+			client.handleMessage({ origin: ORIGIN, data: READY_LIVE });
+			client.refresh({ url: PREVIEW_URL });
+
+			client.handleMessage({
+				origin: ORIGIN,
+				data: envelope({ type: 'ready', collection: 'pages', id: 'otro', blocks: [BLOCK] })
+			});
+			expect(refreshFailed()).toBe(1);
+			expect(client.state).toMatchObject({ status: 'error', kind: 'record-mismatch' });
+			// Y el plazo quedó cancelado: no vuelve a avisar cuando habría vencido.
+			vi.advanceTimersByTime(1000);
+			expect(refreshFailed()).toBe(1);
+		});
+
+		test('un "ready" con OTRO registro SIN refresco pendiente no avisa: no hay nada que recargar', () => {
+			// El camino de siempre (un marco apuntado a otra URL desde el principio): el desajuste se
+			// dice en la barra y ya está. Avisar aquí dispararía una recarga que nadie pidió.
+			const { client, refreshFailed } = harness({ refreshTimeoutMs: 500 });
+			client.start();
+			client.handleMessage({
+				origin: ORIGIN,
+				data: envelope({ type: 'ready', collection: 'pages', id: 'otro', blocks: [BLOCK] })
+			});
+			vi.advanceTimersByTime(1000);
+			expect(refreshFailed()).toBe(0);
+		});
+
+		test('"layout" NO cancela el plazo: llega el layout, vence el plazo, onRefreshFailed se llamó', () => {
+			const { client, refreshFailed } = harness({ refreshTimeoutMs: 500 });
+			client.start();
+			client.handleMessage({ origin: ORIGIN, data: READY_LIVE });
+			client.refresh({ url: PREVIEW_URL });
+
+			// Un scroll del autor mientras el sitio busca el documento nuevo: geometría del documento
+			// VIEJO, no el aterrizaje del cambio.
+			client.handleMessage({ origin: ORIGIN, data: envelope({ type: 'layout', blocks: [BLOCK] }) });
+			vi.advanceTimersByTime(500);
+			expect(refreshFailed()).toBe(1);
+		});
+
+		test('stop() cancela el plazo pendiente', () => {
+			const { client, refreshFailed } = harness({ refreshTimeoutMs: 500 });
+			client.start();
+			client.handleMessage({ origin: ORIGIN, data: READY_LIVE });
+			client.refresh({ url: PREVIEW_URL });
+
+			client.stop();
+			vi.advanceTimersByTime(1000);
+			expect(refreshFailed()).toBe(0);
+		});
+
+		test('una llamada nueva a refresh() REARMA el plazo: el viejo no dispara, solo el nuevo', () => {
+			const { client, refreshFailed, posted } = harness({ refreshTimeoutMs: 500 });
+			client.start();
+			client.handleMessage({ origin: ORIGIN, data: READY_LIVE });
+			client.refresh({ url: PREVIEW_URL });
+
+			vi.advanceTimersByTime(300);
+			posted.length = 0;
+			expect(client.refresh({ url: PREVIEW_URL })).toBe(true); // rearma
+			expect(posted).toHaveLength(1);
+
+			vi.advanceTimersByTime(300); // 600ms desde el primero, pero solo 300 desde el segundo
+			expect(refreshFailed()).toBe(0);
+			vi.advanceTimersByTime(200); // ahora sí, 500ms desde el segundo
+			expect(refreshFailed()).toBe(1);
+		});
+
+		test('error "refresh-failed" CON refresco pendiente: aviso inmediato y el estado sigue "connected"', () => {
+			const { client, refreshFailed } = harness({ refreshTimeoutMs: 500 });
+			client.start();
+			client.handleMessage({ origin: ORIGIN, data: READY_LIVE });
+			client.refresh({ url: PREVIEW_URL });
+
+			const verdict = client.handleMessage({
+				origin: ORIGIN,
+				data: envelope({ type: 'error', code: 'refresh-failed', message: 'no se pudo sustituir' })
+			});
+			expect(verdict).toBe('accepted');
+			expect(refreshFailed()).toBe(1);
+			// NO entra en `error/site-error`: el puente ya se está encargando de recargar el marco por
+			// su cuenta, así que la sesión sigue "connected".
+			expect(client.state).toMatchObject({ status: 'connected' });
+
+			// Y el plazo ya no puede disparar por su cuenta: se canceló al recibir el error.
+			vi.advanceTimersByTime(5000);
+			expect(refreshFailed()).toBe(1);
+		});
+
+		test('error "refresh-failed" SIN refresco pendiente: es un "error" cualquiera, "site-error" de siempre', () => {
+			const { client, refreshFailed } = harness();
+			client.start();
+			client.handleMessage({ origin: ORIGIN, data: READY_LIVE });
+			// Sin llamar a refresh(): no hay plazo pendiente.
+
+			const verdict = client.handleMessage({
+				origin: ORIGIN,
+				data: envelope({ type: 'error', code: 'refresh-failed', message: 'no se pudo sustituir' })
+			});
+			expect(verdict).toBe('accepted');
+			expect(refreshFailed()).toBe(0);
+			expect(client.state).toEqual({
+				status: 'error',
+				kind: 'site-error',
+				code: 'refresh-failed',
+				detail: 'no se pudo sustituir'
+			});
+		});
 	});
 });

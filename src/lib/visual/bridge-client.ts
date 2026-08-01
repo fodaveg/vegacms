@@ -35,6 +35,14 @@
  * tarde cura el estado, y `start()` (el `load` del marco, o un botón de reintentar) reengancha
  * desde cero. Lo único que lo apaga es `stop()`, que es el desmontaje.
  *
+ * **Live refresh (`refresh()`, §"Live refresh" del contrato)**: sexto camino, con su propio plazo
+ * (`refreshTimer`, separado de `timer`) y sus propias reglas de degradación — no cambia `state` (el
+ * lienzo sigue enseñando lo de antes hasta que el cambio aterriza de verdad), y solo `ready` lo
+ * cura, nunca `layout` (ver el comentario en `handleMessage`). Un `error/refresh-failed` MIENTRAS
+ * hay un refresco pendiente es el único `error` que no tumba la conexión: el propio puente ya está
+ * recargando el marco por su cuenta, así que quedarse en `connected` y avisar con `onRefreshFailed`
+ * es más honesto que fingir un fallo de puente que ya se está arreglando solo.
+ *
  * **El texto de la interfaz NO vive aquí**: el estado expone un `kind` cerrado y la pantalla lo
  * traduce por `i18n`. Este módulo no importa Svelte, no toca `window` y no registra ningún
  * escuchador: recibe los mensajes por `handleMessage()` y escribe por el `MessagePoster` que le
@@ -53,6 +61,12 @@ export const VISUAL_PROTOCOL_VERSION = 'vega-visual-1';
  *  toleran repetición. Plazo total = `attempts × interval`. */
 const DEFAULT_HELLO_ATTEMPTS = 5;
 const DEFAULT_HELLO_INTERVAL_MS = 400;
+
+/** Plazo por defecto de un `refresh()` pendiente (§"Live refresh" del contrato): "un flicker es
+ *  estrictamente mejor que un lienzo que sigue enseñando algo que ya no es verdad". Si el bridge
+ *  no aterriza el cambio (ni `ready` ni `error/refresh-failed`) antes de que venza, se da por
+ *  perdido y quien consume este cliente cae a la recarga entera. */
+const DEFAULT_REFRESH_TIMEOUT_MS = 4000;
 
 /** Tope del texto libre que llega en un `error` del puente. La ruta de vista previa renderiza
  *  contenido sin publicar, así que ese texto puede acabar dependiendo de datos editoriales: se
@@ -82,7 +96,17 @@ export interface VisualBlock {
 /** Mensajes del SITIO a Vega, ya validados. `skipped` no viaja por el cable: lo cuenta el
  *  parseo (ver `parseBlocks`). */
 export type SiteMessage =
-	| { type: 'ready'; collection: string; id: string; blocks: VisualBlock[]; skipped: number }
+	| {
+			type: 'ready';
+			collection: string;
+			id: string;
+			blocks: VisualBlock[];
+			skipped: number;
+			/** El puente sabe hacer refresco en vivo (§"Live refresh" del contrato). Degrada a `false`
+			 *  campo a campo, igual que `preview.visualEditing` en el discovery: ausente, `false` o
+			 *  basura nunca invalida el `ready` entero, solo apaga esta capacidad concreta. */
+			liveRefresh: boolean;
+	  }
 	| { type: 'layout'; blocks: VisualBlock[]; skipped: number }
 	| { type: 'select'; blockId: string }
 	| { type: 'error'; code: string; detail: string | null };
@@ -182,7 +206,16 @@ export function parseSiteMessage(raw: unknown): ParsedSiteMessage {
 			if (!collection || !id || !parsed) return { status: 'malformed' };
 			return {
 				status: 'ok',
-				message: { type: 'ready', collection, id, ...parsed }
+				// `=== true` a propósito (§"Both sides announce before they act" del contrato): cualquier
+				// otra cosa ("yes", 1, null, ausente) degrada a `false` sin invalidar el `ready`, misma
+				// regla que ya usa `session/project-discovery.ts` para `preview.visualEditing`.
+				message: {
+					type: 'ready',
+					collection,
+					id,
+					...parsed,
+					liveRefresh: record.liveRefresh === true
+				}
 			};
 		}
 		case 'layout': {
@@ -237,6 +270,10 @@ export type VisualBridgeState =
 			blocks: VisualBlock[];
 			/** Bloques que el sitio describió mal y no se pueden dibujar (ver `parseBlocks`). */
 			skippedBlocks: number;
+			/** Copiado del último `ready` (§"Live refresh" del contrato): gobierna si `refresh()` puede
+			 *  postear o si quien lo consume tiene que recargar el marco entero. Vive AQUÍ y no en una
+			 *  variable aparte porque es un hecho del `ready` más reciente, igual que `blocks`. */
+			liveRefresh: boolean;
 	  }
 	| {
 			status: 'error';
@@ -301,12 +338,21 @@ export interface VisualBridgeClientOptions {
 	frame: () => MessagePoster | null;
 	helloAttempts?: number;
 	helloIntervalMs?: number;
+	/** Plazo de un `refresh()` pendiente (§"Live refresh" del contrato): si no llega ni un `ready`
+	 *  ni un `error/refresh-failed` antes de que venza, se da por perdido y avisa con
+	 *  `onRefreshFailed`. Temporizador PROPIO, separado del de los saludos (`timer`): estando
+	 *  `connected` el de saludos ya está cancelado, y compartirlo haría que uno cancelase al otro. */
+	refreshTimeoutMs?: number;
 	/** Se llama en CADA cambio de estado (incluido el inicial de `start()`). */
 	onState?: (state: VisualBridgeState) => void;
 	/** El autor hizo clic dentro de ese bloque. La selección la lleva la pantalla, no este
 	 *  módulo: un segundo dueño del bloque seleccionado es la vía a que las dos mitades enseñen
 	 *  cosas distintas. */
 	onSelect?: (blockId: string) => void;
+	/** El plazo de `refresh()` venció sin `ready` ni `error/refresh-failed`, o el propio puente avisó
+	 *  con `error/refresh-failed`. NO cambia `state` (ver `refresh()`): quien lo consume decide qué
+	 *  hacer, normalmente una recarga entera del marco. */
+	onRefreshFailed?: () => void;
 }
 
 export interface VisualBridgeClient {
@@ -329,6 +375,21 @@ export interface VisualBridgeClient {
 	highlight(blockId: string): void;
 	/** Trae ese bloque a la vista dentro del marco. */
 	scrollTo(blockId: string): void;
+	/**
+	 * Pide al puente que se refresque EN VIVO (§"Live refresh" del contrato) con el token que acaba
+	 * de resolver `POST {apiBasePath}/token`. Devuelve `false` sin postear nada cuando no hay a
+	 * quién pedírselo (no `connected`) o cuando el último `ready` no anunció `liveRefresh`; quien
+	 * consume este cliente cae entonces a la recarga entera de siempre. Devuelve `true` cuando SÍ
+	 * postea, arma el plazo (`refreshTimeoutMs`) y lo deja corriendo — un `ready` posterior, un
+	 * `error/refresh-failed`, `stop()` o una llamada nueva a `refresh()` lo cancelan (ver la cabecera
+	 * del módulo).
+	 *
+	 * NO cambia `state`: el lienzo sigue enseñando lo de antes hasta que el cambio aterriza de
+	 * verdad por un `ready`. Un estado `refreshing` intermedio obligaría a la barra superior a
+	 * parpadear en cada guardado, y no hay nada que ese estado describiera que `state` no sepa ya
+	 * (sigue `connected`, con los bloques de antes).
+	 */
+	refresh(preview: { url: string; postToken?: string }): boolean;
 }
 
 /** Saca el origen de la URL de vista previa. `origin` puede salir como la cadena `'null'` (un
@@ -352,10 +413,17 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 	const helloAttempts = opts.helloAttempts ?? DEFAULT_HELLO_ATTEMPTS;
 	const helloIntervalMs = opts.helloIntervalMs ?? DEFAULT_HELLO_INTERVAL_MS;
 
+	const refreshTimeoutMs = opts.refreshTimeoutMs ?? DEFAULT_REFRESH_TIMEOUT_MS;
+
 	let state: VisualBridgeState = { status: 'idle' };
 	let active = false;
 	let sent = 0;
 	let timer: ReturnType<typeof setTimeout> | null = null;
+	// Plazo de un `refresh()` en vuelo (§"Live refresh" del contrato). PROPIO, no comparte `timer`
+	// con los saludos: estando `connected` el de saludos ya está cancelado, así que fundirlos haría
+	// que uno cancelase al otro sin motivo. `refreshTimer !== null` es también cómo `handleMessage`
+	// sabe si hay un refresco PENDIENTE al recibir `error/refresh-failed` (ver ese caso).
+	let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
 	function setState(next: VisualBridgeState): void {
 		state = next;
@@ -366,6 +434,13 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 		if (timer !== null) {
 			clearTimeout(timer);
 			timer = null;
+		}
+	}
+
+	function clearRefreshTimer(): void {
+		if (refreshTimer !== null) {
+			clearTimeout(refreshTimer);
+			refreshTimer = null;
 		}
 	}
 
@@ -442,6 +517,7 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 		stop() {
 			active = false;
 			clearTimer();
+			clearRefreshTimer();
 			setState({ status: 'idle' });
 		},
 
@@ -465,7 +541,13 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 
 			const message = parsed.message;
 			switch (message.type) {
-				case 'ready':
+				case 'ready': {
+					// Un `ready`, sea cual sea su desenlace, es el ACUSE del contrato para un
+					// `refresh()` en vuelo (§"Live refresh"): lo corta siempre, tanto si el registro
+					// casa como si no. Antes de mirar nada más, para que ningún `return` de abajo
+					// pueda dejarlo pendiente por descuido.
+					const wasRefreshing = refreshTimer !== null;
+					clearRefreshTimer();
 					// El marco tiene que estar pintando EL registro de esta sesión. Es la razón de
 					// que `ready` lleve `{collection, id}`: sin contrastarlo, un iframe apuntado a
 					// otra URL (una vista previa vieja en caché, un token reutilizado) se editaría
@@ -475,6 +557,17 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 						fail('record-mismatch', {
 							found: { collection: message.collection, id: message.id }
 						});
+						// Si era la respuesta a un `refresh()`, el sitio YA sustituyó su contenido antes
+						// de contestar (el puente hace el cambio y luego se anuncia; no sabe de
+						// registros). O sea que el lienzo está enseñando AHORA MISMO otra página, y
+						// dejarlo así con un aviso de texto en la barra es justo el fallo que este lote
+						// existe para evitar: el autor editaría campos creyendo que son lo que ve.
+						// `onRefreshFailed` lo cura con la recarga entera, que pide token nuevo atado a
+						// ESTE registro. Coste asumido: `requestPreview()` para el puente y el aviso de
+						// la barra parpadea. Si el desajuste es real y persiste, el `ready` de la recarga
+						// vuelve a reportarlo y ahí sí se queda, sin refresco pendiente que lo repita:
+						// no hay bucle de recargas.
+						if (wasRefreshing) opts.onRefreshFailed?.();
 						return 'record-mismatch';
 					}
 					// Idempotente por contrato: un `ready` repetido (el puente contestando a un
@@ -489,13 +582,19 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 						collection: message.collection,
 						id: message.id,
 						blocks: message.blocks,
-						skippedBlocks: message.skipped
+						skippedBlocks: message.skipped,
+						liveRefresh: message.liveRefresh
 					});
 					return 'accepted';
+				}
 				case 'layout':
 					// Geometría antes del saludo: el puente tiene que anunciarse primero, o el
 					// lienzo estaría pintando contornos de un registro que no sabe cuál es.
 					if (state.status !== 'connected') return 'out-of-order';
+					// A propósito NO cancela el plazo de un `refresh()` pendiente (ver `refresh()`):
+					// un scroll del autor mientras el sitio busca el documento nuevo es geometría del
+					// documento VIEJO, no el aterrizaje del cambio, y contarlo como tal apagaría el
+					// aviso de fallo delante de un canvas que en realidad se quedó atascado.
 					setState({ ...state, blocks: message.blocks, skippedBlocks: message.skipped });
 					return 'accepted';
 				case 'select':
@@ -503,6 +602,18 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 					opts.onSelect?.(message.blockId);
 					return 'accepted';
 				case 'error':
+					// `refresh-failed` con un refresco PENDIENTE es el propio puente reportando que no
+					// puede completar la sustitución en caliente y que ya se encarga él de recargar el
+					// marco (§"Live refresh", tercer límite): un fallo RECUPERABLE, no uno que deje al
+					// puente sin poder trabajar. Se avisa al momento (no hace falta esperar el plazo,
+					// que de todas formas se cancela) y el estado se queda en `connected` — nunca entra
+					// en `error/site-error`. Sin refresco pendiente es un `error` cualquiera, de
+					// siempre.
+					if (message.code === 'refresh-failed' && refreshTimer !== null) {
+						clearRefreshTimer();
+						opts.onRefreshFailed?.();
+						return 'accepted';
+					}
 					fail('site-error', { code: message.code, detail: message.detail });
 					return 'accepted';
 			}
@@ -516,6 +627,24 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 		scrollTo(blockId) {
 			if (state.status !== 'connected') return;
 			post({ type: 'scroll-to', blockId });
+		},
+
+		refresh(preview) {
+			// Sin conexión, o el sitio nunca anunció `liveRefresh`: nada que pedir. Quien llama cae a
+			// la recarga entera, que es justo lo que hacía antes de que esta capacidad existiera.
+			if (state.status !== 'connected' || !state.liveRefresh) return false;
+			const message: Record<string, unknown> = { type: 'refresh', url: preview.url };
+			// Solo se incluye la clave si viene (§contrato: "forwarded without being parsed or
+			// rewritten") — mandar `postToken: undefined` no es lo mismo que omitirla al otro lado.
+			if (preview.postToken !== undefined) message.postToken = preview.postToken;
+			post(message);
+			// Rearma: una llamada nueva reemplaza cualquier plazo anterior en vez de acumularlos.
+			clearRefreshTimer();
+			refreshTimer = setTimeout(() => {
+				refreshTimer = null;
+				opts.onRefreshFailed?.();
+			}, refreshTimeoutMs);
+			return true;
 		}
 	};
 }
