@@ -50,10 +50,58 @@
 	 * `BlockEditor`... SIEMPRE montados" arriba), ni se tocan: ⌘S guarda "el de la ficha abierta",
 	 * no todo el registro. No-op si no hay selección o el sitio señala un id que no resuelve a
 	 * ningún registro (mismo caso que `danglingSelection`, más abajo): no hay editor que guardar.
+	 *
+	 * **El foco no puede caer a `<body>` al cambiar de bloque (encargo de accesibilidad, D1).**
+	 * `record.id !== selectedId` (ver el marcado) oculta la ficha saliente con el atributo
+	 * `hidden`, que `src/lib/theme/base.css` fuerza a `display: none !important` — y ocultar un
+	 * elemento enfocado se lo lleva el navegador al `<body>` SIN avisar (la landmine que este repo
+	 * ya documentó una vez: "ocultar un elemento anula su `.focus()`"). El arreglo tiene DOS
+	 * mitades, cada una en el momento justo:
+	 * - **Capturar ANTES de que el `hidden` se mueva.** Un `$effect` normal (el que corre tras la
+	 *   sincronización de Svelte) YA LLEGA TARDE: para cuando se ejecuta, el DOM de esta pantalla
+	 *   ya está pintado con el `hidden` nuevo y, si el foco estaba dentro de la ficha que acaba de
+	 *   ocultarse, el navegador ya lo tiró a `<body>` — comprobar en ese punto siempre daría "no
+	 *   estaba dentro", un no-op silencioso que solo un test que MIDA el resultado (no que confíe
+	 *   en la intuición) puede cazar. Por eso la comprobación vive en `$effect.pre`, que Svelte
+	 *   ejecuta ANTES de aplicar el cambio al DOM: en ese instante `selectedId` YA vale lo nuevo
+	 *   (la reactividad ya decidió el cambio) pero el `hidden` de la ficha vieja TODAVÍA no se ha
+	 *   movido, así que `document.activeElement` sigue siendo sincero.
+	 * - **Mover el foco DESPUÉS, con `tick()`.** El `$effect` normal de abajo sí corre con el DOM
+	 *   ya al día (la ficha nueva ya no tiene `hidden`), pero `BlockEditor` puede necesitar un tick
+	 *   más para acabar de pintar sus propios campos — `tick()` antes de buscar el objetivo evita
+	 *   apuntar a un DOM a medio construir.
+	 *
+	 * Ninguno de los dos efectos ESCRIBE estado reactivo (solo leen `document.activeElement` y
+	 * llaman a `.focus()`): con dos escritores del mismo `$state` este repo ya se ha encontrado el
+	 * bucle de efectos que se pisan (ver la cabecera de `blocks-state.svelte.ts`), y aquí no hace
+	 * falta ninguno — `focusWasInsidePanel` es una variable PLANA, no `$state`, que solo lee el
+	 * segundo efecto.
+	 *
+	 * **Límite honesto de la medición (dejarlo escrito para que nadie se fíe de más):** jsdom, a
+	 * diferencia de un navegador real, NO quita el foco solo por ocultar un ancestro (se comprobó a
+	 * propósito escribiendo este mismo test) — así que el test de este fichero no puede DISTINGUIR
+	 * `$effect.pre` de un `$effect` normal aquí: los dos hacen que la suite pase en jsdom, y solo
+	 * el primero es correcto en un navegador de verdad. La necesidad de `$effect.pre` descansa en
+	 * el orden de fases que documenta Svelte (pre-efectos → DOM → efectos normales) y en la
+	 * landmine ya escrita en este repo, no en un test que lo mida — dicho de otro modo, "medido" en
+	 * este caso concreto es el razonamiento, no el jsdom.
+	 *
+	 * **Nunca le roba el foco a quien teclea en OTRA superficie.** Si el foco no estaba dentro del
+	 * panel del inspector cuando `selectedId` cambió (p. ej. el autor está escribiendo en el árbol
+	 * o en cualquier otro sitio de la pantalla y el sitio manda un `select` del lienzo), el segundo
+	 * efecto no toca nada — mismo criterio que la cabecera de `VisualBlockTree.svelte` fija por
+	 * escrito para su propia lista ("esta lista se desplaza, no se enfoca").
+	 *
+	 * **Ancla de foco de la deselección.** `#vega-inspector-heading` lleva `tabindex="-1"` (mismo
+	 * truco que `RecordBlocks.svelte` con su `<h2>` y que `VisualBlockTree.svelte` con
+	 * `headingEl`): si tras el cambio no hay ninguna ficha visible (deselección, id fantasma, lista
+	 * vacía) o la ficha visible no tiene NINGÚN enfocable, el foco aterriza ahí en vez de perderse.
 	 */
+	import { tick } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
 	import BlockEditor from '$lib/form/BlockEditor.svelte';
 	import type { BlocksState } from '$lib/form/blocks-state.svelte';
+	import { focusables } from './a11y-audit';
 
 	interface Props {
 		/** Instancia ÚNICA de la pantalla (ver cabecera), nunca construida aquí. */
@@ -81,11 +129,51 @@
 		if (selectedId === null) return;
 		editorRefs[selectedId]?.save();
 	}
+
+	// ————— El foco no puede caer a `<body>` al cambiar de bloque (ver cabecera, D1) —————
+	let panelEl = $state<HTMLElement | undefined>(undefined);
+	let headingEl = $state<HTMLElement | undefined>(undefined);
+
+	/** Primer enfocable de la ficha VISIBLE de `panelEl` (la que no lleva `hidden`), o `null` si no
+	 *  hay ninguna ficha visible o está vacía de controles. Reusa `focusables()` (ver cabecera de
+	 *  `a11y-audit.ts`) en vez de reinventar el criterio de "qué es enfocable". */
+	function firstFocusableInVisibleBody(): HTMLElement | null {
+		const visible = panelEl?.querySelector<HTMLElement>('.vega-inspector-body:not([hidden])');
+		return visible ? (focusables(visible)[0] ?? null) : null;
+	}
+
+	/** `$effect.pre` (ver cabecera): corre ANTES de que Svelte aplique el `hidden` nuevo al DOM, así
+	 *  que `document.activeElement` todavía refleja la ficha SALIENTE con sinceridad. Variable
+	 *  PLANA, no `$state` — solo la lee el `$effect` de abajo, nunca el marcado. */
+	let focusWasInsidePanel = false;
+	$effect.pre(() => {
+		void selectedId; // dependencia: re-ejecutar en cada cambio es lo que importa, no el valor
+		focusWasInsidePanel = panelEl?.contains(document.activeElement) ?? false;
+	});
+
+	/** Corre DESPUÉS de que Svelte pinte el cambio (la ficha nueva ya no tiene `hidden`). No
+	 *  escribe ningún `$state` (solo llama a `.focus()`, ver cabecera): sin este cuidado se
+	 *  reproduciría el bucle de "dos escritores, un solo estado" que este repo ya sufrió. */
+	$effect(() => {
+		const id = selectedId; // dependencia: el propio valor decide el destino, más abajo
+		if (!focusWasInsidePanel) return; // nunca robar el foco a quien teclea en OTRA superficie
+		void tick().then(() => {
+			const target = id === null ? null : firstFocusableInVisibleBody();
+			(target ?? headingEl)?.focus();
+		});
+	});
 </script>
 
-<div class="vega-inspector-panel" role="region" aria-labelledby="vega-inspector-heading">
+<div
+	class="vega-inspector-panel"
+	role="region"
+	aria-labelledby="vega-inspector-heading"
+	bind:this={panelEl}
+>
 	<div class="vega-inspector-head">
-		<h2 id="vega-inspector-heading">{ctx.t('editor.visual.inspector.title')}</h2>
+		<h2 id="vega-inspector-heading" bind:this={headingEl} tabindex="-1">
+			{ctx.t('editor.visual.inspector.title')}
+		</h2>
 	</div>
 
 	{#if blocks.hidden}

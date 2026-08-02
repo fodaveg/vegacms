@@ -5,15 +5,20 @@
  *    (`danger` incluido) sobre su `-soft` y sobre paper/surface.
  * 2. El gate MUERDE: un fixture con `accentInk` sub-AA sobre `accent` falla; uno con
  *    `accentText` explícito sub-AA también falla — ambos con mensaje accionable.
+ * 3. El DOBLE TRAZO del editor visual (`validateOverlayBracketContrast`) se lee sobre un fondo
+ *    arbitrario en los 21 temas × 2 modos, y su gate también muerde.
  */
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
 import {
+	bracketWorstCaseContrast,
 	COMPONENT_CONTRAST_PAIRS,
+	contrastRatio,
 	validateComponentContrast,
-	validateContrast
+	validateContrast,
+	validateOverlayBracketContrast
 } from '../../scripts/build-themes.mjs';
 import { makeTheme } from './fixture';
 
@@ -178,6 +183,82 @@ describe('2. El gate MUERDE (fixtures sub-AA)', () => {
 		const errors: string[] = [];
 		validateContrast(theme, errors);
 		validateComponentContrast(theme, errors);
+		expect(errors).toEqual([]);
+	});
+});
+
+/**
+ * El contorno del editor visual (`src/lib/visual/VisualOverlay.svelte`) se pinta ENCIMA del sitio
+ * del cliente, cuyo fondo Vega no controla. Lleva dos anillos, uno claro y uno oscuro, con la
+ * promesa de que al menos uno se lee pase lo que pase detrás. Aquí esa promesa deja de ser una
+ * frase de cabecera y pasa a ser un número: ver `bracketWorstCaseContrast` en
+ * `scripts/build-themes.mjs` para la forma cerrada (peor caso = √(contraste del par)).
+ */
+describe('3. Doble trazo del editor visual sobre un fondo arbitrario', () => {
+	const themes = loadRealThemes();
+
+	test.each(themes.map((t) => [t.id, t] as const))(
+		'%s: el doble trazo paper/ink-hi da ≥3:1 en el peor caso, claro y oscuro',
+		(_id, theme) => {
+			const errors: string[] = [];
+			validateOverlayBracketContrast(theme, errors);
+			expect(errors).toEqual([]);
+		}
+	);
+
+	test('la forma cerrada es la raíz del contraste del par (no una aproximación)', () => {
+		// Comprobación numérica del razonamiento, no del código: un barrido de fondos adversarios
+		// entre los dos trazos nunca puede bajar del valor que anuncia `bracketWorstCaseContrast`,
+		// y se le acerca cuando el fondo cae justo en el cruce.
+		const a = '#ffffff';
+		const b = '#1a1c20';
+		const closed = bracketWorstCaseContrast(a, b);
+		let observed = Infinity;
+		for (let i = 0; i <= 255; i++) {
+			const hex = `#${i.toString(16).padStart(2, '0').repeat(3)}`;
+			observed = Math.min(observed, Math.max(contrastRatio(a, hex), contrastRatio(b, hex)));
+		}
+		expect(observed).toBeGreaterThanOrEqual(closed - 0.02);
+		expect(observed).toBeLessThan(closed + 0.1);
+	});
+
+	test('MUERDE con un par que pasa AA de sobra pero deja el peor caso por debajo de 3:1', () => {
+		// `#4d4d4d` sobre blanco vale 8.45:1: pasa `validateComponentContrast` (≥4.5:1) con holgura
+		// y aun así el peor caso del contorno es 2.91:1. Es justo el hueco que este gate compra —
+		// el gate viejo no ve nada raro en este tema.
+		const theme = makeTheme({
+			id: 'bracket-flojo',
+			modes: { light: { neutrals: { paper: '#ffffff', 'ink-hi': '#4d4d4d' } } }
+		});
+
+		const oldGateErrors: string[] = [];
+		validateComponentContrast(theme, oldGateErrors);
+		expect(oldGateErrors.filter((e) => e.includes('ink-hi'))).toEqual([]);
+
+		const errors: string[] = [];
+		validateOverlayBracketContrast(theme, errors);
+		expect(errors.length).toBeGreaterThan(0);
+		expect(errors[0]).toContain('doble trazo');
+		expect(errors[0]).toContain('bracket-flojo (light)');
+		expect(errors[0]).toMatch(/2\.9\d:1 en el peor caso/);
+		expect(errors[0]).toMatch(/necesita ≥3:1/);
+		expect(errors[0]).toMatch(/≥9:1/);
+	});
+
+	test('MUERDE también con un par que cumple AA justo (4.54:1)', () => {
+		const theme = makeTheme({
+			id: 'bracket-al-limite',
+			modes: { dark: { neutrals: { paper: '#ffffff', 'ink-hi': '#767676' } } }
+		});
+		const errors: string[] = [];
+		validateOverlayBracketContrast(theme, errors);
+		expect(errors.some((e) => e.includes('bracket-al-limite (dark)'))).toBe(true);
+		expect(errors.some((e) => /2\.1\d:1 en el peor caso/.test(e))).toBe(true);
+	});
+
+	test('el fixture base pasa (el gate no es un no-op que siempre falla)', () => {
+		const errors: string[] = [];
+		validateOverlayBracketContrast(makeTheme(), errors);
 		expect(errors).toEqual([]);
 	});
 });

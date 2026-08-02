@@ -793,6 +793,55 @@ describe('VisualEditorScreen.svelte — árbol de secciones e inspector', () => 
 		expect(rows[1].getAttribute('aria-current')).toBe('true');
 	});
 
+	test('D3 (encargo de accesibilidad): seleccionar un bloque anuncia su título y posición por la región `aria-live` del árbol', async () => {
+		const { ctx, type } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		// La región vive UNA vez, en `VisualBlockTree.svelte` (ver la cabecera de
+		// `blocks-state.svelte.ts`, "Anuncio de la selección"): antes de esta tarea solo la
+		// escribía `handleReorder`, así que arranca vacía. Se busca por su clase y NO por
+		// `.vega-tree-panel [aria-live]`: la región cuelga a propósito FUERA del panel del cajón,
+		// porque dentro el `visibility: hidden` del cajón cerrado la dejaba muda (ver el comentario
+		// de esa región en el marcado del árbol).
+		const live = mounted.target.querySelector('.vega-visually-hidden[aria-live="polite"]')!;
+		expect(live.textContent).toBe('');
+
+		const rows = mounted.target.querySelectorAll<HTMLButtonElement>('.vega-tree-row');
+		rows[0].click();
+		await tick();
+		expect(live.textContent).toBe(
+			translate('es', 'editor.visual.tree.announceSelect', { label: 'Hero', position: 1, total: 2 })
+		);
+
+		// Seleccionar OTRO bloque cambia el texto (no es un anuncio fijo, sigue a la selección real).
+		rows[1].click();
+		await tick();
+		expect(live.textContent).toBe(
+			translate('es', 'editor.visual.tree.announceSelect', {
+				label: 'Features',
+				position: 2,
+				total: 2
+			})
+		);
+	});
+
+	test('D3: una selección FANTASMA (id que el sitio reporta pero no resuelve a ningún registro) no anuncia una posición inventada', async () => {
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [{ id: 'fantasma', type: 'hero' }]);
+
+		const live = mounted.target.querySelector('.vega-visually-hidden[aria-live="polite"]')!;
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'select', blockId: 'fantasma' });
+		await tick();
+
+		expect(live.textContent).toBe('');
+	});
+
 	test('un id que el sitio reporta pero el árbol no tiene: el inspector lo DICE, no lo esconde', async () => {
 		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
 		mounted = mountScreen(ctx, type);

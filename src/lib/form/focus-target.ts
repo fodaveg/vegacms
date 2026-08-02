@@ -11,6 +11,12 @@
  * de tipo GRUPO (`chips`/`relation`, `role="group"` sobre un `<div>`) NO lo es — hace falta el
  * fallback al primer elemento focusable dentro de la fila del campo (`FieldRow.svelte` marca
  * `data-field={name}`).
+ *
+ * `isDisabled`/`isFocusable` se EXPORTAN (encargo de accesibilidad del editor visual,
+ * `src/lib/visual/a11y-audit.ts`) para que ese módulo no duplique el criterio de "qué es
+ * enfocable de verdad" — un segundo criterio ligeramente distinto en dos ficheros es la forma
+ * silenciosa de que un día dejen de estar de acuerdo. `a11y-audit.ts` los reusa TAL CUAL, sin
+ * envolverlos en nada propio.
  */
 
 import { fieldIds } from './field-ids';
@@ -29,12 +35,12 @@ const FOCUSABLE_TAGS: ReadonlySet<string> = new Set(['INPUT', 'SELECT', 'TEXTARE
  * (`input`/`select`/`textarea`/`button`); un `<a>`/`[tabindex]` sin ella nunca cuenta como
  * deshabilitado por esta vía (HTML no los deshabilita así).
  */
-function isDisabled(el: Element): boolean {
+export function isDisabled(el: Element): boolean {
 	return 'disabled' in el && (el as unknown as { disabled: boolean }).disabled === true;
 }
 
 /** `true` si `el` es nativamente focusable (o lleva `tabindex` explícito) Y no está deshabilitado. */
-function isFocusable(el: Element): boolean {
+export function isFocusable(el: Element): boolean {
 	if (isDisabled(el)) return false;
 	return FOCUSABLE_TAGS.has(el.tagName) || el.hasAttribute('tabindex');
 }

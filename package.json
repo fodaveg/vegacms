@@ -17,7 +17,7 @@
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"lint": "prettier --check . && eslint . && pnpm themes:check-coverage",
+		"lint": "prettier --check . && eslint . && pnpm themes:check-coverage && pnpm check-touch-targets",
 		"format": "prettier --write .",
 		"test:unit": "vitest",
 		"test": "vitest run",
@@ -31,6 +31,7 @@
 		"test:e2e": "playwright test",
 		"themes:build": "node scripts/build-themes.mjs",
 		"themes:check-coverage": "node scripts/check-theme-coverage.mjs",
+		"check-touch-targets": "node scripts/check-touch-targets.mjs",
 		"check-bundle-budget": "node scripts/check-bundle-budget.mjs",
 		"package": "node scripts/package-dist.mjs",
 		"gate": "pnpm check && pnpm lint && pnpm pb:download && pnpm check-pb-binary && pnpm test && pnpm test:go && pnpm build && pnpm test:e2e"

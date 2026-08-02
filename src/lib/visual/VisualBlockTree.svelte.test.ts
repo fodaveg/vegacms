@@ -20,6 +20,7 @@ import type { BlocksState, BlocksStatus } from '$lib/form/blocks-state.svelte';
 import type { ResolvedBlockType, ResolvedContentType } from '$lib/model/types';
 import type { VegaRecord } from '$lib/backend';
 import { t as translate } from '$lib/i18n';
+import { focusLost } from './a11y-audit';
 
 /** `schema.fields: []` (aunque este doble nunca declara bloques con ficheros): `<DeleteConfirm>`
  *  (montado por este componente, ver su cabecera) lee `blocks.childType.schema.fields` para el
@@ -65,6 +66,7 @@ interface FakeOptions {
 	confirmDelete?: BlocksState['confirmDelete'];
 	cancelDelete?: BlocksState['cancelDelete'];
 	handleReorder?: BlocksState['handleReorder'];
+	say?: BlocksState['say'];
 }
 
 /** Doble MÍNIMO de `BlocksState` (ver cabecera): implementa lo que `VisualBlockTree` LEE, más
@@ -92,6 +94,7 @@ function fakeBlocksState(opts: FakeOptions = {}): BlocksState {
 		pendingDelete: opts.pendingDelete ?? null,
 		deleting: opts.deleting ?? false,
 		announce: opts.announce ?? '',
+		say: opts.say ?? vi.fn(),
 		anyDirty: dirtyIds.size > 0,
 		anySaving: savingIds.size > 0,
 		isExpanded: () => false,
@@ -298,6 +301,46 @@ describe('VisualBlockTree.svelte', () => {
 		expect(toggle.getAttribute('aria-expanded')).toBe('false');
 	});
 
+	test('D2 (encargo de accesibilidad): seleccionar una fila CON el cajón abierto devuelve el foco al disparador, no a `<body>`', async () => {
+		const blocks = fakeBlocksState({ records: [record('b1', 'Hero')] });
+		mounted = mountTree(blocks, null);
+
+		const toggle = mounted.target.querySelector<HTMLButtonElement>('.vega-tree-toggle')!;
+		toggle.click();
+		await tick();
+
+		// La fila TENÍA el foco justo antes de la selección (mismo caso que un `Enter`/`Space` por
+		// teclado sobre el `<button>` de la fila): jsdom no aplica `@media`, así que lo que aquí se
+		// mide no es la geometría (`visibility`, eso lo mide el gate de la tarea siguiente contra un
+		// navegador real) sino la MECÁNICA — que `selectRow()` devuelve el foco al disparador en vez
+		// de dejarlo colgado en un botón que el cierre podría dejar sin destino.
+		const row = mounted.target.querySelector<HTMLButtonElement>('.vega-tree-row')!;
+		row.focus();
+		row.click();
+		await tick();
+
+		expect(focusLost(mounted.target, document.activeElement)).toBe(false);
+		expect(document.activeElement).toBe(toggle);
+	});
+
+	test('D2: en escritorio (`open` nunca `true`) seleccionar una fila NO toca el foco', async () => {
+		const blocks = fakeBlocksState({ records: [record('b1', 'Hero')] });
+		mounted = mountTree(blocks, null);
+		await tick(); // deja asentar el montaje inicial (bind:this de `toggleEl`), mismo motivo que D1
+
+		// Sin abrir el cajón: `open` sigue en `false` (arranque de escritorio, ver cabecera).
+		const row = mounted.target.querySelector<HTMLButtonElement>('.vega-tree-row')!;
+		const outside = document.createElement('button');
+		document.body.appendChild(outside);
+		outside.focus();
+
+		row.click();
+		await tick();
+
+		expect(document.activeElement).toBe(outside);
+		outside.remove();
+	});
+
 	// ————— Acciones estructurales (tarea "acciones estructurales desde el editor visual") —————
 
 	test('el anuncio de reorden se pinta en una región `aria-live`, la MISMA que produce `blocks-state.svelte.ts`', () => {
@@ -309,6 +352,33 @@ describe('VisualBlockTree.svelte', () => {
 
 		const live = mounted.target.querySelector('[aria-live="polite"]');
 		expect(live?.textContent).toBe('«Hero» movido a la posición 1 de 2');
+	});
+
+	test('la región `aria-live` vive FUERA del panel del cajón (o el cajón cerrado la deja muda)', () => {
+		// Regresión del choque entre D2 y D3, cazado revisando el diff y no por el gate. D2 le puso
+		// `visibility: hidden` al cajón CERRADO para sacarlo del orden de tabulación; un lector de
+		// pantalla no lee un subárbol `visibility: hidden`, así que con la región dentro del panel
+		// los anuncios se callan entre 901 y 1180 px de ancho — la banda en la que el lienzo sigue
+		// activo (900 px, `NARROW_QUERY` de `VisualEditorScreen.svelte`) y el árbol ya es cajón
+		// (1180 px, `TREE_QUERY`), con el cajón cerrado, que es su estado normal. Ahí se selecciona
+		// y se mueve sin abrirlo (clic en el lienzo, barra flotante, `Alt+↑`/`Alt+↓`).
+		//
+		// jsdom no evalúa media queries, así que NO se mide la `visibility` computada: se mide la
+		// propiedad que la causa, que es dónde CUELGA la región. Es la comprobación que se pone
+		// roja si alguien la devuelve dentro del panel.
+		const blocks = fakeBlocksState({
+			records: [record('b1', 'Hero')],
+			announce: '«Hero» movido a la posición 1 de 2'
+		});
+		mounted = mountTree(blocks, null);
+
+		const live = mounted.target.querySelector('[aria-live="polite"]');
+		const panel = mounted.target.querySelector('#vega-block-tree-panel');
+		expect(live).not.toBeNull();
+		expect(panel).not.toBeNull();
+		expect(panel?.contains(live!)).toBe(false);
+		// Y sigue habiendo UNA sola región de anuncio, no dos (la de dentro se retiró al sacarla).
+		expect(mounted.target.querySelectorAll('.vega-visually-hidden[aria-live]')).toHaveLength(1);
 	});
 
 	test('"Añadir" sin menú de tipos: crea sin tipo y pide vista previa nueva', async () => {
@@ -441,6 +511,37 @@ describe('VisualBlockTree.svelte', () => {
 
 		expect(handleReorder).toHaveBeenCalledWith(0, 1);
 		expect(onStructuralChange).not.toHaveBeenCalled();
+	});
+
+	test('el ancla de foco de reserva de `DeleteConfirm` vive FUERA del panel, y es enfocable de verdad', () => {
+		// Segunda puerta del MISMO agujero que la región `aria-live` de arriba, cazada por la
+		// revisión: `<DeleteConfirm>` cae a `fallbackFocusEl` justo cuando el borrado tuvo éxito y
+		// se llevó por delante el botón que lo disparó, y borrar se puede pedir SIN abrir el cajón
+		// (papelera de la barra flotante del lienzo, o `Supr`/`Retroceso` de la pantalla). Con el
+		// ancla dentro del panel, el `visibility: hidden` del cajón cerrado la deja inerte y
+		// `.focus()` es un no-op MUDO: el foco acaba en `<body>`.
+		//
+		// jsdom NO implementa la infocusabilidad por `visibility: hidden` (misma limitación que la
+		// cabecera de `VisualInspector.svelte` admite para D1), así que ese efecto NO se puede
+		// medir aquí. Lo que sí se mide es su causa: dónde CUELGA el ancla, y que sea un destino de
+		// foco real y no un `<div>` inerte. Se pone rojo si alguien la devuelve dentro del panel.
+		const blocks = fakeBlocksState({ records: [record('b1', 'Hero')] });
+		mounted = mountTree(blocks, null);
+
+		const panel = mounted.target.querySelector('#vega-block-tree-panel');
+		const anchor = mounted.target.querySelector<HTMLElement>(
+			'.vega-visually-hidden[tabindex="-1"]'
+		);
+		expect(anchor).not.toBeNull();
+		expect(panel?.contains(anchor!)).toBe(false);
+
+		// Enfocable de verdad: `.vega-visually-hidden` recorta con `clip`, nunca con
+		// `display`/`visibility`, así que el nodo sigue aceptando el foco.
+		document.body.append(mounted.target);
+		anchor!.focus();
+		expect(document.activeElement).toBe(anchor);
+		expect(focusLost(mounted.target, document.activeElement)).toBe(false);
+		mounted.target.remove();
 	});
 
 	test('borrar: pide `requestDelete`, y confirmar en `DeleteConfirm` llama a `confirmDelete` y pide vista previa nueva', async () => {

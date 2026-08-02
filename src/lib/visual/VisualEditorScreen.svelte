@@ -63,7 +63,9 @@
 	 * para que el marco reaccione a su propia selección — `handleBlockSelect`, más abajo, es la
 	 * ÚNICA puerta de entrada para las dos fuentes, así que los dos sentidos ("clic en el lienzo
 	 * selecciona en el árbol" y "elegir en el árbol resalta el lienzo") quedan sincronizados sin
-	 * ningún camino que los pueda desincronizar.
+	 * ningún camino que los pueda desincronizar. Por el mismo motivo es también el único sitio que
+	 * ANUNCIA la selección por voz (`announceSelection`, encargo de accesibilidad D3): un lector de
+	 * pantalla oye lo mismo venga la selección del sitio o del árbol.
 	 *
 	 * **Guard de salida**: esta pantalla puede tener ediciones sin guardar desde que el inspector
 	 * monta `BlockEditor` de verdad, así que usa `beforeNavigate` + `beforeunload`, **el MISMO
@@ -503,12 +505,33 @@
 	 *  Además de mover el dueño único (`selectedBlockId`), avisa al sitio con `highlight`/
 	 *  `scrollTo`: el marco puede querer resaltar visualmente el bloque que acaba de anunciar, o
 	 *  desplazarse si la selección vino del árbol y el bloque está fuera de la vista. Las dos
-	 *  llamadas son no-op si el puente no está `connected` (`bridge-client.ts#highlight`).
+	 *  llamadas son no-op si el puente no está `connected` (`bridge-client.ts#highlight`). Desde el
+	 *  encargo de accesibilidad (D3), también ANUNCIA la selección por la región `aria-live` de
+	 *  `VisualBlockTree.svelte` — un solo sitio (esta puerta), no tres, aunque la selección pueda
+	 *  llegar por el sitio o por el árbol.
 	 */
 	function handleBlockSelect(blockId: string): void {
 		selectedBlockId = blockId;
 		bridgeClient?.highlight(blockId);
 		bridgeClient?.scrollTo(blockId);
+		announceSelection(blockId);
+	}
+
+	/** Construye y anuncia el texto de la selección (ver `handleBlockSelect`, D3): título del
+	 *  bloque + su posición entre los que hay. Si `blockId` no resuelve a ningún registro de
+	 *  `blocks.records` (selección fantasma, mismo caso que `danglingSelection` de
+	 *  `VisualInspector.svelte`), no anuncia nada — inventar una posición mentiría sobre algo que
+	 *  el autor no eligió. */
+	function announceSelection(blockId: string): void {
+		const index = blocks.records.findIndex((r) => r.id === blockId);
+		if (index < 0) return;
+		blocks.say(
+			ctx.t('editor.visual.tree.announceSelect', {
+				label: blocks.blockTitle(blocks.records[index]),
+				position: index + 1,
+				total: blocks.records.length
+			})
+		);
 	}
 
 	/** Crea el cliente del puente la PRIMERA vez que hay un token (ver cabecera): fija el origen
@@ -1465,6 +1488,23 @@
 	.vega-visual-help-toggle[aria-pressed='true'] {
 		border-color: var(--line-strong);
 		color: var(--ink);
+	}
+
+	/* Objetivo táctil 44×44 (checklist de accesibilidad, medido con `scripts/check-touch-targets.mjs`):
+	   solo con puntero basto, mismo criterio que `VisualBlockTree.svelte`. Los botones de texto
+	   (tamaño de pantalla, zoom) ya crecen con su propio padding, así que basta con el alto; los dos
+	   iconos-solo (ayuda, cerrar el panel de ayuda) son cuadrados y necesitan las dos dimensiones. */
+	@media (pointer: coarse) {
+		.vega-visual-screen-btn,
+		.vega-visual-zoom-btn {
+			min-height: 44px;
+		}
+
+		.vega-visual-help-toggle,
+		.vega-visual-help-close {
+			min-height: 44px;
+			min-width: 44px;
+		}
 	}
 
 	/* Diálogo de ayuda (ver cabecera, "Panel de ayuda de atajos"): mismo par backdrop/dialog que

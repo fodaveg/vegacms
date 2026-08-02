@@ -262,6 +262,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.tree.title': 'Sections',
 	'editor.visual.tree.selectLabel': 'Select "{label}"',
 	'editor.visual.tree.unavailable': 'Could not load the section tree.',
+	// Selection announcement ("accessibility" task, D3): see `es.ts` for the full rationale (same
+	// `aria-live` region as `editor.blocks.reorder.moved`).
+	'editor.visual.tree.announceSelect': 'Section "{label}" selected, {position} of {total}',
 	// ————— Structural tree actions ("structural actions from the visual editor" task): see
 	// `es.ts` for the full rationale (same keys reused by the floating toolbar in
 	// `VisualOverlay.svelte`).

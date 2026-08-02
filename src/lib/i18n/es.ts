@@ -285,6 +285,10 @@ export const es = {
 	'editor.visual.tree.title': 'Secciones',
 	'editor.visual.tree.selectLabel': 'Seleccionar «{label}»',
 	'editor.visual.tree.unavailable': 'No se pudo cargar el árbol de secciones.',
+	// Anuncio de la selección (encargo de accesibilidad, D3): `VisualEditorScreen.svelte#handleBlockSelect`
+	// lo lee por la MISMA región `aria-live` que ya usa `editor.blocks.reorder.moved` (ver la
+	// cabecera de `blocks-state.svelte.ts`, "Anuncio de la selección").
+	'editor.visual.tree.announceSelect': 'Sección «{label}» seleccionada, {position} de {total}',
 	// ————— Acciones estructurales del árbol (tarea "acciones estructurales desde el editor
 	// visual"): crear/duplicar/borrar/mover viven aquí Y en la barra flotante del lienzo
 	// (`VisualOverlay.svelte`), que reutiliza estas MISMAS claves de duplicar/borrar/mover —

@@ -37,8 +37,11 @@
 	 * dato, un solo dueño (el propio `blocks-state.svelte.ts`)—, así que basta con UN
 	 * `<DeleteConfirm>` en todo el árbol de componentes de la pantalla para que sirva a las dos
 	 * superficies. Vive en este componente (y no en `VisualEditorScreen.svelte`) porque este es el
-	 * que ya tiene la cabecera (`vega-tree-heading`) que sirve de `fallbackFocusEl` — mismo truco
-	 * que `RecordBlocks.svelte` usa con su propio `<h2>`.
+	 * dueño del árbol de secciones, que es la vía accesible que manda. Su `fallbackFocusEl` (a
+	 * dónde va el foco cuando el borrado se lleva por delante el botón que lo disparó) es un ancla
+	 * PROPIA fuera de `.vega-tree-panel`, no la cabecera del panel: ver su comentario en el
+	 * marcado, y el bloque D2 de más abajo, para por qué cualquier nodo de DENTRO del panel deja
+	 * de servir desde que el cajón cerrado es `visibility: hidden`.
 	 *
 	 * **Un solo dueño del estado, otra presentación más** (mismo reparto que `RecordBlocks.svelte`,
 	 * ver la cabecera de `blocks-state.svelte.ts`): `blocks` llega como PROP, ya construido por
@@ -70,6 +73,23 @@
 	 * escritorio el cierre es un no-op inofensivo, `open` no gobierna nada ahí); una acción
 	 * estructural (crear/duplicar/borrar/mover) NO lo cierra — el autor puede querer encadenar
 	 * varias sin reabrir el cajón cada vez.
+	 *
+	 * **Cerrado, el cajón sale del orden de tabulación (encargo de accesibilidad, D2).** El cierre
+	 * es un `transform: translateX(-100%)` (ver el CSS del `@media`), y un `transform` NO saca nada
+	 * de la tabulación: sin más, con el cajón cerrado todas las filas, los botones de acción y
+	 * "Añadir" seguían siendo tabulables, fuera de la pantalla — quien navegue con teclado tabulaba
+	 * a controles invisibles. El CSS del `@media` añade `.vega-tree-panel { visibility: hidden }` +
+	 * `.vega-tree-panel--open { visibility: visible }`, que sí saca del orden; la consecuencia que
+	 * hay que cubrir en el propio componente es que `selectRow()` llama a `closeDrawer()`, así que
+	 * seleccionar una fila con el cajón abierto cerraría el panel con el foco todavía puesto en ese
+	 * botón — con `visibility: hidden` eso se llevaría el foco a `<body>` sin avisar, la MISMA
+	 * landmine que D1 arregla en `VisualInspector.svelte`. `selectRow()` por eso devuelve el foco al
+	 * disparador (`toggleEl?.focus()`, mismo criterio que `handleWindowKeydown` con `Escape`), y
+	 * solo si el cajón estaba abierto — en escritorio `open` nunca es `true`, así que ahí no pasa
+	 * nada. La SEGUNDA consecuencia, menos evidente y por eso con test propio: la región
+	 * `aria-live` de los anuncios tuvo que salir del panel, o el cajón cerrado la deja muda (ver el
+	 * comentario de esa región en el marcado, y `.vega-tree-close` en el bloque de puntero basto,
+	 * que es el otro control al que este cajón le deja un objetivo táctil corto).
 	 *
 	 * **Selección externa → esta lista se desplaza, no se enfoca.** Cuando `selectedId` cambia
 	 * porque el autor hizo clic en el LIENZO (`VisualEditorScreen.svelte#handleBlockSelect`), la fila
@@ -109,16 +129,24 @@
 	let toggleEl = $state<HTMLElement | null>(null);
 	let panelEl = $state<HTMLElement | null>(null);
 	/** Destino de foco de reserva de `DeleteConfirm` (ver cabecera, "La confirmación de borrado
-	 *  vive AQUÍ") — la propia cabecera del panel, `tabindex="-1"`, mismo truco que `RecordBlocks`. */
-	let headingEl = $state<HTMLElement | null>(null);
+	 *  vive AQUÍ"). Es un ancla PROPIA, fuera de `.vega-tree-panel`, no la cabecera del panel: ver
+	 *  su comentario en el marcado para el porqué (el cajón cerrado la dejaría inerte). */
+	let fallbackFocusEl = $state<HTMLElement | null>(null);
 
 	function closeDrawer(): void {
 		open = false;
 	}
 
 	function selectRow(id: string): void {
+		// Capturado ANTES de `closeDrawer()` (ver cabecera, D2 del encargo de accesibilidad): en
+		// escritorio `open` nunca es `true`, así que `wasOpen` es siempre `false` ahí y la línea de
+		// abajo no hace nada — el `visibility: hidden` del cajón cerrado (ver el CSS) SÍ saca el
+		// panel del orden de tabulación, así que cerrarlo con el foco en la fila recién pulsada se
+		// lo llevaría a `<body>` sin este `focus()` explícito.
+		const wasOpen = open;
 		onSelect(id);
 		closeDrawer(); // ver cabecera: no-op en escritorio, cierra el cajón en móvil/tablet
+		if (wasOpen) toggleEl?.focus();
 	}
 
 	/** `Escape` cierra el cajón y devuelve el foco al disparador (mismo criterio que
@@ -270,6 +298,41 @@
 	></button>
 {/if}
 
+<!-- Anuncio por voz del reorden Y de la selección (ver la cabecera de `blocks-state.svelte.ts`):
+     la MISMA región que monta `RecordBlocks.svelte`, sobre el MISMO `blocks.announce`.
+
+     **Vive FUERA de `.vega-tree-panel`, y eso es un requisito, no una colocación cualquiera.**
+     Estuvo dentro del panel hasta que D2 (ver cabecera, "Cerrado, el cajón sale del orden de
+     tabulación") le puso `visibility: hidden` al cajón cerrado: un lector de pantalla NO lee el
+     contenido de un subárbol `visibility: hidden`, así que entre 901 y 1180 px de ancho —la banda
+     en la que el lienzo sigue activo (`NARROW_QUERY`, 900 px, de `VisualEditorScreen.svelte`) y el
+     árbol YA es un cajón (`TREE_QUERY`, 1180 px)— con el cajón cerrado, que es su estado normal,
+     los anuncios se quedaban MUDOS. Y no solo el de la selección que estrena D3: también el del
+     reorden, que funcionaba desde antes y se habría roto en silencio. Seleccionar y mover siguen
+     siendo posibles ahí sin abrir el cajón (clic en el lienzo, barra flotante del contorno,
+     `Alt+↑`/`Alt+↓`), así que la región tiene que estar donde ningún estado del cajón la apague.
+     Si algún día se mueve de vuelta dentro del panel, esto vuelve. -->
+<div aria-live="polite" class="vega-visually-hidden">{blocks.announce}</div>
+
+<!-- Ancla de foco de reserva de `<DeleteConfirm>` (ver cabecera, "La confirmación de borrado vive
+     AQUÍ"). Mismo patrón que `RecordForm.svelte` con su `<h1 class="vega-visually-hidden"
+     tabindex="-1">`: un destino que NO se ve pero SÍ se puede enfocar (`.vega-visually-hidden`
+     recorta con `clip`, nunca con `display`/`visibility`, así que el nodo sigue siendo enfocable).
+
+     **Fuera de `.vega-tree-panel`, por el mismo motivo que la región `aria-live` de aquí arriba.**
+     Antes era la cabecera del panel (`#vega-tree-heading`), que funcionaba mientras el cajón
+     cerrado solo se apartaba con `transform`. Desde que D2 lo cierra con `visibility: hidden` (ver
+     cabecera), cualquier nodo de dentro deja de ser enfocable con el cajón cerrado, y `.focus()`
+     sobre él es un no-op MUDO: el foco se iría a `<body>`. Y ese es un camino real, no teórico —
+     `DeleteConfirm` usa este destino justo cuando el borrado tuvo éxito y se llevó por delante el
+     botón que lo disparó, y borrar se puede pedir sin abrir el cajón desde la papelera de la barra
+     flotante del lienzo (`VisualOverlay.svelte`) o con `Supr`/`Retroceso`
+     (`VisualEditorScreen.svelte`). El texto de dentro es lo que oirá quien use lector de pantalla
+     al aterrizar aquí, así que dice DÓNDE está, no un rótulo vacío. -->
+<div bind:this={fallbackFocusEl} class="vega-visually-hidden" tabindex="-1">
+	{ctx.t('editor.visual.tree.title')}
+</div>
+
 <div
 	id="vega-block-tree-panel"
 	class="vega-tree-panel"
@@ -279,7 +342,7 @@
 	aria-labelledby="vega-tree-heading"
 >
 	<div class="vega-tree-head">
-		<h2 id="vega-tree-heading" bind:this={headingEl} tabindex="-1">
+		<h2 id="vega-tree-heading">
 			{headingText}
 			{#if blocks.status.kind === 'ready'}
 				<span class="vega-tree-count">{blocks.records.length}</span>
@@ -346,11 +409,6 @@
 			<Icon id="close" size={16} />
 		</button>
 	</div>
-
-	<!-- Anuncio del reorden (ver cabecera de `blocks-state.svelte.ts`): la MISMA región que
-	     `RecordBlocks.svelte` monta, sobre el MISMO `blocks.announce` — mover una fila desde aquí
-	     usa `handleReorder`, que es quien produce el texto. -->
-	<div aria-live="polite" class="vega-visually-hidden">{blocks.announce}</div>
 
 	{#if blocks.hidden}
 		<p class="vega-tree-notice" role="alert">{ctx.t('editor.visual.tree.unavailable')}</p>
@@ -466,7 +524,7 @@
 	targetCollection={blocks.pendingDelete?.type ?? ''}
 	targetId={blocks.pendingDelete?.id ?? null}
 	deleting={blocks.deleting}
-	fallbackFocusEl={headingEl}
+	{fallbackFocusEl}
 	hasFiles={blocks.pendingDelete !== null &&
 		blocks.childType !== null &&
 		hasFileValues(blocks.childType.schema.fields, blocks.pendingDelete.values)}
@@ -805,7 +863,17 @@
 			min-height: 44px;
 		}
 
-		.vega-tree-action {
+		/* Los dos controles de SOLO ICONO de este componente necesitan también los 44px de ANCHO:
+		   sin texto dentro, nada más se los da. `.vega-tree-close` mide `width: 1.8rem` (28,8px)
+		   dentro del `@media (max-width: 1180px)` de más abajo, que es justo donde existe (es el
+		   botón de cerrar el cajón), así que en un móvil quedaba en 44 de alto por 28,8 de ancho.
+		   `scripts/check-touch-targets.mjs` no lo señala y no es un fallo suyo: por contrato solo
+		   lee lo declarado fuera de todo `@media` más el bloque de puntero basto, y esa anchura
+		   vive en un punto de corte de ANCHURA que el script descarta entero. El resto de controles
+		   de aquí llevan texto (`.vega-tree-row`, `.vega-tree-toggle`, `.vega-tree-add`) y su ancho
+		   sale del contenido más el padding, muy por encima de 44px. */
+		.vega-tree-action,
+		.vega-tree-close {
 			min-width: 44px;
 		}
 	}
@@ -874,11 +942,20 @@
 			width: min(320px, 86vw);
 			border-radius: 0;
 			transform: translateX(-100%);
-			transition: transform 0.18s ease;
+			/* `visibility` (encargo de accesibilidad, D2): un `transform` NO saca nada del orden de
+			   tabulación — cerrado con solo `translateX`, las filas/botones seguían siendo tabulables
+			   fuera de la pantalla. `visibility: hidden` sí lo hace, y entra en la `transition` para
+			   no cortar la animación de golpe (medio segundo con el panel ya invisible pero aún
+			   deslizándose se vería igual que antes, solo que ya no roba foco). */
+			visibility: hidden;
+			transition:
+				transform 0.18s ease,
+				visibility 0.18s ease;
 		}
 
 		.vega-tree-panel--open {
 			transform: translateX(0);
+			visibility: visible;
 		}
 	}
 </style>

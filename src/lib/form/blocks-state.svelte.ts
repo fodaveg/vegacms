@@ -47,6 +47,20 @@
  * tras un `await`, dentro de una mutación en vuelo) devuelve el valor VIVO en ese instante, nunca
  * una foto capturada al invocar la mutación. Es la misma propiedad que ya explotaba el componente
  * original al leer sus props directamente desde cualquier punto de una función async.
+ *
+ * **Anuncio de la selección (encargo de accesibilidad del editor visual, D3).** Antes de esta
+ * tarea, `announce` solo lo escribía `handleReorder` (el resultado de MOVER un bloque); seleccionar
+ * uno —el gesto central del editor visual, y el que hace desde el árbol quien usa lector de
+ * pantalla— no anunciaba nada. `say(text)` expone un escritor PÚBLICO del MISMO `$state`, para que
+ * la selección hable por la MISMA región `aria-live` sin montar una segunda (esa región vive UNA
+ * vez, en `VisualBlockTree.svelte`, ver su cabecera). Quien construye el texto (título del bloque +
+ * posición) es `VisualEditorScreen.svelte#handleBlockSelect` — la puerta ÚNICA de selección, la
+ * usan tanto el sitio por `postMessage` como el árbol —, no este módulo: aquí solo vive el
+ * ALTAVOZ, nunca la redacción, porque el texto necesita el i18n de la pantalla (`ctx.t`) y la
+ * posición dentro de `blocks.records`, dos cosas que esta fábrica ya expone pero que no le
+ * corresponde recomponer en un idioma. Mismo criterio de reasignación que `handleReorder`: un
+ * string NUEVO en cada llamada, incluso si el texto coincidiera con el anterior, para que el
+ * lector de pantalla lo relea.
  */
 import { untrack } from 'svelte';
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
@@ -110,7 +124,8 @@ export interface BlocksState {
 	readonly structuralBusy: boolean;
 	readonly pendingDelete: VegaRecord | null;
 	readonly deleting: boolean;
-	/** Texto de la región `aria-live` (accesibilidad del reorden). */
+	/** Texto de la región `aria-live` (accesibilidad del reorden y, desde el encargo de
+	 *  accesibilidad del editor visual D3, también de la SELECCIÓN — ver `say`). */
 	readonly announce: string;
 	/** `true` ⟺ al menos un bloque tiene ediciones sin guardar (agregado de decisión 2). */
 	readonly anyDirty: boolean;
@@ -146,6 +161,13 @@ export interface BlocksState {
 	 *  el propio módulo la reuse tras un reorden a medias (ver `handleReorder`) y para poder
 	 *  probarla en aislado sin depender del `$effect` de carga automática. */
 	load(collection: string, id: RecordId): Promise<void>;
+
+	/** Escritor PÚBLICO de la región `aria-live` (encargo de accesibilidad, D3): escribe el MISMO
+	 *  `$state` que ya usa `handleReorder` — una sola región, dos motivos para hablar por ella. Ver
+	 *  la cabecera del módulo, "Anuncio de la selección (D3)", para el porqué de exponerlo aquí en
+	 *  vez de dejar que cada llamador escriba `announce` directamente (no puede: es de solo
+	 *  lectura desde fuera, ver el `get announce()` de más abajo). */
+	say(text: string): void;
 
 	toggle(id: string): void;
 	setDirty(id: string, dirty: boolean): void;
@@ -330,6 +352,13 @@ export function createBlocksState(options: BlocksStateOptions): BlocksState {
 		if (!field) return ctx.t('list.untitled');
 		const descriptor = describeCell(field, record.values[field.name] ?? null, ctx.locale);
 		return resolveTitleCellText(descriptor, ctx.t('list.untitled'));
+	}
+
+	/** Ver la interfaz (D3): reasigna `announce` con el string NUEVO recibido, sin comparar contra
+	 *  el valor anterior — mismo patrón que ya documenta `handleReorder` más abajo (releer aunque
+	 *  el texto coincida es justo lo que necesita un lector de pantalla para anunciarlo otra vez). */
+	function say(text: string): void {
+		announce = text;
 	}
 
 	function toggle(id: string): void {
@@ -646,6 +675,7 @@ export function createBlocksState(options: BlocksStateOptions): BlocksState {
 		blockTitle,
 		currentDraftRecords,
 		load,
+		say,
 		toggle,
 		setDirty,
 		setSaving,

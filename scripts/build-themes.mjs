@@ -1041,6 +1041,72 @@ export function validateComponentContrast(theme, errors) {
 	}
 }
 
+/**
+ * Pareja del DOBLE TRAZO que el editor visual pinta sobre el sitio del cliente
+ * (`src/lib/visual/VisualOverlay.svelte`: contorno de bloque, guía de caída del arrastre). Un solo
+ * par, y en este orden (claro, oscuro) solo para que el mensaje de error se lea igual siempre: el
+ * cálculo de abajo es simétrico.
+ */
+const OVERLAY_BRACKET_PAIR = ['paper', 'ink-hi'];
+
+/** Mínimo exigido al doble trazo contra un fondo cualquiera: 3:1, el umbral de WCAG 2.2 §1.4.11
+ *  (contraste de elementos NO textuales — un contorno es exactamente eso). */
+const OVERLAY_BRACKET_MIN = 3;
+
+/**
+ * Contraste PEOR CASO del doble trazo contra un fondo ARBITRARIO, en forma cerrada.
+ *
+ * El contorno del editor visual se dibuja encima de un `<iframe>` con el sitio del cliente, cuyo
+ * fondo Vega no controla ni puede leer (otro origen). Por eso el contorno lleva DOS anillos, uno
+ * claro y uno oscuro: la promesa es "pase lo que pase detrás, al menos uno de los dos se lee".
+ * Hasta ahora esa promesa estaba solo AFIRMADA en la cabecera del componente; esto la convierte en
+ * un número.
+ *
+ * El contraste WCAG es `(L1+0.05)/(L2+0.05)` con las luminancias relativas. Dadas las luminancias
+ * de los dos trazos `La > Lb`, un fondo adversario `Lx` elige el valor que minimiza el MEJOR de los
+ * dos contrastes. Fuera del intervalo `[Lb, La]` los dos contrastes crecen, así que el mínimo cae
+ * dentro y está donde se cruzan:
+ *
+ *     (La+0.05)/(Lx+0.05) = (Lx+0.05)/(Lb+0.05)  ⇒  mejor contraste = √((La+0.05)/(Lb+0.05))
+ *
+ * O sea: **el peor caso garantizado es la raíz cuadrada del contraste del PAR**. La consecuencia
+ * práctica, que es lo que hace que este guardarraíl valga la pena: para garantizar 3:1 contra
+ * cualquier fondo, el par tiene que valer ≥9:1 — bastante más que el 4.5:1 que ya exige
+ * `COMPONENT_CONTRAST_PAIRS` para `ink-hi`/`paper`. Un par que cumpliera AA justito (4.5:1) dejaría
+ * el peor caso en 2.12:1, por debajo del umbral, y el gate viejo no se enteraría.
+ */
+export function bracketWorstCaseContrast(hexA, hexB) {
+	return Math.sqrt(contrastRatio(hexA, hexB));
+}
+
+/**
+ * Gate del doble trazo del editor visual (ver `bracketWorstCaseContrast`): por cada tema ×
+ * {claro, oscuro}, el peor caso del par `paper`/`ink-hi` contra un fondo arbitrario debe cumplir
+ * ≥3:1. Medido el 2026-08-02 sobre los 21 temas: el peor par es `aquelarre` en claro con 11.39:1,
+ * o sea 3.37:1 de peor caso — pasa, con margen, pero el margen no es enorme y nadie lo estaba
+ * vigilando.
+ *
+ * Sin lista de excepciones, igual que el resto de gates de este fichero.
+ */
+export function validateOverlayBracketContrast(theme, errors) {
+	const { id } = theme;
+	const [lightKey, darkKey] = OVERLAY_BRACKET_PAIR;
+	for (const mode of ['light', 'dark']) {
+		const tokens = resolveComponentTokens(theme, mode);
+		const aHex = tokens[lightKey];
+		const bHex = tokens[darkKey];
+		const worst = bracketWorstCaseContrast(aHex, bHex);
+		if (worst < OVERLAY_BRACKET_MIN) {
+			errors.push(
+				`${id} (${mode}): doble trazo ${lightKey} (${aHex}) / ${darkKey} (${bHex}) = ` +
+					`${contrastRatio(aHex, bHex).toFixed(2)}:1 entre sí, o sea ${worst.toFixed(2)}:1 en el ` +
+					`peor caso contra un fondo cualquiera — necesita ≥${OVERLAY_BRACKET_MIN}:1 (WCAG 1.4.11). ` +
+					`El par tiene que valer ≥${OVERLAY_BRACKET_MIN ** 2}:1`
+			);
+		}
+	}
+}
+
 /** Orden canónico de superficies para el guardarraíl de luminancia (§4.4). */
 const NEUTRAL_LUMINANCE_ORDER = ['bg', 'sidebar', 'paper', 'surface-2', 'surface', 'btn', 'active'];
 
@@ -1182,6 +1248,7 @@ async function main() {
 	for (const theme of themes) {
 		validateContrast(theme, errors);
 		validateComponentContrast(theme, errors);
+		validateOverlayBracketContrast(theme, errors);
 		validateNeutrals(theme, errors);
 	}
 	validateUniqueness(themes, errors);

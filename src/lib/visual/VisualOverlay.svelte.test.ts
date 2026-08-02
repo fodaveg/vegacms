@@ -85,6 +85,7 @@ function fakeBlocksState(opts: FakeOptions = {}): BlocksState {
 		pendingDelete: null,
 		deleting: false,
 		announce: '',
+		say: () => {},
 		anyDirty: dirtyIds.size > 0,
 		anySaving: savingIds.size > 0,
 		isExpanded: () => false,

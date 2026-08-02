@@ -19,6 +19,7 @@ import type { ResolvedContentType } from '$lib/model/types';
 import type { VegaRecord } from '$lib/backend';
 import { resolveContentModel } from '$lib/model/resolve';
 import { t as translate } from '$lib/i18n';
+import { focusLost } from './a11y-audit';
 
 const postType: ContentType = {
 	name: 'post',
@@ -138,6 +139,7 @@ function fakeBlocksState(
 		pendingDelete: null,
 		deleting: false,
 		announce: '',
+		say: () => {},
 		anyDirty: false,
 		anySaving: false,
 		isExpanded: () => false,
@@ -187,6 +189,39 @@ function mountInspector(
 		context: new Map([[VEGA_CONTEXT_KEY, ctx]])
 	});
 	return { target, instance };
+}
+
+/** Props REACTIVAS (`$state`, mismo patrón que `PreviewPanel.svelte.test.ts`): D1 necesita mutar
+ *  `selectedId` sobre un montaje YA vivo (es justo el cambio que dispara el `$effect.pre`/`$effect`
+ *  de foco, ver la cabecera del componente), no crear un montaje nuevo con el valor ya puesto. */
+function mountInspectorReactive(
+	blocks: BlocksState,
+	selectedId: string | null,
+	ctx: VegaAppContext
+): {
+	target: HTMLElement;
+	instance: ReturnType<typeof mount>;
+	props: { selectedId: string | null };
+} {
+	const target = document.createElement('div');
+	document.body.appendChild(target);
+	const props = $state({ blocks, selectedId, onBlockSaved: vi.fn() });
+	const instance = mount(VisualInspector, {
+		target,
+		props,
+		context: new Map([[VEGA_CONTEXT_KEY, ctx]])
+	});
+	return { target, instance, props };
+}
+
+/** Drena el `$effect.pre`/`$effect` de foco (ver cabecera del componente: el segundo mueve el foco
+ *  dentro de un `tick().then(...)`, así que hace falta más de un `tick()` de Svelte para verlo
+ *  resuelto). */
+async function settleFocus(): Promise<void> {
+	await tick();
+	await Promise.resolve();
+	await Promise.resolve();
+	await tick();
 }
 
 describe('VisualInspector.svelte', () => {
@@ -303,5 +338,89 @@ describe('VisualInspector.svelte', () => {
 		);
 		expect(handleBlockSaved).toHaveBeenCalledWith('b1', expect.objectContaining({ id: 'b1' }));
 		expect(onBlockSaved).toHaveBeenCalledTimes(1);
+	});
+
+	// ————— D1 (encargo de accesibilidad): el foco NO puede caer a `<body>` al cambiar de bloque —————
+	describe('D1 — el foco sigue a la selección, y nunca se lo roba a otra superficie', () => {
+		let reactive: {
+			target: HTMLElement;
+			instance: ReturnType<typeof mount>;
+			props: { selectedId: string | null };
+		} | null = null;
+
+		afterEach(async () => {
+			if (reactive) {
+				await unmount(reactive.instance);
+				reactive.target.remove();
+				reactive = null;
+			}
+		});
+
+		test('foco dentro de la ficha A, la selección pasa a B: el foco acaba dentro de la ficha de B', async () => {
+			const update = vi.fn();
+			const blocks = fakeBlocksState(
+				{ records: [record('b1', 'Hero'), record('b2', 'Features')] },
+				childType,
+				structuralFields
+			);
+			reactive = mountInspectorReactive(blocks, 'b1', fakeCtx(update));
+			await settleFocus(); // deja asentar el montaje inicial (bind:this de `panelEl`/`headingEl`)
+
+			const bodies = reactive.target.querySelectorAll<HTMLElement>('.vega-inspector-body');
+			const inputA = bodies[0].querySelector<HTMLInputElement>('input[type="text"]')!;
+			inputA.focus();
+			expect(document.activeElement).toBe(inputA);
+
+			reactive.props.selectedId = 'b2';
+			await settleFocus();
+
+			expect(focusLost(reactive.target, document.activeElement)).toBe(false);
+			expect(bodies[1].contains(document.activeElement)).toBe(true);
+			expect(bodies[0].contains(document.activeElement)).toBe(false);
+		});
+
+		test('foco dentro de la ficha A, se deselecciona (`selectedId = null`): el foco acaba en la cabecera del inspector', async () => {
+			const update = vi.fn();
+			const blocks = fakeBlocksState(
+				{ records: [record('b1', 'Hero'), record('b2', 'Features')] },
+				childType,
+				structuralFields
+			);
+			reactive = mountInspectorReactive(blocks, 'b1', fakeCtx(update));
+			await settleFocus();
+
+			const inputA = reactive.target.querySelector<HTMLInputElement>('input[type="text"]')!;
+			inputA.focus();
+
+			reactive.props.selectedId = null;
+			await settleFocus();
+
+			expect(focusLost(reactive.target, document.activeElement)).toBe(false);
+			expect(document.activeElement?.id).toBe('vega-inspector-heading');
+		});
+
+		test('el foco está FUERA del inspector: cambiar la selección no lo mueve', async () => {
+			const update = vi.fn();
+			const blocks = fakeBlocksState(
+				{ records: [record('b1', 'Hero'), record('b2', 'Features')] },
+				childType,
+				structuralFields
+			);
+			reactive = mountInspectorReactive(blocks, 'b1', fakeCtx(update));
+			await settleFocus();
+
+			// Un control de FUERA del inspector (mismo criterio que la cabecera del componente:
+			// "nunca robar el foco a quien teclea en OTRA superficie").
+			const outside = document.createElement('button');
+			document.body.appendChild(outside);
+			outside.focus();
+			expect(document.activeElement).toBe(outside);
+
+			reactive.props.selectedId = 'b2';
+			await settleFocus();
+
+			expect(document.activeElement).toBe(outside);
+			outside.remove();
+		});
 	});
 });
