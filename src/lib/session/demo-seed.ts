@@ -168,7 +168,7 @@
  * bitmap generado con `<canvas>` en tiempo de siembra (ver `renderShowcaseBitmap`) — medidas
  * exactas, cero peso en el bundle. `DEMO_SEED`/`DEMO_SEED_WITH_MEDIA` conservan el PNG de 1×1.
  */
-import type { ContentType, JsonValue } from '$lib/backend/types';
+import type { ContentType, FieldValue, JsonValue } from '$lib/backend/types';
 import { VEGA_COLLECTION } from '$lib/backend/collections';
 import type { MemorySeed } from '$lib/backend/adapters/memory';
 
@@ -1508,8 +1508,18 @@ const SHOWCASE_MANIFEST: JsonValue = {
 			order: 2,
 			// `blocks`: la página se compone de secciones ordenables, editadas EN LÍNEA dentro de su
 			// propio formulario. Abre «Inicio» para verlo; el resto de páginas enseñan el estado
-			// vacío de la lista embebida.
-			blocks: { collection: 'secciones', parentField: 'pagina', orderField: 'orden' },
+			// vacío de la lista embebida. `typeField`/`dataField` (encargo "fixture de tipos para la
+			// paleta"): el par que activa el modo HETEROGÉNEO (`hasTypeMenu`, `blocks-state.svelte.ts`)
+			// contra las columnas reales que `SECCIONES_CONTENT_TYPE` declara — sin esto, `blockTypes`
+			// de abajo no tendría ninguna colección que lo consuma y `resolveBlocks` seguiría
+			// degradando a homogéneo (`typeField: null`).
+			blocks: {
+				collection: 'secciones',
+				parentField: 'pagina',
+				orderField: 'orden',
+				typeField: 'tipo',
+				dataField: 'datos'
+			},
 			fields: { title: { label: 'Título' } }
 		},
 		// La colección hija NO aparece en la nav: se edita dentro de su página, y sacarla también
@@ -1538,6 +1548,52 @@ const SHOWCASE_MANIFEST: JsonValue = {
 			icon: 'tag',
 			group: 'Estructura',
 			order: 5
+		}
+	},
+	// `blockTypes` (RAÍZ, vocabulario de tipos de bloque `#4cfd4f7f` — encargo "fixture de tipos
+	// para la paleta"): SIN esto ninguna semilla de e2e declaraba un vocabulario, así que
+	// `hasTypeMenu` (`blocks-state.svelte.ts`) era `false` en TODA la suite y la paleta arrastrable
+	// (`VisualPalette.svelte`) nunca llegaba a pintarse en Playwright — ver el hallazgo en la
+	// cabecera de `e2e/visual-editor.spec.ts` (test "sin vocabulario de tipos…").
+	//
+	// Tres tipos, distinguibles a simple vista en una captura (icono + etiqueta, que es todo lo que
+	// pinta `VisualPalette.svelte` — no hay imagen de verdad detrás, ver la cabecera de
+	// `SECCIONES_CONTENT_TYPE` para el porqué de no declarar aquí ningún campo `relation`/`file`
+	// con `source: 'data'`, la frontera de `src/lib/model/types.ts`). Los tres declaran `heading`
+	// como `source: 'record'` (y «texto» además `texto`): son las columnas físicas que YA existían,
+	// así que el mini-formulario tipado sigue pintando `[data-field="heading"]` exactamente donde
+	// `e2e/visual-editor.spec.ts` lo espera — el campo NUEVO de cada tipo (`subtitulo`/`pie`) vive
+	// dentro de `datos`, nunca reemplaza a los físicos.
+	blockTypes: {
+		portada: {
+			label: 'Portada',
+			icon: 'media',
+			fields: [
+				{ name: 'heading', label: 'Título', widget: 'text', source: 'record' },
+				{
+					name: 'subtitulo',
+					label: 'Subtítulo',
+					widget: 'text',
+					source: 'data',
+					default: ''
+				}
+			]
+		},
+		texto: {
+			label: 'Texto',
+			icon: 'document',
+			fields: [
+				{ name: 'heading', label: 'Título', widget: 'text', source: 'record' },
+				{ name: 'texto', label: 'Cuerpo', widget: 'text', source: 'record' }
+			]
+		},
+		galeria: {
+			label: 'Galería',
+			icon: 'box',
+			fields: [
+				{ name: 'heading', label: 'Título', widget: 'text', source: 'record' },
+				{ name: 'pie', label: 'Pie de foto', widget: 'text', source: 'data', default: '' }
+			]
 		}
 	}
 };
@@ -1746,10 +1802,25 @@ const PAGINAS_RECORDS = [
  * hecha de secciones —, que es justo el caso que un CMS sobre PocketBase no podía modelar sin
  * repeaters.
  *
- * Los tres campos son deliberadamente los mínimos que exige la capacidad más uno de contenido:
- * `pagina` (la relación de vuelta al padre, NO múltiple), `orden` (numérico, el que reescribe el
- * arrastre) y `heading`/`texto`. El escaparate no necesita más para enseñar el gesto.
- */
+ * `pagina` (la relación de vuelta al padre, NO múltiple) y `orden` (numérico, el que reescribe el
+ * arrastre) son las dos columnas que exige la capacidad `blocks` en sí. `heading`/`texto` son el
+ * contenido HOMOGÉNEO original de esta colección — se conservan TAL CUAL (mismo nombre, mismo
+ * `presentable: true` de `heading`, que sigue ganando la cascada de campo-título §4.4 porque `tipo`
+ * de abajo no lo declara) porque `e2e/visual-editor.spec.ts` los lee por su nombre físico
+ * (`headingInput`, `[data-field="heading"] input`) en cuatro de sus cinco recorridos.
+ *
+ * **Añadido (vocabulario de tipos de bloque `#4cfd4f7f`, encargo "fixture de tipos para la
+ * paleta")**: `tipo` (columna `text`, el `typeField` que declara `SHOWCASE_MANIFEST.collections.
+ * paginas.blocks`) y `datos` (columna `json`, su `dataField` pareja) — sin ellos ninguna semilla de
+ * e2e tenía `hasTypeMenu === true` y la paleta de bloques (`VisualPalette.svelte`) era inalcanzable
+ * en Playwright. Los tres tipos de `blockTypes` (ver `SHOWCASE_MANIFEST`) declaran `heading` (y
+ * `texto` el tipo «texto») como campos `source: 'record'`: el mini-formulario tipado
+ * (`BlockEditor.svelte#typedFields`) pinta esas columnas exactamente igual que en modo homogéneo
+ * — mismo `data-field`, mismo widget resuelto de la columna real —, así que los recorridos que ya
+ * leían `heading` no notan el cambio. Solo los campos NUEVOS de cada tipo (`subtitulo`/`pie`) viven
+ * dentro de `datos`, nunca `heading`/`texto`. `presentable: false` en las dos: si cualquiera
+ * ganara la cascada de campo-título, el árbol/lista de bloques dejaría de mostrar el `heading` que
+ * el spec espera. */
 const SECCIONES_CONTENT_TYPE: ContentType = {
 	name: 'secciones',
 	readonly: false,
@@ -1794,21 +1865,54 @@ const SECCIONES_CONTENT_TYPE: ContentType = {
 			presentable: false,
 			hidden: false,
 			unique: false
+		},
+		{
+			name: 'tipo',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'datos',
+			type: 'json',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
 		}
 	]
 };
 
 /** Solo `pagina_1` («Inicio») trae secciones sembradas: es la que se abre para ver la capacidad, y
  *  dejar el resto vacías enseña además el estado vacío de la lista embebida (un CMS de verdad
- *  arranca así, no con todo relleno). */
-const SECCIONES_RECORDS = [
+ *  arranca así, no con todo relleno).
+ *
+ *  `tipo`/`datos` (ver la cabecera de `SECCIONES_CONTENT_TYPE`): cada registro lleva un tipo VÁLIDO
+ *  de `blockTypes` (uno de cada, para que la paleta/el árbol enseñen los tres a la vez) — un valor
+ *  fuera del vocabulario dejaría `BlockEditor.svelte` en su rama "tipo desconocido"
+ *  (`blockType === null`), que ya no pinta `[data-field="heading"]`. `datos` solo lleva las claves
+ *  `source: 'data'` de CADA tipo (`subtitulo`/`pie`); `heading`/`texto` siguen siendo la columna
+ *  real de siempre, nunca se duplican dentro del JSON.
+ *
+ *  Anotado explícitamente (a diferencia del resto de arrays `_RECORDS` del fichero): los tres
+ *  `datos` tienen forma DISTINTA (`{ subtitulo }`/`{}`/`{ pie }`), y sin este tipo el union que
+ *  infiere el compilador para el array entero no encaja con `Record<string, FieldValue>` de
+ *  `MemorySeed` — `pnpm exec svelte-check`, no `pnpm vitest`, es quien lo detecta. */
+const SECCIONES_RECORDS: { id: string; values: Record<string, FieldValue> }[] = [
 	{
 		id: 'seccion_1',
 		values: {
 			pagina: 'pagina_1',
 			orden: 0,
 			heading: 'Escribe. Publica. Olvídate del resto.',
-			texto: 'Un CMS que se pone encima de tu PocketBase y no te pide cambiar de sitio nada.'
+			texto: 'Un CMS que se pone encima de tu PocketBase y no te pide cambiar de sitio nada.',
+			tipo: 'portada',
+			datos: { subtitulo: 'Un CMS editor-first sobre tu propio PocketBase.' }
 		}
 	},
 	{
@@ -1817,7 +1921,9 @@ const SECCIONES_RECORDS = [
 			pagina: 'pagina_1',
 			orden: 1,
 			heading: 'Tu contenido, en tu servidor',
-			texto: 'Sin cuentas de terceros ni exportaciones a medianoche: los datos ya son tuyos.'
+			texto: 'Sin cuentas de terceros ni exportaciones a medianoche: los datos ya son tuyos.',
+			tipo: 'texto',
+			datos: {}
 		}
 	},
 	{
@@ -1826,7 +1932,9 @@ const SECCIONES_RECORDS = [
 			pagina: 'pagina_1',
 			orden: 2,
 			heading: 'Se adapta a tu modelo',
-			texto: 'El manifiesto describe lo que ya tienes; Vega no te obliga a rehacer el esquema.'
+			texto: 'El manifiesto describe lo que ya tienes; Vega no te obliga a rehacer el esquema.',
+			tipo: 'galeria',
+			datos: { pie: 'Capturas del editor visual, la lista y la ficha de un registro.' }
 		}
 	}
 ];

@@ -269,25 +269,25 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 	});
 
 	/**
-	 * Defecto "el botón `+` del lienzo crea sin preguntar el tipo": la mitad homogénea del arreglo
-	 * (`hasTypeMenu === false`), de punta a punta contra el bridge cross-origin real.
+	 * Defecto "el botón `+` del lienzo crea sin preguntar el tipo": mitad HETEROGÉNEA del arreglo
+	 * (`hasTypeMenu === true`), de punta a punta contra el bridge cross-origin real.
 	 *
-	 * **Por qué no la mitad "con menú de tipos" (elegir un tipo y comprobar que crea CON ESE
-	 * tipo)**: ninguna semilla de esta suite (`DEMO_SEED`/`DEMO_SEED_WITH_MEDIA`/`SHOWCASE_SEED`,
-	 * `src/lib/session/demo-seed.ts`) declara un vocabulario `blockTypes` en su manifiesto —
-	 * verificado con `grep -n "blockTypes" src/lib/session/demo-seed.ts`, cero resultados — así que
-	 * ninguna página alcanzable con `loginAsDemo()` tiene `blocksState.hasTypeMenu === true`.
-	 * Construirla exigiría dar a `secciones` un campo `text` para `typeField` (patrón que
-	 * `site-seeding.ts#STARTER_BLOCKS` ya usa para el asistente de creación de sitios) y declarar un
-	 * `blockTypes` en `SHOWCASE_MANIFEST` — un cambio real sobre `demo-seed.ts`, fuera del alcance
-	 * cerrado de esta tarea (que solo toca este fichero, `VisualOverlay.svelte`, sus tests y los dos
-	 * i18n) y compartido por TODA la suite e2e, así que no se toca aquí sin confirmación. Esa mitad
-	 * queda cubierta a nivel de componente en `VisualOverlay.svelte.test.ts` ("elegir un tipo del
-	 * menú crea CON ESE tipo…", falsificada en el informe de la tarea) — lo que un e2e añadiría
-	 * encima es la vuelta completa por el bridge real, que este test SÍ cubre para la otra rama del
-	 * mismo `handleInsertClick`.
+	 * **Historia de este test (encargo "fixture de tipos para la paleta")**: hasta ese encargo,
+	 * NINGUNA semilla de e2e (`DEMO_SEED`/`DEMO_SEED_WITH_MEDIA`/`SHOWCASE_SEED`) declaraba un
+	 * vocabulario `blockTypes`, así que esta suite entera corría en modo homogéneo y este mismo test
+	 * cubría la OTRA rama (`hasTypeMenu === false`, "nunca abre un menú" — ver el historial de este
+	 * fichero para esa versión). El encargo dio a `SHOWCASE_MANIFEST.collections.paginas.blocks` su
+	 * `typeField`/`dataField` y tres `blockTypes` (`src/lib/session/demo-seed.ts`, ver la cabecera de
+	 * `SECCIONES_CONTENT_TYPE`) — con eso, `pagina_1` (la única página con secciones sembradas) pasó
+	 * a tener `hasTypeMenu === true`, y la rama "sin vocabulario" que este test comprobaba dejó de
+	 * ser alcanzable con `SHOWCASE_SEED`. Falsear un `hasTypeMenu === false` de verdad exigiría una
+	 * SEGUNDA semilla de e2e sin vocabulario, que no compra nada nuevo: esa rama ya está cubierta a
+	 * nivel de componente en `VisualOverlay.svelte.test.ts` ("sin `hasTypeMenu`, el `+` sigue creando
+	 * directo, sin menú"). Se sustituye este test por su MITAD complementaria (elegir un tipo del
+	 * menú, crear CON ESE tipo, de punta a punta por el bridge real) — la que el comentario original
+	 * dejaba fuera "por falta de vocabulario", y que ahora sí es alcanzable.
 	 */
-	test('sin vocabulario de tipos (modo homogéneo), el "+" del lienzo sigue creando directo: nunca abre un menú', async ({
+	test('con vocabulario de tipos, el "+" del lienzo abre un menú y crea con el tipo elegido', async ({
 		page
 	}) => {
 		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
@@ -295,23 +295,161 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		await waitConnected(page, 3);
 
 		// N+1 puntos para N=3 bloques; el ÚLTIMO es el punto DESPUÉS del último bloque, "al final de
-		// la página" — el caso real que motivó el defecto.
+		// la página" — el caso real que motivó el defecto original.
 		const insertPoints = page.locator('.vega-visual-overlay-insert');
 		await expect(insertPoints).toHaveCount(4);
 		const lastPoint = insertPoints.nth(3);
-		await expect(lastPoint).not.toHaveAttribute('aria-haspopup', 'menu');
+		await expect(lastPoint).toHaveAttribute('aria-haspopup', 'menu');
+		await expect(lastPoint).toHaveAttribute('aria-expanded', 'false');
 
 		await lastPoint.click();
+		await expect(lastPoint).toHaveAttribute('aria-expanded', 'true');
 
-		// Nunca aparece ningún menú de tipos: crea directo, igual que antes del defecto para esta
-		// rama (`hasTypeMenu === false`).
+		// Menú anclado a ESE punto, un `menuitem` por tipo de `SHOWCASE_MANIFEST.blockTypes`
+		// (portada/texto/galería, en ese orden de declaración).
+		const menu = page.locator('[role="menu"]');
+		await expect(menu).toHaveCount(1);
+		const items = menu.getByRole('menuitem');
+		await expect(items).toHaveCount(3);
+
+		await items.filter({ hasText: 'Galería' }).click();
+
+		// El menú se cierra y la sección nueva llega al árbol: nunca crea directo sin preguntar
+		// (defecto original), y nunca dos menús a la vez.
 		await expect(page.locator('[role="menu"]')).toHaveCount(0);
 		await expect(page.locator('.vega-tree-list li')).toHaveCount(4);
 
 		// Persistencia real (mismo criterio que el test de "mover" de arriba): una consulta
-		// INDEPENDIENTE del formulario normal, no solo el array reactivo del árbol.
+		// INDEPENDIENTE del formulario normal, no solo el array reactivo del árbol — y el tipo
+		// elegido viajó a su columna REAL (`tipo`), no se perdió por el camino: `RecordBlocks.svelte`
+		// pinta `.vega-block-type` desde `blocks.blockTypeOf(record)`, que lee esa columna, nunca el
+		// menú que se acaba de cerrar.
 		await page.getByRole('button', { name: 'Volver al formulario' }).click();
 		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
 		await expect(page.locator('.vega-block-title')).toHaveCount(4);
+		await expect(page.locator('.vega-block-type').last()).toHaveText(/Galería/);
+	});
+});
+
+/**
+ * `paleta de bloques arrastrable` — encargo "fixture de tipos para la paleta", Parte 2: los dos
+ * recorridos de CREAR ARRASTRANDO (`VisualPalette.svelte` → `VisualOverlay.svelte#handleZoneDrop`),
+ * ahora que `pagina_1`/`pagina_2` tienen `hasTypeMenu === true` (ver la cabecera de
+ * `SECCIONES_CONTENT_TYPE`, `demo-seed.ts`).
+ *
+ * **Arrastre HTML5 NATIVO real, no un manejador disparado a mano.** `mouse.down()` + varios
+ * `mouse.move({ steps })` + `mouse.up()`, MISMA receta que ya usa esta suite para el reorden por
+ * arrastre de `e2e/merged-view.spec.ts` ("el arrastre pinta feedback visual…", que usa el mismo
+ * gesto manual en dos pasos para poder observar el estado A MITAD del gesto) — verificada aquí
+ * empíricamente, no asumida: cada test comprueba que la capa de destinos de
+ * `VisualOverlay.svelte` (`.vega-visual-overlay-drop-zone`/`.vega-visual-overlay-empty-drop`, que
+ * SOLO existen durante un `dragstart` real, ver su cabecera) apareció ANTES de soltar. Sin esa
+ * comprobación intermedia, un arrastre que degradase a un simple `click` (el mismo botón lleva las
+ * dos vías, ver la cabecera de `VisualPalette.svelte`) crearía igual una sección — al FINAL, no en
+ * la posición pedida — y el test podría colar un falso verde si solo mirara el conteo final.
+ */
+test.describe('editor visual — paleta de bloques arrastrable, crear sobre el lienzo', () => {
+	test('arrastrar un tipo de la paleta sobre una página CON bloques inserta EN LA POSICIÓN correcta, no al final', async ({
+		page
+	}) => {
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+		await openVisualEditor(page, site, 'pagina_1');
+		await waitConnected(page, 3);
+
+		const paletteItem = page
+			.locator('.vega-palette-panel')
+			.getByRole('button', { name: 'Texto', exact: true });
+		await expect(paletteItem).toBeVisible();
+		const sourceBox = await paletteItem.boundingBox();
+		if (!sourceBox) throw new Error('bounding box ausente (layout no resuelto)');
+
+		// Mitad INFERIOR de `seccion_1` (`insert-position.ts`: `y < midpoint ? index : index + 1`):
+		// inserta DESPUÉS de ella, posición 1 — ni al principio ni al final, el único caso que
+		// distingue "en la posición pedida" de "al final" (que es lo que hacía el defecto original).
+		const firstBox = await page
+			.locator('.vega-visual-overlay-box[data-vega-block-id="seccion_1"]')
+			.boundingBox();
+		if (!firstBox) throw new Error('bounding box ausente (layout no resuelto)');
+		const dropX = firstBox.x + firstBox.width / 2;
+		const dropY = firstBox.y + firstBox.height * 0.85;
+
+		await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
+		await page.mouse.down();
+		// Paso intermedio corto: el umbral de arrastre nativo de Chromium necesita distancia real
+		// antes de disparar `dragstart` (mismo criterio que el arrastre manual de
+		// `merged-view.spec.ts`).
+		await page.mouse.move(
+			sourceBox.x + sourceBox.width / 2 + 24,
+			sourceBox.y + sourceBox.height / 2,
+			{ steps: 5 }
+		);
+		await page.mouse.move(dropX, dropY, { steps: 15 });
+
+		// La capa de destinos SOLO existe durante el gesto (ver cabecera): un destino por bloque
+		// reportado (3, para `SECCIONES`).
+		await expect(page.locator('.vega-visual-overlay-drop-zone')).toHaveCount(3);
+
+		await page.mouse.up();
+
+		await expect(page.locator('.vega-visual-overlay-drop-zone')).toHaveCount(0);
+
+		// Comprueba el resultado leyendo el backend por su cuenta (`RecordBlocks.svelte`, un
+		// `list()` PROPIO), no la lista del árbol que el propio gesto acaba de tocar.
+		await page.getByRole('button', { name: 'Volver al formulario' }).click();
+		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
+		const titles = page.locator('.vega-block-title');
+		const types = page.locator('.vega-block-type');
+		await expect(titles).toHaveCount(4);
+		await expect(titles.nth(0)).toHaveText(SECCIONES[0].text);
+		// La sección nueva, sin `heading` todavía (recién creada): se identifica por su TIPO, en la
+		// posición 1 — entre `seccion_1` y `seccion_2`, nunca al final.
+		await expect(types.nth(1)).toHaveText(/Texto/);
+		await expect(titles.nth(2)).toHaveText(SECCIONES[1].text);
+		await expect(titles.nth(3)).toHaveText(SECCIONES[2].text);
+	});
+
+	test('arrastrar un tipo de la paleta sobre una página VACÍA (0 bloques) la crea igual', async ({
+		page
+	}) => {
+		// `pagina_2` («Sobre mí»): sin secciones sembradas (ver la cabecera del fichero, "Solo
+		// `pagina_1` trae secciones") — el caso que no tiene ni un rectángulo de bloque donde soltar,
+		// motivo de ser de `.vega-visual-overlay-empty-drop`.
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_2', blocks: [] });
+		await openVisualEditor(page, site, 'pagina_2');
+		await waitConnected(page, 0);
+
+		const paletteItem = page
+			.locator('.vega-palette-panel')
+			.getByRole('button', { name: 'Portada', exact: true });
+		await expect(paletteItem).toBeVisible();
+		const sourceBox = await paletteItem.boundingBox();
+		if (!sourceBox) throw new Error('bounding box ausente (layout no resuelto)');
+
+		const iframeBox = await page.locator('iframe.vega-visual-frame').boundingBox();
+		if (!iframeBox) throw new Error('bounding box ausente (layout no resuelto)');
+		const dropX = iframeBox.x + iframeBox.width / 2;
+		const dropY = iframeBox.y + iframeBox.height / 2;
+
+		await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
+		await page.mouse.down();
+		await page.mouse.move(
+			sourceBox.x + sourceBox.width / 2 + 24,
+			sourceBox.y + sourceBox.height / 2,
+			{ steps: 5 }
+		);
+		await page.mouse.move(dropX, dropY, { steps: 15 });
+
+		// Sin un solo bloque que sobrevolar, la ÚNICA capa de destino es la caja entera del lienzo
+		// (ver la cabecera de `VisualOverlay.svelte`, "Página vacía + arrastre de paleta en vuelo").
+		await expect(page.locator('.vega-visual-overlay-empty-drop')).toBeVisible();
+
+		await page.mouse.up();
+
+		await expect(page.locator('.vega-visual-overlay-empty-drop')).toHaveCount(0);
+
+		await page.getByRole('button', { name: 'Volver al formulario' }).click();
+		await expect(page).toHaveURL(/\/c\/paginas\/pagina_2$/);
+		await expect(page.locator('.vega-block-title')).toHaveCount(1);
+		await expect(page.locator('.vega-block-type')).toHaveText(/Portada/);
 	});
 });
