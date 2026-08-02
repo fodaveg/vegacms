@@ -307,6 +307,27 @@ export const es = {
 	'editor.visual.resize.tree': 'Ajustar ancho del árbol de secciones',
 	'editor.visual.resize.inspector': 'Ajustar ancho de la ficha del bloque',
 
+	// ————— El acabado (tamaños de pantalla, zoom, atajos y estado de guardado): ver la cabecera
+	// de `VisualEditorScreen.svelte` para el porqué de cada pieza —————
+	'editor.visual.breadcrumbs.label': 'Dónde estás',
+	'editor.visual.screen.groupLabel': 'Tamaño de pantalla',
+	'editor.visual.screen.mobile': 'Móvil',
+	'editor.visual.screen.tablet': 'Tableta',
+	'editor.visual.screen.desktop': 'Escritorio',
+	'editor.visual.screen.width': '{width} px',
+	'editor.visual.zoom.groupLabel': 'Zoom',
+	'editor.visual.zoom.level': '{percent} %',
+	'editor.visual.zoom.fit': 'Ajustar',
+	'editor.visual.help.toggle': 'Atajos de teclado',
+	'editor.visual.help.title': 'Atajos de teclado',
+	'editor.visual.help.deselect': 'Deseleccionar el bloque',
+	'editor.visual.help.move': 'Mover el bloque seleccionado arriba/abajo',
+	'editor.visual.help.delete': 'Pedir el borrado del bloque seleccionado',
+	'editor.visual.help.save': 'Guardar el bloque seleccionado',
+	'editor.visual.help.toggleHelp': 'Abrir o cerrar este panel',
+	'editor.visual.help.asymmetry':
+		'Mover, duplicar, borrar y crear secciones se guardan solos, en el momento en que ocurren. El texto de los campos de un bloque se guarda con el botón «Guardar» de su ficha.',
+
 	// ————— Editor «master-detail» (mockup final `aquelarre-detalle-post.html`) —————
 	// Raíl de hermanos (`.rail`), aside de metadatos (`.kv`) y zona de peligro: piezas GENÉRICAS
 	// opt-in del renderer — los rótulos de las tarjetas del aside salen de `fieldGroups` (dato del

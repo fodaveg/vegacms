@@ -38,6 +38,18 @@
 	 * nuevo, lo que recarga el `<iframe>` entero con el dato ya guardado. Refrescar el marco SIN
 	 * recargarlo (sustitución en caliente) es la mitad cara y es OTRA tarea (§encargo) — no se monta
 	 * aquí.
+	 *
+	 * **Handle `saveSelected()` (tarea "el acabado": atajo ⌘S/Ctrl+S).** Cada `BlockEditor` del
+	 * `{#each}` de abajo se referencia por id (`bind:this` sobre un `$state`, no un objeto plano: el
+	 * compilador exige que el destino de un `bind:this` sea reactivo para poder rastrear la
+	 * reasignación, y con un objeto plano avisa `binding_property_non_reactive` en cada render.
+	 * Solo se LEE de forma imperativa desde el manejador de teclado de la pantalla, nunca en el
+	 * template — mismo criterio de uso que `formEl` de `RecordForm.svelte`, y el mismo motivo por el
+	 * que `inspectorRef` es `$state` en `VisualEditorScreen.svelte`). `saveSelected()` llama al `save()` del
+	 * editor del bloque SELECCIONADO — el resto, aunque también estén montados (ver "Todos los
+	 * `BlockEditor`... SIEMPRE montados" arriba), ni se tocan: ⌘S guarda "el de la ficha abierta",
+	 * no todo el registro. No-op si no hay selección o el sitio señala un id que no resuelve a
+	 * ningún registro (mismo caso que `danglingSelection`, más abajo): no hay editor que guardar.
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import BlockEditor from '$lib/form/BlockEditor.svelte';
@@ -61,6 +73,14 @@
 	);
 	/** Ver cabecera, "Selección que no casa": distingue el id-fantasma de "nada elegido todavía". */
 	const danglingSelection = $derived(selectedId !== null && selectedRecord === null);
+
+	// ————— Handle `saveSelected()` (ver cabecera) —————
+	let editorRefs = $state<Record<string, { save: () => void } | undefined>>({});
+
+	export function saveSelected(): void {
+		if (selectedId === null) return;
+		editorRefs[selectedId]?.save();
+	}
 </script>
 
 <div class="vega-inspector-panel" role="region" aria-labelledby="vega-inspector-heading">
@@ -92,6 +112,7 @@
 			<div class="vega-inspector-body" hidden={record.id !== selectedId}>
 				<p class="vega-inspector-block-title">{blocks.blockTitle(record)}</p>
 				<BlockEditor
+					bind:this={editorRefs[record.id]}
 					{childType}
 					blockType={blocks.blockTypeOf(record)}
 					rawBlockType={blocks.blockTypeRawName(record)}

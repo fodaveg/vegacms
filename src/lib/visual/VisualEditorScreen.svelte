@@ -143,6 +143,78 @@
 	 * de llegar sus `pointermove` al `window` de esta pantalla — el arrastre se queda "colgado" a
 	 * medio camino la primera vez que el gesto cruza el lienzo entero. La capa no tapa nada más: el
 	 * resto de la rejilla ya recibe los eventos con normalidad porque está en el MISMO documento.
+	 *
+	 * **Tamaño de pantalla + zoom del lienzo (tarea "el acabado: tamaños de pantalla, zoom, atajos
+	 * y estado de guardado" del lote del editor visual)**: el cálculo puro vive en `viewport.ts`
+	 * (ver su cabecera para el porqué de cada número); aquí solo el DOM. `screenPreset` cambia el
+	 * ancho de LAYOUT del `<iframe>` (390/834/el medido, nunca el ancho del `<div>` de Vega — así
+	 * el sitio dispara sus propios puntos de corte de verdad); `zoomPreference` decide el factor de
+	 * `transform: scale()`.
+	 *
+	 * El punto CENTRAL, para que nadie lo deshaga sin querer: `<iframe>` y `VisualOverlay` viven
+	 * DENTRO del mismo "escenario" (`.vega-visual-stage`, el único elemento que se escala) para que
+	 * los contornos escalen con el MISMO factor que el iframe — el puente reporta coordenadas del
+	 * VIEWPORT del iframe (`bridge-client.ts`), y `VisualOverlay` ya se posiciona con `inset: 0`
+	 * sobre esa misma caja (ver su cabecera), así que escalar el escenario entero mueve las dos
+	 * cosas a la vez sin tocar ni un `rect`. Escalar solo el iframe y multiplicar los `rect` a mano
+	 * sería un segundo sistema de coordenadas que se desincroniza en el primer redondeo.
+	 *
+	 * `canvasSize` (ancho/alto de `.vega-visual-canvas`) se mide con `ResizeObserver` — NO con un
+	 * único `onMount`/`onDestroy` como el resto de escuchadores de esta pantalla (`message`,
+	 * `beforeunload`, las dos `matchMedia`): el elemento observado APARECE Y DESAPARECE con
+	 * `canvasActive` (por debajo de 900px no hay `.vega-visual-canvas` que observar), así que su
+	 * ciclo de vida tiene que seguir al ELEMENTO, no al componente. Un `$effect` que reacciona a
+	 * `canvasEl` (el `bind:this`) hace justo eso: se reconecta cada vez que el elemento vuelve a
+	 * existir y su función de limpieza (el `return`, equivalente a `onDestroy` PARA ESE elemento)
+	 * desconecta el observer tanto al desmontar la pantalla entera como al estrechar la ventana. No
+	 * hace falta un escuchador aparte de `resize` de `window` ni de las manillas de columna:
+	 * `ResizeObserver` mide el elemento en sí, así que CUALQUIER causa de que su caja cambie de
+	 * tamaño (la ventana, arrastrar una manilla, el árbol colapsando a cajón) dispara el mismo
+	 * aviso sin que este componente tenga que enterarse de la causa.
+	 *
+	 * "Ajustar" en escritorio es (a propósito) un no-op visual: el ancho de layout de escritorio ES
+	 * el ancho medido del lienzo, así que la proporción siempre sale `1`. Un zoom FIJO por debajo
+	 * de 100% en escritorio sigue teniendo sentido (ver `viewport.ts`, "por qué el iframe se escala
+	 * con transform"): el escenario mide el ancho completo del lienzo pero se PINTA más pequeño,
+	 * dejando aire alrededor — una miniatura del layout de escritorio entero, no una recarga a otro
+	 * tamaño.
+	 *
+	 * **Atajos de teclado, a nivel de PANTALLA** (mismo encargo): un solo escuchador de `keydown`
+	 * en `window`, añadido/quitado en el MISMO `onMount`/`onDestroy` que ya gestiona `message` y
+	 * `beforeunload` — no un tercer par para esto. Ver `handleVisualKeydown` para la tabla completa
+	 * y el porqué de cada guarda; aquí solo el resumen de las dos piezas menos obvias:
+	 * - `⌘S`/`Ctrl+S` es la ÚNICA excepción a `isEditableTarget` (mismo criterio que
+	 *   `RecordForm.svelte`, ver su cabecera): tiene que guardar con el foco DENTRO de cualquier
+	 *   campo de la ficha, así que nunca mira el `target`, y siempre hace `preventDefault()` para
+	 *   matar el diálogo nativo "Guardar página" del navegador. Llama a
+	 *   `VisualInspector.svelte#saveSelected()` a través de `inspectorRef` (ver su cabecera para
+	 *   por qué hace falta un handle en vez del truco `formEl.requestSubmit()` de `RecordForm`).
+	 * - Mover/borrar por teclado respetan la MISMA guarda que sus propios botones equivalentes en
+	 *   `VisualOverlay.svelte` — no una tercera copia del criterio: mover reusa
+	 *   `anyDirty || anySaving || structuralBusy` (igual que el botón de mover del overlay);
+	 *   borrar reusa `anySaving || structuralBusy`, SIN `anyDirty` (igual que el botón de la
+	 *   papelera del overlay/árbol — un borrado no necesita esperar a que OTRO bloque termine de
+	 *   escribir un campo).
+	 *
+	 * **Estado de guardado en la barra (mismo encargo)**: `savedAt` es PROPIO de esta pantalla — a
+	 * diferencia de `RecordForm.svelte`, NO se siembra del autodate `updated` del registro. Ese
+	 * campo pertenece al registro PADRE, y lo que se guarda aquí son sus BLOQUES (otra colección):
+	 * editar un bloque nunca toca el `updated` del padre, así que sembrar desde ahí enseñaría una
+	 * hora sin relación con lo que se acaba de guardar. Arranca en `null` (nada sabido todavía en
+	 * esta sesión de pantalla) y solo se escribe tras un guardado de verdad OCURRIDO AQUÍ —
+	 * `handleContentSaved`, la puerta ÚNICA que sustituye a `scheduleCanvasRefresh` como callback de
+	 * `onBlockSaved`/`onStructuralChange`, y que sigue pidiendo el refresco del lienzo exactamente
+	 * igual que antes de esta tarea (nada de ese contrato cambia, solo se le añade marcar la hora).
+	 * Reusa el patrón `.vega-editor-dirty`/`editor.dirty`/`editor.saving`/`editor.savedAt` de
+	 * `RecordForm.svelte` — mismas claves i18n y mismo lenguaje visual (punto de 8px en
+	 * `--warning`), con nombres de clase propios de este fichero porque el CSS con ámbito de
+	 * Svelte no cruza de un componente a otro.
+	 *
+	 * **Migas** (mismo encargo): colección › documento › bloque seleccionado, para saber dónde
+	 * estás cuando la pantalla es todo lienzo. La miga del bloque usa `blocks.blockTitle` sobre el
+	 * MISMO registro que resuelve `selectedBlockId` — si el id no resuelve a ningún registro
+	 * (selección fantasma, ver la cabecera de `VisualInspector.svelte`) no se pinta esa miga, ni un
+	 * guion ni un "ninguno": mentiría sobre algo que el autor no eligió.
 	 */
 	import { onDestroy, onMount, untrack } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
@@ -158,6 +230,7 @@
 		type VisualBridgeState
 	} from './bridge-client';
 	import { createBlocksState } from '$lib/form/blocks-state.svelte';
+	import { isEditableTarget } from '$lib/shell/keyboard';
 	import { describeCell } from '$lib/list/cell';
 	import { resolveTitleCellText } from '$lib/list/list-load';
 	import EditTopBar from '$lib/shell/EditTopBar.svelte';
@@ -175,6 +248,16 @@
 		TREE_MIN_WIDTH
 	} from './column-widths';
 	import { readColumnWidths, writeColumnWidths } from './column-widths-storage';
+	import {
+		frameWidthFor,
+		resolveZoomFactor,
+		SCREEN_PRESETS,
+		stageHeightFor,
+		ZOOM_LEVELS,
+		type ScreenPreset,
+		type ZoomPreference
+	} from './viewport';
+	import { readViewportPreference, writeViewportPreference } from './viewport-storage';
 
 	interface Props {
 		type: ResolvedContentType;
@@ -258,6 +341,35 @@
 	// lo mide de verdad antes de que se pinte nada que dependa de esto.
 	let treeResizerActive = $state(true);
 	let treeQuery: MediaQueryList | null = null;
+
+	// ————— Tamaño de pantalla + zoom del lienzo (ver cabecera) —————
+	const initialViewport = readViewportPreference();
+	let screenPreset = $state<ScreenPreset>(initialViewport.preset);
+	let zoomPreference = $state<ZoomPreference>(initialViewport.zoom);
+	/** `.vega-visual-canvas`, medido por `ResizeObserver` (ver cabecera): arranca en `{0, 0}`, sin
+	 *  ancho honesto que enseñar hasta el primer aviso — mismo criterio que `frameWidthFor`/
+	 *  `resolveZoomFactor` (`viewport.ts`), que degradan sin dividir por cero mientras tanto. */
+	let canvasEl = $state<HTMLDivElement | undefined>(undefined);
+	let canvasSize = $state({ width: 0, height: 0 });
+	// ————— Panel de ayuda de atajos (ver `handleVisualKeydown`) —————
+	let helpOpen = $state(false);
+	let helpDialogEl = $state<HTMLElement | undefined>(undefined);
+	/** Primer elemento focusable del diálogo (su botón de cerrar): destino del foco inicial, mismo
+	 *  patrón que `firstScopeEl` de `ExportDialog.svelte`. */
+	let helpFirstEl = $state<HTMLElement | undefined>(undefined);
+	/** Quién tenía el foco al abrir (el disparador, sea el botón "?" de la barra o la propia tecla
+	 *  con el foco en cualquier otro sitio del lienzo): PLANA, no `$state` — solo se lee de forma
+	 *  imperativa al cerrar, mismo criterio que `formEl` de `RecordForm.svelte`. */
+	let helpPreviouslyFocused: HTMLElement | null = null;
+	// ————— Handle del inspector, para el atajo ⌘S (ver `VisualInspector.svelte#saveSelected`) —————
+	// `$state` (a diferencia de `formEl` de `RecordForm.svelte`, plano): `bind:this` sobre la
+	// instancia de un COMPONENTE, no un nodo DOM nativo, y el compilador exige que el destino sea
+	// reactivo para poder rastrear la reasignación — se lee de forma imperativa igual que `formEl`,
+	// pero declararlo así calla el aviso `non_reactive_update` sin cambiar nada del criterio.
+	let inspectorRef = $state<{ saveSelected: () => void } | undefined>(undefined);
+	/** Hora del último guardado CONOCIDO en esta sesión de pantalla (ver cabecera, "Estado de
+	 *  guardado en la barra"): `null` hasta el primer guardado real ocurrido aquí. */
+	let savedAt = $state<Date | null>(null);
 
 	/** Mismo punto de corte en el que `PreviewPanel.svelte` se retira entera (ver su cabecera). Vive
 	 *  aquí y no solo en el CSS porque decide si se MONTA el lienzo, no si se ve. */
@@ -373,6 +485,17 @@
 			if (generation !== refreshGeneration) return;
 			void requestPreview();
 		}
+	}
+
+	/** Un guardado de VERDAD acaba de completarse aquí — un campo (`VisualInspector#onBlockSaved`)
+	 *  o una mutación estructural (`VisualBlockTree`/`VisualOverlay#onStructuralChange`, y las
+	 *  versiones por teclado de `handleVisualKeydown`): marca la hora (ver cabecera, "Estado de
+	 *  guardado en la barra") Y pide el refresco de lienzo de siempre. Sustituye a
+	 *  `scheduleCanvasRefresh` como el callback que se pasa a los tres consumidores — el contrato de
+	 *  refresco no cambia ni una coma, esta función solo le añade el reloj por delante. */
+	function handleContentSaved(): void {
+		savedAt = new Date();
+		scheduleCanvasRefresh();
 	}
 
 	/** Puerta ÚNICA de selección (ver cabecera): la llama tanto el sitio (§contrato, `select`, clic
@@ -496,9 +619,175 @@
 		event.returnValue = '';
 	}
 
+	// ————— Tamaño de pantalla + zoom (ver cabecera) —————
+
+	function setScreenPreset(preset: ScreenPreset): void {
+		screenPreset = preset;
+		writeViewportPreference({ preset: screenPreset, zoom: zoomPreference });
+	}
+
+	function setZoom(zoom: ZoomPreference): void {
+		zoomPreference = zoom;
+		writeViewportPreference({ preset: screenPreset, zoom: zoomPreference });
+	}
+
+	/** `.vega-visual-canvas` aparece y desaparece con `canvasActive` (ver cabecera): este `$effect`
+	 *  reacciona al propio `bind:this`, no a un `onMount` único, para que el observer se reconecte
+	 *  cada vez que el elemento vuelve a existir. La función de limpieza (equivalente a `onDestroy`
+	 *  PARA ESE elemento) desconecta tanto al desmontar la pantalla como al estrechar la ventana. */
+	$effect(() => {
+		if (!canvasEl) return;
+		const el = canvasEl;
+		const observer = new ResizeObserver((entries) => {
+			const entry = entries[0];
+			if (!entry) return;
+			canvasSize = { width: entry.contentRect.width, height: entry.contentRect.height };
+		});
+		observer.observe(el);
+		return () => observer.disconnect();
+	});
+
+	/** Ancho de LAYOUT del iframe (390/834/el medido de `.vega-visual-canvas`, ver `viewport.ts`). */
+	const frameWidth = $derived(frameWidthFor(screenPreset, canvasSize.width));
+	/** Factor de `transform: scale()` del "escenario" (ver cabecera). */
+	const zoomFactor = $derived(resolveZoomFactor(zoomPreference, canvasSize.width, frameWidth));
+	/** Alto propio del escenario, para que al escalarlo llene el lienzo exacto (ver `viewport.ts`). */
+	const stageHeightPx = $derived(stageHeightFor(canvasSize.height, zoomFactor));
+
+	// ————— Panel de ayuda de atajos (ver `handleVisualKeydown`) —————
+
+	function closeHelp(): void {
+		helpOpen = false;
+	}
+
+	function helpFocusableItems(): HTMLElement[] {
+		return helpDialogEl ? Array.from(helpDialogEl.querySelectorAll<HTMLElement>('button')) : [];
+	}
+
+	/** Solo atrapa `Tab` — `Esc` lo gestiona `handleVisualKeydown` (mismo escuchador de `window` de
+	 *  toda la pantalla, ver su cabecera): un segundo camino para la misma tecla aquí sería el
+	 *  antipatrón "dos escritores, un solo estado" que ya evita el resto de este componente. */
+	function handleHelpDialogKeydown(event: KeyboardEvent): void {
+		if (event.key !== 'Tab') return;
+		const items = helpFocusableItems();
+		if (items.length === 0) return;
+		const first = items[0];
+		const last = items[items.length - 1];
+		if (event.shiftKey && document.activeElement === first) {
+			event.preventDefault();
+			last.focus();
+		} else if (!event.shiftKey && document.activeElement === last) {
+			event.preventDefault();
+			first.focus();
+		}
+	}
+
+	/** Foco inicial + foco de vuelta al disparador (mismo patrón que `ExportDialog.svelte`, ver su
+	 *  cabecera): `document.activeElement` YA es el disparador cuando este efecto corre, sea el
+	 *  botón "?" de la barra o cualquier otro punto del lienzo si el panel se abrió con la tecla —
+	 *  no hace falta distinguir el origen. `document.contains(...)` antes de devolver el foco: el
+	 *  disparador podría haber desaparecido del DOM mientras el panel estaba abierto (landmine ya
+	 *  documentada en este repo: ocultar un elemento anula su `.focus()`). */
+	$effect(() => {
+		if (!helpOpen) return;
+		helpPreviouslyFocused = document.activeElement as HTMLElement | null;
+		helpFirstEl?.focus();
+		return () => {
+			if (helpPreviouslyFocused && document.contains(helpPreviouslyFocused)) {
+				helpPreviouslyFocused.focus();
+			}
+		};
+	});
+
+	// ————— Acciones estructurales por teclado (mover/borrar el bloque seleccionado) —————
+
+	/** Mismo guard que el botón de mover de `VisualOverlay.svelte` (ver su cabecera): duplicar/
+	 *  mover se congelan mientras haya CUALQUIER bloque sin guardar, un guardado en vuelo, o ya
+	 *  otra mutación estructural en marcha. */
+	const structuralGuard = $derived(blocks.anyDirty || blocks.anySaving || blocks.structuralBusy);
+
+	/** `handleReorder` SÍ trae señal de éxito (a diferencia de crear/duplicar/borrar): solo se pide
+	 *  vista previa nueva y se marca la hora si de verdad cambió algo. */
+	async function moveSelectedBlock(direction: -1 | 1): Promise<void> {
+		if (selectedBlockId === null || structuralGuard) return;
+		const index = blocks.records.findIndex((r) => r.id === selectedBlockId);
+		if (index < 0) return;
+		const target = index + direction;
+		if (target < 0 || target >= blocks.records.length) return;
+		const moved = await blocks.handleReorder(index, target);
+		if (moved) handleContentSaved();
+	}
+
+	/** Abre el MISMO diálogo de confirmación que ya pintan `VisualBlockTree.svelte`/
+	 *  `VisualOverlay.svelte` (comparten `blocks.pendingDelete`, un solo dato — ver la cabecera del
+	 *  árbol): esta pantalla no borra a pelo, solo pide el borrado. Mismo guard que el botón de la
+	 *  papelera del overlay/árbol — `anySaving || structuralBusy`, SIN `anyDirty` (ver cabecera). */
+	function requestDeleteSelected(): void {
+		if (selectedBlockId === null || blocks.anySaving || blocks.structuralBusy) return;
+		const record = blocks.records.find((r) => r.id === selectedBlockId);
+		if (record) blocks.requestDelete(record);
+	}
+
+	// ————— Atajos de teclado a nivel de PANTALLA (ver cabecera, tabla completa aquí) —————
+	//
+	// | Tecla                  | Acción                                              |
+	// |-------------------------|-----------------------------------------------------|
+	// | Esc                     | deseleccionar el bloque (o cerrar el panel de ayuda) |
+	// | Alt+↑ / Alt+↓            | mover el bloque seleccionado arriba/abajo            |
+	// | Supr / Retroceso         | pedir el borrado del seleccionado (abre el diálogo)  |
+	// | ⌘S / Ctrl+S              | guardar el bloque seleccionado                       |
+	// | ?                        | abrir/cerrar el panel de ayuda de atajos             |
+	function handleVisualKeydown(event: KeyboardEvent): void {
+		// Callado ENTERO sin lienzo montado (ver cabecera): nada seleccionable ni nada que guardar
+		// en esa vista.
+		if (!canvasActive) return;
+
+		// ⌘S: ÚNICA excepción a `isEditableTarget` (ver cabecera) — nunca mira el target, siempre
+		// `preventDefault()` para matar el diálogo nativo "Guardar página" del navegador.
+		if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+			event.preventDefault();
+			inspectorRef?.saveSelected();
+			return;
+		}
+
+		// Resto: atajos de una sola tecla (o con Alt). Se callan con el foco en un campo editable
+		// (`isEditableTarget`), o robarían la pulsación al propio campo. `Escape` NO es excepción y
+		// va por debajo de esta guarda a propósito: con el foco dentro de un campo de la ficha, Esc
+		// es del campo (el navegador lo usa para descartar el autocompletado), no de la pantalla —
+		// deseleccionar ahí cerraría de golpe la ficha que se está escribiendo.
+		if (isEditableTarget(event.target)) return;
+
+		if (event.key === 'Escape') {
+			// Con el panel de ayuda abierto, Esc LO CIERRA y no deselecciona (§encargo): el panel
+			// gana mientras está abierto.
+			if (helpOpen) closeHelp();
+			else selectedBlockId = null; // mismo dueño único que `handleBlockSelect` (ver cabecera)
+			return;
+		}
+
+		if (event.key === '?') {
+			event.preventDefault();
+			helpOpen = !helpOpen;
+			return;
+		}
+
+		if (helpOpen) return; // con el panel abierto, ninguna otra tecla actúa sobre el lienzo
+
+		if (event.altKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+			event.preventDefault();
+			void moveSelectedBlock(event.key === 'ArrowUp' ? -1 : 1);
+			return;
+		}
+		if (event.key === 'Delete' || event.key === 'Backspace') {
+			event.preventDefault();
+			requestDeleteSelected();
+		}
+	}
+
 	onMount(() => {
 		window.addEventListener('message', handleMessage);
 		window.addEventListener('beforeunload', handleBeforeUnload);
+		window.addEventListener('keydown', handleVisualKeydown);
 		narrowQuery = window.matchMedia(NARROW_QUERY);
 		canvasActive = !narrowQuery.matches;
 		narrowQuery.addEventListener('change', handleNarrowChange);
@@ -523,6 +812,7 @@
 		clearRefreshDebounce();
 		window.removeEventListener('message', handleMessage);
 		window.removeEventListener('beforeunload', handleBeforeUnload);
+		window.removeEventListener('keydown', handleVisualKeydown);
 		narrowQuery?.removeEventListener('change', handleNarrowChange);
 		treeQuery?.removeEventListener('change', handleTreeQueryChange);
 		bridgeClient?.stop();
@@ -539,6 +829,28 @@
 		const descriptor = describeCell(field, record.values[titleField] ?? null, ctx.locale);
 		return resolveTitleCellText(descriptor, ctx.t('list.untitled'));
 	});
+
+	/** Última miga (ver cabecera, "Migas"): título del bloque seleccionado, o `null` sin selección
+	 *  Y sin selección FANTASMA (un id que el sitio reporta pero no resuelve a ningún registro,
+	 *  mismo caso que `danglingSelection` de `VisualInspector.svelte`) — en los dos casos de `null`
+	 *  no se pinta ninguna miga de más, ni un guion ni un "ninguno". */
+	const selectedBlockTitle = $derived.by(() => {
+		if (selectedBlockId === null) return null;
+		const selectedRecord = blocks.records.find((r) => r.id === selectedBlockId);
+		return selectedRecord ? blocks.blockTitle(selectedRecord) : null;
+	});
+
+	/** HH:MM localizado (mismo criterio de locale que `RecordForm.svelte#savedAtText`), o `null`
+	 *  sin hora conocida todavía (ver `savedAt`). */
+	const savedAtText = $derived(
+		savedAt === null
+			? null
+			: ctx.t('editor.savedAt', {
+					time: new Intl.DateTimeFormat(ctx.locale, { hour: '2-digit', minute: '2-digit' }).format(
+						savedAt
+					)
+				})
+	);
 
 	/** Traduce los CINCO estados de `bridgeState` a los DOS que necesita `VisualOverlay.svelte`
 	 *  (ver su cabecera): solo `connected` trae bloques ciertos. `idle`/`connecting`/`error`
@@ -617,9 +929,105 @@
 				<Icon id="chevron" size={14} />
 				{ctx.t('editor.visual.back')}
 			</button>
-			<span class="vega-visual-doc">{docName}</span>
+			<!-- Migas (ver cabecera, "Migas"): colección › documento › bloque seleccionado. `<ol>`
+			     + `aria-current="page"` en la ÚLTIMA (patrón APG de breadcrumb) — el separador `›`
+			     es un `::before` de CSS, decorativo por construcción (no entra en el árbol de
+			     accesibilidad salvo que se referencie, que no es el caso). -->
+			<nav class="vega-visual-breadcrumbs" aria-label={ctx.t('editor.visual.breadcrumbs.label')}>
+				<ol>
+					<li>{type.label}</li>
+					<li aria-current={selectedBlockTitle === null ? 'page' : undefined}>{docName}</li>
+					{#if selectedBlockTitle !== null}
+						<li aria-current="page">{selectedBlockTitle}</li>
+					{/if}
+				</ol>
+			</nav>
 		{/snippet}
 		{#snippet actions()}
+			<!-- Estado de guardado (ver cabecera, "Estado de guardado en la barra"): mismo patrón que
+			     `RecordForm.svelte` (`.vega-editor-dirty`/`editor.dirty`/`editor.saving`/
+			     `editor.savedAt`), nombres de clase propios de este fichero (el CSS con ámbito de
+			     Svelte no cruza componentes). Las TRES ramas son mutuamente excluyentes, en el mismo
+			     orden de prioridad que allí: guardando > sin guardar > última hora conocida. -->
+			{#if blocks.anySaving || blocks.structuralBusy}
+				<span class="vega-visual-saved-at vega-visual-saved-at--saving">
+					{ctx.t('editor.saving')}
+				</span>
+			{:else if blocks.anyDirty}
+				<span class="vega-visual-dirty" title={ctx.t('editor.dirty')}>
+					<span class="vega-visually-hidden">{ctx.t('editor.dirty')}</span>
+				</span>
+			{:else if savedAtText}
+				<span class="vega-visual-saved-at">{savedAtText}</span>
+			{/if}
+
+			{#if canvasActive}
+				<!-- Conmutador de tamaño de pantalla (ver cabecera): `role="group"` + `aria-pressed`,
+				     no `radiogroup` — son TRES botones alcanzables por Tab con un clic simple cada
+				     uno, sin necesidad de navegación por flechas (mismo criterio que el propio botón
+				     "Vista previa" de `RecordForm.svelte`, que también usa `aria-pressed` para su
+				     toggle). Un `radiogroup` de verdad exigiría implementar esa navegación sin que
+				     este control la necesite. -->
+				<div
+					class="vega-visual-screen-group"
+					role="group"
+					aria-label={ctx.t('editor.visual.screen.groupLabel')}
+				>
+					{#each SCREEN_PRESETS as preset (preset)}
+						<button
+							type="button"
+							class="vega-visual-screen-btn"
+							aria-pressed={screenPreset === preset}
+							onclick={() => setScreenPreset(preset)}
+						>
+							{ctx.t(`editor.visual.screen.${preset}`)}
+						</button>
+					{/each}
+				</div>
+				<span class="vega-visual-screen-width">
+					{ctx.t('editor.visual.screen.width', { width: frameWidth })}
+				</span>
+
+				<!-- Zoom (ver cabecera): mismo criterio de accesibilidad que el conmutador de arriba. -->
+				<div
+					class="vega-visual-zoom-group"
+					role="group"
+					aria-label={ctx.t('editor.visual.zoom.groupLabel')}
+				>
+					{#each ZOOM_LEVELS as level (level)}
+						<button
+							type="button"
+							class="vega-visual-zoom-btn"
+							aria-pressed={zoomPreference === level}
+							onclick={() => setZoom(level)}
+						>
+							{ctx.t('editor.visual.zoom.level', { percent: level })}
+						</button>
+					{/each}
+					<button
+						type="button"
+						class="vega-visual-zoom-btn"
+						aria-pressed={zoomPreference === 'fit'}
+						onclick={() => setZoom('fit')}
+					>
+						{ctx.t('editor.visual.zoom.fit')}
+					</button>
+				</div>
+				<span class="vega-visual-zoom-value">
+					{ctx.t('editor.visual.zoom.level', { percent: Math.round(zoomFactor * 100) })}
+				</span>
+
+				<button
+					type="button"
+					class="vega-visual-help-toggle"
+					aria-label={ctx.t('editor.visual.help.toggle')}
+					aria-pressed={helpOpen}
+					onclick={() => (helpOpen = !helpOpen)}
+				>
+					?
+				</button>
+			{/if}
+
 			<div class="vega-visual-status" aria-live="polite">
 				{#if bridgeState.status === 'connected'}
 					<span class="vega-visual-status-text">
@@ -665,7 +1073,7 @@
 				{blocks}
 				selectedId={selectedBlockId}
 				onSelect={handleBlockSelect}
-				onStructuralChange={scheduleCanvasRefresh}
+				onStructuralChange={handleContentSaved}
 			/>
 			{#if treeResizerActive}
 				<VisualColumnResizer
@@ -679,31 +1087,43 @@
 					onDragChange={setResizing}
 				/>
 			{/if}
-			<div class="vega-visual-canvas">
+			<div class="vega-visual-canvas" bind:this={canvasEl}>
 				{#if tokenState.kind === 'ready'}
-					<iframe
-						class="vega-visual-frame"
-						bind:this={iframeEl}
-						src={tokenState.token.url}
-						title={ctx.t('editor.visual.frameTitle')}
-						referrerpolicy="no-referrer"
-						onload={handleFrameLoad}
-					></iframe>
-					<!-- ANTES del skeleton de token de abajo en el DOM a propósito: mientras el token
-					     sigue cargando o el `load` del marco no ha disparado, ese skeleton (más
-					     adelante, misma pila de apilamiento) tapa este overlay entero — no hace falta
-					     `z-index`, solo el orden. Una vez visible, no tiene nada que tapar: pinta "sin
-					     bloques todavía" hasta que el puente conteste. -->
-					<VisualOverlay
-						blocks={overlayBlocks}
-						selectedId={selectedBlockId}
-						highlightedId={null}
-						skippedBlocks={overlaySkippedBlocks}
-						status={overlayStatus}
-						renderedBlockTypes={ctx.port.renderedBlockTypes ?? null}
-						blocksState={blocks}
-						onStructuralChange={scheduleCanvasRefresh}
-					/>
+					<!-- Escenario del zoom (ver cabecera, "Tamaño de pantalla + zoom del lienzo"):
+					     iframe + overlay viven dentro de la MISMA caja escalada, así que los
+					     contornos siguen casando con las coordenadas del puente sin tocar ni un
+					     `rect`. Ancho/alto/escala van INLINE (`style:`): son números calculados, no
+					     constantes que quepan en una regla CSS. -->
+					<div
+						class="vega-visual-stage"
+						style:width="{frameWidth}px"
+						style:height="{stageHeightPx}px"
+						style:transform="scale({zoomFactor})"
+					>
+						<iframe
+							class="vega-visual-frame"
+							bind:this={iframeEl}
+							src={tokenState.token.url}
+							title={ctx.t('editor.visual.frameTitle')}
+							referrerpolicy="no-referrer"
+							onload={handleFrameLoad}
+						></iframe>
+						<!-- ANTES del skeleton de token de abajo en el DOM a propósito: mientras el
+						     token sigue cargando o el `load` del marco no ha disparado, ese skeleton
+						     (más adelante, misma pila de apilamiento) tapa este overlay entero — no
+						     hace falta `z-index`, solo el orden. Una vez visible, no tiene nada que
+						     tapar: pinta "sin bloques todavía" hasta que el puente conteste. -->
+						<VisualOverlay
+							blocks={overlayBlocks}
+							selectedId={selectedBlockId}
+							highlightedId={null}
+							skippedBlocks={overlaySkippedBlocks}
+							status={overlayStatus}
+							renderedBlockTypes={ctx.port.renderedBlockTypes ?? null}
+							blocksState={blocks}
+							onStructuralChange={handleContentSaved}
+						/>
+					</div>
 				{/if}
 				{#if tokenState.kind === 'loading' || (tokenState.kind === 'ready' && !frameLoaded)}
 					<div class="vega-visual-overlay" aria-live="polite">
@@ -734,7 +1154,12 @@
 				onResize={setInspectorWidth}
 				onDragChange={setResizing}
 			/>
-			<VisualInspector {blocks} selectedId={selectedBlockId} onBlockSaved={scheduleCanvasRefresh} />
+			<VisualInspector
+				bind:this={inspectorRef}
+				{blocks}
+				selectedId={selectedBlockId}
+				onBlockSaved={handleContentSaved}
+			/>
 		</div>
 	{:else}
 		<!-- Responsive (ver cabecera): por debajo de 900px (mismo punto de corte en el que
@@ -747,6 +1172,64 @@
 			<button type="button" onclick={() => ctx.nav.toRecord(type.name, record.id)}>
 				{ctx.t('editor.visual.back')}
 			</button>
+		</div>
+	{/if}
+
+	<!-- Panel de ayuda de atajos (ver cabecera, "Atajos de teclado" + `handleVisualKeydown`):
+	     diálogo modal con foco atrapado (mismo patrón que `ExportDialog.svelte`) — `Esc` lo cierra
+	     vía el escuchador de `window` de toda la pantalla (no un segundo escuchador aquí, ver
+	     `handleHelpDialogKeydown`), y el foco vuelve a su disparador al cerrarse. -->
+	{#if helpOpen}
+		<div class="vega-visual-help-backdrop">
+			<div
+				class="vega-visual-help-dialog"
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="vega-visual-help-title"
+				tabindex="-1"
+				bind:this={helpDialogEl}
+				onkeydown={handleHelpDialogKeydown}
+			>
+				<div class="vega-visual-help-head">
+					<h2 id="vega-visual-help-title">{ctx.t('editor.visual.help.title')}</h2>
+					<button
+						type="button"
+						class="vega-visual-help-close"
+						bind:this={helpFirstEl}
+						aria-label={ctx.t('common.close')}
+						onclick={closeHelp}
+					>
+						<Icon id="close" size={16} />
+					</button>
+				</div>
+				<dl class="vega-visual-help-list">
+					<div>
+						<dt><kbd>Esc</kbd></dt>
+						<dd>{ctx.t('editor.visual.help.deselect')}</dd>
+					</div>
+					<div>
+						<dt><kbd>Alt</kbd> + <kbd>↑</kbd> / <kbd>↓</kbd></dt>
+						<dd>{ctx.t('editor.visual.help.move')}</dd>
+					</div>
+					<div>
+						<dt><kbd>Supr</kbd> / <kbd>⌫</kbd></dt>
+						<dd>{ctx.t('editor.visual.help.delete')}</dd>
+					</div>
+					<div>
+						<dt><kbd>⌘S</kbd> / <kbd>Ctrl+S</kbd></dt>
+						<dd>{ctx.t('editor.visual.help.save')}</dd>
+					</div>
+					<div>
+						<dt><kbd>?</kbd></dt>
+						<dd>{ctx.t('editor.visual.help.toggleHelp')}</dd>
+					</div>
+				</dl>
+				<!-- La asimetría se DICE con palabras (§encargo), no se deja implícita: mover/
+				     duplicar/borrar/crear secciones se guardan solos (decisión 1 de
+				     `blocks-state.svelte.ts`); el texto de un campo se guarda con el botón
+				     "Guardar" de la ficha. -->
+				<p class="vega-visual-help-asymmetry">{ctx.t('editor.visual.help.asymmetry')}</p>
+			</div>
 		</div>
 	{/if}
 </div>
@@ -792,9 +1275,74 @@
 		color: var(--ink);
 	}
 
-	.vega-visual-doc {
-		font-weight: 650;
+	/* Migas (ver cabecera, "Migas"): `<ol>` en fila, separador `›` como `::before` de CADA `li`
+	   salvo el primero (`:not(:first-child)`) — así no hay que fabricar un `<span>` decorativo por
+	   separador y el propio separador nunca entra en el árbol de accesibilidad. */
+	.vega-visual-breadcrumbs ol {
+		display: flex;
+		align-items: baseline;
+		flex-wrap: wrap;
+		gap: 0.35rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.vega-visual-breadcrumbs li {
+		color: var(--ink-2);
+		font-size: 0.85rem;
+		overflow-wrap: anywhere;
+	}
+
+	/* La última miga (`aria-current="page"`) es la que importa de verdad: mismo peso/tinta que
+	   `.vega-editor-doc` tenía antes de esta tarea (título del documento en negrita). */
+	.vega-visual-breadcrumbs li[aria-current='page'] {
 		color: var(--ink-hi);
+		font-weight: 650;
+	}
+
+	.vega-visual-breadcrumbs li:not(:first-child)::before {
+		content: '›';
+		margin-right: 0.35rem;
+		color: var(--ink-3);
+	}
+
+	/* Estado de guardado (ver cabecera, "Estado de guardado en la barra"): mismo lenguaje visual
+	   que `.vega-editor-dirty`/`.vega-editor-saved-at` de `RecordForm.svelte` (ver su cabecera para
+	   el porqué de cada pieza) — nombres de clase propios porque el CSS con ámbito de Svelte no
+	   cruza de un componente a otro. */
+	.vega-visual-dirty {
+		display: inline-block;
+		flex-shrink: 0;
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--warning);
+		overflow: hidden;
+	}
+
+	.vega-visual-saved-at {
+		font-family: var(--mono);
+		font-size: 0.72rem;
+		color: var(--ink-2);
+		white-space: nowrap;
+	}
+
+	.vega-visual-saved-at--saving::before {
+		content: '⟳ ';
+		color: var(--info);
+	}
+
+	.vega-visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
 	}
 
 	.vega-visual-status {
@@ -836,6 +1384,198 @@
 
 	.vega-visual-retry:hover {
 		border-color: var(--line-strong);
+	}
+
+	/* Conmutador de tamaño de pantalla + zoom (ver cabecera): mismo lenguaje visual que las tres
+	   otras "píldoras de grupo" de la app (`.vega-locale-tabs`, `.vega-tree-add-menu`…): un
+	   contenedor con borde, botones sin borde propio, el activo se distingue por fondo/tinta de
+	   acento (`aria-pressed`, ver el marcado). */
+	.vega-visual-screen-group,
+	.vega-visual-zoom-group {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.15rem;
+		padding: 0.15rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--surface);
+	}
+
+	.vega-visual-screen-btn,
+	.vega-visual-zoom-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		height: 26px;
+		padding: 0 0.55rem;
+		border: 0;
+		border-radius: calc(var(--r) / 1.5);
+		background: transparent;
+		color: var(--ink-2);
+		font-size: 0.75rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.vega-visual-screen-btn:hover,
+	.vega-visual-zoom-btn:hover {
+		background: var(--active);
+		color: var(--ink);
+	}
+
+	.vega-visual-screen-btn:focus-visible,
+	.vega-visual-zoom-btn:focus-visible,
+	.vega-visual-help-toggle:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.vega-visual-screen-btn[aria-pressed='true'],
+	.vega-visual-zoom-btn[aria-pressed='true'] {
+		background: var(--accent-soft);
+		color: var(--accent-text);
+	}
+
+	/* Los VALORES numéricos (ancho en px, % de zoom) van en `--mono` (§transversal del encargo):
+	   son datos, no prosa. */
+	.vega-visual-screen-width,
+	.vega-visual-zoom-value {
+		font-family: var(--mono);
+		font-size: 0.75rem;
+		color: var(--ink-2);
+		white-space: nowrap;
+	}
+
+	.vega-visual-help-toggle {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 26px;
+		height: 26px;
+		border: 1px solid var(--line);
+		border-radius: 50%;
+		background: var(--surface);
+		color: var(--ink-2);
+		font-size: 0.8rem;
+		font-weight: 700;
+		cursor: pointer;
+	}
+
+	.vega-visual-help-toggle:hover,
+	.vega-visual-help-toggle[aria-pressed='true'] {
+		border-color: var(--line-strong);
+		color: var(--ink);
+	}
+
+	/* Diálogo de ayuda (ver cabecera, "Panel de ayuda de atajos"): mismo par backdrop/dialog que
+	   `ExportDialog.svelte`/`ReloginModal.svelte` (ver sus cabeceras), scrim ALLOWLISTED en
+	   `check-theme-coverage.mjs` por el mismo motivo que ahí (§3 no tiene token de velo). */
+	.vega-visual-help-backdrop {
+		position: fixed;
+		z-index: 80;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: var(--vega-space-gutter);
+		background: rgb(15 17 21 / 55%);
+	}
+
+	.vega-visual-help-dialog {
+		display: flex;
+		flex-direction: column;
+		gap: 0.9rem;
+		width: 100%;
+		max-width: 26rem;
+		max-height: calc(100dvh - var(--vega-space-gutter) * 2);
+		padding: 1.25rem;
+		border-radius: 10px;
+		background: var(--surface);
+		color: var(--ink);
+		box-shadow: var(--shadow-card);
+		overflow-y: auto;
+	}
+
+	.vega-visual-help-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+	}
+
+	.vega-visual-help-head h2 {
+		margin: 0;
+		font-size: 1.05rem;
+		color: var(--ink-hi);
+	}
+
+	.vega-visual-help-close {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		width: 1.9rem;
+		height: 1.9rem;
+		border: 0;
+		border-radius: 6px;
+		background: transparent;
+		color: var(--ink-2);
+		cursor: pointer;
+	}
+
+	.vega-visual-help-close:hover {
+		background: var(--active);
+		color: var(--ink);
+	}
+
+	.vega-visual-help-close:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.vega-visual-help-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.6rem;
+		margin: 0;
+	}
+
+	.vega-visual-help-list > div {
+		display: flex;
+		align-items: baseline;
+		gap: 0.75rem;
+	}
+
+	.vega-visual-help-list dt {
+		flex-shrink: 0;
+		width: 7.5rem;
+	}
+
+	.vega-visual-help-list dd {
+		margin: 0;
+		color: var(--ink-2);
+		font-size: 0.85rem;
+	}
+
+	.vega-visual-help-list kbd {
+		padding: 0.1rem 0.4rem;
+		border: 1px solid var(--line);
+		border-radius: 4px;
+		background: var(--surface-2);
+		color: var(--ink);
+		font-family: var(--mono);
+		font-size: 0.75rem;
+	}
+
+	/* La asimetría (ver cabecera del script, "Estado de guardado en la barra") se DICE aparte del
+	   listado de teclas: no es un atajo, es la explicación de por qué el punto "sin guardar" de la
+	   barra no siempre corresponde a lo último que se hizo. */
+	.vega-visual-help-asymmetry {
+		margin: 0;
+		padding-top: 0.6rem;
+		border-top: 1px solid var(--line);
+		color: var(--ink-2);
+		font-size: 0.8rem;
 	}
 
 	/* Tres columnas (ver cabecera): árbol | lienzo | inspector, mismo esquema que
@@ -895,7 +1635,6 @@
 
 	.vega-visual-canvas {
 		position: relative;
-		display: flex;
 		min-height: 0;
 		border: 1px solid var(--line);
 		border-radius: var(--r);
@@ -903,8 +1642,23 @@
 		overflow: hidden;
 	}
 
+	/* Escenario del zoom (ver cabecera del script, "Tamaño de pantalla + zoom del lienzo"): el
+	   ÚNICO elemento que se escala (`transform`, inline — ver el marcado), envolviendo iframe +
+	   overlay en la MISMA caja para que sigan casando. `position: absolute` (no `flex`, ya no hace
+	   falta desde que el ancho/alto son explícitos): a escala < 1 deja hueco alrededor DENTRO del
+	   propio lienzo, que es justo el "zoom out" esperado — un layout de flujo lo centraría o
+	   estiraría, ninguna de las dos cosas correcta aquí. */
+	.vega-visual-stage {
+		position: absolute;
+		top: 0;
+		left: 0;
+		transform-origin: top left;
+	}
+
 	.vega-visual-frame {
-		flex: 1;
+		display: block;
+		width: 100%;
+		height: 100%;
 		border: 0;
 		background: var(--surface);
 	}

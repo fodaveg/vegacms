@@ -280,6 +280,21 @@
 			await tick();
 		}
 	}
+
+	/**
+	 * Handle para el atajo ⌘S/Ctrl+S del editor visual (`VisualInspector.svelte#saveSelected`,
+	 * `VisualEditorScreen.svelte`): este componente no renderiza un `<form>` (su guardado es un
+	 * `<button type="button">`, más abajo), así que el truco de `formEl.requestSubmit()` que usa
+	 * `RecordForm.svelte` no sirve aquí — hace falta un handle EXPORTADO en vez de un
+	 * `querySelector` sobre el DOM del botón (que además tendría que reinventar la guarda).
+	 * Aditivo: `RecordBlocks.svelte`, el OTRO consumidor de este componente, nunca llama a esto y
+	 * no se entera de que existe. Misma guarda EXACTA que el atributo `disabled` del botón "Guardar"
+	 * de más abajo — si el botón está deshabilitado, este handle tampoco hace nada.
+	 */
+	export function save(): void {
+		if (inert || !dirty || (typed && blockType === null)) return;
+		void handleSave();
+	}
 </script>
 
 <div class="vega-block-fields">

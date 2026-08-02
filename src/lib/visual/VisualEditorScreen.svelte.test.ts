@@ -207,6 +207,52 @@ function stubMatchMedia(
 	};
 }
 
+/** `ResizeObserver` de mentira (jsdom NO lo trae, a diferencia de `matchMedia` que sí se puede
+ *  stubear con una forma mínima): la pantalla lo usa para medir `.vega-visual-canvas` (tarea "el
+ *  acabado"), así que sin este stub CUALQUIER montaje revienta con un `ReferenceError`, no solo
+ *  los tests nuevos de zoom. `observe(el)` dispara el callback EN EL ACTO con el
+ *  `getBoundingClientRect()` actual del elemento (jsdom no hace layout de verdad: por defecto da
+ *  0×0, así que los tests que necesiten un tamaño concreto stubean `getBoundingClientRect` ANTES
+ *  de montar o antes de llamar a `triggerResize`). `triggerResize()` reinvoca a TODOS los
+ *  observadores activos con la medida VIVA en ese momento — simula tanto un redimensionado de
+ *  ventana como el efecto de arrastrar una manilla de columna, que en un navegador real dispara el
+ *  mismo `ResizeObserver` sin que el componente tenga que enterarse de la causa (ver la cabecera
+ *  de `VisualEditorScreen.svelte`). */
+function stubResizeObserver(): { triggerResize: () => void } {
+	const observers = new Set<{ el: Element; cb: ResizeObserverCallback }>();
+	class ResizeObserverStub {
+		#cb: ResizeObserverCallback;
+		constructor(cb: ResizeObserverCallback) {
+			this.#cb = cb;
+		}
+		observe(el: Element): void {
+			const entry = { el, cb: this.#cb };
+			observers.add(entry);
+			this.#cb(
+				[{ contentRect: el.getBoundingClientRect() } as ResizeObserverEntry],
+				this as unknown as ResizeObserver
+			);
+		}
+		unobserve(el: Element): void {
+			for (const entry of observers) if (entry.el === el) observers.delete(entry);
+		}
+		disconnect(): void {
+			for (const entry of observers) if (entry.cb === this.#cb) observers.delete(entry);
+		}
+	}
+	vi.stubGlobal('ResizeObserver', ResizeObserverStub);
+	return {
+		triggerResize: () => {
+			for (const { el, cb } of observers) {
+				cb(
+					[{ contentRect: el.getBoundingClientRect() } as ResizeObserverEntry],
+					undefined as unknown as ResizeObserver
+				);
+			}
+		}
+	};
+}
+
 /** Mismo criterio que `PreviewPanel.svelte.test.ts`: macrotask real (drena la cadena de
  *  microtasks de `requestPreview`/`createBlocksState#load`) + `tick()` de Svelte. */
 async function flush(): Promise<void> {
@@ -277,6 +323,9 @@ describe('VisualEditorScreen.svelte', () => {
 	// ventana estrecha vuelven a llamar a `stubMatchMedia(true)` antes de montar.
 	beforeEach(() => {
 		stubMatchMedia(false);
+		// `ResizeObserver` (ver cabecera de `stubResizeObserver`): necesario en TODOS los tests, no
+		// solo en los de zoom, porque el montaje entero pasa por él.
+		stubResizeObserver();
 	});
 
 	afterEach(async () => {
@@ -533,6 +582,7 @@ describe('VisualEditorScreen.svelte — árbol de secciones e inspector', () => 
 
 	beforeEach(() => {
 		stubMatchMedia(false);
+		stubResizeObserver();
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
 	});
 
@@ -830,6 +880,7 @@ describe('VisualEditorScreen.svelte — acciones estructurales (árbol + lienzo)
 
 	beforeEach(() => {
 		stubMatchMedia(false);
+		stubResizeObserver();
 	});
 
 	afterEach(async () => {
@@ -989,6 +1040,7 @@ describe('VisualEditorScreen.svelte — manillas de ancho de columna', () => {
 
 	beforeEach(() => {
 		localStorage.clear();
+		stubResizeObserver();
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
 	});
 
@@ -1111,6 +1163,7 @@ describe('VisualEditorScreen.svelte — refresco en vivo del lienzo', () => {
 
 	beforeEach(() => {
 		stubMatchMedia(false);
+		stubResizeObserver();
 	});
 
 	afterEach(async () => {
@@ -1318,5 +1371,397 @@ describe('VisualEditorScreen.svelte — refresco en vivo del lienzo', () => {
 		// Dos peticiones y ni una más: la del montaje y la del refresco. Nada pidió token después.
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 		expect(pending).toHaveLength(0);
+	});
+});
+
+// ————— El acabado (tarea "el acabado: tamaños de pantalla, zoom, atajos y estado de guardado")
+// — tamaño de pantalla + zoom (`viewport.ts`, cubierto aparte en `viewport.test.ts`; aquí solo el
+// DOM: el escenario escalado, el ancho de layout del iframe), atajos de teclado a nivel de
+// PANTALLA, las tres ramas del estado de guardado en la barra, y las migas. -----
+
+describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, estado de guardado)', () => {
+	let mounted: { target: HTMLElement; instance: ReturnType<typeof mount> } | null = null;
+
+	beforeEach(() => {
+		stubMatchMedia(false);
+		stubResizeObserver();
+	});
+
+	afterEach(async () => {
+		if (mounted) {
+			await unmount(mounted.instance);
+			mounted.target.remove();
+			mounted = null;
+		}
+		vi.unstubAllGlobals();
+		vi.restoreAllMocks();
+	});
+
+	/** Mismo camino que `saveHeading` de la describe de refresco en vivo (no accesible desde aquí,
+	 *  otro closure): selecciona la primera fila y escribe en su campo `heading`, SIN guardar. */
+	async function editHeading(target: HTMLElement, value: string): Promise<void> {
+		target.querySelector<HTMLButtonElement>('.vega-tree-row')!.click();
+		await tick();
+		const headingInput = target.querySelector<HTMLInputElement>(
+			'.vega-inspector-body:not([hidden]) input[type="text"]'
+		)!;
+		headingInput.value = value;
+		headingInput.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+	}
+
+	// ————— Escenario escalado (zoom): el overlay vive DENTRO, el iframe conserva su ancho —————
+
+	test('el overlay vive DENTRO del escenario escalado, junto al iframe', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		const stage = mounted.target.querySelector('.vega-visual-stage');
+		expect(stage).not.toBeNull();
+		// Los dos, DENTRO del mismo escenario — es lo único que garantiza que compartan el factor
+		// de escala (ver cabecera de `VisualEditorScreen.svelte`, "El punto CENTRAL").
+		expect(stage!.querySelector('.vega-visual-frame')).not.toBeNull();
+		expect(stage!.querySelector('.vega-visual-overlay-root')).not.toBeNull();
+	});
+
+	test('cambiar el zoom escala el escenario con `transform`, sin tocar el ancho de LAYOUT del iframe', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		const resize = stubResizeObserver();
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		// Escritorio (preset de partida): el ancho de layout es el MEDIDO del lienzo, nunca uno
+		// inventado — se fuerza una medida controlada y se dispara el aviso a mano (ver cabecera de
+		// `stubResizeObserver`).
+		const canvasEl = mounted.target.querySelector('.vega-visual-canvas')!;
+		vi.spyOn(canvasEl, 'getBoundingClientRect').mockReturnValue({
+			width: 700,
+			height: 500,
+			top: 0,
+			left: 0,
+			right: 700,
+			bottom: 500,
+			x: 0,
+			y: 0,
+			toJSON: () => ({})
+		} as DOMRect);
+		resize.triggerResize();
+		await tick();
+
+		const stage = mounted.target.querySelector<HTMLElement>('.vega-visual-stage')!;
+		expect(stage.style.width).toBe('700px');
+		expect(stage.style.transform).toBe('scale(1)'); // 100% de partida
+
+		const zoom50 = Array.from(
+			mounted.target.querySelectorAll<HTMLButtonElement>('.vega-visual-zoom-btn')
+		).find(
+			(btn) =>
+				btn.textContent?.trim() === translate('es', 'editor.visual.zoom.level', { percent: 50 })
+		)!;
+		zoom50.click();
+		await tick();
+
+		// El ancho de LAYOUT no se movió ni un píxel: solo cambió `transform`. Es la landmine
+		// central de la tarea (ver cabecera del componente) — si esto fallara, el overlay se
+		// despegaría del iframe.
+		expect(stage.style.width).toBe('700px');
+		expect(stage.style.transform).toBe('scale(0.5)');
+		expect(zoom50.getAttribute('aria-pressed')).toBe('true');
+	});
+
+	test('conmutador de tamaño: móvil/tableta fijan el ancho del iframe SIN mirar el lienzo', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		const stage = mounted.target.querySelector<HTMLElement>('.vega-visual-stage')!;
+		const screenBtn = (label: string) =>
+			Array.from(
+				mounted!.target.querySelectorAll<HTMLButtonElement>('.vega-visual-screen-btn')
+			).find((btn) => btn.textContent?.trim() === label)!;
+
+		screenBtn(translate('es', 'editor.visual.screen.mobile')).click();
+		await tick();
+		expect(stage.style.width).toBe('390px');
+		expect(mounted.target.querySelector('.vega-visual-screen-width')?.textContent).toContain('390');
+
+		screenBtn(translate('es', 'editor.visual.screen.tablet')).click();
+		await tick();
+		expect(stage.style.width).toBe('834px');
+	});
+
+	// ————— Atajos de teclado —————
+
+	test('Esc deselecciona el bloque', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [
+			{ id: 'b1', type: 'hero' },
+			{ id: 'b2', type: 'gallery' }
+		]);
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'select', blockId: 'b1' });
+		await tick();
+		expect(mounted.target.querySelector('.vega-tree-row--selected')).not.toBeNull();
+
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		await tick();
+
+		expect(mounted.target.querySelector('.vega-tree-row--selected')).toBeNull();
+	});
+
+	test('Alt+↓ mueve el bloque seleccionado hacia abajo y persiste el nuevo orden', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(jsonResponse(tokenBody()));
+		vi.stubGlobal('fetch', fetchMock);
+		const { ctx, type, port } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [
+			{ id: 'b1', type: 'hero' },
+			{ id: 'b2', type: 'gallery' }
+		]);
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'select', blockId: 'b1' });
+		await tick();
+
+		window.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true })
+		);
+		await flush();
+
+		const rows = await port.list('post_block', {
+			sort: [{ field: 'sort', dir: 'asc' }],
+			perPage: 50
+		});
+		expect(rows.items.map((r) => r.values.heading)).toEqual(['Features', 'Hero']);
+		expect(fetchMock.mock.calls.length).toBeGreaterThan(1); // pidió vista previa nueva
+	});
+
+	test('mover por teclado se congela mientras haya CUALQUIER bloque con cambios sin guardar', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(jsonResponse(tokenBody()));
+		vi.stubGlobal('fetch', fetchMock);
+		const { ctx, type, port } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [
+			{ id: 'b1', type: 'hero' },
+			{ id: 'b2', type: 'gallery' }
+		]);
+		// b1 queda con un borrador sin guardar (mismo guard que el botón de mover del overlay/árbol).
+		await editHeading(mounted.target, 'Hero a medias');
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'select', blockId: 'b1' });
+		await tick();
+
+		window.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true })
+		);
+		await flush();
+
+		const rows = await port.list('post_block', {
+			sort: [{ field: 'sort', dir: 'asc' }],
+			perPage: 50
+		});
+		expect(rows.items.map((r) => r.values.heading)).toEqual(['Hero', 'Features']); // sin cambios
+	});
+
+	test('Supr pide el borrado del seleccionado: abre el diálogo, NO borra a pelo', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type, port } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [
+			{ id: 'b1', type: 'hero' },
+			{ id: 'b2', type: 'gallery' }
+		]);
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'select', blockId: 'b1' });
+		await tick();
+
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }));
+		await tick();
+
+		expect(mounted.target.querySelector('.vega-delete-confirm')).not.toBeNull();
+		expect((await port.list('post_block', { perPage: 50 })).totalItems).toBe(2); // aún no borrado
+
+		mounted.target.querySelector<HTMLButtonElement>('.vega-delete-confirm')!.click();
+		await flush();
+		expect((await port.list('post_block', { perPage: 50 })).totalItems).toBe(1);
+	});
+
+	test('ninguno de los atajos de una sola tecla dispara con el foco en un campo de texto', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [
+			{ id: 'b1', type: 'hero' },
+			{ id: 'b2', type: 'gallery' }
+		]);
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'select', blockId: 'b1' });
+		await tick();
+
+		const headingInput = mounted.target.querySelector<HTMLInputElement>(
+			'.vega-inspector-body:not([hidden]) input[type="text"]'
+		)!;
+		headingInput.focus();
+
+		// `Esc`: dispatchado SOBRE el campo enfocado (mismo `target` que un navegador real), no
+		// sobre `window` — el escuchador vive en `window`, pero lo que decide `isEditableTarget` es
+		// el `target` del evento, no dónde escucha.
+		headingInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		await tick();
+		expect(mounted.target.querySelector('.vega-tree-row--selected')).not.toBeNull(); // sigue
+
+		headingInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }));
+		await tick();
+		expect(mounted.target.querySelector('.vega-delete-confirm')).toBeNull(); // nada se abrió
+
+		headingInput.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }));
+		await tick();
+		expect(mounted.target.querySelector('[role="dialog"]')).toBeNull(); // tampoco el panel
+	});
+
+	test('⌘S SÍ guarda con el foco DENTRO de un campo de texto (la única excepción)', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type, port } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		await editHeading(mounted.target, 'Hero por atajo');
+		expect(mounted.target.querySelector('.vega-visual-dirty')).not.toBeNull();
+
+		const headingInput = mounted.target.querySelector<HTMLInputElement>(
+			'.vega-inspector-body:not([hidden]) input[type="text"]'
+		)!;
+		headingInput.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 's', metaKey: true, bubbles: true })
+		);
+		await flush();
+
+		expect(mounted.target.querySelector('.vega-visual-dirty')).toBeNull();
+		expect((await port.get('post_block', 'b1')).values.heading).toBe('Hero por atajo');
+	});
+
+	test('sin bloque seleccionado, ⌘S no revienta (no-op)', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', metaKey: true, bubbles: true }));
+		await flush();
+
+		expect(mounted.target.querySelector('.vega-visual-dirty')).toBeNull();
+	});
+
+	test('? abre el panel de ayuda con el foco atrapado; Esc lo cierra y devuelve el foco a su disparador', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		const helpToggle = mounted.target.querySelector<HTMLButtonElement>('.vega-visual-help-toggle')!;
+		helpToggle.focus();
+		helpToggle.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }));
+		await tick();
+
+		const dialog = mounted.target.querySelector('[role="dialog"]');
+		expect(dialog).not.toBeNull();
+		expect(document.activeElement?.classList.contains('vega-visual-help-close')).toBe(true);
+
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		await tick();
+
+		expect(mounted.target.querySelector('[role="dialog"]')).toBeNull();
+		expect(document.activeElement).toBe(helpToggle);
+	});
+
+	// ————— Estado de guardado en la barra: las TRES ramas —————
+
+	test('estado de guardado: sin guardar → guardando → hora del último guardado', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type, port } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		// Antes de tocar nada: ninguna de las tres ramas.
+		expect(mounted.target.querySelector('.vega-visual-dirty')).toBeNull();
+		expect(mounted.target.querySelector('.vega-visual-saved-at')).toBeNull();
+
+		// 1) Sin guardar.
+		await editHeading(mounted.target, 'Hero editado');
+		expect(mounted.target.querySelector('.vega-visual-dirty')).not.toBeNull();
+
+		// 2) Guardando… — se congela el `port.update` real a mano para poder observar el estado
+		// intermedio (mismo criterio que cualquier test de "en vuelo" de este fichero).
+		let releaseSave!: () => void;
+		const gate = new Promise<void>((resolve) => {
+			releaseSave = resolve;
+		});
+		const originalUpdate = port.update.bind(port);
+		vi.spyOn(port, 'update').mockImplementation(async (...args: Parameters<typeof port.update>) => {
+			await gate;
+			return originalUpdate(...args);
+		});
+
+		mounted.target
+			.querySelector<HTMLButtonElement>(
+				'.vega-inspector-body:not([hidden]) .vega-block-save-button'
+			)!
+			.click();
+		await tick();
+
+		expect(mounted.target.querySelector('.vega-visual-saved-at--saving')?.textContent).toContain(
+			translate('es', 'editor.saving')
+		);
+		expect(mounted.target.querySelector('.vega-visual-dirty')).toBeNull(); // guardando gana
+
+		// 3) Hora del último guardado.
+		releaseSave();
+		await flush();
+
+		expect(mounted.target.querySelector('.vega-visual-saved-at--saving')).toBeNull();
+		const savedAtEl = mounted.target.querySelector('.vega-visual-saved-at');
+		expect(savedAtEl).not.toBeNull();
+		expect(savedAtEl!.textContent).not.toBe('');
+	});
+
+	// ————— Migas —————
+
+	test('migas: colección › documento, y el bloque seleccionado si lo hay (nunca un guion)', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		const crumbs = () =>
+			Array.from(mounted!.target.querySelectorAll('.vega-visual-breadcrumbs li')).map(
+				(li) => li.textContent
+			);
+		expect(crumbs()).toEqual([type.label, 'Hola mundo']);
+
+		await connectBridge(mounted.target, [{ id: 'b1', type: 'hero' }]);
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'select', blockId: 'b1' });
+		await tick();
+
+		expect(crumbs()).toEqual([type.label, 'Hola mundo', 'Hero']);
 	});
 });

@@ -279,6 +279,27 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.resize.tree': 'Resize the section tree',
 	'editor.visual.resize.inspector': 'Resize the block panel',
 
+	// ————— The finishing touches (screen sizes, zoom, shortcuts, save status): see the header of
+	// `VisualEditorScreen.svelte` for why —————
+	'editor.visual.breadcrumbs.label': 'Where you are',
+	'editor.visual.screen.groupLabel': 'Screen size',
+	'editor.visual.screen.mobile': 'Mobile',
+	'editor.visual.screen.tablet': 'Tablet',
+	'editor.visual.screen.desktop': 'Desktop',
+	'editor.visual.screen.width': '{width} px',
+	'editor.visual.zoom.groupLabel': 'Zoom',
+	'editor.visual.zoom.level': '{percent} %',
+	'editor.visual.zoom.fit': 'Fit',
+	'editor.visual.help.toggle': 'Keyboard shortcuts',
+	'editor.visual.help.title': 'Keyboard shortcuts',
+	'editor.visual.help.deselect': 'Deselect the block',
+	'editor.visual.help.move': 'Move the selected block up/down',
+	'editor.visual.help.delete': 'Ask to delete the selected block',
+	'editor.visual.help.save': 'Save the selected block',
+	'editor.visual.help.toggleHelp': 'Open or close this panel',
+	'editor.visual.help.asymmetry':
+		'Moving, duplicating, deleting and adding sections save on their own, the moment they happen. A block’s field text saves with the "Save" button on its panel.',
+
 	// ————— Master-detail editor (final `aquelarre-detalle-post.html` mockup) —————
 	// Sibling rail (`.rail`), metadata aside (`.kv`) and danger zone: GENERIC opt-in renderer
 	// pieces — the aside card headings come from `fieldGroups` (manifest data), so only literals
