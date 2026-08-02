@@ -571,4 +571,263 @@ describe('VisualOverlay.svelte', () => {
 		expect(insertPointsWrap?.style.pointerEvents).toBe('');
 		expect(insertBtn?.style.pointerEvents).toBe('auto');
 	});
+
+	// ————— Arrastrar en el lienzo (tarea "reordenar arrastrando en el lienzo") —————
+	//
+	// El controlador en sí (`createReorderDndController`) ya está probado a fondo en
+	// `reorder-dnd.test.ts`: esta suite NO revuelve sus invariantes, prueba lo que es propio de
+	// montarlo aquí — que la capa de destinos solo existe durante el gesto, que los índices se
+	// traducen del puente a los registros por id, y que la guía cae en el borde correcto.
+
+	/** `dragstart`/`dragover`/`drop` de mentira: jsdom no trae `DragEvent`, y los manejadores solo
+	 *  leen `dataTransfer` (opcional) y `preventDefault`. Se despacha un `Event` normal con un
+	 *  `dataTransfer` de juguete encima, mismo criterio que `reorder-dnd.test.ts`. */
+	function fireDrag(el: Element, type: string): void {
+		const event = new Event(type, { bubbles: true, cancelable: true });
+		Object.defineProperty(event, 'dataTransfer', {
+			value: { setData: vi.fn(), effectAllowed: '', dropEffect: '' }
+		});
+		el.dispatchEvent(event);
+	}
+
+	function handleOf(target: HTMLElement): HTMLElement {
+		return target.querySelector<HTMLElement>('.vega-visual-overlay-handle')!;
+	}
+
+	function zonesOf(target: HTMLElement): HTMLElement[] {
+		return [...target.querySelectorAll<HTMLElement>('.vega-visual-overlay-drop-zone')];
+	}
+
+	test('en reposo NO hay ni un destino de arrastre que pueda robar el puntero', async () => {
+		mounted = mountOverlay({
+			status: 'ready',
+			selectedId: 'b1',
+			blocks: [block('b1', 'hero'), block('b2', 'gallery')],
+			blocksState: fakeBlocksState({ records: [record('b1', 'Hero'), record('b2', 'Galería')] })
+		});
+		await tick();
+
+		expect(mounted.target.querySelector('.vega-visual-overlay-drop-zones')).toBeNull();
+		expect(zonesOf(mounted.target)).toHaveLength(0);
+	});
+
+	test('agarrar el asa monta un destino por bloque, en SU rect y capturando el puntero', async () => {
+		mounted = mountOverlay({
+			status: 'ready',
+			selectedId: 'b1',
+			blocks: [
+				block('b1', 'hero', { top: 10, left: 5, width: 300, height: 150 }),
+				block('b2', 'gallery', { top: 200, left: 0, width: 640, height: 480 })
+			],
+			blocksState: fakeBlocksState({ records: [record('b1', 'Hero'), record('b2', 'Galería')] })
+		});
+		await tick();
+
+		fireDrag(handleOf(mounted.target), 'dragstart');
+		await tick();
+
+		const zones = zonesOf(mounted.target);
+		expect(zones).toHaveLength(2);
+		expect(zones[0].style.top).toBe('10px');
+		expect(zones[0].style.left).toBe('5px');
+		expect(zones[0].style.width).toBe('300px');
+		expect(zones[0].style.height).toBe('150px');
+		expect(zones[1].style.top).toBe('200px');
+		// La ÚNICA parte del overlay que captura el puntero, y solo mientras dura el gesto.
+		expect(zones[0].style.pointerEvents).toBe('auto');
+		// Y los puntos de inserción se apartan: caen en los huecos donde se suelta y se tragarían
+		// el `drop` sin manejarlo (ver el marcado).
+		expect(mounted.target.querySelector('.vega-visual-overlay-insert')).toBeNull();
+	});
+
+	test('soltar sobre otro bloque reordena y pide vista previa nueva', async () => {
+		const handleReorder = vi.fn(async () => true);
+		const onStructuralChange = vi.fn();
+		mounted = mountOverlay({
+			status: 'ready',
+			selectedId: 'b1',
+			blocks: [block('b1', 'hero'), block('b2', 'gallery'), block('b3', 'footer')],
+			blocksState: fakeBlocksState({
+				records: [record('b1', 'Hero'), record('b2', 'Galería'), record('b3', 'Pie')],
+				handleReorder
+			}),
+			onStructuralChange
+		});
+		await tick();
+
+		fireDrag(handleOf(mounted.target), 'dragstart');
+		await tick();
+		const zones = zonesOf(mounted.target);
+		fireDrag(zones[2], 'dragover');
+		fireDrag(zones[2], 'drop');
+		await settle();
+
+		expect(handleReorder).toHaveBeenCalledWith(0, 2);
+		expect(onStructuralChange).toHaveBeenCalled();
+		// El gesto terminó: la capa se desmonta sola, sin que nadie la apague a mano.
+		expect(mounted.target.querySelector('.vega-visual-overlay-drop-zones')).toBeNull();
+	});
+
+	test('un reorden que no cambió nada no pide vista previa nueva', async () => {
+		const onStructuralChange = vi.fn();
+		mounted = mountOverlay({
+			status: 'ready',
+			selectedId: 'b1',
+			blocks: [block('b1', 'hero'), block('b2', 'gallery')],
+			blocksState: fakeBlocksState({
+				records: [record('b1', 'Hero'), record('b2', 'Galería')],
+				handleReorder: vi.fn(async () => false)
+			}),
+			onStructuralChange
+		});
+		await tick();
+
+		fireDrag(handleOf(mounted.target), 'dragstart');
+		await tick();
+		fireDrag(zonesOf(mounted.target)[1], 'drop');
+		await settle();
+
+		expect(onStructuralChange).not.toHaveBeenCalled();
+	});
+
+	test('la guía cae DEBAJO al arrastrar hacia abajo y ENCIMA al arrastrar hacia arriba', async () => {
+		mounted = mountOverlay({
+			status: 'ready',
+			selectedId: 'b2',
+			blocks: [block('b1', 'hero'), block('b2', 'gallery'), block('b3', 'footer')],
+			blocksState: fakeBlocksState({
+				records: [record('b1', 'Hero'), record('b2', 'Galería'), record('b3', 'Pie')]
+			})
+		});
+		await tick();
+
+		fireDrag(handleOf(mounted.target), 'dragstart');
+		await tick();
+
+		// Hacia abajo (del índice 1 al 2): el hueco va DEBAJO del sobrevolado.
+		fireDrag(zonesOf(mounted.target)[2], 'dragover');
+		await tick();
+		expect(
+			zonesOf(mounted.target)[2].classList.contains('vega-visual-overlay-drop-zone--after')
+		).toBe(true);
+
+		// Hacia arriba (del 1 al 0): ENCIMA.
+		fireDrag(zonesOf(mounted.target)[0], 'dragover');
+		await tick();
+		expect(
+			zonesOf(mounted.target)[0].classList.contains('vega-visual-overlay-drop-zone--before')
+		).toBe(true);
+		expect(
+			zonesOf(mounted.target)[2].classList.contains('vega-visual-overlay-drop-zone--after')
+		).toBe(false);
+	});
+
+	test('soltar el arrastre a medias (dragend) no reordena y quita la capa', async () => {
+		const handleReorder = vi.fn(async () => true);
+		mounted = mountOverlay({
+			status: 'ready',
+			selectedId: 'b1',
+			blocks: [block('b1', 'hero'), block('b2', 'gallery')],
+			blocksState: fakeBlocksState({
+				records: [record('b1', 'Hero'), record('b2', 'Galería')],
+				handleReorder
+			})
+		});
+		await tick();
+
+		fireDrag(handleOf(mounted.target), 'dragstart');
+		await tick();
+		fireDrag(zonesOf(mounted.target)[1], 'dragover');
+		fireDrag(handleOf(mounted.target), 'dragend');
+		await settle();
+
+		expect(handleReorder).not.toHaveBeenCalled();
+		expect(mounted.target.querySelector('.vega-visual-overlay-drop-zones')).toBeNull();
+	});
+
+	test('las flechas sobre el asa mueven sin arrastrar (vía accesible del mismo camino)', async () => {
+		const handleReorder = vi.fn(async () => true);
+		const onStructuralChange = vi.fn();
+		mounted = mountOverlay({
+			status: 'ready',
+			selectedId: 'b2',
+			blocks: [block('b1', 'hero'), block('b2', 'gallery')],
+			blocksState: fakeBlocksState({
+				records: [record('b1', 'Hero'), record('b2', 'Galería')],
+				handleReorder
+			}),
+			onStructuralChange
+		});
+		await tick();
+
+		handleOf(mounted.target).dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true })
+		);
+		await settle();
+
+		expect(handleReorder).toHaveBeenCalledWith(1, 0);
+		expect(onStructuralChange).toHaveBeenCalled();
+	});
+
+	test('con un borrador sin guardar, el asa ni se agarra ni se pulsa', async () => {
+		mounted = mountOverlay({
+			status: 'ready',
+			selectedId: 'b1',
+			blocks: [block('b1', 'hero'), block('b2', 'gallery')],
+			blocksState: fakeBlocksState({
+				records: [record('b1', 'Hero'), record('b2', 'Galería')],
+				anyDirtyIds: new Set(['b1'])
+			})
+		});
+		await tick();
+
+		const handle = handleOf(mounted.target) as HTMLButtonElement;
+		expect(handle.disabled).toBe(true);
+		// `disabled` no frena el arrastre nativo: hace falta que `draggable` caiga con él.
+		expect(handle.draggable).toBe(false);
+	});
+
+	test('el puente y los registros en ORDEN distinto: los índices se traducen por id', async () => {
+		const handleReorder = vi.fn(async () => true);
+		mounted = mountOverlay({
+			status: 'ready',
+			selectedId: 'b3',
+			// El sitio pinta b3 el primero; `blocksState` lo tiene el último.
+			blocks: [block('b3', 'footer'), block('b1', 'hero'), block('b2', 'gallery')],
+			blocksState: fakeBlocksState({
+				records: [record('b1', 'Hero'), record('b2', 'Galería'), record('b3', 'Pie')],
+				handleReorder
+			})
+		});
+		await tick();
+
+		fireDrag(handleOf(mounted.target), 'dragstart');
+		await tick();
+		// Se suelta sobre el SEGUNDO destino del lienzo, que es el registro `b1` (índice 0).
+		fireDrag(zonesOf(mounted.target)[1], 'drop');
+		await settle();
+
+		expect(handleReorder).toHaveBeenCalledWith(2, 0);
+	});
+
+	test('un id del puente que no casa con ningún registro no mueve nada', async () => {
+		const handleReorder = vi.fn(async () => true);
+		mounted = mountOverlay({
+			status: 'ready',
+			selectedId: 'b1',
+			blocks: [block('b1', 'hero'), block('fantasma', 'gallery')],
+			blocksState: fakeBlocksState({
+				records: [record('b1', 'Hero'), record('b2', 'Galería')],
+				handleReorder
+			})
+		});
+		await tick();
+
+		fireDrag(handleOf(mounted.target), 'dragstart');
+		await tick();
+		fireDrag(zonesOf(mounted.target)[1], 'drop');
+		await settle();
+
+		expect(handleReorder).not.toHaveBeenCalled();
+	});
 });

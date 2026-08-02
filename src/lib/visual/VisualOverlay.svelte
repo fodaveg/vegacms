@@ -126,9 +126,47 @@
 	 *   reporta ese id → `VisualEditorScreen.svelte#onState` (único escritor de `selectedBlockId`,
 	 *   ver su cabecera) lo limpia. Un segundo escritor aquí sería el bug de "dos efectos, un solo
 	 *   estado" que ese módulo evita a propósito.
+	 *
+	 * **Arrastrar una sección por el lienzo hasta su sitio — tarea "reordenar arrastrando en el
+	 * lienzo".** Ni un motor de reordenación nuevo ni un segundo anuncio accesible: el asa (`⠿`)
+	 * de la barra flotante cablea `createReorderDndController` (`$lib/list/reorder-dnd.ts`), el
+	 * MISMO controlador que ya usan `RecordTable`, `MergedViewTable` y `RecordBlocks`, y la caída
+	 * acaba en `blocksState.handleReorder`, que por dentro llama a `computeReorder` y escribe el
+	 * anuncio por voz de la posición resultante (`blocks-state.svelte.ts#announce`, region
+	 * `aria-live` que vive UNA vez en `VisualBlockTree.svelte`, ver más arriba). El asa además
+	 * hereda GRATIS el fallback de teclado del controlador (`ArrowUp`/`ArrowDown` mueven sin un
+	 * paso previo de "agarrar"), que es lo que mantiene la vía accesible sin escribir nada nuevo.
+	 *
+	 * **Por qué hay una capa de destinos que solo existe DURANTE el arrastre**
+	 * (`.vega-visual-overlay-drop-zones`, la complicación real que anticipaba el encargo). El
+	 * puntero pasa por encima de un `<iframe>` de otro origen, así que Vega no ve NINGÚN evento de
+	 * ratón del interior (misma política que documenta "El resalte por RATÓN queda fuera", más
+	 * arriba) — tampoco los `dragover`/`drop`, que van al documento de dentro. La única forma de
+	 * que la caída se calcule en Vega es poner, encima del marco, elementos PROPIOS que sí los
+	 * reciban: una caja por bloque, colocada con el `rect` que ya reporta el puente, con
+	 * `pointer-events: auto`. Eso es exactamente lo que la regla central del componente prohíbe...
+	 * salvo mientras hay un arrastre en vuelo, que es cuando el sitio no puede recibir clics de
+	 * todos modos. Por eso la capa se MONTA y se DESMONTA con `dragState.fromIndex` en vez de estar
+	 * siempre ahí con `pointer-events` conmutado: fuera del gesto no existe ni un nodo que pueda
+	 * robar el puntero, y el scroll y los enlaces del sitio siguen intactos por construcción, no
+	 * por disciplina. Es el mismo remedio que `VisualEditorScreen.svelte` ya usa para las manillas
+	 * de columna (ver su cabecera, "El escudo del arrastre"), aquí en forma de N destinos en vez de
+	 * una sola capa ciega, porque este gesto necesita saber SOBRE CUÁL se ha soltado.
+	 *
+	 * **Dos espacios de índices, y por qué la conversión es por ID.** El controlador trabaja en
+	 * índices del array del PUENTE (`blocks`, que es el orden que se ve en pantalla y sobre el que
+	 * el autor apunta); `handleReorder` los quiere de `blocksState.records`. Los dos coinciden en
+	 * el caso sano, pero no se da por hecho: `recordIndexForBlock` traduce por id, y si un extremo
+	 * no resuelve (id fantasma en cualquier dirección, ver la cabecera del árbol, "Ids") el
+	 * reorden no se intenta — mejor no mover nada que mover el bloque equivocado.
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import Icon from '$lib/icons/Icon.svelte';
+	import {
+		createReorderDndController,
+		dropIndicatorEdge,
+		type ReorderDragState
+	} from '$lib/list/reorder-dnd';
 	import type { VisualBlock } from './bridge-client';
 	import type { BlocksState } from '$lib/form/blocks-state.svelte';
 
@@ -236,6 +274,44 @@
 		const moved = await blocksState.handleReorder(selectedIndex, target);
 		if (moved) onStructuralChange();
 	}
+
+	// ————— Arrastrar en el lienzo (ver cabecera) —————
+
+	/** Espejo local del estado EN VUELO del controlador, para pintar el bloque agarrado y la guía
+	 *  de dónde caería. En índices del PUENTE (ver cabecera, "Dos espacios de índices"). */
+	let dragState = $state<ReorderDragState>({ fromIndex: null, overIndex: null });
+
+	/** Posición del bloque seleccionado dentro de `blocks`, que es el espacio de índices en el que
+	 *  habla el controlador — NO `selectedIndex`, que es el de `blocksState.records`. */
+	const selectedBridgeIndex = $derived(
+		selectedId === null ? -1 : blocks.findIndex((b) => b.id === selectedId)
+	);
+
+	/** Traduce un índice del puente al de `blocksState.records`, por id. `-1` si no resuelve (ver
+	 *  cabecera): quien llame decide, y en esta tarea la decisión es no mover nada. */
+	function recordIndexForBlock(bridgeIndex: number): number {
+		const block = blocks[bridgeIndex];
+		if (!block) return -1;
+		return blocksState.records.findIndex((r) => r.id === block.id);
+	}
+
+	/** Única salida del arrastre y del fallback de teclado del asa. `handleReorder` trae señal de
+	 *  éxito (igual que en `handleMoveSelected`): solo se pide vista previa nueva si de verdad
+	 *  cambió algo. Su propio guard interno es el que frena si hay borradores sin guardar — aquí no
+	 *  se repite, mismo criterio que `handleInsert`. */
+	async function reorderFromCanvas(fromBridge: number, toBridge: number): Promise<void> {
+		const from = recordIndexForBlock(fromBridge);
+		const to = recordIndexForBlock(toBridge);
+		if (from === -1 || to === -1 || from === to) return;
+		const moved = await blocksState.handleReorder(from, to);
+		if (moved) onStructuralChange();
+	}
+
+	const dnd = createReorderDndController(
+		(from, to) => void reorderFromCanvas(from, to),
+		() => blocks.length,
+		(state) => (dragState = state)
+	);
 
 	// ————— Puntos de inserción (ver cabecera) —————
 
@@ -345,6 +421,24 @@
 				selectedBridgeBlock.rect.width -
 				TOOLBAR_INSET}px"
 		>
+			<!-- Asa de arrastre (ver cabecera, "Arrastrar una sección por el lienzo"): mismo glifo,
+			     misma clave de rótulo y mismo cableado del controlador que el asa de `RecordBlocks`
+			     y de las dos tablas. `draggable` cae a la vez que `disabled` para que un bloque
+			     congelado por el guard tampoco se pueda agarrar (un `disabled` no basta: el arrastre
+			     nativo no lo mira). -->
+			<button
+				type="button"
+				class="vega-visual-overlay-toolbar-btn vega-visual-overlay-handle"
+				style:pointer-events="auto"
+				disabled={structuralGuard || selectedBridgeIndex < 0}
+				draggable={!structuralGuard && selectedBridgeIndex >= 0}
+				aria-label={ctx.t('list.reorder.handleLabel', { label })}
+				ondragstart={(event) => dnd.handleDragStart(event, selectedBridgeIndex)}
+				ondragend={dnd.handleDragEnd}
+				onkeydown={(event) => dnd.handleHandleKeydown(event, selectedBridgeIndex)}
+			>
+				<span aria-hidden="true">⠿</span>
+			</button>
 			{#if blocksState.blockDuplicateAllowed}
 				<button
 					type="button"
@@ -396,9 +490,46 @@
 		</div>
 	{/if}
 
+	<!-- Destinos del arrastre (ver cabecera, "Por qué hay una capa de destinos que solo existe
+	     DURANTE el arrastre"): montada y desmontada con el gesto, nunca presente en reposo. Es la
+	     ÚNICA parte de este componente que captura el puntero sobre el área del sitio, y solo
+	     mientras el sitio no puede recibir clics de todas formas. Decorativa para el lector de
+	     pantalla: la vía accesible de reordenar son las flechas sobre el asa y el árbol, no esto. -->
+	{#if dragState.fromIndex !== null}
+		<div class="vega-visual-overlay-drop-zones" aria-hidden="true">
+			{#each blocks as block, i (block.id)}
+				{@const edge =
+					dragState.overIndex === i
+						? dropIndicatorEdge(dragState.fromIndex, dragState.overIndex)
+						: null}
+				<!-- `role="presentation"`: el nodo NO es un control, solo una superficie que recibe
+				     `dragover`/`drop` mientras dura el gesto (el árbol y las flechas del asa son la
+				     vía accesible). Sin el rol explícito, el compilador exige uno por llevar
+				     manejadores de arrastre (`a11y_no_static_element_interactions`). -->
+				<div
+					role="presentation"
+					class="vega-visual-overlay-drop-zone"
+					class:vega-visual-overlay-drop-zone--source={dragState.fromIndex === i}
+					class:vega-visual-overlay-drop-zone--before={edge === 'before'}
+					class:vega-visual-overlay-drop-zone--after={edge === 'after'}
+					style:pointer-events="auto"
+					style:top="{block.rect.top}px"
+					style:left="{block.rect.left}px"
+					style:width="{block.rect.width}px"
+					style:height="{block.rect.height}px"
+					ondragover={(event) => dnd.handleDragOver(event, i)}
+					ondrop={(event) => dnd.handleDrop(event, i)}
+				></div>
+			{/each}
+		</div>
+	{/if}
+
 	<!-- Puntos de inserción (ver cabecera): mismo criterio de capa hermana + `pointer-events` solo
-	     en los botones. -->
-	{#if !blocksState.hidden && insertPoints.length > 0}
+	     en los botones. Se retiran MIENTRAS dura un arrastre: caen justo en los huecos entre
+	     contornos, que es donde el puntero suelta, y un botón sin manejador de `drop` se traga el
+	     evento y cancela el gesto sin decir nada. Insertar durante un arrastre no es una acción
+	     posible, así que no se pierde nada quitándolos. -->
+	{#if !blocksState.hidden && insertPoints.length > 0 && dragState.fromIndex === null}
 		<div class="vega-visual-overlay-insert-points">
 			{#each insertPoints as point (point.position)}
 				<button
@@ -656,6 +787,64 @@
 	.vega-visual-overlay-insert:disabled {
 		cursor: not-allowed;
 		opacity: 0.4;
+	}
+
+	/* El asa es lo único de la barra que se agarra: el cursor lo dice antes de intentarlo. */
+	.vega-visual-overlay-handle {
+		cursor: grab;
+	}
+
+	.vega-visual-overlay-handle:active {
+		cursor: grabbing;
+	}
+
+	.vega-visual-overlay-handle:disabled {
+		cursor: not-allowed;
+	}
+
+	/* Destinos del arrastre (ver cabecera): esta capa solo existe mientras hay un gesto en vuelo,
+	   así que no necesita ninguna cautela de `pointer-events` en reposo — en reposo no está. */
+	.vega-visual-overlay-drop-zones {
+		position: absolute;
+		inset: 0;
+	}
+
+	.vega-visual-overlay-drop-zone {
+		position: absolute;
+	}
+
+	/* El bloque agarrado, atenuado: mismo lenguaje que `.vega-block-row--dragging` de
+	   `RecordBlocks.svelte`, aquí como velo sobre el sitio porque no podemos atenuar su contenido
+	   (vive dentro del iframe, que es de otro origen). */
+	.vega-visual-overlay-drop-zone--source {
+		background: var(--paper);
+		opacity: 0.45;
+	}
+
+	/* Guía de dónde va a caer. Doble trazo `--paper`/`--ink-hi` alrededor del `--accent` por el
+	   mismo motivo que el contorno (ver cabecera, "Doble trazo, siempre"): se pinta sobre el fondo
+	   del sitio del cliente, que Vega no conoce, así que un solo color desaparecería contra la
+	   mitad de los fondos posibles. */
+	.vega-visual-overlay-drop-zone--before::before,
+	.vega-visual-overlay-drop-zone--after::after {
+		content: '';
+		position: absolute;
+		left: 0;
+		right: 0;
+		height: 3px;
+		border-radius: 2px;
+		background: var(--accent);
+		box-shadow:
+			0 0 0 1px var(--paper),
+			0 0 0 2px var(--ink-hi);
+	}
+
+	.vega-visual-overlay-drop-zone--before::before {
+		top: 0;
+	}
+
+	.vega-visual-overlay-drop-zone--after::after {
+		bottom: 0;
 	}
 
 	@media (pointer: coarse) {
