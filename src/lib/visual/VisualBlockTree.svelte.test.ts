@@ -138,13 +138,22 @@ function mountTree(
 	blocks: BlocksState,
 	selectedId: string | null,
 	onSelect: (id: string) => void = vi.fn(),
-	onStructuralChange: () => void = vi.fn()
+	onStructuralChange: () => void = vi.fn(),
+	onPaletteDragStart: (blockType: ResolvedBlockType) => void = vi.fn(),
+	onPaletteDragEnd: () => void = vi.fn()
 ): { target: HTMLElement; instance: ReturnType<typeof mount> } {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const instance = mount(VisualBlockTree, {
 		target,
-		props: { blocks, selectedId, onSelect, onStructuralChange },
+		props: {
+			blocks,
+			selectedId,
+			onSelect,
+			onStructuralChange,
+			onPaletteDragStart,
+			onPaletteDragEnd
+		},
 		context: new Map([[VEGA_CONTEXT_KEY, fakeCtx()]])
 	});
 	return { target, instance };
@@ -381,12 +390,13 @@ describe('VisualBlockTree.svelte', () => {
 		expect(mounted.target.querySelectorAll('.vega-visually-hidden[aria-live]')).toHaveLength(1);
 	});
 
-	test('"Añadir" sin menú de tipos: crea sin tipo y pide vista previa nueva', async () => {
+	test('"Añadir" sin menú de tipos: crea sin tipo, pide vista previa nueva, y la paleta no se pinta', async () => {
 		const handleCreate = vi.fn(async () => {});
 		const onStructuralChange = vi.fn();
 		const blocks = fakeBlocksState({ records: [record('b1', 'Hero')], handleCreate });
 		mounted = mountTree(blocks, null, vi.fn(), onStructuralChange);
 
+		expect(mounted.target.querySelector('.vega-palette-panel')).toBeNull();
 		mounted.target.querySelector<HTMLButtonElement>('.vega-tree-add')!.click();
 		await settle();
 
@@ -394,36 +404,80 @@ describe('VisualBlockTree.svelte', () => {
 		expect(onStructuralChange).toHaveBeenCalledTimes(1);
 	});
 
-	test('"Añadir" con menú de tipos: abre el menú, listar tipos y elegir uno crea CON ESE tipo', async () => {
-		const handleCreate = vi.fn(async () => {});
+	// ————— Paleta de bloques arrastrable (encargo "paleta de bloques arrastrable del editor
+	// visual", decisión 1: sustituye al menú "Añadir Sección ›" de aquí). El comportamiento propio
+	// de `VisualPalette.svelte` (guardas, `dataTransfer`, anuncio de creación) tiene su propia
+	// suite; aquí solo lo que le compete a ESTE componente: que la instancia en el sitio correcto,
+	// que el botón viejo de verdad se fue, y que reenvía sus dos props de arrastre tal cual. —————
+
+	test('con menú de tipos: el botón "Añadir" se retira y la paleta ocupa su lugar, con DOS regiones', () => {
+		const blocks = fakeBlocksState({
+			records: [record('b1', 'Hero')],
+			hasTypeMenu: true,
+			blockTypes: [HERO_TYPE, GALLERY_TYPE]
+		});
+		mounted = mountTree(blocks, null);
+
+		expect(mounted.target.querySelector('.vega-tree-add')).toBeNull();
+		const items = mounted.target.querySelectorAll<HTMLButtonElement>('.vega-palette-item');
+		expect(items).toHaveLength(2);
+
+		// Dos regiones con encabezado PROPIO (ver la cabecera del componente): ni una sola cubriendo
+		// paleta+secciones, ni ninguna sin `aria-labelledby` resoluble.
+		const panel = mounted.target.querySelector('#vega-block-tree-panel')!;
+		const regions = panel.querySelectorAll('[role="region"]');
+		expect(regions).toHaveLength(2);
+		for (const region of regions) {
+			const labelledBy = region.getAttribute('aria-labelledby');
+			expect(labelledBy).not.toBeNull();
+			expect(document.getElementById(labelledBy!)).not.toBeNull();
+		}
+	});
+
+	test('paleta: clic sobre un tipo crea CON ESE tipo, al final, y pide vista previa nueva', async () => {
+		const b1 = record('b1', 'Hero');
+		const created = record('new', 'Galería');
+		const records = [b1];
+		const handleCreate = vi.fn(async () => {
+			records.push(created); // mismo array: `blocks.records` refleja el alta
+		});
 		const onStructuralChange = vi.fn();
 		const blocks = fakeBlocksState({
-			records: [],
+			records,
 			hasTypeMenu: true,
 			blockTypes: [HERO_TYPE, GALLERY_TYPE],
 			handleCreate
 		});
 		mounted = mountTree(blocks, null, vi.fn(), onStructuralChange);
-		await settle();
 
-		const trigger = mounted.target.querySelector<HTMLButtonElement>('.vega-tree-add')!;
-		expect(trigger.getAttribute('aria-expanded')).toBe('false');
-		trigger.click();
-		await settle();
-		expect(trigger.getAttribute('aria-expanded')).toBe('true');
-
-		const items = mounted.target.querySelectorAll<HTMLButtonElement>(
-			'.vega-tree-add-menu [role="menuitem"]'
-		);
-		expect(items).toHaveLength(2);
+		const items = mounted.target.querySelectorAll<HTMLButtonElement>('.vega-palette-item');
 		items[1].click(); // "Galería"
 		await settle();
 
 		expect(handleCreate).toHaveBeenCalledWith(GALLERY_TYPE);
 		expect(onStructuralChange).toHaveBeenCalledTimes(1);
-		// El menú se cierra y el foco vuelve al disparador (mismo criterio que `RecordBlocks.svelte`).
-		expect(trigger.getAttribute('aria-expanded')).toBe('false');
-		expect(document.activeElement).toBe(trigger);
+	});
+
+	test('paleta: `dragstart`/`dragend` de un tipo avisan por los props `onPaletteDragStart`/`onPaletteDragEnd`, tal cual', () => {
+		const onPaletteDragStart = vi.fn();
+		const onPaletteDragEnd = vi.fn();
+		const blocks = fakeBlocksState({
+			records: [],
+			hasTypeMenu: true,
+			blockTypes: [HERO_TYPE, GALLERY_TYPE]
+		});
+		mounted = mountTree(blocks, null, vi.fn(), vi.fn(), onPaletteDragStart, onPaletteDragEnd);
+
+		const item = mounted.target.querySelectorAll<HTMLButtonElement>('.vega-palette-item')[1];
+		const dragstart = new Event('dragstart', { bubbles: true, cancelable: true });
+		Object.defineProperty(dragstart, 'dataTransfer', {
+			value: { setData: vi.fn(), effectAllowed: '' }
+		});
+		item.dispatchEvent(dragstart);
+		expect(onPaletteDragStart).toHaveBeenCalledWith(GALLERY_TYPE);
+
+		item.dispatchEvent(new Event('dragend', { bubbles: true, cancelable: true }));
+		expect(onPaletteDragEnd).toHaveBeenCalledTimes(1);
 	});
 
 	test('duplicar: llama a `handleDuplicate` con ESE registro y pide vista previa nueva; sin permiso, no hay botón', async () => {

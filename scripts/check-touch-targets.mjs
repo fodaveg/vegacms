@@ -57,7 +57,10 @@ export const COMPONENT_FILES = [
 	'src/lib/visual/VisualEditorScreen.svelte',
 	'src/lib/visual/VisualBlockTree.svelte',
 	'src/lib/visual/VisualOverlay.svelte',
-	'src/lib/visual/VisualColumnResizer.svelte'
+	'src/lib/visual/VisualColumnResizer.svelte',
+	// Encargo "paleta de bloques arrastrable": botones de verdad nuevos, mismo criterio de medición
+	// que el resto de esta lista — sin sumarla aquí, el guardarraíl no la habría visto nunca.
+	'src/lib/visual/VisualPalette.svelte'
 ];
 
 /** El número que firma la checklist de accesibilidad del editor visual. */

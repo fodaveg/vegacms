@@ -128,6 +128,7 @@ function mountOverlay(props: {
 	renderedBlockTypes?: readonly string[] | null;
 	blocksState?: BlocksState;
 	onStructuralChange?: () => void;
+	paletteDragType?: ResolvedBlockType | null;
 }): { target: HTMLElement; instance: ReturnType<typeof mount> } {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
@@ -1042,5 +1043,210 @@ describe('VisualOverlay.svelte', () => {
 		await settle();
 
 		expect(handleReorder).not.toHaveBeenCalled();
+	});
+
+	// ————— Caída de la PALETA (encargo "paleta de bloques arrastrable del editor visual") —————
+	//
+	// `resolveInsertPosition()` en sí ya está probada a fondo en `insert-position.test.ts`: esta
+	// suite NO revuelve sus invariantes, prueba lo que es propio de montarlo aquí — que la capa de
+	// destinos se monta también SIN agarrar el asa (con `paletteDragType`), que la caída usa el
+	// `rect` DE VERDAD del elemento (`getBoundingClientRect()`, mockeada aquí, mismo criterio que
+	// `VisualEditorScreen.svelte.test.ts`) para decidir antes/después, y que termina en el MISMO
+	// `handleInsert` que ya usa el `+`.
+
+	/** `drop`/`dragover` de mentira CON `clientY` (jsdom no trae `DragEvent`, ver `fireDrag`): la
+	 *  coordenada de la caída, en el MISMO sistema que `getBoundingClientRect()` (ver la cabecera
+	 *  del componente). */
+	function firePaletteDragEvent(el: Element, type: string, clientY?: number): void {
+		const event = new Event(type, { bubbles: true, cancelable: true });
+		Object.defineProperty(event, 'dataTransfer', {
+			value: { setData: vi.fn(), effectAllowed: '', dropEffect: '' }
+		});
+		if (clientY !== undefined) Object.defineProperty(event, 'clientY', { value: clientY });
+		el.dispatchEvent(event);
+	}
+
+	/** Rect de mentira para un destino: jsdom no hace layout de verdad (`getBoundingClientRect()`
+	 *  da 0×0 por defecto), así que se mockea con una forma mínima — mismo criterio que
+	 *  `VisualEditorScreen.svelte.test.ts`. */
+	function stubZoneRect(el: Element, top: number, height: number): void {
+		vi.spyOn(el, 'getBoundingClientRect').mockReturnValue({
+			top,
+			height,
+			bottom: top + height,
+			left: 0,
+			right: 100,
+			width: 100,
+			x: 0,
+			y: top,
+			toJSON: () => {}
+		});
+	}
+
+	test('la capa de destinos TAMBIÉN se monta con un arrastre de PALETA en vuelo, sin agarrar ningún asa', async () => {
+		mounted = mountOverlay({
+			status: 'ready',
+			blocks: [
+				block('b1', 'hero', { top: 0, height: 50 }),
+				block('b2', 'gallery', { top: 100, height: 50 })
+			],
+			blocksState: fakeBlocksState({ records: [record('b1', 'Hero'), record('b2', 'Galería')] }),
+			paletteDragType: HERO_TYPE
+		});
+		await tick();
+
+		const zones = zonesOf(mounted.target);
+		expect(zones).toHaveLength(2);
+		// El asa nunca se agarró: `dragState.fromIndex` sigue `null`, así que ninguna guía de
+		// reorden (que es OTRO gesto) se pinta encima.
+		expect(zones[0].classList.contains('vega-visual-overlay-drop-zone--source')).toBe(false);
+	});
+
+	test('paleta: soltar en la mitad SUPERIOR del primer bloque crea ANTES de todos (posición 0)', async () => {
+		const b1 = record('b1', 'Hero');
+		const b2 = record('b2', 'Features');
+		const created = record('new', '');
+		const records = [b1, b2];
+		const handleCreate = vi.fn(async () => {
+			records.push(created);
+		});
+		const handleReorder = vi.fn(async () => true);
+		const onStructuralChange = vi.fn();
+		mounted = mountOverlay({
+			status: 'ready',
+			blocks: [
+				block('b1', 'hero', { top: 0, height: 50 }),
+				block('b2', 'gallery', { top: 100, height: 50 })
+			],
+			blocksState: fakeBlocksState({ records, handleCreate, handleReorder }),
+			onStructuralChange,
+			paletteDragType: HERO_TYPE
+		});
+		await tick();
+
+		const zones = zonesOf(mounted.target);
+		stubZoneRect(zones[0], 0, 50);
+		firePaletteDragEvent(zones[0], 'dragover');
+		firePaletteDragEvent(zones[0], 'drop', 10); // mitad SUPERIOR (punto medio en 25)
+		await settle();
+
+		expect(handleCreate).toHaveBeenCalledWith(HERO_TYPE);
+		// Creado al final (índice 2) y reordenado a la posición 0 (antes de b1).
+		expect(handleReorder).toHaveBeenCalledWith(2, 0);
+		expect(onStructuralChange).toHaveBeenCalledTimes(1);
+	});
+
+	test('paleta: soltar en la mitad INFERIOR del último bloque crea al final (sin reorden, ya cae ahí)', async () => {
+		const b1 = record('b1', 'Hero');
+		const b2 = record('b2', 'Features');
+		const created = record('new', '');
+		const records = [b1, b2];
+		const handleCreate = vi.fn(async () => {
+			records.push(created);
+		});
+		const handleReorder = vi.fn(async () => true);
+		const onStructuralChange = vi.fn();
+		mounted = mountOverlay({
+			status: 'ready',
+			blocks: [
+				block('b1', 'hero', { top: 0, height: 50 }),
+				block('b2', 'gallery', { top: 100, height: 50 })
+			],
+			blocksState: fakeBlocksState({ records, handleCreate, handleReorder }),
+			onStructuralChange,
+			paletteDragType: GALLERY_TYPE
+		});
+		await tick();
+
+		const zones = zonesOf(mounted.target);
+		stubZoneRect(zones[1], 100, 50);
+		firePaletteDragEvent(zones[1], 'dragover');
+		firePaletteDragEvent(zones[1], 'drop', 140); // mitad INFERIOR (punto medio en 125)
+		await settle();
+
+		expect(handleCreate).toHaveBeenCalledWith(GALLERY_TYPE);
+		// Ya nace en la posición pedida (al final): no hace falta reordenar.
+		expect(handleReorder).not.toHaveBeenCalled();
+		expect(onStructuralChange).toHaveBeenCalledTimes(1);
+	});
+
+	test('paleta: los puntos de inserción `+` se retiran mientras dura el arrastre, igual que en el reorden', async () => {
+		mounted = mountOverlay({
+			status: 'ready',
+			blocks: [block('b1', 'hero', { top: 0, height: 50 })],
+			blocksState: fakeBlocksState({ records: [record('b1', 'Hero')] }),
+			paletteDragType: HERO_TYPE
+		});
+		await tick();
+
+		expect(mounted.target.querySelectorAll('.vega-visual-overlay-insert')).toHaveLength(0);
+	});
+
+	// ————— Página vacía + arrastre de paleta en vuelo (decisión 3 del encargo) —————
+
+	test('página vacía: la caja de caída SOLO existe con un arrastre de paleta en vuelo', async () => {
+		const blocksState = fakeBlocksState({ records: [] });
+		// Sin arrastre: nada.
+		mounted = mountOverlay({ status: 'ready', blocks: [], blocksState });
+		await tick();
+		expect(mounted.target.querySelector('.vega-visual-overlay-empty-drop')).toBeNull();
+		await unmount(mounted.instance);
+		mounted.target.remove();
+
+		// Con bloques (aunque el sitio no los pinte): tampoco, aunque haya un arrastre — ese caso lo
+		// cubre el aviso de "bloques que faltan", no la caja de página vacía.
+		mounted = mountOverlay({
+			status: 'ready',
+			blocks: [],
+			blocksState: fakeBlocksState({ records: [record('b1', 'Hero')] }),
+			paletteDragType: HERO_TYPE
+		});
+		await tick();
+		// `missingBlocks` > 0 aquí (hay un registro que el sitio no reporta), pero la caja de caída
+		// solo mira `blocks.length === 0`, no `blocksState.records`: sigue apareciendo, porque el
+		// lienzo SIGUE vacío de contornos y sigue siendo un destino honesto para la caída.
+		expect(mounted.target.querySelector('.vega-visual-overlay-empty-drop')).not.toBeNull();
+		await unmount(mounted.instance);
+		mounted.target.remove();
+
+		// Las DOS a la vez (lienzo vacío de verdad Y arrastre en vuelo): aparece.
+		mounted = mountOverlay({
+			status: 'ready',
+			blocks: [],
+			blocksState,
+			paletteDragType: HERO_TYPE
+		});
+		await tick();
+		const dropBox = mounted.target.querySelector('.vega-visual-overlay-empty-drop');
+		expect(dropBox).not.toBeNull();
+		expect(dropBox?.textContent).toBe(translate('es', 'editor.visual.overlay.emptyDrop'));
+	});
+
+	test('página vacía: soltar crea SIEMPRE en la posición 0', async () => {
+		const created = record('new', '');
+		const records: VegaRecord[] = [];
+		const handleCreate = vi.fn(async () => {
+			records.push(created);
+		});
+		const handleReorder = vi.fn(async () => true);
+		const onStructuralChange = vi.fn();
+		mounted = mountOverlay({
+			status: 'ready',
+			blocks: [],
+			blocksState: fakeBlocksState({ records, handleCreate, handleReorder }),
+			onStructuralChange,
+			paletteDragType: HERO_TYPE
+		});
+		await tick();
+
+		const dropBox = mounted.target.querySelector<HTMLElement>('.vega-visual-overlay-empty-drop')!;
+		firePaletteDragEvent(dropBox, 'dragover');
+		firePaletteDragEvent(dropBox, 'drop');
+		await settle();
+
+		expect(handleCreate).toHaveBeenCalledWith(HERO_TYPE);
+		// Único registro tras la creación: ya nace en la posición 0, no hace falta reordenar.
+		expect(handleReorder).not.toHaveBeenCalled();
+		expect(onStructuralChange).toHaveBeenCalledTimes(1);
 	});
 });

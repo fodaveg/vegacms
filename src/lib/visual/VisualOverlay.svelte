@@ -175,6 +175,34 @@
 	 * el caso sano, pero no se da por hecho: `recordIndexForBlock` traduce por id, y si un extremo
 	 * no resuelve (id fantasma en cualquier dirección, ver la cabecera del árbol, "Ids") el
 	 * reorden no se intenta — mejor no mover nada que mover el bloque equivocado.
+	 *
+	 * **Soltar una sección de la PALETA para crearla EN POSICIÓN — encargo "paleta de bloques
+	 * arrastrable del editor visual".** `paletteDragType` (prop, `null` fuera de un gesto de
+	 * paleta) es la mitad que le toca a este componente del "un solo escritor" de la decisión 5:
+	 * `VisualEditorScreen.svelte` es el dueño, `VisualPalette.svelte` lo escribe por callback, este
+	 * componente solo lo LEE. Tres piezas, reutilizando al máximo lo que ya existía:
+	 * - **La capa de destinos** (`.vega-visual-overlay-drop-zones`, ver arriba, "Por qué hay una
+	 *   capa de destinos...") se monta también con `paletteDragType !== null`, no solo con
+	 *   `dragState.fromIndex !== null` — los dos gestos son mutuamente excluyentes (el navegador
+	 *   solo permite UN arrastre a la vez), así que `handleZoneDragOver`/`handleZoneDrop` bifurcan
+	 *   al principio: con un REORDEN siguen yendo a `dnd` de siempre; con una PALETA no reordenan
+	 *   nada, CREAN — la posición sale de `resolveInsertPosition()` (`./insert-position.ts`, mitad
+	 *   superior/inferior del bloque `index`-ésimo) contra el `rect` DE VERDAD del propio elemento
+	 *   que recibió el `drop` (`getBoundingClientRect()`, en coordenadas de PANTALLA, las mismas
+	 *   que `event.clientY` — así el resultado sale correcto pase lo que pase el zoom del lienzo,
+	 *   sin que este componente necesite conocer `VisualEditorScreen.svelte#zoomFactor` ni tocar el
+	 *   `rect` que reporta el puente, que vive en OTRO sistema de coordenadas, ver su cabecera) y
+	 *   la caída llama a `handleInsert(position, paletteDragType)` — el MISMO camino que ya usa el
+	 *   `+` de los puntos de inserción, nunca un segundo camino de creación.
+	 * - **Los puntos de inserción `+` se retiran también** durante un arrastre de paleta (mismo
+	 *   `{#if}` que ya los retiraba durante el reorden): caen justo en los huecos donde se suelta,
+	 *   y un menú de tipos abierto se cierra con el mismo `$effect` que ya lo hacía para el reorden.
+	 * - **Página vacía + arrastre de paleta en vuelo** (`status === 'ready' && blocks.length === 0`):
+	 *   una sola caja SOBRE EL MARCO, que solo existe durante el gesto (mismo criterio que la capa
+	 *   de destinos: fuera de él, ni un nodo). Usa el rect del propio marco —`inset: 0` sobre ESTE
+	 *   `<div>`, que ya coincide con la caja del `<iframe>` (ver el CSS de más abajo)—, no uno
+	 *   inventado: con cero bloques no hay ningún `rect` reportado del que fiarse. Su caída siempre
+	 *   es `handleInsert(0, paletteDragType)` — con cero bloques no hay "antes/después" que decidir.
 	 */
 	import { tick } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
@@ -185,6 +213,7 @@
 		type ReorderDragState
 	} from '$lib/list/reorder-dnd';
 	import { typeMenuItems, typeMenuKeydownIndex } from './type-menu';
+	import { resolveInsertPosition } from './insert-position';
 	import type { VisualBlock } from './bridge-client';
 	import type { BlocksState } from '$lib/form/blocks-state.svelte';
 	import type { ResolvedBlockType } from '$lib/model/types';
@@ -214,6 +243,10 @@
 		blocksState: BlocksState;
 		/** Una mutación estructural que de verdad cambió algo acaba de completarse (ver cabecera). */
 		onStructuralChange: () => void;
+		/** Arrastre de PALETA en vuelo, o `null` fuera de un gesto (ver cabecera, decisión 5 del
+		 *  encargo "paleta de bloques arrastrable"): dueño único en `VisualEditorScreen.svelte`,
+		 *  este componente solo LO LEE, nunca lo escribe. */
+		paletteDragType?: ResolvedBlockType | null;
 	}
 
 	let {
@@ -224,7 +257,8 @@
 		status,
 		renderedBlockTypes = null,
 		blocksState,
-		onStructuralChange
+		onStructuralChange,
+		paletteDragType = null
 	}: Props = $props();
 
 	const ctx = getVegaContext();
@@ -405,6 +439,7 @@
 		await blocksState.handleCreate(blockType);
 		if (blocksState.records.length !== before + 1) return; // creación fallida, `ctx.feedback` ya avisó
 		const newIndex = blocksState.records.length - 1;
+		const created = blocksState.records[newIndex];
 		// Si hay bloques con cambios sin guardar, `handleReorder` se niega (guard interno, ver su
 		// cabecera de `blocks-state.svelte.ts`): la sección nueva queda creada pero al FINAL en vez
 		// de en la posición pedida. No se repite aquí un segundo guard delante — el mismo criterio
@@ -412,6 +447,21 @@
 		// exactamente donde la pidió).
 		if (newIndex !== target) await blocksState.handleReorder(newIndex, target);
 		onStructuralChange();
+		// Anuncio por voz (encargo "paleta de bloques arrastrable", §6): ni `handleCreate` ni este
+		// `+` anunciaban nada por sí solos. Se localiza `created` por ID en vez de fiarse de
+		// `target` a ciegas —si `handleReorder` se negó por su guard (arriba), la sección se quedó
+		// al FINAL, no en `target`— y se anuncia DESPUÉS de que `handleReorder` (si corrió) haya
+		// escrito su propio "movido": este `say()` posterior lo sustituye por el mensaje correcto,
+		// "creada", no "movida".
+		const finalIndex = blocksState.records.findIndex((r) => r.id === created.id);
+		if (finalIndex < 0) return;
+		blocksState.say(
+			ctx.t('editor.visual.tree.announceCreate', {
+				label: blocksState.blockTitle(blocksState.records[finalIndex]),
+				position: finalIndex + 1,
+				total: blocksState.records.length
+			})
+		);
 	}
 
 	// ————— Menú de tipos del punto de inserción (defecto "el `+` crea sin preguntar el tipo",
@@ -497,12 +547,42 @@
 	}
 
 	/** Un arrastre que empieza con el menú abierto lo cierra (ver cabecera): los puntos de
-	 *  inserción se retiran mientras dura el gesto (`{#if ... && dragState.fromIndex === null}` del
-	 *  marcado), así que un menú que siguiera "abierto" en el estado quedaría anclado a un botón
-	 *  que ya no existe — huérfano en cuanto el gesto terminara y los puntos volvieran a montarse. */
+	 *  inserción se retiran mientras dura el gesto (`{#if ... && dragState.fromIndex === null &&
+	 *  paletteDragType === null}` del marcado, cualquiera de los dos gestos), así que un menú que
+	 *  siguiera "abierto" en el estado quedaría anclado a un botón que ya no existe — huérfano en
+	 *  cuanto el gesto terminara y los puntos volvieran a montarse. */
 	$effect(() => {
-		if (dragState.fromIndex !== null) closeInsertMenu();
+		if (dragState.fromIndex !== null || paletteDragType !== null) closeInsertMenu();
 	});
+
+	// ————— Caída de la PALETA (ver cabecera, "Soltar una sección de la PALETA...") —————
+
+	/** `dragover`/`drop` de la capa de destinos: bifurca según el gesto en vuelo. Los dos son
+	 *  mutuamente excluyentes (el navegador solo permite un arrastre a la vez, ver cabecera), así
+	 *  que basta con mirar `paletteDragType` para saber a qué camino ir. */
+	function handleZoneDragOver(event: DragEvent, index: number): void {
+		if (paletteDragType !== null) {
+			event.preventDefault();
+			if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+			return;
+		}
+		dnd.handleDragOver(event, index);
+	}
+
+	/** Con una PALETA en vuelo, la caída no reordena nada existente: CREA. La posición sale de
+	 *  `resolveInsertPosition()` contra el `rect` DE VERDAD del elemento que recibió el `drop` (ver
+	 *  cabecera para el porqué de `getBoundingClientRect()` en vez del `rect` que reporta el
+	 *  puente), y termina en el MISMO `handleInsert` que ya usa el `+` de los puntos de inserción. */
+	function handleZoneDrop(event: DragEvent, index: number): void {
+		if (paletteDragType !== null) {
+			event.preventDefault();
+			const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+			const position = resolveInsertPosition(index, event.clientY, rect);
+			void handleInsert(position, paletteDragType);
+			return;
+		}
+		dnd.handleDrop(event, index);
+	}
 </script>
 
 <!-- Nivel superior a la fuerza (`<svelte:window>` no puede vivir dentro de un bloque): clic-fuera
@@ -629,11 +709,13 @@
 	{/if}
 
 	<!-- Destinos del arrastre (ver cabecera, "Por qué hay una capa de destinos que solo existe
-	     DURANTE el arrastre"): montada y desmontada con el gesto, nunca presente en reposo. Es la
-	     ÚNICA parte de este componente que captura el puntero sobre el área del sitio, y solo
-	     mientras el sitio no puede recibir clics de todas formas. Decorativa para el lector de
-	     pantalla: la vía accesible de reordenar son las flechas sobre el asa y el árbol, no esto. -->
-	{#if dragState.fromIndex !== null}
+	     DURANTE el arrastre"): montada y desmontada con el gesto —REORDEN o PALETA, ver cabecera,
+	     "Soltar una sección de la PALETA..."—, nunca presente en reposo. Es la ÚNICA parte de este
+	     componente que captura el puntero sobre el área del sitio, y solo mientras el sitio no
+	     puede recibir clics de todas formas. Decorativa para el lector de pantalla: la vía
+	     accesible de reordenar son las flechas sobre el asa y el árbol; la de crear, la propia
+	     paleta (activar por teclado, ver su cabecera). -->
+	{#if dragState.fromIndex !== null || paletteDragType !== null}
 		<div class="vega-visual-overlay-drop-zones" aria-hidden="true">
 			{#each blocks as block, i (block.id)}
 				{@const edge =
@@ -641,9 +723,9 @@
 						? dropIndicatorEdge(dragState.fromIndex, dragState.overIndex)
 						: null}
 				<!-- `role="presentation"`: el nodo NO es un control, solo una superficie que recibe
-				     `dragover`/`drop` mientras dura el gesto (el árbol y las flechas del asa son la
-				     vía accesible). Sin el rol explícito, el compilador exige uno por llevar
-				     manejadores de arrastre (`a11y_no_static_element_interactions`). -->
+				     `dragover`/`drop` mientras dura el gesto (el árbol y las flechas del asa/la
+				     propia paleta son la vía accesible). Sin el rol explícito, el compilador exige
+				     uno por llevar manejadores de arrastre (`a11y_no_static_element_interactions`). -->
 				<div
 					role="presentation"
 					class="vega-visual-overlay-drop-zone"
@@ -655,20 +737,48 @@
 					style:left="{block.rect.left}px"
 					style:width="{block.rect.width}px"
 					style:height="{block.rect.height}px"
-					ondragover={(event) => dnd.handleDragOver(event, i)}
-					ondrop={(event) => dnd.handleDrop(event, i)}
+					ondragover={(event) => handleZoneDragOver(event, i)}
+					ondrop={(event) => handleZoneDrop(event, i)}
 				></div>
 			{/each}
 		</div>
 	{/if}
 
+	<!-- Página vacía + arrastre de paleta en vuelo (ver cabecera): SOLO existe durante el gesto,
+	     mismo criterio que la capa de destinos de arriba. Cubre el marco (ver el CSS, `inset`
+	     casi total sobre ESTE `<div>`, que ya coincide con la caja del `<iframe>` —
+	     `.vega-visual-overlay-root`—, con un margen de 0.75rem solo estético para que el trazo
+	     discontinuo no toque el borde): no hace falta leer ningún `rect` reportado, con cero
+	     bloques no hay ninguno del que fiarse. `role="presentation"` por el mismo motivo que la
+	     capa de destinos (lleva manejadores de arrastre); `aria-hidden` porque no es la vía
+	     accesible (esa es la propia paleta). -->
+	{#if status === 'ready' && blocks.length === 0 && paletteDragType !== null}
+		{@const dragType = paletteDragType}
+		<div
+			role="presentation"
+			aria-hidden="true"
+			class="vega-visual-overlay-empty-drop"
+			style:pointer-events="auto"
+			ondragover={(event) => {
+				event.preventDefault();
+				if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+			}}
+			ondrop={(event) => {
+				event.preventDefault();
+				void handleInsert(0, dragType);
+			}}
+		>
+			{ctx.t('editor.visual.overlay.emptyDrop')}
+		</div>
+	{/if}
+
 	<!-- Puntos de inserción (ver cabecera): mismo criterio de capa hermana + `pointer-events` solo
-	     en los botones. Se retiran MIENTRAS dura un arrastre: caen justo en los huecos entre
-	     contornos, que es donde el puntero suelta, y un botón sin manejador de `drop` se traga el
-	     evento y cancela el gesto sin decir nada. Insertar durante un arrastre no es una acción
-	     posible, así que no se pierde nada quitándolos (y el `$effect` de arriba cierra el menú de
-	     tipos si estaba abierto cuando el arrastre empieza). -->
-	{#if !blocksState.hidden && insertPoints.length > 0 && dragState.fromIndex === null}
+	     en los botones. Se retiran MIENTRAS dura un arrastre —REORDEN o PALETA—: caen justo en los
+	     huecos entre contornos, que es donde el puntero suelta, y un botón sin manejador de `drop`
+	     se traga el evento y cancela el gesto sin decir nada. Insertar durante un arrastre no es una
+	     acción posible, así que no se pierde nada quitándolos (y el `$effect` de arriba cierra el
+	     menú de tipos si estaba abierto cuando cualquiera de los dos gestos empieza). -->
+	{#if !blocksState.hidden && insertPoints.length > 0 && dragState.fromIndex === null && paletteDragType === null}
 		<div class="vega-visual-overlay-insert-points">
 			{#each insertPoints as point (point.position)}
 				<!-- Con menú de tipos (`hasTypeMenu`), mismo contrato APG que `.vega-tree-add` de
@@ -695,9 +805,11 @@
 					<Icon id="plus" size={14} />
 				</button>
 				{#if blocksState.hasTypeMenu && insertMenuPosition === point.position}
-					<!-- Mismo algoritmo de foco que `.vega-tree-add-menu` (`type-menu.ts`, ver cabecera
-					     del script): el marcado y el posicionamiento SÍ son propios de aquí, anclados a
-					     `point.top` en vez de a `top: 100%` de un botón en flujo normal — `top` en línea
+					<!-- Mismo algoritmo de foco que el menú "Añadir sección" que existía antes en
+					     `VisualBlockTree.svelte` (`type-menu.ts`, ver cabecera del script, EXTRAÍDO de
+					     ahí para que este menú lo comparta): el marcado y el posicionamiento SÍ son
+					     propios de aquí, anclados a `point.top` en vez de a `top: 100%` de un botón en
+					     flujo normal — `top` en línea
 					     coincide con el mismo eje Y del "+" (ver el CSS, la dirección hacia arriba/abajo
 					     la decide `insertMenuOpensUpward` con `margin-top`/`transform`), y queda
 					     recortado dentro del lienzo porque vive dentro del `overflow: hidden` de
@@ -982,12 +1094,12 @@
 	}
 
 	/* Menú de tipos del punto de inserción (defecto "el `+` crea sin preguntar el tipo", ver
-	   cabecera del script): mismo lenguaje visual que `.vega-tree-add-menu` de
-	   `VisualBlockTree.svelte` (tarjeta con `--surface`/`--shadow-card`, ítems en columna) — misma
-	   FAMILIA de menú, pero anclado a `point.top` (coordenadas del lienzo) en vez de a `top: 100%`
-	   de un botón en flujo normal, así que necesita su propio `top`/`left`/`margin`/`transform` en
-	   vez de heredar el suyo. Sin `pointer-events` propio (ver cabecera del componente, "DOS capas
-	   nuevas"): solo cada `role="menuitem"` lo activa. */
+	   cabecera del script): mismo lenguaje visual que llevaba el menú "Añadir sección" que existía
+	   antes en `VisualBlockTree.svelte` (tarjeta con `--surface`/`--shadow-card`, ítems en columna)
+	   — misma FAMILIA de menú, pero anclado a `point.top` (coordenadas del lienzo) en vez de a
+	   `top: 100%` de un botón en flujo normal, así que necesita su propio
+	   `top`/`left`/`margin`/`transform` en vez de heredar el suyo. Sin `pointer-events` propio (ver
+	   cabecera del componente, "DOS capas nuevas"): solo cada `role="menuitem"` lo activa. */
 	.vega-visual-overlay-insert-menu {
 		position: absolute;
 		left: 50%;
@@ -1090,6 +1202,29 @@
 
 	.vega-visual-overlay-drop-zone--after::after {
 		bottom: 0;
+	}
+
+	/* Página vacía + arrastre de paleta en vuelo (ver cabecera): `inset: 0` sobre el MISMO
+	   contenedor que ya cubre exactamente el `<iframe>` (`.vega-visual-overlay-root`, arriba), así
+	   que no hace falta ningún `rect` propio. Doble trazo `--accent`/`--paper`/`--ink-hi`, mismo
+	   criterio de contraste que la guía de "dónde caería" del reorden (ver arriba). */
+	.vega-visual-overlay-empty-drop {
+		position: absolute;
+		inset: 0.75rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 1rem;
+		border: 3px dashed var(--accent);
+		border-radius: var(--r);
+		background: var(--accent-soft);
+		box-shadow:
+			0 0 0 1px var(--paper),
+			0 0 0 2px var(--ink-hi);
+		color: var(--accent-text);
+		font-size: 0.9rem;
+		font-weight: 600;
+		text-align: center;
 	}
 
 	@media (pointer: coarse) {

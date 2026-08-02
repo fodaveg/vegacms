@@ -257,6 +257,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.overlay.skipped': "{count} block(s) the site described badly: can't be selected.",
 	'editor.visual.overlay.missing': "{count} section(s) that exist but the site isn't rendering.",
 	'editor.visual.overlay.unsupported': 'unsupported',
+	// "Draggable block palette" task: the empty-canvas drop target, ONLY while a palette drag is in
+	// flight (see `es.ts` for the full rationale).
+	'editor.visual.overlay.emptyDrop': 'Drop here to create the first section',
 	// ————— Section tree (`VisualBlockTree.svelte`) and inspector (`VisualInspector.svelte`): the
 	// ACCESSIBLE way to select a block (the overlay above is `aria-hidden`) and the selected
 	// block's form. See `es.ts` for the full rationale, incl. which existing keys are reused.
@@ -266,6 +269,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// Selection announcement ("accessibility" task, D3): see `es.ts` for the full rationale (same
 	// `aria-live` region as `editor.blocks.reorder.moved`).
 	'editor.visual.tree.announceSelect': 'Section "{label}" selected, {position} of {total}',
+	// Creation announcement ("draggable block palette" task, §6): same `aria-live` region, see
+	// `es.ts` for the full rationale.
+	'editor.visual.tree.announceCreate': 'Section "{label}" created, {position} of {total}',
 	// ————— Structural tree actions ("structural actions from the visual editor" task): see
 	// `es.ts` for the full rationale (same keys reused by the floating toolbar in
 	// `VisualOverlay.svelte`).

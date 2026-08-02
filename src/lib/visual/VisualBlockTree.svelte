@@ -97,13 +97,38 @@
 	 * mover el foco real por un clic en OTRA superficie (el iframe) sorprendería a quien esté
 	 * tecleando en el inspector en ese mismo instante — el resaltado visual (`--tree-row--selected`)
 	 * ya dice cuál es, sin robarle el cursor a nadie.
+	 *
+	 * **La paleta de bloques arrastrable sustituye al menú "Añadir Sección ›" (encargo "paleta de
+	 * bloques arrastrable del editor visual", decisión 1, cerrada con David).** Con
+	 * `blocks.hasTypeMenu`, ese botón+menú (el que preguntaba el tipo) SE RETIRA en el mismo commit
+	 * que trae `VisualPalette.svelte`: quedan dos vías con papeles distintos —la paleta (arrastrar o
+	 * activar por teclado, siempre crea) y el `+` de los puntos de inserción del lienzo (siempre
+	 * inserta EN POSICIÓN)—, no tres solapadas. Sin menú de tipos (`hasTypeMenu === false`, decisión
+	 * 4), nada de esto cambia: sigue el botón "Añadir" simple de siempre, y la paleta ni se pinta
+	 * (ver la cabecera de `VisualPalette.svelte`).
+	 *
+	 * **La paleta se instancia DENTRO de `.vega-tree-panel`, arriba del árbol (decisión 2).** Es el
+	 * mismo cajón que se abre/cierra en pantallas estrechas (ver D2 arriba): colgarla fuera lo
+	 * dejaría fuera del cajón en móvil/tablet, tabulable sobre el lienzo con el cajón cerrado —el
+	 * mismo antipatrón que D2 ya arregló para el resto de controles de este panel. El panel pasa a
+	 * tener DOS regiones (`role="region"`/`aria-labelledby`), cada una con su propio `<h2>` —la de
+	 * la paleta (`VisualPalette.svelte`) y la de las secciones (`.vega-tree-region`, más abajo, que
+	 * es la que antes ocupaba TODO `.vega-tree-panel`)— en vez de una sola región cubriendo las dos,
+	 * que mentiría sobre qué contiene. El propio `.vega-tree-panel` deja de llevar `role="region"`:
+	 * ahora es solo el contenedor del cajón (CSS de abrir/cerrar + destino de
+	 * `aria-controls="vega-block-tree-panel"` del disparador), las DOS regiones de verdad viven
+	 * dentro de él.
+	 *
+	 * **Dueño del arrastre de paleta en vuelo: `VisualEditorScreen.svelte` (decisión 5).** Este
+	 * componente no guarda ese estado, solo REENVÍA los dos callbacks de `VisualPalette.svelte`
+	 * (`onPaletteDragStart`/`onPaletteDragEnd`) tal cual los recibe por prop — mismo criterio de "un
+	 * solo escritor" que `selectedBlockId` (ver la cabecera de `VisualEditorScreen.svelte`).
 	 */
-	import { tick } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
 	import Icon from '$lib/icons/Icon.svelte';
 	import DeleteConfirm from '$lib/list/DeleteConfirm.svelte';
 	import { hasFileValues } from '$lib/revisions/restore';
-	import { typeMenuItems, typeMenuKeydownIndex } from './type-menu';
+	import VisualPalette from './VisualPalette.svelte';
 	import type { BlocksState } from '$lib/form/blocks-state.svelte';
 	import type { ResolvedBlockType } from '$lib/model/types';
 	import type { VegaRecord } from '$lib/backend';
@@ -119,9 +144,21 @@
 		/** Una mutación estructural (crear/duplicar/borrar/mover) acaba de completarse: la pantalla
 		 *  pide un token de vista previa nuevo (ver cabecera). */
 		onStructuralChange: () => void;
+		/** Reenviados tal cual a `VisualPalette.svelte` (ver cabecera, "Dueño del arrastre de
+		 *  paleta en vuelo"): el dueño del estado es `VisualEditorScreen.svelte`, este componente
+		 *  solo hace de tubería. */
+		onPaletteDragStart: (blockType: ResolvedBlockType) => void;
+		onPaletteDragEnd: () => void;
 	}
 
-	let { blocks, selectedId, onSelect, onStructuralChange }: Props = $props();
+	let {
+		blocks,
+		selectedId,
+		onSelect,
+		onStructuralChange,
+		onPaletteDragStart,
+		onPaletteDragEnd
+	}: Props = $props();
 	const ctx = getVegaContext();
 
 	// ————— Cajón responsive (ver cabecera): estado LOCAL, el botón que lo abre solo existe
@@ -171,63 +208,13 @@
 
 	const headingText = $derived(blocks.childType?.label ?? ctx.t('editor.visual.tree.title'));
 
-	// ————— Menú "Añadir sección" (patrón APG de `RecordBlocks.svelte`, ver su cabecera: click-fuera,
-	// Escape y focusout) — calcado tal cual, solo cambian los nombres para no chocar con los del
-	// cajón de arriba. —————
-	let addMenuOpen = $state(false);
-	let addTriggerEl = $state<HTMLElement | null>(null);
-	let addMenuEl = $state<HTMLElement | null>(null);
-
-	function closeAddMenu(): void {
-		addMenuOpen = false;
-	}
-
-	function openAddMenu(): void {
-		addMenuOpen = true;
-		void tick().then(() => typeMenuItems(addMenuEl)[0]?.focus());
-	}
-
-	/** Navegación por flechas/`Home`/`End` (ver cabecera del módulo, `type-menu.ts`): EXTRAÍDA para
-	 *  que `VisualOverlay.svelte` teclee exactamente igual en su propio menú de tipos. */
-	function handleAddMenuKeydown(event: KeyboardEvent): void {
-		const items = typeMenuItems(addMenuEl);
-		const next = typeMenuKeydownIndex(event, items);
-		if (next === null) return;
-		event.preventDefault();
-		items[next].focus();
-	}
-
-	function handleAddWindowClick(event: MouseEvent): void {
-		if (!addMenuOpen) return;
-		const target = event.target as Node;
-		if (addTriggerEl?.contains(target) || addMenuEl?.contains(target)) return;
-		closeAddMenu();
-	}
-
-	function handleAddWindowKeydown(event: KeyboardEvent): void {
-		if (!addMenuOpen || event.key !== 'Escape') return;
-		event.preventDefault();
-		closeAddMenu();
-		addTriggerEl?.focus();
-	}
-
-	function handleAddFocusOut(event: FocusEvent): void {
-		if (!addMenuOpen) return;
-		const next = event.relatedTarget as Node | null;
-		if (next && addMenuEl?.contains(next)) return;
-		closeAddMenu();
-	}
-
-	/** Crea, y solo entonces avisa (ver cabecera, "Vista previa en vivo tras cada mutación"). */
+	/** Crea, y solo entonces avisa (ver cabecera, "Vista previa en vivo tras cada mutación"). Con
+	 *  menú de tipos, la vía de crear ya no es este componente (ver cabecera, decisión 1): esta
+	 *  función solo sigue viva para la rama SIN menú (`onclick={() => void createBlock(null)}` más
+	 *  abajo), que crea directo sin preguntar nada. */
 	async function createBlock(blockType: ResolvedBlockType | null): Promise<void> {
 		await blocks.handleCreate(blockType);
 		onStructuralChange();
-	}
-
-	function handleAddType(blockType: ResolvedBlockType): void {
-		closeAddMenu();
-		addTriggerEl?.focus();
-		void createBlock(blockType);
 	}
 
 	// ————— Acciones por fila (ver cabecera) —————
@@ -257,14 +244,8 @@
 </script>
 
 <!-- Nivel superior a la fuerza: `<svelte:window>` no puede vivir dentro de un bloque. No hace
-     falta condicionarlo, porque los dos handlers salen pronto si el menú está cerrado. -->
-<svelte:window
-	onclick={handleAddWindowClick}
-	onkeydown={(event) => {
-		handleWindowKeydown(event);
-		handleAddWindowKeydown(event);
-	}}
-/>
+     falta condicionarlo: el propio handler sale pronto si el cajón está cerrado. -->
+<svelte:window onkeydown={handleWindowKeydown} />
 
 <button
 	type="button"
@@ -330,58 +311,29 @@
 	class="vega-tree-panel"
 	class:vega-tree-panel--open={open}
 	bind:this={panelEl}
-	role="region"
-	aria-labelledby="vega-tree-heading"
 >
-	<div class="vega-tree-head">
-		<h2 id="vega-tree-heading">
-			{headingText}
-			{#if blocks.status.kind === 'ready'}
-				<span class="vega-tree-count">{blocks.records.length}</span>
-			{/if}
-		</h2>
-		{#if !blocks.hidden}
-			{#if blocks.hasTypeMenu}
-				<div class="vega-tree-add-menu-wrap" onfocusout={handleAddFocusOut}>
-					<button
-						type="button"
-						class="vega-tree-add"
-						bind:this={addTriggerEl}
-						aria-haspopup="menu"
-						aria-expanded={addMenuOpen}
-						aria-controls="vega-tree-add-menu"
-						disabled={blocks.structuralBusy || blocks.anySaving}
-						onclick={() => (addMenuOpen ? closeAddMenu() : openAddMenu())}
-					>
-						{ctx.t('editor.blocks.add', { label: blocks.childType?.labelSingular ?? headingText })}
-						<Icon id="chevron" size={12} />
-					</button>
-					{#if addMenuOpen}
-						<div
-							id="vega-tree-add-menu"
-							class="vega-tree-add-menu"
-							role="menu"
-							tabindex="-1"
-							aria-label={ctx.t('editor.blocks.addMenu.label')}
-							bind:this={addMenuEl}
-							onkeydown={handleAddMenuKeydown}
-						>
-							{#each blocks.blockTypes as blockType (blockType.name)}
-								<button
-									type="button"
-									role="menuitem"
-									tabindex="-1"
-									class="vega-tree-add-menu-item"
-									onclick={() => handleAddType(blockType)}
-								>
-									{#if blockType.icon}<Icon id={blockType.icon} size={14} />{/if}
-									{blockType.label}
-								</button>
-							{/each}
-						</div>
-					{/if}
-				</div>
-			{:else}
+	<!-- Paleta de bloques arrastrable (ver cabecera): región PROPIA, con su propio encabezado — el
+	     panel pasa a tener DOS regiones (paleta y secciones), no una sola cubriendo las dos. No se
+	     pinta en modo homogéneo (`hasTypeMenu === false`, ver la cabecera de `VisualPalette.svelte`). -->
+	<VisualPalette
+		{blocks}
+		{onStructuralChange}
+		onDragStart={onPaletteDragStart}
+		onDragEnd={onPaletteDragEnd}
+	/>
+
+	<div class="vega-tree-region" role="region" aria-labelledby="vega-tree-heading">
+		<div class="vega-tree-head">
+			<h2 id="vega-tree-heading">
+				{headingText}
+				{#if blocks.status.kind === 'ready'}
+					<span class="vega-tree-count">{blocks.records.length}</span>
+				{/if}
+			</h2>
+			{#if !blocks.hidden && !blocks.hasTypeMenu}
+				<!-- Con menú de tipos, este botón se retira (decisión 1, ver cabecera): la paleta de
+				     arriba es la vía que pregunta el tipo. Sin menú (modo homogéneo), sigue creando
+				     directo, exactamente como antes de este encargo. -->
 				<button
 					type="button"
 					class="vega-tree-add"
@@ -391,118 +343,118 @@
 					{ctx.t('editor.blocks.add', { label: blocks.childType?.labelSingular ?? headingText })}
 				</button>
 			{/if}
-		{/if}
-		<button
-			type="button"
-			class="vega-tree-close"
-			aria-label={ctx.t('common.close')}
-			onclick={closeDrawer}
-		>
-			<Icon id="close" size={16} />
-		</button>
-	</div>
+			<button
+				type="button"
+				class="vega-tree-close"
+				aria-label={ctx.t('common.close')}
+				onclick={closeDrawer}
+			>
+				<Icon id="close" size={16} />
+			</button>
+		</div>
 
-	{#if blocks.hidden}
-		<p class="vega-tree-notice" role="alert">{ctx.t('editor.visual.tree.unavailable')}</p>
-	{:else if blocks.loading}
-		<p class="vega-tree-notice" aria-live="polite">{ctx.t('common.loading')}</p>
-	{:else if blocks.records.length === 0}
-		<p class="vega-tree-notice">
-			{ctx.t('editor.blocks.empty', { label: blocks.childType?.label ?? headingText })}
-		</p>
-	{:else}
-		<ul class="vega-tree-list">
-			{#each blocks.records as record, i (record.id)}
-				{@const title = blocks.blockTitle(record)}
-				{@const blockType = blocks.blockTypeOf(record)}
-				{@const rawType = blocks.blockTypeRawName(record)}
-				{@const structuralGuard = blocks.anyDirty || blocks.anySaving || blocks.structuralBusy}
-				<li class="vega-tree-item">
-					<button
-						type="button"
-						class="vega-tree-row"
-						class:vega-tree-row--selected={record.id === selectedId}
-						data-vega-tree-row={record.id}
-						aria-current={record.id === selectedId ? 'true' : undefined}
-						aria-label={ctx.t('editor.visual.tree.selectLabel', { label: title })}
-						onclick={() => selectRow(record.id)}
-					>
-						{#if blocks.hasTypeColumn}
-							{#if blockType}
-								<span class="vega-tree-type">
-									{#if blockType.icon}<Icon id={blockType.icon} size={12} />{/if}
-									{blockType.label}
-								</span>
-							{:else if rawType}
-								<span class="vega-tree-type vega-tree-type--unknown">
-									{ctx.t('editor.blocks.type.unknown', { name: rawType })}
-								</span>
-							{:else}
-								<span class="vega-tree-type vega-tree-type--none">
-									{ctx.t('editor.blocks.type.none')}
+		{#if blocks.hidden}
+			<p class="vega-tree-notice" role="alert">{ctx.t('editor.visual.tree.unavailable')}</p>
+		{:else if blocks.loading}
+			<p class="vega-tree-notice" aria-live="polite">{ctx.t('common.loading')}</p>
+		{:else if blocks.records.length === 0}
+			<p class="vega-tree-notice">
+				{ctx.t('editor.blocks.empty', { label: blocks.childType?.label ?? headingText })}
+			</p>
+		{:else}
+			<ul class="vega-tree-list">
+				{#each blocks.records as record, i (record.id)}
+					{@const title = blocks.blockTitle(record)}
+					{@const blockType = blocks.blockTypeOf(record)}
+					{@const rawType = blocks.blockTypeRawName(record)}
+					{@const structuralGuard = blocks.anyDirty || blocks.anySaving || blocks.structuralBusy}
+					<li class="vega-tree-item">
+						<button
+							type="button"
+							class="vega-tree-row"
+							class:vega-tree-row--selected={record.id === selectedId}
+							data-vega-tree-row={record.id}
+							aria-current={record.id === selectedId ? 'true' : undefined}
+							aria-label={ctx.t('editor.visual.tree.selectLabel', { label: title })}
+							onclick={() => selectRow(record.id)}
+						>
+							{#if blocks.hasTypeColumn}
+								{#if blockType}
+									<span class="vega-tree-type">
+										{#if blockType.icon}<Icon id={blockType.icon} size={12} />{/if}
+										{blockType.label}
+									</span>
+								{:else if rawType}
+									<span class="vega-tree-type vega-tree-type--unknown">
+										{ctx.t('editor.blocks.type.unknown', { name: rawType })}
+									</span>
+								{:else}
+									<span class="vega-tree-type vega-tree-type--none">
+										{ctx.t('editor.blocks.type.none')}
+									</span>
+								{/if}
+							{/if}
+							<span class="vega-tree-title">{title}</span>
+							{#if blocks.isSaving(record.id)}
+								<span class="vega-tree-saving">{ctx.t('editor.saving')}</span>
+							{:else if blocks.isDirty(record.id)}
+								<span class="vega-tree-dirty" title={ctx.t('editor.dirty')}>
+									<span class="vega-visually-hidden">{ctx.t('editor.dirty')}</span>
 								</span>
 							{/if}
-						{/if}
-						<span class="vega-tree-title">{title}</span>
-						{#if blocks.isSaving(record.id)}
-							<span class="vega-tree-saving">{ctx.t('editor.saving')}</span>
-						{:else if blocks.isDirty(record.id)}
-							<span class="vega-tree-dirty" title={ctx.t('editor.dirty')}>
-								<span class="vega-visually-hidden">{ctx.t('editor.dirty')}</span>
-							</span>
-						{/if}
-					</button>
+						</button>
 
-					<!-- Acciones estructurales de ESTA fila (ver cabecera): nombre accesible por botón que
+						<!-- Acciones estructurales de ESTA fila (ver cabecera): nombre accesible por botón que
 					     dice sobre QUÉ sección actúa, nunca un rótulo suelto repetido N veces. -->
-					<div class="vega-tree-actions">
-						{#if blocks.blockDuplicateAllowed}
+						<div class="vega-tree-actions">
+							{#if blocks.blockDuplicateAllowed}
+								<button
+									type="button"
+									class="vega-tree-action"
+									disabled={structuralGuard}
+									aria-label={ctx.t('editor.blocks.duplicateLabel', { label: title })}
+									onclick={() => void duplicateBlock(record)}
+								>
+									<Icon id="copy" size={14} />
+								</button>
+							{/if}
 							<button
 								type="button"
 								class="vega-tree-action"
-								disabled={structuralGuard}
-								aria-label={ctx.t('editor.blocks.duplicateLabel', { label: title })}
-								onclick={() => void duplicateBlock(record)}
+								disabled={i === 0 || structuralGuard}
+								aria-label={ctx.t('editor.blocks.moveUpLabel', { label: title })}
+								onclick={() => void moveBlock(i, i - 1)}
 							>
-								<Icon id="copy" size={14} />
+								<span class="vega-tree-action-icon vega-tree-action-icon--up">
+									<Icon id="chevron" size={14} />
+								</span>
 							</button>
-						{/if}
-						<button
-							type="button"
-							class="vega-tree-action"
-							disabled={i === 0 || structuralGuard}
-							aria-label={ctx.t('editor.blocks.moveUpLabel', { label: title })}
-							onclick={() => void moveBlock(i, i - 1)}
-						>
-							<span class="vega-tree-action-icon vega-tree-action-icon--up">
-								<Icon id="chevron" size={14} />
-							</span>
-						</button>
-						<button
-							type="button"
-							class="vega-tree-action"
-							disabled={i === blocks.records.length - 1 || structuralGuard}
-							aria-label={ctx.t('editor.blocks.moveDownLabel', { label: title })}
-							onclick={() => void moveBlock(i, i + 1)}
-						>
-							<span class="vega-tree-action-icon vega-tree-action-icon--down">
-								<Icon id="chevron" size={14} />
-							</span>
-						</button>
-						<button
-							type="button"
-							class="vega-tree-action vega-tree-action--danger"
-							disabled={blocks.anySaving || blocks.structuralBusy}
-							aria-label={ctx.t('list.delete.rowButtonLabel', { label: title })}
-							onclick={() => blocks.requestDelete(record)}
-						>
-							<Icon id="trash" size={14} />
-						</button>
-					</div>
-				</li>
-			{/each}
-		</ul>
-	{/if}
+							<button
+								type="button"
+								class="vega-tree-action"
+								disabled={i === blocks.records.length - 1 || structuralGuard}
+								aria-label={ctx.t('editor.blocks.moveDownLabel', { label: title })}
+								onclick={() => void moveBlock(i, i + 1)}
+							>
+								<span class="vega-tree-action-icon vega-tree-action-icon--down">
+									<Icon id="chevron" size={14} />
+								</span>
+							</button>
+							<button
+								type="button"
+								class="vega-tree-action vega-tree-action--danger"
+								disabled={blocks.anySaving || blocks.structuralBusy}
+								aria-label={ctx.t('list.delete.rowButtonLabel', { label: title })}
+								onclick={() => blocks.requestDelete(record)}
+							>
+								<Icon id="trash" size={14} />
+							</button>
+						</div>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</div>
 </div>
 
 <!-- `targetCollection`/`targetId` (`#lote-integridad`, Fase A): el bloque a borrar es un registro
@@ -552,6 +504,18 @@
 		overflow: hidden;
 	}
 
+	/* Región de las SECCIONES (ver cabecera, "La paleta se instancia DENTRO..."): antes era
+	   `.vega-tree-panel` la que llevaba `role="region"` y ocupaba ella misma todo el alto
+	   disponible; ahora es una de DOS hermanas dentro de él (la otra es `.vega-palette-panel` de
+	   `VisualPalette.svelte`, con `flex-shrink: 0`), así que esta es la que crece para llenar el
+	   resto — mismo criterio de columna flexible que tenía `.vega-tree-panel` antes de esta tarea. */
+	.vega-tree-region {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		min-height: 0;
+	}
+
 	.vega-tree-head {
 		display: flex;
 		align-items: center;
@@ -583,13 +547,10 @@
 		color: var(--ink-3);
 	}
 
-	/* Botón "Añadir sección" + su menú de tipos: mismo lenguaje visual que `.vega-blocks-add*` de
-	   `RecordBlocks.svelte` (ver su cabecera), solo con el prefijo `vega-tree-` de este fichero. */
-	.vega-tree-add-menu-wrap {
-		position: relative;
-		flex-shrink: 0;
-	}
-
+	/* Botón "Añadir" simple (modo homogéneo, sin menú de tipos — ver cabecera, decisión 1: con menú
+	   de tipos este botón se retira y la paleta ocupa su lugar): mismo lenguaje visual que
+	   `.vega-blocks-add*` de `RecordBlocks.svelte` (ver su cabecera), solo con el prefijo
+	   `vega-tree-` de este fichero. */
 	.vega-tree-add {
 		display: inline-flex;
 		align-items: center;
@@ -614,42 +575,6 @@
 	.vega-tree-add:disabled {
 		cursor: not-allowed;
 		opacity: 0.5;
-	}
-
-	.vega-tree-add-menu {
-		position: absolute;
-		top: calc(100% + 0.4rem);
-		right: 0;
-		z-index: 10;
-		display: flex;
-		flex-direction: column;
-		min-width: 11rem;
-		padding: 0.3rem;
-		border: 1px solid var(--line);
-		border-radius: 8px;
-		background: var(--surface);
-		box-shadow: var(--shadow-card);
-	}
-
-	.vega-tree-add-menu-item {
-		display: flex;
-		align-items: center;
-		gap: 0.45rem;
-		border: 0;
-		background: none;
-		padding: 0.45rem 0.6rem;
-		border-radius: 6px;
-		color: var(--ink);
-		font: inherit;
-		font-size: 0.85rem;
-		text-align: left;
-		cursor: pointer;
-		white-space: nowrap;
-	}
-
-	.vega-tree-add-menu-item:hover,
-	.vega-tree-add-menu-item:focus-visible {
-		background: var(--active);
 	}
 
 	/* Solo tiene sentido dentro del cajón (ver cabecera): en escritorio el panel nunca se cierra

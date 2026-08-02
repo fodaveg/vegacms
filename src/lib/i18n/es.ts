@@ -283,6 +283,10 @@ export const es = {
 	'editor.visual.overlay.missing':
 		'{count} sección(es) que existen pero el sitio no está pintando.',
 	'editor.visual.overlay.unsupported': 'no soportado',
+	// Encargo "paleta de bloques arrastrable del editor visual": la zona de caída de página vacía
+	// (decisión 3) — una sola caja SOBRE EL MARCO que solo existe mientras hay un arrastre de
+	// paleta en vuelo Y no hay ningún bloque (ver la cabecera de `VisualOverlay.svelte`).
+	'editor.visual.overlay.emptyDrop': 'Suelta aquí para crear la primera sección',
 	// ————— Árbol de secciones (`VisualBlockTree.svelte`) e inspector (`VisualInspector.svelte`):
 	// la vía ACCESIBLE de seleccionar un bloque (el overlay de arriba es `aria-hidden`) y la ficha
 	// del bloque elegido. Reutilizan a propósito claves ya existentes del resto del ciclo de vida
@@ -296,6 +300,11 @@ export const es = {
 	// lo lee por la MISMA región `aria-live` que ya usa `editor.blocks.reorder.moved` (ver la
 	// cabecera de `blocks-state.svelte.ts`, "Anuncio de la selección").
 	'editor.visual.tree.announceSelect': 'Sección «{label}» seleccionada, {position} de {total}',
+	// Anuncio de la CREACIÓN (encargo "paleta de bloques arrastrable", §6): `handleCreate` no
+	// anunciaba nada por sí solo — ni la paleta (`VisualPalette.svelte#createAtEnd`, crear al
+	// final) ni el `+` de los puntos de inserción (`VisualOverlay.svelte#handleInsert`, crear en
+	// posición) lo hacían hasta esta tarea. MISMA región `aria-live` que la de arriba.
+	'editor.visual.tree.announceCreate': 'Sección «{label}» creada, {position} de {total}',
 	// ————— Acciones estructurales del árbol (tarea "acciones estructurales desde el editor
 	// visual"): crear/duplicar/borrar/mover viven aquí Y en la barra flotante del lienzo
 	// (`VisualOverlay.svelte`), que reutiliza estas MISMAS claves de duplicar/borrar/mover —

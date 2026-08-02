@@ -1,22 +1,29 @@
 /**
  * Paridad de teclado del editor visual (encargo de accesibilidad, Parte 3): "el lienzo NO puede
  * ser la única vía: quien no use ratón sigue teniendo el formulario de siempre, y eso hay que
- * verificarlo, no suponerlo". Los cuatro gestos del lienzo —seleccionar, mover, insertar, borrar—
- * tienen todos una vía de ratón (dentro del `<iframe>`, el asa `⠿`, el botón `+`, la papelera de la
- * barra flotante) Y una o varias vías de teclado, casi siempre en OTRA superficie
- * (`VisualBlockTree.svelte`) o en la propia pantalla (`VisualEditorScreen.svelte#handleVisualKeydown`).
- * Este fichero ENUMERA esas vías contra la tabla del encargo y las ACTIVA de verdad por teclado
- * (nunca `click()` a pelo salvo donde se documenta por qué), comprobando la mutación real de
- * `blocksState` — no que el botón "exista", que ya cubren `VisualBlockTree.svelte.test.ts`/
- * `VisualOverlay.svelte.test.ts` por su cuenta.
+ * verificarlo, no suponerlo". Los gestos del lienzo —seleccionar, mover, insertar (por posición Y
+ * desde la paleta), borrar— tienen todos una vía de ratón (dentro del `<iframe>`, el asa `⠿`, el
+ * botón `+`, arrastrar desde la paleta, la papelera de la barra flotante) Y una o varias vías de
+ * teclado, casi siempre en OTRA superficie (`VisualBlockTree.svelte`) o en la propia pantalla
+ * (`VisualEditorScreen.svelte#handleVisualKeydown`). Este fichero ENUMERA esas vías contra la
+ * tabla del encargo y las ACTIVA de verdad por teclado (nunca `click()` a pelo salvo donde se
+ * documenta por qué), comprobando la mutación real de `blocksState` — no que el botón "exista",
+ * que ya cubren `VisualBlockTree.svelte.test.ts`/`VisualOverlay.svelte.test.ts`/
+ * `VisualPalette.svelte.test.ts` por su cuenta.
  *
  * Tres secciones, cada una con el doble MÁS BARATO que basta para su superficie (mismo criterio de
  * "doble mínimo" que el resto de tests de `$lib/visual`, nunca una superficie de más):
  * - **Árbol** (`VisualBlockTree.svelte` solo, `BlocksState` de mentira): seleccionar, mover
- *   (botones subir/bajar), insertar (Añadir), borrar (papelera + `DeleteConfirm`).
+ *   (botones subir/bajar), insertar (Añadir, modo homogéneo), insertar desde la PALETA (quinto
+ *   gesto, encargo "paleta de bloques arrastrable" — arrastrar no es accesible por sí solo,
+ *   Enter/Espacio sobre el mismo `<button>` es la vía equivalente, ver la cabecera de
+ *   `VisualPalette.svelte`), borrar (papelera + `DeleteConfirm`).
  * - **Lienzo** (`VisualOverlay.svelte` solo, `BlocksState` de mentira): mover (asa `⠿` con
  *   `ArrowUp`/`ArrowDown`, botones subir/bajar de la barra flotante), insertar (botón `+`), borrar
- *   (papelera de la barra flotante), y las DOS mediciones NEGATIVAS del encargo.
+ *   (papelera de la barra flotante), y las DOS mediciones NEGATIVAS del encargo. La caída de la
+ *   paleta EN POSICIÓN es puramente de ratón (arrastrar-y-soltar): no tiene equivalente de teclado
+ *   propio, la paleta ya lo cubre (crea al final); su suite propia es
+ *   `VisualOverlay.svelte.test.ts`.
  * - **Pantalla** (`VisualEditorScreen.svelte` ENTERA, backend de memoria de verdad): las DOS únicas
  *   vías que no viven en ningún componente hijo — `Alt+↑`/`Alt+↓` y `Supr`/`Retroceso`,
  *   `handleVisualKeydown` — porque esta pantalla construye su propio `BlocksState` con
@@ -30,7 +37,7 @@ import VisualEditorScreen from './VisualEditorScreen.svelte';
 import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import type { BlocksState } from '$lib/form/blocks-state.svelte';
 import type { ContentType } from '$lib/backend/types';
-import type { ResolvedContentType } from '$lib/model/types';
+import type { ResolvedBlockType, ResolvedContentType } from '$lib/model/types';
 import type { VegaRecord } from '$lib/backend';
 import type { VisualBlock } from './bridge-client';
 import { createMemoryBackend, type MemoryBackendPort } from '$lib/backend/adapters/memory';
@@ -95,6 +102,9 @@ interface TreeFakeOptions {
 	confirmDelete?: BlocksState['confirmDelete'];
 	handleReorder?: BlocksState['handleReorder'];
 	pendingDelete?: VegaRecord | null;
+	hasTypeMenu?: boolean;
+	blockTypes?: ResolvedBlockType[];
+	say?: BlocksState['say'];
 }
 
 function fakeTreeBlocksState(opts: TreeFakeOptions = {}): BlocksState {
@@ -109,14 +119,14 @@ function fakeTreeBlocksState(opts: TreeFakeOptions = {}): BlocksState {
 		childType: TREE_CHILD_TYPE,
 		structuralFields: [],
 		blockDuplicateAllowed: false,
-		hasTypeColumn: false,
-		hasTypeMenu: false,
-		blockTypes: [],
+		hasTypeColumn: opts.hasTypeMenu ?? false,
+		hasTypeMenu: opts.hasTypeMenu ?? false,
+		blockTypes: opts.blockTypes ?? [],
 		structuralBusy: false,
 		pendingDelete: opts.pendingDelete ?? null,
 		deleting: false,
 		announce: '',
-		say: () => {},
+		say: opts.say ?? (() => {}),
 		anyDirty: false,
 		anySaving: false,
 		isExpanded: () => false,
@@ -162,7 +172,17 @@ function mountTree(
 	document.body.appendChild(target);
 	const instance = mount(VisualBlockTree, {
 		target,
-		props: { blocks, selectedId, onSelect, onStructuralChange },
+		props: {
+			blocks,
+			selectedId,
+			onSelect,
+			onStructuralChange,
+			// Nadie de esta sección ejerce el arrastre de paleta (eso lo cubren
+			// `VisualPalette.svelte.test.ts`/`VisualOverlay.svelte.test.ts`): espías sin más, solo
+			// para que la instancia monte con las props que el componente exige.
+			onPaletteDragStart: vi.fn(),
+			onPaletteDragEnd: vi.fn()
+		},
 		context: new Map([[VEGA_CONTEXT_KEY, fakeTreeCtx()]])
 	});
 	return { target, instance };
@@ -228,6 +248,42 @@ describe('Paridad de teclado — árbol (VisualBlockTree.svelte)', () => {
 
 		expect(handleCreate).toHaveBeenCalledWith(null);
 		expect(onStructuralChange).toHaveBeenCalledTimes(1);
+	});
+
+	test('INSERTAR (paleta) — Enter/Space sobre un tipo de la paleta crea CON ESE tipo, al final (quinto gesto, encargo "paleta de bloques arrastrable")', async () => {
+		const b1 = treeRecord('b1', 'Hero');
+		const created = treeRecord('new', 'Galería');
+		const records = [b1];
+		const handleCreate = vi.fn(async () => {
+			records.push(created); // mismo array: `blocks.records` refleja el alta
+		});
+		const onStructuralChange = vi.fn();
+		const say = vi.fn();
+		const GALLERY_TYPE = {
+			name: 'gallery',
+			label: 'Galería',
+			icon: null
+		} as unknown as ResolvedBlockType;
+		const blocks = fakeTreeBlocksState({
+			records,
+			hasTypeMenu: true,
+			blockTypes: [
+				{ name: 'hero', label: 'Portada', icon: null } as unknown as ResolvedBlockType,
+				GALLERY_TYPE
+			],
+			handleCreate,
+			say
+		});
+		mounted = mountTree(blocks, null, vi.fn(), onStructuralChange);
+
+		const items = mounted.target.querySelectorAll<HTMLButtonElement>('.vega-palette-item');
+		expect(items).toHaveLength(2);
+		pressEnter(items[1]); // "Galería"
+		await settle();
+
+		expect(handleCreate).toHaveBeenCalledWith(GALLERY_TYPE);
+		expect(onStructuralChange).toHaveBeenCalledTimes(1);
+		expect(say).toHaveBeenCalled(); // anuncia lo que se creó y en qué posición (§encargo, "Anuncio por voz")
 	});
 
 	test('BORRAR — Enter/Space sobre la papelera abre el diálogo, y Enter/Space sobre "Eliminar" confirma', async () => {

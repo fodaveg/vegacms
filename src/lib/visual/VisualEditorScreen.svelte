@@ -67,6 +67,17 @@
 	 * ANUNCIA la selección por voz (`announceSelection`, encargo de accesibilidad D3): un lector de
 	 * pantalla oye lo mismo venga la selección del sitio o del árbol.
 	 *
+	 * **El arrastre de paleta en vuelo tiene el MISMO reparto de dueño único que la selección
+	 * (encargo "paleta de bloques arrastrable del editor visual", decisión 5).** `paletteDragType`
+	 * (`ResolvedBlockType | null`) es EL OTRO `$state` que esta pantalla posee y nadie más escribe:
+	 * `VisualPalette.svelte` (montada dentro de `VisualBlockTree.svelte`) avisa por los callbacks
+	 * `onPaletteDragStart`/`onPaletteDragEnd`, que aquí solo escriben esta variable
+	 * (`handlePaletteDragStart`/`handlePaletteDragEnd`, más abajo); `VisualOverlay.svelte` la RECIBE
+	 * por prop, nunca la escribe. Dos efectos escribiendo el mismo estado ya es un bug conocido de
+	 * este proyecto (ver la cabecera de `blocks-state.svelte.ts`) — aquí ni siquiera hace falta un
+	 * `$effect`: los dos callbacks son la ÚNICA puerta de escritura, igual que `handleBlockSelect`
+	 * lo es para `selectedBlockId`.
+	 *
 	 * **Guard de salida**: esta pantalla puede tener ediciones sin guardar desde que el inspector
 	 * monta `BlockEditor` de verdad, así que usa `beforeNavigate` + `beforeunload`, **el MISMO
 	 * mecanismo que `RecordForm.svelte` y nunca `registerExitGuard`**. Esto no es preferencia: el
@@ -221,7 +232,7 @@
 	import { onDestroy, onMount, untrack } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
 	import { getVegaContext } from '$lib/app-context';
-	import type { ResolvedContentType } from '$lib/model/types';
+	import type { ResolvedBlockType, ResolvedContentType } from '$lib/model/types';
 	import type { VegaRecord } from '$lib/backend';
 	import { createPreviewClient, type PreviewToken } from '$lib/backend/preview-client';
 	import {
@@ -315,6 +326,9 @@
 	// Único dueño del bloque seleccionado (ver cabecera, "La selección tiene un solo dueño").
 	// `null` = nada seleccionado, el estado inicial hasta el primer `select` del sitio.
 	let selectedBlockId = $state<string | null>(null);
+	// Único dueño del arrastre de PALETA en vuelo (ver cabecera, "El arrastre de paleta en vuelo
+	// tiene el MISMO reparto..."). `null` fuera de un gesto.
+	let paletteDragType = $state<ResolvedBlockType | null>(null);
 
 	// `true` mientras la ventana da de sí para el lienzo. Arranca en `true` (suposición de
 	// escritorio) pero NADA se pide hasta que `onMount` lo mide de verdad, así que en un móvil no
@@ -532,6 +546,17 @@
 				total: blocks.records.length
 			})
 		);
+	}
+
+	// ————— Arrastre de paleta en vuelo (ver cabecera, decisión 5 del encargo "paleta de bloques
+	// arrastrable"): las DOS únicas puertas de escritura de `paletteDragType`. —————
+
+	function handlePaletteDragStart(blockType: ResolvedBlockType): void {
+		paletteDragType = blockType;
+	}
+
+	function handlePaletteDragEnd(): void {
+		paletteDragType = null;
 	}
 
 	/** Crea el cliente del puente la PRIMERA vez que hay un token (ver cabecera): fija el origen
@@ -1097,6 +1122,8 @@
 				selectedId={selectedBlockId}
 				onSelect={handleBlockSelect}
 				onStructuralChange={handleContentSaved}
+				onPaletteDragStart={handlePaletteDragStart}
+				onPaletteDragEnd={handlePaletteDragEnd}
 			/>
 			{#if treeResizerActive}
 				<VisualColumnResizer
@@ -1145,6 +1172,7 @@
 							renderedBlockTypes={ctx.port.renderedBlockTypes ?? null}
 							blocksState={blocks}
 							onStructuralChange={handleContentSaved}
+							{paletteDragType}
 						/>
 					</div>
 				{/if}
@@ -1409,10 +1437,10 @@
 		border-color: var(--line-strong);
 	}
 
-	/* Conmutador de tamaño de pantalla + zoom (ver cabecera): mismo lenguaje visual que las tres
-	   otras "píldoras de grupo" de la app (`.vega-locale-tabs`, `.vega-tree-add-menu`…): un
-	   contenedor con borde, botones sin borde propio, el activo se distingue por fondo/tinta de
-	   acento (`aria-pressed`, ver el marcado). */
+	/* Conmutador de tamaño de pantalla + zoom (ver cabecera): mismo lenguaje visual que otras
+	   "píldoras de grupo" de la app (`.vega-locale-tabs`…): un contenedor con borde, botones sin
+	   borde propio, el activo se distingue por fondo/tinta de acento (`aria-pressed`, ver el
+	   marcado). */
 	.vega-visual-screen-group,
 	.vega-visual-zoom-group {
 		display: inline-flex;
