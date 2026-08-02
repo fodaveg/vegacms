@@ -335,10 +335,10 @@ Conviene declarar la colección hija con `hidden: true` para que no aparezca ade
 ### Editar los bloques sobre la página (editor visual)
 
 Una colección con `blocks` puede además editarse **sobre la página real del sitio**, en una pantalla
-completa (`/c/<colección>/<id>/visual`) con el árbol de secciones a un lado, la página dentro de un
-`<iframe>` en el centro y la ficha del bloque seleccionado al otro lado. Un clic sobre una sección de
-la página abre sus campos al lado; el texto se escribe siempre en los controles de Vega, nunca encima
-de la página.
+completa (`/c/<colección>/<id>/visual`) con la paleta de tipos de bloque y el árbol de secciones a un
+lado, la página dentro de un `<iframe>` en el centro y la ficha del bloque seleccionado al otro lado.
+Un clic sobre una sección de la página abre sus campos al lado; el texto se escribe siempre en los
+controles de Vega, nunca encima de la página.
 
 **Esto no se enciende desde el manifiesto.** No hay ninguna clave que añadir aquí: la capacidad la
 declara el proyecto en su documento de discovery (`preview.visualEditing`) y la habilita de verdad el
@@ -366,6 +366,21 @@ arrastrando. Todo ello tiene equivalente por teclado, porque el lienzo no puede 
 `Esc` deselecciona, `Alt` con las flechas mueve la sección seleccionada, `Supr` pide el borrado (con
 la misma confirmación y la misma papelera que el formulario), `⌘S`/`Ctrl+S` guarda la ficha abierta y
 `?` abre el panel de ayuda con la lista completa.
+
+**La paleta** es la lista de tipos de bloque que la colección PUEDE tener, arriba de la columna
+izquierda, encima del árbol de secciones, que es la lista de los que ya TIENE. Cada tipo se puede
+arrastrar hasta el lienzo y soltarlo donde vaya, incluida una página sin ninguna sección todavía, que
+es justo cuando más falta hace. Arrastrar no es accesible por sí solo, así que cada tipo es también
+un botón normal: activarlo con Enter crea esa sección al final, y la creación se anuncia por voz
+igual que reordenar y seleccionar. La paleta **sustituye** al botón «Añadir Sección ›» que antes vivía
+en la cabecera del árbol, para que no haya dos caminos que hagan lo mismo; el `+` entre bloques del
+lienzo se queda, porque ese sí hace algo distinto (elegir la posición exacta).
+
+Solo se pinta cuando hay un vocabulario de tipos que enseñar, o sea con `typeField` declarado y al
+menos un tipo en `blockTypes`. **En modo homogéneo** (todas las secciones comparten plantilla) no hay
+tipos que elegir, así que la paleta no aparece y la cabecera del árbol conserva su botón «Añadir» de
+siempre. Tampoco aparece si la lista de secciones no ha podido cargarse: con el árbol avisando de que
+no está disponible, crear escribiría un orden calculado sobre una lista vacía.
 
 Las escrituras son las mismas que las del formulario de bloques, no un segundo camino: se aplica
 igual que arriba que **cada bloque se guarda por su cuenta** y que **el reorden persiste al soltar**.
