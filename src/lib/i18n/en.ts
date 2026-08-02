@@ -255,6 +255,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.overlay.waiting': 'Waiting for the page to describe its blocks…',
 	'editor.visual.overlay.empty': 'This page has no blocks to select yet.',
 	'editor.visual.overlay.skipped': "{count} block(s) the site described badly: can't be selected.",
+	'editor.visual.overlay.missing': "{count} section(s) that exist but the site isn't rendering.",
 	'editor.visual.overlay.unsupported': 'unsupported',
 	// ————— Section tree (`VisualBlockTree.svelte`) and inspector (`VisualInspector.svelte`): the
 	// ACCESSIBLE way to select a block (the overlay above is `aria-hidden`) and the selected

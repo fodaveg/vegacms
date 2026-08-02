@@ -275,6 +275,13 @@ export const es = {
 	'editor.visual.overlay.empty': 'Esta página todavía no tiene bloques que seleccionar.',
 	'editor.visual.overlay.skipped':
 		'{count} bloque(s) que el sitio describió mal: no se pueden seleccionar.',
+	// Defecto "el lienzo no dice nada cuando le faltan bloques": lo contrario de `.skipped` de
+	// arriba — registros que Vega SÍ tiene y el sitio NO reportó (ver `missingBlocks` de
+	// `VisualOverlay.svelte`). Texto accionable, no un número suelto: dice que las secciones
+	// EXISTEN y que es el SITIO quien no las pinta, para que quien edita no crea que el botón está
+	// roto.
+	'editor.visual.overlay.missing':
+		'{count} sección(es) que existen pero el sitio no está pintando.',
 	'editor.visual.overlay.unsupported': 'no soportado',
 	// ————— Árbol de secciones (`VisualBlockTree.svelte`) e inspector (`VisualInspector.svelte`):
 	// la vía ACCESIBLE de seleccionar un bloque (el overlay de arriba es `aria-hidden`) y la ficha

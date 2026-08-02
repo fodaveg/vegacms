@@ -103,6 +103,7 @@
 	import Icon from '$lib/icons/Icon.svelte';
 	import DeleteConfirm from '$lib/list/DeleteConfirm.svelte';
 	import { hasFileValues } from '$lib/revisions/restore';
+	import { typeMenuItems, typeMenuKeydownIndex } from './type-menu';
 	import type { BlocksState } from '$lib/form/blocks-state.svelte';
 	import type { ResolvedBlockType } from '$lib/model/types';
 	import type { VegaRecord } from '$lib/backend';
@@ -181,25 +182,16 @@
 		addMenuOpen = false;
 	}
 
-	function addMenuItems(): HTMLButtonElement[] {
-		return Array.from(addMenuEl?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
-	}
-
 	function openAddMenu(): void {
 		addMenuOpen = true;
-		void tick().then(() => addMenuItems()[0]?.focus());
+		void tick().then(() => typeMenuItems(addMenuEl)[0]?.focus());
 	}
 
+	/** Navegación por flechas/`Home`/`End` (ver cabecera del módulo, `type-menu.ts`): EXTRAÍDA para
+	 *  que `VisualOverlay.svelte` teclee exactamente igual en su propio menú de tipos. */
 	function handleAddMenuKeydown(event: KeyboardEvent): void {
-		const items = addMenuItems();
-		if (items.length === 0) return;
-		const current = items.indexOf(document.activeElement as HTMLButtonElement);
-		let next: number | null = null;
-		if (event.key === 'ArrowDown') next = current < 0 ? 0 : (current + 1) % items.length;
-		else if (event.key === 'ArrowUp')
-			next = current < 0 ? items.length - 1 : (current - 1 + items.length) % items.length;
-		else if (event.key === 'Home') next = 0;
-		else if (event.key === 'End') next = items.length - 1;
+		const items = typeMenuItems(addMenuEl);
+		const next = typeMenuKeydownIndex(event, items);
 		if (next === null) return;
 		event.preventDefault();
 		items[next].focus();

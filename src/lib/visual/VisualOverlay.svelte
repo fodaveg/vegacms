@@ -111,12 +111,7 @@
 	 *   `blocks-state.svelte.ts` SIEMPRE añade al final (no sabe crear en una posición concreta,
 	 *   ver su cabecera): la forma barata y honesta que pide el encargo es crear y LUEGO reordenar
 	 *   con `handleReorder` hasta la posición pedida — la misma receta que `handleDuplicate` ya usa
-	 *   por dentro, aquí reutilizada desde fuera porque ese camino no está exportado. **Sin selector
-	 *   de tipo**, a diferencia del botón "Añadir" del árbol (que si el manifiesto declara varios
-	 *   abre su menú, §encargo punto 1): un punto de inserción usa el PRIMER tipo declarado (o
-	 *   ninguno en modo homogéneo). Elegir tipo con precisión es lo que el árbol ya resuelve bien;
-	 *   montar aquí un menú desplegable por cada uno de los N+1 huecos no pagaba su complejidad
-	 *   para este lote — documentado para que se pueda desmentir si algún día hace falta.
+	 *   por dentro, aquí reutilizada desde fuera porque ese camino no está exportado.
 	 * - **Tras cada mutación que de verdad cambió algo**, `onStructuralChange()` — el mismo camino
 	 *   que `VisualInspector.svelte#onBlockSaved` ya usa para pedir un token de vista previa nuevo
 	 *   (`VisualEditorScreen.svelte#requestPreview`, ver su cabecera): un bloque insertado/movido/
@@ -126,6 +121,27 @@
 	 *   reporta ese id → `VisualEditorScreen.svelte#onState` (único escritor de `selectedBlockId`,
 	 *   ver su cabecera) lo limpia. Un segundo escritor aquí sería el bug de "dos efectos, un solo
 	 *   estado" que ese módulo evita a propósito.
+	 *
+	 * **Defecto "el `+` crea sin preguntar el tipo" (corregido en esta tarea): mismo menú de tipos
+	 * que el botón "Añadir" del árbol, no uno segundo.** Antes, con `blocksState.hasTypeMenu ===
+	 * true`, un punto de inserción creaba directamente con `blockTypes[0]` — en un sitio con
+	 * varios tipos, pulsar el `+` metía siempre el primero de la lista sin preguntar, contra lo
+	 * que pedía la tarea que creó este botón. Ahora, con `hasTypeMenu`, el `+` abre un menú
+	 * anclado a ESE punto (mismo contrato de accesibilidad que `VisualBlockTree.svelte`:
+	 * `aria-haspopup="menu"`, `aria-expanded`, `aria-controls`, `role="menu"` con un
+	 * `role="menuitem"` por tipo) y la sección se crea con el tipo elegido; sin `hasTypeMenu`
+	 * (modo homogéneo, una sola plantilla) el `+` sigue creando directamente, sin menú, igual que
+	 * antes. La navegación de flechas/`Home`/`End` vive en `type-menu.ts`, COMPARTIDA con el
+	 * árbol (ver su cabecera): dos menús con dos algoritmos de foco escritos a mano es justo el
+	 * bug que este párrafo documenta que NO hay que repetir. El MARCADO y el posicionamiento sí
+	 * son propios de aquí (ver el CSS, "Menú de tipos del punto de inserción"): el botón del árbol
+	 * vive en flujo normal bajo una cabecera fija, el de aquí es un círculo anclado a una
+	 * coordenada del lienzo con scroll y zoom — forzarlos a compartir marcado habría acoplado dos
+	 * superficies sin necesidad real. Como mucho un menú abierto A LA VEZ (estado
+	 * `insertMenuPosition`, no uno por punto): abrir otro cierra el anterior, mismo patrón APG de
+	 * menús de un solo nivel. Se cierra también si empieza un arrastre (los puntos de inserción se
+	 * retiran durante el gesto, ver más abajo): un menú anclado a un botón que ya no existe es un
+	 * nodo huérfano.
 	 *
 	 * **Arrastrar una sección por el lienzo hasta su sitio — tarea "reordenar arrastrando en el
 	 * lienzo".** Ni un motor de reordenación nuevo ni un segundo anuncio accesible: el asa (`⠿`)
@@ -160,6 +176,7 @@
 	 * no resuelve (id fantasma en cualquier dirección, ver la cabecera del árbol, "Ids") el
 	 * reorden no se intenta — mejor no mover nada que mover el bloque equivocado.
 	 */
+	import { tick } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
 	import Icon from '$lib/icons/Icon.svelte';
 	import {
@@ -167,8 +184,10 @@
 		dropIndicatorEdge,
 		type ReorderDragState
 	} from '$lib/list/reorder-dnd';
+	import { typeMenuItems, typeMenuKeydownIndex } from './type-menu';
 	import type { VisualBlock } from './bridge-client';
 	import type { BlocksState } from '$lib/form/blocks-state.svelte';
+	import type { ResolvedBlockType } from '$lib/model/types';
 
 	/**
 	 * `'waiting'` mientras el puente no ha contestado al saludo con un `ready` (no hay bloques que
@@ -218,6 +237,26 @@
 			block,
 			unsupported: rendered !== null && !rendered.has(block.type)
 		}));
+	});
+
+	/** Defecto "el lienzo no dice nada cuando le faltan bloques": registros que Vega SÍ tiene
+	 *  (`blocksState.records`) y que el sitio NO reportó en `blocks` — lo contrario de
+	 *  `skippedBlocks` (que cuenta lo que el sitio describió mal). Pasa siempre que el sitio no
+	 *  pinta un registro que Vega conoce (p.ej. una sección sin publicar que la plantilla omite):
+	 *  el árbol enseña seis, el lienzo pinta cuatro, y sin este aviso no hay una palabra que lo
+	 *  explique.
+	 *
+	 *  **Por id, no por longitud**: `blocks.length !== records.length` es la comprobación fácil y
+	 *  la equivocada — con un id que no case en los dos sentidos a la vez los números pueden
+	 *  cuadrar y aun así estar hablando de bloques distintos (mismo criterio que
+	 *  `recordIndexForBlock`/`recordIndexForInsertion` de más abajo, "Ids"). Solo se calcula con
+	 *  `status === 'ready'`: antes de eso `blocks` no es cierto todavía (ver `VisualOverlayStatus`
+	 *  más arriba), así que contar "que faltan" sería contar contra un array que ni siquiera ha
+	 *  contestado. */
+	const missingBlocks = $derived.by(() => {
+		if (status !== 'ready') return 0;
+		const reportedIds = new Set(blocks.map((b) => b.id));
+		return blocksState.records.filter((r) => !reportedIds.has(r.id)).length;
 	});
 
 	// ————— Barra flotante del seleccionado (ver cabecera) —————
@@ -354,11 +393,15 @@
 	}
 
 	/** Crea y LUEGO reordena hasta `position` (ver cabecera, "Puntos de inserción" — la receta que
-	 *  el encargo pide por escrito cuando `handleCreate` no sabe crear en una posición concreta). */
-	async function handleInsert(position: number): Promise<void> {
+	 *  el encargo pide por escrito cuando `handleCreate` no sabe crear en una posición concreta).
+	 *  `blockType` llega ya elegido por quien llama (ver "Menú de tipos del punto de inserción",
+	 *  abajo) — esta función no vuelve a decidirlo. */
+	async function handleInsert(
+		position: number,
+		blockType: ResolvedBlockType | null = null
+	): Promise<void> {
 		const target = recordIndexForInsertion(position);
 		const before = blocksState.records.length;
-		const blockType = blocksState.hasTypeMenu ? (blocksState.blockTypes[0] ?? null) : null;
 		await blocksState.handleCreate(blockType);
 		if (blocksState.records.length !== before + 1) return; // creación fallida, `ctx.feedback` ya avisó
 		const newIndex = blocksState.records.length - 1;
@@ -370,7 +413,102 @@
 		if (newIndex !== target) await blocksState.handleReorder(newIndex, target);
 		onStructuralChange();
 	}
+
+	// ————— Menú de tipos del punto de inserción (defecto "el `+` crea sin preguntar el tipo",
+	// ver cabecera) —————
+
+	/** Posición del ÚNICO punto de inserción con el menú abierto, o `null` — nunca dos a la vez
+	 *  (ver cabecera). */
+	let insertMenuPosition = $state<number | null>(null);
+	/** Disparador del menú abierto (para devolverle el foco al cerrar y para el clic-fuera). */
+	let insertMenuTriggerEl = $state<HTMLElement | null>(null);
+	let insertMenuEl = $state<HTMLElement | null>(null);
+
+	function insertMenuId(position: number): string {
+		return `vega-visual-insert-menu-${position}`;
+	}
+
+	function closeInsertMenu(): void {
+		insertMenuPosition = null;
+		insertMenuTriggerEl = null;
+	}
+
+	/** Abre hacia ARRIBA cuando el punto cae en la mitad final de la página (donde vive el caso
+	 *  real que motivó el encargo: el punto DESPUÉS del último bloque, "al final de la página") —
+	 *  sin medir el lienzo en tiempo real (evitaría montar un `ResizeObserver` solo para esto). No
+	 *  es exacto para toda altura de bloque posible, pero cubre el caso reportado y generaliza
+	 *  razonablemente a los puntos intermedios de la mitad de abajo; documentado para que se pueda
+	 *  desmentir si algún día hace falta más precisión. */
+	function insertMenuOpensUpward(position: number): boolean {
+		return blocks.length > 0 && position * 2 >= blocks.length;
+	}
+
+	function handleInsertClick(position: number, event: MouseEvent): void {
+		if (!blocksState.hasTypeMenu) {
+			void handleInsert(position);
+			return;
+		}
+		if (insertMenuPosition === position) {
+			closeInsertMenu();
+			return;
+		}
+		insertMenuTriggerEl = event.currentTarget as HTMLElement;
+		insertMenuPosition = position;
+		void tick().then(() => typeMenuItems(insertMenuEl)[0]?.focus());
+	}
+
+	function handleInsertMenuSelect(position: number, blockType: ResolvedBlockType): void {
+		const trigger = insertMenuTriggerEl;
+		closeInsertMenu();
+		trigger?.focus();
+		void handleInsert(position, blockType);
+	}
+
+	/** Navegación de flechas/`Home`/`End` (ver cabecera de `type-menu.ts`): MISMO algoritmo que
+	 *  `VisualBlockTree.svelte`, ninguno escrito a mano dos veces. */
+	function handleInsertMenuKeydown(event: KeyboardEvent): void {
+		const items = typeMenuItems(insertMenuEl);
+		const next = typeMenuKeydownIndex(event, items);
+		if (next === null) return;
+		event.preventDefault();
+		items[next]?.focus();
+	}
+
+	function handleInsertMenuFocusOut(event: FocusEvent): void {
+		if (insertMenuPosition === null) return;
+		const next = event.relatedTarget as Node | null;
+		if (next && insertMenuEl?.contains(next)) return;
+		closeInsertMenu();
+	}
+
+	function handleInsertWindowClick(event: MouseEvent): void {
+		if (insertMenuPosition === null) return;
+		const target = event.target as Node;
+		if (insertMenuTriggerEl?.contains(target) || insertMenuEl?.contains(target)) return;
+		closeInsertMenu();
+	}
+
+	function handleInsertWindowKeydown(event: KeyboardEvent): void {
+		if (insertMenuPosition === null || event.key !== 'Escape') return;
+		event.preventDefault();
+		const trigger = insertMenuTriggerEl;
+		closeInsertMenu();
+		trigger?.focus();
+	}
+
+	/** Un arrastre que empieza con el menú abierto lo cierra (ver cabecera): los puntos de
+	 *  inserción se retiran mientras dura el gesto (`{#if ... && dragState.fromIndex === null}` del
+	 *  marcado), así que un menú que siguiera "abierto" en el estado quedaría anclado a un botón
+	 *  que ya no existe — huérfano en cuanto el gesto terminara y los puntos volvieran a montarse. */
+	$effect(() => {
+		if (dragState.fromIndex !== null) closeInsertMenu();
+	});
 </script>
+
+<!-- Nivel superior a la fuerza (`<svelte:window>` no puede vivir dentro de un bloque): clic-fuera
+     y `Escape` del menú de tipos del punto de inserción (ver cabecera del script). Ambos salen
+     pronto si no hay ningún menú abierto, mismo patrón que `VisualBlockTree.svelte`. -->
+<svelte:window onclick={handleInsertWindowClick} onkeydown={handleInsertWindowKeydown} />
 
 <!-- `pointer-events: none` INLINE (`style:`), no solo en el `<style>` de abajo (ver cabecera,
      "pointer-events: none de arriba abajo"): un estilo en línea gana a cualquier regla externa
@@ -528,24 +666,69 @@
 	     en los botones. Se retiran MIENTRAS dura un arrastre: caen justo en los huecos entre
 	     contornos, que es donde el puntero suelta, y un botón sin manejador de `drop` se traga el
 	     evento y cancela el gesto sin decir nada. Insertar durante un arrastre no es una acción
-	     posible, así que no se pierde nada quitándolos. -->
+	     posible, así que no se pierde nada quitándolos (y el `$effect` de arriba cierra el menú de
+	     tipos si estaba abierto cuando el arrastre empieza). -->
 	{#if !blocksState.hidden && insertPoints.length > 0 && dragState.fromIndex === null}
 		<div class="vega-visual-overlay-insert-points">
 			{#each insertPoints as point (point.position)}
+				<!-- Con menú de tipos (`hasTypeMenu`), mismo contrato APG que `.vega-tree-add` de
+				     `VisualBlockTree.svelte`: `aria-haspopup`/`aria-expanded`/`aria-controls` en el
+				     disparador. Sin menú (modo homogéneo), ninguno de los tres — igual que el botón
+				     "Añadir" del árbol en su rama sin menú. -->
 				<button
 					type="button"
 					class="vega-visual-overlay-insert"
 					style:top="{point.top}px"
 					style:pointer-events="auto"
 					disabled={blocksState.structuralBusy || blocksState.anySaving}
+					aria-haspopup={blocksState.hasTypeMenu ? 'menu' : undefined}
+					aria-expanded={blocksState.hasTypeMenu
+						? insertMenuPosition === point.position
+						: undefined}
+					aria-controls={blocksState.hasTypeMenu ? insertMenuId(point.position) : undefined}
 					aria-label={ctx.t('editor.visual.overlay.insertLabel', {
 						position: point.position + 1,
 						total: insertPoints.length
 					})}
-					onclick={() => void handleInsert(point.position)}
+					onclick={(event) => handleInsertClick(point.position, event)}
 				>
 					<Icon id="plus" size={14} />
 				</button>
+				{#if blocksState.hasTypeMenu && insertMenuPosition === point.position}
+					<!-- Mismo algoritmo de foco que `.vega-tree-add-menu` (`type-menu.ts`, ver cabecera
+					     del script): el marcado y el posicionamiento SÍ son propios de aquí, anclados a
+					     `point.top` en vez de a `top: 100%` de un botón en flujo normal — `top` en línea
+					     coincide con el mismo eje Y del "+" (ver el CSS, la dirección hacia arriba/abajo
+					     la decide `insertMenuOpensUpward` con `margin-top`/`transform`), y queda
+					     recortado dentro del lienzo porque vive dentro del `overflow: hidden` de
+					     `.vega-visual-overlay-root`. -->
+					<div
+						id={insertMenuId(point.position)}
+						class="vega-visual-overlay-insert-menu"
+						class:vega-visual-overlay-insert-menu--up={insertMenuOpensUpward(point.position)}
+						role="menu"
+						tabindex="-1"
+						aria-label={ctx.t('editor.blocks.addMenu.label')}
+						style:top="{point.top}px"
+						bind:this={insertMenuEl}
+						onkeydown={handleInsertMenuKeydown}
+						onfocusout={handleInsertMenuFocusOut}
+					>
+						{#each blocksState.blockTypes as blockType (blockType.name)}
+							<button
+								type="button"
+								role="menuitem"
+								tabindex="-1"
+								class="vega-visual-overlay-insert-menu-item"
+								style:pointer-events="auto"
+								onclick={() => handleInsertMenuSelect(point.position, blockType)}
+							>
+								{#if blockType.icon}<Icon id={blockType.icon} size={14} />{/if}
+								{blockType.label}
+							</button>
+						{/each}
+					</div>
+				{/if}
 			{/each}
 		</div>
 	{/if}
@@ -554,6 +737,15 @@
 	<div class="vega-visual-overlay-status" aria-live="polite">
 		{#if status === 'waiting'}
 			<p>{ctx.t('editor.visual.overlay.waiting')}</p>
+		{:else if missingBlocks > 0}
+			<!-- Defecto "el lienzo no dice nada cuando le faltan bloques" (ver cabecera, `missingBlocks`):
+			     SUSTITUYE al aviso de "sin bloques" en vez de sumarse cuando `blocks.length === 0`
+			     también es cierto (todos los registros están "missing") — el aviso genérico de vacío
+			     sería ENGAÑOSO ahí, porque sugiere crear una sección cuando en realidad ya existen y es
+			     el sitio quien no las pinta. -->
+			<p class="vega-visual-overlay-status--warning">
+				{ctx.t('editor.visual.overlay.missing', { count: missingBlocks })}
+			</p>
 		{:else if blocks.length === 0}
 			<p>{ctx.t('editor.visual.overlay.empty')}</p>
 		{/if}
@@ -787,6 +979,59 @@
 	.vega-visual-overlay-insert:disabled {
 		cursor: not-allowed;
 		opacity: 0.4;
+	}
+
+	/* Menú de tipos del punto de inserción (defecto "el `+` crea sin preguntar el tipo", ver
+	   cabecera del script): mismo lenguaje visual que `.vega-tree-add-menu` de
+	   `VisualBlockTree.svelte` (tarjeta con `--surface`/`--shadow-card`, ítems en columna) — misma
+	   FAMILIA de menú, pero anclado a `point.top` (coordenadas del lienzo) en vez de a `top: 100%`
+	   de un botón en flujo normal, así que necesita su propio `top`/`left`/`margin`/`transform` en
+	   vez de heredar el suyo. Sin `pointer-events` propio (ver cabecera del componente, "DOS capas
+	   nuevas"): solo cada `role="menuitem"` lo activa. */
+	.vega-visual-overlay-insert-menu {
+		position: absolute;
+		left: 50%;
+		z-index: 10;
+		margin-top: 0.9rem;
+		transform: translateX(-50%);
+		display: flex;
+		flex-direction: column;
+		min-width: 11rem;
+		padding: 0.3rem;
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
+	}
+
+	/* Abre hacia ARRIBA (ver `insertMenuOpensUpward` del script): mismo `top` de partida que la
+	   variante de abajo, pero el margen y la traslación empujan la tarjeta por ENCIMA del punto en
+	   vez de por debajo — así el punto DESPUÉS del último bloque ("al final de la página") no
+	   intenta crecer hacia un hueco que ya no existe dentro del `overflow: hidden` del lienzo. */
+	.vega-visual-overlay-insert-menu--up {
+		margin-top: -0.9rem;
+		transform: translate(-50%, -100%);
+	}
+
+	.vega-visual-overlay-insert-menu-item {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		border: 0;
+		background: none;
+		padding: 0.45rem 0.6rem;
+		border-radius: 6px;
+		color: var(--ink);
+		font: inherit;
+		font-size: 0.85rem;
+		text-align: left;
+		cursor: pointer;
+		white-space: nowrap;
+	}
+
+	.vega-visual-overlay-insert-menu-item:hover,
+	.vega-visual-overlay-insert-menu-item:focus-visible {
+		background: var(--active);
 	}
 
 	/* El asa es lo único de la barra que se agarra: el cursor lo dice antes de intentarlo. */

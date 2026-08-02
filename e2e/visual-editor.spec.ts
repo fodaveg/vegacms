@@ -267,4 +267,51 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		await expect(titles.nth(1)).toHaveText(SECCIONES[0].text);
 		await expect(titles.nth(2)).toHaveText(SECCIONES[2].text);
 	});
+
+	/**
+	 * Defecto "el botón `+` del lienzo crea sin preguntar el tipo": la mitad homogénea del arreglo
+	 * (`hasTypeMenu === false`), de punta a punta contra el bridge cross-origin real.
+	 *
+	 * **Por qué no la mitad "con menú de tipos" (elegir un tipo y comprobar que crea CON ESE
+	 * tipo)**: ninguna semilla de esta suite (`DEMO_SEED`/`DEMO_SEED_WITH_MEDIA`/`SHOWCASE_SEED`,
+	 * `src/lib/session/demo-seed.ts`) declara un vocabulario `blockTypes` en su manifiesto —
+	 * verificado con `grep -n "blockTypes" src/lib/session/demo-seed.ts`, cero resultados — así que
+	 * ninguna página alcanzable con `loginAsDemo()` tiene `blocksState.hasTypeMenu === true`.
+	 * Construirla exigiría dar a `secciones` un campo `text` para `typeField` (patrón que
+	 * `site-seeding.ts#STARTER_BLOCKS` ya usa para el asistente de creación de sitios) y declarar un
+	 * `blockTypes` en `SHOWCASE_MANIFEST` — un cambio real sobre `demo-seed.ts`, fuera del alcance
+	 * cerrado de esta tarea (que solo toca este fichero, `VisualOverlay.svelte`, sus tests y los dos
+	 * i18n) y compartido por TODA la suite e2e, así que no se toca aquí sin confirmación. Esa mitad
+	 * queda cubierta a nivel de componente en `VisualOverlay.svelte.test.ts` ("elegir un tipo del
+	 * menú crea CON ESE tipo…", falsificada en el informe de la tarea) — lo que un e2e añadiría
+	 * encima es la vuelta completa por el bridge real, que este test SÍ cubre para la otra rama del
+	 * mismo `handleInsertClick`.
+	 */
+	test('sin vocabulario de tipos (modo homogéneo), el "+" del lienzo sigue creando directo: nunca abre un menú', async ({
+		page
+	}) => {
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+		await openVisualEditor(page, site, 'pagina_1');
+		await waitConnected(page, 3);
+
+		// N+1 puntos para N=3 bloques; el ÚLTIMO es el punto DESPUÉS del último bloque, "al final de
+		// la página" — el caso real que motivó el defecto.
+		const insertPoints = page.locator('.vega-visual-overlay-insert');
+		await expect(insertPoints).toHaveCount(4);
+		const lastPoint = insertPoints.nth(3);
+		await expect(lastPoint).not.toHaveAttribute('aria-haspopup', 'menu');
+
+		await lastPoint.click();
+
+		// Nunca aparece ningún menú de tipos: crea directo, igual que antes del defecto para esta
+		// rama (`hasTypeMenu === false`).
+		await expect(page.locator('[role="menu"]')).toHaveCount(0);
+		await expect(page.locator('.vega-tree-list li')).toHaveCount(4);
+
+		// Persistencia real (mismo criterio que el test de "mover" de arriba): una consulta
+		// INDEPENDIENTE del formulario normal, no solo el array reactivo del árbol.
+		await page.getByRole('button', { name: 'Volver al formulario' }).click();
+		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
+		await expect(page.locator('.vega-block-title')).toHaveCount(4);
+	});
 });

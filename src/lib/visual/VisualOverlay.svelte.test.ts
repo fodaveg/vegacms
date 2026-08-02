@@ -1,12 +1,15 @@
 /**
  * Suite de `VisualOverlay.svelte` (tarea "contornos de selección", ampliada por "acciones
- * estructurales desde el editor visual"): geometría de las cajas contra `rect`, el modificador de
- * seleccionada, que el grupo de cajas nunca captura el puntero, los cuatro estados que hay que
- * pintar de verdad (cargando/sin bloques/bloques mal descritos/tipo no soportado), que el par
- * `renderedBlockTypes` ausente no marca nada, y ahora también la barra flotante del seleccionado
- * (duplicar/mover/borrar) y los puntos de inserción — con un `BlocksState` de MENTIRA
- * (`fakeBlocksState`, mismo criterio que `VisualBlockTree.svelte.test.ts`). No prueba el resalte
- * por ratón ni la selección por clic: ver la cabecera del componente para el porqué de los dos.
+ * estructurales desde el editor visual" y por los dos defectos de "el lienzo del editor visual"):
+ * geometría de las cajas contra `rect`, el modificador de seleccionada, que el grupo de cajas
+ * nunca captura el puntero, los cuatro estados que hay que pintar de verdad (cargando/sin
+ * bloques/bloques mal descritos/tipo no soportado), que el par `renderedBlockTypes` ausente no
+ * marca nada, la barra flotante del seleccionado (duplicar/mover/borrar), los puntos de
+ * inserción — Y AHORA el menú de tipos de esos puntos (defecto "el `+` crea sin preguntar el
+ * tipo") y el aviso de bloques que faltan (defecto "el lienzo no dice nada cuando le faltan
+ * bloques") — con un `BlocksState` de MENTIRA (`fakeBlocksState`, mismo criterio que
+ * `VisualBlockTree.svelte.test.ts`). No prueba el resalte por ratón ni la selección por clic: ver
+ * la cabecera del componente para el porqué de los dos.
  */
 import { mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, test, vi } from 'vitest';
@@ -24,6 +27,11 @@ type VisualOverlayStatus = 'waiting' | 'ready';
 
 const CHILD_TYPE = { label: 'Bloques', labelSingular: 'Bloque' } as unknown as ResolvedContentType;
 const HERO_TYPE = { name: 'hero', label: 'Portada', icon: null } as unknown as ResolvedBlockType;
+const GALLERY_TYPE = {
+	name: 'gallery',
+	label: 'Galería',
+	icon: null
+} as unknown as ResolvedBlockType;
 
 function record(id: string, heading: string): VegaRecord {
 	return { id, type: 'post_block', values: { heading } };
@@ -255,6 +263,57 @@ describe('VisualOverlay.svelte', () => {
 		expect(mounted.target.querySelector('.vega-visual-overlay-status')?.textContent).not.toContain(
 			translate('es', 'editor.visual.overlay.empty')
 		);
+	});
+
+	// ————— Defecto "el lienzo no dice nada cuando le faltan bloques" —————
+
+	test('registro de Vega que el sitio NO reportó: avisa por id, no por longitud', async () => {
+		const blocksState = fakeBlocksState({
+			records: [record('b1', 'Hero'), record('b2', 'Features'), record('b3', 'Precios')]
+		});
+		mounted = mountOverlay({
+			status: 'ready',
+			// Mismo NÚMERO de bloques que registros (3), pero uno de los ids no casa ('fantasma' en
+			// vez de 'b3') — la comprobación "por longitud" no vería nada raro aquí.
+			blocks: [block('b1', 'hero'), block('b2', 'gallery'), block('fantasma', 'footer')],
+			blocksState
+		});
+		await tick();
+
+		expect(mounted.target.querySelector('.vega-visual-overlay-status')?.textContent).toContain(
+			translate('es', 'editor.visual.overlay.missing', { count: 1 })
+		);
+	});
+
+	test('todos los ids casan: ningún aviso de bloques que faltan', async () => {
+		const blocksState = fakeBlocksState({
+			records: [record('b1', 'Hero'), record('b2', 'Features')]
+		});
+		mounted = mountOverlay({
+			status: 'ready',
+			blocks: [block('b1', 'hero'), block('b2', 'gallery')],
+			blocksState
+		});
+		await tick();
+
+		expect(mounted.target.querySelector('.vega-visual-overlay-status')?.textContent).not.toContain(
+			translate('es', 'editor.visual.overlay.missing', { count: 1 })
+		);
+	});
+
+	test('bloques que faltan Y lienzo vacío a la vez: el aviso nuevo SUSTITUYE al de "sin bloques"', async () => {
+		const blocksState = fakeBlocksState({
+			records: [record('b1', 'Hero'), record('b2', 'Features')]
+		});
+		// El sitio no reporta NINGÚN bloque (p.ej. las dos secciones están sin publicar): `empty`
+		// sería engañoso ("todavía no tiene bloques que seleccionar" sugiere crear uno, cuando en
+		// realidad ya hay dos que el sitio no está pintando).
+		mounted = mountOverlay({ status: 'ready', blocks: [], blocksState });
+		await tick();
+
+		const text = mounted.target.querySelector('.vega-visual-overlay-status')?.textContent;
+		expect(text).toContain(translate('es', 'editor.visual.overlay.missing', { count: 2 }));
+		expect(text).not.toContain(translate('es', 'editor.visual.overlay.empty'));
 	});
 
 	test('tipo que el sitio no sabe pintar: la etiqueta se marca no soportada, la caja sigue ahí', async () => {
@@ -525,13 +584,14 @@ describe('VisualOverlay.svelte', () => {
 		expect(onStructuralChange).toHaveBeenCalledTimes(1);
 	});
 
-	test('con menú de tipos, un punto de inserción crea con el PRIMER tipo declarado (sin selector propio, ver cabecera)', async () => {
-		const records = [record('b1', 'Hero')];
+	// ————— Menú de tipos del punto de inserción (defecto "el `+` crea sin preguntar el tipo") —————
+
+	test('con `hasTypeMenu`, el `+` NO crea directo: abre un menú con los tipos', async () => {
 		const handleCreate = vi.fn(async () => {});
 		const blocksState = fakeBlocksState({
-			records,
+			records: [record('b1', 'Hero')],
 			hasTypeMenu: true,
-			blockTypes: [HERO_TYPE],
+			blockTypes: [HERO_TYPE, GALLERY_TYPE],
 			handleCreate
 		});
 		mounted = mountOverlay({
@@ -541,10 +601,162 @@ describe('VisualOverlay.svelte', () => {
 		});
 		await tick();
 
-		mounted.target.querySelectorAll<HTMLButtonElement>('.vega-visual-overlay-insert')[0].click();
+		const trigger = mounted.target.querySelectorAll<HTMLButtonElement>(
+			'.vega-visual-overlay-insert'
+		)[0];
+		expect(trigger.getAttribute('aria-haspopup')).toBe('menu');
+		expect(trigger.getAttribute('aria-expanded')).toBe('false');
+		trigger.click();
 		await settle();
 
-		expect(handleCreate).toHaveBeenCalledWith(HERO_TYPE);
+		expect(handleCreate).not.toHaveBeenCalled(); // el clic abre el menú, no crea todavía
+		expect(trigger.getAttribute('aria-expanded')).toBe('true');
+		const items = mounted.target.querySelectorAll('[role="menuitem"]');
+		expect(items).toHaveLength(2);
+	});
+
+	test('sin `hasTypeMenu` (modo homogéneo), el `+` sigue creando directo, sin menú', async () => {
+		const handleCreate = vi.fn(async () => {});
+		const blocksState = fakeBlocksState({
+			records: [record('b1', 'Hero')],
+			hasTypeMenu: false,
+			handleCreate
+		});
+		mounted = mountOverlay({
+			status: 'ready',
+			blocks: [block('b1', 'hero', { top: 0, height: 50 })],
+			blocksState
+		});
+		await tick();
+
+		const trigger = mounted.target.querySelectorAll<HTMLButtonElement>(
+			'.vega-visual-overlay-insert'
+		)[0];
+		expect(trigger.getAttribute('aria-haspopup')).toBeNull();
+		trigger.click();
+		await settle();
+
+		expect(handleCreate).toHaveBeenCalledWith(null);
+		expect(mounted.target.querySelector('[role="menu"]')).toBeNull();
+	});
+
+	test('elegir un tipo del menú crea CON ESE tipo (no con `blockTypes[0]`) y en la posición pedida', async () => {
+		const b1 = record('b1', 'Hero');
+		const b2 = record('b2', 'Features');
+		const created = record('new', '');
+		const records = [b1, b2];
+		const handleCreate = vi.fn(async () => {
+			records.push(created);
+		});
+		const handleReorder = vi.fn(async () => true);
+		const onStructuralChange = vi.fn();
+		const blocksState = fakeBlocksState({
+			records,
+			hasTypeMenu: true,
+			blockTypes: [HERO_TYPE, GALLERY_TYPE],
+			handleCreate,
+			handleReorder
+		});
+		mounted = mountOverlay({
+			status: 'ready',
+			blocks: [
+				block('b1', 'hero', { top: 0, height: 50 }),
+				block('b2', 'gallery', { top: 100, height: 50 })
+			],
+			blocksState,
+			onStructuralChange
+		});
+		await tick();
+
+		const points = mounted.target.querySelectorAll<HTMLButtonElement>(
+			'.vega-visual-overlay-insert'
+		);
+		points[1].click(); // "entre b1 y b2" → posición 1
+		await settle();
+
+		const items = mounted.target.querySelectorAll<HTMLButtonElement>('[role="menuitem"]');
+		items[1].click(); // "Galería", NO el primero declarado
+		await settle();
+
+		expect(handleCreate).toHaveBeenCalledWith(GALLERY_TYPE);
+		// Se creó al final (índice 2) y se reordenó a la posición 1, igual que en modo homogéneo.
+		expect(handleReorder).toHaveBeenCalledWith(2, 1);
+		expect(onStructuralChange).toHaveBeenCalledTimes(1);
+		// El menú se cierra y el foco vuelve al `+` que lo abrió.
+		expect(mounted.target.querySelector('[role="menu"]')).toBeNull();
+		expect(document.activeElement).toBe(points[1]);
+	});
+
+	test('Escape cierra el menú y devuelve el foco al `+`; clicar fuera también lo cierra', async () => {
+		const blocksState = fakeBlocksState({
+			records: [record('b1', 'Hero')],
+			hasTypeMenu: true,
+			blockTypes: [HERO_TYPE, GALLERY_TYPE]
+		});
+		mounted = mountOverlay({
+			status: 'ready',
+			blocks: [block('b1', 'hero', { top: 0, height: 50 })],
+			blocksState
+		});
+		await tick();
+
+		const trigger = mounted.target.querySelectorAll<HTMLButtonElement>(
+			'.vega-visual-overlay-insert'
+		)[0];
+		trigger.click();
+		await settle();
+		expect(mounted.target.querySelector('[role="menu"]')).not.toBeNull();
+
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		await tick();
+		expect(mounted.target.querySelector('[role="menu"]')).toBeNull();
+		expect(document.activeElement).toBe(trigger);
+
+		trigger.click();
+		await settle();
+		expect(mounted.target.querySelector('[role="menu"]')).not.toBeNull();
+		document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		await tick();
+		expect(mounted.target.querySelector('[role="menu"]')).toBeNull();
+	});
+
+	test('un arrastre que empieza con el menú abierto lo cierra (no queda huérfano)', async () => {
+		const blocksState = fakeBlocksState({
+			records: [record('b1', 'Hero'), record('b2', 'Galería')],
+			hasTypeMenu: true,
+			blockTypes: [HERO_TYPE, GALLERY_TYPE]
+		});
+		mounted = mountOverlay({
+			status: 'ready',
+			selectedId: 'b1',
+			blocks: [
+				block('b1', 'hero', { top: 0, height: 50 }),
+				block('b2', 'gallery', { top: 100, height: 50 })
+			],
+			blocksState
+		});
+		await tick();
+
+		mounted.target.querySelectorAll<HTMLButtonElement>('.vega-visual-overlay-insert')[0].click();
+		await settle();
+		expect(mounted.target.querySelector('[role="menu"]')).not.toBeNull();
+
+		const handle = mounted.target.querySelector<HTMLElement>('.vega-visual-overlay-handle')!;
+		const dragstart = new Event('dragstart', { bubbles: true, cancelable: true });
+		Object.defineProperty(dragstart, 'dataTransfer', {
+			value: { setData: vi.fn(), effectAllowed: '' }
+		});
+		handle.dispatchEvent(dragstart);
+		await tick();
+
+		// Los puntos de inserción se retiran mientras dura el arrastre — el menú, huérfano, se va
+		// con ellos, y NO queda abierto en el estado para cuando vuelvan a montarse.
+		expect(mounted.target.querySelector('[role="menu"]')).toBeNull();
+
+		handle.dispatchEvent(new Event('dragend', { bubbles: true, cancelable: true }));
+		await tick();
+		expect(mounted.target.querySelector('.vega-visual-overlay-insert')).not.toBeNull();
+		expect(mounted.target.querySelector('[role="menu"]')).toBeNull();
 	});
 
 	test('pointer-events: la barra y los puntos de inserción activan `auto` SOLO en sus botones, nunca en el contenedor', async () => {
