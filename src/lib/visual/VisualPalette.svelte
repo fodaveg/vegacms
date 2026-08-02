@@ -48,6 +48,18 @@
 	 * **Guardas idénticas al resto** (`anyDirty || anySaving || structuralBusy`): `disabled` apaga
 	 * el `onclick`, y `draggable` cae CON él —un `disabled` a secas no frena el arrastre nativo,
 	 * mismo criterio que el asa de `VisualOverlay.svelte`.
+	 *
+	 * **Y `blocks.hidden` la retira ENTERA, no solo la deshabilita** (hallazgo de la revisión fría
+	 * de este mismo commit): `hidden` incluye `status.kind === 'error'` (ver
+	 * `blocks-state.svelte.ts`), o sea que la lista de bloques de ESTE registro no cargó, mientras
+	 * que `hasTypeMenu` sale del vocabulario GLOBAL de tipos y no sabe nada de esa carga. Sin esta
+	 * guarda, un fallo transitorio de `ctx.port.list()` dejaba el árbol diciendo "no disponible" y
+	 * la paleta creando igual: `handleCreate` calcula el `orderField` sobre `records`, que con
+	 * `status` en error es `[]`, así que el bloque nuevo nace con orden 0 y `status` pasa a
+	 * `ready` con ÉL SOLO — los bloques reales que no llegaron a cargar desaparecen de la vista y
+	 * colisionan de orden al recargar. Las dos superficies hermanas ya lo comprueban (el `+` de
+	 * `VisualOverlay.svelte` y el botón "Añadir" simple de `VisualBlockTree.svelte`); al repartir
+	 * en tres sitios lo que antes era un solo `{#if !blocks.hidden}`, este se quedó fuera.
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import Icon from '$lib/icons/Icon.svelte';
@@ -70,7 +82,12 @@
 	let { blocks, onStructuralChange, onDragStart, onDragEnd }: Props = $props();
 	const ctx = getVegaContext();
 
-	/** Misma guarda que las filas del árbol y la barra flotante del lienzo. */
+	/** Misma guarda que las filas del árbol y la barra flotante del lienzo, y **a propósito más
+	 *  estricta que el botón "Añadir Sección ›" al que sustituye** (que solo miraba
+	 *  `structuralBusy || anySaving`, sin `anyDirty`): este botón tiene DOS gestos, y el de
+	 *  arrastrar acaba en `VisualOverlay.svelte#handleInsert`, que crea y luego REORDENA — el mismo
+	 *  camino que el `+` de los puntos de inserción, que ya se congela con `anyDirty`. Dos criterios
+	 *  distintos en el mismo `disabled` no caben, así que manda el del gesto más peligroso. */
 	const structuralGuard = $derived(blocks.anyDirty || blocks.anySaving || blocks.structuralBusy);
 
 	function handleDragStart(event: DragEvent, blockType: ResolvedBlockType): void {
@@ -98,7 +115,7 @@
 	}
 </script>
 
-{#if blocks.hasTypeMenu}
+{#if blocks.hasTypeMenu && !blocks.hidden}
 	<div class="vega-palette-panel" role="region" aria-labelledby="vega-palette-heading">
 		<div class="vega-palette-head">
 			<h2 id="vega-palette-heading">{ctx.t('editor.blocks.addMenu.label')}</h2>

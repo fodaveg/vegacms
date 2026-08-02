@@ -30,6 +30,7 @@ function record(id: string, heading: string): VegaRecord {
 interface FakeOptions {
 	records?: VegaRecord[];
 	hasTypeMenu?: boolean;
+	hidden?: boolean;
 	blockTypes?: ResolvedBlockType[];
 	anyDirty?: boolean;
 	anySaving?: boolean;
@@ -47,7 +48,7 @@ function fakeBlocksState(opts: FakeOptions = {}): BlocksState {
 		records,
 		loading: false,
 		failed: false,
-		hidden: false,
+		hidden: opts.hidden ?? false,
 		blocksConfig: null,
 		childType: null,
 		structuralFields: [],
@@ -138,6 +139,24 @@ describe('VisualPalette.svelte', () => {
 		mounted = mountPalette({ blocks });
 
 		expect(mounted.target.querySelector('.vega-palette-panel')).toBeNull();
+	});
+
+	/** Hallazgo de la revisión fría del commit que trajo la paleta: `hidden` (que incluye
+	 *  `status.kind === 'error'`, o sea "la lista de bloques de este registro NO cargó") es
+	 *  independiente de `hasTypeMenu` (que sale del vocabulario GLOBAL de tipos). Sin esta guarda
+	 *  la paleta seguía creando con el árbol diciendo "no disponible", y `handleCreate` calculaba
+	 *  el orden sobre `records`, que ahí es `[]` — bloque nuevo con orden 0 y `status` en `ready`
+	 *  con él solo, o sea los bloques reales fuera de la vista y colisión de orden al recargar. */
+	test('con la lista de bloques en error (`hidden`), la paleta no se pinta aunque haya tipos', () => {
+		const blocks = fakeBlocksState({
+			hasTypeMenu: true,
+			hidden: true,
+			blockTypes: [HERO_TYPE, GALLERY_TYPE]
+		});
+		mounted = mountPalette({ blocks });
+
+		expect(mounted.target.querySelector('.vega-palette-panel')).toBeNull();
+		expect(mounted.target.querySelector('.vega-palette-item')).toBeNull();
 	});
 
 	test('con menú de tipos: un botón por tipo, misma fuente que `blockTypes` — con su icono y etiqueta', () => {
