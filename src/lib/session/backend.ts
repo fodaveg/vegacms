@@ -176,6 +176,28 @@ declare global {
 		 *  prioridad sobre `__VEGA_SEED_MEDIA__` (el showcase ya incluye su propia `vega_media`).
 		 *  Ausente/`false` en ambos sitios = comportamiento previo (`DEMO_SEED`/`DEMO_SEED_WITH_MEDIA`). */
 		__VEGA_SEED_SHOWCASE__?: boolean;
+		/**
+		 * Flag runtime SOLO para Playwright (tarea "e2e del editor visual contra el starter"):
+		 * URL base del endpoint de vista previa que el adaptador `memory` debe ANUNCIAR, y con
+		 * ella `previewVisualEditing: true`. Sin esto, el editor visual es INALCANZABLE en la
+		 * suite e2e — `resolveVisualGate` (`$lib/visual/visual-gate.ts`) cierra la pantalla con
+		 * `no-preview` porque la rama `memory` de `getBackend()` nunca resuelve un discovery, que
+		 * es de donde salen las dos capacidades en producción (ver `resolvePreviewApiUrl` más
+		 * abajo, y la cabecera de `BackendPort.previewApiUrl`).
+		 *
+		 * **Anuncia, no implementa** — exactamente igual que en producción, donde las dos son una
+		 * PROMESA del discovery y la capacidad real la demuestra el saludo del puente
+		 * (`BackendPort.previewVisualEditing`, ver su cabecera). Quien tiene que responder al
+		 * `POST {url}/token` y servir el sitio del iframe es el propio test, interceptando con
+		 * `page.route()`: este gancho no monta ningún servidor de mentira ni finge un token, solo
+		 * abre la puerta que el discovery abriría. Un test que fije esto y NO intercepte verá el
+		 * mismo fallo de red que vería Vega contra un proyecto que anuncia lo que no tiene, que es
+		 * un estado legítimo y también hay que poder probarlo.
+		 *
+		 * Ausente = comportamiento previo (sin vista previa, editor visual cerrado). Exclusivo del
+		 * adaptador `memory`: en modo `pocketbase` esta flag nunca se lee.
+		 */
+		__VEGA_PREVIEW_API_URL__?: string;
 	}
 }
 
@@ -237,7 +259,18 @@ async function createInstance(): Promise<BackendPort> {
 		// `#lote-integridad` Fase B (§3): envuelve TAMBIÉN la rama `memory` — el historial de
 		// versiones tiene que funcionar en la demo/e2e igual que en producción, mismo criterio que
 		// `wrapMemoryPortForDemo`/`withEditorCapabilities` de más arriba.
-		return withRevisions(withCapabilities);
+		const withHistory = withRevisions(withCapabilities);
+		// Ver `__VEGA_PREVIEW_API_URL__` arriba: anuncia las dos capacidades de vista previa que en
+		// producción salen del discovery, para que la suite e2e pueda alcanzar el editor visual.
+		// Se aplica al FINAL, sobre el puerto ya envuelto, porque las dos son campos de datos y no
+		// operaciones: ninguna envoltura anterior las lee ni las reescribe.
+		return window.__VEGA_PREVIEW_API_URL__
+			? {
+					...withHistory,
+					previewApiUrl: window.__VEGA_PREVIEW_API_URL__,
+					previewVisualEditing: true
+				}
+			: withHistory;
 	}
 	const override = readBackendOverride();
 	const authCollectionOverride = readAuthCollectionOverride();
