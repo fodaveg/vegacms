@@ -332,6 +332,45 @@ Dos comportamientos que conviene conocer antes de declararlo:
 
 Conviene declarar la colección hija con `hidden: true` para que no aparezca además como lista suelta en la navegación: es el mismo contenido en dos sitios con dos modelos mentales distintos. Y con `labelSingular`, porque el botón de la lista es «Añadir {labelSingular}».
 
+### Editar los bloques sobre la página (editor visual)
+
+Una colección con `blocks` puede además editarse **sobre la página real del sitio**, en una pantalla
+completa (`/c/<colección>/<id>/visual`) con el árbol de secciones a un lado, la página dentro de un
+`<iframe>` en el centro y la ficha del bloque seleccionado al otro lado. Un clic sobre una sección de
+la página abre sus campos al lado; el texto se escribe siempre en los controles de Vega, nunca encima
+de la página.
+
+**Esto no se enciende desde el manifiesto.** No hay ninguna clave que añadir aquí: la capacidad la
+declara el proyecto en su documento de discovery (`preview.visualEditing`) y la habilita de verdad el
+saludo del puente que instala el sitio. Ambas mitades están en
+[Vista previa de registros guardados sin publicar](POCKETBASE-INTEGRATION.md#vista-previa-de-registros-guardados-sin-publicar)
+y, normativamente, en la sección «Visual editing bridge» del
+[contrato de proyecto v1](PROJECT-CONTRACT-v1.md).
+
+Lo que sí depende de lo que declares en el manifiesto es **si la entrada aparece**. Cuatro puertas
+cierran la ruta, cada una con su propio aviso en vez de una pantalla en blanco:
+
+| Puerta                             | Qué la abre                                                 |
+| ---------------------------------- | ----------------------------------------------------------- |
+| Permiso de ver el registro         | Las reglas de la colección, como en cualquier otra pantalla |
+| La colección declara `blocks`      | Esta misma sección del manifiesto                           |
+| El proyecto ofrece vista previa    | `preview.apiBasePath` en el discovery                       |
+| El proyecto anuncia edición visual | `preview.visualEditing: true` en el discovery               |
+
+Y una quinta que no se configura: **por debajo de 900 px de ancho el lienzo ni se monta**. En un
+móvil no se descarga el sitio entero para acabar enseñando un aviso de que no cabe; se ofrece el
+formulario de bloques de siempre, que ahí funciona bien.
+
+Desde el lienzo se puede seleccionar, añadir en una posición concreta, duplicar, borrar y reordenar
+arrastrando. Todo ello tiene equivalente por teclado, porque el lienzo no puede ser la única vía:
+`Esc` deselecciona, `Alt` con las flechas mueve la sección seleccionada, `Supr` pide el borrado (con
+la misma confirmación y la misma papelera que el formulario), `⌘S`/`Ctrl+S` guarda la ficha abierta y
+`?` abre el panel de ayuda con la lista completa.
+
+Las escrituras son las mismas que las del formulario de bloques, no un segundo camino: se aplica
+igual que arriba que **cada bloque se guarda por su cuenta** y que **el reorden persiste al soltar**.
+La barra superior enseña esa asimetría en vez de dejarla para quien lea el código.
+
 ## Vista previa de tarjeta social (`social`)
 
 Cómo queda un registro al compartirlo. Es un mapeo sobre campos que la colección **ya tiene**, no campos nuevos: qué campo es el título social, cuál la descripción y cuál la imagen, más una plantilla de URL opcional.

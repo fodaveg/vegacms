@@ -363,8 +363,69 @@ página que la ruta pública. Si el sitio es Astro estático, activar preview ex
 servidor y el modo editor documentado por su starter; omitir `preview` del discovery mantiene todo
 el flujo estático y Vega no ofrece el panel.
 
-No confundas este contrato con una vista previa de cambios sin guardar: el cuerpo actual solo lleva
-`{ collection, id }` y por tanto siempre representa el último estado persistido del registro.
+El cuerpo puede llevar además un `draft` opcional con el registro y sus bloques **tal como están en
+el editor, sin guardar**, para que quien monta una página a base de bloques vea lo que tiene en
+pantalla ahora y no lo último que persistió. Es aditivo en los dos sentidos: un proyecto que ignore
+`draft` sigue siendo una implementación válida y Vega cae a previsualizar el registro guardado.
+
+Aceptarlo obliga a cuatro cosas, y las cuatro las cumple la extensión de referencia: previsualizar
+no puede escribir (nada de un registro temporal ni una tabla de borradores), el borrador viaja
+cifrado y ligado al registro (token `v2`, AES-256-GCM con clave derivada del secreto de firma), no
+viaja por la URL sino como campo de formulario, y está acotado a 256 KiB. El
+[contrato de proyecto v1](PROJECT-CONTRACT-v1.md) las detalla; reimplementarlas a ojo es peor que no
+ofrecer `draft`.
+
+### Edición visual sobre la página (`preview.visualEditing`)
+
+Encima de todo lo anterior, un proyecto puede ofrecer que el autor **edite haciendo clic sobre la
+página real**, no sobre una lista de bloques. Se anuncia con una clave más en el mismo objeto:
+
+```json
+{
+	"preview": { "apiBasePath": "/api/vega-preview", "visualEditing": true }
+}
+```
+
+Está estrictamente por encima de la vista previa: un lienzo que solo refleja el último registro
+guardado no es un editor, así que un proyecto sin `preview` no puede ofrecer esto.
+
+**El anuncio es una promesa, no una prueba.** El discovery lo escribe el proyecto y sobrevive de
+sobra al código que decía describir. Lo que habilita la función de verdad es que el puente del sitio
+conteste al saludo; un sitio que la anuncia y no responde produce un error explícito y sigue
+ofreciendo la vista previa de siempre, que sí funciona. Nunca un lienzo mudo ni a medio pintar.
+
+La mitad que vive en el sitio son dos piezas, las dos hechas en `@vega/astro`:
+
+- **Marcar el HTML**: `data-vega-block-id` y `data-vega-block-type` en cada bloque pintado, y
+  `data-vega-blocks-root` en el elemento que envuelve la secuencia entera. Ese es el elemento que se
+  sustituye al refrescar en vivo, así que tiene que contener todos los bloques y nada de lo que
+  dependa el resto de la página.
+- **Montar el puente**, y **solo en la ruta de vista previa**, nunca en la página publicada. Habla
+  con Vega por `postMessage` con el protocolo `vega-visual-1`: le cuenta qué bloques hay y dónde
+  están, avisa cuando el autor hace clic dentro de uno, y acepta «resalta este», «llévame a este» y
+  «vuelve a pintarte desde esta URL».
+
+Vega no lee ni un nodo del `<iframe>`, porque es de otro origen y el navegador se lo impide. Todo lo
+que sabe del lienzo se lo ha dicho el sitio, y los contornos de selección los dibuja **encima** del
+marco con la geometría que le reportan, así que nunca heredan ni ensucian los estilos del sitio.
+
+**Seguridad**: el puente es un canal de control sobre una página que pinta contenido sin publicar,
+así que exige una lista explícita de orígenes permitidos y se niega a arrancar con la lista vacía.
+Vacía significa nadie, nunca todos. Esa misma lista va en `frame-ancestors` para que el navegador lo
+impida antes de que llegue el primer mensaje, y Vega valida simétricamente contra el origen de la URL
+que le devolvió `/token`. La sección «Visual editing bridge» del
+[contrato de proyecto v1](PROJECT-CONTRACT-v1.md) es la normativa; aquí está el resumen operativo.
+
+Refrescar el lienzo al guardar **no recarga la página del sitio**: Vega pide un token nuevo y se lo
+pasa al puente con el mensaje `refresh`, el sitio se pide esa vista previa a sí mismo y sustituye
+solo `data-vega-blocks-root`, conservando el scroll del autor. El sitio anuncia esa capacidad
+(`liveRefresh`) en su saludo solo si de verdad la tiene, y cualquier fallo acaba en la recarga entera
+de siempre: un parpadeo es preferible a un lienzo que enseña algo que ya no es verdad.
+
+Dos límites que conviene saber antes de tropezar con ellos: los scripts que vivan dentro de un bloque
+no se vuelven a ejecutar al sustituir su HTML, y solo se sustituye la raíz de bloques, así que
+`<head>`, navegación y demás marcado de página quedan como estaban hasta la siguiente recarga
+completa.
 
 ## Autoría de esquema desde Vega (crear colecciones, añadir campos)
 
@@ -757,6 +818,7 @@ Ver [Arquitectura](../README.md#estructura-de-la-app) para más contexto.
 - [ ] Prueba de escritura: crea un registro → debe aparecer en PocketBase admin.
 - [ ] Si hay múltiples consumidores (Astro + Vega): verifica que ambos ven los mismos datos.
 - [ ] Los campos `file` de imagen declaran los tamaños de thumb (`300x300`/`120x120`/`28x28`) que Vega pide (ver [Miniaturas](#miniaturas-thumbnails)).
+- [ ] Si el sitio ofrece **edición visual**: el discovery declara `preview.visualEditing`, el HTML lleva las tres marcas `data-vega-*`, el puente se monta solo en la ruta de vista previa y su lista de orígenes permitidos NO está vacía (ver [Edición visual sobre la página](#edición-visual-sobre-la-página-previewvisualediting)).
 
 ## Troubleshooting
 
@@ -783,6 +845,21 @@ Ver [Arquitectura](../README.md#estructura-de-la-app) para más contexto.
 **Causa**: esto es aparte de PocketBase — la comprobación opt-in de `/settings` → "Acerca de" contacta `https://api.github.com`, no tu PocketBase. Si aplicas una `Content-Security-Policy` con `connect-src` restringido en el servidor que sirve la SPA, ese origen externo también necesita permiso explícito.
 
 **Solución**: añade `https://api.github.com` a `connect-src` en tu CSP, o ignora el aviso — es opt-in y degrada con elegancia, el resto de la app (que sí depende de PocketBase) sigue funcionando igual. Ver [Comprobación de actualizaciones](CONFIG.md#comprobación-de-actualizaciones-opt-in) en `CONFIG.md`.
+
+### No aparece la entrada al editor visual, o dice que el sitio no tiene el puente
+
+**Causa**: son dos síntomas distintos y conviene no confundirlos. Que **no aparezca la entrada** es
+una de las cuatro puertas cerradas: sin permiso de ver el registro, colección sin `blocks`, discovery
+sin `preview.apiBasePath`, o discovery sin `preview.visualEditing`. Que **aparezca y luego avise de
+que el sitio no tiene puente instalado** es lo contrario: las cuatro puertas están abiertas y el
+anuncio se cumplió, pero nadie contestó al saludo dentro del plazo.
+
+**Solución**: para lo primero, comprueba `GET /api/vega/discovery` y el manifiesto, en ese orden. Para
+lo segundo, mira el sitio, no Vega: el puente tiene que estar montado en la ruta de vista previa (no
+en la publicada) y su lista de orígenes permitidos tiene que incluir el origen de Vega. Con la lista
+vacía se niega a arrancar a propósito, y desde fuera eso se ve exactamente igual que un puente que no
+está. Un `frame-ancestors` que no incluya a Vega lo impide antes incluso, y entonces el aviso llega
+sin que se haya cargado el marco.
 
 ### Los cambios en PocketBase no se ven en Vega
 

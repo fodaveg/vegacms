@@ -43,7 +43,7 @@ Vega no es específico de PocketBase: el admin habla contra un **puerto** (`src/
 
 ```sh
 pnpm check     # svelte-check (TS estricto)
-pnpm lint      # prettier + eslint
+pnpm lint      # prettier + eslint + cobertura de temas + objetivos táctiles de 44×44
 pnpm test      # vitest (unit + contrato)
 pnpm build     # SPA estática (@sveltejs/adapter-static)
 pnpm gate      # la suite completa: check + lint + PocketBase real + test + build + e2e
