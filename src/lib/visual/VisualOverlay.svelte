@@ -557,6 +557,21 @@
 
 	// ————— Caída de la PALETA (ver cabecera, "Soltar una sección de la PALETA...") —————
 
+	/** Posición N+1 donde caería la sección AHORA MISMO, mientras un arrastre de paleta sobrevuela
+	 *  la capa de destinos; `null` fuera del gesto o antes del primer `dragover`.
+	 *
+	 *  Existe porque sin él **se arrastraba a ciegas**: lo cazó una captura, no el gate (un test que
+	 *  comprueba dónde CAE la sección pasa igual sin ninguna pista visual). Y el gesto además retira
+	 *  los `+` de los puntos de inserción, así que durante el arrastre desaparecía hasta la
+	 *  referencia de que existen posiciones donde insertar.
+	 *
+	 *  No hace falta ningún indicador nuevo: `--before`/`--after` ya pintan la línea para el reorden.
+	 *  Lo único que faltaba era de dónde sale el `edge` en este gesto — en el reorden lo decide la
+	 *  DIRECCIÓN del arrastre (`dropIndicatorEdge`), y aquí no hay origen que comparar, así que lo
+	 *  decide la misma `resolveInsertPosition()` que resuelve la caída. Un segundo criterio habría
+	 *  podido enseñar una línea donde la sección no cae. */
+	let paletteOverPosition = $state<number | null>(null);
+
 	/** `dragover`/`drop` de la capa de destinos: bifurca según el gesto en vuelo. Los dos son
 	 *  mutuamente excluyentes (el navegador solo permite un arrastre a la vez, ver cabecera), así
 	 *  que basta con mirar `paletteDragType` para saber a qué camino ir. */
@@ -564,6 +579,12 @@
 		if (paletteDragType !== null) {
 			event.preventDefault();
 			if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+			const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+			const position = resolveInsertPosition(index, event.clientY, rect);
+			// Solo si CAMBIA: el navegador dispara `dragover` continuamente mientras el puntero no
+			// se mueve, y repintar en cada uno es el mismo desperdicio que ya evita
+			// `reorder-dnd.ts#handleDragOver`.
+			if (paletteOverPosition !== position) paletteOverPosition = position;
 			return;
 		}
 		dnd.handleDragOver(event, index);
@@ -578,11 +599,22 @@
 			event.preventDefault();
 			const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
 			const position = resolveInsertPosition(index, event.clientY, rect);
+			paletteOverPosition = null;
 			void handleInsert(position, paletteDragType);
 			return;
 		}
 		dnd.handleDrop(event, index);
 	}
+
+	/** Limpia el indicador cuando el gesto TERMINA sin soltar sobre una zona (cancelado con `Esc`,
+	 *  soltado fuera del lienzo, arrastre que sale de la ventana): ahí no pasa por `handleZoneDrop`,
+	 *  y lo único que lo delata es que `paletteDragType` vuelve a `null` — el dueño de ese prop es
+	 *  `VisualEditorScreen.svelte`, que ya lo limpia en el `dragend` de la paleta. Sin esto, la
+	 *  línea del gesto anterior reaparecería durante un frame al empezar el siguiente, antes del
+	 *  primer `dragover`. Este componente sigue siendo el ÚNICO escritor de `paletteOverPosition`. */
+	$effect(() => {
+		if (paletteDragType === null) paletteOverPosition = null;
+	});
 </script>
 
 <!-- Nivel superior a la fuerza (`<svelte:window>` no puede vivir dentro de un bloque): clic-fuera
@@ -718,10 +750,24 @@
 	{#if dragState.fromIndex !== null || paletteDragType !== null}
 		<div class="vega-visual-overlay-drop-zones" aria-hidden="true">
 			{#each blocks as block, i (block.id)}
+				<!-- El MISMO indicador para los dos gestos, con dos orígenes distintos: reordenando lo
+				     decide la dirección del arrastre (`dropIndicatorEdge`), creando desde la paleta lo
+				     decide la posición donde caería (`paletteOverPosition`, ver su declaración), que
+				     es la que resuelve de verdad la caída. La zona `i` enseña la línea ARRIBA cuando la
+				     sección entra en la posición `i`; el "abajo" lo pinta SOLO la última zona, para la
+				     posición final. Cualquier hueco interior pertenece a dos zonas a la vez (el
+				     "después" de una es el "antes" de la siguiente), así que repartirlo entre las dos
+				     dibujaría dos líneas pegadas en el mismo sitio. -->
 				{@const edge =
-					dragState.overIndex === i
-						? dropIndicatorEdge(dragState.fromIndex, dragState.overIndex)
-						: null}
+					paletteDragType !== null
+						? paletteOverPosition === i
+							? 'before'
+							: paletteOverPosition === i + 1 && i === blocks.length - 1
+								? 'after'
+								: null
+						: dragState.overIndex === i
+							? dropIndicatorEdge(dragState.fromIndex, dragState.overIndex)
+							: null}
 				<!-- `role="presentation"`: el nodo NO es un control, solo una superficie que recibe
 				     `dragover`/`drop` mientras dura el gesto (el árbol y las flechas del asa/la
 				     propia paleta son la vía accesible). Sin el rol explícito, el compilador exige

@@ -1136,6 +1136,49 @@ describe('VisualOverlay.svelte', () => {
 		expect(onStructuralChange).toHaveBeenCalledTimes(1);
 	});
 
+	/** Lo cazó una CAPTURA, no el gate: los tests de aquí abajo comprueban dónde CAE la sección y
+	 *  pasaban igual sin ninguna pista visual, mientras el gesto además retira los `+` de los puntos
+	 *  de inserción. La línea sale del MISMO `resolveInsertPosition` que resuelve la caída, así que
+	 *  no puede enseñarse donde la sección no cae. */
+	test('paleta: al sobrevolar, la línea de inserción marca dónde caería, y solo en un sitio', async () => {
+		mounted = mountOverlay({
+			status: 'ready',
+			blocks: [
+				block('b1', 'hero', { top: 0, height: 50 }),
+				block('b2', 'gallery', { top: 100, height: 50 })
+			],
+			blocksState: fakeBlocksState({ records: [record('b1', 'Hero'), record('b2', 'Features')] }),
+			paletteDragType: HERO_TYPE
+		});
+		await tick();
+
+		const zones = zonesOf(mounted.target);
+		// Sin haber sobrevolado nada todavía, ninguna línea: no hay posición que prometer.
+		expect(
+			zones.some(
+				(z) =>
+					z.classList.contains('vega-visual-overlay-drop-zone--before') ||
+					z.classList.contains('vega-visual-overlay-drop-zone--after')
+			)
+		).toBe(false);
+
+		// Mitad SUPERIOR del primer bloque (punto medio en 25) ⇒ entra en la posición 0.
+		stubZoneRect(zones[0], 0, 50);
+		firePaletteDragEvent(zones[0], 'dragover', 10);
+		await tick();
+		expect(zones[0].classList.contains('vega-visual-overlay-drop-zone--before')).toBe(true);
+		expect(zones[1].classList.contains('vega-visual-overlay-drop-zone--before')).toBe(false);
+		expect(zones[1].classList.contains('vega-visual-overlay-drop-zone--after')).toBe(false);
+
+		// Mitad INFERIOR del ÚLTIMO bloque ⇒ posición final: la línea se va abajo, y sigue habiendo
+		// una sola (el hueco interior pertenece a dos zonas y se reparte a propósito).
+		stubZoneRect(zones[1], 100, 50);
+		firePaletteDragEvent(zones[1], 'dragover', 140);
+		await tick();
+		expect(zones[1].classList.contains('vega-visual-overlay-drop-zone--after')).toBe(true);
+		expect(zones[0].classList.contains('vega-visual-overlay-drop-zone--before')).toBe(false);
+	});
+
 	test('paleta: soltar en la mitad INFERIOR del último bloque crea al final (sin reorden, ya cae ahí)', async () => {
 		const b1 = record('b1', 'Hero');
 		const b2 = record('b2', 'Features');
