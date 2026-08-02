@@ -674,9 +674,17 @@
 		font-weight: 500;
 	}
 
+	/* `min-width` en `ch`, no `0`, y ese es TODO el arreglo del título que salía cortado a «Esc…».
+	   La fila ya llevaba `flex-wrap: wrap` para esto, pero no servía de nada: con `min-width: 0` el
+	   título puede encogerse hasta cero, así que nunca deja de caber y por tanto nunca envuelve —
+	   se comprimía contra la insignia de tipo hasta quedar en tres letras y un puntito. Con un
+	   mínimo legible, cuando insignia y título no caben juntos el título se va ENTERO a la línea de
+	   abajo, que es lo que ya hacía falta desde que las secciones tienen tipo (antes no había
+	   insignia porque no había vocabulario, así que el título tenía la fila para él solo).
+	   La elipsis se queda para el caso de un título largo de verdad, que ninguna anchura arregla. */
 	.vega-tree-title {
 		flex: 1;
-		min-width: 0;
+		min-width: 14ch;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
