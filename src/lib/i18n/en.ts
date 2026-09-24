@@ -1126,6 +1126,24 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'admin.backups.download': 'Download',
 	'admin.backups.downloadFor': 'Download {key}',
 	'admin.backups.preparing': 'Preparing…',
+	'admin.editors.addDialog.inviteLinkCustom':
+		'The PocketBase password reset email template is customised: the link in the email is whatever it says, not the Vega page to choose a password.',
+	'admin.editors.addDialog.inviteLinkUnknown':
+		'Could not check where the link in the invitation email leads.',
+	'admin.reset.title': 'Choose your password',
+	'admin.reset.intro': 'It is the password you will use to sign in to this admin.',
+	'admin.reset.submit': 'Save password',
+	'admin.reset.saving': 'Saving…',
+	'admin.reset.successTitle': 'Password saved',
+	'admin.reset.successBody': 'You can now sign in with your email and the new password.',
+	'admin.reset.toLogin': 'Go to sign in',
+	'admin.reset.expiredTitle': 'This link no longer works',
+	'admin.reset.expiredBody':
+		'It has expired or was already used. Ask whoever manages this site to resend the invitation.',
+	'admin.reset.missingToken':
+		'The link is missing the code to choose a password. Open it exactly as it arrived in the email.',
+	'admin.reset.errorTitle': 'Could not save the password',
+	'admin.reset.unavailable': 'This server does not allow choosing the password from here.',
 	'admin.form.password': 'Password',
 	'admin.form.newPassword': 'New password',
 	'admin.form.repeatPassword': 'Repeat it',

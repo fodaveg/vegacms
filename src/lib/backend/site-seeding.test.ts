@@ -340,6 +340,15 @@ describe('seedSiteProject', () => {
 		expect((await seedSiteProject(port)).addedFields).toEqual({});
 	});
 
+	test('con passwordResetUrl, el sembrado deja el enlace de invitación en /restablecer una sola vez', async () => {
+		const port = await authedMemory();
+		const url = 'https://admin.example/restablecer';
+		expect((await seedSiteProject(port, { passwordResetUrl: url })).invitationLink).toBe('updated');
+		expect((await seedSiteProject(port, { passwordResetUrl: url })).invitationLink).toBe('current');
+		// Sin la opción, el resultado no cambia de forma (el sembrado headless no sabe su URL).
+		expect(await seedSiteProject(port)).not.toHaveProperty('invitationLink');
+	});
+
 	test('un manifiesto anterior EDITADO no se actualiza: aborta como cualquier manifiesto humano', async () => {
 		const port = await authedMemory();
 		await seedLikePrevious1bda988(port);

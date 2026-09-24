@@ -28,7 +28,8 @@ function capabilitiesWith(thumbs: boolean): Capabilities {
 		strongAuth: false,
 		explicitRecordId: true,
 		accessBypass: false,
-		administration: false
+		administration: false,
+		editorPasswordReset: false
 	};
 }
 

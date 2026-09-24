@@ -146,6 +146,28 @@ describe('memory: detalles de implementación', () => {
 		).resolves.toBeUndefined();
 	});
 
+	test('restablecer: el token de una invitación con correo verifica la cuenta y solo sirve una vez', async () => {
+		const port = createMemoryBackend({ ...kitchenSinkSeed(), editors: [], mailEnabled: true });
+		await port.login({ email: FIXTURE_ADMIN_EMAIL, password: FIXTURE_ADMIN_PASSWORD });
+		const invited = await port.administration!.createEditor('lucia@vega.test', { kind: 'invite' });
+		const token = await port.inspectEditorResetToken('lucia@vega.test');
+		expect(token).not.toBeNull();
+
+		// Pública: funciona igual tras cerrar la sesión.
+		await port.logout();
+		await port.editorPasswordReset!.confirm(token!, 'la-suya-123');
+		await expect(port.editorPasswordReset!.confirm(token!, 'la-suya-123')).rejects.toMatchObject({
+			kind: 'validation',
+			fieldErrors: { token: { code: 'validation_invalid_token' } }
+		});
+
+		await port.login({ email: FIXTURE_ADMIN_EMAIL, password: FIXTURE_ADMIN_PASSWORD });
+		const listed = (await port.administration!.listEditors()).editors.find(
+			(account) => account.id === invited.id
+		);
+		expect(listed?.verified).toBe(true);
+	});
+
 	test('administration: sin login previo → forbidden, también en copias', async () => {
 		const port = createMemoryBackend({ ...kitchenSinkSeed(), editors: [] });
 		await expect(port.administration!.listEditors()).rejects.toMatchObject({ kind: 'forbidden' });

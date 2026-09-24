@@ -36,6 +36,34 @@ export function sortBackups(backups: BackupFile[]): BackupFile[] {
 }
 
 /**
+ * El enlace del correo de restablecimiento de fábrica en PocketBase 0.39.6 (medido: aparece una
+ * vez en `resetPasswordTemplate.body` de una colección `auth` nueva, y es la misma plantilla que
+ * sirve `GET /api/collections/meta/scaffolds`). Lleva al Admin de PB (`/_/`).
+ */
+export const FACTORY_RESET_LINK = '{APP_URL}/_/#/auth/confirm-password-reset/{TOKEN}';
+
+/**
+ * Cuerpo de la plantilla de restablecimiento con el enlace cambiado a la ruta pública de Vega:
+ * `resetUrl` (absoluta, sin query) más `?token={TOKEN}`. Si `resetUrl` cuelga de la URL de la
+ * aplicación de PocketBase (`settings.meta.appURL`, lo que PB sustituye por `{APP_URL}`), se
+ * escribe relativa a `{APP_URL}`: así sigue valiendo si el dueño cambia ahí el dominio. `null` si
+ * `factoryBody` no contiene el enlace de fábrica (plantilla de otra versión de PB).
+ */
+export function invitationTemplateBody(
+	factoryBody: string,
+	resetUrl: string,
+	appUrl: string
+): string | null {
+	if (!factoryBody.includes(FACTORY_RESET_LINK)) return null;
+	const app = appUrl.trim().replace(/\/+$/, '');
+	const target =
+		app !== '' && resetUrl.startsWith(`${app}/`)
+			? `{APP_URL}${resetUrl.slice(app.length)}`
+			: resetUrl;
+	return factoryBody.replace(FACTORY_RESET_LINK, `${target}?token={TOKEN}`);
+}
+
+/**
  * Convierte la fecha que sirve PocketBase (`2026-09-24 06:28:36.690Z`, con espacio) a ISO 8601
  * (`2026-09-24T06:28:36.690Z`). Una cadena que no se deja leer como fecha devuelve `null`.
  */

@@ -10,6 +10,10 @@
  * - `request-password-reset` responde 204 aunque el SMTP no acepte la conexión: el correo sale en
  *   segundo plano, así que la invitación nunca puede confirmar la entrega.
  * - `confirm-password-reset` marca `verified: true` en la cuenta (con un SMTP de prueba).
+ * - La plantilla `resetPasswordTemplate` de una `auth` nueva enlaza una vez a
+ *   `{APP_URL}/_/#/auth/confirm-password-reset/{TOKEN}` (el Admin de PB) y es idéntica a la de
+ *   `GET /api/collections/meta/scaffolds`; `{APP_URL}` es `settings.meta.appURL`. Se puede
+ *   reescribir con un `PATCH` de la colección (`ensureInvitationLink`).
  * - Cambiar la contraseña de una cuenta invalida su token: `auth-refresh` responde 401 después.
  * - `POST /api/backups` con otra copia en marcha responde 400 sin errores por campo y el mensaje
  *   "Try again later - another backup/restore process has already been started.".
@@ -26,10 +30,12 @@ import { VegaError } from '../../errors';
 import { VEGA_EDITORS_COLLECTION_NAME } from '../../administration';
 import {
 	DEFAULT_PASSWORD_MIN_LENGTH,
+	invitationTemplateBody,
 	sortBackups,
 	sortEditors,
 	toIsoDate
 } from '../../administration-rules';
+import { mapPocketBaseError } from './errors';
 
 interface AdministrationOptions {
 	pb: PocketBase;
@@ -151,8 +157,76 @@ export function createPocketBaseAdministration({
 				const token = await pb.files.getToken();
 				return pb.backups.getDownloadURL(token, key);
 			});
+		},
+
+		ensureInvitationLink(resetUrl) {
+			return guarded(async () => {
+				// La plantilla de fábrica sale de los scaffolds del propio servidor, no de una copia en
+				// Vega: así "sigue siendo la de fábrica" significa lo mismo en cualquier versión de PB.
+				const [collection, scaffolds, settings] = await Promise.all([
+					pb.collections.getOne(VEGA_EDITORS_COLLECTION_NAME),
+					pb.send('/api/collections/meta/scaffolds', { method: 'GET' }) as Promise<{
+						auth?: { resetPasswordTemplate?: EmailTemplate };
+					}>,
+					pb.settings.getAll() as Promise<{ meta?: { appURL?: unknown } }>
+				]);
+				const current = (collection as { resetPasswordTemplate?: EmailTemplate })
+					.resetPasswordTemplate;
+				const factory = scaffolds.auth?.resetPasswordTemplate;
+				if (!current || !factory) return 'custom';
+				const appUrl = typeof settings.meta?.appURL === 'string' ? settings.meta.appURL : '';
+				const target = invitationTemplateBody(factory.body, resetUrl, appUrl);
+				if (target === null) return 'custom';
+				if (current.body === target) return 'current';
+				if (current.body !== factory.body) return 'custom';
+				await pb.collections.update(VEGA_EDITORS_COLLECTION_NAME, {
+					resetPasswordTemplate: { subject: current.subject, body: target }
+				});
+				return 'updated';
+			});
 		}
 	};
+}
+
+interface EmailTemplate {
+	subject: string;
+	body: string;
+}
+
+/**
+ * `EditorPasswordResetPort.confirm` sobre PocketBase: endpoint PÚBLICO de la colección, así que no
+ * pasa por `guarded()` (no hay sesión que vigilar, y un 401/403 aquí no significa "sesión
+ * caducada"). Medido en 0.39.6: token malo, caducado o ya usado ⇒ 400 con `data.token`
+ * (`validation_invalid_token`); contraseña fuera de rango ⇒ `data.password`
+ * (`validation_length_out_of_range`), y a veces los dos a la vez.
+ */
+export async function confirmEditorPasswordResetOnPocketBase(
+	pb: PocketBase,
+	token: string,
+	password: string
+): Promise<void> {
+	try {
+		await pb
+			.collection(VEGA_EDITORS_COLLECTION_NAME)
+			.confirmPasswordReset(token, password, password);
+	} catch (err) {
+		if (err instanceof ClientResponseError && err.status === 400) {
+			const data =
+				(err.response as { data?: Record<string, { code?: string; message?: string }> })?.data ??
+				{};
+			const fieldErrors: Record<string, FieldError> = {};
+			for (const [key, value] of Object.entries(data)) {
+				const target = key === 'token' ? 'token' : key.startsWith('password') ? 'password' : '';
+				if (fieldErrors[target]) continue;
+				fieldErrors[target] = {
+					code: value?.code ?? 'validation_error',
+					message: value?.message ?? 'Valor no válido'
+				};
+			}
+			if (Object.keys(fieldErrors).length > 0) throw VegaError.validation(fieldErrors);
+		}
+		throw mapPocketBaseError(err, { hadSession: false });
+	}
 }
 
 function toEditorAccount(raw: Record<string, unknown>): EditorAccount {

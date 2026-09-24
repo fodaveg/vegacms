@@ -1181,6 +1181,24 @@ export const es = {
 	'admin.backups.download': 'Descargar',
 	'admin.backups.downloadFor': 'Descargar {key}',
 	'admin.backups.preparing': 'Preparando…',
+	'admin.editors.addDialog.inviteLinkCustom':
+		'La plantilla del correo de restablecimiento de PocketBase está personalizada: el enlace del correo es el que diga ella, no la página de Vega para elegir contraseña.',
+	'admin.editors.addDialog.inviteLinkUnknown':
+		'No se pudo comprobar a dónde lleva el enlace del correo de invitación.',
+	'admin.reset.title': 'Elige tu contraseña',
+	'admin.reset.intro': 'Es la contraseña con la que entrarás en este admin.',
+	'admin.reset.submit': 'Guardar contraseña',
+	'admin.reset.saving': 'Guardando…',
+	'admin.reset.successTitle': 'Contraseña guardada',
+	'admin.reset.successBody': 'Ya puedes entrar con tu email y la contraseña nueva.',
+	'admin.reset.toLogin': 'Ir a entrar',
+	'admin.reset.expiredTitle': 'Este enlace ya no sirve',
+	'admin.reset.expiredBody':
+		'Ha caducado o ya se usó. Pide a quien administra este sitio que te reenvíe la invitación.',
+	'admin.reset.missingToken':
+		'Al enlace le falta el código para elegir contraseña. Ábrelo tal como llegó en el correo.',
+	'admin.reset.errorTitle': 'No se pudo guardar la contraseña',
+	'admin.reset.unavailable': 'Este servidor no permite elegir la contraseña desde aquí.',
 	'admin.form.password': 'Contraseña',
 	'admin.form.newPassword': 'Contraseña nueva',
 	'admin.form.repeatPassword': 'Repítela',

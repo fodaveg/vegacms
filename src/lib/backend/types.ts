@@ -180,6 +180,13 @@ export interface Capabilities {
 	 * PocketBase por casualidad de implementación y no por diseño.
 	 */
 	administration: boolean;
+	/**
+	 * `BackendPort.editorPasswordReset` está presente: la ruta pública `/restablecer` puede
+	 * confirmar el restablecimiento de contraseña de una cuenta de `vega_editors` con el token del
+	 * correo, sin sesión. PB: `true` (endpoint público de toda colección `auth`). memory: `true`.
+	 * Capability de ADAPTADOR, no de sesión: quien la usa todavía no ha entrado.
+	 */
+	editorPasswordReset: boolean;
 }
 
 // ————— Administración (editores y copias de seguridad) —————
@@ -232,6 +239,16 @@ export interface BackupFile {
  * un estado del servidor que la UI explica con sus palabras.
  */
 export type BackupCreateOutcome = 'created' | 'busy';
+
+/**
+ * Estado del enlace de los correos de invitación (la plantilla de restablecimiento de
+ * `vega_editors`) tras `AdministrationPort.ensureInvitationLink`:
+ * - `'updated'`: seguía la plantilla de fábrica y ahora apunta a la ruta de Vega.
+ * - `'current'`: ya apuntaba a esa ruta; no se ha escrito nada.
+ * - `'custom'`: alguien la ha cambiado (o apunta a otra dirección de Vega); no se toca, y el enlace
+ *   del correo es el que diga ella.
+ */
+export type InvitationLinkState = 'updated' | 'current' | 'custom';
 
 // ————— Paginación —————
 

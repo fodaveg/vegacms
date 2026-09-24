@@ -12,6 +12,7 @@ import {
 	loginRoute,
 	mediaRoute,
 	newRoute,
+	passwordResetRoute,
 	recordRoute,
 	settingsRoute
 } from '$lib/nav/routes';
@@ -44,6 +45,7 @@ describe('constructores de URL de NavApi', () => {
 	test('editorsRoute → /editores, backupsRoute → /copias', () => {
 		expect(editorsRoute()).toBe('/editores');
 		expect(backupsRoute()).toBe('/copias');
+		expect(passwordResetRoute()).toBe('/restablecer');
 	});
 
 	test('loginRoute → /login', () => {

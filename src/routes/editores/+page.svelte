@@ -8,7 +8,10 @@
 	 * sembrado del sitio no tiene botón en la SPA), vacía y lista. La lista se pide junto con
 	 * `mailEnabled()`, que decide si «Añadir editor» ofrece invitar por correo y si una cuenta
 	 * pendiente ofrece «Reenviar invitación». Si esa segunda lectura falla, se trata como «sin
-	 * correo»: la pantalla sigue siendo útil y no promete un envío que no sabe si saldrá.
+	 * correo»: la pantalla sigue siendo útil y no promete un envío que no sabe si saldrá. Con la
+	 * lista ya cargada, `ensureInvitationLink` deja la plantilla del correo apuntando a
+	 * `/restablecer` si seguía la de fábrica; si está personalizada o no se pudo comprobar, el
+	 * diálogo de alta lo dice junto a la opción de invitar.
 	 *
 	 * Etiqueta de estado = `verified` (medido en PocketBase 0.39.6: una invitación nace pendiente y
 	 * pasa a activa cuando la persona confirma el restablecimiento; poner la contraseña a mano la
@@ -22,9 +25,11 @@
 		VegaError,
 		VEGA_EDITORS_COLLECTION_NAME,
 		type EditorAccount,
+		type InvitationLinkState,
 		type NewEditorAccess
 	} from '$lib/backend';
 	import { DEFAULT_PASSWORD_MIN_LENGTH } from '$lib/backend/administration-rules';
+	import { passwordResetRoute } from '$lib/nav/routes';
 	import Icon from '$lib/icons/Icon.svelte';
 	import AdminDialog from '$lib/admin/AdminDialog.svelte';
 	import AddEditorDialog from '$lib/admin/AddEditorDialog.svelte';
@@ -45,7 +50,18 @@
 	let editors = $state<EditorAccount[]>([]);
 	let passwordMinLength = $state(DEFAULT_PASSWORD_MIN_LENGTH);
 	let mailEnabled = $state(false);
+	/** A dónde lleva el enlace del correo de invitación; `'unknown'` si no se pudo comprobar. */
+	let inviteLink = $state<InvitationLinkState | 'unknown'>('unknown');
 	let headingEl = $state<HTMLElement | null>(null);
+
+	/**
+	 * La ruta pública donde el editor elige su contraseña, ABSOLUTA: es lo que se escribe en la
+	 * plantilla del correo. Sale del origen en el que el superusuario tiene abierta la app, que es
+	 * donde Vega está servida (el `appURL` de PocketBase puede ser otro, o el de fábrica).
+	 */
+	function absoluteResetUrl(): string {
+		return new URL(passwordResetRoute(), window.location.origin).toString();
+	}
 
 	async function load(): Promise<void> {
 		const admin = administration;
@@ -58,6 +74,12 @@
 			passwordMinLength = directory.passwordMinLength;
 			mailEnabled = await mailPromise;
 			status = 'ready';
+			// Con la colección confirmada: que el enlace del correo lleve a `/restablecer` y no al
+			// Admin de PocketBase. Solo escribe si la plantilla sigue la de fábrica (ver el puerto).
+			// No bloquea la lista: si falla, la invitación avisa de que no se ha podido comprobar.
+			inviteLink = await admin
+				.ensureInvitationLink(absoluteResetUrl())
+				.catch((): 'unknown' => 'unknown');
 		} catch (err) {
 			const vegaErr =
 				err instanceof VegaError ? err : VegaError.backend('Error cargando los editores', err);
@@ -324,6 +346,11 @@
 			open={adding}
 			{mailEnabled}
 			{passwordMinLength}
+			inviteLinkNote={inviteLink === 'custom'
+				? ctx.t('admin.editors.addDialog.inviteLinkCustom')
+				: inviteLink === 'unknown'
+					? ctx.t('admin.editors.addDialog.inviteLinkUnknown')
+					: null}
 			fallbackFocusEl={headingEl}
 			onClose={() => (adding = false)}
 			onCreated={handleCreated}

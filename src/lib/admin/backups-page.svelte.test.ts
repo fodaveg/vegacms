@@ -26,6 +26,7 @@ function fakeAdministration(overrides: Partial<AdministrationPort> = {}): Admini
 		listBackups: vi.fn(async () => [BACKUP]),
 		createBackup: vi.fn(async () => 'created' as const),
 		backupDownloadUrl: vi.fn(async (key: string) => `https://pb.test/api/backups/${key}?token=t`),
+		ensureInvitationLink: vi.fn(async () => 'current' as const),
 		...overrides
 	};
 }

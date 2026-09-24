@@ -76,10 +76,11 @@ export async function startSmtpSink(): Promise<SmtpSink> {
 }
 
 /**
- * Saca el token del enlace de restablecimiento de un correo de PocketBase
- * (`…/_/#/auth/confirm-password-reset/<token>`), deshaciendo el quoted-printable del cuerpo.
+ * El enlace del botón de un correo de restablecimiento de PocketBase (el `href` del cuerpo HTML),
+ * deshaciendo el quoted-printable. Es lo que la persona pulsaría: con la plantilla que escribe Vega,
+ * `…/restablecer?token=<token>`; con la de fábrica, `…/_/#/auth/confirm-password-reset/<token>`.
  */
-export function passwordResetTokenFrom(message: string): string | null {
-	const decoded = message.replace(/=\n/g, '').replace(/=3D/gi, '=');
-	return decoded.match(/confirm-password-reset\/([A-Za-z0-9._-]+)/)?.[1] ?? null;
+export function resetLinkFrom(message: string): string | null {
+	const decoded = message.replace(/=\n/g, '').replace(/=3D/gi, '=').replace(/&amp;/g, '&');
+	return decoded.match(/href="(https?:\/\/[^"]+)"/)?.[1] ?? null;
 }

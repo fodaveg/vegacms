@@ -1,17 +1,21 @@
 /**
- * `AdministrationPort` en memoria (demo y e2e): cuentas de `vega_editors` y copias de seguridad sin
- * servidor. Emula lo que se midió contra PocketBase 0.39.6 (ver la cabecera del adaptador
+ * `AdministrationPort` y `EditorPasswordResetPort` en memoria (demo y e2e): cuentas de
+ * `vega_editors`, copias de seguridad y el restablecimiento de contraseña sin servidor. Emula lo
+ * que se midió contra PocketBase 0.39.6 (ver la cabecera del adaptador
  * `pocketbase/administration.ts`) sin fingir lo que no puede hacer:
  * - No envía correo. `mailEnabled()` devuelve lo que diga la semilla (`false` por defecto) y una
- *   invitación sin correo se rechaza, en vez de dar por enviado algo que no salió.
+ *   invitación sin correo se rechaza, en vez de dar por enviado algo que no salió. Con correo, la
+ *   invitación emite un token de restablecimiento que solo se puede leer con
+ *   `MemoryBackendPort.inspectEditorResetToken` (lo que en PB llegaría por correo).
  * - Una copia no copia nada: guarda sus metadatos y su descarga es un `.zip` vacío pero válido
  *   (22 bytes), servido como `data:` para que el navegador y `fetch` lo abran sin red.
  * - La contraseña de una cuenta se valida y se descarta: estas cuentas no inician sesión en
  *   `memory` (eso sigue siendo cosa de `MemorySeed.users`).
  */
 
-import type { AdministrationPort } from '../../port';
+import type { AdministrationPort, EditorPasswordResetPort } from '../../port';
 import type { BackupFile, EditorAccount } from '../../types';
+import type { FieldError } from '../../errors';
 import { PB_VALIDATION_CODES, VegaError } from '../../errors';
 import { VEGA_EDITORS_COLLECTION_NAME } from '../../administration';
 import { DEFAULT_PASSWORD_MIN_LENGTH, sortBackups, sortEditors } from '../../administration-rules';
@@ -37,13 +41,25 @@ interface MemoryAdministrationOptions {
 	backupDurationMs: number;
 }
 
-/** Crea la sección de administración de `memory` sobre el estado que le pasa la factory. */
+/** Las dos secciones de `memory` sobre el MISMO estado, más la lectura de tokens para los tests. */
+export interface MemoryAdministration {
+	administration: AdministrationPort;
+	passwordReset: EditorPasswordResetPort;
+	/** Token de restablecimiento vigente de la cuenta con ese email, o `null`. */
+	resetTokenFor(email: string): string | null;
+}
+
+/** Crea el estado de administración de `memory` sobre lo que le pasa la factory. */
 export function createMemoryAdministration(
 	options: MemoryAdministrationOptions
-): AdministrationPort {
+): MemoryAdministration {
 	const { checkSessionAlive, editorsCollectionExists, generateId, mailEnabled } = options;
 	const editors = new Map(options.editors.map((account) => [account.id, { ...account }]));
 	const backups = new Map(options.backups.map((backup) => [backup.key, { ...backup }]));
+	/** token → id de la cuenta. Como en PB, un token sirve una vez. */
+	const resetTokens = new Map<string, string>();
+	/** Enlace de invitación escrito por Vega; `null` = plantilla de fábrica. */
+	let invitationLink: string | null = null;
 	let backupRunning = false;
 
 	function assertEditorsCollection(): void {
@@ -59,14 +75,16 @@ export function createMemoryAdministration(
 		return account;
 	}
 
+	function passwordTooShort(): FieldError {
+		return {
+			code: PB_VALIDATION_CODES.minLength,
+			message: `Must be at least ${DEFAULT_PASSWORD_MIN_LENGTH} character(s).`
+		};
+	}
+
 	function assertPassword(password: string): void {
 		if (password.length < DEFAULT_PASSWORD_MIN_LENGTH) {
-			throw VegaError.validation({
-				password: {
-					code: PB_VALIDATION_CODES.minLength,
-					message: `Must be at least ${DEFAULT_PASSWORD_MIN_LENGTH} character(s).`
-				}
-			});
+			throw VegaError.validation({ password: passwordTooShort() });
 		}
 	}
 
@@ -76,6 +94,11 @@ export function createMemoryAdministration(
 		}
 	}
 
+	/** Lo que en PB sería mandar el correo de restablecimiento: un token nuevo para esa cuenta. */
+	function issueResetToken(editorId: string): void {
+		resetTokens.set(crypto.randomUUID(), editorId);
+	}
+
 	function nextBackupKey(): string {
 		const stamp = new Date().toISOString().replace(/\D/g, '').slice(0, 14);
 		let key = `vega_backup_${stamp}.zip`;
@@ -83,7 +106,7 @@ export function createMemoryAdministration(
 		return key;
 	}
 
-	return {
+	const administration: AdministrationPort = {
 		async listEditors() {
 			assertEditorsCollection();
 			return {
@@ -123,6 +146,7 @@ export function createMemoryAdministration(
 				created: options.editorsHaveCreatedField() ? new Date().toISOString() : null
 			};
 			editors.set(account.id, account);
+			if (access.kind === 'invite') issueResetToken(account.id);
 			return { ...account };
 		},
 
@@ -137,6 +161,7 @@ export function createMemoryAdministration(
 			assertEditorsCollection();
 			getEditor(id);
 			assertMail();
+			issueResetToken(id);
 		},
 
 		async removeEditor(id) {
@@ -170,6 +195,47 @@ export function createMemoryAdministration(
 			checkSessionAlive();
 			if (!backups.has(key)) throw VegaError.notFound(`La copia "${key}" no existe`);
 			return EMPTY_ZIP_DATA_URI;
+		},
+
+		async ensureInvitationLink(resetUrl) {
+			assertEditorsCollection();
+			// `memory` no tiene plantilla que personalizar a mano: "custom" solo sale si Vega ya
+			// escribió OTRA dirección, igual que en PB, donde tampoco se pisa.
+			if (invitationLink === null) {
+				invitationLink = resetUrl;
+				return 'updated';
+			}
+			return invitationLink === resetUrl ? 'current' : 'custom';
+		}
+	};
+
+	const passwordReset: EditorPasswordResetPort = {
+		async confirm(token, password) {
+			// Pública, sin `checkSessionAlive`: quien la usa todavía no ha entrado. Como en PB, los
+			// dos errores pueden llegar juntos.
+			const editorId = resetTokens.get(token);
+			const fieldErrors: Record<string, FieldError> = {};
+			if (editorId === undefined || !editors.has(editorId)) {
+				fieldErrors.token = {
+					code: 'validation_invalid_token',
+					message: 'Invalid or expired token.'
+				};
+			}
+			if (password.length < DEFAULT_PASSWORD_MIN_LENGTH) fieldErrors.password = passwordTooShort();
+			if (Object.keys(fieldErrors).length > 0) throw VegaError.validation(fieldErrors);
+			resetTokens.delete(token);
+			editors.get(editorId!)!.verified = true;
+		}
+	};
+
+	return {
+		administration,
+		passwordReset,
+		resetTokenFor(email) {
+			for (const [token, editorId] of resetTokens) {
+				if (editors.get(editorId)?.email === email) return token;
+			}
+			return null;
 		}
 	};
 }

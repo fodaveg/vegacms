@@ -97,7 +97,14 @@ export function backupsRoute(): string {
 	return `${base}/copias`;
 }
 
-/** `/login` — única ruta pública. */
+/** `/restablecer` — pública, como `/login`: elegir contraseña con el token del correo de
+ *  invitación o restablecimiento de un editor (`?token=`). A ella apunta la plantilla de correo que
+ *  configura `AdministrationPort.ensureInvitationLink`. */
+export function passwordResetRoute(): string {
+	return `${base}/restablecer`;
+}
+
+/** `/login` — ruta pública de entrada (la otra pública es `/restablecer`). */
 export function loginRoute(): string {
 	return `${base}/login`;
 }

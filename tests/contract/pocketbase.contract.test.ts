@@ -29,7 +29,7 @@ import { startPocketBase } from './pb-harness/server';
 import { resetPocketBaseRecords, seedPocketBaseSchema } from './pb-harness/seed';
 import { startCorruptingProxy } from './pb-harness/corrupt-proxy';
 import { startAuthFailureProxy } from './pb-harness/auth-failure-proxy';
-import { passwordResetTokenFrom, startSmtpSink } from './pb-harness/smtp-sink';
+import { resetLinkFrom, startSmtpSink } from './pb-harness/smtp-sink';
 
 // La suite ejercita `subscribe()` (SSE) tal como lo haría un navegador; Node no trae
 // `EventSource` global (a diferencia de un navegador de producción real), así que se
@@ -772,13 +772,18 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 			});
 		});
 
-		test('invitación con correo: nace pendiente, llega el correo y confirmar el restablecimiento la marca verified', async () => {
+		test('invitación de extremo a extremo: el correo lleva a /restablecer de Vega, el token verifica la cuenta y el editor entra', async () => {
 			const sink = await startSmtpSink();
 			const port = await superuserPort();
+			// Colección nueva: plantilla de restablecimiento de fábrica, que enlaza al Admin de PB.
+			await admin.collections.delete(VEGA_EDITORS_COLLECTION_NAME).catch(() => undefined);
 			await port.ensureCollections([
 				{ name: VEGA_EDITORS_COLLECTION_NAME, type: 'auth', fields: [] }
 			]);
+			const originalAppUrl = ((await admin.settings.getAll()) as { meta: { appURL: string } }).meta
+				.appURL;
 			await admin.settings.update({
+				meta: { appURL: 'http://vega.test' },
 				smtp: {
 					enabled: true,
 					host: '127.0.0.1',
@@ -792,39 +797,73 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 				const administration = port.administration!;
 				await expect(administration.mailEnabled()).resolves.toBe(true);
 
+				// Vega servida en la misma dirección que el `appURL` de PB: la plantilla queda
+				// relativa a `{APP_URL}`, y la segunda llamada ya no escribe nada.
+				const resetUrl = 'http://vega.test/restablecer';
+				await expect(administration.ensureInvitationLink(resetUrl)).resolves.toBe('updated');
+				const template = (
+					(await admin.collections.getOne(VEGA_EDITORS_COLLECTION_NAME)) as unknown as {
+						resetPasswordTemplate: { body: string };
+					}
+				).resetPasswordTemplate;
+				expect(template.body).toContain('href="{APP_URL}/restablecer?token={TOKEN}"');
+				expect(template.body).not.toContain('/_/#/auth/confirm-password-reset/');
+				await expect(administration.ensureInvitationLink(resetUrl)).resolves.toBe('current');
+
 				const email = `invitada_${Math.random().toString(36).slice(2, 10)}@vega.test`;
 				const invited = await administration.createEditor(email, { kind: 'invite' });
 				expect(invited).toMatchObject({ email, verified: false });
 
+				// El enlace del correo, tal como lo recibiría la persona.
 				const [message] = await sink.waitForMessages(1);
-				const token = passwordResetTokenFrom(message);
-				expect(token).not.toBeNull();
+				const link = resetLinkFrom(message);
+				expect(link).not.toBeNull();
+				const linkUrl = new URL(link!);
+				expect(`${linkUrl.origin}${linkUrl.pathname}`).toBe(resetUrl);
+				const token = linkUrl.searchParams.get('token');
+				expect(token).toBeTruthy();
 
-				// La persona elige su contraseña desde el enlace del correo (página pública de PB).
-				const confirm = await fetch(
-					`${running.url}/api/collections/${VEGA_EDITORS_COLLECTION_NAME}/confirm-password-reset`,
-					{
-						method: 'POST',
-						headers: { 'content-type': 'application/json' },
-						body: JSON.stringify({ token, password: 'la-suya-123', passwordConfirm: 'la-suya-123' })
-					}
-				);
-				expect(confirm.status).toBe(204);
+				// Lo que hace la ruta `/restablecer`: un puerto SIN sesión, configurado como el de un
+				// editor, confirma con el token.
+				const editorPort = createPocketBaseBackend({
+					url: running.url,
+					authCollection: VEGA_EDITORS_COLLECTION_NAME
+				});
+				await editorPort.editorPasswordReset!.confirm(token!, 'la-suya-123');
+				await expect(
+					editorPort.editorPasswordReset!.confirm(token!, 'la-suya-123')
+				).rejects.toMatchObject({ kind: 'validation', fieldErrors: { token: expect.anything() } });
 
 				const listed = (await administration.listEditors()).editors.find(
 					(account) => account.id === invited.id
 				);
 				expect(listed?.verified).toBe(true);
 
-				// Reenviar la invitación pide otro correo a la misma dirección.
+				// Y entra como editor con la contraseña que eligió.
+				const session = await editorPort.login({ email, password: 'la-suya-123' });
+				expect(session.user.email).toBe(email);
+
+				// Reenviar la invitación pide otro correo, con el mismo tipo de enlace.
 				await administration.sendEditorInvitation(invited.id);
 				const messages = await sink.waitForMessages(2);
-				expect(messages[1]).toContain(email);
+				expect(resetLinkFrom(messages[1])).toMatch(/^http:\/\/vega\.test\/restablecer\?token=/);
+
+				// Una plantilla personalizada por el dueño no se pisa.
+				await admin.collections.update(VEGA_EDITORS_COLLECTION_NAME, {
+					resetPasswordTemplate: { subject: 'Hola', body: '<p>Mi enlace: {TOKEN}</p>' }
+				});
+				await expect(administration.ensureInvitationLink(resetUrl)).resolves.toBe('custom');
+				const after = (
+					(await admin.collections.getOne(VEGA_EDITORS_COLLECTION_NAME)) as unknown as {
+						resetPasswordTemplate: { body: string };
+					}
+				).resetPasswordTemplate;
+				expect(after.body).toBe('<p>Mi enlace: {TOKEN}</p>');
 			} finally {
-				await admin.settings.update({ smtp: { enabled: false } });
+				await admin.settings.update({ meta: { appURL: originalAppUrl }, smtp: { enabled: false } });
 				await sink.stop();
 			}
-		}, 20_000);
+		}, 30_000);
 	});
 });
 

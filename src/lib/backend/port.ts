@@ -14,6 +14,7 @@ import type {
 	EditorAccount,
 	EditorDirectory,
 	FileRef,
+	InvitationLinkState,
 	NewEditorAccess,
 	Page,
 	RecordEvent,
@@ -96,6 +97,28 @@ export interface AdministrationPort {
 	/** URL de descarga de una copia, ya autorizada para unos minutos (PB: token de fichero de
 	 *  superuser). Se pide justo antes de abrirla, nunca se guarda. */
 	backupDownloadUrl(key: string): Promise<string>;
+	/**
+	 * Hace que el enlace del correo de invitación (plantilla de restablecimiento de contraseña de
+	 * `vega_editors`) lleve a `resetUrl`, la ruta pública de Vega que confirma el token
+	 * (`/restablecer`), y no al Admin de PocketBase (`/_/`), que un despliegue puede no servir.
+	 * Solo escribe si la plantilla sigue siendo la de fábrica: una personalizada no se pisa.
+	 * `resetUrl` es absoluta y sin query; el token se añade como `?token=`.
+	 */
+	ensureInvitationLink(resetUrl: string): Promise<InvitationLinkState>;
+}
+
+/**
+ * Restablecimiento de contraseña de una cuenta de `vega_editors` con el token del correo. Pública:
+ * no exige sesión (quien la usa todavía no puede entrar). `capabilities.editorPasswordReset` y esta
+ * propiedad aparecen juntas.
+ */
+export interface EditorPasswordResetPort {
+	/**
+	 * Pone la contraseña nueva y da la cuenta por verificada (PB 0.39.6, medido). Token inválido,
+	 * caducado o ya usado ⇒ `VegaError 'validation'` con `fieldErrors.token`; contraseña rechazada
+	 * ⇒ `fieldErrors.password`.
+	 */
+	confirm(token: string, password: string): Promise<void>;
 }
 
 export interface BackendPort {
@@ -105,6 +128,8 @@ export interface BackendPort {
 	readonly strongAuth?: StrongAuthPort;
 	/** Presente solo cuando `capabilities.administration === true`. */
 	readonly administration?: AdministrationPort;
+	/** Presente solo cuando `capabilities.editorPasswordReset === true`. */
+	readonly editorPasswordReset?: EditorPasswordResetPort;
 	/** Identidad del registro de manifiesto publicada por el backend; ausente = `default`. */
 	readonly manifestKey?: string;
 	/**

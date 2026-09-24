@@ -8,6 +8,7 @@
 export type {
 	AuthChangeReason,
 	BackupCreateOutcome,
+	InvitationLinkState,
 	BackupFile,
 	Capabilities,
 	ContentType,
@@ -82,7 +83,12 @@ export {
 export type { GeneratedMigration, SchemaMigrationOp } from './migration';
 export { collectionSpecToMigrationPayload, generateSchemaMigration } from './migration';
 
-export type { AdministrationPort, BackendPort, StrongAuthPort } from './port';
+export type {
+	AdministrationPort,
+	BackendPort,
+	EditorPasswordResetPort,
+	StrongAuthPort
+} from './port';
 export { VEGA_EDITORS_COLLECTION_NAME } from './administration';
 
 export type {

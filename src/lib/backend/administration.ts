@@ -5,7 +5,7 @@
  * `administration-rules.ts`, que va en su chunk diferido.
  */
 
-import type { AdministrationPort } from './port';
+import type { AdministrationPort, EditorPasswordResetPort } from './port';
 import { VegaError } from './errors';
 
 /**
@@ -27,16 +27,7 @@ export const VEGA_EDITORS_COLLECTION_NAME = 'vega_editors';
 export function deferredAdministration(
 	load: () => Promise<AdministrationPort>
 ): AdministrationPort {
-	let loading: Promise<AdministrationPort> | null = null;
-	function section(): Promise<AdministrationPort> {
-		loading ??= load().catch((err: unknown) => {
-			loading = null;
-			throw err instanceof VegaError
-				? err
-				: VegaError.network(err, 'No se pudo cargar la administración del servidor');
-		});
-		return loading;
-	}
+	const section = deferredSection(load);
 	return {
 		listEditors: () => section().then((s) => s.listEditors()),
 		mailEnabled: () => section().then((s) => s.mailEnabled()),
@@ -46,6 +37,32 @@ export function deferredAdministration(
 		removeEditor: (id) => section().then((s) => s.removeEditor(id)),
 		listBackups: () => section().then((s) => s.listBackups()),
 		createBackup: () => section().then((s) => s.createBackup()),
-		backupDownloadUrl: (key) => section().then((s) => s.backupDownloadUrl(key))
+		backupDownloadUrl: (key) => section().then((s) => s.backupDownloadUrl(key)),
+		ensureInvitationLink: (resetUrl) => section().then((s) => s.ensureInvitationLink(resetUrl))
+	};
+}
+
+/**
+ * `EditorPasswordResetPort` diferido, mismo criterio que `deferredAdministration`: la ruta
+ * `/restablecer` la abre muy poca gente y su código no debe pesar en el arranque de los demás.
+ */
+export function deferredPasswordReset(
+	load: () => Promise<EditorPasswordResetPort>
+): EditorPasswordResetPort {
+	const section = deferredSection(load);
+	return { confirm: (token, password) => section().then((s) => s.confirm(token, password)) };
+}
+
+/** Carga única y reintentable de una sección diferida; un fallo del `import()` es `'network'`. */
+function deferredSection<T>(load: () => Promise<T>): () => Promise<T> {
+	let loading: Promise<T> | null = null;
+	return () => {
+		loading ??= load().catch((err: unknown) => {
+			loading = null;
+			throw err instanceof VegaError
+				? err
+				: VegaError.network(err, 'No se pudo cargar esta parte de la aplicación');
+		});
+		return loading;
 	};
 }

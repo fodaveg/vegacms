@@ -20,11 +20,16 @@ function fakeAdministration(overrides: Partial<AdministrationPort> = {}): Admini
 		listBackups: vi.fn(),
 		createBackup: vi.fn(),
 		backupDownloadUrl: vi.fn(),
+		ensureInvitationLink: vi.fn(),
 		...overrides
 	};
 }
 
-function mountDialog(admin: AdministrationPort, mailEnabled: boolean) {
+function mountDialog(
+	admin: AdministrationPort,
+	mailEnabled: boolean,
+	inviteLinkNote: string | null = null
+) {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const onCreated = vi.fn();
@@ -36,7 +41,14 @@ function mountDialog(admin: AdministrationPort, mailEnabled: boolean) {
 	} as unknown as VegaAppContext;
 	const instance = mount(AddEditorDialog, {
 		target,
-		props: { open: true, mailEnabled, passwordMinLength: 8, onClose: vi.fn(), onCreated },
+		props: {
+			open: true,
+			mailEnabled,
+			passwordMinLength: 8,
+			inviteLinkNote,
+			onClose: vi.fn(),
+			onCreated
+		},
 		context: new Map([[VEGA_CONTEXT_KEY, ctx]])
 	});
 	return { target, instance, onCreated, ctx };
@@ -125,6 +137,20 @@ describe('AddEditorDialog', () => {
 		await submit(target);
 		expect(admin.createEditor).toHaveBeenCalledWith('jorge@fodaveg.net', { kind: 'invite' });
 		expect(mounted.onCreated).toHaveBeenCalledWith(expect.anything(), 'invite');
+	});
+
+	test('con la plantilla del correo personalizada, avisa junto a «invitar» y no junto a «contraseña»', async () => {
+		mounted = mountDialog(fakeAdministration(), true, 'aviso-enlace');
+		await settle();
+		const { target } = mounted;
+		expect(target.querySelector('[data-editors-invite-link="note"]')?.textContent).toContain(
+			'aviso-enlace'
+		);
+
+		const passwordRadio = target.querySelectorAll<HTMLInputElement>('input[type="radio"]')[1];
+		passwordRadio.click();
+		await settle();
+		expect(target.querySelector('[data-editors-invite-link="note"]')).toBeNull();
 	});
 
 	test('un email repetido que rechaza el servidor se pinta en el campo y el diálogo sigue abierto', async () => {

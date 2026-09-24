@@ -1,7 +1,12 @@
 import { describe, expect, test, vi } from 'vitest';
 import type { AdministrationPort } from './port';
 import { deferredAdministration } from './administration';
-import { sortBackups, sortEditors, toIsoDate } from './administration-rules';
+import {
+	invitationTemplateBody,
+	sortBackups,
+	sortEditors,
+	toIsoDate
+} from './administration-rules';
 
 function fakeSection(): AdministrationPort {
 	return {
@@ -13,7 +18,8 @@ function fakeSection(): AdministrationPort {
 		removeEditor: vi.fn(),
 		listBackups: vi.fn(async () => []),
 		createBackup: vi.fn(async () => 'created' as const),
-		backupDownloadUrl: vi.fn(async (key: string) => `url:${key}`)
+		backupDownloadUrl: vi.fn(async (key: string) => `url:${key}`),
+		ensureInvitationLink: vi.fn(async () => 'current' as const)
 	};
 }
 
@@ -42,6 +48,30 @@ describe('deferredAdministration', () => {
 		await expect(admin.listBackups()).rejects.toMatchObject({ kind: 'network', retryable: true });
 		await expect(admin.listBackups()).resolves.toEqual([]);
 		expect(load).toHaveBeenCalledTimes(2);
+	});
+});
+
+describe('invitationTemplateBody', () => {
+	const factory = '<a href="{APP_URL}/_/#/auth/confirm-password-reset/{TOKEN}">Reset</a>';
+
+	test('Vega bajo el appURL de PB: enlace relativo a {APP_URL}', () => {
+		expect(
+			invitationTemplateBody(
+				factory,
+				'https://admin.fodaveg.net/restablecer',
+				'https://admin.fodaveg.net/'
+			)
+		).toBe('<a href="{APP_URL}/restablecer?token={TOKEN}">Reset</a>');
+	});
+
+	test('Vega en otra dirección (o appURL de fábrica): enlace absoluto a Vega', () => {
+		expect(
+			invitationTemplateBody(factory, 'https://vega.example/restablecer', 'http://localhost:8090')
+		).toBe('<a href="https://vega.example/restablecer?token={TOKEN}">Reset</a>');
+	});
+
+	test('una plantilla de fábrica sin el enlace conocido (otra versión de PB) → null', () => {
+		expect(invitationTemplateBody('<p>{TOKEN}</p>', 'https://x.test/restablecer', '')).toBeNull();
 	});
 });
 

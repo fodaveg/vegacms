@@ -1974,6 +1974,54 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 					expect(fresh.length).toBeGreaterThanOrEqual(1);
 				}
 			);
+
+			test.skipIf(!capabilities.administration)(
+				'enlace de invitación: se escribe una vez, luego es el vigente, y otra dirección no lo pisa',
+				async () => {
+					const admin = await makeAdministration();
+					const url = `https://vega-${Math.random().toString(36).slice(2, 8)}.test/restablecer`;
+					// 'updated' si la plantilla seguía la de fábrica; 'custom' si otro test ya escribió
+					// su dirección en esta misma colección (PB real la conserva entre tests).
+					const first = await admin.ensureInvitationLink(url);
+					expect(['updated', 'custom']).toContain(first);
+					if (first === 'updated') {
+						await expect(admin.ensureInvitationLink(url)).resolves.toBe('current');
+						await expect(admin.ensureInvitationLink(`${url}-otra`)).resolves.toBe('custom');
+					}
+				}
+			);
+		});
+
+		describe('editorPasswordReset (pública: elegir contraseña con el token del correo)', () => {
+			test('capability editorPasswordReset presente, con su sección del puerto', async () => {
+				expect(capabilities.editorPasswordReset).toBe(true);
+				expect((await makePort()).editorPasswordReset).toBeDefined();
+			});
+
+			test.skipIf(!capabilities.editorPasswordReset)(
+				'sin sesión, un token inválido → validation en fieldErrors.token (y la contraseña corta, a la vez)',
+				async () => {
+					// La colección la crea un superusuario; la confirmación va por un puerto SIN sesión.
+					await (
+						await makeAuthedPort()
+					).ensureCollections([{ name: VEGA_EDITORS_COLLECTION_NAME, type: 'auth', fields: [] }]);
+					const port = await makePort();
+					const bad = await port
+						.editorPasswordReset!.confirm('token-que-no-existe', 'contraseña-larga')
+						.catch((e: unknown) => e);
+					expect(bad).toBeInstanceOf(VegaError);
+					expect((bad as VegaError).kind).toBe('validation');
+					expect(Object.keys((bad as VegaError).fieldErrors ?? {})).toEqual(['token']);
+
+					const both = await port
+						.editorPasswordReset!.confirm('token-que-no-existe', 'corta')
+						.catch((e: unknown) => e);
+					expect(Object.keys((both as VegaError).fieldErrors ?? {}).sort()).toEqual([
+						'password',
+						'token'
+					]);
+				}
+			);
 		});
 
 		// ————————————————————————————————————————————————————— 8. Errores de transporte —————

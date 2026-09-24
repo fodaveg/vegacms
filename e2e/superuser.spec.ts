@@ -221,3 +221,23 @@ test.describe('gate de editor (sin capabilities.administration)', () => {
 		await expect(page.getByRole('button', { name: 'Crear copia' })).toHaveCount(0);
 	});
 });
+
+test.describe('/restablecer (pública, sin sesión)', () => {
+	test('sin token no ofrece el formulario; con un token que el backend no reconoce, «ya no sirve»', async ({
+		page
+	}) => {
+		// Sin `loginAsDemo`: quien llega del correo no ha entrado, y el guard no la redirige.
+		await page.goto('/restablecer');
+		await expect(page.getByRole('heading', { name: 'Este enlace ya no sirve' })).toBeVisible();
+		await expect(page.locator('form')).toHaveCount(0);
+
+		await page.goto('/restablecer?token=token-inventado');
+		await expect(page).toHaveURL(/\/restablecer\?token=token-inventado$/);
+		await expect(page.getByRole('heading', { name: 'Elige tu contraseña' })).toBeVisible();
+		await page.getByLabel('Contraseña nueva').fill('la-suya-123');
+		await page.getByLabel('Repítela').fill('la-suya-123');
+		await page.getByRole('button', { name: 'Guardar contraseña' }).click();
+		await expect(page.getByRole('heading', { name: 'Este enlace ya no sirve' })).toBeVisible();
+		await expect(page.getByRole('link', { name: 'Ir a entrar' })).toHaveAttribute('href', '/login');
+	});
+});

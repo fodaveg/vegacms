@@ -48,7 +48,7 @@ import { planFileFieldWrite, resolveFileUrl } from './files';
 import { addFieldsOnPocketBase, ensureCollectionsOnPocketBase } from './collections';
 import { clearPersistedToken, loadPersistedToken, savePersistedToken } from './persistence';
 import { createPocketBaseStrongAuth } from './strong-auth';
-import { deferredAdministration } from '../../administration';
+import { deferredAdministration, deferredPasswordReset } from '../../administration';
 
 /** Colección de auth por defecto (v1, D1): superuser real de PB, sin restricciones de esquema. */
 const DEFAULT_AUTH_COLLECTION = '_superusers';
@@ -88,7 +88,10 @@ function computeCapabilities(authCollection: string, strongAuth: boolean): Capab
 		accessBypass: isSuperuser,
 		// `/api/settings`, `/api/backups` y la gestión de `vega_editors` desde fuera son de
 		// superuser en PocketBase: un editor no administra el servidor (ver `AdministrationPort`).
-		administration: isSuperuser
+		administration: isSuperuser,
+		// `confirm-password-reset` es público en cualquier colección `auth`: no depende de quién
+		// (ni de si alguien) ha entrado.
+		editorPasswordReset: true
 	};
 }
 
@@ -496,11 +499,19 @@ export function createPocketBaseBackend({
 				import('./administration').then((m) => m.createPocketBaseAdministration({ pb, guarded }))
 			)
 		: undefined;
+	// Pública y también diferida: la usa `/restablecer`, sin sesión.
+	const editorPasswordReset = deferredPasswordReset(() =>
+		import('./administration').then((m) => ({
+			confirm: (token: string, password: string) =>
+				m.confirmEditorPasswordResetOnPocketBase(pb, token, password)
+		}))
+	);
 
 	const port: BackendPort = {
 		capabilities: CAPABILITIES,
 		strongAuth,
 		administration,
+		editorPasswordReset,
 		manifestKey: normalizedManifestKey,
 		buildApiUrl,
 		previewApiUrl,

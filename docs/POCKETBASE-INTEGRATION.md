@@ -870,14 +870,17 @@ sección opcional del puerto que aparece con ella (`BackendPort.administration`,
 
 Lo que usa en PocketBase, todo reservado a superusuarios:
 
-| Para qué                      | Endpoint                                                      |
-| ----------------------------- | ------------------------------------------------------------- |
-| Listar, crear, borrar cuentas | `/api/collections/vega_editors/records`                       |
-| Mínimo de contraseña          | `GET /api/collections/vega_editors` (campo `password`, `min`) |
-| Saber si hay correo           | `GET /api/settings` → `smtp.enabled`                          |
-| Invitar / reenviar            | `POST /api/collections/vega_editors/request-password-reset`   |
-| Copias                        | `GET` y `POST /api/backups`                                   |
-| Descargar una copia           | `POST /api/files/token` y `GET /api/backups/{key}?token=…`    |
+| Para qué                      | Endpoint                                                                                  |
+| ----------------------------- | ----------------------------------------------------------------------------------------- |
+| Listar, crear, borrar cuentas | `/api/collections/vega_editors/records`                                                   |
+| Mínimo de contraseña          | `GET /api/collections/vega_editors` (campo `password`, `min`)                             |
+| Saber si hay correo           | `GET /api/settings` → `smtp.enabled`                                                      |
+| Invitar / reenviar            | `POST /api/collections/vega_editors/request-password-reset`                               |
+| Copias                        | `GET` y `POST /api/backups`                                                               |
+| Descargar una copia           | `POST /api/files/token` y `GET /api/backups/{key}?token=…`                                |
+| Enlace de los correos         | `GET /api/collections/meta/scaffolds` y `PATCH` de la colección (`resetPasswordTemplate`) |
+
+Y una, pública, para `/restablecer`: `POST /api/collections/vega_editors/confirm-password-reset`.
 
 ### Invitar a un editor: hace falta correo
 
@@ -888,15 +891,39 @@ suya desde ese enlace. Sin SMTP, la única opción es **Poner yo la contraseña*
 canal. No hay «copiar enlace»: PocketBase no emite ese token sin enviar el correo, y hacerlo
 exigiría una extensión Go.
 
-Tres cosas que conviene saber, medidas contra PocketBase 0.39.6:
+#### El enlace del correo lleva a Vega, no al Admin de PocketBase
 
-- El correo es la plantilla de **restablecimiento** de PocketBase (editable en **Mail settings**) y
-  su enlace apunta a la página pública del Admin (`{Application URL}/_/#/auth/confirm-password-reset/…`).
-  Revisa que **Application URL** sea la dirección real del servidor.
+El correo es la plantilla de **restablecimiento de contraseña** de la colección `vega_editors`. La
+de fábrica enlaza a la página pública del Admin de PocketBase
+(`{APP_URL}/_/#/auth/confirm-password-reset/{TOKEN}`), que un despliegue que sirve Vega en lugar
+del Admin no tiene (en `admin.fodaveg.net`, `/_/*` responde 404). Por eso Vega trae su propia
+página pública, **`/restablecer?token=…`**: la persona escribe dos veces su contraseña y, hecho,
+va a entrar. No necesita sesión; usa la sección pública del puerto (`editorPasswordReset`,
+capacidad `editorPasswordReset`).
+
+Vega cambia el enlace de la plantilla para que lleve ahí:
+
+- **Cuándo:** al abrir **Editores** un superusuario, y al sembrar el sitio si quien lo lanza pasa
+  `passwordResetUrl` a `seedSiteProject` (el sembrado es headless y no sabe en qué dirección está
+  servida Vega).
+- **Solo si la plantilla sigue siendo la de fábrica**, comparada con la que da el propio servidor en
+  `GET /api/collections/meta/scaffolds`. Una plantilla que el dueño haya cambiado no se toca, y el
+  alta avisa junto a «Enviarle una invitación» de que el enlace es el que diga ella.
+- **Qué escribe:** solo cambia el `href` del botón; el resto del correo y el asunto quedan igual.
+  `{APP_URL}` es **Settings → Application URL** (`settings.meta.appURL`, `http://localhost:8090` de
+  fábrica). Si Vega está servida bajo esa dirección, el enlace queda relativo a ella
+  (`{APP_URL}/restablecer?token={TOKEN}`) y sigue valiendo si cambias el dominio ahí; si no, se
+  escribe la dirección absoluta de Vega en la que el superusuario tiene abierta la app.
+- Si Vega pasa a servirse en otra dirección, la plantilla ya no es la de fábrica y no se reescribe:
+  corrígela a mano en **Collections → vega_editors → Options → Mail templates**.
+
+Otras cosas que conviene saber, medidas contra PocketBase 0.39.6:
+
 - PocketBase responde con éxito aunque el correo no salga (lo envía en segundo plano), así que Vega
   no puede confirmar la entrega: el aviso dice que se ha pedido, no que ha llegado.
 - **Pendiente / Activo** es el campo `verified`. Una invitación nace pendiente y pasa a activa
-  cuando la persona confirma el restablecimiento. Una cuenta a la que el superusuario pone la
+  cuando la persona confirma el restablecimiento en `/restablecer`. Un enlace caducado o ya usado
+  lo rechaza PocketBase y la página lo dice. Una cuenta a la que el superusuario pone la
   contraseña (al crearla o después) queda activa. Cambiar la contraseña cierra las sesiones abiertas
   de esa cuenta.
 

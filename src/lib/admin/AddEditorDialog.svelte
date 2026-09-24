@@ -25,6 +25,9 @@
 		open: boolean;
 		mailEnabled: boolean;
 		passwordMinLength: number;
+		/** Aviso junto a «Enviarle una invitación» cuando el enlace del correo no lleva seguro a
+		 *  `/restablecer` (plantilla personalizada o sin comprobar). `null` = nada que avisar. */
+		inviteLinkNote?: string | null;
 		fallbackFocusEl?: HTMLElement | null;
 		onClose: () => void;
 		onCreated: (account: EditorAccount, access: NewEditorAccess['kind']) => void;
@@ -34,6 +37,7 @@
 		open,
 		mailEnabled,
 		passwordMinLength,
+		inviteLinkNote = null,
 		fallbackFocusEl = null,
 		onClose,
 		onCreated
@@ -162,6 +166,11 @@
 					</span>
 				</label>
 			</fieldset>
+			{#if mode === 'invite' && inviteLinkNote}
+				<div class="vega-admin-notice vega-admin-notice--warning" data-editors-invite-link="note">
+					<p class="vega-admin-notice-body">{inviteLinkNote}</p>
+				</div>
+			{/if}
 		{:else}
 			<div class="vega-admin-notice vega-admin-notice--info" data-editors-mail="off">
 				<p class="vega-admin-notice-body">{ctx.t('admin.editors.addDialog.noMail')}</p>

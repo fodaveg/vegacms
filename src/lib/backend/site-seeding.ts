@@ -38,7 +38,7 @@ import starterManifest1bda988 from './site-seeding-manifest.1bda988.json';
 import { deriveBlockRecordFields } from './block-schema';
 import { VEGA_COLLECTION, type CollectionFieldSpec, type CollectionSpec } from './collections';
 import type { BackendPort } from './port';
-import type { ContentType, Field, JsonValue } from './types';
+import type { ContentType, Field, InvitationLinkState, JsonValue } from './types';
 import { ensureMediaCollection, VEGA_MEDIA_COLLECTION } from '$lib/media/media-collection';
 import { listManifestRecords, saveManifest } from '$lib/model/load';
 import { resolveContentModel } from '$lib/model/resolve';
@@ -207,6 +207,19 @@ export interface SiteSeedResult {
 	createdRecords: Array<'manifest' | 'page:/'>;
 	/** Registros sustituidos por su versión actual: hoy solo un manifiesto inicial sin editar. */
 	upgradedRecords: Array<'manifest'>;
+	/** Solo con `SiteSeedOptions.passwordResetUrl`: qué pasó con el enlace de los correos de
+	 *  invitación de `vega_editors` (ver `AdministrationPort.ensureInvitationLink`). */
+	invitationLink?: InvitationLinkState;
+}
+
+export interface SiteSeedOptions {
+	/**
+	 * URL absoluta de la ruta `/restablecer` de la Vega que sirve este proyecto. Con ella, el
+	 * sembrado deja la plantilla del correo de restablecimiento de `vega_editors` apuntando ahí si
+	 * sigue la de fábrica (nunca pisa una personalizada). Opcional porque el sembrado es headless y
+	 * no sabe en qué dirección está servida Vega; sin ella, lo hace `/editores` al abrirse.
+	 */
+	passwordResetUrl?: string;
 }
 
 export interface SiteSeedDivergence {
@@ -239,7 +252,10 @@ export class SiteSeedDivergenceError extends Error {
  * `vega_editors` -> `vega_media` (sola) -> `pages` -> `blocks` -> `redirects` -> `vega`.
  * `vega_media` va antes que `pages` porque `pages.socialImage` la enlaza.
  */
-export async function seedSiteProject(port: BackendPort): Promise<SiteSeedResult> {
+export async function seedSiteProject(
+	port: BackendPort,
+	options: SiteSeedOptions = {}
+): Promise<SiteSeedResult> {
 	const plan = await inspectSeedPlan(port);
 	const result: SiteSeedResult = {
 		createdCollections: [],
@@ -249,6 +265,11 @@ export async function seedSiteProject(port: BackendPort): Promise<SiteSeedResult
 	};
 
 	await ensureEditorsCollection(port, result);
+	if (options.passwordResetUrl && port.capabilities.administration && port.administration) {
+		result.invitationLink = await port.administration.ensureInvitationLink(
+			options.passwordResetUrl
+		);
+	}
 
 	const mediaPlan = plan.collections.get('vega_media')!;
 	const mediaResult = await ensureMediaCollection(port);

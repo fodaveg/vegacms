@@ -57,7 +57,12 @@ import {
 	validateFileFieldInput
 } from './files';
 import { applyQuery } from './query';
-import { deferredAdministration, VEGA_EDITORS_COLLECTION_NAME } from '../../administration';
+import {
+	deferredAdministration,
+	deferredPasswordReset,
+	VEGA_EDITORS_COLLECTION_NAME
+} from '../../administration';
+import type { MemoryAdministration } from './administration';
 
 const CAPABILITIES: Capabilities = {
 	realtime: true,
@@ -76,7 +81,8 @@ const CAPABILITIES: Capabilities = {
 	accessBypass: false,
 	// La sesión de `memory` hace de superuser; el rol editor de la demo/e2e lo apaga desde fuera
 	// (`withEditorCapabilities`, `session/backend.ts`).
-	administration: true
+	administration: true,
+	editorPasswordReset: true
 };
 
 const DEFAULT_USER_EMAIL = 'admin@vega.test';
@@ -94,6 +100,9 @@ export interface MemoryCollectionSnapshot {
  */
 export interface MemoryBackendPort extends BackendPort {
 	inspectCollection(name: string): MemoryCollectionSnapshot | null;
+	/** Token de restablecimiento vigente de una cuenta de `vega_editors`: lo que en PocketBase
+	 *  llegaría por correo. Solo para tests (una invitación con `MemorySeed.mailEnabled`). */
+	inspectEditorResetToken(email: string): Promise<string | null>;
 }
 
 /** Crea un `BackendPort` en memoria. Sin `seed`, acepta `admin@vega.test` + cualquier password no vacía. */
@@ -463,28 +472,47 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 	}
 
 	// Diferida como en `pocketbase` (ver `deferredAdministration`): la demo también carga `memory`
-	// en el arranque, y estas pantallas no las abre todo el mundo.
+	// en el arranque, y estas pantallas no las abre todo el mundo. Las dos secciones (y la lectura
+	// de tokens de los tests) comparten UN estado, creado al primer uso.
+	let adminState: Promise<MemoryAdministration> | null = null;
+	function loadAdminState(): Promise<MemoryAdministration> {
+		adminState ??= import('./administration')
+			.then((m) =>
+				m.createMemoryAdministration({
+					checkSessionAlive,
+					editorsCollectionExists: () =>
+						collectionsByName.get(VEGA_EDITORS_COLLECTION_NAME)?.type === 'auth',
+					editorsHaveCreatedField: () =>
+						collectionsByName.get(VEGA_EDITORS_COLLECTION_NAME)?.fieldNames.includes('created') ??
+						false,
+					generateId,
+					editors: seed?.editors ?? [],
+					backups: seed?.backups ?? [],
+					mailEnabled: seed?.mailEnabled ?? false,
+					backupDurationMs: seed?.backupDurationMs ?? 0
+				})
+			)
+			.catch((err: unknown) => {
+				adminState = null;
+				throw err;
+			});
+		return adminState;
+	}
 	const administration = deferredAdministration(() =>
-		import('./administration').then((m) =>
-			m.createMemoryAdministration({
-				checkSessionAlive,
-				editorsCollectionExists: () =>
-					collectionsByName.get(VEGA_EDITORS_COLLECTION_NAME)?.type === 'auth',
-				editorsHaveCreatedField: () =>
-					collectionsByName.get(VEGA_EDITORS_COLLECTION_NAME)?.fieldNames.includes('created') ??
-					false,
-				generateId,
-				editors: seed?.editors ?? [],
-				backups: seed?.backups ?? [],
-				mailEnabled: seed?.mailEnabled ?? false,
-				backupDurationMs: seed?.backupDurationMs ?? 0
-			})
-		)
+		loadAdminState().then((state) => state.administration)
+	);
+	const editorPasswordReset = deferredPasswordReset(() =>
+		loadAdminState().then((state) => state.passwordReset)
 	);
 
 	const port: MemoryBackendPort = {
 		capabilities: CAPABILITIES,
 		administration,
+		editorPasswordReset,
+
+		async inspectEditorResetToken(email) {
+			return (await loadAdminState()).resetTokenFor(email);
+		},
 
 		inspectCollection(name) {
 			const collection = collectionsByName.get(name);

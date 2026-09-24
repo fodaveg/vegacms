@@ -36,7 +36,8 @@ const BASE_CAPABILITIES: Capabilities = {
 	strongAuth: false,
 	explicitRecordId: false,
 	accessBypass: false,
-	administration: false
+	administration: false,
+	editorPasswordReset: false
 };
 
 function fakePort(overrides: {

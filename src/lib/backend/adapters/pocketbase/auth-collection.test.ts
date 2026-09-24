@@ -112,7 +112,9 @@ describe('modo superuser (default, sin authCollection) — camino previo INTACTO
 			// UI no le esconde nada por `access` (ver `computeCapabilities`).
 			accessBypass: true,
 			// Editores y copias de seguridad: `/api/settings` y `/api/backups` son de superuser.
-			administration: true
+			administration: true,
+			// Restablecer contraseña de un editor: endpoint público, no depende de la sesión.
+			editorPasswordReset: true
 		});
 		expect(port.administration).toBeDefined();
 	});
@@ -185,6 +187,9 @@ describe('modo editor (authCollection: vega_editors, L6a/L6b)', () => {
 		// Un editor no administra el servidor: sin capability y sin la sección del puerto.
 		expect(port.capabilities.administration).toBe(false);
 		expect(port.administration).toBeUndefined();
+		// …pero sí puede restablecer su propia contraseña con el enlace del correo.
+		expect(port.capabilities.editorPasswordReset).toBe(true);
+		expect(port.editorPasswordReset).toBeDefined();
 		// El resto de capabilities no depende de quién se autentica (ver `computeCapabilities`).
 		expect(port.capabilities.realtime).toBe(true);
 		expect(port.capabilities.thumbs).toBe(true);
