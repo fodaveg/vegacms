@@ -1,7 +1,8 @@
 /**
- * Suite de `FileInput.svelte` — SOLO el gesto de L-P6.9 (Fase P6·6e): sin `ctx.mediaPicker`, el
+ * Suite de `FileInput.svelte` — el gesto de L-P6.9 (Fase P6·6e): sin `ctx.mediaPicker`, el
  * botón "Elegir de la biblioteca" NUNCA se pinta (nunca deshabilitado, directamente AUSENTE); con
- * él, se pinta y lo abre.
+ * él, se pinta y lo abre. Y el aviso informativo de texto alternativo que sigue a elegir una
+ * imagen sin alt de la biblioteca (audit del 23 sep, lámina pieza 3), que solo vive en la sesión.
  *
  * **Por qué esto necesita un montaje real (proyecto vitest `component`, ver `vite.config.ts`;
  * Svelte 5 `mount()`/`unmount()` — sin librería nueva, ambas ya las exporta `svelte`) y no basta
@@ -16,8 +17,8 @@
  *
  * `VEGA_CONTEXT_KEY` se exporta de `$lib/app-context` ÚNICAMENTE para este uso (ver su cabecera).
  */
-import { mount, unmount } from 'svelte';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { flushSync, mount, unmount } from 'svelte';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import FileInput from './FileInput.svelte';
 import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import type { BackendPort } from '$lib/backend/port';
@@ -135,5 +136,104 @@ describe('FileInput.svelte — botón "Elegir de la biblioteca" (Fase P6·6e, L-
 
 		expect(open).toHaveBeenCalledTimes(1);
 		expect(open).toHaveBeenCalledWith({ multiple: false, accept: ['image/*'] });
+	});
+});
+
+describe('FileInput.svelte — aviso de texto alternativo al elegir de la biblioteca (lámina pieza 3)', () => {
+	let mounted: { target: HTMLElement; instance: ReturnType<typeof mount> } | null = null;
+
+	beforeEach(() => {
+		// jsdom no implementa object URLs; el widget previsualiza cada `File` nuevo con una.
+		URL.createObjectURL = vi.fn(() => 'blob:vega-test');
+		URL.revokeObjectURL = vi.fn();
+	});
+
+	afterEach(async () => {
+		if (mounted) {
+			await unmount(mounted.instance);
+			mounted.target.remove();
+			mounted = null;
+		}
+	});
+
+	/** Monta el widget con `value` VIVO (`$state`): `onChange` lo escribe, como haría `RecordForm`. */
+	function mountLive(results: MediaPickResult[]): {
+		target: HTMLElement;
+		props: { value: unknown };
+	} {
+		const props = $state({
+			field: fileField,
+			value: null as unknown,
+			error: null,
+			disabled: false,
+			readonly: false,
+			onChange: (next: unknown) => {
+				props.value = next;
+			}
+		});
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const instance = mount(FileInput, {
+			target,
+			// `value` es `FieldValue` en `WidgetProps`; aquí basta con que el widget lo reciba.
+			props: props as never,
+			context: new Map([[VEGA_CONTEXT_KEY, fakeCtx({ open: async () => results })]])
+		});
+		mounted = { target, instance };
+		return { target, props };
+	}
+
+	async function pick(target: HTMLElement): Promise<void> {
+		target.querySelector<HTMLButtonElement>('.vega-file-pick-library')?.click();
+		await Promise.resolve();
+		await Promise.resolve();
+		flushSync();
+	}
+
+	function photo(name: string): File {
+		return new File([new Uint8Array(4)], name, { type: 'image/png' });
+	}
+
+	test('una imagen elegida SIN alt en la biblioteca marca su fila y avisa en una región status', async () => {
+		const { target } = mountLive([
+			{ file: photo('IMG_2026.png'), mediaId: 'm1', alt: '', missingAlt: true }
+		]);
+		const status = target.querySelector('.vega-file-alt-status');
+		expect(status?.getAttribute('role')).toBe('status');
+		// Antes de elegir, la región existe pero vacía (fuera del flujo, ver CSS del widget).
+		expect(status?.matches(':empty')).toBe(true);
+
+		await pick(target);
+
+		expect(target.querySelectorAll('.vega-file-item')).toHaveLength(1);
+		expect(target.querySelector('.vega-file-item--warn')).not.toBeNull();
+		expect(status?.textContent).toContain('form.file.libraryMissingAltOne');
+	});
+
+	test('con alt en la biblioteca no se pinta nada', async () => {
+		const { target } = mountLive([
+			{ file: photo('portada.png'), mediaId: 'm2', alt: 'Portada', missingAlt: false }
+		]);
+
+		await pick(target);
+
+		expect(target.querySelectorAll('.vega-file-item')).toHaveLength(1);
+		expect(target.querySelector('.vega-file-item--warn')).toBeNull();
+		expect(target.querySelector('.vega-file-alt-status')?.matches(':empty')).toBe(true);
+	});
+
+	test('solo vive en la sesión: al reasentar el valor a la FileRef guardada, el aviso se va', async () => {
+		const { target, props } = mountLive([
+			{ file: photo('IMG_2026.png'), mediaId: 'm1', alt: '', missingAlt: true }
+		]);
+		await pick(target);
+		expect(target.querySelector('.vega-file-item--warn')).not.toBeNull();
+
+		// Lo que hace `RecordForm` tras guardar: el `File` pendiente pasa a ser la `FileRef` real.
+		props.value = 'img_2026_abc123.png';
+		flushSync();
+
+		expect(target.querySelector('.vega-file-item--warn')).toBeNull();
+		expect(target.querySelector('.vega-file-alt-status')?.matches(':empty')).toBe(true);
 	});
 });

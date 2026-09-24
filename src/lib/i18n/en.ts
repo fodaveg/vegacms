@@ -474,6 +474,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// Phase P6·6e (D-P6.6): button that opens `MediaPicker.svelte`. Fully hidden without
 	// `ctx.mediaPicker` (L-P6.9), never shown disabled without explanation.
 	'form.file.pickFromLibrary': 'Choose from the library',
+	// INFORMATIVE notice (audit sheet, piece 3): only in the session where the file is picked from
+	// the library. The `file` field stores neither the alt nor the `mediaId` (L-P6.8, [SUP-5]).
+	'form.file.libraryMissingAltOne': 'This image has no alt text in the library.',
+	'form.file.libraryMissingAltMany': '{count} images have no alt text in the library.',
 
 	// ————— Richtext/markdown editor (P5 contract, Phase F5-d) —————
 	'form.editor.toolbarLabel': 'Formatting tools',
@@ -660,6 +664,13 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// JSON above is of no use to them.
 	'media.bootstrap.editorBody':
 		'Ask an administrator to set up the media collection ("vega_media") in PocketBase.',
+	// A library created before a new field (today, `focal`): completing it is additive and the
+	// superuser decides it with a button, never Vega on its own.
+	'media.fields.missingBody':
+		'The library lacks fields this version of Vega can use: {fields}. Adding them leaves the existing media untouched.',
+	'media.fields.add': 'Add fields',
+	'media.fields.adding': 'Adding…',
+	'media.fields.added': 'Fields added to the library.',
 
 	// ————— Referential integrity (`#lote-integridad`, Phase A): "where is this used?" engine —————
 	// Shared by `UsedInPanel`/`ReferencesSummary` (passive panel) and by `DeleteConfirm`/
@@ -807,6 +818,18 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.detail.addTag': 'Add',
 	'media.detail.removeTag': 'Remove «{tag}»',
 	'media.detail.saveSuccess': 'Media updated.',
+	// Alt text (audit sheet, piece 3): a non-blocking notice, images only.
+	'media.alt.missing': 'No alt text',
+	'media.detail.altMissingHint': 'No alt text: a screen reader will read «{name}».',
+	'media.detail.altHelp': 'Describe what is shown, not the file name.',
+	// Focal point (audit, 23 Sep): what the site keeps in view when it crops the image. Empty = centre.
+	'media.focal.label': 'Focal point',
+	'media.focal.help':
+		'Click the image to mark what must stay in view when the site crops it. With the keyboard: arrows move it (Shift for finer steps), Enter sets it.',
+	'media.focal.center': 'Focal point: centre',
+	'media.focal.value': 'Focal point: {x} % across, {y} % down',
+	'media.focal.pending': 'Moving to {x} % across, {y} % down. Press Enter to set it.',
+	'media.focal.reset': 'Centre',
 
 	// ————— Media: delete (Phase P6·6d) —————
 	// D-P6.5/audit H3: the media model COPIES bytes, it never references (`filePerRecord`) —
@@ -901,6 +924,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.picker.searchPlaceholder': 'Search…',
 	'media.picker.empty': 'No asset matches the search or the allowed file type.',
 	'media.picker.selectedCount': '{count} selected',
+	'media.picker.missingAltCount': '{count} without alt text',
 	'media.picker.insert': 'Insert',
 	'media.picker.inserting': 'Inserting…',
 

@@ -32,6 +32,12 @@
 	 *
 	 * **Diálogo modal**: mismo patrón estructural que `MediaDetail.svelte` (backdrop + `dialog` +
 	 * foco atrapado + `Esc` cierra, salvo mientras `inserting` está en vuelo).
+	 *
+	 * **Texto alternativo (audit del 23 sep, lámina pieza 3)**: la marca de cada tarjeta la pone
+	 * `MediaGrid` (misma tarjeta que en `/media`); aquí solo se añade el recuento del pie, «N elegidos
+	 * · M sin texto alternativo», contado sobre lo ELEGIDO (también en otras páginas), y cada
+	 * `MediaPickResult` lleva `missingAlt` para que `FileInput` avise sin conocer la regla. No
+	 * bloquea nada: «Insertar» sigue igual.
 	 */
 	import { SvelteMap } from 'svelte/reactivity';
 	import { getVegaContext } from '$lib/app-context';
@@ -40,6 +46,7 @@
 	import { createMediaListState } from './media-list-state.svelte';
 	import { MEDIA_PER_PAGE } from './media-query';
 	import { toMediaItemView, type MediaItemView } from './media-item';
+	import { countMediaMissingAlt, mediaMissingAlt } from './media-card';
 	import { matchesAccept, type MediaPickResult } from './media-picker';
 	import { mediaPickerState } from './media-picker-state.svelte';
 	import { fileFromMediaAsset, MediaFileFetchError } from './media-file-from-url';
@@ -69,6 +76,9 @@
 
 	let inserting = $state(false);
 	let insertError = $state<string | null>(null);
+
+	/** Elegidos que son imágenes sin texto alternativo (ver cabecera): la segunda mitad del pie. */
+	const selectedMissingAlt = $derived(countMediaMissingAlt(selected.values()));
 
 	// Detecta la transición "se abrió una petición NUEVA" (distinta referencia de `request`) para
 	// resetear el estado de la sesión anterior — variable PLANA (nunca leída en el template, mismo
@@ -159,7 +169,12 @@
 			const results: MediaPickResult[] = [];
 			for (const item of selected.values()) {
 				const file = await fileFromMediaAsset(ctx.port, item);
-				results.push({ file, mediaId: item.id, alt: item.alt });
+				results.push({
+					file,
+					mediaId: item.id,
+					alt: item.alt,
+					missingAlt: mediaMissingAlt(item)
+				});
 			}
 			mediaPickerState.settle(results);
 		} catch (err) {
@@ -289,8 +304,13 @@
 			</div>
 
 			<div class="vega-media-picker-actions">
-				<span class="vega-media-picker-count">
+				<span class="vega-media-picker-count" data-media-picker-count>
 					{ctx.t('media.picker.selectedCount', { count: selected.size })}
+					{#if selectedMissingAlt > 0}
+						· <span class="vega-media-picker-count-warn"
+							>{ctx.t('media.picker.missingAltCount', { count: selectedMissingAlt })}</span
+						>
+					{/if}
 				</span>
 				<div class="vega-media-picker-actions-primary">
 					<button type="button" onclick={handleCancel} disabled={inserting}>
@@ -412,6 +432,12 @@
 	.vega-media-picker-count {
 		font-size: 0.85rem;
 		color: var(--ink-2);
+	}
+
+	/* Segunda mitad del pie (lámina del audit, pieza 3): `--warning` + peso, además de la palabra. */
+	.vega-media-picker-count-warn {
+		color: var(--warning);
+		font-weight: 600;
 	}
 
 	.vega-media-picker-actions-primary {

@@ -285,7 +285,10 @@ describe('seedSiteProject', () => {
 
 		expect(result).toEqual({
 			createdCollections: ['redirects'],
-			addedFields: { pages: ['description', 'socialImage', 'noindex'] },
+			addedFields: {
+				vega_media: ['focal'],
+				pages: ['description', 'socialImage', 'noindex']
+			},
 			createdRecords: [],
 			upgradedRecords: ['manifest']
 		});
