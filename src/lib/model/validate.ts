@@ -58,6 +58,7 @@ const COLLECTION_ALLOWED_KEYS = [
 	'slugField',
 	'statusField',
 	'statusLabels',
+	'publishAtField',
 	'orderField',
 	'defaultSort',
 	'previewUrl',
@@ -623,6 +624,16 @@ function validateCollection(
 	}
 	if ('statusLabels' in value) {
 		validateStatusLabels(name, value.statusLabels, errors);
+	}
+	if ('publishAtField' in value) {
+		checkString(
+			value.publishAtField,
+			`${base}/publishAtField`,
+			1,
+			Infinity,
+			errors,
+			`publishAtField de "${name}"`
+		);
 	}
 	if ('orderField' in value) {
 		checkString(

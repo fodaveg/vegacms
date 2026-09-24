@@ -14,6 +14,7 @@ import {
 	defaultSortFieldInvalid,
 	manifestInvalidKey,
 	orderFieldInvalid,
+	publishAtFieldInvalid,
 	slugFieldInvalid,
 	statusFieldInvalid,
 	statusLabelUnknownValue,
@@ -154,6 +155,43 @@ export function resolveStatusLabels(
 	}
 
 	return manifestStatusLabels;
+}
+
+/**
+ * Resuelve `publishAtField` (publicación programada, extensión `vegaschedule` del servidor): el
+ * campo de fecha «Publicar el» de un tipo publicable. SOLO manifiesto, sin autodetección — mismo
+ * criterio opt-in que `orderField`: que exista una columna `publishAt` no significa que haya un
+ * cron que la cumpla. Es válido si:
+ * - el tipo tiene `statusField` resuelto (§4.5): sin estado no hay borrador que publicar;
+ * - el campo existe, es `date` y NO es `readonly` (un `autodate` lo escribe PocketBase, no el
+ *   editor);
+ * - NO es `required`: con fecha obligatoria todo borrador acabaría publicándose solo, y el
+ *   servidor no podría vaciarla al publicar.
+ * Son exactamente las comprobaciones que hace `vegaschedule` (`resolveTarget`), para que Vega no
+ * enseñe «Programada» en un tipo que el servidor se va a saltar.
+ */
+export function resolvePublishAtField(
+	fields: Field[],
+	manifestPublishAtField: string | undefined,
+	statusField: string | null,
+	collection: string,
+	warnings: ModelWarning[]
+): string | null {
+	if (manifestPublishAtField === undefined) return null;
+
+	const field = fields.find((f) => f.name === manifestPublishAtField);
+	if (
+		statusField !== null &&
+		field !== undefined &&
+		field.type === 'date' &&
+		!field.readonly &&
+		!field.required
+	) {
+		return manifestPublishAtField;
+	}
+
+	warnings.push(publishAtFieldInvalid(collection, manifestPublishAtField));
+	return null;
 }
 
 // ————— Orden manual (reorder) —————

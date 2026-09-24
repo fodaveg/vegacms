@@ -777,6 +777,71 @@ describe('7. Matriz de degradación (§5)', () => {
 		expect(model.warnings).toEqual([]);
 	});
 
+	test('publishAtField sobre una fecha editable y opcional de un tipo publicable → se resuelve, sin warning', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, collections: { post: { publishAtField: 'publishedAt' } } }
+		});
+		const post = model.types.find((t) => t.name === 'post')!;
+		expect(post.publishAtField).toBe('publishedAt');
+		expect(model.warnings).toEqual([]);
+	});
+
+	test('sin publishAtField → null: una columna de fecha NO se autodetecta como programación', () => {
+		const model = resolveContentModel({
+			types: kitchenSinkTypes,
+			manifestRaw: { schemaVersion: 1, collections: { post: {} } }
+		});
+		expect(model.types.find((t) => t.name === 'post')!.publishAtField).toBeNull();
+		expect(model.warnings).toEqual([]);
+	});
+
+	function postWithPublishedAt(patch: { required?: boolean; readonly?: boolean }): ContentType[] {
+		return kitchenSinkTypes.map((type) =>
+			type.name === 'post'
+				? {
+						...type,
+						fields: type.fields.map((field) =>
+							field.name === 'publishedAt' ? { ...field, ...patch } : field
+						)
+					}
+				: type
+		);
+	}
+
+	test.each([
+		['un campo que no es fecha', kitchenSinkTypes, { publishAtField: 'title' }],
+		['un campo inexistente', kitchenSinkTypes, { publishAtField: 'no-existe' }],
+		[
+			'un tipo sin campo de publicación (statusField: false)',
+			kitchenSinkTypes,
+			{ statusField: false, publishAtField: 'publishedAt' }
+		],
+		[
+			'una fecha obligatoria',
+			postWithPublishedAt({ required: true }),
+			{ publishAtField: 'publishedAt' }
+		],
+		[
+			'una fecha de solo lectura (autodate)',
+			postWithPublishedAt({ readonly: true }),
+			{ publishAtField: 'publishedAt' }
+		]
+	])('publishAtField sobre %s → publish-at-field-invalid + null', (_case, types, post) => {
+		const model = resolveContentModel({
+			types,
+			manifestRaw: { schemaVersion: 1, collections: { post } }
+		});
+		expect(model.types.find((t) => t.name === 'post')!.publishAtField).toBeNull();
+		expect(model.warnings).toEqual([
+			expect.objectContaining({
+				code: 'publish-at-field-invalid',
+				collection: 'post',
+				path: '/collections/post/publishAtField'
+			})
+		]);
+	});
+
 	test('statusLabels con un valor no-string → manifest-invalid-key + null (todo o nada)', () => {
 		const model = resolveContentModel({
 			types: kitchenSinkTypes,

@@ -170,6 +170,13 @@ export interface ResolvedContentType {
 	 *  claves distintas del manifiesto pueden compartir el mismo valor crudo de facto
 	 *  (`draft`/`published`) sin que localizarlas cambie el color. */
 	statusLabels: Record<string, string> | null;
+	/** (M) campo `date` «Publicar el» de la publicación programada, o null ⇒ el tipo no la ofrece.
+	 *  SOLO manifiesto (`publishAtField`), sin autodetección, y solo si `statusField` resolvió
+	 *  (`resolvePublishAtField`). Un borrador con esta fecha en el futuro se pinta «Programada ·
+	 *  fecha» en vez de «Borrador» (`describeStatusBadge`, `$lib/list/cell`). Quien la cumple es
+	 *  la extensión `vegaschedule` del servidor, que Vega no puede detectar desde el cliente.
+	 *  `?:` por compatibilidad de fixtures, mismo motivo que `social`/`page` más abajo. */
+	publishAtField?: string | null;
 	/** (M) campo numérico de orden manual, o null. Sin autodetección por convención (a diferencia
 	 *  de `statusField`): solo existe si el manifiesto lo declara explícitamente y el campo es
 	 *  `number`. Habilita el reorder por arrastre del listado y el orden por defecto. */
@@ -654,6 +661,7 @@ export type WarningCode =
 	| 'widget-incompatible' // override imposible para el tipo real → default
 	| 'title-field-invalid' // titleField inexistente o no representable → cascada
 	| 'status-field-invalid' // statusField que no cumple la convención → null
+	| 'publish-at-field-invalid' // publishAtField que no es date editable opcional, o tipo sin statusField → null
 	| 'order-field-invalid' // orderField inexistente o no numérico → null
 	| 'subtitle-field-invalid' // subtitleField inexistente o no escalar → null
 	| 'slug-field-invalid' // slugField inexistente o no representable como texto → null

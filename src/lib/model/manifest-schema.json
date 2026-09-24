@@ -104,6 +104,11 @@
 						"type": "object",
 						"additionalProperties": { "type": "string", "minLength": 1, "maxLength": 60 }
 					},
+					"publishAtField": {
+						"description": "Publicación programada: campo date (editable y opcional) con la fecha «Publicar el». Solo tiene efecto en un tipo con campo de publicación (draft/published) y si el servidor ejecuta la extensión vegaschedule, que publica cada minuto los borradores cuya fecha ya pasó y vacía la fecha. Un borrador con fecha futura se muestra «Programada · fecha».",
+						"type": "string",
+						"minLength": 1
+					},
 					"previewUrl": {
 						"description": "Plantilla absoluta http(s) con placeholders {campo} o {id}. Ej.: https://misitio.com/blog/{slug}",
 						"type": "string",
