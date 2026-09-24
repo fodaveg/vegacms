@@ -440,16 +440,22 @@ es el servidor quien la consulta:
   (`statusField` resuelto, `draft`/`published`). Si algo de esto falla, Vega avisa con
   `publish-at-field-invalid` y el tipo se queda sin programación. No hay autodetección: una columna
   llamada `publishAt` sin la clave no programa nada.
-- **En el formulario** sale como cualquier fecha, con la etiqueta y la ayuda que declare `fields`.
-  Si el manifiesto no le da ayuda, Vega pone una que dice que hace falta `vegaschedule`.
-- **En listados, raíl y cabecera del formulario**, un borrador con fecha futura se ve como
-  «Programada · 12 oct 10:00» (texto, no solo color) en vez de «Borrador».
 - **Quien publica es el servidor**: la extensión
   [`vegaschedule`](../extensions/vegaschedule/README.md), un cron de PocketBase que cada minuto pasa
   a `published` los borradores cuya fecha ya pasó y **vacía la fecha**, para que devolver luego la
-  página a borrador no la republique. Vega es una SPA y no puede saber si esa extensión está
-  instalada: sin ella, la fecha no hace nada y el registro sigue en «Programada» hasta que pasa su
-  hora y vuelve a verse «Borrador».
+  página a borrador no la republique. La imagen de Vega usa el PocketBase oficial, que NO la trae.
+- **Vega comprueba si el servidor la tiene.** Un superusuario lo pregunta a `GET /api/crons`
+  (reservada a superusuarios) buscando el job `vegaschedule`, y lo deja escrito en
+  `vega.schemaSnapshot` para los editores, que no pueden llamar a esa ruta. Hay tres estados:
+  - **activa**: un borrador con fecha futura se ve «Programada · 12 oct 10:00» en listados, raíl,
+    búsqueda global y cabecera del formulario (texto, no solo color);
+  - **inactiva** (comprobado que no está): se ve «Borrador · fecha sin efecto», y el campo lleva
+    un aviso visible de que la fecha no publicará nada;
+  - **sin confirmar** (un editor antes de que un superusuario haya entrado tras esta versión, o un
+    fallo al comprobarlo): «Borrador · 12 oct 10:00 sin confirmar», con su propio aviso.
+    Con la fecha ya pasada, el registro se ve «Borrador» en los tres casos.
+- **En el formulario** sale como cualquier fecha, con la etiqueta y la ayuda que declare `fields`.
+  Si el manifiesto no le da ayuda, Vega pone una que dice que hace falta `vegaschedule`.
 
 El sembrado de sitio crea `pages.publishAt` y declara la clave en su manifiesto inicial, también en
 proyectos ya sembrados (ver [SEO por página y redirecciones](POCKETBASE-INTEGRATION.md#seo-por-página-y-redirecciones)).

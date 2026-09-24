@@ -379,28 +379,30 @@ describe('describeStatusBadge (publicación programada, `publishAtField`)', () =
 
 	test('borrador con fecha futura → «Programada · 12 oct 10:00», raw sigue siendo draft', () => {
 		expect(
-			describeStatusBadge(type, { status: 'draft', publishAt: future }, 'es', esT, now)
+			describeStatusBadge(type, { status: 'draft', publishAt: future }, 'active', 'es', esT, now)
 		).toEqual({ raw: 'draft', kind: 'scheduled', label: 'Programada · 12 oct 10:00' });
 	});
 
 	test('en inglés, con su propio formato de fecha', async () => {
 		await ensureLocaleLoaded('en');
 		expect(
-			describeStatusBadge(type, { status: 'draft', publishAt: future }, 'en', enT, now)?.label
+			describeStatusBadge(type, { status: 'draft', publishAt: future }, 'active', 'en', enT, now)
+				?.label
 		).toBe('Scheduled · Oct 12 10:00 AM');
 	});
 
 	test('otro año: la fecha lleva el año', () => {
 		const nextYear = new Date(2027, 0, 5, 18, 30).toISOString();
 		expect(
-			describeStatusBadge(type, { status: 'draft', publishAt: nextYear }, 'es', esT, now)?.label
+			describeStatusBadge(type, { status: 'draft', publishAt: nextYear }, 'active', 'es', esT, now)
+				?.label
 		).toBe('Programada · 5 ene 2027 18:30');
 	});
 
 	test('fecha ya pasada, vacía o ilegible → el «Borrador» de siempre', () => {
 		for (const publishAt of [past, '', 'no es una fecha', null]) {
 			expect(
-				describeStatusBadge(type, { status: 'draft', publishAt }, 'es', esT, now),
+				describeStatusBadge(type, { status: 'draft', publishAt }, 'active', 'es', esT, now),
 				String(publishAt)
 			).toEqual({ raw: 'draft', kind: 'draft', label: 'Borrador' });
 		}
@@ -408,7 +410,14 @@ describe('describeStatusBadge (publicación programada, `publishAtField`)', () =
 
 	test('publicado con fecha futura sigue siendo «Publicado»: solo un borrador se programa', () => {
 		expect(
-			describeStatusBadge(type, { status: 'published', publishAt: future }, 'es', esT, now)
+			describeStatusBadge(
+				type,
+				{ status: 'published', publishAt: future },
+				'active',
+				'es',
+				esT,
+				now
+			)
 		).toEqual({ raw: 'published', kind: 'pub', label: 'Publicado' });
 	});
 
@@ -417,6 +426,7 @@ describe('describeStatusBadge (publicación programada, `publishAtField`)', () =
 			describeStatusBadge(
 				{ ...type, publishAtField: null },
 				{ status: 'draft', publishAt: future },
+				'active',
 				'es',
 				esT,
 				now
@@ -424,8 +434,33 @@ describe('describeStatusBadge (publicación programada, `publishAtField`)', () =
 		).toEqual({ raw: 'draft', kind: 'draft', label: 'Borrador' });
 	});
 
+	// La rama que evita el fallo silencioso: un servidor con el binario oficial de PocketBase
+	// (sin `vegaschedule`) nunca publicará esta página, y la insignia no puede decir «Programada».
+	test('servidor SIN vegaschedule → «Borrador · fecha sin efecto», nunca «Programada»', () => {
+		expect(
+			describeStatusBadge(type, { status: 'draft', publishAt: future }, 'inactive', 'es', esT, now)
+		).toEqual({ raw: 'draft', kind: 'draft', label: 'Borrador · fecha sin efecto' });
+	});
+
+	test('sin poder comprobarlo → «Borrador · 12 oct 10:00 sin confirmar»', () => {
+		expect(
+			describeStatusBadge(type, { status: 'draft', publishAt: future }, 'unknown', 'es', esT, now)
+		).toEqual({ raw: 'draft', kind: 'draft', label: 'Borrador · 12 oct 10:00 sin confirmar' });
+	});
+
+	test('con la fecha ya pasada, el estado del servidor no cambia nada: «Borrador»', () => {
+		for (const scheduling of ['active', 'inactive', 'unknown'] as const) {
+			expect(
+				describeStatusBadge(type, { status: 'draft', publishAt: past }, scheduling, 'es', esT, now)
+					?.label
+			).toBe('Borrador');
+		}
+	});
+
 	test('sin statusField o con el estado vacío → null (nunca una insignia vacía)', () => {
-		expect(describeStatusBadge({ ...type, statusField: null }, {}, 'es', esT, now)).toBeNull();
-		expect(describeStatusBadge(type, { status: '' }, 'es', esT, now)).toBeNull();
+		expect(
+			describeStatusBadge({ ...type, statusField: null }, {}, 'active', 'es', esT, now)
+		).toBeNull();
+		expect(describeStatusBadge(type, { status: '' }, 'active', 'es', esT, now)).toBeNull();
 	});
 });

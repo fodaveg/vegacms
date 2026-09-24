@@ -17,7 +17,7 @@
  */
 
 import { isEmptyValue } from '$lib/backend/normalize';
-import type { FieldValue, FileRef } from '$lib/backend/types';
+import type { FieldValue, FileRef, ScheduledPublishingState } from '$lib/backend/types';
 import type { Locale } from '$lib/i18n';
 import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
 
@@ -212,17 +212,22 @@ type Translate = (key: string, params?: Record<string, string | number>) => stri
  * `null` si el tipo no tiene `statusField` o el registro lo tiene vacío.
  *
  * Publicación programada (`publishAtField`, extensión `vegaschedule`): un `draft` cuya fecha
- * «Publicar el» está en el FUTURO respecto a `now` se pinta «Programada · 12 oct 10:00» con
- * `kind: 'scheduled'` — el texto lo dice, no solo el color. `raw` sigue siendo `draft`, que es lo
- * que ES el registro hasta que el servidor lo publique. Con la fecha ya pasada vuelve a ser un
- * «Borrador» normal: o el cron está a punto de publicarlo (lo hace cada minuto y vacía la fecha),
- * o el servidor no tiene `vegaschedule` y anunciar «Programada» sería mentir.
+ * «Publicar el» está en el FUTURO respecto a `now` depende de si el servidor la va a cumplir
+ * (`scheduling`, `ContentModel.scheduledPublishing`):
+ * - `'active'`: «Programada · 12 oct 10:00», `kind: 'scheduled'`.
+ * - `'inactive'`: «Borrador · fecha sin efecto», `kind: 'draft'` — comprobado que el servidor no
+ *   tiene el cron (p. ej. el binario oficial de PocketBase), así que no se publicará sola.
+ * - `'unknown'`: «Borrador · 12 oct 10:00 sin confirmar», `kind: 'draft'` — no se promete nada.
+ * El texto lo dice en los tres casos, no solo el color, y `raw` sigue siendo `draft`, que es lo que
+ * ES el registro hasta que el servidor lo publique. Con la fecha ya pasada es un «Borrador»
+ * normal: o el cron está a punto de publicarlo (lo hace cada minuto y vacía la fecha), o no lo hay.
  *
  * `now` es parámetro (default `Date.now()`), mismo criterio que `describeCell`.
  */
 export function describeStatusBadge(
 	type: Pick<ResolvedContentType, 'statusField' | 'statusLabels' | 'publishAtField'>,
 	values: Record<string, unknown>,
+	scheduling: ScheduledPublishingState,
 	locale: Locale,
 	t: Translate,
 	now: number = Date.now()
@@ -230,20 +235,25 @@ export function describeStatusBadge(
 	if (type.statusField === null) return null;
 	const raw = values[type.statusField];
 	if (typeof raw !== 'string' || raw === '') return null;
+	const label = type.statusLabels?.[raw] ?? raw;
 
 	if (raw === 'draft' && type.publishAtField) {
 		const scheduled = values[type.publishAtField];
 		const ms = typeof scheduled === 'string' && scheduled !== '' ? Date.parse(scheduled) : NaN;
 		if (!Number.isNaN(ms) && ms > now) {
-			return {
-				raw,
-				kind: 'scheduled',
-				label: t('list.status.scheduled', { date: formatScheduledDate(ms, locale, now) })
-			};
+			const date = formatScheduledDate(ms, locale, now);
+			if (scheduling === 'active') {
+				return { raw, kind: 'scheduled', label: t('list.status.scheduled', { date }) };
+			}
+			const key =
+				scheduling === 'inactive'
+					? 'list.status.scheduledInactive'
+					: 'list.status.scheduledUnconfirmed';
+			return { raw, kind: 'draft', label: t(key, { status: label, date }) };
 		}
 	}
 
-	return { raw, kind: classifyStatusBadge(raw), label: type.statusLabels?.[raw] ?? raw };
+	return { raw, kind: classifyStatusBadge(raw), label };
 }
 
 /** «12 oct 10:00» (es) / «Oct 12 10:00 AM» (en): día, mes corto y hora local, sin coma entre

@@ -2,8 +2,13 @@
 
 A PocketBase cron job that, once a minute, publishes scheduled content: every record still in
 `draft` whose "publish at" date has passed becomes `published`, and the date is cleared. It is the
-server half of the «Publicar el» field Vega shows in the form; without it that date is inert data,
-and Vega (a static SPA) cannot detect that, so the field's help says it needs this extension.
+server half of the «Publicar el» field Vega shows in the form; without it that date is inert data.
+
+Vega checks whether it is there: a superuser session reads `GET /api/crons` (superuser-only in
+PocketBase) and looks for the job id `vegaschedule`, then writes the answer into
+`vega.schemaSnapshot` for editors, who cannot call that route. Without the job, a scheduled draft
+reads «Borrador · fecha sin efecto» and the field shows a warning, instead of «Programada». Keep
+the default `JobID` so Vega can find it.
 
 Requires **PocketBase 0.39.7 or newer** and Go 1.26 or newer. Separate Go module, same reasoning
 as `extensions/vegaauth` and `extensions/vegabuild`: a PocketBase without it keeps working.
@@ -95,7 +100,8 @@ project's own `internal/project` package), add the `vegaschedule.New` call next 
 **Settings → Crons** as `vegaschedule`, where it can also be run by hand.
 
 `Config` is optional: `ManifestCollection` (default `vega`), `ManifestKey` (default `default`,
-the discovery document's `manifest.key`), `JobID` (default `vegaschedule`), `Schedule` (default
+the discovery document's `manifest.key`), `JobID` (default `vegaschedule`; Vega detects the
+extension by this id, so changing it makes Vega report it as absent), `Schedule` (default
 `* * * * *`) and `OnPublished` below.
 
 ### With `vegabuild` in the same binary

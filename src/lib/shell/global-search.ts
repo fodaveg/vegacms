@@ -6,7 +6,7 @@
  *
  * **Nada de esto se deriva por su cuenta**: los campos elegibles y el OR de `contains` salen de
  * `buildSearchFilter`/`buildListQuery` (`$lib/list/search`, LA misma búsqueda que el listado), y
- * el título/estado de cada acierto de `describeCell`/`resolveTitleCellText`/`classifyStatusBadge`
+ * el título/estado de cada acierto de `describeCell`/`resolveTitleCellText`/`describeStatusBadge`
  * (`$lib/list/cell`, `$lib/list/list-load`) — exactamente igual que hace `EditorRail.svelte`. Si
  * el buscador global encontrara cosas distintas de las que encuentra el buscador del listado, o
  * titulase las filas de otra forma, sería un segundo criterio destinado a desincronizarse.
@@ -19,11 +19,11 @@
  * origen, que sí se buscan, así que aparecerían dos veces.
  */
 
-import type { Page, RecordId, VegaRecord } from '$lib/backend/types';
+import type { Page, RecordId, ScheduledPublishingState, VegaRecord } from '$lib/backend/types';
 import type { Query } from '$lib/backend/query';
 import type { Locale } from '$lib/i18n';
 import type { ContentModel, ResolvedContentType } from '$lib/model/types';
-import { classifyStatusBadge, describeCell, type StatusBadgeKind } from '$lib/list/cell';
+import { describeCell, describeStatusBadge, type StatusBadgeKind } from '$lib/list/cell';
 import { resolveTitleCellText } from '$lib/list/list-load';
 import { buildListQuery, buildSearchFilter, isSearchEnabled } from '$lib/list/search';
 
@@ -48,8 +48,9 @@ export interface GlobalSearchHit {
 	id: RecordId;
 	/** Título ya resuelto (o el "(sin título)" que pase el llamador). */
 	title: string;
-	/** Etiqueta del estado (`statusLabels` si el manifiesto la declara, si no el valor crudo), o
-	 *  `null` si el tipo no tiene `statusField` o el registro lo tiene vacío. */
+	/** Texto de la insignia de estado (`describeStatusBadge`: `statusLabels` o el valor crudo, y
+	 *  «Programada · …» en un borrador programado), o `null` si el tipo no tiene `statusField` o el
+	 *  registro lo tiene vacío. */
 	statusLabel: string | null;
 	/** Color de la insignia de estado, derivado del valor CRUDO (nunca de la etiqueta). */
 	statusKind: StatusBadgeKind | null;
@@ -127,20 +128,23 @@ export function canSearchType(type: ResolvedContentType, term: string): boolean 
 
 /**
  * Traduce la página devuelta por el puerto al grupo que se pinta. `untitled` es el i18n
- * "(sin título)" ya traducido (este módulo no traduce: es puro y no conoce el `ctx`).
+ * "(sin título)" ya traducido; `status` trae lo que necesita la insignia de estado — el traductor
+ * y `ContentModel.scheduledPublishing` —, porque este módulo es puro y no conoce el `ctx`. La
+ * insignia es la MISMA que en listado, raíl y formulario (`describeStatusBadge`), «Programada»
+ * incluida.
  */
 export function toGlobalSearchGroup(
 	type: ResolvedContentType,
 	page: Page<VegaRecord>,
 	locale: Locale,
-	untitled: string
+	untitled: string,
+	status: {
+		t: (key: string, params?: Record<string, string | number>) => string;
+		scheduling: ScheduledPublishingState;
+	}
 ): GlobalSearchGroup {
 	const titleField =
 		type.titleField !== null ? (type.fields.find((f) => f.name === type.titleField) ?? null) : null;
-	const statusField =
-		type.statusField !== null
-			? (type.fields.find((f) => f.name === type.statusField) ?? null)
-			: null;
 
 	const hits = page.items.map((record): GlobalSearchHit => {
 		const title = titleField
@@ -150,15 +154,14 @@ export function toGlobalSearchGroup(
 				)
 			: untitled;
 
-		const rawStatus = statusField ? record.values[statusField.name] : null;
-		const statusValue = typeof rawStatus === 'string' && rawStatus !== '' ? rawStatus : null;
+		const badge = describeStatusBadge(type, record.values, status.scheduling, locale, status.t);
 
 		return {
 			type: type.name,
 			id: record.id,
 			title,
-			statusLabel: statusValue === null ? null : (type.statusLabels?.[statusValue] ?? statusValue),
-			statusKind: statusValue === null ? null : classifyStatusBadge(statusValue)
+			statusLabel: badge?.label ?? null,
+			statusKind: badge?.kind ?? null
 		};
 	});
 

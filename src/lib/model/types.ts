@@ -7,7 +7,13 @@
  * PURO (ley L1 del contrato P2): sin Svelte, sin el puerto, sin `pocketbase`.
  */
 
-import type { ContentType, Field, FieldSubtype, JsonValue } from '$lib/backend/types';
+import type {
+	ContentType,
+	Field,
+	FieldSubtype,
+	JsonValue,
+	ScheduledPublishingState
+} from '$lib/backend/types';
 import type { FilterNode } from '$lib/backend/query';
 import type { TypePermissions } from '$lib/backend/access';
 
@@ -40,6 +46,14 @@ export interface ContentModel {
 	 *  verdad de las vistas en sí (sources, filtros…), `nav` solo la referencia para pintar el
 	 *  enlace. */
 	mergedViews: ResolvedMergedView[];
+	/**
+	 * ¿Publica el servidor los borradores con «Publicar el» vencido (`extensions/vegaschedule`)?
+	 * Lo rellena `loadContentModel` preguntando al puerto (`BackendPort.scheduledPublishing`), y
+	 * SOLO si algún tipo declara `publishAtField`; ausente ⇒ se trata como `'unknown'`. Es lo que
+	 * decide si un borrador con fecha futura se anuncia «Programada» (`describeStatusBadge`) y si el
+	 * campo lleva aviso de «sin efecto». `resolveContentModel` (puro) nunca lo rellena.
+	 */
+	scheduledPublishing?: ScheduledPublishingState;
 	/**
 	 * (M) Vocabulario de tipos de bloque declarado en `blockTypes` (RAÍZ del manifiesto, vocabulario
 	 * de tipos de bloque `#4cfd4f7f`): hero, texto, galería, cta… En ORDEN de declaración del

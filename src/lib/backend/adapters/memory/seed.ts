@@ -4,7 +4,14 @@
  * NO es un formato PB. Este es el formato que P8 usará para los datos de demo.
  */
 
-import type { BackupFile, ContentType, FieldValue, FileRef, RecordId } from '../../types';
+import type {
+	BackupFile,
+	ContentType,
+	FieldValue,
+	FileRef,
+	RecordId,
+	ScheduledPublishingState
+} from '../../types';
 
 export interface MemorySeed {
 	/** Credenciales que login acepta. Default demo (sin seed): admin@vega.test / cualquier password no vacía. */
@@ -38,4 +45,7 @@ export interface MemorySeed {
 	/** Cuánto tarda `administration.createBackup()`, en ms (la demo lo usa para que se vea la
 	 *  copia en curso). Default `0`. */
 	backupDurationMs?: number;
+	/** Lo que responde `scheduledPublishing()`. Default `'inactive'`: `memory` no tiene cron que
+	 *  publique nada, y fingirlo enseñaría «Programada» en una demo donde nunca se publica. */
+	scheduledPublishing?: ScheduledPublishingState;
 }

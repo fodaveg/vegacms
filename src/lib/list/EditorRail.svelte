@@ -132,7 +132,13 @@
 	 *  registro). MISMA insignia que la tabla y la cabecera del formulario, «Programada · fecha»
 	 *  incluida (`describeStatusBadge`). */
 	function railStatus(record: VegaRecord): StatusBadge | null {
-		return describeStatusBadge(contentType, record.values, ctx.locale, ctx.t);
+		return describeStatusBadge(
+			contentType,
+			record.values,
+			ctx.model.scheduledPublishing ?? 'unknown',
+			ctx.locale,
+			ctx.t
+		);
 	}
 
 	/** Fecha de la fila ya formateada (relativa/absoluta, `describeCell`), o `null`. */

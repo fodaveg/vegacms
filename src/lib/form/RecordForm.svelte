@@ -123,11 +123,15 @@
 	 *   declara. Sin `statusField`, o con el campo vacío, no se pinta nada (nunca una insignia
 	 *   "vacía"). Texto, color y `data-status` salen de `describeStatusBadge` (misma función que
 	 *   la tabla y el raíl): un borrador GUARDADO con «Publicar el» futuro dice «Programada ·
-	 *   fecha». Lee `baseline`, no el valor en edición: la cabecera cuenta lo que hay en el
+	 *   fecha» solo si el servidor tiene `vegaschedule`; si no, «Borrador · fecha sin efecto» o
+	 *   «sin confirmar». Lee `baseline`, no el valor en edición: la cabecera cuenta lo que hay en el
 	 *   servidor, no lo que aún no se ha guardado.
 	 * - **Ayuda de «Publicar el»** (`type.publishAtField`): si el manifiesto no le da `help`, el
 	 *   campo lleva `editor.publishAt.help`, que avisa de que hace falta `vegaschedule` en el
-	 *   servidor (Vega no puede detectarlo desde el navegador). Una ayuda del manifiesto gana.
+	 *   servidor. Una ayuda del manifiesto gana. Además, si `ctx.model.scheduledPublishing` no es
+	 *   `'active'` (servidor sin el cron, comprobado, o sin comprobar), el campo lleva un AVISO
+	 *   visible (`notice`, `editor.publishAt.inactive`/`.unknown`): una ayuda sola se lee de pasada,
+	 *   y aquí la consecuencia es una página que nunca se publica.
 	 * - **Punto "sin guardar" (mockup `.dirty-dot`)**: el indicador dirty pasa de píldora con texto
 	 *   a un punto de 8px en `--warning` junto al título. El TEXTO (`editor.dirty`) no desaparece,
 	 *   se vuelve `.vega-visually-hidden` dentro del punto: un punto de color sin alternativa
@@ -472,7 +476,17 @@
 	 *  `label` pasa por `statusLabels` (P2, opt-in) igual que la insignia de `RecordTable`; `raw`
 	 *  se conserva aparte porque es lo que va al atributo `data-status` (valor canónico, estable
 	 *  para tests y para cualquier hoja de estilo que quiera engancharse a un estado concreto). */
-	const statusTag = $derived(describeStatusBadge(type, baseline, ctx.locale, ctx.t));
+	/** ¿Cumple el servidor «Publicar el»? (`ContentModel.scheduledPublishing`, ver cabecera). */
+	const scheduling = $derived(ctx.model.scheduledPublishing ?? 'unknown');
+
+	const statusTag = $derived(describeStatusBadge(type, baseline, scheduling, ctx.locale, ctx.t));
+
+	/** Aviso VISIBLE bajo «Publicar el» cuando el servidor no la va a cumplir, o no se sabe. */
+	const publishAtNotice = $derived(
+		scheduling === 'active'
+			? null
+			: ctx.t(scheduling === 'inactive' ? 'editor.publishAt.inactive' : 'editor.publishAt.unknown')
+	);
 
 	/** Ayuda por defecto de «Publicar el» (ver cabecera): solo si el manifiesto no declara una. */
 	function withDefaultHelp(field: ResolvedField): ResolvedField {
@@ -1180,7 +1194,11 @@
 				: field.name === pagePathFieldName && model.mode === 'create'
 					? pathAction
 					: undefined}
-			notice={field.name === pagePathFieldName ? (pathNotUniqueNotice ?? undefined) : undefined}
+			notice={field.name === pagePathFieldName
+				? (pathNotUniqueNotice ?? undefined)
+				: field.name === type.publishAtField
+					? (publishAtNotice ?? undefined)
+					: undefined}
 			onChange={(value) => handleFieldChange(field.name, value)}
 		/>
 	{/snippet}

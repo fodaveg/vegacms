@@ -9,7 +9,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import RecordTable from './RecordTable.svelte';
 import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import { ALL_PERMISSIONS } from '$lib/backend/access';
-import type { ContentType, Field, VegaRecord } from '$lib/backend/types';
+import type { ContentType, Field, ScheduledPublishingState, VegaRecord } from '$lib/backend/types';
 import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
 import { t } from '$lib/i18n';
 
@@ -369,7 +369,11 @@ describe('RecordTable.svelte — insignia «Programada» (publicación programad
 		subtype: null
 	};
 
-	function mountWithStatus(publishAtField: string | null, values: Record<string, string>) {
+	function mountWithStatus(
+		publishAtField: string | null,
+		values: Record<string, string>,
+		scheduledPublishing: ScheduledPublishingState = 'active'
+	) {
 		const contentType: ResolvedContentType = {
 			...makePageType(null),
 			schema: {
@@ -385,7 +389,8 @@ describe('RecordTable.svelte — insignia «Programada» (publicación programad
 		};
 		const ctx = {
 			...fakeCtx(),
-			t: (key: string, params?: Record<string, string | number>) => t('es', key, params)
+			t: (key: string, params?: Record<string, string | number>) => t('es', key, params),
+			model: { scheduledPublishing }
 		} as unknown as VegaAppContext;
 		const target = document.createElement('div');
 		document.body.appendChild(target);
@@ -419,6 +424,13 @@ describe('RecordTable.svelte — insignia «Programada» (publicación programad
 		expect(badge?.dataset.status).toBe('draft');
 		expect(badge?.dataset.statusKind).toBe('scheduled');
 		expect(badge?.textContent?.trim()).toMatch(/^Programada · \S.+$/);
+	});
+
+	test('servidor SIN vegaschedule: el mismo borrador dice «Borrador · fecha sin efecto»', () => {
+		mounted = mountWithStatus('publishAt', { status: 'draft', publishAt: future }, 'inactive');
+		const badge = mounted.target.querySelector<HTMLElement>('.vega-status-badge');
+		expect(badge?.dataset.statusKind).toBe('draft');
+		expect(badge?.textContent?.trim()).toBe('Borrador · fecha sin efecto');
 	});
 
 	test('sin publishAtField, el mismo registro se ve «Borrador» como siempre', () => {

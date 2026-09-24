@@ -25,6 +25,8 @@ export type {
 	RecordEvent,
 	RecordId,
 	RecordInput,
+	ScheduledPublishingState,
+	ServerFeatures,
 	SecondFactorMethod,
 	Session,
 	StrongAuthLoginOutcome,

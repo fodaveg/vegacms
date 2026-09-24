@@ -336,8 +336,11 @@ Un tipo que declara `publishAtField` en el manifiesto (ver
 un campo «Publicar el». Quien lo cumple es el servidor:
 [`extensions/vegaschedule`](../extensions/vegaschedule/README.md), un cron de PocketBase que cada
 minuto pasa a `published` los borradores cuya fecha ya pasó y vacía la fecha. Se registra desde
-`OnServe` como las demás extensiones. Sin ella la fecha no hace nada, y Vega no puede saberlo desde
-el navegador: por eso la ayuda del campo lo dice.
+`OnServe` como las demás extensiones. Sin ella la fecha no hace nada, y Vega lo dice: con sesión de
+superusuario consulta `GET /api/crons` (en 0.39.6, medido: 401 sin sesión, 403 con un registro
+`auth` normal, 200 con superusuario) y deja el resultado en `vega.schemaSnapshot` para los
+editores. Sin el job `vegaschedule`, un borrador con fecha futura se ve «Borrador · fecha sin
+efecto» y el campo lleva un aviso, en vez de «Programada».
 
 Con `vegabuild` en el mismo binario, `vegaschedule` puede disparar el mismo build que el botón
 "Publicar" tras cada publicación programada (receta en su README). En un sitio renderizado en el

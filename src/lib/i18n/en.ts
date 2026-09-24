@@ -383,6 +383,11 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// from the browser whether the server runs `vegaschedule`: the help says so.
 	'editor.publishAt.help':
 		'If the record is a draft, it publishes itself at this time. Requires the vegaschedule extension on the server; without it, the date does nothing.',
+	// VISIBLE notice under the field when the server will not honour it (`ContentModel.scheduledPublishing`).
+	'editor.publishAt.inactive':
+		'This server does not run the vegaschedule extension: the date will not publish anything. Publish by hand or ask for it to be installed.',
+	'editor.publishAt.unknown':
+		'Could not check whether this server publishes scheduled dates (an administrator checks it when signing in to Vega). Until then, do not count on it publishing itself.',
 
 	// ————— Embedded orderable blocks (`blocks` capability, "editor" batch, Phase A) —————
 	// Deliberately reuses existing keys for the rest of a block's lifecycle:
@@ -543,6 +548,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// Draft whose "Publish on" date is in the future (`publishAtField`, `describeStatusBadge` in
 	// `list/cell.ts`): list, rail and form header. `{date}` = "Oct 12 10:00 AM".
 	'list.status.scheduled': 'Scheduled · {date}',
+	// Same draft when the server does NOT run `vegaschedule` (checked) or it could not be checked
+	// (`ContentModel.scheduledPublishing`). `{status}` = the "draft" label.
+	'list.status.scheduledInactive': '{status} · date has no effect',
+	'list.status.scheduledUnconfirmed': '{status} · {date} unconfirmed',
 
 	// ————— List toolbar (P4 contract, Phase 4d) —————
 	'list.search.placeholder': 'Filter by title or slug…',

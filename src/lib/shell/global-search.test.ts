@@ -14,6 +14,7 @@ import { validateQuery } from '$lib/backend/query';
 import { ALL_PERMISSIONS } from '$lib/backend/access';
 import type { Field, Page, VegaRecord } from '$lib/backend/types';
 import type { ContentModel, ResolvedContentType, ResolvedField } from '$lib/model/types';
+import { t } from '$lib/i18n';
 import {
 	buildGlobalSearchQuery,
 	canSearchType,
@@ -125,6 +126,10 @@ const statusSelect = field({
 	options: ['draft', 'published'],
 	multiple: false
 });
+
+const esT = (key: string, params?: Record<string, string | number>) => t('es', key, params);
+/** Lo que pasa `global-search.svelte.ts` desde el `ctx`: traductor y estado del servidor. */
+const STATUS = { t: esT, scheduling: 'unknown' as const };
 
 function page(items: VegaRecord[], totalItems = items.length): Page<VegaRecord> {
 	return {
@@ -246,7 +251,8 @@ describe('toGlobalSearchGroup', () => {
 				{ id: 'r2', type: 'posts', values: { title: 'Otro', status: 'published' } }
 			]),
 			'es',
-			'(sin título)'
+			'(sin título)',
+			STATUS
 		);
 
 		expect(group.label).toBe('Entradas');
@@ -276,7 +282,8 @@ describe('toGlobalSearchGroup', () => {
 			type,
 			page([{ id: 'r1', type: 'posts', values: { title: '', status: '' } }]),
 			'es',
-			'(sin título)'
+			'(sin título)',
+			STATUS
 		);
 
 		expect(group.hits[0].title).toBe('(sin título)');
@@ -289,11 +296,43 @@ describe('toGlobalSearchGroup', () => {
 			type,
 			page([{ id: 'r1', type: 'posts', values: { title: 'Hola' } }], 42),
 			'es',
-			'(sin título)'
+			'(sin título)',
+			STATUS
 		);
 
 		expect(group.totalItems).toBe(42);
 		expect(group.hits).toHaveLength(1);
+	});
+
+	test('borrador con «Publicar el» futuro: la misma insignia que el listado, según el servidor', () => {
+		const scheduledType = contentType(
+			'pages',
+			[titleText, statusSelect, field({ name: 'publishAt', type: 'date' })],
+			{
+				titleField: 'title',
+				statusField: 'status',
+				statusLabels: { draft: 'Borrador' },
+				publishAtField: 'publishAt'
+			}
+		);
+		const future = new Date(Date.now() + 30 * 24 * 3_600_000).toISOString();
+		const records = page([
+			{ id: 'r1', type: 'pages', values: { title: 'Otoño', status: 'draft', publishAt: future } }
+		]);
+
+		const active = toGlobalSearchGroup(scheduledType, records, 'es', '(sin título)', {
+			t: esT,
+			scheduling: 'active'
+		});
+		expect(active.hits[0].statusKind).toBe('scheduled');
+		expect(active.hits[0].statusLabel).toMatch(/^Programada · /);
+
+		const inactive = toGlobalSearchGroup(scheduledType, records, 'es', '(sin título)', {
+			t: esT,
+			scheduling: 'inactive'
+		});
+		expect(inactive.hits[0].statusKind).toBe('draft');
+		expect(inactive.hits[0].statusLabel).toBe('Borrador · fecha sin efecto');
 	});
 });
 

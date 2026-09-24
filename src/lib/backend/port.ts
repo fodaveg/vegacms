@@ -20,6 +20,7 @@ import type {
 	RecordEvent,
 	RecordId,
 	RecordInput,
+	ScheduledPublishingState,
 	Session,
 	StrongAuthLoginOutcome,
 	StrongAuthStatus,
@@ -200,6 +201,18 @@ export interface BackendPort {
 
 	// ——— Esquema (§4.2 / §6) ———
 	listContentTypes(): Promise<ContentType[]>;
+	/**
+	 * ¿Publica este servidor los borradores programados (`extensions/vegaschedule`)? Es la única
+	 * forma de que Vega no anuncie «Programada» en un servidor que nunca los va a publicar. Nunca
+	 * lanza: lo que no se puede comprobar es `'unknown'`.
+	 * - PB, superusuario: `GET /api/crons` (reservada a superusuarios, medido en 0.39.6: 401 sin
+	 *   sesión, 403 con un registro `auth` normal) y busca el job `vegaschedule`.
+	 * - PB, editor: lo que dejó escrito un superusuario en `vega.schemaSnapshot`
+	 *   (`ContentType.serverFeatures` de la entrada `vega`); sin ese dato, `'unknown'`.
+	 * - memory: `MemorySeed.scheduledPublishing`, `'inactive'` por defecto (no hay cron).
+	 * Opcional en el contrato: un adaptador que no lo implementa equivale a `'unknown'`.
+	 */
+	scheduledPublishing?(): Promise<ScheduledPublishingState>;
 
 	// ——— Registros (§4.2, §4.3) ———
 	list(type: string, query?: Query): Promise<Page<VegaRecord>>;

@@ -73,8 +73,9 @@
 	 * - **Programada (publicación programada, `ResolvedContentType.publishAtField`)**: texto, color
 	 *   y `data-status` los decide `describeStatusBadge` (`cell.ts`), la MISMA función que el raíl
 	 *   y la cabecera del formulario. Un `draft` con fecha «Publicar el» futura pinta «Programada ·
-	 *   12 oct 10:00» con `data-status-kind="scheduled"`; `data-status` sigue siendo `draft`. Sin
-	 *   `publishAtField` el resultado es idéntico al de siempre.
+	 *   12 oct 10:00» con `data-status-kind="scheduled"` SOLO si el servidor tiene `vegaschedule`
+	 *   (`ctx.model.scheduledPublishing`); si no, «Borrador · fecha sin efecto» o «sin confirmar».
+	 *   `data-status` sigue siendo `draft`. Sin `publishAtField` el resultado es el de siempre.
 	 * - **Subtítulo bajo el título (M3, config-driven, `ResolvedContentType.subtitleField`,
 	 *   mockup `.cell-title .slug`)**: capacidad OPT-IN por manifiesto (P2) — un tipo que no
 	 *   declara `subtitleField` no cambia su render (`posts`, entre otros, no lo declara). Vive en
@@ -443,6 +444,7 @@
 									{@const badge = describeStatusBadge(
 										contentType,
 										record.values,
+										ctx.model.scheduledPublishing ?? 'unknown',
 										ctx.locale,
 										ctx.t
 									)}

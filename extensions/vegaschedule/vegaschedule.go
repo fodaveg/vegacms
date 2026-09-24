@@ -7,8 +7,9 @@
 // (`docs/CONFIG.md#publicación-programada-publishatfield`). The manifest is re-read on every tick,
 // so declaring a new schedulable type in Vega's settings needs no restart.
 //
-// Vega itself (a static SPA) cannot tell whether this extension is installed; the field's help
-// text in the form says it needs it. Without it, a scheduled date is inert data.
+// Without this extension a scheduled date is inert data. Vega tells: a superuser session reads
+// PocketBase's `GET /api/crons` looking for the job id `vegaschedule` (Config.JobID's default) and
+// leaves the answer in `vega.schemaSnapshot` for editors (`src/lib/backend/scheduled-publishing.ts`).
 //
 // The date is CLEARED when the record is published. It is an instruction ("publish at"), not a
 // record of history: leaving a past date in place would make an editor's later "back to draft"
@@ -76,7 +77,8 @@ type Config struct {
 	// record with that key, falls back to its first record — the same legacy rule Vega follows.
 	ManifestKey string
 	// JobID is the cron job id (it shows up in PocketBase's dashboard, under Crons). Default:
-	// "vegaschedule".
+	// "vegaschedule". Vega detects the extension by this exact id in `GET /api/crons`: change it
+	// and Vega reports scheduled publishing as absent.
 	JobID string
 	// Schedule is the cron expression. Default: every minute ("* * * * *").
 	Schedule string

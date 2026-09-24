@@ -14,11 +14,16 @@ import type {
 	FieldValue,
 	RecordEvent,
 	RecordInput,
+	ScheduledPublishingState,
 	Session,
 	ThumbSpec,
 	VegaRecord
 } from '../../types';
 import type { FieldError } from '../../errors';
+import {
+	scheduledPublishingFromCrons,
+	scheduledPublishingFromSnapshot
+} from '../../scheduled-publishing';
 import { VegaConflictError, VegaError } from '../../errors';
 import type { BackendPort } from '../../port';
 import { recordVersion } from '../../version';
@@ -377,6 +382,32 @@ export function createPocketBaseBackend({
 	}
 
 	/**
+	 * `BackendPort.scheduledPublishing()` (ver `backend/scheduled-publishing.ts`). Superusuario:
+	 * `GET /api/crons`, una vez por adaptador — PocketBase registra sus crons al arrancar el
+	 * proceso, así que no cambian mientras dura la sesión. Editor: el dato del snapshot. Nunca
+	 * lanza, y va FUERA de `guarded()` a propósito: un 401/403 aquí no es "sesión caducada", es
+	 * "no se ha podido comprobar", y no debe latchear `auth-expired`. Un fallo no se cachea.
+	 */
+	let cachedScheduledPublishing: Promise<ScheduledPublishingState> | null = null;
+
+	function detectScheduledPublishing(): Promise<ScheduledPublishingState> {
+		if (!CAPABILITIES.schemaDiscovery) {
+			return fetchContentTypesFromSnapshot().then(scheduledPublishingFromSnapshot, () => 'unknown');
+		}
+		if (!cachedScheduledPublishing) {
+			cachedScheduledPublishing = pb.send('/api/crons', { method: 'GET' }).then(
+				(raw: unknown) => scheduledPublishingFromCrons(raw),
+				(err: unknown): ScheduledPublishingState => {
+					cachedScheduledPublishing = null;
+					console.warn('[vega:scheduledPublishing] No se pudo leer /api/crons.', err);
+					return 'unknown';
+				}
+			);
+		}
+		return cachedScheduledPublishing;
+	}
+
+	/**
 	 * Lectura CRUDA del registro `vega` vía `pb.collection(...).getList` (no `port.list`/
 	 * `port.get`, que exigirían conocer YA el `ContentType` de `vega` — circularidad, esta
 	 * función ES quien lo produce). 404 (la colección `vega` no existe todavía, bootstrap
@@ -592,6 +623,10 @@ export function createPocketBaseBackend({
 
 		async listContentTypes() {
 			return guarded(() => freshContentTypes());
+		},
+
+		scheduledPublishing() {
+			return detectScheduledPublishing();
 		},
 
 		async list(type, query?: Query) {

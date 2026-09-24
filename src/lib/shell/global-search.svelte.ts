@@ -126,7 +126,10 @@ export function createGlobalSearchState(
 		let authExpiredReported = false;
 		for (const [index, outcome] of settled.entries()) {
 			if (outcome.status === 'fulfilled') {
-				const group = toGlobalSearchGroup(types[index], outcome.value, ctx.locale, untitled);
+				const group = toGlobalSearchGroup(types[index], outcome.value, ctx.locale, untitled, {
+					t: ctx.t,
+					scheduling: ctx.model.scheduledPublishing ?? 'unknown'
+				});
 				if (group.hits.length > 0) groups.push(group);
 				continue;
 			}
