@@ -8,11 +8,13 @@
 	import { getVegaContext } from '$lib/app-context';
 	import type { WidgetProps } from './types';
 	import { fieldIds } from '../field-ids';
+	import { getFieldScope } from '../field-scope';
 
 	let { field }: WidgetProps = $props();
 
 	const ctx = getVegaContext();
-	const ids = $derived(fieldIds(field.name));
+	const fieldScope = getFieldScope();
+	const ids = $derived(fieldIds(field.name, fieldScope));
 	const backendType = $derived(
 		field.schema.type === 'unsupported' ? field.schema.backendType : field.schema.type
 	);

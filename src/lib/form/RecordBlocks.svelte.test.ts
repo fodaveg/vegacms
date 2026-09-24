@@ -190,6 +190,36 @@ describe('RecordBlocks.svelte', () => {
 		expect(mounted.target.querySelector('.vega-blocks-count')?.textContent).toBe('2');
 	});
 
+	test('ids de campo por fila: dos bloques con "heading" no colisionan, y la etiqueta del desplegado apunta a SU input (hallazgo p1, accesibilidad)', async () => {
+		mounted = await mountBlocks('landing1', vi.fn());
+		await settle();
+
+		// Las DOS filas están plegadas (`hidden`, nunca `{#if}`, ver la cabecera del componente):
+		// los dos `BlockEditor` ya están montados con su propio `heading`, así que el id NO puede
+		// colisionar aunque nadie haya desplegado nada todavía (el hallazgo original: con 3
+		// secciones, `document.querySelectorAll('#vega-field-heading')` daba 3).
+		const headingInputs = Array.from(
+			mounted.target.querySelectorAll<HTMLInputElement>('.vega-block-fields input')
+		);
+		expect(headingInputs).toHaveLength(2);
+		expect(new Set(headingInputs.map((el) => el.id)).size).toBe(2);
+		expect(mounted.target.querySelectorAll('#vega-field-heading')).toHaveLength(0);
+
+		// Despliega el SEGUNDO bloque ('Features', b2): su etiqueta "Heading" tiene que resolver a
+		// SU input visible, no al del primero (que sigue oculto).
+		mounted.target.querySelectorAll<HTMLButtonElement>('.vega-block-toggle')[1]?.click();
+		await settle();
+
+		const secondBody = mounted.target.querySelector('#vega-block-body-b2');
+		expect(secondBody?.hasAttribute('hidden')).toBe(false);
+		const secondInput = secondBody?.querySelector<HTMLInputElement>('input');
+		const secondLabel = mounted.target.querySelector<HTMLLabelElement>(
+			`label[for="${secondInput?.id}"]`
+		);
+		expect(secondLabel?.textContent?.trim()).toBe('Heading');
+		expect(secondBody?.contains(secondLabel)).toBe(true);
+	});
+
 	test('sin parentId (registro padre sin guardar): aviso, sin lista ni botón de crear', async () => {
 		mounted = await mountBlocks(null, vi.fn());
 		await settle();

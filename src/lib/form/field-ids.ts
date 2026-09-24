@@ -5,6 +5,13 @@
  * `{field, value, error, disabled, readonly, onChange}` — sin ids ni "slots" extra — así que
  * ambos lados derivan el MISMO id a partir de `field.name`, la única pieza que ya comparten, en
  * vez de pasarlo como prop fuera de esa interfaz.
+ *
+ * `scope` (hallazgo p1, lote "formularios y medios"): namespace OPCIONAL que antepone
+ * `BlockEditor.svelte` (vía `field-scope.ts`, léase su cabecera) cuando el campo vive dentro de
+ * una fila de bloque — varias filas del MISMO tipo comparten `field.name`, y sin `scope` producían
+ * ids duplicados (HTML inválido, rompía la asociación `label[for]`). `undefined`/`null`
+ * (comportamiento histórico, cualquier campo fuera de un bloque) deriva el id SOLO de `name`,
+ * exactamente como antes.
  */
 
 export interface FieldIds {
@@ -20,9 +27,10 @@ export interface FieldIds {
 	errorId: string;
 }
 
-/** Ids para el campo `name` (`ResolvedField.name`, único dentro de un `ContentType`). */
-export function fieldIds(name: string): FieldIds {
-	const base = `vega-field-${name}`;
+/** Ids para el campo `name` (`ResolvedField.name`, único dentro de un `ContentType`), namespaced
+ *  por `scope` cuando lo hay (ver cabecera). */
+export function fieldIds(name: string, scope?: string | null): FieldIds {
+	const base = scope ? `vega-field-${scope}-${name}` : `vega-field-${name}`;
 	return {
 		inputId: base,
 		labelId: `${base}-label`,

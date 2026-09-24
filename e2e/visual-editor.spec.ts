@@ -161,6 +161,14 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 			'Tu contenido, en tu servidor'
 		);
 		await expect(headingInput(page)).toHaveValue('Tu contenido, en tu servidor');
+		// Aserción que el hallazgo original esquivaba (ver la cabecera de `headingInput`): el arreglo
+		// namespacea el id por `record.id` (`field-ids.ts`/`field-scope.ts`), así que con el SEGUNDO
+		// bloque desplegado `getByLabel('Heading')` ya resuelve al input VISIBLE — antes del arreglo
+		// no encontraba nada (el `label[for="vega-field-heading"]` del DOM apuntaba siempre al
+		// primer nodo, oculto).
+		await expect(visibleInspectorBody(page).getByLabel('Heading')).toHaveValue(
+			'Tu contenido, en tu servidor'
+		);
 	});
 
 	test('guardar un texto con refresco en vivo lo refleja SIN recargar el iframe (no parpadea)', async ({

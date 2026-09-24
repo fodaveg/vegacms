@@ -18,6 +18,7 @@
 	import type { MarkdownExtensionStorage, MarkdownManager } from '@tiptap/markdown';
 	import type { WidgetProps } from './types';
 	import { fieldIds } from '../field-ids';
+	import { getFieldScope } from '../field-scope';
 	import { getVegaContext } from '$lib/app-context';
 	import {
 		applyMarkdownCommand,
@@ -38,7 +39,8 @@
 	let { field, value, error, disabled, readonly, onChange }: WidgetProps = $props();
 
 	const ctx = getVegaContext();
-	const ids = $derived(fieldIds(field.name));
+	const fieldScope = getFieldScope();
+	const ids = $derived(fieldIds(field.name, fieldScope));
 	const previewId = $derived(`${ids.inputId}-preview`);
 	const unsafeUriErrorId = $derived(`${ids.inputId}-unsafe-uri`);
 	let unsafeUriError = $state(false);

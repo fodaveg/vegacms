@@ -30,6 +30,7 @@
 	import type { RecordId, VegaRecord } from '$lib/backend/types';
 	import { VegaError } from '$lib/backend/errors';
 	import { fieldIds } from '../field-ids';
+	import { getFieldScope } from '../field-scope';
 	import { getVegaContext } from '$lib/app-context';
 	import Pagination from '$lib/list/Pagination.svelte';
 	import { VEGA_MEDIA_COLLECTION } from '$lib/media/media-collection';
@@ -64,7 +65,8 @@
 	let { field, value, error, disabled, readonly, onChange }: WidgetProps = $props();
 
 	const ctx = getVegaContext();
-	const ids = $derived(fieldIds(field.name));
+	const fieldScope = getFieldScope();
+	const ids = $derived(fieldIds(field.name, fieldScope));
 	const describedBy = $derived(
 		[field.help ? ids.helpId : null, error ? ids.errorId : null]
 			.filter((id): id is string => id !== null)

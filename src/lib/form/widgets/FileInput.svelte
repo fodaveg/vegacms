@@ -70,6 +70,7 @@
 	import { SvelteSet } from 'svelte/reactivity';
 	import type { WidgetProps } from './types';
 	import { fieldIds } from '../field-ids';
+	import { getFieldScope } from '../field-scope';
 	import { getVegaContext } from '$lib/app-context';
 	import Icon from '$lib/icons/Icon.svelte';
 	import { getRecordIdentity } from '../record-context';
@@ -90,7 +91,8 @@
 	const ctx = getVegaContext();
 	const identity = getRecordIdentity(); // null = fuera de un RecordForm (degradado, ver cabecera)
 
-	const ids = $derived(fieldIds(field.name));
+	const fieldScope = getFieldScope();
+	const ids = $derived(fieldIds(field.name, fieldScope));
 	const rejectionId = $derived(`${ids.inputId}-rejection`);
 	const inert = $derived(disabled || readonly);
 	const schema = $derived(field.schema.type === 'file' ? field.schema : null);
