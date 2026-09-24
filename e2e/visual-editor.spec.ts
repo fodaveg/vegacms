@@ -163,10 +163,14 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		await expect(headingInput(page)).toHaveValue('Tu contenido, en tu servidor');
 		// Aserción que el hallazgo original esquivaba (ver la cabecera de `headingInput`): el arreglo
 		// namespacea el id por `record.id` (`field-ids.ts`/`field-scope.ts`), así que con el SEGUNDO
-		// bloque desplegado `getByLabel('Heading')` ya resuelve al input VISIBLE — antes del arreglo
-		// no encontraba nada (el `label[for="vega-field-heading"]` del DOM apuntaba siempre al
-		// primer nodo, oculto).
-		await expect(visibleInspectorBody(page).getByLabel('Heading')).toHaveValue(
+		// bloque desplegado `getByLabel()` ya resuelve al input VISIBLE — antes del arreglo no
+		// encontraba nada (el `label[for="vega-field-heading"]` del DOM apuntaba siempre al primer
+		// nodo, oculto). Label «Título», no «Heading»: `seccion_2` siembra `tipo: 'texto'`
+		// (`SECCIONES_RECORDS`, `demo-seed.ts`), y en modo tipado (`typeField`/`dataField` de
+		// `paginas.blocks`) el label del campo `heading` sale de `blockTypes.texto.fields`
+		// (`demo-seed.ts`), que lo declara `label: 'Título'` — no del `humanizeLabel('heading')`
+		// genérico que daría «Heading».
+		await expect(visibleInspectorBody(page).getByLabel('Título', { exact: true })).toHaveValue(
 			'Tu contenido, en tu servidor'
 		);
 	});
