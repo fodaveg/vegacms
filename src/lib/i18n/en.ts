@@ -427,6 +427,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// Phase P6·6e (D-P6.6): button that opens `MediaPicker.svelte`. Fully hidden without
 	// `ctx.mediaPicker` (L-P6.9), never shown disabled without explanation.
 	'form.file.pickFromLibrary': 'Choose from the library',
+	// INFORMATIVE notice (audit sheet, piece 3): only in the session where the file is picked from
+	// the library. The `file` field stores neither the alt nor the `mediaId` (L-P6.8, [SUP-5]).
+	'form.file.libraryMissingAltOne': 'This image has no alt text in the library.',
+	'form.file.libraryMissingAltMany': '{count} images have no alt text in the library.',
 
 	// ————— Richtext/markdown editor (P5 contract, Phase F5-d) —————
 	'form.editor.toolbarLabel': 'Formatting tools',
@@ -758,6 +762,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.detail.addTag': 'Add',
 	'media.detail.removeTag': 'Remove «{tag}»',
 	'media.detail.saveSuccess': 'Media updated.',
+	// Alt text (audit sheet, piece 3): a non-blocking notice, images only.
+	'media.alt.missing': 'No alt text',
+	'media.detail.altMissingHint': 'No alt text: a screen reader will read «{name}».',
+	'media.detail.altHelp': 'Describe what is shown, not the file name.',
 
 	// ————— Media: delete (Phase P6·6d) —————
 	// D-P6.5/audit H3: the media model COPIES bytes, it never references (`filePerRecord`) —
@@ -852,6 +860,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.picker.searchPlaceholder': 'Search…',
 	'media.picker.empty': 'No asset matches the search or the allowed file type.',
 	'media.picker.selectedCount': '{count} selected',
+	'media.picker.missingAltCount': '{count} without alt text',
 	'media.picker.insert': 'Insert',
 	'media.picker.inserting': 'Inserting…',
 

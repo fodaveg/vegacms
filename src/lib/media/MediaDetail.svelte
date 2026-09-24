@@ -52,6 +52,12 @@
 	 * validación de mime/tamaño reutiliza `validateMediaFile`/`findMediaFileFieldSchema`
 	 * (`media-upload.ts`, la MISMA que usa `MediaUpload` al subir) contra el esquema DESCUBIERTO —
 	 * nunca una copia local de las constraints.
+	 *
+	 * **Pista del texto alternativo (audit del 23 sep, lámina pieza 3)**: solo en imágenes, bajo el
+	 * campo `alt`, y sigue a lo que se ESCRIBE (`altDraft`), no al valor guardado: vacío → aviso en
+	 * `--warning` con icono («un lector de pantalla leerá «nombre-del-fichero»», que es lo que de
+	 * verdad pasa, `mediaImgAlt`); en cuanto hay texto → ayuda neutra. Nunca bloquea «Guardar».
+	 * `aria-describedby` la ata al campo, así que se oye al enfocarlo.
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import { VegaError } from '$lib/backend/errors';
@@ -59,6 +65,7 @@
 	import Icon from '$lib/icons/Icon.svelte';
 	import UsedInPanel from '$lib/integrity/UsedInPanel.svelte';
 	import { addTag, normalizeTagInput, removeTag, tagsEqual } from './media-tags';
+	import { classifyMediaAssetType, mediaMissingAlt } from './media-card';
 	import { mediaDisplayName, mediaImgAlt, toMediaItemView, type MediaItemView } from './media-item';
 	import { resolveMediaFullSrc } from './media-thumb';
 	import { findMediaFileFieldSchema, validateMediaFile } from './media-upload';
@@ -157,6 +164,13 @@
 	);
 
 	const fullSrc = $derived(item ? resolveMediaFullSrc(ctx.port, item) : null);
+
+	/** La pista del alt solo existe para imágenes (ver cabecera). */
+	const isImage = $derived(item !== null && classifyMediaAssetType(item.fileName) === 'image');
+	/** Sigue al borrador, no al valor guardado (ver cabecera). */
+	const altDraftMissing = $derived(
+		item !== null && mediaMissingAlt({ alt: altDraft, fileName: item.fileName })
+	);
 
 	function focusableItems(): HTMLElement[] {
 		if (!dialogEl) return [];
@@ -453,7 +467,28 @@
 						bind:value={altDraft}
 						bind:this={altInputEl}
 						disabled={editingDisabled}
+						aria-describedby={isImage ? 'vega-media-detail-alt-hint' : undefined}
 					/>
+					{#if isImage}
+						{#if altDraftMissing}
+							<p
+								id="vega-media-detail-alt-hint"
+								class="vega-media-detail-alt-hint vega-media-detail-alt-hint--warn"
+								data-media-alt-hint="missing"
+							>
+								<Icon id="warning" size={12} />
+								<span>{ctx.t('media.detail.altMissingHint', { name: item.fileName })}</span>
+							</p>
+						{:else}
+							<p
+								id="vega-media-detail-alt-hint"
+								class="vega-media-detail-alt-hint"
+								data-media-alt-hint="help"
+							>
+								{ctx.t('media.detail.altHelp')}
+							</p>
+						{/if}
+					{/if}
 				</div>
 
 				<div class="vega-media-detail-field">
@@ -704,6 +739,28 @@
 		background: var(--surface);
 		color: var(--ink);
 		font: inherit;
+	}
+
+	/* Pista del alt (lámina del audit, pieza 3): ayuda neutra en `--ink-2` (AA, mismo criterio que
+	   `.vega-field-help`), aviso en `--warning` con icono delante. */
+	.vega-media-detail-alt-hint {
+		margin: 0;
+		font-size: 0.82rem;
+		color: var(--ink-2);
+		overflow-wrap: anywhere;
+	}
+
+	.vega-media-detail-alt-hint--warn {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.4rem;
+		color: var(--warning);
+		font-weight: 550;
+	}
+
+	.vega-media-detail-alt-hint--warn :global(svg) {
+		flex-shrink: 0;
+		margin-top: 0.15rem;
 	}
 
 	.vega-media-detail-field input:disabled {

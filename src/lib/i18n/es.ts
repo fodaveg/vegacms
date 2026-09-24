@@ -468,6 +468,13 @@ export const es = {
 	// Fase P6·6e (D-P6.6): botón que abre `MediaPicker.svelte`. Oculto por completo sin
 	// `ctx.mediaPicker` (L-P6.9), nunca deshabilitado sin explicación.
 	'form.file.pickFromLibrary': 'Elegir de la biblioteca',
+	// Aviso INFORMATIVO (lámina del audit, pieza 3): solo en la sesión en que se elige de la
+	// biblioteca. El campo `file` no guarda ni el alt ni el `mediaId` (L-P6.8, [SUP-5]), así que al
+	// recargar el registro ya no se puede calcular. Dos claves en vez de un "(s)", como
+	// `media.selection.labelOne/Many`.
+	'form.file.libraryMissingAltOne': 'Esta imagen no tiene texto alternativo en la biblioteca.',
+	'form.file.libraryMissingAltMany':
+		'{count} imágenes no tienen texto alternativo en la biblioteca.',
 
 	// ————— Editor richtext/markdown (Fase F5-d del contrato P5) —————
 	'form.editor.toolbarLabel': 'Herramientas de formato',
@@ -811,6 +818,11 @@ export const es = {
 	'media.detail.addTag': 'Añadir',
 	'media.detail.removeTag': 'Quitar «{tag}»',
 	'media.detail.saveSuccess': 'Medio actualizado.',
+	// Texto alternativo (lámina del audit, pieza 3): aviso que NO bloquea, solo en imágenes. La
+	// marca de la tarjeta sigue al valor guardado; la pista de la ficha, a lo que se escribe.
+	'media.alt.missing': 'Sin texto alternativo',
+	'media.detail.altMissingHint': 'Sin texto alternativo: un lector de pantalla leerá «{name}».',
+	'media.detail.altHelp': 'Describe lo que se ve, no el nombre del fichero.',
 
 	// ————— Medios: borrado (Fase P6·6d) —————
 	// D-P6.5/audit H3: el modelo de media es COPIA de bytes, no referencia (`filePerRecord`) — borrar
@@ -906,6 +918,8 @@ export const es = {
 	'media.picker.searchPlaceholder': 'Buscar…',
 	'media.picker.empty': 'Ningún asset coincide con la búsqueda o el tipo de fichero admitido.',
 	'media.picker.selectedCount': '{count} elegido(s)',
+	// Segunda mitad del pie («2 elegidos · 1 sin texto alternativo»): solo se pinta si hay alguno.
+	'media.picker.missingAltCount': '{count} sin texto alternativo',
 	'media.picker.insert': 'Insertar',
 	'media.picker.inserting': 'Insertando…',
 

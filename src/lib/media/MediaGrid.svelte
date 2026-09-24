@@ -61,6 +61,16 @@
 	 *   vivir en ese botón — mentiría sobre lo que hace. La selección se opera con un botón PROPIO
 	 *   (el círculo de la esquina), hermano del de la celda —nunca anidado, `<button>` dentro de
 	 *   `<button>` es marcado inválido—, con su `aria-pressed` y su etiqueta accesible.
+	 *
+	 * **Marca «Sin texto alternativo»** (audit del 23 sep, lámina pieza 3): una IMAGEN sin `alt`
+	 * guardado (`mediaMissingAlt`, `media-card.ts`: un título no lo sustituye, un PDF nunca la lleva)
+	 * pinta una etiqueta en la esquina inferior izquierda de la miniatura, con la geometría de la
+	 * badge de extensión y los tokens `--warning`/`--warning-soft`. Va DENTRO del botón de la celda a
+	 * propósito: su texto entra en el nombre accesible de la celda, así que un lector de pantalla la
+	 * oye igual que se ve. Icono Y palabra, nunca solo color. Aviso, no bloqueo: la celda se abre y se
+	 * elige igual. Como esta tarjeta es la misma en la biblioteca y en el selector, la marca sale en
+	 * los dos sitios sin repetirla. Sigue al valor GUARDADO: tras guardar la ficha, la rejilla se
+	 * recarga y la marca desaparece.
 	 */
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { getVegaContext } from '$lib/app-context';
@@ -69,6 +79,7 @@
 		classifyMediaAssetType,
 		mediaCardSubtitle,
 		mediaExtensionBadge,
+		mediaMissingAlt,
 		mediaThumbTone
 	} from './media-card';
 	import { fetchAssetByteSize, type MediaAssetMetrics } from './media-metrics';
@@ -212,6 +223,13 @@
 						     afordancia visual (el tick se revela por color, ver CSS). -->
 						<span class="vega-media-check" aria-hidden="true">
 							<Icon id="check" size={12} />
+						</span>
+					{/if}
+					{#if mediaMissingAlt(item)}
+						<!-- Dentro del botón: entra en su nombre accesible (ver cabecera). -->
+						<span class="vega-media-alt-missing" data-media-alt-missing>
+							<Icon id="warning" size={12} />
+							<span class="vega-media-alt-missing-text">{ctx.t('media.alt.missing')}</span>
 						</span>
 					{/if}
 				</span>
@@ -377,6 +395,37 @@
 		   quedaría descentrada dentro de sus 0.1rem de padding. */
 		line-height: 1.4;
 		letter-spacing: 0.05em;
+	}
+
+	/* Marca «Sin texto alternativo» (lámina del audit, pieza 3): misma geometría que `.vega-media-ext`
+	   (4px de radio, 0.68em, 8px de margen) en la esquina libre de abajo. A ~160px de tarjeta la
+	   palabra se recorta con elipsis; el icono y el nombre accesible completo siguen ahí. */
+	.vega-media-alt-missing {
+		position: absolute;
+		left: 8px;
+		bottom: 8px;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		max-width: calc(100% - 16px);
+		padding: 0.1rem 0.4rem;
+		border: 1px solid var(--warning);
+		border-radius: 4px;
+		background: var(--warning-soft);
+		color: var(--warning);
+		font-size: 0.68em;
+		font-weight: 650;
+		line-height: 1.4;
+		white-space: nowrap;
+	}
+
+	.vega-media-alt-missing :global(svg) {
+		flex-shrink: 0;
+	}
+
+	.vega-media-alt-missing-text {
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	/* Círculo de selección (mockup `.check`): sin seleccionar, el tick existe pero es transparente
