@@ -67,6 +67,34 @@
 	 * ANUNCIA la selección por voz (`announceSelection`, encargo de accesibilidad D3): un lector de
 	 * pantalla oye lo mismo venga la selección del sitio o del árbol.
 	 *
+	 * **El resalte al pasar (`highlightedBlockId`) tiene DOS fuentes y un solo dueño, aquí, y NO es
+	 * la selección.**
+	 * - La PÁGINA (`pageHoveredBlockId`): la escribe solo `onHover` del cliente (§"Hover" del
+	 *   contrato: mensaje opcional del sitio, `null` al salir de todo bloque y al empezar a
+	 *   desplazarse) y la limpia `onState` cuando el puente deja de estar conectado o el bloque ya no
+	 *   se reporta — mismo criterio que la selección fantasma de arriba.
+	 * - El ÁRBOL (`treeHoveredBlockId`): la escribe solo `VisualBlockTree.svelte#onHover`, con el
+	 *   puntero sobre una fila o el foco de teclado dentro de ella.
+	 *
+	 * Precedencia: **el último que llegó gana, y soltar uno devuelve el otro si sigue vigente.**
+	 * `hoverSource` recuerda cuál encendió el resalte más reciente; si esa fuente pasa a `null`
+	 * (salir del árbol, salir del bloque en la página), se ve la otra si todavía tiene un id. Con
+	 * ratón las dos rara vez coinciden (el puntero no puede estar en el árbol y en el marco a la
+	 * vez), pero con el foco de teclado en una fila y el ratón sobre la página sí, y ahí manda la
+	 * última acción del autor. "Vigente" también significa que el sitio REPORTA ese bloque: un id
+	 * que no está en `overlayBlocks` (una fila borrada bajo el puntero, que ya no dispara
+	 * `mouseleave`) no tapa a la otra fuente.
+	 *
+	 * Se pinta con el MISMO `highlightedId` de `VisualOverlay.svelte`. Ninguna de las dos pasa por
+	 * `handleBlockSelect` ni avisa al sitio con `highlight`: el sitio ya sabe dónde está su propio
+	 * puntero, y el `highlight` del protocolo no tiene forma de apagarse, así que usarlo para el
+	 * hover del árbol dejaría el marco marcando la última fila por la que pasó el ratón.
+	 *
+	 * **Qué secciones NO son públicas lo dice el sitio, no Vega** (`unpublished` de cada bloque del
+	 * puente, ver `bridge-client.ts#VisualBlock`): esta pantalla solo lo reparte — al overlay le
+	 * llega dentro de cada bloque, al árbol como `unpublishedIds`, porque el árbol pinta registros
+	 * de PocketBase y no los bloques del puente. Sin puente conectado, el árbol no marca ninguna.
+	 *
 	 * **El arrastre de paleta en vuelo tiene el MISMO reparto de dueño único que la selección
 	 * (encargo "paleta de bloques arrastrable del editor visual", decisión 5).** `paletteDragType`
 	 * (`ResolvedBlockType | null`) es EL OTRO `$state` que esta pantalla posee y nadie más escribe:
@@ -327,6 +355,23 @@
 	// Único dueño del bloque seleccionado (ver cabecera, "La selección tiene un solo dueño").
 	// `null` = nada seleccionado, el estado inicial hasta el primer `select` del sitio.
 	let selectedBlockId = $state<string | null>(null);
+	// Las dos fuentes del resalte al pasar (ver cabecera, "El resalte al pasar tiene DOS fuentes").
+	// Página: bloque bajo el puntero DENTRO del marco; `null` si no hay ninguno o el sitio no
+	// implementa `hover`. Árbol: fila bajo el puntero o con el foco. `hoverSource`: cuál de las dos
+	// encendió el resalte más reciente.
+	let pageHoveredBlockId = $state<string | null>(null);
+	let treeHoveredBlockId = $state<string | null>(null);
+	let hoverSource = $state<'page' | 'tree'>('page');
+
+	function handlePageHover(blockId: string | null): void {
+		pageHoveredBlockId = blockId;
+		if (blockId !== null) hoverSource = 'page';
+	}
+
+	function handleTreeHover(blockId: string | null): void {
+		treeHoveredBlockId = blockId;
+		if (blockId !== null) hoverSource = 'tree';
+	}
 	// Único dueño del arrastre de PALETA en vuelo (ver cabecera, "El arrastre de paleta en vuelo
 	// tiene el MISMO reparto..."). `null` fuera de un gesto.
 	let paletteDragType = $state<ResolvedBlockType | null>(null);
@@ -595,8 +640,20 @@
 				) {
 					selectedBlockId = null;
 				}
+				// Mismo criterio para el resalte del puntero EN LA PÁGINA (ver cabecera): sin conexión
+				// no hay lienzo que resaltar, y un id que el sitio ya no reporta no tiene contorno. El
+				// del árbol no se toca: lo apaga su propio `mouseleave`/`focusout`, y mientras tanto
+				// `highlightedBlockId` ya lo ignora si el sitio no reporta ese bloque.
+				if (
+					pageHoveredBlockId !== null &&
+					(state.status !== 'connected' ||
+						!state.blocks.some((block) => block.id === pageHoveredBlockId))
+				) {
+					pageHoveredBlockId = null;
+				}
 			},
 			onSelect: handleBlockSelect,
+			onHover: handlePageHover,
 			// El plazo interno de `refresh()` venció, o el propio puente avisó con
 			// `error/refresh-failed` (ver `bridge-client.ts`): en los dos casos el cambio no aterrizó
 			// y el único camino honesto que queda es la recarga entera de siempre.
@@ -921,7 +978,20 @@
 	const overlaySkippedBlocks = $derived(
 		bridgeState.status === 'connected' ? bridgeState.skippedBlocks : 0
 	);
-
+	/** Resalte al pasar que se pinta (ver cabecera, "Precedencia"): la fuente más reciente si
+	 *  tiene un id que el sitio reporta, si no la otra, si no nada. */
+	const highlightedBlockId = $derived.by(() => {
+		const reported = (id: string | null) =>
+			id !== null && overlayBlocks.some((block) => block.id === id) ? id : null;
+		const page = reported(pageHoveredBlockId);
+		const tree = reported(treeHoveredBlockId);
+		return hoverSource === 'tree' ? (tree ?? page) : (page ?? tree);
+	});
+	/** Ids que el SITIO dice no públicos (ver cabecera, "Qué secciones NO son públicas"), para el
+	 *  árbol. Vacío sin conexión: sin puente, Vega no sabe nada de publicación. */
+	const unpublishedBlockIds = $derived(
+		new Set(overlayBlocks.filter((block) => block.unpublished).map((block) => block.id))
+	);
 	interface BridgeErrorText {
 		title: string;
 		body: string;
@@ -1130,6 +1200,8 @@
 			<VisualBlockTree
 				{blocks}
 				selectedId={selectedBlockId}
+				unpublishedIds={unpublishedBlockIds}
+				onHover={handleTreeHover}
 				onSelect={handleBlockSelect}
 				onStructuralChange={handleContentSaved}
 				onPaletteDragStart={handlePaletteDragStart}
@@ -1176,7 +1248,7 @@
 						<VisualOverlay
 							blocks={overlayBlocks}
 							selectedId={selectedBlockId}
-							highlightedId={null}
+							highlightedId={highlightedBlockId}
 							skippedBlocks={overlaySkippedBlocks}
 							status={overlayStatus}
 							renderedBlockTypes={ctx.port.renderedBlockTypes ?? null}

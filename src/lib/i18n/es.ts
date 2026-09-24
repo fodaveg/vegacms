@@ -283,6 +283,10 @@ export const es = {
 	'editor.visual.overlay.missing':
 		'{count} sección(es) que existen pero el sitio no está pintando.',
 	'editor.visual.overlay.unsupported': 'no soportado',
+	// Sección que el SITIO dice no pública (`unpublished` del puente, ver
+	// `bridge-client.ts#VisualBlock`): la misma palabra en la etiqueta del contorno y en la fila
+	// del árbol. Texto, no solo un color. Vega no sabe qué es "publicado": solo repite al sitio.
+	'editor.visual.unpublished': 'No pública',
 	// Encargo "paleta de bloques arrastrable del editor visual": la zona de caída de página vacía
 	// (decisión 3) — una sola caja SOBRE EL MARCO que solo existe mientras hay un arrastre de
 	// paleta en vuelo Y no hay ningún bloque (ver la cabecera de `VisualOverlay.svelte`).
@@ -295,6 +299,9 @@ export const es = {
 	// solo que en otra columna.
 	'editor.visual.tree.title': 'Secciones',
 	'editor.visual.tree.selectLabel': 'Seleccionar «{label}»',
+	// Mismo rótulo con el estado dentro: el `aria-label` de la fila SUSTITUYE a su texto visible,
+	// así que la insignia "No pública" no llegaría al lector de pantalla por sí sola.
+	'editor.visual.tree.selectLabelUnpublished': 'Seleccionar «{label}» (no pública)',
 	'editor.visual.tree.unavailable': 'No se pudo cargar el árbol de secciones.',
 	// Anuncio de la selección (encargo de accesibilidad, D3): `VisualEditorScreen.svelte#handleBlockSelect`
 	// lo lee por la MISMA región `aria-live` que ya usa `editor.blocks.reorder.moved` (ver la

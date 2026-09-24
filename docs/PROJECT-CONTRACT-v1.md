@@ -356,7 +356,10 @@ Every message in both directions is a JSON-serialisable object carrying the prot
 ```
 
 Messages missing the `vega` key, or carrying an unknown version, are ignored. Neither side
-attempts to interpret a version it does not implement.
+attempts to interpret a version it does not implement. Within a known version, a message whose
+`type` the receiver does not implement is ignored too, without changing any state: that is what
+lets either side add an optional message (such as `hover` below) without a version bump, because
+a receiver that predates it behaves exactly as if it had never been sent.
 
 Startup is racy in both directions: the site cannot know when Vega finished mounting, and
 Vega cannot know when the document finished evaluating scripts. Both sides therefore speak
@@ -373,12 +376,13 @@ bridge installed and offers the ordinary preview, which still works.
 
 **Site to Vega**
 
-| `type`   | Payload                                                          | When                                                    |
-| -------- | ---------------------------------------------------------------- | ------------------------------------------------------- |
-| `ready`  | `{ collection, id, blocks: [{ id, type, rect }], liveRefresh? }` | On init, after a live refresh, and in answer to `hello` |
-| `layout` | `{ blocks: [{ id, type, rect }] }`                               | Geometry changed: scroll, resize, late-loading images   |
-| `select` | `{ blockId }`                                                    | The author clicked inside that block                    |
-| `error`  | `{ code, message }`                                              | The bridge cannot do its job (see below)                |
+| `type`   | Payload                                                                        | When                                                    |
+| -------- | ------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| `ready`  | `{ collection, id, blocks: [{ id, type, rect, unpublished? }], liveRefresh? }` | On init, after a live refresh, and in answer to `hello` |
+| `layout` | `{ blocks: [{ id, type, rect, unpublished? }] }`                               | Geometry changed: scroll, resize, late-loading images   |
+| `select` | `{ blockId }`                                                                  | The author clicked inside that block                    |
+| `hover`  | `{ blockId }` (a block id, or `null`)                                          | Optional: the pointer moved onto another block (below)  |
+| `error`  | `{ code, message }`                                                            | The bridge cannot do its job (see below)                |
 
 **Vega to site**
 
@@ -397,6 +401,38 @@ needs to know it is being scaled.
 straightforward way to make a canvas stutter, and the site is the only side that can throttle
 it, because the site is where the scrolling happens.
 
+#### Hover (optional)
+
+While the pointer is over a cross-origin `<iframe>`, the embedding page receives no mouse events
+at all, so Vega cannot tell which block the author is pointing at unless the site says so. A
+bridge that wants Vega to outline the block under the pointer sends `hover`:
+
+```json
+{ "vega": "vega-visual-1", "type": "hover", "blockId": "abc123" }
+```
+
+- `blockId` is the `data-vega-block-id` of the block now under the pointer, or `null` when the
+  pointer is over no block (it left every block, or left the page). The key is required: a
+  `hover` without it, or with an empty id, is malformed and ignored.
+- One message per **change of block**, never one per pointer movement, and at most one per
+  animation frame. Moving across a block's own children is not a change.
+- **Scrolling hides it.** Vega draws the outline outside the frame from a `rect` that has to be
+  measured, posted and repainted, so it is always at least a frame behind content the browser
+  has already scrolled inside the frame. An outline that trails the page is worse than none, so
+  the bridge sends `hover` with `null` as soon as the page starts scrolling, sends nothing while
+  it keeps scrolling, and announces the block under the pointer again once the scroll settles.
+- `ready` resets it. Vega forgets any hovered block whenever it accepts a `ready` (a reload or
+  a live refresh is a new document), and a bridge that knows the pointer is still over a block
+  after answering `ready` sends `hover` again. Vega also drops a hovered id the latest `ready`
+  or `layout` no longer reports.
+
+There is no announcement for this capability, unlike `liveRefresh`: Vega has nothing to decide
+before the first `hover` arrives, so the message itself is the announcement. A site that never
+sends it gets exactly the canvas it had before (outlines, selection and the tree still work; the
+page simply does not light up under the pointer), and a Vega that predates it ignores it under
+the unknown-`type` rule above. `hover` never selects anything and Vega does not echo it back as
+`highlight`: the site already knows where its own pointer is.
+
 #### What the site must annotate
 
 The bridge locates blocks through DOM attributes the renderer emits:
@@ -408,6 +444,24 @@ The bridge locates blocks through DOM attributes the renderer emits:
 - `data-vega-blocks-root` on the element wrapping the whole sequence. This is what live
   refresh replaces, so it has to be a single element that contains every block and nothing
   the surrounding page depends on keeping.
+
+One more attribute is optional:
+
+- `data-vega-unpublished="true"` on a block the preview renders but that is not public yet,
+  either on the block element itself or on one of its top-level rendered elements (with
+  `VegaBlocks` the block element is a `display: contents` wrapper the package owns, so the
+  site's own component marks what it renders inside it). The bridge then adds
+  `unpublished: true` to that block's entry in `ready` and `layout`, and Vega labels it as not
+  public, with text, in its section tree and on the canvas outline.
+
+Vega has no notion of "published": it is a field of the site's own model, when the site has one
+at all, which is why this is the site's statement and never Vega's inference. Only the exact
+value `"true"` counts, and only on the block or its top-level elements (an element nested inside
+a block's content says nothing about the block). Any other value of `unpublished` in a message
+(absent, `false`, a string) degrades to "not stated" without invalidating the block, so a site
+that never sets the attribute behaves exactly as before. A block reported with `unpublished: true`
+is still a reported block: it is drawn, selectable, and never counted among the sections Vega
+has but the site did not render.
 
 #### Security
 
