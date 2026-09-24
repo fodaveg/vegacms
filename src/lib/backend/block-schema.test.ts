@@ -133,7 +133,7 @@ describe('deriveBlockRecordFields', () => {
 			BlockRecordFieldConflictError
 		);
 		expect(() => deriveBlockRecordFields(blockTypes, blocks)).toThrow(
-			'La columna de bloque "asset" tiene declaraciones físicas incompatibles: hero.asset (relation:vega_media:false:single:keep) <> download.asset ({"type":"file","required":false,"multiple":false,"maxSizeBytes":0,"mimeTypes":[],"thumbs":["28x28","120x120"]}).'
+			'La columna de bloque "asset" tiene declaraciones físicas incompatibles: hero.asset (relation:vega_media:false:single:keep) <> download.asset ({"type":"file","required":false,"multiple":false,"maxSizeBytes":0,"mimeTypes":[]}).'
 		);
 	});
 
@@ -345,26 +345,54 @@ describe('diagnoseBlockRecordFields', () => {
 		expect(generateBlockReconciliationMigration(blocks, diagnostics)).toBeNull();
 	});
 
-	test('un campo file creado ANTES de declarar miniaturas sale incompatible, no se auto-migra (hallazgo p2)', () => {
-		// Simula una colección de bloques viva de antes de este lote: PB descubre `thumbs: []`
-		// (nunca lo declaró) mientras el generador ahora espera `['28x28','120x120']`
-		// (`BLOCK_FILE_THUMBS`). `diagnoseBlockRecordFields` lo marca `incompatible` en vez de
-		// fingir que coincide — la reconciliación automática lo omite a propósito (columnas con
-		// datos no se tocan solas), así que solo aparece como aviso en el diagnóstico.
+	test('un campo file creado ANTES de declarar miniaturas SIGUE siendo compatible: thumbs no es criterio (hallazgo p2, releído tras desplegar)', () => {
+		// Simula una colección de bloques VIVA en producción, creada antes de este lote: PB
+		// descubre `thumbs: []` (nunca lo declaró) mientras el generador ahora espera
+		// `['28x28','120x120']` (`BLOCK_FILE_THUMBS`). Marcarlo `incompatible` por SOLO esto era la
+		// regresión: `thumbs` es puramente cosmético para servir (`thumb-select.ts` ya degrada solo
+		// a `100x100`, nunca al original ni a una pérdida de datos), así que una diferencia SOLO ahí
+		// no debe generar un aviso de incompatibilidad sin nada que reconciliar de verdad.
 		const diagnostics = diagnoseBlockRecordFields(
 			[blockType('download', [field('asset', 'file')])],
 			blocks,
 			[backendField({ name: 'asset', type: 'file', multiple: false, maxSelect: 1, thumbs: [] })]
 		);
-		const migration = generateBlockReconciliationMigration(blocks, diagnostics);
+
+		expect(diagnostics).toEqual([
+			expect.objectContaining({
+				status: 'compatible',
+				expected: expect.objectContaining({ name: 'asset', thumbs: ['28x28', '120x120'] })
+			})
+		]);
+		expect(generateBlockReconciliationMigration(blocks, diagnostics)).toBeNull();
+	});
+
+	test('una diferencia REAL de un campo file (protected) sigue saliendo incompatible', () => {
+		// A diferencia de `thumbs`, `protected` SÍ cambia qué puede hacer el campo (acceso a los
+		// ficheros con token, §4.4) — no es cosmético, así que sigue bloqueando la compatibilidad
+		// aunque el resto (incluidos los thumbs) coincida.
+		const diagnostics = diagnoseBlockRecordFields(
+			[blockType('download', [field('asset', 'file')])],
+			blocks,
+			[
+				backendField({
+					name: 'asset',
+					type: 'file',
+					multiple: false,
+					maxSelect: 1,
+					thumbs: ['28x28', '120x120'],
+					protected: true
+				})
+			]
+		);
 
 		expect(diagnostics).toEqual([
 			expect.objectContaining({
 				status: 'incompatible',
-				expected: expect.objectContaining({ name: 'asset', thumbs: ['28x28', '120x120'] })
+				expected: expect.objectContaining({ name: 'asset' })
 			})
 		]);
-		expect(migration).toBeNull();
+		expect(generateBlockReconciliationMigration(blocks, diagnostics)).toBeNull();
 	});
 
 	test('incompatible conserva el error propio y la reconciliación la omite', () => {

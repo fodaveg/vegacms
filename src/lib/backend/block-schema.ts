@@ -148,13 +148,19 @@ function specSignature(spec: CollectionFieldSpec): string {
 		case 'relation':
 			return `${spec.type}:${spec.target}:${spec.required ?? false}:${spec.multiple ? 'multiple' : 'single'}:${spec.cascadeDelete ? 'cascade' : 'keep'}`;
 		case 'file':
+			// `thumbs` NO participa en la firma (fix de code-review, hallazgo p2 releído tras
+			// desplegar): es puramente cosmético para servir — no afecta a qué se guarda, y un
+			// tamaño no declarado ya degrada solo a `100x100` (`thumb-select.ts`), nunca al fichero
+			// original ni a una pérdida de datos. Comparar por `thumbs` convertía en "incompatible"
+			// cualquier campo `file` de bloque creado ANTES de este lote, en instancias YA en
+			// producción — un aviso sin nada que reconciliar de verdad. Ver la cabecera de
+			// `backendFieldToComparableSpec` para el resto de propiedades que tampoco participan.
 			return JSON.stringify({
 				type: spec.type,
 				required: spec.required ?? false,
 				multiple: spec.multiple ?? false,
 				maxSizeBytes: spec.maxSizeBytes ?? 0,
-				mimeTypes: spec.mimeTypes ?? [],
-				thumbs: spec.thumbs ?? []
+				mimeTypes: spec.mimeTypes ?? []
 			});
 		case 'autodate':
 			return `${spec.type}:${spec.onUpdate ?? false}`;
@@ -172,6 +178,14 @@ function describe(owner: string, spec: CollectionFieldSpec): string {
  * el lote del sembrado (29 jul 2026): `unique` SÍ se declara ya en `text`, así que SÍ participa en
  * la firma y en la compatibilidad. Lo que sigue fuera es un `unique` sobre cualquier OTRO tipo, que
  * es lo que `hasUnrepresentableBaseConstraint` descarta unas líneas más abajo.
+ *
+ * `thumbs` de un campo `file` (hallazgo p2 releído tras desplegar) es la SEGUNDA exclusión
+ * deliberada, aunque SÍ se sepa declarar: es un detalle de SERVIDO, no de qué se guarda ni de
+ * la forma del dato — un tamaño no declarado degrada solo (`thumb-select.ts` cae a `100x100`,
+ * nunca al original ni a una pérdida). Compararlo convertía en "incompatible" cualquier campo
+ * de bloque creado ANTES de que el generador empezara a declarar `BLOCK_FILE_THUMBS`, en
+ * instancias YA en producción, por algo que no rompe nada — `specSignature` (arriba) ya no lo
+ * incluye para NINGÚN lado de la comparación.
  */
 function backendFieldToComparableSpec(field: Field): CollectionFieldSpec | null {
 	const base = { name: field.name, required: field.required };
@@ -228,13 +242,11 @@ function backendFieldToComparableSpec(field: Field): CollectionFieldSpec | null 
 				type: 'file',
 				multiple: field.multiple,
 				maxSizeBytes: field.maxSizeBytes ?? 0,
-				mimeTypes: field.mimeTypes ?? [],
-				// Miniaturas YA declaradas en PB, descubiertas de verdad (`Field['thumbs']`, ver
-				// `adapters/pocketbase/schema.ts#mapField`) — un campo de bloque creado ANTES de que
-				// el generador empezara a declarar `BLOCK_FILE_THUMBS` no tendrá ninguna todavía, así
-				// que su forma comparable seguirá siendo `[]` (mismo resultado de antes) hasta que se
-				// reconcilie a mano; uno creado por esta versión sí traerá las suyas.
-				thumbs: field.thumbs ?? []
+				mimeTypes: field.mimeTypes ?? []
+				// `thumbs` NO viaja aquí a propósito: ver la cabecera de esta función. `Field['thumbs']`
+				// (descubierto de verdad, `adapters/pocketbase/schema.ts#mapField`) sigue existiendo y
+				// lo sigue usando `thumb-select.ts` para SERVIR la miniatura — solo deja de influir en
+				// si este campo se considera compatible con lo que espera el generador.
 			};
 		case 'json':
 			return field.required ? null : { name: field.name, type: 'json' };
