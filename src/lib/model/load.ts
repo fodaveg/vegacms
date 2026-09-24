@@ -8,7 +8,14 @@
  */
 
 import type { BackendPort } from '$lib/backend/port';
-import type { ContentType, JsonValue, RecordInput, VegaRecord } from '$lib/backend/types';
+import type {
+	ContentType,
+	JsonValue,
+	RecordInput,
+	ScheduledPublishingState,
+	VegaRecord
+} from '$lib/backend/types';
+import { withServerFeatures } from '$lib/backend/scheduled-publishing';
 import type { Query } from '$lib/backend/query';
 import {
 	VEGA_COLLECTION,
@@ -172,17 +179,44 @@ export async function loadContentModel(
 	// esquema vivo (cambio hecho en el Admin de PocketBase, por ejemplo), se reescribe aquí mismo
 	// con lo que esta carga YA leyó — sin lecturas extra, y en paralelo con los recuentos de
 	// abajo. Nunca rompe la carga del modelo.
-	const [discoveryWarnings] = await Promise.all([
+	const [discoveryWarnings, scheduledPublishing] = await Promise.all([
 		unsupportedBlockTypeWarnings(port, model),
+		scheduledPublishingFor(port, model),
 		syncSchemaSnapshotSafely(port, { types, vegaType, record: page.items[0] ?? null })
 	]);
 	const cardinalityWarnings = page.totalItems <= 1 ? [] : [multipleVegaRecords(page.totalItems)];
-	if (discoveryWarnings.length === 0 && cardinalityWarnings.length === 0) return model;
+	const withScheduling: ContentModel =
+		scheduledPublishing === null ? model : { ...model, scheduledPublishing };
+	if (discoveryWarnings.length === 0 && cardinalityWarnings.length === 0) return withScheduling;
 
 	return {
-		...model,
+		...withScheduling,
 		warnings: [...model.warnings, ...discoveryWarnings, ...cardinalityWarnings]
 	};
+}
+
+/**
+ * `ContentModel.scheduledPublishing`: solo se pregunta al puerto si algún tipo declara
+ * `publishAtField` — sin fecha programable el dato no se pinta en ningún sitio, y devolver `null`
+ * deja el modelo con la misma forma de siempre. Un puerto sin el método equivale a `'unknown'`.
+ */
+async function scheduledPublishingFor(
+	port: BackendPort,
+	model: ContentModel
+): Promise<ScheduledPublishingState | null> {
+	if (!model.types.some((type) => type.publishAtField)) return null;
+	return port.scheduledPublishing ? port.scheduledPublishing() : 'unknown';
+}
+
+/**
+ * Lo que se guarda en `vega.schemaSnapshot`: el esquema más lo que un editor no puede comprobar
+ * por sí mismo del servidor (`ContentType.serverFeatures` en la entrada `vega`, ver
+ * `backend/scheduled-publishing.ts`). Solo lo llama quien escribe el snapshot, que es siempre una
+ * sesión con introspección real (superusuario).
+ */
+async function snapshotPayload(port: BackendPort, types: ContentType[]): Promise<ContentType[]> {
+	const state = port.scheduledPublishing ? await port.scheduledPublishing() : 'unknown';
+	return withServerFeatures(types, state);
 }
 
 /**
@@ -240,7 +274,7 @@ export async function saveManifest(port: BackendPort, manifest: JsonValue): Prom
 		body[VEGA_MANIFEST_VERSION_FIELD] = 1;
 	}
 	if (port.capabilities.schemaDiscovery) {
-		body[SCHEMA_SNAPSHOT_FIELD] = types as unknown as JsonValue;
+		body[SCHEMA_SNAPSHOT_FIELD] = (await snapshotPayload(port, types)) as unknown as JsonValue;
 	}
 
 	const page = await listManifestRecords(port, vegaType, 1);
@@ -295,9 +329,10 @@ export async function syncSchemaSnapshot(
 	if (!vegaType.fields.some((field) => field.name === SCHEMA_SNAPSHOT_FIELD)) return 'skipped';
 	if (!record) return 'skipped';
 
-	if (schemaSnapshotMatches(types, record.values[SCHEMA_SNAPSHOT_FIELD])) return 'unchanged';
+	const payload = await snapshotPayload(port, types);
+	if (schemaSnapshotMatches(payload, record.values[SCHEMA_SNAPSHOT_FIELD])) return 'unchanged';
 	await port.update(VEGA_COLLECTION.name, record.id, {
-		[SCHEMA_SNAPSHOT_FIELD]: types as unknown as JsonValue
+		[SCHEMA_SNAPSHOT_FIELD]: payload as unknown as JsonValue
 	});
 	return 'written';
 }

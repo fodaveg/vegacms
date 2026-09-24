@@ -457,8 +457,8 @@
 		color: var(--ink-3);
 	}
 
-	/* Punto de estado: MISMOS tokens que el de `EditorRail`/`RecordTable` (`classifyStatusBadge`
-	   decide el `data-status-kind` sobre el valor crudo, nunca sobre la etiqueta). */
+	/* Punto de estado: MISMOS tokens que el de `EditorRail`/`RecordTable` (`describeStatusBadge`
+	   decide el `data-status-kind`, nunca a partir de la etiqueta). */
 	.vega-search-dot {
 		width: 6px;
 		height: 6px;
@@ -476,6 +476,10 @@
 
 	.vega-search-dot[data-status-kind='other'] {
 		background: var(--info);
+	}
+
+	.vega-search-dot[data-status-kind='scheduled'] {
+		background: var(--accent);
 	}
 
 	.vega-search-more {

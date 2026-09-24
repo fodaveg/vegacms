@@ -942,6 +942,7 @@ const VALID_ZERO_WARNING_MANIFESTS: JsonValue[] = [
 		collections: {
 			post: {
 				slugField: 'excerpt',
+				publishAtField: 'publishedAt',
 				editorRail: true,
 				fieldGroups: [{ name: 'Publicación', placement: 'aside' }],
 				fields: { status: { group: 'Publicación' } }
@@ -1145,6 +1146,8 @@ const INVALID_MANIFESTS: JsonValue[] = [
 	{ schemaVersion: 1, collections: { post: { fieldGroups: [42] } } },
 	{ schemaVersion: 1, collections: { post: { slugField: '' } } },
 	{ schemaVersion: 1, collections: { post: { slugField: 42 } } },
+	{ schemaVersion: 1, collections: { post: { publishAtField: '' } } },
+	{ schemaVersion: 1, collections: { post: { publishAtField: false } } },
 	{ schemaVersion: 1, collections: { post: { editorRail: 'sí' } } },
 	{ schemaVersion: 1, collections: { post: { blocks: 'not-an-object' } } },
 	{ schemaVersion: 1, collections: { post: { blocks: { collection: 'x', parentField: 'y' } } } },

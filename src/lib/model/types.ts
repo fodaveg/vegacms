@@ -7,7 +7,13 @@
  * PURO (ley L1 del contrato P2): sin Svelte, sin el puerto, sin `pocketbase`.
  */
 
-import type { ContentType, Field, FieldSubtype, JsonValue } from '$lib/backend/types';
+import type {
+	ContentType,
+	Field,
+	FieldSubtype,
+	JsonValue,
+	ScheduledPublishingState
+} from '$lib/backend/types';
 import type { FilterNode } from '$lib/backend/query';
 import type { TypePermissions } from '$lib/backend/access';
 
@@ -40,6 +46,14 @@ export interface ContentModel {
 	 *  verdad de las vistas en sí (sources, filtros…), `nav` solo la referencia para pintar el
 	 *  enlace. */
 	mergedViews: ResolvedMergedView[];
+	/**
+	 * ¿Publica el servidor los borradores con «Publicar el» vencido (`extensions/vegaschedule`)?
+	 * Lo rellena `loadContentModel` preguntando al puerto (`BackendPort.scheduledPublishing`), y
+	 * SOLO si algún tipo declara `publishAtField`; ausente ⇒ se trata como `'unknown'`. Es lo que
+	 * decide si un borrador con fecha futura se anuncia «Programada» (`describeStatusBadge`) y si el
+	 * campo lleva aviso de «sin efecto». `resolveContentModel` (puro) nunca lo rellena.
+	 */
+	scheduledPublishing?: ScheduledPublishingState;
 	/**
 	 * (M) Vocabulario de tipos de bloque declarado en `blockTypes` (RAÍZ del manifiesto, vocabulario
 	 * de tipos de bloque `#4cfd4f7f`): hero, texto, galería, cta… En ORDEN de declaración del
@@ -170,6 +184,13 @@ export interface ResolvedContentType {
 	 *  claves distintas del manifiesto pueden compartir el mismo valor crudo de facto
 	 *  (`draft`/`published`) sin que localizarlas cambie el color. */
 	statusLabels: Record<string, string> | null;
+	/** (M) campo `date` «Publicar el» de la publicación programada, o null ⇒ el tipo no la ofrece.
+	 *  SOLO manifiesto (`publishAtField`), sin autodetección, y solo si `statusField` resolvió
+	 *  (`resolvePublishAtField`). Un borrador con esta fecha en el futuro se pinta «Programada ·
+	 *  fecha» en vez de «Borrador» (`describeStatusBadge`, `$lib/list/cell`). Quien la cumple es
+	 *  la extensión `vegaschedule` del servidor, que Vega no puede detectar desde el cliente.
+	 *  `?:` por compatibilidad de fixtures, mismo motivo que `social`/`page` más abajo. */
+	publishAtField?: string | null;
 	/** (M) campo numérico de orden manual, o null. Sin autodetección por convención (a diferencia
 	 *  de `statusField`): solo existe si el manifiesto lo declara explícitamente y el campo es
 	 *  `number`. Habilita el reorder por arrastre del listado y el orden por defecto. */
@@ -654,6 +675,7 @@ export type WarningCode =
 	| 'widget-incompatible' // override imposible para el tipo real → default
 	| 'title-field-invalid' // titleField inexistente o no representable → cascada
 	| 'status-field-invalid' // statusField que no cumple la convención → null
+	| 'publish-at-field-invalid' // publishAtField que no es date editable opcional, o tipo sin statusField → null
 	| 'order-field-invalid' // orderField inexistente o no numérico → null
 	| 'subtitle-field-invalid' // subtitleField inexistente o no escalar → null
 	| 'slug-field-invalid' // slugField inexistente o no representable como texto → null

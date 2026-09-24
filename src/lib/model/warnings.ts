@@ -96,6 +96,17 @@ export function statusFieldInvalid(collection: string, requestedField: string): 
 	};
 }
 
+/** `publish-at-field-invalid` — `publishAtField` que no es una fecha editable y opcional, o
+ *  declarado en un tipo sin campo de publicación; el tipo no ofrece publicación programada. */
+export function publishAtFieldInvalid(collection: string, requestedField: string): ModelWarning {
+	return {
+		code: 'publish-at-field-invalid',
+		message: `El campo de publicación programada "${requestedField}" declarado para "${collection}" debe ser una fecha editable y opcional de un tipo con campo de publicación (draft/published); se ignora.`,
+		collection,
+		path: `${collectionPath(collection)}/publishAtField`
+	};
+}
+
 /** `order-field-invalid` — `orderField` inexistente o no numérico; se desactiva el reorder manual. */
 export function orderFieldInvalid(collection: string, requestedField: string): ModelWarning {
 	return {

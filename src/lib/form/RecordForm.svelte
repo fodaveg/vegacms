@@ -116,12 +116,22 @@
 	 *   directo a `list.untitled`. En modo creación (`model.mode === 'create'`) el nombre es
 	 *   siempre `editor.new` ("nuevo"), sin mirar `titleField` — no hay nada que derivar todavía.
 	 * - **Tag de estado**: si `type.statusField` existe y `baseline[statusField]` es un string no
-	 *   vacío, se pinta como `.vega-editor-tag` con `classifyStatusBadge` (`$lib/list/cell`, la
+	 *   vacío, se pinta como `.vega-editor-tag` con `describeStatusBadge` (`$lib/list/cell`, la
 	 *   MISMA función que clasifica la insignia de `RecordTable`, R3 de lote-2) decidiendo el
 	 *   color — pub/draft/other, `data-status-kind` igual que la tabla, y la MISMA píldora del
 	 *   mockup (alto 24px, punto + palabra) con la etiqueta legible de `statusLabels` si el tipo la
 	 *   declara. Sin `statusField`, o con el campo vacío, no se pinta nada (nunca una insignia
-	 *   "vacía").
+	 *   "vacía"). Texto, color y `data-status` salen de `describeStatusBadge` (misma función que
+	 *   la tabla y el raíl): un borrador GUARDADO con «Publicar el» futuro dice «Programada ·
+	 *   fecha» solo si el servidor tiene `vegaschedule`; si no, «Borrador · fecha sin efecto» o
+	 *   «sin confirmar». Lee `baseline`, no el valor en edición: la cabecera cuenta lo que hay en el
+	 *   servidor, no lo que aún no se ha guardado.
+	 * - **Ayuda de «Publicar el»** (`type.publishAtField`): si el manifiesto no le da `help`, el
+	 *   campo lleva `editor.publishAt.help`, que avisa de que hace falta `vegaschedule` en el
+	 *   servidor. Una ayuda del manifiesto gana. Además, si `ctx.model.scheduledPublishing` no es
+	 *   `'active'` (servidor sin el cron, comprobado, o sin comprobar), el campo lleva un AVISO
+	 *   visible (`notice`, `editor.publishAt.inactive`/`.unknown`): una ayuda sola se lee de pasada,
+	 *   y aquí la consecuencia es una página que nunca se publica.
 	 * - **Punto "sin guardar" (mockup `.dirty-dot`)**: el indicador dirty pasa de píldora con texto
 	 *   a un punto de 8px en `--warning` junto al título. El TEXTO (`editor.dirty`) no desaparece,
 	 *   se vuelve `.vega-visually-hidden` dentro del punto: un punto de color sin alternativa
@@ -229,7 +239,7 @@
 	import type { PreviewDraft, PreviewDraftRecord } from '$lib/backend/preview-client';
 	import { isConflictError, VegaError, type VegaConflictError } from '$lib/backend/errors';
 	import { getVegaContext } from '$lib/app-context';
-	import { classifyStatusBadge, describeCell } from '$lib/list/cell';
+	import { describeCell, describeStatusBadge } from '$lib/list/cell';
 	import { resolveTitleCellText } from '$lib/list/list-load';
 	import DeleteConfirm from '$lib/list/DeleteConfirm.svelte';
 	import EditorRail from '$lib/list/EditorRail.svelte';
@@ -466,12 +476,23 @@
 	 *  `label` pasa por `statusLabels` (P2, opt-in) igual que la insignia de `RecordTable`; `raw`
 	 *  se conserva aparte porque es lo que va al atributo `data-status` (valor canónico, estable
 	 *  para tests y para cualquier hoja de estilo que quiera engancharse a un estado concreto). */
-	const statusTag = $derived.by(() => {
-		if (type.statusField === null) return null;
-		const raw = baseline[type.statusField];
-		if (typeof raw !== 'string' || raw === '') return null;
-		return { raw, label: type.statusLabels?.[raw] ?? raw, kind: classifyStatusBadge(raw) };
-	});
+	/** ¿Cumple el servidor «Publicar el»? (`ContentModel.scheduledPublishing`, ver cabecera). */
+	const scheduling = $derived(ctx.model.scheduledPublishing ?? 'unknown');
+
+	const statusTag = $derived(describeStatusBadge(type, baseline, scheduling, ctx.locale, ctx.t));
+
+	/** Aviso VISIBLE bajo «Publicar el» cuando el servidor no la va a cumplir, o no se sabe. */
+	const publishAtNotice = $derived(
+		scheduling === 'active'
+			? null
+			: ctx.t(scheduling === 'inactive' ? 'editor.publishAt.inactive' : 'editor.publishAt.unknown')
+	);
+
+	/** Ayuda por defecto de «Publicar el» (ver cabecera): solo si el manifiesto no declara una. */
+	function withDefaultHelp(field: ResolvedField): ResolvedField {
+		if (field.name !== type.publishAtField || field.help) return field;
+		return { ...field, help: ctx.t('editor.publishAt.help') };
+	}
 
 	/** "Ver en el sitio" (ver cabecera): `null` ⇒ botón deshabilitado, nunca oculto (fiel al
 	 *  mockup, que también lo pinta disabled con motivo en vez de quitarlo del todo). */
@@ -1157,7 +1178,7 @@
 
 	{#snippet fieldRow(field: ResolvedField, stacked: boolean)}
 		<FieldRow
-			{field}
+			field={withDefaultHelp(field)}
 			value={current[field.name]}
 			error={errors.byField[field.name] ?? null}
 			disabled={formDisabled}
@@ -1173,7 +1194,11 @@
 				: field.name === pagePathFieldName && model.mode === 'create'
 					? pathAction
 					: undefined}
-			notice={field.name === pagePathFieldName ? (pathNotUniqueNotice ?? undefined) : undefined}
+			notice={field.name === pagePathFieldName
+				? (pathNotUniqueNotice ?? undefined)
+				: field.name === type.publishAtField
+					? (publishAtNotice ?? undefined)
+					: undefined}
 			onChange={(value) => handleFieldChange(field.name, value)}
 		/>
 	{/snippet}
@@ -1699,6 +1724,11 @@
 	.vega-editor-tag[data-status-kind='other'] {
 		color: var(--info);
 		background: var(--info-soft);
+	}
+
+	.vega-editor-tag[data-status-kind='scheduled'] {
+		color: var(--accent-text);
+		background: var(--accent-soft);
 	}
 
 	/* Punto "sin guardar" (mockup `.dirty-dot`): 8px en `--warning`. El texto va dentro,

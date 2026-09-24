@@ -276,7 +276,32 @@ export interface ContentType {
 	 * `TypeAccess` para la semántica exacta, que NO es "lo que puede la sesión actual".
 	 */
 	access?: TypeAccess;
+	/**
+	 * Hechos del SERVIDOR que un editor no puede consultar por sí mismo (ver `ServerFeatures`).
+	 * Solo lo lleva la entrada de la colección `vega` DENTRO de `vega.schemaSnapshot`: la escribe
+	 * un superusuario al regenerar el snapshot (`model/load.ts`, `snapshotPayload`) y la lee el
+	 * adaptador en modo editor. Colgarlo de un `ContentType` y no cambiar la forma del snapshot
+	 * (un array de `ContentType`) es a propósito: una Vega anterior que lea este snapshot ignora la
+	 * propiedad en vez de rechazarlo entero. `listContentTypes()` en vivo nunca la rellena.
+	 */
+	serverFeatures?: ServerFeatures;
 }
+
+/** Lo que un superusuario ha comprobado del servidor y deja escrito para los editores. */
+export interface ServerFeatures {
+	/** `true` ⟺ el cron de `extensions/vegaschedule` está registrado (PB: `GET /api/crons`). */
+	scheduledPublishing: boolean;
+}
+
+/**
+ * ¿Publica este servidor los borradores con «Publicar el» vencido (`extensions/vegaschedule`)?
+ * - `'active'`: el cron está registrado.
+ * - `'inactive'`: comprobado que NO lo está (p. ej. el binario oficial de PocketBase).
+ * - `'unknown'`: no se ha podido comprobar (un editor con un snapshot anterior a esta comprobación,
+ *   un fallo de red, un adaptador que no sabe mirarlo). La UI no promete nada en este caso.
+ * Lo expone `BackendPort.scheduledPublishing()`.
+ */
+export type ScheduledPublishingState = 'active' | 'inactive' | 'unknown';
 
 /**
  * Qué concede una regla de acceso, desde el punto de vista de la UI:

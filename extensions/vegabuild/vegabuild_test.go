@@ -808,6 +808,61 @@ func TestStartFailureMarksRunFailed(t *testing.T) {
 	}
 }
 
+// TestTriggerFromServerSharesTheHTTPGuard checks the programmatic Trigger (what vegaschedule calls
+// after a scheduled publication) against the HTTP route: same run records, same "one at a time"
+// guard in both directions, and a failed Start surfaced as *StartError with the run closed.
+func TestTriggerFromServerSharesTheHTTPGuard(t *testing.T) {
+	app := newTestApp(t)
+	runner := &fakeRunner{completes: true}
+	extension, err := New(Config{
+		Runner:          runner,
+		AuthCollections: []string{"vega_editors"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := extension.EnsureCollections(app); err != nil {
+		t.Fatal(err)
+	}
+	mux := newTestMux(t, app, extension)
+	token := newAuthToken(t, app)
+
+	runID, err := extension.Trigger(app)
+	if err != nil || runID == "" {
+		t.Fatalf("expected a run id from Trigger, got %q, %v", runID, err)
+	}
+	if blocked := doRequest(mux, http.MethodPost, "/api/vega-build/trigger", token, ""); blocked.Code != http.StatusConflict {
+		t.Fatalf("expected the HTTP route to see the server-started run, got %d", blocked.Code)
+	}
+	if _, err := extension.Trigger(app); !errors.Is(err, ErrRunInProgress) {
+		t.Fatalf("expected ErrRunInProgress while the run is open, got %v", err)
+	}
+	if runner.starts() != 1 {
+		t.Fatalf("expected exactly one Start, got %d", runner.starts())
+	}
+
+	if outcome, err := extension.closeRun(app, runID, runStateOK, "", ""); err != nil || outcome != closeApplied {
+		t.Fatalf("could not close the run: %v %v", outcome, err)
+	}
+	runner.mu.Lock()
+	runner.startErr = errors.New("provider unreachable")
+	runner.mu.Unlock()
+	time.Sleep(2 * time.Millisecond) // see currentRun: two runs in the same millisecond tie on created
+
+	failedID, err := extension.Trigger(app)
+	var startErr *StartError
+	if !errors.As(err, &startErr) || startErr.RunID != failedID || failedID == "" {
+		t.Fatalf("expected *StartError carrying the run id, got %q, %v", failedID, err)
+	}
+	status, err := extension.buildStatus(app)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.State != runStateFailed {
+		t.Fatalf("expected the failed start to close the run as failed, got %q", status.State)
+	}
+}
+
 func TestCallback(t *testing.T) {
 	app := newTestApp(t)
 	extension, err := New(Config{

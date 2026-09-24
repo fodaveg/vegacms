@@ -18,7 +18,9 @@ import {
 import starterManifest from '$lib/backend/site-seeding-manifest.json';
 import {
 	previousStarterManifest,
+	seedLikePrevious0ace139,
 	seedLikePrevious1bda988,
+	starterManifest0ace139,
 	VEGA_MEDIA_COLLECTION_BEFORE_FOCAL
 } from '$lib/backend/site-seeding-previous.fixture';
 import {
@@ -116,6 +118,7 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 			deleteRule: VEGA_MEDIA_EDITOR_ACCESS_RULE
 		});
 		expectSeoFields(pagesCollection, media.id);
+		expectPublishAtField(pagesCollection);
 
 		const redirects = collections.find((collection) => collection.name === 'redirects')!;
 		expect(rawRules(redirects)).toEqual({
@@ -745,7 +748,7 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 			addedFields: {
 				vega_editors: ['created'],
 				vega_media: ['focal'],
-				pages: ['description', 'socialImage', 'noindex']
+				pages: ['publishAt', 'description', 'socialImage', 'noindex']
 			},
 			createdRecords: [],
 			upgradedRecords: ['manifest']
@@ -756,6 +759,7 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 		});
 		const pagesAfter = await admin.collections.getOne('pages');
 		expectSeoFields(pagesAfter, mediaCollection.id);
+		expectPublishAtField(pagesAfter);
 		// Los campos que ya estaban no cambian ni de forma ni de id; las reglas, tampoco.
 		for (const field of pagesBefore.fields) {
 			expect(pagesAfter.fields.find((candidate) => candidate.id === field.id)).toEqual(field);
@@ -775,7 +779,8 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 				status: before.status,
 				description: '',
 				socialImage: '',
-				noindex: false
+				noindex: false,
+				publishAt: ''
 			});
 		}
 		expect(pagesAfterRecords.map((page) => page.id)).toContain(canonical.id);
@@ -793,6 +798,73 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 		expect(manifests[0]?.manifest).not.toEqual(previousStarterManifest);
 
 		// La pasada siguiente ya no tiene nada que hacer.
+		const before = await logicalSnapshot(admin);
+		await expect(seedSiteProject(port)).resolves.toEqual({
+			createdCollections: [],
+			addedFields: {},
+			createdRecords: [],
+			upgradedRecords: []
+		});
+		expect(await logicalSnapshot(admin)).toEqual(before);
+	});
+
+	test('un proyecto sembrado con SEO (0ace139) recibe pages.publishAt y el manifiesto nuevo sin perder datos', async () => {
+		await seedLikePrevious0ace139(port);
+		const pagesBefore = await admin.collections.getOne('pages');
+		expect(pagesBefore.fields.map((field) => field.name)).not.toContain('publishAt');
+		const human = await admin.collection('pages').create({
+			title: 'Quiénes somos',
+			path: '/about',
+			layout: 'default',
+			status: 'published',
+			description: 'Escrita a mano',
+			noindex: true
+		});
+		const redirect = await admin
+			.collection('redirects')
+			.create({ from: '/viejo', to: '/about', code: '301' });
+
+		const result = await seedSiteProject(port);
+
+		expect(result).toEqual({
+			createdCollections: [],
+			addedFields: {
+				vega_editors: ['created'],
+				vega_media: ['focal'],
+				pages: ['publishAt']
+			},
+			createdRecords: [],
+			upgradedRecords: ['manifest']
+		});
+		const pagesAfter = await admin.collections.getOne('pages');
+		expectPublishAtField(pagesAfter);
+		for (const field of pagesBefore.fields) {
+			expect(pagesAfter.fields.find((candidate) => candidate.id === field.id)).toEqual(field);
+		}
+		expect(rawRules(pagesAfter)).toEqual(rawRules(pagesBefore));
+		await expect(admin.collection('pages').getOne(human.id)).resolves.toMatchObject({
+			status: 'published',
+			description: 'Escrita a mano',
+			noindex: true,
+			publishAt: ''
+		});
+		await expect(admin.collection('redirects').getOne(redirect.id)).resolves.toMatchObject({
+			from: '/viejo'
+		});
+		const manifests = await admin.collection('vega').getFullList();
+		expect(manifests).toHaveLength(1);
+		expect(manifests[0]?.manifest).toEqual(starterManifest);
+		expect(manifests[0]?.manifest).not.toEqual(starterManifest0ace139);
+
+		// Una fecha se guarda y se lee tal cual: es la columna que consulta `vegaschedule`.
+		const scheduled = await admin.collection('pages').create({
+			title: 'Otoño',
+			path: '/otono',
+			status: 'draft',
+			publishAt: '2026-10-12 10:00:00.000Z'
+		});
+		expect(scheduled.publishAt).toBe('2026-10-12 10:00:00.000Z');
+
 		const before = await logicalSnapshot(admin);
 		await expect(seedSiteProject(port)).resolves.toEqual({
 			createdCollections: [],
@@ -943,6 +1015,12 @@ function expectSeoFields(pages: SiteSeedingCollectionModel, mediaCollectionId: s
 		cascadeDelete: false
 	});
 	expect(fields.get('noindex')).toMatchObject({ type: 'bool', required: false });
+}
+
+/** «Publicar el»: un `date` real (no `autodate`) y opcional, que es lo que exige `vegaschedule`. */
+function expectPublishAtField(pages: SiteSeedingCollectionModel) {
+	const field = pages.fields.find((candidate) => candidate.name === 'publishAt');
+	expect(field).toMatchObject({ type: 'date', required: false });
 }
 
 async function logicalSnapshot(pb: SiteSeedingAdmin) {

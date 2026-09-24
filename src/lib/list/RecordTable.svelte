@@ -70,6 +70,12 @@
 	 *   la insignia (`contentType.statusLabels?.[descriptor.text] ?? descriptor.text`); el atributo
 	 *   `data-status` (valor crudo, usado por los e2e) y el COLOR (`data-status-kind`, decidido por
 	 *   `classifyStatusBadge` sobre el valor crudo, nunca sobre la etiqueta) no cambian.
+	 * - **Programada (publicación programada, `ResolvedContentType.publishAtField`)**: texto, color
+	 *   y `data-status` los decide `describeStatusBadge` (`cell.ts`), la MISMA función que el raíl
+	 *   y la cabecera del formulario. Un `draft` con fecha «Publicar el» futura pinta «Programada ·
+	 *   12 oct 10:00» con `data-status-kind="scheduled"` SOLO si el servidor tiene `vegaschedule`
+	 *   (`ctx.model.scheduledPublishing`); si no, «Borrador · fecha sin efecto» o «sin confirmar».
+	 *   `data-status` sigue siendo `draft`. Sin `publishAtField` el resultado es el de siempre.
 	 * - **Subtítulo bajo el título (M3, config-driven, `ResolvedContentType.subtitleField`,
 	 *   mockup `.cell-title .slug`)**: capacidad OPT-IN por manifiesto (P2) — un tipo que no
 	 *   declara `subtitleField` no cambia su render (`posts`, entre otros, no lo declara). Vive en
@@ -155,7 +161,12 @@
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import { recordRoute } from '$lib/nav/routes';
-	import { classifyStatusBadge, describeCell, type CellDescriptor } from './cell';
+	import {
+		classifyStatusBadge,
+		describeCell,
+		describeStatusBadge,
+		type CellDescriptor
+	} from './cell';
 	import type { ColumnSpec } from './columns';
 	import { isRightAlignedColumn } from './column-align';
 	import { resolveTitleCellText } from './list-load';
@@ -430,12 +441,19 @@
 								{#if isOpenColumn}
 									{@render titleLink(record)}
 								{:else if column.isStatus && descriptor.kind === 'text'}
+									{@const badge = describeStatusBadge(
+										contentType,
+										record.values,
+										ctx.model.scheduledPublishing ?? 'unknown',
+										ctx.locale,
+										ctx.t
+									)}
 									<span
 										class="vega-status-badge"
-										data-status={descriptor.text}
-										data-status-kind={classifyStatusBadge(descriptor.text)}
+										data-status={badge?.raw ?? descriptor.text}
+										data-status-kind={badge?.kind ?? classifyStatusBadge(descriptor.text)}
 									>
-										{contentType.statusLabels?.[descriptor.text] ?? descriptor.text}
+										{badge?.label ?? descriptor.text}
 									</span>
 								{:else}
 									{@render cellContent(descriptor, record, column)}
@@ -906,6 +924,13 @@
 	.vega-status-badge[data-status-kind='other'] {
 		color: var(--info);
 		background: var(--info-soft);
+	}
+
+	/* Borrador programado («Programada · fecha», `describeStatusBadge`): la pareja de acento que ya
+	   usan los chips de filtro activos, texto `--accent-text` sobre `--accent-soft`. */
+	.vega-status-badge[data-status-kind='scheduled'] {
+		color: var(--accent-text);
+		background: var(--accent-soft);
 	}
 
 	.vega-chip-list {

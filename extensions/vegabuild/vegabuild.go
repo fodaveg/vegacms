@@ -16,6 +16,7 @@ package vegabuild
 import (
 	"context"
 	"crypto/subtle"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -518,20 +519,43 @@ func (x *Extension) applyHandoff(app core.App, runID string, handoff Handoff) er
 	return nil
 }
 
-func (x *Extension) triggerHandler(e *core.RequestEvent) error {
-	run, err := x.startNewRun(e.App)
+// ErrRunInProgress is what Trigger returns when a run is already "running": the same condition
+// POST /trigger answers with 409.
+var ErrRunInProgress = errors.New("vegabuild: a build is already running")
+
+// StartError wraps the error a Runner returned from Start. The run it belongs to has already been
+// closed as failed by the time Trigger returns it; POST /trigger answers it with 502.
+type StartError struct {
+	RunID string
+	Err   error
+}
+
+func (e *StartError) Error() string { return "vegabuild: failed to start the build: " + e.Err.Error() }
+
+func (e *StartError) Unwrap() error { return e.Err }
+
+// Trigger starts a new run exactly as POST {RoutePrefix}/trigger does — same "one run at a time"
+// guard, same Runner, same run record — and returns its id. It is the server-side twin of the
+// Publish button, for other extensions compiled into the same binary: `extensions/vegaschedule`
+// calls it (through its OnPublished hook, see that README) after publishing scheduled content, so
+// a prerendered site picks the change up the same way it would after a human pressed Publish.
+//
+// Errors: ErrRunInProgress when a run is already "running" (nothing was started), *StartError when
+// the Runner failed to start (the run exists and is already closed as failed), anything else is an
+// internal failure reading or writing the runs collection.
+func (x *Extension) Trigger(app core.App) (string, error) {
+	run, err := x.startNewRun(app)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if run == nil {
-		return apis.NewApiError(http.StatusConflict, "a build is already running", nil)
+		return "", ErrRunInProgress
 	}
 	runID := run.Id
 
-	// Start MUST NOT be tied to this HTTP request's context: the request handler (and its context)
-	// is about to return, but the build itself, and the goroutine that eventually calls report,
-	// keeps running well beyond that.
-	app := e.App
+	// Start MUST NOT be tied to any request context: the caller (an HTTP handler, a cron tick) is
+	// about to return, but the build itself, and the goroutine that eventually calls report, keeps
+	// running well beyond that.
 	handoff, startErr := x.config.Runner.Start(context.Background(), runID, func(result Result) {
 		state := runStateFailed
 		if result.OK {
@@ -546,15 +570,28 @@ func (x *Extension) triggerHandler(e *core.RequestEvent) error {
 		// the same reread-fresh discipline as applyHandoff, in case a Runner that errors out of
 		// Start still managed to call report first.
 		if _, err := x.closeRun(app, runID, runStateFailed, "", startErr.Error()); err != nil {
-			return err
+			return "", err
 		}
-		return apis.NewApiError(http.StatusBadGateway, "failed to start the build: "+startErr.Error(), nil)
+		return runID, &StartError{RunID: runID, Err: startErr}
 	}
 
 	if err := x.applyHandoff(app, runID, handoff); err != nil {
+		return "", err
+	}
+	return runID, nil
+}
+
+func (x *Extension) triggerHandler(e *core.RequestEvent) error {
+	runID, err := x.Trigger(e.App)
+	var startErr *StartError
+	switch {
+	case errors.Is(err, ErrRunInProgress):
+		return apis.NewApiError(http.StatusConflict, "a build is already running", nil)
+	case errors.As(err, &startErr):
+		return apis.NewApiError(http.StatusBadGateway, "failed to start the build: "+startErr.Err.Error(), nil)
+	case err != nil:
 		return err
 	}
-
 	return e.JSON(http.StatusAccepted, map[string]string{"id": runID})
 }
 

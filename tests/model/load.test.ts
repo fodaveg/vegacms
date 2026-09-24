@@ -22,6 +22,7 @@ import {
 	withSchemaSnapshotSync
 } from '$lib/model/load';
 import { VegaError } from '$lib/backend/errors';
+import { withServerFeatures } from '$lib/backend/scheduled-publishing';
 import { categoryType, postType } from './fixture';
 
 const ADMIN_EMAIL = 'admin@vega.test';
@@ -486,6 +487,12 @@ describe('snapshot de esquema de los editores', () => {
 		return (await port.list('vega', { perPage: 1 })).items[0].values.schemaSnapshot;
 	}
 
+	/** Lo que DEBE haber en el snapshot: el esquema vivo más `serverFeatures` en la entrada `vega`
+	 *  (memory sin `scheduledPublishing` sembrado responde `'inactive'`). */
+	async function expectedSnapshot(port: BackendPort): Promise<ContentType[]> {
+		return withServerFeatures(await port.listContentTypes(), 'inactive');
+	}
+
 	/** Mismo contenido con las claves de TODOS los objetos en orden inverso. */
 	function reverseKeys(value: unknown): unknown {
 		if (Array.isArray(value)) return value.map(reverseKeys);
@@ -502,7 +509,7 @@ describe('snapshot de esquema de los editores', () => {
 
 		await port.ensureCollections([NEW_COLLECTION]);
 
-		expect(await storedSnapshot(port)).toEqual(await port.listContentTypes());
+		expect(await storedSnapshot(port)).toEqual(await expectedSnapshot(port));
 		expect(((await storedSnapshot(port)) as ContentType[]).map((t) => t.name)).toContain('author');
 	});
 
@@ -548,18 +555,18 @@ describe('snapshot de esquema de los editores', () => {
 		const port = await portWithSnapshot();
 		// Sin decorador: así cambia el esquema el Admin de PocketBase, sin que Vega se entere.
 		await port.ensureCollections([NEW_COLLECTION]);
-		expect(await storedSnapshot(port)).not.toEqual(await port.listContentTypes());
+		expect(await storedSnapshot(port)).not.toEqual(await expectedSnapshot(port));
 
 		await loadContentModel(port);
 
-		expect(await storedSnapshot(port)).toEqual(await port.listContentTypes());
+		expect(await storedSnapshot(port)).toEqual(await expectedSnapshot(port));
 	});
 
 	test('snapshot igual con otro orden de claves: la entrada del superuser NO escribe', async () => {
 		const port = await portWithSnapshot();
 		const record = (await port.list('vega', { perPage: 1 })).items[0];
 		await port.update('vega', record.id, {
-			schemaSnapshot: reverseKeys(await port.listContentTypes()) as never
+			schemaSnapshot: reverseKeys(await expectedSnapshot(port)) as never
 		});
 		const update = vi.spyOn(port, 'update');
 
@@ -584,6 +591,34 @@ describe('snapshot de esquema de los editores', () => {
 		await expect(syncSchemaSnapshot(editorPort)).resolves.toBe('skipped');
 	});
 
+	// Publicación programada: el editor no puede llamar a `/api/crons`, así que lo que comprobó el
+	// superusuario viaja en el snapshot, colgado de la entrada `vega` (`ContentType.serverFeatures`).
+	test('el snapshot lleva si el servidor publica lo programado, en la entrada vega y solo ahí', async () => {
+		for (const [state, expected] of [
+			['inactive', false],
+			['active', true]
+		] as const) {
+			const port = await loggedInPort({ ...virginSeed(), scheduledPublishing: state });
+			await saveManifest(port, { schemaVersion: 1, site: { name: 'Snapshot' } });
+
+			const snapshot = (await storedSnapshot(port)) as ContentType[];
+			expect(snapshot.find((t) => t.name === 'vega')?.serverFeatures).toEqual({
+				scheduledPublishing: expected
+			});
+			expect(snapshot.filter((t) => t.serverFeatures !== undefined)).toHaveLength(1);
+			// Y el esquema vivo nunca lo trae: solo existe en lo que se escribe para los editores.
+			expect((await port.listContentTypes()).some((t) => t.serverFeatures)).toBe(false);
+		}
+	});
+
+	test('un servidor que no sabe decirlo (puerto sin el método) no anota nada', async () => {
+		const inner = await loggedInPort(virginSeed());
+		const port: BackendPort = { ...inner, scheduledPublishing: undefined };
+		await saveManifest(port, { schemaVersion: 1, site: { name: 'Snapshot' } });
+
+		expect(await storedSnapshot(port)).toEqual(await port.listContentTypes());
+	});
+
 	test('si reescribir el snapshot falla, el modelo carga igual y el fallo queda en consola', async () => {
 		const port = await portWithSnapshot();
 		await port.ensureCollections([NEW_COLLECTION]);
@@ -597,5 +632,44 @@ describe('snapshot de esquema de los editores', () => {
 		} finally {
 			warn.mockRestore();
 		}
+	});
+});
+
+describe('ContentModel.scheduledPublishing (publicación programada)', () => {
+	const SCHEDULED_MANIFEST = {
+		schemaVersion: 1,
+		collections: { post: { publishAtField: 'publishedAt' } }
+	};
+
+	test('con un tipo programable, el modelo dice lo que responde el servidor (las dos ramas)', async () => {
+		for (const state of ['active', 'inactive'] as const) {
+			const port = await loggedInPort({ ...virginSeed(), scheduledPublishing: state });
+			await saveManifest(port, SCHEDULED_MANIFEST);
+
+			const model = await loadContentModel(port);
+
+			expect(model.types.find((t) => t.name === 'post')?.publishAtField).toBe('publishedAt');
+			expect(model.scheduledPublishing).toBe(state);
+		}
+	});
+
+	test('sin ningún tipo programable no se pregunta al servidor y el modelo no cambia de forma', async () => {
+		const port = await loggedInPort(virginSeed());
+		await saveManifest(port, { schemaVersion: 1, site: { name: 'Sin programar' } });
+		const ask = vi.spyOn(port, 'scheduledPublishing');
+
+		const model = await loadContentModel(port);
+
+		expect(model).not.toHaveProperty('scheduledPublishing');
+		// Una sola pregunta: la de comparar el snapshot de los editores, no la del modelo.
+		expect(ask).toHaveBeenCalledTimes(1);
+	});
+
+	test('un puerto que no sabe comprobarlo deja el estado en unknown, no en inactive', async () => {
+		const inner = await loggedInPort(virginSeed());
+		await saveManifest(inner, SCHEDULED_MANIFEST);
+		const port: BackendPort = { ...inner, scheduledPublishing: undefined };
+
+		expect((await loadContentModel(port)).scheduledPublishing).toBe('unknown');
 	});
 });

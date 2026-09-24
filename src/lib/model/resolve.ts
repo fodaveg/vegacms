@@ -59,6 +59,7 @@ import {
 	resolveDefaultSort,
 	resolveMergedSourceOrderField,
 	resolveOrderField,
+	resolvePublishAtField,
 	resolveSlugField,
 	resolveStatusField,
 	resolveStatusLabels,
@@ -1532,6 +1533,22 @@ function resolveContentType(
 		warnings
 	);
 
+	const publishAtFieldRaw = readKey(
+		collectionRaw,
+		'publishAtField',
+		readString(1, Infinity),
+		`${base}/publishAtField`,
+		`publishAtField de "${type.name}" no es un texto no vacío; se ignora.`,
+		warnings
+	);
+	const publishAtField = resolvePublishAtField(
+		type.fields,
+		publishAtFieldRaw,
+		statusField,
+		type.name,
+		warnings
+	);
+
 	// ————— previewUrl (§4.7) —————
 	const previewUrlTemplate = readKey(
 		collectionRaw,
@@ -1715,6 +1732,7 @@ function resolveContentType(
 		defaultSort,
 		statusField,
 		statusLabels,
+		publishAtField,
 		previewUrl,
 		fields: orderedFields,
 		listFields,

@@ -169,6 +169,16 @@ Then configure the project's discovery document:
 }
 ```
 
+## Trigger a run from the server
+
+`Extension.Trigger(app)` starts a run exactly as `POST {RoutePrefix}/trigger` does (same run
+records, same "one run at a time" guard, same Runner) and returns its id. It exists for other
+extensions compiled into the same binary: `extensions/vegaschedule` wires it to its `OnPublished`
+hook so a scheduled publication rebuilds the site the same way a human pressing Publish does (see
+that README for the recipe). It returns `vegabuild.ErrRunInProgress` when a run is already open
+(the HTTP route's 409) and a `*vegabuild.StartError` when the Runner failed to start (the 502; the
+run is already closed as failed).
+
 ## Security notes
 
 - The webhook URL (and any header/body configured on `WebhookRunner`) is a credential. It is never

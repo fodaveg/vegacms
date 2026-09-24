@@ -7,7 +7,7 @@
 	 *
 	 * Vive en `$lib/list/` y no en `$lib/form/` por dos motivos, los dos deliberados:
 	 * 1. Es un LISTADO (deriva título/estado/fecha exactamente igual que `RecordTable.svelte`, con
-	 *    `describeCell`/`classifyStatusBadge`/`resolveTitleCellText` — cero derivación propia).
+	 *    `describeCell`/`describeStatusBadge`/`resolveTitleCellText` — cero derivación propia).
 	 * 2. `src/lib/list/**` es una de las cuatro capas exentas de `svelte/no-navigation-without-
 	 *    resolve` (ver `eslint.config.js`): cada fila del raíl es un `href` REAL a
 	 *    `recordRoute(type, id)`, igual que la celda-título de la tabla — nunca un `onclick` que
@@ -38,7 +38,7 @@
 	import type { Page, VegaRecord } from '$lib/backend/types';
 	import type { ResolvedContentType } from '$lib/model/types';
 	import { recordRoute } from '$lib/nav/routes';
-	import { classifyStatusBadge, describeCell } from './cell';
+	import { describeCell, describeStatusBadge, type StatusBadge } from './cell';
 	import { normalizeListError, RequestSequencer, resolveTitleCellText } from './list-load';
 	import { buildListQuery } from './search';
 
@@ -105,13 +105,6 @@
 			: null
 	);
 
-	/** Campo de estado ya resuelto: alimenta el punto de color + la etiqueta de cada fila. */
-	const statusField = $derived(
-		contentType.statusField !== null
-			? (contentType.fields.find((f) => f.name === contentType.statusField) ?? null)
-			: null
-	);
-
 	/**
 	 * Campo de FECHA de la línea secundaria (mockup: "hace 2 h"/"ayer"/"18 jul"), config-driven:
 	 * el campo de `defaultSort` si el tipo declara uno y ES una fecha (el caso natural — un índice
@@ -135,11 +128,17 @@
 		return resolveTitleCellText(descriptor, ctx.t('list.untitled'));
 	}
 
-	/** Valor CRUDO del estado de `record`, o `null` (sin `statusField`, o vacío en ese registro). */
-	function railStatusValue(record: VegaRecord): string | null {
-		if (!statusField) return null;
-		const raw = record.values[statusField.name];
-		return typeof raw === 'string' && raw !== '' ? raw : null;
+	/** Estado de `record` (punto de color + etiqueta), o `null` (sin `statusField`, o vacío en ese
+	 *  registro). MISMA insignia que la tabla y la cabecera del formulario, «Programada · fecha»
+	 *  incluida (`describeStatusBadge`). */
+	function railStatus(record: VegaRecord): StatusBadge | null {
+		return describeStatusBadge(
+			contentType,
+			record.values,
+			ctx.model.scheduledPublishing ?? 'unknown',
+			ctx.locale,
+			ctx.t
+		);
 	}
 
 	/** Fecha de la fila ya formateada (relativa/absoluta, `describeCell`), o `null`. */
@@ -169,7 +168,7 @@
 		{:else if railPage}
 			<div class="vega-rail-items">
 				{#each railPage.items as record (record.id)}
-					{@const statusValue = railStatusValue(record)}
+					{@const status = railStatus(record)}
 					{@const date = railDate(record)}
 					<a
 						href={recordRoute(contentType.name, record.id)}
@@ -177,13 +176,10 @@
 					>
 						<span class="vega-rail-title">{railTitle(record)}</span>
 						<span class="vega-rail-meta">
-							{#if statusValue !== null}
-								<span
-									class="vega-rail-dot"
-									data-status-kind={classifyStatusBadge(statusValue)}
-									aria-hidden="true"
+							{#if status !== null}
+								<span class="vega-rail-dot" data-status-kind={status.kind} aria-hidden="true"
 								></span>
-								{contentType.statusLabels?.[statusValue] ?? statusValue}
+								{status.label}
 							{/if}
 							{#if date !== null}
 								<span class="vega-rail-date">{date}</span>
@@ -300,7 +296,7 @@
 	}
 
 	/* Punto de estado (mockup `.dot.pub`/`.dra`/`.pro`): MISMA clasificación que la insignia de la
-	   tabla (`classifyStatusBadge`), aquí reducida a color — la palabra ya va al lado. */
+	   tabla (`describeStatusBadge`), aquí reducida a color — la palabra ya va al lado. */
 	.vega-rail-dot {
 		width: 6px;
 		height: 6px;
@@ -319,6 +315,10 @@
 
 	.vega-rail-dot[data-status-kind='other'] {
 		background: var(--info);
+	}
+
+	.vega-rail-dot[data-status-kind='scheduled'] {
+		background: var(--accent);
 	}
 
 	/* Registro abierto: fondo tenue de marca + barra `--sheen` a la izquierda — la MISMA firma que

@@ -18,6 +18,7 @@ import type {
 	RecordEvent,
 	RecordId,
 	RecordInput,
+	ScheduledPublishingState,
 	Session,
 	ThumbSpec,
 	VegaRecord
@@ -599,6 +600,10 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 		async listContentTypes() {
 			checkSessionAlive();
 			return structuredClone(getSortedContentTypes());
+		},
+
+		async scheduledPublishing(): Promise<ScheduledPublishingState> {
+			return seed?.scheduledPublishing ?? 'inactive';
 		},
 
 		async list(type, query?: Query) {

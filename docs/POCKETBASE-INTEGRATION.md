@@ -329,6 +329,23 @@ Con `vegabuild` las tres comprobaciones ya están cubiertas por su suite (`cd ex
 && go test ./...`, que corre dentro de `pnpm gate`); vuelve a hacerlas a mano contra tu instalación
 si escribes tu propio `Runner` o si vas por la Opción B.
 
+## Publicación programada (opcional)
+
+Un tipo que declara `publishAtField` en el manifiesto (ver
+[Publicación programada](CONFIG.md#publicación-programada-publishatfield)) muestra en el formulario
+un campo «Publicar el». Quien lo cumple es el servidor:
+[`extensions/vegaschedule`](../extensions/vegaschedule/README.md), un cron de PocketBase que cada
+minuto pasa a `published` los borradores cuya fecha ya pasó y vacía la fecha. Se registra desde
+`OnServe` como las demás extensiones. Sin ella la fecha no hace nada, y Vega lo dice: con sesión de
+superusuario consulta `GET /api/crons` (en 0.39.6, medido: 401 sin sesión, 403 con un registro
+`auth` normal, 200 con superusuario) y deja el resultado en `vega.schemaSnapshot` para los
+editores. Sin el job `vegaschedule`, un borrador con fecha futura se ve «Borrador · fecha sin
+efecto» y el campo lleva un aviso, en vez de «Programada».
+
+Con `vegabuild` en el mismo binario, `vegaschedule` puede disparar el mismo build que el botón
+"Publicar" tras cada publicación programada (receta en su README). En un sitio renderizado en el
+servidor no hace falta: la página se ve en la siguiente petición.
+
 ## Vista previa de registros guardados sin publicar
 
 El discovery puede declarar `preview.apiBasePath` para que Vega muestre el panel de vista previa de
@@ -714,6 +731,16 @@ siendo EXACTAMENTE el inicial de la versión anterior, lo sustituye por el nuevo
 el manifiesto, el sembrado aborta sin escribir nada, como con cualquier manifiesto humano: copia a
 mano las claves `collections.pages.fields`, `collections.pages.fieldGroups` y
 `collections.redirects` del manifiesto del starter.
+
+**Publicación programada.** Desde la misma fecha el sembrado añade también `pages.publishAt`
+(`date` opcional, columna real porque la consulta el servidor) y el manifiesto inicial lo declara
+como `publishAtField` con etiqueta «Publicar el» (ver
+[Publicación programada](CONFIG.md#publicación-programada-publishatfield)). Un proyecto ya sembrado
+lo recibe igual que los campos de SEO: campo añadido, datos intactos y manifiesto sustituido solo si
+es EXACTAMENTE uno inicial anterior (el de antes del SEO o el de después); si se editó, copia a mano
+`collections.pages.publishAtField` y `collections.pages.fields.publishAt`. Para que la fecha haga
+algo hace falta la extensión [`vegaschedule`](../extensions/vegaschedule/README.md) en ese
+PocketBase.
 
 Los pasos manuales siguientes siguen aplicando a una instalación **existente**. El sembrado es
 `creation-only`: si una colección ya existe, no cambia ninguna de sus reglas, aunque estén vacías,

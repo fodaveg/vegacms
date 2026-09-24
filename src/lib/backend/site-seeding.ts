@@ -35,6 +35,9 @@ import starterManifestDocument from './site-seeding-manifest.json';
 // Manifiesto inicial tal como lo sembró `1bda988` (hasta el lote SEO/redirecciones del 24 sep
 // 2026). Se conserva byte a byte para reconocerlo al actualizar; nunca se edita.
 import starterManifest1bda988 from './site-seeding-manifest.1bda988.json';
+// Manifiesto inicial tal como lo sembró `0ace139` (SEO y redirecciones, hasta la publicación
+// programada del 24 sep 2026). Mismo trato: byte a byte, nunca se edita.
+import starterManifest0ace139 from './site-seeding-manifest.0ace139.json';
 import { deriveBlockRecordFields } from './block-schema';
 import { VEGA_COLLECTION, type CollectionFieldSpec, type CollectionSpec } from './collections';
 import type { BackendPort } from './port';
@@ -66,7 +69,10 @@ export const SITE_SEED_CANONICAL_PAGE = {
 const STARTER_MANIFEST = starterManifestDocument as JsonValue;
 
 /** Manifiestos iniciales de versiones anteriores del sembrado, del más antiguo al más reciente. */
-const PREVIOUS_STARTER_MANIFESTS: readonly JsonValue[] = [starterManifest1bda988 as JsonValue];
+const PREVIOUS_STARTER_MANIFESTS: readonly JsonValue[] = [
+	starterManifest1bda988 as JsonValue,
+	starterManifest0ace139 as JsonValue
+];
 
 /**
  * `created` (autodate, solo al crear) da fecha de alta a las cuentas en `/editores`. Una `auth`
@@ -97,6 +103,10 @@ const PAGES_COLLECTION: CollectionSpec = {
 			options: ['draft', 'published'],
 			multiple: false
 		},
+		// «Publicar el» (publicación programada, `publishAtField` del manifiesto). Columna real y
+		// OPCIONAL: la consulta el cron de `vegaschedule` en el servidor, que publica los borradores
+		// cuya fecha ya pasó y la vacía; una fecha obligatoria publicaría todo borrador.
+		{ name: 'publishAt', type: 'date' },
 		// SEO por página. Columnas reales, no `data`: `noindex` lo FILTRA el sitemap del sitio y
 		// `socialImage` ENLAZA un medio (misma convención que `blocks.image`: relación simple a
 		// `vega_media`, sin cascada, para que borrar un medio no borre la página). `description`
