@@ -442,6 +442,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'form.errorCode.validation_invalid_value': 'The selected value is not valid.',
 	'form.errorCode.validation_too_many_values': 'You have selected too many items.',
 	'form.errorCode.validation_missing_rel_records': 'Some of the related records no longer exist.',
+	'form.errorCode.validation_is_email': 'That value is not a valid email address.',
+	'form.errorCode.validation_not_unique': 'A record with that value already exists.',
 	'form.errorCode.vega_unsupported_field': 'Vega cannot write this field.',
 	'form.errorCode.vega_readonly_field': 'This field is read-only.',
 	'form.errorCode.vega_unknown_field': 'This field does not exist on the content type.',
