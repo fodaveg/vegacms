@@ -24,7 +24,11 @@ describe('carga perezosa de $lib/i18n', () => {
 	});
 
 	test('ensureLocaleLoaded es idempotente: llamadas concurrentes no rompen nada y devuelven lo mismo', async () => {
-		await Promise.all([ensureLocaleLoaded('en'), ensureLocaleLoaded('en'), ensureLocaleLoaded('en')]);
+		await Promise.all([
+			ensureLocaleLoaded('en'),
+			ensureLocaleLoaded('en'),
+			ensureLocaleLoaded('en')
+		]);
 		expect(t('en', 'nav.trash')).toBe('Trash');
 	});
 
