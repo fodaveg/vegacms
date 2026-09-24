@@ -47,10 +47,13 @@
 	import { iconRegistry } from '$lib/icons/registry';
 	import { applyInitialTheme } from '$lib/theme/apply';
 	import {
+		backupsRoute,
+		editorsRoute,
 		indexRoute,
 		listRoute,
 		listSearchRoute,
 		loginRoute,
+		passwordResetRoute,
 		mediaRoute,
 		newRoute,
 		recordRoute,
@@ -140,6 +143,8 @@
 		toMedia: () => void navigateTo(mediaRoute()),
 		toSettings: () => void navigateTo(settingsRoute()),
 		toTrash: () => void navigateTo(trashRoute()),
+		toEditors: () => void navigateTo(editorsRoute()),
+		toBackups: () => void navigateTo(backupsRoute()),
 		toLogin: () => void navigateTo(loginRoute())
 	};
 
@@ -360,6 +365,9 @@
 
 		const path = page.url.pathname;
 		const onLoginRoute = path === loginRoute();
+		// `/restablecer` es pública y no redirige nunca: vale con o sin sesión (quien llega del
+		// correo no ha entrado, y un superusuario puede abrir el enlace para probarlo).
+		if (path === passwordResetRoute()) return;
 
 		if (!sessionStore.session) {
 			if (!onLoginRoute) {
@@ -378,6 +386,7 @@
 	});
 
 	const isLoginPath = $derived(page.url.pathname === loginRoute());
+	const isPasswordResetPath = $derived(page.url.pathname === passwordResetRoute());
 </script>
 
 <svelte:head>
@@ -390,7 +399,11 @@
 	</div>
 {/snippet}
 
-{#if sessionStore.status === 'network-error'}
+{#if isPasswordResetPath}
+	<!-- Pública y fuera del shell (ver el guard): no espera a la sesión ni al modelo, que quien
+	     llega del correo no tiene. -->
+	{@render children()}
+{:else if sessionStore.status === 'network-error'}
 	<div class="vega-global-state" role="alert">
 		<h1>{t('errors.network.title')}</h1>
 		<p>{t('errors.network.body')}</p>

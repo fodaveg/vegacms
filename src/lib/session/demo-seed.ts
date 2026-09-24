@@ -1056,7 +1056,44 @@ export const DEMO_SEED: MemorySeed = {
 		]
 		// authors/site_info sin registros a propósito (ver cabecera): authors cubre el
 		// vacío-colección CON CTA; site_info ejercita el modo creación (0 → new, §3.3).
-	}
+	},
+	// Pantallas de superusuario (`/editores`, `/copias`, `BackendPort.administration`): la colección
+	// de editores ya existe, con una cuenta activa, una pendiente y un email largo que se recorta, y
+	// hay dos copias en el servidor. Sin correo (`mailEnabled` ausente = `false`): `memory` no envía
+	// nada y la demo no lo finge. La copia tarda algo más de un segundo para que se vea en curso.
+	editors: [
+		{
+			id: 'editor_ana',
+			email: 'ana.ruiz@fodaveg.net',
+			verified: true,
+			created: '2026-02-03T09:30:00.000Z'
+		},
+		{
+			id: 'editor_jorge',
+			email: 'jorge.p@fodaveg.net',
+			verified: false,
+			created: '2026-09-22T16:05:00.000Z'
+		},
+		{
+			id: 'editor_comunicacion',
+			email: 'comunicacion.institucional@ayuntamiento-de-villanueva-de-la-canada.es',
+			verified: true,
+			created: '2026-09-24T08:12:00.000Z'
+		}
+	],
+	backups: [
+		{
+			key: '@auto_pb_backup_vega_20260923000000.zip',
+			size: 47_900_000,
+			modified: '2026-09-23T00:00:00.000Z'
+		},
+		{
+			key: 'antes-de-migrar-a-vega-0-7.zip',
+			size: 1_288_490_189,
+			modified: '2026-08-02T18:40:00.000Z'
+		}
+	],
+	backupDurationMs: 1200
 };
 
 // ————— Semilla de `vega_media` (Fase P6·6b, SOLO para `e2e/media.spec.ts`) —————
@@ -1131,6 +1168,17 @@ const VEGA_MEDIA_CONTENT_TYPE: ContentType = {
 			type: 'date',
 			required: false,
 			readonly: true,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		// Punto focal (audit del 23 sep): mismo `json` que declara `VEGA_MEDIA_COLLECTION`, para que
+		// la ficha de un medio ofrezca el gesto también en la demo.
+		{
+			name: 'focal',
+			type: 'json',
+			required: false,
+			readonly: false,
 			presentable: false,
 			hidden: false,
 			unique: false
@@ -1365,6 +1413,21 @@ const PAGINAS_CONTENT_TYPE: ContentType = {
 			presentable: true,
 			hidden: false,
 			unique: false
+		},
+		// Lote de edición concurrente (lámina del audit p2): sin un `statusField`, el control de
+		// estado de la cabecera del editor visual (`VisualPublishControl.svelte`) no se pinta, y
+		// `paginas` es la ÚNICA colección de e2e con editor visual. Convención de publicación de
+		// siempre (`status` con `draft`+`published`), así que se resuelve sola.
+		{
+			name: 'status',
+			type: 'select',
+			options: ['draft', 'published'],
+			multiple: false,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
 		}
 	]
 };
@@ -1520,6 +1583,7 @@ const SHOWCASE_MANIFEST: JsonValue = {
 				typeField: 'tipo',
 				dataField: 'datos'
 			},
+			statusLabels: { draft: 'Borrador', published: 'Publicada' },
 			fields: { title: { label: 'Título' } }
 		},
 		// La colección hija NO aparece en la nav: se edita dentro de su página, y sacarla también
@@ -1789,11 +1853,13 @@ const ENTRADAS_RECORDS = [
 ];
 
 const PAGINAS_RECORDS = [
-	{ id: 'pagina_1', values: { title: 'Inicio' } },
-	{ id: 'pagina_2', values: { title: 'Sobre mí' } },
-	{ id: 'pagina_3', values: { title: 'Contacto' } },
-	{ id: 'pagina_4', values: { title: 'Ahora' } },
-	{ id: 'pagina_5', values: { title: 'Colofón' } }
+	// `status` (ver `PAGINAS_CONTENT_TYPE`): «Inicio», la página con secciones, arranca en borrador
+	// para que el editor visual ofrezca «Marcar como publicada».
+	{ id: 'pagina_1', values: { title: 'Inicio', status: 'draft' } },
+	{ id: 'pagina_2', values: { title: 'Sobre mí', status: 'published' } },
+	{ id: 'pagina_3', values: { title: 'Contacto', status: 'published' } },
+	{ id: 'pagina_4', values: { title: 'Ahora', status: 'draft' } },
+	{ id: 'pagina_5', values: { title: 'Colofón', status: 'published' } }
 ];
 
 /**

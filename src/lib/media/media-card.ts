@@ -61,6 +61,30 @@ export function classifyMediaAssetType(fileName: string): MediaAssetType {
 	return 'document';
 }
 
+/**
+ * `true` si el asset es una IMAGEN sin texto alternativo (audit del 23 sep, lámina pieza 3): la
+ * única condición en la que la biblioteca, el selector y la ficha avisan. Aviso, nunca bloqueo:
+ * `alt` sigue siendo opcional en `vega_media`.
+ *
+ * - Solo imágenes (`classifyMediaAssetType`): un PDF o un vídeo no llevan `alt`.
+ * - Un `alt` hecho solo de espacios cuenta como vacío: un lector de pantalla no lee nada útil.
+ * - El `title` NO sustituye al `alt` (a propósito no se mira): un título es editorial, no una
+ *   descripción de lo que se ve — mismo criterio que `mediaImgAlt` (`media-item.ts`).
+ */
+export function mediaMissingAlt(item: Pick<MediaItemView, 'alt' | 'fileName'>): boolean {
+	return classifyMediaAssetType(item.fileName) === 'image' && item.alt.trim() === '';
+}
+
+/** Cuántos de `items` son imágenes sin texto alternativo (`mediaMissingAlt`): el pie del
+ *  selector de medios los cuenta sobre lo ELEGIDO, no sobre lo visible. */
+export function countMediaMissingAlt(
+	items: Iterable<Pick<MediaItemView, 'alt' | 'fileName'>>
+): number {
+	let count = 0;
+	for (const item of items) if (mediaMissingAlt(item)) count++;
+	return count;
+}
+
 /** `true` si `fileName` pasa el chip de tipo activo (`'all'` no filtra nada). */
 export function matchesMediaTypeFilter(fileName: string, filter: MediaTypeFilter): boolean {
 	return filter === 'all' || classifyMediaAssetType(fileName) === filter;

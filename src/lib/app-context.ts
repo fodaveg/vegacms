@@ -43,6 +43,10 @@ export interface NavApi {
 	toSettings(): void; // /settings
 	/** `/papelera` (`#lote-integridad`, Fase B §10.2): registros/assets borrados. */
 	toTrash(): void;
+	/** `/editores`: cuentas de `vega_editors`. La ruta enseña su propia puerta de superusuario. */
+	toEditors(): void;
+	/** `/copias`: copias de seguridad del servidor. Misma puerta que `/editores`. */
+	toBackups(): void;
 	toLogin(): void;
 }
 

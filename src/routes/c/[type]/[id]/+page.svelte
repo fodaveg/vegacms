@@ -25,7 +25,8 @@
 	 *   deshabilita todos los campos + oculta "Guardar" (L-P5.2).
 	 * - "Guardar" llama `ctx.port.update`; `RecordForm` reasienta baseline internamente
 	 *   (L-P5.6) — esta ruta no navega tras guardar (D-P5.11 solo prescribe destino tras CREAR),
-	 *   solo confirma con un toast.
+	 *   solo confirma con un toast. Reenvía TAL CUAL las opciones de `RecordForm` (la versión
+	 *   esperada de la edición concurrente): esta ruta no decide nada sobre conflictos.
 	 *
 	 * **R7 del rediseño C2**: el `<h1>`/insignia "Solo lectura" que esta ruta pintaba junto al
 	 *   título se MUDAN dentro de `RecordForm` (barra pegajosa: título del documento + tag, ver su
@@ -138,7 +139,7 @@
 				type={activeType}
 				model={readyModel}
 				typeReadonly={activeType.readonly}
-				onSubmit={(input) => ctx.port.update(activeType.name, idParam, input)}
+				onSubmit={(input, opts) => ctx.port.update(activeType.name, idParam, input, opts)}
 				onSaved={() => ctx.feedback.toast(ctx.t('editor.saveSuccess'), { kind: 'success' })}
 				onCancel={() =>
 					activeType.singleton ? ctx.nav.toIndex() : ctx.nav.toList(activeType.name)}

@@ -41,7 +41,7 @@ import starterManifest0ace139 from './site-seeding-manifest.0ace139.json';
 import { deriveBlockRecordFields } from './block-schema';
 import { VEGA_COLLECTION, type CollectionFieldSpec, type CollectionSpec } from './collections';
 import type { BackendPort } from './port';
-import type { ContentType, Field, JsonValue } from './types';
+import type { ContentType, Field, InvitationLinkState, JsonValue } from './types';
 import { ensureMediaCollection, VEGA_MEDIA_COLLECTION } from '$lib/media/media-collection';
 import { listManifestRecords, saveManifest } from '$lib/model/load';
 import { resolveContentModel } from '$lib/model/resolve';
@@ -74,10 +74,16 @@ const PREVIOUS_STARTER_MANIFESTS: readonly JsonValue[] = [
 	starterManifest0ace139 as JsonValue
 ];
 
+/**
+ * `created` (autodate, solo al crear) da fecha de alta a las cuentas en `/editores`. Una `auth`
+ * creada por API no la trae de fábrica (medido en PocketBase 0.39.6). En un proyecto ya sembrado se
+ * añade aparte (`ensureEditorsCollection`): las cuentas que ya existían se quedan sin fecha, porque
+ * PocketBase no rellena un autodate nuevo hacia atrás (medido: vale `""`).
+ */
 const VEGA_EDITORS_COLLECTION: CollectionSpec = {
 	name: 'vega_editors',
 	type: 'auth',
-	fields: []
+	fields: [{ name: 'created', type: 'autodate' }]
 };
 
 const PAGES_COLLECTION: CollectionSpec = {
@@ -211,6 +217,19 @@ export interface SiteSeedResult {
 	createdRecords: Array<'manifest' | 'page:/'>;
 	/** Registros sustituidos por su versión actual: hoy solo un manifiesto inicial sin editar. */
 	upgradedRecords: Array<'manifest'>;
+	/** Solo con `SiteSeedOptions.passwordResetUrl`: qué pasó con el enlace de los correos de
+	 *  invitación de `vega_editors` (ver `AdministrationPort.ensureInvitationLink`). */
+	invitationLink?: InvitationLinkState;
+}
+
+export interface SiteSeedOptions {
+	/**
+	 * URL absoluta de la ruta `/restablecer` de la Vega que sirve este proyecto. Con ella, el
+	 * sembrado deja la plantilla del correo de restablecimiento de `vega_editors` apuntando ahí si
+	 * sigue la de fábrica (nunca pisa una personalizada). Opcional porque el sembrado es headless y
+	 * no sabe en qué dirección está servida Vega; sin ella, lo hace `/editores` al abrirse.
+	 */
+	passwordResetUrl?: string;
 }
 
 export interface SiteSeedDivergence {
@@ -243,7 +262,10 @@ export class SiteSeedDivergenceError extends Error {
  * `vega_editors` -> `vega_media` (sola) -> `pages` -> `blocks` -> `redirects` -> `vega`.
  * `vega_media` va antes que `pages` porque `pages.socialImage` la enlaza.
  */
-export async function seedSiteProject(port: BackendPort): Promise<SiteSeedResult> {
+export async function seedSiteProject(
+	port: BackendPort,
+	options: SiteSeedOptions = {}
+): Promise<SiteSeedResult> {
 	const plan = await inspectSeedPlan(port);
 	const result: SiteSeedResult = {
 		createdCollections: [],
@@ -252,7 +274,12 @@ export async function seedSiteProject(port: BackendPort): Promise<SiteSeedResult
 		upgradedRecords: []
 	};
 
-	await ensureOne(port, VEGA_EDITORS_COLLECTION, result);
+	await ensureEditorsCollection(port, result);
+	if (options.passwordResetUrl && port.capabilities.administration && port.administration) {
+		result.invitationLink = await port.administration.ensureInvitationLink(
+			options.passwordResetUrl
+		);
+	}
 
 	const mediaPlan = plan.collections.get('vega_media')!;
 	const mediaResult = await ensureMediaCollection(port);
@@ -468,6 +495,23 @@ async function ensureOne(
 ): Promise<void> {
 	const ensured = await port.ensureCollections([spec]);
 	result.createdCollections.push(...ensured.created);
+}
+
+/**
+ * `vega_editors` no pasa por el preflight (la esconde el descubrimiento, ver la cabecera), así que
+ * sus campos se completan aquí: si la colección ya existía, se le añaden los del sembrado que
+ * falten, con la misma regla aditiva que el resto (un campo con ese nombre, sea del tipo que sea,
+ * se deja tal cual). Nunca toca sus reglas ni sus cuentas.
+ */
+async function ensureEditorsCollection(port: BackendPort, result: SiteSeedResult): Promise<void> {
+	const ensured = await port.ensureCollections([VEGA_EDITORS_COLLECTION]);
+	result.createdCollections.push(...ensured.created);
+	if (ensured.created.length > 0) return;
+	const added = await port.addCollectionFields(
+		VEGA_EDITORS_COLLECTION.name,
+		VEGA_EDITORS_COLLECTION.fields
+	);
+	if (added.added.length > 0) result.addedFields[VEGA_EDITORS_COLLECTION.name] = added.added;
 }
 
 async function addMissingFields(

@@ -110,8 +110,13 @@ describe('modo superuser (default, sin authCollection) — camino previo INTACTO
 			explicitRecordId: true,
 			// `#lote-shell`: un superuser de PB IGNORA las API rules de las colecciones, así que la
 			// UI no le esconde nada por `access` (ver `computeCapabilities`).
-			accessBypass: true
+			accessBypass: true,
+			// Editores y copias de seguridad: `/api/settings` y `/api/backups` son de superuser.
+			administration: true,
+			// Restablecer contraseña de un editor: endpoint público, no depende de la sesión.
+			editorPasswordReset: true
 		});
+		expect(port.administration).toBeDefined();
 	});
 
 	test('login autentica contra _superusers; listContentTypes introspecciona /api/collections', async () => {
@@ -179,6 +184,12 @@ describe('modo editor (authCollection: vega_editors, L6a/L6b)', () => {
 		// `#lote-shell`: un editor SÍ está sujeto a las API rules de cada colección, así que la UI
 		// debe reflejarlas (`ContentType.access`) en vez de ofrecerle lo que va a dar 403.
 		expect(port.capabilities.accessBypass).toBe(false);
+		// Un editor no administra el servidor: sin capability y sin la sección del puerto.
+		expect(port.capabilities.administration).toBe(false);
+		expect(port.administration).toBeUndefined();
+		// …pero sí puede restablecer su propia contraseña con el enlace del correo.
+		expect(port.capabilities.editorPasswordReset).toBe(true);
+		expect(port.editorPasswordReset).toBeDefined();
 		// El resto de capabilities no depende de quién se autentica (ver `computeCapabilities`).
 		expect(port.capabilities.realtime).toBe(true);
 		expect(port.capabilities.thumbs).toBe(true);

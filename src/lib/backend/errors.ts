@@ -5,12 +5,15 @@
  * crudo del SDK o de `fetch` que escape de un adaptador es un bug de esa capa, no del puerto.
  */
 
+import type { VegaRecord } from './types';
+
 export type VegaErrorKind =
 	| 'auth-expired' // sesión no válida ya; P3 relanza login
 	| 'forbidden' // autenticado pero sin permiso (o credenciales rechazadas en login)
 	| 'validation' // datos rechazados; SIEMPRE con fieldErrors
 	| 'network' // no hubo respuesta HTTP (caído, DNS, timeout, offline)
 	| 'not-found' // recurso o colección inexistente
+	| 'conflict' // `update` con versión esperada y el registro cambió entre medias: NO se escribió
 	| 'backend'; // el backend respondió algo inesperado (5xx, forma desconocida, versión incompatible)
 
 export interface FieldError {
@@ -80,6 +83,41 @@ export class VegaError extends Error {
 }
 
 /**
+ * `'conflict'` — `update(type, id, data, { expectedVersion })` releyó el registro en fresco y su
+ * versión ya no era la esperada: otra persona (u otra pestaña) guardó entre medias y el puerto
+ * FALLA CERRADO, sin escribir nada. Es un `kind` propio, y no el `'backend'` que
+ * `adapters/pocketbase/collections.ts` eligió para su choque de esquema, porque aquí la interfaz
+ * NO lo trata igual que cualquier otro fallo: pinta el aviso de edición concurrente con el diff a
+ * tres bandas, y para eso necesita la versión del servidor que el error trae consigo.
+ *
+ * `serverRecord` es el registro tal cual se releyó (mismo `VegaRecord` normalizado que devolvería
+ * `get`), y `serverVersion` su versión (`recordVersion(serverRecord)`, `version.ts`): la que un
+ * «Guardar igualmente» tiene que pasar como esperada. Subclase (no un campo opcional en
+ * `VegaError`) para que el tipo lo garantice: quien tiene un `VegaConflictError` tiene SIEMPRE las
+ * dos cosas. Sigue siendo un `VegaError` (L2): quien no lo distinga lo trata por su `kind`.
+ */
+export class VegaConflictError extends VegaError {
+	readonly serverRecord: VegaRecord;
+	readonly serverVersion: string;
+
+	constructor(
+		serverRecord: VegaRecord,
+		serverVersion: string,
+		message = 'El registro cambió en el servidor desde que se abrió'
+	) {
+		super('conflict', message);
+		this.name = 'VegaConflictError';
+		this.serverRecord = serverRecord;
+		this.serverVersion = serverVersion;
+	}
+}
+
+/** `true` si `err` es el conflicto de versión de `update` (ver `VegaConflictError`). */
+export function isConflictError(err: unknown): err is VegaConflictError {
+	return err instanceof VegaConflictError;
+}
+
+/**
  * Códigos de validación pass-through estilo PocketBase (§7: "usa los códigos de PB… para que
  * P5 traduzca una sola tabla"). VERIFICADOS en Fase 2 contra el binario real de PocketBase
  * 0.39.6 (creando cada violación una a una y leyendo `data.<campo>.code` de la respuesta 400;
@@ -101,7 +139,10 @@ export const PB_VALIDATION_CODES = {
 	maxDate: 'validation_max_less_equal_than_required',
 	selectInvalid: 'validation_invalid_value',
 	tooManyValues: 'validation_too_many_values',
-	relationInvalid: 'validation_missing_rel_records'
+	relationInvalid: 'validation_missing_rel_records',
+	// Medidos contra 0.39.6 al crear cuentas de `vega_editors` (`AdministrationPort`).
+	email: 'validation_is_email',
+	unique: 'validation_not_unique'
 } as const;
 
 /**

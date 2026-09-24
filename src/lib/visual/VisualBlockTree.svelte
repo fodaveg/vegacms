@@ -119,6 +119,24 @@
 	 * `aria-controls="vega-block-tree-panel"` del disparador), las DOS regiones de verdad viven
 	 * dentro de él.
 	 *
+	 * **Pasar por una fila RESALTA su contorno en el lienzo, sin seleccionar.** `onHover` avisa con
+	 * el id de la fila bajo el puntero (`mouseenter`) o con el foco de teclado dentro (`focusin`,
+	 * sobre el `<li>` entero, así que tabular de la fila a sus botones de acción sigue siendo la
+	 * misma sección), y con `null` al salir (`mouseleave`, o `focusout` hacia algo que NO está en
+	 * esa misma fila). Este componente no decide nada más: la precedencia frente al hover de la
+	 * propia página la resuelve `VisualEditorScreen.svelte` (ver su cabecera), dueño único del
+	 * resalte. No manda nada al sitio: el `highlight` del protocolo no tiene forma de "apagar", y
+	 * dejaría el marco marcando la última fila por la que pasó el puntero.
+	 *
+	 * **Secciones NO públicas: las dice el sitio, este árbol solo las rotula.** `unpublishedIds`
+	 * llega de `VisualEditorScreen.svelte`, que lo saca del `unpublished` de cada bloque del puente
+	 * (ver `bridge-client.ts#VisualBlock`): Vega no sabe qué es "publicado" en cada proyecto, así
+	 * que sin puente conectado —o con un sitio que no lo dice— ninguna fila se marca. La marca es
+	 * TEXTO ("No pública", `.vega-tree-unpublished`), no solo un color, y va también dentro del
+	 * nombre accesible de la fila (`editor.visual.tree.selectLabelUnpublished`): el `aria-label` del
+	 * botón sustituye a su contenido visible, así que la insignia sola no llegaría al lector de
+	 * pantalla.
+	 *
 	 * **Dueño del arrastre de paleta en vuelo: `VisualEditorScreen.svelte` (decisión 5).** Este
 	 * componente no guarda ese estado, solo REENVÍA los dos callbacks de `VisualPalette.svelte`
 	 * (`onPaletteDragStart`/`onPaletteDragEnd`) tal cual los recibe por prop — mismo criterio de "un
@@ -138,6 +156,9 @@
 		blocks: BlocksState;
 		/** Dueño único: `VisualEditorScreen.svelte#selectedBlockId`. */
 		selectedId: string | null;
+		/** Ids que el SITIO dice no públicos (ver cabecera, "Secciones NO públicas"). Vacío por
+		 *  defecto: sin ese dato, ninguna fila se marca. */
+		unpublishedIds?: ReadonlySet<string>;
 		/** El autor eligió esta fila. La pantalla decide qué hacer (fijar la selección, avisar al
 		 *  lienzo, abrir la ficha) — este componente no conoce ese reparto, solo lo dispara. */
 		onSelect: (blockId: string) => void;
@@ -149,15 +170,21 @@
 		 *  solo hace de tubería. */
 		onPaletteDragStart: (blockType: ResolvedBlockType) => void;
 		onPaletteDragEnd: () => void;
+		/** El puntero o el foco entró en la fila de ese bloque, o salió de ella (`null`). Solo
+		 *  RESALTA, nunca selecciona (ver cabecera, "Pasar por una fila"). Opcional: sin él, las
+		 *  filas no resaltan nada, como antes. */
+		onHover?: (blockId: string | null) => void;
 	}
 
 	let {
 		blocks,
 		selectedId,
+		unpublishedIds = new Set<string>(),
 		onSelect,
 		onStructuralChange,
 		onPaletteDragStart,
-		onPaletteDragEnd
+		onPaletteDragEnd,
+		onHover
 	}: Props = $props();
 	const ctx = getVegaContext();
 
@@ -185,6 +212,16 @@
 		onSelect(id);
 		closeDrawer(); // ver cabecera: no-op en escritorio, cierra el cajón en móvil/tablet
 		if (wasOpen) toggleEl?.focus();
+	}
+
+	/** `focusout` del `<li>` (ver cabecera, "Pasar por una fila"): pasar el foco de la fila a uno
+	 *  de SUS botones de acción no es salir de la sección, así que no apaga el resalte. Hacia otra
+	 *  fila tampoco hace falta apagarlo aquí, pero se apaga igual: el `focusin` de la fila nueva
+	 *  llega justo después y lo vuelve a encender con su propio id. */
+	function handleRowFocusOut(event: FocusEvent): void {
+		const next = event.relatedTarget as Node | null;
+		if (next && (event.currentTarget as HTMLElement).contains(next)) return;
+		onHover?.(null);
 	}
 
 	/** `Escape` cierra el cajón y devuelve el foco al disparador (mismo criterio que
@@ -368,14 +405,28 @@
 					{@const blockType = blocks.blockTypeOf(record)}
 					{@const rawType = blocks.blockTypeRawName(record)}
 					{@const structuralGuard = blocks.anyDirty || blocks.anySaving || blocks.structuralBusy}
-					<li class="vega-tree-item">
+					{@const unpublished = unpublishedIds.has(record.id)}
+					<!-- Resalte al pasar (ver cabecera, "Pasar por una fila"): el `<li>` entero, fila Y
+					     sus botones de acción, porque todos hablan de la misma sección. -->
+					<li
+						class="vega-tree-item"
+						onmouseenter={() => onHover?.(record.id)}
+						onmouseleave={() => onHover?.(null)}
+						onfocusin={() => onHover?.(record.id)}
+						onfocusout={(event) => handleRowFocusOut(event)}
+					>
 						<button
 							type="button"
 							class="vega-tree-row"
 							class:vega-tree-row--selected={record.id === selectedId}
 							data-vega-tree-row={record.id}
 							aria-current={record.id === selectedId ? 'true' : undefined}
-							aria-label={ctx.t('editor.visual.tree.selectLabel', { label: title })}
+							aria-label={ctx.t(
+								unpublished
+									? 'editor.visual.tree.selectLabelUnpublished'
+									: 'editor.visual.tree.selectLabel',
+								{ label: title }
+							)}
 							onclick={() => selectRow(record.id)}
 						>
 							{#if blocks.hasTypeColumn}
@@ -395,6 +446,11 @@
 								{/if}
 							{/if}
 							<span class="vega-tree-title">{title}</span>
+							{#if unpublished}
+								<!-- Texto visible, no solo color (ver cabecera, "Secciones NO públicas"). El
+								     nombre accesible ya lo dice en el `aria-label` del botón. -->
+								<span class="vega-tree-unpublished">{ctx.t('editor.visual.unpublished')}</span>
+							{/if}
 							{#if blocks.isSaving(record.id)}
 								<span class="vega-tree-saving">{ctx.t('editor.saving')}</span>
 							{:else if blocks.isDirty(record.id)}
@@ -704,6 +760,21 @@
 		flex-shrink: 0;
 		color: var(--ink-3);
 		font-size: 0.72em;
+	}
+
+	/* Insignia "No pública" (ver cabecera): par `info`/`info-soft`, medido ≥4.5:1 en
+	   `COMPONENT_CONTRAST_PAIRS` (`scripts/build-themes.mjs`), y distinto del `warning` que ya
+	   marca un tipo desconocido — no es un error, es un estado del contenido. Mismo corte de
+	   píldora que `.vega-tree-type` para que se lea como una etiqueta, no como el título. */
+	.vega-tree-unpublished {
+		flex-shrink: 0;
+		padding: 0.1rem 0.4rem;
+		border-radius: 999px;
+		background: var(--info-soft);
+		color: var(--info);
+		font-size: 0.7em;
+		font-weight: 600;
+		white-space: nowrap;
 	}
 
 	/* Acciones de fila (duplicar/subir/bajar/borrar): iconos-solo, mismo tamaño de objetivo que el

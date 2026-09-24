@@ -13,8 +13,10 @@ import { compileThumbSpec } from '$lib/backend/adapters/pocketbase/files';
 import { MEDIA_GRID_THUMB_SPEC } from './media-thumb';
 import {
 	buildMediaBootstrapImportJson,
+	completeMediaCollection,
 	computeMediaCollectionState,
 	ensureMediaCollection,
+	missingMediaCollectionFields,
 	VEGA_MEDIA_COLLECTION,
 	VEGA_MEDIA_EDITOR_ACCESS_RULE,
 	VEGA_MEDIA_VIEW_RULE
@@ -56,7 +58,12 @@ describe('VEGA_MEDIA_COLLECTION (D-P6.1 opción A)', () => {
 		expect(byName.get('created')).toMatchObject({ type: 'autodate' });
 	});
 
-	test('buildMediaBootstrapImportJson() produce un JSON de importación determinista con los 5 campos', () => {
+	test('focal es json y va el último (donde lo deja addCollectionFields en una biblioteca previa)', () => {
+		const fields = VEGA_MEDIA_COLLECTION.fields;
+		expect(fields.at(-1)).toEqual({ name: 'focal', type: 'json' });
+	});
+
+	test('buildMediaBootstrapImportJson() produce un JSON de importación determinista con los 6 campos', () => {
 		const json = JSON.parse(buildMediaBootstrapImportJson());
 		expect(json).toHaveLength(1);
 		expect(json[0].name).toBe('vega_media');
@@ -65,8 +72,10 @@ describe('VEGA_MEDIA_COLLECTION (D-P6.1 opción A)', () => {
 			'alt',
 			'title',
 			'tags',
-			'created'
+			'created',
+			'focal'
 		]);
+		expect(json[0].fields.at(-1)).toEqual({ name: 'focal', type: 'json' });
 		const fileField = json[0].fields.find((f: { name: string }) => f.name === 'file');
 		expect(fileField.required).toBe(true);
 		expect(fileField.mimeTypes).not.toContain('image/svg+xml');
@@ -138,6 +147,40 @@ describe('computeMediaCollectionState (reutiliza el cálculo genérico, audit H6
 		expect(computeMediaCollectionState([other, media], true)).toBe('present');
 		expect(computeMediaCollectionState([other], true)).toBe('creatable');
 		expect(computeMediaCollectionState([other], false)).toBe('manual');
+	});
+});
+
+describe('missingMediaCollectionFields / completeMediaCollection (biblioteca anterior a "focal")', () => {
+	const field = (name: string) => ({ name }) as ContentType['fields'][number];
+	const previous: ContentType = {
+		name: 'vega_media',
+		readonly: false,
+		fields: ['file', 'alt', 'title', 'tags', 'created'].map(field)
+	};
+
+	test('una biblioteca previa solo echa en falta "focal"', () => {
+		expect(missingMediaCollectionFields([previous])).toEqual([{ name: 'focal', type: 'json' }]);
+	});
+
+	test('una biblioteca al día no echa nada en falta', () => {
+		const current = { ...previous, fields: [...previous.fields, field('focal')] };
+		expect(missingMediaCollectionFields([current])).toEqual([]);
+	});
+
+	test('sin vega_media no hay nada que completar (eso es ensureMediaCollection)', () => {
+		expect(missingMediaCollectionFields([])).toEqual([]);
+	});
+
+	test('completeMediaCollection añade SOLO lo que falta, y solo en vega_media', async () => {
+		const addCollectionFields = vi.fn().mockResolvedValue({ added: ['focal'], skipped: [] });
+		const fakePort = { addCollectionFields } as unknown as BackendPort;
+
+		await completeMediaCollection(fakePort, missingMediaCollectionFields([previous]));
+
+		expect(addCollectionFields).toHaveBeenCalledTimes(1);
+		expect(addCollectionFields).toHaveBeenCalledWith('vega_media', [
+			{ name: 'focal', type: 'json' }
+		]);
 	});
 });
 

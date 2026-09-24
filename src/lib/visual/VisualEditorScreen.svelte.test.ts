@@ -703,6 +703,232 @@ describe('VisualEditorScreen.svelte — árbol de secciones e inspector', () => 
 		expect(bodies[1].hasAttribute('hidden')).toBe(true);
 	});
 
+	test('`hover` del sitio (§"Hover"): resalta ESE contorno sin seleccionar nada ni contestarle al sitio', async () => {
+		const { ctx, type } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [
+			{ id: 'b1', type: 'hero' },
+			{ id: 'b2', type: 'gallery' }
+		]);
+		const iframe = mounted.target.querySelector<HTMLIFrameElement>('.vega-visual-frame')!;
+		const postMessageSpy = vi.spyOn(iframe.contentWindow!, 'postMessage');
+		const target = mounted.target;
+		const highlighted = () =>
+			Array.from(target.querySelectorAll('.vega-visual-overlay-box--highlighted')).map((el) =>
+				el.getAttribute('data-vega-block-id')
+			);
+
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'hover', blockId: 'b2' });
+		await tick();
+		expect(highlighted()).toEqual(['b2']);
+		// Pasar por encima NO es elegir: ni contorno seleccionado, ni fila marcada, ni `highlight`
+		// de vuelta al sitio (que ya sabe dónde está su puntero).
+		expect(target.querySelector('.vega-visual-overlay-box--selected')).toBeNull();
+		expect(target.querySelector('.vega-tree-row[aria-current="true"]')).toBeNull();
+		expect(postMessageSpy).not.toHaveBeenCalled();
+
+		// Cambio de bloque: el resalte se MUEVE, no se acumula.
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'hover', blockId: 'b1' });
+		await tick();
+		expect(highlighted()).toEqual(['b1']);
+
+		// `null`: salió de todo bloque, o la página empezó a desplazarse.
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'hover', blockId: null });
+		await tick();
+		expect(highlighted()).toEqual([]);
+
+		// Un bloque que deja de reportarse se lleva su resalte, y NO vuelve solo si reaparece —
+		// mismo criterio que la selección fantasma (el sitio lo volverá a decir con otro `hover`).
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'hover', blockId: 'b2' });
+		await tick();
+		sendSiteMessage({
+			vega: 'vega-visual-1',
+			type: 'layout',
+			blocks: [{ id: 'b1', type: 'hero', rect: { top: 0, left: 0, width: 100, height: 50 } }]
+		});
+		await tick();
+		sendSiteMessage({
+			vega: 'vega-visual-1',
+			type: 'layout',
+			blocks: [
+				{ id: 'b1', type: 'hero', rect: { top: 0, left: 0, width: 100, height: 50 } },
+				{ id: 'b2', type: 'gallery', rect: { top: 60, left: 0, width: 100, height: 50 } }
+			]
+		});
+		await tick();
+		expect(highlighted()).toEqual([]);
+	});
+
+	test('`unpublished` del sitio llega al árbol (texto + nombre accesible) y a la etiqueta del contorno', async () => {
+		const { ctx, type } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Borrador', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		// Antes de conectar, Vega no sabe nada de publicación: ninguna fila marcada.
+		expect(mounted.target.querySelector('.vega-tree-unpublished')).toBeNull();
+
+		const iframe = mounted.target.querySelector<HTMLIFrameElement>('.vega-visual-frame');
+		iframe?.dispatchEvent(new Event('load'));
+		await tick();
+		sendSiteMessage({
+			vega: 'vega-visual-1',
+			type: 'ready',
+			collection: 'post',
+			id: 'rec-1',
+			blocks: [
+				{ id: 'b1', type: 'hero', rect: { top: 0, left: 0, width: 100, height: 50 } },
+				{
+					id: 'b2',
+					type: 'gallery',
+					rect: { top: 60, left: 0, width: 100, height: 50 },
+					unpublished: true
+				}
+			]
+		});
+		await tick();
+
+		const rows = mounted.target.querySelectorAll<HTMLButtonElement>('.vega-tree-row');
+		expect(rows[0].querySelector('.vega-tree-unpublished')).toBeNull();
+		expect(rows[1].querySelector('.vega-tree-unpublished')).not.toBeNull();
+		expect(rows[1].getAttribute('aria-label')).toBe(
+			translate('es', 'editor.visual.tree.selectLabelUnpublished', { label: 'Borrador' })
+		);
+		expect(
+			mounted.target.querySelector(
+				'[data-vega-block-id="b2"] .vega-visual-overlay-label-unpublished'
+			)
+		).not.toBeNull();
+		expect(
+			mounted.target.querySelector(
+				'[data-vega-block-id="b1"] .vega-visual-overlay-label-unpublished'
+			)
+		).toBeNull();
+		// Reportada = no falta: ningún aviso de secciones que el sitio no pinta.
+		expect(mounted.target.querySelector('.vega-visual-overlay-status')?.textContent).not.toContain(
+			translate('es', 'editor.visual.overlay.missing', { count: 1 })
+		);
+	});
+
+	test('un `ready` nuevo apaga el resalte del puntero: es otro documento', async () => {
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [{ id: 'b1', type: 'hero' }]);
+
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'hover', blockId: 'b1' });
+		await tick();
+		expect(mounted.target.querySelector('.vega-visual-overlay-box--highlighted')).not.toBeNull();
+
+		sendSiteMessage({
+			vega: 'vega-visual-1',
+			type: 'ready',
+			collection: 'post',
+			id: 'rec-1',
+			blocks: [{ id: 'b1', type: 'hero', rect: { top: 0, left: 0, width: 100, height: 50 } }]
+		});
+		await tick();
+		expect(mounted.target.querySelector('.vega-visual-overlay-box--highlighted')).toBeNull();
+	});
+
+	test('hover del árbol y de la página: gana el último, y soltar uno devuelve el otro si sigue vigente', async () => {
+		const { ctx, type } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 },
+			{ id: 'b3', heading: 'Precios', sort: 2 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [
+			{ id: 'b1', type: 'hero' },
+			{ id: 'b2', type: 'gallery' },
+			{ id: 'b3', type: 'text' }
+		]);
+		const iframe = mounted.target.querySelector<HTMLIFrameElement>('.vega-visual-frame')!;
+		const postMessageSpy = vi.spyOn(iframe.contentWindow!, 'postMessage');
+		const target = mounted.target;
+		const items = target.querySelectorAll<HTMLElement>('.vega-tree-item');
+		const highlighted = () =>
+			Array.from(target.querySelectorAll('.vega-visual-overlay-box--highlighted')).map((el) =>
+				el.getAttribute('data-vega-block-id')
+			);
+
+		// Solo el árbol: pasar por la fila resalta su contorno, sin seleccionar ni avisar al sitio.
+		items[1].dispatchEvent(new MouseEvent('mouseenter'));
+		await tick();
+		expect(highlighted()).toEqual(['b2']);
+		expect(target.querySelector('.vega-visual-overlay-box--selected')).toBeNull();
+		expect(target.querySelector('.vega-tree-row[aria-current="true"]')).toBeNull();
+		expect(postMessageSpy).not.toHaveBeenCalled();
+
+		// Llega la página DESPUÉS: gana la página.
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'hover', blockId: 'b1' });
+		await tick();
+		expect(highlighted()).toEqual(['b1']);
+
+		// La página suelta: vuelve el del árbol, que sigue vigente (el puntero no salió de la fila).
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'hover', blockId: null });
+		await tick();
+		expect(highlighted()).toEqual(['b2']);
+
+		// Ahora la página vuelve a encenderse y DESPUÉS el árbol: gana el árbol.
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'hover', blockId: 'b1' });
+		await tick();
+		items[2].dispatchEvent(new MouseEvent('mouseenter'));
+		await tick();
+		expect(highlighted()).toEqual(['b3']);
+
+		// Salir del árbol devuelve el de la página, que sigue vigente.
+		items[2].dispatchEvent(new MouseEvent('mouseleave'));
+		await tick();
+		expect(highlighted()).toEqual(['b1']);
+
+		// Y si la página ya no está vigente (el bloque dejó de reportarse), no queda nada.
+		items[1].dispatchEvent(new MouseEvent('mouseenter'));
+		await tick();
+		items[1].dispatchEvent(new MouseEvent('mouseleave'));
+		sendSiteMessage({
+			vega: 'vega-visual-1',
+			type: 'layout',
+			blocks: [
+				{ id: 'b2', type: 'gallery', rect: { top: 60, left: 0, width: 100, height: 50 } },
+				{ id: 'b3', type: 'text', rect: { top: 120, left: 0, width: 100, height: 50 } }
+			]
+		});
+		await tick();
+		expect(highlighted()).toEqual([]);
+	});
+
+	test('una fila del árbol cuyo bloque el sitio no reporta no tapa el hover de la página', async () => {
+		const { ctx, type } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Sin pintar', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		// El sitio solo reporta b1: b2 existe en el árbol pero no tiene contorno.
+		await connectBridge(mounted.target, [{ id: 'b1', type: 'hero' }]);
+
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'hover', blockId: 'b1' });
+		await tick();
+		mounted.target
+			.querySelectorAll<HTMLElement>('.vega-tree-item')[1]
+			.dispatchEvent(new MouseEvent('mouseenter'));
+		await tick();
+
+		expect(
+			Array.from(mounted.target.querySelectorAll('.vega-visual-overlay-box--highlighted')).map(
+				(el) => el.getAttribute('data-vega-block-id')
+			)
+		).toEqual(['b1']);
+	});
+
 	test('editar en el inspector marca sucio (punto en el árbol) y guardar lo limpia', async () => {
 		const { ctx, type, port } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
 		mounted = mountScreen(ctx, type);

@@ -23,8 +23,9 @@ import type {
 	VegaRecord
 } from '../../types';
 import type { FieldError } from '../../errors';
-import { VegaError } from '../../errors';
+import { VegaConflictError, VegaError } from '../../errors';
 import type { BackendPort } from '../../port';
+import { recordVersion, type RecordVersion } from '../../version';
 import type { Query } from '../../query';
 import { projectedFields } from '../../query';
 import { normalizeFieldValue } from '../../normalize';
@@ -57,6 +58,12 @@ import {
 	validateFileFieldInput
 } from './files';
 import { applyQuery } from './query';
+import {
+	deferredAdministration,
+	deferredPasswordReset,
+	VEGA_EDITORS_COLLECTION_NAME
+} from '../../administration';
+import type { MemoryAdministration } from './administration';
 
 const CAPABILITIES: Capabilities = {
 	realtime: true,
@@ -72,7 +79,11 @@ const CAPABILITIES: Capabilities = {
 	// así el `access` que declare la semilla en un `ContentType` se respeta tal cual y la UI de
 	// permisos es ejercitable en la demo y en los e2e (con `true` quedaría siempre neutralizada).
 	// Una semilla que no declara `access` no restringe nada: ausente ⇒ todo permitido.
-	accessBypass: false
+	accessBypass: false,
+	// La sesión de `memory` hace de superuser; el rol editor de la demo/e2e lo apaga desde fuera
+	// (`withEditorCapabilities`, `session/backend.ts`).
+	administration: true,
+	editorPasswordReset: true
 };
 
 const DEFAULT_USER_EMAIL = 'admin@vega.test';
@@ -90,6 +101,9 @@ export interface MemoryCollectionSnapshot {
  */
 export interface MemoryBackendPort extends BackendPort {
 	inspectCollection(name: string): MemoryCollectionSnapshot | null;
+	/** Token de restablecimiento vigente de una cuenta de `vega_editors`: lo que en PocketBase
+	 *  llegaría por correo. Solo para tests (una invitación con `MemorySeed.mailEnabled`). */
+	inspectEditorResetToken(email: string): Promise<string | null>;
 }
 
 /** Crea un `BackendPort` en memoria. Sin `seed`, acepta `admin@vega.test` + cualquier password no vacía. */
@@ -113,6 +127,18 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 			rules: Object.fromEntries(COMMON_COLLECTION_RULE_KEYS.map((key) => [key, null])),
 			fieldNames: ct.fields.map((field) => field.name)
 		});
+	}
+	// `MemorySeed.editors` presente ⇒ la colección de editores ya existe, como tras sembrar el
+	// sitio en PocketBase (misma forma que crearía `ensureCollections` para una `auth` vacía).
+	if (seed?.editors) {
+		collectionsByName.set(
+			VEGA_EDITORS_COLLECTION_NAME,
+			collectionSpecToMemorySnapshot({
+				name: VEGA_EDITORS_COLLECTION_NAME,
+				type: 'auth',
+				fields: [{ name: 'created', type: 'autodate' }]
+			})
+		);
 	}
 
 	function getSortedContentTypes(): ContentType[] {
@@ -229,6 +255,21 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 	}
 
 	/**
+	 * Falla cerrado si la versión de `raw` (el registro tal cual está guardado AHORA) no es la
+	 * esperada: `VegaConflictError` con el registro y la versión del servidor (`port.ts#update`).
+	 */
+	function assertExpectedVersion(
+		type: string,
+		id: RecordId,
+		raw: Record<string, FieldValue>,
+		expectedVersion: RecordVersion
+	): void {
+		const current = toVegaRecord(type, id, raw);
+		const serverVersion = recordVersion(current);
+		if (serverVersion !== expectedVersion) throw new VegaConflictError(current, serverVersion);
+	}
+
+	/**
 	 * create/update comparten esta rutina: valida y, si todo pasa, materializa y guarda.
 	 * `explicitId` (§8·B2, `capabilities.explicitRecordId`) SOLO tiene efecto en modo CREATE
 	 * (`id === null`): fija el id del registro nuevo en vez de generarlo. Si ese id ya pertenece a
@@ -239,7 +280,8 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 		type: string,
 		id: RecordId | null,
 		data: RecordInput,
-		explicitId?: RecordId
+		explicitId?: RecordId,
+		expectedVersion?: RecordVersion
 	): Promise<VegaRecord> {
 		checkSessionAlive();
 		const ct = getContentTypeOrThrow(type);
@@ -248,6 +290,12 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 		const byId = records.get(type)!;
 		const existingRaw = id !== null ? byId.get(id) : undefined;
 		if (id !== null && !existingRaw) throw VegaError.notFound(`Registro "${id}" no encontrado`);
+		// Versión esperada (`BackendPort.update`): se compara ANTES de validar, igual que el
+		// adaptador `pocketbase` (que la compara nada más releer), para que los dos respondan lo
+		// mismo a un guardado desfasado que además trae un dato inválido: primero el conflicto.
+		if (id !== null && existingRaw && expectedVersion !== undefined) {
+			assertExpectedVersion(type, id, existingRaw, expectedVersion);
+		}
 		if (id === null && explicitId !== undefined && byId.has(explicitId)) {
 			throw VegaError.validation({
 				'': { code: 'validation_not_unique', message: 'Ya existe un registro con ese id' }
@@ -319,6 +367,13 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 		}
 
 		const finalId = id ?? explicitId ?? generateId();
+		// Comprobar-y-escribir sin hueco: entre la comparación de arriba y aquí puede haber cedido
+		// el hilo (`materializeFileField` es asíncrona), y otra escritura del mismo registro habría
+		// sustituido el objeto guardado (cada escritura hace `byId.set` con un objeto NUEVO). Con
+		// versión esperada, eso es un conflicto, no una carrera que se resuelve pisando.
+		if (id !== null && expectedVersion !== undefined && byId.get(id) !== existingRaw) {
+			assertExpectedVersion(type, id, byId.get(id)!, expectedVersion);
+		}
 		byId.set(finalId, rawValues);
 		const record = toVegaRecord(type, finalId, rawValues);
 		dispatch(type, { action: isCreate ? 'create' : 'update', record: structuredClone(record) });
@@ -446,8 +501,48 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 		}
 	}
 
+	// Diferida como en `pocketbase` (ver `deferredAdministration`): la demo también carga `memory`
+	// en el arranque, y estas pantallas no las abre todo el mundo. Las dos secciones (y la lectura
+	// de tokens de los tests) comparten UN estado, creado al primer uso.
+	let adminState: Promise<MemoryAdministration> | null = null;
+	function loadAdminState(): Promise<MemoryAdministration> {
+		adminState ??= import('./administration')
+			.then((m) =>
+				m.createMemoryAdministration({
+					checkSessionAlive,
+					editorsCollectionExists: () =>
+						collectionsByName.get(VEGA_EDITORS_COLLECTION_NAME)?.type === 'auth',
+					editorsHaveCreatedField: () =>
+						collectionsByName.get(VEGA_EDITORS_COLLECTION_NAME)?.fieldNames.includes('created') ??
+						false,
+					generateId,
+					editors: seed?.editors ?? [],
+					backups: seed?.backups ?? [],
+					mailEnabled: seed?.mailEnabled ?? false,
+					backupDurationMs: seed?.backupDurationMs ?? 0
+				})
+			)
+			.catch((err: unknown) => {
+				adminState = null;
+				throw err;
+			});
+		return adminState;
+	}
+	const administration = deferredAdministration(() =>
+		loadAdminState().then((state) => state.administration)
+	);
+	const editorPasswordReset = deferredPasswordReset(() =>
+		loadAdminState().then((state) => state.passwordReset)
+	);
+
 	const port: MemoryBackendPort = {
 		capabilities: CAPABILITIES,
+		administration,
+		editorPasswordReset,
+
+		async inspectEditorResetToken(email) {
+			return (await loadAdminState()).resetTokenFor(email);
+		},
 
 		inspectCollection(name) {
 			const collection = collectionsByName.get(name);
@@ -550,8 +645,8 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 			return writeRecord(type, null, data, opts?.id);
 		},
 
-		async update(type, id, data) {
-			return writeRecord(type, id, data);
+		async update(type, id, data, opts) {
+			return writeRecord(type, id, data, undefined, opts?.expectedVersion);
 		},
 
 		async delete(type, id) {
@@ -656,6 +751,20 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 			}
 			const fieldRejects = checkCollectionFieldSpecs(fields);
 			if (Object.keys(fieldRejects).length > 0) throw VegaError.validation(fieldRejects);
+			// Una colección `auth` (hoy, `vega_editors`) no es un `ContentType` (D-P1.1), pero en PB
+			// admite campos nuevos igual que cualquier otra: aquí solo existe como instantánea, así
+			// que se le suman los nombres, con la misma regla aditiva e idempotente.
+			const authCollection = collectionsByName.get(collectionName);
+			if (!contentTypesByName.has(collectionName) && authCollection?.type === 'auth') {
+				const existing = new Set(authCollection.fieldNames);
+				const added = fields.filter((spec) => !existing.has(spec.name)).map((spec) => spec.name);
+				const skipped = fields.filter((spec) => existing.has(spec.name)).map((spec) => spec.name);
+				collectionsByName.set(collectionName, {
+					...authCollection,
+					fieldNames: [...authCollection.fieldNames, ...added]
+				});
+				return { added, skipped };
+			}
 			const ct = getContentTypeOrThrow(collectionName);
 
 			const existingNames = new Set(ct.fields.map((f) => f.name));

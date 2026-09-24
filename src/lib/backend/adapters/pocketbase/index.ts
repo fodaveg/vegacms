@@ -19,8 +19,9 @@ import type {
 	VegaRecord
 } from '../../types';
 import type { FieldError } from '../../errors';
-import { VegaError } from '../../errors';
+import { VegaConflictError, VegaError } from '../../errors';
 import type { BackendPort } from '../../port';
+import { recordVersion } from '../../version';
 import type { Query } from '../../query';
 import { DEFAULT_PAGE, DEFAULT_PER_PAGE, projectedFields, validateQuery } from '../../query';
 import { normalizeFieldValue } from '../../normalize';
@@ -48,6 +49,7 @@ import { planFileFieldWrite, resolveFileUrl } from './files';
 import { addFieldsOnPocketBase, ensureCollectionsOnPocketBase } from './collections';
 import { clearPersistedToken, loadPersistedToken, savePersistedToken } from './persistence';
 import { createPocketBaseStrongAuth } from './strong-auth';
+import { deferredAdministration, deferredPasswordReset } from '../../administration';
 
 /** Colección de auth por defecto (v1, D1): superuser real de PB, sin restricciones de esquema. */
 const DEFAULT_AUTH_COLLECTION = '_superusers';
@@ -84,7 +86,13 @@ function computeCapabilities(authCollection: string, strongAuth: boolean): Capab
 		// `#lote-shell`: los superusers de PB IGNORAN las API rules de las colecciones, así que para
 		// ellos un `access.create === 'denied'` (regla `null`) no significa nada — la UI debe seguir
 		// ofreciéndoles todo. Un editor (`authCollection` propia) sí queda sujeto a las reglas.
-		accessBypass: isSuperuser
+		accessBypass: isSuperuser,
+		// `/api/settings`, `/api/backups` y la gestión de `vega_editors` desde fuera son de
+		// superuser en PocketBase: un editor no administra el servidor (ver `AdministrationPort`).
+		administration: isSuperuser,
+		// `confirm-password-reset` es público en cualquier colección `auth`: no depende de quién
+		// (ni de si alguien) ha entrado.
+		editorPasswordReset: true
 	};
 }
 
@@ -485,9 +493,26 @@ export function createPocketBaseBackend({
 			})
 		: undefined;
 
+	// Diferida: su código solo se descarga cuando un superusuario abre `/editores` o `/copias`
+	// (ver `deferredAdministration`).
+	const administration = CAPABILITIES.administration
+		? deferredAdministration(() =>
+				import('./administration').then((m) => m.createPocketBaseAdministration({ pb, guarded }))
+			)
+		: undefined;
+	// Pública y también diferida: la usa `/restablecer`, sin sesión.
+	const editorPasswordReset = deferredPasswordReset(() =>
+		import('./administration').then((m) => ({
+			confirm: (token: string, password: string) =>
+				m.confirmEditorPasswordResetOnPocketBase(pb, token, password)
+		}))
+	);
+
 	const port: BackendPort = {
 		capabilities: CAPABILITIES,
 		strongAuth,
+		administration,
+		editorPasswordReset,
 		manifestKey: normalizedManifestKey,
 		buildApiUrl,
 		previewApiUrl,
@@ -627,15 +652,25 @@ export function createPocketBaseBackend({
 			});
 		},
 
-		async update(type, id, data) {
+		async update(type, id, data, opts) {
 			return guarded(async () => {
 				const ct = await getContentTypeOrThrow(type);
 				assertContentTypeWritable(ct);
+				// Esta relectura ya existía (el plan de ficheros necesita los valores vigentes); la
+				// versión esperada la reutiliza, sin petición extra. Ventana NO atómica entre este
+				// `GET` y el `PATCH` de abajo: ver `port.ts#update`.
 				const existingRaw = await pb.collection(type).getOne(id);
 				const existingValues = buildValuesFromRaw(
 					ct.fields,
 					existingRaw as unknown as Record<string, unknown>
 				);
+				if (opts?.expectedVersion !== undefined) {
+					const current: VegaRecord = { id: String(existingRaw.id), type, values: existingValues };
+					const serverVersion = recordVersion(current);
+					if (serverVersion !== opts.expectedVersion) {
+						throw new VegaConflictError(structuredClone(current), serverVersion);
+					}
+				}
 				validateWrite(ct.fields, data, existingValues);
 				const body = buildWriteBody(ct.fields, data, existingValues);
 				try {

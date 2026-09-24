@@ -5,11 +5,14 @@
 
 import { describe, expect, test } from 'vitest';
 import {
+	backupsRoute,
+	editorsRoute,
 	indexRoute,
 	listRoute,
 	loginRoute,
 	mediaRoute,
 	newRoute,
+	passwordResetRoute,
 	recordRoute,
 	settingsRoute
 } from '$lib/nav/routes';
@@ -37,6 +40,12 @@ describe('constructores de URL de NavApi', () => {
 
 	test('settingsRoute → /settings', () => {
 		expect(settingsRoute()).toBe('/settings');
+	});
+
+	test('editorsRoute → /editores, backupsRoute → /copias', () => {
+		expect(editorsRoute()).toBe('/editores');
+		expect(backupsRoute()).toBe('/copias');
+		expect(passwordResetRoute()).toBe('/restablecer');
 	});
 
 	test('loginRoute → /login', () => {

@@ -18,7 +18,13 @@ import type {
 	Session,
 	VegaErrorKind
 } from '$lib/backend';
-import { VegaError, VEGA_COLLECTION } from '$lib/backend';
+import {
+	recordVersion,
+	VegaConflictError,
+	VegaError,
+	VEGA_COLLECTION,
+	VEGA_EDITORS_COLLECTION_NAME
+} from '$lib/backend';
 import { resolveStatusField } from '$lib/model/conventions';
 import {
 	CAT_ALPHA,
@@ -508,6 +514,140 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 				await expect(port.delete('category_view', 'view-1')).rejects.toMatchObject({
 					kind: 'forbidden'
 				});
+			});
+		});
+
+		// ———— 3a. update con versión esperada (edición concurrente, lote del 24 sep 2026) ————
+		//
+		// `kitchen_sink` NO tiene `updated` (el harness crea las colecciones por API, igual que
+		// `ensureCollections`, y PocketBase no se lo añade): justo el caso que obliga a que la versión
+		// sea una huella de los valores y no el `updated` a secas (ver cabecera de `version.ts`).
+
+		describe('update con versión esperada (edición concurrente)', () => {
+			test('con la versión vigente escribe, y la versión devuelta vale para el siguiente guardado', async () => {
+				const port = await makeAuthedPort();
+				const created = await port.create('kitchen_sink', { title: 'Original', rating: 2 });
+				const v0 = recordVersion(created);
+
+				// Varios tipos a la vez (richtext, json, select múltiple, relación, fecha): si el backend
+				// normalizara alguno distinto en la respuesta del `update` que en una relectura, la
+				// huella no coincidiría y cada segundo guardado sería un conflicto falso.
+				const first = await port.update(
+					'kitchen_sink',
+					created.id,
+					{
+						title: 'Primero',
+						body: '<p>Hola <strong>mundo</strong></p>',
+						metadata: { b: 2, a: [1, 'x'] },
+						tags: ['b', 'a'],
+						categories: [CAT_BETA, CAT_ALPHA],
+						publishedAt: '2026-09-24T10:00:00.000Z'
+					},
+					{ expectedVersion: v0 }
+				);
+				expect(first.values.title).toBe('Primero');
+				expect(recordVersion(first)).not.toBe(v0);
+				// Lo que devuelve `update` tiene la MISMA huella que una lectura en fresco: si no, el
+				// segundo guardado del mismo formulario sería un conflicto falso.
+				expect(recordVersion(first)).toBe(
+					recordVersion(await port.get('kitchen_sink', created.id))
+				);
+
+				const second = await port.update(
+					'kitchen_sink',
+					created.id,
+					{ title: 'Segundo' },
+					{ expectedVersion: recordVersion(first) }
+				);
+				expect(second.values.title).toBe('Segundo');
+			});
+
+			test('list sin proyección da la misma versión que get (los bloques se leen por list)', async () => {
+				const port = await makeAuthedPort();
+				const created = await port.create('kitchen_sink', { title: 'Por lista', tags: ['a'] });
+				const page = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'title', op: 'eq', value: 'Por lista' }
+				});
+				const listed = page.items.find((r) => r.id === created.id)!;
+				expect(recordVersion(listed)).toBe(
+					recordVersion(await port.get('kitchen_sink', created.id))
+				);
+			});
+
+			test('desfasada: falla cerrado con conflict, trae el registro del servidor y NO escribe', async () => {
+				const port = await makeAuthedPort();
+				const created = await port.create('kitchen_sink', { title: 'Original', rating: 2 });
+				const opened = recordVersion(created);
+
+				// Otra persona guarda mientras tanto (sin versión: el camino de siempre).
+				await port.update('kitchen_sink', created.id, { title: 'Del otro' });
+
+				const err = await port
+					.update('kitchen_sink', created.id, { rating: 4 }, { expectedVersion: opened })
+					.then(
+						() => null,
+						(e: unknown) => e
+					);
+				expect(err).toBeInstanceOf(VegaConflictError);
+				expect(err).toBeInstanceOf(VegaError);
+				const conflict = err as VegaConflictError;
+				expect(conflict.kind).toBe('conflict');
+				expect(conflict.serverRecord.id).toBe(created.id);
+				expect(conflict.serverRecord.values.title).toBe('Del otro');
+
+				const fresh = await port.get('kitchen_sink', created.id);
+				expect(conflict.serverVersion).toBe(recordVersion(fresh));
+				expect(conflict.serverRecord.values).toEqual(fresh.values);
+				expect(fresh.values.rating).toBe(2); // no se escribió nada
+			});
+
+			test('«Guardar igualmente»: solo lo tocado, con la versión del servidor, conserva lo del otro', async () => {
+				const port = await makeAuthedPort();
+				const created = await port.create('kitchen_sink', { title: 'Original', rating: 2 });
+				const opened = recordVersion(created);
+				await port.update('kitchen_sink', created.id, { title: 'Del otro' });
+
+				const conflict = (await port
+					.update('kitchen_sink', created.id, { rating: 4 }, { expectedVersion: opened })
+					.catch((e: unknown) => e)) as VegaConflictError;
+				expect(conflict).toBeInstanceOf(VegaConflictError);
+
+				const forced = await port.update(
+					'kitchen_sink',
+					created.id,
+					{ rating: 4 },
+					{ expectedVersion: conflict.serverVersion }
+				);
+				expect(forced.values.rating).toBe(4);
+				expect(forced.values.title).toBe('Del otro');
+			});
+
+			test('el conflicto se decide ANTES que la validación del dato', async () => {
+				const port = await makeAuthedPort();
+				const created = await port.create('kitchen_sink', { title: 'Original' });
+				const opened = recordVersion(created);
+				await port.update('kitchen_sink', created.id, { title: 'Del otro' });
+
+				// `rating` fuera de rango (max 5): sin conflicto sería `validation`.
+				await expect(
+					port.update('kitchen_sink', created.id, { rating: 99 }, { expectedVersion: opened })
+				).rejects.toMatchObject({ kind: 'conflict' });
+			});
+
+			test('id inexistente con versión → not-found, no conflict', async () => {
+				const port = await makeAuthedPort();
+				await expect(
+					port.update('kitchen_sink', 'no-existe', { title: 'x' }, { expectedVersion: 'v' })
+				).rejects.toMatchObject({ kind: 'not-found' });
+			});
+
+			test('sin versión, la última escritura gana (comportamiento de siempre)', async () => {
+				const port = await makeAuthedPort();
+				const created = await port.create('kitchen_sink', { title: 'Original' });
+				await port.update('kitchen_sink', created.id, { title: 'Del otro' });
+
+				const mine = await port.update('kitchen_sink', created.id, { title: 'Mío' });
+				expect(mine.values.title).toBe('Mío');
 			});
 		});
 
@@ -1817,6 +1957,211 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			// Mismo motivo que el `test.skip` gemelo de `ensureCollections`: v1 solo modela una
 			// identidad superuser (D1).
 			test.skip('con capability pero sin permiso de superuser → forbidden (no modelado en v1)', () => {});
+		});
+
+		// ——————————————————————————————— 7b. Administración (editores y copias de seguridad) —————
+
+		describe('administration (editores de vega_editors y copias de seguridad)', () => {
+			const EDITORS_SPEC: CollectionSpec = {
+				name: VEGA_EDITORS_COLLECTION_NAME,
+				type: 'auth',
+				fields: []
+			};
+
+			/** Email distinto en cada test: PB real conserva las cuentas entre tests del fichero. */
+			function uniqueEmail(): string {
+				return `editor_${Math.random().toString(36).slice(2, 10)}@vega.test`;
+			}
+
+			/** Sesión de superuser con `vega_editors` creada (idempotente: la crea o la encuentra). */
+			async function makeAdministration() {
+				const port = await makeAuthedPort();
+				await port.ensureCollections([EDITORS_SPEC]);
+				return port.administration!;
+			}
+
+			test('capability administration presente, con su sección del puerto', async () => {
+				expect(capabilities.administration).toBe(true);
+				expect((await makePort()).administration).toBeDefined();
+			});
+
+			test.skipIf(!capabilities.administration)(
+				'alta con contraseña: nace activa, sale en la lista y el mínimo de contraseña viene del backend',
+				async () => {
+					const admin = await makeAdministration();
+					const email = uniqueEmail();
+					const created = await admin.createEditor(email, {
+						kind: 'password',
+						password: 'contraseña-larga'
+					});
+					expect(created).toMatchObject({ email, verified: true });
+
+					const directory = await admin.listEditors();
+					expect(directory.passwordMinLength).toBe(8);
+					expect(directory.editors.find((account) => account.id === created.id)).toEqual(created);
+				}
+			);
+
+			test.skipIf(!capabilities.administration)(
+				'email repetido o mal formado → validation en fieldErrors.email',
+				async () => {
+					const admin = await makeAdministration();
+					const email = uniqueEmail();
+					await admin.createEditor(email, { kind: 'password', password: 'contraseña-larga' });
+
+					for (const bad of [email, 'sin-arroba']) {
+						const err = await admin
+							.createEditor(bad, { kind: 'password', password: 'contraseña-larga' })
+							.catch((e: unknown) => e);
+						expect(err).toBeInstanceOf(VegaError);
+						expect((err as VegaError).kind).toBe('validation');
+						expect(Object.keys((err as VegaError).fieldErrors ?? {})).toEqual(['email']);
+					}
+				}
+			);
+
+			test.skipIf(!capabilities.administration)(
+				'contraseña más corta que el mínimo → validation en fieldErrors.password, al crear y al cambiarla',
+				async () => {
+					const admin = await makeAdministration();
+					const createErr = await admin
+						.createEditor(uniqueEmail(), { kind: 'password', password: 'corta' })
+						.catch((e: unknown) => e);
+					expect(createErr).toMatchObject({ kind: 'validation' });
+					expect((createErr as VegaError).fieldErrors?.password?.code).toBe(
+						'validation_min_text_constraint'
+					);
+
+					const account = await admin.createEditor(uniqueEmail(), {
+						kind: 'password',
+						password: 'contraseña-larga'
+					});
+					const updateErr = await admin
+						.setEditorPassword(account.id, 'corta')
+						.catch((e: unknown) => e);
+					expect(updateErr).toMatchObject({ kind: 'validation' });
+					expect(Object.keys((updateErr as VegaError).fieldErrors ?? {})).toEqual(['password']);
+
+					await expect(
+						admin.setEditorPassword(account.id, 'otra-contraseña-larga')
+					).resolves.toBeUndefined();
+					const listed = (await admin.listEditors()).editors.find((e) => e.id === account.id);
+					expect(listed?.verified).toBe(true);
+				}
+			);
+
+			test.skipIf(!capabilities.administration)(
+				'quitar acceso borra la cuenta; un id inexistente → not-found',
+				async () => {
+					const admin = await makeAdministration();
+					const account = await admin.createEditor(uniqueEmail(), {
+						kind: 'password',
+						password: 'contraseña-larga'
+					});
+					await admin.removeEditor(account.id);
+					const ids = (await admin.listEditors()).editors.map((e) => e.id);
+					expect(ids).not.toContain(account.id);
+					await expect(admin.removeEditor(account.id)).rejects.toMatchObject({
+						kind: 'not-found'
+					});
+				}
+			);
+
+			test.skipIf(!capabilities.administration)(
+				'sin correo configurado (estado de fábrica) mailEnabled() responde false',
+				async () => {
+					const admin = await makeAdministration();
+					await expect(admin.mailEnabled()).resolves.toBe(false);
+				}
+			);
+
+			test.skipIf(!capabilities.administration)(
+				'crear una copia la añade a la lista (la más reciente primero) y su descarga sirve un zip',
+				async () => {
+					const admin = await makeAdministration();
+					const before = new Set((await admin.listBackups()).map((b) => b.key));
+
+					await expect(admin.createBackup()).resolves.toBe('created');
+
+					const after = await admin.listBackups();
+					const added = after.filter((b) => !before.has(b.key));
+					expect(added).toHaveLength(1);
+					expect(added[0].size).toBeGreaterThan(0);
+					expect(Number.isNaN(Date.parse(added[0].modified))).toBe(false);
+					const modified = after.map((b) => b.modified);
+					expect(modified).toEqual([...modified].sort().reverse());
+
+					const response = await fetch(await admin.backupDownloadUrl(added[0].key));
+					expect(response.ok).toBe(true);
+					expect(response.headers.get('content-type')).toContain('zip');
+					expect((await response.arrayBuffer()).byteLength).toBe(added[0].size);
+				}
+			);
+
+			test.skipIf(!capabilities.administration)(
+				'dos copias a la vez: una se crea y la otra encuentra la primera en marcha (busy)',
+				async () => {
+					const admin = await makeAdministration();
+					const startedAt = Date.now();
+					const outcomes = await Promise.all([admin.createBackup(), admin.createBackup()]);
+					expect([...outcomes].sort()).toEqual(['busy', 'created']);
+					// Se comprueba la copia por su fecha, no por el recuento: PB nombra las copias con
+					// resolución de SEGUNDOS (`pb_backup_<app>_<AAAAMMDDhhmmss>.zip`), así que una copia
+					// hecha en el mismo segundo que la del test anterior la SUSTITUYE (medido en 0.39.6).
+					const fresh = (await admin.listBackups()).filter(
+						(backup) => Date.parse(backup.modified) >= startedAt - 1000
+					);
+					expect(fresh.length).toBeGreaterThanOrEqual(1);
+				}
+			);
+
+			test.skipIf(!capabilities.administration)(
+				'enlace de invitación: se escribe una vez, luego es el vigente, y otra dirección no lo pisa',
+				async () => {
+					const admin = await makeAdministration();
+					const url = `https://vega-${Math.random().toString(36).slice(2, 8)}.test/restablecer`;
+					// 'updated' si la plantilla seguía la de fábrica; 'custom' si otro test ya escribió
+					// su dirección en esta misma colección (PB real la conserva entre tests).
+					const first = await admin.ensureInvitationLink(url);
+					expect(['updated', 'custom']).toContain(first);
+					if (first === 'updated') {
+						await expect(admin.ensureInvitationLink(url)).resolves.toBe('current');
+						await expect(admin.ensureInvitationLink(`${url}-otra`)).resolves.toBe('custom');
+					}
+				}
+			);
+		});
+
+		describe('editorPasswordReset (pública: elegir contraseña con el token del correo)', () => {
+			test('capability editorPasswordReset presente, con su sección del puerto', async () => {
+				expect(capabilities.editorPasswordReset).toBe(true);
+				expect((await makePort()).editorPasswordReset).toBeDefined();
+			});
+
+			test.skipIf(!capabilities.editorPasswordReset)(
+				'sin sesión, un token inválido → validation en fieldErrors.token (y la contraseña corta, a la vez)',
+				async () => {
+					// La colección la crea un superusuario; la confirmación va por un puerto SIN sesión.
+					await (
+						await makeAuthedPort()
+					).ensureCollections([{ name: VEGA_EDITORS_COLLECTION_NAME, type: 'auth', fields: [] }]);
+					const port = await makePort();
+					const bad = await port
+						.editorPasswordReset!.confirm('token-que-no-existe', 'contraseña-larga')
+						.catch((e: unknown) => e);
+					expect(bad).toBeInstanceOf(VegaError);
+					expect((bad as VegaError).kind).toBe('validation');
+					expect(Object.keys((bad as VegaError).fieldErrors ?? {})).toEqual(['token']);
+
+					const both = await port
+						.editorPasswordReset!.confirm('token-que-no-existe', 'corta')
+						.catch((e: unknown) => e);
+					expect(Object.keys((both as VegaError).fieldErrors ?? {}).sort()).toEqual([
+						'password',
+						'token'
+					]);
+				}
+			);
 		});
 
 		// ————————————————————————————————————————————————————— 8. Errores de transporte —————

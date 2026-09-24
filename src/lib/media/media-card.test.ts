@@ -6,13 +6,50 @@
 import { describe, expect, test } from 'vitest';
 import {
 	classifyMediaAssetType,
+	countMediaMissingAlt,
 	formatFileSize,
 	matchesMediaNameQuery,
 	matchesMediaTypeFilter,
 	mediaCardSubtitle,
 	mediaExtensionBadge,
+	mediaMissingAlt,
 	mediaThumbTone
 } from './media-card';
+
+describe('mediaMissingAlt (aviso de texto alternativo, lámina pieza 3)', () => {
+	test('una imagen sin alt avisa', () => {
+		expect(mediaMissingAlt({ fileName: 'IMG_2026.jpg', alt: '' })).toBe(true);
+	});
+
+	test('un alt hecho solo de espacios cuenta como vacío', () => {
+		expect(mediaMissingAlt({ fileName: 'foto.png', alt: '   ' })).toBe(true);
+	});
+
+	test('con alt no hay aviso', () => {
+		expect(mediaMissingAlt({ fileName: 'foto.webp', alt: 'Tomateras al atardecer' })).toBe(false);
+	});
+
+	test('un título no sustituye al alt: la función ni lo mira', () => {
+		const withTitle = { fileName: 'retrato.webp', alt: '', title: 'Retrato 2026' };
+		expect(mediaMissingAlt(withTitle)).toBe(true);
+	});
+
+	test.each(['manual.pdf', 'demo.mp4', 'sin-extension'])('%s no es imagen: nunca avisa', (name) => {
+		expect(mediaMissingAlt({ fileName: name, alt: '' })).toBe(false);
+	});
+
+	test('countMediaMissingAlt cuenta solo imágenes sin alt', () => {
+		expect(
+			countMediaMissingAlt([
+				{ fileName: 'a.jpg', alt: '' },
+				{ fileName: 'b.jpg', alt: 'Con alt' },
+				{ fileName: 'c.pdf', alt: '' },
+				{ fileName: 'd.png', alt: ' ' }
+			])
+		).toBe(2);
+		expect(countMediaMissingAlt([])).toBe(0);
+	});
+});
 
 describe('classifyMediaAssetType (extensión; "document" es el cajón por defecto)', () => {
 	test.each([

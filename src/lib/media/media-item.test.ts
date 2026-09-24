@@ -54,7 +54,8 @@ describe('toMediaItemView', () => {
 				alt: 'Un atardecer',
 				title: 'Portada',
 				tags: ['foto', 'playa'],
-				created: '2024-01-02T00:00:00.000Z'
+				created: '2024-01-02T00:00:00.000Z',
+				focal: { x: 0.3, y: 0.2 }
 			})
 		);
 		expect(view).toEqual({
@@ -65,8 +66,13 @@ describe('toMediaItemView', () => {
 			alt: 'Un atardecer',
 			title: 'Portada',
 			tags: ['foto', 'playa'],
-			created: '2024-01-02T00:00:00.000Z'
+			created: '2024-01-02T00:00:00.000Z',
+			focal: { x: 0.3, y: 0.2 }
 		});
+	});
+
+	test('una biblioteca sin el campo "focal" (anterior al campo) lee el centro: null', () => {
+		expect(toMediaItemView(record({ file: 'a.png' })).focal).toBeNull();
 	});
 
 	test('un pdf clasifica como "other"', () => {

@@ -7,9 +7,15 @@
 
 import type {
 	AuthChangeReason,
+	BackupCreateOutcome,
+	BackupFile,
 	Capabilities,
 	ContentType,
+	EditorAccount,
+	EditorDirectory,
 	FileRef,
+	InvitationLinkState,
+	NewEditorAccess,
 	Page,
 	RecordEvent,
 	RecordId,
@@ -28,6 +34,16 @@ import type {
 	CollectionSpec,
 	EnsureResult
 } from './collections';
+import type { RecordVersion } from './version';
+
+/** Opciones de `BackendPort.update` (ver su documentación). */
+export interface UpdateOptions {
+	/**
+	 * Versión (`recordVersion`) del registro que el llamador tiene delante. Ausente = sin
+	 * comprobación (la última escritura gana, el comportamiento de siempre).
+	 */
+	expectedVersion?: RecordVersion;
+}
 
 /**
  * Extensión opt-in de autenticación fuerte. Vive separada del CRUD para que PocketBase vanilla
@@ -50,11 +66,80 @@ export interface StrongAuthPort {
 	deletePasskey(id: string): Promise<void>;
 }
 
+/**
+ * Administración del servidor (pantallas `/editores` y `/copias`), separada del CRUD por el mismo
+ * motivo que `StrongAuthPort`: `capabilities.administration` y esta propiedad aparecen juntas, y
+ * un puerto sin ella conserva el contrato mínimo.
+ *
+ * Reapertura ACOTADA de D-P1.1: el puerto sigue sin exponer colecciones `auth` como tipos de
+ * contenido; esta sección gestiona SOLO la colección de editores (`vega_editors`) y siempre como
+ * cuentas, nunca como registros genéricos. Toda promesa rechaza con `VegaError` (L2).
+ */
+export interface AdministrationPort {
+	/** Cuentas de `vega_editors`, del alta más antigua a la más reciente (y por email si no hay
+	 *  fecha). Sin la colección ⇒ `VegaError 'not-found'`. */
+	listEditors(): Promise<EditorDirectory>;
+	/** `true` si el servidor tiene correo saliente configurado (PB: `GET /api/settings` →
+	 *  `smtp.enabled`). Decide si la UI ofrece invitar por correo. */
+	mailEnabled(): Promise<boolean>;
+	/**
+	 * Crea una cuenta de editor. Con `{ kind: 'password' }` nace activa (`verified: true`). Con
+	 * `{ kind: 'invite' }` nace pendiente, con una contraseña aleatoria que nadie conoce, y se pide
+	 * al servidor el correo de restablecimiento para que la persona elija la suya. Email repetido o
+	 * no válido, o contraseña demasiado corta ⇒ `VegaError 'validation'` con `fieldErrors.email` o
+	 * `fieldErrors.password`.
+	 */
+	createEditor(email: string, access: NewEditorAccess): Promise<EditorAccount>;
+	/** Pone una contraseña nueva a una cuenta y la da por activa (`verified: true`). PB cierra las
+	 *  sesiones abiertas de esa cuenta (medido: su token deja de refrescar). */
+	setEditorPassword(id: string, password: string): Promise<void>;
+	/** Vuelve a pedir el correo de restablecimiento de una cuenta. PB responde con éxito aunque el
+	 *  correo no salga (lo envía en segundo plano, medido con un SMTP inalcanzable): el puerto no
+	 *  puede confirmar la entrega. */
+	sendEditorInvitation(id: string): Promise<void>;
+	/** Borra la cuenta: la persona deja de poder entrar. Id inexistente ⇒ `VegaError 'not-found'`. */
+	removeEditor(id: string): Promise<void>;
+	/** Copias guardadas en el servidor, la más reciente primero. */
+	listBackups(): Promise<BackupFile[]>;
+	/** Crea una copia completa y espera a que termine (puede tardar minutos). PB nombra la copia
+	 *  con resolución de segundos: una segunda copia en el mismo segundo sustituye a la primera. */
+	createBackup(): Promise<BackupCreateOutcome>;
+	/** URL de descarga de una copia, ya autorizada para unos minutos (PB: token de fichero de
+	 *  superuser). Se pide justo antes de abrirla, nunca se guarda. */
+	backupDownloadUrl(key: string): Promise<string>;
+	/**
+	 * Hace que el enlace del correo de invitación (plantilla de restablecimiento de contraseña de
+	 * `vega_editors`) lleve a `resetUrl`, la ruta pública de Vega que confirma el token
+	 * (`/restablecer`), y no al Admin de PocketBase (`/_/`), que un despliegue puede no servir.
+	 * Solo escribe si la plantilla sigue siendo la de fábrica: una personalizada no se pisa.
+	 * `resetUrl` es absoluta y sin query; el token se añade como `?token=`.
+	 */
+	ensureInvitationLink(resetUrl: string): Promise<InvitationLinkState>;
+}
+
+/**
+ * Restablecimiento de contraseña de una cuenta de `vega_editors` con el token del correo. Pública:
+ * no exige sesión (quien la usa todavía no puede entrar). `capabilities.editorPasswordReset` y esta
+ * propiedad aparecen juntas.
+ */
+export interface EditorPasswordResetPort {
+	/**
+	 * Pone la contraseña nueva y da la cuenta por verificada (PB 0.39.6, medido). Token inválido,
+	 * caducado o ya usado ⇒ `VegaError 'validation'` con `fieldErrors.token`; contraseña rechazada
+	 * ⇒ `fieldErrors.password`.
+	 */
+	confirm(token: string, password: string): Promise<void>;
+}
+
 export interface BackendPort {
 	// ——— Identidad del adaptador ———
 	readonly capabilities: Capabilities;
 	/** Presente solo cuando `capabilities.strongAuth === true`. */
 	readonly strongAuth?: StrongAuthPort;
+	/** Presente solo cuando `capabilities.administration === true`. */
+	readonly administration?: AdministrationPort;
+	/** Presente solo cuando `capabilities.editorPasswordReset === true`. */
+	readonly editorPasswordReset?: EditorPasswordResetPort;
 	/** Identidad del registro de manifiesto publicada por el backend; ausente = `default`. */
 	readonly manifestKey?: string;
 	/**
@@ -135,7 +220,24 @@ export interface BackendPort {
 	 * borrar.
 	 */
 	create(type: string, data: RecordInput, opts?: { id?: RecordId }): Promise<VegaRecord>;
-	update(type: string, id: RecordId, data: RecordInput): Promise<VegaRecord>;
+	/**
+	 * Actualiza PARCIALMENTE (solo las claves de `data`). `opts` es una enmienda ADITIVA: sin él,
+	 * el comportamiento es el de siempre (la última escritura gana). Con `opts.expectedVersion`
+	 * (la `recordVersion` del registro que se leyó al abrir el formulario, `version.ts`), el
+	 * adaptador RELEE el registro en fresco antes de escribir y, si su versión ya no es esa, falla
+	 * cerrado con `VegaConflictError` (`kind: 'conflict'`, trae el registro y la versión del
+	 * servidor) SIN escribir nada.
+	 *
+	 * **Límite medido, no atómico en PocketBase**: la relectura y la escritura son dos peticiones
+	 * HTTP (`GET` y `PATCH`), porque la API de registros de PocketBase no tiene escritura
+	 * condicional. Una escritura ajena que caiga ENTRE las dos pasa sin detectarse. Contra
+	 * PocketBase 0.39.6 en local la ventana es la ida y vuelta del `GET` más el cálculo del cuerpo
+	 * (medido el 24 sep 2026: p50 1,7 ms, p95 2,4 ms, máximo 2,9 ms en 50 muestras); contra un
+	 * servidor remoto crece con la latencia de red. Cierra el caso real —dos personas con el mismo
+	 * formulario abierto minutos u horas— y no el de dos guardados en el mismo milisegundo.
+	 * `memory` sí es atómico: comprueba y escribe sin ceder el hilo entre medias.
+	 */
+	update(type: string, id: RecordId, data: RecordInput, opts?: UpdateOptions): Promise<VegaRecord>;
 	delete(type: string, id: RecordId): Promise<void>;
 
 	// ——— Ficheros (§4.4) ———

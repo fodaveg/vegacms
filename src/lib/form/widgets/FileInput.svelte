@@ -59,6 +59,14 @@
 	 *   `filePerRecord`) y `alt` se IGNORA (este widget edita un campo `file` de un registro de
 	 *   usuario, que no tiene por contrato un campo `alt` propio asociado — [SUP-5], decisión: sin
 	 *   dónde ponerlo, no se fuerza).
+	 * - **Aviso de texto alternativo (audit del 23 sep, lámina pieza 3; decidido: SOLO
+	 *   informativo)**: si el picker marca un resultado con `missingAlt` (imagen sin alt en la
+	 *   biblioteca, la regla la aplica `MediaPicker`), su fila se bordea en `--warning` y debajo sale
+	 *   un aviso con `role="status"`. Solo vive en la sesión en que se elige: se recuerda el `File`
+	 *   concreto (`pickedWithoutAlt`, un `WeakSet`), y en cuanto `RecordForm` reasienta el valor tras
+	 *   guardar —`FileRef` en vez de `File`— o el fichero se quita, deja de casar y el aviso se va.
+	 *   Al recargar el registro ya no se puede calcular (el campo no guarda alt ni `mediaId`), y el
+	 *   editor no puede arreglarlo desde aquí: por eso informa y no ofrece ninguna acción.
 	 *
 	 * LANDMINE (object URLs): un `$effect` reconcilia `objectUrls` cada vez que `items` cambia —
 	 * revoca cualquier entrada cuyo `File` ya no aparezca en el value actual (cubre TANTO quitar un
@@ -223,6 +231,16 @@
 	 *  todos modos, `media-picker-state.svelte.ts`, pero un botón inerte es más honesto). */
 	let pickingFromLibrary = $state(false);
 
+	/** `File`s traídos de la biblioteca que allí no tienen texto alternativo (ver cabecera). Un
+	 *  `WeakSet` plano y no reactivo: se escribe ANTES de `onChange`, así que cuando `items` cambia
+	 *  y el template lo relee, la pertenencia ya está puesta; y no retiene un `File` que el valor
+	 *  ya soltó. */
+	const pickedWithoutAlt = new WeakSet<File>();
+	/** Filas que llevan el aviso ahora mismo: solo `File`s nuevos de esta sesión. */
+	const missingAltCount = $derived(
+		items.filter((item) => isNewFile(item) && pickedWithoutAlt.has(item)).length
+	);
+
 	async function handlePickFromLibrary(): Promise<void> {
 		if (!ctx.mediaPicker || addDisabled || !schema || pickingFromLibrary) return;
 		pickingFromLibrary = true;
@@ -231,7 +249,12 @@
 			// `null` = cancelado (D-P6.6); un array vacío no debería llegar nunca (el picker exige
 			// al menos un elegido para habilitar "Insertar"), pero `applyNewFiles` ya es un no-op
 			// con `files.length === 0` — defensivo, no hace falta un guard explícito aquí.
-			if (results) applyNewFiles(results.map((r) => r.file));
+			if (results) {
+				for (const result of results) {
+					if (result.missingAlt) pickedWithoutAlt.add(result.file);
+				}
+				applyNewFiles(results.map((r) => r.file));
+			}
 		} finally {
 			pickingFromLibrary = false;
 		}
@@ -354,7 +377,10 @@
 			{#each items as item (item)}
 				{@const isImage = classifyItem(item) === 'image' && !failedImages.has(item)}
 				{@const src = isImage ? previewSrcFor(item) : null}
-				<li class="vega-file-item">
+				<li
+					class="vega-file-item"
+					class:vega-file-item--warn={isNewFile(item) && pickedWithoutAlt.has(item)}
+				>
 					{#if isImage && src}
 						<img
 							{src}
@@ -380,6 +406,23 @@
 			{/each}
 		</ul>
 	{/if}
+
+	<!-- Informativo (ver cabecera): `role="status"`, nunca `alert` — no hay nada que corregir aquí.
+	     La región existe SIEMPRE para que el lector de pantalla anuncie el aviso cuando aparece
+	     (una región viva recién insertada con su texto no se anuncia de forma fiable); vacía, sale
+	     del flujo (ver CSS) y no añade hueco al campo. -->
+	<div class="vega-file-alt-status" role="status">
+		{#if missingAltCount > 0}
+			<p class="vega-file-alt-warn">
+				<Icon id="warning" size={12} />
+				<span>
+					{missingAltCount === 1
+						? ctx.t('form.file.libraryMissingAltOne')
+						: ctx.t('form.file.libraryMissingAltMany', { count: missingAltCount })}
+				</span>
+			</p>
+		{/if}
+	</div>
 </div>
 
 <style>
@@ -503,6 +546,32 @@
 		border: 1px solid var(--line);
 		border-radius: 6px;
 		background: var(--surface-2);
+	}
+
+	/* Imagen traída de la biblioteca sin texto alternativo (lámina del audit, pieza 3). */
+	.vega-file-item--warn {
+		border-color: var(--warning);
+	}
+
+	/* Región viva del aviso (ver marcado): vacía, `position: absolute` la saca del flujo —y con ello
+	   del `gap` de la columna— sin sacarla del árbol de accesibilidad, como haría `display: none`. */
+	.vega-file-alt-status:empty {
+		position: absolute;
+	}
+
+	.vega-file-alt-warn {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.4rem;
+		margin: 0;
+		font-size: 0.84em;
+		font-weight: 550;
+		color: var(--warning);
+	}
+
+	.vega-file-alt-warn :global(svg) {
+		flex-shrink: 0;
+		margin-top: 0.15rem;
 	}
 
 	.vega-file-thumb {

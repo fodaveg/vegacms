@@ -19,7 +19,7 @@ beforeEach(() => {
 });
 
 function fakeResults(): MediaPickResult[] {
-	return [{ file: new File([], 'foto.png'), mediaId: 'media_2', alt: '' }];
+	return [{ file: new File([], 'foto.png'), mediaId: 'media_2', alt: '', missingAlt: true }];
 }
 
 describe('mediaPickerState.open/settle (patrón promise-based, D-P6.6)', () => {

@@ -177,7 +177,10 @@ describe('seedSiteProject', () => {
 			status: 'draft'
 		});
 
-		expect(port.inspectCollection('vega_editors')).toMatchObject({ type: 'auth' });
+		expect(port.inspectCollection('vega_editors')).toMatchObject({
+			type: 'auth',
+			fieldNames: ['created']
+		});
 		expect(port.inspectCollection('vega')?.rules).toMatchObject({
 			listRule: SITE_SEED_MANIFEST_READ_RULE,
 			viewRule: SITE_SEED_MANIFEST_READ_RULE
@@ -302,7 +305,13 @@ describe('seedSiteProject', () => {
 
 		expect(result).toEqual({
 			createdCollections: ['redirects'],
-			addedFields: { pages: ['publishAt', 'description', 'socialImage', 'noindex'] },
+			// `vega_editors` gana `created` (autodate) y `vega_media` gana `focal`: ninguno de los dos
+			// lo creaba el sembrado anterior.
+			addedFields: {
+				vega_editors: ['created'],
+				vega_media: ['focal'],
+				pages: ['publishAt', 'description', 'socialImage', 'noindex']
+			},
 			createdRecords: [],
 			upgradedRecords: ['manifest']
 		});
@@ -341,7 +350,11 @@ describe('seedSiteProject', () => {
 
 		expect(result).toEqual({
 			createdCollections: [],
-			addedFields: { pages: ['publishAt'] },
+			addedFields: {
+				vega_editors: ['created'],
+				vega_media: ['focal'],
+				pages: ['publishAt']
+			},
 			createdRecords: [],
 			upgradedRecords: ['manifest']
 		});
@@ -379,6 +392,39 @@ describe('seedSiteProject', () => {
 		await expect(seedSiteProject(port)).rejects.toBeInstanceOf(SiteSeedDivergenceError);
 		expectNoSeedWrites(writes);
 		expect((await port.get('vega', manifestRecord.id)).values.manifest).toEqual(edited);
+	});
+
+	test('vega_editors ya existente gana created sin perder sus campos, y las cuentas nuevas traen alta', async () => {
+		const port = await authedMemory();
+		await port.ensureCollections([
+			{ name: 'vega_editors', type: 'auth', fields: [{ name: 'displayName', type: 'text' }] }
+		]);
+		const before = await port.administration!.createEditor('antes@vega.test', {
+			kind: 'password',
+			password: 'contraseña-larga'
+		});
+		expect(before.created).toBeNull();
+
+		const result = await seedSiteProject(port);
+		expect(result.createdCollections).not.toContain('vega_editors');
+		expect(result.addedFields.vega_editors).toEqual(['created']);
+		expect(port.inspectCollection('vega_editors')?.fieldNames).toEqual(['displayName', 'created']);
+
+		const after = await port.administration!.createEditor('despues@vega.test', {
+			kind: 'password',
+			password: 'contraseña-larga'
+		});
+		expect(Number.isNaN(Date.parse(after.created ?? ''))).toBe(false);
+		expect((await seedSiteProject(port)).addedFields).toEqual({});
+	});
+
+	test('con passwordResetUrl, el sembrado deja el enlace de invitación en /restablecer una sola vez', async () => {
+		const port = await authedMemory();
+		const url = 'https://admin.example/restablecer';
+		expect((await seedSiteProject(port, { passwordResetUrl: url })).invitationLink).toBe('updated');
+		expect((await seedSiteProject(port, { passwordResetUrl: url })).invitationLink).toBe('current');
+		// Sin la opción, el resultado no cambia de forma (el sembrado headless no sabe su URL).
+		expect(await seedSiteProject(port)).not.toHaveProperty('invitationLink');
 	});
 
 	test('un manifiesto anterior EDITADO no se actualiza: aborta como cualquier manifiesto humano', async () => {

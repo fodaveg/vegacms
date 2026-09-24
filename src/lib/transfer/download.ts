@@ -17,11 +17,23 @@ export function downloadTransferDocument(doc: TransferDocument, filename: string
 	const blob = new Blob([json], { type: 'application/json' });
 	const url = URL.createObjectURL(blob);
 	try {
-		const anchor = document.createElement('a');
-		anchor.href = url;
-		anchor.download = filename;
-		anchor.click();
+		downloadFromUrl(url, filename);
 	} finally {
 		URL.revokeObjectURL(url);
 	}
+}
+
+/**
+ * Abre `url` como descarga `filename` con el mismo `<a download>` temporal. Para ficheros que ya
+ * sirve el backend (las copias de seguridad de `/copias`, con su token en la URL): el navegador
+ * los baja directamente, sin pasar el contenido por memoria. Si la URL es de otro origen, el
+ * atributo `download` no cuenta y manda la cabecera `Content-Disposition` del servidor, que
+ * PocketBase envía como adjunto con el nombre de la copia (medido contra 0.39.6).
+ */
+export function downloadFromUrl(url: string, filename: string): void {
+	const anchor = document.createElement('a');
+	anchor.href = url;
+	anchor.download = filename;
+	anchor.rel = 'noopener';
+	anchor.click();
 }

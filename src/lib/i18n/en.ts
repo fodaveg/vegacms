@@ -9,6 +9,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'nav.emptyCta': 'Go to Settings',
 	'nav.media': 'Media',
 	'nav.trash': 'Trash',
+	'nav.editors': 'Editors',
+	'nav.backups': 'Backups',
 	'nav.settings': 'Settings',
 	'nav.sidebarLabel': 'Main navigation',
 	'nav.warningsBadge': '{count} warnings',
@@ -197,6 +199,32 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'You do not have permission to edit records in this collection: you can view it, but not save changes.',
 	'editor.load.error.body': 'Could not load the record. {message}',
 
+	// ————— Concurrent-edit notice (`ConflictNotice.svelte`, audit sheet p1): the save failed
+	// closed because the record changed on the server after it was opened.
+	'editor.conflict.title': '“{name}” changed while you were editing it',
+	'editor.conflict.titleNarrow': '“{name}” changed',
+	'editor.conflict.byAuthor': 'Saved by {author} at {time}.',
+	'editor.conflict.byAuthorNoTime': 'Saved by {author}.',
+	'editor.conflict.atTime': 'Another version was saved at {time}.',
+	'editor.conflict.unknown': 'Another version was saved while you were editing.',
+	'editor.conflict.nothingSaved':
+		'Nothing of yours has been saved yet: your changes are still in the form.',
+	'editor.conflict.showDiff': 'Show differences',
+	'editor.conflict.hideDiff': 'Hide differences',
+	'editor.conflict.discard': 'Discard my changes and reload',
+	'editor.conflict.discardNarrow': 'Discard and reload',
+	'editor.conflict.force': 'Save anyway',
+	'editor.conflict.diffHead': 'If you save anyway, this is the result:',
+	'editor.conflict.noDiff':
+		'No differences in editable fields: the change was in data managed by the server.',
+	'editor.conflict.scope.both': 'You both changed it',
+	'editor.conflict.scope.server': 'Changed only on the server',
+	'editor.conflict.scope.mine': 'Only you',
+	'editor.conflict.error.title': 'Could not save',
+	'editor.conflict.error.body':
+		'{message} Your changes are still in the form; nothing was overwritten.',
+	'editor.conflict.topbar': 'changed on the server',
+
 	// ————— Editor sticky bar (redesign C2, Part R7, `.edit-top` mockup) —————
 	'editor.new': 'new',
 	'editor.dirty': 'unsaved',
@@ -222,6 +250,23 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.open': 'Visual editor',
 	'editor.visual.title': 'Visual editor',
 	'editor.visual.back': 'Back to the form',
+	// Page status in the visual editor header (`VisualPublishControl.svelte`, audit sheet p2).
+	// Worded DIFFERENTLY from the top bar's «Publish» (`topbar.publish.*`, which rebuilds the site):
+	// this only changes the record's `statusField` value.
+	'editor.visual.status.groupLabel': 'Page status',
+	'editor.visual.status.publish': 'Mark as published',
+	'editor.visual.status.unpublish': 'Switch to draft',
+	'editor.visual.status.changing': 'Changing status…',
+	'editor.visual.status.error.publish': 'Could not mark as published',
+	'editor.visual.status.error.unpublish': 'Could not switch to draft',
+	'editor.visual.status.error.conflict':
+		'The page changed on the server: check its status before trying again',
+	'editor.visual.status.confirm.title': '{count} block(s) not saved',
+	'editor.visual.status.confirm.body':
+		'The page will be published with what was last saved. Those changes will not go out until you save them.',
+	'editor.visual.status.confirm.publish': 'Publish anyway',
+	'editor.visual.status.success': '“{name}” is now “{label}”.',
+	'editor.visual.status.success.rebuild': 'It will show on the site after the next publish.',
 	'editor.visual.frameTitle': 'The site page, inside the visual editor',
 	'editor.visual.connecting': 'Connecting to the site…',
 	'editor.visual.connected': 'Connected to the site: {count} block(s) on the page.',
@@ -257,6 +302,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.overlay.skipped': "{count} block(s) the site described badly: can't be selected.",
 	'editor.visual.overlay.missing': "{count} section(s) that exist but the site isn't rendering.",
 	'editor.visual.overlay.unsupported': 'unsupported',
+	// Section the SITE says is not public (bridge `unpublished`): see `es.ts` for the rationale.
+	'editor.visual.unpublished': 'Not public',
 	// "Draggable block palette" task: the empty-canvas drop target, ONLY while a palette drag is in
 	// flight (see `es.ts` for the full rationale).
 	'editor.visual.overlay.emptyDrop': 'Drop here to create the first section',
@@ -265,6 +312,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// block's form. See `es.ts` for the full rationale, incl. which existing keys are reused.
 	'editor.visual.tree.title': 'Sections',
 	'editor.visual.tree.selectLabel': 'Select "{label}"',
+	// The row's `aria-label` replaces its visible text, so the state has to be in it (see `es.ts`).
+	'editor.visual.tree.selectLabelUnpublished': 'Select "{label}" (not public)',
 	'editor.visual.tree.unavailable': 'Could not load the section tree.',
 	// Selection announcement ("accessibility" task, D3): see `es.ts` for the full rationale (same
 	// `aria-live` region as `editor.blocks.reorder.moved`).
@@ -433,6 +482,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// Phase P6·6e (D-P6.6): button that opens `MediaPicker.svelte`. Fully hidden without
 	// `ctx.mediaPicker` (L-P6.9), never shown disabled without explanation.
 	'form.file.pickFromLibrary': 'Choose from the library',
+	// INFORMATIVE notice (audit sheet, piece 3): only in the session where the file is picked from
+	// the library. The `file` field stores neither the alt nor the `mediaId` (L-P6.8, [SUP-5]).
+	'form.file.libraryMissingAltOne': 'This image has no alt text in the library.',
+	'form.file.libraryMissingAltMany': '{count} images have no alt text in the library.',
 
 	// ————— Richtext/markdown editor (P5 contract, Phase F5-d) —————
 	'form.editor.toolbarLabel': 'Formatting tools',
@@ -622,6 +675,13 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// JSON above is of no use to them.
 	'media.bootstrap.editorBody':
 		'Ask an administrator to set up the media collection ("vega_media") in PocketBase.',
+	// A library created before a new field (today, `focal`): completing it is additive and the
+	// superuser decides it with a button, never Vega on its own.
+	'media.fields.missingBody':
+		'The library lacks fields this version of Vega can use: {fields}. Adding them leaves the existing media untouched.',
+	'media.fields.add': 'Add fields',
+	'media.fields.adding': 'Adding…',
+	'media.fields.added': 'Fields added to the library.',
 
 	// ————— Referential integrity (`#lote-integridad`, Phase A): "where is this used?" engine —————
 	// Shared by `UsedInPanel`/`ReferencesSummary` (passive panel) and by `DeleteConfirm`/
@@ -646,6 +706,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'integrity.usedIn.reason.not-found': 'the collection no longer exists',
 	'integrity.usedIn.reason.auth-expired': 'the session expired mid-check',
 	'integrity.usedIn.reason.validation': 'the query is not valid against this backend',
+	// A read never produces it; it is here so the table covers every `VegaErrorKind`.
+	'integrity.usedIn.reason.conflict': 'the record changed during the check',
 	'integrity.usedIn.reason.unknown': 'unknown reason',
 
 	// ————— References warning BEFORE deleting (same engine, `DeleteConfirm`/`MediaDeleteConfirm`) —————
@@ -767,6 +829,18 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.detail.addTag': 'Add',
 	'media.detail.removeTag': 'Remove «{tag}»',
 	'media.detail.saveSuccess': 'Media updated.',
+	// Alt text (audit sheet, piece 3): a non-blocking notice, images only.
+	'media.alt.missing': 'No alt text',
+	'media.detail.altMissingHint': 'No alt text: a screen reader will read «{name}».',
+	'media.detail.altHelp': 'Describe what is shown, not the file name.',
+	// Focal point (audit, 23 Sep): what the site keeps in view when it crops the image. Empty = centre.
+	'media.focal.label': 'Focal point',
+	'media.focal.help':
+		'Click the image to mark what must stay in view when the site crops it. With the keyboard: arrows move it (Shift for finer steps), Enter sets it.',
+	'media.focal.center': 'Focal point: centre',
+	'media.focal.value': 'Focal point: {x} % across, {y} % down',
+	'media.focal.pending': 'Moving to {x} % across, {y} % down. Press Enter to set it.',
+	'media.focal.reset': 'Centre',
 
 	// ————— Media: delete (Phase P6·6d) —————
 	// D-P6.5/audit H3: the media model COPIES bytes, it never references (`filePerRecord`) —
@@ -861,6 +935,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.picker.searchPlaceholder': 'Search…',
 	'media.picker.empty': 'No asset matches the search or the allowed file type.',
 	'media.picker.selectedCount': '{count} selected',
+	'media.picker.missingAltCount': '{count} without alt text',
 	'media.picker.insert': 'Insert',
 	'media.picker.inserting': 'Inserting…',
 
@@ -1040,6 +1115,128 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'update.banner.message': 'A new version of Vega is available: v{version}.',
 	'update.banner.link': 'View the release',
 	'update.banner.dismiss': 'Dismiss update notice',
+
+	// ————— Administration: superuser screens (`/editores`, `/copias`) —————
+	// Only visible with `capabilities.administration` (`BackendPort.administration`). Help text is
+	// painted in `--ink-2`: `--ink-3` does not reach AA on light themes.
+	'admin.gate.title': 'Superusers only',
+	'admin.editors.gateBody':
+		'Managing editors requires signing in as a PocketBase superuser. Your account is an editor account.',
+	'admin.editors.title': 'Editors',
+	'admin.editors.description':
+		'People who can sign in to this admin and edit content. They cannot touch the schema, the manifest or this screen.',
+	'admin.editors.add': 'Add editor',
+	'admin.editors.loading': 'Loading editors…',
+	'admin.editors.loadError': 'Could not load the list of editors.',
+	'admin.editors.emptyTitle': 'No editors yet',
+	'admin.editors.emptyBody':
+		'Right now only the superuser can sign in. Add whoever is going to write or proofread content.',
+	// The site seeding that creates the collection has no button in the SPA: the notice says where
+	// it is actually created instead of pointing to a screen that does not do it.
+	'admin.editors.missingCollection':
+		'This project does not have the editors collection yet ({collection}). Create it in the PocketBase Admin as an auth collection with that name and come back here.',
+	'admin.editors.col.email': 'Email',
+	'admin.editors.col.status': 'Status',
+	'admin.editors.col.created': 'Added',
+	'admin.editors.col.actions': 'Actions',
+	'admin.editors.createdMobile': 'Added {date}',
+	'admin.editors.createdUnknown': 'No creation date: the collection has no “created” field.',
+	'admin.editors.status.active': 'Active',
+	'admin.editors.status.pending': 'Pending',
+	'admin.editors.status.pendingHint':
+		'They have not confirmed their email by choosing a password yet.',
+	'admin.editors.you': 'your account',
+	'admin.editors.resend': 'Resend invitation',
+	'admin.editors.resendFor': 'Resend the invitation to {email}',
+	'admin.editors.resending': 'Sending…',
+	'admin.editors.resendSuccess':
+		'Invitation requested again for {email}. PocketBase sends the email in the background.',
+	'admin.editors.changePassword': 'Change password',
+	'admin.editors.changePasswordFor': 'Change the password of {email}',
+	'admin.editors.remove': 'Remove access',
+	'admin.editors.removeFor': 'Remove access for {email}',
+	'admin.editors.addDialog.title': 'Add editor',
+	'admin.editors.addDialog.email': 'Email',
+	'admin.editors.addDialog.accessLabel': 'How they will sign in',
+	'admin.editors.addDialog.invite': 'Send them an invitation',
+	'admin.editors.addDialog.inviteHint': 'They get an email and choose their password.',
+	'admin.editors.addDialog.password': 'Set the password myself',
+	'admin.editors.addDialog.passwordHint': 'You give it to them through another channel.',
+	'admin.editors.addDialog.noMail':
+		'This server has no email configured, so no invitation can be sent. Set the password yourself and give it to them through another channel.',
+	'admin.editors.addDialog.submitInvite': 'Send invitation',
+	'admin.editors.addDialog.submitPassword': 'Add editor',
+	'admin.editors.addDialog.saving': 'Saving…',
+	'admin.editors.addDialog.successPassword': 'Editor added: {email}.',
+	'admin.editors.addDialog.successInvite':
+		'Editor added: {email}. PocketBase will send them the email to choose their password.',
+	'admin.editors.passwordDialog.title': 'Change password',
+	'admin.editors.passwordDialog.owner': 'For',
+	'admin.editors.passwordDialog.sessionNote': 'Their open session will be closed.',
+	'admin.editors.passwordDialog.submit': 'Save password',
+	'admin.editors.passwordDialog.success': 'Password of {email} changed.',
+	'admin.editors.removeDialog.title': 'Remove access for {email}?',
+	'admin.editors.removeDialog.body':
+		'They will no longer be able to sign in to this admin. Their PocketBase account is deleted; the content they edited stays as it is.',
+	'admin.editors.removeDialog.confirm': 'Remove access',
+	'admin.editors.removeDialog.removing': 'Removing…',
+	'admin.editors.removeDialog.success': 'Access removed for {email}.',
+	'admin.backups.gateBody':
+		'Backups require signing in as a PocketBase superuser. Your account is an editor account.',
+	'admin.backups.title': 'Backups',
+	'admin.backups.description':
+		'A full copy of the database and the uploaded files, stored on the server. Download it to keep another one somewhere else.',
+	'admin.backups.create': 'Create backup',
+	'admin.backups.creating': 'Creating…',
+	'admin.backups.running': 'Creating backup… {elapsed}',
+	'admin.backups.runningWhen': 'now',
+	'admin.backups.announceStart': 'Creating the backup. It may take a few minutes.',
+	'admin.backups.announceDone': 'Backup created.',
+	'admin.backups.createdToast': 'Backup created ({size}).',
+	'admin.backups.createdToastNoSize': 'Backup created.',
+	'admin.backups.createErrorTitle': 'Could not create the backup',
+	'admin.backups.busy':
+		'Another backup or restore is already running on the server. Wait for it to finish and try again.',
+	'admin.backups.loading': 'Loading backups…',
+	'admin.backups.loadError': 'Could not load the list of backups.',
+	'admin.backups.emptyTitle': 'There are no backups on this server yet',
+	'admin.backups.emptyBody': 'Create the first one now; then you will be able to download it.',
+	'admin.backups.col.name': 'Name',
+	'admin.backups.col.size': 'Size',
+	'admin.backups.col.date': 'Date',
+	'admin.backups.col.actions': 'Actions',
+	'admin.backups.download': 'Download',
+	'admin.backups.downloadFor': 'Download {key}',
+	'admin.backups.preparing': 'Preparing…',
+	'admin.editors.addDialog.inviteLinkCustom':
+		'The PocketBase password reset email template is customised: the link in the email is whatever it says, not the Vega page to choose a password.',
+	'admin.editors.addDialog.inviteLinkUnknown':
+		'Could not check where the link in the invitation email leads.',
+	'admin.reset.title': 'Choose your password',
+	'admin.reset.intro': 'It is the password you will use to sign in to this admin.',
+	'admin.reset.submit': 'Save password',
+	'admin.reset.saving': 'Saving…',
+	'admin.reset.successTitle': 'Password saved',
+	'admin.reset.successBody': 'You can now sign in with your email and the new password.',
+	'admin.reset.toLogin': 'Go to sign in',
+	'admin.reset.expiredTitle': 'This link no longer works',
+	'admin.reset.expiredBody':
+		'It has expired or was already used. Ask whoever manages this site to resend the invitation.',
+	'admin.reset.missingToken':
+		'The link is missing the code to choose a password. Open it exactly as it arrived in the email.',
+	'admin.reset.errorTitle': 'Could not save the password',
+	'admin.reset.unavailable': 'This server does not allow choosing the password from here.',
+	'admin.form.password': 'Password',
+	'admin.form.newPassword': 'New password',
+	'admin.form.repeatPassword': 'Repeat it',
+	'admin.form.passwordHint': 'At least {min} characters.',
+	'admin.form.passwordTooShort': 'At least {min} characters.',
+	'admin.form.passwordMismatch': 'It does not match the one above.',
+	'admin.form.passwordRejected': 'The server does not accept this password: {message}',
+	'admin.form.emailInvalid': 'Enter a valid email.',
+	'admin.form.emailTaken': 'There is already an editor with that email.',
+	'admin.form.emailRejected': 'The server does not accept this email: {message}',
+	'admin.form.rejected': 'The server rejected the data: {message}',
 
 	// ————— Toasts (§2.3) —————
 	'toast.dismiss': 'Dismiss notification',

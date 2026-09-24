@@ -42,6 +42,11 @@ export interface MediaPickResult {
 	/** El `alt` del asset, si lo tenía — metadato opcional; `FileInput.svelte` lo ignora si el
 	 *  campo destino no tiene dónde ponerlo (ver [SUP-5] en su cabecera). */
 	alt: string;
+	/** `true` si el asset es una imagen SIN texto alternativo en la biblioteca (`mediaMissingAlt`,
+	 *  `media-card.ts`). Lo decide el picker, que es quien sabe de `vega_media`, para que el widget
+	 *  destino solo tenga que pintar un aviso informativo sin conocer la regla. Igual que `alt`,
+	 *  nunca se persiste. */
+	missingAlt: boolean;
 }
 
 // ————— Filtrado client-side por `accept` (audit H1) —————

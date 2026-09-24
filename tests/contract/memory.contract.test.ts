@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
+import { recordVersion, VegaConflictError } from '$lib/backend';
 import { createMemoryBackend, type MemoryBackendPort } from '$lib/backend/adapters/memory';
 import { describeBackendContract } from './backend-contract';
 import { FIXTURE_ADMIN_EMAIL, FIXTURE_ADMIN_PASSWORD, kitchenSinkSeed } from './fixture';
@@ -94,6 +95,87 @@ describe('memory: detalles de implementación', () => {
 		});
 	});
 
+	test('administration: sin la colección vega_editors, listar o dar de alta → not-found', async () => {
+		const port = createMemoryBackend(kitchenSinkSeed());
+		await port.login({ email: FIXTURE_ADMIN_EMAIL, password: FIXTURE_ADMIN_PASSWORD });
+		await expect(port.administration!.listEditors()).rejects.toMatchObject({ kind: 'not-found' });
+		await expect(
+			port.administration!.createEditor('ana@vega.test', { kind: 'password', password: '12345678' })
+		).rejects.toMatchObject({ kind: 'not-found' });
+	});
+
+	test('administration: las cuentas sembradas salen de la más antigua a la más reciente, las sin fecha al final', async () => {
+		const port = createMemoryBackend({
+			...kitchenSinkSeed(),
+			editors: [
+				{ id: 'e3', email: 'sin-fecha@vega.test', verified: true, created: null },
+				{
+					id: 'e2',
+					email: 'reciente@vega.test',
+					verified: false,
+					created: '2026-09-22T10:00:00.000Z'
+				},
+				{
+					id: 'e1',
+					email: 'antigua@vega.test',
+					verified: true,
+					created: '2026-02-03T10:00:00.000Z'
+				}
+			]
+		});
+		await port.login({ email: FIXTURE_ADMIN_EMAIL, password: FIXTURE_ADMIN_PASSWORD });
+		const { editors } = await port.administration!.listEditors();
+		expect(editors.map((account) => account.id)).toEqual(['e1', 'e2', 'e3']);
+	});
+
+	test('administration: sin correo no hay invitación (memory no finge un envío); con correo nace pendiente', async () => {
+		const withoutMail = createMemoryBackend({ ...kitchenSinkSeed(), editors: [] });
+		await withoutMail.login({ email: FIXTURE_ADMIN_EMAIL, password: FIXTURE_ADMIN_PASSWORD });
+		await expect(
+			withoutMail.administration!.createEditor('ana@vega.test', { kind: 'invite' })
+		).rejects.toMatchObject({ kind: 'backend' });
+		expect((await withoutMail.administration!.listEditors()).editors).toEqual([]);
+
+		const withMail = createMemoryBackend({ ...kitchenSinkSeed(), editors: [], mailEnabled: true });
+		await withMail.login({ email: FIXTURE_ADMIN_EMAIL, password: FIXTURE_ADMIN_PASSWORD });
+		const invited = await withMail.administration!.createEditor('ana@vega.test', {
+			kind: 'invite'
+		});
+		expect(invited.verified).toBe(false);
+		await expect(
+			withMail.administration!.sendEditorInvitation(invited.id)
+		).resolves.toBeUndefined();
+	});
+
+	test('restablecer: el token de una invitación con correo verifica la cuenta y solo sirve una vez', async () => {
+		const port = createMemoryBackend({ ...kitchenSinkSeed(), editors: [], mailEnabled: true });
+		await port.login({ email: FIXTURE_ADMIN_EMAIL, password: FIXTURE_ADMIN_PASSWORD });
+		const invited = await port.administration!.createEditor('lucia@vega.test', { kind: 'invite' });
+		const token = await port.inspectEditorResetToken('lucia@vega.test');
+		expect(token).not.toBeNull();
+
+		// Pública: funciona igual tras cerrar la sesión.
+		await port.logout();
+		await port.editorPasswordReset!.confirm(token!, 'la-suya-123');
+		await expect(port.editorPasswordReset!.confirm(token!, 'la-suya-123')).rejects.toMatchObject({
+			kind: 'validation',
+			fieldErrors: { token: { code: 'validation_invalid_token' } }
+		});
+
+		await port.login({ email: FIXTURE_ADMIN_EMAIL, password: FIXTURE_ADMIN_PASSWORD });
+		const listed = (await port.administration!.listEditors()).editors.find(
+			(account) => account.id === invited.id
+		);
+		expect(listed?.verified).toBe(true);
+	});
+
+	test('administration: sin login previo → forbidden, también en copias', async () => {
+		const port = createMemoryBackend({ ...kitchenSinkSeed(), editors: [] });
+		await expect(port.administration!.listEditors()).rejects.toMatchObject({ kind: 'forbidden' });
+		await expect(port.administration!.listBackups()).rejects.toMatchObject({ kind: 'forbidden' });
+		await expect(port.administration!.createBackup()).rejects.toMatchObject({ kind: 'forbidden' });
+	});
+
 	test('operación de datos/esquema sin login previo → forbidden (§7: memory no puede ser mejor que PB)', async () => {
 		// Decisión de ingeniería (§7): PB real rechaza toda operación de datos/esquema sin
 		// sesión con `forbidden` — `memory` debe hacer lo mismo, nunca ser más permisivo. Cubre
@@ -120,5 +202,25 @@ describe('memory: detalles de implementación', () => {
 		await expect(
 			port.addCollectionFields('vega_test', [{ name: 'x', type: 'text' }])
 		).rejects.toMatchObject({ kind: 'forbidden' });
+	});
+
+	test('versión esperada: comprobar-y-escribir sin hueco aunque la escritura ceda el hilo (subida de fichero)', async () => {
+		const port = createMemoryBackend(kitchenSinkSeed());
+		await port.login({ email: FIXTURE_ADMIN_EMAIL, password: FIXTURE_ADMIN_PASSWORD });
+		const created = await port.create('kitchen_sink', { title: 'Carrera' });
+		const opened = recordVersion(created);
+
+		// A arranca primero y cede el hilo al materializar el fichero; B, con la MISMA versión, entra
+		// y escribe entero en ese hueco. En PocketBase esta ventana existe (dos peticiones, ver
+		// `port.ts#update`); en `memory` la comprobación se repite justo antes de guardar.
+		const cover = new File(['portada'], 'cover.png', { type: 'image/png' });
+		const a = port.update('kitchen_sink', created.id, { cover }, { expectedVersion: opened });
+		const b = port.update('kitchen_sink', created.id, { title: 'B' }, { expectedVersion: opened });
+
+		await expect(b).resolves.toMatchObject({ values: { title: 'B' } });
+		await expect(a).rejects.toBeInstanceOf(VegaConflictError);
+		const fresh = await port.get('kitchen_sink', created.id);
+		expect(fresh.values.title).toBe('B');
+		expect(fresh.values.cover).toBeNull();
 	});
 });

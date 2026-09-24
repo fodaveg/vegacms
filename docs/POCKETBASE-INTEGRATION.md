@@ -538,6 +538,26 @@ La colección `vega_media` que Vega bootstrapea **ya declara estos tres tamaños
 
 **Para tus colecciones de contenido propias** con campos `file` de imagen que edites o listes en Vega: declara en PB (Collections → tu colección → campo `file` → Thumb sizes) al menos `300x300` y `28x28` (y `120x120` si editas ese campo con el widget file), o Vega mostrará el original completo en cada miniatura. Vega **no** añade thumbs retroactivamente a colecciones que no creó.
 
+## Punto focal de una imagen
+
+Desde el 24 sep 2026, `vega_media` tiene un campo `focal` (`json`, opcional): `{ "x": 0.3, "y": 0.2 }`
+con valores de `0` a `1` medidos desde la esquina superior izquierda de la imagen original. Vacío
+significa centro. Se pone en la ficha del medio (`/media` → abrir una imagen): clic sobre la vista
+previa, o flechas e Intro con el teclado; «Centrar» lo borra. El sitio lo usa al recortar la imagen
+(`object-position` en un `object-fit: cover`); `@vega/astro` lo expone y lo traduce con
+`focalObjectPosition()`. Las miniaturas que sirve PocketBase siguen recortadas al centro: `thumbs`
+no sabe de puntos focales.
+
+Una biblioteca **creada antes** del campo no lo tiene, porque la creación de `vega_media` no toca
+una colección que ya existe. Tiene dos caminos, los dos aditivos (no cambian los campos, sus ids,
+las reglas ni los datos; los medios existentes quedan centrados):
+
+- En `/media`, un superusuario ve un aviso con el botón «Añadir campos».
+- Volver a ejecutar `seedSiteProject`, que añade los campos ausentes de `vega_media` igual que los
+  de `pages`.
+
+Hasta entonces la ficha no ofrece el punto focal y un editor no ve ningún aviso.
+
 ## Historial de versiones
 
 Vega puede guardar una copia del estado de un registro justo ANTES de cada guardado, para poder
@@ -668,6 +688,7 @@ existentes se prepara manualmente. Un editor:
 - **NO puede** introspeccionar el schema en vivo (PocketBase rechaza `GET /api/collections` a no-superusers).
 - **NO puede** crear ni modificar colecciones en el schema.
 - **NO puede** editar el manifiesto desde `/settings` (la UI se degrada: solo lectura).
+- **NO ve** Editores ni Copias (PocketBase reserva `/api/settings` y `/api/backups` a superusuarios).
 - **Puede** crear, leer, actualizar, borrar registros de contenido (según reglas de PocketBase).
 - **Puede** reordenar registros manualmente en los listados.
 
@@ -733,6 +754,9 @@ vuelve a sembrar.
 5. Guarda.
 
 **2. Crear usuarios editor:**
+
+Desde Vega, con sesión de superusuario: **Editores** en la barra lateral (ver
+[Editores y copias de seguridad desde Vega](#editores-y-copias-de-seguridad-desde-vega)). O a mano:
 
 1. Abre la colección `vega_editors`.
 2. **New record** → introduce email y contraseña.
@@ -856,6 +880,110 @@ Ejemplo para editores: solo pueden crear/actualizar/borrar, no ver borrados lóg
 ```
 
 Ver la documentación de PocketBase sobre [rules](https://pocketbase.io/docs/api-rules-and-filters/) para toda la capacidad disponible.
+
+## Editores y copias de seguridad desde Vega
+
+Con sesión de **superusuario**, la barra lateral enseña dos entradas más, entre Papelera y Ajustes:
+
+- **Editores** (`/editores`): las cuentas de `vega_editors`. Dar de alta, cambiar la contraseña,
+  reenviar la invitación y quitar el acceso (borra la cuenta; el contenido que editó se queda).
+- **Copias** (`/copias`): las copias de seguridad de PocketBase. Crear, listar y descargar.
+  Restaurar y borrar no están: se hacen desde el Admin de PocketBase.
+
+Un editor no ve esas entradas, y si llega por URL cada pantalla le dice que es solo para
+superusuarios. La señal es la capacidad `administration` del puerto (ver más abajo), no el hecho de
+poder crear colecciones.
+
+### Qué cambia de D-P1.1: solo `vega_editors`
+
+D-P1.1 dejaba fuera del puerto todas las colecciones `auth`: no son tipos de contenido y no aparecen
+en la barra lateral ni en `listContentTypes()`. Eso sigue igual para todas **menos una**: Vega
+gestiona `vega_editors`, y solo como **cuentas** (email, estado, alta), nunca como registros
+genéricos que se editen campo a campo. `users` u otra colección `auth` que tengas siguen fuera.
+
+### La capacidad `administration`
+
+El puerto la declara igual que la autenticación reforzada: una capacidad (`administration`) y una
+sección opcional del puerto que aparece con ella (`BackendPort.administration`, en
+`src/lib/backend/port.ts`). Ninguna pantalla llama al SDK de PocketBase:
+
+| Adaptador  | `administration`                                   |
+| ---------- | -------------------------------------------------- |
+| PocketBase | `true` solo con sesión de `_superusers`            |
+| memoria    | `true` (la demo y los e2e; el rol editor la apaga) |
+
+Lo que usa en PocketBase, todo reservado a superusuarios:
+
+| Para qué                      | Endpoint                                                                                  |
+| ----------------------------- | ----------------------------------------------------------------------------------------- |
+| Listar, crear, borrar cuentas | `/api/collections/vega_editors/records`                                                   |
+| Mínimo de contraseña          | `GET /api/collections/vega_editors` (campo `password`, `min`)                             |
+| Saber si hay correo           | `GET /api/settings` → `smtp.enabled`                                                      |
+| Invitar / reenviar            | `POST /api/collections/vega_editors/request-password-reset`                               |
+| Copias                        | `GET` y `POST /api/backups`                                                               |
+| Descargar una copia           | `POST /api/files/token` y `GET /api/backups/{key}?token=…`                                |
+| Enlace de los correos         | `GET /api/collections/meta/scaffolds` y `PATCH` de la colección (`resetPasswordTemplate`) |
+
+Y una, pública, para `/restablecer`: `POST /api/collections/vega_editors/confirm-password-reset`.
+
+### Invitar a un editor: hace falta correo
+
+«Añadir editor» ofrece **Enviarle una invitación** solo si PocketBase tiene SMTP configurado
+(**Settings → Mail settings**). La invitación crea la cuenta con una contraseña aleatoria que nadie
+conoce y pide a PocketBase el correo de **restablecimiento de contraseña**: la persona elige la
+suya desde ese enlace. Sin SMTP, la única opción es **Poner yo la contraseña** y pasársela por otro
+canal. No hay «copiar enlace»: PocketBase no emite ese token sin enviar el correo, y hacerlo
+exigiría una extensión Go.
+
+#### El enlace del correo lleva a Vega, no al Admin de PocketBase
+
+El correo es la plantilla de **restablecimiento de contraseña** de la colección `vega_editors`. La
+de fábrica enlaza a la página pública del Admin de PocketBase
+(`{APP_URL}/_/#/auth/confirm-password-reset/{TOKEN}`), que un despliegue que sirve Vega en lugar
+del Admin no tiene (en `admin.fodaveg.net`, `/_/*` responde 404). Por eso Vega trae su propia
+página pública, **`/restablecer?token=…`**: la persona escribe dos veces su contraseña y, hecho,
+va a entrar. No necesita sesión; usa la sección pública del puerto (`editorPasswordReset`,
+capacidad `editorPasswordReset`).
+
+Vega cambia el enlace de la plantilla para que lleve ahí:
+
+- **Cuándo:** al abrir **Editores** un superusuario, y al sembrar el sitio si quien lo lanza pasa
+  `passwordResetUrl` a `seedSiteProject` (el sembrado es headless y no sabe en qué dirección está
+  servida Vega).
+- **Solo si la plantilla sigue siendo la de fábrica**, comparada con la que da el propio servidor en
+  `GET /api/collections/meta/scaffolds`. Una plantilla que el dueño haya cambiado no se toca, y el
+  alta avisa junto a «Enviarle una invitación» de que el enlace es el que diga ella.
+- **Qué escribe:** solo cambia el `href` del botón; el resto del correo y el asunto quedan igual.
+  `{APP_URL}` es **Settings → Application URL** (`settings.meta.appURL`, `http://localhost:8090` de
+  fábrica). Si Vega está servida bajo esa dirección, el enlace queda relativo a ella
+  (`{APP_URL}/restablecer?token={TOKEN}`) y sigue valiendo si cambias el dominio ahí; si no, se
+  escribe la dirección absoluta de Vega en la que el superusuario tiene abierta la app.
+- Si Vega pasa a servirse en otra dirección, la plantilla ya no es la de fábrica y no se reescribe:
+  corrígela a mano en **Collections → vega_editors → Options → Mail templates**.
+
+Otras cosas que conviene saber, medidas contra PocketBase 0.39.6:
+
+- PocketBase responde con éxito aunque el correo no salga (lo envía en segundo plano), así que Vega
+  no puede confirmar la entrega: el aviso dice que se ha pedido, no que ha llegado.
+- **Pendiente / Activo** es el campo `verified`. Una invitación nace pendiente y pasa a activa
+  cuando la persona confirma el restablecimiento en `/restablecer`. Un enlace caducado o ya usado
+  lo rechaza PocketBase y la página lo dice. Una cuenta a la que el superusuario pone la
+  contraseña (al crearla o después) queda activa. Cambiar la contraseña cierra las sesiones abiertas
+  de esa cuenta.
+
+La columna **Alta** es el campo `created` (autodate) de `vega_editors`. El sembrado lo crea, y en un
+proyecto ya sembrado lo añade sin tocar nada más. Las cuentas que ya existían se quedan sin fecha
+(PocketBase no rellena un autodate nuevo hacia atrás) y salen con un guion. El alta de Vega pide
+solo email y contraseña: si tu `vega_editors` tiene campos propios obligatorios, el alta fallará con
+el error del servidor.
+
+### Copias de seguridad
+
+**Crear copia** hace una copia completa (base de datos y ficheros subidos) en el servidor y espera a
+que termine; puede tardar minutos y PocketBase no da progreso, así que la pantalla enseña el tiempo
+transcurrido. Si ya hay otra copia o restauración en marcha, PocketBase la rechaza y la pantalla lo
+dice. El nombre lo pone PocketBase con resolución de segundos: dos copias en el mismo segundo se
+pisan. Descargarla es la forma de tener una copia **fuera** del servidor.
 
 ## Sincronización en tiempo real
 

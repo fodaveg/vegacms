@@ -168,7 +168,87 @@ export interface Capabilities {
 	 * persiste en el snapshot del esquema y no puede depender de quién lo escribió.
 	 */
 	accessBypass: boolean;
+	/**
+	 * `BackendPort.administration` está presente: la sesión puede gestionar las cuentas de
+	 * `vega_editors` y las copias de seguridad del servidor (pantallas `/editores` y `/copias`).
+	 * PB: `true` solo con sesión de superuser, porque PocketBase reserva `/api/settings`,
+	 * `/api/backups` y la gestión de una colección `auth` ajena a quien la administra; `false` en
+	 * modo editor. memory: `true`.
+	 *
+	 * Capability de SESIÓN, igual que `schemaBootstrap` y `accessBypass`, pero con nombre propio:
+	 * la UI no debe deducir "puede administrar" de "puede crear colecciones", que hoy coinciden en
+	 * PocketBase por casualidad de implementación y no por diseño.
+	 */
+	administration: boolean;
+	/**
+	 * `BackendPort.editorPasswordReset` está presente: la ruta pública `/restablecer` puede
+	 * confirmar el restablecimiento de contraseña de una cuenta de `vega_editors` con el token del
+	 * correo, sin sesión. PB: `true` (endpoint público de toda colección `auth`). memory: `true`.
+	 * Capability de ADAPTADOR, no de sesión: quien la usa todavía no ha entrado.
+	 */
+	editorPasswordReset: boolean;
 }
+
+// ————— Administración (editores y copias de seguridad) —————
+
+/**
+ * Una cuenta de la colección de editores (`vega_editors`). Es la ÚNICA colección `auth` que el
+ * puerto expone: D-P1.1 (las colecciones `auth` no son tipos de contenido) sigue en pie para las
+ * demás, y esta tampoco aparece en `listContentTypes()`. Se lee por `BackendPort.administration`.
+ */
+export interface EditorAccount {
+	id: string;
+	email: string;
+	/**
+	 * `false` = la cuenta todavía no ha confirmado su correo. En PocketBase 0.39.6 (medido) una
+	 * cuenta creada por invitación nace con `false` y pasa a `true` cuando la persona confirma el
+	 * restablecimiento de contraseña del correo; una cuenta a la que el superusuario pone la
+	 * contraseña se crea ya en `true`.
+	 */
+	verified: boolean;
+	/** ISO 8601 UTC del alta, o `null` si la colección no tiene el campo `created` (autodate). */
+	created: string | null;
+}
+
+/**
+ * Lo que devuelve `AdministrationPort.listEditors()`: las cuentas y la longitud mínima de
+ * contraseña que exige el backend, para que la UI valide con la regla real y no con una copia.
+ */
+export interface EditorDirectory {
+	editors: EditorAccount[];
+	/** PB: `min` del campo `password` de la colección (8 de fábrica). */
+	passwordMinLength: number;
+}
+
+/** Cómo entra un editor nuevo: con la contraseña que pone el superusuario o por invitación. */
+export type NewEditorAccess = { kind: 'password'; password: string } | { kind: 'invite' };
+
+/** Una copia de seguridad guardada en el servidor. */
+export interface BackupFile {
+	/** Nombre del fichero, que es también su clave (PB: `pb_backup_<app>_<fecha>.zip`). */
+	key: string;
+	/** Tamaño en bytes. */
+	size: number;
+	/** ISO 8601 UTC de la última modificación. */
+	modified: string;
+}
+
+/**
+ * Resultado de pedir una copia. `'busy'` = el servidor ya tiene otra copia o restauración en
+ * marcha y no ha empezado esta (PB responde 400 "Try again later"). No es un error del puerto: es
+ * un estado del servidor que la UI explica con sus palabras.
+ */
+export type BackupCreateOutcome = 'created' | 'busy';
+
+/**
+ * Estado del enlace de los correos de invitación (la plantilla de restablecimiento de
+ * `vega_editors`) tras `AdministrationPort.ensureInvitationLink`:
+ * - `'updated'`: seguía la plantilla de fábrica y ahora apunta a la ruta de Vega.
+ * - `'current'`: ya apuntaba a esa ruta; no se ha escrito nada.
+ * - `'custom'`: alguien la ha cambiado (o apunta a otra dirección de Vega); no se toca, y el enlace
+ *   del correo es el que diga ella.
+ */
+export type InvitationLinkState = 'updated' | 'current' | 'custom';
 
 // ————— Paginación —————
 

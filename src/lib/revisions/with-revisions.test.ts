@@ -2,8 +2,8 @@
  * Suite del decorador `withRevisions` (`#lote-integridad`, Fase B §3/§4/§6/§7): construye un
  * `BackendPort` de mentira (todo `vi.fn()`, registrando el ORDEN de llamadas) y comprueba —
  * - la PRE-IMAGEN se guarda, nunca el resultado (§2, INVARIANTE 1);
- * - el orden `get` → `create(vega_revisions)` → `update` real (§3, "el snapshot va SIEMPRE
- *   antes de la operación");
+ * - el orden `get` → `update` real → `create(vega_revisions)`: la pre-imagen se lee antes, pero
+ *   la revisión solo se guarda si la escritura se hizo (lote de concurrencia; antes iba delante);
  * - las 5 exclusiones (§3);
  * - un fallo de snapshot NUNCA rompe la escritura (§4, INVARIANTE 2);
  * - el latch de disponibilidad (§6) y su reset;
@@ -26,7 +26,7 @@ import type {
 	Session,
 	VegaRecord
 } from '$lib/backend/types';
-import { VegaError } from '$lib/backend/errors';
+import { VegaConflictError, VegaError } from '$lib/backend/errors';
 import { createMemoryBackend } from '$lib/backend/adapters/memory';
 import { VEGA_REVISIONS_COLLECTION } from './revisions-collection';
 import { resetRevisionsLatch, withRevisions } from './with-revisions';
@@ -173,8 +173,8 @@ describe('withRevisions — INVARIANTE 1 (pre-imagen, no resultado)', () => {
 	});
 });
 
-describe('withRevisions — orden (§3: snapshot SIEMPRE antes de la operación)', () => {
-	test('get(pre-imagen) → create(vega_revisions) → update real, en ese orden', async () => {
+describe('withRevisions — orden (pre-imagen antes; revisión solo tras un guardado hecho)', () => {
+	test('get(pre-imagen) → update real → create(vega_revisions), en ese orden', async () => {
 		const { port, calls } = buildFakePort();
 		const wrapped = withRevisions(port);
 
@@ -183,9 +183,54 @@ describe('withRevisions — orden (§3: snapshot SIEMPRE antes de la operación)
 		// Filtra las llamadas de LECTURA de configuración/poda (`list:vega`/`list:vega_revisions`,
 		// timing de implementación de la config cacheada y de la poda fire-and-forget, ninguna de
 		// las dos es el invariante que este test fija) — lo que importa es el orden RELATIVO de
-		// pre-imagen → snapshot → escritura real.
+		// pre-imagen → escritura real → revisión. Antes del lote de concurrencia la revisión iba
+		// delante de la escritura; ver la cabecera de `with-revisions.ts` para el porqué del cambio.
 		const writeCalls = calls.filter((c) => !c.startsWith('list:'));
-		expect(writeCalls).toEqual(['get:posts:p1', 'create:vega_revisions', 'update:posts:p1']);
+		expect(writeCalls).toEqual(['get:posts:p1', 'update:posts:p1', 'create:vega_revisions']);
+	});
+
+	test('si la escritura rechaza por CONFLICTO, no se guarda revisión y el error sale intacto', async () => {
+		const { port } = buildFakePort({ preImageValues: { title: 'ANTES' } });
+		const conflict = new VegaConflictError(
+			{ id: 'p1', type: 'posts', values: { title: 'del otro' } },
+			'v-servidor'
+		);
+		vi.mocked(port.update).mockImplementationOnce(async () => {
+			throw conflict;
+		});
+		const wrapped = withRevisions(port);
+
+		await expect(
+			wrapped.update('posts', 'p1', { title: 'mío' }, { expectedVersion: 'v-vieja' })
+		).rejects.toBe(conflict);
+		expect(port.create).not.toHaveBeenCalled();
+	});
+
+	test('si la escritura rechaza por VALIDACIÓN, tampoco queda una revisión fantasma', async () => {
+		const { port } = buildFakePort();
+		vi.mocked(port.update).mockImplementationOnce(async () => {
+			throw VegaError.validation({ title: { code: 'validation_required', message: 'x' } });
+		});
+		const wrapped = withRevisions(port);
+
+		await expect(wrapped.update('posts', 'p1', { title: '' })).rejects.toMatchObject({
+			kind: 'validation'
+		});
+		expect(port.create).not.toHaveBeenCalled();
+	});
+
+	test('la versión esperada llega TAL CUAL al puerto interno', async () => {
+		const { port } = buildFakePort();
+		const wrapped = withRevisions(port);
+
+		await wrapped.update('posts', 'p1', { title: 'x' }, { expectedVersion: 'v1' });
+
+		expect(port.update).toHaveBeenCalledWith(
+			'posts',
+			'p1',
+			{ title: 'x' },
+			{ expectedVersion: 'v1' }
+		);
 	});
 });
 

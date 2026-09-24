@@ -4,7 +4,7 @@
  * NO es un formato PB. Este es el formato que P8 usará para los datos de demo.
  */
 
-import type { ContentType, FieldValue, FileRef, RecordId } from '../../types';
+import type { BackupFile, ContentType, FieldValue, FileRef, RecordId } from '../../types';
 
 export interface MemorySeed {
 	/** Credenciales que login acepta. Default demo (sin seed): admin@vega.test / cualquier password no vacía. */
@@ -24,4 +24,18 @@ export interface MemorySeed {
 	 * verdad su miniatura/preview sin fabricar una subida real.
 	 */
 	files?: Record<FileRef, { name: string; mime: string; dataUri: string }>;
+	/**
+	 * Cuentas de la colección de editores (`vega_editors`, sección `administration` del puerto).
+	 * Presente, aunque sea `[]` ⇒ la colección existe desde el arranque. Ausente ⇒ no existe hasta
+	 * que `ensureCollections` la cree, igual que en un PocketBase sin sembrar. Estas cuentas NO
+	 * sirven para `login()`: eso sigue siendo cosa de `users`.
+	 */
+	editors?: Array<{ id: string; email: string; verified: boolean; created: string | null }>;
+	/** Lo que responde `administration.mailEnabled()`. Default `false`: `memory` no envía correo. */
+	mailEnabled?: boolean;
+	/** Copias de seguridad ya guardadas al arrancar. */
+	backups?: BackupFile[];
+	/** Cuánto tarda `administration.createBackup()`, en ms (la demo lo usa para que se vea la
+	 *  copia en curso). Default `0`. */
+	backupDurationMs?: number;
 }

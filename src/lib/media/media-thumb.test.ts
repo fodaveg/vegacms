@@ -27,7 +27,9 @@ function capabilitiesWith(thumbs: boolean): Capabilities {
 		schemaFieldBootstrap: true,
 		strongAuth: false,
 		explicitRecordId: true,
-		accessBypass: false
+		accessBypass: false,
+		administration: false,
+		editorPasswordReset: false
 	};
 }
 
@@ -39,7 +41,8 @@ const IMAGE_ITEM: MediaItemView = {
 	alt: '',
 	title: '',
 	tags: [],
-	created: null
+	created: null,
+	focal: null
 };
 
 const OTHER_ITEM: MediaItemView = { ...IMAGE_ITEM, id: 'm2', kind: 'other' };

@@ -13,6 +13,7 @@
  */
 
 import type { FieldValue, FileRef, RecordId, VegaRecord } from '$lib/backend/types';
+import { normalizeMediaFocal, type MediaFocalPoint } from './media-focal';
 
 /** Nombre del único campo `file` de `vega_media` (D-P6.1). Constante única para no repetir el
  *  string mágico en cada llamada a `port.fileUrl`. */
@@ -37,6 +38,9 @@ export interface MediaItemView {
 	/** ISO 8601 UTC del campo `created` (autodate), o `null` si el registro no lo trae todavía
 	 *  (defensivo: en la práctica el backend siempre lo rellena al crear). */
 	created: string | null;
+	/** Punto focal (`media-focal.ts`): `null` = centro, que es también lo que lee un registro de
+	 *  una biblioteca sin el campo `focal` todavía. */
+	focal: MediaFocalPoint | null;
 }
 
 const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif', 'bmp']);
@@ -76,7 +80,8 @@ export function toMediaItemView(record: VegaRecord): MediaItemView {
 		alt: typeof altRaw === 'string' ? altRaw : '',
 		title: typeof titleRaw === 'string' ? titleRaw : '',
 		tags: normalizeMediaTags(record.values.tags),
-		created: typeof createdRaw === 'string' ? createdRaw : null
+		created: typeof createdRaw === 'string' ? createdRaw : null,
+		focal: normalizeMediaFocal(record.values.focal)
 	};
 }
 

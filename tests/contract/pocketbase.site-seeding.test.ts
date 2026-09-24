@@ -20,9 +20,16 @@ import {
 	previousStarterManifest,
 	seedLikePrevious0ace139,
 	seedLikePrevious1bda988,
-	starterManifest0ace139
+	starterManifest0ace139,
+	VEGA_MEDIA_COLLECTION_BEFORE_FOCAL
 } from '$lib/backend/site-seeding-previous.fixture';
-import { VEGA_MEDIA_EDITOR_ACCESS_RULE, VEGA_MEDIA_VIEW_RULE } from '$lib/media/media-collection';
+import {
+	completeMediaCollection,
+	missingMediaCollectionFields,
+	VEGA_MEDIA_EDITOR_ACCESS_RULE,
+	VEGA_MEDIA_VIEW_RULE
+} from '$lib/media/media-collection';
+import { toMediaItemView } from '$lib/media/media-item';
 import { isPocketBaseBinaryAvailable } from './pb-harness/binary';
 import {
 	createSiteSeedingAdmin,
@@ -580,10 +587,21 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 		});
 		const before = await admin.collections.getOne('vega_editors');
 
-		await seedSiteProject(port);
+		const result = await seedSiteProject(port);
 
+		// Aditivo: los campos que había siguen igual y se suma `created` (autodate), que el sembrado
+		// ahora declara. Reglas y cuentas, intactas.
+		expect(result.addedFields.vega_editors).toEqual(['created']);
 		const after = await admin.collections.getOne('vega_editors');
-		expect(after.fields).toEqual(before.fields);
+		expect(after.fields.slice(0, before.fields.length)).toEqual(before.fields);
+		expect(after.fields.slice(before.fields.length)).toEqual([
+			expect.objectContaining({
+				name: 'created',
+				type: 'autodate',
+				onCreate: true,
+				onUpdate: false
+			})
+		]);
 		expect(after.listRule).toBe(before.listRule);
 		expect(after.viewRule).toBe(before.viewRule);
 		await expect(admin.collection('vega_editors').getOne(user.id)).resolves.toMatchObject({
@@ -591,6 +609,32 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 			email: 'editora@example.test',
 			displayName: 'Editora'
 		});
+
+		// La cuenta anterior se queda sin fecha (PB no rellena hacia atrás); una nueva, con fecha.
+		// Se crea por el cliente de admin porque esta colección exige `displayName`, que el alta de
+		// Vega no pide.
+		const fresh = await admin.collection('vega_editors').create({
+			email: 'nueva@example.test',
+			password: 'password-segura-123',
+			passwordConfirm: 'password-segura-123',
+			displayName: 'Nueva'
+		});
+		const directory = await port.administration!.listEditors();
+		expect(directory.editors.find((e) => e.id === user.id)?.created).toBeNull();
+		const listed = directory.editors.find((e) => e.id === fresh.id);
+		expect(Number.isNaN(Date.parse(listed?.created ?? ''))).toBe(false);
+		expect((await seedSiteProject(port)).addedFields).toEqual({});
+	});
+
+	test('una instalación nueva crea vega_editors con created: el alta de una cuenta trae fecha', async () => {
+		await seedSiteProject(port);
+		const collection = await admin.collections.getOne('vega_editors');
+		expect(collection.fields.map((field) => field.name)).toContain('created');
+		const account = await port.administration!.createEditor('alta@example.test', {
+			kind: 'password',
+			password: 'password-segura-123'
+		});
+		expect(Number.isNaN(Date.parse(account.created ?? ''))).toBe(false);
 	});
 
 	test('pages conserva páginas y campos extra y añade solo la ruta canónica ausente', async () => {
@@ -699,11 +743,20 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 
 		expect(result).toEqual({
 			createdCollections: ['redirects'],
-			addedFields: { pages: ['publishAt', 'description', 'socialImage', 'noindex'] },
+			// `vega_editors` gana `created` (autodate) y `vega_media` gana `focal`: ninguno de los dos
+			// lo creaba el sembrado anterior.
+			addedFields: {
+				vega_editors: ['created'],
+				vega_media: ['focal'],
+				pages: ['publishAt', 'description', 'socialImage', 'noindex']
+			},
 			createdRecords: [],
 			upgradedRecords: ['manifest']
 		});
 		const mediaCollection = await admin.collections.getOne('vega_media');
+		expect(mediaCollection.fields.find((field) => field.name === 'focal')).toMatchObject({
+			type: 'json'
+		});
 		const pagesAfter = await admin.collections.getOne('pages');
 		expectSeoFields(pagesAfter, mediaCollection.id);
 		expectPublishAtField(pagesAfter);
@@ -775,7 +828,11 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 
 		expect(result).toEqual({
 			createdCollections: [],
-			addedFields: { pages: ['publishAt'] },
+			addedFields: {
+				vega_editors: ['created'],
+				vega_media: ['focal'],
+				pages: ['publishAt']
+			},
 			createdRecords: [],
 			upgradedRecords: ['manifest']
 		});
@@ -890,6 +947,59 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 			body: JSON.stringify({ from: '/intrusa', to: 'https://example.com', code: '301' })
 		});
 		expect(editorCreate.status).toBe(200);
+	});
+
+	// Camino de `/media` (fuera del sembrado): una biblioteca creada antes del punto focal. El
+	// sembrado ya lo cubre el test de «proyecto sembrado con la versión anterior» de arriba.
+	test('una vega_media anterior al punto focal recibe "focal" sin perder campos, reglas ni datos', async () => {
+		await port.ensureCollections([VEGA_MEDIA_COLLECTION_BEFORE_FOCAL]);
+		const before = await admin.collections.getOne('vega_media');
+		expect(before.fields.map((field) => field.name)).not.toContain('focal');
+		const asset = await admin.collection('vega_media').create(
+			pngFormData('portada.png', {
+				alt: 'Tomateras al atardecer',
+				title: 'Portada',
+				tags: JSON.stringify(['huerto'])
+			})
+		);
+
+		const missing = missingMediaCollectionFields(await port.listContentTypes());
+		expect(missing).toEqual([{ name: 'focal', type: 'json' }]);
+		await expect(completeMediaCollection(port, missing)).resolves.toEqual({
+			added: ['focal'],
+			skipped: []
+		});
+
+		const after = await admin.collections.getOne('vega_media');
+		// Los campos que ya estaban no cambian ni de forma ni de id; las reglas, tampoco.
+		for (const field of before.fields) {
+			expect(after.fields.find((candidate) => candidate.id === field.id)).toEqual(field);
+		}
+		expect(after.fields.at(-1)).toMatchObject({ name: 'focal', type: 'json' });
+		expect(rawRules(after)).toEqual(rawRules(before));
+		// El registro que ya había conserva todo y lee el punto focal vacío (= centro).
+		const kept = await admin.collection('vega_media').getOne(asset.id);
+		expect(kept).toMatchObject({
+			file: asset.file,
+			alt: 'Tomateras al atardecer',
+			title: 'Portada',
+			tags: ['huerto'],
+			created: asset.created
+		});
+		expect(kept.focal ?? null).toBeNull();
+		expect(toMediaItemView(await port.get('vega_media', asset.id)).focal).toBeNull();
+
+		// Lo que escribe la ficha (`MediaDetail`): el punto, y «Centrar» lo vacía.
+		const withFocal = await port.update('vega_media', asset.id, { focal: { x: 0.25, y: 0.75 } });
+		expect(toMediaItemView(withFocal)).toMatchObject({
+			alt: 'Tomateras al atardecer',
+			focal: { x: 0.25, y: 0.75 }
+		});
+		const centred = await port.update('vega_media', asset.id, { focal: null });
+		expect(toMediaItemView(centred).focal).toBeNull();
+
+		// Completada, ya no le falta nada.
+		expect(missingMediaCollectionFields(await port.listContentTypes())).toEqual([]);
 	});
 });
 

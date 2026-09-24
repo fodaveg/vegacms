@@ -10,6 +10,8 @@
 
 import {
 	collectionSpecCreationMetadata,
+	type AddFieldsResult,
+	type CollectionFieldSpec,
 	type CollectionSpec,
 	type EnsureResult
 } from '$lib/backend/collections';
@@ -35,6 +37,12 @@ export const VEGA_MEDIA_EDITOR_ACCESS_RULE = '@request.auth.collectionName = "ve
  * - `tags`: `json` — lista de etiquetas libres; el picker/filtro de 6b/6e la interpreta.
  * - `created`: `autodate` (onCreate, sin onUpdate) — el campo que habilita "ordenar por más
  *   reciente" en la biblioteca (los ids que genera PB no son ordenables por tiempo).
+ * - `focal` (audit del 23 sep): `json` con `{ x, y }` en `0..1`, el punto de la imagen que el sitio
+ *   conserva al recortarla (`object-position`); vacío = centro (`media-focal.ts`). Va el ÚLTIMO a
+ *   propósito: es donde lo deja `addCollectionFields` en una biblioteca que ya existía, así que una
+ *   nueva y una completada quedan con el mismo orden. Una biblioteca anterior al campo lo recibe
+ *   por `completeMediaCollection` (más abajo) o volviendo a sembrar el sitio; hasta entonces sus
+ *   registros leen `focal` como centro y la ficha no ofrece el gesto.
  *
  * `file.thumbs` declara los tres tamaños EXACTOS que Vega solicita en toda la app (landmine C1,
  * shakedown 2026-07-19): sin ellos, PB devuelve el original completo en cada miniatura (200, sin
@@ -65,7 +73,8 @@ export const VEGA_MEDIA_COLLECTION: CollectionSpec = {
 		{ name: 'alt', type: 'text' },
 		{ name: 'title', type: 'text' },
 		{ name: 'tags', type: 'json' },
-		{ name: 'created', type: 'autodate' }
+		{ name: 'created', type: 'autodate' },
+		{ name: 'focal', type: 'json' }
 	]
 };
 
@@ -90,6 +99,37 @@ export function computeMediaCollectionState(
  */
 export function ensureMediaCollection(port: BackendPort): Promise<EnsureResult> {
 	return port.ensureCollections([VEGA_MEDIA_COLLECTION]);
+}
+
+/**
+ * Campos de `VEGA_MEDIA_COLLECTION` que le faltan a la `vega_media` DESCUBIERTA en `types` (por
+ * nombre: un campo con el mismo nombre y otra forma no se toca, igual que el sembrado). `[]` si
+ * la colección no existe todavía — ese caso es `ensureMediaCollection`, no esto.
+ *
+ * Hoy, en la práctica, solo `focal`: una biblioteca creada antes del campo. `ensureMediaCollection`
+ * no lo arregla — es `creation-only` y deja intacta una colección que ya existe —, así que hace
+ * falta este camino aparte.
+ */
+export function missingMediaCollectionFields(types: readonly ContentType[]): CollectionFieldSpec[] {
+	const media = types.find((type) => type.name === VEGA_MEDIA_COLLECTION.name);
+	if (!media) return [];
+	const present = new Set(media.fields.map((field) => field.name));
+	return VEGA_MEDIA_COLLECTION.fields.filter((field) => !present.has(field.name));
+}
+
+/**
+ * Completa una `vega_media` ya existente con los campos que le faltan (`missing`, de
+ * `missingMediaCollectionFields`). Estrictamente aditivo: `addCollectionFields` conserva los
+ * campos, sus ids, sus datos y las reglas (medido contra PocketBase real en
+ * `tests/contract/pocketbase.site-seeding.test.ts`). Mismo invariante que L-P6.10: la única
+ * colección que toca es `vega_media`. `/media` lo ofrece a un superusuario con un botón explícito,
+ * nunca solo; el sembrado del sitio hace lo mismo por su cuenta.
+ */
+export function completeMediaCollection(
+	port: BackendPort,
+	missing: CollectionFieldSpec[]
+): Promise<AddFieldsResult> {
+	return port.addCollectionFields(VEGA_MEDIA_COLLECTION.name, missing);
 }
 
 /**

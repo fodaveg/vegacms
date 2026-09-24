@@ -40,16 +40,26 @@
 	 * botones capturan el puntero. Si algún día un clic sobre el sitio deja de seleccionar, la
 	 * pieza rota es esta.
 	 *
-	 * **El resalte por RATÓN queda fuera, y no es un olvido.** Mientras el puntero está sobre un
-	 * iframe de otro origen, la ventana padre no recibe NINGÚN evento de ratón (ni `mousemove` ni
-	 * `mouseover`: es la misma política de origen que le impide a Vega leer el DOM), y el
-	 * protocolo `vega-visual-1` no tiene hoy un mensaje de `hover` del sitio a Vega (§"Site to
-	 * Vega" del contrato: solo `ready`/`layout`/`select`/`error`). Capturar el puntero con este
-	 * overlay para simularlo arreglaría la apariencia y rompería el scroll del lienzo, que es
-	 * justo lo que la regla de arriba prohíbe. Entra cuando se escriba el puente del lado del
-	 * sitio (`~/code/vega-astro`) y el contrato gane un mensaje nuevo. Lo que SÍ se pinta es
-	 * `highlightedId`: el resalte que MANDA Vega (por ejemplo, al pasar el ratón por una fila del
-	 * árbol de secciones de la tarea siguiente), nunca el que detecta.
+	 * **El resalte por RATÓN lo DICE el sitio; este componente no lo detecta.** Mientras el puntero
+	 * está sobre un iframe de otro origen, la ventana padre no recibe NINGÚN evento de ratón (ni
+	 * `mousemove` ni `mouseover`: es la misma política de origen que le impide a Vega leer el DOM).
+	 * Capturar el puntero con este overlay para simularlo arreglaría la apariencia y rompería el
+	 * scroll del lienzo, que es justo lo que la regla de arriba prohíbe. Por eso el protocolo ganó
+	 * un mensaje opcional `hover` del sitio a Vega (§"Hover" del contrato): el puente del sitio
+	 * (`@vega/astro`, `visual-bridge.ts`) avisa cuando el puntero cambia de bloque, y
+	 * `VisualEditorScreen.svelte` lo pasa aquí como `highlightedId` — el mismo prop, y el mismo
+	 * `--highlighted`, que el resalte al pasar por una fila del árbol de secciones (la pantalla
+	 * decide cuál de los dos manda, ver su cabecera). Este componente sigue sin saber de
+	 * dónde viene el id, solo lo pinta.
+	 *
+	 * **Sincronía con el scroll: el resalte se OCULTA mientras la página se desplaza, no se
+	 * persigue.** Un contorno dibujado FUERA del marco con un `rect` que llega por `postMessage` va
+	 * siempre al menos un fotograma por detrás del contenido que el navegador ya desplazó dentro
+	 * del marco (el scroll del iframe lo compone otro hilo, y el `rect` nuevo tiene que medirse,
+	 * cruzar el `postMessage` y repintarse aquí). No se puede prometer que vaya pegado, así que el
+	 * contrato manda la alternativa: el puente manda `hover: null` en cuanto empieza a
+	 * desplazarse y vuelve a decir el bloque cuando el scroll se asienta. Aquí no hace falta nada
+	 * especial: `highlightedId` llega a `null` y el `--highlighted` desaparece.
 	 *
 	 * **Bloque que el sitio no sabe pintar.** El `type` de un bloque llega igual venga de un
 	 * componente real o del fallback visible que `VegaBlocks` renderiza cuando no tiene uno
@@ -63,6 +73,13 @@
 	 * ESTE componente y no algo que el protocolo tenga que aprender a mandar. `null`/ausente (sin
 	 * discovery, o proyecto legacy) = sin contraste posible: ningún bloque se marca, igual que el
 	 * equivalente de `model/load.ts`.
+	 *
+	 * **Sección no pública.** Si el sitio marca un bloque como no público (`unpublished` de
+	 * `bridge-client.ts#VisualBlock`, atributo `data-vega-unpublished="true"` del lado del sitio),
+	 * la etiqueta del contorno lo dice con texto ("No pública"), igual que la fila del árbol. Vega
+	 * no lo deduce nunca: un sitio que no lo dice no tiene ninguna sección marcada. Y NO cuenta
+	 * para `missingBlocks`: una sección no pública que el sitio pinta en la vista previa es un
+	 * bloque reportado como cualquier otro (ver `missingBlocks`).
 	 *
 	 * **Doble trazo, siempre — requisito, no adorno.** El contorno se pinta ENCIMA del sitio del
 	 * cliente, cuyo fondo Vega no controla ni conoce (§"Visual editing bridge": "the site owns
@@ -156,7 +173,7 @@
 	 * **Por qué hay una capa de destinos que solo existe DURANTE el arrastre**
 	 * (`.vega-visual-overlay-drop-zones`, la complicación real que anticipaba el encargo). El
 	 * puntero pasa por encima de un `<iframe>` de otro origen, así que Vega no ve NINGÚN evento de
-	 * ratón del interior (misma política que documenta "El resalte por RATÓN queda fuera", más
+	 * ratón del interior (misma política que documenta "El resalte por RATÓN lo DICE el sitio", más
 	 * arriba) — tampoco los `dragover`/`drop`, que van al documento de dentro. La única forma de
 	 * que la caída se calcule en Vega es poner, encima del marco, elementos PROPIOS que sí los
 	 * reciban: una caja por bloque, colocada con el `rect` que ya reporta el puente, con
@@ -279,6 +296,13 @@
 	 *  pinta un registro que Vega conoce (p.ej. una sección sin publicar que la plantilla omite):
 	 *  el árbol enseña seis, el lienzo pinta cuatro, y sin este aviso no hay una palabra que lo
 	 *  explique.
+	 *
+	 *  **Qué NO cuenta como faltante** (revisado con la marca de "no pública"): todo bloque que el
+	 *  sitio REPORTA está en `blocks`, sea público o no (`unpublished`) y aunque la vista previa lo
+	 *  oculte y llegue colapsado a 0×0 (`parseBlocks` lo acepta a propósito). Solo falta lo que el
+	 *  sitio no reporta en absoluto — por ejemplo una plantilla que en la vista previa sigue
+	 *  omitiendo las secciones sin publicar —, y ahí el aviso es cierto: la sección existe y el
+	 *  sitio no la pinta. Por eso la cuenta no mira `unpublished` para nada.
 	 *
 	 *  **Por id, no por longitud**: `blocks.length !== records.length` es la comprobación fácil y
 	 *  la equivocada — con un id que no case en los dos sentidos a la vez los números pueden
@@ -652,6 +676,12 @@
 						<Icon id="warning" size={12} />
 						<span>({ctx.t('editor.visual.overlay.unsupported')})</span>
 					{/if}
+					{#if block.unpublished}
+						<!-- Ver cabecera, "Sección no pública": texto, no solo color. -->
+						<span class="vega-visual-overlay-label-unpublished">
+							{ctx.t('editor.visual.unpublished')}
+						</span>
+					{/if}
 				</span>
 			</div>
 		{/each}
@@ -999,6 +1029,17 @@
 		color: var(--warning);
 	}
 
+	/* Sección no pública (ver cabecera): una píldora PROPIA dentro de la etiqueta, con el par
+	   `info`/`info-soft` (medido en el mismo gate que `warning`), en vez de recolorear la etiqueta
+	   entera — así convive con el aviso de "no soportado", que es otro eje, y el texto del tipo
+	   sigue con su par de siempre. */
+	.vega-visual-overlay-label-unpublished {
+		padding: 0 0.3rem;
+		border-radius: calc(var(--r) / 1.5);
+		background: var(--info-soft);
+		color: var(--info);
+	}
+
 	/* Franja de estados (ver cabecera, "Informativo, NO decorativo"): flota en la esquina en vez
 	   de empujar el lienzo, mismo criterio que `.vega-visual-overlay` (skeleton del token) de
 	   `VisualEditorScreen.svelte` — cubre información, no bloquea la lectura del sitio detrás
@@ -1101,7 +1142,7 @@
 	   del 100% con icono centrado: así la línea entre contornos no reclama el ancho entero como
 	   zona clicable — un punto concreto es más honesto que una franja invisible del ancho del
 	   lienzo capturando el puntero de un `hover` que no puede detectar (ver cabecera del
-	   componente, "El resalte por RATÓN queda fuera"). */
+	   componente, "El resalte por RATÓN lo DICE el sitio"). */
 	.vega-visual-overlay-insert-points {
 		position: absolute;
 		inset: 0;

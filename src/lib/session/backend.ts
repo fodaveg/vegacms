@@ -101,9 +101,18 @@
  * `SHOWCASE_SEED` (`demo-seed.ts`) en vez de `DEMO_SEED` — ver `useShowcaseSeed()` más abajo para
  * el porqué de los DOS mecanismos (uno para Playwright, otro para QA a mano que sobrevive a un
  * F5).
+ *
+ * Y `window.__VEGA_CONCURRENT_WRITE__` (lote de edición concurrente, 24 sep 2026): disparador de un
+ * solo uso para ensayar en e2e el aviso de conflicto. `memory` vive entero en UNA pestaña, así que
+ * dos pestañas no comparten registros y no hay forma de tener dos escritores del mismo registro
+ * sin ayuda. Con `{ data }` fijado, la PRÓXIMA `update` con versión esperada escribe primero `data`
+ * sobre el mismo registro (sin versión, como lo haría otra persona) y luego delega la del usuario,
+ * que así llega con una versión que el servidor ya no tiene y falla cerrado. La escritura "ajena"
+ * va directa al adaptador, por DEBAJO de `withRevisions`: no deja revisión, igual que un cambio
+ * hecho desde el panel de PocketBase — el aviso cae entonces a «Se guardó otra versión…».
  */
 
-import type { AuthChangeReason, BackendPort, Session } from '$lib/backend';
+import type { AuthChangeReason, BackendPort, RecordInput, Session } from '$lib/backend';
 import { VegaError } from '$lib/backend';
 import { createMemoryBackend } from '$lib/backend/adapters/memory';
 import { createPocketBaseBackend } from '$lib/backend/adapters/pocketbase';
@@ -159,6 +168,12 @@ declare global {
 		 *  …)` — y SOLO esa, nunca otro tipo — rechaza con un `VegaError.network()` (ver cabecera).
 		 *  Persistente (no se autoconsume), mismo criterio que `__VEGA_FORCE_MEDIA_LIST_ERROR__`. */
 		__VEGA_FORCE_MEDIA_CREATE_ERROR__?: boolean;
+		/** Gancho runtime SOLO para Playwright (lote de edición concurrente): DISPARADOR de un solo
+		 *  uso. La PRÓXIMA `update` que llegue con versión esperada aplica ANTES, sobre el mismo
+		 *  registro y sin versión, la escritura `data` de "otra persona" — y después delega la del
+		 *  usuario, que falla cerrado con `VegaConflictError`. Es la única forma de tener dos
+		 *  escritores del mismo registro en `memory`, que vive en una sola pestaña (ver cabecera). */
+		__VEGA_CONCURRENT_WRITE__?: { data: RecordInput };
 		/** Flag runtime SOLO para Playwright (lote L6c): `true` ⇒ el `BackendPort` del adaptador
 		 *  `memory` arranca con `capabilities.schemaDiscovery`/`schemaBootstrap` en `false` (ver
 		 *  `withEditorCapabilities`), simulando una sesión de rol editor (`authCollection` distinta
@@ -546,6 +561,18 @@ function wrapMemoryPortForDemo(
 			return inner.create(type, data, opts);
 		},
 
+		async update(type, id, data, opts) {
+			// Ver `__VEGA_CONCURRENT_WRITE__` (cabecera): solo se consume con versión esperada, así
+			// un reorden de bloques (que escribe sin versión) no se lo come por el camino.
+			const concurrent = window.__VEGA_CONCURRENT_WRITE__;
+			if (concurrent && opts?.expectedVersion !== undefined) {
+				window.__VEGA_CONCURRENT_WRITE__ = undefined;
+				await inner.update(type, id, concurrent.data);
+			}
+			// Sin `opts`, la llamada es la de siempre (mismo criterio que `withRevisions`).
+			return opts === undefined ? inner.update(type, id, data) : inner.update(type, id, data, opts);
+		},
+
 		async delete(type, id) {
 			// Ver cabecera del módulo (Fase 4e): SOLO los ganchos de borrado, deliberadamente sin
 			// `throwIfForcedNetworkError()/throwIfForcedExpire()` — los escenarios de e2e que
@@ -615,6 +642,14 @@ function wrapMemoryPortForDemo(
 function withEditorCapabilities(port: BackendPort): BackendPort {
 	return {
 		...port,
-		capabilities: { ...port.capabilities, schemaDiscovery: false, schemaBootstrap: false }
+		// `administration` se apaga con su sección, igual que en PB con sesión de editor: la
+		// capability y `port.administration` van siempre juntas (`port.ts`).
+		capabilities: {
+			...port.capabilities,
+			schemaDiscovery: false,
+			schemaBootstrap: false,
+			administration: false
+		},
+		administration: undefined
 	};
 }
