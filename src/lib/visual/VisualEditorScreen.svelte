@@ -235,6 +235,7 @@
 	import type { ResolvedBlockType, ResolvedContentType } from '$lib/model/types';
 	import type { VegaRecord } from '$lib/backend';
 	import { createPreviewClient, type PreviewToken } from '$lib/backend/preview-client';
+	import { classifyPreviewError } from '$lib/backend/preview-error';
 	import {
 		createVisualBridgeClient,
 		VISUAL_PROTOCOL_VERSION,
@@ -445,9 +446,18 @@
 		} catch (err) {
 			if (generation !== requestGeneration) return;
 			clearRenewTimer();
+			// Mismo criterio que `PreviewPanel.svelte` (hallazgo p3, `classifyPreviewError`): un
+			// fallo de RED no se enseña en crudo ("Failed to fetch"), cae a un mensaje genérico ya
+			// traducido; un fallo HTTP conserva el suyo, con el código de estado incluido.
+			const classified = classifyPreviewError(err);
 			tokenState = {
 				kind: 'error',
-				message: err instanceof Error ? err.message : ctx.t('editor.preview.panel.genericError')
+				message:
+					classified.kind === 'http' && classified.message !== null
+						? classified.message
+						: classified.kind === 'network'
+							? ctx.t('common.networkError')
+							: ctx.t('editor.preview.panel.genericError')
 			};
 		}
 	}

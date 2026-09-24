@@ -354,6 +354,28 @@ describe('VisualEditorScreen.svelte', () => {
 		expect(iframe?.src).toBe(TOKEN_URL);
 	});
 
+	test('un fallo de RED (fetch rechazado) muestra un mensaje genérico, nunca el crudo del motor (hallazgo p3)', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+		const { ctx, type } = await setup();
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		const message = mounted.target.querySelector('.vega-visual-overlay--error');
+		expect(message?.textContent).toContain(translate('es', 'common.networkError'));
+		expect(message?.textContent).not.toContain('Failed to fetch');
+	});
+
+	test('un fallo HTTP (no-2xx) conserva su mensaje, con el código de estado incluido', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('nope', { status: 503 })));
+		const { ctx, type } = await setup();
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		const message = mounted.target.querySelector('.vega-visual-overlay--error');
+		expect(message?.textContent).toContain('503');
+		expect(message?.textContent).not.toContain(translate('es', 'common.networkError'));
+	});
+
 	test('un mensaje del origen bueno llega al cliente y pinta "conectado"', async () => {
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
 		const { ctx, type } = await setup();

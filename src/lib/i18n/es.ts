@@ -1082,5 +1082,7 @@ export const es = {
 	'common.retry': 'Reintentar',
 	'common.cancel': 'Cancelar',
 	'common.close': 'Cerrar',
-	'common.loading': 'Cargando…'
+	'common.loading': 'Cargando…',
+	'common.networkError':
+		'No se pudo conectar con el sitio. Comprueba tu conexión e inténtalo de nuevo.'
 };

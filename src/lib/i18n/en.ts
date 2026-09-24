@@ -1026,5 +1026,6 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'common.retry': 'Retry',
 	'common.cancel': 'Cancel',
 	'common.close': 'Close',
-	'common.loading': 'Loading…'
+	'common.loading': 'Loading…',
+	'common.networkError': 'Could not connect to the site. Check your connection and try again.'
 };
