@@ -329,6 +329,20 @@ Con `vegabuild` las tres comprobaciones ya están cubiertas por su suite (`cd ex
 && go test ./...`, que corre dentro de `pnpm gate`); vuelve a hacerlas a mano contra tu instalación
 si escribes tu propio `Runner` o si vas por la Opción B.
 
+## Publicación programada (opcional)
+
+Un tipo que declara `publishAtField` en el manifiesto (ver
+[Publicación programada](CONFIG.md#publicación-programada-publishatfield)) muestra en el formulario
+un campo «Publicar el». Quien lo cumple es el servidor:
+[`extensions/vegaschedule`](../extensions/vegaschedule/README.md), un cron de PocketBase que cada
+minuto pasa a `published` los borradores cuya fecha ya pasó y vacía la fecha. Se registra desde
+`OnServe` como las demás extensiones. Sin ella la fecha no hace nada, y Vega no puede saberlo desde
+el navegador: por eso la ayuda del campo lo dice.
+
+Con `vegabuild` en el mismo binario, `vegaschedule` puede disparar el mismo build que el botón
+"Publicar" tras cada publicación programada (receta en su README). En un sitio renderizado en el
+servidor no hace falta: la página se ve en la siguiente petición.
+
 ## Vista previa de registros guardados sin publicar
 
 El discovery puede declarar `preview.apiBasePath` para que Vega muestre el panel de vista previa de
