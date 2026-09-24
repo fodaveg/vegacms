@@ -461,3 +461,70 @@ test.describe('editor visual — paleta de bloques arrastrable, crear sobre el l
 		await expect(page.locator('.vega-block-type')).toHaveText(/Portada/);
 	});
 });
+
+/**
+ * Estado de la página en la cabecera (lámina del audit p2, `VisualPublishControl.svelte`). Corre
+ * sobre `pagina_1` («Inicio»), que `SHOWCASE_SEED` siembra en `draft` con `statusLabels`
+ * (`Borrador`/`Publicada`). El control está rotulado «Marcar como publicada», distinto del
+ * «Publicar» de la barra superior, y la etiqueta solo cambia cuando el servidor confirma.
+ */
+test.describe('editor visual — publicar y despublicar desde la cabecera', () => {
+	const statusGroup = (page: Page) => page.getByRole('group', { name: 'Estado de la página' });
+
+	test('marcar como publicada y volver a borrador, con la etiqueta del servidor', async ({
+		page
+	}) => {
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+		await openVisualEditor(page, site, 'pagina_1');
+		await waitConnected(page, 3);
+
+		const group = statusGroup(page);
+		await expect(group).toContainText('Borrador');
+		await group.getByRole('button', { name: 'Marcar como publicada', exact: true }).click();
+
+		await expect(group).toContainText('Publicada');
+		await expect(page.getByText('«Inicio» pasa a «Publicada».')).toBeVisible();
+
+		await group.getByRole('button', { name: 'Pasar a borrador', exact: true }).click();
+		await expect(group).toContainText('Borrador');
+		await expect(
+			group.getByRole('button', { name: 'Marcar como publicada', exact: true })
+		).toBeVisible();
+	});
+
+	test('con un bloque sin guardar, publicar pide confirmación en línea; Esc cierra', async ({
+		page
+	}) => {
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+		await openVisualEditor(page, site, 'pagina_1');
+		await waitConnected(page, 3);
+
+		// Un borrador en la ficha de la primera sección, SIN guardar.
+		const frame = page.frameLocator('iframe.vega-visual-frame');
+		await frame.locator('[data-vega-block-id="seccion_1"]').click();
+		await headingInput(page).fill('Cambio que aún no se ha guardado');
+
+		const group = statusGroup(page);
+		const publish = group.getByRole('button', { name: 'Marcar como publicada', exact: true });
+		await publish.click();
+
+		const confirm = page.getByRole('alertdialog', { name: 'Hay 1 bloque(s) sin guardar' });
+		await expect(confirm).toBeVisible();
+		await expect(confirm).toContainText(`«${SECCIONES[0].text}»`);
+		await expect(confirm.getByRole('button', { name: 'Cancelar', exact: true })).toBeFocused();
+		await expect(group).toContainText('Borrador');
+
+		await page.keyboard.press('Escape');
+		await expect(confirm).toHaveCount(0);
+		await expect(publish).toBeFocused();
+
+		await publish.click();
+		await page
+			.getByRole('alertdialog', { name: 'Hay 1 bloque(s) sin guardar' })
+			.getByRole('button', { name: 'Publicar igualmente', exact: true })
+			.click();
+		await expect(group).toContainText('Publicada');
+		// «Publicar igualmente» NO guarda los bloques: el borrador sigue en la ficha.
+		await expect(headingInput(page)).toHaveValue('Cambio que aún no se ha guardado');
+	});
+});

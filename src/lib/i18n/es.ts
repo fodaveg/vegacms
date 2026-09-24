@@ -269,6 +269,23 @@ export const es = {
 	'editor.visual.open': 'Editor visual',
 	'editor.visual.title': 'Editor visual',
 	'editor.visual.back': 'Volver al formulario',
+	// Estado de la página en la cabecera del editor visual (`VisualPublishControl.svelte`, lámina
+	// del audit p2). Rotulado DISTINTO del «Publicar» de la barra superior (`topbar.publish.*`, que
+	// reconstruye el sitio): esto solo cambia el valor del `statusField` del registro.
+	'editor.visual.status.groupLabel': 'Estado de la página',
+	'editor.visual.status.publish': 'Marcar como publicada',
+	'editor.visual.status.unpublish': 'Pasar a borrador',
+	'editor.visual.status.changing': 'Cambiando estado…',
+	'editor.visual.status.error.publish': 'No se pudo marcar como publicada',
+	'editor.visual.status.error.unpublish': 'No se pudo pasar a borrador',
+	'editor.visual.status.error.conflict':
+		'La página cambió en el servidor: revisa su estado antes de volver a intentarlo',
+	'editor.visual.status.confirm.title': 'Hay {count} bloque(s) sin guardar',
+	'editor.visual.status.confirm.body':
+		'La página se publicará con lo último guardado. Esos cambios no saldrán hasta que los guardes.',
+	'editor.visual.status.confirm.publish': 'Publicar igualmente',
+	'editor.visual.status.success': '«{name}» pasa a «{label}».',
+	'editor.visual.status.success.rebuild': 'Se verá en el sitio tras la próxima publicación.',
 	'editor.visual.frameTitle': 'La página del sitio, dentro del editor visual',
 	'editor.visual.connecting': 'Conectando con el sitio…',
 	'editor.visual.connected': 'Conectado al sitio: {count} bloque(s) en la página.',

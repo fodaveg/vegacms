@@ -248,6 +248,23 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.open': 'Visual editor',
 	'editor.visual.title': 'Visual editor',
 	'editor.visual.back': 'Back to the form',
+	// Page status in the visual editor header (`VisualPublishControl.svelte`, audit sheet p2).
+	// Worded DIFFERENTLY from the top bar's «Publish» (`topbar.publish.*`, which rebuilds the site):
+	// this only changes the record's `statusField` value.
+	'editor.visual.status.groupLabel': 'Page status',
+	'editor.visual.status.publish': 'Mark as published',
+	'editor.visual.status.unpublish': 'Switch to draft',
+	'editor.visual.status.changing': 'Changing status…',
+	'editor.visual.status.error.publish': 'Could not mark as published',
+	'editor.visual.status.error.unpublish': 'Could not switch to draft',
+	'editor.visual.status.error.conflict':
+		'The page changed on the server: check its status before trying again',
+	'editor.visual.status.confirm.title': '{count} block(s) not saved',
+	'editor.visual.status.confirm.body':
+		'The page will be published with what was last saved. Those changes will not go out until you save them.',
+	'editor.visual.status.confirm.publish': 'Publish anyway',
+	'editor.visual.status.success': '“{name}” is now “{label}”.',
+	'editor.visual.status.success.rebuild': 'It will show on the site after the next publish.',
 	'editor.visual.frameTitle': 'The site page, inside the visual editor',
 	'editor.visual.connecting': 'Connecting to the site…',
 	'editor.visual.connected': 'Connected to the site: {count} block(s) on the page.',
