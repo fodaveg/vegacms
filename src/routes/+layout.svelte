@@ -47,6 +47,8 @@
 	import { iconRegistry } from '$lib/icons/registry';
 	import { applyInitialTheme } from '$lib/theme/apply';
 	import {
+		backupsRoute,
+		editorsRoute,
 		indexRoute,
 		listRoute,
 		listSearchRoute,
@@ -140,6 +142,8 @@
 		toMedia: () => void navigateTo(mediaRoute()),
 		toSettings: () => void navigateTo(settingsRoute()),
 		toTrash: () => void navigateTo(trashRoute()),
+		toEditors: () => void navigateTo(editorsRoute()),
+		toBackups: () => void navigateTo(backupsRoute()),
 		toLogin: () => void navigateTo(loginRoute())
 	};
 

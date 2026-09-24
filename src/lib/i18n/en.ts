@@ -9,6 +9,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'nav.emptyCta': 'Go to Settings',
 	'nav.media': 'Media',
 	'nav.trash': 'Trash',
+	'nav.editors': 'Editors',
+	'nav.backups': 'Backups',
 	'nav.settings': 'Settings',
 	'nav.sidebarLabel': 'Main navigation',
 	'nav.warningsBadge': '{count} warnings',

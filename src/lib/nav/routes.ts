@@ -87,6 +87,16 @@ export function trashRoute(): string {
 	return `${base}/papelera`;
 }
 
+/** `/editores` — cuentas de `vega_editors` (solo con `capabilities.administration`). */
+export function editorsRoute(): string {
+	return `${base}/editores`;
+}
+
+/** `/copias` — copias de seguridad del servidor (solo con `capabilities.administration`). */
+export function backupsRoute(): string {
+	return `${base}/copias`;
+}
+
 /** `/login` — única ruta pública. */
 export function loginRoute(): string {
 	return `${base}/login`;

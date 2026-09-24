@@ -41,7 +41,13 @@
 	aria-label={title}
 	focusable="false"
 >
-	{#if resolvedId === 'box'}
+	{#if resolvedId === 'archive'}
+		<!-- Caja de archivo con tapa (copias de seguridad, `/copias`), trazo de la lámina del audit:
+		     `box` ya significa contenido y `upload` significa subir, ninguno dice «copia guardada». -->
+		<rect x="3" y="4" width="18" height="5" rx="1" />
+		<path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9" />
+		<line x1="10" y1="13" x2="14" y2="13" />
+	{:else if resolvedId === 'box'}
 		<!-- Caja/cubo isométrico (nav de contenido, p.ej. "Proyectos"), calcado del mockup
 		     aquelarre-dark.html (`.nav-item` de Proyectos). -->
 		<path d="M12 3 4 7v10l8 4 8-4V7l-8-4z" />

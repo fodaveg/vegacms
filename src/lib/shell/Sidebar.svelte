@@ -50,7 +50,13 @@
 	 */
 	import { page } from '$app/state';
 	import { getVegaContext } from '$lib/app-context';
-	import { mediaRoute, settingsRoute, trashRoute } from '$lib/nav/routes';
+	import {
+		backupsRoute,
+		editorsRoute,
+		mediaRoute,
+		settingsRoute,
+		trashRoute
+	} from '$lib/nav/routes';
 	import { VEGA_MEDIA_COLLECTION } from '$lib/media/media-collection';
 	import Icon from '$lib/icons/Icon.svelte';
 	import NavItem from './NavItem.svelte';
@@ -74,6 +80,22 @@
 	);
 	const isTrashActive = $derived(
 		page.url.pathname === trashHref || page.url.pathname.startsWith(`${trashHref}/`)
+	);
+
+	// Pantallas de superusuario (`/editores`, `/copias`): solo con la capability Y su sección del
+	// puerto, que van juntas (`port.ts`). La señal es `capabilities.administration` y no
+	// `schemaBootstrap`: que hoy coincidan en PocketBase no las hace la misma pregunta. Un editor
+	// no las ve; si llega por URL, cada ruta enseña su propia puerta.
+	const showAdministration = $derived(
+		ctx.port.capabilities.administration && ctx.port.administration !== undefined
+	);
+	const editorsHref = editorsRoute();
+	const backupsHref = backupsRoute();
+	const isEditorsActive = $derived(
+		page.url.pathname === editorsHref || page.url.pathname.startsWith(`${editorsHref}/`)
+	);
+	const isBackupsActive = $derived(
+		page.url.pathname === backupsHref || page.url.pathname.startsWith(`${backupsHref}/`)
 	);
 
 	function handleFixedClick(event: MouseEvent, action: () => void): void {
@@ -263,6 +285,30 @@
 				<span class="vega-nav-fixed-label">{ctx.t('nav.trash')}</span>
 			</a>
 		</li>
+		{#if showAdministration}
+			<li>
+				<a
+					href={editorsHref}
+					aria-current={isEditorsActive ? 'page' : undefined}
+					onclick={(event) => handleFixedClick(event, ctx.nav.toEditors)}
+				>
+					<Icon id="user" size={16} />
+					<span class="vega-nav-fixed-label">{ctx.t('nav.editors')}</span>
+				</a>
+			</li>
+			<li>
+				<!-- «Copias», no «Copias de seguridad»: en 236 px la etiqueta larga se partía (lámina
+				     del audit, NAV). El título de la página sí va completo. -->
+				<a
+					href={backupsHref}
+					aria-current={isBackupsActive ? 'page' : undefined}
+					onclick={(event) => handleFixedClick(event, ctx.nav.toBackups)}
+				>
+					<Icon id="archive" size={16} />
+					<span class="vega-nav-fixed-label">{ctx.t('nav.backups')}</span>
+				</a>
+			</li>
+		{/if}
 		<li>
 			<a
 				href={settingsHref}

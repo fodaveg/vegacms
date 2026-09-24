@@ -14,6 +14,8 @@ export const es = {
 	'nav.emptyCta': 'Ir a Ajustes',
 	'nav.media': 'Medios',
 	'nav.trash': 'Papelera',
+	'nav.editors': 'Editores',
+	'nav.backups': 'Copias',
 	'nav.settings': 'Ajustes',
 	'nav.sidebarLabel': 'Navegación principal',
 	'nav.warningsBadge': '{count} avisos',
