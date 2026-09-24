@@ -703,6 +703,87 @@ describe('VisualEditorScreen.svelte — árbol de secciones e inspector', () => 
 		expect(bodies[1].hasAttribute('hidden')).toBe(true);
 	});
 
+	test('`hover` del sitio (§"Hover"): resalta ESE contorno sin seleccionar nada ni contestarle al sitio', async () => {
+		const { ctx, type } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [
+			{ id: 'b1', type: 'hero' },
+			{ id: 'b2', type: 'gallery' }
+		]);
+		const iframe = mounted.target.querySelector<HTMLIFrameElement>('.vega-visual-frame')!;
+		const postMessageSpy = vi.spyOn(iframe.contentWindow!, 'postMessage');
+		const target = mounted.target;
+		const highlighted = () =>
+			Array.from(target.querySelectorAll('.vega-visual-overlay-box--highlighted')).map((el) =>
+				el.getAttribute('data-vega-block-id')
+			);
+
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'hover', blockId: 'b2' });
+		await tick();
+		expect(highlighted()).toEqual(['b2']);
+		// Pasar por encima NO es elegir: ni contorno seleccionado, ni fila marcada, ni `highlight`
+		// de vuelta al sitio (que ya sabe dónde está su puntero).
+		expect(target.querySelector('.vega-visual-overlay-box--selected')).toBeNull();
+		expect(target.querySelector('.vega-tree-row[aria-current="true"]')).toBeNull();
+		expect(postMessageSpy).not.toHaveBeenCalled();
+
+		// Cambio de bloque: el resalte se MUEVE, no se acumula.
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'hover', blockId: 'b1' });
+		await tick();
+		expect(highlighted()).toEqual(['b1']);
+
+		// `null`: salió de todo bloque, o la página empezó a desplazarse.
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'hover', blockId: null });
+		await tick();
+		expect(highlighted()).toEqual([]);
+
+		// Un bloque que deja de reportarse se lleva su resalte, y NO vuelve solo si reaparece —
+		// mismo criterio que la selección fantasma (el sitio lo volverá a decir con otro `hover`).
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'hover', blockId: 'b2' });
+		await tick();
+		sendSiteMessage({
+			vega: 'vega-visual-1',
+			type: 'layout',
+			blocks: [{ id: 'b1', type: 'hero', rect: { top: 0, left: 0, width: 100, height: 50 } }]
+		});
+		await tick();
+		sendSiteMessage({
+			vega: 'vega-visual-1',
+			type: 'layout',
+			blocks: [
+				{ id: 'b1', type: 'hero', rect: { top: 0, left: 0, width: 100, height: 50 } },
+				{ id: 'b2', type: 'gallery', rect: { top: 60, left: 0, width: 100, height: 50 } }
+			]
+		});
+		await tick();
+		expect(highlighted()).toEqual([]);
+	});
+
+	test('un `ready` nuevo apaga el resalte del puntero: es otro documento', async () => {
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [{ id: 'b1', type: 'hero' }]);
+
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'hover', blockId: 'b1' });
+		await tick();
+		expect(mounted.target.querySelector('.vega-visual-overlay-box--highlighted')).not.toBeNull();
+
+		sendSiteMessage({
+			vega: 'vega-visual-1',
+			type: 'ready',
+			collection: 'post',
+			id: 'rec-1',
+			blocks: [{ id: 'b1', type: 'hero', rect: { top: 0, left: 0, width: 100, height: 50 } }]
+		});
+		await tick();
+		expect(mounted.target.querySelector('.vega-visual-overlay-box--highlighted')).toBeNull();
+	});
+
 	test('editar en el inspector marca sucio (punto en el árbol) y guardar lo limpia', async () => {
 		const { ctx, type, port } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
 		mounted = mountScreen(ctx, type);

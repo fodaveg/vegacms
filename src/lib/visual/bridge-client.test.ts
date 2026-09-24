@@ -3,7 +3,8 @@
  * proyecto): `parseSiteMessage` (sobre, forma y descarte por bloque) y
  * `createVisualBridgeClient` (saludo repetido, validación de origen y las CINCO degradaciones
  * que son el motivo del módulo: sin puente, origen ajeno, versión desconocida, error del propio
- * puente y marco pintando otro registro), más el reenganche tras cualquiera de ellas.
+ * puente y marco pintando otro registro), más el reenganche tras cualquiera de ellas, y el
+ * mensaje opcional `hover` (§"Hover" del contrato).
  *
  * Sin PocketBase y sin DOM: el cliente recibe mensajes por `handleMessage()` y escribe por un
  * `MessagePoster` de mentira, así que aquí se ejerce el protocolo entero con temporizadores
@@ -148,6 +149,27 @@ describe('parseSiteMessage', () => {
 		const message = parsed.status === 'ok' ? parsed.message : null;
 		expect(message).toEqual({ type: 'error', code: 'boom', detail: 'x'.repeat(200) });
 	});
+
+	// ————— `hover` (§"Hover" del contrato): mensaje OPCIONAL del sitio —————
+
+	test('"hover" con un id, y con `null` explícito para "ningún bloque"', () => {
+		expect(parseSiteMessage(envelope({ type: 'hover', blockId: 'blk1' }))).toEqual({
+			status: 'ok',
+			message: { type: 'hover', blockId: 'blk1' }
+		});
+		expect(parseSiteMessage(envelope({ type: 'hover', blockId: null }))).toEqual({
+			status: 'ok',
+			message: { type: 'hover', blockId: null }
+		});
+	});
+
+	test('"hover" sin la clave, con id vacío o con otra cosa → malformed, nunca "ninguno"', () => {
+		// Leer la ausencia como `null` borraría un resalte que el sitio no pidió borrar.
+		expect(parseSiteMessage(envelope({ type: 'hover' })).status).toBe('malformed');
+		expect(parseSiteMessage(envelope({ type: 'hover', blockId: '' })).status).toBe('malformed');
+		expect(parseSiteMessage(envelope({ type: 'hover', blockId: 7 })).status).toBe('malformed');
+		expect(parseSiteMessage(envelope({ type: 'hover', blockId: {} })).status).toBe('malformed');
+	});
 });
 
 describe('createVisualBridgeClient', () => {
@@ -167,6 +189,7 @@ describe('createVisualBridgeClient', () => {
 		const frame: MessagePoster = { postMessage: (data) => void posted.push(data) };
 		const states: VisualBridgeState[] = [];
 		const selected: string[] = [];
+		const hovered: (string | null)[] = [];
 		let refreshFailedCount = 0;
 		const client = createVisualBridgeClient({
 			record: { collection: 'pages', id: 'abc123' },
@@ -178,6 +201,7 @@ describe('createVisualBridgeClient', () => {
 			refreshTimeoutMs: overrides.refreshTimeoutMs,
 			onState: (state) => void states.push(state),
 			onSelect: (blockId) => void selected.push(blockId),
+			onHover: (blockId) => void hovered.push(blockId),
 			onRefreshFailed: () => refreshFailedCount++
 		});
 		return {
@@ -186,6 +210,7 @@ describe('createVisualBridgeClient', () => {
 			posted,
 			states,
 			selected,
+			hovered,
 			refreshFailed: () => refreshFailedCount
 		};
 	}
@@ -447,6 +472,63 @@ describe('createVisualBridgeClient', () => {
 		client.handleMessage({ origin: ORIGIN, data: envelope({ type: 'select', blockId: 'blk1' }) });
 		expect(selected).toEqual(['blk1']);
 		expect(client.state).toMatchObject({ status: 'connected' });
+	});
+
+	test('"hover" antes del saludo queda fuera de orden y no llega a nadie', () => {
+		const { client, hovered } = harness();
+		client.start();
+		expect(
+			client.handleMessage({ origin: ORIGIN, data: envelope({ type: 'hover', blockId: 'blk1' }) })
+		).toBe('out-of-order');
+		expect(hovered).toEqual([]);
+	});
+
+	test('"hover" conectado llega a quien lleva el resalte, con id y con `null`', () => {
+		const { client, hovered } = harness();
+		client.start();
+		client.handleMessage({ origin: ORIGIN, data: READY });
+		hovered.length = 0; // El `null` del propio `ready` tiene su test aparte, abajo.
+
+		expect(
+			client.handleMessage({ origin: ORIGIN, data: envelope({ type: 'hover', blockId: 'blk1' }) })
+		).toBe('accepted');
+		client.handleMessage({ origin: ORIGIN, data: envelope({ type: 'hover', blockId: null }) });
+		expect(hovered).toEqual(['blk1', null]);
+		// Ni selecciona ni cambia el estado: es conversación, no anuncio.
+		expect(client.state).toMatchObject({ status: 'connected', blocks: [BLOCK] });
+	});
+
+	test('"hover" de un origen ajeno se descarta como cualquier otro mensaje', () => {
+		const { client, hovered } = harness();
+		client.start();
+		client.handleMessage({ origin: ORIGIN, data: READY });
+		hovered.length = 0;
+		expect(
+			client.handleMessage({
+				origin: 'https://otro.test',
+				data: envelope({ type: 'hover', blockId: 'blk1' })
+			})
+		).toBe('foreign-origin');
+		expect(hovered).toEqual([]);
+	});
+
+	test('cada "ready" aceptado olvida el resalte: es un documento nuevo', () => {
+		const { client, hovered } = harness();
+		client.start();
+		client.handleMessage({ origin: ORIGIN, data: READY });
+		client.handleMessage({ origin: ORIGIN, data: envelope({ type: 'hover', blockId: 'blk1' }) });
+		// Un segundo `ready` (refresco en vivo, recarga): el resalte anterior no se da por bueno.
+		client.handleMessage({ origin: ORIGIN, data: READY });
+		expect(hovered).toEqual([null, 'blk1', null]);
+	});
+
+	test('un sitio que nunca manda "hover" no cambia nada: `onHover` solo oye los `ready`', () => {
+		const { client, hovered } = harness();
+		client.start();
+		client.handleMessage({ origin: ORIGIN, data: READY });
+		client.handleMessage({ origin: ORIGIN, data: envelope({ type: 'layout', blocks: [BLOCK] }) });
+		client.handleMessage({ origin: ORIGIN, data: envelope({ type: 'select', blockId: 'blk1' }) });
+		expect(hovered).toEqual([null]);
 	});
 
 	test('highlight/scroll-to solo se mandan estando conectado, y NUNCA a "*"', () => {

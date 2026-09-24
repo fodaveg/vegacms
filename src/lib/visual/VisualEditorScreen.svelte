@@ -67,6 +67,15 @@
 	 * ANUNCIA la selección por voz (`announceSelection`, encargo de accesibilidad D3): un lector de
 	 * pantalla oye lo mismo venga la selección del sitio o del árbol.
 	 *
+	 * **El resalte al pasar el ratón POR LA PÁGINA (`hoveredBlockId`) es un tercer dato con dueño
+	 * único, aquí, y NO es la selección.** Lo escribe solo `onHover` del cliente (§"Hover" del
+	 * contrato: mensaje opcional del sitio, `null` al salir de todo bloque y al empezar a
+	 * desplazarse) y lo limpia `onState` cuando el puente deja de estar conectado o el bloque ya no
+	 * se reporta — mismo criterio que la selección fantasma de arriba. Se pinta con el MISMO
+	 * `highlightedId` de `VisualOverlay.svelte` que ya existía para el resalte mandado por Vega. No
+	 * pasa por `handleBlockSelect` ni avisa al sitio con `highlight`: el sitio ya sabe dónde está
+	 * su propio puntero, devolverle el dato sería ruido.
+	 *
 	 * **El arrastre de paleta en vuelo tiene el MISMO reparto de dueño único que la selección
 	 * (encargo "paleta de bloques arrastrable del editor visual", decisión 5).** `paletteDragType`
 	 * (`ResolvedBlockType | null`) es EL OTRO `$state` que esta pantalla posee y nadie más escribe:
@@ -327,6 +336,10 @@
 	// Único dueño del bloque seleccionado (ver cabecera, "La selección tiene un solo dueño").
 	// `null` = nada seleccionado, el estado inicial hasta el primer `select` del sitio.
 	let selectedBlockId = $state<string | null>(null);
+	// Único dueño del bloque bajo el puntero DENTRO del marco (ver cabecera, "El resalte al pasar
+	// el ratón POR LA PÁGINA"). `null` = el puntero no está sobre ningún bloque, o el sitio no
+	// implementa `hover`.
+	let hoveredBlockId = $state<string | null>(null);
 	// Único dueño del arrastre de PALETA en vuelo (ver cabecera, "El arrastre de paleta en vuelo
 	// tiene el MISMO reparto..."). `null` fuera de un gesto.
 	let paletteDragType = $state<ResolvedBlockType | null>(null);
@@ -595,8 +608,20 @@
 				) {
 					selectedBlockId = null;
 				}
+				// Mismo criterio para el resalte del puntero (ver cabecera): sin conexión no hay
+				// lienzo que resaltar, y un id que el sitio ya no reporta no tiene contorno.
+				if (
+					hoveredBlockId !== null &&
+					(state.status !== 'connected' ||
+						!state.blocks.some((block) => block.id === hoveredBlockId))
+				) {
+					hoveredBlockId = null;
+				}
 			},
 			onSelect: handleBlockSelect,
+			onHover: (blockId) => {
+				hoveredBlockId = blockId;
+			},
 			// El plazo interno de `refresh()` venció, o el propio puente avisó con
 			// `error/refresh-failed` (ver `bridge-client.ts`): en los dos casos el cambio no aterrizó
 			// y el único camino honesto que queda es la recarga entera de siempre.
@@ -921,7 +946,6 @@
 	const overlaySkippedBlocks = $derived(
 		bridgeState.status === 'connected' ? bridgeState.skippedBlocks : 0
 	);
-
 	interface BridgeErrorText {
 		title: string;
 		body: string;
@@ -1176,7 +1200,7 @@
 						<VisualOverlay
 							blocks={overlayBlocks}
 							selectedId={selectedBlockId}
-							highlightedId={null}
+							highlightedId={hoveredBlockId}
 							skippedBlocks={overlaySkippedBlocks}
 							status={overlayStatus}
 							renderedBlockTypes={ctx.port.renderedBlockTypes ?? null}

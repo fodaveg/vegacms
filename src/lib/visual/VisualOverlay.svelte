@@ -40,16 +40,25 @@
 	 * botones capturan el puntero. Si algún día un clic sobre el sitio deja de seleccionar, la
 	 * pieza rota es esta.
 	 *
-	 * **El resalte por RATÓN queda fuera, y no es un olvido.** Mientras el puntero está sobre un
-	 * iframe de otro origen, la ventana padre no recibe NINGÚN evento de ratón (ni `mousemove` ni
-	 * `mouseover`: es la misma política de origen que le impide a Vega leer el DOM), y el
-	 * protocolo `vega-visual-1` no tiene hoy un mensaje de `hover` del sitio a Vega (§"Site to
-	 * Vega" del contrato: solo `ready`/`layout`/`select`/`error`). Capturar el puntero con este
-	 * overlay para simularlo arreglaría la apariencia y rompería el scroll del lienzo, que es
-	 * justo lo que la regla de arriba prohíbe. Entra cuando se escriba el puente del lado del
-	 * sitio (`~/code/vega-astro`) y el contrato gane un mensaje nuevo. Lo que SÍ se pinta es
-	 * `highlightedId`: el resalte que MANDA Vega (por ejemplo, al pasar el ratón por una fila del
-	 * árbol de secciones de la tarea siguiente), nunca el que detecta.
+	 * **El resalte por RATÓN lo DICE el sitio; este componente no lo detecta.** Mientras el puntero
+	 * está sobre un iframe de otro origen, la ventana padre no recibe NINGÚN evento de ratón (ni
+	 * `mousemove` ni `mouseover`: es la misma política de origen que le impide a Vega leer el DOM).
+	 * Capturar el puntero con este overlay para simularlo arreglaría la apariencia y rompería el
+	 * scroll del lienzo, que es justo lo que la regla de arriba prohíbe. Por eso el protocolo ganó
+	 * un mensaje opcional `hover` del sitio a Vega (§"Hover" del contrato): el puente del sitio
+	 * (`@vega/astro`, `visual-bridge.ts`) avisa cuando el puntero cambia de bloque, y
+	 * `VisualEditorScreen.svelte` lo pasa aquí como `highlightedId` — el mismo prop, y el mismo
+	 * `--highlighted`, que cualquier resalte que mande Vega. Este componente sigue sin saber de
+	 * dónde viene el id, solo lo pinta.
+	 *
+	 * **Sincronía con el scroll: el resalte se OCULTA mientras la página se desplaza, no se
+	 * persigue.** Un contorno dibujado FUERA del marco con un `rect` que llega por `postMessage` va
+	 * siempre al menos un fotograma por detrás del contenido que el navegador ya desplazó dentro
+	 * del marco (el scroll del iframe lo compone otro hilo, y el `rect` nuevo tiene que medirse,
+	 * cruzar el `postMessage` y repintarse aquí). No se puede prometer que vaya pegado, así que el
+	 * contrato manda la alternativa: el puente manda `hover: null` en cuanto empieza a
+	 * desplazarse y vuelve a decir el bloque cuando el scroll se asienta. Aquí no hace falta nada
+	 * especial: `highlightedId` llega a `null` y el `--highlighted` desaparece.
 	 *
 	 * **Bloque que el sitio no sabe pintar.** El `type` de un bloque llega igual venga de un
 	 * componente real o del fallback visible que `VegaBlocks` renderiza cuando no tiene uno
@@ -156,7 +165,7 @@
 	 * **Por qué hay una capa de destinos que solo existe DURANTE el arrastre**
 	 * (`.vega-visual-overlay-drop-zones`, la complicación real que anticipaba el encargo). El
 	 * puntero pasa por encima de un `<iframe>` de otro origen, así que Vega no ve NINGÚN evento de
-	 * ratón del interior (misma política que documenta "El resalte por RATÓN queda fuera", más
+	 * ratón del interior (misma política que documenta "El resalte por RATÓN lo DICE el sitio", más
 	 * arriba) — tampoco los `dragover`/`drop`, que van al documento de dentro. La única forma de
 	 * que la caída se calcule en Vega es poner, encima del marco, elementos PROPIOS que sí los
 	 * reciban: una caja por bloque, colocada con el `rect` que ya reporta el puente, con
@@ -1101,7 +1110,7 @@
 	   del 100% con icono centrado: así la línea entre contornos no reclama el ancho entero como
 	   zona clicable — un punto concreto es más honesto que una franja invisible del ancho del
 	   lienzo capturando el puntero de un `hover` que no puede detectar (ver cabecera del
-	   componente, "El resalte por RATÓN queda fuera"). */
+	   componente, "El resalte por RATÓN lo DICE el sitio"). */
 	.vega-visual-overlay-insert-points {
 		position: absolute;
 		inset: 0;

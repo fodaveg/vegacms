@@ -8,8 +8,10 @@
  * inserción — Y AHORA el menú de tipos de esos puntos (defecto "el `+` crea sin preguntar el
  * tipo") y el aviso de bloques que faltan (defecto "el lienzo no dice nada cuando le faltan
  * bloques") — con un `BlocksState` de MENTIRA (`fakeBlocksState`, mismo criterio que
- * `VisualBlockTree.svelte.test.ts`). No prueba el resalte por ratón ni la selección por clic: ver
- * la cabecera del componente para el porqué de los dos.
+ * `VisualBlockTree.svelte.test.ts`). El resalte por ratón se prueba como lo que es aquí, un prop
+ * (`highlightedId`): quien lo detecta es el sitio (§"Hover" del contrato) y quien lo cablea es
+ * `VisualEditorScreen.svelte`, con su propio test. La selección por clic tampoco se prueba aquí:
+ * ver la cabecera del componente.
  */
 import { mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, test, vi } from 'vitest';
@@ -214,6 +216,45 @@ describe('VisualOverlay.svelte', () => {
 		const b2 = mounted.target.querySelector('[data-vega-block-id="b2"]');
 		expect(b2?.classList.contains('vega-visual-overlay-box--highlighted')).toBe(true);
 		expect(b2?.classList.contains('vega-visual-overlay-box--selected')).toBe(false);
+	});
+
+	test('el resalte del puntero (§"Hover") SIGUE al prop: se mueve de caja y se apaga con `null`', async () => {
+		// Lo que manda el sitio con `hover` llega aquí como `highlightedId` (ver cabecera, "El
+		// resalte por RATÓN lo DICE el sitio"): un cambio de prop tiene que mover el resalte, no
+		// acumularlo, y `null` (salir de todo bloque, o empezar a desplazarse) lo quita del todo.
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const props = $state({
+			blocks: [block('b1', 'hero'), block('b2', 'gallery')],
+			selectedId: null as string | null,
+			highlightedId: 'b1' as string | null,
+			skippedBlocks: 0,
+			status: 'ready' as VisualOverlayStatus,
+			renderedBlockTypes: null,
+			blocksState: fakeBlocksState(),
+			onStructuralChange: vi.fn()
+		});
+		const instance = mount(VisualOverlay, {
+			target,
+			props,
+			context: new Map([[VEGA_CONTEXT_KEY, fakeCtx()]])
+		});
+		mounted = { target, instance };
+		await tick();
+
+		const highlighted = () =>
+			Array.from(target.querySelectorAll('.vega-visual-overlay-box--highlighted')).map((el) =>
+				el.getAttribute('data-vega-block-id')
+			);
+		expect(highlighted()).toEqual(['b1']);
+
+		props.highlightedId = 'b2';
+		await tick();
+		expect(highlighted()).toEqual(['b2']);
+
+		props.highlightedId = null;
+		await tick();
+		expect(highlighted()).toEqual([]);
 	});
 
 	test('nada captura el puntero: ni el contenedor ni una caja', async () => {

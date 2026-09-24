@@ -43,6 +43,11 @@
  * recargando el marco por su cuenta, así que quedarse en `connected` y avisar con `onRefreshFailed`
  * es más honesto que fingir un fallo de puente que ya se está arreglando solo.
  *
+ * **Una capacidad opcional del sitio que no se anuncia en ningún sitio** (§"Hover" del
+ * contrato): el mensaje `hover`. A diferencia de `liveRefresh`, Vega no tiene que decidir nada
+ * ANTES de que llegue (no hay un mensaje que solo se pueda mandar a quien la tenga), así que el
+ * propio mensaje es el anuncio: un sitio que nunca lo manda deja el lienzo exactamente como estaba.
+ *
  * **El texto de la interfaz NO vive aquí**: el estado expone un `kind` cerrado y la pantalla lo
  * traduce por `i18n`. Este módulo no importa Svelte, no toca `window` y no registra ningún
  * escuchador: recibe los mensajes por `handleMessage()` y escribe por el `MessagePoster` que le
@@ -109,6 +114,8 @@ export type SiteMessage =
 	  }
 	| { type: 'layout'; blocks: VisualBlock[]; skipped: number }
 	| { type: 'select'; blockId: string }
+	/** El puntero entró en otro bloque del lienzo, o salió de todos (`null`). Ver `onHover`. */
+	| { type: 'hover'; blockId: string | null }
 	| { type: 'error'; code: string; detail: string | null };
 
 /** Veredicto del parseo. `foreign` es el caso ABUNDANTE (una ventana recibe mensajes de todo el
@@ -227,6 +234,17 @@ export function parseSiteMessage(raw: unknown): ParsedSiteMessage {
 			const blockId = nonEmptyString(record.blockId);
 			if (!blockId) return { status: 'malformed' };
 			return { status: 'ok', message: { type: 'select', blockId } };
+		}
+		case 'hover': {
+			// `null` explícito es un valor del protocolo ("el puntero no está sobre ningún bloque"),
+			// no la ausencia de uno: se exige la clave. Un `hover` sin ella, o con un id vacío, no se
+			// interpreta como "ninguno" porque borraría un resalte que el sitio no pidió borrar.
+			if (record.blockId === null) {
+				return { status: 'ok', message: { type: 'hover', blockId: null } };
+			}
+			const blockId = nonEmptyString(record.blockId);
+			if (!blockId) return { status: 'malformed' };
+			return { status: 'ok', message: { type: 'hover', blockId } };
 		}
 		case 'error': {
 			const code = nonEmptyString(record.code);
@@ -349,6 +367,19 @@ export interface VisualBridgeClientOptions {
 	 *  módulo: un segundo dueño del bloque seleccionado es la vía a que las dos mitades enseñen
 	 *  cosas distintas. */
 	onSelect?: (blockId: string) => void;
+	/**
+	 * El puntero está sobre ese bloque DENTRO del marco, o sobre ninguno (`null`) — §"Hover" del
+	 * contrato. Mientras el puntero está sobre un iframe de otro origen la ventana de Vega no recibe
+	 * ni un evento de ratón, así que esta es la única forma de saberlo. Capacidad OPCIONAL: un sitio
+	 * que no la implementa simplemente no lo llama nunca, y el lienzo se queda sin resalte al pasar,
+	 * como antes. Igual que `onSelect`, el dueño del dato es la pantalla, no este módulo.
+	 *
+	 * Además se llama con `null` en cada `ready` aceptado (ver `handleMessage`): un `ready` describe
+	 * un documento NUEVO (recarga, refresco en vivo), y un resalte del documento anterior no se puede
+	 * dar por bueno. El puente que sabe que el puntero sigue sobre un bloque lo vuelve a decir
+	 * después del `ready`.
+	 */
+	onHover?: (blockId: string | null) => void;
 	/** El plazo de `refresh()` venció sin `ready` ni `error/refresh-failed`, o el propio puente avisó
 	 *  con `error/refresh-failed`. NO cambia `state` (ver `refresh()`): quien lo consume decide qué
 	 *  hacer, normalmente una recarga entera del marco. */
@@ -585,6 +616,9 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 						skippedBlocks: message.skipped,
 						liveRefresh: message.liveRefresh
 					});
+					// Documento nuevo, resalte viejo fuera (ver `onHover`). DESPUÉS de `setState`: quien
+					// escucha ya ve los bloques nuevos cuando le llega el `null`.
+					opts.onHover?.(null);
 					return 'accepted';
 				}
 				case 'layout':
@@ -600,6 +634,11 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 				case 'select':
 					if (state.status !== 'connected') return 'out-of-order';
 					opts.onSelect?.(message.blockId);
+					return 'accepted';
+				case 'hover':
+					// Mismo criterio que `select`: antes del saludo no hay bloques ciertos que resaltar.
+					if (state.status !== 'connected') return 'out-of-order';
+					opts.onHover?.(message.blockId);
 					return 'accepted';
 				case 'error':
 					// `refresh-failed` con un refresco PENDIENTE es el propio puente reportando que no
