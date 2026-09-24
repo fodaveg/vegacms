@@ -34,6 +34,16 @@ import type {
 	CollectionSpec,
 	EnsureResult
 } from './collections';
+import type { RecordVersion } from './version';
+
+/** Opciones de `BackendPort.update` (ver su documentación). */
+export interface UpdateOptions {
+	/**
+	 * Versión (`recordVersion`) del registro que el llamador tiene delante. Ausente = sin
+	 * comprobación (la última escritura gana, el comportamiento de siempre).
+	 */
+	expectedVersion?: RecordVersion;
+}
 
 /**
  * Extensión opt-in de autenticación fuerte. Vive separada del CRUD para que PocketBase vanilla
@@ -210,7 +220,24 @@ export interface BackendPort {
 	 * borrar.
 	 */
 	create(type: string, data: RecordInput, opts?: { id?: RecordId }): Promise<VegaRecord>;
-	update(type: string, id: RecordId, data: RecordInput): Promise<VegaRecord>;
+	/**
+	 * Actualiza PARCIALMENTE (solo las claves de `data`). `opts` es una enmienda ADITIVA: sin él,
+	 * el comportamiento es el de siempre (la última escritura gana). Con `opts.expectedVersion`
+	 * (la `recordVersion` del registro que se leyó al abrir el formulario, `version.ts`), el
+	 * adaptador RELEE el registro en fresco antes de escribir y, si su versión ya no es esa, falla
+	 * cerrado con `VegaConflictError` (`kind: 'conflict'`, trae el registro y la versión del
+	 * servidor) SIN escribir nada.
+	 *
+	 * **Límite medido, no atómico en PocketBase**: la relectura y la escritura son dos peticiones
+	 * HTTP (`GET` y `PATCH`), porque la API de registros de PocketBase no tiene escritura
+	 * condicional. Una escritura ajena que caiga ENTRE las dos pasa sin detectarse. Contra
+	 * PocketBase 0.39.6 en local la ventana es la ida y vuelta del `GET` más el cálculo del cuerpo
+	 * (medido el 24 sep 2026: p50 1,7 ms, p95 2,4 ms, máximo 2,9 ms en 50 muestras); contra un
+	 * servidor remoto crece con la latencia de red. Cierra el caso real —dos personas con el mismo
+	 * formulario abierto minutos u horas— y no el de dos guardados en el mismo milisegundo.
+	 * `memory` sí es atómico: comprueba y escribe sin ceder el hilo entre medias.
+	 */
+	update(type: string, id: RecordId, data: RecordInput, opts?: UpdateOptions): Promise<VegaRecord>;
 	delete(type: string, id: RecordId): Promise<void>;
 
 	// ——— Ficheros (§4.4) ———

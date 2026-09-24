@@ -199,6 +199,32 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'You do not have permission to edit records in this collection: you can view it, but not save changes.',
 	'editor.load.error.body': 'Could not load the record. {message}',
 
+	// ————— Concurrent-edit notice (`ConflictNotice.svelte`, audit sheet p1): the save failed
+	// closed because the record changed on the server after it was opened.
+	'editor.conflict.title': '“{name}” changed while you were editing it',
+	'editor.conflict.titleNarrow': '“{name}” changed',
+	'editor.conflict.byAuthor': 'Saved by {author} at {time}.',
+	'editor.conflict.byAuthorNoTime': 'Saved by {author}.',
+	'editor.conflict.atTime': 'Another version was saved at {time}.',
+	'editor.conflict.unknown': 'Another version was saved while you were editing.',
+	'editor.conflict.nothingSaved':
+		'Nothing of yours has been saved yet: your changes are still in the form.',
+	'editor.conflict.showDiff': 'Show differences',
+	'editor.conflict.hideDiff': 'Hide differences',
+	'editor.conflict.discard': 'Discard my changes and reload',
+	'editor.conflict.discardNarrow': 'Discard and reload',
+	'editor.conflict.force': 'Save anyway',
+	'editor.conflict.diffHead': 'If you save anyway, this is the result:',
+	'editor.conflict.noDiff':
+		'No differences in editable fields: the change was in data managed by the server.',
+	'editor.conflict.scope.both': 'You both changed it',
+	'editor.conflict.scope.server': 'Changed only on the server',
+	'editor.conflict.scope.mine': 'Only you',
+	'editor.conflict.error.title': 'Could not save',
+	'editor.conflict.error.body':
+		'{message} Your changes are still in the form; nothing was overwritten.',
+	'editor.conflict.topbar': 'changed on the server',
+
 	// ————— Editor sticky bar (redesign C2, Part R7, `.edit-top` mockup) —————
 	'editor.new': 'new',
 	'editor.dirty': 'unsaved',
@@ -224,6 +250,23 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.open': 'Visual editor',
 	'editor.visual.title': 'Visual editor',
 	'editor.visual.back': 'Back to the form',
+	// Page status in the visual editor header (`VisualPublishControl.svelte`, audit sheet p2).
+	// Worded DIFFERENTLY from the top bar's «Publish» (`topbar.publish.*`, which rebuilds the site):
+	// this only changes the record's `statusField` value.
+	'editor.visual.status.groupLabel': 'Page status',
+	'editor.visual.status.publish': 'Mark as published',
+	'editor.visual.status.unpublish': 'Switch to draft',
+	'editor.visual.status.changing': 'Changing status…',
+	'editor.visual.status.error.publish': 'Could not mark as published',
+	'editor.visual.status.error.unpublish': 'Could not switch to draft',
+	'editor.visual.status.error.conflict':
+		'The page changed on the server: check its status before trying again',
+	'editor.visual.status.confirm.title': '{count} block(s) not saved',
+	'editor.visual.status.confirm.body':
+		'The page will be published with what was last saved. Those changes will not go out until you save them.',
+	'editor.visual.status.confirm.publish': 'Publish anyway',
+	'editor.visual.status.success': '“{name}” is now “{label}”.',
+	'editor.visual.status.success.rebuild': 'It will show on the site after the next publish.',
 	'editor.visual.frameTitle': 'The site page, inside the visual editor',
 	'editor.visual.connecting': 'Connecting to the site…',
 	'editor.visual.connected': 'Connected to the site: {count} block(s) on the page.',
@@ -259,6 +302,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.overlay.skipped': "{count} block(s) the site described badly: can't be selected.",
 	'editor.visual.overlay.missing': "{count} section(s) that exist but the site isn't rendering.",
 	'editor.visual.overlay.unsupported': 'unsupported',
+	// Section the SITE says is not public (bridge `unpublished`): see `es.ts` for the rationale.
+	'editor.visual.unpublished': 'Not public',
 	// "Draggable block palette" task: the empty-canvas drop target, ONLY while a palette drag is in
 	// flight (see `es.ts` for the full rationale).
 	'editor.visual.overlay.emptyDrop': 'Drop here to create the first section',
@@ -267,6 +312,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// block's form. See `es.ts` for the full rationale, incl. which existing keys are reused.
 	'editor.visual.tree.title': 'Sections',
 	'editor.visual.tree.selectLabel': 'Select "{label}"',
+	// The row's `aria-label` replaces its visible text, so the state has to be in it (see `es.ts`).
+	'editor.visual.tree.selectLabelUnpublished': 'Select "{label}" (not public)',
 	'editor.visual.tree.unavailable': 'Could not load the section tree.',
 	// Selection announcement ("accessibility" task, D3): see `es.ts` for the full rationale (same
 	// `aria-live` region as `editor.blocks.reorder.moved`).
@@ -429,6 +476,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// Phase P6·6e (D-P6.6): button that opens `MediaPicker.svelte`. Fully hidden without
 	// `ctx.mediaPicker` (L-P6.9), never shown disabled without explanation.
 	'form.file.pickFromLibrary': 'Choose from the library',
+	// INFORMATIVE notice (audit sheet, piece 3): only in the session where the file is picked from
+	// the library. The `file` field stores neither the alt nor the `mediaId` (L-P6.8, [SUP-5]).
+	'form.file.libraryMissingAltOne': 'This image has no alt text in the library.',
+	'form.file.libraryMissingAltMany': '{count} images have no alt text in the library.',
 
 	// ————— Richtext/markdown editor (P5 contract, Phase F5-d) —————
 	'form.editor.toolbarLabel': 'Formatting tools',
@@ -615,6 +666,13 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// JSON above is of no use to them.
 	'media.bootstrap.editorBody':
 		'Ask an administrator to set up the media collection ("vega_media") in PocketBase.',
+	// A library created before a new field (today, `focal`): completing it is additive and the
+	// superuser decides it with a button, never Vega on its own.
+	'media.fields.missingBody':
+		'The library lacks fields this version of Vega can use: {fields}. Adding them leaves the existing media untouched.',
+	'media.fields.add': 'Add fields',
+	'media.fields.adding': 'Adding…',
+	'media.fields.added': 'Fields added to the library.',
 
 	// ————— Referential integrity (`#lote-integridad`, Phase A): "where is this used?" engine —————
 	// Shared by `UsedInPanel`/`ReferencesSummary` (passive panel) and by `DeleteConfirm`/
@@ -639,6 +697,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'integrity.usedIn.reason.not-found': 'the collection no longer exists',
 	'integrity.usedIn.reason.auth-expired': 'the session expired mid-check',
 	'integrity.usedIn.reason.validation': 'the query is not valid against this backend',
+	// A read never produces it; it is here so the table covers every `VegaErrorKind`.
+	'integrity.usedIn.reason.conflict': 'the record changed during the check',
 	'integrity.usedIn.reason.unknown': 'unknown reason',
 
 	// ————— References warning BEFORE deleting (same engine, `DeleteConfirm`/`MediaDeleteConfirm`) —————
@@ -760,6 +820,18 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.detail.addTag': 'Add',
 	'media.detail.removeTag': 'Remove «{tag}»',
 	'media.detail.saveSuccess': 'Media updated.',
+	// Alt text (audit sheet, piece 3): a non-blocking notice, images only.
+	'media.alt.missing': 'No alt text',
+	'media.detail.altMissingHint': 'No alt text: a screen reader will read «{name}».',
+	'media.detail.altHelp': 'Describe what is shown, not the file name.',
+	// Focal point (audit, 23 Sep): what the site keeps in view when it crops the image. Empty = centre.
+	'media.focal.label': 'Focal point',
+	'media.focal.help':
+		'Click the image to mark what must stay in view when the site crops it. With the keyboard: arrows move it (Shift for finer steps), Enter sets it.',
+	'media.focal.center': 'Focal point: centre',
+	'media.focal.value': 'Focal point: {x} % across, {y} % down',
+	'media.focal.pending': 'Moving to {x} % across, {y} % down. Press Enter to set it.',
+	'media.focal.reset': 'Centre',
 
 	// ————— Media: delete (Phase P6·6d) —————
 	// D-P6.5/audit H3: the media model COPIES bytes, it never references (`filePerRecord`) —
@@ -854,6 +926,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.picker.searchPlaceholder': 'Search…',
 	'media.picker.empty': 'No asset matches the search or the allowed file type.',
 	'media.picker.selectedCount': '{count} selected',
+	'media.picker.missingAltCount': '{count} without alt text',
 	'media.picker.insert': 'Insert',
 	'media.picker.inserting': 'Inserting…',
 

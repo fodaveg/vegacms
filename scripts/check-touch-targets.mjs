@@ -60,7 +60,9 @@ export const COMPONENT_FILES = [
 	'src/lib/visual/VisualColumnResizer.svelte',
 	// Encargo "paleta de bloques arrastrable": botones de verdad nuevos, mismo criterio de medición
 	// que el resto de esta lista — sin sumarla aquí, el guardarraíl no la habría visto nunca.
-	'src/lib/visual/VisualPalette.svelte'
+	'src/lib/visual/VisualPalette.svelte',
+	// Estado de la página en la cabecera (lámina del audit p2): botones nuevos en la barra del editor.
+	'src/lib/visual/VisualPublishControl.svelte'
 ];
 
 /** El número que firma la checklist de accesibilidad del editor visual. */

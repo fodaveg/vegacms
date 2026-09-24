@@ -5,12 +5,15 @@
  * crudo del SDK o de `fetch` que escape de un adaptador es un bug de esa capa, no del puerto.
  */
 
+import type { VegaRecord } from './types';
+
 export type VegaErrorKind =
 	| 'auth-expired' // sesión no válida ya; P3 relanza login
 	| 'forbidden' // autenticado pero sin permiso (o credenciales rechazadas en login)
 	| 'validation' // datos rechazados; SIEMPRE con fieldErrors
 	| 'network' // no hubo respuesta HTTP (caído, DNS, timeout, offline)
 	| 'not-found' // recurso o colección inexistente
+	| 'conflict' // `update` con versión esperada y el registro cambió entre medias: NO se escribió
 	| 'backend'; // el backend respondió algo inesperado (5xx, forma desconocida, versión incompatible)
 
 export interface FieldError {
@@ -77,6 +80,41 @@ export class VegaError extends Error {
 	static backend(message: string, cause?: unknown): VegaError {
 		return new VegaError('backend', message, { cause });
 	}
+}
+
+/**
+ * `'conflict'` — `update(type, id, data, { expectedVersion })` releyó el registro en fresco y su
+ * versión ya no era la esperada: otra persona (u otra pestaña) guardó entre medias y el puerto
+ * FALLA CERRADO, sin escribir nada. Es un `kind` propio, y no el `'backend'` que
+ * `adapters/pocketbase/collections.ts` eligió para su choque de esquema, porque aquí la interfaz
+ * NO lo trata igual que cualquier otro fallo: pinta el aviso de edición concurrente con el diff a
+ * tres bandas, y para eso necesita la versión del servidor que el error trae consigo.
+ *
+ * `serverRecord` es el registro tal cual se releyó (mismo `VegaRecord` normalizado que devolvería
+ * `get`), y `serverVersion` su versión (`recordVersion(serverRecord)`, `version.ts`): la que un
+ * «Guardar igualmente» tiene que pasar como esperada. Subclase (no un campo opcional en
+ * `VegaError`) para que el tipo lo garantice: quien tiene un `VegaConflictError` tiene SIEMPRE las
+ * dos cosas. Sigue siendo un `VegaError` (L2): quien no lo distinga lo trata por su `kind`.
+ */
+export class VegaConflictError extends VegaError {
+	readonly serverRecord: VegaRecord;
+	readonly serverVersion: string;
+
+	constructor(
+		serverRecord: VegaRecord,
+		serverVersion: string,
+		message = 'El registro cambió en el servidor desde que se abrió'
+	) {
+		super('conflict', message);
+		this.name = 'VegaConflictError';
+		this.serverRecord = serverRecord;
+		this.serverVersion = serverVersion;
+	}
+}
+
+/** `true` si `err` es el conflicto de versión de `update` (ver `VegaConflictError`). */
+export function isConflictError(err: unknown): err is VegaConflictError {
+	return err instanceof VegaConflictError;
 }
 
 /**

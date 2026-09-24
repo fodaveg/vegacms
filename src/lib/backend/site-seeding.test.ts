@@ -288,9 +288,11 @@ describe('seedSiteProject', () => {
 
 		expect(result).toEqual({
 			createdCollections: ['redirects'],
-			// `vega_editors` gana `created` (autodate), que el sembrado anterior no creaba.
+			// `vega_editors` gana `created` (autodate) y `vega_media` gana `focal`: ninguno de los dos
+			// lo creaba el sembrado anterior.
 			addedFields: {
 				vega_editors: ['created'],
+				vega_media: ['focal'],
 				pages: ['description', 'socialImage', 'noindex']
 			},
 			createdRecords: [],

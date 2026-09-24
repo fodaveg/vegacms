@@ -381,8 +381,9 @@
 								rawBlockType={blocks.blockTypeRawName(record)}
 								dataField={blocks.blocksConfig!.dataField}
 								{record}
+								name={blocks.blockTitle(record)}
 								structuralFields={blocks.structuralFields}
-								onSubmit={(input) => ctx.port.update(type.name, record.id, input)}
+								onSubmit={(input, opts) => ctx.port.update(type.name, record.id, input, opts)}
 								onSaved={(saved) => blocks.handleBlockSaved(record.id, saved)}
 								onDirtyChange={(dirty) => blocks.setDirty(record.id, dirty)}
 								onDraftChange={(draft) => blocks.handleBlockDraftChange(record.id, draft)}

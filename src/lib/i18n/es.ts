@@ -214,6 +214,34 @@ export const es = {
 		'No tienes permiso para editar registros de esta colección: puedes verlo, pero no guardar cambios.',
 	'editor.load.error.body': 'No se pudo cargar el registro. {message}',
 
+	// ————— Aviso de edición concurrente (`ConflictNotice.svelte`, lámina del audit p1): el
+	// guardado falló cerrado porque el registro cambió en el servidor desde que se abrió. Sin
+	// pronombres con género: el registro puede ser una página, una entrada o un bloque.
+	'editor.conflict.title': '«{name}» ha cambiado mientras lo editabas',
+	'editor.conflict.titleNarrow': '«{name}» ha cambiado',
+	'editor.conflict.byAuthor': 'Lo guardó {author} a las {time}.',
+	'editor.conflict.byAuthorNoTime': 'Lo guardó {author}.',
+	'editor.conflict.atTime': 'Se guardó otra versión a las {time}.',
+	'editor.conflict.unknown': 'Se guardó otra versión mientras lo editabas.',
+	'editor.conflict.nothingSaved':
+		'No se ha guardado nada tuyo todavía: tus cambios siguen en el formulario.',
+	'editor.conflict.showDiff': 'Ver diferencias',
+	'editor.conflict.hideDiff': 'Ocultar diferencias',
+	'editor.conflict.discard': 'Descartar mis cambios y recargar',
+	'editor.conflict.discardNarrow': 'Descartar y recargar',
+	'editor.conflict.force': 'Guardar igualmente',
+	'editor.conflict.diffHead': 'Si guardas igualmente, así quedará:',
+	'editor.conflict.noDiff':
+		'No hay diferencias en los campos editables: el cambio fue en datos que gestiona el servidor.',
+	'editor.conflict.scope.both': 'Lo cambiasteis los dos',
+	'editor.conflict.scope.server': 'Solo cambió en el servidor',
+	'editor.conflict.scope.mine': 'Solo tú',
+	'editor.conflict.error.title': 'No se pudo guardar',
+	'editor.conflict.error.body':
+		'{message} Tus cambios siguen en el formulario; no se ha sobrescrito nada.',
+	// Estado de guardado de la barra (`.vega-editor-saved-at--conflict`) mientras el aviso está abierto.
+	'editor.conflict.topbar': 'cambió en el servidor',
+
 	// ————— Barra pegajosa del editor (R7 del rediseño C2, mockup `.edit-top`) —————
 	'editor.new': 'nuevo',
 	'editor.dirty': 'sin guardar',
@@ -243,6 +271,23 @@ export const es = {
 	'editor.visual.open': 'Editor visual',
 	'editor.visual.title': 'Editor visual',
 	'editor.visual.back': 'Volver al formulario',
+	// Estado de la página en la cabecera del editor visual (`VisualPublishControl.svelte`, lámina
+	// del audit p2). Rotulado DISTINTO del «Publicar» de la barra superior (`topbar.publish.*`, que
+	// reconstruye el sitio): esto solo cambia el valor del `statusField` del registro.
+	'editor.visual.status.groupLabel': 'Estado de la página',
+	'editor.visual.status.publish': 'Marcar como publicada',
+	'editor.visual.status.unpublish': 'Pasar a borrador',
+	'editor.visual.status.changing': 'Cambiando estado…',
+	'editor.visual.status.error.publish': 'No se pudo marcar como publicada',
+	'editor.visual.status.error.unpublish': 'No se pudo pasar a borrador',
+	'editor.visual.status.error.conflict':
+		'La página cambió en el servidor: revisa su estado antes de volver a intentarlo',
+	'editor.visual.status.confirm.title': 'Hay {count} bloque(s) sin guardar',
+	'editor.visual.status.confirm.body':
+		'La página se publicará con lo último guardado. Esos cambios no saldrán hasta que los guardes.',
+	'editor.visual.status.confirm.publish': 'Publicar igualmente',
+	'editor.visual.status.success': '«{name}» pasa a «{label}».',
+	'editor.visual.status.success.rebuild': 'Se verá en el sitio tras la próxima publicación.',
 	'editor.visual.frameTitle': 'La página del sitio, dentro del editor visual',
 	'editor.visual.connecting': 'Conectando con el sitio…',
 	'editor.visual.connected': 'Conectado al sitio: {count} bloque(s) en la página.',
@@ -285,6 +330,10 @@ export const es = {
 	'editor.visual.overlay.missing':
 		'{count} sección(es) que existen pero el sitio no está pintando.',
 	'editor.visual.overlay.unsupported': 'no soportado',
+	// Sección que el SITIO dice no pública (`unpublished` del puente, ver
+	// `bridge-client.ts#VisualBlock`): la misma palabra en la etiqueta del contorno y en la fila
+	// del árbol. Texto, no solo un color. Vega no sabe qué es "publicado": solo repite al sitio.
+	'editor.visual.unpublished': 'No pública',
 	// Encargo "paleta de bloques arrastrable del editor visual": la zona de caída de página vacía
 	// (decisión 3) — una sola caja SOBRE EL MARCO que solo existe mientras hay un arrastre de
 	// paleta en vuelo Y no hay ningún bloque (ver la cabecera de `VisualOverlay.svelte`).
@@ -297,6 +346,9 @@ export const es = {
 	// solo que en otra columna.
 	'editor.visual.tree.title': 'Secciones',
 	'editor.visual.tree.selectLabel': 'Seleccionar «{label}»',
+	// Mismo rótulo con el estado dentro: el `aria-label` de la fila SUSTITUYE a su texto visible,
+	// así que la insignia "No pública" no llegaría al lector de pantalla por sí sola.
+	'editor.visual.tree.selectLabelUnpublished': 'Seleccionar «{label}» (no pública)',
 	'editor.visual.tree.unavailable': 'No se pudo cargar el árbol de secciones.',
 	// Anuncio de la selección (encargo de accesibilidad, D3): `VisualEditorScreen.svelte#handleBlockSelect`
 	// lo lee por la MISMA región `aria-live` que ya usa `editor.blocks.reorder.moved` (ver la
@@ -470,6 +522,13 @@ export const es = {
 	// Fase P6·6e (D-P6.6): botón que abre `MediaPicker.svelte`. Oculto por completo sin
 	// `ctx.mediaPicker` (L-P6.9), nunca deshabilitado sin explicación.
 	'form.file.pickFromLibrary': 'Elegir de la biblioteca',
+	// Aviso INFORMATIVO (lámina del audit, pieza 3): solo en la sesión en que se elige de la
+	// biblioteca. El campo `file` no guarda ni el alt ni el `mediaId` (L-P6.8, [SUP-5]), así que al
+	// recargar el registro ya no se puede calcular. Dos claves en vez de un "(s)", como
+	// `media.selection.labelOne/Many`.
+	'form.file.libraryMissingAltOne': 'Esta imagen no tiene texto alternativo en la biblioteca.',
+	'form.file.libraryMissingAltMany':
+		'{count} imágenes no tienen texto alternativo en la biblioteca.',
 
 	// ————— Editor richtext/markdown (Fase F5-d del contrato P5) —————
 	'form.editor.toolbarLabel': 'Herramientas de formato',
@@ -672,6 +731,8 @@ export const es = {
 	'integrity.usedIn.reason.not-found': 'la colección ya no existe',
 	'integrity.usedIn.reason.auth-expired': 'la sesión caducó a mitad de la comprobación',
 	'integrity.usedIn.reason.validation': 'la consulta no es válida contra este backend',
+	// Una lectura nunca lo produce; está para que la tabla cubra todo `VegaErrorKind`.
+	'integrity.usedIn.reason.conflict': 'el registro cambió durante la comprobación',
 	'integrity.usedIn.reason.unknown': 'motivo desconocido',
 
 	// ————— Aviso de referencias ANTES de borrar (mismo motor, `DeleteConfirm`/`MediaDeleteConfirm`) —————
@@ -802,6 +863,13 @@ export const es = {
 	// Admin de PocketBase), así que el JSON de importación de arriba no le sirve de nada.
 	'media.bootstrap.editorBody':
 		'Pídele a un administrador que configure la colección de medios ("vega_media") en PocketBase.',
+	// Biblioteca creada antes de un campo nuevo (hoy, `focal`): completarla es aditivo y lo decide
+	// el superusuario con un botón, nunca Vega por su cuenta.
+	'media.fields.missingBody':
+		'A la biblioteca le faltan campos que esta versión de Vega sabe usar: {fields}. Añadirlos no toca los medios que ya hay.',
+	'media.fields.add': 'Añadir campos',
+	'media.fields.adding': 'Añadiendo…',
+	'media.fields.added': 'Campos añadidos a la biblioteca.',
 
 	// ————— Medios: grid + detalle (Fase P6·6b) —————
 	'media.detail.title': 'Editar medio',
@@ -813,6 +881,19 @@ export const es = {
 	'media.detail.addTag': 'Añadir',
 	'media.detail.removeTag': 'Quitar «{tag}»',
 	'media.detail.saveSuccess': 'Medio actualizado.',
+	// Texto alternativo (lámina del audit, pieza 3): aviso que NO bloquea, solo en imágenes. La
+	// marca de la tarjeta sigue al valor guardado; la pista de la ficha, a lo que se escribe.
+	'media.alt.missing': 'Sin texto alternativo',
+	'media.detail.altMissingHint': 'Sin texto alternativo: un lector de pantalla leerá «{name}».',
+	'media.detail.altHelp': 'Describe lo que se ve, no el nombre del fichero.',
+	// Punto focal (audit del 23 sep): lo que el sitio conserva al recortar la imagen. Vacío = centro.
+	'media.focal.label': 'Punto focal',
+	'media.focal.help':
+		'Haz clic en la imagen para marcar lo que debe quedar a la vista cuando el sitio la recorte. Con el teclado: flechas para moverlo (con Mayúsculas, más fino) e Intro para fijarlo.',
+	'media.focal.center': 'Punto focal: centro',
+	'media.focal.value': 'Punto focal: {x} % en horizontal, {y} % en vertical',
+	'media.focal.pending': 'Moviendo a {x} % en horizontal, {y} % en vertical. Intro para fijarlo.',
+	'media.focal.reset': 'Centrar',
 
 	// ————— Medios: borrado (Fase P6·6d) —————
 	// D-P6.5/audit H3: el modelo de media es COPIA de bytes, no referencia (`filePerRecord`) — borrar
@@ -908,6 +989,8 @@ export const es = {
 	'media.picker.searchPlaceholder': 'Buscar…',
 	'media.picker.empty': 'Ningún asset coincide con la búsqueda o el tipo de fichero admitido.',
 	'media.picker.selectedCount': '{count} elegido(s)',
+	// Segunda mitad del pie («2 elegidos · 1 sin texto alternativo»): solo se pinta si hay alguno.
+	'media.picker.missingAltCount': '{count} sin texto alternativo',
 	'media.picker.insert': 'Insertar',
 	'media.picker.inserting': 'Insertando…',
 

@@ -23,8 +23,9 @@ import type {
 	VegaRecord
 } from '../../types';
 import type { FieldError } from '../../errors';
-import { VegaError } from '../../errors';
+import { VegaConflictError, VegaError } from '../../errors';
 import type { BackendPort } from '../../port';
+import { recordVersion, type RecordVersion } from '../../version';
 import type { Query } from '../../query';
 import { projectedFields } from '../../query';
 import { normalizeFieldValue } from '../../normalize';
@@ -254,6 +255,21 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 	}
 
 	/**
+	 * Falla cerrado si la versión de `raw` (el registro tal cual está guardado AHORA) no es la
+	 * esperada: `VegaConflictError` con el registro y la versión del servidor (`port.ts#update`).
+	 */
+	function assertExpectedVersion(
+		type: string,
+		id: RecordId,
+		raw: Record<string, FieldValue>,
+		expectedVersion: RecordVersion
+	): void {
+		const current = toVegaRecord(type, id, raw);
+		const serverVersion = recordVersion(current);
+		if (serverVersion !== expectedVersion) throw new VegaConflictError(current, serverVersion);
+	}
+
+	/**
 	 * create/update comparten esta rutina: valida y, si todo pasa, materializa y guarda.
 	 * `explicitId` (§8·B2, `capabilities.explicitRecordId`) SOLO tiene efecto en modo CREATE
 	 * (`id === null`): fija el id del registro nuevo en vez de generarlo. Si ese id ya pertenece a
@@ -264,7 +280,8 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 		type: string,
 		id: RecordId | null,
 		data: RecordInput,
-		explicitId?: RecordId
+		explicitId?: RecordId,
+		expectedVersion?: RecordVersion
 	): Promise<VegaRecord> {
 		checkSessionAlive();
 		const ct = getContentTypeOrThrow(type);
@@ -273,6 +290,12 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 		const byId = records.get(type)!;
 		const existingRaw = id !== null ? byId.get(id) : undefined;
 		if (id !== null && !existingRaw) throw VegaError.notFound(`Registro "${id}" no encontrado`);
+		// Versión esperada (`BackendPort.update`): se compara ANTES de validar, igual que el
+		// adaptador `pocketbase` (que la compara nada más releer), para que los dos respondan lo
+		// mismo a un guardado desfasado que además trae un dato inválido: primero el conflicto.
+		if (id !== null && existingRaw && expectedVersion !== undefined) {
+			assertExpectedVersion(type, id, existingRaw, expectedVersion);
+		}
 		if (id === null && explicitId !== undefined && byId.has(explicitId)) {
 			throw VegaError.validation({
 				'': { code: 'validation_not_unique', message: 'Ya existe un registro con ese id' }
@@ -344,6 +367,13 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 		}
 
 		const finalId = id ?? explicitId ?? generateId();
+		// Comprobar-y-escribir sin hueco: entre la comparación de arriba y aquí puede haber cedido
+		// el hilo (`materializeFileField` es asíncrona), y otra escritura del mismo registro habría
+		// sustituido el objeto guardado (cada escritura hace `byId.set` con un objeto NUEVO). Con
+		// versión esperada, eso es un conflicto, no una carrera que se resuelve pisando.
+		if (id !== null && expectedVersion !== undefined && byId.get(id) !== existingRaw) {
+			assertExpectedVersion(type, id, byId.get(id)!, expectedVersion);
+		}
 		byId.set(finalId, rawValues);
 		const record = toVegaRecord(type, finalId, rawValues);
 		dispatch(type, { action: isCreate ? 'create' : 'update', record: structuredClone(record) });
@@ -615,8 +645,8 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 			return writeRecord(type, null, data, opts?.id);
 		},
 
-		async update(type, id, data) {
-			return writeRecord(type, id, data);
+		async update(type, id, data, opts) {
+			return writeRecord(type, id, data, undefined, opts?.expectedVersion);
 		},
 
 		async delete(type, id) {

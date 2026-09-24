@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
+import { recordVersion, VegaConflictError } from '$lib/backend';
 import { createMemoryBackend, type MemoryBackendPort } from '$lib/backend/adapters/memory';
 import { describeBackendContract } from './backend-contract';
 import { FIXTURE_ADMIN_EMAIL, FIXTURE_ADMIN_PASSWORD, kitchenSinkSeed } from './fixture';
@@ -201,5 +202,25 @@ describe('memory: detalles de implementación', () => {
 		await expect(
 			port.addCollectionFields('vega_test', [{ name: 'x', type: 'text' }])
 		).rejects.toMatchObject({ kind: 'forbidden' });
+	});
+
+	test('versión esperada: comprobar-y-escribir sin hueco aunque la escritura ceda el hilo (subida de fichero)', async () => {
+		const port = createMemoryBackend(kitchenSinkSeed());
+		await port.login({ email: FIXTURE_ADMIN_EMAIL, password: FIXTURE_ADMIN_PASSWORD });
+		const created = await port.create('kitchen_sink', { title: 'Carrera' });
+		const opened = recordVersion(created);
+
+		// A arranca primero y cede el hilo al materializar el fichero; B, con la MISMA versión, entra
+		// y escribe entero en ese hueco. En PocketBase esta ventana existe (dos peticiones, ver
+		// `port.ts#update`); en `memory` la comprobación se repite justo antes de guardar.
+		const cover = new File(['portada'], 'cover.png', { type: 'image/png' });
+		const a = port.update('kitchen_sink', created.id, { cover }, { expectedVersion: opened });
+		const b = port.update('kitchen_sink', created.id, { title: 'B' }, { expectedVersion: opened });
+
+		await expect(b).resolves.toMatchObject({ values: { title: 'B' } });
+		await expect(a).rejects.toBeInstanceOf(VegaConflictError);
+		const fresh = await port.get('kitchen_sink', created.id);
+		expect(fresh.values.title).toBe('B');
+		expect(fresh.values.cover).toBeNull();
 	});
 });

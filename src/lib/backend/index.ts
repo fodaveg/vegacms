@@ -46,7 +46,16 @@ export {
 } from './query';
 
 export type { FieldError, VegaErrorKind, VegaErrorOptions } from './errors';
-export { LOCAL_REJECTION_CODES, PB_VALIDATION_CODES, VegaError } from './errors';
+export {
+	isConflictError,
+	LOCAL_REJECTION_CODES,
+	PB_VALIDATION_CODES,
+	VegaConflictError,
+	VegaError
+} from './errors';
+
+export type { RecordVersion } from './version';
+export { recordVersion } from './version';
 
 export { isEmptyValue, normalizeFieldValue } from './normalize';
 export { assertContentTypeWritable, checkUnwritableFields } from './write-guards';
@@ -87,7 +96,8 @@ export type {
 	AdministrationPort,
 	BackendPort,
 	EditorPasswordResetPort,
-	StrongAuthPort
+	StrongAuthPort,
+	UpdateOptions
 } from './port';
 export { VEGA_EDITORS_COLLECTION_NAME } from './administration';
 

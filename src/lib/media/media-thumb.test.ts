@@ -41,7 +41,8 @@ const IMAGE_ITEM: MediaItemView = {
 	alt: '',
 	title: '',
 	tags: [],
-	created: null
+	created: null,
+	focal: null
 };
 
 const OTHER_ITEM: MediaItemView = { ...IMAGE_ITEM, id: 'm2', kind: 'other' };

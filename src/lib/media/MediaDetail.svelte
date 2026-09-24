@@ -52,6 +52,24 @@
 	 * validación de mime/tamaño reutiliza `validateMediaFile`/`findMediaFileFieldSchema`
 	 * (`media-upload.ts`, la MISMA que usa `MediaUpload` al subir) contra el esquema DESCUBIERTO —
 	 * nunca una copia local de las constraints.
+	 *
+	 * **Pista del texto alternativo (audit del 23 sep, lámina pieza 3)**: solo en imágenes, bajo el
+	 * campo `alt`, y sigue a lo que se ESCRIBE (`altDraft`), no al valor guardado: vacío → aviso en
+	 * `--warning` con icono («un lector de pantalla leerá «nombre-del-fichero»», que es lo que de
+	 * verdad pasa, `mediaImgAlt`); en cuanto hay texto → ayuda neutra. Nunca bloquea «Guardar».
+	 * `aria-describedby` la ata al campo, así que se oye al enfocarlo.
+	 *
+	 * **Punto focal (audit del 23 sep, tarea 2)**: con `canSetFocal` (la `vega_media` descubierta
+	 * tiene el campo `focal`, lo decide la ruta) y una imagen con vista previa, la vista previa
+	 * entera es un `<button>` que abraza a la imagen: su caja ES la de la imagen, así que la fracción
+	 * del clic es la fracción de la imagen (`mediaFocalFromPointer`). Clic = fijar el punto ahí. Con
+	 * teclado, las flechas mueven un punto PENDIENTE (marca discontinua; Mayúsculas afina) y
+	 * Intro/Espacio —la activación nativa del botón, `detail === 0`— lo fija; `Esc` suelta el
+	 * pendiente antes de cerrar nada, y salir del botón también. La marca fija siempre se ve (en el
+	 * centro si no hay punto); la línea de estado, `aria-live`, dice dónde está o adónde se mueve.
+	 * «Centrar» lo borra (`null` = centro). Todo es borrador hasta «Guardar», como `alt`/`title`, y
+	 * cuenta para `dirty`. Sin `canSetFocal` no se pinta nada de esto y el guardado no manda `focal`:
+	 * una biblioteca anterior al campo sigue funcionando igual.
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import { VegaError } from '$lib/backend/errors';
@@ -59,6 +77,15 @@
 	import Icon from '$lib/icons/Icon.svelte';
 	import UsedInPanel from '$lib/integrity/UsedInPanel.svelte';
 	import { addTag, normalizeTagInput, removeTag, tagsEqual } from './media-tags';
+	import { classifyMediaAssetType, mediaMissingAlt } from './media-card';
+	import {
+		mediaFocalEquals,
+		mediaFocalFromPointer,
+		mediaFocalPercent,
+		mediaFocalToFieldValue,
+		moveMediaFocal,
+		type MediaFocalPoint
+	} from './media-focal';
 	import { mediaDisplayName, mediaImgAlt, toMediaItemView, type MediaItemView } from './media-item';
 	import { resolveMediaFullSrc } from './media-thumb';
 	import { findMediaFileFieldSchema, validateMediaFile } from './media-upload';
@@ -88,6 +115,9 @@
 		 *  comporta EXACTAMENTE como antes de este lote. */
 		canUpdate?: boolean;
 		canDelete?: boolean;
+		/** La `vega_media` descubierta tiene el campo `focal` (ver cabecera). Default `false`: sin él
+		 *  el panel se comporta exactamente como antes del campo. */
+		canSetFocal?: boolean;
 	}
 
 	let {
@@ -97,7 +127,8 @@
 		onDeleted,
 		fallbackFocusEl,
 		canUpdate = true,
-		canDelete = true
+		canDelete = true,
+		canSetFocal = false
 	}: Props = $props();
 
 	const ctx = getVegaContext();
@@ -106,6 +137,11 @@
 	let titleDraft = $state('');
 	let tagsDraft = $state<string[]>([]);
 	let tagInput = $state('');
+	/** Punto focal en borrador (`null` = centro) y el punto PENDIENTE que mueven las flechas antes
+	 *  de fijarlo con Intro (`null` = no se está moviendo). Ver cabecera. */
+	let focalDraft = $state<MediaFocalPoint | null>(null);
+	let focalPending = $state<MediaFocalPoint | null>(null);
+	let focalImageEl = $state<HTMLImageElement | null>(null);
 	let saving = $state(false);
 
 	/** Controles de edición inertes (`#lote-shell`): mientras se guarda, como siempre, y también
@@ -148,15 +184,74 @@
 		titleDraft = item.title;
 		tagsDraft = item.tags;
 		tagInput = '';
+		focalDraft = item.focal;
+		focalPending = null;
 		saveError = null;
 	});
 
 	const dirty = $derived(
 		item !== null &&
-			(altDraft !== item.alt || titleDraft !== item.title || !tagsEqual(tagsDraft, item.tags))
+			(altDraft !== item.alt ||
+				titleDraft !== item.title ||
+				!tagsEqual(tagsDraft, item.tags) ||
+				(canSetFocal && !mediaFocalEquals(focalDraft, item.focal)))
 	);
 
 	const fullSrc = $derived(item ? resolveMediaFullSrc(ctx.port, item) : null);
+
+	/** La pista del alt solo existe para imágenes (ver cabecera). */
+	const isImage = $derived(item !== null && classifyMediaAssetType(item.fileName) === 'image');
+	/** Sigue al borrador, no al valor guardado (ver cabecera). */
+	const altDraftMissing = $derived(
+		item !== null && mediaMissingAlt({ alt: altDraft, fileName: item.fileName })
+	);
+
+	// ————— Punto focal (ver cabecera) —————
+
+	/** El gesto existe: campo en el esquema, imagen y vista previa que pinchar. */
+	const focalEnabled = $derived(canSetFocal && isImage && fullSrc !== null);
+	/** Posición de las marcas en porcentaje: la fija (el borrador; centro si no hay) y la pendiente
+	 *  de las flechas, si se está moviendo. */
+	const focalMarkPercent = $derived(mediaFocalPercent(focalDraft));
+	const focalPendingPercent = $derived(focalPending ? mediaFocalPercent(focalPending) : null);
+	/** Línea de estado (`aria-live`): adónde se mueve, o dónde está. */
+	const focalStatus = $derived.by(() => {
+		if (focalPendingPercent) return ctx.t('media.focal.pending', focalPendingPercent);
+		if (focalDraft === null) return ctx.t('media.focal.center');
+		return ctx.t('media.focal.value', focalMarkPercent);
+	});
+
+	/** Clic en la imagen fija el punto ahí; la activación por TECLADO del mismo botón (Intro o
+	 *  Espacio, `detail === 0` porque no hubo puntero) fija el pendiente de las flechas. */
+	function handleFocalClick(event: MouseEvent): void {
+		if (editingDisabled) return;
+		if (event.detail === 0) {
+			if (focalPending) focalDraft = focalPending;
+			focalPending = null;
+			return;
+		}
+		if (!focalImageEl) return;
+		const point = mediaFocalFromPointer(
+			event.clientX,
+			event.clientY,
+			focalImageEl.getBoundingClientRect()
+		);
+		if (point) focalDraft = point;
+		focalPending = null;
+	}
+
+	function handleFocalKeydown(event: KeyboardEvent): void {
+		if (editingDisabled) return;
+		const moved = moveMediaFocal(focalPending ?? focalDraft, event.key, event.shiftKey);
+		if (!moved) return;
+		event.preventDefault(); // las flechas no desplazan el diálogo mientras se mueve el punto
+		focalPending = moved;
+	}
+
+	function resetFocal(): void {
+		focalDraft = null;
+		focalPending = null;
+	}
 
 	function focusableItems(): HTMLElement[] {
 		if (!dialogEl) return [];
@@ -172,6 +267,11 @@
 		if (event.key === 'Escape') {
 			event.preventDefault();
 			event.stopPropagation();
+			// Un punto focal a medio mover se suelta primero; el siguiente `Esc` ya cierra.
+			if (focalPending) {
+				focalPending = null;
+				return;
+			}
 			requestClose();
 			return;
 		}
@@ -244,10 +344,13 @@
 			// apuntaba a la causa real). `[...tagsDraft]` desproxifica a un array plano ANTES de que
 			// cruce la frontera del puerto — mismo criterio que `to-record-input.ts` documenta para
 			// otros widgets de P5 (un `$state` nunca cruza tal cual al puerto).
+			// `focal` solo si la colección tiene el campo (ver cabecera); `mediaFocalToFieldValue`
+			// devuelve un objeto plano nuevo, mismo motivo que `[...tagsDraft]`.
 			const saved: VegaRecord = await ctx.port.update('vega_media', item.id, {
 				alt: altDraft,
 				title: titleDraft,
-				tags: [...tagsDraft]
+				tags: [...tagsDraft],
+				...(canSetFocal ? { focal: mediaFocalToFieldValue(focalDraft) } : {})
 			});
 			ctx.feedback.toast(ctx.t('media.detail.saveSuccess'), { kind: 'success' });
 			onSaved(toMediaItemView(saved));
@@ -401,12 +504,73 @@
 			</div>
 
 			<div class="vega-media-detail-preview">
-				{#if fullSrc}
+				{#if fullSrc && focalEnabled}
+					<!-- Punto focal (ver cabecera): el botón abraza a la imagen, su caja ES la imagen.
+					     `aria-label` le da nombre propio; la ayuda y el estado lo describen. -->
+					<button
+						type="button"
+						class="vega-media-focal"
+						aria-label={ctx.t('media.focal.label')}
+						aria-describedby="vega-media-focal-status vega-media-focal-help"
+						disabled={editingDisabled}
+						onclick={handleFocalClick}
+						onkeydown={handleFocalKeydown}
+						onblur={() => (focalPending = null)}
+						data-media-focal
+					>
+						<img
+							src={fullSrc}
+							alt={mediaImgAlt(item)}
+							class="vega-media-detail-image"
+							bind:this={focalImageEl}
+						/>
+						<span
+							class="vega-media-focal-mark"
+							style:left="{focalMarkPercent.x}%"
+							style:top="{focalMarkPercent.y}%"
+							data-media-focal-mark
+							aria-hidden="true"
+						></span>
+						{#if focalPendingPercent}
+							<span
+								class="vega-media-focal-mark vega-media-focal-mark--pending"
+								style:left="{focalPendingPercent.x}%"
+								style:top="{focalPendingPercent.y}%"
+								data-media-focal-pending
+								aria-hidden="true"
+							></span>
+						{/if}
+					</button>
+				{:else if fullSrc}
 					<img src={fullSrc} alt={mediaImgAlt(item)} class="vega-media-detail-image" />
 				{:else}
 					<Icon id="document" size={48} title={mediaImgAlt(item)} />
 				{/if}
 			</div>
+
+			{#if focalEnabled}
+				<div class="vega-media-focal-row">
+					<p
+						id="vega-media-focal-status"
+						class="vega-media-focal-status"
+						aria-live="polite"
+						data-media-focal-status
+					>
+						{focalStatus}
+					</p>
+					<button
+						type="button"
+						class="vega-media-focal-reset"
+						onclick={resetFocal}
+						disabled={editingDisabled || (focalDraft === null && focalPending === null)}
+					>
+						{ctx.t('media.focal.reset')}
+					</button>
+				</div>
+				<p id="vega-media-focal-help" class="vega-media-focal-help">
+					{ctx.t('media.focal.help')}
+				</p>
+			{/if}
 
 			<!-- Reemplazar fichero (`#lote-integridad`, Fase A): control de fichero REAL, oculto
 			     VISUALMENTE (mismo patrón que `MediaUpload.svelte` — nunca `display: none`, sigue en
@@ -453,7 +617,28 @@
 						bind:value={altDraft}
 						bind:this={altInputEl}
 						disabled={editingDisabled}
+						aria-describedby={isImage ? 'vega-media-detail-alt-hint' : undefined}
 					/>
+					{#if isImage}
+						{#if altDraftMissing}
+							<p
+								id="vega-media-detail-alt-hint"
+								class="vega-media-detail-alt-hint vega-media-detail-alt-hint--warn"
+								data-media-alt-hint="missing"
+							>
+								<Icon id="warning" size={12} />
+								<span>{ctx.t('media.detail.altMissingHint', { name: item.fileName })}</span>
+							</p>
+						{:else}
+							<p
+								id="vega-media-detail-alt-hint"
+								class="vega-media-detail-alt-hint"
+								data-media-alt-hint="help"
+							>
+								{ctx.t('media.detail.altHelp')}
+							</p>
+						{/if}
+					{/if}
 				</div>
 
 				<div class="vega-media-detail-field">
@@ -636,6 +821,89 @@
 		object-fit: contain;
 	}
 
+	/* Punto focal (ver cabecera): el botón abraza a la imagen (sin padding, borde ni interlineado),
+	   así que su caja es la de la imagen y la marca se posiciona en % de ella. */
+	.vega-media-focal {
+		position: relative;
+		display: inline-block;
+		max-width: 100%;
+		padding: 0;
+		border: 0;
+		background: none;
+		line-height: 0;
+		cursor: crosshair;
+	}
+
+	.vega-media-focal:disabled {
+		cursor: default;
+	}
+
+	/* Hacia DENTRO: la vista previa recorta (`overflow: hidden`) y una imagen a todo lo ancho se
+	   comería un anillo exterior — mismo criterio que la celda de `MediaGrid`. */
+	.vega-media-focal:focus-visible {
+		outline: 2px solid var(--ring);
+		outline-offset: -2px;
+	}
+
+	.vega-media-focal .vega-media-detail-image {
+		display: block;
+	}
+
+	/* La marca tiene que verse sobre CUALQUIER foto: anillo de acento con un filo de papel por
+	   dentro y por fuera, en vez de un color que alguna imagen se tragaría. */
+	.vega-media-focal-mark {
+		position: absolute;
+		width: 18px;
+		height: 18px;
+		border: 2px solid var(--accent);
+		border-radius: 50%;
+		box-shadow:
+			0 0 0 2px var(--paper),
+			inset 0 0 0 2px var(--paper);
+		transform: translate(-50%, -50%);
+		pointer-events: none;
+	}
+
+	.vega-media-focal-mark--pending {
+		border-style: dashed;
+	}
+
+	.vega-media-focal-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+	}
+
+	.vega-media-focal-status {
+		margin: 0;
+		font-size: 0.85rem;
+		color: var(--ink-2);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.vega-media-focal-reset {
+		flex-shrink: 0;
+		padding: 0.35rem 0.7rem;
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		background: var(--surface-2);
+		color: var(--ink);
+		font-size: 0.85rem;
+		cursor: pointer;
+	}
+
+	.vega-media-focal-reset:disabled {
+		cursor: not-allowed;
+		opacity: 0.6;
+	}
+
+	.vega-media-focal-help {
+		margin: -0.5rem 0 0;
+		font-size: 0.82rem;
+		color: var(--ink-2);
+	}
+
 	.vega-media-detail-replace {
 		display: flex;
 		flex-direction: column;
@@ -704,6 +972,28 @@
 		background: var(--surface);
 		color: var(--ink);
 		font: inherit;
+	}
+
+	/* Pista del alt (lámina del audit, pieza 3): ayuda neutra en `--ink-2` (AA, mismo criterio que
+	   `.vega-field-help`), aviso en `--warning` con icono delante. */
+	.vega-media-detail-alt-hint {
+		margin: 0;
+		font-size: 0.82rem;
+		color: var(--ink-2);
+		overflow-wrap: anywhere;
+	}
+
+	.vega-media-detail-alt-hint--warn {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.4rem;
+		color: var(--warning);
+		font-weight: 550;
+	}
+
+	.vega-media-detail-alt-hint--warn :global(svg) {
+		flex-shrink: 0;
+		margin-top: 0.15rem;
 	}
 
 	.vega-media-detail-field input:disabled {
