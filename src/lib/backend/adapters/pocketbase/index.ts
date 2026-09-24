@@ -263,9 +263,67 @@ export function createPocketBaseBackend({
 	// para no cachear un fallo permanentemente — una llamada posterior reintenta desde cero.
 	let cachedEditorSnapshotPromise: Promise<ContentType[]> | null = null;
 
-	async function fetchAllContentTypes(): Promise<ContentType[]> {
-		if (!CAPABILITIES.schemaDiscovery) return fetchContentTypesFromSnapshot();
+	// Gemela de la caché de arriba para el modo superuser (`schemaDiscovery: true`), que antes no
+	// tenía ninguna: cada `list`/`get`/`create`/`update`/`delete`/`subscribe` paginaba
+	// `GET /api/collections` entero solo para encontrar SU `ContentType`, así que la barra lateral
+	// pedía el esquema una vez por recuento y guardar un registro lo pedía tres veces (pre-imagen,
+	// revisión y escritura). Mismo patrón de PROMESA (deduplica llamadas concurrentes) y mismo
+	// criterio ante un fallo (se limpia, nunca se cachea un rechazo). Se diferencia en dos cosas:
+	// - `listContentTypes()` es la lectura EXPLÍCITA del esquema y sigue siendo en vivo
+	//   (`Capabilities.schemaDiscovery`, `types.ts`): reutiliza una petición que ya esté EN VUELO,
+	//   pero si la caché ya resolvió vuelve a pedir y la refresca. Así el "Reintentar" de
+	//   `GlobalBanner` sigue sondeando la red de verdad, y `reloadModel()`/`saveManifest()` (que
+	//   empiezan por `listContentTypes()`) renuevan la caché sin necesitar un método nuevo en el
+	//   puerto.
+	// - Toda escritura de esquema que pasa por este adaptador (`ensureCollections`,
+	//   `addCollectionFields`: el sembrado de sitio, la autoría de esquema de `/settings` y los
+	//   bootstraps de `vega`/`vega_media`/`vega_revisions` pasan todos por ahí) la invalida al
+	//   terminar, con éxito o sin él (un lote puede crear la primera colección y fallar en la
+	//   segunda). Un cambio hecho FUERA de Vega (Admin de PocketBase) se ve tras el siguiente
+	//   `listContentTypes()` o al recargar la página, igual que ya le pasaba al `ContentModel`.
+	let cachedLiveSchemaPromise: Promise<ContentType[]> | null = null;
+	/** `true` cuando `cachedLiveSchemaPromise` ya resolvió: distingue "en vuelo" (se comparte) de
+	 *  "resuelta" (una lectura explícita vuelve a pedir). */
+	let cachedLiveSchemaSettled = false;
 
+	/** Arranca una lectura NUEVA de `/api/collections` y la deja como caché vigente. */
+	function loadLiveSchema(): Promise<ContentType[]> {
+		const promise: Promise<ContentType[]> = fetchLiveContentTypes().then(
+			(types) => {
+				// Solo si nadie la invalidó o reemplazó mientras estaba en vuelo.
+				if (cachedLiveSchemaPromise === promise) cachedLiveSchemaSettled = true;
+				return types;
+			},
+			(err: unknown) => {
+				if (cachedLiveSchemaPromise === promise) cachedLiveSchemaPromise = null;
+				throw err;
+			}
+		);
+		cachedLiveSchemaPromise = promise;
+		cachedLiveSchemaSettled = false;
+		return promise;
+	}
+
+	/** Invalida la caché del esquema vivo: la próxima operación vuelve a pedir `/api/collections`. */
+	function invalidateLiveSchema(): void {
+		cachedLiveSchemaPromise = null;
+		cachedLiveSchemaSettled = false;
+	}
+
+	/** Esquema para el camino caliente de datos: el cacheado si lo hay (ver cabecera de la caché). */
+	function cachedContentTypes(): Promise<ContentType[]> {
+		if (!CAPABILITIES.schemaDiscovery) return fetchContentTypesFromSnapshot();
+		return cachedLiveSchemaPromise ?? loadLiveSchema();
+	}
+
+	/** Esquema para `listContentTypes()`: en vivo, compartiendo una petición que ya esté en vuelo. */
+	function freshContentTypes(): Promise<ContentType[]> {
+		if (!CAPABILITIES.schemaDiscovery) return fetchContentTypesFromSnapshot();
+		if (cachedLiveSchemaPromise && !cachedLiveSchemaSettled) return cachedLiveSchemaPromise;
+		return loadLiveSchema();
+	}
+
+	async function fetchLiveContentTypes(): Promise<ContentType[]> {
 		// `pb.collections.getFullList()` NO sirve aquí (§9.5): por debajo hace
 		// `e.items = e.items?.map(...) || []`, así que una respuesta 2xx sin `items[]` (forma
 		// inesperada) se convierte en silencio en `[]` — indistinguible de "0 colecciones"
@@ -352,7 +410,7 @@ export function createPocketBaseBackend({
 	}
 
 	async function getContentTypeOrThrow(type: string): Promise<ContentType> {
-		const all = await fetchAllContentTypes();
+		const all = await cachedContentTypes();
 		const ct = all.find((c) => c.name === type);
 		if (!ct) throw VegaError.notFound(`El tipo "${type}" no existe`);
 		return ct;
@@ -504,7 +562,7 @@ export function createPocketBaseBackend({
 		},
 
 		async listContentTypes() {
-			return guarded(() => fetchAllContentTypes());
+			return guarded(() => freshContentTypes());
 		},
 
 		async list(type, query?: Query) {
@@ -618,7 +676,12 @@ export function createPocketBaseBackend({
 				if (!CAPABILITIES.schemaBootstrap) {
 					throw VegaError.backend('schemaBootstrap no disponible (ley L8)');
 				}
-				return ensureCollectionsOnPocketBase(pb, specs);
+				try {
+					return await ensureCollectionsOnPocketBase(pb, specs);
+				} finally {
+					// Con éxito o sin él: el lote no hace rollback (ver cabecera de la caché).
+					invalidateLiveSchema();
+				}
 			});
 		},
 
@@ -632,7 +695,11 @@ export function createPocketBaseBackend({
 				if (!CAPABILITIES.schemaFieldBootstrap) {
 					throw VegaError.backend('schemaFieldBootstrap no disponible (ley L8)');
 				}
-				return addFieldsOnPocketBase(pb, collectionName, fields);
+				try {
+					return await addFieldsOnPocketBase(pb, collectionName, fields);
+				} finally {
+					invalidateLiveSchema();
+				}
 			});
 		}
 	};
@@ -649,7 +716,7 @@ function hostOf(url: string): string {
 	}
 }
 
-/** Tamaño de página para paginar `/api/collections` a mano en `fetchAllContentTypes`. */
+/** Tamaño de página para paginar `/api/collections` a mano en `fetchLiveContentTypes`. */
 const COLLECTIONS_PAGE_SIZE = 200;
 
 /**

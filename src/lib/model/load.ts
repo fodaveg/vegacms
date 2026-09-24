@@ -211,7 +211,7 @@ export async function saveManifest(port: BackendPort, manifest: JsonValue): Prom
 		// snapshot que se persiste abajo DEBE incluir la propia colección `vega` (así lo vería
 		// una introspección real en vivo, §4.2). Sin este refresco, el primer guardado desde
 		// `/settings` (bootstrap) dejaba un `schemaSnapshot` SIN `vega`; un editor (modo
-		// snapshot, `schemaDiscovery: false`) leería ESE snapshot vía `fetchAllContentTypes` y
+		// snapshot, `schemaDiscovery: false`) leería ESE snapshot vía `fetchContentTypesFromSnapshot` y
 		// `loadContentModel` (arriba, §6.2) decidiría "manifiesto ausente" pese a que el
 		// manifiesto SÍ existe — rompía el caso central de L6b.
 		types = await port.listContentTypes();

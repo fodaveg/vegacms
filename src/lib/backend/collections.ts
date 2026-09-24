@@ -360,7 +360,7 @@ export const VEGA_COLLECTION: CollectionSpec = {
 		// L6b (rol editor): snapshot cacheado del `ContentType[]` que un superuser deja al
 		// guardar desde `/settings` (`saveManifest`, `model/load.ts`). Aditivo: un registro
 		// `vega` creado ANTES de esta enmienda simplemente no lo tiene — se trata como "sin
-		// snapshot" (ver `fetchAllContentTypes` del adaptador pocketbase), nunca rompe.
+		// snapshot" (ver `fetchContentTypesFromSnapshot` del adaptador pocketbase), nunca rompe.
 		{ name: 'schemaSnapshot', type: 'json' }
 	]
 };
