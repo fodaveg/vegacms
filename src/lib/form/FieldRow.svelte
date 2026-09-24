@@ -242,7 +242,10 @@
 	.vega-field-help {
 		margin: 0.3rem 0 0;
 		font-size: 0.82em;
-		color: var(--ink-3);
+		/* `--ink-3` sobre `--surface`/`--paper` en claro da 2,20:1 (medido), bajo el 4,5:1 de AA
+		   para texto normal — esta ayuda hay que poder leerla, no es decorativa. `--ink-2` (~5,7:1
+		   sobre blanco) sí cumple. */
+		color: var(--ink-2);
 		overflow-wrap: anywhere;
 	}
 
