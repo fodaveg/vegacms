@@ -73,6 +73,13 @@
 	 * discovery, o proyecto legacy) = sin contraste posible: ningún bloque se marca, igual que el
 	 * equivalente de `model/load.ts`.
 	 *
+	 * **Sección no pública.** Si el sitio marca un bloque como no público (`unpublished` de
+	 * `bridge-client.ts#VisualBlock`, atributo `data-vega-unpublished="true"` del lado del sitio),
+	 * la etiqueta del contorno lo dice con texto ("No pública"), igual que la fila del árbol. Vega
+	 * no lo deduce nunca: un sitio que no lo dice no tiene ninguna sección marcada. Y NO cuenta
+	 * para `missingBlocks`: una sección no pública que el sitio pinta en la vista previa es un
+	 * bloque reportado como cualquier otro (ver `missingBlocks`).
+	 *
 	 * **Doble trazo, siempre — requisito, no adorno.** El contorno se pinta ENCIMA del sitio del
 	 * cliente, cuyo fondo Vega no controla ni conoce (§"Visual editing bridge": "the site owns
 	 * rendering"), así que un trazo de un solo color desaparece contra la mitad de los fondos
@@ -288,6 +295,13 @@
 	 *  pinta un registro que Vega conoce (p.ej. una sección sin publicar que la plantilla omite):
 	 *  el árbol enseña seis, el lienzo pinta cuatro, y sin este aviso no hay una palabra que lo
 	 *  explique.
+	 *
+	 *  **Qué NO cuenta como faltante** (revisado con la marca de "no pública"): todo bloque que el
+	 *  sitio REPORTA está en `blocks`, sea público o no (`unpublished`) y aunque la vista previa lo
+	 *  oculte y llegue colapsado a 0×0 (`parseBlocks` lo acepta a propósito). Solo falta lo que el
+	 *  sitio no reporta en absoluto — por ejemplo una plantilla que en la vista previa sigue
+	 *  omitiendo las secciones sin publicar —, y ahí el aviso es cierto: la sección existe y el
+	 *  sitio no la pinta. Por eso la cuenta no mira `unpublished` para nada.
 	 *
 	 *  **Por id, no por longitud**: `blocks.length !== records.length` es la comprobación fácil y
 	 *  la equivocada — con un id que no case en los dos sentidos a la vez los números pueden
@@ -661,6 +675,12 @@
 						<Icon id="warning" size={12} />
 						<span>({ctx.t('editor.visual.overlay.unsupported')})</span>
 					{/if}
+					{#if block.unpublished}
+						<!-- Ver cabecera, "Sección no pública": texto, no solo color. -->
+						<span class="vega-visual-overlay-label-unpublished">
+							{ctx.t('editor.visual.unpublished')}
+						</span>
+					{/if}
 				</span>
 			</div>
 		{/each}
@@ -1006,6 +1026,17 @@
 	.vega-visual-overlay-label--unsupported {
 		background: var(--warning-soft);
 		color: var(--warning);
+	}
+
+	/* Sección no pública (ver cabecera): una píldora PROPIA dentro de la etiqueta, con el par
+	   `info`/`info-soft` (medido en el mismo gate que `warning`), en vez de recolorear la etiqueta
+	   entera — así convive con el aviso de "no soportado", que es otro eje, y el texto del tipo
+	   sigue con su par de siempre. */
+	.vega-visual-overlay-label-unpublished {
+		padding: 0 0.3rem;
+		border-radius: calc(var(--r) / 1.5);
+		background: var(--info-soft);
+		color: var(--info);
 	}
 
 	/* Franja de estados (ver cabecera, "Informativo, NO decorativo"): flota en la esquina en vez

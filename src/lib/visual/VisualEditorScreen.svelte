@@ -76,6 +76,11 @@
 	 * pasa por `handleBlockSelect` ni avisa al sitio con `highlight`: el sitio ya sabe dónde está
 	 * su propio puntero, devolverle el dato sería ruido.
 	 *
+	 * **Qué secciones NO son públicas lo dice el sitio, no Vega** (`unpublished` de cada bloque del
+	 * puente, ver `bridge-client.ts#VisualBlock`): esta pantalla solo lo reparte — al overlay le
+	 * llega dentro de cada bloque, al árbol como `unpublishedIds`, porque el árbol pinta registros
+	 * de PocketBase y no los bloques del puente. Sin puente conectado, el árbol no marca ninguna.
+	 *
 	 * **El arrastre de paleta en vuelo tiene el MISMO reparto de dueño único que la selección
 	 * (encargo "paleta de bloques arrastrable del editor visual", decisión 5).** `paletteDragType`
 	 * (`ResolvedBlockType | null`) es EL OTRO `$state` que esta pantalla posee y nadie más escribe:
@@ -946,6 +951,11 @@
 	const overlaySkippedBlocks = $derived(
 		bridgeState.status === 'connected' ? bridgeState.skippedBlocks : 0
 	);
+	/** Ids que el SITIO dice no públicos (ver cabecera, "Qué secciones NO son públicas"), para el
+	 *  árbol. Vacío sin conexión: sin puente, Vega no sabe nada de publicación. */
+	const unpublishedBlockIds = $derived(
+		new Set(overlayBlocks.filter((block) => block.unpublished).map((block) => block.id))
+	);
 	interface BridgeErrorText {
 		title: string;
 		body: string;
@@ -1154,6 +1164,7 @@
 			<VisualBlockTree
 				{blocks}
 				selectedId={selectedBlockId}
+				unpublishedIds={unpublishedBlockIds}
 				onSelect={handleBlockSelect}
 				onStructuralChange={handleContentSaved}
 				onPaletteDragStart={handlePaletteDragStart}

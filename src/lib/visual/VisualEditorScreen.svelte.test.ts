@@ -763,6 +763,59 @@ describe('VisualEditorScreen.svelte — árbol de secciones e inspector', () => 
 		expect(highlighted()).toEqual([]);
 	});
 
+	test('`unpublished` del sitio llega al árbol (texto + nombre accesible) y a la etiqueta del contorno', async () => {
+		const { ctx, type } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Borrador', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		// Antes de conectar, Vega no sabe nada de publicación: ninguna fila marcada.
+		expect(mounted.target.querySelector('.vega-tree-unpublished')).toBeNull();
+
+		const iframe = mounted.target.querySelector<HTMLIFrameElement>('.vega-visual-frame');
+		iframe?.dispatchEvent(new Event('load'));
+		await tick();
+		sendSiteMessage({
+			vega: 'vega-visual-1',
+			type: 'ready',
+			collection: 'post',
+			id: 'rec-1',
+			blocks: [
+				{ id: 'b1', type: 'hero', rect: { top: 0, left: 0, width: 100, height: 50 } },
+				{
+					id: 'b2',
+					type: 'gallery',
+					rect: { top: 60, left: 0, width: 100, height: 50 },
+					unpublished: true
+				}
+			]
+		});
+		await tick();
+
+		const rows = mounted.target.querySelectorAll<HTMLButtonElement>('.vega-tree-row');
+		expect(rows[0].querySelector('.vega-tree-unpublished')).toBeNull();
+		expect(rows[1].querySelector('.vega-tree-unpublished')).not.toBeNull();
+		expect(rows[1].getAttribute('aria-label')).toBe(
+			translate('es', 'editor.visual.tree.selectLabelUnpublished', { label: 'Borrador' })
+		);
+		expect(
+			mounted.target.querySelector(
+				'[data-vega-block-id="b2"] .vega-visual-overlay-label-unpublished'
+			)
+		).not.toBeNull();
+		expect(
+			mounted.target.querySelector(
+				'[data-vega-block-id="b1"] .vega-visual-overlay-label-unpublished'
+			)
+		).toBeNull();
+		// Reportada = no falta: ningún aviso de secciones que el sitio no pinta.
+		expect(mounted.target.querySelector('.vega-visual-overlay-status')?.textContent).not.toContain(
+			translate('es', 'editor.visual.overlay.missing', { count: 1 })
+		);
+	});
+
 	test('un `ready` nuevo apaga el resalte del puntero: es otro documento', async () => {
 		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
 		mounted = mountScreen(ctx, type);

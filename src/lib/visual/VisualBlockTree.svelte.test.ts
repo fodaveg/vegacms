@@ -210,6 +210,47 @@ describe('VisualBlockTree.svelte', () => {
 		]);
 	});
 
+	test('sección NO pública (lo dice el sitio): insignia con texto y el estado dentro del nombre accesible', () => {
+		const blocks = fakeBlocksState({ records: [record('b1', 'Hero'), record('b2', 'Borrador')] });
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const instance = mount(VisualBlockTree, {
+			target,
+			props: {
+				blocks,
+				selectedId: null,
+				unpublishedIds: new Set(['b2']),
+				onSelect: vi.fn(),
+				onStructuralChange: vi.fn(),
+				onPaletteDragStart: vi.fn(),
+				onPaletteDragEnd: vi.fn()
+			},
+			context: new Map([[VEGA_CONTEXT_KEY, fakeCtx()]])
+		});
+		mounted = { target, instance };
+
+		const rows = target.querySelectorAll<HTMLButtonElement>('.vega-tree-row');
+		// Texto visible, no solo un color.
+		expect(rows[0].querySelector('.vega-tree-unpublished')).toBeNull();
+		expect(rows[1].querySelector('.vega-tree-unpublished')?.textContent).toBe(
+			translate('es', 'editor.visual.unpublished')
+		);
+		// El `aria-label` sustituye al contenido visible: el estado tiene que ir DENTRO de él.
+		expect(rows[0].getAttribute('aria-label')).toBe(
+			translate('es', 'editor.visual.tree.selectLabel', { label: 'Hero' })
+		);
+		expect(rows[1].getAttribute('aria-label')).toBe(
+			translate('es', 'editor.visual.tree.selectLabelUnpublished', { label: 'Borrador' })
+		);
+	});
+
+	test('sin `unpublishedIds` (sitio que no lo dice, o puente sin conectar): ninguna fila se marca', () => {
+		const blocks = fakeBlocksState({ records: [record('b1', 'Hero'), record('b2', 'Borrador')] });
+		mounted = mountTree(blocks, null);
+
+		expect(mounted.target.querySelector('.vega-tree-unpublished')).toBeNull();
+	});
+
 	test('marca sucio con un punto y guardándose con texto (guardándose gana si coinciden)', () => {
 		const blocks = fakeBlocksState({
 			records: [record('b1', 'Hero'), record('b2', 'Features'), record('b3', 'Precios')],

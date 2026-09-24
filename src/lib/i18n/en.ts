@@ -257,6 +257,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.overlay.skipped': "{count} block(s) the site described badly: can't be selected.",
 	'editor.visual.overlay.missing': "{count} section(s) that exist but the site isn't rendering.",
 	'editor.visual.overlay.unsupported': 'unsupported',
+	// Section the SITE says is not public (bridge `unpublished`): see `es.ts` for the rationale.
+	'editor.visual.unpublished': 'Not public',
 	// "Draggable block palette" task: the empty-canvas drop target, ONLY while a palette drag is in
 	// flight (see `es.ts` for the full rationale).
 	'editor.visual.overlay.emptyDrop': 'Drop here to create the first section',
@@ -265,6 +267,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// block's form. See `es.ts` for the full rationale, incl. which existing keys are reused.
 	'editor.visual.tree.title': 'Sections',
 	'editor.visual.tree.selectLabel': 'Select "{label}"',
+	// The row's `aria-label` replaces its visible text, so the state has to be in it (see `es.ts`).
+	'editor.visual.tree.selectLabelUnpublished': 'Select "{label}" (not public)',
 	'editor.visual.tree.unavailable': 'Could not load the section tree.',
 	// Selection announcement ("accessibility" task, D3): see `es.ts` for the full rationale (same
 	// `aria-live` region as `editor.blocks.reorder.moved`).

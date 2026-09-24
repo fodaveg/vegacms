@@ -43,10 +43,11 @@
  * recargando el marco por su cuenta, así que quedarse en `connected` y avisar con `onRefreshFailed`
  * es más honesto que fingir un fallo de puente que ya se está arreglando solo.
  *
- * **Una capacidad opcional del sitio que no se anuncia en ningún sitio** (§"Hover" del
- * contrato): el mensaje `hover`. A diferencia de `liveRefresh`, Vega no tiene que decidir nada
- * ANTES de que llegue (no hay un mensaje que solo se pueda mandar a quien la tenga), así que el
- * propio mensaje es el anuncio: un sitio que nunca lo manda deja el lienzo exactamente como estaba.
+ * **Dos capacidades opcionales del sitio que no se anuncian en ningún sitio** (§"Hover" y
+ * §"What the site must annotate" del contrato): el mensaje `hover` y el campo `unpublished` de
+ * cada bloque. A diferencia de `liveRefresh`, Vega no tiene que decidir nada ANTES de que lleguen
+ * (no hay un mensaje que solo se pueda mandar a quien las tenga), así que el propio dato es el
+ * anuncio: un sitio que nunca los manda deja el lienzo exactamente como estaba.
  *
  * **El texto de la interfaz NO vive aquí**: el estado expone un `kind` cerrado y la pantalla lo
  * traduce por `i18n`. Este módulo no importa Svelte, no toca `window` y no registra ningún
@@ -96,6 +97,16 @@ export interface VisualBlock {
 	id: string;
 	type: string;
 	rect: BlockRect;
+	/**
+	 * El SITIO dice que esta sección no es pública (§"What the site must annotate" del contrato,
+	 * atributo `data-vega-unpublished="true"`). Vega no sabe qué es "publicado" en cada proyecto
+	 * —en fodaveg es un campo suyo, en otro puede no existir—, así que no lo deduce nunca: solo
+	 * repite lo que el sitio afirma. Presente y `true` únicamente cuando el sitio mandó
+	 * `unpublished: true`; cualquier otra cosa (ausente, `false`, basura) deja la clave FUERA, no a
+	 * `false`, para que un sitio que no conoce la capacidad produzca exactamente los mismos bloques
+	 * que antes de que existiera.
+	 */
+	unpublished?: true;
 }
 
 /** Mensajes del SITIO a Vega, ya validados. `skipped` no viaja por el cable: lo cuenta el
@@ -185,7 +196,11 @@ function parseBlocks(raw: unknown): { blocks: VisualBlock[]; skipped: number } |
 			continue;
 		}
 		seen.add(id);
-		blocks.push({ id, type, rect });
+		// `=== true` a propósito, mismo criterio que `liveRefresh`: un `unpublished` raro degrada a
+		// "no lo dijo" sin tirar el bloque, que sigue siendo dibujable y seleccionable.
+		blocks.push(
+			record.unpublished === true ? { id, type, rect, unpublished: true } : { id, type, rect }
+		);
 	}
 	return { blocks, skipped };
 }

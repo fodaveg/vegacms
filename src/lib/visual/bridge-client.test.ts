@@ -150,6 +150,41 @@ describe('parseSiteMessage', () => {
 		expect(message).toEqual({ type: 'error', code: 'boom', detail: 'x'.repeat(200) });
 	});
 
+	// ————— `unpublished` (§"What the site must annotate"): campo OPCIONAL de cada bloque —————
+
+	test('`unpublished: true` se conserva; cualquier otra cosa deja la clave FUERA, nunca `false`', () => {
+		const parsed = parseSiteMessage(
+			envelope({
+				type: 'layout',
+				blocks: [
+					{ ...BLOCK, id: 'borrador', unpublished: true },
+					{ ...BLOCK, id: 'dice-false', unpublished: false },
+					{ ...BLOCK, id: 'texto', unpublished: 'true' },
+					{ ...BLOCK, id: 'numero', unpublished: 1 },
+					{ ...BLOCK, id: 'sin-clave' }
+				]
+			})
+		);
+		// `toEqual` no distingue "clave ausente" de "clave a `undefined`", así que se mira con `in`.
+		expect(parsed).toMatchObject({ status: 'ok', message: { skipped: 0 } });
+		const blocks =
+			parsed.status === 'ok' && parsed.message.type === 'layout' ? parsed.message.blocks : [];
+		expect(blocks.map((b) => b.id)).toEqual([
+			'borrador',
+			'dice-false',
+			'texto',
+			'numero',
+			'sin-clave'
+		]);
+		expect(blocks.map((b) => ('unpublished' in b ? b.unpublished : 'ausente'))).toEqual([
+			true,
+			'ausente',
+			'ausente',
+			'ausente',
+			'ausente'
+		]);
+	});
+
 	// ————— `hover` (§"Hover" del contrato): mensaje OPCIONAL del sitio —————
 
 	test('"hover" con un id, y con `null` explícito para "ningún bloque"', () => {

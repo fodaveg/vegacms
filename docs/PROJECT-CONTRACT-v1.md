@@ -376,13 +376,13 @@ bridge installed and offers the ordinary preview, which still works.
 
 **Site to Vega**
 
-| `type`   | Payload                                                          | When                                                    |
-| -------- | ---------------------------------------------------------------- | ------------------------------------------------------- |
-| `ready`  | `{ collection, id, blocks: [{ id, type, rect }], liveRefresh? }` | On init, after a live refresh, and in answer to `hello` |
-| `layout` | `{ blocks: [{ id, type, rect }] }`                               | Geometry changed: scroll, resize, late-loading images   |
-| `select` | `{ blockId }`                                                    | The author clicked inside that block                    |
-| `hover`  | `{ blockId }` (a block id, or `null`)                            | Optional: the pointer moved onto another block (below)  |
-| `error`  | `{ code, message }`                                              | The bridge cannot do its job (see below)                |
+| `type`   | Payload                                                                        | When                                                    |
+| -------- | ------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| `ready`  | `{ collection, id, blocks: [{ id, type, rect, unpublished? }], liveRefresh? }` | On init, after a live refresh, and in answer to `hello` |
+| `layout` | `{ blocks: [{ id, type, rect, unpublished? }] }`                               | Geometry changed: scroll, resize, late-loading images   |
+| `select` | `{ blockId }`                                                                  | The author clicked inside that block                    |
+| `hover`  | `{ blockId }` (a block id, or `null`)                                          | Optional: the pointer moved onto another block (below)  |
+| `error`  | `{ code, message }`                                                            | The bridge cannot do its job (see below)                |
 
 **Vega to site**
 
@@ -444,6 +444,24 @@ The bridge locates blocks through DOM attributes the renderer emits:
 - `data-vega-blocks-root` on the element wrapping the whole sequence. This is what live
   refresh replaces, so it has to be a single element that contains every block and nothing
   the surrounding page depends on keeping.
+
+One more attribute is optional:
+
+- `data-vega-unpublished="true"` on a block the preview renders but that is not public yet,
+  either on the block element itself or on one of its top-level rendered elements (with
+  `VegaBlocks` the block element is a `display: contents` wrapper the package owns, so the
+  site's own component marks what it renders inside it). The bridge then adds
+  `unpublished: true` to that block's entry in `ready` and `layout`, and Vega labels it as not
+  public, with text, in its section tree and on the canvas outline.
+
+Vega has no notion of "published": it is a field of the site's own model, when the site has one
+at all, which is why this is the site's statement and never Vega's inference. Only the exact
+value `"true"` counts, and only on the block or its top-level elements (an element nested inside
+a block's content says nothing about the block). Any other value of `unpublished` in a message
+(absent, `false`, a string) degrades to "not stated" without invalidating the block, so a site
+that never sets the attribute behaves exactly as before. A block reported with `unpublished: true`
+is still a reported block: it is drawn, selectable, and never counted among the sections Vega
+has but the site did not render.
 
 #### Security
 
