@@ -408,6 +408,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'form.relation.media.empty': 'The media library is empty. Upload files from the Media section.',
 	'form.relation.media.error':
 		'The media library could not be loaded. Check your connection and permissions.',
+	'form.relation.media.pageError':
+		'This media library page could not be loaded. Already-loaded files are still available.',
 	'form.relation.media.targetMissing':
 		'The media collection is not available in the model yet. Reload Vega to update it.',
 	'form.relation.media.type.image': 'Image',

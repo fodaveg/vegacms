@@ -131,6 +131,10 @@
 	let degradedTotalPages = $state(1);
 	let degradedTotalItems = $state(0);
 	let mediaLoadState = $state<MediaLoadState>('loading');
+	/** Página que acaba de fallar CON candidatos ya visibles de una página buena anterior (hallazgo
+	 *  p3): distinto de `mediaLoadState === 'error'`, que es el fallo de la PRIMERA carga (nada que
+	 *  conservar). `null` sin fallo pendiente. Ver `loadDegradedPage`. */
+	let mediaPageError = $state<number | null>(null);
 	// Variable PLANA (no `$state`, mismo patrón que `lastCall` de `list-state.svelte.ts`): recuerda
 	// para qué destino ya se disparó la carga inicial del listado degradado, para no repetirla en
 	// cada re-render mientras el `$effect` de abajo sigue viendo el mismo `target`.
@@ -230,8 +234,16 @@
 		if (!target) return;
 		const mediaMode = isMediaTarget;
 		const seq = sequencer.next();
-		if (mediaMode) mediaLoadState = 'loading';
-		else degradedLoading = true;
+		if (mediaMode) {
+			// Solo se pinta la pantalla de carga ENTERA cuando todavía no hay nada visible (primera
+			// carga, o todas las páginas anteriores fallaron): una página SIGUIENTE con candidatos ya
+			// en pantalla no debe desaparecer mientras se pide la próxima — eso es justo lo que
+			// ocultaba la paginación en el hallazgo p3 (ver cabecera de la tarea/`mediaPageError`).
+			if (degradedItems.length === 0) mediaLoadState = 'loading';
+			mediaPageError = null;
+		} else {
+			degradedLoading = true;
+		}
 		try {
 			const result = await ctx.port.list(target.name, buildDegradedListQuery(page));
 			if (destroyed || !sequencer.isLatest(seq)) return;
@@ -244,8 +256,19 @@
 			if (mediaMode) mediaLoadState = 'ready';
 		} catch (err) {
 			if (destroyed || !sequencer.isLatest(seq)) return;
-			degradedItems = [];
-			if (mediaMode) mediaLoadState = 'error';
+			if (mediaMode) {
+				if (degradedItems.length === 0) {
+					// Nada que conservar todavía: mismo estado de error de siempre, pantalla completa.
+					mediaLoadState = 'error';
+				} else {
+					// La página buena anterior sigue en pantalla intacta (`degradedItems`/`degradedPage`
+					// NUNCA se tocan en esta rama): solo se avisa de la página que falló, con su propio
+					// reintento puntual — la paginación sigue operable (`mediaLoadState` sigue `'ready'`).
+					mediaPageError = page;
+				}
+			} else {
+				degradedItems = [];
+			}
 			reportUnexpected(err, 'relation:degradedList');
 		} finally {
 			if (!mediaMode && !destroyed && sequencer.isLatest(seq)) degradedLoading = false;
@@ -376,6 +399,9 @@
 				{:else if mediaLoadState === 'error'}
 					<li class="vega-relation-status" role="alert">
 						{ctx.t('form.relation.media.error')}
+						<button type="button" onclick={() => void loadDegradedPage(degradedPage)}>
+							{ctx.t('common.retry')}
+						</button>
 					</li>
 				{:else if degradedItems.length === 0}
 					<li class="vega-relation-status">{ctx.t('form.relation.media.empty')}</li>
@@ -431,6 +457,17 @@
 				{/if}
 			{/if}
 		</ul>
+		{#if isMediaTarget && mediaPageError !== null}
+			{@const failedPage = mediaPageError}
+			<!-- Aviso PUNTUAL de una página posterior fallida (hallazgo p3): la página buena anterior
+			     sigue arriba, intacta — este aviso NO sustituye la lista ni oculta la paginación. -->
+			<p class="vega-relation-media-page-error" role="alert">
+				{ctx.t('form.relation.media.pageError')}
+				<button type="button" onclick={() => void loadDegradedPage(failedPage)}>
+					{ctx.t('common.retry')}
+				</button>
+			</p>
+		{/if}
 		{#if target && (!isMediaTarget || mediaLoadState === 'ready')}
 			<Pagination
 				page={degradedPage}
@@ -638,6 +675,46 @@
 		margin: 0;
 		color: var(--ink-2);
 		font-size: 0.8rem;
+	}
+
+	/* Aviso puntual de una página posterior fallida (hallazgo p3): mismo lenguaje visual de aviso
+	   que `.vega-field-notice`/`ReferencesSummary.svelte` — informa, no bloquea (la página buena
+	   anterior sigue arriba, intacta). */
+	.vega-relation-media-page-error {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin: 0;
+		padding: 0.4rem 0.6rem;
+		border: 1px solid var(--warning);
+		border-radius: 6px;
+		background: var(--warning-soft);
+		color: var(--warning);
+		font-size: 0.82em;
+	}
+
+	.vega-relation-status button {
+		margin-left: 0.4rem;
+		border: none;
+		background: transparent;
+		color: inherit;
+		font: inherit;
+		font-size: 0.85em;
+		text-decoration: underline;
+		cursor: pointer;
+		padding: 0;
+	}
+
+	.vega-relation-media-page-error button {
+		border: none;
+		background: transparent;
+		color: inherit;
+		font: inherit;
+		font-size: 0.85em;
+		font-weight: 600;
+		text-decoration: underline;
+		cursor: pointer;
+		padding: 0;
 	}
 
 	.vega-widget-relation[data-invalid='true'] .vega-relation-search,

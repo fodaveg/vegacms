@@ -388,6 +388,82 @@ describe('Relation.svelte con destino vega_media', () => {
 		expect(mounted.target.querySelector('[role="alert"]')).not.toBeNull();
 	});
 
+	test('una página posterior que falla conserva los candidatos de la buena y ofrece reintentar (hallazgo p3)', async () => {
+		let page2Attempts = 0;
+		const list = vi.fn(async (_type: string, query) => {
+			const current = query?.page ?? 1;
+			if (current === 1) {
+				return page([mediaRecord(MEDIA_ID_A, 'primera.jpg')], {
+					current: 1,
+					totalPages: 2,
+					totalItems: 2
+				});
+			}
+			page2Attempts++;
+			if (page2Attempts === 1) throw VegaError.backend('caída de red', new Error('boom'));
+			return page([mediaRecord(MEDIA_ID_B, 'segunda.jpg')], {
+				current: 2,
+				totalPages: 2,
+				totalItems: 2
+			});
+		}) as unknown as BackendPort['list'];
+		mounted = mountRelation({
+			field: relationField('vega_media'),
+			types: [MEDIA_TYPE],
+			list
+		});
+		await settle();
+
+		mounted.target
+			.querySelector<HTMLButtonElement>(`button[aria-label="${t('list.pagination.next')}"]`)
+			?.click();
+		await settle();
+
+		// La página 1 SIGUE visible: nunca se vació ni se sustituyó por la pantalla de error entera.
+		expect(mounted.target.textContent).toContain('primera.jpg');
+		expect(mounted.target.textContent).not.toContain(t('form.relation.media.error'));
+		expect(mounted.target.textContent).toContain(t('form.relation.media.pageError'));
+		// La paginación sigue operable: no desaparece con el fallo de una página posterior.
+		expect(
+			mounted.target.querySelector(`button[aria-label="${t('list.pagination.next')}"]`)
+		).not.toBeNull();
+
+		mounted.target
+			.querySelector<HTMLButtonElement>('.vega-relation-media-page-error button')
+			?.click();
+		await settle();
+
+		expect(mounted.target.textContent).toContain('segunda.jpg');
+		expect(mounted.target.textContent).not.toContain(t('form.relation.media.pageError'));
+	});
+
+	test('el fallo de la PRIMERA página sigue siendo la pantalla de error de siempre, con reintento', async () => {
+		let attempts = 0;
+		const list = vi.fn(async () => {
+			attempts++;
+			if (attempts === 1) throw VegaError.forbidden('sin listRule');
+			return page([mediaRecord(MEDIA_ID_A, 'primera.jpg')]);
+		}) as unknown as BackendPort['list'];
+		mounted = mountRelation({
+			field: relationField('vega_media'),
+			types: [MEDIA_TYPE],
+			list
+		});
+		await settle();
+
+		expect(mounted.target.textContent).toContain(t('form.relation.media.error'));
+		const retryButton = mounted.target.querySelector<HTMLButtonElement>(
+			'.vega-relation-status button'
+		);
+		expect(retryButton).not.toBeNull();
+
+		retryButton?.click();
+		await settle();
+
+		expect(mounted.target.textContent).toContain('primera.jpg');
+		expect(mounted.target.textContent).not.toContain(t('form.relation.media.error'));
+	});
+
 	test('pagina sin buscador y conserva la selección al ir y volver', async () => {
 		const list = vi.fn(async (_type: string, query) => {
 			const current = query?.page ?? 1;
