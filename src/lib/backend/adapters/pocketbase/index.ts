@@ -63,6 +63,10 @@ const DEFAULT_AUTH_COLLECTION = '_superusers';
 function computeCapabilities(authCollection: string, strongAuth: boolean): Capabilities {
 	const isSuperuser = authCollection === DEFAULT_AUTH_COLLECTION;
 	return {
+		// `true` porque `subscribe()` funciona contra PocketBase (lo cubre la suite de contrato), no
+		// porque la interfaz lo use: ninguna pantalla se suscribe todavía. La capacidad describe el
+		// puerto; quién la consume es otra decisión (docs/POCKETBASE-INTEGRATION.md, "Sincronización
+		// en tiempo real"). No bajarla a `false` por falta de consumidor.
 		realtime: true,
 		thumbs: true,
 		schemaDiscovery: isSuperuser,

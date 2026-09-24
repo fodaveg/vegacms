@@ -107,7 +107,11 @@ export type AuthChangeReason = 'login' | 'logout' | 'expired' | 'restored';
  * un consumidor DEBE tratar una clave ausente como false.
  */
 export interface Capabilities {
-	/** subscribe() disponible. PB: true. memory: true (emulado). */
+	/**
+	 * subscribe() disponible. PB: true. memory: true (emulado). Describe lo que el PUERTO puede
+	 * hacer, no lo que usa la interfaz: hoy ninguna pantalla se suscribe (ver "Sincronización en
+	 * tiempo real" en `docs/POCKETBASE-INTEGRATION.md`).
+	 */
 	realtime: boolean;
 	/** fileUrl acepta ThumbSpec con efecto real. PB: true. memory: false. */
 	thumbs: boolean;

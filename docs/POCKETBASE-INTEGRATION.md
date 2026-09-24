@@ -802,7 +802,7 @@ Ver la documentación de PocketBase sobre [rules](https://pocketbase.io/docs/api
 
 ## Sincronización en tiempo real
 
-Vega NO suscribe a cambios en tiempo real de PocketBase (no usa WebSockets). Cada operación es un request HTTP explícito:
+La interfaz de Vega NO se suscribe a cambios en tiempo real de PocketBase. Cada operación es un request HTTP explícito:
 
 - **Crear/actualizar/borrar**: fetch POST/PATCH/DELETE.
 - **Listar**: fetch GET.
@@ -811,8 +811,10 @@ Si PocketBase cambia datos mientras Vega está abierto, **la app no lo verá aut
 
 Esta es una **decisión de diseño**: simplifica la arquitectura y evita conflictos de sincronización complejos. Si necesitas tiempo real, puedes:
 
-- Agregar suscripción WebSocket a PocketBase (cambio de arquitectura).
+- Suscribir las pantallas que lo necesiten con `port.subscribe()` (tiempo real de PocketBase, por SSE).
 - Implementar polling periódico en Vega (refetch cada N segundos).
+
+**Sobre la capacidad `realtime: true`**: el adaptador de PocketBase la declara porque su `subscribe()` funciona (lo cubre la suite de contrato). Las capacidades describen lo que el **puerto** sabe hacer, no lo que usa la interfaz: que hoy ninguna pantalla se suscriba no la convierte en `false`. Si algún día una pantalla la usa, debe consultarla antes, como cualquier otra capacidad.
 
 Ver [Arquitectura](../README.md#estructura-de-la-app) para más contexto.
 
