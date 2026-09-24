@@ -50,6 +50,7 @@
 	} from './field-errors';
 	import { fieldErrorMessage } from './field-error-message';
 	import { setRecordIdentity } from './record-context';
+	import { setFieldScope } from './field-scope';
 	import FieldRow from './FieldRow.svelte';
 
 	interface Props {
@@ -111,6 +112,10 @@
 	let saving = $state(false);
 
 	untrack(() => setRecordIdentity({ type: childType.name, id: initialRecord.id }));
+	// Ámbito de ids DOM (hallazgo p1, `field-scope.ts`, léase su cabecera): `initialRecord.id` ya
+	// es la identidad ESTABLE de esta fila durante toda su vida (ver más arriba), así que namespacea
+	// los ids de sus `FieldRow`/widgets sin que dos filas del mismo tipo de bloque puedan colisionar.
+	setFieldScope(String(initialRecord.id));
 
 	function isDataObject(value: unknown): value is Record<string, unknown> {
 		return typeof value === 'object' && value !== null && !Array.isArray(value);

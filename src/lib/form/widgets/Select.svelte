@@ -14,12 +14,14 @@
 	 */
 	import type { WidgetProps } from './types';
 	import { fieldIds } from '../field-ids';
+	import { getFieldScope } from '../field-scope';
 	import { getVegaContext } from '$lib/app-context';
 
 	let { field, value, error, disabled, readonly, optionLabels, onChange }: WidgetProps = $props();
 
 	const ctx = getVegaContext();
-	const ids = $derived(fieldIds(field.name));
+	const fieldScope = getFieldScope();
+	const ids = $derived(fieldIds(field.name, fieldScope));
 	const describedBy = $derived(
 		[field.help ? ids.helpId : null, error ? ids.errorId : null]
 			.filter((id): id is string => id !== null)

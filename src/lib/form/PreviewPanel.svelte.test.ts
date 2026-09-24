@@ -159,6 +159,26 @@ describe('PreviewPanel.svelte', () => {
 		expect(message?.textContent).toContain('503');
 	});
 
+	test('un fallo de RED (fetch rechazado) muestra un mensaje genérico, nunca el crudo del motor (hallazgo p3)', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+		mounted = mountPanel({ refreshToken: 0, onClose: vi.fn() });
+		await flush();
+
+		const message = mounted.target.querySelector('[role="alert"]');
+		expect(message?.textContent).toContain('common.networkError');
+		expect(message?.textContent).not.toContain('Failed to fetch');
+	});
+
+	test('un fallo HTTP (no-2xx) conserva su mensaje, con el código de estado incluido', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('nope', { status: 503 })));
+		mounted = mountPanel({ refreshToken: 0, onClose: vi.fn() });
+		await flush();
+
+		const message = mounted.target.querySelector('[role="alert"]');
+		expect(message?.textContent).toContain('503');
+		expect(message?.textContent).not.toContain('common.networkError');
+	});
+
 	test('reintentar tras un error vuelve a pedir el token', async () => {
 		const token = {
 			url: 'https://site.test/preview/posts/rec-1',

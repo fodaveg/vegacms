@@ -207,3 +207,123 @@ describe('RecordTable.svelte — fallback de subtítulo a la ruta (modelo de pá
 		target.remove();
 	});
 });
+
+describe('RecordTable.svelte — miniatura de columna file (hallazgo p2, lote "formularios y medios")', () => {
+	let mounted: { target: HTMLElement; instance: ReturnType<typeof mount> } | null = null;
+
+	afterEach(async () => {
+		if (mounted) {
+			await unmount(mounted.instance);
+			mounted.target.remove();
+			mounted = null;
+		}
+	});
+
+	const fileRecord: VegaRecord = {
+		id: 'r1',
+		type: 'pages',
+		values: { title: 'Sobre mí', path: '/sobre-mi', cover: 'archivo.jpg' }
+	};
+
+	function fileColumn(thumbs: string[] | undefined): {
+		type: ResolvedContentType;
+		field: ResolvedField;
+	} {
+		const schema: Field = {
+			name: 'cover',
+			type: 'file',
+			multiple: false,
+			protected: false,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false,
+			thumbs
+		};
+		const field: ResolvedField = {
+			schema,
+			name: 'cover',
+			label: 'Portada',
+			help: null,
+			placeholder: null,
+			hidden: false,
+			group: null,
+			widget: 'file',
+			subtype: null,
+			listable: true
+		};
+		const base = makePageType(null);
+		return {
+			field,
+			type: {
+				...base,
+				schema: { ...base.schema, fields: [...base.schema.fields, schema] },
+				fields: [...base.fields, field]
+			}
+		};
+	}
+
+	function mountWithFileColumn(
+		thumbs: string[] | undefined,
+		fileUrl: ReturnType<typeof vi.fn>
+	): { target: HTMLElement; instance: ReturnType<typeof mount> } {
+		const { type, field } = fileColumn(thumbs);
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const instance = mount(RecordTable, {
+			target,
+			props: {
+				contentType: type,
+				columns: [
+					{ field: titleField, isTitle: true, isStatus: false, sortable: false },
+					{ field, isTitle: false, isStatus: false, sortable: false }
+				],
+				records: [fileRecord],
+				sort: null,
+				onSort: vi.fn(),
+				onDeleteRequest: vi.fn(),
+				reorderable: false,
+				onReorder: vi.fn()
+			},
+			context: new Map([
+				[
+					VEGA_CONTEXT_KEY,
+					{
+						t: (key: string) => key,
+						locale: 'es',
+						nav: { toRecord: vi.fn() },
+						port: { capabilities: { thumbs: true }, fileUrl }
+					} as unknown as VegaAppContext
+				]
+			])
+		});
+		return { target, instance };
+	}
+
+	test('tamaño declarado en el campo (`Field.thumbs`): se pide 28x28 tal cual', () => {
+		const fileUrl = vi.fn().mockReturnValue('https://pb.test/thumb.jpg');
+		mounted = mountWithFileColumn(['300x300', '120x120', '28x28'], fileUrl);
+
+		expect(fileUrl).toHaveBeenCalledWith(expect.anything(), 'cover', 'archivo.jpg', {
+			thumb: { width: 28, height: 28, fit: 'crop' }
+		});
+	});
+
+	test('tamaño NO declarado: cae a 100x100 en vez de pedirlo a ciegas (PB devolvería el ORIGINAL)', () => {
+		const fileUrl = vi.fn().mockReturnValue('https://pb.test/thumb.jpg');
+		mounted = mountWithFileColumn([], fileUrl);
+
+		expect(fileUrl).toHaveBeenCalledWith(expect.anything(), 'cover', 'archivo.jpg', {
+			thumb: { width: 100, height: 100, fit: 'crop' }
+		});
+	});
+
+	test('la miniatura lleva `loading="lazy"` y `decoding="async"`', () => {
+		mounted = mountWithFileColumn(['28x28'], vi.fn().mockReturnValue('https://pb.test/thumb.jpg'));
+
+		const img = mounted.target.querySelector<HTMLImageElement>('.vega-file-thumbs img');
+		expect(img?.getAttribute('loading')).toBe('lazy');
+		expect(img?.getAttribute('decoding')).toBe('async');
+	});
+});

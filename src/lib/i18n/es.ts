@@ -449,6 +449,8 @@ export const es = {
 		'La mediateca está vacía. Los archivos se suben desde la sección Medios.',
 	'form.relation.media.error':
 		'No se pudo cargar la mediateca. Comprueba tu conexión y tus permisos.',
+	'form.relation.media.pageError':
+		'No se pudo cargar esta página de la mediateca. Los archivos ya cargados siguen disponibles.',
 	'form.relation.media.targetMissing':
 		'La colección de medios aún no está disponible en el modelo. Recarga Vega para actualizarla.',
 	'form.relation.media.type.image': 'Imagen',
@@ -1082,5 +1084,7 @@ export const es = {
 	'common.retry': 'Reintentar',
 	'common.cancel': 'Cancelar',
 	'common.close': 'Cerrar',
-	'common.loading': 'Cargando…'
+	'common.loading': 'Cargando…',
+	'common.networkError':
+		'No se pudo conectar con el sitio. Comprueba tu conexión e inténtalo de nuevo.'
 };

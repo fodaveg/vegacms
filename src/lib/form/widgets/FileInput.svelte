@@ -33,7 +33,10 @@
 	 *   PLANO — ver LANDMINE de object URLs más abajo); una `FileRef` existente usa
 	 *   `ctx.port.fileUrl(record, field.name, ref, opts)`, con `record` sacado de la costura de
 	 *   identidad (`record-context.ts`, ver su cabecera) y `opts.thumb` SOLO si
-	 *   `ctx.port.capabilities.thumbs`. Imagen (mime o, para una `FileRef`, extensión —
+	 *   `ctx.port.capabilities.thumbs` — y, dentro de eso, `120x120` SOLO si `schema.thumbs` lo
+	 *   declaró (`selectThumbSpec`, `$lib/backend/thumb-select.ts`, hallazgo p2); si no, cae a
+	 *   `100x100` en vez de pedir a ciegas el tamaño que PB serviría como ORIGINAL completo.
+	 *   Imagen (mime o, para una `FileRef`, extensión —
 	 *   `classifyItem`) → `<img>`, con `onerror` degradando a chip (extensión ambigua/incorrecta);
 	 *   cualquier otra cosa → chip con su nombre. `alt`/`title` (fix de code-review, a11y): el
 	 *   `<img>` lleva `alt={itemDisplayName(item)}` (nunca `alt=""` — en readonly/disabled el botón
@@ -70,9 +73,11 @@
 	import { SvelteSet } from 'svelte/reactivity';
 	import type { WidgetProps } from './types';
 	import { fieldIds } from '../field-ids';
+	import { getFieldScope } from '../field-scope';
 	import { getVegaContext } from '$lib/app-context';
 	import Icon from '$lib/icons/Icon.svelte';
 	import { getRecordIdentity } from '../record-context';
+	import { selectThumbSpec } from '$lib/backend/thumb-select';
 	import {
 		acceptAttr,
 		addFilesToMultiple,
@@ -90,7 +95,8 @@
 	const ctx = getVegaContext();
 	const identity = getRecordIdentity(); // null = fuera de un RecordForm (degradado, ver cabecera)
 
-	const ids = $derived(fieldIds(field.name));
+	const fieldScope = getFieldScope();
+	const ids = $derived(fieldIds(field.name, fieldScope));
 	const rejectionId = $derived(`${ids.inputId}-rejection`);
 	const inert = $derived(disabled || readonly);
 	const schema = $derived(field.schema.type === 'file' ? field.schema : null);
@@ -267,8 +273,11 @@
 			return url;
 		}
 		if (!identity || identity.id === null) return null;
+		// `120x120` solo si el propio campo lo declaró (`schema.thumbs`, hallazgo p2); si no,
+		// `selectThumbSpec` cae a `100x100` (el único tamaño que PB sirve siempre) en vez de pedir
+		// a ciegas un tamaño que devolvería el fichero ORIGINAL completo.
 		const opts = ctx.port.capabilities.thumbs
-			? { thumb: { width: 120, height: 120, fit: 'crop' as const } }
+			? { thumb: selectThumbSpec({ width: 120, height: 120, fit: 'crop' }, schema?.thumbs) }
 			: undefined;
 		return ctx.port.fileUrl({ type: identity.type, id: identity.id }, field.name, item, opts);
 	}

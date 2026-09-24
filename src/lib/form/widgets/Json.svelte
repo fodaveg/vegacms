@@ -13,11 +13,13 @@
 	import type { JsonValue } from '$lib/backend/types';
 	import type { WidgetProps } from './types';
 	import { fieldIds } from '../field-ids';
+	import { getFieldScope } from '../field-scope';
 	import { parseJsonInput, stringifyJsonValue } from './json-field';
 
 	let { field, value, error, disabled, readonly, onChange }: WidgetProps = $props();
 
-	const ids = $derived(fieldIds(field.name));
+	const fieldScope = getFieldScope();
+	const ids = $derived(fieldIds(field.name, fieldScope));
 	const describedBy = $derived(
 		[field.help ? ids.helpId : null, error ? ids.errorId : null]
 			.filter((id): id is string => id !== null)

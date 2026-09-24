@@ -25,6 +25,7 @@
 	import type { FieldInputValue } from '$lib/backend/types';
 	import type { TranslatedError } from './field-errors';
 	import { fieldIds } from './field-ids';
+	import { getFieldScope } from './field-scope';
 	import { getVegaContext } from '$lib/app-context';
 
 	interface Props {
@@ -44,7 +45,12 @@
 	let { field, value, error, disabled, readonly, layouts, onChange }: Props = $props();
 
 	const ctx = getVegaContext();
-	const ids = $derived(fieldIds(field.name));
+	// Ver `FieldRow.svelte`: leído síncrono, nunca dentro de `$derived` (misma disciplina de
+	// `getContext`). `null` fuera de un `BlockEditor` — `layoutField` no vive dentro de uno hoy,
+	// pero deriva el MISMO id que `FieldRow`/el widget con los que comparte campo, así que sigue
+	// la misma regla (`field-scope.ts`).
+	const fieldScope = getFieldScope();
+	const ids = $derived(fieldIds(field.name, fieldScope));
 	const describedBy = $derived(
 		[field.help ? ids.helpId : null, error ? ids.errorId : null]
 			.filter((id): id is string => id !== null)
