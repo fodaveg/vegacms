@@ -461,7 +461,9 @@
 		position: absolute;
 		inset: 1.25rem;
 		margin: 0;
-		color: var(--ink-3);
+		/* `--ink-3` da 2,20:1 (medido) bajo AA; este aviso ("nada que previsualizar todavía") hay
+		   que poder leerlo, mismo criterio que `.vega-field-help`. */
+		color: var(--ink-2);
 		font-size: 0.85rem;
 		font-style: italic;
 		pointer-events: none;

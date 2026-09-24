@@ -18,6 +18,7 @@ import type {
 	CollectionSpec,
 	ContentType
 } from '$lib/backend';
+import { VegaError } from '$lib/backend';
 import SchemaAuthoringPanel from './SchemaAuthoringPanel.svelte';
 
 function t(key: string, params?: Record<string, string | number>): string {
@@ -359,5 +360,276 @@ describe('SchemaAuthoringPanel.svelte', () => {
 				cascadeDelete: true
 			}
 		]);
+	});
+
+	describe('campo select (lote "esquema" audit, pieza 4)', () => {
+		/** Deja el formulario "Crear colección" en `type: 'select'`, con un nombre de campo (así el
+		 *  error "añade al menos una opción" queda habilitado a mostrarse) — punto de partida común
+		 *  a los tests de esta sección. */
+		async function setUpSelectField(target: HTMLElement): Promise<void> {
+			const nameInput = target.querySelector<HTMLInputElement>('#vega-schema-create-name')!;
+			setInputValue(nameInput, 'posts');
+
+			const fieldNameInput = target.querySelector<HTMLInputElement>(
+				'.vega-field-row input[type="text"]'
+			)!;
+			setInputValue(fieldNameInput, 'status');
+
+			const typeSelect = target.querySelector<HTMLSelectElement>(
+				'select[aria-label="settings.schema.fields.typeLabel"]'
+			)!;
+			typeSelect.value = 'select';
+			typeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+			await tick();
+		}
+
+		test('sin opciones: el error solo aparece con la fila nombrada, y bloquea el envío', async () => {
+			mounted = mountPanel({ port: fakePort({ capabilities: { schemaBootstrap: true } }) });
+
+			// Con el tipo `select` elegido pero SIN nombre todavía, la fila no cuenta (regla común a
+			// `relation`): ni error ni submit bloqueado por ella.
+			const typeSelect = mounted.target.querySelector<HTMLSelectElement>(
+				'select[aria-label="settings.schema.fields.typeLabel"]'
+			)!;
+			typeSelect.value = 'select';
+			typeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+			await tick();
+			expect(mounted.target.textContent).not.toContain(
+				'settings.schema.fields.select.optionsRequired'
+			);
+
+			await setUpSelectField(mounted.target);
+
+			expect(mounted.target.textContent).toContain('settings.schema.fields.select.optionsRequired');
+			const submit = mounted.target.querySelector<HTMLButtonElement>('.vega-schema-submit')!;
+			expect(submit.disabled).toBe(true);
+		});
+
+		test('una opción válida: el error desaparece y el spec sale con options/multiple', async () => {
+			const ensureCollections = vi.fn(async () => ({ created: ['posts'], skipped: [] }));
+			mounted = mountPanel({
+				port: fakePort({ capabilities: { schemaBootstrap: true }, ensureCollections })
+			});
+			await setUpSelectField(mounted.target);
+
+			const optionInput = mounted.target.querySelector<HTMLInputElement>(
+				'.vega-field-select-option input[type="text"]'
+			)!;
+			setInputValue(optionInput, 'draft');
+			const multiple = mounted.target.querySelector<HTMLInputElement>(
+				'.vega-field-select-options .vega-field-checkbox input[type="checkbox"]'
+			)!;
+			multiple.checked = true;
+			multiple.dispatchEvent(new Event('change', { bubbles: true }));
+			await tick();
+
+			expect(mounted.target.textContent).not.toContain(
+				'settings.schema.fields.select.optionsRequired'
+			);
+			const submit = mounted.target.querySelector<HTMLButtonElement>('.vega-schema-submit')!;
+			expect(submit.disabled).toBe(false);
+
+			const form = mounted.target.querySelector('form')!;
+			form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+			await tick();
+			await tick();
+
+			expect(ensureCollections).toHaveBeenCalledWith([
+				{
+					name: 'posts',
+					fields: [
+						{ name: 'status', type: 'select', required: false, multiple: true, options: ['draft'] }
+					]
+				}
+			]);
+		});
+
+		test('opción repetida (tras recortar espacios): bloquea el envío con mensaje en SU fila', async () => {
+			mounted = mountPanel({ port: fakePort({ capabilities: { schemaBootstrap: true } }) });
+			await setUpSelectField(mounted.target);
+
+			const addOption = mounted.target.querySelector<HTMLButtonElement>(
+				'.vega-field-select-options .vega-schema-add-row'
+			)!;
+			addOption.click();
+			await tick();
+
+			const optionInputs = mounted.target.querySelectorAll<HTMLInputElement>(
+				'.vega-field-select-option input[type="text"]'
+			);
+			expect(optionInputs).toHaveLength(2);
+			setInputValue(optionInputs[0], 'draft');
+			setInputValue(optionInputs[1], ' draft '); // repite tras recortar espacios
+			await tick();
+
+			expect(mounted.target.textContent).toContain('settings.schema.fields.select.optionDuplicate');
+			expect(optionInputs[1].getAttribute('aria-invalid')).toBe('true');
+			const submit = mounted.target.querySelector<HTMLButtonElement>('.vega-schema-submit')!;
+			expect(submit.disabled).toBe(true);
+
+			setInputValue(optionInputs[1], 'published');
+			await tick();
+
+			expect(mounted.target.textContent).not.toContain(
+				'settings.schema.fields.select.optionDuplicate'
+			);
+			expect(submit.disabled).toBe(false);
+		});
+
+		test('opción vacía: se descarta al enviar sin bloquear ni avisar', async () => {
+			const ensureCollections = vi.fn(async () => ({ created: ['posts'], skipped: [] }));
+			mounted = mountPanel({
+				port: fakePort({ capabilities: { schemaBootstrap: true }, ensureCollections })
+			});
+			await setUpSelectField(mounted.target);
+
+			const addOption = mounted.target.querySelector<HTMLButtonElement>(
+				'.vega-field-select-options .vega-schema-add-row'
+			)!;
+			addOption.click();
+			await tick();
+
+			const optionInputs = mounted.target.querySelectorAll<HTMLInputElement>(
+				'.vega-field-select-option input[type="text"]'
+			);
+			setInputValue(optionInputs[0], 'draft');
+			// optionInputs[1] se deja en blanco a propósito.
+			await tick();
+
+			expect(mounted.target.textContent).not.toContain(
+				'settings.schema.fields.select.optionsRequired'
+			);
+			expect(mounted.target.textContent).not.toContain(
+				'settings.schema.fields.select.optionDuplicate'
+			);
+			const submit = mounted.target.querySelector<HTMLButtonElement>('.vega-schema-submit')!;
+			expect(submit.disabled).toBe(false);
+
+			const form = mounted.target.querySelector('form')!;
+			form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+			await tick();
+			await tick();
+
+			expect(ensureCollections).toHaveBeenCalledWith([
+				{
+					name: 'posts',
+					fields: [
+						{ name: 'status', type: 'select', required: false, multiple: false, options: ['draft'] }
+					]
+				}
+			]);
+		});
+
+		test('reordenar con los botones sube/baja cambia el orden final y lo anuncia por voz', async () => {
+			const ensureCollections = vi.fn(async () => ({ created: ['posts'], skipped: [] }));
+			mounted = mountPanel({
+				port: fakePort({ capabilities: { schemaBootstrap: true }, ensureCollections })
+			});
+			await setUpSelectField(mounted.target);
+
+			const addOption = mounted.target.querySelector<HTMLButtonElement>(
+				'.vega-field-select-options .vega-schema-add-row'
+			)!;
+			addOption.click();
+			await tick();
+
+			const optionInputs = mounted.target.querySelectorAll<HTMLInputElement>(
+				'.vega-field-select-option input[type="text"]'
+			);
+			setInputValue(optionInputs[0], 'draft');
+			setInputValue(optionInputs[1], 'published');
+			await tick();
+
+			// Sube la segunda opción ("published") a la primera posición.
+			const moveUpSecond = mounted.target.querySelector<HTMLButtonElement>(
+				`button[aria-label='${t('settings.schema.fields.select.moveUpLabel', { index: 2 })}']`
+			)!;
+			moveUpSecond.click();
+			await tick();
+
+			expect(mounted.target.textContent).toContain(
+				t('settings.schema.fields.select.moved', { value: 'published', position: 1, total: 2 })
+			);
+
+			const form = mounted.target.querySelector('form')!;
+			form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+			await tick();
+			await tick();
+
+			expect(ensureCollections).toHaveBeenCalledWith([
+				{
+					name: 'posts',
+					fields: [
+						{
+							name: 'status',
+							type: 'select',
+							required: false,
+							multiple: false,
+							options: ['published', 'draft']
+						}
+					]
+				}
+			]);
+		});
+
+		test('quitar una opción la borra de la lista', async () => {
+			mounted = mountPanel({ port: fakePort({ capabilities: { schemaBootstrap: true } }) });
+			await setUpSelectField(mounted.target);
+
+			const addOption = mounted.target.querySelector<HTMLButtonElement>(
+				'.vega-field-select-options .vega-schema-add-row'
+			)!;
+			addOption.click();
+			await tick();
+			expect(
+				mounted.target.querySelectorAll('.vega-field-select-option input[type="text"]')
+			).toHaveLength(2);
+
+			const removeFirst = mounted.target.querySelector<HTMLButtonElement>(
+				`button[aria-label='${t('settings.schema.fields.select.removeOption', { index: 1 })}']`
+			)!;
+			removeFirst.click();
+			await tick();
+
+			expect(
+				mounted.target.querySelectorAll('.vega-field-select-option input[type="text"]')
+			).toHaveLength(1);
+		});
+	});
+
+	test('error del backend por campo: se pinta en la fila de ESE campo, además del mensaje general', async () => {
+		const addCollectionFields = vi.fn(async () => {
+			throw VegaError.validation(
+				{ excerpt: { code: 'vega_x', message: 'Ese resumen es demasiado largo' } },
+				'Datos no válidos'
+			);
+		});
+		mounted = mountPanel({
+			port: fakePort({ capabilities: { schemaFieldBootstrap: true }, addCollectionFields }),
+			types: [POST_TYPE]
+		});
+
+		const targetSelect =
+			mounted.target.querySelector<HTMLSelectElement>('#vega-schema-add-target')!;
+		targetSelect.value = 'post';
+		targetSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+		const fieldNameInput = mounted.target.querySelector<HTMLInputElement>(
+			'.vega-field-row input[type="text"]'
+		)!;
+		setInputValue(fieldNameInput, 'excerpt');
+		await tick();
+
+		const form = mounted.target.querySelector('form')!;
+		form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await tick();
+		await tick();
+
+		// El mensaje general (`settings.schema.error`) Y el de la fila conviven.
+		expect(mounted.target.textContent).toContain('settings.schema.error');
+		const fieldRow = mounted.target.querySelector('.vega-field-row')!;
+		expect(fieldRow.querySelector('[role="alert"].vega-schema-field-error')?.textContent).toBe(
+			'Ese resumen es demasiado largo'
+		);
 	});
 });

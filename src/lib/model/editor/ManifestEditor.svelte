@@ -571,7 +571,9 @@
 		margin-top: 0.25rem;
 		font-family: var(--mono);
 		font-size: 0.6875rem;
-		color: var(--ink-3);
+		/* `--ink-3` da 2,20:1 (medido) bajo AA; esta ruta es lo que dice DÓNDE arreglar el aviso, no
+		   es decorativa (`.warnitem p`, el mensaje principal, ya usa `--ink-2`). */
+		color: var(--ink-2);
 		overflow-wrap: anywhere;
 	}
 

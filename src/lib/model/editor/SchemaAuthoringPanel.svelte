@@ -11,30 +11,39 @@
 	 * (capability PROPIA, `backend/port.ts`).
 	 *
 	 * Vocabulario de campo DELIBERADAMENTE reducido frente a `CollectionFieldSpec` completo:
-	 * texto/número/sí-no/fecha/JSON/relación. Fuera de esta UI (aunque el puerto SÍ los admite):
+	 * texto/número/sí-no/fecha/JSON/selección/relación. Fuera de esta UI (aunque el puerto SÍ los
+	 * admite):
 	 * - `file`: tiene su propio flujo dedicado (`vega_media`, P6/`/media`) con miniaturas y tipos
 	 *   MIME — reintroducir esa complejidad aquí, para colecciones de contenido genéricas, es un
 	 *   subsistema nuevo que este lote no pide.
 	 * - `autodate`: concepto interno de bootstrap (Anexo A, "creado el"); un operador que quiera
 	 *   un campo de fecha se cubre con el tipo `date` normal de esta UI.
-	 * - `select`: desde el lote del sembrado (29 jul 2026) `CollectionFieldSpec` SÍ lo admite, con
-	 *   validación de opciones. Esta UI sigue sin ofrecerlo por decisión de alcance, no por
-	 *   limitación del puerto: falta decidir cómo se editan las opciones sin convertir este panel
-	 *   en un editor de esquema general.
 	 * `relation` sí se ofrece: el destino sale del esquema descubierto, nunca de texto libre.
+	 * `select` (lote "esquema" audit, pieza 4) también se ofrece: opciones editables (añadir/
+	 * quitar/reordenar) y "permitir varias opciones" — sin etiquetas por opción, sin valor por
+	 * defecto y sin `maxSelect` visible (múltiple compila al mismo 99 que usa `relation`/`file`
+	 * para "varios", ver `collections.ts`/`migration.ts`). Solo se AÑADEN campos: un select ya
+	 * creado no se edita ni se le tocan sus opciones desde aquí.
 	 *
 	 * Cada envío EXITOSO (colección creada, o al menos un campo añadido) genera y muestra la
 	 * migración JS correspondiente (`generateSchemaMigration`, `MigrationPanel.svelte`) y llama a
 	 * `onSchemaChanged` para que `/settings` refresque `types` — así "Añadir campos" ve de
 	 * inmediato la colección recién creada, y el editor del manifiesto ve el campo nuevo.
 	 */
-	import type { BackendPort, CollectionFieldSpec, CollectionSpec, ContentType } from '$lib/backend';
+	import type {
+		BackendPort,
+		CollectionFieldSpec,
+		CollectionSpec,
+		ContentType,
+		FieldError
+	} from '$lib/backend';
 	import {
 		isReservedCollectionName,
 		isUserAuthorableCollectionName,
 		VegaError
 	} from '$lib/backend';
 	import { generateSchemaMigration, type GeneratedMigration } from '$lib/backend/migration';
+	import { SvelteSet } from 'svelte/reactivity';
 	import MigrationPanel from './MigrationPanel.svelte';
 
 	interface Props {
@@ -48,8 +57,20 @@
 
 	const { port, types, t, onSchemaChanged }: Props = $props();
 
-	type DraftFieldType = 'text' | 'number' | 'bool' | 'date' | 'json' | 'relation';
+	type DraftFieldType = 'text' | 'number' | 'bool' | 'date' | 'json' | 'select' | 'relation';
 	type RelationDeleteMode = 'unlink' | 'cascade';
+
+	/** Una fila de la lista de opciones de un campo `select` en edición. `id` estable para
+	 *  `{#each ... (draft.id)}` — sin él, reordenar/quitar filas reasigna el foco a la fila
+	 *  equivocada. */
+	interface SelectOptionDraft {
+		id: string;
+		value: string;
+	}
+
+	function newSelectOptionDraft(): SelectOptionDraft {
+		return { id: crypto.randomUUID(), value: '' };
+	}
 
 	interface FieldDraft {
 		id: string;
@@ -62,6 +83,11 @@
 		relationTarget: string;
 		relationMultiple: boolean;
 		relationDeleteMode: RelationDeleteMode;
+		/** Solo para `select`: opciones en edición, en el orden final del spec. */
+		selectOptions: SelectOptionDraft[];
+		/** Solo para `select`: `true` compila a `multiple: true` (§`collections.ts`, `maxSelect: 99`
+		 *  en el adaptador/migración), `false` a selección simple. */
+		selectMultiple: boolean;
 	}
 
 	function newFieldDraft(): FieldDraft {
@@ -73,8 +99,42 @@
 			max: '',
 			relationTarget: '',
 			relationMultiple: false,
-			relationDeleteMode: 'unlink'
+			relationDeleteMode: 'unlink',
+			selectOptions: [newSelectOptionDraft()],
+			selectMultiple: false
 		};
+	}
+
+	/** Análisis de las opciones de un `select` en edición: cuántas opciones ÚNICAS no vacías
+	 *  quedan (tras recortar espacios) y qué filas repiten el valor de una anterior — mismas
+	 *  reglas que `checkCollectionFieldSpecs` (`collections.ts`): vacía se descarta en silencio,
+	 *  repetida (comparando el string recortado, distinguiendo mayúsculas) se marca por fila. */
+	function analyzeSelectOptions(options: SelectOptionDraft[]): {
+		uniqueCount: number;
+		duplicateIds: SvelteSet<string>;
+	} {
+		// `SvelteSet`, no `Set`: `svelte/prefer-svelte-reactivity` prohíbe un `Set` mutable
+		// (`.add`) en un `.svelte`, aunque aquí sea puramente local a la llamada — mismo criterio
+		// que `failedImages` de `MediaGrid.svelte`/`FileInput.svelte`.
+		const seen = new SvelteSet<string>();
+		const duplicateIds = new SvelteSet<string>();
+		let uniqueCount = 0;
+		for (const option of options) {
+			const value = option.value.trim();
+			if (!value) continue;
+			if (seen.has(value)) {
+				duplicateIds.add(option.id);
+				continue;
+			}
+			seen.add(value);
+			uniqueCount++;
+		}
+		return { uniqueCount, duplicateIds };
+	}
+
+	function selectOptionsValid(options: SelectOptionDraft[]): boolean {
+		const { uniqueCount, duplicateIds } = analyzeSelectOptions(options);
+		return uniqueCount > 0 && duplicateIds.size === 0;
 	}
 
 	/** `null` si la fila no tiene nombre (fila en blanco descartada al enviar, nunca un error). */
@@ -99,6 +159,22 @@
 				return { name, type: 'date', required: draft.required };
 			case 'json':
 				return { name, type: 'json' };
+			case 'select': {
+				// Espacios de los extremos recortados al enviar; opción vacía descartada en silencio
+				// (mismo criterio que una fila de campo sin nombre) — `draftsAreValid` ya bloqueó el
+				// envío si no queda ninguna opción única o si hay una repetida.
+				const options = draft.selectOptions
+					.map((option) => option.value.trim())
+					.filter((value) => value.length > 0);
+				if (options.length === 0) return null;
+				return {
+					name,
+					type: 'select',
+					required: draft.required,
+					multiple: draft.selectMultiple,
+					options
+				};
+			}
 			case 'relation':
 				if (!draft.relationTarget) return null;
 				return {
@@ -113,13 +189,53 @@
 	}
 
 	function draftsAreValid(drafts: FieldDraft[]): boolean {
-		return drafts.every(
-			(draft) => !draft.name.trim() || draft.type !== 'relation' || draft.relationTarget.length > 0
-		);
+		return drafts.every((draft) => {
+			if (!draft.name.trim()) return true;
+			if (draft.type === 'relation') return draft.relationTarget.length > 0;
+			if (draft.type === 'select') return selectOptionsValid(draft.selectOptions);
+			return true;
+		});
 	}
 
 	function errorMessage(err: unknown): string {
 		return err instanceof VegaError ? err.message : 'Error desconocido.';
+	}
+
+	/** Errores por campo que el backend devolvió (`VegaError.fieldErrors`, kind `'validation'`),
+	 *  para pintarlos EN SU FILA además del mensaje general — `null` si el error no llevaba ninguno
+	 *  (network, forbidden…) o no era un `VegaError`. */
+	function fieldErrorsOf(err: unknown): Record<string, FieldError> | null {
+		return err instanceof VegaError && err.fieldErrors ? err.fieldErrors : null;
+	}
+
+	// ————— Opciones de un campo `select` (compartido entre "Crear colección" y "Añadir campos") —————
+
+	/** Región `aria-live` ÚNICA para el reorden de opciones (mismo criterio que `blocks.announce`
+	 *  de `VisualBlockTree.svelte`: una sola región, nunca una por fila). Solo una fila puede estar
+	 *  reordenándose a la vez, así que compartirla entre las dos tarjetas del panel no pisa nada. */
+	let selectOptionAnnouncement = $state('');
+
+	function addSelectOptionRow(draft: FieldDraft): void {
+		draft.selectOptions = [...draft.selectOptions, newSelectOptionDraft()];
+	}
+
+	function removeSelectOptionRow(draft: FieldDraft, id: string): void {
+		draft.selectOptions = draft.selectOptions.filter((option) => option.id !== id);
+	}
+
+	function moveSelectOption(draft: FieldDraft, index: number, direction: -1 | 1): void {
+		const target = index + direction;
+		if (target < 0 || target >= draft.selectOptions.length) return;
+		const options = [...draft.selectOptions];
+		const [moved] = options.splice(index, 1);
+		options.splice(target, 0, moved);
+		draft.selectOptions = options;
+		const label = moved.value.trim() || t('settings.schema.fields.select.optionPlaceholder');
+		selectOptionAnnouncement = t('settings.schema.fields.select.moved', {
+			value: label,
+			position: target + 1,
+			total: options.length
+		});
 	}
 
 	type OpStatus = 'idle' | 'saving' | 'done' | 'error';
@@ -130,6 +246,9 @@
 	let createFields = $state<FieldDraft[]>([newFieldDraft()]);
 	let createStatus = $state<OpStatus>('idle');
 	let createError = $state<string | null>(null);
+	/** Errores por campo del último rechazo del backend (ver `fieldErrorsOf`), pintados en la fila
+	 *  del campo cuyo nombre coincide. `null` fuera de un error o si no traía ninguno. */
+	let createFieldErrors = $state<Record<string, FieldError> | null>(null);
 	let createMigration = $state<GeneratedMigration | null>(null);
 	/** `true` tras un envío que devolvió la colección en `skipped` (ya existía): no es un error,
 	 *  pero tampoco generó migración (no se tocó nada) — mensaje propio, ver markup. */
@@ -172,6 +291,7 @@
 
 		createStatus = 'saving';
 		createError = null;
+		createFieldErrors = null;
 		createMigration = null;
 		createAlreadyExisted = false;
 		createdName = null;
@@ -190,6 +310,7 @@
 		} catch (err) {
 			createStatus = 'error';
 			createError = errorMessage(err);
+			createFieldErrors = fieldErrorsOf(err);
 		}
 	}
 
@@ -204,6 +325,8 @@
 	let addFields = $state<FieldDraft[]>([newFieldDraft()]);
 	let addStatus = $state<OpStatus>('idle');
 	let addError = $state<string | null>(null);
+	/** Ver `createFieldErrors`: mismo contrato, tarjeta "Añadir campos". */
+	let addFieldErrors = $state<Record<string, FieldError> | null>(null);
 	let addMigration = $state<GeneratedMigration | null>(null);
 	let addResultMessage = $state<string | null>(null);
 	const addFieldsValid = $derived(draftsAreValid(addFields));
@@ -225,6 +348,7 @@
 
 		addStatus = 'saving';
 		addError = null;
+		addFieldErrors = null;
 		addMigration = null;
 		addResultMessage = null;
 		try {
@@ -249,11 +373,12 @@
 		} catch (err) {
 			addStatus = 'error';
 			addError = errorMessage(err);
+			addFieldErrors = fieldErrorsOf(err);
 		}
 	}
 </script>
 
-{#snippet fieldRow(draft: FieldDraft, onRemove: (id: string) => void)}
+{#snippet fieldRow(draft: FieldDraft, onRemove: (id: string) => void, fieldError?: string)}
 	<div class="vega-field-row">
 		<input
 			type="text"
@@ -267,6 +392,7 @@
 			<option value="bool">{t('settings.schema.fields.type.bool')}</option>
 			<option value="date">{t('settings.schema.fields.type.date')}</option>
 			<option value="json">{t('settings.schema.fields.type.json')}</option>
+			<option value="select">{t('settings.schema.fields.type.select')}</option>
 			<option value="relation">{t('settings.schema.fields.type.relation')}</option>
 		</select>
 		{#if draft.type !== 'json'}
@@ -284,6 +410,67 @@
 				aria-label={t('settings.schema.fields.maxLabel')}
 				bind:value={draft.max}
 			/>
+		{/if}
+		{#if draft.type === 'select'}
+			{@const optionsAnalysis = analyzeSelectOptions(draft.selectOptions)}
+			<div class="vega-field-select-options">
+				<ol class="vega-field-select-option-list">
+					{#each draft.selectOptions as option, i (option.id)}
+						<li class="vega-field-select-option">
+							<input
+								type="text"
+								placeholder={t('settings.schema.fields.select.optionPlaceholder')}
+								aria-label={t('settings.schema.fields.select.optionLabel', { index: i + 1 })}
+								aria-invalid={optionsAnalysis.duplicateIds.has(option.id) ? 'true' : undefined}
+								bind:value={option.value}
+							/>
+							<button
+								type="button"
+								class="vega-field-select-option-move"
+								disabled={i === 0}
+								aria-label={t('settings.schema.fields.select.moveUpLabel', { index: i + 1 })}
+								onclick={() => moveSelectOption(draft, i, -1)}
+							>
+								↑
+							</button>
+							<button
+								type="button"
+								class="vega-field-select-option-move"
+								disabled={i === draft.selectOptions.length - 1}
+								aria-label={t('settings.schema.fields.select.moveDownLabel', { index: i + 1 })}
+								onclick={() => moveSelectOption(draft, i, 1)}
+							>
+								↓
+							</button>
+							<button
+								type="button"
+								class="vega-field-select-option-remove"
+								aria-label={t('settings.schema.fields.select.removeOption', { index: i + 1 })}
+								onclick={() => removeSelectOptionRow(draft, option.id)}
+							>
+								✕
+							</button>
+							{#if optionsAnalysis.duplicateIds.has(option.id)}
+								<p class="vega-schema-field-error">
+									{t('settings.schema.fields.select.optionDuplicate')}
+								</p>
+							{/if}
+						</li>
+					{/each}
+				</ol>
+				<button type="button" class="vega-schema-add-row" onclick={() => addSelectOptionRow(draft)}>
+					+ {t('settings.schema.fields.select.addOption')}
+				</button>
+				<label class="vega-field-checkbox">
+					<input type="checkbox" bind:checked={draft.selectMultiple} />
+					{t('settings.schema.fields.select.multipleLabel')}
+				</label>
+			</div>
+			{#if draft.name.trim() && optionsAnalysis.uniqueCount === 0}
+				<p class="vega-schema-field-error">
+					{t('settings.schema.fields.select.optionsRequired')}
+				</p>
+			{/if}
 		{/if}
 		{#if draft.type === 'relation'}
 			<div class="vega-field-relation-options">
@@ -338,12 +525,20 @@
 		{#if draft.type === 'number' && draft.required}
 			<p class="vega-field-warning">{t('settings.schema.fields.numberRequiredWarning')}</p>
 		{/if}
+		{#if fieldError}
+			<!-- Error del BACKEND para este campo (`fieldErrorsOf`), no de la validación local de
+			     arriba: mismo nombre de campo que le pisó `draft.name` en el envío. -->
+			<p class="vega-schema-field-error" role="alert">{fieldError}</p>
+		{/if}
 	</div>
 {/snippet}
 
 <section class="vega-schema-authoring" aria-labelledby="vega-schema-authoring-title">
 	<h2 id="vega-schema-authoring-title">{t('settings.schema.title')}</h2>
 	<p class="vega-schema-description">{t('settings.schema.description')}</p>
+	<!-- Región ÚNICA para el reorden de opciones de un select (ver `selectOptionAnnouncement`):
+	     una sola, nunca una por fila — mismo criterio que `blocks.announce` de `VisualBlockTree`. -->
+	<div aria-live="polite" class="vega-visually-hidden">{selectOptionAnnouncement}</div>
 
 	{#if port.capabilities.schemaBootstrap}
 		<div class="vega-schema-card">
@@ -370,7 +565,11 @@
 				</div>
 
 				{#each createFields as draft (draft.id)}
-					{@render fieldRow(draft, removeCreateFieldRow)}
+					{@render fieldRow(
+						draft,
+						removeCreateFieldRow,
+						createFieldErrors?.[draft.name.trim()]?.message
+					)}
 				{/each}
 				<button type="button" class="vega-schema-add-row" onclick={addCreateFieldRow}>
 					+ {t('settings.schema.fields.addRow')}
@@ -428,7 +627,11 @@
 					</div>
 
 					{#each addFields as draft (draft.id)}
-						{@render fieldRow(draft, removeAddFieldRow)}
+						{@render fieldRow(
+							draft,
+							removeAddFieldRow,
+							addFieldErrors?.[draft.name.trim()]?.message
+						)}
 					{/each}
 					<button type="button" class="vega-schema-add-row" onclick={addAddFieldRow}>
 						+ {t('settings.schema.fields.addRow')}
@@ -623,6 +826,61 @@
 		border-color: var(--danger);
 	}
 
+	.vega-field-select-options {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		flex-basis: 100%;
+		padding-top: 0.25rem;
+		border-top: 1px solid var(--line-soft);
+	}
+
+	.vega-field-select-option-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.vega-field-select-option {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.4rem;
+	}
+
+	.vega-field-select-option input[type='text'] {
+		flex: 1 1 10rem;
+		padding: 0.35rem 0.5rem;
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		font-size: 0.85rem;
+		background: var(--surface);
+		color: var(--ink);
+	}
+
+	.vega-field-select-option input[aria-invalid='true'] {
+		border-color: var(--danger);
+	}
+
+	.vega-field-select-option-move,
+	.vega-field-select-option-remove {
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		background: var(--surface);
+		color: var(--ink-2);
+		width: 1.8rem;
+		height: 1.8rem;
+		cursor: pointer;
+	}
+
+	.vega-field-select-option-move:disabled {
+		cursor: not-allowed;
+		opacity: 0.4;
+	}
+
 	.vega-schema-authoring :is(input, select, button):focus-visible {
 		outline: 2px solid var(--accent);
 		outline-offset: 2px;
@@ -673,5 +931,19 @@
 			grid-template-columns: 1fr;
 			align-items: start;
 		}
+	}
+
+	/* Región `aria-live` del reorden de opciones (ver `selectOptionAnnouncement`): oculta a la
+	   vista, presente para un lector de pantalla. Mismo patrón que `VisualBlockTree.svelte`. */
+	.vega-visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
 	}
 </style>

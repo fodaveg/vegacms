@@ -416,7 +416,9 @@
 		border: 1px dashed var(--line-strong);
 		border-radius: var(--r);
 		background: var(--surface);
-		color: var(--ink-3);
+		/* `--ink-3` es el mismo 2,20:1 (medido) bajo AA que `.vega-field-help`: esta es la única
+		   instrucción de cómo operar el campo ("arrastra o haz clic"), no algo decorativo. */
+		color: var(--ink-2);
 		font: inherit;
 		font-size: 0.86em;
 		line-height: 1.45;
@@ -473,8 +475,9 @@
 	}
 
 	.vega-file-empty {
+		/* Sin `opacity` extra: sobre `--ink-2` (ver `.vega-file-dropzone`) bajaría de nuevo por
+		   debajo de AA (0,8 de opacidad da ~3,7:1); el tamaño reducido ya lo distingue del hint. */
 		font-size: 0.86em;
-		opacity: 0.8;
 	}
 
 	.vega-file-rejection {
