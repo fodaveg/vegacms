@@ -97,6 +97,18 @@ describe('deriveBlockRecordFields', () => {
 		]);
 	});
 
+	test('un campo file declara sus miniaturas (28x28/120x120, hallazgo p2)', () => {
+		expect(
+			deriveBlockRecordFields([blockType('download', [field('asset', 'file')])], blocks)
+		).toEqual([
+			expect.objectContaining({
+				name: 'asset',
+				type: 'file',
+				thumbs: ['28x28', '120x120']
+			})
+		]);
+	});
+
 	test('required del formulario nunca vuelve obligatoria la columna compartida', () => {
 		expect(
 			deriveBlockRecordFields(
@@ -121,7 +133,7 @@ describe('deriveBlockRecordFields', () => {
 			BlockRecordFieldConflictError
 		);
 		expect(() => deriveBlockRecordFields(blockTypes, blocks)).toThrow(
-			'La columna de bloque "asset" tiene declaraciones físicas incompatibles: hero.asset (relation:vega_media:false:single:keep) <> download.asset ({"type":"file","required":false,"multiple":false,"maxSizeBytes":0,"mimeTypes":[],"thumbs":[]}).'
+			'La columna de bloque "asset" tiene declaraciones físicas incompatibles: hero.asset (relation:vega_media:false:single:keep) <> download.asset ({"type":"file","required":false,"multiple":false,"maxSizeBytes":0,"mimeTypes":[],"thumbs":["28x28","120x120"]}).'
 		);
 	});
 
@@ -307,6 +319,52 @@ describe('diagnoseBlockRecordFields', () => {
 			})
 		]);
 		expect(generateBlockReconciliationMigration(blocks, diagnostics)).toBeNull();
+	});
+
+	test('un campo file con las miniaturas ya declaradas es compatible', () => {
+		const diagnostics = diagnoseBlockRecordFields(
+			[blockType('download', [field('asset', 'file')])],
+			blocks,
+			[
+				backendField({
+					name: 'asset',
+					type: 'file',
+					multiple: false,
+					maxSelect: 1,
+					thumbs: ['28x28', '120x120']
+				})
+			]
+		);
+
+		expect(diagnostics).toEqual([
+			expect.objectContaining({
+				status: 'compatible',
+				expected: expect.objectContaining({ name: 'asset' })
+			})
+		]);
+		expect(generateBlockReconciliationMigration(blocks, diagnostics)).toBeNull();
+	});
+
+	test('un campo file creado ANTES de declarar miniaturas sale incompatible, no se auto-migra (hallazgo p2)', () => {
+		// Simula una colección de bloques viva de antes de este lote: PB descubre `thumbs: []`
+		// (nunca lo declaró) mientras el generador ahora espera `['28x28','120x120']`
+		// (`BLOCK_FILE_THUMBS`). `diagnoseBlockRecordFields` lo marca `incompatible` en vez de
+		// fingir que coincide — la reconciliación automática lo omite a propósito (columnas con
+		// datos no se tocan solas), así que solo aparece como aviso en el diagnóstico.
+		const diagnostics = diagnoseBlockRecordFields(
+			[blockType('download', [field('asset', 'file')])],
+			blocks,
+			[backendField({ name: 'asset', type: 'file', multiple: false, maxSelect: 1, thumbs: [] })]
+		);
+		const migration = generateBlockReconciliationMigration(blocks, diagnostics);
+
+		expect(diagnostics).toEqual([
+			expect.objectContaining({
+				status: 'incompatible',
+				expected: expect.objectContaining({ name: 'asset', thumbs: ['28x28', '120x120'] })
+			})
+		]);
+		expect(migration).toBeNull();
 	});
 
 	test('incompatible conserva el error propio y la reconciliación la omite', () => {

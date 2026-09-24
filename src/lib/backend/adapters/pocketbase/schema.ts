@@ -218,7 +218,12 @@ function mapField(
 				maxSizeBytes: raw.maxSize > 0 ? raw.maxSize : undefined,
 				mimeTypes:
 					Array.isArray(raw.mimeTypes) && raw.mimeTypes.length > 0 ? raw.mimeTypes : undefined,
-				protected: !!raw.protected
+				protected: !!raw.protected,
+				// Tamaños YA declarados en PB (ver `Field['thumbs']`, `types.ts`): sin esto,
+				// `thumb-select.ts` no tiene con qué decidir y cualquier consumidor pediría un thumb
+				// a ciegas (hallazgo p2, `RecordTable.svelte`/`FileInput.svelte`).
+				thumbs:
+					Array.isArray(raw.thumbs) && raw.thumbs.length > 0 ? (raw.thumbs as string[]) : undefined
 			};
 		}
 

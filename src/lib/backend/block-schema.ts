@@ -22,6 +22,17 @@ import type { ResolvedBlockField, ResolvedBlocksConfig, ResolvedBlockType } from
 const MEDIA_COLLECTION = 'vega_media';
 const MULTIPLE_MEDIA_FIELD = 'images';
 
+/**
+ * Tamaños que un campo `file` de bloque declara al crearse (hallazgo p2, lote "formularios y
+ * medios"): los mismos dos que ya pide best-effort el resto de la app sobre CUALQUIER campo
+ * `file` — `RecordTable.svelte` (28×28, celda de tabla) y `FileInput.svelte` (120×120, preview
+ * del widget). Sin declararlos, PB devolvía el original completo en cada preview (§`thumb-
+ * select.ts`). `vega_media` ya los declara por su cuenta (`media-collection.ts`, que además
+ * añade `300x300` para su propio grid) — un campo `file` de bloque NO enlaza a `vega_media`
+ * (eso es lo que hace el widget `relation`, ver el caso de abajo), así que necesita los suyos.
+ */
+const BLOCK_FILE_THUMBS = ['28x28', '120x120'];
+
 export class BlockRecordFieldConflictError extends Error {
 	readonly fieldName: string;
 	readonly declarations: readonly string[];
@@ -107,7 +118,8 @@ function blockFieldToCollectionFieldSpec(field: ResolvedBlockField): CollectionF
 			return {
 				...base,
 				type: 'file',
-				multiple: false
+				multiple: false,
+				thumbs: BLOCK_FILE_THUMBS
 			};
 		case 'unsupported':
 			// `ResolvedBlockField` nunca contiene este widget (BLOCK_FIELD_WIDGET_IDS lo excluye),
@@ -217,9 +229,12 @@ function backendFieldToComparableSpec(field: Field): CollectionFieldSpec | null 
 				multiple: field.multiple,
 				maxSizeBytes: field.maxSizeBytes ?? 0,
 				mimeTypes: field.mimeTypes ?? [],
-				// El puerto no expone miniaturas descubiertas; los campos de bloque v1 tampoco
-				// declaran ninguna, así que la forma comparable canónica es el default vacío.
-				thumbs: []
+				// Miniaturas YA declaradas en PB, descubiertas de verdad (`Field['thumbs']`, ver
+				// `adapters/pocketbase/schema.ts#mapField`) — un campo de bloque creado ANTES de que
+				// el generador empezara a declarar `BLOCK_FILE_THUMBS` no tendrá ninguna todavía, así
+				// que su forma comparable seguirá siendo `[]` (mismo resultado de antes) hasta que se
+				// reconcilie a mano; uno creado por esta versión sí traerá las suyas.
+				thumbs: field.thumbs ?? []
 			};
 		case 'json':
 			return field.required ? null : { name: field.name, type: 'json' };

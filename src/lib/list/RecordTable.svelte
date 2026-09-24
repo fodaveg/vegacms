@@ -29,7 +29,10 @@
 	 *   antes.
 	 * - **Ficheros (L-P4.5)**: `capabilities.thumbs` decide miniatura (`ctx.port.fileUrl` con
 	 *   `{thumb}`) vs nombre(s) de fichero visible(s); sin esa capability (memory) degrada al
-	 *   nombre, nunca en silencio.
+	 *   nombre, nunca en silencio. El tamaño pedido pasa por `selectThumbSpec` (`$lib/backend/
+	 *   thumb-select.ts`, hallazgo p2): `28x28` solo si la colección del campo lo declaró
+	 *   (`Field.thumbs`), si no `100x100` — pedirlo a ciegas devolvía el ORIGINAL completo. Las
+	 *   `<img>` llevan `loading="lazy"`/`decoding="async"`: una tabla puede traer decenas de filas.
 	 * - **Realtime NO se usa en v1 (L-P4.5)**: esta tabla no se auto-refresca; el hueco queda
 	 *   declarado aquí a propósito — el refresco solo llega tras una mutación propia (4e) o una
 	 *   recarga completa.
@@ -157,6 +160,7 @@
 	import { isRightAlignedColumn } from './column-align';
 	import { resolveTitleCellText } from './list-load';
 	import { createReorderDndController, dropIndicatorEdge } from './reorder-dnd';
+	import { selectThumbSpec } from '$lib/backend/thumb-select';
 	import type { ResolvedContentType } from '$lib/model/types';
 	import type { VegaRecord } from '$lib/backend/types';
 	import type { ViewState } from './query-state';
@@ -199,7 +203,10 @@
 	const ctx = getVegaContext();
 
 	/** Miniatura fija de listado (§4.4 del contrato P1): 28x28 recortada, best-effort — `memory`
-	 *  la ignora siempre (`capabilities.thumbs: false`), PB la compila a su propia sintaxis. */
+	 *  la ignora siempre (`capabilities.thumbs: false`), PB la compila a su propia sintaxis.
+	 *  Deseada, no necesariamente la que se pide: `selectThumbSpec` (hallazgo p2) cae a
+	 *  `100x100` si la colección del campo no declaró `28x28` (`Field.thumbs`) — pedirlo a
+	 *  ciegas devolvía el fichero ORIGINAL en cada celda (PB, `apis/file.go`). */
 	const THUMB_SPEC = { width: 28, height: 28, fit: 'crop' as const };
 
 	/** La columna que se pinta como enlace de apertura (L-P4.15, ver cabecera): la `isTitle` si
@@ -503,13 +510,19 @@
 		<span>{descriptor.count}</span>
 	{:else if descriptor.kind === 'file'}
 		{#if ctx.port.capabilities.thumbs}
+			{@const declaredThumbs =
+				column.field.schema.type === 'file' ? column.field.schema.thumbs : undefined}
 			<span class="vega-file-thumbs">
 				{#each descriptor.refs as ref (ref)}
 					<img
-						src={ctx.port.fileUrl(record, column.field.name, ref, { thumb: THUMB_SPEC })}
+						src={ctx.port.fileUrl(record, column.field.name, ref, {
+							thumb: selectThumbSpec(THUMB_SPEC, declaredThumbs)
+						})}
 						alt=""
 						width="28"
 						height="28"
+						loading="lazy"
+						decoding="async"
 					/>
 				{/each}
 			</span>
