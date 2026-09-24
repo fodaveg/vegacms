@@ -26,7 +26,8 @@
 	 * - `MediaPicker` (Fase P6·6e, L-P6.11) se monta en el mismo sitio, por el mismo motivo: es el
 	 *   picker de biblioteca que embebe el widget `file` de P5, montaje ÚNICO para toda la app —
 	 *   `ctx.mediaPicker.open(...)` (`mediaPickerState`, patrón promise-based) es la única costura
-	 *   entre quien lo abre y este componente, ninguno de los dos conoce al otro directamente.
+	 *   entre quien lo abre y este componente, ninguno de los dos conoce al otro directamente. Se
+	 *   carga con `import()` la primera vez que se abre, no en el arranque (ver su `$effect`).
 	 */
 	import favicon from '$lib/assets/favicon.svg';
 	// El CSS generado del motor P7 define los tokens §3 (`--bg`/`--ink`/`--accent`/…) por
@@ -66,7 +67,7 @@
 	import GlobalBanner from '$lib/shell/GlobalBanner.svelte';
 	import UpdateBanner from '$lib/shell/UpdateBanner.svelte';
 	import ReloginModal from '$lib/shell/ReloginModal.svelte';
-	import MediaPicker from '$lib/media/MediaPicker.svelte';
+	import type MediaPickerComponent from '$lib/media/MediaPicker.svelte';
 	import { toastStore } from '$lib/shell/toasts.svelte';
 	import { transportFeedback } from '$lib/shell/transport-feedback.svelte';
 	import { updateBannerState } from '$lib/shell/update-banner.svelte';
@@ -311,6 +312,33 @@
 		mediaPickerState.settle(null);
 	});
 
+	// `<MediaPicker>` se carga la PRIMERA vez que alguien lo abre, no en el arranque (audit de
+	// rendimiento del 23 sep 2026, p3): con import estático, su JS y su CSS (`MediaGrid`,
+	// `Pagination`) viajaban en la carga inicial de TODAS las visitas, y solo lo usa el widget
+	// `file` al elegir de la biblioteca. Una vez cargado se queda montado, como antes (no pinta nada
+	// sin petición abierta). Si el trozo no llega (red caída), la petición se resuelve como
+	// "cancelar" para no dejar colgado al widget que la abrió, el fallo va al banner global y el
+	// siguiente `open()` lo vuelve a intentar.
+	let MediaPicker = $state<typeof MediaPickerComponent | null>(null);
+	let mediaPickerLoading: Promise<void> | null = null;
+
+	$effect(() => {
+		if (!mediaPickerState.request || MediaPicker || mediaPickerLoading) return;
+		mediaPickerLoading = import('$lib/media/MediaPicker.svelte')
+			.then((module) => {
+				MediaPicker = module.default;
+			})
+			.catch((err: unknown) => {
+				mediaPickerState.settle(null);
+				feedback.reportError(VegaError.network(err, 'No se pudo cargar el selector de medios'), {
+					action: 'mediaPicker:load'
+				});
+			})
+			.finally(() => {
+				mediaPickerLoading = null;
+			});
+	});
+
 	// Guard de rutas (§2.4, §3.1, P3-L9): NUNCA navega antes de que el router esté listo.
 	$effect(() => {
 		if (!routerReady) return;
@@ -412,7 +440,9 @@
 	<UpdateBanner />
 </div>
 <ReloginModal />
-<MediaPicker />
+{#if MediaPicker}
+	<MediaPicker />
+{/if}
 
 <style>
 	.vega-banner-stack {
