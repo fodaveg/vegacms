@@ -234,7 +234,7 @@
 	}
 
 	.vega-revision-diff-after {
-		color: var(--ok);
+		color: var(--success);
 	}
 
 	.vega-revision-diff-restore {
