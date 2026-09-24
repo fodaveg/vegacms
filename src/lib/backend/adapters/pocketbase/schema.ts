@@ -12,6 +12,8 @@ import type { CollectionFieldSpec } from '../../collections';
  * nombres `_*`) y las de tipo `auth` (D-P1.1) — esto último cubre tanto `_superusers`
  * (ya excluida por `system`) como `users` (la colección auth por defecto de PB, que NO es
  * `system` pero sí `type: 'auth'`; verificado contra 0.39.6, un install nuevo la trae de serie).
+ * `vega_editors` también queda fuera de aquí: su reapertura de D-P1.1 es solo como cuentas, por
+ * `BackendPort.administration` (`administration.ts`), nunca como tipo de contenido.
  */
 export function isExcludedCollection(collection: CollectionModel): boolean {
 	return (
