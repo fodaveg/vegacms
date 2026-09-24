@@ -32,17 +32,24 @@ test.describe('SchemaAuthoringPanel: campo select en "Añadir campos"', () => {
 		await addFieldsCard.getByLabel('Colección').selectOption('posts');
 
 		const fieldRow = addFieldsCard.locator('.vega-field-row').first();
-		await fieldRow.getByLabel('Nombre del campo').fill('status');
+		// `category`, no `status`: `POSTS_CONTENT_TYPE` (`demo-seed.ts`) YA siembra `posts` con un
+		// campo `status` (`select`, `draft`/`published`) — con ese nombre el panel detecta que el
+		// campo ya existe y no añade nada ("Ningún campo nuevo…"), y el resto del test nunca llega
+		// a comprobarse.
+		await fieldRow.getByLabel('Nombre del campo').fill('category');
 		await fieldRow.getByLabel('Tipo').selectOption('select');
 
 		// Primera opción.
 		const optionList = fieldRow.locator('.vega-field-select-option-list');
-		await optionList.getByLabel('Opción 1').fill('draft');
+		// `exact: true`: sin él, `getByLabel('Opción 1')` casa por subcadena con los aria-label de
+		// los botones vecinos ("Subir opción 1", "Bajar opción 1", "Quitar opción 1") y Playwright
+		// lanza "strict mode violation" (4 elementos) en vez de resolver el input de valor.
+		await optionList.getByLabel('Opción 1', { exact: true }).fill('draft');
 
 		// Segunda opción, añadida con "+ Añadir opción" (dentro del subpanel del select, NO el "+
 		// Añadir campo" de la fila).
 		await fieldRow.locator('.vega-field-select-options .vega-schema-add-row').click();
-		await optionList.getByLabel('Opción 2').fill('published');
+		await optionList.getByLabel('Opción 2', { exact: true }).fill('published');
 
 		// Sube "published" (Opción 2) a la primera posición y comprueba el anuncio por voz
 		// (`aria-live`, mismo criterio de a11y que el reorden de bloques de `VisualBlockTree`).
@@ -52,8 +59,8 @@ test.describe('SchemaAuthoringPanel: campo select en "Añadir campos"', () => {
 		await expect(page.locator('.vega-schema-authoring [aria-live="polite"]')).toHaveText(
 			'«published» movida a la posición 1 de 2'
 		);
-		await expect(optionList.getByLabel('Opción 1')).toHaveValue('published');
-		await expect(optionList.getByLabel('Opción 2')).toHaveValue('draft');
+		await expect(optionList.getByLabel('Opción 1', { exact: true })).toHaveValue('published');
+		await expect(optionList.getByLabel('Opción 2', { exact: true })).toHaveValue('draft');
 
 		await fieldRow.getByLabel('Permitir varias opciones').check();
 
@@ -81,9 +88,9 @@ test.describe('SchemaAuthoringPanel: campo select en "Añadir campos"', () => {
 		await fieldRow.getByLabel('Tipo').selectOption('select');
 
 		const optionList = fieldRow.locator('.vega-field-select-option-list');
-		await optionList.getByLabel('Opción 1').fill('draft');
+		await optionList.getByLabel('Opción 1', { exact: true }).fill('draft');
 		await fieldRow.locator('.vega-field-select-options .vega-schema-add-row').click();
-		await optionList.getByLabel('Opción 2').fill(' draft '); // repite tras recortar espacios
+		await optionList.getByLabel('Opción 2', { exact: true }).fill(' draft '); // repite tras recortar espacios
 
 		await expect(fieldRow.getByText('Esta opción está repetida.')).toBeVisible();
 		const submit = addFieldsCard.getByRole('button', { name: 'Añadir campos' });
