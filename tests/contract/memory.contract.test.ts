@@ -94,6 +94,65 @@ describe('memory: detalles de implementación', () => {
 		});
 	});
 
+	test('administration: sin la colección vega_editors, listar o dar de alta → not-found', async () => {
+		const port = createMemoryBackend(kitchenSinkSeed());
+		await port.login({ email: FIXTURE_ADMIN_EMAIL, password: FIXTURE_ADMIN_PASSWORD });
+		await expect(port.administration!.listEditors()).rejects.toMatchObject({ kind: 'not-found' });
+		await expect(
+			port.administration!.createEditor('ana@vega.test', { kind: 'password', password: '12345678' })
+		).rejects.toMatchObject({ kind: 'not-found' });
+	});
+
+	test('administration: las cuentas sembradas salen de la más antigua a la más reciente, las sin fecha al final', async () => {
+		const port = createMemoryBackend({
+			...kitchenSinkSeed(),
+			editors: [
+				{ id: 'e3', email: 'sin-fecha@vega.test', verified: true, created: null },
+				{
+					id: 'e2',
+					email: 'reciente@vega.test',
+					verified: false,
+					created: '2026-09-22T10:00:00.000Z'
+				},
+				{
+					id: 'e1',
+					email: 'antigua@vega.test',
+					verified: true,
+					created: '2026-02-03T10:00:00.000Z'
+				}
+			]
+		});
+		await port.login({ email: FIXTURE_ADMIN_EMAIL, password: FIXTURE_ADMIN_PASSWORD });
+		const { editors } = await port.administration!.listEditors();
+		expect(editors.map((account) => account.id)).toEqual(['e1', 'e2', 'e3']);
+	});
+
+	test('administration: sin correo no hay invitación (memory no finge un envío); con correo nace pendiente', async () => {
+		const withoutMail = createMemoryBackend({ ...kitchenSinkSeed(), editors: [] });
+		await withoutMail.login({ email: FIXTURE_ADMIN_EMAIL, password: FIXTURE_ADMIN_PASSWORD });
+		await expect(
+			withoutMail.administration!.createEditor('ana@vega.test', { kind: 'invite' })
+		).rejects.toMatchObject({ kind: 'backend' });
+		expect((await withoutMail.administration!.listEditors()).editors).toEqual([]);
+
+		const withMail = createMemoryBackend({ ...kitchenSinkSeed(), editors: [], mailEnabled: true });
+		await withMail.login({ email: FIXTURE_ADMIN_EMAIL, password: FIXTURE_ADMIN_PASSWORD });
+		const invited = await withMail.administration!.createEditor('ana@vega.test', {
+			kind: 'invite'
+		});
+		expect(invited.verified).toBe(false);
+		await expect(
+			withMail.administration!.sendEditorInvitation(invited.id)
+		).resolves.toBeUndefined();
+	});
+
+	test('administration: sin login previo → forbidden, también en copias', async () => {
+		const port = createMemoryBackend({ ...kitchenSinkSeed(), editors: [] });
+		await expect(port.administration!.listEditors()).rejects.toMatchObject({ kind: 'forbidden' });
+		await expect(port.administration!.listBackups()).rejects.toMatchObject({ kind: 'forbidden' });
+		await expect(port.administration!.createBackup()).rejects.toMatchObject({ kind: 'forbidden' });
+	});
+
 	test('operación de datos/esquema sin login previo → forbidden (§7: memory no puede ser mejor que PB)', async () => {
 		// Decisión de ingeniería (§7): PB real rechaza toda operación de datos/esquema sin
 		// sesión con `forbidden` — `memory` debe hacer lo mismo, nunca ser más permisivo. Cubre

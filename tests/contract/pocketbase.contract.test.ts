@@ -7,7 +7,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { EventSource } from 'eventsource';
 import PocketBase, { ClientResponseError } from 'pocketbase';
-import type { VegaError } from '$lib/backend';
+import { VEGA_EDITORS_COLLECTION_NAME, type VegaError } from '$lib/backend';
 import { createPocketBaseBackend } from '$lib/backend/adapters/pocketbase';
 import { uniqueIndexName } from '$lib/backend/collections';
 import { ALL_PERMISSIONS } from '$lib/backend/access';
@@ -29,6 +29,7 @@ import { startPocketBase } from './pb-harness/server';
 import { resetPocketBaseRecords, seedPocketBaseSchema } from './pb-harness/seed';
 import { startCorruptingProxy } from './pb-harness/corrupt-proxy';
 import { startAuthFailureProxy } from './pb-harness/auth-failure-proxy';
+import { passwordResetTokenFrom, startSmtpSink } from './pb-harness/smtp-sink';
 
 // La suite ejercita `subscribe()` (SSE) tal como lo haría un navegador; Node no trae
 // `EventSource` global (a diferencia de un navegador de producción real), así que se
@@ -748,6 +749,82 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 				await admin.collections.delete('import_probe_authors').catch(() => undefined);
 			}
 		}, 30_000);
+	});
+
+	/**
+	 * Lo que la suite compartida no puede medir porque depende del servidor: la colección de
+	 * editores ausente, el correo de invitación y lo que PocketBase hace con `verified` cuando la
+	 * persona confirma el restablecimiento. El SMTP es un sumidero local (`pb-harness/smtp-sink.ts`)
+	 * y la configuración de correo se devuelve a su estado de fábrica al terminar.
+	 */
+	describe('administration: lo que depende del servidor real', () => {
+		async function superuserPort() {
+			const port = createPocketBaseBackend({ url: running.url });
+			await port.login({ email: running.adminEmail, password: running.adminPassword });
+			return port;
+		}
+
+		test('sin la colección vega_editors, listEditors() → not-found', async () => {
+			await admin.collections.delete(VEGA_EDITORS_COLLECTION_NAME).catch(() => undefined);
+			const port = await superuserPort();
+			await expect(port.administration!.listEditors()).rejects.toMatchObject({
+				kind: 'not-found'
+			});
+		});
+
+		test('invitación con correo: nace pendiente, llega el correo y confirmar el restablecimiento la marca verified', async () => {
+			const sink = await startSmtpSink();
+			const port = await superuserPort();
+			await port.ensureCollections([
+				{ name: VEGA_EDITORS_COLLECTION_NAME, type: 'auth', fields: [] }
+			]);
+			await admin.settings.update({
+				smtp: {
+					enabled: true,
+					host: '127.0.0.1',
+					port: sink.port,
+					username: '',
+					password: '',
+					tls: false
+				}
+			});
+			try {
+				const administration = port.administration!;
+				await expect(administration.mailEnabled()).resolves.toBe(true);
+
+				const email = `invitada_${Math.random().toString(36).slice(2, 10)}@vega.test`;
+				const invited = await administration.createEditor(email, { kind: 'invite' });
+				expect(invited).toMatchObject({ email, verified: false });
+
+				const [message] = await sink.waitForMessages(1);
+				const token = passwordResetTokenFrom(message);
+				expect(token).not.toBeNull();
+
+				// La persona elige su contraseña desde el enlace del correo (página pública de PB).
+				const confirm = await fetch(
+					`${running.url}/api/collections/${VEGA_EDITORS_COLLECTION_NAME}/confirm-password-reset`,
+					{
+						method: 'POST',
+						headers: { 'content-type': 'application/json' },
+						body: JSON.stringify({ token, password: 'la-suya-123', passwordConfirm: 'la-suya-123' })
+					}
+				);
+				expect(confirm.status).toBe(204);
+
+				const listed = (await administration.listEditors()).editors.find(
+					(account) => account.id === invited.id
+				);
+				expect(listed?.verified).toBe(true);
+
+				// Reenviar la invitación pide otro correo a la misma dirección.
+				await administration.sendEditorInvitation(invited.id);
+				const messages = await sink.waitForMessages(2);
+				expect(messages[1]).toContain(email);
+			} finally {
+				await admin.settings.update({ smtp: { enabled: false } });
+				await sink.stop();
+			}
+		}, 20_000);
 	});
 });
 

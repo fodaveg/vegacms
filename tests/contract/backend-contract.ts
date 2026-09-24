@@ -18,7 +18,7 @@ import type {
 	Session,
 	VegaErrorKind
 } from '$lib/backend';
-import { VegaError, VEGA_COLLECTION } from '$lib/backend';
+import { VegaError, VEGA_COLLECTION, VEGA_EDITORS_COLLECTION_NAME } from '$lib/backend';
 import { resolveStatusField } from '$lib/model/conventions';
 import {
 	CAT_ALPHA,
@@ -1817,6 +1817,163 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 			// Mismo motivo que el `test.skip` gemelo de `ensureCollections`: v1 solo modela una
 			// identidad superuser (D1).
 			test.skip('con capability pero sin permiso de superuser → forbidden (no modelado en v1)', () => {});
+		});
+
+		// ——————————————————————————————— 7b. Administración (editores y copias de seguridad) —————
+
+		describe('administration (editores de vega_editors y copias de seguridad)', () => {
+			const EDITORS_SPEC: CollectionSpec = {
+				name: VEGA_EDITORS_COLLECTION_NAME,
+				type: 'auth',
+				fields: []
+			};
+
+			/** Email distinto en cada test: PB real conserva las cuentas entre tests del fichero. */
+			function uniqueEmail(): string {
+				return `editor_${Math.random().toString(36).slice(2, 10)}@vega.test`;
+			}
+
+			/** Sesión de superuser con `vega_editors` creada (idempotente: la crea o la encuentra). */
+			async function makeAdministration() {
+				const port = await makeAuthedPort();
+				await port.ensureCollections([EDITORS_SPEC]);
+				return port.administration!;
+			}
+
+			test('capability administration presente, con su sección del puerto', async () => {
+				expect(capabilities.administration).toBe(true);
+				expect((await makePort()).administration).toBeDefined();
+			});
+
+			test.skipIf(!capabilities.administration)(
+				'alta con contraseña: nace activa, sale en la lista y el mínimo de contraseña viene del backend',
+				async () => {
+					const admin = await makeAdministration();
+					const email = uniqueEmail();
+					const created = await admin.createEditor(email, {
+						kind: 'password',
+						password: 'contraseña-larga'
+					});
+					expect(created).toMatchObject({ email, verified: true });
+
+					const directory = await admin.listEditors();
+					expect(directory.passwordMinLength).toBe(8);
+					expect(directory.editors.find((account) => account.id === created.id)).toEqual(created);
+				}
+			);
+
+			test.skipIf(!capabilities.administration)(
+				'email repetido o mal formado → validation en fieldErrors.email',
+				async () => {
+					const admin = await makeAdministration();
+					const email = uniqueEmail();
+					await admin.createEditor(email, { kind: 'password', password: 'contraseña-larga' });
+
+					for (const bad of [email, 'sin-arroba']) {
+						const err = await admin
+							.createEditor(bad, { kind: 'password', password: 'contraseña-larga' })
+							.catch((e: unknown) => e);
+						expect(err).toBeInstanceOf(VegaError);
+						expect((err as VegaError).kind).toBe('validation');
+						expect(Object.keys((err as VegaError).fieldErrors ?? {})).toEqual(['email']);
+					}
+				}
+			);
+
+			test.skipIf(!capabilities.administration)(
+				'contraseña más corta que el mínimo → validation en fieldErrors.password, al crear y al cambiarla',
+				async () => {
+					const admin = await makeAdministration();
+					const createErr = await admin
+						.createEditor(uniqueEmail(), { kind: 'password', password: 'corta' })
+						.catch((e: unknown) => e);
+					expect(createErr).toMatchObject({ kind: 'validation' });
+					expect((createErr as VegaError).fieldErrors?.password?.code).toBe(
+						'validation_min_text_constraint'
+					);
+
+					const account = await admin.createEditor(uniqueEmail(), {
+						kind: 'password',
+						password: 'contraseña-larga'
+					});
+					const updateErr = await admin
+						.setEditorPassword(account.id, 'corta')
+						.catch((e: unknown) => e);
+					expect(updateErr).toMatchObject({ kind: 'validation' });
+					expect(Object.keys((updateErr as VegaError).fieldErrors ?? {})).toEqual(['password']);
+
+					await expect(
+						admin.setEditorPassword(account.id, 'otra-contraseña-larga')
+					).resolves.toBeUndefined();
+					const listed = (await admin.listEditors()).editors.find((e) => e.id === account.id);
+					expect(listed?.verified).toBe(true);
+				}
+			);
+
+			test.skipIf(!capabilities.administration)(
+				'quitar acceso borra la cuenta; un id inexistente → not-found',
+				async () => {
+					const admin = await makeAdministration();
+					const account = await admin.createEditor(uniqueEmail(), {
+						kind: 'password',
+						password: 'contraseña-larga'
+					});
+					await admin.removeEditor(account.id);
+					const ids = (await admin.listEditors()).editors.map((e) => e.id);
+					expect(ids).not.toContain(account.id);
+					await expect(admin.removeEditor(account.id)).rejects.toMatchObject({
+						kind: 'not-found'
+					});
+				}
+			);
+
+			test.skipIf(!capabilities.administration)(
+				'sin correo configurado (estado de fábrica) mailEnabled() responde false',
+				async () => {
+					const admin = await makeAdministration();
+					await expect(admin.mailEnabled()).resolves.toBe(false);
+				}
+			);
+
+			test.skipIf(!capabilities.administration)(
+				'crear una copia la añade a la lista (la más reciente primero) y su descarga sirve un zip',
+				async () => {
+					const admin = await makeAdministration();
+					const before = new Set((await admin.listBackups()).map((b) => b.key));
+
+					await expect(admin.createBackup()).resolves.toBe('created');
+
+					const after = await admin.listBackups();
+					const added = after.filter((b) => !before.has(b.key));
+					expect(added).toHaveLength(1);
+					expect(added[0].size).toBeGreaterThan(0);
+					expect(Number.isNaN(Date.parse(added[0].modified))).toBe(false);
+					const modified = after.map((b) => b.modified);
+					expect(modified).toEqual([...modified].sort().reverse());
+
+					const response = await fetch(await admin.backupDownloadUrl(added[0].key));
+					expect(response.ok).toBe(true);
+					expect(response.headers.get('content-type')).toContain('zip');
+					expect((await response.arrayBuffer()).byteLength).toBe(added[0].size);
+				}
+			);
+
+			test.skipIf(!capabilities.administration)(
+				'dos copias a la vez: una se crea y la otra encuentra la primera en marcha (busy)',
+				async () => {
+					const admin = await makeAdministration();
+					const startedAt = Date.now();
+					const outcomes = await Promise.all([admin.createBackup(), admin.createBackup()]);
+					expect([...outcomes].sort()).toEqual(['busy', 'created']);
+					// Se comprueba la copia por su fecha, no por el recuento: PB nombra las copias con
+					// resolución de SEGUNDOS (`pb_backup_<app>_<AAAAMMDDhhmmss>.zip`), así que una copia
+					// hecha en el mismo segundo que la del test anterior la SUSTITUYE (medido en 0.39.6).
+					const fresh = (await admin.listBackups()).filter(
+						(backup) => Date.parse(backup.modified) >= startedAt - 1000
+					);
+					expect(fresh.length).toBeGreaterThanOrEqual(1);
+				}
+			);
 		});
 
 		// ————————————————————————————————————————————————————— 8. Errores de transporte —————

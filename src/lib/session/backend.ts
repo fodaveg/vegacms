@@ -615,6 +615,14 @@ function wrapMemoryPortForDemo(
 function withEditorCapabilities(port: BackendPort): BackendPort {
 	return {
 		...port,
-		capabilities: { ...port.capabilities, schemaDiscovery: false, schemaBootstrap: false }
+		// `administration` se apaga con su sección, igual que en PB con sesión de editor: la
+		// capability y `port.administration` van siempre juntas (`port.ts`).
+		capabilities: {
+			...port.capabilities,
+			schemaDiscovery: false,
+			schemaBootstrap: false,
+			administration: false
+		},
+		administration: undefined
 	};
 }

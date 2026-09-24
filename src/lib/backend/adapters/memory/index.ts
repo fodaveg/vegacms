@@ -57,6 +57,8 @@ import {
 	validateFileFieldInput
 } from './files';
 import { applyQuery } from './query';
+import { createMemoryAdministration } from './administration';
+import { VEGA_EDITORS_COLLECTION_NAME } from '../../administration';
 
 const CAPABILITIES: Capabilities = {
 	realtime: true,
@@ -72,7 +74,10 @@ const CAPABILITIES: Capabilities = {
 	// así el `access` que declare la semilla en un `ContentType` se respeta tal cual y la UI de
 	// permisos es ejercitable en la demo y en los e2e (con `true` quedaría siempre neutralizada).
 	// Una semilla que no declara `access` no restringe nada: ausente ⇒ todo permitido.
-	accessBypass: false
+	accessBypass: false,
+	// La sesión de `memory` hace de superuser; el rol editor de la demo/e2e lo apaga desde fuera
+	// (`withEditorCapabilities`, `session/backend.ts`).
+	administration: true
 };
 
 const DEFAULT_USER_EMAIL = 'admin@vega.test';
@@ -113,6 +118,18 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 			rules: Object.fromEntries(COMMON_COLLECTION_RULE_KEYS.map((key) => [key, null])),
 			fieldNames: ct.fields.map((field) => field.name)
 		});
+	}
+	// `MemorySeed.editors` presente ⇒ la colección de editores ya existe, como tras sembrar el
+	// sitio en PocketBase (misma forma que crearía `ensureCollections` para una `auth` vacía).
+	if (seed?.editors) {
+		collectionsByName.set(
+			VEGA_EDITORS_COLLECTION_NAME,
+			collectionSpecToMemorySnapshot({
+				name: VEGA_EDITORS_COLLECTION_NAME,
+				type: 'auth',
+				fields: []
+			})
+		);
 	}
 
 	function getSortedContentTypes(): ContentType[] {
@@ -446,8 +463,20 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 		}
 	}
 
+	const administration = createMemoryAdministration({
+		checkSessionAlive,
+		editorsCollectionExists: () =>
+			collectionsByName.get(VEGA_EDITORS_COLLECTION_NAME)?.type === 'auth',
+		generateId,
+		editors: seed?.editors ?? [],
+		backups: seed?.backups ?? [],
+		mailEnabled: seed?.mailEnabled ?? false,
+		backupDurationMs: seed?.backupDurationMs ?? 0
+	});
+
 	const port: MemoryBackendPort = {
 		capabilities: CAPABILITIES,
+		administration,
 
 		inspectCollection(name) {
 			const collection = collectionsByName.get(name);

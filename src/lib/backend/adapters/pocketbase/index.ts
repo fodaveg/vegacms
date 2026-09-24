@@ -48,6 +48,7 @@ import { planFileFieldWrite, resolveFileUrl } from './files';
 import { addFieldsOnPocketBase, ensureCollectionsOnPocketBase } from './collections';
 import { clearPersistedToken, loadPersistedToken, savePersistedToken } from './persistence';
 import { createPocketBaseStrongAuth } from './strong-auth';
+import { createPocketBaseAdministration } from './administration';
 
 /** Colección de auth por defecto (v1, D1): superuser real de PB, sin restricciones de esquema. */
 const DEFAULT_AUTH_COLLECTION = '_superusers';
@@ -84,7 +85,10 @@ function computeCapabilities(authCollection: string, strongAuth: boolean): Capab
 		// `#lote-shell`: los superusers de PB IGNORAN las API rules de las colecciones, así que para
 		// ellos un `access.create === 'denied'` (regla `null`) no significa nada — la UI debe seguir
 		// ofreciéndoles todo. Un editor (`authCollection` propia) sí queda sujeto a las reglas.
-		accessBypass: isSuperuser
+		accessBypass: isSuperuser,
+		// `/api/settings`, `/api/backups` y la gestión de `vega_editors` desde fuera son de
+		// superuser en PocketBase: un editor no administra el servidor (ver `AdministrationPort`).
+		administration: isSuperuser
 	};
 }
 
@@ -485,9 +489,14 @@ export function createPocketBaseBackend({
 			})
 		: undefined;
 
+	const administration = CAPABILITIES.administration
+		? createPocketBaseAdministration({ pb, guarded })
+		: undefined;
+
 	const port: BackendPort = {
 		capabilities: CAPABILITIES,
 		strongAuth,
+		administration,
 		manifestKey: normalizedManifestKey,
 		buildApiUrl,
 		previewApiUrl,

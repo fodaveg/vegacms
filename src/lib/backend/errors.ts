@@ -101,7 +101,10 @@ export const PB_VALIDATION_CODES = {
 	maxDate: 'validation_max_less_equal_than_required',
 	selectInvalid: 'validation_invalid_value',
 	tooManyValues: 'validation_too_many_values',
-	relationInvalid: 'validation_missing_rel_records'
+	relationInvalid: 'validation_missing_rel_records',
+	// Medidos contra 0.39.6 al crear cuentas de `vega_editors` (`AdministrationPort`).
+	email: 'validation_is_email',
+	unique: 'validation_not_unique'
 } as const;
 
 /**
