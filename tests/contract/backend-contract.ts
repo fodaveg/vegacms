@@ -887,6 +887,35 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 				});
 			});
 
+			test('fields: proyección de values (audit de rendimiento), filtrando por un campo NO proyectado', async () => {
+				const port = await makeAuthedPort();
+				const page = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'status', op: 'neq', value: 'draft' },
+					sort: [{ field: 'title', dir: 'asc' }],
+					fields: ['title', 'rating']
+				});
+				expect(page.items.length).toBeGreaterThan(0);
+				for (const item of page.items) {
+					// Solo lo pedido: ni el vacío normalizado de los demás campos (§2.1), ni `status`,
+					// que decide el filtro pero no se proyectó. `id` llega igual, fuera de `values`.
+					expect(Object.keys(item.values).sort()).toEqual(['rating', 'title']);
+					expect(item.id).toEqual(expect.any(String));
+				}
+				// Mismos registros que sin proyección, con los mismos valores en lo proyectado.
+				const full = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'status', op: 'neq', value: 'draft' },
+					sort: [{ field: 'title', dir: 'asc' }]
+				});
+				expect(ids(page.items)).toEqual(ids(full.items));
+				expect(page.items.map((r) => [r.values.title, r.values.rating])).toEqual(
+					full.items.map((r) => [r.values.title, r.values.rating])
+				);
+
+				await expect(
+					port.list('kitchen_sink', { fields: ['title', 'no_existe'] })
+				).rejects.toMatchObject({ kind: 'validation' });
+			});
+
 			test('id: pseudo-campo especial admitido en filter (§4.6 extendido, paginación por cursor de $lib/transfer)', async () => {
 				// La primary key NUNCA está en `ContentType.fields` (§2.2), pero SÍ es un objetivo
 				// válido de `filter` desde este fix — sin declararse en ningún sitio del esquema.

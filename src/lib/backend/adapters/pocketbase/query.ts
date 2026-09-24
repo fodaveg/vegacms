@@ -133,6 +133,17 @@ function pbFieldExpr(name: string): string {
 }
 
 /**
+ * Compila `query.fields` (proyección, ver su cabecera en `backend/query.ts`) al parámetro
+ * `fields` de PB (`id,created`), o `undefined` sin proyección para no mandarlo. `id` va SIEMPRE:
+ * es la identidad del `VegaRecord`, no un campo de `ContentType.fields`.
+ */
+export function compileFields(fields: Query['fields']): string | undefined {
+	if (!fields) return undefined;
+	const names = new Set(['id', ...fields]);
+	return [...names].join(',');
+}
+
+/**
  * Compila `query.sort` a la sintaxis `+campo,-campo` de PB (asc/desc). SIEMPRE añade `id`
  * ascendente como desempate final (ley L3, §4.2, §4.6) — incluso sin `sort` explícito, para
  * que el orden por defecto sea el mismo determinismo que `memory` (ver `adapters/memory/

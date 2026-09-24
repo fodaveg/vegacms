@@ -26,6 +26,7 @@ import type { FieldError } from '../../errors';
 import { VegaError } from '../../errors';
 import type { BackendPort } from '../../port';
 import type { Query } from '../../query';
+import { projectedFields } from '../../query';
 import { normalizeFieldValue } from '../../normalize';
 import { assertExplicitRecordIdCapability } from '../../capability-guards';
 import { assertContentTypeWritable, checkUnwritableFields } from '../../write-guards';
@@ -515,9 +516,24 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 			// una única vez, al final, y solo los `perPage` registros que de verdad salen.
 			const all = [...byId.entries()].map(([id, values]) => viewRecord(type, id, values));
 			const page = applyQuery(all, ct.fields, query);
+			// Proyección (`Query.fields`), mismo significado que en `pocketbase`: `values` lleva
+			// SOLO los campos pedidos. Se aplica DESPUÉS de filtrar/ordenar, que pueden usar
+			// campos no proyectados. `applyQuery` ya validó los nombres.
+			const returnedFields = query?.fields ? projectedFields(ct.fields, query.fields) : null;
 			return {
 				...page,
-				items: page.items.map((r) => structuredClone(r))
+				items: page.items.map((r) =>
+					structuredClone(
+						returnedFields
+							? {
+									...r,
+									values: Object.fromEntries(
+										returnedFields.map((field) => [field.name, r.values[field.name]])
+									)
+								}
+							: r
+					)
+				)
 			} satisfies Page<VegaRecord>;
 		},
 

@@ -18,8 +18,17 @@
 
 import { describe, expect, test, vi } from 'vitest';
 import type { BackendPort } from '$lib/backend/port';
-import type { Capabilities, RecordId, RecordInput, Session, VegaRecord } from '$lib/backend/types';
+import type {
+	Capabilities,
+	Field,
+	RecordId,
+	RecordInput,
+	Session,
+	VegaRecord
+} from '$lib/backend/types';
 import { VegaError } from '$lib/backend/errors';
+import { createMemoryBackend } from '$lib/backend/adapters/memory';
+import { VEGA_REVISIONS_COLLECTION } from './revisions-collection';
 import { resetRevisionsLatch, withRevisions } from './with-revisions';
 
 interface FakePortOptions {
@@ -370,6 +379,138 @@ describe('withRevisions — poda fire-and-forget tras un snapshot con éxito (§
 
 		await expect(wrapped.update('posts', 'p1', {})).resolves.toBeDefined();
 		await Promise.resolve();
+	});
+
+	test('la lectura de poda lleva la proyección: solo `created` (+ id), nunca los snapshots', async () => {
+		const { port } = buildFakePort();
+		const wrapped = withRevisions(port);
+
+		await wrapped.update('posts', 'p1', {});
+		await vi.waitFor(() =>
+			expect(port.list).toHaveBeenCalledWith(
+				'vega_revisions',
+				expect.objectContaining({ fields: ['created'] })
+			)
+		);
+	});
+
+	test('conserva EXACTAMENTE keepPerRecord del manifiesto y borra el resto en paralelo', async () => {
+		const items: VegaRecord[] = Array.from({ length: 8 }, (_, i) => ({
+			id: `rev-${i}`,
+			type: 'vega_revisions',
+			values: { created: new Date(2026, 0, i + 1).toISOString() }
+		}));
+		const { port } = buildFakePort({
+			revisionsManifestConfig: { keepPerRecord: 3 },
+			pruneListItems: items
+		});
+		// Borrados retenidos hasta abrir la compuerta: si fueran en serie, solo habría UNO en vuelo.
+		let open!: () => void;
+		const gate = new Promise<void>((resolve) => (open = resolve));
+		const started: string[] = [];
+		vi.mocked(port.delete).mockImplementation(async (_type, id) => {
+			started.push(id);
+			await gate;
+		});
+		const wrapped = withRevisions(port);
+
+		await wrapped.update('posts', 'p1', {});
+		await vi.waitFor(() => expect(started).toHaveLength(5));
+		// 8 revisiones, keepPerRecord 3 ⇒ caen las 5 más antiguas; rev-5..rev-7 se conservan.
+		expect([...started].sort()).toEqual(['rev-0', 'rev-1', 'rev-2', 'rev-3', 'rev-4']);
+		open();
+	});
+
+	test('un borrado de poda que falla no rompe el guardado, no frena los demás y deja aviso', async () => {
+		const items: VegaRecord[] = Array.from({ length: 5 }, (_, i) => ({
+			id: `rev-${i}`,
+			type: 'vega_revisions',
+			values: { created: new Date(2026, 0, i + 1).toISOString() }
+		}));
+		const { port } = buildFakePort({
+			revisionsManifestConfig: { keepPerRecord: 1 },
+			pruneListItems: items
+		});
+		const deleted: string[] = [];
+		vi.mocked(port.delete).mockImplementation(async (_type, id) => {
+			if (id === 'rev-1') throw VegaError.network();
+			deleted.push(id);
+		});
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		try {
+			const wrapped = withRevisions(port);
+
+			await expect(wrapped.update('posts', 'p1', {})).resolves.toBeDefined();
+			await vi.waitFor(() => expect(warn).toHaveBeenCalledTimes(1));
+			expect([...deleted].sort()).toEqual(['rev-0', 'rev-2', 'rev-3']);
+			expect(String(warn.mock.calls[0][0])).toContain('1 de 4');
+		} finally {
+			warn.mockRestore();
+		}
+	});
+});
+
+describe('withRevisions — poda contra el adaptador en memoria (juntura con la proyección)', () => {
+	const text = (name: string): Field => ({
+		name,
+		type: 'text',
+		subtype: 'plain',
+		required: false,
+		readonly: false,
+		presentable: false,
+		hidden: false,
+		unique: false
+	});
+	const json = (name: string): Field => ({
+		name,
+		type: 'json',
+		required: false,
+		readonly: false,
+		presentable: false,
+		hidden: false,
+		unique: false
+	});
+
+	test('tras N guardados quedan exactamente keepPerRecord revisiones, las más recientes', async () => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		try {
+			vi.setSystemTime(new Date('2026-09-23T10:00:00Z'));
+			const inner = createMemoryBackend({
+				users: [{ email: 'admin@vega.test', password: 'pw' }],
+				contentTypes: [
+					{ name: 'posts', readonly: false, fields: [text('title')] },
+					{ name: 'vega', readonly: false, fields: [json('manifest')] }
+				],
+				records: {
+					posts: [{ id: 'p1', values: { title: 'v0' } }],
+					vega: [{ id: 'vega1', values: { manifest: { revisions: { keepPerRecord: 3 } } } }]
+				}
+			});
+			await inner.login({ email: 'admin@vega.test', password: 'pw' });
+			await inner.ensureCollections([VEGA_REVISIONS_COLLECTION]);
+			const port = withRevisions(inner);
+
+			for (let i = 1; i <= 6; i += 1) {
+				// Un segundo entre guardados: `created` distinto y orden de poda determinista.
+				vi.setSystemTime(new Date(Date.parse('2026-09-23T10:00:00Z') + i * 1000));
+				await port.update('posts', 'p1', { title: `v${i}` });
+				// La poda es fire-and-forget: se deja terminar antes del siguiente guardado.
+				await new Promise((resolve) => setTimeout(resolve, 0));
+			}
+
+			const page = await inner.list('vega_revisions', {
+				sort: [{ field: 'created', dir: 'desc' }]
+			});
+			// Pre-imágenes v0..v5; keepPerRecord 3 ⇒ sobreviven las de los tres últimos guardados.
+			expect(page.totalItems).toBe(3);
+			expect(page.items.map((r) => (r.values.values as { title: string }).title)).toEqual([
+				'v5',
+				'v4',
+				'v3'
+			]);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 });
 

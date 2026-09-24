@@ -20,6 +20,16 @@ export interface Query {
 	sort?: SortSpec[]; // se aplican en orden; estable
 	page?: number; // 1-based; default 1; < 1 → violación de contrato (validation)
 	perPage?: number; // default 30; rango [1, 200]; fuera de rango → validation
+	/**
+	 * Proyección opcional (audit de rendimiento del 23 sep 2026): nombres de `ContentType.fields`
+	 * que deben venir en `values`. Ausente = todos, el comportamiento de siempre. El `id` del
+	 * registro viene siempre (acepta también el pseudo-campo `id`, sin efecto). Un nombre fuera
+	 * del esquema → `validation`, igual que en `filter`/`sort`. Los campos NO pedidos no aparecen
+	 * en `values`: si llegaran con su vacío normalizado (§2.1) serían indistinguibles de un vacío
+	 * real. Existe para lecturas que solo necesitan metadatos (la poda de `vega_revisions` pide
+	 * `created` y no los snapshots completos), no como optimización general de listados.
+	 */
+	fields?: string[];
 }
 
 export interface SortSpec {
@@ -141,8 +151,8 @@ export function isScalarField(field: Field): boolean {
 /**
  * Valida localmente una `Query` contra el esquema de campos de un `ContentType`. Lanza
  * `VegaError 'validation'` con un `FieldError` por cada problema encontrado (op/tipo
- * incompatible, campo inexistente en filtro o sort, sort sobre no-escalar, paginación fuera
- * de rango). No toca red: es idéntica para todos los adaptadores.
+ * incompatible, campo inexistente en filtro, sort o proyección, sort sobre no-escalar,
+ * paginación fuera de rango). No toca red: es idéntica para todos los adaptadores.
  */
 export function validateQuery(fields: Field[], query: Query | undefined): void {
 	if (!query) return;
@@ -171,6 +181,13 @@ export function validateQuery(fields: Field[], query: Query | undefined): void {
 		}
 	}
 
+	if (query.fields) {
+		for (const name of query.fields) {
+			if (name === ID_PSEUDO_FIELD || byName.has(name)) continue;
+			fieldErrors[name] = { code: 'validation_unknown_field', message: 'Campo desconocido' };
+		}
+	}
+
 	if (query.page !== undefined && query.page < 1) {
 		fieldErrors['page'] = { code: 'validation_invalid_page', message: 'La página debe ser >= 1' };
 	}
@@ -185,6 +202,17 @@ export function validateQuery(fields: Field[], query: Query | undefined): void {
 	if (Object.keys(fieldErrors).length > 0) {
 		throw VegaError.validation(fieldErrors, 'Query no válida');
 	}
+}
+
+/**
+ * Campos del esquema que un listado debe devolver en `values` según `Query.fields` (ver su
+ * cabecera): todos si no hay proyección. Compartida por los dos adaptadores para que la
+ * proyección signifique lo mismo en ambos (ley L3). Conserva el orden del esquema.
+ */
+export function projectedFields(fields: Field[], projection: string[] | undefined): Field[] {
+	if (!projection) return fields;
+	const wanted = new Set(projection);
+	return fields.filter((field) => wanted.has(field.name));
 }
 
 function collectFilterErrors(

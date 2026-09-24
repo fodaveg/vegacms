@@ -22,7 +22,7 @@ import type { FieldError } from '../../errors';
 import { VegaError } from '../../errors';
 import type { BackendPort } from '../../port';
 import type { Query } from '../../query';
-import { DEFAULT_PAGE, DEFAULT_PER_PAGE, validateQuery } from '../../query';
+import { DEFAULT_PAGE, DEFAULT_PER_PAGE, projectedFields, validateQuery } from '../../query';
 import { normalizeFieldValue } from '../../normalize';
 import { assertExplicitRecordIdCapability } from '../../capability-guards';
 import { assertContentTypeWritable, checkUnwritableFields } from '../../write-guards';
@@ -43,7 +43,7 @@ import {
 } from '../../collections';
 import { mapPocketBaseError } from './errors';
 import { mapCollectionsToContentTypes } from './schema';
-import { compileFilter, compileSort } from './query';
+import { compileFields, compileFilter, compileSort } from './query';
 import { planFileFieldWrite, resolveFileUrl } from './files';
 import { addFieldsOnPocketBase, ensureCollectionsOnPocketBase } from './collections';
 import { clearPersistedToken, loadPersistedToken, savePersistedToken } from './persistence';
@@ -573,10 +573,19 @@ export function createPocketBaseBackend({
 				const sort = compileSort(query?.sort);
 				const page = query?.page ?? DEFAULT_PAGE;
 				const perPage = query?.perPage ?? DEFAULT_PER_PAGE;
-				const result = await pb.collection(type).getList(page, perPage, { filter, sort });
+				const fields = compileFields(query?.fields);
+				const result = await pb
+					.collection(type)
+					.getList(
+						page,
+						perPage,
+						fields === undefined ? { filter, sort } : { filter, sort, fields }
+					);
+				// Con proyección, `values` lleva SOLO los campos pedidos (ver `Query.fields`).
+				const returnedFields = projectedFields(ct.fields, query?.fields);
 				return {
 					items: result.items.map((r) =>
-						toVegaRecord(type, r as unknown as Record<string, unknown>, ct.fields)
+						toVegaRecord(type, r as unknown as Record<string, unknown>, returnedFields)
 					),
 					page: result.page,
 					perPage: result.perPage,

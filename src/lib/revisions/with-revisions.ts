@@ -144,8 +144,37 @@ export function resetRevisionsLatch(port: BackendPort): void {
 }
 
 /**
+ * Proyección de las lecturas de poda (`Query.fields`): la selección (`retention.ts`) solo mira
+ * `id` y `created`. Sin ella, cada guardado se traía hasta 200 snapshots completos (`values`)
+ * para descartarlos acto seguido.
+ */
+const PRUNE_FIELDS = ['created'];
+
+/**
+ * Borra `ids` de `vega_revisions` EN PARALELO (antes, uno detrás de otro: N viajes en serie por
+ * guardado). Contrato de la poda, el mismo de siempre: nunca lanza, porque el guardado que la
+ * disparó ya terminó con éxito y un fallo aquí es, como mucho, unas cuantas versiones de más que
+ * la siguiente poda volverá a intentar borrar. Pero no se traga en silencio: los borrados fallidos
+ * dejan un aviso en consola con cuántos fueron y el primer motivo. No se usa `pb.createBatch`: el
+ * puerto no tiene lotes y la Batch API de PocketBase viene desactivada por defecto.
+ */
+async function deleteRevisions(port: BackendPort, ids: RecordId[]): Promise<void> {
+	const results = await Promise.allSettled(
+		ids.map((id) => port.delete(VEGA_REVISIONS_COLLECTION.name, id))
+	);
+	const failures = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+	if (failures.length > 0) {
+		console.warn(
+			`[vega:revisions] La poda no pudo borrar ${failures.length} de ${ids.length} revisiones; ` +
+				'se reintentará en el próximo guardado.',
+			failures[0].reason
+		);
+	}
+}
+
+/**
  * Poda fire-and-forget de `kind:'update'` para UN `(collection, recordId)` (§7): se dispara tras
- * cada snapshot de éxito, nunca se espera desde `update()` y traga cualquier error — un fallo de
+ * cada snapshot de éxito, nunca se espera desde `update()` y nunca propaga un error — un fallo de
  * poda es, como mucho, unas cuantas versiones de más en el historial, jamás un motivo para
  * romper nada aguas arriba. `perPage: MAX_PER_PAGE` (200): de sobra para el caso normal
  * (`keepPerRecord` por defecto 20); si algún registro acumulara más de 200 versiones por un fallo
@@ -170,17 +199,15 @@ async function pruneUpdateRevisions(
 				]
 			},
 			sort: [{ field: 'created', dir: 'desc' }],
-			perPage: MAX_PER_PAGE
+			perPage: MAX_PER_PAGE,
+			fields: PRUNE_FIELDS
 		});
 		const candidates: RevisionPruneCandidate[] = page.items.map((item) => ({
 			id: item.id,
 			kind: 'update',
 			created: typeof item.values.created === 'string' ? item.values.created : ''
 		}));
-		const toPrune = selectUpdateRevisionsToPrune(candidates, keepPerRecord);
-		for (const id of toPrune) {
-			await port.delete(VEGA_REVISIONS_COLLECTION.name, id).catch(() => {});
-		}
+		await deleteRevisions(port, selectUpdateRevisionsToPrune(candidates, keepPerRecord));
 	} catch {
 		// Fire-and-forget (§7): nunca debe afectar a nada fuera de esta función.
 	}
@@ -192,24 +219,24 @@ async function pruneUpdateRevisions(
  * `created` pase de `trashDays` cae, con techo `TRASH_PRUNE_BATCH_LIMIT` por pasada
  * (`selectTrashRevisionsToPrune`, `retention.ts`) — "para no provocar una tormenta de peticiones
  * en una papelera muy vieja". Se dispara tras cada snapshot de `delete` con éxito, nunca se espera
- * desde `delete()` y traga cualquier error, mismo criterio que `pruneUpdateRevisions`.
+ * desde `delete()` y nunca propaga un error, mismo criterio que `pruneUpdateRevisions`.
  */
 async function pruneTrashRevisions(port: BackendPort, trashDays: number): Promise<void> {
 	try {
 		const page = await port.list(VEGA_REVISIONS_COLLECTION.name, {
 			filter: { kind: 'cond', field: 'kind', op: 'eq', value: 'delete' },
 			sort: [{ field: 'created', dir: 'asc' }],
-			perPage: MAX_PER_PAGE
+			perPage: MAX_PER_PAGE,
+			fields: PRUNE_FIELDS
 		});
 		const candidates: RevisionPruneCandidate[] = page.items.map((item) => ({
 			id: item.id,
 			kind: 'delete',
 			created: typeof item.values.created === 'string' ? item.values.created : ''
 		}));
-		const toPrune = selectTrashRevisionsToPrune(candidates, trashDays, Date.now());
-		for (const id of toPrune) {
-			await port.delete(VEGA_REVISIONS_COLLECTION.name, id).catch(() => {});
-		}
+		// Con techo `TRASH_PRUNE_BATCH_LIMIT` (50) por pasada: el paralelismo no dispara una
+		// tormenta de peticiones contra una papelera muy vieja.
+		await deleteRevisions(port, selectTrashRevisionsToPrune(candidates, trashDays, Date.now()));
 	} catch {
 		// Fire-and-forget (§7): nunca debe afectar a nada fuera de esta función.
 	}
