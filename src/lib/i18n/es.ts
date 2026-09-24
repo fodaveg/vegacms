@@ -212,6 +212,34 @@ export const es = {
 		'No tienes permiso para editar registros de esta colección: puedes verlo, pero no guardar cambios.',
 	'editor.load.error.body': 'No se pudo cargar el registro. {message}',
 
+	// ————— Aviso de edición concurrente (`ConflictNotice.svelte`, lámina del audit p1): el
+	// guardado falló cerrado porque el registro cambió en el servidor desde que se abrió. Sin
+	// pronombres con género: el registro puede ser una página, una entrada o un bloque.
+	'editor.conflict.title': '«{name}» ha cambiado mientras lo editabas',
+	'editor.conflict.titleNarrow': '«{name}» ha cambiado',
+	'editor.conflict.byAuthor': 'Lo guardó {author} a las {time}.',
+	'editor.conflict.byAuthorNoTime': 'Lo guardó {author}.',
+	'editor.conflict.atTime': 'Se guardó otra versión a las {time}.',
+	'editor.conflict.unknown': 'Se guardó otra versión mientras lo editabas.',
+	'editor.conflict.nothingSaved':
+		'No se ha guardado nada tuyo todavía: tus cambios siguen en el formulario.',
+	'editor.conflict.showDiff': 'Ver diferencias',
+	'editor.conflict.hideDiff': 'Ocultar diferencias',
+	'editor.conflict.discard': 'Descartar mis cambios y recargar',
+	'editor.conflict.discardNarrow': 'Descartar y recargar',
+	'editor.conflict.force': 'Guardar igualmente',
+	'editor.conflict.diffHead': 'Si guardas igualmente, así quedará:',
+	'editor.conflict.noDiff':
+		'No hay diferencias en los campos editables: el cambio fue en datos que gestiona el servidor.',
+	'editor.conflict.scope.both': 'Lo cambiasteis los dos',
+	'editor.conflict.scope.server': 'Solo cambió en el servidor',
+	'editor.conflict.scope.mine': 'Solo tú',
+	'editor.conflict.error.title': 'No se pudo guardar',
+	'editor.conflict.error.body':
+		'{message} Tus cambios siguen en el formulario; no se ha sobrescrito nada.',
+	// Estado de guardado de la barra (`.vega-editor-saved-at--conflict`) mientras el aviso está abierto.
+	'editor.conflict.topbar': 'cambió en el servidor',
+
 	// ————— Barra pegajosa del editor (R7 del rediseño C2, mockup `.edit-top`) —————
 	'editor.new': 'nuevo',
 	'editor.dirty': 'sin guardar',
@@ -670,6 +698,8 @@ export const es = {
 	'integrity.usedIn.reason.not-found': 'la colección ya no existe',
 	'integrity.usedIn.reason.auth-expired': 'la sesión caducó a mitad de la comprobación',
 	'integrity.usedIn.reason.validation': 'la consulta no es válida contra este backend',
+	// Una lectura nunca lo produce; está para que la tabla cubra todo `VegaErrorKind`.
+	'integrity.usedIn.reason.conflict': 'el registro cambió durante la comprobación',
 	'integrity.usedIn.reason.unknown': 'motivo desconocido',
 
 	// ————— Aviso de referencias ANTES de borrar (mismo motor, `DeleteConfirm`/`MediaDeleteConfirm`) —————

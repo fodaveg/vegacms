@@ -11,6 +11,7 @@
 import type { ResolvedContentType } from '$lib/model/types';
 import type { FieldValue, RecordId, VegaRecord } from '$lib/backend/types';
 import { normalizeFieldValue } from '$lib/backend/normalize';
+import { recordVersion, type RecordVersion } from '$lib/backend/version';
 
 /**
  * Valores de formulario por nombre de campo. En el `baseline` NUNCA hay un `File`: solo puede
@@ -36,6 +37,12 @@ export interface FormModel {
 	 * para que el shell pueda iterar `type.fields` y encontrar siempre una entrada aquí.
 	 */
 	baseline: FormValues;
+	/**
+	 * `recordVersion` del registro TAL CUAL llegó del puerto (no del `baseline`, que puede no cubrir
+	 * todas sus claves): la versión esperada que el guardado pasa a `port.update` para fallar
+	 * cerrado si alguien guardó entre medias (`backend/version.ts`). `null` en creación.
+	 */
+	version: RecordVersion | null;
 }
 
 /**
@@ -84,6 +91,7 @@ export function buildFormModel(type: ResolvedContentType, record: VegaRecord | n
 		type,
 		mode: record === null ? 'create' : 'edit',
 		recordId: record === null ? null : record.id,
-		baseline
+		baseline,
+		version: record === null ? null : recordVersion(record)
 	};
 }

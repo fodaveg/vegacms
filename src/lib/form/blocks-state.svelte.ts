@@ -578,7 +578,7 @@ export function createBlocksState(options: BlocksStateOptions): BlocksState {
 		}
 
 		try {
-			await Promise.all(
+			const saved = await Promise.all(
 				updates.map((u) =>
 					ctx.port.update(childType!.name, u.id, { [blocksConfig!.orderField]: u.value })
 				)
@@ -588,16 +588,18 @@ export function createBlocksState(options: BlocksStateOptions): BlocksState {
 			// reactivo). `svelte/prefer-svelte-reactivity` no distingue "constructor puntual" de
 			// "estado mutado" y la marca al vivir en un `.svelte.ts`; cambiarla a `SvelteMap` metería
 			// un proxy en cada reorden sin comprar nada, y este refactor no cambia comportamiento.
+			//
+			// El registro que se guarda es el que DEVOLVIÓ el puerto, no el viejo con el orden
+			// parcheado: trae la versión real del servidor (incluido el autodate `updated`, si la
+			// colección lo tiene), y `BlockEditor` la adopta al ver que el cambio fue solo estructural.
+			// Con el parche, la ficha se quedaba con una versión que el servidor ya no tenía y el
+			// siguiente guardado del bloque era un conflicto falso (lote de edición concurrente).
 			// eslint-disable-next-line svelte/prefer-svelte-reactivity -- ver arriba
-			const byId = new Map(updates.map((u) => [u.id, u.value]));
+			const byId = new Map(saved.map((r) => [r.id, r]));
 			if (isCurrentView(view)) {
 				status = {
 					kind: 'ready',
-					records: reordered.map((r) =>
-						byId.has(r.id)
-							? { ...r, values: { ...r.values, [blocksConfig!.orderField]: byId.get(r.id)! } }
-							: r
-					)
+					records: reordered.map((r) => byId.get(r.id) ?? r)
 				};
 			}
 			return true;

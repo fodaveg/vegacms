@@ -40,7 +40,16 @@ export {
 } from './query';
 
 export type { FieldError, VegaErrorKind, VegaErrorOptions } from './errors';
-export { LOCAL_REJECTION_CODES, PB_VALIDATION_CODES, VegaError } from './errors';
+export {
+	isConflictError,
+	LOCAL_REJECTION_CODES,
+	PB_VALIDATION_CODES,
+	VegaConflictError,
+	VegaError
+} from './errors';
+
+export type { RecordVersion } from './version';
+export { recordVersion } from './version';
 
 export { isEmptyValue, normalizeFieldValue } from './normalize';
 export { assertContentTypeWritable, checkUnwritableFields } from './write-guards';
@@ -77,7 +86,7 @@ export {
 export type { GeneratedMigration, SchemaMigrationOp } from './migration';
 export { collectionSpecToMigrationPayload, generateSchemaMigration } from './migration';
 
-export type { BackendPort, StrongAuthPort } from './port';
+export type { BackendPort, StrongAuthPort, UpdateOptions } from './port';
 
 export type {
 	BuildClient,

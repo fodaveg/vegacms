@@ -6,10 +6,10 @@
 	 * `RevisionsPanel.svelte` cuando la persona abre una entrada del historial.
 	 *
 	 * Carga la versión viva con `ctx.port.get` (un solo `get`, no hay lista que paginar) y calcula
-	 * el diff con `diffRecordValues` (módulo puro). Para PINTAR cada valor reutiliza
-	 * `describeCell` (`$lib/list/cell.ts`, §9 del contrato: "no inventes un segundo formateador de
-	 * valores") — `cellText` de aquí abajo solo aplana el `CellDescriptor` resultante a una cadena
-	 * corta, el mismo tipo de aplanado que ya hace `RecordTable.svelte` para su columna-título.
+	 * el diff con `diffRecordValues` (módulo puro). Cada fila la pinta `DiffRow.svelte`, que
+	 * reutiliza `describeCell` (`$lib/list/cell.ts`, §9 del contrato: "no inventes un segundo
+	 * formateador de valores") a través de `diff-text.ts`; la fila vive aparte porque el aviso de
+	 * edición concurrente (`form/ConflictNotice.svelte`) pinta las suyas con el mismo marcado.
 	 *
 	 * "Restaurar en el formulario" (§8·B1): llama a `onRestore(revision.values)` — el CAMINO que
 	 * `RecordForm.svelte` expone (`applyRestoredValues`, ver su cabecera) para cargar esos valores
@@ -17,11 +17,11 @@
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import type { RecordId, VegaRecord } from '$lib/backend/types';
-	import { describeCell, type CellDescriptor } from '$lib/list/cell';
 	import type { ResolvedContentType } from '$lib/model/types';
 	import type { FormInputValues } from '$lib/form/dirty';
 	import { diffRecordValues, type FieldDiff } from './diff';
 	import type { RevisionRecord } from './revision';
+	import DiffRow from './DiffRow.svelte';
 
 	interface Props {
 		type: ResolvedContentType;
@@ -71,45 +71,6 @@
 		return type.fields.find((f) => f.name === name)?.label ?? name;
 	}
 
-	/** Aplana un `CellDescriptor` a texto corto (ver cabecera): mismo vocabulario de `kind` que
-	 *  `RecordTable.svelte`, sin sus ramas de miniatura/enlace (aquí no hay `record`/`fileUrl` que
-	 *  resolver, solo un valor de comparación). */
-	function cellText(descriptor: CellDescriptor): string {
-		switch (descriptor.kind) {
-			case 'empty':
-				return ctx.t('revisions.diff.empty');
-			case 'text':
-			case 'richtext':
-			case 'mono':
-			case 'number':
-			case 'date':
-				return descriptor.text;
-			case 'bool':
-				return descriptor.value ? ctx.t('list.cell.yes') : ctx.t('list.cell.no');
-			case 'select-multi':
-				return descriptor.values.length > 0
-					? descriptor.values.join(', ')
-					: ctx.t('revisions.diff.empty');
-			case 'relation':
-				return ctx.t('revisions.diff.relationCount', { count: descriptor.count });
-			case 'file':
-				return descriptor.refs.length > 0
-					? descriptor.refs.join(', ')
-					: ctx.t('revisions.diff.empty');
-		}
-	}
-
-	/** `undefined` (campo ausente en ese lado, §9) se pinta como "no existía" — distinto de un
-	 *  valor vacío de verdad (`revisions.diff.empty`, "—"), para no confundir "faltaba el campo"
-	 *  con "el campo estaba vacío". */
-	function sideText(diff: FieldDiff, side: 'before' | 'after'): string {
-		const value = side === 'before' ? diff.before : diff.after;
-		if (value === undefined) return ctx.t('revisions.diff.absent');
-		const field = type.fields.find((f) => f.name === diff.field);
-		if (!field) return ctx.t('revisions.diff.absent');
-		return cellText(describeCell(field, value, ctx.locale));
-	}
-
 	const changedDiffs = $derived(diffs.filter((d) => d.status !== 'same'));
 </script>
 
@@ -130,14 +91,13 @@
 	{:else}
 		<ul class="vega-revision-diff-list">
 			{#each changedDiffs as diff (diff.field)}
-				<li class="vega-revision-diff-row" data-diff-status={diff.status}>
-					<span class="vega-revision-diff-label">{fieldLabel(diff.field)}</span>
-					<span class="vega-revision-diff-values">
-						<span class="vega-revision-diff-before">{sideText(diff, 'before')}</span>
-						<span class="vega-revision-diff-arrow" aria-hidden="true">→</span>
-						<span class="vega-revision-diff-after">{sideText(diff, 'after')}</span>
-					</span>
-				</li>
+				<DiffRow
+					label={fieldLabel(diff.field)}
+					field={type.fields.find((f) => f.name === diff.field) ?? null}
+					before={diff.before}
+					after={diff.after}
+					status={diff.status}
+				/>
 			{/each}
 		</ul>
 	{/if}
@@ -196,45 +156,6 @@
 		margin: 0;
 		padding: 0;
 		list-style: none;
-	}
-
-	.vega-revision-diff-row {
-		display: flex;
-		flex-direction: column;
-		gap: 0.2rem;
-		padding: 0.4rem 0.5rem;
-		border: 1px solid var(--line);
-		border-radius: 6px;
-		background: var(--surface);
-	}
-
-	.vega-revision-diff-label {
-		font-weight: 600;
-		font-size: 0.82rem;
-		color: var(--ink);
-	}
-
-	.vega-revision-diff-values {
-		display: flex;
-		align-items: baseline;
-		flex-wrap: wrap;
-		gap: 0.35rem;
-		font-family: var(--mono);
-		font-size: 0.78rem;
-		overflow-wrap: anywhere;
-	}
-
-	.vega-revision-diff-before {
-		color: var(--danger);
-		text-decoration: line-through;
-	}
-
-	.vega-revision-diff-arrow {
-		color: var(--ink-3);
-	}
-
-	.vega-revision-diff-after {
-		color: var(--success);
 	}
 
 	.vega-revision-diff-restore {

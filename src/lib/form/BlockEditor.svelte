@@ -18,6 +18,13 @@
 	 *
 	 * El modo homogéneo anterior (`dataField === null`) conserva el formulario físico legado. Es
 	 * una compatibilidad deliberada para colecciones de bloques sin vocabulario heterogéneo.
+	 *
+	 * **Edición concurrente** (lote del 24 sep 2026, lámina del audit p1, variante estrecha): cada
+	 * guardado pasa la versión del bloque que la ficha tiene delante (`version`); si alguien lo
+	 * guardó entre medias, el puerto falla cerrado y aquí se abre `ConflictNotice` sin tocar el
+	 * borrador. Mismo camino de escritura que siempre (`onSubmit` → `port.update`): el editor visual
+	 * monta esta MISMA ficha, no un segundo escritor. Un reorden (cambio solo estructural, ver el
+	 * `$effect` de más abajo) no cuenta como edición ajena.
 	 */
 	import { tick, untrack } from 'svelte';
 	import type {
@@ -26,9 +33,11 @@
 		ResolvedContentType,
 		ResolvedField
 	} from '$lib/model/types';
-	import type { FieldInputValue, RecordInput, VegaRecord } from '$lib/backend/types';
+	import type { FieldInputValue, FieldValue, RecordInput, VegaRecord } from '$lib/backend/types';
 	import type { PreviewDraftRecord } from '$lib/backend/preview-client';
-	import { VegaError } from '$lib/backend/errors';
+	import type { UpdateOptions } from '$lib/backend/port';
+	import { isConflictError, VegaError, type VegaConflictError } from '$lib/backend/errors';
+	import { recordVersion, type RecordVersion } from '$lib/backend/version';
 	import { getVegaContext } from '$lib/app-context';
 	import { settingsRoute } from '$lib/nav/routes';
 	import {
@@ -51,7 +60,11 @@
 	import { fieldErrorMessage } from './field-error-message';
 	import { setRecordIdentity } from './record-context';
 	import { setFieldScope } from './field-scope';
+	import { autodateInstant } from './record-meta';
+	import { diffRecordValues } from '$lib/revisions/diff';
+	import { threeWayDiff, toComparableValues, touchedBlockData } from './conflict';
 	import FieldRow from './FieldRow.svelte';
+	import ConflictNotice from './ConflictNotice.svelte';
 
 	interface Props {
 		/** Tipo físico de la colección hija (p. ej. `landing_block`). */
@@ -63,9 +76,12 @@
 		/** Columna JSON declarada por `blocks.dataField`; `null` identifica el modo homogéneo. */
 		dataField: string | null;
 		record: VegaRecord;
+		/** Nombre legible del bloque para el aviso de edición concurrente; sin él, el del tipo. */
+		name?: string;
 		/** `parentField`/`orderField`/`typeField`: nunca editables desde este formulario. */
 		structuralFields: readonly string[];
-		onSubmit: (input: RecordInput) => Promise<VegaRecord>;
+		/** Quien lo monta lo cablea a `ctx.port.update`, reenviando `opts` (versión esperada) tal cual. */
+		onSubmit: (input: RecordInput, opts?: UpdateOptions) => Promise<VegaRecord>;
 		onSaved: (record: VegaRecord) => void;
 		onDirtyChange: (dirty: boolean) => void;
 		/** Publica el borrador en forma FÍSICA: las claves tipadas viajan dentro de `dataField`. */
@@ -80,6 +96,7 @@
 		rawBlockType,
 		dataField,
 		record,
+		name,
 		structuralFields,
 		onSubmit,
 		onSaved,
@@ -110,6 +127,13 @@
 	let clientErrors = $state<FieldErrorsView>(EMPTY_ERRORS);
 	let backendErrors = $state<FieldErrorsView>(EMPTY_ERRORS);
 	let saving = $state(false);
+
+	// Edición concurrente (ver cabecera): versión del bloque que tiene delante esta ficha, los
+	// valores COMPLETOS de los que sale (`baseValues`, para reconocer un cambio solo estructural) y
+	// el conflicto vigente si el último guardado falló cerrado.
+	let version = $state<RecordVersion>(recordVersion(initialRecord));
+	let baseValues: Record<string, FieldValue> = initialRecord.values;
+	let conflict = $state.raw<VegaConflictError | null>(null);
 
 	untrack(() => setRecordIdentity({ type: childType.name, id: initialRecord.id }));
 	// Ámbito de ids DOM (hallazgo p1, `field-scope.ts`, léase su cabecera): `initialRecord.id` ya
@@ -197,6 +221,138 @@
 		onDirtyChange(dirty);
 	});
 
+	/**
+	 * Un cambio SOLO estructural del bloque que llega por `record` —el reorden de `blocks-state`,
+	 * único escritor de la estructura, y con él el autodate `updated` si la colección lo tiene— no es
+	 * una edición ajena: la ficha adopta la versión nueva sin tocar el borrador. Sin esto, mover un
+	 * bloque en el árbol y editarlo después daría un conflicto falso atribuido a uno mismo. Cualquier
+	 * otro cambio que llegue por `record` se ignora, como siempre (ver "Props de identidad
+	 * estables"): si es de otra persona, el siguiente guardado fallará cerrado y lo enseñará el
+	 * aviso. `diffRecordValues` ya deja fuera los `readonly` (autodate).
+	 */
+	$effect(() => {
+		const incoming = record;
+		untrack(() => {
+			// `as unknown`: mismo truco que `initialRecord` (el tipo recursivo de `JsonValue` desborda
+			// la instanciación de `Snapshot<>`).
+			const incomingValues = $state.snapshot(incoming.values as unknown) as Record<
+				string,
+				FieldValue
+			>;
+			const incomingVersion = recordVersion({ values: incomingValues });
+			if (incomingVersion === version) return;
+			const onlyStructural = diffRecordValues(
+				childType.fields.map((f) => f.schema),
+				baseValues,
+				incomingValues
+			).every((d) => d.status === 'same' || structuralFields.includes(d.field));
+			if (!onlyStructural) return;
+			version = incomingVersion;
+			baseValues = incomingValues;
+		});
+	});
+
+	/** Reasienta la ficha entera sobre `rec` (lo que hay AHORA en el servidor). */
+	function adoptRecord(rec: VegaRecord): void {
+		baseline = buildFormModel(childType, rec).baseline;
+		current = { ...baseline };
+		if (typed && blockType !== null && dataField !== null) {
+			persistedData = rec.values[dataField];
+			dataBaseline = readBlockData(blockType, persistedData);
+			dataCurrent = { ...dataBaseline };
+		}
+		version = recordVersion(rec);
+		baseValues = rec.values;
+		conflict = null;
+		clientErrors = EMPTY_ERRORS;
+		backendErrors = EMPTY_ERRORS;
+	}
+
+	// ————— Aviso de edición concurrente (ver cabecera) —————
+
+	/** Columnas físicas que este formulario edita: las reclamadas por el tipo o las del modo legado. */
+	const physicalFields = $derived(
+		typed
+			? typedFields.flatMap((item) => (item.kind === 'record' ? [item.field] : []))
+			: legacyFields
+	);
+	const dataFields = $derived(
+		typedFields.flatMap((item) => (item.kind === 'data' ? [item.field] : []))
+	);
+	const conflictFields = $derived([...physicalFields, ...dataFields]);
+
+	/** Diff a tres bandas de columnas y, en modo tipado, de las claves de `data` por separado. */
+	const conflictRows = $derived.by(() => {
+		if (!conflict) return [];
+		const server = conflict.serverRecord;
+		const rows = threeWayDiff(
+			physicalFields.map((f) => f.schema),
+			baseline,
+			toComparableValues(current),
+			buildFormModel(childType, server).baseline
+		);
+		if (typed && blockType !== null && dataField !== null) {
+			rows.push(
+				...threeWayDiff(
+					dataFields.map((f) => f.schema),
+					dataBaseline as FormValues,
+					toComparableValues(dataCurrent as FormInputValues),
+					readBlockData(blockType, server.values[dataField]) as FormValues
+				)
+			);
+		}
+		return rows;
+	});
+
+	/**
+	 * «Guardar igualmente»: solo lo tocado, con la versión del servidor como esperada. En modo
+	 * tipado, las claves de `data` que tocaste se mezclan sobre el `data` DEL SERVIDOR
+	 * (`touchedBlockData`), no sobre el que abriste: así una clave que cambió el otro y tú no se
+	 * conserva, igual que una columna. Mismo contrato con `ConflictNotice` que `RecordForm`.
+	 */
+	async function forceSave(): Promise<void> {
+		if (!conflict) return;
+		const server = conflict.serverRecord;
+		backendErrors = EMPTY_ERRORS;
+		saving = true;
+		try {
+			const input = toRecordInput(childType, baseline, current);
+			if (typed && blockType !== null && dataField !== null && dataDirty) {
+				input[dataField] = writeBlockData(
+					blockType,
+					server.values[dataField],
+					touchedBlockData(dataBaseline, dataCurrent)
+				);
+			}
+			const saved = await onSubmit(input, { expectedVersion: conflict.serverVersion });
+			adoptRecord(saved);
+			onSaved(saved);
+		} catch (err) {
+			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al guardar', err);
+			if (isConflictError(vegaErr)) conflict = vegaErr;
+			else if (isFieldValidationError(vegaErr)) backendErrors = mapFieldErrors(vegaErr);
+			else throw vegaErr;
+		} finally {
+			saving = false;
+		}
+	}
+
+	/**
+	 * «Descartar y recargar»: relee el bloque y reasienta la ficha. Avisa al anfitrión por
+	 * `onSaved` con el registro releído —no es un guardado, pero es lo que el anfitrión necesita para
+	 * dejar de pintar la versión vieja (`blocks.handleBlockSaved`, la vista previa del lienzo).
+	 */
+	async function discardAndReload(): Promise<void> {
+		try {
+			const fresh = await ctx.port.get(childType.name, initialRecord.id);
+			adoptRecord(fresh);
+			onSaved(fresh);
+		} catch (err) {
+			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al recargar', err);
+			ctx.feedback.reportError(vegaErr, { action: 'block:reload' });
+		}
+	}
+
 	$effect(() => {
 		const fields: FormInputValues = { ...current };
 		if (typed && blockType !== null && !invalidData && dataField !== null) {
@@ -261,21 +417,17 @@
 				// shadowed y orphaned sobreviven por separado aunque el formulario no las pinte.
 				input[dataField] = writeBlockData(blockType, persistedData, dataCurrent);
 			}
-			const saved = await onSubmit(input);
+			// Con la versión que esta ficha tiene delante: si alguien guardó el bloque entre medias,
+			// falla cerrado y se abre el aviso (ver cabecera, "Edición concurrente").
+			const saved = await onSubmit(input, { expectedVersion: version });
 
-			baseline = buildFormModel(childType, saved).baseline;
-			current = { ...baseline };
-			if (typed && blockType !== null && dataField !== null) {
-				persistedData = saved.values[dataField];
-				dataBaseline = readBlockData(blockType, persistedData);
-				dataCurrent = { ...dataBaseline };
-			}
-			clientErrors = EMPTY_ERRORS;
-			backendErrors = EMPTY_ERRORS;
+			adoptRecord(saved);
 			onSaved(saved);
 		} catch (err) {
 			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al guardar', err);
-			if (isFieldValidationError(vegaErr)) {
+			if (isConflictError(vegaErr)) {
+				conflict = vegaErr;
+			} else if (isFieldValidationError(vegaErr)) {
 				backendErrors = mapFieldErrors(vegaErr);
 			} else {
 				ctx.feedback.reportError(vegaErr, { action: 'block:save' });
@@ -323,6 +475,21 @@
 			{/if}
 		</section>
 	{:else}
+		{#if conflict}
+			<ConflictNotice
+				variant="narrow"
+				name={name ?? blockType?.label ?? childType.label}
+				fields={conflictFields}
+				rows={conflictRows}
+				collection={childType.name}
+				recordId={initialRecord.id}
+				openedVersion={version}
+				serverVersion={conflict.serverVersion}
+				fallbackAt={autodateInstant(childType, conflict.serverRecord.values, 'updated')}
+				onDiscard={discardAndReload}
+				onForce={forceSave}
+			/>
+		{/if}
 		{#if errors.record}
 			<p class="vega-block-banner" role="alert">{fieldErrorMessage(ctx.t, errors.record)}</p>
 		{/if}

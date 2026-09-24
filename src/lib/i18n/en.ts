@@ -197,6 +197,32 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'You do not have permission to edit records in this collection: you can view it, but not save changes.',
 	'editor.load.error.body': 'Could not load the record. {message}',
 
+	// ————— Concurrent-edit notice (`ConflictNotice.svelte`, audit sheet p1): the save failed
+	// closed because the record changed on the server after it was opened.
+	'editor.conflict.title': '“{name}” changed while you were editing it',
+	'editor.conflict.titleNarrow': '“{name}” changed',
+	'editor.conflict.byAuthor': 'Saved by {author} at {time}.',
+	'editor.conflict.byAuthorNoTime': 'Saved by {author}.',
+	'editor.conflict.atTime': 'Another version was saved at {time}.',
+	'editor.conflict.unknown': 'Another version was saved while you were editing.',
+	'editor.conflict.nothingSaved':
+		'Nothing of yours has been saved yet: your changes are still in the form.',
+	'editor.conflict.showDiff': 'Show differences',
+	'editor.conflict.hideDiff': 'Hide differences',
+	'editor.conflict.discard': 'Discard my changes and reload',
+	'editor.conflict.discardNarrow': 'Discard and reload',
+	'editor.conflict.force': 'Save anyway',
+	'editor.conflict.diffHead': 'If you save anyway, this is the result:',
+	'editor.conflict.noDiff':
+		'No differences in editable fields: the change was in data managed by the server.',
+	'editor.conflict.scope.both': 'You both changed it',
+	'editor.conflict.scope.server': 'Changed only on the server',
+	'editor.conflict.scope.mine': 'Only you',
+	'editor.conflict.error.title': 'Could not save',
+	'editor.conflict.error.body':
+		'{message} Your changes are still in the form; nothing was overwritten.',
+	'editor.conflict.topbar': 'changed on the server',
+
 	// ————— Editor sticky bar (redesign C2, Part R7, `.edit-top` mockup) —————
 	'editor.new': 'new',
 	'editor.dirty': 'unsaved',
@@ -637,6 +663,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'integrity.usedIn.reason.not-found': 'the collection no longer exists',
 	'integrity.usedIn.reason.auth-expired': 'the session expired mid-check',
 	'integrity.usedIn.reason.validation': 'the query is not valid against this backend',
+	// A read never produces it; it is here so the table covers every `VegaErrorKind`.
+	'integrity.usedIn.reason.conflict': 'the record changed during the check',
 	'integrity.usedIn.reason.unknown': 'unknown reason',
 
 	// ————— References warning BEFORE deleting (same engine, `DeleteConfirm`/`MediaDeleteConfirm`) —————
