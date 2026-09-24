@@ -18,6 +18,7 @@
 	import type { MarkdownExtensionStorage, MarkdownManager } from '@tiptap/markdown';
 	import type { WidgetProps } from './types';
 	import { fieldIds } from '../field-ids';
+	import { getFieldScope } from '../field-scope';
 	import { getVegaContext } from '$lib/app-context';
 	import {
 		applyMarkdownCommand,
@@ -38,7 +39,8 @@
 	let { field, value, error, disabled, readonly, onChange }: WidgetProps = $props();
 
 	const ctx = getVegaContext();
-	const ids = $derived(fieldIds(field.name));
+	const fieldScope = getFieldScope();
+	const ids = $derived(fieldIds(field.name, fieldScope));
 	const previewId = $derived(`${ids.inputId}-preview`);
 	const unsafeUriErrorId = $derived(`${ids.inputId}-unsafe-uri`);
 	let unsafeUriError = $state(false);
@@ -459,7 +461,9 @@
 		position: absolute;
 		inset: 1.25rem;
 		margin: 0;
-		color: var(--ink-3);
+		/* `--ink-3` da 2,20:1 (medido) bajo AA; este aviso ("nada que previsualizar todavía") hay
+		   que poder leerlo, mismo criterio que `.vega-field-help`. */
+		color: var(--ink-2);
 		font-size: 0.85rem;
 		font-style: italic;
 		pointer-events: none;

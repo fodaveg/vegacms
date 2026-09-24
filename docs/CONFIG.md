@@ -409,6 +409,8 @@ Presente —aunque sea `{}`— enciende la tarjeta en la columna lateral del edi
 
 `urlTemplate` admite los mismos marcadores `{campo}`/`{id}` que `previewUrl` y debe empezar por `http://` o `https://`.
 
+`social` solo pinta una vista previa: no crea campos ni cambia lo que publica el sitio. Los datos de SEO que el sitio sí publica viven en columnas reales de la colección. El sembrado de sitio crea tres en `pages` —`description`, `socialImage` (relación a `vega_media`) y `noindex`— y `@vega/astro` los convierte en `<meta>`, Open Graph y el filtro del sitemap. Detalle en [SEO por página y redirecciones](POCKETBASE-INTEGRATION.md#seo-por-página-y-redirecciones). `social.imageField` sigue aceptando solo un campo `file`, así que no puede apuntar a `socialImage`.
+
 ## Vistas fusionadas (`mergedViews`)
 
 Además de `backendUrl`, el **manifiesto de contenidos** (colección `vega`, campo `manifest`, editable desde `/settings` con `ManifestEditor`) admite una sección `mergedViews`: vistas de solo lectura que **unen registros de varias colecciones** en un único listado, reordenable a mano por arrastre. Útiles para tableros tipo "destacados de portada" que mezclan, por ejemplo, `posts` y `pages` en un mismo orden manual sin fusionar sus colecciones reales.

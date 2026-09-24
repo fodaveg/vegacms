@@ -15,7 +15,7 @@
  */
 
 import { VEGA_VERSION } from '$lib/version';
-import { writeCachedUpdateCheck } from './storage';
+import { readCachedUpdateCheck, writeCachedUpdateCheck } from './storage';
 
 /** `owner/repo` de GitHub. Constante explícita: `package.json` no declara el campo
  *  `repository`, así que no hay de dónde derivarlo sin inventar una convención nueva. */
@@ -26,6 +26,19 @@ const RELEASES_URL = `https://api.github.com/repos/${VEGA_REPO_SLUG}/releases/la
 /** Margen de espera de la petición (§ "degradar con elegancia"): ni tan corto que falle en una
  *  conexión lenta normal, ni tan largo que un servidor colgado bloquee la UI un buen rato. */
 const FETCH_TIMEOUT_MS = 8000;
+
+/**
+ * TTL de la caché para NO llamar a GitHub en cada carga (fix de peso, auditoría 23 sep 2026 p3):
+ * GitHub limita `releases/latest` sin autenticar a 60 peticiones/hora por IP, y antes de este fix
+ * CADA apertura de Vega con el auto-check activado (`update-banner.svelte.ts#runAutoCheckIfEnabled`,
+ * disparado en `onMount` del layout raíz) disparaba una petición nueva, sin mirar si ya había una
+ * reciente. 4 horas: de sobra para no acercarse al límite con un uso normal (varias aperturas al
+ * día por editor, y varios editores tras el mismo NAT/CDN pueden compartir IP saliente), bastante
+ * corto para que "hay actualización" no tarde más de una jornada de trabajo en aparecer tras una
+ * release. Es la única cifra de este módulo que no sale de una medición sino de un criterio —
+ * documentado aquí en vez de justificarlo en el sitio que la usa.
+ */
+const CACHE_TTL_MS = 4 * 60 * 60 * 1000;
 
 /** Resultado de comparar la versión instalada contra la última publicada. Unión discriminada por
  *  `kind`, la misma forma que espera tanto `/settings` (mensaje inline) como `UpdateBanner`
@@ -98,8 +111,24 @@ function describeFetchError(err: unknown): string {
  * inyectado (por defecto el global) para poder testearlo sin red real. Escribe el resultado en
  * caché (`update/storage.ts#writeCachedUpdateCheck`, con timestamp) antes de devolverlo: así
  * cualquier check (manual o automático) alimenta al `UpdateBanner`, que solo lee esa caché.
+ *
+ * `opts.force` (default `false`): con una caché más reciente que `CACHE_TTL_MS` (ver arriba),
+ * devuelve ESE `UpdateStatus` sin tocar la red — el camino que toma el auto-check del arranque
+ * (`update-banner.svelte.ts`). El botón "Comprobar actualizaciones" de `/settings` pasa
+ * `force: true`: un clic explícito es una petición de "ahora mismo", no algo que el TTL deba
+ * silenciar sin decir nada — degradar en silencio ahí sería mentirle al usuario sobre qué acaba
+ * de comprobar. `readCachedUpdateCheck` ya es seguro sin `localStorage`/con contenido corrupto
+ * (ver su cabecera en `storage.ts`): si no hay caché legible, esto simplemente cae al camino de
+ * red de siempre.
  */
-export async function checkForUpdate(fetchImpl: typeof fetch = fetch): Promise<UpdateStatus> {
+export async function checkForUpdate(
+	fetchImpl: typeof fetch = fetch,
+	opts: { force?: boolean } = {}
+): Promise<UpdateStatus> {
+	if (!opts.force) {
+		const cached = readCachedUpdateCheck();
+		if (cached && Date.now() - cached.checkedAt < CACHE_TTL_MS) return cached.status;
+	}
 	const status = await resolveStatus(fetchImpl);
 	writeCachedUpdateCheck(status);
 	return status;

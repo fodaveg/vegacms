@@ -97,6 +97,42 @@ En `.htaccess` (en el directorio `/admin`):
 
 Estos servicios tienen opciones built-in para configurar el fallback SPA. Consúltalo con la documentación del proveedor.
 
+### Cabeceras de caché
+
+Ni PocketBase (`apis.Static`) ni un proxy delante de él ponen `Cache-Control` por defecto: el navegador decide por su cuenta (heurística HTTP normal) para TODO lo que sirve la SPA. Es el peor reparto posible — el HTML puede quedar cacheado de más (un despliegue nuevo tarda en verse) y los assets con hash en el nombre no se aprovechan del todo (podrían cachearse para siempre, nunca cambian de contenido bajo el mismo nombre). Dos reglas, para cualquier instancia:
+
+1. **`/_app/immutable/*`** (nombre de fichero = hash de su contenido, Vite/SvelteKit): `public, max-age=31536000, immutable`. Un año, sin revalidar nunca — si el contenido cambia, cambia el nombre del fichero.
+2. **Todo lo demás que sirve la SPA** (`index.html`, el fallback SPA de cualquier ruta de cliente y `vega.config.json` si existe): `no-cache`. Es contenido sin hash en el nombre — nunca debe quedar cacheado sin revalidar.
+
+**Ojo con el alcance de la regla 2** si tu servidor reenvía también `/api/*` (las extensiones Go de Vega fijan su propio `Cache-Control` en algunas rutas — p. ej. `no-store` en las credenciales de preview de `vegapreview.go` — y una regla demasiado ancha se lo pisaría): excluye explícitamente `/api/*`, y `/_/*` si expones el panel de superusuario de PocketBase por el mismo host.
+
+#### Con Caddy
+
+Ejemplo real en `infra/production/admin.vegacms.com.caddy` (instancia de referencia):
+
+```caddyfile
+@vegaImmutable path /_app/immutable/*
+header @vegaImmutable Cache-Control "public, max-age=31536000, immutable"
+
+@vegaContent {
+	not path /_app/immutable/* /api/* /_/*
+}
+header @vegaContent Cache-Control "no-cache"
+```
+
+#### Con Nginx
+
+```nginx
+location /_app/immutable/ {
+    add_header Cache-Control "public, max-age=31536000, immutable";
+}
+
+location / {
+    add_header Cache-Control "no-cache";
+    try_files $uri $uri/ /index.html; # fallback SPA, ver arriba
+}
+```
+
 ### GitHub Pages (proyecto)
 
 La demo pública de Vega usa `VEGA_BASE_PATH=/vegacms` para la demo del proyecto (en `https://fodaveg.github.io/vegacms/`). El workflow `.github/workflows/pages.yml` hace esto automáticamente:

@@ -410,6 +410,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'form.relation.media.empty': 'The media library is empty. Upload files from the Media section.',
 	'form.relation.media.error':
 		'The media library could not be loaded. Check your connection and permissions.',
+	'form.relation.media.pageError':
+		'This media library page could not be loaded. Already-loaded files are still available.',
 	'form.relation.media.targetMissing':
 		'The media collection is not available in the model yet. Reload Vega to update it.',
 	'form.relation.media.type.image': 'Image',
@@ -912,7 +914,18 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'settings.schema.fields.type.bool': 'Yes/No',
 	'settings.schema.fields.type.date': 'Date',
 	'settings.schema.fields.type.json': 'JSON',
+	'settings.schema.fields.type.select': 'Select',
 	'settings.schema.fields.type.relation': 'Relation',
+	'settings.schema.fields.select.optionPlaceholder': 'Option',
+	'settings.schema.fields.select.optionLabel': 'Option {index}',
+	'settings.schema.fields.select.addOption': 'Add option',
+	'settings.schema.fields.select.removeOption': 'Remove option {index}',
+	'settings.schema.fields.select.moveUpLabel': 'Move option {index} up',
+	'settings.schema.fields.select.moveDownLabel': 'Move option {index} down',
+	'settings.schema.fields.select.moved': '"{value}" moved to position {position} of {total}',
+	'settings.schema.fields.select.multipleLabel': 'Allow several options',
+	'settings.schema.fields.select.optionsRequired': 'Add at least one option.',
+	'settings.schema.fields.select.optionDuplicate': 'This option is repeated.',
 	'settings.schema.fields.relation.targetLabel': 'Related collection',
 	'settings.schema.fields.relation.targetPlaceholder': 'Choose a collection…',
 	'settings.schema.fields.relation.targetEmpty': 'No writable collections available',
@@ -1132,5 +1145,6 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'common.retry': 'Retry',
 	'common.cancel': 'Cancel',
 	'common.close': 'Close',
-	'common.loading': 'Loading…'
+	'common.loading': 'Loading…',
+	'common.networkError': 'Could not connect to the site. Check your connection and try again.'
 };

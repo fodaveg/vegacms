@@ -16,4 +16,29 @@ admin.vegacms.com {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		-Server
 	}
+
+	# Cabeceras de caché del admin (auditoría 23 sep 2026 p2): ni PocketBase (`apis.Static`) ni
+	# este Caddy ponían `Cache-Control`, así que el navegador decide por su cuenta (heurística
+	# HTTP normal) tanto para los assets con hash como para el HTML — el peor reparto posible: el
+	# HTML puede quedar cacheado de más (un despliegue nuevo tarda en verse) y los assets con hash
+	# no se aprovechan del todo (podrían cachearse para siempre, nunca cambian de contenido bajo
+	# el mismo nombre).
+	#
+	# `/_app/immutable/*` (nombre de fichero = hash de su contenido, Vite/SvelteKit): un año +
+	# `immutable`, no hay nada que revalidar nunca — si el contenido cambia, cambia el nombre.
+	@vegaImmutable path /_app/immutable/*
+	header @vegaImmutable Cache-Control "public, max-age=31536000, immutable"
+
+	# Todo lo demás que sirve la SPA de Vega (`index.html`, el fallback SPA de cualquier ruta de
+	# cliente — `/c/…`, `/media`, `/settings`… todas sirven el MISMO `index.html`, ver
+	# `adapter-static({ fallback: 'index.html' })` en `vite.config.ts` — y `vega.config.json`, si
+	# existe) es CONTENIDO sin hash en el nombre: nunca debe quedar cacheado sin revalidar, o un
+	# despliegue nuevo tardaría en verse en clientes con caché fría. Excluye EXPLÍCITAMENTE
+	# `/api/*` (las extensiones Go fijan su propio `Cache-Control` — `vegapreview.go` pone
+	# `no-store` en credenciales de preview — y esta regla NO debe pisarlo) y `/_/*` (el panel de
+	# superusuario de PocketBase, fuera del alcance de este fix).
+	@vegaContent {
+		not path /_app/immutable/* /api/* /_/*
+	}
+	header @vegaContent Cache-Control "no-cache"
 }

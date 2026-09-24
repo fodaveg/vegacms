@@ -473,9 +473,10 @@ Dos límites deliberados de esta primera versión:
    el valor.
 
 La **UI** de Ajustes → Esquema todavía no ofrece `select` ni `unique`. La operación headless
-`seedSiteProject` sí los declara al preparar un proyecto nuevo (`pages.status` y `pages.path`),
-pero todavía no hay botón ni asistente para dispararla desde la SPA. Que el puerto lo admita, que
-el sembrado lo use y que el panel lo ofrezca son tres cosas distintas.
+`seedSiteProject` sí los declara al preparar un proyecto nuevo (`pages.status`, `pages.path`,
+`redirects.from` y `redirects.code`), pero todavía no hay botón ni asistente para dispararla desde
+la SPA. Que el puerto lo admita, que el sembrado lo use y que el panel lo ofrezca son tres cosas
+distintas.
 
 El payload aplicado por red usa el `collectionId` real del entorno. La migración generada no
 incrusta ese id —resuelve `app.findCollectionByNameOrId("<nombre>").id` al ejecutarse—, por lo que
@@ -660,11 +661,39 @@ existentes se prepara manualmente. Un editor:
 #### Setup del modo editor en PocketBase
 
 En una instalación **nueva** preparada con `seedSiteProject`, el sembrado ya crea
-`vega_editors` y escribe las reglas de `vega`, `pages`, `blocks` y `vega_media` al crear cada
-colección. El sitio puede leer anónimamente solo páginas publicadas y sus bloques; los registros de
-`vega_media` se pueden ver por id y expandir, pero no enumerar. Un registro autenticado contra
-`vega_editors` recibe CRUD de las tres colecciones de contenido. La operación es headless: aún no
-hay botón ni asistente en la SPA.
+`vega_editors` y escribe las reglas de `vega`, `pages`, `blocks`, `redirects` y `vega_media` al
+crear cada colección. El sitio puede leer anónimamente solo páginas publicadas y sus bloques, y
+todas las redirecciones; los registros de `vega_media` se pueden ver por id y expandir, pero no
+enumerar. Un registro autenticado contra `vega_editors` recibe CRUD de las cuatro colecciones de
+contenido. La operación es headless: aún no hay botón ni asistente en la SPA.
+
+#### SEO por página y redirecciones
+
+Desde el 24 sep 2026 el sembrado añade a `pages` tres columnas reales para SEO, y crea la
+colección `redirects`. Son columnas y no `data` porque el sitio las consulta o las enlaza: el
+sitemap filtra por `noindex` y la imagen es una relación.
+
+| Colección   | Campo         | Tipo PocketBase                                        |
+| ----------- | ------------- | ------------------------------------------------------ |
+| `pages`     | `description` | text, opcional, máx. 300                               |
+| `pages`     | `socialImage` | relación simple → `vega_media`, sin borrado en cascada |
+| `pages`     | `noindex`     | bool                                                   |
+| `redirects` | `from`        | text, obligatorio, único (ruta vieja, empieza por `/`) |
+| `redirects` | `to`          | text, obligatorio (ruta del sitio o URL `http(s)://`)  |
+| `redirects` | `code`        | select obligatorio: `301` o `308`                      |
+
+`socialImage` sigue la misma convención de imágenes que `blocks.image`: enlaza un registro de
+`vega_media`, y el sitio resuelve el fichero con `expand`. El manifiesto inicial les da etiqueta y
+ayuda en el formulario (tarjeta «SEO» en la columna lateral de la página) y muestra
+«Redirecciones» como un tipo de contenido más.
+
+**Un proyecto ya sembrado** recibe todo esto volviendo a ejecutar `seedSiteProject`: añade a
+`pages` los tres campos ausentes sin tocar los existentes ni sus datos (las páginas quedan con
+descripción vacía, sin imagen y `noindex = false`), crea `redirects` y, si el manifiesto sigue
+siendo EXACTAMENTE el inicial de la versión anterior, lo sustituye por el nuevo. Si alguien editó
+el manifiesto, el sembrado aborta sin escribir nada, como con cualquier manifiesto humano: copia a
+mano las claves `collections.pages.fields`, `collections.pages.fieldGroups` y
+`collections.redirects` del manifiesto del starter.
 
 Los pasos manuales siguientes siguen aplicando a una instalación **existente**. El sembrado es
 `creation-only`: si una colección ya existe, no cambia ninguna de sus reglas, aunque estén vacías,
@@ -719,6 +748,10 @@ un proyecto anterior, abre **Settings** → **Permissions** y cópialas a mano:
 - `vega_media`
   - **List**: `@request.auth.collectionName = "vega_editors"`
   - **View**: deja la regla vacía, que es acceso público por id y permite resolver `expand`
+  - **Create/Update/Delete**: `@request.auth.collectionName = "vega_editors"`
+- `redirects`
+  - **List/View**: deja la regla vacía (acceso público, como una página publicada): el sitio las
+    lee sin sesión en el build y en cada petición SSR
   - **Create/Update/Delete**: `@request.auth.collectionName = "vega_editors"`
 
 No conviertas `vega_media.listRule` en pública: el sitio solo necesita `viewRule` pública para

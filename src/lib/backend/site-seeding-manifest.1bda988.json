@@ -22,57 +22,12 @@
         "published": "Publicado"
       },
       "listFields": ["title", "path", "layout", "status"],
-      "fieldGroups": [{ "name": "SEO", "placement": "aside" }],
-      "fields": {
-        "description": {
-          "label": "Descripción",
-          "help": "Resumen de una o dos frases para buscadores y redes sociales. Si lo dejas vacío, el sitio usa su descripción general.",
-          "widget": "textarea",
-          "group": "SEO"
-        },
-        "socialImage": {
-          "label": "Imagen para redes",
-          "help": "Aparece al compartir la página en redes y mensajería. Mejor apaisada, de unos 1200 × 630 px.",
-          "group": "SEO"
-        },
-        "noindex": {
-          "label": "No indexar",
-          "help": "Pide a los buscadores que no muestren esta página y la saca del mapa del sitio. Quien tenga el enlace puede seguir abriéndola.",
-          "group": "SEO"
-        }
-      },
       "blocks": {
         "collection": "blocks",
         "parentField": "parent",
         "orderField": "order",
         "typeField": "type",
         "dataField": "data"
-      }
-    },
-    "redirects": {
-      "label": "Redirecciones",
-      "labelSingular": "Redirección",
-      "icon": "chevron",
-      "group": "Sitio",
-      "order": 1,
-      "titleField": "from",
-      "subtitleField": "to",
-      "listFields": ["from", "to", "code"],
-      "fields": {
-        "from": {
-          "label": "Desde",
-          "help": "Ruta antigua, empezando por /. Quien la abra irá a la dirección de destino.",
-          "placeholder": "/ruta-antigua"
-        },
-        "to": {
-          "label": "Hacia",
-          "help": "Ruta del propio sitio (/nueva) o dirección completa (https://…).",
-          "placeholder": "/ruta-nueva"
-        },
-        "code": {
-          "label": "Tipo",
-          "help": "301 es la redirección permanente de siempre. Usa 308 solo si la ruta antigua recibe formularios que deben conservar su método."
-        }
       }
     },
     "blocks": {

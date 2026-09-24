@@ -1,21 +1,30 @@
 import { describe, expect, test, vi } from 'vitest';
 import { createMemoryBackend, type MemoryBackendPort } from './adapters/memory';
+import type { CollectionFieldSpec } from './collections';
 import type { BackendPort } from './port';
-import type { AccessLevel, ContentType } from './types';
+import type { AccessLevel, ContentType, Field, JsonValue } from './types';
 import {
+	actualFieldShape,
+	expectedFieldShape,
+	sameShape,
 	SITE_SEED_BLOCKS_READ_RULE,
 	SITE_SEED_CANONICAL_PAGE_PATH,
 	SITE_SEED_EDITOR_ACCESS_RULE,
 	SITE_SEED_MANIFEST_READ_RULE,
 	SITE_SEED_PAGES_READ_RULE,
+	SITE_SEED_REDIRECTS_READ_RULE,
 	SiteSeedDivergenceError,
 	seedSiteProject
 } from './site-seeding';
+import starterManifest from './site-seeding-manifest.json';
+import { previousStarterManifest, seedLikePrevious1bda988 } from './site-seeding-previous.fixture';
 import {
 	ensureMediaCollection,
 	VEGA_MEDIA_EDITOR_ACCESS_RULE,
 	VEGA_MEDIA_VIEW_RULE
 } from '$lib/media/media-collection';
+import { resolveContentModel } from '$lib/model/resolve';
+import { validateManifestStrict } from '$lib/model/validate';
 
 async function authedMemory(): Promise<MemoryBackendPort> {
 	const port = createMemoryBackend();
@@ -51,7 +60,7 @@ function emptyType(name: string, list: AccessLevel): ContentType {
 async function logicalSnapshot(port: MemoryBackendPort) {
 	const types = await port.listContentTypes();
 	const records: Record<string, unknown> = {};
-	for (const name of ['pages', 'blocks', 'vega']) {
+	for (const name of ['pages', 'blocks', 'redirects', 'vega']) {
 		if (types.some((type) => type.name === name)) {
 			const page = await port.list(name, { perPage: 200 });
 			records[name] = {
@@ -63,7 +72,7 @@ async function logicalSnapshot(port: MemoryBackendPort) {
 	return {
 		types,
 		collections: Object.fromEntries(
-			['vega_editors', 'pages', 'vega_media', 'blocks', 'vega'].map((name) => [
+			['vega_editors', 'pages', 'vega_media', 'blocks', 'redirects', 'vega'].map((name) => [
 				name,
 				port.inspectCollection(name)
 			])
@@ -114,7 +123,7 @@ describe('seedSiteProject', () => {
 		const port = await authedMemory();
 
 		await expect(seedSiteProject(port)).resolves.toMatchObject({
-			createdCollections: ['vega_editors', 'pages', 'vega_media', 'blocks', 'vega'],
+			createdCollections: ['vega_editors', 'vega_media', 'pages', 'blocks', 'redirects', 'vega'],
 			createdRecords: ['manifest', 'page:/']
 		});
 
@@ -190,13 +199,130 @@ describe('seedSiteProject', () => {
 			deleteRule: VEGA_MEDIA_EDITOR_ACCESS_RULE
 		});
 
+		const pages = types.find((type) => type.name === 'pages')!;
+		expect(pages.fields.find((field) => field.name === 'description')).toMatchObject({
+			type: 'text',
+			required: false
+		});
+		expect(pages.fields.find((field) => field.name === 'socialImage')).toMatchObject({
+			type: 'relation',
+			target: 'vega_media',
+			multiple: false,
+			required: false
+		});
+		expect(pages.fields.find((field) => field.name === 'noindex')).toMatchObject({
+			type: 'bool',
+			required: false
+		});
+		const redirects = types.find((type) => type.name === 'redirects')!;
+		expect(redirects.fields.map((field) => field.name)).toEqual(['from', 'to', 'code']);
+		expect(redirects.fields.find((field) => field.name === 'code')).toMatchObject({
+			type: 'select',
+			options: ['301', '308'],
+			multiple: false,
+			required: true
+		});
+		expect(port.inspectCollection('redirects')?.rules).toEqual({
+			listRule: SITE_SEED_REDIRECTS_READ_RULE,
+			viewRule: SITE_SEED_REDIRECTS_READ_RULE,
+			createRule: SITE_SEED_EDITOR_ACCESS_RULE,
+			updateRule: SITE_SEED_EDITOR_ACCESS_RULE,
+			deleteRule: SITE_SEED_EDITOR_ACCESS_RULE
+		});
+
 		const before = await logicalSnapshot(port);
 		await expect(seedSiteProject(port)).resolves.toEqual({
 			createdCollections: [],
 			addedFields: {},
-			createdRecords: []
+			createdRecords: [],
+			upgradedRecords: []
 		});
 		expect(await logicalSnapshot(port)).toEqual(before);
+	});
+
+	test('el formulario resuelve SEO y redirecciones con etiquetas y ayudas, sin avisos', async () => {
+		const port = await authedMemory();
+		await seedSiteProject(port);
+		expect(validateManifestStrict(starterManifest as JsonValue)).toEqual({ ok: true });
+
+		const model = resolveContentModel({
+			types: await port.listContentTypes(),
+			manifestRaw: starterManifest as JsonValue
+		});
+
+		expect(model.warnings).toEqual([]);
+		const pages = model.types.find((type) => type.name === 'pages')!;
+		const seoFields = pages.fields.filter((field) => field.group === 'SEO');
+		expect(seoFields.map((field) => field.name)).toEqual(['description', 'socialImage', 'noindex']);
+		for (const field of seoFields) {
+			expect(field.label, field.name).not.toBe(field.name);
+			expect(field.help, field.name).toEqual(expect.any(String));
+		}
+		expect(pages.fieldGroups).toContainEqual({ name: 'SEO', columns: 1, placement: 'aside' });
+
+		const redirects = model.types.find((type) => type.name === 'redirects')!;
+		expect(redirects.hidden).toBe(false);
+		expect(redirects.label).toBe('Redirecciones');
+		for (const field of redirects.fields) {
+			expect(field.label, field.name).not.toBe(field.name);
+			expect(field.help, field.name).toEqual(expect.any(String));
+		}
+	});
+
+	test('un proyecto sembrado con la versión anterior recibe SEO, redirects y el manifiesto nuevo sin perder datos', async () => {
+		const port = await authedMemory();
+		await seedLikePrevious1bda988(port);
+		const page = await canonicalPage(port);
+		await port.update('pages', page.id, { title: 'Portada humana', status: 'published' });
+		const block = await port.create('blocks', {
+			parent: page.id,
+			order: 1,
+			type: 'richtext',
+			data: { heading: 'Hola' }
+		});
+
+		const result = await seedSiteProject(port);
+
+		expect(result).toEqual({
+			createdCollections: ['redirects'],
+			addedFields: { pages: ['description', 'socialImage', 'noindex'] },
+			createdRecords: [],
+			upgradedRecords: ['manifest']
+		});
+		const after = await canonicalPage(port);
+		expect(after.id).toBe(page.id);
+		expect(after.values).toMatchObject({ title: 'Portada humana', status: 'published' });
+		expect((await port.get('blocks', block.id)).values).toMatchObject({
+			parent: page.id,
+			data: { heading: 'Hola' }
+		});
+		const manifests = await port.list('vega', { perPage: 5 });
+		expect(manifests.totalItems).toBe(1);
+		expect(manifests.items[0]?.values.manifest).toEqual(starterManifest);
+
+		// Y la pasada siguiente ya no tiene nada que hacer.
+		await expect(seedSiteProject(port)).resolves.toEqual({
+			createdCollections: [],
+			addedFields: {},
+			createdRecords: [],
+			upgradedRecords: []
+		});
+	});
+
+	test('un manifiesto anterior EDITADO no se actualiza: aborta como cualquier manifiesto humano', async () => {
+		const port = await authedMemory();
+		await seedLikePrevious1bda988(port);
+		const manifestRecord = (await port.list('vega', { perPage: 1 })).items[0]!;
+		const edited = {
+			...(previousStarterManifest as Record<string, unknown>),
+			site: { name: 'Mi taller' }
+		};
+		await port.update('vega', manifestRecord.id, { manifest: edited as JsonValue });
+		const writes = watchSeedWrites(port);
+
+		await expect(seedSiteProject(port)).rejects.toBeInstanceOf(SiteSeedDivergenceError);
+		expectNoSeedWrites(writes);
+		expect((await port.get('vega', manifestRecord.id)).values.manifest).toEqual(edited);
 	});
 
 	test('completa image e images como piezas ausentes de blocks existente', async () => {
@@ -322,7 +448,9 @@ describe('seedSiteProject', () => {
 		]);
 
 		await expect(seedSiteProject(port)).resolves.toMatchObject({
-			addedFields: { pages: ['title', 'path', 'layout'] }
+			addedFields: {
+				pages: ['title', 'path', 'layout', 'description', 'socialImage', 'noindex']
+			}
 		});
 		const pages = (await port.listContentTypes()).find((type) => type.name === 'pages')!;
 		expect(pages.fields.find((field) => field.name === 'status')).toMatchObject({
@@ -372,7 +500,8 @@ describe('seedSiteProject', () => {
 		await expect(seedSiteProject(actualPort)).resolves.toEqual({
 			createdCollections: [],
 			addedFields: {},
-			createdRecords: []
+			createdRecords: [],
+			upgradedRecords: []
 		});
 	});
 
@@ -387,7 +516,8 @@ describe('seedSiteProject', () => {
 		await expect(seedSiteProject(actualPort)).resolves.toEqual({
 			createdCollections: [],
 			addedFields: {},
-			createdRecords: []
+			createdRecords: [],
+			upgradedRecords: []
 		});
 	});
 
@@ -490,6 +620,106 @@ describe('seedSiteProject', () => {
 		);
 		expect(port.inspectCollection('vega_editors')).toMatchObject({ type: 'auth' });
 		expect(port.inspectCollection('pages')).toMatchObject({ type: 'auth' });
+	});
+});
+
+/** Campo `select` real (`Field`, lo que devuelve el puerto) con los defaults de `FieldBase` que no
+ *  varían entre los casos de abajo — solo `multiple`/`options`/`maxSelect` cambian por test. */
+function actualSelectField(opts: {
+	options: string[];
+	multiple: boolean;
+	maxSelect?: number;
+}): Field {
+	return {
+		name: 'tags',
+		type: 'select',
+		options: opts.options,
+		multiple: opts.multiple,
+		maxSelect: opts.maxSelect,
+		required: false,
+		readonly: false,
+		presentable: false,
+		hidden: false,
+		unique: false
+	};
+}
+
+function expectedSelectSpec(opts: { options: string[]; multiple: boolean }): CollectionFieldSpec {
+	return { name: 'tags', type: 'select', options: opts.options, multiple: opts.multiple };
+}
+
+describe('expectedFieldShape/actualFieldShape/sameShape: select MÚLTIPLE', () => {
+	/**
+	 * `seedSiteProject` nunca alcanza esta rama en la suite de arriba: su único `select`
+	 * (`pages.status`) es SIEMPRE simple. `multiple` compila a `maxSelect: 99`
+	 * (`collections.ts`, comentario de `CollectionFieldSpec['relation'].multiple`) y
+	 * `actualFieldShape` solo compara `maxSelect` cuando el campo es un `select` múltiple (ver su
+	 * cabecera) — exactamente lo que estos tests ejercitan.
+	 */
+
+	test('mismo select múltiple (mismas opciones, maxSelect=99 real) → misma forma', () => {
+		const expected = expectedFieldShape(
+			expectedSelectSpec({ options: ['a', 'b'], multiple: true })
+		);
+		const actual = actualFieldShape(
+			actualSelectField({ options: ['a', 'b'], multiple: true, maxSelect: 99 })
+		);
+		expect(sameShape(expected, actual)).toBe(true);
+	});
+
+	test('múltiple con maxSelect real distinto de 99 → forma distinta (cardinalidad no coincide)', () => {
+		const expected = expectedFieldShape(
+			expectedSelectSpec({ options: ['a', 'b'], multiple: true })
+		);
+		// Un `select` creado a mano en PocketBase con `multiple: true` pero un límite propio
+		// (p.ej. 5): mismo `multiple`, mismas opciones, pero OTRA cardinalidad — sí debe divergir
+		// (ver el comentario de `actualFieldShape`: "dos límites distintos son cardinalidades
+		// distintas").
+		const actual = actualFieldShape(
+			actualSelectField({ options: ['a', 'b'], multiple: true, maxSelect: 5 })
+		);
+		expect(sameShape(expected, actual)).toBe(false);
+	});
+
+	test('múltiple vs simple (mismas opciones) → forma distinta', () => {
+		const expectedMultiple = expectedFieldShape(
+			expectedSelectSpec({ options: ['a', 'b'], multiple: true })
+		);
+		const actualSimple = actualFieldShape(
+			actualSelectField({ options: ['a', 'b'], multiple: false, maxSelect: 1 })
+		);
+		expect(sameShape(expectedMultiple, actualSimple)).toBe(false);
+
+		const expectedSimple = expectedFieldShape(
+			expectedSelectSpec({ options: ['a', 'b'], multiple: false })
+		);
+		const actualMultiple = actualFieldShape(
+			actualSelectField({ options: ['a', 'b'], multiple: true, maxSelect: 99 })
+		);
+		expect(sameShape(expectedSimple, actualMultiple)).toBe(false);
+	});
+
+	test('múltiple con opciones distintas: actual SUPERCONJUNTO del esperado → sigue siendo compatible', () => {
+		// Mismo criterio que el single de `site-seeding.test.ts` ("superconjunto desordenado de
+		// opciones sigue siendo compatible"), documentado aquí para la rama múltiple: opciones EXTRA
+		// en el servidor no son una divergencia, solo faltar una esperada lo es (`sameSelectOptions`).
+		const expected = expectedFieldShape(
+			expectedSelectSpec({ options: ['a', 'b'], multiple: true })
+		);
+		const actual = actualFieldShape(
+			actualSelectField({ options: ['b', 'a', 'c'], multiple: true, maxSelect: 99 })
+		);
+		expect(sameShape(expected, actual)).toBe(true);
+	});
+
+	test('múltiple con una opción esperada AUSENTE en el actual → forma distinta', () => {
+		const expected = expectedFieldShape(
+			expectedSelectSpec({ options: ['a', 'b'], multiple: true })
+		);
+		const actual = actualFieldShape(
+			actualSelectField({ options: ['a'], multiple: true, maxSelect: 99 })
+		);
+		expect(sameShape(expected, actual)).toBe(false);
 	});
 });
 

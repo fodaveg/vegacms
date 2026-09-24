@@ -351,6 +351,12 @@ export type Field =
 			maxSizeBytes?: number;
 			mimeTypes?: string[];
 			protected: boolean;
+			/** Tamaños de miniatura que la colección YA declaró en PB (sintaxis `WxH`/`WxHf`, la
+			 *  misma que compila `compileThumbSpec`), o `undefined` si no declaró ninguno. Pedir un
+			 *  `thumb` que no esté aquí no es un error (PB devuelve el original en silencio, `apis/
+			 *  file.go`) pero SÍ desperdicia ancho de banda — `thumb-select.ts` lo usa para caer a un
+			 *  tamaño que PB sirve siempre (`100x100`) en vez de pedir a ciegas. */
+			thumbs?: string[];
 	  })
 	| (FieldBase & { type: 'json' })
 	| (FieldBase & { type: 'unsupported'; backendType: string }); // p.ej. 'geoPoint'

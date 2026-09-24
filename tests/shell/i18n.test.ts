@@ -1,12 +1,22 @@
 /**
  * Suite A.1/A.2 (§7 del contrato P3): `resolveLocale()` (tabla completa) y `t()` (claves
  * presentes, interpolación, política de clave ausente). Sin red, sin Svelte.
+ *
+ * `en` ya NO se importa estático desde `$lib/i18n` (fix de peso, auditoría 23 sep 2026 p3):
+ * `beforeAll` espera `ensureLocaleLoaded('en')` una vez para todo el fichero, así que el resto
+ * de tests puede seguir llamando `t('en', …)` de forma síncrona como antes. La comparación de
+ * claves entre diccionarios sigue importando `es.ts`/`en.ts` DIRECTO (no vía `$lib/i18n`): esos
+ * dos imports nunca pasaron por la carga perezosa y no la ejercitan.
  */
 
-import { describe, expect, test } from 'vitest';
+import { beforeAll, describe, expect, test } from 'vitest';
 import { es } from '$lib/i18n/es';
 import { en } from '$lib/i18n/en';
-import { resolveLocale, t } from '$lib/i18n';
+import { ensureLocaleLoaded, resolveLocale, t } from '$lib/i18n';
+
+beforeAll(async () => {
+	await ensureLocaleLoaded('en');
+});
 
 describe('resolveLocale', () => {
 	test('site.locale gana, sea cual sea navigatorLanguage', () => {

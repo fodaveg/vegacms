@@ -207,4 +207,71 @@ describe('PublishButton.svelte', () => {
 		expect(triggerInit.method).toBe('POST');
 		expect((triggerInit.headers as Record<string, string>).Authorization).toBe('tok-123');
 	});
+
+	describe('refresco de "hay cambios" con la pestaña oculta', () => {
+		/** `document.hidden`/`document.visibilityState` van SIN sincronizar a propósito (JSDOM no
+		 *  las acopla automáticamente): esto aísla el guard de `document.hidden` del disparador real
+		 *  (`visibilitychange` con `visibilityState === 'visible'`) sin depender de esperar los
+		 *  120 s reales del intervalo (ver la cabecera del fichero: temporizadores reales, no fake). */
+		function stubVisibility(opts: { hidden: boolean; visibilityState: string }): void {
+			Object.defineProperty(document, 'hidden', { value: opts.hidden, configurable: true });
+			Object.defineProperty(document, 'visibilityState', {
+				value: opts.visibilityState,
+				configurable: true
+			});
+		}
+
+		afterEach(() => {
+			stubVisibility({ hidden: false, visibilityState: 'visible' });
+		});
+
+		test('document.hidden=true: un visibilitychange NO dispara la consulta de cambios sin publicar', async () => {
+			const idle: BuildStatus = {
+				state: 'idle',
+				startedAt: null,
+				finishedAt: null,
+				lastPublishedAt: '2026-07-20T09:00:00.000Z',
+				logUrl: null
+			};
+			const port = fakePort('https://pb.test/api/vega-build');
+			vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(idle)));
+			const ctx = fakeCtx({ buildApiUrl: 'https://pb.test/api/vega-build', withPostType: true });
+			(ctx as unknown as { port: BackendPort }).port = port;
+			mounted = mountButton(ctx);
+			await flush();
+			const callsBefore = (port.list as ReturnType<typeof vi.fn>).mock.calls.length;
+
+			// Contradictorio a propósito (ver `stubVisibility`): aísla el guard de `document.hidden`.
+			stubVisibility({ hidden: true, visibilityState: 'visible' });
+			document.dispatchEvent(new Event('visibilitychange'));
+			await flush();
+
+			expect((port.list as ReturnType<typeof vi.fn>).mock.calls.length).toBe(callsBefore);
+		});
+
+		test('al volver a la pestaña (document.hidden=false) SÍ se refresca', async () => {
+			const idle: BuildStatus = {
+				state: 'idle',
+				startedAt: null,
+				finishedAt: null,
+				lastPublishedAt: '2026-07-20T09:00:00.000Z',
+				logUrl: null
+			};
+			const port = fakePort('https://pb.test/api/vega-build');
+			vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(idle)));
+			const ctx = fakeCtx({ buildApiUrl: 'https://pb.test/api/vega-build', withPostType: true });
+			(ctx as unknown as { port: BackendPort }).port = port;
+			mounted = mountButton(ctx);
+			await flush();
+			const callsBefore = (port.list as ReturnType<typeof vi.fn>).mock.calls.length;
+
+			stubVisibility({ hidden: false, visibilityState: 'visible' });
+			document.dispatchEvent(new Event('visibilitychange'));
+			await flush();
+
+			expect((port.list as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(
+				callsBefore
+			);
+		});
+	});
 });

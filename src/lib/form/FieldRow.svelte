@@ -62,6 +62,7 @@
 	import type { FieldInputValue } from '$lib/backend/types';
 	import type { TranslatedError } from './field-errors';
 	import { fieldIds } from './field-ids';
+	import { getFieldScope } from './field-scope';
 	import { fieldErrorMessage } from './field-error-message';
 	import { WIDGET_REGISTRY } from './widgets/registry';
 	import { getVegaContext } from '$lib/app-context';
@@ -118,7 +119,11 @@
 	}: Props = $props();
 
 	const ctx = getVegaContext();
-	const ids = $derived(fieldIds(field.name));
+	// Leído SÍNCRONO al inicializar (nunca dentro de `$derived`, mismo criterio que
+	// `getRecordIdentity()` en `widgets/FileInput.svelte`): `getContext` exige estar en la pila de
+	// inicialización del componente. `null` fuera de un `BlockEditor` (ver `field-scope.ts`).
+	const fieldScope = getFieldScope();
+	const ids = $derived(fieldIds(field.name, fieldScope));
 	const readonly = $derived(field.schema.readonly || typeReadonly);
 	const Widget = $derived(WIDGET_REGISTRY[field.widget]);
 </script>
@@ -242,7 +247,10 @@
 	.vega-field-help {
 		margin: 0.3rem 0 0;
 		font-size: 0.82em;
-		color: var(--ink-3);
+		/* `--ink-3` sobre `--surface`/`--paper` en claro da 2,20:1 (medido), bajo el 4,5:1 de AA
+		   para texto normal — esta ayuda hay que poder leerla, no es decorativa. `--ink-2` (~5,7:1
+		   sobre blanco) sí cumple. */
+		color: var(--ink-2);
 		overflow-wrap: anywhere;
 	}
 

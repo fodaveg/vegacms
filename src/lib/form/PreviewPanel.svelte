@@ -48,6 +48,7 @@
 		type PreviewDraft,
 		type PreviewToken
 	} from '$lib/backend/preview-client';
+	import { classifyPreviewError } from '$lib/backend/preview-error';
 	import Icon from '$lib/icons/Icon.svelte';
 
 	interface Props {
@@ -143,9 +144,19 @@
 		} catch (err) {
 			if (generation !== requestGeneration) return;
 			clearRenewTimer();
+			// Un fallo de RED (`fetch()` rechazado por el motor, `preview-client.ts` nunca llegó a
+			// lanzar su `Error` con el código de estado) no se enseña en crudo ("Failed to fetch"):
+			// cae a un mensaje genérico YA traducido (hallazgo p3, `classifyPreviewError`). Un fallo
+			// HTTP conserva su mensaje intacto, mismo comportamiento que antes.
+			const classified = classifyPreviewError(err);
 			panelState = {
 				kind: 'error',
-				message: err instanceof Error ? err.message : ctx.t('editor.preview.panel.genericError')
+				message:
+					classified.kind === 'http' && classified.message !== null
+						? classified.message
+						: classified.kind === 'network'
+							? ctx.t('common.networkError')
+							: ctx.t('editor.preview.panel.genericError')
 			};
 		}
 	}

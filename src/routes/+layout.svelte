@@ -43,7 +43,7 @@
 	import { getBackend } from '$lib/session/backend';
 	import { createSessionStore, setSessionContext } from '$lib/session/session.svelte';
 	import { setVegaContext, type NavApi, type FeedbackApi } from '$lib/app-context';
-	import { t as translate, resolveLocale, type Locale } from '$lib/i18n';
+	import { t as translate, resolveLocale, ensureLocaleLoaded, type Locale } from '$lib/i18n';
 	import { iconRegistry } from '$lib/icons/registry';
 	import { applyInitialTheme } from '$lib/theme/apply';
 	import {
@@ -209,10 +209,19 @@
 			const loaded = await loadContentModel(port, { knownIcons: iconRegistry.knownIcons });
 			if (isStale()) return discardStale();
 			model = loaded;
-			locale = resolveLocale(
+			const resolvedLocale = resolveLocale(
 				loaded.site.locale ? { locale: loaded.site.locale } : null,
 				typeof navigator !== 'undefined' ? navigator.language : null
 			);
+			// Coste diferido (fix de peso 2026-09-24): `site.locale` puede diferir de la ADIVINANZA
+			// que `+layout.ts` ya cargó (p.ej. el sitio fuerza 'en' con el navegador en 'es', o un
+			// RECARGO tras editar `site.locale` en Ajustes — `reloadModel()`, mismo camino). Se
+			// espera a que el diccionario esté listo ANTES de reasignar `locale`: si no, el `$state`
+			// cambiaría primero y `t()` devolvería claves crudas hasta que el `import()` resolviera,
+			// justo el parpadeo que este arreglo evita. `ensureLocaleLoaded` es un no-op si ya está.
+			await ensureLocaleLoaded(resolvedLocale);
+			if (isStale()) return discardStale();
+			locale = resolvedLocale;
 			// Re-aplica el tema con el default REAL del proyecto (§2.6): idempotente, no pisa una
 			// preferencia ya guardada (`applyInitialTheme` prioriza `localStorage` siempre).
 			applyInitialTheme({ siteDefaultTheme: loaded.site.defaultTheme });

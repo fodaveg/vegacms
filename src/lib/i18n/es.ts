@@ -451,6 +451,8 @@ export const es = {
 		'La mediateca está vacía. Los archivos se suben desde la sección Medios.',
 	'form.relation.media.error':
 		'No se pudo cargar la mediateca. Comprueba tu conexión y tus permisos.',
+	'form.relation.media.pageError':
+		'No se pudo cargar esta página de la mediateca. Los archivos ya cargados siguen disponibles.',
 	'form.relation.media.targetMissing':
 		'La colección de medios aún no está disponible en el modelo. Recarga Vega para actualizarla.',
 	'form.relation.media.type.image': 'Imagen',
@@ -966,7 +968,18 @@ export const es = {
 	'settings.schema.fields.type.bool': 'Sí/No',
 	'settings.schema.fields.type.date': 'Fecha',
 	'settings.schema.fields.type.json': 'JSON',
+	'settings.schema.fields.type.select': 'Selección',
 	'settings.schema.fields.type.relation': 'Relación',
+	'settings.schema.fields.select.optionPlaceholder': 'Opción',
+	'settings.schema.fields.select.optionLabel': 'Opción {index}',
+	'settings.schema.fields.select.addOption': 'Añadir opción',
+	'settings.schema.fields.select.removeOption': 'Quitar opción {index}',
+	'settings.schema.fields.select.moveUpLabel': 'Subir opción {index}',
+	'settings.schema.fields.select.moveDownLabel': 'Bajar opción {index}',
+	'settings.schema.fields.select.moved': '«{value}» movida a la posición {position} de {total}',
+	'settings.schema.fields.select.multipleLabel': 'Permitir varias opciones',
+	'settings.schema.fields.select.optionsRequired': 'Añade al menos una opción.',
+	'settings.schema.fields.select.optionDuplicate': 'Esta opción está repetida.',
 	'settings.schema.fields.relation.targetLabel': 'Colección relacionada',
 	'settings.schema.fields.relation.targetPlaceholder': 'Elige una colección…',
 	'settings.schema.fields.relation.targetEmpty': 'No hay colecciones editables disponibles',
@@ -1187,5 +1200,7 @@ export const es = {
 	'common.retry': 'Reintentar',
 	'common.cancel': 'Cancelar',
 	'common.close': 'Cerrar',
-	'common.loading': 'Cargando…'
+	'common.loading': 'Cargando…',
+	'common.networkError':
+		'No se pudo conectar con el sitio. Comprueba tu conexión e inténtalo de nuevo.'
 };
