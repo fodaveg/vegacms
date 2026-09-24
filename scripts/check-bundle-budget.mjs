@@ -45,6 +45,15 @@
  * ni otros media estáticos bajo `build/`; si algún día se sirven binarios grandes desde la app, eso
  * necesitará su PROPIO presupuesto (otro criterio, otro umbral), no inflar estos.
  *
+ * ## Coste DIFERIDO (desde 2026-09-24): visible, sin tope nuevo
+ *
+ * Los `import()` dinámicos quedan fuera del cierre estático a propósito (arriba), pero eso los
+ * volvía INVISIBLES en este informe aunque alguien los pagara igual al usar la pantalla — p.ej.
+ * abrir un registro con un campo richtext dispara TipTap/ProseMirror + DOMPurify + el parser de
+ * markdown, ~130-145 KB gz que el informe daba por sentado que "no contaban". Siguen sin contar en
+ * los tres topes (la carga perezosa sigue siendo la decisión correcta) pero ahora se listan aparte,
+ * agrupados por el fichero del bundle que dispara la carga. Auditoría de David (23 sep 2026, p3).
+ *
  * ## Historial de los números (medidos, nunca estimados)
  *
  * - 2026-07-19 (P8·F1, MVP P1–P5 + P7·motor): 267.86 KB totales → tope único 320 KB.
@@ -115,6 +124,26 @@ function staticImports(absPath) {
 		const specifier = match[1];
 		// Solo rutas relativas: el bundle no debería traer nada externo, y si lo trajera (un import
 		// a un CDN) no es un fichero de `build/` que este script pueda pesar.
+		if (!specifier.startsWith('.')) continue;
+		out.add(path.resolve(dir, specifier));
+	}
+	return out;
+}
+
+/**
+ * Imports DINÁMICOS de un módulo del bundle, ya resueltos a ruta absoluta — el complemento de
+ * `staticImports`: casa exactamente lo que aquella excluye a propósito. Casan las dos formas que
+ * emite Vite minificado para un `import()` con especificador STRING LITERAL (sin interpolación):
+ * `import("./a.js")` e `import(\`./a.js\`)`, esta última envuelta normalmente en `__vitePreload`.
+ * No hace falta seguir esa envoltura: el propio `import(...)` ya trae la ruta real, el resto son
+ * hints de precarga (`__vite__mapDeps`) que no cambian qué se ejecuta.
+ */
+function dynamicImports(absPath) {
+	const source = readFileSync(absPath, 'utf8');
+	const dir = path.dirname(absPath);
+	const out = new Set();
+	for (const match of source.matchAll(/\bimport\(\s*[`"']([^`"']+\.js)[`"']\s*\)/g)) {
+		const specifier = match[1];
 		if (!specifier.startsWith('.')) continue;
 		out.add(path.resolve(dir, specifier));
 	}
@@ -209,12 +238,55 @@ function main() {
 				.filter((f) => f.split('.')[0] === nodeIndex)
 				.map((f) => path.join(assetsDir, f));
 			for (const css of ownCss) attributedCss.add(css);
-			const own = [...transitiveClosure([nodeFile]), ...ownCss].filter((f) => !initialFiles.has(f));
-			return { name: path.basename(nodeFile), bytes: sumBytes(own) };
+			const nodeClosure = transitiveClosure([nodeFile]);
+			const own = [...nodeClosure, ...ownCss].filter((f) => !initialFiles.has(f));
+			return { name: path.basename(nodeFile), bytes: sumBytes(own), nodeClosure };
 		})
 		.sort((a, b) => b.bytes - a.bytes);
 
+	// --- 2b. Coste DIFERIDO: lo que un `import()` dinámico carga bajo demanda ------------------
+	// Un `import()` dinámico queda fuera del cierre estático de arriba a propósito (ver cabecera):
+	// es carga bajo demanda, no coste de la ruta. Pero eso lo volvía INVISIBLE en este informe
+	// aunque alguien lo pagara igual al usar la pantalla (p.ej. abrir un registro con un campo
+	// richtext: TipTap/ProseMirror + DOMPurify + el parser de markdown, ~145 KB gz, solo se ven
+	// si se cuentan aparte). Se agrupa por el fichero del bundle que DISPARA la carga (donde vive
+	// el `import()`), no por ruta: varias rutas pueden compartir el mismo disparador si comparten
+	// el mismo widget. El número es un TECHO por disparador (incluye TODO lo que ese fichero puede
+	// llegar a disparar, aunque una ruta concreta solo use parte) — sigue sin haber tope nuevo
+	// (D-P8.x, 2026-09-24: David pidió visibilidad, no otro presupuesto; el criterio de éxito es
+	// que el número deje de estar oculto).
+	const deferredGroups = new Map(); // fichero disparador absoluto -> { targets, routeNames }
+	for (const route of routes) {
+		for (const file of route.nodeClosure) {
+			const targets = dynamicImports(file);
+			if (targets.size === 0) continue;
+			let group = deferredGroups.get(file);
+			if (!group) {
+				group = { targets: new Set(), routeNames: new Set() };
+				deferredGroups.set(file, group);
+			}
+			for (const target of targets) group.targets.add(target);
+			group.routeNames.add(route.name);
+		}
+	}
+	const deferred = [...deferredGroups.entries()]
+		.map(([triggerFile, group]) => {
+			const closure = [...transitiveClosure([...group.targets])].filter(
+				(f) => !initialFiles.has(f)
+			);
+			return {
+				trigger: path.relative(BUILD_DIR, triggerFile),
+				routeNames: [...group.routeNames],
+				bytes: sumBytes(closure),
+				fileCount: closure.length
+			};
+		})
+		.filter((group) => group.bytes > 0)
+		.sort((a, b) => b.bytes - a.bytes);
+
 	// --- 3. Total del build -------------------------------------------------------------------
+	// El diferido de arriba YA está incluido aquí: `allFiles` recorre `build/` entero sin distinguir
+	// estático de dinámico, así que esos KB no se cuelan sin tope — solo estaban sin ATRIBUIR.
 	const totalBytes = sumBytes(allFiles);
 	const unattributedCss = assetFiles
 		.map((f) => path.join(assetsDir, f))
@@ -230,13 +302,34 @@ function main() {
 			`[bundle-budget] PANTALLA MÁS CARA: ${KB(routes[0].bytes)} / ${KB(ROUTE_BUDGET_BYTES)}  (${routes[0].name})`
 		);
 		console.log('[bundle-budget] coste de abrir cada pantalla, ya descontada la carga inicial:');
-		for (const route of routes.slice(0, 5)) console.log(`  ${KB(route.bytes)}  ${route.name}`);
+		const deferredByRoute = new Map(); // nombre de ruta -> KB diferido total (puede sumar varios grupos)
+		for (const group of deferred) {
+			for (const name of group.routeNames) {
+				deferredByRoute.set(name, (deferredByRoute.get(name) ?? 0) + group.bytes);
+			}
+		}
+		for (const route of routes.slice(0, 5)) {
+			const deferredBytes = deferredByRoute.get(route.name);
+			const suffix =
+				deferredBytes > 0 ? ` (+ ${KB(deferredBytes)} diferido al usarla, ver abajo)` : '';
+			console.log(`  ${KB(route.bytes)}  ${route.name}${suffix}`);
+		}
 	}
 	console.log(`[bundle-budget] TOTAL BUILD   : ${KB(totalBytes)} / ${KB(TOTAL_BUDGET_BYTES)}`);
 	if (unattributedCss.length > 0) {
 		console.log(
 			`[bundle-budget] CSS sin atribuir a ninguna pantalla: ${KB(sumBytes(unattributedCss))} en ${unattributedCss.length} hoja(s) (ver cabecera; cuenta en el total)`
 		);
+	}
+	if (deferred.length > 0) {
+		console.log(
+			'[bundle-budget] COSTE DIFERIDO (import() dinámico — no cuenta en los tres topes de arriba, ya cuenta en TOTAL BUILD, y lo paga quien lo dispara):'
+		);
+		for (const group of deferred) {
+			console.log(
+				`  ${KB(group.bytes)}  al usar ${group.trigger} (${group.fileCount} módulo(s) bajo demanda) — rutas: ${group.routeNames.join(', ')}`
+			);
+		}
 	}
 
 	// Se comprueban LOS TRES y se informa de todos los que fallan, no solo del primero: si un lote
