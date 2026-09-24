@@ -107,6 +107,12 @@ export const ALLOWLIST_RAW_COLOR = [
 		snippet: 'rgb(15 17 21 / 55%)'
 	},
 	{
+		// Velo de los diálogos de `/editores` (alta, contraseña, quitar acceso): mismo patrón modal
+		// que `DeleteConfirm.svelte`.
+		file: 'src/lib/admin/AdminDialog.svelte',
+		snippet: 'rgb(15 17 21 / 55%)'
+	},
+	{
 		file: 'src/lib/richtext/safe-uri.test.ts',
 		snippet: 'java&#115;cript'
 	},

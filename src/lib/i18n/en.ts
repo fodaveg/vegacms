@@ -1019,6 +1019,83 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'update.banner.link': 'View the release',
 	'update.banner.dismiss': 'Dismiss update notice',
 
+	// ————— Administration: superuser screens (`/editores`, `/copias`) —————
+	// Only visible with `capabilities.administration` (`BackendPort.administration`). Help text is
+	// painted in `--ink-2`: `--ink-3` does not reach AA on light themes.
+	'admin.gate.title': 'Superusers only',
+	'admin.editors.gateBody':
+		'Managing editors requires signing in as a PocketBase superuser. Your account is an editor account.',
+	'admin.editors.title': 'Editors',
+	'admin.editors.description':
+		'People who can sign in to this admin and edit content. They cannot touch the schema, the manifest or this screen.',
+	'admin.editors.add': 'Add editor',
+	'admin.editors.loading': 'Loading editors…',
+	'admin.editors.loadError': 'Could not load the list of editors.',
+	'admin.editors.emptyTitle': 'No editors yet',
+	'admin.editors.emptyBody':
+		'Right now only the superuser can sign in. Add whoever is going to write or proofread content.',
+	// The site seeding that creates the collection has no button in the SPA: the notice says where
+	// it is actually created instead of pointing to a screen that does not do it.
+	'admin.editors.missingCollection':
+		'This project does not have the editors collection yet ({collection}). Create it in the PocketBase Admin as an auth collection with that name and come back here.',
+	'admin.editors.col.email': 'Email',
+	'admin.editors.col.status': 'Status',
+	'admin.editors.col.created': 'Added',
+	'admin.editors.col.actions': 'Actions',
+	'admin.editors.createdMobile': 'Added {date}',
+	'admin.editors.createdUnknown': 'No creation date: the collection has no “created” field.',
+	'admin.editors.status.active': 'Active',
+	'admin.editors.status.pending': 'Pending',
+	'admin.editors.status.pendingHint':
+		'They have not confirmed their email by choosing a password yet.',
+	'admin.editors.you': 'your account',
+	'admin.editors.resend': 'Resend invitation',
+	'admin.editors.resendFor': 'Resend the invitation to {email}',
+	'admin.editors.resending': 'Sending…',
+	'admin.editors.resendSuccess':
+		'Invitation requested again for {email}. PocketBase sends the email in the background.',
+	'admin.editors.changePassword': 'Change password',
+	'admin.editors.changePasswordFor': 'Change the password of {email}',
+	'admin.editors.remove': 'Remove access',
+	'admin.editors.removeFor': 'Remove access for {email}',
+	'admin.editors.addDialog.title': 'Add editor',
+	'admin.editors.addDialog.email': 'Email',
+	'admin.editors.addDialog.accessLabel': 'How they will sign in',
+	'admin.editors.addDialog.invite': 'Send them an invitation',
+	'admin.editors.addDialog.inviteHint': 'They get an email and choose their password.',
+	'admin.editors.addDialog.password': 'Set the password myself',
+	'admin.editors.addDialog.passwordHint': 'You give it to them through another channel.',
+	'admin.editors.addDialog.noMail':
+		'This server has no email configured, so no invitation can be sent. Set the password yourself and give it to them through another channel.',
+	'admin.editors.addDialog.submitInvite': 'Send invitation',
+	'admin.editors.addDialog.submitPassword': 'Add editor',
+	'admin.editors.addDialog.saving': 'Saving…',
+	'admin.editors.addDialog.successPassword': 'Editor added: {email}.',
+	'admin.editors.addDialog.successInvite':
+		'Editor added: {email}. PocketBase will send them the email to choose their password.',
+	'admin.editors.passwordDialog.title': 'Change password',
+	'admin.editors.passwordDialog.owner': 'For',
+	'admin.editors.passwordDialog.sessionNote': 'Their open session will be closed.',
+	'admin.editors.passwordDialog.submit': 'Save password',
+	'admin.editors.passwordDialog.success': 'Password of {email} changed.',
+	'admin.editors.removeDialog.title': 'Remove access for {email}?',
+	'admin.editors.removeDialog.body':
+		'They will no longer be able to sign in to this admin. Their PocketBase account is deleted; the content they edited stays as it is.',
+	'admin.editors.removeDialog.confirm': 'Remove access',
+	'admin.editors.removeDialog.removing': 'Removing…',
+	'admin.editors.removeDialog.success': 'Access removed for {email}.',
+	'admin.form.password': 'Password',
+	'admin.form.newPassword': 'New password',
+	'admin.form.repeatPassword': 'Repeat it',
+	'admin.form.passwordHint': 'At least {min} characters.',
+	'admin.form.passwordTooShort': 'At least {min} characters.',
+	'admin.form.passwordMismatch': 'It does not match the one above.',
+	'admin.form.passwordRejected': 'The server does not accept this password: {message}',
+	'admin.form.emailInvalid': 'Enter a valid email.',
+	'admin.form.emailTaken': 'There is already an editor with that email.',
+	'admin.form.emailRejected': 'The server does not accept this email: {message}',
+	'admin.form.rejected': 'The server rejected the data: {message}',
+
 	// ————— Toasts (§2.3) —————
 	'toast.dismiss': 'Dismiss notification',
 

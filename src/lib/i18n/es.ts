@@ -1075,6 +1075,82 @@ export const es = {
 	'update.banner.link': 'Ver el release',
 	'update.banner.dismiss': 'Descartar aviso de actualización',
 
+	// ————— Administración: pantallas de superusuario (`/editores`, `/copias`) —————
+	// Visibles solo con `capabilities.administration` (`BackendPort.administration`). Las ayudas se
+	// pintan en `--ink-2`: `--ink-3` no llega a AA en claro.
+	'admin.gate.title': 'Solo para superusuarios',
+	'admin.editors.gateBody':
+		'Gestionar editores exige entrar como superusuario de PocketBase. Tu cuenta es de editor.',
+	'admin.editors.title': 'Editores',
+	'admin.editors.description':
+		'Personas que pueden entrar en este admin y editar contenido. No pueden tocar el esquema, el manifiesto ni esta pantalla.',
+	'admin.editors.add': 'Añadir editor',
+	'admin.editors.loading': 'Cargando editores…',
+	'admin.editors.loadError': 'No se pudo cargar la lista de editores.',
+	'admin.editors.emptyTitle': 'Todavía no hay editores',
+	'admin.editors.emptyBody':
+		'Ahora mismo solo entra el superusuario. Añade a quien vaya a escribir o corregir contenido.',
+	// El sembrado del sitio que crea la colección no tiene botón en la SPA: el aviso dice dónde se
+	// crea de verdad en vez de mandar a una pantalla que no lo hace.
+	'admin.editors.missingCollection':
+		'Este proyecto no tiene todavía la colección de editores ({collection}). Créala en el Admin de PocketBase como colección de autenticación con ese nombre y vuelve aquí.',
+	'admin.editors.col.email': 'Email',
+	'admin.editors.col.status': 'Estado',
+	'admin.editors.col.created': 'Alta',
+	'admin.editors.col.actions': 'Acciones',
+	'admin.editors.createdMobile': 'Alta {date}',
+	'admin.editors.createdUnknown': 'Sin fecha de alta: la colección no tiene el campo «created».',
+	'admin.editors.status.active': 'Activo',
+	'admin.editors.status.pending': 'Pendiente',
+	'admin.editors.status.pendingHint': 'Todavía no ha confirmado su correo eligiendo contraseña.',
+	'admin.editors.you': 'tu cuenta',
+	'admin.editors.resend': 'Reenviar invitación',
+	'admin.editors.resendFor': 'Reenviar la invitación a {email}',
+	'admin.editors.resending': 'Enviando…',
+	'admin.editors.resendSuccess':
+		'Invitación pedida de nuevo para {email}. PocketBase envía el correo en segundo plano.',
+	'admin.editors.changePassword': 'Cambiar contraseña',
+	'admin.editors.changePasswordFor': 'Cambiar la contraseña de {email}',
+	'admin.editors.remove': 'Quitar acceso',
+	'admin.editors.removeFor': 'Quitar el acceso a {email}',
+	'admin.editors.addDialog.title': 'Añadir editor',
+	'admin.editors.addDialog.email': 'Email',
+	'admin.editors.addDialog.accessLabel': 'Cómo entrará',
+	'admin.editors.addDialog.invite': 'Enviarle una invitación',
+	'admin.editors.addDialog.inviteHint': 'Recibe un correo y elige su contraseña.',
+	'admin.editors.addDialog.password': 'Poner yo la contraseña',
+	'admin.editors.addDialog.passwordHint': 'Se la pasas tú por otro canal.',
+	'admin.editors.addDialog.noMail':
+		'Este servidor no tiene correo configurado, así que no se puede enviar una invitación. Ponle tú la contraseña y pásasela por otro canal.',
+	'admin.editors.addDialog.submitInvite': 'Enviar invitación',
+	'admin.editors.addDialog.submitPassword': 'Añadir editor',
+	'admin.editors.addDialog.saving': 'Guardando…',
+	'admin.editors.addDialog.successPassword': 'Editor añadido: {email}.',
+	'admin.editors.addDialog.successInvite':
+		'Editor añadido: {email}. PocketBase le enviará el correo para elegir su contraseña.',
+	'admin.editors.passwordDialog.title': 'Cambiar contraseña',
+	'admin.editors.passwordDialog.owner': 'De',
+	'admin.editors.passwordDialog.sessionNote': 'Su sesión abierta se cerrará.',
+	'admin.editors.passwordDialog.submit': 'Guardar contraseña',
+	'admin.editors.passwordDialog.success': 'Contraseña de {email} cambiada.',
+	'admin.editors.removeDialog.title': '¿Quitar el acceso a {email}?',
+	'admin.editors.removeDialog.body':
+		'No podrá volver a entrar en este admin. Su cuenta se borra de PocketBase; el contenido que haya editado se queda como está.',
+	'admin.editors.removeDialog.confirm': 'Quitar acceso',
+	'admin.editors.removeDialog.removing': 'Quitando…',
+	'admin.editors.removeDialog.success': 'Acceso de {email} quitado.',
+	'admin.form.password': 'Contraseña',
+	'admin.form.newPassword': 'Contraseña nueva',
+	'admin.form.repeatPassword': 'Repítela',
+	'admin.form.passwordHint': 'Mínimo {min} caracteres.',
+	'admin.form.passwordTooShort': 'Mínimo {min} caracteres.',
+	'admin.form.passwordMismatch': 'No coincide con la de arriba.',
+	'admin.form.passwordRejected': 'El servidor no acepta esta contraseña: {message}',
+	'admin.form.emailInvalid': 'Escribe un email válido.',
+	'admin.form.emailTaken': 'Ya hay un editor con ese email.',
+	'admin.form.emailRejected': 'El servidor no acepta este email: {message}',
+	'admin.form.rejected': 'El servidor rechazó los datos: {message}',
+
 	// ————— Toasts (§2.3) —————
 	'toast.dismiss': 'Descartar aviso',
 

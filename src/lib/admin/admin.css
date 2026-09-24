@@ -1,0 +1,665 @@
+/**
+ * Estilos de las pantallas de superusuario (`/editores`, `/copias`) y de sus diálogos.
+ *
+ * Hoja GLOBAL con todo bajo `.vega-admin-*`, importada solo por esas dos rutas y por sus diálogos:
+ * las dos pantallas comparten el mismo esqueleto (cabecera, tarjeta de lista, tabla que se apila en
+ * móvil, estados, puerta de superusuario, diálogo con campos) y copiar ese CSS en cada componente,
+ * como hacen `/papelera` y `/c/[type]`, duplicaría unas 300 líneas que tienen que cambiar juntas.
+ * Global porque el contenido de los diálogos lo pinta la página que los usa: un `<style>` con
+ * ámbito no llegaría a ese marcado. El prefijo evita choques con el resto de la app, y al
+ * importarse desde las rutas va en su chunk diferido, no en la carga inicial.
+ *
+ * Medidas y tokens: calco de las piezas existentes que cita la lámina del audit (piezas 5 y 6):
+ * cabecera de `/papelera`, `.vega-list-card` + tabla de `RecordTable`, `.vega-status-badge`,
+ * diálogo de `DeleteConfirm`, `.vega-manifest-gate` de `/settings` y `.notice` de `/papelera`.
+ * Sin tokens nuevos y sin ningún color literal (el velo del diálogo está en `AdminDialog.svelte`).
+ */
+
+.vega-admin-page {
+	display: flex;
+	flex-direction: column;
+	gap: var(--vega-space-gutter);
+}
+
+/* ————— Cabecera ————— */
+
+.vega-admin-head {
+	display: flex;
+	align-items: baseline;
+	flex-wrap: wrap;
+	gap: 0.6rem 1rem;
+	margin-bottom: 0.4rem;
+}
+
+.vega-admin-head h1 {
+	margin: 0;
+	font-size: 1.45em;
+	font-weight: 700;
+	color: var(--ink-hi);
+	letter-spacing: -0.01em;
+}
+
+.vega-admin-meta {
+	color: var(--ink-2);
+	font-size: 0.9em;
+}
+
+.vega-admin-meta b {
+	font-family: var(--mono);
+	font-weight: 500;
+}
+
+.vega-admin-head-spacer {
+	flex: 1;
+}
+
+.vega-admin-desc {
+	margin: 0;
+	max-width: 46rem;
+	color: var(--ink-2);
+	font-size: 0.9rem;
+}
+
+/* ————— Botones ————— */
+
+.vega-admin-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	height: 34px;
+	padding: 0 0.9rem;
+	border: 1px solid var(--line);
+	border-radius: var(--r);
+	background: var(--btn);
+	color: var(--ink);
+	font: inherit;
+	font-size: 0.8125rem;
+	font-weight: 550;
+	line-height: 1.2;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.vega-admin-btn:hover:not([aria-disabled='true']) {
+	border-color: var(--line-strong);
+}
+
+.vega-admin-btn[aria-disabled='true'] {
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+
+.vega-admin-btn--primary {
+	border-color: transparent;
+	background: var(--accent-fill);
+	color: var(--accent-ink);
+	font-weight: 600;
+}
+
+.vega-admin-btn--primary:hover:not([aria-disabled='true']) {
+	border-color: transparent;
+	box-shadow: 0 0 0 1.5px var(--accent-line);
+}
+
+.vega-admin-btn--primary[aria-disabled='true'] {
+	opacity: 0.45;
+}
+
+.vega-admin-btn--danger {
+	border-color: transparent;
+	background: var(--danger-soft);
+	color: var(--danger);
+}
+
+.vega-admin-btn--danger:hover:not([aria-disabled='true']) {
+	border-color: transparent;
+	box-shadow: 0 0 0 1.5px var(--danger);
+}
+
+.vega-admin-btn--sm {
+	height: 30px;
+	padding: 0 0.75rem;
+	font-size: 0.8rem;
+}
+
+.vega-admin-icon-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.8rem;
+	height: 1.8rem;
+	flex-shrink: 0;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--ink-2);
+	cursor: pointer;
+}
+
+.vega-admin-icon-btn:hover {
+	background: var(--active);
+	color: var(--ink);
+}
+
+/* Objetivo táctil de 44 px con puntero basto (misma regla que el resto de la app). */
+@media (pointer: coarse) {
+	.vega-admin-btn {
+		min-height: 44px;
+	}
+
+	.vega-admin-icon-btn {
+		min-width: 44px;
+		min-height: 44px;
+	}
+}
+
+/* ————— Tarjeta de lista, estados y tabla ————— */
+
+.vega-admin-card {
+	border: 1px solid var(--line);
+	border-radius: var(--r);
+	background: var(--paper);
+	box-shadow: var(--shadow-card);
+	overflow: hidden;
+}
+
+.vega-admin-state {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.6rem;
+	padding: 1.25rem var(--cell-x);
+	color: var(--ink-2);
+}
+
+.vega-admin-state p {
+	margin: 0;
+}
+
+.vega-admin-state-title {
+	color: var(--ink-hi);
+	font-weight: 600;
+}
+
+/* «⟳ …» de lo que está en curso: mismo glifo que `.vega-editor-saved-at--saving`. */
+.vega-admin-saving {
+	font-family: var(--mono);
+	font-size: 0.85rem;
+	white-space: nowrap;
+}
+
+.vega-admin-saving::before {
+	content: '⟳ ';
+	color: var(--info);
+}
+
+.vega-admin-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.9rem;
+}
+
+.vega-admin-table thead th {
+	padding: 0.5rem var(--cell-x);
+	text-align: left;
+	white-space: nowrap;
+	font-size: 0.6875rem;
+	font-weight: 650;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--ink-2);
+	background: var(--paper);
+	border-bottom: 1px solid var(--line-strong);
+}
+
+.vega-admin-table thead th.vega-admin-right,
+.vega-admin-table td.vega-admin-right {
+	text-align: right;
+}
+
+.vega-admin-table tbody tr {
+	height: var(--row-h);
+	border-bottom: 1px solid var(--line);
+}
+
+.vega-admin-table tbody tr:last-child {
+	border-bottom: 0;
+}
+
+.vega-admin-table tbody tr:hover {
+	background: var(--accent-soft);
+}
+
+.vega-admin-table td {
+	max-width: 24rem;
+	padding: 0.4rem var(--cell-x);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	vertical-align: middle;
+}
+
+.vega-admin-table td.vega-admin-main {
+	width: 50%;
+	max-width: 0;
+}
+
+.vega-admin-table td.vega-admin-actions {
+	width: 1%;
+	max-width: none;
+	overflow: visible;
+}
+
+.vega-admin-mono {
+	font-family: var(--mono);
+	font-size: 0.75rem;
+	color: var(--ink-2);
+	font-variant-numeric: tabular-nums;
+}
+
+.vega-admin-title {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	color: var(--ink-hi);
+	font-weight: 500;
+}
+
+.vega-admin-title--mono {
+	font-family: var(--mono);
+	font-size: 0.85rem;
+}
+
+.vega-admin-row-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.4rem;
+}
+
+/* Fecha con rótulo dentro de la fila apilada («Alta 3 feb 2026»): solo en móvil; la de la tabla,
+   solo en escritorio (ver el `@media` de abajo). */
+.vega-admin-stack-only {
+	display: none;
+}
+
+.vega-admin-who {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	min-width: 0;
+}
+
+.vega-admin-avatar {
+	display: inline-grid;
+	place-items: center;
+	flex-shrink: 0;
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	background: var(--accent-soft);
+	color: var(--accent-text);
+	font-size: 0.68rem;
+	font-weight: 700;
+}
+
+.vega-admin-you {
+	flex-shrink: 0;
+	color: var(--ink-2);
+	font-size: 0.72rem;
+}
+
+/* Etiqueta de estado: la de `.vega-status-badge` (punto + fondo suave, nunca solo color: el
+   texto dice el estado). */
+.vega-admin-tag {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	flex-shrink: 0;
+	height: 24px;
+	padding: 0 0.65rem;
+	border-radius: 999px;
+	font-size: 0.72rem;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.vega-admin-tag::before {
+	content: '';
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: currentColor;
+	flex-shrink: 0;
+}
+
+.vega-admin-tag[data-kind='pub'] {
+	color: var(--success);
+	background: var(--success-soft);
+}
+
+.vega-admin-tag[data-kind='other'] {
+	color: var(--info);
+	background: var(--info-soft);
+}
+
+/* Fila provisional de la copia en curso (tokens `--info`/`--info-soft`, contraste medido en la
+   lámina: 6,19 en claro y 5,72 en oscuro). */
+.vega-admin-table tbody tr.vega-admin-running,
+.vega-admin-table tbody tr.vega-admin-running:hover {
+	background: var(--info-soft);
+}
+
+.vega-admin-running .vega-admin-saving {
+	color: var(--info);
+}
+
+.vega-admin-sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* Por debajo del punto estructural de la app (768 px) la tabla se apila por filas: fila 1 =
+   principal + etiqueta, fila 2 = meta, fila 3 = acciones. */
+@media (max-width: 768px) {
+	.vega-admin-table thead {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+	}
+
+	.vega-admin-table,
+	.vega-admin-table tbody,
+	.vega-admin-table tr,
+	.vega-admin-table td {
+		display: block;
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	.vega-admin-table tbody tr {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: 0.25rem 0.6rem;
+		height: auto;
+		padding: 0.7rem var(--cell-x);
+	}
+
+	.vega-admin-table td,
+	.vega-admin-table td.vega-admin-main,
+	.vega-admin-table td.vega-admin-actions {
+		width: auto;
+		max-width: none;
+		padding: 0;
+	}
+
+	.vega-admin-table td.vega-admin-main {
+		grid-column: 1 / 2;
+	}
+
+	.vega-admin-table td.vega-admin-side {
+		grid-column: 2;
+		grid-row: 1;
+		justify-self: end;
+	}
+
+	.vega-admin-table td.vega-admin-meta-cell {
+		grid-column: 1 / -1;
+		text-align: left;
+	}
+
+	.vega-admin-table td.vega-admin-actions {
+		grid-column: 1 / -1;
+	}
+
+	.vega-admin-table td.vega-admin-actions .vega-admin-row-actions {
+		justify-content: flex-start;
+		flex-wrap: wrap;
+	}
+
+	.vega-admin-stack-only {
+		display: inline;
+	}
+
+	.vega-admin-table-only {
+		display: none;
+	}
+
+	.vega-admin-head .vega-admin-btn--primary {
+		order: 5;
+	}
+}
+
+/* ————— Puerta de superusuario (`.vega-manifest-gate` de /settings) ————— */
+
+.vega-admin-gate {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	max-width: 34rem;
+	padding: 1rem 1.2rem;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: var(--surface-2);
+}
+
+.vega-admin-gate h1 {
+	margin: 0;
+	font-size: 1.1rem;
+	color: var(--ink-hi);
+}
+
+.vega-admin-gate p {
+	margin: 0;
+	color: var(--ink-2);
+	font-size: 0.9rem;
+}
+
+/* ————— Avisos (`.notice` de /papelera) ————— */
+
+.vega-admin-notice {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding: 0.75rem 1rem;
+	border: 1px solid;
+	border-radius: var(--r);
+}
+
+.vega-admin-notice p {
+	margin: 0;
+}
+
+.vega-admin-notice-title {
+	font-weight: 600;
+	color: var(--ink-hi);
+}
+
+.vega-admin-notice-body {
+	color: var(--ink);
+	font-size: 0.88rem;
+}
+
+.vega-admin-notice-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-top: 0.15rem;
+}
+
+.vega-admin-notice--info {
+	border-color: var(--info);
+	background: var(--info-soft);
+	color: var(--info);
+}
+
+.vega-admin-notice--warning {
+	border-color: var(--warning);
+	background: var(--warning-soft);
+	color: var(--warning);
+}
+
+.vega-admin-notice--danger {
+	border-color: var(--danger);
+	background: var(--danger-soft);
+	color: var(--danger);
+}
+
+/* ————— Diálogo (`DeleteConfirm`/`MediaDetail`). El velo vive en `AdminDialog.svelte`, donde
+   `check-theme-coverage.mjs` lo puede ver: esa comprobación solo lee `.svelte` y `.ts`. ————— */
+
+.vega-admin-dialog {
+	display: flex;
+	flex-direction: column;
+	gap: 0.9rem;
+	width: 100%;
+	max-width: 26rem;
+	max-height: calc(100vh - 2 * var(--vega-space-gutter));
+	overflow-y: auto;
+	box-sizing: border-box;
+	padding: 1.5rem;
+	border-radius: 10px;
+	background: var(--surface);
+	color: var(--ink);
+	box-shadow: var(--shadow-card);
+}
+
+.vega-admin-dialog-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.vega-admin-dialog-head h2 {
+	margin: 0;
+	font-size: 1.1rem;
+	color: var(--ink-hi);
+}
+
+.vega-admin-dialog > p,
+.vega-admin-dialog-text {
+	margin: 0;
+	color: var(--ink-2);
+	font-size: 0.9rem;
+}
+
+.vega-admin-dialog-text b {
+	color: var(--ink);
+	overflow-wrap: anywhere;
+}
+
+.vega-admin-dialog-actions {
+	display: flex;
+	justify-content: flex-end;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-top: 0.25rem;
+}
+
+/* ————— Campos ————— */
+
+.vega-admin-form {
+	display: flex;
+	flex-direction: column;
+	gap: 0.9rem;
+	margin: 0;
+}
+
+.vega-admin-field {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.vega-admin-field > label {
+	display: block;
+	margin-bottom: 0.35rem;
+	font-size: 0.82em;
+	font-weight: 650;
+	letter-spacing: 0.03em;
+	color: var(--ink-2);
+}
+
+.vega-admin-input {
+	width: 100%;
+	box-sizing: border-box;
+	padding: calc(var(--pad-field) * 0.55) calc(var(--pad-field) * 0.7);
+	border: 1px solid var(--line);
+	border-radius: var(--r);
+	background: var(--surface);
+	color: var(--ink);
+	font: inherit;
+}
+
+.vega-admin-input:hover {
+	border-color: var(--line-strong);
+}
+
+.vega-admin-input[aria-invalid='true'] {
+	border-color: var(--danger);
+}
+
+/* Ayuda en `--ink-2`, no en `--ink-3`: medido en la lámina, `--ink-3` da 2,2:1 en claro. */
+.vega-admin-help {
+	margin: 0.3rem 0 0;
+	font-size: 0.82em;
+	color: var(--ink-2);
+}
+
+.vega-admin-field-error {
+	margin: 0.35rem 0 0;
+	font-size: 0.84em;
+	font-weight: 600;
+	color: var(--danger);
+}
+
+.vega-admin-choices {
+	display: flex;
+	flex-direction: column;
+	gap: 0.45rem;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.vega-admin-radio-card {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.6rem;
+	padding: 0.6rem 0.75rem;
+	border: 1px solid var(--line);
+	border-radius: var(--r);
+	background: var(--surface-2);
+	font-size: 0.88rem;
+	cursor: pointer;
+}
+
+.vega-admin-radio-card[data-checked='true'] {
+	border-color: var(--accent-line);
+	background: var(--accent-soft);
+}
+
+.vega-admin-radio-card input {
+	margin-top: 0.2rem;
+	accent-color: var(--accent);
+}
+
+.vega-admin-radio-card b {
+	display: block;
+	color: var(--ink-hi);
+	font-weight: 600;
+}
+
+.vega-admin-radio-card span span {
+	color: var(--ink-2);
+	font-size: 0.82rem;
+}
