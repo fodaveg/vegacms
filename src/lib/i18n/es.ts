@@ -486,6 +486,8 @@ export const es = {
 	'form.errorCode.validation_too_many_values': 'Has seleccionado demasiados elementos.',
 	'form.errorCode.validation_missing_rel_records':
 		'Alguno de los registros relacionados no existe.',
+	'form.errorCode.validation_is_email': 'Ese valor no es un correo electrónico válido.',
+	'form.errorCode.validation_not_unique': 'Ya existe un registro con ese valor.',
 	'form.errorCode.vega_unsupported_field': 'Vega no puede escribir este campo.',
 	'form.errorCode.vega_readonly_field': 'Este campo es de solo lectura.',
 	'form.errorCode.vega_unknown_field': 'Este campo no existe en el tipo de contenido.',
