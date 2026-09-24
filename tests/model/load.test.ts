@@ -14,7 +14,14 @@ import type { MemorySeed } from '$lib/backend/adapters/memory';
 import type { BackendPort } from '$lib/backend/port';
 import type { ContentType } from '$lib/backend/types';
 import { VEGA_COLLECTION } from '$lib/backend/collections';
-import { loadContentModel, saveManifest, ManifestValidationError } from '$lib/model/load';
+import {
+	loadContentModel,
+	saveManifest,
+	ManifestValidationError,
+	syncSchemaSnapshot,
+	withSchemaSnapshotSync
+} from '$lib/model/load';
+import { VegaError } from '$lib/backend/errors';
 import { categoryType, postType } from './fixture';
 
 const ADMIN_EMAIL = 'admin@vega.test';
@@ -458,5 +465,137 @@ describe('11. Ciclo completo con memory (§9.11)', () => {
 		expect((await loadContentModel(basePort)).warnings).not.toContainEqual(
 			expect.objectContaining({ code: 'block-type-unrendered' })
 		);
+	});
+});
+
+// ————— Snapshot de esquema de los editores (audit de rendimiento del 23 sep 2026, p2): se regenera
+// al cambiar el esquema desde Vega (`withSchemaSnapshotSync`) y al entrar un superuser si ya no
+// describe el esquema vivo (`loadContentModel`), escribiendo SOLO si hay diferencia. —————
+
+describe('snapshot de esquema de los editores', () => {
+	const NEW_COLLECTION = { name: 'author', fields: [{ name: 'name', type: 'text' as const }] };
+
+	/** Proyecto con manifiesto y snapshot al día (el que deja `saveManifest`). */
+	async function portWithSnapshot(): Promise<BackendPort> {
+		const port = await loggedInPort(virginSeed());
+		await saveManifest(port, { schemaVersion: 1, site: { name: 'Snapshot' } });
+		return port;
+	}
+
+	async function storedSnapshot(port: BackendPort): Promise<unknown> {
+		return (await port.list('vega', { perPage: 1 })).items[0].values.schemaSnapshot;
+	}
+
+	/** Mismo contenido con las claves de TODOS los objetos en orden inverso. */
+	function reverseKeys(value: unknown): unknown {
+		if (Array.isArray(value)) return value.map(reverseKeys);
+		if (value === null || typeof value !== 'object') return value;
+		return Object.fromEntries(
+			Object.keys(value)
+				.reverse()
+				.map((key) => [key, reverseKeys((value as Record<string, unknown>)[key])])
+		);
+	}
+
+	test('una colección creada desde Vega entra en el snapshot sin volver a guardar el manifiesto', async () => {
+		const port = withSchemaSnapshotSync(await portWithSnapshot());
+
+		await port.ensureCollections([NEW_COLLECTION]);
+
+		expect(await storedSnapshot(port)).toEqual(await port.listContentTypes());
+		expect(((await storedSnapshot(port)) as ContentType[]).map((t) => t.name)).toContain('author');
+	});
+
+	test('un campo añadido desde Vega entra en el snapshot', async () => {
+		const port = withSchemaSnapshotSync(await portWithSnapshot());
+
+		await port.addCollectionFields('category', [{ name: 'color', type: 'text' }]);
+
+		const category = ((await storedSnapshot(port)) as ContentType[]).find(
+			(t) => t.name === 'category'
+		)!;
+		expect(category.fields.map((f) => f.name)).toContain('color');
+	});
+
+	test('una escritura de esquema sin cambios (todo skipped) no toca el registro vega', async () => {
+		const inner = await portWithSnapshot();
+		const update = vi.spyOn(inner, 'update');
+		const port = withSchemaSnapshotSync(inner);
+
+		await expect(port.ensureCollections([VEGA_COLLECTION])).resolves.toMatchObject({
+			created: []
+		});
+		expect(update).not.toHaveBeenCalled();
+	});
+
+	test('una escritura de esquema que falla A MEDIAS sincroniza igual y propaga el error original', async () => {
+		const inner = await portWithSnapshot();
+		const failure = VegaError.backend('la segunda colección falló');
+		// Lo que hace el lote real sin rollback: crea la primera y falla en la siguiente.
+		const port = withSchemaSnapshotSync({
+			...inner,
+			async ensureCollections(specs) {
+				await inner.ensureCollections([specs[0]]);
+				throw failure;
+			}
+		});
+
+		await expect(port.ensureCollections([NEW_COLLECTION, VEGA_COLLECTION])).rejects.toBe(failure);
+		expect(((await storedSnapshot(inner)) as ContentType[]).map((t) => t.name)).toContain('author');
+	});
+
+	test('al entrar un superuser con el snapshot desfasado (cambio hecho fuera de Vega), se reescribe', async () => {
+		const port = await portWithSnapshot();
+		// Sin decorador: así cambia el esquema el Admin de PocketBase, sin que Vega se entere.
+		await port.ensureCollections([NEW_COLLECTION]);
+		expect(await storedSnapshot(port)).not.toEqual(await port.listContentTypes());
+
+		await loadContentModel(port);
+
+		expect(await storedSnapshot(port)).toEqual(await port.listContentTypes());
+	});
+
+	test('snapshot igual con otro orden de claves: la entrada del superuser NO escribe', async () => {
+		const port = await portWithSnapshot();
+		const record = (await port.list('vega', { perPage: 1 })).items[0];
+		await port.update('vega', record.id, {
+			schemaSnapshot: reverseKeys(await port.listContentTypes()) as never
+		});
+		const update = vi.spyOn(port, 'update');
+
+		await loadContentModel(port);
+
+		expect(update).not.toHaveBeenCalled();
+		await expect(syncSchemaSnapshot(port)).resolves.toBe('unchanged');
+	});
+
+	test('en modo editor (sin schemaDiscovery) nunca escribe: el esquema SALE del snapshot', async () => {
+		const port = await portWithSnapshot();
+		await port.ensureCollections([NEW_COLLECTION]);
+		const update = vi.spyOn(port, 'update');
+		const editorPort: BackendPort = {
+			...port,
+			capabilities: { ...port.capabilities, schemaDiscovery: false }
+		};
+
+		await loadContentModel(editorPort);
+
+		expect(update).not.toHaveBeenCalled();
+		await expect(syncSchemaSnapshot(editorPort)).resolves.toBe('skipped');
+	});
+
+	test('si reescribir el snapshot falla, el modelo carga igual y el fallo queda en consola', async () => {
+		const port = await portWithSnapshot();
+		await port.ensureCollections([NEW_COLLECTION]);
+		vi.spyOn(port, 'update').mockRejectedValue(VegaError.forbidden('sin permiso'));
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		try {
+			const model = await loadContentModel(port);
+
+			expect(model.site.name).toBe('Snapshot');
+			expect(warn).toHaveBeenCalledTimes(1);
+		} finally {
+			warn.mockRestore();
+		}
 	});
 });

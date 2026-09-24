@@ -752,17 +752,26 @@ Queda persistido en `localStorage` (clave `vega.authCollection.v1`) para ese nav
 
 Un editor no puede hacer `GET /api/collections` (PocketBase lo rechaza). ¿Cómo sabe Vega qué colecciones existen y qué campos tienen?
 
-Respuesta: **snapshot de schema cacheado**. Cuando un **superuser** edita el manifiesto desde `/settings` y guarda, Vega persiste el `ContentType[]` (estructura completa del schema en ese momento) en el campo `schemaSnapshot` de la colección `vega`. Un editor luego lee ese snapshot en lugar de introspeccionar en vivo.
+Respuesta: **snapshot de schema cacheado**. Vega persiste el `ContentType[]` (estructura completa del schema) en el campo `schemaSnapshot` del registro de la colección `vega`, el mismo que guarda el manifiesto. Un editor lee ese snapshot en lugar de introspeccionar en vivo.
 
-**Consecuencia operacional clave**: si el administrador cambia el schema de una colección en PocketBase (añade/quita campos, cambia tipos), DEBE volver a abrir `/settings` en Vega (como superuser) y guardar el manifiesto para refrescar el snapshot — aunque no toque el manifiesto, el guardado actualiza el snapshot. Si no lo hace, los editores verán un schema desactualizado.
+Vega regenera el snapshot en tres momentos, siempre con una sesión de **superuser** y **solo si ha cambiado** (se compara por contenido, sin depender del orden de las claves, así que entrar no provoca escrituras innecesarias):
+
+1. **Al guardar el manifiesto** desde `/settings`, como siempre.
+2. **Al cambiar el schema desde Vega**: crear una colección o añadir campos desde `/settings`, crear `vega_media` desde `/media`, activar el historial o sembrar el sitio. En cuanto termina la operación, el snapshot ya incluye el cambio.
+3. **Al entrar un superuser** (y al pulsar «Recargar modelo»): si el snapshot ya no describe el schema real, por ejemplo porque alguien cambió una colección en el Admin de PocketBase, Vega lo reescribe durante la carga. No hace falta guardar nada.
+
+El snapshot solo se escribe si el registro de `vega` existe y su colección tiene el campo `schemaSnapshot`: en un proyecto sin manifiesto, el primer guardado desde `/settings` lo crea. Si la escritura falla, Vega sigue funcionando, deja un aviso en la consola del navegador y lo reintenta en la siguiente entrada de un superuser.
+
+**Consecuencia operacional**: un cambio hecho **fuera** de Vega (Admin de PocketBase, migraciones) llega a los editores cuando un superuser vuelve a entrar en Vega o pulsa «Recargar modelo». Mientras tanto, los editores ven el schema anterior.
 
 **Ejemplo**:
 
-1. Superuser abre `/settings`, edita el manifiesto y guarda → snapshot se actualiza.
-2. Editor abre Vega, ve el schema actualizado (desde el snapshot).
-3. Administrador añade un campo a una colección en PocketBase admin.
-4. Editor abre Vega → sigue viendo el schema antiguo (sin el nuevo campo) hasta que...
-5. Superuser vuelva a guardar desde `/settings` (refrescar el snapshot).
+1. Administrador añade un campo a una colección en el Admin de PocketBase.
+2. Editor abre Vega → sigue viendo el schema antiguo (sin el nuevo campo).
+3. Un superuser entra en Vega → el snapshot se actualiza durante la carga.
+4. El editor recarga Vega → ve el campo nuevo.
+
+Si el cambio se hace desde Vega (el segundo de los tres momentos), el editor lo ve en su siguiente recarga sin esperar a que entre ningún superuser.
 
 ### Roles y permisos generales
 

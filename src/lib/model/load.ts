@@ -1,19 +1,26 @@
 /**
  * Residencia y ciclo de vida del manifiesto (§6 del contrato P2): lectura vía `loadContentModel`
- * y escritura vía `saveManifest`, ambas contra el `BackendPort`. Único módulo bajo
- * `src/lib/model/` (junto a `editor/`, Fase 3) que puede importar el puerto — el resto sigue
- * puro (guardarraíl del contrato, §1); `pocketbase` sigue sin poder importarse aquí tampoco.
+ * y escritura vía `saveManifest`, ambas contra el `BackendPort`. También el del snapshot de
+ * esquema que viaja en el mismo registro `vega` (`syncSchemaSnapshot`, `withSchemaSnapshotSync`).
+ * Único módulo bajo `src/lib/model/` (junto a `editor/`, Fase 3) que puede importar el puerto —
+ * el resto sigue puro (guardarraíl del contrato, §1); `pocketbase` sigue sin poder importarse aquí
+ * tampoco: `schema-snapshot.ts`, la comparación, es puro por eso.
  */
 
 import type { BackendPort } from '$lib/backend/port';
-import type { ContentType, JsonValue, RecordInput } from '$lib/backend/types';
+import type { ContentType, JsonValue, RecordInput, VegaRecord } from '$lib/backend/types';
 import type { Query } from '$lib/backend/query';
 import {
 	VEGA_COLLECTION,
 	VEGA_MANIFEST_VERSION_FIELD,
 	VEGA_PROJECT_KEY,
-	VEGA_PROJECT_KEY_FIELD
+	VEGA_PROJECT_KEY_FIELD,
+	type AddFieldsResult,
+	type CollectionFieldSpec,
+	type CollectionSpec,
+	type EnsureResult
 } from '$lib/backend/collections';
+import { schemaSnapshotMatches } from './schema-snapshot';
 import type { ContentModel } from './types';
 import { resolveContentModel } from './resolve';
 import { validateManifestStrict, type ManifestValidationErrorEntry } from './validate';
@@ -161,7 +168,14 @@ export async function loadContentModel(
 		knownIcons: opts?.knownIcons,
 		accessBypass: port.capabilities.accessBypass
 	});
-	const discoveryWarnings = await unsupportedBlockTypeWarnings(port, model);
+	// Superuser entrando (o `reloadModel()`): si el snapshot de los editores ya no describe el
+	// esquema vivo (cambio hecho en el Admin de PocketBase, por ejemplo), se reescribe aquí mismo
+	// con lo que esta carga YA leyó — sin lecturas extra, y en paralelo con los recuentos de
+	// abajo. Nunca rompe la carga del modelo.
+	const [discoveryWarnings] = await Promise.all([
+		unsupportedBlockTypeWarnings(port, model),
+		syncSchemaSnapshotSafely(port, { types, vegaType, record: page.items[0] ?? null })
+	]);
 	const cardinalityWarnings = page.totalItems <= 1 ? [] : [multipleVegaRecords(page.totalItems)];
 	if (discoveryWarnings.length === 0 && cardinalityWarnings.length === 0) return model;
 
@@ -237,4 +251,121 @@ export async function saveManifest(port: BackendPort, manifest: JsonValue): Prom
 	}
 
 	return versioned;
+}
+
+/** Qué hizo `syncSchemaSnapshot`: `skipped` = no aplica (ver sus condiciones). */
+export type SchemaSnapshotSyncResult = 'written' | 'unchanged' | 'skipped';
+
+/**
+ * Reescribe `vega.schemaSnapshot` si ya no describe el esquema vivo (audit de rendimiento del
+ * 23 sep 2026, p2). Antes solo se regeneraba al guardar el manifiesto desde `/settings`, así que un
+ * cambio de esquema dejaba a los editores con un esquema viejo hasta que alguien se acordara de
+ * guardar. Ahora se llama desde dos sitios:
+ *
+ * - `loadContentModel`, al entrar un superuser (y en cada `reloadModel()`), con `known` = lo que
+ *   esa carga ya leyó, para no pagar ninguna lectura más.
+ * - `withSchemaSnapshotSync`, tras cada escritura de esquema hecha desde Vega.
+ *
+ * Solo ESCRIBE si hay diferencia (`schemaSnapshotMatches`, comparación por contenido que no
+ * depende del orden de claves) y solo el campo `schemaSnapshot` del registro existente — el
+ * manifiesto no se toca. No aplica (`skipped`) sin introspección real
+ * (`capabilities.schemaDiscovery`: en modo editor el esquema SALE del snapshot, mismo motivo que
+ * en `saveManifest`), sin colección `vega`, con una `vega` anterior a L6b sin el campo, o sin
+ * registro: el snapshot vive junto al manifiesto y crear un registro solo para él cambiaría lo que
+ * `loadContentModel` entiende por "manifiesto ausente". Los fallos se propagan; quien no deba
+ * romperse por esto usa `syncSchemaSnapshotSafely`.
+ */
+export async function syncSchemaSnapshot(
+	port: BackendPort,
+	known?: { types: ContentType[]; vegaType: ContentType; record: VegaRecord | null }
+): Promise<SchemaSnapshotSyncResult> {
+	if (!port.capabilities.schemaDiscovery) return 'skipped';
+
+	let types: ContentType[];
+	let vegaType: ContentType | undefined;
+	let record: VegaRecord | null;
+	if (known) {
+		({ types, vegaType, record } = known);
+	} else {
+		types = await port.listContentTypes();
+		vegaType = types.find((type) => type.name === VEGA_COLLECTION.name);
+		if (!vegaType) return 'skipped';
+		record = (await listManifestRecords(port, vegaType, 1)).items[0] ?? null;
+	}
+	if (!vegaType.fields.some((field) => field.name === SCHEMA_SNAPSHOT_FIELD)) return 'skipped';
+	if (!record) return 'skipped';
+
+	if (schemaSnapshotMatches(types, record.values[SCHEMA_SNAPSHOT_FIELD])) return 'unchanged';
+	await port.update(VEGA_COLLECTION.name, record.id, {
+		[SCHEMA_SNAPSHOT_FIELD]: types as unknown as JsonValue
+	});
+	return 'written';
+}
+
+/**
+ * `syncSchemaSnapshot` para los caminos que NO deben fallar por él (cargar el modelo, una
+ * escritura de esquema que ya se hizo): el fallo no se propaga, pero tampoco se pierde — queda en
+ * consola, y la próxima entrada de un superuser lo vuelve a intentar.
+ */
+async function syncSchemaSnapshotSafely(
+	port: BackendPort,
+	known?: Parameters<typeof syncSchemaSnapshot>[1]
+): Promise<void> {
+	try {
+		await syncSchemaSnapshot(port, known);
+	} catch (err) {
+		console.warn(
+			'[vega:schemaSnapshot] No se pudo actualizar el esquema que ven los editores; se ' +
+				'reintentará en la próxima carga del modelo con superusuario.',
+			err
+		);
+	}
+}
+
+/**
+ * Decorador de `BackendPort` (se aplica en `session/backend.ts#createInstance`, en las dos ramas,
+ * por DEBAJO de `withRevisions`, cuya `resetRevisionsLatch` va por identidad del puerto más
+ * externo): tras `ensureCollections`/`addCollectionFields`, regenera el snapshot de los editores.
+ * Un decorador y no una llamada en cada pantalla porque esos cambios salen de al menos cinco
+ * sitios (autoría de esquema en `/settings`, sembrado de sitio y los bootstraps de `vega`,
+ * `vega_media` y `vega_revisions`), y `/media` ni siquiera recarga el modelo después.
+ *
+ * Con éxito sin cambios (todo `skipped`) no hay nada que sincronizar. Con fallo se sincroniza
+ * igual: el lote no hace rollback y puede haber creado algo antes de fallar. El resultado o el
+ * error originales llegan intactos al llamador.
+ */
+export function withSchemaSnapshotSync(port: BackendPort): BackendPort {
+	async function afterSchemaWrite<T>(
+		write: () => Promise<T>,
+		changed: (result: T) => boolean
+	): Promise<T> {
+		let result: T;
+		try {
+			result = await write();
+		} catch (err) {
+			await syncSchemaSnapshotSafely(port);
+			throw err;
+		}
+		if (changed(result)) await syncSchemaSnapshotSafely(port);
+		return result;
+	}
+
+	return {
+		...port,
+		ensureCollections(specs: CollectionSpec[]): Promise<EnsureResult> {
+			return afterSchemaWrite(
+				() => port.ensureCollections(specs),
+				(result) => result.created.length > 0
+			);
+		},
+		addCollectionFields(
+			collectionName: string,
+			fields: CollectionFieldSpec[]
+		): Promise<AddFieldsResult> {
+			return afterSchemaWrite(
+				() => port.addCollectionFields(collectionName, fields),
+				(result) => result.added.length > 0
+			);
+		}
+	};
 }

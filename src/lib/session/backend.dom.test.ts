@@ -107,6 +107,23 @@ describe('getBackend — config y discovery', () => {
 		clearBackendOverride();
 	});
 
+	test('el puerto de getBackend regenera el snapshot de los editores al crear una colección', async () => {
+		// Cableado de `withSchemaSnapshotSync` (`model/load.ts`) en `createInstance`: la rama
+		// `memory` se construye igual que la de `pocketbase`, decorador por debajo de `withRevisions`.
+		window.__VEGA_ADAPTER__ = 'memory';
+		vi.resetModules();
+		const { getBackend } = await import('./backend');
+		const { DEMO_CREDENTIALS } = await import('./demo-seed');
+		const port = await getBackend();
+		await port.login(DEMO_CREDENTIALS);
+
+		await port.ensureCollections([{ name: 'author', fields: [{ name: 'name', type: 'text' }] }]);
+
+		const vega = await port.list('vega', { perPage: 1 });
+		const snapshot = vega.items[0].values.schemaSnapshot as { name: string }[] | null;
+		expect(snapshot?.map((t) => t.name)).toContain('author');
+	});
+
 	test('sin override, el discovery espera a la config: la URL sale de ella', async () => {
 		const { requested, release } = holdConfig({ backendUrl: 'https://pb-config.example.com' });
 		vi.resetModules();
