@@ -24,7 +24,7 @@
 		type EditorAccount,
 		type NewEditorAccess
 	} from '$lib/backend';
-	import { DEFAULT_PASSWORD_MIN_LENGTH } from '$lib/backend/administration';
+	import { DEFAULT_PASSWORD_MIN_LENGTH } from '$lib/backend/administration-rules';
 	import Icon from '$lib/icons/Icon.svelte';
 	import AdminDialog from '$lib/admin/AdminDialog.svelte';
 	import AddEditorDialog from '$lib/admin/AddEditorDialog.svelte';

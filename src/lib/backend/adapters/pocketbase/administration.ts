@@ -23,13 +23,13 @@ import type { AdministrationPort } from '../../port';
 import type { BackupFile, EditorAccount, NewEditorAccess } from '../../types';
 import type { FieldError } from '../../errors';
 import { VegaError } from '../../errors';
+import { VEGA_EDITORS_COLLECTION_NAME } from '../../administration';
 import {
 	DEFAULT_PASSWORD_MIN_LENGTH,
 	sortBackups,
 	sortEditors,
-	toIsoDate,
-	VEGA_EDITORS_COLLECTION_NAME
-} from '../../administration';
+	toIsoDate
+} from '../../administration-rules';
 
 interface AdministrationOptions {
 	pb: PocketBase;

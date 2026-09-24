@@ -57,8 +57,7 @@ import {
 	validateFileFieldInput
 } from './files';
 import { applyQuery } from './query';
-import { createMemoryAdministration } from './administration';
-import { VEGA_EDITORS_COLLECTION_NAME } from '../../administration';
+import { deferredAdministration, VEGA_EDITORS_COLLECTION_NAME } from '../../administration';
 
 const CAPABILITIES: Capabilities = {
 	realtime: true,
@@ -463,16 +462,22 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 		}
 	}
 
-	const administration = createMemoryAdministration({
-		checkSessionAlive,
-		editorsCollectionExists: () =>
-			collectionsByName.get(VEGA_EDITORS_COLLECTION_NAME)?.type === 'auth',
-		generateId,
-		editors: seed?.editors ?? [],
-		backups: seed?.backups ?? [],
-		mailEnabled: seed?.mailEnabled ?? false,
-		backupDurationMs: seed?.backupDurationMs ?? 0
-	});
+	// Diferida como en `pocketbase` (ver `deferredAdministration`): la demo también carga `memory`
+	// en el arranque, y estas pantallas no las abre todo el mundo.
+	const administration = deferredAdministration(() =>
+		import('./administration').then((m) =>
+			m.createMemoryAdministration({
+				checkSessionAlive,
+				editorsCollectionExists: () =>
+					collectionsByName.get(VEGA_EDITORS_COLLECTION_NAME)?.type === 'auth',
+				generateId,
+				editors: seed?.editors ?? [],
+				backups: seed?.backups ?? [],
+				mailEnabled: seed?.mailEnabled ?? false,
+				backupDurationMs: seed?.backupDurationMs ?? 0
+			})
+		)
+	);
 
 	const port: MemoryBackendPort = {
 		capabilities: CAPABILITIES,

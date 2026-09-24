@@ -48,7 +48,7 @@ import { planFileFieldWrite, resolveFileUrl } from './files';
 import { addFieldsOnPocketBase, ensureCollectionsOnPocketBase } from './collections';
 import { clearPersistedToken, loadPersistedToken, savePersistedToken } from './persistence';
 import { createPocketBaseStrongAuth } from './strong-auth';
-import { createPocketBaseAdministration } from './administration';
+import { deferredAdministration } from '../../administration';
 
 /** Colección de auth por defecto (v1, D1): superuser real de PB, sin restricciones de esquema. */
 const DEFAULT_AUTH_COLLECTION = '_superusers';
@@ -489,8 +489,12 @@ export function createPocketBaseBackend({
 			})
 		: undefined;
 
+	// Diferida: su código solo se descarga cuando un superusuario abre `/editores` o `/copias`
+	// (ver `deferredAdministration`).
 	const administration = CAPABILITIES.administration
-		? createPocketBaseAdministration({ pb, guarded })
+		? deferredAdministration(() =>
+				import('./administration').then((m) => m.createPocketBaseAdministration({ pb, guarded }))
+			)
 		: undefined;
 
 	const port: BackendPort = {

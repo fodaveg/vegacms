@@ -1,11 +1,12 @@
 /**
- * Piezas puras de `AdministrationPort` (`port.ts`) que comparten los dos adaptadores: el nombre de
- * la colección de editores, el mínimo de contraseña de fábrica y el orden de las dos listas. Vivir
- * aquí evita que `memory` y `pocketbase` ordenen distinto la misma lista y que la suite de
- * contrato tenga que tolerar las dos cosas.
+ * Lo que la carga inicial necesita de `AdministrationPort` (`port.ts`): el nombre de la colección
+ * de editores y la sección diferida que montan los dos adaptadores. Las reglas que solo usan las
+ * implementaciones y las pantallas (orden de las listas, mínimo de contraseña, fechas) viven en
+ * `administration-rules.ts`, que va en su chunk diferido.
  */
 
-import type { BackupFile, EditorAccount } from './types';
+import type { AdministrationPort } from './port';
+import { VegaError } from './errors';
 
 /**
  * La colección `auth` de los editores. Es la única `auth` que Vega gestiona (reapertura acotada de
@@ -15,38 +16,36 @@ import type { BackupFile, EditorAccount } from './types';
 export const VEGA_EDITORS_COLLECTION_NAME = 'vega_editors';
 
 /**
- * Mínimo de contraseña de una colección `auth` recién creada en PocketBase (campo `password`,
- * `min: 8`, medido contra 0.39.6). `memory` lo usa como regla propia y `pocketbase` como respaldo si
- * la colección no declara un `min` positivo.
+ * Sección `administration` que carga su implementación la primera vez que se usa. Los dos
+ * adaptadores viven en la carga inicial de la app (`session/backend.ts` los importa para elegir),
+ * y las pantallas que usan esta sección solo las abre un superusuario de vez en cuando: pedir el
+ * código al primer uso lo saca de lo que descarga todo el mundo al entrar (medido con
+ * `scripts/check-bundle-budget.mjs`). Si el `import()` falla (sin red), rechaza con
+ * `VegaError 'network'`, como cualquier otra operación del puerto sin respuesta, y el siguiente
+ * uso lo vuelve a intentar.
  */
-export const DEFAULT_PASSWORD_MIN_LENGTH = 8;
-
-/** Alta más antigua primero; sin fecha, detrás y por email (orden estable en los dos adaptadores). */
-export function sortEditors(editors: EditorAccount[]): EditorAccount[] {
-	return [...editors].sort((a, b) => {
-		if (a.created !== null && b.created !== null && a.created !== b.created) {
-			return a.created < b.created ? -1 : 1;
-		}
-		if (a.created !== null && b.created === null) return -1;
-		if (a.created === null && b.created !== null) return 1;
-		return a.email < b.email ? -1 : a.email > b.email ? 1 : 0;
-	});
-}
-
-/** La copia más reciente primero; a igual fecha, por clave. */
-export function sortBackups(backups: BackupFile[]): BackupFile[] {
-	return [...backups].sort((a, b) => {
-		if (a.modified !== b.modified) return a.modified < b.modified ? 1 : -1;
-		return a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
-	});
-}
-
-/**
- * Convierte la fecha que sirve PocketBase (`2026-09-24 06:28:36.690Z`, con espacio) a ISO 8601
- * (`2026-09-24T06:28:36.690Z`). Una cadena que no se deja leer como fecha devuelve `null`.
- */
-export function toIsoDate(raw: unknown): string | null {
-	if (typeof raw !== 'string' || raw.trim() === '') return null;
-	const ms = Date.parse(raw.trim().replace(' ', 'T'));
-	return Number.isNaN(ms) ? null : new Date(ms).toISOString();
+export function deferredAdministration(
+	load: () => Promise<AdministrationPort>
+): AdministrationPort {
+	let loading: Promise<AdministrationPort> | null = null;
+	function section(): Promise<AdministrationPort> {
+		loading ??= load().catch((err: unknown) => {
+			loading = null;
+			throw err instanceof VegaError
+				? err
+				: VegaError.network(err, 'No se pudo cargar la administración del servidor');
+		});
+		return loading;
+	}
+	return {
+		listEditors: () => section().then((s) => s.listEditors()),
+		mailEnabled: () => section().then((s) => s.mailEnabled()),
+		createEditor: (email, access) => section().then((s) => s.createEditor(email, access)),
+		setEditorPassword: (id, password) => section().then((s) => s.setEditorPassword(id, password)),
+		sendEditorInvitation: (id) => section().then((s) => s.sendEditorInvitation(id)),
+		removeEditor: (id) => section().then((s) => s.removeEditor(id)),
+		listBackups: () => section().then((s) => s.listBackups()),
+		createBackup: () => section().then((s) => s.createBackup()),
+		backupDownloadUrl: (key) => section().then((s) => s.backupDownloadUrl(key))
+	};
 }

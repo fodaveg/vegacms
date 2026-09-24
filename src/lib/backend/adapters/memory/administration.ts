@@ -13,12 +13,8 @@
 import type { AdministrationPort } from '../../port';
 import type { BackupFile, EditorAccount } from '../../types';
 import { PB_VALIDATION_CODES, VegaError } from '../../errors';
-import {
-	DEFAULT_PASSWORD_MIN_LENGTH,
-	sortBackups,
-	sortEditors,
-	VEGA_EDITORS_COLLECTION_NAME
-} from '../../administration';
+import { VEGA_EDITORS_COLLECTION_NAME } from '../../administration';
+import { DEFAULT_PASSWORD_MIN_LENGTH, sortBackups, sortEditors } from '../../administration-rules';
 
 /** El `.zip` vacío más pequeño válido: solo el registro de fin de directorio central. */
 const EMPTY_ZIP_DATA_URI = 'data:application/zip;base64,UEsFBgAAAAAAAAAAAAAAAAAAAAAAAA==';
