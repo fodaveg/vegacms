@@ -1,8 +1,12 @@
 import { describe, expect, test, vi } from 'vitest';
 import { createMemoryBackend, type MemoryBackendPort } from './adapters/memory';
+import type { CollectionFieldSpec } from './collections';
 import type { BackendPort } from './port';
-import type { AccessLevel, ContentType } from './types';
+import type { AccessLevel, ContentType, Field } from './types';
 import {
+	actualFieldShape,
+	expectedFieldShape,
+	sameShape,
 	SITE_SEED_BLOCKS_READ_RULE,
 	SITE_SEED_CANONICAL_PAGE_PATH,
 	SITE_SEED_EDITOR_ACCESS_RULE,
@@ -490,6 +494,106 @@ describe('seedSiteProject', () => {
 		);
 		expect(port.inspectCollection('vega_editors')).toMatchObject({ type: 'auth' });
 		expect(port.inspectCollection('pages')).toMatchObject({ type: 'auth' });
+	});
+});
+
+/** Campo `select` real (`Field`, lo que devuelve el puerto) con los defaults de `FieldBase` que no
+ *  varían entre los casos de abajo — solo `multiple`/`options`/`maxSelect` cambian por test. */
+function actualSelectField(opts: {
+	options: string[];
+	multiple: boolean;
+	maxSelect?: number;
+}): Field {
+	return {
+		name: 'tags',
+		type: 'select',
+		options: opts.options,
+		multiple: opts.multiple,
+		maxSelect: opts.maxSelect,
+		required: false,
+		readonly: false,
+		presentable: false,
+		hidden: false,
+		unique: false
+	};
+}
+
+function expectedSelectSpec(opts: { options: string[]; multiple: boolean }): CollectionFieldSpec {
+	return { name: 'tags', type: 'select', options: opts.options, multiple: opts.multiple };
+}
+
+describe('expectedFieldShape/actualFieldShape/sameShape: select MÚLTIPLE', () => {
+	/**
+	 * `seedSiteProject` nunca alcanza esta rama en la suite de arriba: su único `select`
+	 * (`pages.status`) es SIEMPRE simple. `multiple` compila a `maxSelect: 99`
+	 * (`collections.ts`, comentario de `CollectionFieldSpec['relation'].multiple`) y
+	 * `actualFieldShape` solo compara `maxSelect` cuando el campo es un `select` múltiple (ver su
+	 * cabecera) — exactamente lo que estos tests ejercitan.
+	 */
+
+	test('mismo select múltiple (mismas opciones, maxSelect=99 real) → misma forma', () => {
+		const expected = expectedFieldShape(
+			expectedSelectSpec({ options: ['a', 'b'], multiple: true })
+		);
+		const actual = actualFieldShape(
+			actualSelectField({ options: ['a', 'b'], multiple: true, maxSelect: 99 })
+		);
+		expect(sameShape(expected, actual)).toBe(true);
+	});
+
+	test('múltiple con maxSelect real distinto de 99 → forma distinta (cardinalidad no coincide)', () => {
+		const expected = expectedFieldShape(
+			expectedSelectSpec({ options: ['a', 'b'], multiple: true })
+		);
+		// Un `select` creado a mano en PocketBase con `multiple: true` pero un límite propio
+		// (p.ej. 5): mismo `multiple`, mismas opciones, pero OTRA cardinalidad — sí debe divergir
+		// (ver el comentario de `actualFieldShape`: "dos límites distintos son cardinalidades
+		// distintas").
+		const actual = actualFieldShape(
+			actualSelectField({ options: ['a', 'b'], multiple: true, maxSelect: 5 })
+		);
+		expect(sameShape(expected, actual)).toBe(false);
+	});
+
+	test('múltiple vs simple (mismas opciones) → forma distinta', () => {
+		const expectedMultiple = expectedFieldShape(
+			expectedSelectSpec({ options: ['a', 'b'], multiple: true })
+		);
+		const actualSimple = actualFieldShape(
+			actualSelectField({ options: ['a', 'b'], multiple: false, maxSelect: 1 })
+		);
+		expect(sameShape(expectedMultiple, actualSimple)).toBe(false);
+
+		const expectedSimple = expectedFieldShape(
+			expectedSelectSpec({ options: ['a', 'b'], multiple: false })
+		);
+		const actualMultiple = actualFieldShape(
+			actualSelectField({ options: ['a', 'b'], multiple: true, maxSelect: 99 })
+		);
+		expect(sameShape(expectedSimple, actualMultiple)).toBe(false);
+	});
+
+	test('múltiple con opciones distintas: actual SUPERCONJUNTO del esperado → sigue siendo compatible', () => {
+		// Mismo criterio que el single de `site-seeding.test.ts` ("superconjunto desordenado de
+		// opciones sigue siendo compatible"), documentado aquí para la rama múltiple: opciones EXTRA
+		// en el servidor no son una divergencia, solo faltar una esperada lo es (`sameSelectOptions`).
+		const expected = expectedFieldShape(
+			expectedSelectSpec({ options: ['a', 'b'], multiple: true })
+		);
+		const actual = actualFieldShape(
+			actualSelectField({ options: ['b', 'a', 'c'], multiple: true, maxSelect: 99 })
+		);
+		expect(sameShape(expected, actual)).toBe(true);
+	});
+
+	test('múltiple con una opción esperada AUSENTE en el actual → forma distinta', () => {
+		const expected = expectedFieldShape(
+			expectedSelectSpec({ options: ['a', 'b'], multiple: true })
+		);
+		const actual = actualFieldShape(
+			actualSelectField({ options: ['a'], multiple: true, maxSelect: 99 })
+		);
+		expect(sameShape(expected, actual)).toBe(false);
 	});
 });
 
