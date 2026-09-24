@@ -27,6 +27,9 @@ interface MemoryAdministrationOptions {
 	checkSessionAlive(): void;
 	/** `true` si `vega_editors` existe como colección `auth` (sembrada o creada después). */
 	editorsCollectionExists(): boolean;
+	/** `true` si la colección tiene el campo `created` (autodate): sin él, el alta llega `null`,
+	 *  igual que en PocketBase (una `auth` creada por API sin campos no lo trae). */
+	editorsHaveCreatedField(): boolean;
 	generateId(): string;
 	editors: EditorAccount[];
 	backups: BackupFile[];
@@ -117,7 +120,7 @@ export function createMemoryAdministration(
 				id: generateId(),
 				email: normalized,
 				verified: access.kind === 'password',
-				created: new Date().toISOString()
+				created: options.editorsHaveCreatedField() ? new Date().toISOString() : null
 			};
 			editors.set(account.id, account);
 			return { ...account };

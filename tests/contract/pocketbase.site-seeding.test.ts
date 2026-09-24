@@ -577,10 +577,21 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 		});
 		const before = await admin.collections.getOne('vega_editors');
 
-		await seedSiteProject(port);
+		const result = await seedSiteProject(port);
 
+		// Aditivo: los campos que había siguen igual y se suma `created` (autodate), que el sembrado
+		// ahora declara. Reglas y cuentas, intactas.
+		expect(result.addedFields.vega_editors).toEqual(['created']);
 		const after = await admin.collections.getOne('vega_editors');
-		expect(after.fields).toEqual(before.fields);
+		expect(after.fields.slice(0, before.fields.length)).toEqual(before.fields);
+		expect(after.fields.slice(before.fields.length)).toEqual([
+			expect.objectContaining({
+				name: 'created',
+				type: 'autodate',
+				onCreate: true,
+				onUpdate: false
+			})
+		]);
 		expect(after.listRule).toBe(before.listRule);
 		expect(after.viewRule).toBe(before.viewRule);
 		await expect(admin.collection('vega_editors').getOne(user.id)).resolves.toMatchObject({
@@ -588,6 +599,32 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 			email: 'editora@example.test',
 			displayName: 'Editora'
 		});
+
+		// La cuenta anterior se queda sin fecha (PB no rellena hacia atrás); una nueva, con fecha.
+		// Se crea por el cliente de admin porque esta colección exige `displayName`, que el alta de
+		// Vega no pide.
+		const fresh = await admin.collection('vega_editors').create({
+			email: 'nueva@example.test',
+			password: 'password-segura-123',
+			passwordConfirm: 'password-segura-123',
+			displayName: 'Nueva'
+		});
+		const directory = await port.administration!.listEditors();
+		expect(directory.editors.find((e) => e.id === user.id)?.created).toBeNull();
+		const listed = directory.editors.find((e) => e.id === fresh.id);
+		expect(Number.isNaN(Date.parse(listed?.created ?? ''))).toBe(false);
+		expect((await seedSiteProject(port)).addedFields).toEqual({});
+	});
+
+	test('una instalación nueva crea vega_editors con created: el alta de una cuenta trae fecha', async () => {
+		await seedSiteProject(port);
+		const collection = await admin.collections.getOne('vega_editors');
+		expect(collection.fields.map((field) => field.name)).toContain('created');
+		const account = await port.administration!.createEditor('alta@example.test', {
+			kind: 'password',
+			password: 'password-segura-123'
+		});
+		expect(Number.isNaN(Date.parse(account.created ?? ''))).toBe(false);
 	});
 
 	test('pages conserva páginas y campos extra y añade solo la ruta canónica ausente', async () => {
@@ -696,7 +733,11 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 
 		expect(result).toEqual({
 			createdCollections: ['redirects'],
-			addedFields: { pages: ['description', 'socialImage', 'noindex'] },
+			// `vega_editors` gana `created` (autodate), que el sembrado anterior no creaba.
+			addedFields: {
+				vega_editors: ['created'],
+				pages: ['description', 'socialImage', 'noindex']
+			},
 			createdRecords: [],
 			upgradedRecords: ['manifest']
 		});

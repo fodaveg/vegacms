@@ -126,7 +126,7 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 			collectionSpecToMemorySnapshot({
 				name: VEGA_EDITORS_COLLECTION_NAME,
 				type: 'auth',
-				fields: []
+				fields: [{ name: 'created', type: 'autodate' }]
 			})
 		);
 	}
@@ -470,6 +470,9 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 				checkSessionAlive,
 				editorsCollectionExists: () =>
 					collectionsByName.get(VEGA_EDITORS_COLLECTION_NAME)?.type === 'auth',
+				editorsHaveCreatedField: () =>
+					collectionsByName.get(VEGA_EDITORS_COLLECTION_NAME)?.fieldNames.includes('created') ??
+					false,
 				generateId,
 				editors: seed?.editors ?? [],
 				backups: seed?.backups ?? [],
@@ -690,6 +693,20 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 			}
 			const fieldRejects = checkCollectionFieldSpecs(fields);
 			if (Object.keys(fieldRejects).length > 0) throw VegaError.validation(fieldRejects);
+			// Una colección `auth` (hoy, `vega_editors`) no es un `ContentType` (D-P1.1), pero en PB
+			// admite campos nuevos igual que cualquier otra: aquí solo existe como instantánea, así
+			// que se le suman los nombres, con la misma regla aditiva e idempotente.
+			const authCollection = collectionsByName.get(collectionName);
+			if (!contentTypesByName.has(collectionName) && authCollection?.type === 'auth') {
+				const existing = new Set(authCollection.fieldNames);
+				const added = fields.filter((spec) => !existing.has(spec.name)).map((spec) => spec.name);
+				const skipped = fields.filter((spec) => existing.has(spec.name)).map((spec) => spec.name);
+				collectionsByName.set(collectionName, {
+					...authCollection,
+					fieldNames: [...authCollection.fieldNames, ...added]
+				});
+				return { added, skipped };
+			}
 			const ct = getContentTypeOrThrow(collectionName);
 
 			const existingNames = new Set(ct.fields.map((f) => f.name));

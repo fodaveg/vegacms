@@ -68,10 +68,16 @@ const STARTER_MANIFEST = starterManifestDocument as JsonValue;
 /** Manifiestos iniciales de versiones anteriores del sembrado, del más antiguo al más reciente. */
 const PREVIOUS_STARTER_MANIFESTS: readonly JsonValue[] = [starterManifest1bda988 as JsonValue];
 
+/**
+ * `created` (autodate, solo al crear) da fecha de alta a las cuentas en `/editores`. Una `auth`
+ * creada por API no la trae de fábrica (medido en PocketBase 0.39.6). En un proyecto ya sembrado se
+ * añade aparte (`ensureEditorsCollection`): las cuentas que ya existían se quedan sin fecha, porque
+ * PocketBase no rellena un autodate nuevo hacia atrás (medido: vale `""`).
+ */
 const VEGA_EDITORS_COLLECTION: CollectionSpec = {
 	name: 'vega_editors',
 	type: 'auth',
-	fields: []
+	fields: [{ name: 'created', type: 'autodate' }]
 };
 
 const PAGES_COLLECTION: CollectionSpec = {
@@ -242,7 +248,7 @@ export async function seedSiteProject(port: BackendPort): Promise<SiteSeedResult
 		upgradedRecords: []
 	};
 
-	await ensureOne(port, VEGA_EDITORS_COLLECTION, result);
+	await ensureEditorsCollection(port, result);
 
 	const mediaPlan = plan.collections.get('vega_media')!;
 	const mediaResult = await ensureMediaCollection(port);
@@ -458,6 +464,23 @@ async function ensureOne(
 ): Promise<void> {
 	const ensured = await port.ensureCollections([spec]);
 	result.createdCollections.push(...ensured.created);
+}
+
+/**
+ * `vega_editors` no pasa por el preflight (la esconde el descubrimiento, ver la cabecera), así que
+ * sus campos se completan aquí: si la colección ya existía, se le añaden los del sembrado que
+ * falten, con la misma regla aditiva que el resto (un campo con ese nombre, sea del tipo que sea,
+ * se deja tal cual). Nunca toca sus reglas ni sus cuentas.
+ */
+async function ensureEditorsCollection(port: BackendPort, result: SiteSeedResult): Promise<void> {
+	const ensured = await port.ensureCollections([VEGA_EDITORS_COLLECTION]);
+	result.createdCollections.push(...ensured.created);
+	if (ensured.created.length > 0) return;
+	const added = await port.addCollectionFields(
+		VEGA_EDITORS_COLLECTION.name,
+		VEGA_EDITORS_COLLECTION.fields
+	);
+	if (added.added.length > 0) result.addedFields[VEGA_EDITORS_COLLECTION.name] = added.added;
 }
 
 async function addMissingFields(

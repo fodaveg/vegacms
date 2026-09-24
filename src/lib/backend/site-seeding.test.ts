@@ -172,7 +172,10 @@ describe('seedSiteProject', () => {
 			status: 'draft'
 		});
 
-		expect(port.inspectCollection('vega_editors')).toMatchObject({ type: 'auth' });
+		expect(port.inspectCollection('vega_editors')).toMatchObject({
+			type: 'auth',
+			fieldNames: ['created']
+		});
 		expect(port.inspectCollection('vega')?.rules).toMatchObject({
 			listRule: SITE_SEED_MANIFEST_READ_RULE,
 			viewRule: SITE_SEED_MANIFEST_READ_RULE
@@ -285,7 +288,11 @@ describe('seedSiteProject', () => {
 
 		expect(result).toEqual({
 			createdCollections: ['redirects'],
-			addedFields: { pages: ['description', 'socialImage', 'noindex'] },
+			// `vega_editors` gana `created` (autodate), que el sembrado anterior no creaba.
+			addedFields: {
+				vega_editors: ['created'],
+				pages: ['description', 'socialImage', 'noindex']
+			},
 			createdRecords: [],
 			upgradedRecords: ['manifest']
 		});
@@ -307,6 +314,30 @@ describe('seedSiteProject', () => {
 			createdRecords: [],
 			upgradedRecords: []
 		});
+	});
+
+	test('vega_editors ya existente gana created sin perder sus campos, y las cuentas nuevas traen alta', async () => {
+		const port = await authedMemory();
+		await port.ensureCollections([
+			{ name: 'vega_editors', type: 'auth', fields: [{ name: 'displayName', type: 'text' }] }
+		]);
+		const before = await port.administration!.createEditor('antes@vega.test', {
+			kind: 'password',
+			password: 'contraseña-larga'
+		});
+		expect(before.created).toBeNull();
+
+		const result = await seedSiteProject(port);
+		expect(result.createdCollections).not.toContain('vega_editors');
+		expect(result.addedFields.vega_editors).toEqual(['created']);
+		expect(port.inspectCollection('vega_editors')?.fieldNames).toEqual(['displayName', 'created']);
+
+		const after = await port.administration!.createEditor('despues@vega.test', {
+			kind: 'password',
+			password: 'contraseña-larga'
+		});
+		expect(Number.isNaN(Date.parse(after.created ?? ''))).toBe(false);
+		expect((await seedSiteProject(port)).addedFields).toEqual({});
 	});
 
 	test('un manifiesto anterior EDITADO no se actualiza: aborta como cualquier manifiesto humano', async () => {

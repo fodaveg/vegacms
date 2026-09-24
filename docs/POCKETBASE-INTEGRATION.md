@@ -900,8 +900,11 @@ Tres cosas que conviene saber, medidas contra PocketBase 0.39.6:
   contraseña (al crearla o después) queda activa. Cambiar la contraseña cierra las sesiones abiertas
   de esa cuenta.
 
-Una colección `vega_editors` creada por el sembrado no trae el campo `created`: la columna **Alta**
-sale con un guion. Las creadas desde el Admin de PocketBase sí lo traen.
+La columna **Alta** es el campo `created` (autodate) de `vega_editors`. El sembrado lo crea, y en un
+proyecto ya sembrado lo añade sin tocar nada más. Las cuentas que ya existían se quedan sin fecha
+(PocketBase no rellena un autodate nuevo hacia atrás) y salen con un guion. El alta de Vega pide
+solo email y contraseña: si tu `vega_editors` tiene campos propios obligatorios, el alta fallará con
+el error del servidor.
 
 ### Copias de seguridad
 
