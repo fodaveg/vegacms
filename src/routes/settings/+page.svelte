@@ -245,7 +245,10 @@
 
 	async function handleCheckForUpdate(): Promise<void> {
 		updateCheckUiState = 'checking';
-		updateResult = await checkForUpdate();
+		// `force: true` (fix de peso, TTL de `checkForUpdate`): un clic aquí es una petición
+		// explícita de "ahora mismo", así que salta la caché de 4h que sí respeta el auto-check del
+		// arranque — lo contrario dejaría el botón "Comprobar" sin comprobar nada, en silencio.
+		updateResult = await checkForUpdate(undefined, { force: true });
 		updateCheckUiState = 'result';
 		// El banner global lee la MISMA caché que acaba de escribir `checkForUpdate`: sin este
 		// refresco explícito, un "Hay una versión nueva" aquí no aparecería en el banner hasta la

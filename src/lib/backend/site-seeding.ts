@@ -405,7 +405,10 @@ interface ComparableFieldShape {
 	maxSelect: number | null;
 }
 
-function expectedFieldShape(field: CollectionFieldSpec): ComparableFieldShape {
+/** Exportada para testear directamente la rama de `select` MÚLTIPLE (§ comentario de `maxSelect`
+ *  en `actualFieldShape`), que `seedSiteProject` nunca alcanza en la suite de integración — todos
+ *  sus `select` (`pages.status`) son simples. Ver `site-seeding.test.ts`. */
+export function expectedFieldShape(field: CollectionFieldSpec): ComparableFieldShape {
 	return {
 		type: field.type,
 		target: field.type === 'relation' ? field.target : null,
@@ -421,7 +424,8 @@ function expectedFieldShape(field: CollectionFieldSpec): ComparableFieldShape {
 	};
 }
 
-function actualFieldShape(field: Field): ComparableFieldShape {
+/** Exportada por el mismo motivo que `expectedFieldShape` — ver ahí. */
+export function actualFieldShape(field: Field): ComparableFieldShape {
 	return {
 		// El puerto proyecta `autodate` como `date` readonly. Esa pareja es inequívoca en el
 		// vocabulario actual y permite recuperar el tipo físico sin abrir una inspección raw.
@@ -445,7 +449,8 @@ function actualFieldShape(field: Field): ComparableFieldShape {
 	};
 }
 
-function sameShape(left: ComparableFieldShape, right: ComparableFieldShape): boolean {
+/** Exportada por el mismo motivo que `expectedFieldShape` — ver ahí. */
+export function sameShape(left: ComparableFieldShape, right: ComparableFieldShape): boolean {
 	return (
 		left.type === right.type &&
 		left.target === right.target &&

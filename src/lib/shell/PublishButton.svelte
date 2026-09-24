@@ -100,6 +100,13 @@
 	let unpublishedTimer: ReturnType<typeof setInterval> | null = null;
 
 	function refreshFromLastKnownStatus(): void {
+		// Pestaña oculta (fix de peso, auditoría 23 sep 2026 p3): nadie mira este indicador, así que
+		// la consulta (una por colección, `detectUnpublishedChanges`) sería trabajo perdido cada
+		// `UNPUBLISHED_REFRESH_MS`. El `setInterval` sigue vivo (barato: no hace nada él solo), solo
+		// se salta el TRABAJO. Al volver a la pestaña, `handleVisibilityChange` llama a esta misma
+		// función con `document.hidden` ya `false`, así que el refresco de "al volver" no lo bloquea
+		// este guard — es justo lo que lo dispara.
+		if (document.hidden) return;
 		// Mientras hay un build EN CURSO no aporta nada: `lastPublishedAt` sigue siendo el de la
 		// publicación anterior y el sondeo ya recalculará al terminar.
 		if (!status || status.state === 'running') return;
