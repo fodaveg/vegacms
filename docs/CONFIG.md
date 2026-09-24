@@ -411,6 +411,49 @@ Presente —aunque sea `{}`— enciende la tarjeta en la columna lateral del edi
 
 `social` solo pinta una vista previa: no crea campos ni cambia lo que publica el sitio. Los datos de SEO que el sitio sí publica viven en columnas reales de la colección. El sembrado de sitio crea tres en `pages` —`description`, `socialImage` (relación a `vega_media`) y `noindex`— y `@vega/astro` los convierte en `<meta>`, Open Graph y el filtro del sitemap. Detalle en [SEO por página y redirecciones](POCKETBASE-INTEGRATION.md#seo-por-página-y-redirecciones). `social.imageField` sigue aceptando solo un campo `file`, así que no puede apuntar a `socialImage`.
 
+## Publicación programada (`publishAtField`)
+
+Un tipo publicable puede ofrecer «Publicar el»: una fecha a partir de la cual un borrador pasa solo
+a publicado. La clave va junto a `statusField` y nombra una columna **real** de la colección, porque
+es el servidor quien la consulta:
+
+```json
+{
+	"collections": {
+		"pages": {
+			"statusField": "status",
+			"publishAtField": "publishAt",
+			"fields": {
+				"publishAt": {
+					"label": "Publicar el",
+					"help": "Si la página está en borrador, se publica sola a esta hora. Requiere la extensión vegaschedule en el servidor.",
+					"group": "Publicación"
+				}
+			}
+		}
+	}
+}
+```
+
+- **El campo** es un `date` de PocketBase, editable (no `autodate`) y **opcional**: con una fecha
+  obligatoria todo borrador acabaría publicándose. El tipo tiene que tener campo de publicación
+  (`statusField` resuelto, `draft`/`published`). Si algo de esto falla, Vega avisa con
+  `publish-at-field-invalid` y el tipo se queda sin programación. No hay autodetección: una columna
+  llamada `publishAt` sin la clave no programa nada.
+- **En el formulario** sale como cualquier fecha, con la etiqueta y la ayuda que declare `fields`.
+  Si el manifiesto no le da ayuda, Vega pone una que dice que hace falta `vegaschedule`.
+- **En listados, raíl y cabecera del formulario**, un borrador con fecha futura se ve como
+  «Programada · 12 oct 10:00» (texto, no solo color) en vez de «Borrador».
+- **Quien publica es el servidor**: la extensión
+  [`vegaschedule`](../extensions/vegaschedule/README.md), un cron de PocketBase que cada minuto pasa
+  a `published` los borradores cuya fecha ya pasó y **vacía la fecha**, para que devolver luego la
+  página a borrador no la republique. Vega es una SPA y no puede saber si esa extensión está
+  instalada: sin ella, la fecha no hace nada y el registro sigue en «Programada» hasta que pasa su
+  hora y vuelve a verse «Borrador».
+
+El sembrado de sitio crea `pages.publishAt` y declara la clave en su manifiesto inicial, también en
+proyectos ya sembrados (ver [SEO por página y redirecciones](POCKETBASE-INTEGRATION.md#seo-por-página-y-redirecciones)).
+
 ## Vistas fusionadas (`mergedViews`)
 
 Además de `backendUrl`, el **manifiesto de contenidos** (colección `vega`, campo `manifest`, editable desde `/settings` con `ManifestEditor`) admite una sección `mergedViews`: vistas de solo lectura que **unen registros de varias colecciones** en un único listado, reordenable a mano por arrastre. Útiles para tableros tipo "destacados de portada" que mezclan, por ejemplo, `posts` y `pages` en un mismo orden manual sin fusionar sus colecciones reales.

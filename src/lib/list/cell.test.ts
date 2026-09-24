@@ -7,7 +7,8 @@
 import { describe, expect, test } from 'vitest';
 import type { Field } from '$lib/backend/types';
 import type { ResolvedField } from '$lib/model/types';
-import { classifyStatusBadge, describeCell } from './cell';
+import { classifyStatusBadge, describeCell, describeStatusBadge } from './cell';
+import { ensureLocaleLoaded, t } from '$lib/i18n';
 
 function field(overrides: Partial<Field> & Pick<Field, 'name' | 'type'>): Field {
 	return {
@@ -359,5 +360,72 @@ describe('classifyStatusBadge (R3 del rediseño C2, desviación consciente de D-
 		expect(classifyStatusBadge('archived')).toBe('other');
 		expect(classifyStatusBadge('en-revision')).toBe('other');
 		expect(classifyStatusBadge('')).toBe('other');
+	});
+});
+
+describe('describeStatusBadge (publicación programada, `publishAtField`)', () => {
+	// Fechas construidas en hora LOCAL: la etiqueta se pinta en la zona del navegador, así el
+	// test no depende de la TZ de la máquina que lo corre.
+	const now = new Date(2026, 8, 24, 9, 0).getTime(); // 24 sep 2026, 09:00
+	const future = new Date(2026, 9, 12, 10, 0).toISOString(); // 12 oct 2026, 10:00
+	const past = new Date(2026, 8, 24, 8, 59).toISOString();
+	const type = {
+		statusField: 'status',
+		statusLabels: { draft: 'Borrador', published: 'Publicado' },
+		publishAtField: 'publishAt'
+	};
+	const esT = (key: string, params?: Record<string, string | number>) => t('es', key, params);
+	const enT = (key: string, params?: Record<string, string | number>) => t('en', key, params);
+
+	test('borrador con fecha futura → «Programada · 12 oct 10:00», raw sigue siendo draft', () => {
+		expect(
+			describeStatusBadge(type, { status: 'draft', publishAt: future }, 'es', esT, now)
+		).toEqual({ raw: 'draft', kind: 'scheduled', label: 'Programada · 12 oct 10:00' });
+	});
+
+	test('en inglés, con su propio formato de fecha', async () => {
+		await ensureLocaleLoaded('en');
+		expect(
+			describeStatusBadge(type, { status: 'draft', publishAt: future }, 'en', enT, now)?.label
+		).toBe('Scheduled · Oct 12 10:00 AM');
+	});
+
+	test('otro año: la fecha lleva el año', () => {
+		const nextYear = new Date(2027, 0, 5, 18, 30).toISOString();
+		expect(
+			describeStatusBadge(type, { status: 'draft', publishAt: nextYear }, 'es', esT, now)?.label
+		).toBe('Programada · 5 ene 2027 18:30');
+	});
+
+	test('fecha ya pasada, vacía o ilegible → el «Borrador» de siempre', () => {
+		for (const publishAt of [past, '', 'no es una fecha', null]) {
+			expect(
+				describeStatusBadge(type, { status: 'draft', publishAt }, 'es', esT, now),
+				String(publishAt)
+			).toEqual({ raw: 'draft', kind: 'draft', label: 'Borrador' });
+		}
+	});
+
+	test('publicado con fecha futura sigue siendo «Publicado»: solo un borrador se programa', () => {
+		expect(
+			describeStatusBadge(type, { status: 'published', publishAt: future }, 'es', esT, now)
+		).toEqual({ raw: 'published', kind: 'pub', label: 'Publicado' });
+	});
+
+	test('sin publishAtField el resultado es el de siempre', () => {
+		expect(
+			describeStatusBadge(
+				{ ...type, publishAtField: null },
+				{ status: 'draft', publishAt: future },
+				'es',
+				esT,
+				now
+			)
+		).toEqual({ raw: 'draft', kind: 'draft', label: 'Borrador' });
+	});
+
+	test('sin statusField o con el estado vacío → null (nunca una insignia vacía)', () => {
+		expect(describeStatusBadge({ ...type, statusField: null }, {}, 'es', esT, now)).toBeNull();
+		expect(describeStatusBadge(type, { status: '' }, 'es', esT, now)).toBeNull();
 	});
 });

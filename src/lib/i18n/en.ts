@@ -329,6 +329,12 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// `ResolvedContentType.page` in `types.ts` for why.
 	'editor.page.proposePath': 'Suggest route',
 
+	// ————— Scheduled publishing (`publishAtField`) —————
+	// Default help of the "Publish on" field when the manifest declares none. Vega cannot tell
+	// from the browser whether the server runs `vegaschedule`: the help says so.
+	'editor.publishAt.help':
+		'If the record is a draft, it publishes itself at this time. Requires the vegaschedule extension on the server; without it, the date does nothing.',
+
 	// ————— Embedded orderable blocks (`blocks` capability, "editor" batch, Phase A) —————
 	// Deliberately reuses existing keys for the rest of a block's lifecycle:
 	// `editor.save`/`editor.saving`/`editor.saveSuccess` (saving a block is the same as saving
@@ -481,6 +487,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.cell.yes': 'Yes',
 	'list.cell.no': 'No',
 	'list.untitled': '(untitled)',
+	// Draft whose "Publish on" date is in the future (`publishAtField`, `describeStatusBadge` in
+	// `list/cell.ts`): list, rail and form header. `{date}` = "Oct 12 10:00 AM".
+	'list.status.scheduled': 'Scheduled · {date}',
 
 	// ————— List toolbar (P4 contract, Phase 4d) —————
 	'list.search.placeholder': 'Filter by title or slug…',

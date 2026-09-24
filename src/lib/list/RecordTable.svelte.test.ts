@@ -11,6 +11,7 @@ import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import { ALL_PERMISSIONS } from '$lib/backend/access';
 import type { ContentType, Field, VegaRecord } from '$lib/backend/types';
 import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
+import { t } from '$lib/i18n';
 
 const titleFieldSchema: Field = {
 	name: 'title',
@@ -325,5 +326,106 @@ describe('RecordTable.svelte — miniatura de columna file (hallazgo p2, lote "f
 		const img = mounted.target.querySelector<HTMLImageElement>('.vega-file-thumbs img');
 		expect(img?.getAttribute('loading')).toBe('lazy');
 		expect(img?.getAttribute('decoding')).toBe('async');
+	});
+});
+
+describe('RecordTable.svelte — insignia «Programada» (publicación programada, `publishAtField`)', () => {
+	let mounted: { target: HTMLElement; instance: ReturnType<typeof mount> } | null = null;
+
+	afterEach(async () => {
+		if (mounted) {
+			await unmount(mounted.instance);
+			mounted.target.remove();
+			mounted = null;
+		}
+	});
+
+	const statusSchema: Field = {
+		name: 'status',
+		type: 'select',
+		options: ['draft', 'published'],
+		multiple: false,
+		required: false,
+		readonly: false,
+		presentable: false,
+		hidden: false,
+		unique: false
+	};
+	const publishAtSchema: Field = {
+		name: 'publishAt',
+		type: 'date',
+		required: false,
+		readonly: false,
+		presentable: false,
+		hidden: false,
+		unique: false
+	};
+	const statusField: ResolvedField = {
+		...titleField,
+		schema: statusSchema,
+		name: 'status',
+		label: 'Estado',
+		widget: 'select',
+		subtype: null
+	};
+
+	function mountWithStatus(publishAtField: string | null, values: Record<string, string>) {
+		const contentType: ResolvedContentType = {
+			...makePageType(null),
+			schema: {
+				name: 'pages',
+				readonly: false,
+				fields: [titleFieldSchema, statusSchema, publishAtSchema]
+			},
+			statusField: 'status',
+			statusLabels: { draft: 'Borrador', published: 'Publicado' },
+			publishAtField,
+			fields: [titleField, statusField],
+			listFields: ['title', 'status']
+		};
+		const ctx = {
+			...fakeCtx(),
+			t: (key: string, params?: Record<string, string | number>) => t('es', key, params)
+		} as unknown as VegaAppContext;
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const instance = mount(RecordTable, {
+			target,
+			props: {
+				contentType,
+				columns: [
+					{ field: titleField, isTitle: true, isStatus: false, sortable: false },
+					{ field: statusField, isTitle: false, isStatus: true, sortable: false }
+				],
+				records: [{ id: 'r1', type: 'pages', values: { title: 'Otoño', ...values } }],
+				sort: null,
+				onSort: vi.fn(),
+				onDeleteRequest: vi.fn(),
+				reorderable: false,
+				onReorder: vi.fn()
+			},
+			context: new Map([[VEGA_CONTEXT_KEY, ctx]])
+		});
+		return { target, instance };
+	}
+
+	// Siempre en el futuro, sea cuando sea que corra el test. El FORMATO de la fecha lo fija
+	// `cell.test.ts` con fechas construidas; aquí solo importa que la tabla use esa insignia.
+	const future = new Date(Date.now() + 30 * 24 * 3_600_000).toISOString();
+
+	test('borrador con fecha futura: texto «Programada · …», data-status sigue siendo draft', () => {
+		mounted = mountWithStatus('publishAt', { status: 'draft', publishAt: future });
+		const badge = mounted.target.querySelector<HTMLElement>('.vega-status-badge');
+		expect(badge?.dataset.status).toBe('draft');
+		expect(badge?.dataset.statusKind).toBe('scheduled');
+		expect(badge?.textContent?.trim()).toMatch(/^Programada · \S.+$/);
+	});
+
+	test('sin publishAtField, el mismo registro se ve «Borrador» como siempre', () => {
+		mounted = mountWithStatus(null, { status: 'draft', publishAt: future });
+		const badge = mounted.target.querySelector<HTMLElement>('.vega-status-badge');
+		expect(badge?.dataset.status).toBe('draft');
+		expect(badge?.dataset.statusKind).toBe('draft');
+		expect(badge?.textContent?.trim()).toBe('Borrador');
 	});
 });

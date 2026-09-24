@@ -367,6 +367,12 @@ export const es = {
 	// `ResolvedContentType.page` en `types.ts` para el porqué.
 	'editor.page.proposePath': 'Proponer ruta',
 
+	// ————— Publicación programada (`publishAtField`) —————
+	// Ayuda por defecto del campo «Publicar el» cuando el manifiesto no declara la suya. Vega no
+	// puede saber desde el navegador si el servidor tiene `vegaschedule`: la ayuda lo avisa.
+	'editor.publishAt.help':
+		'Si el registro está en borrador, se publica solo a esta hora. Requiere la extensión vegaschedule en el servidor; sin ella, la fecha no hace nada.',
+
 	// ————— Bloques ordenables embebidos (capacidad `blocks`, lote "editor" Fase A) —————
 	// Reutiliza a propósito claves ya existentes para el resto del ciclo de vida de un bloque:
 	// `editor.save`/`editor.saving`/`editor.saveSuccess` (guardar un bloque es lo mismo que
@@ -526,6 +532,9 @@ export const es = {
 	'list.cell.yes': 'Sí',
 	'list.cell.no': 'No',
 	'list.untitled': '(sin título)',
+	// Borrador con «Publicar el» en el futuro (`publishAtField`, `describeStatusBadge` en
+	// `list/cell.ts`): listado, raíl y cabecera del formulario. `{date}` = «12 oct 10:00».
+	'list.status.scheduled': 'Programada · {date}',
 
 	// ————— Toolbar de listado (Fase 4d del contrato P4) —————
 	'list.search.placeholder': 'Filtrar por título o slug…',

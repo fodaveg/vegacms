@@ -19,7 +19,7 @@
 import { isEmptyValue } from '$lib/backend/normalize';
 import type { FieldValue, FileRef } from '$lib/backend/types';
 import type { Locale } from '$lib/i18n';
-import type { ResolvedField } from '$lib/model/types';
+import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
 
 /** Longitud máxima (en caracteres) del texto plano extraído de un campo `richtext`. Evita que
  *  un documento enorme llegue entero a la fila de una tabla; el truncado fino (ellipsis CSS)
@@ -189,12 +189,75 @@ function formatDateCell(ms: number, locale: Locale, now: number): string {
  * fidelidad 1:1, así que `RecordTable.svelte` amplía la insignia a cualquier valor y usa esta
  * función para decidir el color. Pura: solo mapea un string, sin conocer Svelte ni el DOM.
  */
-export type StatusBadgeKind = 'pub' | 'draft' | 'other';
+export type StatusBadgeKind = 'pub' | 'draft' | 'other' | 'scheduled';
 
-export function classifyStatusBadge(value: string): StatusBadgeKind {
+export function classifyStatusBadge(value: string): Exclude<StatusBadgeKind, 'scheduled'> {
 	if (value === 'published') return 'pub';
 	if (value === 'draft') return 'draft';
 	return 'other';
+}
+
+/** Insignia de estado ya decidida: `raw` va a `data-status` (valor crudo, estable para tests y
+ *  selectores), `kind` a `data-status-kind` (color) y `label` es el TEXTO visible. */
+export interface StatusBadge {
+	raw: string;
+	kind: StatusBadgeKind;
+	label: string;
+}
+
+type Translate = (key: string, params?: Record<string, string | number>) => string;
+
+/**
+ * Insignia de estado de un registro, la MISMA en listado, raíl y cabecera del formulario.
+ * `null` si el tipo no tiene `statusField` o el registro lo tiene vacío.
+ *
+ * Publicación programada (`publishAtField`, extensión `vegaschedule`): un `draft` cuya fecha
+ * «Publicar el» está en el FUTURO respecto a `now` se pinta «Programada · 12 oct 10:00» con
+ * `kind: 'scheduled'` — el texto lo dice, no solo el color. `raw` sigue siendo `draft`, que es lo
+ * que ES el registro hasta que el servidor lo publique. Con la fecha ya pasada vuelve a ser un
+ * «Borrador» normal: o el cron está a punto de publicarlo (lo hace cada minuto y vacía la fecha),
+ * o el servidor no tiene `vegaschedule` y anunciar «Programada» sería mentir.
+ *
+ * `now` es parámetro (default `Date.now()`), mismo criterio que `describeCell`.
+ */
+export function describeStatusBadge(
+	type: Pick<ResolvedContentType, 'statusField' | 'statusLabels' | 'publishAtField'>,
+	values: Record<string, unknown>,
+	locale: Locale,
+	t: Translate,
+	now: number = Date.now()
+): StatusBadge | null {
+	if (type.statusField === null) return null;
+	const raw = values[type.statusField];
+	if (typeof raw !== 'string' || raw === '') return null;
+
+	if (raw === 'draft' && type.publishAtField) {
+		const scheduled = values[type.publishAtField];
+		const ms = typeof scheduled === 'string' && scheduled !== '' ? Date.parse(scheduled) : NaN;
+		if (!Number.isNaN(ms) && ms > now) {
+			return {
+				raw,
+				kind: 'scheduled',
+				label: t('list.status.scheduled', { date: formatScheduledDate(ms, locale, now) })
+			};
+		}
+	}
+
+	return { raw, kind: classifyStatusBadge(raw), label: type.statusLabels?.[raw] ?? raw };
+}
+
+/** «12 oct 10:00» (es) / «Oct 12 10:00 AM» (en): día, mes corto y hora local, sin coma entre
+ *  fecha y hora. El año solo aparece si no es el de `now` («12 oct 2027 10:00»). */
+function formatScheduledDate(ms: number, locale: Locale, now: number): string {
+	const date = new Date(ms);
+	const sameYear = date.getFullYear() === new Date(now).getFullYear();
+	const day = new Intl.DateTimeFormat(locale, {
+		day: 'numeric',
+		month: 'short',
+		...(sameYear ? {} : { year: 'numeric' })
+	}).format(date);
+	const time = new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(date);
+	return `${day} ${time}`;
 }
 
 /**
