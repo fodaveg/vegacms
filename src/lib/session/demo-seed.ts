@@ -1365,6 +1365,21 @@ const PAGINAS_CONTENT_TYPE: ContentType = {
 			presentable: true,
 			hidden: false,
 			unique: false
+		},
+		// Lote de edición concurrente (lámina del audit p2): sin un `statusField`, el control de
+		// estado de la cabecera del editor visual (`VisualPublishControl.svelte`) no se pinta, y
+		// `paginas` es la ÚNICA colección de e2e con editor visual. Convención de publicación de
+		// siempre (`status` con `draft`+`published`), así que se resuelve sola.
+		{
+			name: 'status',
+			type: 'select',
+			options: ['draft', 'published'],
+			multiple: false,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
 		}
 	]
 };
@@ -1520,6 +1535,7 @@ const SHOWCASE_MANIFEST: JsonValue = {
 				typeField: 'tipo',
 				dataField: 'datos'
 			},
+			statusLabels: { draft: 'Borrador', published: 'Publicada' },
 			fields: { title: { label: 'Título' } }
 		},
 		// La colección hija NO aparece en la nav: se edita dentro de su página, y sacarla también
@@ -1789,11 +1805,13 @@ const ENTRADAS_RECORDS = [
 ];
 
 const PAGINAS_RECORDS = [
-	{ id: 'pagina_1', values: { title: 'Inicio' } },
-	{ id: 'pagina_2', values: { title: 'Sobre mí' } },
-	{ id: 'pagina_3', values: { title: 'Contacto' } },
-	{ id: 'pagina_4', values: { title: 'Ahora' } },
-	{ id: 'pagina_5', values: { title: 'Colofón' } }
+	// `status` (ver `PAGINAS_CONTENT_TYPE`): «Inicio», la página con secciones, arranca en borrador
+	// para que el editor visual ofrezca «Marcar como publicada».
+	{ id: 'pagina_1', values: { title: 'Inicio', status: 'draft' } },
+	{ id: 'pagina_2', values: { title: 'Sobre mí', status: 'published' } },
+	{ id: 'pagina_3', values: { title: 'Contacto', status: 'published' } },
+	{ id: 'pagina_4', values: { title: 'Ahora', status: 'draft' } },
+	{ id: 'pagina_5', values: { title: 'Colofón', status: 'published' } }
 ];
 
 /**

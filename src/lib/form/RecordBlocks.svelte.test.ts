@@ -524,6 +524,33 @@ describe('RecordBlocks.svelte', () => {
 		expect(onDirtyChange).not.toHaveBeenCalledWith(true);
 	});
 
+	test('edición concurrente: reordenar un bloque y después guardarlo NO es un conflicto', async () => {
+		mounted = await mountBlocks('landing1', vi.fn());
+		await settle();
+
+		// El reorden reescribe `sort` de los dos bloques (cambio SOLO estructural): la ficha de b1
+		// tiene que adoptar la versión nueva, o su siguiente guardado fallaría cerrado contra sí mismo.
+		const handle = mounted.target.querySelector<HTMLButtonElement>('.vega-block-handle')!;
+		handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+		await settle();
+		await settle();
+		expect(blockTitles(mounted.target)).toEqual(['Features', 'Hero']);
+
+		const heroRow = mounted.target.querySelectorAll<HTMLElement>('.vega-block-row')[1];
+		heroRow.querySelector<HTMLButtonElement>('.vega-block-toggle')!.click();
+		await settle();
+		const heading = heroRow.querySelector<HTMLInputElement>('input[type="text"]')!;
+		heading.value = 'Hero tras mover';
+		heading.dispatchEvent(new Event('input', { bubbles: true }));
+		await settle();
+		heroRow.querySelector<HTMLButtonElement>('.vega-block-save-button')!.click();
+		await settle();
+		await settle();
+
+		expect(mounted.target.querySelector('.vega-conflict')).toBeNull();
+		expect((await mounted.port.get('landing_block', 'b1')).values.heading).toBe('Hero tras mover');
+	});
+
 	test('borrar: DeleteConfirm + port.delete, la fila desaparece', async () => {
 		mounted = await mountBlocks('landing1', vi.fn());
 		await settle();
@@ -989,6 +1016,57 @@ describe('RecordBlocks.svelte — tipos de bloque', () => {
 			expect((await mounted.port.get('landing_block', 'b4')).values.data).toEqual(value);
 		}
 	);
+
+	test('edición concurrente: otro guarda el bloque entre medias → aviso; «Guardar igualmente» solo mezcla lo tocado', async () => {
+		mounted = await mountTypedBlocks();
+		await settle();
+
+		const row = mounted.target.querySelectorAll<HTMLElement>('.vega-block-row')[0];
+		const title = row.querySelector<HTMLInputElement>('[data-field="title"] input')!;
+		title.value = 'Portada mía';
+		title.dispatchEvent(new Event('input', { bubbles: true }));
+		await settle();
+
+		// Otra persona guarda b1 mientras tanto: la columna `heading` y una clave de `data` que este
+		// formulario no pinta.
+		await mounted.port.update('landing_block', 'b1', {
+			heading: 'Encabezado de Ana',
+			data: {
+				title: 'Portada inicial',
+				heading: 'sombra histórica',
+				orphanedCopy: { nested: 'de Ana' }
+			}
+		});
+
+		row.querySelector<HTMLButtonElement>('.vega-block-save-button')!.click();
+		await settle();
+		await settle();
+
+		// Falló cerrado: aviso en la ficha, nada escrito, el borrador intacto.
+		const notice = row.querySelector<HTMLElement>('.vega-conflict');
+		expect(notice).not.toBeNull();
+		expect(title.value).toBe('Portada mía');
+		expect((await mounted.port.get('landing_block', 'b1')).values.data).toMatchObject({
+			title: 'Portada inicial'
+		});
+		expect(mounted.feedback.reportError).not.toHaveBeenCalled();
+
+		const force = [...notice!.querySelectorAll('button')].find(
+			(b) => b.textContent?.trim() === translate('es', 'editor.conflict.force')
+		)!;
+		force.click();
+		await settle();
+		await settle();
+
+		const saved = await mounted.port.get('landing_block', 'b1');
+		expect(saved.values.heading).toBe('Encabezado de Ana');
+		expect(saved.values.data).toEqual({
+			title: 'Portada mía',
+			heading: 'sombra histórica',
+			orphanedCopy: { nested: 'de Ana' }
+		});
+		expect(row.querySelector('.vega-conflict')).toBeNull();
+	});
 
 	test('un fallo del puerto conserva el borrador y permite reintentar', async () => {
 		mounted = await mountTypedBlocks();

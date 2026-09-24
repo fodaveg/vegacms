@@ -18,7 +18,7 @@ import type {
 	Session,
 	VegaErrorKind
 } from '$lib/backend';
-import { VegaError, VEGA_COLLECTION } from '$lib/backend';
+import { recordVersion, VegaConflictError, VegaError, VEGA_COLLECTION } from '$lib/backend';
 import { resolveStatusField } from '$lib/model/conventions';
 import {
 	CAT_ALPHA,
@@ -508,6 +508,140 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 				await expect(port.delete('category_view', 'view-1')).rejects.toMatchObject({
 					kind: 'forbidden'
 				});
+			});
+		});
+
+		// ———— 3a. update con versión esperada (edición concurrente, lote del 24 sep 2026) ————
+		//
+		// `kitchen_sink` NO tiene `updated` (el harness crea las colecciones por API, igual que
+		// `ensureCollections`, y PocketBase no se lo añade): justo el caso que obliga a que la versión
+		// sea una huella de los valores y no el `updated` a secas (ver cabecera de `version.ts`).
+
+		describe('update con versión esperada (edición concurrente)', () => {
+			test('con la versión vigente escribe, y la versión devuelta vale para el siguiente guardado', async () => {
+				const port = await makeAuthedPort();
+				const created = await port.create('kitchen_sink', { title: 'Original', rating: 2 });
+				const v0 = recordVersion(created);
+
+				// Varios tipos a la vez (richtext, json, select múltiple, relación, fecha): si el backend
+				// normalizara alguno distinto en la respuesta del `update` que en una relectura, la
+				// huella no coincidiría y cada segundo guardado sería un conflicto falso.
+				const first = await port.update(
+					'kitchen_sink',
+					created.id,
+					{
+						title: 'Primero',
+						body: '<p>Hola <strong>mundo</strong></p>',
+						metadata: { b: 2, a: [1, 'x'] },
+						tags: ['b', 'a'],
+						categories: [CAT_BETA, CAT_ALPHA],
+						publishedAt: '2026-09-24T10:00:00.000Z'
+					},
+					{ expectedVersion: v0 }
+				);
+				expect(first.values.title).toBe('Primero');
+				expect(recordVersion(first)).not.toBe(v0);
+				// Lo que devuelve `update` tiene la MISMA huella que una lectura en fresco: si no, el
+				// segundo guardado del mismo formulario sería un conflicto falso.
+				expect(recordVersion(first)).toBe(
+					recordVersion(await port.get('kitchen_sink', created.id))
+				);
+
+				const second = await port.update(
+					'kitchen_sink',
+					created.id,
+					{ title: 'Segundo' },
+					{ expectedVersion: recordVersion(first) }
+				);
+				expect(second.values.title).toBe('Segundo');
+			});
+
+			test('list sin proyección da la misma versión que get (los bloques se leen por list)', async () => {
+				const port = await makeAuthedPort();
+				const created = await port.create('kitchen_sink', { title: 'Por lista', tags: ['a'] });
+				const page = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'title', op: 'eq', value: 'Por lista' }
+				});
+				const listed = page.items.find((r) => r.id === created.id)!;
+				expect(recordVersion(listed)).toBe(
+					recordVersion(await port.get('kitchen_sink', created.id))
+				);
+			});
+
+			test('desfasada: falla cerrado con conflict, trae el registro del servidor y NO escribe', async () => {
+				const port = await makeAuthedPort();
+				const created = await port.create('kitchen_sink', { title: 'Original', rating: 2 });
+				const opened = recordVersion(created);
+
+				// Otra persona guarda mientras tanto (sin versión: el camino de siempre).
+				await port.update('kitchen_sink', created.id, { title: 'Del otro' });
+
+				const err = await port
+					.update('kitchen_sink', created.id, { rating: 4 }, { expectedVersion: opened })
+					.then(
+						() => null,
+						(e: unknown) => e
+					);
+				expect(err).toBeInstanceOf(VegaConflictError);
+				expect(err).toBeInstanceOf(VegaError);
+				const conflict = err as VegaConflictError;
+				expect(conflict.kind).toBe('conflict');
+				expect(conflict.serverRecord.id).toBe(created.id);
+				expect(conflict.serverRecord.values.title).toBe('Del otro');
+
+				const fresh = await port.get('kitchen_sink', created.id);
+				expect(conflict.serverVersion).toBe(recordVersion(fresh));
+				expect(conflict.serverRecord.values).toEqual(fresh.values);
+				expect(fresh.values.rating).toBe(2); // no se escribió nada
+			});
+
+			test('«Guardar igualmente»: solo lo tocado, con la versión del servidor, conserva lo del otro', async () => {
+				const port = await makeAuthedPort();
+				const created = await port.create('kitchen_sink', { title: 'Original', rating: 2 });
+				const opened = recordVersion(created);
+				await port.update('kitchen_sink', created.id, { title: 'Del otro' });
+
+				const conflict = (await port
+					.update('kitchen_sink', created.id, { rating: 4 }, { expectedVersion: opened })
+					.catch((e: unknown) => e)) as VegaConflictError;
+				expect(conflict).toBeInstanceOf(VegaConflictError);
+
+				const forced = await port.update(
+					'kitchen_sink',
+					created.id,
+					{ rating: 4 },
+					{ expectedVersion: conflict.serverVersion }
+				);
+				expect(forced.values.rating).toBe(4);
+				expect(forced.values.title).toBe('Del otro');
+			});
+
+			test('el conflicto se decide ANTES que la validación del dato', async () => {
+				const port = await makeAuthedPort();
+				const created = await port.create('kitchen_sink', { title: 'Original' });
+				const opened = recordVersion(created);
+				await port.update('kitchen_sink', created.id, { title: 'Del otro' });
+
+				// `rating` fuera de rango (max 5): sin conflicto sería `validation`.
+				await expect(
+					port.update('kitchen_sink', created.id, { rating: 99 }, { expectedVersion: opened })
+				).rejects.toMatchObject({ kind: 'conflict' });
+			});
+
+			test('id inexistente con versión → not-found, no conflict', async () => {
+				const port = await makeAuthedPort();
+				await expect(
+					port.update('kitchen_sink', 'no-existe', { title: 'x' }, { expectedVersion: 'v' })
+				).rejects.toMatchObject({ kind: 'not-found' });
+			});
+
+			test('sin versión, la última escritura gana (comportamiento de siempre)', async () => {
+				const port = await makeAuthedPort();
+				const created = await port.create('kitchen_sink', { title: 'Original' });
+				await port.update('kitchen_sink', created.id, { title: 'Del otro' });
+
+				const mine = await port.update('kitchen_sink', created.id, { title: 'Mío' });
+				expect(mine.values.title).toBe('Mío');
 			});
 		});
 

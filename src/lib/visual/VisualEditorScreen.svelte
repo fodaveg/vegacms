@@ -256,6 +256,13 @@
 	 * MISMO registro que resuelve `selectedBlockId` — si el id no resuelve a ningún registro
 	 * (selección fantasma, ver la cabecera de `VisualInspector.svelte`) no se pinta esa miga, ni un
 	 * guion ni un "ninguno": mentiría sobre algo que el autor no eligió.
+	 *
+	 * **Estado de la página** (lámina del audit p2): `VisualPublishControl.svelte` justo después de
+	 * las migas — etiqueta del `statusField` y botón para publicar / pasar a borrador, escribiendo
+	 * por el mismo `port.update` que el formulario (un solo escritor). Recibe los títulos de los
+	 * bloques sucios para pedir confirmación antes de publicar con cambios sin guardar. Vive en su
+	 * propio componente (y en la lista de `check-touch-targets`) porque tiene estado propio: el
+	 * registro que el servidor confirmó, la confirmación en línea y el error.
 	 */
 	import { onDestroy, onMount, untrack } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
@@ -281,6 +288,7 @@
 	import VisualBlockTree from './VisualBlockTree.svelte';
 	import VisualInspector from './VisualInspector.svelte';
 	import VisualColumnResizer from './VisualColumnResizer.svelte';
+	import VisualPublishControl from './VisualPublishControl.svelte';
 	import {
 		INSPECTOR_DEFAULT_WIDTH,
 		INSPECTOR_MAX_WIDTH,
@@ -1070,6 +1078,16 @@
 					{/if}
 				</ol>
 			</nav>
+			<!-- Estado de la página (lámina del audit p2): tras las migas; sin `statusField` no pinta
+			     nada. Escribe por el mismo `port.update` que el formulario (ver su cabecera). -->
+			<VisualPublishControl
+				{type}
+				{record}
+				name={docName}
+				pendingBlocks={blocks.records
+					.filter((r) => blocks.isDirty(r.id))
+					.map((r) => blocks.blockTitle(r))}
+			/>
 		{/snippet}
 		{#snippet actions()}
 			<!-- Estado de guardado (ver cabecera, "Estado de guardado en la barra"): mismo patrón que

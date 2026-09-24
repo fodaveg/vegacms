@@ -197,6 +197,32 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'You do not have permission to edit records in this collection: you can view it, but not save changes.',
 	'editor.load.error.body': 'Could not load the record. {message}',
 
+	// ————— Concurrent-edit notice (`ConflictNotice.svelte`, audit sheet p1): the save failed
+	// closed because the record changed on the server after it was opened.
+	'editor.conflict.title': '“{name}” changed while you were editing it',
+	'editor.conflict.titleNarrow': '“{name}” changed',
+	'editor.conflict.byAuthor': 'Saved by {author} at {time}.',
+	'editor.conflict.byAuthorNoTime': 'Saved by {author}.',
+	'editor.conflict.atTime': 'Another version was saved at {time}.',
+	'editor.conflict.unknown': 'Another version was saved while you were editing.',
+	'editor.conflict.nothingSaved':
+		'Nothing of yours has been saved yet: your changes are still in the form.',
+	'editor.conflict.showDiff': 'Show differences',
+	'editor.conflict.hideDiff': 'Hide differences',
+	'editor.conflict.discard': 'Discard my changes and reload',
+	'editor.conflict.discardNarrow': 'Discard and reload',
+	'editor.conflict.force': 'Save anyway',
+	'editor.conflict.diffHead': 'If you save anyway, this is the result:',
+	'editor.conflict.noDiff':
+		'No differences in editable fields: the change was in data managed by the server.',
+	'editor.conflict.scope.both': 'You both changed it',
+	'editor.conflict.scope.server': 'Changed only on the server',
+	'editor.conflict.scope.mine': 'Only you',
+	'editor.conflict.error.title': 'Could not save',
+	'editor.conflict.error.body':
+		'{message} Your changes are still in the form; nothing was overwritten.',
+	'editor.conflict.topbar': 'changed on the server',
+
 	// ————— Editor sticky bar (redesign C2, Part R7, `.edit-top` mockup) —————
 	'editor.new': 'new',
 	'editor.dirty': 'unsaved',
@@ -222,6 +248,23 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.open': 'Visual editor',
 	'editor.visual.title': 'Visual editor',
 	'editor.visual.back': 'Back to the form',
+	// Page status in the visual editor header (`VisualPublishControl.svelte`, audit sheet p2).
+	// Worded DIFFERENTLY from the top bar's «Publish» (`topbar.publish.*`, which rebuilds the site):
+	// this only changes the record's `statusField` value.
+	'editor.visual.status.groupLabel': 'Page status',
+	'editor.visual.status.publish': 'Mark as published',
+	'editor.visual.status.unpublish': 'Switch to draft',
+	'editor.visual.status.changing': 'Changing status…',
+	'editor.visual.status.error.publish': 'Could not mark as published',
+	'editor.visual.status.error.unpublish': 'Could not switch to draft',
+	'editor.visual.status.error.conflict':
+		'The page changed on the server: check its status before trying again',
+	'editor.visual.status.confirm.title': '{count} block(s) not saved',
+	'editor.visual.status.confirm.body':
+		'The page will be published with what was last saved. Those changes will not go out until you save them.',
+	'editor.visual.status.confirm.publish': 'Publish anyway',
+	'editor.visual.status.success': '“{name}” is now “{label}”.',
+	'editor.visual.status.success.rebuild': 'It will show on the site after the next publish.',
 	'editor.visual.frameTitle': 'The site page, inside the visual editor',
 	'editor.visual.connecting': 'Connecting to the site…',
 	'editor.visual.connected': 'Connected to the site: {count} block(s) on the page.',
@@ -641,6 +684,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'integrity.usedIn.reason.not-found': 'the collection no longer exists',
 	'integrity.usedIn.reason.auth-expired': 'the session expired mid-check',
 	'integrity.usedIn.reason.validation': 'the query is not valid against this backend',
+	// A read never produces it; it is here so the table covers every `VegaErrorKind`.
+	'integrity.usedIn.reason.conflict': 'the record changed during the check',
 	'integrity.usedIn.reason.unknown': 'unknown reason',
 
 	// ————— References warning BEFORE deleting (same engine, `DeleteConfirm`/`MediaDeleteConfirm`) —————

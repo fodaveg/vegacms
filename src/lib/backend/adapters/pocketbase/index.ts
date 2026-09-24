@@ -19,8 +19,9 @@ import type {
 	VegaRecord
 } from '../../types';
 import type { FieldError } from '../../errors';
-import { VegaError } from '../../errors';
+import { VegaConflictError, VegaError } from '../../errors';
 import type { BackendPort } from '../../port';
+import { recordVersion } from '../../version';
 import type { Query } from '../../query';
 import { DEFAULT_PAGE, DEFAULT_PER_PAGE, projectedFields, validateQuery } from '../../query';
 import { normalizeFieldValue } from '../../normalize';
@@ -627,15 +628,25 @@ export function createPocketBaseBackend({
 			});
 		},
 
-		async update(type, id, data) {
+		async update(type, id, data, opts) {
 			return guarded(async () => {
 				const ct = await getContentTypeOrThrow(type);
 				assertContentTypeWritable(ct);
+				// Esta relectura ya existía (el plan de ficheros necesita los valores vigentes); la
+				// versión esperada la reutiliza, sin petición extra. Ventana NO atómica entre este
+				// `GET` y el `PATCH` de abajo: ver `port.ts#update`.
 				const existingRaw = await pb.collection(type).getOne(id);
 				const existingValues = buildValuesFromRaw(
 					ct.fields,
 					existingRaw as unknown as Record<string, unknown>
 				);
+				if (opts?.expectedVersion !== undefined) {
+					const current: VegaRecord = { id: String(existingRaw.id), type, values: existingValues };
+					const serverVersion = recordVersion(current);
+					if (serverVersion !== opts.expectedVersion) {
+						throw new VegaConflictError(structuredClone(current), serverVersion);
+					}
+				}
 				validateWrite(ct.fields, data, existingValues);
 				const body = buildWriteBody(ct.fields, data, existingValues);
 				try {

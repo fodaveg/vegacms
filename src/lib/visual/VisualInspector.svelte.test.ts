@@ -16,7 +16,7 @@ import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import type { BlocksState, BlocksStatus } from '$lib/form/blocks-state.svelte';
 import type { ContentType } from '$lib/backend/types';
 import type { ResolvedContentType } from '$lib/model/types';
-import type { VegaRecord } from '$lib/backend';
+import { recordVersion, type VegaRecord } from '$lib/backend';
 import { resolveContentModel } from '$lib/model/resolve';
 import { t as translate } from '$lib/i18n';
 import { focusLost } from './a11y-audit';
@@ -331,10 +331,13 @@ describe('VisualInspector.svelte', () => {
 		await Promise.resolve();
 		await tick();
 
+		// Con la versión del bloque que la ficha tenía delante (edición concurrente): el inspector
+		// reenvía las opciones de `BlockEditor` tal cual a `port.update`.
 		expect(update).toHaveBeenCalledWith(
 			'post_block',
 			'b1',
-			expect.objectContaining({ heading: 'Hero editado' })
+			expect.objectContaining({ heading: 'Hero editado' }),
+			{ expectedVersion: recordVersion(record('b1', 'Hero')) }
 		);
 		expect(handleBlockSaved).toHaveBeenCalledWith('b1', expect.objectContaining({ id: 'b1' }));
 		expect(onBlockSaved).toHaveBeenCalledTimes(1);

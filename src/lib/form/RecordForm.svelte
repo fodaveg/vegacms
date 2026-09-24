@@ -38,6 +38,14 @@
 	 *   partir de ÉL (no de `current`: así autodate/defaults que el backend rellenó también
 	 *   entran al nuevo baseline) ANTES de avisar al padre vía `onSaved` — el orden importa: si
 	 *   se navegara antes de reasentar, el propio guardado dispararía el guard de salida.
+	 * - **Edición concurrente** (lote del 24 sep 2026, lámina del audit p1): en edición, cada
+	 *   guardado pasa `expectedVersion` = la versión del registro que este formulario tiene delante
+	 *   (`model.version` al abrir, la del registro devuelto tras cada guardado). Si alguien guardó
+	 *   entre medias, el puerto falla cerrado con `VegaConflictError` y aquí NO se toca nada del
+	 *   formulario: se abre `ConflictNotice` en el hueco del banner de registro y la barra dice
+	 *   "cambió en el servidor". «Guardar igualmente» (`forceSave`) envía solo lo tocado con la
+	 *   versión del servidor; «Descartar mis cambios y recargar» (`discardAndReload`) relee y
+	 *   reasienta. Sin conflicto, el camino es el de siempre.
 	 * - Guard de salida (D-P5.5, CAMBIADO por el audit — Finding 1): `beforeNavigate` +
 	 *   `beforeunload` como ÚNICO mecanismo, NUNCA `registerExitGuard` (ese solo intercepta
 	 *   `ctx.nav.*`, no back/forward ni recarga/cierre). `beforeNavigate` sí cubre `ctx.nav.*`
@@ -216,8 +224,10 @@
 	import { onMount, tick, untrack } from 'svelte';
 	import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
 	import type { FieldInputValue, RecordInput, VegaRecord } from '$lib/backend/types';
+	import type { UpdateOptions } from '$lib/backend/port';
+	import type { RecordVersion } from '$lib/backend/version';
 	import type { PreviewDraft, PreviewDraftRecord } from '$lib/backend/preview-client';
-	import { VegaError } from '$lib/backend/errors';
+	import { isConflictError, VegaError, type VegaConflictError } from '$lib/backend/errors';
 	import { getVegaContext } from '$lib/app-context';
 	import { classifyStatusBadge, describeCell } from '$lib/list/cell';
 	import { resolveTitleCellText } from '$lib/list/list-load';
@@ -252,6 +262,8 @@
 	import { resolveFocusTarget } from './focus-target';
 	import { setRecordIdentity } from './record-context';
 	import FieldRow from './FieldRow.svelte';
+	import ConflictNotice from './ConflictNotice.svelte';
+	import { threeWayDiff, toComparableValues } from './conflict';
 
 	interface Props {
 		type: ResolvedContentType;
@@ -261,8 +273,10 @@
 		 *  —una regla de acceso que veda actualizar hace lo mismo, ver `locked` más abajo— pero sí la
 		 *  única que pinta el rótulo "Solo lectura". */
 		typeReadonly: boolean;
-		/** La ruta cablea esto a `ctx.port.create`/`ctx.port.update`. Puede rechazar con `VegaError`. */
-		onSubmit: (input: RecordInput) => Promise<VegaRecord>;
+		/** La ruta cablea esto a `ctx.port.create`/`ctx.port.update`. Puede rechazar con `VegaError`.
+		 *  En edición llega `opts.expectedVersion` (ver "Edición concurrente" en la cabecera) y la
+		 *  ruta lo reenvía tal cual a `update`; `create` no lo usa. */
+		onSubmit: (input: RecordInput, opts?: UpdateOptions) => Promise<VegaRecord>;
 		/** Se llama YA con el baseline reasentado (L-P5.6): seguro navegar/toastear aquí dentro. */
 		onSaved: (record: VegaRecord) => void;
 		/** "Volver" (D-P5.12): la ruta decide `toIndex`/`toList` según `type.singleton`. Desde R7
@@ -343,6 +357,12 @@
 		untrack(() => autodateInstant(type, model.baseline, 'updated'))
 	);
 
+	// Edición concurrente (ver cabecera): versión del registro que tiene delante este formulario
+	// —la del `model` al abrir, la del registro devuelto tras cada guardado— y el conflicto vigente,
+	// si el último guardado falló cerrado. `$state.raw`: el error se sustituye entero, nunca se muta.
+	let version = $state<RecordVersion | null>(untrack(() => model.version));
+	let conflict = $state.raw<VegaConflictError | null>(null);
+
 	$effect(() => {
 		if (model !== syncedModel) {
 			syncedModel = model;
@@ -356,6 +376,8 @@
 			// Un `model` nuevo es un registro DISTINTO (ver LANDMINE de más abajo): "último guardado"
 			// tiene que resembrarse de SU PROPIO baseline, no arrastrar la hora del registro anterior.
 			savedAt = autodateInstant(type, model.baseline, 'updated');
+			version = model.version;
+			conflict = null;
 			// Los bloques del registro ANTERIOR ya no aplican (misma LANDMINE): `RecordBlocks` se
 			// remonta con el `parentId`/`parentType` nuevos y recalculará su propio dirty desde cero.
 			blocksDirty = false;
@@ -795,6 +817,91 @@
 		tabs?.[next]?.focus();
 	}
 
+	/**
+	 * Reasienta el formulario sobre `record` (lo que hay AHORA en el servidor): baseline, estado
+	 * editable, versión, y cierra cualquier aviso de conflicto. Lo usan el guardado y «Descartar
+	 * mis cambios y recargar».
+	 */
+	function adoptRecord(record: VegaRecord): void {
+		const nextModel = buildFormModel(type, record);
+		syncedModel = nextModel;
+		baseline = nextModel.baseline;
+		current = { ...nextModel.baseline };
+		version = nextModel.version;
+		conflict = null;
+		clientErrors = EMPTY_ERRORS;
+	}
+
+	/** Desenlace de un guardado que SÍ se hizo (normal o «Guardar igualmente»). */
+	function commitSaved(saved: VegaRecord): void {
+		// L-P5.6/D-P5.11: reasentar baseline (→ no-dirty) ANTES de avisar al padre — si no, el
+		// guard de salida de abajo se dispararía sobre el propio guardado que acaba de navegar.
+		adoptRecord(saved);
+		// R7 del rediseño: "último guardado" pasa a la hora REAL de este guardado, sin mirar si
+		// el tipo declara `updated` (ver cabecera) — acabamos de guardar, así que la sabemos.
+		savedAt = new Date();
+		savedCount += 1; // el raíl relee la colección: su fila puede haber cambiado de título
+		onSaved(saved);
+	}
+
+	// ————— Aviso de edición concurrente (ver cabecera, "Edición concurrente") —————
+
+	/** Filas del diff a tres bandas: abrir (`baseline`) · tú (`current`) · servidor. */
+	const conflictRows = $derived.by(() => {
+		if (!conflict) return [];
+		return threeWayDiff(
+			type.fields.map((f) => f.schema),
+			baseline,
+			toComparableValues(current),
+			buildFormModel(type, conflict.serverRecord).baseline
+		);
+	});
+
+	/**
+	 * «Guardar igualmente»: SOLO lo que tocó quien guarda (`toRecordInput` ya es eso: lo que difiere
+	 * de lo que se abrió), con la versión del servidor como esperada — decisión de David, para que
+	 * un sobrescrito no borre en silencio lo que cambió el otro y tú no. Si entre medias hubo OTRO
+	 * guardado, vuelve a fallar cerrado y el aviso se renueva. Solo rechaza con lo que el aviso
+	 * debe enseñar como error (ver el contrato en la cabecera de `ConflictNotice.svelte`).
+	 */
+	async function forceSave(): Promise<void> {
+		if (!conflict) return;
+		backendErrors = EMPTY_ERRORS;
+		saving = true;
+		let errorsToFocus: FieldErrorsView | null = null;
+		try {
+			const input = toRecordInput(type, baseline, current);
+			commitSaved(await onSubmit(input, { expectedVersion: conflict.serverVersion }));
+		} catch (err) {
+			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al guardar', err);
+			if (isConflictError(vegaErr)) {
+				conflict = vegaErr;
+			} else if (isFieldValidationError(vegaErr)) {
+				backendErrors = mapFieldErrors(vegaErr);
+				errorsToFocus = backendErrors;
+			} else {
+				throw vegaErr;
+			}
+		} finally {
+			saving = false;
+		}
+		if (errorsToFocus) await focusFirstErrorField(errorsToFocus);
+	}
+
+	/** «Descartar mis cambios y recargar»: relee el registro y reasienta el formulario sobre él. */
+	async function discardAndReload(): Promise<void> {
+		const recordId = model.recordId;
+		if (recordId === null) return;
+		try {
+			adoptRecord(await ctx.port.get(type.name, recordId));
+			backendErrors = EMPTY_ERRORS;
+			savedAt = autodateInstant(type, baseline, 'updated');
+		} catch (err) {
+			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al recargar', err);
+			ctx.feedback.reportError(vegaErr, { action: `${model.mode}:reload` });
+		}
+	}
+
 	async function handleSubmit(event: SubmitEvent): Promise<void> {
 		event.preventDefault();
 		if (formDisabled) return;
@@ -825,22 +932,20 @@
 		let errorsToFocus: FieldErrorsView | null = null;
 		try {
 			const input = toRecordInput(type, baseline, current);
-			const saved = await onSubmit(input);
-			// L-P5.6/D-P5.11: reasentar baseline (→ no-dirty) ANTES de avisar al padre — si no, el
-			// guard de salida de abajo se dispararía sobre el propio guardado que acaba de navegar.
-			const nextModel = buildFormModel(type, saved);
-			syncedModel = nextModel;
-			baseline = nextModel.baseline;
-			current = { ...nextModel.baseline };
-			clientErrors = EMPTY_ERRORS;
-			// R7 del rediseño: "último guardado" pasa a la hora REAL de este guardado, sin mirar si
-			// el tipo declara `updated` (ver cabecera) — acabamos de guardar, así que la sabemos.
-			savedAt = new Date();
-			savedCount += 1; // el raíl relee la colección: su fila puede haber cambiado de título
-			onSaved(saved);
+			// Edición: con la versión que este formulario tiene delante (ver "Edición concurrente").
+			// Pulsar «Guardar» con el aviso abierto vuelve a comprobar contra la MISMA versión: si
+			// el servidor sigue distinto, el aviso se renueva con la hora nueva.
+			const saved =
+				model.mode === 'edit' && version !== null
+					? await onSubmit(input, { expectedVersion: version })
+					: await onSubmit(input);
+			commitSaved(saved);
 		} catch (err) {
 			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al guardar', err);
-			if (isFieldValidationError(vegaErr)) {
+			if (isConflictError(vegaErr)) {
+				// Falló cerrado (ver cabecera): nada se escribió y el formulario sigue intacto.
+				conflict = vegaErr;
+			} else if (isFieldValidationError(vegaErr)) {
 				// L-P5.4: mapeo por campo + banner de registro (clave '').
 				backendErrors = mapFieldErrors(vegaErr);
 				errorsToFocus = backendErrors; // F5-g, L-P5.2: foco al primer campo con error
@@ -942,6 +1047,10 @@
 			{#if saving}
 				<span class="vega-editor-saved-at vega-editor-saved-at--saving">
 					{ctx.t('editor.saving')}
+				</span>
+			{:else if conflict}
+				<span class="vega-editor-saved-at vega-editor-saved-at--conflict">
+					{ctx.t('editor.conflict.topbar')}
 				</span>
 			{:else if savedAtText}
 				<span class="vega-editor-saved-at">{savedAtText}</span>
@@ -1104,6 +1213,22 @@
 				<!-- Bloqueado por REGLA de acceso, no por ser una vista: el motivo se dice tal cual,
 				     porque "solo lectura" haría pensar que la colección entera es inmutable. -->
 				<p class="vega-record-form-notice">{ctx.t('editor.noUpdateNotice')}</p>
+			{/if}
+			{#if conflict && model.recordId !== null && version !== null}
+				<!-- Aviso de edición concurrente (ver cabecera): el hueco del banner de registro,
+				     encima de todo lo demás de la columna principal. -->
+				<ConflictNotice
+					name={docName}
+					fields={type.fields}
+					rows={conflictRows}
+					collection={type.name}
+					recordId={model.recordId}
+					openedVersion={version}
+					serverVersion={conflict.serverVersion}
+					fallbackAt={autodateInstant(type, conflict.serverRecord.values, 'updated')}
+					onDiscard={discardAndReload}
+					onForce={forceSave}
+				/>
 			{/if}
 			{#if errors.record}
 				<p class="vega-record-form-banner" role="alert">
@@ -1600,6 +1725,15 @@
 	.vega-editor-saved-at--saving::before {
 		content: '⟳ ';
 		color: var(--info);
+	}
+
+	/* Aviso de edición concurrente abierto (lámina p1): solo cambia color y prefijo. */
+	.vega-editor-saved-at--conflict {
+		color: var(--warning);
+	}
+
+	.vega-editor-saved-at--conflict::before {
+		content: '⚠ ';
 	}
 
 	/* Botones de la barra (mockup `.btn`/`.btn-primary`): namespaced a este componente (mismo
