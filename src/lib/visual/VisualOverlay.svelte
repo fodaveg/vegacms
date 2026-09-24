@@ -48,7 +48,8 @@
 	 * un mensaje opcional `hover` del sitio a Vega (§"Hover" del contrato): el puente del sitio
 	 * (`@vega/astro`, `visual-bridge.ts`) avisa cuando el puntero cambia de bloque, y
 	 * `VisualEditorScreen.svelte` lo pasa aquí como `highlightedId` — el mismo prop, y el mismo
-	 * `--highlighted`, que cualquier resalte que mande Vega. Este componente sigue sin saber de
+	 * `--highlighted`, que el resalte al pasar por una fila del árbol de secciones (la pantalla
+	 * decide cuál de los dos manda, ver su cabecera). Este componente sigue sin saber de
 	 * dónde viene el id, solo lo pinta.
 	 *
 	 * **Sincronía con el scroll: el resalte se OCULTA mientras la página se desplaza, no se

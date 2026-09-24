@@ -837,6 +837,98 @@ describe('VisualEditorScreen.svelte — árbol de secciones e inspector', () => 
 		expect(mounted.target.querySelector('.vega-visual-overlay-box--highlighted')).toBeNull();
 	});
 
+	test('hover del árbol y de la página: gana el último, y soltar uno devuelve el otro si sigue vigente', async () => {
+		const { ctx, type } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 },
+			{ id: 'b3', heading: 'Precios', sort: 2 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [
+			{ id: 'b1', type: 'hero' },
+			{ id: 'b2', type: 'gallery' },
+			{ id: 'b3', type: 'text' }
+		]);
+		const iframe = mounted.target.querySelector<HTMLIFrameElement>('.vega-visual-frame')!;
+		const postMessageSpy = vi.spyOn(iframe.contentWindow!, 'postMessage');
+		const target = mounted.target;
+		const items = target.querySelectorAll<HTMLElement>('.vega-tree-item');
+		const highlighted = () =>
+			Array.from(target.querySelectorAll('.vega-visual-overlay-box--highlighted')).map((el) =>
+				el.getAttribute('data-vega-block-id')
+			);
+
+		// Solo el árbol: pasar por la fila resalta su contorno, sin seleccionar ni avisar al sitio.
+		items[1].dispatchEvent(new MouseEvent('mouseenter'));
+		await tick();
+		expect(highlighted()).toEqual(['b2']);
+		expect(target.querySelector('.vega-visual-overlay-box--selected')).toBeNull();
+		expect(target.querySelector('.vega-tree-row[aria-current="true"]')).toBeNull();
+		expect(postMessageSpy).not.toHaveBeenCalled();
+
+		// Llega la página DESPUÉS: gana la página.
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'hover', blockId: 'b1' });
+		await tick();
+		expect(highlighted()).toEqual(['b1']);
+
+		// La página suelta: vuelve el del árbol, que sigue vigente (el puntero no salió de la fila).
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'hover', blockId: null });
+		await tick();
+		expect(highlighted()).toEqual(['b2']);
+
+		// Ahora la página vuelve a encenderse y DESPUÉS el árbol: gana el árbol.
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'hover', blockId: 'b1' });
+		await tick();
+		items[2].dispatchEvent(new MouseEvent('mouseenter'));
+		await tick();
+		expect(highlighted()).toEqual(['b3']);
+
+		// Salir del árbol devuelve el de la página, que sigue vigente.
+		items[2].dispatchEvent(new MouseEvent('mouseleave'));
+		await tick();
+		expect(highlighted()).toEqual(['b1']);
+
+		// Y si la página ya no está vigente (el bloque dejó de reportarse), no queda nada.
+		items[1].dispatchEvent(new MouseEvent('mouseenter'));
+		await tick();
+		items[1].dispatchEvent(new MouseEvent('mouseleave'));
+		sendSiteMessage({
+			vega: 'vega-visual-1',
+			type: 'layout',
+			blocks: [
+				{ id: 'b2', type: 'gallery', rect: { top: 60, left: 0, width: 100, height: 50 } },
+				{ id: 'b3', type: 'text', rect: { top: 120, left: 0, width: 100, height: 50 } }
+			]
+		});
+		await tick();
+		expect(highlighted()).toEqual([]);
+	});
+
+	test('una fila del árbol cuyo bloque el sitio no reporta no tapa el hover de la página', async () => {
+		const { ctx, type } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Sin pintar', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		// El sitio solo reporta b1: b2 existe en el árbol pero no tiene contorno.
+		await connectBridge(mounted.target, [{ id: 'b1', type: 'hero' }]);
+
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'hover', blockId: 'b1' });
+		await tick();
+		mounted.target
+			.querySelectorAll<HTMLElement>('.vega-tree-item')[1]
+			.dispatchEvent(new MouseEvent('mouseenter'));
+		await tick();
+
+		expect(
+			Array.from(mounted.target.querySelectorAll('.vega-visual-overlay-box--highlighted')).map(
+				(el) => el.getAttribute('data-vega-block-id')
+			)
+		).toEqual(['b1']);
+	});
+
 	test('editar en el inspector marca sucio (punto en el árbol) y guardar lo limpia', async () => {
 		const { ctx, type, port } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
 		mounted = mountScreen(ctx, type);

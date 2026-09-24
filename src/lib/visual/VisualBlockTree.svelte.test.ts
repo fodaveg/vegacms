@@ -244,6 +244,50 @@ describe('VisualBlockTree.svelte', () => {
 		);
 	});
 
+	test('pasar el puntero o el foco por una fila avisa con su id, y con `null` al salir; nunca selecciona', () => {
+		const blocks = fakeBlocksState({ records: [record('b1', 'Hero'), record('b2', 'Features')] });
+		const onHover = vi.fn();
+		const onSelect = vi.fn();
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const instance = mount(VisualBlockTree, {
+			target,
+			props: {
+				blocks,
+				selectedId: null,
+				onSelect,
+				onHover,
+				onStructuralChange: vi.fn(),
+				onPaletteDragStart: vi.fn(),
+				onPaletteDragEnd: vi.fn()
+			},
+			context: new Map([[VEGA_CONTEXT_KEY, fakeCtx()]])
+		});
+		mounted = { target, instance };
+
+		const items = target.querySelectorAll<HTMLElement>('.vega-tree-item');
+		const row2 = items[1].querySelector<HTMLButtonElement>('.vega-tree-row')!;
+		const action2 = items[1].querySelector<HTMLButtonElement>('.vega-tree-action')!;
+		const outside = target.querySelector<HTMLElement>('.vega-tree-toggle')!;
+
+		// Ratón.
+		items[1].dispatchEvent(new MouseEvent('mouseenter'));
+		items[1].dispatchEvent(new MouseEvent('mouseleave'));
+		expect(onHover.mock.calls).toEqual([['b2'], [null]]);
+		onHover.mockClear();
+
+		// Teclado: entrar en la fila enciende; pasar a un botón de acción de LA MISMA fila no
+		// apaga (sigue siendo esa sección); salir fuera de la fila apaga.
+		row2.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+		row2.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: action2 }));
+		action2.dispatchEvent(new FocusEvent('focusin', { bubbles: true, relatedTarget: row2 }));
+		action2.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: outside }));
+		expect(onHover.mock.calls).toEqual([['b2'], ['b2'], [null]]);
+
+		expect(onSelect).not.toHaveBeenCalled();
+		expect(row2.getAttribute('aria-current')).toBeNull();
+	});
+
 	test('sin `unpublishedIds` (sitio que no lo dice, o puente sin conectar): ninguna fila se marca', () => {
 		const blocks = fakeBlocksState({ records: [record('b1', 'Hero'), record('b2', 'Borrador')] });
 		mounted = mountTree(blocks, null);

@@ -119,6 +119,15 @@
 	 * `aria-controls="vega-block-tree-panel"` del disparador), las DOS regiones de verdad viven
 	 * dentro de él.
 	 *
+	 * **Pasar por una fila RESALTA su contorno en el lienzo, sin seleccionar.** `onHover` avisa con
+	 * el id de la fila bajo el puntero (`mouseenter`) o con el foco de teclado dentro (`focusin`,
+	 * sobre el `<li>` entero, así que tabular de la fila a sus botones de acción sigue siendo la
+	 * misma sección), y con `null` al salir (`mouseleave`, o `focusout` hacia algo que NO está en
+	 * esa misma fila). Este componente no decide nada más: la precedencia frente al hover de la
+	 * propia página la resuelve `VisualEditorScreen.svelte` (ver su cabecera), dueño único del
+	 * resalte. No manda nada al sitio: el `highlight` del protocolo no tiene forma de "apagar", y
+	 * dejaría el marco marcando la última fila por la que pasó el puntero.
+	 *
 	 * **Secciones NO públicas: las dice el sitio, este árbol solo las rotula.** `unpublishedIds`
 	 * llega de `VisualEditorScreen.svelte`, que lo saca del `unpublished` de cada bloque del puente
 	 * (ver `bridge-client.ts#VisualBlock`): Vega no sabe qué es "publicado" en cada proyecto, así
@@ -161,6 +170,10 @@
 		 *  solo hace de tubería. */
 		onPaletteDragStart: (blockType: ResolvedBlockType) => void;
 		onPaletteDragEnd: () => void;
+		/** El puntero o el foco entró en la fila de ese bloque, o salió de ella (`null`). Solo
+		 *  RESALTA, nunca selecciona (ver cabecera, "Pasar por una fila"). Opcional: sin él, las
+		 *  filas no resaltan nada, como antes. */
+		onHover?: (blockId: string | null) => void;
 	}
 
 	let {
@@ -170,7 +183,8 @@
 		onSelect,
 		onStructuralChange,
 		onPaletteDragStart,
-		onPaletteDragEnd
+		onPaletteDragEnd,
+		onHover
 	}: Props = $props();
 	const ctx = getVegaContext();
 
@@ -198,6 +212,16 @@
 		onSelect(id);
 		closeDrawer(); // ver cabecera: no-op en escritorio, cierra el cajón en móvil/tablet
 		if (wasOpen) toggleEl?.focus();
+	}
+
+	/** `focusout` del `<li>` (ver cabecera, "Pasar por una fila"): pasar el foco de la fila a uno
+	 *  de SUS botones de acción no es salir de la sección, así que no apaga el resalte. Hacia otra
+	 *  fila tampoco hace falta apagarlo aquí, pero se apaga igual: el `focusin` de la fila nueva
+	 *  llega justo después y lo vuelve a encender con su propio id. */
+	function handleRowFocusOut(event: FocusEvent): void {
+		const next = event.relatedTarget as Node | null;
+		if (next && (event.currentTarget as HTMLElement).contains(next)) return;
+		onHover?.(null);
 	}
 
 	/** `Escape` cierra el cajón y devuelve el foco al disparador (mismo criterio que
@@ -382,7 +406,15 @@
 					{@const rawType = blocks.blockTypeRawName(record)}
 					{@const structuralGuard = blocks.anyDirty || blocks.anySaving || blocks.structuralBusy}
 					{@const unpublished = unpublishedIds.has(record.id)}
-					<li class="vega-tree-item">
+					<!-- Resalte al pasar (ver cabecera, "Pasar por una fila"): el `<li>` entero, fila Y
+					     sus botones de acción, porque todos hablan de la misma sección. -->
+					<li
+						class="vega-tree-item"
+						onmouseenter={() => onHover?.(record.id)}
+						onmouseleave={() => onHover?.(null)}
+						onfocusin={() => onHover?.(record.id)}
+						onfocusout={(event) => handleRowFocusOut(event)}
+					>
 						<button
 							type="button"
 							class="vega-tree-row"
