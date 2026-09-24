@@ -11,9 +11,15 @@ import {
 	SITE_SEED_EDITOR_ACCESS_RULE,
 	SITE_SEED_MANIFEST_READ_RULE,
 	SITE_SEED_PAGES_READ_RULE,
+	SITE_SEED_REDIRECTS_READ_RULE,
 	SiteSeedDivergenceError,
 	seedSiteProject
 } from '$lib/backend/site-seeding';
+import starterManifest from '$lib/backend/site-seeding-manifest.json';
+import {
+	previousStarterManifest,
+	seedLikePrevious1bda988
+} from '$lib/backend/site-seeding-previous.fixture';
 import { VEGA_MEDIA_EDITOR_ACCESS_RULE, VEGA_MEDIA_VIEW_RULE } from '$lib/media/media-collection';
 import { isPocketBaseBinaryAvailable } from './pb-harness/binary';
 import {
@@ -25,8 +31,15 @@ import {
 import { startPocketBase, type RunningPocketBase } from './pb-harness/server';
 
 const AVAILABLE = isPocketBaseBinaryAvailable();
-const TOUCHED_COLLECTIONS = ['vega_editors', 'pages', 'vega_media', 'blocks', 'vega'] as const;
-const RECORD_COLLECTIONS = ['pages', 'blocks', 'vega'] as const;
+const TOUCHED_COLLECTIONS = [
+	'vega_editors',
+	'pages',
+	'vega_media',
+	'blocks',
+	'redirects',
+	'vega'
+] as const;
+const RECORD_COLLECTIONS = ['pages', 'blocks', 'redirects', 'vega'] as const;
 
 describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 	let running: RunningPocketBase | undefined;
@@ -94,6 +107,26 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 			createRule: VEGA_MEDIA_EDITOR_ACCESS_RULE,
 			updateRule: VEGA_MEDIA_EDITOR_ACCESS_RULE,
 			deleteRule: VEGA_MEDIA_EDITOR_ACCESS_RULE
+		});
+		expectSeoFields(pagesCollection, media.id);
+
+		const redirects = collections.find((collection) => collection.name === 'redirects')!;
+		expect(rawRules(redirects)).toEqual({
+			listRule: SITE_SEED_REDIRECTS_READ_RULE,
+			viewRule: SITE_SEED_REDIRECTS_READ_RULE,
+			createRule: SITE_SEED_EDITOR_ACCESS_RULE,
+			updateRule: SITE_SEED_EDITOR_ACCESS_RULE,
+			deleteRule: SITE_SEED_EDITOR_ACCESS_RULE
+		});
+		const redirectFields = new Map(redirects.fields.map((field) => [field.name, field]));
+		expect(redirectFields.get('from')).toMatchObject({ type: 'text', required: true });
+		expect(hasSingleFieldUniqueIndex(redirects.indexes, 'from')).toBe(true);
+		expect(redirectFields.get('to')).toMatchObject({ type: 'text', required: true });
+		expect(redirectFields.get('code')).toMatchObject({
+			type: 'select',
+			values: ['301', '308'],
+			maxSelect: 1,
+			required: true
 		});
 
 		const manifestRecords = await admin.collection('vega').getFullList();
@@ -631,7 +664,180 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 			type: 'auth'
 		});
 	});
+
+	test('un proyecto sembrado con la versión anterior recibe SEO y redirects sin perder datos', async () => {
+		await seedLikePrevious1bda988(port);
+		const pagesBefore = await admin.collections.getOne('pages');
+		expect(pagesBefore.fields.map((field) => field.name)).not.toContain('description');
+		const canonical = (await admin.collection('pages').getFullList())[0]!;
+		const human = await admin.collection('pages').create({
+			title: 'Quiénes somos',
+			path: '/about',
+			layout: 'default',
+			status: 'published'
+		});
+		const media = await admin
+			.collection('vega_media')
+			.create(pngFormData('portada.png', { alt: 'Portada' }));
+		const block = await admin.collection('blocks').create({
+			parent: human.id,
+			order: 1,
+			type: 'image',
+			data: { caption: 'Pie' },
+			image: media.id
+		});
+		const recordsBefore = {
+			pages: await admin.collection('pages').getFullList({ sort: 'path' }),
+			blocks: await admin.collection('blocks').getFullList(),
+			media: await admin.collection('vega_media').getFullList()
+		};
+
+		const result = await seedSiteProject(port);
+
+		expect(result).toEqual({
+			createdCollections: ['redirects'],
+			addedFields: { pages: ['description', 'socialImage', 'noindex'] },
+			createdRecords: [],
+			upgradedRecords: ['manifest']
+		});
+		const mediaCollection = await admin.collections.getOne('vega_media');
+		const pagesAfter = await admin.collections.getOne('pages');
+		expectSeoFields(pagesAfter, mediaCollection.id);
+		// Los campos que ya estaban no cambian ni de forma ni de id; las reglas, tampoco.
+		for (const field of pagesBefore.fields) {
+			expect(pagesAfter.fields.find((candidate) => candidate.id === field.id)).toEqual(field);
+		}
+		expect(rawRules(pagesAfter)).toEqual(rawRules(pagesBefore));
+
+		const pagesAfterRecords = await admin.collection('pages').getFullList({ sort: 'path' });
+		expect(pagesAfterRecords.map((page) => page.id)).toEqual(
+			recordsBefore.pages.map((page) => page.id)
+		);
+		for (const [index, before] of recordsBefore.pages.entries()) {
+			expect(pagesAfterRecords[index]).toMatchObject({
+				id: before.id,
+				title: before.title,
+				path: before.path,
+				layout: before.layout,
+				status: before.status,
+				description: '',
+				socialImage: '',
+				noindex: false
+			});
+		}
+		expect(pagesAfterRecords.map((page) => page.id)).toContain(canonical.id);
+		await expect(admin.collection('blocks').getOne(block.id)).resolves.toMatchObject({
+			parent: human.id,
+			image: media.id,
+			data: { caption: 'Pie' }
+		});
+		expect((await admin.collection('vega_media').getFullList()).map((item) => item.id)).toEqual(
+			recordsBefore.media.map((item) => item.id)
+		);
+		const manifests = await admin.collection('vega').getFullList();
+		expect(manifests).toHaveLength(1);
+		expect(manifests[0]?.manifest).toEqual(starterManifest);
+		expect(manifests[0]?.manifest).not.toEqual(previousStarterManifest);
+
+		// La pasada siguiente ya no tiene nada que hacer.
+		const before = await logicalSnapshot(admin);
+		await expect(seedSiteProject(port)).resolves.toEqual({
+			createdCollections: [],
+			addedFields: {},
+			createdRecords: [],
+			upgradedRecords: []
+		});
+		expect(await logicalSnapshot(admin)).toEqual(before);
+	});
+
+	test('SEO y redirecciones: anónimo lee lo publicado y solo una editora escribe', async () => {
+		await seedSiteProject(port);
+		const media = await admin
+			.collection('vega_media')
+			.create(pngFormData('social.png', { alt: 'Tarjeta social' }));
+		const page = await admin.collection('pages').create({
+			title: 'Oculta',
+			path: '/oculta',
+			layout: 'default',
+			status: 'published',
+			description: 'Resumen para buscadores',
+			socialImage: media.id,
+			noindex: true
+		});
+		await admin.collection('redirects').create({ from: '/vieja', to: '/nueva', code: '308' });
+		await expect(
+			admin.collection('redirects').create({ from: '/vieja', to: '/otra', code: '301' })
+		).rejects.toMatchObject({ status: 400 });
+		await expect(
+			admin.collection('redirects').create({ from: '/sin-codigo', to: '/x' })
+		).rejects.toMatchObject({ status: 400 });
+
+		const pageQuery = new URLSearchParams({ expand: 'socialImage' });
+		const anonymousPage = await requestJson(
+			running!,
+			`/api/collections/pages/records/${page.id}?${pageQuery}`
+		);
+		expect(anonymousPage.status).toBe(200);
+		expect(anonymousPage.body).toMatchObject({
+			description: 'Resumen para buscadores',
+			noindex: true,
+			socialImage: media.id,
+			expand: { socialImage: { id: media.id, alt: 'Tarjeta social' } }
+		});
+
+		const anonymousRedirects = await requestJson(
+			running!,
+			'/api/collections/redirects/records?perPage=100'
+		);
+		expect(anonymousRedirects.status).toBe(200);
+		expect(recordItems(anonymousRedirects.body)).toEqual([
+			expect.objectContaining({ from: '/vieja', to: '/nueva', code: '308' })
+		]);
+
+		const anonymousCreate = await requestJson(running!, '/api/collections/redirects/records', {
+			method: 'POST',
+			headers: jsonHeaders(),
+			body: JSON.stringify({ from: '/intrusa', to: 'https://example.com', code: '301' })
+		});
+		// Igual que en `pages`: una `createRule` que no casa responde 400; su pareja es la editora.
+		expect(anonymousCreate.status).toBe(400);
+
+		await admin.collection('vega_editors').create({
+			email: 'editora@example.test',
+			password: 'password-segura-123',
+			passwordConfirm: 'password-segura-123'
+		});
+		const auth = await requestJson(running!, '/api/collections/vega_editors/auth-with-password', {
+			method: 'POST',
+			headers: jsonHeaders(),
+			body: JSON.stringify({
+				identity: 'editora@example.test',
+				password: 'password-segura-123'
+			})
+		});
+		const token = String((auth.body as Record<string, unknown> | null)?.token ?? '');
+		const editorCreate = await requestJson(running!, '/api/collections/redirects/records', {
+			method: 'POST',
+			headers: jsonHeaders(token),
+			body: JSON.stringify({ from: '/intrusa', to: 'https://example.com', code: '301' })
+		});
+		expect(editorCreate.status).toBe(200);
+	});
 });
+
+/** Forma física de las tres columnas SEO de `pages` tal como las guarda PocketBase. */
+function expectSeoFields(pages: SiteSeedingCollectionModel, mediaCollectionId: string) {
+	const fields = new Map(pages.fields.map((field) => [field.name, field]));
+	expect(fields.get('description')).toMatchObject({ type: 'text', required: false, max: 300 });
+	expect(fields.get('socialImage')).toMatchObject({
+		type: 'relation',
+		collectionId: mediaCollectionId,
+		maxSelect: 1,
+		required: false,
+		cascadeDelete: false
+	});
+	expect(fields.get('noindex')).toMatchObject({ type: 'bool', required: false });
+}
 
 async function logicalSnapshot(pb: SiteSeedingAdmin) {
 	const allCollections = await pb.collections.getFullList();

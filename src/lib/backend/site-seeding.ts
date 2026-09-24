@@ -15,15 +15,26 @@
  * crearla o saltarla.
  *
  * La garantía "divergencia => ninguna escritura" presupone que no hay escritores concurrentes y
- * que `vega`, `pages`, `vega_media` y `blocks` no colisionan con colecciones `auth`. Una colisión
- * `auth` con cualquiera de esos nombres queda fuera de la garantía porque el descubrimiento la
- * oculta; `ensureCollections` sí la rechaza después con colección, tipo hallado y tipo esperado.
+ * que `vega`, `pages`, `vega_media`, `blocks` y `redirects` no colisionan con colecciones
+ * `auth`. Una colisión `auth` con cualquiera de esos nombres queda fuera de la garantía porque el
+ * descubrimiento la oculta; `ensureCollections` sí la rechaza después con colección, tipo hallado
+ * y tipo esperado.
  *
  * No hay rollback implícito si una escritura válida posterior falla: lo ya creado se conserva y
  * la siguiente pasada completa únicamente las piezas ausentes.
+ *
+ * El registro del manifiesto es la otra excepción, y es acotada: si su contenido es EXACTAMENTE
+ * un manifiesto inicial que Vega sembró antes (`PREVIOUS_STARTER_MANIFESTS`), nadie lo ha
+ * editado, así que se sustituye por el actual. Es lo que permite que un proyecto ya sembrado
+ * reciba las etiquetas y ayudas de los campos que una versión nueva del sembrado añade. Un
+ * manifiesto que no case byte a byte (en forma canónica) con ninguno sigue abortando: es trabajo
+ * humano y no se reconcilia.
  */
 
 import starterManifestDocument from './site-seeding-manifest.json';
+// Manifiesto inicial tal como lo sembró `1bda988` (hasta el lote SEO/redirecciones del 24 sep
+// 2026). Se conserva byte a byte para reconocerlo al actualizar; nunca se edita.
+import starterManifest1bda988 from './site-seeding-manifest.1bda988.json';
 import { deriveBlockRecordFields } from './block-schema';
 import { VEGA_COLLECTION, type CollectionFieldSpec, type CollectionSpec } from './collections';
 import type { BackendPort } from './port';
@@ -37,6 +48,12 @@ export const SITE_SEED_MANIFEST_READ_RULE = '@request.auth.collectionName = "veg
 export const SITE_SEED_EDITOR_ACCESS_RULE = '@request.auth.collectionName = "vega_editors"';
 export const SITE_SEED_PAGES_READ_RULE =
 	'status = "published" || @request.auth.collectionName = "vega_editors"';
+/**
+ * Las redirecciones se leen igual que una página publicada: cualquiera, sin sesión. No llevan
+ * estado de publicación propio (una redirección existe o no), y el sitio las necesita en el build
+ * y en cada petición SSR sin credenciales.
+ */
+export const SITE_SEED_REDIRECTS_READ_RULE = '';
 export const SITE_SEED_CANONICAL_PAGE_PATH = '/';
 
 export const SITE_SEED_CANONICAL_PAGE = {
@@ -47,6 +64,9 @@ export const SITE_SEED_CANONICAL_PAGE = {
 } as const;
 
 const STARTER_MANIFEST = starterManifestDocument as JsonValue;
+
+/** Manifiestos iniciales de versiones anteriores del sembrado, del más antiguo al más reciente. */
+const PREVIOUS_STARTER_MANIFESTS: readonly JsonValue[] = [starterManifest1bda988 as JsonValue];
 
 const VEGA_EDITORS_COLLECTION: CollectionSpec = {
 	name: 'vega_editors',
@@ -70,6 +90,44 @@ const PAGES_COLLECTION: CollectionSpec = {
 			type: 'select',
 			options: ['draft', 'published'],
 			multiple: false
+		},
+		// SEO por página. Columnas reales, no `data`: `noindex` lo FILTRA el sitemap del sitio y
+		// `socialImage` ENLAZA un medio (misma convención que `blocks.image`: relación simple a
+		// `vega_media`, sin cascada, para que borrar un medio no borre la página). `description`
+		// acompaña a las otras dos en la misma tarjeta del formulario.
+		{ name: 'description', type: 'text', max: 300 },
+		{
+			name: 'socialImage',
+			type: 'relation',
+			target: VEGA_MEDIA_COLLECTION.name,
+			multiple: false,
+			cascadeDelete: false
+		},
+		{ name: 'noindex', type: 'bool' }
+	]
+};
+
+/**
+ * Redirecciones del sitio publicado. `from` es la ruta vieja y es única, como `pages.path`: dos
+ * reglas para la misma ruta serían ambiguas. `code` solo admite las dos permanentes; una temporal
+ * no tiene sentido en un sitio que se reconstruye al publicar.
+ */
+const REDIRECTS_COLLECTION: CollectionSpec = {
+	name: 'redirects',
+	listRule: SITE_SEED_REDIRECTS_READ_RULE,
+	viewRule: SITE_SEED_REDIRECTS_READ_RULE,
+	createRule: SITE_SEED_EDITOR_ACCESS_RULE,
+	updateRule: SITE_SEED_EDITOR_ACCESS_RULE,
+	deleteRule: SITE_SEED_EDITOR_ACCESS_RULE,
+	fields: [
+		{ name: 'from', type: 'text', required: true, max: 200, unique: true },
+		{ name: 'to', type: 'text', required: true, max: 2000 },
+		{
+			name: 'code',
+			type: 'select',
+			options: ['301', '308'],
+			multiple: false,
+			required: true
 		}
 	]
 };
@@ -115,6 +173,7 @@ const VISIBLE_COLLECTIONS = [
 	PAGES_COLLECTION,
 	VEGA_MEDIA_COLLECTION,
 	BLOCKS_COLLECTION,
+	REDIRECTS_COLLECTION,
 	PROJECT_MANIFEST_COLLECTION
 ] as const;
 
@@ -127,9 +186,12 @@ interface CollectionPlan {
 	incompatibleFields: Set<string>;
 }
 
+/** Qué hacer con el registro del manifiesto tras el preflight. */
+type ManifestAction = 'create' | 'upgrade' | 'keep';
+
 interface SeedPlan {
 	collections: Map<VisibleCollectionName, CollectionPlan>;
-	manifestMissing: boolean;
+	manifest: ManifestAction;
 	pageMissing: boolean;
 }
 
@@ -137,6 +199,8 @@ export interface SiteSeedResult {
 	createdCollections: string[];
 	addedFields: Record<string, string[]>;
 	createdRecords: Array<'manifest' | 'page:/'>;
+	/** Registros sustituidos por su versión actual: hoy solo un manifiesto inicial sin editar. */
+	upgradedRecords: Array<'manifest'>;
 }
 
 export interface SiteSeedDivergence {
@@ -163,32 +227,41 @@ export class SiteSeedDivergenceError extends Error {
 }
 
 /**
- * Completa una instalación limpia o parcial sin reconciliar jamás una pieza ya presente.
+ * Completa una instalación limpia o parcial sin reconciliar jamás una pieza ya presente (salvo
+ * el manifiesto inicial sin editar, ver la cabecera del módulo).
  * El orden de aplicación es explícito porque el puerto no ordena specs:
- * `vega_editors` -> `pages` -> `vega_media` (sola) -> `blocks` -> `vega`.
+ * `vega_editors` -> `vega_media` (sola) -> `pages` -> `blocks` -> `redirects` -> `vega`.
+ * `vega_media` va antes que `pages` porque `pages.socialImage` la enlaza.
  */
 export async function seedSiteProject(port: BackendPort): Promise<SiteSeedResult> {
 	const plan = await inspectSeedPlan(port);
 	const result: SiteSeedResult = {
 		createdCollections: [],
 		addedFields: {},
-		createdRecords: []
+		createdRecords: [],
+		upgradedRecords: []
 	};
 
 	await ensureOne(port, VEGA_EDITORS_COLLECTION, result);
-	await applyCollectionPlan(port, plan.collections.get('pages')!, result);
 
 	const mediaPlan = plan.collections.get('vega_media')!;
 	const mediaResult = await ensureMediaCollection(port);
 	result.createdCollections.push(...mediaResult.created);
 	await addMissingFields(port, mediaPlan, result);
 
+	await applyCollectionPlan(port, plan.collections.get('pages')!, result);
 	await applyCollectionPlan(port, plan.collections.get('blocks')!, result);
+	await applyCollectionPlan(port, plan.collections.get('redirects')!, result);
 	await applyCollectionPlan(port, plan.collections.get('vega')!, result);
 
-	if (plan.manifestMissing) {
+	if (plan.manifest === 'create') {
 		await saveManifest(port, structuredClone(STARTER_MANIFEST));
 		result.createdRecords.push('manifest');
+	} else if (plan.manifest === 'upgrade') {
+		// `saveManifest` actualiza el registro canónico existente (el mismo que inspeccionó el
+		// preflight) y regenera su `schemaSnapshot`, que ya incluye los campos recién añadidos.
+		await saveManifest(port, structuredClone(STARTER_MANIFEST));
+		result.upgradedRecords.push('manifest');
 	}
 	if (plan.pageMissing) {
 		await port.create(PAGES_COLLECTION.name, { ...SITE_SEED_CANONICAL_PAGE });
@@ -221,7 +294,7 @@ async function inspectSeedPlan(port: BackendPort): Promise<SeedPlan> {
 		});
 	}
 
-	const manifestMissing = await inspectManifestRecord(
+	const manifest = await inspectManifestRecord(
 		port,
 		actualByName.get(PROJECT_MANIFEST_COLLECTION.name),
 		collections.get('vega')!,
@@ -235,7 +308,7 @@ async function inspectSeedPlan(port: BackendPort): Promise<SeedPlan> {
 	);
 
 	if (divergences.length > 0) throw new SiteSeedDivergenceError(divergences);
-	return { collections, manifestMissing, pageMissing };
+	return { collections, manifest, pageMissing };
 }
 
 function inspectCollection(
@@ -287,11 +360,11 @@ async function inspectManifestRecord(
 	actual: ContentType | undefined,
 	plan: CollectionPlan,
 	divergences: SiteSeedDivergence[]
-): Promise<boolean> {
-	if (!actual) return true;
+): Promise<ManifestAction> {
+	if (!actual) return 'create';
 
 	const manifestField = actual.fields.find((field) => field.name === 'manifest');
-	if (plan.incompatibleFields.has('manifest') || plan.incompatibleFields.has('key')) return false;
+	if (plan.incompatibleFields.has('manifest') || plan.incompatibleFields.has('key')) return 'keep';
 	if (!manifestField) {
 		const records = await port.list(VEGA_COLLECTION.name, { perPage: 2 });
 		if (records.totalItems > 0) {
@@ -300,9 +373,9 @@ async function inspectManifestRecord(
 				expected: 'manifiesto inicial exacto',
 				actual: `${records.totalItems} registro(s) sin campo manifest`
 			});
-			return false;
+			return 'keep';
 		}
-		return true;
+		return 'create';
 	}
 	if (plan.missingFields.some((field) => field.name === 'key')) {
 		const records = await port.list(VEGA_COLLECTION.name, { perPage: 2 });
@@ -316,26 +389,28 @@ async function inspectManifestRecord(
 function inspectManifestPage(
 	records: Awaited<ReturnType<BackendPort['list']>>,
 	divergences: SiteSeedDivergence[]
-): boolean {
-	if (records.totalItems === 0) return true;
+): ManifestAction {
+	if (records.totalItems === 0) return 'create';
 	if (records.totalItems !== 1) {
 		divergences.push({
 			piece: 'registro "vega/default"',
 			expected: 'un único manifiesto canónico',
 			actual: `${records.totalItems} registros candidatos`
 		});
-		return false;
+		return 'keep';
 	}
 
 	const actualManifest = records.items[0]?.values.manifest;
-	if (!sameJson(actualManifest, STARTER_MANIFEST)) {
-		divergences.push({
-			piece: 'registro "vega/default"',
-			expected: 'manifiesto inicial exacto',
-			actual: `manifiesto distinto (${JSON.stringify(actualManifest)})`
-		});
+	if (sameJson(actualManifest, STARTER_MANIFEST)) return 'keep';
+	if (PREVIOUS_STARTER_MANIFESTS.some((previous) => sameJson(actualManifest, previous))) {
+		return 'upgrade';
 	}
-	return false;
+	divergences.push({
+		piece: 'registro "vega/default"',
+		expected: 'manifiesto inicial exacto (actual o de una versión anterior del sembrado)',
+		actual: `manifiesto distinto (${JSON.stringify(actualManifest)})`
+	});
+	return 'keep';
 }
 
 async function inspectCanonicalPage(
