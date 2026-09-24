@@ -108,6 +108,7 @@ import { VegaError } from '$lib/backend';
 import { createMemoryBackend } from '$lib/backend/adapters/memory';
 import { createPocketBaseBackend } from '$lib/backend/adapters/pocketbase';
 import {
+	isAbsoluteUrl,
 	resolveAuthApiBasePath,
 	resolveAuthCollection,
 	resolveBackendUrl,
@@ -276,9 +277,19 @@ async function createInstance(): Promise<BackendPort> {
 	const authCollectionOverride = readAuthCollectionOverride();
 	// L6 auth fuerte añade una tercera pieza que solo vive en `vega.config.json`; por eso la
 	// lectura best-effort ya no se puede omitir aunque URL y colección tengan override runtime.
-	const config = await fetchVegaConfig();
+	const configPromise = fetchVegaConfig();
+	// Con un override runtime VÁLIDO, la URL ya no depende de `vega.config.json`
+	// (`resolveBackendUrl` le da la máxima precedencia): el discovery sale a la vez que la config
+	// en vez de detrás de ella, un viaje en serie menos en el arranque. Sin override, la URL puede
+	// salir de la config y esperarla es una dependencia real.
+	const overrideUrl =
+		override && isAbsoluteUrl(override)
+			? resolveBackendUrl({ origin: window.location.origin, config: null, override })
+			: null;
+	const earlyDiscovery = overrideUrl ? fetchProjectDiscovery(overrideUrl) : null;
+	const config = await configPromise;
 	const url = resolveBackendUrl({ origin: window.location.origin, config, override });
-	const discovery = await fetchProjectDiscovery(url);
+	const discovery = await (earlyDiscovery ?? fetchProjectDiscovery(url));
 	const projectConfig = applyProjectDiscovery(config, discovery);
 	const authCollection = resolveAuthCollection({
 		config: projectConfig,

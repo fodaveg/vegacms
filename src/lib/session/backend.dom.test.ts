@@ -66,3 +66,58 @@ describe('resolveDisplayBackendUrl', () => {
 		expect(await resolveDisplayBackendUrl()).toBe(window.location.origin);
 	});
 });
+
+/**
+ * Arranque de `getBackend()` (audit de rendimiento, p3): qué espera a qué. `getBackend` es un
+ * singleton de módulo, así que cada test importa un módulo FRESCO (`vi.resetModules`). La config
+ * se retiene hasta que el test la suelta, para ver si el discovery sale antes o después.
+ */
+describe('getBackend — config y discovery', () => {
+	function holdConfig(config: unknown): { requested: string[]; release: () => void } {
+		const requested: string[] = [];
+		let release!: () => void;
+		const gate = new Promise<void>((resolve) => (release = resolve));
+		global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+			const url = input instanceof URL ? input.href : String(input);
+			requested.push(url);
+			if (url.endsWith('/vega.config.json')) {
+				await gate;
+				return { ok: true, json: async () => config } as Response;
+			}
+			return { ok: false } as Response; // discovery ausente: proyecto sin descubrimiento
+		}) as unknown as typeof fetch;
+		return {
+			requested,
+			release: () => release()
+		};
+	}
+
+	test('con override runtime, el discovery sale SIN esperar a vega.config.json', async () => {
+		writeBackendOverride('https://pb-override.example.com');
+		const { requested, release } = holdConfig({});
+		vi.resetModules();
+		const { getBackend } = await import('./backend');
+
+		const pending = getBackend();
+		await vi.waitFor(() =>
+			expect(requested.some((url) => url.startsWith('https://pb-override.example.com/'))).toBe(true)
+		);
+		release();
+		await expect(pending).resolves.toBeDefined();
+		clearBackendOverride();
+	});
+
+	test('sin override, el discovery espera a la config: la URL sale de ella', async () => {
+		const { requested, release } = holdConfig({ backendUrl: 'https://pb-config.example.com' });
+		vi.resetModules();
+		const { getBackend } = await import('./backend');
+
+		const pending = getBackend();
+		await vi.waitFor(() => expect(requested).toHaveLength(1));
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(requested).toHaveLength(1);
+		release();
+		await pending;
+		expect(requested[1]).toMatch(/^https:\/\/pb-config\.example\.com\//);
+	});
+});
