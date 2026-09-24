@@ -67,6 +67,15 @@
 	 * el MISMO `MediaDeleteConfirm` que el de un asset suelto (D-P6.5: ninguna vía borra sin
 	 * confirmación) y se ejecuta en SECUENCIA, abortando en el primer fallo — mismo criterio que el
 	 * lote de subida (`media-upload-state.svelte.ts`) y que el reorder de `/c/[type]`.
+	 *
+	 * **Biblioteca anterior a un campo nuevo (audit del 23 sep: `focal`)**: `ensureMediaCollection`
+	 * es `creation-only` y no toca una `vega_media` que ya existe, así que una biblioteca creada
+	 * antes del campo no lo tiene. En `'present'`, si le faltan campos (`missingMediaCollectionFields`)
+	 * y la sesión puede añadirlos (`schemaFieldBootstrap`, un superusuario), un aviso con UN botón
+	 * explícito los añade (`completeMediaCollection`, estrictamente aditivo) — mismo principio que el
+	 * bootstrap: consentimiento, nunca automático. Mientras falte `focal`, `MediaDetail` no ofrece el
+	 * gesto (`canSetFocal`) y los medios se leen centrados. Un editor no ve el aviso: no puede hacer
+	 * nada con él.
 	 */
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -77,8 +86,10 @@
 	import type { RecordId } from '$lib/backend/types';
 	import {
 		buildMediaBootstrapImportJson,
+		completeMediaCollection,
 		computeMediaCollectionState,
 		ensureMediaCollection,
+		missingMediaCollectionFields,
 		VEGA_MEDIA_COLLECTION
 	} from '$lib/media/media-collection';
 	import { ALL_PERMISSIONS, permissionsFor } from '$lib/backend/access';
@@ -185,6 +196,40 @@
 			ctx.feedback.reportError(vegaErr, { action: 'media:ensureCollections' });
 		} finally {
 			creating = false;
+		}
+	}
+
+	// ————— Biblioteca anterior a un campo nuevo (ver cabecera) —————
+
+	const missingMediaFields = $derived(
+		collectionState === 'present' ? missingMediaCollectionFields(types) : []
+	);
+	const canCompleteMedia = $derived(
+		missingMediaFields.length > 0 && ctx.port.capabilities.schemaFieldBootstrap
+	);
+	/** La `vega_media` DESCUBIERTA tiene `focal`: sin él, la ficha no ofrece el punto focal. */
+	const mediaHasFocal = $derived(
+		types
+			.find((type) => type.name === VEGA_MEDIA_COLLECTION.name)
+			?.fields.some((field) => field.name === 'focal') ?? false
+	);
+	let completingMedia = $state(false);
+
+	async function handleCompleteMedia(): Promise<void> {
+		if (completingMedia || missingMediaFields.length === 0) return;
+		completingMedia = true;
+		try {
+			await completeMediaCollection(ctx.port, missingMediaFields);
+			types = await ctx.port.listContentTypes();
+			ctx.feedback.toast(ctx.t('media.fields.added'), { kind: 'success' });
+		} catch (err) {
+			const vegaErr =
+				err instanceof VegaError
+					? err
+					: VegaError.backend('Error añadiendo campos a "vega_media"', err);
+			ctx.feedback.reportError(vegaErr, { action: 'media:addCollectionFields' });
+		} finally {
+			completingMedia = false;
 		}
 	}
 
@@ -497,6 +542,23 @@
 		<!-- 'present': biblioteca real (Fase 6b). data-media-state para que los e2e la localicen sin
 		     depender del idioma; data-media-grid-state acota el estado de CARGA del grid en sí. -->
 		<div class="vega-media-library" data-media-state="present">
+			{#if canCompleteMedia}
+				<!-- Biblioteca anterior a un campo nuevo (ver cabecera): aviso, no bloqueo; la
+				     biblioteca sigue funcionando debajo. -->
+				<div class="notice notice-fields" data-media-missing-fields>
+					<p>
+						{ctx.t('media.fields.missingBody', {
+							fields: missingMediaFields.map((field) => field.name).join(', ')
+						})}
+					</p>
+					<div class="actions">
+						<button type="button" onclick={handleCompleteMedia} disabled={completingMedia}>
+							{completingMedia ? ctx.t('media.fields.adding') : ctx.t('media.fields.add')}
+						</button>
+					</div>
+				</div>
+			{/if}
+
 			<!-- Toolbar (mockup `.toolbar`): buscador + chips de tipo. Filtros de CLIENTE sobre la
 			     página cargada (ver cabecera), sin debounce: no hay red detrás que amortiguar. -->
 			<div class="vega-media-toolbar">
@@ -609,6 +671,7 @@
 	fallbackFocusEl={headingEl}
 	canUpdate={mediaPermissions.update}
 	canDelete={mediaPermissions.delete}
+	canSetFocal={mediaHasFocal}
 />
 
 <!-- Confirmación del borrado de la SELECCIÓN (D-P6.5). Hermano de `MediaDetail` y montado siempre,
@@ -839,6 +902,13 @@
 		border-color: var(--warning);
 		background: var(--warning-soft);
 		color: var(--warning);
+	}
+
+	/* Campos que faltan (ver cabecera): informativo, mismo rol que la confirmación del bootstrap. */
+	.notice-fields {
+		border-color: var(--info);
+		background: var(--info-soft);
+		color: var(--info);
 	}
 
 	.notice-confirm {

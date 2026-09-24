@@ -35,7 +35,8 @@ function item(id: string, fileName: string, alt: string, title = ''): MediaItemV
 		alt,
 		title,
 		tags: [],
-		created: null
+		created: null,
+		focal: null
 	};
 }
 

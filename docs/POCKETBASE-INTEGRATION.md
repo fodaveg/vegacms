@@ -524,6 +524,26 @@ La colección `vega_media` que Vega bootstrapea **ya declara estos tres tamaños
 
 **Para tus colecciones de contenido propias** con campos `file` de imagen que edites o listes en Vega: declara en PB (Collections → tu colección → campo `file` → Thumb sizes) al menos `300x300` y `28x28` (y `120x120` si editas ese campo con el widget file), o Vega mostrará el original completo en cada miniatura. Vega **no** añade thumbs retroactivamente a colecciones que no creó.
 
+## Punto focal de una imagen
+
+Desde el 24 sep 2026, `vega_media` tiene un campo `focal` (`json`, opcional): `{ "x": 0.3, "y": 0.2 }`
+con valores de `0` a `1` medidos desde la esquina superior izquierda de la imagen original. Vacío
+significa centro. Se pone en la ficha del medio (`/media` → abrir una imagen): clic sobre la vista
+previa, o flechas e Intro con el teclado; «Centrar» lo borra. El sitio lo usa al recortar la imagen
+(`object-position` en un `object-fit: cover`); `@vega/astro` lo expone y lo traduce con
+`focalObjectPosition()`. Las miniaturas que sirve PocketBase siguen recortadas al centro: `thumbs`
+no sabe de puntos focales.
+
+Una biblioteca **creada antes** del campo no lo tiene, porque la creación de `vega_media` no toca
+una colección que ya existe. Tiene dos caminos, los dos aditivos (no cambian los campos, sus ids,
+las reglas ni los datos; los medios existentes quedan centrados):
+
+- En `/media`, un superusuario ve un aviso con el botón «Añadir campos».
+- Volver a ejecutar `seedSiteProject`, que añade los campos ausentes de `vega_media` igual que los
+  de `pages`.
+
+Hasta entonces la ficha no ofrece el punto focal y un editor no ve ningún aviso.
+
 ## Historial de versiones
 
 Vega puede guardar una copia del estado de un registro justo ANTES de cada guardado, para poder

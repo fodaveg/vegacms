@@ -617,6 +617,13 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// JSON above is of no use to them.
 	'media.bootstrap.editorBody':
 		'Ask an administrator to set up the media collection ("vega_media") in PocketBase.',
+	// A library created before a new field (today, `focal`): completing it is additive and the
+	// superuser decides it with a button, never Vega on its own.
+	'media.fields.missingBody':
+		'The library lacks fields this version of Vega can use: {fields}. Adding them leaves the existing media untouched.',
+	'media.fields.add': 'Add fields',
+	'media.fields.adding': 'Adding…',
+	'media.fields.added': 'Fields added to the library.',
 
 	// ————— Referential integrity (`#lote-integridad`, Phase A): "where is this used?" engine —————
 	// Shared by `UsedInPanel`/`ReferencesSummary` (passive panel) and by `DeleteConfirm`/
@@ -766,6 +773,14 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.alt.missing': 'No alt text',
 	'media.detail.altMissingHint': 'No alt text: a screen reader will read «{name}».',
 	'media.detail.altHelp': 'Describe what is shown, not the file name.',
+	// Focal point (audit, 23 Sep): what the site keeps in view when it crops the image. Empty = centre.
+	'media.focal.label': 'Focal point',
+	'media.focal.help':
+		'Click the image to mark what must stay in view when the site crops it. With the keyboard: arrows move it (Shift for finer steps), Enter sets it.',
+	'media.focal.center': 'Focal point: centre',
+	'media.focal.value': 'Focal point: {x} % across, {y} % down',
+	'media.focal.pending': 'Moving to {x} % across, {y} % down. Press Enter to set it.',
+	'media.focal.reset': 'Centre',
 
 	// ————— Media: delete (Phase P6·6d) —————
 	// D-P6.5/audit H3: the media model COPIES bytes, it never references (`filePerRecord`) —

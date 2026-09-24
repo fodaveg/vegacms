@@ -1134,6 +1134,17 @@ const VEGA_MEDIA_CONTENT_TYPE: ContentType = {
 			presentable: false,
 			hidden: false,
 			unique: false
+		},
+		// Punto focal (audit del 23 sep): mismo `json` que declara `VEGA_MEDIA_COLLECTION`, para que
+		// la ficha de un medio ofrezca el gesto también en la demo.
+		{
+			name: 'focal',
+			type: 'json',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
 		}
 	]
 };
