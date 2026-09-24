@@ -708,6 +708,16 @@ el manifiesto, el sembrado aborta sin escribir nada, como con cualquier manifies
 mano las claves `collections.pages.fields`, `collections.pages.fieldGroups` y
 `collections.redirects` del manifiesto del starter.
 
+**Publicación programada.** Desde la misma fecha el sembrado añade también `pages.publishAt`
+(`date` opcional, columna real porque la consulta el servidor) y el manifiesto inicial lo declara
+como `publishAtField` con etiqueta «Publicar el» (ver
+[Publicación programada](CONFIG.md#publicación-programada-publishatfield)). Un proyecto ya sembrado
+lo recibe igual que los campos de SEO: campo añadido, datos intactos y manifiesto sustituido solo si
+es EXACTAMENTE uno inicial anterior (el de antes del SEO o el de después); si se editó, copia a mano
+`collections.pages.publishAtField` y `collections.pages.fields.publishAt`. Para que la fecha haga
+algo hace falta la extensión [`vegaschedule`](../extensions/vegaschedule/README.md) en ese
+PocketBase.
+
 Los pasos manuales siguientes siguen aplicando a una instalación **existente**. El sembrado es
 `creation-only`: si una colección ya existe, no cambia ninguna de sus reglas, aunque estén vacías,
 sean más abiertas o sean más cerradas. Si `pages` ya existe con `listRule: null` y `blocks` no

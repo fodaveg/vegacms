@@ -21,14 +21,9 @@
         "draft": "Borrador",
         "published": "Publicado"
       },
-      "publishAtField": "publishAt",
       "listFields": ["title", "path", "layout", "status"],
       "fieldGroups": [{ "name": "SEO", "placement": "aside" }],
       "fields": {
-        "publishAt": {
-          "label": "Publicar el",
-          "help": "Si la página está en borrador, se publica sola a esta hora. Requiere la extensión vegaschedule en el servidor; sin ella, la fecha no hace nada."
-        },
         "description": {
           "label": "Descripción",
           "help": "Resumen de una o dos frases para buscadores y redes sociales. Si lo dejas vacío, el sitio usa su descripción general.",

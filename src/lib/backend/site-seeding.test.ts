@@ -17,7 +17,12 @@ import {
 	seedSiteProject
 } from './site-seeding';
 import starterManifest from './site-seeding-manifest.json';
-import { previousStarterManifest, seedLikePrevious1bda988 } from './site-seeding-previous.fixture';
+import {
+	previousStarterManifest,
+	seedLikePrevious0ace139,
+	seedLikePrevious1bda988,
+	starterManifest0ace139
+} from './site-seeding-previous.fixture';
 import {
 	ensureMediaCollection,
 	VEGA_MEDIA_EDITOR_ACCESS_RULE,
@@ -214,6 +219,12 @@ describe('seedSiteProject', () => {
 			type: 'bool',
 			required: false
 		});
+		// «Publicar el»: fecha editable (no autodate) y OPCIONAL, como exige `vegaschedule`.
+		expect(pages.fields.find((field) => field.name === 'publishAt')).toMatchObject({
+			type: 'date',
+			required: false,
+			readonly: false
+		});
 		const redirects = types.find((type) => type.name === 'redirects')!;
 		expect(redirects.fields.map((field) => field.name)).toEqual(['from', 'to', 'code']);
 		expect(redirects.fields.find((field) => field.name === 'code')).toMatchObject({
@@ -260,6 +271,12 @@ describe('seedSiteProject', () => {
 		}
 		expect(pages.fieldGroups).toContainEqual({ name: 'SEO', columns: 1, placement: 'aside' });
 
+		expect(pages.publishAtField).toBe('publishAt');
+		const publishAt = pages.fields.find((field) => field.name === 'publishAt')!;
+		expect(publishAt.label).toBe('Publicar el');
+		expect(publishAt.widget).toBe('datetime');
+		expect(publishAt.help).toContain('vegaschedule');
+
 		const redirects = model.types.find((type) => type.name === 'redirects')!;
 		expect(redirects.hidden).toBe(false);
 		expect(redirects.label).toBe('Redirecciones');
@@ -285,7 +302,7 @@ describe('seedSiteProject', () => {
 
 		expect(result).toEqual({
 			createdCollections: ['redirects'],
-			addedFields: { pages: ['description', 'socialImage', 'noindex'] },
+			addedFields: { pages: ['publishAt', 'description', 'socialImage', 'noindex'] },
 			createdRecords: [],
 			upgradedRecords: ['manifest']
 		});
@@ -307,6 +324,61 @@ describe('seedSiteProject', () => {
 			createdRecords: [],
 			upgradedRecords: []
 		});
+	});
+
+	test('un proyecto sembrado con SEO (0ace139) recibe pages.publishAt y el manifiesto nuevo sin perder datos', async () => {
+		const port = await authedMemory();
+		await seedLikePrevious0ace139(port);
+		const page = await canonicalPage(port);
+		await port.update('pages', page.id, {
+			title: 'Portada humana',
+			status: 'published',
+			description: 'Escrita a mano'
+		});
+		const redirect = await port.create('redirects', { from: '/viejo', to: '/', code: '301' });
+
+		const result = await seedSiteProject(port);
+
+		expect(result).toEqual({
+			createdCollections: [],
+			addedFields: { pages: ['publishAt'] },
+			createdRecords: [],
+			upgradedRecords: ['manifest']
+		});
+		const after = await canonicalPage(port);
+		expect(after.id).toBe(page.id);
+		expect(after.values).toMatchObject({
+			title: 'Portada humana',
+			status: 'published',
+			description: 'Escrita a mano'
+		});
+		expect((await port.get('redirects', redirect.id)).values).toMatchObject({ from: '/viejo' });
+		const manifests = await port.list('vega', { perPage: 5 });
+		expect(manifests.totalItems).toBe(1);
+		expect(manifests.items[0]?.values.manifest).toEqual(starterManifest);
+
+		await expect(seedSiteProject(port)).resolves.toEqual({
+			createdCollections: [],
+			addedFields: {},
+			createdRecords: [],
+			upgradedRecords: []
+		});
+	});
+
+	test('un manifiesto de 0ace139 EDITADO tampoco se actualiza', async () => {
+		const port = await authedMemory();
+		await seedLikePrevious0ace139(port);
+		const manifestRecord = (await port.list('vega', { perPage: 1 })).items[0]!;
+		const edited = {
+			...(starterManifest0ace139 as Record<string, unknown>),
+			site: { name: 'Mi taller' }
+		};
+		await port.update('vega', manifestRecord.id, { manifest: edited as JsonValue });
+		const writes = watchSeedWrites(port);
+
+		await expect(seedSiteProject(port)).rejects.toBeInstanceOf(SiteSeedDivergenceError);
+		expectNoSeedWrites(writes);
+		expect((await port.get('vega', manifestRecord.id)).values.manifest).toEqual(edited);
 	});
 
 	test('un manifiesto anterior EDITADO no se actualiza: aborta como cualquier manifiesto humano', async () => {
@@ -449,7 +521,7 @@ describe('seedSiteProject', () => {
 
 		await expect(seedSiteProject(port)).resolves.toMatchObject({
 			addedFields: {
-				pages: ['title', 'path', 'layout', 'description', 'socialImage', 'noindex']
+				pages: ['title', 'path', 'layout', 'publishAt', 'description', 'socialImage', 'noindex']
 			}
 		});
 		const pages = (await port.listContentTypes()).find((type) => type.name === 'pages')!;
