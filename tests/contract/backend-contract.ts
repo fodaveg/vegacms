@@ -844,6 +844,27 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 				expect(ids(page.items)).toEqual([]);
 			});
 
+			test('relation multi: in casa por id EXACTO, nunca por subcadena (`a` vs `ab`)', async () => {
+				const port = await makeAuthedPort();
+				// Dos ids donde uno es subcadena del otro: el JSON de la columna `["ab"]` contiene `a`.
+				await port.create('category', { name: 'A' }, { id: 'sub-a' });
+				await port.create('category', { name: 'AB' }, { id: 'sub-ab' });
+				const soloLarga = await port.create('kitchen_sink', {
+					title: 'Solo la larga',
+					categories: ['sub-ab']
+				});
+				const conCorta = await port.create('kitchen_sink', {
+					title: 'Con la corta',
+					categories: ['sub-a', 'sub-ab']
+				});
+				const page = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'categories', op: 'in', value: ['sub-a'] }
+				});
+				const found = ids(page.items);
+				expect(found).not.toContain(soloLarga.id);
+				expect(found).toEqual([conCorta.id]);
+			});
+
 			test('contains: `%`, `_` y `\\` del valor son literales, no comodines de LIKE', async () => {
 				const port = await makeAuthedPort();
 				const snake = await port.create('kitchen_sink', { title: 'snake_case', slug: 'lk-snake' });
