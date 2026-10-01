@@ -1,0 +1,375 @@
+<!--TITULO 6 · Listado en móvil: «Crear» primero, Exportar e Importar en «Más»-->
+
+<!--PIEZA barra-->
+<div class="vega-list-toolbar">
+	<label class="vega-list-search">
+		{{i:search:14}}
+		<input
+			type="search"
+			class="vega-list-search-input"
+			placeholder="Filtrar por título o slug…"
+			aria-label="Buscar en el listado"
+		/>
+	</label>
+	<div class="vega-list-filter">
+		<button
+			type="button"
+			class="vega-list-filter-trigger"
+			aria-haspopup="menu"
+			aria-expanded="false"
+		>
+			Filtrar {{i:chevron:12}}
+		</button>
+	</div>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA antes-->
+<div class="vega-list-page">
+	<div class="vega-list-header">
+		<h1>Entradas</h1>
+		<span class="vega-list-meta"><b>8</b> registros · <b>0</b> filtros</span>
+		<span class="vega-list-header-spacer"></span>
+		<button type="button" class="vega-list-export-button">Exportar</button>
+		<button type="button" class="vega-list-import-button">Importar</button>
+		<button type="button" class="vega-list-new-button">
+			{{i:plus:14}} Crear «Entrada» <kbd aria-hidden="true">N</kbd>
+		</button>
+	</div>
+	<!--USA barra-->
+	<div class="vega-list-card">
+		<div data-list-state="ready"><!--TABLA antes 8--></div>
+	</div>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA acciones-->
+<div class="vega-list-header-actions vega-list-header-actions--wide">
+	<button type="button" class="vega-list-export-button">Exportar</button>
+	<button type="button" class="vega-list-import-button">Importar</button>
+	<button type="button" class="vega-list-new-button">
+		{{i:plus:14}} Crear «Entrada» <kbd aria-hidden="true">N</kbd>
+	</button>
+</div>
+<div class="vega-list-header-actions vega-list-header-actions--narrow">
+	<button type="button" class="vega-list-new-button">
+		{{i:plus:14}}<span>Crear «Entrada»</span>
+	</button>
+	<div class="vega-list-more">
+		<button
+			type="button"
+			class="vega-list-filter-trigger"
+			aria-haspopup="menu"
+			aria-expanded="false"
+		>
+			Más {{i:chevron:12}}
+		</button>
+	</div>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA despues-->
+<div class="vega-list-page">
+	<div class="vega-list-header">
+		<h1>Entradas</h1>
+		<span class="vega-list-meta"><b>8</b> registros · <b>0</b> filtros</span>
+		<span class="vega-list-header-spacer"></span>
+		<!--USA acciones-->
+	</div>
+	<!--USA barra-->
+	<div class="vega-list-card">
+		<div data-list-state="ready"><!--TABLA antes 8--></div>
+	</div>
+</div>
+<!--/PIEZA-->
+
+<section class="lam-section">
+	<h2>Qué cambia</h2>
+	<p>
+		Solo la <b>cabecera del listado por debajo de 640 px</b> (el corte en el que la tabla ya pasa el
+		estado bajo el título). Hoy los tres botones siguen el orden de escritorio y, como no caben,
+		parten línea: «Exportar» e «Importar» quedan arriba y «Crear», que es lo que más se pulsa, cae
+		solo a una tercera línea. La propuesta pone «Crear» el primero, a todo el ancho que sobra, y
+		guarda Exportar e Importar en un botón «Más». Por encima de 640 px no se toca nada. El buscador,
+		«Filtrar», la tabla y la paginación son los de hoy. Los botones viven en
+		<code>src/routes/c/[type]/+page.svelte</code>, no en <code>ListToolbar.svelte</code>.
+	</p>
+	<table class="lam-cifras">
+		<thead>
+			<tr>
+				<th>A 390 px</th>
+				<th>Antes</th>
+				<th>Después</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>Líneas que ocupa la cabecera</td>
+				<td>3</td>
+				<td>2</td>
+			</tr>
+			<tr>
+				<td>Paradas de tabulación hasta «Crear»</td>
+				<td>3</td>
+				<td>1</td>
+			</tr>
+			<tr>
+				<td>Paradas de tabulación de la cabecera</td>
+				<td>3</td>
+				<td>2</td>
+			</tr>
+			<tr>
+				<td>Toques para crear</td>
+				<td>1</td>
+				<td>1</td>
+			</tr>
+			<tr>
+				<td>Toques para exportar o importar</td>
+				<td>1</td>
+				<td>2</td>
+			</tr>
+		</tbody>
+	</table>
+</section>
+
+<section class="lam-section lam-solo-estrecho">
+	<h2>La pantalla a 390 px</h2>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>ANTES</b> Estado real de hoy</figcaption>
+		<!--SHELL entradas hoy-->
+		<!--USA antes-->
+		<!--/SHELL-->
+	</figure>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>DESPUÉS</b> «Crear» primero y «Más»</figcaption>
+		<!--SHELL entradas hoy-->
+		<!--USA despues-->
+		<!--/SHELL-->
+	</figure>
+</section>
+
+<section class="lam-section lam-solo-ancho">
+	<h2>La pantalla estrecha (390 px), antes y después</h2>
+	<p>
+		Escenarios de 390 px dentro de la lámina ancha. Los objetivos táctiles de 44 px se ven en la
+		captura de 390 px, que es la que corre con puntero basto.
+	</p>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption><b>ANTES</b> Estado real de hoy</figcaption>
+			<div class="lam-stage lam-movil">
+				<div class="vega-main"><!--USA antes--></div>
+			</div>
+		</figure>
+		<figure class="lam-spec">
+			<figcaption><b>DESPUÉS</b> «Crear» primero y «Más»</figcaption>
+			<div class="lam-stage lam-movil">
+				<div class="vega-main"><!--USA despues--></div>
+			</div>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section lam-solo-ancho">
+	<h2>La pantalla a 1440 px: no cambia</h2>
+	<p>
+		El mismo marcado de la propuesta, en ancho. Los tres botones siguen donde están hoy y en el
+		mismo orden.
+	</p>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>DESPUÉS</b> Escritorio, igual que hoy</figcaption>
+		<!--SHELL entradas hoy-->
+		<!--USA despues-->
+		<!--/SHELL-->
+	</figure>
+</section>
+
+<section class="lam-section">
+	<h2>Estados</h2>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption><b>6.1</b> «Más» abierto</figcaption>
+			<div class="lam-stage lam-movil">
+				<div class="vega-main">
+					<div class="vega-list-page">
+						<div class="vega-list-header">
+							<h1>Entradas</h1>
+							<span class="vega-list-meta"><b>42</b> registros · <b>0</b> filtros</span>
+							<span class="vega-list-header-spacer"></span>
+							<div class="vega-list-header-actions vega-list-header-actions--narrow">
+								<button type="button" class="vega-list-new-button">
+									{{i:plus:14}}<span>Crear «Entrada»</span>
+								</button>
+								<div class="vega-list-more">
+									<button
+										type="button"
+										class="vega-list-filter-trigger"
+										aria-haspopup="menu"
+										aria-expanded="true"
+									>
+										Más {{i:chevron:12}}
+									</button>
+									<div
+										class="vega-list-filter-menu"
+										role="menu"
+										aria-label="Más acciones del listado"
+									>
+										<button type="button" role="menuitem" class="vega-list-filter-item">
+											Exportar
+										</button>
+										<button type="button" role="menuitem" class="vega-list-filter-item">
+											Importar
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+						<!--USA barra-->
+						<div class="vega-list-card">
+							<p class="vega-list-card-pad">Cargando…</p>
+						</div>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">
+				El mismo botón y la misma tarjeta que «Filtrar» (<code>.vega-list-filter-*</code>), con el
+				menú alineado a la derecha. Se cierra con Escape, al tocar fuera o al salir el foco, como
+				«Filtrar».
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>6.2</b> Lista vacía</figcaption>
+			<div class="lam-stage lam-movil">
+				<div class="vega-main">
+					<div class="vega-list-page">
+						<div class="vega-list-header">
+							<h1>Proyectos</h1>
+							<span class="vega-list-meta"><b>0</b> registros · <b>0</b> filtros</span>
+							<span class="vega-list-header-spacer"></span>
+							<div class="vega-list-header-actions vega-list-header-actions--narrow">
+								<button type="button" class="vega-list-new-button">
+									{{i:plus:14}}<span>Crear «Proyecto»</span>
+								</button>
+								<div class="vega-list-more">
+									<button
+										type="button"
+										class="vega-list-filter-trigger"
+										aria-haspopup="menu"
+										aria-expanded="false"
+									>
+										Más {{i:chevron:12}}
+									</button>
+								</div>
+							</div>
+						</div>
+						<div class="vega-list-card">
+							<div class="vega-list-empty vega-list-card-pad" data-list-state="empty-collection">
+								<span class="vega-list-empty-glyph" aria-hidden="true">{{i:document:20}}</span>
+								<h2>Aquí no hay nada todavía</h2>
+								<p>Crea el primer registro de "Proyectos" para empezar.</p>
+								<button type="button">Crear</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">
+				El estado vacío es el de hoy, sin tocar. «Más» sigue ahí porque con la lista vacía Importar
+				es justo lo que hace falta.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>6.3</b> Colección de solo lectura: una sola acción</figcaption>
+			<div class="lam-stage lam-movil">
+				<div class="vega-main">
+					<div class="vega-list-page">
+						<div class="vega-list-header">
+							<h1>Etiquetas</h1>
+							<span class="vega-list-readonly-badge">Solo lectura</span>
+							<span class="vega-list-meta"><b>14</b> registros · <b>0</b> filtros</span>
+							<span class="vega-list-header-spacer"></span>
+							<div class="vega-list-header-actions vega-list-header-actions--narrow">
+								<button type="button" class="vega-list-export-button">Exportar</button>
+							</div>
+						</div>
+						<div class="vega-list-card">
+							<p class="vega-list-card-pad">Cargando…</p>
+						</div>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">
+				Sin permiso de crear ni de importar solo queda Exportar: se enseña como botón, sin menú. Un
+				menú con una sola entrada es un toque de más a cambio de nada.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>6.4</b> Nombre largo: «Crear» recorta, «Más» no se va</figcaption>
+			<div class="lam-stage lam-movil">
+				<div class="vega-main">
+					<div class="vega-list-page">
+						<div class="vega-list-header">
+							<h1>Fichas de proyectos de investigación</h1>
+							<span class="vega-list-meta"><b>128</b> registros · <b>2</b> filtros</span>
+							<span class="vega-list-header-spacer"></span>
+							<div class="vega-list-header-actions vega-list-header-actions--narrow">
+								<button type="button" class="vega-list-new-button">
+									{{i:plus:14}}<span>Crear «Ficha de proyecto de investigación»</span>
+								</button>
+								<div class="vega-list-more">
+									<button
+										type="button"
+										class="vega-list-filter-trigger"
+										aria-haspopup="menu"
+										aria-expanded="false"
+									>
+										Más {{i:chevron:12}}
+									</button>
+								</div>
+							</div>
+						</div>
+						<div class="vega-list-card">
+							<p class="vega-list-card-pad">Cargando…</p>
+						</div>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">
+				Nombre de colección inventado para la lámina (la semilla no trae ninguno tan largo). El
+				rótulo completo sigue en el nombre accesible del botón.
+			</p>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>Nota</h2>
+	<ul class="lam-notes">
+		<li>
+			<b>Recomendación.</b> Pintar una de las dos ramas según el ancho (con <code>matchMedia</code>,
+			como ya hace el editor visual con su lienzo), no reordenar con CSS. Si se deja el orden de
+			escritorio en el marcado y se mueve «Crear» con <code>order</code>, la vista dice «Crear, Más»
+			y el tabulador recorre «Más, Crear»: quien navega con teclado o lector de pantalla en una
+			tableta estrecha se encuentra el orden al revés de lo que ve.
+		</li>
+		<li>
+			<b>Estados que hay que construir.</b> Cerrado, abierto, foco en el disparador y en cada
+			entrada, una sola acción disponible (botón suelto, sin menú), ninguna acción secundaria (solo
+			«Crear»), sin permiso de crear, lista vacía, nombre largo. Cada entrada del menú abre el mismo
+			diálogo de hoy (<code>ExportDialog</code>, <code>ImportDialog</code>) y al cerrarlo el foco
+			vuelve a «Más».
+		</li>
+		<li>
+			<b>Piezas.</b> Ninguna nueva: botón primario <code>.vega-list-new-button</code>, disparador y
+			tarjeta de «Filtrar». Ningún token nuevo. Icono: <code>chevron</code>, el de «Filtrar».
+		</li>
+		<li>
+			<b>Táctil.</b> «Crear» y «Más» suben a 44 px con puntero basto. Hoy «Crear», «Exportar» e
+			«Importar» miden 31 px también en móvil (medido en la captura): el arreglo entra con esta
+			lámina.
+		</li>
+	</ul>
+</section>
