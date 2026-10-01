@@ -48,6 +48,16 @@ export function listSearchRoute(type: string, q: string): string {
 	return params === '' ? listRoute(type) : `${listRoute(type)}?${params}`;
 }
 
+/**
+ * `/c/:type?status=…` — el listado de `type` con el filtro de estado YA aplicado (las tarjetas de
+ * pendientes de la portada: «Entradas en borrador» lleva a esas entradas). Misma serialización
+ * que `listSearchRoute`: la URL es la que escribiría el menú «Filtrar» del propio listado.
+ */
+export function listStatusRoute(type: string, status: string): string {
+	const params = viewStateToParams({ q: '', sort: null, status, page: 1 }).toString();
+	return params === '' ? listRoute(type) : `${listRoute(type)}?${params}`;
+}
+
 /** `/c/:type/new` — creación (P5). */
 export function newRoute(type: string): string {
 	return `${base}/c/${encodeURIComponent(type)}/new`;

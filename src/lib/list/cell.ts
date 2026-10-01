@@ -151,7 +151,7 @@ const DAY_MS = 24 * HOUR_MS;
  * (igual con "60 minutos" y "24 horas"). Redondeando en cada unidad de menor a mayor y saltando a
  * la siguiente cuando el valor llega a su tope (60 s, 60 min, 24 h), el borde promociona limpio.
  */
-function formatDateCell(ms: number, locale: Locale, now: number): string {
+export function formatDateCell(ms: number, locale: Locale, now: number): string {
 	const diffMs = ms - now;
 	const absDiffMs = Math.abs(diffMs);
 
