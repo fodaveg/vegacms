@@ -17,6 +17,10 @@
 	 * `svelte-check`): el estado de error se comunica igual vía `aria-describedby` (apunta al
 	 * párrafo de error que pinta `FieldRow`) y visualmente vía `data-invalid` (hook de CSS, sin
 	 * semántica ARIA).
+	 *
+	 * **`placeholder` (manifiesto)**: las opciones ya están todas a la vista, así que no hay un
+	 * "hueco vacío" que rellenar; `field.placeholder` se pinta como pista (`aria-hidden`: el nombre
+	 * y la descripción accesibles no cambian) SOLO mientras no hay ninguna chip seleccionada.
 	 */
 	import type { WidgetProps } from './types';
 	import { fieldIds } from '../field-ids';
@@ -45,6 +49,9 @@
 	}
 </script>
 
+{#if field.placeholder && selected.length === 0}
+	<p class="vega-chips-placeholder" aria-hidden="true">{field.placeholder}</p>
+{/if}
 <div
 	id={ids.inputId}
 	class="vega-widget-chips"
@@ -68,6 +75,12 @@
 </div>
 
 <style>
+	.vega-chips-placeholder {
+		margin: 0 0 0.4rem;
+		font-size: 0.85rem;
+		color: var(--ink-2);
+	}
+
 	.vega-widget-chips {
 		display: flex;
 		flex-wrap: wrap;
