@@ -41,12 +41,18 @@
 	 * registro a otro sin recargar la página (deep-link desde el raíl, por ejemplo) que replicar la
 	 * disciplina de resincronía de `RecordForm` para un componente que la tarea siguiente todavía
 	 * tiene que ampliar con árbol/inspector.
+	 *
+	 * **Carrera al cambiar de registro (audit 30 sep)**: la carga pasa por `loadLatest`
+	 * (`$lib/form/latest-load`, `RequestSequencer`); la respuesta del registro anterior que llega
+	 * tarde se descarta en vez de pintarse bajo la URL del nuevo.
 	 */
 	import { page } from '$app/state';
 	import { getVegaContext } from '$lib/app-context';
 	import { resolveVisibleContentType } from '$lib/nav/content-type';
 	import { resolveVisualGate } from '$lib/visual/visual-gate';
 	import { VegaError, type VegaRecord } from '$lib/backend';
+	import { RequestSequencer } from '$lib/list/list-load';
+	import { loadLatest } from '$lib/form/latest-load';
 	import type { ResolvedContentType } from '$lib/model/types';
 	import RouteState from '$lib/shell/RouteState.svelte';
 	import VisualEditorScreen from '$lib/visual/VisualEditorScreen.svelte';
@@ -68,21 +74,26 @@
 	// Última clave `type:id` ya cargada (variable PLANA, mismo patrón que `/c/[type]/[id]`).
 	let loadedKey: string | null = null;
 
+	// Anti-carrera (audit 30 sep): ver `loadLatest` — la respuesta del registro anterior se descarta.
+	const loads = new RequestSequencer();
+
 	async function load(activeType: ResolvedContentType, id: string): Promise<void> {
 		status = { kind: 'loading' };
-		try {
-			const record = await ctx.port.get(activeType.name, id);
-			status = { kind: 'ready', record };
-		} catch (err) {
-			const vegaErr =
-				err instanceof VegaError ? err : VegaError.backend('Error cargando el registro', err);
-			if (vegaErr.kind === 'not-found') {
-				status = { kind: 'not-found' };
-				return;
-			}
-			ctx.feedback.reportError(vegaErr, { action: 'record:load' });
-			status = { kind: 'error', error: vegaErr };
+		const outcome = await loadLatest(loads, () => ctx.port.get(activeType.name, id));
+		if (outcome.stale) return;
+		if (outcome.ok) {
+			status = { kind: 'ready', record: outcome.value };
+			return;
 		}
+		const err = outcome.error;
+		const vegaErr =
+			err instanceof VegaError ? err : VegaError.backend('Error cargando el registro', err);
+		if (vegaErr.kind === 'not-found') {
+			status = { kind: 'not-found' };
+			return;
+		}
+		ctx.feedback.reportError(vegaErr, { action: 'record:load' });
+		status = { kind: 'error', error: vegaErr };
 	}
 
 	$effect(() => {

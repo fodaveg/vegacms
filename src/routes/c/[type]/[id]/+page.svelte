@@ -40,12 +40,20 @@
 	 *   Se reutilizan las claves i18n del borrado del LISTADO (`list.delete.success`): el mensaje es
 	 *   el mismo hecho ("X se ha borrado"), no un texto propio del editor. Si el borrado falla, la
 	 *   promesa rechaza y `RecordForm` lo reporta al feedback global sin sacar al usuario de aquí.
+	 *
+	 * **Carrera al cambiar de registro (audit 30 sep)**: la carga pasa por `loadLatest`
+	 *   (`$lib/form/latest-load`, `RequestSequencer`): la respuesta del registro anterior que llega
+	 *   tarde se descarta. Además `onSubmit`/`onDelete` apuntan al id del MODELO cargado
+	 *   (`readyModel.recordId`), no al de la URL en vivo: aunque la ruta cambie, un guardado o borrado
+	 *   va siempre al registro que el formulario tiene delante.
 	 */
 	import { page } from '$app/state';
 	import { getVegaContext } from '$lib/app-context';
 	import { resolveVisibleContentType } from '$lib/nav/content-type';
 	import { buildFormModel, type FormModel } from '$lib/form/form-model';
 	import { VegaError } from '$lib/backend';
+	import { RequestSequencer } from '$lib/list/list-load';
+	import { loadLatest } from '$lib/form/latest-load';
 	import type { ResolvedContentType } from '$lib/model/types';
 	import { canDuplicatePage, duplicatePage } from '$lib/duplicate/records';
 	import RouteState from '$lib/shell/RouteState.svelte';
@@ -68,21 +76,27 @@
 	// `syncedModel` de `RecordForm` — evita que el propio `status` retrigee este `$effect`).
 	let loadedKey: string | null = null;
 
+	// Anti-carrera (audit 30 sep): saltar de A a B deja dos `get` en vuelo y la autocancelación del
+	// SDK está desactivada; `loadLatest` descarta la respuesta (o el error) que ya no es la última.
+	const loads = new RequestSequencer();
+
 	async function load(activeType: ResolvedContentType, id: string): Promise<void> {
 		status = { kind: 'loading' };
-		try {
-			const record = await ctx.port.get(activeType.name, id);
-			status = { kind: 'ready', model: buildFormModel(activeType, record) };
-		} catch (err) {
-			const vegaErr =
-				err instanceof VegaError ? err : VegaError.backend('Error cargando el registro', err);
-			if (vegaErr.kind === 'not-found') {
-				status = { kind: 'not-found' };
-				return;
-			}
-			ctx.feedback.reportError(vegaErr, { action: 'record:load' });
-			status = { kind: 'error', error: vegaErr };
+		const outcome = await loadLatest(loads, () => ctx.port.get(activeType.name, id));
+		if (outcome.stale) return;
+		if (outcome.ok) {
+			status = { kind: 'ready', model: buildFormModel(activeType, outcome.value) };
+			return;
 		}
+		const err = outcome.error;
+		const vegaErr =
+			err instanceof VegaError ? err : VegaError.backend('Error cargando el registro', err);
+		if (vegaErr.kind === 'not-found') {
+			status = { kind: 'not-found' };
+			return;
+		}
+		ctx.feedback.reportError(vegaErr, { action: 'record:load' });
+		status = { kind: 'error', error: vegaErr };
 	}
 
 	$effect(() => {
@@ -139,7 +153,8 @@
 				type={activeType}
 				model={readyModel}
 				typeReadonly={activeType.readonly}
-				onSubmit={(input, opts) => ctx.port.update(activeType.name, idParam, input, opts)}
+				onSubmit={(input, opts) =>
+					ctx.port.update(activeType.name, readyModel.recordId ?? idParam, input, opts)}
 				onSaved={() => ctx.feedback.toast(ctx.t('editor.saveSuccess'), { kind: 'success' })}
 				onCancel={() =>
 					activeType.singleton ? ctx.nav.toIndex() : ctx.nav.toList(activeType.name)}
@@ -166,7 +181,7 @@
 						}
 					: undefined}
 				onDelete={async (label) => {
-					await ctx.port.delete(activeType.name, idParam);
+					await ctx.port.delete(activeType.name, readyModel.recordId ?? idParam);
 					ctx.feedback.toast(ctx.t('list.delete.success', { label }), { kind: 'success' });
 					// Al listado también desde un singleton: si su ÚNICO registro se borra, `/c/[type]`
 					// resuelve solo el siguiente destino (crear uno nuevo, §3.3) — nunca al índice.
