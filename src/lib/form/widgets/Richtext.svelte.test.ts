@@ -145,3 +145,43 @@ describe('Richtext.svelte — el hueco previo al montaje de TipTap', () => {
 		await settle(mounted.target);
 	});
 });
+
+/**
+ * Regresión «guardar sin tocar deja el formulario sin guardar» (entrada_2 de la demo, 30 sep).
+ * Al guardar, el formulario se deshabilita y se rehabilita: `setEditable` dispara un `onUpdate`
+ * espurio, y el editor serializa el `<a>` con `target`/`rel` que añade `Link` aunque el HTML
+ * guardado no los trajera. Ese HTML normalizado no era byte-igual a `lastEmitted` (el saneado
+ * del valor CRUDO), así que salía un `onChange` que el usuario no había provocado.
+ */
+describe('Richtext.svelte — un valor que el editor normaliza no se marca como cambio', () => {
+	test('deshabilitar y rehabilitar con un <a> sin rel/target NO llama a onChange', async () => {
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const onChange = vi.fn();
+		const props = $state({
+			field: richtextField,
+			value: '<p>Mira <a href="https://fodaveg.net/x">esto</a> y <code>--paper</code></p>',
+			error: null,
+			disabled: false,
+			readonly: false,
+			onChange
+		});
+		const instance = mount(Richtext, {
+			target,
+			props,
+			context: new Map([[VEGA_CONTEXT_KEY, fakeCtx()]])
+		});
+		try {
+			await settle(target);
+			props.disabled = true;
+			await tick();
+			props.disabled = false;
+			await tick();
+			await new Promise((r) => setTimeout(r, 50));
+			expect(onChange).not.toHaveBeenCalled();
+		} finally {
+			await unmount(instance);
+			target.remove();
+		}
+	});
+});
