@@ -29,7 +29,9 @@
  *   el modelo y se falla cerrado: solo vale un tipo de contenido del modelo, por nombre exacto,
  *   que no sea interno de Vega (`vega`/`vega_*`: el manifiesto, el historial, los medios) ni de
  *   solo lectura (una vista). Las colecciones `auth` y de sistema no llegan al modelo (el
- *   adaptador las excluye del descubrimiento), así que caen por «no está».
+ *   adaptador las excluye del descubrimiento), así que caen por «no está». `/papelera` la usa
+ *   tanto para decidir si ofrece «Restaurar» como para el `create` (`restoreTarget`), y lo cubre
+ *   `trash-restore.svelte.test.ts`.
  */
 
 import { isReservedCollectionName } from '$lib/backend/collections';
