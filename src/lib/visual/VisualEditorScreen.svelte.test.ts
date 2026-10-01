@@ -1556,6 +1556,48 @@ describe('VisualEditorScreen.svelte — refresco en vivo del lienzo', () => {
 		expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
 	});
 
+	test('renovar el token con el puente conectado y "liveRefresh": refresca por el puente, el `<iframe>` NO se recarga y la renovación se rearma', async () => {
+		// Reloj falso (mismo criterio que el test de renovación heredado): el token caduca a los
+		// ~30 ms y la renovación solo ocurre cuando el test avanza el reloj.
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+		try {
+			const fetchMock = vi.fn(async () => jsonResponse(expiringTokenBody()));
+			vi.stubGlobal('fetch', fetchMock);
+			const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+			mounted = mountScreen(ctx, type);
+			await vi.advanceTimersByTimeAsync(0);
+			await tick();
+			await connectBridge(mounted.target, [{ id: 'b1', type: 'hero' }], true);
+
+			const iframeBefore = mounted.target.querySelector<HTMLIFrameElement>('.vega-visual-frame');
+			expect(iframeBefore).not.toBeNull();
+			let frameLoads = 0;
+			iframeBefore!.addEventListener('load', () => (frameLoads += 1));
+			const postMessageSpy = vi.spyOn(iframeBefore!.contentWindow!, 'postMessage');
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+
+			// Primera renovación.
+			await vi.advanceTimersByTimeAsync(35);
+			await tick();
+			expect(fetchMock).toHaveBeenCalledTimes(2);
+			expect(mounted.target.querySelector('.vega-visual-frame')).toBe(iframeBefore);
+			expect(
+				postMessageSpy.mock.calls.some(
+					([msg]) => (msg as Record<string, unknown>).type === 'refresh'
+				)
+			).toBe(true);
+			expect(frameLoads).toBe(0);
+
+			// La renovación se rearma con el token nuevo: una segunda vuelta, tampoco recarga.
+			await vi.advanceTimersByTimeAsync(35);
+			await tick();
+			expect(fetchMock).toHaveBeenCalledTimes(3);
+			expect(mounted.target.querySelector('.vega-visual-frame')).toBe(iframeBefore);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
 	test('dos cambios estructurales seguidos dentro de la ventana de rebote piden UN solo token', async () => {
 		const fetchMock = freshTokenFetch();
 		vi.stubGlobal('fetch', fetchMock);
