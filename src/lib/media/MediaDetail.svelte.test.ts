@@ -17,6 +17,7 @@ function fakePort(): BackendPort {
 	return {
 		capabilities: { thumbs: false },
 		fileUrl: vi.fn(() => 'https://pb.example/api/files/vega_media/m1/foto.jpg'),
+		list: vi.fn(async () => ({ items: [], page: 1, perPage: 30, totalItems: 0, totalPages: 0 })),
 		update: vi.fn(async (_type: string, id: string, data: Record<string, unknown>) => ({
 			id,
 			type: 'vega_media',
@@ -288,5 +289,56 @@ describe('MediaDetail.svelte — punto focal', () => {
 			'm1',
 			expect.objectContaining({ focal: null })
 		);
+	});
+});
+
+describe('MediaDetail.svelte — reemplazar fichero con metadatos sin guardar', () => {
+	/** Elige un fichero en el `<input type="file">` oculto, como haría el navegador. */
+	function pickFile(target: HTMLElement, file: File): void {
+		const input = target.querySelector<HTMLInputElement>('#vega-media-detail-replace-input')!;
+		Object.defineProperty(input, 'files', { value: [file], configurable: true });
+		input.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+	}
+
+	async function confirmReplace(): Promise<void> {
+		document.querySelector<HTMLButtonElement>('.vega-media-replace-confirm')!.click();
+		for (let i = 0; i < 5; i++) await Promise.resolve();
+		flushSync();
+	}
+
+	function type(target: HTMLElement, value: string): void {
+		const input = target.querySelector<HTMLInputElement>('#vega-media-detail-alt')!;
+		input.value = value;
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+	}
+
+	test('con alt escrito sin guardar: el reemplazo lo lleva en la MISMA update, y el diálogo lo avisa', async () => {
+		const { target, port } = render(asset());
+		type(target, 'Bancal de tomateras');
+		const file = new File(['x'], 'nueva.jpg', { type: 'image/jpeg' });
+
+		pickFile(target, file);
+		expect(document.querySelector('[data-replace-saves-drafts]')).not.toBeNull();
+		await confirmReplace();
+
+		expect(port.update).toHaveBeenCalledTimes(1);
+		expect(port.update).toHaveBeenCalledWith(
+			'vega_media',
+			'm1',
+			expect.objectContaining({ file, alt: 'Bancal de tomateras', title: '', tags: [] })
+		);
+	});
+
+	test('sin cambios pendientes: solo viaja el fichero y el diálogo no avisa de borradores', async () => {
+		const { target, port } = render(asset({ alt: 'Algo' }));
+		const file = new File(['x'], 'nueva.jpg', { type: 'image/jpeg' });
+
+		pickFile(target, file);
+		expect(document.querySelector('[data-replace-saves-drafts]')).toBeNull();
+		await confirmReplace();
+
+		expect(vi.mocked(port.update).mock.calls[0][2]).toEqual({ file });
 	});
 });

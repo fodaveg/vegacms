@@ -996,6 +996,8 @@ export const es = {
 	'media.replace.confirm': 'Reemplazar',
 	'media.replace.replacing': 'Reemplazando…',
 	'media.replace.success': 'Fichero reemplazado. La URL directa ha cambiado.',
+	'media.replace.warningDrafts':
+		'Los cambios sin guardar de la ficha (texto alternativo, título, etiquetas, punto focal) se guardarán a la vez que el fichero.',
 
 	// ————— Medios: cabecera + toolbar de la biblioteca (rediseño «aquelarre-medios») —————
 	// El recuento de la cabecera es el TOTAL de la biblioteca (`totalItems` del listado), nunca el

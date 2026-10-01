@@ -935,6 +935,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.replace.confirm': 'Replace',
 	'media.replace.replacing': 'Replacing…',
 	'media.replace.success': 'File replaced. The direct URL has changed.',
+	'media.replace.warningDrafts':
+		'Unsaved changes in this panel (alt text, title, tags, focal point) will be saved together with the file.',
 
 	// ————— Media: library header + toolbar («aquelarre-medios» redesign) —————
 	// The header count is the library TOTAL (`totalItems` of the listing), never the page's nor the

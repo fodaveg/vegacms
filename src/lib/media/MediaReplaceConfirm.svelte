@@ -45,6 +45,9 @@
 		/** `true` mientras `ctx.port.update` está en vuelo (ver `DeleteConfirm`: NUNCA `disabled`
 		 *  HTML, solo `aria-disabled`, para no vaciar el trap de foco). */
 		replacing: boolean;
+		/** `true` si el panel tiene metadatos sin guardar (alt, título, etiquetas, punto focal): el
+		 *  reemplazo los escribe a la vez, y el diálogo lo dice. Default `false`. */
+		savesDrafts?: boolean;
 		/** Destino de foco si `previouslyFocused` ya no está en el documento al cerrar (mismo
 		 *  criterio que `MediaDeleteConfirm`: un reemplazo con éxito cierra `MediaDetail` entero). */
 		fallbackFocusEl: HTMLElement | null;
@@ -59,6 +62,7 @@
 		targetId,
 		targetFileRef,
 		replacing,
+		savesDrafts = false,
 		fallbackFocusEl,
 		onConfirm,
 		onCancel
@@ -140,6 +144,9 @@
 			<div id="vega-media-replace-body" class="vega-media-replace-body">
 				<p class="vega-media-replace-new-file">{newFileName}</p>
 				<p>{ctx.t('media.replace.warningIdentity')}</p>
+				{#if savesDrafts}
+					<p data-replace-saves-drafts>{ctx.t('media.replace.warningDrafts')}</p>
+				{/if}
 				<p class="vega-media-replace-url-warning">{ctx.t('media.replace.warningUrl')}</p>
 				<div class="vega-media-replace-used-in">
 					<p class="vega-media-replace-used-in-lead">{ctx.t('media.replace.usedInIntro')}</p>
