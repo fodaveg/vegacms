@@ -9,6 +9,7 @@
  */
 
 import type { FieldInputValue, FieldValue } from '$lib/backend/types';
+import { isPlainObject } from '$lib/is-plain-object';
 import type { FormValues } from './form-model';
 
 /**
@@ -56,10 +57,6 @@ function deepEqual(a: unknown, b: unknown): boolean {
 		);
 	}
 	return false; // tipos distintos, o primitivos ya descartados por `a === b`
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /**

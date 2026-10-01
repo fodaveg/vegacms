@@ -15,6 +15,7 @@
  */
 
 import type { JsonValue } from '$lib/backend/types';
+import { isPlainObject } from '$lib/is-plain-object';
 
 export interface ManifestValidationErrorEntry {
 	/** JSON Pointer a la clave ofensora (p.ej. '/collections/posts/fields/body/widget'). */
@@ -190,10 +191,6 @@ export function validateManifestStrict(raw: JsonValue): ManifestValidationResult
 }
 
 // ————— Helpers genéricos —————
-
-function isPlainObject(value: JsonValue): value is JsonObject {
-	return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function fail(errors: ManifestValidationErrorEntry[], path: string, message: string): void {
 	errors.push({ path, message });

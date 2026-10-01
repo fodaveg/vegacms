@@ -10,6 +10,7 @@
  */
 
 import type { Field, FieldValue } from '$lib/backend/types';
+import { isPlainObject } from '$lib/is-plain-object';
 
 export type FieldDiffStatus = 'added' | 'removed' | 'changed' | 'same';
 
@@ -24,10 +25,6 @@ export interface FieldDiff {
 
 function hasOwn(obj: Record<string, FieldValue>, key: string): boolean {
 	return Object.prototype.hasOwnProperty.call(obj, key);
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /**
