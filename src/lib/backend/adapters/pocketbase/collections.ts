@@ -19,7 +19,7 @@ import {
 	collectionSpecCreationMetadata,
 	collectionUniqueIndexes
 } from '../../collections';
-import { VegaError } from '../../errors';
+import { VegaError, type FieldError } from '../../errors';
 import { mapPocketBaseError } from './errors';
 import { collectionFieldSpecToPbField } from './schema';
 
@@ -157,13 +157,54 @@ export async function addFieldsOnPocketBase(
 		}
 		// `fresh.fields` (los que YA trae `getOne`, con su `id`) + los nuevos (sin `id`: PB se lo
 		// asigna al guardar) — reenviar los existentes TAL CUAL es lo que los preserva.
-		await pb.collections.update(collectionName, {
-			fields: [...fresh.fields, ...newFields],
-			...(newIndexes.length > 0 ? { indexes: [...fresh.indexes, ...newIndexes] } : {})
-		});
+		try {
+			await pb.collections.update(collectionName, {
+				fields: [...fresh.fields, ...newFields],
+				...(newIndexes.length > 0 ? { indexes: [...fresh.indexes, ...newIndexes] } : {})
+			});
+		} catch (err) {
+			throw uniqueIndexRejection(err, collectionName, newSpecs) ?? err;
+		}
 	}
 
 	return { added, skipped };
+}
+
+/**
+ * PocketBase aplica campos e índices en UNA transacción: si el índice único no se puede crear
+ * porque los registros que ya existen repiten el valor (todos comparten el vacío del campo nuevo),
+ * rechaza el PATCH entero con un `Valor no válido en "indexes"` a nivel de colección, que a una
+ * persona no le dice qué campo ni por qué. El esquema queda intacto (no hay nada a medias); aquí
+ * solo se traduce el error a uno por campo y comprensible. `null` si el fallo no es de índices.
+ */
+function uniqueIndexRejection(
+	err: unknown,
+	collectionName: string,
+	specs: CollectionFieldSpec[]
+): VegaError | null {
+	if (!(err instanceof ClientResponseError) || err.status !== 400) return null;
+	const data = err.response?.data as Record<string, unknown> | undefined;
+	if (!data || !('indexes' in data)) return null;
+	const uniqueFields = specs.flatMap((spec) =>
+		(spec.type === 'text' || spec.type === 'url' || spec.type === 'email') && spec.unique
+			? [spec.name]
+			: []
+	);
+	if (uniqueFields.length === 0) return null;
+	const fieldErrors: Record<string, FieldError> = {};
+	for (const name of uniqueFields) {
+		fieldErrors[name] = {
+			code: 'validation_not_unique',
+			message:
+				`No se puede marcar "${name}" como único en "${collectionName}": ` +
+				'los registros que ya existen tendrían el mismo valor (vacío) en ese campo.'
+		};
+	}
+	return VegaError.validation(
+		fieldErrors,
+		`No se pudo añadir el campo único a "${collectionName}". No se ha cambiado nada: ` +
+			'hay registros existentes que repetirían el mismo valor.'
+	);
 }
 
 /**

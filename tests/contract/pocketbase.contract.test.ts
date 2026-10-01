@@ -234,6 +234,67 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 			false
 		);
 	});
+	test('url y email: PocketBase valida el formato, el índice único es parcial y añadir campos conserva los ids', async () => {
+		const name = `blog_types_${Math.random().toString(36).slice(2, 10)}`;
+		const port = createPocketBaseBackend({ url: running.url });
+		await port.login({ email: running.adminEmail, password: running.adminPassword });
+		await port.ensureCollections([{ name, fields: [{ name: 'title', type: 'text' }] }]);
+		const before = await admin.collections.getOne(name);
+
+		await port.addCollectionFields(name, [
+			{ name: 'body', type: 'editor' },
+			{ name: 'link', type: 'url', unique: true },
+			{ name: 'contact', type: 'email', unique: true }
+		]);
+
+		const after = await admin.collections.getOne(name);
+		// Modificar conserva el id del campo previo (nunca borrar y recrear: perdería la columna).
+		expect(after.fields.find((f) => f.name === 'title')!.id).toBe(
+			before.fields.find((f) => f.name === 'title')!.id
+		);
+		expect(after.fields.find((f) => f.name === 'body')).toMatchObject({ type: 'editor' });
+		expect(after.fields.find((f) => f.name === 'link')).toMatchObject({ type: 'url' });
+		expect(after.fields.find((f) => f.name === 'contact')).toMatchObject({ type: 'email' });
+		expect(after.indexes).toContain(
+			`CREATE UNIQUE INDEX \`${uniqueIndexName(name, 'link')}\` ON \`${name}\` (\`link\`) WHERE \`link\` != ''`
+		);
+
+		await expect(
+			port.create(name, { link: 'no es una url', contact: 'no es un correo' })
+		).rejects.toMatchObject({ kind: 'validation', fieldErrors: { link: {}, contact: {} } });
+	});
+
+	test('único sobre un campo con valores repetidos: el error llega comprensible y el esquema queda intacto', async () => {
+		const name = `dup_unique_${Math.random().toString(36).slice(2, 10)}`;
+		await admin.collections.create({
+			name,
+			type: 'base',
+			fields: [{ name: 'title', type: 'text' }]
+		});
+		await admin.collection(name).create({ title: 'Uno' });
+		await admin.collection(name).create({ title: 'Dos' });
+		const before = await admin.collections.getOne(name);
+
+		const port = createPocketBaseBackend({ url: running.url });
+		await port.login({ email: running.adminEmail, password: running.adminPassword });
+		const error = await port
+			.addCollectionFields(name, [{ name: 'code', type: 'text', unique: true }])
+			.then(
+				() => null,
+				(err: unknown) => err as VegaError
+			);
+		expect(error).toMatchObject({
+			kind: 'validation',
+			fieldErrors: { code: { code: 'validation_not_unique' } }
+		});
+		// Mensaje legible para la persona, sin volcado crudo de SQL ni JSON.
+		expect(error!.message).not.toMatch(/UNIQUE constraint|\{.*\}|CREATE UNIQUE/i);
+
+		const after = await admin.collections.getOne(name);
+		expect(after.fields).toEqual(before.fields);
+		expect(after.indexes).toEqual(before.indexes);
+	});
+
 	/**
 	 * Bugs de correctitud encontrados en code-review (§4.1/§5): la suite de contrato normal
 	 * nunca provoca un 5xx real en `login`/`authRefresh` (PB solo rechaza con 400/401 en esos
