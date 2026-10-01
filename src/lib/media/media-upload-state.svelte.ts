@@ -84,6 +84,16 @@ export interface MediaUploadState {
 		onUploaded: () => void,
 		onSummary: (summary: MediaUploadSummary) => void
 	): Promise<void>;
+	/** Reanuda el ÚLTIMO lote parado (sesión caducada): `files` va ALINEADO por índice con `items`.
+	 *  Solo se suben los `pending`; los `done`, `error` y `rejected` se quedan en su sitio, y el
+	 *  resumen cuenta el lote ENTERO (lo ya subido/fallado más lo de esta vuelta). No-op si no hay
+	 *  ningún `pending` o `files` no cubre la lista. */
+	resume(
+		ctx: VegaAppContext,
+		files: File[],
+		onUploaded: () => void,
+		onSummary: (summary: MediaUploadSummary) => void
+	): Promise<void>;
 	/** Limpia la lista de ficheros del último lote (p.ej. tras leer el resumen) — no cancela nada
 	 *  en vuelo, solo la vista; llamarla mientras `running` es `true` no tiene efecto útil. */
 	clear(): void;
@@ -130,14 +140,42 @@ export function createMediaUploadState(): MediaUploadState {
 			};
 		});
 		items = batch;
+		await run(ctx, batch, files, onUploaded, onSummary);
+	}
+
+	async function resume(
+		ctx: VegaAppContext,
+		files: File[],
+		onUploaded: () => void,
+		onSummary: (summary: MediaUploadSummary) => void
+	): Promise<void> {
+		// Foto de la lista actual: `run` lee de ella qué estaba `pending` al reanudar.
+		const batch = items.slice();
+		if (files.length < batch.length || !batch.some((item) => item.status.kind === 'pending')) {
+			return;
+		}
+		await run(ctx, batch, files, onUploaded, onSummary);
+	}
+
+	/** Sube en secuencia los `pending` de `batch` (alineado por índice con `files`). Los demás
+	 *  ítems no se tocan; sus estados ya terminales entran en los contadores del resumen. */
+	async function run(
+		ctx: VegaAppContext,
+		batch: MediaUploadItem[],
+		files: File[],
+		onUploaded: () => void,
+		onSummary: (summary: MediaUploadSummary) => void
+	): Promise<void> {
 		running = true;
 
-		let uploaded = 0;
-		let failed = batch.filter((item) => item.status.kind === 'rejected').length;
+		let uploaded = batch.filter((item) => item.status.kind === 'done').length;
+		let failed = batch.filter(
+			(item) => item.status.kind === 'rejected' || item.status.kind === 'error'
+		).length;
 		let aborted = false;
 		let pending = 0;
 
-		for (let i = 0; i < files.length; i++) {
+		for (let i = 0; i < batch.length; i++) {
 			if (aborted) break;
 			// `batch[i]` (nunca `items[i]`): el snapshot ORIGINAL de la clasificación de este
 			// fichero, que no cambia — solo dice si esta entrada empezó `'pending'` o ya llegó
@@ -171,7 +209,7 @@ export function createMediaUploadState(): MediaUploadState {
 					aborted = true;
 					// El resto de pendientes (aún no intentados) queda `'error'` con un motivo de
 					// aborto explícito: nunca se llega a llamar a `create()` para ellos.
-					for (let j = i + 1; j < files.length; j++) {
+					for (let j = i + 1; j < batch.length; j++) {
 						if (batch[j].status.kind === 'pending') {
 							setStatus(batch[j].id, { kind: 'error', message: ctx.t('media.upload.aborted') });
 							failed++;
@@ -197,6 +235,7 @@ export function createMediaUploadState(): MediaUploadState {
 			return running;
 		},
 		start,
+		resume,
 		clear
 	};
 }

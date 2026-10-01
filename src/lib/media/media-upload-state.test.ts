@@ -71,3 +71,84 @@ describe('createMediaUploadState — sesión caducada a mitad de lote', () => {
 		expect(onSummary).toHaveBeenCalledWith({ uploaded: 1, failed: 1, pending: 0 });
 	});
 });
+
+describe('createMediaUploadState — reanudar tras sesión caducada', () => {
+	test('conserva done, error y rejected en su sitio y solo sube los pending; el resumen cuadra', async () => {
+		const pngSchema = {
+			maxSizeBytes: 1_000_000,
+			mimeTypes: ['image/png']
+		} as unknown as MediaFileFieldSchema;
+		const batchFiles = [
+			new File(['x'], 'ok.png', { type: 'image/png' }),
+			new File(['x'], 'falla.png', { type: 'image/png' }),
+			new File(['x'], 'malo.txt', { type: 'text/plain' }),
+			new File(['x'], 'p1.png', { type: 'image/png' }),
+			new File(['x'], 'p2.png', { type: 'image/png' })
+		];
+		const create = vi
+			.fn()
+			.mockResolvedValueOnce({}) // ok.png
+			.mockRejectedValueOnce(VegaError.backend('boom')) // falla.png
+			.mockRejectedValueOnce(VegaError.authExpired('caducada')) // p1.png corta el lote
+			.mockResolvedValue({});
+		const { ctx } = fakeCtx(create);
+		const state = createMediaUploadState();
+		const onSummary = vi.fn();
+
+		await state.start(ctx, pngSchema, batchFiles, () => {}, onSummary);
+		expect(state.items.map((i) => i.status.kind)).toEqual([
+			'done',
+			'error',
+			'rejected',
+			'pending',
+			'pending'
+		]);
+		expect(onSummary).toHaveBeenLastCalledWith({ uploaded: 1, failed: 2, pending: 2 });
+		const ids = state.items.map((i) => i.id);
+		create.mockClear();
+
+		await state.resume(ctx, batchFiles, () => {}, onSummary);
+
+		// Siguen los cinco, en su sitio y con las mismas claves; solo se subieron los dos pending.
+		expect(state.items.map((i) => i.name)).toEqual([
+			'ok.png',
+			'falla.png',
+			'malo.txt',
+			'p1.png',
+			'p2.png'
+		]);
+		expect(state.items.map((i) => i.id)).toEqual(ids);
+		expect(state.items.map((i) => i.status.kind)).toEqual([
+			'done',
+			'error',
+			'rejected',
+			'done',
+			'done'
+		]);
+		expect(create).toHaveBeenCalledTimes(2);
+		expect(create.mock.calls.map((c) => (c[1] as { file: File }).file.name)).toEqual([
+			'p1.png',
+			'p2.png'
+		]);
+		expect(onSummary).toHaveBeenLastCalledWith({ uploaded: 3, failed: 2, pending: 0 });
+	});
+
+	test('sin pendientes no hace nada', async () => {
+		const create = vi.fn().mockResolvedValue({});
+		const { ctx } = fakeCtx(create);
+		const state = createMediaUploadState();
+		const f = files(1);
+		await state.start(
+			ctx,
+			schema,
+			f,
+			() => {},
+			() => {}
+		);
+		create.mockClear();
+		const onSummary = vi.fn();
+		await state.resume(ctx, f, () => {}, onSummary);
+		expect(create).not.toHaveBeenCalled();
+		expect(onSummary).not.toHaveBeenCalled();
+	});
+});
