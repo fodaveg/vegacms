@@ -867,7 +867,7 @@
 		display: block;
 		font-family: var(--mono);
 		font-size: 0.72rem;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
