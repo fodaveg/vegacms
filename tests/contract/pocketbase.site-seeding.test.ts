@@ -573,13 +573,11 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 		expect(await admin.collection('vega').getFullList()).toHaveLength(1);
 	});
 
-	test('vega_editors existente conserva campos, reglas y usuarios', async () => {
+	test('vega_editors existente con las reglas en null conserva campos, reglas y usuarios', async () => {
 		await admin.collections.create({
 			name: 'vega_editors',
 			type: 'auth',
-			fields: [{ name: 'displayName', type: 'text', required: true }],
-			listRule: null,
-			viewRule: '@request.auth.id = id'
+			fields: [{ name: 'displayName', type: 'text', required: true }]
 		});
 		const user = await admin.collection('vega_editors').create({
 			email: 'editora@example.test',
@@ -604,8 +602,15 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 				onUpdate: false
 			})
 		]);
-		expect(after.listRule).toBe(before.listRule);
-		expect(after.viewRule).toBe(before.viewRule);
+		expect(rawRules(before)).toEqual({
+			listRule: null,
+			viewRule: null,
+			createRule: null,
+			updateRule: null,
+			deleteRule: null
+		});
+		expect(rawRules(after)).toEqual(rawRules(before));
+		expect(after.manageRule ?? null).toBeNull();
 		await expect(admin.collection('vega_editors').getOne(user.id)).resolves.toMatchObject({
 			id: user.id,
 			email: 'editora@example.test',
@@ -627,6 +632,45 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 		expect(Number.isNaN(Date.parse(listed?.created ?? ''))).toBe(false);
 		expect((await seedSiteProject(port)).addedFields).toEqual({});
 	});
+
+	// Segunda barrera (revisión de seguridad del 30 sep 2026): `vega_editors` es la colección que
+	// decide quién escribe contenido, y el preflight no la ve. Si ya existe con alguna regla abierta
+	// (la peor: `createRule: ""`, registro libre de editores), el sembrado no la adopta.
+	test.each([
+		['listRule', '@request.auth.id = id'],
+		['viewRule', '@request.auth.id = id'],
+		['createRule', ''],
+		['updateRule', '@request.auth.id = id'],
+		['deleteRule', '@request.auth.id = id'],
+		['manageRule', '@request.auth.id != ""']
+	] as const)(
+		'vega_editors existente con %s distinta de null aborta sin escribir nada',
+		async (ruleKey, rule) => {
+			await admin.collections.create({
+				name: 'vega_editors',
+				type: 'auth',
+				fields: [],
+				[ruleKey]: rule
+			});
+			const before = await logicalSnapshot(admin);
+			const editorsBefore = await admin.collections.getOne('vega_editors');
+
+			const failure = await seedSiteProject(port).then(
+				() => null,
+				(error: unknown) => error
+			);
+
+			expect(failure).toMatchObject({ kind: 'validation' });
+			const message = (failure as Error).message;
+			expect(message).toContain('"vega_editors"');
+			expect(message).toContain(ruleKey);
+			expect(await logicalSnapshot(admin)).toEqual(before);
+			// Ni un campo de más: antes se saltaba la colección y le añadía `created`.
+			const editorsAfter = await admin.collections.getOne('vega_editors');
+			expect(editorsAfter.fields).toEqual(editorsBefore.fields);
+			expect(editorsAfter[ruleKey]).toBe(rule);
+		}
+	);
 
 	test('una instalación nueva crea vega_editors con created: el alta de una cuenta trae fecha', async () => {
 		await seedSiteProject(port);

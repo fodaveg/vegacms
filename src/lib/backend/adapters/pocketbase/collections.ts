@@ -2,6 +2,10 @@
  * `ensureCollections` (Anexo A) sobre PocketBase real: crea, una a una y secuencialmente (para
  * no acumular colisiones de nombre), las colecciones ausentes. Tipo, reglas y campos son
  * creation-only: si el nombre ya existe con el mismo tipo, se omite sin enviar ningún PATCH.
+ *
+ * Una `auth` que ya existe tiene una condición más (revisión de seguridad del 30 sep 2026): sus
+ * reglas tienen que ser las que el spec habría creado. Si no, se aborta con `validation`
+ * (`vega_collection_rules_mismatch`) en vez de omitirla; ver `assertExistingAuthRules`.
  */
 
 import type PocketBase from 'pocketbase';
@@ -9,11 +13,14 @@ import { ClientResponseError, type CollectionModel } from 'pocketbase';
 import type {
 	AddFieldsResult,
 	CollectionFieldSpec,
+	CollectionRule,
+	CollectionRuleKey,
 	CollectionSpec,
 	ConstrainPatternsResult,
 	EnsureResult
 } from '../../collections';
 import {
+	COMMON_COLLECTION_RULE_KEYS,
 	checkCollectionSpecAccess,
 	checkRelationTargets,
 	collectionSpecCreationMetadata,
@@ -60,6 +67,7 @@ export async function ensureCollectionsOnPocketBase(
 						`La colección "${spec.name}" ya existe como ${existing.type}, no como ${expectedType}`
 					);
 				}
+				if (expectedType === 'auth') assertExistingAuthRules(spec, existing);
 				skipped.push(spec.name);
 				continue;
 			}
@@ -72,6 +80,45 @@ export async function ensureCollectionsOnPocketBase(
 	}
 
 	return { created, skipped };
+}
+
+/**
+ * Reglas de una `auth` que deciden quién lee, crea o gestiona CUENTAS. `authRule` queda fuera a
+ * propósito: PocketBase la pone a `""` al crear cualquier `auth` (medido en 0.39.9, también en el
+ * scaffold del panel), y en `null` nadie podría iniciar sesión.
+ */
+const EXISTING_AUTH_RULE_KEYS = [...COMMON_COLLECTION_RULE_KEYS, 'manageRule'] as const;
+
+/**
+ * Una `auth` que ya existe solo se adopta (se salta, y el llamador le añade campos) si sus reglas
+ * son las que el spec habría creado: las declaradas, y `null` las que no declara. Con CUALQUIER
+ * otra cosa se aborta, sin escribir: una `createRule` abierta en la colección de editores es
+ * registro libre de cuentas con permiso de escritura, y saltársela era darla por buena. Las `base`
+ * no pasan por aquí: sus reglas las ve el preflight del sembrado, que una `auth` esquiva porque
+ * el descubrimiento de esquema las oculta.
+ */
+function assertExistingAuthRules(spec: CollectionSpec, existing: CollectionModel): void {
+	const declared = collectionSpecCreationMetadata(spec);
+	const found = existing as unknown as Partial<Record<CollectionRuleKey, CollectionRule>>;
+	const mismatched = EXISTING_AUTH_RULE_KEYS.filter(
+		(key) => (found[key] ?? null) !== (declared[key] ?? null)
+	);
+	if (mismatched.length === 0) return;
+
+	const detail = mismatched
+		.map(
+			(key) =>
+				`${key}=${JSON.stringify(found[key] ?? null)} (se esperaba ${JSON.stringify(declared[key] ?? null)})`
+		)
+		.join(', ');
+	const message =
+		`La colección "${spec.name}" ya existe con reglas de acceso que no son las esperadas: ` +
+		`${detail}. No se ha modificado nada. Revisa esas reglas en PocketBase y déjalas como se ` +
+		`esperan antes de repetir la operación.`;
+	throw VegaError.validation(
+		{ [spec.name]: { code: 'vega_collection_rules_mismatch', message } },
+		message
+	);
 }
 
 async function findCollection(pb: PocketBase, name: string): Promise<CollectionModel | null> {

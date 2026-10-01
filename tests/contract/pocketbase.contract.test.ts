@@ -186,6 +186,22 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 		});
 		const before = await admin.collections.getOne(name);
 
+		// Mismas reglas, otros campos: se omite sin tocarla (creation-only).
+		await expect(
+			port.ensureCollections([
+				{
+					name,
+					type: 'auth',
+					fields: [{ name: 'otroCampo', type: 'bool' }],
+					listRule: null,
+					viewRule: '@request.auth.id = id',
+					authRule: ''
+				}
+			])
+		).resolves.toEqual({ created: [], skipped: [name] });
+
+		// Reglas distintas de las que el spec habría creado: una `auth` así no se da por buena
+		// (revisión de seguridad del 30 sep 2026). Se rechaza, y tampoco se toca.
 		await expect(
 			port.ensureCollections([
 				{
@@ -197,7 +213,10 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 					authRule: ''
 				}
 			])
-		).resolves.toEqual({ created: [], skipped: [name] });
+		).rejects.toMatchObject({
+			kind: 'validation',
+			fieldErrors: { [name]: { code: 'vega_collection_rules_mismatch' } }
+		});
 
 		const after = await admin.collections.getOne(name);
 		expect(after.type).toBe('auth');

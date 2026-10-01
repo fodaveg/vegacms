@@ -40,7 +40,9 @@ const RESERVED_PREFIX = 'vega_';
 /**
  * Especificación de una colección a crear (§A.3, ampliado). Además de los campos, puede declarar
  * el tipo (`base` por defecto o `auth`) y las reglas de acceso que PocketBase escribirá SOLO al
- * crearla. Una colección ya existente nunca se reconcilia: conserva tipo, reglas y campos.
+ * crearla. Una colección ya existente nunca se reconcilia: conserva tipo, reglas y campos. Lo que
+ * sí puede pasar es que se RECHACE: con otro tipo siempre, y en el adaptador PocketBase también una
+ * `auth` cuyas reglas no sean las de este spec (`vega_collection_rules_mismatch`).
  *
  * `fields` usa el vocabulario Vega REDUCIDO de `CollectionFieldSpec`: NO es una API general de
  * autoría de esquema (soporta un subconjunto deliberado de tipos), pero SÍ acepta cualquier
