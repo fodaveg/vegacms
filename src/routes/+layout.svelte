@@ -84,6 +84,8 @@
 	type ModelStatus = 'idle' | 'loading' | 'ready' | 'network-error' | 'error';
 
 	let model = $state<ContentModel | null>(null);
+	/** `true` mientras `AppShell` está montado (lleva su propia pila de banners, en el flujo). */
+	let shellMounted = $state(false);
 	let modelStatus = $state<ModelStatus>('idle');
 	let modelError = $state<VegaError | null>(null);
 	let locale = $state<Locale>('es');
@@ -442,7 +444,7 @@
 {:else if isLoginPath}
 	{@render loadingState()}
 {:else}
-	<AppShell>
+	<AppShell onpresence={(present) => (shellMounted = present)}>
 		{@render children()}
 	</AppShell>
 {/if}
@@ -456,11 +458,15 @@
 <!-- `.vega-banner-stack` (P8): ancla FIJA compartida bajo la topbar para `GlobalBanner` (errores
      de transporte) y `UpdateBanner` (actualización disponible) — cada uno decide por su cuenta si
      renderiza algo, este wrapper solo los apila en columna para que, en el caso raro de que
-     coincidan los dos a la vez, no se solapen (ver cabecera de ambos componentes). -->
-<div class="vega-banner-stack">
-	<GlobalBanner />
-	<UpdateBanner />
-</div>
+     coincidan los dos a la vez, no se solapen (ver cabecera de ambos componentes). Solo con la
+     carcasa AUSENTE (pantallas de error globales, login): con `AppShell` montado la pila vive
+     dentro de él, en el flujo, y empuja el contenido en vez de taparlo. -->
+{#if !shellMounted}
+	<div class="vega-banner-stack">
+		<GlobalBanner />
+		<UpdateBanner />
+	</div>
+{/if}
 <ReloginModal />
 {#if MediaPicker}
 	<MediaPicker />
