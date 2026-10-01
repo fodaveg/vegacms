@@ -2191,6 +2191,10 @@
 		margin-left: 0.4rem;
 		font-family: var(--mono);
 		font-size: 0.6875rem;
+		/* El `kbd` es item flex del botón (se blockifica) y heredaba `line-height: 34px` del botón:
+		   su caja medía 34 px + padding + borde y sobresalía. Con su propio interlineado, la caja
+		   es la de la etiqueta y `align-items: center` del botón la centra. */
+		line-height: 1.2;
 		border: 1px solid var(--line-strong);
 		border-bottom-width: 2px;
 		border-radius: 4px;
