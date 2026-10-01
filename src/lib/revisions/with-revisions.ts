@@ -30,6 +30,10 @@
  * se borra (compensación best-effort): sin ello la papelera enseñaría un registro que sigue vivo y
  * «Restaurar» fallaría. Si la compensación también falla, se relanza el error original del borrado.
  *
+ * **Reordenado manual sin revisión (lote L7c).** Un `update` cuyo `opts.orderOnlyField` coincide
+ * con la ÚNICA clave de `data` no lee pre-imagen ni crea revisión (`isOrderOnlyWrite`): ver ahí
+ * por qué la exención es declarativa y cerrada a contenido.
+ *
  * **INVARIANTE 2 (§4): un fallo de snapshot NUNCA rompe la escritura.** Toda la maquinaria de
  * snapshot vive dentro de `try/catch` que nunca relanza — si `port.get` (pre-imagen), `port.create`
  * (guardar la revisión) o la lectura del manifiesto fallan, `update()` sigue delegando en el
@@ -73,7 +77,7 @@
  * 5. `revisions.enabled === false` en el manifiesto.
  */
 
-import type { BackendPort } from '$lib/backend/port';
+import type { BackendPort, UpdateOptions } from '$lib/backend/port';
 import type { RecordId, RecordInput, VegaRecord } from '$lib/backend/types';
 import { VEGA_COLLECTION, isReservedCollectionName } from '$lib/backend/collections';
 import { VegaError } from '$lib/backend/errors';
@@ -256,6 +260,24 @@ async function pruneTrashRevisions(port: BackendPort, trashDays: number): Promis
 }
 
 /**
+ * `true` si la escritura es SOLO un reordenado manual (lote L7c): el llamador declara el campo de
+ * orden en `opts.orderOnlyField` Y `data` contiene exactamente esa clave. Se eligió esta forma
+ * (declaración explícita + comprobación del contenido) frente a las alternativas porque el
+ * decorador no conoce el `orderField` de cada tipo (vive por debajo de `model/`, ver cabecera) y
+ * porque un simple `skipRevision: boolean` sería una vía para saltarse el historial en una
+ * escritura de contenido. Aquí, un `data` con cualquier otra clave (o vacío) NO se exime, aunque
+ * el llamador pase la opción: la exención no cubre contenido. Arrastrar filas no es una edición
+ * que merezca versión (renumerar el tramo movido llenaría el historial de «versiones» idénticas
+ * salvo el número de orden y expulsaría por poda las versiones reales).
+ */
+function isOrderOnlyWrite(data: RecordInput, opts: UpdateOptions | undefined): boolean {
+	const field = opts?.orderOnlyField;
+	if (!field) return false;
+	const keys = Object.keys(data);
+	return keys.length === 1 && keys[0] === field;
+}
+
+/**
  * Envuelve `port` con el snapshot de `update`/`delete` (§3/§8·B2, ver cabecera). El orden dentro
  * de cada método es el invariante que fijan los tests dedicados: en `delete`, el snapshot se
  * completa (con éxito o en silencio) ANTES de delegar en el borrado real; en `update`, la
@@ -387,7 +409,7 @@ export function withRevisions(port: BackendPort): BackendPort {
 	const wrapped: BackendPort = {
 		...port,
 		async update(type, id, data, opts) {
-			const prepared = await readUpdatePreImage(type, id);
+			const prepared = isOrderOnlyWrite(data, opts) ? null : await readUpdatePreImage(type, id);
 			// `opts` (versión esperada) viaja TAL CUAL: quien compara y falla cerrado es el
 			// adaptador, que relee en fresco justo antes de escribir. Si rechaza —conflicto,
 			// validación, red— no se guarda revisión de un guardado que no ocurrió.
