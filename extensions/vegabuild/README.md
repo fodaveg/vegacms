@@ -189,6 +189,10 @@ run is already closed as failed).
   its ONLY gate — keep it as secret as the webhook URL itself, and at least 16 characters (`New`
   refuses shorter ones). `logUrl`/`detail` sent through it are capped (a few KB) and silently
   truncated, never allowed to grow a run record without bound.
+- `detail` (the reason a failed run gives, from a Runner's `Result` or from `/callback`) is emitted
+  by `GET {RoutePrefix}/status` only while the current run is `"failed"`, trimmed and capped at 500
+  bytes (what is stored is capped higher, at 4096). It is free text from an external system: Vega
+  renders it as plain text, never as HTML, and so should any other client.
 - `logUrl` is rendered by Vega as a link, so only an absolute `http://` or `https://` URL is kept.
   Anything else (`javascript:`, `data:`, a relative path…) coming from `/callback`, from a Runner's
   `Result`/`Handoff` or already stored on an older run is dropped and reported as `null`; the run

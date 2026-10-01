@@ -58,6 +58,8 @@ export const es = {
 	// Ausente por completo (§cabecera del componente) si el proyecto conectado no declaró `build`
 	// en su discovery — estas claves solo se pintan cuando la funcionalidad existe de verdad.
 	'topbar.publish.loading': 'Comprobando publicación…',
+	'topbar.publish.unavailableDenied': 'Publicar no disponible: tu cuenta no tiene permiso',
+	'topbar.publish.unavailableOffline': 'Publicar no disponible: no se llega al servidor',
 	'topbar.publish.running': 'Publicando…',
 	'topbar.publish.failed': 'Reintentar publicación',
 	'topbar.publish.noChanges': 'Sin cambios',

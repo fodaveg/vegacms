@@ -7,6 +7,8 @@
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
+	BuildRequestError,
+	MAX_BUILD_DETAIL_LENGTH,
 	createBuildClient,
 	parseBuildStatus,
 	pollBuildStatus,
@@ -19,7 +21,8 @@ const RUNNING: BuildStatus = {
 	startedAt: '2026-07-25T10:00:00.000Z',
 	finishedAt: null,
 	lastPublishedAt: '2026-07-20T09:00:00.000Z',
-	logUrl: null
+	logUrl: null,
+	detail: null
 };
 
 describe('parseBuildStatus', () => {
@@ -33,7 +36,8 @@ describe('parseBuildStatus', () => {
 			startedAt: null,
 			finishedAt: null,
 			lastPublishedAt: null,
-			logUrl: null
+			logUrl: null,
+			detail: null
 		});
 		expect(parseBuildStatus({ state: 'ok', logUrl: 42 })).toMatchObject({ logUrl: null });
 	});
@@ -61,8 +65,25 @@ describe('parseBuildStatus', () => {
 			startedAt: null,
 			finishedAt: null,
 			lastPublishedAt: null,
-			logUrl: null
+			logUrl: null,
+			detail: null
 		});
+	});
+
+	test('detail: texto plano en una línea, acotado y sin interpretar como HTML', () => {
+		expect(parseBuildStatus({ state: 'failed', detail: '  exit\nstatus\t7  ' })).toMatchObject({
+			detail: 'exit status 7'
+		});
+		// El marcado NO se escapa ni se quita aquí: se pinta como nodo de texto.
+		expect(parseBuildStatus({ state: 'failed', detail: '<b>boom</b>' })).toMatchObject({
+			detail: '<b>boom</b>'
+		});
+		const long = parseBuildStatus({ state: 'failed', detail: 'x'.repeat(5000) });
+		expect(long?.detail).toHaveLength(MAX_BUILD_DETAIL_LENGTH + 1);
+		expect(long?.detail?.endsWith('…')).toBe(true);
+		expect(parseBuildStatus({ state: 'failed', detail: '   ' })?.detail).toBeNull();
+		expect(parseBuildStatus({ state: 'failed', detail: 42 })?.detail).toBeNull();
+		expect(parseBuildStatus({ state: 'failed' })?.detail).toBeNull();
 	});
 
 	test('"state" fuera del vocabulario o documento sin forma → null', () => {
@@ -120,6 +141,8 @@ describe('createBuildClient', () => {
 		});
 
 		await expect(client.fetchStatus()).rejects.toThrow(/503/);
+		await expect(client.fetchStatus()).rejects.toBeInstanceOf(BuildRequestError);
+		await expect(client.fetchStatus()).rejects.toMatchObject({ status: 503 });
 	});
 
 	test('trigger() sin "id" válido en la respuesta rechaza', async () => {

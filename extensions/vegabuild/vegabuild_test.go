@@ -15,6 +15,7 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
@@ -1246,5 +1247,69 @@ func TestStatusHidesAStoredNonHTTPLogURL(t *testing.T) {
 	}
 	if status.LogURL != nil {
 		t.Fatalf("expected a stored javascript: logUrl to be hidden, got %q", *status.LogURL)
+	}
+}
+
+// TestStatusDetail pins what GET /status emits as `detail`: only for a failed run, trimmed, capped
+// without splitting a UTF-8 character, and null when empty.
+func TestStatusDetail(t *testing.T) {
+	if got := statusDetail(runStateOK, "explanation"); got != "" {
+		t.Errorf("expected no detail for a run that is not failed, got %q", got)
+	}
+	if got := statusDetail(runStateFailed, "   "); got != "" {
+		t.Errorf("expected blank detail to be dropped, got %q", got)
+	}
+	if got := statusDetail(runStateFailed, "  exit status 7 \n"); got != "exit status 7" {
+		t.Errorf("expected a trimmed detail, got %q", got)
+	}
+	long := strings.Repeat("é", maxStatusDetailLength) // 2 bytes per rune
+	got := statusDetail(runStateFailed, long)
+	if len(got) > maxStatusDetailLength || !utf8.ValidString(got) || got == "" {
+		t.Errorf("expected a valid UTF-8 detail of at most %d bytes, got %d bytes", maxStatusDetailLength, len(got))
+	}
+}
+
+// TestStatusCarriesDetailOfFailedRun: the reason a CI run failed reaches GET /status as `detail`,
+// as JSON text (never markup interpreted by this module), capped at maxStatusDetailLength.
+func TestStatusCarriesDetailOfFailedRun(t *testing.T) {
+	app := newTestApp(t)
+	extension, err := New(Config{
+		Runner:          &fakeRunner{},
+		AuthCollections: []string{"vega_editors"},
+		CallbackSecret:  "sixteen-char-secret!",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := extension.EnsureCollections(app); err != nil {
+		t.Fatal(err)
+	}
+	mux := newTestMux(t, app, extension)
+	token := newAuthToken(t, app)
+
+	trigger := doRequest(mux, http.MethodPost, "/api/vega-build/trigger", token, "")
+	var triggerBody map[string]string
+	decodeJSON(t, trigger, &triggerBody)
+	runID := triggerBody["id"]
+
+	detail := "<b>npm ERR!</b> " + strings.Repeat("x", 2*maxStatusDetailLength)
+	payload, err := json.Marshal(map[string]string{"id": runID, "state": "failed", "detail": detail})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/api/vega-build/callback", strings.NewReader(string(payload)))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Vega-Build-Secret", "sixteen-char-secret!")
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected the callback to be accepted, got %d %s", response.Code, response.Body.String())
+	}
+
+	status := doRequest(mux, http.MethodGet, "/api/vega-build/status", token, "")
+	var body statusResponse
+	decodeJSON(t, status, &body)
+	if body.Detail == nil || !strings.HasPrefix(*body.Detail, "<b>npm ERR!</b> ") || len(*body.Detail) != maxStatusDetailLength {
+		t.Fatalf("expected the failed run's detail, capped at %d bytes, got %#v", maxStatusDetailLength, body.Detail)
 	}
 }
