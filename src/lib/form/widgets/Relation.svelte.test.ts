@@ -707,7 +707,8 @@ describe('Relation.svelte con destinos normales', () => {
 			await settle();
 
 			console.info(`[l9-relacion] peticiones con 120 ids: ${port.requests.join(',')}`);
-			expect(port.requests).toEqual(['list:50', 'list:50', 'list:20']);
+			// El borrado no vuelve en el `list`: se pide con `get` (404) antes de marcarlo.
+			expect(port.requests).toEqual(['list:50', 'list:50', 'list:20', `get:${ids[0]}`]);
 			const chips = Array.from(mounted.target.querySelectorAll('.vega-relation-chip'));
 			expect(chips).toHaveLength(120);
 			expect(chips[0]?.textContent).toContain(t('form.relation.notFound'));

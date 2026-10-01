@@ -4,8 +4,9 @@
  * queries, mapeo de candidatos, caché de títulos de los ya seleccionados y toggle de selección
  * múltiple respetando `maxSelect`.
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ALL_PERMISSIONS } from '$lib/backend/access';
+import { VegaError } from '$lib/backend/errors';
 import type { ContentType, Field, VegaRecord } from '$lib/backend/types';
 import type { ResolvedContentType } from '$lib/model/types';
 import {
@@ -20,7 +21,8 @@ import {
 	toggleRelationSelection,
 	withCachedTitle,
 	buildTitlesByIdsQuery,
-	chunkIds
+	chunkIds,
+	fetchRecordsByIds
 } from './relation-search';
 
 // ————— Helpers de fixture (mínimos, no el `ContentModel` completo) —————
@@ -256,5 +258,73 @@ describe('chunkIds / buildTitlesByIdsQuery', () => {
 			perPage: 2
 		});
 		expect(buildTitlesByIdsQuery(['a'], ['title']).fields).toEqual(['title']);
+	});
+});
+
+describe('fetchRecordsByIds (list por ids + get de los que el list no devuelve)', () => {
+	const rec = (id: string): VegaRecord => ({ id, type: 'articles', values: { title: `T ${id}` } });
+	const pageOf = (items: VegaRecord[]) => ({
+		items,
+		page: 1,
+		perPage: 50,
+		totalItems: items.length,
+		totalPages: 1
+	});
+
+	it('el list devuelve 1 de 2 ids y el get del otro lo devuelve: los dos se resuelven', async () => {
+		const list = vi.fn(async () => pageOf([rec('a')]));
+		const get = vi.fn(async (_type: string, id: string) => rec(id));
+		const out = await fetchRecordsByIds({ list, get }, 'articles', ['a', 'b'], ['title']);
+		expect([...out.records.keys()].sort()).toEqual(['a', 'b']);
+		expect(out.notFound.size).toBe(0);
+		expect(get).toHaveBeenCalledTimes(1);
+		expect(get).toHaveBeenCalledWith('articles', 'b');
+	});
+
+	it('si el get del que falta responde 404, queda notFound', async () => {
+		const list = vi.fn(async () => pageOf([rec('a')]));
+		const get = vi.fn(async (_type: string, id: string): Promise<VegaRecord> => {
+			throw VegaError.notFound(id);
+		});
+		const out = await fetchRecordsByIds({ list, get }, 'articles', ['a', 'b']);
+		expect([...out.records.keys()]).toEqual(['a']);
+		expect([...out.notFound]).toEqual(['b']);
+		expect(out.errors).toEqual([]);
+	});
+
+	it('un get que falla con otra cosa que 404 no marca notFound: queda sin resolver y se reporta', async () => {
+		const boom = VegaError.backend('caído');
+		const list = vi.fn(async () => pageOf([]));
+		const get = vi.fn(async (): Promise<VegaRecord> => {
+			throw boom;
+		});
+		const out = await fetchRecordsByIds({ list, get }, 'articles', ['b']);
+		expect(out.records.size).toBe(0);
+		expect(out.notFound.size).toBe(0);
+		expect(out.errors).toEqual([boom]);
+	});
+
+	it('sin ids ausentes no hace ningún get', async () => {
+		const list = vi.fn(async () => pageOf([rec('a')]));
+		const get = vi.fn();
+		await fetchRecordsByIds({ list, get }, 'articles', ['a']);
+		expect(get).not.toHaveBeenCalled();
+	});
+
+	it('acota la concurrencia de los get', async () => {
+		const ids = Array.from({ length: 12 }, (_, i) => `x${i}`);
+		let inFlight = 0;
+		let peak = 0;
+		const get = vi.fn(async (_type: string, id: string) => {
+			inFlight += 1;
+			peak = Math.max(peak, inFlight);
+			await new Promise((resolve) => setTimeout(resolve, 1));
+			inFlight -= 1;
+			return rec(id);
+		});
+		const list = vi.fn(async () => pageOf([]));
+		const out = await fetchRecordsByIds({ list, get }, 'articles', ids, undefined, 3);
+		expect(out.records.size).toBe(12);
+		expect(peak).toBe(3);
 	});
 });
