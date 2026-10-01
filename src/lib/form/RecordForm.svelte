@@ -1492,7 +1492,9 @@
 		position: sticky;
 		/* Mismo offset (y mismo motivo) que `.vega-rail` en `EditorRail.svelte`: el scroll es el de
 		   `.vega-main`, así que solo hay que descontar el alto de la barra pegajosa del editor. */
-		top: 58px;
+		/* `- 1.75rem`: la barra se pega al borde de `.vega-main` (ver `EditTopBar`), el aside sube lo
+		   mismo para conservar su hueco con ella. */
+		top: calc(58px - 1.75rem);
 		min-width: 0;
 	}
 
