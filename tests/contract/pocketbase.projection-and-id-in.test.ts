@@ -36,7 +36,7 @@ describe.skipIf(!AVAILABLE)('proyección e id in — pocketbase (binario real en
 
 	describeProjectionAndIdInContract({
 		name: 'pocketbase',
-		knownFilterDefects: true,
+		knownFilterDefects: false,
 		async makePort() {
 			const port = createPocketBaseBackend({ url: running.url });
 			await port.login({ email: running.adminEmail, password: running.adminPassword });
