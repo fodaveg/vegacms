@@ -412,13 +412,16 @@ export function withRevisions(port: BackendPort): BackendPort {
 		...port,
 		async update(type, id, data, opts) {
 			const prepared = isOrderOnlyWrite(data, opts) ? null : await readUpdatePreImage(type, id);
-			// `opts` (versión esperada) viaja TAL CUAL: quien compara y falla cerrado es el
-			// adaptador, que relee en fresco justo antes de escribir. Si rechaza —conflicto,
+			// `opts` (versión esperada) viaja tal cual: quien compara y falla cerrado es el
+			// adaptador, contra la lectura fresca de este guardado. Si rechaza —conflicto,
 			// validación, red— no se guarda revisión de un guardado que no ocurrió.
 			// Sin `opts`, la llamada es BIT A BIT la de siempre (tres argumentos, sin un `undefined`
 			// de cola que un doble de test o una envoltura estricta verían como distinto).
-			const saved =
-				opts === undefined
+			// La pre-imagen que acabamos de leer viaja como `preImage`: el adaptador no repite el `GET`
+			// y compara `expectedVersion` contra ESTA lectura, fresca de este guardado.
+			const saved = prepared
+				? await port.update(type, id, data, { ...opts, preImage: prepared.pre })
+				: opts === undefined
 					? await port.update(type, id, data)
 					: await port.update(type, id, data, opts);
 			if (prepared) await recordUpdateRevision(type, id, prepared);

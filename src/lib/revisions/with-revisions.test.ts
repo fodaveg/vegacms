@@ -141,8 +141,15 @@ describe('withRevisions — INVARIANTE 1 (pre-imagen, no resultado)', () => {
 				values: { title: 'ANTES' }
 			})
 		);
-		// La escritura real recibe el payload DEL LLAMADOR, sin tocar: el decorador nunca lo altera.
-		expect(port.update).toHaveBeenCalledWith('posts', 'p1', { title: 'DESPUÉS' });
+		// La escritura real recibe el payload DEL LLAMADOR, sin tocar, y la pre-imagen que el
+		// decorador acaba de leer (`preImage`) para que el adaptador no repita el `GET` (lote 9).
+		expect(port.update).toHaveBeenCalledWith(
+			'posts',
+			'p1',
+			{ title: 'DESPUÉS' },
+			{ preImage: { id: 'p1', type: 'posts', values: { title: 'ANTES' } } }
+		);
+		expect(port.get).toHaveBeenCalledTimes(1);
 	});
 
 	test('label sale de guessRecordLabel(pre-imagen); author de currentSession()', async () => {
@@ -229,7 +236,7 @@ describe('withRevisions — orden (pre-imagen antes; revisión solo tras un guar
 			'posts',
 			'p1',
 			{ title: 'x' },
-			{ expectedVersion: 'v1' }
+			expect.objectContaining({ expectedVersion: 'v1' })
 		);
 	});
 });
@@ -364,7 +371,7 @@ describe('withRevisions — INVARIANTE 2 (un fallo de snapshot nunca rompe la es
 		const result = await wrapped.update('posts', 'p1', { title: 'x' });
 
 		expect(result).toEqual({ id: 'p1', type: 'posts', values: { title: 'x' } });
-		expect(port.update).toHaveBeenCalledWith('posts', 'p1', { title: 'x' });
+		expect(port.update).toHaveBeenCalledWith('posts', 'p1', { title: 'x' }, expect.anything());
 	});
 
 	test('create(vega_revisions) rechaza con not-found → update() sigue adelante Y arma la latch', async () => {

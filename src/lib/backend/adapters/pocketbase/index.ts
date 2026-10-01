@@ -705,16 +705,25 @@ export function createPocketBaseBackend({
 			return guarded(async () => {
 				const ct = await getContentTypeOrThrow(type);
 				assertContentTypeWritable(ct);
-				// Esta relectura ya existía (el plan de ficheros necesita los valores vigentes); la
-				// versión esperada la reutiliza, sin petición extra. Ventana NO atómica entre este
-				// `GET` y el `PATCH` de abajo: ver `port.ts#update`.
-				const existingRaw = await pb.collection(type).getOne(id);
-				const existingValues = buildValuesFromRaw(
-					ct.fields,
-					existingRaw as unknown as Record<string, unknown>
-				);
+				// La relectura da los valores vigentes que necesitan el plan de ficheros y la versión
+				// esperada, sin petición extra para esta última. Si el llamador ya leyó el registro
+				// para ESTE guardado (`opts.preImage`, lo hace `withRevisions`) se reutiliza esa
+				// lectura en vez de pedirla otra vez; un `preImage` de otro registro se ignora.
+				// Ventana NO atómica entre esta lectura y el `PATCH` de abajo: ver `port.ts#update`.
+				const shared =
+					opts?.preImage && opts.preImage.id === id && opts.preImage.type === type
+						? opts.preImage
+						: null;
+				const existingRaw = shared ? null : await pb.collection(type).getOne(id);
+				const existingValues = shared
+					? shared.values
+					: buildValuesFromRaw(ct.fields, existingRaw as unknown as Record<string, unknown>);
 				if (opts?.expectedVersion !== undefined) {
-					const current: VegaRecord = { id: String(existingRaw.id), type, values: existingValues };
+					const current: VegaRecord = {
+						id: shared ? shared.id : String(existingRaw!.id),
+						type,
+						values: existingValues
+					};
 					const serverVersion = recordVersion(current);
 					if (serverVersion !== opts.expectedVersion) {
 						throw new VegaConflictError(structuredClone(current), serverVersion);
