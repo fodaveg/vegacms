@@ -242,9 +242,9 @@ pnpm test:e2e
 # Contrato contra PocketBase real (versión pineada)
 pnpm test:pb
 
-# Contrato contra rango de versiones de PocketBase (0.26.0 y 0.39.6)
+# Contrato contra rango de versiones de PocketBase (0.26.0 y 0.39.9)
 PB_VERSION=0.26.0 pnpm test:pb
-PB_VERSION=0.39.6 pnpm test:pb
+PB_VERSION=0.39.9 pnpm test:pb
 ```
 
 Gate completo (la suite que CI ejecuta en cada PR):

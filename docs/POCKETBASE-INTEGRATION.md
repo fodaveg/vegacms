@@ -477,7 +477,20 @@ necesita. Desde el lote del sembrado (29 jul 2026) ese subconjunto incluye dos c
   tocar la red**. Importa más de lo que parece: la convención de publicación de Vega (borrador /
   publicado) exige que el campo de estado sea un `select` con `draft` y `published`, así que hasta
   ahora Vega no podía crear un proyecto que cumpliera su propia convención.
-- **`unique` en campos de texto**, que se materializa como un índice único de PocketBase.
+- **`unique` en campos de texto, `url` y `email`**, que se materializa como un índice único de
+  PocketBase. En `url` y `email` el índice es **parcial** (`WHERE campo != ''`): un campo opcional
+  vacío guarda `''`, y un índice completo rechazaría el segundo registro sin valor. En `text` se
+  conserva el índice histórico, completo.
+
+El lote 2 del audit de funcionalidades (1 oct 2026) amplió además el vocabulario con tres tipos
+para poder modelar, por ejemplo, un blog desde Vega:
+
+- **`editor`**: texto enriquecido (HTML). El puerto lo descubre como `richtext` con subtipo `html`.
+  No admite `unique`.
+- **`url`** y **`email`**: PocketBase valida el formato en el servidor (el adaptador `memory` no lo
+  valida, divergencia previa a este lote). Admiten `required` y `unique`.
+- La **imagen** no es un tipo propio: es una `relation` simple hacia `vega_media` (sin
+  `cascadeDelete`), un atajo de la UI.
 
 Dos límites deliberados de esta primera versión:
 
@@ -489,11 +502,20 @@ Dos límites deliberados de esta primera versión:
    backfill dejaría el mismo valor vacío repetido; con una sola fila se acepta y esa fila reserva
    el valor.
 
-La **UI** de Ajustes → Esquema todavía no ofrece `select` ni `unique`. La operación headless
-`seedSiteProject` sí los declara al preparar un proyecto nuevo (`pages.status`, `pages.path`,
-`redirects.from` y `redirects.code`), pero todavía no hay botón ni asistente para dispararla desde
-la SPA. Que el puerto lo admita, que el sembrado lo use y que el panel lo ofrezca son tres cosas
-distintas.
+La **UI** de Ajustes → Esquema ofrece los tipos _Texto_, _Texto con formato_ (`editor`),
+_Dirección web_ (`url`), _Correo_ (`email`), _Imagen_ (relación a `vega_media`), _Número_, _Sí/No_,
+_Fecha_, _JSON_, _Selección_ (`select`) y _Relación_, más la casilla _No se puede repetir_
+(`unique`) en texto, dirección web y correo. _Imagen_ se ofrece desactivada mientras `vega_media`
+no exista en el esquema (se crea al abrir «Medios»). Quedan fuera de la UI `file` (tiene su flujo
+en «Medios») y `autodate`. La operación headless `seedSiteProject` declara además `pages.status`,
+`pages.path`, `redirects.from` y `redirects.code` al preparar un proyecto nuevo, pero todavía no hay
+botón ni asistente para dispararla desde la SPA. Que el puerto lo admita, que el sembrado lo use y
+que el panel lo ofrezca son tres cosas distintas.
+
+Si el campo único nuevo choca con registros que ya existen (dos o más filas compartirían el valor
+vacío de un `text`), PocketBase rechaza la mutación entera. El adaptador lo traduce a un error de
+validación **por campo** («No se puede marcar "X" como único…») y no deja nada a medias: ni el
+campo ni el índice llegan a crearse.
 
 El payload aplicado por red usa el `collectionId` real del entorno. La migración generada no
 incrusta ese id —resuelve `app.findCollectionByNameOrId("<nombre>").id` al ejecutarse—, por lo que
