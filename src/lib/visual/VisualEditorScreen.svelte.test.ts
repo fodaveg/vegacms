@@ -484,37 +484,50 @@ describe('VisualEditorScreen.svelte', () => {
 	});
 
 	test('renovar el token PARA el puente: la barra no puede seguir diciendo "conectado" con el marco ya desmontado', async () => {
-		const fetchMock = vi.fn().mockResolvedValue(jsonResponse(expiringTokenBody()));
-		vi.stubGlobal('fetch', fetchMock);
-		const { ctx, type } = await setup();
-		mounted = mountScreen(ctx, type);
-		await flush();
+		// Reloj FALSO solo para `setTimeout`/`clearTimeout`/`Date`: el token caduca a los ~30 ms y
+		// con temporizadores reales la renovación (que desmonta el marco) podía adelantarse al
+		// `ready` del puente si la máquina iba cargada, dejando la barra vacía ANTES de la primera
+		// comprobación. Con el reloj parado, la renovación solo ocurre cuando el test la avanza.
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+		try {
+			const fetchMock = vi.fn().mockResolvedValue(jsonResponse(expiringTokenBody()));
+			vi.stubGlobal('fetch', fetchMock);
+			const { ctx, type } = await setup();
+			mounted = mountScreen(ctx, type);
+			// Drena la cadena de microtareas de `requestPreview` SIN avanzar el reloj (< 30 ms).
+			await vi.advanceTimersByTimeAsync(0);
+			await tick();
 
-		const iframe = mounted.target.querySelector<HTMLIFrameElement>('.vega-visual-frame');
-		iframe?.dispatchEvent(new Event('load'));
-		await tick();
-		sendSiteMessage({
-			vega: 'vega-visual-1',
-			type: 'ready',
-			collection: 'post',
-			id: 'rec-1',
-			blocks: [{ id: 'b1', type: 'hero', rect: { top: 0, left: 0, width: 100, height: 50 } }]
-		});
-		await tick();
-		expect(mounted.target.querySelector('.vega-visual-status')?.textContent).toContain(
-			translate('es', 'editor.visual.connected', { count: 1 })
-		);
+			const iframe = mounted.target.querySelector<HTMLIFrameElement>('.vega-visual-frame');
+			expect(iframe).not.toBeNull();
+			iframe?.dispatchEvent(new Event('load'));
+			await tick();
+			sendSiteMessage({
+				vega: 'vega-visual-1',
+				type: 'ready',
+				collection: 'post',
+				id: 'rec-1',
+				blocks: [{ id: 'b1', type: 'hero', rect: { top: 0, left: 0, width: 100, height: 50 } }]
+			});
+			await tick();
+			expect(mounted.target.querySelector('.vega-visual-status')?.textContent).toContain(
+				translate('es', 'editor.visual.connected', { count: 1 })
+			);
+			expect(fetchMock.mock.calls.length).toBe(1);
 
-		// La renovación programada dispara `requestPreview()` otra vez, que desmonta el `<iframe>`:
-		// sin el `stop()` del cliente, la barra seguiría anunciando los bloques de una página que
-		// ya no está en pantalla.
-		await new Promise((resolve) => setTimeout(resolve, 80));
-		await tick();
+			// La renovación programada dispara `requestPreview()` otra vez, que desmonta el `<iframe>`:
+			// sin el `stop()` del cliente, la barra seguiría anunciando los bloques de una página que
+			// ya no está en pantalla.
+			await vi.advanceTimersByTimeAsync(80);
+			await tick();
 
-		expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
-		expect(mounted.target.querySelector('.vega-visual-status')?.textContent).not.toContain(
-			translate('es', 'editor.visual.connected', { count: 1 })
-		);
+			expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
+			expect(mounted.target.querySelector('.vega-visual-status')?.textContent).not.toContain(
+				translate('es', 'editor.visual.connected', { count: 1 })
+			);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	test('con el token caído, la barra NO dice "conectando": el mensaje lo da el lienzo', async () => {
