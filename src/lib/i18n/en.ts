@@ -672,6 +672,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.merged.empty.title': "There's nothing here yet",
 	'list.merged.empty.body': "No record from this view's collections matches yet.",
 	'list.merged.truncatedNotice': "One of this view's collections has more records than shown.",
+	'list.merged.failedNotice':
+		"Couldn't load: {sources}. Showing the records from the other collections.",
 
 	// ————— Media: bootstrap + schema (Phase P6·6a) —————
 	'media.loadErrorBody': 'Could not load the media library. Try again.',

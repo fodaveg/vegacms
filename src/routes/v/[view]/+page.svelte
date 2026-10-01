@@ -179,6 +179,7 @@
 				<MergedViewTable
 					rows={status.rows}
 					truncatedCollections={status.truncatedCollections}
+					failedSources={status.failedSources}
 					reorderable={!persisting}
 					onReorder={handleReorder}
 				/>

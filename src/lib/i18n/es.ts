@@ -731,6 +731,8 @@ export const es = {
 	'list.merged.empty.body': 'Ningún registro de las colecciones de esta vista coincide todavía.',
 	'list.merged.truncatedNotice':
 		'Alguna de las colecciones de esta vista tiene más registros de los mostrados.',
+	'list.merged.failedNotice':
+		'No se han podido cargar: {sources}. Se muestran los registros de las demás colecciones.',
 
 	// ————— Integridad referencial (`#lote-integridad`, Fase A): motor "¿dónde se usa esto?" —————
 	// Compartido por `UsedInPanel`/`ReferencesSummary` (panel pasivo) y por el aviso de

@@ -89,7 +89,7 @@ function compareRows(a: MergedRow, b: MergedRow): number {
  */
 export function truncatedCollections(
 	view: ResolvedMergedView,
-	pages: Page<VegaRecord>[]
+	pages: (Page<VegaRecord> | null)[]
 ): string[] {
 	const truncated: string[] = [];
 	view.sources.forEach((source, index) => {
