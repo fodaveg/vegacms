@@ -572,8 +572,25 @@ func (x *Extension) applyHandoff(app core.App, runID string, handoff Handoff) er
 // POST /trigger answers with 409.
 var ErrRunInProgress = errors.New("vegabuild: a build is already running")
 
+// What an editor is told when Runner.Start fails. Both are fixed strings on purpose: the error a
+// Runner returns from Start is whatever the operating system or the provider said (a CommandRunner
+// that cannot spawn its command quotes the executable's path and the log file's path; a
+// project-supplied Runner can quote anything, an environment variable included), and both of these
+// reach the browser of anyone allowed to press Publish. The real error goes to the server log only
+// (see Trigger).
+const (
+	// startFailureMessage is the `message` of the 502 that POST /trigger answers.
+	startFailureMessage = "failed to start the build"
+	// startFailureDetail is stored as the failed run's `detail`, which GET /status emits and Vega
+	// shows next to the Publish button.
+	startFailureDetail = "the build could not be started; the server log has the reason"
+)
+
 // StartError wraps the error a Runner returned from Start. The run it belongs to has already been
 // closed as failed by the time Trigger returns it; POST /trigger answers it with 502.
+//
+// Err (and so Error()) is the Runner's raw error, for server-side callers such as
+// extensions/vegaschedule. It must never be forwarded to an HTTP client: triggerHandler does not.
 type StartError struct {
 	RunID string
 	Err   error
@@ -615,10 +632,17 @@ func (x *Extension) Trigger(app core.App) (string, error) {
 		}
 	})
 	if startErr != nil {
+		// The Runner's own words stay on the server: this log line is the ONLY place they go. What
+		// is stored as the run's detail (and so emitted by GET /status) is startFailureDetail.
+		app.Logger().Error(
+			"vegabuild: the runner failed to start the build",
+			"run", runID,
+			"error", startErr.Error(),
+		)
 		// Route the failure through closeRun (not a direct Set+Save on the stale in-memory `run`):
 		// the same reread-fresh discipline as applyHandoff, in case a Runner that errors out of
 		// Start still managed to call report first.
-		if _, err := x.closeRun(app, runID, runStateFailed, "", startErr.Error()); err != nil {
+		if _, err := x.closeRun(app, runID, runStateFailed, "", startFailureDetail); err != nil {
 			return "", err
 		}
 		return runID, &StartError{RunID: runID, Err: startErr}
@@ -637,7 +661,8 @@ func (x *Extension) triggerHandler(e *core.RequestEvent) error {
 	case errors.Is(err, ErrRunInProgress):
 		return apis.NewApiError(http.StatusConflict, "a build is already running", nil)
 	case errors.As(err, &startErr):
-		return apis.NewApiError(http.StatusBadGateway, "failed to start the build: "+startErr.Err.Error(), nil)
+		// Never startErr.Err.Error(): see startFailureMessage. Trigger has already logged it.
+		return apis.NewApiError(http.StatusBadGateway, startFailureMessage, nil)
 	case err != nil:
 		return err
 	}

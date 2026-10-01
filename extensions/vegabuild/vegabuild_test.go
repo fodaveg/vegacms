@@ -809,6 +809,77 @@ func TestStartFailureMarksRunFailed(t *testing.T) {
 	}
 }
 
+// TestStartFailureDoesNotLeakTheRunnerError: what Runner.Start says when it fails (paths, the
+// command, an environment variable) reaches the editor neither in the 502 of POST /trigger nor in
+// the `detail` of GET /status, which Vega shows next to the Publish button. Both carry a fixed
+// text instead; the server-side caller of Trigger still gets the real error.
+func TestStartFailureDoesNotLeakTheRunnerError(t *testing.T) {
+	const runnerError = "vegabuild: start command: fork/exec /opt/acme/deploy.sh: " +
+		"permission denied (DEPLOY_TOKEN=hunter2)"
+	secrets := []string{"/opt/acme", "deploy.sh", "DEPLOY_TOKEN", "hunter2", "fork/exec", "permission denied"}
+
+	app := newTestApp(t)
+	runner := &fakeRunner{completes: true, startErr: errors.New(runnerError)}
+	extension, err := New(Config{
+		Runner:          runner,
+		AuthCollections: []string{"vega_editors"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := extension.EnsureCollections(app); err != nil {
+		t.Fatal(err)
+	}
+	mux := newTestMux(t, app, extension)
+	token := newAuthToken(t, app)
+
+	trigger := doRequest(mux, http.MethodPost, "/api/vega-build/trigger", token, "")
+	if trigger.Code != http.StatusBadGateway {
+		t.Fatalf("expected 502 on a failed start, got %d %s", trigger.Code, trigger.Body.String())
+	}
+	var triggerBody struct {
+		Message string `json:"message"`
+	}
+	decodeJSON(t, trigger, &triggerBody)
+	if !strings.EqualFold(strings.TrimRight(triggerBody.Message, "."), startFailureMessage) {
+		t.Fatalf("expected the fixed message %q, got %q", startFailureMessage, triggerBody.Message)
+	}
+
+	status := doRequest(mux, http.MethodGet, "/api/vega-build/status", token, "")
+	if status.Code != http.StatusOK {
+		t.Fatalf("expected /status to answer, got %d %s", status.Code, status.Body.String())
+	}
+	var statusBody statusResponse
+	decodeJSON(t, status, &statusBody)
+	if statusBody.State != runStateFailed || statusBody.Detail == nil || *statusBody.Detail != startFailureDetail {
+		t.Fatalf("expected a failed run with the fixed detail %q, got %s", startFailureDetail, status.Body.String())
+	}
+
+	stored, err := extension.currentRun(app)
+	if err != nil || stored == nil {
+		t.Fatalf("expected the failed run to be stored, got %v, %v", stored, err)
+	}
+	for name, exposed := range map[string]string{
+		"POST /trigger":  trigger.Body.String(),
+		"GET /status":    status.Body.String(),
+		"the run record": stored.GetString("detail"),
+	} {
+		for _, secret := range secrets {
+			if strings.Contains(exposed, secret) {
+				t.Errorf("%s leaks %q from the Runner's error: %s", name, secret, exposed)
+			}
+		}
+	}
+
+	// A server-side caller (vegaschedule) still gets the real error to log or act on.
+	time.Sleep(2 * time.Millisecond) // see currentRun: two runs in the same millisecond tie on created
+	_, err = extension.Trigger(app)
+	var startErr *StartError
+	if !errors.As(err, &startErr) || startErr.Err.Error() != runnerError {
+		t.Fatalf("expected Trigger to return the Runner's own error, got %v", err)
+	}
+}
+
 // TestTriggerFromServerSharesTheHTTPGuard checks the programmatic Trigger (what vegaschedule calls
 // after a scheduled publication) against the HTTP route: same run records, same "one at a time"
 // guard in both directions, and a failed Start surfaced as *StartError with the run closed.

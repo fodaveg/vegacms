@@ -177,13 +177,22 @@ extensions compiled into the same binary: `extensions/vegaschedule` wires it to 
 hook so a scheduled publication rebuilds the site the same way a human pressing Publish does (see
 that README for the recipe). It returns `vegabuild.ErrRunInProgress` when a run is already open
 (the HTTP route's 409) and a `*vegabuild.StartError` when the Runner failed to start (the 502; the
-run is already closed as failed).
+run is already closed as failed). `StartError` carries the Runner's raw error, which the HTTP route
+deliberately withholds from editors: log it, never return it to a client.
 
 ## Security notes
 
 - The webhook URL (and any header/body configured on `WebhookRunner`) is a credential. It is never
-  embedded in Vega's discovery document, and any error this extension surfaces to editors never
-  quotes it: a non-2xx webhook response is reported only as an HTTP status code.
+  embedded in Vega's discovery document, and no error of `WebhookRunner` quotes it: a non-2xx
+  webhook response is reported only as an HTTP status code.
+- When `Runner.Start` fails, the editor is told nothing the Runner said. `POST {RoutePrefix}/trigger`
+  answers `502` with the fixed message `failed to start the build`, and the run is stored with the
+  fixed `detail` `the build could not be started; the server log has the reason`, which is what
+  `GET {RoutePrefix}/status` then emits. The Runner's own error (a `CommandRunner` that cannot spawn
+  quotes the executable and the log file path; a Runner of your own may quote anything) goes to
+  PocketBase's log only, as `vegabuild: the runner failed to start the build` with the run id. A
+  server-side caller of `Extension.Trigger` still receives it in `StartError.Err` and must not
+  forward it to a client either.
 - `POST {RoutePrefix}/callback` is the only route with no `RequireAuth`: the caller is CI
   infrastructure with no PocketBase account. `X-Vega-Build-Secret`, compared in constant time, is
   its ONLY gate — keep it as secret as the webhook URL itself, and at least 16 characters (`New`
@@ -192,7 +201,11 @@ run is already closed as failed).
 - `detail` (the reason a failed run gives, from a Runner's `Result` or from `/callback`) is emitted
   by `GET {RoutePrefix}/status` only while the current run is `"failed"`, trimmed and capped at 500
   bytes (what is stored is capped higher, at 4096). It is free text from an external system: Vega
-  renders it as plain text, never as HTML, and so should any other client.
+  renders it as plain text, never as HTML, and so should any other client. Every editor allowed to
+  publish reads it, so treat it as public to them: `CommandRunner` only ever writes the exit status
+  (`exit status 7`), its timeout, or a recovered panic's message, but whatever your CI sends as
+  `detail` to `/callback`, or a Runner of your own puts in `Result.Detail`, is shown verbatim. Do not
+  send log excerpts, paths or variable values there; link them through `logUrl` instead.
 - `logUrl` is rendered by Vega as a link, so only an absolute `http://` or `https://` URL is kept.
   Anything else (`javascript:`, `data:`, a relative path…) coming from `/callback`, from a Runner's
   `Result`/`Handoff` or already stored on an older run is dropped and reported as `null`; the run

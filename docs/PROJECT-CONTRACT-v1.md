@@ -136,7 +136,11 @@ Returns `200` with:
   log…), or `null`. Vega only links to it when `state` is `"failed"`.
 - `detail` (optional; an older implementation may omit it): a short plain-text
   reason the current run failed, or `null`. Vega shows it only when `state` is
-  `"failed"`, as TEXT (never HTML), cut to a few hundred characters.
+  `"failed"`, as TEXT (never HTML), cut to a few hundred characters. Every
+  editor allowed to publish reads it, so an implementation must not put server
+  paths, command lines, environment values or raw error text from its own
+  tooling in it. The reference extension reports a build that could not even
+  be started with a fixed sentence and keeps the cause in the server log.
 
 Vega never stores or exposes the real deploy webhook; the project's own
 backend owns that secret and decides how `/trigger` reaches it.
