@@ -8,7 +8,7 @@ import {
 	seedLikePrevious0ace139,
 	seedLikePrevious1bda988
 } from '$lib/backend/site-seeding-previous.fixture';
-import { t } from '$lib/i18n';
+import { ensureLocaleLoaded, t } from '$lib/i18n';
 import SiteBaseCard from './SiteBaseCard.svelte';
 
 const es = (key: string, params?: Record<string, string | number>) => t('es', key, params);
@@ -35,11 +35,11 @@ async function until(condition: () => boolean): Promise<void> {
 	}
 }
 
-function mountCard(port: BackendPort, onChanged = vi.fn()) {
+function mountCard(port: BackendPort, onChanged = vi.fn(), translate: VegaAppContext['t'] = es) {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const feedback = { toast: vi.fn(), reportError: vi.fn() };
-	const ctx = { t: es, port, feedback } as unknown as VegaAppContext;
+	const ctx = { t: translate, port, feedback } as unknown as VegaAppContext;
 	const instance = mount(SiteBaseCard, {
 		target,
 		props: { onChanged },
@@ -362,5 +362,68 @@ describe('SiteBaseCard', () => {
 		await click(button(open, 'Reintentar'));
 		expect(read).toHaveBeenCalled();
 		expect(dialog(mounted.target)!.textContent).toContain('Esto es lo que Vega va a crear');
+	});
+
+	describe('desajuste de reglas de una colección auth', () => {
+		async function failWith(
+			error: Error,
+			translate: VegaAppContext['t'],
+			open: string,
+			go: string
+		) {
+			const port = await authedMemory();
+			vi.spyOn(port, 'ensureCollections').mockRejectedValueOnce(error);
+			mounted = mountCard(port, vi.fn(), translate);
+			await settle();
+			await click(button(mounted.target, open));
+			await click(button(dialog(mounted.target)!, go));
+			return dialog(mounted.target)!.querySelector('pre')!.textContent ?? '';
+		}
+
+		const mismatch = (expectsOnlySuperusers: boolean) =>
+			VegaError.validation(
+				{
+					vega_editors: {
+						code: 'vega_collection_rules_mismatch',
+						message: 'TEXTO DE RESPALDO',
+						params: {
+							collection: 'vega_editors',
+							rules: ['listRule', 'deleteRule'],
+							expectsOnlySuperusers
+						}
+					}
+				},
+				'TEXTO DE RESPALDO'
+			);
+
+		test('en castellano muestra el texto en castellano con los nombres de las reglas', async () => {
+			const text = await failWith(mismatch(true), es, 'Preparar el sitio', 'Preparar el sitio');
+			expect(text).toContain(
+				'La colección "vega_editors" ya existe con reglas de acceso distintas'
+			);
+			expect(text).toContain('listRule, deleteRule');
+			expect(text).toContain('déjalas sin regla (null: solo superusuarios)');
+			expect(text).not.toContain('TEXTO DE RESPALDO');
+		});
+
+		test('en inglés muestra el texto en inglés, también la variante de reglas declaradas', async () => {
+			await ensureLocaleLoaded('en');
+			const en = (key: string, params?: Record<string, string | number>) => t('en', key, params);
+			const text = await failWith(mismatch(false), en, 'Set up the site', 'Set up the site');
+			expect(text).toContain('The "vega_editors" collection already exists');
+			expect(text).toContain('listRule, deleteRule');
+			expect(text).toContain('set them as Vega declares them');
+			expect(text).not.toContain('TEXTO DE RESPALDO');
+			expect(text).not.toContain('La colección');
+		});
+
+		test('sin params sigue mostrando err.message', async () => {
+			const bare = VegaError.validation(
+				{ vega_editors: { code: 'vega_collection_rules_mismatch', message: 'TEXTO DE RESPALDO' } },
+				'TEXTO DE RESPALDO'
+			);
+			const text = await failWith(bare, es, 'Preparar el sitio', 'Preparar el sitio');
+			expect(text).toBe('TEXTO DE RESPALDO');
+		});
 	});
 });

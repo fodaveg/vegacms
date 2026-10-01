@@ -717,6 +717,14 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 			expect(message).not.toContain(other);
 		}
 		expect(message).not.toContain('proyecto-interno');
+		// Los parámetros para traducir llevan solo nombres: las reglas que difieren, no su contenido.
+		const fieldError = (failure as VegaError).fieldErrors?.vega_editors;
+		expect(fieldError?.params).toEqual({
+			collection: 'vega_editors',
+			rules: ['listRule', 'deleteRule'],
+			expectsOnlySuperusers: true
+		});
+		expect(JSON.stringify(fieldError?.params)).not.toContain('proyecto-interno');
 		expect(await logicalSnapshot(admin)).toEqual(before);
 	});
 

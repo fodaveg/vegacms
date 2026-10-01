@@ -21,6 +21,8 @@ export interface FieldError {
 	code: string;
 	/** Mensaje humano del backend (en inglés en PB) o del puerto (rechazos locales, en es). */
 	message: string;
+	/** Datos para que la UI traduzca el código (nombres, nunca contenido de reglas ni de datos). */
+	params?: Record<string, string | string[] | boolean>;
 }
 
 export interface VegaErrorOptions {

@@ -1271,6 +1271,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'settings.site.error.title': 'It could not be finished',
 	'settings.site.error.body':
 		'What was created before the failure stays as it is. When you retry, Vega only creates what is missing.',
+	'settings.site.error.rulesMismatchNull':
+		'The "{collection}" collection already exists with access rules different from the ones Vega expects: {rules}. Nothing has been changed. In PocketBase, go to Collections → {collection} → API Rules, leave them empty (null: superusers only) and run the operation again.',
+	'settings.site.error.rulesMismatchDeclared':
+		'The "{collection}" collection already exists with access rules different from the ones Vega expects: {rules}. Nothing has been changed. In PocketBase, go to Collections → {collection} → API Rules, set them as Vega declares them and run the operation again.',
 	'settings.site.result.done': 'Done: {summary}.',
 	'settings.site.result.nothing': 'Everything was already in place: nothing needed changing.',
 	'settings.site.result.collectionOne': '1 collection',

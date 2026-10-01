@@ -116,7 +116,13 @@ function assertExistingAuthRules(spec: CollectionSpec, existing: CollectionModel
 		`espera: ${mismatched.join(', ')}. No se ha modificado nada. En PocketBase, Collections → ` +
 		`${spec.name} → API Rules, ${action} y repite la operación.`;
 	throw VegaError.validation(
-		{ [spec.name]: { code: 'vega_collection_rules_mismatch', message } },
+		{
+			[spec.name]: {
+				code: 'vega_collection_rules_mismatch',
+				message,
+				params: { collection: spec.name, rules: [...mismatched], expectsOnlySuperusers }
+			}
+		},
 		message
 	);
 }
