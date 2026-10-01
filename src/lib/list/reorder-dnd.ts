@@ -7,8 +7,8 @@
  * Agnóstico de colección/registro por construcción: opera solo sobre ÍNDICES dentro de la lista
  * renderizada por el consumidor (`records` en `RecordTable`, el conjunto mezclado en
  * `MergedViewTable`) y emite `onReorder(fromIndex, toIndex)` — quien crea el controlador decide
- * qué persistir (`computeReorder`, `reorder.ts`) y con qué colección; este módulo no sabe nada de
- * eso, igual que no lo sabía `RecordTable` antes de la extracción.
+ * qué persistir (`/c/[type]` con `computeSpanReorder`, `/v/[view]` con `planMergedReorder`) y con
+ * qué colección; este módulo no sabe nada de eso, igual que no lo sabía `RecordTable` antes de la extracción.
  *
  * `dragFromIndex`/`dragOverIndex` (el origen y el destino EN VUELO de un arrastre) son variables
  * PLANAS, no `$state`: al vivir en un módulo `.ts` (no `.svelte`/`.svelte.ts`), este módulo no
@@ -134,8 +134,9 @@ export function createReorderDndController(
 
 /**
  * (#l12-ux, item 2) Decide en qué BORDE de la fila `overIndex` pintar el indicador de "aquí
- * caería" — pura, sin efecto en la persistencia (`computeReorder`, quien la origina, decide dónde
- * cae REALMENTE el registro; esto es solo el hueco visual). Arrastrando HACIA ABAJO (`fromIndex <
+ * caería" — pura, sin efecto en la persistencia (lo que se escribe lo decide cada ruta,
+ * `computeSpanReorder` en `/c/[type]` y `planMergedReorder` en `/v/[view]`; esto es solo el hueco
+ * visual). Arrastrando HACIA ABAJO (`fromIndex <
  * overIndex`) el hueco va DEBAJO de la fila sobrevolada (el registro entraría tras ella);
  * arrastrando HACIA ARRIBA (`fromIndex > overIndex`), ENCIMA — mismo sentido intuitivo que
  * cualquier lista reordenable con línea de inserción. Sobre la propia fila de origen

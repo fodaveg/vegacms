@@ -48,8 +48,9 @@ function recordKey(record: VegaRecord): string {
  *    más de una `source` con solapamiento, gana la que declara antes `view.sources`.
  * 3. Ordena por `orderValue` ascendente, con desempate determinista `(collection, id)` —
  *    imprescindible mientras conviven valores por-tabla que pueden colisionar entre sí (dos
- *    colecciones que arrancan cada una en 0,1,2…); tras el primer reorder (L7d) los valores se
- *    renumeran global y las colisiones desaparecen.
+ *    colecciones que arrancan cada una en 0,1,2…); esos empates iniciales se normalizan en el
+ *    primer reordenado (L7d) y desde ahí un reordenado escribe solo el tramo movido y conserva
+ *    los huecos, así que el desempate solo actúa mientras siga habiendo empates.
  *
  * `itemsBySource` puede traer menos entradas que `view.sources` (una source ausente se trata
  * como `[]`, defensivo): en producción siempre coincide 1:1, `merged-load.svelte.ts` construye
@@ -85,12 +86,12 @@ function compareRows(a: MergedRow, b: MergedRow): number {
 export type MergedReorderBlocker = 'failed' | 'truncated' | 'forbidden';
 
 /**
- * ¿Se puede reordenar el conjunto mezclado? `null` = sí. El reorden reescribe el `orderField` de
- * las filas movidas con su índice GLOBAL, así que solo es correcto si el conjunto está COMPLETO y
- * se puede escribir en todo él:
+ * ¿Se puede reordenar el conjunto mezclado? `null` = sí. El reorden calcula el `orderField` sobre
+ * el orden GLOBAL del conjunto (el tramo movido, o 0..n-1 si hay empates), así que solo es
+ * correcto si el conjunto está COMPLETO y se puede escribir en todo él:
  * - `'failed'`: alguna fuente no cargó → el orden global sería parcial.
  * - `'truncated'`: alguna fuente tiene más registros de los cargados (tope de 200 sin paginar) →
- *   se renumerarían solo los cargados y los demás quedarían descolocados.
+ *   el cálculo solo vería los cargados y los demás quedarían descolocados.
  * - `'forbidden'`: falta permiso de actualizar en alguna fuente (`canUpdate[i]` = permiso del tipo
  *   de `view.sources[i]`) → la tanda de escrituras fallaría a mitad.
  * Si concurren varios, manda el que el usuario puede arreglar antes de entender el siguiente
