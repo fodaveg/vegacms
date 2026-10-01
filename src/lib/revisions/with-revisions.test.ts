@@ -651,6 +651,49 @@ describe('withRevisions — delete (Fase B2, §8·B2)', () => {
 		expect(port.delete).toHaveBeenCalledWith('posts', 'p1');
 	});
 
+	test('si el borrado real falla, la revisión recién creada se borra y se relanza el error original', async () => {
+		const { port, calls } = buildFakePort();
+		const original = VegaError.network();
+		vi.mocked(port.delete).mockImplementation(async (type, id) => {
+			calls.push(`delete:${type}:${id}`);
+			if (type === 'posts') throw original;
+		});
+		const wrapped = withRevisions(port);
+
+		await expect(wrapped.delete('posts', 'p1')).rejects.toBe(original);
+
+		// La revisión de papelera (id 'newid' del doble) no puede sobrevivir a un registro vivo.
+		// Sin los `list:*` (config y poda fire-and-forget): solo importa el orden de las escrituras.
+		expect(calls.filter((c) => !c.startsWith('list:'))).toEqual([
+			'get:posts:p1',
+			'create:vega_revisions',
+			'delete:posts:p1',
+			'delete:vega_revisions:newid'
+		]);
+	});
+
+	test('si el borrado real falla Y la compensación también, manda el error del borrado', async () => {
+		const { port } = buildFakePort();
+		const original = VegaError.network();
+		vi.mocked(port.delete).mockImplementation(async (type) => {
+			throw type === 'posts' ? original : new Error('compensación rota');
+		});
+		const wrapped = withRevisions(port);
+
+		await expect(wrapped.delete('posts', 'p1')).rejects.toBe(original);
+	});
+
+	test('si el borrado falla sin revisión (retención desactivada), no se borra nada más', async () => {
+		const { port } = buildFakePort({ revisionsManifestConfig: { enabled: false } });
+		const original = VegaError.network();
+		vi.mocked(port.delete).mockRejectedValue(original);
+		const wrapped = withRevisions(port);
+
+		await expect(wrapped.delete('posts', 'p1')).rejects.toBe(original);
+
+		expect(port.delete).toHaveBeenCalledTimes(1);
+	});
+
 	test('poda GLOBAL de papelera (§7): list(vega_revisions) filtrado por kind:delete, ordenado por created ASC', async () => {
 		const { port } = buildFakePort();
 		const wrapped = withRevisions(port);
