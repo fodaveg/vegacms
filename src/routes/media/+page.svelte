@@ -276,6 +276,12 @@
 	let searchTerm = $state('');
 	let typeFilter = $state<MediaTypeFilter>('all');
 
+	/** El campo `file` de `vega_media` YA resuelto contra el esquema DESCUBIERTO (D-P6.3): `null`
+	 *  solo de forma defensiva (en la práctica, si `collectionState === 'present'` la colección
+	 *  existe y `file` es `required`, así que siempre está) — `MediaUpload` no se monta sin él, y
+	 *  el chip «Vídeo» tampoco se ofrece sin él. */
+	const mediaFileSchema = $derived(findMediaFileFieldSchema(types));
+
 	/** Los chips del mockup, en su orden; «Vídeo» solo si el esquema descubierto admite vídeo (ver
 	 *  cabecera). */
 	const typeFilters = $derived<readonly { value: MediaTypeFilter; key: string }[]>([
@@ -433,11 +439,6 @@
 	}
 
 	// ————— Subida (Fase P6·6c) —————
-
-	/** El campo `file` de `vega_media` YA resuelto contra el esquema DESCUBIERTO (D-P6.3): `null`
-	 *  solo de forma defensiva (en la práctica, si `collectionState === 'present'` la colección
-	 *  existe y `file` es `required`, así que siempre está) — `MediaUpload` no se monta sin él. */
-	const mediaFileSchema = $derived(findMediaFileFieldSchema(types));
 
 	/** Instancia de `MediaUpload` (patrón `bind:this` de Svelte 5): el botón primario "Subir
 	 *  archivos" de la cabecera dispara SU `<input type="file">` — un único control de ficheros en
