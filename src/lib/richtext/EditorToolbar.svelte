@@ -12,9 +12,18 @@
 	 * `selectionUpdate` del editor SOLO para forzar que Svelte vuelva a leer `editor.isActive(...)`
 	 * (patrón "señal de repintado", sin guardar el estado real en ningún sitio más que el editor).
 	 *
-	 * Enlace/imagen usan `window.prompt` (mismo criterio ya aceptado en el repo para diálogos
-	 * síncronos simples, ver `RecordForm.svelte` con `window.confirm`): no hay presupuesto en
-	 * F5-d para un modal propio, y un prompt nativo no bloquea nada más allá de sí mismo.
+	 * **Enlace e imagen** (antes dos `window.prompt`): el enlace abre `RichtextLinkDialog.svelte`
+	 * (página del sitio, por su RUTA, o dirección externa), también sobre un enlace que ya existe,
+	 * donde ofrece «Quitar enlace». La imagen abre el selector de medios del shell
+	 * (`ctx.mediaPicker`, solo imágenes) y escribe en el `src` la URL pública del fichero
+	 * (`richtext-image.ts`); si el medio no trae texto alternativo, `RichtextImageDialog.svelte` lo
+	 * pide antes de insertar. Sin `ctx.mediaPicker` (un montaje fuera del shell) el botón de imagen
+	 * no se pinta, mismo criterio que «Elegir de la biblioteca» en `FileInput.svelte`.
+	 *
+	 * Abrir y cerrar cualquiera de los dos sin aplicar NO toca el documento: los diálogos no reciben
+	 * el editor, devuelven un resultado, y los comandos se ejecutan solo al aplicar. Al cerrar, el
+	 * foco vuelve al editor, con la selección que tenía (ProseMirror la guarda en su estado aunque
+	 * el `<div>` pierda el foco).
 	 *
 	 * **Mockup final `aquelarre-detalle-post.html` (`.rt-toolbar`)**: la barra deja de tener caja
 	 * propia (borde + radio superior) y pasa a ser una franja `--paper` separada del cuerpo por una
@@ -23,7 +32,13 @@
 	 * pierden el borde y ganan el par hover/`aria-pressed` del mockup (`--active` / `--accent-soft`).
 	 * Solo CSS: ni un comando, ni un `aria-*`, ni la señal de repintado cambian.
 	 */
+	import { tick as flushed } from 'svelte';
 	import type { Editor } from '@tiptap/core';
+	import { getVegaContext } from '$lib/app-context';
+	import { VegaError } from '$lib/backend/errors';
+	import RichtextLinkDialog from '$lib/form/widgets/RichtextLinkDialog.svelte';
+	import RichtextImageDialog from '$lib/form/widgets/RichtextImageDialog.svelte';
+	import { richtextImageFromPick } from '$lib/form/widgets/richtext-image';
 
 	interface Props {
 		editor: Editor | null;
@@ -84,25 +99,91 @@
 		});
 	}
 
-	function toggleLink(): void {
+	const ctx = getVegaContext();
+
+	// Diálogos de enlace e imagen (ver cabecera): `null` = cerrado. Guardan solo lo que el diálogo
+	// necesita para pintarse, nunca el editor.
+	let linkDialog = $state<{ currentHref: string | null } | null>(null);
+	let imageDialog = $state<{ src: string; fileName: string } | null>(null);
+
+	/** Cierra lo que haya abierto y devuelve el foco al editor. Tras `flushed()`: el diálogo ya se
+	 *  ha desmontado y ha devuelto el foco a quien lo tenía (que puede ser el botón de la barra si
+	 *  se abrió con el teclado); el editor lo toma después. `focus()` no cambia el documento, así
+	 *  que no dispara `onUpdate`. */
+	async function closeDialogs(): Promise<void> {
+		linkDialog = null;
+		imageDialog = null;
+		await flushed();
+		editor?.commands.focus();
+	}
+
+	function openLinkDialog(): void {
 		run((ed) => {
-			if (ed.isActive('link')) {
-				ed.chain().focus().unsetLink().run();
-				return;
-			}
-			const url = window.prompt(t('form.editor.linkPrompt'));
-			if (!url) return;
-			ed.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+			const href = ed.isActive('link') ? ed.getAttributes('link').href : null;
+			linkDialog = { currentHref: typeof href === 'string' ? href : null };
 		});
 	}
 
-	function insertImage(): void {
+	/**
+	 * Aplica el enlace elegido. Sobre un enlace existente o con texto seleccionado, enlaza eso; con
+	 * el cursor suelto, inserta `text` (el título de la página o la propia dirección) ya enlazado.
+	 * El `target`/`rel` los pone la extensión `Link`; a las rutas del sitio se los quita el widget
+	 * al serializar (`stripNewTabFromInternalLinks`).
+	 */
+	function applyLink(link: { href: string; text: string }): void {
 		run((ed) => {
-			const src = window.prompt(t('form.editor.imagePrompt'));
-			if (!src) return;
-			const alt = window.prompt(t('form.editor.imageAltPrompt')) ?? '';
-			ed.chain().focus().setImage({ src, alt }).run();
+			if (ed.isActive('link') || !ed.state.selection.empty) {
+				ed.chain().focus().extendMarkRange('link').setLink({ href: link.href }).run();
+			} else {
+				ed.chain()
+					.focus()
+					.insertContent({
+						type: 'text',
+						text: link.text,
+						marks: [{ type: 'link', attrs: { href: link.href } }]
+					})
+					.run();
+			}
 		});
+		void closeDialogs();
+	}
+
+	function removeLink(): void {
+		run((ed) => void ed.chain().focus().extendMarkRange('link').unsetLink().run());
+		void closeDialogs();
+	}
+
+	function placeImage(src: string, alt: string): void {
+		run((ed) => void ed.chain().focus().setImage({ src, alt }).run());
+		void closeDialogs();
+	}
+
+	/** Abre el selector de medios y, con lo elegido, inserta la imagen o pide su texto alternativo. */
+	async function insertImage(): Promise<void> {
+		const picker = ctx.mediaPicker;
+		if (!editor || disabled || !picker) return;
+		const picked = await picker.open({ multiple: false, accept: ['image/*'] });
+		const first = picked?.[0];
+		if (!first) {
+			void closeDialogs();
+			return;
+		}
+		let image;
+		try {
+			image = richtextImageFromPick(ctx.port, first);
+		} catch (err) {
+			ctx.feedback.reportError(
+				err instanceof VegaError ? err : VegaError.backend('Error al insertar la imagen', err),
+				{ action: 'richtext:image' }
+			);
+			void closeDialogs();
+			return;
+		}
+		if (image.alt !== '') {
+			placeImage(image.src, image.alt);
+			return;
+		}
+		imageDialog = { src: image.src, fileName: image.fileName };
 	}
 
 	// FIX (debugging de flake e2e, `e2e/form.spec.ts` "escribir en richtext"): sin esto, clicar
@@ -242,25 +323,46 @@
 	<button
 		type="button"
 		aria-pressed={isActive('link')}
-		aria-label={isActive('link') ? t('form.editor.linkRemove') : t('form.editor.link')}
+		aria-label={t('form.editor.link')}
+		aria-haspopup="dialog"
 		disabled={disabled || !editor}
-		title={isActive('link') ? t('form.editor.linkRemove') : t('form.editor.link')}
+		title={t('form.editor.link')}
 		onmousedown={keepEditorFocus}
-		onclick={toggleLink}
+		onclick={openLinkDialog}
 	>
 		🔗
 	</button>
-	<button
-		type="button"
-		aria-label={t('form.editor.image')}
-		disabled={disabled || !editor}
-		title={t('form.editor.image')}
-		onmousedown={keepEditorFocus}
-		onclick={insertImage}
-	>
-		🖼
-	</button>
+	{#if ctx.mediaPicker}
+		<button
+			type="button"
+			aria-label={t('form.editor.image')}
+			aria-haspopup="dialog"
+			disabled={disabled || !editor}
+			title={t('form.editor.image')}
+			onmousedown={keepEditorFocus}
+			onclick={insertImage}
+		>
+			🖼
+		</button>
+	{/if}
 </div>
+
+{#if linkDialog}
+	<RichtextLinkDialog
+		currentHref={linkDialog.currentHref}
+		onApply={applyLink}
+		onRemove={removeLink}
+		onClose={closeDialogs}
+	/>
+{/if}
+{#if imageDialog}
+	<RichtextImageDialog
+		src={imageDialog.src}
+		fileName={imageDialog.fileName}
+		onInsert={(alt) => imageDialog && placeImage(imageDialog.src, alt)}
+		onClose={closeDialogs}
+	/>
+{/if}
 
 <style>
 	/* Franja de la barra (mockup `.rt-toolbar`): sin caja propia — el borde y el radio los pone el

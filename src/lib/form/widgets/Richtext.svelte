@@ -89,6 +89,7 @@
 	import { onMount } from 'svelte';
 	import type { Editor } from '@tiptap/core';
 	import type { WidgetProps } from './types';
+	import { stripNewTabFromInternalLinks } from './richtext-link';
 	import { fieldIds } from '../field-ids';
 	import { getFieldScope } from '../field-scope';
 	import { getVegaContext } from '$lib/app-context';
@@ -134,6 +135,19 @@
 	// `true` mientras el documento del editor está vacío: gobierna el placeholder superpuesto.
 	let empty = $state(true);
 
+	/**
+	 * El HTML que este widget da por valor del editor: `''` si el documento está vacío (landmine (2)
+	 * de la cabecera), y si no, lo que serializa TipTap, sin `target`/`rel` en los enlaces a rutas
+	 * del sitio (`stripNewTabFromInternalLinks`: la extensión `Link` los pone en TODOS) y saneado.
+	 * Los tres sitios que comparan o emiten (`onUpdate`, el asentado inicial y el resync) pasan por
+	 * aquí: si uno serializara distinto, `lastEmitted` dejaría de casar y volvería el «sin guardar»
+	 * fantasma. Solo se llama con el editor ya creado, o sea, con `sanitizeHtmlRef` asignada.
+	 */
+	function serialize(ed: Editor): string {
+		if (ed.isEmpty || !sanitizeHtmlRef) return '';
+		return sanitizeHtmlRef(stripNewTabFromInternalLinks(ed.getHTML()));
+	}
+
 	onMount(() => {
 		let disposed = false;
 
@@ -177,7 +191,7 @@
 					// párrafo sin texto) a `''` — ver landmine (2) de la cabecera: sin esto, un
 					// `onUpdate` espurio (landmine (1)) podría propagar `<p></p>` como si fuera un
 					// cambio real, marcando "dirty" un campo que el usuario nunca tocó.
-					const html = ed.isEmpty ? '' : sanitizeHtml(ed.getHTML());
+					const html = serialize(ed);
 					// Guard adicional: solo propagar si el contenido CAMBIÓ de verdad respecto a lo
 					// último emitido — L-P5.2 exige que solo se propaguen cambios REALES.
 					if (html === lastEmitted) return;
@@ -188,7 +202,7 @@
 			});
 			// La referencia de "sin cambios" es lo que el editor SERIALIZA tras parsear el valor, no
 			// el valor saneado: ver `lastSettled`. Antes de asignar `editor` (dispara el `$effect`).
-			lastEmitted = created.isEmpty ? '' : sanitizeHtml(created.getHTML());
+			lastEmitted = serialize(created);
 			empty = created.isEmpty;
 			editor = created;
 		})();
@@ -207,7 +221,7 @@
 		if (sanitized === lastEmitted || sanitized === lastSettled) return;
 		lastSettled = sanitized;
 		editor.commands.setContent(sanitized, { emitUpdate: false });
-		lastEmitted = editor.isEmpty ? '' : sanitizeHtmlRef(editor.getHTML());
+		lastEmitted = serialize(editor);
 		empty = editor.isEmpty;
 	});
 

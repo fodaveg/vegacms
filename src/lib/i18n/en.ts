@@ -581,10 +581,40 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'form.editor.horizontalRule': 'Horizontal rule',
 	'form.editor.link': 'Link',
 	'form.editor.linkRemove': 'Remove link',
-	'form.editor.linkPrompt': 'Link URL',
 	'form.editor.image': 'Image',
-	'form.editor.imagePrompt': 'Image URL',
-	'form.editor.imageAltPrompt': 'Image alt text',
+	// Link dialog (`RichtextLinkDialog.svelte`): a page of the site, by its path, or an external
+	// address.
+	'form.editor.linkDialog.title': 'Link',
+	'form.editor.linkDialog.modeLabel': 'Where the link goes',
+	'form.editor.linkDialog.modePage': 'Page of the site',
+	'form.editor.linkDialog.modePageHint': 'Links its path, for example /about.',
+	'form.editor.linkDialog.modeExternal': 'External address',
+	'form.editor.linkDialog.modeExternalHint': 'Another website, an email or a phone number.',
+	'form.editor.linkDialog.searchLabel': 'Search pages',
+	'form.editor.linkDialog.searchPlaceholder': 'Title, or /path',
+	'form.editor.linkDialog.loading': 'Searching pages…',
+	'form.editor.linkDialog.empty': 'No page matches the search.',
+	'form.editor.linkDialog.loadError': 'The pages could not be loaded. {message}',
+	'form.editor.linkDialog.noPageTypes':
+		'This site has no content type with a path. Choose "External address": you can also type a path starting with / there.',
+	'form.editor.linkDialog.noPath': 'No path yet',
+	'form.editor.linkDialog.selected': 'The link goes to',
+	'form.editor.linkDialog.urlLabel': 'Address',
+	'form.editor.linkDialog.urlHelp':
+		'Start with https://, http://, mailto: or tel:. A site path starting with / works too.',
+	'form.editor.linkDialog.apply': 'Add link',
+	'form.editor.linkDialog.error.empty': 'Type an address.',
+	'form.editor.linkDialog.error.scheme':
+		'That kind of address is not allowed. Use https://, http://, mailto:, tel: or a path starting with /.',
+	'form.editor.linkDialog.error.format':
+		'The address is not complete. It has to start with https://, http://, mailto:, tel: or /, with no spaces.',
+	'form.editor.linkDialog.error.noPage': 'Choose a page from the list.',
+	// Alt text dialog (`RichtextImageDialog.svelte`): only shown when the chosen asset has none.
+	'form.editor.imageDialog.title': 'Alt text',
+	'form.editor.imageDialog.altLabel': 'Alt text (optional)',
+	'form.editor.imageDialog.altHelp':
+		'Describe what the image shows. If it is decorative, leave it empty.',
+	'form.editor.imageDialog.insert': 'Insert image',
 	'form.editor.heading1': 'Heading 1',
 	'form.editor.heading2': 'Heading 2',
 	'form.richtext.loading': 'Loading the editor…',

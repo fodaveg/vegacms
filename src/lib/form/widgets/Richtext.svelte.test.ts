@@ -20,8 +20,9 @@
  *    idéntica a un campo vacío.
  */
 import { mount, unmount } from 'svelte';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
 import { tick } from 'svelte';
+import type { Editor } from '@tiptap/core';
 import Richtext from './Richtext.svelte';
 import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import type { ResolvedField } from '$lib/model/types';
@@ -183,5 +184,340 @@ describe('Richtext.svelte — un valor que el editor normaliza no se marca como 
 			await unmount(instance);
 			target.remove();
 		}
+	});
+});
+
+/**
+ * Enlace e imagen de la barra (tarea «insertar imagen desde la biblioteca y enlace a una página del
+ * sitio»). Con el editor REAL montado: lo que se afirma es el HTML que sale por `onChange`, que es
+ * lo que acaba guardado, y que abrir y cancelar un diálogo no emite nada (el formulario no se
+ * marca como sucio).
+ */
+describe('Richtext.svelte — enlace e imagen de la barra', () => {
+	const REL = 'noopener noreferrer nofollow';
+
+	function textField(name: string) {
+		return { ...richtextField.schema, name, type: 'text', subtype: 'plain' };
+	}
+
+	const pageType = {
+		name: 'paginas',
+		label: 'Páginas',
+		labelSingular: 'Página',
+		titleField: 'title',
+		schema: { name: 'paginas', fields: [textField('title'), textField('ruta')] },
+		page: { pathField: 'ruta', pathFieldUnique: true, layoutField: null, localizedPath: null }
+	};
+
+	const pages = {
+		items: [{ id: 'p1', type: 'paginas', values: { title: 'Sobre mí', ruta: '/sobre-mi' } }],
+		page: 1,
+		perPage: 20,
+		totalItems: 1,
+		totalPages: 1
+	};
+
+	interface Harness {
+		target: HTMLElement;
+		onChange: ReturnType<typeof vi.fn>;
+		pickerOpen: ReturnType<typeof vi.fn>;
+		editor: Editor;
+		lastHtml: () => string;
+		unmount: () => Promise<void>;
+	}
+
+	let harness: Harness | null = null;
+
+	// jsdom no implementa la geometría de `Range`, y ProseMirror la pide al desplazar la vista hasta
+	// la selección tras un comando (`scrollIntoView`). Sin layout no hay nada que medir: basta con
+	// que las dos llamadas existan y devuelvan una caja vacía.
+	beforeAll(() => {
+		const emptyRect = { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0, x: 0, y: 0 };
+		Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
+		Range.prototype.getBoundingClientRect = () => emptyRect as DOMRect;
+	});
+
+	async function mountWithToolbar(
+		value: string,
+		picked: { alt: string } | null = null
+	): Promise<Harness> {
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const onChange = vi.fn();
+		const pickerOpen = vi.fn(async () =>
+			picked
+				? [
+						{
+							file: new File(['x'], 'portada_ab12.png', { type: 'image/png' }),
+							mediaId: 'm1',
+							alt: picked.alt,
+							missingAlt: picked.alt === ''
+						}
+					]
+				: null
+		);
+		const ctx = {
+			...fakeCtx(),
+			model: { types: [pageType] },
+			port: {
+				list: vi.fn(async () => pages),
+				fileUrl: (record: { type: string; id: string }, _field: string, file: string) =>
+					`https://cms.ejemplo.com/api/files/${record.type}/${record.id}/${file}`
+			},
+			mediaPicker: { open: pickerOpen }
+		} as unknown as VegaAppContext;
+		const instance = mount(Richtext, {
+			target,
+			props: {
+				field: richtextField,
+				value,
+				error: null,
+				disabled: false,
+				readonly: false,
+				onChange
+			},
+			context: new Map([[VEGA_CONTEXT_KEY, ctx]])
+		});
+		await settle(target);
+		// TipTap deja su instancia en el nodo editable (`view.dom.editor`): es la única forma de
+		// colocar la selección desde un test sin simular el ratón.
+		const editor = (target.querySelector('.tiptap') as HTMLElement & { editor: Editor }).editor;
+		harness = {
+			target,
+			onChange,
+			pickerOpen,
+			editor,
+			lastHtml: () => String(onChange.mock.calls.at(-1)?.[0] ?? ''),
+			unmount: async () => {
+				await unmount(instance);
+				target.remove();
+			}
+		};
+		return harness;
+	}
+
+	function toolbarButton(target: HTMLElement, label: string): HTMLButtonElement {
+		return target.querySelector<HTMLButtonElement>(
+			`.vega-editor-toolbar button[aria-label="${label}"]`
+		)!;
+	}
+
+	function dialog(target: HTMLElement): HTMLElement | null {
+		return target.querySelector<HTMLElement>('[role="dialog"]');
+	}
+
+	function dialogButton(target: HTMLElement, text: string): HTMLButtonElement {
+		return Array.from(dialog(target)!.querySelectorAll('button')).find(
+			(button) => button.textContent?.trim() === text
+		)!;
+	}
+
+	async function flush(): Promise<void> {
+		for (let i = 0; i < 10; i++) await Promise.resolve();
+		await tick();
+		await new Promise((r) => setTimeout(r, 30));
+	}
+
+	async function openLinkDialog(target: HTMLElement): Promise<void> {
+		toolbarButton(target, 'form.editor.link').click();
+		await flush();
+		expect(dialog(target)).not.toBeNull();
+	}
+
+	async function submitDialog(target: HTMLElement): Promise<void> {
+		dialog(target)!
+			.querySelector('form')!
+			.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await flush();
+	}
+
+	async function applyExternal(target: HTMLElement, url: string): Promise<void> {
+		const radio = dialog(target)!.querySelector<HTMLInputElement>('input[value="external"]')!;
+		radio.checked = true;
+		radio.dispatchEvent(new Event('change', { bubbles: true }));
+		await tick();
+		const input = dialog(target)!.querySelector<HTMLInputElement>('input[inputmode="url"]')!;
+		input.value = url;
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		await submitDialog(target);
+	}
+
+	afterEach(async () => {
+		await harness?.unmount();
+		harness = null;
+	});
+
+	test('abrir el diálogo de enlace y cancelar NO llama a onChange', async () => {
+		const { target, onChange, editor } = await mountWithToolbar('<p>Hola mundo</p>');
+		editor.commands.setTextSelection({ from: 1, to: 5 });
+
+		await openLinkDialog(target);
+		dialogButton(target, 'common.cancel').click();
+		await flush();
+
+		expect(dialog(target)).toBeNull();
+		expect(onChange).not.toHaveBeenCalled();
+	});
+
+	test('Escape cierra el diálogo de enlace sin llamar a onChange', async () => {
+		const { target, onChange } = await mountWithToolbar('<p>Hola mundo</p>');
+
+		await openLinkDialog(target);
+		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		await flush();
+
+		expect(dialog(target)).toBeNull();
+		expect(onChange).not.toHaveBeenCalled();
+	});
+
+	test('página del sitio sobre una selección: el href es la RUTA y no lleva target ni rel', async () => {
+		const { target, editor, lastHtml } = await mountWithToolbar('<p>Hola mundo</p>');
+		editor.commands.setTextSelection({ from: 1, to: 5 });
+
+		await openLinkDialog(target);
+		dialog(target)!.querySelector<HTMLButtonElement>('.vega-rt-link-page')!.click();
+		await tick();
+		await submitDialog(target);
+
+		expect(lastHtml()).toBe('<p><a href="/sobre-mi">Hola</a> mundo</p>');
+	});
+
+	test('página del sitio sin selección: inserta el título de la página ya enlazado', async () => {
+		const { target, editor, lastHtml } = await mountWithToolbar('<p>Hola: </p>');
+		editor.commands.setTextSelection(6);
+
+		await openLinkDialog(target);
+		dialog(target)!.querySelector<HTMLButtonElement>('.vega-rt-link-page')!.click();
+		await tick();
+		await submitDialog(target);
+
+		expect(lastHtml()).toBe('<p>Hola:<a href="/sobre-mi">Sobre mí</a></p>');
+	});
+
+	test('dirección externa: lleva el target y el rel que pone la extensión Link', async () => {
+		const { target, editor, lastHtml } = await mountWithToolbar('<p>Hola mundo</p>');
+		editor.commands.setTextSelection({ from: 1, to: 5 });
+
+		await openLinkDialog(target);
+		await applyExternal(target, 'https://fodaveg.net');
+
+		expect(lastHtml()).toBe(
+			`<p><a target="_blank" rel="${REL}" href="https://fodaveg.net">Hola</a> mundo</p>`
+		);
+	});
+
+	test('dirección externa sin selección: inserta la propia dirección como texto', async () => {
+		const { target, editor, lastHtml } = await mountWithToolbar('<p>Hola: </p>');
+		editor.commands.setTextSelection(6);
+
+		await openLinkDialog(target);
+		await applyExternal(target, 'mailto:hola@fodaveg.net');
+
+		expect(lastHtml()).toBe(
+			`<p>Hola:<a target="_blank" rel="${REL}" href="mailto:hola@fodaveg.net">mailto:hola@fodaveg.net</a></p>`
+		);
+	});
+
+	test('javascript: no se aplica: el diálogo sigue abierto y onChange no se llama', async () => {
+		const { target, editor, onChange } = await mountWithToolbar('<p>Hola mundo</p>');
+		editor.commands.setTextSelection({ from: 1, to: 5 });
+
+		await openLinkDialog(target);
+		await applyExternal(target, 'javascript:alert(1)');
+
+		expect(dialog(target)).not.toBeNull();
+		expect(onChange).not.toHaveBeenCalled();
+	});
+
+	test('sobre un enlace existente: se abre con su valor y «Quitar enlace» lo quita entero', async () => {
+		const { target, editor, lastHtml } = await mountWithToolbar(
+			'<p>Mira <a href="https://fodaveg.net/x">este enlace</a> de aquí</p>'
+		);
+		editor.commands.setTextSelection(8);
+
+		await openLinkDialog(target);
+		expect(dialog(target)!.querySelector<HTMLInputElement>('input[inputmode="url"]')!.value).toBe(
+			'https://fodaveg.net/x'
+		);
+		dialogButton(target, 'form.editor.linkRemove').click();
+		await flush();
+
+		expect(dialog(target)).toBeNull();
+		expect(lastHtml()).toBe('<p>Mira este enlace de aquí</p>');
+	});
+
+	test('un enlace interno guardado con target="_blank" no marca cambio al cargar', async () => {
+		const { onChange } = await mountWithToolbar(
+			`<p><a href="/sobre-mi" target="_blank" rel="${REL}">Sobre mí</a></p>`
+		);
+		await flush();
+
+		expect(onChange).not.toHaveBeenCalled();
+	});
+
+	test('imagen con alt en la biblioteca: se inserta con la URL del fichero y ese alt', async () => {
+		const { target, pickerOpen, lastHtml } = await mountWithToolbar('<p>Hola</p>', {
+			alt: 'Una portada'
+		});
+
+		toolbarButton(target, 'form.editor.image').click();
+		await flush();
+
+		expect(pickerOpen).toHaveBeenCalledWith({ multiple: false, accept: ['image/*'] });
+		expect(dialog(target)).toBeNull();
+		expect(lastHtml()).toContain(
+			'<img src="https://cms.ejemplo.com/api/files/vega_media/m1/portada_ab12.png" alt="Una portada">'
+		);
+	});
+
+	test('imagen sin alt: lo pide antes de insertar y usa lo que se escriba', async () => {
+		const { target, onChange, lastHtml } = await mountWithToolbar('<p>Hola</p>', { alt: '' });
+
+		toolbarButton(target, 'form.editor.image').click();
+		await flush();
+		expect(dialog(target)).not.toBeNull();
+		expect(onChange).not.toHaveBeenCalled();
+
+		const input = dialog(target)!.querySelector<HTMLInputElement>('input[type="text"]')!;
+		input.value = 'Un gato en un tejado';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		await submitDialog(target);
+
+		expect(dialog(target)).toBeNull();
+		expect(lastHtml()).toContain(
+			'<img src="https://cms.ejemplo.com/api/files/vega_media/m1/portada_ab12.png" alt="Un gato en un tejado">'
+		);
+	});
+
+	test('imagen sin alt, dejada vacía: se inserta como decorativa (alt="")', async () => {
+		const { target, lastHtml } = await mountWithToolbar('<p>Hola</p>', { alt: '' });
+
+		toolbarButton(target, 'form.editor.image').click();
+		await flush();
+		await submitDialog(target);
+
+		expect(lastHtml()).toContain(
+			'<img src="https://cms.ejemplo.com/api/files/vega_media/m1/portada_ab12.png" alt="">'
+		);
+	});
+
+	test('cancelar el selector de medios o el diálogo del alt NO llama a onChange', async () => {
+		const cancelled = await mountWithToolbar('<p>Hola</p>');
+		toolbarButton(cancelled.target, 'form.editor.image').click();
+		await flush();
+		expect(cancelled.pickerOpen).toHaveBeenCalledTimes(1);
+		expect(cancelled.onChange).not.toHaveBeenCalled();
+		await cancelled.unmount();
+
+		const { target, onChange } = await mountWithToolbar('<p>Hola</p>', { alt: '' });
+		toolbarButton(target, 'form.editor.image').click();
+		await flush();
+		dialogButton(target, 'common.cancel').click();
+		await flush();
+
+		expect(dialog(target)).toBeNull();
+		expect(onChange).not.toHaveBeenCalled();
 	});
 });
