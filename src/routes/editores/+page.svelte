@@ -25,6 +25,7 @@
 	import {
 		VegaError,
 		VEGA_EDITORS_COLLECTION_NAME,
+		type CreatedEditor,
 		type EditorAccount,
 		type InvitationLinkState,
 		type NewEditorAccess
@@ -108,16 +109,21 @@
 
 	let adding = $state(false);
 
-	function handleCreated(account: EditorAccount, kind: NewEditorAccess['kind']): void {
+	function handleCreated(account: CreatedEditor, kind: NewEditorAccess['kind']): void {
 		adding = false;
+		// Cuenta creada pero correo no pedido: no es un éxito limpio. La lista recargada la muestra
+		// como pendiente y su fila ofrece «Reenviar invitación».
+		const mailFailed = kind === 'invite' && !account.invitationSent;
 		ctx.feedback.toast(
 			ctx.t(
-				kind === 'invite'
-					? 'admin.editors.addDialog.successInvite'
-					: 'admin.editors.addDialog.successPassword',
+				mailFailed
+					? 'admin.editors.addDialog.inviteMailFailed'
+					: kind === 'invite'
+						? 'admin.editors.addDialog.successInvite'
+						: 'admin.editors.addDialog.successPassword',
 				{ email: account.email }
 			),
-			{ kind: 'success' }
+			{ kind: mailFailed ? 'error' : 'success' }
 		);
 		void load();
 	}

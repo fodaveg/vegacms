@@ -1182,6 +1182,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'admin.editors.addDialog.submitPassword': 'Add editor',
 	'admin.editors.addDialog.saving': 'Saving…',
 	'admin.editors.addDialog.successPassword': 'Editor added: {email}.',
+	'admin.editors.addDialog.inviteMailFailed':
+		'Editor added: {email}, but the invitation email could not be requested. Use "Resend invitation" on their row to try again.',
 	'admin.editors.addDialog.successInvite':
 		'Editor added: {email}. PocketBase will send them the email to choose their password.',
 	'admin.editors.passwordDialog.title': 'Change password',

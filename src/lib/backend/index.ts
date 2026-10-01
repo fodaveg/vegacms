@@ -12,6 +12,7 @@ export type {
 	BackupFile,
 	Capabilities,
 	ContentType,
+	CreatedEditor,
 	EditorAccount,
 	EditorDirectory,
 	NewEditorAccess,

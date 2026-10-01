@@ -147,7 +147,7 @@ export function createMemoryAdministration(
 			};
 			editors.set(account.id, account);
 			if (access.kind === 'invite') issueResetToken(account.id);
-			return { ...account };
+			return { ...account, invitationSent: access.kind === 'invite' };
 		},
 
 		async setEditorPassword(id, password) {

@@ -11,7 +11,7 @@
 	 * rechaza igualmente, se pinta su mensaje en el campo.
 	 */
 	import { getVegaContext } from '$lib/app-context';
-	import { VegaError, type EditorAccount, type NewEditorAccess } from '$lib/backend';
+	import { VegaError, type CreatedEditor, type NewEditorAccess } from '$lib/backend';
 	import AdminDialog from './AdminDialog.svelte';
 	import PasswordFields from './PasswordFields.svelte';
 	import {
@@ -30,7 +30,7 @@
 		inviteLinkNote?: string | null;
 		fallbackFocusEl?: HTMLElement | null;
 		onClose: () => void;
-		onCreated: (account: EditorAccount, access: NewEditorAccess['kind']) => void;
+		onCreated: (account: CreatedEditor, access: NewEditorAccess['kind']) => void;
 	}
 
 	let {

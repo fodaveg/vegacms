@@ -12,7 +12,8 @@ function fakeAdministration(overrides: Partial<AdministrationPort> = {}): Admini
 			id: 'e1',
 			email,
 			verified: false,
-			created: null
+			created: null,
+			invitationSent: true
 		})),
 		setEditorPassword: vi.fn(),
 		sendEditorInvitation: vi.fn(),

@@ -223,6 +223,14 @@ export interface EditorDirectory {
 /** Cómo entra un editor nuevo: con la contraseña que pone el superusuario o por invitación. */
 export type NewEditorAccess = { kind: 'password'; password: string } | { kind: 'invite' };
 
+/**
+ * Resultado de `AdministrationPort.createEditor`: la cuenta creada más si el correo de la
+ * invitación llegó a pedirse. `invitationSent: false` con `{ kind: 'invite' }` significa que la
+ * cuenta SÍ existe pero el servidor no aceptó pedir el correo (la UI ofrece «Reenviar»); con
+ * `{ kind: 'password' }` no hay invitación y vale siempre `false`.
+ */
+export type CreatedEditor = EditorAccount & { invitationSent: boolean };
+
 /** Una copia de seguridad guardada en el servidor. */
 export interface BackupFile {
 	/** Nombre del fichero, que es también su clave (PB: `pb_backup_<app>_<fecha>.zip`). */

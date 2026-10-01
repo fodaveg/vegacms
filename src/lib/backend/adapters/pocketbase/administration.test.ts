@@ -6,6 +6,7 @@
  * `tests/contract/pocketbase.contract.test.ts`.
  */
 import type PocketBase from 'pocketbase';
+import { ClientResponseError } from 'pocketbase';
 import { describe, expect, test, vi } from 'vitest';
 import { createPocketBaseAdministration } from './administration';
 
@@ -114,5 +115,47 @@ describe('ensureInvitationLink (PocketBase)', () => {
 			await expect(administration.ensureInvitationLink(resetUrl)).resolves.toBe('custom');
 			expect(update).not.toHaveBeenCalled();
 		}
+	});
+});
+
+describe('createEditor (PocketBase)', () => {
+	function setupCreate(requestPasswordReset: () => Promise<boolean>) {
+		const create = vi.fn(async () => ({ id: 'e1', email: 'ana@vega.test', verified: false }));
+		const pb = {
+			collection: vi.fn(() => ({ create, requestPasswordReset }))
+		} as unknown as PocketBase;
+		return createPocketBaseAdministration({ pb, guarded: (op) => op() });
+	}
+
+	test('invitación pedida con éxito: invitationSent true', async () => {
+		const administration = setupCreate(async () => true);
+		const created = await administration.createEditor('ana@vega.test', { kind: 'invite' });
+		expect(created).toMatchObject({ id: 'e1', invitationSent: true });
+	});
+
+	test('la cuenta se crea pero el correo falla: no lanza y devuelve invitationSent false', async () => {
+		const administration = setupCreate(async () => {
+			throw new ClientResponseError({ status: 500, response: {} });
+		});
+		const created = await administration.createEditor('ana@vega.test', { kind: 'invite' });
+		expect(created).toMatchObject({ id: 'e1', email: 'ana@vega.test', invitationSent: false });
+	});
+
+	test('una sesión caducada (401) durante el correo sigue subiendo', async () => {
+		const administration = setupCreate(async () => {
+			throw new ClientResponseError({ status: 401, response: {} });
+		});
+		await expect(
+			administration.createEditor('ana@vega.test', { kind: 'invite' })
+		).rejects.toBeInstanceOf(ClientResponseError);
+	});
+
+	test('con contraseña no hay invitación', async () => {
+		const administration = setupCreate(async () => true);
+		const created = await administration.createEditor('ana@vega.test', {
+			kind: 'password',
+			password: 'una-contraseña-larga'
+		});
+		expect(created.invitationSent).toBe(false);
 	});
 });

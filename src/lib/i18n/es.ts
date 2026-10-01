@@ -1247,6 +1247,8 @@ export const es = {
 	'admin.editors.addDialog.submitPassword': 'Añadir editor',
 	'admin.editors.addDialog.saving': 'Guardando…',
 	'admin.editors.addDialog.successPassword': 'Editor añadido: {email}.',
+	'admin.editors.addDialog.inviteMailFailed':
+		'Editor añadido: {email}, pero no se pudo pedir el correo de invitación. Usa «Reenviar invitación» en su fila para intentarlo de nuevo.',
 	'admin.editors.addDialog.successInvite':
 		'Editor añadido: {email}. PocketBase le enviará el correo para elegir su contraseña.',
 	'admin.editors.passwordDialog.title': 'Cambiar contraseña',
