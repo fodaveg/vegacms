@@ -1,0 +1,376 @@
+<!--TITULO 8 · Editor visual en móvil: modo «solo textos»-->
+
+<!--PIEZA barra-->
+<div class="vega-edit-top vega-edit-top--bleed">
+	<button type="button" class="vega-visual-back">{{i:chevron:14}} Volver al formulario</button>
+	<nav class="vega-visual-breadcrumbs" aria-label="Dónde estás">
+		<ol>
+			<li>Páginas</li>
+			<li aria-current="page">Inicio</li>
+		</ol>
+	</nav>
+	<span class="vega-visual-publish" role="group" aria-label="Estado de la página">
+		<span class="vega-visual-publish-tag" data-status-kind="pub">Publicada</span>
+		<button type="button" class="vega-visual-publish-btn">Pasar a borrador</button>
+	</span>
+	<span class="vega-edit-top-spacer"></span>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA antes-->
+<div class="vega-visual-screen">
+	<!--USA barra-->
+	<div class="vega-visual-narrow">
+		<p class="vega-visual-narrow-title">El editor visual necesita una pantalla más ancha</p>
+		<p>
+			Por debajo de 900 px no cabe el lienzo junto a sus paneles. El formulario de siempre sí
+			funciona aquí.
+		</p>
+		<button type="button">Volver al formulario</button>
+	</div>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA aviso-->
+<div class="vega-admin-notice vega-admin-notice--info vega-visual-texts-intro">
+	<p class="vega-admin-notice-title">Solo textos</p>
+	<p class="vega-admin-notice-body">
+		Aquí puedes corregir los textos de cada sección. Para ver la página, mover secciones o cambiar
+		imágenes hace falta una ventana de 900 px o más.
+	</p>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA bloque-portada-->
+<section class="vega-fsection" aria-labelledby="b1">
+	<div class="vega-visual-texts-head">
+		<h2 id="b1">{{i:media:14}} Portada</h2>
+	</div>
+	<div class="vega-block-fields">
+		<div class="vega-field-row vega-field-row--stacked">
+			<label>Título</label>
+			<div class="vega-field-control">
+				<input type="text" class="vega-widget-text" value="Escribe. Publica. Olvídate del resto." />
+			</div>
+		</div>
+		<div class="vega-field-row vega-field-row--stacked">
+			<label>Subtítulo</label>
+			<div class="vega-field-control">
+				<textarea class="vega-widget-text" rows="1">
+Un CMS editor-first sobre tu propio PocketBase.</textarea>
+			</div>
+		</div>
+		<div class="vega-block-actions">
+			<button type="button" class="vega-block-save-button" disabled>Guardar</button>
+		</div>
+	</div>
+</section>
+<!--/PIEZA-->
+
+<!--PIEZA bloque-texto-sucio-->
+<section class="vega-fsection" aria-labelledby="b2">
+	<div class="vega-visual-texts-head">
+		<h2 id="b2">{{i:document:14}} Texto</h2>
+		<span class="vega-visual-dirty" title="sin guardar"
+			><span class="vega-visually-hidden">sin guardar</span></span
+		>
+	</div>
+	<div class="vega-block-fields">
+		<div class="vega-field-row vega-field-row--stacked">
+			<label>Título</label>
+			<div class="vega-field-control">
+				<input type="text" class="vega-widget-text" value="Tu contenido, en tu servidor" />
+			</div>
+		</div>
+		<div class="vega-field-row vega-field-row--stacked">
+			<label>Cuerpo</label>
+			<div class="vega-field-control">
+				<textarea class="vega-widget-text" rows="1">
+Sin cuentas de terceros ni exportaciones a medianoche: los datos ya son tuyos.</textarea>
+			</div>
+		</div>
+		<div class="vega-block-actions">
+			<button type="button" class="vega-block-save-button">Guardar</button>
+		</div>
+	</div>
+</section>
+<!--/PIEZA-->
+
+<!--PIEZA bloque-galeria-->
+<section class="vega-fsection" aria-labelledby="b3">
+	<div class="vega-visual-texts-head">
+		<h2 id="b3">{{i:box:14}} Galería</h2>
+	</div>
+	<div class="vega-block-fields">
+		<div class="vega-field-row vega-field-row--stacked">
+			<label>Título</label>
+			<div class="vega-field-control">
+				<input type="text" class="vega-widget-text" value="Se adapta a tu modelo" />
+			</div>
+		</div>
+		<div class="vega-field-row vega-field-row--stacked">
+			<label>Pie de foto</label>
+			<div class="vega-field-control">
+				<textarea class="vega-widget-text" rows="1">
+Capturas del editor visual, la lista y la ficha de un registro.</textarea>
+			</div>
+		</div>
+		<div class="vega-block-actions">
+			<button type="button" class="vega-block-save-button" disabled>Guardar</button>
+		</div>
+	</div>
+</section>
+<!--/PIEZA-->
+
+<!--PIEZA despues-->
+<div class="vega-visual-screen">
+	<!--USA barra-->
+	<div class="vega-visual-texts">
+		<!--USA aviso-->
+		<!--USA bloque-portada-->
+		<!--USA bloque-texto-sucio-->
+		<!--USA bloque-galeria-->
+	</div>
+</div>
+<!--/PIEZA-->
+
+<section class="lam-section">
+	<h2>Qué cambia</h2>
+	<p>
+		Por debajo de 900 px el editor visual es hoy una pantalla de salida: dice que no cabe y ofrece
+		volver al formulario. La propuesta la sustituye por un modo <b>«solo textos»</b>: las secciones
+		de la página, en su orden, cada una con sus campos de texto y su «Guardar». No hay lienzo ni
+		árbol ni inspector; no se puede mover, añadir ni borrar secciones. Sirve para lo que se hace
+		desde el móvil: corregir una errata o cambiar un titular. La barra de arriba (volver, migas,
+		estado de la página) es la de hoy. Por encima de 900 px no cambia nada.
+	</p>
+	<table class="lam-cifras">
+		<thead>
+			<tr>
+				<th>Corregir un texto de una sección desde el móvil</th>
+				<th>Antes</th>
+				<th>Después</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>Se puede en esta pantalla</td>
+				<td>no</td>
+				<td>sí</td>
+			</tr>
+			<tr>
+				<td>Toques antes de poder escribir</td>
+				<td>1 para salir («Volver al formulario») y allí buscar la sección</td>
+				<td>0</td>
+			</tr>
+			<tr>
+				<td>Se descarga el sitio en el móvil</td>
+				<td>no</td>
+				<td>no</td>
+			</tr>
+		</tbody>
+	</table>
+</section>
+
+<section class="lam-section lam-solo-estrecho">
+	<h2>La pantalla a 390 px</h2>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>ANTES</b> Estado real de hoy: pantalla de salida</figcaption>
+		<!--SHELL paginas hoy-->
+		<!--USA antes-->
+		<!--/SHELL-->
+	</figure>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption>
+			<b>DESPUÉS</b> Solo textos. La segunda sección tiene cambios sin guardar
+		</figcaption>
+		<!--SHELL paginas hoy-->
+		<!--USA despues-->
+		<!--/SHELL-->
+	</figure>
+</section>
+
+<section class="lam-section lam-solo-ancho">
+	<h2>La pantalla estrecha (390 px), antes y después</h2>
+	<p>
+		Escenarios de 390 px dentro de la lámina ancha, sin la barra superior de la app. A 1440 px el
+		editor visual es el de hoy, con su lienzo: no se dibuja porque no cambia.
+	</p>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption><b>ANTES</b> Estado real de hoy: pantalla de salida</figcaption>
+			<div class="lam-stage lam-movil">
+				<div class="vega-main"><!--USA antes--></div>
+			</div>
+		</figure>
+		<figure class="lam-spec">
+			<figcaption>
+				<b>DESPUÉS</b> Solo textos. La segunda sección tiene cambios sin guardar
+			</figcaption>
+			<div class="lam-stage lam-movil">
+				<div class="vega-main"><!--USA despues--></div>
+			</div>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>Estados</h2>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption><b>8.1</b> Sección con campos que no son texto</figcaption>
+			<div class="lam-stage">
+				<section class="vega-fsection">
+					<div class="vega-visual-texts-head"><h2>{{i:box:14}} Galería</h2></div>
+					<div class="vega-block-fields">
+						<div class="vega-field-row vega-field-row--stacked">
+							<label>Título</label>
+							<div class="vega-field-control">
+								<input type="text" class="vega-widget-text" value="Se adapta a tu modelo" />
+							</div>
+						</div>
+						<p class="vega-visual-texts-rest">
+							Esta sección tiene 2 campos más (imágenes y enlace) que se editan en una pantalla
+							ancha o en el formulario.
+						</p>
+						<div class="vega-block-actions">
+							<button type="button" class="vega-block-save-button" disabled>Guardar</button>
+						</div>
+					</div>
+				</section>
+			</div>
+			<p class="lam-why">
+				Se dice que hay más, para que nadie crea que la sección es solo eso. Los dos campos de más
+				son de relleno: los bloques de la semilla solo traen textos.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>8.2</b> Sección sin ningún texto</figcaption>
+			<div class="lam-stage">
+				<section class="vega-fsection">
+					<div class="vega-visual-texts-head"><h2>{{i:media:14}} Imagen a sangre</h2></div>
+					<p class="vega-visual-texts-rest">
+						Esta sección no tiene textos. Se edita en una pantalla ancha o en el formulario.
+					</p>
+				</section>
+			</div>
+			<p class="lam-why">
+				Se lista igual, en su sitio: así el orden de la página se reconoce. Tipo de bloque de
+				relleno.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>8.3</b> Guardando una sección</figcaption>
+			<div class="lam-stage">
+				<section class="vega-fsection">
+					<div class="vega-visual-texts-head"><h2>{{i:document:14}} Texto</h2></div>
+					<div class="vega-block-fields">
+						<div class="vega-field-row vega-field-row--stacked">
+							<label>Título</label>
+							<div class="vega-field-control">
+								<input
+									type="text"
+									class="vega-widget-text"
+									value="Tu contenido, en tu servidor"
+									disabled
+								/>
+							</div>
+						</div>
+						<div class="vega-block-actions">
+							<button type="button" class="vega-block-save-button" disabled>Guardando…</button>
+						</div>
+					</div>
+				</section>
+			</div>
+			<p class="lam-why">
+				El guardado por sección que ya tiene el inspector (<code>BlockEditor</code>): mismos textos
+				y mismo botón.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>8.4</b> Error al guardar una sección</figcaption>
+			<div class="lam-stage">
+				<section class="vega-fsection">
+					<div class="vega-visual-texts-head">
+						<h2>{{i:document:14}} Texto</h2>
+						<span class="vega-visual-dirty" title="sin guardar"
+							><span class="vega-visually-hidden">sin guardar</span></span
+						>
+					</div>
+					<div class="vega-block-fields">
+						<p class="vega-block-banner" role="alert">
+							No se pudo guardar: no se llega al servidor.
+						</p>
+						<div class="vega-field-row vega-field-row--stacked">
+							<label>Título</label>
+							<div class="vega-field-control">
+								<input type="text" class="vega-widget-text" value="Tu contenido, en tu servidor" />
+							</div>
+						</div>
+						<div class="vega-block-actions">
+							<button type="button" class="vega-block-save-button">Guardar</button>
+						</div>
+					</div>
+				</section>
+			</div>
+			<p class="lam-why">El aviso de error de <code>BlockEditor</code>, dentro de su sección.</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>8.5</b> Página sin secciones</figcaption>
+			<div class="lam-stage">
+				<div class="vega-visual-narrow" style="margin: 0">
+					<p class="vega-visual-narrow-title">Esta página todavía no tiene secciones</p>
+					<p>Para añadir la primera hace falta una ventana de 900 px o más, o el formulario.</p>
+					<button type="button">Volver al formulario</button>
+				</div>
+			</div>
+			<p class="lam-why">La caja de la pantalla de salida de hoy, con el motivo de este caso.</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>8.6</b> Cargando las secciones</figcaption>
+			<div class="lam-stage">
+				<p style="margin: 0; color: var(--ink-2)" aria-live="polite">Cargando…</p>
+			</div>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>Nota</h2>
+	<ul class="lam-notes">
+		<li>
+			<b>Recomendación.</b> Sin lienzo en este modo, ni siquiera en pequeño encima de la lista. Hoy
+			el lienzo no se monta por debajo de 900 px a propósito, para no descargar el sitio entero del
+			cliente en un móvil; una vista previa de 390 px en la que además no se puede tocar nada vuelve
+			a traer esa descarga a cambio de una franja que solo se mira.
+		</li>
+		<li>
+			<b>Qué cuenta como texto.</b> Los campos de texto de una línea y de varias líneas de cada
+			bloque. En este modo los de una línea usan el campo que crece de la lámina 4: en 390 px una
+			frase normal no cabe en una línea y un modo hecho para corregir textos no puede enseñarlos
+			cortados. Lo demás (imágenes, relaciones, selectores, interruptores, números, datos en bruto)
+			se cuenta y se nombra, pero no se edita aquí.
+		</li>
+		<li>
+			<b>Salir con cambios sin guardar.</b> El aviso de hoy al abandonar la pantalla con bloques sin
+			guardar se conserva tal cual, igual que el punto de «sin guardar».
+		</li>
+		<li>
+			<b>Estados que hay que construir.</b> Lista de secciones, sección con cambios, guardando,
+			error, conflicto de edición (el aviso de <code>BlockEditor</code>), sección con campos de otro
+			tipo, sección sin textos, tipo de bloque desconocido (el aviso de hoy), página sin secciones,
+			cargando, sin permiso de editar (campos deshabilitados, sin «Guardar»), paso de estrecho a
+			ancho con cambios sin guardar (se conservan: son los mismos borradores).
+		</li>
+		<li>
+			<b>Piezas y tokens.</b> Ningún token ni icono nuevo. Tarjeta <code>.vega-fsection</code>,
+			campos de <code>FieldRow</code>, botón y aviso de <code>BlockEditor</code>, aviso informativo
+			<code>.vega-admin-notice--info</code>, iconos de tipo de bloque del manifiesto.
+		</li>
+	</ul>
+</section>
