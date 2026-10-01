@@ -120,7 +120,8 @@
 	 *   directo a `list.untitled`. En modo creación (`model.mode === 'create'`) el nombre es
 	 *   siempre `editor.new` ("nuevo"), sin mirar `titleField` — no hay nada que derivar todavía.
 	 * - **Tag de estado**: si `type.statusField` existe y `baseline[statusField]` es un string no
-	 *   vacío, se pinta como `.vega-editor-tag` con `describeStatusBadge` (`$lib/list/cell`, la
+	 *   vacío, Y el registro ya existe (en creación la barra no pinta tag: el borrador preseleccionado aún no
+	 *   está en el servidor), se pinta como `.vega-editor-tag` con `describeStatusBadge` (`$lib/list/cell`, la
 	 *   MISMA función que clasifica la insignia de `RecordTable`, R3 de lote-2) decidiendo el
 	 *   color — pub/draft/other, `data-status-kind` igual que la tabla, y la MISMA píldora del
 	 *   mockup (alto 24px, punto + palabra) con la etiqueta legible de `statusLabels` si el tipo la
@@ -490,7 +491,13 @@
 	/** ¿Cumple el servidor «Publicar el»? (`ContentModel.scheduledPublishing`, ver cabecera). */
 	const scheduling = $derived(ctx.model.scheduledPublishing ?? 'unknown');
 
-	const statusTag = $derived(describeStatusBadge(type, baseline, scheduling, ctx.locale, ctx.t));
+	// En creación el estado preseleccionado (borrador) todavía no está en el servidor: la barra no lo
+	// anuncia como si lo estuviera (ver cabecera, «Tag de estado»).
+	const statusTag = $derived(
+		model.mode === 'create'
+			? null
+			: describeStatusBadge(type, baseline, scheduling, ctx.locale, ctx.t)
+	);
 
 	/** Aviso VISIBLE bajo «Publicar el» cuando el servidor no la va a cumplir, o no se sabe. */
 	const publishAtNotice = $derived(
@@ -974,7 +981,7 @@
 		// control re-habilitado.
 		let errorsToFocus: FieldErrorsView | null = null;
 		try {
-			const input = toRecordInput(type, baseline, current);
+			const input = toRecordInput(type, baseline, current, model.mode);
 			// Edición: con la versión que este formulario tiene delante (ver "Edición concurrente").
 			// Pulsar «Guardar» con el aviso abierto vuelve a comprobar contra la MISMA versión: si
 			// el servidor sigue distinto, el aviso se renueva con la hora nueva.

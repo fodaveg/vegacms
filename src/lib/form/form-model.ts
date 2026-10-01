@@ -54,6 +54,10 @@ export interface FormModel {
  *   según el tipo). Es deliberado: un `raw` `undefined` normaliza exactamente al default de
  *   creación de ese tipo, así que reusar `normalizeFieldValue` evita reimplementar esa tabla aquí
  *   (y garantiza que un default nuevo en §2.1 se propague solo, sin tocar este fichero).
+ *   Excepción: el `statusField` del tipo (si lo hay) arranca en `'draft'`, no en «sin selección» —
+ *   una entrada nueva se guarda siempre como borrador salvo que la persona elija otro estado
+ *   (`isValidStatusField` garantiza que `draft` es una opción). `to-record-input.ts` lo envía aunque
+ *   no difiera del baseline.
  * - `record` presente (edición): el valor de `record.values[field.name]`, CLONADO en profundidad
  *   (`structuredClone`, ya viene normalizado por el adaptador) — nunca la misma referencia que
  *   `record.values`, para que "baseline inmutable" sea cierto por construcción incluso si el
@@ -72,7 +76,7 @@ export function buildFormModel(type: ResolvedContentType, record: VegaRecord | n
 	for (const field of type.fields) {
 		const defaultValue = normalizeFieldValue(field.schema, undefined);
 		if (record === null) {
-			baseline[field.name] = defaultValue;
+			baseline[field.name] = field.name === type.statusField ? 'draft' : defaultValue;
 			continue;
 		}
 		const hasValue = Object.prototype.hasOwnProperty.call(record.values, field.name);
