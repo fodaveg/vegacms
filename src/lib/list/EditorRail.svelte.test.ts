@@ -86,8 +86,10 @@ function setup(opts: {
 	outside?: VegaRecord[];
 	activeId: string | null;
 	type?: ResolvedContentType;
+	/** Sustituye la respuesta del `list` (p. ej. una promesa que el test resuelve a mano). */
+	listImpl?: () => Promise<Page<VegaRecord>>;
 }) {
-	const listFn = vi.fn(async () => pageOf(opts.list, opts.totalItems));
+	const listFn = vi.fn(opts.listImpl ?? (async () => pageOf(opts.list, opts.totalItems)));
 	const getFn = vi.fn(async (_type: string, id: string) => {
 		const hit = (opts.outside ?? []).find((r) => r.id === id);
 		if (!hit) throw VegaError.notFound();
@@ -193,5 +195,24 @@ describe('EditorRail.svelte — peticiones', () => {
 		expect(mounted.listFn).toHaveBeenCalledTimes(2);
 		// La relectura conserva las filas visibles: nunca vuelve a «Cargando…».
 		expect(mounted.target.querySelector('.vega-rail-loading')).toBeNull();
+	});
+
+	test('un guardado que llega con la carga en vuelo se aplica al terminar, aunque la respuesta sea anterior', async () => {
+		let resolveList!: (page: Page<VegaRecord>) => void;
+		mounted = setup({
+			list: [],
+			activeId: 'a',
+			listImpl: () => new Promise((resolve) => (resolveList = resolve))
+		});
+		await flush();
+		expect(mounted.target.querySelector('.vega-rail-loading')).not.toBeNull();
+
+		mounted.props.savedRecord = rec('a', 'Uno nuevo');
+		await flush();
+		resolveList(pageOf([rec('a', 'Uno viejo'), rec('b', 'Dos')]));
+		await flush();
+
+		expect(mounted.titles()).toEqual(['Uno nuevo', 'Dos']);
+		expect(mounted.listFn).toHaveBeenCalledTimes(1);
 	});
 });
