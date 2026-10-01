@@ -257,4 +257,49 @@ describe('toRecordInput', () => {
 		const input = toRecordInput(withFileField, fileBaseline, current);
 		expect(input.cover).toBe(file);
 	});
+
+	describe('creación con statusField', () => {
+		const statusSchema: Field = {
+			name: 'status',
+			type: 'select',
+			options: ['draft', 'published'],
+			multiple: false,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		};
+		const withStatus: ResolvedContentType = {
+			...makeType([makeField(titleField, { widget: 'text' }), makeField(statusSchema)]),
+			statusField: 'status'
+		};
+		const createBaseline: FormValues = { title: '', status: 'draft' };
+
+		test('el borrador preseleccionado se envía aunque no difiera del baseline', () => {
+			expect(toRecordInput(withStatus, createBaseline, { ...createBaseline }, 'create')).toEqual({
+				status: 'draft'
+			});
+		});
+
+		test('si la persona eligió otro estado, se envía ese', () => {
+			expect(
+				toRecordInput(
+					withStatus,
+					createBaseline,
+					{ ...createBaseline, status: 'published' },
+					'create'
+				)
+			).toEqual({ status: 'published' });
+		});
+
+		test('en edición sin cambios NO se reenvía el estado', () => {
+			expect(toRecordInput(withStatus, createBaseline, { ...createBaseline })).toEqual({});
+		});
+
+		test('creación con el estado vacío: no se inventa uno', () => {
+			const empty: FormValues = { title: '', status: null };
+			expect(toRecordInput(withStatus, empty, { ...empty }, 'create')).toEqual({});
+		});
+	});
 });

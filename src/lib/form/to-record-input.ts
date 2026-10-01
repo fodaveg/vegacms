@@ -7,6 +7,8 @@
  * de `checkUnwritableFields` (`write-guards.ts`, §4.3) en vez de dejar que el puerto lo devuelva
  * como error de validación evitable. En `/new` esto equivale a "solo campos no-default y
  * escribibles" (lo que no se toca ya vale su default en el backend); en edición, "solo lo dirty".
+ * Excepción en creación: el `statusField` arranca preseleccionado en borrador (`form-model.ts`) y,
+ * al no diferir del baseline, no sería "dirty": se envía igualmente, o la entrada nacería sin estado.
  *
  * Los valores se reenvían TAL CUAL (pass-through, sin tocar el puerto): un `File` de un campo
  * `file` viaja como subida nueva, y un `FileRef` existente (o una mezcla `FileRef`+`File` en un
@@ -16,7 +18,7 @@
 
 import type { ResolvedContentType } from '$lib/model/types';
 import type { RecordInput } from '$lib/backend/types';
-import type { FormValues } from './form-model';
+import type { FormMode, FormValues } from './form-model';
 import { dirtyFields, type FormInputValues } from './dirty';
 
 /**
@@ -27,13 +29,19 @@ import { dirtyFields, type FormInputValues } from './dirty';
 export function toRecordInput(
 	type: ResolvedContentType,
 	baseline: FormValues,
-	current: FormInputValues
+	current: FormInputValues,
+	mode: FormMode = 'edit'
 ): RecordInput {
 	const dirty = dirtyFields(baseline, current);
 	const input: RecordInput = {};
 
 	for (const field of type.fields) {
-		if (!dirty.has(field.name)) continue;
+		const alwaysSent =
+			mode === 'create' &&
+			field.name === type.statusField &&
+			typeof current[field.name] === 'string' &&
+			current[field.name] !== '';
+		if (!dirty.has(field.name) && !alwaysSent) continue;
 		if (field.schema.readonly) continue;
 		// Defensa en profundidad: comprobar tanto el widget resuelto (L8) como el `schema.type`
 		// real (§2.2), por si algún día divergieran.

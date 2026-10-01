@@ -244,6 +244,24 @@ describe('buildFormModel — creación (record === null)', () => {
 		});
 	});
 
+	test('tipo con statusField: una entrada nueva arranca en borrador, no en «sin selección»', () => {
+		const withStatus = { ...kitchenSinkType, statusField: 'status' };
+		const model = buildFormModel(withStatus, null);
+		expect(model.baseline.status).toBe('draft');
+		// Solo ese campo cambia respecto al default de siempre.
+		expect(model.baseline.title).toBe('');
+	});
+
+	test('edición de un tipo con statusField: se respeta el estado del registro, aunque esté vacío', () => {
+		const withStatus = { ...kitchenSinkType, statusField: 'status' };
+		const record = {
+			id: 'r1',
+			collection: 'post',
+			values: { status: 'published' }
+		} as unknown as Parameters<typeof buildFormModel>[1];
+		expect(buildFormModel(withStatus, record).baseline.status).toBe('published');
+	});
+
 	test('cubre TODOS los campos del tipo, mismo cardinal que type.fields', () => {
 		const model = buildFormModel(kitchenSinkType, null);
 		expect(Object.keys(model.baseline).sort()).toEqual(

@@ -27,6 +27,10 @@
 	 *   `lastKnownQ` de `ListToolbar.svelte`): así el `$effect` no depende de su propia
 	 *   escritura, y el reasentado interno tras guardar (más abajo) no se revierte en el
 	 *   siguiente tick.
+	 * - **Slug al crear** (audit 30 sep): en `model.mode === 'create'`, con `slugField` y
+	 *   `titleField`, el slug se deriva del título (`slugWriteForTitleEdit`, `slug-from-title.ts`)
+	 *   mientras la persona no haya tocado el campo slug; sin él, la entrada se guardaba sin URL.
+	 *   En un registro EXISTENTE el slug no se toca nunca (es una URL pública viva).
 	 * - Errores: `clientErrors` (`validation.ts`, D-P5.3) bloquea el envío SIN tocar la red si el
 	 *   propio cliente ya ve un `required`/`maxSelect` incumplido; `backendErrors`
 	 *   (`field-errors.ts`, L-P5.4) es lo que devuelve `onSubmit` si el puerto rechaza. Se funden
@@ -116,7 +120,8 @@
 	 *   directo a `list.untitled`. En modo creación (`model.mode === 'create'`) el nombre es
 	 *   siempre `editor.new` ("nuevo"), sin mirar `titleField` — no hay nada que derivar todavía.
 	 * - **Tag de estado**: si `type.statusField` existe y `baseline[statusField]` es un string no
-	 *   vacío, se pinta como `.vega-editor-tag` con `describeStatusBadge` (`$lib/list/cell`, la
+	 *   vacío, Y el registro ya existe (en creación la barra no pinta tag: el borrador preseleccionado aún no
+	 *   está en el servidor), se pinta como `.vega-editor-tag` con `describeStatusBadge` (`$lib/list/cell`, la
 	 *   MISMA función que clasifica la insignia de `RecordTable`, R3 de lote-2) decidiendo el
 	 *   color — pub/draft/other, `data-status-kind` igual que la tabla, y la MISMA píldora del
 	 *   mockup (alto 24px, punto + palabra) con la etiqueta legible de `statusLabels` si el tipo la
@@ -265,6 +270,7 @@
 	import { localeStatus, type LocaleStatus } from './locale-status';
 	import { isDirty, type FormInputValues } from './dirty';
 	import { toRecordInput } from './to-record-input';
+	import { slugWriteForTitleEdit } from './slug-from-title';
 	import { validateForm } from './validation';
 	import { isFieldValidationError, mapFieldErrors, type FieldErrorsView } from './field-errors';
 	import { fieldErrorMessage } from './field-error-message';
@@ -346,6 +352,11 @@
 	// Ver cabecera: variable PLANA (no `$state`) para no crear un ciclo effect↔escritura propia.
 	let syncedModel = untrack(() => model);
 
+	// Campos que la persona ha editado A MANO en este registro (variable PLANA: solo se lee dentro de
+	// `handleFieldChange`, nunca en el template). En creación, el slug sigue al título mientras su
+	// campo no esté aquí (ver cabecera, «Slug al crear»); un `model` nuevo la vacía.
+	let editedByHand: string[] = [];
+
 	// Costura de identidad de registro (F5-f, `record-context.ts`): el widget `file` necesita
 	// `{type, id}` para `ctx.port.fileUrl`, que `WidgetProps` no lleva (D-P5.1). Se publica un
 	// OBJETO `$state` ESTABLE (nunca reemplazado, solo mutado) para que un widget montado ahora
@@ -376,6 +387,7 @@
 	$effect(() => {
 		if (model !== syncedModel) {
 			syncedModel = model;
+			editedByHand = [];
 			baseline = model.baseline;
 			current = { ...model.baseline };
 			clientErrors = EMPTY_ERRORS;
@@ -479,7 +491,13 @@
 	/** ¿Cumple el servidor «Publicar el»? (`ContentModel.scheduledPublishing`, ver cabecera). */
 	const scheduling = $derived(ctx.model.scheduledPublishing ?? 'unknown');
 
-	const statusTag = $derived(describeStatusBadge(type, baseline, scheduling, ctx.locale, ctx.t));
+	// En creación el estado preseleccionado (borrador) todavía no está en el servidor: la barra no lo
+	// anuncia como si lo estuviera (ver cabecera, «Tag de estado»).
+	const statusTag = $derived(
+		model.mode === 'create'
+			? null
+			: describeStatusBadge(type, baseline, scheduling, ctx.locale, ctx.t)
+	);
 
 	/** Aviso VISIBLE bajo «Publicar el» cuando el servidor no la va a cumplir, o no se sabe. */
 	const publishAtNotice = $derived(
@@ -587,7 +605,7 @@
 	 *  nada que escribir: JAMÁS pisa un slug bueno con una cadena vacía. */
 	function regenerateSlug(): void {
 		if (type.slugField === null || regeneratedSlug === '' || formDisabled) return;
-		handleFieldChange(type.slugField, regeneratedSlug);
+		handleFieldChange(type.slugField, regeneratedSlug, true);
 	}
 
 	// ————— Modelo de páginas (`type.page`, tarea p1 `1dc63001`; encargo "crear y editar páginas") —————
@@ -746,8 +764,19 @@
 		}
 	}
 
-	function handleFieldChange(name: string, value: FieldInputValue): void {
+	/**
+	 * `programmatic`: la escritura NO la hizo la persona en el campo (la propia derivación del slug
+	 * o «Regenerar»), así que no cuenta como «tocado a mano» y el slug sigue pudiendo acompañar al
+	 * título. Una edición real de un campo en CREACIÓN puede, además, arrastrar el slug
+	 * (`slugWriteForTitleEdit`): jamás en edición de un registro existente.
+	 */
+	function handleFieldChange(name: string, value: FieldInputValue, programmatic = false): void {
+		if (!programmatic && !editedByHand.includes(name)) editedByHand.push(name);
 		current = { ...current, [name]: value };
+		if (!programmatic) {
+			const follow = slugWriteForTitleEdit(type, model.mode, name, value, editedByHand);
+			if (follow) handleFieldChange(follow.field, follow.value, true);
+		}
 		// Corrige el campo ⇒ su error (de cualquiera de las dos fuentes) deja de mostrarse: el
 		// usuario ya está reaccionando a él, no tiene sentido dejarlo pintado hasta el próximo envío.
 		if (name in clientErrors.byField) {
@@ -952,7 +981,7 @@
 		// control re-habilitado.
 		let errorsToFocus: FieldErrorsView | null = null;
 		try {
-			const input = toRecordInput(type, baseline, current);
+			const input = toRecordInput(type, baseline, current, model.mode);
 			// Edición: con la versión que este formulario tiene delante (ver "Edición concurrente").
 			// Pulsar «Guardar» con el aviso abierto vuelve a comprobar contra la MISMA versión: si
 			// el servidor sigue distinto, el aviso se renueva con la hora nueva.
