@@ -85,13 +85,13 @@ proof-of-possession rule and the `/passkey/verify` routes described below.
 A session token alone cannot add, replace or remove a factor once the account has one (TOTP
 enabled or at least one passkey). These routes are guarded:
 
-| Route                          | What it changes                                  |
-| ------------------------------ | ------------------------------------------------ |
-| `POST /totp/enroll`            | starts replacing the authenticator app           |
-| `POST /totp/disable`           | removes TOTP                                     |
-| `POST /recovery/generate`      | voids the recovery codes and issues new ones     |
-| `POST /passkey/register/begin` | adds a passkey (`finish` needs this challenge)   |
-| `POST /passkey/delete`         | removes a passkey                                |
+| Route                          | What it changes                                |
+| ------------------------------ | ---------------------------------------------- |
+| `POST /totp/enroll`            | starts replacing the authenticator app         |
+| `POST /totp/disable`           | removes TOTP                                   |
+| `POST /recovery/generate`      | voids the recovery codes and issues new ones   |
+| `POST /passkey/register/begin` | adds a passkey (`finish` needs this challenge) |
+| `POST /passkey/delete`         | removes a passkey                              |
 
 A guarded request goes through when either of these holds:
 
