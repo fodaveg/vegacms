@@ -18,6 +18,7 @@
 	 * - Texto en blanco = campo vacío: se pinta vacío (no `null`) y propaga `null`, lo que ya
 	 *   enviaba antes (`parseJsonInput`).
 	 */
+	import { untrack } from 'svelte';
 	import type { JsonValue } from '$lib/backend/types';
 	import type { WidgetProps } from './types';
 	import { getVegaContext } from '$lib/app-context';
@@ -38,9 +39,10 @@
 	}
 	type FieldInputValueLike = WidgetProps['value'] | undefined;
 
-	let text = $state(display(value));
+	// Solo el valor INICIAL: después manda el efecto de abajo (cambios externos) o el usuario.
+	let text = $state(untrack(() => display(value)));
 	let invalid = $state(false);
-	let lastSerialized = JSON.stringify(value ?? null);
+	let lastSerialized = untrack(() => JSON.stringify(value ?? null));
 	let textarea = $state<HTMLTextAreaElement | undefined>();
 
 	const describedBy = $derived(
