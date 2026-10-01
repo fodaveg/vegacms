@@ -1,0 +1,262 @@
+<!--TITULO 7 · Listado: la acción de fila pasa a un menú-->
+
+<!--PIEZA cabecera-->
+<div class="vega-list-header">
+	<h1>Entradas</h1>
+	<span class="vega-list-meta"><b>42</b> registros · <b>0</b> filtros</span>
+	<span class="vega-list-header-spacer"></span>
+	<button type="button" class="vega-list-export-button">Exportar</button>
+	<button type="button" class="vega-list-import-button">Importar</button>
+	<button type="button" class="vega-list-new-button">
+		{{i:plus:14}} Crear «Entrada» <kbd aria-hidden="true">N</kbd>
+	</button>
+</div>
+<div class="vega-list-toolbar">
+	<label class="vega-list-search">
+		{{i:search:14}}
+		<input
+			type="search"
+			class="vega-list-search-input"
+			placeholder="Filtrar por título o slug…"
+			aria-label="Buscar en el listado"
+		/>
+	</label>
+	<div class="vega-list-filter">
+		<button
+			type="button"
+			class="vega-list-filter-trigger"
+			aria-haspopup="menu"
+			aria-expanded="false"
+		>
+			Filtrar {{i:chevron:12}}
+		</button>
+	</div>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA menu-->
+<button type="button" role="menuitem" data-tone="danger">{{i:trash:16}} Borrar…</button>
+<!--/PIEZA-->
+
+<section class="lam-section">
+	<h2>Qué cambia</h2>
+	<p>
+		Hoy cada fila tiene <b>dos paradas de tabulación</b>: el título y el botón «Borrar», que está
+		oculto hasta pasar el ratón pero el tabulador lo pisa igual. En una página de 30 filas son 60
+		paradas para llegar a la paginación. La propuesta deja <b>una parada por fila</b> (el título) y
+		lleva la acción a un botón de menú que no entra en el recorrido del tabulador: se llega a él con
+		la flecha derecha desde el título, o con el ratón o el dedo. Lo demás de la tabla no se toca:
+		columnas, orden, estado bajo el título en estrecho y paginación son los de hoy.
+	</p>
+	<p>
+		Al dibujarlo a 390 px salió otra cosa: hoy «Borrar» va dentro de la última columna y en móvil
+		esa columna queda <b>fuera de la pantalla</b>, al final del desplazamiento lateral de la tabla.
+		Por eso el botón de menú va en una celda propia, pegada al borde derecho: se ve siempre, se
+		desplace la tabla o no.
+	</p>
+	<table class="lam-cifras">
+		<thead>
+			<tr>
+				<th>Página de 30 filas</th>
+				<th>Antes</th>
+				<th>Después</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>Paradas de tabulación en las filas</td>
+				<td>60</td>
+				<td>30</td>
+			</tr>
+			<tr>
+				<td>Clics para borrar con ratón (sin contar la confirmación)</td>
+				<td>1</td>
+				<td>2</td>
+			</tr>
+			<tr>
+				<td>Teclas para borrar desde el título de la fila</td>
+				<td>Tab, Intro</td>
+				<td>→, Intro, Intro</td>
+			</tr>
+			<tr>
+				<td>Ancho reservado para la acción</td>
+				<td>4,5 rem dentro de la última columna</td>
+				<td>2,7 rem en una celda propia</td>
+			</tr>
+			<tr>
+				<td>La acción se ve a 390 px sin desplazar la tabla</td>
+				<td>no</td>
+				<td>sí</td>
+			</tr>
+		</tbody>
+	</table>
+</section>
+
+<section class="lam-section">
+	<h2>Icono nuevo, junto a los que ya hay</h2>
+	<p>
+		El set no tiene un icono de «más acciones». Este es el único icono nuevo del lote: tres puntos
+		en el mismo lienzo de 24, trazo 2 y remates redondos. Va recuadrado; el resto son los de
+		<code>src/lib/icons/Icon.svelte</code> tal cual.
+	</p>
+	<ul class="lam-icons">
+		<li class="lam-icon-nuevo">{{i:more:18}} more (nuevo)</li>
+		<!--ICONOS-->
+	</ul>
+</section>
+
+<section class="lam-section">
+	<h2>Estados</h2>
+	<div class="lam-grid lam-grid--una">
+		<figure class="lam-spec">
+			<figcaption><b>ANTES</b> Fila con el foco dentro: aparece «Borrar»</figcaption>
+			<div class="lam-stage">
+				<div class="vega-list-card"><!--TABLA antes 4 foco=2--></div>
+			</div>
+			<p class="lam-why">
+				En reposo el botón está con <code>opacity: 0</code>, pero sigue siendo una parada de
+				tabulación en cada fila.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>7.1</b> Reposo y fila con el foco o el ratón encima</figcaption>
+			<div class="lam-stage">
+				<div class="vega-list-card"><!--TABLA despues 4 foco=2--></div>
+			</div>
+			<p class="lam-why">
+				Misma aparición que «Borrar»: oculto en reposo, visible con el ratón encima o el foco dentro
+				de la fila. El botón es la caja del asa de arrastre (<code>.vega-reorder-handle</code>).
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>7.2</b> Menú abierto</figcaption>
+			<div class="lam-stage">
+				<div class="vega-list-card lam-ancla">
+					<!--TABLA despues 4 abierta=2-->
+					<div
+						class="vega-row-menu"
+						role="menu"
+						style="--top-ancho: 8.2rem; --top-estrecho: 12.7rem"
+					>
+						<!--USA menu-->
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">
+				La tarjeta de «Filtrar». «Borrar…» en la pareja de peligro de hoy, con puntos suspensivos
+				porque abre la confirmación de siempre (<code>DeleteConfirm</code>). El foco entra en la
+				primera entrada; Escape cierra y lo devuelve al botón.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>7.3</b> Foco en el botón de menú (tras pulsar →)</figcaption>
+			<div class="lam-stage">
+				<div class="lam-stage--bar" style="display: flex; gap: 1.5rem; align-items: center">
+					<button
+						type="button"
+						class="vega-row-menu-trigger lam-foco"
+						style="position: static; transform: none; opacity: 1"
+						aria-label="Acciones de «Notas del huerto: julio»"
+					>
+						{{i:more:16}}
+					</button>
+					<button
+						type="button"
+						class="vega-row-menu-trigger"
+						style="
+							position: static;
+							transform: none;
+							opacity: 1;
+							border-color: var(--line);
+							background: var(--surface);
+							color: var(--ink);
+						"
+						aria-label="Acciones de «Notas del huerto: julio»"
+					>
+						{{i:more:16}}
+					</button>
+					<span class="lam-why">Con foco · con el ratón encima o abierto</span>
+				</div>
+			</div>
+			<p class="lam-why">
+				Nombre accesible con el título de la fila: «Acciones de «Notas del huerto: julio»».
+			</p>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>La pantalla, con 30 filas</h2>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption>
+			<b>ANTES</b> Estado real de hoy. La tercera fila tiene el foco: se ve su «Borrar»
+		</figcaption>
+		<!--SHELL entradas hoy-->
+		<div class="vega-list-page">
+			<!--USA cabecera-->
+			<div class="vega-list-card">
+				<div data-list-state="ready"><!--TABLA antes 30 foco=3--></div>
+			</div>
+		</div>
+		<!--/SHELL-->
+	</figure>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption>
+			<b>DESPUÉS</b> Un botón de menú por fila. La tercera fila tiene el foco; la quinta, el menú
+			abierto
+		</figcaption>
+		<!--SHELL entradas hoy-->
+		<div class="vega-list-page">
+			<!--USA cabecera-->
+			<div class="vega-list-card lam-ancla">
+				<div data-list-state="ready"><!--TABLA despues 30 foco=3 abierta=5--></div>
+				<div class="vega-row-menu" role="menu" style="--top-ancho: 19.4rem; --top-estrecho: 27rem">
+					<!--USA menu-->
+				</div>
+			</div>
+		</div>
+		<!--/SHELL-->
+	</figure>
+</section>
+
+<section class="lam-section">
+	<h2>Nota</h2>
+	<ul class="lam-notes">
+		<li>
+			<b>Recomendación.</b> Tabulador entre filas, flechas dentro de la fila: el botón de menú lleva
+			<code>tabindex="-1"</code> y se alcanza con → desde el título (← vuelve). Si el botón de menú
+			se deja como parada de tabulación normal, la tabla sigue en 60 paradas y la lámina no arregla
+			nada: solo cambia «Borrar» por tres puntos. Para que el atajo no sea un secreto, el título
+			lleva <code>aria-describedby</code> a una frase oculta («Flecha derecha: acciones de la fila»)
+			y borrar sigue estando también dentro del registro, en «Zona de peligro».
+		</li>
+		<li>
+			<b>El menú va en la capa superior.</b> Las celdas recortan (<code>overflow: hidden</code> para
+			los puntos suspensivos) y la tabla tiene su propio scroll horizontal: un menú posicionado
+			dentro de la celda saldría cortado. Tiene que pintarse fuera (atributo <code>popover</code> o
+			posición fija calculada desde el botón) y abrirse hacia arriba en las últimas filas.
+		</li>
+		<li>
+			<b>Estados que hay que construir.</b> Reposo, ratón encima, foco en el título, foco en el
+			botón, menú abierto, entrada con foco, menú hacia arriba (últimas filas), puntero basto (botón
+			siempre visible, 44 × 44), colección sin permiso de borrar (sin botón ni hueco, como hoy),
+			fila sin permiso de ver (el título no es enlace: el botón de menú pasa a ser la parada de
+			tabulación de esa fila), tabla reordenable (el asa de arrastre sigue siendo su parada).
+		</li>
+		<li>
+			<b>Piezas y tokens.</b> Ningún token nuevo. Botón y celda: medidas de
+			<code>.vega-reorder-handle</code> y <code>.vega-reorder-cell</code>. La celda pegada lleva
+			fondo <code>--paper</code> (y el resalte de fila encima) para que el texto que se desplaza por
+			debajo no se transparente. Su cabecera no tiene texto visible («Acciones», oculto). Menú:
+			tarjeta de <code>.vega-list-filter-menu</code>. Peligro: <code>--danger</code> y
+			<code>--danger-soft</code>. Iconos: <code>more</code> (nuevo) y <code>trash</code>.
+		</li>
+		<li>
+			<b>Coste.</b> Con ratón, borrar pasa de un clic a dos. A cambio el menú es el sitio donde
+			caben más acciones de fila sin ensanchar la tabla.
+		</li>
+	</ul>
+</section>
