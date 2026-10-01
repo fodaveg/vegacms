@@ -1,0 +1,1037 @@
+/* =====================================================================================
+   1. CROMO DE LA LÁMINA — no es producto, no se lleva a Svelte.
+   Mismo cromo que `design/mockups/2026-10-01-ajustes-y-sembrado/fuente/lamina.css`.
+   Solo tokens del tema; ningún color propio.
+   ===================================================================================== */
+
+body.lam {
+	padding: 0 0 4rem;
+	line-height: 1.45;
+}
+
+.lam-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 0.75rem 1.5rem;
+	padding: 1.5rem clamp(0.75rem, 3vw, 2.5rem) 1rem;
+	border-bottom: 1px solid var(--line);
+}
+
+.lam-head h1 {
+	margin: 0.15rem 0 0;
+	font-size: 1.45rem;
+	color: var(--ink-hi);
+	letter-spacing: -0.01em;
+}
+
+.lam-kicker {
+	margin: 0;
+	font-family: var(--mono);
+	font-size: 0.72rem;
+	color: var(--ink-2);
+}
+
+.lam-tools {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.lam-tools [aria-pressed='true'] {
+	border-color: var(--accent);
+	color: var(--accent-text);
+}
+
+.lam-tool-label {
+	margin-left: 0.5rem;
+	font-size: 0.8rem;
+	color: var(--ink-2);
+}
+
+.lam-theme {
+	width: auto;
+	padding: 0.3rem 0.5rem;
+	font-size: 0.8rem;
+}
+
+.lam-section {
+	padding: 1.75rem clamp(0.75rem, 3vw, 2.5rem) 0;
+}
+
+.lam-section > h2 {
+	margin: 0 0 0.25rem;
+	font-size: 1.1rem;
+	color: var(--ink-hi);
+}
+
+.lam-section > p,
+.lam-notes li {
+	max-width: 62rem;
+	margin: 0 0 1rem;
+	font-size: 0.88rem;
+	color: var(--ink-2);
+}
+
+.lam-section > p b,
+.lam-notes li b {
+	color: var(--ink);
+}
+
+.lam-notes {
+	margin: 0;
+	padding-left: 1.1rem;
+}
+
+.lam-notes li {
+	margin-bottom: 0.45rem;
+}
+
+.lam-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 27rem), 1fr));
+	gap: 1.5rem;
+	align-items: start;
+}
+
+.lam-grid + .lam-grid {
+	margin-top: 1.5rem;
+}
+
+.lam-grid--wide {
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 38rem), 1fr));
+}
+
+/* Una figura por línea: para piezas que necesitan el ancho entero (una tabla con sus columnas). */
+.lam-grid--una {
+	grid-template-columns: minmax(0, 62rem);
+}
+
+.lam-spec {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	min-width: 0;
+	margin: 0;
+}
+
+.lam-spec + .lam-spec--frame {
+	margin-top: 1.5rem;
+}
+
+.lam-spec figcaption {
+	font-size: 0.8rem;
+	color: var(--ink-2);
+}
+
+.lam-spec figcaption b {
+	margin-right: 0.4rem;
+	font-family: var(--mono);
+	font-weight: 500;
+	color: var(--accent-text);
+}
+
+.lam-stage {
+	display: flex;
+	flex-direction: column;
+	gap: var(--vega-space-gutter);
+	min-width: 0;
+	padding: 1rem;
+	border: 1px dashed var(--line-strong);
+	border-radius: var(--r);
+	background: var(--paper);
+}
+
+/* Velo del diálogo: el mismo literal que `AdminDialog.svelte` (no hay token de velo). */
+.lam-stage--veil {
+	align-items: center;
+	background: linear-gradient(rgb(15 17 21 / 55%), rgb(15 17 21 / 55%)), var(--paper);
+}
+
+/* En la lámina el diálogo se enseña entero; en producto conserva su `max-height` y hace scroll. */
+.lam-stage--veil .vega-admin-dialog {
+	max-height: none;
+}
+
+/* Una barra suelta (topbar o cabecera de listado) dentro de un escenario, sin relleno. */
+.lam-stage--bar {
+	padding: 0;
+	overflow: hidden;
+}
+
+/* Hueco para un menú desplegado que cuelga de una barra: sin él lo recortaría el escenario. */
+.lam-stage--menu {
+	padding-bottom: 9.5rem;
+}
+
+.lam-why {
+	margin: 0;
+	font-size: 0.8rem;
+	color: var(--ink-2);
+}
+
+.lam-why b {
+	color: var(--ink);
+}
+
+/* Marco de pantalla completa: la app real ocupa el viewport; aquí crece con su contenido. */
+.lam-frame {
+	/* A sangre: el marco mide lo mismo que la ventana (1440 o 390 px), como la app real. Con el
+	   margen de la lámina alrededor quedaba 80 px más estrecho y las barras partían línea antes
+	   de tiempo. */
+	margin-inline: calc(-1 * clamp(0.75rem, 3vw, 2.5rem));
+	border-block: 1px solid var(--line-strong);
+	overflow: hidden;
+}
+
+.lam-frame .vega-shell {
+	height: auto;
+}
+
+.lam-frame .vega-main {
+	overflow: visible;
+	background-attachment: scroll;
+}
+
+.lam-frame .vega-edit-top {
+	position: static;
+}
+
+/* La pantalla del editor visual mide el alto de la ventana; en la lámina, el de su contenido. */
+.lam-frame .vega-visual-screen,
+.lam-movil .vega-visual-screen {
+	height: auto;
+}
+
+/* El aside del editor es pegajoso en producto; en la lámina va en su sitio. */
+.lam-frame .vega-editor-aside {
+	position: static;
+}
+
+/* El cajón lateral de móvil es `position: fixed`: fuera del marco no pinta nada en la lámina. */
+@media (max-width: 768px) {
+	.lam-frame .vega-sidebar {
+		display: none;
+	}
+}
+
+/* El toast real es `position: fixed`; en la lámina se enseña en su sitio relativo. */
+.lam-toast {
+	display: flex;
+	justify-content: flex-end;
+}
+
+.lam-toast .vega-toast {
+	width: min(22rem, 100%);
+	box-sizing: border-box;
+}
+
+.lam-icons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem 1.25rem;
+	margin: 0 0 1rem;
+	padding: 0;
+	list-style: none;
+	font-family: var(--mono);
+	font-size: 0.75rem;
+	color: var(--ink-2);
+}
+
+.lam-icons li {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.lam-icons svg {
+	color: var(--ink);
+}
+
+.lam-icons .lam-icon-nuevo {
+	padding: 0.25rem 0.5rem;
+	border: 1px dashed var(--accent-line);
+	border-radius: var(--r);
+	color: var(--accent-text);
+}
+
+/* Hueco reservado para algo que NO se diseña en esta lámina. */
+.lam-hueco {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 4.5rem;
+	padding: 0.75rem 1rem;
+	border: 1px dashed var(--line-strong);
+	border-radius: var(--r);
+	font-family: var(--mono);
+	font-size: 0.72rem;
+	color: var(--ink-2);
+	text-align: center;
+}
+
+/* Escenario de móvil: 390 px de ancho, con el relleno real de `.vega-main`. Sirve para enseñar la
+   pantalla estrecha también en la captura de 1440 px. Los objetivos táctiles de 44 px solo se ven
+   en la captura de 390 px (dependen de `pointer: coarse`, no del ancho). */
+.lam-movil {
+	width: 100%;
+	max-width: 390px;
+	padding: 0;
+	overflow: hidden;
+}
+
+.lam-movil > .vega-main {
+	overflow: visible;
+	background-attachment: scroll;
+}
+
+.lam-movil .vega-edit-top {
+	position: static;
+}
+
+.lam-movil .vega-editor-aside {
+	position: static;
+}
+
+/* La rejilla del editor pasa a una columna por debajo de 900 px (`RecordForm.svelte`): forzado
+   aquí porque el escenario estrecho vive dentro de una ventana ancha. */
+.lam-movil .vega-editor-grid {
+	grid-template-columns: minmax(0, 1fr);
+}
+
+/* Lo mismo con las reglas de ≤640 px de la propuesta de la lámina 6. */
+.lam-movil .vega-list-header-actions--wide {
+	display: none;
+}
+
+.lam-movil .vega-list-header-actions--narrow {
+	display: flex;
+	flex-basis: 100%;
+	flex-wrap: nowrap;
+	gap: 0.6rem;
+	min-width: 0;
+	max-width: 100%;
+}
+
+.lam-movil .vega-list-header-actions--narrow .vega-list-new-button {
+	flex: 1;
+	min-width: 0;
+	justify-content: center;
+}
+
+.lam-movil .vega-list-header-actions--narrow .vega-list-more {
+	flex-shrink: 0;
+}
+
+.lam-movil .vega-list-header-actions--narrow .vega-list-new-button span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* …y con las de ≤640 px de `RecordTable.svelte` (título acotado, estado bajo el título). */
+.lam-movil .vega-record-table td.vega-cell-title {
+	width: 14rem;
+	min-width: 14rem;
+	max-width: 14rem;
+}
+
+.lam-movil .vega-col-status {
+	display: none;
+}
+
+.lam-movil .vega-status-badge-inline {
+	display: inline-flex;
+	margin-top: 0.3rem;
+}
+
+.lam-movil .vega-cell-title a {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* Piezas que solo tienen sentido en una de las dos capturas. */
+@media (max-width: 900px) {
+	.lam-solo-ancho {
+		display: none;
+	}
+}
+
+@media (min-width: 901px) {
+	.lam-solo-estrecho {
+		display: none;
+	}
+}
+
+/* Tabla de cifras de la nota (clics y paradas de tabulación). */
+.lam-cifras {
+	max-width: 62rem;
+	margin: 0 0 1rem;
+	border-collapse: collapse;
+	font-size: 0.85rem;
+	color: var(--ink);
+}
+
+.lam-cifras th,
+.lam-cifras td {
+	padding: 0.35rem 0.9rem 0.35rem 0;
+	border-bottom: 1px solid var(--line);
+	text-align: left;
+	vertical-align: top;
+}
+
+.lam-cifras th {
+	font-size: 0.6875rem;
+	font-weight: 650;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--ink-2);
+}
+
+.lam-cifras td:not(:first-child) {
+	font-family: var(--mono);
+	font-size: 0.8rem;
+}
+
+/* Estados que en producto dependen de :hover / :focus / JS, fijados para poder capturarlos. */
+.lam-fila-foco .vega-delete-button,
+.lam-fila-foco .vega-row-menu-trigger,
+.lam-fila-abierta .vega-row-menu-trigger {
+	opacity: 1;
+}
+
+.vega-record-table tbody tr.lam-fila-foco {
+	background: var(--accent-soft);
+}
+
+.lam-fila-foco td:first-child {
+	position: relative;
+}
+
+.lam-fila-foco td:first-child::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	width: 2.5px;
+	background: var(--sheen);
+}
+
+.lam-foco {
+	outline: 2px solid var(--ring);
+	outline-offset: 2px;
+}
+
+/* El menú de fila real va en la capa superior (ver nota de la lámina 7); aquí se ancla a mano. */
+.lam-ancla {
+	position: relative;
+}
+
+.lam-ancla > .vega-row-menu {
+	position: absolute;
+	top: var(--top-ancho);
+	right: 0.35rem;
+	z-index: 2;
+}
+
+@media (max-width: 900px) {
+	.lam-ancla > .vega-row-menu {
+		top: var(--top-estrecho);
+	}
+}
+
+/* Miniatura de muestra: el mismo bloque tintado con icono que usa `MediaUpload` mientras no hay
+   imagen real que pintar (las láminas no llevan fotos). */
+.lam-thumb {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 4px;
+	background: linear-gradient(140deg, var(--accent-soft), var(--surface-2));
+	color: var(--accent-text);
+}
+
+/* `NavItem.svelte` tiene selectores de elemento sueltos (`a`, `li`) que solo valen con ámbito de
+   Svelte: transcritos aquí bajo `.vega-nav-group`, mismos valores. */
+.vega-nav-group a {
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+	min-height: var(--row-h);
+	padding: 0 var(--vega-space-gutter);
+	border-radius: var(--r);
+	color: var(--ink-2);
+	text-decoration: none;
+}
+
+.vega-nav-group a svg {
+	color: var(--ink-3);
+}
+
+.vega-nav-group a[aria-current='page'] {
+	background: var(--accent-soft);
+	color: var(--accent-text);
+	font-weight: 600;
+}
+
+.vega-nav-group a[aria-current='page'] svg {
+	color: var(--accent-text);
+}
+
+/* =====================================================================================
+   2. COMPOSICIONES PROPUESTAS — lo que el implementer lleva a producto.
+   Ningún token nuevo ni color literal. Cada medida es la de una pieza que ya existe (se cita).
+   ===================================================================================== */
+
+/* ——— 2.0 Menú desplegable: la tarjeta que YA repiten `.vega-topbar-user-menu` (Topbar) y
+   `.vega-list-filter-menu` (ListToolbar). Las láminas 3, 6 y 7 la reutilizan con estos mismos
+   valores; al tercer uso conviene que el implementer la saque a una sola clase. ——— */
+
+/* ——— 2.1 Lámina 1 · Portada (`src/routes/+page.svelte`) ——— */
+
+/* Misma columna que `.vega-list-page`. */
+.vega-home {
+	display: flex;
+	flex-direction: column;
+	gap: calc(var(--vega-space-gutter) * 1.5);
+}
+
+.vega-home-block {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	min-width: 0;
+}
+
+/* Rótulo de bloque: el de `.vega-fsection h2` (RecordForm), con `--ink-2` porque aquí va sobre el
+   papel de la página y no dentro de una tarjeta (mismo motivo que `.vega-field-help`). */
+.vega-home-block > h2 {
+	margin: 0;
+	font-size: 0.76em;
+	font-weight: 650;
+	letter-spacing: 0.09em;
+	text-transform: uppercase;
+	color: var(--ink-2);
+}
+
+/* Fila de accesos a crear: mismo reparto que `.vega-list-toolbar`. Los botones son
+   `.vega-list-export-button` (el secundario del listado) con el icono `plus`. */
+.vega-home-create {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.6rem;
+}
+
+/* La marca de la barra superior pasa de `<span>` a `<a href="/">`. */
+a.vega-topbar-site {
+	border-radius: var(--r);
+	color: inherit;
+	text-decoration: none;
+}
+
+a.vega-topbar-site:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 1px;
+}
+
+@media (pointer: coarse) {
+	.vega-home-create .vega-list-export-button {
+		min-height: 44px;
+	}
+
+	a.vega-topbar-site {
+		min-height: 44px;
+	}
+}
+
+/* ——— 2.2 Lámina 2 · «Programar…» (`RecordForm`, `FieldRow`, `VisualPublishControl`) ——— */
+
+/* Línea de estado de la programación bajo el campo Estado: tipografía de `.vega-field-help`. */
+.vega-schedule-summary {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.25rem 0.75rem;
+	margin: 0.35rem 0 0;
+	font-size: 0.82em;
+	color: var(--ink-2);
+	overflow-wrap: anywhere;
+}
+
+.vega-schedule-summary b {
+	color: var(--ink);
+	font-weight: 600;
+}
+
+/* Acción de texto: el botón-enlace de `.vega-file-remove` (FileInput). */
+.vega-schedule-link {
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--ink-2);
+	font: inherit;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	cursor: pointer;
+}
+
+.vega-schedule-link:hover {
+	color: var(--ink-hi);
+}
+
+/* Aviso de «no se publicó»: la caja de `.vega-field-notice` con sus acciones debajo. */
+.vega-schedule-overdue {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.vega-schedule-overdue p {
+	margin: 0;
+}
+
+.vega-schedule-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+/* En el aside (296 px) el control y su acción no caben en una línea: la acción baja. */
+.vega-fsection--aside .vega-field-inline {
+	flex-wrap: wrap;
+}
+
+.vega-fsection--aside .vega-field-inline-widget {
+	flex-basis: 6rem;
+}
+
+@media (pointer: coarse) {
+	.vega-schedule-link {
+		min-height: 44px;
+		min-width: 44px;
+	}
+}
+
+/* ——— 2.3 Lámina 3 · Densidad en el menú de cuenta (`Topbar.svelte`) ——— */
+
+/* Rótulo de grupo dentro del menú: el de `thead th` de `RecordTable`. */
+.vega-topbar-user-menu-group {
+	margin: 0;
+	padding: 0.35rem 0.6rem 0.2rem;
+	font-size: 0.6875rem;
+	font-weight: 650;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--ink-2);
+}
+
+/* Opción de radio: la misma fila que `.vega-topbar-user-menu a`, en `<button>`. */
+.vega-topbar-user-menu [role='menuitemradio'] {
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+	width: 100%;
+	padding: 0.45rem 0.6rem;
+	border: 0;
+	border-radius: 6px;
+	background: none;
+	color: var(--ink);
+	font: inherit;
+	font-size: 0.85rem;
+	text-align: left;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.vega-topbar-user-menu [role='menuitemradio']:hover,
+.vega-topbar-user-menu [role='menuitemradio']:focus-visible {
+	background: var(--active);
+	color: var(--ink-hi);
+}
+
+.vega-topbar-user-menu [role='menuitemradio'][aria-checked='true'] {
+	color: var(--ink-hi);
+	font-weight: 600;
+}
+
+/* Hueco fijo de la marca (16 px, el tamaño del icono de «Ajustes»): los rótulos quedan alineados
+   esté o no marcada la opción. */
+.vega-topbar-user-menu-check {
+	display: inline-flex;
+	width: 16px;
+	height: 16px;
+	flex-shrink: 0;
+	color: var(--accent-text);
+}
+
+.vega-topbar-user-menu-sep {
+	height: 1px;
+	margin: 0.3rem 0;
+	background: var(--line);
+}
+
+/* ——— 2.4 Lámina 4 · Título que crece (`Text.svelte` cuando `isTitleField`) ——— */
+
+/* El `<input>` del título pasa a `<textarea rows="1">`: hereda la regla héroe de
+   `.vega-field-row--title .vega-widget-text` y añade solo el crecimiento. */
+textarea.vega-widget-text {
+	display: block;
+	resize: none;
+	overflow: hidden;
+	line-height: 1.25;
+	field-sizing: content;
+	overflow-wrap: anywhere;
+}
+
+/* ——— 2.5 Lámina 5 · Imagen subida desde un campo (`FileInput.svelte`) ——— */
+
+/* Una imagen NUEVA ocupa la fila entera de la lista: miniatura + nombre + texto alternativo. */
+.vega-file-item--alt {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	align-items: center;
+	gap: 0.5rem 0.75rem;
+	box-sizing: border-box;
+	width: 100%;
+	min-width: 0;
+	padding: 0.6rem;
+}
+
+/* Miniatura y nombre arriba; el texto alternativo debajo, a todo el ancho del campo: en la
+   columna lateral (296 px) al lado de la miniatura no cabía ni media frase. */
+.vega-file-item--alt .vega-file-item-body {
+	display: contents;
+}
+
+.vega-file-item--alt .vega-file-item-body > :not(.vega-file-item-head) {
+	grid-column: 1 / -1;
+}
+
+/* 5rem: el doble de `.vega-file-thumb` (2.5rem). Hay que ver la imagen para describirla. */
+.vega-file-item--alt .vega-file-thumb {
+	width: 5rem;
+	height: 5rem;
+	flex-shrink: 0;
+}
+
+.vega-file-item-body {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: 0.35rem;
+	min-width: 0;
+}
+
+.vega-file-item-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.vega-file-item-head .vega-file-chip {
+	flex: 1;
+	max-width: none;
+	min-width: 0;
+}
+
+.vega-file-item-head .vega-file-remove {
+	flex-shrink: 0;
+}
+
+.vega-file-library-state svg {
+	vertical-align: -0.15em;
+}
+
+/* Rótulo del campo: el de `.vega-field-row > label`. */
+.vega-file-alt-label {
+	font-size: 0.82em;
+	font-weight: 650;
+	letter-spacing: 0.03em;
+	color: var(--ink-2);
+}
+
+/* Estado de la copia en Medios: mono como `.vega-media-upload-status`, con `--ink-2` (AA). */
+.vega-file-library-state {
+	margin: 0;
+	font-family: var(--mono);
+	font-size: 0.72em;
+	color: var(--ink-2);
+}
+
+.vega-file-library-state[data-state='done'] {
+	color: var(--success);
+}
+
+.vega-file-library-state[data-state='uploading'] {
+	color: var(--info);
+}
+
+.vega-file-library-state[data-state='error'] {
+	color: var(--danger);
+}
+
+.vega-file-library-state button {
+	padding: 0;
+	border: 0;
+	background: none;
+	color: inherit;
+	font: inherit;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	cursor: pointer;
+}
+
+@media (pointer: coarse) {
+	.vega-file-item--alt .vega-file-remove,
+	.vega-file-library-state button {
+		min-height: 44px;
+		min-width: 44px;
+	}
+}
+
+/* ——— 2.6 Lámina 6 · Cabecera del listado en móvil (`routes/c/[type]/+page.svelte`) ——— */
+
+/* Las acciones de la cabecera, agrupadas: en ancho son los tres botones de hoy, en el mismo orden
+   y con la misma separación (el `gap` de `.vega-list-header`). */
+.vega-list-header-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 1rem;
+}
+
+.vega-list-header-actions--narrow {
+	display: none;
+}
+
+/* «Más»: el disparador y la tarjeta de «Filtrar» (`.vega-list-filter-*`), con el menú alineado a
+   la derecha porque el botón es el último de la fila. */
+.vega-list-more {
+	position: relative;
+}
+
+.vega-list-more .vega-list-filter-menu {
+	left: auto;
+	right: 0;
+}
+
+/* 640 px: el mismo corte en el que `RecordTable` ya pasa el estado bajo el título. */
+@media (max-width: 640px) {
+	.vega-list-header-actions--wide {
+		display: none;
+	}
+
+	.vega-list-header-actions--narrow {
+		display: flex;
+		flex-basis: 100%;
+		flex-wrap: nowrap;
+		gap: 0.6rem;
+		min-width: 0;
+		max-width: 100%;
+	}
+
+	/* «Crear» ocupa lo que sobra y recorta su rótulo antes que empujar a «Más» fuera. */
+	.vega-list-header-actions--narrow .vega-list-new-button {
+		flex: 1;
+		min-width: 0;
+		justify-content: center;
+	}
+
+	.vega-list-header-actions--narrow .vega-list-new-button span {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.vega-list-header-actions--narrow .vega-list-more {
+		flex-shrink: 0;
+	}
+}
+
+/* Solo dentro del grupo nuevo: así el «antes» de la lámina conserva los 31 px de hoy. En
+   producto la regla va sobre los tres botones de la cabecera. */
+@media (pointer: coarse) {
+	.vega-list-header-actions .vega-list-new-button,
+	.vega-list-header-actions .vega-list-export-button,
+	.vega-list-header-actions .vega-list-import-button {
+		min-height: 44px;
+	}
+}
+
+/* ——— 2.7 Lámina 7 · Acciones de fila en un menú (`RecordTable.svelte`) ——— */
+
+/* El hueco de 4.5rem que «Borrar» reservaba dentro de la última columna desaparece. En su lugar,
+   una celda propia y estrecha, PEGADA al borde derecho de la tabla: en estrecho la tabla se
+   desplaza de lado y, sin esto, la acción queda fuera de la pantalla (como «Borrar» hoy).
+   Mismas medidas que la celda del asa de arrastre (`.vega-reorder-cell`). */
+.vega-record-table td.vega-cell-menu,
+.vega-record-table thead th.vega-th-menu {
+	position: sticky;
+	right: 0;
+	width: 2rem;
+	max-width: none;
+	padding: 0 0.35rem;
+	overflow: visible;
+	background: var(--paper);
+}
+
+/* En estrecho, donde las columnas pasan por debajo de la celda pegada, una línea a su izquierda
+   deja claro que es un borde y no un texto cortado por error. */
+@media (max-width: 640px) {
+	.vega-record-table td.vega-cell-menu,
+	.vega-record-table thead th.vega-th-menu {
+		box-shadow: inset 1px 0 var(--line);
+	}
+}
+
+/* La celda pegada necesita fondo opaco: sobre la fila resaltada, el resalte encima del papel. */
+.vega-record-table tbody tr:hover td.vega-cell-menu,
+.vega-record-table tbody tr.lam-fila-foco td.vega-cell-menu {
+	background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--paper);
+}
+
+/* Disparador: la caja de `.vega-reorder-handle` (1.75rem, borde transparente, radio 5px), con la
+   aparición de `.vega-delete-button`. */
+.vega-row-menu-trigger {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.75rem;
+	height: 1.75rem;
+	padding: 0;
+	border: 1px solid transparent;
+	border-radius: 5px;
+	background: none;
+	color: var(--ink-2);
+	cursor: pointer;
+	opacity: 0;
+	transition: opacity 0.12s ease;
+}
+
+.vega-record-table tbody tr:hover .vega-row-menu-trigger,
+.vega-record-table tbody tr:focus-within .vega-row-menu-trigger,
+.vega-row-menu-trigger[aria-expanded='true'] {
+	opacity: 1;
+}
+
+.vega-row-menu-trigger:hover,
+.vega-row-menu-trigger[aria-expanded='true'] {
+	border-color: var(--line);
+	background: var(--surface);
+	color: var(--ink);
+}
+
+.vega-row-menu-trigger:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 1px;
+}
+
+@media (hover: none), (pointer: coarse) {
+	.vega-row-menu-trigger {
+		opacity: 1;
+	}
+}
+
+@media (pointer: coarse) {
+	.vega-row-menu-trigger {
+		width: 44px;
+		height: 44px;
+	}
+
+	.vega-record-table td.vega-cell-menu,
+	.vega-record-table thead th.vega-th-menu {
+		width: 44px;
+		padding: 0;
+	}
+}
+
+/* Menú: la tarjeta de `.vega-list-filter-menu`. */
+.vega-row-menu {
+	display: flex;
+	flex-direction: column;
+	min-width: 10rem;
+	padding: 0.3rem;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: var(--surface);
+	box-shadow: var(--shadow-card);
+}
+
+.vega-row-menu [role='menuitem'] {
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+	padding: 0.45rem 0.6rem;
+	border: 0;
+	border-radius: 6px;
+	background: none;
+	color: var(--ink);
+	font: inherit;
+	font-size: 0.85rem;
+	text-align: left;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.vega-row-menu [role='menuitem']:hover,
+.vega-row-menu [role='menuitem']:focus-visible {
+	background: var(--active);
+	color: var(--ink-hi);
+}
+
+/* Acción destructiva: la pareja `--danger` / `--danger-soft` del «Borrar» de hoy. */
+.vega-row-menu [role='menuitem'][data-tone='danger'] {
+	color: var(--danger);
+}
+
+.vega-row-menu [role='menuitem'][data-tone='danger']:hover,
+.vega-row-menu [role='menuitem'][data-tone='danger']:focus-visible {
+	background: var(--danger-soft);
+	color: var(--danger);
+}
+
+@media (pointer: coarse) {
+	.vega-row-menu [role='menuitem'] {
+		min-height: 44px;
+	}
+}
+
+/* ——— 2.8 Lámina 8 · Editor visual «solo textos» (`VisualEditorScreen.svelte`) ——— */
+
+/* Columna de bloques: el relleno de `.vega-editor-grid` y el `gap` de `.vega-editor-main`. */
+.vega-visual-texts {
+	display: flex;
+	flex-direction: column;
+	gap: var(--vega-space-gutter);
+	padding: calc(var(--vega-space-gutter) * 1.25) calc(var(--vega-space-gutter) * 1.5);
+	min-width: 0;
+}
+
+.vega-visual-texts-intro {
+	margin: 0;
+}
+
+/* Cabecera de bloque: rótulo de tarjeta (`.vega-fsection h2`) + marca de «sin guardar»
+   (`.vega-editor-dirty`). */
+.vega-visual-texts-head {
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+}
+
+.vega-visual-texts-head h2 {
+	flex: 1;
+	min-width: 0;
+}
+
+/* Lo que este modo no enseña: tipografía de `.vega-field-help`. */
+.vega-visual-texts-rest {
+	margin: 0;
+	font-size: 0.82em;
+	color: var(--ink-2);
+}

@@ -1,0 +1,72 @@
+<header class="lam-head">
+	<div>
+		<p class="lam-kicker">Vega · Lote 12 «Mejoras de UX» · modo componente · tema Aquelarre</p>
+		<h1>{{TITULO}}</h1>
+	</div>
+	<div class="lam-tools" role="group" aria-label="Vista de la lámina">
+		<button type="button" class="vega-admin-btn vega-admin-btn--sm" data-lam-mode="light">
+			Claro
+		</button>
+		<button type="button" class="vega-admin-btn vega-admin-btn--sm" data-lam-mode="dark">
+			Oscuro
+		</button>
+		<label class="lam-tool-label" for="lam-theme">Tema</label>
+		<select id="lam-theme" class="vega-admin-input lam-theme"></select>
+	</div>
+</header>
+<script>
+	(function () {
+		var temas = [
+			'niebla',
+			'brasa',
+			'faro',
+			'rescoldo',
+			'miel',
+			'halloween',
+			'aquelarre',
+			'cereza',
+			'tinta',
+			'marea',
+			'sea-wingnow',
+			'bosque',
+			'menta',
+			'salvia',
+			'lavanda',
+			'ciruela',
+			'carbon',
+			'colibri',
+			'tornasol',
+			'pizarra',
+			'terracota'
+		];
+		var html = document.documentElement;
+		var q = new URLSearchParams(location.search);
+		var mode =
+			q.get('mode') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+		html.dataset.mode = mode;
+		html.dataset.theme = q.get('theme') || 'aquelarre';
+		function pinta() {
+			document.querySelectorAll('[data-lam-mode]').forEach(function (b) {
+				b.setAttribute('aria-pressed', String(b.dataset.lamMode === html.dataset.mode));
+			});
+		}
+		document.querySelectorAll('[data-lam-mode]').forEach(function (b) {
+			b.addEventListener('click', function () {
+				html.dataset.mode = b.dataset.lamMode;
+				pinta();
+			});
+		});
+		var sel = document.getElementById('lam-theme');
+		temas.forEach(function (t) {
+			var o = document.createElement('option');
+			o.value = t;
+			o.textContent = t;
+			sel.appendChild(o);
+		});
+		sel.value = html.dataset.theme;
+		sel.addEventListener('change', function () {
+			html.dataset.theme = sel.value;
+		});
+		pinta();
+	})();
+</script>
