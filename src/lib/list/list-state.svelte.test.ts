@@ -64,7 +64,10 @@ describe('createListState: recarga conservando la tabla', () => {
 		state.reload();
 		if (state.status.kind === 'loading') loadingSeen += 1;
 		expect(loadingSeen).toBe(0);
-		expect(state.status).toMatchObject({ kind: 'ready', page: { items: [{ id: 'a' }, { id: 'b' }] } });
+		expect(state.status).toMatchObject({
+			kind: 'ready',
+			page: { items: [{ id: 'a' }, { id: 'b' }] }
+		});
 		expect(state.refreshing).toBe(true);
 
 		pending[1].resolve(page('a'));

@@ -149,9 +149,9 @@ describe('EditorRail.svelte — peticiones', () => {
 		});
 		await flush();
 		expect(mounted.titles()).toEqual(['Uno', 'Antiguo']);
-		expect(mounted.target.querySelector('[aria-current="true"] .vega-rail-title')?.textContent).toBe(
-			'Antiguo'
-		);
+		expect(
+			mounted.target.querySelector('[aria-current="true"] .vega-rail-title')?.textContent
+		).toBe('Antiguo');
 		expect(mounted.getFn).toHaveBeenCalledTimes(1);
 
 		mounted.props.savedRecord = rec('z', 'Antiguo editado');
