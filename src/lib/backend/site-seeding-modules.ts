@@ -9,9 +9,15 @@
  */
 
 import { SITE_SEED_BASE_MODULE, type SiteSeedModule } from './site-seeding';
+import { SITE_SEED_BLOG_MODULE } from './site-seeding-blog';
+import { SITE_SEED_CONTACT_MODULE } from './site-seeding-contact';
 
 /** Todos los módulos que Vega sabe sembrar. La base va la primera y se siembra siempre. */
-export const SITE_SEED_MODULES: readonly SiteSeedModule[] = [SITE_SEED_BASE_MODULE];
+export const SITE_SEED_MODULES: readonly SiteSeedModule[] = [
+	SITE_SEED_BASE_MODULE,
+	SITE_SEED_BLOG_MODULE,
+	SITE_SEED_CONTACT_MODULE
+];
 
 /** Los módulos que se pueden pedir en `SiteSeedOptions.modules`: todos menos la base. */
 export const SITE_SEED_OPTIONAL_MODULES: readonly SiteSeedModule[] = SITE_SEED_MODULES.filter(
