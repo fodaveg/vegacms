@@ -16,6 +16,7 @@
  * no "todo el fichero es inválido".
  */
 
+import { isPlainObject } from '$lib/is-plain-object';
 import type { ContentModel, ResolvedContentType } from '$lib/model/types';
 import { TRANSFER_FORMAT_VERSION, type TransferCollection } from './transfer-format';
 
@@ -44,12 +45,6 @@ export interface ResolvedImportCollection {
 export type ImportValidation =
 	| { ok: true; collections: ResolvedImportCollection[] }
 	| { ok: false; errors: ImportValidationError[] };
-
-/** `true` si `value` es un objeto JSON plano (no `null`, no array) — la única forma de `unknown`
- *  que vale la pena seguir inspeccionando campo a campo. */
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 /** `true` si `value` tiene la forma mínima de un `TransferRecord` (`id` string, `values` objeto) —
  *  no valida el CONTENIDO de `values` (eso es cosa de `checkFields` más abajo, campo a campo). */
