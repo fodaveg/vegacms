@@ -85,7 +85,9 @@ describe('validateLinkHref — lo que se rechaza', () => {
 		['vbscript:x', 'scheme'],
 		['ftp://ejemplo.com/f', 'scheme'],
 		['java\tscript:alert(1)', 'format'],
-		['java&#115;cript:alert(1)', 'format'],
+		// Entidad en hexadecimal a propósito: la decimal (`&#` + 115) la lee `check-theme-coverage`
+		// como un color crudo.
+		['java&#x73;cript:alert(1)', 'format'],
 		['ejemplo.com', 'format'],
 		['sobre-mi', 'format'],
 		['#ancla', 'format'],
