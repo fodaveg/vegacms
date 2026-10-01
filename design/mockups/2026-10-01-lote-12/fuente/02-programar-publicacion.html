@@ -1,0 +1,613 @@
+<!--TITULO 2 · Editor: acción «Programar…» junto al estado-->
+
+<!--PIEZA principal-->
+<div class="vega-editor-main">
+	<div class="vega-form-content">
+		<section class="vega-fsection">
+			<div class="vega-fields">
+				<div class="vega-field-row vega-field-row--title">
+					<label>Título<span class="vega-field-required" aria-hidden="true">*</span></label>
+					<div class="vega-field-control">
+						<input type="text" class="vega-widget-text" value="Notas del huerto: octubre" />
+					</div>
+				</div>
+				<div class="vega-field-row vega-field-row--slug">
+					<label>Slug</label>
+					<div class="vega-field-control">
+						<div class="vega-field-inline">
+							<div class="vega-field-inline-widget">
+								<input type="text" class="vega-widget-text" value="notas-del-huerto-octubre" />
+							</div>
+							<button type="button" class="vega-editor-inline-button">Regenerar</button>
+						</div>
+					</div>
+				</div>
+				<p class="lam-why">(Extracto y Contenido: sin cambios)</p>
+			</div>
+		</section>
+	</div>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA autor-->
+<div class="vega-field-row">
+	<label>Autor</label>
+	<div class="vega-field-control">
+		<input type="text" class="vega-widget-text" value="Marta" />
+	</div>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA publicar-el-vacio-->
+<div class="vega-field-row">
+	<label>Publicar el</label>
+	<div class="vega-field-control">
+		<input type="datetime-local" class="vega-widget-datetime" />
+		<p class="vega-field-help">
+			Si el registro está en borrador, se publica solo a esta hora. Requiere la extensión
+			vegaschedule en el servidor; sin ella, la fecha no hace nada.
+		</p>
+	</div>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA publicar-el-fecha-->
+<div class="vega-field-row">
+	<label>Publicar el</label>
+	<div class="vega-field-control">
+		<input type="datetime-local" class="vega-widget-datetime" value="2026-10-02T09:00" />
+		<p class="vega-field-help">
+			Si el registro está en borrador, se publica solo a esta hora. Requiere la extensión
+			vegaschedule en el servidor; sin ella, la fecha no hace nada.
+		</p>
+	</div>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA estado-borrador-->
+<select class="vega-widget-select">
+	<option>Borrador</option>
+	<option>Publicado</option>
+</select>
+<!--/PIEZA-->
+
+<!--PIEZA antes-->
+<form class="vega-record-form" novalidate>
+	<div class="vega-edit-top vega-edit-top--bleed">
+		<button type="button" class="vega-editor-back">{{i:chevron:14}} Entradas</button>
+		<span class="vega-editor-doc">
+			<span class="vega-editor-crumb-name">Notas del huerto: octubre</span>
+			<span class="vega-editor-tag" data-status-kind="draft">Borrador</span>
+		</span>
+		<span class="vega-edit-top-spacer"></span>
+		<span class="vega-editor-saved-at">último guardado 10:31</span>
+		<a class="vega-editor-preview-link" href="#">Ver en el sitio</a>
+		<button type="button" class="vega-editor-duplicate-button">Duplicar</button>
+		<button type="submit" class="vega-editor-save-button">
+			Guardar <kbd aria-hidden="true">⌘S</kbd>
+		</button>
+	</div>
+	<div class="vega-editor-grid vega-editor-grid--aside">
+		<!--USA principal-->
+		<aside class="vega-editor-aside">
+			<section class="vega-fsection vega-fsection--aside">
+				<h2>Publicación</h2>
+				<div class="vega-fields">
+					<div class="vega-field-row">
+						<label>Estado</label>
+						<div class="vega-field-control"><!--USA estado-borrador--></div>
+					</div>
+					<!--USA publicar-el-vacio-->
+					<!--USA autor-->
+				</div>
+			</section>
+		</aside>
+	</div>
+</form>
+<!--/PIEZA-->
+
+<!--PIEZA despues-->
+<form class="vega-record-form" novalidate>
+	<div class="vega-edit-top vega-edit-top--bleed">
+		<button type="button" class="vega-editor-back">{{i:chevron:14}} Entradas</button>
+		<span class="vega-editor-doc">
+			<span class="vega-editor-crumb-name">Notas del huerto: octubre</span>
+			<span class="vega-editor-tag" data-status-kind="draft">Borrador</span>
+		</span>
+		<span class="vega-edit-top-spacer"></span>
+		<span class="vega-editor-saved-at">último guardado 10:31</span>
+		<a class="vega-editor-preview-link" href="#">Ver en el sitio</a>
+		<button type="button" class="vega-editor-duplicate-button">Duplicar</button>
+		<button type="submit" class="vega-editor-save-button">
+			Guardar <kbd aria-hidden="true">⌘S</kbd>
+		</button>
+	</div>
+	<div class="vega-editor-grid vega-editor-grid--aside">
+		<!--USA principal-->
+		<aside class="vega-editor-aside">
+			<section class="vega-fsection vega-fsection--aside">
+				<h2>Publicación</h2>
+				<div class="vega-fields">
+					<div class="vega-field-row">
+						<label>Estado</label>
+						<div class="vega-field-control">
+							<div class="vega-field-inline">
+								<div class="vega-field-inline-widget"><!--USA estado-borrador--></div>
+								<button type="button" class="vega-editor-inline-button">Programar…</button>
+							</div>
+						</div>
+					</div>
+					<!--USA publicar-el-vacio-->
+					<!--USA autor-->
+				</div>
+			</section>
+		</aside>
+	</div>
+</form>
+<!--/PIEZA-->
+
+<!--PIEZA dialogo-->
+<div
+	class="vega-admin-dialog"
+	role="dialog"
+	aria-modal="true"
+	aria-label="Programar la publicación"
+>
+	<div class="vega-admin-dialog-head">
+		<h2>Programar la publicación</h2>
+		<button type="button" class="vega-admin-icon-btn" aria-label="Cerrar">{{i:close:16}}</button>
+	</div>
+	<p class="vega-admin-dialog-text">
+		«Notas del huerto: octubre» se queda en borrador y se publica sola a la hora que elijas.
+	</p>
+	<div class="vega-admin-field">
+		<label>Publicar el</label>
+		<input type="datetime-local" class="vega-admin-input" value="2026-10-02T09:00" />
+		<p class="vega-admin-help">Hora de este equipo. Propuesta: mañana a las 09:00.</p>
+	</div>
+	<div class="vega-admin-dialog-actions">
+		<button type="button" class="vega-admin-btn">Cancelar</button>
+		<button type="button" class="vega-admin-btn vega-admin-btn--primary">Programar</button>
+	</div>
+</div>
+<!--/PIEZA-->
+
+<section class="lam-section">
+	<h2>Qué cambia</h2>
+	<p>
+		Hoy, para programar una entrada hay que saber el truco: dejar «Estado» en Borrador, rellenar el
+		campo «Publicar el» y guardar. Nada en la pantalla dice que esas tres cosas juntas son
+		«programar». La propuesta añade <b>un botón «Programar…» junto al campo Estado</b>, que es donde
+		se publica en este formulario (no hay botón de publicar: publicar es poner Estado en Publicado y
+		guardar). El botón abre un diálogo con la fecha ya propuesta y, al confirmar, deja el registro
+		en borrador, pone la fecha y <b>guarda</b>. El campo «Publicar el» y la etiqueta de la barra
+		siguen como hoy y reflejan lo mismo. En el editor visual, el mismo botón va junto a «Marcar como
+		publicada».
+	</p>
+	<p>
+		La colección de muestra no declara publicación programada; para esta lámina se le supone el
+		campo «Publicar el» (<code>publishAtField</code>) dentro del grupo «Publicación».
+	</p>
+	<table class="lam-cifras">
+		<thead>
+			<tr>
+				<th>Programar una entrada</th>
+				<th>Antes</th>
+				<th>Después</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>Clics</td>
+				<td>5 a 7 (2 para dejar Borrador, 2 a 4 en fecha y hora, 1 en Guardar)</td>
+				<td>2 con la fecha propuesta; 3 a 5 si se cambia</td>
+			</tr>
+			<tr>
+				<td>Cosas que hay que saber de antemano</td>
+				<td>que borrador + fecha = programada</td>
+				<td>ninguna</td>
+			</tr>
+			<tr>
+				<td>Paradas de tabulación añadidas al formulario</td>
+				<td></td>
+				<td>1</td>
+			</tr>
+		</tbody>
+	</table>
+</section>
+
+<section class="lam-section lam-solo-ancho">
+	<h2>La pantalla a 1440 px</h2>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>ANTES</b> Estado real de hoy</figcaption>
+		<!--SHELL entradas hoy-->
+		<!--USA antes-->
+		<!--/SHELL-->
+	</figure>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>DESPUÉS</b> «Programar…» junto a Estado</figcaption>
+		<!--SHELL entradas hoy-->
+		<!--USA despues-->
+		<!--/SHELL-->
+	</figure>
+</section>
+
+<section class="lam-section lam-solo-ancho">
+	<h2>La pantalla estrecha (390 px), antes y después</h2>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption><b>ANTES</b> Estado real de hoy</figcaption>
+			<div class="lam-stage lam-movil">
+				<div class="vega-main"><!--USA antes--></div>
+			</div>
+		</figure>
+		<figure class="lam-spec">
+			<figcaption><b>DESPUÉS</b></figcaption>
+			<div class="lam-stage lam-movil">
+				<div class="vega-main"><!--USA despues--></div>
+			</div>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section lam-solo-estrecho">
+	<h2>La pantalla a 390 px</h2>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>ANTES</b> Estado real de hoy</figcaption>
+		<!--SHELL entradas hoy-->
+		<!--USA antes-->
+		<!--/SHELL-->
+	</figure>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>DESPUÉS</b> «Programar…» junto a Estado</figcaption>
+		<!--SHELL entradas hoy-->
+		<!--USA despues-->
+		<!--/SHELL-->
+	</figure>
+</section>
+
+<section class="lam-section">
+	<h2>El diálogo</h2>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption><b>2.1</b> Al abrir: fecha propuesta, foco en la fecha</figcaption>
+			<div class="lam-stage lam-stage--veil"><!--USA dialogo--></div>
+			<p class="lam-why">
+				El diálogo de administración de siempre (<code>AdminDialog</code>). Con la fecha propuesta,
+				programar son dos clics.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>2.2</b> Fecha que ya ha pasado</figcaption>
+			<div class="lam-stage lam-stage--veil">
+				<div
+					class="vega-admin-dialog"
+					role="dialog"
+					aria-modal="true"
+					aria-label="Programar la publicación"
+				>
+					<div class="vega-admin-dialog-head">
+						<h2>Programar la publicación</h2>
+						<button type="button" class="vega-admin-icon-btn" aria-label="Cerrar">
+							{{i:close:16}}
+						</button>
+					</div>
+					<div class="vega-admin-field">
+						<label>Publicar el</label>
+						<input
+							type="datetime-local"
+							class="vega-admin-input"
+							value="2026-09-30T09:00"
+							aria-invalid="true"
+						/>
+						<p class="vega-admin-field-error" role="alert">
+							Esa hora ya ha pasado. Elige una posterior o publica ahora.
+						</p>
+					</div>
+					<div class="vega-admin-dialog-actions">
+						<button type="button" class="vega-admin-btn">Cancelar</button>
+						<button
+							type="button"
+							class="vega-admin-btn vega-admin-btn--primary"
+							aria-disabled="true"
+						>
+							Programar
+						</button>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">Se dice al salir del campo, no al pulsar el botón.</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>2.3</b> No se sabe si el servidor publica las fechas</figcaption>
+			<div class="lam-stage lam-stage--veil">
+				<div
+					class="vega-admin-dialog"
+					role="dialog"
+					aria-modal="true"
+					aria-label="Programar la publicación"
+				>
+					<div class="vega-admin-dialog-head">
+						<h2>Programar la publicación</h2>
+						<button type="button" class="vega-admin-icon-btn" aria-label="Cerrar">
+							{{i:close:16}}
+						</button>
+					</div>
+					<div class="vega-admin-field">
+						<label>Publicar el</label>
+						<input type="datetime-local" class="vega-admin-input" value="2026-10-02T09:00" />
+					</div>
+					<div class="vega-admin-notice vega-admin-notice--warning">
+						<p class="vega-admin-notice-body">
+							No se ha podido comprobar si este servidor publica las fechas programadas (lo
+							comprueba un administrador al entrar en Vega). Hasta entonces, no cuentes con que se
+							publique sola.
+						</p>
+					</div>
+					<div class="vega-admin-dialog-actions">
+						<button type="button" class="vega-admin-btn">Cancelar</button>
+						<button type="button" class="vega-admin-btn vega-admin-btn--primary">Programar</button>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">
+				El aviso que hoy sale bajo el campo, con su mismo texto. Deja programar: no saberlo no es lo
+				mismo que no poder.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>2.4</b> Guardando, y fallo al guardar</figcaption>
+			<div class="lam-stage lam-stage--veil">
+				<div
+					class="vega-admin-dialog"
+					role="dialog"
+					aria-modal="true"
+					aria-label="Programar la publicación"
+				>
+					<div class="vega-admin-dialog-head"><h2>Programar la publicación</h2></div>
+					<div class="vega-admin-field">
+						<label>Publicar el</label>
+						<input type="datetime-local" class="vega-admin-input" value="2026-10-02T09:00" />
+					</div>
+					<div class="vega-admin-notice vega-admin-notice--danger" role="alert">
+						<p class="vega-admin-notice-title">No se ha podido programar</p>
+						<p class="vega-admin-notice-body">
+							El servidor ha contestado: Failed to update record. La entrada sigue como estaba.
+						</p>
+					</div>
+					<div class="vega-admin-dialog-actions">
+						<button type="button" class="vega-admin-btn">Cancelar</button>
+						<button type="button" class="vega-admin-btn vega-admin-btn--primary">Reintentar</button>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">
+				Mientras guarda, el botón dice «Programando…» y no se puede cerrar. Si falla, el diálogo se
+				queda abierto con el motivo. Si el formulario tiene errores en otros campos, se cierra y el
+				foco va al primer campo con error, igual que al pulsar Guardar.
+			</p>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>Los cuatro estados del registro</h2>
+	<p>
+		En cada uno: la etiqueta de la barra superior (la de hoy, sin tocar) y el campo Estado de la
+		tarjeta «Publicación».
+	</p>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption><b>2.5</b> Borrador</figcaption>
+			<div class="lam-stage">
+				<span class="vega-editor-tag" data-status-kind="draft" style="align-self: flex-start"
+					>Borrador</span
+				>
+				<section class="vega-fsection vega-fsection--aside">
+					<h2>Publicación</h2>
+					<div class="vega-fields">
+						<div class="vega-field-row">
+							<label>Estado</label>
+							<div class="vega-field-control">
+								<div class="vega-field-inline">
+									<div class="vega-field-inline-widget"><!--USA estado-borrador--></div>
+									<button type="button" class="vega-editor-inline-button">Programar…</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</section>
+			</div>
+			<p class="lam-why">
+				El botón de «Regenerar» del slug, en el mismo sitio: a la derecha de su control.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>2.6</b> Programada</figcaption>
+			<div class="lam-stage">
+				<span class="vega-editor-tag" data-status-kind="scheduled" style="align-self: flex-start"
+					>Programada · 2 oct 09:00</span
+				>
+				<section class="vega-fsection vega-fsection--aside">
+					<h2>Publicación</h2>
+					<div class="vega-fields">
+						<div class="vega-field-row">
+							<label>Estado</label>
+							<div class="vega-field-control">
+								<div class="vega-field-inline">
+									<div class="vega-field-inline-widget"><!--USA estado-borrador--></div>
+									<button type="button" class="vega-editor-inline-button">Cambiar fecha…</button>
+								</div>
+								<p class="vega-schedule-summary">
+									<span>Se publicará sola el <b>2 oct a las 09:00</b>.</span>
+									<button type="button" class="vega-schedule-link">Quitar programación</button>
+								</p>
+							</div>
+						</div>
+						<!--USA publicar-el-fecha-->
+					</div>
+				</section>
+			</div>
+			<p class="lam-why">
+				El botón pasa a «Cambiar fecha…» y debajo se dice qué va a pasar, con la salida al lado.
+				«Quitar programación» vacía la fecha y guarda.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>2.7</b> Publicada</figcaption>
+			<div class="lam-stage">
+				<span class="vega-editor-tag" data-status-kind="pub" style="align-self: flex-start"
+					>Publicado</span
+				>
+				<section class="vega-fsection vega-fsection--aside">
+					<h2>Publicación</h2>
+					<div class="vega-fields">
+						<div class="vega-field-row">
+							<label>Estado</label>
+							<div class="vega-field-control">
+								<select class="vega-widget-select">
+									<option>Publicado</option>
+									<option>Borrador</option>
+								</select>
+							</div>
+						</div>
+					</div>
+				</section>
+			</div>
+			<p class="lam-why">
+				Ya está publicada: no hay nada que programar y el botón no se pinta. Si se pasa a Borrador,
+				vuelve a aparecer.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>2.8</b> Programada que no se publicó</figcaption>
+			<div class="lam-stage">
+				<span class="vega-editor-tag" data-status-kind="overdue" style="align-self: flex-start"
+					>Programada, no se publicó</span
+				>
+				<section class="vega-fsection vega-fsection--aside">
+					<h2>Publicación</h2>
+					<div class="vega-fields">
+						<div class="vega-field-row">
+							<label>Estado</label>
+							<div class="vega-field-control">
+								<!--USA estado-borrador-->
+								<div class="vega-field-notice vega-schedule-overdue" role="status">
+									<p>Tenía que publicarse el 30 sept a las 09:00 y sigue en borrador.</p>
+									<div class="vega-schedule-actions">
+										<button type="button" class="vega-editor-inline-button">Publicar ahora</button>
+										<button type="button" class="vega-editor-inline-button">Cambiar fecha…</button>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</section>
+			</div>
+			<p class="lam-why">
+				La etiqueta de aviso ya existe hoy; faltaba decir qué hacer. Las dos salidas van dentro del
+				aviso, donde se lee el problema.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>2.9</b> El servidor no publica fechas</figcaption>
+			<div class="lam-stage">
+				<section class="vega-fsection vega-fsection--aside">
+					<h2>Publicación</h2>
+					<div class="vega-fields">
+						<div class="vega-field-row">
+							<label>Estado</label>
+							<div class="vega-field-control"><!--USA estado-borrador--></div>
+						</div>
+						<div class="vega-field-row">
+							<label>Publicar el</label>
+							<div class="vega-field-control">
+								<input type="datetime-local" class="vega-widget-datetime" />
+								<p class="vega-field-notice">
+									Este servidor no tiene la extensión vegaschedule: la fecha no publicará nada.
+									Publica a mano o pide que la instalen.
+								</p>
+							</div>
+						</div>
+					</div>
+				</section>
+			</div>
+			<p class="lam-why">
+				Comprobado que no la tiene: «Programar…» no se ofrece, porque prometería algo que no va a
+				pasar. Queda el aviso de hoy.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>2.10</b> Después de programar</figcaption>
+			<div class="lam-stage">
+				<div class="lam-toast">
+					<div class="vega-toast" data-kind="success">
+						<span>Guardado. Se publicará el 2 oct a las 09:00.</span>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">El aviso de «Guardado.» de siempre, con la segunda frase.</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>2.11</b> En el editor visual: junto a «Marcar como publicada»</figcaption>
+			<div class="lam-stage">
+				<span class="vega-visual-publish" role="group" aria-label="Estado de la página">
+					<span class="vega-visual-publish-tag" data-status-kind="draft">Borrador</span>
+					<button type="button" class="vega-visual-publish-btn vega-visual-publish-btn--primary">
+						Marcar como publicada
+					</button>
+					<button type="button" class="vega-visual-publish-btn">Programar…</button>
+				</span>
+			</div>
+			<p class="lam-why">
+				El mismo diálogo. Aquí sí hay un botón de publicar, así que «Programar…» va a su lado, como
+				botón secundario.
+			</p>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>Nota</h2>
+	<ul class="lam-notes">
+		<li>
+			<b>Recomendación.</b> Junto al campo Estado, no en la barra superior al lado de «Guardar». La
+			barra ya lleva hasta seis cosas y a 390 px parte en tres líneas pegadas arriba; un botón más
+			le quita otra línea al formulario, y «Programar» al lado de «Guardar» se lee como una segunda
+			forma de guardar. El punto débil de ponerlo junto a Estado: si el manifiesto coloca Estado muy
+			abajo, el botón queda lejos. En las colecciones de muestra está en la columna lateral, a la
+			vista.
+		</li>
+		<li>
+			<b>«Programar» guarda el registro entero</b>, como «Guardar», no solo la fecha: un solo camino
+			de escritura y ningún estado a medias en pantalla. Si hay otros cambios sin guardar, se
+			guardan con él.
+		</li>
+		<li>
+			<b>Estados que hay que construir.</b> Borrador, programada, publicada (sin botón), no se
+			publicó, servidor sin la extensión (sin botón), servidor sin comprobar (aviso en el diálogo),
+			colección sin <code>publishAtField</code> (nada cambia), solo lectura (sin botón); y en el
+			diálogo: fecha propuesta, fecha pasada, guardando, fallo, conflicto de edición (se cierra y
+			sale el aviso de siempre).
+		</li>
+		<li>
+			<b>Piezas y tokens.</b> Ningún token nuevo ni icono nuevo. Botón:
+			<code>.vega-editor-inline-button</code> por la vía <code>action</code> de
+			<code>FieldRow</code>. Diálogo: <code>AdminDialog</code>. Aviso de «no se publicó»:
+			<code>.vega-field-notice</code>. Etiquetas: las de hoy.
+		</li>
+		<li>
+			<b>Nombre.</b> «Publicar» en la barra superior de la app reconstruye el sitio; aquí se
+			programa un registro. Por eso el diálogo dice «se publica sola» y no añade otro «Publicar».
+		</li>
+	</ul>
+</section>
