@@ -174,6 +174,7 @@
 		<Icon id="search" size={14} />
 		<input
 			type="search"
+			class="vega-list-search-input"
 			placeholder={ctx.t('list.search.placeholder')}
 			aria-label={ctx.t('list.search.ariaLabel')}
 			bind:value={searchText}
@@ -211,6 +212,7 @@
 					<button
 						type="button"
 						role="menuitem"
+						class="vega-list-filter-item"
 						aria-current={viewState.status === option ? 'true' : undefined}
 						onclick={() => selectStatus(option)}
 					>
@@ -337,5 +339,28 @@
 		background: var(--accent-soft);
 		color: var(--accent-text);
 		font-weight: 600;
+	}
+
+	/* Objetivo táctil de 44×44 (`scripts/check-touch-targets.mjs`): con puntero grueso el buscador,
+	   el disparador "Filtrar" y sus opciones suben a 44 px; con ratón no cambia nada (densidad). */
+	@media (pointer: coarse) {
+		.vega-list-search {
+			min-height: 44px;
+		}
+
+		.vega-list-search-input {
+			min-height: 44px;
+			min-width: 44px;
+		}
+
+		.vega-list-filter-trigger {
+			min-height: 44px;
+			min-width: 44px;
+		}
+
+		.vega-list-filter-item {
+			min-height: 44px;
+			min-width: 44px;
+		}
 	}
 </style>

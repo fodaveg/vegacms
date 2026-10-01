@@ -8,7 +8,8 @@
 /**
  * Guardarraíl del objetivo táctil de 44×44 px (checklist de accesibilidad del editor visual).
  *
- * Revisa los componentes de `src/lib/visual/` que se le pasan (lista fija abajo, `COMPONENT_FILES`)
+ * Revisa los componentes que se le pasan (lista fija abajo, `COMPONENT_FILES`: `src/lib/visual/` y el
+ * chrome de la lista y del editor)
  * y, para cada control interactivo del marcado (`<button>`, `<a href>`, `<input>`, `<select>`,
  * `<textarea>`), calcula la caja que le declara su propio `<style>` cuando el puntero es basto
  * (`@media (pointer: coarse)`, que gana sobre lo declarado fuera de cualquier `@media`). Falla si
@@ -62,7 +63,14 @@ export const COMPONENT_FILES = [
 	// que el resto de esta lista — sin sumarla aquí, el guardarraíl no la habría visto nunca.
 	'src/lib/visual/VisualPalette.svelte',
 	// Estado de la página en la cabecera (lámina del audit p2): botones nuevos en la barra del editor.
-	'src/lib/visual/VisualPublishControl.svelte'
+	'src/lib/visual/VisualPublishControl.svelte',
+	// Audit de móvil del 30 sep (tarea «objetivos táctiles de 44 px»): el chrome de la lista y del
+	// editor. Salían a 32×32 (menú), 55×24 (Borrar) y 13 px (cabeceras ordenables) con el dedo.
+	'src/lib/shell/Topbar.svelte',
+	'src/lib/list/ListToolbar.svelte',
+	'src/lib/list/RecordTable.svelte',
+	// Barra del editor (atrás, Editor visual, Vista previa, Duplicar, Guardar) + resto del formulario.
+	'src/lib/form/RecordForm.svelte'
 ];
 
 /** El número que firma la checklist de accesibilidad del editor visual. */

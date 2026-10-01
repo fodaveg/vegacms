@@ -60,17 +60,17 @@
 	 * algún esquema SÍ declarase una relación real — no hay excepción especial para media.
 	 *
 	 * **La línea de la papelera (`#lote-integridad`, Fase B §4/§10.3)**: mismo criterio que
-	 * `DeleteConfirm` — `isTrashAvailable(ctx.model)` decide entre "recuperable N días" y "este
-	 * borrado será DEFINITIVO", sin red. El aviso "los ficheros adjuntos no se recuperan" aquí NO
-	 * es condicional (a diferencia de `DeleteConfirm.hasFiles`): un asset de `vega_media` ES su
-	 * fichero, siempre tiene uno — la línea se pinta siempre, sea borrado único o de la selección.
+	 * `DeleteConfirm` — `isDeleteRecoverable(ctx.model, 'vega_media')` decide, sin red y en UNA sola
+	 * frase, entre "recuperable N días" y "no se podrá recuperar". `vega_media` tiene un campo
+	 * `file` obligatorio (`requiredFileFieldName`) que la papelera no restaura, así que en la
+	 * práctica siempre sale la segunda: prometer la papelera aquí sería mentir.
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import type { FileRef, RecordId } from '$lib/backend/types';
 	import { createDeleteReferencesGuard } from '$lib/integrity/delete-guard.svelte';
 	import { hasRelationMatches } from '$lib/integrity/references';
 	import ReferencesSummary from '$lib/integrity/ReferencesSummary.svelte';
-	import { isTrashAvailable } from '$lib/revisions/trash-availability';
+	import { isDeleteRecoverable } from '$lib/revisions/trash-availability';
 
 	interface Props {
 		/** `true` mientras se pide confirmar el borrado del asset abierto en `MediaDetail`. */
@@ -113,7 +113,7 @@
 	const ctx = getVegaContext();
 
 	// ————— La línea de la papelera (ver cabecera) —————
-	const trashAvailable = $derived(isTrashAvailable(ctx.model));
+	const recoverable = $derived(isDeleteRecoverable(ctx.model, 'vega_media'));
 
 	let dialogEl = $state<HTMLElement | null>(null);
 	let cancelEl = $state<HTMLButtonElement | null>(null);
@@ -208,16 +208,13 @@
 			<h2 id="vega-media-delete-title">
 				{title ?? ctx.t('media.delete.confirmTitle', { label: assetLabel })}
 			</h2>
-			<p id="vega-media-delete-body">{ctx.t('media.delete.confirmBody')}</p>
-
-			<!-- La línea de la papelera (§4/§10.3, ver cabecera): nunca promete lo que el decorador
-			     no puede cumplir; la de ficheros siempre se pinta (un asset ES su fichero). -->
-			<p class="vega-media-delete-trash-hint" data-trash-available={trashAvailable}>
-				{trashAvailable
-					? ctx.t('revisions.trash.deleteHint', { days: ctx.model.revisions.trashDays })
-					: ctx.t('revisions.trash.deleteHintUnavailable')}
+			<!-- UNA sola frase (§4/§10.3, ver cabecera): `vega_media` tiene un `file` obligatorio que la
+			     papelera no restaura, así que `isDeleteRecoverable` es `false` y NO se promete. -->
+			<p id="vega-media-delete-body" data-trash-available={recoverable}>
+				{recoverable
+					? ctx.t('media.delete.confirmBody', { days: ctx.model.revisions.trashDays })
+					: ctx.t('media.delete.confirmBodyForever')}
 			</p>
-			<p class="vega-media-delete-trash-hint">{ctx.t('revisions.trash.deleteFilesHint')}</p>
 
 			<!-- Aviso de referencias (ver cabecera): ausente entero en el borrado MÚLTIPLE
 			     (`targetId === null`, `guard` se queda en `'idle'` por el `$effect` de arriba). -->
@@ -306,13 +303,6 @@
 		font-size: 0.9rem;
 	}
 
-	/* La línea de la papelera (ver script): mismo criterio que `DeleteConfirm.vega-delete-trash-hint`. */
-	.vega-media-delete-trash-hint {
-		margin: 0;
-		color: var(--ink-2);
-		font-size: 0.82rem;
-	}
-
 	.vega-media-delete-refs-checking {
 		margin: 0;
 		color: var(--ink-2);
@@ -391,7 +381,8 @@
 		opacity: 0.6;
 	}
 
-	.vega-media-delete-confirm {
+	/* Con el prefijo del contenedor: ver el mismo arreglo en `DeleteConfirm`. */
+	.vega-media-delete-actions .vega-media-delete-confirm {
 		border-color: var(--danger);
 		background: var(--danger-soft);
 		color: var(--danger);
