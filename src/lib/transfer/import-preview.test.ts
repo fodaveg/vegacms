@@ -11,7 +11,10 @@ import type { ResolvedContentType } from '$lib/model/types';
 import type { TransferRecord } from './record-serializer';
 import {
 	classifyCollectionImport,
+	levelByRelations,
+	outgoingRelationKeys,
 	partitionByOutgoingRelations,
+	relationKey,
 	topologicalWriteOrder
 } from './import-preview';
 
@@ -355,5 +358,59 @@ describe('partitionByOutgoingRelations / topologicalWriteOrder', () => {
 		const a = record('a', { title: 'A' });
 		const b = record('b', { title: 'B' });
 		expect(topologicalWriteOrder([b, a], fields)).toEqual([b, a]);
+	});
+});
+
+describe('levelByRelations', () => {
+	const fields: Field[] = [
+		field({ name: 'title', type: 'text', subtype: 'plain' }),
+		field({ name: 'refs', type: 'relation', target: 'posts', multiple: true })
+	];
+
+	/** Niveles de ids de `records` (todos de la colección `posts`). */
+	function levels(records: TransferRecord[]): string[][] {
+		const nodes = records.map((r) => ({
+			item: r.id,
+			key: relationKey('posts', r.id),
+			deps: outgoingRelationKeys(r, fields)
+		}));
+		return levelByRelations(nodes);
+	}
+
+	it('cadena A→B→C desordenada: un nivel por eslabón, destino primero', () => {
+		const a = record('a', { refs: ['b'] });
+		const b = record('b', { refs: ['c'] });
+		const c = record('c', {});
+		expect(levels([a, b, c])).toEqual([['c'], ['b'], ['a']]);
+	});
+
+	it('diamante A→B, A→C, B→D, C→D: D, luego B y C juntos, luego A', () => {
+		const a = record('a', { refs: ['b', 'c'] });
+		const b = record('b', { refs: ['d'] });
+		const c = record('c', { refs: ['d'] });
+		const d = record('d', {});
+		expect(levels([a, b, c, d])).toEqual([['d'], ['b', 'c'], ['a']]);
+	});
+
+	it('auto-referencia: va a un último nivel, tras los demás', () => {
+		const self = record('s', { refs: ['s'] });
+		const x = record('x', {});
+		expect(levels([self, x])).toEqual([['x'], ['s']]);
+	});
+
+	it('ciclo de dos: los dos juntos en el último nivel; lo que no depende de ellos va antes', () => {
+		const a = record('a', { refs: ['b'] });
+		const b = record('b', { refs: ['a'] });
+		const x = record('x', {});
+		expect(levels([a, b, x])).toEqual([['x'], ['a', 'b']]);
+	});
+
+	it('una relación a un registro que NO está en el lote no ordena nada', () => {
+		const a = record('a', { refs: ['fuera'] });
+		expect(levels([a])).toEqual([['a']]);
+	});
+
+	it('sin nodos no hay niveles', () => {
+		expect(levels([])).toEqual([]);
 	});
 });

@@ -457,6 +457,27 @@ describe('runImport: pool de escrituras', () => {
 		expect(lastTargetEnd).toBeLessThan(firstReferrerStart);
 	});
 
+	it('A→B→C: cada destino se escribe ANTES que quien lo apunta aunque B tarde más', async () => {
+		const { port } = fakePort({ posts: [] });
+		const events: string[] = [];
+		const baseCreate = port.create;
+		port.create = async (type, data, opts) => {
+			events.push(`start:${opts!.id}`);
+			await new Promise((resolve) => setTimeout(resolve, opts!.id === 'b' ? 10 : 1));
+			events.push(`end:${opts!.id}`);
+			return baseCreate(type, data, opts);
+		};
+		// a → b → c: con dos lotes, a y b irían juntos y concurrentes.
+		const a = record('a', { title: 'A', author: 'b' });
+		const b = record('b', { title: 'B', author: 'c' });
+		const c = record('c', { title: 'C' });
+
+		const report = await runImport(port, previewOf([a, b, c]), { overwriteConfirmed: true });
+
+		expect(events).toEqual(['start:c', 'end:c', 'start:b', 'end:b', 'start:a', 'end:a']);
+		expect(report).toMatchObject({ createdCount: 3, failedCount: 0, success: true });
+	});
+
 	it('un fallo en medio del pool se cuenta como failed y no tapa al resto', async () => {
 		const { port, failingIds } = fakePort({ posts: [] });
 		failingIds.add('r3');

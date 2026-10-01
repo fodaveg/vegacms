@@ -27,8 +27,11 @@ import { fetchTransferFile } from './import-media';
 import {
 	classifyCollectionImport,
 	isNonEmpty,
-	partitionByOutgoingRelations,
-	type ImportEntry
+	levelByRelations,
+	outgoingRelationKeys,
+	relationKey,
+	type ImportEntry,
+	type RelationNode
 } from './import-preview';
 
 /** Subconjunto del puerto que esta Fase necesita — mismo criterio `Pick` que `export-collection.ts`
@@ -389,10 +392,10 @@ async function runPool(
 
 /**
  * Escribe `preview` (§4.3): agrupa las entradas escribibles (CREA + PISA confirmado) de TODAS las
- * colecciones en dos lotes GLOBALES por el orden topológico simple (`partitionByOutgoingRelations`
- * por colección, fusionados) — el lote 2 no arranca hasta que el lote 1 TERMINA entero (con éxito
- * o no). DENTRO de cada lote las escrituras van por un pool de `IMPORT_WRITE_CONCURRENCY` y cada
- * registro suelta sus ficheros de la caché del fetcher al terminar. Sin transacción (PocketBase no la expone al cliente): cada registro se intenta con
+ * colecciones en NIVELES GLOBALES por orden topológico (`levelByRelations`) — un nivel no arranca
+ * hasta que el anterior TERMINA entero (con éxito o no). DENTRO de cada nivel las escrituras van
+ * por un pool de `IMPORT_WRITE_CONCURRENCY` y cada registro suelta sus ficheros de la caché del
+ * fetcher al terminar. Sin transacción (PocketBase no la expone al cliente): cada registro se intenta con
  * `writeOne`, que nunca deja escapar un fallo — el informe final dice qué entró y qué no,
  * `success` nunca es `true` si algo falló.
  */
@@ -403,8 +406,7 @@ export async function runImport(
 	fetchFile: ReleasableFileFetcher = fetchTransferFile
 ): Promise<ImportReport> {
 	let skippedCount = 0;
-	const batch1: WriteTask[] = [];
-	const batch2: WriteTask[] = [];
+	const nodes: RelationNode<WriteTask>[] = [];
 
 	for (const collection of preview.collections) {
 		const recordsById = new Map(collection.records.map((r) => [r.id, r]));
@@ -424,31 +426,29 @@ export async function runImport(
 			.map((entry) => recordsById.get(entry.id))
 			.filter((record): record is TransferRecord => record !== undefined);
 
-		const { withoutOutgoing, withOutgoing } = partitionByOutgoingRelations(
-			writableRecords,
-			collection.contentType.schema.fields
-		);
-		for (const record of withoutOutgoing) {
-			batch1.push({ collection, record, entry: entryById.get(record.id)! });
-		}
-		for (const record of withOutgoing) {
-			batch2.push({ collection, record, entry: entryById.get(record.id)! });
+		for (const record of writableRecords) {
+			const task = { collection, record, entry: entryById.get(record.id)! };
+			nodes.push({
+				item: task,
+				key: relationKey(collection.type, record.id),
+				deps: outgoingRelationKeys(record, collection.contentType.schema.fields)
+			});
 		}
 	}
 
-	// Dos lotes en orden: el pool no cruza la frontera (el lote 2 espera a que el 1 termine ENTERO),
-	// así que las relaciones salientes siguen escribiéndose después de sus destinos.
-	const total = batch1.length + batch2.length;
+	// Niveles en serie: cada uno solo depende de los anteriores (ver `levelByRelations`), así que
+	// una relación saliente se escribe siempre después de su destino aunque ambos estén en el
+	// fichero. Dentro de un nivel, el pool concurrente.
+	const levels = levelByRelations(nodes);
+	const total = nodes.length;
 	let done = 0;
 	const tick = () => {
 		done += 1;
 		options.onProgress?.({ done, total });
 	};
 	options.onProgress?.({ done: 0, total });
-	const outcomes: ImportOutcome[] = [
-		...(await runPool(port, batch1, fetchFile, tick)),
-		...(await runPool(port, batch2, fetchFile, tick))
-	];
+	const outcomes: ImportOutcome[] = [];
+	for (const level of levels) outcomes.push(...(await runPool(port, level, fetchFile, tick)));
 
 	const createdCount = outcomes.filter((o) => o.status === 'created').length;
 	const updatedCount = outcomes.filter((o) => o.status === 'updated').length;

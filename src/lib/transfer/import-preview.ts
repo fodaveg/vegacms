@@ -160,6 +160,9 @@ export function classifyCollectionImport(input: ClassifyCollectionInput): Import
 }
 
 /**
+ * (`runImport` ya NO usa esta partición: ordena por niveles con `levelByRelations`, que sí
+ * garantiza A → B → C. Se conserva por `topologicalWriteOrder` y sus tests.)
+ *
  * Divide `records` en los dos lotes del orden topológico "simple" (§4.3): los que NO tienen
  * ninguna relación saliente con valor van primero, el resto después — para que un registro que
  * apunta a otro del mismo fichero encuentre su destino ya escrito. Deliberadamente NO es un
@@ -196,4 +199,66 @@ export function topologicalWriteOrder(
 ): TransferRecord[] {
 	const { withoutOutgoing, withOutgoing } = partitionByOutgoingRelations(records, fields);
 	return [...withoutOutgoing, ...withOutgoing];
+}
+
+/** Una escritura pendiente para `levelByRelations`: `key` identifica el registro dentro del lote
+ *  (`<colección>\0<id>`) y `deps` las claves de los registros a los que apunta por relaciones. */
+export interface RelationNode<T> {
+	item: T;
+	key: string;
+	deps: readonly string[];
+}
+
+/** Clave de un registro dentro de un lote importado (colección + id; el id solo no basta, dos
+ *  colecciones pueden repetirlo). */
+export function relationKey(type: string, id: RecordId): string {
+	return `${type}\0${id}`;
+}
+
+/** Claves (`relationKey`) de los registros a los que apunta `record` por sus campos `relation`
+ *  con valor — una por id, tanto si el campo es `multiple` como si no. */
+export function outgoingRelationKeys(record: TransferRecord, fields: readonly Field[]): string[] {
+	const keys: string[] = [];
+	for (const field of fields) {
+		if (field.type !== 'relation') continue;
+		const raw = record.values[field.name];
+		for (const id of Array.isArray(raw) ? raw : [raw]) {
+			if (typeof id === 'string' && id !== '') keys.push(relationKey(field.target, id));
+		}
+	}
+	return keys;
+}
+
+/**
+ * Orden topológico por NIVELES: el nivel 0 son los nodos sin dependencias dentro del lote, y cada
+ * nivel siguiente solo depende de niveles anteriores — así `runImport` escribe los niveles en serie
+ * (cada uno con su pool concurrente) y un registro nunca se escribe antes que el destino de sus
+ * relaciones. Solo cuentan las dependencias a nodos DEL MISMO lote (un destino que ya existe en
+ * destino, o que está bloqueado/omitido, no ordena nada). Dentro de un nivel se conserva el orden
+ * de entrada.
+ *
+ * Una auto-referencia (A → A) y un ciclo (A → B → A) no tienen orden válido: ninguno de sus
+ * miembros llega a quedarse sin dependencias pendientes. Esos nodos —y los que dependen de ellos—
+ * van juntos en un ÚLTIMO nivel, sin más orden entre sí: el resultado es el mismo que antes
+ * (se intentan todos y el que apunte a algo aún no escrito falla en su `create`/`update`).
+ */
+export function levelByRelations<T>(nodes: readonly RelationNode<T>[]): T[][] {
+	const inBatch = new Set(nodes.map((n) => n.key));
+	const pending = new Map<string, Set<string>>(
+		nodes.map((n) => [n.key, new Set(n.deps.filter((d) => inBatch.has(d)))])
+	);
+	const levels: T[][] = [];
+	let remaining = [...nodes];
+	while (remaining.length > 0) {
+		const ready = remaining.filter((n) => pending.get(n.key)!.size === 0);
+		if (ready.length === 0) {
+			levels.push(remaining.map((n) => n.item)); // ciclos / auto-referencias: ver arriba
+			break;
+		}
+		const readyKeys = new Set(ready.map((n) => n.key));
+		remaining = remaining.filter((n) => !readyKeys.has(n.key));
+		for (const n of remaining) for (const k of readyKeys) pending.get(n.key)!.delete(k);
+		levels.push(ready.map((n) => n.item));
+	}
+	return levels;
 }
