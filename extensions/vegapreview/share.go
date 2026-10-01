@@ -55,14 +55,21 @@ const (
 	ShareResolveKeyHeader = "X-Vega-Preview-Key"
 	maxShareRequestBytes  = 4 * 1024
 	maxShareLabelRunes    = 120
-	maxShareLinksListed   = 200
-	sharePurgeBatch       = 500
+	// A record may hold this many live links. The cap exists so that every live link fits in the
+	// list response: a link the list could not show could not be revoked from Vega for up to 30
+	// days. maxShareLinksListed stays well above it for rows written before the cap existed.
+	maxShareLinksPerRecord = 20
+	shareLinkLimitCode     = "share_link_limit"
+	maxShareLinksListed    = 200
+	sharePurgeBatch        = 500
 	// Failed resolutions allowed per visitor address inside one window, and how many distinct
 	// addresses the in-memory limiter remembers at once.
 	shareResolveMaxFailures = 10
 	shareResolveWindow      = time.Minute
 	shareResolveMaxBuckets  = 10000
 )
+
+var errShareLinkLimit = errors.New("vegapreview: share link limit reached for this record")
 
 var (
 	shareLinkIDPattern = regexp.MustCompile(`^[a-z0-9]{15}$`)
@@ -450,7 +457,43 @@ func (x *Extension) shareCreateHandler(event *core.RequestEvent) error {
 	link.Set("createdBy", event.Auth.Id)
 	link.Set("createdByCollection", event.Auth.Collection().Name)
 	link.Set("label", label)
-	if err := event.App.Save(link); err != nil {
+
+	// Count and insert inside one transaction, so two simultaneous requests cannot both take the
+	// last free slot of a record.
+	err = event.App.RunInTransaction(func(txApp core.App) error {
+		live, err := txApp.FindRecordsByFilter(
+			shareLinksCollection,
+			"collection = {:collection} && recordId = {:recordId} && expires > {:now}",
+			"",
+			maxShareLinksPerRecord,
+			0,
+			dbx.Params{
+				"collection": body.Collection,
+				"recordId":   body.ID,
+				"now":        now.Format(types.DefaultDateLayout),
+			},
+		)
+		if err != nil {
+			return err
+		}
+		if len(live) >= maxShareLinksPerRecord {
+			return errShareLinkLimit
+		}
+		return txApp.Save(link)
+	})
+	if errors.Is(err, errShareLinkLimit) {
+		limit := apis.NewApiError(
+			http.StatusConflict,
+			fmt.Sprintf(
+				"This record already has %d live share links. Revoke one before creating another.",
+				maxShareLinksPerRecord,
+			),
+			nil,
+		)
+		limit.Data = map[string]any{"code": shareLinkLimitCode, "limit": maxShareLinksPerRecord}
+		return limit
+	}
+	if err != nil {
 		logShareFailure(event.App, "create", err)
 		return event.InternalServerError("Could not create the share link.", nil)
 	}

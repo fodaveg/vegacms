@@ -525,6 +525,68 @@ func TestShareDurationIsBoundedByTheConfiguredRange(t *testing.T) {
 	}
 }
 
+// TestShareLinksPerRecordAreCapped: every live link must fit in the list, or it could not be
+// revoked from Vega. Expired and revoked links free their slot, and the cap is per record.
+func TestShareLinksPerRecordAreCapped(t *testing.T) {
+	fixture := newShareFixture(t)
+	var firstID string
+	for index := range maxShareLinksPerRecord {
+		ttl := int64(7200)
+		if index == 1 {
+			ttl = 600
+		}
+		id, _ := fixture.mustCreate(t, fixture.editorA, fixture.pageA, ttl)
+		if index == 0 {
+			firstID = id
+		}
+	}
+	refused := fixture.create(fixture.editorA, "pages", fixture.pageA, 3600, "")
+	if refused.Code != http.StatusConflict {
+		t.Fatalf("expected 409 at the cap, got %d: %s", refused.Code, refused.Body.String())
+	}
+	var body struct {
+		Data struct {
+			Code  string `json:"code"`
+			Limit int    `json:"limit"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(refused.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if body.Data.Code != shareLinkLimitCode || body.Data.Limit != maxShareLinksPerRecord {
+		t.Fatalf("expected the limit code and value, got %s", refused.Body.String())
+	}
+	if strings.Contains(refused.Body.String(), "preview-share") {
+		t.Fatalf("a refused request received a URL: %s", refused.Body.String())
+	}
+	if got := len(fixture.storedLinks(t)); got != maxShareLinksPerRecord {
+		t.Fatalf("expected %d stored links, got %d", maxShareLinksPerRecord, got)
+	}
+
+	// Every live link is in the list, so every one of them can be revoked.
+	var listed shareListResponse
+	if err := json.Unmarshal(fixture.list(fixture.editorA, "pages", fixture.pageA).Body.Bytes(), &listed); err != nil {
+		t.Fatal(err)
+	}
+	if len(listed.Items) != maxShareLinksPerRecord {
+		t.Fatalf("expected the list to show all %d links, got %d", maxShareLinksPerRecord, len(listed.Items))
+	}
+
+	// The cap is per record.
+	fixture.mustCreate(t, fixture.editorB, fixture.pageB, 3600)
+	// Revoking frees a slot.
+	if response := fixture.revoke(fixture.editorA, "pages", fixture.pageA, firstID); response.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d", response.Code)
+	}
+	fixture.mustCreate(t, fixture.editorA, fixture.pageA, 7200)
+	if response := fixture.create(fixture.editorA, "pages", fixture.pageA, 3600, ""); response.Code != http.StatusConflict {
+		t.Fatalf("expected 409 again once the slot was taken, got %d", response.Code)
+	}
+	// So does expiry.
+	*fixture.clock = fixture.clock.Add(time.Hour)
+	fixture.mustCreate(t, fixture.editorA, fixture.pageA, 7200)
+}
+
 func TestShareLabelIsShortPlainText(t *testing.T) {
 	fixture := newShareFixture(t)
 	for name, label := range map[string]string{
