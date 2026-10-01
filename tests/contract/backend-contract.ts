@@ -834,6 +834,77 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 				expect(ids(page.items)).toEqual([KS_ALPHA, KS_DELTA]);
 			});
 
+			test('select multi: contains casa por VALOR EXACTO de una opción, nunca por subcadena', async () => {
+				const port = await makeAuthedPort();
+				// `a","b` NO es una opción: solo aparece como subcadena del JSON `["a","b"]` en el que
+				// PocketBase guarda la columna. Una pertenencia real no puede casarlo.
+				const page = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'tags', op: 'contains', value: 'a","b' }
+				});
+				expect(ids(page.items)).toEqual([]);
+			});
+
+			test('contains: `%`, `_` y `\\` del valor son literales, no comodines de LIKE', async () => {
+				const port = await makeAuthedPort();
+				const snake = await port.create('kitchen_sink', { title: 'snake_case', slug: 'lk-snake' });
+				const plain = await port.create('kitchen_sink', { title: 'snakexcase', slug: 'lk-plain' });
+				const slash = await port.create('kitchen_sink', { title: 'back\\slash', slug: 'lk-slash' });
+
+				// `%`: solo el título de la fixture que lo lleva (KS_CHARLIE), no "todo lo que no es nulo".
+				const percent = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'title', op: 'contains', value: '%' }
+				});
+				expect(ids(percent.items)).toEqual([KS_CHARLIE]);
+
+				// `_`: un comodín casaría también `snakexcase`.
+				const underscore = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'title', op: 'contains', value: 'e_c' }
+				});
+				expect(ids(underscore.items)).toEqual([snake.id]);
+				expect(ids(underscore.items)).not.toContain(plain.id);
+
+				const backslash = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'title', op: 'contains', value: 'k\\s' }
+				});
+				expect(ids(backslash.items)).toEqual([slash.id]);
+			});
+
+			test('una `\\` en el valor es un dato en TODO operador (eq, neq, in, contains), no un 400', async () => {
+				const port = await makeAuthedPort();
+				const slash = await port.create('kitchen_sink', { title: 'back\\slash', slug: 'bs-1' });
+
+				const eq = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'title', op: 'eq', value: 'back\\slash' }
+				});
+				expect(ids(eq.items)).toEqual([slash.id]);
+
+				// Valor que ES solo una barra (en el título y en `id`): no casa nada y, sobre todo, no revienta.
+				const loneEq = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'title', op: 'eq', value: '\\' }
+				});
+				expect(ids(loneEq.items)).toEqual([]);
+				const idIn = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'id', op: 'in', value: ['\\', KS_ALPHA] }
+				});
+				expect(ids(idIn.items)).toEqual([KS_ALPHA]);
+
+				const neq = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'title', op: 'neq', value: 'back\\slash' }
+				});
+				expect(ids(neq.items)).not.toContain(slash.id);
+				expect(neq.items.length).toBeGreaterThan(0);
+
+				const inTitles = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'title', op: 'in', value: ['\\', 'back\\slash'] }
+				});
+				expect(ids(inTitles.items)).toEqual([slash.id]);
+
+				const contains = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'title', op: 'contains', value: '\\' }
+				});
+				expect(ids(contains.items)).toEqual([slash.id]);
+			});
+
 			test('in: azúcar de OR de eq; vacío no casa nada (§9.8)', async () => {
 				const port = await makeAuthedPort();
 				const page = await port.list('kitchen_sink', {

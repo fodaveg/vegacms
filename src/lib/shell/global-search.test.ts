@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
-import { validateQuery } from '$lib/backend/query';
+import { projectedFields, validateQuery } from '$lib/backend/query';
 import { ALL_PERMISSIONS } from '$lib/backend/access';
 import type { Field, Page, VegaRecord } from '$lib/backend/types';
 import type { ContentModel, ResolvedContentType, ResolvedField } from '$lib/model/types';
@@ -231,6 +231,32 @@ describe('buildGlobalSearchQuery / canSearchType', () => {
 		expect(canSearchType(type, 'hola')).toBe(false);
 		// Y si alguien lo ignorase, la Query saldría sin `filter`: la colección ENTERA. De ahí la guarda.
 		expect(buildGlobalSearchQuery(type, 'hola').filter).toBeUndefined();
+	});
+});
+
+describe('buildGlobalSearchQuery: proyección de campos (lote 9)', () => {
+	test('solo viaja lo que leen los consumidores (título, estado, publicación programada)', () => {
+		const body = field({ name: 'body', type: 'richtext' } as never);
+		const publishAt = field({ name: 'publish_at', type: 'date' });
+		const type = contentType('posts', [titleText, statusSelect, body, publishAt], {
+			titleField: 'title',
+			statusField: 'status',
+			publishAtField: 'publish_at'
+		});
+		const query = buildGlobalSearchQuery(type, 'hola');
+
+		// Lo que un adaptador devolvería en `values` con esta Query: medido antes del cambio = 4
+		// campos (todos, incluido el richtext); después = 3.
+		const delivered = projectedFields(type.schema.fields, query.fields).map((f) => f.name);
+		console.info(`[l9-busqueda] campos por registro: ${delivered.length}`);
+		expect(delivered).toEqual(['title', 'status', 'publish_at']);
+		expect(delivered).not.toContain('body');
+		expect(() => validateQuery(type.schema.fields, query)).not.toThrow();
+	});
+
+	test('sin título ni estado se piden cero campos (solo llega el id)', () => {
+		const type = contentType('posts', [titleText]);
+		expect(buildGlobalSearchQuery(type, 'hola').fields).toEqual([]);
 	});
 });
 

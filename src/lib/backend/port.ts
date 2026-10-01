@@ -58,6 +58,15 @@ export interface UpdateOptions {
 	 * sigue creando revisión aunque pase esto. Los adaptadores lo ignoran.
 	 */
 	orderOnlyField?: string;
+	/**
+	 * Registro que el llamador ACABA de leer (`get`) para ESTE guardado, para que el adaptador no
+	 * repita esa lectura (`withRevisions` ya lee la pre-imagen justo antes de escribir; sin esto
+	 * cada guardado pagaba dos `GET` idénticos). Tiene que ser una lectura fresca de este guardado,
+	 * nunca una copia en memoria de antes: el adaptador la usa como «el registro vigente» tanto para
+	 * comprobar `expectedVersion` como para planificar la escritura. Si no corresponde al `type`/`id`
+	 * que se actualiza, el adaptador la ignora y relee. `memory` lo ignora (no hay petición).
+	 */
+	preImage?: VegaRecord;
 }
 
 /**

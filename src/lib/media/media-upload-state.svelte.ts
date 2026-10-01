@@ -20,10 +20,15 @@
  * - `'network'`/`'forbidden'`: ABORTA el resto del lote (no tiene sentido seguir intentando
  *   contra un backend inalcanzable o sin permiso) — los ficheros aún no procesados quedan
  *   `'error'` con un motivo de aborto, nunca se intentan.
- * - Cualquier otro `kind` (`'backend'`/`'not-found'`/`'auth-expired'`): se trata como el caso
- *   `validation` (error acotado a ESE fichero, el lote sigue) — ninguno de esos `kind` tiene
- *   sentido real para un `create()` de un solo campo `file`, pero degradar a "sigue con el
- *   siguiente" es más seguro que abortar por un `kind` inesperado.
+ * - `'auth-expired'` (la sesión caducó a mitad del lote): CORTA el lote sin marcar nada como
+ *   error. El fichero en vuelo (el servidor lo rechazó con 401, no se guardó) y los no empezados
+ *   vuelven/quedan `'pending'` — reintentables tras reentrar, no perdidos —, y el error va al
+ *   feedback GLOBAL (`ctx.feedback.reportError`, overlay de re-login, §2.3 de P3) como en el
+ *   resto de la app. No cuenta como `failed`; el resumen trae `pending` con cuántos quedaron.
+ * - Cualquier otro `kind` (`'backend'`/`'not-found'`): se trata como el caso `validation` (error
+ *   acotado a ESE fichero, el lote sigue) — ninguno de esos `kind` tiene sentido real para un
+ *   `create()` de un solo campo `file`, pero degradar a "sigue con el siguiente" es más seguro
+ *   que abortar por un `kind` inesperado.
  *
  * **Refresco del grid**: `onUploaded` se llama tras CADA éxito individual (no solo al final del
  * lote) — el contrato solo exige "el nuevo asset aparece"; hacerlo por-éxito da feedback más
@@ -57,6 +62,9 @@ export interface MediaUploadItem {
 export interface MediaUploadSummary {
 	uploaded: number;
 	failed: number;
+	/** Ficheros que NO se intentaron porque la sesión caducó a mitad del lote (siguen `pending`,
+	 *  reintentables tras reentrar). `0` en cualquier otro desenlace. */
+	pending: number;
 }
 
 export interface MediaUploadState {
@@ -127,6 +135,7 @@ export function createMediaUploadState(): MediaUploadState {
 		let uploaded = 0;
 		let failed = batch.filter((item) => item.status.kind === 'rejected').length;
 		let aborted = false;
+		let pending = 0;
 
 		for (let i = 0; i < files.length; i++) {
 			if (aborted) break;
@@ -145,6 +154,16 @@ export function createMediaUploadState(): MediaUploadState {
 			} catch (err) {
 				const vegaErr =
 					err instanceof VegaError ? err : VegaError.backend('Error al subir el fichero', err);
+
+				if (vegaErr.kind === 'auth-expired') {
+					// Sesión caducada: se corta el lote (ver cabecera). Este fichero no se guardó y el
+					// resto ni se intentó: todos siguen `pending`, ninguno es un error suyo.
+					setStatus(item.id, { kind: 'pending' });
+					pending = batch.slice(i).filter((entry) => entry.status.kind === 'pending').length;
+					ctx.feedback.reportError(vegaErr, { action: 'media:upload' });
+					break;
+				}
+
 				setStatus(item.id, { kind: 'error', message: messageFor(vegaErr) });
 				failed++;
 
@@ -163,7 +182,7 @@ export function createMediaUploadState(): MediaUploadState {
 		}
 
 		running = false;
-		onSummary({ uploaded, failed });
+		onSummary({ uploaded, failed, pending });
 	}
 
 	function clear(): void {

@@ -619,6 +619,7 @@ export const es = {
 	'form.markdown.placeholderAlt': 'descripción',
 	'form.markdown.unsafeUri':
 		'El Markdown contiene HTML o una dirección no permitida. Usa sintaxis Markdown y enlaces http, https, mailto o relativos.',
+	'form.json.invalid': 'El JSON no es válido: corrígelo para poder guardar.',
 
 	// ————— Listado (Fase 4c del contrato P4) —————
 	'list.empty.title': 'Aquí no hay nada todavía',
@@ -1046,6 +1047,8 @@ export const es = {
 	'media.upload.aborted':
 		'subida cancelada: un fichero anterior del lote falló por conexión/permiso',
 	'media.upload.summary': '{uploaded} fichero(s) subido(s), {failed} fallido(s).',
+	'media.upload.summaryPending':
+		'{uploaded} fichero(s) subido(s), {failed} fallido(s), {pending} pendiente(s) por la sesión caducada.',
 
 	// ————— Medios: picker de biblioteca (Fase P6·6e) —————
 	// D-P6.6/L-P6.8: el picker COPIA bytes (nunca referencia un `vega_media` desde un registro),

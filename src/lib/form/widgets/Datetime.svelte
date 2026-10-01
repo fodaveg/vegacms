@@ -9,6 +9,13 @@
 	 * LOCAL sin zona; `isoUtcToLocalInput`/`localInputToIsoUtc` hacen la traducción en cada
 	 * dirección. Vaciar el input emite `onChange(null)` (mismo criterio que el resto de widgets
 	 * escalares con default `null`).
+	 *
+	 * **Manifiesto y esquema**: `placeholder` es `field.placeholder` (manifiesto, como el resto de
+	 * widgets de texto; los navegadores no lo pintan sobre `datetime-local`, pero queda en el DOM
+	 * para quien sí lo use, p.ej. un `Datetime` sin soporte nativo). `min`/`max` NO son del manifiesto:
+	 * son del campo `date` del esquema (`Field.min`/`Field.max`, ISO UTC) y se pasan por la misma
+	 * conversión a hora de pared que el valor — así el selector nativo no ofrece fechas que el
+	 * backend rechazará, y la validación nativa del `<form>` las marca.
 	 */
 	import type { WidgetProps } from './types';
 	import { fieldIds } from '../field-ids';
@@ -25,6 +32,13 @@
 			.join(' ') || undefined
 	);
 	const inert = $derived(disabled || readonly);
+	const dateSchema = $derived(field.schema.type === 'date' ? field.schema : null);
+	const minLocal = $derived(
+		dateSchema?.min ? isoUtcToLocalInput(dateSchema.min) || undefined : undefined
+	);
+	const maxLocal = $derived(
+		dateSchema?.max ? isoUtcToLocalInput(dateSchema.max) || undefined : undefined
+	);
 	const localValue = $derived(typeof value === 'string' ? isoUtcToLocalInput(value) : '');
 
 	function handleInput(event: Event): void {
@@ -38,6 +52,9 @@
 	type="datetime-local"
 	class="vega-widget-datetime"
 	value={localValue}
+	placeholder={field.placeholder ?? undefined}
+	min={minLocal}
+	max={maxLocal}
 	disabled={inert}
 	oninput={handleInput}
 	aria-invalid={error ? 'true' : undefined}

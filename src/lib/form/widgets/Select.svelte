@@ -11,6 +11,10 @@
 	 * estado de la barra. Sin la prop (o sin entrada para ese valor) se pinta el valor crudo, igual
 	 * que siempre — así una colección que no declara `statusLabels` no cambia nada, y la pantalla
 	 * deja de contradecirse (la píldora decía «Publicado» mientras el select decía `published`).
+	 *
+	 * **`placeholder` (manifiesto)**: un `<select>` nativo no tiene atributo `placeholder`; su
+	 * equivalente es el texto de la opción vacía, así que `field.placeholder` sustituye a
+	 * `form.select.empty` cuando el manifiesto lo declara.
 	 */
 	import type { WidgetProps } from './types';
 	import { fieldIds } from '../field-ids';
@@ -45,7 +49,7 @@
 	aria-invalid={error ? 'true' : undefined}
 	aria-describedby={describedBy}
 >
-	<option value="">{ctx.t('form.select.empty')}</option>
+	<option value="">{field.placeholder ?? ctx.t('form.select.empty')}</option>
 	{#each schema?.options ?? [] as option (option)}
 		<option value={option}>{optionLabels?.[option] ?? option}</option>
 	{/each}

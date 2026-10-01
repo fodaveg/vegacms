@@ -23,7 +23,7 @@
  *   un `Record<RecordId, TitleCacheEntry>` inmutable (`withCachedTitle` devuelve una copia, nunca
  *   muta — mismo criterio que `toggleValue`/`dirty.ts`); `idsNeedingTitles` decide qué ids todavía
  *   no están cacheados NI en vuelo (parámetro `pending`, fix de code-review de F5-e: sin excluir
- *   los que ya tienen un `ctx.port.get` en curso, cada resolución de un id disparaba el `$effect`
+ *   los que ya tienen una petición en curso, cada resolución de un id disparaba el `$effect`
  *   del shell de nuevo y volvía a pedir TODOS los que aún no habían resuelto — cascada O(n²) para
  *   n ids seleccionados a la vez).
  * - **Toggle de selección múltiple respetando `maxSelect`**: `toggleRelationSelection` reusa
@@ -94,6 +94,31 @@ export function buildDegradedListQuery(page: number): Query {
 	return { page, perPage: RELATION_SEARCH_PER_PAGE };
 }
 
+/** Ids por petición al resolver los títulos de los ya seleccionados: acota la longitud del
+ *  filtro `in` (un OR de `eq` en la URL) y cabe en un `perPage` (máx. 200) sin paginar. */
+export const RELATION_TITLE_BATCH_SIZE = 50;
+
+/** Parte `ids` en lotes consecutivos de, como mucho, `size` ids (el orden se conserva). */
+export function chunkIds(ids: RecordId[], size: number = RELATION_TITLE_BATCH_SIZE): RecordId[][] {
+	const chunks: RecordId[][] = [];
+	for (let i = 0; i < ids.length; i += size) chunks.push(ids.slice(i, i + size));
+	return chunks;
+}
+
+/**
+ * `Query` que trae de una vez los registros de `ids` (un lote de `chunkIds`). `perPage` = nº de
+ * ids, para que ningún lote vuelva recortado por el tamaño de página por defecto. `projection`
+ * (p. ej. `[titleField]`) limita `values`; `undefined` = registro completo (destino `vega_media`,
+ * que necesita `file`, `title` y `alt`).
+ */
+export function buildTitlesByIdsQuery(ids: RecordId[], projection?: string[]): Query {
+	return {
+		filter: { kind: 'cond', field: 'id', op: 'in', value: ids },
+		perPage: Math.max(1, ids.length),
+		...(projection ? { fields: projection } : {})
+	};
+}
+
 // ————— Candidatos —————
 
 export interface RelationCandidate {
@@ -122,8 +147,8 @@ export function candidatesFromPage(
 
 // ————— Caché de títulos de los seleccionados (D-P5.9, sin `expand`) —————
 
-/** Resultado de resolver un id ya seleccionado vía `ctx.port.get`: `'not-found'` si el `get`
- *  rechazó con `VegaError 'not-found'` (registro borrado entre tanto) — el shell lo pinta con una
+/** Resultado de resolver un id ya seleccionado vía `ctx.port.list` por lotes: `'not-found'` si el
+ *  id no vuelve en el listado (registro borrado entre tanto) — el shell lo pinta con una
  *  marca de "no encontrado" en vez de reventar. */
 export type TitleCacheEntry = { status: 'ok'; title: string } | { status: 'not-found' };
 
@@ -142,8 +167,8 @@ export function withCachedTitle(
 
 /**
  * Ids de `ids` que todavía NO están en `cache` NI en `pending` — los que el shell debe resolver
- * con `ctx.port.get` justo ahora (evita re-pedir un id ya cacheado, D-P5.9, Y evita re-pedir uno
- * cuyo `get` ya está en vuelo, fix de code-review de F5-e: ver cabecera del módulo). `pending` es
+ * con `ctx.port.list` por lotes justo ahora (evita re-pedir un id ya cacheado, D-P5.9, Y evita re-pedir uno
+ * cuyo lote ya está en vuelo, fix de code-review de F5-e: ver cabecera del módulo). `pending` es
  * responsabilidad del shell (un `Set<RecordId>` PLANO, no reactivo — este módulo no sabe de
  * promesas, solo filtra por el snapshot que le pasan).
  */

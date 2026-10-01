@@ -46,3 +46,58 @@ describe('cycleSort — cambiar de columna (D-P4.6(a), una sola columna ordenada
 		expect(cycleSort(current, 'status')).toEqual({ field: 'status', dir: 'asc' });
 	});
 });
+
+describe('cycleSort con defaultSort — cada click cambia el orden VISIBLE', () => {
+	/** Orden que se ve: el explícito de la URL o, sin él, el default del tipo. */
+	function visible(sort: ViewState['sort'], def: ViewState['sort']): ViewState['sort'] {
+		return sort ?? def;
+	}
+
+	const defaults: NonNullable<ViewState['sort']>[] = [
+		{ field: 'title', dir: 'asc' },
+		{ field: 'title', dir: 'desc' }
+	];
+
+	for (const def of defaults) {
+		for (const field of ['title', 'status']) {
+			test(`default ${def.field} ${def.dir}, clicks en «${field}»: ningún click deja el orden igual`, () => {
+				let sort: ViewState['sort'] = null;
+				for (let click = 1; click <= 6; click++) {
+					const before = visible(sort, def);
+					sort = cycleSort(sort, field, def);
+					expect(visible(sort, def), `click ${click}`).not.toEqual(before);
+				}
+			});
+		}
+	}
+
+	test('en la columna del default alterna asc ⇄ desc y nunca ofrece «sin orden»', () => {
+		const def: ViewState['sort'] = { field: 'title', dir: 'desc' };
+		const seen: ViewState['sort'][] = [];
+		let sort: ViewState['sort'] = null;
+		for (let i = 0; i < 4; i++) {
+			sort = cycleSort(sort, 'title', def);
+			seen.push(visible(sort, def));
+		}
+		expect(seen).toEqual([
+			{ field: 'title', dir: 'asc' },
+			{ field: 'title', dir: 'desc' },
+			{ field: 'title', dir: 'asc' },
+			{ field: 'title', dir: 'desc' }
+		]);
+	});
+
+	test('un resultado igual al default no se escribe en la URL (null)', () => {
+		const def: ViewState['sort'] = { field: 'title', dir: 'asc' };
+		expect(cycleSort({ field: 'title', dir: 'desc' }, 'title', def)).toBeNull();
+	});
+
+	test('en otra columna el ciclo sigue siendo asc → desc → vuelta al default', () => {
+		const def: ViewState['sort'] = { field: 'title', dir: 'asc' };
+		const first = cycleSort(null, 'status', def);
+		expect(first).toEqual({ field: 'status', dir: 'asc' });
+		const second = cycleSort(first, 'status', def);
+		expect(second).toEqual({ field: 'status', dir: 'desc' });
+		expect(cycleSort(second, 'status', def)).toBeNull();
+	});
+});

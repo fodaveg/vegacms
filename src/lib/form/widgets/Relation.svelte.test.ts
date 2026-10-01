@@ -13,6 +13,7 @@ import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import { ALL_PERMISSIONS } from '$lib/backend/access';
 import { VegaError } from '$lib/backend/errors';
 import type { BackendPort } from '$lib/backend/port';
+import type { Query } from '$lib/backend/query';
 import type { FieldInputValue, Page, RecordId, VegaRecord } from '$lib/backend/types';
 import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
 import type { WidgetProps } from './types';
@@ -507,15 +508,15 @@ describe('Relation.svelte con destino vega_media', () => {
 	});
 
 	test('un valor media preexistente se resuelve a nombre y no emite onChange durante la carga', async () => {
-		const get = vi.fn(async () =>
-			mediaRecord(MEDIA_ID_A, 'ya_guardada.webp')
-		) as unknown as BackendPort['get'];
+		// El nombre se resuelve por `list` filtrado por ids (no un `get` por id).
+		const list = vi.fn(async () =>
+			page([mediaRecord(MEDIA_ID_A, 'ya_guardada.webp')])
+		) as unknown as BackendPort['list'];
 		mounted = mountRelation({
 			field: relationField('vega_media'),
 			types: [MEDIA_TYPE],
 			value: MEDIA_ID_A,
-			list: vi.fn(async () => page([])) as unknown as BackendPort['list'],
-			get
+			list
 		});
 		await settle();
 
@@ -533,10 +534,8 @@ describe('Relation.svelte con destino vega_media', () => {
 			field: relationField('vega_media'),
 			types: [MEDIA_TYPE],
 			value: MEDIA_ID_A,
-			list: vi.fn(async () => page([])) as unknown as BackendPort['list'],
-			get: vi.fn(async () => {
-				throw VegaError.notFound('borrado');
-			}) as unknown as BackendPort['get']
+			// El id borrado no vuelve en el listado por ids: se marca «no encontrado».
+			list: vi.fn(async () => page([])) as unknown as BackendPort['list']
 		});
 		await settle();
 
@@ -639,6 +638,82 @@ describe('Relation.svelte con destinos normales', () => {
 		expect(mounted.target.textContent).toContain(t('form.relation.degradedNote'));
 		expect(candidateButtons(mounted.target)[0]?.textContent).toBe(id);
 		expect(mounted.target.querySelector('input[type="search"]')).toBeNull();
+	});
+
+	describe('resolución de títulos de los ya seleccionados', () => {
+		/** Puerto falso con `get` y `list` sobre un mismo mapa; cuenta las peticiones de resolución
+		 *  (cada `get` y cada `list` con filtro sobre `id`). */
+		function titlePort(known: Record<string, string>) {
+			const requests: string[] = [];
+			const getSpy = vi.fn(async (_type: string, id: RecordId) => {
+				requests.push(`get:${id}`);
+				if (!(id in known)) throw VegaError.notFound(id);
+				return record(id, 'articles', { title: known[id]! });
+			}) as unknown as BackendPort['get'];
+			const listSpy = vi.fn(async (_type: string, query?: Query) => {
+				const filter = query?.filter;
+				if (filter?.kind === 'cond' && filter.field === 'id' && filter.op === 'in') {
+					requests.push(`list:${filter.value.length}`);
+					const wanted = new Set(filter.value.map(String));
+					// Orden de respuesta deliberadamente inverso: la UI no puede depender de él.
+					const items = Object.keys(known)
+						.filter((id) => wanted.has(id))
+						.reverse()
+						.map((id) => record(id, 'articles', { title: known[id]! }));
+					return page(items);
+				}
+				return page([]);
+			}) as unknown as BackendPort['list'];
+			return { requests, get: getSpy, list: listSpy };
+		}
+
+		const manyIds = Array.from({ length: 50 }, (_, i) => `article${String(i).padStart(7, '0')}`);
+
+		test('50 enlaces se resuelven con peticiones por lotes, no con un get por id', async () => {
+			const known = Object.fromEntries(manyIds.map((id, i) => [id, `Título ${i}`]));
+			const port = titlePort(known);
+			mounted = mountRelation({
+				field: relationField('articles', { name: 'related', multiple: true }),
+				types: [ARTICLES_TYPE],
+				value: manyIds,
+				list: port.list,
+				get: port.get
+			});
+			await settle();
+
+			// Medido ANTES del cambio: 50 peticiones (50 get). Después: 1 list.
+			console.info(`[l9-relacion] peticiones de resolución: ${port.requests.length}`);
+			expect(port.requests.length).toBeLessThanOrEqual(1);
+			const chips = Array.from(mounted.target.querySelectorAll('.vega-relation-chip')).map((c) =>
+				c.textContent?.trim()
+			);
+			expect(chips).toHaveLength(50);
+			// Mismo orden que la selección, aunque el listado devuelva otro.
+			expect(chips[0]).toContain('Título 0');
+			expect(chips[49]).toContain('Título 49');
+		});
+
+		test('más enlaces que el tamaño de lote se trocean y el destino borrado se marca sin romper', async () => {
+			const ids = Array.from({ length: 120 }, (_, i) => `article${String(i).padStart(7, '0')}`);
+			const known = Object.fromEntries(ids.slice(1).map((id, i) => [id, `T${i + 1}`]));
+			const port = titlePort(known); // `ids[0]` ya no existe
+			mounted = mountRelation({
+				field: relationField('articles', { name: 'related', multiple: true }),
+				types: [ARTICLES_TYPE],
+				value: ids,
+				list: port.list,
+				get: port.get
+			});
+			await settle();
+
+			console.info(`[l9-relacion] peticiones con 120 ids: ${port.requests.join(',')}`);
+			expect(port.requests).toEqual(['list:50', 'list:50', 'list:20']);
+			const chips = Array.from(mounted.target.querySelectorAll('.vega-relation-chip'));
+			expect(chips).toHaveLength(120);
+			expect(chips[0]?.textContent).toContain(t('form.relation.notFound'));
+			expect(chips[1]?.textContent).toContain('T1');
+			expect(mounted.onChange).not.toHaveBeenCalled();
+		});
 	});
 
 	test('destino normal no resuelto conserva el mensaje genérico exacto', async () => {

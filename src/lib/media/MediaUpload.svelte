@@ -38,6 +38,10 @@
 	 * paralelo a `uploadState.items`, que `start()` construye con `files.map`) porque el estado del
 	 * lote guarda nombre y estado, nunca los bytes.
 	 *
+	 * **Sesión caducada a mitad de lote**: el estado corta el lote y deja los ficheros no subidos en
+	 * `pending` (no `error`); con el lote parado, su "reintentar" (`handleResume`) reanuda todos los pendientes a la vez, y el toast
+	 * final añade cuántos quedaron pendientes.
+	 *
 	 * **Resumen honesto** (D-P6.7, "sin dedup por hash"): al terminar (o abortar) el lote, un
 	 * toast "`N` subidos, `M` fallidos" — nunca infla ni oculta un fallo.
 	 */
@@ -120,8 +124,14 @@
 		batchFiles = files;
 		void uploadState.start(ctx, schema, files, onUploaded, (summary) => {
 			ctx.feedback.toast(
-				ctx.t('media.upload.summary', { uploaded: summary.uploaded, failed: summary.failed }),
-				{ kind: summary.failed > 0 ? 'error' : 'success' }
+				summary.pending > 0
+					? ctx.t('media.upload.summaryPending', {
+							uploaded: summary.uploaded,
+							failed: summary.failed,
+							pending: summary.pending
+						})
+					: ctx.t('media.upload.summary', { uploaded: summary.uploaded, failed: summary.failed }),
+				{ kind: summary.failed > 0 || summary.pending > 0 ? 'error' : 'success' }
 			);
 		});
 	}
@@ -140,6 +150,16 @@
 		const file = batchFiles[index];
 		if (!file) return;
 		handleFiles([file]);
+	}
+
+	/** "Reintentar" de un fichero `pending` con el lote parado (sesión caducada, ver cabecera):
+	 *  reanuda TODOS los pendientes en un lote nuevo, no solo ése — si no, los demás saldrían de la
+	 *  lista sin haberse subido. */
+	function handleResume(): void {
+		const pendingFiles = uploadState.items
+			.map((item, index) => (item.status.kind === 'pending' ? batchFiles[index] : undefined))
+			.filter((file): file is File => file !== undefined);
+		handleFiles(pendingFiles);
 	}
 
 	function handleDragOver(event: DragEvent): void {
@@ -267,6 +287,14 @@
 							</span>
 						{:else}
 							<span class="vega-media-upload-status">{statusText(item.status)}</span>
+							{#if item.status.kind === 'pending' && !uploadState.running}
+								<!-- `pending` con el lote parado = la sesión caducó antes de intentarlo: se
+								     reintenta tras reentrar (ver cabecera de `media-upload-state.svelte.ts`). -->
+								·
+								<button type="button" class="vega-media-upload-retry" onclick={handleResume}>
+									{ctx.t('media.upload.retry')}
+								</button>
+							{/if}
 						{/if}
 					</span>
 				</li>

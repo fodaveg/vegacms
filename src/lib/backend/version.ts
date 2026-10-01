@@ -2,7 +2,7 @@
  * Versión de un registro para la escritura con versión esperada (`BackendPort.update`,
  * `UpdateOptions.expectedVersion`): quien abre un formulario la calcula sobre el registro que
  * leyó, y el adaptador la vuelve a calcular sobre el registro que relee en fresco justo antes de
- * escribir. Si no coinciden, alguien guardó entre medias y `update` falla cerrado con
+ * escribir (o sobre la lectura fresca de ese mismo guardado que le pasa `UpdateOptions.preImage`). Si no coinciden, alguien guardó entre medias y `update` falla cerrado con
  * `VegaConflictError` (`errors.ts`) en vez de pisarle.
  *
  * **Por qué una huella de los VALORES y no el `updated` a secas** (medido contra PocketBase 0.39.6

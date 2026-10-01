@@ -18,7 +18,9 @@ import {
 	supportsTitleSearch,
 	titleOf,
 	toggleRelationSelection,
-	withCachedTitle
+	withCachedTitle,
+	buildTitlesByIdsQuery,
+	chunkIds
 } from './relation-search';
 
 // ————— Helpers de fixture (mínimos, no el `ContentModel` completo) —————
@@ -236,5 +238,23 @@ describe('toggleRelationSelection (múltiple, maxSelect — D-P5.9)', () => {
 
 	it('en el límite: quitar uno YA seleccionado sigue permitido', () => {
 		expect(toggleRelationSelection(['a', 'b'], 'a', 2)).toEqual(['b']);
+	});
+});
+
+describe('chunkIds / buildTitlesByIdsQuery', () => {
+	it('trocea en lotes consecutivos de 50 y conserva el orden', () => {
+		const ids = Array.from({ length: 120 }, (_, i) => `id${i}`);
+		const chunks = chunkIds(ids);
+		expect(chunks.map((c) => c.length)).toEqual([50, 50, 20]);
+		expect(chunks.flat()).toEqual(ids);
+		expect(chunkIds([])).toEqual([]);
+	});
+
+	it('la query filtra por id con perPage = nº de ids y proyecta solo si se pide', () => {
+		expect(buildTitlesByIdsQuery(['a', 'b'])).toEqual({
+			filter: { kind: 'cond', field: 'id', op: 'in', value: ['a', 'b'] },
+			perPage: 2
+		});
+		expect(buildTitlesByIdsQuery(['a'], ['title']).fields).toEqual(['title']);
 	});
 });

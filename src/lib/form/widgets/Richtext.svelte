@@ -71,6 +71,11 @@
 	 * comparten esquinas sin que ninguno de los dos sepa nada del otro. Solo CSS: ni el editor, ni
 	 * el saneado, ni la a11y de más arriba cambian una línea.
 	 *
+	 * **`placeholder` (manifiesto)**: no hay extensión Placeholder de TipTap en el proyecto (ni se
+	 * añade una dependencia para esto), así que `field.placeholder` se pinta como un `<p>` superpuesto
+	 * (`aria-hidden`, sin eventos de puntero) sobre el área editable mientras el editor está montado
+	 * y VACÍO (`empty`, que sigue a `editor.isEmpty` en cada `onUpdate`/resync).
+	 *
 	 * LANDMINES encontradas en QA manual (no en el contrato, documentadas también inline):
 	 * (1) `Editor#setEditable()` de TipTap dispara `onUpdate` SIEMPRE que se llama, incluso sin
 	 * cambio real de estado — el `$effect` que lo invoca guarda el ÚLTIMO `inert` aplicado
@@ -126,6 +131,8 @@
 	// Último `inert` de verdad aplicado a `setEditable` (landmine (1) de la cabecera): evita
 	// llamarlo de más cuando el `$effect` de abajo se re-ejecuta sin que `inert` haya cambiado.
 	let lastInert: boolean | null = null;
+	// `true` mientras el documento del editor está vacío: gobierna el placeholder superpuesto.
+	let empty = $state(true);
 
 	onMount(() => {
 		let disposed = false;
@@ -164,6 +171,7 @@
 					}
 				},
 				onUpdate: ({ editor: ed }) => {
+					empty = ed.isEmpty;
 					if (disabled || readonly) return;
 					// `ed.isEmpty` normaliza cualquier doc semánticamente vacío (p.ej. un único
 					// párrafo sin texto) a `''` — ver landmine (2) de la cabecera: sin esto, un
@@ -181,6 +189,7 @@
 			// La referencia de "sin cambios" es lo que el editor SERIALIZA tras parsear el valor, no
 			// el valor saneado: ver `lastSettled`. Antes de asignar `editor` (dispara el `$effect`).
 			lastEmitted = created.isEmpty ? '' : sanitizeHtml(created.getHTML());
+			empty = created.isEmpty;
 			editor = created;
 		})();
 
@@ -199,6 +208,7 @@
 		lastSettled = sanitized;
 		editor.commands.setContent(sanitized, { emitUpdate: false });
 		lastEmitted = editor.isEmpty ? '' : sanitizeHtmlRef(editor.getHTML());
+		empty = editor.isEmpty;
 	});
 
 	// disabled/readonly son reactivos sin recrear el editor (ver landmine (1) de la cabecera).
@@ -231,15 +241,20 @@
 			{ctx.t('form.richtext.loading')}
 		</p>
 	{/if}
-	<div
-		class="vega-widget-richtext-content"
-		bind:this={container}
-		data-loading={editor ? undefined : 'true'}
-		id={ids.inputId}
-		aria-labelledby={ids.labelId}
-		aria-describedby={describedBy}
-		aria-invalid={error ? 'true' : undefined}
-	></div>
+	<div class="vega-widget-richtext-body">
+		<div
+			class="vega-widget-richtext-content"
+			bind:this={container}
+			data-loading={editor ? undefined : 'true'}
+			id={ids.inputId}
+			aria-labelledby={ids.labelId}
+			aria-describedby={describedBy}
+			aria-invalid={error ? 'true' : undefined}
+		></div>
+		{#if editor && empty && field.placeholder}
+			<p class="vega-widget-richtext-placeholder" aria-hidden="true">{field.placeholder}</p>
+		{/if}
+	</div>
 </div>
 
 <style>
@@ -262,6 +277,21 @@
 
 	.vega-widget-richtext[data-invalid='true'] {
 		border-color: var(--danger);
+	}
+
+	.vega-widget-richtext-body {
+		position: relative;
+	}
+
+	/* Placeholder superpuesto (ver cabecera): mismo padding que el área editable para que caiga
+	   donde caerá el primer carácter; sin eventos, el clic llega al editor. */
+	.vega-widget-richtext-placeholder {
+		position: absolute;
+		inset: 0 auto auto 0;
+		margin: 0;
+		padding: calc(var(--pad-field) * 0.9) calc(var(--pad-field) * 1.1);
+		color: var(--ink-2);
+		pointer-events: none;
 	}
 
 	/* Área editable (mockup `.rt-body`): `max-width: 68ch` es medida de LECTURA, no de caja — un

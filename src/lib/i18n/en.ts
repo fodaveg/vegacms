@@ -566,6 +566,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'form.markdown.placeholderAlt': 'description',
 	'form.markdown.unsafeUri':
 		'The Markdown contains HTML or a disallowed address. Use Markdown syntax and http, https, mailto, or relative links.',
+	'form.json.invalid': 'The JSON is not valid: fix it to be able to save.',
 
 	// ————— List (P4 contract, Phase 4c) —————
 	'list.empty.title': "There's nothing here yet",
@@ -984,6 +985,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.upload.aborted':
 		'upload cancelled: an earlier file in the batch failed (connection/permission)',
 	'media.upload.summary': '{uploaded} file(s) uploaded, {failed} failed.',
+	'media.upload.summaryPending':
+		'{uploaded} file(s) uploaded, {failed} failed, {pending} pending because the session expired.',
 
 	// ————— Media: library picker (Phase P6·6e) —————
 	// D-P6.6/L-P6.8: the picker COPIES bytes (a record never references a `vega_media` asset), so
