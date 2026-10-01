@@ -12,7 +12,6 @@ import type {
 	Capabilities,
 	ContentType,
 	CreatedEditor,
-	EditorAccount,
 	EditorDirectory,
 	FileRef,
 	InvitationLinkState,
