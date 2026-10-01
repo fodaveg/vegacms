@@ -10,6 +10,12 @@
  * cliente antes de intentarlo" de "lo rechazó/abortó el backend", aunque ambos cuentan para el
  * resumen final como "fallado").
  *
+ * **Reducir antes de subir (Lote 13)**: salvo con `keepOriginal`, cada JPEG/PNG/WebP se reduce en
+ * el navegador (`shrink-image.ts`) JUSTO antes de su `create()`, de uno en uno. Por eso el TOPE de
+ * tamaño de una imagen reducible no se rechaza en la pre-validación sino DESPUÉS de reducir: si
+ * aun así lo supera (o no se pudo reducir), el rechazo de siempre, con el motivo en `item.shrink`.
+ * El MIME sí se valida antes. El ítem lleva `shrink` con los bytes de antes y después.
+ *
  * **Por-fichero, SECUENCIAL (L-P6.6)**: los ficheros que pasan la pre-validación se suben uno a
  * uno, nunca en paralelo (mismo criterio que `RecordTable`/`DeleteConfirm` de P4: una escritura a
  * la vez es más fácil de razonar/testear que N promesas concurrentes, y no asume que el backend
@@ -43,6 +49,13 @@ import {
 	type MediaFileFieldSchema,
 	type MediaFileRejectionReason
 } from './media-upload';
+import {
+	isShrinkableType,
+	shrinkImage,
+	type ShrinkKeptReason,
+	type ShrinkOutcome
+} from './shrink-image';
+import { browserShrinkDeps } from './shrink-image-browser';
 
 export type MediaUploadItemStatus =
 	| { kind: 'pending' }
@@ -51,12 +64,18 @@ export type MediaUploadItemStatus =
 	| { kind: 'rejected'; reason: MediaFileRejectionReason }
 	| { kind: 'error'; message: string };
 
+/** Qué pasó con el paso de reducir en UN ítem (solo se rellena si se redujo o se intentó). */
+export type MediaUploadShrink =
+	| { kind: 'shrunk'; fromBytes: number; toBytes: number }
+	| { kind: 'original'; why: ShrinkKeptReason };
+
 export interface MediaUploadItem {
 	/** Clave estable del ítem DENTRO de este lote (nunca la `RecordId` real: el fichero puede no
 	 *  haber llegado a crearse). */
 	id: string;
 	name: string;
 	status: MediaUploadItemStatus;
+	shrink?: MediaUploadShrink;
 }
 
 export interface MediaUploadSummary {
@@ -66,6 +85,18 @@ export interface MediaUploadSummary {
 	 *  reintentables tras reentrar). `0` en cualquier otro desenlace. */
 	pending: number;
 }
+
+/** Opciones de un lote. */
+export interface MediaUploadOptions {
+	/** «Subir el original»: no se reduce nada y se valida el fichero tal cual (comportamiento de
+	 *  siempre). Por defecto `false`. */
+	keepOriginal?: boolean;
+}
+
+/** Función que reduce una imagen (inyectable en tests; por defecto, la del navegador). */
+export type ShrinkFn = (file: File, options: { maxBytes?: number }) => Promise<ShrinkOutcome>;
+
+const defaultShrink: ShrinkFn = (file, options) => shrinkImage(file, browserShrinkDeps, options);
 
 export interface MediaUploadState {
 	/** Ficheros del ÚLTIMO lote arrancado, con su estado en vivo. Vacío antes del primer lote o
@@ -82,7 +113,8 @@ export interface MediaUploadState {
 		schema: MediaFileFieldSchema,
 		files: File[],
 		onUploaded: () => void,
-		onSummary: (summary: MediaUploadSummary) => void
+		onSummary: (summary: MediaUploadSummary) => void,
+		options?: MediaUploadOptions
 	): Promise<void>;
 	/** Reanuda el ÚLTIMO lote parado (sesión caducada): `files` va ALINEADO por índice con `items`.
 	 *  Solo se suben los `pending`; los `done`, `error` y `rejected` se quedan en su sitio, y el
@@ -111,10 +143,21 @@ function messageFor(err: VegaError): string {
 	return err.fieldErrors?.[MEDIA_FILE_FIELD]?.message ?? err.message;
 }
 
-/** Construye un `MediaUploadState` vacío (sin lote todavía). */
-export function createMediaUploadState(): MediaUploadState {
+/** Construye un `MediaUploadState` vacío (sin lote todavía). `shrink` se inyecta en los tests. */
+export function createMediaUploadState(shrink: ShrinkFn = defaultShrink): MediaUploadState {
 	let items = $state<MediaUploadItem[]>([]);
 	let running = $state(false);
+	// Casilla y esquema del ÚLTIMO lote: `resume()` los hereda (no reduce lo que se pidió intacto).
+	let keepOriginal = false;
+	let lastSchema: MediaFileFieldSchema | null = null;
+
+	function canShrink(file: File): boolean {
+		return !keepOriginal && isShrinkableType(file.type);
+	}
+
+	function setShrink(id: string, value: MediaUploadShrink): void {
+		items = items.map((item) => (item.id === id ? { ...item, shrink: value } : item));
+	}
 
 	function setStatus(id: string, status: MediaUploadItemStatus): void {
 		items = items.map((item) => (item.id === id ? { ...item, status } : item));
@@ -125,14 +168,19 @@ export function createMediaUploadState(): MediaUploadState {
 		schema: MediaFileFieldSchema,
 		files: File[],
 		onUploaded: () => void,
-		onSummary: (summary: MediaUploadSummary) => void
+		onSummary: (summary: MediaUploadSummary) => void,
+		options: MediaUploadOptions = {}
 	): Promise<void> {
 		if (files.length === 0) return;
+		keepOriginal = options.keepOriginal === true;
+		lastSchema = schema;
 
 		// Pre-validación (D-P6.3): calculada UNA vez por fichero, antes de tocar el puerto para
 		// ninguno del lote — así el usuario ve de inmediato qué va a subir de verdad y qué no.
 		const batch: MediaUploadItem[] = files.map((file, index) => {
-			const reason = validateMediaFile(schema, file);
+			// Una imagen reducible que solo falla por tamaño se queda `pending`: el tope se valida
+			// DESPUÉS de reducirla, en `run` (una foto de 23 MB que reducida pesa 1 MB debe subirse).
+			const reason = validateMediaFile(schema, file, { ignoreSize: canShrink(file) });
 			return {
 				id: `${index}_${crypto.randomUUID()}`,
 				name: file.name,
@@ -140,7 +188,7 @@ export function createMediaUploadState(): MediaUploadState {
 			};
 		});
 		items = batch;
-		await run(ctx, batch, files, onUploaded, onSummary);
+		await run(ctx, schema, batch, files, onUploaded, onSummary);
 	}
 
 	async function resume(
@@ -151,16 +199,21 @@ export function createMediaUploadState(): MediaUploadState {
 	): Promise<void> {
 		// Foto de la lista actual: `run` lee de ella qué estaba `pending` al reanudar.
 		const batch = items.slice();
-		if (files.length < batch.length || !batch.some((item) => item.status.kind === 'pending')) {
+		if (
+			lastSchema === null ||
+			files.length < batch.length ||
+			!batch.some((item) => item.status.kind === 'pending')
+		) {
 			return;
 		}
-		await run(ctx, batch, files, onUploaded, onSummary);
+		await run(ctx, lastSchema, batch, files, onUploaded, onSummary);
 	}
 
 	/** Sube en secuencia los `pending` de `batch` (alineado por índice con `files`). Los demás
 	 *  ítems no se tocan; sus estados ya terminales entran en los contadores del resumen. */
 	async function run(
 		ctx: VegaAppContext,
+		schema: MediaFileFieldSchema,
 		batch: MediaUploadItem[],
 		files: File[],
 		onUploaded: () => void,
@@ -185,7 +238,29 @@ export function createMediaUploadState(): MediaUploadState {
 			const item = batch[i];
 			setStatus(item.id, { kind: 'uploading' });
 			try {
-				await ctx.port.create('vega_media', { [MEDIA_FILE_FIELD]: files[i] });
+				let toUpload = files[i];
+				if (canShrink(toUpload)) {
+					// De una en una (nunca el lote entero en memoria). `shrinkImage` no lanza.
+					const outcome = await shrink(toUpload, { maxBytes: schema.maxSizeBytes });
+					if (outcome.kind === 'shrunk') {
+						toUpload = outcome.file;
+						setShrink(item.id, {
+							kind: 'shrunk',
+							fromBytes: outcome.fromBytes,
+							toBytes: outcome.toBytes
+						});
+					} else if (outcome.kind === 'kept-original') {
+						setShrink(item.id, { kind: 'original', why: outcome.reason });
+					}
+				}
+				// Validación definitiva sobre lo que de verdad se sube (tope tras reducir).
+				const rejection = validateMediaFile(schema, toUpload);
+				if (rejection !== null) {
+					setStatus(item.id, { kind: 'rejected', reason: rejection });
+					failed++;
+					continue;
+				}
+				await ctx.port.create('vega_media', { [MEDIA_FILE_FIELD]: toUpload });
 				setStatus(item.id, { kind: 'done' });
 				uploaded++;
 				onUploaded();

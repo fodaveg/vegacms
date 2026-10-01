@@ -1094,6 +1094,17 @@ export const es = {
 	'media.upload.summary': '{uploaded} fichero(s) subido(s), {failed} fallido(s).',
 	'media.upload.summaryPending':
 		'{uploaded} fichero(s) subido(s), {failed} fallido(s), {pending} pendiente(s) por la sesión caducada.',
+	'media.upload.keepOriginal': 'Subir el original',
+	'media.upload.shrinkNotice':
+		'Las imágenes grandes se reducen al subirlas. Se pierden los datos de la cámara, incluida la ubicación.',
+	'media.upload.shrunk': '{from} → {to}',
+	'media.upload.shrinkFailed': 'no se pudo reducir ({reason})',
+	'media.upload.shrinkWhy.error': 'falló el procesado',
+	'media.upload.shrinkWhy.no-blob': 'el navegador no pudo codificarla',
+	'media.upload.shrinkWhy.wrong-type': 'el navegador no admite este formato',
+	'media.upload.shrinkWhy.not-smaller': 'no pesaba menos',
+	'media.upload.shrinkWhy.empty': 'sin dimensiones',
+	'media.upload.shrinkWhy.blank': 'salió en blanco',
 
 	// ————— Medios: picker de biblioteca (Fase P6·6e) —————
 	// D-P6.6/L-P6.8: el picker COPIA bytes (nunca referencia un `vega_media` desde un registro),
