@@ -46,6 +46,13 @@ export interface UpdateOptions {
 	 * comprobación (la última escritura gana, el comportamiento de siempre).
 	 */
 	expectedVersion?: RecordVersion;
+	/**
+	 * Nombre del campo de orden manual (`orderField` del tipo) cuando la escritura es SOLO un
+	 * reordenado. `withRevisions` omite la revisión de historial únicamente si `data` tiene
+	 * exactamente esa clave y ninguna más: una escritura de contenido que además toque otro campo
+	 * sigue creando revisión aunque pase esto. Los adaptadores lo ignoran.
+	 */
+	orderOnlyField?: string;
 }
 
 /**

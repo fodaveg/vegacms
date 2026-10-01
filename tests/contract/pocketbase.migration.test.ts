@@ -112,6 +112,7 @@ describe.skipIf(!AVAILABLE)(
 			fields: [
 				{ name: 'title', type: 'text', required: true, max: 120 },
 				{ name: 'path', type: 'text', unique: true },
+				{ name: 'code', type: 'text', pattern: '^[a-z]+$' },
 				{
 					name: 'status',
 					type: 'select',
@@ -166,6 +167,7 @@ describe.skipIf(!AVAILABLE)(
 
 			expect(byName.get('title')).toMatchObject({ type: 'text', required: true, max: 120 });
 			expect(byName.get('path')).toMatchObject({ type: 'text' });
+			expect(byName.get('code')).toMatchObject({ type: 'text', pattern: '^[a-z]+$' });
 			expect(byName.get('status')).toMatchObject({
 				type: 'select',
 				values: ['draft', 'published'],
@@ -204,6 +206,15 @@ describe.skipIf(!AVAILABLE)(
 					status: 'published'
 				})
 			).rejects.toMatchObject({ status: 400 });
+		});
+
+		test('el pattern de un campo text migrado se aplica: PocketBase rechaza un valor que no lo cumple', async () => {
+			const collection = pb.collection('kitchen_sink_mig');
+			await expect(
+				collection.create({ title: 'a', path: '/patron-malo', code: 'ABC1' })
+			).rejects.toMatchObject({ status: 400 });
+			const ok = await collection.create({ title: 'b', path: '/patron-ok', code: 'abc' });
+			expect(ok.code).toBe('abc');
 		});
 
 		test('down: revierte con "y", exige "Reverted" en la salida, y la colección desaparece', async () => {

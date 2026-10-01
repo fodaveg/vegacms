@@ -12,6 +12,7 @@
  */
 import { describe, expect, test } from 'vitest';
 import { collectionSpecToPocketBasePayload } from './adapters/pocketbase/collections';
+import { collectionFieldSpecToPbField } from './adapters/pocketbase/schema';
 import { collectionSpecToMigrationPayload, generateSchemaMigration } from './migration';
 import type { CollectionFieldSpec, CollectionSpec } from './collections';
 
@@ -304,6 +305,26 @@ describe('generateSchemaMigration — mapeo de campos (paridad con el adaptador 
 		expect(contents).toContain('"300x300"');
 		expect(contents).toContain('"onCreate": true');
 		expect(contents).toContain('"onUpdate": false');
+	});
+
+	test('text con pattern lo emite (igual que el adaptador); sin pattern, la clave no aparece', () => {
+		const withPattern: CollectionFieldSpec = {
+			name: 'from',
+			type: 'text',
+			required: true,
+			pattern: '^/[^?#]*$'
+		};
+		const without: CollectionFieldSpec = { name: 'note', type: 'text', pattern: '' };
+		const spec: CollectionSpec = { name: 'redirects_t', fields: [withPattern, without] };
+
+		const migrationPayload = collectionSpecToMigrationPayload(spec);
+		const networkFields = [withPattern, without].map((f) => collectionFieldSpecToPbField(f));
+		expect(migrationPayload.fields).toEqual(networkFields);
+		expect(JSON.stringify(migrationPayload.fields)).toContain('"pattern":"^/[^?#]*$"');
+		expect(JSON.stringify(migrationPayload.fields)).not.toContain('"pattern":""');
+
+		const { contents } = generateSchemaMigration({ kind: 'create', specs: [spec] }, FIXED_NOW);
+		expect(contents).toContain('"pattern": "^/[^?#]*$"');
 	});
 
 	test('editor/url/email producen su payload y el índice único parcial de url/email', () => {

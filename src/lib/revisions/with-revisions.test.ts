@@ -234,6 +234,38 @@ describe('withRevisions — orden (pre-imagen antes; revisión solo tras un guar
 	});
 });
 
+describe('withRevisions — reordenado manual sin revisión (L7c)', () => {
+	test('update con SOLO el campo de orden declarado: escribe, sin pre-imagen ni revisión', async () => {
+		const { port, calls } = buildFakePort();
+		const wrapped = withRevisions(port);
+
+		await wrapped.update('posts', 'p1', { sort: 3 }, { orderOnlyField: 'sort' });
+
+		expect(calls.filter((c) => !c.startsWith('list:'))).toEqual(['update:posts:p1']);
+		expect(port.create).not.toHaveBeenCalled();
+	});
+
+	test('editar contenido SÍ crea revisión, también si pasa la opción', async () => {
+		const { port } = buildFakePort();
+		const wrapped = withRevisions(port);
+
+		await wrapped.update('posts', 'p1', { title: 'nuevo' });
+		await wrapped.update('posts', 'p2', { title: 'nuevo', sort: 1 }, { orderOnlyField: 'sort' });
+		await wrapped.update('posts', 'p3', { title: 'nuevo' }, { orderOnlyField: 'sort' });
+
+		expect(port.create).toHaveBeenCalledTimes(3);
+	});
+
+	test('un campo distinto al declarado no se exime', async () => {
+		const { port } = buildFakePort();
+		const wrapped = withRevisions(port);
+
+		await wrapped.update('posts', 'p1', { title: 'x' }, { orderOnlyField: 'title2' });
+
+		expect(port.create).toHaveBeenCalledTimes(1);
+	});
+});
+
 describe('withRevisions — las 5 exclusiones (§3)', () => {
 	test('1. vega_revisions sobre sí misma: sin snapshot', async () => {
 		const { port } = buildFakePort();

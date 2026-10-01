@@ -265,7 +265,11 @@ function collectionFieldSpecToMigrationField(spec: CollectionFieldSpec): Record<
 				name: spec.name,
 				type: 'text',
 				required: spec.required ?? false,
-				max: spec.max ?? 0
+				max: spec.max ?? 0,
+				// Igual que el adaptador: omitido (no `''`) en un campo sin patrón. Sin esto una
+				// migración generada perdía la validación que el adaptador sí escribe
+				// (`redirects.from`/`to`, `site-seeding.ts`).
+				...(spec.pattern ? { pattern: spec.pattern } : {})
 			};
 		case 'editor':
 			return { name: spec.name, type: 'editor', required: spec.required ?? false };

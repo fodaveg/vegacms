@@ -104,7 +104,7 @@
 	import { deriveColumns } from '$lib/list/columns';
 	import { parseViewState, viewStateToParams, type ViewStatePatch } from '$lib/list/query-state';
 	import { cycleSort } from '$lib/list/sort';
-	import { computeReorder } from '$lib/list/reorder';
+	import { computeSpanReorder } from '$lib/list/reorder';
 	import { createListState } from '$lib/list/list-state.svelte';
 	import { listRoute } from '$lib/nav/routes';
 	import { hasFileValues } from '$lib/revisions/restore';
@@ -202,8 +202,13 @@
 	// había quedado fuera. Arrastrar una fila es un `ctx.port.update` por registro (ver
 	// `handleReorder`); con `access.update: 'denied'` la UI la ofrecía igual y el primer `update`
 	// del lote moría en un 403 del backend.
+	// `!persisting` (L7c): mientras una tanda de updates sigue en vuelo la tabla no admite otro
+	// arrastre (dos tandas solapadas calcularían sobre un orden que ya está mutando); mismo
+	// criterio que `/v/[view]`.
+	let persisting = $state(false);
 	const reorderable = $derived(
-		contentType !== null &&
+		!persisting &&
+			contentType !== null &&
 			contentType.orderField !== null &&
 			contentType.permissions.update &&
 			effectiveSort === null &&
@@ -215,8 +220,8 @@
 
 	/** Handler de `onReorder` de `RecordTable` (ver su cabecera): construye `orderedIds`/
 	 *  `currentValues` a partir de la página actual (`readyPage.items`, la única en juego cuando
-	 *  `reorderable` es `true`), calcula el mínimo conjunto de updates (`computeReorder`, módulo
-	 *  puro) y los persiste uno a uno vía `ctx.port.update`. Sin updates (drop en el mismo sitio)
+	 *  `reorderable` es `true`), calcula el mínimo conjunto de updates (`computeSpanReorder`:
+	 *  solo el tramo movido, módulo puro) y los persiste uno a uno vía `ctx.port.update`. Sin updates (drop en el mismo sitio)
 	 *  es un no-op, ni siquiera toca el puerto. Éxito → `listState.reload()` (mismo patrón que
 	 *  `confirmDelete`); fallo → `ctx.feedback.reportError` (nunca `status.error` del listado, que
 	 *  es solo para fallos de CARGA, L-P4.4). */
@@ -229,17 +234,29 @@
 			const raw = record.values[orderField];
 			currentValues[record.id] = typeof raw === 'number' ? raw : 0;
 		}
-		const updates = computeReorder(orderedIds, currentValues, fromIndex, toIndex);
+		const updates = computeSpanReorder(orderedIds, currentValues, fromIndex, toIndex);
 		if (updates.length === 0) return;
+		persisting = true;
 		try {
 			for (const update of updates) {
-				await ctx.port.update(contentType.name, update.id, { [orderField]: update.value });
+				// `orderOnlyField`: reordenar no deja versión en el historial (ver `withRevisions`).
+				await ctx.port.update(
+					contentType.name,
+					update.id,
+					{ [orderField]: update.value },
+					{ orderOnlyField: orderField }
+				);
 			}
 			listState.reload();
 		} catch (err) {
 			ctx.feedback.reportError(
 				err instanceof VegaError ? err : VegaError.backend(ctx.t('list.reorder.error'), err)
 			);
+			// Un fallo a mitad de tanda ya pudo escribir parte de los updates: recarga para pintar
+			// el orden REAL del backend, no el pre-drop (mismo criterio que `/v/[view]`).
+			listState.reload();
+		} finally {
+			persisting = false;
 		}
 	}
 
