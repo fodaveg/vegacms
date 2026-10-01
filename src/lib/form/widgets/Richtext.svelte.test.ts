@@ -456,6 +456,29 @@ describe('Richtext.svelte — enlace e imagen de la barra', () => {
 		expect(onChange).not.toHaveBeenCalled();
 	});
 
+	/**
+	 * Regresión vista en el navegador al abrir la biblioteca desde la barra con el cursor en el
+	 * editor: el selector de medios enfoca su buscador dentro de un `$effect`, el editor pierde el
+	 * foco, TipTap emite `transaction` en ese mismo instante y la barra incrementaba su contador de
+	 * repintado LEYÉNDOLO dentro del efecto ajeno. Ese efecto pasaba a depender de lo que acababa de
+	 * escribir y se repetía hasta `effect_update_depth_exceeded`, con el selector en «Cargando…».
+	 */
+	test('una transacción emitida dentro del $effect de otro componente no lo hace repetirse', async () => {
+		const { editor } = await mountWithToolbar('<p>Hola</p>');
+		let runs = 0;
+
+		const stop = $effect.root(() => {
+			$effect(() => {
+				runs += 1;
+				editor.view.dispatch(editor.state.tr.setMeta('blur', true));
+			});
+		});
+		await flush();
+		stop();
+
+		expect(runs).toBe(1);
+	});
+
 	test('imagen con alt en la biblioteca: se inserta con la URL del fichero y ese alt', async () => {
 		const { target, pickerOpen, lastHtml } = await mountWithToolbar('<p>Hola</p>', {
 			alt: 'Una portada'

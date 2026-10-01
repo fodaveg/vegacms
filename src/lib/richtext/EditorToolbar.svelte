@@ -32,7 +32,7 @@
 	 * pierden el borde y ganan el par hover/`aria-pressed` del mockup (`--active` / `--accent-soft`).
 	 * Solo CSS: ni un comando, ni un `aria-*`, ni la señal de repintado cambian.
 	 */
-	import { tick as flushed } from 'svelte';
+	import { tick as flushed, untrack } from 'svelte';
 	import type { Editor } from '@tiptap/core';
 	import { getVegaContext } from '$lib/app-context';
 	import { VegaError } from '$lib/backend/errors';
@@ -56,8 +56,14 @@
 
 	$effect(() => {
 		if (!editor) return;
+		// `untrack` en la LECTURA: TipTap emite `transaction` de forma síncrona también cuando el
+		// editor pierde el foco, y eso puede pasar DENTRO del `$effect` de otro componente (el
+		// selector de medios enfoca su buscador al abrirse). Un `tick++` a secas lee y escribe `tick`
+		// dentro de ese efecto ajeno, que pasa a depender de lo que él mismo acaba de escribir:
+		// `effect_update_depth_exceeded`, y el selector se queda en «Cargando…». Visto al abrir la
+		// biblioteca desde la barra con el cursor en el editor.
 		const bump = (): void => {
-			tick++;
+			tick = untrack(() => tick) + 1;
 		};
 		editor.on('transaction', bump);
 		editor.on('selectionUpdate', bump);
