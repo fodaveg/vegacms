@@ -156,7 +156,34 @@ func (x *Extension) EnsureCollections(app core.App) error {
 	}
 	err := x.ensureShareCollection(app)
 	x.shareReady.Store(err == nil)
+	if err == nil && x.shareHookBound.CompareAndSwap(false, true) {
+		app.OnRecordAfterDeleteSuccess(x.config.RecordCollections...).BindFunc(x.dropLinksOfDeletedRecord)
+	}
 	return err
+}
+
+// dropLinksOfDeletedRecord deletes the share links of a record as soon as the record is deleted.
+// A link names its record by id only, so one left behind would open whatever record is later
+// created with that id. Resolution drops such a link too, but only if somebody tries to open it.
+func (x *Extension) dropLinksOfDeletedRecord(event *core.RecordEvent) error {
+	links, err := event.App.FindRecordsByFilter(
+		shareLinksCollection,
+		"collection = {:collection} && recordId = {:recordId}",
+		"",
+		0,
+		0,
+		dbx.Params{"collection": event.Record.Collection().Name, "recordId": event.Record.Id},
+	)
+	if err != nil {
+		logShareFailure(event.App, "record_delete_lookup", err)
+		return event.Next()
+	}
+	for _, link := range links {
+		if err := event.App.Delete(link); err != nil {
+			logShareFailure(event.App, "record_delete", err)
+		}
+	}
+	return event.Next()
 }
 
 func (x *Extension) ensureShareCollection(app core.App) error {

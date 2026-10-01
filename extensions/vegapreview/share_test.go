@@ -207,6 +207,16 @@ func (f shareFixture) mustCreate(t *testing.T, session, id string, ttlSeconds in
 	return body.ID, strings.TrimPrefix(body.URL, prefix)
 }
 
+// deleteRowDirectly removes a row with SQL, without PocketBase's record hooks.
+func (f shareFixture) deleteRowDirectly(t *testing.T, collection, id string) {
+	t.Helper()
+	if _, err := f.app.NonconcurrentDB().
+		Delete(collection, dbx.HashExp{"id": id}).
+		Execute(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func (f shareFixture) storedLinks(t *testing.T) []*core.Record {
 	t.Helper()
 	links, err := f.app.FindAllRecords(shareLinksCollection)
@@ -970,12 +980,11 @@ func TestShareSecretOfOneLinkDoesNotOpenAnother(t *testing.T) {
 func TestShareLinkOfADeletedRecordDoesNotResolveAndIsDropped(t *testing.T) {
 	fixture := newShareFixture(t)
 	_, token := fixture.mustCreate(t, fixture.editorA, fixture.pageA, 3600)
-	page, err := fixture.app.FindRecordById("pages", fixture.pageA)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := fixture.app.Delete(page); err != nil {
-		t.Fatal(err)
+	// The row goes away behind PocketBase's back, so the delete hook does not run and the link
+	// is orphaned: this is the resolution route's own check.
+	fixture.deleteRowDirectly(t, "pages", fixture.pageA)
+	if len(fixture.storedLinks(t)) != 1 {
+		t.Fatal("this test needs the orphaned link to still exist")
 	}
 	response := fixture.resolve(token, "203.0.113.7")
 	if response.Code != http.StatusNotFound {
@@ -983,6 +992,54 @@ func TestShareLinkOfADeletedRecordDoesNotResolveAndIsDropped(t *testing.T) {
 	}
 	if len(fixture.storedLinks(t)) != 0 {
 		t.Fatal("the link of a deleted record was kept")
+	}
+}
+
+// TestShareLinksAreDeletedWithTheirRecord: deleting a record through PocketBase deletes its links
+// at once, without waiting for anyone to open them, so a record created later with the same id
+// does not inherit a link nobody made for it.
+func TestShareLinksAreDeletedWithTheirRecord(t *testing.T) {
+	fixture := newShareFixture(t)
+	// EnsureCollections more than once must not bind the hook more than once (harmless, but
+	// each extra binding would repeat the lookup on every delete).
+	if err := fixture.extension.EnsureCollections(fixture.app); err != nil {
+		t.Fatal(err)
+	}
+	_, tokenA := fixture.mustCreate(t, fixture.editorA, fixture.pageA, 3600)
+	fixture.mustCreate(t, fixture.editorA, fixture.pageA, 3600)
+	otherID, otherToken := fixture.mustCreate(t, fixture.editorB, fixture.pageB, 3600)
+
+	page, err := fixture.app.FindRecordById("pages", fixture.pageA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	owner := page.GetString("owner")
+	if err := fixture.app.Delete(page); err != nil {
+		t.Fatal(err)
+	}
+	stored := fixture.storedLinks(t)
+	if len(stored) != 1 || stored[0].Id != otherID {
+		t.Fatalf("expected only the link of the other record to remain, %d rows remain", len(stored))
+	}
+
+	// The same id comes back as a new record: the old link must not open it.
+	pages, err := fixture.app.FindCollectionByNameOrId("pages")
+	if err != nil {
+		t.Fatal(err)
+	}
+	reborn := core.NewRecord(pages)
+	reborn.Id = fixture.pageA
+	reborn.Set("owner", owner)
+	reborn.Set("status", "draft")
+	reborn.Set("title", "A different page with a recycled id")
+	if err := fixture.app.Save(reborn); err != nil {
+		t.Fatal(err)
+	}
+	if response := fixture.resolve(tokenA, "203.0.113.7"); response.Code != http.StatusNotFound {
+		t.Fatalf("a link of a deleted record opened the record that reused its id: got %d", response.Code)
+	}
+	if response := fixture.resolve(otherToken, "203.0.113.8"); response.Code != http.StatusOK {
+		t.Fatalf("expected the other record's link to keep working, got %d", response.Code)
 	}
 }
 
@@ -998,13 +1055,8 @@ func TestShareResolveRefusalsAreIndistinguishable(t *testing.T) {
 	if response := fixture.revoke(fixture.editorA, "pages", fixture.pageA, revokedID); response.Code != http.StatusNoContent {
 		t.Fatalf("expected 204, got %d", response.Code)
 	}
-	pageB, err := fixture.app.FindRecordById("pages", fixture.pageB)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := fixture.app.Delete(pageB); err != nil {
-		t.Fatal(err)
-	}
+	// Deleted behind the delete hook, so the link is orphaned rather than gone.
+	fixture.deleteRowDirectly(t, "pages", fixture.pageB)
 	*fixture.clock = fixture.clock.Add(10 * time.Minute)
 
 	liveID, _, _ := parseShareToken(liveToken)

@@ -192,6 +192,8 @@ type Extension struct {
 	shareVisitorLimiter *attemptLimiter
 	// shareReady is set by EnsureCollections once the links collection passed validation.
 	shareReady atomic.Bool
+	// shareHookBound keeps the record-delete hook from being bound more than once.
+	shareHookBound atomic.Bool
 }
 
 // New validates config and returns a ready-to-register extension. Misconfigured signing or URL
