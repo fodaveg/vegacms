@@ -7,10 +7,11 @@
 	 * `aria-labelledby={ids.labelId}`; un grupo de botones no es un control "labelable" por
 	 * `<label for>`).
 	 *
-	 * - **Sin `expand` (D-P5.9 opción a)**: los YA seleccionados se resuelven con `ctx.port.get`
-	 *   (uno por id, nunca visto) y se cachean por id (`relation-search.ts`, `TitleCache`) para no
-	 *   re-pedir uno ya resuelto. Un `get` que falla con `not-found` pinta el id con la marca
-	 *   "no encontrado" (registro borrado entre tanto) en vez de reventar.
+	 * - **Sin `expand` (D-P5.9 opción a)**: los YA seleccionados se resuelven con `ctx.port.list`
+	 *   filtrado por ids, en lotes de `RELATION_TITLE_BATCH_SIZE` (no un `get` por id), y se cachean
+	 *   por id (`relation-search.ts`, `TitleCache`) para no re-pedir uno ya resuelto. Un id que no
+	 *   vuelve en su lote se pinta con la marca "no encontrado" (registro borrado entre tanto) en
+	 *   vez de reventar.
 	 * - **Listado paginado sin búsqueda**: se usa si el destino no admite `contains` sobre su
 	 *   `titleField` (`supportsTitleSearch`, `relation-search.ts`) y para `vega_media`, donde el
 	 *   nombre visible puede venir del fichero y no sería buscable por `title`.
@@ -49,7 +50,9 @@
 	import {
 		buildDegradedListQuery,
 		buildTitleSearchQuery,
+		buildTitlesByIdsQuery,
 		candidatesFromPage,
+		chunkIds,
 		idsNeedingTitles,
 		RELATION_SEARCH_PER_PAGE,
 		RelationSearchSequencer,
@@ -284,30 +287,48 @@
 		}
 	});
 
-	async function resolveTitle(id: RecordId): Promise<void> {
+	/** Resuelve los títulos de `ids` con un `list` filtrado por ids por cada lote (`chunkIds`), no
+	 *  con un `get` por id. Un id que no vuelve en su lote (borrado entre tanto) se marca
+	 *  `not-found`; un lote que falla se reporta y deja sus ids sin caché (como el `get` fallido). */
+	async function resolveTitles(ids: RecordId[]): Promise<void> {
 		if (!target) return;
-		pendingTitleFetches.add(id); // ANTES del `get`: cierra la ventana en la que el próximo
-		// recálculo del `$effect` (disparado por OTRO id resolviendo en el mismo tick) volvería a
-		// verlo como "sin caché, sin pending" y lo pediría por segunda vez.
-		try {
-			const record: VegaRecord = await ctx.port.get(target.name, id);
-			if (destroyed) return;
-			titleCache = withCachedTitle(titleCache, id, {
-				status: 'ok',
-				title: isMediaTarget
-					? mediaDisplayName(toMediaItemView(record)) || record.id
-					: titleOf(record, titleField)
-			});
-		} catch (err) {
-			if (destroyed) return;
-			if (err instanceof VegaError && err.kind === 'not-found') {
-				titleCache = withCachedTitle(titleCache, id, { status: 'not-found' });
-				return;
-			}
-			reportUnexpected(err, 'relation:resolveTitle');
-		} finally {
-			pendingTitleFetches.delete(id);
-		}
+		const targetName = target.name;
+		// ANTES de pedir: cierra la ventana en la que el próximo recálculo del `$effect` (disparado
+		// por OTRO lote resolviendo) volvería a ver estos ids como "sin caché, sin pending".
+		for (const id of ids) pendingTitleFetches.add(id);
+		// Destino media: `file`, `title` y `alt` salen del registro entero; el resto, solo el título.
+		const projection = isMediaTarget || titleField === null ? undefined : [titleField];
+		await Promise.all(
+			chunkIds(ids).map(async (chunk) => {
+				try {
+					const page = await ctx.port.list(targetName, buildTitlesByIdsQuery(chunk, projection));
+					if (destroyed) return;
+					const byId = new Map(page.items.map((record) => [record.id, record]));
+					let next = titleCache;
+					for (const id of chunk) {
+						const record = byId.get(id);
+						next = withCachedTitle(
+							next,
+							id,
+							record
+								? {
+										status: 'ok',
+										title: isMediaTarget
+											? mediaDisplayName(toMediaItemView(record)) || record.id
+											: titleOf(record, titleField)
+									}
+								: { status: 'not-found' }
+						);
+					}
+					titleCache = next;
+				} catch (err) {
+					if (destroyed) return;
+					reportUnexpected(err, 'relation:resolveTitle');
+				} finally {
+					for (const id of chunk) pendingTitleFetches.delete(id);
+				}
+			})
+		);
 	}
 
 	// Resuelve el título de cada id seleccionado que todavía no esté en caché NI en vuelo (D-P5.9,
@@ -317,7 +338,7 @@
 	// SÍ evita re-pedirlos (antes de este fix, sí se re-pedían: ver `pendingTitleFetches` arriba).
 	$effect(() => {
 		const need = idsNeedingTitles(selectedIds, titleCache, pendingTitleFetches);
-		for (const id of need) void resolveTitle(id);
+		if (need.length > 0) void resolveTitles(need);
 	});
 
 	/** Selecciona/deselecciona `candidate` (búsqueda o listado degradado). El título YA se conoce
