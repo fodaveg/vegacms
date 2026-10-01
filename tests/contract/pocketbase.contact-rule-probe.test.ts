@@ -11,6 +11,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { CONTACT_CREATE_RULE } from '$lib/backend/site-seeding-contact';
 import { isPocketBaseBinaryAvailable } from './pb-harness/binary';
 import {
 	ADMIN_EMAIL,
@@ -19,8 +20,9 @@ import {
 	type RunningPocketBase
 } from './pb-harness/server';
 
-/** La expresión EXACTA que pasa los cinco casos con `website` fuera del esquema. */
-export const CONTACT_CREATE_RULE = '@request.body.website = "" && @request.body.read != true';
+// La expresión EXACTA que pasa los cinco casos con `website` fuera del esquema es
+// `CONTACT_CREATE_RULE`, que ya vive en código de producto (el módulo `contacto`): esta sonda mide
+// la misma constante que crea la colección, no una copia.
 const EDITOR_ONLY = '@request.auth.collectionName = "vega_editors"';
 
 const AVAILABLE = isPocketBaseBinaryAvailable();
