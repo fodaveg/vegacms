@@ -184,8 +184,13 @@ Then add `"share": true` to the `preview` object of the discovery document.
 
 `EnsureCollections` creates the private collection `vega_preview_links` if it is missing and
 never alters an existing one; it returns an error if a collection with that name has any API
-rule open or fields of another shape. With `ShareLinks: false` it does nothing and
-`RegisterRoutes` mounts only `POST /token`, exactly as before.
+rule open or fields of another shape. It also binds the hook that deletes a record's links
+when the record is deleted. With `ShareLinks: false` it does nothing and `RegisterRoutes`
+mounts only `POST /token`, exactly as before.
+
+**The four share routes answer `503` until `EnsureCollections` has succeeded**, and return to
+`503` if a later call fails. Calling `RegisterRoutes` alone, or ignoring the error, leaves the
+feature off rather than serving from a collection nobody validated.
 
 `New` fails, rather than adjusting the value, when:
 
@@ -194,8 +199,22 @@ rule open or fields of another shape. With `ShareLinks: false` it does nothing a
 - `ShareLinks` is on and `RecordCollections` is empty or contains `vega_preview_links`. An
   empty allowlist means "any collection" for `/token`; a standing public URL does not get that
   default.
-- `SharePath` is not an absolute path, equals `PreviewPath`, or lives below it (the signed-token
-  route `{PreviewPath}/{collection}/{id}` would read it as a collection name).
+- `ShareLinks` is on and `SharePath` is not an absolute path, equals `PreviewPath`, or lives
+  below it (the signed-token route `{PreviewPath}/{collection}/{id}` would read it as a
+  collection name). `SharePath` is not looked at with `ShareLinks: false`, so a deployment
+  whose `PreviewPath` already is `/preview-share` keeps starting; it has to choose another
+  `SharePath` when it turns the feature on.
+
+### What the operator must do
+
+- **Configure PocketBase's trusted proxy headers** (`trustedProxy.headers` in the application
+  settings) when PocketBase runs behind Caddy, nginx or a load balancer. With none configured,
+  which is the factory setting, `RealIP` is the proxy's address for every request.
+- **Leave `trustedProxy.useLeftmostIP` off** unless the proxy overwrites the header rather than
+  appending to it; otherwise any caller chooses its own address.
+- **Reach `/share/resolve` over TLS or a private network.** The site key is a static value.
+- The site must send in `clientIp` the address it got from its own trusted proxy, never a raw
+  `X-Forwarded-For`. See the contract for the rest of the site's obligations.
 
 ### Routes
 
@@ -208,7 +227,13 @@ rule open or fields of another shape. With `ShareLinks: false` it does nothing a
 
 The site key for `/share/resolve` is `vegapreview.ShareResolveKey(secret)`, that is
 `base64url(HMAC-SHA256(SigningSecret, "vega-preview-share-resolve-v1"))`, sent in the
-`X-Vega-Preview-Key` header. No new secret has to be provisioned.
+`X-Vega-Preview-Key` header. No new secret has to be provisioned. `ShareResolveKey` returns an
+error for a secret under 32 bytes, so an unset environment variable cannot produce a key.
+Test vector: `0123456789abcdef0123456789abcdef` gives
+`T11UqkFfGjRmrCfgEgbOYNCpz_M6dGeZ4eN30F4kZVw`.
+
+Creating a link for a record that already has 20 live ones is refused with `409` and
+`data.code = "share_link_limit"`.
 
 ### What is stored
 
@@ -250,20 +275,34 @@ secret is 32 bytes from `crypto/rand`, base64url encoded.
   history of revoked links, and absence fails closed: a revoked link takes the very same code
   path as one that never existed, so no later change can forget to check a `revoked` column.
 - A malformed, unknown, wrong-secret, expired, revoked or orphaned (record deleted) token gets
-  the same `404`, byte for byte. A link whose record is gone is deleted on that lookup, so it
-  cannot come back if a record is later created with the same id.
-- Resolution is limited to 10 failed attempts per minute per address: the visitor's address
-  the site forwards in `clientIp`, or the caller's own address when the site key is missing or
-  wrong (and when `clientIp` is absent). The limiter is in memory, per process, and bounded to
-  10 000 addresses; when it is full and nothing has expired, an address it cannot track is
-  refused rather than let through uncounted. The caller's address comes from PocketBase's
-  `RealIP`, so it honours the trusted-proxy headers configured in PocketBase's settings.
+  the same `404`, byte for byte.
+- Deleting a record through PocketBase deletes its links in the same moment (a hook on
+  `RecordCollections`). A link whose record vanished some other way is deleted the first time
+  someone tries to open it. Either way a record created later with the same id does not
+  inherit a link.
+- A record holds at most 20 live links, counted and inserted in one transaction, so every live
+  link fits in the list and can be revoked.
+- Resolution allows 10 failed attempts per minute per address, in memory and per process:
+  - The site key is checked **first**. A caller that holds it is never limited as a caller;
+    only requests without a valid key are counted against the caller's own address. Otherwise,
+    behind a proxy PocketBase was not told to trust, ten keyless requests a minute from anyone
+    would lock the site out.
+  - Requests with the key are counted against the visitor's address the site forwards in
+    `clientIp` (or the caller's address if the site sends none).
+  - The two counts live in **separate tables** of at most 10 000 addresses each.
+  - IPv4 addresses count one by one; IPv6 addresses are grouped by `/64`.
+  - A full table **fails open**: an address it has no room for is let through uncounted, and
+    addresses already blocked stay blocked. Failing closed would let anyone with many addresses
+    switch the feature off. The limit bounds noise; the secret's 256 bits are the protection.
+  - The caller's address comes from PocketBase's `RealIP`, so it depends on the trusted-proxy
+    headers configured in PocketBase.
 - Share request bodies are limited to 4 KiB.
 - Expired rows are deleted whenever a link is created or listed. There is no cron job; a row
   that outlives its expiry is harmless because resolution checks the expiry itself.
 - Nothing logs a secret, a hash, a token, a link id or a URL. Storage failures are logged with
   the operation name and the Go error type only.
-- Every response of the four routes carries `Cache-Control: no-store`.
+- Every response the extension's handlers produce carries `Cache-Control: no-store`, including
+  the `503` above.
 
 ### Limits
 
@@ -273,7 +312,17 @@ secret is 32 bytes from `crypto/rand`, base64url encoded.
   the page or the answer keeps serving a revoked link.
 - The official PocketBase image has none of this, and a fully static site cannot use it.
 - The attempt limiter resets on restart and is not shared between replicas.
-- There is no cap on how many links a record may have; the list route returns the 200 newest.
+- The `401` (no session) and `403` (session of another auth collection) of the management
+  routes come from PocketBase's `RequireAuth` middleware, before the handler, and do **not**
+  carry `Cache-Control: no-store`. They say nothing about any link or record.
+- A link outlives its creator's permissions: the access check runs at creation. If the editor
+  later loses the right to update the record, or is deleted, the link works until it expires
+  or is revoked.
+- Any editor who passes the record's `UpdateRule` lists and revokes all of its links, including
+  those created by others.
+- Lowering `ShareMaxTTL` does not shorten links that already exist.
+- Rotating `SigningSecret` changes the site key but does not end links; their hashes do not
+  depend on it.
 
 ## Verify
 
