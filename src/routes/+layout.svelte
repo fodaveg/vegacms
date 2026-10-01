@@ -163,7 +163,10 @@
 			if (err.kind === 'network' || err.kind === 'backend') {
 				// Banner global reintentable/descartable (§3.4) + `ConnectionStatus` (vía
 				// `transportFeedback.state`, solo para 'network'). Nunca `err.cause` (P1 §5): el
-				// banner solo pinta `err.message`.
+				// banner solo pinta `err.message` (o su detalle bajo el texto del catálogo).
+				// El mensaje original queda también en consola: lo sustituye el texto traducido y
+				// un error de un hook de servidor con texto útil no debe perderse.
+				if (err.kind === 'backend') console.error('[vega:backend]', err.message, err.backendCode);
 				transportFeedback.report(err);
 				return;
 			}
