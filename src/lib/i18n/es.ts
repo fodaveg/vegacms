@@ -57,6 +57,8 @@ export const es = {
 	// DISTINTO del `topbar.avatar.label` de arriba (ese describe la identidad de sesión del
 	// `<span role="img">` interior; este describe la ACCIÓN de abrir el menú).
 	'topbar.userMenu.toggle': 'Menú de cuenta',
+	// La marca «Vega» de la barra es un enlace a la portada (lote 12, lámina 1, estado 1.7).
+	'topbar.home.label': 'Inicio',
 
 	// ————— Publicación (lote "publicación", fase A): `PublishButton.svelte` —————
 	// Ausente por completo (§cabecera del componente) si el proyecto conectado no declaró `build`
