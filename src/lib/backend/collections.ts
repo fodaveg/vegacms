@@ -182,7 +182,16 @@ export function checkCollectionSpecAccess(specs: CollectionSpec[]): Record<strin
  */
 export type CollectionFieldSpec =
 	| { name: string; type: 'json' }
-	| { name: string; type: 'text'; required?: boolean; max?: number; unique?: true }
+	| {
+			name: string;
+			type: 'text';
+			required?: boolean;
+			max?: number;
+			unique?: true;
+			/** Expresión regular (RE2 en PocketBase, JS en `memory`) que el valor debe cumplir. NO
+			 *  está anclada por el servidor: lleva sus propios `^`/`$`. Vacío u omitido = sin patrón. */
+			pattern?: string;
+	  }
 	| {
 			name: string;
 			type: 'select';
@@ -329,6 +338,14 @@ export interface EnsureResult {
 	/** Nombres de las colecciones efectivamente creadas en esta llamada (orden de `specs`). */
 	created: string[];
 	/** Nombres que ya existían y se omitieron. */
+	skipped: string[];
+}
+
+/** Resultado de `addCollectionFieldPatterns`: qué campos recibieron patrón y cuáles quedaron intactos. */
+export interface ConstrainPatternsResult {
+	/** Campos de texto que estaban SIN patrón y recibieron el pedido. */
+	applied: string[];
+	/** Campos ausentes, no `text` o que ya tenían un patrón (propio o ajeno): intactos. */
 	skipped: string[];
 }
 

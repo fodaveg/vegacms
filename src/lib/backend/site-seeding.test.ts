@@ -12,6 +12,8 @@ import {
 	SITE_SEED_EDITOR_ACCESS_RULE,
 	SITE_SEED_MANIFEST_READ_RULE,
 	SITE_SEED_PAGES_READ_RULE,
+	SITE_SEED_REDIRECT_FROM_PATTERN,
+	SITE_SEED_REDIRECT_TO_PATTERN,
 	SITE_SEED_REDIRECTS_READ_RULE,
 	SiteSeedDivergenceError,
 	seedSiteProject
@@ -380,6 +382,7 @@ describe('seedSiteProject', () => {
 				blocks: ['created', 'updated'],
 				redirects: ['created', 'updated']
 			},
+			constrainedFields: { redirects: ['from', 'to'] },
 			createdRecords: [],
 			upgradedRecords: ['manifest']
 		});
@@ -400,6 +403,85 @@ describe('seedSiteProject', () => {
 			addedFields: {},
 			createdRecords: [],
 			upgradedRecords: []
+		});
+	});
+
+	describe('patrones de redirects.from y redirects.to', () => {
+		const VALID_TO = ['/', '/a', '/a/b', '/a?x=1', '/#ancla', 'https://x.y/z', 'http://x.y'];
+		const INVALID_TO = [
+			'javascript:alert(1)',
+			'data:text/html,x',
+			'//evil.com',
+			'/\\evil.com',
+			'/\t/evil.com',
+			'/\n/evil.com',
+			'/ /evil.com',
+			'evil.com',
+			''
+		];
+
+		test('los regex cumplen la tabla de destinos legítimos e ilegítimos', () => {
+			const to = new RegExp(SITE_SEED_REDIRECT_TO_PATTERN);
+			for (const value of VALID_TO) expect(to.test(value), JSON.stringify(value)).toBe(true);
+			for (const value of INVALID_TO) expect(to.test(value), JSON.stringify(value)).toBe(false);
+			const from = new RegExp(SITE_SEED_REDIRECT_FROM_PATTERN);
+			expect(from.test('/viejo')).toBe(true);
+			expect(from.test('viejo')).toBe(false);
+			expect(from.test('https://x.y')).toBe(false);
+		});
+
+		test('un sembrado nuevo crea redirects con los dos patrones y rechaza destinos peligrosos', async () => {
+			const port = await authedMemory();
+			const result = await seedSiteProject(port);
+			expect(result.constrainedFields).toBeUndefined();
+			const redirects = (await port.listContentTypes()).find((type) => type.name === 'redirects')!;
+			expect(redirects.fields.find((field) => field.name === 'from')).toMatchObject({
+				pattern: SITE_SEED_REDIRECT_FROM_PATTERN
+			});
+			expect(redirects.fields.find((field) => field.name === 'to')).toMatchObject({
+				pattern: SITE_SEED_REDIRECT_TO_PATTERN
+			});
+			await expect(
+				port.create('redirects', { from: '/a', to: 'javascript:alert(1)', code: '301' })
+			).rejects.toMatchObject({ kind: 'validation' });
+			await expect(
+				port.create('redirects', { from: '/b', to: '/', code: '301' })
+			).resolves.toBeTruthy();
+		});
+
+		test('un proyecto ya sembrado recibe los patrones sin tocar registros ni campos con patrón propio', async () => {
+			const port = await authedMemory();
+			await seedLikePrevious0ace139(port);
+			const legacy = await port.create('redirects', {
+				from: '/viejo',
+				to: 'sin-barra',
+				code: '301'
+			});
+
+			const result = await seedSiteProject(port);
+
+			expect(result.constrainedFields).toEqual({ redirects: ['from', 'to'] });
+			// El registro antiguo, aunque no cumpla el patrón, sigue ahí tal cual.
+			expect((await port.get('redirects', legacy.id)).values).toMatchObject({ to: 'sin-barra' });
+			await expect(
+				port.create('redirects', { from: '/x', to: '//evil.com', code: '301' })
+			).rejects.toMatchObject({ kind: 'validation' });
+			// Segunda pasada: nada que hacer.
+			expect((await seedSiteProject(port)).constrainedFields).toBeUndefined();
+		});
+
+		test('un patrón que el usuario ya puso en redirects.to no se pisa', async () => {
+			const port = await authedMemory();
+			await seedLikePrevious0ace139(port);
+			await port.addCollectionFieldPatterns!('redirects', { to: '^/solo-mio' });
+
+			const result = await seedSiteProject(port);
+
+			expect(result.constrainedFields).toEqual({ redirects: ['from'] });
+			const redirects = (await port.listContentTypes()).find((type) => type.name === 'redirects')!;
+			expect(redirects.fields.find((field) => field.name === 'to')).toMatchObject({
+				pattern: '^/solo-mio'
+			});
 		});
 	});
 

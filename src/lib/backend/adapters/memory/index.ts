@@ -39,6 +39,7 @@ import type {
 	CollectionRuleKey,
 	CollectionSpec,
 	CollectionType,
+	ConstrainPatternsResult,
 	EnsureResult
 } from '../../collections';
 import {
@@ -835,6 +836,34 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 			}
 
 			return { added, skipped };
+		},
+
+		async addCollectionFieldPatterns(
+			collectionName: string,
+			patterns: Record<string, string>
+		): Promise<ConstrainPatternsResult> {
+			checkSessionAlive();
+			if (!CAPABILITIES.schemaFieldBootstrap) {
+				throw VegaError.backend('schemaFieldBootstrap no disponible (ley L8)');
+			}
+			const ct = getContentTypeOrThrow(collectionName);
+			const applied: string[] = [];
+			const skipped: string[] = [];
+			const fields = ct.fields.map((field) => {
+				const pattern = patterns[field.name];
+				if (pattern === undefined) return field;
+				if (field.type !== 'text' || field.pattern) {
+					skipped.push(field.name);
+					return field;
+				}
+				applied.push(field.name);
+				return { ...field, pattern };
+			});
+			for (const name of Object.keys(patterns)) {
+				if (!applied.includes(name) && !skipped.includes(name)) skipped.push(name);
+			}
+			if (applied.length > 0) contentTypesByName.set(collectionName, { ...ct, fields });
+			return { applied, skipped };
 		}
 	};
 
@@ -902,7 +931,8 @@ function collectionFieldSpecToField(spec: CollectionFieldSpec): Field {
 				type: 'text',
 				subtype: 'plain',
 				required: spec.required ?? false,
-				maxLength: spec.max
+				maxLength: spec.max,
+				pattern: spec.pattern || undefined
 			};
 		case 'select':
 			return {
