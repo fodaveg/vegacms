@@ -46,6 +46,7 @@
 	import { resolveConflictAuthor, type ConflictAuthor } from '$lib/revisions/conflict-author';
 	import type { ConflictRow, ConflictScope } from './conflict';
 	import { fieldDisplayLabel } from '$lib/model/default-labels';
+	import { vegaErrorMessage } from '$lib/shell/vega-error-message';
 
 	interface Props {
 		/** Nombre legible del registro (el mismo de la barra o del título del bloque). */
@@ -150,7 +151,10 @@
 			// volver a `idle` es inocuo.
 			if (phase === 'saving') phase = 'idle';
 		} catch (err) {
-			errorMessage = err instanceof VegaError ? err.message : ctx.t('editor.conflict.error.title');
+			errorMessage =
+				err instanceof VegaError
+					? vegaErrorMessage(err, ctx.t)
+					: ctx.t('editor.conflict.error.title');
 			phase = 'error';
 		}
 	}

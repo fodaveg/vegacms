@@ -243,6 +243,7 @@
 	import type { RecordVersion } from '$lib/backend/version';
 	import type { PreviewDraft, PreviewDraftRecord } from '$lib/backend/preview-client';
 	import { isConflictError, VegaError, type VegaConflictError } from '$lib/backend/errors';
+	import { vegaErrorMessage } from '$lib/shell/vega-error-message';
 	import { getVegaContext } from '$lib/app-context';
 	import { describeCell, describeStatusBadge } from '$lib/list/cell';
 	import { statusValueLabel } from '$lib/model/default-labels';
@@ -838,7 +839,7 @@
 			return null;
 		} catch (err) {
 			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al guardar', err);
-			redirectFailure = { job, message: vegaErr.message };
+			redirectFailure = { job, message: vegaErrorMessage(vegaErr, ctx.t) };
 			return null;
 		}
 	}
