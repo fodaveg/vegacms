@@ -108,7 +108,8 @@ describe('previewSiteSeed', () => {
 				'collections.pages.fields.socialImage',
 				'collections.pages.fields.noindex',
 				'collections.redirects'
-			]
+			],
+			manifestSkipped: []
 		});
 		expect(plan.createdCollections).toEqual(['redirects']);
 		expect(plan.addedFields.pages).toEqual(
@@ -174,7 +175,13 @@ describe('previewSiteSeed', () => {
 
 		if (preview.status !== 'ready') throw new Error('se esperaba un plan');
 		expect(preview.modules).toEqual([
-			{ id: 'base', createdCollections: [], addedFields: {}, manifestEntries: [] }
+			{
+				id: 'base',
+				createdCollections: [],
+				addedFields: {},
+				manifestEntries: [],
+				manifestSkipped: []
+			}
 		]);
 	});
 

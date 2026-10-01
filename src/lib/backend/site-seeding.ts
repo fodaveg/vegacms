@@ -33,9 +33,12 @@
  * módulo sembrado, y no se le quita ni se le cambia nada de lo que ya tiene, esté editado a mano o
  * no. Es lo que permite que un proyecto ya sembrado reciba las etiquetas y ayudas de los campos
  * que una versión nueva del sembrado añade, y que un módulo se sume a un sitio en marcha. Qué
- * cuenta como «la misma entrada» está en la cabecera de ese fichero. El sembrado sigue abortando
- * sin escribir si el manifiesto guardado no es un objeto, si hay más de un registro candidato o si
- * el resultado de la fusión no pasa `validateManifestStrict`.
+ * cuenta como «la misma entrada» está en la cabecera de ese fichero, igual que lo que la fusión
+ * NO puede añadir (`manifestSkipped` en el plan y en el resultado: un grupo de campos en una
+ * colección con `fieldGroups` propios, un campo en un tipo de bloque que ya existe). Un manifiesto
+ * editado a mano NO aborta: recibe lo que le falta. El sembrado solo aborta sin escribir si el
+ * manifiesto guardado no es un objeto, si hay más de un registro candidato o si el resultado de la
+ * fusión no pasa `validateManifestStrict`.
  *
  * MÓDULOS (`SiteSeedModule`). Lo que se siembra se agrupa en módulos: colecciones a asegurar más
  * un fragmento de manifiesto. La base de siempre es el módulo `base` y va en toda pasada; los
@@ -51,7 +54,11 @@ import starterManifestDocument from './site-seeding-manifest.json';
 import { deriveBlockRecordFields } from './block-schema';
 import { VEGA_COLLECTION, type CollectionFieldSpec, type CollectionSpec } from './collections';
 import type { BackendPort } from './port';
-import { isManifestObject, mergeManifestFragment } from './site-seeding-merge';
+import {
+	isManifestObject,
+	mergeManifestFragment,
+	type ManifestMergeSkipped
+} from './site-seeding-merge';
 import type { ContentType, Field, InvitationLinkState, JsonValue } from './types';
 import { ensureMediaCollection, VEGA_MEDIA_COLLECTION } from '$lib/media/media-collection';
 import { listManifestRecords, saveManifest } from '$lib/model/load';
@@ -101,9 +108,47 @@ const VEGA_EDITORS_COLLECTION: CollectionSpec = {
  * quedan con `""` (PocketBase no rellena un autodate nuevo hacia atrás) y cuentan como «sin
  * fecha» hasta que se editen.
  */
-const AUTODATE_FIELDS: CollectionFieldSpec[] = [
+export const SITE_SEED_AUTODATE_FIELDS: readonly CollectionFieldSpec[] = [
 	{ name: 'created', type: 'autodate' },
 	{ name: 'updated', type: 'autodate', onUpdate: true }
+];
+const AUTODATE_FIELDS = SITE_SEED_AUTODATE_FIELDS;
+
+/**
+ * Los campos de publicación y de SEO de `pages`, con nombre propio para que un módulo cuyo
+ * contenido se publica igual (las entradas del blog) los declare con la MISMA forma y no con una
+ * copia que pueda desviarse.
+ */
+export const SITE_SEED_STATUS_FIELD: CollectionFieldSpec = {
+	name: 'status',
+	type: 'select',
+	options: ['draft', 'published'],
+	multiple: false
+};
+
+/**
+ * «Publicar el» (publicación programada, `publishAtField` del manifiesto). Columna real y
+ * OPCIONAL: la consulta el cron de `vegaschedule` en el servidor, que publica los borradores cuya
+ * fecha ya pasó y la vacía; una fecha obligatoria publicaría todo borrador.
+ */
+export const SITE_SEED_PUBLISH_AT_FIELD: CollectionFieldSpec = { name: 'publishAt', type: 'date' };
+
+/**
+ * SEO por registro. Columnas reales, no `data`: `noindex` lo FILTRA el sitemap del sitio y
+ * `socialImage` ENLAZA un medio (misma convención que `blocks.image`: relación simple a
+ * `vega_media`, sin cascada, para que borrar un medio no borre la página). `description` acompaña
+ * a las otras dos en la misma tarjeta del formulario.
+ */
+export const SITE_SEED_SEO_FIELDS: readonly CollectionFieldSpec[] = [
+	{ name: 'description', type: 'text', max: 300 },
+	{
+		name: 'socialImage',
+		type: 'relation',
+		target: VEGA_MEDIA_COLLECTION.name,
+		multiple: false,
+		cascadeDelete: false
+	},
+	{ name: 'noindex', type: 'bool' }
 ];
 
 const PAGES_COLLECTION: CollectionSpec = {
@@ -117,29 +162,9 @@ const PAGES_COLLECTION: CollectionSpec = {
 		{ name: 'title', type: 'text', required: true, max: 200 },
 		{ name: 'path', type: 'text', required: true, max: 200, unique: true },
 		{ name: 'layout', type: 'text', max: 64 },
-		{
-			name: 'status',
-			type: 'select',
-			options: ['draft', 'published'],
-			multiple: false
-		},
-		// «Publicar el» (publicación programada, `publishAtField` del manifiesto). Columna real y
-		// OPCIONAL: la consulta el cron de `vegaschedule` en el servidor, que publica los borradores
-		// cuya fecha ya pasó y la vacía; una fecha obligatoria publicaría todo borrador.
-		{ name: 'publishAt', type: 'date' },
-		// SEO por página. Columnas reales, no `data`: `noindex` lo FILTRA el sitemap del sitio y
-		// `socialImage` ENLAZA un medio (misma convención que `blocks.image`: relación simple a
-		// `vega_media`, sin cascada, para que borrar un medio no borre la página). `description`
-		// acompaña a las otras dos en la misma tarjeta del formulario.
-		{ name: 'description', type: 'text', max: 300 },
-		{
-			name: 'socialImage',
-			type: 'relation',
-			target: VEGA_MEDIA_COLLECTION.name,
-			multiple: false,
-			cascadeDelete: false
-		},
-		{ name: 'noindex', type: 'bool' },
+		SITE_SEED_STATUS_FIELD,
+		SITE_SEED_PUBLISH_AT_FIELD,
+		...SITE_SEED_SEO_FIELDS,
 		...AUTODATE_FIELDS
 	]
 };
@@ -306,6 +331,9 @@ interface ManifestPlan {
 	merged: JsonValue | null;
 	/** Entradas de manifiesto que aporta cada módulo, por `id`. Vacía en `keep`. */
 	entries: Map<string, string[]>;
+	/** Lo que el fragmento de cada módulo traía y la fusión NO puede añadir, por `id`. No depende
+	 *  de `action`: se repite mientras lo guardado siga igual. */
+	skipped: Map<string, ManifestMergeSkipped[]>;
 }
 
 interface SeedPlan {
@@ -325,6 +353,10 @@ export interface SiteSeedResult {
 	/** Solo si hubo alguna: entradas AÑADIDAS a un manifiesto que ya existía, por `id` de módulo
 	 *  (rutas de `mergeManifestFragment`). Un manifiesto recién creado va en `createdRecords`. */
 	manifestEntries?: Record<string, string[]>;
+	/** Solo si hubo alguna: lo que el fragmento de un módulo traía y NO se pudo añadir al
+	 *  manifiesto, por `id` de módulo (ver `ManifestMergeSkipped`). No es un fallo: lo guardado
+	 *  se conservó tal cual. */
+	manifestSkipped?: Record<string, ManifestMergeSkipped[]>;
 	/** Solo si hubo alguno: campos de una colección YA existente que no tenían `pattern` y lo
 	 *  recibieron (`redirects.from`/`to`). Un campo con patrón propio no aparece aquí: no se toca. */
 	constrainedFields?: Record<string, string[]>;
@@ -434,6 +466,8 @@ export async function seedSiteProject(
 			[...plan.manifest.entries].filter(([, entries]) => entries.length > 0)
 		);
 	}
+	const skipped = [...plan.manifest.skipped].filter(([, items]) => items.length > 0);
+	if (skipped.length > 0) result.manifestSkipped = Object.fromEntries(skipped);
 	if (plan.pageMissing) {
 		await port.create(PAGES_COLLECTION.name, { ...SITE_SEED_CANONICAL_PAGE });
 		result.createdRecords.push('page:/');
@@ -482,6 +516,12 @@ export interface SiteSeedModulePlan {
 	 * Con el manifiesto aún sin crear son todas las del fragmento.
 	 */
 	manifestEntries: string[];
+	/**
+	 * Lo que el fragmento del módulo trae y la fusión NO añadiría, porque lo guardado se conserva
+	 * entero: un grupo de menú en un `nav` de forma inesperada, un grupo de campos en una colección
+	 * con `fieldGroups` propios, un campo en un tipo de bloque que ya existe.
+	 */
+	manifestSkipped: ManifestMergeSkipped[];
 }
 
 export type SiteSeedPreview =
@@ -530,7 +570,8 @@ export async function previewSiteSeed(
 			id: module.id,
 			createdCollections: [],
 			addedFields: {},
-			manifestEntries: [...(plan.manifest.entries.get(module.id) ?? [])]
+			manifestEntries: [...(plan.manifest.entries.get(module.id) ?? [])],
+			manifestSkipped: [...(plan.manifest.skipped.get(module.id) ?? [])]
 		};
 		for (const { name } of module.collections) {
 			const collection = plan.collections.get(name)!;
@@ -727,11 +768,16 @@ async function inspectManifestRecord(
 	return inspectManifestPage(records, modules, divergences);
 }
 
-const KEEP_MANIFEST: ManifestPlan = { action: 'keep', merged: null, entries: new Map() };
+const KEEP_MANIFEST: ManifestPlan = {
+	action: 'keep',
+	merged: null,
+	entries: new Map(),
+	skipped: new Map()
+};
 
 /** El manifiesto de un proyecto que aún no tiene ninguno: los fragmentos de los módulos, en orden. */
 function createManifestPlan(modules: readonly SiteSeedModule[]): ManifestPlan {
-	const { merged, entries } = mergeModuleFragments({}, modules);
+	const { merged, entries, skipped } = mergeModuleFragments({}, modules);
 	// Aquí no hay manifiesto humano de por medio: si esto no valida, el fragmento de un módulo está
 	// mal escrito. Se dice ahora, en el preflight, porque `saveManifest` lo rechazaría DESPUÉS de
 	// haber creado las colecciones.
@@ -746,22 +792,28 @@ function createManifestPlan(modules: readonly SiteSeedModule[]): ManifestPlan {
 				.join('; ')}`
 		);
 	}
-	return { action: 'create', merged, entries };
+	return { action: 'create', merged, entries, skipped };
 }
 
 /** Fusiona en `saved` el fragmento de cada módulo, en orden, y anota qué aporta cada uno. */
 function mergeModuleFragments(
 	saved: JsonValue,
 	modules: readonly SiteSeedModule[]
-): { merged: JsonValue; entries: Map<string, string[]> } {
+): {
+	merged: JsonValue;
+	entries: Map<string, string[]>;
+	skipped: Map<string, ManifestMergeSkipped[]>;
+} {
 	let merged = saved;
 	const entries = new Map<string, string[]>();
+	const skipped = new Map<string, ManifestMergeSkipped[]>();
 	for (const module of modules) {
 		const step = mergeManifestFragment(merged, module.manifest);
 		merged = step.manifest;
 		entries.set(module.id, step.added);
+		skipped.set(module.id, step.skipped);
 	}
-	return { merged, entries };
+	return { merged, entries, skipped };
 }
 
 function inspectManifestPage(
@@ -792,8 +844,10 @@ function inspectManifestPage(
 		return KEEP_MANIFEST;
 	}
 
-	const { merged, entries } = mergeModuleFragments(saved, modules);
-	if ([...entries.values()].every((added) => added.length === 0)) return KEEP_MANIFEST;
+	const { merged, entries, skipped } = mergeModuleFragments(saved, modules);
+	if ([...entries.values()].every((added) => added.length === 0)) {
+		return { ...KEEP_MANIFEST, skipped };
+	}
 
 	// La fusión no arregla ni empeora lo guardado, pero `saveManifest` rechaza un manifiesto que no
 	// valide. Mejor decirlo aquí, antes de la primera escritura, que dejar el sembrado a medias.
@@ -809,7 +863,7 @@ function inspectManifestPage(
 		});
 		return KEEP_MANIFEST;
 	}
-	return { action: 'upgrade', merged, entries };
+	return { action: 'upgrade', merged, entries, skipped };
 }
 
 async function inspectCanonicalPage(

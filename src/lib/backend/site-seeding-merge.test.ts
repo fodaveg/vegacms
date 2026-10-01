@@ -41,7 +41,12 @@ function brokenPaths(original: JsonValue, result: JsonValue, path = '$'): string
 	}
 	if (Array.isArray(original)) {
 		if (!Array.isArray(result)) return [`${path}: era una lista`];
-		if (result.length !== original.length) return [`${path}: cambió de longitud`];
+		// `nav.groups` es la única lista a la que la fusión añade: lo original tiene que seguir
+		// siendo su PREFIJO (mismos grupos, mismo orden; lo nuevo, detrás).
+		const mayGrow = path === '$.nav.groups';
+		if (mayGrow ? result.length < original.length : result.length !== original.length) {
+			return [`${path}: cambió de longitud`];
+		}
 		return original.flatMap((item, index) => brokenPaths(item, result[index], `${path}[${index}]`));
 	}
 	return Object.is(original, result) ? [] : [`${path}: ${String(original)} → ${String(result)}`];
@@ -62,6 +67,11 @@ describe('mergeManifestFragment', () => {
 		expect(brokenPaths(original, { a: 1, b: {} })).not.toEqual([]);
 		expect(brokenPaths(original, { a: 1, b: { c: [1, 2, 3] } })).not.toEqual([]);
 		expect(brokenPaths(original, { z: 0, a: 1, b: { c: [1, 2] } })).not.toEqual([]);
+		// La lista del menú puede crecer por el final, y solo por el final.
+		const nav = { nav: { groups: ['A', 'B'] } };
+		expect(brokenPaths(nav, { nav: { groups: ['A', 'B', 'C'] } })).toEqual([]);
+		expect(brokenPaths(nav, { nav: { groups: ['C', 'A', 'B'] } })).not.toEqual([]);
+		expect(brokenPaths(nav, { nav: { groups: ['A'] } })).not.toEqual([]);
 	});
 
 	test.each(KNOWN_MANIFESTS)(
@@ -200,7 +210,8 @@ describe('mergeManifestFragment', () => {
 		const merged = manifest as JsonObject;
 		const pages = (merged.collections as JsonObject).pages as JsonObject;
 		expect(merged.site).toEqual({});
-		expect(merged.nav).toEqual({ groups: ['Web'] });
+		// `nav.groups` sí crece, por el final: ver los tests de «nav» más abajo.
+		expect(merged.nav).toEqual({ groups: ['Web', 'Sitio'] });
 		expect(pages.listFields).toEqual(['title']);
 		expect(pages.fieldGroups).toEqual(['Meta']);
 		expect((pages.fields as JsonObject).description).toEqual({ label: 'Entradilla' });
@@ -209,11 +220,157 @@ describe('mergeManifestFragment', () => {
 			fields: [{ name: 'title', widget: 'text' }]
 		});
 		expect(added).not.toContain('site');
-		expect(added).not.toContain('nav');
+		expect(added.filter((path) => path.startsWith('nav'))).toEqual(['nav.groups.Sitio']);
 		expect(added.some((path) => path.startsWith('blockTypes.hero'))).toBe(false);
 		expect(added.some((path) => path.startsWith('collections.pages.fields.description'))).toBe(
 			false
 		);
+	});
+
+	describe('nav', () => {
+		const MODULE: JsonValue = {
+			nav: { groups: ['Sitio', 'Blog'] },
+			collections: { posts: { label: 'Entradas', group: 'Blog' } }
+		};
+
+		test.each(KNOWN_MANIFESTS)(
+			'en %s añade al final el grupo que falta y deja los demás donde estaban',
+			(_name, manifest) => {
+				const { manifest: merged, added, skipped } = mergeManifestFragment(manifest, MODULE);
+
+				expect(brokenPaths(manifest, merged)).toEqual([]);
+				expect(((merged as JsonObject).nav as JsonObject).groups).toEqual(['Sitio', 'Blog']);
+				expect(added).toEqual(['nav.groups.Blog', 'collections.posts']);
+				expect(skipped).toEqual([]);
+				expect(validateManifestStrict(merged).ok).toBe(true);
+				// Idempotencia: la segunda pasada no añade ni repite el grupo.
+				const twice = mergeManifestFragment(merged, MODULE);
+				expect(twice.added).toEqual([]);
+				expect(JSON.stringify(twice.manifest)).toBe(JSON.stringify(merged));
+			}
+		);
+
+		test('un nav editado a mano (reordenado, con un grupo propio) conserva su orden y recibe lo que falta detrás', () => {
+			const saved: JsonValue = { nav: { groups: ['Tienda', 'Sitio', 'Ajustes'] }, collections: {} };
+
+			const { manifest, added, skipped } = mergeManifestFragment(saved, MODULE);
+
+			expect(brokenPaths(saved, manifest)).toEqual([]);
+			expect(((manifest as JsonObject).nav as JsonObject).groups).toEqual([
+				'Tienda',
+				'Sitio',
+				'Ajustes',
+				'Blog'
+			]);
+			expect(added).toEqual(['nav.groups.Blog', 'collections.posts']);
+			expect(skipped).toEqual([]);
+			expect(mergeManifestFragment(manifest, MODULE).added).toEqual([]);
+		});
+
+		test('un nav sin `groups` recibe la lista entera, como una entrada', () => {
+			const { manifest, added } = mergeManifestFragment({ nav: {} }, MODULE);
+
+			expect((manifest as JsonObject).nav).toEqual({ groups: ['Sitio', 'Blog'] });
+			expect(added).toContain('nav.groups');
+		});
+
+		test.each([
+			['nav no es un objeto', { nav: 'lateral' }],
+			['groups no es una lista', { nav: { groups: 'Sitio' } }],
+			['groups tiene algo que no es un texto', { nav: { groups: ['Sitio', 3] } }],
+			['groups tiene un texto vacío', { nav: { groups: ['Sitio', ''] } }]
+		])('%s: no se toca, y los grupos del fragmento quedan en `skipped`', (_name, saved) => {
+			const before = JSON.stringify(saved);
+
+			const { manifest, added, skipped } = mergeManifestFragment(saved as JsonValue, MODULE);
+
+			expect(JSON.stringify((manifest as JsonObject).nav)).toBe(
+				JSON.stringify((saved as JsonObject).nav)
+			);
+			expect(JSON.stringify(saved)).toBe(before);
+			expect(added.filter((path) => path.startsWith('nav'))).toEqual([]);
+			expect(skipped).toEqual([
+				{ kind: 'navGroup', path: 'nav.groups.Sitio', owner: null, name: 'Sitio' },
+				{ kind: 'navGroup', path: 'nav.groups.Blog', owner: null, name: 'Blog' }
+			]);
+			// La colección sí se añade: el menú la pinta por su propio `group`.
+			expect(added).toContain('collections.posts');
+		});
+	});
+
+	describe('skipped: lo que el fragmento traía y no se añade', () => {
+		test.each(KNOWN_MANIFESTS)('fusionar la base sobre %s no deja nada sin añadir', (_n, m) => {
+			expect(mergeManifestFragment(m, BASE).skipped).toEqual([]);
+		});
+
+		test('una colección con `fieldGroups` propios no recibe el grupo nuevo, y se dice cuál', () => {
+			const saved: JsonValue = {
+				collections: { pages: { fieldGroups: ['Meta', { name: 'Portada', placement: 'aside' }] } }
+			};
+
+			const { manifest, skipped } = mergeManifestFragment(saved, BASE);
+
+			expect(((manifest as JsonObject).collections as JsonObject).pages).toMatchObject({
+				fieldGroups: ['Meta', { name: 'Portada', placement: 'aside' }]
+			});
+			expect(skipped).toEqual([
+				{
+					kind: 'fieldGroup',
+					path: 'collections.pages.fieldGroups.SEO',
+					owner: 'pages',
+					name: 'SEO'
+				}
+			]);
+		});
+
+		test('un grupo de campos ya presente (como texto o como objeto) no cuenta como no añadido', () => {
+			const saved: JsonValue = { collections: { pages: { fieldGroups: ['SEO', 'Meta'] } } };
+
+			expect(mergeManifestFragment(saved, BASE).skipped).toEqual([]);
+		});
+
+		test('un tipo de bloque que ya existe no recibe los campos nuevos, y se dice cuáles', () => {
+			const saved: JsonValue = {
+				blockTypes: {
+					hero: {
+						label: 'Cabecera',
+						fields: [
+							{ name: 'title', label: 'Título', widget: 'text' },
+							{ name: 'image', label: 'Imagen', widget: 'relation', source: 'record' }
+						]
+					}
+				}
+			};
+
+			const { manifest, skipped } = mergeManifestFragment(saved, BASE);
+
+			expect(((manifest as JsonObject).blockTypes as JsonObject).hero).toEqual(
+				(saved as { blockTypes: JsonObject }).blockTypes.hero
+			);
+			expect(skipped.map((item) => item.path)).toEqual([
+				'blockTypes.hero.fields.eyebrow',
+				'blockTypes.hero.fields.body',
+				'blockTypes.hero.fields.actionLabel',
+				'blockTypes.hero.fields.actionHref'
+			]);
+			expect(skipped[0]).toEqual({
+				kind: 'blockTypeField',
+				path: 'blockTypes.hero.fields.eyebrow',
+				owner: 'hero',
+				name: 'eyebrow'
+			});
+		});
+
+		test('se repite en cada pasada mientras lo guardado siga igual: no es un error, es un aviso', () => {
+			const saved: JsonValue = { collections: { pages: { fieldGroups: ['Meta'] } } };
+			const once = mergeManifestFragment(saved, BASE);
+
+			const twice = mergeManifestFragment(once.manifest, BASE);
+
+			expect(once.skipped).toHaveLength(1);
+			expect(twice.added).toEqual([]);
+			expect(twice.skipped).toEqual(once.skipped);
+		});
 	});
 
 	test('si lo guardado y el fragmento no son del mismo tipo, gana lo guardado', () => {

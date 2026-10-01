@@ -1007,11 +1007,13 @@ describe('seedSiteProject', () => {
 			}
 		};
 
-		test('la base es el módulo `base` y es el único registrado', () => {
-			expect(SITE_SEED_MODULES).toEqual([SITE_SEED_BASE_MODULE]);
-			expect(SITE_SEED_OPTIONAL_MODULES).toEqual([]);
+		test('la base es el módulo `base`, el primero del registro y el único que no es opcional', () => {
+			// El registro completo lo comprueba `site-seeding-modules.test.ts`.
+			expect(SITE_SEED_MODULES[0]).toBe(SITE_SEED_BASE_MODULE);
+			expect(SITE_SEED_OPTIONAL_MODULES).not.toContain(SITE_SEED_BASE_MODULE);
+			expect(SITE_SEED_OPTIONAL_MODULES).toHaveLength(SITE_SEED_MODULES.length - 1);
 			expect(findSiteSeedModule('base')).toBe(SITE_SEED_BASE_MODULE);
-			expect(findSiteSeedModule('blog')).toBeUndefined();
+			expect(findSiteSeedModule('no-existe')).toBeUndefined();
 			expect(SITE_SEED_BASE_MODULE.id).toBe('base');
 			expect(SITE_SEED_BASE_MODULE.collections.map((spec) => spec.name)).toEqual([
 				'vega_media',
@@ -1047,12 +1049,19 @@ describe('seedSiteProject', () => {
 					upToDate: false
 				},
 				modules: [
-					{ id: 'base', createdCollections: [], addedFields: {}, manifestEntries: [] },
+					{
+						id: 'base',
+						createdCollections: [],
+						addedFields: {},
+						manifestEntries: [],
+						manifestSkipped: []
+					},
 					{
 						id: 'notas',
 						createdCollections: ['notes'],
 						addedFields: {},
-						manifestEntries: ['collections.notes', 'blockTypes.note-list']
+						manifestEntries: ['collections.notes', 'blockTypes.note-list'],
+						manifestSkipped: []
 					}
 				]
 			});
@@ -1087,6 +1096,98 @@ describe('seedSiteProject', () => {
 			});
 			const again = await previewSiteSeed(port, { modules: [NOTES_MODULE] });
 			expect(again).toMatchObject({ status: 'ready', plan: { upToDate: true } });
+		});
+
+		test('lo que la fusión no puede añadir sale en el plan y en el resultado, por módulo, sin tocar lo guardado', async () => {
+			const port = await authedMemory();
+			await seedSiteProject(port);
+			const record = (await port.list('vega', { perPage: 1 })).items[0]!;
+			const edited = structuredClone(record.values.manifest) as {
+				nav: { groups: string[] };
+				collections: { pages: { fieldGroups: unknown } };
+				blockTypes: { hero: { fields: Array<{ name: string }> } };
+			};
+			// A mano: `pages` con sus propios grupos de campos, un `hero` recortado y un menú propio.
+			edited.collections.pages.fieldGroups = ['Meta'];
+			edited.blockTypes.hero.fields = edited.blockTypes.hero.fields.filter(
+				(field) => field.name !== 'eyebrow'
+			);
+			edited.nav.groups = ['Tienda', 'Sitio'];
+			await port.update('vega', record.id, { manifest: edited as unknown as JsonValue });
+			const withNav: SiteSeedModule = {
+				...NOTES_MODULE,
+				manifest: { nav: { groups: ['Notas'] }, collections: { notes: { label: 'Notas' } } }
+			};
+			const baseSkipped = [
+				{
+					kind: 'fieldGroup',
+					path: 'collections.pages.fieldGroups.SEO',
+					owner: 'pages',
+					name: 'SEO'
+				},
+				{
+					kind: 'blockTypeField',
+					path: 'blockTypes.hero.fields.eyebrow',
+					owner: 'hero',
+					name: 'eyebrow'
+				}
+			];
+
+			const preview = await previewSiteSeed(port, { modules: [withNav] });
+
+			if (preview.status !== 'ready') throw new Error('se esperaba un plan');
+			expect(preview.modules.map((module) => [module.id, module.manifestSkipped])).toEqual([
+				['base', baseSkipped],
+				['notas', []]
+			]);
+			expect(preview.modules[1]!.manifestEntries).toEqual([
+				'nav.groups.Notas',
+				'collections.notes'
+			]);
+
+			const result = await seedSiteProject(port, { modules: [withNav] });
+
+			expect(result.manifestEntries).toEqual({ notas: ['nav.groups.Notas', 'collections.notes'] });
+			expect(result.manifestSkipped).toEqual({ base: baseSkipped });
+			const saved = (await port.list('vega', { perPage: 1 })).items[0]!.values.manifest as {
+				nav: { groups: string[] };
+				collections: { pages: { fieldGroups: unknown } };
+				blockTypes: { hero: { fields: Array<{ name: string }> } };
+			};
+			// El menú propio sigue en su orden y el grupo del módulo va detrás.
+			expect(saved.nav.groups).toEqual(['Tienda', 'Sitio', 'Notas']);
+			expect(saved.collections.pages.fieldGroups).toEqual(['Meta']);
+			expect(saved.blockTypes.hero.fields.map((field) => field.name)).not.toContain('eyebrow');
+			// Sin nada que escribir, el aviso sigue saliendo en el plan: lo guardado no ha cambiado.
+			const again = await previewSiteSeed(port, { modules: [withNav] });
+			if (again.status !== 'ready') throw new Error('se esperaba un plan');
+			expect(again.plan.upToDate).toBe(true);
+			expect(again.modules[0]!.manifestSkipped).toEqual(baseSkipped);
+			await expect(seedSiteProject(port, { modules: [withNav] })).resolves.toMatchObject({
+				upgradedRecords: [],
+				manifestSkipped: { base: baseSkipped }
+			});
+		});
+
+		test('un `nav` que la fusión no sabe completar tampoco es un manifiesto válido: aborta antes de escribir', async () => {
+			// La rama `navGroup` de la fusión es una defensa de la función pura: en el sembrado no se
+			// llega a ella con algo que escribir, porque la forma que no se fusiona (`groups` que no es
+			// una lista de textos) tampoco pasa `validateManifestStrict`.
+			const port = await authedMemory();
+			await seedSiteProject(port);
+			const record = (await port.list('vega', { perPage: 1 })).items[0]!;
+			const edited = structuredClone(record.values.manifest) as { nav: unknown };
+			edited.nav = { groups: 'Sitio' };
+			await port.update('vega', record.id, { manifest: edited as unknown as JsonValue });
+			const writes = watchSeedWrites(port);
+
+			const preview = await previewSiteSeed(port, { modules: [NOTES_MODULE] });
+
+			expect(preview.status).toBe('blocked');
+			if (preview.status !== 'blocked') return;
+			expect(preview.divergences[0]).toMatchObject({ piece: 'registro "vega/default"' });
+			expect(preview.divergences[0]!.actual).toContain('manifiesto distinto y no válido');
+			expectNoSeedWrites(writes);
 		});
 
 		test('base y módulo a la vez sobre un proyecto vacío: un solo manifiesto con las entradas de los dos', async () => {
