@@ -724,6 +724,13 @@ export const es = {
 	// Borrador cuya fecha «Publicar el» ya pasó y sigue sin publicarse (el servidor la vacía al
 	// publicar): se avisa para que no parezca un borrador cualquiera.
 	'list.status.overdue': 'Programada, no se publicó',
+	// Etiquetas por defecto cuando el manifiesto no las da (`model/default-labels.ts`).
+	'status.value.draft': 'Borrador',
+	'status.value.published': 'Publicada',
+	'form.field.default.title': 'Título',
+	'form.field.default.status': 'Estado',
+	'form.field.default.name': 'Nombre',
+	'form.field.default.description': 'Descripción',
 
 	// ————— Toolbar de listado (Fase 4d del contrato P4) —————
 	'list.search.placeholder': 'Filtrar por título o slug…',

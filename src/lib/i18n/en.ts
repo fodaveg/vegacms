@@ -670,6 +670,13 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// Draft whose "Publish on" date has passed and is still unpublished (the server clears the
 	// date when it publishes): flagged so it does not look like an ordinary draft.
 	'list.status.overdue': 'Scheduled, not published',
+	// Default labels when the manifest gives none (`model/default-labels.ts`).
+	'status.value.draft': 'Draft',
+	'status.value.published': 'Published',
+	'form.field.default.title': 'Title',
+	'form.field.default.status': 'Status',
+	'form.field.default.name': 'Name',
+	'form.field.default.description': 'Description',
 
 	// ————— List toolbar (P4 contract, Phase 4d) —————
 	'list.search.placeholder': 'Filter by title or slug…',

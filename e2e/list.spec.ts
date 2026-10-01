@@ -57,8 +57,8 @@ test.describe('tabla poblada (posts, §4c)', () => {
 		// `text-transform: uppercase` en CSS, y el cómputo de accessible-name de Chromium refleja
 		// ese transform — `hasText` compara contra el texto del DOM, sin ese efecto.
 		const headers = table.locator('thead th');
-		await expect(headers.filter({ hasText: 'Title' })).toBeVisible();
-		await expect(headers.filter({ hasText: 'Status' })).toBeVisible();
+		await expect(headers.filter({ hasText: 'Título' })).toBeVisible();
+		await expect(headers.filter({ hasText: 'Estado' })).toBeVisible();
 		await expect(headers.filter({ hasText: 'Body' })).toBeVisible();
 
 		// La celda-título del registro seed "Bienvenido a Vega" es un enlace real (L-P4.15).
@@ -274,13 +274,13 @@ test.describe('filtro de estado (D-P4.4, Fase 4d, chips ACTIVAS de M6, reabre R2
 		// El menú "Filtrar" (M6) lista las opciones CRUDAS del `statusField`, sin recuentos.
 		await page.getByRole('button', { name: 'Filtrar' }).click();
 		const menu = page.getByRole('menu', { name: 'Filtrar por estado' });
-		await menu.getByRole('menuitem', { name: 'draft', exact: true }).click();
+		await menu.getByRole('menuitem', { name: 'Borrador', exact: true }).click();
 
 		await expect(page).toHaveURL(/\?status=draft$/);
 		await expect(paginationStatus(page)).toHaveText('1–16 de 16');
 
 		// El chip de filtro ACTIVO aparece con el valor elegido y su ✕.
-		const statusChip = activeChips.getByText('draft');
+		const statusChip = activeChips.getByText('Borrador');
 		await expect(statusChip).toBeVisible();
 
 		// La ✕ del chip quita el filtro: vuelve a los 32 registros y a la URL limpia.
@@ -364,7 +364,7 @@ test.describe('cambiar filtro resetea a página 1 (D-P4.9, Fase 4d)', () => {
 		await page.getByRole('button', { name: 'Filtrar' }).click();
 		await page
 			.getByRole('menu', { name: 'Filtrar por estado' })
-			.getByRole('menuitem', { name: 'published', exact: true })
+			.getByRole('menuitem', { name: 'Publicada', exact: true })
 			.click();
 
 		// `page` es el default (D-P4.9, URLs limpias): no se escribe `?page=1` junto a `?status=`.
@@ -382,7 +382,7 @@ test.describe('orden por cabecera (D-P4.6, Fase 4d)', () => {
 		await page.goto('/c/posts');
 
 		const table = page.locator('[data-list-state="ready"]');
-		const titleHeader = table.locator('thead th', { hasText: 'Title' });
+		const titleHeader = table.locator('thead th', { hasText: 'Título' });
 		const titleSortButton = titleHeader.locator('button');
 		const firstRow = table.locator('tbody tr').first();
 
@@ -412,14 +412,14 @@ test.describe('orden por cabecera (D-P4.6, Fase 4d)', () => {
 		await page.goto('/c/posts?sort=title&dir=desc');
 
 		const table = page.locator('[data-list-state="ready"]');
-		await table.locator('thead th', { hasText: 'Status' }).locator('button').click();
+		await table.locator('thead th', { hasText: 'Estado' }).locator('button').click();
 
 		await expect(page).toHaveURL(/\?sort=status&dir=asc$/);
-		await expect(table.locator('thead th', { hasText: 'Title' })).toHaveAttribute(
+		await expect(table.locator('thead th', { hasText: 'Título' })).toHaveAttribute(
 			'aria-sort',
 			'none'
 		);
-		await expect(table.locator('thead th', { hasText: 'Status' })).toHaveAttribute(
+		await expect(table.locator('thead th', { hasText: 'Estado' })).toHaveAttribute(
 			'aria-sort',
 			'ascending'
 		);
@@ -455,9 +455,9 @@ test.describe('deep-link reconstruye la vista entera (L-P4.13, Fase 4d)', () => 
 		// El deep-link reconstruye el chip de filtro ACTIVO (M6, reabre R2): "draft" visible en el
 		// grupo "Filtros activos", sin necesidad de haber pasado por el menú "Filtrar".
 		await expect(
-			page.getByRole('group', { name: 'Filtros activos' }).getByText('draft')
+			page.getByRole('group', { name: 'Filtros activos' }).getByText('Borrador')
 		).toBeVisible();
-		await expect(table.locator('thead th', { hasText: 'Title' })).toHaveAttribute(
+		await expect(table.locator('thead th', { hasText: 'Título' })).toHaveAttribute(
 			'aria-sort',
 			'ascending'
 		);
@@ -469,9 +469,9 @@ test.describe('deep-link reconstruye la vista entera (L-P4.13, Fase 4d)', () => 
 		await expect(paginationStatus(page)).toHaveText('1–15 de 15');
 		await expect(page.getByLabel('Buscar en el listado')).toHaveValue('Entrada');
 		await expect(
-			page.getByRole('group', { name: 'Filtros activos' }).getByText('draft')
+			page.getByRole('group', { name: 'Filtros activos' }).getByText('Borrador')
 		).toBeVisible();
-		await expect(tableAfterReload.locator('thead th', { hasText: 'Title' })).toHaveAttribute(
+		await expect(tableAfterReload.locator('thead th', { hasText: 'Título' })).toHaveAttribute(
 			'aria-sort',
 			'ascending'
 		);
@@ -494,7 +494,7 @@ test.describe('responsive N columnas (L-P4.2, Audit H1, Fase 4f)', () => {
 		const headers = table.locator('thead th');
 		// Labels humanizados por P2 (§4.8, `humanizeLabel`): "contactEmail" → "Contact email" (solo
 		// la primera letra en mayúscula, no Title Case).
-		await expect(headers.filter({ hasText: 'Title' })).toBeVisible();
+		await expect(headers.filter({ hasText: 'Título' })).toBeVisible();
 		await expect(headers.filter({ hasText: 'Website' })).toBeVisible();
 		await expect(headers.filter({ hasText: 'Contact email' })).toBeVisible();
 

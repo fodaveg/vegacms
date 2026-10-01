@@ -173,6 +173,7 @@
 	import { createReorderDndController, dropIndicatorEdge } from './reorder-dnd';
 	import { selectThumbSpec } from '$lib/backend/thumb-select';
 	import type { ResolvedContentType } from '$lib/model/types';
+	import { fieldDisplayLabel } from '$lib/model/default-labels';
 	import type { VegaRecord } from '$lib/backend/types';
 	import type { ViewState } from './query-state';
 
@@ -389,10 +390,12 @@
 								<button
 									type="button"
 									class="vega-sort-button"
-									aria-label={ctx.t('list.sort.ariaLabel', { column: column.field.label })}
+									aria-label={ctx.t('list.sort.ariaLabel', {
+										column: fieldDisplayLabel(column.field, ctx.t)
+									})}
 									onclick={() => onSort(column.field.name)}
 								>
-									{column.field.label}
+									{fieldDisplayLabel(column.field, ctx.t)}
 									{#if sort && sort.field === column.field.name}
 										<!-- Glyph 1:1 con el mockup (`aquelarre-dark.html`, "Actualizado ↓"): flecha
 										     de dirección, no el triángulo genérico de antes. -->
@@ -409,7 +412,7 @@
 								class:vega-th-delete-slot={hasDeleteSlot}
 								class:vega-col-status={column.isStatus}
 							>
-								{column.field.label}
+								{fieldDisplayLabel(column.field, ctx.t)}
 							</th>
 						{/if}
 					{/each}

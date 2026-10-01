@@ -20,6 +20,7 @@ import { isEmptyValue } from '$lib/backend/normalize';
 import type { FieldValue, FileRef, ScheduledPublishingState } from '$lib/backend/types';
 import type { Locale } from '$lib/i18n';
 import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
+import { statusValueLabel } from '$lib/model/default-labels';
 
 /** Longitud máxima (en caracteres) del texto plano extraído de un campo `richtext`. Evita que
  *  un documento enorme llegue entero a la fila de una tabla; el truncado fino (ellipsis CSS)
@@ -252,7 +253,7 @@ export function describeStatusBadge(
 	if (type.statusField === null) return null;
 	const raw = values[type.statusField];
 	if (typeof raw !== 'string' || raw === '') return null;
-	const label = type.statusLabels?.[raw] ?? raw;
+	const label = statusValueLabel(type.statusLabels, raw, t);
 
 	if (raw === 'draft' && type.publishAtField) {
 		const scheduled = values[type.publishAtField];

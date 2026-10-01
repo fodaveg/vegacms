@@ -45,6 +45,7 @@
 	import DiffRow from '$lib/revisions/DiffRow.svelte';
 	import { resolveConflictAuthor, type ConflictAuthor } from '$lib/revisions/conflict-author';
 	import type { ConflictRow, ConflictScope } from './conflict';
+	import { fieldDisplayLabel } from '$lib/model/default-labels';
 
 	interface Props {
 		/** Nombre legible del registro (el mismo de la barra o del título del bloque). */
@@ -134,6 +135,11 @@
 		return fields.find((f) => f.name === fieldName) ?? null;
 	}
 
+	function fieldLabelFor(fieldName: string): string {
+		const field = fieldFor(fieldName);
+		return field ? fieldDisplayLabel(field, ctx.t) : fieldName;
+	}
+
 	async function force(): Promise<void> {
 		if (busy) return;
 		phase = 'saving';
@@ -207,7 +213,7 @@
 		<ul class="vega-conflict-diff" id="vega-conflict-diff-{uid}">
 			{#each rows as row (row.field)}
 				<DiffRow
-					label={fieldFor(row.field)?.label ?? row.field}
+					label={fieldLabelFor(row.field)}
 					field={fieldFor(row.field)}
 					before={row.before}
 					after={row.after}

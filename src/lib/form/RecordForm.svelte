@@ -245,6 +245,7 @@
 	import { isConflictError, VegaError, type VegaConflictError } from '$lib/backend/errors';
 	import { getVegaContext } from '$lib/app-context';
 	import { describeCell, describeStatusBadge } from '$lib/list/cell';
+	import { statusValueLabel } from '$lib/model/default-labels';
 	import { resolveTitleCellText } from '$lib/list/list-load';
 	import DeleteConfirm from '$lib/list/DeleteConfirm.svelte';
 	import EditorRail from '$lib/list/EditorRail.svelte';
@@ -530,6 +531,14 @@
 	);
 
 	/** Ayuda por defecto de «Publicar el» (ver cabecera): solo si el manifiesto no declara una. */
+	/** Etiquetas de las opciones del campo de estado: manifiesto, o catálogo para `draft`/`published`. */
+	function statusOptionLabels(field: ResolvedField): Record<string, string> {
+		const options = 'options' in field.schema ? (field.schema.options ?? []) : [];
+		return Object.fromEntries(
+			options.map((option) => [option, statusValueLabel(type.statusLabels, option, ctx.t)])
+		);
+	}
+
 	function withDefaultHelp(field: ResolvedField): ResolvedField {
 		if (field.name !== type.publishAtField || field.help) return field;
 		return { ...field, help: ctx.t('editor.publishAt.help') };
@@ -1390,9 +1399,7 @@
 				isTitleField={field.name === type.titleField}
 				isSlugField={field.name === type.slugField}
 				isPathField={field.name === pagePathFieldName}
-				optionLabels={field.name === type.statusField
-					? (type.statusLabels ?? undefined)
-					: undefined}
+				optionLabels={field.name === type.statusField ? statusOptionLabels(field) : undefined}
 				layoutOptions={field.name === type.page?.layoutField ? pageLayoutOptions : undefined}
 				action={field.name === type.slugField && type.titleField !== null
 					? slugAction

@@ -58,7 +58,7 @@ test('el editor de un registro sin permiso de actualización es de solo lectura 
 		page.getByText('No tienes permiso para editar registros de esta colección', { exact: false })
 	).toBeVisible();
 	await expect(page.getByRole('button', { name: /^Guardar/ })).toHaveCount(0);
-	await expect(page.getByLabel('Title')).toBeDisabled();
+	await expect(page.getByLabel('Título', { exact: true })).toBeDisabled();
 	// Y tampoco se ofrece borrar desde el editor.
 	await expect(page.getByRole('button', { name: /Borrar/ })).toHaveCount(0);
 });

@@ -43,7 +43,7 @@ async function goToMedia(page: import('@playwright/test').Page): Promise<void> {
  *  trae ninguna, ver `demo-seed.ts`). Deja al navegador en la edición del post recién creado. */
 async function createPostLinkingMediaPhoto1(page: import('@playwright/test').Page): Promise<void> {
 	await page.goto('/c/posts/new');
-	await page.getByLabel('Title').fill('Post con imagen enlazada');
+	await page.getByLabel('Título', { exact: true }).fill('Post con imagen enlazada');
 	await page.getByLabel('Body').fill('Mira esta imagen: seed_media_photo1.png');
 	await page.getByRole('button', { name: 'Guardar' }).click();
 	await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
@@ -98,7 +98,9 @@ test.describe('"Se usa en" (UsedInPanel, vía url)', () => {
 		// Misma afordancia de navegación que el listado (`recordRoute`): aterriza en la edición
 		// REAL del post encontrado, no en un enlace decorativo.
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
-		await expect(page.getByLabel('Title')).toHaveValue('Post con imagen enlazada');
+		await expect(page.getByLabel('Título', { exact: true })).toHaveValue(
+			'Post con imagen enlazada'
+		);
 	});
 });
 

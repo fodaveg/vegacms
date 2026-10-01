@@ -98,7 +98,7 @@ test.describe('borrar → papelera → restaurar (§8·B2, promesa central del l
 		await page.waitForURL(/\/c\/posts\/post_1$/);
 
 		// El resto del contenido volvió (pre-imagen ANTES del borrado): título y cuerpo intactos.
-		await expect(page.getByLabel('Title')).toHaveValue('Bienvenido a Vega');
+		await expect(page.getByLabel('Título', { exact: true })).toHaveValue('Bienvenido a Vega');
 		await expect(page.getByLabel('Body')).toHaveValue('Primer texto de ejemplo.');
 
 		// El fichero NO volvió (§0.3/§8·B2, medido: PB destruye el binario al instante, restaurar

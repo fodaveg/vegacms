@@ -42,7 +42,7 @@ test.describe('nav de contenido + CRUD normal (rol editor)', () => {
 		// cambio", contra el mismo fixture (`posts.post_1`).
 		await page.goto('/c/posts/post_1');
 		await expect(page.getByRole('heading', { name: 'Editar «Entrada»' })).toBeVisible();
-		await page.getByLabel('Title').fill('Bienvenido a Vega (editado por editor)');
+		await page.getByLabel('Título', { exact: true }).fill('Bienvenido a Vega (editado por editor)');
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await expect(page.getByText('Guardado.')).toBeVisible();
 	});

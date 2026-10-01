@@ -23,7 +23,7 @@ async function openPost(page: Page): Promise<void> {
 	await loginAsDemo(page);
 	await page.waitForURL('**/c/site_info/new');
 	await page.goto('/c/posts/post_1');
-	await expect(page.getByLabel('Title')).toHaveValue('Bienvenido a Vega');
+	await expect(page.getByLabel('Título', { exact: true })).toHaveValue('Bienvenido a Vega');
 }
 
 /** Arma la escritura de "otra persona" que caerá justo antes del próximo guardado. */
@@ -54,7 +54,7 @@ test.describe('edición concurrente (aviso de conflicto)', () => {
 		await expect(page.getByText('cambió en el servidor')).toBeVisible();
 		await expect(page.getByText('Guardado.')).toHaveCount(0);
 		await expect(page.getByLabel('Body')).toHaveValue('Mi cuerpo nuevo');
-		await expect(page.getByLabel('Title')).toHaveValue('Bienvenido a Vega');
+		await expect(page.getByLabel('Título', { exact: true })).toHaveValue('Bienvenido a Vega');
 
 		await notice(page).getByRole('button', { name: 'Ver diferencias', exact: true }).click();
 		const rows = notice(page).getByRole('listitem');
@@ -67,7 +67,7 @@ test.describe('edición concurrente (aviso de conflicto)', () => {
 		await expect(page.getByText('Guardado.')).toBeVisible();
 		await expect(notice(page)).toHaveCount(0);
 		// Solo se envió `body`: el título de Ana sobrevive, y el formulario ya enseña lo guardado.
-		await expect(page.getByLabel('Title')).toHaveValue('Título de Ana');
+		await expect(page.getByLabel('Título', { exact: true })).toHaveValue('Título de Ana');
 		await expect(page.getByLabel('Body')).toHaveValue('Mi cuerpo nuevo');
 	});
 
@@ -85,7 +85,7 @@ test.describe('edición concurrente (aviso de conflicto)', () => {
 			.getByRole('button', { name: 'Descartar mis cambios y recargar', exact: true })
 			.click();
 		await expect(notice(page)).toHaveCount(0);
-		await expect(page.getByLabel('Title')).toHaveValue('Título de Ana');
+		await expect(page.getByLabel('Título', { exact: true })).toHaveValue('Título de Ana');
 		await expect(page.getByLabel('Body')).toHaveValue('Primer texto de ejemplo.');
 	});
 
@@ -95,7 +95,7 @@ test.describe('edición concurrente (aviso de conflicto)', () => {
 		await openPost(page);
 		await armConcurrentWrite(page, { title: 'Título de Ana' });
 
-		await page.getByLabel('Title').fill('Mi título');
+		await page.getByLabel('Título', { exact: true }).fill('Mi título');
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		// El nombre del aviso sigue siendo el de la versión que se abrió: es la que se está editando.
 		await expect(notice(page)).toBeVisible();

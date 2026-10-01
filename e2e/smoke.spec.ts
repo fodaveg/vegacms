@@ -47,13 +47,13 @@ test.describe('smoke: login → crear → editar → guardar → persiste', () =
 		await expect(page.getByRole('heading', { name: 'Crear «Entrada»' })).toBeVisible();
 
 		// 4) Rellenar el único campo requerido (`title`) y guardar.
-		await page.getByLabel('Title').fill(SMOKE_TITLE);
+		await page.getByLabel('Título', { exact: true }).fill(SMOKE_TITLE);
 		await page.getByRole('button', { name: 'Guardar' }).click();
 
 		// Tras crear → edición del registro recién creado (D-P5.11), no al listado.
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
 		await expect(page.getByRole('heading', { name: 'Editar «Entrada»' })).toBeVisible();
-		await expect(page.getByLabel('Title')).toHaveValue(SMOKE_TITLE);
+		await expect(page.getByLabel('Título', { exact: true })).toHaveValue(SMOKE_TITLE);
 
 		// 5) Editar el registro ya existente y volver a guardar. A diferencia de la creación (paso 4),
 		// aquí la URL NO cambia, así que `waitForURL` no puede sincronizar con el fin del guardado:
@@ -62,10 +62,10 @@ test.describe('smoke: login → crear → editar → guardar → persiste', () =
 		// podría ver `dirty` aún true y abrir un `confirm()` que Playwright auto-descarta, cancelando
 		// la navegación. `.last()`: el toast "Guardado." del paso 4 (create) sigue apilado (auto-
 		// descarte a 4s), como en `form.spec.ts` para el caso create+update.
-		await page.getByLabel('Title').fill(SMOKE_TITLE_EDITED);
+		await page.getByLabel('Título', { exact: true }).fill(SMOKE_TITLE_EDITED);
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await expect(page.getByText('Guardado.').last()).toBeVisible();
-		await expect(page.getByLabel('Title')).toHaveValue(SMOKE_TITLE_EDITED);
+		await expect(page.getByLabel('Título', { exact: true })).toHaveValue(SMOKE_TITLE_EDITED);
 
 		// 6) Persistencia por una vía DISTINTA al guardado: volver al listado (sidebar), filtrar por
 		// el título único y reabrir la fila — el valor releído debe ser el editado.
@@ -74,6 +74,6 @@ test.describe('smoke: login → crear → editar → guardar → persiste', () =
 		await page.getByLabel('Buscar en el listado').fill(SMOKE_SEARCH);
 		await page.getByRole('link', { name: SMOKE_TITLE_EDITED }).click();
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
-		await expect(page.getByLabel('Title')).toHaveValue(SMOKE_TITLE_EDITED);
+		await expect(page.getByLabel('Título', { exact: true })).toHaveValue(SMOKE_TITLE_EDITED);
 	});
 });

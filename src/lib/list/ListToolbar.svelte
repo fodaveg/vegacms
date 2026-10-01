@@ -41,6 +41,7 @@
 	import { isSearchEnabled, statusFilterOptions } from './search';
 	import Icon from '$lib/icons/Icon.svelte';
 	import type { ResolvedContentType } from '$lib/model/types';
+	import { statusValueLabel } from '$lib/model/default-labels';
 	import type { ViewState } from './query-state';
 
 	interface Props {
@@ -216,7 +217,7 @@
 						aria-current={viewState.status === option ? 'true' : undefined}
 						onclick={() => selectStatus(option)}
 					>
-						{contentType.statusLabels?.[option] ?? option}
+						{statusValueLabel(contentType.statusLabels, option, ctx.t)}
 					</button>
 				{/each}
 			</div>
