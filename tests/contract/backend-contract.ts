@@ -26,6 +26,7 @@ import {
 	VEGA_EDITORS_COLLECTION_NAME
 } from '$lib/backend';
 import { resolveStatusField } from '$lib/model/conventions';
+import { VEGA_MEDIA_COLLECTION } from '$lib/media/media-collection';
 import {
 	CAT_ALPHA,
 	CAT_BETA,
@@ -1688,6 +1689,157 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 				await expect(port.update(name, first.id, { path: '/igual' })).resolves.toMatchObject({
 					values: { path: '/igual' }
 				});
+			});
+
+			test('editor, url y email se crean, se descubren con su tipo y guardan y devuelven valores', async () => {
+				const port = await makeAuthedPort();
+				const name = uniqueCollectionName();
+				await port.ensureCollections([
+					{
+						name,
+						fields: [
+							{ name: 'body', type: 'editor' },
+							{ name: 'link', type: 'url', required: true },
+							{ name: 'contact', type: 'email' }
+						]
+					}
+				]);
+
+				const fields = (await port.listContentTypes()).find((type) => type.name === name)!.fields;
+				expect(fields.find((field) => field.name === 'body')).toMatchObject({
+					type: 'richtext',
+					subtype: 'html'
+				});
+				expect(fields.find((field) => field.name === 'link')).toMatchObject({
+					type: 'url',
+					required: true,
+					unique: false
+				});
+				expect(fields.find((field) => field.name === 'contact')).toMatchObject({
+					type: 'email',
+					unique: false
+				});
+
+				const created = await port.create(name, {
+					body: '<p>Hola <strong>mundo</strong></p>',
+					link: 'https://vega.example/post',
+					contact: 'autor@vega.example'
+				});
+				expect((await port.get(name, created.id)).values).toMatchObject({
+					body: '<p>Hola <strong>mundo</strong></p>',
+					link: 'https://vega.example/post',
+					contact: 'autor@vega.example'
+				});
+			});
+
+			test('editor, url y email se añaden a una colección existente sin tocar sus campos ni registros', async () => {
+				const port = await makeAuthedPort();
+				const name = uniqueCollectionName();
+				await port.ensureCollections([{ name, fields: [{ name: 'title', type: 'text' }] }]);
+				const existing = await port.create(name, { title: 'Previo' });
+
+				await expect(
+					port.addCollectionFields(name, [
+						{ name: 'body', type: 'editor' },
+						{ name: 'link', type: 'url' },
+						{ name: 'contact', type: 'email', unique: true }
+					])
+				).resolves.toEqual({ added: ['body', 'link', 'contact'], skipped: [] });
+
+				expect((await port.get(name, existing.id)).values).toMatchObject({
+					title: 'Previo',
+					body: '',
+					link: '',
+					contact: ''
+				});
+				const fields = (await port.listContentTypes()).find((type) => type.name === name)!.fields;
+				expect(fields.find((field) => field.name === 'contact')).toMatchObject({
+					type: 'email',
+					unique: true
+				});
+				await expect(
+					port.create(name, { title: 'Nuevo', link: 'https://vega.example' })
+				).resolves.toMatchObject({ values: { link: 'https://vega.example' } });
+			});
+
+			test('url y email unique rechazan el duplicado pero admiten varios registros sin valor', async () => {
+				const port = await makeAuthedPort();
+				const name = uniqueCollectionName();
+				await port.ensureCollections([
+					{
+						name,
+						fields: [
+							{ name: 'title', type: 'text' },
+							{ name: 'link', type: 'url', unique: true },
+							{ name: 'contact', type: 'email', unique: true }
+						]
+					}
+				]);
+
+				await port.create(name, {
+					title: 'Uno',
+					link: 'https://vega.example/a',
+					contact: 'a@vega.example'
+				});
+				// Sin valor en ninguno de los dos: no cuentan para la unicidad.
+				await port.create(name, { title: 'Sin datos 1' });
+				await port.create(name, { title: 'Sin datos 2' });
+
+				await expect(
+					port.create(name, { title: 'Dup url', link: 'https://vega.example/a' })
+				).rejects.toMatchObject({ kind: 'validation', fieldErrors: { link: {} } });
+				await expect(
+					port.create(name, { title: 'Dup correo', contact: 'a@vega.example' })
+				).rejects.toMatchObject({ kind: 'validation', fieldErrors: { contact: {} } });
+			});
+
+			test('unique fuera de text, url y email rechaza con validation (editor incluido)', async () => {
+				const port = await makeAuthedPort();
+				const name = uniqueCollectionName();
+				await expect(
+					port.ensureCollections([
+						{
+							name,
+							fields: [
+								{
+									name: 'body',
+									type: 'editor',
+									unique: true
+								} as unknown as CollectionSpec['fields'][number]
+							]
+						}
+					])
+				).rejects.toMatchObject({ kind: 'validation', fieldErrors: { body: {} } });
+				expect((await port.listContentTypes()).some((type) => type.name === name)).toBe(false);
+			});
+
+			test('imagen: una relation hacia vega_media se crea y se descubre como relación a medios', async () => {
+				const port = await makeAuthedPort();
+				await port.ensureCollections([VEGA_MEDIA_COLLECTION]);
+				const name = uniqueCollectionName();
+				await port.ensureCollections([
+					{
+						name,
+						fields: [
+							{ name: 'title', type: 'text' },
+							{
+								name: 'cover',
+								type: 'relation',
+								target: 'vega_media',
+								multiple: false,
+								cascadeDelete: false
+							}
+						]
+					}
+				]);
+
+				const fields = (await port.listContentTypes()).find((type) => type.name === name)!.fields;
+				expect(fields.find((field) => field.name === 'cover')).toMatchObject({
+					type: 'relation',
+					target: 'vega_media',
+					multiple: false
+				});
+				await expect(port.create(name, { title: 'Sin portada' })).resolves.toBeDefined();
 			});
 
 			test('crea una relation hacia una colección anterior del mismo lote y resuelve su destino', async () => {

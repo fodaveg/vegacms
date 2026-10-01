@@ -306,6 +306,27 @@ describe('generateSchemaMigration — mapeo de campos (paridad con el adaptador 
 		expect(contents).toContain('"onUpdate": false');
 	});
 
+	test('editor/url/email producen su payload y el índice único parcial de url/email', () => {
+		const fields: CollectionFieldSpec[] = [
+			{ name: 'body', type: 'editor', required: true },
+			{ name: 'link', type: 'url', unique: true },
+			{ name: 'contact', type: 'email' }
+		];
+		const { contents } = generateSchemaMigration(
+			{ kind: 'add-fields', collection: 'posts', fields },
+			FIXED_NOW
+		);
+
+		expect(contents).toContain('"type": "editor"');
+		expect(contents).toContain('"type": "url"');
+		expect(contents).toContain('"type": "email"');
+		expect(contents).toContain(
+			"CREATE UNIQUE INDEX `idx_vega_unique_5_posts_4_link` ON `posts` (`link`) WHERE `link` != ''"
+		);
+		expect(contents).not.toContain('idx_vega_unique_5_posts_7_contact');
+		expect(() => new Function('migrate', contents.replace(/^\/\/\/.*\n/, ''))).not.toThrow();
+	});
+
 	test('relation resuelve collectionId por nombre en runtime y conserva cardinalidad/borrado', () => {
 		const fields: CollectionFieldSpec[] = [
 			{

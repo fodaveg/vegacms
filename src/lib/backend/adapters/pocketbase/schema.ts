@@ -266,6 +266,12 @@ export function collectionFieldSpecToPbField(
 				// Omitido (no `''`) para que el payload de un campo sin patrón no cambie.
 				...(spec.pattern ? { pattern: spec.pattern } : {})
 			};
+		case 'editor':
+			return { name: spec.name, type: 'editor', required: spec.required ?? false };
+		case 'url':
+			return { name: spec.name, type: 'url', required: spec.required ?? false };
+		case 'email':
+			return { name: spec.name, type: 'email', required: spec.required ?? false };
 		case 'select':
 			return {
 				name: spec.name,
