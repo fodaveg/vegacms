@@ -105,9 +105,10 @@ export function createMergedListState(): MergedListState {
 				view,
 				pages.map((page) => page?.items ?? [])
 			);
-			const failedSources = [
-				...new Set(view.sources.filter((_, i) => pages[i] === null).map((source) => source.label))
-			];
+			const failedSources = view.sources
+				.filter((_, i) => pages[i] === null)
+				.map((source) => source.label)
+				.filter((label, i, labels) => labels.indexOf(label) === i); // sin duplicados
 			status = {
 				kind: 'ready',
 				rows,

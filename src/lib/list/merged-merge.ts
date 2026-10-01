@@ -81,6 +81,32 @@ function compareRows(a: MergedRow, b: MergedRow): number {
 	return a.record.id < b.record.id ? -1 : 1;
 }
 
+/** Motivo por el que NO se puede reordenar a mano una vista fusionada (ver `mergedReorderBlocker`). */
+export type MergedReorderBlocker = 'failed' | 'truncated' | 'forbidden';
+
+/**
+ * ¿Se puede reordenar el conjunto mezclado? `null` = sí. El reorden reescribe el `orderField` de
+ * las filas movidas con su índice GLOBAL, así que solo es correcto si el conjunto está COMPLETO y
+ * se puede escribir en todo él:
+ * - `'failed'`: alguna fuente no cargó → el orden global sería parcial.
+ * - `'truncated'`: alguna fuente tiene más registros de los cargados (tope de 200 sin paginar) →
+ *   se renumerarían solo los cargados y los demás quedarían descolocados.
+ * - `'forbidden'`: falta permiso de actualizar en alguna fuente (`canUpdate[i]` = permiso del tipo
+ *   de `view.sources[i]`) → la tanda de escrituras fallaría a mitad.
+ * Si concurren varios, manda el que el usuario puede arreglar antes de entender el siguiente
+ * (caída > truncado > permiso).
+ */
+export function mergedReorderBlocker(opts: {
+	failedSources: string[];
+	truncatedCollections: string[];
+	canUpdate: boolean[];
+}): MergedReorderBlocker | null {
+	if (opts.failedSources.length > 0) return 'failed';
+	if (opts.truncatedCollections.length > 0) return 'truncated';
+	if (opts.canUpdate.some((allowed) => !allowed)) return 'forbidden';
+	return null;
+}
+
 /**
  * Nombres de colección cuyo `Page` llegó "lleno" (`items.length === page.perPage` y quedan más
  * registros: `totalItems > items.length`): señal suave de que esa source tiene MÁS datos de los

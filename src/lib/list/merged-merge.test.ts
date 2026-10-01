@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
-import { mergeViewResults, truncatedCollections } from './merged-merge';
+import { mergedReorderBlocker, mergeViewResults, truncatedCollections } from './merged-merge';
 import type { ResolvedMergedSource, ResolvedMergedView } from '$lib/model/types';
 import type { Page, VegaRecord } from '$lib/backend/types';
 
@@ -206,5 +206,39 @@ describe('truncatedCollections', () => {
 		]);
 		const pages = [makePage([makeRecord('arte', 'a1')], 1)]; // falta la página de 'music'
 		expect(truncatedCollections(view, pages)).toEqual([]);
+	});
+
+	test('una source caída (`null`) no cuenta como truncada', () => {
+		const view = makeView([
+			makeSource({ collection: 'arte' }),
+			makeSource({ collection: 'music' })
+		]);
+		expect(truncatedCollections(view, [makePage([makeRecord('arte', 'a1')], 1), null])).toEqual([]);
+	});
+});
+
+describe('mergedReorderBlocker', () => {
+	const ok = { failedSources: [], truncatedCollections: [], canUpdate: [true, true] };
+
+	test('completo y con permiso de actualizar en todas las fuentes → se puede reordenar', () => {
+		expect(mergedReorderBlocker(ok)).toBeNull();
+	});
+
+	test('una fuente caída bloquea (el orden global sería parcial)', () => {
+		expect(mergedReorderBlocker({ ...ok, failedSources: ['Pieza'] })).toBe('failed');
+	});
+
+	test('una fuente truncada bloquea (se renumerarían solo las cargadas)', () => {
+		expect(mergedReorderBlocker({ ...ok, truncatedCollections: ['arte'] })).toBe('truncated');
+	});
+
+	test('sin permiso de actualizar en ALGUNA fuente bloquea', () => {
+		expect(mergedReorderBlocker({ ...ok, canUpdate: [true, false] })).toBe('forbidden');
+	});
+
+	test('con varios motivos manda: caída > truncado > permiso', () => {
+		const all = { failedSources: ['x'], truncatedCollections: ['y'], canUpdate: [false] };
+		expect(mergedReorderBlocker(all)).toBe('failed');
+		expect(mergedReorderBlocker({ ...all, failedSources: [] })).toBe('truncated');
 	});
 });

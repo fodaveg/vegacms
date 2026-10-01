@@ -35,6 +35,11 @@
 	 * `mergeViewResults` para deduplicar (`recordKey`, `merged-merge.ts`), así que ya es la
 	 * identidad real de una fila en este contexto.
 	 *
+	 * **Cuándo NO se reordena** (`mergedReorderBlocker`, lote 7b): con una fuente caída (orden global
+	 * parcial), con alguna fuente truncada (> 200 filas: se renumerarían solo las cargadas) o sin
+	 * permiso de actualizar en ALGUNA fuente, el asa queda deshabilitada y la tabla explica por qué.
+	 * Ya no hay rótulo fijo «Solo lectura» en la cabecera: era falso cuando sí se podía arrastrar.
+	 *
 	 * `persisting` deshabilita el arrastre (`reorderable={!persisting}`) mientras una tanda de
 	 * `ctx.port.update` sigue en vuelo — evita solapar dos reorders sobre la misma tabla ya
 	 * mutando, mismo espíritu defensivo que `deleting` en `/c/[type]/+page.svelte` (Fase 4e).
@@ -55,7 +60,7 @@
 	import { VegaError } from '$lib/backend/errors';
 	import RouteState from '$lib/shell/RouteState.svelte';
 	import MergedViewTable from '$lib/list/MergedViewTable.svelte';
-	import type { MergedRow } from '$lib/list/merged-merge';
+	import { mergedReorderBlocker, type MergedRow } from '$lib/list/merged-merge';
 
 	const ctx = getVegaContext();
 
@@ -78,6 +83,20 @@
 	});
 
 	const status = $derived(listState.status);
+
+	/** Por qué NO se puede reordenar (`mergedReorderBlocker`): fuente caída, truncado (> 200 filas
+	 *  por fuente) o falta de permiso de actualizar en ALGUNA fuente. `null` mientras carga/error. */
+	const reorderBlocker = $derived.by(() => {
+		if (!view || status.kind !== 'ready') return null;
+		return mergedReorderBlocker({
+			failedSources: status.failedSources,
+			truncatedCollections: status.truncatedCollections,
+			canUpdate: view.sources.map(
+				(source) =>
+					ctx.model.types.find((t) => t.name === source.collection)?.permissions.update ?? false
+			)
+		});
+	});
 
 	// ————— Reorder cruzado (L7d, ver cabecera) —————
 
@@ -106,7 +125,9 @@
 	 *  muestra el estado REAL del backend de inmediato, coherente con "nunca dejar la lista en un
 	 *  estado inconsistente" (spec de esta fase). */
 	async function handleReorder(fromIndex: number, toIndex: number): Promise<void> {
-		if (status.kind !== 'ready' || persisting) return;
+		// Defensivo: la tabla ya deshabilita el asa, pero el reorden con el conjunto incompleto o sin
+		// permiso reescribiría órdenes parciales/fallaría a mitad (ver `mergedReorderBlocker`).
+		if (status.kind !== 'ready' || persisting || reorderBlocker !== null) return;
 		const rows = status.rows;
 		const orderedKeys = rows.map(rowKey);
 		const currentValues: Record<string, number> = {};
@@ -157,7 +178,6 @@
 	<div class="vega-list-page">
 		<div class="vega-list-header">
 			<h1>{view.label}</h1>
-			<span class="vega-list-readonly-badge">{ctx.t('nav.readonlyBadge')}</span>
 		</div>
 
 		<div class="vega-list-card">
@@ -180,7 +200,10 @@
 					rows={status.rows}
 					truncatedCollections={status.truncatedCollections}
 					failedSources={status.failedSources}
-					reorderable={!persisting}
+					reorderBlockedNotice={reorderBlocker
+						? ctx.t(`list.merged.reorderBlocked.${reorderBlocker}`)
+						: null}
+					reorderable={!persisting && reorderBlocker === null}
 					onReorder={handleReorder}
 				/>
 			{/if}
@@ -212,16 +235,6 @@
 		font-weight: 700;
 		color: var(--ink-hi);
 		letter-spacing: -0.01em;
-	}
-
-	.vega-list-readonly-badge {
-		flex-shrink: 0;
-		padding: 0.1rem 0.4rem;
-		border: 1px solid var(--line);
-		border-radius: 999px;
-		font-size: 0.7rem;
-		white-space: nowrap;
-		color: var(--ink-2);
 	}
 
 	.vega-list-card {
