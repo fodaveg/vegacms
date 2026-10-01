@@ -255,4 +255,40 @@ describe('createPreviewShareClient', () => {
 		expect(error).toBeInstanceOf(TypeError);
 		expect(error).not.toBeInstanceOf(PreviewShareRequestError);
 	});
+
+	test('un 2xx que no es JSON rechaza con el error plano del cliente, sin citar el cuerpo', async () => {
+		// Una respuesta de crear cortada a medias: el `SyntaxError` del motor cita un trozo del
+		// cuerpo, y ese trozo es la URL con el secreto.
+		const secret = 's1.abc123def456ghi.SECRETO-QUE-NO-DEBE-SALIR';
+		const truncated = `{"url":"https://example.test/preview-share/${secret}","id":`;
+		const { client } = clientWith(() => new Response(truncated, { status: 201 }));
+
+		const created = await client
+			.createLink('posts', 'abc123', { ttlSeconds: 3600 })
+			.catch((e: unknown) => e);
+		const listed = await client.listLinks('posts', 'abc123').catch((e: unknown) => e);
+		for (const error of [created, listed]) {
+			expect(error).toBeInstanceOf(Error);
+			expect(error).not.toBeInstanceOf(SyntaxError);
+			expect((error as Error).message).toMatch(/forma válida/);
+			expect((error as Error).cause).toBeUndefined();
+			expect(String((error as Error).stack)).not.toContain('SECRETO');
+			expect(JSON.stringify(error, Object.getOwnPropertyNames(error))).not.toContain('SECRETO');
+		}
+	});
+
+	test('un cuerpo cuya lectura falla también acaba en el error plano del cliente', async () => {
+		const response = new Response('{}', { status: 201 });
+		vi.spyOn(response, 'json').mockRejectedValue(
+			new SyntaxError('Unexpected token: "https://example.test/preview-share/s1.x.SECRETO"')
+		);
+		const { client } = clientWith(() => response);
+
+		const error = await client
+			.createLink('posts', 'abc123', { ttlSeconds: 3600 })
+			.catch((e: unknown) => e);
+		expect(error).not.toBeInstanceOf(SyntaxError);
+		expect((error as Error).message).toMatch(/forma válida/);
+		expect((error as Error).message).not.toContain('SECRETO');
+	});
 });

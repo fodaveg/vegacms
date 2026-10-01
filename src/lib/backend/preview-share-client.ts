@@ -60,7 +60,8 @@ export interface PreviewShareClientOptions {
 
 export interface PreviewShareClient {
 	/** Crea un enlace para `{collection, id}`. Exige poder ver Y editar el registro (403 si solo se
-	 *  puede ver; 404 si no existe, no se puede ver o la colección no admite enlaces). */
+	 *  puede ver; 404 si no existe, no se puede ver o la colección no admite enlaces). Un 409
+	 *  significa que el registro ya tiene el máximo de enlaces vivos (20): hay que anular uno. */
 	createLink(
 		collection: string,
 		id: string,
@@ -76,7 +77,8 @@ export interface PreviewShareClient {
 /**
  * Error de una ruta de enlaces que SÍ obtuvo respuesta pero no `2xx`. Lleva el `status` para que
  * la interfaz distinga un 403 (puede ver el registro, no editarlo) de un 400 (duración o etiqueta
- * fuera de rango) o un 404. Mismo patrón que `PreviewRequestError` (`preview-client.ts`).
+ * fuera de rango), un 404, un 409 (tope de enlaces del registro) o un 503 (el servidor no tiene la
+ * función lista). Mismo patrón que `PreviewRequestError` (`preview-client.ts`).
  */
 export class PreviewShareRequestError extends Error {
 	readonly status: number;
@@ -92,6 +94,21 @@ export class PreviewShareRequestError extends Error {
 
 function nonEmptyString(value: unknown): string | null {
 	return typeof value === 'string' && value ? value : null;
+}
+
+/**
+ * Lee el cuerpo como JSON y devuelve `undefined` si no lo es, en vez de dejar pasar el
+ * `SyntaxError` del motor. Ese error cita un trozo del cuerpo en su mensaje, y el cuerpo de una
+ * respuesta de crear a medio llegar o malformada lleva la URL con el secreto: acabaría en la
+ * consola, en un informe de errores o en pantalla. Quien llama trata `undefined` como cualquier
+ * otra forma inesperada y lanza su propio error, de texto fijo y sin `cause`.
+ */
+async function readJson(response: Response): Promise<unknown> {
+	try {
+		return (await response.json()) as unknown;
+	} catch {
+		return undefined;
+	}
 }
 
 /**
@@ -168,7 +185,7 @@ export function createPreviewShareClient(opts: PreviewShareClientOptions): Previ
 			if (!response.ok) {
 				throw new PreviewShareRequestError(response.status, 'POST', base);
 			}
-			const link = parseCreatedPreviewShareLink(await response.json());
+			const link = parseCreatedPreviewShareLink(await readJson(response));
 			if (!link) {
 				throw new Error(
 					'El endpoint de enlaces de vista previa no devolvió un enlace con forma válida.'
@@ -187,7 +204,7 @@ export function createPreviewShareClient(opts: PreviewShareClientOptions): Previ
 			if (!response.ok) {
 				throw new PreviewShareRequestError(response.status, 'GET', base);
 			}
-			const links = parsePreviewShareLinkList(await response.json());
+			const links = parsePreviewShareLinkList(await readJson(response));
 			if (!links) {
 				throw new Error(
 					'El endpoint de enlaces de vista previa no devolvió una lista con forma válida.'
