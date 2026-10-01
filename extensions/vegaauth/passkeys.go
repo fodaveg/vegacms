@@ -220,8 +220,7 @@ func (x *Extension) finishDiscoverableLogin(e *core.RequestEvent) error {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
 	}
 	x.resetLoginAttempts(e.App, identity, ip)
-	x.markProof(matched.Id)
-	return authTokenResponse(e, matched)
+	return x.authTokenResponse(e, matched, true)
 }
 
 // cloneRefused reports whether the assertion's signature counter failed to advance, which means

@@ -124,9 +124,15 @@ proof on purpose: it is how the owner of a lost authenticator replaces it.
 code generated from it; until then logins keep asking for the old authenticator. Abandoning the
 enrollment changes nothing, and enrolling again overwrites the pending secret.
 
-The proof is remembered per account in process memory, like the challenges: it is not tied to one
-session token (PocketBase tokens are stateless and the SPA refreshes them), and a multi-replica
-deployment needs sticky routing for it to be found.
+The proof belongs to the **session** that gave it, not to the account: it is stored in process
+memory under the SHA-256 of the session token (never the token itself). Another token of the same
+account, such as a stolen one or a login on another device, does not inherit it and gets `428`.
+When PocketBase's `auth-refresh` replaces the token, which the SPA does every time it opens the
+security screen, the proof moves to the new token with its original expiry: refreshing never
+extends the five minutes and the replaced token stops carrying the proof. Two limits remain:
+PocketBase issues identical tokens for logins of one account within the same second, so those are
+one session to this rule; and a multi-replica deployment needs sticky routing for the proof to be
+found.
 
 ## Security notes
 

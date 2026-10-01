@@ -1,7 +1,10 @@
 package vegaauth
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-webauthn/webauthn/protocol"
@@ -22,8 +25,28 @@ const (
 	stepUpScope = "step-up"
 )
 
-// markProof records that userID has just proven possession of a second factor.
-func (x *Extension) markProof(userID string) {
+// sessionKey identifies one session: the hash of its auth token. The proof of possession belongs
+// to the session that gave it, so another token of the same account (a stolen one, another
+// device) does not inherit it. Only the hash is kept in memory, never the token.
+func sessionKey(token string) string {
+	token = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(token), "Bearer "))
+	if token == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
+}
+
+// requestSessionKey is the session key of the token the request authenticated with.
+func requestSessionKey(e *core.RequestEvent) string {
+	return sessionKey(e.Request.Header.Get("Authorization"))
+}
+
+// markProof records that the session has just proven possession of a second factor.
+func (x *Extension) markProof(session string) {
+	if session == "" {
+		return
+	}
 	x.proofMu.Lock()
 	defer x.proofMu.Unlock()
 	now := time.Now()
@@ -32,17 +55,48 @@ func (x *Extension) markProof(userID string) {
 			delete(x.proofs, key)
 		}
 	}
-	if _, renewing := x.proofs[userID]; !renewing && len(x.proofs) >= maxStepUpProofs {
+	if _, renewing := x.proofs[session]; !renewing && len(x.proofs) >= maxStepUpProofs {
 		return
 	}
-	x.proofs[userID] = now.Add(stepUpWindow)
+	x.proofs[session] = now.Add(stepUpWindow)
 }
 
-func (x *Extension) hasRecentProof(userID string) bool {
+func (x *Extension) hasRecentProof(session string) bool {
 	x.proofMu.Lock()
 	defer x.proofMu.Unlock()
-	expires, ok := x.proofs[userID]
-	return ok && expires.After(time.Now())
+	expires, ok := x.proofs[session]
+	return session != "" && ok && expires.After(time.Now())
+}
+
+// moveProof hands a still valid proof over to the token that replaces the session's token on
+// auth-refresh. The expiry travels unchanged: refreshing never extends the window, and the old
+// token stops carrying the proof.
+func (x *Extension) moveProof(from, to string) {
+	if from == "" || to == "" || from == to {
+		return
+	}
+	x.proofMu.Lock()
+	defer x.proofMu.Unlock()
+	expires, ok := x.proofs[from]
+	if !ok {
+		return
+	}
+	delete(x.proofs, from)
+	if expires.After(time.Now()) {
+		x.proofs[to] = expires
+	}
+}
+
+// bindProofToRefresh keeps the proof with the session across PocketBase's auth-refresh, which
+// the SPA calls every time it opens the security screen. The hook sees the old token in the
+// request and the new one in the event; AuthMethod is empty only for a refresh.
+func (x *Extension) bindProofToRefresh(app core.App) {
+	app.OnRecordAuthRequest(x.config.AuthCollection).BindFunc(func(e *core.RecordAuthRequestEvent) error {
+		if e.AuthMethod == "" {
+			x.moveProof(requestSessionKey(e.RequestEvent), sessionKey(e.Token))
+		}
+		return e.Next()
+	})
 }
 
 // stepUpMethods lists the factors the account could prove possession with. A lookup failure
@@ -72,7 +126,7 @@ func (x *Extension) stepUpRefused(e *core.RequestEvent, code string) (bool, erro
 	if err != nil {
 		return true, e.JSON(http.StatusInternalServerError, map[string]string{"error": "load_failed"})
 	}
-	if len(methods) == 0 || x.hasRecentProof(e.Auth.Id) {
+	if len(methods) == 0 || x.hasRecentProof(requestSessionKey(e)) {
 		return false, nil
 	}
 	if code != "" && e.Auth.GetBool("totp_enabled") {
@@ -104,7 +158,7 @@ func (x *Extension) codeRefused(e *core.RequestEvent, code string) (bool, error)
 		return true, e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_code"})
 	}
 	x.resetLoginAttempts(e.App, identity, stepUpScope)
-	x.markProof(e.Auth.Id)
+	x.markProof(requestSessionKey(e))
 	return false, nil
 }
 
@@ -160,6 +214,6 @@ func (x *Extension) finishPasskeyVerify(e *core.RequestEvent) error {
 	if err := storeAssertion(e.App, user, credential); err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
 	}
-	x.markProof(e.Auth.Id)
+	x.markProof(requestSessionKey(e))
 	return e.JSON(http.StatusOK, map[string]bool{"ok": true})
 }

@@ -133,7 +133,7 @@ func (x *Extension) verifyTOTP(e *core.RequestEvent) error {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
 	}
 	x.resetLoginAttempts(e.App, identity, stepUpScope)
-	x.markProof(e.Auth.Id)
+	x.markProof(requestSessionKey(e))
 	return e.JSON(http.StatusOK, map[string]bool{"ok": true})
 }
 
@@ -333,8 +333,7 @@ func (x *Extension) loginRecovery(e *core.RequestEvent) error {
 	x.deletePending(body.Pending)
 	// A recovery code stands in for the lost authenticator, so it must also let its owner
 	// replace that authenticator right after logging in.
-	x.markProof(record.Id)
-	return authTokenResponse(e, record)
+	return x.authTokenResponse(e, record, true)
 }
 
 func unauthorized(e *core.RequestEvent) error {

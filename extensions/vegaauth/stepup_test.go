@@ -231,20 +231,52 @@ func TestAPasskeyOnlyAccountProvesPossessionWithAPasskeyCeremony(t *testing.T) {
 func TestASecondFactorLoginCountsAsProofOnlyForAWhile(t *testing.T) {
 	server := newTestServer(t)
 	user := server.newUser("editor@example.com", true)
-	token := server.token(user)
 
 	login := server.post("/login/totp", "", `{"pending":"`+server.pending("editor@example.com")+`","code":"`+totpCode(t, testTOTPSecret, 0)+`"}`)
 	if login.Code != http.StatusOK {
 		t.Fatalf("login failed: %d %s", login.Code, errorCode(login))
 	}
+	token := tokenOf(t, login)
 	if begin := server.post("/passkey/register/begin", token, ""); begin.Code != http.StatusOK {
 		t.Fatalf("right after a second-factor login no extra proof is needed: %d %s", begin.Code, errorCode(begin))
 	}
 
+	// The proof belongs to that session: another token of the same account (a stolen one, or
+	// another login that has not proven anything) does not inherit it.
+	// (PocketBase tokens issued within the same second for one account are identical, so the
+	// other login has to happen a second later to be a different session at all.)
+	time.Sleep(1100 * time.Millisecond)
+	other := server.post("/totp/disable", server.token(user), "")
+	expectStepUp(t, "another session of the same account", other, "totp")
+
+	// Refreshing moves the proof to the new token without extending it.
+	server.extension.proofMu.Lock()
+	expiry := server.extension.proofs[sessionKey(token)]
+	server.extension.proofMu.Unlock()
+	time.Sleep(1100 * time.Millisecond) // the refreshed JWT needs a later expiry to differ
+	refreshed := server.refresh(token)
+	if refreshed == token {
+		t.Fatal("expected auth-refresh to issue a new token")
+	}
+	server.extension.proofMu.Lock()
+	moved, old := server.extension.proofs[sessionKey(refreshed)], server.extension.proofs[sessionKey(token)]
+	server.extension.proofMu.Unlock()
+	if !moved.Equal(expiry) || !old.IsZero() {
+		t.Fatalf("the proof must move to the refreshed token with its original expiry: %v %v %v", expiry, moved, old)
+	}
+	stale := server.post("/totp/disable", token, "")
+	expectStepUp(t, "the token replaced by a refresh", stale, "totp")
+	token = refreshed
+
 	// Let the proof age past the window.
 	server.extension.proofMu.Lock()
-	server.extension.proofs[user.Id] = time.Now().Add(-time.Second)
+	for key := range server.extension.proofs {
+		server.extension.proofs[key] = time.Now().Add(-time.Second)
+	}
 	server.extension.proofMu.Unlock()
+	if again := server.refresh(token); again != "" {
+		token = again // an expired proof must not come back to life through a refresh
+	}
 	expired := server.post("/totp/disable", token, "")
 	expectStepUp(t, "an aged proof", expired, "totp")
 	if !server.reload(user).GetBool("totp_enabled") {
@@ -263,7 +295,15 @@ func TestARecoveryCodeLoginLetsTheOwnerReplaceALostAuthenticator(t *testing.T) {
 	if login.Code != http.StatusOK {
 		t.Fatalf("recovery login failed: %d %s", login.Code, errorCode(login))
 	}
-	if enroll := server.post("/totp/enroll", server.token(user), ""); enroll.Code != http.StatusOK {
+	// The SPA refreshes the token as soon as it opens the security screen; the owner has no
+	// authenticator code to give, so the proof must follow the session through that refresh.
+	time.Sleep(1100 * time.Millisecond) // so the refreshed token really is a different one
+	original := tokenOf(t, login)
+	token := server.refresh(original)
+	if token == original {
+		t.Fatal("expected auth-refresh to issue a new token")
+	}
+	if enroll := server.post("/totp/enroll", token, ""); enroll.Code != http.StatusOK {
 		t.Fatalf("after a recovery login the owner must be able to enroll a new authenticator: %d %s", enroll.Code, errorCode(enroll))
 	}
 	if !server.reload(user).GetBool("totp_enabled") {

@@ -121,6 +121,32 @@ func (s *testServer) pending(email string) string {
 	return challenge.Pending
 }
 
+// tokenOf returns the session token a login answered with.
+func tokenOf(t *testing.T, response *httptest.ResponseRecorder) string {
+	t.Helper()
+	var session struct {
+		Token string `json:"token"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &session); err != nil || session.Token == "" {
+		t.Fatalf("missing session token: %d", response.Code)
+	}
+	return session.Token
+}
+
+// refresh calls PocketBase's own auth-refresh, as the SPA does, and returns the new token.
+func (s *testServer) refresh(token string) string {
+	s.t.Helper()
+	request := httptest.NewRequest(http.MethodPost, "/api/collections/vega_editors/auth-refresh", nil)
+	request.RemoteAddr = testIP + ":1234"
+	request.Header.Set("Authorization", token)
+	response := httptest.NewRecorder()
+	s.mux.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		s.t.Fatalf("auth-refresh failed: %d", response.Code)
+	}
+	return tokenOf(s.t, response)
+}
+
 func errorCode(response *httptest.ResponseRecorder) string {
 	var body struct {
 		Error string `json:"error"`

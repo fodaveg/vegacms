@@ -103,7 +103,7 @@ type Extension struct {
 	sessions  map[string]sessionEntry
 	beginMu   sync.Mutex
 	begins    map[string]beginEntry
-	// proofs maps an account to the moment its last second-factor proof stops counting.
+	// proofs maps a session (hash of its token) to the moment its second-factor proof expires.
 	proofMu sync.Mutex
 	proofs  map[string]time.Time
 }
@@ -135,6 +135,7 @@ func New(config Config) (*Extension, error) {
 // RegisterRoutes installs the API contract consumed by Vega's PocketBase adapter.
 func (x *Extension) RegisterRoutes(se *core.ServeEvent) {
 	p := x.config.RoutePrefix
+	x.bindProofToRefresh(se.App)
 	se.Router.POST(p+"/login/password", x.loginPassword)
 	se.Router.POST(p+"/login/totp", x.loginTOTP)
 	se.Router.POST(p+"/login/recovery", x.loginRecovery)

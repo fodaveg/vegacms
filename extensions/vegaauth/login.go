@@ -69,7 +69,7 @@ func (x *Extension) loginPassword(e *core.RequestEvent) error {
 		})
 	}
 	x.resetLoginAttempts(e.App, identity, ip)
-	return authTokenResponse(e, record)
+	return x.authTokenResponse(e, record, false)
 }
 
 type totpStepBody struct {
@@ -104,8 +104,7 @@ func (x *Extension) loginTOTP(e *core.RequestEvent) error {
 	}
 	x.resetLoginAttempts(e.App, pending.identity, ip)
 	x.deletePending(body.Pending)
-	x.markProof(record.Id)
-	return authTokenResponse(e, record)
+	return x.authTokenResponse(e, record, true)
 }
 
 // attemptRefused reserves a login attempt and, when the identity is locked or the reservation
@@ -121,10 +120,15 @@ func (x *Extension) attemptRefused(e *core.RequestEvent, identity, ip string) (b
 	return false, nil
 }
 
-func authTokenResponse(e *core.RequestEvent, record *core.Record) error {
+// authTokenResponse issues the session token. proven says the login was completed with a second
+// factor; the proof of possession is then attached to this very token and to no other.
+func (x *Extension) authTokenResponse(e *core.RequestEvent, record *core.Record, proven bool) error {
 	token, err := record.NewAuthToken()
 	if err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "token_failed"})
+	}
+	if proven {
+		x.markProof(sessionKey(token))
 	}
 	return e.JSON(http.StatusOK, map[string]any{
 		"token":  token,
