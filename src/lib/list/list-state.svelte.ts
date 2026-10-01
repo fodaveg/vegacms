@@ -110,6 +110,13 @@ export function createListState(): ListState {
 				ctx.feedback.reportError(vegaErr);
 				return;
 			}
+			if (vegaErr.kind === 'network') {
+				// Sin respuesta HTTP: además del panel de error del listado, se avisa al transporte
+				// global para que la píldora de conexión deje de estar en verde con el listado sin
+				// cargar (`transportFeedback` la pone en «Sin conexión»). El resto de `kind` (backend,
+				// forbidden…) siguen siendo solo del panel local: el transporte sí respondió.
+				ctx.feedback.reportError(vegaErr);
+			}
 			status = { kind: 'error', error: vegaErr };
 		}
 	}

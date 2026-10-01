@@ -131,6 +131,28 @@ describe('createListState: recarga conservando la tabla', () => {
 		expect(state.refreshing).toBe(false);
 	});
 
+	test('un fallo de red en la carga también se reporta al transporte global (píldora de conexión)', async () => {
+		const { ctx, pending, reportError } = makeCtx();
+		const state = createListState();
+		const first = state.load(ctx, type, view);
+		const err = VegaError.network();
+		pending[0].reject(err);
+		await first;
+		expect(state.status).toMatchObject({ kind: 'error', error: { kind: 'network' } });
+		expect(reportError).toHaveBeenCalledTimes(1);
+		expect(reportError).toHaveBeenCalledWith(err);
+	});
+
+	test('un error que no es de red solo va al panel del listado, sin reportError', async () => {
+		const { ctx, pending, reportError } = makeCtx();
+		const state = createListState();
+		const first = state.load(ctx, type, view);
+		pending[0].reject(VegaError.backend('boom'));
+		await first;
+		expect(state.status).toMatchObject({ kind: 'error', error: { kind: 'backend' } });
+		expect(reportError).not.toHaveBeenCalled();
+	});
+
 	test('retry() desde error sí vuelve a loading (no hay tabla que conservar)', async () => {
 		const { ctx, pending } = makeCtx();
 		const state = createListState();
