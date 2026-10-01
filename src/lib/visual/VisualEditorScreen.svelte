@@ -34,7 +34,9 @@
 	 *   cuenta y avisa con `ready`; el `<iframe>` de esta pantalla NUNCA cambia de `src` y el scroll
 	 *   del autor sobrevive. `refreshCanvas` por eso NO escribe en `tokenState` (cambiaría el `src`)
 	 *   ni toca `scheduleRenew` (el token del `src`, que sigue siendo el viejo, conserva su propia
-	 *   renovación, independiente de este refresco).
+	 *   renovación, independiente de este refresco). La propia RENOVACIÓN programada del token
+	 *   (`renewToken`) usa este mismo camino cuando se puede (`refreshCanvas({ renew: true })`, que
+	 *   además rearma `scheduleRenew` con el token nuevo): el marco no se recarga cada ~5 min.
 	 * - **Sin puente, o sin `liveRefresh`, o si el camino de arriba falla en cualquier punto**
 	 *   (la petición del token, que llegue tarde, o que `bridgeClient.refresh()` devuelva `false`):
 	 *   el camino de siempre, `requestPreview()`, que SÍ cambia `tokenState.token.url` y con él el
@@ -149,7 +151,8 @@
 	 * El cliente del puente se crea UNA VEZ, cuando llega el PRIMER token (necesita su `previewUrl`
 	 * para fijar el origen contra el que valida, `bridge-client.ts#originOf`): las renovaciones
 	 * posteriores conservan el mismo origen (mismo sitio), así que no hace falta recrearlo — solo
-	 * disparar `start()` de nuevo cuando el iframe (con `src` nuevo) vuelve a hacer `load`.
+	 * disparar `start()` de nuevo cuando el iframe (con `src` nuevo) vuelve a hacer `load`
+	 * (solo en la recarga entera de respaldo: con puente y `liveRefresh` la renovación no recarga).
 	 * SUPUESTO, escrito para que se pueda desmentir: que el sitio no cambie de ORIGEN entre dos
 	 * tokens de la misma sesión. Si un proyecto migrara de dominio a media edición, este cliente
 	 * seguiría validando contra el origen viejo y se quedaría sordo al marco nuevo hasta recargar.
@@ -390,6 +393,12 @@
 	let canvasActive = $state(true);
 
 	let renewTimer: ReturnType<typeof setTimeout> | null = null;
+	/** `true` desde `onDestroy`. Las generaciones NO bastan para cortar la cadena de renovaciones:
+	 *  `refreshCanvas({ renew: true })` arma `scheduleRenew` ANTES de su guarda de generación (una
+	 *  respuesta tardía por una petición posterior con el componente VIVO no puede dejar la cadena sin
+	 *  temporizador), así que solo el desmontaje, que es definitivo, la corta: con esta bandera
+	 *  `scheduleRenew` no arma nada. */
+	let destroyed = false;
 	let requestGeneration = 0;
 	let bridgeClient: VisualBridgeClient | null = null;
 	let narrowQuery: MediaQueryList | null = null;
@@ -463,11 +472,13 @@
 
 	function scheduleRenew(token: PreviewToken): void {
 		clearRenewTimer();
+		// Pantalla desmontada: nadie podría cancelar el temporizador (`onDestroy` no vuelve a correr).
+		if (destroyed) return;
 		const delay = Math.min(
 			MAX_RENEW_DELAY_MS,
 			Math.max(0, new Date(token.expiresAt).getTime() - Date.now() - RENEW_BUFFER_MS)
 		);
-		renewTimer = setTimeout(() => void requestPreview(), delay);
+		renewTimer = setTimeout(() => void renewToken(), delay);
 	}
 
 	function clearRefreshDebounce(): void {
@@ -535,17 +546,22 @@
 
 	/** Pide un token nuevo y se lo pasa al puente como `refresh()` en vez de escribirlo en
 	 *  `tokenState` — escribir ahí cambiaría el `src` del `<iframe>` y recargaría el marco, que es
-	 *  justo lo que este camino viene a evitar. Por el mismo motivo NO toca `scheduleRenew`: el token
-	 *  del `src` (el que sigue en el iframe) conserva su propia renovación, independiente de este
-	 *  refresco. Cualquier fallo —la petición del token, que llegue tarde, o que el puente rechace el
+	 *  justo lo que este camino viene a evitar. Por defecto NO toca `scheduleRenew`: el token del `src`
+	 *  (el que sigue en el iframe) conserva su propia renovación, independiente de este refresco.
+	 *  Con `renew: true` (la llama `renewToken` al vencer ese temporizador) SÍ la rearma con el token
+	 *  recién pedido. Cualquier fallo —la petición del token, que llegue tarde, o que el puente rechace el
 	 *  refresco (sin `liveRefresh`, o su plazo interno venció)— cae al camino de siempre: un flicker
 	 *  es preferible a un lienzo que se queda sin actualizar en silencio. */
-	async function refreshCanvas(): Promise<void> {
+	async function refreshCanvas(opts: { renew?: boolean } = {}): Promise<void> {
 		const generation = ++refreshGeneration;
 		try {
 			// SIN `draft`, mismo motivo que `requestPreview` (ver cabecera): esta pantalla no tiene
 			// formulario.
 			const token = await client.requestPreview(type.name, String(record.id));
+			// Renovación programada (ver `renewToken`): este token SÍ es el vigente, así que la
+			// siguiente renovación se arma con él ANTES de comprobar la generación — si esta petición
+			// llegó tarde y se calla, la cadena de renovaciones no puede quedarse sin temporizador.
+			if (opts.renew) scheduleRenew(token);
 			// Llegó tarde: manda la petición posterior (misma disciplina que `requestPreview`). Callarse
 			// es la ÚNICA salida correcta: caer aquí a la recarga entera no solo tiraría el refresco en
 			// vivo que ya estaba en marcha, es que `requestPreview()` incrementa `refreshGeneration` y
@@ -564,6 +580,20 @@
 			if (generation !== refreshGeneration) return;
 			void requestPreview();
 		}
+	}
+
+	/** Renovación programada del token (`scheduleRenew`). Con el puente `connected` y `liveRefresh`
+	 *  se renueva por `refreshCanvas({ renew: true })`: el token nuevo se entrega al puente y el
+	 *  `<iframe>` ni se recarga (sin parpadeo, el scroll se queda donde estaba), y la renovación se
+	 *  rearma con el token recién pedido. Sin puente, o sin `liveRefresh`, o si el camino por puente
+	 *  falla en cualquier punto, cae a la recarga entera de siempre (`requestPreview`). */
+	async function renewToken(): Promise<void> {
+		const state = bridgeClient?.state;
+		if (state?.status === 'connected' && state.liveRefresh) {
+			await refreshCanvas({ renew: true });
+			return;
+		}
+		await requestPreview();
 	}
 
 	/** Un guardado de VERDAD acaba de completarse aquí — un campo (`VisualInspector#onBlockSaved`)
@@ -671,8 +701,8 @@
 	}
 
 	/** `load` del iframe (§contrato, "Vega posts `hello` when the frame fires `load`"): dispara
-	 *  también en cada recarga provocada por una renovación de token, que es justo cuando hay que
-	 *  volver a saludar. */
+	 *  también en cada recarga entera (renovación de token de respaldo, sin puente o sin
+	 *  `liveRefresh`), que es justo cuando hay que volver a saludar. */
 	function handleFrameLoad(): void {
 		frameLoaded = true;
 		if (tokenState.kind !== 'ready') return;
@@ -929,6 +959,10 @@
 		// ese temporizador se reprograma solo y pide token para siempre. Es alcanzable de verdad:
 		// guardar un campo limpia el dirty (o sea que el guard de salida ya no pregunta) y deja un
 		// `refreshCanvas` pidiendo token por red; basta con darle a "atrás" en esos milisegundos.
+		// Las generaciones cubren `requestPreview` y la escritura de estado de `refreshCanvas`, pero
+		// no el `scheduleRenew` de `refreshCanvas({ renew: true })`, que va antes de su guarda a
+		// propósito (ver `destroyed`): esa la corta la bandera.
+		destroyed = true;
 		requestGeneration++;
 		refreshGeneration++;
 		clearRenewTimer();

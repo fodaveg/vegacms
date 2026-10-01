@@ -605,7 +605,7 @@
 					{/if}
 				</div>
 			{:else if readyPage}
-				<div data-list-state="ready">
+				<div data-list-state="ready" aria-busy={listState.refreshing}>
 					<RecordTable
 						{contentType}
 						{columns}

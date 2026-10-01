@@ -30,6 +30,14 @@ export interface ListState {
 	/** Estado ACTUAL de la última carga que no fue descartada por anti-carrera. */
 	readonly status: ListLoadStatus;
 	/**
+	 * `true` mientras una RECARGA (`reload()`, tras borrar/reordenar/importar) está en vuelo
+	 * conservando visible la tabla anterior: `status` sigue en `'ready'` con la página vieja. Así la
+	 * tabla no se sustituye por «Cargando…» (parpadeo) y la UI puede avisar a un lector de pantalla
+	 * con `aria-busy`. `load()` (carga inicial o cambio de vista) y `retry()` NO lo activan: pasan
+	 * por `'loading'`, porque la tabla visible ya no corresponde a lo pedido o no existe.
+	 */
+	readonly refreshing: boolean;
+	/**
 	 * Dispara una carga para `type`/`viewState`: construye la `Query` (`buildListQuery`, 4b) y
 	 * llama a `ctx.port.list`. Anti-carrera: si al resolver ya no es la última llamada emitida, el
 	 * resultado se descarta sin tocar `status` (L-P4.10). `auth-expired` se enruta SOLO a
@@ -50,13 +58,16 @@ export interface ListState {
 	 *  `items: []` con `totalItems > 0` y el `$effect` de "página fuera de rango" que YA existe en
 	 *  `+page.svelte` (L-P4.13) hace el retroceso: `reload()` no necesita saber nada de eso. No-op
 	 *  si `load()` no se ha llamado todavía (mismo caso límite que `retry()`, en la práctica nunca
-	 *  ocurre: no hay fila que borrar antes de la primera carga). */
+	 *  ocurre: no hay fila que borrar antes de la primera carga). A diferencia de `retry()`, si ya
+	 *  hay una página `'ready'` la CONSERVA visible mientras llega la nueva (`refreshing`); un fallo
+	 *  de la recarga sí pasa a `'error'`, y una respuesta vieja nunca pisa a otra más nueva. */
 	reload(): void;
 }
 
 /** Construye un `ListState` vacío (arranca en `'loading'`, sin ninguna carga emitida todavía). */
 export function createListState(): ListState {
 	let status = $state<ListLoadStatus>({ kind: 'loading' });
+	let refreshing = $state(false);
 	const sequencer = new RequestSequencer();
 
 	// Última llamada de `load()`, para que `retry()` pueda repetirla sin que el llamador tenga que
@@ -65,21 +76,31 @@ export function createListState(): ListState {
 	let lastCall: { ctx: VegaAppContext; type: ResolvedContentType; viewState: ViewState } | null =
 		null;
 
-	async function load(
+	async function run(
 		ctx: VegaAppContext,
 		type: ResolvedContentType,
-		viewState: ViewState
+		viewState: ViewState,
+		keepVisible: boolean
 	): Promise<void> {
 		lastCall = { ctx, type, viewState };
 		const seq = sequencer.next();
-		status = { kind: 'loading' };
+		// Recarga: con una tabla ya visible se queda tal cual; sin ella (loading/error) no hay nada
+		// que conservar y se vuelve a «cargando» como siempre.
+		if (keepVisible && status.kind === 'ready') {
+			refreshing = true;
+		} else {
+			refreshing = false;
+			status = { kind: 'loading' };
+		}
 		try {
 			const query = buildListQuery(type, viewState);
 			const result = await ctx.port.list(type.name, query);
 			if (!sequencer.isLatest(seq)) return; // respuesta obsoleta (anti-carrera): se descarta
 			status = { kind: 'ready', page: result };
+			refreshing = false;
 		} catch (err) {
 			if (!sequencer.isLatest(seq)) return;
+			refreshing = false;
 			const vegaErr = normalizeListError(err);
 			if (vegaErr.kind === 'auth-expired') {
 				// §2.3: auth-expired SIEMPRE al overlay global (`ReloginModal` ya reacciona a
@@ -93,19 +114,30 @@ export function createListState(): ListState {
 		}
 	}
 
+	function load(
+		ctx: VegaAppContext,
+		type: ResolvedContentType,
+		viewState: ViewState
+	): Promise<void> {
+		return run(ctx, type, viewState, false);
+	}
+
 	/** Máquina interna compartida de `retry()`/`reload()` (ver JSDoc de la interfaz): repite
-	 *  `lastCall` tal cual, reentrando por el mismo `load()` (mismo `RequestSequencer`, L-P4.10). */
-	function repeatLastLoad(): void {
+	 *  `lastCall` tal cual, reentrando por el mismo `run()` (mismo `RequestSequencer`, L-P4.10). */
+	function repeatLastLoad(keepVisible: boolean): void {
 		if (!lastCall) return;
-		void load(lastCall.ctx, lastCall.type, lastCall.viewState);
+		void run(lastCall.ctx, lastCall.type, lastCall.viewState, keepVisible);
 	}
 
 	return {
 		get status() {
 			return status;
 		},
+		get refreshing() {
+			return refreshing;
+		},
 		load,
-		retry: repeatLastLoad,
-		reload: repeatLastLoad
+		retry: () => repeatLastLoad(false),
+		reload: () => repeatLastLoad(true)
 	};
 }

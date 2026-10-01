@@ -27,13 +27,23 @@
 	 * excepción es `auth-expired`, que SIEMPRE va al feedback global (§2.3): ese error no es "no
 	 * pude listar", es "tu sesión ha caducado" y lo tapa el overlay de re-login.
 	 *
-	 * **Límite honesto**: se lista la PRIMERA página de la colección en su orden efectivo
-	 * (`buildListQuery` con el `ViewState` vacío ⇒ respeta `defaultSort`/`orderField` del tipo, así
-	 * que el raíl y el listado coinciden). Si el registro abierto cae fuera de esa página, ninguna
-	 * fila queda marcada como actual — preferimos eso a inyectar el registro fuera de su orden, que
-	 * daría un índice que no se parece al listado real. El contador de la cabecera es el TOTAL de
-	 * la colección (`page.totalItems`), no el número de filas pintadas: mismo dato que el mockup.
+	 * **El registro abierto SIEMPRE está**: se lista la PRIMERA página de la colección en su orden
+	 * efectivo (`buildListQuery` con el `ViewState` vacío ⇒ respeta `defaultSort`/`orderField` del
+	 * tipo, así que el raíl y el listado coinciden). Si el registro abierto cae fuera de esa página,
+	 * se pide por `port.get` (una petición) y se añade AL FINAL, marcado como actual: queda fuera de
+	 * su orden real a propósito (no se re-ordena una página que no se tiene), pero el usuario no
+	 * pierde la referencia de dónde está. Si ya no existe (borrado), no se pinta y no es un error.
+	 * El contador de la cabecera es el TOTAL de la colección (`page.totalItems`), no el número de
+	 * filas pintadas: mismo dato que el mockup.
+	 *
+	 * **Guardar no relee la lista**: el editor pasa el registro guardado (`savedRecord`) y el raíl
+	 * sustituye SU fila en sitio (título/estado/fecha salen de los valores nuevos). Límite honesto:
+	 * la fila no cambia de POSICIÓN con el guardado. Solo cuando el guardado cambia el valor de un
+	 * campo de orden editable por el usuario (`orderField`, o el `defaultSort` si no es un campo
+	 * readonly/autodate) la posición real pudo cambiar y se relee la primera página, SIN volver a
+	 * «Cargando…» (se conservan las filas hasta que llega la nueva).
 	 */
+	import { untrack } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
 	import type { Page, VegaRecord } from '$lib/backend/types';
 	import type { ResolvedContentType } from '$lib/model/types';
@@ -47,15 +57,14 @@
 		contentType: ResolvedContentType;
 		/** Id del registro abierto (`aria-current="true"`), o `null` en creación (`/new`). */
 		activeId: string | null;
-		/** Contador que el editor incrementa tras CADA guardado con éxito: cualquier cambio de este
-		 *  valor obliga a releer la colección. Sin él, renombrar el registro abierto dejaría el raíl
-		 *  mintiendo con el título anterior hasta recargar la página. Es un token opaco (no se lee
-		 *  su valor, solo se compara con el anterior), así que el editor no necesita saber NADA de
-		 *  cómo carga el raíl. */
-		reloadToken?: number;
+		/** Último registro guardado con éxito por el editor (valor que devolvió el backend), o `null`
+		 *  si todavía no se guardó nada. Cada cambio de identidad actualiza en sitio la fila de ese
+		 *  registro; sin él, renombrar el registro abierto dejaría el raíl con el título anterior
+		 *  hasta recargar la página. */
+		savedRecord?: VegaRecord | null;
 	}
 
-	let { contentType, activeId, reloadToken = 0 }: Props = $props();
+	let { contentType, activeId, savedRecord = null }: Props = $props();
 
 	const ctx = getVegaContext();
 	const sequencer = new RequestSequencer();
@@ -64,15 +73,23 @@
 		{ kind: 'loading' } | { kind: 'ready'; page: Page<VegaRecord> } | { kind: 'error' };
 
 	let status = $state<RailStatus>({ kind: 'loading' });
-	// Última carga ya pedida, como clave `colección:token` (variable PLANA, no `$state`, mismo
-	// patrón que `loadedKey` de `/c/[type]/[id]`): así el `$effect` no depende de su propia
-	// escritura de `status`. Navegar ENTRE hermanos de la misma colección no recarga (la lista es
-	// la misma, solo cambia cuál va marcado); guardar sí, vía `reloadToken`.
+	/** Registro abierto cuando NO está en la página cargada (ver cabecera); `null` si ya está en
+	 *  ella, no existe o es creación. */
+	let extra = $state<VegaRecord | null>(null);
+	// Última colección ya cargada (variable PLANA, no `$state`, mismo patrón que `loadedKey` de
+	// `/c/[type]/[id]`): así el `$effect` no depende de su propia escritura de `status`. Navegar
+	// ENTRE hermanos de la misma colección no recarga (la lista es la misma, solo cambia cuál va
+	// marcado) y guardar tampoco: se actualiza la fila en sitio (`savedRecord`).
 	let loadedKey: string | null = null;
 
 	async function load(type: ResolvedContentType): Promise<void> {
 		const seq = sequencer.next();
-		status = { kind: 'loading' };
+		// Cambio de colección (o primera carga): no hay nada válido que enseñar. Relectura de la
+		// MISMA colección (orden cambiado por un guardado): se conservan las filas hasta que llegue.
+		if (status.kind !== 'ready' || loadedType !== type.name) status = { kind: 'loading' };
+		// Otra colección: los guardados recordados eran de la anterior y no valen para esta carga.
+		if (loadedType !== type.name) pendingSaves = [];
+		loadedType = type.name;
 		try {
 			// `ViewState` vacío: sin búsqueda ni filtro, página 1 — el orden lo pone el propio tipo
 			// (`defaultSort`/`orderField`), exactamente como arranca el listado sin query en la URL.
@@ -81,9 +98,17 @@
 				buildListQuery(type, { q: '', status: null, sort: null, page: 1 })
 			);
 			if (!sequencer.isLatest(seq)) return;
-			status = { kind: 'ready', page: result };
+			// Guardados llegados durante la carga: su respuesta puede ser ANTERIOR al guardado, así
+			// que se aplican encima (solo a registros de esta página; mismo orden de filas).
+			const items =
+				pendingSaves.length === 0
+					? result.items
+					: result.items.map((r) => pendingSaves.find((s) => s.id === r.id) ?? r);
+			pendingSaves = [];
+			status = { kind: 'ready', page: { ...result, items } };
 		} catch (err) {
 			if (!sequencer.isLatest(seq)) return;
+			pendingSaves = [];
 			const vegaErr = normalizeListError(err);
 			// Ver cabecera: solo `auth-expired` sale de este componente (overlay global, §2.3).
 			if (vegaErr.kind === 'auth-expired') ctx.feedback.reportError(vegaErr);
@@ -91,11 +116,93 @@
 		}
 	}
 
+	let loadedType: string | null = null;
+	/** Guardados (`savedRecord`) que llegaron con la lista en «Cargando…», por id (gana el último):
+	 *  se aplican sobre la página cuando esa carga termina. Plano, no `$state`: no pinta nada. */
+	let pendingSaves: VegaRecord[] = [];
+
 	$effect(() => {
-		const key = `${contentType.name}:${reloadToken}`;
+		const key = contentType.name;
 		if (key === loadedKey) return;
 		loadedKey = key;
+		extra = null;
 		void load(contentType);
+	});
+
+	// Mantiene `extra` al día: el registro abierto, si cae fuera de la página cargada, se pide por
+	// su id (una petición por registro abierto; navegar entre hermanos de la página no pide nada).
+	const extraSequencer = new RequestSequencer();
+	let extraKey: string | null = null;
+	$effect(() => {
+		const page = status.kind === 'ready' ? status.page : null;
+		const id = activeId;
+		const typeName = contentType.name;
+		if (page === null || id === null || page.items.some((r) => r.id === id)) {
+			extra = null;
+			extraKey = null;
+			extraSequencer.next(); // descarta un `get` en vuelo que ya no hace falta
+			return;
+		}
+		const key = `${typeName}:${id}`;
+		if (key === extraKey) return;
+		extraKey = key;
+		const seq = extraSequencer.next();
+		extra = null;
+		void (async () => {
+			try {
+				const record = await ctx.port.get(typeName, id);
+				if (extraSequencer.isLatest(seq)) extra = record;
+			} catch (err) {
+				if (!extraSequencer.isLatest(seq)) return;
+				const vegaErr = normalizeListError(err);
+				// Borrado o ilegible: el raíl sigue sin él. Solo la sesión caducada es global (§2.3).
+				if (vegaErr.kind === 'auth-expired') ctx.feedback.reportError(vegaErr);
+			}
+		})();
+	});
+
+	/** Campos de orden que el USUARIO puede cambiar al guardar (no readonly/autodate): si cambia su
+	 *  valor, la fila puede haber cambiado de posición y una sustitución en sitio mentiría. */
+	function userSortFields(type: ResolvedContentType): string[] {
+		const names: string[] = [];
+		if (type.orderField !== null) names.push(type.orderField);
+		const sortName = type.defaultSort?.field ?? null;
+		if (sortName !== null && !names.includes(sortName)) {
+			const f = type.schema.fields.find((x) => x.name === sortName);
+			if (f && !f.readonly) names.push(sortName);
+		}
+		return names;
+	}
+
+	// Guardado con éxito: sustituye la fila en sitio, sin pedir la lista.
+	$effect(() => {
+		const saved = savedRecord;
+		if (saved === null) return;
+		untrack(() => {
+			if (status.kind === 'loading') {
+				pendingSaves = [...pendingSaves.filter((r) => r.id !== saved.id), saved];
+				return;
+			}
+			const current =
+				status.kind === 'ready' ? status.page.items.find((r) => r.id === saved.id) : undefined;
+			const previous = current ?? (extra?.id === saved.id ? extra : undefined);
+			if (!previous) return; // creación u otro registro: no hay fila que actualizar
+			const reposition = userSortFields(contentType).some(
+				(name) => JSON.stringify(previous.values[name]) !== JSON.stringify(saved.values[name])
+			);
+			if (current && status.kind === 'ready') {
+				status = {
+					kind: 'ready',
+					page: {
+						...status.page,
+						items: status.page.items.map((r) => (r.id === saved.id ? saved : r))
+					}
+				};
+			} else {
+				extra = saved;
+			}
+			if (reposition) void load(contentType);
+		});
 	});
 
 	/** Campo-título ya resuelto (o `null` si el tipo no tiene ninguno representable). */
@@ -151,6 +258,8 @@
 	// Snapshots reactivos del estado (mismo patrón que `readyPage` en `/c/[type]/+page.svelte`): el
 	// marcado se apoya en estos `const` en vez de estrechar `status` dentro de bloques anidados.
 	const railPage = $derived(status.kind === 'ready' ? status.page : null);
+	/** Filas a pintar: la página y, si el registro abierto cae fuera de ella, ese al final. */
+	const railItems = $derived(railPage ? (extra ? [...railPage.items, extra] : railPage.items) : []);
 	const loading = $derived(status.kind === 'loading');
 	const failed = $derived(status.kind === 'error');
 </script>
@@ -167,7 +276,7 @@
 			<p class="vega-rail-loading" aria-live="polite">{ctx.t('common.loading')}</p>
 		{:else if railPage}
 			<div class="vega-rail-items">
-				{#each railPage.items as record (record.id)}
+				{#each railItems as record (record.id)}
 					{@const status = railStatus(record)}
 					{@const date = railDate(record)}
 					<a

@@ -569,8 +569,12 @@
 	 *  hermanos que listar: la colección entera es este registro) — inerte, no un error. */
 	const showRail = $derived(type.editorRail && !type.singleton);
 
-	/** Token de recarga del raíl: sube en CADA guardado con éxito. Sin esto, renombrar el registro
-	 *  abierto dejaría su fila del índice con el título viejo hasta recargar la página. Lote
+	/** Último registro guardado con éxito: el raíl sustituye SU fila en sitio con él (sin releer la
+	 *  lista). Sin esto, renombrar el registro abierto dejaría su fila del índice con el título
+	 *  viejo hasta recargar la página. */
+	let lastSaved = $state<VegaRecord | null>(null);
+
+	/** Contador de guardados con éxito: sube en CADA guardado. Lote
 	 *  "publicación" fase B: el MISMO contador hace doble servicio como `refreshToken` de
 	 *  `PreviewPanel` (ver cabecera, "Vista previa") — un guardado con éxito es la única señal
 	 *  honesta de que hay algo nuevo que previsualizar. `#lote-integridad` Fase B: TERCER uso,
@@ -1044,7 +1048,8 @@
 		// R7 del rediseño: "último guardado" pasa a la hora REAL de este guardado, sin mirar si
 		// el tipo declara `updated` (ver cabecera) — acabamos de guardar, así que la sabemos.
 		savedAt = new Date();
-		savedCount += 1; // el raíl relee la colección: su fila puede haber cambiado de título
+		savedCount += 1;
+		lastSaved = saved; // el raíl actualiza en sitio su fila (título/estado/fecha pueden haber cambiado)
 		onSaved(saved, note);
 	}
 
@@ -1414,7 +1419,7 @@
 		class:vega-editor-grid--aside={showAside}
 	>
 		{#if showRail}
-			<EditorRail contentType={type} activeId={model.recordId} reloadToken={savedCount} />
+			<EditorRail contentType={type} activeId={model.recordId} savedRecord={lastSaved} />
 		{/if}
 
 		<div class="vega-editor-main">
