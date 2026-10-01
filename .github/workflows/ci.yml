@@ -71,7 +71,7 @@ jobs:
 
   # P8·F1 (D-P8.7 opción B): la suite de contrato contra PB real (ya ejercida arriba, en `gate`,
   # con la versión PINEADA) se repite aquí en MATRIZ contra el rango soportado completo —
-  # mínimo (0.26.0, D-P1.3) y pineada (0.39.6) — para cazar diferencias de API entre versiones
+  # mínimo (0.26.0, D-P1.3) y pineada (0.39.9) — para cazar diferencias de API entre versiones
   # de PocketBase. Job separado (no una matriz dentro de `gate`) para no acoplar el resultado de
   # esta comprobación de RANGO con el gate obligatorio de cada PR.
   pb-contract-matrix:
@@ -79,7 +79,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pb_version: ['0.26.0', '0.39.6']
+        pb_version: ['0.26.0', '0.39.9']
     # HALLAZGO (P8·F1, 2026-07-19) resuelto: la causa raíz NO era un problema de shape/formato
     # del harness (la hipótesis inicial de "kitchen_sink se crea con solo el campo id" era un
     # espejismo — un `pb_migrations` acumulado de sesiones locales anteriores, ver

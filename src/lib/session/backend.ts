@@ -129,7 +129,6 @@ import {
 	type ProjectDiscovery
 } from './project-discovery';
 import { readAuthCollectionOverride, readBackendOverride } from './backend-override';
-import { DEMO_CREDENTIALS, DEMO_SEED, DEMO_SEED_WITH_MEDIA, SHOWCASE_SEED } from './demo-seed';
 import { withRevisions } from '$lib/revisions/with-revisions';
 import { withSchemaSnapshotSync } from '$lib/model/load';
 
@@ -264,6 +263,10 @@ async function createInstance(): Promise<BackendPort> {
 		throw new Error('getBackend() no puede llamarse durante SSR (P3-L1 / landmine de P1).');
 	}
 	if (useMemoryAdapter()) {
+		// La semilla (~87 KB de fuente) se carga por `import()` SOLO en esta rama: el adaptador
+		// `pocketbase` (producción) nunca la descarga. `createInstance` ya era async.
+		const { DEMO_CREDENTIALS, DEMO_SEED, DEMO_SEED_WITH_MEDIA, SHOWCASE_SEED } =
+			await import('./demo-seed');
 		const seed = useShowcaseSeed()
 			? SHOWCASE_SEED
 			: window.__VEGA_SEED_MEDIA__
