@@ -9,17 +9,19 @@
 	 * ## Máquina de fases
 	 * `phase: 'pick' | 'reading' | 'invalid' | 'preview' | 'running' | 'done'`.
 	 * - `pick`: `<input type="file">` a la espera.
-	 * - `reading`: parseando JSON + `validateTransferDocument` (§4.1, síncrono en la práctica, pero
-	 *   se modela como fase propia para que un fichero gigante no bloquee el diálogo sin feedback).
+	 * - `reading`: leyendo el fichero (con barra de avance en bytes, `readTextWithProgress`) y luego
+	 *   parseando JSON + `validateTransferDocument` (§4.1, síncrono), para que un fichero gigante no
+	 *   bloquee el diálogo sin feedback.
 	 * - `invalid`: §4.1 encontró algo que no casa — SOLO "Cerrar", nada se ha escrito (todo-o-nada,
 	 *   ver `import-format.ts`).
 	 * - `preview`: `buildImportPreview` ya resolvió existencia/relaciones/ficheros contra el puerto
 	 *   (§4.2) — el corazón del diálogo. Con algún PISA, el botón "Importar" exige el checkbox de
 	 *   confirmación aparte (§4.2: "nunca el default silencioso"); con TODO bloqueado, no hay nada
 	 *   que escribir y el botón se deshabilita con una nota.
-	 * - `running`: `runImport` en vuelo (§4.3/§4.4) — sin cancelación (a diferencia de exportar, no
-	 *   pagina; el propio `allSettled` ya garantiza que termina en un tiempo acotado por el número
-	 *   de registros, y cancelar A MITAD de unas escrituras sin transacción no evitaría nada).
+	 * - `running`: `runImport` en vuelo (§4.3/§4.4) con barra «n de total» (`onProgress`) — sin
+	 *   cancelación (a diferencia de exportar, no pagina; el pool de `runImport` ya garantiza que
+	 *   termina en un tiempo acotado por el número de registros, y cancelar A MITAD de unas
+	 *   escrituras sin transacción no evitaría nada).
 	 * - `done`: el informe (§4.3: "nunca decir importado si algo falló") — cierre manual, para que
 	 *   quien vea fallos tenga tiempo de leerlos antes de que el diálogo desaparezca solo.
 	 *
@@ -48,8 +50,10 @@
 		createCachingFileFetcher,
 		runImport,
 		type ImportPreview,
+		type ImportProgress,
 		type ImportReport
 	} from './import-collection';
+	import { readTextWithProgress } from './read-file-progress';
 	import { validateTransferDocument, type ImportValidationError } from './import-format';
 
 	interface Props {
@@ -74,6 +78,9 @@
 	let preview = $state<ImportPreview | null>(null);
 	let overwriteConfirmed = $state(false);
 	let report = $state<ImportReport | null>(null);
+	/** Avance de la lectura del fichero (0–100) y de la escritura (`runImport`, `onProgress`). */
+	let readPercent = $state(0);
+	let progress = $state<ImportProgress>({ done: 0, total: 0 });
 
 	// Un único fetcher CACHEADO por `url` para todo el ciclo de vida del fichero cargado (ver
 	// cabecera de `import-collection.ts`): la vista previa (§4.2, ficheros `required`) y la
@@ -90,6 +97,8 @@
 		preview = null;
 		overwriteConfirmed = false;
 		report = null;
+		readPercent = 0;
+		progress = { done: 0, total: 0 };
 		fileFetcher = createCachingFileFetcher();
 	});
 
@@ -123,8 +132,13 @@
 		phase = 'reading';
 
 		let parsed: unknown;
+		readPercent = 0;
 		try {
-			parsed = JSON.parse(await file.text());
+			parsed = JSON.parse(
+				await readTextWithProgress(file, (read, total) => {
+					readPercent = total === 0 ? 100 : Math.floor((read / total) * 100);
+				})
+			);
 		} catch {
 			invalidErrors = [{ kind: 'malformed' }];
 			phase = 'invalid';
@@ -156,7 +170,15 @@
 	async function startImport(): Promise<void> {
 		if (!preview || !canImport) return;
 		phase = 'running';
-		report = await runImport(ctx.port, preview, { overwriteConfirmed }, fileFetcher);
+		progress = { done: 0, total: 0 };
+		report = await runImport(
+			ctx.port,
+			preview,
+			{ overwriteConfirmed, onProgress: (p) => (progress = p) },
+			fileFetcher
+		);
+		// Ya escrito: la vista previa (con todos los registros del fichero) no se vuelve a pintar.
+		preview = null;
 		phase = 'done';
 		if (report.createdCount + report.updatedCount > 0) onImported();
 		if (report.success) {
@@ -281,7 +303,11 @@
 					bind:this={firstFocusEl}
 				/>
 				{#if phase === 'reading'}
-					<p aria-live="polite">{ctx.t('list.import.reading', { fileName })}</p>
+					<div class="vega-import-progress" aria-live="polite">
+						<progress value={readPercent} max="100" aria-label={ctx.t('list.import.reading.bar')}
+						></progress>
+						<p>{ctx.t('list.import.reading', { fileName })}</p>
+					</div>
 				{/if}
 				<div class="vega-import-actions">
 					<button type="button" onclick={requestClose}>{ctx.t('common.cancel')}</button>
@@ -358,7 +384,16 @@
 					</button>
 				</div>
 			{:else if phase === 'running'}
-				<p aria-live="polite">{ctx.t('list.import.progress')}</p>
+				<div class="vega-import-progress" aria-live="polite">
+					{#if progress.total === 0}
+						<p>{ctx.t('list.import.progress')}</p>
+					{:else}
+						<progress value={progress.done} max={progress.total}></progress>
+						<p>
+							{ctx.t('list.import.progress.count', { done: progress.done, total: progress.total })}
+						</p>
+					{/if}
+				</div>
 			{:else if phase === 'done' && report}
 				<div class="vega-import-report" aria-live="polite">
 					<p class="vega-import-summary">
@@ -503,6 +538,22 @@
 	}
 
 	.vega-import-nothing {
+		margin: 0;
+		color: var(--ink-2);
+		font-size: 0.85rem;
+	}
+
+	.vega-import-progress {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.vega-import-progress progress {
+		width: 100%;
+	}
+
+	.vega-import-progress p {
 		margin: 0;
 		color: var(--ink-2);
 		font-size: 0.85rem;

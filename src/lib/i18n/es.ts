@@ -741,6 +741,8 @@ export const es = {
 	'list.import.partial':
 		'La importación terminó con {failed} registros fallidos. Revisa el informe.',
 	'list.import.error': 'No se pudo preparar la vista previa. Vuelve a intentarlo.',
+	'list.import.reading.bar': 'Progreso de la lectura del fichero',
+	'list.import.progress.count': 'Importando… {done} de {total}',
 
 	// ————— Borrado (Fase 4e del contrato P4) —————
 	'list.delete.rowButton': 'Borrar',
