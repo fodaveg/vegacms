@@ -133,6 +133,33 @@ describe('createMediaUploadState — reanudar tras sesión caducada', () => {
 		expect(onSummary).toHaveBeenLastCalledWith({ uploaded: 3, failed: 2, pending: 0 });
 	});
 
+	test('resume hereda la casilla «original» del lote y no reduce', async () => {
+		const create = vi
+			.fn()
+			.mockRejectedValueOnce(VegaError.authExpired('caducada'))
+			.mockResolvedValue({});
+		const { ctx } = fakeCtx(create);
+		const shrink = vi.fn(async () => ({ kind: 'untouched' }) as const);
+		const state = createMediaUploadState(shrink);
+		const f = files(1);
+		await state.start(
+			ctx,
+			schema,
+			f,
+			() => {},
+			() => {},
+			{ keepOriginal: true }
+		);
+		await state.resume(
+			ctx,
+			f,
+			() => {},
+			() => {}
+		);
+		expect(create).toHaveBeenCalledTimes(2);
+		expect(shrink).not.toHaveBeenCalled();
+	});
+
 	test('sin pendientes no hace nada', async () => {
 		const create = vi.fn().mockResolvedValue({});
 		const { ctx } = fakeCtx(create);
@@ -150,5 +177,117 @@ describe('createMediaUploadState — reanudar tras sesión caducada', () => {
 		await state.resume(ctx, f, () => {}, onSummary);
 		expect(create).not.toHaveBeenCalled();
 		expect(onSummary).not.toHaveBeenCalled();
+	});
+});
+
+const MB = 1024 * 1024;
+const bigSchema = { maxSizeBytes: 10 * MB, mimeTypes: [] } as unknown as MediaFileFieldSchema;
+const photo = (name: string, size: number, type = 'image/jpeg') =>
+	new File([new Uint8Array(size)], name, { type });
+
+describe('createMediaUploadState — reducir al subir', () => {
+	test('una foto de 23 MB que reducida cabe se sube reducida; el ítem lleva los tamaños', async () => {
+		const small = photo('grande.jpg', 1 * MB);
+		const create = vi.fn().mockResolvedValue({});
+		const { ctx } = fakeCtx(create);
+		const shrink = vi.fn(async () => ({
+			kind: 'shrunk' as const,
+			file: small,
+			fromBytes: 23 * MB,
+			toBytes: 1 * MB
+		}));
+		const state = createMediaUploadState(shrink);
+		const onSummary = vi.fn();
+
+		await state.start(ctx, bigSchema, [photo('grande.jpg', 23 * MB)], () => {}, onSummary);
+
+		expect(shrink).toHaveBeenCalledWith(expect.anything(), { maxBytes: 10 * MB });
+		expect((create.mock.calls[0][1] as { file: File }).file).toBe(small);
+		expect(state.items[0].status.kind).toBe('done');
+		expect(state.items[0].shrink).toEqual({ kind: 'shrunk', fromBytes: 23 * MB, toBytes: 1 * MB });
+		expect(onSummary).toHaveBeenCalledWith({ uploaded: 1, failed: 0, pending: 0 });
+	});
+
+	test('si tras reducir sigue sobre el tope: rechazo de siempre, sin subir, con el motivo', async () => {
+		const create = vi.fn().mockResolvedValue({});
+		const { ctx } = fakeCtx(create);
+		const shrink = vi.fn(async () => ({
+			kind: 'kept-original' as const,
+			reason: 'not-smaller' as const
+		}));
+		const state = createMediaUploadState(shrink);
+
+		await state.start(
+			ctx,
+			bigSchema,
+			[photo('x.png', 12 * MB, 'image/png')],
+			() => {},
+			() => {}
+		);
+
+		expect(create).not.toHaveBeenCalled();
+		expect(state.items[0].status).toEqual({ kind: 'rejected', reason: 'tooLarge' });
+		expect(state.items[0].shrink).toEqual({ kind: 'original', why: 'not-smaller' });
+	});
+
+	test('con «subir el original» no se toca nada y se valida como siempre (rechazo previo)', async () => {
+		const create = vi.fn().mockResolvedValue({});
+		const { ctx } = fakeCtx(create);
+		const shrink = vi.fn();
+		const state = createMediaUploadState(shrink);
+
+		await state.start(
+			ctx,
+			bigSchema,
+			[photo('g.jpg', 23 * MB)],
+			() => {},
+			() => {},
+			{
+				keepOriginal: true
+			}
+		);
+
+		expect(shrink).not.toHaveBeenCalled();
+		expect(create).not.toHaveBeenCalled();
+		expect(state.items[0].status).toEqual({ kind: 'rejected', reason: 'tooLarge' });
+	});
+
+	test('los formatos no reducibles no pasan por reducir y el tope los rechaza antes', async () => {
+		const { ctx } = fakeCtx(vi.fn().mockResolvedValue({}));
+		const shrink = vi.fn();
+		const state = createMediaUploadState(shrink);
+		await state.start(
+			ctx,
+			bigSchema,
+			[photo('a.gif', 12 * MB, 'image/gif')],
+			() => {},
+			() => {}
+		);
+		expect(shrink).not.toHaveBeenCalled();
+		expect(state.items[0].status).toEqual({ kind: 'rejected', reason: 'tooLarge' });
+	});
+
+	test('el lote sigue de uno en uno: no empieza a reducir el siguiente hasta subir el anterior', async () => {
+		const events: string[] = [];
+		const create = vi.fn(async (_c: string, input: unknown) => {
+			events.push(`create:${(input as { file: File }).file.name}`);
+			return {};
+		});
+		const { ctx } = fakeCtx(create);
+		const shrink = vi.fn(async (f: File) => {
+			events.push(`shrink:${f.name}`);
+			return { kind: 'untouched' as const };
+		});
+		const state = createMediaUploadState(shrink);
+
+		await state.start(
+			ctx,
+			bigSchema,
+			[photo('a.jpg', 1000), photo('b.jpg', 1000)],
+			() => {},
+			() => {}
+		);
+
+		expect(events).toEqual(['shrink:a.jpg', 'create:a.jpg', 'shrink:b.jpg', 'create:b.jpg']);
 	});
 });

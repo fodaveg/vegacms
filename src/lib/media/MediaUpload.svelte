@@ -75,6 +75,8 @@
 	const uploadState = createMediaUploadState();
 
 	let dragging = $state(false);
+	// «Subir el original»: por lote, desmarcada al montar, nunca persistida.
+	let keepOriginal = $state(false);
 	let inputEl = $state<HTMLInputElement | null>(null);
 	// Bytes del último lote, por índice (ver cabecera: "Reintentar"). Variable PLANA: nunca se lee
 	// en el template, así que no necesita reactividad (mismo criterio que `lastCall` de
@@ -140,7 +142,7 @@
 	function handleFiles(files: File[]): void {
 		if (uploadState.running || files.length === 0) return;
 		batchFiles = files;
-		void uploadState.start(ctx, schema, files, onUploaded, reportSummary);
+		void uploadState.start(ctx, schema, files, onUploaded, reportSummary, { keepOriginal });
 	}
 
 	function handleInputChange(event: Event): void {
@@ -229,6 +231,24 @@
 		</span>
 	</button>
 
+	<!-- Reducir al subir (Lote 13): la casilla vale para el lote siguiente, desmarcada por defecto y
+	     sin recordarse entre visitas (estado local, ni `localStorage`). Fuera de la banda de
+	     arrastre: esa desaparece en móvil y la casilla tiene que seguir a la vista. -->
+	<div class="vega-media-shrink">
+		<label class="vega-media-shrink-check">
+			<input
+				type="checkbox"
+				bind:checked={keepOriginal}
+				disabled={uploadState.running}
+				data-media-keep-original
+			/>
+			<span>{ctx.t('media.upload.keepOriginal')}</span>
+		</label>
+		<p class="vega-media-shrink-notice" data-media-shrink-notice>
+			{ctx.t('media.upload.shrinkNotice')}
+		</p>
+	</div>
+
 	{#if uploadState.items.length > 0}
 		<!-- Lote en curso: mismas tarjetas que la rejilla, en su propia fila justo encima de ella
 		     (el mockup las intercala entre los assets; aquí van juntas y arriba, que es donde el
@@ -279,6 +299,11 @@
 						{#if kind === 'error'}
 							<span class="vega-media-upload-error">
 								{statusText(item.status)}
+								{#if item.status.kind === 'rejected' && item.shrink?.kind === 'original'}
+									({ctx.t('media.upload.shrinkFailed', {
+										reason: ctx.t(`media.upload.shrinkWhy.${item.shrink.why}`)
+									})})
+								{/if}
 								{#if item.status.kind === 'error'}
 									·
 									<button
@@ -292,6 +317,14 @@
 							</span>
 						{:else}
 							<span class="vega-media-upload-status">{statusText(item.status)}</span>
+							{#if item.shrink?.kind === 'shrunk'}
+								<span class="vega-media-upload-sizes" data-media-upload-sizes>
+									{ctx.t('media.upload.shrunk', {
+										from: formatFileSize(item.shrink.fromBytes, ctx.locale),
+										to: formatFileSize(item.shrink.toBytes, ctx.locale)
+									})}
+								</span>
+							{/if}
 							{#if item.status.kind === 'pending' && !uploadState.running}
 								<!-- `pending` con el lote parado = la sesión caducó antes de intentarlo: se
 								     reintenta tras reentrar (ver cabecera de `media-upload-state.svelte.ts`). -->
@@ -370,6 +403,52 @@
 	.vega-media-dropzone[aria-disabled='true'] {
 		cursor: progress;
 		opacity: 0.6;
+	}
+
+	/* Casilla «Subir el original» y aviso fijo de la reducción. */
+	.vega-media-shrink {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		column-gap: 1rem;
+		row-gap: 0.25rem;
+	}
+
+	.vega-media-shrink-check {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: var(--ink-2);
+		font-size: 0.9em;
+		cursor: pointer;
+	}
+
+	.vega-media-shrink-notice {
+		flex: 1 1 18rem;
+		margin: 0;
+		color: var(--ink-3);
+		font-size: 0.82em;
+		line-height: 1.45;
+	}
+
+	/* Tamaños «antes → después» del ítem reducido: valor canónico → --mono, como el estado. */
+	.vega-media-upload-sizes {
+		display: block;
+		color: var(--ink-3);
+		font-family: var(--mono);
+		font-size: 0.72em;
+		line-height: 1.4;
+	}
+
+	@media (pointer: coarse) {
+		.vega-media-shrink-check {
+			min-height: 44px;
+		}
+
+		.vega-media-shrink-check input {
+			width: 24px;
+			height: 24px;
+		}
 	}
 
 	/* Lote en curso: MISMA rejilla que `MediaGrid` (ver marcado). */

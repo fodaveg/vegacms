@@ -1032,6 +1032,17 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.upload.summary': '{uploaded} file(s) uploaded, {failed} failed.',
 	'media.upload.summaryPending':
 		'{uploaded} file(s) uploaded, {failed} failed, {pending} pending because the session expired.',
+	'media.upload.keepOriginal': 'Upload the original',
+	'media.upload.shrinkNotice':
+		'Large images are reduced when uploaded. Camera data, including location, is lost.',
+	'media.upload.shrunk': '{from} → {to}',
+	'media.upload.shrinkFailed': 'could not be reduced ({reason})',
+	'media.upload.shrinkWhy.error': 'processing failed',
+	'media.upload.shrinkWhy.no-blob': 'the browser could not encode it',
+	'media.upload.shrinkWhy.wrong-type': 'the browser does not support this format',
+	'media.upload.shrinkWhy.not-smaller': 'it was not smaller',
+	'media.upload.shrinkWhy.empty': 'no dimensions',
+	'media.upload.shrinkWhy.blank': 'it came out blank',
 
 	// ————— Media: library picker (Phase P6·6e) —————
 	// D-P6.6/L-P6.8: the picker COPIES bytes (a record never references a `vega_media` asset), so

@@ -73,12 +73,17 @@ export function mediaSchemaAdmitsVideo(schema: MediaFileFieldSchema | null): boo
 
 /** Valida `file` contra las constraints DESCUBIERTAS en `schema` (ver cabecera). `null` =
  *  admitido. Sin `maxSizeBytes`/`mimeTypes` (o listas vacías) → sin restricción, igual semántica
- *  que `validateNewFile` de P5. */
+ *  que `validateNewFile` de P5. `ignoreSize` salta SOLO el tope de tamaño: la subida lo usa para
+ *  decidir si una imagen grande merece intentar reducirse (el tope se valida después, sobre lo
+ *  que de verdad se sube). */
 export function validateMediaFile(
 	schema: MediaFileFieldSchema,
-	file: File
+	file: File,
+	options: { ignoreSize?: boolean } = {}
 ): MediaFileRejectionReason | null {
-	if (schema.maxSizeBytes !== undefined && file.size > schema.maxSizeBytes) return 'tooLarge';
+	if (!options.ignoreSize && schema.maxSizeBytes !== undefined && file.size > schema.maxSizeBytes) {
+		return 'tooLarge';
+	}
 	if (
 		schema.mimeTypes &&
 		schema.mimeTypes.length > 0 &&
