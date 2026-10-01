@@ -55,11 +55,20 @@ export interface SessionStore {
 	restore(): Promise<void>;
 	/** Alias semántico de `restore()` para el botón "Reintentar" de la pantalla `network-error`. */
 	retryRestore(): Promise<void>;
-	/** Login (§3.1.2). Nunca lanza: el resultado se refleja en `session`/`loginError`. */
-	login(credentials: { email: string; password: string }): Promise<void>;
-	loginWithTotp(code: string): Promise<void>;
-	loginWithRecovery(code: string): Promise<void>;
-	loginWithPasskey(): Promise<void>;
+	/**
+	 * Login (§3.1.2). Nunca lanza: el resultado se refleja en `session`/`loginError`/`mfaChallenge`.
+	 *
+	 * Los cuatro pasos de entrada resuelven a `true` SOLO si ESA llamada obtuvo una sesión nueva del
+	 * backend. `false` cubre tanto el fallo (`loginError`) como el paso intermedio que deja un
+	 * `mfaChallenge` abierto. Quien necesite saber si ya hay sesión válida tiene que mirar este
+	 * valor y no `session`: con la sesión caducada (`expired`), `session` sigue siendo la ANTIGUA
+	 * (no-nula a propósito, §3.1.3), así que `session && !loginError` da por buena una entrada que
+	 * se quedó a medias en el segundo factor.
+	 */
+	login(credentials: { email: string; password: string }): Promise<boolean>;
+	loginWithTotp(code: string): Promise<boolean>;
+	loginWithRecovery(code: string): Promise<boolean>;
+	loginWithPasskey(): Promise<boolean>;
 	cancelMfa(): void;
 	/** Logout (§3.1.5): `logout()` de P1 nunca falla. Limpia sesión vía `onAuthChange('logout')`. */
 	logout(): Promise<void>;
@@ -134,7 +143,7 @@ export function createSessionStore(getPort: () => Promise<BackendPort>): Session
 		}
 	}
 
-	async function login(credentials: { email: string; password: string }): Promise<void> {
+	async function login(credentials: { email: string; password: string }): Promise<boolean> {
 		loginError = null;
 		try {
 			const port = await ensurePort();
@@ -142,20 +151,22 @@ export function createSessionStore(getPort: () => Promise<BackendPort>): Session
 				const outcome = await port.strongAuth.loginWithPassword(credentials);
 				if (outcome.kind === 'mfa-required') {
 					mfaChallenge = { pending: outcome.pending, methods: outcome.methods };
-					return;
+					return false;
 				}
 				session = outcome.session;
 			} else {
 				session = await port.login(credentials);
 			}
 			mfaChallenge = null;
+			return true;
 		} catch (err) {
 			loginError =
 				err instanceof VegaError ? err : VegaError.backend('Error inesperado al entrar', err);
+			return false;
 		}
 	}
 
-	async function completeMfa(method: 'totp' | 'recovery', code: string): Promise<void> {
+	async function completeMfa(method: 'totp' | 'recovery', code: string): Promise<boolean> {
 		loginError = null;
 		try {
 			const port = await ensurePort();
@@ -168,24 +179,28 @@ export function createSessionStore(getPort: () => Promise<BackendPort>): Session
 					? await port.strongAuth.loginWithTotp(challenge.pending, code)
 					: await port.strongAuth.loginWithRecovery(challenge.pending, code);
 			mfaChallenge = null;
+			return true;
 		} catch (err) {
 			loginError =
 				err instanceof VegaError ? err : VegaError.backend('Error inesperado al verificar', err);
+			return false;
 		}
 	}
 
-	async function loginWithPasskey(): Promise<void> {
+	async function loginWithPasskey(): Promise<boolean> {
 		loginError = null;
 		try {
 			const port = await ensurePort();
 			if (!port.strongAuth) throw VegaError.backend('Las passkeys no están disponibles.');
 			session = await port.strongAuth.loginWithPasskey();
 			mfaChallenge = null;
+			return true;
 		} catch (err) {
 			loginError =
 				err instanceof VegaError
 					? err
 					: VegaError.backend('Error inesperado al entrar con passkey', err);
+			return false;
 		}
 	}
 
@@ -246,7 +261,9 @@ export function createSessionStore(getPort: () => Promise<BackendPort>): Session
 	};
 }
 
-const SESSION_CONTEXT_KEY = Symbol('vega-session-store');
+/** Clave del contexto. Exportada solo para que un test de componente monte con un store propio
+ *  (mismo criterio que `VEGA_CONTEXT_KEY`); el código de producto usa las dos funciones de abajo. */
+export const SESSION_CONTEXT_KEY = Symbol('vega-session-store');
 
 /** Publica el `SessionStore` para que `/login` y `AppShell` lo lean con `getSessionContext()`. */
 export function setSessionContext(store: SessionStore): void {

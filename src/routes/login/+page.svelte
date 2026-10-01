@@ -27,6 +27,7 @@
 	 */
 	import { onMount } from 'svelte';
 	import { getSessionContext } from '$lib/session/session.svelte';
+	import { createLoginFlow } from '$lib/session/login-flow.svelte';
 	import { resolveDisplayBackendUrl } from '$lib/session/backend';
 	import { resolveLocale, t as translate } from '$lib/i18n';
 	import BackendUrlForm from '$lib/session/BackendUrlForm.svelte';
@@ -39,11 +40,10 @@
 		return translate(locale, key, params);
 	}
 
-	let email = $state('');
-	let password = $state('');
-	let totpCode = $state('');
-	let recoveryCode = $state('');
-	let submitting = $state(false);
+	// Campos, envío y mapeo de errores: los MISMOS pasos que usa `ReloginModal.svelte` (ver
+	// `login-flow.svelte.ts`). Aquí el valor de retorno de cada envío no se mira: quien reacciona a
+	// la sesión nueva es el guard de `+layout.svelte`.
+	const flow = createLoginFlow(sessionStore, t);
 
 	/** `undefined` mientras se resuelve (aún sin pintar nada); `null` = modo demo, sin servidor que
 	 *  mostrar (ver cabecera); string = la URL resuelta o el marcador de same-origin. */
@@ -62,45 +62,19 @@
 		typeof window !== 'undefined' && displayBackendUrl === window.location.origin
 	);
 
-	// Mapeo honesto por `kind` (§2.3, P3-L3): `network` → reintentable; `forbidden` → credenciales
-	// no válidas (mensaje neutro de P1 §4.1, no revela si el email existe); cualquier OTRO fallo de
-	// transporte (`backend` 5xx, etc.) → su `message` real, NUNCA reinterpretado como credenciales
-	// (decir "Credenciales no válidas" ante un 500 haría reintentar contraseñas en vano).
-	const errorMessage = $derived.by(() => {
-		const err = sessionStore.loginError;
-		if (!err) return null;
-		if (err.kind === 'network') return t('login.networkError');
-		if (err.kind === 'forbidden') {
-			return sessionStore.mfaChallenge ? t('login.mfa.invalidCode') : t('login.invalidCredentials');
-		}
-		return err.message;
-	});
-
 	async function handleSubmit(event: SubmitEvent): Promise<void> {
 		event.preventDefault();
-		submitting = true;
-		await sessionStore.login({ email, password });
-		submitting = false;
+		await flow.submitPassword();
 	}
 
 	async function handleTotp(event: SubmitEvent): Promise<void> {
 		event.preventDefault();
-		submitting = true;
-		await sessionStore.loginWithTotp(totpCode);
-		submitting = false;
+		await flow.submitTotp();
 	}
 
 	async function handleRecovery(event: SubmitEvent): Promise<void> {
 		event.preventDefault();
-		submitting = true;
-		await sessionStore.loginWithRecovery(recoveryCode);
-		submitting = false;
-	}
-
-	async function handlePasskey(): Promise<void> {
-		submitting = true;
-		await sessionStore.loginWithPasskey();
-		submitting = false;
+		await flow.submitRecovery();
 	}
 </script>
 
@@ -124,7 +98,7 @@
 		</div>
 
 		{#if sessionStore.mfaChallenge}
-			<div class="vega-login-card" data-login-state="mfa" aria-busy={submitting}>
+			<div class="vega-login-card" data-login-state="mfa" aria-busy={flow.submitting}>
 				<header class="vega-login-heading">
 					<p>Vega</p>
 					<h1>{t('login.mfa.title')}</h1>
@@ -144,13 +118,13 @@
 								pattern="[0-9]*"
 								maxlength="6"
 								required
-								aria-invalid={errorMessage ? 'true' : undefined}
-								aria-describedby={errorMessage ? 'login-error' : undefined}
-								bind:value={totpCode}
+								aria-invalid={flow.errorMessage ? 'true' : undefined}
+								aria-describedby={flow.errorMessage ? 'login-error' : undefined}
+								bind:value={flow.totpCode}
 							/>
 						</div>
-						<button class="vega-primary-button" type="submit" disabled={submitting}>
-							{submitting ? t('login.mfa.verifying') : t('login.mfa.verify')}
+						<button class="vega-primary-button" type="submit" disabled={flow.submitting}>
+							{flow.submitting ? t('login.mfa.verifying') : t('login.mfa.verify')}
 						</button>
 					</form>
 				{/if}
@@ -168,31 +142,27 @@
 									autocomplete="off"
 									placeholder="XXXXX-XXXXX"
 									required
-									aria-invalid={errorMessage ? 'true' : undefined}
-									aria-describedby={errorMessage ? 'login-error' : undefined}
-									bind:value={recoveryCode}
+									aria-invalid={flow.errorMessage ? 'true' : undefined}
+									aria-describedby={flow.errorMessage ? 'login-error' : undefined}
+									bind:value={flow.recoveryCode}
 								/>
 							</div>
-							<button class="vega-primary-button" type="submit" disabled={submitting}>
+							<button class="vega-primary-button" type="submit" disabled={flow.submitting}>
 								{t('login.mfa.recoverySubmit')}
 							</button>
 						</form>
 					</details>
 				{/if}
 
-				{#if errorMessage}
-					<p id="login-error" class="vega-login-error" role="alert">{errorMessage}</p>
+				{#if flow.errorMessage}
+					<p id="login-error" class="vega-login-error" role="alert">{flow.errorMessage}</p>
 				{/if}
-				<button
-					class="vega-secondary-button"
-					type="button"
-					onclick={() => sessionStore.cancelMfa()}
-				>
+				<button class="vega-secondary-button" type="button" onclick={() => flow.cancelMfa()}>
 					{t('login.mfa.cancel')}
 				</button>
 			</div>
 		{:else}
-			<div class="vega-login-card" data-login-state="password" aria-busy={submitting}>
+			<div class="vega-login-card" data-login-state="password" aria-busy={flow.submitting}>
 				<header class="vega-login-heading">
 					<p>Vega</p>
 					<h1>{t('login.title')}</h1>
@@ -214,9 +184,9 @@
 							type="email"
 							autocomplete="username"
 							required
-							aria-invalid={errorMessage ? 'true' : undefined}
-							aria-describedby={errorMessage ? 'login-error' : undefined}
-							bind:value={email}
+							aria-invalid={flow.errorMessage ? 'true' : undefined}
+							aria-describedby={flow.errorMessage ? 'login-error' : undefined}
+							bind:value={flow.email}
 						/>
 					</div>
 
@@ -228,18 +198,18 @@
 							type="password"
 							autocomplete="current-password"
 							required
-							aria-invalid={errorMessage ? 'true' : undefined}
-							aria-describedby={errorMessage ? 'login-error' : undefined}
-							bind:value={password}
+							aria-invalid={flow.errorMessage ? 'true' : undefined}
+							aria-describedby={flow.errorMessage ? 'login-error' : undefined}
+							bind:value={flow.password}
 						/>
 					</div>
 
-					{#if errorMessage}
-						<p id="login-error" class="vega-login-error" role="alert">{errorMessage}</p>
+					{#if flow.errorMessage}
+						<p id="login-error" class="vega-login-error" role="alert">{flow.errorMessage}</p>
 					{/if}
 
-					<button class="vega-primary-button" type="submit" disabled={submitting}>
-						{submitting ? t('login.submitting') : t('login.submit')}
+					<button class="vega-primary-button" type="submit" disabled={flow.submitting}>
+						{flow.submitting ? t('login.submitting') : t('login.submit')}
 					</button>
 				</form>
 
@@ -249,8 +219,8 @@
 						<button
 							type="button"
 							class="vega-secondary-button"
-							onclick={handlePasskey}
-							disabled={submitting}
+							onclick={() => flow.submitPasskey()}
+							disabled={flow.submitting}
 						>
 							{t('login.passkey')}
 						</button>
