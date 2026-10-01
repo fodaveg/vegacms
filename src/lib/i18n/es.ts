@@ -1322,11 +1322,9 @@ export const es = {
 
 	// ————— Rol editor (lote L6c): degradado de la edición del manifiesto —————
 	// Sin `schemaBootstrap` (colección de auth distinta de `_superusers`) un editor no puede
-	// introspeccionar ni crear/migrar esquema — la edición del manifiesto es, por definición,
-	// una operación de superusuario. Ver `computeCollectionState`/`Capabilities.schemaBootstrap`.
-	'settings.manifest.editorGateTitle': 'Modelo de contenido',
-	'settings.manifest.editorGateBody':
-		'La edición del manifiesto requiere una cuenta de administrador (superusuario). Pide a quien administre este PocketBase que ajuste el modelo de contenido desde este mismo panel.',
+	// introspeccionar ni crear/migrar esquema: la sección del modelo de contenido NO se pinta y la
+	// de conexión queda plegada bajo «Avanzado» (lote 11). Ver `Capabilities.schemaBootstrap`.
+	'settings.advanced.title': 'Avanzado',
 
 	// ————— Base del sitio: preparar y actualizar el PocketBase del sitio (lote 2 del audit) —————
 	// La palabra «sembrado» no sale en la interfaz. Lámina: design/mockups/2026-10-01-ajustes-y-sembrado.

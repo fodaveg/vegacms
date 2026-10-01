@@ -320,11 +320,24 @@
 		</div>
 	</section>
 
-	<section class="vega-backend-section" aria-labelledby="vega-backend-title">
-		<h2 id="vega-backend-title">{ctx.t('connect.title')}</h2>
-		<p class="vega-backend-description">{ctx.t('connect.description')}</p>
-		<BackendUrlForm t={ctx.t} confirmBeforeReload={true} />
-	</section>
+	<!-- Conexión: un administrador la ve tal cual. Quien edita (sin `schemaBootstrap`) no suele
+	     tocarla pero sí puede necesitarla (es donde fija SU colección de autenticación, L6c), así
+	     que se pliega bajo «Avanzado», cerrado, en vez de ocultarla. -->
+	{#snippet backendSection()}
+		<section class="vega-backend-section" aria-labelledby="vega-backend-title">
+			<h2 id="vega-backend-title">{ctx.t('connect.title')}</h2>
+			<p class="vega-backend-description">{ctx.t('connect.description')}</p>
+			<BackendUrlForm t={ctx.t} confirmBeforeReload={true} />
+		</section>
+	{/snippet}
+	{#if isManifestEditable}
+		{@render backendSection()}
+	{:else}
+		<details class="vega-settings-advanced" data-settings-advanced>
+			<summary>{ctx.t('settings.advanced.title')}</summary>
+			{@render backendSection()}
+		</details>
+	{/if}
 
 	{#if ctx.port.capabilities.strongAuth}
 		<SecuritySettings />
@@ -337,18 +350,10 @@
 		<SiteBaseCard onChanged={handleSchemaChanged} />
 	{/if}
 
+	<!-- L6c: rol editor (schemaBootstrap: false) — el modelo de contenido NO se pinta (ni el
+	     editor del manifiesto ni un aviso): un editor no puede usarlo ni hace falta contárselo. -->
 	{#if !isManifestEditable}
-		<!-- L6c: rol editor (schemaBootstrap: false) — el mensaje degradado ocupa el hueco donde
-		     iría el ManifestEditor. `data-manifest-state` para que los e2e lo localicen sin
-		     depender del idioma, mismo criterio que `data-media-state` en /media. -->
-		<section
-			class="vega-manifest-gate"
-			aria-labelledby="vega-manifest-gate-title"
-			data-manifest-state="gated"
-		>
-			<h2 id="vega-manifest-gate-title">{ctx.t('settings.manifest.editorGateTitle')}</h2>
-			<p>{ctx.t('settings.manifest.editorGateBody')}</p>
-		</section>
+		<!-- sin sección -->
 	{:else if status === 'loading'}
 		<p aria-live="polite">{ctx.t('common.loading')}</p>
 	{:else if status === 'error'}
@@ -589,27 +594,21 @@
 		color: var(--ink-2);
 	}
 
-	/* L6c: mismo tratamiento de tarjeta que "Apariencia"/"Backend, conexión" — el gate de rol
-	   editor no es un error de transporte (`.vega-settings-error`), es un estado degradado
-	   NORMAL/esperado. */
-	.vega-manifest-gate {
+	/* «Avanzado» (rol editor): la conexión plegada, cerrada por defecto. */
+	.vega-settings-advanced {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
-		padding: 1rem 1.2rem;
-		border: 1px solid var(--line);
-		border-radius: 8px;
-		background: var(--surface-2);
+		gap: 0.75rem;
 	}
 
-	.vega-manifest-gate h2 {
-		margin: 0;
-		font-size: 1.1rem;
-	}
-
-	.vega-manifest-gate p {
-		margin: 0;
+	.vega-settings-advanced > summary {
+		cursor: pointer;
+		font-size: 0.85rem;
 		color: var(--ink-2);
+	}
+
+	.vega-settings-advanced[open] > summary {
+		margin-bottom: 0.75rem;
 	}
 
 	.vega-about {

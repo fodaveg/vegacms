@@ -1256,11 +1256,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 
 	// ————— Editor role (batch L6c): manifest-editing gate —————
 	// Without `schemaBootstrap` (auth collection other than `_superusers`) an editor cannot
-	// introspect nor create/migrate schema — editing the manifest is, by definition, a superuser
-	// operation. See `computeCollectionState`/`Capabilities.schemaBootstrap`.
-	'settings.manifest.editorGateTitle': 'Content model',
-	'settings.manifest.editorGateBody':
-		'Editing the manifest requires an administrator (superuser) account. Ask whoever administers this PocketBase to adjust the content model from this same panel.',
+	// introspect nor create/migrate schema: the content-model section is NOT rendered and the
+	// connection one is folded under «Advanced» (batch 11). See `Capabilities.schemaBootstrap`.
+	'settings.advanced.title': 'Advanced',
 
 	// ————— Site base: prepare and update the site's PocketBase (audit batch 2) —————
 	// The word "seeding" never shows in the UI. Mockup: design/mockups/2026-10-01-ajustes-y-sembrado.
