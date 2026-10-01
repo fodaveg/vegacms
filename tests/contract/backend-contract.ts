@@ -2150,7 +2150,10 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 
 					const directory = await admin.listEditors();
 					expect(directory.passwordMinLength).toBe(8);
-					expect(directory.editors.find((account) => account.id === created.id)).toEqual(created);
+					// `created` lleva además `invitationSent` (solo existe en el alta, no en la lista).
+					expect(created).toMatchObject(
+						directory.editors.find((account) => account.id === created.id)!
+					);
 				}
 			);
 
