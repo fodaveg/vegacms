@@ -648,6 +648,26 @@ restauran (punto de arriba), un registro de esa colección no se puede recrear c
 caso especial de `vega_media`. La entrada sigue viéndose en la papelera (sus metadatos —alt, título,
 etiquetas— siguen teniendo valor), pero con "Restaurar" **deshabilitado** y el motivo explicado.
 
+### Las reglas de `vega_revisions` se quedan en `null`
+
+Vega crea `vega_revisions` sin reglas de acceso, es decir, con las cinco en `null`: solo un
+superusuario la lee y la escribe. **No las abras**, ni siquiera a los editores. Dos motivos:
+
+- **Escribir en ella es poder pedir una restauración.** Una fila de `vega_revisions` dice «recrea
+  este registro, con este id y estos valores, en esta colección». Quien pueda crear o modificar
+  filas puede dejar preparada una entrada de papelera a su medida, y la restauración la ejecuta
+  después otra persona con SU sesión; si es un superusuario, PocketBase no le aplica ninguna regla
+  de acceso. Una regla de creación o de edición abierta convierte la papelera en una forma de
+  escribir con permisos ajenos.
+- **Leerla es leer todo lo que se ha guardado o borrado.** Cada fila lleva la copia completa del
+  registro anterior: borradores sin publicar, campos que las reglas de su colección no dejan ver y
+  contenido ya eliminado. Una regla de lectura abierta se salta las reglas de todas las demás
+  colecciones a la vez.
+
+Consecuencia, con las reglas en `null`: el historial y la papelera solo se registran y solo se ven
+con sesión de superusuario. Lo que guarda o borra un editor (`vega_editors`) no deja copia, y su
+guardado sigue completándose con normalidad, como en cualquier otro fallo al escribir una revisión.
+
 ## Autenticación en Vega
 
 Vega autentica contra usuarios de PocketBase. Hay **dos modos** de autenticación: **superuser** (default, para operadores/administradores) y **editor** (para clientes no técnicos).

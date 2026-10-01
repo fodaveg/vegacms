@@ -6,7 +6,13 @@
 
 import { describe, expect, test } from 'vitest';
 import type { Field } from '$lib/backend/types';
-import { buildRestoreInput, hasFileValues, requiredFileFieldName } from './restore';
+import {
+	buildRestoreInput,
+	hasFileValues,
+	requiredFileFieldName,
+	restoreTargetType,
+	type RestoreTargetCandidate
+} from './restore';
 
 function textField(name: string, opts: Partial<Field> = {}): Field {
 	return {
@@ -145,5 +151,69 @@ describe('requiredFileFieldName (fix de code-review: "Restaurar" no puede promet
 			fileField('gallery', { required: true })
 		];
 		expect(requiredFileFieldName(fields)).toBe('cover');
+	});
+});
+
+describe('restoreTargetType (el destino de una restauración sale de un dato, no de la app)', () => {
+	function type(name: string, readonly = false): RestoreTargetCandidate {
+		return { name, schema: { readonly, fields: [textField('title')] } };
+	}
+	// Lo que trae `ContentModel.types`: tipos de contenido, las colecciones internas de Vega
+	// (ocultas, pero en la lista) y las vistas (`readonly`).
+	const types = [
+		type('pages'),
+		type('posts'),
+		type('vega'),
+		type('vega_media'),
+		type('vega_revisions'),
+		type('resumen', true)
+	];
+
+	test('un tipo de contenido del modelo: se devuelve ESE tipo', () => {
+		expect(restoreTargetType(types, 'pages')).toBe(types[0]);
+		expect(restoreTargetType(types, 'posts')).toBe(types[1]);
+	});
+
+	test.each([
+		['vega', 'el manifiesto'],
+		['vega_revisions', 'el propio historial'],
+		['vega_media', 'interna de Vega'],
+		['vega_editors', 'auth, y además reservada'],
+		['vega_cualquiera', 'reservada aunque no exista']
+	])('colección interna de Vega "%s" (%s): null aunque esté en el modelo', (collection) => {
+		expect(restoreTargetType(types, collection)).toBeNull();
+	});
+
+	test.each(['_superusers', '_mfas', '_externalAuths', 'users', 'otra'])(
+		'colección que no está en el modelo ("%s", de sistema, auth o borrada): null',
+		(collection) => {
+			expect(restoreTargetType(types, collection)).toBeNull();
+		}
+	);
+
+	test('una vista (readonly): null, no se crea nada en ella', () => {
+		expect(restoreTargetType(types, 'resumen')).toBeNull();
+	});
+
+	test('el nombre casa EXACTO: ni mayúsculas, ni espacios, ni prefijos', () => {
+		for (const collection of ['Pages', ' pages', 'pages ', 'page', 'pages/../vega', '']) {
+			expect(restoreTargetType(types, collection)).toBeNull();
+		}
+	});
+
+	test('un `collection` que no es un string (revisión manipulada): null', () => {
+		for (const collection of [null, undefined, 7, {}, ['pages'], { toString: () => 'pages' }]) {
+			expect(restoreTargetType(types, collection)).toBeNull();
+		}
+	});
+
+	test('claves heredadas de Object no cuelan como nombre de tipo', () => {
+		for (const collection of ['__proto__', 'constructor', 'toString', 'hasOwnProperty']) {
+			expect(restoreTargetType(types, collection)).toBeNull();
+		}
+	});
+
+	test('sin tipos en el modelo: null para todo', () => {
+		expect(restoreTargetType([], 'pages')).toBeNull();
 	});
 });
