@@ -27,6 +27,10 @@
 	 *   `lastKnownQ` de `ListToolbar.svelte`): así el `$effect` no depende de su propia
 	 *   escritura, y el reasentado interno tras guardar (más abajo) no se revierte en el
 	 *   siguiente tick.
+	 * - **Slug al crear** (audit 30 sep): en `model.mode === 'create'`, con `slugField` y
+	 *   `titleField`, el slug se deriva del título (`slugWriteForTitleEdit`, `slug-from-title.ts`)
+	 *   mientras la persona no haya tocado el campo slug; sin él, la entrada se guardaba sin URL.
+	 *   En un registro EXISTENTE el slug no se toca nunca (es una URL pública viva).
 	 * - Errores: `clientErrors` (`validation.ts`, D-P5.3) bloquea el envío SIN tocar la red si el
 	 *   propio cliente ya ve un `required`/`maxSelect` incumplido; `backendErrors`
 	 *   (`field-errors.ts`, L-P5.4) es lo que devuelve `onSubmit` si el puerto rechaza. Se funden
@@ -265,6 +269,7 @@
 	import { localeStatus, type LocaleStatus } from './locale-status';
 	import { isDirty, type FormInputValues } from './dirty';
 	import { toRecordInput } from './to-record-input';
+	import { slugWriteForTitleEdit } from './slug-from-title';
 	import { validateForm } from './validation';
 	import { isFieldValidationError, mapFieldErrors, type FieldErrorsView } from './field-errors';
 	import { fieldErrorMessage } from './field-error-message';
@@ -346,6 +351,11 @@
 	// Ver cabecera: variable PLANA (no `$state`) para no crear un ciclo effect↔escritura propia.
 	let syncedModel = untrack(() => model);
 
+	// Campos que la persona ha editado A MANO en este registro (variable PLANA: solo se lee dentro de
+	// `handleFieldChange`, nunca en el template). En creación, el slug sigue al título mientras su
+	// campo no esté aquí (ver cabecera, «Slug al crear»); un `model` nuevo la vacía.
+	let editedByHand: string[] = [];
+
 	// Costura de identidad de registro (F5-f, `record-context.ts`): el widget `file` necesita
 	// `{type, id}` para `ctx.port.fileUrl`, que `WidgetProps` no lleva (D-P5.1). Se publica un
 	// OBJETO `$state` ESTABLE (nunca reemplazado, solo mutado) para que un widget montado ahora
@@ -376,6 +386,7 @@
 	$effect(() => {
 		if (model !== syncedModel) {
 			syncedModel = model;
+			editedByHand = [];
 			baseline = model.baseline;
 			current = { ...model.baseline };
 			clientErrors = EMPTY_ERRORS;
@@ -587,7 +598,7 @@
 	 *  nada que escribir: JAMÁS pisa un slug bueno con una cadena vacía. */
 	function regenerateSlug(): void {
 		if (type.slugField === null || regeneratedSlug === '' || formDisabled) return;
-		handleFieldChange(type.slugField, regeneratedSlug);
+		handleFieldChange(type.slugField, regeneratedSlug, true);
 	}
 
 	// ————— Modelo de páginas (`type.page`, tarea p1 `1dc63001`; encargo "crear y editar páginas") —————
@@ -746,8 +757,19 @@
 		}
 	}
 
-	function handleFieldChange(name: string, value: FieldInputValue): void {
+	/**
+	 * `programmatic`: la escritura NO la hizo la persona en el campo (la propia derivación del slug
+	 * o «Regenerar»), así que no cuenta como «tocado a mano» y el slug sigue pudiendo acompañar al
+	 * título. Una edición real de un campo en CREACIÓN puede, además, arrastrar el slug
+	 * (`slugWriteForTitleEdit`): jamás en edición de un registro existente.
+	 */
+	function handleFieldChange(name: string, value: FieldInputValue, programmatic = false): void {
+		if (!programmatic && !editedByHand.includes(name)) editedByHand.push(name);
 		current = { ...current, [name]: value };
+		if (!programmatic) {
+			const follow = slugWriteForTitleEdit(type, model.mode, name, value, editedByHand);
+			if (follow) handleFieldChange(follow.field, follow.value, true);
+		}
 		// Corrige el campo ⇒ su error (de cualquiera de las dos fuentes) deja de mostrarse: el
 		// usuario ya está reaccionando a él, no tiene sentido dejarlo pintado hasta el próximo envío.
 		if (name in clientErrors.byField) {
