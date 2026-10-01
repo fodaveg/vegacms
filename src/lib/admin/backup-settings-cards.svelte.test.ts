@@ -16,7 +16,11 @@ import AutoBackupsCard from '../../routes/copias/AutoBackupsCard.svelte';
 import DestinationCard from '../../routes/copias/DestinationCard.svelte';
 
 const BASE: ServerSettings = {
-	meta: { appURL: 'https://cms.example.test' },
+	meta: {
+		appURL: 'https://cms.example.test',
+		senderName: 'Aguja',
+		senderAddress: 'web@aguja.example'
+	},
 	smtp: { enabled: false, host: '', port: 587, username: '', tls: false },
 	backups: {
 		cron: '',

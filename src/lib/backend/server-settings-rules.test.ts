@@ -11,7 +11,11 @@ import {
 } from './server-settings-rules';
 
 const CURRENT: ServerSettings = {
-	meta: { appURL: 'https://cms.example.test' },
+	meta: {
+		appURL: 'https://cms.example.test',
+		senderName: 'Aguja',
+		senderAddress: 'web@aguja.example'
+	},
 	smtp: { enabled: true, host: 'smtp.example.test', port: 587, username: 'u', tls: true },
 	backups: {
 		cron: CRON_DAILY,

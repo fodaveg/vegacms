@@ -23,6 +23,7 @@ import {
 	type PocketBaseInstanceDir,
 	type PocketBaseServerHandle
 } from './pb-harness/server';
+import { startSmtpSink } from './pb-harness/smtp-sink';
 import { describeServerSettingsContract } from './server-settings-contract';
 
 const AVAILABLE = isPocketBaseBinaryAvailable();
@@ -111,6 +112,63 @@ describe.skipIf(!AVAILABLE)('ajustes del servidor contra PocketBase real', () =>
 			expect(outcome).toEqual({
 				ok: false,
 				message: expect.stringContaining('Failed to send the test email. Raw error:')
+			});
+			await section.update({ smtp: { enabled: false } });
+		});
+
+		test('la prueba de correo contra un SMTP que acepta devuelve ok y el mensaje LLEGA al sumidero', async () => {
+			const sink = await startSmtpSink();
+			try {
+				const section = (await makePort()).serverSettings!;
+				await section.update({
+					meta: { senderName: 'Aguja', senderAddress: 'web@aguja.example' },
+					smtp: {
+						enabled: true,
+						host: '127.0.0.1',
+						port: sink.port,
+						username: '',
+						password: '',
+						tls: false
+					}
+				});
+				expect(await section.testEmail('dest@example.test', 'verification')).toEqual({ ok: true });
+				const [message] = await sink.waitForMessages(1);
+				expect(message).toContain('dest@example.test');
+				expect(message).toContain('web@aguja.example');
+			} finally {
+				await sink.stop();
+				await (await makePort()).serverSettings!.update({ smtp: { enabled: false } });
+			}
+		});
+
+		test('quitar la contraseña (clear) hace que la prueba pase contra un SMTP sin AUTH; con una guardada falla con texto crudo', async () => {
+			const sink = await startSmtpSink();
+			try {
+				const section = (await makePort()).serverSettings!;
+				const smtp = { enabled: true, host: '127.0.0.1', port: sink.port, tls: false };
+				await section.update({ smtp: { ...smtp, password: 'guardada' } });
+				const failed = await section.testEmail('dest@example.test', 'verification');
+				expect(failed).toEqual({
+					ok: false,
+					message: expect.stringContaining('Failed to send the test email. Raw error:')
+				});
+				await section.update({
+					smtp: { password: '' }
+				});
+				expect(await section.testEmail('dest@example.test', 'verification')).toEqual({ ok: true });
+			} finally {
+				await sink.stop();
+				await (await makePort()).serverSettings!.update({ smtp: { enabled: false } });
+			}
+		});
+
+		test('un puerto fuera de rango con el correo activado: error de campo `smtp.port`', async () => {
+			const section = (await makePort()).serverSettings!;
+			await expect(
+				section.update({ smtp: { enabled: true, host: '127.0.0.1', port: 0 } })
+			).rejects.toMatchObject({
+				kind: 'validation',
+				fieldErrors: { 'smtp.port': { message: expect.any(String) } }
 			});
 			await section.update({ smtp: { enabled: false } });
 		});
