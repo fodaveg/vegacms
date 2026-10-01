@@ -17,6 +17,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'nav.singletonManyRecords':
 		'"{label}" is marked as a settings page but has {count} records. Editing the first one.',
 	'nav.readonlyBadge': 'Read only',
+	// Empty home/sidebar for editors (no admin rights): they cannot create content types or use
+	// Settings, so they are told what to do instead.
+	'nav.emptyBodyEditor': 'There is no content to edit yet. Talk to whoever manages the site.',
 
 	// ————— Topbar —————
 	'topbar.logout': 'Log out',

@@ -22,6 +22,10 @@ export const es = {
 	'nav.singletonManyRecords':
 		'"{label}" está marcada como Ajustes pero tiene {count} registros. Editando el primero.',
 	'nav.readonlyBadge': 'Solo lectura',
+	// Portada/barra lateral vacías para quien edita (sin permisos de administración): no puede
+	// crear tipos de contenido ni tocar Ajustes, así que se le dice qué hacer en su lugar.
+	'nav.emptyBodyEditor':
+		'Todavía no hay contenido que editar. Habla con quien administre el sitio.',
 
 	// ————— Topbar —————
 	'topbar.logout': 'Cerrar sesión',

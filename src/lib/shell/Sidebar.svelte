@@ -255,7 +255,9 @@
 	{:else}
 		<div class="vega-sidebar-empty">
 			<p class="vega-sidebar-empty-title">{ctx.t('nav.emptyTitle')}</p>
-			<p class="vega-sidebar-empty-body">{ctx.t('nav.emptyBody')}</p>
+			<p class="vega-sidebar-empty-body">
+				{ctx.t(ctx.port.capabilities.schemaBootstrap ? 'nav.emptyBody' : 'nav.emptyBodyEditor')}
+			</p>
 		</div>
 	{/if}
 
