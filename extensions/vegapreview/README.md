@@ -148,9 +148,136 @@ without `draft` still receives the exact v1 response above.
   non-public records from PocketBase, configure those separately and keep them
   server-only.
 
+## Share links (optional, off by default)
+
+A share link is a preview URL an editor sends to someone who has no Vega account. It is a
+separate mechanism from the tokens above, which it does not change: it has state on the server,
+lasts as long as the editor chooses (30 days at most) and can be revoked. The wire contract of the
+four routes is in
+[`docs/PROJECT-CONTRACT-v1.md`](../../docs/PROJECT-CONTRACT-v1.md#share-links-optional).
+
+### Enable it
+
+```go
+preview, err := vegapreview.New(vegapreview.Config{
+	// ...everything above...
+	RecordCollections: []string{"pages"}, // required with ShareLinks
+	ShareLinks:        true,
+	SharePath:         "/preview-share",   // default
+	ShareMinTTL:       5 * time.Minute,    // default
+	ShareMaxTTL:       30 * 24 * time.Hour, // default and hard ceiling
+})
+if err != nil {
+	log.Fatal(err)
+}
+
+app.OnServe().BindFunc(func(event *core.ServeEvent) error {
+	if err := preview.EnsureCollections(event.App); err != nil {
+		return err
+	}
+	preview.RegisterRoutes(event)
+	return event.Next()
+})
+```
+
+Then add `"share": true` to the `preview` object of the discovery document.
+
+`EnsureCollections` creates the private collection `vega_preview_links` if it is missing and
+never alters an existing one; it returns an error if a collection with that name has any API
+rule open or fields of another shape. With `ShareLinks: false` it does nothing and
+`RegisterRoutes` mounts only `POST /token`, exactly as before.
+
+`New` fails, rather than adjusting the value, when:
+
+- `ShareMaxTTL` is above 30 days or negative. This is checked even with `ShareLinks: false`.
+- `ShareMinTTL` is negative, below one second, or above `ShareMaxTTL`.
+- `ShareLinks` is on and `RecordCollections` is empty or contains `vega_preview_links`. An
+  empty allowlist means "any collection" for `/token`; a standing public URL does not get that
+  default.
+- `SharePath` is not an absolute path, equals `PreviewPath`, or lives below it (the signed-token
+  route `{PreviewPath}/{collection}/{id}` would read it as a collection name).
+
+### Routes
+
+| Route                              | Caller                        | Purpose                         |
+| ---------------------------------- | ----------------------------- | ------------------------------- |
+| `POST {RoutePrefix}/share`         | editor or superuser session   | create; returns the URL once    |
+| `GET {RoutePrefix}/share`          | editor or superuser session   | list one record's live links    |
+| `POST {RoutePrefix}/share/revoke`  | editor or superuser session   | revoke by link id; idempotent   |
+| `POST {RoutePrefix}/share/resolve` | the site's server, with a key | tell the site what a link opens |
+
+The site key for `/share/resolve` is `vegapreview.ShareResolveKey(secret)`, that is
+`base64url(HMAC-SHA256(SigningSecret, "vega-preview-share-resolve-v1"))`, sent in the
+`X-Vega-Preview-Key` header. No new secret has to be provisioned.
+
+### What is stored
+
+One row per link in `vega_preview_links`, whose five API rules are `nil`, so only this extension
+and superusers reach it:
+
+| Field                 | Content                                                           |
+| --------------------- | ----------------------------------------------------------------- |
+| `collection`          | target collection                                                 |
+| `recordId`            | target record id                                                  |
+| `secretHash`          | hex SHA-256 of the secret, bound to the link id. Never the secret |
+| `expires`             | when the link stops working                                       |
+| `createdBy`           | id of the auth record that created it                             |
+| `createdByCollection` | its auth collection (the editors' one, or `_superusers`)          |
+| `label`               | optional short text                                               |
+| `created`             | creation time                                                     |
+
+The URL is `{SiteOrigin}{SharePath}/s1.{linkId}.{secret}`. The link id only locates the row; the
+secret is 32 bytes from `crypto/rand`, base64url encoded.
+
+### Security invariants of share links
+
+- The three management routes take a session of `AuthCollections` **or a superuser session**.
+  This differs from `POST /token`, which keeps refusing superusers. A superuser passes every
+  record rule, which is no more than a superuser can already do with the records themselves.
+- Create, list and revoke all require the caller to pass the record's `ViewRule` (else `404`,
+  like a missing record) **and** its `UpdateRule` (else `403`), through the same
+  `CanAccessRecord` call `/token` uses. Reading rights are not enough to publish a record to
+  whoever holds a URL.
+- Only collections named in `RecordCollections` can be shared, and a stored link whose
+  collection is no longer listed stops resolving.
+- The database holds a hash, never the secret, and the URL is returned by the create response
+  only. Plain SHA-256 is sufficient because the secret has 256 bits of entropy from a CSPRNG:
+  there is no dictionary to try, so a slow KDF would add nothing except a CPU cost that any
+  visitor could trigger on every resolution. The hash covers the link id, so one link's secret
+  never validates another row, and it is compared in constant time (also when the link id
+  matches no row).
+- **Revoking deletes the row** instead of setting a flag. Nothing in the contract needs a
+  history of revoked links, and absence fails closed: a revoked link takes the very same code
+  path as one that never existed, so no later change can forget to check a `revoked` column.
+- A malformed, unknown, wrong-secret, expired, revoked or orphaned (record deleted) token gets
+  the same `404`, byte for byte. A link whose record is gone is deleted on that lookup, so it
+  cannot come back if a record is later created with the same id.
+- Resolution is limited to 10 failed attempts per minute per address: the visitor's address
+  the site forwards in `clientIp`, or the caller's own address when the site key is missing or
+  wrong (and when `clientIp` is absent). The limiter is in memory, per process, and bounded to
+  10 000 addresses; when it is full and nothing has expired, an address it cannot track is
+  refused rather than let through uncounted. The caller's address comes from PocketBase's
+  `RealIP`, so it honours the trusted-proxy headers configured in PocketBase's settings.
+- Share request bodies are limited to 4 KiB.
+- Expired rows are deleted whenever a link is created or listed. There is no cron job; a row
+  that outlives its expiry is harmless because resolution checks the expiry itself.
+- Nothing logs a secret, a hash, a token, a link id or a URL. Storage failures are logged with
+  the operation name and the Go error type only.
+- Every response of the four routes carries `Cache-Control: no-store`.
+
+### Limits
+
+- The secret is in the URL, so it stays in browser history and in whatever channel was used to
+  send it. Anyone who obtains it sees the record until the link expires or is revoked.
+- Revocation depends on the site calling `/share/resolve` on every visit. A site that caches
+  the page or the answer keeps serving a revoked link.
+- The official PocketBase image has none of this, and a fully static site cannot use it.
+- The attempt limiter resets on restart and is not shared between replicas.
+- There is no cap on how many links a record may have; the list route returns the 200 newest.
+
 ## Verify
 
 ```sh
 go vet ./...
-go test ./...
+go test -race ./...
 ```
