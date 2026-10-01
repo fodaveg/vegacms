@@ -203,9 +203,13 @@ func New(config Config) (*Extension, error) {
 	if err != nil {
 		return nil, err
 	}
+	resolveKey, err := ShareResolveKey(normalized.SigningSecret)
+	if err != nil {
+		return nil, err
+	}
 	return &Extension{
 		config:          normalized,
-		shareResolveKey: ShareResolveKey(normalized.SigningSecret),
+		shareResolveKey: resolveKey,
 		shareCallerLimiter: newAttemptLimiter(
 			shareResolveMaxFailures,
 			shareResolveWindow,

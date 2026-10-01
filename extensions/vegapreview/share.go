@@ -290,10 +290,17 @@ func (x *Extension) whenShareReady(
 // to sign or decrypt a preview token:
 //
 //	base64url(HMAC-SHA256(secret, "vega-preview-share-resolve-v1"))
-func ShareResolveKey(secret string) string {
+//
+// It refuses a secret shorter than the 32 bytes New requires. HMAC accepts an empty key without
+// complaint, so a site whose environment variable was never set would otherwise derive a
+// well-formed, publicly computable key and never notice.
+func ShareResolveKey(secret string) (string, error) {
+	if len([]byte(secret)) < minSecretBytes {
+		return "", fmt.Errorf("vegapreview: the signing secret must be at least %d bytes", minSecretBytes)
+	}
 	mac := hmac.New(sha256.New, []byte(secret))
 	_, _ = mac.Write([]byte(shareResolveKeyLabel))
-	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil)), nil
 }
 
 // hashShareSecret is what the collection stores instead of the secret. Plain SHA-256 is enough:

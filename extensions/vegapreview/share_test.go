@@ -127,7 +127,7 @@ func newShareFixture(t *testing.T) shareFixture {
 		pageA:     pageA.Id,
 		pageB:     pageB.Id,
 		clock:     clock,
-		siteKey:   ShareResolveKey(testSecret),
+		siteKey:   mustShareResolveKey(testSecret),
 	}
 }
 
@@ -720,7 +720,7 @@ func TestShareRoutesAreNotMountedUnlessEnabled(t *testing.T) {
 		request := httptest.NewRequest(route.method, route.path, strings.NewReader("{}"))
 		request.Header.Set("Content-Type", "application/json")
 		request.Header.Set("Authorization", fixture.editorA)
-		request.Header.Set(ShareResolveKeyHeader, ShareResolveKey(testSecret))
+		request.Header.Set(ShareResolveKeyHeader, mustShareResolveKey(testSecret))
 		response := httptest.NewRecorder()
 		fixture.mux.ServeHTTP(response, request)
 		if response.Code != http.StatusNotFound {
@@ -1105,6 +1105,38 @@ func TestShareResolveRefusalsAreIndistinguishable(t *testing.T) {
 	}
 }
 
+func mustShareResolveKey(secret string) string {
+	key, err := ShareResolveKey(secret)
+	if err != nil {
+		panic(err)
+	}
+	return key
+}
+
+// TestShareResolveKeyRefusesAMissingOrShortSecret: HMAC takes an empty key without complaint, so a
+// site with an unset environment variable would derive a key anyone can compute.
+func TestShareResolveKeyRefusesAMissingOrShortSecret(t *testing.T) {
+	for name, secret := range map[string]string{
+		"empty":         "",
+		"one byte less": testSecret[:minSecretBytes-1],
+	} {
+		t.Run(name, func(t *testing.T) {
+			key, err := ShareResolveKey(secret)
+			if err == nil || key != "" {
+				t.Fatalf("expected an error and no key, got %q, %v", key, err)
+			}
+			if secret != "" && strings.Contains(err.Error(), secret) {
+				t.Fatal("the error echoes the secret")
+			}
+		})
+	}
+	// The cross-language vector the site's implementation must reproduce.
+	const expected = "T11UqkFfGjRmrCfgEgbOYNCpz_M6dGeZ4eN30F4kZVw"
+	if key, err := ShareResolveKey(testSecret); err != nil || key != expected {
+		t.Fatalf("resolve key vector changed:\nwant %s\ngot  %s (%v)", expected, key, err)
+	}
+}
+
 func TestShareResolveRequiresTheSiteKey(t *testing.T) {
 	fixture := newShareFixture(t)
 	_, token := fixture.mustCreate(t, fixture.editorA, fixture.pageA, 3600)
@@ -1112,7 +1144,7 @@ func TestShareResolveRequiresTheSiteKey(t *testing.T) {
 
 	for name, headers := range map[string]map[string]string{
 		"missing":             nil,
-		"wrong":               {ShareResolveKeyHeader: ShareResolveKey("another secret of thirty-two bytes!!")},
+		"wrong":               {ShareResolveKeyHeader: mustShareResolveKey("another secret of thirty-two bytes!!")},
 		"the secret itself":   {ShareResolveKeyHeader: testSecret},
 		"an editor's session": {"Authorization": fixture.editorA},
 	} {
@@ -1126,8 +1158,8 @@ func TestShareResolveRequiresTheSiteKey(t *testing.T) {
 			}
 		})
 	}
-	if ShareResolveKey(testSecret) == testSecret ||
-		strings.Contains(ShareResolveKey(testSecret), testSecret) {
+	if mustShareResolveKey(testSecret) == testSecret ||
+		strings.Contains(mustShareResolveKey(testSecret), testSecret) {
 		t.Fatal("the site key must be derived from the signing secret, not be it")
 	}
 }
