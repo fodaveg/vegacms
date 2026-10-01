@@ -25,6 +25,7 @@ import type {
 import type { FieldError } from '../../errors';
 import { VegaError } from '../../errors';
 import { DEFAULT_CRON_MAX_KEEP } from '../../server-settings-rules';
+import { SETTINGS_READ_KEY, coalesce } from './shared-reads';
 
 interface ServerSettingsOptions {
 	pb: PocketBase;
@@ -51,7 +52,9 @@ export function createPocketBaseServerSettings({
 	return {
 		get() {
 			return guarded(async () =>
-				toServerSettings(await pb.send('/api/settings', { method: 'GET' }))
+				toServerSettings(
+					await coalesce(pb, SETTINGS_READ_KEY, () => pb.send('/api/settings', { method: 'GET' }))
+				)
 			);
 		},
 

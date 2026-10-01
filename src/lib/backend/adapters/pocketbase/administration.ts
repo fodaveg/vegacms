@@ -37,6 +37,7 @@ import {
 	toIsoDate
 } from '../../administration-rules';
 import { mapPocketBaseError } from './errors';
+import { SETTINGS_READ_KEY, coalesce } from './shared-reads';
 
 interface AdministrationOptions {
 	pb: PocketBase;
@@ -55,6 +56,32 @@ export function createPocketBaseAdministration({
 }: AdministrationOptions): AdministrationPort {
 	const editors = () => pb.collection(VEGA_EDITORS_COLLECTION_NAME);
 
+	/** Definición de la colección, compartida con otra lectura que coincida en vuelo. */
+	const readCollection = () =>
+		coalesce(pb, `collection:${VEGA_EDITORS_COLLECTION_NAME}`, () =>
+			pb.collections.getOne(VEGA_EDITORS_COLLECTION_NAME)
+		);
+
+	/** `GET /api/settings` compartido con otra lectura en vuelo (también la de `serverSettings`). */
+	const readSettings = () => coalesce(pb, SETTINGS_READ_KEY, () => pb.settings.getAll());
+
+	/**
+	 * Plantilla de fábrica de las colecciones `auth`: sale del servidor y solo cambia al actualizarlo,
+	 * así que basta pedirla una vez por sesión. Un fallo no se recuerda (la próxima llamada reintenta).
+	 */
+	let scaffolds: Promise<{ auth?: { resetPasswordTemplate?: EmailTemplate } }> | null = null;
+	const readScaffolds = () => {
+		scaffolds ??= (
+			pb.send('/api/collections/meta/scaffolds', { method: 'GET' }) as Promise<{
+				auth?: { resetPasswordTemplate?: EmailTemplate };
+			}>
+		).catch((err: unknown) => {
+			scaffolds = null;
+			throw err;
+		});
+		return scaffolds;
+	};
+
 	async function findEditor(id: string): Promise<EditorAccount> {
 		return toEditorAccount(await editors().getOne(id));
 	}
@@ -64,7 +91,7 @@ export function createPocketBaseAdministration({
 			return guarded(async () => {
 				// `getOne` de la colección antes que sus registros: da el `min` real de la contraseña y
 				// distingue "no existe la colección" (404) de cualquier otro fallo.
-				const collection = await pb.collections.getOne(VEGA_EDITORS_COLLECTION_NAME);
+				const collection = await readCollection();
 				if (collection.type !== 'auth') {
 					throw VegaError.backend(
 						`La colección "${VEGA_EDITORS_COLLECTION_NAME}" existe pero no es de autenticación.`
@@ -80,7 +107,7 @@ export function createPocketBaseAdministration({
 
 		mailEnabled() {
 			return guarded(async () => {
-				const settings = (await pb.settings.getAll()) as { smtp?: { enabled?: unknown } };
+				const settings = (await readSettings()) as { smtp?: { enabled?: unknown } };
 				return settings.smtp?.enabled === true;
 			});
 		},
@@ -173,11 +200,9 @@ export function createPocketBaseAdministration({
 				// La plantilla de fábrica sale de los scaffolds del propio servidor, no de una copia en
 				// Vega: así "sigue siendo la de fábrica" significa lo mismo en cualquier versión de PB.
 				const [collection, scaffolds, settings] = await Promise.all([
-					pb.collections.getOne(VEGA_EDITORS_COLLECTION_NAME),
-					pb.send('/api/collections/meta/scaffolds', { method: 'GET' }) as Promise<{
-						auth?: { resetPasswordTemplate?: EmailTemplate };
-					}>,
-					pb.settings.getAll() as Promise<{ meta?: { appURL?: unknown } }>
+					readCollection(),
+					readScaffolds(),
+					readSettings() as Promise<{ meta?: { appURL?: unknown } }>
 				]);
 				const current = (collection as { resetPasswordTemplate?: EmailTemplate })
 					.resetPasswordTemplate;

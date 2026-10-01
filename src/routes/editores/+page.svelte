@@ -33,7 +33,7 @@
 		type NewEditorAccess,
 		type ServerSettings
 	} from '$lib/backend';
-	import { DEFAULT_PASSWORD_MIN_LENGTH } from '$lib/backend/administration-rules';
+	import { DEFAULT_PASSWORD_MIN_LENGTH, sortEditors } from '$lib/backend/administration-rules';
 	import { passwordResetRoute, settingsRoute } from '$lib/nav/routes';
 	import Icon from '$lib/icons/Icon.svelte';
 	import AdminDialog from '$lib/admin/AdminDialog.svelte';
@@ -78,19 +78,22 @@
 		const admin = administration;
 		if (!admin) return;
 		status = 'loading';
+		// Las tres lecturas salen a la vez: el adaptador junta las que piden lo mismo (los ajustes del
+		// servidor, la colección) en una petición. `ensureInvitationLink` hace que el enlace del correo
+		// lleve a `/restablecer` y no al Admin de PocketBase; solo escribe si la plantilla sigue la
+		// de fábrica (ver el puerto) y, sin colección, no hay plantilla que tocar. No bloquea la
+		// lista: si falla, la invitación avisa de que no se ha podido comprobar.
 		const mailPromise = admin.mailEnabled().catch(() => false);
+		const linkPromise = admin
+			.ensureInvitationLink(absoluteResetUrl())
+			.catch((): 'unknown' => 'unknown');
 		try {
 			const directory = await admin.listEditors();
 			editors = directory.editors;
 			passwordMinLength = directory.passwordMinLength;
 			mailEnabled = await mailPromise;
 			status = 'ready';
-			// Con la colección confirmada: que el enlace del correo lleve a `/restablecer` y no al
-			// Admin de PocketBase. Solo escribe si la plantilla sigue la de fábrica (ver el puerto).
-			// No bloquea la lista: si falla, la invitación avisa de que no se ha podido comprobar.
-			inviteLink = await admin
-				.ensureInvitationLink(absoluteResetUrl())
-				.catch((): 'unknown' => 'unknown');
+			inviteLink = await linkPromise;
 		} catch (err) {
 			const vegaErr =
 				err instanceof VegaError ? err : VegaError.backend('Error cargando los editores', err);
@@ -149,7 +152,8 @@
 		mailSettings = next;
 		const admin = administration;
 		if (!admin) return;
-		mailEnabled = await admin.mailEnabled().catch(() => mailEnabled);
+		// La respuesta del guardado ya trae si el correo está activado: no hace falta releerlo.
+		mailEnabled = next.smtp.enabled;
 		const link = await admin
 			.ensureInvitationLink(absoluteResetUrl())
 			.catch((): 'unknown' => 'unknown');
@@ -165,8 +169,8 @@
 
 	function handleCreated(account: CreatedEditor, kind: NewEditorAccess['kind']): void {
 		adding = false;
-		// Cuenta creada pero correo no pedido: no es un éxito limpio. La lista recargada la muestra
-		// como pendiente y su fila ofrece «Reenviar invitación».
+		// Cuenta creada pero correo no pedido: no es un éxito limpio. La lista la muestra como
+		// pendiente y su fila ofrece «Reenviar invitación».
 		const mailFailed = kind === 'invite' && !account.invitationSent;
 		ctx.feedback.toast(
 			ctx.t(
@@ -179,7 +183,12 @@
 			),
 			{ kind: mailFailed ? 'error' : 'success' }
 		);
-		void load();
+		// Sin recargar: la escritura ya devolvió la cuenta tal como la lista la mostraría.
+		const { id, email, verified, created } = account;
+		editors = sortEditors([
+			...editors.filter((e) => e.id !== id),
+			{ id, email, verified, created }
+		]);
 	}
 
 	// ————— Cambiar contraseña —————
@@ -191,7 +200,8 @@
 		ctx.feedback.toast(ctx.t('admin.editors.passwordDialog.success', { email: account.email }), {
 			kind: 'success'
 		});
-		void load();
+		// Poner la contraseña deja la cuenta verificada (ver el puerto): se refleja sin recargar.
+		editors = editors.map((e) => (e.id === account.id ? { ...e, verified: true } : e));
 	}
 
 	// ————— Reenviar invitación —————
@@ -232,7 +242,7 @@
 			ctx.feedback.toast(ctx.t('admin.editors.removeDialog.success', { email: target.email }), {
 				kind: 'success'
 			});
-			void load();
+			editors = editors.filter((e) => e.id !== target.id);
 		} catch (err) {
 			removing = false;
 			ctx.feedback.reportError(
