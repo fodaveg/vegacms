@@ -362,7 +362,9 @@ La implementación de referencia es
 [`extensions/vegapreview`](../extensions/vegapreview/README.md). Se registra desde `OnServe` con la
 misma forma que `vegabuild`: `POST /api/vega-preview/token` queda detrás de `RequireAuth`, recibe el
 token de la sesión de Vega en `Authorization` sin prefijo `Bearer`, comprueba la `ViewRule` sobre el
-registro exacto y devuelve una URL firmada de corta duración.
+registro exacto y devuelve una URL firmada de corta duración. Si la petición trae un borrador sin
+guardar (`draft`), exige además la `UpdateRule` de la colección: quien puede ver el registro pero no
+editarlo recibe `403` y ningún token, y sigue pudiendo previsualizar lo guardado.
 
 El sitio comparte con la extensión un `VEGA_PREVIEW_SECRET` exclusivamente server-side. La firma
 cubre versión, colección, id y caducidad: cambiar el id de la ruta, reutilizar el token para otra

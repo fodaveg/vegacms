@@ -247,9 +247,13 @@ writing them down here rather than leaving them to each implementation:
 - **It must be bounded.** Vega's reference implementation rejects drafts over 256 KiB of
   JSON with `413`, and enforces the limit before parsing or decrypting on both ends.
 
-Authorisation does not change: the saved record's `ViewRule` is still evaluated with the
-editor's own identity before any token is issued, so previewing a draft never grants
-access the editor did not already have.
+Authorisation gets stricter, never looser: the saved record's `ViewRule` is still evaluated
+with the editor's own identity before any token is issued, and a request that carries
+`draft` must also satisfy the collection's `UpdateRule`. A draft is content proposed for
+the record and rendered as if it were the record, so the right to read it is not enough.
+The reference extension answers `403` (and issues no token) to an editor who may view the
+record but not update it; the same request without `draft` keeps returning the `v1` URL.
+Previewing a draft therefore never grants access the editor did not already have.
 
 #### Two limits the reference extension enforces on both paths
 

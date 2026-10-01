@@ -5,7 +5,9 @@ Reference Go implementation of the optional endpoint advertised as
 used by Vega's `PreviewPanel`: an authenticated editor asks for one saved
 record and receives a short-lived URL to the site's on-demand preview route.
 When the optional request field `draft` is present, the response instead adds
-an encrypted `postToken` that Vega submits to that same route by `POST`.
+an encrypted `postToken` that Vega submits to that same route by `POST`; that
+path additionally requires the editor to be allowed to update the record (see
+[Security invariants](#security-invariants)).
 
 Requires PocketBase **0.39.7 or newer** and Go 1.26 or newer.
 
@@ -113,8 +115,26 @@ without `draft` still receives the exact v1 response above.
 - Before signing, the extension loads the exact requested record and calls
   PocketBase `CanAccessRecord` with that collection's current `ViewRule`.
   Internal server access alone is never treated as editor permission.
+- A request that carries `draft` must also satisfy that collection's current
+  `UpdateRule`, checked with the same `CanAccessRecord` call: a draft is
+  content proposed for the record, and the site renders it as if it were the
+  record, so reading rights are not enough. PocketBase semantics apply as
+  usual: a `nil` rule admits only superusers (which `AuthCollections` never
+  lets in, so drafts are refused for everyone), an empty rule admits any
+  authenticated editor, and anything else is a filter evaluated against the
+  saved record and the editor's session. An editor who may view but not
+  update gets `403` and no token; the same request without `draft` still
+  returns the v1 URL. `@request.body.*` clauses in an `UpdateRule` see the
+  body of this preview request (`collection`, `id`, `draft`), not the fields
+  inside the draft, so a rule that restricts WHICH fields may change is not
+  enforced here; it is enforced by PocketBase when the editor actually saves.
 - Missing, unsupported, nonexistent, and inaccessible records all return 404,
-  so the endpoint does not become a record-enumeration oracle.
+  so the endpoint does not become a record-enumeration oracle. The `403`
+  above is only ever returned for a record the caller was already proven able
+  to view.
+- Nothing in this extension logs a token, the signing secret, or draft
+  content; the only log line is a failed record lookup, with the collection,
+  the id and the error type.
 - `SigningSecret` is required and must contain at least 32 bytes. It never
   appears in discovery or in the signed URL.
 - Draft bytes are never written to PocketBase or a server cache. AES-GCM keeps
