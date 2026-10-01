@@ -1013,6 +1013,7 @@ export const es = {
 	'media.filter.documents': 'Documentos',
 	'media.filter.empty': 'Ningún archivo de esta página coincide con la búsqueda o el tipo elegido.',
 	'media.filter.clear': 'Limpiar filtros',
+	'media.search.empty': 'Ningún archivo de la biblioteca coincide con la búsqueda.',
 
 	// ————— Medios: barra de selección (rediseño «aquelarre-medios») —————
 	// Sin "Insertar" (ver `MediaSelectionBar.svelte`): insertar en un campo solo existe cuando la

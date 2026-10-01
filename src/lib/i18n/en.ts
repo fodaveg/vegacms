@@ -952,6 +952,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.filter.documents': 'Documents',
 	'media.filter.empty': 'No file on this page matches the search or the chosen type.',
 	'media.filter.clear': 'Clear filters',
+	'media.search.empty': 'No file in the library matches the search.',
 
 	// ————— Media: selection bar («aquelarre-medios» redesign) —————
 	// No "Insert" (see `MediaSelectionBar.svelte`): inserting into a field only exists when the

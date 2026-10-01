@@ -45,7 +45,7 @@
 	import { VegaError } from '$lib/backend/errors';
 	import type { RecordId } from '$lib/backend/types';
 	import { createMediaListState } from './media-list-state.svelte';
-	import { MEDIA_PER_PAGE } from './media-query';
+	import { MEDIA_PER_PAGE, MEDIA_SEARCH_DEBOUNCE_MS } from './media-query';
 	import { toMediaItemView, type MediaItemView } from './media-item';
 	import { countMediaMissingAlt, mediaMissingAlt } from './media-card';
 	import { matchesAccept, type MediaPickResult } from './media-picker';
@@ -65,7 +65,6 @@
 
 	let searchTerm = $state('');
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-	const SEARCH_DEBOUNCE_MS = 250;
 
 	// Elegidos EN ESTA sesión del picker: `MediaItemView` completo (no solo el id) — "Insertar"
 	// necesita `id`/`fileRef`/`alt` de cada uno, y la selección puede abarcar varias páginas (elegir
@@ -117,7 +116,7 @@
 		debounceTimer = setTimeout(() => {
 			debounceTimer = null;
 			void listState.load(ctx, 1, term);
-		}, SEARCH_DEBOUNCE_MS);
+		}, MEDIA_SEARCH_DEBOUNCE_MS);
 	}
 
 	function handleSearchInput(event: Event): void {

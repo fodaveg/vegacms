@@ -14,7 +14,7 @@
 	 *
 	 * Los tres desenlaces (§9):
 	 * - `'present'`: la biblioteca REAL: cabecera con recuento + botón "Subir archivos", toolbar
-	 *   (buscador por nombre de fichero + chips de tipo), banda de arrastre (`MediaUpload`, Fase 6c)
+	 *   (buscador por título/alt + chips de tipo), banda de arrastre (`MediaUpload`, Fase 6c)
 	 *   + grid de `vega_media` (`MediaGrid`, Fase 6b) + paginación (`Pagination`, reutilizado de P4)
 	 *   + panel de detalle (`MediaDetail`, 6b) para editar `alt`/`title`/`tags`. `MediaUpload` vive
 	 *   SIEMPRE visible en este estado (antes del `{#if}` de carga/error/vacío/listo del grid): la
@@ -50,13 +50,15 @@
 	 *
 	 * ————— Rediseño al mockup `aquelarre-medios.html` —————
 	 *
-	 * **Toolbar (filtros de CLIENTE, sobre la página cargada)**: el buscador filtra por nombre de
-	 * FICHERO y los chips por tipo, ambos con módulos puros (`media-card.ts`). Los dos son de
-	 * cliente y sobre la página actual a propósito, no por pereza: el nombre del binario no es un
-	 * campo consultable del registro (solo `alt`/`title` lo son, `buildMediaListQuery`) y el mime
-	 * tampoco (audit H1) — exactamente la misma limitación por la que el picker filtra `accept` en
-	 * el cliente. Consecuencia asumida y visible: la paginación sigue contando el total SIN filtrar,
-	 * y una página puede quedarse con menos celdas de las que promete.
+	 * **Toolbar**: el buscador es SERVER-SIDE (audit del 30 sep): `buildMediaListQuery(page, {
+	 * search })`, el mismo constructor que el selector, filtra por `alt`/`title` sobre TODA la
+	 * biblioteca, con debounce (`MEDIA_SEARCH_DEBOUNCE_MS`); cambiar el término vuelve a la página 1.
+	 * El nombre del binario no es consultable, así que ya NO se busca por él (antes se filtraba en el
+	 * cliente solo la página cargada y solo por nombre). Los chips de tipo siguen siendo de CLIENTE y
+	 * sobre la página actual (`media-card.ts`): el mime tampoco es consultable (audit H1), la misma
+	 * limitación por la que el picker filtra `accept` en el cliente; una página puede quedarse con
+	 * menos celdas de las que promete. El chip «Vídeo» solo existe si el esquema DESCUBIERTO de
+	 * `file` admite vídeo (`mediaSchemaAdmitsVideo`).
 	 *
 	 * **Selección + barra contextual**: seleccionar NO es abrir. El click de una celda mantiene su
 	 * gesto de 6b/6d (abre `MediaDetail`); la selección se opera con el círculo de la esquina de
@@ -93,16 +95,17 @@
 		VEGA_MEDIA_COLLECTION
 	} from '$lib/media/media-collection';
 	import { ALL_PERMISSIONS, permissionsFor } from '$lib/backend/access';
-	import {
-		matchesMediaNameQuery,
-		matchesMediaTypeFilter,
-		type MediaTypeFilter
-	} from '$lib/media/media-card';
+	import { matchesMediaTypeFilter, type MediaTypeFilter } from '$lib/media/media-card';
 	import { mediaDisplayName, toMediaItemView, type MediaItemView } from '$lib/media/media-item';
 	import { resolveMediaFileUrl } from '$lib/media/media-thumb';
-	import { MEDIA_PER_PAGE, mediaPageToParams, parseMediaPage } from '$lib/media/media-query';
+	import {
+		MEDIA_PER_PAGE,
+		MEDIA_SEARCH_DEBOUNCE_MS,
+		mediaPageToParams,
+		parseMediaPage
+	} from '$lib/media/media-query';
 	import { createMediaListState } from '$lib/media/media-list-state.svelte';
-	import { findMediaFileFieldSchema } from '$lib/media/media-upload';
+	import { findMediaFileFieldSchema, mediaSchemaAdmitsVideo } from '$lib/media/media-upload';
 	import { mediaRoute } from '$lib/nav/routes';
 	import Icon from '$lib/icons/Icon.svelte';
 	import MediaGrid from '$lib/media/MediaGrid.svelte';
@@ -127,6 +130,9 @@
 	// razonamiento que `/c/[type]` (este componente solo llega a montarse tras layout+sesión
 	// resueltos, el router ya está asentado en ese momento).
 	let routerReady = $state(false);
+
+	/** Debounce del buscador (ver `handleSearchInput`); se cancela al desmontar. */
+	let searchTimer: ReturnType<typeof setTimeout> | null = null;
 
 	/** L6c: MISMA señal de capability que gatea `/settings` (ver su cabecera) — un editor nunca
 	 *  tiene `schemaBootstrap: true`, así que en la práctica es la única forma en que `collectionState`
@@ -171,6 +177,9 @@
 	onMount(() => {
 		routerReady = true;
 		void load();
+		return () => {
+			if (searchTimer !== null) clearTimeout(searchTimer);
+		};
 	});
 
 	function handleCreateClick(): void {
@@ -238,9 +247,13 @@
 	const mediaPage = $derived(parseMediaPage(page.url.searchParams));
 	const mediaListState = createMediaListState();
 
+	/** Término de búsqueda YA aplicado al servidor (el del input, tras el debounce): lo lee el efecto
+	 *  de carga de abajo, así que cambiarlo recarga con el filtro nuevo. */
+	let appliedSearch = $state('');
+
 	$effect(() => {
 		if (!routerReady || collectionState !== 'present') return;
-		void mediaListState.load(ctx, mediaPage);
+		void mediaListState.load(ctx, mediaPage, appliedSearch);
 	});
 
 	const mediaStatus = $derived(mediaListState.status);
@@ -251,37 +264,62 @@
 	// Biblioteca REALMENTE vacía (ninguna página tiene nada) — distinto de "esta página concreta
 	// no tiene items" (un `?page=` fuera de rango, o borrar el último de la página): ese segundo caso
 	// lo resuelve el `$effect` de abajo yendo a la última página con datos, igual que `/c/[type]`.
-	const mediaIsEmpty = $derived(mediaReadyPage !== null && mediaReadyPage.totalItems === 0);
+	// «Vacía» de verdad solo SIN búsqueda: con un término aplicado, 0 resultados es «nada coincide»
+	// (rama `empty-filter` del marcado), nunca «la biblioteca está vacía».
+	const mediaIsEmpty = $derived(
+		mediaReadyPage !== null && mediaReadyPage.totalItems === 0 && appliedSearch.trim() === ''
+	);
 
-	// ————— Toolbar: buscador por nombre de fichero + chips de tipo (filtros de CLIENTE) —————
+	// ————— Toolbar: buscador (servidor) + chips de tipo (cliente, sobre la página) —————
 
+	/** Lo que hay escrito en el input (se aplica al servidor tras el debounce, `appliedSearch`). */
 	let searchTerm = $state('');
 	let typeFilter = $state<MediaTypeFilter>('all');
 
-	/** Los cuatro chips del mockup, en su orden. Array plano (nunca `$state`): es una constante de
-	 *  presentación, no cambia en toda la vida del componente. */
-	const TYPE_FILTERS: readonly { value: MediaTypeFilter; key: string }[] = [
+	/** Los chips del mockup, en su orden; «Vídeo» solo si el esquema descubierto admite vídeo (ver
+	 *  cabecera). */
+	const typeFilters = $derived<readonly { value: MediaTypeFilter; key: string }[]>([
 		{ value: 'all', key: 'media.filter.all' },
 		{ value: 'image', key: 'media.filter.images' },
-		{ value: 'video', key: 'media.filter.video' },
+		...(mediaSchemaAdmitsVideo(mediaFileSchema)
+			? [{ value: 'video' as const, key: 'media.filter.video' }]
+			: []),
 		{ value: 'document', key: 'media.filter.documents' }
-	];
+	]);
 
-	const hasActiveFilters = $derived(searchTerm.trim() !== '' || typeFilter !== 'all');
+	const hasActiveFilters = $derived(appliedSearch.trim() !== '' || typeFilter !== 'all');
 
-	/** Lo que de verdad se pinta: la página cargada tras el buscador y el chip activo (ver cabecera
-	 *  — filtros de cliente, sobre la página actual). Sin filtros es exactamente `mediaItems`. */
+	/** Lo que de verdad se pinta: la página cargada (ya filtrada por el servidor si hay búsqueda)
+	 *  tras el chip de tipo activo (cliente, ver cabecera). Sin chip es exactamente `mediaItems`. */
 	const visibleItems = $derived(
-		mediaItems.filter(
-			(item) =>
-				matchesMediaTypeFilter(item.fileName, typeFilter) &&
-				matchesMediaNameQuery(item.fileName, searchTerm)
-		)
+		mediaItems.filter((item) => matchesMediaTypeFilter(item.fileName, typeFilter))
 	);
+
+	/** Aplica `term` al servidor: vuelve a la página 1 (la página N de otra búsqueda no significa
+	 *  nada) y suelta la selección, hecha sobre resultados que ya no están. Con la URL ya en la
+	 *  página 1 basta cambiar `appliedSearch`, que dispara la recarga. */
+	function applySearch(term: string): void {
+		if (searchTimer !== null) {
+			clearTimeout(searchTimer);
+			searchTimer = null;
+		}
+		if (term === appliedSearch) return;
+		appliedSearch = term;
+		selectedIds.clear();
+		if (mediaPage !== 1) goToMediaPage(1);
+	}
+
+	function handleSearchInput(event: Event): void {
+		const raw = (event.currentTarget as HTMLInputElement).value;
+		searchTerm = raw;
+		if (searchTimer !== null) clearTimeout(searchTimer);
+		searchTimer = setTimeout(() => applySearch(raw), MEDIA_SEARCH_DEBOUNCE_MS);
+	}
 
 	function clearFilters(): void {
 		searchTerm = '';
 		typeFilter = 'all';
+		applySearch('');
 	}
 
 	// ————— Selección + acciones de lote —————
@@ -568,16 +606,17 @@
 				</div>
 			{/if}
 
-			<!-- Toolbar (mockup `.toolbar`): buscador + chips de tipo. Filtros de CLIENTE sobre la
-			     página cargada (ver cabecera), sin debounce: no hay red detrás que amortiguar. -->
+			<!-- Toolbar (mockup `.toolbar`): buscador (servidor, con debounce) + chips de tipo
+			     (cliente, sobre la página cargada). Ver cabecera. -->
 			<div class="vega-media-toolbar">
 				<label class="vega-media-search">
 					<Icon id="search" size={14} />
 					<input
 						type="search"
-						bind:value={searchTerm}
-						placeholder={ctx.t('media.search.placeholder')}
-						aria-label={ctx.t('media.search.ariaLabel')}
+						value={searchTerm}
+						oninput={handleSearchInput}
+						placeholder={ctx.t('media.picker.searchPlaceholder')}
+						aria-label={ctx.t('media.picker.searchLabel')}
 					/>
 				</label>
 				<span
@@ -585,7 +624,7 @@
 					role="group"
 					aria-label={ctx.t('media.filter.groupLabel')}
 				>
-					{#each TYPE_FILTERS as filter (filter.value)}
+					{#each typeFilters as filter (filter.value)}
 						<button
 							type="button"
 							class="vega-media-type-chip"
@@ -639,12 +678,17 @@
 							{isSelected}
 							onToggleSelect={toggleSelect}
 						/>
-					{:else if mediaItems.length > 0 && hasActiveFilters}
-						<!-- 0 resultados CON filtros activos: nunca se confunde con la biblioteca vacía de
-						     verdad (esa rama es `mediaIsEmpty`, arriba) — mismo criterio que
-						     `empty-search` en `/c/[type]` (L-P4.12). -->
+					{:else if hasActiveFilters && mediaReadyPage && (mediaItems.length > 0 || mediaReadyPage.totalItems === 0)}
+						<!-- 0 resultados CON filtros activos (búsqueda sin coincidencias, o chip de tipo que
+						     deja la página vacía): nunca se confunde con la biblioteca vacía de verdad (esa
+						     rama es `mediaIsEmpty`, arriba) — mismo criterio que `empty-search` en
+						     `/c/[type]` (L-P4.12). -->
 						<div class="vega-media-empty" data-media-grid-state="empty-filter">
-							<p>{ctx.t('media.filter.empty')}</p>
+							<p>
+								{mediaItems.length === 0
+									? ctx.t('media.search.empty')
+									: ctx.t('media.filter.empty')}
+							</p>
 							<button type="button" onclick={clearFilters}>{ctx.t('media.filter.clear')}</button>
 						</div>
 					{/if}

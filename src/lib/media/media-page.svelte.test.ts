@@ -7,6 +7,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import type { BackendPort, ContentType, Page, VegaRecord } from '$lib/backend';
 import type { Query } from '$lib/backend/query';
+import { buildMediaListQuery, MEDIA_SEARCH_DEBOUNCE_MS } from './media-query';
 
 const goto = vi.hoisted(() => vi.fn());
 const search = vi.hoisted(() => ({ value: '' }));
@@ -90,6 +91,84 @@ afterEach(async () => {
 	}
 	search.value = '';
 	vi.clearAllMocks();
+});
+
+function listedPage(items: VegaRecord[], totalItems = items.length): Page<VegaRecord> {
+	return { items, page: 1, perPage: 24, totalItems, totalPages: totalItems > 0 ? 1 : 0 };
+}
+
+describe('/media: buscador de servidor', () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	function searchInput(target: HTMLElement): HTMLInputElement {
+		return target.querySelector<HTMLInputElement>('.vega-media-search input')!;
+	}
+
+	function typeSearch(target: HTMLElement, value: string): void {
+		const input = searchInput(target);
+		input.value = value;
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+	}
+
+	test('escribir consulta al servidor (tras el debounce) con la query del selector, sobre toda la biblioteca', async () => {
+		vi.useFakeTimers();
+		const list = vi.fn<ListFn>(async () => listedPage([mediaRecord('a', 'a.png')]));
+		const { target, ctx } = mountPage(list);
+		await settle();
+		expect(list).toHaveBeenCalledTimes(1);
+
+		typeSearch(target, 'tomates');
+		await vi.advanceTimersByTimeAsync(MEDIA_SEARCH_DEBOUNCE_MS - 1);
+		expect(list).toHaveBeenCalledTimes(1); // aún no: debounce
+
+		await vi.advanceTimersByTimeAsync(2);
+		await settle();
+
+		expect(list).toHaveBeenCalledTimes(2);
+		expect(ctx.port.list).toHaveBeenLastCalledWith(
+			'vega_media',
+			buildMediaListQuery(1, { search: 'tomates' })
+		);
+	});
+
+	test('sin coincidencias: dice que nada coincide (NO «biblioteca vacía») y «Limpiar filtros» recarga sin filtro', async () => {
+		vi.useFakeTimers();
+		const list = vi.fn<ListFn>(async (_type, query) =>
+			query.filter ? listedPage([]) : listedPage([mediaRecord('a', 'a.png')])
+		);
+		const { target } = mountPage(list);
+		await settle();
+
+		typeSearch(target, 'zzz');
+		await vi.advanceTimersByTimeAsync(MEDIA_SEARCH_DEBOUNCE_MS + 1);
+		await settle();
+
+		expect(target.querySelector('[data-media-grid-state="empty"]')).toBeNull();
+		const empty = target.querySelector('[data-media-grid-state="empty-filter"]');
+		expect(empty?.textContent).toContain('media.search.empty');
+
+		empty!.querySelector('button')!.click();
+		await settle();
+
+		expect(list).toHaveBeenLastCalledWith('vega_media', buildMediaListQuery(1, { search: '' }));
+		expect(target.querySelector('[data-media-grid-state="ready"]')).not.toBeNull();
+	});
+
+	test('el chip «Vídeo» solo aparece si el esquema de vega_media admite video/*', async () => {
+		const without = mountPage(async () => listedPage([]), [mediaType(['image/png'])]);
+		await settle();
+		const chips = (el: HTMLElement) =>
+			Array.from(el.querySelectorAll('.vega-media-type-chip')).map((c) => c.textContent?.trim());
+		expect(chips(without.target)).not.toContain('media.filter.video');
+		await unmount(mounted!.instance);
+		mounted!.target.remove();
+
+		const withVideo = mountPage(async () => listedPage([]), [mediaType(['image/png', 'video/*'])]);
+		await settle();
+		expect(chips(withVideo.target)).toContain('media.filter.video');
+	});
 });
 
 describe('/media: página fuera de rango', () => {
