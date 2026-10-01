@@ -62,6 +62,21 @@ export const transportFeedback = {
 			report(err instanceof VegaError ? err : VegaError.backend('Error inesperado', err));
 		}
 	},
+	/**
+	 * Marca el transporte como caído SIN banner: para quien ya pinta el fallo EN CONTEXTO (el
+	 * panel de error del listado, L-P4.4) y solo quiere que `ConnectionStatus` deje de estar en
+	 * verde. No toca `bannerError`.
+	 */
+	markDisconnected(): void {
+		state = 'disconnected';
+	},
+	/**
+	 * Marca el transporte como recuperado (una operación de red acaba de funcionar). No borra un
+	 * `bannerError` que haya puesto otro: el banner se cierra con `retry()`/`dismiss()`.
+	 */
+	markConnected(): void {
+		state = 'connected';
+	},
 	/** Descarta el banner sin reintentar (§2.3, "Descartable"). No toca `state`: si seguía
 	 *  'disconnected', `ConnectionStatus` lo refleja hasta el próximo `retry()`/`report()`. */
 	dismiss(): void {

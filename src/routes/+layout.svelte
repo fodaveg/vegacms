@@ -173,6 +173,10 @@
 			// parte correspondiente exista y lo pinte donde toca.
 			toastStore.push(err.message, { kind: 'error' });
 			if (ctx?.action) console.error(`[vega:${err.kind}]`, err.message, ctx.action);
+		},
+		reportConnectivity(up) {
+			if (up) transportFeedback.markConnected();
+			else transportFeedback.markDisconnected();
 		}
 	};
 

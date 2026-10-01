@@ -62,6 +62,12 @@ export interface FeedbackApi {
 	 * `fieldErrors` (validation) son de P5, no los pinta esta API.
 	 */
 	reportError(err: VegaError, ctx?: { action?: string }): void;
+	/**
+	 * Informa de la conectividad SIN banner global: `false` = una operación falló por red y su
+	 * superficie propia ya lo pinta en contexto (p. ej. el listado, L-P4.4); `true` = una operación
+	 * de red acaba de funcionar. Solo mueve la píldora de conexión; nunca abre ni cierra el banner.
+	 */
+	reportConnectivity(up: boolean): void;
 }
 
 /**

@@ -98,6 +98,9 @@ export function createListState(): ListState {
 			if (!sequencer.isLatest(seq)) return; // respuesta obsoleta (anti-carrera): se descarta
 			status = { kind: 'ready', page: result };
 			refreshing = false;
+			// Una carga buena demuestra que el transporte responde: la píldora vuelve a verde tras un
+			// «Reintentar» que funciona (no toca el banner global de otra operación).
+			ctx.feedback.reportConnectivity(true);
 		} catch (err) {
 			if (!sequencer.isLatest(seq)) return;
 			refreshing = false;
@@ -111,11 +114,11 @@ export function createListState(): ListState {
 				return;
 			}
 			if (vegaErr.kind === 'network') {
-				// Sin respuesta HTTP: además del panel de error del listado, se avisa al transporte
-				// global para que la píldora de conexión deje de estar en verde con el listado sin
-				// cargar (`transportFeedback` la pone en «Sin conexión»). El resto de `kind` (backend,
-				// forbidden…) siguen siendo solo del panel local: el transporte sí respondió.
-				ctx.feedback.reportError(vegaErr);
+				// Sin respuesta HTTP: el fallo se pinta EN CONTEXTO (panel con «Reintentar», L-P4.4),
+				// nunca en el banner global (`reportError` lo abriría). Solo se avisa a la píldora de
+				// conexión para que no siga en verde con el listado sin cargar. El resto de `kind`
+				// (backend, forbidden…) son solo del panel local: el transporte sí respondió.
+				ctx.feedback.reportConnectivity(false);
 			}
 			status = { kind: 'error', error: vegaErr };
 		}

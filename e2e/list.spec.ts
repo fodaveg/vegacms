@@ -182,6 +182,10 @@ test.describe('error de transporte en el listado (L-P4.4, Audit H2)', () => {
 		// ambiguo entre los dos.
 		await expect(page.locator('.vega-global-banner')).toHaveCount(0);
 
+		// La píldora de conexión de la topbar NO se queda en verde con el listado sin cargar.
+		const pill = page.locator('.vega-connection-status');
+		await expect(pill).toHaveAttribute('data-state', 'disconnected');
+
 		await page.evaluate(() => {
 			(
 				window as unknown as { __VEGA_FORCE_NETWORK_ERROR__?: boolean }
@@ -190,6 +194,7 @@ test.describe('error de transporte en el listado (L-P4.4, Audit H2)', () => {
 		await state.getByRole('button', { name: 'Reintentar' }).click();
 
 		await expect(page.locator('[data-list-state="ready"]')).toBeVisible();
+		await expect(pill).toHaveAttribute('data-state', 'connected');
 	});
 });
 
