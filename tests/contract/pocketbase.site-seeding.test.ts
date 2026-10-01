@@ -748,7 +748,8 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 			addedFields: {
 				vega_editors: ['created'],
 				vega_media: ['focal'],
-				pages: ['publishAt', 'description', 'socialImage', 'noindex']
+				pages: ['publishAt', 'description', 'socialImage', 'noindex', 'created', 'updated'],
+				blocks: ['created', 'updated']
 			},
 			createdRecords: [],
 			upgradedRecords: ['manifest']
@@ -831,7 +832,9 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 			addedFields: {
 				vega_editors: ['created'],
 				vega_media: ['focal'],
-				pages: ['publishAt']
+				pages: ['publishAt', 'created', 'updated'],
+				blocks: ['created', 'updated'],
+				redirects: ['created', 'updated']
 			},
 			createdRecords: [],
 			upgradedRecords: ['manifest']
@@ -873,6 +876,106 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 			upgradedRecords: []
 		});
 		expect(await logicalSnapshot(admin)).toEqual(before);
+	});
+
+	test('sembrado nuevo: pages, blocks y redirects traen created y updated (autodate), y updated se mueve al editar', async () => {
+		await seedSiteProject(port);
+
+		for (const name of ['pages', 'blocks', 'redirects']) {
+			const fields = (await admin.collections.getOne(name)).fields;
+			expect(
+				fields.find((field) => field.name === 'created'),
+				`${name}.created`
+			).toMatchObject({
+				type: 'autodate',
+				onCreate: true,
+				onUpdate: false
+			});
+			expect(
+				fields.find((field) => field.name === 'updated'),
+				`${name}.updated`
+			).toMatchObject({
+				type: 'autodate',
+				onCreate: true,
+				onUpdate: true
+			});
+		}
+
+		const redirect = await admin
+			.collection('redirects')
+			.create({ from: '/viejo', to: '/nuevo', code: '301' });
+		expect(redirect.created).not.toBe('');
+		expect(redirect.updated).toBe(redirect.created);
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		const edited = await admin.collection('redirects').update(redirect.id, { to: '/otro' });
+		expect(edited.created).toBe(redirect.created);
+		expect(edited.updated > redirect.updated).toBe(true);
+	});
+
+	test('un proyecto sembrado SIN created/updated los recibe al actualizar, sin tocar campos ni registros', async () => {
+		await seedLikePrevious0ace139(port);
+		for (const name of ['pages', 'blocks', 'redirects']) {
+			const names = (await admin.collections.getOne(name)).fields.map((field) => field.name);
+			expect(names, name).not.toContain('updated');
+		}
+		const human = await admin.collection('pages').create({
+			title: 'Quiénes somos',
+			path: '/about',
+			status: 'published'
+		});
+		const redirect = await admin
+			.collection('redirects')
+			.create({ from: '/viejo', to: '/about', code: '301' });
+		const before = Object.fromEntries(
+			await Promise.all(
+				['pages', 'blocks', 'redirects'].map(
+					async (name) => [name, (await admin.collections.getOne(name)).fields] as const
+				)
+			)
+		);
+
+		const result = await seedSiteProject(port);
+
+		expect(result.addedFields).toMatchObject({
+			pages: expect.arrayContaining(['created', 'updated']),
+			blocks: ['created', 'updated'],
+			redirects: ['created', 'updated']
+		});
+		for (const name of ['pages', 'blocks', 'redirects'] as const) {
+			const after = (await admin.collections.getOne(name)).fields;
+			// Los campos que ya estaban conservan forma e id (no se borra ni se recrea nada).
+			for (const field of before[name]) {
+				expect(
+					after.find((candidate) => candidate.id === field.id),
+					`${name}.${field.name}`
+				).toEqual(field);
+			}
+			expect(
+				after.find((field) => field.name === 'updated'),
+				`${name}.updated`
+			).toMatchObject({
+				type: 'autodate',
+				onUpdate: true
+			});
+		}
+		// Los registros de antes siguen ahí, con sus datos; PocketBase no rellena el autodate nuevo
+		// hacia atrás (`""`), y la primera edición ya lo pone.
+		const kept = await admin.collection('pages').getOne(human.id);
+		expect(kept).toMatchObject({
+			title: 'Quiénes somos',
+			path: '/about',
+			created: '',
+			updated: ''
+		});
+		const edited = await admin.collection('pages').update(human.id, { title: 'Quiénes somos hoy' });
+		expect(edited.updated).not.toBe('');
+		await expect(admin.collection('redirects').getOne(redirect.id)).resolves.toMatchObject({
+			from: '/viejo',
+			to: '/about'
+		});
+
+		// La pasada siguiente ya no tiene nada que añadir.
+		expect((await seedSiteProject(port)).addedFields).toEqual({});
 	});
 
 	test('SEO y redirecciones: anónimo lee lo publicado y solo una editora escribe', async () => {

@@ -86,6 +86,20 @@ const VEGA_EDITORS_COLLECTION: CollectionSpec = {
 	fields: [{ name: 'created', type: 'autodate' }]
 };
 
+/**
+ * Fechas de alta y de última edición, en `pages`, `blocks` y `redirects`. Una colección creada por
+ * API NO las trae (como `vega_editors.created`), y sin `updated` la comprobación de «cambios sin
+ * publicar» (`unpublished-changes.ts`, que solo mira un autodate llamado `updated`) no detecta
+ * nunca nada en un sitio sembrado. `updated` lleva `onUpdate`: es lo que lo hace «última edición».
+ * En un proyecto ya sembrado se añaden como cualquier campo ausente; los registros anteriores
+ * quedan con `""` (PocketBase no rellena un autodate nuevo hacia atrás) y cuentan como «sin
+ * fecha» hasta que se editen.
+ */
+const AUTODATE_FIELDS: CollectionFieldSpec[] = [
+	{ name: 'created', type: 'autodate' },
+	{ name: 'updated', type: 'autodate', onUpdate: true }
+];
+
 const PAGES_COLLECTION: CollectionSpec = {
 	name: 'pages',
 	listRule: SITE_SEED_PAGES_READ_RULE,
@@ -119,7 +133,8 @@ const PAGES_COLLECTION: CollectionSpec = {
 			multiple: false,
 			cascadeDelete: false
 		},
-		{ name: 'noindex', type: 'bool' }
+		{ name: 'noindex', type: 'bool' },
+		...AUTODATE_FIELDS
 	]
 };
 
@@ -144,7 +159,8 @@ const REDIRECTS_COLLECTION: CollectionSpec = {
 			options: ['301', '308'],
 			multiple: false,
 			required: true
-		}
+		},
+		...AUTODATE_FIELDS
 	]
 };
 
@@ -174,7 +190,8 @@ const BLOCKS_COLLECTION: CollectionSpec = {
 		{ name: STARTER_BLOCKS.orderField, type: 'number' },
 		{ name: STARTER_BLOCKS.typeField!, type: 'text', required: true, max: 64 },
 		{ name: STARTER_BLOCKS.dataField!, type: 'json' },
-		...deriveBlockRecordFields(STARTER_BLOCK_TYPES, STARTER_BLOCKS)
+		...deriveBlockRecordFields(STARTER_BLOCK_TYPES, STARTER_BLOCKS),
+		...AUTODATE_FIELDS
 	]
 };
 

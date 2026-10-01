@@ -229,7 +229,27 @@ describe('seedSiteProject', () => {
 			readonly: false
 		});
 		const redirects = types.find((type) => type.name === 'redirects')!;
-		expect(redirects.fields.map((field) => field.name)).toEqual(['from', 'to', 'code']);
+		expect(redirects.fields.map((field) => field.name)).toEqual([
+			'from',
+			'to',
+			'code',
+			'created',
+			'updated'
+		]);
+		// Las fechas de alta y edición son autodate (`date` readonly en el puerto); `updated` es la
+		// que lee «cambios sin publicar», y `pages`/`blocks` las llevan igual.
+		for (const name of ['pages', 'blocks', 'redirects']) {
+			const fields = types.find((type) => type.name === name)!.fields;
+			for (const dateField of ['created', 'updated']) {
+				expect(
+					fields.find((field) => field.name === dateField),
+					`${name}.${dateField}`
+				).toMatchObject({
+					type: 'date',
+					readonly: true
+				});
+			}
+		}
 		expect(redirects.fields.find((field) => field.name === 'code')).toMatchObject({
 			type: 'select',
 			options: ['301', '308'],
@@ -283,7 +303,9 @@ describe('seedSiteProject', () => {
 		const redirects = model.types.find((type) => type.name === 'redirects')!;
 		expect(redirects.hidden).toBe(false);
 		expect(redirects.label).toBe('Redirecciones');
-		for (const field of redirects.fields) {
+		for (const field of redirects.fields.filter(
+			(item) => !['created', 'updated'].includes(item.name)
+		)) {
 			expect(field.label, field.name).not.toBe(field.name);
 			expect(field.help, field.name).toEqual(expect.any(String));
 		}
@@ -310,7 +332,8 @@ describe('seedSiteProject', () => {
 			addedFields: {
 				vega_editors: ['created'],
 				vega_media: ['focal'],
-				pages: ['publishAt', 'description', 'socialImage', 'noindex']
+				pages: ['publishAt', 'description', 'socialImage', 'noindex', 'created', 'updated'],
+				blocks: ['created', 'updated']
 			},
 			createdRecords: [],
 			upgradedRecords: ['manifest']
@@ -353,7 +376,9 @@ describe('seedSiteProject', () => {
 			addedFields: {
 				vega_editors: ['created'],
 				vega_media: ['focal'],
-				pages: ['publishAt']
+				pages: ['publishAt', 'created', 'updated'],
+				blocks: ['created', 'updated'],
+				redirects: ['created', 'updated']
 			},
 			createdRecords: [],
 			upgradedRecords: ['manifest']
@@ -482,7 +507,7 @@ describe('seedSiteProject', () => {
 		]);
 
 		const result = await seedSiteProject(port);
-		expect(result.addedFields.blocks).toEqual(['image', 'images']);
+		expect(result.addedFields.blocks).toEqual(['image', 'images', 'created', 'updated']);
 		const blocks = (await port.listContentTypes()).find((type) => type.name === 'blocks')!;
 		expect(blocks.fields.map((field) => field.name)).toEqual([
 			'parent',
@@ -490,7 +515,9 @@ describe('seedSiteProject', () => {
 			'type',
 			'data',
 			'image',
-			'images'
+			'images',
+			'created',
+			'updated'
 		]);
 	});
 
@@ -567,7 +594,17 @@ describe('seedSiteProject', () => {
 
 		await expect(seedSiteProject(port)).resolves.toMatchObject({
 			addedFields: {
-				pages: ['title', 'path', 'layout', 'publishAt', 'description', 'socialImage', 'noindex']
+				pages: [
+					'title',
+					'path',
+					'layout',
+					'publishAt',
+					'description',
+					'socialImage',
+					'noindex',
+					'created',
+					'updated'
+				]
 			}
 		});
 		const pages = (await port.listContentTypes()).find((type) => type.name === 'pages')!;
