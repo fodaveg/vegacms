@@ -23,6 +23,29 @@ export const es = {
 		'"{label}" está marcada como Ajustes pero tiene {count} registros. Editando el primero.',
 	'nav.readonlyBadge': 'Solo lectura',
 
+	// ————— Portada («Inicio», `/`) —————
+	'home.title': 'Inicio',
+	'home.create.title': 'Crear',
+	'home.create.button': 'Nuevo: {label}',
+	'home.pending.title': 'Pendientes',
+	'home.pending.drafts': '{label} en borrador',
+	'home.pending.scheduled': '{label} con publicación programada',
+	'home.pending.description': '{label} sin descripción',
+	'home.pending.mediaAlt': 'Medios sin texto alternativo',
+	'home.pending.unpublished': 'Cambios sin publicar en el sitio',
+	'home.pending.unpublishedYes': 'Sí',
+	'home.pending.unpublishedNo': 'No',
+	'home.recent.title': 'Lo último que editaste',
+	'home.recent.emptyTitle': 'Todavía no has editado nada',
+	'home.recent.emptyBody':
+		'Lo que edites en este navegador aparecerá aquí para que puedas retomarlo.',
+	'home.recent.errorTitle': 'No se pudo cargar lo último que editaste',
+	'home.recent.errorBody': 'El servidor ha contestado: {message}',
+	'home.recent.column.title': 'Título',
+	'home.recent.column.type': 'Tipo',
+	'home.recent.column.status': 'Estado',
+	'home.recent.column.edited': 'Editado',
+
 	// ————— Topbar —————
 	'topbar.logout': 'Cerrar sesión',
 	'topbar.menu.open': 'Abrir navegación',
