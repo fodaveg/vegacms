@@ -90,6 +90,36 @@ describe('SecuritySettings', () => {
 		expect(mounted.target.textContent).toContain('GHJKL-M6789');
 	});
 
+	test('si fallan los códigos tras verificar el TOTP, refresca el estado y avisa', async () => {
+		const auth = fakeStrongAuth();
+		vi.mocked(auth.generateRecoveryCodes).mockRejectedValueOnce(new Error('boom'));
+		mounted = mountSettings(auth);
+		await settle();
+		Array.from(mounted.target.querySelectorAll('button'))
+			.find((button) => button.textContent?.includes('security.totp.enroll'))
+			?.click();
+		await settle();
+		// A partir de la verificación, el servidor ya devuelve el TOTP como activo.
+		vi.mocked(auth.getStatus).mockResolvedValue({
+			totpEnabled: true,
+			recoveryCodesRemaining: 0,
+			passkeys: []
+		});
+		const code = mounted.target.querySelector<HTMLInputElement>('#security-totp-code');
+		code!.value = '123456';
+		code!.dispatchEvent(new Event('input', { bubbles: true }));
+		code!.closest('form')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await settle();
+		await settle();
+
+		expect(auth.verifyTotp).toHaveBeenCalledWith('123456');
+		expect(mounted.target.querySelector('[role="alert"]')?.textContent).toContain(
+			'security.totp.enabledNoCodes'
+		);
+		expect(mounted.target.textContent).toContain('security.status.enabled');
+		expect(mounted.target.textContent).toContain('security.recovery.regenerate');
+	});
+
 	test('registra una passkey con el nombre introducido', async () => {
 		const auth = fakeStrongAuth();
 		mounted = mountSettings(auth);

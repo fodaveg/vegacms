@@ -126,6 +126,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'security.status.disabled': 'Disabled',
 	'security.totp.title': 'Authenticator app (TOTP)',
 	'security.totp.enabled': 'The authenticator app is enabled.',
+	'security.totp.enabledNoCodes':
+		'The authenticator app is now enabled, but the recovery codes could not be created. Press "Regenerate codes" to get them and save them.',
 	'security.totp.disabled': 'The authenticator app is disabled.',
 	'security.totp.disableConfirm': 'Disable the authenticator app?',
 	'security.totp.disable': 'Disable TOTP',

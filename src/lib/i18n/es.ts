@@ -136,6 +136,8 @@ export const es = {
 	'security.status.disabled': 'Desactivado',
 	'security.totp.title': 'App de autenticación (TOTP)',
 	'security.totp.enabled': 'La app de autenticación está activada.',
+	'security.totp.enabledNoCodes':
+		'La app de autenticación ya está activada, pero no se pudieron crear los códigos de recuperación. Pulsa «Regenerar códigos» para obtenerlos y guárdalos.',
 	'security.totp.disabled': 'La app de autenticación está desactivada.',
 	'security.totp.disableConfirm': '¿Desactivar la app de autenticación?',
 	'security.totp.disable': 'Desactivar TOTP',
