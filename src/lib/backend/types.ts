@@ -88,6 +88,23 @@ export interface PasskeySummary {
 	id: string;
 	name: string;
 	created: string;
+	/**
+	 * `true` si el servidor vio a esta passkey firmar con un contador que no avanzaba: puede estar
+	 * copiada en otro dispositivo. Ausente o `false` = sin aviso (también en backends que no lo miden).
+	 */
+	cloneWarning?: boolean;
+}
+
+/** Factor con el que la cuenta puede probar que sigue en manos de su dueño. */
+export type StepUpMethod = 'totp' | 'passkey';
+
+/**
+ * Prueba de posesión que acompaña a una operación que cambia los factores de la cuenta. Hoy solo
+ * el código TOTP vigente viaja con la petición; la prueba con passkey se hace aparte
+ * (`StrongAuthPort.verifyWithPasskey`) y el servidor la recuerda unos minutos.
+ */
+export interface StepUpProof {
+	code?: string;
 }
 
 /** Estado de los factores del usuario autenticado. */

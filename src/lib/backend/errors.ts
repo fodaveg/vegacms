@@ -5,7 +5,7 @@
  * crudo del SDK o de `fetch` que escape de un adaptador es un bug de esa capa, no del puerto.
  */
 
-import type { VegaRecord } from './types';
+import type { StepUpMethod, VegaRecord } from './types';
 
 export type VegaErrorKind =
 	| 'auth-expired' // sesión no válida ya; P3 relanza login
@@ -115,6 +115,62 @@ export class VegaConflictError extends VegaError {
 /** `true` si `err` es el conflicto de versión de `update` (ver `VegaConflictError`). */
 export function isConflictError(err: unknown): err is VegaConflictError {
 	return err instanceof VegaConflictError;
+}
+
+/**
+ * Rechazos de la extensión de autenticación fuerte que la interfaz trata de forma propia en vez
+ * de pintar el `message` tal cual. El adaptador no tiene catálogo de idiomas: da el código y la
+ * interfaz pone el texto.
+ */
+export type StrongAuthErrorCode =
+	| 'step-up-required' // falta una prueba reciente de posesión; trae `methods`
+	| 'invalid-code' // el código TOTP enviado no vale
+	| 'locked' // demasiados intentos; puede traer `waitSeconds`
+	| 'payload-too-large' // la respuesta de la passkey supera el tope del servidor
+	| 'attempt-failed' // el servidor no pudo contar el intento y no lo evaluó
+	| 'passkey-verify-failed' // la passkey no superó la verificación
+	| 'no-passkeys'; // la cuenta no tiene ninguna passkey con la que probar
+
+export interface StrongAuthErrorDetails {
+	/** Solo con `'step-up-required'`: con qué puede probar la cuenta. */
+	methods?: StepUpMethod[];
+	/** Solo con `'locked'`, si el servidor lo dice: segundos hasta poder reintentar. */
+	waitSeconds?: number;
+	cause?: unknown;
+}
+
+/**
+ * Error tipado del subpuerto `strongAuth`. Ninguno de sus códigos significa que la sesión haya
+ * caducado: por eso su `kind` nunca es `'auth-expired'` (`'forbidden'` cuando el servidor rechaza
+ * lo que se le pide o se le prueba, `'backend'` cuando no pudo atenderlo). Subclase, como
+ * `VegaConflictError`, para que quien lo distinga tenga `code` garantizado y quien no lo trate
+ * por su `kind`.
+ */
+export class VegaStrongAuthError extends VegaError {
+	readonly code: StrongAuthErrorCode;
+	readonly methods: StepUpMethod[];
+	readonly waitSeconds: number | null;
+
+	constructor(
+		kind: 'forbidden' | 'backend',
+		code: StrongAuthErrorCode,
+		message: string,
+		details: StrongAuthErrorDetails = {}
+	) {
+		super(kind, message, { cause: details.cause });
+		this.name = 'VegaStrongAuthError';
+		this.code = code;
+		this.methods = details.methods ?? [];
+		this.waitSeconds = details.waitSeconds ?? null;
+	}
+}
+
+/** `true` si `err` es un rechazo tipado de `strongAuth`; con `code`, además, si es ESE rechazo. */
+export function isStrongAuthError(
+	err: unknown,
+	code?: StrongAuthErrorCode
+): err is VegaStrongAuthError {
+	return err instanceof VegaStrongAuthError && (code === undefined || err.code === code);
 }
 
 /**

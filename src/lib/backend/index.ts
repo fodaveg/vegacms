@@ -30,6 +30,8 @@ export type {
 	ServerFeatures,
 	SecondFactorMethod,
 	Session,
+	StepUpMethod,
+	StepUpProof,
 	StrongAuthLoginOutcome,
 	StrongAuthStatus,
 	ThumbSpec,
@@ -48,13 +50,21 @@ export {
 	validateQuery
 } from './query';
 
-export type { FieldError, VegaErrorKind, VegaErrorOptions } from './errors';
+export type {
+	FieldError,
+	StrongAuthErrorCode,
+	StrongAuthErrorDetails,
+	VegaErrorKind,
+	VegaErrorOptions
+} from './errors';
 export {
 	isConflictError,
+	isStrongAuthError,
 	LOCAL_REJECTION_CODES,
 	PB_VALIDATION_CODES,
 	VegaConflictError,
-	VegaError
+	VegaError,
+	VegaStrongAuthError
 } from './errors';
 
 export type { RecordVersion } from './version';
