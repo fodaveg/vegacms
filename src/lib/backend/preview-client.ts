@@ -65,6 +65,23 @@ export interface PreviewClient {
 	requestPreview(collection: string, id: string, draft?: PreviewDraft): Promise<PreviewToken>;
 }
 
+/**
+ * Error de `POST .../token` que SÍ obtuvo respuesta pero no `2xx`. Lleva el `status` para que
+ * `PreviewPanel` distinga un 403 (quien puede ver pero no editar el registro no puede previsualizar
+ * un borrador) de otros fallos. Mismo patrón que `BuildRequestError` (`build-client.ts`); sigue
+ * siendo un `Error` con el mismo mensaje de siempre, así que `classifyPreviewError` y
+ * `VisualEditorScreen` no notan el cambio.
+ */
+export class PreviewRequestError extends Error {
+	readonly status: number;
+
+	constructor(status: number, path: string) {
+		super(`El endpoint de preview respondió con el estado ${status} (POST ${path}).`);
+		this.name = 'PreviewRequestError';
+		this.status = status;
+	}
+}
+
 function stringOrNull(value: unknown): string | null {
 	return typeof value === 'string' && value ? value : null;
 }
@@ -108,9 +125,7 @@ export function createPreviewClient(opts: PreviewClientOptions): PreviewClient {
 				cache: 'no-store'
 			});
 			if (!response.ok) {
-				throw new Error(
-					`El endpoint de preview respondió con el estado ${response.status} (POST ${base}/token).`
-				);
+				throw new PreviewRequestError(response.status, `${base}/token`);
 			}
 			const token = parsePreviewToken(await response.json());
 			if (!token) {

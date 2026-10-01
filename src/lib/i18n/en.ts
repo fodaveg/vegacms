@@ -250,6 +250,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.preview.panel.loading': 'Loading preview…',
 	'editor.preview.panel.loadError': 'Could not load the preview.',
 	'editor.preview.panel.genericError': 'Could not generate the preview.',
+	'editor.preview.panel.savedOnly':
+		'You are viewing the saved version: you do not have permission to edit this record, so your changes are not previewed.',
 
 	// ————— Visual editor screen (see `es.ts` for the full rationale) —————
 	'editor.visual.open': 'Visual editor',

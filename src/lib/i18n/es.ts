@@ -267,6 +267,8 @@ export const es = {
 	'editor.preview.panel.loading': 'Cargando vista previa…',
 	'editor.preview.panel.loadError': 'No se pudo cargar la vista previa.',
 	'editor.preview.panel.genericError': 'No se pudo generar la vista previa.',
+	'editor.preview.panel.savedOnly':
+		'Estás viendo la versión guardada: no tienes permiso para editar este registro, así que tus cambios no se previsualizan.',
 
 	// ————— Pantalla del editor visual (tarea "pantalla del editor visual", §"Visual editing
 	// bridge" del contrato): `/c/[type]/[id]/visual`, aditiva sobre el preview de borrador de

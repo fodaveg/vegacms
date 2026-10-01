@@ -45,6 +45,7 @@
 	import { getVegaContext } from '$lib/app-context';
 	import {
 		createPreviewClient,
+		PreviewRequestError,
 		type PreviewDraft,
 		type PreviewToken
 	} from '$lib/backend/preview-client';
@@ -90,6 +91,10 @@
 	// `false` en cada petición nueva — una URL nueva es un documento nuevo que hay que esperar a
 	// que cargue, aunque el nodo `<iframe>` del DOM sea el mismo.
 	let frameLoaded = $state(false);
+	// `true` cuando el servidor rechazó el borrador con 403 (quien ve pero no edita el registro) y
+	// el panel enseña la versión GUARDADA. Mientras dure, ninguna petición vuelve a llevar borrador.
+	// Vive lo que el panel: `RecordForm` lo remonta al cambiar de registro, así que se reinicia solo.
+	let savedOnly = $state(false);
 	let renewTimer: ReturnType<typeof setTimeout> | null = null;
 	let postForm = $state<HTMLFormElement | undefined>(undefined);
 	const frameName = 'vega-preview-draft-frame';
@@ -131,7 +136,20 @@
 		panelState = { kind: 'loading' };
 		frameLoaded = false;
 		try {
-			const token = await client.requestPreview(collection, recordId, draft);
+			let token: PreviewToken;
+			if (savedOnly) {
+				token = await client.requestPreview(collection, recordId);
+			} else {
+				try {
+					token = await client.requestPreview(collection, recordId, draft);
+				} catch (err) {
+					// 403 CON borrador = sin permiso de edición: se reintenta UNA vez sin borrador. Otros
+					// códigos, y un 403 sin borrador, siguen su camino de siempre.
+					if (!(err instanceof PreviewRequestError) || err.status !== 403) throw err;
+					token = await client.requestPreview(collection, recordId);
+					if (generation === requestGeneration) savedOnly = true;
+				}
+			}
 			if (generation !== requestGeneration) return; // llegó tarde: manda la petición posterior
 			panelState = { kind: 'ready', token };
 			scheduleRenew(token);
@@ -206,6 +224,11 @@
 	</div>
 
 	<div class="vega-preview-panel-body">
+		{#if savedOnly && panelState.kind === 'ready'}
+			<p class="vega-preview-panel-notice" role="status">
+				{ctx.t('editor.preview.panel.savedOnly')}
+			</p>
+		{/if}
 		{#if panelState.kind === 'error'}
 			<div class="vega-preview-panel-message" role="alert">
 				<p>{panelState.message}</p>
@@ -330,6 +353,19 @@
 		flex: 1;
 		min-height: 0;
 		display: flex;
+		flex-direction: column;
+	}
+
+	/* Aviso persistente (no un toast): la vista previa es la versión guardada. Mismo lenguaje que
+	   `.vega-field-notice` de `FieldRow.svelte`. */
+	.vega-preview-panel-notice {
+		margin: 0;
+		padding: 0.5rem 0.75rem;
+		border-bottom: 1px solid var(--warning);
+		background: var(--warning-soft);
+		color: var(--warning);
+		font-size: 0.82em;
+		flex-shrink: 0;
 	}
 
 	.vega-preview-panel-frame-wrap {
