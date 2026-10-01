@@ -3,6 +3,10 @@
  * `created` DESC (más reciente primero) + paginación — mismo patrón que `media-query.ts`
  * (`buildMediaListQuery`/`parseMediaPage`/`mediaPageToParams`), aquí para `/papelera` en vez del
  * grid de `/media`. Módulo puro, sin el puerto: `+page.svelte` es quien llama a `ctx.port.list`.
+ *
+ * La papelera solo enseña lo que no ha caducado: `created >= ahora - trashDays`. La poda
+ * (`pruneTrashRevisions`) borra lo caducado, pero es best-effort y con techo por pasada, así que
+ * no puede ser lo que decida qué se ve ni qué se puede restaurar.
  */
 
 import type { Query } from '$lib/backend/query';
@@ -11,11 +15,32 @@ import type { Query } from '$lib/backend/query';
  *  informal que el resto de listados de registros (no la rejilla de miniaturas de `/media`). */
 export const TRASH_PER_PAGE = 30;
 
-/** Construye la `Query` de `vega_revisions` para `page` (1-based): solo `kind:'delete'`, `created`
- *  desc, la página pedida. */
-export function buildTrashListQuery(page: number): Query {
+/**
+ * Instante de corte (`ahora - trashDays`) con el formato con el que PocketBase guarda las fechas
+ * (`AAAA-MM-DD hh:mm:ss.sssZ`): PB compara el texto, y con la `T` del ISO una entrada del mismo día
+ * del corte se vería más antigua de lo que es y se ocultaría antes de tiempo.
+ */
+export function trashCutoff(trashDays: number, now: number): string {
+	return new Date(now - trashDays * 24 * 60 * 60 * 1000).toISOString().replace('T', ' ');
+}
+
+/** Construye la `Query` de `vega_revisions` para `page` (1-based): solo `kind:'delete'` no
+ *  caducada (`created >= ahora - trashDays`), `created` desc, la página pedida. `now` explícito
+ *  para testear sin mockear el reloj. */
+export function buildTrashListQuery(
+	page: number,
+	trashDays: number,
+	now: number = Date.now()
+): Query {
 	return {
-		filter: { kind: 'cond', field: 'kind', op: 'eq', value: 'delete' },
+		filter: {
+			kind: 'group',
+			combinator: 'and',
+			nodes: [
+				{ kind: 'cond', field: 'kind', op: 'eq', value: 'delete' },
+				{ kind: 'cond', field: 'created', op: 'gte', value: trashCutoff(trashDays, now) }
+			]
+		},
 		sort: [{ field: 'created', dir: 'desc' }],
 		page,
 		perPage: TRASH_PER_PAGE

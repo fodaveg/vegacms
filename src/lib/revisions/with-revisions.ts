@@ -233,8 +233,10 @@ async function pruneUpdateRevisions(
  * (`selectTrashRevisionsToPrune`, `retention.ts`) — "para no provocar una tormenta de peticiones
  * en una papelera muy vieja". Se dispara tras cada snapshot de `delete` con éxito, nunca se espera
  * desde `delete()` y nunca propaga un error, mismo criterio que `pruneUpdateRevisions`.
+ * Exportada para que `/papelera` pode también al abrirse: sin ese segundo disparo, lo caducado
+ * seguiría ahí mientras nadie borre nada más.
  */
-async function pruneTrashRevisions(port: BackendPort, trashDays: number): Promise<void> {
+export async function pruneTrashRevisions(port: BackendPort, trashDays: number): Promise<void> {
 	try {
 		const page = await port.list(VEGA_REVISIONS_COLLECTION.name, {
 			filter: { kind: 'cond', field: 'kind', op: 'eq', value: 'delete' },
