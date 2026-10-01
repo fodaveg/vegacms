@@ -6,9 +6,10 @@
  * Hallazgos de Fase 2 (verificados contra PocketBase 0.39.6 real, ver `tests/contract/pb-
  * harness/`), que el contrato dejaba sin especificar al nivel de detalle de compilación:
  * - `select`/`relation` MÚLTIPLES se guardan como columna JSON; `=`/`!=` comparan el valor
- *   contra la columna completa (nunca casan), así que la pertenencia real se hace con `~`
- *   (LIKE) — el mismo operador que el "contains" de texto. `in` sobre multi se compila como
- *   un OR de `~` por cada valor (igual semántica que `contains` en `matchesIn` de `memory`).
+ *   contra la columna completa (nunca casan). `contains` sobre un select múltiple usa
+ *   `:each ?=` (algún elemento iguala: valor exacto de una opción, no subcadena del JSON). `in` sobre multi
+ *   se compila como un OR de `~` por cada valor (igual semántica que `matchesIn` de `memory`).
+ * - `contains` de texto escapa `\`, `%` y `_` del valor (comodines de LIKE) y lo envuelve en `%…%`.
  * - "Vacío" en columnas multi-valuadas (`select`/`relation`/`file` con `multiple`) NO es
  *   `= ''` ni `= null` (ninguno casa): PB expone el modificador `:length`, así que se compila
  *   como `campo:length = 0` / `campo:length > 0`.
@@ -61,7 +62,10 @@ export function compileFilter(
 	const nextParam = (value: unknown): string => {
 		counter += 1;
 		const name = `p${counter}`;
-		params[name] = value;
+		// `pb.filter` del SDK solo escapa comillas: una `\` del valor llegaría cruda al literal de
+		// filtro, cuyo parser la consume (`\'` cierra mal la cadena → HTTP 400; medido con `id = '\'`).
+		// Se duplica para TODO operador que emite una cadena entre comillas.
+		params[name] = typeof value === 'string' ? value.replace(/\\/g, '\\\\') : value;
 		return `{:${name}}`;
 	};
 	const raw = compileNode(filter, byName, nextParam);
@@ -106,9 +110,14 @@ function compileNode(
 		case 'lte':
 			return `${name} <= ${nextParam(node.value)}`;
 		case 'contains':
-			// Sirve tanto para "substring" de texto como "¿incluye la opción?" de select multi:
-			// en ambos casos PB resuelve con `~` (verificado; ver cabecera del fichero).
-			return `${name} ~ ${nextParam(node.value)}`;
+			// select MÚLTIPLE: pertenencia por VALOR EXACTO de una opción (`:each ?=`, "algún
+			// elemento iguala"), igual que `memory`. Un `~` casaría por subcadena sobre el JSON de la
+			// columna. Verificado contra PB real: `?=` a secas NO casa sobre esta columna JSON.
+			if (field.type === 'select' && field.multiple) {
+				return `${name}:each ?= ${nextParam(node.value)}`;
+			}
+			// Texto: `~` con el valor ESCAPADO y envuelto en `%…%` a mano (ver `escapeLike`).
+			return `${name} ~ ${nextParam(`%${escapeLike(String(node.value))}%`)}`;
 		case 'in': {
 			const values = node.value;
 			if (values.length === 0) {
@@ -119,6 +128,19 @@ function compileNode(
 			return values.map((v) => `${name} ${op} ${nextParam(v)}`).join(' || ');
 		}
 	}
+}
+
+/**
+ * Escapa `\`, `%` y `_`, que en el operador `~` de PB (LIKE de SQLite) son sintaxis, no datos
+ * (ley L6): sin esto, buscar `%` casa todo y `e_c` casa `exc`. PB solo envuelve el operando en
+ * `%…%` (y le escapa `_` y `\`) cuando NO trae ningún `%`; al escaparlos siempre lo traería, así
+ * que el llamador envuelve a mano. Es la capa de LIKE (`\` delante de cada `\ % _`); la capa del
+ * literal de filtro (duplicar `\`, que `pb.filter` no hace) la aplica `nextParam` a TODO string.
+ * Medido contra PB real: hacen falta las dos. `memory` es subcadena literal, y el contrato exige
+ * que coincidan.
+ */
+function escapeLike(value: string): string {
+	return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
 }
 
 /** El literal de "vacío" en el almacén PB para un campo escalar (§2.1, verificado en Fase 2). */
