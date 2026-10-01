@@ -11,6 +11,7 @@ import type {
 	BackupFile,
 	Capabilities,
 	ContentType,
+	CreatedEditor,
 	EditorAccount,
 	EditorDirectory,
 	FileRef,
@@ -89,9 +90,11 @@ export interface AdministrationPort {
 	 * `{ kind: 'invite' }` nace pendiente, con una contraseña aleatoria que nadie conoce, y se pide
 	 * al servidor el correo de restablecimiento para que la persona elija la suya. Email repetido o
 	 * no válido, o contraseña demasiado corta ⇒ `VegaError 'validation'` con `fieldErrors.email` o
-	 * `fieldErrors.password`.
+	 * `fieldErrors.password`. Si la cuenta se crea pero falla el pedido del correo de invitación,
+	 * NO lanza (la cuenta ya existe): devuelve `invitationSent: false` para que la UI ofrezca
+	 * reenviarlo.
 	 */
-	createEditor(email: string, access: NewEditorAccess): Promise<EditorAccount>;
+	createEditor(email: string, access: NewEditorAccess): Promise<CreatedEditor>;
 	/** Pone una contraseña nueva a una cuenta y la da por activa (`verified: true`). PB cierra las
 	 *  sesiones abiertas de esa cuenta (medido: su token deja de refrescar). */
 	setEditorPassword(id: string, password: string): Promise<void>;

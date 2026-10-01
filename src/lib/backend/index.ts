@@ -12,6 +12,7 @@ export type {
 	BackupFile,
 	Capabilities,
 	ContentType,
+	CreatedEditor,
 	EditorAccount,
 	EditorDirectory,
 	NewEditorAccess,
@@ -112,7 +113,12 @@ export type {
 	BuildTriggerResult,
 	PollBuildStatusOptions
 } from './build-client';
-export { createBuildClient, parseBuildStatus, pollBuildStatus } from './build-client';
+export {
+	BuildRequestError,
+	createBuildClient,
+	parseBuildStatus,
+	pollBuildStatus
+} from './build-client';
 
 export type { UnpublishedChangesResult } from './unpublished-changes';
 export { detectUnpublishedChanges } from './unpublished-changes';

@@ -101,8 +101,16 @@ export function createPocketBaseAdministration({
 				} catch (err) {
 					throw mapAccountWriteError(err);
 				}
-				if (access.kind === 'invite') await editors().requestPasswordReset(created.email);
-				return created;
+				if (access.kind !== 'invite') return { ...created, invitationSent: false };
+				try {
+					await editors().requestPasswordReset(created.email);
+				} catch (err) {
+					// La cuenta ya existe: no se pierde tras un fallo de correo. Solo una sesión caducada
+					// sigue subiendo, para que `guarded` la trate como siempre.
+					if (err instanceof ClientResponseError && err.status === 401) throw err;
+					return { ...created, invitationSent: false };
+				}
+				return { ...created, invitationSent: true };
 			});
 		},
 

@@ -127,7 +127,12 @@ export async function checkForUpdate(
 ): Promise<UpdateStatus> {
 	if (!opts.force) {
 		const cached = readCachedUpdateCheck();
-		if (cached && Date.now() - cached.checkedAt < CACHE_TTL_MS) return cached.status;
+		// Una caché escrita con OTRA versión instalada ya no vale: su veredicto («hay una nueva») se
+		// calculó contra una versión que ya no es la que corre. Los errores no llevan `current`.
+		const staleVersion = cached?.status.kind !== 'error' && cached?.status.current !== VEGA_VERSION;
+		if (cached && !staleVersion && Date.now() - cached.checkedAt < CACHE_TTL_MS) {
+			return cached.status;
+		}
 	}
 	const status = await resolveStatus(fetchImpl);
 	writeCachedUpdateCheck(status);

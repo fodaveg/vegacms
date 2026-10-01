@@ -51,6 +51,21 @@ describe('checkForUpdate: TTL de la caché', () => {
 		expect(result).toEqual({ kind: 'up-to-date', current: VEGA_VERSION, latest: VEGA_VERSION });
 	});
 
+	test('caché reciente escrita con OTRA versión instalada → se invalida y llama a fetch', async () => {
+		writeCachedUpdateCheck({
+			kind: 'update-available',
+			current: '0.0.1',
+			latest: VEGA_VERSION,
+			releaseUrl: 'https://example.com'
+		});
+		const fetchImpl = vi.fn().mockResolvedValue(fakeResponse({ tag_name: `v${VEGA_VERSION}` }));
+
+		const result = await checkForUpdate(fetchImpl as unknown as typeof fetch);
+
+		expect(fetchImpl).toHaveBeenCalledTimes(1);
+		expect(result.kind).toBe('up-to-date');
+	});
+
 	test('sin caché previa → SÍ llama a fetch', async () => {
 		const fetchImpl = vi.fn().mockResolvedValue(fakeResponse({ tag_name: `v${VEGA_VERSION}` }));
 

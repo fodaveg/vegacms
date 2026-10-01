@@ -29,6 +29,9 @@ export interface BuildStatus {
 	finishedAt: string | null;
 	lastPublishedAt: string | null;
 	logUrl: string | null;
+	/** Motivo del fallo en texto plano (`state === 'failed'`), ya normalizado y acotado por
+	 *  `detailOrNull`. Es texto de un sistema externo: se pinta SIEMPRE como texto, nunca como HTML. */
+	detail: string | null;
 }
 
 /** `POST {apiBasePath}/trigger` → `202` + este cuerpo (§contrato). */
@@ -53,6 +56,43 @@ export interface BuildClient {
 	 *  (nunca infiere un estado a partir de una forma parcial — mejor un error explícito que un
 	 *  estado inventado, P3-L3). */
 	fetchStatus(): Promise<BuildStatus>;
+}
+
+/**
+ * Error de un `GET`/`POST` al endpoint de build que SÍ obtuvo respuesta pero no `2xx`. Lleva el
+ * `status` para que la UI distinga «no tienes permiso» (401/403) de «no se llega al servidor» (un
+ * `fetch` que rechaza, que NO es esta clase). Sigue siendo un `Error` plano, no un `VegaError`.
+ */
+export class BuildRequestError extends Error {
+	readonly status: number;
+
+	constructor(status: number, method: string, path: string) {
+		super(`El endpoint de build respondió con el estado ${status} (${method} ${path}).`);
+		this.name = 'BuildRequestError';
+		this.status = status;
+	}
+}
+
+/** Tope de caracteres del `detail` que se enseña junto al botón: una línea, no un volcado de log
+ *  (el registro completo es lo que enlaza `logUrl`). */
+export const MAX_BUILD_DETAIL_LENGTH = 300;
+
+/**
+ * `value` como texto plano apto para pintar en una línea: solo si es string, con los caracteres de
+ * control y los saltos de línea colapsados a un espacio, sin espacios en los extremos y acotado a
+ * `MAX_BUILD_DETAIL_LENGTH` caracteres (con «…» si se recorta). Vacío o no-string → `null`. No
+ * escapa nada: el valor se pinta como nodo de texto, que ya es seguro; escapar aquí lo mostraría
+ * doblemente escapado.
+ */
+export function detailOrNull(value: unknown): string | null {
+	if (typeof value !== 'string') return null;
+	// eslint-disable-next-line no-control-regex
+	const flat = value.replace(/[\u0000-\u001f\u007f\s]+/g, ' ').trim();
+	if (!flat) return null;
+	const chars = Array.from(flat);
+	return chars.length > MAX_BUILD_DETAIL_LENGTH
+		? `${chars.slice(0, MAX_BUILD_DETAIL_LENGTH).join('').trimEnd()}…`
+		: flat;
 }
 
 const BUILD_STATES: readonly BuildState[] = ['idle', 'running', 'ok', 'failed'];
@@ -89,7 +129,8 @@ export function httpUrlOrNull(value: unknown): string | null {
  *  documentos sueltos, mismo criterio que `project-discovery.ts#parseProjectDiscovery`: un campo
  *  ausente/de tipo inesperado cae a `null`, pero `state` fuera del vocabulario invalida el
  *  documento entero (es la única señal que decide qué pinta `PublishButton.svelte`). `logUrl`
- *  además solo sobrevive si es http(s) (`httpUrlOrNull`). */
+ *  además solo sobrevive si es http(s) (`httpUrlOrNull`) y `detail` se normaliza y acota
+ *  (`detailOrNull`). */
 export function parseBuildStatus(raw: unknown): BuildStatus | null {
 	if (typeof raw !== 'object' || raw === null) return null;
 	const record = raw as Record<string, unknown>;
@@ -101,7 +142,8 @@ export function parseBuildStatus(raw: unknown): BuildStatus | null {
 		startedAt: stringOrNull(record.startedAt),
 		finishedAt: stringOrNull(record.finishedAt),
 		lastPublishedAt: stringOrNull(record.lastPublishedAt),
-		logUrl: httpUrlOrNull(record.logUrl)
+		logUrl: httpUrlOrNull(record.logUrl),
+		detail: detailOrNull(record.detail)
 	};
 }
 
@@ -119,9 +161,7 @@ export function createBuildClient(opts: BuildClientOptions): BuildClient {
 			cache: 'no-store'
 		});
 		if (!response.ok) {
-			throw new Error(
-				`El endpoint de build respondió con el estado ${response.status} (${method} ${path}).`
-			);
+			throw new BuildRequestError(response.status, method, path);
 		}
 		return (await response.json()) as T;
 	}

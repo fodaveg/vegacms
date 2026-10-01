@@ -58,6 +58,8 @@ export const es = {
 	// Ausente por completo (§cabecera del componente) si el proyecto conectado no declaró `build`
 	// en su discovery — estas claves solo se pintan cuando la funcionalidad existe de verdad.
 	'topbar.publish.loading': 'Comprobando publicación…',
+	'topbar.publish.unavailableDenied': 'Publicar no disponible: tu cuenta no tiene permiso',
+	'topbar.publish.unavailableOffline': 'Publicar no disponible: no se llega al servidor',
 	'topbar.publish.running': 'Publicando…',
 	'topbar.publish.failed': 'Reintentar publicación',
 	'topbar.publish.noChanges': 'Sin cambios',
@@ -136,6 +138,8 @@ export const es = {
 	'security.status.disabled': 'Desactivado',
 	'security.totp.title': 'App de autenticación (TOTP)',
 	'security.totp.enabled': 'La app de autenticación está activada.',
+	'security.totp.enabledNoCodes':
+		'La app de autenticación ya está activada, pero no se pudieron crear los códigos de recuperación. Pulsa «Regenerar códigos» para obtenerlos y guárdalos.',
 	'security.totp.disabled': 'La app de autenticación está desactivada.',
 	'security.totp.disableConfirm': '¿Desactivar la app de autenticación?',
 	'security.totp.disable': 'Desactivar TOTP',
@@ -1265,6 +1269,8 @@ export const es = {
 	'admin.editors.addDialog.submitPassword': 'Añadir editor',
 	'admin.editors.addDialog.saving': 'Guardando…',
 	'admin.editors.addDialog.successPassword': 'Editor añadido: {email}.',
+	'admin.editors.addDialog.inviteMailFailed':
+		'Editor añadido: {email}, pero no se pudo pedir el correo de invitación. Usa «Reenviar invitación» en su fila para intentarlo de nuevo.',
 	'admin.editors.addDialog.successInvite':
 		'Editor añadido: {email}. PocketBase le enviará el correo para elegir su contraseña.',
 	'admin.editors.passwordDialog.title': 'Cambiar contraseña',

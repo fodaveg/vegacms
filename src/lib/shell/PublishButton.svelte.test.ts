@@ -106,7 +106,8 @@ describe('PublishButton.svelte', () => {
 			startedAt: null,
 			finishedAt: null,
 			lastPublishedAt: '2026-07-20T09:00:00.000Z',
-			logUrl: null
+			logUrl: null,
+			detail: null
 		};
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(idle)));
 		mounted = mountButton(
@@ -130,7 +131,8 @@ describe('PublishButton.svelte', () => {
 			startedAt: null,
 			finishedAt: null,
 			lastPublishedAt: null,
-			logUrl: null
+			logUrl: null,
+			detail: null
 		};
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(idle)));
 		mounted = mountButton(
@@ -149,7 +151,8 @@ describe('PublishButton.svelte', () => {
 			startedAt: '2026-07-25T10:00:00.000Z',
 			finishedAt: null,
 			lastPublishedAt: null,
-			logUrl: null
+			logUrl: null,
+			detail: null
 		};
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(running)));
 		mounted = mountButton(fakeCtx({ buildApiUrl: 'https://pb.test/api/vega-build' }));
@@ -166,7 +169,8 @@ describe('PublishButton.svelte', () => {
 			startedAt: '2026-07-25T10:00:00.000Z',
 			finishedAt: '2026-07-25T10:02:00.000Z',
 			lastPublishedAt: null,
-			logUrl: 'https://ci.example.test/runs/42'
+			logUrl: 'https://ci.example.test/runs/42',
+			detail: null
 		};
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(failed)));
 		mounted = mountButton(fakeCtx({ buildApiUrl: 'https://pb.test/api/vega-build' }));
@@ -185,7 +189,8 @@ describe('PublishButton.svelte', () => {
 			startedAt: '2026-07-25T10:00:00.000Z',
 			finishedAt: '2026-07-25T10:02:00.000Z',
 			lastPublishedAt: null,
-			logUrl: 'javascript:alert(document.cookie)'
+			logUrl: 'javascript:alert(document.cookie)',
+			detail: null
 		};
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(failed)));
 		mounted = mountButton(fakeCtx({ buildApiUrl: 'https://pb.test/api/vega-build' }));
@@ -198,13 +203,53 @@ describe('PublishButton.svelte', () => {
 		expect(mounted.target.querySelector('a[href^="javascript:"]')).toBeNull();
 	});
 
+	test('estado "failed" con detail: lo pinta como TEXTO (nunca como HTML)', async () => {
+		const failed = {
+			state: 'failed',
+			startedAt: '2026-07-25T10:00:00.000Z',
+			finishedAt: '2026-07-25T10:02:00.000Z',
+			lastPublishedAt: null,
+			logUrl: null,
+			detail: '<img src=x onerror=alert(1)> npm ERR! build falló'
+		};
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(failed)));
+		mounted = mountButton(fakeCtx({ buildApiUrl: 'https://pb.test/api/vega-build' }));
+		await flush();
+
+		const detail = mounted.target.querySelector('.vega-publish-detail');
+		expect(detail?.textContent).toBe('<img src=x onerror=alert(1)> npm ERR! build falló');
+		expect(mounted.target.querySelector('img')).toBeNull();
+	});
+
+	test('si la primera consulta responde 403: «no disponible» por falta de permiso, no «Cargando»', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('no', { status: 403 })));
+		mounted = mountButton(fakeCtx({ buildApiUrl: 'https://pb.test/api/vega-build' }));
+		await flush();
+
+		const button = mounted.target.querySelector<HTMLButtonElement>('.vega-publish-trigger');
+		expect(button?.getAttribute('data-state')).toBe('unavailable');
+		expect(button?.disabled).toBe(true);
+		expect(button?.textContent).toContain('topbar.publish.unavailableDenied');
+	});
+
+	test('si la primera consulta no llega al servidor: «no disponible» por conexión', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+		mounted = mountButton(fakeCtx({ buildApiUrl: 'https://pb.test/api/vega-build' }));
+		await flush();
+
+		const button = mounted.target.querySelector<HTMLButtonElement>('.vega-publish-trigger');
+		expect(button?.getAttribute('data-state')).toBe('unavailable');
+		expect(button?.textContent).toContain('topbar.publish.unavailableOffline');
+	});
+
 	test('click en estado accionable dispara POST /trigger con el token de sesión en Authorization', async () => {
 		const idle: BuildStatus = {
 			state: 'idle',
 			startedAt: null,
 			finishedAt: null,
 			lastPublishedAt: null,
-			logUrl: null
+			logUrl: null,
+			detail: null
 		};
 		const fetchMock = vi
 			.fn()
@@ -250,7 +295,8 @@ describe('PublishButton.svelte', () => {
 				startedAt: null,
 				finishedAt: null,
 				lastPublishedAt: '2026-07-20T09:00:00.000Z',
-				logUrl: null
+				logUrl: null,
+				detail: null
 			};
 			const port = fakePort('https://pb.test/api/vega-build');
 			vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(idle)));
@@ -274,7 +320,8 @@ describe('PublishButton.svelte', () => {
 				startedAt: null,
 				finishedAt: null,
 				lastPublishedAt: '2026-07-20T09:00:00.000Z',
-				logUrl: null
+				logUrl: null,
+				detail: null
 			};
 			const port = fakePort('https://pb.test/api/vega-build');
 			vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(idle)));

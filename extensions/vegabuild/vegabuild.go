@@ -50,6 +50,9 @@ const (
 	maxDetailLength      = 4096
 	maxLogURLLength      = 2048
 	maxExternalRefLength = 512
+	// maxStatusDetailLength caps what GET /status emits: far below maxDetailLength (what is stored)
+	// because Vega shows it inline next to the Publish button, as one line of plain text.
+	maxStatusDetailLength = 500
 )
 
 // Run states, stored verbatim in the `state` field of RunsCollection and emitted verbatim in the
@@ -327,6 +330,10 @@ type statusResponse struct {
 	FinishedAt      *string `json:"finishedAt"`
 	LastPublishedAt *string `json:"lastPublishedAt"`
 	LogURL          *string `json:"logUrl"`
+	// Detail explains why the current run failed (Result.Detail / the /callback `detail`). null
+	// unless state is "failed". It is free text from an external system: Vega renders it as plain
+	// text only, and it is capped at maxStatusDetailLength.
+	Detail *string `json:"detail"`
 }
 
 // stringOrNil turns PocketBase's zero value for an unset text field ("") into a real nil, so it
@@ -347,6 +354,19 @@ func truncate(value string, max int) string {
 		return value
 	}
 	return value[:max]
+}
+
+// statusDetail returns the detail to emit in GET /status: only for a failed run, trimmed and capped
+// at maxStatusDetailLength bytes without cutting a UTF-8 character in half. "" means no detail.
+func statusDetail(state, detail string) string {
+	if state != runStateFailed {
+		return ""
+	}
+	detail = strings.TrimSpace(detail)
+	if len(detail) > maxStatusDetailLength {
+		detail = strings.TrimSpace(strings.ToValidUTF8(detail[:maxStatusDetailLength], ""))
+	}
+	return detail
 }
 
 // safeLogURL returns value, capped at maxLogURLLength, only if it is an ABSOLUTE http(s) URL with a
@@ -397,6 +417,7 @@ func (x *Extension) buildStatus(app core.App) (statusResponse, error) {
 		status.FinishedAt = stringOrNil(current.GetString("finishedAt"))
 		// Filtered on read too: a run stored before safeLogURL existed keeps whatever it was given.
 		status.LogURL = stringOrNil(safeLogURL(current.GetString("logUrl")))
+		status.Detail = stringOrNil(statusDetail(status.State, current.GetString("detail")))
 	}
 
 	lastOK, err := x.lastOkRun(app)

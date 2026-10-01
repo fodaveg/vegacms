@@ -5,15 +5,25 @@
 import { describe, expect, test } from 'vitest';
 import {
 	buildTrashListQuery,
+	trashCutoff,
 	parseTrashPage,
 	trashPageToParams,
 	TRASH_PER_PAGE
 } from './trash-query';
 
 describe('buildTrashListQuery', () => {
-	test('filtra kind:delete, ordena por created desc y pagina con TRASH_PER_PAGE', () => {
-		expect(buildTrashListQuery(1)).toEqual({
-			filter: { kind: 'cond', field: 'kind', op: 'eq', value: 'delete' },
+	const NOW = Date.parse('2026-10-01T12:00:00.000Z');
+
+	test('filtra kind:delete no caducada, ordena por created desc y pagina con TRASH_PER_PAGE', () => {
+		expect(buildTrashListQuery(1, 30, NOW)).toEqual({
+			filter: {
+				kind: 'group',
+				combinator: 'and',
+				nodes: [
+					{ kind: 'cond', field: 'kind', op: 'eq', value: 'delete' },
+					{ kind: 'cond', field: 'created', op: 'gte', value: '2026-09-01 12:00:00.000Z' }
+				]
+			},
 			sort: [{ field: 'created', dir: 'desc' }],
 			page: 1,
 			perPage: TRASH_PER_PAGE
@@ -21,7 +31,12 @@ describe('buildTrashListQuery', () => {
 	});
 
 	test('respeta la página pedida', () => {
-		expect(buildTrashListQuery(3)).toMatchObject({ page: 3, perPage: TRASH_PER_PAGE });
+		expect(buildTrashListQuery(3, 30, NOW)).toMatchObject({ page: 3, perPage: TRASH_PER_PAGE });
+	});
+
+	test('el corte sigue trashDays y usa el formato de fecha de PocketBase (espacio, no T)', () => {
+		expect(trashCutoff(7, NOW)).toBe('2026-09-24 12:00:00.000Z');
+		expect(trashCutoff(0, NOW)).toBe('2026-10-01 12:00:00.000Z');
 	});
 });
 

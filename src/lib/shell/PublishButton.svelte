@@ -13,14 +13,21 @@
 	 * `role="status"` para que un cambio ASÍNCRONO del sondeo de fondo —no un click del usuario—
 	 * también se anuncie a lectores de pantalla sin que el foco tenga que estar ahí):
 	 *  - `loading`: aún no se conoce el estado real (primer `fetchStatus()` en vuelo). Deshabilitado.
+	 *  - `unavailable`: la PRIMERA consulta falló y aún no hay ningún estado que enseñar. Dice por
+	 *    qué, distinguiendo «sin permiso» (401/403, `BuildRequestError`) de «no se llega al servidor»
+	 *    (el `fetch` rechaza, u otro estado HTTP): en vez de quedarse eternamente en «Cargando». El
+	 *    sondeo sigue reintentando con back-off y, si responde, el estado real sustituye a este.
+	 *    Deshabilitado. Una vez conocido un estado, un fallo posterior NO vuelve a este (se conserva
+	 *    el último estado visto, como siempre).
 	 *  - `running`: build en curso (`BuildStatus.state === 'running'`, sondeado con
 	 *    `pollBuildStatus`). Deshabilitado (evita disparos duplicados).
 	 *  - `no-changes`: nada editado desde `lastPublishedAt` (`detectUnpublishedChanges`).
 	 *    Deshabilitado — "inactivo si no hay cambios" (encargo).
 	 *  - `ok`: el último build terminó bien Y sigue habiendo cambios pendientes o no se puede saber
 	 *    (`hasChanges` `true`/`null`) — sigue siendo accionable, para volver a publicar.
-	 *  - `failed`: el último build falló. Accionable (reintentar); si el estado trae `logUrl`, un
-	 *    enlace aparte abre el registro en una pestaña nueva.
+	 *  - `failed`: el último build falló. Accionable (reintentar); si el estado trae `detail`, el
+	 *    motivo se pinta al lado COMO TEXTO (nodo de texto, nunca HTML: viene de un sistema externo)
+	 *    y si trae `logUrl`, un enlace aparte abre el registro en una pestaña nueva.
 	 *  - `ready`: caso por defecto, accionable ("Publicar").
 	 *
 	 * `hasChanges === null` (degradación de `detectUnpublishedChanges`: ningún `ContentType` tiene
@@ -31,6 +38,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
 	import {
+		BuildRequestError,
 		createBuildClient,
 		detectUnpublishedChanges,
 		pollBuildStatus,
@@ -54,6 +62,8 @@
 	 *  honesta de saberlo (ver su cabecera) — nunca bloquea el botón por sí solo. */
 	let hasChanges = $state<boolean | null>(null);
 	let stopPolling: (() => void) | null = null;
+	/** Por qué falló la última consulta de estado (`null` = la última fue bien o aún no hubo fallo). */
+	let fetchProblem = $state<'denied' | 'unreachable' | null>(null);
 
 	/** Arranca (o reinicia) el sondeo: el primer `fetchStatus()` es inmediato (`pollBuildStatus`),
 	 *  así que tanto el montaje inicial como un `trigger()` recién disparado ven la verdad cuanto
@@ -65,15 +75,22 @@
 		stopPolling = pollBuildStatus(client, {
 			onStatus(next) {
 				status = next;
+				fetchProblem = null;
 				// Recalcular "hay cambios" solo tiene sentido con un estado TERMINAL: mientras sigue
 				// 'running', `lastPublishedAt` todavía es el de la publicación ANTERIOR (no ha
 				// cambiado todavía), así que repetir la consulta en cada sondeo intermedio sería
 				// trabajo perdido — una vez por transición basta.
 				if (next.state !== 'running') void refreshUnpublishedChanges(next.lastPublishedAt);
+			},
+			// Un fallo de sondeo deja `status` en su último valor conocido (nunca lo borra) y el
+			// back-off interno de `pollBuildStatus` sigue reintentando solo. Solo se anota la causa:
+			// sin ningún estado previo, es lo que evita quedarse en «Cargando» para siempre.
+			onError(err) {
+				fetchProblem =
+					err instanceof BuildRequestError && (err.status === 401 || err.status === 403)
+						? 'denied'
+						: 'unreachable';
 			}
-			// Sin `onError`: un fallo de sondeo deja `status` en su último valor conocido (nunca lo
-			// borra) y el back-off interno de `pollBuildStatus` sigue reintentando solo — no hay
-			// nada más honesto que mostrar aquí que "seguimos en el último estado que vimos".
 		});
 	}
 
@@ -148,10 +165,11 @@
 		}
 	}
 
-	type PublishUiState = 'loading' | 'running' | 'failed' | 'no-changes' | 'ok' | 'ready';
+	type PublishUiState =
+		'loading' | 'unavailable' | 'running' | 'failed' | 'no-changes' | 'ok' | 'ready';
 
 	const uiState = $derived.by((): PublishUiState => {
-		if (!status) return 'loading';
+		if (!status) return fetchProblem ? 'unavailable' : 'loading';
 		if (triggering || status.state === 'running') return 'running';
 		if (status.state === 'failed') return 'failed';
 		if (hasChanges === false) return 'no-changes';
@@ -159,13 +177,23 @@
 		return 'ready';
 	});
 
-	const label = $derived(ctx.t(`topbar.publish.${camelUiState(uiState)}`));
+	const label = $derived(
+		uiState === 'unavailable'
+			? ctx.t(
+					fetchProblem === 'denied'
+						? 'topbar.publish.unavailableDenied'
+						: 'topbar.publish.unavailableOffline'
+				)
+			: ctx.t(`topbar.publish.${camelUiState(uiState)}`)
+	);
 	/** `no-changes` NO deshabilita: republicar sin cambios es inofensivo (rehace el mismo sitio),
 	 *  y deshabilitar convierte cualquier desfase del indicador en una trampa sin salida — el
 	 *  usuario no podría ni forzar la publicación para comprobarlo. El estado sigue comunicándose
 	 *  por texto y `data-state`; lo único que se bloquea es lo que de verdad no tiene sentido:
 	 *  disparar un build encima de otro que ya está corriendo. */
-	const disabled = $derived(uiState === 'loading' || uiState === 'running');
+	const disabled = $derived(
+		uiState === 'loading' || uiState === 'unavailable' || uiState === 'running'
+	);
 
 	/** Las claves de `es.ts`/`en.ts` usan camelCase (`noChanges`), `PublishUiState` usa el guion
 	 *  propio del resto de `data-state` del repo (`no-changes`, ver `ConnectionStatus`) — este
@@ -194,9 +222,16 @@
 			aria-label={label}
 			onclick={handleTrigger}
 		>
-			<Icon id={uiState === 'failed' ? 'warning' : 'upload'} size={14} />
+			<Icon
+				id={uiState === 'failed' || uiState === 'unavailable' ? 'warning' : 'upload'}
+				size={14}
+			/>
 			<span role="status">{label}</span>
 		</button>
+		{#if uiState === 'failed' && status?.detail}
+			<!-- Texto de un sistema externo: nodo de texto, nunca {@html}. -->
+			<span class="vega-publish-detail" title={status.detail}>{status.detail}</span>
+		{/if}
 		{#if uiState === 'failed' && status?.logUrl}
 			<a href={status.logUrl} target="_blank" rel="noopener noreferrer" class="vega-publish-log">
 				{ctx.t('topbar.publish.viewLog')}
@@ -252,9 +287,24 @@
 		color: var(--danger);
 	}
 
+	.vega-publish-trigger[data-state='unavailable'] {
+		border-color: var(--danger);
+		color: var(--danger);
+	}
+
 	.vega-publish-trigger[data-state='running'] {
 		border-color: var(--accent-line);
 		color: var(--accent-text);
+	}
+
+	.vega-publish-detail {
+		min-width: 0;
+		max-width: 24rem;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-size: 0.75rem;
+		color: var(--danger);
 	}
 
 	.vega-publish-log {
@@ -270,6 +320,7 @@
 	   (`aria-label`, arriba) NO depende de este texto visible, así que sigue anunciándose entero
 	   pese al recorte visual. Padding más ajustado: sin texto, la píldora completa sobra ancho. */
 	@media (max-width: 768px) {
+		.vega-publish-detail,
 		.vega-publish-log {
 			display: none;
 		}

@@ -69,11 +69,23 @@
 		if (!auth) return;
 		await run('totp-verify', async () => {
 			await auth.verifyTotp(verificationCode);
-			recoveryCodes = await auth.generateRecoveryCodes();
+			// Desde aquí el TOTP ya está activo en el servidor: la UI debe reflejarlo pase lo que pase.
 			enrollment = null;
 			verificationCode = '';
-			security = await auth.getStatus();
-			ctx.feedback.toast(ctx.t('security.totp.enabled'), { kind: 'success' });
+			try {
+				recoveryCodes = await auth.generateRecoveryCodes();
+				ctx.feedback.toast(ctx.t('security.totp.enabled'), { kind: 'success' });
+			} catch {
+				// «Regenerar códigos» queda disponible en la tarjeta ya activada.
+				error = ctx.t('security.totp.enabledNoCodes');
+			} finally {
+				try {
+					security = await auth.getStatus();
+				} catch {
+					// Sin estado fresco, lo seguro es dejar que la persona lo recargue.
+					loadStatus = 'error';
+				}
+			}
 		});
 	}
 

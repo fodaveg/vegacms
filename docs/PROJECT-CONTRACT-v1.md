@@ -120,7 +120,8 @@ Returns `200` with:
 	"startedAt": null,
 	"finishedAt": null,
 	"lastPublishedAt": "2026-07-20T09:00:00.000Z",
-	"logUrl": null
+	"logUrl": null,
+	"detail": null
 }
 ```
 
@@ -133,6 +134,9 @@ Returns `200` with:
   against recently edited records to flag unpublished changes.
 - `logUrl`: an absolute URL to inspect the run's log (a CI job, a deploy
   log…), or `null`. Vega only links to it when `state` is `"failed"`.
+- `detail` (optional; an older implementation may omit it): a short plain-text
+  reason the current run failed, or `null`. Vega shows it only when `state` is
+  `"failed"`, as TEXT (never HTML), cut to a few hundred characters.
 
 Vega never stores or exposes the real deploy webhook; the project's own
 backend owns that secret and decides how `/trigger` reaches it.

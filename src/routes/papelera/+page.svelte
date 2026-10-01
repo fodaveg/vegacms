@@ -42,6 +42,10 @@
 	 * REGISTRO original (que ya ocurrió), no para borrar la entrada de papelera en sí, que no tiene
 	 * nada que otro registro pueda referenciar.
 	 *
+	 * **Caducidad**: se lista solo `created >= ahora - trashDays` (`buildTrashListQuery`), de modo
+	 * que lo caducado ni se ve ni se restaura aunque nadie lo haya podado todavía; y al abrir la
+	 * ruta se lanza `pruneTrashRevisions` (la misma poda del borrado, sin esperarla).
+	 *
 	 * **"Vaciar papelera" (fix de code-review: un único `list({ perPage: MAX_PER_PAGE })` mentía
 	 * con "Papelera vaciada" cuando había más de 200 entradas)**: `emptyTrash` (`revisions/
 	 * empty-trash.ts`) pagina en BUCLE hasta agotar TODAS las entradas `kind:'delete'`, no solo la
@@ -65,6 +69,7 @@
 	import { VEGA_REVISIONS_COLLECTION } from '$lib/revisions/revisions-collection';
 	import { buildRestoreInput, hasFileValues, requiredFileFieldName } from '$lib/revisions/restore';
 	import { emptyTrash } from '$lib/revisions/empty-trash';
+	import { pruneTrashRevisions } from '$lib/revisions/with-revisions';
 	import { isTrashAvailable } from '$lib/revisions/trash-availability';
 	import {
 		buildTrashListQuery,
@@ -102,7 +107,7 @@
 		try {
 			const result = await ctx.port.list(
 				VEGA_REVISIONS_COLLECTION.name,
-				buildTrashListQuery(targetPage)
+				buildTrashListQuery(targetPage, ctx.model.revisions.trashDays)
 			);
 			items = result.items.map(parseRevisionRecord).filter((r): r is RevisionRecord => r !== null);
 			totalItems = result.totalItems;
@@ -120,6 +125,15 @@
 	$effect(() => {
 		if (!trashAvailable) return;
 		void load(trashPageNum);
+	});
+
+	// Poda al abrir (una vez): lo caducado ya no se lista (`buildTrashListQuery`), pero sin esto
+	// seguiría ocupando espacio mientras nadie borre nada. Best-effort, nunca propaga.
+	let pruned = false;
+	$effect(() => {
+		if (!trashAvailable || pruned) return;
+		pruned = true;
+		void pruneTrashRevisions(ctx.port, ctx.model.revisions.trashDays);
 	});
 
 	function goToPage(target: number): void {

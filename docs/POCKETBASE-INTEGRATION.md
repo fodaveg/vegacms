@@ -228,7 +228,7 @@ convención del propio SDK):
 - `POST {apiBasePath}/trigger` → dispara el webhook real (server-to-server, con SU credencial
   propia, nunca expuesta a Vega) y responde `202` con `{ "id": "<algo que identifique la corrida>" }`.
 - `GET {apiBasePath}/status` → devuelve el estado actual (`state`, `startedAt`, `finishedAt`,
-  `lastPublishedAt`, `logUrl`; forma completa en el contrato de proyecto). `state` es uno de
+  `lastPublishedAt`, `logUrl`, y `detail` opcional con el motivo de un fallo; forma completa en el contrato de proyecto). `state` es uno de
   `"idle"`, `"running"`, `"ok"`, `"failed"`. Vega sondea esta ruta mientras `state` sea `"running"`.
 
 Quién puede llamar a `/trigger` lo decide tu backend: lo más simple es exigir el MISMO rol que ya

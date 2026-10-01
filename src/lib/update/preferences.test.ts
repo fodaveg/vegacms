@@ -36,6 +36,18 @@ describe('shouldShowUpdateBanner', () => {
 		expect(shouldShowUpdateBanner(cached, null)).toBe(true);
 	});
 
+	test('"update-available" cuyo latest ya está instalado (o es anterior) → no se muestra', () => {
+		const cached = cachedOf({
+			kind: 'update-available',
+			current: '1.0.0',
+			latest: '1.1.0',
+			releaseUrl: 'https://example.com'
+		});
+		expect(shouldShowUpdateBanner(cached, null, '1.1.0')).toBe(false);
+		expect(shouldShowUpdateBanner(cached, null, '1.2.0')).toBe(false);
+		expect(shouldShowUpdateBanner(cached, null, '1.0.0')).toBe(true);
+	});
+
 	test('"update-available" con la MISMA versión ya descartada → no se muestra', () => {
 		const cached = cachedOf({
 			kind: 'update-available',

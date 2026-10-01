@@ -29,7 +29,7 @@ import type {
 import { VegaConflictError, VegaError } from '$lib/backend/errors';
 import { createMemoryBackend } from '$lib/backend/adapters/memory';
 import { VEGA_REVISIONS_COLLECTION } from './revisions-collection';
-import { resetRevisionsLatch, withRevisions } from './with-revisions';
+import { pruneTrashRevisions, resetRevisionsLatch, withRevisions } from './with-revisions';
 
 interface FakePortOptions {
 	/** `values.manifest.revisions` del registro `vega` — `undefined` = sin registro `vega` (list
@@ -733,6 +733,30 @@ describe('withRevisions — delete (Fase B2, §8·B2)', () => {
 
 		expect(calls.filter((c) => c.startsWith('delete:vega_revisions:'))).toEqual([
 			'delete:vega_revisions:trash-old'
+		]);
+	});
+
+	test('pruneTrashRevisions (la poda que lanza /papelera al abrirse) borra solo lo caducado', async () => {
+		const now = Date.now();
+		const day = 24 * 60 * 60 * 1000;
+		const items: VegaRecord[] = [
+			{
+				id: 'caducada',
+				type: 'vega_revisions',
+				values: { created: new Date(now - 10 * day).toISOString(), kind: 'delete' }
+			},
+			{
+				id: 'vigente',
+				type: 'vega_revisions',
+				values: { created: new Date(now - 2 * day).toISOString(), kind: 'delete' }
+			}
+		];
+		const { port, calls } = buildFakePort({ pruneListItems: items });
+
+		await pruneTrashRevisions(port, 7);
+
+		expect(calls.filter((c) => c.startsWith('delete:vega_revisions:'))).toEqual([
+			'delete:vega_revisions:caducada'
 		]);
 	});
 

@@ -50,6 +50,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// Absent entirely (see the component header) when the connected project didn't declare
 	// `build` in its discovery — these keys only render when the feature actually exists.
 	'topbar.publish.loading': 'Checking publish status…',
+	'topbar.publish.unavailableDenied': 'Publishing unavailable: your account has no permission',
+	'topbar.publish.unavailableOffline': 'Publishing unavailable: the server cannot be reached',
 	'topbar.publish.running': 'Publishing…',
 	'topbar.publish.failed': 'Retry publish',
 	'topbar.publish.noChanges': 'No changes',
@@ -126,6 +128,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'security.status.disabled': 'Disabled',
 	'security.totp.title': 'Authenticator app (TOTP)',
 	'security.totp.enabled': 'The authenticator app is enabled.',
+	'security.totp.enabledNoCodes':
+		'The authenticator app is now enabled, but the recovery codes could not be created. Press "Regenerate codes" to get them and save them.',
 	'security.totp.disabled': 'The authenticator app is disabled.',
 	'security.totp.disableConfirm': 'Disable the authenticator app?',
 	'security.totp.disable': 'Disable TOTP',
@@ -1201,6 +1205,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'admin.editors.addDialog.submitPassword': 'Add editor',
 	'admin.editors.addDialog.saving': 'Saving…',
 	'admin.editors.addDialog.successPassword': 'Editor added: {email}.',
+	'admin.editors.addDialog.inviteMailFailed':
+		'Editor added: {email}, but the invitation email could not be requested. Use "Resend invitation" on their row to try again.',
 	'admin.editors.addDialog.successInvite':
 		'Editor added: {email}. PocketBase will send them the email to choose their password.',
 	'admin.editors.passwordDialog.title': 'Change password',
