@@ -564,12 +564,16 @@ func (x *Extension) shareResolveHandler(event *core.RequestEvent) error {
 	event.Response.Header().Set("Cache-Control", "no-store")
 	now := x.config.Clock().UTC()
 
-	callerKey := "caller:" + event.RealIP()
-	if retry := x.shareLimiter.blockedFor(callerKey, now); retry > 0 {
-		return shareTooManyAttempts(event, retry)
-	}
+	// The key is checked FIRST, and a caller holding it never touches the "caller:" bucket.
+	// Behind a reverse proxy with no trusted-proxy headers configured, RealIP is the proxy's
+	// address for everybody: if keyless requests could fill a bucket the site also had to pass,
+	// ten of them a minute from anywhere would lock the site out of every share link.
 	presented := event.Request.Header.Get(ShareResolveKeyHeader)
 	if subtle.ConstantTimeCompare([]byte(presented), []byte(x.shareResolveKey)) != 1 {
+		callerKey := "caller:" + event.RealIP()
+		if retry := x.shareLimiter.blockedFor(callerKey, now); retry > 0 {
+			return shareTooManyAttempts(event, retry)
+		}
 		x.shareLimiter.fail(callerKey, now)
 		return event.UnauthorizedError("The request requires the site's preview key.", nil)
 	}

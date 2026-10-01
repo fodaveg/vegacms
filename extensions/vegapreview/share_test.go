@@ -964,6 +964,32 @@ func TestShareResolveLimitsCallersWithoutTheSiteKey(t *testing.T) {
 	}
 }
 
+// TestShareResolveKeylessFloodDoesNotLockOutTheSite: in the fixture, as behind a reverse proxy
+// whose headers PocketBase was not told to trust, the site and a keyless third party arrive from
+// the same RealIP. The third party must not be able to spend the site's allowance.
+func TestShareResolveKeylessFloodDoesNotLockOutTheSite(t *testing.T) {
+	fixture := newShareFixture(t)
+	_, token := fixture.mustCreate(t, fixture.editorA, fixture.pageA, 3600)
+	body := map[string]any{"token": token}
+	for range shareResolveMaxFailures * 3 {
+		response := fixture.do(http.MethodPost, sharePath+"/resolve", "", nil, body)
+		if response.Code != http.StatusUnauthorized && response.Code != http.StatusTooManyRequests {
+			t.Fatalf("expected a keyless caller to get 401 or 429, got %d", response.Code)
+		}
+	}
+	// The third party is blocked...
+	if response := fixture.do(http.MethodPost, sharePath+"/resolve", "", nil, body); response.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected the keyless caller to be blocked, got %d", response.Code)
+	}
+	// ...and the site, from the very same address, keeps resolving, with and without clientIp.
+	if response := fixture.resolve(token, "203.0.113.7"); response.Code != http.StatusOK {
+		t.Fatalf("a keyless flood locked the site out: got %d: %s", response.Code, response.Body.String())
+	}
+	if response := fixture.resolve(token, ""); response.Code != http.StatusOK {
+		t.Fatalf("a keyless flood locked the site out (no clientIp): got %d", response.Code)
+	}
+}
+
 func TestAttemptLimiterIsBoundedAndSafeForConcurrentUse(t *testing.T) {
 	now := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
 	limiter := newAttemptLimiter(2, time.Minute, 3)
