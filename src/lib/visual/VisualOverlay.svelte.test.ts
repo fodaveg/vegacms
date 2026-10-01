@@ -299,7 +299,7 @@ describe('VisualOverlay.svelte', () => {
 		await tick();
 
 		expect(mounted.target.querySelector('.vega-visual-overlay-status')?.textContent).toContain(
-			translate('es', 'editor.visual.overlay.skipped', { count: 3 })
+			translate('es', 'editor.visual.overlay.skipped.many', { count: 3 })
 		);
 		// Y con bloques SÍ pintados, no reemplaza el estado "sin bloques".
 		expect(mounted.target.querySelector('.vega-visual-overlay-status')?.textContent).not.toContain(
@@ -323,7 +323,7 @@ describe('VisualOverlay.svelte', () => {
 		await tick();
 
 		expect(mounted.target.querySelector('.vega-visual-overlay-status')?.textContent).toContain(
-			translate('es', 'editor.visual.overlay.missing', { count: 1 })
+			translate('es', 'editor.visual.overlay.missing.one', { count: 1 })
 		);
 	});
 
@@ -339,7 +339,7 @@ describe('VisualOverlay.svelte', () => {
 		await tick();
 
 		expect(mounted.target.querySelector('.vega-visual-overlay-status')?.textContent).not.toContain(
-			translate('es', 'editor.visual.overlay.missing', { count: 1 })
+			translate('es', 'editor.visual.overlay.missing.one', { count: 1 })
 		);
 	});
 
@@ -354,7 +354,7 @@ describe('VisualOverlay.svelte', () => {
 		await tick();
 
 		const text = mounted.target.querySelector('.vega-visual-overlay-status')?.textContent;
-		expect(text).toContain(translate('es', 'editor.visual.overlay.missing', { count: 2 }));
+		expect(text).toContain(translate('es', 'editor.visual.overlay.missing.many', { count: 2 }));
 		expect(text).not.toContain(translate('es', 'editor.visual.overlay.empty'));
 	});
 
@@ -393,7 +393,9 @@ describe('VisualOverlay.svelte', () => {
 		await tick();
 
 		const status = mounted.target.querySelector('.vega-visual-overlay-status')?.textContent ?? '';
-		expect(status).not.toContain(translate('es', 'editor.visual.overlay.missing', { count: 1 }));
+		expect(status).not.toContain(
+			translate('es', 'editor.visual.overlay.missing.one', { count: 1 })
+		);
 	});
 
 	test('una sección que la vista previa OCULTA pero reporta (0×0) tampoco da aviso falso', async () => {
@@ -411,7 +413,9 @@ describe('VisualOverlay.svelte', () => {
 		await tick();
 
 		const status = mounted.target.querySelector('.vega-visual-overlay-status')?.textContent ?? '';
-		expect(status).not.toContain(translate('es', 'editor.visual.overlay.missing', { count: 1 }));
+		expect(status).not.toContain(
+			translate('es', 'editor.visual.overlay.missing.one', { count: 1 })
+		);
 	});
 
 	test('la que el sitio NO reporta sí falta, sea o no pública: ese aviso es cierto', async () => {
@@ -426,7 +430,7 @@ describe('VisualOverlay.svelte', () => {
 		await tick();
 
 		expect(mounted.target.querySelector('.vega-visual-overlay-status')?.textContent).toContain(
-			translate('es', 'editor.visual.overlay.missing', { count: 1 })
+			translate('es', 'editor.visual.overlay.missing.one', { count: 1 })
 		);
 	});
 

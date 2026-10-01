@@ -305,7 +305,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.status.error.unpublish': 'Could not switch to draft',
 	'editor.visual.status.error.conflict':
 		'The page changed on the server: check its status before trying again',
-	'editor.visual.status.confirm.title': '{count} block(s) not saved',
+	'editor.visual.status.confirm.title.many': '{count} blocks not saved',
 	'editor.visual.status.confirm.body':
 		'The page will be published with what was last saved. Those changes will not go out until you save them.',
 	'editor.visual.status.confirm.publish': 'Publish anyway',
@@ -313,7 +313,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.status.success.rebuild': 'It will show on the site after the next publish.',
 	'editor.visual.frameTitle': 'The site page, inside the visual editor',
 	'editor.visual.connecting': 'Connecting to the site…',
-	'editor.visual.connected': 'Connected to the site: {count} block(s) on the page.',
+	'editor.visual.connected.many': 'Connected to the site: {count} blocks on the page.',
 	'editor.visual.token.error': 'Could not load the site page: {message}',
 	'editor.visual.error.noBridge.title':
 		'This site does not have the visual editing bridge installed',
@@ -343,35 +343,36 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// ————— Selection outlines (`VisualOverlay.svelte`), see `es.ts` for the full rationale —————
 	'editor.visual.overlay.waiting': 'Waiting for the page to describe its blocks…',
 	'editor.visual.overlay.empty': 'This page has no blocks to select yet.',
-	'editor.visual.overlay.skipped': "{count} block(s) the site described badly: can't be selected.",
-	'editor.visual.overlay.missing': "{count} section(s) that exist but the site isn't rendering.",
+	'editor.visual.overlay.skipped.many':
+		"{count} blocks the site described badly: can't be selected.",
+	'editor.visual.overlay.missing.many': "{count} blocks that exist but the site isn't rendering.",
 	'editor.visual.overlay.unsupported': 'unsupported',
-	// Section the SITE says is not public (bridge `unpublished`): see `es.ts` for the rationale.
+	// Block the SITE says is not public (bridge `unpublished`): see `es.ts` for the rationale.
 	'editor.visual.unpublished': 'Not public',
 	// "Draggable block palette" task: the empty-canvas drop target, ONLY while a palette drag is in
 	// flight (see `es.ts` for the full rationale).
-	'editor.visual.overlay.emptyDrop': 'Drop here to create the first section',
-	// ————— Section tree (`VisualBlockTree.svelte`) and inspector (`VisualInspector.svelte`): the
+	'editor.visual.overlay.emptyDrop': 'Drop here to create the first block',
+	// ————— Block tree (`VisualBlockTree.svelte`) and inspector (`VisualInspector.svelte`): the
 	// ACCESSIBLE way to select a block (the overlay above is `aria-hidden`) and the selected
 	// block's form. See `es.ts` for the full rationale, incl. which existing keys are reused.
-	'editor.visual.tree.title': 'Sections',
+	'editor.visual.tree.title': 'Blocks',
 	'editor.visual.tree.selectLabel': 'Select "{label}"',
 	// The row's `aria-label` replaces its visible text, so the state has to be in it (see `es.ts`).
 	'editor.visual.tree.selectLabelUnpublished': 'Select "{label}" (not public)',
-	'editor.visual.tree.unavailable': 'Could not load the section tree.',
+	'editor.visual.tree.unavailable': 'Could not load the block tree.',
 	// Selection announcement ("accessibility" task, D3): see `es.ts` for the full rationale (same
 	// `aria-live` region as `editor.blocks.reorder.moved`).
-	'editor.visual.tree.announceSelect': 'Section "{label}" selected, {position} of {total}',
+	'editor.visual.tree.announceSelect': 'Block "{label}" selected, {position} of {total}',
 	// Creation announcement ("draggable block palette" task, §6): same `aria-live` region, see
 	// `es.ts` for the full rationale.
-	'editor.visual.tree.announceCreate': 'Section "{label}" created, {position} of {total}',
+	'editor.visual.tree.announceCreate': 'Block "{label}" created, {position} of {total}',
 	// ————— Structural tree actions ("structural actions from the visual editor" task): see
 	// `es.ts` for the full rationale (same keys reused by the floating toolbar in
 	// `VisualOverlay.svelte`).
 	'editor.blocks.moveUpLabel': 'Move up «{label}»',
 	'editor.blocks.moveDownLabel': 'Move down «{label}»',
 	'editor.visual.overlay.toolbar.label': 'Actions for «{label}»',
-	'editor.visual.overlay.insertLabel': 'Insert section at position {position} of {total}',
+	'editor.visual.overlay.insertLabel': 'Insert block at position {position} of {total}',
 	'editor.visual.inspector.title': 'Inspector',
 	'editor.visual.inspector.empty': 'Select a block in the tree or on the canvas to edit it here.',
 	'editor.visual.inspector.unknownBlock':
@@ -379,7 +380,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 
 	// Column-width resize handles (David's request after using the visual editor in prod): one
 	// between the tree and the canvas, another between the canvas and the inspector.
-	'editor.visual.resize.tree': 'Resize the section tree',
+	'editor.visual.resize.tree': 'Resize the block tree',
 	'editor.visual.resize.inspector': 'Resize the block panel',
 
 	// ————— The finishing touches (screen sizes, zoom, shortcuts, save status): see the header of
@@ -401,7 +402,13 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.help.save': 'Save the selected block',
 	'editor.visual.help.toggleHelp': 'Open or close this panel',
 	'editor.visual.help.asymmetry':
-		'Moving, duplicating, deleting and adding sections save on their own, the moment they happen. A block’s field text saves with the "Save" button on its panel.',
+		'Moving, duplicating, deleting and adding blocks save on their own, the moment they happen. A block’s field text saves with the "Save" button on its panel.',
+	// Singular of the `.many` keys above (confirm.title, connected, overlay.skipped,
+	// overlay.missing): the caller picks with `count === 1`, like `list.export.success.one/many`.
+	'editor.visual.status.confirm.title.one': '1 block not saved',
+	'editor.visual.connected.one': 'Connected to the site: 1 block on the page.',
+	'editor.visual.overlay.skipped.one': "1 block the site described badly: can't be selected.",
+	'editor.visual.overlay.missing.one': "1 block that exists but the site isn't rendering.",
 
 	// ————— Master-detail editor (final `aquelarre-detalle-post.html` mockup) —————
 	// Sibling rail (`.rail`), metadata aside (`.kv`) and danger zone: GENERIC opt-in renderer

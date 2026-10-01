@@ -1211,7 +1211,12 @@
 			<div class="vega-visual-status" aria-live="polite">
 				{#if bridgeState.status === 'connected'}
 					<span class="vega-visual-status-text">
-						{ctx.t('editor.visual.connected', { count: bridgeState.blocks.length })}
+						{ctx.t(
+							bridgeState.blocks.length === 1
+								? 'editor.visual.connected.one'
+								: 'editor.visual.connected.many',
+							{ count: bridgeState.blocks.length }
+						)}
 					</span>
 				{:else if bridgeState.status === 'error'}
 					{@const errorText = bridgeErrorText(bridgeState.kind, bridgeState)}

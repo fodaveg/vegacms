@@ -229,7 +229,12 @@
 					onkeydown={handlePopKeydown}
 				>
 					<p class="vega-visual-publish-pop-title" id="{uid}-pop-title">
-						{ctx.t('editor.visual.status.confirm.title', { count: pendingBlocks.length })}
+						{ctx.t(
+							pendingBlocks.length === 1
+								? 'editor.visual.status.confirm.title.one'
+								: 'editor.visual.status.confirm.title.many',
+							{ count: pendingBlocks.length }
+						)}
 					</p>
 					<ul>
 						{#each pendingBlocks as title, i (i)}

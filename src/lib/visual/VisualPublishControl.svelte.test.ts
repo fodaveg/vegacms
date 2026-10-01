@@ -204,6 +204,15 @@ describe('VisualPublishControl.svelte', () => {
 		expect(h.update).toHaveBeenCalledWith('pages', 'p1', { status: 'draft' }, expect.anything());
 	});
 
+	test('con UN bloque sin guardar, la confirmación dice «1 bloque» en singular', async () => {
+		h = mountControl({ record: page('draft'), pendingBlocks: ['Galería'] });
+		action(h)!.click();
+		await settle();
+		const pop = h.target.querySelector<HTMLElement>('[role="alertdialog"]')!;
+		expect(pop.textContent).toContain('Hay 1 bloque sin guardar');
+		expect(pop.textContent).not.toContain('bloques');
+	});
+
 	test('con bloques sin guardar, publicar pide confirmación en línea: foco en Cancelar, Esc cierra', async () => {
 		h = mountControl({ record: page('draft'), pendingBlocks: ['Portada: bienvenida', 'Galería'] });
 		const button = action(h)!;
@@ -214,7 +223,10 @@ describe('VisualPublishControl.svelte', () => {
 		const pop = h.target.querySelector<HTMLElement>('[role="alertdialog"]')!;
 		expect(pop).not.toBeNull();
 		expect(button.getAttribute('aria-expanded')).toBe('true');
-		expect(pop.textContent).toContain(t('editor.visual.status.confirm.title', { count: 2 }));
+		expect(pop.textContent).toContain(t('editor.visual.status.confirm.title.many', { count: 2 }));
+		// Plural REAL, con el texto literal (no con `t()`, que sería tautológico): ni «bloque(s)».
+		expect(pop.textContent).toContain('Hay 2 bloques sin guardar');
+		expect(pop.textContent).not.toContain('(s)');
 		expect(pop.textContent).toContain('«Galería»');
 		expect(document.activeElement?.textContent?.trim()).toBe(t('common.cancel'));
 		expect(h.update).not.toHaveBeenCalled();

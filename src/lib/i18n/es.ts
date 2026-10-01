@@ -326,7 +326,7 @@ export const es = {
 	'editor.visual.status.error.unpublish': 'No se pudo pasar a borrador',
 	'editor.visual.status.error.conflict':
 		'La página cambió en el servidor: revisa su estado antes de volver a intentarlo',
-	'editor.visual.status.confirm.title': 'Hay {count} bloque(s) sin guardar',
+	'editor.visual.status.confirm.title.many': 'Hay {count} bloques sin guardar',
 	'editor.visual.status.confirm.body':
 		'La página se publicará con lo último guardado. Esos cambios no saldrán hasta que los guardes.',
 	'editor.visual.status.confirm.publish': 'Publicar igualmente',
@@ -334,7 +334,7 @@ export const es = {
 	'editor.visual.status.success.rebuild': 'Se verá en el sitio tras la próxima publicación.',
 	'editor.visual.frameTitle': 'La página del sitio, dentro del editor visual',
 	'editor.visual.connecting': 'Conectando con el sitio…',
-	'editor.visual.connected': 'Conectado al sitio: {count} bloque(s) en la página.',
+	'editor.visual.connected.many': 'Conectado al sitio: {count} bloques en la página.',
 	'editor.visual.token.error': 'No se pudo cargar la página del sitio: {message}',
 	'editor.visual.error.noBridge.title': 'Este sitio no tiene instalado el puente de edición visual',
 	'editor.visual.error.noBridge.body':
@@ -364,15 +364,15 @@ export const es = {
 	// la barra superior — ver la cabecera del componente para el porqué de cada uno.
 	'editor.visual.overlay.waiting': 'Esperando a que la página describa sus bloques…',
 	'editor.visual.overlay.empty': 'Esta página todavía no tiene bloques que seleccionar.',
-	'editor.visual.overlay.skipped':
-		'{count} bloque(s) que el sitio describió mal: no se pueden seleccionar.',
+	'editor.visual.overlay.skipped.many':
+		'{count} bloques que el sitio describió mal: no se pueden seleccionar.',
 	// Defecto "el lienzo no dice nada cuando le faltan bloques": lo contrario de `.skipped` de
 	// arriba — registros que Vega SÍ tiene y el sitio NO reportó (ver `missingBlocks` de
-	// `VisualOverlay.svelte`). Texto accionable, no un número suelto: dice que las secciones
+	// `VisualOverlay.svelte`). Texto accionable, no un número suelto: dice que los bloques
 	// EXISTEN y que es el SITIO quien no las pinta, para que quien edita no crea que el botón está
 	// roto.
-	'editor.visual.overlay.missing':
-		'{count} sección(es) que existen pero el sitio no está pintando.',
+	'editor.visual.overlay.missing.many':
+		'{count} bloques que existen pero el sitio no está pintando.',
 	'editor.visual.overlay.unsupported': 'no soportado',
 	// Sección que el SITIO dice no pública (`unpublished` del puente, ver
 	// `bridge-client.ts#VisualBlock`): la misma palabra en la etiqueta del contorno y en la fila
@@ -381,28 +381,28 @@ export const es = {
 	// Encargo "paleta de bloques arrastrable del editor visual": la zona de caída de página vacía
 	// (decisión 3) — una sola caja SOBRE EL MARCO que solo existe mientras hay un arrastre de
 	// paleta en vuelo Y no hay ningún bloque (ver la cabecera de `VisualOverlay.svelte`).
-	'editor.visual.overlay.emptyDrop': 'Suelta aquí para crear la primera sección',
-	// ————— Árbol de secciones (`VisualBlockTree.svelte`) e inspector (`VisualInspector.svelte`):
+	'editor.visual.overlay.emptyDrop': 'Suelta aquí para crear el primer bloque',
+	// ————— Árbol de bloques (`VisualBlockTree.svelte`) e inspector (`VisualInspector.svelte`):
 	// la vía ACCESIBLE de seleccionar un bloque (el overlay de arriba es `aria-hidden`) y la ficha
 	// del bloque elegido. Reutilizan a propósito claves ya existentes del resto del ciclo de vida
 	// de un bloque (`editor.dirty`/`editor.saving`, `editor.blocks.empty`/`.type.*`, `common.close`/
 	// `.loading`): editar un bloque desde aquí es lo mismo que editarlo desde `RecordBlocks.svelte`,
 	// solo que en otra columna.
-	'editor.visual.tree.title': 'Secciones',
+	'editor.visual.tree.title': 'Bloques',
 	'editor.visual.tree.selectLabel': 'Seleccionar «{label}»',
 	// Mismo rótulo con el estado dentro: el `aria-label` de la fila SUSTITUYE a su texto visible,
 	// así que la insignia "No pública" no llegaría al lector de pantalla por sí sola.
 	'editor.visual.tree.selectLabelUnpublished': 'Seleccionar «{label}» (no pública)',
-	'editor.visual.tree.unavailable': 'No se pudo cargar el árbol de secciones.',
+	'editor.visual.tree.unavailable': 'No se pudo cargar el árbol de bloques.',
 	// Anuncio de la selección (encargo de accesibilidad, D3): `VisualEditorScreen.svelte#handleBlockSelect`
 	// lo lee por la MISMA región `aria-live` que ya usa `editor.blocks.reorder.moved` (ver la
 	// cabecera de `blocks-state.svelte.ts`, "Anuncio de la selección").
-	'editor.visual.tree.announceSelect': 'Sección «{label}» seleccionada, {position} de {total}',
+	'editor.visual.tree.announceSelect': 'Bloque «{label}» seleccionado, {position} de {total}',
 	// Anuncio de la CREACIÓN (encargo "paleta de bloques arrastrable", §6): `handleCreate` no
 	// anunciaba nada por sí solo — ni la paleta (`VisualPalette.svelte#createAtEnd`, crear al
 	// final) ni el `+` de los puntos de inserción (`VisualOverlay.svelte#handleInsert`, crear en
 	// posición) lo hacían hasta esta tarea. MISMA región `aria-live` que la de arriba.
-	'editor.visual.tree.announceCreate': 'Sección «{label}» creada, {position} de {total}',
+	'editor.visual.tree.announceCreate': 'Bloque «{label}» creado, {position} de {total}',
 	// ————— Acciones estructurales del árbol (tarea "acciones estructurales desde el editor
 	// visual"): crear/duplicar/borrar/mover viven aquí Y en la barra flotante del lienzo
 	// (`VisualOverlay.svelte`), que reutiliza estas MISMAS claves de duplicar/borrar/mover —
@@ -413,7 +413,7 @@ export const es = {
 	'editor.blocks.moveUpLabel': 'Subir «{label}»',
 	'editor.blocks.moveDownLabel': 'Bajar «{label}»',
 	'editor.visual.overlay.toolbar.label': 'Acciones de «{label}»',
-	'editor.visual.overlay.insertLabel': 'Insertar sección en la posición {position} de {total}',
+	'editor.visual.overlay.insertLabel': 'Insertar bloque en la posición {position} de {total}',
 	'editor.visual.inspector.title': 'Inspector',
 	'editor.visual.inspector.empty':
 		'Selecciona un bloque en el árbol o en el lienzo para editarlo aquí.',
@@ -422,7 +422,7 @@ export const es = {
 
 	// Manillas de ancho entre columnas (petición de David tras usar el editor visual en prod):
 	// una entre árbol y lienzo, otra entre lienzo e inspector — ver `VisualColumnResizer.svelte`.
-	'editor.visual.resize.tree': 'Ajustar ancho del árbol de secciones',
+	'editor.visual.resize.tree': 'Ajustar ancho del árbol de bloques',
 	'editor.visual.resize.inspector': 'Ajustar ancho de la ficha del bloque',
 
 	// ————— El acabado (tamaños de pantalla, zoom, atajos y estado de guardado): ver la cabecera
@@ -444,7 +444,14 @@ export const es = {
 	'editor.visual.help.save': 'Guardar el bloque seleccionado',
 	'editor.visual.help.toggleHelp': 'Abrir o cerrar este panel',
 	'editor.visual.help.asymmetry':
-		'Mover, duplicar, borrar y crear secciones se guardan solos, en el momento en que ocurren. El texto de los campos de un bloque se guarda con el botón «Guardar» de su ficha.',
+		'Mover, duplicar, borrar y crear bloques se guardan solos, en el momento en que ocurren. El texto de los campos de un bloque se guarda con el botón «Guardar» de su ficha.',
+	// Singular de las claves `.many` de arriba (confirm.title, connected, overlay.skipped,
+	// overlay.missing): el llamador elige con `count === 1`, como `list.export.success.one/many`.
+	'editor.visual.status.confirm.title.one': 'Hay 1 bloque sin guardar',
+	'editor.visual.connected.one': 'Conectado al sitio: 1 bloque en la página.',
+	'editor.visual.overlay.skipped.one':
+		'1 bloque que el sitio describió mal: no se puede seleccionar.',
+	'editor.visual.overlay.missing.one': '1 bloque que existe pero el sitio no está pintando.',
 
 	// ————— Editor «master-detail» (mockup final `aquelarre-detalle-post.html`) —————
 	// Raíl de hermanos (`.rail`), aside de metadatos (`.kv`) y zona de peligro: piezas GENÉRICAS
