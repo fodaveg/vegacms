@@ -1,5 +1,7 @@
 /**
- * Arranque de proyecto en un paso, deliberadamente sin UI ni migración.
+ * Arranque de proyecto en un paso, sin migración. Lo lanza la tarjeta «Base del sitio» de
+ * `/settings` (`SiteBaseCard.svelte`), que antes de escribir enseña el preflight de solo lectura
+ * (`previewSiteSeed`).
  *
  * La frontera es por PIEZA: colección, campo, registro de manifiesto o página canónica.
  * Una pieza ausente se añade; una presente y compatible se conserva; una presente e
@@ -254,6 +256,8 @@ interface CollectionPlan {
 	missing: boolean;
 	missingFields: CollectionFieldSpec[];
 	incompatibleFields: Set<string>;
+	/** Campos `text` presentes y compatibles cuyo spec trae `pattern` y que aún no tienen ninguno. */
+	unconstrainedFields: string[];
 }
 
 /** Qué hacer con el registro del manifiesto tras el preflight. */
@@ -369,6 +373,90 @@ export async function seedSiteProject(
 	return result;
 }
 
+/**
+ * Lo que `seedSiteProject` escribiría ahora mismo, en los mismos términos que su resultado
+ * (`SiteSeedResult`) y sin escribir nada. Solo cuenta las piezas visibles: `vega_editors` no se
+ * puede preflightar (ver la cabecera del módulo), así que no aparece aquí aunque el sembrado la
+ * cree o le añada `created`.
+ */
+export interface SiteSeedPlanSummary {
+	/** Colecciones visibles ausentes, en el orden en que se aplican. */
+	createdCollections: string[];
+	/** Campos que faltan en colecciones ya existentes. */
+	addedFields: Record<string, string[]>;
+	/** Solo si hay alguno: campos de una `redirects` existente que recibirían su `pattern`. */
+	constrainedFields?: Record<string, string[]>;
+	/** `create`: se escribe el manifiesto; `upgrade`: se sustituye uno inicial sin editar. */
+	manifest: ManifestAction;
+	/** La página canónica «Inicio» se crearía. */
+	pageMissing: boolean;
+	/** Nada que escribir en las piezas visibles. */
+	upToDate: boolean;
+}
+
+export type SiteSeedPreview =
+	| { status: 'ready'; plan: SiteSeedPlanSummary }
+	/** El sembrado abortaría entero: no escribiría nada. */
+	| { status: 'blocked'; divergences: readonly SiteSeedDivergence[] };
+
+/**
+ * Preflight de SOLO LECTURA: el mismo recorrido que hace `seedSiteProject` antes de su primera
+ * escritura, sin llegar a ninguna. Devuelve el plan o las divergencias que harían abortar. Un
+ * fallo de lectura (red, permisos) se propaga tal cual: no es una divergencia.
+ */
+export async function previewSiteSeed(port: BackendPort): Promise<SiteSeedPreview> {
+	let plan: SeedPlan;
+	try {
+		plan = await inspectSeedPlan(port);
+	} catch (error) {
+		if (error instanceof SiteSeedDivergenceError) {
+			return { status: 'blocked', divergences: error.divergences };
+		}
+		throw error;
+	}
+	const createdCollections: string[] = [];
+	const addedFields: Record<string, string[]> = {};
+	let constrainedFields: Record<string, string[]> | undefined;
+	for (const name of SEED_APPLY_ORDER) {
+		const collection = plan.collections.get(name)!;
+		if (collection.missing) {
+			createdCollections.push(name);
+			continue;
+		}
+		if (collection.missingFields.length > 0) {
+			addedFields[name] = collection.missingFields.map((field) => field.name);
+		}
+		// Solo `redirects` se constriñe al sembrar (`constrainFieldPatterns`).
+		if (name === 'redirects' && collection.unconstrainedFields.length > 0) {
+			constrainedFields = { redirects: [...collection.unconstrainedFields] };
+		}
+	}
+	const summary: SiteSeedPlanSummary = {
+		createdCollections,
+		addedFields,
+		...(constrainedFields ? { constrainedFields } : {}),
+		manifest: plan.manifest,
+		pageMissing: plan.pageMissing,
+		upToDate: false
+	};
+	summary.upToDate =
+		createdCollections.length === 0 &&
+		Object.keys(addedFields).length === 0 &&
+		!constrainedFields &&
+		plan.manifest === 'keep' &&
+		!plan.pageMissing;
+	return { status: 'ready', plan: summary };
+}
+
+/** Orden de aplicación de `seedSiteProject` para las colecciones visibles. */
+const SEED_APPLY_ORDER: readonly VisibleCollectionName[] = [
+	'vega_media',
+	'pages',
+	'blocks',
+	'redirects',
+	'vega'
+];
+
 async function inspectSeedPlan(port: BackendPort): Promise<SeedPlan> {
 	const types = await port.listContentTypes();
 	const actualByName = new Map(types.map((type) => [type.name, type]));
@@ -419,7 +507,8 @@ function inspectCollection(
 			spec,
 			missing: true,
 			missingFields: [...spec.fields],
-			incompatibleFields: new Set()
+			incompatibleFields: new Set(),
+			unconstrainedFields: []
 		};
 	}
 	if (actual.readonly) {
@@ -433,6 +522,7 @@ function inspectCollection(
 	const actualByName = new Map(actual.fields.map((field) => [field.name, field]));
 	const missingFields: CollectionFieldSpec[] = [];
 	const incompatibleFields = new Set<string>();
+	const unconstrainedFields: string[] = [];
 	for (const expected of spec.fields) {
 		const found = actualByName.get(expected.name);
 		if (!found) {
@@ -448,9 +538,11 @@ function inspectCollection(
 				expected: JSON.stringify(expectedShape),
 				actual: JSON.stringify(actualShape)
 			});
+		} else if (expected.type === 'text' && expected.pattern && found.type === 'text') {
+			if (!found.pattern) unconstrainedFields.push(expected.name);
 		}
 	}
-	return { spec, missing: false, missingFields, incompatibleFields };
+	return { spec, missing: false, missingFields, incompatibleFields, unconstrainedFields };
 }
 
 async function inspectManifestRecord(
