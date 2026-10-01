@@ -1002,6 +1002,35 @@ transcurrido. Si ya hay otra copia o restauración en marcha, PocketBase la rech
 dice. El nombre lo pone PocketBase con resolución de segundos: dos copias en el mismo segundo se
 pisan. Descargarla es la forma de tener una copia **fuera** del servidor.
 
+### Ajustes de PocketBase que Vega escribe (`serverSettings`)
+
+Para configurar sin el panel `/_/` (que un despliegue puede no servir), `/copias` edita dos bloques de
+`/api/settings`, solo con sesión de superuser (`capabilities.serverSettings`): **Copias automáticas**
+(`backups.cron`, `backups.cronMaxKeep`) y **Dónde se guardan** (`backups.s3`, con «Probar conexión»
+contra `POST /api/settings/test/s3` y `filesystem: 'backups'`). El contrato medido contra PocketBase
+0.39.9 está en `tests/contract/pocketbase.settings.contract.test.ts` y
+`tests/contract/pocketbase.server-settings.contract.test.ts`; lo que importa:
+
+- `GET /api/settings` **no devuelve los secretos** (`backups.s3.secret`, `smtp.password`): llegan
+  ausentes y Vega no sabe si hay uno guardado. El campo de la clave secreta va siempre vacío y solo
+  viaja si se escribe una nueva.
+- `PATCH` fusiona por bloque y por campo: Vega manda **solo lo que cambió** (`buildServerSettingsPatch`).
+  Omitir un secreto lo conserva; `""` lo borra; `******` guarda los asteriscos.
+- **La clave secreta del almacén no se puede quitar** (medido): `backups.s3.secret: ""` desaparece de
+  la base, pero el servidor la conserva en memoria y el siguiente guardado de cualquier campo la
+  resucita. Vega no ofrece «quitarla»; para dejar de usar el almacén basta volver a «En este
+  servidor», que conserva los datos. `smtp.password: ""` sí se borra de verdad.
+- `backups.cron` vacío desactiva las copias («Nunca»); acepta macros (`@daily`) y cinco segmentos, y
+  se ejecuta en **UTC**. `cronMaxKeep` ≥ 1 solo se exige si hay `cron`. Un campo inválido no aplica
+  nada del envío y el error llega en `data.<bloque>.<campo>` anidado (el puerto lo aplana a
+  `backups.cron`, `backups.s3.endpoint`…). Con el almacén activado, endpoint, bucket, región, clave de
+  acceso y clave secreta son obligatorios.
+- Las pruebas (`/test/s3`, `/test/email`) comprueban lo **guardado**, no el formulario. Un fallo es un
+  400 con el error crudo en `message`; Vega lo enseña como texto, en una caja con scroll.
+- Cambiar el destino no mueve las copias que ya hay: la lista de `/copias` pasa a enseñar las del
+  destino activo.
+- Sin medir: si las listas de ajustes se fusionan o se reemplazan. Vega no escribe ninguna.
+
 ## Sincronización en tiempo real
 
 La interfaz de Vega NO se suscribe a cambios en tiempo real de PocketBase. Cada operación es un request HTTP explícito:
