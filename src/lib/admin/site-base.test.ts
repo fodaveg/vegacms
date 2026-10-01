@@ -38,6 +38,16 @@ describe('site-base', () => {
 		);
 		expect(edited.body).toContain('Se ha editado a mano');
 
+		const worded = describeDivergence(
+			{
+				piece: 'registro "vega/default"',
+				expected: 'manifiesto inicial exacto (actual o de una versión anterior del sembrado)',
+				actual: 'manifiesto distinto ({})'
+			},
+			t
+		);
+		expect(worded.detail).not.toMatch(/sembrado/i);
+
 		const unknown = describeDivergence({ piece: 'algo raro', expected: 'x', actual: 'y' }, t);
 		expect(unknown.title).toBe('algo raro');
 	});

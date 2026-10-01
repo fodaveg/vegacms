@@ -95,7 +95,12 @@ export function buildPlanView(plan: SiteSeedPlanSummary, t: Translate): PlanView
 	const add: PlanItem[] = [];
 	const replace: PlanItem[] = [];
 
-	for (const name of plan.createdCollections) {
+	// Orden de la lámina (Páginas primero), no el de aplicación (Medios antes que Páginas).
+	const display = SITE_BASE_COLLECTIONS as readonly string[];
+	const createdInDisplayOrder = [...plan.createdCollections].sort(
+		(left, right) => display.indexOf(left) - display.indexOf(right)
+	);
+	for (const name of createdInDisplayOrder) {
 		if (name === 'vega') continue; // va aparte: depende también del registro del manifiesto
 		create.push({
 			title: collectionLabel(t, name),
@@ -183,8 +188,9 @@ export function buildPlanView(plan: SiteSeedPlanSummary, t: Translate): PlanView
 		);
 		if (!plan.pageMissing) untouched.push(t('settings.site.page.rest'));
 		if (untouched.length > 0) {
+			const names = joinList(t, untouched);
 			rest = t(untouched.length === 1 ? 'settings.site.plan.restOne' : 'settings.site.plan.rest', {
-				names: joinList(t, untouched)
+				names: names.charAt(0).toUpperCase() + names.slice(1)
 			});
 		}
 	}
@@ -234,7 +240,11 @@ export interface DivergenceView {
 
 /** El texto técnico literal de una divergencia, tal como lo escribe `SiteSeedDivergenceError`. */
 export function divergenceDetail(item: SiteSeedDivergence): string {
-	return `${item.piece}: encontró ${item.actual}; esperaba ${item.expected}`;
+	// «sembrado» no sale en la interfaz, ni siquiera en el texto técnico plegado.
+	return `${item.piece}: encontró ${item.actual}; esperaba ${item.expected}`.replace(
+		/del sembrado/g,
+		'de Vega'
+	);
 }
 
 /** La frase en llano de cada divergencia, deducida del tipo de pieza; el literal queda en `detail`. */
