@@ -396,9 +396,18 @@
 	let version = $state<RecordVersion | null>(untrack(() => model.version));
 	let conflict = $state.raw<VegaConflictError | null>(null);
 
+	/**
+	 * Contador de reinicio: sube cuando el formulario se reasienta DESDE FUERA («Descartar mis
+	 * cambios y recargar», un `model` nuevo). Los campos se remontan con `{#key}` sobre él, así un
+	 * widget con texto propio (`Json.svelte`) no conserva lo tecleado cuando el valor restablecido
+	 * coincide con el que ya tenía. NO sube en el guardado: remontar ahí robaría el foco.
+	 */
+	let resetCount = $state(0);
+
 	$effect(() => {
 		if (model !== syncedModel) {
 			syncedModel = model;
+			resetCount += 1;
 			editedByHand = [];
 			baseline = model.baseline;
 			current = { ...model.baseline };
@@ -1105,6 +1114,7 @@
 		if (recordId === null) return;
 		try {
 			adoptRecord(await ctx.port.get(type.name, recordId));
+			resetCount += 1;
 			backendErrors = EMPTY_ERRORS;
 			savedAt = autodateInstant(type, baseline, 'updated');
 		} catch (err) {
@@ -1368,30 +1378,34 @@
 	{/snippet}
 
 	{#snippet fieldRow(field: ResolvedField, stacked: boolean)}
-		<FieldRow
-			field={withDefaultHelp(field)}
-			value={current[field.name]}
-			error={errors.byField[field.name] ?? null}
-			disabled={formDisabled}
-			typeReadonly={locked}
-			{stacked}
-			isTitleField={field.name === type.titleField}
-			isSlugField={field.name === type.slugField}
-			isPathField={field.name === pagePathFieldName}
-			optionLabels={field.name === type.statusField ? (type.statusLabels ?? undefined) : undefined}
-			layoutOptions={field.name === type.page?.layoutField ? pageLayoutOptions : undefined}
-			action={field.name === type.slugField && type.titleField !== null
-				? slugAction
-				: field.name === pagePathFieldName && model.mode === 'create'
-					? pathAction
+		{#key resetCount}
+			<FieldRow
+				field={withDefaultHelp(field)}
+				value={current[field.name]}
+				error={errors.byField[field.name] ?? null}
+				disabled={formDisabled}
+				typeReadonly={locked}
+				{stacked}
+				isTitleField={field.name === type.titleField}
+				isSlugField={field.name === type.slugField}
+				isPathField={field.name === pagePathFieldName}
+				optionLabels={field.name === type.statusField
+					? (type.statusLabels ?? undefined)
 					: undefined}
-			notice={field.name === pagePathFieldName
-				? (pathNotUniqueNotice ?? undefined)
-				: field.name === type.publishAtField
-					? (publishAtNotice ?? undefined)
-					: undefined}
-			onChange={(value) => handleFieldChange(field.name, value)}
-		/>
+				layoutOptions={field.name === type.page?.layoutField ? pageLayoutOptions : undefined}
+				action={field.name === type.slugField && type.titleField !== null
+					? slugAction
+					: field.name === pagePathFieldName && model.mode === 'create'
+						? pathAction
+						: undefined}
+				notice={field.name === pagePathFieldName
+					? (pathNotUniqueNotice ?? undefined)
+					: field.name === type.publishAtField
+						? (publishAtNotice ?? undefined)
+						: undefined}
+				onChange={(value) => handleFieldChange(field.name, value)}
+			/>
+		{/key}
 	{/snippet}
 
 	{#snippet fieldSection(section: FormSection)}
