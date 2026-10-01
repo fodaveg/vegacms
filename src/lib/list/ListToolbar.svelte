@@ -245,6 +245,15 @@
 		border-color: var(--accent);
 	}
 
+	/* El `<input>` interior no dibuja su anillo (`outline: none`, abajo: lo lleva la caja entera),
+	   así que el anillo `--ring` de 2 px de los demás controles (regla de `form/widgets/*`:
+	   `outline: 2px solid var(--ring)` + `outline-offset: 1px`) sube a la caja cuando el foco es de
+	   teclado; antes solo cambiaba el borde. */
+	.vega-list-search:has(input:focus-visible) {
+		outline: 2px solid var(--ring);
+		outline-offset: 1px;
+	}
+
 	.vega-list-search input {
 		flex: 1;
 		min-width: 0;
