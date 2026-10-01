@@ -1,0 +1,829 @@
+<!--TITULO B1 + B2 · Correo para invitaciones y dirección de Vega (/editores)-->
+
+<section class="lam-section">
+	<h2>Dónde vive</h2>
+	<p>
+		Tarjeta nueva en <b>/editores</b>, <b>debajo de la lista</b>: se configura una vez y la lista es
+		la tarea de cada día. La dirección de Vega (<code>meta.appURL</code>, B2) va
+		<b>dentro del mismo formulario</b>: solo importa para los enlaces de estos correos y así hay un
+		único «Guardar». Arriba, la pantalla tal como está hoy (código real de <code>/editores</code>).
+	</p>
+	<!--SHELL editors super-->
+	<div class="vega-admin-page">
+		<div class="vega-admin-head">
+			<h1>Editores</h1>
+			<span class="vega-admin-meta"><b>2</b></span>
+			<span class="vega-admin-head-spacer"></span>
+			<button type="button" class="vega-admin-btn vega-admin-btn--primary">
+				{{i:plus:14}} Añadir editor
+			</button>
+		</div>
+		<p class="vega-admin-desc">
+			Personas que pueden entrar en este admin y editar contenido. No pueden tocar el esquema, el
+			manifiesto ni esta pantalla.
+		</p>
+
+		<div class="vega-admin-card">
+			<table class="vega-admin-table">
+				<thead>
+					<tr>
+						<th scope="col">Email</th>
+						<th scope="col">Estado</th>
+						<th scope="col" class="vega-admin-right">Alta</th>
+						<th scope="col"><span class="vega-admin-sr-only">Acciones</span></th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td class="vega-admin-main">
+							<span class="vega-admin-who"
+								><span class="vega-admin-avatar" aria-hidden="true">M</span
+								><span class="vega-admin-title">marta@aguja.example</span></span
+							>
+						</td>
+						<td class="vega-admin-side">
+							<span class="vega-admin-tag" data-kind="pub">Activo</span>
+						</td>
+						<td class="vega-admin-right vega-admin-mono vega-admin-meta-cell">
+							<span class="vega-admin-stack-only">Alta 3 feb 2026</span
+							><span class="vega-admin-table-only">3 feb 2026</span>
+						</td>
+						<td class="vega-admin-actions">
+							<span class="vega-admin-row-actions">
+								<button type="button" class="vega-admin-btn vega-admin-btn--sm">
+									Cambiar contraseña
+								</button>
+								<button
+									type="button"
+									class="vega-admin-btn vega-admin-btn--sm vega-admin-btn--danger"
+								>
+									Quitar acceso
+								</button>
+							</span>
+						</td>
+					</tr>
+					<tr>
+						<td class="vega-admin-main">
+							<span class="vega-admin-who"
+								><span class="vega-admin-avatar" aria-hidden="true">P</span
+								><span class="vega-admin-title"
+									>pau.correccion.y.estilo@cooperativa-de-artesanas-del-textil.example</span
+								></span
+							>
+						</td>
+						<td class="vega-admin-side">
+							<span class="vega-admin-tag" data-kind="other">Pendiente</span>
+						</td>
+						<td class="vega-admin-right vega-admin-mono vega-admin-meta-cell">
+							<span class="vega-admin-stack-only">Alta 29 sep 2026</span
+							><span class="vega-admin-table-only">29 sep 2026</span>
+						</td>
+						<td class="vega-admin-actions">
+							<span class="vega-admin-row-actions">
+								<button type="button" class="vega-admin-btn vega-admin-btn--sm">
+									Reenviar invitación
+								</button>
+								<button type="button" class="vega-admin-btn vega-admin-btn--sm">
+									Cambiar contraseña
+								</button>
+								<button
+									type="button"
+									class="vega-admin-btn vega-admin-btn--sm vega-admin-btn--danger"
+								>
+									Quitar acceso
+								</button>
+							</span>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+
+		<div class="vega-admin-card">
+			<section class="vega-admin-state" aria-labelledby="ctx-mail">
+				<div class="vega-admin-subhead">
+					<h2 id="ctx-mail">Correo para invitaciones</h2>
+					<span class="vega-admin-tag" data-kind="pub">Configurado</span>
+					<span class="vega-admin-head-spacer"></span>
+					<button type="button" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button>
+				</div>
+				<dl class="vega-admin-summary">
+					<div>
+						<dt>Servidor</dt>
+						<dd><code>smtp.proveedor.example:587</code></dd>
+					</div>
+					<div>
+						<dt>Remitente</dt>
+						<dd>Aguja · <code>web@aguja.example</code></dd>
+					</div>
+					<div>
+						<dt>Los enlaces llevan a</dt>
+						<dd><code>https://admin.aguja.example</code></dd>
+					</div>
+				</dl>
+				<div class="vega-admin-test">
+					<div class="vega-admin-test-row">
+						<div class="vega-admin-field">
+							<label for="ctx-test">Enviar una prueba a</label>
+							<input
+								id="ctx-test"
+								class="vega-admin-input"
+								type="email"
+								value="david@aguja.example"
+							/>
+						</div>
+						<button type="button" class="vega-admin-btn">Enviar prueba</button>
+					</div>
+				</div>
+			</section>
+		</div>
+	</div>
+	<!--/SHELL-->
+</section>
+
+<section class="lam-section">
+	<h2>B1 · La tarjeta en reposo y la prueba</h2>
+	<p>
+		<b>La prueba vive en la tarjeta guardada, no en el formulario.</b> PocketBase prueba la
+		configuración que tiene guardada, no lo que hay escrito en los campos: con el botón dentro del
+		formulario, alguien cambia el servidor, pulsa «Enviar prueba», sale bien contra los datos viejos
+		y guarda unos que nunca probó.
+	</p>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption><b>B1.1</b> Sin configurar</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead"><h2>Correo para invitaciones</h2></div>
+						<p>
+							Este servidor todavía no puede enviar correos. Sin correo no hay invitaciones: a cada
+							editor le tienes que poner tú la contraseña.
+						</p>
+						<button type="button" class="vega-admin-btn">Configurar el correo</button>
+					</section>
+				</div>
+			</div>
+			<p class="lam-why">
+				Botón neutro, no primario: trabajar solo con contraseñas puestas a mano es una forma válida
+				de usar Vega, no un fallo que arreglar.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B1.2</b> Configurado</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead">
+							<h2>Correo para invitaciones</h2>
+							<span class="vega-admin-tag" data-kind="pub">Configurado</span>
+							<span class="vega-admin-head-spacer"></span>
+							<button type="button" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button>
+						</div>
+						<dl class="vega-admin-summary">
+							<div>
+								<dt>Servidor</dt>
+								<dd><code>smtp.proveedor.example:587</code></dd>
+							</div>
+							<div>
+								<dt>Remitente</dt>
+								<dd>Aguja · <code>web@aguja.example</code></dd>
+							</div>
+							<div>
+								<dt>Los enlaces llevan a</dt>
+								<dd><code>https://admin.aguja.example</code></dd>
+							</div>
+						</dl>
+						<div class="vega-admin-test">
+							<div class="vega-admin-test-row">
+								<div class="vega-admin-field">
+									<label for="b12-test">Enviar una prueba a</label>
+									<input
+										id="b12-test"
+										class="vega-admin-input"
+										type="email"
+										value="david@aguja.example"
+									/>
+								</div>
+								<button type="button" class="vega-admin-btn">Enviar prueba</button>
+							</div>
+						</div>
+					</section>
+				</div>
+			</div>
+			<p class="lam-why">
+				La dirección de prueba nace con el email de la sesión y se puede cambiar.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B1.3</b> Prueba en curso</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead">
+							<h2>Correo para invitaciones</h2>
+							<span class="vega-admin-tag" data-kind="pub">Configurado</span>
+							<span class="vega-admin-head-spacer"></span>
+							<button type="button" class="vega-admin-btn vega-admin-btn--sm" aria-disabled="true">
+								Cambiar
+							</button>
+						</div>
+						<p class="lam-why">(resumen igual que B1.2)</p>
+						<div class="vega-admin-test">
+							<div class="vega-admin-test-row">
+								<div class="vega-admin-field">
+									<label for="b13-test">Enviar una prueba a</label>
+									<input
+										id="b13-test"
+										class="vega-admin-input"
+										type="email"
+										value="david@aguja.example"
+									/>
+								</div>
+								<button type="button" class="vega-admin-btn" aria-disabled="true">Enviando…</button>
+							</div>
+							<p class="vega-admin-result" aria-live="polite">
+								<span class="vega-admin-saving">Enviando la prueba…</span>
+							</p>
+						</div>
+					</section>
+				</div>
+			</div>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B1.4</b> Prueba correcta</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead">
+							<h2>Correo para invitaciones</h2>
+							<span class="vega-admin-tag" data-kind="pub">Configurado</span>
+							<span class="vega-admin-head-spacer"></span>
+							<button type="button" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button>
+						</div>
+						<p class="lam-why">(resumen igual que B1.2)</p>
+						<div class="vega-admin-test">
+							<div class="vega-admin-test-row">
+								<div class="vega-admin-field">
+									<label for="b14-test">Enviar una prueba a</label>
+									<input
+										id="b14-test"
+										class="vega-admin-input"
+										type="email"
+										value="david@aguja.example"
+									/>
+								</div>
+								<button type="button" class="vega-admin-btn">Enviar prueba</button>
+							</div>
+							<p class="vega-admin-result" role="status">
+								<span class="vega-admin-tag" data-kind="pub">Prueba enviada</span>
+								El servidor de correo la aceptó a las 10:42. Mira si ha llegado a
+								david@aguja.example.
+							</p>
+						</div>
+					</section>
+				</div>
+			</div>
+			<p class="lam-why">
+				Dice «enviada», no «recibida»: Vega solo sabe que el servidor la aceptó. Prometer la entrega
+				haría dar por bueno un correo que cae en spam.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B1.5</b> Prueba fallida, con el mensaje del servidor (largo)</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead">
+							<h2>Correo para invitaciones</h2>
+							<span class="vega-admin-tag" data-kind="pub">Configurado</span>
+							<span class="vega-admin-head-spacer"></span>
+							<button type="button" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button>
+						</div>
+						<p class="lam-why">(resumen igual que B1.2)</p>
+						<div class="vega-admin-test">
+							<div class="vega-admin-test-row">
+								<div class="vega-admin-field">
+									<label for="b15-test">Enviar una prueba a</label>
+									<input
+										id="b15-test"
+										class="vega-admin-input"
+										type="email"
+										value="david@aguja.example"
+									/>
+								</div>
+								<button type="button" class="vega-admin-btn">Enviar prueba</button>
+							</div>
+							<div class="vega-admin-notice vega-admin-notice--danger" role="alert">
+								<p class="vega-admin-notice-title">La prueba no ha salido</p>
+								<p class="vega-admin-notice-body">Esto es lo que ha contestado el servidor:</p>
+								<pre class="vega-admin-output">
+Failed to send the test email. Raw error: dial tcp: lookup smtp.proveedor.example on 127.0.0.11:53: read udp 172.18.0.4:51413->127.0.0.11:53: i/o timeout</pre>
+								<div class="vega-admin-notice-actions">
+									<button type="button" class="vega-admin-btn">Cambiar los datos</button>
+								</div>
+							</div>
+						</div>
+					</section>
+				</div>
+			</div>
+			<p class="lam-why">
+				La etiqueta sigue en «Configurado»: lo está, aunque no funcione. Un fallo de prueba no
+				cambia el estado guardado. El mensaje es un ejemplo de forma (400 con el error de red
+				crudo).
+			</p>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>B1 · El formulario</h2>
+	<p>
+		Se abre <b>dentro de la tarjeta</b>, no en un diálogo: son siete campos y, en 390 px con el
+		teclado abierto, un diálogo de 26 rem con scroll propio deja «Guardar» fuera de la vista.
+		Mientras está abierto, el resumen y la prueba se retiran.
+	</p>
+	<div class="lam-grid lam-grid--wide">
+		<figure class="lam-spec">
+			<figcaption><b>B1.6</b> Editando una configuración que ya existe</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead"><h2>Correo para invitaciones</h2></div>
+						<form class="vega-admin-form vega-admin-form--inset" novalidate>
+							<fieldset class="vega-admin-group">
+								<legend>Quién envía</legend>
+								<div class="vega-admin-form-row">
+									<div class="vega-admin-field">
+										<label for="f-name">Nombre del remitente</label>
+										<input id="f-name" class="vega-admin-input" type="text" value="Aguja" />
+									</div>
+									<div class="vega-admin-field">
+										<label for="f-from">Dirección del remitente</label>
+										<input
+											id="f-from"
+											class="vega-admin-input"
+											type="email"
+											value="web@aguja.example"
+										/>
+									</div>
+								</div>
+								<div class="vega-admin-field">
+									<label for="f-url">Dirección de Vega</label>
+									<input
+										id="f-url"
+										class="vega-admin-input vega-admin-input--mono"
+										type="url"
+										value="https://admin.aguja.example"
+										aria-describedby="f-url-h"
+									/>
+									<p class="vega-admin-help" id="f-url-h">
+										Con ella empiezan los enlaces de los correos, como el de la invitación.
+									</p>
+								</div>
+							</fieldset>
+							<fieldset class="vega-admin-group">
+								<legend>Servidor de correo (SMTP)</legend>
+								<div class="vega-admin-form-row">
+									<div class="vega-admin-field">
+										<label for="f-host">Servidor</label>
+										<input
+											id="f-host"
+											class="vega-admin-input vega-admin-input--mono"
+											type="text"
+											value="smtp.proveedor.example"
+										/>
+									</div>
+									<div class="vega-admin-field vega-admin-field--short">
+										<label for="f-port">Puerto</label>
+										<input
+											id="f-port"
+											class="vega-admin-input vega-admin-input--mono"
+											type="text"
+											inputmode="numeric"
+											value="587"
+										/>
+									</div>
+								</div>
+								<div class="vega-admin-field">
+									<label for="f-user">Usuario</label>
+									<input
+										id="f-user"
+										class="vega-admin-input"
+										type="text"
+										autocomplete="off"
+										value="web@aguja.example"
+									/>
+								</div>
+								<div class="vega-admin-field">
+									<label for="f-pass">Contraseña</label>
+									<input
+										id="f-pass"
+										class="vega-admin-input"
+										type="password"
+										autocomplete="new-password"
+										value=""
+										aria-describedby="f-pass-h"
+									/>
+									<p class="vega-admin-help" id="f-pass-h">
+										Déjala vacía para conservar la que haya. Escribe solo si quieres cambiarla.
+									</p>
+									<button type="button" class="vega-admin-link">
+										Quitar la contraseña guardada
+									</button>
+								</div>
+								<label class="vega-admin-check">
+									<input type="checkbox" />
+									<span
+										>Usar siempre TLS<span
+											>Márcalo si tu proveedor usa el puerto 465. Con el 587 déjalo sin marcar: la
+											conexión se cifra igualmente.</span
+										></span
+									>
+								</label>
+							</fieldset>
+							<div class="vega-admin-form-actions">
+								<button type="submit" class="vega-admin-btn vega-admin-btn--primary">
+									Guardar
+								</button>
+								<button type="button" class="vega-admin-btn">Cancelar</button>
+							</div>
+						</form>
+					</section>
+				</div>
+			</div>
+			<p class="lam-why">
+				<b>El campo de contraseña va siempre vacío</b> y la ayuda no afirma que haya una: PocketBase
+				no devuelve el secreto ni dice si existe. Sin puntos de relleno: parecen un valor y la gente
+				intenta editarlos. <b>Quitarla es una acción aparte</b> porque mandar el campo vacío la
+				borraría: vaciar y guardar no puede significar dos cosas.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption>
+				<b>B1.7</b> Error al guardar (campo rechazado + mensaje largo del servidor)
+			</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead"><h2>Correo para invitaciones</h2></div>
+						<form class="vega-admin-form vega-admin-form--inset" novalidate>
+							<fieldset class="vega-admin-group">
+								<legend>Quién envía</legend>
+								<div class="vega-admin-form-row">
+									<div class="vega-admin-field">
+										<label for="e-name">Nombre del remitente</label>
+										<input id="e-name" class="vega-admin-input" type="text" value="Aguja" />
+									</div>
+									<div class="vega-admin-field">
+										<label for="e-from">Dirección del remitente</label>
+										<input
+											id="e-from"
+											class="vega-admin-input"
+											type="email"
+											value="web@aguja"
+											aria-invalid="true"
+											aria-describedby="e-from-e"
+										/>
+										<p class="vega-admin-field-error" id="e-from-e">
+											El servidor no acepta este valor: Must be a valid email address.
+										</p>
+									</div>
+								</div>
+							</fieldset>
+							<p class="lam-why">(resto de campos igual que B1.6)</p>
+							<p class="vega-admin-field-error" role="alert">
+								El servidor rechazó los datos: Something went wrong while processing your request.
+								Failed to save the settings: smtp: (port: Must be no less than 1.; host: cannot be
+								blank.).
+							</p>
+							<div class="vega-admin-form-actions">
+								<button type="submit" class="vega-admin-btn vega-admin-btn--primary">
+									Guardar
+								</button>
+								<button type="button" class="vega-admin-btn">Cancelar</button>
+							</div>
+						</form>
+					</section>
+				</div>
+			</div>
+			<p class="lam-why">
+				Mismo reparto que «Añadir editor»: lo que se puede atribuir a un campo va en el campo; lo
+				demás, encima de los botones con la clave existente <code>admin.form.rejected</code>. Lo
+				escrito no se pierde.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B1.8</b> Guardando</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead"><h2>Correo para invitaciones</h2></div>
+						<form class="vega-admin-form vega-admin-form--inset" novalidate aria-busy="true">
+							<p class="lam-why">(campos igual que B1.6, siguen visibles)</p>
+							<div class="vega-admin-form-actions">
+								<button
+									type="submit"
+									class="vega-admin-btn vega-admin-btn--primary"
+									aria-disabled="true"
+								>
+									Guardando…
+								</button>
+								<button type="button" class="vega-admin-btn" aria-disabled="true">Cancelar</button>
+							</div>
+						</form>
+					</section>
+				</div>
+				<div class="lam-toast">
+					<div class="vega-toast" data-kind="success">
+						<span>Correo guardado. Envía una prueba para comprobarlo.</span>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">
+				Al terminar, el formulario se cierra, vuelve el resumen con la prueba a mano y sale el
+				toast.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B1.9</b> Quitar la contraseña guardada (confirmación)</figcaption>
+			<div class="lam-stage lam-stage--veil">
+				<div
+					class="vega-admin-dialog"
+					role="alertdialog"
+					aria-modal="true"
+					aria-labelledby="q-t"
+					aria-describedby="q-d"
+				>
+					<div class="vega-admin-dialog-head">
+						<h2 id="q-t">¿Quitar la contraseña guardada?</h2>
+					</div>
+					<p class="vega-admin-dialog-text" id="q-d">
+						El servidor intentará enviar sin contraseña. Si tu proveedor la pide, las invitaciones
+						dejarán de salir hasta que pongas otra.
+					</p>
+					<div class="vega-admin-dialog-actions">
+						<button type="button" class="vega-admin-btn" data-autofocus>Cancelar</button>
+						<button type="button" class="vega-admin-btn vega-admin-btn--danger">
+							Quitar la contraseña
+						</button>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">
+				El mismo <code>AdminDialog</code> de «Quitar acceso» (<code>alertdialog</code>, sin aspa,
+				foco en «Cancelar»).
+			</p>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>B2 · La dirección de Vega, caso a caso</h2>
+	<p>
+		PocketBase acepta cualquier cosa en <code>meta.appURL</code>; las comprobaciones son de Vega.
+		<b>Lo que no es http(s) bloquea</b> (error de campo); <b>http y «no coincide» solo avisan</b>:
+		hay instalaciones legítimas detrás de un proxy o en pruebas, y bloquearlas obligaría a ir al
+		Admin de PocketBase para algo que Vega ya enseña.
+	</p>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption><b>B2.1</b> Coincide y es https</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-field">
+					<label for="u1">Dirección de Vega</label>
+					<input
+						id="u1"
+						class="vega-admin-input vega-admin-input--mono"
+						type="url"
+						value="https://admin.aguja.example"
+					/>
+					<p class="vega-admin-help">
+						Con ella empiezan los enlaces de los correos, como el de la invitación.
+					</p>
+				</div>
+			</div>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B2.2</b> No coincide con donde se está usando Vega</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-field">
+					<label for="u2">Dirección de Vega</label>
+					<input
+						id="u2"
+						class="vega-admin-input vega-admin-input--mono"
+						type="url"
+						value="https://aguja.example"
+						aria-describedby="u2-n"
+					/>
+					<p class="vega-admin-help">
+						Con ella empiezan los enlaces de los correos, como el de la invitación.
+					</p>
+				</div>
+				<div class="vega-admin-notice vega-admin-notice--warning" id="u2-n">
+					<p class="vega-admin-notice-body">
+						No es la dirección desde la que estás usando Vega ahora
+						(<code>https://admin.aguja.example</code>). Si se queda así, el enlace de la invitación
+						puede llevar a un sitio donde Vega no está.
+					</p>
+					<div class="vega-admin-notice-actions">
+						<button type="button" class="vega-admin-btn vega-admin-btn--sm">
+							Usar la de ahora
+						</button>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">
+				El botón dice «Usar la de ahora», sin la URL dentro: los botones no parten línea y una
+				dirección larga se saldría de la tarjeta en 390 px.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B2.3</b> Es http, sin cifrar</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-field">
+					<label for="u3">Dirección de Vega</label>
+					<input
+						id="u3"
+						class="vega-admin-input vega-admin-input--mono"
+						type="url"
+						value="http://admin.aguja.example"
+						aria-describedby="u3-n"
+					/>
+					<p class="vega-admin-help">
+						Con ella empiezan los enlaces de los correos, como el de la invitación.
+					</p>
+				</div>
+				<div class="vega-admin-notice vega-admin-notice--warning" id="u3-n">
+					<p class="vega-admin-notice-body">
+						Empieza por <code>http://</code>: quien abra el enlace elegirá su contraseña por una
+						conexión sin cifrar. Usa <code>https://</code> si el sitio lo tiene.
+					</p>
+				</div>
+			</div>
+			<p class="lam-why">
+				Si además no coincide, van los dos avisos, uno debajo de otro. En
+				<code>localhost</code> este no sale.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B2.4</b> No es una dirección http(s): bloquea</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-field">
+					<label for="u4">Dirección de Vega</label>
+					<input
+						id="u4"
+						class="vega-admin-input vega-admin-input--mono"
+						type="url"
+						value="admin.aguja.example"
+						aria-invalid="true"
+						aria-describedby="u4-e"
+					/>
+					<p class="vega-admin-field-error" id="u4-e">
+						Escribe la dirección completa, empezando por https://.
+					</p>
+				</div>
+			</div>
+			<p class="lam-why">
+				Sale al salir del campo o al guardar, nunca mientras se escribe (regla de
+				<code>AddEditorDialog</code>).
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B2.5</b> Dirección larguísima</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-field">
+					<label for="u5">Dirección de Vega</label>
+					<input
+						id="u5"
+						class="vega-admin-input vega-admin-input--mono"
+						type="url"
+						value="https://vega-admin-pruebas-2026.interno.cooperativa-de-artesanas-del-textil-de-aguja.example/panel/vega"
+						aria-describedby="u5-n"
+					/>
+				</div>
+				<div class="vega-admin-notice vega-admin-notice--warning" id="u5-n">
+					<p class="vega-admin-notice-body">
+						No es la dirección desde la que estás usando Vega ahora
+						(<code>https://vega-admin-2026.cooperativa-de-artesanas-del-textil-de-aguja.example</code>).
+						Si se queda así, el enlace de la invitación puede llevar a un sitio donde Vega no está.
+					</p>
+					<div class="vega-admin-notice-actions">
+						<button type="button" class="vega-admin-btn vega-admin-btn--sm">
+							Usar la de ahora
+						</button>
+					</div>
+				</div>
+				<dl class="vega-admin-summary">
+					<div>
+						<dt>Los enlaces llevan a</dt>
+						<dd>
+							<code
+								>https://vega-admin-pruebas-2026.interno.cooperativa-de-artesanas-del-textil-de-aguja.example/panel/vega</code
+							>
+						</dd>
+					</div>
+				</dl>
+			</div>
+			<p class="lam-why">
+				En el campo, el final queda fuera y se recorre con el cursor (es un <code>input</code>); en
+				el aviso y en el resumen parte línea por cualquier sitio.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B2.6</b> El aviso también se ve con la tarjeta cerrada</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead">
+							<h2>Correo para invitaciones</h2>
+							<span class="vega-admin-tag" data-kind="pub">Configurado</span>
+							<span class="vega-admin-head-spacer"></span>
+							<button type="button" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button>
+						</div>
+						<dl class="vega-admin-summary">
+							<div>
+								<dt>Servidor</dt>
+								<dd><code>smtp.proveedor.example:587</code></dd>
+							</div>
+							<div>
+								<dt>Remitente</dt>
+								<dd>Aguja · <code>web@aguja.example</code></dd>
+							</div>
+							<div>
+								<dt>Los enlaces llevan a</dt>
+								<dd><code>https://aguja.example</code></dd>
+							</div>
+						</dl>
+						<div class="vega-admin-notice vega-admin-notice--warning">
+							<p class="vega-admin-notice-body">
+								Los enlaces de los correos no llevan a la dirección desde la que estás usando Vega
+								ahora (<code>https://admin.aguja.example</code>).
+							</p>
+							<div class="vega-admin-notice-actions">
+								<button type="button" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button>
+							</div>
+						</div>
+					</section>
+				</div>
+			</div>
+			<p class="lam-why">
+				Si solo saliera dentro del formulario, nadie lo vería hasta que una invitación fallase.
+			</p>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>Consecuencia en «Añadir editor»</h2>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption>
+				<b>Antes</b> (código actual, <code>admin.editors.addDialog.noMail</code>)
+			</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-notice vega-admin-notice--info">
+					<p class="vega-admin-notice-body">
+						Este servidor no tiene correo configurado, así que no se puede enviar una invitación.
+						Ponle tú la contraseña y pásasela por otro canal.
+					</p>
+				</div>
+			</div>
+		</figure>
+		<figure class="lam-spec">
+			<figcaption><b>Después</b></figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-notice vega-admin-notice--info">
+					<p class="vega-admin-notice-body">
+						Este servidor no tiene correo configurado, así que no se puede enviar una invitación.
+						Ponle tú la contraseña y pásasela por otro canal, o configura el correo en esta misma
+						pantalla, debajo de la lista.
+					</p>
+				</div>
+			</div>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>Iconos usados (del set de <code>src/lib/icons</code>)</h2>
+	<ul class="lam-icons">
+		<li>{{i:plus:16}} plus · «Añadir editor» (ya existente)</li>
+	</ul>
+	<p>
+		Ninguno nuevo. No hay icono de sobre ni de servidor en el set y la tarjeta no los necesita: el
+		título dice qué es.
+	</p>
+</section>

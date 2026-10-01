@@ -1,0 +1,766 @@
+<!--TITULO B3 + B4 · Copias automáticas y dónde se guardan (/copias)-->
+
+<section class="lam-section">
+	<h2>Dónde vive</h2>
+	<p>
+		Dos tarjetas nuevas en <b>/copias</b>, <b>debajo de la lista</b>. Misma pieza que el correo de
+		/editores: resumen de lo guardado, «Cambiar» abre el formulario dentro de la tarjeta, y la
+		prueba vive junto al resumen. La cabecera, la descripción y la lista son el código real de hoy,
+		sin cambios.
+	</p>
+	<!--SHELL backups super-->
+	<div class="vega-admin-page">
+		<div class="vega-admin-head">
+			<h1>Copias de seguridad</h1>
+			<span class="vega-admin-meta"><b>3</b></span>
+			<span class="vega-admin-head-spacer"></span>
+			<button type="button" class="vega-admin-btn vega-admin-btn--primary">
+				{{i:plus:14}} Crear copia
+			</button>
+		</div>
+		<p class="vega-admin-desc">
+			Copia completa de la base de datos y de los ficheros subidos, guardada en el servidor.
+			Descárgala para tener otra fuera de él.
+		</p>
+
+		<div class="vega-admin-card">
+			<table class="vega-admin-table">
+				<thead>
+					<tr>
+						<th scope="col">Nombre</th>
+						<th scope="col" class="vega-admin-right">Tamaño</th>
+						<th scope="col" class="vega-admin-right">Fecha</th>
+						<th scope="col"><span class="vega-admin-sr-only">Acciones</span></th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td class="vega-admin-main">
+							<span class="vega-admin-title vega-admin-title--mono"
+								>@auto_pb_backup_aguja_20261001000000.zip</span
+							>
+						</td>
+						<td class="vega-admin-right vega-admin-mono vega-admin-side">48,2 MB</td>
+						<td class="vega-admin-right vega-admin-mono vega-admin-meta-cell">1 oct 2026, 2:00</td>
+						<td class="vega-admin-actions">
+							<span class="vega-admin-row-actions"
+								><button type="button" class="vega-admin-btn vega-admin-btn--sm">
+									Descargar
+								</button></span
+							>
+						</td>
+					</tr>
+					<tr>
+						<td class="vega-admin-main">
+							<span class="vega-admin-title vega-admin-title--mono"
+								>@auto_pb_backup_aguja_20260930000000.zip</span
+							>
+						</td>
+						<td class="vega-admin-right vega-admin-mono vega-admin-side">48,1 MB</td>
+						<td class="vega-admin-right vega-admin-mono vega-admin-meta-cell">30 sep 2026, 2:00</td>
+						<td class="vega-admin-actions">
+							<span class="vega-admin-row-actions"
+								><button type="button" class="vega-admin-btn vega-admin-btn--sm">
+									Descargar
+								</button></span
+							>
+						</td>
+					</tr>
+					<tr>
+						<td class="vega-admin-main">
+							<span class="vega-admin-title vega-admin-title--mono"
+								>pb_backup_aguja_20260928171204.zip</span
+							>
+						</td>
+						<td class="vega-admin-right vega-admin-mono vega-admin-side">47,6 MB</td>
+						<td class="vega-admin-right vega-admin-mono vega-admin-meta-cell">
+							28 sep 2026, 19:12
+						</td>
+						<td class="vega-admin-actions">
+							<span class="vega-admin-row-actions"
+								><button type="button" class="vega-admin-btn vega-admin-btn--sm">
+									Descargar
+								</button></span
+							>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+
+		<div class="vega-admin-card">
+			<section class="vega-admin-state" aria-labelledby="ctx-auto">
+				<div class="vega-admin-subhead">
+					<h2 id="ctx-auto">Copias automáticas</h2>
+					<span class="vega-admin-tag" data-kind="pub">Activadas</span>
+					<span class="vega-admin-head-spacer"></span>
+					<button type="button" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button>
+				</div>
+				<dl class="vega-admin-summary">
+					<div>
+						<dt>Frecuencia</dt>
+						<dd>Cada día, a las 00:00 UTC (las 2:00 aquí)</dd>
+					</div>
+					<div>
+						<dt>Se conservan</dt>
+						<dd>Las 7 últimas automáticas</dd>
+					</div>
+				</dl>
+			</section>
+		</div>
+
+		<div class="vega-admin-card">
+			<section class="vega-admin-state" aria-labelledby="ctx-dest">
+				<div class="vega-admin-subhead">
+					<h2 id="ctx-dest">Dónde se guardan</h2>
+					<span class="vega-admin-head-spacer"></span>
+					<button type="button" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button>
+				</div>
+				<p>
+					En este servidor, junto a la web. Si el servidor se pierde, las copias se pierden con él.
+				</p>
+			</section>
+		</div>
+	</div>
+	<!--/SHELL-->
+</section>
+
+<section class="lam-section">
+	<h2>B3 · Copias automáticas</h2>
+	<p>
+		<code>backups.cron</code> se ofrece como cuatro opciones en llano. «Nunca» manda la expresión
+		vacía, que es como PocketBase las desactiva. Las horas se dicen en UTC, que es como las ejecuta
+		el servidor, con la hora local al lado para que nadie crea que «a las 00:00» es su medianoche.
+	</p>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption><b>B3.1</b> Desactivadas (cron vacío)</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead"><h2>Copias automáticas</h2></div>
+						<p>Ahora solo se hace una copia cuando alguien pulsa «Crear copia».</p>
+						<button type="button" class="vega-admin-btn">Programar copias</button>
+					</section>
+				</div>
+			</div>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B3.2</b> Activadas</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead">
+							<h2>Copias automáticas</h2>
+							<span class="vega-admin-tag" data-kind="pub">Activadas</span>
+							<span class="vega-admin-head-spacer"></span>
+							<button type="button" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button>
+						</div>
+						<dl class="vega-admin-summary">
+							<div>
+								<dt>Frecuencia</dt>
+								<dd>Cada semana, los domingos a las 00:00 UTC (las 2:00 aquí)</dd>
+							</div>
+							<div>
+								<dt>Se conservan</dt>
+								<dd>Las 4 últimas automáticas</dd>
+							</div>
+						</dl>
+					</section>
+				</div>
+			</div>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B3.3</b> Activadas con una expresión propia</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead">
+							<h2>Copias automáticas</h2>
+							<span class="vega-admin-tag" data-kind="pub">Activadas</span>
+							<span class="vega-admin-head-spacer"></span>
+							<button type="button" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button>
+						</div>
+						<dl class="vega-admin-summary">
+							<div>
+								<dt>Frecuencia</dt>
+								<dd>Personalizada · <code>30 3 * * 1,4</code></dd>
+							</div>
+							<div>
+								<dt>Se conservan</dt>
+								<dd>Las 12 últimas automáticas</dd>
+							</div>
+						</dl>
+					</section>
+				</div>
+			</div>
+			<p class="lam-why">
+				La expresión se enseña literal: traducirla a palabras exige un intérprete de cron en el
+				navegador que, si falla, afirma un horario falso.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B3.4</b> Formulario · opción en llano</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead"><h2>Copias automáticas</h2></div>
+						<form class="vega-admin-form vega-admin-form--inset" novalidate>
+							<div class="vega-admin-field">
+								<label for="c-freq">Frecuencia</label>
+								<select id="c-freq" class="vega-admin-input">
+									<option>Nunca</option>
+									<option selected>Cada día, a las 00:00 UTC</option>
+									<option>Cada semana, los domingos a las 00:00 UTC</option>
+									<option>Personalizada…</option>
+								</select>
+								<p class="vega-admin-help">Las 00:00 UTC son las 2:00 aquí.</p>
+							</div>
+							<div class="vega-admin-field">
+								<label for="c-keep">Copias automáticas que se conservan</label>
+								<input
+									id="c-keep"
+									class="vega-admin-input vega-admin-input--short"
+									type="number"
+									min="1"
+									step="1"
+									value="7"
+									aria-describedby="c-keep-h"
+								/>
+								<p class="vega-admin-help" id="c-keep-h">
+									Cuando hay más, se borra la automática más antigua. Las que creas a mano no se
+									borran solas.
+								</p>
+							</div>
+							<div class="vega-admin-form-actions">
+								<button type="submit" class="vega-admin-btn vega-admin-btn--primary">
+									Guardar
+								</button>
+								<button type="button" class="vega-admin-btn">Cancelar</button>
+							</div>
+						</form>
+					</section>
+				</div>
+			</div>
+			<p class="lam-why">
+				<code>select</code> nativo y no cuatro tarjetas de radio: en 390 px abre la rueda del
+				sistema y las cuatro tarjetas empujarían «Guardar» fuera de la pantalla.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B3.5</b> Formulario · «Personalizada»</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead"><h2>Copias automáticas</h2></div>
+						<form class="vega-admin-form vega-admin-form--inset" novalidate>
+							<div class="vega-admin-field">
+								<label for="c2-freq">Frecuencia</label>
+								<select id="c2-freq" class="vega-admin-input">
+									<option>Nunca</option>
+									<option>Cada día, a las 00:00 UTC</option>
+									<option>Cada semana, los domingos a las 00:00 UTC</option>
+									<option selected>Personalizada…</option>
+								</select>
+							</div>
+							<div class="vega-admin-field">
+								<label for="c2-cron">Expresión cron</label>
+								<input
+									id="c2-cron"
+									class="vega-admin-input vega-admin-input--mono"
+									type="text"
+									value="30 3 * * 1,4"
+									spellcheck="false"
+									autocapitalize="off"
+									aria-describedby="c2-cron-h"
+								/>
+								<p class="vega-admin-help" id="c2-cron-h">
+									Cinco valores: minuto, hora, día del mes, mes y día de la semana. La hora es UTC.
+									Por ejemplo, <code>0 3 * * 1</code> es cada lunes a las 3:00.
+								</p>
+							</div>
+							<div class="vega-admin-field">
+								<label for="c2-keep">Copias automáticas que se conservan</label>
+								<input
+									id="c2-keep"
+									class="vega-admin-input vega-admin-input--short"
+									type="number"
+									min="1"
+									step="1"
+									value="12"
+								/>
+							</div>
+							<div class="vega-admin-form-actions">
+								<button type="submit" class="vega-admin-btn vega-admin-btn--primary">
+									Guardar
+								</button>
+								<button type="button" class="vega-admin-btn">Cancelar</button>
+							</div>
+						</form>
+					</section>
+				</div>
+			</div>
+			<p class="lam-why">
+				Una expresión guardada que no sea ninguna de las dos de la lista abre aquí, con su valor.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B3.6</b> Formulario · «Nunca»</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead"><h2>Copias automáticas</h2></div>
+						<form class="vega-admin-form vega-admin-form--inset" novalidate>
+							<div class="vega-admin-field">
+								<label for="c3-freq">Frecuencia</label>
+								<select id="c3-freq" class="vega-admin-input" aria-describedby="c3-freq-h">
+									<option selected>Nunca</option>
+									<option>Cada día, a las 00:00 UTC</option>
+									<option>Cada semana, los domingos a las 00:00 UTC</option>
+									<option>Personalizada…</option>
+								</select>
+								<p class="vega-admin-help" id="c3-freq-h">
+									Deja de hacer copias sola. Las que ya hay se quedan.
+								</p>
+							</div>
+							<div class="vega-admin-form-actions">
+								<button type="submit" class="vega-admin-btn vega-admin-btn--primary">
+									Guardar
+								</button>
+								<button type="button" class="vega-admin-btn">Cancelar</button>
+							</div>
+						</form>
+					</section>
+				</div>
+			</div>
+			<p class="lam-why">
+				«Cuántas conservar» se retira: sin copias automáticas no decide nada, y PocketBase no admite
+				0.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B3.7</b> Errores: expresión que el servidor rechaza y un 0</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead"><h2>Copias automáticas</h2></div>
+						<form class="vega-admin-form vega-admin-form--inset" novalidate>
+							<div class="vega-admin-field">
+								<label for="c4-cron">Expresión cron</label>
+								<input
+									id="c4-cron"
+									class="vega-admin-input vega-admin-input--mono"
+									type="text"
+									value="cada lunes"
+									aria-invalid="true"
+									aria-describedby="c4-cron-e"
+								/>
+								<p class="vega-admin-field-error" id="c4-cron-e">
+									El servidor no acepta esta expresión: Invalid cron expression: must have exactly 5
+									segments, found 2.
+								</p>
+							</div>
+							<div class="vega-admin-field">
+								<label for="c4-keep">Copias automáticas que se conservan</label>
+								<input
+									id="c4-keep"
+									class="vega-admin-input vega-admin-input--short"
+									type="number"
+									min="1"
+									step="1"
+									value="0"
+									aria-invalid="true"
+									aria-describedby="c4-keep-e"
+								/>
+								<p class="vega-admin-field-error" id="c4-keep-e">Tiene que ser 1 o más.</p>
+							</div>
+							<div class="vega-admin-form-actions">
+								<button type="submit" class="vega-admin-btn vega-admin-btn--primary">
+									Guardar
+								</button>
+								<button type="button" class="vega-admin-btn">Cancelar</button>
+							</div>
+						</form>
+					</section>
+				</div>
+			</div>
+			<p class="lam-why">
+				El 0 lo para Vega al salir del campo; la expresión la juzga el servidor al guardar (400) y
+				su mensaje va tal cual bajo el campo. «Guardando…» es igual que en B1.8.
+			</p>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>B4 · Dónde se guardan</h2>
+	<p>
+		«En este servidor» es el estado de fábrica y no es un error, pero la tarjeta dice sin adornos lo
+		que implica. La prueba, como en el correo, comprueba <b>lo guardado</b> y por eso está en el
+		resumen.
+	</p>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption><b>B4.1</b> Sin configurar: en este servidor</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead">
+							<h2>Dónde se guardan</h2>
+							<span class="vega-admin-head-spacer"></span>
+							<button type="button" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button>
+						</div>
+						<p>
+							En este servidor, junto a la web. Si el servidor se pierde, las copias se pierden con
+							él.
+						</p>
+					</section>
+				</div>
+			</div>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B4.2</b> Configurado: almacén externo</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead">
+							<h2>Dónde se guardan</h2>
+							<span class="vega-admin-tag" data-kind="pub">Almacén externo</span>
+							<span class="vega-admin-head-spacer"></span>
+							<button type="button" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button>
+						</div>
+						<dl class="vega-admin-summary">
+							<div>
+								<dt>Servidor</dt>
+								<dd><code>https://s3.eu-central.proveedor.example</code></dd>
+							</div>
+							<div>
+								<dt>Bucket</dt>
+								<dd><code>aguja-copias</code> · región <code>eu-central</code></dd>
+							</div>
+						</dl>
+						<div class="vega-admin-test">
+							<div class="vega-admin-form-actions">
+								<button type="button" class="vega-admin-btn">Probar conexión</button>
+							</div>
+						</div>
+					</section>
+				</div>
+			</div>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B4.3</b> Prueba en curso</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead">
+							<h2>Dónde se guardan</h2>
+							<span class="vega-admin-tag" data-kind="pub">Almacén externo</span>
+							<span class="vega-admin-head-spacer"></span>
+							<button type="button" class="vega-admin-btn vega-admin-btn--sm" aria-disabled="true">
+								Cambiar
+							</button>
+						</div>
+						<p class="lam-why">(resumen igual que B4.2)</p>
+						<div class="vega-admin-test">
+							<div class="vega-admin-form-actions">
+								<button type="button" class="vega-admin-btn" aria-disabled="true">Probando…</button>
+								<p class="vega-admin-result" aria-live="polite">
+									<span class="vega-admin-saving">Probando la conexión…</span>
+								</p>
+							</div>
+						</div>
+					</section>
+				</div>
+			</div>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B4.4</b> Prueba correcta</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead">
+							<h2>Dónde se guardan</h2>
+							<span class="vega-admin-tag" data-kind="pub">Almacén externo</span>
+							<span class="vega-admin-head-spacer"></span>
+							<button type="button" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button>
+						</div>
+						<p class="lam-why">(resumen igual que B4.2)</p>
+						<div class="vega-admin-test">
+							<div class="vega-admin-form-actions">
+								<button type="button" class="vega-admin-btn">Probar conexión</button>
+							</div>
+							<p class="vega-admin-result" role="status">
+								<span class="vega-admin-tag" data-kind="pub">Conexión correcta</span>
+								El almacén ha respondido a las 10:42.
+							</p>
+						</div>
+					</section>
+				</div>
+			</div>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B4.5</b> Prueba fallida, con el mensaje del servidor (largo)</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead">
+							<h2>Dónde se guardan</h2>
+							<span class="vega-admin-tag" data-kind="pub">Almacén externo</span>
+							<span class="vega-admin-head-spacer"></span>
+							<button type="button" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button>
+						</div>
+						<p class="lam-why">(resumen igual que B4.2)</p>
+						<div class="vega-admin-test">
+							<div class="vega-admin-form-actions">
+								<button type="button" class="vega-admin-btn">Probar conexión</button>
+							</div>
+							<div class="vega-admin-notice vega-admin-notice--danger" role="alert">
+								<p class="vega-admin-notice-title">No se ha podido conectar con el almacén</p>
+								<p class="vega-admin-notice-body">
+									Mientras no conecte, las copias nuevas fallarán. Esto es lo que ha contestado el
+									servidor:
+								</p>
+								<pre class="vega-admin-output">
+Failed to test the S3 filesystem. Raw error: operation error S3: PutObject, https response error StatusCode: 403, RequestID: 17A2F0C4B1D9E3A7, HostID: dd9025bab4ad464b049177c95eb6ebf374d3b3fd1af9251148b658df7ac2e3e8, api error SignatureDoesNotMatch: The request signature we calculated does not match the signature you provided. Check your key and signing method.</pre>
+								<div class="vega-admin-notice-actions">
+									<button type="button" class="vega-admin-btn">Cambiar los datos</button>
+								</div>
+							</div>
+						</div>
+					</section>
+				</div>
+			</div>
+			<p class="lam-why">
+				Aquí el aviso sí dice la consecuencia: un destino que no conecta hace fallar las copias
+				automáticas sin que nadie esté mirando. El mensaje es un ejemplo de forma.
+			</p>
+		</figure>
+	</div>
+
+	<div class="lam-grid lam-grid--wide">
+		<figure class="lam-spec">
+			<figcaption><b>B4.6</b> Formulario · almacén externo</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead"><h2>Dónde se guardan</h2></div>
+						<form class="vega-admin-form vega-admin-form--inset" novalidate>
+							<fieldset class="vega-admin-choices">
+								<legend class="vega-admin-sr-only">Dónde se guardan las copias</legend>
+								<label class="vega-admin-radio-card" data-checked="false">
+									<input type="radio" name="dest" />
+									<span
+										><b>En este servidor</b
+										><span>Junto a la web. No hay que configurar nada.</span></span
+									>
+								</label>
+								<label class="vega-admin-radio-card" data-checked="true">
+									<input type="radio" name="dest" checked />
+									<span
+										><b>En un almacén externo</b
+										><span>Un servicio compatible con S3, fuera de este servidor.</span></span
+									>
+								</label>
+							</fieldset>
+							<div class="vega-admin-field">
+								<label for="s-end">Servidor del almacén</label>
+								<input
+									id="s-end"
+									class="vega-admin-input vega-admin-input--mono"
+									type="url"
+									value="https://s3.eu-central.proveedor.example"
+									aria-describedby="s-end-h"
+								/>
+								<p class="vega-admin-help" id="s-end-h">
+									La dirección que te da tu proveedor (endpoint).
+								</p>
+							</div>
+							<div class="vega-admin-form-row">
+								<div class="vega-admin-field">
+									<label for="s-bucket">Bucket</label>
+									<input
+										id="s-bucket"
+										class="vega-admin-input vega-admin-input--mono"
+										type="text"
+										value="aguja-copias"
+									/>
+								</div>
+								<div class="vega-admin-field">
+									<label for="s-region">Región</label>
+									<input
+										id="s-region"
+										class="vega-admin-input vega-admin-input--mono"
+										type="text"
+										value="eu-central"
+									/>
+								</div>
+							</div>
+							<div class="vega-admin-field">
+								<label for="s-key">Clave de acceso</label>
+								<input
+									id="s-key"
+									class="vega-admin-input vega-admin-input--mono"
+									type="text"
+									autocomplete="off"
+									value="004f3a1c9e2b7d60000000002"
+								/>
+							</div>
+							<div class="vega-admin-field">
+								<label for="s-secret">Clave secreta</label>
+								<input
+									id="s-secret"
+									class="vega-admin-input"
+									type="password"
+									autocomplete="new-password"
+									value=""
+									aria-describedby="s-secret-h"
+								/>
+								<p class="vega-admin-help" id="s-secret-h">
+									Déjala vacía para conservar la que haya. Escribe solo si quieres cambiarla.
+								</p>
+								<button type="button" class="vega-admin-link">
+									Quitar la clave secreta guardada
+								</button>
+							</div>
+							<label class="vega-admin-check">
+								<input type="checkbox" />
+								<span
+									>Forzar direcciones con ruta (path-style)<span
+										>Márcalo solo si tu proveedor lo pide.</span
+									></span
+								>
+							</label>
+							<div class="vega-admin-notice vega-admin-notice--info">
+								<p class="vega-admin-notice-body">
+									Las copias que ya hay no se mueven. Al guardar, la lista de arriba enseñará las
+									del almacén; las de este servidor siguen en él.
+								</p>
+							</div>
+							<div class="vega-admin-form-actions">
+								<button type="submit" class="vega-admin-btn vega-admin-btn--primary">
+									Guardar
+								</button>
+								<button type="button" class="vega-admin-btn">Cancelar</button>
+							</div>
+						</form>
+					</section>
+				</div>
+			</div>
+			<p class="lam-why">
+				La nota sobre la lista sale solo cuando cambia la opción elegida: si no, alguien cambia de
+				destino, ve la lista vacía y cree que ha perdido sus copias. La clave secreta sigue la misma
+				regla que la contraseña del correo.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B4.7</b> Formulario · volver a este servidor</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead"><h2>Dónde se guardan</h2></div>
+						<form class="vega-admin-form vega-admin-form--inset" novalidate>
+							<fieldset class="vega-admin-choices">
+								<legend class="vega-admin-sr-only">Dónde se guardan las copias</legend>
+								<label class="vega-admin-radio-card" data-checked="true">
+									<input type="radio" name="dest2" checked />
+									<span
+										><b>En este servidor</b
+										><span>Junto a la web. No hay que configurar nada.</span></span
+									>
+								</label>
+								<label class="vega-admin-radio-card" data-checked="false">
+									<input type="radio" name="dest2" />
+									<span
+										><b>En un almacén externo</b
+										><span>Un servicio compatible con S3, fuera de este servidor.</span></span
+									>
+								</label>
+							</fieldset>
+							<div class="vega-admin-notice vega-admin-notice--info">
+								<p class="vega-admin-notice-body">
+									Las copias que ya hay no se mueven. Al guardar, la lista de arriba enseñará las de
+									este servidor; las del almacén siguen en él. Sus datos de conexión se conservan
+									por si vuelves.
+								</p>
+							</div>
+							<div class="vega-admin-form-actions">
+								<button type="submit" class="vega-admin-btn vega-admin-btn--primary">
+									Guardar
+								</button>
+								<button type="button" class="vega-admin-btn">Cancelar</button>
+							</div>
+						</form>
+					</section>
+				</div>
+			</div>
+			<p class="lam-why">
+				Los campos del almacén se retiran en vez de quedarse en gris: un formulario lleno de campos
+				apagados parece que pide rellenarlos.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>B4.8</b> Error al guardar (mensaje largo del servidor)</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-card">
+					<section class="vega-admin-state">
+						<div class="vega-admin-subhead"><h2>Dónde se guardan</h2></div>
+						<form class="vega-admin-form vega-admin-form--inset" novalidate>
+							<div class="vega-admin-field">
+								<label for="se-end">Servidor del almacén</label>
+								<input
+									id="se-end"
+									class="vega-admin-input vega-admin-input--mono"
+									type="url"
+									value="s3.eu-central.proveedor.example"
+									aria-invalid="true"
+									aria-describedby="se-end-e"
+								/>
+								<p class="vega-admin-field-error" id="se-end-e">
+									El servidor no acepta este valor: Must be a valid URL.
+								</p>
+							</div>
+							<p class="lam-why">(resto de campos igual que B4.6)</p>
+							<p class="vega-admin-field-error" role="alert">
+								El servidor rechazó los datos: Something went wrong while processing your request.
+								Failed to save the settings: backups: (s3: (bucket: cannot be blank; region: cannot
+								be blank.).).
+							</p>
+							<div class="vega-admin-form-actions">
+								<button type="submit" class="vega-admin-btn vega-admin-btn--primary">
+									Guardar
+								</button>
+								<button type="button" class="vega-admin-btn">Cancelar</button>
+							</div>
+						</form>
+					</section>
+				</div>
+			</div>
+			<p class="lam-why">
+				Mismo reparto que B1.7. «Guardando…» y la confirmación de «Quitar la clave secreta guardada»
+				son las de B1.8 y B1.9 con su texto.
+			</p>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>Iconos usados (del set de <code>src/lib/icons</code>)</h2>
+	<ul class="lam-icons">
+		<li>{{i:plus:16}} plus · «Crear copia» (ya existente)</li>
+		<li>{{i:archive:16}} archive · entrada «Copias» de la barra lateral (ya existente)</li>
+	</ul>
+	<p>Ninguno nuevo. No hay icono de reloj ni de nube en el set; las tarjetas no los necesitan.</p>
+</section>

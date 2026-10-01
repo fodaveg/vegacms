@@ -1,0 +1,731 @@
+/* =====================================================================================
+   1. CROMO DE LA LÁMINA — no es producto, no se lleva a Svelte.
+   Solo tokens del tema; ningún color propio.
+   ===================================================================================== */
+
+body.lam {
+	padding: 0 0 4rem;
+	line-height: 1.45;
+}
+
+.lam-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 0.75rem 1.5rem;
+	padding: 1.5rem clamp(0.75rem, 3vw, 2.5rem) 1rem;
+	border-bottom: 1px solid var(--line);
+}
+
+.lam-head h1 {
+	margin: 0.15rem 0 0;
+	font-size: 1.45rem;
+	color: var(--ink-hi);
+	letter-spacing: -0.01em;
+}
+
+.lam-kicker {
+	margin: 0;
+	font-family: var(--mono);
+	font-size: 0.72rem;
+	color: var(--ink-2);
+}
+
+.lam-tools {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.lam-tools [aria-pressed='true'] {
+	border-color: var(--accent);
+	color: var(--accent-text);
+}
+
+.lam-tool-label {
+	margin-left: 0.5rem;
+	font-size: 0.8rem;
+	color: var(--ink-2);
+}
+
+.lam-theme {
+	width: auto;
+	padding: 0.3rem 0.5rem;
+	font-size: 0.8rem;
+}
+
+.lam-section {
+	padding: 1.75rem clamp(0.75rem, 3vw, 2.5rem) 0;
+}
+
+.lam-section > h2 {
+	margin: 0 0 0.25rem;
+	font-size: 1.1rem;
+	color: var(--ink-hi);
+}
+
+.lam-section > p,
+.lam-notes li {
+	max-width: 62rem;
+	margin: 0 0 1rem;
+	font-size: 0.88rem;
+	color: var(--ink-2);
+}
+
+.lam-section > p b,
+.lam-notes li b {
+	color: var(--ink);
+}
+
+.lam-notes {
+	margin: 0;
+	padding-left: 1.1rem;
+}
+
+.lam-notes li {
+	margin-bottom: 0.45rem;
+}
+
+.lam-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 27rem), 1fr));
+	gap: 1.5rem;
+	align-items: start;
+}
+
+.lam-grid + .lam-grid {
+	margin-top: 1.5rem;
+}
+
+.lam-grid--wide {
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 38rem), 1fr));
+}
+
+.lam-spec {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	min-width: 0;
+	margin: 0;
+}
+
+.lam-spec figcaption {
+	font-size: 0.8rem;
+	color: var(--ink-2);
+}
+
+.lam-spec figcaption b {
+	margin-right: 0.4rem;
+	font-family: var(--mono);
+	font-weight: 500;
+	color: var(--accent-text);
+}
+
+.lam-stage {
+	display: flex;
+	flex-direction: column;
+	gap: var(--vega-space-gutter);
+	min-width: 0;
+	padding: 1rem;
+	border: 1px dashed var(--line-strong);
+	border-radius: var(--r);
+	background: var(--paper);
+}
+
+/* Velo del diálogo: el mismo literal que `AdminDialog.svelte` (no hay token de velo). */
+.lam-stage--veil {
+	align-items: center;
+	background: linear-gradient(rgb(15 17 21 / 55%), rgb(15 17 21 / 55%)), var(--paper);
+}
+
+/* En la lámina el diálogo se enseña entero; en producto conserva su `max-height` y hace scroll. */
+.lam-stage--veil .vega-admin-dialog {
+	max-height: none;
+}
+
+.lam-why {
+	margin: 0;
+	font-size: 0.8rem;
+	color: var(--ink-2);
+}
+
+.lam-why b {
+	color: var(--ink);
+}
+
+/* Marco de pantalla completa: la app real ocupa el viewport; aquí crece con su contenido. */
+.lam-frame {
+	border: 1px solid var(--line-strong);
+	border-radius: var(--r);
+	overflow: hidden;
+}
+
+.lam-frame .vega-shell {
+	height: auto;
+}
+
+.lam-frame .vega-main {
+	overflow: visible;
+	background-attachment: scroll;
+}
+
+.lam-frame .vega-edit-top {
+	position: static;
+}
+
+/* Sin `GlobalSearch` en el cromo de la lámina: sin esto las acciones no llegan al borde derecho. */
+.lam-frame .vega-topbar-actions {
+	margin-left: auto;
+}
+
+/* El toast real es `position: fixed`; en la lámina se enseña en su sitio relativo. */
+.lam-toast {
+	display: flex;
+	justify-content: flex-end;
+}
+
+.lam-toast .vega-toast {
+	width: min(22rem, 100%);
+	box-sizing: border-box;
+}
+
+.lam-icons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem 1.25rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-family: var(--mono);
+	font-size: 0.75rem;
+	color: var(--ink-2);
+}
+
+.lam-icons li {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.lam-icons svg {
+	color: var(--ink);
+}
+
+/* `NavItem.svelte` tiene selectores de elemento sueltos (`a`, `li`) que solo valen con ámbito de
+   Svelte: transcritos aquí bajo `.vega-nav-group`, mismos valores. */
+.vega-nav-group a {
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+	min-height: var(--row-h);
+	padding: 0 var(--vega-space-gutter);
+	border-radius: var(--r);
+	color: var(--ink-2);
+	text-decoration: none;
+}
+
+.vega-nav-group a svg {
+	color: var(--ink-3);
+}
+
+.vega-nav-group a[aria-current='page'] {
+	background: var(--accent-soft);
+	color: var(--accent-text);
+	font-weight: 600;
+}
+
+.vega-nav-group a[aria-current='page'] svg {
+	color: var(--accent-text);
+}
+
+/* =====================================================================================
+   2. COMPOSICIONES PROPUESTAS — lo que el implementer lleva a producto.
+   Ningún token nuevo ni color literal. Cada medida es la de una pieza que ya existe (se cita).
+   ===================================================================================== */
+
+/* ——— 2.1 Añadidos a `src/lib/admin/admin.css` ——— */
+
+/* Cabecera de sección dentro de una pantalla de administración (h2 bajo el h1 de la página).
+   Mismo reparto que `.vega-admin-head`; tamaño de `.vega-admin-dialog-head h2`. */
+.vega-admin-subhead {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	width: 100%;
+}
+
+/* Sin `flex-wrap`: en estrecho parte línea el TÍTULO y «Cambiar» se queda arriba a la derecha.
+   Con `wrap`, el botón caía solo a una segunda línea, a la izquierda (visto en la captura). */
+.vega-admin-subhead > .vega-admin-tag,
+.vega-admin-subhead > .vega-admin-btn {
+	flex-shrink: 0;
+}
+
+/* Por debajo del punto estructural (768 px): título y «Cambiar» en la primera línea, la etiqueta
+   debajo. Sin esto el título se partía en tres líneas para hacer sitio a la etiqueta. */
+@media (max-width: 768px) {
+	.vega-admin-subhead {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: 0.4rem 0.75rem;
+	}
+
+	.vega-admin-subhead > .vega-admin-head-spacer {
+		display: none;
+	}
+
+	.vega-admin-subhead > .vega-admin-btn {
+		grid-column: 2;
+		grid-row: 1;
+	}
+
+	.vega-admin-subhead > .vega-admin-tag {
+		grid-column: 1 / -1;
+		justify-self: start;
+	}
+}
+
+.vega-admin-subhead h2 {
+	min-width: 0;
+	margin: 0;
+	font-size: 1.1rem;
+	color: var(--ink-hi);
+}
+
+/* Formulario dentro de una tarjeta (`.vega-admin-state` alinea a la izquierda): ocupa el ancho y
+   se queda en la medida de `.vega-admin-gate` (34rem) para que las líneas no se estiren a 1440. */
+.vega-admin-form--inset {
+	width: 100%;
+	max-width: 34rem;
+}
+
+/* Dos campos en una línea (servidor + puerto). Se apilan solos cuando no caben. */
+.vega-admin-form-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.9rem; /* el `gap` de `.vega-admin-form` */
+}
+
+.vega-admin-form-row > .vega-admin-field {
+	flex: 1 1 12rem;
+}
+
+/* Campo corto: 8rem, el ancho de los numéricos de `RevisionsSettings`. */
+.vega-admin-form-row > .vega-admin-field--short {
+	flex: 0 1 8rem;
+}
+
+.vega-admin-input--short {
+	width: 8rem;
+	max-width: 100%;
+}
+
+.vega-admin-input--mono {
+	font-family: var(--mono);
+	font-size: 0.92em; /* el del campo ruta/slug (`.vega-field-row--path`) */
+}
+
+.vega-admin-input:focus-visible {
+	outline: 2px solid var(--ring);
+	outline-offset: 1px;
+	border-color: var(--line-strong);
+}
+
+/* Casilla con rótulo. Casilla y no interruptor: aquí nada se aplica hasta «Guardar». */
+.vega-admin-check {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.6rem;
+	font-size: 0.88rem;
+	color: var(--ink);
+	cursor: pointer;
+}
+
+.vega-admin-check input {
+	margin-top: 0.2rem;
+	accent-color: var(--accent);
+}
+
+.vega-admin-check span span {
+	display: block;
+	color: var(--ink-2);
+	font-size: 0.82rem;
+}
+
+.vega-admin-form-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+/* Bloque «probar» dentro de la tarjeta: separado del formulario por la misma raya de las filas. */
+.vega-admin-test {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	width: 100%;
+	max-width: 34rem;
+	padding-top: 0.9rem;
+	border-top: 1px solid var(--line);
+}
+
+.vega-admin-test-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 0.5rem;
+}
+
+.vega-admin-test-row .vega-admin-field {
+	flex: 1 1 12rem;
+}
+
+/* Resultado correcto de una prueba: la etiqueta de estado existente + una frase. */
+.vega-admin-result {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.4rem 0.6rem;
+	margin: 0;
+	font-size: 0.88rem;
+	color: var(--ink);
+}
+
+/* Salida literal del servidor: calco de `.vega-revisions-settings-json`, que ya ajusta líneas. */
+.vega-admin-output {
+	max-height: 16rem;
+	margin: 0;
+	padding: 0.5rem;
+	overflow: auto;
+	border: 1px solid var(--line);
+	border-radius: var(--r);
+	background: var(--surface);
+	color: var(--ink);
+	font-family: var(--mono);
+	font-size: 0.75rem;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+/* Resumen de un ajuste guardado: pares rótulo/valor, como `.vega-editor-kv` pero a la izquierda. */
+.vega-admin-summary {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	width: 100%;
+	margin: 0;
+	font-size: 0.88rem;
+}
+
+.vega-admin-summary > div {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.15rem 0.6rem;
+}
+
+.vega-admin-summary dt {
+	flex: 0 0 10rem;
+	color: var(--ink-2);
+}
+
+.vega-admin-summary dd {
+	flex: 1 1 12rem;
+	min-width: 0;
+	margin: 0;
+	color: var(--ink);
+	overflow-wrap: anywhere;
+}
+
+.vega-admin-notice-body {
+	overflow-wrap: anywhere;
+}
+
+/* El enlace de `.vega-conflict-link`, para «Detalle técnico» y «Quitar la contraseña guardada». */
+.vega-admin-link {
+	align-self: flex-start;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--accent-text);
+	font: inherit;
+	font-size: 0.82rem;
+	cursor: pointer;
+}
+
+.vega-admin-link:hover {
+	text-decoration: underline;
+}
+
+details > summary.vega-admin-link {
+	list-style-position: inside;
+}
+
+details[open] > summary.vega-admin-link {
+	margin-bottom: 0.4rem;
+}
+
+@media (pointer: coarse) {
+	/* Medido a 390: el `select` se quedaba en 41 px y los campos en mono en 43 px. */
+	.vega-admin-input {
+		min-height: 44px;
+	}
+
+	.vega-admin-check,
+	.vega-admin-link {
+		min-height: 44px;
+		align-items: center;
+	}
+
+	.vega-admin-link {
+		display: inline-flex;
+	}
+
+	.vega-admin-check input {
+		margin-top: 0;
+	}
+}
+
+/* ——— 2.2 Tarjeta «Preparar el sitio» de /settings ———
+   Misma tarjeta que sus vecinas (`.vega-appearance`, `.vega-about`): mismos números. */
+.vega-seed {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.75rem;
+	padding: 1rem 1.2rem;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: var(--surface-2);
+}
+
+.vega-seed-desc {
+	max-width: 46rem; /* `.vega-admin-desc` */
+	margin: 0;
+	font-size: 0.85rem;
+	color: var(--ink-2);
+}
+
+.vega-seed > .vega-admin-notice {
+	align-self: stretch;
+}
+
+/* ——— 2.3 Lista del plan dentro del diálogo ———
+   Caja y filas de `.vega-admin-radio-card`; rótulo de grupo = `thead th` de `.vega-admin-table`. */
+.vega-plan {
+	display: flex;
+	flex-direction: column;
+	gap: 0.9rem;
+}
+
+/* Grupo de campos dentro de un formulario de administración: `fieldset` sin caja. */
+.vega-admin-group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.9rem;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.vega-admin-group > legend {
+	margin-bottom: 0.6rem;
+	padding: 0;
+	font-size: 0.6875rem;
+	font-weight: 650;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--ink-2);
+}
+
+.vega-plan h3 {
+	margin: 0 0 0.35rem;
+	font-size: 0.6875rem;
+	font-weight: 650;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--ink-2);
+}
+
+.vega-plan ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	border: 1px solid var(--line);
+	border-radius: var(--r);
+	background: var(--surface-2);
+}
+
+.vega-plan li {
+	padding: 0.6rem 0.75rem;
+	border-bottom: 1px solid var(--line);
+	font-size: 0.88rem;
+}
+
+.vega-plan li:last-child {
+	border-bottom: 0;
+}
+
+.vega-plan li b {
+	display: block;
+	color: var(--ink-hi);
+	font-weight: 600;
+}
+
+.vega-plan li span {
+	color: var(--ink-2);
+	font-size: 0.82rem;
+	overflow-wrap: anywhere;
+}
+
+.vega-plan code,
+.vega-admin-notice code,
+.vega-admin-dialog-text code,
+.vega-admin-summary code,
+.vega-redirect code,
+.vega-seed-desc code {
+	font-family: var(--mono);
+	font-size: 0.92em;
+	overflow-wrap: anywhere;
+}
+
+.vega-plan-rest {
+	margin: 0;
+	font-size: 0.82rem;
+	color: var(--ink-2);
+}
+
+/* ——— 2.4 Oferta de redirección en el hueco del banner de registro (`RecordForm`) ———
+   Neutra = `.vega-record-form-notice`; con tono = `.vega-conflict` (aviso/peligro) y su gemelo
+   informativo con `--info`/`--info-soft`, como `.vega-admin-notice--info`. */
+.vega-redirect {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding: 0.75rem 1rem;
+	border: 1px solid var(--line);
+	border-radius: var(--r);
+	background: var(--surface-2);
+}
+
+.vega-redirect--info {
+	border-color: var(--info);
+	background: var(--info-soft);
+}
+
+.vega-redirect--warning {
+	border-color: var(--warning);
+	background: var(--warning-soft);
+}
+
+.vega-redirect--danger {
+	border-color: var(--danger);
+	background: var(--danger-soft);
+}
+
+.vega-redirect p {
+	margin: 0;
+}
+
+.vega-redirect-check,
+.vega-redirect-title {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.6rem;
+	font-weight: 600;
+	color: var(--ink-hi);
+	overflow-wrap: anywhere;
+}
+
+.vega-redirect-check {
+	cursor: pointer;
+}
+
+.vega-redirect-check input {
+	flex-shrink: 0;
+	margin-top: 0.25rem;
+	accent-color: var(--accent);
+}
+
+.vega-redirect-check > span,
+.vega-redirect-title > span {
+	min-width: 0;
+}
+
+.vega-redirect-title svg {
+	flex-shrink: 0;
+	margin-top: 0.15rem;
+}
+
+.vega-redirect--warning .vega-redirect-title svg {
+	color: var(--warning);
+}
+
+.vega-redirect--danger .vega-redirect-title svg {
+	color: var(--danger);
+}
+
+/* `--ink`, no `--ink-2`: mismo motivo que `.vega-conflict-who` sobre un fondo suave. */
+.vega-redirect-body {
+	font-size: 0.84rem;
+	color: var(--ink);
+	overflow-wrap: anywhere;
+}
+
+.vega-redirect-list {
+	margin: 0;
+	padding-left: 1.1rem;
+	font-size: 0.84rem;
+	color: var(--ink);
+}
+
+.vega-redirect-choices {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.vega-redirect-choices label {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.6rem;
+	font-size: 0.88rem;
+	color: var(--ink);
+	cursor: pointer;
+	overflow-wrap: anywhere;
+}
+
+.vega-redirect-choices label > span {
+	min-width: 0;
+}
+
+.vega-redirect-choices input {
+	flex-shrink: 0;
+	margin-top: 0.2rem;
+	accent-color: var(--accent);
+}
+
+.vega-redirect-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+@media (pointer: coarse) {
+	.vega-redirect-check,
+	.vega-redirect-choices label {
+		min-height: 44px;
+		align-items: center;
+	}
+
+	.vega-redirect-check input,
+	.vega-redirect-choices input {
+		margin-top: 0;
+	}
+}

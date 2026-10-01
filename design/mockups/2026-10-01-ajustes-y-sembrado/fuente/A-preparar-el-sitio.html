@@ -1,0 +1,577 @@
+<!--TITULO A · Preparar y actualizar el sitio (/settings)-->
+
+<section class="lam-section">
+	<h2>Dónde vive</h2>
+	<p>
+		Tarjeta nueva en <b>/settings</b>, solo en la rama de superusuario
+		(<code>isManifestEditable</code>), <b>entre «Backend / conexión» y «Esquema»</b>: es la base de
+		la que depende todo lo que viene debajo. Usa la misma tarjeta que sus vecinas y, por dentro, las
+		piezas de <code>admin.css</code> (botón, etiqueta, aviso y diálogo). Las secciones vecinas se
+		pintan con su CSS real, sin cambios.
+	</p>
+	<!--SHELL settings super-->
+	<div class="vega-settings-page">
+		<header class="vega-settings-header">
+			<h1>Ajustes</h1>
+			<button type="button">Recargar modelo</button>
+		</header>
+
+		<section class="vega-backend-section" aria-labelledby="ctx-backend">
+			<h2 id="ctx-backend">Backend / conexión</h2>
+			<p class="vega-backend-description">
+				Apunta Vega a un PocketBase distinto de este mismo servidor, sin recompilar.
+			</p>
+			<p class="lam-why">(formulario existente, sin cambios)</p>
+		</section>
+
+		<section class="vega-seed" aria-labelledby="ctx-seed">
+			<div class="vega-admin-subhead">
+				<h2 id="ctx-seed">Base del sitio</h2>
+				<span class="vega-admin-tag" data-kind="other">Hay una actualización</span>
+			</div>
+			<p class="vega-seed-desc">
+				Esta versión de Vega añade 4 campos a las páginas, crea las redirecciones y actualiza las
+				etiquetas de los formularios. Antes de cambiar nada te enseña la lista.
+			</p>
+			<button type="button" class="vega-admin-btn vega-admin-btn--primary">
+				{{i:update:14}} Actualizar el sitio
+			</button>
+		</section>
+
+		<section class="vega-backend-section" aria-labelledby="ctx-schema">
+			<h2 id="ctx-schema">Esquema</h2>
+			<p class="lam-why">
+				(existente, sin cambios; debajo siguen Columnas de bloques, el manifiesto, Historial y
+				papelera, Avisos y Acerca de)
+			</p>
+		</section>
+	</div>
+	<!--/SHELL-->
+</section>
+
+<section class="lam-section">
+	<h2>La tarjeta, estado a estado</h2>
+	<p>
+		Al abrir Ajustes la tarjeta hace el preflight (solo lecturas: reutiliza el
+		<code>listContentTypes</code> que la página ya pide y añade dos listados de una fila). El botón
+		lo repite antes de abrir el diálogo, para no enseñar un plan viejo.
+	</p>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption><b>A0</b> Comprobando (al cargar y al pulsar)</figcaption>
+			<div class="lam-stage">
+				<section class="vega-seed">
+					<div class="vega-admin-subhead"><h2>Base del sitio</h2></div>
+					<p class="vega-seed-desc" aria-live="polite">
+						<span class="vega-admin-saving">Comprobando el sitio…</span>
+					</p>
+				</section>
+			</div>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>A1</b> Sitio sin preparar</figcaption>
+			<div class="lam-stage">
+				<section class="vega-seed">
+					<div class="vega-admin-subhead">
+						<h2>Base del sitio</h2>
+						<span class="vega-admin-tag" data-kind="other">Sin preparar</span>
+					</div>
+					<p class="vega-seed-desc">
+						Crea en tu PocketBase lo que hace falta para llevar un sitio con Vega: páginas, bloques,
+						medios, redirecciones y las cuentas de quien edita. Antes de crear nada te enseña la
+						lista.
+					</p>
+					<button type="button" class="vega-admin-btn vega-admin-btn--primary">
+						Preparar el sitio
+					</button>
+				</section>
+			</div>
+			<p class="lam-why">
+				Mismo estado si solo falta una parte: la frase cuenta lo que falta («Faltan 2 de las 6
+				colecciones…»).
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>A2</b> Preparado y al día (nada que hacer)</figcaption>
+			<div class="lam-stage">
+				<section class="vega-seed">
+					<div class="vega-admin-subhead">
+						<h2>Base del sitio</h2>
+						<span class="vega-admin-tag" data-kind="pub">Al día</span>
+					</div>
+					<p class="vega-seed-desc">
+						Este PocketBase tiene todo lo que esta versión de Vega necesita. No hay nada que crear
+						ni que actualizar.
+					</p>
+					<button type="button" class="vega-admin-btn">Volver a comprobar</button>
+				</section>
+			</div>
+			<p class="lam-why">
+				<b>Sin botón primario:</b> un «Actualizar» siempre a mano invita a pulsarlo «por si acaso»
+				sobre algo que no se deshace.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>A3</b> Preparado, con actualización pendiente</figcaption>
+			<div class="lam-stage">
+				<section class="vega-seed">
+					<div class="vega-admin-subhead">
+						<h2>Base del sitio</h2>
+						<span class="vega-admin-tag" data-kind="other">Hay una actualización</span>
+					</div>
+					<p class="vega-seed-desc">
+						Esta versión de Vega añade 4 campos a las páginas, crea las redirecciones y actualiza
+						las etiquetas de los formularios. Antes de cambiar nada te enseña la lista.
+					</p>
+					<button type="button" class="vega-admin-btn vega-admin-btn--primary">
+						{{i:update:14}} Actualizar el sitio
+					</button>
+				</section>
+			</div>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>A4</b> El preflight aborta</figcaption>
+			<div class="lam-stage">
+				<section class="vega-seed">
+					<div class="vega-admin-subhead"><h2>Base del sitio</h2></div>
+					<div class="vega-admin-notice vega-admin-notice--warning">
+						<p class="vega-admin-notice-title">Vega no puede actualizar este sitio tal como está</p>
+						<p class="vega-admin-notice-body">
+							2 piezas ya existen con otra forma, y Vega no cambia lo que ya existe. No se ha
+							escrito nada.
+						</p>
+						<div class="vega-admin-notice-actions">
+							<button type="button" class="vega-admin-btn">Ver por qué</button>
+							<button type="button" class="vega-admin-btn">Volver a comprobar</button>
+						</div>
+					</div>
+				</section>
+			</div>
+			<p class="lam-why">
+				Aviso y no error: nada ha fallado ni se ha perdido. El detalle va en el diálogo (D3).
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>A5</b> No se pudo comprobar (fallo de lectura)</figcaption>
+			<div class="lam-stage">
+				<section class="vega-seed">
+					<div class="vega-admin-subhead"><h2>Base del sitio</h2></div>
+					<p class="vega-seed-desc" role="alert">No se pudo comprobar cómo está el sitio.</p>
+					<button type="button" class="vega-admin-btn">Reintentar</button>
+				</section>
+			</div>
+			<p class="lam-why">
+				El motivo lo pinta el banner global (<code>ctx.feedback.reportError</code>), como en el
+				resto de la página.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>A6</b> Recién preparado (tras el éxito)</figcaption>
+			<div class="lam-stage">
+				<section class="vega-seed">
+					<div class="vega-admin-subhead">
+						<h2>Base del sitio</h2>
+						<span class="vega-admin-tag" data-kind="pub">Al día</span>
+					</div>
+					<p class="vega-seed-desc" role="status">
+						Hecho: 6 colecciones, el modelo de contenido y la página «Inicio», que queda en
+						borrador. El siguiente paso es dar acceso a quien vaya a editar, en
+						<a href="#" class="vega-admin-link">Editores</a>.
+					</p>
+					<button type="button" class="vega-admin-btn">Volver a comprobar</button>
+				</section>
+				<div class="lam-toast">
+					<div class="vega-toast" data-kind="success"><span>Sitio preparado.</span></div>
+				</div>
+			</div>
+			<p class="lam-why">
+				El resumen sale de <code>SiteSeedResult</code> y se queda hasta salir de Ajustes; el toast
+				se va solo.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>A7</b> Editor (no superusuario): no lo ve</figcaption>
+			<div class="lam-stage">
+				<section class="vega-manifest-gate">
+					<h2>Modelo de contenido</h2>
+					<p>
+						La edición del manifiesto requiere una cuenta de administrador (superusuario). Pide a
+						quien administre este PocketBase que ajuste el modelo de contenido desde este mismo
+						panel.
+					</p>
+				</section>
+			</div>
+			<p class="lam-why">
+				La tarjeta no se monta: en su hueco sigue el aviso que ya existe, sin texto nuevo. No se le
+				enseña un botón que no puede usar.
+			</p>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>El diálogo: qué va a pasar, o por qué no</h2>
+	<p>
+		<code>AdminDialog</code> tal cual (26 rem, foco atrapado). El foco inicial va a
+		<b>«Cancelar»</b>: un Intro nada más abrir no debe confirmar una escritura que no se deshace.
+		Que no se deshace se dice <b>una vez</b>, aquí, justo encima de los botones, en el tono del
+		resto del texto.
+	</p>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption><b>D1</b> Plan · primera vez (muchas piezas)</figcaption>
+			<div class="lam-stage lam-stage--veil">
+				<div
+					class="vega-admin-dialog"
+					role="dialog"
+					aria-modal="true"
+					aria-labelledby="d1-t"
+					aria-describedby="d1-d"
+				>
+					<div class="vega-admin-dialog-head">
+						<h2 id="d1-t">Preparar el sitio</h2>
+						<button type="button" class="vega-admin-icon-btn" aria-label="Cerrar">
+							{{i:close:16}}
+						</button>
+					</div>
+					<p class="vega-admin-dialog-text" id="d1-d">
+						Esto es lo que Vega va a crear en tu PocketBase. Lo que ya exista no se toca.
+					</p>
+					<div class="vega-plan">
+						<div>
+							<h3 id="d1-g1">Se crea</h3>
+							<ul aria-labelledby="d1-g1">
+								<li>
+									<b>Páginas</b
+									><span
+										><code>pages</code> · 8 campos: título, ruta, plantilla, estado, fecha de
+										publicación y SEO</span
+									>
+								</li>
+								<li>
+									<b>Medios</b
+									><span><code>vega_media</code> · las imágenes y ficheros que se suben</span>
+								</li>
+								<li>
+									<b>Bloques</b><span><code>blocks</code> · las secciones de cada página</span>
+								</li>
+								<li>
+									<b>Redirecciones</b
+									><span><code>redirects</code> · de una ruta antigua a una nueva</span>
+								</li>
+								<li>
+									<b>Modelo de contenido</b
+									><span
+										><code>vega</code> · cómo se llaman y se ordenan los campos en los
+										formularios</span
+									>
+								</li>
+								<li>
+									<b>Editores</b
+									><span
+										><code>vega_editors</code> · las cuentas de quien edita. Si ya existe, se deja
+										como está</span
+									>
+								</li>
+								<li>
+									<b>La página «Inicio»</b><span>En la ruta <code>/</code>, como borrador</span>
+								</li>
+							</ul>
+						</div>
+					</div>
+					<p class="vega-admin-dialog-text">
+						Esto no se deshace desde Vega: lo que se crea se queda en PocketBase.
+					</p>
+					<div class="vega-admin-dialog-actions">
+						<button type="button" class="vega-admin-btn" data-autofocus>Cancelar</button>
+						<button type="button" class="vega-admin-btn vega-admin-btn--primary">
+							Preparar el sitio
+						</button>
+					</div>
+				</div>
+			</div>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>D2</b> Plan · actualización</figcaption>
+			<div class="lam-stage lam-stage--veil">
+				<div
+					class="vega-admin-dialog"
+					role="dialog"
+					aria-modal="true"
+					aria-labelledby="d2-t"
+					aria-describedby="d2-d"
+				>
+					<div class="vega-admin-dialog-head">
+						<h2 id="d2-t">Actualizar el sitio</h2>
+						<button type="button" class="vega-admin-icon-btn" aria-label="Cerrar">
+							{{i:close:16}}
+						</button>
+					</div>
+					<p class="vega-admin-dialog-text" id="d2-d">
+						Esto es lo que cambia. El contenido que ya hay no se toca.
+					</p>
+					<div class="vega-plan">
+						<div>
+							<h3 id="d2-g1">Se añade</h3>
+							<ul aria-labelledby="d2-g1">
+								<li>
+									<b>4 campos en Páginas</b
+									><span
+										>«Publicar el», «Descripción», «Imagen para redes» y «No indexar» ·
+										<code>publishAt</code>, <code>description</code>, <code>socialImage</code>,
+										<code>noindex</code></span
+									>
+								</li>
+								<li>
+									<b>La fecha de alta en Editores</b
+									><span
+										><code>created</code> · solo si falta. Las cuentas que ya existen se quedan sin
+										fecha</span
+									>
+								</li>
+							</ul>
+						</div>
+						<div>
+							<h3 id="d2-g2">Se crea</h3>
+							<ul aria-labelledby="d2-g2">
+								<li>
+									<b>Redirecciones</b
+									><span><code>redirects</code> · de una ruta antigua a una nueva</span>
+								</li>
+							</ul>
+						</div>
+						<div>
+							<h3 id="d2-g3">Se sustituye</h3>
+							<ul aria-labelledby="d2-g3">
+								<li>
+									<b>Modelo de contenido</b
+									><span
+										>Por el de esta versión, que trae las etiquetas y ayudas de los campos nuevos.
+										Nadie lo había editado</span
+									>
+								</li>
+							</ul>
+						</div>
+						<p class="vega-plan-rest">Medios, Bloques y la página «Inicio» ya están al día.</p>
+					</div>
+					<p class="vega-admin-dialog-text">
+						Esto no se deshace desde Vega: lo que se crea se queda en PocketBase.
+					</p>
+					<div class="vega-admin-dialog-actions">
+						<button type="button" class="vega-admin-btn" data-autofocus>Cancelar</button>
+						<button type="button" class="vega-admin-btn vega-admin-btn--primary">
+							Actualizar el sitio
+						</button>
+					</div>
+				</div>
+			</div>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>D3</b> El preflight aborta: por qué (con salida larguísima)</figcaption>
+			<div class="lam-stage lam-stage--veil">
+				<div
+					class="vega-admin-dialog"
+					role="dialog"
+					aria-modal="true"
+					aria-labelledby="d3-t"
+					aria-describedby="d3-d"
+				>
+					<div class="vega-admin-dialog-head">
+						<h2 id="d3-t">No se puede actualizar el sitio</h2>
+						<button type="button" class="vega-admin-icon-btn" aria-label="Cerrar">
+							{{i:close:16}}
+						</button>
+					</div>
+					<p class="vega-admin-dialog-text" id="d3-d">
+						Estas piezas ya existen con otra forma, y Vega no cambia lo que ya existe. No se ha
+						escrito nada.
+					</p>
+					<div class="vega-plan">
+						<div>
+							<h3 id="d3-g1">Lo que no encaja</h3>
+							<ul aria-labelledby="d3-g1">
+								<li>
+									<b>El campo «status» de Páginas</b>
+									<span>Existe, pero no con las opciones que Vega espera.</span>
+									<details open>
+										<summary class="vega-admin-link">Detalle técnico</summary>
+										<pre class="vega-admin-output">
+campo "pages.status": encontró {"type":"select","target":null,"multiple":false,"required":true,"unique":false,"options":["borrador","publicado","archivado"],"maxSelect":null}; esperaba {"type":"select","target":null,"multiple":false,"required":false,"unique":false,"options":["draft","published"],"maxSelect":null}</pre>
+									</details>
+								</li>
+								<li>
+									<b>El modelo de contenido</b>
+									<span
+										>Se ha editado a mano. Vega no lo sustituye, para no perder ese trabajo.</span
+									>
+									<details>
+										<summary class="vega-admin-link">Detalle técnico</summary>
+									</details>
+								</li>
+							</ul>
+						</div>
+					</div>
+					<p class="vega-admin-dialog-text">
+						Corrige esas piezas en el Admin de PocketBase y vuelve a comprobar.
+					</p>
+					<div class="vega-admin-dialog-actions">
+						<button type="button" class="vega-admin-btn">Copiar el detalle</button>
+						<button type="button" class="vega-admin-btn" data-autofocus>Cerrar</button>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">
+				La frase en llano la deduce Vega del tipo de pieza; el texto literal de
+				<code>SiteSeedDivergence</code> (que para el manifiesto es el JSON entero) va plegado, en
+				una caja con scroll de 16 rem. «Copiar el detalle» es para pasárselo a quien lleve el
+				servidor.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>D4</b> En curso</figcaption>
+			<div class="lam-stage lam-stage--veil">
+				<div
+					class="vega-admin-dialog"
+					role="dialog"
+					aria-modal="true"
+					aria-labelledby="d4-t"
+					aria-busy="true"
+				>
+					<div class="vega-admin-dialog-head">
+						<h2 id="d4-t">Actualizar el sitio</h2>
+						<button
+							type="button"
+							class="vega-admin-icon-btn"
+							aria-label="Cerrar"
+							aria-disabled="true"
+						>
+							{{i:close:16}}
+						</button>
+					</div>
+					<div class="vega-plan">
+						<div>
+							<h3>Se añade</h3>
+							<ul>
+								<li>
+									<b>4 campos en Páginas</b
+									><span>«Publicar el», «Descripción», «Imagen para redes» y «No indexar»</span>
+								</li>
+							</ul>
+						</div>
+						<p class="vega-plan-rest">… (la misma lista de D2, sin cambios)</p>
+					</div>
+					<p class="vega-admin-dialog-text" aria-live="polite">
+						<span class="vega-admin-saving">Actualizando el sitio… 0:06</span>
+					</p>
+					<div class="vega-admin-dialog-actions">
+						<button type="button" class="vega-admin-btn" aria-disabled="true">Cancelar</button>
+						<button
+							type="button"
+							class="vega-admin-btn vega-admin-btn--primary"
+							aria-disabled="true"
+						>
+							Actualizando…
+						</button>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">
+				<b>Tiempo transcurrido, no porcentaje ni pasos:</b> <code>seedSiteProject</code> no avisa de
+				por dónde va; una barra inventada mentiría. Mismo patrón que «Creando copia… 0:42». No se
+				puede cerrar ni cancelar: hay escrituras en vuelo.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>D5</b> Error, con la salida del servidor</figcaption>
+			<div class="lam-stage lam-stage--veil">
+				<div class="vega-admin-dialog" role="dialog" aria-modal="true" aria-labelledby="d5-t">
+					<div class="vega-admin-dialog-head">
+						<h2 id="d5-t">Actualizar el sitio</h2>
+						<button type="button" class="vega-admin-icon-btn" aria-label="Cerrar">
+							{{i:close:16}}
+						</button>
+					</div>
+					<div class="vega-admin-notice vega-admin-notice--danger" role="alert">
+						<p class="vega-admin-notice-title">No se pudo terminar</p>
+						<p class="vega-admin-notice-body">
+							Lo que se creó antes del fallo se queda como está. Al reintentar, Vega solo crea lo
+							que falte.
+						</p>
+						<pre class="vega-admin-output">
+Failed to update collection "pages": fields: (8: (collectionId: The relation collection "pbc_3607937828" doesn't exist or is not accessible from the current datasource..).).</pre>
+					</div>
+					<div class="vega-admin-dialog-actions">
+						<button type="button" class="vega-admin-btn">Cerrar</button>
+						<button type="button" class="vega-admin-btn vega-admin-btn--primary" data-autofocus>
+							Reintentar
+						</button>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">
+				«Reintentar» repite el preflight y vuelve a enseñar el plan (D1/D2) con lo que quede. El
+				mensaje del servidor es un ejemplo de forma, no uno medido.
+			</p>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>Consecuencia en /editores</h2>
+	<p>
+		Hoy, si falta la colección de editores, el aviso manda al Admin de PocketBase «porque el
+		sembrado no tiene botón en la SPA». Con esta tarjeta ya lo tiene: el aviso pasa a llevar allí.
+	</p>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption>
+				<b>Antes</b> (código actual, <code>admin.editors.missingCollection</code>)
+			</figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-notice vega-admin-notice--warning">
+					<p class="vega-admin-notice-body">
+						Este proyecto no tiene todavía la colección de editores (vega_editors). Créala en el
+						Admin de PocketBase como colección de autenticación con ese nombre y vuelve aquí.
+					</p>
+					<div class="vega-admin-notice-actions">
+						<button type="button" class="vega-admin-btn">Reintentar</button>
+					</div>
+				</div>
+			</div>
+		</figure>
+		<figure class="lam-spec">
+			<figcaption><b>Después</b></figcaption>
+			<div class="lam-stage">
+				<div class="vega-admin-notice vega-admin-notice--warning">
+					<p class="vega-admin-notice-body">
+						Este sitio todavía no tiene dónde guardar las cuentas de los editores. Se crea al
+						preparar el sitio.
+					</p>
+					<div class="vega-admin-notice-actions">
+						<button type="button" class="vega-admin-btn">Ir a Ajustes</button>
+						<button type="button" class="vega-admin-btn">Reintentar</button>
+					</div>
+				</div>
+			</div>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>Iconos usados (del set de <code>src/lib/icons</code>)</h2>
+	<ul class="lam-icons">
+		<li>{{i:update:16}} update · «Actualizar el sitio»</li>
+		<li>{{i:close:16}} close · cerrar diálogo</li>
+	</ul>
+</section>
