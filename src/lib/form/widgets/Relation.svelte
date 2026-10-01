@@ -50,9 +50,9 @@
 	import {
 		buildDegradedListQuery,
 		buildTitleSearchQuery,
-		buildTitlesByIdsQuery,
 		candidatesFromPage,
 		chunkIds,
+		fetchRecordsByIds,
 		idsNeedingTitles,
 		RELATION_SEARCH_PER_PAGE,
 		RelationSearchSequencer,
@@ -287,9 +287,10 @@
 		}
 	});
 
-	/** Resuelve los títulos de `ids` con un `list` filtrado por ids por cada lote (`chunkIds`), no
-	 *  con un `get` por id. Un id que no vuelve en su lote (borrado entre tanto) se marca
-	 *  `not-found`; un lote que falla se reporta y deja sus ids sin caché (como el `get` fallido). */
+	/** Resuelve los títulos de `ids` con un `list` filtrado por ids por cada lote (`chunkIds`). Los
+	 *  ids que el `list` no devuelve se piden con `get` (la `ListRule` puede ser más estricta que la
+	 *  `ViewRule`); solo un 404 de ese `get` los marca `not-found`. Un lote o un `get` que fallan
+	 *  por otra causa se reportan y dejan sus ids sin caché. */
 	async function resolveTitles(ids: RecordId[]): Promise<void> {
 		if (!target) return;
 		const targetName = target.name;
@@ -301,26 +302,29 @@
 		await Promise.all(
 			chunkIds(ids).map(async (chunk) => {
 				try {
-					const page = await ctx.port.list(targetName, buildTitlesByIdsQuery(chunk, projection));
+					const { records, notFound, errors } = await fetchRecordsByIds(
+						ctx.port,
+						targetName,
+						chunk,
+						projection
+					);
 					if (destroyed) return;
-					const byId = new Map(page.items.map((record) => [record.id, record]));
 					let next = titleCache;
 					for (const id of chunk) {
-						const record = byId.get(id);
-						next = withCachedTitle(
-							next,
-							id,
-							record
-								? {
-										status: 'ok',
-										title: isMediaTarget
-											? mediaDisplayName(toMediaItemView(record)) || record.id
-											: titleOf(record, titleField)
-									}
-								: { status: 'not-found' }
-						);
+						const record = records.get(id);
+						if (record) {
+							next = withCachedTitle(next, id, {
+								status: 'ok',
+								title: isMediaTarget
+									? mediaDisplayName(toMediaItemView(record)) || record.id
+									: titleOf(record, titleField)
+							});
+						} else if (notFound.has(id)) {
+							next = withCachedTitle(next, id, { status: 'not-found' });
+						}
 					}
 					titleCache = next;
+					for (const err of errors) reportUnexpected(err, 'relation:resolveTitle');
 				} catch (err) {
 					if (destroyed) return;
 					reportUnexpected(err, 'relation:resolveTitle');

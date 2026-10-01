@@ -53,7 +53,11 @@
 		mediaExtensionBadge,
 		mediaThumbTone
 	} from './media-card';
-	import { createMediaUploadState, type MediaUploadItemStatus } from './media-upload-state.svelte';
+	import {
+		createMediaUploadState,
+		type MediaUploadItemStatus,
+		type MediaUploadSummary
+	} from './media-upload-state.svelte';
 	import type { MediaFileFieldSchema } from './media-upload';
 
 	interface Props {
@@ -119,21 +123,24 @@
 		return status.kind === 'rejected' ? 'error' : status.kind;
 	}
 
+	/** Aviso de fin de lote (nuevo o reanudado): el resumen cuenta el lote entero. */
+	function reportSummary(summary: MediaUploadSummary): void {
+		ctx.feedback.toast(
+			summary.pending > 0
+				? ctx.t('media.upload.summaryPending', {
+						uploaded: summary.uploaded,
+						failed: summary.failed,
+						pending: summary.pending
+					})
+				: ctx.t('media.upload.summary', { uploaded: summary.uploaded, failed: summary.failed }),
+			{ kind: summary.failed > 0 || summary.pending > 0 ? 'error' : 'success' }
+		);
+	}
+
 	function handleFiles(files: File[]): void {
 		if (uploadState.running || files.length === 0) return;
 		batchFiles = files;
-		void uploadState.start(ctx, schema, files, onUploaded, (summary) => {
-			ctx.feedback.toast(
-				summary.pending > 0
-					? ctx.t('media.upload.summaryPending', {
-							uploaded: summary.uploaded,
-							failed: summary.failed,
-							pending: summary.pending
-						})
-					: ctx.t('media.upload.summary', { uploaded: summary.uploaded, failed: summary.failed }),
-				{ kind: summary.failed > 0 || summary.pending > 0 ? 'error' : 'success' }
-			);
-		});
+		void uploadState.start(ctx, schema, files, onUploaded, reportSummary);
 	}
 
 	function handleInputChange(event: Event): void {
@@ -153,13 +160,11 @@
 	}
 
 	/** "Reintentar" de un fichero `pending` con el lote parado (sesión caducada, ver cabecera):
-	 *  reanuda TODOS los pendientes en un lote nuevo, no solo ése — si no, los demás saldrían de la
-	 *  lista sin haberse subido. */
+	 *  reanuda TODOS los pendientes del MISMO lote — los ya `done`, `error` o `rejected` se quedan en
+	 *  la lista y solo se relanzan los `pending`. */
 	function handleResume(): void {
-		const pendingFiles = uploadState.items
-			.map((item, index) => (item.status.kind === 'pending' ? batchFiles[index] : undefined))
-			.filter((file): file is File => file !== undefined);
-		handleFiles(pendingFiles);
+		if (uploadState.running) return;
+		void uploadState.resume(ctx, batchFiles, onUploaded, reportSummary);
 	}
 
 	function handleDragOver(event: DragEvent): void {

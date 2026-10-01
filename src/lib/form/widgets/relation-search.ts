@@ -33,6 +33,8 @@
 
 import type { Field } from '$lib/backend/types';
 import type { RecordId, VegaRecord, Page } from '$lib/backend/types';
+import type { BackendPort } from '$lib/backend/port';
+import { VegaError } from '$lib/backend/errors';
 import type { Query } from '$lib/backend/query';
 import { allowedFilterOps } from '$lib/backend/query';
 import type { ResolvedContentType } from '$lib/model/types';
@@ -117,6 +119,55 @@ export function buildTitlesByIdsQuery(ids: RecordId[], projection?: string[]): Q
 		perPage: Math.max(1, ids.length),
 		...(projection ? { fields: projection } : {})
 	};
+}
+
+/** `get` simultáneos como máximo al recuperar los ids que el `list` por lote no devolvió. */
+export const RELATION_GET_FALLBACK_CONCURRENCY = 5;
+
+/** Resultado de `fetchRecordsByIds`: cada id cae en `records` o en `notFound`, o en ninguno si su
+ *  `get` falló con algo que no es 404 (queda sin caché y el fallo va en `errors`). */
+export interface FetchedRecords {
+	records: Map<RecordId, VegaRecord>;
+	/** Ids cuyo `get` respondió 404: ya no existen (o no son visibles con la `ViewRule`). */
+	notFound: Set<RecordId>;
+	/** Fallos de `get` distintos de 404. */
+	errors: unknown[];
+}
+
+/**
+ * Trae los registros de `ids` (un lote de `chunkIds`) con UN `list` por ids y, para los que ese
+ * `list` no devuelve, un `get` por id con concurrencia acotada. Hace falta porque `list` aplica la
+ * `ListRule` de la colección destino y `get` su `ViewRule`, y PocketBase permite que difieran (p.
+ * ej. `vega_media`: `list` solo para editores, `view` pública): un id ausente del `list` NO prueba
+ * que no exista. Solo un 404 del `get` lo declara `notFound`. Si el propio `list` lanza, el error
+ * se propaga (el llamador deja el lote sin caché).
+ */
+export async function fetchRecordsByIds(
+	port: Pick<BackendPort, 'list' | 'get'>,
+	collection: string,
+	ids: RecordId[],
+	projection?: string[],
+	concurrency: number = RELATION_GET_FALLBACK_CONCURRENCY
+): Promise<FetchedRecords> {
+	const page = await port.list(collection, buildTitlesByIdsQuery(ids, projection));
+	const records = new Map<RecordId, VegaRecord>(page.items.map((record) => [record.id, record]));
+	const notFound = new Set<RecordId>();
+	const errors: unknown[] = [];
+	const missing = ids.filter((id) => !records.has(id));
+	let cursor = 0;
+	const worker = async (): Promise<void> => {
+		while (cursor < missing.length) {
+			const id = missing[cursor++]!;
+			try {
+				records.set(id, await port.get(collection, id));
+			} catch (err) {
+				if (err instanceof VegaError && err.kind === 'not-found') notFound.add(id);
+				else errors.push(err);
+			}
+		}
+	};
+	await Promise.all(Array.from({ length: Math.min(concurrency, missing.length) }, worker));
+	return { records, notFound, errors };
 }
 
 // ————— Candidatos —————

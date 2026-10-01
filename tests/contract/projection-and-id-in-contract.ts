@@ -36,12 +36,7 @@ async function createBatch(port: BackendPort, prefix: string, count: number): Pr
 export function describeProjectionAndIdInContract(opts: {
 	name: string;
 	makePort: () => Promise<BackendPort>;
-	/** `true` ⇒ el adaptador tiene los defectos de filtro medidos (barra invertida y `%`): esos
-	 *  casos se declaran con `test.fails` en vez de desaparecer. */
-	knownFilterDefects?: boolean;
 }): void {
-	const knownBackslashDefect = opts.knownFilterDefects ? test.fails : test;
-
 	describe(`lecturas con proyección e «id in» — ${opts.name}`, () => {
 		describe('buildTitlesByIdsQuery (títulos de relaciones)', () => {
 			test('50 ids existentes devuelven los 50: la paginación no recorta el lote', async () => {
@@ -103,11 +98,9 @@ export function describeProjectionAndIdInContract(opts: {
 				expect(page.totalItems).toBe(0);
 			});
 
-			// DEFECTO REAL medido en PocketBase (`pb.filter` solo escapa la comilla, no la barra
-			// invertida): un id terminado en `\` deja la cadena sin cerrar y el servidor responde 400.
-			// `memory` lo resuelve bien. `test.fails` deja la suite verde mientras exista y se pone
-			// ROJO el día que se arregle, para quitar la marca.
-			knownBackslashDefect('id con barra invertida no rompe la consulta', async () => {
+			// La barra invertida en un id no debe romper el filtro (el adaptador de PocketBase la
+			// escapa; `pb.filter` solo escapa la comilla): mismo resultado que `memory`.
+			test('id con barra invertida no rompe la consulta', async () => {
 				const port = await opts.makePort();
 				const page = await port.list(
 					'kitchen_sink',
@@ -116,7 +109,7 @@ export function describeProjectionAndIdInContract(opts: {
 				expect(ids(page.items)).toEqual([KS_ALPHA]);
 			});
 
-			knownBackslashDefect('id con barra invertida y comilla no rompe la consulta', async () => {
+			test('id con barra invertida y comilla no rompe la consulta', async () => {
 				const port = await opts.makePort();
 				const page = await port.list(
 					'kitchen_sink',
@@ -234,26 +227,23 @@ export function describeProjectionAndIdInContract(opts: {
 				expect(page.items.map((r) => r.id)).toEqual(['ks-charlie']);
 			});
 
-			// DEFECTO REAL medido en PocketBase: `contains` con `%` en el valor lo interpreta como
-			// comodín LIKE y deja de envolver el patrón (`%` casa los 5 registros; `~ % test` no casa
-			// el título que lo contiene). `memory` lo trata como texto. Ver `knownBackslashDefect`.
-			const knownLikeDefect = opts.knownFilterDefects ? test.fails : test;
-
-			knownLikeDefect('un término con % casa solo los títulos que lo contienen', async () => {
+			// `%` y `\` del término son literales, no comodines de LIKE (el adaptador de PocketBase
+			// los escapa): mismo resultado que `memory`.
+			test('un término con % casa solo los títulos que lo contienen', async () => {
 				const port = await opts.makePort();
 				const type = await kitchenSinkType(port);
 				const page = await port.list('kitchen_sink', buildGlobalSearchQuery(type, '%'));
 				expect(page.items.map((r) => r.id)).toEqual(['ks-charlie']);
 			});
 
-			knownLikeDefect('un término con % en medio sigue siendo una subcadena literal', async () => {
+			test('un término con % en medio sigue siendo una subcadena literal', async () => {
 				const port = await opts.makePort();
 				const type = await kitchenSinkType(port);
 				const page = await port.list('kitchen_sink', buildGlobalSearchQuery(type, `~ % test`));
 				expect(page.items.map((r) => r.id)).toEqual(['ks-charlie']);
 			});
 
-			knownBackslashDefect('un término con barra invertida no rompe la búsqueda', async () => {
+			test('un término con barra invertida no rompe la búsqueda', async () => {
 				const port = await opts.makePort();
 				const type = await kitchenSinkType(port);
 				const page = await port.list('kitchen_sink', buildGlobalSearchQuery(type, '\\'));

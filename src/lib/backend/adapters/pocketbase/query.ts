@@ -124,8 +124,11 @@ function compileNode(
 				// 'in' vacío no casa nada (§9.8): condición siempre falsa, sin pedirle nada a PB.
 				return `${name} = ${nextParam('__vega_in_empty__')} && ${name} != ${nextParam('__vega_in_empty__')}`;
 			}
-			const op = isMultiField(field) ? '~' : '=';
-			return values.map((v) => `${name} ${op} ${nextParam(v)}`).join(' || ');
+			// Campo MÚLTIPLE: pertenencia por VALOR EXACTO (`:each ?=`, como `contains`), igual que
+			// `memory`. Un `~` casaría por subcadena (`in ['a']` casaría `["ab"]`). Hoy solo llega aquí la
+			// relación múltiple (el select múltiple filtra con `contains`), pero la rama cubre ambos.
+			const lhsOp = isMultiField(field) ? `${name}:each ?=` : `${name} =`;
+			return values.map((v) => `${lhsOp} ${nextParam(v)}`).join(' || ');
 		}
 	}
 }
