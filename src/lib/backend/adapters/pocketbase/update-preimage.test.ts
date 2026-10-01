@@ -127,7 +127,7 @@ describe('guardar con withRevisions sobre el adaptador pocketbase', () => {
 		let title = 'Antes';
 		const { calls } = stubServer(() => title);
 		const port = await decoratedPort();
-		const stale = recordVersion({ id: 'p1', type: 'posts', values: { title: 'Antes' } });
+		const stale = recordVersion({ values: { title: 'Antes' } });
 
 		// El servidor cambió DESPUÉS de que el formulario leyó `stale`: la lectura compartida es la
 		// de este guardado (ve «Otro»), no una copia anterior, así que el conflicto salta.
@@ -138,7 +138,7 @@ describe('guardar con withRevisions sobre el adaptador pocketbase', () => {
 		expect(PATCHES(calls)).toBe(0);
 		expect(RECORD_GETS(calls)).toBe(1);
 
-		const fresh = recordVersion({ id: 'p1', type: 'posts', values: { title: 'Otro' } });
+		const fresh = recordVersion({ values: { title: 'Otro' } });
 		await expect(
 			port.update('posts', 'p1', { title: 'Mío' }, { expectedVersion: fresh })
 		).resolves.toMatchObject({ id: 'p1' });
