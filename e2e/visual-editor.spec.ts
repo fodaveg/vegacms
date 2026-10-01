@@ -76,7 +76,7 @@ async function openVisualEditor(page: Page, site: VisualSite, pageId: string): P
  *  handshake. */
 async function waitConnected(page: Page, blockCount: number): Promise<void> {
 	await expect(page.locator('.vega-visual-status-text')).toHaveText(
-		`Conectado al sitio: ${blockCount} bloque(s) en la página.`
+		`Conectado al sitio: ${blockCount} ${blockCount === 1 ? 'bloque' : 'bloques'} en la página.`
 	);
 }
 
@@ -170,9 +170,9 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		// `paginas.blocks`) el label del campo `heading` sale de `blockTypes.texto.fields`
 		// (`demo-seed.ts`), que lo declara `label: 'Título'` — no del `humanizeLabel('heading')`
 		// genérico que daría «Heading».
-		await expect(visibleInspectorBody(page).getByLabel('Título', { exact: true })).toHaveValue(
-			'Tu contenido, en tu servidor'
-		);
+		await expect(
+			visibleInspectorBody(page).getByRole('textbox', { name: 'Título', exact: true })
+		).toHaveValue('Tu contenido, en tu servidor');
 	});
 
 	test('guardar un texto con refresco en vivo lo refleja SIN recargar el iframe (no parpadea)', async ({
@@ -512,7 +512,7 @@ test.describe('editor visual — publicar y despublicar desde la cabecera', () =
 		const publish = group.getByRole('button', { name: 'Marcar como publicada', exact: true });
 		await publish.click();
 
-		const confirm = page.getByRole('alertdialog', { name: 'Hay 1 bloque(s) sin guardar' });
+		const confirm = page.getByRole('alertdialog', { name: 'Hay 1 bloque sin guardar' });
 		await expect(confirm).toBeVisible();
 		await expect(confirm).toContainText(`«${SECCIONES[0].text}»`);
 		await expect(confirm.getByRole('button', { name: 'Cancelar', exact: true })).toBeFocused();
@@ -524,7 +524,7 @@ test.describe('editor visual — publicar y despublicar desde la cabecera', () =
 
 		await publish.click();
 		await page
-			.getByRole('alertdialog', { name: 'Hay 1 bloque(s) sin guardar' })
+			.getByRole('alertdialog', { name: 'Hay 1 bloque sin guardar' })
 			.getByRole('button', { name: 'Publicar igualmente', exact: true })
 			.click();
 		await expect(group).toContainText('Publicada');

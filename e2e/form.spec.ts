@@ -80,13 +80,15 @@ test.describe('crear (D-P5.11)', () => {
 		await page.goto('/c/posts/new');
 
 		await expect(page.getByRole('heading', { name: 'Nuevo: Entrada' })).toBeVisible();
-		await page.getByLabel('Título', { exact: true }).fill('Entrada nueva de e2e');
+		await page.getByRole('textbox', { name: 'Título', exact: true }).fill('Entrada nueva de e2e');
 		await page.getByRole('button', { name: 'Guardar' }).click();
 
 		// D-P5.11: tras crear, navega a la edición del registro recién creado (no al listado).
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
 		await expect(page.getByRole('heading', { name: 'Editar «Entrada»' })).toBeVisible();
-		await expect(page.getByLabel('Título', { exact: true })).toHaveValue('Entrada nueva de e2e');
+		await expect(page.getByRole('textbox', { name: 'Título', exact: true })).toHaveValue(
+			'Entrada nueva de e2e'
+		);
 
 		// Persistido de verdad (ver nota de cabecera): vuelve al listado (SPA) y entra de nuevo al
 		// MISMO registro por su enlace de título — un viaje redondo `create` → `list` → `get`.
@@ -96,7 +98,9 @@ test.describe('crear (D-P5.11)', () => {
 		await page.waitForURL('**/c/posts');
 		await page.getByRole('link', { name: 'Entrada nueva de e2e' }).click();
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
-		await expect(page.getByLabel('Título', { exact: true })).toHaveValue('Entrada nueva de e2e');
+		await expect(page.getByRole('textbox', { name: 'Título', exact: true })).toHaveValue(
+			'Entrada nueva de e2e'
+		);
 	});
 
 	test('validación cliente (required) bloquea el envío sin navegar ni tocar la red', async ({
@@ -126,7 +130,7 @@ test.describe('crear (D-P5.11)', () => {
 		// respeta ese límite (igual que tecleo/pegado reales), así que ya NO basta para forzar el
 		// caso — se asigna el valor por debajo del DOM y se dispara `input` a mano, simulando un
 		// cliente que sí manda más de 120 caracteres (afordancia del navegador, no enforcement).
-		await page.getByLabel('Título', { exact: true }).evaluate((el, value) => {
+		await page.getByRole('textbox', { name: 'Título', exact: true }).evaluate((el, value) => {
 			const input = el as HTMLInputElement;
 			input.value = value;
 			input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -154,7 +158,7 @@ test.describe('foco al primer error (a11y de cierre, F5-g/L-P5.2)', () => {
 		).toBeVisible();
 		// `title` es el ÚNICO campo required de `posts` (demo-seed): el foco debe caer justo ahí,
 		// un `<input>` normal (no un widget de tipo grupo) — camino directo `getElementById`.
-		await expect(page.getByLabel('Título', { exact: true })).toBeFocused();
+		await expect(page.getByRole('textbox', { name: 'Título', exact: true })).toBeFocused();
 	});
 
 	test('error de BACKEND (maxLength, que el cliente no comprueba): el foco aterriza en el campo que lo devolvió', async ({
@@ -166,7 +170,7 @@ test.describe('foco al primer error (a11y de cierre, F5-g/L-P5.2)', () => {
 		// Mismo truco que el test de validación de backend de más arriba (bypasea el `maxlength`
 		// nativo del navegador): fuerza un `title` de 200 caracteres para que SOLO el backend lo
 		// rechace (L-P5.4), no la validación cliente (D-P5.3).
-		await page.getByLabel('Título', { exact: true }).evaluate((el, value) => {
+		await page.getByRole('textbox', { name: 'Título', exact: true }).evaluate((el, value) => {
 			const input = el as HTMLInputElement;
 			input.value = value;
 			input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -178,7 +182,7 @@ test.describe('foco al primer error (a11y de cierre, F5-g/L-P5.2)', () => {
 		).toBeVisible();
 		// El foco llega TRAS el `await` del envío fallido (backendErrors se asienta después de la
 		// respuesta) — confirma que `RecordForm` espera el `tick()` antes de resolver el elemento.
-		await expect(page.getByLabel('Título', { exact: true })).toBeFocused();
+		await expect(page.getByRole('textbox', { name: 'Título', exact: true })).toBeFocused();
 	});
 });
 
@@ -188,9 +192,13 @@ test.describe('editar', () => {
 		await page.goto('/c/posts/post_1');
 
 		await expect(page.getByRole('heading', { name: 'Editar «Entrada»' })).toBeVisible();
-		await expect(page.getByLabel('Título', { exact: true })).toHaveValue('Bienvenido a Vega');
+		await expect(page.getByRole('textbox', { name: 'Título', exact: true })).toHaveValue(
+			'Bienvenido a Vega'
+		);
 
-		await page.getByLabel('Título', { exact: true }).fill('Bienvenido a Vega (editado)');
+		await page
+			.getByRole('textbox', { name: 'Título', exact: true })
+			.fill('Bienvenido a Vega (editado)');
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await expect(page.getByText('Guardado.')).toBeVisible();
 
@@ -202,7 +210,7 @@ test.describe('editar', () => {
 		await page.waitForURL('**/c/posts');
 		await page.getByRole('link', { name: 'Bienvenido a Vega (editado)' }).click();
 		await page.waitForURL('**/c/posts/post_1');
-		await expect(page.getByLabel('Título', { exact: true })).toHaveValue(
+		await expect(page.getByRole('textbox', { name: 'Título', exact: true })).toHaveValue(
 			'Bienvenido a Vega (editado)'
 		);
 	});
@@ -214,7 +222,9 @@ test.describe('guard de salida (D-P5.5)', () => {
 	}) => {
 		await loginAndSettle(page);
 		await page.goto('/c/posts/post_2');
-		await page.getByLabel('Título', { exact: true }).fill('Borrador en curso (con cambios)');
+		await page
+			.getByRole('textbox', { name: 'Título', exact: true })
+			.fill('Borrador en curso (con cambios)');
 
 		// Cancelar: el diálogo nativo se descarta → la navegación se cancela, el formulario sigue
 		// aquí con el cambio intacto (no se pierde nada).
@@ -223,7 +233,7 @@ test.describe('guard de salida (D-P5.5)', () => {
 		// de `EditTopBar` ES la afordancia (`RecordForm.svelte`, ver su cabecera).
 		await page.getByRole('button', { name: 'Entradas' }).click();
 		await expect(page).toHaveURL(/\/c\/posts\/post_2$/);
-		await expect(page.getByLabel('Título', { exact: true })).toHaveValue(
+		await expect(page.getByRole('textbox', { name: 'Título', exact: true })).toHaveValue(
 			'Borrador en curso (con cambios)'
 		);
 
@@ -255,7 +265,9 @@ test.describe('barra pegajosa del editor (R7 del rediseño C2 «Cabina»)', () =
 		// Sin cambios: ningún indicador "sin guardar".
 		await expect(page.locator('.vega-editor-dirty')).toHaveCount(0);
 
-		await page.getByLabel('Título', { exact: true }).fill('Bienvenido a Vega (editado por ⌘S)');
+		await page
+			.getByRole('textbox', { name: 'Título', exact: true })
+			.fill('Bienvenido a Vega (editado por ⌘S)');
 		await expect(page.locator('.vega-editor-dirty')).toBeVisible();
 
 		// Atajo ⌘S/Ctrl+S (`ControlOrMeta`, cross-platform): dispara el MISMO envío que "Guardar".
@@ -367,7 +379,7 @@ test.describe('widgets escalares dedicados (F5-b)', () => {
 		await page.goto('/c/posts/new');
 
 		// text
-		const title = page.getByLabel('Título', { exact: true });
+		const title = page.getByRole('textbox', { name: 'Título', exact: true });
 		await expect(title).toHaveAttribute('type', 'text');
 		await title.fill('Post con todos los widgets');
 
@@ -416,7 +428,7 @@ test.describe('widgets escalares dedicados (F5-b)', () => {
 
 		// Cada widget pinta el valor que devolvió `ctx.port.create` (mismo criterio que el test de
 		// `count` de más arriba): confirma tipo Y persistencia a la vez.
-		await expect(page.getByLabel('Título', { exact: true })).toHaveValue(
+		await expect(page.getByRole('textbox', { name: 'Título', exact: true })).toHaveValue(
 			'Post con todos los widgets'
 		);
 		await expect(page.getByLabel('Website')).toHaveValue('https://vega.example.dev');
@@ -493,10 +505,12 @@ test.describe('widgets escalares dedicados (F5-b)', () => {
 
 		// El formulario sigue siendo utilizable para el resto de campos (readonly es por-CAMPO, no
 		// por-tipo, a diferencia de `pages`): crear con `name` funciona con normalidad.
-		await page.getByLabel('Name').fill('Autora de prueba');
+		await page.getByRole('textbox', { name: 'Nombre', exact: true }).fill('Autora de prueba');
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await page.waitForURL(/\/c\/authors\/(?!new)[^/]+$/);
-		await expect(page.getByLabel('Name')).toHaveValue('Autora de prueba');
+		await expect(page.getByRole('textbox', { name: 'Nombre', exact: true })).toHaveValue(
+			'Autora de prueba'
+		);
 		await expect(page.getByLabel('Joined at')).toBeDisabled();
 	});
 });
@@ -598,7 +612,9 @@ test.describe('editores de texto largo: richtext TipTap y Markdown asistido (F5-
 	}) => {
 		await loginAndSettle(page);
 		await page.goto('/c/posts/new');
-		await page.getByLabel('Título', { exact: true }).fill('Post con editores enriquecidos');
+		await page
+			.getByRole('textbox', { name: 'Título', exact: true })
+			.fill('Post con editores enriquecidos');
 
 		const contentField = page.locator('[data-field="content"]');
 		const contentEditable = contentField.getByRole('textbox', { name: 'Content' });
@@ -662,7 +678,7 @@ test.describe('widget relation (F5-e)', () => {
 	}) => {
 		await loginAndSettle(page);
 		await page.goto('/c/posts/new');
-		await page.getByLabel('Título', { exact: true }).fill('Post con relatedPost');
+		await page.getByRole('textbox', { name: 'Título', exact: true }).fill('Post con relatedPost');
 
 		const group = page.getByRole('group', { name: 'Related post', exact: true });
 		await group.getByRole('searchbox').fill('Bienvenido');
@@ -699,7 +715,7 @@ test.describe('widget relation (F5-e)', () => {
 	}) => {
 		await loginAndSettle(page);
 		await page.goto('/c/posts/new');
-		await page.getByLabel('Título', { exact: true }).fill('Post con relatedPosts');
+		await page.getByRole('textbox', { name: 'Título', exact: true }).fill('Post con relatedPosts');
 
 		const group = page.getByRole('group', { name: 'Related posts', exact: true });
 		await group.getByRole('searchbox').fill('Entrada');
@@ -748,7 +764,7 @@ test.describe('widget relation (F5-e)', () => {
 	}) => {
 		await loginAndSettle(page);
 		await page.goto('/c/posts/new');
-		await page.getByLabel('Título', { exact: true }).fill('Post con relatedMetric');
+		await page.getByRole('textbox', { name: 'Título', exact: true }).fill('Post con relatedMetric');
 
 		const group = page.getByRole('group', { name: 'Related metric' });
 		await expect(group).toHaveAttribute('data-degraded', 'true');
@@ -779,7 +795,7 @@ test.describe('widget file (F5-f)', () => {
 	}) => {
 		await loginAndSettle(page);
 		await page.goto('/c/posts/new');
-		await page.getByLabel('Título', { exact: true }).fill('Post con coverImage');
+		await page.getByRole('textbox', { name: 'Título', exact: true }).fill('Post con coverImage');
 
 		const field = page.locator('[data-field="coverImage"]');
 		await field.getByLabel('Cover image').setInputFiles({
@@ -820,7 +836,9 @@ test.describe('widget file (F5-f)', () => {
 	}) => {
 		await loginAndSettle(page);
 		await page.goto('/c/posts/new');
-		await page.getByLabel('Título', { exact: true }).fill('Post con rechazo de coverImage');
+		await page
+			.getByRole('textbox', { name: 'Título', exact: true })
+			.fill('Post con rechazo de coverImage');
 
 		const field = page.locator('[data-field="coverImage"]');
 
@@ -850,7 +868,7 @@ test.describe('widget file (F5-f)', () => {
 	}) => {
 		await loginAndSettle(page);
 		await page.goto('/c/posts/new');
-		await page.getByLabel('Título', { exact: true }).fill('Post con attachments');
+		await page.getByRole('textbox', { name: 'Título', exact: true }).fill('Post con attachments');
 
 		const field = page.locator('[data-field="attachments"]');
 		const input = field.getByLabel('Attachments');
@@ -906,7 +924,7 @@ test.describe('widget file (F5-f)', () => {
 		await loginAndSettle(page);
 		await page.goto('/c/posts/new');
 		await page
-			.getByLabel('Título', { exact: true })
+			.getByRole('textbox', { name: 'Título', exact: true })
 			.fill('Post con coverImage a borrar tras persistir');
 
 		await page
@@ -961,7 +979,7 @@ test.describe('widget file (F5-f)', () => {
 		await loginAndSettle(page);
 		await page.goto('/c/posts/new');
 		await page
-			.getByLabel('Título', { exact: true })
+			.getByRole('textbox', { name: 'Título', exact: true })
 			.fill('Post con attachments a borrar tras persistir');
 
 		await page
@@ -1034,7 +1052,9 @@ test.describe('widget file (F5-f)', () => {
 
 		// El resto del formulario sigue editable con normalidad (readonly es por-CAMPO, D-P5.1, a
 		// diferencia de `pages`, que es readonly por-TIPO).
-		await page.getByLabel('Título', { exact: true }).fill('Bienvenido a Vega (título editado)');
+		await page
+			.getByRole('textbox', { name: 'Título', exact: true })
+			.fill('Bienvenido a Vega (título editado)');
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await expect(page.getByText('Guardado.')).toBeVisible();
 		await expect(field.getByLabel('Source file')).toBeDisabled();

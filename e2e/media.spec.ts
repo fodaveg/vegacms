@@ -573,7 +573,9 @@ test.describe('widget file: picker de biblioteca (contrato P6, Fase P6·6e)', ()
 	}) => {
 		await loginWithMediaSeed(page);
 		await page.goto('/c/posts/new');
-		await page.getByLabel('Título', { exact: true }).fill('Post con picker de biblioteca');
+		await page
+			.getByRole('textbox', { name: 'Título', exact: true })
+			.fill('Post con picker de biblioteca');
 
 		const field = page.locator('[data-field="coverImage"]');
 		await field.getByRole('button', { name: 'Elegir de la biblioteca', exact: true }).click();
@@ -638,7 +640,9 @@ test.describe('widget file: picker de biblioteca (contrato P6, Fase P6·6e)', ()
 	}) => {
 		await loginWithMediaSeed(page);
 		await page.goto('/c/posts/new');
-		await page.getByLabel('Título', { exact: true }).fill('Post con selección única');
+		await page
+			.getByRole('textbox', { name: 'Título', exact: true })
+			.fill('Post con selección única');
 
 		const field = page.locator('[data-field="coverImage"]');
 		await field.getByRole('button', { name: 'Elegir de la biblioteca', exact: true }).click();
@@ -662,7 +666,9 @@ test.describe('widget file: picker de biblioteca (contrato P6, Fase P6·6e)', ()
 	test('Cancelar no añade nada: el campo sigue vacío', async ({ page }) => {
 		await loginWithMediaSeed(page);
 		await page.goto('/c/posts/new');
-		await page.getByLabel('Título', { exact: true }).fill('Post con cancelar el picker');
+		await page
+			.getByRole('textbox', { name: 'Título', exact: true })
+			.fill('Post con cancelar el picker');
 
 		const field = page.locator('[data-field="coverImage"]');
 		await field.getByRole('button', { name: 'Elegir de la biblioteca', exact: true }).click();
@@ -681,7 +687,9 @@ test.describe('widget file: picker de biblioteca (contrato P6, Fase P6·6e)', ()
 	}) => {
 		await loginWithMediaSeed(page);
 		await page.goto('/c/posts/new');
-		await page.getByLabel('Título', { exact: true }).fill('Post con picker múltiple');
+		await page
+			.getByRole('textbox', { name: 'Título', exact: true })
+			.fill('Post con picker múltiple');
 
 		const field = page.locator('[data-field="attachments"]');
 		await field.getByRole('button', { name: 'Elegir de la biblioteca', exact: true }).click();
@@ -746,7 +754,9 @@ test.describe('widget file: picker de biblioteca (contrato P6, Fase P6·6e)', ()
 	test('buscador (server-side, alt/title): filtra a los assets que coinciden', async ({ page }) => {
 		await loginWithMediaSeed(page);
 		await page.goto('/c/posts/new');
-		await page.getByLabel('Título', { exact: true }).fill('Post con búsqueda en el picker');
+		await page
+			.getByRole('textbox', { name: 'Título', exact: true })
+			.fill('Post con búsqueda en el picker');
 
 		const field = page.locator('[data-field="attachments"]');
 		await field.getByRole('button', { name: 'Elegir de la biblioteca', exact: true }).click();

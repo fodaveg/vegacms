@@ -259,7 +259,9 @@ test.describe('aviso de relaciones antes de borrar (fix de code-review contra Po
 		// referencia real que el motor de `findReferences` pueda encontrar antes de borrar el
 		// destino.
 		await page.goto('/c/posts/new');
-		await page.getByLabel('Título', { exact: true }).fill('Post enlazado a Bienvenido');
+		await page
+			.getByRole('textbox', { name: 'Título', exact: true })
+			.fill('Post enlazado a Bienvenido');
 		const group = page.getByRole('group', { name: 'Related post', exact: true });
 		await group.getByRole('searchbox').fill('Bienvenido');
 		await group.getByRole('button', { name: 'Bienvenido a Vega', exact: true }).click();
@@ -306,7 +308,7 @@ test.describe('aviso de relaciones antes de borrar (fix de code-review contra Po
 
 		await page.goto('/c/posts/new');
 		await page
-			.getByLabel('Título', { exact: true })
+			.getByRole('textbox', { name: 'Título', exact: true })
 			.fill('Post con el fichero de media_1 en el cuerpo');
 		await page.getByLabel('Body').fill('Ver el manual: seed_media_manual.pdf');
 		await page.getByRole('button', { name: 'Guardar' }).click();

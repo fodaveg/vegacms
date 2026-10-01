@@ -62,7 +62,7 @@ test.describe('not-found (§7.B.14)', () => {
 
 		await page.goto('/c/no-existe');
 
-		const state = page.getByRole('alert').filter({ hasText: 'Colección no encontrada' });
+		const state = page.getByRole('alert').filter({ hasText: 'Contenido no encontrado' });
 		await expect(state).toBeVisible();
 		await expect(state).toHaveAttribute('data-route-state', 'not-found');
 		await expect(page).toHaveURL(/\/c\/no-existe$/);
@@ -87,7 +87,7 @@ test.describe('not-found (§7.B.14)', () => {
 		await page.goto('/c/vega');
 
 		await expect(
-			page.getByRole('alert').filter({ hasText: 'Colección no encontrada' })
+			page.getByRole('alert').filter({ hasText: 'Contenido no encontrado' })
 		).toBeVisible();
 	});
 });
