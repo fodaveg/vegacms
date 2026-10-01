@@ -619,6 +619,7 @@ export const es = {
 	'form.markdown.placeholderAlt': 'descripción',
 	'form.markdown.unsafeUri':
 		'El Markdown contiene HTML o una dirección no permitida. Usa sintaxis Markdown y enlaces http, https, mailto o relativos.',
+	'form.json.invalid': 'El JSON no es válido: corrígelo para poder guardar.',
 
 	// ————— Listado (Fase 4c del contrato P4) —————
 	'list.empty.title': 'Aquí no hay nada todavía',

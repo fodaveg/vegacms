@@ -566,6 +566,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'form.markdown.placeholderAlt': 'description',
 	'form.markdown.unsafeUri':
 		'The Markdown contains HTML or a disallowed address. Use Markdown syntax and http, https, mailto, or relative links.',
+	'form.json.invalid': 'The JSON is not valid: fix it to be able to save.',
 
 	// ————— List (P4 contract, Phase 4c) —————
 	'list.empty.title': "There's nothing here yet",
