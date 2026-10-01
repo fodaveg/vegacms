@@ -985,6 +985,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.upload.aborted':
 		'upload cancelled: an earlier file in the batch failed (connection/permission)',
 	'media.upload.summary': '{uploaded} file(s) uploaded, {failed} failed.',
+	'media.upload.summaryPending':
+		'{uploaded} file(s) uploaded, {failed} failed, {pending} pending because the session expired.',
 
 	// ————— Media: library picker (Phase P6·6e) —————
 	// D-P6.6/L-P6.8: the picker COPIES bytes (a record never references a `vega_media` asset), so

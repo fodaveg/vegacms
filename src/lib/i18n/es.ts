@@ -1047,6 +1047,8 @@ export const es = {
 	'media.upload.aborted':
 		'subida cancelada: un fichero anterior del lote falló por conexión/permiso',
 	'media.upload.summary': '{uploaded} fichero(s) subido(s), {failed} fallido(s).',
+	'media.upload.summaryPending':
+		'{uploaded} fichero(s) subido(s), {failed} fallido(s), {pending} pendiente(s) por la sesión caducada.',
 
 	// ————— Medios: picker de biblioteca (Fase P6·6e) —————
 	// D-P6.6/L-P6.8: el picker COPIA bytes (nunca referencia un `vega_media` desde un registro),
