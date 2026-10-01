@@ -280,6 +280,18 @@
 	import FieldRow from './FieldRow.svelte';
 	import ConflictNotice from './ConflictNotice.svelte';
 	import { threeWayDiff, toComparableValues } from './conflict';
+	import RedirectOffer from './RedirectOffer.svelte';
+	import { applyRedirectOps, loadRelevantRedirects, redirectsAvailability } from './redirect-sync';
+	import { loadLatest } from './latest-load';
+	import { RequestSequencer } from '$lib/list/list-load';
+	import {
+		DEFAULT_REDIRECT_CHOICE,
+		hasRedirectConflict,
+		planRedirect,
+		resolveRedirectOps,
+		type RedirectChoice,
+		type RedirectRef
+	} from '$lib/model/redirect-plan';
 
 	interface Props {
 		type: ResolvedContentType;
@@ -294,7 +306,7 @@
 		 *  ruta lo reenvía tal cual a `update`; `create` no lo usa. */
 		onSubmit: (input: RecordInput, opts?: UpdateOptions) => Promise<VegaRecord>;
 		/** Se llama YA con el baseline reasentado (L-P5.6): seguro navegar/toastear aquí dentro. */
-		onSaved: (record: VegaRecord) => void;
+		onSaved: (record: VegaRecord, note?: string) => void;
 		/** "Volver" (D-P5.12): la ruta decide `toIndex`/`toList` según `type.singleton`. Desde R7
 		 *  del rediseño, el CONTROL que lo dispara es el enlace-atrás de `EditTopBar` (ver cabecera),
 		 *  no un botón "Volver" aparte. */
@@ -680,6 +692,148 @@
 		handleFieldChange(pagePathFieldName, suggestedPagePath);
 	}
 
+	// ————— Redirección al cambiar la ruta de una página PUBLICADA (lote 2 del audit del 30 sep) —————
+	// Solo actúa cuando la PERSONA cambia la ruta de una página ya publicada: no re-deriva nada
+	// (la regla de «Proponer ruta» sigue intacta). El plan es puro (`$lib/model/redirect-plan`), el
+	// banner es `RedirectOffer.svelte` y las escrituras van por `ctx.port` DESPUÉS de guardar la
+	// página. «Publicada» se mira en `baseline` (lo que hay en el servidor), no en lo sin guardar;
+	// un tipo sin `statusField` no tiene borradores, así que cuenta como publicado.
+
+	const redirectsAccess = $derived(redirectsAvailability(ctx.model));
+
+	const redirectOldPath = $derived.by(() => {
+		const raw =
+			model.mode === 'edit' && pagePathFieldName !== null ? baseline[pagePathFieldName] : '';
+		return typeof raw === 'string' ? raw : '';
+	});
+	const redirectNewPath = $derived.by(() => {
+		const raw = pagePathFieldName !== null ? current[pagePathFieldName] : '';
+		return typeof raw === 'string' ? raw : '';
+	});
+	const redirectPublished = $derived(
+		type.statusField === null ? true : baseline[type.statusField] === 'published'
+	);
+
+	/** Clave de la pareja ruta vieja/nueva SI vale la pena mirar el servidor; `null` si no. */
+	const redirectKey = $derived.by(() => {
+		if (!type.page || locked) return null;
+		const candidate = planRedirect({
+			oldPath: redirectOldPath,
+			newPath: redirectNewPath,
+			published: redirectPublished,
+			...redirectsAccess,
+			existing: []
+		});
+		return candidate ? `${candidate.from}\u0000${candidate.to}` : null;
+	});
+
+	let redirectLoaded = $state<{ key: string; existing: RedirectRef[] } | null>(null);
+	let redirectChoice = $state<RedirectChoice>({ ...DEFAULT_REDIRECT_CHOICE });
+	/** La segunda escritura falló tras guardar la página: el banner lo dice y reintenta. */
+	let redirectFailure = $state<{ job: RedirectJob; message: string } | null>(null);
+	let redirectRetrying = $state(false);
+	const redirectSequencer = new RequestSequencer();
+
+	/** Lo que se decidió ver al pulsar «Guardar»: se recalcula contra el servidor tras guardar. */
+	interface RedirectJob {
+		from: string;
+		to: string;
+		choice: RedirectChoice;
+	}
+
+	// Lee las redirecciones relevantes (con un respiro mientras se escribe la ruta). La respuesta
+	// de una pareja que ya no es la vigente se descarta; si falla la lectura no se ofrece nada.
+	$effect(() => {
+		const key = redirectKey;
+		if (key === null) {
+			redirectLoaded = null;
+			return;
+		}
+		const [from, to] = key.split('\u0000');
+		const timer = setTimeout(() => {
+			void loadLatest(redirectSequencer, () => loadRelevantRedirects(ctx.port, from, to)).then(
+				(result) => {
+					if (!result.stale && result.ok) redirectLoaded = { key, existing: result.value };
+				}
+			);
+		}, 250);
+		return () => clearTimeout(timer);
+	});
+
+	/** El plan que se enseña: solo con las redirecciones de ESTA pareja de rutas ya leídas. */
+	const redirectPlan = $derived(
+		redirectKey !== null && redirectLoaded?.key === redirectKey
+			? planRedirect({
+					oldPath: redirectOldPath,
+					newPath: redirectNewPath,
+					published: redirectPublished,
+					...redirectsAccess,
+					existing: redirectLoaded.existing
+				})
+			: null
+	);
+
+	/** Captura lo visto al guardar (`null` si no se enseñó nada: nunca se actúa a ciegas). */
+	function captureRedirectJob(): RedirectJob | null {
+		return redirectPlan
+			? { from: redirectPlan.from, to: redirectPlan.to, choice: { ...redirectChoice } }
+			: null;
+	}
+
+	/**
+	 * Ejecuta el plan DESPUÉS de guardar la página, sobre el estado real del servidor (no la foto de
+	 * la pantalla). Nunca rechaza: un fallo deja `redirectFailure` (la página ya está guardada) y
+	 * devuelve `null`. Devuelve la frase para el toast de «Guardado.» si hubo escritura visible.
+	 */
+	async function syncRedirects(job: RedirectJob): Promise<string | null> {
+		redirectFailure = null;
+		try {
+			const existing = await loadRelevantRedirects(ctx.port, job.from, job.to);
+			const plan = planRedirect({
+				oldPath: job.from,
+				newPath: job.to,
+				published: true,
+				...redirectsAccess,
+				existing
+			});
+			if (!plan) return null;
+			// Un conflicto que no estaba en pantalla no se resuelve por el usuario: solo se reapunta
+			// si había aceptado la oferta.
+			const choice: RedirectChoice = {
+				...job.choice,
+				conflict: job.choice.createOffered ? job.choice.conflict : 'keep'
+			};
+			const ops = resolveRedirectOps(plan, choice);
+			await applyRedirectOps(ctx.port, ops);
+			redirectChoice = { ...DEFAULT_REDIRECT_CHOICE };
+			if (ops.create) {
+				return ctx.t('editor.redirect.created', { from: plan.from, to: plan.to });
+			}
+			if (hasRedirectConflict(plan) && choice.conflict === 'repoint') {
+				return ctx.t('editor.redirect.repointed', { from: plan.from, to: plan.to });
+			}
+			return null;
+		} catch (err) {
+			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al guardar', err);
+			redirectFailure = { job, message: vegaErr.message };
+			return null;
+		}
+	}
+
+	async function retryRedirects(): Promise<void> {
+		const failure = redirectFailure;
+		if (!failure || redirectRetrying) return;
+		redirectRetrying = true;
+		try {
+			const note = await syncRedirects(failure.job);
+			if (redirectFailure === null && note !== null) {
+				ctx.feedback.toast(note, { kind: 'success' });
+			}
+		} finally {
+			redirectRetrying = false;
+		}
+	}
+
 	/** Plantillas disponibles (`ContentModel.layouts`, §3 del encargo) para el `<select>` de
 	 *  `type.page.layoutField`: `undefined` si la colección no declara `layoutField` — "si la
 	 *  colección no lo declara, no aparece nada" (encargo §3), así `FieldRow` sigue pintando su
@@ -883,7 +1037,7 @@
 	}
 
 	/** Desenlace de un guardado que SÍ se hizo (normal o «Guardar igualmente»). */
-	function commitSaved(saved: VegaRecord): void {
+	function commitSaved(saved: VegaRecord, note?: string): void {
 		// L-P5.6/D-P5.11: reasentar baseline (→ no-dirty) ANTES de avisar al padre — si no, el
 		// guard de salida de abajo se dispararía sobre el propio guardado que acaba de navegar.
 		adoptRecord(saved);
@@ -891,7 +1045,7 @@
 		// el tipo declara `updated` (ver cabecera) — acabamos de guardar, así que la sabemos.
 		savedAt = new Date();
 		savedCount += 1; // el raíl relee la colección: su fila puede haber cambiado de título
-		onSaved(saved);
+		onSaved(saved, note);
 	}
 
 	// ————— Aviso de edición concurrente (ver cabecera, "Edición concurrente") —————
@@ -921,7 +1075,9 @@
 		let errorsToFocus: FieldErrorsView | null = null;
 		try {
 			const input = toRecordInput(type, baseline, current);
-			commitSaved(await onSubmit(input, { expectedVersion: conflict.serverVersion }));
+			const job = captureRedirectJob();
+			const saved = await onSubmit(input, { expectedVersion: conflict.serverVersion });
+			commitSaved(saved, job ? ((await syncRedirects(job)) ?? undefined) : undefined);
 		} catch (err) {
 			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al guardar', err);
 			if (isConflictError(vegaErr)) {
@@ -982,6 +1138,7 @@
 		let errorsToFocus: FieldErrorsView | null = null;
 		try {
 			const input = toRecordInput(type, baseline, current, model.mode);
+			const job = captureRedirectJob();
 			// Edición: con la versión que este formulario tiene delante (ver "Edición concurrente").
 			// Pulsar «Guardar» con el aviso abierto vuelve a comprobar contra la MISMA versión: si
 			// el servidor sigue distinto, el aviso se renueva con la hora nueva.
@@ -989,7 +1146,7 @@
 				model.mode === 'edit' && version !== null
 					? await onSubmit(input, { expectedVersion: version })
 					: await onSubmit(input);
-			commitSaved(saved);
+			commitSaved(saved, job ? ((await syncRedirects(job)) ?? undefined) : undefined);
 		} catch (err) {
 			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al guardar', err);
 			if (isConflictError(vegaErr)) {
@@ -1282,6 +1439,20 @@
 					fallbackAt={autodateInstant(type, conflict.serverRecord.values, 'updated')}
 					onDiscard={discardAndReload}
 					onForce={forceSave}
+				/>
+			{/if}
+			{#if redirectFailure || redirectPlan}
+				<!-- Redirección al cambiar la ruta de una página publicada (ver «Redirección al
+				     cambiar la ruta» arriba): mismo hueco que el aviso de edición concurrente. -->
+				<RedirectOffer
+					plan={redirectPlan}
+					bind:choice={redirectChoice}
+					failure={redirectFailure
+						? { from: redirectFailure.job.from, message: redirectFailure.message }
+						: null}
+					retrying={redirectRetrying}
+					disabled={saving}
+					onRetry={retryRedirects}
 				/>
 			{/if}
 			{#if errors.record}

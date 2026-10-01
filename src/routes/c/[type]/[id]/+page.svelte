@@ -155,7 +155,11 @@
 				typeReadonly={activeType.readonly}
 				onSubmit={(input, opts) =>
 					ctx.port.update(activeType.name, readyModel.recordId ?? idParam, input, opts)}
-				onSaved={() => ctx.feedback.toast(ctx.t('editor.saveSuccess'), { kind: 'success' })}
+				onSaved={(_, note) =>
+					ctx.feedback.toast(
+						note ? `${ctx.t('editor.saveSuccess')} ${note}` : ctx.t('editor.saveSuccess'),
+						{ kind: 'success' }
+					)}
 				onCancel={() =>
 					activeType.singleton ? ctx.nav.toIndex() : ctx.nav.toList(activeType.name)}
 				onDuplicate={canDuplicatePage(activeType, ctx.model.types)
