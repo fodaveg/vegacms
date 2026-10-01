@@ -29,6 +29,11 @@
  * reciba las etiquetas y ayudas de los campos que una versión nueva del sembrado añade. Un
  * manifiesto que no case byte a byte (en forma canónica) con ninguno sigue abortando: es trabajo
  * humano y no se reconcilia.
+ *
+ * Tercera excepción, también acotada: el `pattern` de `redirects.from`/`to`. En una `redirects` ya
+ * sembrada sin él, se pone SOLO si el campo no tiene ninguno (`addCollectionFieldPatterns`: el
+ * campo se modifica conservando su `id`, nunca se borra y recrea). El patrón no cuenta en la
+ * comparación de formas, así que un proyecto sin él no diverge, y uno con patrón propio lo conserva.
  */
 
 import starterManifestDocument from './site-seeding-manifest.json';
@@ -86,6 +91,20 @@ const VEGA_EDITORS_COLLECTION: CollectionSpec = {
 	fields: [{ name: 'created', type: 'autodate' }]
 };
 
+/**
+ * Fechas de alta y de última edición, en `pages`, `blocks` y `redirects`. Una colección creada por
+ * API NO las trae (como `vega_editors.created`), y sin `updated` la comprobación de «cambios sin
+ * publicar» (`unpublished-changes.ts`, que solo mira un autodate llamado `updated`) no detecta
+ * nunca nada en un sitio sembrado. `updated` lleva `onUpdate`: es lo que lo hace «última edición».
+ * En un proyecto ya sembrado se añaden como cualquier campo ausente; los registros anteriores
+ * quedan con `""` (PocketBase no rellena un autodate nuevo hacia atrás) y cuentan como «sin
+ * fecha» hasta que se editen.
+ */
+const AUTODATE_FIELDS: CollectionFieldSpec[] = [
+	{ name: 'created', type: 'autodate' },
+	{ name: 'updated', type: 'autodate', onUpdate: true }
+];
+
 const PAGES_COLLECTION: CollectionSpec = {
 	name: 'pages',
 	listRule: SITE_SEED_PAGES_READ_RULE,
@@ -119,9 +138,29 @@ const PAGES_COLLECTION: CollectionSpec = {
 			multiple: false,
 			cascadeDelete: false
 		},
-		{ name: 'noindex', type: 'bool' }
+		{ name: 'noindex', type: 'bool' },
+		...AUTODATE_FIELDS
 	]
 };
+
+/**
+ * Patrones de `redirects.from` y `redirects.to`. PocketBase los aplica con `regexp.MatchString`
+ * (RE2), SIN anclar: por eso llevan su propio `^`.
+ *
+ * - `from`: una ruta del sitio, empieza por `/`.
+ * - `to`: una ruta del propio sitio o una URL absoluta `http(s)://`. Rechaza `javascript:`, `data:`,
+ *   `//evil.com` y `/\evil.com` (los navegadores leen `/\` como `//`: redirección a otro host sin
+ *   que parezca una URL absoluta). Tampoco admite un espacio o carácter de control justo tras la
+ *   barra: los navegadores borran tabuladores y saltos de línea de una URL, así que `/<tab>/evil.com`
+ *   se convertiría en `//evil.com`.
+ * - `to: "/"` (la raíz sola) SÍ vale: es un destino legítimo (retirar una sección y mandarla a
+ *   Inicio) y el sembrado ya lo usa en sus tests; por eso la primera alternativa es `/$`.
+ *
+ * Solo restringen la escritura: un registro antiguo que no los cumpla se queda como está hasta que
+ * se edite.
+ */
+export const SITE_SEED_REDIRECT_FROM_PATTERN = '^/';
+export const SITE_SEED_REDIRECT_TO_PATTERN = String.raw`^(/$|/[^/\\\x00-\x20]|https?://)`;
 
 /**
  * Redirecciones del sitio publicado. `from` es la ruta vieja y es única, como `pages.path`: dos
@@ -136,15 +175,29 @@ const REDIRECTS_COLLECTION: CollectionSpec = {
 	updateRule: SITE_SEED_EDITOR_ACCESS_RULE,
 	deleteRule: SITE_SEED_EDITOR_ACCESS_RULE,
 	fields: [
-		{ name: 'from', type: 'text', required: true, max: 200, unique: true },
-		{ name: 'to', type: 'text', required: true, max: 2000 },
+		{
+			name: 'from',
+			type: 'text',
+			required: true,
+			max: 200,
+			unique: true,
+			pattern: SITE_SEED_REDIRECT_FROM_PATTERN
+		},
+		{
+			name: 'to',
+			type: 'text',
+			required: true,
+			max: 2000,
+			pattern: SITE_SEED_REDIRECT_TO_PATTERN
+		},
 		{
 			name: 'code',
 			type: 'select',
 			options: ['301', '308'],
 			multiple: false,
 			required: true
-		}
+		},
+		...AUTODATE_FIELDS
 	]
 };
 
@@ -174,7 +227,8 @@ const BLOCKS_COLLECTION: CollectionSpec = {
 		{ name: STARTER_BLOCKS.orderField, type: 'number' },
 		{ name: STARTER_BLOCKS.typeField!, type: 'text', required: true, max: 64 },
 		{ name: STARTER_BLOCKS.dataField!, type: 'json' },
-		...deriveBlockRecordFields(STARTER_BLOCK_TYPES, STARTER_BLOCKS)
+		...deriveBlockRecordFields(STARTER_BLOCK_TYPES, STARTER_BLOCKS),
+		...AUTODATE_FIELDS
 	]
 };
 
@@ -217,6 +271,9 @@ export interface SiteSeedResult {
 	createdRecords: Array<'manifest' | 'page:/'>;
 	/** Registros sustituidos por su versión actual: hoy solo un manifiesto inicial sin editar. */
 	upgradedRecords: Array<'manifest'>;
+	/** Solo si hubo alguno: campos de una colección YA existente que no tenían `pattern` y lo
+	 *  recibieron (`redirects.from`/`to`). Un campo con patrón propio no aparece aquí: no se toca. */
+	constrainedFields?: Record<string, string[]>;
 	/** Solo con `SiteSeedOptions.passwordResetUrl`: qué pasó con el enlace de los correos de
 	 *  invitación de `vega_editors` (ver `AdministrationPort.ensureInvitationLink`). */
 	invitationLink?: InvitationLinkState;
@@ -288,7 +345,11 @@ export async function seedSiteProject(
 
 	await applyCollectionPlan(port, plan.collections.get('pages')!, result);
 	await applyCollectionPlan(port, plan.collections.get('blocks')!, result);
-	await applyCollectionPlan(port, plan.collections.get('redirects')!, result);
+	const redirectsPlan = plan.collections.get('redirects')!;
+	await applyCollectionPlan(port, redirectsPlan, result);
+	// Una `redirects` ya existente conserva sus campos tal cual; solo se le pone el patrón a los que
+	// no tienen ninguno (ver `addCollectionFieldPatterns`). La recién creada ya lo trae.
+	if (!redirectsPlan.missing) await constrainFieldPatterns(port, redirectsPlan.spec, result);
 	await applyCollectionPlan(port, plan.collections.get('vega')!, result);
 
 	if (plan.manifest === 'create') {
@@ -522,6 +583,27 @@ async function addMissingFields(
 	if (plan.missing || plan.missingFields.length === 0) return;
 	const added = await port.addCollectionFields(plan.spec.name, plan.missingFields);
 	if (added.added.length > 0) result.addedFields[plan.spec.name] = added.added;
+}
+
+/**
+ * Pone a los campos `text` del spec con `pattern` que aún no tengan ninguno el patrón del spec. El
+ * patrón no entra en la comparación de formas (un proyecto sin él no diverge) y un patrón ya
+ * presente, sea de quien sea, no se pisa.
+ */
+async function constrainFieldPatterns(
+	port: BackendPort,
+	spec: CollectionSpec,
+	result: SiteSeedResult
+): Promise<void> {
+	const patterns: Record<string, string> = {};
+	for (const field of spec.fields) {
+		if (field.type === 'text' && field.pattern) patterns[field.name] = field.pattern;
+	}
+	if (Object.keys(patterns).length === 0) return;
+	const constrained = await port.addCollectionFieldPatterns?.(spec.name, patterns);
+	if (constrained && constrained.applied.length > 0) {
+		result.constrainedFields = { ...result.constrainedFields, [spec.name]: constrained.applied };
+	}
 }
 
 interface ComparableFieldShape {

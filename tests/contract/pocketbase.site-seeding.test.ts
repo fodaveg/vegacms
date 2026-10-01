@@ -11,6 +11,8 @@ import {
 	SITE_SEED_EDITOR_ACCESS_RULE,
 	SITE_SEED_MANIFEST_READ_RULE,
 	SITE_SEED_PAGES_READ_RULE,
+	SITE_SEED_REDIRECT_FROM_PATTERN,
+	SITE_SEED_REDIRECT_TO_PATTERN,
 	SITE_SEED_REDIRECTS_READ_RULE,
 	SiteSeedDivergenceError,
 	seedSiteProject
@@ -748,7 +750,8 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 			addedFields: {
 				vega_editors: ['created'],
 				vega_media: ['focal'],
-				pages: ['publishAt', 'description', 'socialImage', 'noindex']
+				pages: ['publishAt', 'description', 'socialImage', 'noindex', 'created', 'updated'],
+				blocks: ['created', 'updated']
 			},
 			createdRecords: [],
 			upgradedRecords: ['manifest']
@@ -831,8 +834,11 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 			addedFields: {
 				vega_editors: ['created'],
 				vega_media: ['focal'],
-				pages: ['publishAt']
+				pages: ['publishAt', 'created', 'updated'],
+				blocks: ['created', 'updated'],
+				redirects: ['created', 'updated']
 			},
+			constrainedFields: { redirects: ['from', 'to'] },
 			createdRecords: [],
 			upgradedRecords: ['manifest']
 		});
@@ -873,6 +879,160 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 			upgradedRecords: []
 		});
 		expect(await logicalSnapshot(admin)).toEqual(before);
+	});
+
+	test('sembrado nuevo: pages, blocks y redirects traen created y updated (autodate), y updated se mueve al editar', async () => {
+		await seedSiteProject(port);
+
+		for (const name of ['pages', 'blocks', 'redirects']) {
+			const fields = (await admin.collections.getOne(name)).fields;
+			expect(
+				fields.find((field) => field.name === 'created'),
+				`${name}.created`
+			).toMatchObject({
+				type: 'autodate',
+				onCreate: true,
+				onUpdate: false
+			});
+			expect(
+				fields.find((field) => field.name === 'updated'),
+				`${name}.updated`
+			).toMatchObject({
+				type: 'autodate',
+				onCreate: true,
+				onUpdate: true
+			});
+		}
+
+		const redirect = await admin
+			.collection('redirects')
+			.create({ from: '/viejo', to: '/nuevo', code: '301' });
+		expect(redirect.created).not.toBe('');
+		expect(redirect.updated).toBe(redirect.created);
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		const edited = await admin.collection('redirects').update(redirect.id, { to: '/otro' });
+		expect(edited.created).toBe(redirect.created);
+		expect(edited.updated > redirect.updated).toBe(true);
+	});
+
+	test('un proyecto sembrado SIN created/updated los recibe al actualizar, sin tocar campos ni registros', async () => {
+		await seedLikePrevious0ace139(port);
+		for (const name of ['pages', 'blocks', 'redirects']) {
+			const names = (await admin.collections.getOne(name)).fields.map((field) => field.name);
+			expect(names, name).not.toContain('updated');
+		}
+		const human = await admin.collection('pages').create({
+			title: 'Quiénes somos',
+			path: '/about',
+			status: 'published'
+		});
+		const redirect = await admin
+			.collection('redirects')
+			.create({ from: '/viejo', to: '/about', code: '301' });
+		const before = Object.fromEntries(
+			await Promise.all(
+				['pages', 'blocks', 'redirects'].map(
+					async (name) => [name, (await admin.collections.getOne(name)).fields] as const
+				)
+			)
+		);
+
+		const result = await seedSiteProject(port);
+
+		expect(result.addedFields).toMatchObject({
+			pages: expect.arrayContaining(['created', 'updated']),
+			blocks: ['created', 'updated'],
+			redirects: ['created', 'updated']
+		});
+		for (const name of ['pages', 'blocks', 'redirects'] as const) {
+			const after = (await admin.collections.getOne(name)).fields;
+			// Los campos que ya estaban conservan forma e id (no se borra ni se recrea nada).
+			// (salvo `pattern`, que la tarea de redirecciones sí pone: ver su test).
+			for (const field of before[name]) {
+				const kept = after.find((candidate) => candidate.id === field.id);
+				expect({ ...kept, pattern: field.pattern }, `${name}.${field.name}`).toEqual(field);
+			}
+			expect(
+				after.find((field) => field.name === 'updated'),
+				`${name}.updated`
+			).toMatchObject({
+				type: 'autodate',
+				onUpdate: true
+			});
+		}
+		// Los registros de antes siguen ahí, con sus datos; PocketBase no rellena el autodate nuevo
+		// hacia atrás (`""`), y la primera edición ya lo pone.
+		const kept = await admin.collection('pages').getOne(human.id);
+		expect(kept).toMatchObject({
+			title: 'Quiénes somos',
+			path: '/about',
+			created: '',
+			updated: ''
+		});
+		const edited = await admin.collection('pages').update(human.id, { title: 'Quiénes somos hoy' });
+		expect(edited.updated).not.toBe('');
+		await expect(admin.collection('redirects').getOne(redirect.id)).resolves.toMatchObject({
+			from: '/viejo',
+			to: '/about'
+		});
+
+		// La pasada siguiente ya no tiene nada que añadir.
+		expect((await seedSiteProject(port)).addedFields).toEqual({});
+	});
+
+	test('sembrado nuevo: redirects.from/to llevan pattern y PocketBase rechaza javascript:, //evil.com y /\\evil.com', async () => {
+		await seedSiteProject(port);
+
+		const fields = (await admin.collections.getOne('redirects')).fields;
+		expect(fields.find((field) => field.name === 'from')).toMatchObject({
+			pattern: SITE_SEED_REDIRECT_FROM_PATTERN
+		});
+		expect(fields.find((field) => field.name === 'to')).toMatchObject({
+			pattern: SITE_SEED_REDIRECT_TO_PATTERN
+		});
+		await expectRedirectPatternBehaviour(admin);
+	});
+
+	test('un proyecto sembrado SIN patrones los recibe al actualizar: mismo id de campo, registros intactos, patrón propio respetado', async () => {
+		await seedLikePrevious0ace139(port);
+		const before = (await admin.collections.getOne('redirects')).fields;
+		expect(before.find((field) => field.name === 'to')?.pattern ?? '').toBe('');
+		// Un registro antiguo que NO cumple el patrón nuevo: debe sobrevivir al sembrado.
+		const legacy = await admin
+			.collection('redirects')
+			.create({ from: '/viejo', to: 'sin-barra', code: '301' });
+
+		const result = await seedSiteProject(port);
+
+		expect(result.constrainedFields).toEqual({ redirects: ['from', 'to'] });
+		const after = (await admin.collections.getOne('redirects')).fields;
+		for (const name of ['from', 'to']) {
+			const old = before.find((field) => field.name === name)!;
+			const now = after.find((field) => field.name === name)!;
+			expect(now.id, `${name}: mismo id (no se borra y recrea)`).toBe(old.id);
+			expect({ ...now, pattern: old.pattern }, name).toEqual(old);
+		}
+		expect(after.find((field) => field.name === 'to')?.pattern).toBe(SITE_SEED_REDIRECT_TO_PATTERN);
+		expect(
+			hasSingleFieldUniqueIndex((await admin.collections.getOne('redirects')).indexes, 'from')
+		).toBe(true);
+		await expect(admin.collection('redirects').getOne(legacy.id)).resolves.toMatchObject({
+			from: '/viejo',
+			to: 'sin-barra'
+		});
+		await expectRedirectPatternBehaviour(admin);
+		expect((await seedSiteProject(port)).constrainedFields).toBeUndefined();
+	});
+
+	test('un pattern propio en redirects.to no lo pisa el sembrado', async () => {
+		await seedLikePrevious0ace139(port);
+		await port.addCollectionFieldPatterns!('redirects', { to: '^/solo-mio' });
+
+		const result = await seedSiteProject(port);
+
+		expect(result.constrainedFields).toEqual({ redirects: ['from'] });
+		const fields = (await admin.collections.getOne('redirects')).fields;
+		expect(fields.find((field) => field.name === 'to')?.pattern).toBe('^/solo-mio');
 	});
 
 	test('SEO y redirecciones: anónimo lee lo publicado y solo una editora escribe', async () => {
@@ -1018,6 +1178,33 @@ function expectSeoFields(pages: SiteSeedingCollectionModel, mediaCollectionId: s
 }
 
 /** «Publicar el»: un `date` real (no `autodate`) y opcional, que es lo que exige `vegaschedule`. */
+/**
+ * El contrato del patrón contra el RE2 de PocketBase (no solo contra el `RegExp` de JS): destinos
+ * legítimos entran (incluida la raíz sola) y los que redirigen a otro host o ejecutan script, no.
+ * Usa la API del superuser: los patrones de campo se aplican también a él.
+ */
+async function expectRedirectPatternBehaviour(admin: SiteSeedingAdmin) {
+	const valid = ['/', '/a', '/a/b', '/a?x=1', 'https://x.y/z', 'http://x.y'];
+	for (const [index, to] of valid.entries()) {
+		const created = await admin.collection('redirects').create({
+			from: `/ok-${index}`,
+			to,
+			code: '301'
+		});
+		expect(created.to, to).toBe(to);
+	}
+	const invalid = ['javascript:alert(1)', '//evil.com', '/\\evil.com', '/\t/evil.com', 'evil.com'];
+	for (const [index, to] of invalid.entries()) {
+		await expect(
+			admin.collection('redirects').create({ from: `/ko-${index}`, to, code: '301' }),
+			JSON.stringify(to)
+		).rejects.toMatchObject({ status: 400 });
+	}
+	await expect(
+		admin.collection('redirects').create({ from: 'sin-barra', to: '/a', code: '301' })
+	).rejects.toMatchObject({ status: 400 });
+}
+
 function expectPublishAtField(pages: SiteSeedingCollectionModel) {
 	const field = pages.fields.find((candidate) => candidate.name === 'publishAt');
 	expect(field).toMatchObject({ type: 'date', required: false });

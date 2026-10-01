@@ -10,6 +10,7 @@ import type {
 	AddFieldsResult,
 	CollectionFieldSpec,
 	CollectionSpec,
+	ConstrainPatternsResult,
 	EnsureResult
 } from '../../collections';
 import {
@@ -163,6 +164,46 @@ export async function addFieldsOnPocketBase(
 	}
 
 	return { added, skipped };
+}
+
+/**
+ * `addCollectionFieldPatterns` sobre PocketBase real: pone `pattern` a los campos `text` que no
+ * tienen ninguno. Mismo read-modify-write que `addFieldsOnPocketBase` y por la misma razón: PB
+ * trata `fields` como el array COMPLETO, así que se reenvían los campos de la lectura fresca tal
+ * cual (con su `id`: el campo se MODIFICA, nunca se borra y recrea, que perdería la columna) y solo
+ * cambia la propiedad `pattern` de los elegidos. Un campo con patrón, ausente o no `text` se omite.
+ */
+export async function addFieldPatternsOnPocketBase(
+	pb: PocketBase,
+	collectionName: string,
+	patterns: Record<string, string>
+): Promise<ConstrainPatternsResult> {
+	const collection = await pb.collections.getOne(collectionName);
+	const applied: string[] = [];
+	const skipped: string[] = [];
+	for (const [name, pattern] of Object.entries(patterns)) {
+		const field = collection.fields.find((f) => f.name === name);
+		if (field && field.type === 'text' && !field.pattern && pattern) applied.push(name);
+		else skipped.push(name);
+	}
+	if (applied.length === 0) return { applied, skipped };
+
+	// Relectura justo antes de escribir: misma razón que en `addFieldsOnPocketBase`.
+	const fresh = await pb.collections.getOne(collectionName);
+	if (!sameFieldIdentity(collection.fields, fresh.fields)) {
+		throw VegaError.backend(
+			`El esquema de "${collectionName}" cambió mientras se preparaban los patrones. ` +
+				'Vuelve a intentarlo sobre el esquema ya actualizado.'
+		);
+	}
+	await pb.collections.update(collectionName, {
+		fields: fresh.fields.map((field) =>
+			applied.includes(field.name) && !field.pattern
+				? { ...field, pattern: patterns[field.name] }
+				: field
+		)
+	});
+	return { applied, skipped };
 }
 
 /**

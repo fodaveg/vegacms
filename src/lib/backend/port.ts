@@ -33,6 +33,7 @@ import type {
 	AddFieldsResult,
 	CollectionFieldSpec,
 	CollectionSpec,
+	ConstrainPatternsResult,
 	EnsureResult
 } from './collections';
 import type { RecordVersion } from './version';
@@ -296,4 +297,20 @@ export interface BackendPort {
 		collectionName: string,
 		fields: CollectionFieldSpec[]
 	): Promise<AddFieldsResult>;
+
+	/**
+	 * Pone `pattern` (nombre de campo -> expresión) a los campos `text` de `collectionName` que NO
+	 * tienen ninguno. Es la única forma de que un proyecto ya sembrado reciba una validación nueva
+	 * sin que el sembrado pise lo que el usuario tocó: un campo con patrón (propio o ajeno), ausente
+	 * o que no sea `text` se omite tal cual (`skipped`). Conserva el `id` y el resto de propiedades
+	 * de cada campo (nunca borra ni recrea: sería perder la columna). No revalida los registros
+	 * existentes: PocketBase comprueba el patrón al escribir, así que un registro antiguo que no lo
+	 * cumpla solo falla cuando se edite. Mismos errores y capability que `addCollectionFields`.
+	 * OPCIONAL (como `scheduledPublishing`): `memory` y `pocketbase` la implementan; un puerto que
+	 * no la tenga (un doble de test, un envoltorio) simplemente no recibe patrones en el sembrado.
+	 */
+	addCollectionFieldPatterns?(
+		collectionName: string,
+		patterns: Record<string, string>
+	): Promise<ConstrainPatternsResult>;
 }

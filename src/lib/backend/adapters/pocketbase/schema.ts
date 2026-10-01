@@ -262,7 +262,9 @@ export function collectionFieldSpecToPbField(
 				name: spec.name,
 				type: 'text',
 				required: spec.required ?? false,
-				max: spec.max ?? 0
+				max: spec.max ?? 0,
+				// Omitido (no `''`) para que el payload de un campo sin patrón no cambie.
+				...(spec.pattern ? { pattern: spec.pattern } : {})
 			};
 		case 'select':
 			return {

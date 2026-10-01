@@ -710,14 +710,28 @@ Desde el 24 sep 2026 el sembrado añade a `pages` tres columnas reales para SEO,
 colección `redirects`. Son columnas y no `data` porque el sitio las consulta o las enlaza: el
 sitemap filtra por `noindex` y la imagen es una relación.
 
-| Colección   | Campo         | Tipo PocketBase                                        |
-| ----------- | ------------- | ------------------------------------------------------ |
-| `pages`     | `description` | text, opcional, máx. 300                               |
-| `pages`     | `socialImage` | relación simple → `vega_media`, sin borrado en cascada |
-| `pages`     | `noindex`     | bool                                                   |
-| `redirects` | `from`        | text, obligatorio, único (ruta vieja, empieza por `/`) |
-| `redirects` | `to`          | text, obligatorio (ruta del sitio o URL `http(s)://`)  |
-| `redirects` | `code`        | select obligatorio: `301` o `308`                      |
+| Colección                      | Campo                | Tipo PocketBase                                        |
+| ------------------------------ | -------------------- | ------------------------------------------------------ |
+| `pages`                        | `description`        | text, opcional, máx. 300                               |
+| `pages`                        | `socialImage`        | relación simple → `vega_media`, sin borrado en cascada |
+| `pages`                        | `noindex`            | bool                                                   |
+| `redirects`                    | `from`               | text, obligatorio, único (ruta vieja, empieza por `/`) |
+| `redirects`                    | `to`                 | text, obligatorio (ruta del sitio o URL `http(s)://`)  |
+| `redirects`                    | `code`               | select obligatorio: `301` o `308`                      |
+| `pages`, `blocks`, `redirects` | `created`, `updated` | autodate (`updated` también al editar)                 |
+
+`created` y `updated` existen porque una colección creada por API no los trae, y «Cambios sin
+publicar» solo detecta ediciones a través de un autodate llamado `updated`. Un proyecto ya sembrado
+los recibe al actualizar como cualquier campo ausente; los registros anteriores quedan con la fecha
+vacía (PocketBase no rellena un autodate nuevo hacia atrás) hasta que se editen.
+
+**Patrones de `redirects`.** `from` lleva `pattern` `^/` y `to` lleva
+`^(/$|/[^/\\\x00-\x20]|https?://)`, para que PocketBase rechace `javascript:`, `//evil.com`,
+`/\evil.com` (los navegadores leen `/\` como `//`) y `/<tab>/evil.com` (borran el tabulador). La
+raíz sola (`to: "/"`) vale a propósito: mandar una sección retirada a Inicio es un destino
+legítimo. Al actualizar un proyecto ya sembrado, el patrón se pone solo en los campos que no tienen
+ninguno (el campo se modifica conservando su `id`; un patrón propio no se pisa) y no revalida los
+registros existentes: uno antiguo que no lo cumpla se queda tal cual hasta que se edite.
 
 `socialImage` sigue la misma convención de imágenes que `blocks.image`: enlaza un registro de
 `vega_media`, y el sitio resuelve el fichero con `expand`. El manifiesto inicial les da etiqueta y

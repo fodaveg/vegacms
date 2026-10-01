@@ -37,6 +37,7 @@ import type {
 	AddFieldsResult,
 	CollectionFieldSpec,
 	CollectionSpec,
+	ConstrainPatternsResult,
 	EnsureResult
 } from '../../collections';
 import {
@@ -51,7 +52,11 @@ import { mapPocketBaseError } from './errors';
 import { mapCollectionsToContentTypes } from './schema';
 import { compileFields, compileFilter, compileSort } from './query';
 import { planFileFieldWrite, resolveFileUrl } from './files';
-import { addFieldsOnPocketBase, ensureCollectionsOnPocketBase } from './collections';
+import {
+	addFieldPatternsOnPocketBase,
+	addFieldsOnPocketBase,
+	ensureCollectionsOnPocketBase
+} from './collections';
 import { clearPersistedToken, loadPersistedToken, savePersistedToken } from './persistence';
 import { createPocketBaseStrongAuth } from './strong-auth';
 import { deferredAdministration, deferredPasswordReset } from '../../administration';
@@ -780,6 +785,22 @@ export function createPocketBaseBackend({
 				}
 				try {
 					return await addFieldsOnPocketBase(pb, collectionName, fields);
+				} finally {
+					invalidateLiveSchema();
+				}
+			});
+		},
+
+		async addCollectionFieldPatterns(
+			collectionName: string,
+			patterns: Record<string, string>
+		): Promise<ConstrainPatternsResult> {
+			return guarded(async () => {
+				if (!CAPABILITIES.schemaFieldBootstrap) {
+					throw VegaError.backend('schemaFieldBootstrap no disponible (ley L8)');
+				}
+				try {
+					return await addFieldPatternsOnPocketBase(pb, collectionName, patterns);
 				} finally {
 					invalidateLiveSchema();
 				}
