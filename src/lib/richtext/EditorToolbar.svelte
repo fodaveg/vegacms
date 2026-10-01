@@ -36,6 +36,7 @@
 	import type { Editor } from '@tiptap/core';
 	import { getVegaContext } from '$lib/app-context';
 	import { VegaError } from '$lib/backend/errors';
+	import Icon from '$lib/icons/Icon.svelte';
 	import RichtextLinkDialog from '$lib/form/widgets/RichtextLinkDialog.svelte';
 	import RichtextImageDialog from '$lib/form/widgets/RichtextImageDialog.svelte';
 	import { richtextImageFromPick } from '$lib/form/widgets/richtext-image';
@@ -218,6 +219,7 @@
 
 	<button
 		type="button"
+		class="vega-editor-toolbar-btn"
 		aria-pressed={isActive('bold')}
 		aria-label={t('form.editor.bold')}
 		disabled={disabled || !editor}
@@ -229,6 +231,7 @@
 	</button>
 	<button
 		type="button"
+		class="vega-editor-toolbar-btn"
 		aria-pressed={isActive('italic')}
 		aria-label={t('form.editor.italic')}
 		disabled={disabled || !editor}
@@ -240,6 +243,7 @@
 	</button>
 	<button
 		type="button"
+		class="vega-editor-toolbar-btn"
 		aria-pressed={isActive('strike')}
 		aria-label={t('form.editor.strike')}
 		disabled={disabled || !editor}
@@ -255,6 +259,7 @@
 	<span class="vega-editor-toolbar-sep" aria-hidden="true"></span>
 	<button
 		type="button"
+		class="vega-editor-toolbar-btn"
 		aria-pressed={isActive('code')}
 		aria-label={t('form.editor.code')}
 		disabled={disabled || !editor}
@@ -266,6 +271,7 @@
 	</button>
 	<button
 		type="button"
+		class="vega-editor-toolbar-btn"
 		aria-pressed={isActive('codeBlock')}
 		aria-label={t('form.editor.codeBlock')}
 		disabled={disabled || !editor}
@@ -277,6 +283,7 @@
 	</button>
 	<button
 		type="button"
+		class="vega-editor-toolbar-btn"
 		aria-pressed={isActive('blockquote')}
 		aria-label={t('form.editor.blockquote')}
 		disabled={disabled || !editor}
@@ -289,6 +296,7 @@
 	<span class="vega-editor-toolbar-sep" aria-hidden="true"></span>
 	<button
 		type="button"
+		class="vega-editor-toolbar-btn"
 		aria-pressed={isActive('bulletList')}
 		aria-label={t('form.editor.bulletList')}
 		disabled={disabled || !editor}
@@ -300,6 +308,7 @@
 	</button>
 	<button
 		type="button"
+		class="vega-editor-toolbar-btn"
 		aria-pressed={isActive('orderedList')}
 		aria-label={t('form.editor.orderedList')}
 		disabled={disabled || !editor}
@@ -311,6 +320,7 @@
 	</button>
 	<button
 		type="button"
+		class="vega-editor-toolbar-btn"
 		aria-label={t('form.editor.horizontalRule')}
 		disabled={disabled || !editor}
 		title={t('form.editor.horizontalRule')}
@@ -322,6 +332,7 @@
 	<span class="vega-editor-toolbar-sep" aria-hidden="true"></span>
 	<button
 		type="button"
+		class="vega-editor-toolbar-btn"
 		aria-pressed={isActive('link')}
 		aria-label={t('form.editor.link')}
 		aria-haspopup="dialog"
@@ -335,6 +346,7 @@
 	{#if ctx.mediaPicker}
 		<button
 			type="button"
+			class="vega-editor-toolbar-btn"
 			aria-label={t('form.editor.image')}
 			aria-haspopup="dialog"
 			disabled={disabled || !editor}
@@ -342,7 +354,7 @@
 			onmousedown={keepEditorFocus}
 			onclick={insertImage}
 		>
-			🖼
+			<Icon id="media" size={16} />
 		</button>
 	{/if}
 </div>
@@ -378,9 +390,14 @@
 		background: var(--paper);
 	}
 
-	/* Botones cuadrados de 30px, sin borde (mockup `.rt-toolbar button`). `line-height` explícito:
-	   el heredado no viaja a un componente Svelte y el glifo quedaría descentrado. */
-	.vega-editor-toolbar button {
+	/* Botones cuadrados de 30px, sin borde (mockup `.rt-toolbar button`). Centrado con flex y no
+	   con `line-height`: así un glifo de texto y un icono SVG caen en el mismo sitio, también cuando
+	   el botón crece a 44 px con puntero basto. Selector de clase pura, que es lo que sabe leer
+	   `scripts/check-touch-targets.mjs`. */
+	.vega-editor-toolbar-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
 		min-width: 30px;
 		height: 30px;
 		padding: 0 0.45rem;
@@ -390,18 +407,18 @@
 		color: var(--ink-2);
 		font: inherit;
 		font-size: 0.9em;
-		line-height: 30px;
+		line-height: 1;
 		cursor: pointer;
 	}
 
-	.vega-editor-toolbar button:hover:not(:disabled) {
+	.vega-editor-toolbar-btn:hover:not(:disabled) {
 		background: var(--active);
 		color: var(--ink-hi);
 	}
 
 	/* Activo = fondo tenue de marca + acento como texto (mockup `button[aria-pressed='true']`):
 	   NUNCA el relleno `--accent` sólido, que es lenguaje de acción primaria (el botón "Guardar"). */
-	.vega-editor-toolbar button[aria-pressed='true'] {
+	.vega-editor-toolbar-btn[aria-pressed='true'] {
 		background: var(--accent-soft);
 		color: var(--accent-text);
 	}
@@ -414,7 +431,7 @@
 		background: var(--line-soft);
 	}
 
-	.vega-editor-toolbar button:disabled,
+	.vega-editor-toolbar-btn:disabled,
 	.vega-editor-toolbar-select:disabled {
 		opacity: 0.6;
 		cursor: not-allowed;
@@ -432,5 +449,19 @@
 		color: var(--ink);
 		font: inherit;
 		font-size: 0.85em;
+	}
+
+	/* Objetivo táctil de 44 px con puntero basto (misma regla que `.vega-admin-btn` y el resto de la
+	   app): con el dedo, los 30 px del mockup se quedan cortos. La barra ya parte en varias líneas
+	   (`flex-wrap`), así que a 390 px crece hacia abajo, no hacia los lados. */
+	@media (pointer: coarse) {
+		.vega-editor-toolbar-btn {
+			min-width: 44px;
+			height: 44px;
+		}
+
+		.vega-editor-toolbar-select {
+			height: 44px;
+		}
 	}
 </style>
