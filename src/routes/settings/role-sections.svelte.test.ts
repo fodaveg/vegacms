@@ -66,4 +66,30 @@ describe('/settings: secciones por rol', () => {
 		expect(mounted.target.querySelector('[data-settings-advanced]')).toBeNull();
 		expect(mounted.target.querySelector('#vega-backend-title')).not.toBeNull();
 	});
+
+	// «Base del sitio» y sus módulos comparten criterio: la tarjeta entera solo se monta para quien
+	// administra, así que un editor no ve ni la base ni «Añadir» de ningún módulo.
+	test('sin permisos de administración: ni «Base del sitio» ni sus módulos', async () => {
+		mounted = mountPage(false);
+		await settle();
+		for (let i = 0; i < 5; i++) await new Promise((resolve) => setTimeout(resolve, 0));
+		await tick();
+		expect(mounted.target.querySelector('[data-site-state]')).toBeNull();
+		expect(mounted.target.querySelector('[data-site-module]')).toBeNull();
+		expect(mounted.target.textContent).not.toContain('settings.site.modules.title');
+		expect(mounted.target.textContent).not.toContain('settings.site.modules.btn.add');
+	});
+
+	test('administrador: «Base del sitio» con la lista de módulos', async () => {
+		mounted = mountPage(true);
+		await settle();
+		for (let i = 0; i < 5; i++) await new Promise((resolve) => setTimeout(resolve, 0));
+		await tick();
+		expect(mounted.target.querySelector('[data-site-state]')).not.toBeNull();
+		expect(
+			Array.from(mounted.target.querySelectorAll<HTMLElement>('[data-site-module]')).map(
+				(row) => row.dataset.siteModule
+			)
+		).toEqual(['blog', 'contacto']);
+	});
 });
