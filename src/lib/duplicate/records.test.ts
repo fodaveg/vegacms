@@ -357,4 +357,190 @@ describe('duplicado de páginas y bloques', () => {
 			pathEn: '/en-copia-2'
 		});
 	});
+
+	describe('publicación', () => {
+		const publishable: ContentType = {
+			...pageType,
+			fields: [
+				...pageType.fields,
+				{
+					name: 'status',
+					type: 'select',
+					options: ['draft', 'published'],
+					multiple: false,
+					maxSelect: 1,
+					required: false,
+					readonly: false,
+					presentable: false,
+					hidden: false,
+					unique: false
+				},
+				{
+					name: 'publishAt',
+					type: 'date',
+					required: false,
+					readonly: false,
+					presentable: false,
+					hidden: false,
+					unique: false
+				}
+			]
+		};
+
+		function publishableModel() {
+			const model = resolveContentModel({
+				types: [publishable, blockType],
+				manifestRaw: {
+					schemaVersion: 1,
+					collections: {
+						pages: {
+							titleField: 'title',
+							slugField: 'slug',
+							statusField: 'status',
+							publishAtField: 'publishAt',
+							page: { pathField: 'path' },
+							blocks: {
+								collection: 'blocks',
+								parentField: 'parent',
+								orderField: 'order',
+								typeField: 'type',
+								dataField: 'data'
+							}
+						}
+					},
+					blockTypes: {
+						hero: { label: 'Hero', fields: [{ name: 'title', label: 'Título', widget: 'text' }] }
+					}
+				}
+			});
+			expect(model.warnings).toEqual([]);
+			return model;
+		}
+
+		test('la copia de una página publicada nace en borrador y sin fecha programada', () => {
+			const type = publishableModel().types.find((candidate) => candidate.name === 'pages')!;
+			const input = duplicateInput(type, {
+				id: 'home',
+				type: 'pages',
+				values: {
+					title: 'Inicio',
+					path: '/',
+					slug: 'inicio',
+					status: 'published',
+					publishAt: '2026-12-01 10:00:00.000Z'
+				}
+			});
+
+			expect(input).toMatchObject({ status: 'draft', publishAt: '' });
+		});
+
+		test('una página programada (draft + publishAt) tampoco hereda la programación', () => {
+			const type = publishableModel().types.find((candidate) => candidate.name === 'pages')!;
+			const input = duplicateInput(type, {
+				id: 'home',
+				type: 'pages',
+				values: {
+					title: 'Inicio',
+					path: '/',
+					slug: 'inicio',
+					status: 'draft',
+					publishAt: '2026-12-01 10:00:00.000Z'
+				}
+			});
+
+			expect(input.publishAt).toBe('');
+		});
+
+		test('un override explícito del llamador gana sobre el borrador por defecto', () => {
+			const type = publishableModel().types.find((candidate) => candidate.name === 'pages')!;
+			const input = duplicateInput(
+				type,
+				{ id: 'home', type: 'pages', values: { title: 'Inicio', status: 'published' } },
+				{ status: 'published' }
+			);
+
+			expect(input.status).toBe('published');
+		});
+
+		test('sin statusField no se inventan campos de estado', () => {
+			const type = resolvedModel().types.find((candidate) => candidate.name === 'pages')!;
+			const input = duplicateInput(type, {
+				id: 'home',
+				type: 'pages',
+				values: { title: 'Inicio', path: '/', slug: 'inicio' }
+			});
+
+			expect(Object.keys(input).sort()).toEqual(['path', 'slug', 'title']);
+		});
+
+		test('duplicatePage persiste la copia como borrador sin publishAt', async () => {
+			const model = publishableModel();
+			const type = model.types.find((candidate) => candidate.name === 'pages')!;
+			const port = createMemoryBackend({
+				users: [{ email: 'admin@vega.test', password: 'test-pass' }],
+				contentTypes: [publishable, blockType],
+				records: {
+					pages: [
+						{
+							id: 'home',
+							values: {
+								title: 'Inicio',
+								path: '/',
+								slug: 'inicio',
+								status: 'published',
+								publishAt: '2026-12-01 10:00:00.000Z'
+							}
+						}
+					]
+				}
+			});
+			await port.login({ email: 'admin@vega.test', password: 'test-pass' });
+
+			const { page } = await duplicatePage(
+				port,
+				type,
+				await port.get('pages', 'home'),
+				model.types
+			);
+
+			expect(page.values.status).toBe('draft');
+			expect(page.values.publishAt).toBeFalsy();
+			expect((await port.get('pages', 'home')).values.status).toBe('published');
+		});
+	});
+
+	test('rollback: si un bloque falla y el borrado de compensación también, manda el error original', async () => {
+		const model = resolvedModel();
+		const type = model.types.find((candidate) => candidate.name === 'pages')!;
+		const memory = createMemoryBackend({
+			users: [{ email: 'admin@vega.test', password: 'test-pass' }],
+			contentTypes: [pageType, blockType],
+			records: {
+				pages: [{ id: 'home', values: { title: 'Inicio', path: '/', slug: 'inicio' } }],
+				blocks: [{ id: 'b1', values: { parent: 'home', order: 0, type: 'hero', data: {} } }]
+			}
+		});
+		await memory.login({ email: 'admin@vega.test', password: 'test-pass' });
+		const original = new Error('create de bloque rechazado');
+		const deletes: string[] = [];
+		const port: typeof memory = {
+			...memory,
+			create: async (collection, input) => {
+				if (collection === 'blocks') throw original;
+				return memory.create(collection, input);
+			},
+			delete: async (collection, id) => {
+				deletes.push(`${collection}:${id}`);
+				throw new Error('compensación rota');
+			}
+		};
+
+		await expect(
+			duplicatePage(port, type, await memory.get('pages', 'home'), model.types)
+		).rejects.toBe(original);
+
+		// Se intentó retirar la página recién creada pese al fallo, y el error no se tapó.
+		expect(deletes).toHaveLength(1);
+		expect(deletes[0]).toMatch(/^pages:/);
+	});
 });
