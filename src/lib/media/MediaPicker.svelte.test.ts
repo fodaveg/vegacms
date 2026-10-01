@@ -83,3 +83,31 @@ describe('MediaPicker.svelte — paginación con filtro accept', () => {
 		expect(target.querySelector('[data-pagination]')).toBeNull();
 	});
 });
+
+/**
+ * `opts.notice`: el aviso de la cabecera dice que se inserta una COPIA, que es lo que hace el campo
+ * de fichero. Quien enlaza lo elegido por su URL (la barra del texto enriquecido) pasa el suyo.
+ */
+describe('MediaPicker.svelte — aviso de la cabecera', () => {
+	const emptyPage = { items: [], page: 1, perPage: 24, totalItems: 0, totalPages: 1 };
+
+	test('sin notice pinta el aviso de siempre', async () => {
+		const target = mountPicker(emptyPage);
+		void mediaPickerState.open({ multiple: false });
+		await settle();
+
+		expect(target.querySelector('.vega-media-picker-copy')?.textContent?.trim()).toBe(
+			'media.picker.copyNotice'
+		);
+	});
+
+	test('con notice pinta ese texto en su lugar', async () => {
+		const target = mountPicker(emptyPage);
+		void mediaPickerState.open({ multiple: false, notice: 'Se enlaza la imagen.' });
+		await settle();
+
+		expect(target.querySelector('.vega-media-picker-copy')?.textContent?.trim()).toBe(
+			'Se enlaza la imagen.'
+		);
+	});
+});

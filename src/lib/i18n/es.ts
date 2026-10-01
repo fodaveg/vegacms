@@ -630,10 +630,45 @@ export const es = {
 	'form.editor.horizontalRule': 'Línea horizontal',
 	'form.editor.link': 'Enlace',
 	'form.editor.linkRemove': 'Quitar enlace',
-	'form.editor.linkPrompt': 'URL del enlace',
 	'form.editor.image': 'Imagen',
-	'form.editor.imagePrompt': 'URL de la imagen',
-	'form.editor.imageAltPrompt': 'Texto alternativo de la imagen',
+	// Diálogo de enlace (`RichtextLinkDialog.svelte`): página del sitio, por su ruta, o dirección
+	// externa. Los tres errores de dirección dicen qué corregir, no solo que está mal.
+	'form.editor.linkDialog.title': 'Enlace',
+	'form.editor.linkDialog.modeLabel': 'A dónde lleva el enlace',
+	'form.editor.linkDialog.modePage': 'Página del sitio',
+	'form.editor.linkDialog.modePageHint': 'Se enlaza su ruta, por ejemplo /sobre-mi.',
+	'form.editor.linkDialog.modeExternal': 'Dirección externa',
+	'form.editor.linkDialog.modeExternalHint': 'Otra web, un correo o un teléfono.',
+	'form.editor.linkDialog.searchLabel': 'Buscar página',
+	'form.editor.linkDialog.searchPlaceholder': 'Título, o /ruta',
+	'form.editor.linkDialog.loading': 'Buscando páginas…',
+	'form.editor.linkDialog.empty': 'Ninguna página coincide con la búsqueda.',
+	'form.editor.linkDialog.loadError': 'No se han podido cargar las páginas. {message}',
+	'form.editor.linkDialog.noPageTypes':
+		'Este sitio no tiene ningún tipo de contenido con ruta. Elige «Dirección externa»: ahí también puedes escribir una ruta que empiece por /.',
+	'form.editor.linkDialog.noPath': 'Sin ruta todavía',
+	'form.editor.linkDialog.selected': 'El enlace lleva a',
+	'form.editor.linkDialog.urlLabel': 'Dirección',
+	'form.editor.linkDialog.urlHelp':
+		'Empieza por https://, http://, mailto: o tel:. También vale una ruta del sitio que empiece por /.',
+	'form.editor.linkDialog.apply': 'Enlazar',
+	'form.editor.linkDialog.error.empty': 'Escribe una dirección.',
+	'form.editor.linkDialog.error.scheme':
+		'Ese tipo de dirección no se admite. Usa https://, http://, mailto:, tel: o una ruta que empiece por /.',
+	'form.editor.linkDialog.error.format':
+		'La dirección no está completa. Tiene que empezar por https://, http://, mailto:, tel: o por /, y no llevar espacios.',
+	'form.editor.linkDialog.error.noPage': 'Elige una página de la lista.',
+	// Diálogo de texto alternativo (`RichtextImageDialog.svelte`): solo sale si el medio elegido no
+	// lo trae de la biblioteca.
+	'form.editor.imageDialog.title': 'Texto alternativo',
+	'form.editor.imageDialog.altLabel': 'Texto alternativo (opcional)',
+	'form.editor.imageDialog.altHelp':
+		'Describe lo que se ve en la imagen. Si es decorativa, déjalo vacío.',
+	'form.editor.imageDialog.insert': 'Insertar imagen',
+	// Aviso que la barra le pasa al selector de medios en lugar de `media.picker.copyNotice`: aquí
+	// no se copia el fichero, se enlaza por su URL.
+	'form.editor.imageDialog.libraryNotice':
+		'Se enlaza la imagen de la biblioteca. Si la borras o la reemplazas allí, cambia también aquí.',
 	'form.editor.heading1': 'Título 1',
 	'form.editor.heading2': 'Título 2',
 	// El editor richtext se carga aparte (`import()` dinámico, ~145 KB): hasta que monta, el hueco
