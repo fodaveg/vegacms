@@ -969,21 +969,63 @@ ayuda en el formulario (tarjeta «SEO» en la columna lateral de la página) y m
 **Un proyecto ya sembrado** recibe todo esto desde «Ajustes → Base del sitio» («Actualizar el
 sitio», que llama a `seedSiteProject` tras enseñar el plan y pedir confirmación): añade a
 `pages` los tres campos ausentes sin tocar los existentes ni sus datos (las páginas quedan con
-descripción vacía, sin imagen y `noindex = false`), crea `redirects` y, si el manifiesto sigue
-siendo EXACTAMENTE el inicial de la versión anterior, lo sustituye por el nuevo. Si alguien editó
-el manifiesto, el sembrado aborta sin escribir nada, como con cualquier manifiesto humano: copia a
-mano las claves `collections.pages.fields`, `collections.pages.fieldGroups` y
-`collections.redirects` del manifiesto del starter.
+descripción vacía, sin imagen y `noindex = false`), crea `redirects` y añade al manifiesto las
+entradas que le falten (ver «Fusión aditiva del manifiesto», más abajo), esté editado a mano o no.
 
 **Publicación programada.** Desde la misma fecha el sembrado añade también `pages.publishAt`
 (`date` opcional, columna real porque la consulta el servidor) y el manifiesto inicial lo declara
 como `publishAtField` con etiqueta «Publicar el» (ver
 [Publicación programada](CONFIG.md#publicación-programada-publishatfield)). Un proyecto ya sembrado
-lo recibe igual que los campos de SEO: campo añadido, datos intactos y manifiesto sustituido solo si
-es EXACTAMENTE uno inicial anterior (el de antes del SEO o el de después); si se editó, copia a mano
-`collections.pages.publishAtField` y `collections.pages.fields.publishAt`. Para que la fecha haga
-algo hace falta la extensión [`vegaschedule`](../extensions/vegaschedule/README.md) en ese
-PocketBase.
+lo recibe igual que los campos de SEO: campo añadido, datos intactos y, en el manifiesto,
+`collections.pages.publishAtField` y `collections.pages.fields.publishAt` añadidos si faltan. Para
+que la fecha haga algo hace falta la extensión
+[`vegaschedule`](../extensions/vegaschedule/README.md) en ese PocketBase.
+
+**Fusión aditiva del manifiesto.** Al sembrar, al manifiesto guardado se le AÑADEN las entradas que
+le faltan y no se le quita ni se le cambia nada de lo que ya tiene: toda clave y todo valor siguen
+exactamente igual, en su mismo orden, y lo nuevo va al final de su nivel. Hasta el 1 oct 2026 la
+regla era otra (el manifiesto solo se sustituía si era EXACTAMENTE uno inicial de Vega, y uno
+editado a mano hacía abortar el sembrado); ya no hay que copiar claves a mano. La lógica vive en
+`src/lib/backend/site-seeding-merge.ts` (`mergeManifestFragment`).
+
+Una entrada se identifica por su clave, y la fusión solo baja por estos niveles:
+
+| Nivel                    | Clave que identifica la entrada                 | Si la entrada ya existe                                      |
+| ------------------------ | ----------------------------------------------- | ------------------------------------------------------------ |
+| raíz                     | `site`, `nav`, `collections`, `blockTypes`      | se entra en `collections` y `blockTypes`; el resto, tal cual |
+| `collections`            | nombre de la colección                          | se entra en su configuración                                 |
+| `collections.<c>`        | clave de configuración (`label`, `listFields`…) | se entra solo en `fields`; el resto, tal cual                |
+| `collections.<c>.fields` | nombre del campo                                | tal cual                                                     |
+| `blockTypes`             | nombre del tipo de bloque                       | tal cual                                                     |
+
+«Tal cual» es literal: lo guardado se conserva entero aunque difiera de lo que traería Vega, y no
+se completa por dentro. Por eso, una vez presentes, no se tocan `site`, `nav`, la configuración de
+un campo, un tipo de bloque (con su lista de `fields`) ni ninguna lista (`listFields`,
+`fieldGroups`, `nav.groups`): una lista es una selección ordenada de quien la escribió.
+Consecuencia: un tipo de bloque que ya existe no recibe los campos que una versión posterior le
+añada, y una colección con `fieldGroups` propios no recibe el grupo «SEO» (los campos de SEO
+aparecen igual, en un grupo sin `placement`).
+
+Lo que la fusión NO sabe: distinguir «nunca lo tuvo» de «lo borró a propósito». Una entrada de
+Vega que falte se añade siempre, también si alguien la quitó, y volverá a proponerse en cada
+«Actualizar el sitio». El plan lo enseña antes de escribir. Para prescindir de una entrada sin que
+vuelva, neutralízala en vez de borrarla (por ejemplo `"hidden": true` en una colección): lo
+presente no se toca. Es una decisión abierta: recordar qué se ofreció ya exige guardar ese
+registro en algún sitio, y hoy no se guarda.
+
+El sembrado sigue abortando sin escribir nada si el manifiesto guardado no es un objeto JSON, si
+hay más de un registro candidato o si el resultado de la fusión no pasa la validación estricta
+(por ejemplo, un manifiesto con una clave que el schema no conoce).
+
+**Módulos de sembrado.** Lo que se siembra se agrupa en módulos (`SiteSeedModule` en
+`src/lib/backend/site-seeding.ts`): las colecciones que asegura, en orden de aplicación, más un
+fragmento de manifiesto. La base de siempre es el módulo `base` y va en toda pasada; los demás se
+pasan en `seedSiteProject(port, { modules })` y se registran en
+`src/lib/backend/site-seeding-modules.ts`. Las colecciones de un módulo siguen la misma regla que
+las de la base (ausente se crea, presente recibe los campos que falten, forma incompatible aborta
+el lote) y su fragmento se fusiona como el de la base. `previewSiteSeed(port, { modules })`
+devuelve, además del plan total, el desglose por módulo: colecciones que se crearían, campos que
+se añadirían y entradas de manifiesto que se añadirían. Hoy solo existe `base`.
 
 Los pasos manuales siguientes siguen aplicando a una instalación **existente**. El sembrado es
 `creation-only`: si una colección ya existe, no cambia ninguna de sus reglas, aunque estén vacías,
