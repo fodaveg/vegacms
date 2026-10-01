@@ -680,6 +680,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.import.success.many': 'Imported {count} records.',
 	'list.import.partial': 'The import finished with {failed} failed records. Check the report.',
 	'list.import.error': 'The preview could not be prepared. Please try again.',
+	'list.import.runError':
+		'The import stopped because of an unexpected error. Check which records were written and try again.',
 	'list.import.reading.bar': 'File reading progress',
 	'list.import.progress.count': 'Importing… {done} of {total}',
 

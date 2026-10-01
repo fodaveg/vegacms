@@ -27,8 +27,11 @@ import { fetchTransferFile } from './import-media';
 import {
 	classifyCollectionImport,
 	isNonEmpty,
-	partitionByOutgoingRelations,
-	type ImportEntry
+	levelByRelations,
+	outgoingRelationKeys,
+	relationKey,
+	type ImportEntry,
+	type RelationNode
 } from './import-preview';
 
 /** Subconjunto del puerto que esta Fase necesita — mismo criterio `Pick` que `export-collection.ts`
@@ -57,12 +60,20 @@ export const IMPORT_WRITE_CONCURRENCY = 4;
 export function createCachingFileFetcher(
 	fetchFile: FetchTransferFileFn = fetchTransferFile
 ): ReleasableFileFetcher {
-	const cache = new Map<string, File | null>();
-	const cached: ReleasableFileFetcher = async (file: TransferFileValue) => {
-		if (cache.has(file.url)) return cache.get(file.url) ?? null;
-		const result = await fetchFile(file);
-		cache.set(file.url, result);
-		return result;
+	// Se cachea la PROMESA, no el resultado: dos registros que piden la misma `url` a la vez (el
+	// pool escribe 4 en paralelo) comparten UNA descarga en vez de lanzar una cada uno.
+	const cache = new Map<string, Promise<File | null>>();
+	const cached: ReleasableFileFetcher = (file: TransferFileValue) => {
+		let pending = cache.get(file.url);
+		if (!pending) {
+			pending = fetchFile(file);
+			cache.set(file.url, pending);
+			// Un rechazo no se queda en la caché (el siguiente intento puede volver a probar).
+			pending.catch(() => {
+				if (cache.get(file.url) === pending) cache.delete(file.url);
+			});
+		}
+		return pending;
 	};
 	// `runImport` suelta cada fichero en cuanto su registro se ha escrito (o ha fallado): la caché
 	// solo tiene sentido ENTRE la vista previa y la escritura, y retenerla entera hasta el final
@@ -313,6 +324,20 @@ interface WriteTask {
 	entry: ImportEntry;
 }
 
+/** Cuántos registros pendientes de escribir usan cada `url` de fichero (una entrada por uso). */
+type FileUses = Map<string, number>;
+
+/** Urls de fichero que referencia `record`, una por aparición. */
+function recordFileUrls(record: TransferRecord): string[] {
+	const urls: string[] = [];
+	for (const raw of Object.values(record.values)) {
+		for (const item of Array.isArray(raw) ? raw : [raw]) {
+			if (isTransferFileValue(item)) urls.push(item.url);
+		}
+	}
+	return urls;
+}
+
 /** Escribe un único registro (create o update según `task.entry.status`) y NUNCA deja escapar un
  *  rechazo: cualquier error se captura y se convierte en un `ImportOutcome` de `status: 'failed'`
  *  (§4.3: "un registro que falla no aborta los demás"). El `catch` de `runPool` es defensa en
@@ -320,7 +345,8 @@ interface WriteTask {
 async function writeOne(
 	port: ImportPort,
 	task: WriteTask,
-	fetchFile: ReleasableFileFetcher
+	fetchFile: ReleasableFileFetcher,
+	fileUses: FileUses
 ): Promise<ImportOutcome> {
 	const { collection, record, entry } = task;
 	try {
@@ -339,17 +365,26 @@ async function writeOne(
 		const error = err instanceof Error ? err.message : 'Error inesperado al escribir el registro';
 		return { type: collection.type, id: record.id, status: 'failed', error };
 	} finally {
-		releaseRecordFiles(record, fetchFile);
+		releaseRecordFiles(record, fetchFile, fileUses);
 	}
 }
 
-/** Suelta de la caché del fetcher los ficheros de `record` (ya escrito o ya fallido). */
-function releaseRecordFiles(record: TransferRecord, fetchFile: ReleasableFileFetcher): void {
-	if (!fetchFile.release) return;
-	for (const raw of Object.values(record.values)) {
-		for (const item of Array.isArray(raw) ? raw : [raw]) {
-			if (isTransferFileValue(item)) fetchFile.release(item.url);
+/** Suelta de la caché del fetcher los ficheros de `record` (ya escrito o ya fallido), pero solo
+ *  cuando ya NO los usa ningún otro registro pendiente: con una `url` compartida, soltarla en el
+ *  primero obligaba al segundo a descargarla otra vez (y, si fallaba, a entrar con el campo vacío). */
+function releaseRecordFiles(
+	record: TransferRecord,
+	fetchFile: ReleasableFileFetcher,
+	fileUses: FileUses
+): void {
+	for (const url of recordFileUrls(record)) {
+		const left = (fileUses.get(url) ?? 1) - 1;
+		if (left > 0) {
+			fileUses.set(url, left);
+			continue;
 		}
+		fileUses.delete(url);
+		fetchFile.release?.(url);
 	}
 }
 
@@ -360,6 +395,7 @@ async function runPool(
 	port: ImportPort,
 	tasks: readonly WriteTask[],
 	fetchFile: ReleasableFileFetcher,
+	fileUses: FileUses,
 	onSettled: () => void
 ): Promise<ImportOutcome[]> {
 	const outcomes = new Array<ImportOutcome>(tasks.length);
@@ -369,7 +405,7 @@ async function runPool(
 			const index = next++;
 			const task = tasks[index];
 			try {
-				outcomes[index] = await writeOne(port, task, fetchFile);
+				outcomes[index] = await writeOne(port, task, fetchFile, fileUses);
 			} catch (err) {
 				outcomes[index] = {
 					type: task.collection.type,
@@ -389,10 +425,10 @@ async function runPool(
 
 /**
  * Escribe `preview` (§4.3): agrupa las entradas escribibles (CREA + PISA confirmado) de TODAS las
- * colecciones en dos lotes GLOBALES por el orden topológico simple (`partitionByOutgoingRelations`
- * por colección, fusionados) — el lote 2 no arranca hasta que el lote 1 TERMINA entero (con éxito
- * o no). DENTRO de cada lote las escrituras van por un pool de `IMPORT_WRITE_CONCURRENCY` y cada
- * registro suelta sus ficheros de la caché del fetcher al terminar. Sin transacción (PocketBase no la expone al cliente): cada registro se intenta con
+ * colecciones en NIVELES GLOBALES por orden topológico (`levelByRelations`) — un nivel no arranca
+ * hasta que el anterior TERMINA entero (con éxito o no). DENTRO de cada nivel las escrituras van
+ * por un pool de `IMPORT_WRITE_CONCURRENCY` y cada fichero se suelta de la caché del
+ * fetcher cuando termina el ÚLTIMO registro que lo usa. Sin transacción (PocketBase no la expone al cliente): cada registro se intenta con
  * `writeOne`, que nunca deja escapar un fallo — el informe final dice qué entró y qué no,
  * `success` nunca es `true` si algo falló.
  */
@@ -403,8 +439,7 @@ export async function runImport(
 	fetchFile: ReleasableFileFetcher = fetchTransferFile
 ): Promise<ImportReport> {
 	let skippedCount = 0;
-	const batch1: WriteTask[] = [];
-	const batch2: WriteTask[] = [];
+	const nodes: RelationNode<WriteTask>[] = [];
 
 	for (const collection of preview.collections) {
 		const recordsById = new Map(collection.records.map((r) => [r.id, r]));
@@ -424,31 +459,34 @@ export async function runImport(
 			.map((entry) => recordsById.get(entry.id))
 			.filter((record): record is TransferRecord => record !== undefined);
 
-		const { withoutOutgoing, withOutgoing } = partitionByOutgoingRelations(
-			writableRecords,
-			collection.contentType.schema.fields
-		);
-		for (const record of withoutOutgoing) {
-			batch1.push({ collection, record, entry: entryById.get(record.id)! });
-		}
-		for (const record of withOutgoing) {
-			batch2.push({ collection, record, entry: entryById.get(record.id)! });
+		for (const record of writableRecords) {
+			const task = { collection, record, entry: entryById.get(record.id)! };
+			nodes.push({
+				item: task,
+				key: relationKey(collection.type, record.id),
+				deps: outgoingRelationKeys(record, collection.contentType.schema.fields)
+			});
 		}
 	}
 
-	// Dos lotes en orden: el pool no cruza la frontera (el lote 2 espera a que el 1 termine ENTERO),
-	// así que las relaciones salientes siguen escribiéndose después de sus destinos.
-	const total = batch1.length + batch2.length;
+	// Niveles en serie: cada uno solo depende de los anteriores (ver `levelByRelations`), así que
+	// una relación saliente se escribe siempre después de su destino aunque ambos estén en el
+	// fichero. Dentro de un nivel, el pool concurrente.
+	const levels = levelByRelations(nodes);
+	const fileUses: FileUses = new Map();
+	for (const { item } of nodes) {
+		for (const url of recordFileUrls(item.record)) fileUses.set(url, (fileUses.get(url) ?? 0) + 1);
+	}
+	const total = nodes.length;
 	let done = 0;
 	const tick = () => {
 		done += 1;
 		options.onProgress?.({ done, total });
 	};
 	options.onProgress?.({ done: 0, total });
-	const outcomes: ImportOutcome[] = [
-		...(await runPool(port, batch1, fetchFile, tick)),
-		...(await runPool(port, batch2, fetchFile, tick))
-	];
+	const outcomes: ImportOutcome[] = [];
+	for (const level of levels)
+		outcomes.push(...(await runPool(port, level, fetchFile, fileUses, tick)));
 
 	const createdCount = outcomes.filter((o) => o.status === 'created').length;
 	const updatedCount = outcomes.filter((o) => o.status === 'updated').length;

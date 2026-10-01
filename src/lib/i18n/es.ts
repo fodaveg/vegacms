@@ -742,6 +742,8 @@ export const es = {
 	'list.import.partial':
 		'La importación terminó con {failed} registros fallidos. Revisa el informe.',
 	'list.import.error': 'No se pudo preparar la vista previa. Vuelve a intentarlo.',
+	'list.import.runError':
+		'La importación se interrumpió por un error inesperado. Revisa qué registros entraron y vuelve a intentarlo.',
 	'list.import.reading.bar': 'Progreso de la lectura del fichero',
 	'list.import.progress.count': 'Importando… {done} de {total}',
 

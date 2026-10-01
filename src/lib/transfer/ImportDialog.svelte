@@ -87,9 +87,18 @@
 	// escritura (§4.4) comparten resultados, nunca traen el mismo binario dos veces.
 	let fileFetcher = createCachingFileFetcher();
 
+	// Identificador de sesión de importación: sube al cerrar/reabrir el diálogo y al cargar un
+	// fichero nuevo. Cada `await` de `handleFileChange`/`startImport` lo compara con el que capturó
+	// al empezar y, si cambió, NO escribe estado: una importación que sigue en segundo plano tras
+	// cerrar (ver `requestClose`) pisaba si no la fase y el informe de la sesión nueva. No es
+	// reactivo a propósito (solo se compara, nunca se pinta; si lo fuera, el `$effect` de abajo lo
+	// leería y se reejecutaría al escribirlo).
+	let session = 0;
+
 	// Reasienta TODO el estado en cada apertura (mismo criterio que `ExportDialog`/`DeleteConfirm`):
 	// un diálogo reabierto nunca hereda el fichero/vista previa/informe de una importación anterior.
 	$effect(() => {
+		session += 1; // al cerrar Y al abrir: lo que estuviera en vuelo ya no es de esta sesión
 		if (!open) return;
 		phase = 'pick';
 		fileName = '';
@@ -128,18 +137,20 @@
 		const input = event.currentTarget as HTMLInputElement;
 		const file = input.files?.[0];
 		if (!file) return;
+		const mine = ++session;
 		fileName = file.name;
 		phase = 'reading';
 
 		let parsed: unknown;
 		readPercent = 0;
 		try {
-			parsed = JSON.parse(
-				await readTextWithProgress(file, (read, total) => {
-					readPercent = total === 0 ? 100 : Math.floor((read / total) * 100);
-				})
-			);
+			const text = await readTextWithProgress(file, (read, total) => {
+				if (mine === session) readPercent = total === 0 ? 100 : Math.floor((read / total) * 100);
+			});
+			if (mine !== session) return;
+			parsed = JSON.parse(text);
 		} catch {
+			if (mine !== session) return;
 			invalidErrors = [{ kind: 'malformed' }];
 			phase = 'invalid';
 			return;
@@ -153,9 +164,12 @@
 		}
 
 		try {
-			preview = await buildImportPreview(ctx.port, validation.collections, fileFetcher);
+			const built = await buildImportPreview(ctx.port, validation.collections, fileFetcher);
+			if (mine !== session) return;
+			preview = built;
 			phase = 'preview';
 		} catch (err) {
+			if (mine !== session) return;
 			// Un fallo AQUÍ es de red/backend (resolver existencia contra el puerto, §4.2), no del
 			// fichero — a diferencia de `invalid` (§4.1, problema DETERMINISTA del propio fichero),
 			// el mismo reparto que usa `ExportDialog` para sus propios fallos de `ctx.port`.
@@ -169,14 +183,42 @@
 	/** Botón "Importar" de la fase `preview` (§4.3/§4.4): escribe y pasa a `done` con el informe. */
 	async function startImport(): Promise<void> {
 		if (!preview || !canImport) return;
+		const mine = session;
 		phase = 'running';
 		progress = { done: 0, total: 0 };
-		report = await runImport(
-			ctx.port,
-			preview,
-			{ overwriteConfirmed, onProgress: (p) => (progress = p) },
-			fileFetcher
-		);
+		let result: ImportReport;
+		try {
+			result = await runImport(
+				ctx.port,
+				preview,
+				{
+					overwriteConfirmed,
+					onProgress: (p) => {
+						if (mine === session) progress = p;
+					}
+				},
+				fileFetcher
+			);
+		} catch (err) {
+			// `runImport` no debería lanzar (cada registro se captura en su `writeOne`), pero si lo hace
+			// la fase no puede quedarse en `running` para siempre: se vuelve a `pick` (no a `preview`,
+			// que ya puede estar desfasada si algo llegó a escribirse) con el error por el mismo camino
+			// que usa `handleFileChange`.
+			if (mine !== session) return;
+			preview = null;
+			phase = 'pick';
+			ctx.feedback.reportError(
+				err instanceof VegaError ? err : VegaError.backend(ctx.t('list.import.runError'), err)
+			);
+			return;
+		}
+		// Sesión caducada (cerrado/reabierto/otro fichero): lo escrito en el backend ya está escrito,
+		// así que la tabla se refresca, pero el estado del diálogo ya es de OTRA sesión y no se toca.
+		if (mine !== session) {
+			if (result.createdCount + result.updatedCount > 0) onImported();
+			return;
+		}
+		report = result;
 		// Ya escrito: la vista previa (con todos los registros del fichero) no se vuelve a pintar.
 		preview = null;
 		phase = 'done';
