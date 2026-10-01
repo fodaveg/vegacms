@@ -108,13 +108,29 @@ export function globalSearchTypes(model: ContentModel): ResolvedContentType[] {
  * `GLOBAL_SEARCH_PER_TYPE` aciertos en vez de una página entera. Que el orden salga del propio
  * tipo (`defaultSort`/`orderField`) no es accidental: los cinco primeros aciertos del panel son
  * los cinco primeros del listado, así que el atajo y la lista cuentan lo mismo.
+ *
+ * Lleva proyección (`Query.fields`): `toGlobalSearchGroup` solo lee el título (`titleField`), la
+ * insignia de estado (`statusField`, y `publishAtField` para «Programada») y el `id`, así que no
+ * se traen richtext ni bloques de cada acierto. Si `toGlobalSearchGroup` pasa a leer otro campo,
+ * `globalSearchFields` es el único sitio donde añadirlo.
  */
 export function buildGlobalSearchQuery(type: ResolvedContentType, term: string): Query {
-	return buildListQuery(
-		type,
-		{ q: term, status: null, sort: null, page: 1 },
-		{ perPage: GLOBAL_SEARCH_PER_TYPE }
-	);
+	return {
+		...buildListQuery(
+			type,
+			{ q: term, status: null, sort: null, page: 1 },
+			{ perPage: GLOBAL_SEARCH_PER_TYPE }
+		),
+		fields: globalSearchFields(type)
+	};
+}
+
+/** Campos de `type` que `toGlobalSearchGroup` lee de cada registro (sin duplicados). */
+export function globalSearchFields(
+	type: Pick<ResolvedContentType, 'titleField' | 'statusField' | 'publishAtField'>
+): string[] {
+	const names = [type.titleField, type.statusField, type.publishAtField ?? null];
+	return [...new Set(names.filter((name): name is string => name !== null && name !== ''))];
 }
 
 /**
