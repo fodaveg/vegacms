@@ -17,7 +17,7 @@ jobs:
     permissions:
       contents: write
     # El release NO se publica hasta que la matriz de contrato PB (mínimo 0.26.0 D-P1.3 + pineada
-    # 0.39.6) esté verde: publicar un asset cuyo `package.json` promete `>=0.26.0` sin haber
+    # 0.39.9) esté verde: publicar un asset cuyo `package.json` promete `>=0.26.0` sin haber
     # ejercido nunca ese mínimo sería mentir en el metadato. `needs` serializa el orden.
     needs: pb-contract-matrix
     steps:
@@ -151,13 +151,13 @@ jobs:
 
   # P8·F1 (D-P8.7 opción B): mismo job que `ci.yml`, clonado tal cual — la matriz de contrato
   # contra el rango de servidor PocketBase soportado (mínimo 0.26.0 D-P1.3, más la pineada
-  # 0.39.6) también se ejerce en cada release, no solo en cada PR.
+  # 0.39.9) también se ejerce en cada release, no solo en cada PR.
   pb-contract-matrix:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        pb_version: ['0.26.0', '0.39.6']
+        pb_version: ['0.26.0', '0.39.9']
     # Ver el comentario completo del landmine geoPoint en `.github/workflows/ci.yml` (job
     # homónimo): el campo `geoPoint` de `kitchen_sink.location` no existe en el servidor hasta
     # PocketBase v0.27.0, así que el harness lo omite al sembrar contra servidores anteriores y

@@ -5,7 +5,7 @@
  * descargado y es ejecutable, no vuelve a bajarlo. Pensado para `pnpm test:pb` (local) y el
  * workflow de CI (Linux); detecta plataforma/arquitectura automáticamente.
  *
- * Versión: por defecto la pineada (0.39.6), pero admite override vía `PB_VERSION` (P8·F1,
+ * Versión: por defecto la pineada (0.39.9), pero admite override vía `PB_VERSION` (P8·F1,
  * D-P8.7 opción B) para que CI pueda correr la suite de contrato en MATRIZ contra la mínima
  * soportada (0.26.0, D-P1.3) además de la pineada, sin tocar este fichero por versión.
  *
@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 
-const PB_VERSION_FALLBACK = '0.39.6';
+const PB_VERSION_FALLBACK = '0.39.9';
 const PB_VERSION = process.env.PB_VERSION || PB_VERSION_FALLBACK;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BIN_DIR = path.resolve(__dirname, '..', '.pbbin');
@@ -32,9 +32,10 @@ const BIN_PATH = path.join(BIN_DIR, process.platform === 'win32' ? 'pocketbase.e
 
 /**
  * SHA256 esperado por versión + `<platform>_<arch>` (mismo formato que `pbPlatformArch()`).
- * Fuente: `checksums.txt` que PocketBase publica en cada release de GitHub (verificado a mano
- * el 2026-07-19 descargando el asset y comparando con `shasum -a 256`, no inventado). Cubre las
- * dos versiones que usa la matriz de CI (D-P8.7 opción B): la pineada 0.39.6 y la mínima
+ * Fuente: `checksums.txt` que PocketBase publica en cada release de GitHub (0.26.0 verificado a mano
+ * el 2026-07-19 descargando el asset y comparando con `shasum -a 256`; 0.39.9 copiado de
+ * `checksums.txt` de la release v0.39.9 el 2026-10-01, no inventado). Cubre las
+ * dos versiones que usa la matriz de CI (D-P8.7 opción B): la pineada 0.39.9 y la mínima
  * soportada 0.26.0. Si añades una versión nueva a la matriz/pin y no está aquí, el script
  * ABORTA (mejor un fallo explícito que saltarse la verificación en silencio).
  */
@@ -47,13 +48,16 @@ const PB_CHECKSUMS = {
 		windows_amd64: '188fb9cf5befa15b9c04e700d8e27ba34776a80bd81e3a900bbfccf80cc4203d',
 		windows_arm64: 'fbef584fc1bdbc3d6c5d0677a3999861576124d51023d2f01a6c06cfebbd98f9'
 	},
-	'0.39.6': {
-		darwin_amd64: 'ee642cd5f8b2f77b4f28e36d93536e19887f42f1e01b384e1fe53775428aed88',
-		darwin_arm64: '704111f6c4b489f27cebf525bcbe7fe0b98661a147f05f1c7b9dffeb89dcef6d',
-		linux_amd64: '9251d4ebca4fe91771392dc389a6e449e4e00a34182b0316e7a2d9984d34da3d',
-		linux_arm64: '1787ec2de1821f9464d835ccede697603d45eabe9078c3a4209442b3c6f7d18b',
-		windows_amd64: 'aad897c08b04334c94814e29250245325eccf300bb0d051716632cf9cedd1af3',
-		windows_arm64: 'f8fd13ae1b8809b8f36877904b43b756189f2007ade304ff6e436d0ff8d47ad9'
+	'0.39.9': {
+		darwin_amd64: '3f715e1008a314c6cf0f18e749142501a985340c895ac6bddd952b6ef2530d8b',
+		darwin_arm64: 'bf12c774649be417345b6d60e97361ea0bf2ab167b442b0ecd8cd39c6b0f5835',
+		linux_amd64: '4c5a1aced62ebf658bfbcfeaa944c4bfa88b173dd9d598d3cab55ea63587b36b',
+		linux_arm64: 'fd4138f29182288cbe6e9982e9f29b11df5f8e689c4f6a8f6cdf7aadd29d95a1',
+		linux_armv7: '8e0c58efe00c3d5e7ec3fda2c0f33ccfe924a64ee9e07915a19f951bcd084e60',
+		linux_ppc64le: 'bb5ea08cad1ff7100f77e487927dfa5f0baaa68edf474f99ecb14bd9d11cdb9f',
+		linux_s390x: '7d6f5eb6cecd833b6605eb284556bdd416d46d77963c9a902ff65b9e97326ef0',
+		windows_amd64: '15fac48055142e57e3591cce064d66ef815bb5f7507bf77e51787ce1f79c3c4c',
+		windows_arm64: '172360c0db2e82af124f64f3afe0722e1a9d582f70d5540ddbfef334cd20628b'
 	}
 };
 
@@ -109,8 +113,8 @@ class ChecksumMismatchError extends Error {}
 /**
  * `true` solo si el binario en `.pbbin/` ya existe, es ejecutable Y es la versión pedida
  * (`PB_VERSION`) — no basta con que exista: un binario de OTRA versión cacheado de una
- * ejecución anterior (p.ej. la pineada 0.39.6, tras correr sin `PB_VERSION`) se reutilizaría en
- * silencio, dejando que `PB_VERSION=0.26.0 pnpm test:pb` corra en realidad contra 0.39.6 sin
+ * ejecución anterior (p.ej. la pineada 0.39.9, tras correr sin `PB_VERSION`) se reutilizaría en
+ * silencio, dejando que `PB_VERSION=0.26.0 pnpm test:pb` corra en realidad contra 0.39.9 sin
  * avisar (hallazgo P8·F1, 2026-07-19: así es como una reproducción local inicial dio un falso
  * "pasan los 54" contra 0.26.0).
  */
