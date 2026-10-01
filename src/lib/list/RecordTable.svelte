@@ -1066,4 +1066,32 @@
 			text-overflow: ellipsis;
 		}
 	}
+
+	/* Objetivo táctil de 44×44 (`scripts/check-touch-targets.mjs`): «Borrar», cabeceras ordenables y
+	   asa de arrastre suben a 44 px con puntero grueso; con ratón no cambia nada (densidad). */
+	@media (pointer: coarse) {
+		.vega-record-table tbody tr {
+			height: max(var(--row-h), 44px);
+		}
+
+		.vega-delete-button {
+			min-width: 44px;
+			min-height: 44px;
+		}
+
+		.vega-sort-button {
+			min-width: 44px;
+			min-height: 44px;
+		}
+
+		.vega-reorder-header,
+		.vega-reorder-cell {
+			width: 44px;
+		}
+
+		.vega-reorder-handle {
+			width: 44px;
+			height: 44px;
+		}
+	}
 </style>

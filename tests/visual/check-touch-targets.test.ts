@@ -7,6 +7,7 @@
 
 import { describe, expect, test } from 'vitest';
 import {
+	COMPONENT_FILES,
 	checkComponent,
 	evaluateControl,
 	extractControls,
@@ -283,5 +284,16 @@ describe('evaluateControl: min-* nunca deja que el valor use menos de lo que fij
 		const result = evaluateControl(control, base, []);
 		expect(result.width.coarse?.px).toBe(44);
 		expect(result.verdict).toBe('pass');
+	});
+});
+
+describe('COMPONENT_FILES (cobertura del chrome de lista y editor, audit móvil 30 sep)', () => {
+	test.each([
+		'src/lib/shell/Topbar.svelte',
+		'src/lib/list/ListToolbar.svelte',
+		'src/lib/list/RecordTable.svelte',
+		'src/lib/form/RecordForm.svelte'
+	])('revisa %s', (file) => {
+		expect(COMPONENT_FILES).toContain(file);
 	});
 });

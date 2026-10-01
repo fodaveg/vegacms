@@ -1884,9 +1884,20 @@
 		}
 	}
 
+	/* Objetivo táctil de 44×44 (`scripts/check-touch-targets.mjs`): la barra del editor (atrás,
+	   Editor visual, Vista previa, Duplicar, Guardar), las acciones inline y «Eliminar» miden 34 px
+	   con el dedo; con ratón nada cambia (densidad). `height` sigue en 34 y `min-height` manda. */
 	@media (pointer: coarse) {
-		.vega-editor-duplicate-button {
+		.vega-editor-back,
+		.vega-editor-duplicate-button,
+		.vega-editor-visual-button,
+		.vega-editor-preview-toggle,
+		.vega-editor-preview-link,
+		.vega-editor-save-button,
+		.vega-editor-inline-button,
+		.vega-editor-delete-button {
 			min-height: 44px;
+			min-width: 44px;
 		}
 	}
 

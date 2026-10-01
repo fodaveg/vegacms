@@ -210,7 +210,12 @@
 					aria-label={ctx.t('topbar.userMenu.toggle')}
 					bind:this={userMenuEl}
 				>
-					<a role="menuitem" href={settingsHref} onclick={handleSettingsClick}>
+					<a
+						role="menuitem"
+						class="vega-topbar-user-menu-item"
+						href={settingsHref}
+						onclick={handleSettingsClick}
+					>
 						<Icon id="settings" size={16} />
 						{ctx.t('nav.settings')}
 					</a>
@@ -488,6 +493,30 @@
 		.vega-topbar-site {
 			min-width: 0;
 			flex-shrink: 1;
+		}
+	}
+
+	/* Objetivo táctil de 44×44 (checklist de accesibilidad, `scripts/check-touch-targets.mjs`): con
+	   puntero grueso los botones-icono pasan de 32×32 a 44×44; con ratón nada cambia (densidad). */
+	@media (pointer: coarse) {
+		.vega-topbar-menu,
+		.vega-topbar-collapse,
+		.vega-topbar-logout {
+			width: 44px;
+			height: 44px;
+			min-width: 44px;
+			min-height: 44px;
+		}
+
+		.vega-topbar-user-trigger {
+			min-width: 44px;
+			min-height: 44px;
+			justify-content: center;
+		}
+
+		.vega-topbar-user-menu-item {
+			min-height: 44px;
+			min-width: 44px;
 		}
 	}
 </style>
