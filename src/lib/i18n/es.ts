@@ -1375,10 +1375,9 @@ export const es = {
 	'admin.editors.emptyTitle': 'Todavía no hay editores',
 	'admin.editors.emptyBody':
 		'Ahora mismo solo entra el superusuario. Añade a quien vaya a escribir o corregir contenido.',
-	// El sembrado del sitio que crea la colección no tiene botón en la SPA: el aviso dice dónde se
-	// crea de verdad en vez de mandar a una pantalla que no lo hace.
+	// La colección se crea al preparar el sitio, desde la tarjeta «Base del sitio» de Ajustes.
 	'admin.editors.missingCollection':
-		'Este proyecto no tiene todavía la colección de editores ({collection}). Créala en el Admin de PocketBase como colección de autenticación con ese nombre y vuelve aquí.',
+		'Este sitio todavía no tiene dónde guardar las cuentas de los editores. Se crea al preparar el sitio.',
 	'admin.editors.col.email': 'Email',
 	'admin.editors.col.status': 'Estado',
 	'admin.editors.col.created': 'Alta',
@@ -1406,7 +1405,7 @@ export const es = {
 	'admin.editors.addDialog.password': 'Poner yo la contraseña',
 	'admin.editors.addDialog.passwordHint': 'Se la pasas tú por otro canal.',
 	'admin.editors.addDialog.noMail':
-		'Este servidor no tiene correo configurado, así que no se puede enviar una invitación. Ponle tú la contraseña y pásasela por otro canal.',
+		'Este servidor no tiene correo configurado, así que no se puede enviar una invitación. Ponle tú la contraseña y pásasela por otro canal, o configura el correo en esta misma pantalla, debajo de la lista.',
 	'admin.editors.addDialog.submitInvite': 'Enviar invitación',
 	'admin.editors.addDialog.submitPassword': 'Añadir editor',
 	'admin.editors.addDialog.saving': 'Guardando…',
@@ -1528,6 +1527,64 @@ export const es = {
 		'El enlace del correo sigue llevando al panel de PocketBase, no a la página de Vega para elegir contraseña. Vega solo lo cambia cuando la abres desde la dirección https que PocketBase tiene como «Application URL».',
 	'admin.editors.addDialog.inviteLinkUnknown':
 		'No se pudo comprobar a dónde lleva el enlace del correo de invitación.',
+	'admin.editors.goToSettings': 'Ir a Ajustes',
+	'admin.mail.title': 'Correo para invitaciones',
+	'admin.mail.loading': 'Cargando los ajustes del correo…',
+	'admin.mail.loadError': 'No se pudieron cargar los ajustes del correo.',
+	'admin.mail.configured': 'Configurado',
+	'admin.mail.unconfiguredBody':
+		'Este servidor todavía no puede enviar correos. Sin correo no hay invitaciones: a cada editor le tienes que poner tú la contraseña.',
+	'admin.mail.configure': 'Configurar el correo',
+	'admin.mail.summary.server': 'Servidor',
+	'admin.mail.summary.sender': 'Remitente',
+	'admin.mail.summary.links': 'Los enlaces llevan a',
+	'admin.mail.summary.senderJoin': ' · ',
+	'admin.mail.testTo': 'Enviar una prueba a',
+	'admin.mail.testSend': 'Enviar prueba',
+	'admin.mail.testSending': 'Enviando…',
+	'admin.mail.testingStatus': 'Enviando la prueba…',
+	'admin.mail.testToInvalid': 'Escribe la dirección a la que enviar la prueba.',
+	'admin.mail.testOk': 'Prueba enviada',
+	'admin.mail.testOkAt':
+		'El servidor de correo la aceptó a las {time}. Mira si ha llegado a {email}.',
+	'admin.mail.testFailTitle': 'La prueba no ha salido',
+	'admin.mail.testFailBody': 'Esto es lo que ha contestado el servidor:',
+	'admin.mail.testFailChange': 'Cambiar los datos',
+	'admin.mail.legendSender': 'Quién envía',
+	'admin.mail.senderName': 'Nombre del remitente',
+	'admin.mail.senderAddress': 'Dirección del remitente',
+	'admin.mail.senderAddressInvalid': 'Escribe una dirección de correo válida.',
+	'admin.mail.legendServer': 'Servidor de correo (SMTP)',
+	'admin.mail.host': 'Servidor',
+	'admin.mail.hostRequired': 'Escribe el servidor de correo.',
+	'admin.mail.port': 'Puerto',
+	'admin.mail.portInvalid': 'El puerto es un número entre 1 y 65535.',
+	'admin.mail.username': 'Usuario',
+	'admin.mail.password': 'Contraseña',
+	'admin.mail.passwordHelp':
+		'Déjala vacía para conservar la que haya. Escribe solo si quieres cambiarla.',
+	'admin.mail.removePassword': 'Quitar la contraseña guardada',
+	'admin.mail.tls': 'Usar siempre TLS',
+	'admin.mail.tlsHint':
+		'Márcalo si tu proveedor usa el puerto 465. Con el 587 déjalo sin marcar: la conexión se cifra igualmente.',
+	'admin.mail.saved': 'Correo guardado. Envía una prueba para comprobarlo.',
+	'admin.mail.removeDialog.title': '¿Quitar la contraseña guardada?',
+	'admin.mail.removeDialog.body':
+		'El servidor intentará enviar sin contraseña. Si tu proveedor la pide, las invitaciones dejarán de salir hasta que pongas otra.',
+	'admin.mail.removeDialog.confirm': 'Quitar la contraseña',
+	'admin.mail.removeDialog.removing': 'Quitando…',
+	'admin.mail.removeDialog.success': 'Contraseña quitada.',
+	'admin.appUrl.label': 'Dirección de Vega',
+	'admin.appUrl.help': 'Con ella empiezan los enlaces de los correos, como el de la invitación.',
+	'admin.appUrl.mismatch':
+		'No es la dirección desde la que estás usando Vega ahora ({origin}). Si se queda así, el enlace de la invitación puede llevar a un sitio donde Vega no está.',
+	'admin.appUrl.mismatchClosed':
+		'Los enlaces de los correos no llevan a la dirección desde la que estás usando Vega ahora ({origin}).',
+	'admin.appUrl.useCurrent': 'Usar la de ahora',
+	'admin.appUrl.http':
+		'Empieza por http://: quien abra el enlace elegirá su contraseña por una conexión sin cifrar. Usa https:// si el sitio lo tiene.',
+	'admin.appUrl.notHttp': 'Escribe la dirección completa, empezando por https://.',
+	'admin.appUrl.linkFixed': 'La plantilla del correo de invitación ya apunta a esta dirección.',
 	'admin.reset.title': 'Elige tu contraseña',
 	'admin.reset.intro': 'Es la contraseña con la que entrarás en este admin.',
 	'admin.reset.submit': 'Guardar contraseña',

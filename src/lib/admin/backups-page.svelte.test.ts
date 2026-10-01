@@ -122,7 +122,11 @@ describe('/copias', () => {
 	});
 	describe('ajustes del servidor debajo de la lista', () => {
 		const SETTINGS: ServerSettings = {
-			meta: { appURL: 'https://cms.example.test' },
+			meta: {
+				appURL: 'https://cms.example.test',
+				senderName: 'Aguja',
+				senderAddress: 'web@aguja.example'
+			},
 			smtp: { enabled: false, host: '', port: 587, username: '', tls: false },
 			backups: {
 				cron: '',

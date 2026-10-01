@@ -135,6 +135,40 @@ export function describeServerSettingsContract(options: ServerSettingsContractOp
 			expect(outcome).toEqual({ ok: false, message: expect.stringContaining('not enabled') });
 		});
 
+		test('el remitente (meta.senderName y meta.senderAddress) y el SMTP se guardan y vuelven en get, sin la contraseña', async () => {
+			const after = await section().update({
+				meta: { senderName: 'Aguja', senderAddress: 'web@aguja.example' },
+				smtp: { enabled: true, host: 'smtp.aguja.example', port: 465, username: 'web', tls: true }
+			});
+			expect(after.meta).toMatchObject({ senderName: 'Aguja', senderAddress: 'web@aguja.example' });
+			expect(after.smtp).toMatchObject({
+				enabled: true,
+				host: 'smtp.aguja.example',
+				port: 465,
+				username: 'web',
+				tls: true
+			});
+			expect(JSON.stringify(await section().get())).not.toMatch(/smtp-secret/);
+			expect((await options.readSecrets(port)).smtpPassword).toBe('smtp-secret');
+		});
+
+		test('remitente que no es un email: error de campo `meta.senderAddress` y no se aplica nada', async () => {
+			await expect(
+				section().update({ meta: { senderName: 'Otro', senderAddress: 'web@aguja' } })
+			).rejects.toMatchObject({
+				kind: 'validation',
+				fieldErrors: { 'meta.senderAddress': { message: expect.any(String) } }
+			});
+			expect((await section().get()).meta.senderName).not.toBe('Otro');
+		});
+
+		test('correo activado sin servidor: error de campo `smtp.host`', async () => {
+			await expect(section().update({ smtp: { enabled: true, host: '' } })).rejects.toMatchObject({
+				kind: 'validation',
+				fieldErrors: { 'smtp.host': { message: expect.any(String) } }
+			});
+		});
+
 		test('sin sesión de superusuario no hay sección (la capability se apaga con ella)', async () => {
 			// Un puerto sin sesión rechaza con VegaError; aquí solo se fija que la sección rechaza tipado.
 			await port.logout();

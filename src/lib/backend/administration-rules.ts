@@ -64,7 +64,7 @@ export function invitationTemplateBody(
 }
 
 /** Nombres de host que solo resuelven a la propia máquina. */
-function isLoopbackHost(hostname: string): boolean {
+export function isLoopbackHost(hostname: string): boolean {
 	const host = hostname.toLowerCase();
 	return (
 		host === 'localhost' || host.endsWith('.localhost') || host === '127.0.0.1' || host === '[::1]'

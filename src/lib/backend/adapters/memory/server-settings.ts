@@ -56,7 +56,11 @@ export function createMemoryServerSettings({
 	checkSessionAlive
 }: MemoryServerSettingsOptions): MemoryServerSettings {
 	let settings: ServerSettings = {
-		meta: { appURL: 'http://localhost:8090' },
+		meta: {
+			appURL: 'http://localhost:8090',
+			senderName: 'Support',
+			senderAddress: 'support@example.com'
+		},
 		smtp: { enabled: false, host: 'smtp.example.com', port: 587, username: '', tls: false },
 		backups: {
 			cron: '',
@@ -79,6 +83,22 @@ export function createMemoryServerSettings({
 		if (appURL === '') errors['meta.appURL'] = required();
 		else if (!URL.canParse(appURL)) {
 			errors['meta.appURL'] = { code: 'validation_is_url', message: 'Must be a valid url.' };
+		}
+		if (next.meta.senderAddress === '') errors['meta.senderAddress'] = required();
+		else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(next.meta.senderAddress)) {
+			errors['meta.senderAddress'] = {
+				code: 'validation_is_email',
+				message: 'Must be a valid email address.'
+			};
+		}
+		if (next.smtp.enabled) {
+			if (next.smtp.host === '') errors['smtp.host'] = required();
+			if (!(next.smtp.port >= 1 && next.smtp.port <= 65535)) {
+				errors['smtp.port'] = {
+					code: 'validation_min_number_constraint',
+					message: 'Must be between 1 and 65535.'
+				};
+			}
 		}
 		const { cron, cronMaxKeep, s3 } = next.backups;
 		if (cron !== '' && !CRON_MACRO.test(cron)) {
@@ -165,6 +185,12 @@ export function createMemoryServerSettings({
 				return {
 					ok: false,
 					message: 'Failed to send the test email. Raw error: \nSMTP is not enabled.'
+				};
+			}
+			if (settings.smtp.host === MEMORY_UNREACHABLE_S3_HOST) {
+				return {
+					ok: false,
+					message: `Failed to send the test email. Raw error: \ndial tcp: lookup ${settings.smtp.host}: no such host.`
 				};
 			}
 			return { ok: true };

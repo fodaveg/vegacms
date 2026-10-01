@@ -22,15 +22,24 @@
  *   servidor las contesta con 400 y el error crudo en `message` cuando falla: eso NO es una excepción
  *   del puerto sino un resultado (`{ ok: false, message }`, texto largo que la UI enseña como texto,
  *   nunca como HTML). Sin sesión válida o sin respuesta sí rechazan con `VegaError` (L2).
+ * - El remitente (`meta.senderName`, `meta.senderAddress`) vive en `meta`, y `senderAddress` debe ser
+ *   un email. Con `smtp.enabled` PocketBase exige `smtp.host` y un `smtp.port` válido (error de campo
+ *   por ruta). Con una contraseña guardada y un servidor sin AUTH la prueba de correo falla con un
+ *   texto crudo poco claro (`250 "OK"`): se enseña tal cual, como cualquier fallo de prueba.
  * - Sin medir: si las listas de ajustes se fusionan o se reemplazan. Esta sección no toca ninguna.
  */
 
 import type { ServerSettingsPort } from './port';
 import { VegaError } from './errors';
 
-/** Dirección pública que el servidor declara como suya (`meta.appURL`). */
+/**
+ * Dirección pública que el servidor declara como suya (`meta.appURL`) y remitente de los correos
+ * (`meta.senderName`, `meta.senderAddress`: en PocketBase viven en `meta`, no en `smtp`).
+ */
 export interface ServerMeta {
 	appURL: string;
+	senderName: string;
+	senderAddress: string;
 }
 
 /**

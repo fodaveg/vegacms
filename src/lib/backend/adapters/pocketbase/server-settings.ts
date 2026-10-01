@@ -105,7 +105,11 @@ export function toServerSettings(raw: unknown): ServerSettings {
 	}
 	const maxKeep = backups.cronMaxKeep;
 	return {
-		meta: { appURL: str(record(body.meta).appURL) },
+		meta: {
+			appURL: str(record(body.meta).appURL),
+			senderName: str(record(body.meta).senderName),
+			senderAddress: str(record(body.meta).senderAddress)
+		},
 		smtp: {
 			enabled: bool(smtp.enabled),
 			host: str(smtp.host),

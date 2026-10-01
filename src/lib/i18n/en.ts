@@ -1311,10 +1311,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'admin.editors.emptyTitle': 'No editors yet',
 	'admin.editors.emptyBody':
 		'Right now only the superuser can sign in. Add whoever is going to write or proofread content.',
-	// The site seeding that creates the collection has no button in the SPA: the notice says where
-	// it is actually created instead of pointing to a screen that does not do it.
+	// The collection is created when the site is prepared, from the «Site base» card in Settings.
 	'admin.editors.missingCollection':
-		'This project does not have the editors collection yet ({collection}). Create it in the PocketBase Admin as an auth collection with that name and come back here.',
+		'This site has nowhere to keep the editors’ accounts yet. It is created when the site is prepared.',
 	'admin.editors.col.email': 'Email',
 	'admin.editors.col.status': 'Status',
 	'admin.editors.col.created': 'Added',
@@ -1343,7 +1342,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'admin.editors.addDialog.password': 'Set the password myself',
 	'admin.editors.addDialog.passwordHint': 'You give it to them through another channel.',
 	'admin.editors.addDialog.noMail':
-		'This server has no email configured, so no invitation can be sent. Set the password yourself and give it to them through another channel.',
+		'This server has no email configured, so no invitation can be sent. Set the password yourself and give it to them through another channel, or set up email on this same screen, below the list.',
 	'admin.editors.addDialog.submitInvite': 'Send invitation',
 	'admin.editors.addDialog.submitPassword': 'Add editor',
 	'admin.editors.addDialog.saving': 'Saving…',
@@ -1466,6 +1465,64 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'The link in the email still leads to the PocketBase dashboard, not to the Vega page to choose a password. Vega only changes it when you open it from the https address PocketBase has as its “Application URL”.',
 	'admin.editors.addDialog.inviteLinkUnknown':
 		'Could not check where the link in the invitation email leads.',
+	'admin.editors.goToSettings': 'Go to Settings',
+	'admin.mail.title': 'Email for invitations',
+	'admin.mail.loading': 'Loading the email settings…',
+	'admin.mail.loadError': 'Could not load the email settings.',
+	'admin.mail.configured': 'Configured',
+	'admin.mail.unconfiguredBody':
+		'This server cannot send emails yet. Without email there are no invitations: you have to set each editor’s password yourself.',
+	'admin.mail.configure': 'Set up email',
+	'admin.mail.summary.server': 'Server',
+	'admin.mail.summary.sender': 'Sender',
+	'admin.mail.summary.links': 'Links lead to',
+	'admin.mail.summary.senderJoin': ' · ',
+	'admin.mail.testTo': 'Send a test to',
+	'admin.mail.testSend': 'Send test',
+	'admin.mail.testSending': 'Sending…',
+	'admin.mail.testingStatus': 'Sending the test…',
+	'admin.mail.testToInvalid': 'Type the address to send the test to.',
+	'admin.mail.testOk': 'Test sent',
+	'admin.mail.testOkAt':
+		'The mail server accepted it at {time}. Check whether it has reached {email}.',
+	'admin.mail.testFailTitle': 'The test did not go out',
+	'admin.mail.testFailBody': 'This is what the server answered:',
+	'admin.mail.testFailChange': 'Change the details',
+	'admin.mail.legendSender': 'Who sends',
+	'admin.mail.senderName': 'Sender name',
+	'admin.mail.senderAddress': 'Sender address',
+	'admin.mail.senderAddressInvalid': 'Type a valid email address.',
+	'admin.mail.legendServer': 'Mail server (SMTP)',
+	'admin.mail.host': 'Server',
+	'admin.mail.hostRequired': 'Type the mail server.',
+	'admin.mail.port': 'Port',
+	'admin.mail.portInvalid': 'The port is a number between 1 and 65535.',
+	'admin.mail.username': 'Username',
+	'admin.mail.password': 'Password',
+	'admin.mail.passwordHelp':
+		'Leave it empty to keep the one that is there. Type only if you want to change it.',
+	'admin.mail.removePassword': 'Remove the saved password',
+	'admin.mail.tls': 'Always use TLS',
+	'admin.mail.tlsHint':
+		'Tick it if your provider uses port 465. With 587 leave it unticked: the connection is encrypted anyway.',
+	'admin.mail.saved': 'Email saved. Send a test to check it.',
+	'admin.mail.removeDialog.title': 'Remove the saved password?',
+	'admin.mail.removeDialog.body':
+		'The server will try to send without a password. If your provider requires one, invitations will stop going out until you set another.',
+	'admin.mail.removeDialog.confirm': 'Remove the password',
+	'admin.mail.removeDialog.removing': 'Removing…',
+	'admin.mail.removeDialog.success': 'Password removed.',
+	'admin.appUrl.label': 'Vega address',
+	'admin.appUrl.help': 'The links in the emails start with it, like the one in the invitation.',
+	'admin.appUrl.mismatch':
+		'This is not the address you are using Vega from right now ({origin}). If it stays like this, the invitation link may lead to a place where Vega is not.',
+	'admin.appUrl.mismatchClosed':
+		'The links in the emails do not lead to the address you are using Vega from right now ({origin}).',
+	'admin.appUrl.useCurrent': 'Use the current one',
+	'admin.appUrl.http':
+		'It starts with http://: whoever opens the link will choose their password over an unencrypted connection. Use https:// if the site has it.',
+	'admin.appUrl.notHttp': 'Type the full address, starting with https://.',
+	'admin.appUrl.linkFixed': 'The invitation email template now points to this address.',
 	'admin.reset.title': 'Choose your password',
 	'admin.reset.intro': 'It is the password you will use to sign in to this admin.',
 	'admin.reset.submit': 'Save password',
