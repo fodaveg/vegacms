@@ -969,8 +969,10 @@ Y una, pública, para `/restablecer`: `POST /api/collections/vega_editors/confir
 
 ### Invitar a un editor: hace falta correo
 
-«Añadir editor» ofrece **Enviarle una invitación** solo si PocketBase tiene SMTP configurado
-(**Settings → Mail settings**). La invitación crea la cuenta con una contraseña aleatoria que nadie
+«Añadir editor» ofrece **Enviarle una invitación** solo si PocketBase tiene SMTP configurado. Un
+superusuario lo configura **desde Vega**, en la tarjeta «Correo para invitaciones» de **Editores**
+(debajo de la lista; ver «Ajustes de PocketBase que Vega escribe»), sin pasar por **Settings → Mail
+settings** del Admin de PocketBase. La invitación crea la cuenta con una contraseña aleatoria que nadie
 conoce y pide a PocketBase el correo de **restablecimiento de contraseña**: la persona elige la
 suya desde ese enlace. Sin SMTP, la única opción es **Poner yo la contraseña** y pasársela por otro
 canal. No hay «copiar enlace»: PocketBase no emite ese token sin enviar el correo, y hacerlo
@@ -1054,6 +1056,32 @@ contra `POST /api/settings/test/s3` y `filesystem: 'backups'`). El contrato medi
 - Cambiar el destino no mueve las copias que ya hay: la lista de `/copias` pasa a enseñar las del
   destino activo.
 - Sin medir: si las listas de ajustes se fusionan o se reemplazan. Vega no escribe ninguna.
+
+#### Correo para invitaciones y dirección de Vega (`/editores`)
+
+La tarjeta «Correo para invitaciones» de **Editores** escribe `smtp` (servidor, puerto, usuario,
+contraseña, «usar siempre TLS») y, **en el mismo formulario y con un solo «Guardar»**, `meta.senderName`,
+`meta.senderAddress` y `meta.appURL` (la «dirección de Vega»). Guardar activa el correo
+(`smtp.enabled: true`). Medido contra PocketBase 0.39.9
+(`tests/contract/pocketbase.server-settings.contract.test.ts`, con el sumidero SMTP del harness):
+
+- **El remitente vive en `meta`, no en `smtp`.** `meta.senderAddress` debe ser un email y con
+  `smtp.enabled` PocketBase exige `smtp.host` y un `smtp.port` válido; los errores llegan por campo
+  (`meta.senderAddress`, `smtp.host`, `smtp.port`).
+- **La contraseña SMTP sí se borra de verdad** (`smtp.password: ""`), pero Vega solo lo manda con la
+  acción explícita «Quitar la contraseña guardada», con confirmación: el campo va siempre vacío y
+  vaciarlo no significa borrar.
+- **«Enviar prueba»** (`POST /api/settings/test/email`) prueba lo **guardado** y por eso vive en la
+  tarjeta guardada, no en el formulario. Dice «enviada», no «recibida». Con una contraseña guardada y un
+  servidor sin AUTH, PocketBase falla con un texto crudo poco claro (`250 "OK"`); Vega lo enseña tal cual.
+- **`meta.appURL` acepta cualquier esquema** en PocketBase; exigir http(s) es de Vega (un valor sin
+  `http(s)://` bloquea; `http://` fuera de loopback solo avisa). El enlace de la invitación empieza por
+  ella.
+- **Aviso «no es la dirección desde la que usas Vega»:** se decide con `canWriteInvitationLink` (la
+  misma regla con la que el puerto decide si puede corregir la plantilla de la invitación) y se ve
+  también con la tarjeta cerrada. «Usar la de ahora» rellena el campo con el origen actual. Tras
+  guardar una dirección que ahora sí coincide, Vega vuelve a llamar a `ensureInvitationLink` y, si la
+  plantilla se corrigió, lo dice en un aviso.
 
 ## Sincronización en tiempo real
 
