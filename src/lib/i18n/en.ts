@@ -946,8 +946,6 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// filter's. The mockup also shows the total weight in MB: Vega does not know it (§4.4, the port
 	// does not expose the size of an already stored file) and does not make it up.
 	'media.meta.files': 'files',
-	'media.search.placeholder': 'Search by file name…',
-	'media.search.ariaLabel': 'Search the library by file name',
 	'media.filter.groupLabel': 'Filter by type',
 	'media.filter.all': 'All',
 	'media.filter.images': 'Images',

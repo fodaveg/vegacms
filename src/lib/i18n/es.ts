@@ -1007,8 +1007,6 @@ export const es = {
 	// de la página ni el del filtro. El mockup añade además el peso total en MB: Vega no lo sabe
 	// (§4.4, el puerto no expone el tamaño de un fichero ya almacenado) y no se inventa.
 	'media.meta.files': 'archivos',
-	'media.search.placeholder': 'Buscar por nombre de archivo…',
-	'media.search.ariaLabel': 'Buscar en la biblioteca por nombre de archivo',
 	'media.filter.groupLabel': 'Filtrar por tipo',
 	'media.filter.all': 'Todos',
 	'media.filter.images': 'Imágenes',
