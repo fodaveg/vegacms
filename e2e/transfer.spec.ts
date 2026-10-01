@@ -209,10 +209,10 @@ test.describe('importar — ciclo completo (`#lote-esquema`, Fase 2)', () => {
 
 		// ————— 3. Importar el fichero editado —————
 		await page.getByRole('button', { name: 'Importar' }).click();
-		const importDialog = page.getByRole('dialog', { name: 'Importar un fichero .vega.json' });
+		const importDialog = page.getByRole('dialog', { name: 'Importar un archivo .vega.json' });
 		await expect(importDialog).toBeVisible();
 
-		await importDialog.getByLabel('Elige un fichero .vega.json').setInputFiles({
+		await importDialog.getByLabel('Elige un archivo .vega.json').setInputFiles({
 			name: 'metrics-editado.vega.json',
 			mimeType: 'application/json',
 			buffer: Buffer.from(JSON.stringify(doc))

@@ -239,7 +239,7 @@ export const es = {
 	// `editor.create.title`/`editor.edit.title`: desde R7 del rediseño C2 solo alimentan el `<h1>`
 	// VISUALMENTE OCULTO de `RecordForm.svelte` (a11y de jerarquía de headings) — el título visible
 	// del editor es ahora el crumb de `EditTopBar`, no un heading en pantalla.
-	'editor.create.title': 'Crear «{label}»',
+	'editor.create.title': 'Nuevo: {label}',
 	'editor.edit.title': 'Editar «{label}»',
 	'editor.save': 'Guardar',
 	'editor.saving': 'Guardando…',
@@ -463,7 +463,7 @@ export const es = {
 	'editor.meta.created': 'Creado',
 	'editor.meta.updated': 'Actualizado',
 	'editor.dangerZone.title': 'Zona de peligro',
-	'editor.delete': 'Eliminar {label}…',
+	'editor.delete': 'Borrar {label}…',
 	'editor.slug.regenerate': 'Regenerar',
 
 	// ————— Modelo de páginas (capacidad `page`, tarea p1 `1dc63001`) —————
@@ -569,7 +569,7 @@ export const es = {
 	'form.errorCode.vega_unsupported_field': 'Vega no puede escribir este campo.',
 	'form.errorCode.vega_readonly_field': 'Este campo es de solo lectura.',
 	'form.errorCode.vega_unknown_field': 'Este campo no existe en el tipo de contenido.',
-	'form.errorCode.vega_foreign_file_ref': 'Ese fichero no pertenece a este registro.',
+	'form.errorCode.vega_foreign_file_ref': 'Ese archivo no pertenece a este registro.',
 	// Código LOCAL, no viene de PB (`page-path.ts`): forma de la ruta pública de una página,
 	// validada en cliente (§2 del encargo "crear y editar páginas") — PocketBase no la conoce,
 	// para él `pathField` es un `text` cualquiera.
@@ -603,13 +603,13 @@ export const es = {
 	'form.relation.media.type.document': 'Archivo',
 
 	// ————— Widget file (Fase F5-f del contrato P5) —————
-	'form.file.dropHint': 'Arrastra ficheros aquí o haz clic para elegir',
-	'form.file.empty': 'Sin ficheros',
+	'form.file.dropHint': 'Arrastra archivos aquí o haz clic para elegir',
+	'form.file.empty': 'Sin archivos',
 	'form.file.remove': 'Quitar',
 	'form.file.removeLabel': 'Quitar «{name}»',
 	'form.file.tooLarge': '«{name}» es demasiado grande.',
-	'form.file.invalidType': '«{name}» no es un tipo de fichero permitido.',
-	'form.file.tooMany': '«{name}» no se añadió: se alcanzó el máximo de ficheros.',
+	'form.file.invalidType': '«{name}» no es un tipo de archivo permitido.',
+	'form.file.tooMany': '«{name}» no se añadió: se alcanzó el máximo de archivos.',
 	// Fase P6·6e (D-P6.6): botón que abre `MediaPicker.svelte`. Oculto por completo sin
 	// `ctx.mediaPicker` (L-P6.9), nunca deshabilitado sin explicación.
 	'form.file.pickFromLibrary': 'Elegir de la biblioteca',
@@ -753,7 +753,7 @@ export const es = {
 	// `FilterChips.svelte`; ahora describe el `role="menu"` con las opciones para ELEGIR un
 	// filtro nuevo (ver `ListToolbar.svelte`).
 	'list.filter.groupLabel': 'Filtrar por estado',
-	'list.new.button': 'Crear «{label}»',
+	'list.new.button': 'Nuevo: {label}',
 
 	// ————— Chips de filtro ACTIVO (M6, reabre R2, mockup `.toolbar .chip`) —————
 	'list.activeFilter.groupLabel': 'Filtros activos',
@@ -783,17 +783,17 @@ export const es = {
 
 	// ————— Importar (`#lote-esquema`, Fase 2): botón + diálogo (ver `ImportDialog.svelte`) —————
 	'list.import.button': 'Importar',
-	'list.import.dialog.title': 'Importar un fichero .vega.json',
-	'list.import.pick.label': 'Elige un fichero .vega.json',
+	'list.import.dialog.title': 'Importar un archivo .vega.json',
+	'list.import.pick.label': 'Elige un archivo .vega.json',
 	'list.import.pick.hint':
-		'Solo ficheros .vega.json generados por "Exportar". Puede traer varias colecciones.',
+		'Solo archivos .vega.json generados por "Exportar". Puede traer varias colecciones.',
 	'list.import.reading': 'Leyendo «{fileName}»…',
 
 	// ————— Fichero inválido (§4.1: cabecera/colecciones/campos, todo-o-nada) —————
-	'list.import.invalid.title': 'Este fichero no se puede importar',
-	'list.import.invalid.malformed': 'El fichero no tiene la forma de un .vega.json válido.',
+	'list.import.invalid.title': 'Este archivo no se puede importar',
+	'list.import.invalid.malformed': 'El archivo no tiene la forma de un .vega.json válido.',
 	'list.import.invalid.unrecognizedVersion':
-		'Este fichero es de una versión del formato que esta versión de Vega no reconoce.',
+		'Este archivo es de una versión del formato que esta versión de Vega no reconoce.',
 	'list.import.invalid.unknownCollection': 'La colección «{type}» no existe en este proyecto.',
 	'list.import.invalid.unknownField':
 		'El campo «{field}» de «{type}» ya no existe en el esquema actual.',
@@ -814,7 +814,7 @@ export const es = {
 		'el campo «{field}» apunta a un registro que no existe',
 	'list.import.blockedReason.requiredEmpty': 'el campo obligatorio «{field}» llega sin valor',
 	'list.import.blockedReason.unreachableRequiredFile':
-		'el fichero obligatorio del campo «{field}» no se pudo traer del origen',
+		'el archivo obligatorio del campo «{field}» no se pudo traer del origen',
 
 	// ————— Escritura + informe (§4.3/§4.4) —————
 	'list.import.dialog.confirm': 'Importar',
@@ -830,7 +830,7 @@ export const es = {
 	'list.import.error': 'No se pudo preparar la vista previa. Vuelve a intentarlo.',
 	'list.import.runError':
 		'La importación se interrumpió por un error inesperado. Revisa qué registros entraron y vuelve a intentarlo.',
-	'list.import.reading.bar': 'Progreso de la lectura del fichero',
+	'list.import.reading.bar': 'Progreso de la lectura del archivo',
 	'list.import.progress.count': 'Importando… {done} de {total}',
 
 	// ————— Borrado (Fase 4e del contrato P4) —————
@@ -960,7 +960,7 @@ export const es = {
 
 	// ————— Papelera (`#lote-integridad`, Fase B2) — línea compartida de los 4 diálogos de borrado —————
 	'revisions.trash.deleteFilesHint':
-		'Los ficheros adjuntos no se recuperan, aunque restaures la entrada.',
+		'Los archivos adjuntos no se recuperan, aunque restaures la entrada.',
 
 	// ————— Papelera — ruta /papelera —————
 	'revisions.trash.pageTitle': 'Papelera',
@@ -972,7 +972,7 @@ export const es = {
 	'revisions.trash.unavailable': 'La papelera no está activada en este proyecto.',
 	'revisions.trash.empty': 'La papelera está vacía.',
 	'revisions.trash.itemCollection': 'Colección: {collection}',
-	'revisions.trash.itemFilesLost': 'Tenía ficheros adjuntos: no se restaurarán.',
+	'revisions.trash.itemFilesLost': 'Tenía archivos adjuntos: no se restaurarán.',
 	'revisions.trash.restore': 'Restaurar',
 	'revisions.trash.restoring': 'Restaurando…',
 	'revisions.trash.restoreUnavailable':
@@ -983,7 +983,7 @@ export const es = {
 	// restaurado (PB destruye el binario al borrar, §0.3), así que una colección con uno OBLIGATORIO
 	// no puede recrearse completa — derivado del esquema, no un caso especial de "vega_media".
 	'revisions.trash.restoreBlockedRequiredFile':
-		'El campo "{field}" de "{collection}" es un fichero obligatorio: los ficheros no se restauran nunca (§0.3), así que este registro no se puede recrear completo. "Restaurar" no está disponible.',
+		'El campo "{field}" de "{collection}" es un archivo obligatorio: los archivos no se restauran nunca (§0.3), así que este registro no se puede recrear completo. "Restaurar" no está disponible.',
 	'revisions.trash.restoreSuccess': '"{label}" se ha restaurado.',
 	'revisions.trash.deleteForever': 'Borrar definitivamente',
 	'revisions.trash.deleteForeverConfirmTitle': '¿Borrar «{label}» definitivamente?',
@@ -1008,7 +1008,7 @@ export const es = {
 	// ————— Medios: bootstrap + esquema (Fase P6·6a) —————
 	'media.loadErrorBody': 'No se pudo cargar la biblioteca de medios. Vuelve a intentarlo.',
 	'media.empty.title': 'La biblioteca de medios está vacía',
-	'media.empty.body': 'Todavía no hay ningún fichero. Sube el primero desde el apartado de arriba.',
+	'media.empty.body': 'Todavía no hay ningún archivo. Sube el primero desde el apartado de arriba.',
 	'media.bootstrap.confirmBody':
 		'Vega va a crear la colección "vega_media" en tu PocketBase. ¿Continuar?',
 	'media.bootstrap.confirm': 'Crear colección',
@@ -1044,7 +1044,7 @@ export const es = {
 	// marca de la tarjeta sigue al valor guardado; la pista de la ficha, a lo que se escribe.
 	'media.alt.missing': 'Sin texto alternativo',
 	'media.detail.altMissingHint': 'Sin texto alternativo: un lector de pantalla leerá «{name}».',
-	'media.detail.altHelp': 'Describe lo que se ve, no el nombre del fichero.',
+	'media.detail.altHelp': 'Describe lo que se ve, no el nombre del archivo.',
 	// Punto focal (audit del 23 sep): lo que el sitio conserva al recortar la imagen. Vacío = centro.
 	'media.focal.label': 'Punto focal',
 	'media.focal.help':
@@ -1076,20 +1076,20 @@ export const es = {
 	// aleatorio, así que NO se puede prometer "conserva su URL" — solo se conserva el id y los
 	// metadatos del registro (`alt`/`title`/`tags`), por eso `warningIdentity`/`warningUrl` son dos
 	// mensajes DISTINTOS y ninguno menciona caché (no aplica: la URL cambia de nombre, no de valor).
-	'media.detail.replace': 'Reemplazar fichero',
-	'media.replace.rejectedTooLarge': 'El fichero elegido excede el tamaño máximo permitido.',
-	'media.replace.rejectedInvalidType': 'El fichero elegido no es de un tipo admitido.',
-	'media.replace.confirmTitle': '¿Reemplazar el fichero de «{label}»?',
+	'media.detail.replace': 'Reemplazar archivo',
+	'media.replace.rejectedTooLarge': 'El archivo elegido excede el tamaño máximo permitido.',
+	'media.replace.rejectedInvalidType': 'El archivo elegido no es de un tipo admitido.',
+	'media.replace.confirmTitle': '¿Reemplazar el archivo de «{label}»?',
 	'media.replace.warningIdentity':
 		'El registro conserva su id y sus metadatos (alt, título, etiquetas): cualquier referencia por relación sigue siendo válida.',
 	'media.replace.warningUrl':
-		'La URL directa del fichero VA A CAMBIAR: quien la tuviera pegada a mano dejará de verla.',
+		'La URL directa del archivo VA A CAMBIAR: quien la tuviera pegada a mano dejará de verla.',
 	'media.replace.usedInIntro': 'Esto es lo que usaba la URL actual, antes de reemplazarla:',
 	'media.replace.confirm': 'Reemplazar',
 	'media.replace.replacing': 'Reemplazando…',
-	'media.replace.success': 'Fichero reemplazado. La URL directa ha cambiado.',
+	'media.replace.success': 'Archivo reemplazado. La URL directa ha cambiado.',
 	'media.replace.warningDrafts':
-		'Los cambios sin guardar de la ficha (texto alternativo, título, etiquetas, punto focal) se guardarán a la vez que el fichero.',
+		'Los cambios sin guardar de la ficha (texto alternativo, título, etiquetas, punto focal) se guardarán a la vez que el archivo.',
 
 	// ————— Medios: cabecera + toolbar de la biblioteca (rediseño «aquelarre-medios») —————
 	// El recuento de la cabecera es el TOTAL de la biblioteca (`totalItems` del listado), nunca el
@@ -1099,7 +1099,7 @@ export const es = {
 	'media.filter.groupLabel': 'Filtrar por tipo',
 	'media.filter.all': 'Todos',
 	'media.filter.images': 'Imágenes',
-	'media.filter.video': 'Vídeo',
+	'media.filter.video': 'Vídeos',
 	'media.filter.documents': 'Documentos',
 	'media.filter.empty': 'Ningún archivo de esta página coincide con la búsqueda o el tipo elegido.',
 	'media.filter.clear': 'Limpiar filtros',
@@ -1117,12 +1117,12 @@ export const es = {
 	'media.selection.copy': 'Copiar URL',
 	'media.selection.copySuccess': '{count} URL(s) copiada(s) al portapapeles.',
 	'media.selection.copyError': 'No se pudo copiar al portapapeles.',
-	'media.selection.delete': 'Eliminar',
+	'media.selection.delete': 'Borrar',
 	'media.selection.deleteTitle': '¿Borrar {count} archivos de la biblioteca?',
 	'media.selection.deleteSuccess': '{count} archivo(s) borrado(s) de la biblioteca.',
 
 	// ————— Medios: subida drag&drop (Fase P6·6c) —————
-	'media.upload.inputLabel': 'Subir ficheros',
+	'media.upload.inputLabel': 'Subir archivos',
 	'media.upload.button': 'Subir archivos',
 	// Banda de arrastre (mockup `.dropzone`), troceada porque cada parte se pinta distinta: el
 	// gesto en negrita y el límite en `--mono` (valor canónico). `{max}` sale del esquema REAL de
@@ -1137,12 +1137,12 @@ export const es = {
 	'media.upload.status.done': 'Subido',
 	'media.upload.status.error': 'Error: {message}',
 	'media.upload.reason.tooLarge': 'excede el tamaño máximo permitido',
-	'media.upload.reason.invalidType': 'tipo de fichero no permitido',
+	'media.upload.reason.invalidType': 'tipo de archivo no permitido',
 	'media.upload.aborted':
-		'subida cancelada: un fichero anterior del lote falló por conexión/permiso',
-	'media.upload.summary': '{uploaded} fichero(s) subido(s), {failed} fallido(s).',
+		'subida cancelada: un archivo anterior del lote falló por conexión/permiso',
+	'media.upload.summary': '{uploaded} archivo(s) subido(s), {failed} fallido(s).',
 	'media.upload.summaryPending':
-		'{uploaded} fichero(s) subido(s), {failed} fallido(s), {pending} pendiente(s) por la sesión caducada.',
+		'{uploaded} archivo(s) subido(s), {failed} fallido(s), {pending} pendiente(s) por la sesión caducada.',
 	'media.upload.keepOriginal': 'Subir el original',
 	'media.upload.shrinkNotice':
 		'Las imágenes grandes se reducen al subirlas. Se pierden los datos de la cámara, incluida la ubicación.',
@@ -1159,10 +1159,10 @@ export const es = {
 	// D-P6.6/L-P6.8: el picker COPIA bytes (nunca referencia un `vega_media` desde un registro),
 	// así que el aviso es honesto sobre eso mismo (D-P6.7, la duplicación de bytes se acepta en v1).
 	'media.picker.title': 'Elegir de la biblioteca',
-	'media.picker.copyNotice': 'Se insertará una copia del fichero elegido en este campo.',
+	'media.picker.copyNotice': 'Se insertará una copia del archivo elegido en este campo.',
 	'media.picker.searchLabel': 'Buscar por título o texto alternativo',
 	'media.picker.searchPlaceholder': 'Buscar…',
-	'media.picker.empty': 'Ningún asset coincide con la búsqueda o el tipo de fichero admitido.',
+	'media.picker.empty': 'Ningún asset coincide con la búsqueda o el tipo de archivo admitido.',
 	'media.picker.selectedCount': '{count} elegido(s)',
 	// Segunda mitad del pie («2 elegidos · 1 sin texto alternativo»): solo se pinta si hay alguno.
 	'media.picker.missingAltCount': '{count} sin texto alternativo',
@@ -1255,16 +1255,16 @@ export const es = {
 	'settings.schema.fields.relation.onDeleteUnlink': 'Conservar este registro',
 	'settings.schema.fields.relation.onDeleteCascade': 'Borrar este registro',
 	'settings.schema.fields.relation.cascadeWarning':
-		'PocketBase borrará este registro al eliminar su última relación. Esta acción no se puede deshacer.',
+		'PocketBase borrará este registro al borrar su última relación. Esta acción no se puede deshacer.',
 	'settings.schema.error': 'Error: {message}',
 	// Migración JS emitida tras crear/añadir con éxito (mitad 2 del lote "esquema"): sin esto,
 	// cada edición de esquema desde Vega aleja producción del repo EN SILENCIO.
 	'settings.schema.migration.title': 'Migración generada',
 	'settings.schema.migration.instructions':
-		'Guarda este fichero como pb_migrations/{filename} en el repositorio de tu proyecto y commítalo: sin él, este cambio de esquema solo existe en tu PocketBase, no en tu control de versiones.',
+		'Guarda este archivo como pb_migrations/{filename} en el repositorio de tu proyecto y commítalo: sin él, este cambio de esquema solo existe en tu PocketBase, no en tu control de versiones.',
 	'settings.schema.migration.pendingTitle': 'Migración generada — todavía no aplicada',
 	'settings.schema.migration.pendingInstructions':
-		'Guarda este fichero como pb_migrations/{filename}, revísalo y aplícalo fuera de Vega: generarlo o copiarlo no cambia PocketBase. Si lo generas otra vez antes de aplicarlo obtendrás otro fichero para las mismas columnas. Si el esquema cambia entretanto, la migración puede fallar al aplicarse. Su down elimina estas columnas y cualquier dato escrito en ellas después del up.',
+		'Guarda este archivo como pb_migrations/{filename}, revísalo y aplícalo fuera de Vega: generarlo o copiarlo no cambia PocketBase. Si lo generas otra vez antes de aplicarlo obtendrás otro archivo para las mismas columnas. Si el esquema cambia entretanto, la migración puede fallar al aplicarse. Su down elimina estas columnas y cualquier dato escrito en ellas después del up.',
 	'settings.schema.migration.copy': 'Copiar',
 	'settings.schema.migration.copied': 'Copiado',
 
@@ -1273,7 +1273,7 @@ export const es = {
 	'settings.blockColumns.missingSummary':
 		'Este manifiesto declara {count} columna(s) física(s) que no existen.',
 	'settings.blockColumns.migrationPerCollection':
-		'Vega genera un fichero separado por cada colección de bloques y solo incluye sus columnas ausentes.',
+		'Vega genera un archivo separado por cada colección de bloques y solo incluye sus columnas ausentes.',
 	'settings.blockColumns.collectionMissingTitle': 'Colección de bloques no disponible',
 	'settings.blockColumns.collectionMissingBody':
 		'La colección hija declarada por "{collection}" no existe en el esquema o está reservada. No se puede diagnosticar ni generar una reconciliación hasta crearla por otro medio.',
@@ -1297,7 +1297,7 @@ export const es = {
 	'settings.blockColumns.type.date': 'fecha',
 	'settings.blockColumns.type.select': 'selección',
 	'settings.blockColumns.type.relation': 'relación',
-	'settings.blockColumns.type.file': 'fichero',
+	'settings.blockColumns.type.file': 'archivo',
 	'settings.blockColumns.type.json': 'JSON',
 	'settings.blockColumns.type.unsupported': 'tipo no soportado',
 	'settings.blockColumns.type.autodate': 'fecha automática',
@@ -1316,7 +1316,7 @@ export const es = {
 	'settings.blockColumns.reason.cardinality': 'la cardinalidad o sus máximos no coinciden',
 	'settings.blockColumns.reason.cascadeDelete': 'la política de borrado en cascada no coincide',
 	'settings.blockColumns.reason.fileConstraints':
-		'las restricciones de fichero (tamaño, MIME o protección) no coinciden',
+		'las restricciones de archivo (tamaño, MIME o protección) no coinciden',
 	'settings.blockColumns.reason.constraints':
 		'la forma física esperada y la columna real tienen restricciones distintas',
 
@@ -1381,7 +1381,7 @@ export const es = {
 	'settings.site.collection.redirects': 'Redirecciones',
 	'settings.site.collection.vega': 'Modelo de contenido',
 	'settings.site.create.pages': 'título, ruta, plantilla, estado, fecha de publicación y SEO',
-	'settings.site.create.vega_media': 'las imágenes y ficheros que se suben',
+	'settings.site.create.vega_media': 'las imágenes y archivos que se suben',
 	'settings.site.create.blocks': 'las secciones de cada página',
 	'settings.site.create.redirects': 'de una ruta antigua a una nueva',
 	'settings.site.create.vega': 'cómo se llaman y se ordenan los campos en los formularios',
@@ -1492,7 +1492,7 @@ export const es = {
 	// La colección se crea al preparar el sitio, desde la tarjeta «Base del sitio» de Ajustes.
 	'admin.editors.missingCollection':
 		'Este sitio todavía no tiene dónde guardar las cuentas de los editores. Se crea al preparar el sitio.',
-	'admin.editors.col.email': 'Email',
+	'admin.editors.col.email': 'Correo',
 	'admin.editors.col.status': 'Estado',
 	'admin.editors.col.created': 'Alta',
 	'admin.editors.col.actions': 'Acciones',
@@ -1512,7 +1512,7 @@ export const es = {
 	'admin.editors.remove': 'Quitar acceso',
 	'admin.editors.removeFor': 'Quitar el acceso a {email}',
 	'admin.editors.addDialog.title': 'Añadir editor',
-	'admin.editors.addDialog.email': 'Email',
+	'admin.editors.addDialog.email': 'Correo',
 	'admin.editors.addDialog.accessLabel': 'Cómo entrará',
 	'admin.editors.addDialog.invite': 'Enviarle una invitación',
 	'admin.editors.addDialog.inviteHint': 'Recibe un correo y elige su contraseña.',
@@ -1543,7 +1543,7 @@ export const es = {
 		'Las copias de seguridad exigen entrar como superusuario de PocketBase. Tu cuenta es de editor.',
 	'admin.backups.title': 'Copias de seguridad',
 	'admin.backups.description':
-		'Copia completa de la base de datos y de los ficheros subidos, guardada en el servidor. Descárgala para tener otra fuera de él.',
+		'Copia completa de la base de datos y de los archivos subidos, guardada en el servidor. Descárgala para tener otra fuera de él.',
 	'admin.backups.create': 'Crear copia',
 	'admin.backups.creating': 'Creando…',
 	'admin.backups.running': 'Creando copia… {elapsed}',
@@ -1704,7 +1704,7 @@ export const es = {
 	'admin.reset.submit': 'Guardar contraseña',
 	'admin.reset.saving': 'Guardando…',
 	'admin.reset.successTitle': 'Contraseña guardada',
-	'admin.reset.successBody': 'Ya puedes entrar con tu email y la contraseña nueva.',
+	'admin.reset.successBody': 'Ya puedes entrar con tu correo y la contraseña nueva.',
 	'admin.reset.toLogin': 'Ir a entrar',
 	'admin.reset.expiredTitle': 'Este enlace ya no sirve',
 	'admin.reset.expiredBody':
@@ -1720,9 +1720,9 @@ export const es = {
 	'admin.form.passwordTooShort': 'Mínimo {min} caracteres.',
 	'admin.form.passwordMismatch': 'No coincide con la de arriba.',
 	'admin.form.passwordRejected': 'El servidor no acepta esta contraseña: {message}',
-	'admin.form.emailInvalid': 'Escribe un email válido.',
-	'admin.form.emailTaken': 'Ya hay un editor con ese email.',
-	'admin.form.emailRejected': 'El servidor no acepta este email: {message}',
+	'admin.form.emailInvalid': 'Escribe un correo válido.',
+	'admin.form.emailTaken': 'Ya hay un editor con ese correo.',
+	'admin.form.emailRejected': 'El servidor no acepta este correo: {message}',
 	'admin.form.rejected': 'El servidor rechazó los datos: {message}',
 
 	// ————— Toasts (§2.3) —————

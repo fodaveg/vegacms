@@ -68,11 +68,11 @@ test.describe('borrar → papelera → restaurar (§8·B2, promesa central del l
 
 		// Borrado desde la zona de peligro del editor (no desde la fila del listado): mismo diálogo
 		// `DeleteConfirm`, con la promesa de la papelera (§4/§10.3) en su única frase.
-		await page.getByRole('button', { name: 'Eliminar Entrada…' }).click();
+		await page.getByRole('button', { name: 'Borrar Entrada…' }).click();
 		const dialog = page.getByRole('alertdialog');
 		await expect(dialog).toBeVisible();
 		await expect(dialog).toContainText('podrás recuperarla durante 30 día(s)');
-		await expect(dialog).toContainText('Los ficheros adjuntos no se recuperan');
+		await expect(dialog).toContainText('Los archivos adjuntos no se recuperan');
 
 		await dialog.getByRole('button', { name: 'Borrar', exact: true }).click();
 		await expect(dialog).toBeHidden();
@@ -82,7 +82,7 @@ test.describe('borrar → papelera → restaurar (§8·B2, promesa central del l
 		const item = page.locator('.vega-trash-item', { hasText: 'Bienvenido a Vega' });
 		await expect(item).toBeVisible();
 		await expect(item).toContainText('Colección: posts');
-		await expect(item).toContainText('Tenía ficheros adjuntos: no se restaurarán.');
+		await expect(item).toContainText('Tenía archivos adjuntos: no se restaurarán.');
 
 		await item.getByRole('button', { name: 'Restaurar' }).click();
 		await expect(page.getByText('"Bienvenido a Vega" se ha restaurado.')).toBeVisible();
@@ -133,7 +133,7 @@ test.describe('un asset con "file" obligatorio en la papelera (fix de code-revie
 		// `requiredFileFieldName` deriva el bloqueo del ESQUEMA (`file` es `required` en
 		// `vega_media`): nunca un botón "Restaurar", solo el motivo dicho con todas las letras.
 		await expect(item.getByRole('button', { name: 'Restaurar' })).toHaveCount(0);
-		await expect(item).toContainText('El campo "file" de "vega_media" es un fichero obligatorio');
+		await expect(item).toContainText('El campo "file" de "vega_media" es un archivo obligatorio');
 		await expect(item).toContainText('"Restaurar" no está disponible.');
 
 		// El bloqueo es SOLO sobre "Restaurar": "Borrar definitivamente" sigue funcionando igual.

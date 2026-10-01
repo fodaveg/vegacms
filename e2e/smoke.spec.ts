@@ -12,7 +12,7 @@
  *
  * - **Todo por rol/label, NUNCA por selector de markup** (clase CSS, estructura, `nth`): el
  *   rediseño C2 (lotes 1-3) reescribió el markup del shell, el listado y el editor sin tocar los
- *   nombres accesibles (link "Entradas", botón "Crear «Entrada»"/"Guardar", campo "Title"). Un
+ *   nombres accesibles (link "Entradas", botón "Nuevo: Entrada"/"Guardar", campo "Title"). Un
  *   smoke atado al markup se rompería en cada iteración visual; atado a roles/labels sobrevive.
  * - **Navegación por CLICS de UI, no `page.goto(...)`**: el objetivo es ejercitar el shell real
  *   (sidebar → listado → CTA → editor), no saltar directo a una ruta profunda. Un `goto` se
@@ -41,10 +41,10 @@ test.describe('smoke: login → crear → editar → guardar → persiste', () =
 		await page.getByRole('link', { name: 'Entradas' }).click();
 		await page.waitForURL('**/c/posts');
 
-		// 3) Crear: CTA primaria del listado (R2, "Crear «Entrada»") → formulario de creación.
-		await page.getByRole('button', { name: 'Crear «Entrada»' }).click();
+		// 3) Crear: CTA primaria del listado (R2, "Nuevo: Entrada") → formulario de creación.
+		await page.getByRole('button', { name: 'Nuevo: Entrada' }).click();
 		await page.waitForURL('**/c/posts/new');
-		await expect(page.getByRole('heading', { name: 'Crear «Entrada»' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Nuevo: Entrada' })).toBeVisible();
 
 		// 4) Rellenar el único campo requerido (`title`) y guardar.
 		await page.getByLabel('Título', { exact: true }).fill(SMOKE_TITLE);

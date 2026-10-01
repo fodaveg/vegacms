@@ -20,15 +20,15 @@ test('una colección sin permiso de creación no ofrece "Nueva" ni en la cabecer
 	await page.goto('/c/avisos');
 
 	await expect(page.getByRole('heading', { name: 'Avisos', level: 1 })).toBeVisible();
-	// Rótulo REAL del botón (`list.new.button` = `Crear «{label}»`, con `labelSingular`): escrito
+	// Rótulo REAL del botón (`list.new.button` = `Nuevo: {label}`, con `labelSingular`): escrito
 	// tal cual a propósito — con un texto aproximado, este aserto pasaría aunque el botón SÍ se
 	// pintara (verificado rompiendo `resolvePermissions` a mano: el `/Nuevo Aviso/` que había
 	// antes aquí seguía en verde con la restricción desactivada).
-	await expect(page.getByRole('button', { name: 'Crear «Aviso»' })).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Nuevo: Aviso' })).toHaveCount(0);
 	// …y en una colección SIN restricción, ese mismo localizador SÍ encuentra el botón: la
 	// ausencia de arriba dice algo, no es un selector que no case nunca.
 	await page.goto('/c/authors');
-	await expect(page.getByRole('button', { name: 'Crear «Autor»' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Nuevo: Autor' })).toBeVisible();
 	await page.goto('/c/avisos');
 
 	// El atajo `N` tampoco existe (mismo guard que el botón): pulsarlo no navega a `/new`.

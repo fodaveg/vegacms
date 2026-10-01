@@ -159,7 +159,7 @@ test.describe('reemplazar el fichero (MediaReplaceConfirm)', () => {
 		await goToMedia(page);
 		const detail = await openMediaDetail(page, 'media_2');
 
-		await detail.getByLabel('Reemplazar fichero').setInputFiles({
+		await detail.getByLabel('Reemplazar archivo').setInputFiles({
 			name: 'nueva-foto.png',
 			mimeType: 'image/png',
 			buffer: Buffer.from(TINY_PNG_BASE64, 'base64')
@@ -175,7 +175,7 @@ test.describe('reemplazar el fichero (MediaReplaceConfirm)', () => {
 		).toBeVisible();
 		await expect(
 			confirm.getByText(
-				'La URL directa del fichero VA A CAMBIAR: quien la tuviera pegada a mano dejará de verla.'
+				'La URL directa del archivo VA A CAMBIAR: quien la tuviera pegada a mano dejará de verla.'
 			)
 		).toBeVisible();
 		// `autoLoad`: ya expandido y cargado, sin toggle de por medio — la persona confirmando ve
@@ -193,7 +193,7 @@ test.describe('reemplazar el fichero (MediaReplaceConfirm)', () => {
 		await goToMedia(page);
 		const detail = await openMediaDetail(page, 'media_1');
 
-		await detail.getByLabel('Reemplazar fichero').setInputFiles({
+		await detail.getByLabel('Reemplazar archivo').setInputFiles({
 			name: 'otra.png',
 			mimeType: 'image/png',
 			buffer: Buffer.from(TINY_PNG_BASE64, 'base64')
@@ -213,13 +213,13 @@ test.describe('reemplazar el fichero (MediaReplaceConfirm)', () => {
 		await goToMedia(page);
 		const detail = await openMediaDetail(page, 'media_1');
 
-		await detail.getByLabel('Reemplazar fichero').setInputFiles({
+		await detail.getByLabel('Reemplazar archivo').setInputFiles({
 			name: 'notas.txt',
 			mimeType: 'text/plain',
 			buffer: Buffer.from('hola')
 		});
 
-		await expect(detail.getByText('El fichero elegido no es de un tipo admitido.')).toBeVisible();
+		await expect(detail.getByText('El archivo elegido no es de un tipo admitido.')).toBeVisible();
 		await expect(page.getByRole('alertdialog')).toHaveCount(0);
 	});
 });

@@ -61,7 +61,7 @@ async function createPostViaNav(
 ): Promise<void> {
 	await page.getByRole('link', { name: 'Entradas', exact: false }).click();
 	await page.waitForURL('**/c/posts');
-	await page.getByRole('button', { name: 'Crear «Entrada»' }).click();
+	await page.getByRole('button', { name: 'Nuevo: Entrada' }).click();
 	await page.waitForURL('**/c/posts/new');
 	await page.getByLabel('Título', { exact: true }).fill(title);
 	await page.getByLabel('Body').fill('Cuerpo inicial.');

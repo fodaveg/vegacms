@@ -30,9 +30,7 @@ test.describe('singleton por deep-link (§7.B.12)', () => {
 		);
 		// Aterriza en el formulario REAL de CREAR (F5-a) de la propia edición del singleton, nunca
 		// en un listado (§3.3: un singleton no tiene marco de listado que mostrar).
-		await expect(
-			page.getByRole('heading', { name: 'Crear «Información del sitio»' })
-		).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Nuevo: Información del sitio' })).toBeVisible();
 	});
 });
 

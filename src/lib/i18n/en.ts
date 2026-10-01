@@ -226,7 +226,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// `editor.create.title`/`editor.edit.title`: since redesign C2's R7, these only feed the
 	// VISUALLY HIDDEN `<h1>` of `RecordForm.svelte` (heading-hierarchy a11y) — the editor's visible
 	// title is now the `EditTopBar` crumb, not an on-screen heading.
-	'editor.create.title': 'Create «{label}»',
+	'editor.create.title': 'New {label}',
 	'editor.edit.title': 'Edit «{label}»',
 	'editor.save': 'Save',
 	'editor.saving': 'Saving…',
@@ -698,7 +698,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// chip group; now describes the `role="menu"` with the options to CHOOSE a new filter (see
 	// `ListToolbar.svelte`).
 	'list.filter.groupLabel': 'Filter by status',
-	'list.new.button': 'Create «{label}»',
+	'list.new.button': 'New {label}',
 
 	// ————— Header meta + export (M2, `.page-head .meta`/`.btn` mockup) —————
 	'list.meta.records': 'records',
@@ -1037,7 +1037,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.filter.groupLabel': 'Filter by type',
 	'media.filter.all': 'All',
 	'media.filter.images': 'Images',
-	'media.filter.video': 'Video',
+	'media.filter.video': 'Videos',
 	'media.filter.documents': 'Documents',
 	'media.filter.empty': 'No file on this page matches the search or the chosen type.',
 	'media.filter.clear': 'Clear filters',

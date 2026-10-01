@@ -79,7 +79,7 @@ test.describe('crear (D-P5.11)', () => {
 		await loginAndSettle(page);
 		await page.goto('/c/posts/new');
 
-		await expect(page.getByRole('heading', { name: 'Crear «Entrada»' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Nuevo: Entrada' })).toBeVisible();
 		await page.getByLabel('Título', { exact: true }).fill('Entrada nueva de e2e');
 		await page.getByRole('button', { name: 'Guardar' }).click();
 
@@ -326,7 +326,7 @@ test.describe('campo number desde null (fix de code-review, GenericInput.svelte)
 		await loginAndSettle(page);
 		await page.goto('/c/metrics/new');
 
-		await expect(page.getByRole('heading', { name: 'Crear «Métrica»' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Nuevo: Métrica' })).toBeVisible();
 		// `count` arranca en `null` (default de creación de todo `number`, `normalizeFieldValue`
 		// §2.1) — exactamente el caso que `GenericInput` confundía con "texto" antes del fix.
 		await page.getByLabel('Count', { exact: true }).fill('123');

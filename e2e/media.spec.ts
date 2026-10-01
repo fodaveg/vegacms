@@ -214,7 +214,7 @@ test.describe('/media subida drag&drop (contrato P6, Fase 6c)', () => {
 		await goToMediaWithSeed(page);
 		await expect(page.locator('[data-media-item]')).toHaveCount(3);
 
-		await page.getByLabel('Subir ficheros').setInputFiles({
+		await page.getByLabel('Subir archivos').setInputFiles({
 			name: 'nuevo.png',
 			mimeType: 'image/png',
 			buffer: Buffer.from(TINY_PNG_BASE64, 'base64')
@@ -223,7 +223,7 @@ test.describe('/media subida drag&drop (contrato P6, Fase 6c)', () => {
 		// Estado por-fichero: pasa por "Subido" (el toast de resumen confirma que el lote terminó).
 		const item = page.locator('[data-media-upload-item]').filter({ hasText: 'nuevo.png' });
 		await expect(item).toHaveAttribute('data-media-upload-status', 'done');
-		await expect(page.getByText('1 fichero(s) subido(s), 0 fallido(s).')).toBeVisible();
+		await expect(page.getByText('1 archivo(s) subido(s), 0 fallido(s).')).toBeVisible();
 
 		// El grid se refresca: 4 celdas, y la de arriba es la NUEVA (nunca uno de los 3 sembrados,
 		// `created` desc coloca lo recién creado primero).
@@ -243,7 +243,7 @@ test.describe('/media subida drag&drop (contrato P6, Fase 6c)', () => {
 		// lista de la semilla), `demasiado-grande.png` falla por tamaño (> 10 MiB, D-P6.3). La
 		// pre-validación (cliente) los rechaza SIN llamar a `create()`, así que ninguno de los dos
 		// bloquea al tercero.
-		await page.getByLabel('Subir ficheros').setInputFiles([
+		await page.getByLabel('Subir archivos').setInputFiles([
 			{
 				name: 'bueno.png',
 				mimeType: 'image/png',
@@ -257,7 +257,7 @@ test.describe('/media subida drag&drop (contrato P6, Fase 6c)', () => {
 			}
 		]);
 
-		await expect(page.getByText('1 fichero(s) subido(s), 2 fallido(s).')).toBeVisible();
+		await expect(page.getByText('1 archivo(s) subido(s), 2 fallido(s).')).toBeVisible();
 
 		const goodItem = page.locator('[data-media-upload-item]').filter({ hasText: 'bueno.png' });
 		await expect(goodItem).toHaveAttribute('data-media-upload-status', 'done');
@@ -266,7 +266,7 @@ test.describe('/media subida drag&drop (contrato P6, Fase 6c)', () => {
 			.locator('[data-media-upload-item]')
 			.filter({ hasText: 'no-permitido.txt' });
 		await expect(invalidTypeItem).toHaveAttribute('data-media-upload-status', 'error');
-		await expect(invalidTypeItem).toContainText('tipo de fichero no permitido');
+		await expect(invalidTypeItem).toContainText('tipo de archivo no permitido');
 
 		const tooLargeItem = page
 			.locator('[data-media-upload-item]')
@@ -291,12 +291,12 @@ test.describe('/media subida drag&drop (contrato P6, Fase 6c)', () => {
 			).__VEGA_FORCE_MEDIA_CREATE_ERROR__ = true;
 		});
 
-		await page.getByLabel('Subir ficheros').setInputFiles([
+		await page.getByLabel('Subir archivos').setInputFiles([
 			{ name: 'uno.png', mimeType: 'image/png', buffer: Buffer.from(TINY_PNG_BASE64, 'base64') },
 			{ name: 'dos.png', mimeType: 'image/png', buffer: Buffer.from(TINY_PNG_BASE64, 'base64') }
 		]);
 
-		await expect(page.getByText('0 fichero(s) subido(s), 2 fallido(s).')).toBeVisible();
+		await expect(page.getByText('0 archivo(s) subido(s), 2 fallido(s).')).toBeVisible();
 
 		// El primero falló de verdad contra `create()` — motivo de red.
 		const firstItem = page.locator('[data-media-upload-item]').filter({ hasText: 'uno.png' });
@@ -318,12 +318,12 @@ test.describe('/media subida drag&drop (contrato P6, Fase 6c)', () => {
 				window as unknown as { __VEGA_FORCE_MEDIA_CREATE_ERROR__?: boolean }
 			).__VEGA_FORCE_MEDIA_CREATE_ERROR__ = false;
 		});
-		await page.getByLabel('Subir ficheros').setInputFiles({
+		await page.getByLabel('Subir archivos').setInputFiles({
 			name: 'recuperado.png',
 			mimeType: 'image/png',
 			buffer: Buffer.from(TINY_PNG_BASE64, 'base64')
 		});
-		await expect(page.getByText('1 fichero(s) subido(s), 0 fallido(s).')).toBeVisible();
+		await expect(page.getByText('1 archivo(s) subido(s), 0 fallido(s).')).toBeVisible();
 		await expect(page.locator('[data-media-item]')).toHaveCount(4);
 	});
 
@@ -346,12 +346,12 @@ test.describe('/media subida drag&drop (contrato P6, Fase 6c)', () => {
 		await expect(emptyState).toContainText('Sube el primero');
 
 		// La zona de subida YA está montada (visible incluso con la biblioteca vacía) y funciona.
-		await page.getByLabel('Subir ficheros').setInputFiles({
+		await page.getByLabel('Subir archivos').setInputFiles({
 			name: 'primero.png',
 			mimeType: 'image/png',
 			buffer: Buffer.from(TINY_PNG_BASE64, 'base64')
 		});
-		await expect(page.getByText('1 fichero(s) subido(s), 0 fallido(s).')).toBeVisible();
+		await expect(page.getByText('1 archivo(s) subido(s), 0 fallido(s).')).toBeVisible();
 		await expect(page.locator('[data-media-grid-state="ready"]')).toBeVisible();
 		await expect(page.locator('[data-media-item]')).toHaveCount(1);
 	});
