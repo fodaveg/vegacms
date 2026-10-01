@@ -128,6 +128,29 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'security.refresh': 'Refresh',
 	'security.loading': 'Loading security factors…',
 	'security.error.generic': 'The security operation could not be completed.',
+	'security.error.stepUpRequired': 'You need to confirm it is you to change this.',
+	'security.error.invalidCode':
+		'The code is not valid. Wait for the app to show the next one and try again.',
+	'security.error.locked': 'Too many attempts. Wait a few minutes and try again.',
+	'security.error.lockedWait': 'Too many attempts. Wait {minutes} min and try again.',
+	'security.error.payloadTooLarge':
+		'The passkey response is too large and the server did not accept it. Try another passkey.',
+	'security.error.attemptFailed':
+		'The server could not record the attempt and did not check it. Try again in a moment.',
+	'security.error.passkeyVerifyFailed':
+		'The passkey could not be verified. Try again or use another method.',
+	'security.error.noPasskeys': 'This account has no registered passkeys.',
+	'security.stepUp.title': 'Confirm it is you',
+	'security.stepUp.bodyTotp':
+		'To change this, enter the code your authenticator app is showing now.',
+	'security.stepUp.bodyPasskey': 'To change this, confirm with one of your passkeys.',
+	'security.stepUp.bodyBoth':
+		'To change this, enter the code your authenticator app is showing now or confirm with a passkey.',
+	'security.stepUp.unavailable':
+		'Your identity cannot be confirmed from here. Sign out, sign back in with your second step and repeat the change.',
+	'security.stepUp.confirm': 'Confirm',
+	'security.stepUp.working': 'Checking…',
+	'security.stepUp.usePasskey': 'Use passkey',
 	'security.status.enabled': 'Enabled',
 	'security.status.disabled': 'Disabled',
 	'security.totp.title': 'Authenticator app (TOTP)',
@@ -144,6 +167,11 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'security.totp.verify': 'Enable and verify',
 	'security.totp.disabledBody': 'Add a second sign-in step with any app that supports TOTP codes.',
 	'security.totp.enroll': 'Set up TOTP',
+	'security.totp.replace': 'Change app',
+	'security.totp.replaceBody':
+		'Your current app stays active and you will keep being asked for its code until you confirm one from the new app.',
+	'security.totp.replaceCancel': 'Keep the current app',
+	'security.totp.replaced': 'The authenticator app has been changed.',
 	'security.recovery.remaining': '{count} recovery codes available.',
 	'security.recovery.regenerate': 'Regenerate codes',
 	'security.recovery.regenerateConfirm':
@@ -166,6 +194,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'security.passkeys.nameLabel': 'Passkey name',
 	'security.passkeys.namePlaceholder': 'e.g. MacBook (Touch ID)',
 	'security.passkeys.add': 'Add passkey',
+	'security.passkeys.cloneWarning':
+		'This passkey may have been copied to another device. Delete it and register it again.',
 
 	// ————— Global transport states (§3.4) —————
 	'errors.network.title': 'Could not reach the backend',

@@ -22,6 +22,7 @@ import type {
 	RecordInput,
 	ScheduledPublishingState,
 	Session,
+	StepUpProof,
 	StrongAuthLoginOutcome,
 	StrongAuthStatus,
 	ThumbSpec,
@@ -82,12 +83,28 @@ export interface StrongAuthPort {
 	loginWithRecovery(pending: string, code: string): Promise<Session>;
 	loginWithPasskey(): Promise<Session>;
 	getStatus(): Promise<StrongAuthStatus>;
-	enrollTotp(): Promise<TotpEnrollment>;
+	/**
+	 * Las cinco operaciones que añaden, sustituyen o quitan un factor aceptan una prueba de posesión
+	 * opcional. Sin ella, un backend que la exija rechaza con `VegaStrongAuthError` de código
+	 * `'step-up-required'` (con los `methods` con los que la cuenta puede probar) y NO hace nada:
+	 * quien llama repite la MISMA operación con `{ code }`, o tras `verifyWithPasskey()`.
+	 *
+	 * `enrollTotp` no desactiva el TOTP que ya hubiera: el secreto nuevo queda pendiente hasta que
+	 * `verifyTotp` acepta un código suyo.
+	 */
+	enrollTotp(proof?: StepUpProof): Promise<TotpEnrollment>;
 	verifyTotp(code: string): Promise<void>;
-	disableTotp(): Promise<void>;
-	generateRecoveryCodes(): Promise<string[]>;
-	registerPasskey(name: string): Promise<void>;
-	deletePasskey(id: string): Promise<void>;
+	disableTotp(proof?: StepUpProof): Promise<void>;
+	generateRecoveryCodes(proof?: StepUpProof): Promise<string[]>;
+	registerPasskey(name: string, proof?: StepUpProof): Promise<void>;
+	deletePasskey(id: string, proof?: StepUpProof): Promise<void>;
+	/**
+	 * Prueba de posesión con una passkey de la cuenta que ya tiene sesión (ceremonia WebAuthn
+	 * completa). Al resolver, el backend acepta durante unos minutos las operaciones de arriba sin
+	 * código. Opcional: un backend que nunca pide prueba no la implementa, y la interfaz solo ofrece
+	 * la passkey cuando existe.
+	 */
+	verifyWithPasskey?(): Promise<void>;
 }
 
 /**

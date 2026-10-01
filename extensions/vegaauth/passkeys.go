@@ -19,6 +19,8 @@ import (
 type pbUser struct {
 	record *core.Record
 	creds  []webauthn.Credential
+	// warned remembers, by credential ID, which stored passkeys already carry a clone warning.
+	warned map[string]bool
 }
 
 func (u *pbUser) WebAuthnID() []byte                         { return []byte(u.record.Id) }
@@ -37,14 +39,21 @@ func loadUser(app core.App, record *core.Record) (*pbUser, error) {
 		return nil, err
 	}
 	credentials := make([]webauthn.Credential, 0, len(rows))
+	warned := map[string]bool{}
 	for _, row := range rows {
 		var credential webauthn.Credential
 		if err := json.Unmarshal([]byte(row.GetString("data")), &credential); err != nil {
 			return nil, fmt.Errorf("decode stored passkey %s: %w", row.Id, err)
 		}
+		// go-webauthn only ever sets CloneWarning. Clear it in memory so that after a ceremony
+		// it describes that assertion alone; the stored history travels in warned.
+		if credential.Authenticator.CloneWarning {
+			warned[string(credential.ID)] = true
+			credential.Authenticator.CloneWarning = false
+		}
 		credentials = append(credentials, credential)
 	}
-	return &pbUser{record: record, creds: credentials}, nil
+	return &pbUser{record: record, creds: credentials, warned: warned}, nil
 }
 
 func saveCredential(app core.App, userID string, credential *webauthn.Credential, name string) error {
@@ -80,6 +89,15 @@ func (x *Extension) beginRegister(e *core.RequestEvent) error {
 	if e.Auth == nil || e.Auth.Collection().Name != x.config.AuthCollection {
 		return unauthorized(e)
 	}
+	// Adding a passkey adds a way into the account: finish only works with the challenge issued
+	// here, so proving possession at begin covers the whole ceremony.
+	var body codeBody
+	if err := e.BindBody(&body); err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]string{"error": "bad_request"})
+	}
+	if refused, response := x.stepUpRefused(e, body.Code); refused {
+		return response
+	}
 	user, err := loadUser(e.App, e.Auth)
 	if err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "load_failed"})
@@ -111,8 +129,8 @@ func (x *Extension) finishRegister(e *core.RequestEvent) error {
 	if err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "load_failed"})
 	}
-	if err := normalizeRequestBody(e.Request); err != nil {
-		return e.JSON(http.StatusBadRequest, map[string]string{"error": "bad_request"})
+	if err := normalizeRequestBody(e.Response, e.Request); err != nil {
+		return bodyError(e, err)
 	}
 	credential, err := x.webAuthn.FinishRegistration(user, *session, e.Request)
 	if err != nil {
@@ -126,6 +144,9 @@ func (x *Extension) finishRegister(e *core.RequestEvent) error {
 	if err := saveCredential(e.App, e.Auth.Id, credential, name); err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
 	}
+	if err := dropUnverifiedTOTP(e.App, e.Auth); err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
+	}
 	return e.JSON(http.StatusOK, map[string]bool{"ok": true})
 }
 
@@ -134,7 +155,12 @@ func (x *Extension) beginDiscoverableLogin(e *core.RequestEvent) error {
 	if allowed, wait := x.allowChallengeBegin(ip); !allowed {
 		return lockedResponse(e, wait)
 	}
-	options, session, err := x.webAuthn.BeginDiscoverableLogin()
+	// A passkey replaces password AND second factor, so the authenticator must verify the user
+	// (PIN or biometrics); mere presence is not enough. go-webauthn enforces the UV flag at
+	// finish because the requirement is recorded in the session.
+	options, session, err := x.webAuthn.BeginDiscoverableLogin(
+		webauthn.WithUserVerification(protocol.VerificationRequired),
+	)
 	if err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "begin_failed"})
 	}
@@ -148,15 +174,16 @@ func (x *Extension) beginDiscoverableLogin(e *core.RequestEvent) error {
 
 func (x *Extension) finishDiscoverableLogin(e *core.RequestEvent) error {
 	ip := x.clientIP(e)
-	challenge, err := assertionChallenge(e.Request)
+	challenge, err := assertionChallenge(e.Response, e.Request)
 	if err != nil {
-		return e.JSON(http.StatusBadRequest, map[string]string{"error": "bad_request"})
+		return bodyError(e, err)
 	}
 	session := x.takeSession("discoverable:" + challenge)
 	if session == nil {
 		return e.JSON(http.StatusBadRequest, map[string]string{"error": "no_session"})
 	}
 	var matched *core.Record
+	var matchedUser *pbUser
 	handler := func(_ []byte, userHandle []byte) (webauthn.User, error) {
 		record, err := e.App.FindRecordById(x.config.AuthCollection, string(userHandle))
 		if err != nil {
@@ -165,10 +192,18 @@ func (x *Extension) finishDiscoverableLogin(e *core.RequestEvent) error {
 		user, err := loadUser(e.App, record)
 		if err == nil {
 			matched = record
+			matchedUser = user
 		}
 		return user, err
 	}
 	credential, err := x.webAuthn.FinishDiscoverableLogin(handler, *session, e.Request)
+	if err == nil && matched != nil && !credential.Flags.UserVerified {
+		err = errors.New("assertion without user verification")
+	}
+	if err == nil && matched != nil && x.cloneRefused(e, matchedUser, credential, ip) {
+		x.recordLoginFailure(e.App, loginIdentity(matched.Email()), ip)
+		return e.JSON(http.StatusUnauthorized, map[string]string{"error": "verify_failed"})
+	}
 	if err != nil || matched == nil {
 		identity := "passkey:anonymous"
 		if matched != nil {
@@ -184,21 +219,42 @@ func (x *Extension) finishDiscoverableLogin(e *core.RequestEvent) error {
 	if wait := x.loginLockRemaining(e.App, identity, ip); wait > 0 {
 		return lockedResponse(e, wait)
 	}
-	if err := saveCredential(e.App, matched.Id, credential, ""); err != nil {
+	if err := storeAssertion(e.App, matchedUser, credential); err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
 	}
 	x.resetLoginAttempts(e.App, identity, ip)
-	return authTokenResponse(e, matched)
+	return x.authTokenResponse(e, matched, true)
+}
+
+// cloneRefused reports whether the assertion's signature counter failed to advance, which means
+// two copies of the authenticator may exist. In that case the warning is stored with the passkey
+// (its counter is left untouched) and the event is logged without any credential material.
+func (x *Extension) cloneRefused(e *core.RequestEvent, user *pbUser, credential *webauthn.Credential, ip string) bool {
+	if !credential.Authenticator.CloneWarning {
+		return false
+	}
+	if err := saveCredential(e.App, user.record.Id, credential, ""); err != nil {
+		e.App.Logger().Error("vega passkey clone warning could not be stored", "user", user.record.Id)
+	}
+	e.App.Logger().Warn("vega passkey rejected: signature counter went backwards, possible cloned authenticator",
+		"user", user.record.Id, "ip", ip)
+	return true
+}
+
+// storeAssertion persists the counter and flags of an accepted assertion. A past clone warning
+// stays on record even after a later assertion is accepted.
+func storeAssertion(app core.App, user *pbUser, credential *webauthn.Credential) error {
+	credential.Authenticator.CloneWarning = user.warned[string(credential.ID)]
+	return saveCredential(app, user.record.Id, credential, "")
 }
 
 // assertionChallenge reads clientDataJSON to choose the matching anonymous WebAuthn session,
 // then restores the exact request bytes for go-webauthn's parser.
-func assertionChallenge(request *http.Request) (string, error) {
-	raw, err := io.ReadAll(request.Body)
+func assertionChallenge(w http.ResponseWriter, request *http.Request) (string, error) {
+	raw, err := readLimitedBody(w, request)
 	if err != nil {
 		return "", err
 	}
-	request.Body = io.NopCloser(bytes.NewReader(raw))
 	var assertion struct {
 		Response struct {
 			ClientData string `json:"clientDataJSON"`
@@ -220,13 +276,34 @@ func assertionChallenge(request *http.Request) (string, error) {
 	return data.Challenge, nil
 }
 
-func normalizeRequestBody(request *http.Request) error {
-	raw, err := io.ReadAll(request.Body)
+func normalizeRequestBody(w http.ResponseWriter, request *http.Request) error {
+	_, err := readLimitedBody(w, request)
+	return err
+}
+
+// maxWebAuthnBody bounds the ceremony payloads this package buffers in memory. Real assertions
+// and attestations are a few kilobytes; PocketBase's own limit (32 MiB) is far too generous for
+// an endpoint anyone can call without a session.
+const maxWebAuthnBody = 64 << 10
+
+// readLimitedBody buffers at most maxWebAuthnBody bytes and puts them back as the request body.
+// A larger payload fails with *http.MaxBytesError before it is held in memory.
+func readLimitedBody(w http.ResponseWriter, request *http.Request) ([]byte, error) {
+	raw, err := io.ReadAll(http.MaxBytesReader(w, request.Body, maxWebAuthnBody))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	request.Body = io.NopCloser(bytes.NewReader(raw))
-	return nil
+	return raw, nil
+}
+
+// bodyError answers a ceremony body that could not be read or understood.
+func bodyError(e *core.RequestEvent, err error) error {
+	var tooLarge *http.MaxBytesError
+	if errors.As(err, &tooLarge) {
+		return e.JSON(http.StatusRequestEntityTooLarge, map[string]string{"error": "payload_too_large"})
+	}
+	return e.JSON(http.StatusBadRequest, map[string]string{"error": "bad_request"})
 }
 
 func (x *Extension) listPasskeys(e *core.RequestEvent) error {
@@ -239,13 +316,23 @@ func (x *Extension) listPasskeys(e *core.RequestEvent) error {
 	}
 	result := make([]map[string]any, 0, len(rows))
 	for _, row := range rows {
-		result = append(result, map[string]any{"id": row.Id, "name": row.GetString("name"), "created": row.GetString("created")})
+		var stored struct {
+			Authenticator struct {
+				CloneWarning bool `json:"cloneWarning"`
+			} `json:"authenticator"`
+		}
+		_ = json.Unmarshal([]byte(row.GetString("data")), &stored)
+		result = append(result, map[string]any{
+			"id": row.Id, "name": row.GetString("name"), "created": row.GetString("created"),
+			"cloneWarning": stored.Authenticator.CloneWarning,
+		})
 	}
 	return e.JSON(http.StatusOK, map[string]any{"passkeys": result})
 }
 
 type deletePasskeyBody struct {
-	ID string `json:"id"`
+	ID   string `json:"id"`
+	Code string `json:"code"`
 }
 
 func (x *Extension) deletePasskey(e *core.RequestEvent) error {
@@ -256,6 +343,10 @@ func (x *Extension) deletePasskey(e *core.RequestEvent) error {
 	if err := e.BindBody(&body); err != nil || body.ID == "" {
 		return e.JSON(http.StatusBadRequest, map[string]string{"error": "bad_request"})
 	}
+	// Removing the last factor would reopen the account to enrollment without proof.
+	if refused, response := x.stepUpRefused(e, body.Code); refused {
+		return response
+	}
 	record, err := e.App.FindRecordById(credentialsCollection, body.ID)
 	if err != nil {
 		return e.JSON(http.StatusNotFound, map[string]string{"error": "not_found"})
@@ -265,6 +356,9 @@ func (x *Extension) deletePasskey(e *core.RequestEvent) error {
 	}
 	if err := e.App.Delete(record); err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "delete_failed"})
+	}
+	if err := dropUnverifiedTOTP(e.App, e.Auth); err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
 	}
 	return e.JSON(http.StatusOK, map[string]bool{"ok": true})
 }

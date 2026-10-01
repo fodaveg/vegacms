@@ -4,13 +4,13 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"net"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
-	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -33,20 +33,22 @@ func (x *Extension) loginPassword(e *core.RequestEvent) error {
 		return e.JSON(http.StatusBadRequest, map[string]string{"error": "bad_request"})
 	}
 	identity := loginIdentity(body.Email)
-	if wait := x.loginLockRemaining(e.App, identity, ip); wait > 0 {
-		return lockedResponse(e, wait)
+	if refused, response := x.attemptRefused(e, identity, ip); refused {
+		return response
 	}
+	// From here the attempt is already counted as a failure; only success undoes it.
 	record, err := e.App.FindAuthRecordByEmail(x.config.AuthCollection, body.Email)
 	if err != nil || record == nil {
 		_ = bcrypt.CompareHashAndPassword(x.dummy, []byte(body.Password))
-		x.recordLoginFailure(e.App, identity, ip)
 		return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_credentials"})
 	}
 	if !record.ValidatePassword(body.Password) {
-		x.recordLoginFailure(e.App, identity, ip)
 		return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_credentials"})
 	}
 	if record.GetBool("totp_enabled") {
+		// The password was right, so this step is not a failure, but it must not wipe earlier
+		// ones either: the second factor is still pending.
+		x.releaseLoginAttempt(e.App, identity, ip)
 		if allowed, wait := x.allowChallengeBegin(ip); !allowed {
 			return lockedResponse(e, wait)
 		}
@@ -68,7 +70,7 @@ func (x *Extension) loginPassword(e *core.RequestEvent) error {
 		})
 	}
 	x.resetLoginAttempts(e.App, identity, ip)
-	return authTokenResponse(e, record)
+	return x.authTokenResponse(e, record, false)
 }
 
 type totpStepBody struct {
@@ -86,23 +88,48 @@ func (x *Extension) loginTOTP(e *core.RequestEvent) error {
 	if !ok {
 		return e.JSON(http.StatusUnauthorized, map[string]string{"error": "pending_expired"})
 	}
-	if wait := x.loginLockRemaining(e.App, pending.identity, ip); wait > 0 {
-		return lockedResponse(e, wait)
+	if refused, response := x.attemptRefused(e, pending.identity, ip); refused {
+		return response
 	}
 	record, err := e.App.FindRecordById(x.config.AuthCollection, pending.userID)
-	if err != nil || !totp.Validate(body.Code, record.GetString("totp_secret")) {
-		x.recordLoginFailure(e.App, pending.identity, ip)
+	valid := false
+	if err == nil {
+		// A replayed code is answered exactly like a wrong one.
+		if valid, err = x.consumeTOTP(e.App, record, body.Code); err != nil {
+			x.releaseLoginAttempt(e.App, pending.identity, ip)
+			return e.JSON(http.StatusInternalServerError, map[string]string{"error": "verify_failed"})
+		}
+	}
+	if !valid {
 		return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_code"})
 	}
 	x.resetLoginAttempts(e.App, pending.identity, ip)
 	x.deletePending(body.Pending)
-	return authTokenResponse(e, record)
+	return x.authTokenResponse(e, record, true)
 }
 
-func authTokenResponse(e *core.RequestEvent, record *core.Record) error {
+// attemptRefused reserves a login attempt and, when the identity is locked or the reservation
+// cannot be stored, returns the response to send. It fails closed: no counter, no guess.
+func (x *Extension) attemptRefused(e *core.RequestEvent, identity, ip string) (bool, error) {
+	wait, err := x.reserveLoginAttempt(e.App, identity, ip)
+	if err != nil {
+		return true, e.JSON(http.StatusServiceUnavailable, map[string]string{"error": "attempt_failed"})
+	}
+	if wait > 0 {
+		return true, lockedResponse(e, wait)
+	}
+	return false, nil
+}
+
+// authTokenResponse issues the session token. proven says the login was completed with a second
+// factor; the proof of possession is then attached to this very token and to no other.
+func (x *Extension) authTokenResponse(e *core.RequestEvent, record *core.Record, proven bool) error {
 	token, err := record.NewAuthToken()
 	if err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "token_failed"})
+	}
+	if proven {
+		x.markProof(sessionKey(token))
 	}
 	return e.JSON(http.StatusOK, map[string]any{
 		"token":  token,
@@ -112,14 +139,16 @@ func authTokenResponse(e *core.RequestEvent, record *core.Record) error {
 
 func (x *Extension) clientIP(e *core.RequestEvent) string {
 	if x.config.TrustProxy {
-		if realIP := strings.TrimSpace(e.Request.Header.Get("X-Real-Ip")); realIP != "" {
-			return realIP
+		// Only a well-formed address is taken from the proxy headers, in canonical form. Anything
+		// else would let a client mint a new rate-limit bucket per request with made-up values.
+		if realIP := net.ParseIP(strings.TrimSpace(e.Request.Header.Get("X-Real-Ip"))); realIP != nil {
+			return realIP.String()
 		}
 		if forwarded := e.Request.Header.Get("X-Forwarded-For"); forwarded != "" {
 			parts := strings.Split(forwarded, ",")
 			for i := len(parts) - 1; i >= 0; i-- {
-				if ip := strings.TrimSpace(parts[i]); ip != "" {
-					return ip
+				if ip := net.ParseIP(strings.TrimSpace(parts[i])); ip != nil {
+					return ip.String()
 				}
 			}
 		}
@@ -142,21 +171,50 @@ func (x *Extension) loginLockRemaining(app core.App, identity, ip string) int {
 	if int64(lockedUntil) > now {
 		return lockedUntil - int(now)
 	}
-	if row.GetInt("updated_at") < int(now)-attemptWindow {
+	if !attemptsStillCount(row, int(now)) {
 		_ = app.Delete(row)
 	}
 	return 0
 }
 
+// reserveLoginAttempt counts one attempt for identity+ip BEFORE the credential is checked and
+// reports the remaining lock, if any. Checking the lock and counting happen in one write
+// transaction (PocketBase serializes them), so parallel requests cannot all read "not locked
+// yet" and then each spend a guess: at most maxAttempts are ever evaluated per window. The
+// attempt is presumed failed; a success clears the row with resetLoginAttempts and a step that
+// was not a credential failure hands it back with releaseLoginAttempt.
+func (x *Extension) reserveLoginAttempt(app core.App, identity, ip string) (int, error) {
+	return x.countLoginAttempt(app, identity, ip, true)
+}
+
+// recordLoginFailure counts a failure found after the fact (passkey assertions, whose identity
+// is only known once parsed). It escalates even while locked.
 func (x *Extension) recordLoginFailure(app core.App, identity, ip string) {
+	_, _ = x.countLoginAttempt(app, identity, ip, false)
+}
+
+// attemptsStillCount reports whether the row's failures are recent enough to keep adding up. The
+// window runs from the last attempt OR from the end of the last lock, whichever is later: a lock
+// as long as the window (the third one already is) would otherwise always end with the row out
+// of the window, the count would restart at 1 and the escalation would never pass 15 minutes.
+func attemptsStillCount(row *core.Record, now int) bool {
+	return row.GetInt("updated_at") >= now-attemptWindow || row.GetInt("locked_until") >= now-attemptWindow
+}
+
+func (x *Extension) countLoginAttempt(app core.App, identity, ip string, respectLock bool) (int, error) {
 	now := int(time.Now().Unix())
-	_ = app.RunInTransaction(func(tx core.App) error {
+	wait := 0
+	err := app.RunInTransaction(func(tx core.App) error {
 		row, err := tx.FindFirstRecordByFilter(attemptsCollection, "identity = {:identity} && ip = {:ip}", dbx.Params{"identity": identity, "ip": ip})
 		if err != nil {
 			row = nil
 		}
+		if respectLock && row != nil && row.GetInt("locked_until") > now {
+			wait = row.GetInt("locked_until") - now
+			return nil
+		}
 		attempts := 1
-		if row != nil && row.GetInt("updated_at") >= now-attemptWindow {
+		if row != nil && attemptsStillCount(row, now) {
 			attempts = row.GetInt("attempts") + 1
 		}
 		lockedUntil := 0
@@ -182,6 +240,25 @@ func (x *Extension) recordLoginFailure(app core.App, identity, ip string) {
 		row.Set("attempts", attempts)
 		row.Set("locked_until", lockedUntil)
 		row.Set("updated_at", now)
+		return tx.Save(row)
+	})
+	return wait, err
+}
+
+// releaseLoginAttempt hands back one reserved attempt. Only a request that reserved while the
+// identity was unlocked can get here, so any lock on the row was set by that same reservation.
+func (x *Extension) releaseLoginAttempt(app core.App, identity, ip string) {
+	_ = app.RunInTransaction(func(tx core.App) error {
+		row, err := tx.FindFirstRecordByFilter(attemptsCollection, "identity = {:identity} && ip = {:ip}", dbx.Params{"identity": identity, "ip": ip})
+		if err != nil || row == nil {
+			return nil
+		}
+		attempts := row.GetInt("attempts") - 1
+		if attempts <= 0 {
+			return tx.Delete(row)
+		}
+		row.Set("attempts", attempts)
+		row.Set("locked_until", 0)
 		return tx.Save(row)
 	})
 }

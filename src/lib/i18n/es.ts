@@ -138,6 +138,29 @@ export const es = {
 	'security.refresh': 'Actualizar',
 	'security.loading': 'Cargando factores de seguridad…',
 	'security.error.generic': 'No se pudo completar la operación de seguridad.',
+	'security.error.stepUpRequired': 'Hace falta confirmar que eres tú para cambiar esto.',
+	'security.error.invalidCode':
+		'El código no es válido. Espera a que la app muestre el siguiente y vuelve a probar.',
+	'security.error.locked': 'Demasiados intentos. Espera unos minutos y vuelve a probar.',
+	'security.error.lockedWait': 'Demasiados intentos. Espera {minutes} min y vuelve a probar.',
+	'security.error.payloadTooLarge':
+		'La respuesta de la passkey es demasiado grande y el servidor no la aceptó. Prueba con otra passkey.',
+	'security.error.attemptFailed':
+		'El servidor no pudo registrar el intento y no lo comprobó. Vuelve a probar en un momento.',
+	'security.error.passkeyVerifyFailed':
+		'No se pudo verificar la passkey. Vuelve a probar o usa otro método.',
+	'security.error.noPasskeys': 'Esta cuenta no tiene ninguna passkey registrada.',
+	'security.stepUp.title': 'Confirma que eres tú',
+	'security.stepUp.bodyTotp':
+		'Para cambiar esto, escribe el código que muestra ahora tu app de autenticación.',
+	'security.stepUp.bodyPasskey': 'Para cambiar esto, confirma con una de tus passkeys.',
+	'security.stepUp.bodyBoth':
+		'Para cambiar esto, escribe el código que muestra ahora tu app de autenticación o confirma con una passkey.',
+	'security.stepUp.unavailable':
+		'Desde aquí no se puede confirmar tu identidad. Cierra la sesión, vuelve a entrar con tu segundo paso y repite el cambio.',
+	'security.stepUp.confirm': 'Confirmar',
+	'security.stepUp.working': 'Comprobando…',
+	'security.stepUp.usePasskey': 'Usar passkey',
 	'security.status.enabled': 'Activado',
 	'security.status.disabled': 'Desactivado',
 	'security.totp.title': 'App de autenticación (TOTP)',
@@ -155,6 +178,11 @@ export const es = {
 	'security.totp.disabledBody':
 		'Añade un segundo paso al login con una app compatible con códigos TOTP.',
 	'security.totp.enroll': 'Configurar TOTP',
+	'security.totp.replace': 'Cambiar de app',
+	'security.totp.replaceBody':
+		'Tu app actual sigue activa y se te seguirá pidiendo su código hasta que confirmes uno de la nueva.',
+	'security.totp.replaceCancel': 'Seguir con la app actual',
+	'security.totp.replaced': 'La app de autenticación se ha cambiado.',
 	'security.recovery.remaining': '{count} códigos de recuperación disponibles.',
 	'security.recovery.regenerate': 'Regenerar códigos',
 	'security.recovery.regenerateConfirm':
@@ -177,6 +205,8 @@ export const es = {
 	'security.passkeys.nameLabel': 'Nombre de la passkey',
 	'security.passkeys.namePlaceholder': 'Ej. MacBook (Touch ID)',
 	'security.passkeys.add': 'Añadir passkey',
+	'security.passkeys.cloneWarning':
+		'Esta passkey puede estar copiada en otro dispositivo. Bórrala y regístrala de nuevo.',
 
 	// ————— Estados globales de transporte (§3.4) —————
 	'errors.network.title': 'Sin conexión con el backend',

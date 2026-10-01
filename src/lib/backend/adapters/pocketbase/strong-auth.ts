@@ -8,12 +8,14 @@ import PocketBase, { ClientResponseError } from 'pocketbase';
 import type {
 	PasskeySummary,
 	Session,
+	StepUpMethod,
+	StepUpProof,
 	StrongAuthLoginOutcome,
 	StrongAuthStatus,
 	TotpEnrollment
 } from '../../types';
 import type { StrongAuthPort } from '../../port';
-import { VegaError } from '../../errors';
+import { VegaError, VegaStrongAuthError } from '../../errors';
 import { mapPocketBaseError } from './errors';
 
 interface AuthResponse {
@@ -110,23 +112,9 @@ export function createPocketBaseStrongAuth(options: StrongAuthOptions): StrongAu
 
 		async loginWithPasskey() {
 			try {
-				assertWebAuthnAvailable();
-				const begin = await request<{ publicKey?: PublicKeyCredentialRequestOptionsJSON }>(
-					'/passkey/login/discoverable/begin',
-					{ login: true }
-				);
-				if (!begin.publicKey) {
-					throw VegaError.backend('La extensión de autenticación no devolvió opciones WebAuthn.');
-				}
-				const credential = (await navigator.credentials.get({
-					publicKey: decodeRequestOptions(begin.publicKey)
-				})) as PublicKeyCredential | null;
-				if (!credential) throw VegaError.backend('No se obtuvo ninguna passkey.');
+				const assertion = await requestAssertion('/passkey/login/discoverable/begin', true);
 				return accept(
-					await request('/passkey/login/discoverable/finish', {
-						body: serializeAssertion(credential),
-						login: true
-					})
+					await request('/passkey/login/discoverable/finish', { body: assertion, login: true })
 				);
 			} catch (err) {
 				throw mapStrongAuthError(err, true, apiBasePath, onAuthExpired);
@@ -148,8 +136,10 @@ export function createPocketBaseStrongAuth(options: StrongAuthOptions): StrongAu
 			};
 		},
 
-		async enrollTotp(): Promise<TotpEnrollment> {
-			const result = await request<{ otpauth_url?: string; secret?: string }>('/totp/enroll');
+		async enrollTotp(proof): Promise<TotpEnrollment> {
+			const result = await request<{ otpauth_url?: string; secret?: string }>('/totp/enroll', {
+				body: proofBody(proof)
+			});
 			if (typeof result.otpauth_url !== 'string' || typeof result.secret !== 'string') {
 				throw VegaError.backend('La extensión de autenticación devolvió un alta TOTP no válida.');
 			}
@@ -161,13 +151,15 @@ export function createPocketBaseStrongAuth(options: StrongAuthOptions): StrongAu
 			await refreshAuthRecord();
 		},
 
-		async disableTotp() {
-			await request('/totp/disable');
+		async disableTotp(proof) {
+			await request('/totp/disable', { body: proofBody(proof) });
 			await refreshAuthRecord();
 		},
 
-		async generateRecoveryCodes() {
-			const result = await request<{ codes?: string[] }>('/recovery/generate');
+		async generateRecoveryCodes(proof) {
+			const result = await request<{ codes?: string[] }>('/recovery/generate', {
+				body: proofBody(proof)
+			});
 			if (!Array.isArray(result.codes) || result.codes.some((code) => typeof code !== 'string')) {
 				throw VegaError.backend(
 					'La extensión de autenticación devolvió códigos de recuperación no válidos.'
@@ -176,11 +168,14 @@ export function createPocketBaseStrongAuth(options: StrongAuthOptions): StrongAu
 			return result.codes;
 		},
 
-		async registerPasskey(name) {
+		async registerPasskey(name, proof) {
 			try {
 				assertWebAuthnAvailable();
+				// La prueba se pide en `begin`, antes de que el navegador enseñe nada: un rechazo
+				// por falta de prueba no deja una ceremonia WebAuthn a medias.
 				const begin = await request<{ publicKey?: PublicKeyCredentialCreationOptionsJSON }>(
-					'/passkey/register/begin'
+					'/passkey/register/begin',
+					{ body: proofBody(proof) }
 				);
 				if (!begin.publicKey) {
 					throw VegaError.backend('La extensión de autenticación no devolvió opciones WebAuthn.');
@@ -197,10 +192,52 @@ export function createPocketBaseStrongAuth(options: StrongAuthOptions): StrongAu
 			}
 		},
 
-		async deletePasskey(id) {
-			await request('/passkey/delete', { body: { id } });
+		async deletePasskey(id, proof) {
+			await request('/passkey/delete', { body: { id, ...proofBody(proof) } });
+		},
+
+		async verifyWithPasskey() {
+			try {
+				const assertion = await requestAssertion('/passkey/verify/begin', false);
+				await request('/passkey/verify/finish', { body: assertion });
+			} catch (err) {
+				throw mapStrongAuthError(err, false, apiBasePath, onAuthExpired);
+			}
 		}
 	};
+
+	/**
+	 * Mitad común de las dos ceremonias de aserción (login con passkey y prueba de posesión): pide
+	 * las opciones a `beginPath`, deja que el navegador firme y devuelve la aserción lista para el
+	 * `finish` de cada una. Lanza sin mapear lo que no venga de `request` (p. ej. el `DOMException`
+	 * de una ceremonia cancelada): lo mapea quien llama, que sabe si es un login.
+	 */
+	async function requestAssertion(
+		beginPath: string,
+		login: boolean
+	): Promise<Record<string, unknown>> {
+		assertWebAuthnAvailable();
+		const begin = await request<{ publicKey?: PublicKeyCredentialRequestOptionsJSON }>(beginPath, {
+			login
+		});
+		if (!begin.publicKey) {
+			throw VegaError.backend('La extensión de autenticación no devolvió opciones WebAuthn.');
+		}
+		const credential = (await navigator.credentials.get({
+			publicKey: decodeRequestOptions(begin.publicKey)
+		})) as PublicKeyCredential | null;
+		if (!credential) throw VegaError.backend('No se obtuvo ninguna passkey.');
+		return serializeAssertion(credential);
+	}
+}
+
+/**
+ * Cuerpo de una operación protegida: `{ code }` solo si hay código que mandar. Sin él no se envía
+ * cuerpo, igual que antes de que existiera la prueba (el backend legacy no espera ninguno).
+ */
+function proofBody(proof: StepUpProof | undefined): { code: string } | undefined {
+	const code = proof?.code?.trim();
+	return code ? { code } : undefined;
 }
 
 function assertWebAuthnAvailable(): void {
@@ -226,6 +263,8 @@ function mapStrongAuthError(
 		);
 	}
 	if (err instanceof ClientResponseError) {
+		const response = err.response as Record<string, unknown> | undefined;
+		const code = typeof response?.error === 'string' ? response.error : '';
 		if (err.status === 404) {
 			return VegaError.backend(
 				`La extensión de autenticación no está disponible en ${apiBasePath}.`,
@@ -233,18 +272,73 @@ function mapStrongAuthError(
 			);
 		}
 		if (err.status === 429) {
-			return VegaError.backend('Demasiados intentos. Espera unos minutos e inténtalo de nuevo.');
+			// Tanto el bloqueo por intentos (`locked`, con `wait`) como el límite por IP: en los
+			// dos toca esperar. También lo devuelve `/totp/verify`, que comparte presupuesto con
+			// la prueba de posesión.
+			const wait = response?.wait;
+			return new VegaStrongAuthError(
+				'backend',
+				'locked',
+				'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.',
+				{ waitSeconds: typeof wait === 'number' && wait > 0 ? wait : undefined }
+			);
+		}
+		if (err.status === 413) {
+			return new VegaStrongAuthError(
+				'backend',
+				'payload-too-large',
+				'La respuesta de la passkey es demasiado grande y el servidor no la aceptó.',
+				{ cause: err }
+			);
+		}
+		if (err.status === 503 && code === 'attempt_failed') {
+			// El servidor no pudo contar el intento y por eso NO lo evaluó: no dice nada de las
+			// credenciales ni de la sesión.
+			return new VegaStrongAuthError(
+				'backend',
+				'attempt-failed',
+				'El servidor no pudo registrar el intento. Vuelve a probar en un momento.',
+				{ cause: err }
+			);
 		}
 		if (login && (err.status === 400 || err.status === 401 || err.status === 403)) {
 			return VegaError.forbidden('Credenciales o código no válidos.');
 		}
+		if (!login && err.status === 428 && code === 'step_up_required') {
+			// 428 a propósito en el servidor: la sesión es válida, solo falta la prueba. El
+			// `message` en inglés de la respuesta no se enseña; lo pone la interfaz.
+			const rawMethods = Array.isArray(response?.methods) ? response.methods : [];
+			return new VegaStrongAuthError(
+				'forbidden',
+				'step-up-required',
+				'Hace falta confirmar tu identidad para cambiar esto.',
+				{
+					methods: rawMethods.filter(
+						(method): method is StepUpMethod => method === 'totp' || method === 'passkey'
+					)
+				}
+			);
+		}
+		if (!login && err.status === 400 && code === 'verify_failed') {
+			return new VegaStrongAuthError(
+				'forbidden',
+				'passkey-verify-failed',
+				'No se pudo verificar la passkey.'
+			);
+		}
+		if (!login && err.status === 400 && code === 'no_passkeys') {
+			return new VegaStrongAuthError(
+				'forbidden',
+				'no-passkeys',
+				'Esta cuenta no tiene ninguna passkey registrada.'
+			);
+		}
 		if (!login && err.status === 401) {
-			// El admin legacy devuelve 401 también para un TOTP de alta incorrecto. Ese caso NO
-			// caduca la sesión; cualquier otro 401 de una ruta autenticada sí debe pasar por el
-			// mismo latch central que el resto del adaptador.
-			const response = err.response as Record<string, unknown> | undefined;
-			if (response?.error === 'invalid_code') {
-				return VegaError.forbidden('El código no es válido.');
+			// Un código TOTP incorrecto (en el alta, o como prueba de posesión) responde 401 con
+			// `invalid_code`. Ese caso NO caduca la sesión; cualquier otro 401 de una ruta
+			// autenticada sí debe pasar por el mismo latch central que el resto del adaptador.
+			if (code === 'invalid_code') {
+				return new VegaStrongAuthError('forbidden', 'invalid-code', 'El código no es válido.');
 			}
 			return onAuthExpired();
 		}

@@ -5,7 +5,7 @@
  * está en `session.svelte.test.ts` y en `shell/ReloginModal.svelte.test.ts`.
  */
 import { describe, expect, test, vi } from 'vitest';
-import { VegaError } from '$lib/backend';
+import { VegaError, VegaStrongAuthError } from '$lib/backend';
 import { createLoginFlow } from './login-flow.svelte';
 import type { MfaChallenge, SessionStore } from './session.svelte';
 
@@ -103,6 +103,20 @@ describe('createLoginFlow', () => {
 		// Cualquier otro fallo, con su mensaje real: un 500 no se disfraza de credenciales.
 		store.loginError = VegaError.backend('El servidor respondió 500.');
 		expect(flow.errorMessage).toBe('El servidor respondió 500.');
+	});
+
+	test('los rechazos tipados de la extensión salen con su texto traducido, no con el del adaptador', () => {
+		const store = fakeStore();
+		const flow = flowOver(store);
+
+		store.loginError = new VegaStrongAuthError('backend', 'attempt-failed', 'texto del adaptador');
+		expect(flow.errorMessage).toBe('security.error.attemptFailed');
+
+		store.loginError = new VegaStrongAuthError('backend', 'payload-too-large', 'texto');
+		expect(flow.errorMessage).toBe('security.error.payloadTooLarge');
+
+		store.loginError = new VegaStrongAuthError('backend', 'locked', 'texto', { waitSeconds: 61 });
+		expect(flow.errorMessage).toBe('security.error.lockedWait');
 	});
 
 	test('`cancelMfa` cierra el reto en el store y descarta los códigos, no la contraseña', () => {

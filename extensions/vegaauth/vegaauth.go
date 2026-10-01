@@ -103,6 +103,9 @@ type Extension struct {
 	sessions  map[string]sessionEntry
 	beginMu   sync.Mutex
 	begins    map[string]beginEntry
+	// proofs maps a session (hash of its token) to the moment its second-factor proof expires.
+	proofMu sync.Mutex
+	proofs  map[string]time.Time
 }
 
 func New(config Config) (*Extension, error) {
@@ -125,13 +128,15 @@ func New(config Config) (*Extension, error) {
 	return &Extension{
 		config: config, webAuthn: wa, dummy: dummy, random: rand.Reader,
 		pending: map[string]pendingEntry{}, sessions: map[string]sessionEntry{},
-		begins: map[string]beginEntry{},
+		begins: map[string]beginEntry{}, proofs: map[string]time.Time{},
 	}, nil
 }
 
 // RegisterRoutes installs the API contract consumed by Vega's PocketBase adapter.
 func (x *Extension) RegisterRoutes(se *core.ServeEvent) {
 	p := x.config.RoutePrefix
+	x.bindProofToRefresh(se.App)
+	x.bindFactorFieldGuard(se.App)
 	se.Router.POST(p+"/login/password", x.loginPassword)
 	se.Router.POST(p+"/login/totp", x.loginTOTP)
 	se.Router.POST(p+"/login/recovery", x.loginRecovery)
@@ -144,6 +149,8 @@ func (x *Extension) RegisterRoutes(se *core.ServeEvent) {
 	se.Router.POST(p+"/passkey/register/finish", x.finishRegister)
 	se.Router.POST(p+"/passkey/login/discoverable/begin", x.beginDiscoverableLogin)
 	se.Router.POST(p+"/passkey/login/discoverable/finish", x.finishDiscoverableLogin)
+	se.Router.POST(p+"/passkey/verify/begin", x.beginPasskeyVerify)
+	se.Router.POST(p+"/passkey/verify/finish", x.finishPasskeyVerify)
 	se.Router.GET(p+"/passkey/list", x.listPasskeys)
 	se.Router.POST(p+"/passkey/delete", x.deletePasskey)
 	se.Router.GET(p+"/health", func(e *core.RequestEvent) error {
