@@ -4,8 +4,10 @@
 	 * del audit, pieza 5). Solo con `capabilities.administration` y su sección del puerto; un
 	 * editor que llega por URL ve la tarjeta «Solo para superusuarios» y nada más.
 	 *
-	 * Estados: cargando, error con «Reintentar», colección ausente (aviso con dónde crearla: el
-	 * sembrado del sitio no tiene botón en la SPA), vacía y lista. La lista se pide junto con
+	 * Estados: cargando, error con «Reintentar», colección ausente (aviso con «Ir a Ajustes», donde
+	 * la tarjeta «Base del sitio» la crea), vacía y lista. Debajo, con `capabilities.serverSettings`,
+	 * la tarjeta del correo para invitaciones (`MailCard`, carga aparte: que falle no esconde la
+	 * lista). La lista se pide junto con
 	 * `mailEnabled()`, que decide si «Añadir editor» ofrece invitar por correo y si una cuenta
 	 * pendiente ofrece «Reenviar invitación». Si esa segunda lectura falla, se trata como «sin
 	 * correo»: la pantalla sigue siendo útil y no promete un envío que no sabe si saldrá. Con la
@@ -21,17 +23,18 @@
 	 * esta colección, así que no puede quitarse a sí misma; aun así, una cuenta con el mismo id que
 	 * la sesión no ofrece el botón.
 	 */
+	import { goto } from '$app/navigation';
 	import { getVegaContext } from '$lib/app-context';
 	import {
 		VegaError,
-		VEGA_EDITORS_COLLECTION_NAME,
 		type CreatedEditor,
 		type EditorAccount,
 		type InvitationLinkState,
-		type NewEditorAccess
+		type NewEditorAccess,
+		type ServerSettings
 	} from '$lib/backend';
 	import { DEFAULT_PASSWORD_MIN_LENGTH } from '$lib/backend/administration-rules';
-	import { passwordResetRoute } from '$lib/nav/routes';
+	import { passwordResetRoute, settingsRoute } from '$lib/nav/routes';
 	import Icon from '$lib/icons/Icon.svelte';
 	import AdminDialog from '$lib/admin/AdminDialog.svelte';
 	import AddEditorDialog from '$lib/admin/AddEditorDialog.svelte';
@@ -40,10 +43,14 @@
 	import { editorInitial } from '$lib/admin/editor-form';
 	import { formatDay } from '$lib/admin/format';
 	import '$lib/admin/admin.css';
+	import MailCard from './MailCard.svelte';
 
 	const ctx = getVegaContext();
 	const administration = $derived(
 		ctx.port.capabilities.administration ? ctx.port.administration : undefined
+	);
+	const serverSettings = $derived(
+		ctx.port.capabilities.serverSettings ? ctx.port.serverSettings : undefined
 	);
 
 	type LoadStatus = 'loading' | 'ready' | 'missing' | 'error';
@@ -103,6 +110,53 @@
 
 	function isSelf(account: EditorAccount): boolean {
 		return account.id === ctx.session.user.id;
+	}
+
+	// ————— Correo para invitaciones (SMTP y dirección de Vega) —————
+
+	let mailStatus = $state<'loading' | 'ready' | 'error'>('loading');
+	let mailSettings = $state<ServerSettings | null>(null);
+
+	async function loadMailSettings(): Promise<void> {
+		const section = serverSettings;
+		if (!section) return;
+		mailStatus = 'loading';
+		try {
+			mailSettings = await section.get();
+			mailStatus = 'ready';
+		} catch (err) {
+			ctx.feedback.reportError(
+				err instanceof VegaError
+					? err
+					: VegaError.backend('Error cargando los ajustes del correo', err),
+				{ action: 'editors:mail-load' }
+			);
+			mailStatus = 'error';
+		}
+	}
+
+	$effect(() => {
+		if (!serverSettings) return;
+		void loadMailSettings();
+	});
+
+	/**
+	 * Tras guardar el correo: «Añadir editor» ofrece invitar según el servidor, y una dirección de Vega
+	 * nueva puede hacer que la plantilla del correo ya se pueda corregir en esta misma visita. Si se
+	 * corrige, se dice: el enlace de la invitación cambió sin que nadie lo tocara a mano.
+	 */
+	async function onMailSaved(next: ServerSettings): Promise<void> {
+		mailSettings = next;
+		const admin = administration;
+		if (!admin) return;
+		mailEnabled = await admin.mailEnabled().catch(() => mailEnabled);
+		const link = await admin
+			.ensureInvitationLink(absoluteResetUrl())
+			.catch((): 'unknown' => 'unknown');
+		if (link === 'updated' && inviteLink !== 'updated') {
+			ctx.feedback.toast(ctx.t('admin.appUrl.linkFixed'), { kind: 'success' });
+		}
+		inviteLink = link;
 	}
 
 	// ————— Alta —————
@@ -228,9 +282,12 @@
 		{:else if status === 'missing'}
 			<div class="vega-admin-notice vega-admin-notice--warning" data-editors-state="missing">
 				<p class="vega-admin-notice-body">
-					{ctx.t('admin.editors.missingCollection', { collection: VEGA_EDITORS_COLLECTION_NAME })}
+					{ctx.t('admin.editors.missingCollection')}
 				</p>
 				<div class="vega-admin-notice-actions">
+					<button type="button" class="vega-admin-btn" onclick={() => void goto(settingsRoute())}>
+						{ctx.t('admin.editors.goToSettings')}
+					</button>
 					<button type="button" class="vega-admin-btn" onclick={() => void load()}>
 						{ctx.t('common.retry')}
 					</button>
@@ -349,6 +406,33 @@
 					</tbody>
 				</table>
 			</div>
+		{/if}
+
+		{#if serverSettings && status === 'ready'}
+			{#if mailStatus === 'loading'}
+				<div class="vega-admin-card">
+					<div class="vega-admin-state" aria-live="polite" data-mail-card="loading">
+						<p><span class="vega-admin-saving">{ctx.t('admin.mail.loading')}</span></p>
+					</div>
+				</div>
+			{:else if mailStatus === 'error' || !mailSettings}
+				<div class="vega-admin-card">
+					<div class="vega-admin-state" role="alert" data-mail-card="error">
+						<p>{ctx.t('admin.mail.loadError')}</p>
+						<button type="button" class="vega-admin-btn" onclick={() => void loadMailSettings()}>
+							{ctx.t('common.retry')}
+						</button>
+					</div>
+				</div>
+			{:else}
+				<MailCard
+					settings={mailSettings}
+					section={serverSettings}
+					resetUrl={absoluteResetUrl()}
+					defaultTestTo={ctx.session.user.email}
+					onSaved={(next) => void onMailSaved(next)}
+				/>
+			{/if}
 		{/if}
 
 		<AddEditorDialog
