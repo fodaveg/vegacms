@@ -1,0 +1,500 @@
+<!--TITULO 5 · Subir una imagen desde un campo: texto alternativo y copia en Medios-->
+
+<!--PIEZA zona-->
+<button type="button" class="vega-file-dropzone">
+	{{i:media:22}}
+	<span class="vega-file-hint">Arrastra ficheros aquí o haz clic para elegir</span>
+</button>
+<button type="button" class="vega-file-pick-library">Elegir de la biblioteca</button>
+<!--/PIEZA-->
+
+<!--PIEZA zona-vacia-->
+<button type="button" class="vega-file-dropzone vega-file-dropzone--empty">
+	{{i:media:22}}
+	<span class="vega-file-hint">Arrastra ficheros aquí o haz clic para elegir</span>
+	<span class="vega-file-empty">Sin ficheros</span>
+</button>
+<button type="button" class="vega-file-pick-library">Elegir de la biblioteca</button>
+<!--/PIEZA-->
+
+<!--PIEZA item-nuevo-->
+<li class="vega-file-item vega-file-item--alt">
+	<span class="vega-file-thumb lam-thumb" role="img" aria-label="huerto-octubre-calabazas.jpg"
+		>{{i:media:22}}</span
+	>
+	<div class="vega-file-item-body">
+		<div class="vega-file-item-head">
+			<span class="vega-file-chip" title="huerto-octubre-calabazas.jpg"
+				>huerto-octubre-calabazas.jpg</span
+			>
+			<button type="button" class="vega-file-remove">Quitar</button>
+		</div>
+		<label class="vega-file-alt-label">Texto alternativo</label>
+		<textarea class="vega-widget-text" rows="1">
+Tres calabazas recién cortadas sobre la mesa del huerto</textarea>
+		<p class="vega-file-library-state">Se guardará en Medios al guardar la entrada.</p>
+	</div>
+</li>
+<!--/PIEZA-->
+
+<!--PIEZA principal-->
+<div class="vega-editor-main">
+	<div class="vega-form-content">
+		<section class="vega-fsection">
+			<div class="vega-fields">
+				<div class="vega-field-row vega-field-row--title">
+					<label>Título<span class="vega-field-required" aria-hidden="true">*</span></label>
+					<div class="vega-field-control">
+						<input type="text" class="vega-widget-text" value="Notas del huerto: octubre" />
+					</div>
+				</div>
+				<p class="lam-why">(Slug, Extracto y Contenido: sin cambios)</p>
+			</div>
+		</section>
+	</div>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA barra-->
+<div class="vega-edit-top vega-edit-top--bleed">
+	<button type="button" class="vega-editor-back">{{i:chevron:14}} Entradas</button>
+	<span class="vega-editor-doc">
+		<span class="vega-editor-crumb-name">Notas del huerto: octubre</span>
+		<span class="vega-editor-dirty" title="sin guardar"
+			><span class="vega-visually-hidden">sin guardar</span></span
+		>
+		<span class="vega-editor-tag" data-status-kind="draft">Borrador</span>
+	</span>
+	<span class="vega-edit-top-spacer"></span>
+	<span class="vega-editor-saved-at">último guardado 10:31</span>
+	<a class="vega-editor-preview-link" href="#">Ver en el sitio</a>
+	<button type="button" class="vega-editor-duplicate-button" disabled>Duplicar</button>
+	<button type="submit" class="vega-editor-save-button">
+		Guardar <kbd aria-hidden="true">⌘S</kbd>
+	</button>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA antes-->
+<form class="vega-record-form" novalidate>
+	<!--USA barra-->
+	<div class="vega-editor-grid vega-editor-grid--aside">
+		<!--USA principal-->
+		<aside class="vega-editor-aside">
+			<section class="vega-fsection vega-fsection--aside">
+				<h2>Portada</h2>
+				<div class="vega-fields">
+					<div class="vega-field-row">
+						<label>Imagen</label>
+						<div class="vega-field-control">
+							<div class="vega-widget-file" data-widget="file">
+								<!--USA zona-->
+								<ul class="vega-file-list">
+									<li class="vega-file-item">
+										<span
+											class="vega-file-thumb lam-thumb"
+											role="img"
+											aria-label="huerto-octubre-calabazas.jpg"
+											>{{i:media:16}}</span
+										>
+										<button type="button" class="vega-file-remove">Quitar</button>
+									</li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+		</aside>
+	</div>
+</form>
+<!--/PIEZA-->
+
+<!--PIEZA despues-->
+<form class="vega-record-form" novalidate>
+	<!--USA barra-->
+	<div class="vega-editor-grid vega-editor-grid--aside">
+		<!--USA principal-->
+		<aside class="vega-editor-aside">
+			<section class="vega-fsection vega-fsection--aside">
+				<h2>Portada</h2>
+				<div class="vega-fields">
+					<div class="vega-field-row">
+						<label>Imagen</label>
+						<div class="vega-field-control">
+							<div class="vega-widget-file" data-widget="file">
+								<!--USA zona-->
+								<ul class="vega-file-list">
+									<!--USA item-nuevo-->
+								</ul>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+		</aside>
+	</div>
+</form>
+<!--/PIEZA-->
+
+<section class="lam-section">
+	<h2>Qué cambia</h2>
+	<p>
+		Hoy, al subir una imagen directamente desde un campo, entra como una miniatura con «Quitar» y
+		nada más: <b>nadie pide el texto alternativo</b> y la imagen <b>no aparece en Medios</b>, así
+		que no se puede reutilizar ni corregir después. Para tener las dos cosas hay que salir del
+		registro, subirla en Medios, escribir allí el texto y volver a elegirla. La propuesta hace las
+		dos cosas en el sitio: la imagen recién elegida se despliega con su campo «Texto alternativo» y,
+		al guardar el registro, se guarda también una copia en Medios con ese texto. La zona de
+		arrastre, «Elegir de la biblioteca» y los ficheros que no son imágenes siguen como hoy.
+	</p>
+	<table class="lam-cifras">
+		<thead>
+			<tr>
+				<th>Imagen con texto alternativo y en Medios</th>
+				<th>Antes</th>
+				<th>Después</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>Clics</td>
+				<td>
+					10 (Medios, Subir archivos, elegir fichero, abrir la ficha, guardarla, Entradas, la
+					entrada, Elegir de la biblioteca, la imagen, Insertar). Contados sobre el código, no en
+					una sesión real
+				</td>
+				<td>2 (la zona, elegir fichero)</td>
+			</tr>
+			<tr>
+				<td>Cambios de pantalla</td>
+				<td>2</td>
+				<td>0</td>
+			</tr>
+			<tr>
+				<td>Paradas de tabulación por imagen nueva</td>
+				<td>1 (Quitar)</td>
+				<td>2 (Quitar, Texto alternativo)</td>
+			</tr>
+		</tbody>
+	</table>
+</section>
+
+<section class="lam-section lam-solo-ancho">
+	<h2>La pantalla a 1440 px</h2>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>ANTES</b> Estado real de hoy, con una imagen recién elegida</figcaption>
+		<!--SHELL entradas hoy-->
+		<!--USA antes-->
+		<!--/SHELL-->
+	</figure>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>DESPUÉS</b> La imagen pide su texto y avisa de que irá a Medios</figcaption>
+		<!--SHELL entradas hoy-->
+		<!--USA despues-->
+		<!--/SHELL-->
+	</figure>
+</section>
+
+<section class="lam-section lam-solo-ancho">
+	<h2>La pantalla estrecha (390 px), antes y después</h2>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption><b>ANTES</b> Estado real de hoy</figcaption>
+			<div class="lam-stage lam-movil">
+				<div class="vega-main"><!--USA antes--></div>
+			</div>
+		</figure>
+		<figure class="lam-spec">
+			<figcaption><b>DESPUÉS</b></figcaption>
+			<div class="lam-stage lam-movil">
+				<div class="vega-main"><!--USA despues--></div>
+			</div>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section lam-solo-estrecho">
+	<h2>La pantalla a 390 px</h2>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>ANTES</b> Estado real de hoy, con una imagen recién elegida</figcaption>
+		<!--SHELL entradas hoy-->
+		<!--USA antes-->
+		<!--/SHELL-->
+	</figure>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>DESPUÉS</b> La imagen pide su texto y avisa de que irá a Medios</figcaption>
+		<!--SHELL entradas hoy-->
+		<!--USA despues-->
+		<!--/SHELL-->
+	</figure>
+</section>
+
+<section class="lam-section">
+	<h2>Estados del campo</h2>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption><b>5.1</b> Vacío (igual que hoy)</figcaption>
+			<div class="lam-stage">
+				<div class="vega-widget-file" data-widget="file"><!--USA zona-vacia--></div>
+			</div>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>5.2</b> Imagen recién elegida, sin texto todavía</figcaption>
+			<div class="lam-stage">
+				<div class="vega-widget-file" data-widget="file">
+					<!--USA zona-->
+					<ul class="vega-file-list">
+						<li class="vega-file-item vega-file-item--alt vega-file-item--warn">
+							<span
+								class="vega-file-thumb lam-thumb"
+								role="img"
+								aria-label="huerto-octubre-calabazas.jpg"
+								>{{i:media:22}}</span
+							>
+							<div class="vega-file-item-body">
+								<div class="vega-file-item-head">
+									<span class="vega-file-chip">huerto-octubre-calabazas.jpg</span>
+									<button type="button" class="vega-file-remove">Quitar</button>
+								</div>
+								<label class="vega-file-alt-label">Texto alternativo</label>
+								<textarea class="vega-widget-text lam-foco" rows="1"></textarea>
+								<p class="vega-field-help" style="margin: 0">
+									Describe lo que se ve, no el nombre del fichero.
+								</p>
+								<p class="vega-file-library-state">Se guardará en Medios al guardar la entrada.</p>
+							</div>
+						</li>
+					</ul>
+					<div class="vega-file-alt-status" role="status">
+						<p class="vega-file-alt-warn">
+							{{i:warning:12}}
+							<span
+								>Sin texto alternativo: un lector de pantalla leerá
+								«huerto-octubre-calabazas.jpg».</span
+							>
+						</p>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">
+				El foco entra en el texto alternativo nada más elegir la imagen. El aviso es el que ya sale
+				hoy con una imagen de la biblioteca sin texto, y la ayuda es la de la ficha de Medios.
+				<b>Avisa, no bloquea.</b>
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>5.3</b> Con el texto escrito</figcaption>
+			<div class="lam-stage">
+				<div class="vega-widget-file" data-widget="file">
+					<!--USA zona-->
+					<ul class="vega-file-list">
+						<!--USA item-nuevo-->
+					</ul>
+				</div>
+			</div>
+			<p class="lam-why">El borde de aviso y la frase de aviso desaparecen.</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>5.4</b> Guardando el registro</figcaption>
+			<div class="lam-stage">
+				<div class="vega-widget-file" data-widget="file">
+					<ul class="vega-file-list">
+						<li class="vega-file-item vega-file-item--alt">
+							<span
+								class="vega-file-thumb lam-thumb"
+								role="img"
+								aria-label="huerto-octubre-calabazas.jpg"
+								>{{i:media:22}}</span
+							>
+							<div class="vega-file-item-body">
+								<div class="vega-file-item-head">
+									<span class="vega-file-chip">huerto-octubre-calabazas.jpg</span>
+								</div>
+								<label class="vega-file-alt-label">Texto alternativo</label>
+								<textarea class="vega-widget-text" rows="1" disabled>
+Tres calabazas recién cortadas sobre la mesa del huerto</textarea>
+								<p class="vega-file-library-state" data-state="uploading">Guardando en Medios…</p>
+							</div>
+						</li>
+					</ul>
+				</div>
+			</div>
+			<p class="lam-why">El formulario entero está deshabilitado mientras guarda, como hoy.</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>5.5</b> Guardado</figcaption>
+			<div class="lam-stage">
+				<div class="vega-widget-file" data-widget="file">
+					<!--USA zona-->
+					<ul class="vega-file-list">
+						<li class="vega-file-item vega-file-item--alt">
+							<span
+								class="vega-file-thumb lam-thumb"
+								role="img"
+								aria-label="Tres calabazas recién cortadas sobre la mesa del huerto"
+								>{{i:media:22}}</span
+							>
+							<div class="vega-file-item-body">
+								<div class="vega-file-item-head">
+									<span class="vega-file-chip">huerto-octubre-calabazas.jpg</span>
+									<button type="button" class="vega-file-remove">Quitar</button>
+								</div>
+								<p class="vega-file-library-state" data-state="done">
+									{{i:check:12}} En Medios, con texto alternativo
+								</p>
+							</div>
+						</li>
+					</ul>
+				</div>
+				<div class="lam-toast">
+					<div class="vega-toast" data-kind="success">
+						<span>Guardado. Imagen añadida a Medios.</span>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">
+				Una vez guardada, el texto ya no se edita aquí: vive en la ficha de Medios, que es la
+				fuente. El campo enseña solo dónde está.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>5.6</b> El registro se guardó y la copia en Medios no</figcaption>
+			<div class="lam-stage">
+				<div class="vega-widget-file" data-widget="file">
+					<!--USA zona-->
+					<ul class="vega-file-list">
+						<li class="vega-file-item vega-file-item--alt">
+							<span
+								class="vega-file-thumb lam-thumb"
+								role="img"
+								aria-label="huerto-octubre-calabazas.jpg"
+								>{{i:media:22}}</span
+							>
+							<div class="vega-file-item-body">
+								<div class="vega-file-item-head">
+									<span class="vega-file-chip">huerto-octubre-calabazas.jpg</span>
+									<button type="button" class="vega-file-remove">Quitar</button>
+								</div>
+								<p class="vega-file-library-state" data-state="error" role="alert">
+									<span>No se pudo guardar en Medios: excede el tamaño máximo permitido ·</span>
+									<button type="button">reintentar</button>
+								</p>
+							</div>
+						</li>
+					</ul>
+				</div>
+			</div>
+			<p class="lam-why">
+				Son dos escrituras y la segunda puede fallar sola. El registro no se deshace; el aviso se
+				queda en el campo (no en un aviso que se va) hasta reintentar o quitar la imagen.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>5.7</b> Fichero que no es una imagen</figcaption>
+			<div class="lam-stage">
+				<div class="vega-widget-file" data-widget="file">
+					<!--USA zona-->
+					<ul class="vega-file-list">
+						<li class="vega-file-item">
+							<span class="vega-file-chip" title="calendario-de-siembra-2026.pdf"
+								>calendario-de-siembra-2026.pdf</span
+							>
+							<button type="button" class="vega-file-remove">Quitar</button>
+						</li>
+					</ul>
+				</div>
+			</div>
+			<p class="lam-why">
+				Como hoy: sin texto alternativo que pedir. También se copia en Medios al guardar.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>5.8</b> Imagen elegida de la biblioteca (igual que hoy)</figcaption>
+			<div class="lam-stage">
+				<div class="vega-widget-file" data-widget="file">
+					<!--USA zona-->
+					<ul class="vega-file-list">
+						<li class="vega-file-item">
+							<span class="vega-file-thumb lam-thumb" role="img" aria-label="tomateras-julio.jpg"
+								>{{i:media:16}}</span
+							>
+							<button type="button" class="vega-file-remove">Quitar</button>
+						</li>
+					</ul>
+				</div>
+			</div>
+			<p class="lam-why">
+				Ya está en Medios y ya tiene (o no) su texto allí: no se pregunta otra vez ni se vuelve a
+				copiar a Medios. Si le falta el texto, sale el aviso de hoy.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>5.9</b> Nombre de fichero muy largo</figcaption>
+			<div class="lam-stage">
+				<div class="vega-widget-file" data-widget="file">
+					<ul class="vega-file-list">
+						<li class="vega-file-item vega-file-item--alt">
+							<span class="vega-file-thumb lam-thumb" role="img" aria-label="Imagen"
+								>{{i:media:22}}</span
+							>
+							<div class="vega-file-item-body">
+								<div class="vega-file-item-head">
+									<span class="vega-file-chip"
+										>captura-de-pantalla-2026-10-01-a-las-10.31.42-editor-visual-lista-y-ficha-de-un-registro.png</span
+									>
+									<button type="button" class="vega-file-remove">Quitar</button>
+								</div>
+								<label class="vega-file-alt-label">Texto alternativo</label>
+								<textarea class="vega-widget-text" rows="1">
+El editor visual con el árbol de secciones a la izquierda y el inspector a la derecha</textarea>
+								<p class="vega-file-library-state">Se guardará en Medios al guardar la entrada.</p>
+							</div>
+						</li>
+					</ul>
+				</div>
+			</div>
+			<p class="lam-why">El nombre recorta con puntos suspensivos y «Quitar» no se mueve.</p>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>Nota</h2>
+	<ul class="lam-notes">
+		<li>
+			<b>Recomendación.</b> Pedir el texto alternativo y avisar si falta, sin impedir guardar. Si se
+			vuelve obligatorio, quien tiene prisa escribe «imagen» o el nombre del fichero para pasar, y
+			un texto falso es peor que ninguno: el aviso deja de salir y el lector de pantalla lee algo
+			inútil. Además hay imágenes decorativas en las que dejarlo vacío es lo correcto.
+		</li>
+		<li>
+			<b>La copia en Medios no se pregunta.</b> Sin casilla de «guardar también en Medios»: una
+			casilla que se puede desmarcar devuelve justo el problema de hoy, imágenes sueltas que no
+			están en ningún sitio.
+		</li>
+		<li>
+			<b>Estados que hay que construir.</b> Vacío, imagen nueva sin texto, con texto, guardando,
+			guardado, fallo de la copia con reintento, fichero no imagen, imagen de la biblioteca, varias
+			imágenes en un campo múltiple (un bloque por imagen, uno debajo de otro), campo deshabilitado
+			o de solo lectura (sin campo de texto), sitio sin biblioteca de Medios (todo como hoy: ni
+			texto ni copia), rechazo por tamaño o tipo (el mensaje de hoy).
+		</li>
+		<li>
+			<b>Piezas y tokens.</b> Ningún token ni icono nuevo. El texto alternativo es el mismo campo
+			que crece de la lámina 4 (<code>textarea.vega-widget-text</code>): una descripción es una
+			frase y en la columna lateral no cabe en una línea. Rótulo de <code>FieldRow</code>, aviso
+			<code>.vega-file-alt-warn</code> y borde <code>.vega-file-item--warn</code> que ya existen. La
+			miniatura crece a 5 rem (el doble de la de hoy) porque hay que ver la imagen para describirla.
+			En la lámina la miniatura es un bloque con icono: no lleva fotos.
+		</li>
+	</ul>
+</section>
