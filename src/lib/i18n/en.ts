@@ -555,6 +555,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// (`ContentModel.scheduledPublishing`). `{status}` = the "draft" label.
 	'list.status.scheduledInactive': '{status} · date has no effect',
 	'list.status.scheduledUnconfirmed': '{status} · {date} unconfirmed',
+	// Draft whose "Publish on" date has passed and is still unpublished (the server clears the
+	// date when it publishes): flagged so it does not look like an ordinary draft.
+	'list.status.overdue': 'Scheduled, not published',
 
 	// ————— List toolbar (P4 contract, Phase 4d) —————
 	'list.search.placeholder': 'Filter by title or slug…',

@@ -321,6 +321,11 @@
 		background: var(--accent);
 	}
 
+	/* Programada cuya fecha pasó sin publicarse (`describeStatusBadge`): aviso, no acento. */
+	.vega-rail-dot[data-status-kind='overdue'] {
+		background: var(--warning);
+	}
+
 	/* Registro abierto: fondo tenue de marca + barra `--sheen` a la izquierda — la MISMA firma que
 	   la fila activa/sobrevolada de `RecordTable` (un `box-shadow` no admite gradiente, de ahí el
 	   pseudo-elemento). */

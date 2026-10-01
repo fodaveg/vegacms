@@ -189,9 +189,11 @@ function formatDateCell(ms: number, locale: Locale, now: number): string {
  * fidelidad 1:1, así que `RecordTable.svelte` amplía la insignia a cualquier valor y usa esta
  * función para decidir el color. Pura: solo mapea un string, sin conocer Svelte ni el DOM.
  */
-export type StatusBadgeKind = 'pub' | 'draft' | 'other' | 'scheduled';
+export type StatusBadgeKind = 'pub' | 'draft' | 'other' | 'scheduled' | 'overdue';
 
-export function classifyStatusBadge(value: string): Exclude<StatusBadgeKind, 'scheduled'> {
+export function classifyStatusBadge(
+	value: string
+): Exclude<StatusBadgeKind, 'scheduled' | 'overdue'> {
 	if (value === 'published') return 'pub';
 	if (value === 'draft') return 'draft';
 	return 'other';
@@ -208,6 +210,15 @@ export interface StatusBadge {
 type Translate = (key: string, params?: Record<string, string | number>) => string;
 
 /**
+ * Margen de gracia (5 min) antes de dar por no publicada una fecha pasada. `vegaschedule` corre cada
+ * minuto por defecto (`defaultSchedule = "* * * * *"`, `extensions/vegaschedule`), pero el reloj del
+ * navegador puede ir adelantado respecto al del servidor, el tick puede tardar o reintentarse, y el
+ * `Config.Schedule` de un despliegue puede ser más lento: 5 min cubre el caso por defecto con holgura
+ * sin esconder un fallo real durante mucho tiempo.
+ */
+export const OVERDUE_GRACE_MS = 5 * 60_000;
+
+/**
  * Insignia de estado de un registro, la MISMA en listado, raíl y cabecera del formulario.
  * `null` si el tipo no tiene `statusField` o el registro lo tiene vacío.
  *
@@ -219,8 +230,14 @@ type Translate = (key: string, params?: Record<string, string | number>) => stri
  *   tiene el cron (p. ej. el binario oficial de PocketBase), así que no se publicará sola.
  * - `'unknown'`: «Borrador · 12 oct 10:00 sin confirmar», `kind: 'draft'` — no se promete nada.
  * El texto lo dice en los tres casos, no solo el color, y `raw` sigue siendo `draft`, que es lo que
- * ES el registro hasta que el servidor lo publique. Con la fecha ya pasada es un «Borrador»
- * normal: o el cron está a punto de publicarlo (lo hace cada minuto y vacía la fecha), o no lo hay.
+ * ES el registro hasta que el servidor lo publique.
+ *
+ * Fecha YA pasada: el cron publica y VACÍA la fecha, así que un borrador que conserva una fecha
+ * pasada es uno que no se publicó. Con `scheduling` `'active'` o `'unknown'` se anuncia «Programada,
+ * no se publicó» (`kind: 'overdue'`); con `'inactive'` es «Borrador · fecha sin efecto» (el servidor
+ * nunca la iba a cumplir, mismo texto que con fecha futura). Margen de gracia `OVERDUE_GRACE_MS`:
+ * hasta entonces sigue siendo un «Borrador» normal, para no alarmar en el minuto en que el cron aún
+ * no ha pasado.
  *
  * `now` es parámetro (default `Date.now()`), mismo criterio que `describeCell`.
  */
@@ -250,6 +267,16 @@ export function describeStatusBadge(
 					? 'list.status.scheduledInactive'
 					: 'list.status.scheduledUnconfirmed';
 			return { raw, kind: 'draft', label: t(key, { status: label, date }) };
+		}
+		if (!Number.isNaN(ms) && ms <= now - OVERDUE_GRACE_MS) {
+			if (scheduling === 'inactive') {
+				return {
+					raw,
+					kind: 'draft',
+					label: t('list.status.scheduledInactive', { status: label })
+				};
+			}
+			return { raw, kind: 'overdue', label: t('list.status.overdue') };
 		}
 	}
 

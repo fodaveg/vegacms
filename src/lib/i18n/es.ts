@@ -608,6 +608,9 @@ export const es = {
 	// comprobar (`ContentModel.scheduledPublishing`). `{status}` = etiqueta de «draft».
 	'list.status.scheduledInactive': '{status} · fecha sin efecto',
 	'list.status.scheduledUnconfirmed': '{status} · {date} sin confirmar',
+	// Borrador cuya fecha «Publicar el» ya pasó y sigue sin publicarse (el servidor la vacía al
+	// publicar): se avisa para que no parezca un borrador cualquiera.
+	'list.status.overdue': 'Programada, no se publicó',
 
 	// ————— Toolbar de listado (Fase 4d del contrato P4) —————
 	'list.search.placeholder': 'Filtrar por título o slug…',
