@@ -1,0 +1,139 @@
+<!--TITULO 3 · Densidad: de la barra superior al menú de cuenta-->
+
+<!--PIEZA listado-->
+<div class="vega-list-page">
+	<div class="vega-list-header">
+		<h1>Entradas</h1>
+		<span class="vega-list-meta"><b>8</b> registros · <b>0</b> filtros</span>
+		<span class="vega-list-header-spacer"></span>
+		<button type="button" class="vega-list-export-button">Exportar</button>
+		<button type="button" class="vega-list-import-button">Importar</button>
+		<button type="button" class="vega-list-new-button">
+			{{i:plus:14}} Crear «Entrada» <kbd aria-hidden="true">N</kbd>
+		</button>
+	</div>
+	<div class="vega-list-card">
+		<div data-list-state="ready"><!--TABLA antes 8--></div>
+	</div>
+</div>
+<!--/PIEZA-->
+
+<section class="lam-section">
+	<h2>Qué cambia</h2>
+	<p>
+		El control «Cómoda | Compacta» sale de la barra superior, donde hoy ocupa sitio fijo para algo
+		que se elige una vez, y pasa al <b>menú de cuenta</b> que ya existe (el del avatar), encima de
+		«Ajustes». La barra no cambia en nada más. De paso se arregla un hueco: por debajo de 768 px el
+		control de hoy se oculta, así que
+		<b>en móvil y tableta estrecha la densidad no se puede cambiar</b>; en el menú sí.
+	</p>
+	<table class="lam-cifras">
+		<thead>
+			<tr>
+				<th></th>
+				<th>Antes</th>
+				<th>Después</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>Ancho fijo que ocupa en la barra (medido en la captura de 1440 px)</td>
+				<td>138 px + 12 de separación</td>
+				<td>0</td>
+			</tr>
+			<tr>
+				<td>Paradas de tabulación de la barra en escritorio</td>
+				<td>7</td>
+				<td>5</td>
+			</tr>
+			<tr>
+				<td>Clics para cambiar la densidad</td>
+				<td>1</td>
+				<td>2</td>
+			</tr>
+			<tr>
+				<td>Se puede cambiar por debajo de 768 px</td>
+				<td>no</td>
+				<td>sí</td>
+			</tr>
+		</tbody>
+	</table>
+</section>
+
+<section class="lam-section">
+	<h2>La pantalla</h2>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>ANTES</b> Estado real de hoy</figcaption>
+		<!--SHELL entradas hoy-->
+		<!--USA listado-->
+		<!--/SHELL-->
+	</figure>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>DESPUÉS</b> Sin el control en la barra; el menú de cuenta, abierto</figcaption>
+		<!--SHELL entradas sin-menu-->
+		<!--USA listado-->
+		<!--/SHELL-->
+	</figure>
+</section>
+
+<section class="lam-section">
+	<h2>Estados del menú</h2>
+	<div class="lam-grid lam-grid--una">
+		<figure class="lam-spec">
+			<figcaption><b>ANTES</b> El menú de cuenta de hoy: una sola entrada</figcaption>
+			<div class="lam-stage lam-stage--bar lam-stage--menu"><!--TOPBAR hoy-menu--></div>
+		</figure>
+		<figure class="lam-spec">
+			<figcaption><b>3.1</b> Barra en reposo, sin el control</figcaption>
+			<div class="lam-stage lam-stage--bar"><!--TOPBAR sin--></div>
+		</figure>
+		<figure class="lam-spec">
+			<figcaption><b>3.2</b> Menú abierto, «Cómoda» elegida</figcaption>
+			<div class="lam-stage lam-stage--bar lam-stage--menu"><!--TOPBAR sin-menu--></div>
+			<p class="lam-why">
+				Dos opciones de radio (<code>menuitemradio</code>) bajo un rótulo de grupo. La marca es el
+				icono <code>check</code> del set; el hueco de la marca es fijo para que los dos rótulos
+				queden alineados con «Ajustes».
+			</p>
+		</figure>
+		<figure class="lam-spec">
+			<figcaption><b>3.3</b> «Compacta» elegida</figcaption>
+			<div class="lam-stage lam-stage--bar lam-stage--menu"><!--TOPBAR sin-menu-compacta--></div>
+			<p class="lam-why">
+				Al elegir, la densidad cambia al momento y el menú <b>se queda abierto</b>: así se ve el
+				efecto en la pantalla de detrás y se puede volver atrás sin reabrirlo. Se cierra con Escape,
+				al pulsar fuera o al elegir «Ajustes».
+			</p>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>Nota</h2>
+	<ul class="lam-notes">
+		<li>
+			<b>Recomendación.</b> Al menú de cuenta, no a la pantalla de Ajustes. La densidad es una
+			preferencia de este navegador (se guarda en <code>vega.density.v1</code>, no en el sitio) y
+			Ajustes es la configuración del sitio para todos: puesta allí, alguien la cambiaría creyendo
+			que la cambia para todo el equipo, y quien no tenga acceso a Ajustes se quedaría sin poder
+			cambiarla.
+		</li>
+		<li>
+			<b>Estados que hay que construir.</b> Opción elegida y sin elegir, ratón encima, foco (flechas
+			arriba y abajo recorren las tres entradas; Intro o Espacio eligen), menú abierto tras elegir,
+			puntero basto (cada entrada a 44 px, como la de «Ajustes» hoy).
+		</li>
+		<li>
+			<b>Piezas y tokens.</b> Ningún token nuevo. La tarjeta y la fila son las de
+			<code>.vega-topbar-user-menu</code>; el rótulo de grupo usa la tipografía de las cabeceras de
+			tabla; el separador es una línea de <code>--line</code>. Icono: <code>check</code>.
+			<code>DensityToggle.svelte</code> deja de usarse en la barra.
+		</li>
+		<li>
+			<b>Coste.</b> Cambiar la densidad pasa de un clic a dos. Es una elección que se hace una vez
+			por equipo. A 1440 px el buscador ya está en su ancho máximo (448 px antes y después): el
+			sitio se gana en el tramo de 769 a 1100 px, donde hoy el buscador es lo que se encoge, como se
+			ve en las barras sueltas de arriba.
+		</li>
+	</ul>
+</section>
