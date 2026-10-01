@@ -742,6 +742,8 @@ export const es = {
 	'list.import.partial':
 		'La importación terminó con {failed} registros fallidos. Revisa el informe.',
 	'list.import.error': 'No se pudo preparar la vista previa. Vuelve a intentarlo.',
+	'list.import.reading.bar': 'Progreso de la lectura del fichero',
+	'list.import.progress.count': 'Importando… {done} de {total}',
 
 	// ————— Borrado (Fase 4e del contrato P4) —————
 	'list.delete.rowButton': 'Borrar',
@@ -828,6 +830,9 @@ export const es = {
 	'revisions.panel.unavailable': 'El historial de versiones no está activado en este proyecto.',
 	'revisions.panel.unknownDate': 'Fecha desconocida',
 	'revisions.panel.unknownAuthor': 'alguien',
+	'revisions.panel.loadMore': 'Ver más',
+	'revisions.panel.loadingMore': 'Cargando…',
+	'revisions.panel.loadMoreError': 'No se pudieron cargar más versiones. Vuelve a intentarlo.',
 	'revisions.restoredToast':
 		'Valores cargados en el formulario. Revisa y guarda para conservarlos.',
 
@@ -995,14 +1000,14 @@ export const es = {
 	'media.replace.confirm': 'Reemplazar',
 	'media.replace.replacing': 'Reemplazando…',
 	'media.replace.success': 'Fichero reemplazado. La URL directa ha cambiado.',
+	'media.replace.warningDrafts':
+		'Los cambios sin guardar de la ficha (texto alternativo, título, etiquetas, punto focal) se guardarán a la vez que el fichero.',
 
 	// ————— Medios: cabecera + toolbar de la biblioteca (rediseño «aquelarre-medios») —————
 	// El recuento de la cabecera es el TOTAL de la biblioteca (`totalItems` del listado), nunca el
 	// de la página ni el del filtro. El mockup añade además el peso total en MB: Vega no lo sabe
 	// (§4.4, el puerto no expone el tamaño de un fichero ya almacenado) y no se inventa.
 	'media.meta.files': 'archivos',
-	'media.search.placeholder': 'Buscar por nombre de archivo…',
-	'media.search.ariaLabel': 'Buscar en la biblioteca por nombre de archivo',
 	'media.filter.groupLabel': 'Filtrar por tipo',
 	'media.filter.all': 'Todos',
 	'media.filter.images': 'Imágenes',
@@ -1010,6 +1015,7 @@ export const es = {
 	'media.filter.documents': 'Documentos',
 	'media.filter.empty': 'Ningún archivo de esta página coincide con la búsqueda o el tipo elegido.',
 	'media.filter.clear': 'Limpiar filtros',
+	'media.search.empty': 'Ningún archivo de la biblioteca coincide con la búsqueda.',
 
 	// ————— Medios: barra de selección (rediseño «aquelarre-medios») —————
 	// Sin "Insertar" (ver `MediaSelectionBar.svelte`): insertar en un campo solo existe cuando la

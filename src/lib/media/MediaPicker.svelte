@@ -25,7 +25,8 @@
 	 * que `matchesAccept` (`media-picker.ts`) filtra la página YA CARGADA por la extensión del
 	 * `fileRef` — la paginación (`totalItems`/`totalPages` de `Pagination.svelte`) sigue reflejando
 	 * el total SIN filtrar (simplificación de alcance: una página con `accept` restrictivo puede
-	 * pintar menos celdas de las que promete "24 por página", nunca al revés).
+	 * pintar menos celdas de las que promete "24 por página", nunca al revés; y una página que `accept`
+	 * deja VACÍA conserva la paginación si hay más páginas, para poder seguir buscando).
 	 *
 	 * **Búsqueda SERVER-SIDE por alt/title**: `buildMediaListQuery(page, { search })` (Fase 6e,
 	 * `media-query.ts`) — debounce de 250ms, mismo valor que el buscador de `Relation.svelte` (F5-e).
@@ -44,7 +45,7 @@
 	import { VegaError } from '$lib/backend/errors';
 	import type { RecordId } from '$lib/backend/types';
 	import { createMediaListState } from './media-list-state.svelte';
-	import { MEDIA_PER_PAGE } from './media-query';
+	import { MEDIA_PER_PAGE, MEDIA_SEARCH_DEBOUNCE_MS } from './media-query';
 	import { toMediaItemView, type MediaItemView } from './media-item';
 	import { countMediaMissingAlt, mediaMissingAlt } from './media-card';
 	import { matchesAccept, type MediaPickResult } from './media-picker';
@@ -64,7 +65,6 @@
 
 	let searchTerm = $state('');
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-	const SEARCH_DEBOUNCE_MS = 250;
 
 	// Elegidos EN ESTA sesión del picker: `MediaItemView` completo (no solo el id) — "Insertar"
 	// necesita `id`/`fileRef`/`alt` de cada uno, y la selección puede abarcar varias páginas (elegir
@@ -116,7 +116,7 @@
 		debounceTimer = setTimeout(() => {
 			debounceTimer = null;
 			void listState.load(ctx, 1, term);
-		}, SEARCH_DEBOUNCE_MS);
+		}, MEDIA_SEARCH_DEBOUNCE_MS);
 	}
 
 	function handleSearchInput(event: Event): void {
@@ -286,10 +286,14 @@
 							{ctx.t('common.retry')}
 						</button>
 					</div>
-				{:else if visibleItems.length === 0}
-					<p class="vega-media-picker-empty">{ctx.t('media.picker.empty')}</p>
 				{:else}
-					<MediaGrid items={visibleItems} onSelect={toggleSelect} {isSelected} />
+					{#if visibleItems.length === 0}
+						<p class="vega-media-picker-empty">{ctx.t('media.picker.empty')}</p>
+					{:else}
+						<MediaGrid items={visibleItems} onSelect={toggleSelect} {isSelected} />
+					{/if}
+					<!-- La paginación NO depende de lo que deje el filtro `accept`: una página sin ningún
+					     asset aceptable (p. ej. solo vídeos con `accept: image/*`) sigue teniendo vecinas. -->
 					{#if status.page.totalPages > 1}
 						<Pagination
 							page={status.page.page}

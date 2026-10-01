@@ -164,3 +164,85 @@ describe('RevisionsPanel.svelte — etiqueta de cada entrada', () => {
 		expect(item?.textContent).toBe('Reserva legible');
 	});
 });
+
+describe('RevisionsPanel.svelte — «Ver más» pasado el tope de 20', () => {
+	let mounted: { target: HTMLElement; instance: ReturnType<typeof mount> } | null = null;
+
+	afterEach(async () => {
+		if (mounted) {
+			await unmount(mounted.instance);
+			mounted.target.remove();
+			mounted = null;
+		}
+	});
+
+	/** `total` revisiones fabricadas, servidas de 20 en 20 según `query.page`. */
+	function pagedList(total: number, failPage: number | null = null) {
+		return vi.fn(async (_type: string, query: { page?: number; perPage?: number }) => {
+			const page = query.page ?? 1;
+			if (page === failPage) throw new Error('red caída');
+			const perPage = query.perPage ?? 20;
+			const items = Array.from({ length: total }, (_, i) =>
+				revisionRecord({ id: `rev${i}`, label: `Versión ${i}`, values: {} })
+			).slice((page - 1) * perPage, page * perPage);
+			return { items, page, perPage, totalItems: total, totalPages: Math.ceil(total / perPage) };
+		});
+	}
+
+	function open(list: ReturnType<typeof pagedList>): HTMLElement {
+		mounted = mountPanel(list as unknown as BackendPort['list']);
+		return mounted.target;
+	}
+
+	const labels = (target: HTMLElement) => target.querySelectorAll('.vega-revisions-item').length;
+	const moreButton = (target: HTMLElement) =>
+		target.querySelector<HTMLButtonElement>('.vega-revisions-more-button');
+
+	test('con más de 20 versiones: ofrece «Ver más» y añade la página siguiente al final', async () => {
+		const list = pagedList(45);
+		const target = open(list);
+		await tick();
+		target.querySelector<HTMLButtonElement>('.vega-revisions-toggle')!.click();
+		await flush();
+
+		expect(labels(target)).toBe(20);
+		expect(moreButton(target)).not.toBeNull();
+
+		moreButton(target)!.click();
+		await flush();
+		expect(labels(target)).toBe(40);
+		expect(list).toHaveBeenLastCalledWith(
+			'vega_revisions',
+			expect.objectContaining({ page: 2, perPage: 20 })
+		);
+
+		moreButton(target)!.click();
+		await flush();
+		expect(labels(target)).toBe(45);
+		expect(moreButton(target)).toBeNull(); // última página: ya no hay más que pedir
+	});
+
+	test('con 20 o menos no hay «Ver más»', async () => {
+		const target = open(pagedList(20));
+		await tick();
+		target.querySelector<HTMLButtonElement>('.vega-revisions-toggle')!.click();
+		await flush();
+
+		expect(labels(target)).toBe(20);
+		expect(moreButton(target)).toBeNull();
+	});
+
+	test('si «Ver más» falla, la lista ya cargada se conserva, se avisa y se puede reintentar', async () => {
+		const target = open(pagedList(45, 2));
+		await tick();
+		target.querySelector<HTMLButtonElement>('.vega-revisions-toggle')!.click();
+		await flush();
+
+		moreButton(target)!.click();
+		await flush();
+
+		expect(labels(target)).toBe(20);
+		expect(target.querySelector('.vega-revisions-more [role="alert"]')).not.toBeNull();
+		expect(moreButton(target)?.disabled).toBe(false);
+	});
+});

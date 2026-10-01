@@ -37,6 +37,18 @@ export type ImportPort = Pick<BackendPort, 'list' | 'create' | 'update'>;
 
 export type FetchTransferFileFn = (file: TransferFileValue) => Promise<File | null>;
 
+/** `FetchTransferFileFn` con caché (`createCachingFileFetcher`): además de traer, sabe SOLTAR el
+ *  fichero de una `url` ya escrita. Un fetcher sin `release` (un doble de test, el de red a pelo)
+ *  es válido — `runImport` lo llama con `?.`. */
+export type ReleasableFileFetcher = FetchTransferFileFn & {
+	release?: (url: string) => void;
+};
+
+/** Escrituras simultáneas máximas de `runImport` (límite fijo, no configurable): con todas a la vez
+ *  un `.vega.json` grande abría cientos de peticiones y mantenía todos los binarios traídos en
+ *  memoria; 4 ocupa el pool sin saturar el backend. */
+export const IMPORT_WRITE_CONCURRENCY = 4;
+
 /** Envuelve `fetchFile` (por defecto `fetchTransferFile`, red real) con una caché por `url`: el
  *  mismo fichero nunca se trae dos veces aunque `buildImportPreview` (comprobación de `required`,
  *  §4.2) y `runImport` (escritura real, §4.4) lo pidan las dos. Un `null` (no se pudo traer) se
@@ -44,14 +56,21 @@ export type FetchTransferFileFn = (file: TransferFileValue) => Promise<File | nu
  *  import, y CORS/404 no son transitorios en la escala de "unos segundos" que dura un import. */
 export function createCachingFileFetcher(
 	fetchFile: FetchTransferFileFn = fetchTransferFile
-): FetchTransferFileFn {
+): ReleasableFileFetcher {
 	const cache = new Map<string, File | null>();
-	return async (file: TransferFileValue) => {
+	const cached: ReleasableFileFetcher = async (file: TransferFileValue) => {
 		if (cache.has(file.url)) return cache.get(file.url) ?? null;
 		const result = await fetchFile(file);
 		cache.set(file.url, result);
 		return result;
 	};
+	// `runImport` suelta cada fichero en cuanto su registro se ha escrito (o ha fallado): la caché
+	// solo tiene sentido ENTRE la vista previa y la escritura, y retenerla entera hasta el final
+	// mantenía en memoria todos los binarios de un import grande.
+	cached.release = (url) => {
+		cache.delete(url);
+	};
+	return cached;
 }
 
 export interface ImportCollectionPreview {
@@ -278,6 +297,14 @@ export interface RunImportOptions {
 	 *  tratan como saltadas: `ImportDialog.svelte` es quien no debe ofrecer "Importar" sin esta
 	 *  confirmación cuando hay alguna, pero esta función no confía en eso — lo aplica ella misma. */
 	overwriteConfirmed: boolean;
+	/** Se llama tras cada registro escrito (con éxito o no) con lo hecho hasta ahora y el total a
+	 *  escribir — es lo que pinta el progreso de `ImportDialog.svelte`. Omitidos no cuentan. */
+	onProgress?: (progress: ImportProgress) => void;
+}
+
+export interface ImportProgress {
+	done: number;
+	total: number;
 }
 
 interface WriteTask {
@@ -288,12 +315,12 @@ interface WriteTask {
 
 /** Escribe un único registro (create o update según `task.entry.status`) y NUNCA deja escapar un
  *  rechazo: cualquier error se captura y se convierte en un `ImportOutcome` de `status: 'failed'`
- *  (§4.3: "un registro que falla no aborta los demás"). `Promise.allSettled` en `runImport` es
- *  defensa en profundidad, no el mecanismo — este es. */
+ *  (§4.3: "un registro que falla no aborta los demás"). El `catch` de `runPool` es defensa en
+ *  profundidad, no el mecanismo — este es. */
 async function writeOne(
 	port: ImportPort,
 	task: WriteTask,
-	fetchFile: FetchTransferFileFn
+	fetchFile: ReleasableFileFetcher
 ): Promise<ImportOutcome> {
 	const { collection, record, entry } = task;
 	try {
@@ -311,14 +338,61 @@ async function writeOne(
 	} catch (err) {
 		const error = err instanceof Error ? err.message : 'Error inesperado al escribir el registro';
 		return { type: collection.type, id: record.id, status: 'failed', error };
+	} finally {
+		releaseRecordFiles(record, fetchFile);
 	}
+}
+
+/** Suelta de la caché del fetcher los ficheros de `record` (ya escrito o ya fallido). */
+function releaseRecordFiles(record: TransferRecord, fetchFile: ReleasableFileFetcher): void {
+	if (!fetchFile.release) return;
+	for (const raw of Object.values(record.values)) {
+		for (const item of Array.isArray(raw) ? raw : [raw]) {
+			if (isTransferFileValue(item)) fetchFile.release(item.url);
+		}
+	}
+}
+
+/** Ejecuta `tasks` con a lo sumo `IMPORT_WRITE_CONCURRENCY` en vuelo y devuelve UN resultado por
+ *  tarea (en el orden de entrada, no el de terminación). `writeOne` no rechaza nunca; si lo hiciera
+ *  (bug futuro), la tarea cuenta igualmente como `failed` — ningún camino pierde un registro. */
+async function runPool(
+	port: ImportPort,
+	tasks: readonly WriteTask[],
+	fetchFile: ReleasableFileFetcher,
+	onSettled: () => void
+): Promise<ImportOutcome[]> {
+	const outcomes = new Array<ImportOutcome>(tasks.length);
+	let next = 0;
+	async function worker(): Promise<void> {
+		while (next < tasks.length) {
+			const index = next++;
+			const task = tasks[index];
+			try {
+				outcomes[index] = await writeOne(port, task, fetchFile);
+			} catch (err) {
+				outcomes[index] = {
+					type: task.collection.type,
+					id: task.record.id,
+					status: 'failed',
+					error: err instanceof Error ? err.message : 'Error inesperado al escribir el registro'
+				};
+			}
+			onSettled();
+		}
+	}
+	await Promise.all(
+		Array.from({ length: Math.min(IMPORT_WRITE_CONCURRENCY, tasks.length) }, () => worker())
+	);
+	return outcomes;
 }
 
 /**
  * Escribe `preview` (§4.3): agrupa las entradas escribibles (CREA + PISA confirmado) de TODAS las
  * colecciones en dos lotes GLOBALES por el orden topológico simple (`partitionByOutgoingRelations`
  * por colección, fusionados) — el lote 2 no arranca hasta que el lote 1 TERMINA entero (con éxito
- * o no). Sin transacción (PocketBase no la expone al cliente): cada registro se intenta con
+ * o no). DENTRO de cada lote las escrituras van por un pool de `IMPORT_WRITE_CONCURRENCY` y cada
+ * registro suelta sus ficheros de la caché del fetcher al terminar. Sin transacción (PocketBase no la expone al cliente): cada registro se intenta con
  * `writeOne`, que nunca deja escapar un fallo — el informe final dice qué entró y qué no,
  * `success` nunca es `true` si algo falló.
  */
@@ -326,7 +400,7 @@ export async function runImport(
 	port: ImportPort,
 	preview: ImportPreview,
 	options: RunImportOptions,
-	fetchFile: FetchTransferFileFn = fetchTransferFile
+	fetchFile: ReleasableFileFetcher = fetchTransferFile
 ): Promise<ImportReport> {
 	let skippedCount = 0;
 	const batch1: WriteTask[] = [];
@@ -362,11 +436,19 @@ export async function runImport(
 		}
 	}
 
-	const outcomes: ImportOutcome[] = [];
-	const results1 = await Promise.allSettled(batch1.map((task) => writeOne(port, task, fetchFile)));
-	for (const result of results1) if (result.status === 'fulfilled') outcomes.push(result.value);
-	const results2 = await Promise.allSettled(batch2.map((task) => writeOne(port, task, fetchFile)));
-	for (const result of results2) if (result.status === 'fulfilled') outcomes.push(result.value);
+	// Dos lotes en orden: el pool no cruza la frontera (el lote 2 espera a que el 1 termine ENTERO),
+	// así que las relaciones salientes siguen escribiéndose después de sus destinos.
+	const total = batch1.length + batch2.length;
+	let done = 0;
+	const tick = () => {
+		done += 1;
+		options.onProgress?.({ done, total });
+	};
+	options.onProgress?.({ done: 0, total });
+	const outcomes: ImportOutcome[] = [
+		...(await runPool(port, batch1, fetchFile, tick)),
+		...(await runPool(port, batch2, fetchFile, tick))
+	];
 
 	const createdCount = outcomes.filter((o) => o.status === 'created').length;
 	const updatedCount = outcomes.filter((o) => o.status === 'updated').length;

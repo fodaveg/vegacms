@@ -99,6 +99,9 @@
 	let totalItems = $state(0);
 	let totalPages = $state(0);
 	let loadedPage = $state(1);
+	/** Items que devolvió el puerto en la página cargada, ANTES de descartar los que no parsean:
+	 *  «página vacía» (fuera de rango) se decide con esto, no con `items`. */
+	let loadedRawCount = $state(0);
 
 	const trashPageNum = $derived(parseTrashPage(page.url.searchParams));
 
@@ -113,6 +116,7 @@
 			totalItems = result.totalItems;
 			totalPages = result.totalPages;
 			loadedPage = result.page;
+			loadedRawCount = result.items.length;
 			status = 'ready';
 		} catch (err) {
 			const vegaErr =
@@ -141,6 +145,18 @@
 		const qs = trashPageToParams(target).toString();
 		void goto(`${trashRoute()}${qs ? `?${qs}` : ''}`);
 	}
+
+	// Página fuera de rango (mismo criterio que `/c/[type]`): borrar el último de la página, o un
+	// `?page=` que ya no existe, deja `items: []` con `totalItems > 0` (el puerto no clampa `page`).
+	// En vez de un «papelera vacía» falso sin paginación para volver, va a la última página con
+	// datos. `totalPages !== loadedPage` corta cualquier bucle: tras el `goto` la recarga trae
+	// items y el efecto no vuelve a disparar.
+	$effect(() => {
+		if (!routerReady || status !== 'ready') return;
+		if (loadedRawCount !== 0 || totalItems === 0 || totalPages < 1) return;
+		if (totalPages === loadedPage) return;
+		goToPage(totalPages);
+	});
 
 	/** Tipo de origen de `revision`, o `null` si la colección ya no existe en el esquema (ver
 	 *  cabecera: `restoreBlockedReason`). */

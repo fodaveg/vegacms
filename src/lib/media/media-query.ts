@@ -9,10 +9,10 @@
  * nunca lanza, degrada a la página 1.
  *
  * **`search` (Fase P6·6e, opcional)**: `buildMediaListQuery(page, { search })` añade un filtro
- * `contains` SERVER-SIDE por `alt` O `title` — lo usa ÚNICAMENTE `MediaPicker.svelte` (el buscador
- * del picker de biblioteca); `/media/+page.svelte` (6b/6d) nunca lo pasa, así que su
- * comportamiento no cambia (`opts` es opcional, sin él el resultado es idéntico al de antes de
- * 6e). El mime NO es consultable (audit H1, `file` solo admite `empty`/`notEmpty` en `Query`), por
+ * `contains` SERVER-SIDE por `alt` O `title` — lo usan `MediaPicker.svelte` (el buscador del picker
+ * de biblioteca) y, desde el audit del 30 sep, el buscador de `/media/+page.svelte` (antes
+ * filtraba en el cliente solo los 24 cargados y solo por nombre de fichero). `opts` es opcional:
+ * sin él el resultado es idéntico al de antes de 6e. El mime NO es consultable (audit H1, `file` solo admite `empty`/`notEmpty` en `Query`), por
  * eso el picker filtra por `accept` en el CLIENTE (`media-picker.ts`, `matchesAccept`) — solo
  * `alt`/`title` viajan como filtro real al backend.
  */
@@ -22,6 +22,10 @@ import type { FilterNode, Query } from '$lib/backend/query';
 /** Tamaño de página del grid: más pequeño que `DEFAULT_PER_PAGE` (30, listados tabulares) porque
  *  cada celda es una miniatura, no una fila — 24 encaja en rejillas de 4/6/8 columnas sin resto. */
 export const MEDIA_PER_PAGE = 24;
+
+/** Espera (ms) entre la última tecla y la búsqueda SERVER-SIDE — la comparten el selector
+ *  (`MediaPicker.svelte`) y `/media`; mismo valor que el buscador de `Relation.svelte` (F5-e). */
+export const MEDIA_SEARCH_DEBOUNCE_MS = 250;
 
 export interface MediaListQueryOptions {
 	/** Término de búsqueda SERVER-SIDE por `alt`/`title` (Fase P6·6e, ver cabecera). En blanco o

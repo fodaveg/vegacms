@@ -59,6 +59,18 @@ export function findMediaFileFieldSchema(
 	return field && field.type === 'file' ? field : null;
 }
 
+/** `true` si el esquema DESCUBIERTO de `file` admite algún vídeo: sin restricción de tipos (lista
+ *  ausente o vacía), con el comodín total, o con algún patrón `video/…` (el comodín o uno
+ *  concreto, p. ej. `video/mp4`). Lo usa
+ *  `/media` para ofrecer el chip «Vídeo» solo cuando una biblioteca puede tener alguno. Sin esquema
+ *  (`null`, no debería darse con la colección presente) no se ofrece: no se finge lo que no se sabe. */
+export function mediaSchemaAdmitsVideo(schema: MediaFileFieldSchema | null): boolean {
+	if (!schema) return false;
+	const mimeTypes = schema.mimeTypes;
+	if (!mimeTypes || mimeTypes.length === 0) return true;
+	return mimeTypes.some((pattern) => pattern === '*/*' || pattern.startsWith('video/'));
+}
+
 /** Valida `file` contra las constraints DESCUBIERTAS en `schema` (ver cabecera). `null` =
  *  admitido. Sin `maxSizeBytes`/`mimeTypes` (o listas vacías) → sin restricción, igual semántica
  *  que `validateNewFile` de P5. */

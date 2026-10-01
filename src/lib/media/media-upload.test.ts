@@ -8,6 +8,7 @@ import { describe, expect, test } from 'vitest';
 import type { ContentType } from '$lib/backend/types';
 import {
 	findMediaFileFieldSchema,
+	mediaSchemaAdmitsVideo,
 	validateMediaFile,
 	type MediaFileFieldSchema
 } from './media-upload';
@@ -67,6 +68,35 @@ describe('findMediaFileFieldSchema', () => {
 	test('null si "vega_media" existe pero, por lo que sea, no trae el campo "file"', () => {
 		const media: ContentType = { name: 'vega_media', readonly: false, fields: [] };
 		expect(findMediaFileFieldSchema([media])).toBeNull();
+	});
+});
+
+describe('mediaSchemaAdmitsVideo', () => {
+	test('sin esquema: no se finge', () => {
+		expect(mediaSchemaAdmitsVideo(null)).toBe(false);
+	});
+
+	test('sin restricción de tipos (ausente o vacía): admite vídeo', () => {
+		expect(mediaSchemaAdmitsVideo(mediaFileField())).toBe(true);
+		expect(mediaSchemaAdmitsVideo(mediaFileField({ mimeTypes: [] }))).toBe(true);
+	});
+
+	test('comodín video/*, un vídeo concreto o el comodín total: admite', () => {
+		expect(mediaSchemaAdmitsVideo(mediaFileField({ mimeTypes: ['image/png', 'video/*'] }))).toBe(
+			true
+		);
+		expect(mediaSchemaAdmitsVideo(mediaFileField({ mimeTypes: ['video/mp4'] }))).toBe(true);
+		expect(mediaSchemaAdmitsVideo(mediaFileField({ mimeTypes: ['*/*'] }))).toBe(true);
+	});
+
+	test('la lista por defecto de Vega (imágenes y PDF) no admite vídeo', () => {
+		expect(
+			mediaSchemaAdmitsVideo(
+				mediaFileField({
+					mimeTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'application/pdf']
+				})
+			)
+		).toBe(false);
 	});
 });
 

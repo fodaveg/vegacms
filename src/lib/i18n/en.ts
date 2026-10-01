@@ -680,6 +680,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.import.success.many': 'Imported {count} records.',
 	'list.import.partial': 'The import finished with {failed} failed records. Check the report.',
 	'list.import.error': 'The preview could not be prepared. Please try again.',
+	'list.import.reading.bar': 'File reading progress',
+	'list.import.progress.count': 'Importing… {done} of {total}',
 
 	// ————— Active filter chips (M6, reopens R2, mockup `.toolbar .chip`) —————
 	'list.activeFilter.groupLabel': 'Active filters',
@@ -794,6 +796,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'revisions.panel.unavailable': 'Version history is not enabled for this project.',
 	'revisions.panel.unknownDate': 'Unknown date',
 	'revisions.panel.unknownAuthor': 'someone',
+	'revisions.panel.loadMore': 'Show more',
+	'revisions.panel.loadingMore': 'Loading…',
+	'revisions.panel.loadMoreError': 'Could not load more versions. Please try again.',
 	'revisions.restoredToast': 'Values loaded into the form. Review and save to keep them.',
 
 	// ————— Version history — diff of one revision —————
@@ -934,14 +939,14 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.replace.confirm': 'Replace',
 	'media.replace.replacing': 'Replacing…',
 	'media.replace.success': 'File replaced. The direct URL has changed.',
+	'media.replace.warningDrafts':
+		'Unsaved changes in this panel (alt text, title, tags, focal point) will be saved together with the file.',
 
 	// ————— Media: library header + toolbar («aquelarre-medios» redesign) —————
 	// The header count is the library TOTAL (`totalItems` of the listing), never the page's nor the
 	// filter's. The mockup also shows the total weight in MB: Vega does not know it (§4.4, the port
 	// does not expose the size of an already stored file) and does not make it up.
 	'media.meta.files': 'files',
-	'media.search.placeholder': 'Search by file name…',
-	'media.search.ariaLabel': 'Search the library by file name',
 	'media.filter.groupLabel': 'Filter by type',
 	'media.filter.all': 'All',
 	'media.filter.images': 'Images',
@@ -949,6 +954,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.filter.documents': 'Documents',
 	'media.filter.empty': 'No file on this page matches the search or the chosen type.',
 	'media.filter.clear': 'Clear filters',
+	'media.search.empty': 'No file in the library matches the search.',
 
 	// ————— Media: selection bar («aquelarre-medios» redesign) —————
 	// No "Insert" (see `MediaSelectionBar.svelte`): inserting into a field only exists when the

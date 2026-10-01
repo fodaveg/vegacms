@@ -19,6 +19,7 @@ import type { TransferFileValue, TransferRecord } from './record-serializer';
 import {
 	buildImportPreview,
 	createCachingFileFetcher,
+	IMPORT_WRITE_CONCURRENCY,
 	runImport,
 	type ImportPort
 } from './import-collection';
@@ -391,7 +392,148 @@ describe('runImport', () => {
 	});
 });
 
+describe('runImport: pool de escrituras', () => {
+	const postsType = () =>
+		contentType('posts', [
+			field({ name: 'title', type: 'text', subtype: 'plain' }),
+			field({ name: 'author', type: 'relation', target: 'posts', multiple: false })
+		]);
+
+	function previewOf(records: TransferRecord[]) {
+		return {
+			collections: [
+				{
+					type: 'posts',
+					contentType: postsType(),
+					records,
+					entries: records.map((r) => ({ id: r.id, status: 'create' as const, reasons: [] }))
+				}
+			]
+		};
+	}
+
+	it('nunca hay más de IMPORT_WRITE_CONCURRENCY escrituras en vuelo y se escriben TODAS con su id', async () => {
+		const { port, writes } = fakePort({ posts: [] });
+		let inFlight = 0;
+		let peak = 0;
+		const baseCreate = port.create;
+		port.create = async (type, data, opts) => {
+			inFlight += 1;
+			peak = Math.max(peak, inFlight);
+			await new Promise((resolve) => setTimeout(resolve, 5));
+			inFlight -= 1;
+			return baseCreate(type, data, opts);
+		};
+		const records = Array.from({ length: 25 }, (_, i) => record(`r${i}`, { title: `T${i}` }));
+
+		const report = await runImport(port, previewOf(records), { overwriteConfirmed: true });
+
+		expect(peak).toBe(IMPORT_WRITE_CONCURRENCY);
+		expect(writes.map((w) => w.id).sort()).toEqual(records.map((r) => r.id).sort());
+		expect(report).toMatchObject({ createdCount: 25, failedCount: 0, success: true });
+		// El informe conserva el orden de entrada, no el de terminación.
+		expect(report.outcomes.map((o) => o.id)).toEqual(records.map((r) => r.id));
+	});
+
+	it('el lote con relaciones salientes no arranca hasta que TERMINA el de sus destinos', async () => {
+		const { port } = fakePort({ posts: [] });
+		const events: string[] = [];
+		const baseCreate = port.create;
+		port.create = async (type, data, opts) => {
+			events.push(`start:${opts!.id}`);
+			await new Promise((resolve) => setTimeout(resolve, opts!.id!.startsWith('t') ? 10 : 1));
+			events.push(`end:${opts!.id}`);
+			return baseCreate(type, data, opts);
+		};
+		const targets = Array.from({ length: 6 }, (_, i) => record(`t${i}`, { title: 'T' }));
+		const referrers = Array.from({ length: 6 }, (_, i) =>
+			record(`x${i}`, { title: 'X', author: 't0' })
+		);
+
+		await runImport(port, previewOf([...referrers, ...targets]), { overwriteConfirmed: true });
+
+		const lastTargetEnd = Math.max(...targets.map((t) => events.indexOf(`end:${t.id}`)));
+		const firstReferrerStart = Math.min(...referrers.map((r) => events.indexOf(`start:${r.id}`)));
+		expect(lastTargetEnd).toBeLessThan(firstReferrerStart);
+	});
+
+	it('un fallo en medio del pool se cuenta como failed y no tapa al resto', async () => {
+		const { port, failingIds } = fakePort({ posts: [] });
+		failingIds.add('r3');
+		failingIds.add('r9');
+		const records = Array.from({ length: 12 }, (_, i) => record(`r${i}`, { title: 'T' }));
+
+		const report = await runImport(port, previewOf(records), { overwriteConfirmed: true });
+
+		expect(report).toMatchObject({ createdCount: 10, failedCount: 2, success: false });
+		expect(report.outcomes).toHaveLength(12);
+	});
+
+	it('onProgress informa 0/total y luego cada registro terminado (omitidos fuera del total)', async () => {
+		const { port, failingIds } = fakePort({ posts: [] });
+		failingIds.add('r1');
+		const records = Array.from({ length: 5 }, (_, i) => record(`r${i}`, { title: 'T' }));
+		const preview = previewOf(records);
+		preview.collections[0].entries[4] = {
+			id: 'r4',
+			status: 'blocked' as never,
+			reasons: [{ kind: 'no-create-permission' }] as never
+		};
+		const seen: { done: number; total: number }[] = [];
+
+		await runImport(port, preview, {
+			overwriteConfirmed: true,
+			onProgress: (p) => seen.push({ ...p })
+		});
+
+		expect(seen[0]).toEqual({ done: 0, total: 4 });
+		expect(seen.at(-1)).toEqual({ done: 4, total: 4 });
+		expect(seen).toHaveLength(5); // fallido incluido: cuenta como hecho
+	});
+
+	it('suelta de la caché el fichero de cada registro al terminar (éxito o fallo)', async () => {
+		const type = contentType('posts', [field({ name: 'cover', type: 'file', multiple: false })]);
+		const { port, failingIds } = fakePort({ posts: [] });
+		failingIds.add('bad');
+		const released: string[] = [];
+		const fetcher = Object.assign(async (f: TransferFileValue) => new File(['x'], f.file), {
+			release: (url: string) => released.push(url)
+		});
+		const records = [
+			record('ok', { cover: { file: 'a.jpg', url: 'https://x/a.jpg' } }),
+			record('bad', { cover: { file: 'b.jpg', url: 'https://x/b.jpg' } })
+		];
+		const preview = {
+			collections: [
+				{
+					type: 'posts',
+					contentType: type,
+					records,
+					entries: records.map((r) => ({ id: r.id, status: 'create' as const, reasons: [] }))
+				}
+			]
+		};
+
+		await runImport(port, preview, { overwriteConfirmed: true }, fetcher);
+
+		expect(released.sort()).toEqual(['https://x/a.jpg', 'https://x/b.jpg']);
+	});
+});
+
 describe('createCachingFileFetcher', () => {
+	it('release(url) suelta la entrada: la siguiente petición vuelve a traerla', async () => {
+		let calls = 0;
+		const fetcher = createCachingFileFetcher(async (file) => {
+			calls += 1;
+			return new File(['x'], file.file);
+		});
+		const value: TransferFileValue = { file: 'a.jpg', url: 'https://x/a.jpg' };
+		await fetcher(value);
+		fetcher.release?.(value.url);
+		await fetcher(value);
+		expect(calls).toBe(2);
+	});
+
 	it('el mismo url se trae UNA sola vez aunque se pida varias veces', async () => {
 		let calls = 0;
 		const fetcher = createCachingFileFetcher(async (file) => {

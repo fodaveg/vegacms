@@ -92,9 +92,9 @@ export function matchesMediaTypeFilter(fileName: string, filter: MediaTypeFilter
 
 /**
  * `true` si `fileName` contiene `query` (case-insensitive, espacios recortados). Una búsqueda en
- * blanco no filtra nada. Deliberadamente sobre el NOMBRE DE FICHERO y nada más: es lo que promete
- * el placeholder del buscador ("Buscar por nombre de archivo…") — el buscador por `alt`/`title`,
- * server-side, es el del picker (`buildMediaListQuery`, 6e), otro gesto y otro contrato.
+ * blanco no filtra nada. Sobre el NOMBRE DE FICHERO y nada más. `/media` ya NO lo usa (audit del
+ * 30 sep: su buscador es server-side por `alt`/`title`, `buildMediaListQuery`, como el del picker);
+ * se conserva por su suite y por si el nombre del binario llega a ser consultable.
  */
 export function matchesMediaNameQuery(fileName: string, query: string): boolean {
 	const term = query.trim().toLowerCase();

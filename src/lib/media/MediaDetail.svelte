@@ -48,7 +48,8 @@
 	 *
 	 * **"Reemplazar fichero" (`#lote-integridad`, Fase A, punto 4)**: sube un fichero nuevo AL
 	 * MISMO registro (`ctx.port.update('vega_media', id, { file })`, conserva id/metadatos) tras
-	 * pasar por `MediaReplaceConfirm` — igual que el borrado, NUNCA se dispara sin ese diálogo. La
+	 * pasar por `MediaReplaceConfirm` — igual que el borrado, NUNCA se dispara sin ese diálogo. Los
+	 * metadatos sin guardar se escriben junto al fichero (misma `update`, ver `confirmReplace`). La
 	 * validación de mime/tamaño reutiliza `validateMediaFile`/`findMediaFileFieldSchema`
 	 * (`media-upload.ts`, la MISMA que usa `MediaUpload` al subir) contra el esquema DESCUBIERTO —
 	 * nunca una copia local de las constraints.
@@ -73,7 +74,7 @@
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import { VegaError } from '$lib/backend/errors';
-	import type { RecordId, VegaRecord } from '$lib/backend/types';
+	import type { FieldInputValue, RecordId, VegaRecord } from '$lib/backend/types';
 	import Icon from '$lib/icons/Icon.svelte';
 	import UsedInPanel from '$lib/integrity/UsedInPanel.svelte';
 	import { addTag, normalizeTagInput, removeTag, tagsEqual } from './media-tags';
@@ -331,27 +332,34 @@
 		tagsDraft = removeTag(tagsDraft, tag);
 	}
 
+	/** Los metadatos en borrador como `RecordInput` — los usan «Guardar» y «Reemplazar fichero» (que
+	 *  los lleva en la MISMA escritura, ver `confirmReplace`).
+	 *
+	 *  LANDMINE (Svelte 5, cazada en e2e): `tagsDraft` es un `$state<string[]>` — Svelte 5
+	 *  proxifica los arrays reactivos, y el adaptador `memory` clona el registro escrito con
+	 *  `structuredClone` (`toVegaRecord`), que NO sabe clonar un `Proxy` (`DataCloneError` en
+	 *  runtime, silencioso salvo por el `catch` de quien llama → `reportError` con un mensaje que no
+	 *  apuntaba a la causa real). `[...tagsDraft]` desproxifica a un array plano ANTES de que
+	 *  cruce la frontera del puerto — mismo criterio que `to-record-input.ts` documenta para
+	 *  otros widgets de P5 (un `$state` nunca cruza tal cual al puerto).
+	 *  `focal` solo si la colección tiene el campo (ver cabecera); `mediaFocalToFieldValue`
+	 *  devuelve un objeto plano nuevo, mismo motivo que `[...tagsDraft]`. */
+	function metadataInput(): Record<string, FieldInputValue> {
+		return {
+			alt: altDraft,
+			title: titleDraft,
+			tags: [...tagsDraft],
+			...(canSetFocal ? { focal: mediaFocalToFieldValue(focalDraft) } : {})
+		};
+	}
+
 	async function handleSubmit(event: SubmitEvent): Promise<void> {
 		event.preventDefault();
 		if (!item || saving) return;
 		saving = true;
 		saveError = null;
 		try {
-			// LANDMINE (Svelte 5, cazada en e2e): `tagsDraft` es un `$state<string[]>` — Svelte 5
-			// proxifica los arrays reactivos, y el adaptador `memory` clona el registro escrito con
-			// `structuredClone` (`toVegaRecord`), que NO sabe clonar un `Proxy` (`DataCloneError` en
-			// runtime, silencioso salvo por el `catch` de abajo → `reportError` con un mensaje que no
-			// apuntaba a la causa real). `[...tagsDraft]` desproxifica a un array plano ANTES de que
-			// cruce la frontera del puerto — mismo criterio que `to-record-input.ts` documenta para
-			// otros widgets de P5 (un `$state` nunca cruza tal cual al puerto).
-			// `focal` solo si la colección tiene el campo (ver cabecera); `mediaFocalToFieldValue`
-			// devuelve un objeto plano nuevo, mismo motivo que `[...tagsDraft]`.
-			const saved: VegaRecord = await ctx.port.update('vega_media', item.id, {
-				alt: altDraft,
-				title: titleDraft,
-				tags: [...tagsDraft],
-				...(canSetFocal ? { focal: mediaFocalToFieldValue(focalDraft) } : {})
-			});
+			const saved: VegaRecord = await ctx.port.update('vega_media', item.id, metadataInput());
 			ctx.feedback.toast(ctx.t('media.detail.saveSuccess'), { kind: 'success' });
 			onSaved(toMediaItemView(saved));
 			onClose();
@@ -456,8 +464,10 @@
 
 	/**
 	 * Confirma el reemplazo (§4 del contrato): `update('vega_media', id, { file })` conserva id y
-	 * metadatos (`alt`/`title`/`tags` intactos, nunca se reenvían) — el backend sustituye SOLO el
-	 * campo `file`. Éxito → toast + `onSaved`/`onClose` (mismo camino que guardar metadatos: el
+	 * metadatos — el backend sustituye SOLO el campo `file`. Si hay metadatos en borrador (`dirty`:
+	 * alt, título, etiquetas, punto focal) van en la MISMA `update` (`metadataInput`), para que
+	 * reemplazar no los tire sin aviso al cerrar el panel; el diálogo de confirmación lo dice
+	 * (`savesDrafts`). Sin borrador, solo viaja `file`. Éxito → toast + `onSaved`/`onClose` (mismo camino que guardar metadatos: el
 	 * llamador refresca el grid con el registro REAL, este panel se cierra). Fallo → `reportError`
 	 * global (nunca deja el fichero "a medio subir" en un estado ambiguo).
 	 */
@@ -465,7 +475,12 @@
 		if (!item || !pendingReplaceFile || replacingAsset) return;
 		replacingAsset = true;
 		try {
-			const saved = await ctx.port.update('vega_media', item.id, { file: pendingReplaceFile });
+			// Metadatos sin guardar: viajan en ESTA misma escritura (una sola `update`, o entra todo o no
+			// entra nada). Sin cambios pendientes solo viaja el fichero, como siempre.
+			const saved = await ctx.port.update('vega_media', item.id, {
+				file: pendingReplaceFile,
+				...(dirty ? metadataInput() : {})
+			});
 			ctx.feedback.toast(ctx.t('media.replace.success'), { kind: 'success' });
 			confirmingReplace = false;
 			pendingReplaceFile = null;
@@ -751,6 +766,7 @@
 	targetFileRef={item?.fileRef ?? null}
 	replacing={replacingAsset}
 	{fallbackFocusEl}
+	savesDrafts={dirty}
 	onConfirm={confirmReplace}
 	onCancel={cancelReplace}
 />
