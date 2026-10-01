@@ -651,8 +651,10 @@ function withEditorCapabilities(port: BackendPort): BackendPort {
 			...port.capabilities,
 			schemaDiscovery: false,
 			schemaBootstrap: false,
-			administration: false
+			administration: false,
+			serverSettings: false
 		},
-		administration: undefined
+		administration: undefined,
+		serverSettings: undefined
 	};
 }

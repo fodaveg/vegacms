@@ -66,6 +66,8 @@ import {
 	VEGA_EDITORS_COLLECTION_NAME
 } from '../../administration';
 import type { MemoryAdministration } from './administration';
+import { deferredServerSettings } from '../../server-settings';
+import type { MemoryServerSecrets, MemoryServerSettings } from './server-settings';
 
 const CAPABILITIES: Capabilities = {
 	realtime: true,
@@ -85,6 +87,7 @@ const CAPABILITIES: Capabilities = {
 	// La sesión de `memory` hace de superuser; el rol editor de la demo/e2e lo apaga desde fuera
 	// (`withEditorCapabilities`, `session/backend.ts`).
 	administration: true,
+	serverSettings: true,
 	editorPasswordReset: true
 };
 
@@ -106,6 +109,9 @@ export interface MemoryBackendPort extends BackendPort {
 	/** Token de restablecimiento vigente de una cuenta de `vega_editors`: lo que en PocketBase
 	 *  llegaría por correo. Solo para tests (una invitación con `MemorySeed.mailEnabled`). */
 	inspectEditorResetToken(email: string): Promise<string | null>;
+	/** Secretos de los ajustes del servidor (contraseña SMTP, clave secreta del almacén de copias):
+	 *  el puerto no los devuelve nunca, igual que PocketBase. Solo para tests. */
+	inspectServerSecrets(): Promise<MemoryServerSecrets>;
 }
 
 /** Crea un `BackendPort` en memoria. Sin `seed`, acepta `admin@vega.test` + cualquier password no vacía. */
@@ -536,14 +542,33 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 	const editorPasswordReset = deferredPasswordReset(() =>
 		loadAdminState().then((state) => state.passwordReset)
 	);
+	// Diferida igual que `administration`; su estado vive aparte (no depende de editores ni copias).
+	let serverSettingsState: Promise<MemoryServerSettings> | null = null;
+	function loadServerSettingsState(): Promise<MemoryServerSettings> {
+		serverSettingsState ??= import('./server-settings')
+			.then((m) => m.createMemoryServerSettings({ checkSessionAlive }))
+			.catch((err: unknown) => {
+				serverSettingsState = null;
+				throw err;
+			});
+		return serverSettingsState;
+	}
+	const serverSettings = deferredServerSettings(() =>
+		loadServerSettingsState().then((state) => state.serverSettings)
+	);
 
 	const port: MemoryBackendPort = {
 		capabilities: CAPABILITIES,
 		administration,
+		serverSettings,
 		editorPasswordReset,
 
 		async inspectEditorResetToken(email) {
 			return (await loadAdminState()).resetTokenFor(email);
+		},
+
+		async inspectServerSecrets() {
+			return (await loadServerSettingsState()).secrets();
 		},
 
 		inspectCollection(name) {

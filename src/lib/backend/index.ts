@@ -98,10 +98,23 @@ export type {
 	AdministrationPort,
 	BackendPort,
 	EditorPasswordResetPort,
+	ServerSettingsPort,
 	StrongAuthPort,
 	UpdateOptions
 } from './port';
 export { VEGA_EDITORS_COLLECTION_NAME } from './administration';
+export type {
+	ConnectionTestOutcome,
+	SecretChange,
+	ServerBackups,
+	ServerMeta,
+	ServerS3,
+	ServerSettings,
+	ServerSettingsDraft,
+	ServerSettingsPatch,
+	ServerSmtp,
+	TestEmailTemplate
+} from './server-settings';
 
 export type {
 	BuildClient,
