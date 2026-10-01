@@ -250,7 +250,7 @@
 		font-weight: 650;
 		letter-spacing: 0.09em;
 		text-transform: uppercase;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		overflow-wrap: anywhere;
 	}
 

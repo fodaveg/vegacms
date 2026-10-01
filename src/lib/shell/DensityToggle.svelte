@@ -56,7 +56,7 @@
 	.vega-density-toggle button {
 		border: 0;
 		background: none;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		font-size: 0.6875rem;
 		padding: 0.22rem 0.65rem;
 		cursor: pointer;

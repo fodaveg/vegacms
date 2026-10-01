@@ -592,7 +592,7 @@
 		font-weight: 650;
 		letter-spacing: 0.09em;
 		text-transform: uppercase;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		overflow-wrap: anywhere;
 	}
 
@@ -600,7 +600,7 @@
 		font-family: var(--mono);
 		font-weight: 500;
 		font-variant-numeric: tabular-nums;
-		color: var(--ink-3);
+		color: var(--ink-2);
 	}
 
 	/* Botón "Añadir" simple (modo homogéneo, sin menú de tipos — ver cabecera, decisión 1: con menú
@@ -758,7 +758,7 @@
 
 	.vega-tree-saving {
 		flex-shrink: 0;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		font-size: 0.72em;
 	}
 

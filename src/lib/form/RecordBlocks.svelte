@@ -447,7 +447,7 @@
 		font-weight: 650;
 		letter-spacing: 0.09em;
 		text-transform: uppercase;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		overflow-wrap: anywhere;
 	}
 
@@ -455,7 +455,7 @@
 		font-family: var(--mono);
 		font-weight: 500;
 		font-variant-numeric: tabular-nums;
-		color: var(--ink-3);
+		color: var(--ink-2);
 	}
 
 	/* El wrap es el ancla de posicionamiento del menú, y por eso es `relative`: sin él, el

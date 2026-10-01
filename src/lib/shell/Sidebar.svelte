@@ -458,7 +458,7 @@
 		font-family: var(--mono);
 		font-size: 0.6875rem;
 		font-variant-numeric: tabular-nums;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		background: var(--surface);
 		border: 1px solid var(--line-soft);
 		border-radius: 999px;
