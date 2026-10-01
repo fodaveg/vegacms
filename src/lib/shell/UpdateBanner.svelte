@@ -27,9 +27,13 @@
 			{ctx.t('update.banner.message', { version: status.latest })}
 		</p>
 		<div class="vega-update-banner-actions">
-			<a href={status.releaseUrl} target="_blank" rel="noopener noreferrer">
-				{ctx.t('update.banner.link')}
-			</a>
+			<!-- `releaseUrl` es `null` cuando la URL del release no es de `https://github.com/`
+			     (`update/release-url.ts`): el aviso se da igual, sin enlace. -->
+			{#if status.releaseUrl}
+				<a href={status.releaseUrl} target="_blank" rel="noopener noreferrer">
+					{ctx.t('update.banner.link')}
+				</a>
+			{/if}
 			<button
 				type="button"
 				class="vega-update-banner-dismiss"

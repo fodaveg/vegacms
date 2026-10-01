@@ -111,6 +111,47 @@ describe('checkForUpdate', () => {
 		});
 	});
 
+	// Segunda barrera (revisión de seguridad del 30 sep 2026): el `html_url` viaja hasta un
+	// `<a href>`; solo se enlaza si es, de verdad, una página de `https://github.com/`.
+	test.each([
+		['prefijo de cadena con otro host', 'https://github.com.evil.example/fodaveg/vegacms'],
+		['github.com como usuario de otro host', 'https://github.com@evil.example/'],
+		['credenciales delante del host bueno', 'https://alguien@github.com/fodaveg/vegacms'],
+		['http sin TLS', 'http://github.com/fodaveg/vegacms/releases'],
+		['subdominio', 'https://gist.github.com/fodaveg'],
+		['otro puerto', 'https://github.com:8443/fodaveg/vegacms'],
+		['esquema javascript', 'javascript:alert(1)'],
+		['esquema data', 'data:text/html,<script>alert(1)</script>'],
+		['relativa al protocolo', '//evil.example/github.com/'],
+		['no parseable', 'esto no es una URL'],
+		['cadena vacía', '']
+	])('html_url rechazado (%s) → el aviso sigue, sin enlace', async (_caso, htmlUrl) => {
+		const fetchImpl = vi
+			.fn()
+			.mockResolvedValue(
+				fakeResponse({ ok: true, body: { tag_name: 'v999.0.0', html_url: htmlUrl } })
+			);
+		const result = await checkForUpdate(fetchImpl as unknown as typeof fetch);
+		expect(result).toEqual({
+			kind: 'update-available',
+			current: VEGA_VERSION,
+			latest: '999.0.0',
+			releaseUrl: null
+		});
+	});
+
+	test('html_url que no es un string → se trata como ausente y cae a la URL construida', async () => {
+		const fetchImpl = vi
+			.fn()
+			.mockResolvedValue(
+				fakeResponse({ ok: true, body: { tag_name: 'v999.0.0', html_url: { href: 'x' } } })
+			);
+		const result = await checkForUpdate(fetchImpl as unknown as typeof fetch);
+		expect(result).toMatchObject({
+			releaseUrl: `https://github.com/${VEGA_REPO_SLUG}/releases/tag/v999.0.0`
+		});
+	});
+
 	test('error de red (fetch rechaza) → error', async () => {
 		const fetchImpl = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
 		const result = await checkForUpdate(fetchImpl as unknown as typeof fetch);

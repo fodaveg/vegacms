@@ -12,9 +12,13 @@
  * respuesta) se captura y se devuelve como `{ kind: 'error' }`, para que la UI (banner/ajustes)
  * lo pinte como un estado más, nunca como una excepción sin capturar (mismo criterio que
  * `VegaError` en el resto de la app, aunque este módulo no forma parte del puerto de backend).
+ *
+ * El enlace al release (`releaseUrl`) solo sale de aquí si apunta a `https://github.com/`
+ * (`release-url.ts#safeReleaseUrl`); si no, va `null` y el aviso de versión se da SIN enlace.
  */
 
 import { VEGA_VERSION } from '$lib/version';
+import { safeReleaseUrl } from './release-url';
 import { readCachedUpdateCheck, writeCachedUpdateCheck } from './storage';
 
 /** `owner/repo` de GitHub. Constante explícita: `package.json` no declara el campo
@@ -42,10 +46,11 @@ const CACHE_TTL_MS = 4 * 60 * 60 * 1000;
 
 /** Resultado de comparar la versión instalada contra la última publicada. Unión discriminada por
  *  `kind`, la misma forma que espera tanto `/settings` (mensaje inline) como `UpdateBanner`
- *  (solo le importa `'update-available'`). */
+ *  (solo le importa `'update-available'`). `releaseUrl` es `null` cuando la URL del release no
+ *  pasó `safeReleaseUrl`: hay versión nueva, pero no hay adónde enlazar con garantías. */
 export type UpdateStatus =
 	| { kind: 'up-to-date'; current: string; latest: string }
-	| { kind: 'update-available'; current: string; latest: string; releaseUrl: string }
+	| { kind: 'update-available'; current: string; latest: string; releaseUrl: string | null }
 	| { kind: 'error'; reason: string };
 
 /**
@@ -86,8 +91,9 @@ function stripLeadingV(tag: string): string {
 }
 
 /** Forma mínima que este módulo exige de la respuesta de `GET .../releases/latest`: un
- *  `tag_name` string y, si existe, un `html_url` string (el link "Ver el release"). Cualquier
- *  otro campo de la respuesta real de GitHub se ignora. */
+ *  `tag_name` string y, si existe, un `html_url` string (el link "Ver el release", que todavía
+ *  tiene que pasar `safeReleaseUrl`). Cualquier otro campo de la respuesta real de GitHub se
+ *  ignora. */
 function extractRelease(data: unknown): { tagName: string; htmlUrl: string | null } | null {
 	if (typeof data !== 'object' || data === null) return null;
 	const record = data as Record<string, unknown>;
@@ -158,8 +164,11 @@ async function resolveStatus(fetchImpl: typeof fetch): Promise<UpdateStatus> {
 		const current = VEGA_VERSION;
 		const latest = stripLeadingV(release.tagName);
 		if (compareSemver(latest, current) > 0) {
-			const releaseUrl =
-				release.htmlUrl ?? `https://github.com/${VEGA_REPO_SLUG}/releases/tag/${release.tagName}`;
+			// Un `html_url` presente pero rechazado NO cae a la URL construida: se queda sin enlace.
+			// La construida pasa por el mismo filtro (el `tag_name` también viene de fuera).
+			const releaseUrl = safeReleaseUrl(
+				release.htmlUrl ?? `https://github.com/${VEGA_REPO_SLUG}/releases/tag/${release.tagName}`
+			);
 			return { kind: 'update-available', current, latest, releaseUrl };
 		}
 		return { kind: 'up-to-date', current, latest };

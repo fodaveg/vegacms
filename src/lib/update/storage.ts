@@ -19,6 +19,7 @@
  */
 
 import type { UpdateStatus } from './check-update';
+import { safeReleaseUrl } from './release-url';
 
 const CACHE_KEY = 'vega.updateCheck.v1';
 const AUTO_CHECK_KEY = 'vega.updateAutoCheck.v1';
@@ -44,15 +45,30 @@ function isCachedUpdateCheck(value: unknown): value is CachedUpdateCheck {
 	);
 }
 
+/**
+ * El `releaseUrl` de una caché se vuelve a pasar por `safeReleaseUrl` al LEERLA: lo guardado no
+ * es de fiar por haber sido escrito por Vega (pudo escribirlo una versión anterior a este filtro,
+ * o cualquier script con acceso al `localStorage` del origen), y `UpdateBanner` lo pinta en un
+ * `<a href>` sin pasar por `checkForUpdate`. Una URL rechazada queda en `null`: el aviso sigue.
+ */
+function withSafeReleaseUrl(cached: CachedUpdateCheck): CachedUpdateCheck {
+	if (cached.status.kind !== 'update-available') return cached;
+	return {
+		checkedAt: cached.checkedAt,
+		status: { ...cached.status, releaseUrl: safeReleaseUrl(cached.status.releaseUrl) }
+	};
+}
+
 /** Última comprobación cacheada, o `null` si no hay ninguna, `localStorage` no está disponible, o
- *  el contenido guardado no tiene la forma esperada. */
+ *  el contenido guardado no tiene la forma esperada. El enlace al release sale ya filtrado (ver
+ *  `withSafeReleaseUrl`). */
 export function readCachedUpdateCheck(): CachedUpdateCheck | null {
 	if (typeof localStorage === 'undefined') return null;
 	try {
 		const raw = localStorage.getItem(CACHE_KEY);
 		if (!raw) return null;
 		const parsed: unknown = JSON.parse(raw);
-		return isCachedUpdateCheck(parsed) ? parsed : null;
+		return isCachedUpdateCheck(parsed) ? withSafeReleaseUrl(parsed) : null;
 	} catch {
 		return null;
 	}
