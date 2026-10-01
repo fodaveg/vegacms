@@ -35,7 +35,7 @@ func (x *Extension) enrollTOTP(e *core.RequestEvent) error {
 	// (or abandoning it halfway) never leaves the account without its second factor.
 	e.Auth.Set("totp_pending_secret", key.Secret())
 	e.Auth.Set("totp_pending_until", time.Now().Add(pendingEnrollmentTTL).Unix())
-	if err := e.App.Save(e.Auth); err != nil {
+	if err := saveFactors(e.App, e.Auth); err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
 	}
 	return e.JSON(http.StatusOK, map[string]string{"otpauth_url": key.URL(), "secret": key.Secret()})
@@ -68,6 +68,12 @@ func (x *Extension) consumeTOTP(app core.App, record *core.Record, passcode stri
 	if !ok {
 		return false, nil
 	}
+	return claimTOTPStep(app, record, step)
+}
+
+// claimTOTPStep moves the account's last accepted step forward to step with one conditional
+// UPDATE of that single column, and reports whether this call was the one that did it.
+func claimTOTPStep(app core.App, record *core.Record, step int64) (bool, error) {
 	result, err := app.DB().Update(record.Collection().Name, dbx.Params{"totp_last_step": step},
 		dbx.NewExp("[[id]] = {:id} AND COALESCE([[totp_last_step]], 0) < {:step}", dbx.Params{"id": record.Id, "step": step}),
 	).Execute()
@@ -78,11 +84,7 @@ func (x *Extension) consumeTOTP(app core.App, record *core.Record, passcode stri
 	if err != nil {
 		return false, err
 	}
-	if count != 1 {
-		return false, nil
-	}
-	record.Set("totp_last_step", step)
-	return true, nil
+	return count == 1, nil
 }
 
 // pendingEnrollmentTTL is how long an unverified TOTP secret may wait for its first code.
@@ -106,7 +108,15 @@ func dropUnverifiedTOTP(app core.App, record *core.Record) error {
 	if !changed {
 		return nil
 	}
-	return app.Save(record)
+	return saveFactors(app, record)
+}
+
+// saveFactors persists only the fields this request changed. A plain Save rewrites every column
+// from the copy read at the start of the request, which would put back an older totp_last_step
+// (and re-open a used code) if a login claimed a newer step in between. totp_last_step itself is
+// never written through here: only claimTOTPStep moves it, and only forwards.
+func saveFactors(app core.App, record *core.Record) error {
+	return app.Save(record.IgnoreUnchangedFields(true))
 }
 
 type codeBody struct {
@@ -150,6 +160,7 @@ func (x *Extension) verifyTOTP(e *core.RequestEvent) error {
 	if refused, response := x.attemptRefused(e, identity, stepUpScope); refused {
 		return response
 	}
+	var pendingStep int64
 	if pendingSecret != "" {
 		// Enrollment in progress: only now does the new secret replace the active one.
 		step, ok := matchTOTPStep(body.Code, pendingSecret, time.Now())
@@ -159,9 +170,7 @@ func (x *Extension) verifyTOTP(e *core.RequestEvent) error {
 		e.Auth.Set("totp_secret", pendingSecret)
 		e.Auth.Set("totp_pending_secret", "")
 		e.Auth.Set("totp_pending_until", 0)
-		if int64(e.Auth.GetInt("totp_last_step")) < step {
-			e.Auth.Set("totp_last_step", step)
-		}
+		pendingStep = step
 	} else {
 		// No enrollment in progress: either an account enrolled halfway by an older version
 		// (secret stored, never enabled) or a re-check of the active secret.
@@ -176,8 +185,15 @@ func (x *Extension) verifyTOTP(e *core.RequestEvent) error {
 	}
 	firstActivation := !e.Auth.GetBool("totp_enabled")
 	e.Auth.Set("totp_enabled", true)
-	if err := e.App.Save(e.Auth); err != nil {
+	if err := saveFactors(e.App, e.Auth); err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
+	}
+	if pendingStep > 0 {
+		// The code that confirmed the new secret is spent too. Losing this race to a newer step
+		// is fine, so the result is not checked.
+		if _, err := claimTOTPStep(e.App, e.Auth, pendingStep); err != nil {
+			return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
+		}
 	}
 	if firstActivation {
 		// Recovery codes issued while TOTP was off (when a bare session could ask for them) must
@@ -206,7 +222,7 @@ func (x *Extension) disableTOTP(e *core.RequestEvent) error {
 	e.Auth.Set("totp_pending_secret", "")
 	e.Auth.Set("totp_pending_until", 0)
 	e.Auth.Set("totp_enabled", false)
-	if err := e.App.Save(e.Auth); err != nil {
+	if err := saveFactors(e.App, e.Auth); err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
 	}
 	return e.JSON(http.StatusOK, map[string]bool{"ok": true})

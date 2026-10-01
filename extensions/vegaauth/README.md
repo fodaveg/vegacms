@@ -137,6 +137,10 @@ Recovery codes issued while TOTP was off are deleted the moment it is switched o
 bare session obtained earlier never become a second factor. The SPA asks for fresh ones right
 after activating. Replacing the authenticator of an account that already had TOTP keeps them.
 
+The factor routes save only the fields they change (`Record.IgnoreUnchangedFields`), and
+`totp_last_step` is only ever moved by its own forward-only `UPDATE`: a request that read the
+account before a login claimed a code cannot write the older step back.
+
 The proof belongs to the **session** that gave it, not to the account: it is stored in process
 memory under the SHA-256 of the session token (never the token itself). Another token of the same
 account, such as a stolen one or a login on another device, does not inherit it and gets `428`.

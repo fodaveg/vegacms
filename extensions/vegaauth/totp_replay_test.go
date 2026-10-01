@@ -56,6 +56,33 @@ func TestParallelUsesOfOneTOTPCodeAcceptExactlyOne(t *testing.T) {
 	}
 }
 
+func TestSavingFactorsFromAStaleCopyDoesNotRewindTheLastStep(t *testing.T) {
+	server := newTestServer(t)
+	user := server.newUser("editor@example.com", true)
+	// A request reads the account...
+	stale := server.reload(user)
+	// ...a login claims a code meanwhile...
+	if ok, err := server.extension.consumeTOTP(server.app, server.reload(user), totpCode(t, testTOTPSecret, 0)); err != nil || !ok {
+		t.Fatalf("claim failed: %v %v", ok, err)
+	}
+	claimed := server.reload(user).GetInt("totp_last_step")
+	// ...and the first request then saves its factor changes from the copy it read.
+	stale.Set("totp_pending_secret", "NEWSECRETNEWSECRET")
+	if err := saveFactors(server.app, stale); err != nil {
+		t.Fatal(err)
+	}
+	fresh := server.reload(user)
+	if fresh.GetInt("totp_last_step") != claimed || claimed == 0 {
+		t.Fatalf("saving factors must not put back an older step: had %d, now %d", claimed, fresh.GetInt("totp_last_step"))
+	}
+	if fresh.GetString("totp_pending_secret") != "NEWSECRETNEWSECRET" {
+		t.Fatal("the changed field must still be saved")
+	}
+	if ok, _ := server.extension.consumeTOTP(server.app, fresh, totpCode(t, testTOTPSecret, 0)); ok {
+		t.Fatal("the code claimed meanwhile became usable again")
+	}
+}
+
 func TestEnsureCollectionsAddsLastStepToAnExistingInstallation(t *testing.T) {
 	server := newTestServer(t)
 	user := server.newUser("editor@example.com", true)
