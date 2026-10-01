@@ -2121,9 +2121,11 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 					const admin = await makeAdministration();
 					const url = `https://vega-${Math.random().toString(36).slice(2, 8)}.test/restablecer`;
 					// 'updated' si la plantilla seguía la de fábrica; 'custom' si otro test ya escribió
-					// su dirección en esta misma colección (PB real la conserva entre tests).
+					// su dirección en esta misma colección (PB real la conserva entre tests);
+					// 'foreign-origin' si el backend tiene una dirección propia y no es esta (PB real:
+					// su `appURL` no es este dominio inventado, así que no escribe).
 					const first = await admin.ensureInvitationLink(url);
-					expect(['updated', 'custom']).toContain(first);
+					expect(['updated', 'custom', 'foreign-origin']).toContain(first);
 					if (first === 'updated') {
 						await expect(admin.ensureInvitationLink(url)).resolves.toBe('current');
 						await expect(admin.ensureInvitationLink(`${url}-otra`)).resolves.toBe('custom');
