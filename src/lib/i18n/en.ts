@@ -58,7 +58,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'topbar.publish.running': 'Publishing…',
 	'topbar.publish.failed': 'Retry publish',
 	'topbar.publish.noChanges': 'No changes',
-	'topbar.publish.ok': 'Published',
+	'topbar.publish.ok': 'Site up to date',
 	'topbar.publish.ready': 'Publish',
 	'topbar.publish.viewLog': 'View log',
 	'topbar.publish.triggerError': 'Could not start the publish.',

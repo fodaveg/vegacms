@@ -55,6 +55,13 @@ describe('t()', () => {
 		expect(t('es', 'nav.warningsBadge', { count: 3 })).toBe('3 avisos');
 	});
 
+	test('el botón de publicar de la barra no se llama como el estado de una entrada (lote 11)', () => {
+		expect(t('es', 'topbar.publish.ok')).toBe('Sitio al día');
+		expect(t('en', 'topbar.publish.ok')).toBe('Site up to date');
+		expect(t('es', 'topbar.publish.ok')).not.toBe(t('es', 'status.value.published'));
+		expect(t('en', 'topbar.publish.ok')).not.toBe(t('en', 'status.value.published'));
+	});
+
 	test('interpolación de varios params', () => {
 		expect(t('es', 'nav.singletonManyRecords', { label: 'Ajustes del sitio', count: 4 })).toBe(
 			'«Ajustes del sitio» solo admite una ficha, pero tiene 4. Se edita la primera.'

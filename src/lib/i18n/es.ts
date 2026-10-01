@@ -67,7 +67,7 @@ export const es = {
 	'topbar.publish.running': 'Publicando…',
 	'topbar.publish.failed': 'Reintentar publicación',
 	'topbar.publish.noChanges': 'Sin cambios',
-	'topbar.publish.ok': 'Publicado',
+	'topbar.publish.ok': 'Sitio al día',
 	'topbar.publish.ready': 'Publicar',
 	'topbar.publish.viewLog': 'Ver registro',
 	'topbar.publish.triggerError': 'No se pudo iniciar la publicación.',
