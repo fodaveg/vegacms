@@ -51,6 +51,7 @@ export {
 } from './query';
 
 export type {
+	BackendErrorCode,
 	FieldError,
 	StrongAuthErrorCode,
 	StrongAuthErrorDetails,

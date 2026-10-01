@@ -1663,5 +1663,11 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'common.cancel': 'Cancel',
 	'common.close': 'Close',
 	'common.loading': 'Loading…',
-	'common.networkError': 'Could not connect to the site. Check your connection and try again.'
+	'common.networkError': 'Could not connect to the site. Check your connection and try again.',
+
+	// ————— Translated backend errors (`VegaError.backendCode`) —————
+	'errors.backendCode.recordInUse':
+		'It cannot be deleted: other content depends on this record. Remove that reference first.',
+	'errors.backendCode.badRequest': 'The request is not valid. Reload the page and try again.',
+	'errors.backendCode.serverError': 'The server failed. Try again in a few minutes.'
 };

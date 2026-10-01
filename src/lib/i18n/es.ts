@@ -1727,5 +1727,12 @@ export const es = {
 	'common.close': 'Cerrar',
 	'common.loading': 'Cargando…',
 	'common.networkError':
-		'No se pudo conectar con el sitio. Comprueba tu conexión e inténtalo de nuevo.'
+		'No se pudo conectar con el sitio. Comprueba tu conexión e inténtalo de nuevo.',
+
+	// ————— Errores del backend traducidos (`VegaError.backendCode`) —————
+	'errors.backendCode.recordInUse':
+		'No se puede borrar: otro contenido depende de este registro. Quita antes esa referencia.',
+	'errors.backendCode.badRequest':
+		'La petición no es válida. Recarga la página e inténtalo de nuevo.',
+	'errors.backendCode.serverError': 'El servidor ha fallado. Inténtalo de nuevo en unos minutos.'
 };

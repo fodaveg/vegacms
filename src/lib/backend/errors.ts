@@ -32,7 +32,21 @@ export interface VegaErrorOptions {
 	retryable?: boolean;
 	/** Error original para logs/debug. PROHIBIDO renderizarlo en UI (puede contener sintaxis PB/URLs). */
 	cause?: unknown;
+	/**
+	 * Causa CONOCIDA de un `'backend'` que la interfaz traduce a su catálogo en vez de pintar el
+	 * `message` (en inglés en PB). Ver `BackendErrorCode`. Sin él, el `message` se pinta tal cual.
+	 */
+	backendCode?: BackendErrorCode;
 }
+
+/**
+ * Causas conocidas de un `VegaError` `'backend'` (aditivo): el adaptador da el código y la
+ * interfaz pone el texto (`$lib/shell/vega-error-message.ts`), igual que con `StrongAuthErrorCode`.
+ */
+export type BackendErrorCode =
+	| 'record-in-use' // borrado bloqueado por una relación `required` entrante
+	| 'bad-request' // 400 sin detalle por campo
+	| 'server-error'; // 5xx
 
 /** Error único del puerto. Ver taxonomía en `VegaErrorKind` y tabla de mapeo §5. */
 export class VegaError extends Error {
@@ -40,6 +54,7 @@ export class VegaError extends Error {
 	readonly fieldErrors?: Record<string, FieldError>;
 	readonly retryable: boolean;
 	readonly cause?: unknown;
+	readonly backendCode?: BackendErrorCode;
 
 	constructor(kind: VegaErrorKind, message: string, opts: VegaErrorOptions = {}) {
 		super(message);
@@ -48,6 +63,7 @@ export class VegaError extends Error {
 		this.fieldErrors = opts.fieldErrors;
 		this.retryable = opts.retryable ?? false;
 		this.cause = opts.cause;
+		this.backendCode = opts.backendCode;
 	}
 
 	/** `'validation'` — SIEMPRE lleva `fieldErrors`. Clave `''` = error a nivel de registro. */
@@ -79,8 +95,8 @@ export class VegaError extends Error {
 	}
 
 	/** `'backend'` — el backend respondió algo inesperado (5xx, forma desconocida, versión incompatible). */
-	static backend(message: string, cause?: unknown): VegaError {
-		return new VegaError('backend', message, { cause });
+	static backend(message: string, cause?: unknown, code?: BackendErrorCode): VegaError {
+		return new VegaError('backend', message, { cause, backendCode: code });
 	}
 }
 
