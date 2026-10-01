@@ -268,6 +268,7 @@
 	} from './form-sections';
 	import { autodateInstant, autodateText } from './record-meta';
 	import { formatSavedAt } from './saved-at';
+	import { currentPlatform, saveShortcutLabel } from './save-shortcut';
 	import { localeStatus, type LocaleStatus } from './locale-status';
 	import { isDirty, type FormInputValues } from './dirty';
 	import { toRecordInput } from './to-record-input';
@@ -560,6 +561,9 @@
 			Boolean(type.blocks) &&
 			model.recordId !== null
 	);
+
+	/** Etiqueta del atajo de guardar del botón: «⌘S» en Mac, «Ctrl S» fuera (ver `save-shortcut`). */
+	const shortcutLabel = saveShortcutLabel(currentPlatform());
 
 	/** Hora localizada (con fecha si el guardado no es de hoy, ver `formatSavedAt`), o `null` sin
 	 *  hora conocida todavía (ver `savedAt`/cabecera). */
@@ -1342,7 +1346,7 @@
 				{/if}
 				<button type="submit" class="vega-editor-save-button" disabled={formDisabled}>
 					{ctx.t('editor.save')}
-					<kbd aria-hidden="true">⌘S</kbd>
+					<kbd aria-hidden="true">{shortcutLabel}</kbd>
 				</button>
 			{/if}
 		{/snippet}
@@ -2186,6 +2190,13 @@
 		padding: 0.08rem 0.35rem;
 		color: var(--accent-ink);
 		opacity: 0.75;
+	}
+
+	/* Con puntero táctil no hay teclado al que anunciar el atajo, y en móvil desbordaba el botón. */
+	@media (pointer: coarse) {
+		.vega-editor-save-button kbd {
+			display: none;
+		}
 	}
 
 	.vega-editor-save-button:disabled {
