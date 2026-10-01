@@ -55,7 +55,7 @@ test('el editor de un registro sin permiso de actualización es de solo lectura 
 	// El motivo se dice tal cual — NO como "esta colección es de solo lectura" (que es otra cosa:
 	// una vista del backend, ver `pages`).
 	await expect(
-		page.getByText('No tienes permiso para editar registros de esta colección', { exact: false })
+		page.getByText('No tienes permiso para editar este contenido', { exact: false })
 	).toBeVisible();
 	await expect(page.getByRole('button', { name: /^Guardar/ })).toHaveCount(0);
 	await expect(page.getByLabel('Título', { exact: true })).toBeDisabled();
@@ -70,7 +70,7 @@ test('crear por URL directa en una colección sin permiso: estado "sin permiso",
 	await page.goto('/c/avisos/new');
 
 	await expect(page.getByRole('heading', { name: 'No tienes permiso' })).toBeVisible();
-	await expect(page.getByText('No tienes permiso para crear registros en "Avisos"')).toBeVisible();
+	await expect(page.getByText('No tienes permiso para crear contenido en «Avisos»')).toBeVisible();
 });
 
 test('una colección que no se puede listar no está en la navegación, y su ruta lo explica', async ({
@@ -88,6 +88,6 @@ test('una colección que no se puede listar no está en la navegación, y su rut
 	await page.goto('/c/privado');
 	await expect(page.getByRole('heading', { name: 'No tienes permiso' })).toBeVisible();
 	await expect(
-		page.getByText('No tienes permiso para ver los registros de "Privado"')
+		page.getByText('No tienes permiso para ver el contenido de «Privado»')
 	).toBeVisible();
 });

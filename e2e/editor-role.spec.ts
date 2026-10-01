@@ -85,7 +85,7 @@ test.describe('/media degradado (rol editor, collectionState "manual")', () => {
 		const notice = page.locator('[data-media-state="manual-editor"]');
 		await expect(notice).toBeVisible();
 		await expect(
-			notice.getByText('Pídele a un administrador que configure la colección de medios')
+			notice.getByText('Pide a quien administre el sitio que active la biblioteca de medios')
 		).toBeVisible();
 
 		// Nunca el mensaje/instrucciones pensados para quien SÍ tiene acceso al Admin de PB.

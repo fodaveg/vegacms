@@ -310,7 +310,7 @@ test.describe('not-found de registro (L-P5.7)', () => {
 		await loginAndSettle(page);
 		await page.goto('/c/posts/id-inexistente');
 
-		const state = page.getByRole('alert').filter({ hasText: 'Registro no encontrado' });
+		const state = page.getByRole('alert').filter({ hasText: 'Elemento no encontrado' });
 		await expect(state).toBeVisible();
 		await expect(state).toHaveAttribute('data-route-state', 'not-found');
 

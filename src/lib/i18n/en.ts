@@ -39,7 +39,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'topbar.search.error': 'Search failed. Check your connection and try again.',
 	'topbar.search.minChars': 'Type at least {count} characters',
 	'topbar.search.seeAll': 'See the remaining {count}',
-	'topbar.search.partial': 'Could not search {count} collection(s).',
+	'topbar.search.partial': 'Could not search {count} content type(s).',
 	'topbar.avatar.label': 'Signed in as {email}',
 	// User chip → "Settings" menu (#l12-ux, item 3): label of the trigger button itself, DIFFERENT
 	// from `topbar.avatar.label` above (that one describes the session identity of the inner
@@ -68,7 +68,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'login.submit': 'Sign in',
 	'login.submitting': 'Signing in…',
 	'login.invalidCredentials': 'Invalid credentials.',
-	'login.networkError': 'Could not reach the backend.',
+	'login.networkError': 'Could not connect to the server. Check your connection.',
 	'login.or': 'or',
 	'login.passkey': 'Sign in with a passkey',
 	'login.mfa.title': 'Two-step verification',
@@ -201,21 +201,21 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'This passkey may have been copied to another device. Delete it and register it again.',
 
 	// ————— Global transport states (§3.4) —————
-	'errors.network.title': 'Could not reach the backend',
+	'errors.network.title': 'No connection to the server',
 	'errors.network.body': 'The server could not be reached. Check your connection.',
 	'errors.network.retry': 'Retry',
-	'errors.backend.title': 'The backend returned something unexpected',
+	'errors.backend.title': 'The server returned something unexpected',
 	'errors.forbidden.title': "You don't have permission",
 	'errors.forbidden.body': "Your session can't access this resource.",
 	'errors.forbidden.readonlyType.body':
-		'"{label}" is a read-only collection: new records cannot be created.',
-	'errors.forbidden.noCreate.body': 'You do not have permission to create records in "{label}".',
-	'errors.forbidden.noList.body': 'You do not have permission to view the records of "{label}".',
-	'errors.forbidden.noView.body': 'You do not have permission to view this record of "{label}".',
-	'errors.notFoundType.title': 'Collection not found',
+		'"{label}" is read-only: no new content can be created here.',
+	'errors.forbidden.noCreate.body': 'You do not have permission to create content in "{label}".',
+	'errors.forbidden.noList.body': 'You do not have permission to view the content of "{label}".',
+	'errors.forbidden.noView.body': 'You do not have permission to view this item of "{label}".',
+	'errors.notFoundType.title': 'Content not found',
 	'errors.notFoundType.body': 'The content type "{type}" does not exist (or is hidden).',
-	'errors.notFoundRecord.title': 'Record not found',
-	'errors.notFoundRecord.body': 'This record no longer exists.',
+	'errors.notFoundRecord.title': 'Item not found',
+	'errors.notFoundRecord.body': 'This item no longer exists.',
 	'errors.notFoundRecord.backToList': 'Back to list',
 	'errors.backToIndex': 'Back to index',
 	// ————— Merged views (mergedViews, Phase L7c) —————
@@ -236,10 +236,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.duplicate.saveFirst': 'Save your changes before duplicating.',
 	'editor.duplicate.success': 'Page and blocks duplicated.',
 	'editor.leaveConfirm': 'There are unsaved changes. Leave anyway?',
-	'editor.readonlyNotice': 'This collection is read-only: it cannot be edited.',
+	'editor.readonlyNotice': 'This content is read-only: it cannot be edited.',
 	'editor.noUpdateNotice':
-		'You do not have permission to edit records in this collection: you can view it, but not save changes.',
-	'editor.load.error.body': 'Could not load the record. {message}',
+		'You do not have permission to edit this content: you can view it, but not save changes.',
+	'editor.load.error.body': 'Could not load this item. {message}',
 
 	// ————— Concurrent-edit notice (`ConflictNotice.svelte`, audit sheet p1): the save failed
 	// closed because the record changed on the server after it was opened.
@@ -288,7 +288,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.preview.panel.loadError': 'Could not load the preview.',
 	'editor.preview.panel.genericError': 'Could not generate the preview.',
 	'editor.preview.panel.savedOnly':
-		'You are viewing the saved version: you do not have permission to edit this record, so your changes are not previewed.',
+		'You are viewing the saved version: you do not have permission to edit this item, so your changes are not previewed.',
 
 	// ————— Visual editor screen (see `es.ts` for the full rationale) —————
 	'editor.visual.open': 'Visual editor',
@@ -336,7 +336,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.unavailable.noVisualEditing':
 		'The connected site does not advertise visual editing. It needs the bridge installed and declared in its discovery.',
 	'editor.visual.unavailable.noBlocks':
-		'The "{label}" collection does not compose the page from blocks, so there is nothing to select on the canvas.',
+		'The content type "{label}" is not made of blocks, so there is nothing to select on the canvas.',
 	'editor.visual.tooNarrow.title': 'The visual editor needs a wider screen',
 	'editor.visual.tooNarrow.body':
 		"Below 900px there's no room for the canvas next to its panels. The usual form still works here.",
@@ -414,9 +414,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// Sibling rail (`.rail`), metadata aside (`.kv`) and danger zone: GENERIC opt-in renderer
 	// pieces — the aside card headings come from `fieldGroups` (manifest data), so only literals
 	// that are NOT collection data live here.
-	'editor.rail.label': 'Collection records',
-	'editor.meta.title': 'Record',
-	'editor.meta.id': 'id',
+	'editor.rail.label': 'Other items in the list',
+	'editor.meta.title': 'Details',
+	'editor.meta.id': 'Internal code',
 	'editor.meta.created': 'Created',
 	'editor.meta.updated': 'Updated',
 	'editor.dangerZone.title': 'Danger zone',
@@ -460,10 +460,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// Default help of the "Publish on" field when the manifest declares none. Vega cannot tell
 	// from the browser whether the server runs `vegaschedule`: the help says so.
 	'editor.publishAt.help':
-		'If the record is a draft, it publishes itself at this time. Requires the vegaschedule extension on the server; without it, the date does nothing.',
+		'If it is a draft, it publishes itself at this time. This only works if the site has scheduled publishing turned on; without it, the date does nothing.',
 	// VISIBLE notice under the field when the server will not honour it (`ContentModel.scheduledPublishing`).
 	'editor.publishAt.inactive':
-		'This server does not run the vegaschedule extension: the date will not publish anything. Publish by hand or ask for it to be installed.',
+		'This site does not have scheduled publishing turned on: the date will not publish anything. Publish by hand or ask whoever manages the site to turn it on.',
 	'editor.publishAt.unknown':
 		'Could not check whether this server publishes scheduled dates (an administrator checks it when signing in to Vega). Until then, do not count on it publishing itself.',
 
@@ -494,7 +494,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.blocks.expandLabel': 'Expand «{label}»',
 	'editor.blocks.collapseLabel': 'Collapse «{label}»',
 	'editor.blocks.reorder.moved': '«{label}» moved to position {position} of {total}',
-	'editor.blocks.notice.saveParentFirst': 'Save the record to be able to add {label}.',
+	'editor.blocks.notice.saveParentFirst': 'Save first to be able to add {label}.',
 
 	// ————— Social card preview (`social` capability, "editor" batch, Phase B) —————
 	'editor.social.title': 'Social preview',
@@ -519,13 +519,13 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'form.errorCode.validation_max_less_equal_than_required': 'The date is too late.',
 	'form.errorCode.validation_invalid_value': 'The selected value is not valid.',
 	'form.errorCode.validation_too_many_values': 'You have selected too many items.',
-	'form.errorCode.validation_missing_rel_records': 'Some of the related records no longer exist.',
+	'form.errorCode.validation_missing_rel_records': 'Some of the related items no longer exist.',
 	'form.errorCode.validation_is_email': 'That value is not a valid email address.',
-	'form.errorCode.validation_not_unique': 'A record with that value already exists.',
+	'form.errorCode.validation_not_unique': 'Another item with that value already exists.',
 	'form.errorCode.vega_unsupported_field': 'Vega cannot write this field.',
 	'form.errorCode.vega_readonly_field': 'This field is read-only.',
 	'form.errorCode.vega_unknown_field': 'This field does not exist on the content type.',
-	'form.errorCode.vega_foreign_file_ref': 'That file does not belong to this record.',
+	'form.errorCode.vega_foreign_file_ref': 'That file does not belong to this item.',
 	// LOCAL code, not from PB (`page-path.ts`): format of a page's public route, validated
 	// client-side (§2 of the "create and edit pages" batch) — PocketBase does not know it,
 	// `pathField` is just a `text` field to it.
@@ -551,7 +551,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'form.relation.media.pageError':
 		'This media library page could not be loaded. Already-loaded files are still available.',
 	'form.relation.media.targetMissing':
-		'The media collection is not available in the model yet. Reload Vega to update it.',
+		'The media library is not available yet. Reload Vega to update it.',
 	'form.relation.media.type.image': 'Image',
 	'form.relation.media.type.video': 'Video',
 	'form.relation.media.type.document': 'File',
@@ -683,7 +683,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.search.ariaLabel': 'Search the list',
 	'list.sort.ariaLabel': 'Sort by {column}',
 	'list.emptySearch.title': 'No results',
-	'list.emptySearch.body': 'No "{label}" record matches the search or the active filters.',
+	'list.emptySearch.body': 'Nothing in "{label}" matches the search or the active filters.',
 	'list.emptySearch.clear': 'Clear filters',
 	// "Filter" menu (M6, reopens R2): button that opens the raw options of the `statusField`
 	// (`ListToolbar.svelte`); `list.filter.groupLabel` (below) labels the popup itself.
@@ -701,14 +701,14 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.new.button': 'New {label}',
 
 	// ————— Header meta + export (M2, `.page-head .meta`/`.btn` mockup) —————
-	'list.meta.records': 'records',
+	'list.meta.records': 'items',
 	'list.meta.filters': 'filters',
 	'list.export.button': 'Export',
 
 	// ————— Export: scope + progress dialog (`#lote-esquema`, Phase 1) —————
 	'list.export.dialog.title': 'Export «{label}»',
 	'list.export.dialog.scopeLabel': 'What to export',
-	'list.export.scope.all': 'The whole collection',
+	'list.export.scope.all': 'All the content',
 	'list.export.scope.filtered': 'Only the current filter or search',
 	'list.export.scope.filteredDisabledHint': 'No filter or search is currently active.',
 	'list.export.dialog.confirm': 'Export',
@@ -717,8 +717,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// Two keys, not a generic plural (out of scope for v1 i18n on purpose, see `$lib/i18n/
 	// index.ts`) — same idiom as `media.selection.labelOne`/`labelMany`
 	// (`MediaSelectionBar.svelte`): the caller picks with `count === 1`.
-	'list.export.success.one': 'Exported 1 record from "{label}".',
-	'list.export.success.many': 'Exported {count} records from "{label}".',
+	'list.export.success.one': 'Exported 1 item from "{label}".',
+	'list.export.success.many': 'Exported {count} items from "{label}".',
 	'list.export.error': 'The export could not be completed. Please try again.',
 
 	// ————— Import (`#lote-esquema`, Phase 2): button + dialog (see `ImportDialog.svelte`) —————
@@ -726,7 +726,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.import.dialog.title': 'Import a .vega.json file',
 	'list.import.pick.label': 'Choose a .vega.json file',
 	'list.import.pick.hint':
-		'Only .vega.json files generated by "Export". May carry several collections.',
+		'Only .vega.json files generated by "Export". May carry several content types.',
 	'list.import.reading': 'Reading "{fileName}"…',
 
 	// ————— Invalid file (§4.1: header/collections/fields, all-or-nothing) —————
@@ -734,7 +734,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.import.invalid.malformed': "The file doesn't have the shape of a valid .vega.json.",
 	'list.import.invalid.unrecognizedVersion':
 		"This file is from a format version this build of Vega doesn't recognize.",
-	'list.import.invalid.unknownCollection': 'Collection "{type}" does not exist in this project.',
+	'list.import.invalid.unknownCollection':
+		'The content type "{type}" does not exist in this project.',
 	'list.import.invalid.unknownField':
 		'Field "{field}" of "{type}" no longer exists in the current schema.',
 
@@ -744,12 +745,12 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.import.status.blocked': 'Blocked',
 	'list.import.preview.summary': '{create} new · {overwrite} overwrite · {blocked} blocked',
 	'list.import.preview.confirmOverwrite':
-		'I confirm I want to overwrite these {count} already-existing records.',
-	'list.import.preview.nothingToImport': 'Nothing to import: every record is blocked.',
-	'list.import.blockedReason.noCreatePermission': 'no permission to create in this collection',
-	'list.import.blockedReason.noUpdatePermission': 'no permission to update in this collection',
+		'I confirm I want to overwrite these {count} already-existing items.',
+	'list.import.preview.nothingToImport': 'Nothing to import: every item is blocked.',
+	'list.import.blockedReason.noCreatePermission': 'no permission to create in this content type',
+	'list.import.blockedReason.noUpdatePermission': 'no permission to update in this content type',
 	'list.import.blockedReason.danglingRelation':
-		'field "{field}" points to a record that does not exist',
+		'field "{field}" points to an item that does not exist',
 	'list.import.blockedReason.requiredEmpty': 'required field "{field}" has no value',
 	'list.import.blockedReason.unreachableRequiredFile':
 		'the required file in field "{field}" could not be fetched from its source',
@@ -759,14 +760,14 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.import.progress': 'Importing…',
 	'list.import.report.summary':
 		'{created} created · {updated} updated · {failed} failed · {skipped} skipped',
-	'list.import.report.failedTitle': 'Records that failed',
+	'list.import.report.failedTitle': 'Items that failed',
 	// Same "two keys, no generic plural" idiom as `list.export.success.*` above.
-	'list.import.success.one': 'Imported 1 record.',
-	'list.import.success.many': 'Imported {count} records.',
-	'list.import.partial': 'The import finished with {failed} failed records. Check the report.',
+	'list.import.success.one': 'Imported 1 item.',
+	'list.import.success.many': 'Imported {count} items.',
+	'list.import.partial': 'The import finished with {failed} failed items. Check the report.',
 	'list.import.error': 'The preview could not be prepared. Please try again.',
 	'list.import.runError':
-		'The import stopped because of an unexpected error. Check which records were written and try again.',
+		'The import stopped because of an unexpected error. Check which items were written and try again.',
 	'list.import.reading.bar': 'File reading progress',
 	'list.import.progress.count': 'Importing… {done} of {total}',
 
@@ -796,17 +797,17 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.merged.typeHeader': 'Type',
 	'list.merged.titleHeader': 'Title',
 	'list.merged.empty.title': "There's nothing here yet",
-	'list.merged.empty.body': "No record from this view's collections matches yet.",
-	'list.merged.truncatedNotice': "One of this view's collections has more records than shown.",
+	'list.merged.empty.body': "No item from this view's content types matches yet.",
+	'list.merged.truncatedNotice': "One of this view's content types has more items than shown.",
 	// Why dragging to reorder is unavailable (view notice and handle help text).
 	'list.merged.reorderBlocked.failed':
-		"Can't reorder while a collection is missing: the order would be incomplete.",
+		"Can't reorder while a content type is missing: the order would be incomplete.",
 	'list.merged.reorderBlocked.truncated':
-		"Can't reorder: there are more records than fit on screen and the order would be incomplete.",
+		"Can't reorder: there are more items than fit on screen and the order would be incomplete.",
 	'list.merged.reorderBlocked.forbidden':
-		"Can't reorder: you don't have permission to edit some of this view's collections.",
+		"Can't reorder: you don't have permission to edit some of this view's content types.",
 	'list.merged.failedNotice':
-		"Couldn't load: {sources}. Showing the records from the other collections.",
+		"Couldn't load: {sources}. Showing the items from the other content types.",
 
 	// ————— Media: bootstrap + schema (Phase P6·6a) —————
 	'media.loadErrorBody': 'Could not load the media library. Try again.',
@@ -823,8 +824,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'In the PocketBase Admin: Collections → Import collections, paste the following JSON and confirm.',
 	// Editor role (batch L6c): an editor never has access to the PocketBase Admin, so the import
 	// JSON above is of no use to them.
-	'media.bootstrap.editorBody':
-		'Ask an administrator to set up the media collection ("vega_media") in PocketBase.',
+	'media.bootstrap.editorBody': 'Ask whoever manages the site to turn on the media library.',
 	// A library created before a new field (today, `focal`): completing it is additive and the
 	// superuser decides it with a button, never Vega on its own.
 	'media.fields.missingBody':
@@ -844,20 +844,20 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'integrity.usedIn.retry': 'Retry',
 	'integrity.usedIn.partial':
 		'Notice: not everything could be checked. There may be more references than shown here.',
-	'integrity.usedIn.countLabel': '{count} record(s)',
+	'integrity.usedIn.countLabel': '{count} item(s)',
 	'integrity.usedIn.moreCount': 'and {count} more',
 	'integrity.usedIn.collectionDegraded': 'Could not check "{collection}" ({reason}).',
 	// Translation of `VegaErrorKind` (plus `'unknown'`, see `ReferenceMatchDegraded`) into the
 	// human reason that fills `integrity.usedIn.collectionDegraded` — NEVER the raw `VegaError`
 	// `message` (P1 §5: it may carry backend syntax/URLs).
-	'integrity.usedIn.reason.forbidden': 'no permission to read this collection',
-	'integrity.usedIn.reason.network': 'no connection to the backend',
-	'integrity.usedIn.reason.backend': 'the backend responded with something unexpected',
-	'integrity.usedIn.reason.not-found': 'the collection no longer exists',
+	'integrity.usedIn.reason.forbidden': 'no permission to read this content type',
+	'integrity.usedIn.reason.network': 'no connection to the server',
+	'integrity.usedIn.reason.backend': 'the server responded with something unexpected',
+	'integrity.usedIn.reason.not-found': 'that content type no longer exists',
 	'integrity.usedIn.reason.auth-expired': 'the session expired mid-check',
-	'integrity.usedIn.reason.validation': 'the query is not valid against this backend',
+	'integrity.usedIn.reason.validation': 'the server does not accept the query',
 	// A read never produces it; it is here so the table covers every `VegaErrorKind`.
-	'integrity.usedIn.reason.conflict': 'the record changed during the check',
+	'integrity.usedIn.reason.conflict': 'the item changed during the check',
 	'integrity.usedIn.reason.unknown': 'unknown reason',
 
 	// ————— References warning BEFORE deleting (same engine, `DeleteConfirm`/`MediaDeleteConfirm`) —————
@@ -870,7 +870,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// the trash does NOT reconnect them — text/URL references DO benefit from the id being alive
 	// again, so this line would be false for them and stays hidden in that case.
 	'integrity.deleteGuard.relationWarning':
-		'When you delete this, PocketBase clears those relations right away (empties the field or removes the id from the array). If you restore this record from the trash later, those links will NOT come back.',
+		'When you delete this, PocketBase clears those relations right away (empties the field or removes the id from the array). If you restore this item from the trash later, those links will NOT come back.',
 	'integrity.deleteGuard.confirmCheckbox':
 		'I understand there are active references and I want to delete anyway.',
 
@@ -929,37 +929,37 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// ————— Trash — /trash route —————
 	'revisions.trash.pageTitle': 'Trash',
 	'revisions.trash.description':
-		'Deleted records and assets. You can restore them with their original id as long as they are still within the retention set in Settings.',
+		'Here are the items and files you have deleted. You can restore them as they were until the retention period set in Settings runs out.',
 	'revisions.trash.loading': 'Loading trash…',
 	'revisions.trash.error': 'Could not load the trash.',
 	'revisions.trash.retry': 'Retry',
 	'revisions.trash.unavailable': 'The trash is not enabled on this project.',
 	'revisions.trash.empty': 'The trash is empty.',
-	'revisions.trash.itemCollection': 'Collection: {collection}',
+	'revisions.trash.itemCollection': 'Type: {collection}',
 	'revisions.trash.itemFilesLost': 'Had attached files: they will not be restored.',
 	'revisions.trash.restore': 'Restore',
 	'revisions.trash.restoring': 'Restoring…',
 	'revisions.trash.restoreUnavailable':
-		'This backend does not allow restoring with the original id: "Restore" is not available.',
+		'This site does not allow restoring this item as it was: "Restore" is not available.',
 	'revisions.trash.restoreUnknownSchema':
-		'The "{collection}" collection no longer exists in the schema: it cannot be safely restored.',
+		'The content type "{collection}" no longer exists: it cannot be restored safely.',
 	// `requiredFileFieldName` (`revisions/restore.ts`): no `file` field survives a restore (PB
 	// destroys the binary on delete, §0.3), so a collection with a REQUIRED one can never be fully
 	// recreated — derived from the schema, not a special case for "vega_media".
 	'revisions.trash.restoreBlockedRequiredFile':
-		'The "{field}" field in "{collection}" is a required file: files are never restored (§0.3), so this record cannot be fully recreated. "Restore" is not available.',
+		'The field "{field}" of "{collection}" is a required file, and deleted files cannot be recovered, so this item cannot be fully restored. "Restore" is not available.',
 	'revisions.trash.restoreSuccess': '"{label}" has been restored.',
 	'revisions.trash.deleteForever': 'Delete permanently',
 	'revisions.trash.deleteForeverConfirmTitle': 'Permanently delete "{label}"?',
 	'revisions.trash.deleteForeverConfirmBody':
-		'This trash entry will be gone for good: you will no longer be able to restore this record.',
+		'This trash entry will be gone for good: you will no longer be able to restore this item.',
 	'revisions.trash.deleteForeverConfirm': 'Delete permanently',
 	'revisions.trash.deleteForeverDeleting': 'Deleting…',
 	'revisions.trash.deleteForeverSuccess': '"{label}" has been permanently deleted from the trash.',
 	'revisions.trash.emptyTrash': 'Empty trash',
 	'revisions.trash.emptyTrashConfirmTitle': 'Empty the trash?',
 	'revisions.trash.emptyTrashConfirmBody':
-		'The {count} trash entries will be permanently deleted: you will no longer be able to restore any of these records.',
+		'The {count} trash entries will be permanently deleted: you will no longer be able to restore any of these items.',
 	'revisions.trash.emptyTrashConfirm': 'Empty trash',
 	'revisions.trash.emptyTrashEmptying': 'Emptying…',
 	'revisions.trash.emptyTrashSuccess': 'Trash emptied.',
@@ -1672,7 +1672,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 
 	// ————— Translated backend errors (`VegaError.backendCode`) —————
 	'errors.backendCode.recordInUse':
-		'It cannot be deleted: other content depends on this record. Remove that reference first.',
+		'It cannot be deleted: other content depends on this item. Remove that reference first.',
 	'errors.backendCode.badRequest': 'The request is not valid. Reload the page and try again.',
 	'errors.backendCode.serverError': 'The server failed. Try again in a few minutes.'
 };

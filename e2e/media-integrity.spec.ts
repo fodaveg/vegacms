@@ -89,7 +89,7 @@ test.describe('"Se usa en" (UsedInPanel, vía url)', () => {
 		const dialog = await openMediaDetail(page, 'media_2');
 
 		await dialog.getByRole('button', { name: 'Se usa en' }).click();
-		await expect(dialog.getByText('1 registro(s)')).toBeVisible();
+		await expect(dialog.getByText('1 elemento(s)')).toBeVisible();
 
 		const link = dialog.getByRole('link', { name: 'Post con imagen enlazada' });
 		await expect(link).toBeVisible();

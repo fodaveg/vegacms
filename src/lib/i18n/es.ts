@@ -47,7 +47,7 @@ export const es = {
 	'topbar.search.error': 'No se pudo buscar. Revisa la conexión e inténtalo de nuevo.',
 	'topbar.search.minChars': 'Escribe al menos {count} caracteres',
 	'topbar.search.seeAll': 'Ver los {count} restantes',
-	'topbar.search.partial': 'No se pudo buscar en {count} colección(es).',
+	'topbar.search.partial': 'No se pudo buscar en {count} tipo(s) de contenido.',
 	'topbar.avatar.label': 'Sesión de {email}',
 	// Chip de usuario → menú "Ajustes" (#l12-ux, item 3): rótulo del propio botón disparador,
 	// DISTINTO del `topbar.avatar.label` de arriba (ese describe la identidad de sesión del
@@ -76,7 +76,7 @@ export const es = {
 	'login.submit': 'Entrar',
 	'login.submitting': 'Entrando…',
 	'login.invalidCredentials': 'Credenciales no válidas.',
-	'login.networkError': 'Sin conexión con el backend.',
+	'login.networkError': 'No se pudo conectar con el servidor. Comprueba tu conexión.',
 	'login.or': 'o',
 	'login.passkey': 'Entrar con passkey',
 	'login.mfa.title': 'Verificación en dos pasos',
@@ -212,23 +212,23 @@ export const es = {
 		'Esta passkey puede estar copiada en otro dispositivo. Bórrala y regístrala de nuevo.',
 
 	// ————— Estados globales de transporte (§3.4) —————
-	'errors.network.title': 'Sin conexión con el backend',
+	'errors.network.title': 'No hay conexión con el servidor',
 	'errors.network.body': 'No se pudo contactar con el servidor. Comprueba tu conexión.',
 	'errors.network.retry': 'Reintentar',
-	'errors.backend.title': 'El backend ha respondido algo inesperado',
+	'errors.backend.title': 'El servidor ha respondido algo inesperado',
 	'errors.forbidden.title': 'No tienes permiso',
 	'errors.forbidden.body': 'Tu sesión no tiene acceso a este recurso.',
 	'errors.forbidden.readonlyType.body':
-		'"{label}" es una colección de solo lectura: no se pueden crear registros nuevos.',
+		'«{label}» es de solo lectura: no se puede crear contenido nuevo aquí.',
 	// `#lote-shell`: vedado por una REGLA de acceso del backend, no por la naturaleza de la
 	// colección — la UI ya no ofrece el camino, pero la ruta sigue siendo alcanzable por URL.
-	'errors.forbidden.noCreate.body': 'No tienes permiso para crear registros en "{label}".',
-	'errors.forbidden.noList.body': 'No tienes permiso para ver los registros de "{label}".',
-	'errors.forbidden.noView.body': 'No tienes permiso para ver este registro de "{label}".',
-	'errors.notFoundType.title': 'Colección no encontrada',
+	'errors.forbidden.noCreate.body': 'No tienes permiso para crear contenido en «{label}».',
+	'errors.forbidden.noList.body': 'No tienes permiso para ver el contenido de «{label}».',
+	'errors.forbidden.noView.body': 'No tienes permiso para ver este elemento de «{label}».',
+	'errors.notFoundType.title': 'Contenido no encontrado',
 	'errors.notFoundType.body': 'No existe (o está oculta) el tipo de contenido "{type}".',
-	'errors.notFoundRecord.title': 'Registro no encontrado',
-	'errors.notFoundRecord.body': 'Este registro ya no existe.',
+	'errors.notFoundRecord.title': 'Elemento no encontrado',
+	'errors.notFoundRecord.body': 'Este elemento ya no existe.',
 	'errors.notFoundRecord.backToList': 'Volver al listado',
 	'errors.backToIndex': 'Volver al índice',
 	// ————— Vistas fusionadas (mergedViews, Fase L7c) —————
@@ -249,12 +249,12 @@ export const es = {
 	'editor.duplicate.saveFirst': 'Guarda los cambios antes de duplicar.',
 	'editor.duplicate.success': 'Página y bloques duplicados.',
 	'editor.leaveConfirm': 'Hay cambios sin guardar. ¿Salir de todos modos?',
-	'editor.readonlyNotice': 'Esta colección es de solo lectura: no se puede editar.',
+	'editor.readonlyNotice': 'Este contenido es de solo lectura: no se puede editar.',
 	// `#lote-shell`: bloqueado por una REGLA de acceso del backend, no por ser una vista — el
 	// registro se puede ver, pero esta sesión no puede guardarlo.
 	'editor.noUpdateNotice':
-		'No tienes permiso para editar registros de esta colección: puedes verlo, pero no guardar cambios.',
-	'editor.load.error.body': 'No se pudo cargar el registro. {message}',
+		'No tienes permiso para editar este contenido: puedes verlo, pero no guardar cambios.',
+	'editor.load.error.body': 'No se pudo cargar este elemento. {message}',
 
 	// ————— Aviso de edición concurrente (`ConflictNotice.svelte`, lámina del audit p1): el
 	// guardado falló cerrado porque el registro cambió en el servidor desde que se abrió. Sin
@@ -305,7 +305,7 @@ export const es = {
 	'editor.preview.panel.loadError': 'No se pudo cargar la vista previa.',
 	'editor.preview.panel.genericError': 'No se pudo generar la vista previa.',
 	'editor.preview.panel.savedOnly':
-		'Estás viendo la versión guardada: no tienes permiso para editar este registro, así que tus cambios no se previsualizan.',
+		'Estás viendo la versión guardada: no tienes permiso para editar este elemento, así que tus cambios no se previsualizan.',
 
 	// ————— Pantalla del editor visual (tarea "pantalla del editor visual", §"Visual editing
 	// bridge" del contrato): `/c/[type]/[id]/visual`, aditiva sobre el preview de borrador de
@@ -356,7 +356,7 @@ export const es = {
 	'editor.visual.unavailable.noVisualEditing':
 		'El sitio conectado no anuncia edición visual. Hay que instalarle el puente y declararlo en su discovery.',
 	'editor.visual.unavailable.noBlocks':
-		'La colección «{label}» no compone la página por bloques, así que no hay nada que seleccionar en el lienzo.',
+		'El tipo de contenido «{label}» no se compone de bloques, así que no hay nada que seleccionar en el lienzo.',
 	'editor.visual.tooNarrow.title': 'El editor visual necesita una pantalla más ancha',
 	'editor.visual.tooNarrow.body':
 		'Por debajo de 900 px no cabe el lienzo junto a sus paneles. El formulario de siempre sí funciona aquí.',
@@ -457,9 +457,9 @@ export const es = {
 	// Raíl de hermanos (`.rail`), aside de metadatos (`.kv`) y zona de peligro: piezas GENÉRICAS
 	// opt-in del renderer — los rótulos de las tarjetas del aside salen de `fieldGroups` (dato del
 	// manifiesto), así que aquí solo viven los literales que NO son dato de colección.
-	'editor.rail.label': 'Registros de la colección',
-	'editor.meta.title': 'Registro',
-	'editor.meta.id': 'id',
+	'editor.rail.label': 'Otros elementos de la lista',
+	'editor.meta.title': 'Ficha',
+	'editor.meta.id': 'Código interno',
 	'editor.meta.created': 'Creado',
 	'editor.meta.updated': 'Actualizado',
 	'editor.dangerZone.title': 'Zona de peligro',
@@ -503,10 +503,10 @@ export const es = {
 	// Ayuda por defecto del campo «Publicar el» cuando el manifiesto no declara la suya. Vega no
 	// puede saber desde el navegador si el servidor tiene `vegaschedule`: la ayuda lo avisa.
 	'editor.publishAt.help':
-		'Si el registro está en borrador, se publica solo a esta hora. Requiere la extensión vegaschedule en el servidor; sin ella, la fecha no hace nada.',
+		'Si está en borrador, se publica a esta hora. Para que funcione, el sitio necesita tener activada la publicación programada; si no la tiene, la fecha no hace nada.',
 	// Aviso VISIBLE bajo el campo cuando el servidor no la cumplirá (`ContentModel.scheduledPublishing`).
 	'editor.publishAt.inactive':
-		'Este servidor no tiene la extensión vegaschedule: la fecha no publicará nada. Publica a mano o pide que la instalen.',
+		'Este sitio no tiene activada la publicación programada: la fecha no publicará nada. Publica a mano o pide a quien administre el sitio que la active.',
 	'editor.publishAt.unknown':
 		'No se ha podido comprobar si este servidor publica las fechas programadas (lo comprueba un administrador al entrar en Vega). Hasta entonces, no cuentes con que se publique sola.',
 
@@ -537,7 +537,7 @@ export const es = {
 	'editor.blocks.expandLabel': 'Desplegar «{label}»',
 	'editor.blocks.collapseLabel': 'Plegar «{label}»',
 	'editor.blocks.reorder.moved': '«{label}» movido a la posición {position} de {total}',
-	'editor.blocks.notice.saveParentFirst': 'Guarda el registro para poder añadir {label}.',
+	'editor.blocks.notice.saveParentFirst': 'Guarda primero para poder añadir {label}.',
 
 	// ————— Vista previa de tarjeta social (capacidad `social`, lote "editor" Fase B) —————
 	'editor.social.title': 'Vista previa social',
@@ -563,13 +563,13 @@ export const es = {
 	'form.errorCode.validation_invalid_value': 'El valor seleccionado no es válido.',
 	'form.errorCode.validation_too_many_values': 'Has seleccionado demasiados elementos.',
 	'form.errorCode.validation_missing_rel_records':
-		'Alguno de los registros relacionados no existe.',
+		'Alguno de los elementos relacionados no existe.',
 	'form.errorCode.validation_is_email': 'Ese valor no es un correo electrónico válido.',
-	'form.errorCode.validation_not_unique': 'Ya existe un registro con ese valor.',
+	'form.errorCode.validation_not_unique': 'Ya existe otro elemento con ese valor.',
 	'form.errorCode.vega_unsupported_field': 'Vega no puede escribir este campo.',
 	'form.errorCode.vega_readonly_field': 'Este campo es de solo lectura.',
 	'form.errorCode.vega_unknown_field': 'Este campo no existe en el tipo de contenido.',
-	'form.errorCode.vega_foreign_file_ref': 'Ese archivo no pertenece a este registro.',
+	'form.errorCode.vega_foreign_file_ref': 'Ese archivo no pertenece a este elemento.',
 	// Código LOCAL, no viene de PB (`page-path.ts`): forma de la ruta pública de una página,
 	// validada en cliente (§2 del encargo "crear y editar páginas") — PocketBase no la conoce,
 	// para él `pathField` es un `text` cualquiera.
@@ -597,7 +597,7 @@ export const es = {
 	'form.relation.media.pageError':
 		'No se pudo cargar esta página de la mediateca. Los archivos ya cargados siguen disponibles.',
 	'form.relation.media.targetMissing':
-		'La colección de medios aún no está disponible en el modelo. Recarga Vega para actualizarla.',
+		'La biblioteca de medios aún no está disponible. Recarga Vega para actualizarla.',
 	'form.relation.media.type.image': 'Imagen',
 	'form.relation.media.type.video': 'Vídeo',
 	'form.relation.media.type.document': 'Archivo',
@@ -737,8 +737,7 @@ export const es = {
 	'list.search.ariaLabel': 'Buscar en el listado',
 	'list.sort.ariaLabel': 'Ordenar por {column}',
 	'list.emptySearch.title': 'Sin resultados',
-	'list.emptySearch.body':
-		'Ningún registro de "{label}" coincide con la búsqueda o los filtros activos.',
+	'list.emptySearch.body': 'Nada en «{label}» coincide con la búsqueda o los filtros activos.',
 	'list.emptySearch.clear': 'Limpiar filtros',
 	// Menú "Filtrar" (M6, reabre R2): botón que despliega las opciones crudas del `statusField`
 	// (`ListToolbar.svelte`); `list.filter.groupLabel` (abajo) etiqueta el popup en sí.
@@ -761,14 +760,14 @@ export const es = {
 	'list.activeFilter.status.remove': 'Quitar filtro de estado',
 
 	// ————— Meta de cabecera + exportar (M2, mockup `.page-head .meta`/`.btn`) —————
-	'list.meta.records': 'registros',
+	'list.meta.records': 'elementos',
 	'list.meta.filters': 'filtros',
 	'list.export.button': 'Exportar',
 
 	// ————— Exportar: diálogo de alcance + progreso (`#lote-esquema`, Fase 1) —————
 	'list.export.dialog.title': 'Exportar «{label}»',
 	'list.export.dialog.scopeLabel': 'Qué exportar',
-	'list.export.scope.all': 'Toda la colección',
+	'list.export.scope.all': 'Todo el contenido',
 	'list.export.scope.filtered': 'Solo el filtro o búsqueda actual',
 	'list.export.scope.filteredDisabledHint': 'No hay ningún filtro ni búsqueda activos.',
 	'list.export.dialog.confirm': 'Exportar',
@@ -777,8 +776,8 @@ export const es = {
 	// Dos claves, no un plural genérico (i18n v1 lo deja fuera de alcance a propósito, ver
 	// `$lib/i18n/index.ts`) — mismo idioma que `media.selection.labelOne`/`labelMany`
 	// (`MediaSelectionBar.svelte`): el llamador elige con `count === 1`.
-	'list.export.success.one': 'Se ha exportado 1 registro de «{label}».',
-	'list.export.success.many': 'Se han exportado {count} registros de «{label}».',
+	'list.export.success.one': 'Se ha exportado 1 elemento de «{label}».',
+	'list.export.success.many': 'Se han exportado {count} elementos de «{label}».',
 	'list.export.error': 'No se pudo completar la exportación. Vuelve a intentarlo.',
 
 	// ————— Importar (`#lote-esquema`, Fase 2): botón + diálogo (ver `ImportDialog.svelte`) —————
@@ -786,7 +785,7 @@ export const es = {
 	'list.import.dialog.title': 'Importar un archivo .vega.json',
 	'list.import.pick.label': 'Elige un archivo .vega.json',
 	'list.import.pick.hint':
-		'Solo archivos .vega.json generados por "Exportar". Puede traer varias colecciones.',
+		'Solo archivos .vega.json generados por "Exportar". Puede traer varios tipos de contenido.',
 	'list.import.reading': 'Leyendo «{fileName}»…',
 
 	// ————— Fichero inválido (§4.1: cabecera/colecciones/campos, todo-o-nada) —————
@@ -794,7 +793,8 @@ export const es = {
 	'list.import.invalid.malformed': 'El archivo no tiene la forma de un .vega.json válido.',
 	'list.import.invalid.unrecognizedVersion':
 		'Este archivo es de una versión del formato que esta versión de Vega no reconoce.',
-	'list.import.invalid.unknownCollection': 'La colección «{type}» no existe en este proyecto.',
+	'list.import.invalid.unknownCollection':
+		'El tipo de contenido «{type}» no existe en este proyecto.',
 	'list.import.invalid.unknownField':
 		'El campo «{field}» de «{type}» ya no existe en el esquema actual.',
 
@@ -805,13 +805,15 @@ export const es = {
 	'list.import.preview.summary':
 		'{create} nuevos · {overwrite} sobrescriben · {blocked} bloqueados',
 	'list.import.preview.confirmOverwrite':
-		'Confirmo que quiero sobrescribir estos {count} registros ya existentes.',
+		'Confirmo que quiero sobrescribir estos {count} elementos ya existentes.',
 	'list.import.preview.nothingToImport':
-		'No hay nada que importar: todos los registros están bloqueados.',
-	'list.import.blockedReason.noCreatePermission': 'sin permiso para crear en esta colección',
-	'list.import.blockedReason.noUpdatePermission': 'sin permiso para editar en esta colección',
+		'No hay nada que importar: todos los elementos están bloqueados.',
+	'list.import.blockedReason.noCreatePermission':
+		'sin permiso para crear en este tipo de contenido',
+	'list.import.blockedReason.noUpdatePermission':
+		'sin permiso para editar en este tipo de contenido',
 	'list.import.blockedReason.danglingRelation':
-		'el campo «{field}» apunta a un registro que no existe',
+		'el campo «{field}» apunta a un elemento que no existe',
 	'list.import.blockedReason.requiredEmpty': 'el campo obligatorio «{field}» llega sin valor',
 	'list.import.blockedReason.unreachableRequiredFile':
 		'el archivo obligatorio del campo «{field}» no se pudo traer del origen',
@@ -821,15 +823,15 @@ export const es = {
 	'list.import.progress': 'Importando…',
 	'list.import.report.summary':
 		'{created} creados · {updated} actualizados · {failed} con error · {skipped} omitidos',
-	'list.import.report.failedTitle': 'Registros que fallaron',
+	'list.import.report.failedTitle': 'Elementos que fallaron',
 	// Mismo criterio "dos claves, no plural genérico" que `list.export.success.*` de arriba.
-	'list.import.success.one': 'Se ha importado 1 registro.',
-	'list.import.success.many': 'Se han importado {count} registros.',
+	'list.import.success.one': 'Se ha importado 1 elemento.',
+	'list.import.success.many': 'Se han importado {count} elementos.',
 	'list.import.partial':
-		'La importación terminó con {failed} registros fallidos. Revisa el informe.',
+		'La importación terminó con {failed} elementos fallidos. Revisa el informe.',
 	'list.import.error': 'No se pudo preparar la vista previa. Vuelve a intentarlo.',
 	'list.import.runError':
-		'La importación se interrumpió por un error inesperado. Revisa qué registros entraron y vuelve a intentarlo.',
+		'La importación se interrumpió por un error inesperado. Revisa qué elementos entraron y vuelve a intentarlo.',
 	'list.import.reading.bar': 'Progreso de la lectura del archivo',
 	'list.import.progress.count': 'Importando… {done} de {total}',
 
@@ -854,18 +856,19 @@ export const es = {
 	'list.merged.typeHeader': 'Tipo',
 	'list.merged.titleHeader': 'Título',
 	'list.merged.empty.title': 'Aquí no hay nada todavía',
-	'list.merged.empty.body': 'Ningún registro de las colecciones de esta vista coincide todavía.',
+	'list.merged.empty.body':
+		'Ningún elemento de los tipos de contenido de esta vista coincide todavía.',
 	'list.merged.truncatedNotice':
-		'Alguna de las colecciones de esta vista tiene más registros de los mostrados.',
+		'Alguno de los tipos de contenido de esta vista tiene más elementos de los mostrados.',
 	// Por qué no se puede arrastrar para reordenar (aviso de la vista y ayuda del asa).
 	'list.merged.reorderBlocked.failed':
-		'No se puede reordenar mientras falte alguna colección: el orden quedaría a medias.',
+		'No se puede reordenar mientras falte algún tipo de contenido: el orden quedaría a medias.',
 	'list.merged.reorderBlocked.truncated':
-		'No se puede reordenar: hay más registros de los que caben en pantalla y el orden quedaría a medias.',
+		'No se puede reordenar: hay más elementos de los que caben en pantalla y el orden quedaría a medias.',
 	'list.merged.reorderBlocked.forbidden':
-		'No se puede reordenar: no tienes permiso para editar alguna de las colecciones de esta vista.',
+		'No se puede reordenar: no tienes permiso para editar algún tipo de contenido de esta vista.',
 	'list.merged.failedNotice':
-		'No se han podido cargar: {sources}. Se muestran los registros de las demás colecciones.',
+		'No se han podido cargar: {sources}. Se muestran los elementos de los demás tipos de contenido.',
 
 	// ————— Integridad referencial (`#lote-integridad`, Fase A): motor "¿dónde se usa esto?" —————
 	// Compartido por `UsedInPanel`/`ReferencesSummary` (panel pasivo) y por el aviso de
@@ -878,20 +881,20 @@ export const es = {
 	'integrity.usedIn.retry': 'Reintentar',
 	'integrity.usedIn.partial':
 		'Aviso: no se pudo comprobar todo. Puede haber más referencias de las que se muestran aquí.',
-	'integrity.usedIn.countLabel': '{count} registro(s)',
+	'integrity.usedIn.countLabel': '{count} elemento(s)',
 	'integrity.usedIn.moreCount': 'y {count} más',
 	'integrity.usedIn.collectionDegraded': 'No se pudo comprobar "{collection}" ({reason}).',
 	// Traducción de `VegaErrorKind` (más `'unknown'`, ver `ReferenceMatchDegraded`) al motivo
 	// humano que rellena `integrity.usedIn.collectionDegraded` — NUNCA el `message` crudo del
 	// `VegaError` (P1 §5: puede llevar sintaxis/URLs del backend).
-	'integrity.usedIn.reason.forbidden': 'sin permiso para leer esta colección',
-	'integrity.usedIn.reason.network': 'sin conexión con el backend',
-	'integrity.usedIn.reason.backend': 'el backend respondió algo inesperado',
-	'integrity.usedIn.reason.not-found': 'la colección ya no existe',
+	'integrity.usedIn.reason.forbidden': 'sin permiso para leer este tipo de contenido',
+	'integrity.usedIn.reason.network': 'sin conexión con el servidor',
+	'integrity.usedIn.reason.backend': 'el servidor respondió algo inesperado',
+	'integrity.usedIn.reason.not-found': 'ese tipo de contenido ya no existe',
 	'integrity.usedIn.reason.auth-expired': 'la sesión caducó a mitad de la comprobación',
-	'integrity.usedIn.reason.validation': 'la consulta no es válida contra este backend',
+	'integrity.usedIn.reason.validation': 'el servidor no acepta la consulta',
 	// Una lectura nunca lo produce; está para que la tabla cubra todo `VegaErrorKind`.
-	'integrity.usedIn.reason.conflict': 'el registro cambió durante la comprobación',
+	'integrity.usedIn.reason.conflict': 'el elemento cambió durante la comprobación',
 	'integrity.usedIn.reason.unknown': 'motivo desconocido',
 
 	// ————— Aviso de referencias ANTES de borrar (mismo motor, `DeleteConfirm`/`MediaDeleteConfirm`) —————
@@ -905,7 +908,7 @@ export const es = {
 	// desde la papelera NO los reconecta — las de texto/URL sí se benefician del id vivo de nuevo,
 	// así que esta línea sería falsa para ellas y no se muestra en ese caso.
 	'integrity.deleteGuard.relationWarning':
-		'Al borrar, PocketBase limpia esas relaciones al instante (vacía el campo o quita el id del array). Si restauras este registro desde la papelera más tarde, esos enlaces NO vuelven.',
+		'Al borrar, PocketBase limpia esas relaciones al instante (vacía el campo o quita el id del array). Si restauras este elemento desde la papelera más tarde, esos enlaces NO vuelven.',
 	'integrity.deleteGuard.confirmCheckbox':
 		'Entiendo que hay referencias activas y quiero borrar igualmente.',
 
@@ -965,37 +968,37 @@ export const es = {
 	// ————— Papelera — ruta /papelera —————
 	'revisions.trash.pageTitle': 'Papelera',
 	'revisions.trash.description':
-		'Registros y assets borrados. Puedes restaurarlos con su id original mientras no pasen de la retención configurada en Ajustes.',
+		'Aquí están los elementos y archivos que has borrado. Puedes restaurarlos tal como estaban hasta que se cumpla el plazo de conservación que se fija en Ajustes.',
 	'revisions.trash.loading': 'Cargando papelera…',
 	'revisions.trash.error': 'No se pudo cargar la papelera.',
 	'revisions.trash.retry': 'Reintentar',
 	'revisions.trash.unavailable': 'La papelera no está activada en este proyecto.',
 	'revisions.trash.empty': 'La papelera está vacía.',
-	'revisions.trash.itemCollection': 'Colección: {collection}',
+	'revisions.trash.itemCollection': 'Tipo: {collection}',
 	'revisions.trash.itemFilesLost': 'Tenía archivos adjuntos: no se restaurarán.',
 	'revisions.trash.restore': 'Restaurar',
 	'revisions.trash.restoring': 'Restaurando…',
 	'revisions.trash.restoreUnavailable':
-		'Este backend no permite restaurar con el id original: "Restaurar" no está disponible.',
+		'Este sitio no permite restaurar este elemento tal como era: «Restaurar» no está disponible.',
 	'revisions.trash.restoreUnknownSchema':
-		'La colección "{collection}" ya no existe en el esquema: no se puede restaurar con seguridad.',
+		'El tipo de contenido «{collection}» ya no existe: no se puede restaurar con seguridad.',
 	// `requiredFileFieldName` (`revisions/restore.ts`): ningún campo `file` sobrevive a un
 	// restaurado (PB destruye el binario al borrar, §0.3), así que una colección con uno OBLIGATORIO
 	// no puede recrearse completa — derivado del esquema, no un caso especial de "vega_media".
 	'revisions.trash.restoreBlockedRequiredFile':
-		'El campo "{field}" de "{collection}" es un archivo obligatorio: los archivos no se restauran nunca (§0.3), así que este registro no se puede recrear completo. "Restaurar" no está disponible.',
+		'El campo «{field}» de «{collection}» es un archivo obligatorio y los archivos borrados no se pueden recuperar, así que este elemento no se puede restaurar completo. «Restaurar» no está disponible.',
 	'revisions.trash.restoreSuccess': '"{label}" se ha restaurado.',
 	'revisions.trash.deleteForever': 'Borrar definitivamente',
 	'revisions.trash.deleteForeverConfirmTitle': '¿Borrar «{label}» definitivamente?',
 	'revisions.trash.deleteForeverConfirmBody':
-		'Esta entrada de la papelera desaparecerá para siempre: ya no podrás restaurar este registro.',
+		'Esta entrada de la papelera desaparecerá para siempre: ya no podrás restaurar este elemento.',
 	'revisions.trash.deleteForeverConfirm': 'Borrar definitivamente',
 	'revisions.trash.deleteForeverDeleting': 'Borrando…',
 	'revisions.trash.deleteForeverSuccess': '"{label}" se ha borrado definitivamente de la papelera.',
 	'revisions.trash.emptyTrash': 'Vaciar papelera',
 	'revisions.trash.emptyTrashConfirmTitle': '¿Vaciar la papelera?',
 	'revisions.trash.emptyTrashConfirmBody':
-		'Se borrarán definitivamente las {count} entrada(s) de la papelera: ya no podrás restaurar ninguno de estos registros.',
+		'Se borrarán definitivamente las {count} entrada(s) de la papelera: ya no podrás restaurar ninguno de estos elementos.',
 	'revisions.trash.emptyTrashConfirm': 'Vaciar papelera',
 	'revisions.trash.emptyTrashEmptying': 'Vaciando…',
 	'revisions.trash.emptyTrashSuccess': 'Papelera vaciada.',
@@ -1021,7 +1024,7 @@ export const es = {
 	// Rol editor (lote L6c): un editor nunca puede crear/importar colecciones (no tiene acceso al
 	// Admin de PocketBase), así que el JSON de importación de arriba no le sirve de nada.
 	'media.bootstrap.editorBody':
-		'Pídele a un administrador que configure la colección de medios ("vega_media") en PocketBase.',
+		'Pide a quien administre el sitio que active la biblioteca de medios.',
 	// Biblioteca creada antes de un campo nuevo (hoy, `focal`): completarla es aditivo y lo decide
 	// el superusuario con un botón, nunca Vega por su cuenta.
 	'media.fields.missingBody':
@@ -1736,7 +1739,7 @@ export const es = {
 
 	// ————— Errores del backend traducidos (`VegaError.backendCode`) —————
 	'errors.backendCode.recordInUse':
-		'No se puede borrar: otro contenido depende de este registro. Quita antes esa referencia.',
+		'No se puede borrar: otro contenido depende de este elemento. Quita antes esa referencia.',
 	'errors.backendCode.badRequest':
 		'La petición no es válida. Recarga la página e inténtalo de nuevo.',
 	'errors.backendCode.serverError': 'El servidor ha fallado. Inténtalo de nuevo en unos minutos.'
