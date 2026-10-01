@@ -25,6 +25,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/pocketbase/pocketbase/apis"
@@ -71,6 +72,19 @@ type Config struct {
 	// MaxDraftBytes limits the canonical JSON encrypted into a draft token. Default: 256 KiB.
 	// Oversized drafts fail with 413 and are never partially encrypted.
 	MaxDraftBytes int
+	// ShareLinks enables the separate, server-stored share links (see share.go). It is off by
+	// default: an existing deployment keeps exactly the routes it had. When on, RecordCollections
+	// must be non-empty and EnsureCollections must run before RegisterRoutes.
+	ShareLinks bool
+	// SharePath is the site route that receives a share link, as {SiteOrigin}{SharePath}/{token}.
+	// Default: "/preview-share". It must not be PreviewPath nor live below it.
+	SharePath string
+	// ShareMinTTL is the shortest lifetime an editor may choose for a share link. Default: five
+	// minutes.
+	ShareMinTTL time.Duration
+	// ShareMaxTTL is the longest lifetime an editor may choose. Default and hard ceiling: 30 days.
+	// A larger or negative value makes New fail instead of being clamped.
+	ShareMaxTTL time.Duration
 	// Clock is injectable for deterministic tests; default: time.Now.
 	Clock func() time.Time
 	// RandomSource is injectable only for deterministic cross-language vectors; default:
@@ -153,6 +167,10 @@ func (c Config) normalized() (Config, error) {
 	if c.MaxDraftBytes <= 0 {
 		return c, fmt.Errorf("vegapreview: MaxDraftBytes must be greater than zero")
 	}
+	c, err = c.normalizedShare()
+	if err != nil {
+		return c, err
+	}
 	if c.Clock == nil {
 		c.Clock = time.Now
 	}
@@ -166,6 +184,16 @@ func (c Config) normalized() (Config, error) {
 // the same PocketBase OnServe hook used by vegabuild and vegaauth.
 type Extension struct {
 	config Config
+	// shareResolveKey and the two limiters back the share-link resolution route (share.go).
+	// Callers without the site key and visitors forwarded by the site are counted apart, so
+	// keyless noise can never use up the room visitors are tracked in.
+	shareResolveKey     string
+	shareCallerLimiter  *attemptLimiter
+	shareVisitorLimiter *attemptLimiter
+	// shareReady is set by EnsureCollections once the links collection passed validation.
+	shareReady atomic.Bool
+	// shareHookBound keeps the record-delete hook from being bound more than once.
+	shareHookBound atomic.Bool
 }
 
 // New validates config and returns a ready-to-register extension. Misconfigured signing or URL
@@ -175,7 +203,24 @@ func New(config Config) (*Extension, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Extension{config: normalized}, nil
+	resolveKey, err := ShareResolveKey(normalized.SigningSecret)
+	if err != nil {
+		return nil, err
+	}
+	return &Extension{
+		config:          normalized,
+		shareResolveKey: resolveKey,
+		shareCallerLimiter: newAttemptLimiter(
+			shareResolveMaxFailures,
+			shareResolveWindow,
+			shareResolveMaxBuckets,
+		),
+		shareVisitorLimiter: newAttemptLimiter(
+			shareResolveMaxFailures,
+			shareResolveWindow,
+			shareResolveMaxBuckets,
+		),
+	}, nil
 }
 
 // RegisterRoutes installs POST {RoutePrefix}/token behind PocketBase's standard record-auth
@@ -183,6 +228,7 @@ func New(config Config) (*Extension, error) {
 func (x *Extension) RegisterRoutes(event *core.ServeEvent) {
 	event.Router.POST(x.config.RoutePrefix+"/token", x.tokenHandler).
 		Bind(apis.RequireAuth(x.config.AuthCollections...))
+	x.registerShareRoutes(event)
 }
 
 type tokenRequest struct {

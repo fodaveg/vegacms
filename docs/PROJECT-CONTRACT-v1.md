@@ -549,6 +549,358 @@ Three limits worth stating rather than discovering:
   reload. That is the price of keeping scroll position, and it is why the root is required to
   contain "every block and nothing the surrounding page depends on keeping".
 
+## Share links (optional)
+
+The preview token above is for the editor: it is requested by an authenticated session, lives
+at most one hour, and has no state on the server. Showing work to someone **outside** Vega (a
+client who has no account) needs the opposite on every count, so it is a separate mechanism
+and not a longer-lived token:
+
+- A share link **has state on the server**: one row per link, holding a hash of its secret,
+  its target record, its expiry and who created it.
+- Its lifetime is **chosen by the editor**, inside a range the project configures, and never
+  above **30 days**.
+- It can be **revoked** at any time, and revocation takes effect on the next visit.
+- It shows **what is saved at the moment of each visit**. There is no frozen version, no
+  unsaved draft, no comments, no approval state and no per-link password.
+
+Nothing in this section changes `POST {apiBasePath}/token`, the `v1`/`v2` wire formats or
+their one-hour ceiling.
+
+### Advertising it
+
+Add `share` to the existing `preview` object. Same additive rules as `visualEditing`, so no
+`protocolVersion` bump:
+
+```json
+{
+	"preview": { "apiBasePath": "/api/vega-preview", "share": true }
+}
+```
+
+Omit it, set it to `null`, or set it to `false` when the project does not offer share links;
+a malformed value degrades to `false` without invalidating the surrounding `preview` object.
+A project may only announce it when all three of the following are true, because each one is
+a place where the feature silently stops being safe:
+
+- its PocketBase runs the four routes below (the official PocketBase image does not; they
+  come from [`extensions/vegapreview`](../extensions/vegapreview/README.md) with
+  `ShareLinks: true`, or an equivalent implementation);
+- its site has an on-demand (server-rendered) route for share links. A fully static site
+  cannot offer this at all: a page built ahead of time cannot ask whether a link was revoked;
+- that route resolves the link **on every visit**, as described under
+  [What the site must do](#what-the-site-must-do).
+
+### Management routes (called by Vega)
+
+All three live under the same `preview.apiBasePath` and take the editor token Vega already
+sends everywhere else (`Authorization: <token>`, no `Bearer` prefix). They accept a session of
+the project's editor auth collection or a superuser session. All three apply the **same**
+access check to the record named in the request, in this order:
+
+| Condition                                                        | Status |
+| ---------------------------------------------------------------- | ------ |
+| No session, or an invalid one                                    | `401`  |
+| Session of another auth collection                               | `403`  |
+| Body over 4 KiB                                                  | `413`  |
+| `collection` or `id` missing                                     | `400`  |
+| Collection the project does not share                            | `404`  |
+| Record missing, or the caller fails its `ViewRule`               | `404`  |
+| Caller passes the `ViewRule` but fails the record's `UpdateRule` | `403`  |
+
+A share link publishes a record to anyone holding the URL, so it takes the right to **change**
+the record, not just to read it. A record the caller cannot view is indistinguishable from a
+missing one.
+
+Responses carry `Cache-Control: no-store`, with one exception in the reference extension: the
+`401` and the first `403` of the table are produced by PocketBase's own auth middleware before
+the extension's handler runs, and do not carry the header. Neither contains anything about a
+link or a record.
+
+A server whose storage for links is not ready answers `503` on all four routes. The reference
+extension does so until its `EnsureCollections` has validated the links collection.
+
+#### Create
+
+```http
+POST {apiBasePath}/share
+Authorization: <token>
+Content-Type: application/json
+
+{ "collection": "pages", "id": "6f2c1a90c1b2e34", "ttlSeconds": 604800, "label": "Ana (client)" }
+```
+
+- `ttlSeconds`: required whole number of seconds. Outside the project's configured range the
+  answer is `400` (the reference extension defaults to 300 … 2592000). It is never clamped.
+- `label`: optional plain text, at most 120 characters, no control characters (`400`
+  otherwise). Surrounding whitespace is trimmed.
+
+Returns `201` with:
+
+```json
+{
+	"id": "k3j9x0q2m5n8p1r",
+	"url": "https://example.test/preview-share/s1.k3j9x0q2m5n8p1r.Zm9v…",
+	"label": "Ana (client)",
+	"createdAt": "2026-10-01T12:00:00.000Z",
+	"expiresAt": "2026-10-08T12:00:00.000Z",
+	"createdBy": "u1e2d3i4t5o6r7x",
+	"createdByCollection": "vega_editors"
+}
+```
+
+`url` is returned **by this response only**. The server keeps a hash of the secret inside it
+and cannot produce the URL again; an editor who loses it creates a new link and revokes the
+old one. Vega treats `url` as opaque and never stores it beyond the dialog that shows it.
+
+A record may hold at most **20 live links**. Creating one more is refused with `409`:
+
+```json
+{
+	"status": 409,
+	"message": "This record already has 20 live share links. Revoke one before creating another.",
+	"data": { "code": "share_link_limit", "limit": 20 }
+}
+```
+
+The cap is what guarantees that every live link appears in the list below. A link the list
+could not show could not be revoked from Vega, and would stay open for up to 30 days. Revoked
+and expired links do not count.
+
+#### List
+
+```http
+GET {apiBasePath}/share?collection=pages&id=6f2c1a90c1b2e34
+Authorization: <token>
+```
+
+Returns `200` with the links of that record that have not expired, newest first:
+
+```json
+{
+	"items": [
+		{
+			"id": "k3j9x0q2m5n8p1r",
+			"label": "Ana (client)",
+			"createdAt": "2026-10-01T12:00:00.000Z",
+			"expiresAt": "2026-10-08T12:00:00.000Z",
+			"createdBy": "u1e2d3i4t5o6r7x",
+			"createdByCollection": "vega_editors"
+		}
+	]
+}
+```
+
+No item ever carries `url`, the secret, or its hash. `items` is `[]` when there are none.
+
+#### Revoke
+
+```http
+POST {apiBasePath}/share/revoke
+Authorization: <token>
+Content-Type: application/json
+
+{ "collection": "pages", "id": "6f2c1a90c1b2e34", "linkId": "k3j9x0q2m5n8p1r" }
+```
+
+Returns `204` with no body. The request names the record as well as the link so the access
+check never depends on the link existing. Once the caller has passed that check the answer
+is `204` in every case: the link was deleted, it had already been revoked or had expired, it
+never existed, or it belongs to a different record (in which case it is left untouched).
+`linkId` missing is `400`. Revocation is idempotent and cannot be undone.
+
+### Resolution route (called by the site's server, never by a browser)
+
+```http
+POST {apiBasePath}/share/resolve
+X-Vega-Preview-Key: <site key>
+Content-Type: application/json
+
+{ "token": "s1.k3j9x0q2m5n8p1r.Zm9v…", "clientIp": "203.0.113.7" }
+```
+
+- `token` is the last path segment of the share URL, forwarded unmodified.
+- `clientIp` is the visitor's address. It is optional but the site should always send it:
+  failed attempts are counted against it. Without it they are counted against the address of
+  the site's own server, so one visitor mistyping links can lock every visitor out for a
+  minute. A value that is not an IP address is `400`.
+
+  **It must be the address the site obtained from its own trusted proxy or socket**
+  (`Astro.clientAddress` behind a correctly configured adapter, the platform's verified client
+  address), **never a raw `X-Forwarded-For` or any other header the visitor can write.** The
+  server trusts this field because the caller proved it is the site. A site that copies a
+  forgeable header into it lets a visitor choose a fresh address for every attempt, which
+  removes the limit for that visitor, and lets them spend another visitor's allowance.
+
+- `X-Vega-Preview-Key` proves the caller is the site. It is derived from the signing secret
+  the site already shares with the preview extension, so there is no new credential to
+  provision, and it is domain-separated so the header value cannot sign or decrypt a preview
+  token:
+
+  ```text
+  site key = base64url(hmacSha256(secret, "vega-preview-share-resolve-v1"))   // unpadded
+  ```
+
+  Test vector: the secret `0123456789abcdef0123456789abcdef` gives the key
+  `T11UqkFfGjRmrCfgEgbOYNCpz_M6dGeZ4eN30F4kZVw`. An implementation must refuse to derive a key
+  from a missing or short secret (under 32 bytes): HMAC accepts an empty key without complaint,
+  and a site whose environment variable was never set would otherwise send a key that anyone
+  can compute.
+
+  The key is **static**: the same value on every request, for as long as the secret is not
+  rotated. So the call from the site to PocketBase **must travel over TLS or a private network**
+  (loopback, a container network, a VPN). Over plain HTTP on a shared network, anyone who can
+  read one request has the key, and with it the forwarded tokens.
+
+This route takes no PocketBase session. The existing preview flow has the site verify a
+signature locally and never call PocketBase to validate a token; a revocable link cannot work
+that way, so this single lookup is the minimum the site must ask the server.
+
+Returns `200` when the link is valid:
+
+```json
+{ "collection": "pages", "id": "6f2c1a90c1b2e34", "expiresAt": "2026-10-08T12:00:00.000Z" }
+```
+
+| Condition                                                                | Status |
+| ------------------------------------------------------------------------ | ------ |
+| Missing or wrong `X-Vega-Preview-Key`                                    | `401`  |
+| Missing or wrong key, from an address over the failed-attempt limit      | `429`  |
+| Body over 4 KiB                                                          | `413`  |
+| Malformed body or `clientIp`                                             | `400`  |
+| Right key, but the visitor is over the failed-attempt limit              | `429`  |
+| Token malformed, unknown, wrong secret, expired, revoked, record deleted | `404`  |
+
+Every `404` on that last row is **the same response**, byte for byte: same status, same body,
+same headers. The route must not let a caller learn whether a link ever existed, was revoked,
+or merely expired. `429` carries `Retry-After` in seconds. Every response carries
+`Cache-Control: no-store`.
+
+How the reference extension limits attempts, and why it is shaped this way:
+
+- 10 failed attempts per address per minute. A blocked address gets `429` even for a valid
+  token until the minute passes. Successful resolutions are never counted.
+- **The key is checked first, and a caller that holds it is never limited as a caller.** Only
+  requests _without_ a valid key are counted against the caller's network address. If keyless
+  requests shared a counter with the site, then behind a reverse proxy that PocketBase was not
+  told to trust (every request then appears to come from the proxy) ten keyless requests a
+  minute from anywhere would lock the site out of every share link.
+- Keyless callers and visitors are counted in **two separate tables**, so noise without a key
+  never uses up the room visitors are tracked in.
+- IPv4 addresses are counted one by one; **IPv6 addresses are grouped by `/64`**, since one
+  subscriber normally owns a whole `/64`.
+- Each table remembers at most 10 000 addresses. When one is full and nothing in it has
+  expired, an address it has no room for is **let through uncounted** (addresses already
+  blocked stay blocked). Refusing it instead would turn the bound into a way to take the
+  feature down for everyone. The limit only bounds noise; what makes guessing a link
+  infeasible is the 256 bits of the secret.
+
+### What the server operator must do
+
+- **Configure PocketBase's trusted proxy headers** (the `trustedProxy.headers` application
+  setting) whenever PocketBase sits behind a reverse proxy (Caddy, nginx, a load balancer),
+  naming the header that proxy sets. With the factory setting (no trusted headers) PocketBase
+  sees the proxy's address on every request, so all keyless callers share one counter, and so
+  do all visitors of a site that does not send `clientIp`. The extension tolerates that for
+  the site (see above), but the limits then stop distinguishing anyone.
+- **Leave `trustedProxy.useLeftmostIP` off** unless the proxy overwrites the header instead of
+  appending to it. With an appending proxy, the leftmost entry of `X-Forwarded-For` is
+  whatever the client sent, so turning the option on lets any caller choose its own address.
+- **Serve the resolution route to the site only over TLS or a private network**, as said above.
+- **Rotating `VEGA_PREVIEW_SECRET` rotates the site key** but does not end existing links:
+  their hashes do not depend on it. To end links, revoke them.
+
+### What the site must do
+
+The route that receives `{SiteOrigin}{SharePath}/{token}` (`/preview-share/{token}` by default)
+is the site's responsibility, and each of these is load-bearing:
+
+- **On demand, never prebuilt.** The route must run on the server for every request.
+- **Resolve on every visit.** Call `POST …/share/resolve` each time, and render only on `200`.
+  Do not cache the answer, not even for a minute, and do not remember a link as valid in a
+  cookie or a session. **If the site does not ask on every visit, revoking does not revoke.**
+- **Answer `404` for everything else**, with the same page whatever the reason. Treat a `429`
+  or a network failure as "not available", never as "valid".
+- **Load the record with the site's own server-only PocketBase credential**, by the
+  `collection` and `id` the resolution returned (never from anything in the URL), bypassing
+  the public "published" filter, and render it with the same template as the public page.
+  If the record cannot be loaded, answer the same `404`.
+- **`Cache-Control: private, no-store`** on the response, so neither a CDN nor the browser
+  keeps a copy that outlives the link.
+- **`X-Robots-Tag: noindex, nofollow`** (and the matching `<meta name="robots">`).
+- **`Referrer-Policy: no-referrer`**. The secret is in the URL path; without this header every
+  outbound link, image or font request on the page would send it to a third party.
+- **No analytics and no third-party scripts on this route**, or only with the URL sanitised
+  before they run. `Referrer-Policy` stops the browser from _sending_ the URL as a referrer;
+  it does nothing about a script that _reads_ `location.href` and reports it, which is exactly
+  what an analytics tag, a session recorder, an error tracker or a chat widget does. If the
+  site's layout loads any of those, the share route needs a layout without them, or must
+  replace the path first (`history.replaceState`) and configure the tool not to collect URLs.
+  The same goes for server-side tools that record request paths.
+- **No visual editing bridge.** The bridge is a control channel for editors and must not be
+  emitted on a share page. Send `Content-Security-Policy: frame-ancestors 'none'` as well: a
+  share page has no reason to be framed.
+- **Do not log the URL.** Strip or redact the path of this route in the site's access logs and
+  error reports where the platform allows it.
+
+### `@vega/astro`: the function this needs
+
+`@vega/astro` lives in another repository and does not implement this yet. The function it
+has to add, so that a site does not re-derive the key or the error handling by hand:
+
+```ts
+resolveShareLink(options: {
+	/** Absolute PocketBase origin, e.g. "https://pb.example.test". */
+	pocketbaseUrl: string;
+	/** `preview.apiBasePath` from discovery. Default "/api/vega-preview". */
+	apiBasePath?: string;
+	/** The same server-only VEGA_PREVIEW_SECRET used to verify preview tokens. */
+	secret: string;
+	/** The last path segment of the request, unmodified. */
+	token: string;
+	/** The visitor's address from the adapter (Astro.clientAddress), never a request header. */
+	clientIp?: string;
+	fetch?: typeof fetch;
+}): Promise<{ collection: string; id: string; expiresAt: string } | null>;
+```
+
+It sends exactly the request shown above (`POST`, `X-Vega-Preview-Key` derived as specified,
+JSON body `{ token, clientIp }`, `cache: "no-store"`), returns the parsed body on `200` when
+`collection`, `id` and `expiresAt` are all non-empty strings, and returns `null` for **every**
+other outcome: any other status, a body of another shape, a network error or a timeout. It
+must never throw for a refused link and never tell the caller why a link was refused, so a
+page cannot accidentally render a different error for "expired" than for "never existed". It
+must run only on the server: importing it into client code would ship the signing secret. A
+missing or short `secret` (under 32 bytes) is the one case where it throws, at call time and
+before any request, because that is a deployment error and not a refused link.
+
+### Limits
+
+- **Not available on the official PocketBase image** without the extension (or an equivalent
+  implementation of the four routes), and **not available on a static site** without an
+  on-demand route.
+- **The secret travels in the URL.** It ends up in the browser history of whoever opens it, in
+  chat and mail archives, and possibly in link previews generated by messaging apps. Anyone
+  who obtains the URL sees the record until the link expires or is revoked. Revoking is the
+  only remedy, which is why links are listed per record.
+- **A link shows whatever is saved**, including changes made after it was sent.
+- **Revocation is only as good as the site's route.** A site that caches the page or the
+  resolution keeps serving a revoked link.
+- **The failed-attempt limit is per server process and in memory.** It resets when PocketBase
+  restarts and is not shared between replicas. It bounds noise; the secret's 256 bits of
+  entropy, not the limit, are what make guessing infeasible.
+- **A link is tied to its record id.** Deleting the record ends its links: the reference
+  extension deletes them when the record is deleted through PocketBase, and again on the next
+  attempt to open one if the record disappeared some other way.
+- **A link outlives its creator's permissions.** The access check runs when the link is
+  created. An editor who later loses the right to edit the record, or whose account is
+  removed, leaves their links working until they expire or someone revokes them.
+- **Any editor who may update the record can revoke any of its links**, including links
+  created by someone else, and sees all of them in the list. There is no per-link ownership.
+- **Lowering the configured maximum does not shorten existing links.** A link keeps the expiry
+  it was created with. To end links early, revoke them.
+- **At most 20 live links per record.**
+
 ## Canonical `vega` record
 
 Protocol v1 recommends one record selected by `key = "default"`, with a unique

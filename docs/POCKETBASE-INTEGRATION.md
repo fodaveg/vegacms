@@ -446,6 +446,166 @@ no se vuelven a ejecutar al sustituir su HTML, y solo se sustituye la raíz de b
 `<head>`, navegación y demás marcado de página quedan como estaban hasta la siguiente recarga
 completa.
 
+### Enlace de vista previa para compartir (`preview.share`)
+
+La vista previa de arriba es para quien edita: la pide una sesión, dura como mucho una hora y no
+deja nada guardado en el servidor. Enseñar el trabajo a alguien **sin cuenta en Vega** (un cliente)
+es otra cosa, y por eso es un mecanismo aparte que no toca los tokens anteriores:
+
+- el enlace **se guarda en el servidor** (una fila por enlace, con el hash de su secreto);
+- **dura lo que elija quien edita**, dentro del rango que configure el proyecto y nunca más de
+  **30 días**;
+- **se puede anular** en cualquier momento;
+- enseña **lo guardado en el momento de cada visita**. No congela una versión, no enseña un
+  borrador sin guardar, y no tiene comentarios, aprobaciones ni contraseña.
+
+Se anuncia con una clave más en el mismo objeto del discovery:
+
+```json
+{
+	"preview": { "apiBasePath": "/api/vega-preview", "share": true }
+}
+```
+
+**En el servidor.** Lo implementa [`extensions/vegapreview`](../extensions/vegapreview/README.md)
+con `ShareLinks: true`; viene desactivado, así que un proyecto que ya usa la extensión no cambia
+nada hasta que lo pide. Hay que llamar a `EnsureCollections` antes de `RegisterRoutes` (crea la
+colección privada `vega_preview_links`, con las cinco reglas de la API cerradas) y `RecordCollections`
+tiene que nombrar las colecciones que se pueden compartir. La extensión se niega a arrancar si se le
+configura un máximo por encima de 30 días. Mientras `EnsureCollections` no haya terminado bien, las
+cuatro rutas responden `503`: llamar solo a `RegisterRoutes`, o ignorar el error, deja la función
+apagada en vez de servir desde una colección que nadie validó.
+
+Requisitos del lado del servidor, que no son opcionales:
+
+- **Configura los proxies de confianza de PocketBase** (el ajuste `trustedProxy.headers`) siempre que
+  PocketBase esté detrás de Caddy, nginx o un balanceador, con la cabecera que pone ese proxy. De
+  fábrica viene vacío, y entonces PocketBase ve la dirección del proxy en todas las peticiones: todo
+  el que llame sin clave comparte un mismo contador, y también todos los visitantes de un sitio que
+  no mande `clientIp`. La extensión lo aguanta para el sitio (la clave se comprueba antes y quien la
+  trae no pasa por ese contador), pero los límites dejan de distinguir a nadie.
+- **Deja `trustedProxy.useLeftmostIP` apagado** salvo que tu proxy sobrescriba la cabecera en vez de
+  añadirle su valor. Con un proxy que añade, la primera dirección de `X-Forwarded-For` es la que
+  quiso mandar el cliente, y activarlo deja que cualquiera elija su propia dirección.
+- **La llamada del sitio a PocketBase va por TLS o por una red privada** (loopback, la red de
+  contenedores, una VPN). La clave del sitio es un valor fijo: por HTTP en una red compartida, quien
+  lea una petición se queda con la clave y con los tokens que viajan con ella.
+- Cambiar `VEGA_PREVIEW_SECRET` cambia la clave del sitio, pero **no anula los enlaces** que ya
+  existen: sus hashes no dependen del secreto. Para cortarlos hay que anularlos.
+
+Añade cuatro rutas bajo el mismo prefijo:
+
+| Ruta                                   | Quién la llama                      | Para qué                              |
+| -------------------------------------- | ----------------------------------- | ------------------------------------- |
+| `POST /api/vega-preview/share`         | Vega, con la sesión de quien edita  | crear; devuelve la URL una sola vez   |
+| `GET /api/vega-preview/share`          | Vega, con la sesión de quien edita  | listar los enlaces vivos del registro |
+| `POST /api/vega-preview/share/revoke`  | Vega, con la sesión de quien edita  | anular por id de enlace               |
+| `POST /api/vega-preview/share/resolve` | el servidor del sitio, con su clave | saber qué registro abre un enlace     |
+
+Las tres primeras exigen una sesión de la colección de editores (o de superusuario) y que quien
+pide cumpla la `ViewRule` **y** la `UpdateRule` del registro: compartir es publicar el registro para
+quien tenga la URL, así que poder leerlo no basta. Quien puede verlo pero no editarlo recibe `403`;
+un registro que no puede ver se responde igual que uno que no existe (`404`).
+
+La URL lleva un secreto de 32 bytes aleatorios. En la base de datos solo queda su hash, así que
+**la URL no se puede volver a pedir**: si se pierde, se crea otro enlace y se anula el anterior.
+
+Un registro admite como mucho **20 enlaces vivos**. Crear uno más devuelve `409` con
+`data.code = "share_link_limit"`, y hay que anular alguno antes. El tope existe para que todos los
+enlaces vivos quepan en la lista: uno que no saliera en ella no se podría anular desde Vega y
+seguiría abierto hasta 30 días. Los anulados y los caducados no cuentan.
+
+Los `401` (sin sesión) y `403` (sesión de otra colección) de estas tres rutas los produce el
+middleware de autenticación de PocketBase antes de llegar a la extensión y **no llevan**
+`Cache-Control: no-store`; el resto de respuestas sí. No dicen nada de ningún enlace ni registro.
+
+Cómo se limitan los intentos al resolver: 10 fallos por minuto por dirección, y la dirección
+bloqueada recibe `429` aunque traiga un enlace válido hasta que pasa el minuto. Las direcciones IPv4
+se cuentan una a una y las IPv6 agrupadas por `/64`. Quien llama sin clave y los visitantes se
+cuentan en dos tablas separadas, de 10 000 direcciones cada una; si una se llena, a la dirección que
+no cabe **se la deja pasar sin contarla** (las ya bloqueadas siguen bloqueadas), porque rechazarla
+permitiría a cualquiera con muchas direcciones apagar la función para todos. El límite acota ruido;
+lo que hace inviable adivinar un enlace son los 256 bits del secreto.
+
+**En el sitio.** La ruta que recibe `/preview-share/{token}` es responsabilidad del sitio, y aquí
+es donde la función se sostiene o se cae:
+
+- Tiene que ser una ruta **bajo demanda**. Un sitio totalmente estático no puede ofrecer esto.
+- **Consulta en cada visita**: llama a `POST /api/vega-preview/share/resolve` con el token y solo
+  pinta si la respuesta es `200`. No guardes la respuesta en caché ni recuerdes el enlace como
+  válido en una cookie. **Si el sitio no consulta en cada visita, anular no anula.**
+- La llamada se autentica con la cabecera `X-Vega-Preview-Key`, que se deriva del mismo
+  `VEGA_PREVIEW_SECRET` que el sitio ya comparte con la extensión
+  (`base64url(HMAC-SHA256(secreto, "vega-preview-share-resolve-v1"))`). No hay credencial nueva que
+  repartir, y sigue siendo exclusivamente del lado del servidor. Hasta ahora el sitio verificaba la
+  vista previa comprobando una firma, sin llamar a PocketBase; un enlace anulable no se puede
+  verificar así, y esta consulta es lo mínimo que hace falta. Vector de prueba: el secreto
+  `0123456789abcdef0123456789abcdef` da la clave `T11UqkFfGjRmrCfgEgbOYNCpz_M6dGeZ4eN30F4kZVw`. Si
+  el secreto falta o tiene menos de 32 bytes, **no derives la clave**: HMAC acepta una clave vacía
+  sin protestar, y un sitio con la variable de entorno sin definir mandaría una clave que cualquiera
+  puede calcular.
+- Manda en `clientIp` la dirección del visitante: los intentos fallidos se cuentan contra ella
+  (10 por minuto). Si no la mandas se cuentan contra la dirección del propio servidor del sitio, y
+  un solo visitante que falle puede dejar a todos sin acceso durante un minuto.
+- Esa dirección tiene que ser **la que el sitio obtiene de su propio proxy de confianza o del
+  socket** (`Astro.clientAddress` con el adaptador bien configurado, la dirección verificada que da
+  la plataforma), **nunca un `X-Forwarded-For` crudo ni otra cabecera que el visitante pueda
+  escribir**. El servidor se fía de ese campo porque quien llama ha demostrado ser el sitio. Si el
+  sitio copia ahí una cabecera falsificable, un visitante elige una dirección nueva en cada intento
+  (se queda sin límite) y puede gastar los intentos de otro.
+- Con la colección y el id que devuelve la consulta (nunca con nada que venga en la URL), carga el
+  registro con la **credencial PocketBase solo-servidor** que ya usa la vista previa, sin el filtro
+  público de `status = "published"`, y píntalo con la misma plantilla que la ruta pública. Si el
+  registro no se puede cargar, responde el mismo «no encontrado».
+- Cualquier otra respuesta (`404`, `429`, `503`, un fallo de red) es la misma página de «no
+  encontrado», sin distinguir el motivo. Nunca la trates como «válido».
+- Cabeceras de la respuesta: `Cache-Control: private, no-store`, `X-Robots-Tag: noindex, nofollow`
+  y `Referrer-Policy: no-referrer`. Esta última importa: el secreto va en la ruta, y sin ella cada
+  enlace saliente o recurso de terceros de la página se lo llevaría.
+- Además de esa cabecera, pon en la página la etiqueta `<meta name="robots">` con el mismo valor,
+  `noindex, nofollow`.
+- **Sin analítica ni scripts de terceros en esta ruta**, o solo con la URL saneada antes de que se
+  ejecuten. `Referrer-Policy` impide que el navegador **envíe** la URL como referente; no impide que
+  un script **lea** `location.href` y la mande, que es justo lo que hacen una etiqueta de analítica,
+  un grabador de sesiones, un recolector de errores o un widget de chat. Si la plantilla del sitio
+  carga algo de eso, esta ruta necesita una plantilla sin ello, o sustituir antes la ruta
+  (`history.replaceState`) y configurar la herramienta para que no recoja URLs. Vale lo mismo para
+  las herramientas del servidor que registran la ruta de cada petición.
+- **No registres la URL.** Quita o enmascara la ruta de estas peticiones en los logs de acceso del
+  sitio y en los informes de error, hasta donde lo permita la plataforma: llevan el secreto.
+- **Sin puente de edición visual** en esta ruta. Manda además la cabecera
+  `Content-Security-Policy: frame-ancestors 'none'`: una página compartida no tiene por qué
+  incrustarse en ningún marco.
+
+`@vega/astro` todavía no trae esto. La función que tiene que añadir es `resolveShareLink()`, con la
+petición y la respuesta exactas descritas en el
+[contrato de proyecto v1](PROJECT-CONTRACT-v1.md#share-links-optional), que es la normativa de las
+cuatro rutas.
+
+Límites que conviene saber antes de ofrecerlo:
+
+- **No funciona en la imagen oficial de PocketBase** sin esta extensión, ni en un sitio estático sin
+  una ruta bajo demanda.
+- **El enlace va en la URL** y se queda en el historial del navegador de quien lo abre y en el chat
+  o el correo por el que se envió. Quien consiga la URL ve el registro hasta que caduque o se anule.
+- **Anular depende del sitio**: si la ruta o un CDN guardan la página, el enlace anulado se sigue
+  viendo.
+- El enlace enseña **lo que haya guardado** en cada visita, también los cambios posteriores a
+  haberlo enviado.
+- El límite de intentos vive en la memoria del proceso: se reinicia con PocketBase y no se comparte
+  entre réplicas.
+- **El enlace está atado al id del registro.** Borrar el registro borra sus enlaces en el momento
+  (y, si el registro desapareció por otra vía, la primera vez que alguien intente abrir uno), así
+  que un registro creado después con el mismo id no hereda ningún enlace.
+- **Un enlace sobrevive a los permisos de quien lo creó.** El acceso se comprueba al crearlo. Si esa
+  persona pierde después el permiso de editar el registro, o se borra su cuenta, sus enlaces siguen
+  funcionando hasta que caduquen o alguien los anule.
+- **Cualquier editor que pueda editar el registro ve y anula todos sus enlaces**, también los que
+  creó otra persona. No hay enlaces «de alguien».
+- **Bajar el máximo configurado no acorta los enlaces que ya existen**: conservan la caducidad con
+  la que nacieron. Para cortarlos antes hay que anularlos.
+- Como mucho **20 enlaces vivos por registro**.
+
 ## Autoría de esquema desde Vega (crear colecciones, añadir campos)
 
 Vega es el CMS **de** PocketBase: quien tiene superuser puede crear colecciones nuevas y añadir
