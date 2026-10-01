@@ -5,6 +5,8 @@
  *
  * - `vega.updateCheck.v1`: último `UpdateStatus` resuelto por `checkForUpdate` + cuándo
  *   (`checkedAt`). Es la ÚNICA fuente que lee `UpdateBanner` — nunca dispara red por su cuenta.
+ *   Al leerla, el `releaseUrl` se vuelve a filtrar con `safeReleaseUrl` (lo guardado no es de
+ *   fiar): una URL que no sea del release de GitHub queda en `null` y el aviso sigue sin enlace.
  * - `vega.updateAutoCheck.v1`: preferencia "comprobar automáticamente al iniciar" del toggle de
  *   `/settings`. Default `false` (opt-in real: sin preferencia guardada, el layout NO llama a
  *   `checkForUpdate`).

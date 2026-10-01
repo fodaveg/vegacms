@@ -591,7 +591,10 @@ Vega puede guardar una copia del estado de un registro justo ANTES de cada guard
 compararla con la versión actual o recuperar los valores en el formulario. Vive en una colección
 propia, `vega_revisions`, con el mismo mecanismo de bootstrap que `vega_media`: **Ajustes → Historial
 y papelera → Crear colección de historial** (requiere sesión de superuser; un rol editor no puede
-crearla, solo usarla si ya existe).
+crearla). Se crea con las reglas de acceso en `null` y así debe quedarse (ver
+[Las reglas de `vega_revisions` se quedan en `null`](#las-reglas-de-vega_revisions-se-quedan-en-null)):
+con ellas, solo un superusuario escribe en ella, así que **el historial y la papelera solo se
+registran con sesión de superusuario**; un editor (`vega_editors`) no puede usarla.
 
 Cómo funciona:
 
@@ -807,6 +810,14 @@ Los pasos manuales siguientes siguen aplicando a una instalación **existente**.
 sean más abiertas o sean más cerradas. Si `pages` ya existe con `listRule: null` y `blocks` no
 existe, el preflight aborta con un error claro antes de escribir; alinea las reglas manualmente y
 vuelve a sembrar.
+
+La excepción es `vega_editors`: si ya existe con reglas propias (cualquiera de `listRule`,
+`viewRule`, `createRule`, `updateRule`, `deleteRule` o `manageRule` distinta de `null`; `authRule`
+no cuenta, PocketBase la deja en `""` en toda colección `auth`),
+el sembrado **aborta** con `vega_collection_rules_mismatch` antes de escribir nada, porque una
+`createRule` abierta en la colección de editores es registro libre de cuentas con permiso de
+escritura. Quien lo vea debe, en PocketBase (**Collections → vega_editors → API Rules**), dejar
+esas seis reglas en `null` (solo superusuarios gestionan las cuentas) y repetir el sembrado.
 
 **1. Crear la colección de auth del editor:**
 
