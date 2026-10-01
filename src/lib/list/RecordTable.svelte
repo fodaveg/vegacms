@@ -1001,6 +1001,13 @@
 		background: var(--accent-soft);
 	}
 
+	/* Programada cuya fecha pasó sin publicarse («Programada, no se publicó»): par de aviso. */
+	.vega-status-badge[data-status-kind='overdue'],
+	.vega-status-badge-inline[data-inline-status-kind='overdue'] {
+		color: var(--warning);
+		background: var(--warning-soft);
+	}
+
 	/* Copia bajo el título: oculta por defecto, solo se ve en pantallas estrechas (bloque `@media`
 	   del final). Va DESPUÉS de la regla compartida de arriba para ganarle el `display`. */
 	.vega-status-badge-inline {

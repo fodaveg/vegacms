@@ -66,11 +66,17 @@
 		/** Nombres de colección cuya source llegó al tope de carga sin paginar (L7b,
 		 *  `truncatedCollections`); `[]` = ninguna, sin aviso. */
 		truncatedCollections: string[];
+		/** Rótulos de las fuentes que no se pudieron cargar (`failedSources` de
+		 *  `merged-load.svelte.ts`); `[]` = ninguna. Se nombran en un aviso, también sin filas. */
+		failedSources: string[];
+		/** Motivo (ya traducido) por el que el orden está bloqueado de forma estable, o `null`. Se pinta
+		 *  como aviso y como ayuda del asa, que queda deshabilitada (`reorderable` va a `false`). */
+		reorderBlockedNotice?: string | null;
 		/** `true` cuando `+page.svelte` permite reordenar a mano el conjunto mezclado (L7d).
 		 *  `false` mientras una persistencia anterior sigue en vuelo (evita solapar escrituras, ver
-		 *  su cabecera) — nunca por ningún otro motivo: a diferencia de `RecordTable.reorderable`,
-		 *  una vista fusionada no pagina ni admite búsqueda/orden propios (L7b), así que no hay
-		 *  combinación que la deshabilite de forma permanente. El asa SIEMPRE está montada (fix de
+		 *  su cabecera) o cuando el conjunto no se puede reordenar con garantías (fuente caída,
+		 *  truncado o sin permiso de actualizar, `mergedReorderBlocker`; ese motivo llega en
+		 *  `reorderBlockedNotice`). El asa SIEMPRE está montada (fix de
 		 *  code-review, ver el marcado): `reorderable` solo la deshabilita (`aria-disabled`,
 		 *  `draggable`), nunca la desmonta — desmontarla mientras el usuario reordena por teclado le
 		 *  robaría el foco a mitad de gesto (el nodo enfocado desaparecería del DOM). */
@@ -82,7 +88,14 @@
 		onReorder: (fromIndex: number, toIndex: number) => void;
 	}
 
-	let { rows, truncatedCollections, reorderable, onReorder }: Props = $props();
+	let {
+		rows,
+		truncatedCollections,
+		failedSources,
+		reorderBlockedNotice = null,
+		reorderable,
+		onReorder
+	}: Props = $props();
 
 	const ctx = getVegaContext();
 
@@ -136,7 +149,16 @@
 	}
 </script>
 
+{#snippet failedNotice()}
+	{#if failedSources.length > 0}
+		<p class="vega-merged-truncated-notice" role="status" data-merged-failed>
+			{ctx.t('list.merged.failedNotice', { sources: failedSources.join(', ') })}
+		</p>
+	{/if}
+{/snippet}
+
 {#if rows.length === 0}
+	{@render failedNotice()}
 	<div class="vega-merged-empty" data-list-state="empty-collection">
 		<!-- Glifo del estado vacío (mockup `.empty .glyph`, coherencia con `/c/[type]`). -->
 		<span class="vega-merged-empty-glyph" aria-hidden="true"><Icon id="list" size={20} /></span>
@@ -145,9 +167,15 @@
 	</div>
 {:else}
 	<div data-list-state="ready">
+		{@render failedNotice()}
 		{#if truncatedCollections.length > 0}
 			<p class="vega-merged-truncated-notice" role="status">
 				{ctx.t('list.merged.truncatedNotice')}
+			</p>
+		{/if}
+		{#if reorderBlockedNotice}
+			<p class="vega-merged-truncated-notice" role="status" data-merged-reorder-blocked>
+				{reorderBlockedNotice}
 			</p>
 		{/if}
 		<div class="vega-record-table-wrap">
@@ -195,6 +223,7 @@
 									class="vega-reorder-handle"
 									aria-label={ctx.t('list.reorder.handleLabel', { label: openText(row) })}
 									aria-disabled={!reorderable}
+									title={reorderBlockedNotice ?? undefined}
 									draggable={reorderable}
 									ondragstart={(event) => dnd.handleDragStart(event, i)}
 									ondragend={dnd.handleDragEnd}

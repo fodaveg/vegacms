@@ -1762,6 +1762,11 @@
 		background: var(--accent-soft);
 	}
 
+	.vega-editor-tag[data-status-kind='overdue'] {
+		color: var(--warning);
+		background: var(--warning-soft);
+	}
+
 	/* Punto "sin guardar" (mockup `.dirty-dot`): 8px en `--warning`. El texto va dentro,
 	   visualmente oculto (ver cabecera) — de ahí `overflow: hidden`, para que el clip del texto no
 	   estire el punto. */

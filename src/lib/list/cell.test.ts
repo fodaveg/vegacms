@@ -7,7 +7,7 @@
 import { describe, expect, test } from 'vitest';
 import type { Field } from '$lib/backend/types';
 import type { ResolvedField } from '$lib/model/types';
-import { classifyStatusBadge, describeCell, describeStatusBadge } from './cell';
+import { classifyStatusBadge, describeCell, describeStatusBadge, OVERDUE_GRACE_MS } from './cell';
 import { ensureLocaleLoaded, t } from '$lib/i18n';
 
 function field(overrides: Partial<Field> & Pick<Field, 'name' | 'type'>): Field {
@@ -455,6 +455,71 @@ describe('describeStatusBadge (publicación programada, `publishAtField`)', () =
 					?.label
 			).toBe('Borrador');
 		}
+	});
+
+	describe('fecha pasada que el servidor no publicó (margen de gracia)', () => {
+		const grace = OVERDUE_GRACE_MS;
+		const overdue = new Date(now - grace - 60_000).toISOString();
+		const justInside = new Date(now - grace + 60_000).toISOString();
+
+		test('pasado el margen, con cron activo o sin comprobar → «Programada, no se publicó»', () => {
+			for (const scheduling of ['active', 'unknown'] as const) {
+				expect(
+					describeStatusBadge(
+						type,
+						{ status: 'draft', publishAt: overdue },
+						scheduling,
+						'es',
+						esT,
+						now
+					)
+				).toEqual({ raw: 'draft', kind: 'overdue', label: 'Programada, no se publicó' });
+			}
+		});
+
+		test('dentro del margen sigue siendo un «Borrador» normal (el cron aún puede pasar)', () => {
+			expect(
+				describeStatusBadge(
+					type,
+					{ status: 'draft', publishAt: justInside },
+					'active',
+					'es',
+					esT,
+					now
+				)
+			).toEqual({ raw: 'draft', kind: 'draft', label: 'Borrador' });
+		});
+
+		test('servidor SIN vegaschedule → «Borrador · fecha sin efecto», no «Programada»', () => {
+			expect(
+				describeStatusBadge(
+					type,
+					{ status: 'draft', publishAt: overdue },
+					'inactive',
+					'es',
+					esT,
+					now
+				)
+			).toEqual({ raw: 'draft', kind: 'draft', label: 'Borrador · fecha sin efecto' });
+		});
+
+		test('un registro publicado con fecha pasada es «Publicado»; en inglés tiene su texto', async () => {
+			expect(
+				describeStatusBadge(
+					type,
+					{ status: 'published', publishAt: overdue },
+					'active',
+					'es',
+					esT,
+					now
+				)?.kind
+			).toBe('pub');
+			await ensureLocaleLoaded('en');
+			expect(
+				describeStatusBadge(type, { status: 'draft', publishAt: overdue }, 'active', 'en', enT, now)
+					?.label
+			).toBe('Scheduled, not published');
+		});
 	});
 
 	test('sin statusField o con el estado vacío → null (nunca una insignia vacía)', () => {

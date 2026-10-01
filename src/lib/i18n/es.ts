@@ -608,6 +608,9 @@ export const es = {
 	// comprobar (`ContentModel.scheduledPublishing`). `{status}` = etiqueta de «draft».
 	'list.status.scheduledInactive': '{status} · fecha sin efecto',
 	'list.status.scheduledUnconfirmed': '{status} · {date} sin confirmar',
+	// Borrador cuya fecha «Publicar el» ya pasó y sigue sin publicarse (el servidor la vacía al
+	// publicar): se avisa para que no parezca un borrador cualquiera.
+	'list.status.overdue': 'Programada, no se publicó',
 
 	// ————— Toolbar de listado (Fase 4d del contrato P4) —————
 	'list.search.placeholder': 'Filtrar por título o slug…',
@@ -730,6 +733,15 @@ export const es = {
 	'list.merged.empty.body': 'Ningún registro de las colecciones de esta vista coincide todavía.',
 	'list.merged.truncatedNotice':
 		'Alguna de las colecciones de esta vista tiene más registros de los mostrados.',
+	// Por qué no se puede arrastrar para reordenar (aviso de la vista y ayuda del asa).
+	'list.merged.reorderBlocked.failed':
+		'No se puede reordenar mientras falte alguna colección: el orden quedaría a medias.',
+	'list.merged.reorderBlocked.truncated':
+		'No se puede reordenar: hay más registros de los que caben en pantalla y el orden quedaría a medias.',
+	'list.merged.reorderBlocked.forbidden':
+		'No se puede reordenar: no tienes permiso para editar alguna de las colecciones de esta vista.',
+	'list.merged.failedNotice':
+		'No se han podido cargar: {sources}. Se muestran los registros de las demás colecciones.',
 
 	// ————— Integridad referencial (`#lote-integridad`, Fase A): motor "¿dónde se usa esto?" —————
 	// Compartido por `UsedInPanel`/`ReferencesSummary` (panel pasivo) y por el aviso de

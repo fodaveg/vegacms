@@ -313,6 +313,11 @@
 		background: var(--info-soft);
 	}
 
+	.vega-visual-publish-tag[data-status-kind='overdue'] {
+		color: var(--warning);
+		background: var(--warning-soft);
+	}
+
 	/* Botón neutro de la barra (`--btn`) a 30 px, como los grupos de la barra visual. */
 	.vega-visual-publish-btn {
 		display: inline-flex;

@@ -29,7 +29,14 @@ import { mergeViewResults, truncatedCollections, type MergedRow } from './merged
  *  `ListLoadStatus` de `list-state.svelte.ts`: loading/ready/error). */
 export type MergedLoadStatus =
 	| { kind: 'loading' }
-	| { kind: 'ready'; rows: MergedRow[]; truncatedCollections: string[] }
+	| {
+			kind: 'ready';
+			rows: MergedRow[];
+			truncatedCollections: string[];
+			/** Rótulos (`source.label`) de las fuentes que NO se pudieron cargar (sin duplicados): la
+			 *  vista se enseña con las demás y un aviso que las nombra. `[]` = todas cargaron. */
+			failedSources: string[];
+	  }
 	| { kind: 'error'; error: VegaError };
 
 export interface MergedListState {
@@ -37,11 +44,12 @@ export interface MergedListState {
 	readonly status: MergedLoadStatus;
 	/**
 	 * Dispara la carga de `view`: una `ctx.port.list()` por `source` EN PARALELO
-	 * (`Promise.all`), fusionadas por `mergeViewResults`. Anti-carrera: si al resolver ya no es
+	 * (`Promise.allSettled`), fusionadas por `mergeViewResults`. Anti-carrera: si al resolver ya no es
 	 * la última llamada emitida, el resultado se descarta sin tocar `status`. `auth-expired` va
-	 * SOLO a `ctx.feedback.reportError` (overlay global), nunca a `status.error`; el resto de
-	 * `VegaErrorKind` (de CUALQUIER source: `Promise.all` rechaza con el primer error que
-	 * llegue) se pinta en `status.error`.
+	 * SOLO a `ctx.feedback.reportError` (overlay global), nunca a `status.error`. Una source que
+	 * falla por otro motivo NO tira la vista: se enseñan las demás y `failedSources` nombra la
+	 * caída (con una fuente ausente el orden global sería parcial, así que la ruta bloquea el
+	 * reorden). Solo si fallan TODAS la vista pasa a `status.error` (con el primer error).
 	 */
 	load(ctx: VegaAppContext, view: ResolvedMergedView): Promise<void>;
 	/** Repite la ÚLTIMA carga disparada por `load()` (botón "Reintentar" del estado error). No-op
@@ -67,7 +75,8 @@ export function createMergedListState(): MergedListState {
 		const seq = sequencer.next();
 		status = { kind: 'loading' };
 		try {
-			const pages = await Promise.all(
+			// `allSettled`: una source caída no tira la vista entera (ver `load` en la interfaz).
+			const settled = await Promise.allSettled(
 				view.sources.map((source) =>
 					ctx.port.list(source.collection, {
 						filter: source.where ?? undefined,
@@ -77,21 +86,39 @@ export function createMergedListState(): MergedListState {
 				)
 			);
 			if (!sequencer.isLatest(seq)) return; // respuesta obsoleta (anti-carrera): se descarta
-			const rows = mergeViewResults(
-				view,
-				pages.map((page) => page.items)
+			const errors = settled.flatMap((result) =>
+				result.status === 'rejected' ? [normalizeListError(result.reason)] : []
 			);
-			status = { kind: 'ready', rows, truncatedCollections: truncatedCollections(view, pages) };
-		} catch (err) {
-			if (!sequencer.isLatest(seq)) return;
-			const vegaErr = normalizeListError(err);
-			if (vegaErr.kind === 'auth-expired') {
+			const authExpired = errors.find((e) => e.kind === 'auth-expired');
+			if (authExpired) {
 				// Mismo criterio que `list-state.svelte.ts` (§2.3): el overlay global tapa la ruta
 				// entera, así que da igual que la vista se quede en 'loading' hasta reautenticar.
-				ctx.feedback.reportError(vegaErr);
+				ctx.feedback.reportError(authExpired);
 				return;
 			}
-			status = { kind: 'error', error: vegaErr };
+			if (errors.length === settled.length) {
+				status = { kind: 'error', error: errors[0] };
+				return;
+			}
+			const pages = settled.map((result) => (result.status === 'fulfilled' ? result.value : null));
+			const rows = mergeViewResults(
+				view,
+				pages.map((page) => page?.items ?? [])
+			);
+			const failedSources = view.sources
+				.filter((_, i) => pages[i] === null)
+				.map((source) => source.label)
+				.filter((label, i, labels) => labels.indexOf(label) === i); // sin duplicados
+			status = {
+				kind: 'ready',
+				rows,
+				truncatedCollections: truncatedCollections(view, pages),
+				failedSources
+			};
+		} catch (err) {
+			// Defensivo: con `allSettled` no debería llegar nada aquí salvo un fallo de la propia fusión.
+			if (!sequencer.isLatest(seq)) return;
+			status = { kind: 'error', error: normalizeListError(err) };
 		}
 	}
 

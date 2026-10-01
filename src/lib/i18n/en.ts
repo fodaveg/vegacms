@@ -555,6 +555,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// (`ContentModel.scheduledPublishing`). `{status}` = the "draft" label.
 	'list.status.scheduledInactive': '{status} · date has no effect',
 	'list.status.scheduledUnconfirmed': '{status} · {date} unconfirmed',
+	// Draft whose "Publish on" date has passed and is still unpublished (the server clears the
+	// date when it publishes): flagged so it does not look like an ordinary draft.
+	'list.status.overdue': 'Scheduled, not published',
 
 	// ————— List toolbar (P4 contract, Phase 4d) —————
 	'list.search.placeholder': 'Filter by title or slug…',
@@ -672,6 +675,15 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.merged.empty.title': "There's nothing here yet",
 	'list.merged.empty.body': "No record from this view's collections matches yet.",
 	'list.merged.truncatedNotice': "One of this view's collections has more records than shown.",
+	// Why dragging to reorder is unavailable (view notice and handle help text).
+	'list.merged.reorderBlocked.failed':
+		"Can't reorder while a collection is missing: the order would be incomplete.",
+	'list.merged.reorderBlocked.truncated':
+		"Can't reorder: there are more records than fit on screen and the order would be incomplete.",
+	'list.merged.reorderBlocked.forbidden':
+		"Can't reorder: you don't have permission to edit some of this view's collections.",
+	'list.merged.failedNotice':
+		"Couldn't load: {sources}. Showing the records from the other collections.",
 
 	// ————— Media: bootstrap + schema (Phase P6·6a) —————
 	'media.loadErrorBody': 'Could not load the media library. Try again.',

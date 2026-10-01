@@ -482,6 +482,10 @@
 		background: var(--accent);
 	}
 
+	.vega-search-dot[data-status-kind='overdue'] {
+		background: var(--warning);
+	}
+
 	.vega-search-more {
 		display: block;
 		padding: 0.3rem 0.6rem 0.45rem;
