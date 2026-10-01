@@ -19,6 +19,8 @@ import (
 type pbUser struct {
 	record *core.Record
 	creds  []webauthn.Credential
+	// warned remembers, by credential ID, which stored passkeys already carry a clone warning.
+	warned map[string]bool
 }
 
 func (u *pbUser) WebAuthnID() []byte                         { return []byte(u.record.Id) }
@@ -37,14 +39,21 @@ func loadUser(app core.App, record *core.Record) (*pbUser, error) {
 		return nil, err
 	}
 	credentials := make([]webauthn.Credential, 0, len(rows))
+	warned := map[string]bool{}
 	for _, row := range rows {
 		var credential webauthn.Credential
 		if err := json.Unmarshal([]byte(row.GetString("data")), &credential); err != nil {
 			return nil, fmt.Errorf("decode stored passkey %s: %w", row.Id, err)
 		}
+		// go-webauthn only ever sets CloneWarning. Clear it in memory so that after a ceremony
+		// it describes that assertion alone; the stored history travels in warned.
+		if credential.Authenticator.CloneWarning {
+			warned[string(credential.ID)] = true
+			credential.Authenticator.CloneWarning = false
+		}
 		credentials = append(credentials, credential)
 	}
-	return &pbUser{record: record, creds: credentials}, nil
+	return &pbUser{record: record, creds: credentials, warned: warned}, nil
 }
 
 func saveCredential(app core.App, userID string, credential *webauthn.Credential, name string) error {
@@ -134,7 +143,12 @@ func (x *Extension) beginDiscoverableLogin(e *core.RequestEvent) error {
 	if allowed, wait := x.allowChallengeBegin(ip); !allowed {
 		return lockedResponse(e, wait)
 	}
-	options, session, err := x.webAuthn.BeginDiscoverableLogin()
+	// A passkey replaces password AND second factor, so the authenticator must verify the user
+	// (PIN or biometrics); mere presence is not enough. go-webauthn enforces the UV flag at
+	// finish because the requirement is recorded in the session.
+	options, session, err := x.webAuthn.BeginDiscoverableLogin(
+		webauthn.WithUserVerification(protocol.VerificationRequired),
+	)
 	if err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "begin_failed"})
 	}
@@ -157,6 +171,7 @@ func (x *Extension) finishDiscoverableLogin(e *core.RequestEvent) error {
 		return e.JSON(http.StatusBadRequest, map[string]string{"error": "no_session"})
 	}
 	var matched *core.Record
+	var matchedUser *pbUser
 	handler := func(_ []byte, userHandle []byte) (webauthn.User, error) {
 		record, err := e.App.FindRecordById(x.config.AuthCollection, string(userHandle))
 		if err != nil {
@@ -165,10 +180,26 @@ func (x *Extension) finishDiscoverableLogin(e *core.RequestEvent) error {
 		user, err := loadUser(e.App, record)
 		if err == nil {
 			matched = record
+			matchedUser = user
 		}
 		return user, err
 	}
 	credential, err := x.webAuthn.FinishDiscoverableLogin(handler, *session, e.Request)
+	if err == nil && matched != nil && !credential.Flags.UserVerified {
+		err = errors.New("assertion without user verification")
+	}
+	if err == nil && matched != nil && credential.Authenticator.CloneWarning {
+		// The signature counter did not advance: two copies of this authenticator may exist. The
+		// assertion is refused, the warning is stored with the passkey (the counter is left
+		// untouched) and the event is logged without any credential material.
+		if saveErr := saveCredential(e.App, matched.Id, credential, ""); saveErr != nil {
+			e.App.Logger().Error("vega passkey clone warning could not be stored", "user", matched.Id)
+		}
+		e.App.Logger().Warn("vega passkey rejected: signature counter went backwards, possible cloned authenticator",
+			"user", matched.Id, "ip", ip)
+		x.recordLoginFailure(e.App, loginIdentity(matched.Email()), ip)
+		return e.JSON(http.StatusUnauthorized, map[string]string{"error": "verify_failed"})
+	}
 	if err != nil || matched == nil {
 		identity := "passkey:anonymous"
 		if matched != nil {
@@ -184,6 +215,8 @@ func (x *Extension) finishDiscoverableLogin(e *core.RequestEvent) error {
 	if wait := x.loginLockRemaining(e.App, identity, ip); wait > 0 {
 		return lockedResponse(e, wait)
 	}
+	// A past warning stays on record even after a later assertion is accepted.
+	credential.Authenticator.CloneWarning = matchedUser.warned[string(credential.ID)]
 	if err := saveCredential(e.App, matched.Id, credential, ""); err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
 	}
@@ -239,7 +272,16 @@ func (x *Extension) listPasskeys(e *core.RequestEvent) error {
 	}
 	result := make([]map[string]any, 0, len(rows))
 	for _, row := range rows {
-		result = append(result, map[string]any{"id": row.Id, "name": row.GetString("name"), "created": row.GetString("created")})
+		var stored struct {
+			Authenticator struct {
+				CloneWarning bool `json:"cloneWarning"`
+			} `json:"authenticator"`
+		}
+		_ = json.Unmarshal([]byte(row.GetString("data")), &stored)
+		result = append(result, map[string]any{
+			"id": row.Id, "name": row.GetString("name"), "created": row.GetString("created"),
+			"cloneWarning": stored.Authenticator.CloneWarning,
+		})
 	}
 	return e.JSON(http.StatusOK, map[string]any{"passkeys": result})
 }

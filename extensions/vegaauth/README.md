@@ -99,6 +99,15 @@ this automatically, but the legacy implementation predates that hardening.
   successful login clears the counter; a correct password that still needs its second factor
   hands its reservation back without clearing earlier failures. If the counter cannot be stored
   the request is refused with `503 attempt_failed` instead of being evaluated uncounted.
+- Passkey login requires **user verification** (PIN or biometrics): the options sent to the
+  browser carry `userVerification: "required"` and an assertion without the UV flag is rejected.
+  Registration already required it, so every stored passkey can satisfy it.
+- A passkey whose signature counter does not advance (a possible cloned authenticator) is
+  rejected with `verify_failed`, counted as a failed login and logged as a warning with the
+  account ID and client IP only. The warning is stored with the passkey, survives later accepted
+  logins and is reported as `cloneWarning` by `GET /passkey/list`; the stored counter is left
+  untouched, so the authenticator that is ahead keeps working. Deleting the passkey clears it.
+  Synced passkeys that always report counter `0` never trigger it.
 - Pending password challenges and WebAuthn challenges live in process memory for five minutes.
   A multi-replica deployment therefore needs sticky routing or a shared challenge store.
 - Anonymous challenge creation is rate-limited per IP; both MFA and WebAuthn stores prune expired
