@@ -655,6 +655,29 @@ func TestShareConfigFailsClosed(t *testing.T) {
 		})
 	}
 
+	// SharePath is not validated with ShareLinks off: a deployment that predates share links and
+	// already uses the default SharePath as its PreviewPath (or anything below it) keeps starting,
+	// and enabling the feature there is what fails, with the collision named.
+	for name, legacy := range map[string]Config{
+		"preview path equals the share default": {PreviewPath: "/preview-share"},
+		"preview path above the share default":  {PreviewPath: "/preview-share/x", SharePath: "/preview-share/x/y"},
+		"malformed share path nobody uses":      {SharePath: "share?x=1"},
+	} {
+		t.Run("ShareLinks off: "+name, func(t *testing.T) {
+			legacy.SiteOrigin = "https://site.example"
+			legacy.SigningSecret = testSecret
+			legacy.AuthCollections = []string{"vega_editors"}
+			if _, err := New(legacy); err != nil {
+				t.Fatalf("a configuration without ShareLinks stopped starting: %v", err)
+			}
+			legacy.ShareLinks = true
+			legacy.RecordCollections = []string{"pages"}
+			if _, err := New(legacy); err == nil {
+				t.Fatal("expected the same paths to fail closed once ShareLinks is on")
+			}
+		})
+	}
+
 	// The ceiling is checked even when the feature is off, and the error names both values.
 	received := 31 * 24 * time.Hour
 	disabled := base()

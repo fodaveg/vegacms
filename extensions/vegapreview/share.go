@@ -80,18 +80,22 @@ var (
 // lifetime above the ceiling is refused at startup instead of waiting for the feature to be
 // enabled.
 func (c Config) normalizedShare() (Config, error) {
-	c.SharePath = strings.TrimRight(strings.TrimSpace(c.SharePath), "/")
-	if c.SharePath == "" {
-		c.SharePath = defaultSharePath
-	}
-	if !strings.HasPrefix(c.SharePath, "/") || strings.Contains(c.SharePath, "//") ||
-		strings.ContainsAny(c.SharePath, "?#") {
-		return c, fmt.Errorf("vegapreview: SharePath must be a relative absolute path")
-	}
-	// {PreviewPath}/{collection}/{id} already owns everything below PreviewPath: a share route
-	// there would be read as a collection name by the signed-token route.
-	if c.SharePath == c.PreviewPath || strings.HasPrefix(c.SharePath, c.PreviewPath+"/") {
-		return c, fmt.Errorf("vegapreview: SharePath must not be PreviewPath nor live below it")
+	// SharePath is only looked at with ShareLinks on. A deployment that predates share links and
+	// happens to use PreviewPath "/preview-share" (the SharePath default) must keep starting.
+	if c.ShareLinks {
+		c.SharePath = strings.TrimRight(strings.TrimSpace(c.SharePath), "/")
+		if c.SharePath == "" {
+			c.SharePath = defaultSharePath
+		}
+		if !strings.HasPrefix(c.SharePath, "/") || strings.Contains(c.SharePath, "//") ||
+			strings.ContainsAny(c.SharePath, "?#") {
+			return c, fmt.Errorf("vegapreview: SharePath must be a relative absolute path")
+		}
+		// {PreviewPath}/{collection}/{id} already owns everything below PreviewPath: a share
+		// route there would be read as a collection name by the signed-token route.
+		if c.SharePath == c.PreviewPath || strings.HasPrefix(c.SharePath, c.PreviewPath+"/") {
+			return c, fmt.Errorf("vegapreview: SharePath must not be PreviewPath nor live below it")
+		}
 	}
 
 	if c.ShareMaxTTL == 0 {
