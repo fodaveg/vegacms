@@ -634,4 +634,209 @@ describe('SchemaAuthoringPanel.svelte', () => {
 			'Ese resumen es demasiado largo'
 		);
 	});
+
+	describe('tipos del lote 2: texto con formato, dirección web, correo, imagen y «No se puede repetir»', () => {
+		const MEDIA_TYPE: ContentType = { name: 'vega_media', readonly: false, fields: [] };
+
+		/** Monta «Añadir campos» sobre `post`, escribe el nombre y elige el tipo; devuelve el form. */
+		async function pickType(
+			type: string,
+			name: string,
+			types: ContentType[] = [POST_TYPE, MEDIA_TYPE]
+		) {
+			const addCollectionFields = vi.fn(async () => ({ added: [name], skipped: [] }));
+			mounted = mountPanel({
+				port: fakePort({ capabilities: { schemaFieldBootstrap: true }, addCollectionFields }),
+				types
+			});
+			const target = mounted.target.querySelector<HTMLSelectElement>('#vega-schema-add-target')!;
+			target.value = 'post';
+			target.dispatchEvent(new Event('change', { bubbles: true }));
+			setInputValue(
+				mounted.target.querySelector<HTMLInputElement>('.vega-field-row input[type="text"]')!,
+				name
+			);
+			const typeSelect = mounted.target.querySelector<HTMLSelectElement>(
+				'select[aria-label="settings.schema.fields.typeLabel"]'
+			)!;
+			typeSelect.value = type;
+			typeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+			await tick();
+			return addCollectionFields;
+		}
+
+		async function submitForm(): Promise<void> {
+			mounted!.target
+				.querySelector('form')!
+				.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+			await tick();
+			await tick();
+		}
+
+		function checkbox(labelKey: string): HTMLInputElement | null {
+			const label = [...mounted!.target.querySelectorAll('.vega-field-row label')].find((el) =>
+				el.textContent?.includes(labelKey)
+			);
+			return label?.querySelector('input[type="checkbox"]') ?? null;
+		}
+
+		test('el desplegable ofrece los tipos nuevos con su texto', async () => {
+			await pickType('text', 'title');
+			const options = [
+				...mounted!.target.querySelectorAll<HTMLOptionElement>(
+					'select[aria-label="settings.schema.fields.typeLabel"] option'
+				)
+			].map((option) => option.value);
+			expect(options).toEqual([
+				'text',
+				'editor',
+				'url',
+				'email',
+				'image',
+				'number',
+				'bool',
+				'date',
+				'json',
+				'select',
+				'relation'
+			]);
+		});
+
+		test('texto con formato envía un campo editor', async () => {
+			const add = await pickType('editor', 'body');
+			expect(checkbox('settings.schema.fields.uniqueLabel')).toBeNull();
+			await submitForm();
+			expect(add).toHaveBeenCalledWith('post', [{ name: 'body', type: 'editor', required: false }]);
+		});
+
+		test.each(['url', 'email'] as const)(
+			'%s envía obligatorio y «No se puede repetir» como unique: true',
+			async (type) => {
+				const add = await pickType(type, 'campo');
+				const required = checkbox('settings.schema.fields.requiredLabel')!;
+				required.checked = true;
+				required.dispatchEvent(new Event('change', { bubbles: true }));
+				const unique = checkbox('settings.schema.fields.uniqueLabel')!;
+				unique.checked = true;
+				unique.dispatchEvent(new Event('change', { bubbles: true }));
+				await tick();
+				await submitForm();
+				expect(add).toHaveBeenCalledWith('post', [
+					{ name: 'campo', type, required: true, unique: true }
+				]);
+			}
+		);
+
+		test('sin marcar la casilla, el spec NO lleva unique', async () => {
+			const add = await pickType('email', 'contact');
+			await submitForm();
+			expect(add).toHaveBeenCalledWith('post', [
+				{ name: 'contact', type: 'email', required: false }
+			]);
+		});
+
+		test('texto también ofrece «No se puede repetir»', async () => {
+			const add = await pickType('text', 'slug');
+			const unique = checkbox('settings.schema.fields.uniqueLabel')!;
+			unique.checked = true;
+			unique.dispatchEvent(new Event('change', { bubbles: true }));
+			await tick();
+			await submitForm();
+			expect(add).toHaveBeenCalledWith('post', [
+				{ name: 'slug', type: 'text', required: false, max: undefined, unique: true }
+			]);
+		});
+
+		test('número, sí/no y fecha no ofrecen «No se puede repetir»', async () => {
+			for (const type of ['number', 'bool', 'date']) {
+				await pickType(type, 'campo');
+				expect(checkbox('settings.schema.fields.uniqueLabel')).toBeNull();
+				await unmount(mounted!.instance);
+				mounted!.target.remove();
+				mounted = null;
+			}
+		});
+
+		test('imagen envía una relación simple a vega_media que conserva el registro al borrar', async () => {
+			const add = await pickType('image', 'cover');
+			await submitForm();
+			expect(add).toHaveBeenCalledWith('post', [
+				{
+					name: 'cover',
+					type: 'relation',
+					target: 'vega_media',
+					required: false,
+					multiple: false,
+					cascadeDelete: false
+				}
+			]);
+		});
+
+		test('imagen sin vega_media en el esquema: opción desactivada, aviso y envío bloqueado', async () => {
+			const add = await pickType('image', 'cover', [POST_TYPE]);
+			const option = mounted!.target.querySelector<HTMLOptionElement>('option[value="image"]')!;
+			expect(option.disabled).toBe(true);
+			expect(mounted!.target.textContent).toContain('settings.schema.fields.image.unavailable');
+			expect(
+				mounted!.target.querySelector<HTMLButtonElement>('.vega-schema-submit')!.disabled
+			).toBe(true);
+			await submitForm();
+			expect(add).not.toHaveBeenCalled();
+		});
+
+		test('crear colección: un blog completo sale con todos los tipos nuevos en un solo spec', async () => {
+			const ensureCollections = vi.fn(async () => ({ created: ['blog'], skipped: [] }));
+			mounted = mountPanel({
+				port: fakePort({ capabilities: { schemaBootstrap: true }, ensureCollections }),
+				types: [MEDIA_TYPE]
+			});
+			setInputValue(
+				mounted.target.querySelector<HTMLInputElement>('#vega-schema-create-name')!,
+				'blog'
+			);
+			setInputValue(
+				mounted.target.querySelector<HTMLInputElement>('.vega-field-row input[type="text"]')!,
+				'body'
+			);
+			const typeSelect = mounted.target.querySelector<HTMLSelectElement>(
+				'select[aria-label="settings.schema.fields.typeLabel"]'
+			)!;
+			typeSelect.value = 'editor';
+			typeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+			await tick();
+			await submitForm();
+			const spec = (ensureCollections.mock.calls[0] as unknown as [CollectionSpec[]])[0][0];
+			expect(spec.fields).toEqual([{ name: 'body', type: 'editor', required: false }]);
+		});
+
+		test('error de unicidad del backend: llega en la fila del campo y como aviso general', async () => {
+			const add = vi.fn(async () => {
+				throw VegaError.validation(
+					{
+						code: { code: 'validation_not_unique', message: 'No se puede marcar «code» como único' }
+					},
+					'No se pudo añadir el campo único. No se ha cambiado nada'
+				);
+			});
+			mounted = mountPanel({
+				port: fakePort({ capabilities: { schemaFieldBootstrap: true }, addCollectionFields: add }),
+				types: [POST_TYPE]
+			});
+			const target = mounted.target.querySelector<HTMLSelectElement>('#vega-schema-add-target')!;
+			target.value = 'post';
+			target.dispatchEvent(new Event('change', { bubbles: true }));
+			setInputValue(
+				mounted.target.querySelector<HTMLInputElement>('.vega-field-row input[type="text"]')!,
+				'code'
+			);
+			await tick();
+			await submitForm();
+			expect(mounted.target.querySelector('.vega-field-row [role="alert"]')?.textContent).toBe(
+				'No se puede marcar «code» como único'
+			);
+			expect(mounted.target.querySelector('.vega-schema-error')?.textContent).toContain(
+				'No se ha cambiado nada'
+			);
+		});
+	});
 });

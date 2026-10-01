@@ -11,7 +11,14 @@
 	 * (capability PROPIA, `backend/port.ts`).
 	 *
 	 * Vocabulario de campo DELIBERADAMENTE reducido frente a `CollectionFieldSpec` completo:
-	 * texto/número/sí-no/fecha/JSON/selección/relación. Fuera de esta UI (aunque el puerto SÍ los
+	 * texto/texto con formato/dirección web/correo/imagen/número/sí-no/fecha/JSON/selección/relación.
+	 * Lote 2 del audit (1 oct 2026): `editor`, `url` y `email` son tipos propios del puerto;
+	 * «Imagen» NO lo es: es un atajo que compila a una `relation` simple hacia `vega_media`
+	 * (`IMAGE_FIELD_TARGET`), con el mismo destino que ya ofrece «Relación» pero sin pedir al
+	 * operador que sepa qué es una relación. Solo está disponible si `vega_media` ya existe en el
+	 * esquema descubierto (se crea al abrir «Medios»). La casilla «No se puede repetir» (`unique`)
+	 * solo se ofrece en texto, dirección web y correo: lo que admite `CollectionFieldSpec`.
+	 * Fuera de esta UI (aunque el puerto SÍ los
 	 * admite):
 	 * - `file`: tiene su propio flujo dedicado (`vega_media`, P6/`/media`) con miniaturas y tipos
 	 *   MIME — reintroducir esa complejidad aquí, para colecciones de contenido genéricas, es un
@@ -38,6 +45,7 @@
 		FieldError
 	} from '$lib/backend';
 	import {
+		IMAGE_FIELD_TARGET,
 		isReservedCollectionName,
 		isUserAuthorableCollectionName,
 		VegaError
@@ -57,7 +65,21 @@
 
 	const { port, types, t, onSchemaChanged }: Props = $props();
 
-	type DraftFieldType = 'text' | 'number' | 'bool' | 'date' | 'json' | 'select' | 'relation';
+	type DraftFieldType =
+		| 'text'
+		| 'editor'
+		| 'url'
+		| 'email'
+		| 'image'
+		| 'number'
+		| 'bool'
+		| 'date'
+		| 'json'
+		| 'select'
+		| 'relation';
+
+	/** Tipos de borrador que admiten la casilla «No se puede repetir» (`unique`). */
+	const UNIQUE_DRAFT_TYPES: readonly DraftFieldType[] = ['text', 'url', 'email'];
 	type RelationDeleteMode = 'unlink' | 'cascade';
 
 	/** Una fila de la lista de opciones de un campo `select` en edición. `id` estable para
@@ -79,6 +101,8 @@
 		required: boolean;
 		/** Solo se usa para `type === 'text'`: cadena cruda del input, `''` = sin límite. */
 		max: string;
+		/** Solo para `text`/`url`/`email` (`UNIQUE_DRAFT_TYPES`): índice único sobre el campo. */
+		unique: boolean;
 		/** Solo para `relation`: nombre de una colección presente en `types`. */
 		relationTarget: string;
 		relationMultiple: boolean;
@@ -97,6 +121,7 @@
 			type: 'text',
 			required: false,
 			max: '',
+			unique: false,
 			relationTarget: '',
 			relationMultiple: false,
 			relationDeleteMode: 'unlink',
@@ -148,9 +173,38 @@
 					name,
 					type: 'text',
 					required: draft.required,
-					max: Number.isFinite(max) && max > 0 ? max : undefined
+					max: Number.isFinite(max) && max > 0 ? max : undefined,
+					...(draft.unique ? { unique: true as const } : {})
 				};
 			}
+			case 'editor':
+				return { name, type: 'editor', required: draft.required };
+			case 'url':
+				return {
+					name,
+					type: 'url',
+					required: draft.required,
+					...(draft.unique ? { unique: true as const } : {})
+				};
+			case 'email':
+				return {
+					name,
+					type: 'email',
+					required: draft.required,
+					...(draft.unique ? { unique: true as const } : {})
+				};
+			case 'image':
+				// Atajo: una relación simple a `vega_media`. Al borrar la imagen, el registro se
+				// conserva (nunca `cascadeDelete`: borrar una entrada por quitar su portada sería
+				// una sorpresa destructiva).
+				return {
+					name,
+					type: 'relation',
+					target: IMAGE_FIELD_TARGET,
+					required: draft.required,
+					multiple: false,
+					cascadeDelete: false
+				};
 			case 'number':
 				return { name, type: 'number', required: draft.required };
 			case 'bool':
@@ -192,6 +246,7 @@
 		return drafts.every((draft) => {
 			if (!draft.name.trim()) return true;
 			if (draft.type === 'relation') return draft.relationTarget.length > 0;
+			if (draft.type === 'image') return mediaAvailable;
 			if (draft.type === 'select') return selectOptionsValid(draft.selectOptions);
 			return true;
 		});
@@ -266,6 +321,9 @@
 				!type.readonly && (!isReservedCollectionName(type.name) || type.name === 'vega_media')
 		)
 	);
+	/** «Imagen» necesita la colección de medios en el esquema descubierto; si aún no existe (se crea
+	 *  al abrir «Medios»), la opción se ofrece desactivada con su motivo. */
+	const mediaAvailable = $derived(types.some((type) => type.name === IMAGE_FIELD_TARGET));
 	const createNameValid = $derived(
 		createName.trim().length > 0 && isUserAuthorableCollectionName(createName.trim())
 	);
@@ -388,6 +446,12 @@
 		/>
 		<select aria-label={t('settings.schema.fields.typeLabel')} bind:value={draft.type}>
 			<option value="text">{t('settings.schema.fields.type.text')}</option>
+			<option value="editor">{t('settings.schema.fields.type.editor')}</option>
+			<option value="url">{t('settings.schema.fields.type.url')}</option>
+			<option value="email">{t('settings.schema.fields.type.email')}</option>
+			<option value="image" disabled={!mediaAvailable}>
+				{t('settings.schema.fields.type.image')}
+			</option>
 			<option value="number">{t('settings.schema.fields.type.number')}</option>
 			<option value="bool">{t('settings.schema.fields.type.bool')}</option>
 			<option value="date">{t('settings.schema.fields.type.date')}</option>
@@ -401,6 +465,12 @@
 				{t('settings.schema.fields.requiredLabel')}
 			</label>
 		{/if}
+		{#if UNIQUE_DRAFT_TYPES.includes(draft.type)}
+			<label class="vega-field-checkbox">
+				<input type="checkbox" bind:checked={draft.unique} />
+				{t('settings.schema.fields.uniqueLabel')}
+			</label>
+		{/if}
 		{#if draft.type === 'text'}
 			<input
 				type="number"
@@ -410,6 +480,9 @@
 				aria-label={t('settings.schema.fields.maxLabel')}
 				bind:value={draft.max}
 			/>
+		{/if}
+		{#if draft.type === 'image' && !mediaAvailable}
+			<p class="vega-field-warning">{t('settings.schema.fields.image.unavailable')}</p>
 		{/if}
 		{#if draft.type === 'select'}
 			{@const optionsAnalysis = analyzeSelectOptions(draft.selectOptions)}

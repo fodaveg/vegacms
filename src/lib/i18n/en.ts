@@ -1004,6 +1004,13 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'settings.schema.fields.numberRequiredWarning':
 		'PocketBase rejects the value 0 on a number field marked as required. If you need to allow 0 (e.g. a 0-5 rating), do not mark the field as required.',
 	'settings.schema.fields.type.text': 'Text',
+	'settings.schema.fields.type.editor': 'Rich text',
+	'settings.schema.fields.type.url': 'Web address',
+	'settings.schema.fields.type.email': 'Email',
+	'settings.schema.fields.type.image': 'Image',
+	'settings.schema.fields.uniqueLabel': 'Cannot be repeated',
+	'settings.schema.fields.image.unavailable':
+		'There is no media library yet. Open "Media" once to create it, then come back here.',
 	'settings.schema.fields.type.number': 'Number',
 	'settings.schema.fields.type.bool': 'Yes/No',
 	'settings.schema.fields.type.date': 'Date',

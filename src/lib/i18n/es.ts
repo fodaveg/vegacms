@@ -1068,6 +1068,13 @@ export const es = {
 	'settings.schema.fields.numberRequiredWarning':
 		'PocketBase rechaza el valor 0 en un campo numérico marcado como obligatorio. Si necesitas permitir 0 (p. ej. una valoración de 0 a 5), no lo marques como obligatorio.',
 	'settings.schema.fields.type.text': 'Texto',
+	'settings.schema.fields.type.editor': 'Texto con formato',
+	'settings.schema.fields.type.url': 'Dirección web',
+	'settings.schema.fields.type.email': 'Correo',
+	'settings.schema.fields.type.image': 'Imagen',
+	'settings.schema.fields.uniqueLabel': 'No se puede repetir',
+	'settings.schema.fields.image.unavailable':
+		'Todavía no hay biblioteca de medios. Abre «Medios» una vez para crearla y vuelve aquí.',
 	'settings.schema.fields.type.number': 'Número',
 	'settings.schema.fields.type.bool': 'Sí/No',
 	'settings.schema.fields.type.date': 'Fecha',
