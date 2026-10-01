@@ -267,6 +267,7 @@
 		type FormSection
 	} from './form-sections';
 	import { autodateInstant, autodateText } from './record-meta';
+	import { formatSavedAt } from './saved-at';
 	import { localeStatus, type LocaleStatus } from './locale-status';
 	import { isDirty, type FormInputValues } from './dirty';
 	import { toRecordInput } from './to-record-input';
@@ -560,16 +561,12 @@
 			model.recordId !== null
 	);
 
-	/** HH:MM localizado (mismo criterio de locale que `cell.ts`), o `null` sin hora conocida
-	 *  todavía (ver `savedAt`/cabecera). */
+	/** Hora localizada (con fecha si el guardado no es de hoy, ver `formatSavedAt`), o `null` sin
+	 *  hora conocida todavía (ver `savedAt`/cabecera). */
 	const savedAtText = $derived(
 		savedAt === null
 			? null
-			: ctx.t('editor.savedAt', {
-					time: new Intl.DateTimeFormat(ctx.locale, { hour: '2-digit', minute: '2-digit' }).format(
-						savedAt
-					)
-				})
+			: ctx.t('editor.savedAt', { time: formatSavedAt(savedAt, new Date(), ctx.locale) })
 	);
 
 	// ————— Piezas del mockup final (todas opt-in, ver cabecera) —————
