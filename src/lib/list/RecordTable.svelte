@@ -286,6 +286,33 @@
 		}
 	}
 
+	/** Columna de estado de la lista (la que pinta la píldora), o `undefined` si no hay ninguna. */
+	const statusColumn = $derived(columns.find((column) => column.isStatus));
+
+	/** Texto y tipo de la píldora de estado de `record` para la copia que se pinta bajo el título en
+	 *  pantallas estrechas (misma función y mismas entradas que la celda de la columna Estado), o
+	 *  `null` si no hay columna de estado o el valor no es de los que se pintan como píldora. */
+	function inlineStatusBadge(record: VegaRecord): { label: string; kind: string } | null {
+		if (!statusColumn) return null;
+		const descriptor = describeCell(
+			statusColumn.field,
+			record.values[statusColumn.field.name] ?? null,
+			ctx.locale
+		);
+		if (descriptor.kind !== 'text') return null;
+		const badge = describeStatusBadge(
+			contentType,
+			record.values,
+			ctx.model.scheduledPublishing ?? 'unknown',
+			ctx.locale,
+			ctx.t
+		);
+		return {
+			label: badge?.label ?? descriptor.text,
+			kind: badge?.kind ?? classifyStatusBadge(descriptor.text)
+		};
+	}
+
 	/** Abre el registro (L-P4.15), respetando los gestos nativos del navegador — mismo patrón que
 	 *  `NavItem.svelte`: un click normal navega vía `nav.toRecord` (exit-guard incluido); un click
 	 *  modificado (Cmd/Ctrl/Shift/central) sigue el `href` real y abre en pestaña/ventana nueva. */
@@ -347,11 +374,15 @@
 					     fila sigue necesitando una celda de apertura sintética (abajo). -->
 					<th scope="col"></th>
 				{:else}
-					{#each columns as column (column.field.name)}
+					{#each columns as column, colIndex (column.field.name)}
+						{@const hasDeleteSlot =
+							colIndex === columns.length - 1 && contentType.permissions.delete}
 						{#if column.sortable}
 							<th
 								scope="col"
 								class:vega-th-right={isRightAlignedColumn(column)}
+								class:vega-th-delete-slot={hasDeleteSlot}
+								class:vega-col-status={column.isStatus}
 								aria-sort={ariaSortFor(column.field.name)}
 							>
 								<button
@@ -371,7 +402,12 @@
 								</button>
 							</th>
 						{:else}
-							<th scope="col" class:vega-th-right={isRightAlignedColumn(column)}>
+							<th
+								scope="col"
+								class:vega-th-right={isRightAlignedColumn(column)}
+								class:vega-th-delete-slot={hasDeleteSlot}
+								class:vega-col-status={column.isStatus}
+							>
 								{column.field.label}
 							</th>
 						{/if}
@@ -437,6 +473,7 @@
 									(descriptor.kind === 'date' || descriptor.kind === 'mono')}
 								class:vega-cell-right={!isOpenColumn && isRightAlignedColumn(column)}
 								class:vega-cell-actions-anchor={isLastColumn && contentType.permissions.delete}
+								class:vega-col-status={column.isStatus}
 							>
 								{#if isOpenColumn}
 									{@render titleLink(record)}
@@ -491,6 +528,21 @@
 	{@const subtitle = subtitleText(record)}
 	{#if subtitle !== null}
 		<span class="vega-cell-subtitle">{subtitle}</span>
+	{/if}
+	<!-- Estado DEBAJO del título en pantallas estrechas (≤640px): la columna «Estado» se oculta ahí
+	     (`.vega-col-status`) y esta copia, solo visible en ese rango, ocupa su sitio. Sin
+	     `data-status` (lo lleva la píldora de la columna) para no duplicar nada de lo que miran los
+	     tests ni los selectores existentes; `aria-hidden` porque el lector de pantalla ya lo recibe
+	     por la celda de su columna. -->
+	{@const inlineBadge = inlineStatusBadge(record)}
+	{#if inlineBadge !== null}
+		<span
+			class="vega-status-badge-inline"
+			aria-hidden="true"
+			data-inline-status-kind={inlineBadge.kind}
+		>
+			{inlineBadge.label}
+		</span>
 	{/if}
 {/snippet}
 
@@ -835,8 +887,18 @@
 	/* Ancla del overlay de borrado (ver cabecera del módulo, "Borrado SIN columna dedicada"): la
 	   ÚLTIMA celda de datos de la fila (o la sintética si `columns.length === 0`) se vuelve el
 	   contenedor posicionado del botón — sin columna dedicada, a diferencia de antes. */
-	.vega-cell-actions-anchor {
+	.vega-record-table td.vega-cell-actions-anchor {
 		position: relative;
+	}
+
+	/* Hueco PROPIO para «Borrar» (overlay absoluto de abajo): sin él el botón tapaba la insignia de
+	   estado (táctil, donde está siempre visible) o la fecha (escritorio, al pasar el ratón). El
+	   contenido de la celda acaba donde empieza el hueco; la cabecera de esa última columna lo
+	   reserva igual para que título de columna y valores sigan alineados. Selectores calificados
+	   porque `.vega-record-table td`/`thead th` (padding base) ganan por especificidad. */
+	.vega-record-table td.vega-cell-actions-anchor,
+	.vega-record-table thead th.vega-th-delete-slot {
+		padding-right: calc(var(--cell-x) + 4.5rem);
 	}
 
 	/* "Borrar" oculto hasta hover/foco (R3, decisión de David — ver cabecera): `opacity`, nunca
@@ -888,7 +950,8 @@
 	   SIN borde (solo el fondo `-soft` semántico + el texto de color + el punto) y de alto fijo
 	   24px. Color por `data-status-kind` (`classifyStatusBadge`, `cell.ts`) — `data-status` (valor
 	   crudo) y el texto se conservan para no romper los selectores existentes de los tests. */
-	.vega-status-badge {
+	.vega-status-badge,
+	.vega-status-badge-inline {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.4rem;
@@ -902,7 +965,8 @@
 
 	/* Punto de color a la izquierda (mockup `.status::before`): `currentColor` hereda el color
 	   semántico ya fijado por `[data-status-kind]` más abajo, sin duplicar la paleta aquí. */
-	.vega-status-badge::before {
+	.vega-status-badge::before,
+	.vega-status-badge-inline::before {
 		content: '';
 		width: 6px;
 		height: 6px;
@@ -911,26 +975,36 @@
 		flex-shrink: 0;
 	}
 
-	.vega-status-badge[data-status-kind='pub'] {
+	.vega-status-badge[data-status-kind='pub'],
+	.vega-status-badge-inline[data-inline-status-kind='pub'] {
 		color: var(--success);
 		background: var(--success-soft);
 	}
 
-	.vega-status-badge[data-status-kind='draft'] {
+	.vega-status-badge[data-status-kind='draft'],
+	.vega-status-badge-inline[data-inline-status-kind='draft'] {
 		color: var(--ink-2);
 		background: var(--btn);
 	}
 
-	.vega-status-badge[data-status-kind='other'] {
+	.vega-status-badge[data-status-kind='other'],
+	.vega-status-badge-inline[data-inline-status-kind='other'] {
 		color: var(--info);
 		background: var(--info-soft);
 	}
 
 	/* Borrador programado («Programada · fecha», `describeStatusBadge`): la pareja de acento que ya
 	   usan los chips de filtro activos, texto `--accent-text` sobre `--accent-soft`. */
-	.vega-status-badge[data-status-kind='scheduled'] {
+	.vega-status-badge[data-status-kind='scheduled'],
+	.vega-status-badge-inline[data-inline-status-kind='scheduled'] {
 		color: var(--accent-text);
 		background: var(--accent-soft);
+	}
+
+	/* Copia bajo el título: oculta por defecto, solo se ve en pantallas estrechas (bloque `@media`
+	   del final). Va DESPUÉS de la regla compartida de arriba para ganarle el `display`. */
+	.vega-status-badge-inline {
+		display: none;
 	}
 
 	.vega-chip-list {
@@ -962,5 +1036,34 @@
 		font-family: var(--mono);
 		font-size: 0.8rem;
 		color: var(--ink-2);
+	}
+
+	/* Pantallas estrechas (≤640px): el título deja de cortarse a media palabra (ancho acotado →
+	   puntos suspensivos) y el estado pasa de columna a línea bajo el título; el resto de columnas
+	   siguen en el scroll horizontal CONTENIDO del wrapper. */
+	@media (max-width: 640px) {
+		/* Mismo calificador que `.vega-record-table td` (que fija `max-width: 24rem`): sin él, ese
+		   selector gana por especificidad y el título no se acota. */
+		.vega-record-table td.vega-cell-title {
+			width: 14rem;
+			min-width: 14rem;
+			max-width: 14rem;
+		}
+
+		.vega-col-status {
+			display: none;
+		}
+
+		.vega-status-badge-inline {
+			display: inline-flex;
+			margin-top: 0.3rem;
+		}
+
+		.vega-cell-title a,
+		.vega-cell-title .vega-cell-title-text {
+			display: block;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
 	}
 </style>
