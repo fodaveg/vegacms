@@ -167,15 +167,12 @@ describe('/editores', () => {
 		expect(target.querySelector('[data-mail-card="configured"]')).not.toBeNull();
 	});
 
-	test('al guardar el correo: relee si hay correo y, si la plantilla se corrigió, lo dice', async () => {
+	test('al guardar el correo: no relee si hay correo (lo trae la respuesta) y, si la plantilla se corrigió, lo dice', async () => {
 		const ensure = vi
 			.fn<AdministrationPort['ensureInvitationLink']>()
 			.mockResolvedValueOnce('foreign-origin')
 			.mockResolvedValueOnce('updated');
-		const admin = fakeAdministration({
-			ensureInvitationLink: ensure,
-			mailEnabled: vi.fn().mockResolvedValueOnce(false).mockResolvedValue(true)
-		});
+		const admin = fakeAdministration({ ensureInvitationLink: ensure });
 		const update = vi.fn(async () => SETTINGS);
 		const { target, ctx } = mountPage(admin, fakeSettings({ update }));
 		await settle();
@@ -190,9 +187,65 @@ describe('/editores', () => {
 			.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
 		await settle();
 		expect(update).toHaveBeenCalledTimes(1);
-		expect(admin.mailEnabled).toHaveBeenCalledTimes(2);
+		expect(admin.mailEnabled).toHaveBeenCalledTimes(1);
 		expect(ensure).toHaveBeenCalledTimes(2);
 		expect(ctx.feedback.toast).toHaveBeenCalledWith('admin.appUrl.linkFixed', { kind: 'success' });
+	});
+
+	test('la carga pide cada cosa una vez y quitar un acceso no recarga la lista', async () => {
+		const admin = fakeAdministration();
+		const { target, ctx } = mountPage(admin, fakeSettings());
+		await settle();
+		expect(admin.listEditors).toHaveBeenCalledTimes(1);
+		expect(admin.mailEnabled).toHaveBeenCalledTimes(1);
+		expect(admin.ensureInvitationLink).toHaveBeenCalledTimes(1);
+
+		button(target, 'admin.editors.remove').click();
+		await settle();
+		button(document.body, 'admin.editors.removeDialog.confirm').click();
+		await settle();
+
+		expect(admin.removeEditor).toHaveBeenCalledExactlyOnceWith('e1');
+		expect(admin.listEditors).toHaveBeenCalledTimes(1);
+		expect(target.querySelector('[data-editor-email]')).toBeNull();
+		expect(ctx.feedback.toast).toHaveBeenCalledWith(
+			expect.stringContaining('admin.editors.removeDialog.success'),
+			{ kind: 'success' }
+		);
+	});
+
+	test('añadir un editor lo suma a la lista, ordenada, sin volver a pedirla', async () => {
+		const createEditor = vi.fn(async (email: string) => ({
+			id: 'e2',
+			email,
+			verified: false,
+			created: null,
+			invitationSent: true
+		}));
+		const admin = fakeAdministration({
+			mailEnabled: vi.fn(async () => true),
+			createEditor: createEditor as unknown as AdministrationPort['createEditor']
+		});
+		const { target } = mountPage(admin, fakeSettings());
+		await settle();
+
+		button(target, 'admin.editors.add').click();
+		await settle();
+		const email = document.body.querySelector<HTMLInputElement>('input[id$="-email"]')!;
+		email.value = 'beto@aguja.example';
+		email.dispatchEvent(new Event('input', { bubbles: true }));
+		await settle();
+		document.body
+			.querySelector('form[id$="-form"]')!
+			.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await settle();
+
+		expect(createEditor).toHaveBeenCalledTimes(1);
+		expect(admin.listEditors).toHaveBeenCalledTimes(1);
+		const rows = Array.from(target.querySelectorAll('[data-editor-email]')).map((r) =>
+			r.getAttribute('data-editor-email')
+		);
+		expect(rows).toEqual(['ana@aguja.example', 'beto@aguja.example']);
 	});
 
 	test('si la plantilla ya estaba al día, no hay toast de corrección', async () => {
