@@ -13,6 +13,17 @@ import { defineConfig, devices } from '@playwright/test';
 const PORT = 4173;
 const BASE_URL = `http://localhost:${PORT}`;
 
+/**
+ * `pnpm gate` ya ejecuta `pnpm build` justo antes de los e2e y pone `VEGA_E2E_PREBUILT=1`: en ese
+ * caso el `webServer` solo sirve esa build con `vite preview` (no la repite, ~1 build menos por
+ * gate). Sin la variable (`pnpm test:e2e` suelto) sigue construyendo antes de servir, así que
+ * nunca se prueba una build ausente o vieja.
+ */
+const PREVIEW = `pnpm exec vite preview --port ${PORT} --strictPort`;
+const WEB_SERVER_COMMAND = process.env.VEGA_E2E_PREBUILT
+	? PREVIEW
+	: `pnpm exec vite build && ${PREVIEW}`;
+
 export default defineConfig({
 	testDir: './e2e',
 	fullyParallel: true,
@@ -29,7 +40,7 @@ export default defineConfig({
 		locale: 'es-ES'
 	},
 	webServer: {
-		command: `pnpm exec vite build && pnpm exec vite preview --port ${PORT} --strictPort`,
+		command: WEB_SERVER_COMMAND,
 		url: BASE_URL,
 		reuseExistingServer: !process.env.CI,
 		timeout: 120_000

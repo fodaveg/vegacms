@@ -35,7 +35,7 @@
 		"check-touch-targets": "node scripts/check-touch-targets.mjs",
 		"check-bundle-budget": "node scripts/check-bundle-budget.mjs",
 		"package": "node scripts/package-dist.mjs",
-		"gate": "pnpm check && pnpm lint && pnpm pb:download && pnpm check-pb-binary && pnpm test && pnpm test:go && pnpm build && pnpm test:e2e"
+		"gate": "pnpm check && pnpm lint && pnpm pb:download && pnpm check-pb-binary && pnpm test && pnpm test:go && pnpm build && VEGA_E2E_PREBUILT=1 pnpm test:e2e"
 	},
 	"dependencies": {
 		"@tiptap/core": "^3.28.0",
