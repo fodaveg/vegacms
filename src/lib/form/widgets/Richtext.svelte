@@ -384,4 +384,13 @@
 		border-left: 3px solid var(--line);
 		color: var(--ink-2);
 	}
+
+	/* Una imagen de la biblioteca viene a su tamaño real (2880 px no es raro): sin tope desbordaba
+	   el área editable y solo se veía una esquina. Visto en la captura de 390 px. */
+	.vega-widget-richtext-content :global(img) {
+		display: block;
+		max-width: 100%;
+		height: auto;
+		border-radius: var(--r);
+	}
 </style>
