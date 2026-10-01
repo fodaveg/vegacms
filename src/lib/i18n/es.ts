@@ -20,7 +20,7 @@ export const es = {
 	'nav.sidebarLabel': 'Navegación principal',
 	'nav.warningsBadge': '{count} avisos',
 	'nav.singletonManyRecords':
-		'"{label}" está marcada como Ajustes pero tiene {count} registros. Editando el primero.',
+		'«{label}» solo admite una ficha, pero tiene {count}. Se edita la primera.',
 	'nav.readonlyBadge': 'Solo lectura',
 	// Portada/barra lateral vacías para quien edita (sin permisos de administración): no puede
 	// crear tipos de contenido ni tocar Ajustes, así que se le dice qué hacer en su lugar.

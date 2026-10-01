@@ -57,7 +57,7 @@ describe('t()', () => {
 
 	test('interpolación de varios params', () => {
 		expect(t('es', 'nav.singletonManyRecords', { label: 'Ajustes del sitio', count: 4 })).toBe(
-			'"Ajustes del sitio" está marcada como Ajustes pero tiene 4 registros. Editando el primero.'
+			'«Ajustes del sitio» solo admite una ficha, pero tiene 4. Se edita la primera.'
 		);
 	});
 

@@ -15,7 +15,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'nav.sidebarLabel': 'Main navigation',
 	'nav.warningsBadge': '{count} warnings',
 	'nav.singletonManyRecords':
-		'"{label}" is marked as a settings page but has {count} records. Editing the first one.',
+		'"{label}" only allows a single entry, but has {count}. Editing the first one.',
 	'nav.readonlyBadge': 'Read only',
 	// Empty home/sidebar for editors (no admin rights): they cannot create content types or use
 	// Settings, so they are told what to do instead.
