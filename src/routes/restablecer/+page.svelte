@@ -10,6 +10,12 @@
 	 * puerto con `getBackend()`, como `/login`, y usa su sección pública
 	 * `editorPasswordReset.confirm`, nunca el SDK. El formulario y sus estados viven en
 	 * `PasswordResetForm.svelte`.
+	 *
+	 * El token es una credencial: se lee una sola vez al montar y se quita de la barra de
+	 * direcciones (`takeResetToken`), y la página pide `no-referrer` mientras está montada, para que
+	 * no acabe en el `Referer` de las peticiones a PocketBase ni en el historial. Recargar la URL ya
+	 * limpia deja el formulario en su estado «sin token», que pide volver a abrir el enlace del
+	 * correo.
 	 */
 	import { page } from '$app/state';
 	import { getVegaContext } from '$lib/app-context';
@@ -17,9 +23,20 @@
 	import { getBackend } from '$lib/session/backend';
 	import { loginRoute } from '$lib/nav/routes';
 	import PasswordResetForm from '$lib/admin/PasswordResetForm.svelte';
+	import { takeResetToken } from '$lib/admin/reset-token';
 
 	const ctx = getVegaContext();
-	const token = $derived(page.url.searchParams.get('token')?.trim() ?? '');
+
+	// Valor fijo y no `$derived` de `page.url`: tras limpiar la URL el token solo existe aquí.
+	//
+	// `history.replaceState` directo y no el `replaceState` de `$app/navigation`: este último lanza
+	// «before router is initialized» en la carga inicial, que es justo cuando se llega desde el
+	// correo, y esperar al router dejaría el token en la URL durante las primeras peticiones. Se
+	// conserva `history.state` para no pisar los índices que SvelteKit guarda ahí; el aviso que
+	// SvelteKit imprime en desarrollo por usar la API nativa es esperado.
+	const token = takeResetToken(page.url, (cleanUrl) => {
+		history.replaceState(history.state, '', cleanUrl);
+	});
 
 	/** Confirma con el puerto; `VegaError 'backend'` si este backend no ofrece la sección. */
 	async function confirmReset(resetToken: string, password: string): Promise<void> {
@@ -30,6 +47,10 @@
 		await port.editorPasswordReset.confirm(resetToken, password);
 	}
 </script>
+
+<svelte:head>
+	<meta name="referrer" content="no-referrer" />
+</svelte:head>
 
 <main class="vega-reset-shell">
 	<PasswordResetForm {token} confirm={confirmReset} loginHref={loginRoute()} />

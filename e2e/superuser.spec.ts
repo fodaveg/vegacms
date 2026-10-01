@@ -232,7 +232,8 @@ test.describe('/restablecer (pública, sin sesión)', () => {
 		await expect(page.locator('form')).toHaveCount(0);
 
 		await page.goto('/restablecer?token=token-inventado');
-		await expect(page).toHaveURL(/\/restablecer\?token=token-inventado$/);
+		// El token se retira de la URL nada más leerlo; el formulario lo conserva en memoria.
+		await expect(page).toHaveURL(/\/restablecer$/);
 		await expect(page.getByRole('heading', { name: 'Elige tu contraseña' })).toBeVisible();
 		await page.getByLabel('Contraseña nueva').fill('la-suya-123');
 		await page.getByLabel('Repítela').fill('la-suya-123');
