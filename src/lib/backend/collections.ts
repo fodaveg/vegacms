@@ -171,6 +171,31 @@ export function checkCollectionSpecAccess(specs: CollectionSpec[]): Record<strin
 }
 
 /**
+ * Tipos MIME con los que nace un campo `file` que no declara `mimeTypes` (revisión de seguridad del
+ * 30 sep 2026). Antes nacía sin restricción: PocketBase aceptaba cualquier fichero, HTML y SVG
+ * incluidos, y los sirve desde el origen de la API. La lista es la de `vega_media.file` (imágenes
+ * de mapa de bits y PDF), que cubre un portfolio, una landing o un blog. Sin SVG a propósito: es
+ * un documento con script.
+ *
+ * Solo es el valor POR DEFECTO al crear el campo. Un spec que declara `mimeTypes` manda —también
+ * `[]`, que es como se pide «cualquier fichero» a sabiendas—, y un campo que ya existe no se toca.
+ */
+export const DEFAULT_FILE_MIME_TYPES: readonly string[] = [
+	'image/png',
+	'image/jpeg',
+	'image/webp',
+	'image/gif',
+	'application/pdf'
+];
+
+/** `mimeTypes` con los que se CREA un campo `file`: los declarados o, si no declara ninguno,
+ *  una copia de `DEFAULT_FILE_MIME_TYPES`. Único punto que decide ese valor por defecto, para que
+ *  el payload de red (adaptador `pocketbase`) y la migración generada no puedan divergir. */
+export function fileSpecMimeTypes(spec: { mimeTypes?: string[] }): string[] {
+	return spec.mimeTypes ?? [...DEFAULT_FILE_MIME_TYPES];
+}
+
+/**
  * Subconjunto MÍNIMO de tipos escribibles que la autoría de esquema v1 necesita (§A.3). NO es
  * una API general de autoría de esquema, pero el subconjunto ha ido creciendo con lo que el
  * producto necesita de verdad: `select` YA ENTRÓ (lote del sembrado, 29 jul 2026) con la

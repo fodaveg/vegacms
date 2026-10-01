@@ -14,7 +14,11 @@ import { describe, expect, test } from 'vitest';
 import { collectionSpecToPocketBasePayload } from './adapters/pocketbase/collections';
 import { collectionFieldSpecToPbField } from './adapters/pocketbase/schema';
 import { collectionSpecToMigrationPayload, generateSchemaMigration } from './migration';
-import type { CollectionFieldSpec, CollectionSpec } from './collections';
+import {
+	DEFAULT_FILE_MIME_TYPES,
+	type CollectionFieldSpec,
+	type CollectionSpec
+} from './collections';
 
 const FIXED_NOW = new Date('2026-07-25T12:00:00.000Z'); // 1784980800 segundos unix
 
@@ -325,6 +329,58 @@ describe('generateSchemaMigration — mapeo de campos (paridad con el adaptador 
 
 		const { contents } = generateSchemaMigration({ kind: 'create', specs: [spec] }, FIXED_NOW);
 		expect(contents).toContain('"pattern": "^/[^?#]*$"');
+	});
+
+	// Revisión de seguridad del 30 sep 2026: un `file` que no declara `mimeTypes` ya no nace
+	// aceptando cualquier cosa. Solo cambia el valor POR DEFECTO: lo declarado se respeta, `[]`
+	// incluido, que es la forma de pedir «sin restricción» a propósito.
+	test('file sin mimeTypes nace con la lista por defecto, igual por red que en la migración', () => {
+		const bare: CollectionFieldSpec = { name: 'adjunto', type: 'file' };
+		const spec: CollectionSpec = { name: 'docs_t', fields: [bare] };
+
+		const network = collectionFieldSpecToPbField(bare);
+		expect(network.mimeTypes).toEqual([
+			'image/png',
+			'image/jpeg',
+			'image/webp',
+			'image/gif',
+			'application/pdf'
+		]);
+		expect(network.mimeTypes).toEqual([...DEFAULT_FILE_MIME_TYPES]);
+		expect(collectionSpecToMigrationPayload(spec).fields).toEqual([network]);
+
+		const { contents } = generateSchemaMigration({ kind: 'create', specs: [spec] }, FIXED_NOW);
+		expect(contents).toContain('"application/pdf"');
+	});
+
+	test.each([
+		['una lista propia', ['video/mp4']],
+		['un comodín', ['image/*']],
+		['vacía a propósito (sin restricción)', []]
+	])('file con mimeTypes declarados (%s) se respeta tal cual', (_caso, mimeTypes) => {
+		const declared: CollectionFieldSpec = { name: 'adjunto', type: 'file', mimeTypes };
+		const network = collectionFieldSpecToPbField(declared);
+
+		expect(network.mimeTypes).toEqual(mimeTypes);
+		expect(
+			collectionSpecToMigrationPayload({ name: 'docs_t', fields: [declared] }).fields
+		).toEqual([network]);
+	});
+
+	test('la lista por defecto no admite HTML, SVG ni comodines', () => {
+		for (const mime of DEFAULT_FILE_MIME_TYPES) {
+			expect(mime).not.toContain('*');
+			expect(mime).not.toMatch(/html|svg|xml|javascript/i);
+		}
+	});
+
+	test('quien recibe el payload por defecto no puede alterar la lista compartida', () => {
+		const first = collectionFieldSpecToPbField({ name: 'a', type: 'file' });
+		(first.mimeTypes as string[]).push('text/html');
+
+		expect(collectionFieldSpecToPbField({ name: 'b', type: 'file' }).mimeTypes).not.toContain(
+			'text/html'
+		);
 	});
 
 	test('editor/url/email producen su payload y el índice único parcial de url/email', () => {
