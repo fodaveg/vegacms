@@ -541,6 +541,65 @@ describe('runImport: pool de escrituras', () => {
 	});
 });
 
+describe('runImport: ficheros compartidos entre registros', () => {
+	it('varios registros con la MISMA url: una sola descarga y todos entran con el fichero', async () => {
+		const type = contentType('posts', [field({ name: 'cover', type: 'file', multiple: false })]);
+		const { port, writes } = fakePort({ posts: [] });
+		let downloads = 0;
+		const fetcher = createCachingFileFetcher(async (f) => {
+			downloads += 1;
+			await new Promise((resolve) => setTimeout(resolve, 2));
+			return new File(['x'], f.file);
+		});
+		// Más registros que el pool (4): los últimos arrancan cuando los primeros ya terminaron, que
+		// es cuando una suelta prematura obligaba a descargar otra vez.
+		const shared: TransferFileValue = { file: 'a.jpg', url: 'https://x/a.jpg' };
+		const records = Array.from({ length: 10 }, (_, i) => record(`r${i}`, { cover: shared }));
+		const preview = {
+			collections: [
+				{
+					type: 'posts',
+					contentType: type,
+					records,
+					entries: records.map((r) => ({ id: r.id, status: 'create' as const, reasons: [] }))
+				}
+			]
+		};
+
+		const report = await runImport(port, preview, { overwriteConfirmed: true }, fetcher);
+
+		expect(downloads).toBe(1);
+		expect(report).toMatchObject({ createdCount: 10, failedCount: 0, success: true });
+		expect(report.outcomes.every((o) => !o.missingFiles?.length)).toBe(true);
+		expect(writes.every((w) => w.data.cover instanceof File)).toBe(true);
+	});
+
+	it('suelta la url UNA vez, al terminar el ÚLTIMO registro que la usa', async () => {
+		const type = contentType('posts', [field({ name: 'cover', type: 'file', multiple: false })]);
+		const { port } = fakePort({ posts: [] });
+		const released: string[] = [];
+		const fetcher = Object.assign(async (f: TransferFileValue) => new File(['x'], f.file), {
+			release: (url: string) => released.push(url)
+		});
+		const shared: TransferFileValue = { file: 'a.jpg', url: 'https://x/a.jpg' };
+		const records = [record('p1', { cover: shared }), record('p2', { cover: shared })];
+		const preview = {
+			collections: [
+				{
+					type: 'posts',
+					contentType: type,
+					records,
+					entries: records.map((r) => ({ id: r.id, status: 'create' as const, reasons: [] }))
+				}
+			]
+		};
+
+		await runImport(port, preview, { overwriteConfirmed: true }, fetcher);
+
+		expect(released).toEqual(['https://x/a.jpg']); // una sola suelta, no una por registro
+	});
+});
+
 describe('createCachingFileFetcher', () => {
 	it('release(url) suelta la entrada: la siguiente petición vuelve a traerla', async () => {
 		let calls = 0;
