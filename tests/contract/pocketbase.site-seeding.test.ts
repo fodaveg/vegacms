@@ -6,6 +6,7 @@ import {
 	type CollectionSpec
 } from '$lib/backend/collections';
 import type { BackendPort } from '$lib/backend/port';
+import type { VegaError } from '$lib/backend/errors';
 import {
 	SITE_SEED_BLOCKS_READ_RULE,
 	SITE_SEED_EDITOR_ACCESS_RULE,
@@ -664,6 +665,25 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 			const message = (failure as Error).message;
 			expect(message).toContain('"vega_editors"');
 			expect(message).toContain(ruleKey);
+			// Dice QUÉ hacer, y nunca copia el contenido de la regla existente (puede llevar
+			// expresiones del proyecto): solo su nombre.
+			expect(message).toContain('API Rules');
+			expect(message).not.toContain('@request');
+			if (rule !== '') expect(message).not.toContain(rule);
+			// Solo la regla que difiere: ninguna de las otras cinco se nombra.
+			for (const other of [
+				'listRule',
+				'viewRule',
+				'createRule',
+				'updateRule',
+				'deleteRule',
+				'manageRule'
+			]) {
+				if (other !== ruleKey) expect(message).not.toContain(other);
+			}
+			expect((failure as VegaError).fieldErrors?.vega_editors?.code).toBe(
+				'vega_collection_rules_mismatch'
+			);
 			expect(await logicalSnapshot(admin)).toEqual(before);
 			// Ni un campo de más: antes se saltaba la colección y le añadía `created`.
 			const editorsAfter = await admin.collections.getOne('vega_editors');
@@ -671,6 +691,34 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 			expect(editorsAfter[ruleKey]).toBe(rule);
 		}
 	);
+
+	test('vega_editors existente con dos reglas distintas las nombra las dos y no copia su contenido', async () => {
+		const secret = '@request.auth.id = "proyecto-interno"';
+		await admin.collections.create({
+			name: 'vega_editors',
+			type: 'auth',
+			fields: [],
+			listRule: secret,
+			deleteRule: secret
+		});
+		const before = await logicalSnapshot(admin);
+
+		const failure = await seedSiteProject(port).then(
+			() => null,
+			(error: unknown) => error
+		);
+
+		expect(failure).toMatchObject({ kind: 'validation' });
+		const message = (failure as Error).message;
+		expect(message).toContain('"vega_editors"');
+		expect(message).toContain('listRule, deleteRule');
+		expect(message).toContain('API Rules');
+		for (const other of ['viewRule', 'createRule', 'updateRule', 'manageRule']) {
+			expect(message).not.toContain(other);
+		}
+		expect(message).not.toContain('proyecto-interno');
+		expect(await logicalSnapshot(admin)).toEqual(before);
+	});
 
 	test('una instalación nueva crea vega_editors con created: el alta de una cuenta trae fecha', async () => {
 		await seedSiteProject(port);

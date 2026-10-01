@@ -105,16 +105,16 @@ function assertExistingAuthRules(spec: CollectionSpec, existing: CollectionModel
 	);
 	if (mismatched.length === 0) return;
 
-	const detail = mismatched
-		.map(
-			(key) =>
-				`${key}=${JSON.stringify(found[key] ?? null)} (se esperaba ${JSON.stringify(declared[key] ?? null)})`
-		)
-		.join(', ');
+	// Solo el NOMBRE de cada regla que difiere, nunca su contenido: una regla existente puede llevar
+	// expresiones del proyecto y este texto acaba en pantalla y en el portapapeles.
+	const expectsOnlySuperusers = mismatched.every((key) => (declared[key] ?? null) === null);
+	const action = expectsOnlySuperusers
+		? 'déjalas sin regla (null: solo superusuarios)'
+		: 'déjalas como las declara Vega';
 	const message =
-		`La colección "${spec.name}" ya existe con reglas de acceso que no son las esperadas: ` +
-		`${detail}. No se ha modificado nada. Revisa esas reglas en PocketBase y déjalas como se ` +
-		`esperan antes de repetir la operación.`;
+		`La colección "${spec.name}" ya existe con reglas de acceso distintas de las que Vega ` +
+		`espera: ${mismatched.join(', ')}. No se ha modificado nada. En PocketBase, Collections → ` +
+		`${spec.name} → API Rules, ${action} y repite la operación.`;
 	throw VegaError.validation(
 		{ [spec.name]: { code: 'vega_collection_rules_mismatch', message } },
 		message
