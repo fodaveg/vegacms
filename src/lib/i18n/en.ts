@@ -379,6 +379,33 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// `ResolvedContentType.page` in `types.ts` for why.
 	'editor.page.proposePath': 'Suggest route',
 
+	// Redirect when the route of a PUBLISHED page changes (`RedirectOffer.svelte`, sheet C of
+	// 2026-10-01). Routes are interpolated and the component renders them in `<code>`.
+	'editor.redirect.groupLabel': 'Redirect from the old route',
+	'editor.redirect.offer': 'Create a redirect from {from} to {to}',
+	'editor.redirect.offerBody':
+		'Anyone opening the old address will land on the new one. It is created on save.',
+	'editor.redirect.declinedBody':
+		'Without a redirect, anyone opening {from} will see "page not found".',
+	'editor.redirect.chainOne':
+		'A redirect already leads to the old route: {source} → {target}. On save it will lead straight to {to}, so nobody takes two hops.',
+	'editor.redirect.chainMany':
+		'{count} redirects already lead to the old route. On save they will lead straight to {to}, so nobody takes two hops:',
+	'editor.redirect.conflict.title': 'A redirect from {from} already exists',
+	'editor.redirect.conflict.body':
+		'It leads to {target}. While the page was on that route it did nothing; as soon as you move it, it will start to act.',
+	'editor.redirect.conflict.legend': 'What to do with the redirect that already exists',
+	'editor.redirect.conflict.repoint': 'Change it to lead to {to}',
+	'editor.redirect.conflict.keep': 'Leave it as it is: {from} will lead to {target}',
+	'editor.redirect.removeLoop':
+		'A redirect from {live} to {old} exists. It will be deleted on save: the page lives at {live} again and the redirect would go in circles.',
+	'editor.redirect.removeShadow':
+		'A redirect from {live} to {target} exists. It will be deleted on save: that address now belongs to the page.',
+	'editor.redirect.failed.title': 'The page was saved, but the redirect was not',
+	'editor.redirect.failed.body': '{from} no longer leads anywhere. The server replied: {message}',
+	'editor.redirect.created': 'Redirect created from {from} to {to}.',
+	'editor.redirect.repointed': 'Redirect from {from} changed to lead to {to}.',
+
 	// ————— Scheduled publishing (`publishAtField`) —————
 	// Default help of the "Publish on" field when the manifest declares none. Vega cannot tell
 	// from the browser whether the server runs `vegaschedule`: the help says so.

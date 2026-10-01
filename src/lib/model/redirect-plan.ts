@@ -106,7 +106,7 @@ const FROM_MAX = 200;
 /** `to` de `redirects` (`SITE_SEED_REDIRECT_TO_PATTERN`): ruta con un segundo carácter que no
  *  sea `/`, `\` ni un control o espacio, la raíz sola, o una URL http(s). Se repite aquí para que
  *  el módulo siga siendo puro; un test de contrato lo compara con el del sembrado. */
-const TO_PATTERN = /^(\/$|\/[^/\\\x00-\x20]|https?:\/\/)/;
+const TO_PATTERN = new RegExp(String.raw`^(/$|/[^/\\\x00-\x20]|https?://)`);
 
 /** ¿Es `path` un origen válido para `redirects.from`? */
 export function isRedirectFrom(path: string): boolean {

@@ -422,6 +422,33 @@ export const es = {
 	// `ResolvedContentType.page` en `types.ts` para el porqué.
 	'editor.page.proposePath': 'Proponer ruta',
 
+	// Redirección al cambiar la ruta de una página PUBLICADA (`RedirectOffer.svelte`, lámina C del
+	// 1 oct 2026). Las rutas se interpolan y el componente las pinta en `<code>`.
+	'editor.redirect.groupLabel': 'Redirección desde la ruta antigua',
+	'editor.redirect.offer': 'Crear una redirección de {from} a {to}',
+	'editor.redirect.offerBody':
+		'Quien abra la dirección antigua llegará a la nueva. Se crea al guardar.',
+	'editor.redirect.declinedBody': 'Sin redirección, quien abra {from} verá «página no encontrada».',
+	'editor.redirect.chainOne':
+		'Ya hay una redirección que lleva a la ruta antigua: {source} → {target}. Al guardar pasará a llevar directamente a {to}, para que nadie dé dos saltos.',
+	'editor.redirect.chainMany':
+		'Ya hay {count} redirecciones que llevan a la ruta antigua. Al guardar pasarán a llevar directamente a {to}, para que nadie dé dos saltos:',
+	'editor.redirect.conflict.title': 'Ya existe una redirección desde {from}',
+	'editor.redirect.conflict.body':
+		'Lleva a {target}. Mientras la página estaba en esa ruta no hacía nada; en cuanto la muevas, empezará a actuar.',
+	'editor.redirect.conflict.legend': 'Qué hacer con la redirección que ya existe',
+	'editor.redirect.conflict.repoint': 'Cambiarla para que lleve a {to}',
+	'editor.redirect.conflict.keep': 'Dejarla como está: {from} llevará a {target}',
+	'editor.redirect.removeLoop':
+		'Existe una redirección de {live} a {old}. Al guardar se borrará: la página vuelve a vivir en {live} y la redirección daría vueltas.',
+	'editor.redirect.removeShadow':
+		'Existe una redirección desde {live} que lleva a {target}. Al guardar se borrará: esa dirección pasa a ser la de la página.',
+	'editor.redirect.failed.title': 'La página se ha guardado, pero la redirección no',
+	'editor.redirect.failed.body':
+		'{from} ya no lleva a ningún sitio. El servidor ha contestado: {message}',
+	'editor.redirect.created': 'Redirección creada de {from} a {to}.',
+	'editor.redirect.repointed': 'Redirección de {from} cambiada para llevar a {to}.',
+
 	// ————— Publicación programada (`publishAtField`) —————
 	// Ayuda por defecto del campo «Publicar el» cuando el manifiesto no declara la suya. Vega no
 	// puede saber desde el navegador si el servidor tiene `vegaschedule`: la ayuda lo avisa.
