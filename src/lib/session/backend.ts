@@ -131,6 +131,8 @@ import {
 import { readAuthCollectionOverride, readBackendOverride } from './backend-override';
 import { withRevisions } from '$lib/revisions/with-revisions';
 import { withSchemaSnapshotSync } from '$lib/model/load';
+import { withRecentEdits } from '$lib/home/with-recent-edits';
+import { noteSavedRecord } from '$lib/home/recent-edits-store';
 
 declare global {
 	interface Window {
@@ -281,7 +283,11 @@ async function createInstance(): Promise<BackendPort> {
 		// `wrapMemoryPortForDemo`/`withEditorCapabilities` de más arriba.
 		// Snapshot de esquema de los editores (`withSchemaSnapshotSync`, `model/load.ts`): por
 		// DEBAJO de `withRevisions`, porque `resetRevisionsLatch` busca el puerto más externo.
-		const withHistory = withRevisions(withSchemaSnapshotSync(withCapabilities));
+		// «Lo último que editaste» (`withRecentEdits`): también por debajo de `withRevisions`, por
+		// el mismo motivo.
+		const withHistory = withRevisions(
+			withRecentEdits(withSchemaSnapshotSync(withCapabilities), noteSavedRecord)
+		);
 		// Ver `__VEGA_PREVIEW_API_URL__` arriba: anuncia las dos capacidades de vista previa que en
 		// producción salen del discovery, para que la suite e2e pueda alcanzar el editor visual.
 		// Se aplica al FINAL, sobre el puerto ya envuelto, porque las dos son campos de datos y no
@@ -320,20 +326,23 @@ async function createInstance(): Promise<BackendPort> {
 	// `#lote-integridad` Fase B (§3): la rama `pocketbase`, envuelta igual que la de `memory`
 	// arriba — las DOS ramas de `createInstance()`, ninguna excepción.
 	return withRevisions(
-		withSchemaSnapshotSync(
-			createPocketBaseBackend({
-				url,
-				authCollection,
-				authApiBasePath,
-				manifestKey: projectConfig?.manifestKey,
-				buildApiUrl: resolveBuildApiUrl(url, discovery),
-				previewApiUrl: resolvePreviewApiUrl(url, discovery),
-				// `BackendPort.previewVisualEditing` (ver su cabecera): promesa del discovery, NADA más —
-				// `project-discovery.ts` ya degradó cualquier valor que no sea el booleano `true` a
-				// `false` campo a campo dentro de `preview`, así que aquí basta leerlo tal cual.
-				previewVisualEditing: discovery?.preview?.visualEditing === true,
-				renderedBlockTypes: discovery?.blockTypes ?? null
-			})
+		withRecentEdits(
+			withSchemaSnapshotSync(
+				createPocketBaseBackend({
+					url,
+					authCollection,
+					authApiBasePath,
+					manifestKey: projectConfig?.manifestKey,
+					buildApiUrl: resolveBuildApiUrl(url, discovery),
+					previewApiUrl: resolvePreviewApiUrl(url, discovery),
+					// `BackendPort.previewVisualEditing` (ver su cabecera): promesa del discovery, NADA más —
+					// `project-discovery.ts` ya degradó cualquier valor que no sea el booleano `true` a
+					// `false` campo a campo dentro de `preview`, así que aquí basta leerlo tal cual.
+					previewVisualEditing: discovery?.preview?.visualEditing === true,
+					renderedBlockTypes: discovery?.blockTypes ?? null
+				})
+			),
+			noteSavedRecord
 		)
 	);
 }
