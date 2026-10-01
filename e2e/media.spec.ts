@@ -394,7 +394,7 @@ test.describe('/media borrado de un asset (contrato P6, Fase 6d)', () => {
 		await expect(confirmDialog).toBeVisible();
 		await expect(confirmDialog).toContainText('Manual de usuario');
 		await expect(confirmDialog).toContainText(
-			'Esto elimina el original de la biblioteca. Las copias ya insertadas por la biblioteca en registros no se ven afectadas.'
+			'El original se borrará de la biblioteca y no se podrá recuperar. Las copias ya insertadas en entradas no se ven afectadas.'
 		);
 
 		await confirmDialog.getByRole('button', { name: 'Cancelar' }).click();
