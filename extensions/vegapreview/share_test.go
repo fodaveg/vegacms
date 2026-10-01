@@ -733,6 +733,99 @@ func TestShareCollectionIsPrivateAndEnsureIsIdempotent(t *testing.T) {
 	}
 }
 
+// TestShareRoutesAnswer503UntilTheCollectionIsValidated: RegisterRoutes without a successful
+// EnsureCollections must not serve. The dangerous case is the third one: a links collection that
+// exists with an open rule would otherwise be written to while the records API can read it.
+func TestShareRoutesAnswer503UntilTheCollectionIsValidated(t *testing.T) {
+	fixture := newShareFixture(t)
+	_, token := fixture.mustCreate(t, fixture.editorA, fixture.pageA, 3600)
+	linkID, _, _ := parseShareToken(token)
+
+	build := func(t *testing.T, ensure bool) (shareFixture, error) {
+		t.Helper()
+		extension, err := New(fixture.extension.config)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var ensureErr error
+		if ensure {
+			ensureErr = extension.EnsureCollections(fixture.app)
+		}
+		router, err := apis.NewRouter(fixture.app)
+		if err != nil {
+			t.Fatal(err)
+		}
+		extension.RegisterRoutes(&core.ServeEvent{App: fixture.app, Router: router})
+		mux, err := router.BuildMux()
+		if err != nil {
+			t.Fatal(err)
+		}
+		other := fixture
+		other.extension, other.mux = extension, mux
+		return other, ensureErr
+	}
+	expectUnavailable := func(t *testing.T, other shareFixture) {
+		t.Helper()
+		before := len(fixture.storedLinks(t))
+		for route, response := range map[string]*httptest.ResponseRecorder{
+			"create":  other.create(other.editorA, "pages", other.pageA, 3600, ""),
+			"list":    other.list(other.editorA, "pages", other.pageA),
+			"revoke":  other.revoke(other.editorA, "pages", other.pageA, linkID),
+			"resolve": other.resolve(token, "203.0.113.7"),
+		} {
+			if response.Code != http.StatusServiceUnavailable {
+				t.Fatalf("%s: expected 503, got %d: %s", route, response.Code, response.Body.String())
+			}
+			if got := response.Header().Get("Cache-Control"); got != "no-store" {
+				t.Fatalf("%s: expected no-store on the 503, got %q", route, got)
+			}
+		}
+		if len(fixture.storedLinks(t)) != before {
+			t.Fatal("an unavailable route created or deleted a link")
+		}
+		// POST /token does not depend on the links collection.
+		if response := requestToken(other.mux, other.editorA, "pages", other.pageA); response.Code != http.StatusOK {
+			t.Fatalf("expected /token to keep working, got %d", response.Code)
+		}
+	}
+
+	t.Run("EnsureCollections never called", func(t *testing.T) {
+		other, _ := build(t, false)
+		expectUnavailable(t, other)
+	})
+	t.Run("EnsureCollections succeeded", func(t *testing.T) {
+		other, err := build(t, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if response := other.resolve(token, "203.0.113.7"); response.Code != http.StatusOK {
+			t.Fatalf("expected the route to serve once validated, got %d", response.Code)
+		}
+	})
+	t.Run("EnsureCollections failed and its error was ignored", func(t *testing.T) {
+		links, err := fixture.app.FindCollectionByNameOrId(shareLinksCollection)
+		if err != nil {
+			t.Fatal(err)
+		}
+		open := ""
+		links.ListRule = &open
+		if err := fixture.app.Save(links); err != nil {
+			t.Fatal(err)
+		}
+		other, ensureErr := build(t, true)
+		if ensureErr == nil {
+			t.Fatal("expected EnsureCollections to fail on an open rule")
+		}
+		expectUnavailable(t, other)
+
+		// An extension that was serving stops as soon as a later EnsureCollections fails.
+		if err := fixture.extension.EnsureCollections(fixture.app); err == nil {
+			t.Fatal("expected EnsureCollections to fail on an open rule")
+		}
+		expectUnavailable(t, fixture)
+	})
+}
+
 func TestShareListReturnsOnlyLiveLinksOfThatRecordAndPurgesExpiredOnes(t *testing.T) {
 	fixture := newShareFixture(t)
 	shortID, _ := fixture.mustCreate(t, fixture.editorA, fixture.pageA, 600)

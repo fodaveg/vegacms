@@ -143,10 +143,19 @@ func (c Config) normalizedShare() (Config, error) {
 // EnsureCollections idempotently creates the private collection that stores share links. It is a
 // no-op when ShareLinks is off. An existing collection with that name is accepted only when its
 // rules and fields match: a name collision never turns link hashes into data the API serves.
+//
+// The share routes answer 503 until a call to EnsureCollections has succeeded, and go back to 503
+// if a later call fails: they never run against a collection nobody validated.
 func (x *Extension) EnsureCollections(app core.App) error {
 	if !x.config.ShareLinks {
 		return nil
 	}
+	err := x.ensureShareCollection(app)
+	x.shareReady.Store(err == nil)
+	return err
+}
+
+func (x *Extension) ensureShareCollection(app core.App) error {
 	links, err := app.FindCollectionByNameOrId(shareLinksCollection)
 	if err != nil {
 		links = core.NewBaseCollection(shareLinksCollection)
@@ -216,10 +225,33 @@ func (x *Extension) registerShareRoutes(event *core.ServeEvent) {
 	// every rule, which is what a superuser can already do with the records themselves.
 	allowed := append(slices.Clone(x.config.AuthCollections), core.CollectionNameSuperusers)
 	prefix := x.config.RoutePrefix + "/share"
-	event.Router.POST(prefix, x.shareCreateHandler).Bind(apis.RequireAuth(allowed...))
-	event.Router.GET(prefix, x.shareListHandler).Bind(apis.RequireAuth(allowed...))
-	event.Router.POST(prefix+"/revoke", x.shareRevokeHandler).Bind(apis.RequireAuth(allowed...))
-	event.Router.POST(prefix+"/resolve", x.shareResolveHandler)
+	event.Router.POST(prefix, x.whenShareReady(x.shareCreateHandler)).
+		Bind(apis.RequireAuth(allowed...))
+	event.Router.GET(prefix, x.whenShareReady(x.shareListHandler)).
+		Bind(apis.RequireAuth(allowed...))
+	event.Router.POST(prefix+"/revoke", x.whenShareReady(x.shareRevokeHandler)).
+		Bind(apis.RequireAuth(allowed...))
+	event.Router.POST(prefix+"/resolve", x.whenShareReady(x.shareResolveHandler))
+}
+
+// whenShareReady refuses a share request with 503 unless EnsureCollections has validated the
+// links collection. Registering routes and ensuring collections are two calls the integrator
+// makes; forgetting the second, or ignoring its error, must not leave the routes serving from a
+// collection whose rules were never checked (it may be open to the records API).
+func (x *Extension) whenShareReady(
+	handler func(*core.RequestEvent) error,
+) func(*core.RequestEvent) error {
+	return func(event *core.RequestEvent) error {
+		if !x.shareReady.Load() {
+			event.Response.Header().Set("Cache-Control", "no-store")
+			return apis.NewApiError(
+				http.StatusServiceUnavailable,
+				"Share links are not available: their collection has not been validated.",
+				nil,
+			)
+		}
+		return handler(event)
+	}
 }
 
 // ShareResolveKey derives the key the site sends in ShareResolveKeyHeader from the signing secret

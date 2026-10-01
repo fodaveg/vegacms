@@ -25,6 +25,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/pocketbase/pocketbase/apis"
@@ -189,6 +190,8 @@ type Extension struct {
 	shareResolveKey     string
 	shareCallerLimiter  *attemptLimiter
 	shareVisitorLimiter *attemptLimiter
+	// shareReady is set by EnsureCollections once the links collection passed validation.
+	shareReady atomic.Bool
 }
 
 // New validates config and returns a ready-to-register extension. Misconfigured signing or URL
