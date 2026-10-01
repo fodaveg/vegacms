@@ -60,6 +60,7 @@ import {
 import { clearPersistedToken, loadPersistedToken, savePersistedToken } from './persistence';
 import { createPocketBaseStrongAuth } from './strong-auth';
 import { deferredAdministration, deferredPasswordReset } from '../../administration';
+import { deferredServerSettings } from '../../server-settings';
 
 /** Colección de auth por defecto (v1, D1): superuser real de PB, sin restricciones de esquema. */
 const DEFAULT_AUTH_COLLECTION = '_superusers';
@@ -100,6 +101,8 @@ function computeCapabilities(authCollection: string, strongAuth: boolean): Capab
 		// `/api/settings`, `/api/backups` y la gestión de `vega_editors` desde fuera son de
 		// superuser en PocketBase: un editor no administra el servidor (ver `AdministrationPort`).
 		administration: isSuperuser,
+		// `GET/PATCH /api/settings` y sus pruebas son de superuser, como `administration`.
+		serverSettings: isSuperuser,
 		// `confirm-password-reset` es público en cualquier colección `auth`: no depende de quién
 		// (ni de si alguien) ha entrado.
 		editorPasswordReset: true
@@ -536,6 +539,11 @@ export function createPocketBaseBackend({
 				import('./administration').then((m) => m.createPocketBaseAdministration({ pb, guarded }))
 			)
 		: undefined;
+	const serverSettings = CAPABILITIES.serverSettings
+		? deferredServerSettings(() =>
+				import('./server-settings').then((m) => m.createPocketBaseServerSettings({ pb, guarded }))
+			)
+		: undefined;
 	// Pública y también diferida: la usa `/restablecer`, sin sesión.
 	const editorPasswordReset = deferredPasswordReset(() =>
 		import('./administration').then((m) => ({
@@ -548,6 +556,7 @@ export function createPocketBaseBackend({
 		capabilities: CAPABILITIES,
 		strongAuth,
 		administration,
+		serverSettings,
 		editorPasswordReset,
 		manifestKey: normalizedManifestKey,
 		buildApiUrl,

@@ -6,7 +6,13 @@
 import { mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
-import type { AdministrationPort, BackendPort, BackupFile } from '$lib/backend';
+import type {
+	AdministrationPort,
+	BackendPort,
+	BackupFile,
+	ServerSettings,
+	ServerSettingsPort
+} from '$lib/backend';
 import BackupsPage from '../../routes/copias/+page.svelte';
 
 const BACKUP: BackupFile = {
@@ -31,7 +37,7 @@ function fakeAdministration(overrides: Partial<AdministrationPort> = {}): Admini
 	};
 }
 
-function mountPage(admin: AdministrationPort | undefined) {
+function mountPage(admin: AdministrationPort | undefined, serverSettings?: ServerSettingsPort) {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const ctx = {
@@ -39,8 +45,12 @@ function mountPage(admin: AdministrationPort | undefined) {
 			params ? `${key}:${JSON.stringify(params)}` : key,
 		locale: 'es',
 		port: {
-			capabilities: { administration: admin !== undefined },
-			administration: admin
+			capabilities: {
+				administration: admin !== undefined,
+				serverSettings: serverSettings !== undefined
+			},
+			administration: admin,
+			serverSettings
 		} as unknown as BackendPort,
 		feedback: { toast: vi.fn(), reportError: vi.fn() }
 	} as unknown as VegaAppContext;
@@ -109,5 +119,58 @@ describe('/copias', () => {
 		const anchor = click.mock.contexts[0] as HTMLAnchorElement;
 		expect(anchor.href).toBe(`https://pb.test/api/backups/${BACKUP.key}?token=t`);
 		expect(anchor.download).toBe(BACKUP.key);
+	});
+	describe('ajustes del servidor debajo de la lista', () => {
+		const SETTINGS: ServerSettings = {
+			meta: { appURL: 'https://cms.example.test' },
+			smtp: { enabled: false, host: '', port: 587, username: '', tls: false },
+			backups: {
+				cron: '',
+				cronMaxKeep: 3,
+				s3: {
+					enabled: false,
+					endpoint: '',
+					bucket: '',
+					region: '',
+					accessKey: '',
+					forcePathStyle: false
+				}
+			}
+		};
+
+		function section(overrides: Partial<ServerSettingsPort> = {}): ServerSettingsPort {
+			return {
+				get: vi.fn(async () => SETTINGS),
+				update: vi.fn(async () => SETTINGS),
+				testS3: vi.fn(),
+				testEmail: vi.fn(),
+				...overrides
+			};
+		}
+
+		test('sin la sección del puerto no hay tarjetas', async () => {
+			mounted = mountPage(fakeAdministration());
+			await settle();
+			expect(mounted.target.querySelector('[data-backups-card]')).toBeNull();
+		});
+
+		test('con la sección: las dos tarjetas, y la lista de copias sigue', async () => {
+			mounted = mountPage(fakeAdministration(), section());
+			await settle();
+			expect(mounted.target.querySelector('[data-backups-card="auto"]')).not.toBeNull();
+			expect(mounted.target.querySelector('[data-backups-card="destination"]')).not.toBeNull();
+			expect(mounted.target.querySelector(`[data-backup-key="${BACKUP.key}"]`)).not.toBeNull();
+		});
+
+		test('si los ajustes no cargan: aviso con «Reintentar», y la lista no se esconde', async () => {
+			const get = vi.fn().mockRejectedValueOnce(new Error('caído')).mockResolvedValue(SETTINGS);
+			mounted = mountPage(fakeAdministration(), section({ get }));
+			await settle();
+			expect(mounted.target.querySelector('[data-backups-settings="error"]')).not.toBeNull();
+			expect(mounted.target.querySelector(`[data-backup-key="${BACKUP.key}"]`)).not.toBeNull();
+			button(mounted.target, 'common.retry').click();
+			await settle();
+			expect(mounted.target.querySelector('[data-backups-card="auto"]')).not.toBeNull();
+		});
 	});
 });

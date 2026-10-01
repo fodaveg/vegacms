@@ -181,6 +181,13 @@ export interface Capabilities {
 	 */
 	administration: boolean;
 	/**
+	 * `BackendPort.serverSettings` está presente: la sesión puede leer y escribir los ajustes del
+	 * servidor que Vega edita (correo, dirección de la app, copias automáticas y su destino).
+	 * PB: `true` solo con sesión de superuser (`/api/settings` es suyo); `false` en modo editor.
+	 * memory: `true`. Capability de SESIÓN, con nombre propio como `administration`.
+	 */
+	serverSettings: boolean;
+	/**
 	 * `BackendPort.editorPasswordReset` está presente: la ruta pública `/restablecer` puede
 	 * confirmar el restablecimiento de contraseña de una cuenta de `vega_editors` con el token del
 	 * correo, sin sesión. PB: `true` (endpoint público de toda colección `auth`). memory: `true`.

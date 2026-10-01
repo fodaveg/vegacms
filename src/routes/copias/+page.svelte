@@ -14,19 +14,30 @@
 	 *
 	 * Descargar pide primero una URL autorizada (token de fichero de superusuario, válido unos
 	 * minutos): mientras llega, el botón de esa fila dice «Preparando…».
+	 *
+	 * Debajo de la lista, dos tarjetas de ajustes del servidor (solo con `capabilities.serverSettings`):
+	 * «Copias automáticas» y «Dónde se guardan». Se cargan aparte de la lista: que fallen no esconde
+	 * las copias, ni al revés. Si cambia el destino, la lista se relee (enseña las copias del destino
+	 * activo; las que ya había no se mueven).
 	 */
 	import { getVegaContext } from '$lib/app-context';
-	import { VegaError, type BackupFile } from '$lib/backend';
+	import { VegaError, type BackupFile, type ServerSettings } from '$lib/backend';
 	import Icon from '$lib/icons/Icon.svelte';
 	import SuperuserGate from '$lib/admin/SuperuserGate.svelte';
 	import { formatDayTime, formatElapsed } from '$lib/admin/format';
 	import { formatFileSize } from '$lib/media/media-card';
 	import { downloadFromUrl } from '$lib/transfer/download';
 	import '$lib/admin/admin.css';
+	import AutoBackupsCard from './AutoBackupsCard.svelte';
+	import DestinationCard from './DestinationCard.svelte';
 
 	const ctx = getVegaContext();
 	const administration = $derived(
 		ctx.port.capabilities.administration ? ctx.port.administration : undefined
+	);
+
+	const serverSettings = $derived(
+		ctx.port.capabilities.serverSettings ? ctx.port.serverSettings : undefined
 	);
 
 	type LoadStatus = 'loading' | 'ready' | 'error';
@@ -55,6 +66,37 @@
 		if (!administration) return;
 		void load();
 	});
+
+	// ————— Ajustes del servidor (copias automáticas y destino) —————
+
+	let settingsStatus = $state<LoadStatus>('loading');
+	let settings = $state<ServerSettings | null>(null);
+
+	async function loadSettings(): Promise<void> {
+		const section = serverSettings;
+		if (!section) return;
+		settingsStatus = 'loading';
+		try {
+			settings = await section.get();
+			settingsStatus = 'ready';
+		} catch (err) {
+			ctx.feedback.reportError(
+				err instanceof VegaError ? err : VegaError.backend('Error cargando los ajustes', err),
+				{ action: 'backups:settings-load' }
+			);
+			settingsStatus = 'error';
+		}
+	}
+
+	$effect(() => {
+		if (!serverSettings) return;
+		void loadSettings();
+	});
+
+	function onSettingsSaved(next: ServerSettings, destinationChanged = false): void {
+		settings = next;
+		if (destinationChanged) void load(false);
+	}
 
 	// ————— Crear —————
 
@@ -271,6 +313,28 @@
 					</tbody>
 				</table>
 			</div>
+		{/if}
+
+		{#if serverSettings}
+			{#if settingsStatus === 'loading'}
+				<div class="vega-admin-card">
+					<div class="vega-admin-state" aria-live="polite" data-backups-settings="loading">
+						<p><span class="vega-admin-saving">{ctx.t('admin.settings.loading')}</span></p>
+					</div>
+				</div>
+			{:else if settingsStatus === 'error' || !settings}
+				<div class="vega-admin-card">
+					<div class="vega-admin-state" role="alert" data-backups-settings="error">
+						<p>{ctx.t('admin.settings.loadError')}</p>
+						<button type="button" class="vega-admin-btn" onclick={() => void loadSettings()}>
+							{ctx.t('common.retry')}
+						</button>
+					</div>
+				</div>
+			{:else}
+				<AutoBackupsCard {settings} section={serverSettings} onSaved={onSettingsSaved} />
+				<DestinationCard {settings} section={serverSettings} onSaved={onSettingsSaved} />
+			{/if}
 		{/if}
 	{/if}
 </div>

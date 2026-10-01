@@ -113,6 +113,8 @@ describe('modo superuser (default, sin authCollection) — camino previo INTACTO
 			accessBypass: true,
 			// Editores y copias de seguridad: `/api/settings` y `/api/backups` son de superuser.
 			administration: true,
+			// Ajustes del servidor: `GET/PATCH /api/settings` son de superuser.
+			serverSettings: true,
 			// Restablecer contraseña de un editor: endpoint público, no depende de la sesión.
 			editorPasswordReset: true
 		});
@@ -187,6 +189,8 @@ describe('modo editor (authCollection: vega_editors, L6a/L6b)', () => {
 		// Un editor no administra el servidor: sin capability y sin la sección del puerto.
 		expect(port.capabilities.administration).toBe(false);
 		expect(port.administration).toBeUndefined();
+		expect(port.capabilities.serverSettings).toBe(false);
+		expect(port.serverSettings).toBeUndefined();
 		// …pero sí puede restablecer su propia contraseña con el enlace del correo.
 		expect(port.capabilities.editorPasswordReset).toBe(true);
 		expect(port.editorPasswordReset).toBeDefined();

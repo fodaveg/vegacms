@@ -37,6 +37,7 @@ const BASE_CAPABILITIES: Capabilities = {
 	explicitRecordId: false,
 	accessBypass: false,
 	administration: false,
+	serverSettings: false,
 	editorPasswordReset: false
 };
 

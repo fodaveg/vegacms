@@ -37,6 +37,12 @@ import type {
 	EnsureResult
 } from './collections';
 import type { RecordVersion } from './version';
+import type {
+	ConnectionTestOutcome,
+	ServerSettings,
+	ServerSettingsPatch,
+	TestEmailTemplate
+} from './server-settings';
 
 /** Opciones de `BackendPort.update` (ver su documentación). */
 export interface UpdateOptions {
@@ -146,6 +152,27 @@ export interface EditorPasswordResetPort {
 	confirm(token: string, password: string): Promise<void>;
 }
 
+/**
+ * Ajustes del servidor (correo, dirección de la app, copias automáticas y su destino): solo
+ * superusuario, `capabilities.serverSettings` y esta propiedad aparecen juntas. El contrato
+ * medido (secretos que no se leen, parche parcial, errores por ruta) vive en la cabecera de
+ * `server-settings.ts`. Toda promesa rechaza con `VegaError` (L2).
+ */
+export interface ServerSettingsPort {
+	/** Lee los bloques `meta`, `smtp` y `backups`, sin ningún secreto (el servidor no los da). */
+	get(): Promise<ServerSettings>;
+	/**
+	 * Aplica un parche parcial (`buildServerSettingsPatch`) y devuelve los ajustes ya guardados. Un
+	 * campo inválido ⇒ `VegaError 'validation'` con `fieldErrors` por ruta punteada y NADA aplicado.
+	 */
+	update(patch: ServerSettingsPatch): Promise<ServerSettings>;
+	/** Prueba el almacén S3 de las copias tal como está GUARDADO. Un fallo del almacén es
+	 *  `{ ok: false, message }` con el error crudo del servidor, no una excepción. */
+	testS3(): Promise<ConnectionTestOutcome>;
+	/** Pide al servidor un correo de prueba a `to` con el SMTP guardado; mismo reparto de fallos. */
+	testEmail(to: string, template: TestEmailTemplate): Promise<ConnectionTestOutcome>;
+}
+
 export interface BackendPort {
 	// ——— Identidad del adaptador ———
 	readonly capabilities: Capabilities;
@@ -153,6 +180,8 @@ export interface BackendPort {
 	readonly strongAuth?: StrongAuthPort;
 	/** Presente solo cuando `capabilities.administration === true`. */
 	readonly administration?: AdministrationPort;
+	/** Presente solo cuando `capabilities.serverSettings === true`. */
+	readonly serverSettings?: ServerSettingsPort;
 	/** Presente solo cuando `capabilities.editorPasswordReset === true`. */
 	readonly editorPasswordReset?: EditorPasswordResetPort;
 	/** Identidad del registro de manifiesto publicada por el backend; ausente = `default`. */
