@@ -1076,7 +1076,7 @@ export const DEMO_SEED: MemorySeed = {
 		},
 		{
 			id: 'editor_comunicacion',
-			email: 'comunicacion.institucional@ayuntamiento-de-villanueva-de-la-canada.es',
+			email: 'comunicacion.institucional@ayuntamiento-de-villa-ejemplar.example.org',
 			verified: true,
 			created: '2026-09-24T08:12:00.000Z'
 		}

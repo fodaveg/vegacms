@@ -247,8 +247,11 @@ export type BackupCreateOutcome = 'created' | 'busy';
  * - `'current'`: ya apuntaba a esa ruta; no se ha escrito nada.
  * - `'custom'`: alguien la ha cambiado (o apunta a otra dirección de Vega); no se toca, y el enlace
  *   del correo es el que diga ella.
+ * - `'foreign-origin'`: sigue la de fábrica (enlaza al Admin de PocketBase) y NO se ha escrito,
+ *   porque Vega no está abierta desde la dirección https que el servidor declara como suya
+ *   (`settings.meta.appURL`); ver `canWriteInvitationLink`.
  */
-export type InvitationLinkState = 'updated' | 'current' | 'custom';
+export type InvitationLinkState = 'updated' | 'current' | 'custom' | 'foreign-origin';
 
 // ————— Paginación —————
 

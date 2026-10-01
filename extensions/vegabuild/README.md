@@ -189,6 +189,10 @@ run is already closed as failed).
   its ONLY gate — keep it as secret as the webhook URL itself, and at least 16 characters (`New`
   refuses shorter ones). `logUrl`/`detail` sent through it are capped (a few KB) and silently
   truncated, never allowed to grow a run record without bound.
+- `logUrl` is rendered by Vega as a link, so only an absolute `http://` or `https://` URL is kept.
+  Anything else (`javascript:`, `data:`, a relative path…) coming from `/callback`, from a Runner's
+  `Result`/`Handoff` or already stored on an older run is dropped and reported as `null`; the run
+  still closes normally. Vega applies the same filter when it reads `GET {RoutePrefix}/status`.
 - `CommandRunner.Command`/`Args` are fixed by the operator at process startup. Nothing from an
   HTTP request ever reaches the command line or environment of the spawned process. A panic inside
   the goroutine that waits for the child process is recovered and reported as a failed run instead

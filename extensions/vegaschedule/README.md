@@ -60,6 +60,35 @@ creates `pages.publishAt` and declares it.
 - **Idempotent.** Once published, a record no longer matches. A tick that starts while the
   previous one is still running does nothing.
 
+## Security: writing the date is permission to publish
+
+The job publishes with the server's own privileges. `app.Save` runs the record's validation and its
+hooks, but **not the collection's API rules**: `updateRule` is only evaluated for requests that come
+through the API, and the cron is not one. Nobody is recorded as the author of the change, and the job
+does not know (and does not check) who wrote the date.
+
+What that means in practice: **whoever can write `publishAtField` on a draft can publish it**, even
+if the collection's `updateRule` would refuse the same account a direct change of the status field.
+A rule such as "only reviewers may set `status` to `published`" is bypassed by an author who sets
+«Publicar el» to one minute from now and waits for the next tick.
+
+If every account that can edit a record may also publish it (the default site seeding, where any
+editor can do both), there is nothing to fix. If your project separates the two, guard the date with
+the same condition that guards the status, in the collection's API rules:
+
+- `updateRule`: add `(@request.body.publishAt:changed = false || <who may publish>)` next to the
+  clause that already protects `status`. `:changed` is true only when the request sends the field
+  with a value different from the stored one, so ordinary edits that do not touch it still pass.
+- `createRule`: add `(@request.body.publishAt:isset = false || <who may publish>)`, or a draft could
+  be created already scheduled.
+
+`<who may publish>` is whatever your status clause uses, for example
+`@request.auth.role = "reviewer"`. Replace `publishAt` with the collection's own `publishAtField`.
+Superusers skip API rules, as everywhere in PocketBase.
+
+Two alternatives when a rule is not enough: do not declare `publishAtField` for that content type
+(the field stays inert, and Vega says so), or do not register this extension at all.
+
 ## Integrate it
 
 ```go

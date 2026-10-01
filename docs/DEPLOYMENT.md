@@ -133,6 +133,37 @@ location / {
 }
 ```
 
+### Cabeceras de seguridad
+
+Además de HSTS, la instancia de referencia (`infra/production/admin.vegacms.com.caddy`) envía `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` y una `Content-Security-Policy` para lo que sirve la SPA:
+
+```caddyfile
+@vegaSpa {
+	not path /api/* /_/*
+}
+header @vegaSpa Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:; frame-src 'self' https:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+```
+
+Un `default-src 'self'` a secas **rompe la app**. Lo que necesita, y por qué:
+
+| Directiva                              | Motivo                                                                                                                                                                                                                                                   |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `script-src 'self' 'unsafe-inline'`    | El `index.html` arranca la app con un `<script>` en línea cuyo texto cambia en cada build (nombres con hash de los chunks): no cabe un hash fijo en el servidor. Sigue bloqueando scripts de otros orígenes y `eval`.                                    |
+| `style-src 'self' 'unsafe-inline'`     | Atributos `style` de la app y la hoja `<style>` que inyecta el editor de texto enriquecido.                                                                                                                                                              |
+| `img-src 'self' data: blob: https:`    | Medios de PocketBase, vistas previas locales antes de subir e imágenes externas que referencia el contenido.                                                                                                                                             |
+| `connect-src 'self' https:`            | API y realtime de PocketBase (mismo origen), el aviso de versión opt-in (`https://api.github.com`) y la importación de una colección exportada, que descarga los medios del servidor de origen. Sin importaciones, vale `'self' https://api.github.com`. |
+| `frame-src 'self' https:`              | La vista previa y el editor visual cargan el **sitio** del proyecto en un `<iframe>`. Con un sitio fijo, sustituye `https:` por su origen exacto.                                                                                                        |
+| `frame-ancestors 'none'`               | Nadie puede enmarcar el admin.                                                                                                                                                                                                                           |
+| `object-src 'none'`, `base-uri 'self'` | Sin plugins y sin `<base>` que redirija las rutas.                                                                                                                                                                                                       |
+
+Tres cosas que no son evidentes:
+
+- **No añadas `form-action`** sin incluir el origen del sitio: la vista previa envía su token con un `<form>` POST a ese origen, y `form-action` no hereda de `default-src`.
+- **Excluye `/api/*`**: PocketBase pone su propia política a los ficheros subidos, y una regla que la sustituya dejaría ejecutar un HTML o SVG subido como medio. Excluye también `/_/*` si expones el panel de superusuario, que tiene otras necesidades.
+- **PocketBase en otro origen que la SPA**: añade ese origen a `connect-src` e `img-src` si no es https, y recuerda que el sitio debe permitir a Vega en su propio `frame-ancestors` (ver [POCKETBASE-INTEGRATION.md](POCKETBASE-INTEGRATION.md)).
+
+Antes de darla por buena en una instancia, compruébala en el navegador con la consola abierta: login, edición con texto enriquecido, subida de un medio, vista previa y editor visual. Un bloqueo aparece como `Refused to … because it violates the following Content Security Policy directive`. Para ensayar sin riesgo, sirve primero la misma política como `Content-Security-Policy-Report-Only`.
+
 ### GitHub Pages (proyecto)
 
 La demo pública de Vega usa `VEGA_BASE_PATH=/vegacms` para la demo del proyecto (en `https://fodaveg.github.io/vegacms/`). El workflow `.github/workflows/pages.yml` hace esto automáticamente:

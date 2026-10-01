@@ -1287,6 +1287,8 @@ export const es = {
 	'admin.backups.preparing': 'Preparando…',
 	'admin.editors.addDialog.inviteLinkCustom':
 		'La plantilla del correo de restablecimiento de PocketBase está personalizada: el enlace del correo es el que diga ella, no la página de Vega para elegir contraseña.',
+	'admin.editors.addDialog.inviteLinkForeignOrigin':
+		'El enlace del correo sigue llevando al panel de PocketBase, no a la página de Vega para elegir contraseña. Vega solo lo cambia cuando la abres desde la dirección https que PocketBase tiene como «Application URL».',
 	'admin.editors.addDialog.inviteLinkUnknown':
 		'No se pudo comprobar a dónde lleva el enlace del correo de invitación.',
 	'admin.reset.title': 'Elige tu contraseña',

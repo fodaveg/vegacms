@@ -12,10 +12,57 @@ admin.vegacms.com {
 		}
 	}
 
+	# Este bloque va DIFERIDO (Caddy difiere las operaciones de un `header` en cuanto hay un
+	# borrado, aquí `-Server`): cada cabecera se fija al escribir la respuesta y SUSTITUYE la que
+	# traiga PocketBase. Por eso la CSP no va aquí, ver más abajo.
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
 		-Server
 	}
+
+	# Content-Security-Policy de la SPA de Vega (auditoría 30 sep 2026). Solo para lo que sirve la
+	# SPA, NO para:
+	# - `/api/*`: PocketBase pone su propia política, más estricta, a los ficheros subidos
+	#   (`default-src 'none'; …; sandbox`, leído en PocketBase 0.39.9): un HTML o SVG subido como
+	#   medio no debe ejecutarse en este origen. Esta regla no la toca.
+	# - `/_/*`: el panel de superusuario de PocketBase ya trae la suya, con lo que él necesita
+	#   (las teselas de mapa de los campos de coordenadas, por ejemplo).
+	#
+	# Va en su propio `header`, sin borrados, para que NO se difiera: si algún día PocketBase manda
+	# una CSP en estas rutas, el navegador aplica las dos (la intersección), nunca solo la de aquí.
+	#
+	# Cada directiva, y por qué no es más estrecha (medido en el código, no supuesto):
+	# - `default-src 'self'`: todo lo no listado (fuentes, manifest, workers) sale de este origen.
+	#   La SPA no carga fuentes ni scripts de terceros.
+	# - `script-src 'self' 'unsafe-inline'`: el `index.html` que genera SvelteKit arranca la app
+	#   con un `<script>` EN LÍNEA cuyo texto cambia en cada build (lleva los nombres con hash de
+	#   los chunks), así que aquí no cabe un hash fijo. Sin `'unsafe-inline'` la app no arranca.
+	#   Lo que sí se gana: ningún script de otro origen, y ningún `eval`. Quitarlo pasa por que el
+	#   build emita los hashes (`csp` de SvelteKit), no por este fichero.
+	# - `style-src 'self' 'unsafe-inline'`: `app.html` y los componentes usan atributos `style`, y
+	#   el editor de texto enriquecido (TipTap/ProseMirror) inyecta su propia hoja `<style>`.
+	# - `img-src 'self' data: blob: https:`: medios de PocketBase (mismo origen), vistas previas
+	#   locales antes de subir (`blob:`, `data:`) e imágenes externas referenciadas por el
+	#   contenido (tarjeta social, markdown). Sin `http:`.
+	# - `connect-src 'self' https:`: la API y el realtime (SSE) de PocketBase son mismo origen; el
+	#   resto es https de terceros que la app pide de verdad: el aviso de versión opt-in
+	#   (`api.github.com`) y la importación de una colección exportada, que descarga los medios del
+	#   servidor de ORIGEN, sea cual sea. Si esta instancia no importa de otros servidores, se
+	#   puede estrechar a `'self' https://api.github.com`.
+	# - `frame-src 'self' https:`: la vista previa y el editor visual cargan el SITIO del proyecto
+	#   en un `<iframe>`, y su origen sale del servidor (extensión `vegapreview`), no de este
+	#   fichero. En una instancia con un sitio fijo, sustituye `https:` por ese origen exacto. El
+	#   puente del editor visual es `postMessage`, que la CSP no restringe.
+	# - `frame-ancestors 'none'`: nadie puede enmarcar el admin (clickjacking).
+	# - `object-src 'none'` y `base-uri 'self'`: sin plugins y sin `<base>` que redirija las rutas.
+	# - Sin `form-action` a propósito: la vista previa envía su token con un `<form>` POST al
+	#   sitio del proyecto (otro origen), y esa directiva no hereda de `default-src`.
+	@vegaSpa {
+		not path /api/* /_/*
+	}
+	header @vegaSpa Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:; frame-src 'self' https:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
 
 	# Cabeceras de caché del admin (auditoría 23 sep 2026 p2): ni PocketBase (`apis.Static`) ni
 	# este Caddy ponían `Cache-Control`, así que el navegador decide por su cuenta (heurística

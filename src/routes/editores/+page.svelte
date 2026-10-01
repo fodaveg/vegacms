@@ -10,8 +10,9 @@
 	 * pendiente ofrece «Reenviar invitación». Si esa segunda lectura falla, se trata como «sin
 	 * correo»: la pantalla sigue siendo útil y no promete un envío que no sabe si saldrá. Con la
 	 * lista ya cargada, `ensureInvitationLink` deja la plantilla del correo apuntando a
-	 * `/restablecer` si seguía la de fábrica; si está personalizada o no se pudo comprobar, el
-	 * diálogo de alta lo dice junto a la opción de invitar.
+	 * `/restablecer` si seguía la de fábrica y Vega está abierta desde la dirección https del
+	 * servidor; si está personalizada, si se abre desde otra dirección o si no se pudo comprobar,
+	 * el diálogo de alta lo dice junto a la opción de invitar.
 	 *
 	 * Etiqueta de estado = `verified` (medido en PocketBase 0.39.6: una invitación nace pendiente y
 	 * pasa a activa cuando la persona confirma el restablecimiento; poner la contraseña a mano la
@@ -56,8 +57,10 @@
 
 	/**
 	 * La ruta pública donde el editor elige su contraseña, ABSOLUTA: es lo que se escribe en la
-	 * plantilla del correo. Sale del origen en el que el superusuario tiene abierta la app, que es
-	 * donde Vega está servida (el `appURL` de PocketBase puede ser otro, o el de fábrica).
+	 * plantilla del correo. Sale del origen en el que el superusuario tiene abierta la app. Que
+	 * ese origen sea de fiar para dejarlo escrito en el servidor no se decide aquí: el puerto solo
+	 * escribe si coincide con el `appURL` de PocketBase y va por https (`canWriteInvitationLink`),
+	 * y si no responde `'foreign-origin'`, que el diálogo de alta explica.
 	 */
 	function absoluteResetUrl(): string {
 		return new URL(passwordResetRoute(), window.location.origin).toString();
@@ -348,9 +351,11 @@
 			{passwordMinLength}
 			inviteLinkNote={inviteLink === 'custom'
 				? ctx.t('admin.editors.addDialog.inviteLinkCustom')
-				: inviteLink === 'unknown'
-					? ctx.t('admin.editors.addDialog.inviteLinkUnknown')
-					: null}
+				: inviteLink === 'foreign-origin'
+					? ctx.t('admin.editors.addDialog.inviteLinkForeignOrigin')
+					: inviteLink === 'unknown'
+						? ctx.t('admin.editors.addDialog.inviteLinkUnknown')
+						: null}
 			fallbackFocusEl={headingEl}
 			onClose={() => (adding = false)}
 			onCreated={handleCreated}

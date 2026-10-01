@@ -30,6 +30,7 @@ import { VegaError } from '../../errors';
 import { VEGA_EDITORS_COLLECTION_NAME } from '../../administration';
 import {
 	DEFAULT_PASSWORD_MIN_LENGTH,
+	canWriteInvitationLink,
 	invitationTemplateBody,
 	sortBackups,
 	sortEditors,
@@ -179,6 +180,10 @@ export function createPocketBaseAdministration({
 				if (target === null) return 'custom';
 				if (current.body === target) return 'current';
 				if (current.body !== factory.body) return 'custom';
+				// Sigue la de fábrica y habría que escribir: solo desde la dirección https que el
+				// servidor declara como suya (criterio completo en `canWriteInvitationLink`). Abrir
+				// Vega desde `localhost` contra producción ya no deja la plantilla en `localhost`.
+				if (!canWriteInvitationLink(resetUrl, appUrl)) return 'foreign-origin';
 				await pb.collections.update(VEGA_EDITORS_COLLECTION_NAME, {
 					resetPasswordTemplate: { subject: current.subject, body: target }
 				});

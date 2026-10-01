@@ -783,7 +783,7 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 			const originalAppUrl = ((await admin.settings.getAll()) as { meta: { appURL: string } }).meta
 				.appURL;
 			await admin.settings.update({
-				meta: { appURL: 'http://vega.test' },
+				meta: { appURL: 'https://vega.test' },
 				smtp: {
 					enabled: true,
 					host: '127.0.0.1',
@@ -799,7 +799,20 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 
 				// Vega servida en la misma dirección que el `appURL` de PB: la plantilla queda
 				// relativa a `{APP_URL}`, y la segunda llamada ya no escribe nada.
-				const resetUrl = 'http://vega.test/restablecer';
+				const resetUrl = 'https://vega.test/restablecer';
+
+				// Abierta desde otra dirección (un `localhost` de desarrollo contra este servidor):
+				// no escribe, y la plantilla sigue siendo la de fábrica para quien sí pueda fijarla.
+				await expect(
+					administration.ensureInvitationLink('http://localhost:5173/restablecer')
+				).resolves.toBe('foreign-origin');
+				const untouched = (
+					(await admin.collections.getOne(VEGA_EDITORS_COLLECTION_NAME)) as unknown as {
+						resetPasswordTemplate: { body: string };
+					}
+				).resetPasswordTemplate;
+				expect(untouched.body).toContain('/_/#/auth/confirm-password-reset/');
+
 				await expect(administration.ensureInvitationLink(resetUrl)).resolves.toBe('updated');
 				const template = (
 					(await admin.collections.getOne(VEGA_EDITORS_COLLECTION_NAME)) as unknown as {
@@ -846,7 +859,7 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 				// Reenviar la invitación pide otro correo, con el mismo tipo de enlace.
 				await administration.sendEditorInvitation(invited.id);
 				const messages = await sink.waitForMessages(2);
-				expect(resetLinkFrom(messages[1])).toMatch(/^http:\/\/vega\.test\/restablecer\?token=/);
+				expect(resetLinkFrom(messages[1])).toMatch(/^https:\/\/vega\.test\/restablecer\?token=/);
 
 				// Una plantilla personalizada por el dueño no se pisa.
 				await admin.collections.update(VEGA_EDITORS_COLLECTION_NAME, {

@@ -1222,6 +1222,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'admin.backups.preparing': 'Preparing…',
 	'admin.editors.addDialog.inviteLinkCustom':
 		'The PocketBase password reset email template is customised: the link in the email is whatever it says, not the Vega page to choose a password.',
+	'admin.editors.addDialog.inviteLinkForeignOrigin':
+		'The link in the email still leads to the PocketBase dashboard, not to the Vega page to choose a password. Vega only changes it when you open it from the https address PocketBase has as its “Application URL”.',
 	'admin.editors.addDialog.inviteLinkUnknown':
 		'Could not check where the link in the invitation email leads.',
 	'admin.reset.title': 'Choose your password',

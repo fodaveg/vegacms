@@ -61,10 +61,35 @@ function stringOrNull(value: unknown): string | null {
 	return typeof value === 'string' && value ? value : null;
 }
 
+/**
+ * `value` si es una URL ABSOLUTA `http:`/`https:`; `null` en cualquier otro caso.
+ *
+ * `logUrl` se pinta como `href` de un enlace (`PublishButton.svelte`) y su valor lo puede fijar un
+ * sistema de CI externo (`POST …/callback` de `vegabuild`), así que un `javascript:` o un `data:`
+ * ahí sería un clic que ejecuta código con la sesión del editor. Lista de permitidos, no de
+ * prohibidos: lo que no sea http(s) se trata como ausente, igual que un campo de tipo inesperado.
+ * Una URL relativa tampoco vale, porque el contrato pide una absoluta.
+ *
+ * Se decide con `new URL`, que aplica el mismo saneado que el navegador al resolver el `href`
+ * (espacios iniciales, tabuladores y saltos de línea dentro del esquema): comparar el prefijo a
+ * mano dejaría pasar `java\tscript:`.
+ */
+export function httpUrlOrNull(value: unknown): string | null {
+	if (typeof value !== 'string' || !value) return null;
+	let protocol: string;
+	try {
+		protocol = new URL(value).protocol;
+	} catch {
+		return null;
+	}
+	return protocol === 'http:' || protocol === 'https:' ? value : null;
+}
+
 /** Valida la forma de `GET .../status` (§contrato). Exportada para testear la degradación con
  *  documentos sueltos, mismo criterio que `project-discovery.ts#parseProjectDiscovery`: un campo
  *  ausente/de tipo inesperado cae a `null`, pero `state` fuera del vocabulario invalida el
- *  documento entero (es la única señal que decide qué pinta `PublishButton.svelte`). */
+ *  documento entero (es la única señal que decide qué pinta `PublishButton.svelte`). `logUrl`
+ *  además solo sobrevive si es http(s) (`httpUrlOrNull`). */
 export function parseBuildStatus(raw: unknown): BuildStatus | null {
 	if (typeof raw !== 'object' || raw === null) return null;
 	const record = raw as Record<string, unknown>;
@@ -76,7 +101,7 @@ export function parseBuildStatus(raw: unknown): BuildStatus | null {
 		startedAt: stringOrNull(record.startedAt),
 		finishedAt: stringOrNull(record.finishedAt),
 		lastPublishedAt: stringOrNull(record.lastPublishedAt),
-		logUrl: stringOrNull(record.logUrl)
+		logUrl: httpUrlOrNull(record.logUrl)
 	};
 }
 

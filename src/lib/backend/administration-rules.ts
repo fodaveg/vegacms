@@ -63,6 +63,55 @@ export function invitationTemplateBody(
 	return factoryBody.replace(FACTORY_RESET_LINK, `${target}?token={TOKEN}`);
 }
 
+/** Nombres de host que solo resuelven a la propia máquina. */
+function isLoopbackHost(hostname: string): boolean {
+	const host = hostname.toLowerCase();
+	return (
+		host === 'localhost' || host.endsWith('.localhost') || host === '127.0.0.1' || host === '[::1]'
+	);
+}
+
+/**
+ * ¿Puede Vega escribir `resetUrl` en la plantilla de invitación de un servidor cuya URL de
+ * aplicación (`settings.meta.appURL`) es `appUrl`?
+ *
+ * La plantilla es estado DEL SERVIDOR y dura más que la pestaña que la escribe. Antes se escribía
+ * el origen desde el que el superusuario tuviera abierta la app, fuera cual fuera: abrir Vega en
+ * `localhost` contra el PocketBase de producción dejaba todos los correos de invitación enlazando
+ * a `localhost`, y como la plantilla ya no era la de fábrica, ninguna visita posterior la corregía.
+ *
+ * Criterio, las dos condiciones a la vez:
+ * 1. **Mismo origen que `appURL`** (esquema, host y puerto). Es la única dirección que el dueño
+ *    del servidor ha declarado como suya; un origen distinto es, para Vega, indistinguible de una
+ *    copia de desarrollo o de un túnel.
+ * 2. **`https:`**, porque el enlace lleva el token que da la contraseña de la cuenta.
+ *    Excepción: un host de loopback (`localhost`, `*.localhost`, `127.0.0.1`, `[::1]`) vale con
+ *    `http:`. Es el desarrollo local legítimo (PocketBase local sirviendo Vega, con su `appURL` de
+ *    fábrica `http://localhost:8090`): el tráfico no sale de la máquina, y como ya se exige que
+ *    coincida con `appURL`, ese mismo servidor está declarando que su dirección es local. Lo que
+ *    NO cuela es el caso del incidente: `localhost` contra un servidor cuyo `appURL` es el de
+ *    producción no coincide en origen.
+ *
+ * Lo que queda fuera a propósito: Vega servida en un origen distinto del `appURL` (SPA en otro
+ * dominio, o `appURL` sin configurar en producción) ya no reescribe la plantilla. Se arregla en el
+ * servidor, poniendo en «Application URL» de PocketBase la dirección https donde se abre Vega.
+ *
+ * Una `resetUrl` o un `appUrl` que no se dejan leer como URL dan `false`.
+ */
+export function canWriteInvitationLink(resetUrl: string, appUrl: string): boolean {
+	let reset: URL;
+	let app: URL;
+	try {
+		reset = new URL(resetUrl);
+		app = new URL(appUrl.trim());
+	} catch {
+		return false;
+	}
+	if (reset.origin !== app.origin) return false;
+	if (reset.protocol === 'https:') return true;
+	return reset.protocol === 'http:' && isLoopbackHost(reset.hostname);
+}
+
 /**
  * Convierte la fecha que sirve PocketBase (`2026-09-24 06:28:36.690Z`, con espacio) a ISO 8601
  * (`2026-09-24T06:28:36.690Z`). Una cadena que no se deja leer como fecha devuelve `null`.

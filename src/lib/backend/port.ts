@@ -114,6 +114,10 @@ export interface AdministrationPort {
 	 * `vega_editors`) lleve a `resetUrl`, la ruta pública de Vega que confirma el token
 	 * (`/restablecer`), y no al Admin de PocketBase (`/_/`), que un despliegue puede no servir.
 	 * Solo escribe si la plantilla sigue siendo la de fábrica: una personalizada no se pisa.
+	 * Y solo si `resetUrl` es de la dirección que el servidor declara como suya, por https
+	 * (`canWriteInvitationLink`): la plantilla es estado del servidor, y la dirección desde la que
+	 * alguien abre Vega un día (un `localhost` contra producción) no puede quedarse escrita en ella.
+	 * Si no lo es, responde `'foreign-origin'` sin escribir.
 	 * `resetUrl` es absoluta y sin query; el token se añade como `?token=`.
 	 */
 	ensureInvitationLink(resetUrl: string): Promise<InvitationLinkState>;
