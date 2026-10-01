@@ -160,6 +160,38 @@ declarados en `nav.groups`; cualquier grupo presente pero no declarado se añade
 alfabético. Un grupo vacío no se muestra. Los rótulos de grupo que no caben en el ancho del sidebar
 se truncan visualmente y mantienen el valor completo disponible como `title`.
 
+## Portada («Inicio»)
+
+Al entrar, Vega abre la portada (`/`) en vez de saltar al primer elemento del menú. No se configura:
+sale del modelo. Tiene tres bloques.
+
+- **Crear**: un acceso por tipo de contenido en el que la sesión puede crear, en el orden del menú
+  lateral. Los tipos de un solo registro (`singleton`) no salen. Sin permiso en ninguno, el bloque no
+  se pinta.
+- **Pendientes**: tarjetas con un número. Cada una existe solo si el proyecto tiene el dato; si no,
+  no se pinta (no se enseña un cero de algo que no se puede saber). Una tarjeta a cero sí se pinta,
+  atenuada.
+
+  | Tarjeta                            | Existe si                                                                | Enlaza     |
+  | ---------------------------------- | ------------------------------------------------------------------------ | ---------- |
+  | «… en borrador»                    | el tipo tiene `statusField`                                              | al listado |
+  | «… con publicación programada»     | el tipo tiene `publishAtField` y el servidor tiene `vegaschedule`        | no         |
+  | «… sin descripción»                | el tipo declara `social.descriptionField` o tiene un campo `description` | no         |
+  | «Medios sin texto alternativo»     | existe la biblioteca de medios                                           | no         |
+  | «Cambios sin publicar en el sitio» | el proyecto anuncia `build`                                              | no         |
+
+  Solo enlaza la tarjeta cuyo filtro se puede escribir en la dirección del listado, que hoy admite
+  búsqueda, orden, estado y página. «Medios sin texto alternativo» cuenta todos los archivos de la
+  biblioteca, también los PDF: el tipo de archivo no se puede filtrar en el servidor.
+
+- **Lo último que editaste**: hasta 8 elementos, del más reciente al más antiguo. La lista se guarda
+  **en el navegador** (`localStorage`, clave `vega.recentEdits.v1:…`, una por servidor y por cuenta,
+  con el id de la cuenta y sin su correo): no sale del historial de versiones, que solo ven los
+  superusuarios. Por eso **no sigue a la persona a otro dispositivo ni a otro navegador**, y se
+  pierde si se borran los datos del sitio. Solo guarda el tipo, el id y la hora del guardado; el
+  título y el estado se leen del servidor al abrir la portada. Un elemento borrado, o que la sesión
+  ya no puede ver, desaparece de la lista. Guardar un bloque de una página anota la página.
+
 ## Campos traducibles
 
 El manifiesto puede agrupar campos físicos como `titleEs` y `titleEn` en un único campo editorial.
