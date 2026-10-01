@@ -174,10 +174,13 @@ describe('restoreTargetType (el destino de una restauración sale de un dato, no
 		expect(restoreTargetType(types, 'posts')).toBe(types[1]);
 	});
 
+	test('vega_media (contenido real, se guarda en la papelera): se devuelve su tipo', () => {
+		expect(restoreTargetType(types, 'vega_media')).toBe(types[3]);
+	});
+
 	test.each([
 		['vega', 'el manifiesto'],
 		['vega_revisions', 'el propio historial'],
-		['vega_media', 'interna de Vega'],
 		['vega_editors', 'auth, y además reservada'],
 		['vega_cualquiera', 'reservada aunque no exista']
 	])('colección interna de Vega "%s" (%s): null aunque esté en el modelo', (collection) => {

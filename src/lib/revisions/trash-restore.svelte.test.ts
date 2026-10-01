@@ -16,13 +16,16 @@ import TrashPage from '../../routes/papelera/+page.svelte';
 
 const TEXT_FIELD = { name: 'title', type: 'text', required: false, readonly: false };
 
-function contentType(name: string) {
+function contentType(name: string, fields: object[] = [TEXT_FIELD]) {
 	return {
 		name,
 		titleField: 'title',
-		schema: { readonly: false, fields: [TEXT_FIELD] }
+		schema: { readonly: false, fields }
 	};
 }
+
+// El `file` obligatorio de `vega_media` (`media-collection.ts`, D-P6.1).
+const REQUIRED_FILE_FIELD = { name: 'file', type: 'file', required: true, readonly: false };
 
 /** Una entrada `kind:'delete'` de la papelera, tal y como la devuelve `port.list`. */
 function trashEntry(id: string, collection: string) {
@@ -41,7 +44,7 @@ function trashEntry(id: string, collection: string) {
 	};
 }
 
-function mountPage(entries: ReturnType<typeof trashEntry>[]) {
+function mountPage(entries: ReturnType<typeof trashEntry>[], mediaFields?: object[]) {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const create = vi.fn(async () => ({ id: 'x', type: 'x', values: {} }));
@@ -52,8 +55,12 @@ function mountPage(entries: ReturnType<typeof trashEntry>[]) {
 		model: {
 			revisions: { enabled: true, trashDays: 30 },
 			// `vega_revisions` está en el modelo (la papelera está disponible) y `posts` es el tipo
-			// normal; `vega_media` está en el modelo pero es interna de Vega.
-			types: [contentType('vega_revisions'), contentType('vega_media'), contentType('posts')]
+			// normal; `vega_media` es contenido real (se guarda en la papelera) con `file` obligatorio.
+			types: [
+				contentType('vega_revisions'),
+				contentType('vega_media', mediaFields ?? [TEXT_FIELD, REQUIRED_FILE_FIELD]),
+				contentType('posts')
+			]
 		},
 		port: {
 			capabilities: { explicitRecordId: true },
@@ -100,7 +107,7 @@ describe('/papelera: restaurar valida el destino contra el modelo', () => {
 		vi.restoreAllMocks();
 	});
 
-	test.each(['vega_revisions', 'vega', 'vega_media', 'borrada_del_esquema'])(
+	test.each(['vega_revisions', 'vega', 'vega_editors', 'borrada_del_esquema'])(
 		'una entrada de «%s» no ofrece Restaurar y no llega a port.create',
 		async (collection) => {
 			mounted = mountPage([trashEntry('a', collection)]);
@@ -121,5 +128,25 @@ describe('/papelera: restaurar valida el destino contra el modelo', () => {
 		await settle();
 		expect(mounted.create).toHaveBeenCalledTimes(1);
 		expect(mounted.create).toHaveBeenCalledWith('posts', { title: 'Hola' }, { id: 'rec_b' });
+	});
+
+	test('vega_media con file obligatorio: bloqueada por requiredFile, no por «no existe en el esquema»', async () => {
+		mounted = mountPage([trashEntry('m', 'vega_media')]);
+		await settle();
+		const reason = mounted.target.querySelector('.vega-trash-item-restore-unavailable');
+		expect(reason?.textContent).toContain('revisions.trash.restoreBlockedRequiredFile');
+		expect(reason?.textContent).not.toContain('restoreUnknownSchema');
+		expect(restoreButtons(mounted.target)).toHaveLength(0);
+		expect(mounted.create).not.toHaveBeenCalled();
+	});
+
+	test('vega_media sin file obligatorio (inalcanzable con el esquema real): sería restaurable', async () => {
+		mounted = mountPage([trashEntry('n', 'vega_media')], [TEXT_FIELD]);
+		await settle();
+		const buttons = restoreButtons(mounted.target);
+		expect(buttons).toHaveLength(1);
+		buttons[0].click();
+		await settle();
+		expect(mounted.create).toHaveBeenCalledWith('vega_media', { title: 'Hola' }, { id: 'rec_n' });
 	});
 });
