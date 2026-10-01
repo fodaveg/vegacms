@@ -144,6 +144,9 @@ func (x *Extension) finishRegister(e *core.RequestEvent) error {
 	if err := saveCredential(e.App, e.Auth.Id, credential, name); err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
 	}
+	if err := dropUnverifiedTOTP(e.App, e.Auth); err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
+	}
 	return e.JSON(http.StatusOK, map[string]bool{"ok": true})
 }
 
@@ -353,6 +356,9 @@ func (x *Extension) deletePasskey(e *core.RequestEvent) error {
 	}
 	if err := e.App.Delete(record); err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "delete_failed"})
+	}
+	if err := dropUnverifiedTOTP(e.App, e.Auth); err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
 	}
 	return e.JSON(http.StatusOK, map[string]bool{"ok": true})
 }

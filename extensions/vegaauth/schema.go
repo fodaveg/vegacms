@@ -39,6 +39,14 @@ func (x *Extension) EnsureCollections(app core.App) error {
 	} else {
 		typed.Hidden = true
 	}
+	// Unix time until which the pending secret may still be verified.
+	if field := auth.Fields.GetByName("totp_pending_until"); field == nil {
+		auth.Fields.Add(&core.NumberField{Name: "totp_pending_until", Hidden: true, OnlyInt: true})
+	} else if typed, ok := field.(*core.NumberField); !ok {
+		return fmt.Errorf("vegaauth: %s.totp_pending_until must be number", auth.Name)
+	} else {
+		typed.Hidden = true
+	}
 	// Last accepted TOTP time step, so a code is single-use inside its validity window. Added in
 	// place to existing installations; PocketBase backfills the column with 0 (nothing used yet).
 	if field := auth.Fields.GetByName("totp_last_step"); field == nil {

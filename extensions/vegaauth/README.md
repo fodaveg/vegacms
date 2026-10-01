@@ -124,6 +124,15 @@ proof on purpose: it is how the owner of a lost authenticator replaces it.
 code generated from it; until then logins keep asking for the old authenticator. Abandoning the
 enrollment changes nothing, and enrolling again overwrites the pending secret.
 
+An unverified secret cannot outlive the moment it was created for. It expires ten minutes after
+`/totp/enroll` (hidden `totp_pending_until`; `POST /totp/verify` then answers
+`400 enrollment_expired` and discards it), and it is discarded whenever a passkey is registered or
+deleted. Once the account has any factor, `POST /totp/verify` only activates a secret (a pending
+one, or one an older version stored without enabling) for a session with a fresh proof; otherwise
+it answers `428 step_up_required`. Its body may carry `"proof"` with the current code of the
+active authenticator, next to `"code"`, which belongs to the secret being verified. So a secret
+planted while the account had no factor cannot be switched on after the owner sets one up.
+
 The proof belongs to the **session** that gave it, not to the account: it is stored in process
 memory under the SHA-256 of the session token (never the token itself). Another token of the same
 account, such as a stolen one or a login on another device, does not inherit it and gets `428`.

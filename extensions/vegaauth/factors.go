@@ -34,6 +34,7 @@ func (x *Extension) enrollTOTP(e *core.RequestEvent) error {
 	// app has it. The active secret and totp_enabled are not touched, so redoing the enrollment
 	// (or abandoning it halfway) never leaves the account without its second factor.
 	e.Auth.Set("totp_pending_secret", key.Secret())
+	e.Auth.Set("totp_pending_until", time.Now().Add(pendingEnrollmentTTL).Unix())
 	if err := e.App.Save(e.Auth); err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
 	}
@@ -84,6 +85,30 @@ func (x *Extension) consumeTOTP(app core.App, record *core.Record, passcode stri
 	return true, nil
 }
 
+// pendingEnrollmentTTL is how long an unverified TOTP secret may wait for its first code.
+const pendingEnrollmentTTL = 10 * time.Minute
+
+// dropUnverifiedTOTP discards any TOTP secret that was never verified: a pending enrollment and
+// the secret an older version stored before enabling. It runs when an enrollment expires and
+// whenever the account's passkeys change, so a secret planted while the account had no factor
+// cannot be activated after the owner sets one up.
+func dropUnverifiedTOTP(app core.App, record *core.Record) error {
+	changed := false
+	if record.GetString("totp_pending_secret") != "" || record.GetInt("totp_pending_until") != 0 {
+		record.Set("totp_pending_secret", "")
+		record.Set("totp_pending_until", 0)
+		changed = true
+	}
+	if !record.GetBool("totp_enabled") && record.GetString("totp_secret") != "" {
+		record.Set("totp_secret", "")
+		changed = true
+	}
+	if !changed {
+		return nil
+	}
+	return app.Save(record)
+}
+
 type codeBody struct {
 	Code string `json:"code"`
 }
@@ -92,13 +117,33 @@ func (x *Extension) verifyTOTP(e *core.RequestEvent) error {
 	if e.Auth == nil || e.Auth.Collection().Name != x.config.AuthCollection {
 		return unauthorized(e)
 	}
-	var body codeBody
+	var body struct {
+		Code string `json:"code"`
+		// Proof is the current code of the ACTIVE authenticator, for an account that replaces it
+		// and no longer has a recent proof; Code belongs to the secret being verified.
+		Proof string `json:"proof"`
+	}
 	if err := e.BindBody(&body); err != nil {
 		return e.JSON(http.StatusBadRequest, map[string]string{"error": "bad_request"})
 	}
 	pendingSecret := e.Auth.GetString("totp_pending_secret")
 	if pendingSecret == "" && e.Auth.GetString("totp_secret") == "" {
 		return e.JSON(http.StatusBadRequest, map[string]string{"error": "not_enrolled"})
+	}
+	if pendingSecret != "" && int64(e.Auth.GetInt("totp_pending_until")) < time.Now().Unix() {
+		// An enrollment nobody finished in time is void: a secret planted long ago must not be
+		// activated later.
+		if err := dropUnverifiedTOTP(e.App, e.Auth); err != nil {
+			return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
+		}
+		return e.JSON(http.StatusBadRequest, map[string]string{"error": "enrollment_expired"})
+	}
+	if pendingSecret != "" || !e.Auth.GetBool("totp_enabled") {
+		// Activating a secret (a pending one, or one an older version stored without enabling)
+		// changes the account's factors: if it already has one, the session must have proven it.
+		if refused, response := x.stepUpRefused(e, body.Proof); refused {
+			return response
+		}
 	}
 	// Guesses are limited per account: a session token must not be a way to brute-force a code.
 	identity := loginIdentity(stepUpScope + ":" + e.Auth.Id)
@@ -113,6 +158,7 @@ func (x *Extension) verifyTOTP(e *core.RequestEvent) error {
 		}
 		e.Auth.Set("totp_secret", pendingSecret)
 		e.Auth.Set("totp_pending_secret", "")
+		e.Auth.Set("totp_pending_until", 0)
 		if int64(e.Auth.GetInt("totp_last_step")) < step {
 			e.Auth.Set("totp_last_step", step)
 		}
@@ -150,6 +196,7 @@ func (x *Extension) disableTOTP(e *core.RequestEvent) error {
 	}
 	e.Auth.Set("totp_secret", "")
 	e.Auth.Set("totp_pending_secret", "")
+	e.Auth.Set("totp_pending_until", 0)
 	e.Auth.Set("totp_enabled", false)
 	if err := e.App.Save(e.Auth); err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
