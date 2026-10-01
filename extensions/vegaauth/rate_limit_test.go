@@ -1,8 +1,10 @@
 package vegaauth
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -66,6 +68,40 @@ func TestParallelSecondFactorGuessesCannotExceedTheAttemptLimit(t *testing.T) {
 	})
 	if tally[http.StatusUnauthorized] != maxAttempts || tally[http.StatusTooManyRequests] != 40-maxAttempts {
 		t.Fatalf("expected exactly %d evaluated recovery codes and the rest locked, got %v", maxAttempts, tally)
+	}
+}
+
+func TestProxyHeadersThatAreNotAddressesDoNotMintRateLimitBuckets(t *testing.T) {
+	server := newTestServer(t)
+	server.extension.config.TrustProxy = true
+	server.newUser("editor@example.com", false)
+	guess := func(header, value string) int {
+		request := httptest.NewRequest(http.MethodPost, "/api/vega-auth/login/password", strings.NewReader(`{"email":"editor@example.com","password":"wrong"}`))
+		request.RemoteAddr = testIP + ":1234"
+		request.Header.Set("content-type", "application/json")
+		request.Header.Set(header, value)
+		response := httptest.NewRecorder()
+		server.mux.ServeHTTP(response, request)
+		return response.Code
+	}
+	for i := 0; i < maxAttempts; i++ {
+		header := "X-Real-Ip"
+		if i%2 == 1 {
+			header = "X-Forwarded-For"
+		}
+		if code := guess(header, fmt.Sprintf("made-up-%d", i)); code != http.StatusUnauthorized {
+			t.Fatalf("guess %d: %d", i+1, code)
+		}
+	}
+	if code := guess("X-Real-Ip", "another-made-up-value"); code != http.StatusTooManyRequests {
+		t.Fatalf("made-up header values must all count against the real address: %d", code)
+	}
+	// A real address from the proxy is still honoured, in canonical form.
+	if code := guess("X-Forwarded-For", "garbage, 2001:DB8::1"); code != http.StatusUnauthorized {
+		t.Fatalf("a valid forwarded address is its own bucket: %d", code)
+	}
+	if _, err := server.app.FindFirstRecordByFilter(attemptsCollection, "ip = '2001:db8::1'"); err != nil {
+		t.Fatalf("the forwarded address must be stored in canonical form: %v", err)
 	}
 }
 

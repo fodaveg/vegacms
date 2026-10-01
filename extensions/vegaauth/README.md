@@ -162,7 +162,8 @@ found.
 - `RPID` must be the effective site domain and every Vega origin must be listed exactly in
   `RPOrigins`; production passkeys require HTTPS.
 - Set `TrustProxy` only when PocketBase is behind a proxy you control and that proxy overwrites
-  `X-Real-IP`/`X-Forwarded-For`.
+  `X-Real-IP`/`X-Forwarded-For`. Header values that are not IP addresses are ignored and the
+  connection address is used instead.
 - The three `vega_*` support collections have no public API rules and are server-only.
 - `EnsureCollections` disables PocketBase's native password, OTP, OAuth and built-in MFA token
   endpoints for the dedicated auth collection. This prevents bypassing Vega's TOTP challenge;

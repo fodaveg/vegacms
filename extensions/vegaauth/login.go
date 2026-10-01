@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -138,14 +139,16 @@ func (x *Extension) authTokenResponse(e *core.RequestEvent, record *core.Record,
 
 func (x *Extension) clientIP(e *core.RequestEvent) string {
 	if x.config.TrustProxy {
-		if realIP := strings.TrimSpace(e.Request.Header.Get("X-Real-Ip")); realIP != "" {
-			return realIP
+		// Only a well-formed address is taken from the proxy headers, in canonical form. Anything
+		// else would let a client mint a new rate-limit bucket per request with made-up values.
+		if realIP := net.ParseIP(strings.TrimSpace(e.Request.Header.Get("X-Real-Ip"))); realIP != nil {
+			return realIP.String()
 		}
 		if forwarded := e.Request.Header.Get("X-Forwarded-For"); forwarded != "" {
 			parts := strings.Split(forwarded, ",")
 			for i := len(parts) - 1; i >= 0; i-- {
-				if ip := strings.TrimSpace(parts[i]); ip != "" {
-					return ip
+				if ip := net.ParseIP(strings.TrimSpace(parts[i])); ip != nil {
+					return ip.String()
 				}
 			}
 		}
