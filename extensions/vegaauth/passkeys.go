@@ -120,8 +120,8 @@ func (x *Extension) finishRegister(e *core.RequestEvent) error {
 	if err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "load_failed"})
 	}
-	if err := normalizeRequestBody(e.Request); err != nil {
-		return e.JSON(http.StatusBadRequest, map[string]string{"error": "bad_request"})
+	if err := normalizeRequestBody(e.Response, e.Request); err != nil {
+		return bodyError(e, err)
 	}
 	credential, err := x.webAuthn.FinishRegistration(user, *session, e.Request)
 	if err != nil {
@@ -162,9 +162,9 @@ func (x *Extension) beginDiscoverableLogin(e *core.RequestEvent) error {
 
 func (x *Extension) finishDiscoverableLogin(e *core.RequestEvent) error {
 	ip := x.clientIP(e)
-	challenge, err := assertionChallenge(e.Request)
+	challenge, err := assertionChallenge(e.Response, e.Request)
 	if err != nil {
-		return e.JSON(http.StatusBadRequest, map[string]string{"error": "bad_request"})
+		return bodyError(e, err)
 	}
 	session := x.takeSession("discoverable:" + challenge)
 	if session == nil {
@@ -226,12 +226,11 @@ func (x *Extension) finishDiscoverableLogin(e *core.RequestEvent) error {
 
 // assertionChallenge reads clientDataJSON to choose the matching anonymous WebAuthn session,
 // then restores the exact request bytes for go-webauthn's parser.
-func assertionChallenge(request *http.Request) (string, error) {
-	raw, err := io.ReadAll(request.Body)
+func assertionChallenge(w http.ResponseWriter, request *http.Request) (string, error) {
+	raw, err := readLimitedBody(w, request)
 	if err != nil {
 		return "", err
 	}
-	request.Body = io.NopCloser(bytes.NewReader(raw))
 	var assertion struct {
 		Response struct {
 			ClientData string `json:"clientDataJSON"`
@@ -253,13 +252,34 @@ func assertionChallenge(request *http.Request) (string, error) {
 	return data.Challenge, nil
 }
 
-func normalizeRequestBody(request *http.Request) error {
-	raw, err := io.ReadAll(request.Body)
+func normalizeRequestBody(w http.ResponseWriter, request *http.Request) error {
+	_, err := readLimitedBody(w, request)
+	return err
+}
+
+// maxWebAuthnBody bounds the ceremony payloads this package buffers in memory. Real assertions
+// and attestations are a few kilobytes; PocketBase's own limit (32 MiB) is far too generous for
+// an endpoint anyone can call without a session.
+const maxWebAuthnBody = 64 << 10
+
+// readLimitedBody buffers at most maxWebAuthnBody bytes and puts them back as the request body.
+// A larger payload fails with *http.MaxBytesError before it is held in memory.
+func readLimitedBody(w http.ResponseWriter, request *http.Request) ([]byte, error) {
+	raw, err := io.ReadAll(http.MaxBytesReader(w, request.Body, maxWebAuthnBody))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	request.Body = io.NopCloser(bytes.NewReader(raw))
-	return nil
+	return raw, nil
+}
+
+// bodyError answers a ceremony body that could not be read or understood.
+func bodyError(e *core.RequestEvent, err error) error {
+	var tooLarge *http.MaxBytesError
+	if errors.As(err, &tooLarge) {
+		return e.JSON(http.StatusRequestEntityTooLarge, map[string]string{"error": "payload_too_large"})
+	}
+	return e.JSON(http.StatusBadRequest, map[string]string{"error": "bad_request"})
 }
 
 func (x *Extension) listPasskeys(e *core.RequestEvent) error {

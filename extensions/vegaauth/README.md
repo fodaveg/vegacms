@@ -108,6 +108,8 @@ this automatically, but the legacy implementation predates that hardening.
   logins and is reported as `cloneWarning` by `GET /passkey/list`; the stored counter is left
   untouched, so the authenticator that is ahead keeps working. Deleting the passkey clears it.
   Synced passkeys that always report counter `0` never trigger it.
+- The two passkey `finish` bodies are buffered through `http.MaxBytesReader` with a 64 KiB cap;
+  a larger payload gets `413 payload_too_large` and does not consume the pending challenge.
 - Pending password challenges and WebAuthn challenges live in process memory for five minutes.
   A multi-replica deployment therefore needs sticky routing or a shared challenge store.
 - Anonymous challenge creation is rate-limited per IP; both MFA and WebAuthn stores prune expired
@@ -125,5 +127,10 @@ rewrites existing data.
 ## Verify
 
 ```sh
-go test ./...
+go vet ./...
+go test -race -cover ./...
 ```
+
+The suite drives the real HTTP routes against a PocketBase test app, including whole passkey
+ceremonies signed by a software authenticator and bursts of concurrent login attempts, so run it
+with `-race`.

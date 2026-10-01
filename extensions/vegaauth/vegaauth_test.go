@@ -73,7 +73,7 @@ func TestAssertionChallengeSelectsSessionAndRestoresBody(t *testing.T) {
 		t.Fatal(err)
 	}
 	request := httptest.NewRequest("POST", "/finish", strings.NewReader(string(payload)))
-	challenge, err := assertionChallenge(request)
+	challenge, err := assertionChallenge(httptest.NewRecorder(), request)
 	if err != nil {
 		t.Fatal(err)
 	}
