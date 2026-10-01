@@ -2,6 +2,14 @@
  * Duplicado de páginas y bloques sobre el puerto genérico. La copia nunca arrastra campos
  * readonly ni `file`: un FileRef pertenece al registro original y los adaptadores rechazan
  * reutilizarlo al crear otro. Las relaciones y el JSON sí se clonan en profundidad.
+ *
+ * La copia de un tipo publicable (`statusField`) nace SIEMPRE en borrador y sin `publishAtField`:
+ * duplicar una página publicada no puede publicar una copia a medias en la ruta `-copia`, y una
+ * fecha programada copiada haría que `vegaschedule` publicara la copia sin que nadie la revisara.
+ * Un `override` explícito del llamador sigue ganando.
+ *
+ * El rollback de `duplicatePage` es best-effort: el puerto no tiene transacciones, y el error
+ * original manda aunque la limpieza también falle.
  */
 import type { BackendPort } from '$lib/backend/port';
 import type { RecordInput, VegaRecord } from '$lib/backend/types';
@@ -23,6 +31,12 @@ export function duplicateInput(
 		if (!(field.name in record.values)) continue;
 		input[field.name] = structuredClone(record.values[field.name]);
 	}
+	// `statusField` solo se resuelve si es un select con `draft`+`published`, así que `draft` existe.
+	// Con el campo readonly no se escribe (el servidor decide el valor inicial).
+	const writable = (name: string | null | undefined): name is string =>
+		!!name && type.fields.some((f) => f.name === name && !f.schema.readonly);
+	if (writable(type.statusField)) input[type.statusField] = 'draft';
+	if (writable(type.statusField) && writable(type.publishAtField)) input[type.publishAtField] = '';
 	return { ...input, ...overrides };
 }
 
@@ -178,6 +192,8 @@ export async function duplicatePage(
 	} catch (err) {
 		// El puerto no ofrece transacciones multi-colección. Rollback best-effort para no dejar una
 		// página a medio clonar; el error original manda aunque alguna limpieza también falle.
+		// Se usa `port.delete` (no un borrado crudo): con `withRevisions` cada borrado deja su revisión
+		// de papelera, y es ese decorador quien la retira si el borrado real falla.
 		await Promise.allSettled(createdBlocks.map((record) => port.delete(record.type, record.id)));
 		await port.delete(createdPage.type, createdPage.id).catch(() => {});
 		throw err;

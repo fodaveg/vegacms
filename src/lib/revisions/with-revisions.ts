@@ -26,7 +26,9 @@
  * resolvió (`recordUpdateRevision`). Coste asumido: si la pestaña muere entre la escritura y el
  * `create` de la revisión, esa versión anterior no queda en el historial. `delete` conserva el
  * orden original (snapshot → borrado): su revisión ES la papelera, y perderla por un cierre a
- * destiempo sería perder el registro.
+ * destiempo sería perder el registro. Y si el `port.delete` real falla, la revisión recién creada
+ * se borra (compensación best-effort): sin ello la papelera enseñaría un registro que sigue vivo y
+ * «Restaurar» fallaría. Si la compensación también falla, se relanza el error original del borrado.
  *
  * **INVARIANTE 2 (§4): un fallo de snapshot NUNCA rompe la escritura.** Toda la maquinaria de
  * snapshot vive dentro de `try/catch` que nunca relanza — si `port.get` (pre-imagen), `port.create`
@@ -288,7 +290,7 @@ export function withRevisions(port: BackendPort): BackendPort {
 		type: string,
 		id: RecordId,
 		preValues: VegaRecord['values']
-	): Promise<void> {
+	): Promise<RecordId> {
 		const input: RecordInput = {
 			collection: type,
 			recordId: id,
@@ -297,7 +299,8 @@ export function withRevisions(port: BackendPort): BackendPort {
 			label: guessRecordLabel(preValues, id),
 			author: port.currentSession()?.user.email ?? ''
 		};
-		await port.create(VEGA_REVISIONS_COLLECTION.name, input);
+		const created = await port.create(VEGA_REVISIONS_COLLECTION.name, input);
+		return created.id;
 	}
 
 	/**
@@ -351,32 +354,34 @@ export function withRevisions(port: BackendPort): BackendPort {
 	 * criterio de "nunca rompe la escritura" (§4) — la única diferencia es la poda que dispara
 	 * después (`pruneTrashRevisions`, GLOBAL por antigüedad, no por registro).
 	 */
-	async function snapshotBeforeDelete(type: string, id: RecordId): Promise<void> {
-		if (!shouldSnapshot(type)) return;
+	async function snapshotBeforeDelete(type: string, id: RecordId): Promise<RecordId | null> {
+		if (!shouldSnapshot(type)) return null;
 
 		let config: RevisionsManifestConfig;
 		try {
 			config = await loadConfig();
 		} catch {
-			return; // defensivo: `fetchRevisionsConfig` ya no debería rechazar, pero nunca romper por esto
+			return null; // defensivo: `fetchRevisionsConfig` ya no debería rechazar, pero nunca romper por esto
 		}
-		if (!config.enabled) return;
+		if (!config.enabled) return null;
 
 		let pre: VegaRecord;
 		try {
 			pre = await port.get(type, id);
 		} catch {
-			return; // sin pre-imagen que guardar (§4): el borrado sigue su curso igual
+			return null; // sin pre-imagen que guardar (§4): el borrado sigue su curso igual
 		}
 
+		let revisionId: RecordId;
 		try {
-			await captureSnapshot('delete', type, id, pre.values);
+			revisionId = await captureSnapshot('delete', type, id, pre.values);
 		} catch (err) {
 			if (err instanceof VegaError && err.kind === 'not-found') revisionsUnavailable = true;
-			return; // §4: un fallo de snapshot NUNCA rompe la escritura
+			return null; // §4: un fallo de snapshot NUNCA rompe la escritura
 		}
 
 		void pruneTrashRevisions(port, config.trashDays);
+		return revisionId;
 	}
 
 	const wrapped: BackendPort = {
@@ -396,8 +401,18 @@ export function withRevisions(port: BackendPort): BackendPort {
 			return saved;
 		},
 		async delete(type, id) {
-			await snapshotBeforeDelete(type, id);
-			return port.delete(type, id);
+			const revisionId = await snapshotBeforeDelete(type, id);
+			try {
+				return await port.delete(type, id);
+			} catch (err) {
+				// El borrado falló: el registro sigue vivo, así que su revisión de papelera sería una
+				// mentira («Restaurar» fallaría contra un registro que nunca se fue). Se retira; si
+				// esa compensación también falla, manda el error ORIGINAL del borrado.
+				if (revisionId !== null) {
+					await port.delete(VEGA_REVISIONS_COLLECTION.name, revisionId).catch(() => {});
+				}
+				throw err;
+			}
 		}
 	};
 
