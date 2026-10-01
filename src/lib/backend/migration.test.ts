@@ -362,9 +362,9 @@ describe('generateSchemaMigration — mapeo de campos (paridad con el adaptador 
 		const network = collectionFieldSpecToPbField(declared);
 
 		expect(network.mimeTypes).toEqual(mimeTypes);
-		expect(
-			collectionSpecToMigrationPayload({ name: 'docs_t', fields: [declared] }).fields
-		).toEqual([network]);
+		expect(collectionSpecToMigrationPayload({ name: 'docs_t', fields: [declared] }).fields).toEqual(
+			[network]
+		);
 	});
 
 	test('la lista por defecto no admite HTML, SVG ni comodines', () => {

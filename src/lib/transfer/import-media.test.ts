@@ -189,9 +189,14 @@ describe('fetchTransferFile', () => {
 	it('un rechazo por esquema no consume hueco de la cola de concurrencia', async () => {
 		vi.stubGlobal(
 			'fetch',
-			vi.fn().mockResolvedValue(
-				new Response(new Uint8Array([1]), { status: 200, headers: { 'content-type': 'image/png' } })
-			)
+			vi
+				.fn()
+				.mockResolvedValue(
+					new Response(new Uint8Array([1]), {
+						status: 200,
+						headers: { 'content-type': 'image/png' }
+					})
+				)
 		);
 		const rejected = await Promise.all(
 			Array.from({ length: 12 }, () => fetchTransferFile({ file: 'x.png', url: 'file:///x.png' }))
