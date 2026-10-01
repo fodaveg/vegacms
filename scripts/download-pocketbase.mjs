@@ -13,7 +13,13 @@
  * test de contrato contra PB se salta declarándolo (ver `tests/contract/pb-harness/binary.ts`),
  * nunca rompe `pnpm gate` para quien no tenga el binario. Un checksum que NO casa es distinto:
  * eso SÍ aborta con error (supply-chain, D-P8.8 opción A) — no es "falta de red", es "lo que
- * llegó no es lo esperado".
+ * llegó no es lo esperado". Lo mismo si la versión pedida (`PB_VERSION`) no tiene hash en
+ * `PB_CHECKSUMS` para esta plataforma: aborta con error ANTES de descargar, porque no habría con
+ * qué verificar lo que llegue. No hay variable que lo salte: una versión nueva entra añadiendo su
+ * hash a la tabla.
+ *
+ * Límite conocido: un binario que YA está en `.pbbin/` con la versión pedida se reutiliza sin
+ * volver a verificarlo (`alreadyUsable`); el hash se comprueba sobre el zip, al descargarlo.
  */
 
 import { createWriteStream, existsSync, mkdirSync, chmodSync, rmSync, readFileSync } from 'node:fs';
@@ -75,23 +81,34 @@ function pbPlatformArch() {
 }
 
 /**
- * Verifica el SHA256 del zip descargado contra `PB_CHECKSUMS` (D-P8.8 opción A). Si no hay hash
- * conocido para esta versión/plataforma, avisa (no bloquea versiones fuera de la matriz/pin
- * actual — de lo contrario nadie podría probar una versión nueva de PB sin tocar antes este
- * script) pero lo deja BIEN visible en el log. Si hay hash conocido y NO casa, aborta: eso es
- * exactamente el escenario de supply-chain que esta verificación existe para cazar.
+ * El SHA256 esperado para `PB_VERSION` en esta plataforma. Si `PB_CHECKSUMS` no lo trae, lanza
+ * `MissingChecksumError`: sin hash contra el que comparar NO se descarga (antes se avisaba y se
+ * instalaba el binario sin verificar, que es justo el hueco que la verificación existe para
+ * cerrar). Probar una versión nueva de PocketBase pasa por añadir antes su hash a la tabla.
+ * `Object.hasOwn` y no acceso directo: `PB_VERSION` viene del entorno, y una clave heredada
+ * (`constructor`, `__proto__`) no es una versión.
  */
-function verifyChecksum(zipPath, platformArch) {
-	const expected = PB_CHECKSUMS[PB_VERSION]?.[platformArch];
-	const actual = createHash('sha256').update(readFileSync(zipPath)).digest('hex');
-	if (!expected) {
-		console.warn(
-			`[pocketbase] AVISO: no hay checksum conocido para ${PB_VERSION}/${platformArch} en ` +
-				`scripts/download-pocketbase.mjs (PB_CHECKSUMS). Descarga SIN verificar. Añade el ` +
-				`hash oficial (checksums.txt del release de GitHub) si esta versión pasa a ser fija.`
+function expectedChecksum(platformArch) {
+	const byPlatform = Object.hasOwn(PB_CHECKSUMS, PB_VERSION) ? PB_CHECKSUMS[PB_VERSION] : undefined;
+	const expected =
+		byPlatform && Object.hasOwn(byPlatform, platformArch) ? byPlatform[platformArch] : undefined;
+	if (typeof expected !== 'string' || expected.length === 0) {
+		throw new MissingChecksumError(
+			`No hay checksum conocido para pocketbase ${PB_VERSION}/${platformArch} en ` +
+				`scripts/download-pocketbase.mjs (PB_CHECKSUMS). No se descarga nada sin poder ` +
+				`verificarlo. Añade el hash oficial (checksums.txt del release de GitHub) a la tabla ` +
+				`y vuelve a lanzarlo.`
 		);
-		return;
 	}
+	return expected;
+}
+
+/**
+ * Verifica el SHA256 del zip descargado contra `expected` (D-P8.8 opción A). Si NO casa, aborta:
+ * eso es exactamente el escenario de supply-chain que esta verificación existe para cazar.
+ */
+function verifyChecksum(zipPath, platformArch, expected) {
+	const actual = createHash('sha256').update(readFileSync(zipPath)).digest('hex');
 	if (actual !== expected) {
 		throw new ChecksumMismatchError(
 			`Checksum SHA256 no coincide para pocketbase_${PB_VERSION}_${platformArch}.zip.\n` +
@@ -109,6 +126,10 @@ function verifyChecksum(zipPath, platformArch) {
  * para que `main()` lo deje escapar como fallo DURO en vez de tragárselo.
  */
 class ChecksumMismatchError extends Error {}
+
+/** Tercer caso, igual de DURO que el anterior: no hay hash contra el que verificar, así que ni se
+ *  intenta la descarga (ver `expectedChecksum`). */
+class MissingChecksumError extends Error {}
 
 /**
  * `true` solo si el binario en `.pbbin/` ya existe, es ejecutable Y es la versión pedida
@@ -131,6 +152,8 @@ async function alreadyUsable() {
 
 async function download() {
 	const platformArch = pbPlatformArch();
+	// ANTES de tocar la red: sin hash conocido no hay nada que descargar.
+	const expected = expectedChecksum(platformArch);
 	const asset = `pocketbase_${PB_VERSION}_${platformArch}.zip`;
 	const url = `https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/${asset}`;
 
@@ -145,7 +168,7 @@ async function download() {
 	await pipeline(Readable.fromWeb(res.body), createWriteStream(zipPath));
 
 	try {
-		verifyChecksum(zipPath, platformArch);
+		verifyChecksum(zipPath, platformArch, expected);
 	} catch (err) {
 		// Un zip que no verifica no debe quedarse en `.pbbin/`: ni como binario extraído (no
 		// llegamos ahí) ni como zip a medio verificar que un reintento pueda confundir con "ya
@@ -177,9 +200,10 @@ async function main() {
 	try {
 		await download();
 	} catch (err) {
-		if (err instanceof ChecksumMismatchError) {
+		if (err instanceof ChecksumMismatchError || err instanceof MissingChecksumError) {
 			// A diferencia de "sin red/GitHub caído", esto NUNCA se traga en silencio (D-P8.8):
-			// un checksum que no casa es un fallo de supply-chain, no una ausencia de binario.
+			// un checksum que no casa es un fallo de supply-chain, no una ausencia de binario. Y
+			// una versión sin checksum en la tabla no se puede verificar, que para el caso es igual.
 			console.error(`[pocketbase] ${err.message}`);
 			process.exitCode = 1;
 			return;
