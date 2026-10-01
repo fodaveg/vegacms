@@ -59,6 +59,7 @@
 	 */
 	import type { Snippet } from 'svelte';
 	import type { ResolvedField, ResolvedLayout } from '$lib/model/types';
+	import { fieldDisplayLabel } from '$lib/model/default-labels';
 	import type { FieldInputValue } from '$lib/backend/types';
 	import type { TranslatedError } from './field-errors';
 	import { fieldIds } from './field-ids';
@@ -138,8 +139,9 @@
 	data-widget={field.widget}
 >
 	<label id={ids.labelId} for={ids.inputId}>
-		{field.label}{#if field.schema.required}<span class="vega-field-required" aria-hidden="true"
-				>*</span
+		{fieldDisplayLabel(field, ctx.t)}{#if field.schema.required}<span
+				class="vega-field-required"
+				aria-hidden="true">*</span
 			>{/if}
 	</label>
 	<div class="vega-field-control">

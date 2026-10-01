@@ -480,7 +480,7 @@
 	.vega-media-sub {
 		display: block;
 		margin-top: 1px;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		font-family: var(--mono);
 		font-size: 0.72em;
 		line-height: 1.4;

@@ -1211,7 +1211,12 @@
 			<div class="vega-visual-status" aria-live="polite">
 				{#if bridgeState.status === 'connected'}
 					<span class="vega-visual-status-text">
-						{ctx.t('editor.visual.connected', { count: bridgeState.blocks.length })}
+						{ctx.t(
+							bridgeState.blocks.length === 1
+								? 'editor.visual.connected.one'
+								: 'editor.visual.connected.many',
+							{ count: bridgeState.blocks.length }
+						)}
 					</span>
 				{:else if bridgeState.status === 'error'}
 					{@const errorText = bridgeErrorText(bridgeState.kind, bridgeState)}
@@ -1458,6 +1463,12 @@
 
 	.vega-visual-back:hover {
 		color: var(--ink);
+	}
+
+	/* El chevron del set apunta a la derecha: se espeja para señalar "atrás" (como `.vega-editor-back`
+	   en `RecordForm.svelte`). */
+	.vega-visual-back :global(svg) {
+		transform: scaleX(-1);
 	}
 
 	/* Migas (ver cabecera, "Migas"): `<ol>` en fila, separador `›` como `::before` de CADA `li`

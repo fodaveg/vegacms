@@ -196,7 +196,7 @@
 		font-weight: 650;
 		letter-spacing: 0.09em;
 		text-transform: uppercase;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		overflow-wrap: anywhere;
 	}
 
@@ -247,7 +247,7 @@
 		font-weight: 600;
 		letter-spacing: 0.04em;
 		text-transform: uppercase;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;

@@ -2,7 +2,7 @@
  * Suite del historial de versiones (`#lote-integridad`, Fase B1): bootstrap desde Ajustes →
  * editar → guardar → abrir "Historial" → ver el diff → "Restaurar en el formulario" (§8·B1).
  * Contra el adaptador `memory` (`DEMO_SEED`, ver `session/demo-seed.ts`), colección `posts`
- * (`getByLabel('Title')`/`getByLabel('Body')`, mismo criterio que `e2e/form.spec.ts`/
+ * (`getByRole('textbox', { name: 'Título', exact: true })`/`getByLabel('Body')`, mismo criterio que `e2e/form.spec.ts`/
  * `e2e/media-integrity.spec.ts`).
  *
  * La papelera (Fase B2: borrar → `/papelera` → restaurar) vive en `e2e/trash.spec.ts`, fichero
@@ -43,7 +43,7 @@ async function enableRevisions(page: import('@playwright/test').Page): Promise<v
  *  mutación EN SESIÓN previa que conservar (mismo criterio que el resto de `e2e/form.spec.ts`). */
 async function createPost(page: import('@playwright/test').Page, title: string): Promise<void> {
 	await page.goto('/c/posts/new');
-	await page.getByLabel('Title').fill(title);
+	await page.getByRole('textbox', { name: 'Título', exact: true }).fill(title);
 	await page.getByLabel('Body').fill('Cuerpo inicial.');
 	await page.getByRole('button', { name: 'Guardar' }).click();
 	await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
@@ -61,9 +61,9 @@ async function createPostViaNav(
 ): Promise<void> {
 	await page.getByRole('link', { name: 'Entradas', exact: false }).click();
 	await page.waitForURL('**/c/posts');
-	await page.getByRole('button', { name: 'Crear «Entrada»' }).click();
+	await page.getByRole('button', { name: 'Nuevo: Entrada' }).click();
 	await page.waitForURL('**/c/posts/new');
-	await page.getByLabel('Title').fill(title);
+	await page.getByRole('textbox', { name: 'Título', exact: true }).fill(title);
 	await page.getByLabel('Body').fill('Cuerpo inicial.');
 	await page.getByRole('button', { name: 'Guardar' }).click();
 	await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
@@ -96,9 +96,11 @@ test.describe('Historial de versiones (Fase B1)', () => {
 		await page.getByRole('button', { name: 'Historial' }).click(); // colapsa de nuevo
 
 		// El PRIMER `update` SÍ snapshotea: guarda la PRE-IMAGEN ('Título original').
-		await page.getByLabel('Title').fill('Título editado');
+		await page.getByRole('textbox', { name: 'Título', exact: true }).fill('Título editado');
 		await page.getByRole('button', { name: 'Guardar' }).click();
-		await expect(page.getByLabel('Title')).toHaveValue('Título editado');
+		await expect(page.getByRole('textbox', { name: 'Título', exact: true })).toHaveValue(
+			'Título editado'
+		);
 
 		await page.getByRole('button', { name: 'Historial' }).click();
 		const revisionItem = page.locator('.vega-revisions-item').first();
@@ -114,14 +116,18 @@ test.describe('Historial de versiones (Fase B1)', () => {
 		await page.getByRole('button', { name: 'Restaurar en el formulario' }).click();
 
 		// §8·B1: NO se escribe nada al puerto — el campo cambia en el FORMULARIO, sin recargar.
-		await expect(page.getByLabel('Title')).toHaveValue('Título original');
+		await expect(page.getByRole('textbox', { name: 'Título', exact: true })).toHaveValue(
+			'Título original'
+		);
 		await expect(
 			page.getByText('Valores cargados en el formulario.', { exact: false })
 		).toBeVisible();
 
 		// La persona revisa y guarda: eso sí persiste el valor restaurado.
 		await page.getByRole('button', { name: 'Guardar' }).click();
-		await expect(page.getByLabel('Title')).toHaveValue('Título original');
+		await expect(page.getByRole('textbox', { name: 'Título', exact: true })).toHaveValue(
+			'Título original'
+		);
 	});
 });
 

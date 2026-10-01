@@ -45,7 +45,9 @@ test.describe('login', () => {
 		await page.getByLabel('Contraseña').fill(DEMO_PASSWORD);
 		await page.getByRole('button', { name: 'Entrar' }).click();
 
-		await expect(page.getByRole('alert')).toHaveText('Sin conexión con el backend.');
+		await expect(page.getByRole('alert')).toHaveText(
+			'No se pudo conectar con el servidor. Comprueba tu conexión.'
+		);
 		// El propio botón sigue disponible como reintento (§3.1.2: no se pierde el formulario).
 		await expect(page.getByRole('button', { name: 'Entrar' })).toBeEnabled();
 	});
@@ -108,7 +110,9 @@ test.describe('arranque sin red (casos límite §6.7)', () => {
 		});
 		await page.goto('/');
 
-		await expect(page.getByRole('heading', { name: 'Sin conexión con el backend' })).toBeVisible();
+		await expect(
+			page.getByRole('heading', { name: 'No hay conexión con el servidor' })
+		).toBeVisible();
 		const retry = page.getByRole('button', { name: 'Reintentar' });
 		await expect(retry).toBeVisible();
 

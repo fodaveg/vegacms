@@ -12,7 +12,7 @@
  *
  * - **Todo por rol/label, NUNCA por selector de markup** (clase CSS, estructura, `nth`): el
  *   rediseño C2 (lotes 1-3) reescribió el markup del shell, el listado y el editor sin tocar los
- *   nombres accesibles (link "Entradas", botón "Crear «Entrada»"/"Guardar", campo "Title"). Un
+ *   nombres accesibles (link "Entradas", botón "Nuevo: Entrada"/"Guardar", campo "Title"). Un
  *   smoke atado al markup se rompería en cada iteración visual; atado a roles/labels sobrevive.
  * - **Navegación por CLICS de UI, no `page.goto(...)`**: el objetivo es ejercitar el shell real
  *   (sidebar → listado → CTA → editor), no saltar directo a una ruta profunda. Un `goto` se
@@ -41,19 +41,21 @@ test.describe('smoke: login → crear → editar → guardar → persiste', () =
 		await page.getByRole('link', { name: 'Entradas' }).click();
 		await page.waitForURL('**/c/posts');
 
-		// 3) Crear: CTA primaria del listado (R2, "Crear «Entrada»") → formulario de creación.
-		await page.getByRole('button', { name: 'Crear «Entrada»' }).click();
+		// 3) Crear: CTA primaria del listado (R2, "Nuevo: Entrada") → formulario de creación.
+		await page.getByRole('button', { name: 'Nuevo: Entrada' }).click();
 		await page.waitForURL('**/c/posts/new');
-		await expect(page.getByRole('heading', { name: 'Crear «Entrada»' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Nuevo: Entrada' })).toBeVisible();
 
 		// 4) Rellenar el único campo requerido (`title`) y guardar.
-		await page.getByLabel('Title').fill(SMOKE_TITLE);
+		await page.getByRole('textbox', { name: 'Título', exact: true }).fill(SMOKE_TITLE);
 		await page.getByRole('button', { name: 'Guardar' }).click();
 
 		// Tras crear → edición del registro recién creado (D-P5.11), no al listado.
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
 		await expect(page.getByRole('heading', { name: 'Editar «Entrada»' })).toBeVisible();
-		await expect(page.getByLabel('Title')).toHaveValue(SMOKE_TITLE);
+		await expect(page.getByRole('textbox', { name: 'Título', exact: true })).toHaveValue(
+			SMOKE_TITLE
+		);
 
 		// 5) Editar el registro ya existente y volver a guardar. A diferencia de la creación (paso 4),
 		// aquí la URL NO cambia, así que `waitForURL` no puede sincronizar con el fin del guardado:
@@ -62,10 +64,12 @@ test.describe('smoke: login → crear → editar → guardar → persiste', () =
 		// podría ver `dirty` aún true y abrir un `confirm()` que Playwright auto-descarta, cancelando
 		// la navegación. `.last()`: el toast "Guardado." del paso 4 (create) sigue apilado (auto-
 		// descarte a 4s), como en `form.spec.ts` para el caso create+update.
-		await page.getByLabel('Title').fill(SMOKE_TITLE_EDITED);
+		await page.getByRole('textbox', { name: 'Título', exact: true }).fill(SMOKE_TITLE_EDITED);
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await expect(page.getByText('Guardado.').last()).toBeVisible();
-		await expect(page.getByLabel('Title')).toHaveValue(SMOKE_TITLE_EDITED);
+		await expect(page.getByRole('textbox', { name: 'Título', exact: true })).toHaveValue(
+			SMOKE_TITLE_EDITED
+		);
 
 		// 6) Persistencia por una vía DISTINTA al guardado: volver al listado (sidebar), filtrar por
 		// el título único y reabrir la fila — el valor releído debe ser el editado.
@@ -74,6 +78,8 @@ test.describe('smoke: login → crear → editar → guardar → persiste', () =
 		await page.getByLabel('Buscar en el listado').fill(SMOKE_SEARCH);
 		await page.getByRole('link', { name: SMOKE_TITLE_EDITED }).click();
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
-		await expect(page.getByLabel('Title')).toHaveValue(SMOKE_TITLE_EDITED);
+		await expect(page.getByRole('textbox', { name: 'Título', exact: true })).toHaveValue(
+			SMOKE_TITLE_EDITED
+		);
 	});
 });

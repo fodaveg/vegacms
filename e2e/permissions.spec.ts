@@ -20,15 +20,15 @@ test('una colección sin permiso de creación no ofrece "Nueva" ni en la cabecer
 	await page.goto('/c/avisos');
 
 	await expect(page.getByRole('heading', { name: 'Avisos', level: 1 })).toBeVisible();
-	// Rótulo REAL del botón (`list.new.button` = `Crear «{label}»`, con `labelSingular`): escrito
+	// Rótulo REAL del botón (`list.new.button` = `Nuevo: {label}`, con `labelSingular`): escrito
 	// tal cual a propósito — con un texto aproximado, este aserto pasaría aunque el botón SÍ se
 	// pintara (verificado rompiendo `resolvePermissions` a mano: el `/Nuevo Aviso/` que había
 	// antes aquí seguía en verde con la restricción desactivada).
-	await expect(page.getByRole('button', { name: 'Crear «Aviso»' })).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Nuevo: Aviso' })).toHaveCount(0);
 	// …y en una colección SIN restricción, ese mismo localizador SÍ encuentra el botón: la
 	// ausencia de arriba dice algo, no es un selector que no case nunca.
 	await page.goto('/c/authors');
-	await expect(page.getByRole('button', { name: 'Crear «Autor»' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Nuevo: Autor' })).toBeVisible();
 	await page.goto('/c/avisos');
 
 	// El atajo `N` tampoco existe (mismo guard que el botón): pulsarlo no navega a `/new`.
@@ -55,10 +55,10 @@ test('el editor de un registro sin permiso de actualización es de solo lectura 
 	// El motivo se dice tal cual — NO como "esta colección es de solo lectura" (que es otra cosa:
 	// una vista del backend, ver `pages`).
 	await expect(
-		page.getByText('No tienes permiso para editar registros de esta colección', { exact: false })
+		page.getByText('No tienes permiso para editar este contenido', { exact: false })
 	).toBeVisible();
 	await expect(page.getByRole('button', { name: /^Guardar/ })).toHaveCount(0);
-	await expect(page.getByLabel('Title')).toBeDisabled();
+	await expect(page.getByRole('textbox', { name: 'Título', exact: true })).toBeDisabled();
 	// Y tampoco se ofrece borrar desde el editor.
 	await expect(page.getByRole('button', { name: /Borrar/ })).toHaveCount(0);
 });
@@ -70,7 +70,7 @@ test('crear por URL directa en una colección sin permiso: estado "sin permiso",
 	await page.goto('/c/avisos/new');
 
 	await expect(page.getByRole('heading', { name: 'No tienes permiso' })).toBeVisible();
-	await expect(page.getByText('No tienes permiso para crear registros en "Avisos"')).toBeVisible();
+	await expect(page.getByText('No tienes permiso para crear contenido en «Avisos»')).toBeVisible();
 });
 
 test('una colección que no se puede listar no está en la navegación, y su ruta lo explica', async ({
@@ -88,6 +88,6 @@ test('una colección que no se puede listar no está en la navegación, y su rut
 	await page.goto('/c/privado');
 	await expect(page.getByRole('heading', { name: 'No tienes permiso' })).toBeVisible();
 	await expect(
-		page.getByText('No tienes permiso para ver los registros de "Privado"')
+		page.getByText('No tienes permiso para ver el contenido de «Privado»')
 	).toBeVisible();
 });

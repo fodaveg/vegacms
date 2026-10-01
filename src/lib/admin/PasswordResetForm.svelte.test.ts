@@ -114,4 +114,12 @@ describe('PasswordResetForm', () => {
 		expect(mounted.target.querySelector('[data-reset-state="missing"]')).not.toBeNull();
 		expect(mounted.target.querySelector('form')).toBeNull();
 	});
+
+	test('sin token en la URL ofrece volver a Entrar', async () => {
+		mounted = mountForm('', vi.fn());
+		await settle();
+		const link = mounted.target.querySelector('[data-reset-state="missing"] ~ a');
+		expect(link).not.toBeNull();
+		expect(link?.getAttribute('href')).toBe('/login');
+	});
 });

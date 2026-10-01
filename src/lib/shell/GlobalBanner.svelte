@@ -8,12 +8,13 @@
 	 *
 	 * - `'network'` → título honesto + botón "Reintentar" (sondea con un `listContentTypes()`
 	 *   barato e idempotente vía `transportFeedback.retry`, sin tocar `modelStatus`).
-	 * - `'backend'` → el `message` real del error (NUNCA `err.cause`, P1 §5); solo descartable.
+	 * - `'backend'` → el texto del catálogo si el error trae un `code` conocido (`vega-error-message.ts`) o, si no, el `message` real (NUNCA `err.cause`, P1 §5); solo descartable.
 	 * - Ambos: botón de descarte (§2.3, "Descartable").
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import { transportFeedback } from './transport-feedback.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
+	import { vegaErrorMessage } from './vega-error-message';
 
 	const ctx = getVegaContext();
 
@@ -31,7 +32,7 @@
 	<div class="vega-global-banner" role="alert" data-kind={err.kind}>
 		<Icon id="warning" size={16} />
 		<p class="vega-global-banner-message">
-			{err.kind === 'network' ? ctx.t('errors.network.title') : err.message}
+			{err.kind === 'network' ? ctx.t('errors.network.title') : vegaErrorMessage(err, ctx.t)}
 		</p>
 		<div class="vega-global-banner-actions">
 			{#if err.kind === 'network'}

@@ -245,6 +245,7 @@
 	import { isConflictError, VegaError, type VegaConflictError } from '$lib/backend/errors';
 	import { getVegaContext } from '$lib/app-context';
 	import { describeCell, describeStatusBadge } from '$lib/list/cell';
+	import { statusValueLabel } from '$lib/model/default-labels';
 	import { resolveTitleCellText } from '$lib/list/list-load';
 	import DeleteConfirm from '$lib/list/DeleteConfirm.svelte';
 	import EditorRail from '$lib/list/EditorRail.svelte';
@@ -267,6 +268,8 @@
 		type FormSection
 	} from './form-sections';
 	import { autodateInstant, autodateText } from './record-meta';
+	import { formatSavedAt } from './saved-at';
+	import { currentPlatform, saveShortcutLabel } from './save-shortcut';
 	import { localeStatus, type LocaleStatus } from './locale-status';
 	import { isDirty, type FormInputValues } from './dirty';
 	import { toRecordInput } from './to-record-input';
@@ -528,6 +531,14 @@
 	);
 
 	/** Ayuda por defecto de «Publicar el» (ver cabecera): solo si el manifiesto no declara una. */
+	/** Etiquetas de las opciones del campo de estado: manifiesto, o catálogo para `draft`/`published`. */
+	function statusOptionLabels(field: ResolvedField): Record<string, string> {
+		const options = 'options' in field.schema ? (field.schema.options ?? []) : [];
+		return Object.fromEntries(
+			options.map((option) => [option, statusValueLabel(type.statusLabels, option, ctx.t)])
+		);
+	}
+
 	function withDefaultHelp(field: ResolvedField): ResolvedField {
 		if (field.name !== type.publishAtField || field.help) return field;
 		return { ...field, help: ctx.t('editor.publishAt.help') };
@@ -560,16 +571,15 @@
 			model.recordId !== null
 	);
 
-	/** HH:MM localizado (mismo criterio de locale que `cell.ts`), o `null` sin hora conocida
-	 *  todavía (ver `savedAt`/cabecera). */
+	/** Etiqueta del atajo de guardar del botón: «⌘S» en Mac, «Ctrl S» fuera (ver `save-shortcut`). */
+	const shortcutLabel = saveShortcutLabel(currentPlatform());
+
+	/** Hora localizada (con fecha si el guardado no es de hoy, ver `formatSavedAt`), o `null` sin
+	 *  hora conocida todavía (ver `savedAt`/cabecera). */
 	const savedAtText = $derived(
 		savedAt === null
 			? null
-			: ctx.t('editor.savedAt', {
-					time: new Intl.DateTimeFormat(ctx.locale, { hour: '2-digit', minute: '2-digit' }).format(
-						savedAt
-					)
-				})
+			: ctx.t('editor.savedAt', { time: formatSavedAt(savedAt, new Date(), ctx.locale) })
 	);
 
 	// ————— Piezas del mockup final (todas opt-in, ver cabecera) —————
@@ -1345,7 +1355,7 @@
 				{/if}
 				<button type="submit" class="vega-editor-save-button" disabled={formDisabled}>
 					{ctx.t('editor.save')}
-					<kbd aria-hidden="true">⌘S</kbd>
+					<kbd aria-hidden="true">{shortcutLabel}</kbd>
 				</button>
 			{/if}
 		{/snippet}
@@ -1389,9 +1399,7 @@
 				isTitleField={field.name === type.titleField}
 				isSlugField={field.name === type.slugField}
 				isPathField={field.name === pagePathFieldName}
-				optionLabels={field.name === type.statusField
-					? (type.statusLabels ?? undefined)
-					: undefined}
+				optionLabels={field.name === type.statusField ? statusOptionLabels(field) : undefined}
 				layoutOptions={field.name === type.page?.layoutField ? pageLayoutOptions : undefined}
 				action={field.name === type.slugField && type.titleField !== null
 					? slugAction
@@ -2191,6 +2199,13 @@
 		opacity: 0.75;
 	}
 
+	/* Con puntero táctil no hay teclado al que anunciar el atajo, y en móvil desbordaba el botón. */
+	@media (pointer: coarse) {
+		.vega-editor-save-button kbd {
+			display: none;
+		}
+	}
+
 	.vega-editor-save-button:disabled {
 		cursor: not-allowed;
 		opacity: 0.45; /* mockup `.btn:disabled { opacity: 0.45 }` — mismo valor que el manifiesto */
@@ -2223,7 +2238,7 @@
 		font-weight: 650;
 		letter-spacing: 0.09em;
 		text-transform: uppercase;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		overflow-wrap: anywhere;
 	}
 

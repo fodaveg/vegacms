@@ -41,6 +41,7 @@
 	import { isSearchEnabled, statusFilterOptions } from './search';
 	import Icon from '$lib/icons/Icon.svelte';
 	import type { ResolvedContentType } from '$lib/model/types';
+	import { statusValueLabel } from '$lib/model/default-labels';
 	import type { ViewState } from './query-state';
 
 	interface Props {
@@ -175,7 +176,7 @@
 		<input
 			type="search"
 			class="vega-list-search-input"
-			placeholder={ctx.t('list.search.placeholder')}
+			placeholder={ctx.t('list.search.placeholder', { label: contentType.label })}
 			aria-label={ctx.t('list.search.ariaLabel')}
 			bind:value={searchText}
 			oninput={scheduleSearch}
@@ -216,7 +217,7 @@
 						aria-current={viewState.status === option ? 'true' : undefined}
 						onclick={() => selectStatus(option)}
 					>
-						{contentType.statusLabels?.[option] ?? option}
+						{statusValueLabel(contentType.statusLabels, option, ctx.t)}
 					</button>
 				{/each}
 			</div>
@@ -243,6 +244,15 @@
 
 	.vega-list-search:focus-within {
 		border-color: var(--accent);
+	}
+
+	/* El `<input>` interior no dibuja su anillo (`outline: none`, abajo: lo lleva la caja entera),
+	   así que el anillo `--ring` de 2 px de los demás controles (regla de `form/widgets/*`:
+	   `outline: 2px solid var(--ring)` + `outline-offset: 1px`) sube a la caja cuando el foco es de
+	   teclado; antes solo cambiaba el borde. */
+	.vega-list-search:has(input:focus-visible) {
+		outline: 2px solid var(--ring);
+		outline-offset: 1px;
 	}
 
 	.vega-list-search input {

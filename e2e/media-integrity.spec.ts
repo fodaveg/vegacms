@@ -43,7 +43,7 @@ async function goToMedia(page: import('@playwright/test').Page): Promise<void> {
  *  trae ninguna, ver `demo-seed.ts`). Deja al navegador en la edición del post recién creado. */
 async function createPostLinkingMediaPhoto1(page: import('@playwright/test').Page): Promise<void> {
 	await page.goto('/c/posts/new');
-	await page.getByLabel('Title').fill('Post con imagen enlazada');
+	await page.getByRole('textbox', { name: 'Título', exact: true }).fill('Post con imagen enlazada');
 	await page.getByLabel('Body').fill('Mira esta imagen: seed_media_photo1.png');
 	await page.getByRole('button', { name: 'Guardar' }).click();
 	await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
@@ -89,7 +89,7 @@ test.describe('"Se usa en" (UsedInPanel, vía url)', () => {
 		const dialog = await openMediaDetail(page, 'media_2');
 
 		await dialog.getByRole('button', { name: 'Se usa en' }).click();
-		await expect(dialog.getByText('1 registro(s)')).toBeVisible();
+		await expect(dialog.getByText('1 elemento(s)')).toBeVisible();
 
 		const link = dialog.getByRole('link', { name: 'Post con imagen enlazada' });
 		await expect(link).toBeVisible();
@@ -98,7 +98,9 @@ test.describe('"Se usa en" (UsedInPanel, vía url)', () => {
 		// Misma afordancia de navegación que el listado (`recordRoute`): aterriza en la edición
 		// REAL del post encontrado, no en un enlace decorativo.
 		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
-		await expect(page.getByLabel('Title')).toHaveValue('Post con imagen enlazada');
+		await expect(page.getByRole('textbox', { name: 'Título', exact: true })).toHaveValue(
+			'Post con imagen enlazada'
+		);
 	});
 });
 
@@ -157,7 +159,7 @@ test.describe('reemplazar el fichero (MediaReplaceConfirm)', () => {
 		await goToMedia(page);
 		const detail = await openMediaDetail(page, 'media_2');
 
-		await detail.getByLabel('Reemplazar fichero').setInputFiles({
+		await detail.getByLabel('Reemplazar archivo').setInputFiles({
 			name: 'nueva-foto.png',
 			mimeType: 'image/png',
 			buffer: Buffer.from(TINY_PNG_BASE64, 'base64')
@@ -173,7 +175,7 @@ test.describe('reemplazar el fichero (MediaReplaceConfirm)', () => {
 		).toBeVisible();
 		await expect(
 			confirm.getByText(
-				'La URL directa del fichero VA A CAMBIAR: quien la tuviera pegada a mano dejará de verla.'
+				'La URL directa del archivo VA A CAMBIAR: quien la tuviera pegada a mano dejará de verla.'
 			)
 		).toBeVisible();
 		// `autoLoad`: ya expandido y cargado, sin toggle de por medio — la persona confirmando ve
@@ -182,7 +184,7 @@ test.describe('reemplazar el fichero (MediaReplaceConfirm)', () => {
 
 		await confirm.getByRole('button', { name: 'Reemplazar', exact: true }).click();
 		await expect(confirm).toBeHidden();
-		await expect(page.getByText('Fichero reemplazado. La URL directa ha cambiado.')).toBeVisible();
+		await expect(page.getByText('Archivo reemplazado. La URL directa ha cambiado.')).toBeVisible();
 		await expect(detail).toBeHidden();
 	});
 
@@ -191,7 +193,7 @@ test.describe('reemplazar el fichero (MediaReplaceConfirm)', () => {
 		await goToMedia(page);
 		const detail = await openMediaDetail(page, 'media_1');
 
-		await detail.getByLabel('Reemplazar fichero').setInputFiles({
+		await detail.getByLabel('Reemplazar archivo').setInputFiles({
 			name: 'otra.png',
 			mimeType: 'image/png',
 			buffer: Buffer.from(TINY_PNG_BASE64, 'base64')
@@ -211,13 +213,13 @@ test.describe('reemplazar el fichero (MediaReplaceConfirm)', () => {
 		await goToMedia(page);
 		const detail = await openMediaDetail(page, 'media_1');
 
-		await detail.getByLabel('Reemplazar fichero').setInputFiles({
+		await detail.getByLabel('Reemplazar archivo').setInputFiles({
 			name: 'notas.txt',
 			mimeType: 'text/plain',
 			buffer: Buffer.from('hola')
 		});
 
-		await expect(detail.getByText('El fichero elegido no es de un tipo admitido.')).toBeVisible();
+		await expect(detail.getByText('El archivo elegido no es de un tipo admitido.')).toBeVisible();
 		await expect(page.getByRole('alertdialog')).toHaveCount(0);
 	});
 });

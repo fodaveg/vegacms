@@ -49,7 +49,7 @@
 		gap: 0.4rem;
 		font-family: var(--mono);
 		font-size: 0.6875rem;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		white-space: nowrap;
 		border: 1px solid var(--line);
 		border-radius: 99px;

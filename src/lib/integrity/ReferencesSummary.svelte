@@ -181,7 +181,7 @@
 	}
 
 	.vega-refs-more {
-		color: var(--ink-3);
+		color: var(--ink-2);
 		font-size: 0.78rem;
 	}
 

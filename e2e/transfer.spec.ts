@@ -57,7 +57,7 @@ test.describe('diálogo de exportar', () => {
 		const dialog = page.getByRole('dialog', { name: 'Exportar «Avisos»' });
 		await expect(dialog).toBeVisible();
 
-		await expect(dialog.getByRole('radio', { name: 'Toda la colección' })).toBeChecked();
+		await expect(dialog.getByRole('radio', { name: 'Todo el contenido' })).toBeChecked();
 		const filteredOption = dialog.getByRole('radio', { name: 'Solo el filtro o búsqueda actual' });
 		await expect(filteredOption).toBeDisabled();
 		await expect(filteredOption).not.toBeChecked();
@@ -79,7 +79,7 @@ test.describe('diálogo de exportar', () => {
 		await expect(
 			dialog.getByRole('radio', { name: 'Solo el filtro o búsqueda actual' })
 		).toBeEnabled();
-		await expect(dialog.getByRole('radio', { name: 'Toda la colección' })).not.toBeChecked();
+		await expect(dialog.getByRole('radio', { name: 'Todo el contenido' })).not.toBeChecked();
 	});
 
 	test('cancelar en la fase de elección cierra el diálogo sin descargar nada', async ({ page }) => {
@@ -159,7 +159,7 @@ test.describe('exportar de verdad', () => {
 		await expect(dialog).not.toBeVisible();
 		// Singular real (`list.export.success.one`, fix de code-review sobre "1 registros"):
 		// `avisos` tiene un único registro sembrado.
-		await expect(page.getByText('Se ha exportado 1 registro de «Avisos».')).toBeVisible();
+		await expect(page.getByText('Se ha exportado 1 elemento de «Avisos».')).toBeVisible();
 	});
 });
 
@@ -209,10 +209,10 @@ test.describe('importar — ciclo completo (`#lote-esquema`, Fase 2)', () => {
 
 		// ————— 3. Importar el fichero editado —————
 		await page.getByRole('button', { name: 'Importar' }).click();
-		const importDialog = page.getByRole('dialog', { name: 'Importar un fichero .vega.json' });
+		const importDialog = page.getByRole('dialog', { name: 'Importar un archivo .vega.json' });
 		await expect(importDialog).toBeVisible();
 
-		await importDialog.getByLabel('Elige un fichero .vega.json').setInputFiles({
+		await importDialog.getByLabel('Elige un archivo .vega.json').setInputFiles({
 			name: 'metrics-editado.vega.json',
 			mimeType: 'application/json',
 			buffer: Buffer.from(JSON.stringify(doc))
@@ -227,7 +227,7 @@ test.describe('importar — ciclo completo (`#lote-esquema`, Fase 2)', () => {
 
 		await importDialog
 			.getByRole('checkbox', {
-				name: 'Confirmo que quiero sobrescribir estos 1 registros ya existentes.'
+				name: 'Confirmo que quiero sobrescribir estos 1 elementos ya existentes.'
 			})
 			.check();
 		await expect(confirmButton).toBeEnabled();
@@ -237,7 +237,7 @@ test.describe('importar — ciclo completo (`#lote-esquema`, Fase 2)', () => {
 		await expect(
 			importDialog.getByText('1 creados · 1 actualizados · 0 con error · 0 omitidos')
 		).toBeVisible();
-		await expect(page.getByText('Se han importado 2 registros.')).toBeVisible();
+		await expect(page.getByText('Se han importado 2 elementos.')).toBeVisible();
 
 		await importDialog.getByRole('button', { name: 'Cerrar' }).click();
 		await expect(importDialog).not.toBeVisible();
@@ -245,7 +245,7 @@ test.describe('importar — ciclo completo (`#lote-esquema`, Fase 2)', () => {
 		// ————— 4. Persistido de verdad: la tabla se refresca sola (`onImported`, ver `+page.svelte`)
 		// y refleja el PISA y el CREA — SIN recargar la página (`page.reload()` reiniciaría el
 		// backend `memory` a la semilla original, perdiendo justo lo que este test quiere probar). —
-		await expect(page.locator('.vega-list-meta')).toContainText('2'); // "2 registros" en la cabecera
+		await expect(page.locator('.vega-list-meta')).toContainText('2'); // "2 elementos" en la cabecera
 		// CREA: el registro nuevo existe de verdad (enlace a su editor).
 		await expect(page.locator('a[href="/c/metrics/metric_e2e_new"]')).toBeVisible();
 		// PISA: `metric_1` quedó con el valor del fichero editado, no el original (42).

@@ -574,7 +574,7 @@
 		padding: 0.4rem 0.7rem;
 		border-top: 1px solid var(--line);
 		background: var(--surface-2);
-		color: var(--ink-3);
+		color: var(--ink-2);
 		font-family: var(--mono);
 		font-size: 0.68rem;
 	}

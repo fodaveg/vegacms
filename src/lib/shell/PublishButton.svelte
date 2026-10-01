@@ -24,7 +24,10 @@
 	 *  - `no-changes`: nada editado desde `lastPublishedAt` (`detectUnpublishedChanges`).
 	 *    Deshabilitado — "inactivo si no hay cambios" (encargo).
 	 *  - `ok`: el último build terminó bien Y sigue habiendo cambios pendientes o no se puede saber
-	 *    (`hasChanges` `true`/`null`) — sigue siendo accionable, para volver a publicar.
+	 *    (`hasChanges` `true`/`null`) — sigue siendo accionable, para volver a publicar. Su texto
+	 *    es «Publicar de nuevo» (`topbar.publish.again`); «Sitio al día» (`topbar.publish.ok`) queda
+	 *    para `hasChanges === false`, que `uiState` no deja llegar aquí (va a `no-changes`) pero el
+	 *    texto no lo da por supuesto.
 	 *  - `failed`: el último build falló. Accionable (reintentar); si el estado trae `detail`, el
 	 *    motivo se pinta al lado COMO TEXTO (nodo de texto, nunca HTML: viene de un sistema externo)
 	 *    y si trae `logUrl`, un enlace aparte abre el registro en una pestaña nueva.
@@ -184,7 +187,12 @@
 						? 'topbar.publish.unavailableDenied'
 						: 'topbar.publish.unavailableOffline'
 				)
-			: ctx.t(`topbar.publish.${camelUiState(uiState)}`)
+			: // `ok` = último build bueno. Solo «Sitio al día» si SABEMOS que no hay cambios pendientes
+				// (`hasChanges === false`); con cambios (`true`) o sin saberlo (`null`) afirmarlo sería
+				// falso, así que el botón —que sigue accionable— invita a publicar de nuevo.
+				uiState === 'ok' && hasChanges !== false
+				? ctx.t('topbar.publish.again')
+				: ctx.t(`topbar.publish.${camelUiState(uiState)}`)
 	);
 	/** `no-changes` NO deshabilita: republicar sin cambios es inofensivo (rehace el mismo sitio),
 	 *  y deshabilitar convierte cualquier desfase del indicador en una trampa sin salida — el

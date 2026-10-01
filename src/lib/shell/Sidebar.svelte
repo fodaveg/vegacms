@@ -255,7 +255,9 @@
 	{:else}
 		<div class="vega-sidebar-empty">
 			<p class="vega-sidebar-empty-title">{ctx.t('nav.emptyTitle')}</p>
-			<p class="vega-sidebar-empty-body">{ctx.t('nav.emptyBody')}</p>
+			<p class="vega-sidebar-empty-body">
+				{ctx.t(ctx.port.capabilities.schemaBootstrap ? 'nav.emptyBody' : 'nav.emptyBodyEditor')}
+			</p>
 		</div>
 	{/if}
 
@@ -458,7 +460,7 @@
 		font-family: var(--mono);
 		font-size: 0.6875rem;
 		font-variant-numeric: tabular-nums;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		background: var(--surface);
 		border: 1px solid var(--line-soft);
 		border-radius: 999px;

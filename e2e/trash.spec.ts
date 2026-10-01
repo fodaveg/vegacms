@@ -68,11 +68,11 @@ test.describe('borrar → papelera → restaurar (§8·B2, promesa central del l
 
 		// Borrado desde la zona de peligro del editor (no desde la fila del listado): mismo diálogo
 		// `DeleteConfirm`, con la promesa de la papelera (§4/§10.3) en su única frase.
-		await page.getByRole('button', { name: 'Eliminar Entrada…' }).click();
+		await page.getByRole('button', { name: 'Borrar Entrada…' }).click();
 		const dialog = page.getByRole('alertdialog');
 		await expect(dialog).toBeVisible();
 		await expect(dialog).toContainText('podrás recuperarla durante 30 día(s)');
-		await expect(dialog).toContainText('Los ficheros adjuntos no se recuperan');
+		await expect(dialog).toContainText('Los archivos adjuntos no se recuperan');
 
 		await dialog.getByRole('button', { name: 'Borrar', exact: true }).click();
 		await expect(dialog).toBeHidden();
@@ -81,8 +81,8 @@ test.describe('borrar → papelera → restaurar (§8·B2, promesa central del l
 		await goToTrash(page);
 		const item = page.locator('.vega-trash-item', { hasText: 'Bienvenido a Vega' });
 		await expect(item).toBeVisible();
-		await expect(item).toContainText('Colección: posts');
-		await expect(item).toContainText('Tenía ficheros adjuntos: no se restaurarán.');
+		await expect(item).toContainText('Tipo: posts');
+		await expect(item).toContainText('Tenía archivos adjuntos: no se restaurarán.');
 
 		await item.getByRole('button', { name: 'Restaurar' }).click();
 		await expect(page.getByText('"Bienvenido a Vega" se ha restaurado.')).toBeVisible();
@@ -98,7 +98,9 @@ test.describe('borrar → papelera → restaurar (§8·B2, promesa central del l
 		await page.waitForURL(/\/c\/posts\/post_1$/);
 
 		// El resto del contenido volvió (pre-imagen ANTES del borrado): título y cuerpo intactos.
-		await expect(page.getByLabel('Title')).toHaveValue('Bienvenido a Vega');
+		await expect(page.getByRole('textbox', { name: 'Título', exact: true })).toHaveValue(
+			'Bienvenido a Vega'
+		);
 		await expect(page.getByLabel('Body')).toHaveValue('Primer texto de ejemplo.');
 
 		// El fichero NO volvió (§0.3/§8·B2, medido: PB destruye el binario al instante, restaurar
@@ -128,13 +130,13 @@ test.describe('un asset con "file" obligatorio en la papelera (fix de code-revie
 		await goToTrash(page);
 		const item = page.locator('.vega-trash-item', { hasText: 'Manual de usuario' });
 		await expect(item).toBeVisible();
-		await expect(item).toContainText('Colección: vega_media');
+		await expect(item).toContainText('Tipo: vega_media');
 
 		// `requiredFileFieldName` deriva el bloqueo del ESQUEMA (`file` es `required` en
 		// `vega_media`): nunca un botón "Restaurar", solo el motivo dicho con todas las letras.
 		await expect(item.getByRole('button', { name: 'Restaurar' })).toHaveCount(0);
-		await expect(item).toContainText('El campo "file" de "vega_media" es un fichero obligatorio');
-		await expect(item).toContainText('"Restaurar" no está disponible.');
+		await expect(item).toContainText('El campo «file» de «vega_media» es un archivo obligatorio');
+		await expect(item).toContainText('«Restaurar» no está disponible.');
 
 		// El bloqueo es SOLO sobre "Restaurar": "Borrar definitivamente" sigue funcionando igual.
 		await item.getByRole('button', { name: 'Borrar definitivamente' }).click();

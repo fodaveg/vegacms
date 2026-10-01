@@ -81,11 +81,11 @@ export function mapPocketBaseError(err: unknown, ctx: ErrorMapContext): VegaErro
 		//
 		// [Fase 4e, Audit H6] Esta rama también es la que recibe un `delete()` bloqueado por una
 		// relación `required` entrante (PB responde 400 con `message` pero SIN `data` por campo,
-		// verificado): el `body?.message` de PB ya es accionable ("Failed to delete record. Make
-		// sure that the record is not part of a required relation reference.") y se preserva tal
-		// cual — ver el test dedicado en `errors.test.ts`. No necesita un caso aparte: el fallback
-		// genérico de abajo ya hace lo correcto para este escenario concreto.
-		return VegaError.backend(body?.message ?? 'Petición inválida al backend', err);
+		// verificado). El `message` de PB va en inglés, así que ese caso lleva el código
+		// `'record-in-use'` y la interfaz pone su texto; cualquier otro 400 lleva `'bad-request'`.
+		// El `message` original se conserva siempre (logs, `err.message` de quien no traduzca).
+		const code = isRequiredRelationBlock(body?.message) ? 'record-in-use' : 'bad-request';
+		return VegaError.backend(body?.message ?? 'Petición inválida al backend', err, code);
 	}
 
 	if (err.status === 401 || err.status === 403) {
@@ -99,7 +99,7 @@ export function mapPocketBaseError(err: unknown, ctx: ErrorMapContext): VegaErro
 	}
 
 	if (err.status >= 500) {
-		return VegaError.backend(body?.message ?? 'Error del servidor', err);
+		return VegaError.backend(body?.message ?? 'Error del servidor', err, 'server-error');
 	}
 
 	// 2xx con forma inesperada llega aquí solo si el propio SDK lo convierte en error; el resto
@@ -108,6 +108,11 @@ export function mapPocketBaseError(err: unknown, ctx: ErrorMapContext): VegaErro
 		body?.message ?? `Respuesta inesperada del backend (status ${err.status})`,
 		err
 	);
+}
+
+/** `true` si el `message` de un 400 es el de un borrado bloqueado por una relación `required` entrante. */
+function isRequiredRelationBlock(message: string | undefined): boolean {
+	return message !== undefined && /required relation reference/i.test(message);
 }
 
 /**

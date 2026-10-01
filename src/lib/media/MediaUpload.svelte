@@ -372,7 +372,7 @@
 		border: 1px dashed var(--line-strong);
 		border-radius: var(--r);
 		background: var(--paper);
-		color: var(--ink-3);
+		color: var(--ink-2);
 		font-size: 0.9em;
 		line-height: 1.45;
 		cursor: pointer;
@@ -426,7 +426,7 @@
 	.vega-media-shrink-notice {
 		flex: 1 1 18rem;
 		margin: 0;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		font-size: 0.82em;
 		line-height: 1.45;
 	}
@@ -434,7 +434,7 @@
 	/* Tamaños «antes → después» del ítem reducido: valor canónico → --mono, como el estado. */
 	.vega-media-upload-sizes {
 		display: block;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		font-family: var(--mono);
 		font-size: 0.72em;
 		line-height: 1.4;
@@ -576,7 +576,7 @@
 	.vega-media-upload-status {
 		display: block;
 		margin-top: 1px;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		font-family: var(--mono);
 		font-size: 0.72em;
 		line-height: 1.4;

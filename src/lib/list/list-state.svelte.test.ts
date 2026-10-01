@@ -43,8 +43,12 @@ function makeCtx() {
 				pending.push({ resolve, reject });
 			})
 	);
-	const ctx = { port: { list }, feedback: { reportError } } as unknown as VegaAppContext;
-	return { ctx, list, pending, reportError };
+	const reportConnectivity = vi.fn();
+	const ctx = {
+		port: { list },
+		feedback: { reportError, reportConnectivity }
+	} as unknown as VegaAppContext;
+	return { ctx, list, pending, reportError, reportConnectivity };
 }
 
 /** Deja correr los microtasks pendientes tras resolver una promesa del puerto falso. */
@@ -129,6 +133,44 @@ describe('createListState: recarga conservando la tabla', () => {
 		expect(reportError).toHaveBeenCalledTimes(1);
 		expect(state.status.kind).toBe('ready');
 		expect(state.refreshing).toBe(false);
+	});
+
+	test('un fallo de red marca el transporte caído SIN banner (no llama a reportError)', async () => {
+		const { ctx, pending, reportError, reportConnectivity } = makeCtx();
+		const state = createListState();
+		const first = state.load(ctx, type, view);
+		pending[0].reject(VegaError.network());
+		await first;
+		expect(state.status).toMatchObject({ kind: 'error', error: { kind: 'network' } });
+		expect(reportConnectivity).toHaveBeenCalledTimes(1);
+		expect(reportConnectivity).toHaveBeenCalledWith(false);
+		expect(reportError).not.toHaveBeenCalled();
+	});
+
+	test('falla por red y un «Reintentar» que funciona marca el transporte recuperado', async () => {
+		const { ctx, pending, reportConnectivity } = makeCtx();
+		const state = createListState();
+		const first = state.load(ctx, type, view);
+		pending[0].reject(VegaError.network());
+		await first;
+		expect(reportConnectivity).toHaveBeenLastCalledWith(false);
+		state.retry();
+		pending[1].resolve(page('a'));
+		await flush();
+		expect(state.status.kind).toBe('ready');
+		expect(reportConnectivity).toHaveBeenCalledTimes(2);
+		expect(reportConnectivity).toHaveBeenLastCalledWith(true);
+	});
+
+	test('un error que no es de red solo va al panel del listado: ni reportError ni conectividad', async () => {
+		const { ctx, pending, reportError, reportConnectivity } = makeCtx();
+		const state = createListState();
+		const first = state.load(ctx, type, view);
+		pending[0].reject(VegaError.backend('boom'));
+		await first;
+		expect(state.status).toMatchObject({ kind: 'error', error: { kind: 'backend' } });
+		expect(reportError).not.toHaveBeenCalled();
+		expect(reportConnectivity).not.toHaveBeenCalled();
 	});
 
 	test('retry() desde error sí vuelve a loading (no hay tabla que conservar)', async () => {

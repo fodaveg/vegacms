@@ -80,7 +80,9 @@
 		{#if item.readonly || count !== undefined}
 			<span class="vega-nav-trailing">
 				{#if item.readonly}
-					<span class="vega-nav-badge">{ctx.t('nav.readonlyBadge')}</span>
+					<span class="vega-nav-badge"
+						><span class="vega-nav-badge-pill">{ctx.t('nav.readonlyBadge')}</span></span
+					>
 				{/if}
 				{#if count !== undefined}
 					<span class="vega-nav-count">{count}</span>
@@ -98,7 +100,8 @@
 	a {
 		display: flex;
 		align-items: center;
-		gap: 0.65rem;
+		/* Sin `gap`: el hueco entre columnas es un `margin`/pseudo-elemento de cada pieza, porque un
+		   `gap` NO encoge y la insignia colapsada seguiría robándole 0,65 rem a la etiqueta. */
 		min-height: var(--row-h);
 		padding: 0 var(--vega-space-gutter);
 		/* Caja del item redondeada (mockup `.nav-item { border-radius: var(--r) }`): el fondo
@@ -110,6 +113,8 @@
 	}
 
 	a :global(svg) {
+		flex-shrink: 0;
+		margin-right: 0.65rem;
 		color: var(--ink-3);
 	}
 
@@ -133,22 +138,47 @@
 	}
 
 	.vega-nav-item-label {
-		flex: 1;
+		/* Base `auto` (no 0): con base 0 el label no «pediría» su ancho y la insignia nunca
+		   encogería; ver `.vega-nav-badge`. */
+		flex: 1 1 auto;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 
+	/* `display: contents`: la insignia y el recuento son items flex DIRECTOS de la fila, para que
+	   el reparto del espacio pueda tratarlos por separado (ver `.vega-nav-badge`). */
 	.vega-nav-trailing {
-		flex-shrink: 0;
-		margin-left: auto;
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
+		display: contents;
 	}
 
+	/* Con poco ancho CEDE LA INSIGNIA, no la etiqueta. El reparto flex del déficit es proporcional
+	   al peso de encogimiento: la insignia pesa 100000 frente a 1 del label, así que lo absorbe
+	   entera hasta desaparecer (llega a 0 de ancho: su hueco y su píldora van DENTRO, recortados
+	   por `overflow`, no como padding/borde que no encogen) antes de que el label pierda nada; solo
+	   entonces el label se recorta con `…`. */
 	.vega-nav-badge {
-		flex-shrink: 0;
+		display: flex;
+		flex: 0 100000 auto;
+		min-width: 0;
+		overflow: hidden;
+	}
+
+	.vega-nav-badge::before {
+		content: '';
+		flex: none;
+		width: 0.65rem;
+	}
+
+	/* Hueco hasta el recuento, solo si lo hay (`:has`); el recuento no añade el suyo. */
+	.vega-nav-badge:has(+ .vega-nav-count)::after {
+		content: '';
+		flex: none;
+		width: 0.5rem;
+	}
+
+	.vega-nav-badge-pill {
+		flex: none;
 		padding: 0.1rem 0.4rem;
 		border: 1px solid var(--line);
 		border-radius: 999px;
@@ -158,14 +188,19 @@
 		background: var(--surface);
 	}
 
+	.vega-nav-badge + .vega-nav-count {
+		margin-left: 0;
+	}
+
 	/* Badge-píldora (mockup `.nav-count`, aquelarre-dark.html): antes número plano, ahora
 	   redondeada con fondo/borde propios — se lee como "recuento", no como parte del label. */
 	.vega-nav-count {
 		flex-shrink: 0;
+		margin-left: 0.65rem;
 		font-family: var(--mono);
 		font-size: 0.6875rem;
 		font-variant-numeric: tabular-nums;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		background: var(--surface);
 		border: 1px solid var(--line-soft);
 		border-radius: 999px;

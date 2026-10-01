@@ -488,7 +488,7 @@
 			onClose();
 		} catch (err) {
 			const vegaErr =
-				err instanceof VegaError ? err : VegaError.backend('Error al reemplazar el fichero', err);
+				err instanceof VegaError ? err : VegaError.backend('Error al reemplazar el archivo', err);
 			ctx.feedback.reportError(vegaErr, { action: 'media:detail:replace' });
 			confirmingReplace = false;
 		} finally {

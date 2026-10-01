@@ -30,9 +30,7 @@ test.describe('singleton por deep-link (§7.B.12)', () => {
 		);
 		// Aterriza en el formulario REAL de CREAR (F5-a) de la propia edición del singleton, nunca
 		// en un listado (§3.3: un singleton no tiene marco de listado que mostrar).
-		await expect(
-			page.getByRole('heading', { name: 'Crear «Información del sitio»' })
-		).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Nuevo: Información del sitio' })).toBeVisible();
 	});
 });
 
@@ -64,7 +62,7 @@ test.describe('not-found (§7.B.14)', () => {
 
 		await page.goto('/c/no-existe');
 
-		const state = page.getByRole('alert').filter({ hasText: 'Colección no encontrada' });
+		const state = page.getByRole('alert').filter({ hasText: 'Contenido no encontrado' });
 		await expect(state).toBeVisible();
 		await expect(state).toHaveAttribute('data-route-state', 'not-found');
 		await expect(page).toHaveURL(/\/c\/no-existe$/);
@@ -89,7 +87,7 @@ test.describe('not-found (§7.B.14)', () => {
 		await page.goto('/c/vega');
 
 		await expect(
-			page.getByRole('alert').filter({ hasText: 'Colección no encontrada' })
+			page.getByRole('alert').filter({ hasText: 'Contenido no encontrado' })
 		).toBeVisible();
 	});
 });

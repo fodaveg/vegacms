@@ -27,6 +27,11 @@
 		routerReady = true;
 	});
 
+	// «Administrador» = el mismo criterio que `/settings` (`capabilities.schemaBootstrap`): solo
+	// quien puede preparar el sitio recibe la guía a Ajustes; quien edita, la de hablar con quien
+	// administra.
+	const isAdmin = ctx.port.capabilities.schemaBootstrap;
+
 	const firstItem = $derived(ctx.model.nav.groups.flatMap((group) => group.items)[0] ?? null);
 
 	// Guard P3-L9: nunca navega antes de que el router esté listo. Una vista fusionada (L7c,
@@ -46,8 +51,12 @@
 {#if !firstItem}
 	<div class="vega-empty-nav">
 		<h1>{ctx.t('nav.emptyTitle')}</h1>
-		<p>{ctx.t('nav.emptyBody')}</p>
-		<button type="button" onclick={() => ctx.nav.toSettings()}>{ctx.t('nav.emptyCta')}</button>
+		{#if isAdmin}
+			<p>{ctx.t('nav.emptyBody')}</p>
+			<button type="button" onclick={() => ctx.nav.toSettings()}>{ctx.t('nav.emptyCta')}</button>
+		{:else}
+			<p>{ctx.t('nav.emptyBodyEditor')}</p>
+		{/if}
 	</div>
 {:else}
 	<p aria-live="polite">{ctx.t('common.loading')}</p>

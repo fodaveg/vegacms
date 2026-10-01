@@ -11,9 +11,9 @@
  * Cubre (ver la tarea del lote):
  * - la nav de CONTENIDO sigue intacta y el CRUD normal de registros funciona (aditivo: nada se
  *   esconde salvo lo exclusivo de superuser).
- * - `/settings`: el `ManifestEditor` NO se monta — se ve el estado degradado
- *   (`data-manifest-state="gated"`), nunca un editor roto ni un error; "Backend / conexión" (el
- *   sitio donde el editor introduce SU colección de auth) y "Acerca de" siguen visibles.
+ * - `/settings`: el `ManifestEditor` NO se monta y «Modelo de contenido» no se pinta
+ *   (ni aviso); "Backend / conexión" (el
+ *   sitio donde el editor introduce SU colección de auth) queda plegada bajo «Avanzado»; "Acerca de" sigue visible.
  * - `/media`: `collectionState: 'manual'` (la semilla no trae `vega_media`, mismo fixture que
  *   `e2e/media.spec.ts` Fase 6a) se degrada al mensaje "pide a un administrador"
  *   (`data-media-state="manual-editor"`), nunca el JSON de importación/instrucciones de bootstrap
@@ -42,7 +42,9 @@ test.describe('nav de contenido + CRUD normal (rol editor)', () => {
 		// cambio", contra el mismo fixture (`posts.post_1`).
 		await page.goto('/c/posts/post_1');
 		await expect(page.getByRole('heading', { name: 'Editar «Entrada»' })).toBeVisible();
-		await page.getByLabel('Title').fill('Bienvenido a Vega (editado por editor)');
+		await page
+			.getByRole('textbox', { name: 'Título', exact: true })
+			.fill('Bienvenido a Vega (editado por editor)');
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await expect(page.getByText('Guardado.')).toBeVisible();
 	});
@@ -57,16 +59,16 @@ test.describe('/settings degradado (rol editor, sin schemaBootstrap)', () => {
 		await page.getByRole('link', { name: 'Ajustes', exact: false }).click();
 		await page.waitForURL('**/settings');
 
-		// El gate ocupa el hueco del editor: nunca el textarea del manifiesto.
-		const gate = page.locator('[data-manifest-state="gated"]');
-		await expect(gate).toBeVisible();
-		await expect(
-			gate.getByText('La edición del manifiesto requiere una cuenta de administrador')
-		).toBeVisible();
+		// Sin «Modelo de contenido»: ni el editor del manifiesto ni un aviso en su lugar.
+		await expect(page.getByRole('heading', { name: 'Modelo de contenido' })).toHaveCount(0);
 		await expect(page.locator('#manifest-editor-textarea')).toHaveCount(0);
 
-		// "Backend / conexión" (el sitio donde el editor fija SU colección de auth) sigue visible
-		// y operable — incluye ahora el campo de colección de autenticación (L6c).
+		// La conexión (donde el editor fija SU colección de auth, L6c) queda plegada bajo
+		// «Avanzado», cerrada: se ve el resumen, no el contenido, hasta abrirlo.
+		const advanced = page.locator('[data-settings-advanced]');
+		await expect(advanced.getByText('Avanzado', { exact: true })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Backend / conexión' })).toBeHidden();
+		await advanced.getByText('Avanzado', { exact: true }).click();
 		await expect(page.getByRole('heading', { name: 'Backend / conexión' })).toBeVisible();
 		await expect(page.getByLabel('Colección de autenticación')).toBeVisible();
 
@@ -85,7 +87,7 @@ test.describe('/media degradado (rol editor, collectionState "manual")', () => {
 		const notice = page.locator('[data-media-state="manual-editor"]');
 		await expect(notice).toBeVisible();
 		await expect(
-			notice.getByText('Pídele a un administrador que configure la colección de medios')
+			notice.getByText('Pide a quien administre el sitio que active la biblioteca de medios')
 		).toBeVisible();
 
 		// Nunca el mensaje/instrucciones pensados para quien SÍ tiene acceso al Admin de PB.

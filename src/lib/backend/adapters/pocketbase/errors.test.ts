@@ -99,6 +99,16 @@ describe('mapPocketBaseError — 400 con data (§5, campos anidados/desconocidos
 			'Failed to delete record. Make sure that the record is not part of a required relation reference.'
 		);
 		expect(mapped.fieldErrors).toBeUndefined();
+		// El texto de PB va en inglés: la interfaz traduce por `code`, no por `message`.
+		expect(mapped.backendCode).toBe('record-in-use');
+	});
+
+	test("400 sin data y con otro mensaje → code 'bad-request' (message de PB intacto)", () => {
+		const mapped = mapPocketBaseError(pbError(400, { message: 'Something went wrong' }), {
+			hadSession: true
+		});
+		expect(mapped.backendCode).toBe('bad-request');
+		expect(mapped.message).toBe('Something went wrong');
 	});
 });
 
@@ -120,6 +130,7 @@ describe('mapPocketBaseError — resto de la tabla §5', () => {
 	test('5xx → backend', () => {
 		expect(mapPocketBaseError(pbError(500), { hadSession: true }).kind).toBe('backend');
 		expect(mapPocketBaseError(pbError(503), { hadSession: true }).kind).toBe('backend');
+		expect(mapPocketBaseError(pbError(500), { hadSession: true }).backendCode).toBe('server-error');
 	});
 
 	test('abort/status 0 (sin red) → network retryable', () => {

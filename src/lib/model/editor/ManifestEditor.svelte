@@ -417,7 +417,7 @@
 	.manifest-crumb {
 		font-family: var(--mono);
 		font-size: 0.75rem;
-		color: var(--ink-3);
+		color: var(--ink-2);
 	}
 
 	.manifest-crumb b {
@@ -534,7 +534,7 @@
 		font-weight: 600;
 		letter-spacing: 0.12em;
 		text-transform: uppercase;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		padding: 0.65rem 1rem;
 		background: var(--surface-2);
 		border-bottom: 1px solid var(--line);

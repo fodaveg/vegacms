@@ -315,7 +315,7 @@
 		font-weight: 600;
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		background: var(--surface-2);
 		border-bottom: 1px solid var(--line-strong);
 	}

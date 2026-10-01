@@ -345,7 +345,7 @@
 		flex-shrink: 0;
 		font-family: var(--mono);
 		font-size: 0.6875rem;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		border: 1px solid var(--line-strong);
 		border-bottom-width: 2px;
 		border-radius: 4px;
@@ -389,7 +389,7 @@
 
 	.vega-search-note.is-partial {
 		border-top: 1px solid var(--line);
-		color: var(--ink-3);
+		color: var(--ink-2);
 		font-size: 0.75rem;
 	}
 
@@ -410,14 +410,14 @@
 		font-size: 0.72rem;
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
-		color: var(--ink-3);
+		color: var(--ink-2);
 	}
 
 	.vega-search-count {
 		margin-left: auto;
 		font-family: var(--mono);
 		font-size: 0.72rem;
-		color: var(--ink-3);
+		color: var(--ink-2);
 	}
 
 	.vega-search-hit {
@@ -454,7 +454,7 @@
 		gap: 0.3rem;
 		flex-shrink: 0;
 		font-size: 0.72rem;
-		color: var(--ink-3);
+		color: var(--ink-2);
 	}
 
 	/* Punto de estado: MISMOS tokens que el de `EditorRail`/`RecordTable` (`describeStatusBadge`
@@ -504,7 +504,7 @@
 		margin: 0;
 		padding: 0.15rem 0.25rem;
 		font-size: 0.78rem;
-		color: var(--ink-3);
+		color: var(--ink-2);
 	}
 
 	/* Mismo punto de colapso ESTRUCTURAL (768px) que el resto de la topbar (§4.2): el buscador

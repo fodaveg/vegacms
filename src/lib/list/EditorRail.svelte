@@ -347,14 +347,14 @@
 		font-family: var(--mono);
 		font-weight: 500;
 		font-variant-numeric: tabular-nums;
-		color: var(--ink-3);
+		color: var(--ink-2);
 	}
 
 	.vega-rail-loading {
 		margin: 0;
 		padding: 0.6rem 0.9rem;
 		font-size: 0.86em;
-		color: var(--ink-3);
+		color: var(--ink-2);
 	}
 
 	.vega-rail-items {
@@ -395,7 +395,7 @@
 		gap: 0.5rem;
 		margin-top: 0.2rem;
 		font-size: 0.76em;
-		color: var(--ink-3);
+		color: var(--ink-2);
 	}
 
 	/* Fecha = valor canónico ⇒ `--mono` + tabular, empujada al borde derecho (mockup `.m .d`). */

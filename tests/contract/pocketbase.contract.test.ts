@@ -474,6 +474,59 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 	});
 
 	/**
+	 * Borrar el destino de una relación `required` PB lo rechaza con un 400 sin `data` por campo y
+	 * un `message` en inglés: el adaptador lo etiqueta `backendCode: 'record-in-use'` para que la interfaz
+	 * ponga su texto del catálogo (`errors.backendCode.recordInUse`). Medido contra PB real.
+	 */
+	describe('borrar el destino de una relación required → backend / record-in-use', () => {
+		test('el 400 real de PB lleva el código y conserva el message', async () => {
+			const target = await admin.collections.create({
+				name: 'req_rel_target',
+				type: 'base',
+				fields: [{ name: 'title', type: 'text' }],
+				listRule: null,
+				viewRule: null,
+				createRule: null,
+				updateRule: null,
+				deleteRule: null
+			});
+			await admin.collections.create({
+				name: 'req_rel_holder',
+				type: 'base',
+				fields: [
+					{
+						name: 'ref',
+						type: 'relation',
+						required: true,
+						collectionId: target.id,
+						maxSelect: 1
+					}
+				],
+				listRule: null,
+				viewRule: null,
+				createRule: null,
+				updateRule: null,
+				deleteRule: null
+			});
+
+			try {
+				const targetRecord = await admin.collection('req_rel_target').create({ title: 'x' });
+				await admin.collection('req_rel_holder').create({ ref: targetRecord.id });
+
+				const port = createPocketBaseBackend({ url: running.url });
+				await port.login({ email: running.adminEmail, password: running.adminPassword });
+
+				const failure = await port.delete('req_rel_target', targetRecord.id).catch((e) => e);
+				expect(failure).toMatchObject({ kind: 'backend', backendCode: 'record-in-use' });
+				expect((failure as VegaError).message).toMatch(/required relation reference/i);
+			} finally {
+				await admin.collections.delete('req_rel_holder');
+				await admin.collections.delete('req_rel_target');
+			}
+		});
+	});
+
+	/**
 	 * `#lote-shell` — las reglas de acceso que la UI refleja (`ContentType.access`) MEDIDAS contra
 	 * el binario real, no supuestas. Lo que se comprueba aquí no es el mapeo (eso ya lo cubre
 	 * `schema-access.test.ts` con JSON sintético) sino la PREMISA de la que cuelga: que PocketBase

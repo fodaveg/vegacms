@@ -93,6 +93,10 @@
 		<p class="vega-admin-dialog-text" data-reset-state="missing">
 			{ctx.t('admin.reset.missingToken')}
 		</p>
+		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+		<a class="vega-admin-btn vega-reset-link" href={loginHref}>
+			{ctx.t('admin.reset.toLogin')}
+		</a>
 	{:else if status === 'done'}
 		<h1 id="vega-reset-title">{ctx.t('admin.reset.successTitle')}</h1>
 		<p class="vega-admin-dialog-text" role="status" data-reset-state="done">

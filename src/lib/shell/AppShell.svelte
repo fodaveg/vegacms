@@ -42,12 +42,26 @@
 	 * toma su altura intrínseca y `.vega-body` (`flex: 1`, `min-height: 0`) el resto, así que el
 	 * scroll sigue siendo INTERNO (`.vega-main`/`Sidebar`), nunca del documento.
 	 */
+	import type { Snippet } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { readSidebarCollapsed, setSidebarCollapsed } from '$lib/theme/apply';
 	import Topbar from './Topbar.svelte';
 	import Sidebar from './Sidebar.svelte';
+	import GlobalBanner from './GlobalBanner.svelte';
+	import UpdateBanner from './UpdateBanner.svelte';
 
-	let { children } = $props();
+	/**
+	 * `onpresence`: avisa a `+layout.svelte` de si la carcasa está montada, para que NO pinte su
+	 * pila de banners fija cuando la carcasa ya lleva la suya EN EL FLUJO (ver `.vega-banner-stack`
+	 * abajo). Sin carcasa (pantallas de error globales, login) sigue valiendo la pila fija.
+	 */
+	let { children, onpresence }: { children: Snippet; onpresence?: (present: boolean) => void } =
+		$props();
+
+	$effect(() => {
+		onpresence?.(true);
+		return () => onpresence?.(false);
+	});
 
 	let sidebarOpen = $state(false);
 	let sidebarCollapsed = $state(readSidebarCollapsed());
@@ -69,6 +83,14 @@
 		{sidebarCollapsed}
 		onToggleCollapse={toggleSidebarCollapsed}
 	/>
+
+	<!-- Pila de banners EN EL FLUJO (columna flex entre Topbar y body): EMPUJA el contenido en vez de
+	     tapar el título/recuento/botones del listado, como hacía la pila `position: fixed`. Vacía
+	     (sin banner activo) mide 0, así que no mueve nada. -->
+	<div class="vega-banner-stack">
+		<GlobalBanner />
+		<UpdateBanner />
+	</div>
 
 	<div class="vega-body">
 		<Sidebar
@@ -104,6 +126,12 @@
 		   `100dvh` (con fallback `100vh`) evita el salto por la barra dinámica del navegador móvil. */
 		height: 100vh;
 		height: 100dvh;
+	}
+
+	.vega-banner-stack {
+		display: flex;
+		flex-direction: column;
+		flex-shrink: 0;
 	}
 
 	.vega-body {

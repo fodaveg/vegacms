@@ -83,7 +83,7 @@ test.describe('banner de red a mitad de sesión', () => {
 		});
 		await page.getByRole('link', { name: 'Información del sitio' }).click();
 
-		const banner = page.getByRole('alert').filter({ hasText: 'Sin conexión con el backend' });
+		const banner = page.getByRole('alert').filter({ hasText: 'No hay conexión con el servidor' });
 		await expect(banner).toBeVisible();
 
 		// El shell sigue montado: la sidebar y el logout siguen ahí, la ruta no cambió.
@@ -123,7 +123,9 @@ test.describe('banner de red a mitad de sesión', () => {
 			(window as unknown as VegaTestWindow).__VEGA_FORCE_NETWORK_ERROR__ = true;
 		});
 		await page.getByRole('link', { name: 'Información del sitio' }).click();
-		const netBanner = page.getByRole('alert').filter({ hasText: 'Sin conexión con el backend' });
+		const netBanner = page
+			.getByRole('alert')
+			.filter({ hasText: 'No hay conexión con el servidor' });
 		await expect(netBanner).toBeVisible();
 
 		// 2) La red "vuelve" pero la sesión ha caducado: la próxima operación (la sonda del retry)
@@ -155,7 +157,7 @@ test.describe('banner de red a mitad de sesión', () => {
 		});
 		await page.getByRole('link', { name: 'Información del sitio' }).click();
 
-		const banner = page.getByRole('alert').filter({ hasText: 'Sin conexión con el backend' });
+		const banner = page.getByRole('alert').filter({ hasText: 'No hay conexión con el servidor' });
 		await expect(banner).toBeVisible();
 
 		await banner.getByRole('button', { name: 'Cerrar' }).click();

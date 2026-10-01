@@ -31,6 +31,7 @@
 	import Icon from '$lib/icons/Icon.svelte';
 	import { statusFilterOptions } from './search';
 	import type { ResolvedContentType } from '$lib/model/types';
+	import { statusValueLabel } from '$lib/model/default-labels';
 
 	interface Props {
 		contentType: ResolvedContentType;
@@ -47,7 +48,7 @@
 
 	/** Etiqueta legible del valor activo (ver cabecera): defensiva ante `statusLabels` ausente. */
 	const activeStatusLabel = $derived(
-		activeStatus !== null ? (contentType.statusLabels?.[activeStatus] ?? activeStatus) : ''
+		activeStatus !== null ? statusValueLabel(contentType.statusLabels, activeStatus, ctx.t) : ''
 	);
 </script>
 

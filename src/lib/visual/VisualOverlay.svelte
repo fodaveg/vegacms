@@ -932,14 +932,24 @@
 			     sería ENGAÑOSO ahí, porque sugiere crear una sección cuando en realidad ya existen y es
 			     el sitio quien no las pinta. -->
 			<p class="vega-visual-overlay-status--warning">
-				{ctx.t('editor.visual.overlay.missing', { count: missingBlocks })}
+				{ctx.t(
+					missingBlocks === 1
+						? 'editor.visual.overlay.missing.one'
+						: 'editor.visual.overlay.missing.many',
+					{ count: missingBlocks }
+				)}
 			</p>
 		{:else if blocks.length === 0}
 			<p>{ctx.t('editor.visual.overlay.empty')}</p>
 		{/if}
 		{#if status === 'ready' && skippedBlocks > 0}
 			<p class="vega-visual-overlay-status--warning">
-				{ctx.t('editor.visual.overlay.skipped', { count: skippedBlocks })}
+				{ctx.t(
+					skippedBlocks === 1
+						? 'editor.visual.overlay.skipped.one'
+						: 'editor.visual.overlay.skipped.many',
+					{ count: skippedBlocks }
+				)}
 			</p>
 		{/if}
 	</div>

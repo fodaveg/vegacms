@@ -20,8 +20,12 @@ export const es = {
 	'nav.sidebarLabel': 'Navegación principal',
 	'nav.warningsBadge': '{count} avisos',
 	'nav.singletonManyRecords':
-		'"{label}" está marcada como Ajustes pero tiene {count} registros. Editando el primero.',
+		'«{label}» solo admite una ficha, pero tiene {count}. Se edita la primera.',
 	'nav.readonlyBadge': 'Solo lectura',
+	// Portada/barra lateral vacías para quien edita (sin permisos de administración): no puede
+	// crear tipos de contenido ni tocar Ajustes, así que se le dice qué hacer en su lugar.
+	'nav.emptyBodyEditor':
+		'Todavía no hay contenido que editar. Habla con quien administre el sitio.',
 
 	// ————— Topbar —————
 	'topbar.logout': 'Cerrar sesión',
@@ -47,7 +51,7 @@ export const es = {
 	'topbar.search.error': 'No se pudo buscar. Revisa la conexión e inténtalo de nuevo.',
 	'topbar.search.minChars': 'Escribe al menos {count} caracteres',
 	'topbar.search.seeAll': 'Ver los {count} restantes',
-	'topbar.search.partial': 'No se pudo buscar en {count} colección(es).',
+	'topbar.search.partial': 'No se pudo buscar en {count} tipo(s) de contenido.',
 	'topbar.avatar.label': 'Sesión de {email}',
 	// Chip de usuario → menú "Ajustes" (#l12-ux, item 3): rótulo del propio botón disparador,
 	// DISTINTO del `topbar.avatar.label` de arriba (ese describe la identidad de sesión del
@@ -63,11 +67,12 @@ export const es = {
 	'topbar.publish.running': 'Publicando…',
 	'topbar.publish.failed': 'Reintentar publicación',
 	'topbar.publish.noChanges': 'Sin cambios',
-	'topbar.publish.ok': 'Publicado',
+	'topbar.publish.ok': 'Sitio al día',
 	'topbar.publish.ready': 'Publicar',
 	'topbar.publish.viewLog': 'Ver registro',
 	'topbar.publish.triggerError': 'No se pudo iniciar la publicación.',
 	'topbar.publish.lastPublished': 'Última publicación: {date}',
+	'topbar.publish.again': 'Publicar de nuevo',
 
 	// ————— Login / sesión —————
 	'login.title': 'Acceder a Vega',
@@ -76,7 +81,7 @@ export const es = {
 	'login.submit': 'Entrar',
 	'login.submitting': 'Entrando…',
 	'login.invalidCredentials': 'Credenciales no válidas.',
-	'login.networkError': 'Sin conexión con el backend.',
+	'login.networkError': 'No se pudo conectar con el servidor. Comprueba tu conexión.',
 	'login.or': 'o',
 	'login.passkey': 'Entrar con passkey',
 	'login.mfa.title': 'Verificación en dos pasos',
@@ -212,23 +217,23 @@ export const es = {
 		'Esta passkey puede estar copiada en otro dispositivo. Bórrala y regístrala de nuevo.',
 
 	// ————— Estados globales de transporte (§3.4) —————
-	'errors.network.title': 'Sin conexión con el backend',
+	'errors.network.title': 'No hay conexión con el servidor',
 	'errors.network.body': 'No se pudo contactar con el servidor. Comprueba tu conexión.',
 	'errors.network.retry': 'Reintentar',
-	'errors.backend.title': 'El backend ha respondido algo inesperado',
+	'errors.backend.title': 'El servidor ha respondido algo inesperado',
 	'errors.forbidden.title': 'No tienes permiso',
 	'errors.forbidden.body': 'Tu sesión no tiene acceso a este recurso.',
 	'errors.forbidden.readonlyType.body':
-		'"{label}" es una colección de solo lectura: no se pueden crear registros nuevos.',
+		'«{label}» es de solo lectura: no se puede crear contenido nuevo aquí.',
 	// `#lote-shell`: vedado por una REGLA de acceso del backend, no por la naturaleza de la
 	// colección — la UI ya no ofrece el camino, pero la ruta sigue siendo alcanzable por URL.
-	'errors.forbidden.noCreate.body': 'No tienes permiso para crear registros en "{label}".',
-	'errors.forbidden.noList.body': 'No tienes permiso para ver los registros de "{label}".',
-	'errors.forbidden.noView.body': 'No tienes permiso para ver este registro de "{label}".',
-	'errors.notFoundType.title': 'Colección no encontrada',
+	'errors.forbidden.noCreate.body': 'No tienes permiso para crear contenido en «{label}».',
+	'errors.forbidden.noList.body': 'No tienes permiso para ver el contenido de «{label}».',
+	'errors.forbidden.noView.body': 'No tienes permiso para ver este elemento de «{label}».',
+	'errors.notFoundType.title': 'Contenido no encontrado',
 	'errors.notFoundType.body': 'No existe (o está oculta) el tipo de contenido "{type}".',
-	'errors.notFoundRecord.title': 'Registro no encontrado',
-	'errors.notFoundRecord.body': 'Este registro ya no existe.',
+	'errors.notFoundRecord.title': 'Elemento no encontrado',
+	'errors.notFoundRecord.body': 'Este elemento ya no existe.',
 	'errors.notFoundRecord.backToList': 'Volver al listado',
 	'errors.backToIndex': 'Volver al índice',
 	// ————— Vistas fusionadas (mergedViews, Fase L7c) —————
@@ -239,7 +244,7 @@ export const es = {
 	// `editor.create.title`/`editor.edit.title`: desde R7 del rediseño C2 solo alimentan el `<h1>`
 	// VISUALMENTE OCULTO de `RecordForm.svelte` (a11y de jerarquía de headings) — el título visible
 	// del editor es ahora el crumb de `EditTopBar`, no un heading en pantalla.
-	'editor.create.title': 'Crear «{label}»',
+	'editor.create.title': 'Nuevo: {label}',
 	'editor.edit.title': 'Editar «{label}»',
 	'editor.save': 'Guardar',
 	'editor.saving': 'Guardando…',
@@ -249,12 +254,12 @@ export const es = {
 	'editor.duplicate.saveFirst': 'Guarda los cambios antes de duplicar.',
 	'editor.duplicate.success': 'Página y bloques duplicados.',
 	'editor.leaveConfirm': 'Hay cambios sin guardar. ¿Salir de todos modos?',
-	'editor.readonlyNotice': 'Esta colección es de solo lectura: no se puede editar.',
+	'editor.readonlyNotice': 'Este contenido es de solo lectura: no se puede editar.',
 	// `#lote-shell`: bloqueado por una REGLA de acceso del backend, no por ser una vista — el
 	// registro se puede ver, pero esta sesión no puede guardarlo.
 	'editor.noUpdateNotice':
-		'No tienes permiso para editar registros de esta colección: puedes verlo, pero no guardar cambios.',
-	'editor.load.error.body': 'No se pudo cargar el registro. {message}',
+		'No tienes permiso para editar este contenido: puedes verlo, pero no guardar cambios.',
+	'editor.load.error.body': 'No se pudo cargar este elemento. {message}',
 
 	// ————— Aviso de edición concurrente (`ConflictNotice.svelte`, lámina del audit p1): el
 	// guardado falló cerrado porque el registro cambió en el servidor desde que se abrió. Sin
@@ -305,7 +310,7 @@ export const es = {
 	'editor.preview.panel.loadError': 'No se pudo cargar la vista previa.',
 	'editor.preview.panel.genericError': 'No se pudo generar la vista previa.',
 	'editor.preview.panel.savedOnly':
-		'Estás viendo la versión guardada: no tienes permiso para editar este registro, así que tus cambios no se previsualizan.',
+		'Estás viendo la versión guardada: no tienes permiso para editar este elemento, así que tus cambios no se previsualizan.',
 
 	// ————— Pantalla del editor visual (tarea "pantalla del editor visual", §"Visual editing
 	// bridge" del contrato): `/c/[type]/[id]/visual`, aditiva sobre el preview de borrador de
@@ -326,7 +331,7 @@ export const es = {
 	'editor.visual.status.error.unpublish': 'No se pudo pasar a borrador',
 	'editor.visual.status.error.conflict':
 		'La página cambió en el servidor: revisa su estado antes de volver a intentarlo',
-	'editor.visual.status.confirm.title': 'Hay {count} bloque(s) sin guardar',
+	'editor.visual.status.confirm.title.many': 'Hay {count} bloques sin guardar',
 	'editor.visual.status.confirm.body':
 		'La página se publicará con lo último guardado. Esos cambios no saldrán hasta que los guardes.',
 	'editor.visual.status.confirm.publish': 'Publicar igualmente',
@@ -334,7 +339,7 @@ export const es = {
 	'editor.visual.status.success.rebuild': 'Se verá en el sitio tras la próxima publicación.',
 	'editor.visual.frameTitle': 'La página del sitio, dentro del editor visual',
 	'editor.visual.connecting': 'Conectando con el sitio…',
-	'editor.visual.connected': 'Conectado al sitio: {count} bloque(s) en la página.',
+	'editor.visual.connected.many': 'Conectado al sitio: {count} bloques en la página.',
 	'editor.visual.token.error': 'No se pudo cargar la página del sitio: {message}',
 	'editor.visual.error.noBridge.title': 'Este sitio no tiene instalado el puente de edición visual',
 	'editor.visual.error.noBridge.body':
@@ -356,7 +361,7 @@ export const es = {
 	'editor.visual.unavailable.noVisualEditing':
 		'El sitio conectado no anuncia edición visual. Hay que instalarle el puente y declararlo en su discovery.',
 	'editor.visual.unavailable.noBlocks':
-		'La colección «{label}» no compone la página por bloques, así que no hay nada que seleccionar en el lienzo.',
+		'El tipo de contenido «{label}» no se compone de bloques, así que no hay nada que seleccionar en el lienzo.',
 	'editor.visual.tooNarrow.title': 'El editor visual necesita una pantalla más ancha',
 	'editor.visual.tooNarrow.body':
 		'Por debajo de 900 px no cabe el lienzo junto a sus paneles. El formulario de siempre sí funciona aquí.',
@@ -364,15 +369,15 @@ export const es = {
 	// la barra superior — ver la cabecera del componente para el porqué de cada uno.
 	'editor.visual.overlay.waiting': 'Esperando a que la página describa sus bloques…',
 	'editor.visual.overlay.empty': 'Esta página todavía no tiene bloques que seleccionar.',
-	'editor.visual.overlay.skipped':
-		'{count} bloque(s) que el sitio describió mal: no se pueden seleccionar.',
+	'editor.visual.overlay.skipped.many':
+		'{count} bloques que el sitio describió mal: no se pueden seleccionar.',
 	// Defecto "el lienzo no dice nada cuando le faltan bloques": lo contrario de `.skipped` de
 	// arriba — registros que Vega SÍ tiene y el sitio NO reportó (ver `missingBlocks` de
-	// `VisualOverlay.svelte`). Texto accionable, no un número suelto: dice que las secciones
+	// `VisualOverlay.svelte`). Texto accionable, no un número suelto: dice que los bloques
 	// EXISTEN y que es el SITIO quien no las pinta, para que quien edita no crea que el botón está
 	// roto.
-	'editor.visual.overlay.missing':
-		'{count} sección(es) que existen pero el sitio no está pintando.',
+	'editor.visual.overlay.missing.many':
+		'{count} bloques que existen pero el sitio no está pintando.',
 	'editor.visual.overlay.unsupported': 'no soportado',
 	// Sección que el SITIO dice no pública (`unpublished` del puente, ver
 	// `bridge-client.ts#VisualBlock`): la misma palabra en la etiqueta del contorno y en la fila
@@ -381,28 +386,28 @@ export const es = {
 	// Encargo "paleta de bloques arrastrable del editor visual": la zona de caída de página vacía
 	// (decisión 3) — una sola caja SOBRE EL MARCO que solo existe mientras hay un arrastre de
 	// paleta en vuelo Y no hay ningún bloque (ver la cabecera de `VisualOverlay.svelte`).
-	'editor.visual.overlay.emptyDrop': 'Suelta aquí para crear la primera sección',
-	// ————— Árbol de secciones (`VisualBlockTree.svelte`) e inspector (`VisualInspector.svelte`):
+	'editor.visual.overlay.emptyDrop': 'Suelta aquí para crear el primer bloque',
+	// ————— Árbol de bloques (`VisualBlockTree.svelte`) e inspector (`VisualInspector.svelte`):
 	// la vía ACCESIBLE de seleccionar un bloque (el overlay de arriba es `aria-hidden`) y la ficha
 	// del bloque elegido. Reutilizan a propósito claves ya existentes del resto del ciclo de vida
 	// de un bloque (`editor.dirty`/`editor.saving`, `editor.blocks.empty`/`.type.*`, `common.close`/
 	// `.loading`): editar un bloque desde aquí es lo mismo que editarlo desde `RecordBlocks.svelte`,
 	// solo que en otra columna.
-	'editor.visual.tree.title': 'Secciones',
+	'editor.visual.tree.title': 'Bloques',
 	'editor.visual.tree.selectLabel': 'Seleccionar «{label}»',
 	// Mismo rótulo con el estado dentro: el `aria-label` de la fila SUSTITUYE a su texto visible,
 	// así que la insignia "No pública" no llegaría al lector de pantalla por sí sola.
 	'editor.visual.tree.selectLabelUnpublished': 'Seleccionar «{label}» (no pública)',
-	'editor.visual.tree.unavailable': 'No se pudo cargar el árbol de secciones.',
+	'editor.visual.tree.unavailable': 'No se pudo cargar el árbol de bloques.',
 	// Anuncio de la selección (encargo de accesibilidad, D3): `VisualEditorScreen.svelte#handleBlockSelect`
 	// lo lee por la MISMA región `aria-live` que ya usa `editor.blocks.reorder.moved` (ver la
 	// cabecera de `blocks-state.svelte.ts`, "Anuncio de la selección").
-	'editor.visual.tree.announceSelect': 'Sección «{label}» seleccionada, {position} de {total}',
+	'editor.visual.tree.announceSelect': 'Bloque «{label}» seleccionado, {position} de {total}',
 	// Anuncio de la CREACIÓN (encargo "paleta de bloques arrastrable", §6): `handleCreate` no
 	// anunciaba nada por sí solo — ni la paleta (`VisualPalette.svelte#createAtEnd`, crear al
 	// final) ni el `+` de los puntos de inserción (`VisualOverlay.svelte#handleInsert`, crear en
 	// posición) lo hacían hasta esta tarea. MISMA región `aria-live` que la de arriba.
-	'editor.visual.tree.announceCreate': 'Sección «{label}» creada, {position} de {total}',
+	'editor.visual.tree.announceCreate': 'Bloque «{label}» creado, {position} de {total}',
 	// ————— Acciones estructurales del árbol (tarea "acciones estructurales desde el editor
 	// visual"): crear/duplicar/borrar/mover viven aquí Y en la barra flotante del lienzo
 	// (`VisualOverlay.svelte`), que reutiliza estas MISMAS claves de duplicar/borrar/mover —
@@ -413,7 +418,7 @@ export const es = {
 	'editor.blocks.moveUpLabel': 'Subir «{label}»',
 	'editor.blocks.moveDownLabel': 'Bajar «{label}»',
 	'editor.visual.overlay.toolbar.label': 'Acciones de «{label}»',
-	'editor.visual.overlay.insertLabel': 'Insertar sección en la posición {position} de {total}',
+	'editor.visual.overlay.insertLabel': 'Insertar bloque en la posición {position} de {total}',
 	'editor.visual.inspector.title': 'Inspector',
 	'editor.visual.inspector.empty':
 		'Selecciona un bloque en el árbol o en el lienzo para editarlo aquí.',
@@ -422,7 +427,7 @@ export const es = {
 
 	// Manillas de ancho entre columnas (petición de David tras usar el editor visual en prod):
 	// una entre árbol y lienzo, otra entre lienzo e inspector — ver `VisualColumnResizer.svelte`.
-	'editor.visual.resize.tree': 'Ajustar ancho del árbol de secciones',
+	'editor.visual.resize.tree': 'Ajustar ancho del árbol de bloques',
 	'editor.visual.resize.inspector': 'Ajustar ancho de la ficha del bloque',
 
 	// ————— El acabado (tamaños de pantalla, zoom, atajos y estado de guardado): ver la cabecera
@@ -444,19 +449,26 @@ export const es = {
 	'editor.visual.help.save': 'Guardar el bloque seleccionado',
 	'editor.visual.help.toggleHelp': 'Abrir o cerrar este panel',
 	'editor.visual.help.asymmetry':
-		'Mover, duplicar, borrar y crear secciones se guardan solos, en el momento en que ocurren. El texto de los campos de un bloque se guarda con el botón «Guardar» de su ficha.',
+		'Mover, duplicar, borrar y crear bloques se guardan solos, en el momento en que ocurren. El texto de los campos de un bloque se guarda con el botón «Guardar» de su ficha.',
+	// Singular de las claves `.many` de arriba (confirm.title, connected, overlay.skipped,
+	// overlay.missing): el llamador elige con `count === 1`, como `list.export.success.one/many`.
+	'editor.visual.status.confirm.title.one': 'Hay 1 bloque sin guardar',
+	'editor.visual.connected.one': 'Conectado al sitio: 1 bloque en la página.',
+	'editor.visual.overlay.skipped.one':
+		'1 bloque que el sitio describió mal: no se puede seleccionar.',
+	'editor.visual.overlay.missing.one': '1 bloque que existe pero el sitio no está pintando.',
 
 	// ————— Editor «master-detail» (mockup final `aquelarre-detalle-post.html`) —————
 	// Raíl de hermanos (`.rail`), aside de metadatos (`.kv`) y zona de peligro: piezas GENÉRICAS
 	// opt-in del renderer — los rótulos de las tarjetas del aside salen de `fieldGroups` (dato del
 	// manifiesto), así que aquí solo viven los literales que NO son dato de colección.
-	'editor.rail.label': 'Registros de la colección',
-	'editor.meta.title': 'Registro',
-	'editor.meta.id': 'id',
+	'editor.rail.label': 'Otros elementos de la lista',
+	'editor.meta.title': 'Ficha',
+	'editor.meta.id': 'Código interno',
 	'editor.meta.created': 'Creado',
 	'editor.meta.updated': 'Actualizado',
 	'editor.dangerZone.title': 'Zona de peligro',
-	'editor.delete': 'Eliminar {label}…',
+	'editor.delete': 'Borrar {label}…',
 	'editor.slug.regenerate': 'Regenerar',
 
 	// ————— Modelo de páginas (capacidad `page`, tarea p1 `1dc63001`) —————
@@ -496,10 +508,10 @@ export const es = {
 	// Ayuda por defecto del campo «Publicar el» cuando el manifiesto no declara la suya. Vega no
 	// puede saber desde el navegador si el servidor tiene `vegaschedule`: la ayuda lo avisa.
 	'editor.publishAt.help':
-		'Si el registro está en borrador, se publica solo a esta hora. Requiere la extensión vegaschedule en el servidor; sin ella, la fecha no hace nada.',
+		'Si está en borrador, se publica a esta hora. Para que funcione, el sitio necesita tener activada la publicación programada; si no la tiene, la fecha no hace nada.',
 	// Aviso VISIBLE bajo el campo cuando el servidor no la cumplirá (`ContentModel.scheduledPublishing`).
 	'editor.publishAt.inactive':
-		'Este servidor no tiene la extensión vegaschedule: la fecha no publicará nada. Publica a mano o pide que la instalen.',
+		'Este sitio no tiene activada la publicación programada: la fecha no publicará nada. Publica a mano o pide a quien administre el sitio que la active.',
 	'editor.publishAt.unknown':
 		'No se ha podido comprobar si este servidor publica las fechas programadas (lo comprueba un administrador al entrar en Vega). Hasta entonces, no cuentes con que se publique sola.',
 
@@ -530,7 +542,7 @@ export const es = {
 	'editor.blocks.expandLabel': 'Desplegar «{label}»',
 	'editor.blocks.collapseLabel': 'Plegar «{label}»',
 	'editor.blocks.reorder.moved': '«{label}» movido a la posición {position} de {total}',
-	'editor.blocks.notice.saveParentFirst': 'Guarda el registro para poder añadir {label}.',
+	'editor.blocks.notice.saveParentFirst': 'Guarda primero para poder añadir {label}.',
 
 	// ————— Vista previa de tarjeta social (capacidad `social`, lote "editor" Fase B) —————
 	'editor.social.title': 'Vista previa social',
@@ -556,13 +568,13 @@ export const es = {
 	'form.errorCode.validation_invalid_value': 'El valor seleccionado no es válido.',
 	'form.errorCode.validation_too_many_values': 'Has seleccionado demasiados elementos.',
 	'form.errorCode.validation_missing_rel_records':
-		'Alguno de los registros relacionados no existe.',
+		'Alguno de los elementos relacionados no existe.',
 	'form.errorCode.validation_is_email': 'Ese valor no es un correo electrónico válido.',
-	'form.errorCode.validation_not_unique': 'Ya existe un registro con ese valor.',
+	'form.errorCode.validation_not_unique': 'Ya existe otro elemento con ese valor.',
 	'form.errorCode.vega_unsupported_field': 'Vega no puede escribir este campo.',
 	'form.errorCode.vega_readonly_field': 'Este campo es de solo lectura.',
 	'form.errorCode.vega_unknown_field': 'Este campo no existe en el tipo de contenido.',
-	'form.errorCode.vega_foreign_file_ref': 'Ese fichero no pertenece a este registro.',
+	'form.errorCode.vega_foreign_file_ref': 'Ese archivo no pertenece a este elemento.',
 	// Código LOCAL, no viene de PB (`page-path.ts`): forma de la ruta pública de una página,
 	// validada en cliente (§2 del encargo "crear y editar páginas") — PocketBase no la conoce,
 	// para él `pathField` es un `text` cualquiera.
@@ -590,19 +602,19 @@ export const es = {
 	'form.relation.media.pageError':
 		'No se pudo cargar esta página de la mediateca. Los archivos ya cargados siguen disponibles.',
 	'form.relation.media.targetMissing':
-		'La colección de medios aún no está disponible en el modelo. Recarga Vega para actualizarla.',
+		'La biblioteca de medios aún no está disponible. Recarga Vega para actualizarla.',
 	'form.relation.media.type.image': 'Imagen',
 	'form.relation.media.type.video': 'Vídeo',
 	'form.relation.media.type.document': 'Archivo',
 
 	// ————— Widget file (Fase F5-f del contrato P5) —————
-	'form.file.dropHint': 'Arrastra ficheros aquí o haz clic para elegir',
-	'form.file.empty': 'Sin ficheros',
+	'form.file.dropHint': 'Arrastra archivos aquí o haz clic para elegir',
+	'form.file.empty': 'Sin archivos',
 	'form.file.remove': 'Quitar',
 	'form.file.removeLabel': 'Quitar «{name}»',
 	'form.file.tooLarge': '«{name}» es demasiado grande.',
-	'form.file.invalidType': '«{name}» no es un tipo de fichero permitido.',
-	'form.file.tooMany': '«{name}» no se añadió: se alcanzó el máximo de ficheros.',
+	'form.file.invalidType': '«{name}» no es un tipo de archivo permitido.',
+	'form.file.tooMany': '«{name}» no se añadió: se alcanzó el máximo de archivos.',
 	// Fase P6·6e (D-P6.6): botón que abre `MediaPicker.svelte`. Oculto por completo sin
 	// `ctx.mediaPicker` (L-P6.9), nunca deshabilitado sin explicación.
 	'form.file.pickFromLibrary': 'Elegir de la biblioteca',
@@ -695,8 +707,8 @@ export const es = {
 
 	// ————— Listado (Fase 4c del contrato P4) —————
 	'list.empty.title': 'Aquí no hay nada todavía',
-	'list.empty.body': 'Crea el primer registro de "{label}" para empezar.',
-	'list.empty.cta': 'Crear',
+	'list.empty.body': 'Crea el primero con «Nuevo: {label}».',
+	'list.empty.bodyReadonly': 'Todavía no hay nada en «{label}».',
 	'list.error.title': 'No se pudo cargar el listado',
 	'list.error.body': '{message}',
 	'list.pagination.prev': 'Anterior',
@@ -717,14 +729,20 @@ export const es = {
 	// Borrador cuya fecha «Publicar el» ya pasó y sigue sin publicarse (el servidor la vacía al
 	// publicar): se avisa para que no parezca un borrador cualquiera.
 	'list.status.overdue': 'Programada, no se publicó',
+	// Etiquetas por defecto cuando el manifiesto no las da (`model/default-labels.ts`).
+	'status.value.draft': 'Borrador',
+	'status.value.published': 'Publicada',
+	'form.field.default.title': 'Título',
+	'form.field.default.status': 'Estado',
+	'form.field.default.name': 'Nombre',
+	'form.field.default.description': 'Descripción',
 
 	// ————— Toolbar de listado (Fase 4d del contrato P4) —————
-	'list.search.placeholder': 'Filtrar por título o slug…',
+	'list.search.placeholder': 'Buscar en {label}…',
 	'list.search.ariaLabel': 'Buscar en el listado',
 	'list.sort.ariaLabel': 'Ordenar por {column}',
 	'list.emptySearch.title': 'Sin resultados',
-	'list.emptySearch.body':
-		'Ningún registro de "{label}" coincide con la búsqueda o los filtros activos.',
+	'list.emptySearch.body': 'Nada en «{label}» coincide con la búsqueda o los filtros activos.',
 	'list.emptySearch.clear': 'Limpiar filtros',
 	// Menú "Filtrar" (M6, reabre R2): botón que despliega las opciones crudas del `statusField`
 	// (`ListToolbar.svelte`); `list.filter.groupLabel` (abajo) etiqueta el popup en sí.
@@ -739,7 +757,7 @@ export const es = {
 	// `FilterChips.svelte`; ahora describe el `role="menu"` con las opciones para ELEGIR un
 	// filtro nuevo (ver `ListToolbar.svelte`).
 	'list.filter.groupLabel': 'Filtrar por estado',
-	'list.new.button': 'Crear «{label}»',
+	'list.new.button': 'Nuevo: {label}',
 
 	// ————— Chips de filtro ACTIVO (M6, reabre R2, mockup `.toolbar .chip`) —————
 	'list.activeFilter.groupLabel': 'Filtros activos',
@@ -747,14 +765,14 @@ export const es = {
 	'list.activeFilter.status.remove': 'Quitar filtro de estado',
 
 	// ————— Meta de cabecera + exportar (M2, mockup `.page-head .meta`/`.btn`) —————
-	'list.meta.records': 'registros',
+	'list.meta.records': 'elementos',
 	'list.meta.filters': 'filtros',
 	'list.export.button': 'Exportar',
 
 	// ————— Exportar: diálogo de alcance + progreso (`#lote-esquema`, Fase 1) —————
 	'list.export.dialog.title': 'Exportar «{label}»',
 	'list.export.dialog.scopeLabel': 'Qué exportar',
-	'list.export.scope.all': 'Toda la colección',
+	'list.export.scope.all': 'Todo el contenido',
 	'list.export.scope.filtered': 'Solo el filtro o búsqueda actual',
 	'list.export.scope.filteredDisabledHint': 'No hay ningún filtro ni búsqueda activos.',
 	'list.export.dialog.confirm': 'Exportar',
@@ -763,24 +781,25 @@ export const es = {
 	// Dos claves, no un plural genérico (i18n v1 lo deja fuera de alcance a propósito, ver
 	// `$lib/i18n/index.ts`) — mismo idioma que `media.selection.labelOne`/`labelMany`
 	// (`MediaSelectionBar.svelte`): el llamador elige con `count === 1`.
-	'list.export.success.one': 'Se ha exportado 1 registro de «{label}».',
-	'list.export.success.many': 'Se han exportado {count} registros de «{label}».',
+	'list.export.success.one': 'Se ha exportado 1 elemento de «{label}».',
+	'list.export.success.many': 'Se han exportado {count} elementos de «{label}».',
 	'list.export.error': 'No se pudo completar la exportación. Vuelve a intentarlo.',
 
 	// ————— Importar (`#lote-esquema`, Fase 2): botón + diálogo (ver `ImportDialog.svelte`) —————
 	'list.import.button': 'Importar',
-	'list.import.dialog.title': 'Importar un fichero .vega.json',
-	'list.import.pick.label': 'Elige un fichero .vega.json',
+	'list.import.dialog.title': 'Importar un archivo .vega.json',
+	'list.import.pick.label': 'Elige un archivo .vega.json',
 	'list.import.pick.hint':
-		'Solo ficheros .vega.json generados por "Exportar". Puede traer varias colecciones.',
+		'Solo archivos .vega.json generados por "Exportar". Puede traer varios tipos de contenido.',
 	'list.import.reading': 'Leyendo «{fileName}»…',
 
 	// ————— Fichero inválido (§4.1: cabecera/colecciones/campos, todo-o-nada) —————
-	'list.import.invalid.title': 'Este fichero no se puede importar',
-	'list.import.invalid.malformed': 'El fichero no tiene la forma de un .vega.json válido.',
+	'list.import.invalid.title': 'Este archivo no se puede importar',
+	'list.import.invalid.malformed': 'El archivo no tiene la forma de un .vega.json válido.',
 	'list.import.invalid.unrecognizedVersion':
-		'Este fichero es de una versión del formato que esta versión de Vega no reconoce.',
-	'list.import.invalid.unknownCollection': 'La colección «{type}» no existe en este proyecto.',
+		'Este archivo es de una versión del formato que esta versión de Vega no reconoce.',
+	'list.import.invalid.unknownCollection':
+		'El tipo de contenido «{type}» no existe en este proyecto.',
 	'list.import.invalid.unknownField':
 		'El campo «{field}» de «{type}» ya no existe en el esquema actual.',
 
@@ -791,32 +810,34 @@ export const es = {
 	'list.import.preview.summary':
 		'{create} nuevos · {overwrite} sobrescriben · {blocked} bloqueados',
 	'list.import.preview.confirmOverwrite':
-		'Confirmo que quiero sobrescribir estos {count} registros ya existentes.',
+		'Confirmo que quiero sobrescribir estos {count} elementos ya existentes.',
 	'list.import.preview.nothingToImport':
-		'No hay nada que importar: todos los registros están bloqueados.',
-	'list.import.blockedReason.noCreatePermission': 'sin permiso para crear en esta colección',
-	'list.import.blockedReason.noUpdatePermission': 'sin permiso para editar en esta colección',
+		'No hay nada que importar: todos los elementos están bloqueados.',
+	'list.import.blockedReason.noCreatePermission':
+		'sin permiso para crear en este tipo de contenido',
+	'list.import.blockedReason.noUpdatePermission':
+		'sin permiso para editar en este tipo de contenido',
 	'list.import.blockedReason.danglingRelation':
-		'el campo «{field}» apunta a un registro que no existe',
+		'el campo «{field}» apunta a un elemento que no existe',
 	'list.import.blockedReason.requiredEmpty': 'el campo obligatorio «{field}» llega sin valor',
 	'list.import.blockedReason.unreachableRequiredFile':
-		'el fichero obligatorio del campo «{field}» no se pudo traer del origen',
+		'el archivo obligatorio del campo «{field}» no se pudo traer del origen',
 
 	// ————— Escritura + informe (§4.3/§4.4) —————
 	'list.import.dialog.confirm': 'Importar',
 	'list.import.progress': 'Importando…',
 	'list.import.report.summary':
 		'{created} creados · {updated} actualizados · {failed} con error · {skipped} omitidos',
-	'list.import.report.failedTitle': 'Registros que fallaron',
+	'list.import.report.failedTitle': 'Elementos que fallaron',
 	// Mismo criterio "dos claves, no plural genérico" que `list.export.success.*` de arriba.
-	'list.import.success.one': 'Se ha importado 1 registro.',
-	'list.import.success.many': 'Se han importado {count} registros.',
+	'list.import.success.one': 'Se ha importado 1 elemento.',
+	'list.import.success.many': 'Se han importado {count} elementos.',
 	'list.import.partial':
-		'La importación terminó con {failed} registros fallidos. Revisa el informe.',
+		'La importación terminó con {failed} elementos fallidos. Revisa el informe.',
 	'list.import.error': 'No se pudo preparar la vista previa. Vuelve a intentarlo.',
 	'list.import.runError':
-		'La importación se interrumpió por un error inesperado. Revisa qué registros entraron y vuelve a intentarlo.',
-	'list.import.reading.bar': 'Progreso de la lectura del fichero',
+		'La importación se interrumpió por un error inesperado. Revisa qué elementos entraron y vuelve a intentarlo.',
+	'list.import.reading.bar': 'Progreso de la lectura del archivo',
 	'list.import.progress.count': 'Importando… {done} de {total}',
 
 	// ————— Borrado (Fase 4e del contrato P4) —————
@@ -840,18 +861,19 @@ export const es = {
 	'list.merged.typeHeader': 'Tipo',
 	'list.merged.titleHeader': 'Título',
 	'list.merged.empty.title': 'Aquí no hay nada todavía',
-	'list.merged.empty.body': 'Ningún registro de las colecciones de esta vista coincide todavía.',
+	'list.merged.empty.body':
+		'Ningún elemento de los tipos de contenido de esta vista coincide todavía.',
 	'list.merged.truncatedNotice':
-		'Alguna de las colecciones de esta vista tiene más registros de los mostrados.',
+		'Alguno de los tipos de contenido de esta vista tiene más elementos de los mostrados.',
 	// Por qué no se puede arrastrar para reordenar (aviso de la vista y ayuda del asa).
 	'list.merged.reorderBlocked.failed':
-		'No se puede reordenar mientras falte alguna colección: el orden quedaría a medias.',
+		'No se puede reordenar mientras falte algún tipo de contenido: el orden quedaría a medias.',
 	'list.merged.reorderBlocked.truncated':
-		'No se puede reordenar: hay más registros de los que caben en pantalla y el orden quedaría a medias.',
+		'No se puede reordenar: hay más elementos de los que caben en pantalla y el orden quedaría a medias.',
 	'list.merged.reorderBlocked.forbidden':
-		'No se puede reordenar: no tienes permiso para editar alguna de las colecciones de esta vista.',
+		'No se puede reordenar: no tienes permiso para editar algún tipo de contenido de esta vista.',
 	'list.merged.failedNotice':
-		'No se han podido cargar: {sources}. Se muestran los registros de las demás colecciones.',
+		'No se han podido cargar: {sources}. Se muestran los elementos de los demás tipos de contenido.',
 
 	// ————— Integridad referencial (`#lote-integridad`, Fase A): motor "¿dónde se usa esto?" —————
 	// Compartido por `UsedInPanel`/`ReferencesSummary` (panel pasivo) y por el aviso de
@@ -864,20 +886,20 @@ export const es = {
 	'integrity.usedIn.retry': 'Reintentar',
 	'integrity.usedIn.partial':
 		'Aviso: no se pudo comprobar todo. Puede haber más referencias de las que se muestran aquí.',
-	'integrity.usedIn.countLabel': '{count} registro(s)',
+	'integrity.usedIn.countLabel': '{count} elemento(s)',
 	'integrity.usedIn.moreCount': 'y {count} más',
 	'integrity.usedIn.collectionDegraded': 'No se pudo comprobar "{collection}" ({reason}).',
 	// Traducción de `VegaErrorKind` (más `'unknown'`, ver `ReferenceMatchDegraded`) al motivo
 	// humano que rellena `integrity.usedIn.collectionDegraded` — NUNCA el `message` crudo del
 	// `VegaError` (P1 §5: puede llevar sintaxis/URLs del backend).
-	'integrity.usedIn.reason.forbidden': 'sin permiso para leer esta colección',
-	'integrity.usedIn.reason.network': 'sin conexión con el backend',
-	'integrity.usedIn.reason.backend': 'el backend respondió algo inesperado',
-	'integrity.usedIn.reason.not-found': 'la colección ya no existe',
+	'integrity.usedIn.reason.forbidden': 'sin permiso para leer este tipo de contenido',
+	'integrity.usedIn.reason.network': 'sin conexión con el servidor',
+	'integrity.usedIn.reason.backend': 'el servidor respondió algo inesperado',
+	'integrity.usedIn.reason.not-found': 'ese tipo de contenido ya no existe',
 	'integrity.usedIn.reason.auth-expired': 'la sesión caducó a mitad de la comprobación',
-	'integrity.usedIn.reason.validation': 'la consulta no es válida contra este backend',
+	'integrity.usedIn.reason.validation': 'el servidor no acepta la consulta',
 	// Una lectura nunca lo produce; está para que la tabla cubra todo `VegaErrorKind`.
-	'integrity.usedIn.reason.conflict': 'el registro cambió durante la comprobación',
+	'integrity.usedIn.reason.conflict': 'el elemento cambió durante la comprobación',
 	'integrity.usedIn.reason.unknown': 'motivo desconocido',
 
 	// ————— Aviso de referencias ANTES de borrar (mismo motor, `DeleteConfirm`/`MediaDeleteConfirm`) —————
@@ -891,7 +913,7 @@ export const es = {
 	// desde la papelera NO los reconecta — las de texto/URL sí se benefician del id vivo de nuevo,
 	// así que esta línea sería falsa para ellas y no se muestra en ese caso.
 	'integrity.deleteGuard.relationWarning':
-		'Al borrar, PocketBase limpia esas relaciones al instante (vacía el campo o quita el id del array). Si restauras este registro desde la papelera más tarde, esos enlaces NO vuelven.',
+		'Al borrar, PocketBase limpia esas relaciones al instante (vacía el campo o quita el id del array). Si restauras este elemento desde la papelera más tarde, esos enlaces NO vuelven.',
 	'integrity.deleteGuard.confirmCheckbox':
 		'Entiendo que hay referencias activas y quiero borrar igualmente.',
 
@@ -946,42 +968,42 @@ export const es = {
 
 	// ————— Papelera (`#lote-integridad`, Fase B2) — línea compartida de los 4 diálogos de borrado —————
 	'revisions.trash.deleteFilesHint':
-		'Los ficheros adjuntos no se recuperan, aunque restaures la entrada.',
+		'Los archivos adjuntos no se recuperan, aunque restaures la entrada.',
 
 	// ————— Papelera — ruta /papelera —————
 	'revisions.trash.pageTitle': 'Papelera',
 	'revisions.trash.description':
-		'Registros y assets borrados. Puedes restaurarlos con su id original mientras no pasen de la retención configurada en Ajustes.',
+		'Aquí están los elementos y archivos que has borrado. Puedes restaurarlos tal como estaban hasta que se cumpla el plazo de conservación que se fija en Ajustes.',
 	'revisions.trash.loading': 'Cargando papelera…',
 	'revisions.trash.error': 'No se pudo cargar la papelera.',
 	'revisions.trash.retry': 'Reintentar',
 	'revisions.trash.unavailable': 'La papelera no está activada en este proyecto.',
 	'revisions.trash.empty': 'La papelera está vacía.',
-	'revisions.trash.itemCollection': 'Colección: {collection}',
-	'revisions.trash.itemFilesLost': 'Tenía ficheros adjuntos: no se restaurarán.',
+	'revisions.trash.itemCollection': 'Tipo: {collection}',
+	'revisions.trash.itemFilesLost': 'Tenía archivos adjuntos: no se restaurarán.',
 	'revisions.trash.restore': 'Restaurar',
 	'revisions.trash.restoring': 'Restaurando…',
 	'revisions.trash.restoreUnavailable':
-		'Este backend no permite restaurar con el id original: "Restaurar" no está disponible.',
+		'Este sitio no permite restaurar este elemento tal como era: «Restaurar» no está disponible.',
 	'revisions.trash.restoreUnknownSchema':
-		'La colección "{collection}" ya no existe en el esquema: no se puede restaurar con seguridad.',
+		'El tipo de contenido «{collection}» ya no existe: no se puede restaurar con seguridad.',
 	// `requiredFileFieldName` (`revisions/restore.ts`): ningún campo `file` sobrevive a un
 	// restaurado (PB destruye el binario al borrar, §0.3), así que una colección con uno OBLIGATORIO
 	// no puede recrearse completa — derivado del esquema, no un caso especial de "vega_media".
 	'revisions.trash.restoreBlockedRequiredFile':
-		'El campo "{field}" de "{collection}" es un fichero obligatorio: los ficheros no se restauran nunca (§0.3), así que este registro no se puede recrear completo. "Restaurar" no está disponible.',
+		'El campo «{field}» de «{collection}» es un archivo obligatorio y los archivos borrados no se pueden recuperar, así que este elemento no se puede restaurar completo. «Restaurar» no está disponible.',
 	'revisions.trash.restoreSuccess': '"{label}" se ha restaurado.',
 	'revisions.trash.deleteForever': 'Borrar definitivamente',
 	'revisions.trash.deleteForeverConfirmTitle': '¿Borrar «{label}» definitivamente?',
 	'revisions.trash.deleteForeverConfirmBody':
-		'Esta entrada de la papelera desaparecerá para siempre: ya no podrás restaurar este registro.',
+		'Esta entrada de la papelera desaparecerá para siempre: ya no podrás restaurar este elemento.',
 	'revisions.trash.deleteForeverConfirm': 'Borrar definitivamente',
 	'revisions.trash.deleteForeverDeleting': 'Borrando…',
 	'revisions.trash.deleteForeverSuccess': '"{label}" se ha borrado definitivamente de la papelera.',
 	'revisions.trash.emptyTrash': 'Vaciar papelera',
 	'revisions.trash.emptyTrashConfirmTitle': '¿Vaciar la papelera?',
 	'revisions.trash.emptyTrashConfirmBody':
-		'Se borrarán definitivamente las {count} entrada(s) de la papelera: ya no podrás restaurar ninguno de estos registros.',
+		'Se borrarán definitivamente las {count} entrada(s) de la papelera: ya no podrás restaurar ninguno de estos elementos.',
 	'revisions.trash.emptyTrashConfirm': 'Vaciar papelera',
 	'revisions.trash.emptyTrashEmptying': 'Vaciando…',
 	'revisions.trash.emptyTrashSuccess': 'Papelera vaciada.',
@@ -994,7 +1016,7 @@ export const es = {
 	// ————— Medios: bootstrap + esquema (Fase P6·6a) —————
 	'media.loadErrorBody': 'No se pudo cargar la biblioteca de medios. Vuelve a intentarlo.',
 	'media.empty.title': 'La biblioteca de medios está vacía',
-	'media.empty.body': 'Todavía no hay ningún fichero. Sube el primero desde el apartado de arriba.',
+	'media.empty.body': 'Todavía no hay ningún archivo. Sube el primero desde el apartado de arriba.',
 	'media.bootstrap.confirmBody':
 		'Vega va a crear la colección "vega_media" en tu PocketBase. ¿Continuar?',
 	'media.bootstrap.confirm': 'Crear colección',
@@ -1007,7 +1029,7 @@ export const es = {
 	// Rol editor (lote L6c): un editor nunca puede crear/importar colecciones (no tiene acceso al
 	// Admin de PocketBase), así que el JSON de importación de arriba no le sirve de nada.
 	'media.bootstrap.editorBody':
-		'Pídele a un administrador que configure la colección de medios ("vega_media") en PocketBase.',
+		'Pide a quien administre el sitio que active la biblioteca de medios.',
 	// Biblioteca creada antes de un campo nuevo (hoy, `focal`): completarla es aditivo y lo decide
 	// el superusuario con un botón, nunca Vega por su cuenta.
 	'media.fields.missingBody':
@@ -1030,7 +1052,7 @@ export const es = {
 	// marca de la tarjeta sigue al valor guardado; la pista de la ficha, a lo que se escribe.
 	'media.alt.missing': 'Sin texto alternativo',
 	'media.detail.altMissingHint': 'Sin texto alternativo: un lector de pantalla leerá «{name}».',
-	'media.detail.altHelp': 'Describe lo que se ve, no el nombre del fichero.',
+	'media.detail.altHelp': 'Describe lo que se ve, no el nombre del archivo.',
 	// Punto focal (audit del 23 sep): lo que el sitio conserva al recortar la imagen. Vacío = centro.
 	'media.focal.label': 'Punto focal',
 	'media.focal.help':
@@ -1062,20 +1084,20 @@ export const es = {
 	// aleatorio, así que NO se puede prometer "conserva su URL" — solo se conserva el id y los
 	// metadatos del registro (`alt`/`title`/`tags`), por eso `warningIdentity`/`warningUrl` son dos
 	// mensajes DISTINTOS y ninguno menciona caché (no aplica: la URL cambia de nombre, no de valor).
-	'media.detail.replace': 'Reemplazar fichero',
-	'media.replace.rejectedTooLarge': 'El fichero elegido excede el tamaño máximo permitido.',
-	'media.replace.rejectedInvalidType': 'El fichero elegido no es de un tipo admitido.',
-	'media.replace.confirmTitle': '¿Reemplazar el fichero de «{label}»?',
+	'media.detail.replace': 'Reemplazar archivo',
+	'media.replace.rejectedTooLarge': 'El archivo elegido excede el tamaño máximo permitido.',
+	'media.replace.rejectedInvalidType': 'El archivo elegido no es de un tipo admitido.',
+	'media.replace.confirmTitle': '¿Reemplazar el archivo de «{label}»?',
 	'media.replace.warningIdentity':
 		'El registro conserva su id y sus metadatos (alt, título, etiquetas): cualquier referencia por relación sigue siendo válida.',
 	'media.replace.warningUrl':
-		'La URL directa del fichero VA A CAMBIAR: quien la tuviera pegada a mano dejará de verla.',
+		'La URL directa del archivo VA A CAMBIAR: quien la tuviera pegada a mano dejará de verla.',
 	'media.replace.usedInIntro': 'Esto es lo que usaba la URL actual, antes de reemplazarla:',
 	'media.replace.confirm': 'Reemplazar',
 	'media.replace.replacing': 'Reemplazando…',
-	'media.replace.success': 'Fichero reemplazado. La URL directa ha cambiado.',
+	'media.replace.success': 'Archivo reemplazado. La URL directa ha cambiado.',
 	'media.replace.warningDrafts':
-		'Los cambios sin guardar de la ficha (texto alternativo, título, etiquetas, punto focal) se guardarán a la vez que el fichero.',
+		'Los cambios sin guardar de la ficha (texto alternativo, título, etiquetas, punto focal) se guardarán a la vez que el archivo.',
 
 	// ————— Medios: cabecera + toolbar de la biblioteca (rediseño «aquelarre-medios») —————
 	// El recuento de la cabecera es el TOTAL de la biblioteca (`totalItems` del listado), nunca el
@@ -1085,7 +1107,7 @@ export const es = {
 	'media.filter.groupLabel': 'Filtrar por tipo',
 	'media.filter.all': 'Todos',
 	'media.filter.images': 'Imágenes',
-	'media.filter.video': 'Vídeo',
+	'media.filter.video': 'Vídeos',
 	'media.filter.documents': 'Documentos',
 	'media.filter.empty': 'Ningún archivo de esta página coincide con la búsqueda o el tipo elegido.',
 	'media.filter.clear': 'Limpiar filtros',
@@ -1103,12 +1125,12 @@ export const es = {
 	'media.selection.copy': 'Copiar URL',
 	'media.selection.copySuccess': '{count} URL(s) copiada(s) al portapapeles.',
 	'media.selection.copyError': 'No se pudo copiar al portapapeles.',
-	'media.selection.delete': 'Eliminar',
+	'media.selection.delete': 'Borrar',
 	'media.selection.deleteTitle': '¿Borrar {count} archivos de la biblioteca?',
 	'media.selection.deleteSuccess': '{count} archivo(s) borrado(s) de la biblioteca.',
 
 	// ————— Medios: subida drag&drop (Fase P6·6c) —————
-	'media.upload.inputLabel': 'Subir ficheros',
+	'media.upload.inputLabel': 'Subir archivos',
 	'media.upload.button': 'Subir archivos',
 	// Banda de arrastre (mockup `.dropzone`), troceada porque cada parte se pinta distinta: el
 	// gesto en negrita y el límite en `--mono` (valor canónico). `{max}` sale del esquema REAL de
@@ -1123,12 +1145,12 @@ export const es = {
 	'media.upload.status.done': 'Subido',
 	'media.upload.status.error': 'Error: {message}',
 	'media.upload.reason.tooLarge': 'excede el tamaño máximo permitido',
-	'media.upload.reason.invalidType': 'tipo de fichero no permitido',
+	'media.upload.reason.invalidType': 'tipo de archivo no permitido',
 	'media.upload.aborted':
-		'subida cancelada: un fichero anterior del lote falló por conexión/permiso',
-	'media.upload.summary': '{uploaded} fichero(s) subido(s), {failed} fallido(s).',
+		'subida cancelada: un archivo anterior del lote falló por conexión/permiso',
+	'media.upload.summary': '{uploaded} archivo(s) subido(s), {failed} fallido(s).',
 	'media.upload.summaryPending':
-		'{uploaded} fichero(s) subido(s), {failed} fallido(s), {pending} pendiente(s) por la sesión caducada.',
+		'{uploaded} archivo(s) subido(s), {failed} fallido(s), {pending} pendiente(s) por la sesión caducada.',
 	'media.upload.keepOriginal': 'Subir el original',
 	'media.upload.shrinkNotice':
 		'Las imágenes grandes se reducen al subirlas. Se pierden los datos de la cámara, incluida la ubicación.',
@@ -1145,10 +1167,10 @@ export const es = {
 	// D-P6.6/L-P6.8: el picker COPIA bytes (nunca referencia un `vega_media` desde un registro),
 	// así que el aviso es honesto sobre eso mismo (D-P6.7, la duplicación de bytes se acepta en v1).
 	'media.picker.title': 'Elegir de la biblioteca',
-	'media.picker.copyNotice': 'Se insertará una copia del fichero elegido en este campo.',
+	'media.picker.copyNotice': 'Se insertará una copia del archivo elegido en este campo.',
 	'media.picker.searchLabel': 'Buscar por título o texto alternativo',
 	'media.picker.searchPlaceholder': 'Buscar…',
-	'media.picker.empty': 'Ningún asset coincide con la búsqueda o el tipo de fichero admitido.',
+	'media.picker.empty': 'Ningún asset coincide con la búsqueda o el tipo de archivo admitido.',
 	'media.picker.selectedCount': '{count} elegido(s)',
 	// Segunda mitad del pie («2 elegidos · 1 sin texto alternativo»): solo se pinta si hay alguno.
 	'media.picker.missingAltCount': '{count} sin texto alternativo',
@@ -1241,16 +1263,16 @@ export const es = {
 	'settings.schema.fields.relation.onDeleteUnlink': 'Conservar este registro',
 	'settings.schema.fields.relation.onDeleteCascade': 'Borrar este registro',
 	'settings.schema.fields.relation.cascadeWarning':
-		'PocketBase borrará este registro al eliminar su última relación. Esta acción no se puede deshacer.',
+		'PocketBase borrará este registro al borrar su última relación. Esta acción no se puede deshacer.',
 	'settings.schema.error': 'Error: {message}',
 	// Migración JS emitida tras crear/añadir con éxito (mitad 2 del lote "esquema"): sin esto,
 	// cada edición de esquema desde Vega aleja producción del repo EN SILENCIO.
 	'settings.schema.migration.title': 'Migración generada',
 	'settings.schema.migration.instructions':
-		'Guarda este fichero como pb_migrations/{filename} en el repositorio de tu proyecto y commítalo: sin él, este cambio de esquema solo existe en tu PocketBase, no en tu control de versiones.',
+		'Guarda este archivo como pb_migrations/{filename} en el repositorio de tu proyecto y commítalo: sin él, este cambio de esquema solo existe en tu PocketBase, no en tu control de versiones.',
 	'settings.schema.migration.pendingTitle': 'Migración generada — todavía no aplicada',
 	'settings.schema.migration.pendingInstructions':
-		'Guarda este fichero como pb_migrations/{filename}, revísalo y aplícalo fuera de Vega: generarlo o copiarlo no cambia PocketBase. Si lo generas otra vez antes de aplicarlo obtendrás otro fichero para las mismas columnas. Si el esquema cambia entretanto, la migración puede fallar al aplicarse. Su down elimina estas columnas y cualquier dato escrito en ellas después del up.',
+		'Guarda este archivo como pb_migrations/{filename}, revísalo y aplícalo fuera de Vega: generarlo o copiarlo no cambia PocketBase. Si lo generas otra vez antes de aplicarlo obtendrás otro archivo para las mismas columnas. Si el esquema cambia entretanto, la migración puede fallar al aplicarse. Su down elimina estas columnas y cualquier dato escrito en ellas después del up.',
 	'settings.schema.migration.copy': 'Copiar',
 	'settings.schema.migration.copied': 'Copiado',
 
@@ -1259,7 +1281,7 @@ export const es = {
 	'settings.blockColumns.missingSummary':
 		'Este manifiesto declara {count} columna(s) física(s) que no existen.',
 	'settings.blockColumns.migrationPerCollection':
-		'Vega genera un fichero separado por cada colección de bloques y solo incluye sus columnas ausentes.',
+		'Vega genera un archivo separado por cada colección de bloques y solo incluye sus columnas ausentes.',
 	'settings.blockColumns.collectionMissingTitle': 'Colección de bloques no disponible',
 	'settings.blockColumns.collectionMissingBody':
 		'La colección hija declarada por "{collection}" no existe en el esquema o está reservada. No se puede diagnosticar ni generar una reconciliación hasta crearla por otro medio.',
@@ -1283,7 +1305,7 @@ export const es = {
 	'settings.blockColumns.type.date': 'fecha',
 	'settings.blockColumns.type.select': 'selección',
 	'settings.blockColumns.type.relation': 'relación',
-	'settings.blockColumns.type.file': 'fichero',
+	'settings.blockColumns.type.file': 'archivo',
 	'settings.blockColumns.type.json': 'JSON',
 	'settings.blockColumns.type.unsupported': 'tipo no soportado',
 	'settings.blockColumns.type.autodate': 'fecha automática',
@@ -1302,17 +1324,15 @@ export const es = {
 	'settings.blockColumns.reason.cardinality': 'la cardinalidad o sus máximos no coinciden',
 	'settings.blockColumns.reason.cascadeDelete': 'la política de borrado en cascada no coincide',
 	'settings.blockColumns.reason.fileConstraints':
-		'las restricciones de fichero (tamaño, MIME o protección) no coinciden',
+		'las restricciones de archivo (tamaño, MIME o protección) no coinciden',
 	'settings.blockColumns.reason.constraints':
 		'la forma física esperada y la columna real tienen restricciones distintas',
 
 	// ————— Rol editor (lote L6c): degradado de la edición del manifiesto —————
 	// Sin `schemaBootstrap` (colección de auth distinta de `_superusers`) un editor no puede
-	// introspeccionar ni crear/migrar esquema — la edición del manifiesto es, por definición,
-	// una operación de superusuario. Ver `computeCollectionState`/`Capabilities.schemaBootstrap`.
-	'settings.manifest.editorGateTitle': 'Modelo de contenido',
-	'settings.manifest.editorGateBody':
-		'La edición del manifiesto requiere una cuenta de administrador (superusuario). Pide a quien administre este PocketBase que ajuste el modelo de contenido desde este mismo panel.',
+	// introspeccionar ni crear/migrar esquema: la sección del modelo de contenido NO se pinta y la
+	// de conexión queda plegada bajo «Avanzado» (lote 11). Ver `Capabilities.schemaBootstrap`.
+	'settings.advanced.title': 'Avanzado',
 
 	// ————— Base del sitio: preparar y actualizar el PocketBase del sitio (lote 2 del audit) —————
 	// La palabra «sembrado» no sale en la interfaz. Lámina: design/mockups/2026-10-01-ajustes-y-sembrado.
@@ -1367,7 +1387,7 @@ export const es = {
 	'settings.site.collection.redirects': 'Redirecciones',
 	'settings.site.collection.vega': 'Modelo de contenido',
 	'settings.site.create.pages': 'título, ruta, plantilla, estado, fecha de publicación y SEO',
-	'settings.site.create.vega_media': 'las imágenes y ficheros que se suben',
+	'settings.site.create.vega_media': 'las imágenes y archivos que se suben',
 	'settings.site.create.blocks': 'las secciones de cada página',
 	'settings.site.create.redirects': 'de una ruta antigua a una nueva',
 	'settings.site.create.vega': 'cómo se llaman y se ordenan los campos en los formularios',
@@ -1478,7 +1498,7 @@ export const es = {
 	// La colección se crea al preparar el sitio, desde la tarjeta «Base del sitio» de Ajustes.
 	'admin.editors.missingCollection':
 		'Este sitio todavía no tiene dónde guardar las cuentas de los editores. Se crea al preparar el sitio.',
-	'admin.editors.col.email': 'Email',
+	'admin.editors.col.email': 'Correo',
 	'admin.editors.col.status': 'Estado',
 	'admin.editors.col.created': 'Alta',
 	'admin.editors.col.actions': 'Acciones',
@@ -1498,7 +1518,7 @@ export const es = {
 	'admin.editors.remove': 'Quitar acceso',
 	'admin.editors.removeFor': 'Quitar el acceso a {email}',
 	'admin.editors.addDialog.title': 'Añadir editor',
-	'admin.editors.addDialog.email': 'Email',
+	'admin.editors.addDialog.email': 'Correo',
 	'admin.editors.addDialog.accessLabel': 'Cómo entrará',
 	'admin.editors.addDialog.invite': 'Enviarle una invitación',
 	'admin.editors.addDialog.inviteHint': 'Recibe un correo y elige su contraseña.',
@@ -1529,7 +1549,7 @@ export const es = {
 		'Las copias de seguridad exigen entrar como superusuario de PocketBase. Tu cuenta es de editor.',
 	'admin.backups.title': 'Copias de seguridad',
 	'admin.backups.description':
-		'Copia completa de la base de datos y de los ficheros subidos, guardada en el servidor. Descárgala para tener otra fuera de él.',
+		'Copia completa de la base de datos y de los archivos subidos, guardada en el servidor. Descárgala para tener otra fuera de él.',
 	'admin.backups.create': 'Crear copia',
 	'admin.backups.creating': 'Creando…',
 	'admin.backups.running': 'Creando copia… {elapsed}',
@@ -1690,7 +1710,7 @@ export const es = {
 	'admin.reset.submit': 'Guardar contraseña',
 	'admin.reset.saving': 'Guardando…',
 	'admin.reset.successTitle': 'Contraseña guardada',
-	'admin.reset.successBody': 'Ya puedes entrar con tu email y la contraseña nueva.',
+	'admin.reset.successBody': 'Ya puedes entrar con tu correo y la contraseña nueva.',
 	'admin.reset.toLogin': 'Ir a entrar',
 	'admin.reset.expiredTitle': 'Este enlace ya no sirve',
 	'admin.reset.expiredBody':
@@ -1706,9 +1726,9 @@ export const es = {
 	'admin.form.passwordTooShort': 'Mínimo {min} caracteres.',
 	'admin.form.passwordMismatch': 'No coincide con la de arriba.',
 	'admin.form.passwordRejected': 'El servidor no acepta esta contraseña: {message}',
-	'admin.form.emailInvalid': 'Escribe un email válido.',
-	'admin.form.emailTaken': 'Ya hay un editor con ese email.',
-	'admin.form.emailRejected': 'El servidor no acepta este email: {message}',
+	'admin.form.emailInvalid': 'Escribe un correo válido.',
+	'admin.form.emailTaken': 'Ya hay un editor con ese correo.',
+	'admin.form.emailRejected': 'El servidor no acepta este correo: {message}',
 	'admin.form.rejected': 'El servidor rechazó los datos: {message}',
 
 	// ————— Toasts (§2.3) —————
@@ -1720,5 +1740,12 @@ export const es = {
 	'common.close': 'Cerrar',
 	'common.loading': 'Cargando…',
 	'common.networkError':
-		'No se pudo conectar con el sitio. Comprueba tu conexión e inténtalo de nuevo.'
+		'No se pudo conectar con el sitio. Comprueba tu conexión e inténtalo de nuevo.',
+
+	// ————— Errores del backend traducidos (`VegaError.backendCode`) —————
+	'errors.backendCode.recordInUse':
+		'No se puede borrar: otro contenido depende de este elemento. Quita antes esa referencia.',
+	'errors.backendCode.badRequest':
+		'La petición no es válida. Recarga la página e inténtalo de nuevo.',
+	'errors.backendCode.serverError': 'El servidor ha fallado. Inténtalo de nuevo en unos minutos.'
 };

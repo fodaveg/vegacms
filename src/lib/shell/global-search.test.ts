@@ -297,7 +297,7 @@ describe('toGlobalSearchGroup', () => {
 				id: 'r2',
 				title: 'Otro',
 				// …y sin entrada en `statusLabels` se pinta el valor crudo tal cual.
-				statusLabel: 'published',
+				statusLabel: 'Publicada',
 				statusKind: 'pub'
 			}
 		]);

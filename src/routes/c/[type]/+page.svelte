@@ -597,12 +597,13 @@
 						><Icon id="document" size={20} /></span
 					>
 					<h2>{ctx.t('list.empty.title')}</h2>
-					<p>{ctx.t('list.empty.body', { label: contentType.label })}</p>
-					{#if contentType.permissions.create}
-						<button type="button" onclick={() => ctx.nav.toNew(contentType.name)}>
-							{ctx.t('list.empty.cta')}
-						</button>
-					{/if}
+					<!-- UNA sola llamada a crear: el botón «Nuevo» de la cabecera. El texto lo nombra, sin
+					     repetir un segundo botón aquí. -->
+					<p>
+						{contentType.permissions.create
+							? ctx.t('list.empty.body', { label: contentType.labelSingular })
+							: ctx.t('list.empty.bodyReadonly', { label: contentType.label })}
+					</p>
 				</div>
 			{:else if readyPage}
 				<div data-list-state="ready" aria-busy={listState.refreshing}>

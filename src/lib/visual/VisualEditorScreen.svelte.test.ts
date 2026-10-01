@@ -396,7 +396,7 @@ describe('VisualEditorScreen.svelte', () => {
 		await tick();
 
 		expect(mounted.target.querySelector('.vega-visual-status')?.textContent).toContain(
-			translate('es', 'editor.visual.connected', { count: 1 })
+			translate('es', 'editor.visual.connected.one', { count: 1 })
 		);
 	});
 
@@ -511,7 +511,7 @@ describe('VisualEditorScreen.svelte', () => {
 			});
 			await tick();
 			expect(mounted.target.querySelector('.vega-visual-status')?.textContent).toContain(
-				translate('es', 'editor.visual.connected', { count: 1 })
+				translate('es', 'editor.visual.connected.one', { count: 1 })
 			);
 			expect(fetchMock.mock.calls.length).toBe(1);
 
@@ -523,7 +523,7 @@ describe('VisualEditorScreen.svelte', () => {
 
 			expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
 			expect(mounted.target.querySelector('.vega-visual-status')?.textContent).not.toContain(
-				translate('es', 'editor.visual.connected', { count: 1 })
+				translate('es', 'editor.visual.connected.one', { count: 1 })
 			);
 		} finally {
 			vi.useRealTimers();
@@ -825,7 +825,7 @@ describe('VisualEditorScreen.svelte — árbol de secciones e inspector', () => 
 		).toBeNull();
 		// Reportada = no falta: ningún aviso de secciones que el sitio no pinta.
 		expect(mounted.target.querySelector('.vega-visual-overlay-status')?.textContent).not.toContain(
-			translate('es', 'editor.visual.overlay.missing', { count: 1 })
+			translate('es', 'editor.visual.overlay.missing.one', { count: 1 })
 		);
 	});
 

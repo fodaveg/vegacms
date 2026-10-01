@@ -59,18 +59,18 @@ test.describe('/editores (superusuario)', () => {
 		await page.getByRole('button', { name: 'Añadir editor' }).click();
 		const dialog = page.getByRole('dialog', { name: 'Añadir editor' });
 		await expect(dialog).toBeVisible();
-		await expect(dialog.getByLabel('Email')).toBeFocused();
+		await expect(dialog.getByLabel('Correo', { exact: true })).toBeFocused();
 		await expect(dialog.getByText('Este servidor no tiene correo configurado')).toBeVisible();
 		await expect(dialog.getByRole('radio')).toHaveCount(0);
 		await expect(dialog.getByText('Copiar')).toHaveCount(0);
 
 		const submit = dialog.getByRole('button', { name: 'Añadir editor' });
 
-		await dialog.getByLabel('Email').fill('no-es-un-email');
+		await dialog.getByLabel('Correo', { exact: true }).fill('no-es-un-email');
 		await submit.click();
-		await expect(dialog.getByText('Escribe un email válido.')).toBeVisible();
+		await expect(dialog.getByText('Escribe un correo válido.')).toBeVisible();
 
-		await dialog.getByLabel('Email').fill('ana.ruiz@fodaveg.net');
+		await dialog.getByLabel('Correo', { exact: true }).fill('ana.ruiz@fodaveg.net');
 		await dialog.getByLabel('Contraseña', { exact: true }).fill('huerto');
 		await dialog.getByLabel('Repítela').fill('huerto2');
 		await submit.click();
@@ -88,9 +88,9 @@ test.describe('/editores (superusuario)', () => {
 		await dialog.getByLabel('Repítela').fill('huerto-grande');
 		await submit.click();
 		// El email repetido lo rechaza el backend y se pinta en su campo, con el diálogo abierto.
-		await expect(dialog.getByText('Ya hay un editor con ese email.')).toBeVisible();
+		await expect(dialog.getByText('Ya hay un editor con ese correo.')).toBeVisible();
 
-		await dialog.getByLabel('Email').fill('lucia.moreno@fodaveg.net');
+		await dialog.getByLabel('Correo', { exact: true }).fill('lucia.moreno@fodaveg.net');
 		await submit.click();
 		await expect(dialog).toHaveCount(0);
 		await expect(page.getByText('Editor añadido: lucia.moreno@fodaveg.net.')).toBeVisible();
@@ -135,7 +135,7 @@ test.describe('/editores (superusuario)', () => {
 		await goToEditors(page);
 		await page.getByRole('button', { name: 'Añadir editor' }).click();
 		const dialog = page.getByRole('dialog', { name: 'Añadir editor' });
-		await dialog.getByLabel('Email').fill('nadie@fodaveg.net');
+		await dialog.getByLabel('Correo', { exact: true }).fill('nadie@fodaveg.net');
 		await page.keyboard.press('Escape');
 		await expect(dialog).toHaveCount(0);
 		await expect(editorRow(page, 'nadie@fodaveg.net')).toHaveCount(0);
