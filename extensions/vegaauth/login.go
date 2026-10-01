@@ -10,7 +10,6 @@ import (
 
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
-	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -90,7 +89,14 @@ func (x *Extension) loginTOTP(e *core.RequestEvent) error {
 		return lockedResponse(e, wait)
 	}
 	record, err := e.App.FindRecordById(x.config.AuthCollection, pending.userID)
-	if err != nil || !totp.Validate(body.Code, record.GetString("totp_secret")) {
+	valid := false
+	if err == nil {
+		// A replayed code is answered exactly like a wrong one.
+		if valid, err = x.consumeTOTP(e.App, record, body.Code); err != nil {
+			return e.JSON(http.StatusInternalServerError, map[string]string{"error": "verify_failed"})
+		}
+	}
+	if !valid {
 		x.recordLoginFailure(e.App, pending.identity, ip)
 		return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_code"})
 	}

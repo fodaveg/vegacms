@@ -4,9 +4,11 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -29,6 +31,50 @@ func (x *Extension) enrollTOTP(e *core.RequestEvent) error {
 	return e.JSON(http.StatusOK, map[string]string{"otpauth_url": key.URL(), "secret": key.Secret()})
 }
 
+const totpPeriod = 30
+
+// matchTOTPStep reports which time step produced passcode. Like totp.Validate it tolerates one
+// period of clock drift in either direction, but it tells the caller which step matched.
+func matchTOTPStep(passcode, secret string, now time.Time) (int64, bool) {
+	opts := totp.ValidateOpts{Period: totpPeriod, Skew: 0, Digits: otp.DigitsSix, Algorithm: otp.AlgorithmSHA1}
+	for _, offset := range []int64{0, -1, 1} {
+		at := now.Add(time.Duration(offset*totpPeriod) * time.Second)
+		if ok, err := totp.ValidateCustom(passcode, secret, at, opts); err == nil && ok {
+			return at.Unix() / totpPeriod, true
+		}
+	}
+	return 0, false
+}
+
+// consumeTOTP validates passcode against the account secret and claims its time step. The claim
+// is one conditional UPDATE, so of several parallel requests carrying the same code exactly one
+// wins; a code (or an older one) can never be accepted twice.
+func (x *Extension) consumeTOTP(app core.App, record *core.Record, passcode string) (bool, error) {
+	secret := record.GetString("totp_secret")
+	if secret == "" {
+		return false, nil
+	}
+	step, ok := matchTOTPStep(passcode, secret, time.Now())
+	if !ok {
+		return false, nil
+	}
+	result, err := app.DB().Update(record.Collection().Name, dbx.Params{"totp_last_step": step},
+		dbx.NewExp("[[id]] = {:id} AND COALESCE([[totp_last_step]], 0) < {:step}", dbx.Params{"id": record.Id, "step": step}),
+	).Execute()
+	if err != nil {
+		return false, err
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	if count != 1 {
+		return false, nil
+	}
+	record.Set("totp_last_step", step)
+	return true, nil
+}
+
 type codeBody struct {
 	Code string `json:"code"`
 }
@@ -45,7 +91,11 @@ func (x *Extension) verifyTOTP(e *core.RequestEvent) error {
 	if secret == "" {
 		return e.JSON(http.StatusBadRequest, map[string]string{"error": "not_enrolled"})
 	}
-	if !totp.Validate(body.Code, secret) {
+	valid, err := x.consumeTOTP(e.App, e.Auth, body.Code)
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "verify_failed"})
+	}
+	if !valid {
 		return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_code"})
 	}
 	e.Auth.Set("totp_enabled", true)

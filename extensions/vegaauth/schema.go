@@ -30,6 +30,15 @@ func (x *Extension) EnsureCollections(app core.App) error {
 	} else if _, ok := field.(*core.BoolField); !ok {
 		return fmt.Errorf("vegaauth: %s.totp_enabled must be bool", auth.Name)
 	}
+	// Last accepted TOTP time step, so a code is single-use inside its validity window. Added in
+	// place to existing installations; PocketBase backfills the column with 0 (nothing used yet).
+	if field := auth.Fields.GetByName("totp_last_step"); field == nil {
+		auth.Fields.Add(&core.NumberField{Name: "totp_last_step", Hidden: true, OnlyInt: true})
+	} else if typed, ok := field.(*core.NumberField); !ok {
+		return fmt.Errorf("vegaauth: %s.totp_last_step must be number", auth.Name)
+	} else {
+		typed.Hidden = true
+	}
 	// This extension must be the only token-issuing entry point for its dedicated collection.
 	auth.PasswordAuth.Enabled = false
 	auth.OTP.Enabled = false

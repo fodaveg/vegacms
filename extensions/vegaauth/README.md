@@ -89,10 +89,23 @@ this automatically, but the legacy implementation predates that hardening.
   do not point the extension at a collection that other applications authenticate against.
 - TOTP secrets use PocketBase's hidden-field protection; recovery codes are never stored in
   plaintext and are returned only once when generated.
+- A TOTP code is single-use. The last accepted time step is stored per account in the hidden
+  `totp_last_step` field and claimed with one conditional `UPDATE`, so the same code (or an older
+  one) is answered with `invalid_code` even when two requests carry it at the same time. A user
+  who needs a second code right away waits for the next 30-second step.
 - Pending password challenges and WebAuthn challenges live in process memory for five minutes.
   A multi-replica deployment therefore needs sticky routing or a shared challenge store.
 - Anonymous challenge creation is rate-limited per IP; both MFA and WebAuthn stores prune expired
   entries and reject new work at a fixed capacity instead of growing without bound.
+
+## Upgrading an existing installation
+
+`EnsureCollections` runs on every start and only ever adds what is missing; it never drops or
+rewrites existing data.
+
+- `totp_last_step` (hidden number) is added to the auth collection. PocketBase backfills existing
+  accounts with `0`, meaning "no code used yet": enrolled users keep their secret, stay enabled
+  and log in as before. No manual migration is needed.
 
 ## Verify
 
