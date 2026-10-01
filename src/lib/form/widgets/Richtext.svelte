@@ -115,6 +115,14 @@
 	// `onUpdate` la escribe, así que si fuera reactiva crearía un ciclo effect↔escritura propia.
 	let lastEmitted = '';
 	let sanitizeHtmlRef: ((html: string) => string) | null = null;
+	// Último `value` CRUDO (ya saneado) asentado en el editor desde fuera, o `null` si el usuario ha
+	// editado después. Distinto de `lastEmitted`: el editor NORMALIZA al parsear (`Link` añade
+	// `target`/`rel` a un `<a href>` que no los traía), así que `lastEmitted` guarda la forma que
+	// SERIALIZA el editor y `sanitize(value)` nunca vuelve a casar con ella byte a byte. Sin esta
+	// segunda referencia, el `$effect` de resync reescribiría `lastEmitted` con la forma cruda y el
+	// siguiente `onUpdate` espurio (`setEditable` tras guardar, landmine (1)) emitiría un `onChange`
+	// que el usuario no provocó: el formulario quedaba «sin guardar» tras guardar sin tocar nada.
+	let lastSettled: string | null = null;
 	// Último `inert` de verdad aplicado a `setEditable` (landmine (1) de la cabecera): evita
 	// llamarlo de más cuando el `$effect` de abajo se re-ejecuta sin que `inert` haya cambiado.
 	let lastInert: boolean | null = null;
@@ -138,10 +146,10 @@
 			// lo cubre hoy, pero solo POR ese orden; no lo des por hecho al tocar este bloque).
 			sanitizeHtmlRef = sanitizeHtml;
 			const initialHtml = sanitizeHtml(typeof value === 'string' ? value : '');
-			lastEmitted = initialHtml;
+			lastSettled = initialHtml;
 			lastInert = inert;
 
-			editor = new EditorCtor({
+			const created = new EditorCtor({
 				element: container,
 				extensions: createExtensions(),
 				content: initialHtml,
@@ -166,9 +174,14 @@
 					// último emitido — L-P5.2 exige que solo se propaguen cambios REALES.
 					if (html === lastEmitted) return;
 					lastEmitted = html;
+					lastSettled = null;
 					onChange(html);
 				}
 			});
+			// La referencia de "sin cambios" es lo que el editor SERIALIZA tras parsear el valor, no
+			// el valor saneado: ver `lastSettled`. Antes de asignar `editor` (dispara el `$effect`).
+			lastEmitted = created.isEmpty ? '' : sanitizeHtml(created.getHTML());
+			editor = created;
 		})();
 
 		return () => {
@@ -182,9 +195,10 @@
 	$effect(() => {
 		if (!editor || !sanitizeHtmlRef) return;
 		const sanitized = sanitizeHtmlRef(typeof value === 'string' ? value : '');
-		if (sanitized === lastEmitted) return;
-		lastEmitted = sanitized;
+		if (sanitized === lastEmitted || sanitized === lastSettled) return;
+		lastSettled = sanitized;
 		editor.commands.setContent(sanitized, { emitUpdate: false });
+		lastEmitted = editor.isEmpty ? '' : sanitizeHtmlRef(editor.getHTML());
 	});
 
 	// disabled/readonly son reactivos sin recrear el editor (ver landmine (1) de la cabecera).
