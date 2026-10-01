@@ -1460,6 +1460,12 @@
 		color: var(--ink);
 	}
 
+	/* El chevron del set apunta a la derecha: se espeja para señalar "atrás" (como `.vega-editor-back`
+	   en `RecordForm.svelte`). */
+	.vega-visual-back :global(svg) {
+		transform: scaleX(-1);
+	}
+
 	/* Migas (ver cabecera, "Migas"): `<ol>` en fila, separador `›` como `::before` de CADA `li`
 	   salvo el primero (`:not(:first-child)`) — así no hay que fabricar un `<span>` decorativo por
 	   separador y el propio separador nunca entra en el árbol de accesibilidad. */
