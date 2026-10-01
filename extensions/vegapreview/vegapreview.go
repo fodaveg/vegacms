@@ -2,8 +2,8 @@
 // `docs/PROJECT-CONTRACT-v1.md#preview-endpoint-optional`.
 //
 // Vega sends the same PocketBase editor token it already uses for content requests to POST
-// /token. This extension verifies that the authenticated editor may view the requested record,
-// then returns a short-lived URL whose signature is bound to that exact collection, record id,
+// /token. This extension verifies that the authenticated editor may view the requested record
+// (and, when the request carries an unsaved draft, that they may also update it), then returns a short-lived URL whose signature is bound to that exact collection, record id,
 // and expiry. The site serving that URL must verify the same signature before loading a draft.
 package vegapreview
 
@@ -313,6 +313,8 @@ func logRecordLookupFailure(
 // tokenHandler mints a URL only after the request's authenticated editor is proven able to view
 // this exact record under the collection's current PocketBase ViewRule. Missing, unsupported, and
 // inaccessible records deliberately collapse to 404 so the endpoint is not an enumeration oracle.
+// A request carrying a draft must additionally satisfy the collection's UpdateRule (403 if not);
+// without a draft the ViewRule alone still decides.
 func (x *Extension) tokenHandler(event *core.RequestEvent) error {
 	maxRequestBytes := int64(x.config.MaxDraftBytes + maxRequestOverhead)
 	if event.Request.ContentLength > maxRequestBytes {
@@ -369,6 +371,29 @@ func (x *Extension) tokenHandler(event *core.RequestEvent) error {
 	}
 	if !allowed {
 		return event.NotFoundError("", nil)
+	}
+	if body.Draft != nil {
+		// A draft is content the editor proposes for this record, sealed into a token the site
+		// will render as if it were the record. Being able to READ the record is not enough for
+		// that: it takes the same right as saving the change, the collection's UpdateRule,
+		// evaluated the same way as the ViewRule above (nil = superusers only, which
+		// AuthCollections never admits; "" = any authenticated editor; otherwise a filter over the
+		// record and the session). This is 403, not 404: the caller has just been proven able to
+		// view the record, so there is nothing left to hide about its existence.
+		canUpdate, updateErr := event.App.CanAccessRecord(
+			record,
+			requestInfo,
+			record.Collection().UpdateRule,
+		)
+		if updateErr != nil {
+			return updateErr
+		}
+		if !canUpdate {
+			return event.ForbiddenError(
+				"Only editors who may update this record can preview unsaved changes.",
+				nil,
+			)
+		}
 	}
 
 	expires := x.config.Clock().UTC().Add(x.config.TokenTTL).Truncate(time.Second)

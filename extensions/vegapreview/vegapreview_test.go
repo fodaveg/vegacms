@@ -56,6 +56,10 @@ func newPreviewFixture(t *testing.T) previewFixture {
 	pages := core.NewBaseCollection("pages")
 	viewRule := "owner = @request.auth.id"
 	pages.ViewRule = &viewRule
+	// Sending a draft requires the UpdateRule too (see TestDraftRequiresTheUpdateRule); the fixture
+	// gives the owner both rights so the draft tests exercise everything past that check.
+	updateRule := "owner = @request.auth.id"
+	pages.UpdateRule = &updateRule
 	pages.Fields.Add(
 		&core.TextField{Name: "owner", Required: true},
 		&core.TextField{Name: "status", Required: true},
@@ -403,6 +407,128 @@ func TestEditorCannotMintAnotherEditorsDraft(t *testing.T) {
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("expected editor B's draft to collapse to 404, got %d: %s",
 			response.Code, response.Body.String())
+	}
+}
+
+// setPagesRules rewrites the view and update rules of the fixture's pages collection. A nil rule
+// is PocketBase's "superusers only"; a pointer to "" is "any authenticated caller".
+func setPagesRules(t *testing.T, app core.App, viewRule, updateRule *string) {
+	t.Helper()
+	pages, err := app.FindCollectionByNameOrId("pages")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pages.ViewRule = viewRule
+	pages.UpdateRule = updateRule
+	if err := app.Save(pages); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestDraftRequiresTheUpdateRule: a draft is content proposed for the record, so minting a token
+// that carries one takes the collection's UpdateRule on top of its ViewRule. Every editor here may
+// VIEW page A; only the UpdateRule varies. Without a draft nothing changes: the ViewRule alone
+// still decides, whatever the UpdateRule says.
+func TestDraftRequiresTheUpdateRule(t *testing.T) {
+	const unsavedText = "unsaved text that must not leave the server"
+	anyEditor := `@request.auth.id != ""`
+	open := ""
+	ownerOnly := "owner = @request.auth.id"
+
+	cases := []struct {
+		name       string
+		updateRule *string
+		// editor B is not the owner of page A.
+		asOwner   bool
+		wantDraft int
+	}{
+		{name: "nil rule is superusers only", updateRule: nil, asOwner: true, wantDraft: http.StatusForbidden},
+		{name: "empty rule admits any editor", updateRule: &open, asOwner: false, wantDraft: http.StatusOK},
+		{name: "filter that passes", updateRule: &ownerOnly, asOwner: true, wantDraft: http.StatusOK},
+		{name: "filter that does not pass", updateRule: &ownerOnly, asOwner: false, wantDraft: http.StatusForbidden},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			fixture := newPreviewFixture(t)
+			setPagesRules(t, fixture.app, &anyEditor, testCase.updateRule)
+			editor := fixture.editorB
+			if testCase.asOwner {
+				editor = fixture.editorA
+			}
+
+			draft := &previewDraft{
+				Record: previewDraftRecord{
+					ID:     fixture.pageA,
+					Fields: map[string]any{"title": unsavedText},
+				},
+				Blocks: []previewDraftRecord{},
+			}
+			withDraft := requestTokenWithDraft(fixture.mux, editor, "pages", fixture.pageA, draft)
+			if withDraft.Code != testCase.wantDraft {
+				t.Fatalf("draft request: expected %d, got %d: %s",
+					testCase.wantDraft, withDraft.Code, withDraft.Body.String())
+			}
+			var body tokenResponse
+			if err := json.Unmarshal(withDraft.Body.Bytes(), &body); err != nil {
+				t.Fatal(err)
+			}
+			if testCase.wantDraft == http.StatusOK {
+				opened := decryptDraftTokenForTest(
+					t, body.PostToken, "pages", fixture.pageA, fixture.now,
+				)
+				if got := opened.Record.Fields["title"]; got != unsavedText {
+					t.Fatalf("expected the draft to be sealed into the token, got %q", got)
+				}
+			} else {
+				if body.PostToken != "" || body.URL != "" {
+					t.Fatalf("a refused draft must not receive any token: %s", withDraft.Body.String())
+				}
+				if strings.Contains(withDraft.Body.String(), unsavedText) {
+					t.Fatalf("the refusal echoes the draft: %s", withDraft.Body.String())
+				}
+			}
+
+			// Same editor, same record, no draft: the ViewRule alone decides, as before.
+			withoutDraft := requestToken(fixture.mux, editor, "pages", fixture.pageA)
+			if withoutDraft.Code != http.StatusOK {
+				t.Fatalf("request without draft: expected 200, got %d: %s",
+					withoutDraft.Code, withoutDraft.Body.String())
+			}
+			var saved tokenResponse
+			if err := json.Unmarshal(withoutDraft.Body.Bytes(), &saved); err != nil {
+				t.Fatal(err)
+			}
+			preview, err := url.Parse(saved.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+			expected := signToken(
+				testSecret, "pages", fixture.pageA, fixture.now.Add(5*time.Minute).Unix(),
+			)
+			if saved.PostToken != "" || preview.Query().Get("token") != expected {
+				t.Fatalf("request without draft must keep the v1 response, got %s",
+					withoutDraft.Body.String())
+			}
+		})
+	}
+}
+
+// TestDraftOnAnUnviewableRecordStillCollapsesTo404: the UpdateRule check never runs ahead of the
+// ViewRule, so a record the editor cannot view stays indistinguishable from a missing one even
+// when its UpdateRule would have admitted them.
+func TestDraftOnAnUnviewableRecordStillCollapsesTo404(t *testing.T) {
+	fixture := newPreviewFixture(t)
+	ownerOnly := "owner = @request.auth.id"
+	open := ""
+	setPagesRules(t, fixture.app, &ownerOnly, &open)
+
+	draft := &previewDraft{
+		Record: previewDraftRecord{ID: fixture.pageB, Fields: map[string]any{"title": "x"}},
+		Blocks: []previewDraftRecord{},
+	}
+	response := requestTokenWithDraft(fixture.mux, fixture.editorA, "pages", fixture.pageB, draft)
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d: %s", response.Code, response.Body.String())
 	}
 }
 

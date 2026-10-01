@@ -9,6 +9,7 @@ import { describe, expect, test, vi } from 'vitest';
 import {
 	createPreviewClient,
 	parsePreviewToken,
+	PreviewRequestError,
 	type PreviewDraft,
 	type PreviewToken
 } from './preview-client';
@@ -105,6 +106,20 @@ describe('createPreviewClient', () => {
 		});
 
 		await expect(client.requestPreview('posts', 'abc123')).rejects.toThrow(/404/);
+	});
+
+	test('el error HTTP lleva el status tipado (PreviewRequestError) y conserva el mensaje', async () => {
+		const fetcher = fakeFetch(() => new Response('no', { status: 403 }));
+		const client = createPreviewClient({
+			apiUrl: 'https://pb.test/api/vega-preview',
+			token: 'tok',
+			fetcher
+		});
+
+		const err = await client.requestPreview('posts', 'abc123').catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(PreviewRequestError);
+		expect((err as PreviewRequestError).status).toBe(403);
+		expect((err as Error).message).toMatch(/403/);
 	});
 
 	test('respuesta 2xx con forma inesperada rechaza en vez de inventar una URL', async () => {

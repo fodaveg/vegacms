@@ -179,6 +179,78 @@ describe('PreviewPanel.svelte', () => {
 		expect(message?.textContent).not.toContain('common.networkError');
 	});
 
+	describe('403 con borrador: quien ve pero no edita', () => {
+		const token = {
+			url: 'https://site.test/preview/posts/rec-1?token=guardada',
+			expiresAt: '2099-01-01T00:00:00.000Z'
+		};
+		const bodyOf = (call: unknown[]): Record<string, unknown> =>
+			JSON.parse(String((call[1] as RequestInit).body));
+
+		test('403 con borrador: reintenta UNA vez sin borrador y enseña la guardada con aviso', async () => {
+			const fetchMock = vi
+				.fn()
+				.mockResolvedValueOnce(new Response('no', { status: 403 }))
+				.mockResolvedValueOnce(jsonResponse(token));
+			vi.stubGlobal('fetch', fetchMock);
+			mounted = mountPanel({ refreshToken: 0, onClose: vi.fn() });
+			await flush();
+
+			expect(fetchMock).toHaveBeenCalledTimes(2);
+			expect(bodyOf(fetchMock.mock.calls[0])).toHaveProperty('draft');
+			expect(bodyOf(fetchMock.mock.calls[1])).toEqual({ collection: 'posts', id: 'rec-1' });
+			expect(mounted.target.querySelector('[role="alert"]')).toBeNull();
+			expect(
+				mounted.target.querySelector<HTMLIFrameElement>('.vega-preview-panel-frame')?.src
+			).toBe(token.url);
+			expect(mounted.target.querySelector('.vega-preview-panel-notice')?.textContent).toContain(
+				'editor.preview.panel.savedOnly'
+			);
+		});
+
+		test('un cambio posterior en ese estado no vuelve a mandar borrador', async () => {
+			const fetchMock = vi
+				.fn()
+				.mockResolvedValueOnce(new Response('no', { status: 403 }))
+				.mockImplementation(async () => jsonResponse(token));
+			vi.stubGlobal('fetch', fetchMock);
+			mounted = mountPanel({ refreshToken: 0, onClose: vi.fn() });
+			await flush();
+
+			mounted.props.draft = { record: { id: 'rec-1', fields: { title: 'Otro' } }, blocks: [] };
+			mounted.props.refreshToken = 1;
+			await flush();
+
+			expect(fetchMock).toHaveBeenCalledTimes(3);
+			expect(bodyOf(fetchMock.mock.calls[2])).toEqual({ collection: 'posts', id: 'rec-1' });
+			expect(mounted.target.querySelector('.vega-preview-panel-notice')).not.toBeNull();
+		});
+
+		test('si el reintento sin borrador también falla, se enseña el error', async () => {
+			const fetchMock = vi
+				.fn()
+				.mockResolvedValueOnce(new Response('no', { status: 403 }))
+				.mockResolvedValueOnce(new Response('no', { status: 403 }));
+			vi.stubGlobal('fetch', fetchMock);
+			mounted = mountPanel({ refreshToken: 0, onClose: vi.fn() });
+			await flush();
+
+			expect(fetchMock).toHaveBeenCalledTimes(2);
+			expect(mounted.target.querySelector('[role="alert"]')?.textContent).toContain('403');
+			expect(mounted.target.querySelector('.vega-preview-panel-notice')).toBeNull();
+		});
+
+		test('otro código con borrador (503) no reintenta', async () => {
+			const fetchMock = vi.fn().mockResolvedValue(new Response('no', { status: 503 }));
+			vi.stubGlobal('fetch', fetchMock);
+			mounted = mountPanel({ refreshToken: 0, onClose: vi.fn() });
+			await flush();
+
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+			expect(mounted.target.querySelector('[role="alert"]')?.textContent).toContain('503');
+		});
+	});
+
 	test('reintentar tras un error vuelve a pedir el token', async () => {
 		const token = {
 			url: 'https://site.test/preview/posts/rec-1',

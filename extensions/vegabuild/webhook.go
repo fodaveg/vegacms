@@ -92,9 +92,11 @@ func (r *WebhookRunner) Completes() bool { return false }
 // this synchronous path — see WebhookConfig.Timeout.
 //
 // The error returned for anything other than a 2xx response (or for the call failing outright)
-// NEVER includes the URL, headers or body: that error message is surfaced to editors in Vega's own
-// UI, and URL/headers/body are exactly the credential this Runner exists to keep away from Vega.
-// Only the HTTP status code (or a generic "request failed") is safe to expose.
+// NEVER includes the URL, headers or body: URL/headers/body are exactly the credential this Runner
+// exists to keep away from Vega, and they do not belong in a log either. Only the HTTP status code
+// (or a generic "request failed") is safe to write down. Editors no longer see even that: the
+// extension answers a failed Start with a fixed text and sends this error to the server log only
+// (see startFailureMessage in vegabuild.go).
 func (r *WebhookRunner) Start(ctx context.Context, _ string, _ func(Result)) (Handoff, error) {
 	requestCtx, cancel := context.WithTimeout(ctx, r.config.Timeout)
 	defer cancel()
