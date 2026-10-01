@@ -1,7 +1,11 @@
 import { describe, expect, test, vi } from 'vitest';
 import { createMemoryBackend, type MemoryBackendPort } from './adapters/memory';
 import { previewSiteSeed, seedSiteProject, type SiteSeedPreview } from './site-seeding';
-import { seedLikePrevious0ace139, seedLikePrevious1bda988 } from './site-seeding-previous.fixture';
+import {
+	handEditedManifest,
+	seedLikePrevious0ace139,
+	seedLikePrevious1bda988
+} from './site-seeding-previous.fixture';
 
 async function authedMemory(): Promise<MemoryBackendPort> {
 	const port = createMemoryBackend();
@@ -80,14 +84,32 @@ describe('previewSiteSeed', () => {
 		});
 	});
 
-	test('con la versión anterior cuenta campos, patrones, colección nueva y manifiesto a sustituir', async () => {
+	test('con la versión anterior cuenta campos, patrones, colección nueva y las entradas que se añaden al manifiesto', async () => {
 		const port = await authedMemory();
 		await seedLikePrevious1bda988(port);
 		const before = await observable(port);
 
-		const plan = ready(await previewSiteSeed(port));
+		const preview = await previewSiteSeed(port);
+		const plan = ready(preview);
 
 		expect(await observable(port)).toBe(before);
+		if (preview.status !== 'ready') return;
+		// Un solo módulo, la base, y su desglose suma lo mismo que el plan total.
+		expect(preview.modules).toHaveLength(1);
+		expect(preview.modules[0]).toEqual({
+			id: 'base',
+			createdCollections: plan.createdCollections,
+			addedFields: plan.addedFields,
+			manifestEntries: [
+				'collections.pages.publishAtField',
+				'collections.pages.fieldGroups',
+				'collections.pages.fields.publishAt',
+				'collections.pages.fields.description',
+				'collections.pages.fields.socialImage',
+				'collections.pages.fields.noindex',
+				'collections.redirects'
+			]
+		});
 		expect(plan.createdCollections).toEqual(['redirects']);
 		expect(plan.addedFields.pages).toEqual(
 			expect.arrayContaining(['publishAt', 'description', 'socialImage', 'noindex'])
@@ -112,7 +134,51 @@ describe('previewSiteSeed', () => {
 		});
 	});
 
-	test('un manifiesto editado a mano es un aborto con su divergencia, sin escribir', async () => {
+	test('un manifiesto editado a mano y válido es un plan: dice qué entradas se añadirían y no escribe', async () => {
+		const port = await authedMemory();
+		await seedLikePrevious0ace139(port);
+		const record = (await port.list('vega', { perPage: 1 })).items[0]!;
+		await port.update('vega', record.id, { manifest: handEditedManifest() });
+		const before = await observable(port);
+
+		const preview = await previewSiteSeed(port);
+
+		expect(await observable(port)).toBe(before);
+		expect(preview.status).toBe('ready');
+		if (preview.status !== 'ready') return;
+		expect(preview.plan.manifest).toBe('upgrade');
+		expect(preview.modules[0]!.manifestEntries).toEqual([
+			'collections.pages.publishAtField',
+			'collections.pages.fields.publishAt',
+			'collections.redirects'
+		]);
+	});
+
+	test('en un proyecto vacío el desglose nombra las entradas del manifiesto que se crearía', async () => {
+		const port = await authedMemory();
+
+		const preview = await previewSiteSeed(port);
+
+		if (preview.status !== 'ready') throw new Error('se esperaba un plan');
+		expect(preview.modules).toHaveLength(1);
+		expect(preview.modules[0]!.manifestEntries).toEqual(
+			expect.arrayContaining(['collections.pages', 'collections.redirects', 'blockTypes.hero'])
+		);
+	});
+
+	test('tras sembrar, el desglose por módulo está vacío', async () => {
+		const port = await authedMemory();
+		await seedSiteProject(port);
+
+		const preview = await previewSiteSeed(port);
+
+		if (preview.status !== 'ready') throw new Error('se esperaba un plan');
+		expect(preview.modules).toEqual([
+			{ id: 'base', createdCollections: [], addedFields: {}, manifestEntries: [] }
+		]);
+	});
+
+	test('un manifiesto que no es válido ni tras la fusión es un aborto con su divergencia, sin escribir', async () => {
 		const port = await authedMemory();
 		await seedSiteProject(port);
 		const record = (await port.list('vega', { perPage: 1 })).items[0]!;

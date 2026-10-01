@@ -28,12 +28,18 @@
  * No hay rollback implícito si una escritura válida posterior falla: lo ya creado se conserva y
  * la siguiente pasada completa únicamente las piezas ausentes.
  *
- * El registro del manifiesto es la otra excepción, y es acotada: si su contenido es EXACTAMENTE
- * un manifiesto inicial que Vega sembró antes (`PREVIOUS_STARTER_MANIFESTS`), nadie lo ha
- * editado, así que se sustituye por el actual. Es lo que permite que un proyecto ya sembrado
- * reciba las etiquetas y ayudas de los campos que una versión nueva del sembrado añade. Un
- * manifiesto que no case byte a byte (en forma canónica) con ninguno sigue abortando: es trabajo
- * humano y no se reconcilia.
+ * El registro del manifiesto es la otra excepción, y es acotada: FUSIÓN ADITIVA
+ * (`site-seeding-merge.ts`). Al manifiesto guardado se le añaden las entradas que le faltan de cada
+ * módulo sembrado, y no se le quita ni se le cambia nada de lo que ya tiene, esté editado a mano o
+ * no. Es lo que permite que un proyecto ya sembrado reciba las etiquetas y ayudas de los campos
+ * que una versión nueva del sembrado añade, y que un módulo se sume a un sitio en marcha. Qué
+ * cuenta como «la misma entrada» está en la cabecera de ese fichero. El sembrado sigue abortando
+ * sin escribir si el manifiesto guardado no es un objeto, si hay más de un registro candidato o si
+ * el resultado de la fusión no pasa `validateManifestStrict`.
+ *
+ * MÓDULOS (`SiteSeedModule`). Lo que se siembra se agrupa en módulos: colecciones a asegurar más
+ * un fragmento de manifiesto. La base de siempre es el módulo `base` y va en toda pasada; los
+ * demás se piden en `SiteSeedOptions.modules` y se registran en `site-seeding-modules.ts`.
  *
  * Tercera excepción, también acotada: el `pattern` de `redirects.from`/`to`. En una `redirects` ya
  * sembrada sin él, se pone SOLO si el campo no tiene ninguno (`addCollectionFieldPatterns`: el
@@ -42,20 +48,16 @@
  */
 
 import starterManifestDocument from './site-seeding-manifest.json';
-// Manifiesto inicial tal como lo sembró `1bda988` (hasta el lote SEO/redirecciones del 24 sep
-// 2026). Se conserva byte a byte para reconocerlo al actualizar; nunca se edita.
-import starterManifest1bda988 from './site-seeding-manifest.1bda988.json';
-// Manifiesto inicial tal como lo sembró `0ace139` (SEO y redirecciones, hasta la publicación
-// programada del 24 sep 2026). Mismo trato: byte a byte, nunca se edita.
-import starterManifest0ace139 from './site-seeding-manifest.0ace139.json';
 import { deriveBlockRecordFields } from './block-schema';
 import { VEGA_COLLECTION, type CollectionFieldSpec, type CollectionSpec } from './collections';
 import type { BackendPort } from './port';
+import { isManifestObject, mergeManifestFragment } from './site-seeding-merge';
 import type { ContentType, Field, InvitationLinkState, JsonValue } from './types';
 import { ensureMediaCollection, VEGA_MEDIA_COLLECTION } from '$lib/media/media-collection';
 import { listManifestRecords, saveManifest } from '$lib/model/load';
 import { resolveContentModel } from '$lib/model/resolve';
 import type { ResolvedBlocksConfig } from '$lib/model/types';
+import { validateManifestStrict } from '$lib/model/validate';
 
 export const SITE_SEED_MANIFEST_READ_RULE = '@request.auth.collectionName = "vega_editors"';
 export const SITE_SEED_EDITOR_ACCESS_RULE = '@request.auth.collectionName = "vega_editors"';
@@ -77,12 +79,6 @@ export const SITE_SEED_CANONICAL_PAGE = {
 } as const;
 
 const STARTER_MANIFEST = starterManifestDocument as JsonValue;
-
-/** Manifiestos iniciales de versiones anteriores del sembrado, del más antiguo al más reciente. */
-const PREVIOUS_STARTER_MANIFESTS: readonly JsonValue[] = [
-	starterManifest1bda988 as JsonValue,
-	starterManifest0ace139 as JsonValue
-];
 
 /**
  * `created` (autodate, solo al crear) da fecha de alta a las cuentas en `/editores`. Una `auth`
@@ -244,15 +240,49 @@ const PROJECT_MANIFEST_COLLECTION: CollectionSpec = {
 	viewRule: SITE_SEED_MANIFEST_READ_RULE
 };
 
-const VISIBLE_COLLECTIONS = [
-	PAGES_COLLECTION,
-	VEGA_MEDIA_COLLECTION,
-	BLOCKS_COLLECTION,
-	REDIRECTS_COLLECTION,
-	PROJECT_MANIFEST_COLLECTION
-] as const;
+/**
+ * Una unidad de sembrado: las colecciones que asegura y el fragmento de manifiesto que aporta.
+ *
+ * Las dos mitades siguen la misma regla aditiva. Una colección ausente se crea; a una presente se
+ * le añaden los campos que falten; un campo presente con otra forma aborta el lote entero antes
+ * de escribir. Al manifiesto se le añaden las entradas del fragmento que falten
+ * (`mergeManifestFragment`).
+ */
+export interface SiteSeedModule {
+	/** Identificador estable: es la clave por la que el preflight y el resultado nombran el módulo. */
+	id: string;
+	/**
+	 * Colecciones a asegurar, EN EL ORDEN en que se aplican: el destino de una relación va antes
+	 * que quien lo enlaza. Tienen que ser visibles para el descubrimiento del puerto, así que una
+	 * `auth` no vale aquí (ver la cabecera del módulo). Un nombre no puede repetirse entre los
+	 * módulos de una misma pasada.
+	 */
+	collections: readonly CollectionSpec[];
+	/**
+	 * Fragmento de manifiesto: un objeto con la misma forma que el manifiesto, solo con las
+	 * entradas que el módulo aporta (`collections.<c>`, `blockTypes.<t>`…).
+	 */
+	manifest: JsonValue;
+}
 
-type VisibleCollectionName = (typeof VISIBLE_COLLECTIONS)[number]['name'];
+/**
+ * La base de siempre, como módulo. Sus colecciones van en el orden en que `seedSiteProject` las
+ * aplica (`vega_media` antes que `pages`, que la enlaza). `vega_editors` no figura: no es visible
+ * para el descubrimiento y la base la asegura aparte (`ensureEditorsCollection`), igual que el
+ * `pattern` de `redirects` y la página «Inicio», que son pasos propios de la base y no de un
+ * módulo cualquiera.
+ */
+export const SITE_SEED_BASE_MODULE: SiteSeedModule = {
+	id: 'base',
+	collections: [
+		VEGA_MEDIA_COLLECTION,
+		PAGES_COLLECTION,
+		BLOCKS_COLLECTION,
+		REDIRECTS_COLLECTION,
+		PROJECT_MANIFEST_COLLECTION
+	],
+	manifest: STARTER_MANIFEST
+};
 
 interface CollectionPlan {
 	spec: CollectionSpec;
@@ -263,12 +293,26 @@ interface CollectionPlan {
 	unconstrainedFields: string[];
 }
 
-/** Qué hacer con el registro del manifiesto tras el preflight. */
+/**
+ * Qué hacer con el registro del manifiesto tras el preflight. `upgrade` conserva el nombre de
+ * cuando sustituía un manifiesto inicial sin editar; desde la fusión aditiva significa «se le
+ * AÑADEN entradas»: nunca se sustituye ni se modifica nada.
+ */
 type ManifestAction = 'create' | 'upgrade' | 'keep';
 
+interface ManifestPlan {
+	action: ManifestAction;
+	/** El manifiesto a escribir (`create` y `upgrade`); `null` si no hay nada que escribir. */
+	merged: JsonValue | null;
+	/** Entradas de manifiesto que aporta cada módulo, por `id`. Vacía en `keep`. */
+	entries: Map<string, string[]>;
+}
+
 interface SeedPlan {
-	collections: Map<VisibleCollectionName, CollectionPlan>;
-	manifest: ManifestAction;
+	/** La base primero y luego los módulos pedidos, en ese orden. */
+	modules: readonly SiteSeedModule[];
+	collections: Map<string, CollectionPlan>;
+	manifest: ManifestPlan;
 	pageMissing: boolean;
 }
 
@@ -276,8 +320,11 @@ export interface SiteSeedResult {
 	createdCollections: string[];
 	addedFields: Record<string, string[]>;
 	createdRecords: Array<'manifest' | 'page:/'>;
-	/** Registros sustituidos por su versión actual: hoy solo un manifiesto inicial sin editar. */
+	/** `manifest`: a un manifiesto que ya existía se le añadieron entradas (`manifestEntries`). */
 	upgradedRecords: Array<'manifest'>;
+	/** Solo si hubo alguna: entradas AÑADIDAS a un manifiesto que ya existía, por `id` de módulo
+	 *  (rutas de `mergeManifestFragment`). Un manifiesto recién creado va en `createdRecords`. */
+	manifestEntries?: Record<string, string[]>;
 	/** Solo si hubo alguno: campos de una colección YA existente que no tenían `pattern` y lo
 	 *  recibieron (`redirects.from`/`to`). Un campo con patrón propio no aparece aquí: no se toca. */
 	constrainedFields?: Record<string, string[]>;
@@ -294,6 +341,11 @@ export interface SiteSeedOptions {
 	 * no sabe en qué dirección está servida Vega; sin ella, lo hace `/editores` al abrirse.
 	 */
 	passwordResetUrl?: string;
+	/**
+	 * Módulos a sembrar ADEMÁS de la base, que va siempre y la primera. Se aplican en este orden,
+	 * después de las colecciones de la base y antes de escribir el manifiesto.
+	 */
+	modules?: readonly SiteSeedModule[];
 }
 
 export interface SiteSeedDivergence {
@@ -320,17 +372,18 @@ export class SiteSeedDivergenceError extends Error {
 }
 
 /**
- * Completa una instalación limpia o parcial sin reconciliar jamás una pieza ya presente (salvo
- * el manifiesto inicial sin editar, ver la cabecera del módulo).
+ * Completa una instalación limpia o parcial sin reconciliar jamás una pieza ya presente (al
+ * manifiesto solo se le añaden entradas, ver la cabecera del módulo).
  * El orden de aplicación es explícito porque el puerto no ordena specs:
- * `vega_editors` -> `vega_media` (sola) -> `pages` -> `blocks` -> `redirects` -> `vega`.
+ * `vega_editors` -> `vega_media` (sola) -> `pages` -> `blocks` -> `redirects` -> `vega` -> las
+ * colecciones de cada módulo pedido, en su orden -> manifiesto -> página canónica.
  * `vega_media` va antes que `pages` porque `pages.socialImage` la enlaza.
  */
 export async function seedSiteProject(
 	port: BackendPort,
 	options: SiteSeedOptions = {}
 ): Promise<SiteSeedResult> {
-	const plan = await inspectSeedPlan(port);
+	const plan = await inspectSeedPlan(port, options.modules);
 	const result: SiteSeedResult = {
 		createdCollections: [],
 		addedFields: {},
@@ -359,14 +412,27 @@ export async function seedSiteProject(
 	if (!redirectsPlan.missing) await constrainFieldPatterns(port, redirectsPlan.spec, result);
 	await applyCollectionPlan(port, plan.collections.get('vega')!, result);
 
-	if (plan.manifest === 'create') {
-		await saveManifest(port, structuredClone(STARTER_MANIFEST));
+	// Los módulos pedidos, después de la base (pueden enlazar sus colecciones) y antes del
+	// manifiesto, cuyo `schemaSnapshot` tiene que ver ya las colecciones nuevas.
+	for (const module of plan.modules) {
+		if (module === SITE_SEED_BASE_MODULE) continue;
+		for (const spec of module.collections) {
+			await applyCollectionPlan(port, plan.collections.get(spec.name)!, result);
+		}
+	}
+
+	if (plan.manifest.action === 'create') {
+		await saveManifest(port, plan.manifest.merged!);
 		result.createdRecords.push('manifest');
-	} else if (plan.manifest === 'upgrade') {
+	} else if (plan.manifest.action === 'upgrade') {
 		// `saveManifest` actualiza el registro canónico existente (el mismo que inspeccionó el
-		// preflight) y regenera su `schemaSnapshot`, que ya incluye los campos recién añadidos.
-		await saveManifest(port, structuredClone(STARTER_MANIFEST));
+		// preflight) y regenera su `schemaSnapshot`, que ya incluye los campos recién añadidos. Lo
+		// que se escribe es el manifiesto guardado más las entradas que le faltaban.
+		await saveManifest(port, plan.manifest.merged!);
 		result.upgradedRecords.push('manifest');
+		result.manifestEntries = Object.fromEntries(
+			[...plan.manifest.entries].filter(([, entries]) => entries.length > 0)
+		);
 	}
 	if (plan.pageMissing) {
 		await port.create(PAGES_COLLECTION.name, { ...SITE_SEED_CANONICAL_PAGE });
@@ -389,12 +455,33 @@ export interface SiteSeedPlanSummary {
 	addedFields: Record<string, string[]>;
 	/** Solo si hay alguno: campos de una `redirects` existente que recibirían su `pattern`. */
 	constrainedFields?: Record<string, string[]>;
-	/** `create`: se escribe el manifiesto; `upgrade`: se sustituye uno inicial sin editar. */
+	/** `create`: se escribe el manifiesto; `upgrade`: al que hay se le AÑADEN entradas (las de
+	 *  `SiteSeedModulePlan.manifestEntries`), sin sustituir ni modificar ninguna. */
 	manifest: ManifestAction;
 	/** La página canónica «Inicio» se crearía. */
 	pageMissing: boolean;
 	/** Nada que escribir en las piezas visibles. */
 	upToDate: boolean;
+}
+
+/**
+ * Lo que un módulo AÑADIRÍA, y nada más: el sembrado no tiene camino para modificar o quitar una
+ * colección, un campo o una entrada de manifiesto ya presentes, así que este plan no trae lista
+ * de «modificados» porque no puede haberlos. (La única modificación del sembrado es el `pattern`
+ * de `redirects`, que es de la base y va en `SiteSeedPlanSummary.constrainedFields`.)
+ */
+export interface SiteSeedModulePlan {
+	id: string;
+	/** Colecciones del módulo que no existen y se crearían, en su orden de aplicación. */
+	createdCollections: string[];
+	/** Campos que faltan en colecciones del módulo que ya existen. */
+	addedFields: Record<string, string[]>;
+	/**
+	 * Entradas del fragmento del módulo que faltan en el manifiesto y se añadirían, como rutas con
+	 * puntos (`collections.redirects`, `collections.pages.fields.publishAt`, `blockTypes.hero`).
+	 * Con el manifiesto aún sin crear son todas las del fragmento.
+	 */
+	manifestEntries: string[];
 }
 
 export type SiteSeedPreview =
@@ -403,14 +490,31 @@ export type SiteSeedPreview =
 	| { status: 'blocked'; divergences: readonly SiteSeedDivergence[] };
 
 /**
- * Preflight de SOLO LECTURA: el mismo recorrido que hace `seedSiteProject` antes de su primera
- * escritura, sin llegar a ninguna. Devuelve el plan o las divergencias que harían abortar. Un
- * fallo de lectura (red, permisos) se propaga tal cual: no es una divergencia.
+ * Lo que devuelve `previewSiteSeed`: un `SiteSeedPreview` (vale donde se espere uno) que, cuando
+ * hay plan, lo desglosa además por módulo. `plan` es la suma de todos los módulos.
  */
-export async function previewSiteSeed(port: BackendPort): Promise<SiteSeedPreview> {
+export type SiteSeedModulesPreview =
+	| {
+			status: 'ready';
+			plan: SiteSeedPlanSummary;
+			/** La base primero y luego los módulos pedidos, en ese orden. */
+			modules: SiteSeedModulePlan[];
+	  }
+	| { status: 'blocked'; divergences: readonly SiteSeedDivergence[] };
+
+/**
+ * Preflight de SOLO LECTURA: el mismo recorrido que hace `seedSiteProject` antes de su primera
+ * escritura, sin llegar a ninguna. Devuelve el plan (total y por módulo) o las divergencias que
+ * harían abortar. Un fallo de lectura (red, permisos) se propaga tal cual: no es una divergencia.
+ * `options.modules` son los mismos que se le pasarían a `seedSiteProject`.
+ */
+export async function previewSiteSeed(
+	port: BackendPort,
+	options: Pick<SiteSeedOptions, 'modules'> = {}
+): Promise<SiteSeedModulesPreview> {
 	let plan: SeedPlan;
 	try {
-		plan = await inspectSeedPlan(port);
+		plan = await inspectSeedPlan(port, options.modules);
 	} catch (error) {
 		if (error instanceof SiteSeedDivergenceError) {
 			return { status: 'blocked', divergences: error.divergences };
@@ -420,25 +524,41 @@ export async function previewSiteSeed(port: BackendPort): Promise<SiteSeedPrevie
 	const createdCollections: string[] = [];
 	const addedFields: Record<string, string[]> = {};
 	let constrainedFields: Record<string, string[]> | undefined;
-	for (const name of SEED_APPLY_ORDER) {
-		const collection = plan.collections.get(name)!;
-		if (collection.missing) {
-			createdCollections.push(name);
-			continue;
+	const modules: SiteSeedModulePlan[] = [];
+	for (const module of plan.modules) {
+		const modulePlan: SiteSeedModulePlan = {
+			id: module.id,
+			createdCollections: [],
+			addedFields: {},
+			manifestEntries: [...(plan.manifest.entries.get(module.id) ?? [])]
+		};
+		for (const { name } of module.collections) {
+			const collection = plan.collections.get(name)!;
+			if (collection.missing) {
+				modulePlan.createdCollections.push(name);
+				continue;
+			}
+			if (collection.missingFields.length > 0) {
+				modulePlan.addedFields[name] = collection.missingFields.map((field) => field.name);
+			}
+			// Solo `redirects`, de la base, se constriñe al sembrar (`constrainFieldPatterns`).
+			if (
+				module === SITE_SEED_BASE_MODULE &&
+				name === REDIRECTS_COLLECTION.name &&
+				collection.unconstrainedFields.length > 0
+			) {
+				constrainedFields = { redirects: [...collection.unconstrainedFields] };
+			}
 		}
-		if (collection.missingFields.length > 0) {
-			addedFields[name] = collection.missingFields.map((field) => field.name);
-		}
-		// Solo `redirects` se constriñe al sembrar (`constrainFieldPatterns`).
-		if (name === 'redirects' && collection.unconstrainedFields.length > 0) {
-			constrainedFields = { redirects: [...collection.unconstrainedFields] };
-		}
+		createdCollections.push(...modulePlan.createdCollections);
+		Object.assign(addedFields, modulePlan.addedFields);
+		modules.push(modulePlan);
 	}
 	const summary: SiteSeedPlanSummary = {
 		createdCollections,
 		addedFields,
 		...(constrainedFields ? { constrainedFields } : {}),
-		manifest: plan.manifest,
+		manifest: plan.manifest.action,
 		pageMissing: plan.pageMissing,
 		upToDate: false
 	};
@@ -446,30 +566,54 @@ export async function previewSiteSeed(port: BackendPort): Promise<SiteSeedPrevie
 		createdCollections.length === 0 &&
 		Object.keys(addedFields).length === 0 &&
 		!constrainedFields &&
-		plan.manifest === 'keep' &&
+		plan.manifest.action === 'keep' &&
 		!plan.pageMissing;
-	return { status: 'ready', plan: summary };
+	return { status: 'ready', plan: summary, modules };
 }
 
-/** Orden de aplicación de `seedSiteProject` para las colecciones visibles. */
-const SEED_APPLY_ORDER: readonly VisibleCollectionName[] = [
-	'vega_media',
-	'pages',
-	'blocks',
-	'redirects',
-	'vega'
-];
+/**
+ * La base y, detrás, los módulos pedidos. Un `id` o un nombre de colección repetido es un error
+ * de quien registra el módulo, no una divergencia del proyecto: lanza antes de leer nada.
+ */
+function resolveSeedModules(extra: readonly SiteSeedModule[] = []): readonly SiteSeedModule[] {
+	const modules = [SITE_SEED_BASE_MODULE, ...extra.filter((m) => m !== SITE_SEED_BASE_MODULE)];
+	const ids = new Set<string>();
+	const owners = new Map<string, string>();
+	for (const module of modules) {
+		if (ids.has(module.id)) throw new Error(`Módulo de sembrado repetido: "${module.id}".`);
+		ids.add(module.id);
+		if (!isManifestObject(module.manifest)) {
+			throw new Error(`El fragmento de manifiesto del módulo "${module.id}" no es un objeto.`);
+		}
+		for (const { name } of module.collections) {
+			const owner = owners.get(name);
+			if (owner !== undefined) {
+				throw new Error(
+					`La colección "${name}" la declaran dos módulos de sembrado: "${owner}" y "${module.id}".`
+				);
+			}
+			owners.set(name, module.id);
+		}
+	}
+	return modules;
+}
 
-async function inspectSeedPlan(port: BackendPort): Promise<SeedPlan> {
+async function inspectSeedPlan(
+	port: BackendPort,
+	extraModules?: readonly SiteSeedModule[]
+): Promise<SeedPlan> {
+	const modules = resolveSeedModules(extraModules);
 	const types = await port.listContentTypes();
 	const actualByName = new Map(types.map((type) => [type.name, type]));
-	const collections = new Map<VisibleCollectionName, CollectionPlan>();
+	const collections = new Map<string, CollectionPlan>();
 	const divergences: SiteSeedDivergence[] = [];
 
-	for (const spec of VISIBLE_COLLECTIONS) {
-		const actual = actualByName.get(spec.name);
-		const plan = inspectCollection(spec, actual, divergences);
-		collections.set(spec.name, plan);
+	for (const module of modules) {
+		for (const spec of module.collections) {
+			const actual = actualByName.get(spec.name);
+			const plan = inspectCollection(spec, actual, divergences);
+			collections.set(spec.name, plan);
+		}
 	}
 
 	const pages = actualByName.get(PAGES_COLLECTION.name);
@@ -487,6 +631,7 @@ async function inspectSeedPlan(port: BackendPort): Promise<SeedPlan> {
 		port,
 		actualByName.get(PROJECT_MANIFEST_COLLECTION.name),
 		collections.get('vega')!,
+		modules,
 		divergences
 	);
 	const pageMissing = await inspectCanonicalPage(
@@ -497,7 +642,7 @@ async function inspectSeedPlan(port: BackendPort): Promise<SeedPlan> {
 	);
 
 	if (divergences.length > 0) throw new SiteSeedDivergenceError(divergences);
-	return { collections, manifest, pageMissing };
+	return { modules, collections, manifest, pageMissing };
 }
 
 function inspectCollection(
@@ -552,58 +697,119 @@ async function inspectManifestRecord(
 	port: BackendPort,
 	actual: ContentType | undefined,
 	plan: CollectionPlan,
+	modules: readonly SiteSeedModule[],
 	divergences: SiteSeedDivergence[]
-): Promise<ManifestAction> {
-	if (!actual) return 'create';
+): Promise<ManifestPlan> {
+	if (!actual) return createManifestPlan(modules);
 
 	const manifestField = actual.fields.find((field) => field.name === 'manifest');
-	if (plan.incompatibleFields.has('manifest') || plan.incompatibleFields.has('key')) return 'keep';
+	if (plan.incompatibleFields.has('manifest') || plan.incompatibleFields.has('key')) {
+		return KEEP_MANIFEST;
+	}
 	if (!manifestField) {
 		const records = await port.list(VEGA_COLLECTION.name, { perPage: 2 });
 		if (records.totalItems > 0) {
 			divergences.push({
 				piece: 'registro "vega/default"',
-				expected: 'manifiesto inicial exacto',
+				expected: 'un registro con campo manifest',
 				actual: `${records.totalItems} registro(s) sin campo manifest`
 			});
-			return 'keep';
+			return KEEP_MANIFEST;
 		}
-		return 'create';
+		return createManifestPlan(modules);
 	}
 	if (plan.missingFields.some((field) => field.name === 'key')) {
 		const records = await port.list(VEGA_COLLECTION.name, { perPage: 2 });
-		return inspectManifestPage(records, divergences);
+		return inspectManifestPage(records, modules, divergences);
 	}
 
 	const records = await listManifestRecords(port, actual, 2);
-	return inspectManifestPage(records, divergences);
+	return inspectManifestPage(records, modules, divergences);
+}
+
+const KEEP_MANIFEST: ManifestPlan = { action: 'keep', merged: null, entries: new Map() };
+
+/** El manifiesto de un proyecto que aún no tiene ninguno: los fragmentos de los módulos, en orden. */
+function createManifestPlan(modules: readonly SiteSeedModule[]): ManifestPlan {
+	const { merged, entries } = mergeModuleFragments({}, modules);
+	// Aquí no hay manifiesto humano de por medio: si esto no valida, el fragmento de un módulo está
+	// mal escrito. Se dice ahora, en el preflight, porque `saveManifest` lo rechazaría DESPUÉS de
+	// haber creado las colecciones.
+	const validation = validateManifestStrict(merged);
+	if (!validation.ok) {
+		throw new Error(
+			`Los fragmentos de los módulos de sembrado (${modules
+				.map((module) => module.id)
+				.join(', ')}) no forman un manifiesto válido: ${validation.errors
+				.slice(0, 3)
+				.map((error) => `${error.path}: ${error.message}`)
+				.join('; ')}`
+		);
+	}
+	return { action: 'create', merged, entries };
+}
+
+/** Fusiona en `saved` el fragmento de cada módulo, en orden, y anota qué aporta cada uno. */
+function mergeModuleFragments(
+	saved: JsonValue,
+	modules: readonly SiteSeedModule[]
+): { merged: JsonValue; entries: Map<string, string[]> } {
+	let merged = saved;
+	const entries = new Map<string, string[]>();
+	for (const module of modules) {
+		const step = mergeManifestFragment(merged, module.manifest);
+		merged = step.manifest;
+		entries.set(module.id, step.added);
+	}
+	return { merged, entries };
 }
 
 function inspectManifestPage(
 	records: Awaited<ReturnType<BackendPort['list']>>,
+	modules: readonly SiteSeedModule[],
 	divergences: SiteSeedDivergence[]
-): ManifestAction {
-	if (records.totalItems === 0) return 'create';
+): ManifestPlan {
+	if (records.totalItems === 0) return createManifestPlan(modules);
 	if (records.totalItems !== 1) {
 		divergences.push({
 			piece: 'registro "vega/default"',
 			expected: 'un único manifiesto canónico',
 			actual: `${records.totalItems} registros candidatos`
 		});
-		return 'keep';
+		return KEEP_MANIFEST;
 	}
 
-	const actualManifest = records.items[0]?.values.manifest;
-	if (sameJson(actualManifest, STARTER_MANIFEST)) return 'keep';
-	if (PREVIOUS_STARTER_MANIFESTS.some((previous) => sameJson(actualManifest, previous))) {
-		return 'upgrade';
+	// Las dos divergencias de abajo empiezan por «manifiesto distinto»: es el prefijo por el que
+	// `describeDivergence` (`$lib/admin/site-base.ts`) elige la frase «se ha editado a mano», que
+	// sigue siendo cierta en los dos casos (un manifiesto así solo sale de una edición manual).
+	const saved = records.items[0]?.values.manifest;
+	if (!isManifestObject(saved)) {
+		divergences.push({
+			piece: 'registro "vega/default"',
+			expected: 'un manifiesto (objeto JSON) al que añadir las entradas que faltan',
+			actual: `manifiesto distinto: no es un objeto (${JSON.stringify(saved)})`
+		});
+		return KEEP_MANIFEST;
 	}
-	divergences.push({
-		piece: 'registro "vega/default"',
-		expected: 'manifiesto inicial exacto (actual o de una versión anterior del sembrado)',
-		actual: `manifiesto distinto (${JSON.stringify(actualManifest)})`
-	});
-	return 'keep';
+
+	const { merged, entries } = mergeModuleFragments(saved, modules);
+	if ([...entries.values()].every((added) => added.length === 0)) return KEEP_MANIFEST;
+
+	// La fusión no arregla ni empeora lo guardado, pero `saveManifest` rechaza un manifiesto que no
+	// valide. Mejor decirlo aquí, antes de la primera escritura, que dejar el sembrado a medias.
+	const validation = validateManifestStrict(merged);
+	if (!validation.ok) {
+		divergences.push({
+			piece: 'registro "vega/default"',
+			expected: 'un manifiesto válido tras añadirle las entradas que faltan',
+			actual: `manifiesto distinto y no válido (${validation.errors
+				.slice(0, 3)
+				.map((error) => `${error.path}: ${error.message}`)
+				.join('; ')})`
+		});
+		return KEEP_MANIFEST;
+	}
+	return { action: 'upgrade', merged, entries };
 }
 
 async function inspectCanonicalPage(
@@ -785,22 +991,6 @@ function sameSelectOptions(
 	if (new Set(actual).size !== actual.length) return false;
 	const actualOptions = new Set(actual);
 	return expected.every((option) => actualOptions.has(option));
-}
-
-function sameJson(left: unknown, right: JsonValue): boolean {
-	return canonicalJson(left) === canonicalJson(right);
-}
-
-function canonicalJson(value: unknown): string {
-	if (value === undefined) return 'undefined';
-	if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
-	if (value !== null && typeof value === 'object') {
-		return `{${Object.entries(value as Record<string, unknown>)
-			.sort(([left], [right]) => left.localeCompare(right))
-			.map(([key, entry]) => `${JSON.stringify(key)}:${canonicalJson(entry)}`)
-			.join(',')}}`;
-	}
-	return JSON.stringify(value);
 }
 
 function readStarterBlocksConfig(manifest: JsonValue): ResolvedBlocksConfig {

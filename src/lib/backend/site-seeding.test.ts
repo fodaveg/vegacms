@@ -15,11 +15,20 @@ import {
 	SITE_SEED_REDIRECT_FROM_PATTERN,
 	SITE_SEED_REDIRECT_TO_PATTERN,
 	SITE_SEED_REDIRECTS_READ_RULE,
+	SITE_SEED_BASE_MODULE,
 	SiteSeedDivergenceError,
-	seedSiteProject
+	previewSiteSeed,
+	seedSiteProject,
+	type SiteSeedModule
 } from './site-seeding';
 import starterManifest from './site-seeding-manifest.json';
 import {
+	findSiteSeedModule,
+	SITE_SEED_MODULES,
+	SITE_SEED_OPTIONAL_MODULES
+} from './site-seeding-modules';
+import {
+	handEditedManifest,
 	previousStarterManifest,
 	seedLikePrevious0ace139,
 	seedLikePrevious1bda988,
@@ -338,7 +347,18 @@ describe('seedSiteProject', () => {
 				blocks: ['created', 'updated']
 			},
 			createdRecords: [],
-			upgradedRecords: ['manifest']
+			upgradedRecords: ['manifest'],
+			manifestEntries: {
+				base: [
+					'collections.pages.publishAtField',
+					'collections.pages.fieldGroups',
+					'collections.pages.fields.publishAt',
+					'collections.pages.fields.description',
+					'collections.pages.fields.socialImage',
+					'collections.pages.fields.noindex',
+					'collections.redirects'
+				]
+			}
 		});
 		const after = await canonicalPage(port);
 		expect(after.id).toBe(page.id);
@@ -384,7 +404,10 @@ describe('seedSiteProject', () => {
 			},
 			constrainedFields: { redirects: ['from', 'to'] },
 			createdRecords: [],
-			upgradedRecords: ['manifest']
+			upgradedRecords: ['manifest'],
+			manifestEntries: {
+				base: ['collections.pages.publishAtField', 'collections.pages.fields.publishAt']
+			}
 		});
 		const after = await canonicalPage(port);
 		expect(after.id).toBe(page.id);
@@ -485,7 +508,7 @@ describe('seedSiteProject', () => {
 		});
 	});
 
-	test('un manifiesto de 0ace139 EDITADO tampoco se actualiza', async () => {
+	test('un manifiesto de 0ace139 EDITADO recibe las entradas que le faltan y conserva lo editado', async () => {
 		const port = await authedMemory();
 		await seedLikePrevious0ace139(port);
 		const manifestRecord = (await port.list('vega', { perPage: 1 })).items[0]!;
@@ -494,11 +517,98 @@ describe('seedSiteProject', () => {
 			site: { name: 'Mi taller' }
 		};
 		await port.update('vega', manifestRecord.id, { manifest: edited as JsonValue });
+
+		const result = await seedSiteProject(port);
+
+		expect(result.upgradedRecords).toEqual(['manifest']);
+		expect(result.manifestEntries).toEqual({
+			base: ['collections.pages.publishAtField', 'collections.pages.fields.publishAt']
+		});
+		const after = (await port.get('vega', manifestRecord.id)).values.manifest;
+		expect(after).toEqual({ ...(starterManifest as Record<string, unknown>), site: edited.site });
+	});
+
+	test('un manifiesto editado a mano: se añade lo que falta, no se pierde nada y la segunda pasada no escribe', async () => {
+		const port = await authedMemory();
+		await seedLikePrevious0ace139(port);
+		const manifestRecord = (await port.list('vega', { perPage: 1 })).items[0]!;
+		const edited = handEditedManifest();
+		await port.update('vega', manifestRecord.id, { manifest: edited });
+
+		const result = await seedSiteProject(port);
+
+		expect(result.upgradedRecords).toEqual(['manifest']);
+		expect(result.manifestEntries).toEqual({
+			base: [
+				'collections.pages.publishAtField',
+				'collections.pages.fields.publishAt',
+				// La entrada que el usuario borró a propósito vuelve: decisión abierta, ver
+				// `site-seeding-merge.test.ts` y docs/POCKETBASE-INTEGRATION.md.
+				'collections.redirects'
+			]
+		});
+		const after = (await port.get('vega', manifestRecord.id)).values.manifest as Record<
+			string,
+			Record<string, Record<string, unknown>>
+		>;
+		// Todo lo que había sigue: el manifiesto editado es un subconjunto del resultado.
+		expect(after).toMatchObject(edited as Record<string, unknown>);
+		expect(after.site.name).toBe('Mi taller');
+		expect(after.collections.pages.label).toBe('Hojas');
+		expect(after.collections.pages.listFields).toEqual(['title', 'status']);
+		expect(after.collections.recetas).toEqual({ label: 'Recetas', icon: 'tag' });
+		expect(after.blockTypes.hero.label).toBe('Cabecera');
+		expect(after.blockTypes.receta.label).toBe('Receta');
+		expect(after.collections.pages.publishAtField).toBe('publishAt');
+
+		const snapshot = await logicalSnapshot(port);
+		const writes = watchSeedWrites(port);
+		await expect(seedSiteProject(port)).resolves.toEqual({
+			createdCollections: [],
+			addedFields: {},
+			createdRecords: [],
+			upgradedRecords: []
+		});
+		expect(writes[2]).not.toHaveBeenCalled();
+		expect(writes[3]).not.toHaveBeenCalled();
+		expect(writes[4]).not.toHaveBeenCalled();
+		expect(await logicalSnapshot(port)).toEqual(snapshot);
+	});
+
+	test('un manifiesto que la fusión no puede dejar válido aborta sin escribir y se queda intacto', async () => {
+		const port = await authedMemory();
+		await seedLikePrevious0ace139(port);
+		const manifestRecord = (await port.list('vega', { perPage: 1 })).items[0]!;
+		// `clave_inventada` no existe en el schema: ni con las entradas de la base valida.
+		const invalid = { ...(starterManifest0ace139 as Record<string, unknown>), clave_inventada: 1 };
+		await port.update('vega', manifestRecord.id, { manifest: invalid as JsonValue });
+		const writes = watchSeedWrites(port);
+
+		const error = await seedSiteProject(port).then(
+			() => null,
+			(caught: unknown) => caught
+		);
+
+		expect(error).toBeInstanceOf(SiteSeedDivergenceError);
+		expect((error as SiteSeedDivergenceError).divergences).toEqual([
+			expect.objectContaining({
+				piece: 'registro "vega/default"',
+				actual: expect.stringContaining('manifiesto distinto y no válido')
+			})
+		]);
+		expectNoSeedWrites(writes);
+		expect((await port.get('vega', manifestRecord.id)).values.manifest).toEqual(invalid);
+	});
+
+	test('un manifiesto que no es un objeto aborta sin escribir', async () => {
+		const port = await authedMemory();
+		await seedSiteProject(port);
+		const manifestRecord = (await port.list('vega', { perPage: 1 })).items[0]!;
+		await port.update('vega', manifestRecord.id, { manifest: ['no', 'es', 'un', 'objeto'] });
 		const writes = watchSeedWrites(port);
 
 		await expect(seedSiteProject(port)).rejects.toBeInstanceOf(SiteSeedDivergenceError);
 		expectNoSeedWrites(writes);
-		expect((await port.get('vega', manifestRecord.id)).values.manifest).toEqual(edited);
 	});
 
 	test('vega_editors ya existente gana created sin perder sus campos, y las cuentas nuevas traen alta', async () => {
@@ -534,7 +644,7 @@ describe('seedSiteProject', () => {
 		expect(await seedSiteProject(port)).not.toHaveProperty('invitationLink');
 	});
 
-	test('un manifiesto anterior EDITADO no se actualiza: aborta como cualquier manifiesto humano', async () => {
+	test('un manifiesto anterior (1bda988) EDITADO recibe SEO y redirects y conserva lo editado', async () => {
 		const port = await authedMemory();
 		await seedLikePrevious1bda988(port);
 		const manifestRecord = (await port.list('vega', { perPage: 1 })).items[0]!;
@@ -543,11 +653,15 @@ describe('seedSiteProject', () => {
 			site: { name: 'Mi taller' }
 		};
 		await port.update('vega', manifestRecord.id, { manifest: edited as JsonValue });
-		const writes = watchSeedWrites(port);
 
-		await expect(seedSiteProject(port)).rejects.toBeInstanceOf(SiteSeedDivergenceError);
-		expectNoSeedWrites(writes);
-		expect((await port.get('vega', manifestRecord.id)).values.manifest).toEqual(edited);
+		const result = await seedSiteProject(port);
+
+		expect(result.createdCollections).toEqual(['redirects']);
+		expect(result.upgradedRecords).toEqual(['manifest']);
+		expect((await port.get('vega', manifestRecord.id)).values.manifest).toEqual({
+			...(starterManifest as Record<string, unknown>),
+			site: edited.site
+		});
 	});
 
 	test('completa image e images como piezas ausentes de blocks existente', async () => {
@@ -813,7 +927,7 @@ describe('seedSiteProject', () => {
 		expect(port.inspectCollection('pages')!.rules).toEqual(before);
 	});
 
-	test('un manifiesto humano distinto se conserva y aborta antes de otras escrituras', async () => {
+	test('un manifiesto humano distinto conserva lo suyo y recibe las entradas de la base', async () => {
 		const port = await authedMemory();
 		await seedSiteProject(port);
 		const manifestPage = await port.list('vega', { perPage: 1 });
@@ -825,12 +939,247 @@ describe('seedSiteProject', () => {
 			blockTypes: {}
 		};
 		await port.update('vega', manifestRecord.id, { manifest: humanManifest });
-		const before = await logicalSnapshot(port);
 
-		await expect(seedSiteProject(port)).rejects.toBeInstanceOf(SiteSeedDivergenceError);
-		expect(await logicalSnapshot(port)).toEqual(before);
+		const result = await seedSiteProject(port);
+
+		expect(result).toEqual({
+			createdCollections: [],
+			addedFields: {},
+			createdRecords: [],
+			upgradedRecords: ['manifest'],
+			manifestEntries: {
+				base: [
+					'nav',
+					'collections.pages',
+					'collections.redirects',
+					'collections.blocks',
+					'blockTypes.hero',
+					'blockTypes.richtext',
+					'blockTypes.image',
+					'blockTypes.gallery',
+					'blockTypes.cta',
+					'blockTypes.divider'
+				]
+			}
+		});
 		const after = await port.get('vega', manifestRecord.id);
-		expect(after.values.manifest).toEqual(humanManifest);
+		expect(after.id).toBe(manifestRecord.id);
+		expect(after.values.manifest).toEqual({
+			...(starterManifest as Record<string, unknown>),
+			site: { name: 'Proyecto humano' }
+		});
+	});
+
+	describe('módulos', () => {
+		const NOTES_MODULE: SiteSeedModule = {
+			id: 'notas',
+			collections: [
+				{
+					name: 'notes',
+					listRule: SITE_SEED_EDITOR_ACCESS_RULE,
+					viewRule: SITE_SEED_EDITOR_ACCESS_RULE,
+					createRule: SITE_SEED_EDITOR_ACCESS_RULE,
+					updateRule: SITE_SEED_EDITOR_ACCESS_RULE,
+					deleteRule: SITE_SEED_EDITOR_ACCESS_RULE,
+					fields: [
+						{ name: 'title', type: 'text', required: true, max: 200 },
+						{
+							name: 'page',
+							type: 'relation',
+							target: 'pages',
+							multiple: false,
+							cascadeDelete: false
+						}
+					]
+				}
+			],
+			manifest: {
+				collections: { notes: { label: 'Notas', titleField: 'title' } },
+				blockTypes: {
+					'note-list': {
+						label: 'Lista de notas',
+						icon: 'tag',
+						fields: [
+							{ name: 'heading', label: 'Título', widget: 'text', source: 'data', default: '' }
+						]
+					}
+				}
+			}
+		};
+
+		test('la base es el módulo `base` y es el único registrado', () => {
+			expect(SITE_SEED_MODULES).toEqual([SITE_SEED_BASE_MODULE]);
+			expect(SITE_SEED_OPTIONAL_MODULES).toEqual([]);
+			expect(findSiteSeedModule('base')).toBe(SITE_SEED_BASE_MODULE);
+			expect(findSiteSeedModule('blog')).toBeUndefined();
+			expect(SITE_SEED_BASE_MODULE.id).toBe('base');
+			expect(SITE_SEED_BASE_MODULE.collections.map((spec) => spec.name)).toEqual([
+				'vega_media',
+				'pages',
+				'blocks',
+				'redirects',
+				'vega'
+			]);
+			expect(SITE_SEED_BASE_MODULE.manifest).toEqual(starterManifest);
+		});
+
+		test('sin módulos pedidos, un proyecto vacío recibe exactamente el manifiesto inicial', async () => {
+			const port = await authedMemory();
+			await seedSiteProject(port);
+
+			const saved = (await port.list('vega', { perPage: 1 })).items[0]!.values.manifest;
+			expect(JSON.stringify(saved)).toBe(JSON.stringify(starterManifest));
+		});
+
+		test('un módulo añadido a un sitio ya sembrado crea su colección y suma sus entradas sin tocar las de la base', async () => {
+			const port = await authedMemory();
+			await seedSiteProject(port);
+			const before = (await port.list('vega', { perPage: 1 })).items[0]!;
+
+			const preview = await previewSiteSeed(port, { modules: [NOTES_MODULE] });
+			expect(preview).toEqual({
+				status: 'ready',
+				plan: {
+					createdCollections: ['notes'],
+					addedFields: {},
+					manifest: 'upgrade',
+					pageMissing: false,
+					upToDate: false
+				},
+				modules: [
+					{ id: 'base', createdCollections: [], addedFields: {}, manifestEntries: [] },
+					{
+						id: 'notas',
+						createdCollections: ['notes'],
+						addedFields: {},
+						manifestEntries: ['collections.notes', 'blockTypes.note-list']
+					}
+				]
+			});
+
+			const result = await seedSiteProject(port, { modules: [NOTES_MODULE] });
+
+			expect(result).toEqual({
+				createdCollections: ['notes'],
+				addedFields: {},
+				createdRecords: [],
+				upgradedRecords: ['manifest'],
+				manifestEntries: { notas: ['collections.notes', 'blockTypes.note-list'] }
+			});
+			const after = (await port.list('vega', { perPage: 2 })).items;
+			expect(after).toHaveLength(1);
+			expect(after[0]!.id).toBe(before.id);
+			const manifest = after[0]!.values.manifest as Record<string, Record<string, unknown>>;
+			expect(manifest).toMatchObject(before.values.manifest as Record<string, unknown>);
+			expect(manifest.collections.notes).toEqual({ label: 'Notas', titleField: 'title' });
+			expect(Object.keys(manifest.collections)).toEqual(['pages', 'redirects', 'blocks', 'notes']);
+			expect(port.inspectCollection('notes')).toBeDefined();
+			await expect(port.create('notes', { title: 'Primera' })).resolves.toMatchObject({
+				values: { title: 'Primera' }
+			});
+
+			// La segunda pasada con el mismo módulo no tiene nada que hacer.
+			await expect(seedSiteProject(port, { modules: [NOTES_MODULE] })).resolves.toEqual({
+				createdCollections: [],
+				addedFields: {},
+				createdRecords: [],
+				upgradedRecords: []
+			});
+			const again = await previewSiteSeed(port, { modules: [NOTES_MODULE] });
+			expect(again).toMatchObject({ status: 'ready', plan: { upToDate: true } });
+		});
+
+		test('base y módulo a la vez sobre un proyecto vacío: un solo manifiesto con las entradas de los dos', async () => {
+			const port = await authedMemory();
+
+			const preview = await previewSiteSeed(port, { modules: [NOTES_MODULE] });
+			if (preview.status !== 'ready') throw new Error('se esperaba un plan');
+			expect(preview.plan.createdCollections).toEqual([
+				'vega_media',
+				'pages',
+				'blocks',
+				'redirects',
+				'vega',
+				'notes'
+			]);
+			expect(preview.modules.map((module) => [module.id, module.createdCollections])).toEqual([
+				['base', ['vega_media', 'pages', 'blocks', 'redirects', 'vega']],
+				['notas', ['notes']]
+			]);
+			expect(preview.modules[1]!.manifestEntries).toEqual([
+				'collections.notes',
+				'blockTypes.note-list'
+			]);
+
+			const result = await seedSiteProject(port, { modules: [NOTES_MODULE] });
+
+			expect(result.createdCollections).toEqual([
+				'vega_editors',
+				'vega_media',
+				'pages',
+				'blocks',
+				'redirects',
+				'vega',
+				'notes'
+			]);
+			expect(result.createdRecords).toEqual(['manifest', 'page:/']);
+			expect(result.manifestEntries).toBeUndefined();
+			const manifest = (await port.list('vega', { perPage: 1 })).items[0]!.values
+				.manifest as Record<string, Record<string, unknown>>;
+			expect(manifest).toMatchObject(starterManifest as Record<string, unknown>);
+			expect(manifest.collections.notes).toBeDefined();
+			expect(manifest.blockTypes['note-list']).toBeDefined();
+		});
+
+		test('un fragmento de módulo mal escrito se rechaza en el preflight, antes de crear nada', async () => {
+			const port = await authedMemory();
+			const writes = watchSeedWrites(port);
+			const broken: SiteSeedModule = {
+				id: 'roto',
+				collections: [],
+				manifest: { blockTypes: { NoValido: { label: 'x', fields: [] } } }
+			};
+
+			await expect(seedSiteProject(port, { modules: [broken] })).rejects.toThrow(
+				'no forman un manifiesto válido'
+			);
+			expectNoSeedWrites(writes);
+		});
+
+		test('una colección del módulo con otra forma aborta el lote entero antes de escribir', async () => {
+			const port = await authedMemory();
+			await seedSiteProject(port);
+			await port.ensureCollections([
+				{ name: 'notes', fields: [{ name: 'title', type: 'number' }] }
+			]);
+			const writes = watchSeedWrites(port);
+
+			const preview = await previewSiteSeed(port, { modules: [NOTES_MODULE] });
+			expect(preview.status).toBe('blocked');
+			await expect(seedSiteProject(port, { modules: [NOTES_MODULE] })).rejects.toBeInstanceOf(
+				SiteSeedDivergenceError
+			);
+			expectNoSeedWrites(writes);
+		});
+
+		test('un módulo repetido, o una colección declarada por dos módulos, es un error de registro', async () => {
+			const port = await authedMemory();
+			const reads = vi.spyOn(port, 'listContentTypes');
+
+			await expect(
+				seedSiteProject(port, { modules: [NOTES_MODULE, { ...NOTES_MODULE }] })
+			).rejects.toThrow('Módulo de sembrado repetido: "notas"');
+			await expect(
+				seedSiteProject(port, {
+					modules: [
+						{ id: 'otro', collections: [SITE_SEED_BASE_MODULE.collections[1]!], manifest: {} }
+					]
+				})
+			).rejects.toThrow(
+				'La colección "pages" la declaran dos módulos de sembrado: "base" y "otro"'
+			);
+			expect(reads).not.toHaveBeenCalled();
+		});
 	});
 
 	test('una página canónica ya editada se salta sin duplicarla ni pisarla', async () => {
