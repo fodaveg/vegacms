@@ -136,6 +136,71 @@ describe('fetchTransferFile', () => {
 		expect(file?.size).toBe(50);
 	});
 
+	// Segunda barrera (revisión de seguridad del 30 sep 2026): la `url` viene del fichero importado,
+	// que es un dato de fuera. Solo se pide por `http:`/`https:`; lo demás ni llega a `fetch`.
+	it.each([
+		['file:', 'file:///etc/passwd'],
+		['data:', 'data:image/png;base64,iVBORw0KGgo='],
+		['blob:', 'blob:https://origin.test/3f1c2b7e-0000-4000-8000-000000000000'],
+		['javascript:', 'javascript:alert(1)'],
+		['ftp:', 'ftp://origin.test/foto.png'],
+		['esquema con mayúsculas y espacios', '  JavaScript:alert(1)'],
+		['relativa (sin esquema)', '/api/files/posts/p1/foto.png'],
+		['relativa al protocolo', '//origin.test/foto.png'],
+		['no parseable', 'http://'],
+		['cadena vacía', '']
+	])('url %s → null y SIN llamar a fetch', async (_caso, url) => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(new Uint8Array([1, 2, 3]), {
+				status: 200,
+				headers: { 'content-type': 'image/png' }
+			})
+		);
+		vi.stubGlobal('fetch', fetchSpy);
+
+		expect(await fetchTransferFile({ file: 'foto.png', url })).toBeNull();
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
+	it('una url que no es un string (fichero importado manipulado) → null y SIN llamar a fetch', async () => {
+		const fetchSpy = vi.fn();
+		vi.stubGlobal('fetch', fetchSpy);
+		const tampered = { file: 'foto.png', url: { href: 'https://origin.test/foto.png' } };
+
+		expect(await fetchTransferFile(tampered as unknown as TransferFileValue)).toBeNull();
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
+	it('http: también se acepta (un origen en la red local sin TLS)', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(new Uint8Array([1, 2, 3]), {
+				status: 200,
+				headers: { 'content-type': 'image/png' }
+			})
+		);
+		vi.stubGlobal('fetch', fetchSpy);
+
+		const file = await fetchTransferFile({ file: 'foto.png', url: 'http://127.0.0.1:8090/f.png' });
+
+		expect(file?.size).toBe(3);
+		expect(fetchSpy).toHaveBeenCalledWith('http://127.0.0.1:8090/f.png', expect.anything());
+	});
+
+	it('un rechazo por esquema no consume hueco de la cola de concurrencia', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue(
+				new Response(new Uint8Array([1]), { status: 200, headers: { 'content-type': 'image/png' } })
+			)
+		);
+		const rejected = await Promise.all(
+			Array.from({ length: 12 }, () => fetchTransferFile({ file: 'x.png', url: 'file:///x.png' }))
+		);
+		expect(rejected.every((f) => f === null)).toBe(true);
+
+		expect(await fetchTransferFile(FILE_REF)).toBeInstanceOf(File);
+	});
+
 	it('concurrencia acotada: nunca más de 4 fetch en vuelo a la vez, aunque se pidan 10 de golpe', async () => {
 		let active = 0;
 		let peak = 0;

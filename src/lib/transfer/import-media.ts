@@ -44,6 +44,15 @@
  *   vez con `Promise.all`; puesto aquí, en el ÚNICO punto de red de la Fase 2, cualquier llamador
  *   (vista previa o escritura) queda acotado por construcción, sin que cada uno tenga que coordinar
  *   su propio límite.
+ *
+ * **Solo `http:`/`https:`** (revisión de seguridad del 30 sep 2026): la `url` sale del fichero
+ * importado, que es un dato de fuera y puede venir escrito a mano. Se parsea con `URL` y solo se
+ * pide si es absoluta y de `http:` o `https:`; `file:`, `data:`, `blob:`, `javascript:`, una
+ * relativa o una que no parsea resuelven a `null` SIN llegar a `fetch`, con el mismo desenlace que
+ * un 404. Consecuencia asumida: un export hecho desde el adaptador `memory` (la demo), cuyas
+ * `url` son `data:` URI, se reimporta sin sus ficheros — salen en `missingFiles`, no en silencio.
+ * Esto acota el ESQUEMA, no el destino: una `url` `http(s)` a cualquier host (incluida la red
+ * local de quien importa) se sigue pidiendo.
  */
 
 import type { TransferFileValue } from './record-serializer';
@@ -129,6 +138,25 @@ async function readBoundedBlob(response: Response, maxBytes: number): Promise<Bl
 	});
 }
 
+/** Esquemas por los que se va a buscar un fichero exportado (ver cabecera, «Solo `http:`/`https:`»). */
+const FETCHABLE_PROTOCOLS: ReadonlySet<string> = new Set(['http:', 'https:']);
+
+/**
+ * La `url` de un `{ file, url }` ya normalizada (`URL#href`) si es absoluta y de `http:`/`https:`;
+ * `null` si no (otro esquema, relativa, no parseable, o ni siquiera un string: el fichero
+ * importado es JSON de fuera y su tipo en TypeScript no obliga a nada en runtime).
+ */
+function fetchableUrl(url: unknown): string | null {
+	if (typeof url !== 'string') return null;
+	let parsed: URL;
+	try {
+		parsed = new URL(url);
+	} catch {
+		return null;
+	}
+	return FETCHABLE_PROTOCOLS.has(parsed.protocol) ? parsed.href : null;
+}
+
 export interface FetchTransferFileOptions {
 	/** Ver `DEFAULT_TIMEOUT_MS`. */
 	timeoutMs?: number;
@@ -150,6 +178,10 @@ export async function fetchTransferFile(
 	const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 	const maxBytes = opts.maxBytes ?? DEFAULT_MAX_BYTES;
 
+	// Antes de pedir hueco en la cola: una `url` que no se va a pedir no ocupa ninguno.
+	const url = fetchableUrl(file.url);
+	if (url === null) return null;
+
 	await acquireFetchSlot();
 	// UN solo temporizador para TODO el ciclo de vida de esta petición (cabeceras + cuerpo, ver
 	// cabecera del módulo): `controller.signal` se pasa a `fetch` para que una implementación real
@@ -160,7 +192,7 @@ export async function fetchTransferFile(
 	const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
 	try {
 		const response = await Promise.race([
-			fetch(file.url, { signal: controller.signal }),
+			fetch(url, { signal: controller.signal }),
 			new Promise<never>((_, reject) => {
 				controller.signal.addEventListener('abort', () => reject(new Error('timeout')), {
 					once: true
