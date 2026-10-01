@@ -178,10 +178,33 @@
 			await notifyChanged();
 			await check(true);
 		} catch (err) {
-			errorMessage = err instanceof Error ? err.message : String(err);
+			errorMessage = describeSeedError(err);
 			dialog = 'error';
 			await notifyChanged();
 		}
+	}
+
+	/**
+	 * Texto del diálogo de error. Un desajuste de reglas de una colección `auth` viaja con su código
+	 * y sus parámetros para poder traducirlo; cualquier otro fallo (o parámetros ausentes o
+	 * malformados) sigue enseñando `err.message`.
+	 */
+	function describeSeedError(err: unknown): string {
+		if (err instanceof VegaError && err.kind === 'validation') {
+			for (const fieldError of Object.values(err.fieldErrors ?? {})) {
+				if (fieldError.code !== 'vega_collection_rules_mismatch') continue;
+				const params = fieldError.params;
+				const rules = params?.rules;
+				if (typeof params?.collection !== 'string' || !Array.isArray(rules)) continue;
+				return ctx.t(
+					params.expectsOnlySuperusers === true
+						? 'settings.site.error.rulesMismatchNull'
+						: 'settings.site.error.rulesMismatchDeclared',
+					{ collection: params.collection, rules: rules.join(', ') }
+				);
+			}
+		}
+		return err instanceof Error ? err.message : String(err);
 	}
 
 	function closeDialog(): void {

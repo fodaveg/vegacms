@@ -86,6 +86,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'session.reloginSubmit': 'Re-authenticate',
 	'session.reloginBackToPassword': 'Back to password',
 	'session.logoutConfirm': 'There are unsaved changes. Log out anyway?',
+	// `ReloginModal.svelte`: whoever signed back in is not who held the session that expired.
+	'session.reloginOtherAccount':
+		'You signed in with a different account. Vega needs to reload so its work is not mixed with the previous session; anything left unsaved is lost.',
+	'session.reloginReload': 'Reload',
 
 	// ————— Backend connection / generic onboarding (batch L5) —————
 	// `BackendUrlForm.svelte`: runtime override of the PocketBase URL, saved to `localStorage`.
@@ -1269,6 +1273,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'settings.site.error.title': 'It could not be finished',
 	'settings.site.error.body':
 		'What was created before the failure stays as it is. When you retry, Vega only creates what is missing.',
+	'settings.site.error.rulesMismatchNull':
+		'The "{collection}" collection already exists with access rules different from the ones Vega expects: {rules}. Nothing has been changed. In PocketBase, go to Collections → {collection} → API Rules, leave them empty (null: superusers only) and run the operation again.',
+	'settings.site.error.rulesMismatchDeclared':
+		'The "{collection}" collection already exists with access rules different from the ones Vega expects: {rules}. Nothing has been changed. In PocketBase, go to Collections → {collection} → API Rules, set them as Vega declares them and run the operation again.',
 	'settings.site.result.done': 'Done: {summary}.',
 	'settings.site.result.nothing': 'Everything was already in place: nothing needed changing.',
 	'settings.site.result.collectionOne': '1 collection',

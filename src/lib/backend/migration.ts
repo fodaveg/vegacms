@@ -37,6 +37,7 @@
 import {
 	collectionUniqueIndexes,
 	collectionSpecCreationMetadata,
+	fileSpecMimeTypes,
 	type CollectionFieldSpec,
 	type CollectionSpec
 } from './collections';
@@ -292,7 +293,8 @@ function collectionFieldSpecToMigrationField(spec: CollectionFieldSpec): Record<
 				required: spec.required ?? false,
 				maxSelect: spec.multiple ? 99 : 1,
 				maxSize: spec.maxSizeBytes ?? 0,
-				mimeTypes: spec.mimeTypes ?? [],
+				// Mismo valor por defecto que el adaptador (paridad con lo aplicado por red).
+				mimeTypes: fileSpecMimeTypes(spec),
 				thumbs: spec.thumbs ?? []
 			};
 		case 'bool':

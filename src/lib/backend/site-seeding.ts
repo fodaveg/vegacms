@@ -13,8 +13,11 @@
  *
  * Única excepción: PocketBase excluye TODA colección `auth` del esquema descubierto, por lo que
  * `vega_editors` no se puede preflightar desde el puerto. `ensureCollections` la aplica como la
- * primera escritura y el adaptador comprueba su tipo contra `pb.collections.getOne` antes de
- * crearla o saltarla.
+ * primera escritura y el adaptador comprueba su tipo y sus reglas contra `pb.collections.getOne`
+ * antes de crearla o saltarla. Si ya existe con alguna regla distinta de `null` (`listRule`,
+ * `viewRule`, `createRule`, `updateRule`, `deleteRule` o `manageRule`), el sembrado aborta ahí,
+ * antes de escribir nada: es la colección que decide quién edita, y una regla abierta en ella no
+ * se adopta en silencio. `authRule` no cuenta (PocketBase la crea en `""`).
  *
  * La garantía "divergencia => ninguna escritura" presupone que no hay escritores concurrentes y
  * que `vega`, `pages`, `vega_media`, `blocks` y `redirects` no colisionan con colecciones
@@ -655,6 +658,11 @@ async function ensureOne(
  * sus campos se completan aquí: si la colección ya existía, se le añaden los del sembrado que
  * falten, con la misma regla aditiva que el resto (un campo con ese nombre, sea del tipo que sea,
  * se deja tal cual). Nunca toca sus reglas ni sus cuentas.
+ *
+ * Eso vale solo para una `vega_editors` con las reglas en `null`, que es como la crea el sembrado
+ * y como la propone el panel de PocketBase. Con cualquier otra regla, `ensureCollections` lanza
+ * (`vega_collection_rules_mismatch`) y no se llega a añadirle campos: como es la primera escritura
+ * del sembrado, no queda nada a medias.
  */
 async function ensureEditorsCollection(port: BackendPort, result: SiteSeedResult): Promise<void> {
 	const ensured = await port.ensureCollections([VEGA_EDITORS_COLLECTION]);

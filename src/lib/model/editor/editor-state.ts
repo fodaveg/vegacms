@@ -11,7 +11,11 @@
  */
 
 import type { ContentType, JsonValue } from '$lib/backend/types';
-import { isReservedCollectionName, VEGA_COLLECTION } from '$lib/backend/collections';
+import {
+	fileSpecMimeTypes,
+	isReservedCollectionName,
+	VEGA_COLLECTION
+} from '$lib/backend/collections';
 import type { ModelWarning } from '../types';
 import { resolveContentModel } from '../resolve';
 import { validateManifestStrict, type ManifestValidationErrorEntry } from '../validate';
@@ -138,7 +142,7 @@ function collectionFieldSpecToPbImportField(
 				type: 'file',
 				maxSelect: spec.multiple ? 99 : 1,
 				maxSize: spec.maxSizeBytes ?? 0,
-				mimeTypes: spec.mimeTypes ?? [],
+				mimeTypes: fileSpecMimeTypes(spec),
 				// `VEGA_COLLECTION` no tiene campo file hoy, pero mantiene el switch coherente
 				// con el vocabulario COMPLETO de `CollectionFieldSpec` (thumbs, landmine C1).
 				thumbs: spec.thumbs ?? []

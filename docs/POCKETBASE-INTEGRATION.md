@@ -591,7 +591,10 @@ Vega puede guardar una copia del estado de un registro justo ANTES de cada guard
 compararla con la versión actual o recuperar los valores en el formulario. Vive en una colección
 propia, `vega_revisions`, con el mismo mecanismo de bootstrap que `vega_media`: **Ajustes → Historial
 y papelera → Crear colección de historial** (requiere sesión de superuser; un rol editor no puede
-crearla, solo usarla si ya existe).
+crearla). Se crea con las reglas de acceso en `null` y así debe quedarse (ver
+[Las reglas de `vega_revisions` se quedan en `null`](#las-reglas-de-vega_revisions-se-quedan-en-null)):
+con ellas, solo un superusuario escribe en ella, así que **el historial y la papelera solo se
+registran con sesión de superusuario**; un editor (`vega_editors`) no puede usarla.
 
 Cómo funciona:
 
@@ -647,6 +650,26 @@ restauran (punto de arriba), un registro de esa colección no se puede recrear c
 .file` es el caso real (un asset ES su fichero), pero la papelera lo detecta por esquema, no como un
 caso especial de `vega_media`. La entrada sigue viéndose en la papelera (sus metadatos —alt, título,
 etiquetas— siguen teniendo valor), pero con "Restaurar" **deshabilitado** y el motivo explicado.
+
+### Las reglas de `vega_revisions` se quedan en `null`
+
+Vega crea `vega_revisions` sin reglas de acceso, es decir, con las cinco en `null`: solo un
+superusuario la lee y la escribe. **No las abras**, ni siquiera a los editores. Dos motivos:
+
+- **Escribir en ella es poder pedir una restauración.** Una fila de `vega_revisions` dice «recrea
+  este registro, con este id y estos valores, en esta colección». Quien pueda crear o modificar
+  filas puede dejar preparada una entrada de papelera a su medida, y la restauración la ejecuta
+  después otra persona con SU sesión; si es un superusuario, PocketBase no le aplica ninguna regla
+  de acceso. Una regla de creación o de edición abierta convierte la papelera en una forma de
+  escribir con permisos ajenos.
+- **Leerla es leer todo lo que se ha guardado o borrado.** Cada fila lleva la copia completa del
+  registro anterior: borradores sin publicar, campos que las reglas de su colección no dejan ver y
+  contenido ya eliminado. Una regla de lectura abierta se salta las reglas de todas las demás
+  colecciones a la vez.
+
+Consecuencia, con las reglas en `null`: el historial y la papelera solo se registran y solo se ven
+con sesión de superusuario. Lo que guarda o borra un editor (`vega_editors`) no deja copia, y su
+guardado sigue completándose con normalidad, como en cualquier otro fallo al escribir una revisión.
 
 ## Autenticación en Vega
 
@@ -787,6 +810,14 @@ Los pasos manuales siguientes siguen aplicando a una instalación **existente**.
 sean más abiertas o sean más cerradas. Si `pages` ya existe con `listRule: null` y `blocks` no
 existe, el preflight aborta con un error claro antes de escribir; alinea las reglas manualmente y
 vuelve a sembrar.
+
+La excepción es `vega_editors`: si ya existe con reglas propias (cualquiera de `listRule`,
+`viewRule`, `createRule`, `updateRule`, `deleteRule` o `manageRule` distinta de `null`; `authRule`
+no cuenta, PocketBase la deja en `""` en toda colección `auth`),
+el sembrado **aborta** con `vega_collection_rules_mismatch` antes de escribir nada, porque una
+`createRule` abierta en la colección de editores es registro libre de cuentas con permiso de
+escritura. Quien lo vea debe, en PocketBase (**Collections → vega_editors → API Rules**), dejar
+esas seis reglas en `null` (solo superusuarios gestionan las cuentas) y repetir el sembrado.
 
 **1. Crear la colección de auth del editor:**
 

@@ -94,6 +94,10 @@ export const es = {
 	'session.reloginSubmit': 'Reautenticar',
 	'session.reloginBackToPassword': 'Volver a la contraseña',
 	'session.logoutConfirm': 'Hay cambios sin guardar. ¿Cerrar sesión igualmente?',
+	// `ReloginModal.svelte`: quien reentró no es quien tenía la sesión que caducó.
+	'session.reloginOtherAccount':
+		'Has entrado con otra cuenta. Hay que recargar Vega para no mezclar su trabajo con el de la sesión anterior; lo que estuviera sin guardar se pierde.',
+	'session.reloginReload': 'Recargar',
 
 	// ————— Conexión a backend / onboarding genérico (lote L5) —————
 	// `BackendUrlForm.svelte`: override runtime de la URL de PocketBase, guardado en
@@ -1333,6 +1337,10 @@ export const es = {
 	'settings.site.error.title': 'No se pudo terminar',
 	'settings.site.error.body':
 		'Lo que se creó antes del fallo se queda como está. Al reintentar, Vega solo crea lo que falte.',
+	'settings.site.error.rulesMismatchNull':
+		'La colección "{collection}" ya existe con reglas de acceso distintas de las que Vega espera: {rules}. No se ha modificado nada. En PocketBase, Collections → {collection} → API Rules, déjalas sin regla (null: solo superusuarios) y repite la operación.',
+	'settings.site.error.rulesMismatchDeclared':
+		'La colección "{collection}" ya existe con reglas de acceso distintas de las que Vega espera: {rules}. No se ha modificado nada. En PocketBase, Collections → {collection} → API Rules, déjalas como las declara Vega y repite la operación.',
 	'settings.site.result.done': 'Hecho: {summary}.',
 	'settings.site.result.nothing': 'Todo estaba ya en su sitio: no hizo falta cambiar nada.',
 	'settings.site.result.collectionOne': '1 colección',

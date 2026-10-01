@@ -16,8 +16,9 @@
 	 * - `'capability'`: `capabilities.explicitRecordId` ausente (backend entero, ningún ítem la
 	 *   ofrece) — el contrato lo pide explícito ("sin la capability, la papelera OCULTA
 	 *   'Restaurar' y explica por qué").
-	 * - `'schema'`: la colección de origen (`revision.collection`) ya no existe en `ctx.model.types`
-	 *   (se borró del esquema desde que se guardó la revisión) — sin `Field[]` no hay forma segura
+	 * - `'schema'`: `restoreTargetType` no da destino: la colección de origen (`revision.collection`)
+	 *   ya no existe en `ctx.model.types` (se borró del esquema desde que se guardó la revisión), es
+	 *   interna de Vega (`vega`/`vega_*`) o de solo lectura — sin `Field[]` no hay forma segura
 	 *   de construir `input` sin arriesgarse a mandar campos que el backend ya no reconoce. Este
 	 *   segundo motivo NO lo pide el contrato con esas palabras, pero es la misma prudencia que
 	 *   pide para el primero: "nunca restaures con un id nuevo por lo bajo" se extiende a "nunca
@@ -67,7 +68,12 @@
 		revisionDisplayLabel
 	} from '$lib/revisions/revision-label';
 	import { VEGA_REVISIONS_COLLECTION } from '$lib/revisions/revisions-collection';
-	import { buildRestoreInput, hasFileValues, requiredFileFieldName } from '$lib/revisions/restore';
+	import {
+		buildRestoreInput,
+		hasFileValues,
+		requiredFileFieldName,
+		restoreTargetType
+	} from '$lib/revisions/restore';
 	import { emptyTrash } from '$lib/revisions/empty-trash';
 	import { pruneTrashRevisions } from '$lib/revisions/with-revisions';
 	import { isTrashAvailable } from '$lib/revisions/trash-availability';
@@ -186,11 +192,18 @@
 
 	// ————— Restaurar (§8·B2, ver cabecera) —————
 
+	/** Tipo al que se puede restaurar `revision`, validado contra el modelo (`restoreTargetType`:
+	 *  falla cerrado ante `vega`/`vega_*`, vistas de solo lectura y colecciones desconocidas). Es
+	 *  el ÚNICO que decide el destino del `create`: nunca `revision.collection` a pelo. */
+	function restoreTarget(revision: RevisionRecord) {
+		return restoreTargetType(ctx.model.types, revision.collection);
+	}
+
 	type RestoreBlockedReason = 'capability' | 'schema' | 'requiredFile' | null;
 
 	function restoreBlockedReason(revision: RevisionRecord): RestoreBlockedReason {
 		if (!ctx.port.capabilities.explicitRecordId) return 'capability';
-		const type = sourceType(revision);
+		const type = restoreTarget(revision);
 		if (type === null) return 'schema';
 		if (requiredFileFieldName(type.schema.fields) !== null) return 'requiredFile';
 		return null;
@@ -204,9 +217,9 @@
 		if (reason === 'schema') {
 			return ctx.t('revisions.trash.restoreUnknownSchema', { collection: revision.collection });
 		}
-		// 'requiredFile': `sourceType(revision)` no es null aquí (ver `restoreBlockedReason`, el
+		// 'requiredFile': `restoreTarget(revision)` no es null aquí (ver `restoreBlockedReason`, el
 		// motivo 'schema' se resuelve ANTES), así que el campo siempre es resoluble.
-		const type = sourceType(revision);
+		const type = restoreTarget(revision);
 		const field = type ? requiredFileFieldName(type.schema.fields) : null;
 		return ctx.t('revisions.trash.restoreBlockedRequiredFile', {
 			collection: revision.collection,
@@ -230,11 +243,11 @@
 
 	async function handleRestore(revision: RevisionRecord): Promise<void> {
 		if (isBusy(revision.id) || restoreBlockedReason(revision) !== null) return;
-		const type = sourceType(revision)!;
+		const type = restoreTarget(revision)!;
 		setBusy(revision.id, true);
 		try {
 			const input = buildRestoreInput(type.schema.fields, revision.values);
-			await ctx.port.create(revision.collection, input, { id: revision.recordId });
+			await ctx.port.create(type.name, input, { id: revision.recordId });
 			// Best-effort (ver cabecera): un fallo aquí no deshace la restauración, solo deja una
 			// entrada de papelera huérfana que `pruneTrashRevisions` limpiará más tarde.
 			await ctx.port.delete(VEGA_REVISIONS_COLLECTION.name, revision.id).catch(() => {});

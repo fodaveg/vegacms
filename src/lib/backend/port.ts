@@ -321,7 +321,11 @@ export interface BackendPort {
 	 * Crea las colecciones de `specs` que NO existan aún. Idempotente: una segunda llamada con
 	 * los mismos `specs` devuelve `created: []` (todo en `skipped`). NUNCA modifica ni borra una
 	 * colección existente (ni su tipo, reglas, campos o registros). Si el nombre existe con otro
-	 * tipo, falla explícitamente en vez de mutarlo o fingir idempotencia. Al crear, `CollectionSpec`
+	 * tipo, falla explícitamente en vez de mutarlo o fingir idempotencia. Una existente del mismo
+	 * tipo se omite (`skipped`), con UNA excepción en el adaptador PocketBase: una `auth` existente
+	 * cuyas reglas no son las del spec se RECHAZA (`VegaError 'validation'`, código
+	 * `vega_collection_rules_mismatch`, sin escribir nada) en vez de omitirse. El adaptador
+	 * `memory` no comprueba reglas: allí una existente del mismo tipo se omite siempre. Al crear, `CollectionSpec`
 	 * puede declarar `base`/`auth` y sus reglas; las claves omitidas conservan los defaults del
 	 * backend. Admite cualquier nombre de colección "creable" (`isCreatableCollectionName`,
 	 * `backend/collections.ts`) — ya NO se restringe a `vega`/`vega_*` (esa restricción vivía en

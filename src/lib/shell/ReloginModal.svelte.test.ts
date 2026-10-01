@@ -32,6 +32,12 @@ const STALE: Session = {
 	expiresAt: null
 };
 const FRESH: Session = { ...STALE, token: 'token-nuevo' };
+/** Otra persona que reentra en el mismo navegador: credenciales válidas, otra cuenta. */
+const OTHER: Session = {
+	token: 'token-de-otra',
+	user: { id: 'editor-2', email: 'otra@example.com' },
+	expiresAt: null
+};
 
 function mfaRequired(methods: SecondFactorMethod[] = ['totp', 'recovery']) {
 	return vi.fn(async () => ({ kind: 'mfa-required' as const, pending: 'pending-1', methods }));
@@ -63,15 +69,19 @@ interface Harness {
 	/** Campo de un formulario sin guardar, dentro de la carcasa que el overlay tapa. */
 	draft: HTMLInputElement;
 	shell: HTMLElement;
+	/** Sustituye a `window.location.reload()` (prop `reload` del overlay). */
+	reload: ReturnType<typeof vi.fn>;
 }
 
 /**
  * Arranca con sesión restaurada, la caduca por `onAuthChange('expired')` y monta el overlay.
  * `strongAuth: null` = instancia sin la extensión `vegaauth` (hoy, todas las desplegadas).
+ * `restored` es la sesión que había ANTES de caducar (`null` = el store no conoce ninguna).
  */
 async function mountExpired(
 	strongAuth: StrongAuthPort | null,
-	login: ReturnType<typeof vi.fn> = vi.fn(async () => FRESH)
+	login: ReturnType<typeof vi.fn> = vi.fn(async () => FRESH),
+	restored: Session | null = STALE
 ): Promise<Harness> {
 	let notify: ((s: Session | null, reason: AuthChangeReason) => void) | null = null;
 	const port = {
@@ -85,7 +95,7 @@ async function mountExpired(
 			strongAuth: strongAuth !== null
 		},
 		...(strongAuth ? { strongAuth } : {}),
-		restoreSession: vi.fn(async () => STALE),
+		restoreSession: vi.fn(async () => restored),
 		login,
 		logout: vi.fn(async () => undefined),
 		currentSession: vi.fn(() => null),
@@ -108,12 +118,14 @@ async function mountExpired(
 
 	const target = document.createElement('div');
 	document.body.appendChild(target);
+	const reload = vi.fn();
 	const instance = mount(ReloginModal, {
 		target,
+		props: { reload },
 		context: new Map([[SESSION_CONTEXT_KEY, store]])
 	});
 	await settle();
-	return { store, target, instance, login, draft, shell };
+	return { store, target, instance, login, draft, shell, reload };
 }
 
 async function settle(): Promise<void> {
@@ -170,6 +182,25 @@ function expectResolved(h: Harness): void {
 	expect(h.store.mfaChallenge).toBeNull();
 	expect(h.shell.inert).toBe(false);
 	expect(h.draft.value).toBe('borrador sin guardar');
+	expect(h.reload).not.toHaveBeenCalled();
+}
+
+/**
+ * Entró OTRA cuenta: se pide recargar y el overlay NO se retira. La sesión del store ya es la
+ * nueva (el backend la dio por buena), y justo por eso el borrador de debajo sigue tapado e
+ * inerte: no se puede guardar con esa identidad.
+ */
+function expectReloadInsteadOfResolve(h: Harness, session: Session): void {
+	expect(h.reload).toHaveBeenCalledOnce();
+	expect(h.store.session).toEqual(session);
+	expect(dialog(h)).not.toBeNull();
+	expect(h.store.expired).toBe(true);
+	expect(h.shell.inert).toBe(true);
+	expect(dialog(h)!.getAttribute('data-relogin-state')).toBe('identity-changed');
+	// Ni formulario ni passkey: desde aquí solo se puede recargar.
+	expect(h.target.querySelector('form')).toBeNull();
+	expect(h.target.querySelector('input')).toBeNull();
+	expect(h.target.querySelector('[role="alert"]')?.textContent).toContain('otra cuenta');
 }
 
 describe('ReloginModal', () => {
@@ -314,6 +345,136 @@ describe('ReloginModal', () => {
 		expect(auth.loginWithPassword).not.toHaveBeenCalled();
 		expect(h.login).not.toHaveBeenCalled();
 		expectResolved(h);
+	});
+
+	// Revisión de seguridad del 30 sep 2026: el overlay aceptaba las credenciales de CUALQUIER
+	// cuenta y dejaba el borrador de debajo listo para guardarse con la identidad nueva.
+	describe('quien reentra tiene que ser quien estaba', () => {
+		test('otra cuenta con contraseña: recarga en vez de destapar el borrador', async () => {
+			h = await mountExpired(
+				null,
+				vi.fn(async () => OTHER)
+			);
+
+			await submitPassword(h);
+
+			expectReloadInsteadOfResolve(h, OTHER);
+		});
+
+		test('otra cuenta que completa el segundo factor: recarga', async () => {
+			const auth = strongAuthPort({
+				loginWithPassword: mfaRequired(),
+				loginWithTotp: vi.fn(async () => OTHER)
+			});
+			h = await mountExpired(auth);
+			await submitPassword(h);
+			expect(h.reload).not.toHaveBeenCalled();
+
+			type(h, '#relogin-totp', '123456');
+			await submit(h, '#relogin-totp');
+
+			expectReloadInsteadOfResolve(h, OTHER);
+		});
+
+		test('otra cuenta con código de recuperación: recarga', async () => {
+			const auth = strongAuthPort({
+				loginWithPassword: mfaRequired(['recovery']),
+				loginWithRecovery: vi.fn(async () => OTHER)
+			});
+			h = await mountExpired(auth);
+			await submitPassword(h);
+
+			type(h, '#relogin-recovery', 'ABCDE-12345');
+			await submit(h, '#relogin-recovery');
+
+			expectReloadInsteadOfResolve(h, OTHER);
+		});
+
+		test('otra cuenta con passkey: recarga', async () => {
+			const auth = strongAuthPort({ loginWithPasskey: vi.fn(async () => OTHER) });
+			h = await mountExpired(auth);
+
+			buttonByText(h, 'Entrar con passkey')!.click();
+			await settle();
+
+			expectReloadInsteadOfResolve(h, OTHER);
+		});
+
+		test('mismo correo pero otro id (cuenta borrada y vuelta a crear): recarga', async () => {
+			const recreated: Session = { ...FRESH, user: { id: 'editor-9', email: STALE.user.email } };
+			h = await mountExpired(
+				null,
+				vi.fn(async () => recreated)
+			);
+
+			await submitPassword(h);
+
+			expectReloadInsteadOfResolve(h, recreated);
+		});
+
+		test('mismo id con otro correo (lo cambió) y otro token: es la misma cuenta, resuelve', async () => {
+			const renamed: Session = {
+				token: 'token-nuevo',
+				user: { id: STALE.user.id, email: 'nuevo-correo@example.com' },
+				expiresAt: null
+			};
+			h = await mountExpired(
+				null,
+				vi.fn(async () => renamed)
+			);
+
+			await submitPassword(h);
+
+			expect(h.reload).not.toHaveBeenCalled();
+			expect(dialog(h)).toBeNull();
+			expect(h.store.expired).toBe(false);
+			expect(h.store.session).toEqual(renamed);
+		});
+
+		test('sin id previo conocido no se puede comparar: recarga', async () => {
+			h = await mountExpired(
+				null,
+				vi.fn(async () => FRESH),
+				null
+			);
+			expect(h.store.session).toBeNull();
+
+			await submitPassword(h);
+
+			expectReloadInsteadOfResolve(h, FRESH);
+		});
+
+		test('una credencial incorrecta de otra cuenta no recarga: sigue en el formulario', async () => {
+			h = await mountExpired(
+				null,
+				vi.fn(async () => {
+					throw VegaError.forbidden('bad credentials');
+				})
+			);
+
+			await submitPassword(h, 'incorrecta');
+
+			expectStillOpen(h);
+			expect(h.reload).not.toHaveBeenCalled();
+		});
+
+		test('si la recarga no llega a ocurrir, el botón «Recargar» la vuelve a pedir y el foco está en él', async () => {
+			h = await mountExpired(
+				null,
+				vi.fn(async () => OTHER)
+			);
+			await submitPassword(h);
+			expectReloadInsteadOfResolve(h, OTHER);
+
+			const reloadButton = buttonByText(h, 'Recargar');
+			expect(reloadButton).not.toBeNull();
+			expect(document.activeElement).toBe(reloadButton);
+			reloadButton!.click();
+
+			expect(h.reload).toHaveBeenCalledTimes(2);
+			expect(dialog(h)).not.toBeNull();
+			expect(h.shell.inert).toBe(true);
+		});
 	});
 
 	test('passkey cancelada o rechazada: sigue abierto con el mensaje del fallo', async () => {

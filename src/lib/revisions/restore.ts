@@ -22,8 +22,22 @@
  *   especial de esa colección: cualquier tipo del usuario con un `file` obligatorio está igual de
  *   roto. `/papelera` lo usa para deshabilitar "Restaurar" con el motivo dicho, en vez de dejar
  *   que el click falle.
+ * - `restoreTargetType` (revisión de seguridad del 30 sep 2026): la colección a la que se va a
+ *   restaurar sale de la propia revisión (`revision.collection`), que es un DATO guardado en
+ *   `vega_revisions` y no algo que decida la app. Restaurar es un `create` con la sesión de quien
+ *   pulsa —un superusuario se salta las reglas de PocketBase—, así que el destino se valida contra
+ *   el modelo y se falla cerrado: solo vale un tipo de contenido del modelo, por nombre exacto,
+ *   que no sea interno de Vega (`vega`/`vega_*`: el manifiesto, el historial, las cuentas de
+ *   editor) ni de solo lectura (una vista). La ÚNICA excepción reservada es `vega_media`
+ *   (`RESTORABLE_RESERVED_COLLECTION`): es contenido real y `with-revisions.ts#shouldSnapshot` la
+ *   guarda en la papelera, así que un medio borrado es una entrada normal — llega aquí y la
+ *   bloquea, con su motivo verdadero, `requiredFileFieldName`. Las colecciones `auth` y de sistema no llegan al modelo (el
+ *   adaptador las excluye del descubrimiento), así que caen por «no está». `/papelera` la usa
+ *   tanto para decidir si ofrece «Restaurar» como para el `create` (`restoreTarget`), y lo cubre
+ *   `trash-restore.svelte.test.ts`.
  */
 
+import { isReservedCollectionName } from '$lib/backend/collections';
 import type { Field, FieldValue, RecordInput } from '$lib/backend/types';
 
 /** `true` si `value` es un valor de campo `file`/`file[]` NO vacío (§10.3). */
@@ -60,6 +74,43 @@ export function buildRestoreInput(
 		input[field.name] = values[field.name];
 	}
 	return input;
+}
+
+/**
+ * Única colección reservada (`vega`/`vega_*`) que es contenido restaurable en principio. DEBE ir a
+ * la par con la excepción `type !== 'vega_media'` de `shouldSnapshot` (`with-revisions.ts`): lo que
+ * se guarda en la papelera y lo que se puede intentar restaurar son el mismo conjunto. No se
+ * comparte constante porque ese lado del código no se tocó en este lote; si uno cambia, cambia el
+ * otro.
+ */
+const RESTORABLE_RESERVED_COLLECTION = 'vega_media';
+
+/** Forma MÍNIMA que `restoreTargetType` necesita de un tipo del modelo — estructural a propósito
+ *  (mismo criterio que `TrashAvailabilityModel`): `ResolvedContentType` encaja sin cast y un test
+ *  pasa un objeto plano. */
+export interface RestoreTargetCandidate {
+	name: string;
+	schema: { readonly: boolean; fields: readonly Field[] };
+}
+
+/**
+ * El tipo del modelo al que se puede restaurar una revisión cuya colección de origen es
+ * `collection`, o `null` si no se debe restaurar ahí (ver cabecera). Falla CERRADO: `null` ante
+ * cualquier cosa que no sea un tipo de contenido conocido y escribible (`vega_media` cuenta como
+ * contenido; el resto de `vega`/`vega_*`, no), incluido un `collection` que no sea un string. Quien restaura usa el tipo DEVUELTO (su `name` y sus `fields`) para el
+ * `create`, nunca el `collection` de la revisión.
+ */
+export function restoreTargetType<T extends RestoreTargetCandidate>(
+	types: readonly T[],
+	collection: unknown
+): T | null {
+	if (typeof collection !== 'string' || collection === '') return null;
+	if (isReservedCollectionName(collection) && collection !== RESTORABLE_RESERVED_COLLECTION) {
+		return null;
+	}
+	const type = types.find((candidate) => candidate.name === collection);
+	if (!type || type.schema.readonly) return null;
+	return type;
 }
 
 /** Nombre del primer campo `type: 'file'` `required` de `fields`, o `null` si ninguno lo es (ver

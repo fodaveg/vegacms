@@ -5,7 +5,7 @@
 
 import type { CollectionModel, CollectionField } from 'pocketbase';
 import type { AccessLevel, Field, ContentType, TypeAccess } from '../../types';
-import type { CollectionFieldSpec } from '../../collections';
+import { fileSpecMimeTypes, type CollectionFieldSpec } from '../../collections';
 
 /**
  * Inclusión/exclusión normativa (§4.2): excluye colecciones de sistema (`system: true`,
@@ -289,7 +289,9 @@ export function collectionFieldSpecToPbField(
 				// generoso por defecto para "multiple"; P6 podrá ajustar con su propio contrato.
 				maxSelect: spec.multiple ? 99 : 1,
 				maxSize: spec.maxSizeBytes ?? 0,
-				mimeTypes: spec.mimeTypes ?? [],
+				// Sin `mimeTypes` declarados, el campo nace restringido a `DEFAULT_FILE_MIME_TYPES`
+				// (`backend/collections.ts`); un `[]` explícito sigue siendo «sin restricción».
+				mimeTypes: fileSpecMimeTypes(spec),
 				// `thumbs: []` es inocuo para PB (equivale a omitirlo = sin miniaturas
 				// predefinidas); ver landmine C1 en la cabecera de `CollectionFieldSpec`.
 				thumbs: spec.thumbs ?? []
