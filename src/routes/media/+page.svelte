@@ -249,9 +249,8 @@
 		mediaReadyPage ? mediaReadyPage.items.map(toMediaItemView) : []
 	);
 	// Biblioteca REALMENTE vacía (ninguna página tiene nada) — distinto de "esta página concreta
-	// no tiene items" (deep-link a un `?page=` fuera de rango): ese segundo caso, deliberadamente
-	// sin redirección automática en 6b (alcance mínimo, la paginación no es el foco de esta fase),
-	// simplemente no pinta el grid pero SÍ la paginación, para que el usuario pueda volver.
+	// no tiene items" (un `?page=` fuera de rango, o borrar el último de la página): ese segundo caso
+	// lo resuelve el `$effect` de abajo yendo a la última página con datos, igual que `/c/[type]`.
 	const mediaIsEmpty = $derived(mediaReadyPage !== null && mediaReadyPage.totalItems === 0);
 
 	// ————— Toolbar: buscador por nombre de fichero + chips de tipo (filtros de CLIENTE) —————
@@ -425,6 +424,16 @@
 		const qs = mediaPageToParams(target).toString();
 		void goto(`${mediaRoute()}${qs ? `?${qs}` : ''}`);
 	}
+
+	// Página fuera de rango (mismo criterio que `/c/[type]`, L-P4.13): `items: []` con `totalItems > 0`
+	// (el puerto no clampa `page`) deja de ser un grid mudo y sin salida: se va a la última página con
+	// datos. `totalPages !== page` corta cualquier bucle — tras el `goto` la recarga trae items.
+	$effect(() => {
+		if (!routerReady || !mediaReadyPage) return;
+		if (mediaReadyPage.items.length > 0 || mediaReadyPage.totalItems === 0) return;
+		if (mediaReadyPage.totalPages < 1 || mediaReadyPage.totalPages === mediaReadyPage.page) return;
+		goToMediaPage(mediaReadyPage.totalPages);
+	});
 
 	// ————— Detalle de un asset (Fase 6b) —————
 
