@@ -479,6 +479,25 @@ describe('Richtext.svelte — enlace e imagen de la barra', () => {
 		expect(runs).toBe(1);
 	});
 
+	/**
+	 * El selector de estilo salía EN BLANCO con el cursor en un título: `headingValue` es una cadena
+	 * (`'2'`) y las opciones llevaban `value={level}` numérico, que Svelte compara de forma estricta
+	 * al asentar el valor de un `<select>`. Ninguna casaba y quedaba `selectedIndex -1`.
+	 */
+	test('con el cursor en un título, el selector de estilo marca ese nivel', async () => {
+		const { target, editor } = await mountWithToolbar('<h2>Un título</h2><p>Y un párrafo</p>');
+		const select = target.querySelector<HTMLSelectElement>('.vega-editor-toolbar-select')!;
+
+		editor.commands.setTextSelection(2);
+		await flush();
+		expect(select.value).toBe('2');
+		expect(select.selectedIndex).toBe(2);
+
+		editor.commands.setTextSelection(14);
+		await flush();
+		expect(select.value).toBe('paragraph');
+	});
+
 	test('imagen con alt en la biblioteca: se inserta con la URL del fichero y ese alt', async () => {
 		const { target, pickerOpen, lastHtml } = await mountWithToolbar('<p>Hola</p>', {
 			alt: 'Una portada'

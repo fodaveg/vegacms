@@ -219,7 +219,10 @@
 	>
 		<option value="paragraph">{t('form.editor.paragraph')}</option>
 		{#each HEADING_LEVELS as level (level)}
-			<option value={level}>{t('form.editor.heading', { level })}</option>
+			<!-- `String(level)`: `headingValue` es una cadena y Svelte compara el valor de las opciones
+			     de forma estricta; con el número a secas ninguna casaba y el selector salía en blanco
+			     con el cursor en un título. -->
+			<option value={String(level)}>{t('form.editor.heading', { level })}</option>
 		{/each}
 	</select>
 
