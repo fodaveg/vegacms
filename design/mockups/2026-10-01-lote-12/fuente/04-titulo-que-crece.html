@@ -1,0 +1,313 @@
+<!--TITULO 4 · Editor: el título crece con el texto-->
+
+<!--PIEZA barra-->
+<div class="vega-edit-top vega-edit-top--bleed">
+	<button type="button" class="vega-editor-back">{{i:chevron:14}} Entradas</button>
+	<span class="vega-editor-doc">
+		<span class="vega-editor-crumb-name"
+			>Temas claro/oscuro con un solo vocabulario de tokens: lo que aprendí construyendo el motor de
+			paletas de Lumbre y por qué ha acabado en Vega</span
+		>
+		<span class="vega-editor-tag" data-status-kind="draft">Borrador</span>
+	</span>
+	<span class="vega-edit-top-spacer"></span>
+	<span class="vega-editor-saved-at">último guardado 10:31</span>
+	<a class="vega-editor-preview-link" href="#">Ver en el sitio</a>
+	<button type="button" class="vega-editor-duplicate-button">Duplicar</button>
+	<button type="submit" class="vega-editor-save-button">
+		Guardar <kbd aria-hidden="true">⌘S</kbd>
+	</button>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA resto-->
+<div class="vega-field-row vega-field-row--slug">
+	<label>Slug</label>
+	<div class="vega-field-control">
+		<div class="vega-field-inline">
+			<div class="vega-field-inline-widget">
+				<input
+					type="text"
+					class="vega-widget-text"
+					value="temas-claro-oscuro-vocabulario-tokens-motor-paletas"
+				/>
+			</div>
+			<button type="button" class="vega-editor-inline-button">Regenerar</button>
+		</div>
+	</div>
+</div>
+<div class="vega-field-row">
+	<label>Extracto</label>
+	<div class="vega-field-control">
+		<textarea class="vega-widget-textarea" rows="3">
+Un vocabulario cerrado de tokens de rol, dos ejes independientes (modo y paleta) y una barrera anti-parches: así se mantiene un tema coherente sin volverse loco.</textarea>
+		<p class="vega-field-help">
+			Se usa en la portada del blog y en las tarjetas de compartir. Máx. 200 caracteres.
+		</p>
+	</div>
+</div>
+<p class="lam-why">(Contenido y columna lateral: sin cambios)</p>
+<!--/PIEZA-->
+
+<!--PIEZA antes-->
+<form class="vega-record-form" novalidate>
+	<!--USA barra-->
+	<div class="vega-editor-grid">
+		<div class="vega-editor-main">
+			<div class="vega-form-content">
+				<section class="vega-fsection">
+					<div class="vega-fields">
+						<div class="vega-field-row vega-field-row--title">
+							<label>Título<span class="vega-field-required" aria-hidden="true">*</span></label>
+							<div class="vega-field-control">
+								<input
+									type="text"
+									class="vega-widget-text"
+									value="Temas claro/oscuro con un solo vocabulario de tokens: lo que aprendí construyendo el motor de paletas de Lumbre y por qué ha acabado en Vega"
+								/>
+							</div>
+						</div>
+						<!--USA resto-->
+					</div>
+				</section>
+			</div>
+		</div>
+	</div>
+</form>
+<!--/PIEZA-->
+
+<!--PIEZA despues-->
+<form class="vega-record-form" novalidate>
+	<!--USA barra-->
+	<div class="vega-editor-grid">
+		<div class="vega-editor-main">
+			<div class="vega-form-content">
+				<section class="vega-fsection">
+					<div class="vega-fields">
+						<div class="vega-field-row vega-field-row--title">
+							<label>Título<span class="vega-field-required" aria-hidden="true">*</span></label>
+							<div class="vega-field-control">
+								<textarea class="vega-widget-text" rows="1">
+Temas claro/oscuro con un solo vocabulario de tokens: lo que aprendí construyendo el motor de paletas de Lumbre y por qué ha acabado en Vega</textarea>
+							</div>
+						</div>
+						<!--USA resto-->
+					</div>
+				</section>
+			</div>
+		</div>
+	</div>
+</form>
+<!--/PIEZA-->
+
+<section class="lam-section">
+	<h2>Qué cambia</h2>
+	<p>
+		El campo del título es hoy una caja de una sola línea: un título largo sigue ahí, pero
+		<b>solo se ve el principio</b> y para leer o corregir el final hay que mover el cursor a ciegas.
+		La propuesta lo convierte en un área que <b>crece hacia abajo con el texto</b>, con la misma
+		letra, el mismo subrayado y el mismo foco de hoy. Solo cambia el campo marcado como título de la
+		colección; el resto de campos de texto y la barra superior (que sigue recortando el nombre a 30
+		caracteres, como miga que es) no se tocan. El título de prueba tiene 140 caracteres.
+	</p>
+	<table class="lam-cifras">
+		<thead>
+			<tr>
+				<th>Título de 140 caracteres</th>
+				<th>Antes</th>
+				<th>Después</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>Se lee entero a 1440 px</td>
+				<td>no (una línea, cortado)</td>
+				<td>sí (2 líneas)</td>
+			</tr>
+			<tr>
+				<td>Se lee entero a 390 px</td>
+				<td>no (una línea, cortado)</td>
+				<td>sí (6 líneas)</td>
+			</tr>
+			<tr>
+				<td>Paradas de tabulación</td>
+				<td>1</td>
+				<td>1</td>
+			</tr>
+		</tbody>
+	</table>
+</section>
+
+<section class="lam-section lam-solo-ancho">
+	<h2>La pantalla a 1440 px</h2>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>ANTES</b> Estado real de hoy: el título se corta</figcaption>
+		<!--SHELL entradas hoy-->
+		<!--USA antes-->
+		<!--/SHELL-->
+	</figure>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>DESPUÉS</b> El título ocupa las líneas que necesita</figcaption>
+		<!--SHELL entradas hoy-->
+		<!--USA despues-->
+		<!--/SHELL-->
+	</figure>
+</section>
+
+<section class="lam-section lam-solo-ancho">
+	<h2>La pantalla estrecha (390 px), antes y después</h2>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption><b>ANTES</b> Estado real de hoy</figcaption>
+			<div class="lam-stage lam-movil">
+				<div class="vega-main"><!--USA antes--></div>
+			</div>
+		</figure>
+		<figure class="lam-spec">
+			<figcaption><b>DESPUÉS</b></figcaption>
+			<div class="lam-stage lam-movil">
+				<div class="vega-main"><!--USA despues--></div>
+			</div>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section lam-solo-estrecho">
+	<h2>La pantalla a 390 px</h2>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>ANTES</b> Estado real de hoy: el título se corta</figcaption>
+		<!--SHELL entradas hoy-->
+		<!--USA antes-->
+		<!--/SHELL-->
+	</figure>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>DESPUÉS</b> El título ocupa las líneas que necesita</figcaption>
+		<!--SHELL entradas hoy-->
+		<!--USA despues-->
+		<!--/SHELL-->
+	</figure>
+</section>
+
+<section class="lam-section">
+	<h2>Estados del campo</h2>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption><b>4.1</b> Vacío (registro nuevo)</figcaption>
+			<div class="lam-stage">
+				<div class="vega-field-row vega-field-row--title">
+					<label>Título<span class="vega-field-required" aria-hidden="true">*</span></label>
+					<div class="vega-field-control">
+						<textarea class="vega-widget-text" rows="1"></textarea>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">Una línea de alto, igual que la caja de hoy.</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>4.2</b> Título corto</figcaption>
+			<div class="lam-stage">
+				<div class="vega-field-row vega-field-row--title">
+					<label>Título<span class="vega-field-required" aria-hidden="true">*</span></label>
+					<div class="vega-field-control">
+						<textarea class="vega-widget-text" rows="1">Notas del huerto: julio</textarea>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">Con un título que cabe, no se nota ningún cambio.</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>4.3</b> Con el foco</figcaption>
+			<div class="lam-stage">
+				<div class="vega-field-row vega-field-row--title">
+					<label>Título<span class="vega-field-required" aria-hidden="true">*</span></label>
+					<div class="vega-field-control">
+						<textarea
+							class="vega-widget-text"
+							rows="1"
+							style="border-bottom: 2px solid transparent; border-image: var(--sheen) 1"
+						>
+Una copia de seguridad que no has restaurado nunca no es una copia de seguridad</textarea>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">El subrayado de foco de hoy, bajo la última línea.</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>4.4</b> Error: obligatorio</figcaption>
+			<div class="lam-stage">
+				<div class="vega-field-row vega-field-row--title">
+					<label>Título<span class="vega-field-required" aria-hidden="true">*</span></label>
+					<div class="vega-field-control">
+						<textarea class="vega-widget-text" rows="1" aria-invalid="true"></textarea>
+						<p class="vega-field-error" role="alert">{{i:generic:13}} Este campo es obligatorio.</p>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">Sin cambios: el subrayado pasa a rojo y el mensaje va debajo.</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>4.5</b> Solo lectura</figcaption>
+			<div class="lam-stage">
+				<div class="vega-field-row vega-field-row--title">
+					<label>Título</label>
+					<div class="vega-field-control">
+						<textarea class="vega-widget-text" rows="1" disabled>
+Temas claro/oscuro con un solo vocabulario de tokens: lo que aprendí construyendo el motor de paletas de Lumbre y por qué ha acabado en Vega</textarea>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">
+				También crece: en una colección de solo lectura el título se lee entero, que hoy tampoco se
+				puede.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>4.6</b> Una sola palabra larguísima</figcaption>
+			<div class="lam-stage">
+				<div class="vega-field-row vega-field-row--title">
+					<label>Título<span class="vega-field-required" aria-hidden="true">*</span></label>
+					<div class="vega-field-control">
+						<textarea class="vega-widget-text" rows="1">
+https://fodaveg.net/blog/temas-claro-oscuro-vocabulario-tokens-motor-paletas-de-lumbre</textarea>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">Parte por cualquier carácter; nunca ensancha el formulario.</p>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>Nota</h2>
+	<ul class="lam-notes">
+		<li>
+			<b>Recomendación.</b> Un <code>&lt;textarea rows="1"&gt;</code> que ajusta su alto al
+			contenido (<code>field-sizing: content</code>, con el alto calculado al escribir donde el
+			navegador no lo soporte), no un bloque <code>contenteditable</code>. Con
+			<code>contenteditable</code> pegar desde un procesador de textos mete negritas y saltos dentro
+			del título y se pierden el límite de caracteres y la validación del campo, que hoy funcionan
+			solos.
+		</li>
+		<li>
+			<b>Comportamiento.</b> Intro no parte línea (un título es una sola línea de texto; las líneas
+			que se ven son solo de ajuste). Al pegar texto con saltos, los saltos pasan a espacios. Sin
+			tirador de cambio de tamaño. El valor que se guarda es el mismo de hoy.
+		</li>
+		<li>
+			<b>Estados que hay que construir.</b> Vacío, corto, largo en varias líneas, foco, ratón
+			encima, error, deshabilitado y solo lectura, palabra sin espacios, límite de caracteres
+			alcanzado (el campo deja de admitir texto, como hoy).
+		</li>
+		<li>
+			<b>Piezas y tokens.</b> Ningún token nuevo. El campo conserva la clase
+			<code>.vega-widget-text</code> y la regla del título de <code>FieldRow.svelte</code>; solo se
+			añaden las cuatro propiedades de crecimiento. Interlineado 1,25 para que dos líneas de un
+			título grande no queden separadas como un párrafo.
+		</li>
+	</ul>
+</section>
