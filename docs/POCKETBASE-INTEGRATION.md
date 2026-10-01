@@ -565,6 +565,26 @@ La colección `vega_media` que Vega bootstrapea **ya declara estos tres tamaños
 
 **Para tus colecciones de contenido propias** con campos `file` de imagen que edites o listes en Vega: declara en PB (Collections → tu colección → campo `file` → Thumb sizes) al menos `300x300` y `28x28` (y `120x120` si editas ese campo con el widget file), o Vega mostrará el original completo en cada miniatura. Vega **no** añade thumbs retroactivamente a colecciones que no creó.
 
+## Imágenes grandes al subir a la biblioteca
+
+Desde el 1 oct 2026, la subida de `/media` reduce en el navegador los JPEG, PNG y WebP antes de
+enviarlos: lado largo máximo de 2560 px y calidad 0,85 (JPEG y WebP), sin cambiar nunca de formato. Solo se
+intenta si la imagen supera los 2560 px o el tope de tamaño de `vega_media`; una imagen pequeña que
+ya cabe se sube tal cual. Si el resultado no pesa menos, el navegador no puede codificar ese formato
+(WebKit no codifica WebP) o algo falla, se sube el original, y entonces rige el tope de siempre. El
+tope se comprueba **después** de reducir: una foto de 23 MB que reducida pesa 1 MB se sube. La lista
+muestra de cuánto a cuánto («23 MB → 1,6 MB»).
+
+La casilla «Subir el original» (desmarcada por defecto, no se recuerda entre visitas) sube el
+fichero sin tocarlo. GIF, SVG, PDF y vídeo nunca se reducen. La importación de medios
+(`Ajustes → Copias`) tampoco: es fiel al origen.
+
+**Qué se pierde al reducir**: los datos EXIF (fecha, cámara y **ubicación GPS**) y el perfil de color
+Display P3 (la imagen queda en sRGB y se recorta el gamut). La orientación se aplica, así que la
+imagen sale derecha. Medido en Chromium 149 y WebKit 26.5; **Safari de iOS no está medido** (el
+límite de área de canvas de iOS puede impedir reducir fotos muy grandes: en ese caso se sube el
+original y vale el tope), ni Firefox.
+
 ## Punto focal de una imagen
 
 Desde el 24 sep 2026, `vega_media` tiene un campo `focal` (`json`, opcional): `{ "x": 0.3, "y": 0.2 }`
