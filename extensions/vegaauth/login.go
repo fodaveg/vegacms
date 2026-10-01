@@ -171,7 +171,7 @@ func (x *Extension) loginLockRemaining(app core.App, identity, ip string) int {
 	if int64(lockedUntil) > now {
 		return lockedUntil - int(now)
 	}
-	if row.GetInt("updated_at") < int(now)-attemptWindow {
+	if !attemptsStillCount(row, int(now)) {
 		_ = app.Delete(row)
 	}
 	return 0
@@ -193,6 +193,14 @@ func (x *Extension) recordLoginFailure(app core.App, identity, ip string) {
 	_, _ = x.countLoginAttempt(app, identity, ip, false)
 }
 
+// attemptsStillCount reports whether the row's failures are recent enough to keep adding up. The
+// window runs from the last attempt OR from the end of the last lock, whichever is later: a lock
+// as long as the window (the third one already is) would otherwise always end with the row out
+// of the window, the count would restart at 1 and the escalation would never pass 15 minutes.
+func attemptsStillCount(row *core.Record, now int) bool {
+	return row.GetInt("updated_at") >= now-attemptWindow || row.GetInt("locked_until") >= now-attemptWindow
+}
+
 func (x *Extension) countLoginAttempt(app core.App, identity, ip string, respectLock bool) (int, error) {
 	now := int(time.Now().Unix())
 	wait := 0
@@ -206,7 +214,7 @@ func (x *Extension) countLoginAttempt(app core.App, identity, ip string, respect
 			return nil
 		}
 		attempts := 1
-		if row != nil && row.GetInt("updated_at") >= now-attemptWindow {
+		if row != nil && attemptsStillCount(row, now) {
 			attempts = row.GetInt("attempts") + 1
 		}
 		lockedUntil := 0

@@ -7,6 +7,9 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
+
+	"github.com/pocketbase/pocketbase/core"
 )
 
 // parallel fires n simultaneous requests and tallies the response codes.
@@ -102,6 +105,56 @@ func TestProxyHeadersThatAreNotAddressesDoNotMintRateLimitBuckets(t *testing.T) 
 	}
 	if _, err := server.app.FindFirstRecordByFilter(attemptsCollection, "ip = '2001:db8::1'"); err != nil {
 		t.Fatalf("the forwarded address must be stored in canonical form: %v", err)
+	}
+}
+
+func TestTheLockKeepsEscalatingAfterALockAsLongAsTheWindow(t *testing.T) {
+	server := newTestServer(t)
+	server.newUser("editor@example.com", false)
+	identity := loginIdentity("editor@example.com")
+	// The state right after the third lock (15 minutes, as long as the window) has run out: the
+	// last attempt is older than the window, the lock ended ten seconds ago.
+	collection, err := server.app.FindCollectionByNameOrId(attemptsCollection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := int(time.Now().Unix())
+	row := core.NewRecord(collection)
+	row.Set("identity", identity)
+	row.Set("ip", testIP)
+	row.Set("attempts", maxAttempts+2)
+	row.Set("updated_at", now-3*lockBase-10)
+	row.Set("locked_until", now-10)
+	if err := server.app.Save(row); err != nil {
+		t.Fatal(err)
+	}
+	// The existing lock check must not throw the history away either.
+	if wait := server.extension.loginLockRemaining(server.app, identity, testIP); wait != 0 {
+		t.Fatalf("the lock has expired: %d", wait)
+	}
+	if guess := server.post("/login/password", "", `{"email":"editor@example.com","password":"wrong"}`); guess.Code != http.StatusUnauthorized {
+		t.Fatalf("one guess is allowed once the lock expires: %d", guess.Code)
+	}
+	wait := server.extension.loginLockRemaining(server.app, identity, testIP)
+	if wait <= 3*lockBase {
+		t.Fatalf("the next lock must be longer than the previous 15 minutes, got %d seconds", wait)
+	}
+
+	// Failures that are really old (no recent lock either) still start over.
+	old, err := server.app.FindFirstRecordByFilter(attemptsCollection, "identity = {:identity}", map[string]any{"identity": identity})
+	if err != nil {
+		t.Fatal(err)
+	}
+	old.Set("updated_at", now-2*attemptWindow)
+	old.Set("locked_until", now-attemptWindow-10)
+	if err := server.app.Save(old); err != nil {
+		t.Fatal(err)
+	}
+	if guess := server.post("/login/password", "", `{"email":"editor@example.com","password":"wrong"}`); guess.Code != http.StatusUnauthorized {
+		t.Fatalf("an old history must not lock: %d", guess.Code)
+	}
+	if wait := server.extension.loginLockRemaining(server.app, identity, testIP); wait != 0 {
+		t.Fatalf("a stale history must start over at one attempt, got a %d second lock", wait)
 	}
 }
 

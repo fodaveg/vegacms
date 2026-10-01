@@ -191,6 +191,9 @@ found.
   Synced passkeys that always report counter `0` never trigger it.
 - The two passkey `finish` bodies are buffered through `http.MaxBytesReader` with a 64 KiB cap;
   a larger payload gets `413 payload_too_large` and does not consume the pending challenge.
+- Locks escalate (5, 10, 15… up to 60 minutes) for as long as the failures keep coming: the
+  15-minute window is measured from the last attempt or from the end of the last lock, whichever
+  is later, so sitting out a long lock does not reset the count.
 - Pending password challenges and WebAuthn challenges live in process memory for five minutes.
   A multi-replica deployment therefore needs sticky routing or a shared challenge store.
 - Anonymous challenge creation is rate-limited per IP; both MFA and WebAuthn stores prune expired
