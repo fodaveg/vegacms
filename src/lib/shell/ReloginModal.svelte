@@ -31,11 +31,38 @@
 	 * pendiente parecía una entrada completa, el overlay se cerraba y el siguiente guardado volvía a
 	 * dar 401. Con éxito se llama `clearExpired()` (P1 NO resetea `expired` al recibir
 	 * `reason: 'login'`, ver `session.svelte.ts`) y el flujo vacía sus campos.
+	 *
+	 * **Quien reentra tiene que ser quien estaba** (revisión de seguridad del 30 sep 2026). El
+	 * backend da por buenas las credenciales de CUALQUIER cuenta, y debajo del overlay sigue vivo
+	 * el trabajo sin guardar de la sesión anterior: si reentrara otra persona, lo siguiente que
+	 * guardase saldría con su identidad y con el contenido de otra. Al abrirse, el overlay anota el
+	 * `user.id` de la sesión que caducó, y tras una entrada con éxito lo compara con el de la sesión
+	 * nueva. Si es el mismo, se retira como siempre. Si no, NO se retira: avisa y recarga la
+	 * aplicación (`reload`), que arranca limpia con la cuenta nueva y sin el borrador ajeno. El
+	 * overlay se queda puesto, con `#vega-app-shell` inerte, por si la recarga no llega a ocurrir
+	 * (el aviso de «cambios sin guardar» del navegador se puede cancelar): desde ahí solo se ofrece
+	 * recargar.
+	 *
+	 * - Sin id previo conocido (el store no tenía sesión al caducar) no hay con qué comparar: se
+	 *   trata como «otra cuenta» y se recarga. Falla cerrado; sin sesión previa tampoco había vista
+	 *   protegida que conservar.
+	 * - Solo se compara el id. `Session` (`backend/types.ts`) no expone colección ni rol, y no hace
+	 *   falta: el puerto autentica SIEMPRE contra la misma colección (la `authCollection` con la que
+	 *   se construyó el adaptador), así que dos sesiones de este overlay nunca vienen de
+	 *   colecciones distintas y un id igual es la misma cuenta. El correo no cuenta: puede cambiar.
 	 */
 	import { untrack } from 'svelte';
 	import { getSessionContext } from '$lib/session/session.svelte';
 	import { createLoginFlow } from '$lib/session/login-flow.svelte';
 	import { resolveLocale, t as translate } from '$lib/i18n';
+
+	interface Props {
+		/** Recarga la aplicación entera. Solo se inyecta en tests: `location.reload` no se puede
+		 *  espiar en jsdom. */
+		reload?: () => void;
+	}
+
+	let { reload = () => window.location.reload() }: Props = $props();
 
 	const sessionStore = getSessionContext();
 
@@ -51,11 +78,25 @@
 	const open = $derived(sessionStore.expired);
 	const challenge = $derived(sessionStore.mfaChallenge);
 
+	/** `user.id` de la sesión que caducó, anotado al abrirse el overlay (ver cabecera). `null` si
+	 *  el store no tenía sesión. No reactivo: nadie lo pinta. */
+	let expectedUserId: string | null = null;
+	/** Entró una cuenta distinta de la que estaba: el overlay ya solo ofrece recargar. */
+	let identityChanged = $state(false);
+
 	/** Éxito (§4.1): descarta el overlay. El resto de la vista de debajo nunca se desmontó, así que
 	 *  "restaurar" es simplemente dejar de taparla. Con `false` (fallo, o contraseña válida con el
-	 *  segundo factor pendiente) el overlay se queda donde está. */
+	 *  segundo factor pendiente) el overlay se queda donde está. Y si quien entró NO es quien
+	 *  estaba, tampoco se descarta: se recarga la aplicación (ver cabecera). */
 	function settle(authenticated: boolean): void {
-		if (authenticated) sessionStore.clearExpired();
+		if (!authenticated) return;
+		const currentUserId = sessionStore.session?.user.id ?? null;
+		if (expectedUserId === null || currentUserId === null || currentUserId !== expectedUserId) {
+			identityChanged = true;
+			reload();
+			return;
+		}
+		sessionStore.clearExpired();
 	}
 
 	async function handleSubmit(event: SubmitEvent): Promise<void> {
@@ -84,6 +125,7 @@
 	// (con TOTP presente, el de recuperación vive en un `<details>` cerrado y no es enfocable).
 	let totpFieldEl = $state<HTMLInputElement | null>(null);
 	let recoveryFieldEl = $state<HTMLInputElement | null>(null);
+	let reloadButtonEl = $state<HTMLButtonElement | null>(null);
 	let previouslyFocused: HTMLElement | null = null;
 
 	function focusableItems(): HTMLElement[] {
@@ -133,7 +175,13 @@
 		// foco inicial en el efecto de abajo y no aquí: este efecto solo puede depender de `open`.
 		// Si leyera los campos (que se desmontan y remontan al cambiar de paso) se volvería a
 		// ejecutar a mitad de la entrada y cancelaría el reto del segundo factor recién abierto.
-		untrack(() => flow.cancelMfa());
+		// En el mismo `untrack` se anota quién estaba: `session` sigue siendo la que caducó, y leerla
+		// como dependencia relanzaría este efecto en cuanto la entrada la sustituyera.
+		untrack(() => {
+			flow.cancelMfa();
+			expectedUserId = sessionStore.session?.user.id ?? null;
+			identityChanged = false;
+		});
 
 		// `#vega-app-shell` es un HERMANO de este componente (montado en `+layout.svelte`, fuera
 		// del árbol de `AppShell.svelte`): se marca `inert` desde aquí porque solo este componente
@@ -155,7 +203,8 @@
 	// antes de que este lo mueva.
 	$effect(() => {
 		if (!open) return;
-		if (challenge) (totpFieldEl ?? recoveryFieldEl)?.focus();
+		if (identityChanged) reloadButtonEl?.focus();
+		else if (challenge) (totpFieldEl ?? recoveryFieldEl)?.focus();
 		else firstFieldEl?.focus();
 	});
 </script>
@@ -168,12 +217,23 @@
 			aria-modal="true"
 			aria-labelledby="vega-relogin-title"
 			aria-busy={flow.submitting}
-			data-relogin-state={challenge ? 'mfa' : 'password'}
+			data-relogin-state={identityChanged ? 'identity-changed' : challenge ? 'mfa' : 'password'}
 			bind:this={dialogEl}
 		>
 			<h2 id="vega-relogin-title">{t('session.reloginTitle')}</h2>
 
-			{#if challenge}
+			{#if identityChanged}
+				<!-- Entró otra cuenta (ver cabecera): sin formularios, solo recargar. -->
+				<p class="vega-relogin-error" role="alert">{t('session.reloginOtherAccount')}</p>
+				<button
+					type="button"
+					class="vega-relogin-secondary"
+					bind:this={reloadButtonEl}
+					onclick={() => reload()}
+				>
+					{t('session.reloginReload')}
+				</button>
+			{:else if challenge}
 				{@const totp = challenge.methods.includes('totp')}
 				<p>{t('login.mfa.body')}</p>
 

@@ -86,6 +86,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'session.reloginSubmit': 'Re-authenticate',
 	'session.reloginBackToPassword': 'Back to password',
 	'session.logoutConfirm': 'There are unsaved changes. Log out anyway?',
+	// `ReloginModal.svelte`: whoever signed back in is not who held the session that expired.
+	'session.reloginOtherAccount':
+		'You signed in with a different account. Vega needs to reload so its work is not mixed with the previous session; anything left unsaved is lost.',
+	'session.reloginReload': 'Reload',
 
 	// ————— Backend connection / generic onboarding (batch L5) —————
 	// `BackendUrlForm.svelte`: runtime override of the PocketBase URL, saved to `localStorage`.

@@ -94,6 +94,10 @@ export const es = {
 	'session.reloginSubmit': 'Reautenticar',
 	'session.reloginBackToPassword': 'Volver a la contraseña',
 	'session.logoutConfirm': 'Hay cambios sin guardar. ¿Cerrar sesión igualmente?',
+	// `ReloginModal.svelte`: quien reentró no es quien tenía la sesión que caducó.
+	'session.reloginOtherAccount':
+		'Has entrado con otra cuenta. Hay que recargar Vega para no mezclar su trabajo con el de la sesión anterior; lo que estuviera sin guardar se pierde.',
+	'session.reloginReload': 'Recargar',
 
 	// ————— Conexión a backend / onboarding genérico (lote L5) —————
 	// `BackendUrlForm.svelte`: override runtime de la URL de PocketBase, guardado en
