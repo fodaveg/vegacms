@@ -104,6 +104,7 @@ func (x *Extension) loginTOTP(e *core.RequestEvent) error {
 	}
 	x.resetLoginAttempts(e.App, pending.identity, ip)
 	x.deletePending(body.Pending)
+	x.markProof(record.Id)
 	return authTokenResponse(e, record)
 }
 

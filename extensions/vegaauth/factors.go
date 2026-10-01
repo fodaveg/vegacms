@@ -17,14 +17,23 @@ func (x *Extension) enrollTOTP(e *core.RequestEvent) error {
 	if e.Auth == nil || e.Auth.Collection().Name != x.config.AuthCollection {
 		return unauthorized(e)
 	}
+	var body codeBody
+	if err := e.BindBody(&body); err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]string{"error": "bad_request"})
+	}
+	if refused, response := x.stepUpRefused(e, body.Code); refused {
+		return response
+	}
 	key, err := totp.Generate(totp.GenerateOpts{
 		Issuer: x.config.TOTPIssuer, AccountName: e.Auth.Email(),
 	})
 	if err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "totp_generate_failed"})
 	}
-	e.Auth.Set("totp_secret", key.Secret())
-	e.Auth.Set("totp_enabled", false)
+	// The new secret waits in totp_pending_secret until /totp/verify proves the authenticator
+	// app has it. The active secret and totp_enabled are not touched, so redoing the enrollment
+	// (or abandoning it halfway) never leaves the account without its second factor.
+	e.Auth.Set("totp_pending_secret", key.Secret())
 	if err := e.App.Save(e.Auth); err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
 	}
@@ -87,21 +96,44 @@ func (x *Extension) verifyTOTP(e *core.RequestEvent) error {
 	if err := e.BindBody(&body); err != nil {
 		return e.JSON(http.StatusBadRequest, map[string]string{"error": "bad_request"})
 	}
-	secret := e.Auth.GetString("totp_secret")
-	if secret == "" {
+	pendingSecret := e.Auth.GetString("totp_pending_secret")
+	if pendingSecret == "" && e.Auth.GetString("totp_secret") == "" {
 		return e.JSON(http.StatusBadRequest, map[string]string{"error": "not_enrolled"})
 	}
-	valid, err := x.consumeTOTP(e.App, e.Auth, body.Code)
-	if err != nil {
-		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "verify_failed"})
+	// Guesses are limited per account: a session token must not be a way to brute-force a code.
+	identity := loginIdentity(stepUpScope + ":" + e.Auth.Id)
+	if refused, response := x.attemptRefused(e, identity, stepUpScope); refused {
+		return response
 	}
-	if !valid {
-		return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_code"})
+	if pendingSecret != "" {
+		// Enrollment in progress: only now does the new secret replace the active one.
+		step, ok := matchTOTPStep(body.Code, pendingSecret, time.Now())
+		if !ok {
+			return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_code"})
+		}
+		e.Auth.Set("totp_secret", pendingSecret)
+		e.Auth.Set("totp_pending_secret", "")
+		if int64(e.Auth.GetInt("totp_last_step")) < step {
+			e.Auth.Set("totp_last_step", step)
+		}
+	} else {
+		// No enrollment in progress: either an account enrolled halfway by an older version
+		// (secret stored, never enabled) or a re-check of the active secret.
+		valid, err := x.consumeTOTP(e.App, e.Auth, body.Code)
+		if err != nil {
+			x.releaseLoginAttempt(e.App, identity, stepUpScope)
+			return e.JSON(http.StatusInternalServerError, map[string]string{"error": "verify_failed"})
+		}
+		if !valid {
+			return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_code"})
+		}
 	}
 	e.Auth.Set("totp_enabled", true)
 	if err := e.App.Save(e.Auth); err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
 	}
+	x.resetLoginAttempts(e.App, identity, stepUpScope)
+	x.markProof(e.Auth.Id)
 	return e.JSON(http.StatusOK, map[string]bool{"ok": true})
 }
 
@@ -109,7 +141,15 @@ func (x *Extension) disableTOTP(e *core.RequestEvent) error {
 	if e.Auth == nil || e.Auth.Collection().Name != x.config.AuthCollection {
 		return unauthorized(e)
 	}
+	var body codeBody
+	if err := e.BindBody(&body); err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]string{"error": "bad_request"})
+	}
+	if refused, response := x.stepUpRefused(e, body.Code); refused {
+		return response
+	}
 	e.Auth.Set("totp_secret", "")
+	e.Auth.Set("totp_pending_secret", "")
 	e.Auth.Set("totp_enabled", false)
 	if err := e.App.Save(e.Auth); err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
@@ -232,6 +272,14 @@ func (x *Extension) generateRecoveryHandler(e *core.RequestEvent) error {
 	if e.Auth == nil || e.Auth.Collection().Name != x.config.AuthCollection {
 		return unauthorized(e)
 	}
+	// Fresh recovery codes are a usable second factor and void the owner's printed ones.
+	var body codeBody
+	if err := e.BindBody(&body); err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]string{"error": "bad_request"})
+	}
+	if refused, response := x.stepUpRefused(e, body.Code); refused {
+		return response
+	}
 	codes, err := x.generateRecoveryCodes(e.App, e.Auth.Id)
 	if err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "generate_failed"})
@@ -283,6 +331,9 @@ func (x *Extension) loginRecovery(e *core.RequestEvent) error {
 	}
 	x.resetLoginAttempts(e.App, pending.identity, ip)
 	x.deletePending(body.Pending)
+	// A recovery code stands in for the lost authenticator, so it must also let its owner
+	// replace that authenticator right after logging in.
+	x.markProof(record.Id)
 	return authTokenResponse(e, record)
 }
 

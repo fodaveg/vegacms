@@ -30,6 +30,15 @@ func (x *Extension) EnsureCollections(app core.App) error {
 	} else if _, ok := field.(*core.BoolField); !ok {
 		return fmt.Errorf("vegaauth: %s.totp_enabled must be bool", auth.Name)
 	}
+	// Secret of an enrollment that has not been verified yet. It only becomes totp_secret once
+	// /totp/verify accepts a code generated from it.
+	if field := auth.Fields.GetByName("totp_pending_secret"); field == nil {
+		auth.Fields.Add(&core.TextField{Name: "totp_pending_secret", Hidden: true})
+	} else if typed, ok := field.(*core.TextField); !ok {
+		return fmt.Errorf("vegaauth: %s.totp_pending_secret must be text", auth.Name)
+	} else {
+		typed.Hidden = true
+	}
 	// Last accepted TOTP time step, so a code is single-use inside its validity window. Added in
 	// place to existing installations; PocketBase backfills the column with 0 (nothing used yet).
 	if field := auth.Fields.GetByName("totp_last_step"); field == nil {

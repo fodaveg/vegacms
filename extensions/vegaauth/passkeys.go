@@ -89,6 +89,15 @@ func (x *Extension) beginRegister(e *core.RequestEvent) error {
 	if e.Auth == nil || e.Auth.Collection().Name != x.config.AuthCollection {
 		return unauthorized(e)
 	}
+	// Adding a passkey adds a way into the account: finish only works with the challenge issued
+	// here, so proving possession at begin covers the whole ceremony.
+	var body codeBody
+	if err := e.BindBody(&body); err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]string{"error": "bad_request"})
+	}
+	if refused, response := x.stepUpRefused(e, body.Code); refused {
+		return response
+	}
 	user, err := loadUser(e.App, e.Auth)
 	if err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "load_failed"})
@@ -188,15 +197,7 @@ func (x *Extension) finishDiscoverableLogin(e *core.RequestEvent) error {
 	if err == nil && matched != nil && !credential.Flags.UserVerified {
 		err = errors.New("assertion without user verification")
 	}
-	if err == nil && matched != nil && credential.Authenticator.CloneWarning {
-		// The signature counter did not advance: two copies of this authenticator may exist. The
-		// assertion is refused, the warning is stored with the passkey (the counter is left
-		// untouched) and the event is logged without any credential material.
-		if saveErr := saveCredential(e.App, matched.Id, credential, ""); saveErr != nil {
-			e.App.Logger().Error("vega passkey clone warning could not be stored", "user", matched.Id)
-		}
-		e.App.Logger().Warn("vega passkey rejected: signature counter went backwards, possible cloned authenticator",
-			"user", matched.Id, "ip", ip)
+	if err == nil && matched != nil && x.cloneRefused(e, matchedUser, credential, ip) {
 		x.recordLoginFailure(e.App, loginIdentity(matched.Email()), ip)
 		return e.JSON(http.StatusUnauthorized, map[string]string{"error": "verify_failed"})
 	}
@@ -215,13 +216,34 @@ func (x *Extension) finishDiscoverableLogin(e *core.RequestEvent) error {
 	if wait := x.loginLockRemaining(e.App, identity, ip); wait > 0 {
 		return lockedResponse(e, wait)
 	}
-	// A past warning stays on record even after a later assertion is accepted.
-	credential.Authenticator.CloneWarning = matchedUser.warned[string(credential.ID)]
-	if err := saveCredential(e.App, matched.Id, credential, ""); err != nil {
+	if err := storeAssertion(e.App, matchedUser, credential); err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
 	}
 	x.resetLoginAttempts(e.App, identity, ip)
+	x.markProof(matched.Id)
 	return authTokenResponse(e, matched)
+}
+
+// cloneRefused reports whether the assertion's signature counter failed to advance, which means
+// two copies of the authenticator may exist. In that case the warning is stored with the passkey
+// (its counter is left untouched) and the event is logged without any credential material.
+func (x *Extension) cloneRefused(e *core.RequestEvent, user *pbUser, credential *webauthn.Credential, ip string) bool {
+	if !credential.Authenticator.CloneWarning {
+		return false
+	}
+	if err := saveCredential(e.App, user.record.Id, credential, ""); err != nil {
+		e.App.Logger().Error("vega passkey clone warning could not be stored", "user", user.record.Id)
+	}
+	e.App.Logger().Warn("vega passkey rejected: signature counter went backwards, possible cloned authenticator",
+		"user", user.record.Id, "ip", ip)
+	return true
+}
+
+// storeAssertion persists the counter and flags of an accepted assertion. A past clone warning
+// stays on record even after a later assertion is accepted.
+func storeAssertion(app core.App, user *pbUser, credential *webauthn.Credential) error {
+	credential.Authenticator.CloneWarning = user.warned[string(credential.ID)]
+	return saveCredential(app, user.record.Id, credential, "")
 }
 
 // assertionChallenge reads clientDataJSON to choose the matching anonymous WebAuthn session,
@@ -307,7 +329,8 @@ func (x *Extension) listPasskeys(e *core.RequestEvent) error {
 }
 
 type deletePasskeyBody struct {
-	ID string `json:"id"`
+	ID   string `json:"id"`
+	Code string `json:"code"`
 }
 
 func (x *Extension) deletePasskey(e *core.RequestEvent) error {
@@ -317,6 +340,10 @@ func (x *Extension) deletePasskey(e *core.RequestEvent) error {
 	var body deletePasskeyBody
 	if err := e.BindBody(&body); err != nil || body.ID == "" {
 		return e.JSON(http.StatusBadRequest, map[string]string{"error": "bad_request"})
+	}
+	// Removing the last factor would reopen the account to enrollment without proof.
+	if refused, response := x.stepUpRefused(e, body.Code); refused {
+		return response
 	}
 	record, err := e.App.FindRecordById(credentialsCollection, body.ID)
 	if err != nil {
