@@ -1724,6 +1724,98 @@ describe('VisualEditorScreen.svelte — refresco en vivo del lienzo', () => {
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 		expect(pending).toHaveLength(0);
 	});
+
+	/** Variante de la anterior para la RENOVACIÓN (`refreshCanvas({ renew: true })`): arma
+	 *  `scheduleRenew` antes de su guarda de generación, así que desmontar con ESA petición en vuelo
+	 *  dejaba una cadena de renovaciones sin dueño, una petición de token cada ~5 min para siempre. */
+	test('desmontar con una renovación de token en vuelo no rearma la cadena de renovaciones', async () => {
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+		try {
+			const pending: ((response: Response) => void)[] = [];
+			const fetchMock = vi.fn(
+				() => new Promise<Response>((resolve) => pending.push(resolve)) as Promise<Response>
+			);
+			vi.stubGlobal('fetch', fetchMock);
+			const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+			mounted = mountScreen(ctx, type);
+			await vi.advanceTimersByTimeAsync(0);
+			pending.shift()!(jsonResponse(expiringTokenBody()));
+			await vi.advanceTimersByTimeAsync(0);
+			await tick();
+			await connectBridge(mounted.target, [{ id: 'b1', type: 'hero' }], true);
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+
+			// Vence el temporizador: la renovación pide token por el puente y queda EN VUELO.
+			await vi.advanceTimersByTimeAsync(35);
+			expect(fetchMock).toHaveBeenCalledTimes(2);
+			expect(pending).toHaveLength(1);
+
+			const local = mounted;
+			mounted = null;
+			await unmount(local.instance);
+			local.target.remove();
+
+			// La respuesta llega DESPUÉS del desmontaje, y con un token que caduca enseguida.
+			pending.shift()!(jsonResponse(expiringTokenBody()));
+			await vi.advanceTimersByTimeAsync(0);
+			// Más de un periodo de renovación: nadie debe pedir un token más.
+			await vi.advanceTimersByTimeAsync(60_000);
+			expect(fetchMock).toHaveBeenCalledTimes(2);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	test('con el componente VIVO, una renovación que llega TARDE por una petición posterior sigue rearmando la cadena', async () => {
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+		try {
+			const pending: ((response: Response) => void)[] = [];
+			const fetchMock = vi.fn(
+				() => new Promise<Response>((resolve) => pending.push(resolve)) as Promise<Response>
+			);
+			vi.stubGlobal('fetch', fetchMock);
+			const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+			mounted = mountScreen(ctx, type);
+			await vi.advanceTimersByTimeAsync(0);
+			pending.shift()!(jsonResponse(expiringTokenBody()));
+			await vi.advanceTimersByTimeAsync(0);
+			await tick();
+			await connectBridge(mounted.target, [{ id: 'b1', type: 'hero' }], true);
+
+			// Renovación R1 en vuelo.
+			await vi.advanceTimersByTimeAsync(35);
+			expect(fetchMock).toHaveBeenCalledTimes(2);
+
+			// Un guardado lanza un refresco POSTERIOR (R2) mientras R1 sigue en vuelo.
+			mounted.target.querySelector<HTMLButtonElement>('.vega-tree-row')!.click();
+			await tick();
+			const input = mounted.target.querySelector<HTMLInputElement>(
+				'.vega-inspector-body:not([hidden]) input[type="text"]'
+			)!;
+			input.value = 'Hero editado';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			await tick();
+			mounted.target
+				.querySelector<HTMLButtonElement>(
+					'.vega-inspector-body:not([hidden]) .vega-block-save-button'
+				)!
+				.click();
+			await vi.advanceTimersByTimeAsync(300);
+			expect(fetchMock).toHaveBeenCalledTimes(3);
+
+			// R2 resuelve primero (sin `renew`); R1 llega TARDE y su guarda de generación la calla.
+			pending.pop()!(jsonResponse(tokenBody()));
+			await vi.advanceTimersByTimeAsync(0);
+			pending.shift()!(jsonResponse(expiringTokenBody()));
+			await vi.advanceTimersByTimeAsync(0);
+
+			// Aun callada, R1 dejó armado el temporizador: la cadena sigue viva y renueva otra vez.
+			await vi.advanceTimersByTimeAsync(35);
+			expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(4);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
 });
 
 // ————— El acabado (tarea "el acabado: tamaños de pantalla, zoom, atajos y estado de guardado")

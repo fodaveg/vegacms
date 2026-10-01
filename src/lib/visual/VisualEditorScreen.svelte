@@ -393,6 +393,12 @@
 	let canvasActive = $state(true);
 
 	let renewTimer: ReturnType<typeof setTimeout> | null = null;
+	/** `true` desde `onDestroy`. Las generaciones NO bastan para cortar la cadena de renovaciones:
+	 *  `refreshCanvas({ renew: true })` arma `scheduleRenew` ANTES de su guarda de generación (una
+	 *  respuesta tardía por una petición posterior con el componente VIVO no puede dejar la cadena sin
+	 *  temporizador), así que solo el desmontaje, que es definitivo, la corta: con esta bandera
+	 *  `scheduleRenew` no arma nada. */
+	let destroyed = false;
 	let requestGeneration = 0;
 	let bridgeClient: VisualBridgeClient | null = null;
 	let narrowQuery: MediaQueryList | null = null;
@@ -466,6 +472,8 @@
 
 	function scheduleRenew(token: PreviewToken): void {
 		clearRenewTimer();
+		// Pantalla desmontada: nadie podría cancelar el temporizador (`onDestroy` no vuelve a correr).
+		if (destroyed) return;
 		const delay = Math.min(
 			MAX_RENEW_DELAY_MS,
 			Math.max(0, new Date(token.expiresAt).getTime() - Date.now() - RENEW_BUFFER_MS)
@@ -951,6 +959,10 @@
 		// ese temporizador se reprograma solo y pide token para siempre. Es alcanzable de verdad:
 		// guardar un campo limpia el dirty (o sea que el guard de salida ya no pregunta) y deja un
 		// `refreshCanvas` pidiendo token por red; basta con darle a "atrás" en esos milisegundos.
+		// Las generaciones cubren `requestPreview` y la escritura de estado de `refreshCanvas`, pero
+		// no el `scheduleRenew` de `refreshCanvas({ renew: true })`, que va antes de su guarda a
+		// propósito (ver `destroyed`): esa la corta la bandera.
+		destroyed = true;
 		requestGeneration++;
 		refreshGeneration++;
 		clearRenewTimer();
