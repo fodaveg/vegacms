@@ -648,8 +648,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 
 	// ————— List (P4 contract, Phase 4c) —————
 	'list.empty.title': "There's nothing here yet",
-	'list.empty.body': 'Create the first "{label}" record to get started.',
-	'list.empty.cta': 'Create',
+	'list.empty.body': 'Create the first one with "New {label}".',
+	'list.empty.bodyReadonly': 'There is nothing in "{label}" yet.',
 	'list.error.title': 'The list could not be loaded',
 	'list.error.body': '{message}',
 	'list.pagination.prev': 'Previous',

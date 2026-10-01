@@ -702,8 +702,8 @@ export const es = {
 
 	// ————— Listado (Fase 4c del contrato P4) —————
 	'list.empty.title': 'Aquí no hay nada todavía',
-	'list.empty.body': 'Crea el primer registro de "{label}" para empezar.',
-	'list.empty.cta': 'Crear',
+	'list.empty.body': 'Crea el primero con «Nuevo: {label}».',
+	'list.empty.bodyReadonly': 'Todavía no hay nada en «{label}».',
 	'list.error.title': 'No se pudo cargar el listado',
 	'list.error.body': '{message}',
 	'list.pagination.prev': 'Anterior',

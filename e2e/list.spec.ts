@@ -132,19 +132,21 @@ test.describe('vacío-colección (§4c)', () => {
 		await expect(state).toBeVisible();
 		await expect(state).not.toHaveAttribute('role', 'alert');
 
-		const cta = state.getByRole('button', { name: 'Crear' });
-		await expect(cta).toBeVisible();
-		await cta.click();
+		// UNA sola llamada a crear: la de la cabecera; el vacío solo la nombra.
+		await expect(state.getByRole('button')).toHaveCount(0);
+		await expect(state).toContainText('Crea el primero con «Nuevo: Autor»');
+		await page.getByRole('button', { name: 'Nuevo: Autor' }).click();
 		await page.waitForURL('**/c/authors/new');
 	});
 
-	test('pages (readonly, sin registros) muestra el vacío SIN la CTA "Crear"', async ({ page }) => {
+	test('pages (readonly, sin registros) muestra el vacío SIN invitar a crear', async ({ page }) => {
 		await loginAndSettle(page);
 		await page.goto('/c/pages');
 
 		const state = page.locator('[data-list-state="empty-collection"]');
 		await expect(state).toBeVisible();
-		await expect(state.getByRole('button', { name: 'Crear' })).toHaveCount(0);
+		await expect(state.getByRole('button')).toHaveCount(0);
+		await expect(state).not.toContainText('Nuevo:');
 	});
 
 	test('posts (poblado) NO cae en el estado vacío-colección', async ({ page }) => {
