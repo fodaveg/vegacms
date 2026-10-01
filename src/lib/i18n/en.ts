@@ -651,8 +651,11 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// ————— Delete (P4 contract, Phase 4e) —————
 	'list.delete.rowButton': 'Delete',
 	'list.delete.rowButtonLabel': 'Delete "{label}"',
-	'list.delete.confirmTitle': 'Delete this record?',
-	'list.delete.confirmBody': '"{label}" will be permanently deleted. This action cannot be undone.',
+	'list.delete.confirmTitle': 'Delete this entry?',
+	// ONE sentence depending on whether the trash can keep its promise (`isDeleteRecoverable`).
+	'list.delete.confirmBody':
+		'"{label}" will be moved to the trash and you can recover it for {days} day(s).',
+	'list.delete.confirmBodyForever': '"{label}" will be deleted and cannot be recovered.',
 	'list.delete.confirm': 'Delete',
 	'list.delete.deleting': 'Deleting…',
 	'list.delete.success': '"{label}" was deleted.',
@@ -781,11 +784,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'Could not check the current manifest before saving. Try again: nothing was saved.',
 
 	// ————— Trash (`#lote-integridad`, Phase B2) — shared line in the 4 delete dialogs —————
-	'revisions.trash.deleteHint': 'You can recover this from the trash for {days} day(s).',
-	'revisions.trash.deleteHintUnavailable':
-		'This deletion will be PERMANENT: the trash is not enabled on this project.',
 	'revisions.trash.deleteFilesHint':
-		'Attached files are not recovered, even if you restore the record.',
+		'Attached files are not recovered, even if you restore the entry.',
 
 	// ————— Trash — /trash route —————
 	'revisions.trash.pageTitle': 'Trash',
@@ -863,7 +863,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.detail.delete': 'Delete',
 	'media.delete.confirmTitle': 'Delete "{label}"?',
 	'media.delete.confirmBody':
-		'This deletes the original from the library. Copies already inserted by the library into records are not affected.',
+		'The original will be moved to the trash and you can recover it for {days} day(s). Copies already inserted into entries are not affected.',
+	'media.delete.confirmBodyForever':
+		'The original will be deleted from the library and cannot be recovered. Copies already inserted into entries are not affected.',
 	'media.delete.confirm': 'Delete',
 	'media.delete.deleting': 'Deleting…',
 	'media.delete.success': '"{label}" was deleted from the library.',

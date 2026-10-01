@@ -708,9 +708,11 @@ export const es = {
 	// ————— Borrado (Fase 4e del contrato P4) —————
 	'list.delete.rowButton': 'Borrar',
 	'list.delete.rowButtonLabel': 'Borrar "{label}"',
-	'list.delete.confirmTitle': '¿Borrar este registro?',
+	'list.delete.confirmTitle': '¿Borrar esta entrada?',
+	// UNA sola frase según la papelera pueda o no cumplir lo que promete (`isDeleteRecoverable`).
 	'list.delete.confirmBody':
-		'"{label}" se borrará de forma permanente. Esta acción no se puede deshacer.',
+		'«{label}» pasará a la papelera y podrás recuperarla durante {days} día(s).',
+	'list.delete.confirmBodyForever': '«{label}» se borrará y no se podrá recuperar.',
 	'list.delete.confirm': 'Borrar',
 	'list.delete.deleting': 'Borrando…',
 	'list.delete.success': '"{label}" se ha borrado.',
@@ -817,11 +819,8 @@ export const es = {
 		'No se pudo comprobar el manifiesto actual antes de guardar. Vuelve a intentarlo: nada se ha guardado.',
 
 	// ————— Papelera (`#lote-integridad`, Fase B2) — línea compartida de los 4 diálogos de borrado —————
-	'revisions.trash.deleteHint': 'Podrás recuperarlo desde la papelera durante {days} día(s).',
-	'revisions.trash.deleteHintUnavailable':
-		'Este borrado será DEFINITIVO: la papelera no está activada en este proyecto.',
 	'revisions.trash.deleteFilesHint':
-		'Los ficheros adjuntos no se recuperan, aunque restaures el registro.',
+		'Los ficheros adjuntos no se recuperan, aunque restaures la entrada.',
 
 	// ————— Papelera — ruta /papelera —————
 	'revisions.trash.pageTitle': 'Papelera',
@@ -925,7 +924,9 @@ export const es = {
 	'media.detail.delete': 'Borrar',
 	'media.delete.confirmTitle': '¿Borrar «{label}»?',
 	'media.delete.confirmBody':
-		'Esto elimina el original de la biblioteca. Las copias ya insertadas por la biblioteca en registros no se ven afectadas.',
+		'El original pasará a la papelera y podrás recuperarlo durante {days} día(s). Las copias ya insertadas en entradas no se ven afectadas.',
+	'media.delete.confirmBodyForever':
+		'El original se borrará de la biblioteca y no se podrá recuperar. Las copias ya insertadas en entradas no se ven afectadas.',
 	'media.delete.confirm': 'Borrar',
 	'media.delete.deleting': 'Borrando…',
 	'media.delete.success': '"{label}" se ha borrado de la biblioteca.',

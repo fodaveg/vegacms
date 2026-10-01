@@ -17,6 +17,8 @@
  * antes de decidir su copy, y `ctx.model` ya tiene esta respuesta sin tocar la red.
  */
 
+import type { Field } from '$lib/backend/types';
+import { requiredFileFieldName } from './restore';
 import { VEGA_REVISIONS_COLLECTION } from './revisions-collection';
 
 /** Forma MÍNIMA que necesita esta función de `ContentModel` (P2) — estructural a propósito, para
@@ -24,10 +26,26 @@ import { VEGA_REVISIONS_COLLECTION } from './revisions-collection';
  *  `ctx.model` (que sí lo es) siga encajando sin ningún cast. */
 export interface TrashAvailabilityModel {
 	revisions: { enabled: boolean };
-	types: readonly { name: string }[];
+	/** `schema` es opcional a propósito: solo lo necesita `isDeleteRecoverable` (los campos de la
+	 *  colección), y `ResolvedContentType` ya lo trae. */
+	types: readonly { name: string; schema?: { fields: readonly Field[] } }[];
 }
 
 export function isTrashAvailable(model: TrashAvailabilityModel): boolean {
 	if (!model.revisions.enabled) return false;
 	return model.types.some((type) => type.name === VEGA_REVISIONS_COLLECTION.name);
+}
+
+/**
+ * `true` si borrar un registro de `collection` se puede PROMETER como recuperable: la papelera
+ * está disponible (`isTrashAvailable`) Y la colección no tiene un campo `file` obligatorio
+ * (`requiredFileFieldName`). PB destruye el binario al borrar y la papelera no lo restaura (§0.3),
+ * así que con un `file` `required` el registro nunca se puede recrear completo y "Restaurar" queda
+ * bloqueado (ver `/papelera`): prometer "podrás recuperarla" ahí sería mentir. Una colección que no
+ * aparece en `model.types` no aporta esquema y cuenta como sin fichero obligatorio.
+ */
+export function isDeleteRecoverable(model: TrashAvailabilityModel, collection: string): boolean {
+	if (!isTrashAvailable(model)) return false;
+	const fields = model.types.find((type) => type.name === collection)?.schema?.fields;
+	return !fields || requiredFileFieldName(fields) === null;
 }
