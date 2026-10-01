@@ -265,19 +265,20 @@ func (x *Extension) loginRecovery(e *core.RequestEvent) error {
 	if !ok {
 		return e.JSON(http.StatusUnauthorized, map[string]string{"error": "pending_expired"})
 	}
-	if wait := x.loginLockRemaining(e.App, pending.identity, ip); wait > 0 {
-		return lockedResponse(e, wait)
+	if refused, response := x.attemptRefused(e, pending.identity, ip); refused {
+		return response
 	}
 	verified, err := x.verifyRecoveryCode(e.App, pending.userID, body.Code)
 	if err != nil {
+		x.releaseLoginAttempt(e.App, pending.identity, ip)
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "verify_failed"})
 	}
 	if !verified {
-		x.recordLoginFailure(e.App, pending.identity, ip)
 		return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_code"})
 	}
 	record, err := e.App.FindRecordById(x.config.AuthCollection, pending.userID)
 	if err != nil {
+		x.releaseLoginAttempt(e.App, pending.identity, ip)
 		return e.JSON(http.StatusUnauthorized, map[string]string{"error": "unknown_user"})
 	}
 	x.resetLoginAttempts(e.App, pending.identity, ip)

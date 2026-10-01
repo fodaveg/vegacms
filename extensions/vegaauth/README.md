@@ -93,6 +93,12 @@ this automatically, but the legacy implementation predates that hardening.
   `totp_last_step` field and claimed with one conditional `UPDATE`, so the same code (or an older
   one) is answered with `invalid_code` even when two requests carry it at the same time. A user
   who needs a second code right away waits for the next 30-second step.
+- Password, TOTP and recovery attempts are counted **before** the credential is checked: checking
+  the lock and reserving the attempt is a single write transaction, so a burst of parallel
+  requests gets exactly five evaluated guesses per identity and IP and `429` for the rest. A
+  successful login clears the counter; a correct password that still needs its second factor
+  hands its reservation back without clearing earlier failures. If the counter cannot be stored
+  the request is refused with `503 attempt_failed` instead of being evaluated uncounted.
 - Pending password challenges and WebAuthn challenges live in process memory for five minutes.
   A multi-replica deployment therefore needs sticky routing or a shared challenge store.
 - Anonymous challenge creation is rate-limited per IP; both MFA and WebAuthn stores prune expired
