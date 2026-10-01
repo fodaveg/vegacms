@@ -133,6 +133,10 @@ it answers `428 step_up_required`. Its body may carry `"proof"` with the current
 active authenticator, next to `"code"`, which belongs to the secret being verified. So a secret
 planted while the account had no factor cannot be switched on after the owner sets one up.
 
+Recovery codes issued while TOTP was off are deleted the moment it is switched on, so codes a
+bare session obtained earlier never become a second factor. The SPA asks for fresh ones right
+after activating. Replacing the authenticator of an account that already had TOTP keeps them.
+
 The proof belongs to the **session** that gave it, not to the account: it is stored in process
 memory under the SHA-256 of the session token (never the token itself). Another token of the same
 account, such as a stolen one or a login on another device, does not inherit it and gets `428`.

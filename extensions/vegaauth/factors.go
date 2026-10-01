@@ -174,9 +174,17 @@ func (x *Extension) verifyTOTP(e *core.RequestEvent) error {
 			return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_code"})
 		}
 	}
+	firstActivation := !e.Auth.GetBool("totp_enabled")
 	e.Auth.Set("totp_enabled", true)
 	if err := e.App.Save(e.Auth); err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
+	}
+	if firstActivation {
+		// Recovery codes issued while TOTP was off (when a bare session could ask for them) must
+		// not become a second factor now. The owner gets fresh ones right after activating.
+		if _, err := e.App.DB().Delete(recoveryCollection, dbx.HashExp{"user": e.Auth.Id}).Execute(); err != nil {
+			return e.JSON(http.StatusInternalServerError, map[string]string{"error": "save_failed"})
+		}
 	}
 	x.resetLoginAttempts(e.App, identity, stepUpScope)
 	x.markProof(requestSessionKey(e))

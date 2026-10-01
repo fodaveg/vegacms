@@ -42,6 +42,43 @@ func TestAPendingSecretPlantedBeforeTheFirstFactorCannotBeActivatedAfterIt(t *te
 	}
 }
 
+func TestRecoveryCodesIssuedBeforeActivatingTOTPDoNotSurviveIt(t *testing.T) {
+	server := newTestServer(t)
+	user := server.newUser("editor@example.com", false)
+	token := server.token(user)
+	// A bare session can ask for codes while the account has no factor.
+	early := server.post("/recovery/generate", token, "")
+	var issued struct {
+		Codes []string `json:"codes"`
+	}
+	if err := json.Unmarshal(early.Body.Bytes(), &issued); err != nil || len(issued.Codes) != 10 {
+		t.Fatalf("early recovery codes were not issued: %d", early.Code)
+	}
+	secret := plantPending(t, server, token)
+	if verify := server.post("/totp/verify", token, `{"code":"`+totpCode(t, secret, 0)+`"}`); verify.Code != http.StatusOK {
+		t.Fatalf("verification failed: %d %s", verify.Code, errorCode(verify))
+	}
+	if server.extension.hasUnusedRecoveryCodes(server.app, user.Id) {
+		t.Fatal("codes issued before TOTP was active must be deleted when it is activated")
+	}
+	stale := server.post("/login/recovery", "", `{"pending":"`+server.pending("editor@example.com")+`","code":"`+issued.Codes[0]+`"}`)
+	if stale.Code != http.StatusUnauthorized {
+		t.Fatalf("an early recovery code must not log in: %d", stale.Code)
+	}
+	// What the SPA does right after activating: ask for fresh codes, with no extra proof.
+	if fresh := server.post("/recovery/generate", token, ""); fresh.Code != http.StatusOK || !server.extension.hasUnusedRecoveryCodes(server.app, user.Id) {
+		t.Fatalf("fresh codes right after activating must be issued: %d %s", fresh.Code, errorCode(fresh))
+	}
+	// Replacing the authenticator of an account that already had TOTP keeps its codes.
+	replacement := plantPending(t, server, token)
+	if verify := server.post("/totp/verify", token, `{"code":"`+totpCode(t, replacement, 1)+`"}`); verify.Code != http.StatusOK {
+		t.Fatalf("replacement failed: %d %s", verify.Code, errorCode(verify))
+	}
+	if !server.extension.hasUnusedRecoveryCodes(server.app, user.Id) {
+		t.Fatal("replacing the authenticator must keep the recovery codes")
+	}
+}
+
 func TestVerifyingAPendingSecretNeedsProofOnceTheAccountHasAFactor(t *testing.T) {
 	server := newTestServer(t)
 	user := server.newUser("editor@example.com", false)
