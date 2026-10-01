@@ -15,7 +15,9 @@ const MESSAGE_KEYS: Record<StrongAuthErrorCode, string> = {
 	'payload-too-large': 'security.error.payloadTooLarge',
 	'attempt-failed': 'security.error.attemptFailed',
 	'passkey-verify-failed': 'security.error.passkeyVerifyFailed',
-	'no-passkeys': 'security.error.noPasskeys'
+	'no-passkeys': 'security.error.noPasskeys',
+	'enrollment-expired': 'security.error.enrollmentExpired',
+	'not-enrolled': 'security.error.notEnrolled'
 };
 
 /**

@@ -146,8 +146,13 @@ export function createPocketBaseStrongAuth(options: StrongAuthOptions): StrongAu
 			return { otpauthUrl: result.otpauth_url, secret: result.secret };
 		},
 
-		async verifyTotp(code) {
-			await request('/totp/verify', { body: { code } });
+		async verifyTotp(code, proof) {
+			// `code` verifica el secreto nuevo; `proof` es el código del autenticador activo y solo
+			// viaja si lo hay.
+			const proofCode = proofBody(proof)?.code;
+			await request('/totp/verify', {
+				body: proofCode ? { code, proof: proofCode } : { code }
+			});
 			await refreshAuthRecord();
 		},
 
@@ -324,6 +329,20 @@ function mapStrongAuthError(
 				'forbidden',
 				'passkey-verify-failed',
 				'No se pudo verificar la passkey.'
+			);
+		}
+		if (!login && err.status === 400 && code === 'enrollment_expired') {
+			return new VegaStrongAuthError(
+				'forbidden',
+				'enrollment-expired',
+				'El alta ha caducado. Empieza de nuevo.'
+			);
+		}
+		if (!login && err.status === 400 && code === 'not_enrolled') {
+			return new VegaStrongAuthError(
+				'forbidden',
+				'not-enrolled',
+				'El alta ya no está pendiente. Empieza de nuevo.'
 			);
 		}
 		if (!login && err.status === 400 && code === 'no_passkeys') {
