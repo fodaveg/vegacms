@@ -733,7 +733,7 @@ export const es = {
 	'form.field.default.description': 'Descripción',
 
 	// ————— Toolbar de listado (Fase 4d del contrato P4) —————
-	'list.search.placeholder': 'Filtrar por título o slug…',
+	'list.search.placeholder': 'Buscar en {label}…',
 	'list.search.ariaLabel': 'Buscar en el listado',
 	'list.sort.ariaLabel': 'Ordenar por {column}',
 	'list.emptySearch.title': 'Sin resultados',

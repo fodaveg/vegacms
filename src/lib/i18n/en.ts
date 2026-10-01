@@ -679,7 +679,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'form.field.default.description': 'Description',
 
 	// ————— List toolbar (P4 contract, Phase 4d) —————
-	'list.search.placeholder': 'Filter by title or slug…',
+	'list.search.placeholder': 'Search in {label}…',
 	'list.search.ariaLabel': 'Search the list',
 	'list.sort.ariaLabel': 'Sort by {column}',
 	'list.emptySearch.title': 'No results',

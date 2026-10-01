@@ -176,7 +176,7 @@
 		<input
 			type="search"
 			class="vega-list-search-input"
-			placeholder={ctx.t('list.search.placeholder')}
+			placeholder={ctx.t('list.search.placeholder', { label: contentType.label })}
 			aria-label={ctx.t('list.search.ariaLabel')}
 			bind:value={searchText}
 			oninput={scheduleSearch}
