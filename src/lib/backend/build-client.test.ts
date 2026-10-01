@@ -38,6 +38,33 @@ describe('parseBuildStatus', () => {
 		expect(parseBuildStatus({ state: 'ok', logUrl: 42 })).toMatchObject({ logUrl: null });
 	});
 
+	test('logUrl http(s) absoluto se conserva tal cual', () => {
+		for (const logUrl of ['https://ci.example.test/runs/42', 'http://localhost:8090/logs/a.log']) {
+			expect(parseBuildStatus({ state: 'failed', logUrl })).toMatchObject({ logUrl });
+		}
+	});
+
+	test.each([
+		['javascript:', 'javascript:alert(document.cookie)'],
+		['javascript: en mayúsculas', 'JavaScript:alert(1)'],
+		['javascript: con espacio delante', ' javascript:alert(1)'],
+		['javascript: con tabulador en el esquema', 'java\tscript:alert(1)'],
+		['data:', 'data:text/html,<script>alert(1)</script>'],
+		['vbscript:', 'vbscript:msgbox(1)'],
+		['file:', 'file:///etc/passwd'],
+		['ruta relativa', '/build-logs/42.log'],
+		['relativa al protocolo', '//ci.example.test/runs/42'],
+		['texto que no es una URL', 'no es una url']
+	])('logUrl %s se descarta sin invalidar el estado', (_name, logUrl) => {
+		expect(parseBuildStatus({ state: 'failed', logUrl })).toEqual({
+			state: 'failed',
+			startedAt: null,
+			finishedAt: null,
+			lastPublishedAt: null,
+			logUrl: null
+		});
+	});
+
 	test('"state" fuera del vocabulario o documento sin forma → null', () => {
 		expect(parseBuildStatus({ state: 'building' })).toBeNull();
 		expect(parseBuildStatus(null)).toBeNull();

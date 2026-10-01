@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -348,6 +349,31 @@ func truncate(value string, max int) string {
 	return value[:max]
 }
 
+// safeLogURL returns value, capped at maxLogURLLength, only if it is an ABSOLUTE http(s) URL with a
+// host; anything else yields "" and is treated exactly like "no log URL".
+//
+// logUrl ends up as the href of a link in Vega's publish button, and POST /callback lets an
+// external CI system choose it. A `javascript:` or `data:` value there would run script in the
+// editor's session on click, so this is an allowlist of schemes rather than a blocklist. A value
+// that fails the check is dropped, never an error: a run must still close (or hand off) normally
+// when only its log link is unusable.
+//
+// The cap is applied BEFORE parsing so the check runs on the exact bytes that get stored.
+func safeLogURL(value string) string {
+	value = truncate(value, maxLogURLLength)
+	if value == "" {
+		return ""
+	}
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Host == "" {
+		return ""
+	}
+	if scheme := strings.ToLower(parsed.Scheme); scheme != "http" && scheme != "https" {
+		return ""
+	}
+	return value
+}
+
 // buildStatus derives the full GET /status response.
 //
 // The derivation, spelled out because none of it is obvious from the schema alone:
@@ -369,7 +395,8 @@ func (x *Extension) buildStatus(app core.App) (statusResponse, error) {
 		status.State = current.GetString("state")
 		status.StartedAt = stringOrNil(current.GetString("startedAt"))
 		status.FinishedAt = stringOrNil(current.GetString("finishedAt"))
-		status.LogURL = stringOrNil(current.GetString("logUrl"))
+		// Filtered on read too: a run stored before safeLogURL existed keeps whatever it was given.
+		status.LogURL = stringOrNil(safeLogURL(current.GetString("logUrl")))
 	}
 
 	lastOK, err := x.lastOkRun(app)
@@ -492,7 +519,8 @@ func (x *Extension) startNewRun(app core.App) (*core.Record, error) {
 // bit the settings SPA, fixed here the same way it was fixed there: reread fresh under the lock and
 // refuse to write over a state that has moved on, rather than merely narrowing the window.
 func (x *Extension) applyHandoff(app core.App, runID string, handoff Handoff) error {
-	if handoff.ExternalRef == "" && handoff.LogURL == "" {
+	logURL := safeLogURL(handoff.LogURL)
+	if handoff.ExternalRef == "" && logURL == "" {
 		return nil
 	}
 	x.reportMu.Lock()
@@ -510,8 +538,8 @@ func (x *Extension) applyHandoff(app core.App, runID string, handoff Handoff) er
 	if handoff.ExternalRef != "" {
 		run.Set("externalRef", truncate(handoff.ExternalRef, maxExternalRefLength))
 	}
-	if handoff.LogURL != "" {
-		run.Set("logUrl", truncate(handoff.LogURL, maxLogURLLength))
+	if logURL != "" {
+		run.Set("logUrl", logURL)
 	}
 	if err := app.Save(run); err != nil {
 		return fmt.Errorf("vegabuild: save run handoff: %w", err)
@@ -636,8 +664,8 @@ func (x *Extension) closeRun(app core.App, runID, state, logURL, detail string) 
 
 	run.Set("state", state)
 	run.Set("finishedAt", x.now())
-	if logURL != "" {
-		run.Set("logUrl", truncate(logURL, maxLogURLLength))
+	if logURL = safeLogURL(logURL); logURL != "" {
+		run.Set("logUrl", logURL)
 	}
 	if detail != "" {
 		run.Set("detail", truncate(detail, maxDetailLength))

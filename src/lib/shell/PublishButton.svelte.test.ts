@@ -179,6 +179,25 @@ describe('PublishButton.svelte', () => {
 		expect(log?.href).toBe('https://ci.example.test/runs/42');
 	});
 
+	test('estado "failed" con un logUrl que no es http(s): sigue accionable y NO pinta el enlace', async () => {
+		const failed = {
+			state: 'failed',
+			startedAt: '2026-07-25T10:00:00.000Z',
+			finishedAt: '2026-07-25T10:02:00.000Z',
+			lastPublishedAt: null,
+			logUrl: 'javascript:alert(document.cookie)'
+		};
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(failed)));
+		mounted = mountButton(fakeCtx({ buildApiUrl: 'https://pb.test/api/vega-build' }));
+		await flush();
+
+		const button = mounted.target.querySelector<HTMLButtonElement>('.vega-publish-trigger');
+		expect(button?.disabled).toBe(false);
+		expect(button?.getAttribute('data-state')).toBe('failed');
+		expect(mounted.target.querySelector('.vega-publish-log')).toBeNull();
+		expect(mounted.target.querySelector('a[href^="javascript:"]')).toBeNull();
+	});
+
 	test('click en estado accionable dispara POST /trigger con el token de sesión en Authorization', async () => {
 		const idle: BuildStatus = {
 			state: 'idle',

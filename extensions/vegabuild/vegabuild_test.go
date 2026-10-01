@@ -1065,3 +1065,186 @@ func waitForReport(t *testing.T, runner Runner, runID string) Result {
 		return Result{}
 	}
 }
+
+// TestSafeLogURL pins the allowlist: only an absolute http(s) URL with a host survives, because
+// logUrl is rendered as the href of a link in Vega's publish button.
+func TestSafeLogURL(t *testing.T) {
+	kept := []string{
+		"https://ci.example/run/123",
+		"http://localhost:8090/build-logs/abc.log",
+		"HTTPS://ci.example/run/123?x=1#log",
+	}
+	for _, value := range kept {
+		if got := safeLogURL(value); got != value {
+			t.Errorf("expected %q to be kept verbatim, got %q", value, got)
+		}
+	}
+
+	dropped := []string{
+		"",
+		"javascript:alert(document.cookie)",
+		"JavaScript:alert(1)",
+		" javascript:alert(1)",
+		"java\tscript:alert(1)",
+		"data:text/html,<script>alert(1)</script>",
+		"vbscript:msgbox(1)",
+		"file:///etc/passwd",
+		"/build-logs/abc.log",
+		"//ci.example/run/123",
+		"https:///no-host",
+		"not a url",
+	}
+	for _, value := range dropped {
+		if got := safeLogURL(value); got != "" {
+			t.Errorf("expected %q to be dropped, got %q", value, got)
+		}
+	}
+
+	long := "https://ci.example/" + strings.Repeat("a", maxLogURLLength)
+	if got := safeLogURL(long); len(got) != maxLogURLLength || !strings.HasPrefix(got, "https://ci.example/") {
+		t.Errorf("expected an oversized http(s) URL to be capped at %d bytes, got %d", maxLogURLLength, len(got))
+	}
+}
+
+// TestCallbackDropsNonHTTPLogURL: a CI callback carrying a `javascript:` logUrl still closes the
+// run (the state is what matters), but the link is discarded rather than stored or served.
+func TestCallbackDropsNonHTTPLogURL(t *testing.T) {
+	app := newTestApp(t)
+	extension, err := New(Config{
+		Runner:          &fakeRunner{},
+		AuthCollections: []string{"vega_editors"},
+		CallbackSecret:  "sixteen-char-secret!",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := extension.EnsureCollections(app); err != nil {
+		t.Fatal(err)
+	}
+	mux := newTestMux(t, app, extension)
+	token := newAuthToken(t, app)
+
+	trigger := doRequest(mux, http.MethodPost, "/api/vega-build/trigger", token, "")
+	if trigger.Code != http.StatusAccepted {
+		t.Fatalf("expected 202, got %d %s", trigger.Code, trigger.Body.String())
+	}
+	var triggerBody map[string]string
+	decodeJSON(t, trigger, &triggerBody)
+	runID := triggerBody["id"]
+
+	request := httptest.NewRequest(http.MethodPost, "/api/vega-build/callback",
+		strings.NewReader(`{"id":"`+runID+`","state":"failed","logUrl":"javascript:alert(document.cookie)"}`))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Vega-Build-Secret", "sixteen-char-secret!")
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected the callback to be accepted, got %d %s", response.Code, response.Body.String())
+	}
+
+	status, err := extension.buildStatus(app)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.State != runStateFailed {
+		t.Fatalf("expected the run to be closed as failed, got %q", status.State)
+	}
+	if status.LogURL != nil {
+		t.Fatalf("expected a javascript: logUrl to be dropped, got %q", *status.LogURL)
+	}
+	run, err := app.FindRecordById(extension.config.RunsCollection, runID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored := run.GetString("logUrl"); stored != "" {
+		t.Fatalf("expected nothing stored in logUrl, got %q", stored)
+	}
+}
+
+// TestHandoffDropsNonHTTPLogURL: a Runner handing off a `data:` LogURL keeps its ExternalRef and
+// leaves the run running; only the unusable link is discarded.
+func TestHandoffDropsNonHTTPLogURL(t *testing.T) {
+	app := newTestApp(t)
+	extension, err := New(Config{
+		Runner: &fakeRunner{
+			handoff: Handoff{LogURL: "data:text/html,<script>alert(1)</script>", ExternalRef: "job-7"},
+		},
+		AuthCollections: []string{"vega_editors"},
+		CallbackSecret:  "sixteen-char-secret!",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := extension.EnsureCollections(app); err != nil {
+		t.Fatal(err)
+	}
+	mux := newTestMux(t, app, extension)
+	token := newAuthToken(t, app)
+
+	trigger := doRequest(mux, http.MethodPost, "/api/vega-build/trigger", token, "")
+	if trigger.Code != http.StatusAccepted {
+		t.Fatalf("expected 202, got %d %s", trigger.Code, trigger.Body.String())
+	}
+	var triggerBody map[string]string
+	decodeJSON(t, trigger, &triggerBody)
+
+	run, err := app.FindRecordById(extension.config.RunsCollection, triggerBody["id"])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if state := run.GetString("state"); state != runStateRunning {
+		t.Fatalf("expected the run to stay running, got %q", state)
+	}
+	if ref := run.GetString("externalRef"); ref != "job-7" {
+		t.Fatalf("expected the handoff's externalRef to be kept, got %q", ref)
+	}
+	if stored := run.GetString("logUrl"); stored != "" {
+		t.Fatalf("expected a data: logUrl to be dropped, got %q", stored)
+	}
+}
+
+// TestStatusHidesAStoredNonHTTPLogURL: a run recorded before the write-side filter existed must
+// not hand its logUrl to the SPA either.
+func TestStatusHidesAStoredNonHTTPLogURL(t *testing.T) {
+	app := newTestApp(t)
+	extension, err := New(Config{
+		Runner:          &fakeRunner{},
+		AuthCollections: []string{"vega_editors"},
+		CallbackSecret:  "sixteen-char-secret!",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := extension.EnsureCollections(app); err != nil {
+		t.Fatal(err)
+	}
+	mux := newTestMux(t, app, extension)
+	token := newAuthToken(t, app)
+
+	trigger := doRequest(mux, http.MethodPost, "/api/vega-build/trigger", token, "")
+	if trigger.Code != http.StatusAccepted {
+		t.Fatalf("expected 202, got %d %s", trigger.Code, trigger.Body.String())
+	}
+	var triggerBody map[string]string
+	decodeJSON(t, trigger, &triggerBody)
+
+	run, err := app.FindRecordById(extension.config.RunsCollection, triggerBody["id"])
+	if err != nil {
+		t.Fatal(err)
+	}
+	run.Set("logUrl", "javascript:alert(1)")
+	if err := app.Save(run); err != nil {
+		t.Fatal(err)
+	}
+
+	status, err := extension.buildStatus(app)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.State != runStateRunning {
+		t.Fatalf("expected the state to be untouched, got %q", status.State)
+	}
+	if status.LogURL != nil {
+		t.Fatalf("expected a stored javascript: logUrl to be hidden, got %q", *status.LogURL)
+	}
+}
