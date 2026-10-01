@@ -129,7 +129,9 @@ export type StrongAuthErrorCode =
 	| 'payload-too-large' // la respuesta de la passkey supera el tope del servidor
 	| 'attempt-failed' // el servidor no pudo contar el intento y no lo evaluó
 	| 'passkey-verify-failed' // la passkey no superó la verificación
-	| 'no-passkeys'; // la cuenta no tiene ninguna passkey con la que probar
+	| 'no-passkeys' // la cuenta no tiene ninguna passkey con la que probar
+	| 'enrollment-expired' // el secreto TOTP pendiente caducó sin verificarse; hay que pedir otro
+	| 'not-enrolled'; // ya no hay alta TOTP pendiente (se descartó al cambiar las passkeys)
 
 export interface StrongAuthErrorDetails {
 	/** Solo con `'step-up-required'`: con qué puede probar la cuenta. */

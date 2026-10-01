@@ -88,7 +88,7 @@ describe('SecuritySettings', () => {
 		code!.closest('form')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
 		await settle();
 
-		expect(auth.verifyTotp).toHaveBeenCalledWith('123456');
+		expect(auth.verifyTotp).toHaveBeenCalledWith('123456', undefined);
 		expect(auth.generateRecoveryCodes).toHaveBeenCalledOnce();
 		expect(mounted.target.textContent).toContain('ABCDE-F2345');
 		expect(mounted.target.textContent).toContain('GHJKL-M6789');
@@ -116,7 +116,7 @@ describe('SecuritySettings', () => {
 		await settle();
 		await settle();
 
-		expect(auth.verifyTotp).toHaveBeenCalledWith('123456');
+		expect(auth.verifyTotp).toHaveBeenCalledWith('123456', undefined);
 		expect(mounted.target.querySelector('[role="alert"]')?.textContent).toContain(
 			'security.totp.enabledNoCodes'
 		);
@@ -367,11 +367,98 @@ describe('SecuritySettings', () => {
 		await settle();
 		await settle();
 
-		expect(auth.verifyTotp).toHaveBeenCalledWith('654321');
+		expect(auth.verifyTotp).toHaveBeenCalledWith('654321', undefined);
 		// Los códigos de recuperación ya guardados siguen valiendo: no se regeneran.
 		expect(auth.generateRecoveryCodes).not.toHaveBeenCalled();
 		expect(mounted.toast).toHaveBeenCalledWith('security.totp.replaced', { kind: 'success' });
 		expect(mounted.target.querySelector('#security-totp-code')).toBeNull();
+	});
+
+	/** Pantalla con TOTP activo, cambio de app empezado y el código del secreto nuevo enviado. */
+	async function submitReplacementCode(auth: StrongAuthPort, value: string): Promise<HTMLElement> {
+		vi.mocked(auth.getStatus).mockResolvedValue({
+			totpEnabled: true,
+			recoveryCodesRemaining: 8,
+			passkeys: []
+		});
+		mounted = mountSettings(auth);
+		await settle();
+		Array.from(mounted.target.querySelectorAll('button'))
+			.find((candidate) => candidate.textContent?.includes('security.totp.replace'))
+			?.click();
+		await settle();
+		const code = mounted.target.querySelector<HTMLInputElement>('#security-totp-code')!;
+		code.value = value;
+		code.dispatchEvent(new Event('input', { bubbles: true }));
+		code.closest('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await settle();
+		await settle();
+		return mounted.target;
+	}
+
+	test('si verificar el secreto nuevo pide prueba, el código de confirmación viaja aparte y el del secreto nuevo no cambia', async () => {
+		const auth = fakeStrongAuth();
+		vi.mocked(auth.verifyTotp).mockRejectedValueOnce(
+			new VegaStrongAuthError('forbidden', 'step-up-required', 'falta', { methods: ['totp'] })
+		);
+		const root = await submitReplacementCode(auth, '654321');
+
+		const dialog = root.querySelector<HTMLElement>('[role="dialog"]')!;
+		const input = dialog.querySelector<HTMLInputElement>('input')!;
+		input.value = '111222';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		input.closest('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await settle();
+		await settle();
+
+		expect(vi.mocked(auth.verifyTotp).mock.calls).toEqual([
+			['654321', undefined],
+			['654321', { code: '111222' }]
+		]);
+		expect(root.querySelector('[role="dialog"]')).toBeNull();
+		expect(mounted!.toast).toHaveBeenCalledWith('security.totp.replaced', { kind: 'success' });
+	});
+
+	test.each([
+		['enrollment-expired', 'security.error.enrollmentExpired'],
+		['not-enrolled', 'security.error.notEnrolled']
+	] as const)(
+		'un alta que el servidor ya descartó (%s) avisa y vuelve al estado de antes de empezarla',
+		async (code, messageKey) => {
+			const auth = fakeStrongAuth();
+			vi.mocked(auth.verifyTotp).mockRejectedValueOnce(
+				new VegaStrongAuthError('forbidden', code, 'descartada')
+			);
+			const root = await submitReplacementCode(auth, '654321');
+
+			expect(root.querySelector('.error')?.textContent).toContain(messageKey);
+			expect(root.querySelector('#security-totp-code')).toBeNull();
+			expect(root.textContent).not.toContain('ABCDEF');
+			expect(root.textContent).toContain('security.totp.replace');
+			expect(root.querySelector('.card-title span')?.textContent).toContain(
+				'security.status.enabled'
+			);
+		}
+	);
+
+	test('si el alta caduca mientras se confirma la identidad, el diálogo se cierra y el aviso va a la pantalla', async () => {
+		const auth = fakeStrongAuth();
+		vi.mocked(auth.verifyTotp)
+			.mockRejectedValueOnce(
+				new VegaStrongAuthError('forbidden', 'step-up-required', 'falta', { methods: ['totp'] })
+			)
+			.mockRejectedValueOnce(new VegaStrongAuthError('forbidden', 'enrollment-expired', 'caducó'));
+		const root = await submitReplacementCode(auth, '654321');
+		const input = root.querySelector<HTMLInputElement>('[role="dialog"] input')!;
+		input.value = '111222';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		input.closest('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await settle();
+		await settle();
+
+		expect(root.querySelector('[role="dialog"]')).toBeNull();
+		expect(root.querySelector('.error')?.textContent).toContain('security.error.enrollmentExpired');
+		expect(root.querySelector('#security-totp-code')).toBeNull();
 	});
 
 	test('abandonar el cambio de app vuelve a la tarjeta activada sin tocar el servidor', async () => {

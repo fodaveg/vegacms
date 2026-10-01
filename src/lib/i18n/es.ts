@@ -146,6 +146,9 @@ export const es = {
 	'security.error.passkeyVerifyFailed':
 		'No se pudo verificar la passkey. Vuelve a probar o usa otro método.',
 	'security.error.noPasskeys': 'Esta cuenta no tiene ninguna passkey registrada.',
+	'security.error.enrollmentExpired': 'El alta ha caducado. Empieza de nuevo.',
+	'security.error.notEnrolled':
+		'El alta se ha descartado porque cambiaron las passkeys de la cuenta. Empieza de nuevo.',
 	'security.stepUp.title': 'Confirma que eres tú',
 	'security.stepUp.bodyTotp':
 		'Para cambiar esto, escribe el código que muestra ahora tu app de autenticación.',

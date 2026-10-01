@@ -136,6 +136,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'security.error.passkeyVerifyFailed':
 		'The passkey could not be verified. Try again or use another method.',
 	'security.error.noPasskeys': 'This account has no registered passkeys.',
+	'security.error.enrollmentExpired': 'The setup has expired. Start again.',
+	'security.error.notEnrolled':
+		'The setup was discarded because the passkeys of the account changed. Start again.',
 	'security.stepUp.title': 'Confirm it is you',
 	'security.stepUp.bodyTotp':
 		'To change this, enter the code your authenticator app is showing now.',

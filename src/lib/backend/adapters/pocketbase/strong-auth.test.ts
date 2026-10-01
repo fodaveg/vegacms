@@ -410,6 +410,44 @@ describe('PocketBase strong auth: prueba de posesión para cambiar factores', ()
 		).rejects.toMatchObject({ kind: 'backend', code: 'attempt-failed' });
 	});
 
+	test('verifyTotp manda la prueba en proof, aparte del código del secreto nuevo, y solo si la hay', async () => {
+		let answer: () => Response = () => stepUpRequired(['totp']);
+		const { auth, requests } = await signedIn({
+			'/api/vega-auth/totp/verify': () => answer()
+		});
+
+		await expect(auth.verifyTotp('654321')).rejects.toMatchObject({
+			code: 'step-up-required',
+			methods: ['totp']
+		});
+		answer = () => jsonResponse({ ok: true });
+		await auth.verifyTotp('654321', { code: '111222' });
+
+		expect(await bodiesTo(requests, '/api/vega-auth/totp/verify')).toEqual([
+			{ code: '654321' },
+			{ code: '654321', proof: '111222' }
+		]);
+	});
+
+	test('un alta caducada o ya descartada tiene código propio y no caduca la sesión', async () => {
+		let error = 'enrollment_expired';
+		const { port, auth, reasons } = await signedIn({
+			'/api/vega-auth/totp/verify': () => jsonResponse({ error }, 400)
+		});
+
+		await expect(auth.verifyTotp('654321')).rejects.toMatchObject({
+			kind: 'forbidden',
+			code: 'enrollment-expired'
+		});
+		error = 'not_enrolled';
+		await expect(auth.verifyTotp('654321')).rejects.toMatchObject({
+			kind: 'forbidden',
+			code: 'not-enrolled'
+		});
+		expect(port.currentSession()?.user.id).toBe('ed1');
+		expect(reasons).toEqual(['login']);
+	});
+
 	test('getStatus conserva el aviso de passkey posiblemente copiada', async () => {
 		const { auth } = await signedIn({
 			'/api/vega-auth/passkey/list': () =>

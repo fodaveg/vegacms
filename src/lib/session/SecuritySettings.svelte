@@ -40,7 +40,10 @@
 	let stepUpError = $state<string | null>(null);
 
 	async function load(): Promise<void> {
-		if (!auth) return;
+		// `getStatus` refresca el token y el servidor traslada la prueba de posesión al nuevo: una
+		// acción protegida en vuelo con el token viejo la perdería. Con una acción en curso (o el
+		// diálogo de confirmación abierto) no se recarga.
+		if (!auth || busyAction !== null || stepUp !== null) return;
 		loadStatus = 'loading';
 		error = null;
 		try {
@@ -104,7 +107,13 @@
 			await pending.operation(proof);
 			stepUp = null;
 		} catch (err) {
-			stepUpError = errorMessage(err);
+			if (isStrongAuthError(err, 'enrollment-expired') || isStrongAuthError(err, 'not-enrolled')) {
+				// Ya no hay alta que confirmar: el diálogo se cierra y el aviso va a la pantalla.
+				stepUp = null;
+				error = errorMessage(err);
+			} else {
+				stepUpError = errorMessage(err);
+			}
 		} finally {
 			stepUpBusy = false;
 			busyAction = null;
@@ -156,8 +165,24 @@
 		// Si ya había TOTP, esto es un cambio de app: los códigos de recuperación siguen valiendo
 		// y no se regeneran (regenerarlos anularía los que la persona ya guardó).
 		const replacing = security?.totpEnabled === true;
-		await run('totp-verify', async () => {
-			await auth.verifyTotp(verificationCode);
+		// El código del secreto nuevo se fija ahora; si hay que confirmar la identidad, la prueba
+		// (el código del autenticador ACTIVO) viaja aparte y este no cambia.
+		const code = verificationCode;
+		await run('totp-verify', async (proof) => {
+			try {
+				await auth.verifyTotp(code, proof);
+			} catch (err) {
+				if (
+					isStrongAuthError(err, 'enrollment-expired') ||
+					isStrongAuthError(err, 'not-enrolled')
+				) {
+					// El servidor ya descartó el secreto pendiente: la pantalla vuelve a como estaba
+					// antes de empezar el alta y el aviso dice que hay que empezar de nuevo.
+					enrollment = null;
+					verificationCode = '';
+				}
+				throw err;
+			}
 			// Desde aquí el TOTP ya está activo en el servidor: la UI debe reflejarlo pase lo que pase.
 			enrollment = null;
 			verificationCode = '';
@@ -241,7 +266,12 @@
 				<h2 id="vega-security-title">{ctx.t('security.title')}</h2>
 				<p>{ctx.t('security.description')}</p>
 			</div>
-			<button type="button" class="secondary" onclick={load} disabled={loadStatus === 'loading'}>
+			<button
+				type="button"
+				class="secondary"
+				onclick={load}
+				disabled={loadStatus === 'loading' || busyAction !== null}
+			>
 				{ctx.t('security.refresh')}
 			</button>
 		</header>

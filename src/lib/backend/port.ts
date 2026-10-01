@@ -84,7 +84,12 @@ export interface StrongAuthPort {
 	 * `verifyTotp` acepta un código suyo.
 	 */
 	enrollTotp(proof?: StepUpProof): Promise<TotpEnrollment>;
-	verifyTotp(code: string): Promise<void>;
+	/**
+	 * `code` es del secreto NUEVO que se está verificando. Si la cuenta ya tenía algún factor y la
+	 * sesión no trae prueba reciente, rechaza también con `'step-up-required'`; la prueba va aparte
+	 * (`proof.code` = código del autenticador ACTIVO) porque los dos códigos son de secretos distintos.
+	 */
+	verifyTotp(code: string, proof?: StepUpProof): Promise<void>;
 	disableTotp(proof?: StepUpProof): Promise<void>;
 	generateRecoveryCodes(proof?: StepUpProof): Promise<string[]>;
 	registerPasskey(name: string, proof?: StepUpProof): Promise<void>;
