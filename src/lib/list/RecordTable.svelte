@@ -196,7 +196,8 @@
 		reorderable: boolean;
 		/** Avisa de un reorder por arrastre o teclado (ver cabecera): `fromIndex`/`toIndex` son
 		 *  posiciones dentro de `records`, en el orden ya renderizado. Solo se invoca cuando
-		 *  `reorderable`. Quien escucha decide qué persistir (`computeReorder`) y cuándo recargar. */
+		 *  `reorderable`. Quien escucha decide qué persistir (`/c/[type]` usa `computeSpanReorder`) y cuándo
+		 *  recargar. */
 		onReorder: (fromIndex: number, toIndex: number) => void;
 	}
 

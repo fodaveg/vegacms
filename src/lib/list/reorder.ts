@@ -50,7 +50,7 @@ export function computeReorder(
 
 /**
  * Variante de `computeReorder` que renumera SOLO el tramo afectado (lote L7c; la usa
- * `/c/[type]`). `computeReorder` renumera a 0..n-1 y, en una colección sembrada con valores que
+ * `/c/[type]` y, vía `planMergedReorder`, `/v/[view]`). `computeReorder` renumera a 0..n-1 y, en una colección sembrada con valores que
  * no coinciden con su posición (todos a 0, o 10, 20, 30…), reescribe casi todas las filas en el
  * primer arrastre.
  *
