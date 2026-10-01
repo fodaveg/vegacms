@@ -988,30 +988,53 @@ regla era otra (el manifiesto solo se sustituía si era EXACTAMENTE uno inicial 
 editado a mano hacía abortar el sembrado); ya no hay que copiar claves a mano. La lógica vive en
 `src/lib/backend/site-seeding-merge.ts` (`mergeManifestFragment`).
 
-Una entrada se identifica por su clave, y la fusión solo baja por estos niveles:
+Una entrada se identifica por su clave (en `nav.groups`, por su nombre), y la fusión solo baja por
+estos niveles:
 
-| Nivel                    | Clave que identifica la entrada                 | Si la entrada ya existe                                      |
-| ------------------------ | ----------------------------------------------- | ------------------------------------------------------------ |
-| raíz                     | `site`, `nav`, `collections`, `blockTypes`      | se entra en `collections` y `blockTypes`; el resto, tal cual |
-| `collections`            | nombre de la colección                          | se entra en su configuración                                 |
-| `collections.<c>`        | clave de configuración (`label`, `listFields`…) | se entra solo en `fields`; el resto, tal cual                |
-| `collections.<c>.fields` | nombre del campo                                | tal cual                                                     |
-| `blockTypes`             | nombre del tipo de bloque                       | tal cual                                                     |
+| Nivel                    | Clave que identifica la entrada                 | Si la entrada ya existe                                             |
+| ------------------------ | ----------------------------------------------- | ------------------------------------------------------------------- |
+| raíz                     | `site`, `nav`, `collections`, `blockTypes`      | se entra en `collections`, `blockTypes` y `nav`; el resto, tal cual |
+| `nav`                    | `groups`                                        | se entra solo en `groups`                                           |
+| `nav.groups`             | nombre del grupo                                | tal cual; los grupos que falten van al final de la lista            |
+| `collections`            | nombre de la colección                          | se entra en su configuración                                        |
+| `collections.<c>`        | clave de configuración (`label`, `listFields`…) | se entra solo en `fields`; el resto, tal cual                       |
+| `collections.<c>.fields` | nombre del campo                                | tal cual                                                            |
+| `blockTypes`             | nombre del tipo de bloque                       | tal cual                                                            |
 
 «Tal cual» es literal: lo guardado se conserva entero aunque difiera de lo que traería Vega, y no
-se completa por dentro. Por eso, una vez presentes, no se tocan `site`, `nav`, la configuración de
-un campo, un tipo de bloque (con su lista de `fields`) ni ninguna lista (`listFields`,
-`fieldGroups`, `nav.groups`): una lista es una selección ordenada de quien la escribió.
-Consecuencia: un tipo de bloque que ya existe no recibe los campos que una versión posterior le
-añada, y una colección con `fieldGroups` propios no recibe el grupo «SEO» (los campos de SEO
-aparecen igual, en un grupo sin `placement`).
+se completa por dentro. Por eso, una vez presentes, no se tocan `site`, la configuración de un
+campo, un tipo de bloque (con su lista de `fields`) ni las listas de una colección (`listFields`,
+`fieldGroups`): una lista es una selección ordenada de quien la escribió. Consecuencia: un tipo de
+bloque que ya existe no recibe los campos que una versión posterior le añada, y una colección con
+`fieldGroups` propios no recibe el grupo «SEO» (los campos de SEO aparecen igual, en un grupo sin
+`placement`).
+
+**El menú (`nav`).** `nav.groups` es la única lista que la fusión completa (desde el 1 oct 2026;
+antes `nav` era opaco entero). Es solo el ORDEN de los grupos del menú: en qué grupo sale cada
+colección lo dice la propia colección (`collections.<c>.group`), así que una colección nueva
+aparece en el menú sin tocar `nav`. Lo que hace la fusión es añadir AL FINAL de `nav.groups` los
+grupos que falten, sin mover ni quitar los que hay: así el grupo de un módulo añadido a un sitio en
+marcha queda en un sitio conocido (el último) y no donde lo ponga el orden alfabético de los grupos
+sin declarar. Solo se fusiona con la forma esperada (`nav` objeto, `groups` lista de textos no
+vacíos). Con cualquier otra, `nav` no se toca; en la práctica ese manifiesto tampoco pasa la
+validación estricta, así que el sembrado aborta antes de escribir (ver más abajo).
+
+**Lo que no se ha podido añadir.** La fusión devuelve, además de las entradas añadidas, lo que
+traía y NO ha puesto (`skipped` en `mergeManifestFragment`; `manifestSkipped` por módulo en
+`previewSiteSeed` y en el resultado de `seedSiteProject`): un campo de un tipo de bloque que ya
+existe, un grupo de campos de una colección con `fieldGroups` propios y un grupo de menú en un
+`nav` de forma inesperada. No es un error ni desaparece con las pasadas: se repite mientras lo
+guardado siga igual. La tarjeta «Base del sitio» lo enseña antes de escribir, en el grupo «No se
+añade», junto a la lista con nombre de cada entrada que sí se va a añadir.
 
 Lo que la fusión NO sabe: distinguir «nunca lo tuvo» de «lo borró a propósito». Una entrada de
 Vega que falte se añade siempre, también si alguien la quitó, y volverá a proponerse en cada
-«Actualizar el sitio». El plan lo enseña antes de escribir. Para prescindir de una entrada sin que
-vuelva, neutralízala en vez de borrarla (por ejemplo `"hidden": true` en una colección): lo
-presente no se toca. Es una decisión abierta: recordar qué se ofreció ya exige guardar ese
-registro en algún sitio, y hoy no se guarda.
+«Actualizar el sitio»; el plan la nombra antes de escribir. Para prescindir de una entrada sin que
+vuelva, **márcala como oculta en vez de borrarla**: `"hidden": true` existe en el schema del
+manifiesto tanto para una colección (`collections.<c>.hidden`) como para un campo
+(`collections.<c>.fields.<f>.hidden`), y lo presente no se toca. (Un tipo de bloque no tiene
+`hidden`: si se borra, vuelve.) Es el comportamiento decidido, no un fallo pendiente: recordar qué
+se ofreció ya exigiría guardar ese registro en algún sitio, y no se guarda.
 
 El sembrado sigue abortando sin escribir nada si el manifiesto guardado no es un objeto JSON, si
 hay más de un registro candidato o si el resultado de la fusión no pasa la validación estricta
@@ -1025,7 +1048,74 @@ pasan en `seedSiteProject(port, { modules })` y se registran en
 las de la base (ausente se crea, presente recibe los campos que falten, forma incompatible aborta
 el lote) y su fragmento se fusiona como el de la base. `previewSiteSeed(port, { modules })`
 devuelve, además del plan total, el desglose por módulo: colecciones que se crearían, campos que
-se añadirían y entradas de manifiesto que se añadirían. Hoy solo existe `base`.
+se añadirían, entradas de manifiesto que se añadirían y las que no se pueden añadir. Un módulo
+solo aporta colecciones y manifiesto: no siembra registros.
+
+Además de `base` hay dos módulos opcionales, que se añaden desde «Ajustes → Base del sitio →
+Módulos» (cada uno con su vista previa de solo lectura; solo con la base al día, porque la base
+va en toda pasada y lo que tuviera pendiente se escribiría también):
+
+| Módulo     | Fichero                   | Colecciones     | En el menú                           |
+| ---------- | ------------------------- | --------------- | ------------------------------------ |
+| `blog`     | `site-seeding-blog.ts`    | `tags`, `posts` | «Entradas» y «Etiquetas», en «Sitio» |
+| `contacto` | `site-seeding-contact.ts` | `messages`      | «Mensajes», en «Sitio»               |
+
+**Blog.** `posts` se publica como `pages` y comparte con ella las mismas constantes: `status`
+(`draft`/`published`), `publishAt`, los campos de SEO (`description`, `socialImage`, `noindex`),
+`created`/`updated` y las reglas de acceso (sin sesión se lee solo lo publicado; solo los editores
+escriben). Lo propio: `title` y `slug` (único) obligatorios, `excerpt` (máx. 300), `body`
+(`editor`), `cover` (relación simple a `vega_media`, sin cascada), `tags` (relación múltiple a
+`tags`, sin cascada) y `date`, la fecha VISIBLE de la entrada, que existe porque `vegaschedule`
+vacía `publishAt` al publicar. `tags` tiene `name` y `slug` (único), obligatorios; la escriben
+solo los editores y se lee sin sesión (regla `""`), porque no tiene estado de publicación que
+filtrar y el sitio la necesita para pintar las entradas publicadas. Las etiquetas se crean en su
+propio listado antes de usarlas: el campo de relación del formulario de una entrada no deja
+crearlas.
+
+**Formulario de contacto.** `messages` es la bandeja: `name` (text, obligatorio, máx. 200),
+`email` (email, obligatorio), `message` (text, obligatorio, máx. 5000), `read` (bool) y `created`
+(autodate). El visitante crea el mensaje SIN SESIÓN desde el formulario del sitio; listar, ver,
+editar y borrar es solo de editores (`@request.auth.collectionName = "vega_editors"`). La regla
+de creación pública es `CONTACT_CREATE_RULE`:
+
+```
+@request.body.website = "" && @request.body.read != true
+```
+
+- `website` es un campo trampa y **no es un campo de la colección**: el formulario del sitio lo
+  pinta escondido, una persona lo deja vacío y un robot lo rellena. PocketBase deja leer del
+  cuerpo una clave que no es campo, y una clave ausente compara igual a `""`, así que vale tanto
+  mandarlo vacío como no mandarlo. Como no es campo, no se guarda.
+- `read != true` impide crear desde fuera un mensaje ya marcado como leído.
+
+Trampas medidas contra PocketBase 0.39.9 (`tests/contract/pocketbase.contact-rule-probe.test.ts`
+y `pocketbase.site-seeding-modules.test.ts`), por si alguien quiere «simplificar» la regla:
+
+- `@request.body.read = false` rechaza el envío normal: con la clave ausente es falso.
+- `@request.body.website:isset = false` rechaza el campo vacío que manda un formulario real.
+
+Lo que tiene que saber el componente del sitio:
+
+- **El rechazo de la regla es un 400 genérico**, `{"message": "Failed to create record.", "data":
+{}}`, sin decir qué condición falló (ni que hay una trampa). Solo un fallo de validación de un
+  campo (mensaje por encima del tope, correo mal formado) trae el campo en `data`. El componente
+  debe tratar **cualquier 400 como «no se pudo enviar»**, sin intentar interpretar el motivo.
+- Sin sesión, listar `messages` responde 200 con cero elementos y ver un registro, 404: no hay
+  forma de leer la bandeja desde fuera.
+
+Lo que Vega NO gestiona y hay que configurar en PocketBase antes de publicar el formulario:
+
+- **Límite de peticiones por IP**, en los ajustes de PocketBase: una regla para la creación en
+  `messages`. Sin ella, la creación pública es un buzón abierto: la trampa para robots no limita
+  el volumen.
+- **CORS**, también en PocketBase: el origen del sitio publicado tiene que estar permitido si el
+  formulario envía desde un origen distinto al de la API.
+- **El aviso por correo** de cada mensaje nuevo se configura en el servidor, fuera de la SPA, que
+  no tiene forma de saber si está activo; por eso la tarjeta del módulo lo dice con una línea fija.
+
+Un editor ve «Nuevo» en el listado de mensajes: para la interfaz, una regla de creación que es una
+expresión cuenta como «depende del registro» y se ofrece. No es el uso previsto de la bandeja, y
+ocultarlo exige un cambio fuera de este módulo (hoy el manifiesto no tiene una clave para ello).
 
 Los pasos manuales siguientes siguen aplicando a una instalación **existente**. El sembrado es
 `creation-only`: si una colección ya existe, no cambia ninguna de sus reglas, aunque estén vacías,
