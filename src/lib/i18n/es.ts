@@ -72,6 +72,7 @@ export const es = {
 	'topbar.publish.viewLog': 'Ver registro',
 	'topbar.publish.triggerError': 'No se pudo iniciar la publicación.',
 	'topbar.publish.lastPublished': 'Última publicación: {date}',
+	'topbar.publish.again': 'Publicar de nuevo',
 
 	// ————— Login / sesión —————
 	'login.title': 'Acceder a Vega',

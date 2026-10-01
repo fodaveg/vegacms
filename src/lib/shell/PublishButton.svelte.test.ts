@@ -145,6 +145,63 @@ describe('PublishButton.svelte', () => {
 		expect(button?.getAttribute('data-state')).toBe('ready');
 	});
 
+	describe('texto del estado "ok" según hasChanges', () => {
+		const okStatus: BuildStatus = {
+			state: 'ok',
+			startedAt: '2026-07-20T08:59:00.000Z',
+			finishedAt: '2026-07-20T09:00:00.000Z',
+			lastPublishedAt: '2026-07-20T09:00:00.000Z',
+			logUrl: null,
+			detail: null
+		};
+
+		/** `updated` de la última ficha de `post` (`undefined` = colección vacía). */
+		async function mountOk(opts: {
+			withPostType: boolean;
+			updated?: string;
+		}): Promise<HTMLButtonElement | null> {
+			vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(okStatus)));
+			const ctx = fakeCtx({ buildApiUrl: 'https://pb.test/api/vega-build', ...opts });
+			if (opts.updated) {
+				(ctx.port.list as ReturnType<typeof vi.fn>).mockResolvedValue({
+					items: [{ id: 'r1', values: { updated: opts.updated } }],
+					page: 1,
+					perPage: 1,
+					totalItems: 1,
+					totalPages: 1
+				});
+			}
+			mounted = mountButton(ctx);
+			await flush();
+			return mounted.target.querySelector<HTMLButtonElement>('.vega-publish-trigger');
+		}
+
+		test('hasChanges true: «Publicar de nuevo», accionable, nunca «Sitio al día»', async () => {
+			const button = await mountOk({ withPostType: true, updated: '2026-07-21T10:00:00.000Z' });
+			expect(button?.getAttribute('data-state')).toBe('ok');
+			expect(button?.disabled).toBe(false);
+			expect(button?.textContent).toContain('topbar.publish.again');
+			expect(button?.getAttribute('aria-label')).toBe('topbar.publish.again');
+			expect(button?.textContent).not.toContain('topbar.publish.ok');
+		});
+
+		test('hasChanges null (no se sabe): «Publicar de nuevo», accionable, nunca «Sitio al día»', async () => {
+			const button = await mountOk({ withPostType: false });
+			expect(button?.getAttribute('data-state')).toBe('ok');
+			expect(button?.disabled).toBe(false);
+			expect(button?.textContent).toContain('topbar.publish.again');
+			expect(button?.getAttribute('aria-label')).toBe('topbar.publish.again');
+			expect(button?.textContent).not.toContain('topbar.publish.ok');
+		});
+
+		test('hasChanges false: nunca «Publicar de nuevo» (la máquina lo lleva a «Sin cambios»)', async () => {
+			const button = await mountOk({ withPostType: true, updated: '2026-07-19T10:00:00.000Z' });
+			expect(button?.getAttribute('data-state')).toBe('no-changes');
+			expect(button?.textContent).toContain('topbar.publish.noChanges');
+			expect(button?.textContent).not.toContain('topbar.publish.again');
+		});
+	});
+
 	test('estado "running": deshabilitado mientras el sondeo siga viendo running', async () => {
 		const running: BuildStatus = {
 			state: 'running',

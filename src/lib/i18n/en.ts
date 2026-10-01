@@ -63,6 +63,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'topbar.publish.viewLog': 'View log',
 	'topbar.publish.triggerError': 'Could not start the publish.',
 	'topbar.publish.lastPublished': 'Last published: {date}',
+	'topbar.publish.again': 'Publish again',
 
 	// ————— Login / session —————
 	'login.title': 'Sign in to Vega',
