@@ -990,25 +990,132 @@ func TestShareResolveKeylessFloodDoesNotLockOutTheSite(t *testing.T) {
 	}
 }
 
+// fillLimiter leaves limiter with capacity live buckets, each already over the limit.
+func fillLimiter(limiter *attemptLimiter, now time.Time) {
+	for index := 0; len(limiter.buckets) < limiter.capacity; index++ {
+		key := fmt.Sprintf("filler-%d", index)
+		for range limiter.max {
+			limiter.fail(key, now)
+		}
+	}
+}
+
+// TestShareResolveSurvivesAFullLimiter: filling the visitor table (many addresses, or made-up
+// clientIp values if the site takes them from a forgeable header) must not lock out a visitor the
+// table has no room for, and filling the keyless-caller table must not stop visitors from being
+// counted. Both used to be possible with one shared, fail-closed limiter.
+func TestShareResolveSurvivesAFullLimiter(t *testing.T) {
+	fixture := newShareFixture(t)
+	_, token := fixture.mustCreate(t, fixture.editorA, fixture.pageA, 3600)
+	guess := shareTokenVersion + ".neverexisted000." + strings.Repeat("A", 43)
+
+	// The keyless-caller table is full. Visitors are tracked elsewhere, so they are still counted.
+	fillLimiter(fixture.extension.shareCallerLimiter, *fixture.clock)
+	for range shareResolveMaxFailures {
+		if response := fixture.resolve(guess, "198.51.100.9"); response.Code != http.StatusNotFound {
+			t.Fatalf("expected 404, got %d", response.Code)
+		}
+	}
+	if response := fixture.resolve(token, "198.51.100.9"); response.Code != http.StatusTooManyRequests {
+		t.Fatalf("a full keyless-caller table stopped visitors from being counted: got %d", response.Code)
+	}
+
+	// Now the visitor table is full too. A visitor it has no room for is let through...
+	fillLimiter(fixture.extension.shareVisitorLimiter, *fixture.clock)
+	if response := fixture.resolve(token, "203.0.113.7"); response.Code != http.StatusOK {
+		t.Fatalf("a full visitor table locked out a new visitor: got %d: %s",
+			response.Code, response.Body.String())
+	}
+	if response := fixture.resolve(token, ""); response.Code != http.StatusOK {
+		t.Fatalf("a full visitor table locked out the site itself: got %d", response.Code)
+	}
+	// ...a wrong token is still refused as always...
+	if response := fixture.resolve(guess, "203.0.113.7"); response.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", response.Code)
+	}
+	// ...and the visitor who was already blocked stays blocked.
+	if response := fixture.resolve(token, "198.51.100.9"); response.Code != http.StatusTooManyRequests {
+		t.Fatalf("a full table released a visitor that was already blocked: got %d", response.Code)
+	}
+	if got := len(fixture.extension.shareVisitorLimiter.buckets); got > shareResolveMaxBuckets {
+		t.Fatalf("the visitor table grew past its bound: %d", got)
+	}
+}
+
+func TestShareResolveGroupsIPv6VisitorsBySlash64(t *testing.T) {
+	fixture := newShareFixture(t)
+	_, token := fixture.mustCreate(t, fixture.editorA, fixture.pageA, 3600)
+	guess := shareTokenVersion + ".neverexisted000." + strings.Repeat("A", 43)
+
+	// Ten failures, each from a different address of the same /64.
+	for attempt := range shareResolveMaxFailures {
+		address := fmt.Sprintf("2001:db8:1:2::%x", attempt+1)
+		if response := fixture.resolve(guess, address); response.Code != http.StatusNotFound {
+			t.Fatalf("attempt %d: expected 404, got %d", attempt, response.Code)
+		}
+	}
+	if got := len(fixture.extension.shareVisitorLimiter.buckets); got != 1 {
+		t.Fatalf("expected one bucket for the whole /64, got %d", got)
+	}
+	if response := fixture.resolve(token, "2001:db8:1:2:ffff:ffff:ffff:ffff"); response.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected another address of the same /64 to be blocked, got %d", response.Code)
+	}
+	if response := fixture.resolve(token, "2001:db8:1:3::1"); response.Code != http.StatusOK {
+		t.Fatalf("expected the neighbouring /64 to be unaffected, got %d", response.Code)
+	}
+
+	for raw, want := range map[string]string{
+		"203.0.113.7":         "203.0.113.7",
+		"::ffff:203.0.113.7":  "203.0.113.7",
+		"2001:db8:1:2::9":     "2001:db8:1:2::/64",
+		"fe80::1%eth0":        "fe80::/64",
+		" 2001:db8:1:2::9 ":   "2001:db8:1:2::/64",
+		"not-an-address":      "not-an-address",
+		"2001:db8:1:2:a:b::1": "2001:db8:1:2::/64",
+	} {
+		if got := limiterAddress(raw); got != want {
+			t.Fatalf("limiterAddress(%q) = %q, want %q", raw, got, want)
+		}
+	}
+}
+
+// TestAttemptLimiterIsBoundedAndSafeForConcurrentUse pins the limiter's behaviour when it is full.
+//
+// This test used to assert the opposite: that a key the full limiter could not record was REFUSED.
+// That made the bound itself an attack: anyone able to produce `capacity` distinct keys (trivial
+// over IPv6, or with invented clientIp values) could get every other visitor, and the site, a 429.
+// The criterion now is that the limiter only ever bounds noise and memory. So when it is full:
+// it never grows past capacity, the keys it tracks keep their state, and a key it has no room for
+// passes uncounted. Guessing a share link is prevented by the secret's 256 bits, not by this.
 func TestAttemptLimiterIsBoundedAndSafeForConcurrentUse(t *testing.T) {
 	now := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
 	limiter := newAttemptLimiter(2, time.Minute, 3)
-	for _, key := range []string{"a", "b", "c", "d", "e"} {
+	for _, key := range []string{"a", "a", "b", "c", "d", "e", "e", "e"} {
 		limiter.fail(key, now)
 	}
 	if len(limiter.buckets) != 3 {
 		t.Fatalf("expected the limiter to stop at its capacity of 3, it holds %d", len(limiter.buckets))
 	}
-	// A key the full limiter could not record is refused rather than let through uncounted.
-	if limiter.blockedFor("e", now) == 0 {
-		t.Fatal("an untracked key passed a full limiter")
+	// A key the full limiter has no room for is let through, however often it failed.
+	if limiter.blockedFor("e", now) != 0 {
+		t.Fatal("a full limiter refused a key it does not track")
 	}
-	if limiter.blockedFor("a", now) != 0 {
+	// Tracked keys keep their state: "a" reached the limit, "b" did not.
+	if limiter.blockedFor("a", now) != time.Minute {
+		t.Fatal("a tracked key over the limit must stay blocked while the limiter is full")
+	}
+	if limiter.blockedFor("b", now) != 0 {
 		t.Fatal("a tracked key below the limit must still pass")
 	}
+	// Once the window passes, the expired buckets make room and new keys are counted again.
 	later := now.Add(time.Minute)
-	if limiter.blockedFor("e", later) != 0 {
-		t.Fatal("expired buckets were not swept to make room")
+	limiter.fail("e", later)
+	limiter.fail("e", later)
+	if limiter.blockedFor("e", later) == 0 {
+		t.Fatal("expired buckets were not swept to make room for a new key")
+	}
+	if len(limiter.buckets) != 1 {
+		t.Fatalf("expected the sweep to leave only the new key, %d buckets remain", len(limiter.buckets))
 	}
 
 	shared := newAttemptLimiter(1000, time.Minute, 100)

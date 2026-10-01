@@ -570,11 +570,11 @@ func (x *Extension) shareResolveHandler(event *core.RequestEvent) error {
 	// ten of them a minute from anywhere would lock the site out of every share link.
 	presented := event.Request.Header.Get(ShareResolveKeyHeader)
 	if subtle.ConstantTimeCompare([]byte(presented), []byte(x.shareResolveKey)) != 1 {
-		callerKey := "caller:" + event.RealIP()
-		if retry := x.shareLimiter.blockedFor(callerKey, now); retry > 0 {
+		callerKey := limiterAddress(event.RealIP())
+		if retry := x.shareCallerLimiter.blockedFor(callerKey, now); retry > 0 {
 			return shareTooManyAttempts(event, retry)
 		}
-		x.shareLimiter.fail(callerKey, now)
+		x.shareCallerLimiter.fail(callerKey, now)
 		return event.UnauthorizedError("The request requires the site's preview key.", nil)
 	}
 
@@ -582,21 +582,20 @@ func (x *Extension) shareResolveHandler(event *core.RequestEvent) error {
 	if err := bindShareBody(event, &body); err != nil {
 		return err
 	}
-	visitorKey := "visitor:" + event.RealIP()
+	visitorKey := limiterAddress(event.RealIP())
 	if clientIP := strings.TrimSpace(body.ClientIP); clientIP != "" {
-		address, err := netip.ParseAddr(clientIP)
-		if err != nil {
+		if _, err := netip.ParseAddr(clientIP); err != nil {
 			return event.BadRequestError("clientIp must be an IP address.", nil)
 		}
-		visitorKey = "visitor:" + address.Unmap().String()
+		visitorKey = limiterAddress(clientIP)
 	}
-	if retry := x.shareLimiter.blockedFor(visitorKey, now); retry > 0 {
+	if retry := x.shareVisitorLimiter.blockedFor(visitorKey, now); retry > 0 {
 		return shareTooManyAttempts(event, retry)
 	}
 
 	resolved, ok := x.resolveShareToken(event.App, body.Token, now)
 	if !ok {
-		x.shareLimiter.fail(visitorKey, now)
+		x.shareVisitorLimiter.fail(visitorKey, now)
 		return event.NotFoundError("", nil)
 	}
 	return event.JSON(http.StatusOK, resolved)
@@ -672,9 +671,34 @@ func (x *Extension) resolveShareToken(
 	}, true
 }
 
-// attemptLimiter counts failures per key in fixed windows, in memory. It is bounded: once it
-// remembers capacity keys and none has expired, an unseen key is treated as blocked until a slot
-// frees up, rather than being let through uncounted.
+// limiterAddress is the limiter key for an address. An IPv4 address (also in its IPv4-mapped IPv6
+// form) is its own key. IPv6 addresses are grouped by /64: one subscriber routinely owns a whole
+// /64, so counting each address apart would hand a single machine 2^64 fresh allowances and let
+// it fill the limiter by itself. Text that is not an address is kept as it is.
+func limiterAddress(raw string) string {
+	address, err := netip.ParseAddr(strings.TrimSpace(raw))
+	if err != nil {
+		return raw
+	}
+	address = address.Unmap()
+	if address.Is4() {
+		return address.String()
+	}
+	prefix, err := address.WithZone("").Prefix(64)
+	if err != nil {
+		return address.String()
+	}
+	return prefix.String()
+}
+
+// attemptLimiter counts failures per key in fixed windows, in memory, and remembers at most
+// capacity keys. When it is full and nothing has expired it FAILS OPEN: a key it has no room for
+// is neither counted nor blocked, while the keys it already tracks stay blocked as usual.
+//
+// It used to refuse untracked keys instead. That turned the bound into a switch anyone could
+// throw: fill the table (cheap, with many addresses) and every new visitor, and the site itself,
+// got 429. The limiter is not what keeps a share link safe (the secret's 256 bits are); it only
+// bounds noise, so when it cannot keep count it must not take the feature down.
 type attemptLimiter struct {
 	mu       sync.Mutex
 	buckets  map[string]*attemptBucket
@@ -721,16 +745,11 @@ func (l *attemptLimiter) blockedFor(key string, now time.Time) time.Duration {
 		}
 		return 0
 	}
-	if len(l.buckets) >= l.capacity {
-		l.sweep(now)
-		if len(l.buckets) >= l.capacity {
-			return l.window
-		}
-	}
 	return 0
 }
 
-// fail records one failed attempt for key.
+// fail records one failed attempt for key. With the table full of live buckets, a new key is
+// dropped (see the type comment).
 func (l *attemptLimiter) fail(key string, now time.Time) {
 	l.mu.Lock()
 	defer l.mu.Unlock()

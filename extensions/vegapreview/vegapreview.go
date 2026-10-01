@@ -183,9 +183,12 @@ func (c Config) normalized() (Config, error) {
 // the same PocketBase OnServe hook used by vegabuild and vegaauth.
 type Extension struct {
 	config Config
-	// shareResolveKey and shareLimiter back the share-link resolution route (share.go).
-	shareResolveKey string
-	shareLimiter    *attemptLimiter
+	// shareResolveKey and the two limiters back the share-link resolution route (share.go).
+	// Callers without the site key and visitors forwarded by the site are counted apart, so
+	// keyless noise can never use up the room visitors are tracked in.
+	shareResolveKey     string
+	shareCallerLimiter  *attemptLimiter
+	shareVisitorLimiter *attemptLimiter
 }
 
 // New validates config and returns a ready-to-register extension. Misconfigured signing or URL
@@ -198,7 +201,12 @@ func New(config Config) (*Extension, error) {
 	return &Extension{
 		config:          normalized,
 		shareResolveKey: ShareResolveKey(normalized.SigningSecret),
-		shareLimiter: newAttemptLimiter(
+		shareCallerLimiter: newAttemptLimiter(
+			shareResolveMaxFailures,
+			shareResolveWindow,
+			shareResolveMaxBuckets,
+		),
+		shareVisitorLimiter: newAttemptLimiter(
 			shareResolveMaxFailures,
 			shareResolveWindow,
 			shareResolveMaxBuckets,
