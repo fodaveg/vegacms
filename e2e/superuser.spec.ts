@@ -44,7 +44,7 @@ test.describe('/editores (superusuario)', () => {
 		await expect(page.locator('.vega-admin-meta')).toHaveText('3');
 		await expect(editorRow(page, 'ana.ruiz@fodaveg.net').getByText('Activo')).toBeVisible();
 		await expect(editorRow(page, 'jorge.p@fodaveg.net').getByText('Pendiente')).toBeVisible();
-		const long = 'comunicacion.institucional@ayuntamiento-de-villanueva-de-la-canada.es';
+		const long = 'comunicacion.institucional@ayuntamiento-de-villa-ejemplar.example.org';
 		await expect(editorRow(page, long).locator(`[title="${long}"]`)).toBeVisible();
 
 		// Sin correo en el servidor no hay «Reenviar invitación», ni siquiera para la pendiente.
