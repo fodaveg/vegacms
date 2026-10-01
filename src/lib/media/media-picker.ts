@@ -28,6 +28,13 @@ export interface MediaPickerOpenOptions {
 	/** Mismo vocabulario que `Field.file.mimeTypes` (comodín `tipo/*`) — filtra el grid del picker
 	 *  CLIENTE (ver `matchesAccept`). `undefined`/vacío = sin restricción (todos los assets). */
 	accept?: string[];
+	/**
+	 * Texto ya traducido que sustituye al aviso de la cabecera («Se insertará una copia…»). Ese aviso
+	 * describe lo que hace el campo de fichero con lo elegido; un consumidor que haga otra cosa (el
+	 * texto enriquecido enlaza la imagen por su URL, no la copia) pasa aquí el suyo. `undefined` =
+	 * el aviso de siempre.
+	 */
+	notice?: string;
 }
 
 /** Lo que `MediaPicker.svelte` resuelve al pulsar "Insertar": un elemento por asset elegido, en el

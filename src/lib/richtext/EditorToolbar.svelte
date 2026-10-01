@@ -169,7 +169,13 @@
 	async function insertImage(): Promise<void> {
 		const picker = ctx.mediaPicker;
 		if (!editor || disabled || !picker) return;
-		const picked = await picker.open({ multiple: false, accept: ['image/*'] });
+		// `notice`: el selector dice por defecto que se inserta una COPIA, que es lo que hace el
+		// campo de fichero. Aquí se enlaza la imagen de la biblioteca por su URL.
+		const picked = await picker.open({
+			multiple: false,
+			accept: ['image/*'],
+			notice: t('form.editor.imageDialog.libraryNotice')
+		});
 		const first = picked?.[0];
 		if (!first) {
 			void closeDialogs();

@@ -256,7 +256,10 @@
 		>
 			<div class="vega-media-picker-header">
 				<h2 id="vega-media-picker-title">{ctx.t('media.picker.title')}</h2>
-				<p class="vega-media-picker-copy">{ctx.t('media.picker.copyNotice')}</p>
+				<!-- `opts.notice` (aditivo): quien no copia lo elegido dice lo que hace de verdad. -->
+				<p class="vega-media-picker-copy">
+					{request.opts.notice ?? ctx.t('media.picker.copyNotice')}
+				</p>
 			</div>
 
 			<div class="vega-media-picker-search">

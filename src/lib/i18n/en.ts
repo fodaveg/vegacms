@@ -615,6 +615,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'form.editor.imageDialog.altHelp':
 		'Describe what the image shows. If it is decorative, leave it empty.',
 	'form.editor.imageDialog.insert': 'Insert image',
+	// Notice the toolbar hands to the media picker instead of `media.picker.copyNotice`: here the
+	// file is not copied, it is linked by its URL.
+	'form.editor.imageDialog.libraryNotice':
+		'The image is linked from the library. If you delete or replace it there, it changes here too.',
 	'form.editor.heading1': 'Heading 1',
 	'form.editor.heading2': 'Heading 2',
 	'form.richtext.loading': 'Loading the editor…',

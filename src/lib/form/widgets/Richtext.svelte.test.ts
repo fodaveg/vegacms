@@ -506,7 +506,12 @@ describe('Richtext.svelte — enlace e imagen de la barra', () => {
 		toolbarButton(target, 'form.editor.image').click();
 		await flush();
 
-		expect(pickerOpen).toHaveBeenCalledWith({ multiple: false, accept: ['image/*'] });
+		// Solo imágenes, y con su propio aviso: aquí no se copia el fichero, se enlaza por su URL.
+		expect(pickerOpen).toHaveBeenCalledWith({
+			multiple: false,
+			accept: ['image/*'],
+			notice: 'form.editor.imageDialog.libraryNotice'
+		});
 		expect(dialog(target)).toBeNull();
 		expect(lastHtml()).toContain(
 			'<img src="https://cms.ejemplo.com/api/files/vega_media/m1/portada_ab12.png" alt="Una portada">'

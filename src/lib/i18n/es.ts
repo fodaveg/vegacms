@@ -665,6 +665,10 @@ export const es = {
 	'form.editor.imageDialog.altHelp':
 		'Describe lo que se ve en la imagen. Si es decorativa, déjalo vacío.',
 	'form.editor.imageDialog.insert': 'Insertar imagen',
+	// Aviso que la barra le pasa al selector de medios en lugar de `media.picker.copyNotice`: aquí
+	// no se copia el fichero, se enlaza por su URL.
+	'form.editor.imageDialog.libraryNotice':
+		'Se enlaza la imagen de la biblioteca. Si la borras o la reemplazas allí, cambia también aquí.',
 	'form.editor.heading1': 'Título 1',
 	'form.editor.heading2': 'Título 2',
 	// El editor richtext se carga aparte (`import()` dinámico, ~145 KB): hasta que monta, el hueco

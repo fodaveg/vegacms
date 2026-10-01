@@ -15,7 +15,7 @@ import type { BackendPort, RecordId, Session, VegaError } from '$lib/backend';
 import type { ContentModel } from '$lib/model/types';
 import type { Locale } from '$lib/i18n';
 import type { IconRegistry } from '$lib/icons/registry';
-import type { MediaPickResult } from '$lib/media/media-picker';
+import type { MediaPickerOpenOptions, MediaPickResult } from '$lib/media/media-picker';
 
 export type { IconRegistry };
 
@@ -71,7 +71,7 @@ export interface FeedbackApi {
  * `null` si el usuario cancela.
  */
 export interface MediaPickerService {
-	open(opts: { multiple: boolean; accept?: string[] }): Promise<MediaPickResult[] | null>;
+	open(opts: MediaPickerOpenOptions): Promise<MediaPickResult[] | null>;
 }
 
 /** El contrato completo que P3 publica en contexto y P4/P5/P6 consumen (§2.1). */
