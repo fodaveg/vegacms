@@ -1,0 +1,337 @@
+<!--TITULO C · Redirección al cambiar la ruta de una página publicada-->
+
+<section class="lam-section">
+	<h2>Dónde vive</h2>
+	<p>
+		En el <b>hueco del banner de registro</b> de <code>RecordForm</code>: lo primero de la columna
+		principal, pegado bajo la barra donde está «Guardar» (el mismo sitio donde hoy se abre el aviso
+		de edición concurrente). Aparece en cuanto la ruta de una página <b>publicada</b> deja de ser la
+		guardada, y se va si vuelve a serlo. El formulario, la barra y los campos son el CSS real; los
+		rótulos «Title» y «Path» son los que pinta hoy el manifiesto inicial, que no los traduce.
+	</p>
+	<!--SHELL pages editor-->
+	<form class="vega-record-form" novalidate>
+		<div class="vega-edit-top vega-edit-top--bleed">
+			<button type="button" class="vega-editor-back">{{i:chevron:14}} Páginas</button>
+			<span class="vega-editor-doc">
+				<span class="vega-editor-crumb-name">Quiénes somos</span>
+				<span class="vega-editor-dirty" title="sin guardar"
+					><span class="vega-visually-hidden">sin guardar</span></span
+				>
+				<span class="vega-editor-tag" data-status-kind="pub">Publicado</span>
+			</span>
+			<span class="vega-edit-top-spacer"></span>
+			<span class="vega-editor-saved-at">último guardado 10:31</span>
+			<a class="vega-editor-preview-link" href="#">Ver en el sitio</a>
+			<button type="submit" class="vega-editor-save-button">
+				Guardar <kbd aria-hidden="true">⌘S</kbd>
+			</button>
+		</div>
+		<div class="vega-editor-grid vega-editor-grid--aside">
+			<div class="vega-editor-main">
+				<div class="vega-redirect" role="group" aria-label="Redirección desde la ruta antigua">
+					<label class="vega-redirect-check">
+						<input type="checkbox" checked />
+						<span
+							>Crear una redirección de <code>/sobre-nosotros</code> a
+							<code>/quienes-somos</code></span
+						>
+					</label>
+					<p class="vega-redirect-body">
+						Quien abra la dirección antigua llegará a la nueva. Se crea al guardar.
+					</p>
+				</div>
+				<div class="vega-form-content">
+					<section class="vega-fsection">
+						<div class="vega-fields">
+							<div class="vega-field-row vega-field-row--title">
+								<label for="ctx-title"
+									>Title<span class="vega-field-required" aria-hidden="true">*</span></label
+								>
+								<div class="vega-field-control">
+									<input
+										id="ctx-title"
+										type="text"
+										class="vega-widget-text"
+										value="Quiénes somos"
+									/>
+								</div>
+							</div>
+							<div class="vega-field-row vega-field-row--path">
+								<label for="ctx-path"
+									>Path<span class="vega-field-required" aria-hidden="true">*</span></label
+								>
+								<div class="vega-field-control">
+									<input
+										id="ctx-path"
+										type="text"
+										class="vega-widget-text"
+										value="/quienes-somos"
+									/>
+								</div>
+							</div>
+							<div class="vega-field-row">
+								<label for="ctx-status">Status</label>
+								<div class="vega-field-control">
+									<input id="ctx-status" type="text" class="vega-widget-text" value="Publicado" />
+								</div>
+							</div>
+						</div>
+					</section>
+				</div>
+			</div>
+			<aside class="vega-editor-aside">
+				<section class="vega-fsection vega-fsection--aside">
+					<h2>SEO</h2>
+					<p class="lam-why">(Descripción, Imagen para redes, No indexar: sin cambios)</p>
+				</section>
+			</aside>
+		</div>
+	</form>
+	<!--/SHELL-->
+</section>
+
+<section class="lam-section">
+	<h2>Estados</h2>
+	<p>
+		<b>El color sube solo cuando hace falta una decisión.</b> La oferta normal es neutra (la caja de
+		<code>.vega-record-form-notice</code>); la cadena va en tono informativo porque Vega toca algo
+		más; el conflicto, en tono de aviso, porque hay que elegir. Si la oferta de cada día fuera ya de
+		color, el conflicto no se distinguiría.
+	</p>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption><b>C1</b> Oferta normal (marcada por defecto)</figcaption>
+			<div class="lam-stage">
+				<div class="vega-redirect" role="group" aria-label="Redirección desde la ruta antigua">
+					<label class="vega-redirect-check">
+						<input type="checkbox" checked />
+						<span
+							>Crear una redirección de <code>/sobre-nosotros</code> a
+							<code>/quienes-somos</code></span
+						>
+					</label>
+					<p class="vega-redirect-body">
+						Quien abra la dirección antigua llegará a la nueva. Se crea al guardar.
+					</p>
+				</div>
+			</div>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>C1b</b> La misma, desmarcada</figcaption>
+			<div class="lam-stage">
+				<div class="vega-redirect" role="group" aria-label="Redirección desde la ruta antigua">
+					<label class="vega-redirect-check">
+						<input type="checkbox" />
+						<span
+							>Crear una redirección de <code>/sobre-nosotros</code> a
+							<code>/quienes-somos</code></span
+						>
+					</label>
+					<p class="vega-redirect-body">
+						Sin redirección, quien abra <code>/sobre-nosotros</code> verá «página no encontrada».
+					</p>
+				</div>
+			</div>
+			<p class="lam-why">
+				La frase cambia para decir la consecuencia de lo que se acaba de elegir, sin subir el tono:
+				desmarcar es una decisión válida.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>C2</b> Crearía una cadena A → B → C</figcaption>
+			<div class="lam-stage">
+				<div
+					class="vega-redirect vega-redirect--info"
+					role="group"
+					aria-label="Redirección desde la ruta antigua"
+				>
+					<label class="vega-redirect-check">
+						<input type="checkbox" checked />
+						<span
+							>Crear una redirección de <code>/sobre-nosotros</code> a
+							<code>/quienes-somos</code></span
+						>
+					</label>
+					<p class="vega-redirect-body">
+						Ya hay una redirección que lleva a la ruta antigua: <code>/nosotros</code> →
+						<code>/sobre-nosotros</code>. Al guardar pasará a llevar directamente a
+						<code>/quienes-somos</code>, para que nadie dé dos saltos.
+					</p>
+				</div>
+			</div>
+			<p class="lam-why">
+				No se pregunta: una cadena nunca es lo que se quiere, y preguntar por cada eslabón convierte
+				un cambio de ruta en un trámite. Se dice qué se hará.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>C2b</b> Cadena con varias redirecciones</figcaption>
+			<div class="lam-stage">
+				<div
+					class="vega-redirect vega-redirect--info"
+					role="group"
+					aria-label="Redirección desde la ruta antigua"
+				>
+					<label class="vega-redirect-check">
+						<input type="checkbox" checked />
+						<span
+							>Crear una redirección de <code>/sobre-nosotros</code> a
+							<code>/quienes-somos</code></span
+						>
+					</label>
+					<p class="vega-redirect-body">
+						Ya hay 3 redirecciones que llevan a la ruta antigua. Al guardar pasarán a llevar
+						directamente a <code>/quienes-somos</code>, para que nadie dé dos saltos:
+					</p>
+					<ul class="vega-redirect-list">
+						<li><code>/nosotros</code></li>
+						<li><code>/about</code></li>
+						<li><code>/la-cooperativa/quienes-somos-y-de-donde-venimos</code></li>
+					</ul>
+				</div>
+			</div>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>C3</b> Conflicto: ya existe una redirección con ese origen</figcaption>
+			<div class="lam-stage">
+				<div class="vega-redirect vega-redirect--warning" role="group" aria-labelledby="c3-t">
+					<p class="vega-redirect-title" id="c3-t">
+						{{i:warning:16}}<span
+							>Ya existe una redirección desde <code>/sobre-nosotros</code></span
+						>
+					</p>
+					<p class="vega-redirect-body">
+						Lleva a <code>/empresa</code>. Mientras la página estaba en esa ruta no hacía nada; en
+						cuanto la muevas, empezará a actuar.
+					</p>
+					<fieldset class="vega-redirect-choices">
+						<legend class="vega-visually-hidden">Qué hacer con la redirección que ya existe</legend>
+						<label
+							><input type="radio" name="c3" checked /><span
+								>Cambiarla para que lleve a <code>/quienes-somos</code></span
+							></label
+						>
+						<label
+							><input type="radio" name="c3" /><span
+								>Dejarla como está: <code>/sobre-nosotros</code> llevará a
+								<code>/empresa</code></span
+							></label
+						>
+					</fieldset>
+				</div>
+			</div>
+			<p class="lam-why">
+				No se puede crear otra (<code>redirects.from</code> es único), así que la casilla se
+				convierte en una elección entre dos frases completas. Por defecto, la que sigue a la página:
+				es lo que buscaba quien cambió la ruta. No bloquea «Guardar».
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>C4</b> Página no publicada: no se ofrece</figcaption>
+			<div class="lam-stage">
+				<div class="vega-form-content">
+					<section class="vega-fsection">
+						<div class="vega-fields">
+							<div class="vega-field-row vega-field-row--path">
+								<label for="c4-path"
+									>Path<span class="vega-field-required" aria-hidden="true">*</span></label
+								>
+								<div class="vega-field-control">
+									<input id="c4-path" type="text" class="vega-widget-text" value="/quienes-somos" />
+								</div>
+							</div>
+						</div>
+					</section>
+				</div>
+			</div>
+			<p class="lam-why">
+				Un borrador nunca ha tenido visitas en esa dirección. Tampoco sale al crear una página, ni
+				con la ruta en error, ni si el sitio no tiene la colección <code>redirects</code>.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>C5</b> Rutas larguísimas</figcaption>
+			<div class="lam-stage">
+				<div class="vega-redirect" role="group" aria-label="Redirección desde la ruta antigua">
+					<label class="vega-redirect-check">
+						<input type="checkbox" checked />
+						<span
+							>Crear una redirección de
+							<code
+								>/la-cooperativa/historia/quienes-somos-y-de-donde-venimos-las-artesanas-del-textil-de-aguja</code
+							>
+							a
+							<code
+								>/la-cooperativa/quienes-somos-las-artesanas-del-textil-de-aguja-desde-mil-novecientos-ochenta-y-cuatro</code
+							></span
+						>
+					</label>
+					<p class="vega-redirect-body">
+						Quien abra la dirección antigua llegará a la nueva. Se crea al guardar.
+					</p>
+				</div>
+			</div>
+			<p class="lam-why">
+				Las rutas parten línea por cualquier carácter (<code>overflow-wrap: anywhere</code>); el
+				campo admite hasta 200.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>C6</b> Guardado</figcaption>
+			<div class="lam-stage">
+				<div class="lam-toast">
+					<div class="vega-toast" data-kind="success">
+						<span>Guardado. Redirección creada de /sobre-nosotros a /quienes-somos.</span>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">
+				El toast de «Guardado.» de siempre, con la segunda frase. El banner desaparece: la ruta ya
+				es la guardada.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>C7</b> La página se guardó y la redirección no</figcaption>
+			<div class="lam-stage">
+				<div class="vega-redirect vega-redirect--danger" role="alert">
+					<p class="vega-redirect-title">
+						{{i:warning:16}}<span>La página se ha guardado, pero la redirección no</span>
+					</p>
+					<p class="vega-redirect-body">
+						<code>/sobre-nosotros</code> ya no lleva a ningún sitio. El servidor ha contestado:
+						Failed to create record. from: Value must be unique.
+					</p>
+					<div class="vega-redirect-actions">
+						<button type="button" class="vega-conflict-btn">Reintentar</button>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">
+				Son dos escrituras y la segunda puede fallar sola. Callarlo dejaría una ruta publicada rota
+				sin que nadie lo sepa; por eso se queda en el banner hasta resolverlo, no en un toast que se
+				va.
+			</p>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>Iconos usados (del set de <code>src/lib/icons</code>)</h2>
+	<ul class="lam-icons">
+		<li>{{i:warning:16}} warning · conflicto y fallo (como <code>ConflictNotice</code>)</li>
+		<li>{{i:chevron:16}} chevron · «atrás» de la barra (ya existente)</li>
+	</ul>
+	<p>
+		La flecha entre rutas es el carácter «→» en texto, no un icono: tiene que poder leerse y
+		copiarse con la ruta.
+	</p>
+</section>

@@ -67,11 +67,11 @@ test.describe('borrar → papelera → restaurar (§8·B2, promesa central del l
 		);
 
 		// Borrado desde la zona de peligro del editor (no desde la fila del listado): mismo diálogo
-		// `DeleteConfirm`, con la línea de la papelera (§4/§10.3) ahora en su cuerpo.
+		// `DeleteConfirm`, con la promesa de la papelera (§4/§10.3) en su única frase.
 		await page.getByRole('button', { name: 'Eliminar Entrada…' }).click();
 		const dialog = page.getByRole('alertdialog');
 		await expect(dialog).toBeVisible();
-		await expect(dialog).toContainText('recuperarlo desde la papelera durante 30 día(s)');
+		await expect(dialog).toContainText('podrás recuperarla durante 30 día(s)');
 		await expect(dialog).toContainText('Los ficheros adjuntos no se recuperan');
 
 		await dialog.getByRole('button', { name: 'Borrar', exact: true }).click();

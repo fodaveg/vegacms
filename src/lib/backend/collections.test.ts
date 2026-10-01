@@ -91,3 +91,45 @@ describe('collectionUniqueIndexes', () => {
 		).toEqual(['CREATE UNIQUE INDEX `idx_vega_unique_5_pages_4_path` ON `pages` (`path`)']);
 	});
 });
+
+describe('CollectionFieldSpec — editor, url, email y unique ampliado', () => {
+	test('unique se admite en url y email, y se rechaza en editor', () => {
+		expect(
+			checkCollectionFieldSpecs([
+				{ name: 'link', type: 'url', unique: true },
+				{ name: 'contact', type: 'email', unique: true }
+			])
+		).toEqual({});
+		const invalid = {
+			name: 'body',
+			type: 'editor',
+			unique: true
+		} as unknown as CollectionFieldSpec;
+		expect(checkCollectionFieldSpecs([invalid])).toMatchObject({
+			body: { code: 'vega_unique_text_only' }
+		});
+	});
+
+	test('unique distinto de true se rechaza también en url y email', () => {
+		const invalid = { name: 'link', type: 'url', unique: false } as unknown as CollectionFieldSpec;
+		expect(checkCollectionFieldSpecs([invalid])).toMatchObject({
+			link: { code: 'vega_unique_invalid' }
+		});
+	});
+
+	test('url y email unique emiten un índice PARCIAL (el vacío no cuenta); text conserva el histórico', () => {
+		expect(
+			collectionUniqueIndexes('posts', [
+				{ name: 'slug', type: 'text', unique: true },
+				{ name: 'link', type: 'url', unique: true },
+				{ name: 'contact', type: 'email', unique: true },
+				{ name: 'other', type: 'email' },
+				{ name: 'body', type: 'editor' }
+			])
+		).toEqual([
+			'CREATE UNIQUE INDEX `idx_vega_unique_5_posts_4_slug` ON `posts` (`slug`)',
+			"CREATE UNIQUE INDEX `idx_vega_unique_5_posts_4_link` ON `posts` (`link`) WHERE `link` != ''",
+			"CREATE UNIQUE INDEX `idx_vega_unique_5_posts_7_contact` ON `posts` (`contact`) WHERE `contact` != ''"
+		]);
+	});
+});

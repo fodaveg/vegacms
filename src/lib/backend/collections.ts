@@ -174,7 +174,7 @@ export function checkCollectionSpecAccess(specs: CollectionSpec[]): Record<strin
  * producto necesita de verdad: `select` YA ENTRÓ (lote del sembrado, 29 jul 2026) con la
  * validación de opciones que era justo lo que lo dejaba fuera, y `relation` entra con un contrato
  * explícito y validación del destino contra el esquema descubierto. Que el PUERTO lo admita no
- * significa que la UI de autoría lo ofrezca: `SchemaAuthoringPanel` sigue sin exponerlo. El propio campo `file` sigue reducido a lo que el bootstrap de
+ * significa que la UI de autoría lo ofrezca: `SchemaAuthoringPanel` expone un subconjunto (ver su cabecera; `file` y `autodate` quedan fuera). El propio campo `file` sigue reducido a lo que el bootstrap de
  * `vega_media` (P6) usa. `required` en
  * `number`/`bool`/`date` se añadió en el lote "esquema" (antes solo lo tenían `text`/`file`) para
  * que la UI de creación de campos pueda ofrecerlo — con el aviso de la landmine de PocketBase
@@ -212,6 +212,14 @@ export type CollectionFieldSpec =
 			// (200, sin imagen rota) — landmine caracterizada en el shakedown C1 (2026-07-19).
 			thumbs?: string[];
 	  }
+	// Lote 2 del audit (1 oct 2026): los tipos que hacen falta para modelar un blog desde Vega.
+	// `editor` es el texto enriquecido de PocketBase (HTML); `url` y `email` validan el formato en
+	// el servidor. `unique` solo en `url`/`email` (y `text`): un índice único sobre HTML o sobre
+	// una relación no tiene un uso que Vega quiera ofrecer. La «imagen» NO es un tipo propio: es
+	// un `relation` hacia `vega_media` (`IMAGE_FIELD_TARGET`), un atajo de la UI.
+	| { name: string; type: 'editor'; required?: boolean }
+	| { name: string; type: 'url'; required?: boolean; unique?: true }
+	| { name: string; type: 'email'; required?: boolean; unique?: true }
 	| { name: string; type: 'bool'; required?: boolean }
 	| { name: string; type: 'number'; required?: boolean }
 	| { name: string; type: 'date'; required?: boolean }
@@ -257,14 +265,15 @@ export function checkCollectionFieldSpecs(
 	for (const declared of fields) {
 		const field = declared as unknown as RuntimeCollectionFieldSpec;
 
-		if (field.type !== 'text' && field.unique !== undefined) {
+		// El código `vega_unique_text_only` se conserva (es contrato visible): hoy cubre text, url y email.
+		if (!UNIQUE_FIELD_TYPES.has(field.type) && field.unique !== undefined) {
 			fieldErrors[field.name] = {
 				code: 'vega_unique_text_only',
-				message: `El campo "${field.name}" solo puede declarar unique cuando es de tipo text`
+				message: `El campo "${field.name}" solo puede declarar unique cuando es de tipo text, url o email`
 			};
 			continue;
 		}
-		if (field.type === 'text' && field.unique !== undefined && field.unique !== true) {
+		if (UNIQUE_FIELD_TYPES.has(field.type) && field.unique !== undefined && field.unique !== true) {
 			fieldErrors[field.name] = {
 				code: 'vega_unique_invalid',
 				message: `La marca unique del campo "${field.name}" solo admite el valor true`
@@ -311,6 +320,12 @@ export function checkCollectionFieldSpecs(
 	return fieldErrors;
 }
 
+/** Tipos de campo que admiten `unique` (índice único mono-columna). */
+const UNIQUE_FIELD_TYPES = new Set(['text', 'url', 'email']);
+
+/** Colección de medios a la que apunta el atajo «Imagen» de la UI de autoría (un `relation`). */
+export const IMAGE_FIELD_TARGET = 'vega_media';
+
 function quoteSqlIdentifier(identifier: string): string {
 	return `\`${identifier.replaceAll('`', '``')}\``;
 }
@@ -326,10 +341,17 @@ export function collectionUniqueIndexes(
 	fields: CollectionFieldSpec[]
 ): string[] {
 	return fields.flatMap((field) => {
-		if (field.type !== 'text' || field.unique !== true) return [];
+		if (field.type !== 'text' && field.type !== 'url' && field.type !== 'email') return [];
+		if (field.unique !== true) return [];
 		const indexName = uniqueIndexName(collectionName, field.name);
+		const column = quoteSqlIdentifier(field.name);
+		// `url`/`email` opcionales guardan '' cuando están vacíos: un índice único completo
+		// rechazaría el segundo registro sin dirección. El índice parcial (como el de `email` en
+		// las colecciones auth de PocketBase) solo vigila los valores que existen. `text` conserva
+		// su índice histórico, que los sembrados ya dan por fijado.
+		const where = field.type === 'text' ? '' : ` WHERE ${column} != ''`;
 		return [
-			`CREATE UNIQUE INDEX ${quoteSqlIdentifier(indexName)} ON ${quoteSqlIdentifier(collectionName)} (${quoteSqlIdentifier(field.name)})`
+			`CREATE UNIQUE INDEX ${quoteSqlIdentifier(indexName)} ON ${quoteSqlIdentifier(collectionName)} (${column})${where}`
 		];
 	});
 }

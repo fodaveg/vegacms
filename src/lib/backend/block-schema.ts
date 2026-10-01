@@ -134,6 +134,10 @@ function specSignature(spec: CollectionFieldSpec): string {
 			return spec.type;
 		case 'text':
 			return `${spec.type}:${spec.required ?? false}:${spec.max ?? 0}${spec.unique ? ':unique' : ''}`;
+		case 'editor':
+		case 'url':
+		case 'email':
+			return `${spec.type}:${spec.required ?? false}${'unique' in spec && spec.unique ? ':unique' : ''}`;
 		case 'select':
 			return JSON.stringify({
 				type: spec.type,

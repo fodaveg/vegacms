@@ -560,6 +560,9 @@ describe.skipIf(!AVAILABLE)(
 			{ name: 'excerpt', type: 'text', required: false },
 			{ name: 'featured', type: 'bool', required: true },
 			{ name: 'path', type: 'text', unique: true },
+			{ name: 'body', type: 'editor' },
+			{ name: 'link', type: 'url', unique: true },
+			{ name: 'contact', type: 'email', required: true },
 			{
 				name: 'status',
 				type: 'select',
@@ -605,6 +608,9 @@ describe.skipIf(!AVAILABLE)(
 			expect(byName.get('excerpt')).toMatchObject({ type: 'text', required: false });
 			expect(byName.get('featured')).toMatchObject({ type: 'bool', required: true });
 			expect(byName.get('path')).toMatchObject({ type: 'text' });
+			expect(byName.get('body')).toMatchObject({ type: 'editor' });
+			expect(byName.get('link')).toMatchObject({ type: 'url', required: false });
+			expect(byName.get('contact')).toMatchObject({ type: 'email', required: true });
 			expect(byName.get('status')).toMatchObject({
 				type: 'select',
 				values: ['draft', 'published'],
@@ -617,6 +623,8 @@ describe.skipIf(!AVAILABLE)(
 				title: 'Uno',
 				featured: true,
 				path: '/igual',
+				contact: 'uno@vega.example',
+				link: 'https://vega.example/igual',
 				status: 'draft'
 			});
 			await expect(
@@ -624,7 +632,24 @@ describe.skipIf(!AVAILABLE)(
 					title: 'Dos',
 					featured: true,
 					path: '/igual',
+					contact: 'dos@vega.example',
 					status: 'published'
+				})
+			).rejects.toMatchObject({ status: 400 });
+			// El índice único de `url` es parcial: dos registros sin dirección conviven, uno repetido no.
+			await pb.collection('posts_addfields_mig').create({
+				title: 'Tres',
+				featured: true,
+				path: '/tres',
+				contact: 'tres@vega.example'
+			});
+			await expect(
+				pb.collection('posts_addfields_mig').create({
+					title: 'Cuatro',
+					featured: true,
+					path: '/cuatro',
+					contact: 'cuatro@vega.example',
+					link: 'https://vega.example/igual'
 				})
 			).rejects.toMatchObject({ status: 400 });
 		});

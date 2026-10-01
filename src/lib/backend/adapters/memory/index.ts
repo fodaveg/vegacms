@@ -226,6 +226,8 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 	): boolean {
 		for (const [recordId, raw] of records.get(type)!) {
 			if (currentId !== null && recordId === currentId) continue;
+			// `url`/`email` usan un índice único PARCIAL (`collectionUniqueIndexes`): el vacío no cuenta.
+			if ((field.type === 'url' || field.type === 'email') && value === '') return false;
 			if (raw[field.name] === value) return true;
 		}
 		return false;
@@ -801,6 +803,8 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 				const uniqueBackfillErrors: Record<string, FieldError> = {};
 				for (const field of newFields) {
 					if (!field.unique || byId.size < 2) continue;
+					// Índice parcial de url/email: los registros existentes (vacíos) no chocan.
+					if (field.type === 'url' || field.type === 'email') continue;
 					uniqueBackfillErrors[field.name] = {
 						code: 'validation_not_unique',
 						message:
@@ -933,6 +937,22 @@ function collectionFieldSpecToField(spec: CollectionFieldSpec): Field {
 				required: spec.required ?? false,
 				maxLength: spec.max,
 				pattern: spec.pattern || undefined
+			};
+		case 'editor':
+			return { ...base, type: 'richtext', subtype: 'html', required: spec.required ?? false };
+		case 'url':
+			return {
+				...base,
+				unique: spec.unique ?? false,
+				type: 'url',
+				required: spec.required ?? false
+			};
+		case 'email':
+			return {
+				...base,
+				unique: spec.unique ?? false,
+				type: 'email',
+				required: spec.required ?? false
 			};
 		case 'select':
 			return {

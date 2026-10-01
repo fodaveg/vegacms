@@ -621,14 +621,18 @@ interface ComparableFieldShape {
  *  sus `select` (`pages.status`) son simples. Ver `site-seeding.test.ts`. */
 export function expectedFieldShape(field: CollectionFieldSpec): ComparableFieldShape {
 	return {
-		type: field.type,
+		// `editor` es el nombre PocketBase; el puerto lo proyecta como `richtext`.
+		type: field.type === 'editor' ? 'richtext' : field.type,
 		target: field.type === 'relation' ? field.target : null,
 		multiple:
 			field.type === 'relation' || field.type === 'select' || field.type === 'file'
 				? (field.multiple ?? false)
 				: false,
 		required: 'required' in field ? (field.required ?? false) : false,
-		unique: field.type === 'text' ? (field.unique ?? false) : false,
+		unique:
+			field.type === 'text' || field.type === 'url' || field.type === 'email'
+				? (field.unique ?? false)
+				: false,
 		options: field.type === 'select' ? field.options : null,
 		// Solo cuenta en un `select` MÚLTIPLE: ver la nota de `actualFieldShape`.
 		maxSelect: field.type === 'select' && field.multiple ? 99 : null

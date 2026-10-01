@@ -206,7 +206,9 @@
 		/* El scroll vive en `.vega-main` (AppShell), que arranca JUSTO bajo la topbar — por eso el
 		   offset es solo el alto de la barra pegajosa del editor (el mockup, cuyo scroll es el del
 		   documento, suma además `var(--topbar-h)`). */
-		top: 58px;
+		/* `calc(… - 1.75rem)`: la barra del editor se pega ahora al borde de `.vega-main` (`top:
+		   -1.75rem`, ver `EditTopBar`), así que el raíl sube lo mismo para conservar su hueco. */
+		top: calc(58px - 1.75rem);
 		display: flex;
 		flex-direction: column;
 		/* Casos límite de contenido real (eje 5): una colección con la página entera (30 registros)

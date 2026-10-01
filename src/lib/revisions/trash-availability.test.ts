@@ -5,7 +5,12 @@
  */
 
 import { describe, expect, test } from 'vitest';
-import { isTrashAvailable, type TrashAvailabilityModel } from './trash-availability';
+import type { Field } from '$lib/backend/types';
+import {
+	isDeleteRecoverable,
+	isTrashAvailable,
+	type TrashAvailabilityModel
+} from './trash-availability';
 
 function model(opts: {
 	enabled?: boolean;
@@ -35,5 +40,30 @@ describe('isTrashAvailable', () => {
 
 	test('ninguna de las dos: false', () => {
 		expect(isTrashAvailable(model({ enabled: false, hasRevisionsCollection: false }))).toBe(false);
+	});
+});
+
+describe('isDeleteRecoverable (la papelera no puede prometer lo que no restaura)', () => {
+	const file = (required: boolean): Field =>
+		({ name: 'file', type: 'file', required, multiple: false }) as unknown as Field;
+	const withFiles = (fields: Field[]): TrashAvailabilityModel => ({
+		revisions: { enabled: true },
+		types: [{ name: 'vega_revisions' }, { name: 'vega_media', schema: { fields } }]
+	});
+
+	test('papelera disponible y sin file obligatorio: true', () => {
+		expect(isDeleteRecoverable(withFiles([file(false)]), 'vega_media')).toBe(true);
+	});
+
+	test('un campo file OBLIGATORIO (vega_media): false aunque la papelera exista', () => {
+		expect(isDeleteRecoverable(withFiles([file(true)]), 'vega_media')).toBe(false);
+	});
+
+	test('papelera no disponible: false', () => {
+		expect(isDeleteRecoverable(model({ hasRevisionsCollection: false }), 'posts')).toBe(false);
+	});
+
+	test('colección sin esquema en el modelo: manda la papelera', () => {
+		expect(isDeleteRecoverable(model({}), 'posts')).toBe(true);
 	});
 });

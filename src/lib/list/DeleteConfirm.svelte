@@ -72,9 +72,10 @@
 	 * donde a propósito no se comprueba nada (ver su cabecera), y un `''`/`null` explícito es cómo
 	 * se dice "aquí no preguntes" sin inventar un tercer prop.
 	 *
-	 * **La línea de la papelera (`#lote-integridad`, Fase B §4/§10.3)**: `isTrashAvailable(ctx.model)`
-	 * (síncrono, sin red, ver su cabecera) decide entre "recuperable N días" (`ctx.model.revisions.
-	 * trashDays`) y "este borrado será DEFINITIVO" — nunca promete papelera si el decorador
+	 * **La línea de la papelera (`#lote-integridad`, Fase B §4/§10.3)**: `isDeleteRecoverable(ctx.model,
+	 * targetCollection)` (síncrono, sin red, ver su cabecera) decide, en UNA sola frase, entre
+	 * "recuperable N días" (`ctx.model.revisions.trashDays`) y "no se podrá recuperar" (también
+	 * con un `file` obligatorio, `requiredFileFieldName`) — nunca promete papelera si el decorador
 	 * (`with-revisions.ts`) no va a poder cumplirla. `hasFiles` (prop, opcional, `false` por
 	 * defecto) añade la línea "los ficheros adjuntos no se recuperan" cuando el registro pendiente
 	 * tiene campos `file` con valor: el llamador la calcula (ya tiene el `ResolvedContentType` y los
@@ -86,7 +87,7 @@
 	import { createDeleteReferencesGuard } from '$lib/integrity/delete-guard.svelte';
 	import { hasRelationMatches } from '$lib/integrity/references';
 	import ReferencesSummary from '$lib/integrity/ReferencesSummary.svelte';
-	import { isTrashAvailable } from '$lib/revisions/trash-availability';
+	import { isDeleteRecoverable } from '$lib/revisions/trash-availability';
 
 	interface Props {
 		/** `true` mientras haya un registro pendiente de confirmar (lo decide `+page.svelte`). */
@@ -130,7 +131,7 @@
 	const ctx = getVegaContext();
 
 	// ————— La línea de la papelera (ver cabecera) —————
-	const trashAvailable = $derived(isTrashAvailable(ctx.model));
+	const recoverable = $derived(isDeleteRecoverable(ctx.model, targetCollection));
 
 	// ————— Diálogo modal cancelable: foco atrapado + foco inicial seguro (ver cabecera) —————
 	let dialogEl = $state<HTMLElement | null>(null);
@@ -234,16 +235,17 @@
 			bind:this={dialogEl}
 		>
 			<h2 id="vega-delete-title">{ctx.t('list.delete.confirmTitle')}</h2>
-			<p id="vega-delete-body">{ctx.t('list.delete.confirmBody', { label: recordLabel })}</p>
-
-			<!-- La línea de la papelera (§4/§10.3, ver cabecera): nunca promete lo que el decorador
-			     no puede cumplir. -->
-			<p class="vega-delete-trash-hint" data-trash-available={trashAvailable}>
-				{trashAvailable
-					? ctx.t('revisions.trash.deleteHint', { days: ctx.model.revisions.trashDays })
-					: ctx.t('revisions.trash.deleteHintUnavailable')}
+			<!-- UNA sola frase (§4/§10.3, ver cabecera): nunca promete la papelera si el decorador no
+			     puede cumplirla (sin papelera, o con un `file` obligatorio que no se restaura). -->
+			<p id="vega-delete-body" data-trash-available={recoverable}>
+				{recoverable
+					? ctx.t('list.delete.confirmBody', {
+							label: recordLabel,
+							days: ctx.model.revisions.trashDays
+						})
+					: ctx.t('list.delete.confirmBodyForever', { label: recordLabel })}
 			</p>
-			{#if hasFiles}
+			{#if hasFiles && recoverable}
 				<p class="vega-delete-trash-hint">{ctx.t('revisions.trash.deleteFilesHint')}</p>
 			{/if}
 
@@ -419,7 +421,9 @@
 		opacity: 0.6;
 	}
 
-	.vega-delete-confirm {
+	/* Con el prefijo del contenedor: `.vega-delete-actions button` (arriba) tiene más
+	   especificidad que `.vega-delete-confirm` a secas y le ganaba el borde/fondo/color neutros. */
+	.vega-delete-actions .vega-delete-confirm {
 		border-color: var(--danger);
 		background: var(--danger-soft);
 		color: var(--danger);

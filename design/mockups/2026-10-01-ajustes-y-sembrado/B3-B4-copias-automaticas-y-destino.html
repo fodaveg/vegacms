@@ -1,0 +1,5686 @@
+<!doctype html>
+<html lang="es" data-theme="niebla" data-mode="light" data-density="comfortable">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>B3 + B4 · Copias automáticas y dónde se guardan (/copias) · Vega</title>
+		<style>
+			/* GENERADO por scripts/build-themes.mjs — NO EDITAR */
+
+			:root {
+				--sans: -apple-system, 'Segoe UI', system-ui, sans-serif;
+				--mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+				--r: 8px;
+				--accent-grad: linear-gradient(115deg, var(--accent), var(--accent-hover));
+				--sheen: linear-gradient(100deg, var(--accent), var(--accent-text));
+				--accent-fill: var(--accent);
+				--halo: none;
+				--brand-a: var(--accent);
+				--brand-b: var(--accent);
+				--brand-c: var(--accent);
+				--brand-edge-opacity: 0.35;
+			}
+			:root {
+				--row-h: 44px;
+				--cell-x: 1.1rem;
+				--fs-base: 14px;
+				--pad-field: 1.1rem;
+				--gap-field: 1.75rem;
+				--pad-card: 1.5rem;
+				--sidebar-item-h: 40px;
+				--topbar-h: 54px;
+			}
+			[data-density='compact'] {
+				--row-h: 36px;
+				--cell-x: 0.8rem;
+				--fs-base: 13px;
+				--pad-field: 0.8rem;
+				--gap-field: 1.2rem;
+				--pad-card: 1rem;
+				--sidebar-item-h: 32px;
+				--topbar-h: 44px;
+			}
+			[data-mode='light'] {
+				--shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 3px 12px rgb(0 0 0 / 0.04);
+				--success: #045a26;
+				--success-soft: color-mix(in oklab, #045a26 10%, var(--paper));
+				--danger: #a91408;
+				--danger-soft: color-mix(in oklab, #a91408 10%, var(--paper));
+				--warning: #684800;
+				--warning-soft: color-mix(in oklab, #684800 10%, var(--paper));
+				--info: #07517d;
+				--info-soft: color-mix(in oklab, #07517d 10%, var(--paper));
+			}
+			[data-mode='dark'] {
+				--shadow-card: 0 1px 3px rgb(0 0 0 / 0.4), 0 5px 16px rgb(0 0 0 / 0.28);
+				--success: #5cbd8e;
+				--success-soft: color-mix(in oklab, #5cbd8e 17%, var(--paper));
+				--danger: #ef8078;
+				--danger-soft: color-mix(in oklab, #ef8078 15%, var(--paper));
+				--warning: #dfae4d;
+				--warning-soft: color-mix(in oklab, #dfae4d 15%, var(--paper));
+				--info: #74b6d6;
+				--info-soft: color-mix(in oklab, #74b6d6 15%, var(--paper));
+			}
+
+			[data-theme='brasa'] {
+				--tint: #e8763a;
+				--accent: #e8763a;
+				--accent-ink: #1f1206;
+			}
+			[data-theme='brasa'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='brasa'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='faro'] {
+				--tint: #d1642f;
+				--accent: #d1642f;
+				--accent-ink: #2a1408;
+			}
+			[data-theme='faro'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='faro'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='rescoldo'] {
+				--tint: #4a4a52;
+				--accent: #f0842f;
+				--accent-ink: #201206;
+				--accent-grad: linear-gradient(115deg, #f6a63b 0%, #f0842f 42%, #e4583c 75%, #dd4f52 100%);
+				--brand-edge-opacity: 0.7;
+			}
+			[data-theme='rescoldo'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='rescoldo'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='miel'] {
+				--tint: #d59a2e;
+				--accent: #d59a2e;
+				--accent-ink: #241905;
+			}
+			[data-theme='miel'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='miel'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='halloween'] {
+				--tint: #7a3fa0;
+				--accent: #ef7a26;
+				--accent-ink: #201206;
+				--accent-grad: linear-gradient(115deg, #f7b13a 0%, #ef7a26 42%, #e2542f 75%, #dd4f52 100%);
+				--accent-fill: var(--accent-grad);
+				--halo:
+					radial-gradient(
+						125% 72% at 86% -14%,
+						color-mix(in oklab, #f6a63b 26%, transparent),
+						transparent 48%
+					),
+					radial-gradient(
+						110% 66% at -12% 112%,
+						color-mix(in oklab, #9558cc 20%, transparent),
+						transparent 46%
+					),
+					radial-gradient(
+						90% 50% at 50% 128%,
+						color-mix(in oklab, #c9342a 13%, transparent),
+						transparent 42%
+					);
+				--brand-a: #f7b13a;
+				--brand-b: #e04f28;
+				--brand-c: #c9342a;
+				--brand-edge-opacity: 0.7;
+			}
+			[data-theme='halloween'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, #f6a63b 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, #ef7a26 52%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 9%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 9%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 9%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='halloween'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, #f6a63b 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, #ef7a26 52%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 21%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 21%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 21%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='aquelarre'] {
+				--tint: #6e3fb5;
+				--accent: #f0842f;
+				--accent-ink: #201206;
+				--accent-grad: linear-gradient(115deg, #f6a63b 0%, #f0842f 42%, #e4583c 75%, #dd4f52 100%);
+				--sheen: linear-gradient(100deg, #7ac943 0%, #3fbf8f 38%, #8a7ae0 74%, #b05fd6 100%);
+				--accent-fill: var(--accent-grad);
+				--halo:
+					radial-gradient(
+						125% 72% at 86% -14%,
+						color-mix(in oklab, #f6a63b 24%, transparent),
+						transparent 48%
+					),
+					radial-gradient(
+						110% 66% at -12% 112%,
+						color-mix(in oklab, #9a7ae8 17%, transparent),
+						transparent 46%
+					),
+					radial-gradient(
+						90% 50% at 50% 128%,
+						color-mix(in oklab, #e4583c 12%, transparent),
+						transparent 42%
+					);
+				--brand-a: #f6a63b;
+				--brand-b: #e4583c;
+				--brand-c: #dd4f52;
+				--brand-edge-opacity: 0.7;
+			}
+			[data-theme='aquelarre'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, #f6a63b 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, #f0842f 52%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 13%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 13%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 13%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: #68625f;
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='aquelarre'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, #f6a63b 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, #f0842f 52%, var(--line));
+				--bg: #0d0913;
+				--sidebar: #100c17;
+				--paper: #17121f;
+				--surface: #2a2034;
+				--surface-2: #221a2d;
+				--btn: #2e2136;
+				--active: #382845;
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='cereza'] {
+				--tint: #c0466b;
+				--accent: #c0466b;
+				--accent-ink: #ffffff;
+			}
+			[data-theme='cereza'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='cereza'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='tinta'] {
+				--tint: #6ea3f0;
+				--accent: #6ea3f0;
+				--accent-ink: #0e1a2e;
+			}
+			[data-theme='tinta'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='tinta'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			:where(:root),
+			[data-theme='niebla'] {
+				--tint: #4f6bd6;
+				--accent: #4f6bd6;
+				--accent-ink: #ffffff;
+			}
+			:where(:root)[data-mode='light'],
+			[data-theme='niebla'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			:where(:root)[data-mode='dark'],
+			[data-theme='niebla'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='marea'] {
+				--tint: #147885;
+				--accent: #147885;
+				--accent-ink: #ffffff;
+			}
+			[data-theme='marea'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='marea'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='sea-wingnow'] {
+				--tint: #58a6d8;
+				--accent: #58a6d8;
+				--accent-ink: #0c1c29;
+			}
+			[data-theme='sea-wingnow'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='sea-wingnow'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='bosque'] {
+				--tint: #8bbf5a;
+				--accent: #8bbf5a;
+				--accent-ink: #16240c;
+			}
+			[data-theme='bosque'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='bosque'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='menta'] {
+				--tint: #2f9e73;
+				--accent: #2f9e73;
+				--accent-ink: #08201a;
+			}
+			[data-theme='menta'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='menta'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='salvia'] {
+				--tint: #7a9b78;
+				--accent: #7a9b78;
+				--accent-ink: #16210f;
+			}
+			[data-theme='salvia'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='salvia'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='lavanda'] {
+				--tint: #8f84cf;
+				--accent: #8f84cf;
+				--accent-ink: #1a1630;
+			}
+			[data-theme='lavanda'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='lavanda'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='ciruela'] {
+				--tint: #7d4a9c;
+				--accent: #7d4a9c;
+				--accent-ink: #ffffff;
+			}
+			[data-theme='ciruela'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='ciruela'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='carbon'] {
+				--tint: #4a4a52;
+				--accent: #4a4a52;
+				--accent-ink: #ffffff;
+			}
+			[data-theme='carbon'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='carbon'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='colibri'] {
+				--tint: #527d8f;
+				--accent: #2f8f96;
+				--accent-ink: #0a1d1f;
+				--sheen: linear-gradient(100deg, #2f8f96 0%, #8a7ad9 55%, #c9a24e 100%);
+				--halo:
+					radial-gradient(
+						120% 68% at 84% -12%,
+						color-mix(in oklab, #2f8f96 11%, transparent),
+						transparent 46%
+					),
+					radial-gradient(
+						100% 60% at -10% 110%,
+						color-mix(in oklab, #8a7ad9 8%, transparent),
+						transparent 44%
+					);
+				--brand-a: #2f8f96;
+				--brand-b: #8a7ad9;
+				--brand-c: #c9a24e;
+				--brand-edge-opacity: 0.3;
+			}
+			[data-theme='colibri'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='colibri'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='tornasol'] {
+				--tint: #5b5f8f;
+				--accent: #2f9a94;
+				--accent-ink: #14102a;
+				--accent-grad: linear-gradient(115deg, #2fb7a8 0%, #8d7bf0 42%, #d16bb2 72%, #dda63f 100%);
+				--accent-fill: var(--accent-grad);
+				--halo:
+					radial-gradient(
+						120% 68% at 84% -12%,
+						color-mix(in oklab, #2fb7a8 13%, transparent),
+						transparent 46%
+					),
+					radial-gradient(
+						100% 60% at -10% 110%,
+						color-mix(in oklab, #d16bb2 9%, transparent),
+						transparent 44%
+					);
+				--brand-a: #2fb7a8;
+				--brand-b: #8d7bf0;
+				--brand-c: #dda63f;
+				--brand-edge-opacity: 0.5;
+			}
+			[data-theme='tornasol'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 10%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 10%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 10%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='tornasol'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 20%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 20%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 20%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='pizarra'] {
+				--tint: #5d6d83;
+				--accent: #5d6d83;
+				--accent-ink: #ffffff;
+			}
+			[data-theme='pizarra'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='pizarra'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='terracota'] {
+				--tint: #bd430f;
+				--accent: #bd430f;
+				--accent-ink: #ffffff;
+			}
+			[data-theme='terracota'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='terracota'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			/**
+ * `base.css` (Fase F7w-b, "purificar los consumidores al vocabulario §3"): tras F7w-a (que
+ * encendió los temas con un SHIM de alias `--vega-color-*`/`--vega-size-topbar`/`--vega-size-row`
+ * → tokens §3), esta fase sustituyó cada consumidor por su token §3 exacto (`var(--surface)`,
+ * `var(--ink)`, `var(--accent)`, …, definidos en `themes.generated.css`, motor P7, importado ANTES
+ * que este fichero en `+layout.svelte`). El shim de color ya no hace falta y se ha borrado entero:
+ * ningún `.svelte`/`.ts` de la app pinta con `--vega-color-*`.
+ *
+ * Lo que queda aquí son solo dos cosas:
+ * 1. Dos tamaños SIN equivalente en el vocabulario §3 porque no son de rol: el ANCHO del sidebar
+ *    (§3 solo tiene `sidebar-item-h`, el alto de un item) y un "gutter" genérico (§3 no define
+ *    espaciados de layout, solo paddings/gaps de campo). Huecos reales del contrato — se
+ *    mantienen como valores literales por densidad (candidatos a reabrir el vocabulario §3 en una
+ *    v2 si se decide que sí son de rol).
+ * 2. Las reglas base transversales del documento (`body`, foco visible, `color-scheme`,
+ *    `prefers-reduced-motion`) que no son alias de nada.
+ */
+
+			:root {
+				color-scheme: light dark;
+			}
+
+			/* Huecos del vocabulario §3 (ver cabecera): sin equivalente de rol, valores literales por
+   densidad, igual que antes de F7w-a. */
+			html[data-density='comfortable'] {
+				--vega-size-sidebar: 236px;
+				--vega-space-gutter: 1rem;
+			}
+
+			html[data-density='compact'] {
+				--vega-size-sidebar: 200px;
+				--vega-space-gutter: 0.65rem;
+			}
+
+			html,
+			body {
+				margin: 0;
+				padding: 0;
+			}
+
+			body {
+				/* El lienzo usa `--bg` directamente (tono más "exterior" que `--surface`, ver §3 "papel/
+	   fondos"): es el único sitio que lo pinta. */
+				background: var(--bg);
+				color: var(--ink);
+				font-family:
+					system-ui,
+					-apple-system,
+					'Segoe UI',
+					sans-serif;
+			}
+
+			/* El atributo `hidden` tiene que ocultar SIEMPRE, y por eso lleva `!important`.
+   La regla que lo oculta (`[hidden] { display: none }`) es del NAVEGADOR, y cualquier regla de
+   autor le gana, por poca especificidad que tenga: basta con que un componente ponga
+   `display: flex` (o grid, o block) en la clase de ese mismo elemento para que `hidden` deje de
+   ocultar nada, EN SILENCIO. Pasó de verdad: la ficha del editor visual monta todos los bloques a
+   la vez y oculta los no elegidos con `hidden`; como su clase traía `display: flex`, se veían
+   TODOS apilados y la ficha parecía no seguir a la selección. No lo caza ningún test unitario,
+   porque en jsdom los tests miran el atributo en el DOM (`:not([hidden])`), que estaba puesto y
+   correcto. Comprobado en Chromium: con `display: flex` el `getComputedStyle` sale `flex`, no
+   `none`. `!important` es la única forma de que la regla base gane a la del componente, y es lo
+   que hacen los reset de siempre (normalize.css) por este mismo motivo. Si algún día un elemento
+   necesita estar `hidden` y verse, eso es una contradicción: que no lleve `hidden`. */
+			[hidden] {
+				display: none !important;
+			}
+
+			/* A11y transversal (§4.3 del checklist): foco visible en todo interactivo. */
+			:focus-visible {
+				outline: 2px solid var(--ring);
+				outline-offset: 2px;
+			}
+
+			@media (prefers-reduced-motion: reduce) {
+				*,
+				*::before,
+				*::after {
+					animation-duration: 0.001ms !important;
+					animation-iteration-count: 1 !important;
+					transition-duration: 0.001ms !important;
+				}
+			}
+
+			/**
+ * Estilos de las pantallas de superusuario (`/editores`, `/copias`) y de sus diálogos.
+ *
+ * Hoja GLOBAL con todo bajo `.vega-admin-*`, importada solo por esas dos rutas y por sus diálogos:
+ * las dos pantallas comparten el mismo esqueleto (cabecera, tarjeta de lista, tabla que se apila en
+ * móvil, estados, puerta de superusuario, diálogo con campos) y copiar ese CSS en cada componente,
+ * como hacen `/papelera` y `/c/[type]`, duplicaría unas 300 líneas que tienen que cambiar juntas.
+ * Global porque el contenido de los diálogos lo pinta la página que los usa: un `<style>` con
+ * ámbito no llegaría a ese marcado. El prefijo evita choques con el resto de la app, y al
+ * importarse desde las rutas va en su chunk diferido, no en la carga inicial.
+ *
+ * Medidas y tokens: calco de las piezas existentes que cita la lámina del audit (piezas 5 y 6):
+ * cabecera de `/papelera`, `.vega-list-card` + tabla de `RecordTable`, `.vega-status-badge`,
+ * diálogo de `DeleteConfirm`, `.vega-manifest-gate` de `/settings` y `.notice` de `/papelera`.
+ * Sin tokens nuevos y sin ningún color literal (el velo del diálogo está en `AdminDialog.svelte`).
+ */
+
+			.vega-admin-page {
+				display: flex;
+				flex-direction: column;
+				gap: var(--vega-space-gutter);
+			}
+
+			/* ————— Cabecera ————— */
+
+			.vega-admin-head {
+				display: flex;
+				align-items: baseline;
+				flex-wrap: wrap;
+				gap: 0.6rem 1rem;
+				margin-bottom: 0.4rem;
+			}
+
+			.vega-admin-head h1 {
+				margin: 0;
+				font-size: 1.45em;
+				font-weight: 700;
+				color: var(--ink-hi);
+				letter-spacing: -0.01em;
+			}
+
+			.vega-admin-meta {
+				color: var(--ink-2);
+				font-size: 0.9em;
+			}
+
+			.vega-admin-meta b {
+				font-family: var(--mono);
+				font-weight: 500;
+			}
+
+			.vega-admin-head-spacer {
+				flex: 1;
+			}
+
+			.vega-admin-desc {
+				margin: 0;
+				max-width: 46rem;
+				color: var(--ink-2);
+				font-size: 0.9rem;
+			}
+
+			/* ————— Botones ————— */
+
+			.vega-admin-btn {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.4rem;
+				height: 34px;
+				padding: 0 0.9rem;
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--btn);
+				color: var(--ink);
+				font: inherit;
+				font-size: 0.8125rem;
+				font-weight: 550;
+				line-height: 1.2;
+				white-space: nowrap;
+				cursor: pointer;
+			}
+
+			.vega-admin-btn:hover:not([aria-disabled='true']) {
+				border-color: var(--line-strong);
+			}
+
+			.vega-admin-btn[aria-disabled='true'] {
+				cursor: not-allowed;
+				opacity: 0.5;
+			}
+
+			.vega-admin-btn--primary {
+				border-color: transparent;
+				background: var(--accent-fill);
+				color: var(--accent-ink);
+				font-weight: 600;
+			}
+
+			.vega-admin-btn--primary:hover:not([aria-disabled='true']) {
+				border-color: transparent;
+				box-shadow: 0 0 0 1.5px var(--accent-line);
+			}
+
+			.vega-admin-btn--primary[aria-disabled='true'] {
+				opacity: 0.45;
+			}
+
+			.vega-admin-btn--danger {
+				border-color: transparent;
+				background: var(--danger-soft);
+				color: var(--danger);
+			}
+
+			.vega-admin-btn--danger:hover:not([aria-disabled='true']) {
+				border-color: transparent;
+				box-shadow: 0 0 0 1.5px var(--danger);
+			}
+
+			.vega-admin-btn--sm {
+				height: 30px;
+				padding: 0 0.75rem;
+				font-size: 0.8rem;
+			}
+
+			.vega-admin-icon-btn {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				width: 1.8rem;
+				height: 1.8rem;
+				flex-shrink: 0;
+				border: 0;
+				border-radius: 6px;
+				background: transparent;
+				color: var(--ink-2);
+				cursor: pointer;
+			}
+
+			.vega-admin-icon-btn:hover {
+				background: var(--active);
+				color: var(--ink);
+			}
+
+			/* Objetivo táctil de 44 px con puntero basto (misma regla que el resto de la app). */
+			@media (pointer: coarse) {
+				.vega-admin-btn {
+					min-height: 44px;
+				}
+
+				.vega-admin-icon-btn {
+					min-width: 44px;
+					min-height: 44px;
+				}
+			}
+
+			/* ————— Tarjeta de lista, estados y tabla ————— */
+
+			.vega-admin-card {
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--paper);
+				box-shadow: var(--shadow-card);
+				overflow: hidden;
+			}
+
+			.vega-admin-state {
+				display: flex;
+				flex-direction: column;
+				align-items: flex-start;
+				gap: 0.6rem;
+				padding: 1.25rem var(--cell-x);
+				color: var(--ink-2);
+			}
+
+			.vega-admin-state p {
+				margin: 0;
+			}
+
+			.vega-admin-state-title {
+				color: var(--ink-hi);
+				font-weight: 600;
+			}
+
+			/* «⟳ …» de lo que está en curso: mismo glifo que `.vega-editor-saved-at--saving`. */
+			.vega-admin-saving {
+				font-family: var(--mono);
+				font-size: 0.85rem;
+				white-space: nowrap;
+			}
+
+			.vega-admin-saving::before {
+				content: '⟳ ';
+				color: var(--info);
+			}
+
+			.vega-admin-table {
+				width: 100%;
+				border-collapse: collapse;
+				font-size: 0.9rem;
+			}
+
+			.vega-admin-table thead th {
+				padding: 0.5rem var(--cell-x);
+				text-align: left;
+				white-space: nowrap;
+				font-size: 0.6875rem;
+				font-weight: 650;
+				text-transform: uppercase;
+				letter-spacing: 0.06em;
+				color: var(--ink-2);
+				background: var(--paper);
+				border-bottom: 1px solid var(--line-strong);
+			}
+
+			.vega-admin-table thead th.vega-admin-right,
+			.vega-admin-table td.vega-admin-right {
+				text-align: right;
+			}
+
+			.vega-admin-table tbody tr {
+				height: var(--row-h);
+				border-bottom: 1px solid var(--line);
+			}
+
+			.vega-admin-table tbody tr:last-child {
+				border-bottom: 0;
+			}
+
+			.vega-admin-table tbody tr:hover {
+				background: var(--accent-soft);
+			}
+
+			.vega-admin-table td {
+				max-width: 24rem;
+				padding: 0.4rem var(--cell-x);
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				vertical-align: middle;
+			}
+
+			.vega-admin-table td.vega-admin-main {
+				width: 50%;
+				max-width: 0;
+			}
+
+			.vega-admin-table td.vega-admin-actions {
+				width: 1%;
+				max-width: none;
+				overflow: visible;
+			}
+
+			.vega-admin-mono {
+				font-family: var(--mono);
+				font-size: 0.75rem;
+				color: var(--ink-2);
+				font-variant-numeric: tabular-nums;
+			}
+
+			.vega-admin-title {
+				display: block;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				color: var(--ink-hi);
+				font-weight: 500;
+			}
+
+			.vega-admin-title--mono {
+				font-family: var(--mono);
+				font-size: 0.85rem;
+			}
+
+			.vega-admin-row-actions {
+				display: flex;
+				justify-content: flex-end;
+				gap: 0.4rem;
+			}
+
+			/* Fecha con rótulo dentro de la fila apilada («Alta 3 feb 2026»): solo en móvil; la de la tabla,
+   solo en escritorio (ver el `@media` de abajo). */
+			.vega-admin-stack-only {
+				display: none;
+			}
+
+			.vega-admin-who {
+				display: flex;
+				align-items: center;
+				gap: 0.6rem;
+				min-width: 0;
+			}
+
+			.vega-admin-avatar {
+				display: inline-grid;
+				place-items: center;
+				flex-shrink: 0;
+				width: 24px;
+				height: 24px;
+				border-radius: 50%;
+				background: var(--accent-soft);
+				color: var(--accent-text);
+				font-size: 0.68rem;
+				font-weight: 700;
+			}
+
+			.vega-admin-you {
+				flex-shrink: 0;
+				color: var(--ink-2);
+				font-size: 0.72rem;
+			}
+
+			/* Etiqueta de estado: la de `.vega-status-badge` (punto + fondo suave, nunca solo color: el
+   texto dice el estado). */
+			.vega-admin-tag {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.4rem;
+				flex-shrink: 0;
+				height: 24px;
+				padding: 0 0.65rem;
+				border-radius: 999px;
+				font-size: 0.72rem;
+				font-weight: 600;
+				white-space: nowrap;
+			}
+
+			.vega-admin-tag::before {
+				content: '';
+				width: 6px;
+				height: 6px;
+				border-radius: 50%;
+				background: currentColor;
+				flex-shrink: 0;
+			}
+
+			.vega-admin-tag[data-kind='pub'] {
+				color: var(--success);
+				background: var(--success-soft);
+			}
+
+			.vega-admin-tag[data-kind='other'] {
+				color: var(--info);
+				background: var(--info-soft);
+			}
+
+			/* Fila provisional de la copia en curso (tokens `--info`/`--info-soft`, contraste medido en la
+   lámina: 6,19 en claro y 5,72 en oscuro). */
+			.vega-admin-table tbody tr.vega-admin-running,
+			.vega-admin-table tbody tr.vega-admin-running:hover {
+				background: var(--info-soft);
+			}
+
+			.vega-admin-running .vega-admin-saving {
+				color: var(--info);
+			}
+
+			.vega-admin-sr-only {
+				position: absolute;
+				width: 1px;
+				height: 1px;
+				padding: 0;
+				margin: -1px;
+				overflow: hidden;
+				clip: rect(0, 0, 0, 0);
+				white-space: nowrap;
+				border: 0;
+			}
+
+			/* Por debajo del punto estructural de la app (768 px) la tabla se apila por filas: fila 1 =
+   principal + etiqueta, fila 2 = meta, fila 3 = acciones. */
+			@media (max-width: 768px) {
+				.vega-admin-table thead {
+					position: absolute;
+					width: 1px;
+					height: 1px;
+					overflow: hidden;
+					clip: rect(0, 0, 0, 0);
+				}
+
+				.vega-admin-table,
+				.vega-admin-table tbody,
+				.vega-admin-table tr,
+				.vega-admin-table td {
+					display: block;
+					width: 100%;
+					box-sizing: border-box;
+				}
+
+				.vega-admin-table tbody tr {
+					display: grid;
+					grid-template-columns: minmax(0, 1fr) auto;
+					gap: 0.25rem 0.6rem;
+					height: auto;
+					padding: 0.7rem var(--cell-x);
+				}
+
+				.vega-admin-table td,
+				.vega-admin-table td.vega-admin-main,
+				.vega-admin-table td.vega-admin-actions {
+					width: auto;
+					max-width: none;
+					padding: 0;
+				}
+
+				.vega-admin-table td.vega-admin-main {
+					grid-column: 1 / 2;
+				}
+
+				.vega-admin-table td.vega-admin-side {
+					grid-column: 2;
+					grid-row: 1;
+					justify-self: end;
+				}
+
+				.vega-admin-table td.vega-admin-meta-cell {
+					grid-column: 1 / -1;
+					text-align: left;
+				}
+
+				.vega-admin-table td.vega-admin-actions {
+					grid-column: 1 / -1;
+				}
+
+				.vega-admin-table td.vega-admin-actions .vega-admin-row-actions {
+					justify-content: flex-start;
+					flex-wrap: wrap;
+				}
+
+				.vega-admin-stack-only {
+					display: inline;
+				}
+
+				.vega-admin-table-only {
+					display: none;
+				}
+
+				.vega-admin-head .vega-admin-btn--primary {
+					order: 5;
+				}
+			}
+
+			/* ————— Puerta de superusuario (`.vega-manifest-gate` de /settings) ————— */
+
+			.vega-admin-gate {
+				display: flex;
+				flex-direction: column;
+				gap: 0.5rem;
+				max-width: 34rem;
+				padding: 1rem 1.2rem;
+				border: 1px solid var(--line);
+				border-radius: 8px;
+				background: var(--surface-2);
+			}
+
+			.vega-admin-gate h1 {
+				margin: 0;
+				font-size: 1.1rem;
+				color: var(--ink-hi);
+			}
+
+			.vega-admin-gate p {
+				margin: 0;
+				color: var(--ink-2);
+				font-size: 0.9rem;
+			}
+
+			/* ————— Avisos (`.notice` de /papelera) ————— */
+
+			.vega-admin-notice {
+				display: flex;
+				flex-direction: column;
+				gap: 0.5rem;
+				padding: 0.75rem 1rem;
+				border: 1px solid;
+				border-radius: var(--r);
+			}
+
+			.vega-admin-notice p {
+				margin: 0;
+			}
+
+			.vega-admin-notice-title {
+				font-weight: 600;
+				color: var(--ink-hi);
+			}
+
+			.vega-admin-notice-body {
+				color: var(--ink);
+				font-size: 0.88rem;
+			}
+
+			.vega-admin-notice-actions {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.5rem;
+				margin-top: 0.15rem;
+			}
+
+			.vega-admin-notice--info {
+				border-color: var(--info);
+				background: var(--info-soft);
+				color: var(--info);
+			}
+
+			.vega-admin-notice--warning {
+				border-color: var(--warning);
+				background: var(--warning-soft);
+				color: var(--warning);
+			}
+
+			.vega-admin-notice--danger {
+				border-color: var(--danger);
+				background: var(--danger-soft);
+				color: var(--danger);
+			}
+
+			/* ————— Diálogo (`DeleteConfirm`/`MediaDetail`). El velo vive en `AdminDialog.svelte`, donde
+   `check-theme-coverage.mjs` lo puede ver: esa comprobación solo lee `.svelte` y `.ts`. ————— */
+
+			.vega-admin-dialog {
+				display: flex;
+				flex-direction: column;
+				gap: 0.9rem;
+				width: 100%;
+				max-width: 26rem;
+				max-height: calc(100vh - 2 * var(--vega-space-gutter));
+				overflow-y: auto;
+				box-sizing: border-box;
+				padding: 1.5rem;
+				border-radius: 10px;
+				background: var(--surface);
+				color: var(--ink);
+				box-shadow: var(--shadow-card);
+			}
+
+			.vega-admin-dialog-head {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 0.5rem;
+			}
+
+			.vega-admin-dialog-head h2 {
+				margin: 0;
+				font-size: 1.1rem;
+				color: var(--ink-hi);
+			}
+
+			.vega-admin-dialog > p,
+			.vega-admin-dialog-text {
+				margin: 0;
+				color: var(--ink-2);
+				font-size: 0.9rem;
+			}
+
+			.vega-admin-dialog-text b {
+				color: var(--ink);
+				overflow-wrap: anywhere;
+			}
+
+			.vega-admin-dialog-actions {
+				display: flex;
+				justify-content: flex-end;
+				flex-wrap: wrap;
+				gap: 0.5rem;
+				margin-top: 0.25rem;
+			}
+
+			/* ————— Campos ————— */
+
+			.vega-admin-form {
+				display: flex;
+				flex-direction: column;
+				gap: 0.9rem;
+				margin: 0;
+			}
+
+			.vega-admin-field {
+				display: flex;
+				flex-direction: column;
+				min-width: 0;
+			}
+
+			.vega-admin-field > label {
+				display: block;
+				margin-bottom: 0.35rem;
+				font-size: 0.82em;
+				font-weight: 650;
+				letter-spacing: 0.03em;
+				color: var(--ink-2);
+			}
+
+			.vega-admin-input {
+				width: 100%;
+				box-sizing: border-box;
+				padding: calc(var(--pad-field) * 0.55) calc(var(--pad-field) * 0.7);
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--surface);
+				color: var(--ink);
+				font: inherit;
+			}
+
+			.vega-admin-input:hover {
+				border-color: var(--line-strong);
+			}
+
+			.vega-admin-input[aria-invalid='true'] {
+				border-color: var(--danger);
+			}
+
+			/* Ayuda en `--ink-2`, no en `--ink-3`: medido en la lámina, `--ink-3` da 2,2:1 en claro. */
+			.vega-admin-help {
+				margin: 0.3rem 0 0;
+				font-size: 0.82em;
+				color: var(--ink-2);
+			}
+
+			.vega-admin-field-error {
+				margin: 0.35rem 0 0;
+				font-size: 0.84em;
+				font-weight: 600;
+				color: var(--danger);
+			}
+
+			.vega-admin-choices {
+				display: flex;
+				flex-direction: column;
+				gap: 0.45rem;
+				margin: 0;
+				padding: 0;
+				border: 0;
+			}
+
+			.vega-admin-radio-card {
+				display: flex;
+				align-items: flex-start;
+				gap: 0.6rem;
+				padding: 0.6rem 0.75rem;
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--surface-2);
+				font-size: 0.88rem;
+				cursor: pointer;
+			}
+
+			.vega-admin-radio-card[data-checked='true'] {
+				border-color: var(--accent-line);
+				background: var(--accent-soft);
+			}
+
+			.vega-admin-radio-card input {
+				margin-top: 0.2rem;
+				accent-color: var(--accent);
+			}
+
+			.vega-admin-radio-card b {
+				display: block;
+				color: var(--ink-hi);
+				font-weight: 600;
+			}
+
+			.vega-admin-radio-card span span {
+				color: var(--ink-2);
+				font-size: 0.82rem;
+			}
+
+			/* ===== src/lib/shell/AppShell.svelte (copiado tal cual) ===== */
+
+			.vega-shell {
+				display: flex;
+				flex-direction: column;
+				/* Lienzo de fondo: queda cubierto por Topbar + sidebar + `.vega-main`, pero se pinta por
+		   si alguna sub-región no llenara del todo (inocuo). R6 (marco «cabina») REVERTIDO: ya no
+		   hay tarjeta flotante ni aire perimetral — la app ocupa el viewport entero. */
+				background: var(--bg);
+				/* Altura ACOTADA al viewport (no `min-height`): así `.vega-body` y sus hijos quedan
+		   confinados a la ventana y el scroll ocurre DENTRO de `.vega-main` (que ya tiene
+		   `overflow-y: auto`) y de la sidebar (`overflow-y: auto`) por separado — la topbar
+		   queda fija y el bloque `margin-top: auto` de la sidebar (Medios/Ajustes) siempre cae
+		   dentro de la ventana. Con `min-height` un listado alto estiraba el documento entero,
+		   la sidebar crecía con él y el bloque inferior se iba fuera de la vista.
+		   `100dvh` (con fallback `100vh`) evita el salto por la barra dinámica del navegador móvil. */
+				height: 100vh;
+				height: 100dvh;
+			}
+
+			.vega-body {
+				display: flex;
+				flex: 1;
+				min-height: 0;
+				position: relative;
+			}
+
+			.vega-main {
+				flex: 1;
+				min-width: 0;
+				/* El área de contenido es el "papel" (`--paper`) sobre el que FLOTAN las tarjetas
+		   (listado/ficha), con aire lateral generoso. Padding del mockup: 1.75/2/2.5rem.
+		   ENRIQUECIDO (mockups aquelarre-*.html): `--halo` como segunda capa de fondo — una
+		   atmósfera radial MUY tenue de la marca, `background-attachment: fixed` (no se desplaza
+		   con el scroll interno de `.vega-main`). En paletas planas (brasa) el motor resuelve
+		   `--halo` a `none` y queda el `--paper` liso de siempre, degradado limpio. */
+				padding: 1.75rem 2rem 2.5rem;
+				background-color: var(--paper);
+				background-image: var(--halo);
+				background-attachment: fixed;
+				overflow-y: auto;
+			}
+
+			/* ===== src/lib/shell/Topbar.svelte (copiado tal cual) ===== */
+
+			.vega-topbar {
+				position: relative;
+				display: flex;
+				align-items: center;
+				gap: var(--vega-space-gutter);
+				height: var(--topbar-h);
+				flex-shrink: 0;
+				padding: 0 var(--vega-space-gutter);
+				background: var(--surface-2);
+			}
+
+			/* Hilo iridiscente bajo la topbar (mockups aquelarre-*.html, firma de David): sustituye la
+	   hairline sólida de `--line` por el trazo espectral `--sheen` a la opacidad `--brand-edge-
+	   opacity` del tema — en paletas planas (sin firma propia, p.ej. brasa) el motor resuelve
+	   `--sheen` a un degradado acento→acento-texto y `--brand-edge-opacity` a 0.35, así que nunca
+	   desaparece del todo, solo pierde intensidad. `--sheen` = trazo/resalte (nunca relleno, ver
+	   `--accent-fill` del botón primario), coherente con la barra de fila activa de `RecordTable`. */
+			.vega-topbar::after {
+				content: '';
+				position: absolute;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				height: 1.5px;
+				background: var(--sheen);
+				opacity: var(--brand-edge-opacity);
+			}
+
+			.vega-topbar-menu {
+				display: none;
+				align-items: center;
+				justify-content: center;
+				flex-shrink: 0;
+				width: 2rem;
+				height: 2rem;
+				border: 1px solid var(--line);
+				border-radius: 6px;
+				background: var(--surface);
+				color: var(--ink);
+				cursor: pointer;
+			}
+
+			.vega-topbar-site {
+				display: flex;
+				align-items: center;
+				gap: 0.55rem;
+				min-width: 13rem;
+				flex-shrink: 0;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+
+			/* «Vega»: la marca fija, sans (no --mono — es prosa, no un valor canónico). */
+			.vega-topbar-brand {
+				font-weight: 650;
+				letter-spacing: -0.02em;
+				color: var(--ink-hi);
+			}
+
+			/* El nombre del sitio (M, mockup `.brand .site`): valor canónico del manifiesto (como un slug
+	   o un id) → --mono, mismo criterio que el resto de valores canónicos de la app (ids, slugs,
+	   fechas ISO) — pero TENUE (--ink-2), para no competir con la marca fija de al lado. */
+			.vega-topbar-sitename {
+				font-family: var(--mono);
+				font-weight: 450;
+				font-size: 0.85em;
+				color: var(--ink-2);
+				overflow: hidden;
+				text-overflow: ellipsis;
+				/* Item flex: sin `min-width:0` el mínimo automático es su propio contenido y el
+		   `text-overflow: ellipsis` de arriba nunca llega a activarse (el nombre del sitio empuja
+		   la topbar entera en vez de recortarse). Ver el colapso móvil al final del fichero. */
+				min-width: 0;
+			}
+
+			/* Fix code-review (lote-1, 🟡): 769-900px el buscador quedaba con un área de escritura
+	   ínfima (~57-88px medido) porque el wordmark reservaba `min-width:13rem` fijo (con
+	   `flex-shrink:0` ya no baja de ahí, PERO tampoco necesita tanto — es más ancho que su
+	   propio contenido) y `.vega-topbar-actions` tampoco cede: TODO el squeeze lo absorbía
+	   `GlobalSearch` en solitario. En el rango apretado (por encima del colapso móvil, por
+	   debajo de donde ya sobra sitio) el wordmark cede primero — la búsqueda es la protagonista
+	   del mockup, no debe ser lo primero en comprimirse. */
+			@media (min-width: 769px) and (max-width: 1100px) {
+				.vega-topbar-site {
+					min-width: 6rem;
+				}
+			}
+
+			.vega-topbar-actions {
+				display: flex;
+				align-items: center;
+				gap: 0.75rem;
+				flex-shrink: 0;
+				/* SIN `margin-left:auto` propio (a diferencia de antes): `GlobalSearch` ya centra el
+		   buscador con SU PROPIO `margin-inline:auto` (ver su cabecera) — ese margen derecho
+		   absorbe todo el hueco restante y empuja a `.vega-topbar-actions` hasta el borde derecho,
+		   igual que en el mockup (`.topbar-right`, sin margen propio). Si esto vuelve a llevar
+		   `margin-left:auto`, el buscador deja de quedar centrado (el hueco se repartiría entre
+		   TRES márgenes en vez de dos). */
+			}
+
+			.vega-topbar-avatar {
+				width: 28px;
+				height: 28px;
+				flex-shrink: 0;
+				border-radius: 50%;
+				background: var(--accent);
+				color: var(--accent-ink);
+				display: grid;
+				place-items: center;
+				font-size: 0.72rem;
+				font-weight: 700;
+			}
+
+			/* Chip de usuario → menú (#l12-ux, item 3): el ancla `position:relative` del popover, no lleva
+	   estilo propio más allá de eso — el chip visible es el `<button>` de dentro. */
+			.vega-topbar-user {
+				position: relative;
+				flex-shrink: 0;
+			}
+
+			/* El disparador ("chip"): mismo tratamiento visual que el resto de botones-icono de la topbar
+	   (`.vega-topbar-logout`/`.vega-topbar-menu`), pero SIN su propio borde/fondo — el avatar
+	   circular ya aporta el contraste, un segundo marco alrededor sería ruido visual. */
+			.vega-topbar-user-trigger {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.3rem;
+				padding: 0.2rem 0.3rem;
+				border: 1px solid transparent;
+				border-radius: 999px;
+				background: none;
+				color: var(--ink-2);
+				cursor: pointer;
+			}
+
+			.vega-topbar-user-trigger:hover,
+			.vega-topbar-user-trigger[aria-expanded='true'] {
+				background: var(--active);
+				border-color: var(--line);
+			}
+
+			.vega-topbar-user-trigger:focus-visible {
+				outline: 2px solid var(--accent);
+				outline-offset: 1px;
+			}
+
+			/* El chevron apunta hacia la derecha en el set de iconos (§2.7); rotado a "abajo" (afordancia
+	   estándar de menú desplegable) y, con el menú abierto, a "arriba" (mismo criterio que
+	   cualquier `<select>`/menú nativo: la flecha se invierte para indicar "ya desplegado"). */
+			.vega-topbar-user-trigger svg {
+				transform: rotate(90deg);
+				transition: transform 0.12s ease;
+			}
+
+			.vega-topbar-user-trigger[aria-expanded='true'] svg {
+				transform: rotate(-90deg);
+			}
+
+			/* El menú flotante: tarjeta mínima (mismos tokens que cualquier panel/tarjeta del shell —
+	   `--surface`/`--line`/`--shadow-card`), anclada bajo el chip, alineada al borde derecho (nunca
+	   se sale de la ventana por la izquierda, la topbar ya empuja las acciones a la derecha con
+	   `margin-left:auto`). */
+			.vega-topbar-user-menu {
+				position: absolute;
+				top: calc(100% + 0.4rem);
+				right: 0;
+				z-index: 10;
+				display: flex;
+				flex-direction: column;
+				min-width: 10rem;
+				padding: 0.3rem;
+				border: 1px solid var(--line);
+				border-radius: 8px;
+				background: var(--surface);
+				box-shadow: var(--shadow-card);
+			}
+
+			.vega-topbar-user-menu a {
+				display: flex;
+				align-items: center;
+				gap: 0.55rem;
+				padding: 0.45rem 0.6rem;
+				border-radius: 6px;
+				color: var(--ink);
+				font-size: 0.85rem;
+				text-decoration: none;
+				white-space: nowrap;
+			}
+
+			.vega-topbar-user-menu a:hover,
+			.vega-topbar-user-menu a:focus-visible {
+				background: var(--active);
+				color: var(--ink-hi);
+			}
+
+			.vega-topbar-logout {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				flex-shrink: 0;
+				width: 2rem;
+				height: 2rem;
+				border: 1px solid var(--line);
+				border-radius: 6px;
+				background: var(--surface);
+				color: var(--ink);
+				cursor: pointer;
+			}
+
+			/* Mismo tratamiento que `.vega-topbar-logout` (botón-icono cuadrado del chrome): el plegado es
+	   un control de ESCRITORIO (ver cabecera), así que se oculta bajo el mismo punto de colapso
+	   estructural en el que el hamburguesa aparece — los dos nunca coexisten. */
+			.vega-topbar-collapse {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				flex-shrink: 0;
+				width: 2rem;
+				height: 2rem;
+				border: 1px solid var(--line);
+				border-radius: 6px;
+				background: var(--surface);
+				color: var(--ink);
+				cursor: pointer;
+			}
+
+			.vega-topbar-collapse:hover {
+				border-color: var(--line-strong);
+			}
+
+			/* Mismo punto de colapso ESTRUCTURAL (768px) que Sidebar.svelte y ConnectionStatus.svelte
+	   (§4.2): topbar compacta a íconos, el hamburguesa aparece. CSS `@media` no admite `var()`, así
+	   que el valor se replica; si P7 lo cambia, cambiarlo EN LOS TRES ficheros. */
+			@media (max-width: 768px) {
+				.vega-topbar-menu {
+					display: flex;
+				}
+
+				/* El plegado no significa nada por debajo del punto de colapso (ver cabecera): ahí la
+		   sidebar ya es el cajón de siempre, gobernado por el hamburguesa de arriba. */
+				.vega-topbar-collapse {
+					display: none;
+				}
+
+				/* El wordmark CEDE (mismo criterio que el rango 769-1100 de arriba: es lo primero que se
+		   comprime). En móvil `GlobalSearch` ya está oculto y `.vega-topbar-actions` es
+		   irreductible —chip de sesión + logout—, así que el wordmark es el único elástico que
+		   queda: sin `flex-shrink:1` la topbar mide `hamburguesa + ancho intrínseco del wordmark +
+		   acciones` y a 375px eso daba EXACTAMENTE 375px de holgura cero. Cualquier métrica de
+		   fuente un pelo más ancha (el Linux del CI frente al macOS local) desbordaba la página y
+		   tumbaba `e2e/list.spec.ts` «sin desbordar la página». Ahora el nombre del sitio se recorta
+		   con elipsis y el desbordamiento horizontal vuelve a ser SOLO el de la tabla, contenido en
+		   su propio wrapper. */
+				.vega-topbar-site {
+					min-width: 0;
+					flex-shrink: 1;
+				}
+			}
+
+			/* ===== src/lib/shell/Sidebar.svelte (copiado tal cual) ===== */
+
+			.vega-sidebar {
+				width: var(--vega-size-sidebar);
+				flex-shrink: 0;
+				display: flex;
+				flex-direction: column;
+				gap: var(--vega-space-gutter);
+				/* Inset lateral (mockup: los items de nav flotan con ~0.6rem de margen a cada lado, no van a
+		   sangre): antes el padding horizontal era 0 y las cajas activa/hover tocaban los bordes. */
+				padding: var(--vega-space-gutter);
+				border-right: 1px solid var(--line);
+				background: var(--sidebar);
+				overflow-y: auto;
+			}
+
+			.vega-sidebar-close,
+			.vega-sidebar-backdrop {
+				display: none;
+			}
+
+			.vega-nav-group ul,
+			.vega-nav-fixed {
+				list-style: none;
+				margin: 0;
+				padding: 0;
+				/* Aire vertical entre items del rail (antes iban pegados de fila a fila). */
+				display: flex;
+				flex-direction: column;
+				gap: 2px;
+			}
+
+			.vega-nav-group-label {
+				position: relative;
+				margin: 0 0 0.4rem;
+				padding: 0 var(--vega-space-gutter) 0 calc(var(--vega-space-gutter) + 0.85rem);
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				font-size: 0.75rem;
+				text-transform: uppercase;
+				letter-spacing: 0.04em;
+				color: var(--ink-2);
+			}
+
+			/* Punto de parada cromática de marca (ver marcado): `data-brand` cicla 0/1/2 por grupo. */
+			.vega-nav-group-label::before {
+				content: '';
+				position: absolute;
+				left: var(--vega-space-gutter);
+				top: 50%;
+				width: 6px;
+				height: 6px;
+				border-radius: 50%;
+				transform: translateY(-50%);
+			}
+
+			.vega-nav-group-label[data-brand='0']::before {
+				background: var(--brand-a);
+			}
+
+			.vega-nav-group-label[data-brand='1']::before {
+				background: var(--brand-b);
+			}
+
+			.vega-nav-group-label[data-brand='2']::before {
+				background: var(--brand-c);
+			}
+
+			.vega-nav-fixed {
+				margin-top: auto;
+				padding-top: var(--vega-space-gutter);
+				border-top: 1px solid var(--line);
+			}
+
+			/* Mismos tokens/estados que `NavItem.svelte` (misma "pestaña" activa, R5): Medios/Ajustes son
+	   accesos fijos de P3 (fuera del `NavModel` de P2), pero visualmente son filas de nav
+	   idénticas — duplicado a propósito, Svelte no comparte CSS scoped entre componentes. */
+			.vega-nav-fixed a {
+				display: flex;
+				align-items: center;
+				gap: 0.65rem;
+				min-height: var(--row-h);
+				padding: 0 var(--vega-space-gutter);
+				/* Misma caja redondeada que los items de grupo (`NavItem.svelte`). */
+				border-radius: var(--r);
+				color: var(--ink-2);
+				text-decoration: none;
+			}
+
+			.vega-nav-fixed a svg {
+				color: var(--ink-3);
+			}
+
+			.vega-nav-fixed a:hover {
+				background: var(--active);
+				color: var(--ink-hi);
+			}
+
+			/* Item activo = SOLO pastilla (mockup `.nav-item[aria-current='page']`, aquelarre-dark.html),
+	   igual que `NavItem.svelte`: fondo `--accent-soft` + texto `--accent-text`, sin trazo lateral
+	   (el `--sheen` de aquelarre arranca en verde y pintaba una línea que no está en el mockup). */
+			.vega-nav-fixed a[aria-current='page'] {
+				background: var(--accent-soft);
+				color: var(--accent-text);
+				font-weight: 600;
+			}
+
+			.vega-nav-fixed a[aria-current='page'] svg {
+				color: var(--accent-text);
+			}
+
+			.vega-nav-fixed-label {
+				flex: 1;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+
+			.vega-nav-trailing {
+				flex-shrink: 0;
+				margin-left: auto;
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+			}
+
+			/* Badge-píldora (mockup `.nav-count`, aquelarre-dark.html): duplicada a propósito respecto a
+	   `NavItem.svelte` — mismo motivo que el resto del CSS de `.vega-nav-fixed` (Svelte no
+	   comparte CSS scoped entre componentes). Mantener ambas coherentes. */
+			.vega-nav-count {
+				flex-shrink: 0;
+				font-family: var(--mono);
+				font-size: 0.6875rem;
+				font-variant-numeric: tabular-nums;
+				color: var(--ink-3);
+				background: var(--surface);
+				border: 1px solid var(--line-soft);
+				border-radius: 999px;
+				padding: 0.05rem 0.5rem;
+				/* Altura de la píldora: el mockup la saca del line-height HEREDADO (~1.45); aquí el count
+		   computa `line-height: normal` (más bajo) y el óvalo quedaba demasiado plano — se fija
+		   explícito para que sea una píldora redonda de verdad, no una raya. */
+				line-height: 1.45;
+			}
+
+			/* En el item activo la píldora se vacía y toma el borde/texto de acento (mockup
+	   `.nav-item[aria-current='page'] .nav-count`). */
+			.vega-nav-fixed a[aria-current='page'] .vega-nav-count {
+				color: var(--accent-text);
+				border-color: var(--accent-line);
+				background: transparent;
+			}
+
+			.vega-sidebar-empty {
+				display: flex;
+				flex-direction: column;
+				gap: 0.4rem;
+				padding: 0 var(--vega-space-gutter);
+				font-size: 0.9rem;
+			}
+
+			.vega-sidebar-empty-title {
+				margin: 0;
+				font-weight: 600;
+				color: var(--ink);
+			}
+
+			.vega-sidebar-empty-body {
+				margin: 0;
+				color: var(--ink-2);
+			}
+
+			/* Responsive (§4.2): punto de colapso ESTRUCTURAL que fija P3 (768px, referencia de tableta);
+	   los valores finos (anchura exacta del overlay, el propio breakpoint como token) los ajusta
+	   P7 sin reabrir esta regla.
+	   FUENTE ÚNICA: este mismo 768px se replica en `Topbar.svelte` y `ConnectionStatus.svelte`
+	   (CSS `@media` no admite `var()`, así que no hay custom property compartida). Si P7 cambia el
+	   valor, cambiarlo EN LOS TRES a la vez. */
+			@media (max-width: 768px) {
+				.vega-sidebar {
+					position: fixed;
+					inset: 0 auto 0 0;
+					z-index: 30;
+					width: min(80vw, 300px);
+					max-width: 300px;
+					box-shadow: var(--shadow-card);
+					transform: translateX(-100%);
+					transition: transform 0.2s ease;
+				}
+
+				.vega-sidebar-open {
+					transform: translateX(0);
+				}
+
+				.vega-sidebar-close {
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					align-self: flex-end;
+					flex-shrink: 0;
+					width: 2rem;
+					height: 2rem;
+					margin: 0 var(--vega-space-gutter);
+					border: 1px solid var(--line);
+					border-radius: 6px;
+					background: var(--surface);
+					color: var(--ink);
+					cursor: pointer;
+				}
+
+				.vega-sidebar-backdrop {
+					display: block;
+					position: fixed;
+					inset: 0;
+					z-index: 20;
+					margin: 0;
+					padding: 0;
+					border: none;
+					/* Scrim theme-independiente (§3 no tiene token de velo) — allowlisted en
+			   check-theme-coverage.mjs. */
+					background: rgb(15 17 21 / 45%);
+					cursor: pointer;
+				}
+			}
+
+			/* Plegado de escritorio (ver cabecera, "Plegado de escritorio"): SOLO por encima del punto de
+	   colapso estructural — por debajo, `.vega-sidebar-open`/el cajón mandan, y esta regla no
+	   compite con ellas (breakpoints mutuamente excluyentes, `min-width` aquí vs `max-width` en el
+	   bloque de arriba). */
+			@media (min-width: 769px) {
+				.vega-sidebar {
+					transition: width 0.2s ease;
+				}
+
+				.vega-sidebar-collapsed {
+					width: 0;
+					padding: 0;
+					border-right: 0;
+					overflow: hidden;
+					/* Ver cabecera: saca el contenido del orden de tabulación, no solo de la vista. */
+					visibility: hidden;
+				}
+			}
+
+			@media (prefers-reduced-motion: reduce) {
+				.vega-sidebar {
+					transition: none;
+				}
+			}
+
+			/* ===== src/lib/shell/EditTopBar.svelte (copiado tal cual) ===== */
+
+			.vega-edit-top {
+				display: flex;
+				align-items: center;
+				flex-wrap: wrap;
+				gap: 1rem;
+				padding: 0.4rem 0 1rem;
+				border-bottom: 1px solid var(--line);
+				/* Aire bajo la barra en el modo NO-a-sangre (`ManifestEditor`), donde el contenido que
+		   sigue no trae padding propio. A sangre lo pone la rejilla del editor (ver `--bleed`). */
+				margin-bottom: 1.5rem;
+				position: sticky;
+				/* Ver cabecera (por qué NO `var(--topbar-h)`): el scroll es el de `.vega-main`. */
+				top: 0;
+				/* Ver cabecera: MISMO token que `.vega-main` (región de contenido que scrollea detrás). */
+				background: var(--paper);
+				/* Por encima de las tarjetas pegajosas del editor (raíl/aside), que no llevan z-index
+		   propio pero sí `position: sticky` — sin esto, un aside alto pasaría por delante. */
+				z-index: 9;
+			}
+
+			/* A sangre (mockup `.edit-topbar`, ver cabecera): padding propio arriba/abajo y a los lados, y
+	   SIN margen inferior — la separación con el contenido la pone ya el padding de la rejilla del
+	   editor, y un margen aquí abriría un hueco de `--paper` entre la hairline y las tarjetas. */
+			.vega-edit-top--bleed {
+				gap: 0.75rem;
+				padding: 0.6rem calc(var(--vega-space-gutter) * 1.5);
+				margin-bottom: 0;
+			}
+
+			.vega-edit-top-spacer {
+				flex: 1;
+			}
+
+			/* ===== src/lib/shell/ToastHost.svelte (copiado tal cual) ===== */
+
+			.vega-toast-host {
+				position: fixed;
+				z-index: 60;
+				right: var(--vega-space-gutter);
+				bottom: var(--vega-space-gutter);
+				display: flex;
+				flex-direction: column;
+				gap: 0.5rem;
+				width: min(22rem, calc(100vw - 2 * var(--vega-space-gutter)));
+				pointer-events: none;
+			}
+
+			.vega-toast-region {
+				display: flex;
+				flex-direction: column;
+				gap: 0.5rem;
+			}
+
+			.vega-toast {
+				display: flex;
+				align-items: center;
+				gap: 0.6rem;
+				padding: 0.6rem 0.8rem;
+				border-radius: 8px;
+				border: 1px solid var(--line);
+				background: var(--surface);
+				color: var(--ink);
+				box-shadow: var(--shadow-card);
+				font-size: 0.9rem;
+				pointer-events: auto;
+			}
+
+			.vega-toast span {
+				flex: 1;
+			}
+
+			.vega-toast[data-kind='success'] {
+				border-color: var(--success);
+			}
+
+			.vega-toast[data-kind='error'] {
+				border-color: var(--danger);
+				background: var(--danger-soft);
+			}
+
+			.vega-toast-dismiss {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				flex-shrink: 0;
+				width: 1.5rem;
+				height: 1.5rem;
+				border: none;
+				border-radius: 6px;
+				background: transparent;
+				color: inherit;
+				cursor: pointer;
+			}
+
+			.vega-toast-dismiss:hover {
+				/* `--active` (elemento activo) y no `--btn`: en modo oscuro `--btn` queda a un solo dígito
+		   hex de `--surface` (hover invisible); `--active` sí distingue, y encaja semánticamente con
+		   un estado interactivo momentáneo. Sobre el toast `[data-kind]` teñido da un oscurecimiento
+		   coherente en vez del parche gris neutro de `--btn`. */
+				background: var(--active);
+			}
+
+			@media (prefers-reduced-motion: reduce) {
+				.vega-toast {
+					transition: none;
+				}
+			}
+
+			/* ===== src/lib/admin/AdminDialog.svelte (copiado tal cual) ===== */
+
+			.vega-admin-dialog-backdrop {
+				position: fixed;
+				z-index: 70;
+				inset: 0;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				padding: var(--vega-space-gutter);
+				/* Velo independiente del tema (§3 no tiene token de velo), allowlisted en
+		   check-theme-coverage.mjs, igual que el de `DeleteConfirm.svelte`. */
+				background: rgb(15 17 21 / 55%);
+			}
+
+			/* ===== src/lib/form/FieldRow.svelte (copiado tal cual) ===== */
+
+			/* Campo apilado (mockup `.field`): label encima, control debajo, ayuda y error bajo el control.
+	   Sin borde ni padding propios — quien separa una fila de otra es el `gap` del contenedor
+	   (`.vega-fields`/`.vega-fgroup-grid` de `RecordForm.svelte`), como en el mockup. */
+			.vega-field-row {
+				display: flex;
+				flex-direction: column;
+				/* Casos límite de contenido real (F5-g): permite que la fila se encoja por debajo del
+		   ancho de su contenido — sin esto, un label/valor kilométrico de una sola palabra
+		   desbordaría horizontalmente el formulario. */
+				min-width: 0;
+			}
+
+			.vega-field-row > label {
+				display: block;
+				font-size: 0.82em;
+				font-weight: 650;
+				letter-spacing: 0.03em;
+				color: var(--ink-2);
+				margin-bottom: 0.35rem;
+				overflow-wrap: anywhere;
+			}
+
+			.vega-field-required {
+				margin-left: 0.15rem;
+				color: var(--danger);
+			}
+
+			.vega-field-control {
+				display: flex;
+				flex-direction: column;
+				min-width: 0;
+			}
+
+			.vega-field-inline {
+				display: flex;
+				gap: 0.5rem;
+				align-items: flex-start;
+			}
+
+			.vega-field-inline-widget {
+				flex: 1;
+				min-width: 0;
+			}
+
+			.vega-field-help {
+				margin: 0.3rem 0 0;
+				font-size: 0.82em;
+				/* `--ink-3` sobre `--surface`/`--paper` en claro da 2,20:1 (medido), bajo el 4,5:1 de AA
+		   para texto normal — esta ayuda hay que poder leerla, no es decorativa. `--ink-2` (~5,7:1
+		   sobre blanco) sí cumple. */
+				color: var(--ink-2);
+				overflow-wrap: anywhere;
+			}
+
+			/* Mensaje de error (mockup `.error-msg`): icono + texto en la misma línea base. */
+			.vega-field-error {
+				display: flex;
+				align-items: center;
+				gap: 0.4rem;
+				margin: 0.35rem 0 0;
+				font-size: 0.84em;
+				color: var(--danger);
+				font-weight: 600;
+				overflow-wrap: anywhere;
+			}
+
+			/* `stacked` (§4.9b): dentro de `.vega-fgroup-grid` la separación entre celdas la pone el `gap`
+	   de la rejilla. Se conserva la clase (la usan los grupos de columnas emparejadas) aunque el
+	   eje del label ya no dependa de ella: todas las filas son apiladas desde el mockup final. */
+			.vega-field-row--stacked {
+				margin: 0;
+			}
+
+			/* Campo héroe: el título del registro (mockup `.field.title-field input`, firma de David — el
+	   hilo `--sheen` en trazos-resalte finos, nunca en rellenos). `` porque el `<input>`
+	   real lo pinta `Text.svelte` (D-P5.1: la interfaz de widget no lleva un flag "soy el título",
+	   así que el gancho vive aquí, en el contenedor) — targetea su clase estable
+	   `.vega-widget-text`, nunca un selector de posición.
+	   La caja se aplana a una sola hairline inferior (sin recuadro/radio): un `border-image` NO
+	   respeta `border-radius` (esquinas cuadradas encima de una caja redondeada, artefacto visual
+	   conocido) y pintaría el degradado en las CUATRO aristas si quedara algún `border-width` en
+	   las otras tres — reduciéndolas a 0 aquí es lo que confina el efecto a un subrayado de
+	   verdad. `aria-invalid` (regla de `Text.svelte`) sigue funcionando: solo tiñe la arista que
+	   de verdad tiene ancho. */
+			.vega-field-row--title .vega-widget-text {
+				font-size: 1.35em;
+				font-weight: 650;
+				color: var(--ink-hi);
+				border: 0;
+				border-bottom: 1px solid var(--line-soft);
+				border-radius: 0;
+				padding-inline: 0;
+				background: transparent;
+			}
+
+			.vega-field-row--title .vega-widget-text:hover {
+				border-bottom-color: var(--line-strong);
+			}
+
+			.vega-field-row--title .vega-widget-text:focus-visible {
+				outline: none;
+				border-bottom: 2px solid transparent;
+				border-image: var(--sheen) 1;
+			}
+
+			/* Campo slug (mockup `.slug-row input.mono`): VALOR canónico ⇒ `--mono`, un punto más pequeño
+	   para compensar el ancho de la mono. Mismo gancho `:global` que el campo héroe.
+	   Campo ruta (`isPathField`, modelo de páginas): MISMO tratamiento — la dirección pública de
+	   una página es un valor canónico igual que un slug, no prosa. */
+			.vega-field-row--slug .vega-widget-text,
+			.vega-field-row--path .vega-widget-text {
+				font-family: var(--mono);
+				font-size: 0.92em;
+			}
+
+			/* Aviso del modelo bajo un campo (`notice`, ver cabecera): mismo lenguaje visual que
+	   `.vega-refs-partial` de `ReferencesSummary.svelte` — informa, no bloquea (por eso NO
+	   comparte estilo con `.vega-field-error`, que sí impide guardar). */
+			.vega-field-notice {
+				margin: 0.35rem 0 0;
+				padding: 0.4rem 0.6rem;
+				border: 1px solid var(--warning);
+				border-radius: 6px;
+				background: var(--warning-soft);
+				color: var(--warning);
+				font-size: 0.82em;
+			}
+
+			/* ===== src/lib/form/widgets/Text.svelte (copiado tal cual) ===== */
+
+			.vega-widget-text {
+				width: 100%;
+				box-sizing: border-box;
+				/* Caja de control del mockup final `aquelarre-detalle-post.html` (`.field input`), idéntica
+		   en los siete widgets escalares: padding derivado de la densidad (`--pad-field`), radio
+		   `--r` y superficie `--surface` (los CONTROLES; la tarjeta que los contiene es
+		   `--paper`). Hover y foco viven abajo. */
+				padding: calc(var(--pad-field) * 0.55) calc(var(--pad-field) * 0.7);
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--surface);
+				color: var(--ink);
+				font: inherit;
+			}
+
+			/* Hover/foco del mockup: el borde se marca al pasar por encima y el anillo `--ring` sube
+	   al control (nunca `outline: none` sin sustituto). */
+			.vega-widget-text:hover:not(:disabled) {
+				border-color: var(--line-strong);
+			}
+
+			.vega-widget-text:focus-visible {
+				outline: 2px solid var(--ring);
+				outline-offset: 1px;
+				border-color: var(--line-strong);
+			}
+
+			.vega-widget-text:disabled {
+				opacity: 0.6;
+				cursor: not-allowed;
+			}
+
+			.vega-widget-text[aria-invalid='true'] {
+				border-color: var(--danger);
+			}
+
+			/* ===== src/lib/form/RecordForm.svelte (copiado tal cual) ===== */
+
+			/* El editor va A SANGRE (mockup final, ver cabecera): `.vega-main` (AppShell) pinta el papel
+	   con `padding: 1.75rem 2rem 2.5rem` para TODAS las rutas, y aquí se cancela con márgenes
+	   negativos para que la hairline de la barra pegajosa y el fondo lleguen de borde a borde —
+	   igual que en el mockup, donde el lienzo del editor no tiene padding y quien lo repone es la
+	   propia rejilla (`.vega-editor-grid`). Es el ÚNICO punto del repo que replica ese valor: si
+	   cambia en `AppShell.svelte`, hay que cambiarlo aquí. */
+			.vega-record-form {
+				display: flex;
+				flex-direction: column;
+				margin: -1.75rem -2rem -2.5rem;
+				/* Casos límite de contenido real (F5-g): sin esto, el formulario es un flex-item cuyo
+		   `min-width` por defecto es el de su contenido — un label/valor kilométrico (una sola
+		   palabra sin espacios) podría forzar overflow horizontal de la página entera. */
+				min-width: 0;
+			}
+
+			/* Rejilla maestro-detalle (mockup `.detail-grid`): raíl | tarjetas | aside. `align-items:
+	   start` es lo que permite que las dos columnas laterales sean pegajosas (si se estiraran a la
+	   altura de la fila, no habría nada que "pegar"). */
+			.vega-editor-grid {
+				display: grid;
+				grid-template-columns: minmax(0, 1fr);
+				gap: calc(var(--vega-space-gutter) * 1.25);
+				align-items: start;
+				padding: calc(var(--vega-space-gutter) * 1.25) calc(var(--vega-space-gutter) * 1.5);
+			}
+
+			.vega-editor-grid--rail {
+				grid-template-columns: 264px minmax(0, 1fr);
+			}
+
+			.vega-editor-grid--aside {
+				grid-template-columns: minmax(0, 1fr) 296px;
+			}
+
+			.vega-editor-grid--rail.vega-editor-grid--aside {
+				grid-template-columns: 264px minmax(0, 1fr) 296px;
+			}
+
+			.vega-editor-main {
+				display: flex;
+				flex-direction: column;
+				gap: var(--vega-space-gutter);
+				min-width: 0;
+			}
+
+			/* Columna lateral (mockup `.aside`): tarjetas compactas apiladas, pegajosa bajo la barra. */
+			.vega-editor-aside {
+				display: flex;
+				flex-direction: column;
+				gap: var(--vega-space-gutter);
+				position: sticky;
+				/* Mismo offset (y mismo motivo) que `.vega-rail` en `EditorRail.svelte`: el scroll es el de
+		   `.vega-main`, así que solo hay que descontar el alto de la barra pegajosa del editor. */
+				top: 58px;
+				min-width: 0;
+			}
+
+			/* Responsive del mockup, punto por punto. 1180px: se va el raíl (lo primero que sobra: es una
+	   ayuda de navegación, no contenido) y la rejilla queda en dos columnas. */
+			@media (max-width: 1180px) {
+				.vega-editor-grid--rail {
+					grid-template-columns: minmax(0, 1fr);
+				}
+
+				.vega-editor-grid--rail.vega-editor-grid--aside {
+					grid-template-columns: minmax(0, 1fr) 296px;
+				}
+
+				/* `:global` DELIBERADO (mismo patrón que `FieldRow` con `.vega-widget-text`): el raíl es un
+		   componente hijo con su propio CSS scoped, pero quién sobra y a qué ancho es una decisión
+		   de ESTA rejilla, no suya. Se oculta el hijo directo, no se envuelve en un `<div>`: un
+		   envoltorio de altura ajustada dejaría su `position: sticky` sin recorrido. */
+				.vega-editor-grid--rail > .vega-rail {
+					display: none;
+				}
+			}
+
+			/* 900px: una sola columna y el aside deja de ser pegajoso (cae bajo el formulario, donde no
+	   tiene sentido que se quede clavado). Los selectores repiten la misma especificidad que el
+	   bloque de 1180px para poder ganarle por orden de cascada. */
+			@media (max-width: 900px) {
+				.vega-editor-grid,
+				.vega-editor-grid--rail,
+				.vega-editor-grid--aside,
+				.vega-editor-grid--rail.vega-editor-grid--aside {
+					grid-template-columns: minmax(0, 1fr);
+				}
+
+				.vega-editor-aside {
+					position: static;
+				}
+			}
+
+			.vega-form-content {
+				display: flex;
+				flex-direction: column;
+				gap: var(--vega-space-gutter);
+				min-width: 0;
+			}
+
+			.vega-locale-tabs {
+				display: flex;
+				width: fit-content;
+				max-width: 100%;
+				overflow-x: auto;
+				padding: 0.3rem;
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--surface-2);
+				box-shadow: var(--shadow-card);
+				scrollbar-width: thin;
+			}
+
+			.vega-locale-tabs button {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.55rem;
+				flex: 0 0 auto;
+				min-height: 2.35rem;
+				padding: 0.45rem 0.85rem;
+				border: 1px solid transparent;
+				border-radius: calc(var(--r) - 2px);
+				background: transparent;
+				color: var(--ink-2);
+				font-family: var(--mono);
+				font-size: 0.75rem;
+				font-weight: 600;
+				cursor: pointer;
+			}
+
+			.vega-locale-tabs button:hover {
+				color: var(--ink);
+				background: var(--active);
+			}
+
+			.vega-locale-tabs button[aria-selected='true'] {
+				border-color: var(--line-strong);
+				background: var(--surface);
+				color: var(--ink-hi);
+				box-shadow: var(--shadow-card);
+			}
+
+			.vega-locale-tabs button:focus-visible {
+				outline: 2px solid var(--accent);
+				outline-offset: 2px;
+			}
+
+			.vega-locale-status {
+				width: 0.5rem;
+				height: 0.5rem;
+				border-radius: 999px;
+				background: var(--success);
+			}
+
+			.vega-locale-tabs button[data-status='missing'] .vega-locale-status {
+				background: var(--ink-3);
+			}
+
+			.vega-locale-tabs button[data-status='dirty'] .vega-locale-status {
+				background: var(--warning);
+			}
+
+			.vega-locale-tabs button[data-status='error'] .vega-locale-status {
+				background: var(--danger);
+			}
+
+			/* Técnica WCAG estándar de "visualmente oculto" (ver cabecera del módulo): 1×1px, invisible a
+	   simple vista, presente en el árbol de accesibilidad (Playwright/lectores de pantalla SÍ lo
+	   ven). NUNCA `display:none`/`visibility:hidden`, que lo sacarían del árbol por completo. */
+			.vega-visually-hidden {
+				position: absolute;
+				width: 1px;
+				height: 1px;
+				padding: 0;
+				margin: -1px;
+				overflow: hidden;
+				clip: rect(0, 0, 0, 0);
+				white-space: nowrap;
+				border: 0;
+			}
+
+			/* Enlace-atrás de la barra (mockup `.back`): chevron + label del tipo, tenue hasta el hover. */
+			.vega-editor-back {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.35rem;
+				flex-shrink: 0;
+				padding: 0.25rem 0.5rem;
+				border: 0;
+				border-radius: var(--r);
+				background: none;
+				color: var(--ink-2);
+				font: inherit;
+				font-size: 0.9em;
+				line-height: 1.2; /* explícito: el `line-height` heredado no viaja a un componente Svelte */
+				cursor: pointer;
+			}
+
+			.vega-editor-back:hover:not(:disabled) {
+				background: var(--active);
+				color: var(--ink-hi);
+			}
+
+			.vega-editor-back:disabled {
+				cursor: not-allowed;
+				opacity: 0.5;
+			}
+
+			/* El chevron del set apunta a la derecha (ver el marcado): se espeja para señalar "atrás". */
+			.vega-editor-back svg {
+				transform: scaleX(-1);
+			}
+
+			/* Título del documento + indicadores (mockup `.doc`). `min-width: 0` para que la elipsis del
+	   título funcione dentro del flex de la barra. */
+			.vega-editor-doc {
+				display: flex;
+				align-items: center;
+				gap: 0.55rem;
+				min-width: 0;
+			}
+
+			/* Mockup `.doc-title`: el título del registro, acotado a 30ch con elipsis — un título
+	   kilométrico no puede empujar las acciones fuera de la barra (eje 5, contenido real). */
+			.vega-editor-crumb-name {
+				font-weight: 650;
+				color: var(--ink-hi);
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				max-width: 30ch;
+			}
+
+			.vega-editor-readonly-badge {
+				flex-shrink: 0;
+				padding: 0.1rem 0.4rem;
+				border: 1px solid var(--line);
+				border-radius: 999px;
+				font-size: 0.7rem;
+				line-height: 1.4;
+				white-space: nowrap;
+				color: var(--ink-2);
+			}
+
+			/* Tag de estado (mockup final `.status`): la MISMA píldora que la insignia de la tabla
+	   (`.vega-status-badge` en `RecordTable.svelte`) — alto fijo 24px, punto de 6px + palabra, sin
+	   borde, fondo semántico `-soft`. SANS, nunca `--mono`: una etiqueta de estado es un RÓTULO, no
+	   un valor canónico. `line-height` explícito (el heredado no viaja a un componente Svelte: sin
+	   él la palabra queda baja dentro de la píldora). */
+			.vega-editor-tag {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.4rem;
+				flex-shrink: 0;
+				height: 24px;
+				padding: 0 0.65rem;
+				border-radius: 999px;
+				font-size: 0.82em;
+				font-weight: 600;
+				line-height: 24px;
+				white-space: nowrap;
+			}
+
+			.vega-editor-tag::before {
+				content: '';
+				width: 6px;
+				height: 6px;
+				border-radius: 50%;
+				background: currentColor;
+				flex-shrink: 0;
+			}
+
+			.vega-editor-tag[data-status-kind='pub'] {
+				color: var(--success);
+				background: var(--success-soft);
+			}
+
+			.vega-editor-tag[data-status-kind='draft'] {
+				color: var(--ink-2);
+				background: var(--btn);
+			}
+
+			.vega-editor-tag[data-status-kind='other'] {
+				color: var(--info);
+				background: var(--info-soft);
+			}
+
+			.vega-editor-tag[data-status-kind='scheduled'] {
+				color: var(--accent-text);
+				background: var(--accent-soft);
+			}
+
+			/* Punto "sin guardar" (mockup `.dirty-dot`): 8px en `--warning`. El texto va dentro,
+	   visualmente oculto (ver cabecera) — de ahí `overflow: hidden`, para que el clip del texto no
+	   estire el punto. */
+			.vega-editor-dirty {
+				display: inline-block;
+				flex-shrink: 0;
+				width: 8px;
+				height: 8px;
+				border-radius: 50%;
+				background: var(--warning);
+				overflow: hidden;
+			}
+
+			/* Estado de guardado (mockup `.save-state`): tenue; con `⟳` en `--info` mientras se guarda. */
+			.vega-editor-saved-at {
+				font-family: var(--mono);
+				font-size: 0.72rem;
+				color: var(--ink-2);
+				white-space: nowrap;
+			}
+
+			.vega-editor-saved-at--saving::before {
+				content: '⟳ ';
+				color: var(--info);
+			}
+
+			/* Aviso de edición concurrente abierto (lámina p1): solo cambia color y prefijo. */
+			.vega-editor-saved-at--conflict {
+				color: var(--warning);
+			}
+
+			.vega-editor-saved-at--conflict::before {
+				content: '⚠ ';
+			}
+
+			/* Botones de la barra (mockup `.btn`/`.btn-primary`): namespaced a este componente (mismo
+	   criterio que el resto de la app — cada marco define su propio botón, ver
+	   `.vega-list-new-button` de `/c/[type]/+page.svelte`). */
+			.vega-editor-preview-link {
+				display: inline-flex;
+				align-items: center;
+				height: 34px;
+				padding: 0 0.9rem;
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--btn);
+				color: var(--ink);
+				font-size: 0.8125rem;
+				font-weight: 550;
+				line-height: 34px;
+				text-decoration: none;
+				white-space: nowrap;
+				cursor: pointer;
+			}
+
+			a.vega-editor-preview-link:hover {
+				border-color: var(--line-strong);
+			}
+
+			button.vega-editor-preview-link:disabled {
+				cursor: not-allowed;
+				opacity: 0.5; /* mockup `.btn:disabled { opacity: 0.5 }` */
+			}
+
+			/* Botón "Vista previa" (lote "publicación" fase B, ver cabecera): MISMO tamaño/forma que
+	   "Ver en el sitio", con estado `--active` cuando el panel está abierto (mismo lenguaje de
+	   "pulsado" que un toggle, no un color nuevo). */
+			.vega-editor-preview-toggle {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.4rem;
+				height: 34px;
+				padding: 0 0.9rem;
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--btn);
+				color: var(--ink);
+				font-size: 0.8125rem;
+				font-weight: 550;
+				line-height: 1.2;
+				white-space: nowrap;
+				cursor: pointer;
+			}
+
+			.vega-editor-preview-toggle:hover {
+				border-color: var(--line-strong);
+			}
+
+			.vega-editor-preview-toggle--active {
+				border-color: var(--accent-line);
+				color: var(--accent-text);
+				background: var(--active);
+			}
+
+			/* Botón "Editor visual" (tarea "pantalla del editor visual"): MISMO tamaño/forma que "Vista
+	   previa"/"Ver en el sitio" — sin estado `--active` propio, a diferencia del toggle: este
+	   botón NAVEGA (sustituye la pantalla entera), no alterna un panel sobre el propio formulario. */
+			.vega-editor-visual-button {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.4rem;
+				height: 34px;
+				padding: 0 0.9rem;
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--btn);
+				color: var(--ink);
+				font-size: 0.8125rem;
+				font-weight: 550;
+				line-height: 1.2;
+				white-space: nowrap;
+				cursor: pointer;
+			}
+
+			.vega-editor-visual-button:hover {
+				border-color: var(--line-strong);
+			}
+
+			.vega-editor-duplicate-button {
+				display: inline-flex;
+				align-items: center;
+				height: 34px;
+				padding: 0 0.9rem;
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--btn);
+				color: var(--ink);
+				font-size: 0.8125rem;
+				font-weight: 550;
+				line-height: 1.2;
+				white-space: nowrap;
+				cursor: pointer;
+			}
+
+			.vega-editor-duplicate-button:hover:not(:disabled) {
+				border-color: var(--line-strong);
+			}
+
+			.vega-editor-duplicate-button:disabled {
+				cursor: not-allowed;
+				opacity: 0.5;
+			}
+
+			/* Mismo breakpoint que `PreviewPanel.svelte` se oculta por completo (ver su cabecera,
+	   "Responsive"): sin panel que abrir, el botón que lo abriría sobraría. */
+			@media (max-width: 900px) {
+				.vega-editor-preview-toggle {
+					display: none;
+				}
+			}
+
+			@media (pointer: coarse) {
+				.vega-editor-duplicate-button {
+					min-height: 44px;
+				}
+			}
+
+			/* Acción inline junto a un control (mockup `.slug-row .btn`): el MISMO botón secundario de la
+	   barra, en el tamaño de un control de campo. */
+			.vega-editor-inline-button {
+				flex-shrink: 0;
+				height: 34px;
+				padding: 0 0.9rem;
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--btn);
+				color: var(--ink);
+				font: inherit;
+				font-weight: 550;
+				line-height: 1.2;
+				white-space: nowrap;
+				cursor: pointer;
+			}
+
+			.vega-editor-inline-button:hover:not(:disabled) {
+				border-color: var(--line-strong);
+			}
+
+			.vega-editor-inline-button:disabled {
+				cursor: not-allowed;
+				opacity: 0.5;
+			}
+
+			/* Botón primario "Guardar" → --accent-fill (mockups aquelarre-*.html, firma de David: relleno
+	   de marca, gradiente en los temas ricos y acento sólido en los planos — nunca `--sheen`, que
+	   es solo trazo). Hover = anillo de `--accent-line` en vez de oscurecer el relleno (un
+	   `background` sólido de hover no tiene sentido sobre un gradiente). */
+			.vega-editor-save-button {
+				display: inline-flex;
+				align-items: center;
+				height: 34px; /* mockup `.btn`: los tres botones de la barra comparten alto */
+				padding: 0 0.9rem;
+				border: 1px solid transparent;
+				border-radius: var(--r);
+				background: var(--accent-fill);
+				color: var(--accent-ink);
+				font-size: 0.8125rem;
+				font-weight: 600;
+				line-height: 34px;
+				white-space: nowrap;
+				cursor: pointer;
+			}
+
+			.vega-editor-save-button:hover:not(:disabled) {
+				box-shadow: 0 0 0 1.5px var(--accent-line);
+			}
+
+			/* Mismo "kbd sobre botón de acento" que `.vega-list-new-button kbd` (R2 de lote-2): el mockup
+	   usa un halo `color-mix(...)` que `check-theme-coverage.mjs` prohíbe fuera de
+	   `src/lib/themes/` (ver `GlobalSearch.svelte`, mismo motivo) — este es el sustituto ya
+	   establecido: borde neutro `--line-strong` + `opacity` en vez de mezclar color. */
+			.vega-editor-save-button kbd {
+				margin-left: 0.4rem;
+				font-family: var(--mono);
+				font-size: 0.6875rem;
+				border: 1px solid var(--line-strong);
+				border-bottom-width: 2px;
+				border-radius: 4px;
+				padding: 0.08rem 0.35rem;
+				color: var(--accent-ink);
+				opacity: 0.75;
+			}
+
+			.vega-editor-save-button:disabled {
+				cursor: not-allowed;
+				opacity: 0.45; /* mockup `.btn:disabled { opacity: 0.45 }` — mismo valor que el manifiesto */
+			}
+
+			/* Tarjeta de campos (mockup final `.card`): papel elevado + borde + sombra, con el padding de
+	   densidad `--pad-card`. `--paper` y no `--surface`: en el vocabulario del rediseño `--paper` es
+	   la superficie de TARJETA y `--surface` la de los CONTROLES que van dentro (inputs, botones);
+	   una tarjeta en `--surface` haría desaparecer sus propios campos. */
+			.vega-fsection {
+				display: flex;
+				flex-direction: column;
+				gap: 0.75rem;
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--paper);
+				box-shadow: var(--shadow-card);
+				padding: var(--pad-card);
+				min-width: 0;
+			}
+
+			/* Rótulo de tarjeta (mockup `.aside h2`, usado también en las de la columna central para que el
+	   editor tenga UN solo criterio de cabecera): versalita tenue, sin barra de fondo. */
+			.vega-fsection h2 {
+				display: flex;
+				align-items: center;
+				gap: 0.45rem;
+				margin: 0;
+				font-size: 0.76em;
+				font-weight: 650;
+				letter-spacing: 0.09em;
+				text-transform: uppercase;
+				color: var(--ink-3);
+				overflow-wrap: anywhere;
+			}
+
+			/* Tarjetas del aside (mockup `.aside .card`): mismo lenguaje, tres cuartos de padding. */
+			.vega-fsection--aside {
+				padding: calc(var(--pad-card) * 0.75);
+			}
+
+			/* Pila de campos de una sección (mockup `.fields`): la separación entre campos es este `gap`
+	   —`--gap-field`, el token de densidad P7— y no un borde por fila, como en el mockup. */
+			.vega-fields {
+				display: flex;
+				flex-direction: column;
+				gap: var(--gap-field);
+				min-width: 0;
+			}
+
+			/* En el aside los campos van más juntos (mockup `.aside .field + .field { margin-top: .9rem }`):
+	   son tarjetas estrechas de metadatos, no el cuerpo del documento. */
+			.vega-fsection--aside .vega-fields {
+				gap: 0.9rem;
+			}
+
+			/* Rejilla de columnas de un grupo (§4.9b, ver cabecera del módulo): 2 columnas por defecto,
+	   `--3` para el máximo del schema (1-3). `gap` reutiliza `--gap-field` (mismo token de
+	   densidad P7 que ya separa los campos entre sí) en vez de un valor nuevo — nada hardcodeado. */
+			.vega-fgroup-grid {
+				display: grid;
+				grid-template-columns: repeat(2, minmax(0, 1fr));
+				gap: var(--gap-field);
+			}
+
+			.vega-fgroup-grid--3 {
+				grid-template-columns: repeat(3, minmax(0, 1fr));
+			}
+
+			/* Mismo breakpoint que el colapso de `.manif` en `ManifestEditor` (940px): grupo de columnas y
+	   manifiesto rompen a 1 columna juntos. */
+			@media (max-width: 940px) {
+				.vega-fgroup-grid,
+				.vega-fgroup-grid--3 {
+					grid-template-columns: 1fr;
+					gap: 0.9rem;
+				}
+			}
+
+			/* Tarjeta "Registro" (mockup `.kv`): pares clave/valor a lado y lado. El `id` en `--mono`
+	   (VALOR canónico); las fechas en tabular para que no bailen al actualizarse. */
+			.vega-editor-kv {
+				display: flex;
+				flex-direction: column;
+				margin: 0;
+			}
+
+			.vega-editor-kv > div {
+				display: flex;
+				justify-content: space-between;
+				gap: 0.75rem;
+				padding: 0.25rem 0;
+				font-size: 0.86em;
+				color: var(--ink-2);
+			}
+
+			.vega-editor-kv dd {
+				margin: 0;
+				color: var(--ink);
+				font-variant-numeric: tabular-nums;
+				overflow-wrap: anywhere;
+			}
+
+			.vega-editor-kv-mono {
+				font-family: var(--mono);
+				font-size: 0.92em;
+			}
+
+			/* Zona de peligro (mockup `.danger-zone`/`.btn-danger`): el borde de la tarjeta avisa antes de
+	   leer nada, y el botón ocupa todo el ancho para que no se confunda con una acción menor. */
+			.vega-editor-danger {
+				border-color: var(--danger-soft);
+			}
+
+			.vega-editor-delete-button {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				width: 100%;
+				height: 34px;
+				padding: 0 0.9rem;
+				border: 1px solid transparent;
+				border-radius: var(--r);
+				background: var(--danger-soft);
+				color: var(--danger);
+				font: inherit;
+				font-size: 0.8125rem;
+				font-weight: 550;
+				line-height: 1.2;
+				cursor: pointer;
+			}
+
+			.vega-editor-delete-button:hover {
+				box-shadow: 0 0 0 1.5px var(--danger);
+			}
+
+			.vega-record-form-notice {
+				margin: 0;
+				padding: 0.6rem 0.9rem;
+				border: 1px solid var(--line);
+				border-radius: 6px;
+				background: var(--surface-2);
+				color: var(--ink-2);
+				font-size: 0.85rem;
+			}
+
+			.vega-record-form-banner {
+				margin: 0;
+				padding: 0.6rem 0.9rem;
+				border: 1px solid var(--danger);
+				border-radius: 6px;
+				background: var(--danger-soft);
+				color: var(--danger);
+				font-size: 0.9rem;
+				overflow-wrap: anywhere;
+			}
+
+			/* ===== src/lib/form/ConflictNotice.svelte (copiado tal cual) ===== */
+
+			/* `.notice` de /papelera en su tono `warning` (y `danger` para el error), compuesto aquí: el
+	   CSS con ámbito de Svelte no cruza componentes. Sin tokens nuevos. */
+			.vega-conflict {
+				display: flex;
+				flex-direction: column;
+				gap: 0.6rem;
+				padding: 0.75rem 1rem;
+				border: 1px solid var(--warning);
+				border-radius: var(--r);
+				background: var(--warning-soft);
+				color: var(--warning);
+			}
+
+			.vega-conflict--danger {
+				border-color: var(--danger);
+				background: var(--danger-soft);
+				color: var(--danger);
+			}
+
+			.vega-conflict--narrow {
+				padding: 0.65rem 0.75rem;
+			}
+
+			.vega-conflict p {
+				margin: 0;
+			}
+
+			/* El icono hereda el color del tono (`currentColor`); el texto va en `--ink-hi`, que es el que
+	   da contraste sobre el fondo suave (mismo criterio que `.notice-title` de /papelera). */
+			.vega-conflict-title {
+				display: flex;
+				align-items: center;
+				gap: 0.45rem;
+				font-weight: 600;
+				color: var(--ink-hi);
+				overflow-wrap: anywhere;
+			}
+
+			.vega-conflict-title svg {
+				flex-shrink: 0;
+				color: var(--warning);
+			}
+
+			.vega-conflict--danger .vega-conflict-title svg {
+				color: var(--danger);
+			}
+
+			.vega-conflict-title:focus-visible {
+				outline: 2px solid var(--ring);
+				outline-offset: 2px;
+			}
+
+			/* `--ink`, no `--ink-2`: sobre `--warning-soft` el gris secundario se queda en 4,1:1 en claro. */
+			.vega-conflict-who,
+			.vega-conflict-body {
+				font-size: 0.84rem;
+				color: var(--ink);
+				overflow-wrap: anywhere;
+			}
+
+			.vega-conflict-diff-head {
+				display: flex;
+				align-items: baseline;
+				justify-content: space-between;
+				flex-wrap: wrap;
+				gap: 0.5rem;
+				margin-top: 0.25rem;
+				color: var(--ink);
+				font-size: 0.8rem;
+			}
+
+			.vega-conflict-link {
+				padding: 0;
+				border: 0;
+				background: none;
+				color: var(--accent-text);
+				font: inherit;
+				font-size: 0.8rem;
+				cursor: pointer;
+			}
+
+			.vega-conflict-link:hover:not(:disabled) {
+				text-decoration: underline;
+			}
+
+			.vega-conflict-diff {
+				display: flex;
+				flex-direction: column;
+				gap: 0.4rem;
+				margin: 0;
+				padding: 0;
+				list-style: none;
+			}
+
+			.vega-conflict-nodiff {
+				font-size: 0.82rem;
+				color: var(--ink);
+			}
+
+			.vega-conflict-actions {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.5rem;
+				margin-top: 0.15rem;
+			}
+
+			/* Botón de barra neutro (`--btn`), igual que los de `RecordForm.svelte`. */
+			.vega-conflict-btn {
+				display: inline-flex;
+				align-items: center;
+				height: 34px;
+				padding: 0 0.9rem;
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--btn);
+				color: var(--ink);
+				font: inherit;
+				font-size: 0.8125rem;
+				font-weight: 550;
+				white-space: nowrap;
+				cursor: pointer;
+			}
+
+			.vega-conflict--narrow .vega-conflict-btn {
+				height: 30px;
+				padding: 0 0.75rem;
+				font-size: 0.8rem;
+			}
+
+			.vega-conflict-btn:hover:not(:disabled):not([aria-disabled='true']) {
+				border-color: var(--line-strong);
+			}
+
+			.vega-conflict-btn:disabled,
+			.vega-conflict-btn[aria-disabled='true'] {
+				cursor: not-allowed;
+				opacity: 0.5;
+			}
+
+			.vega-conflict-btn:focus-visible,
+			.vega-conflict-link:focus-visible {
+				outline: 2px solid var(--ring);
+				outline-offset: 2px;
+			}
+
+			/* Suave de acento (`.vega-revision-diff-restore`): la acción segura. */
+			.vega-conflict-btn--soft {
+				border-color: var(--accent-line);
+				background: var(--accent-soft);
+				color: var(--accent-text);
+				font-weight: 600;
+			}
+
+			/* Peligro (`.vega-editor-delete-button`): la acción que pisa lo del otro. */
+			.vega-conflict-btn--danger {
+				border-color: transparent;
+				background: var(--danger-soft);
+				color: var(--danger);
+			}
+
+			.vega-conflict-btn--danger:hover:not(:disabled):not([aria-disabled='true']) {
+				border-color: transparent;
+				box-shadow: 0 0 0 1.5px var(--danger);
+			}
+
+			@media (pointer: coarse) {
+				.vega-conflict-btn {
+					min-height: 44px;
+				}
+			}
+
+			/* ===== src/routes/settings/+page.svelte (copiado tal cual) ===== */
+
+			.vega-settings-page {
+				display: flex;
+				flex-direction: column;
+				gap: 1.5rem;
+				max-width: 60rem;
+			}
+
+			.vega-settings-header {
+				display: flex;
+				align-items: baseline;
+				justify-content: space-between;
+				gap: 1rem;
+			}
+
+			.vega-settings-header h1 {
+				margin: 0;
+				font-size: 1.3rem;
+			}
+
+			.vega-settings-header button {
+				padding: 0.4rem 0.9rem;
+				border: 1px solid var(--line);
+				border-radius: 6px;
+				background: var(--surface-2);
+				color: var(--ink);
+				cursor: pointer;
+			}
+
+			.vega-settings-header button:disabled {
+				cursor: not-allowed;
+				opacity: 0.6;
+			}
+
+			.vega-settings-error {
+				display: flex;
+				flex-direction: column;
+				align-items: flex-start;
+				gap: 0.75rem;
+			}
+
+			.vega-settings-error button {
+				padding: 0.45rem 0.9rem;
+				border: 1px solid var(--line);
+				border-radius: 6px;
+				background: var(--surface-2);
+				cursor: pointer;
+			}
+
+			.vega-appearance {
+				display: flex;
+				flex-direction: column;
+				gap: 0.75rem;
+				padding: 1rem 1.2rem;
+				border: 1px solid var(--line);
+				border-radius: 8px;
+				background: var(--surface-2);
+			}
+
+			.vega-appearance h2 {
+				margin: 0;
+				font-size: 1.1rem;
+			}
+
+			.vega-appearance-row {
+				display: flex;
+				align-items: center;
+				flex-wrap: wrap;
+				gap: 0.75rem;
+			}
+
+			.vega-appearance-label {
+				min-width: 4rem;
+				font-size: 0.85rem;
+				color: var(--ink-2);
+			}
+
+			.vega-theme-picker {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+				flex: 1 1 32rem;
+				gap: 0.4rem;
+			}
+
+			.vega-mode-toggle {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.4rem;
+			}
+
+			.vega-theme-swatch,
+			.vega-mode-toggle button {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.4rem;
+				padding: 0.3rem 0.6rem;
+				border: 1px solid var(--line);
+				border-radius: 6px;
+				background: var(--surface);
+				color: var(--ink);
+				font-size: 0.8rem;
+				min-height: 36px;
+				cursor: pointer;
+			}
+
+			.vega-theme-swatch[aria-pressed='true'],
+			.vega-mode-toggle button[aria-pressed='true'] {
+				border-color: var(--accent);
+				color: var(--accent-text);
+			}
+
+			.vega-theme-swatch-dot {
+				width: 0.8rem;
+				height: 0.8rem;
+				border-radius: 50%;
+				flex-shrink: 0;
+			}
+
+			@media (pointer: coarse) {
+				.vega-theme-swatch,
+				.vega-mode-toggle button {
+					min-height: 44px;
+				}
+			}
+
+			.vega-backend-section {
+				display: flex;
+				flex-direction: column;
+				gap: 0.75rem;
+				padding: 1rem 1.2rem;
+				border: 1px solid var(--line);
+				border-radius: 8px;
+				background: var(--surface-2);
+			}
+
+			.vega-backend-section h2 {
+				margin: 0;
+				font-size: 1.1rem;
+			}
+
+			.vega-backend-description {
+				margin: 0;
+				font-size: 0.85rem;
+				color: var(--ink-2);
+			}
+
+			/* L6c: mismo tratamiento de tarjeta que "Apariencia"/"Backend, conexión" — el gate de rol
+	   editor no es un error de transporte (`.vega-settings-error`), es un estado degradado
+	   NORMAL/esperado. */
+			.vega-manifest-gate {
+				display: flex;
+				flex-direction: column;
+				gap: 0.5rem;
+				padding: 1rem 1.2rem;
+				border: 1px solid var(--line);
+				border-radius: 8px;
+				background: var(--surface-2);
+			}
+
+			.vega-manifest-gate h2 {
+				margin: 0;
+				font-size: 1.1rem;
+			}
+
+			.vega-manifest-gate p {
+				margin: 0;
+				color: var(--ink-2);
+			}
+
+			.vega-about {
+				display: flex;
+				flex-direction: column;
+				gap: 0.5rem;
+				padding: 1rem 1.2rem;
+				border: 1px solid var(--line);
+				border-radius: 8px;
+				background: var(--surface-2);
+			}
+
+			.vega-about h2 {
+				margin: 0;
+				font-size: 1.1rem;
+			}
+
+			.vega-about p {
+				margin: 0;
+				font-size: 0.85rem;
+				color: var(--ink-2);
+			}
+
+			.vega-update-check {
+				display: flex;
+				flex-direction: column;
+				align-items: flex-start;
+				gap: 0.5rem;
+			}
+
+			.vega-update-check button {
+				padding: 0.4rem 0.9rem;
+				border: 1px solid var(--line);
+				border-radius: 6px;
+				background: var(--surface);
+				color: var(--ink);
+				font-size: 0.85rem;
+				cursor: pointer;
+			}
+
+			.vega-update-check button:disabled {
+				cursor: not-allowed;
+				opacity: 0.6;
+			}
+
+			.vega-update-check-result {
+				margin: 0;
+				font-size: 0.85rem;
+			}
+
+			.vega-update-check-result a {
+				margin-left: 0.3rem;
+				color: var(--accent-text);
+			}
+
+			.vega-update-autocheck {
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				font-size: 0.85rem;
+				cursor: pointer;
+			}
+
+			.vega-update-autocheck-help {
+				margin: -0.25rem 0 0;
+				font-size: 0.8rem;
+				color: var(--ink-2);
+			}
+
+			/* =====================================================================================
+   1. CROMO DE LA LÁMINA — no es producto, no se lleva a Svelte.
+   Solo tokens del tema; ningún color propio.
+   ===================================================================================== */
+
+			body.lam {
+				padding: 0 0 4rem;
+				line-height: 1.45;
+			}
+
+			.lam-head {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: flex-end;
+				justify-content: space-between;
+				gap: 0.75rem 1.5rem;
+				padding: 1.5rem clamp(0.75rem, 3vw, 2.5rem) 1rem;
+				border-bottom: 1px solid var(--line);
+			}
+
+			.lam-head h1 {
+				margin: 0.15rem 0 0;
+				font-size: 1.45rem;
+				color: var(--ink-hi);
+				letter-spacing: -0.01em;
+			}
+
+			.lam-kicker {
+				margin: 0;
+				font-family: var(--mono);
+				font-size: 0.72rem;
+				color: var(--ink-2);
+			}
+
+			.lam-tools {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: center;
+				gap: 0.4rem;
+			}
+
+			.lam-tools [aria-pressed='true'] {
+				border-color: var(--accent);
+				color: var(--accent-text);
+			}
+
+			.lam-tool-label {
+				margin-left: 0.5rem;
+				font-size: 0.8rem;
+				color: var(--ink-2);
+			}
+
+			.lam-theme {
+				width: auto;
+				padding: 0.3rem 0.5rem;
+				font-size: 0.8rem;
+			}
+
+			.lam-section {
+				padding: 1.75rem clamp(0.75rem, 3vw, 2.5rem) 0;
+			}
+
+			.lam-section > h2 {
+				margin: 0 0 0.25rem;
+				font-size: 1.1rem;
+				color: var(--ink-hi);
+			}
+
+			.lam-section > p,
+			.lam-notes li {
+				max-width: 62rem;
+				margin: 0 0 1rem;
+				font-size: 0.88rem;
+				color: var(--ink-2);
+			}
+
+			.lam-section > p b,
+			.lam-notes li b {
+				color: var(--ink);
+			}
+
+			.lam-notes {
+				margin: 0;
+				padding-left: 1.1rem;
+			}
+
+			.lam-notes li {
+				margin-bottom: 0.45rem;
+			}
+
+			.lam-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(min(100%, 27rem), 1fr));
+				gap: 1.5rem;
+				align-items: start;
+			}
+
+			.lam-grid + .lam-grid {
+				margin-top: 1.5rem;
+			}
+
+			.lam-grid--wide {
+				grid-template-columns: repeat(auto-fill, minmax(min(100%, 38rem), 1fr));
+			}
+
+			.lam-spec {
+				display: flex;
+				flex-direction: column;
+				gap: 0.5rem;
+				min-width: 0;
+				margin: 0;
+			}
+
+			.lam-spec figcaption {
+				font-size: 0.8rem;
+				color: var(--ink-2);
+			}
+
+			.lam-spec figcaption b {
+				margin-right: 0.4rem;
+				font-family: var(--mono);
+				font-weight: 500;
+				color: var(--accent-text);
+			}
+
+			.lam-stage {
+				display: flex;
+				flex-direction: column;
+				gap: var(--vega-space-gutter);
+				min-width: 0;
+				padding: 1rem;
+				border: 1px dashed var(--line-strong);
+				border-radius: var(--r);
+				background: var(--paper);
+			}
+
+			/* Velo del diálogo: el mismo literal que `AdminDialog.svelte` (no hay token de velo). */
+			.lam-stage--veil {
+				align-items: center;
+				background: linear-gradient(rgb(15 17 21 / 55%), rgb(15 17 21 / 55%)), var(--paper);
+			}
+
+			/* En la lámina el diálogo se enseña entero; en producto conserva su `max-height` y hace scroll. */
+			.lam-stage--veil .vega-admin-dialog {
+				max-height: none;
+			}
+
+			.lam-why {
+				margin: 0;
+				font-size: 0.8rem;
+				color: var(--ink-2);
+			}
+
+			.lam-why b {
+				color: var(--ink);
+			}
+
+			/* Marco de pantalla completa: la app real ocupa el viewport; aquí crece con su contenido. */
+			.lam-frame {
+				border: 1px solid var(--line-strong);
+				border-radius: var(--r);
+				overflow: hidden;
+			}
+
+			.lam-frame .vega-shell {
+				height: auto;
+			}
+
+			.lam-frame .vega-main {
+				overflow: visible;
+				background-attachment: scroll;
+			}
+
+			.lam-frame .vega-edit-top {
+				position: static;
+			}
+
+			/* Sin `GlobalSearch` en el cromo de la lámina: sin esto las acciones no llegan al borde derecho. */
+			.lam-frame .vega-topbar-actions {
+				margin-left: auto;
+			}
+
+			/* El toast real es `position: fixed`; en la lámina se enseña en su sitio relativo. */
+			.lam-toast {
+				display: flex;
+				justify-content: flex-end;
+			}
+
+			.lam-toast .vega-toast {
+				width: min(22rem, 100%);
+				box-sizing: border-box;
+			}
+
+			.lam-icons {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.75rem 1.25rem;
+				margin: 0;
+				padding: 0;
+				list-style: none;
+				font-family: var(--mono);
+				font-size: 0.75rem;
+				color: var(--ink-2);
+			}
+
+			.lam-icons li {
+				display: flex;
+				align-items: center;
+				gap: 0.4rem;
+			}
+
+			.lam-icons svg {
+				color: var(--ink);
+			}
+
+			/* `NavItem.svelte` tiene selectores de elemento sueltos (`a`, `li`) que solo valen con ámbito de
+   Svelte: transcritos aquí bajo `.vega-nav-group`, mismos valores. */
+			.vega-nav-group a {
+				display: flex;
+				align-items: center;
+				gap: 0.65rem;
+				min-height: var(--row-h);
+				padding: 0 var(--vega-space-gutter);
+				border-radius: var(--r);
+				color: var(--ink-2);
+				text-decoration: none;
+			}
+
+			.vega-nav-group a svg {
+				color: var(--ink-3);
+			}
+
+			.vega-nav-group a[aria-current='page'] {
+				background: var(--accent-soft);
+				color: var(--accent-text);
+				font-weight: 600;
+			}
+
+			.vega-nav-group a[aria-current='page'] svg {
+				color: var(--accent-text);
+			}
+
+			/* =====================================================================================
+   2. COMPOSICIONES PROPUESTAS — lo que el implementer lleva a producto.
+   Ningún token nuevo ni color literal. Cada medida es la de una pieza que ya existe (se cita).
+   ===================================================================================== */
+
+			/* ——— 2.1 Añadidos a `src/lib/admin/admin.css` ——— */
+
+			/* Cabecera de sección dentro de una pantalla de administración (h2 bajo el h1 de la página).
+   Mismo reparto que `.vega-admin-head`; tamaño de `.vega-admin-dialog-head h2`. */
+			.vega-admin-subhead {
+				display: flex;
+				align-items: center;
+				gap: 0.75rem;
+				width: 100%;
+			}
+
+			/* Sin `flex-wrap`: en estrecho parte línea el TÍTULO y «Cambiar» se queda arriba a la derecha.
+   Con `wrap`, el botón caía solo a una segunda línea, a la izquierda (visto en la captura). */
+			.vega-admin-subhead > .vega-admin-tag,
+			.vega-admin-subhead > .vega-admin-btn {
+				flex-shrink: 0;
+			}
+
+			/* Por debajo del punto estructural (768 px): título y «Cambiar» en la primera línea, la etiqueta
+   debajo. Sin esto el título se partía en tres líneas para hacer sitio a la etiqueta. */
+			@media (max-width: 768px) {
+				.vega-admin-subhead {
+					display: grid;
+					grid-template-columns: minmax(0, 1fr) auto;
+					gap: 0.4rem 0.75rem;
+				}
+
+				.vega-admin-subhead > .vega-admin-head-spacer {
+					display: none;
+				}
+
+				.vega-admin-subhead > .vega-admin-btn {
+					grid-column: 2;
+					grid-row: 1;
+				}
+
+				.vega-admin-subhead > .vega-admin-tag {
+					grid-column: 1 / -1;
+					justify-self: start;
+				}
+			}
+
+			.vega-admin-subhead h2 {
+				min-width: 0;
+				margin: 0;
+				font-size: 1.1rem;
+				color: var(--ink-hi);
+			}
+
+			/* Formulario dentro de una tarjeta (`.vega-admin-state` alinea a la izquierda): ocupa el ancho y
+   se queda en la medida de `.vega-admin-gate` (34rem) para que las líneas no se estiren a 1440. */
+			.vega-admin-form--inset {
+				width: 100%;
+				max-width: 34rem;
+			}
+
+			/* Dos campos en una línea (servidor + puerto). Se apilan solos cuando no caben. */
+			.vega-admin-form-row {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.9rem; /* el `gap` de `.vega-admin-form` */
+			}
+
+			.vega-admin-form-row > .vega-admin-field {
+				flex: 1 1 12rem;
+			}
+
+			/* Campo corto: 8rem, el ancho de los numéricos de `RevisionsSettings`. */
+			.vega-admin-form-row > .vega-admin-field--short {
+				flex: 0 1 8rem;
+			}
+
+			.vega-admin-input--short {
+				width: 8rem;
+				max-width: 100%;
+			}
+
+			.vega-admin-input--mono {
+				font-family: var(--mono);
+				font-size: 0.92em; /* el del campo ruta/slug (`.vega-field-row--path`) */
+			}
+
+			.vega-admin-input:focus-visible {
+				outline: 2px solid var(--ring);
+				outline-offset: 1px;
+				border-color: var(--line-strong);
+			}
+
+			/* Casilla con rótulo. Casilla y no interruptor: aquí nada se aplica hasta «Guardar». */
+			.vega-admin-check {
+				display: flex;
+				align-items: flex-start;
+				gap: 0.6rem;
+				font-size: 0.88rem;
+				color: var(--ink);
+				cursor: pointer;
+			}
+
+			.vega-admin-check input {
+				margin-top: 0.2rem;
+				accent-color: var(--accent);
+			}
+
+			.vega-admin-check span span {
+				display: block;
+				color: var(--ink-2);
+				font-size: 0.82rem;
+			}
+
+			.vega-admin-form-actions {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: center;
+				gap: 0.5rem;
+			}
+
+			/* Bloque «probar» dentro de la tarjeta: separado del formulario por la misma raya de las filas. */
+			.vega-admin-test {
+				display: flex;
+				flex-direction: column;
+				gap: 0.6rem;
+				width: 100%;
+				max-width: 34rem;
+				padding-top: 0.9rem;
+				border-top: 1px solid var(--line);
+			}
+
+			.vega-admin-test-row {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: flex-end;
+				gap: 0.5rem;
+			}
+
+			.vega-admin-test-row .vega-admin-field {
+				flex: 1 1 12rem;
+			}
+
+			/* Resultado correcto de una prueba: la etiqueta de estado existente + una frase. */
+			.vega-admin-result {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: center;
+				gap: 0.4rem 0.6rem;
+				margin: 0;
+				font-size: 0.88rem;
+				color: var(--ink);
+			}
+
+			/* Salida literal del servidor: calco de `.vega-revisions-settings-json`, que ya ajusta líneas. */
+			.vega-admin-output {
+				max-height: 16rem;
+				margin: 0;
+				padding: 0.5rem;
+				overflow: auto;
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--surface);
+				color: var(--ink);
+				font-family: var(--mono);
+				font-size: 0.75rem;
+				white-space: pre-wrap;
+				overflow-wrap: anywhere;
+			}
+
+			/* Resumen de un ajuste guardado: pares rótulo/valor, como `.vega-editor-kv` pero a la izquierda. */
+			.vega-admin-summary {
+				display: flex;
+				flex-direction: column;
+				gap: 0.2rem;
+				width: 100%;
+				margin: 0;
+				font-size: 0.88rem;
+			}
+
+			.vega-admin-summary > div {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.15rem 0.6rem;
+			}
+
+			.vega-admin-summary dt {
+				flex: 0 0 10rem;
+				color: var(--ink-2);
+			}
+
+			.vega-admin-summary dd {
+				flex: 1 1 12rem;
+				min-width: 0;
+				margin: 0;
+				color: var(--ink);
+				overflow-wrap: anywhere;
+			}
+
+			.vega-admin-notice-body {
+				overflow-wrap: anywhere;
+			}
+
+			/* El enlace de `.vega-conflict-link`, para «Detalle técnico» y «Quitar la contraseña guardada». */
+			.vega-admin-link {
+				align-self: flex-start;
+				padding: 0;
+				border: 0;
+				background: none;
+				color: var(--accent-text);
+				font: inherit;
+				font-size: 0.82rem;
+				cursor: pointer;
+			}
+
+			.vega-admin-link:hover {
+				text-decoration: underline;
+			}
+
+			details > summary.vega-admin-link {
+				list-style-position: inside;
+			}
+
+			details[open] > summary.vega-admin-link {
+				margin-bottom: 0.4rem;
+			}
+
+			@media (pointer: coarse) {
+				/* Medido a 390: el `select` se quedaba en 41 px y los campos en mono en 43 px. */
+				.vega-admin-input {
+					min-height: 44px;
+				}
+
+				.vega-admin-check,
+				.vega-admin-link {
+					min-height: 44px;
+					align-items: center;
+				}
+
+				.vega-admin-link {
+					display: inline-flex;
+				}
+
+				.vega-admin-check input {
+					margin-top: 0;
+				}
+			}
+
+			/* ——— 2.2 Tarjeta «Preparar el sitio» de /settings ———
+   Misma tarjeta que sus vecinas (`.vega-appearance`, `.vega-about`): mismos números. */
+			.vega-seed {
+				display: flex;
+				flex-direction: column;
+				align-items: flex-start;
+				gap: 0.75rem;
+				padding: 1rem 1.2rem;
+				border: 1px solid var(--line);
+				border-radius: 8px;
+				background: var(--surface-2);
+			}
+
+			.vega-seed-desc {
+				max-width: 46rem; /* `.vega-admin-desc` */
+				margin: 0;
+				font-size: 0.85rem;
+				color: var(--ink-2);
+			}
+
+			.vega-seed > .vega-admin-notice {
+				align-self: stretch;
+			}
+
+			/* ——— 2.3 Lista del plan dentro del diálogo ———
+   Caja y filas de `.vega-admin-radio-card`; rótulo de grupo = `thead th` de `.vega-admin-table`. */
+			.vega-plan {
+				display: flex;
+				flex-direction: column;
+				gap: 0.9rem;
+			}
+
+			/* Grupo de campos dentro de un formulario de administración: `fieldset` sin caja. */
+			.vega-admin-group {
+				display: flex;
+				flex-direction: column;
+				gap: 0.9rem;
+				min-width: 0;
+				margin: 0;
+				padding: 0;
+				border: 0;
+			}
+
+			.vega-admin-group > legend {
+				margin-bottom: 0.6rem;
+				padding: 0;
+				font-size: 0.6875rem;
+				font-weight: 650;
+				text-transform: uppercase;
+				letter-spacing: 0.06em;
+				color: var(--ink-2);
+			}
+
+			.vega-plan h3 {
+				margin: 0 0 0.35rem;
+				font-size: 0.6875rem;
+				font-weight: 650;
+				text-transform: uppercase;
+				letter-spacing: 0.06em;
+				color: var(--ink-2);
+			}
+
+			.vega-plan ul {
+				margin: 0;
+				padding: 0;
+				list-style: none;
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--surface-2);
+			}
+
+			.vega-plan li {
+				padding: 0.6rem 0.75rem;
+				border-bottom: 1px solid var(--line);
+				font-size: 0.88rem;
+			}
+
+			.vega-plan li:last-child {
+				border-bottom: 0;
+			}
+
+			.vega-plan li b {
+				display: block;
+				color: var(--ink-hi);
+				font-weight: 600;
+			}
+
+			.vega-plan li span {
+				color: var(--ink-2);
+				font-size: 0.82rem;
+				overflow-wrap: anywhere;
+			}
+
+			.vega-plan code,
+			.vega-admin-notice code,
+			.vega-admin-dialog-text code,
+			.vega-admin-summary code,
+			.vega-redirect code,
+			.vega-seed-desc code {
+				font-family: var(--mono);
+				font-size: 0.92em;
+				overflow-wrap: anywhere;
+			}
+
+			.vega-plan-rest {
+				margin: 0;
+				font-size: 0.82rem;
+				color: var(--ink-2);
+			}
+
+			/* ——— 2.4 Oferta de redirección en el hueco del banner de registro (`RecordForm`) ———
+   Neutra = `.vega-record-form-notice`; con tono = `.vega-conflict` (aviso/peligro) y su gemelo
+   informativo con `--info`/`--info-soft`, como `.vega-admin-notice--info`. */
+			.vega-redirect {
+				display: flex;
+				flex-direction: column;
+				gap: 0.5rem;
+				padding: 0.75rem 1rem;
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--surface-2);
+			}
+
+			.vega-redirect--info {
+				border-color: var(--info);
+				background: var(--info-soft);
+			}
+
+			.vega-redirect--warning {
+				border-color: var(--warning);
+				background: var(--warning-soft);
+			}
+
+			.vega-redirect--danger {
+				border-color: var(--danger);
+				background: var(--danger-soft);
+			}
+
+			.vega-redirect p {
+				margin: 0;
+			}
+
+			.vega-redirect-check,
+			.vega-redirect-title {
+				display: flex;
+				align-items: flex-start;
+				gap: 0.6rem;
+				font-weight: 600;
+				color: var(--ink-hi);
+				overflow-wrap: anywhere;
+			}
+
+			.vega-redirect-check {
+				cursor: pointer;
+			}
+
+			.vega-redirect-check input {
+				flex-shrink: 0;
+				margin-top: 0.25rem;
+				accent-color: var(--accent);
+			}
+
+			.vega-redirect-check > span,
+			.vega-redirect-title > span {
+				min-width: 0;
+			}
+
+			.vega-redirect-title svg {
+				flex-shrink: 0;
+				margin-top: 0.15rem;
+			}
+
+			.vega-redirect--warning .vega-redirect-title svg {
+				color: var(--warning);
+			}
+
+			.vega-redirect--danger .vega-redirect-title svg {
+				color: var(--danger);
+			}
+
+			/* `--ink`, no `--ink-2`: mismo motivo que `.vega-conflict-who` sobre un fondo suave. */
+			.vega-redirect-body {
+				font-size: 0.84rem;
+				color: var(--ink);
+				overflow-wrap: anywhere;
+			}
+
+			.vega-redirect-list {
+				margin: 0;
+				padding-left: 1.1rem;
+				font-size: 0.84rem;
+				color: var(--ink);
+			}
+
+			.vega-redirect-choices {
+				display: flex;
+				flex-direction: column;
+				gap: 0.35rem;
+				margin: 0;
+				padding: 0;
+				border: 0;
+			}
+
+			.vega-redirect-choices label {
+				display: flex;
+				align-items: flex-start;
+				gap: 0.6rem;
+				font-size: 0.88rem;
+				color: var(--ink);
+				cursor: pointer;
+				overflow-wrap: anywhere;
+			}
+
+			.vega-redirect-choices label > span {
+				min-width: 0;
+			}
+
+			.vega-redirect-choices input {
+				flex-shrink: 0;
+				margin-top: 0.2rem;
+				accent-color: var(--accent);
+			}
+
+			.vega-redirect-actions {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.5rem;
+			}
+
+			@media (pointer: coarse) {
+				.vega-redirect-check,
+				.vega-redirect-choices label {
+					min-height: 44px;
+					align-items: center;
+				}
+
+				.vega-redirect-check input,
+				.vega-redirect-choices input {
+					margin-top: 0;
+				}
+			}
+		</style>
+	</head>
+	<body class="lam">
+		<header class="lam-head">
+			<div>
+				<p class="lam-kicker">
+					Vega · lote 2026-10-01 · ajustes y sembrado · modo componente (C2 «Cabina con aire»)
+				</p>
+				<h1>B3 + B4 · Copias automáticas y dónde se guardan (/copias)</h1>
+			</div>
+			<div class="lam-tools" role="group" aria-label="Vista de la lámina">
+				<button type="button" class="vega-admin-btn vega-admin-btn--sm" data-lam-mode="light">
+					Claro
+				</button>
+				<button type="button" class="vega-admin-btn vega-admin-btn--sm" data-lam-mode="dark">
+					Oscuro
+				</button>
+				<label class="lam-tool-label" for="lam-theme">Tema</label>
+				<select id="lam-theme" class="vega-admin-input lam-theme"></select>
+			</div>
+		</header>
+		<script>
+			(function () {
+				var temas = [
+					'niebla',
+					'brasa',
+					'faro',
+					'rescoldo',
+					'miel',
+					'halloween',
+					'aquelarre',
+					'cereza',
+					'tinta',
+					'marea',
+					'sea-wingnow',
+					'bosque',
+					'menta',
+					'salvia',
+					'lavanda',
+					'ciruela',
+					'carbon',
+					'colibri',
+					'tornasol',
+					'pizarra',
+					'terracota'
+				];
+				var html = document.documentElement;
+				var q = new URLSearchParams(location.search);
+				var mode =
+					q.get('mode') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+				html.dataset.mode = mode;
+				html.dataset.theme = q.get('theme') || 'niebla';
+				function pinta() {
+					document.querySelectorAll('[data-lam-mode]').forEach(function (b) {
+						b.setAttribute('aria-pressed', String(b.dataset.lamMode === html.dataset.mode));
+					});
+				}
+				document.querySelectorAll('[data-lam-mode]').forEach(function (b) {
+					b.addEventListener('click', function () {
+						html.dataset.mode = b.dataset.lamMode;
+						pinta();
+					});
+				});
+				var sel = document.getElementById('lam-theme');
+				temas.forEach(function (t) {
+					var o = document.createElement('option');
+					o.value = t;
+					o.textContent = t;
+					sel.appendChild(o);
+				});
+				sel.value = html.dataset.theme;
+				sel.addEventListener('change', function () {
+					html.dataset.theme = sel.value;
+				});
+				pinta();
+			})();
+		</script>
+
+		<!--TITULO B3 + B4 · Copias automáticas y dónde se guardan (/copias)-->
+
+		<section class="lam-section">
+			<h2>Dónde vive</h2>
+			<p>
+				Dos tarjetas nuevas en <b>/copias</b>, <b>debajo de la lista</b>. Misma pieza que el correo
+				de /editores: resumen de lo guardado, «Cambiar» abre el formulario dentro de la tarjeta, y
+				la prueba vive junto al resumen. La cabecera, la descripción y la lista son el código real
+				de hoy, sin cambios.
+			</p>
+			<div class="lam-frame">
+				<div class="vega-shell">
+					<header class="vega-topbar">
+						<button type="button" class="vega-topbar-menu" aria-label="Abrir menú">
+							<svg
+								viewBox="0 0 24 24"
+								width="18"
+								height="18"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+								focusable="false"
+							>
+								<line x1="4" y1="6" x2="20" y2="6" />
+								<line x1="4" y1="12" x2="20" y2="12" />
+								<line x1="4" y1="18" x2="20" y2="18" />
+							</svg>
+						</button>
+						<span class="vega-topbar-site"
+							><span class="vega-topbar-brand">Vega</span
+							><span class="vega-topbar-sitename">Aguja</span></span
+						>
+						<div class="vega-topbar-actions">
+							<span class="vega-topbar-avatar" role="img" aria-label="Sesión">D</span>
+							<button type="button" class="vega-topbar-logout" aria-label="Cerrar sesión">
+								<svg
+									viewBox="0 0 24 24"
+									width="16"
+									height="16"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"
+									focusable="false"
+								>
+									<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+									<polyline points="16 17 21 12 16 7" />
+									<line x1="21" y1="12" x2="9" y2="12" />
+								</svg>
+							</button>
+						</div>
+					</header>
+					<div class="vega-body">
+						<nav class="vega-sidebar" aria-label="Navegación principal">
+							<div class="vega-nav-group">
+								<p class="vega-nav-group-label" data-brand="0">Sitio</p>
+								<ul>
+									<li>
+										<a href="#"
+											><svg
+												viewBox="0 0 24 24"
+												width="16"
+												height="16"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												aria-hidden="true"
+												focusable="false"
+											>
+												<path d="M6 2h7l5 5v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" />
+												<polyline points="13 2 13 7 18 7" /></svg
+											><span class="vega-nav-fixed-label">Páginas</span></a
+										>
+									</li>
+									<li>
+										<a href="#"
+											><svg
+												viewBox="0 0 24 24"
+												width="16"
+												height="16"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												aria-hidden="true"
+												focusable="false"
+											>
+												<polyline points="9 6 15 12 9 18" /></svg
+											><span class="vega-nav-fixed-label">Redirecciones</span></a
+										>
+									</li>
+								</ul>
+							</div>
+							<ul class="vega-nav-fixed">
+								<li>
+									<a href="#"
+										><svg
+											viewBox="0 0 24 24"
+											width="16"
+											height="16"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											aria-hidden="true"
+											focusable="false"
+										>
+											<rect x="3" y="4" width="18" height="16" rx="2" />
+											<circle cx="8.5" cy="9.5" r="1.5" />
+											<polyline points="4 17 9 12 13 16 16 13 20 17" /></svg
+										><span class="vega-nav-fixed-label">Medios</span></a
+									>
+								</li>
+								<li>
+									<a href="#"
+										><svg
+											viewBox="0 0 24 24"
+											width="16"
+											height="16"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											aria-hidden="true"
+											focusable="false"
+										>
+											<polyline points="4 7 20 7" />
+											<path d="M6 7v13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7" />
+											<path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
+											<line x1="10" y1="11" x2="10" y2="17" />
+											<line x1="14" y1="11" x2="14" y2="17" /></svg
+										><span class="vega-nav-fixed-label">Papelera</span></a
+									>
+								</li>
+								<li>
+									<a href="#"
+										><svg
+											viewBox="0 0 24 24"
+											width="16"
+											height="16"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											aria-hidden="true"
+											focusable="false"
+										>
+											<circle cx="12" cy="8" r="4" />
+											<path d="M4 21c0-4 4-7 8-7s8 3 8 7" /></svg
+										><span class="vega-nav-fixed-label">Editores</span></a
+									>
+								</li>
+								<li>
+									<a href="#" aria-current="page"
+										><svg
+											viewBox="0 0 24 24"
+											width="16"
+											height="16"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											aria-hidden="true"
+											focusable="false"
+										>
+											<rect x="3" y="4" width="18" height="5" rx="1" />
+											<path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9" />
+											<line x1="10" y1="13" x2="14" y2="13" /></svg
+										><span class="vega-nav-fixed-label">Copias</span></a
+									>
+								</li>
+								<li>
+									<a href="#"
+										><svg
+											viewBox="0 0 24 24"
+											width="16"
+											height="16"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											aria-hidden="true"
+											focusable="false"
+										>
+											<line x1="4" y1="7" x2="20" y2="7" />
+											<circle cx="9" cy="7" r="2" />
+											<line x1="4" y1="17" x2="20" y2="17" />
+											<circle cx="15" cy="17" r="2" /></svg
+										><span class="vega-nav-fixed-label">Ajustes</span></a
+									>
+								</li>
+							</ul>
+						</nav>
+						<main class="vega-main">
+							<div class="vega-admin-page">
+								<div class="vega-admin-head">
+									<h1>Copias de seguridad</h1>
+									<span class="vega-admin-meta"><b>3</b></span>
+									<span class="vega-admin-head-spacer"></span>
+									<button type="button" class="vega-admin-btn vega-admin-btn--primary">
+										<svg
+											viewBox="0 0 24 24"
+											width="14"
+											height="14"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											aria-hidden="true"
+											focusable="false"
+										>
+											<line x1="12" y1="5" x2="12" y2="19" />
+											<line x1="5" y1="12" x2="19" y2="12" />
+										</svg>
+										Crear copia
+									</button>
+								</div>
+								<p class="vega-admin-desc">
+									Copia completa de la base de datos y de los ficheros subidos, guardada en el
+									servidor. Descárgala para tener otra fuera de él.
+								</p>
+
+								<div class="vega-admin-card">
+									<table class="vega-admin-table">
+										<thead>
+											<tr>
+												<th scope="col">Nombre</th>
+												<th scope="col" class="vega-admin-right">Tamaño</th>
+												<th scope="col" class="vega-admin-right">Fecha</th>
+												<th scope="col"><span class="vega-admin-sr-only">Acciones</span></th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr>
+												<td class="vega-admin-main">
+													<span class="vega-admin-title vega-admin-title--mono"
+														>@auto_pb_backup_aguja_20261001000000.zip</span
+													>
+												</td>
+												<td class="vega-admin-right vega-admin-mono vega-admin-side">48,2 MB</td>
+												<td class="vega-admin-right vega-admin-mono vega-admin-meta-cell">
+													1 oct 2026, 2:00
+												</td>
+												<td class="vega-admin-actions">
+													<span class="vega-admin-row-actions"
+														><button type="button" class="vega-admin-btn vega-admin-btn--sm">
+															Descargar
+														</button></span
+													>
+												</td>
+											</tr>
+											<tr>
+												<td class="vega-admin-main">
+													<span class="vega-admin-title vega-admin-title--mono"
+														>@auto_pb_backup_aguja_20260930000000.zip</span
+													>
+												</td>
+												<td class="vega-admin-right vega-admin-mono vega-admin-side">48,1 MB</td>
+												<td class="vega-admin-right vega-admin-mono vega-admin-meta-cell">
+													30 sep 2026, 2:00
+												</td>
+												<td class="vega-admin-actions">
+													<span class="vega-admin-row-actions"
+														><button type="button" class="vega-admin-btn vega-admin-btn--sm">
+															Descargar
+														</button></span
+													>
+												</td>
+											</tr>
+											<tr>
+												<td class="vega-admin-main">
+													<span class="vega-admin-title vega-admin-title--mono"
+														>pb_backup_aguja_20260928171204.zip</span
+													>
+												</td>
+												<td class="vega-admin-right vega-admin-mono vega-admin-side">47,6 MB</td>
+												<td class="vega-admin-right vega-admin-mono vega-admin-meta-cell">
+													28 sep 2026, 19:12
+												</td>
+												<td class="vega-admin-actions">
+													<span class="vega-admin-row-actions"
+														><button type="button" class="vega-admin-btn vega-admin-btn--sm">
+															Descargar
+														</button></span
+													>
+												</td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+
+								<div class="vega-admin-card">
+									<section class="vega-admin-state" aria-labelledby="ctx-auto">
+										<div class="vega-admin-subhead">
+											<h2 id="ctx-auto">Copias automáticas</h2>
+											<span class="vega-admin-tag" data-kind="pub">Activadas</span>
+											<span class="vega-admin-head-spacer"></span>
+											<button type="button" class="vega-admin-btn vega-admin-btn--sm">
+												Cambiar
+											</button>
+										</div>
+										<dl class="vega-admin-summary">
+											<div>
+												<dt>Frecuencia</dt>
+												<dd>Cada día, a las 00:00 UTC (las 2:00 aquí)</dd>
+											</div>
+											<div>
+												<dt>Se conservan</dt>
+												<dd>Las 7 últimas automáticas</dd>
+											</div>
+										</dl>
+									</section>
+								</div>
+
+								<div class="vega-admin-card">
+									<section class="vega-admin-state" aria-labelledby="ctx-dest">
+										<div class="vega-admin-subhead">
+											<h2 id="ctx-dest">Dónde se guardan</h2>
+											<span class="vega-admin-head-spacer"></span>
+											<button type="button" class="vega-admin-btn vega-admin-btn--sm">
+												Cambiar
+											</button>
+										</div>
+										<p>
+											En este servidor, junto a la web. Si el servidor se pierde, las copias se
+											pierden con él.
+										</p>
+									</section>
+								</div>
+							</div>
+						</main>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<section class="lam-section">
+			<h2>B3 · Copias automáticas</h2>
+			<p>
+				<code>backups.cron</code> se ofrece como cuatro opciones en llano. «Nunca» manda la
+				expresión vacía, que es como PocketBase las desactiva. Las horas se dicen en UTC, que es
+				como las ejecuta el servidor, con la hora local al lado para que nadie crea que «a las
+				00:00» es su medianoche.
+			</p>
+			<div class="lam-grid">
+				<figure class="lam-spec">
+					<figcaption><b>B3.1</b> Desactivadas (cron vacío)</figcaption>
+					<div class="lam-stage">
+						<div class="vega-admin-card">
+							<section class="vega-admin-state">
+								<div class="vega-admin-subhead"><h2>Copias automáticas</h2></div>
+								<p>Ahora solo se hace una copia cuando alguien pulsa «Crear copia».</p>
+								<button type="button" class="vega-admin-btn">Programar copias</button>
+							</section>
+						</div>
+					</div>
+				</figure>
+
+				<figure class="lam-spec">
+					<figcaption><b>B3.2</b> Activadas</figcaption>
+					<div class="lam-stage">
+						<div class="vega-admin-card">
+							<section class="vega-admin-state">
+								<div class="vega-admin-subhead">
+									<h2>Copias automáticas</h2>
+									<span class="vega-admin-tag" data-kind="pub">Activadas</span>
+									<span class="vega-admin-head-spacer"></span>
+									<button type="button" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button>
+								</div>
+								<dl class="vega-admin-summary">
+									<div>
+										<dt>Frecuencia</dt>
+										<dd>Cada semana, los domingos a las 00:00 UTC (las 2:00 aquí)</dd>
+									</div>
+									<div>
+										<dt>Se conservan</dt>
+										<dd>Las 4 últimas automáticas</dd>
+									</div>
+								</dl>
+							</section>
+						</div>
+					</div>
+				</figure>
+
+				<figure class="lam-spec">
+					<figcaption><b>B3.3</b> Activadas con una expresión propia</figcaption>
+					<div class="lam-stage">
+						<div class="vega-admin-card">
+							<section class="vega-admin-state">
+								<div class="vega-admin-subhead">
+									<h2>Copias automáticas</h2>
+									<span class="vega-admin-tag" data-kind="pub">Activadas</span>
+									<span class="vega-admin-head-spacer"></span>
+									<button type="button" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button>
+								</div>
+								<dl class="vega-admin-summary">
+									<div>
+										<dt>Frecuencia</dt>
+										<dd>Personalizada · <code>30 3 * * 1,4</code></dd>
+									</div>
+									<div>
+										<dt>Se conservan</dt>
+										<dd>Las 12 últimas automáticas</dd>
+									</div>
+								</dl>
+							</section>
+						</div>
+					</div>
+					<p class="lam-why">
+						La expresión se enseña literal: traducirla a palabras exige un intérprete de cron en el
+						navegador que, si falla, afirma un horario falso.
+					</p>
+				</figure>
+
+				<figure class="lam-spec">
+					<figcaption><b>B3.4</b> Formulario · opción en llano</figcaption>
+					<div class="lam-stage">
+						<div class="vega-admin-card">
+							<section class="vega-admin-state">
+								<div class="vega-admin-subhead"><h2>Copias automáticas</h2></div>
+								<form class="vega-admin-form vega-admin-form--inset" novalidate>
+									<div class="vega-admin-field">
+										<label for="c-freq">Frecuencia</label>
+										<select id="c-freq" class="vega-admin-input">
+											<option>Nunca</option>
+											<option selected>Cada día, a las 00:00 UTC</option>
+											<option>Cada semana, los domingos a las 00:00 UTC</option>
+											<option>Personalizada…</option>
+										</select>
+										<p class="vega-admin-help">Las 00:00 UTC son las 2:00 aquí.</p>
+									</div>
+									<div class="vega-admin-field">
+										<label for="c-keep">Copias automáticas que se conservan</label>
+										<input
+											id="c-keep"
+											class="vega-admin-input vega-admin-input--short"
+											type="number"
+											min="1"
+											step="1"
+											value="7"
+											aria-describedby="c-keep-h"
+										/>
+										<p class="vega-admin-help" id="c-keep-h">
+											Cuando hay más, se borra la automática más antigua. Las que creas a mano no se
+											borran solas.
+										</p>
+									</div>
+									<div class="vega-admin-form-actions">
+										<button type="submit" class="vega-admin-btn vega-admin-btn--primary">
+											Guardar
+										</button>
+										<button type="button" class="vega-admin-btn">Cancelar</button>
+									</div>
+								</form>
+							</section>
+						</div>
+					</div>
+					<p class="lam-why">
+						<code>select</code> nativo y no cuatro tarjetas de radio: en 390 px abre la rueda del
+						sistema y las cuatro tarjetas empujarían «Guardar» fuera de la pantalla.
+					</p>
+				</figure>
+
+				<figure class="lam-spec">
+					<figcaption><b>B3.5</b> Formulario · «Personalizada»</figcaption>
+					<div class="lam-stage">
+						<div class="vega-admin-card">
+							<section class="vega-admin-state">
+								<div class="vega-admin-subhead"><h2>Copias automáticas</h2></div>
+								<form class="vega-admin-form vega-admin-form--inset" novalidate>
+									<div class="vega-admin-field">
+										<label for="c2-freq">Frecuencia</label>
+										<select id="c2-freq" class="vega-admin-input">
+											<option>Nunca</option>
+											<option>Cada día, a las 00:00 UTC</option>
+											<option>Cada semana, los domingos a las 00:00 UTC</option>
+											<option selected>Personalizada…</option>
+										</select>
+									</div>
+									<div class="vega-admin-field">
+										<label for="c2-cron">Expresión cron</label>
+										<input
+											id="c2-cron"
+											class="vega-admin-input vega-admin-input--mono"
+											type="text"
+											value="30 3 * * 1,4"
+											spellcheck="false"
+											autocapitalize="off"
+											aria-describedby="c2-cron-h"
+										/>
+										<p class="vega-admin-help" id="c2-cron-h">
+											Cinco valores: minuto, hora, día del mes, mes y día de la semana. La hora es
+											UTC. Por ejemplo, <code>0 3 * * 1</code> es cada lunes a las 3:00.
+										</p>
+									</div>
+									<div class="vega-admin-field">
+										<label for="c2-keep">Copias automáticas que se conservan</label>
+										<input
+											id="c2-keep"
+											class="vega-admin-input vega-admin-input--short"
+											type="number"
+											min="1"
+											step="1"
+											value="12"
+										/>
+									</div>
+									<div class="vega-admin-form-actions">
+										<button type="submit" class="vega-admin-btn vega-admin-btn--primary">
+											Guardar
+										</button>
+										<button type="button" class="vega-admin-btn">Cancelar</button>
+									</div>
+								</form>
+							</section>
+						</div>
+					</div>
+					<p class="lam-why">
+						Una expresión guardada que no sea ninguna de las dos de la lista abre aquí, con su
+						valor.
+					</p>
+				</figure>
+
+				<figure class="lam-spec">
+					<figcaption><b>B3.6</b> Formulario · «Nunca»</figcaption>
+					<div class="lam-stage">
+						<div class="vega-admin-card">
+							<section class="vega-admin-state">
+								<div class="vega-admin-subhead"><h2>Copias automáticas</h2></div>
+								<form class="vega-admin-form vega-admin-form--inset" novalidate>
+									<div class="vega-admin-field">
+										<label for="c3-freq">Frecuencia</label>
+										<select id="c3-freq" class="vega-admin-input" aria-describedby="c3-freq-h">
+											<option selected>Nunca</option>
+											<option>Cada día, a las 00:00 UTC</option>
+											<option>Cada semana, los domingos a las 00:00 UTC</option>
+											<option>Personalizada…</option>
+										</select>
+										<p class="vega-admin-help" id="c3-freq-h">
+											Deja de hacer copias sola. Las que ya hay se quedan.
+										</p>
+									</div>
+									<div class="vega-admin-form-actions">
+										<button type="submit" class="vega-admin-btn vega-admin-btn--primary">
+											Guardar
+										</button>
+										<button type="button" class="vega-admin-btn">Cancelar</button>
+									</div>
+								</form>
+							</section>
+						</div>
+					</div>
+					<p class="lam-why">
+						«Cuántas conservar» se retira: sin copias automáticas no decide nada, y PocketBase no
+						admite 0.
+					</p>
+				</figure>
+
+				<figure class="lam-spec">
+					<figcaption><b>B3.7</b> Errores: expresión que el servidor rechaza y un 0</figcaption>
+					<div class="lam-stage">
+						<div class="vega-admin-card">
+							<section class="vega-admin-state">
+								<div class="vega-admin-subhead"><h2>Copias automáticas</h2></div>
+								<form class="vega-admin-form vega-admin-form--inset" novalidate>
+									<div class="vega-admin-field">
+										<label for="c4-cron">Expresión cron</label>
+										<input
+											id="c4-cron"
+											class="vega-admin-input vega-admin-input--mono"
+											type="text"
+											value="cada lunes"
+											aria-invalid="true"
+											aria-describedby="c4-cron-e"
+										/>
+										<p class="vega-admin-field-error" id="c4-cron-e">
+											El servidor no acepta esta expresión: Invalid cron expression: must have
+											exactly 5 segments, found 2.
+										</p>
+									</div>
+									<div class="vega-admin-field">
+										<label for="c4-keep">Copias automáticas que se conservan</label>
+										<input
+											id="c4-keep"
+											class="vega-admin-input vega-admin-input--short"
+											type="number"
+											min="1"
+											step="1"
+											value="0"
+											aria-invalid="true"
+											aria-describedby="c4-keep-e"
+										/>
+										<p class="vega-admin-field-error" id="c4-keep-e">Tiene que ser 1 o más.</p>
+									</div>
+									<div class="vega-admin-form-actions">
+										<button type="submit" class="vega-admin-btn vega-admin-btn--primary">
+											Guardar
+										</button>
+										<button type="button" class="vega-admin-btn">Cancelar</button>
+									</div>
+								</form>
+							</section>
+						</div>
+					</div>
+					<p class="lam-why">
+						El 0 lo para Vega al salir del campo; la expresión la juzga el servidor al guardar (400)
+						y su mensaje va tal cual bajo el campo. «Guardando…» es igual que en B1.8.
+					</p>
+				</figure>
+			</div>
+		</section>
+
+		<section class="lam-section">
+			<h2>B4 · Dónde se guardan</h2>
+			<p>
+				«En este servidor» es el estado de fábrica y no es un error, pero la tarjeta dice sin
+				adornos lo que implica. La prueba, como en el correo, comprueba <b>lo guardado</b> y por eso
+				está en el resumen.
+			</p>
+			<div class="lam-grid">
+				<figure class="lam-spec">
+					<figcaption><b>B4.1</b> Sin configurar: en este servidor</figcaption>
+					<div class="lam-stage">
+						<div class="vega-admin-card">
+							<section class="vega-admin-state">
+								<div class="vega-admin-subhead">
+									<h2>Dónde se guardan</h2>
+									<span class="vega-admin-head-spacer"></span>
+									<button type="button" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button>
+								</div>
+								<p>
+									En este servidor, junto a la web. Si el servidor se pierde, las copias se pierden
+									con él.
+								</p>
+							</section>
+						</div>
+					</div>
+				</figure>
+
+				<figure class="lam-spec">
+					<figcaption><b>B4.2</b> Configurado: almacén externo</figcaption>
+					<div class="lam-stage">
+						<div class="vega-admin-card">
+							<section class="vega-admin-state">
+								<div class="vega-admin-subhead">
+									<h2>Dónde se guardan</h2>
+									<span class="vega-admin-tag" data-kind="pub">Almacén externo</span>
+									<span class="vega-admin-head-spacer"></span>
+									<button type="button" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button>
+								</div>
+								<dl class="vega-admin-summary">
+									<div>
+										<dt>Servidor</dt>
+										<dd><code>https://s3.eu-central.proveedor.example</code></dd>
+									</div>
+									<div>
+										<dt>Bucket</dt>
+										<dd><code>aguja-copias</code> · región <code>eu-central</code></dd>
+									</div>
+								</dl>
+								<div class="vega-admin-test">
+									<div class="vega-admin-form-actions">
+										<button type="button" class="vega-admin-btn">Probar conexión</button>
+									</div>
+								</div>
+							</section>
+						</div>
+					</div>
+				</figure>
+
+				<figure class="lam-spec">
+					<figcaption><b>B4.3</b> Prueba en curso</figcaption>
+					<div class="lam-stage">
+						<div class="vega-admin-card">
+							<section class="vega-admin-state">
+								<div class="vega-admin-subhead">
+									<h2>Dónde se guardan</h2>
+									<span class="vega-admin-tag" data-kind="pub">Almacén externo</span>
+									<span class="vega-admin-head-spacer"></span>
+									<button
+										type="button"
+										class="vega-admin-btn vega-admin-btn--sm"
+										aria-disabled="true"
+									>
+										Cambiar
+									</button>
+								</div>
+								<p class="lam-why">(resumen igual que B4.2)</p>
+								<div class="vega-admin-test">
+									<div class="vega-admin-form-actions">
+										<button type="button" class="vega-admin-btn" aria-disabled="true">
+											Probando…
+										</button>
+										<p class="vega-admin-result" aria-live="polite">
+											<span class="vega-admin-saving">Probando la conexión…</span>
+										</p>
+									</div>
+								</div>
+							</section>
+						</div>
+					</div>
+				</figure>
+
+				<figure class="lam-spec">
+					<figcaption><b>B4.4</b> Prueba correcta</figcaption>
+					<div class="lam-stage">
+						<div class="vega-admin-card">
+							<section class="vega-admin-state">
+								<div class="vega-admin-subhead">
+									<h2>Dónde se guardan</h2>
+									<span class="vega-admin-tag" data-kind="pub">Almacén externo</span>
+									<span class="vega-admin-head-spacer"></span>
+									<button type="button" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button>
+								</div>
+								<p class="lam-why">(resumen igual que B4.2)</p>
+								<div class="vega-admin-test">
+									<div class="vega-admin-form-actions">
+										<button type="button" class="vega-admin-btn">Probar conexión</button>
+									</div>
+									<p class="vega-admin-result" role="status">
+										<span class="vega-admin-tag" data-kind="pub">Conexión correcta</span>
+										El almacén ha respondido a las 10:42.
+									</p>
+								</div>
+							</section>
+						</div>
+					</div>
+				</figure>
+
+				<figure class="lam-spec">
+					<figcaption><b>B4.5</b> Prueba fallida, con el mensaje del servidor (largo)</figcaption>
+					<div class="lam-stage">
+						<div class="vega-admin-card">
+							<section class="vega-admin-state">
+								<div class="vega-admin-subhead">
+									<h2>Dónde se guardan</h2>
+									<span class="vega-admin-tag" data-kind="pub">Almacén externo</span>
+									<span class="vega-admin-head-spacer"></span>
+									<button type="button" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button>
+								</div>
+								<p class="lam-why">(resumen igual que B4.2)</p>
+								<div class="vega-admin-test">
+									<div class="vega-admin-form-actions">
+										<button type="button" class="vega-admin-btn">Probar conexión</button>
+									</div>
+									<div class="vega-admin-notice vega-admin-notice--danger" role="alert">
+										<p class="vega-admin-notice-title">No se ha podido conectar con el almacén</p>
+										<p class="vega-admin-notice-body">
+											Mientras no conecte, las copias nuevas fallarán. Esto es lo que ha contestado
+											el servidor:
+										</p>
+										<pre class="vega-admin-output">
+Failed to test the S3 filesystem. Raw error: operation error S3: PutObject, https response error StatusCode: 403, RequestID: 17A2F0C4B1D9E3A7, HostID: dd9025bab4ad464b049177c95eb6ebf374d3b3fd1af9251148b658df7ac2e3e8, api error SignatureDoesNotMatch: The request signature we calculated does not match the signature you provided. Check your key and signing method.</pre>
+										<div class="vega-admin-notice-actions">
+											<button type="button" class="vega-admin-btn">Cambiar los datos</button>
+										</div>
+									</div>
+								</div>
+							</section>
+						</div>
+					</div>
+					<p class="lam-why">
+						Aquí el aviso sí dice la consecuencia: un destino que no conecta hace fallar las copias
+						automáticas sin que nadie esté mirando. El mensaje es un ejemplo de forma.
+					</p>
+				</figure>
+			</div>
+
+			<div class="lam-grid lam-grid--wide">
+				<figure class="lam-spec">
+					<figcaption><b>B4.6</b> Formulario · almacén externo</figcaption>
+					<div class="lam-stage">
+						<div class="vega-admin-card">
+							<section class="vega-admin-state">
+								<div class="vega-admin-subhead"><h2>Dónde se guardan</h2></div>
+								<form class="vega-admin-form vega-admin-form--inset" novalidate>
+									<fieldset class="vega-admin-choices">
+										<legend class="vega-admin-sr-only">Dónde se guardan las copias</legend>
+										<label class="vega-admin-radio-card" data-checked="false">
+											<input type="radio" name="dest" />
+											<span
+												><b>En este servidor</b
+												><span>Junto a la web. No hay que configurar nada.</span></span
+											>
+										</label>
+										<label class="vega-admin-radio-card" data-checked="true">
+											<input type="radio" name="dest" checked />
+											<span
+												><b>En un almacén externo</b
+												><span>Un servicio compatible con S3, fuera de este servidor.</span></span
+											>
+										</label>
+									</fieldset>
+									<div class="vega-admin-field">
+										<label for="s-end">Servidor del almacén</label>
+										<input
+											id="s-end"
+											class="vega-admin-input vega-admin-input--mono"
+											type="url"
+											value="https://s3.eu-central.proveedor.example"
+											aria-describedby="s-end-h"
+										/>
+										<p class="vega-admin-help" id="s-end-h">
+											La dirección que te da tu proveedor (endpoint).
+										</p>
+									</div>
+									<div class="vega-admin-form-row">
+										<div class="vega-admin-field">
+											<label for="s-bucket">Bucket</label>
+											<input
+												id="s-bucket"
+												class="vega-admin-input vega-admin-input--mono"
+												type="text"
+												value="aguja-copias"
+											/>
+										</div>
+										<div class="vega-admin-field">
+											<label for="s-region">Región</label>
+											<input
+												id="s-region"
+												class="vega-admin-input vega-admin-input--mono"
+												type="text"
+												value="eu-central"
+											/>
+										</div>
+									</div>
+									<div class="vega-admin-field">
+										<label for="s-key">Clave de acceso</label>
+										<input
+											id="s-key"
+											class="vega-admin-input vega-admin-input--mono"
+											type="text"
+											autocomplete="off"
+											value="004f3a1c9e2b7d60000000002"
+										/>
+									</div>
+									<div class="vega-admin-field">
+										<label for="s-secret">Clave secreta</label>
+										<input
+											id="s-secret"
+											class="vega-admin-input"
+											type="password"
+											autocomplete="new-password"
+											value=""
+											aria-describedby="s-secret-h"
+										/>
+										<p class="vega-admin-help" id="s-secret-h">
+											Déjala vacía para conservar la que haya. Escribe solo si quieres cambiarla.
+										</p>
+										<button type="button" class="vega-admin-link">
+											Quitar la clave secreta guardada
+										</button>
+									</div>
+									<label class="vega-admin-check">
+										<input type="checkbox" />
+										<span
+											>Forzar direcciones con ruta (path-style)<span
+												>Márcalo solo si tu proveedor lo pide.</span
+											></span
+										>
+									</label>
+									<div class="vega-admin-notice vega-admin-notice--info">
+										<p class="vega-admin-notice-body">
+											Las copias que ya hay no se mueven. Al guardar, la lista de arriba enseñará
+											las del almacén; las de este servidor siguen en él.
+										</p>
+									</div>
+									<div class="vega-admin-form-actions">
+										<button type="submit" class="vega-admin-btn vega-admin-btn--primary">
+											Guardar
+										</button>
+										<button type="button" class="vega-admin-btn">Cancelar</button>
+									</div>
+								</form>
+							</section>
+						</div>
+					</div>
+					<p class="lam-why">
+						La nota sobre la lista sale solo cuando cambia la opción elegida: si no, alguien cambia
+						de destino, ve la lista vacía y cree que ha perdido sus copias. La clave secreta sigue
+						la misma regla que la contraseña del correo.
+					</p>
+				</figure>
+
+				<figure class="lam-spec">
+					<figcaption><b>B4.7</b> Formulario · volver a este servidor</figcaption>
+					<div class="lam-stage">
+						<div class="vega-admin-card">
+							<section class="vega-admin-state">
+								<div class="vega-admin-subhead"><h2>Dónde se guardan</h2></div>
+								<form class="vega-admin-form vega-admin-form--inset" novalidate>
+									<fieldset class="vega-admin-choices">
+										<legend class="vega-admin-sr-only">Dónde se guardan las copias</legend>
+										<label class="vega-admin-radio-card" data-checked="true">
+											<input type="radio" name="dest2" checked />
+											<span
+												><b>En este servidor</b
+												><span>Junto a la web. No hay que configurar nada.</span></span
+											>
+										</label>
+										<label class="vega-admin-radio-card" data-checked="false">
+											<input type="radio" name="dest2" />
+											<span
+												><b>En un almacén externo</b
+												><span>Un servicio compatible con S3, fuera de este servidor.</span></span
+											>
+										</label>
+									</fieldset>
+									<div class="vega-admin-notice vega-admin-notice--info">
+										<p class="vega-admin-notice-body">
+											Las copias que ya hay no se mueven. Al guardar, la lista de arriba enseñará
+											las de este servidor; las del almacén siguen en él. Sus datos de conexión se
+											conservan por si vuelves.
+										</p>
+									</div>
+									<div class="vega-admin-form-actions">
+										<button type="submit" class="vega-admin-btn vega-admin-btn--primary">
+											Guardar
+										</button>
+										<button type="button" class="vega-admin-btn">Cancelar</button>
+									</div>
+								</form>
+							</section>
+						</div>
+					</div>
+					<p class="lam-why">
+						Los campos del almacén se retiran en vez de quedarse en gris: un formulario lleno de
+						campos apagados parece que pide rellenarlos.
+					</p>
+				</figure>
+
+				<figure class="lam-spec">
+					<figcaption><b>B4.8</b> Error al guardar (mensaje largo del servidor)</figcaption>
+					<div class="lam-stage">
+						<div class="vega-admin-card">
+							<section class="vega-admin-state">
+								<div class="vega-admin-subhead"><h2>Dónde se guardan</h2></div>
+								<form class="vega-admin-form vega-admin-form--inset" novalidate>
+									<div class="vega-admin-field">
+										<label for="se-end">Servidor del almacén</label>
+										<input
+											id="se-end"
+											class="vega-admin-input vega-admin-input--mono"
+											type="url"
+											value="s3.eu-central.proveedor.example"
+											aria-invalid="true"
+											aria-describedby="se-end-e"
+										/>
+										<p class="vega-admin-field-error" id="se-end-e">
+											El servidor no acepta este valor: Must be a valid URL.
+										</p>
+									</div>
+									<p class="lam-why">(resto de campos igual que B4.6)</p>
+									<p class="vega-admin-field-error" role="alert">
+										El servidor rechazó los datos: Something went wrong while processing your
+										request. Failed to save the settings: backups: (s3: (bucket: cannot be blank;
+										region: cannot be blank.).).
+									</p>
+									<div class="vega-admin-form-actions">
+										<button type="submit" class="vega-admin-btn vega-admin-btn--primary">
+											Guardar
+										</button>
+										<button type="button" class="vega-admin-btn">Cancelar</button>
+									</div>
+								</form>
+							</section>
+						</div>
+					</div>
+					<p class="lam-why">
+						Mismo reparto que B1.7. «Guardando…» y la confirmación de «Quitar la clave secreta
+						guardada» son las de B1.8 y B1.9 con su texto.
+					</p>
+				</figure>
+			</div>
+		</section>
+
+		<section class="lam-section">
+			<h2>Iconos usados (del set de <code>src/lib/icons</code>)</h2>
+			<ul class="lam-icons">
+				<li>
+					<svg
+						viewBox="0 0 24 24"
+						width="16"
+						height="16"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+						focusable="false"
+					>
+						<line x1="12" y1="5" x2="12" y2="19" />
+						<line x1="5" y1="12" x2="19" y2="12" />
+					</svg>
+					plus · «Crear copia» (ya existente)
+				</li>
+				<li>
+					<svg
+						viewBox="0 0 24 24"
+						width="16"
+						height="16"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+						focusable="false"
+					>
+						<rect x="3" y="4" width="18" height="5" rx="1" />
+						<path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9" />
+						<line x1="10" y1="13" x2="14" y2="13" />
+					</svg>
+					archive · entrada «Copias» de la barra lateral (ya existente)
+				</li>
+			</ul>
+			<p>
+				Ninguno nuevo. No hay icono de reloj ni de nube en el set; las tarjetas no los necesitan.
+			</p>
+		</section>
+	</body>
+</html>

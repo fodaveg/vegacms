@@ -86,6 +86,7 @@ export {
 	collectionSpecCreationMetadata,
 	COMMON_COLLECTION_RULE_KEYS,
 	isCreatableCollectionName,
+	IMAGE_FIELD_TARGET,
 	isUserAuthorableCollectionName,
 	isReservedCollectionName,
 	VEGA_COLLECTION

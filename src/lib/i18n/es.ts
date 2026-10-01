@@ -712,9 +712,11 @@ export const es = {
 	// ————— Borrado (Fase 4e del contrato P4) —————
 	'list.delete.rowButton': 'Borrar',
 	'list.delete.rowButtonLabel': 'Borrar "{label}"',
-	'list.delete.confirmTitle': '¿Borrar este registro?',
+	'list.delete.confirmTitle': '¿Borrar esta entrada?',
+	// UNA sola frase según la papelera pueda o no cumplir lo que promete (`isDeleteRecoverable`).
 	'list.delete.confirmBody':
-		'"{label}" se borrará de forma permanente. Esta acción no se puede deshacer.',
+		'«{label}» pasará a la papelera y podrás recuperarla durante {days} día(s).',
+	'list.delete.confirmBodyForever': '«{label}» se borrará y no se podrá recuperar.',
 	'list.delete.confirm': 'Borrar',
 	'list.delete.deleting': 'Borrando…',
 	'list.delete.success': '"{label}" se ha borrado.',
@@ -830,11 +832,8 @@ export const es = {
 		'No se pudo comprobar el manifiesto actual antes de guardar. Vuelve a intentarlo: nada se ha guardado.',
 
 	// ————— Papelera (`#lote-integridad`, Fase B2) — línea compartida de los 4 diálogos de borrado —————
-	'revisions.trash.deleteHint': 'Podrás recuperarlo desde la papelera durante {days} día(s).',
-	'revisions.trash.deleteHintUnavailable':
-		'Este borrado será DEFINITIVO: la papelera no está activada en este proyecto.',
 	'revisions.trash.deleteFilesHint':
-		'Los ficheros adjuntos no se recuperan, aunque restaures el registro.',
+		'Los ficheros adjuntos no se recuperan, aunque restaures la entrada.',
 
 	// ————— Papelera — ruta /papelera —————
 	'revisions.trash.pageTitle': 'Papelera',
@@ -938,7 +937,9 @@ export const es = {
 	'media.detail.delete': 'Borrar',
 	'media.delete.confirmTitle': '¿Borrar «{label}»?',
 	'media.delete.confirmBody':
-		'Esto elimina el original de la biblioteca. Las copias ya insertadas por la biblioteca en registros no se ven afectadas.',
+		'El original pasará a la papelera y podrás recuperarlo durante {days} día(s). Las copias ya insertadas en entradas no se ven afectadas.',
+	'media.delete.confirmBodyForever':
+		'El original se borrará de la biblioteca y no se podrá recuperar. Las copias ya insertadas en entradas no se ven afectadas.',
 	'media.delete.confirm': 'Borrar',
 	'media.delete.deleting': 'Borrando…',
 	'media.delete.success': '"{label}" se ha borrado de la biblioteca.',
@@ -1080,6 +1081,13 @@ export const es = {
 	'settings.schema.fields.numberRequiredWarning':
 		'PocketBase rechaza el valor 0 en un campo numérico marcado como obligatorio. Si necesitas permitir 0 (p. ej. una valoración de 0 a 5), no lo marques como obligatorio.',
 	'settings.schema.fields.type.text': 'Texto',
+	'settings.schema.fields.type.editor': 'Texto con formato',
+	'settings.schema.fields.type.url': 'Dirección web',
+	'settings.schema.fields.type.email': 'Correo',
+	'settings.schema.fields.type.image': 'Imagen',
+	'settings.schema.fields.uniqueLabel': 'No se puede repetir',
+	'settings.schema.fields.image.unavailable':
+		'Todavía no hay biblioteca de medios. Abre «Medios» una vez para crearla y vuelve aquí.',
 	'settings.schema.fields.type.number': 'Número',
 	'settings.schema.fields.type.bool': 'Sí/No',
 	'settings.schema.fields.type.date': 'Fecha',
