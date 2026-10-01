@@ -346,9 +346,13 @@
 	/** Construye la URL del listado para `params` y navega (D-P4.9). Núcleo compartido de
 	 *  `goToPage` (paginación de 4c, NO resetea nada) y `navigateView` (búsqueda/filtro/orden de
 	 *  4d, SIEMPRE resetea a página 1) — ninguna de las dos duplica el `goto`/`listRoute`. */
-	function navigate(type: ResolvedContentType, params: URLSearchParams): void {
+	function navigate(
+		type: ResolvedContentType,
+		params: URLSearchParams,
+		options?: Parameters<typeof goto>[1]
+	): void {
 		const qs = params.toString();
-		void goto(`${listRoute(type.name)}${qs ? `?${qs}` : ''}`);
+		void goto(`${listRoute(type.name)}${qs ? `?${qs}` : ''}`, options);
 	}
 
 	/** Navega a `targetPage` conservando el resto del `ViewState` (D-P4.9, L-P4.13). Guardado tras
@@ -366,7 +370,14 @@
 	 *  filtros" del estado `empty-search`. Guardado tras `routerReady` (P3-L9). */
 	function navigateView(patch: ViewStatePatch): void {
 		if (!routerReady || !contentType) return;
-		navigate(contentType, viewStateToParams({ ...viewState, ...patch, page: 1 }));
+		// Búsqueda, filtro y orden REFINAN la vista, no son un sitio nuevo al que volver: `keepFocus`
+		// (sin él, a los 300 ms de teclear el foco se iba al <body> y una «n» abría «Nueva entrada»),
+		// `noScroll` y `replaceState` (cada tecla del buscador añadía una entrada al historial).
+		navigate(contentType, viewStateToParams({ ...viewState, ...patch, page: 1 }), {
+			keepFocus: true,
+			noScroll: true,
+			replaceState: true
+		});
 	}
 
 	// Página fuera de rango (fix de code-review, L-P4.13): en vez de un callejón sin salida
