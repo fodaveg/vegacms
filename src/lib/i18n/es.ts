@@ -829,6 +829,9 @@ export const es = {
 	'revisions.panel.unavailable': 'El historial de versiones no está activado en este proyecto.',
 	'revisions.panel.unknownDate': 'Fecha desconocida',
 	'revisions.panel.unknownAuthor': 'alguien',
+	'revisions.panel.loadMore': 'Ver más',
+	'revisions.panel.loadingMore': 'Cargando…',
+	'revisions.panel.loadMoreError': 'No se pudieron cargar más versiones. Vuelve a intentarlo.',
 	'revisions.restoredToast':
 		'Valores cargados en el formulario. Revisa y guarda para conservarlos.',
 

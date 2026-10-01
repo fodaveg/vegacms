@@ -795,6 +795,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'revisions.panel.unavailable': 'Version history is not enabled for this project.',
 	'revisions.panel.unknownDate': 'Unknown date',
 	'revisions.panel.unknownAuthor': 'someone',
+	'revisions.panel.loadMore': 'Show more',
+	'revisions.panel.loadingMore': 'Loading…',
+	'revisions.panel.loadMoreError': 'Could not load more versions. Please try again.',
 	'revisions.restoredToast': 'Values loaded into the form. Review and save to keep them.',
 
 	// ————— Version history — diff of one revision —————
