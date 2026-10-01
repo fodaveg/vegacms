@@ -141,6 +141,12 @@ The factor routes save only the fields they change (`Record.IgnoreUnchangedField
 `totp_last_step` is only ever moved by its own forward-only `UPDATE`: a request that read the
 account before a login claimed a code cannot write the older step back.
 
+The standard records API is not a way around this. `totp_enabled` stays readable (the SPA reads
+it from the auth record), but a `PATCH` on the auth collection that changes `totp_enabled` or any
+other `totp_*` field is refused with `400` unless a superuser sends it, whatever the collection's
+update rule allows. The routes are bound in `RegisterRoutes`, together with the auth-refresh hook
+below.
+
 The proof belongs to the **session** that gave it, not to the account: it is stored in process
 memory under the SHA-256 of the session token (never the token itself). Another token of the same
 account, such as a stolen one or a login on another device, does not inherit it and gets `428`.

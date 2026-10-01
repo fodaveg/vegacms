@@ -87,6 +87,27 @@ func (x *Extension) moveProof(from, to string) {
 	}
 }
 
+// factorFields are the auth-collection fields that make up the account's second factor.
+var factorFields = []string{"totp_enabled", "totp_secret", "totp_pending_secret", "totp_pending_until", "totp_last_step"}
+
+// bindFactorFieldGuard closes the standard records API as a way around the step-up rule. If the
+// auth collection has an update rule that lets editors edit their own record, a bare session
+// could otherwise send {"totp_enabled": false} and leave the account without factors. Only
+// superusers may change these fields there; everyone else goes through this extension's routes.
+func (x *Extension) bindFactorFieldGuard(app core.App) {
+	app.OnRecordUpdateRequest(x.config.AuthCollection).BindFunc(func(e *core.RecordRequestEvent) error {
+		if !e.HasSuperuserAuth() {
+			original := e.Record.Original()
+			for _, field := range factorFields {
+				if e.Record.GetString(field) != original.GetString(field) {
+					return e.BadRequestError("Second-factor fields can only be changed through the auth extension.", nil)
+				}
+			}
+		}
+		return e.Next()
+	})
+}
+
 // bindProofToRefresh keeps the proof with the session across PocketBase's auth-refresh, which
 // the SPA calls every time it opens the security screen. The hook sees the old token in the
 // request and the new one in the event; AuthMethod is empty only for a refresh.

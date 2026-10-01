@@ -136,6 +136,7 @@ func New(config Config) (*Extension, error) {
 func (x *Extension) RegisterRoutes(se *core.ServeEvent) {
 	p := x.config.RoutePrefix
 	x.bindProofToRefresh(se.App)
+	x.bindFactorFieldGuard(se.App)
 	se.Router.POST(p+"/login/password", x.loginPassword)
 	se.Router.POST(p+"/login/totp", x.loginTOTP)
 	se.Router.POST(p+"/login/recovery", x.loginRecovery)
