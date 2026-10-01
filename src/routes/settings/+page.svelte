@@ -59,6 +59,7 @@
 	import { VEGA_COLLECTION, VegaError, type ContentType, type JsonValue } from '$lib/backend';
 	import { computeCollectionState } from '$lib/backend/collection-state';
 	import { listManifestRecords, saveManifest } from '$lib/model/load';
+	import SiteBaseCard from '$lib/admin/SiteBaseCard.svelte';
 	import BackendUrlForm from '$lib/session/BackendUrlForm.svelte';
 	import SecuritySettings from '$lib/session/SecuritySettings.svelte';
 	import { setMode, setTheme } from '$lib/theme/apply';
@@ -327,6 +328,13 @@
 
 	{#if ctx.port.capabilities.strongAuth}
 		<SecuritySettings />
+	{/if}
+
+	{#if isManifestEditable}
+		<!-- «Base del sitio»: preparar o actualizar el PocketBase del sitio. Solo superusuario (misma
+		     capability que el resto de la edición de esquema) y entre la conexión y el esquema, porque
+		     de esta base depende todo lo que viene debajo. Tras escribir refresca tipos y modelo. -->
+		<SiteBaseCard onChanged={handleSchemaChanged} />
 	{/if}
 
 	{#if !isManifestEditable}

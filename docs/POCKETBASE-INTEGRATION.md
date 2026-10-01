@@ -578,8 +578,8 @@ una colección que ya existe. Tiene dos caminos, los dos aditivos (no cambian lo
 las reglas ni los datos; los medios existentes quedan centrados):
 
 - En `/media`, un superusuario ve un aviso con el botón «Añadir campos».
-- Volver a ejecutar `seedSiteProject`, que añade los campos ausentes de `vega_media` igual que los
-  de `pages`.
+- En «Ajustes → Base del sitio», «Actualizar el sitio» (llama a `seedSiteProject`), que añade los
+  campos ausentes de `vega_media` igual que los de `pages`.
 
 Hasta entonces la ficha no ofrece el punto focal y un editor no ve ningún aviso.
 
@@ -719,7 +719,8 @@ existentes se prepara manualmente. Un editor:
 
 #### Setup del modo editor en PocketBase
 
-En una instalación **nueva** preparada con `seedSiteProject`, el sembrado ya crea
+En una instalación **nueva** preparada con `seedSiteProject` («Ajustes → Base del sitio →
+Preparar el sitio»), el sembrado ya crea
 `vega_editors` y escribe las reglas de `vega`, `pages`, `blocks`, `redirects` y `vega_media` al
 crear cada colección. El sitio puede leer anónimamente solo páginas publicadas y sus bloques, y
 todas las redirecciones; los registros de `vega_media` se pueden ver por id y expandir, pero no
@@ -760,7 +761,8 @@ registros existentes: uno antiguo que no lo cumpla se queda tal cual hasta que s
 ayuda en el formulario (tarjeta «SEO» en la columna lateral de la página) y muestra
 «Redirecciones» como un tipo de contenido más.
 
-**Un proyecto ya sembrado** recibe todo esto volviendo a ejecutar `seedSiteProject`: añade a
+**Un proyecto ya sembrado** recibe todo esto desde «Ajustes → Base del sitio» («Actualizar el
+sitio», que llama a `seedSiteProject` tras enseñar el plan y pedir confirmación): añade a
 `pages` los tres campos ausentes sin tocar los existentes ni sus datos (las páginas quedan con
 descripción vacía, sin imagen y `noindex = false`), crea `redirects` y, si el manifiesto sigue
 siendo EXACTAMENTE el inicial de la versión anterior, lo sustituye por el nuevo. Si alguien editó
