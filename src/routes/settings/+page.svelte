@@ -417,9 +417,13 @@
 						{ctx.t('settings.about.upToDate', { version: updateResult.current })}
 					{:else if updateResult.kind === 'update-available'}
 						{ctx.t('settings.about.updateAvailable', { version: updateResult.latest })}
-						<a href={updateResult.releaseUrl} target="_blank" rel="noopener noreferrer">
-							{ctx.t('settings.about.updateAvailableLink')}
-						</a>
+						<!-- `releaseUrl` es `null` si la URL no es de `https://github.com/` (ver
+						     `UpdateBanner`): el aviso de versión sigue, sin enlace. -->
+						{#if updateResult.releaseUrl}
+							<a href={updateResult.releaseUrl} target="_blank" rel="noopener noreferrer">
+								{ctx.t('settings.about.updateAvailableLink')}
+							</a>
+						{/if}
 					{:else}
 						{ctx.t('settings.about.checkError')}
 					{/if}
