@@ -6,8 +6,10 @@
 	 */
 	import { onMount } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
-	import type { StrongAuthStatus, TotpEnrollment } from '$lib/backend';
-	import { VegaError } from '$lib/backend';
+	import type { StepUpMethod, StepUpProof, StrongAuthStatus, TotpEnrollment } from '$lib/backend';
+	import { isStrongAuthError, VegaError } from '$lib/backend';
+	import StepUpDialog from './StepUpDialog.svelte';
+	import { strongAuthErrorMessage } from './strong-auth-errors';
 
 	const ctx = getVegaContext();
 	const auth = ctx.port.strongAuth;
@@ -22,6 +24,20 @@
 	let busyAction = $state<string | null>(null);
 	let error = $state<string | null>(null);
 	let copied = $state(false);
+
+	/**
+	 * Acción que el servidor dejó sin hacer por falta de prueba de posesión. Se guarda ENTERA (su
+	 * identificador y la operación) para repetir exactamente la misma en cuanto haya prueba: con
+	 * el código que se escriba, o sin él tras verificar con una passkey.
+	 */
+	interface PendingStepUp {
+		action: string;
+		operation: (proof?: StepUpProof) => Promise<void>;
+		methods: StepUpMethod[];
+	}
+	let stepUp = $state<PendingStepUp | null>(null);
+	let stepUpBusy = $state(false);
+	let stepUpError = $state<string | null>(null);
 
 	async function load(): Promise<void> {
 		if (!auth) return;
@@ -40,41 +56,118 @@
 		void load();
 	});
 
+	/** Los rechazos tipados de `strongAuth` traen código y se traducen aquí; el resto, su mensaje. */
 	function errorMessage(err: unknown): string {
-		return err instanceof VegaError ? err.message : ctx.t('security.error.generic');
+		return (
+			strongAuthErrorMessage(err, ctx.t) ??
+			(err instanceof VegaError ? err.message : ctx.t('security.error.generic'))
+		);
 	}
 
-	async function run(action: string, operation: () => Promise<void>): Promise<void> {
+	/**
+	 * Ejecuta una acción de la pantalla. Si el servidor responde que falta la prueba de posesión,
+	 * no es un error que enseñar: se abre «Confirma que eres tú» con la acción guardada.
+	 */
+	async function run(
+		action: string,
+		operation: (proof?: StepUpProof) => Promise<void>
+	): Promise<void> {
 		busyAction = action;
 		error = null;
 		try {
 			await operation();
 		} catch (err) {
-			error = errorMessage(err);
+			if (isStrongAuthError(err, 'step-up-required')) {
+				stepUpError = null;
+				stepUp = { action, operation, methods: err.methods };
+			} else {
+				error = errorMessage(err);
+			}
 		} finally {
 			busyAction = null;
 		}
 	}
 
+	/**
+	 * Repite la acción pendiente una vez hay prueba. Si sale bien, el diálogo se cierra; si no, el
+	 * fallo se queda DENTRO del diálogo (código incorrecto, bloqueo por intentos) y la acción sigue
+	 * pendiente para el siguiente intento.
+	 */
+	async function retryStepUp(prove: () => Promise<StepUpProof | undefined>): Promise<void> {
+		const pending = stepUp;
+		if (!pending || stepUpBusy) return;
+		stepUpBusy = true;
+		stepUpError = null;
+		busyAction = pending.action;
+		try {
+			const proof = await prove();
+			await pending.operation(proof);
+			stepUp = null;
+		} catch (err) {
+			stepUpError = errorMessage(err);
+		} finally {
+			stepUpBusy = false;
+			busyAction = null;
+		}
+	}
+
+	function submitStepUpCode(code: string): void {
+		void retryStepUp(async () => ({ code }));
+	}
+
+	function useStepUpPasskey(): void {
+		void retryStepUp(async () => {
+			// El servidor recuerda la verificación unos minutos: la acción se repite sin código.
+			await auth?.verifyWithPasskey?.();
+			return undefined;
+		});
+	}
+
+	/** Cancelar deja la pantalla como estaba: la acción pendiente se descarta sin tocar nada. */
+	function cancelStepUp(): void {
+		if (stepUpBusy) return;
+		stepUp = null;
+		stepUpError = null;
+	}
+
+	/**
+	 * Alta de TOTP, o cambio de app si ya estaba activo. El servidor NO apaga el TOTP actual al
+	 * pedir un secreto nuevo (queda pendiente hasta verificarlo), así que `security` no se toca:
+	 * la tarjeta sigue diciendo «Activado» mientras se enseña el secreto nuevo.
+	 */
 	async function beginTotp(): Promise<void> {
 		if (!auth) return;
-		await run('totp-enroll', async () => {
-			enrollment = await auth.enrollTotp();
+		await run('totp-enroll', async (proof) => {
+			enrollment = await auth.enrollTotp(proof);
 			verificationCode = '';
 		});
+	}
+
+	/** Abandona el alta a medias. En el servidor no cambia nada: el secreto pendiente no se usa. */
+	function cancelEnrollment(): void {
+		enrollment = null;
+		verificationCode = '';
+		error = null;
 	}
 
 	async function verifyTotp(event: SubmitEvent): Promise<void> {
 		event.preventDefault();
 		if (!auth) return;
+		// Si ya había TOTP, esto es un cambio de app: los códigos de recuperación siguen valiendo
+		// y no se regeneran (regenerarlos anularía los que la persona ya guardó).
+		const replacing = security?.totpEnabled === true;
 		await run('totp-verify', async () => {
 			await auth.verifyTotp(verificationCode);
 			// Desde aquí el TOTP ya está activo en el servidor: la UI debe reflejarlo pase lo que pase.
 			enrollment = null;
 			verificationCode = '';
 			try {
-				recoveryCodes = await auth.generateRecoveryCodes();
-				ctx.feedback.toast(ctx.t('security.totp.enabled'), { kind: 'success' });
+				if (replacing) {
+					ctx.feedback.toast(ctx.t('security.totp.replaced'), { kind: 'success' });
+				} else {
+					recoveryCodes = await auth.generateRecoveryCodes();
+					ctx.feedback.toast(ctx.t('security.totp.enabled'), { kind: 'success' });
+				}
 			} catch {
 				// «Regenerar códigos» queda disponible en la tarjeta ya activada.
 				error = ctx.t('security.totp.enabledNoCodes');
@@ -91,8 +184,8 @@
 
 	async function disableTotp(): Promise<void> {
 		if (!auth || !window.confirm(ctx.t('security.totp.disableConfirm'))) return;
-		await run('totp-disable', async () => {
-			await auth.disableTotp();
+		await run('totp-disable', async (proof) => {
+			await auth.disableTotp(proof);
 			recoveryCodes = [];
 			security = await auth.getStatus();
 			ctx.feedback.toast(ctx.t('security.totp.disabled'), { kind: 'success' });
@@ -101,8 +194,8 @@
 
 	async function regenerateRecovery(): Promise<void> {
 		if (!auth || !window.confirm(ctx.t('security.recovery.regenerateConfirm'))) return;
-		await run('recovery', async () => {
-			recoveryCodes = await auth.generateRecoveryCodes();
+		await run('recovery', async (proof) => {
+			recoveryCodes = await auth.generateRecoveryCodes(proof);
 			security = await auth.getStatus();
 		});
 	}
@@ -120,8 +213,11 @@
 	async function registerPasskey(event: SubmitEvent): Promise<void> {
 		event.preventDefault();
 		if (!auth) return;
-		await run('passkey-add', async () => {
-			await auth.registerPasskey(passkeyName.trim() || ctx.t('security.passkeys.defaultName'));
+		// El nombre se fija ahora: si hay que confirmar la identidad, el reintento registra la
+		// passkey con el nombre que se escribió al pedirla.
+		const name = passkeyName.trim() || ctx.t('security.passkeys.defaultName');
+		await run('passkey-add', async (proof) => {
+			await auth.registerPasskey(name, proof);
 			passkeyName = '';
 			security = await auth.getStatus();
 			ctx.feedback.toast(ctx.t('security.passkeys.added'), { kind: 'success' });
@@ -130,8 +226,8 @@
 
 	async function deletePasskey(id: string): Promise<void> {
 		if (!auth || !window.confirm(ctx.t('security.passkeys.deleteConfirm'))) return;
-		await run(`passkey-delete-${id}`, async () => {
-			await auth.deletePasskey(id);
+		await run(`passkey-delete-${id}`, async (proof) => {
+			await auth.deletePasskey(id, proof);
 			security = await auth.getStatus();
 			ctx.feedback.toast(ctx.t('security.passkeys.deleted'), { kind: 'success' });
 		});
@@ -185,31 +281,12 @@
 						</span>
 					</div>
 
-					{#if security.totpEnabled}
-						<p>
-							{ctx.t('security.recovery.remaining', {
-								count: security.recoveryCodesRemaining
-							})}
-						</p>
-						<div class="actions">
-							<button
-								type="button"
-								class="secondary"
-								onclick={regenerateRecovery}
-								disabled={busyAction !== null}
-							>
-								{ctx.t('security.recovery.regenerate')}
-							</button>
-							<button
-								type="button"
-								class="danger"
-								onclick={disableTotp}
-								disabled={busyAction !== null}
-							>
-								{ctx.t('security.totp.disable')}
-							</button>
-						</div>
-					{:else if enrollment}
+					{#if enrollment}
+						<!-- Va antes que la rama de «activado»: al cambiar de app el TOTP sigue activo
+						     (la insignia de arriba no cambia) y aun así hay que enseñar el secreto nuevo. -->
+						{#if security.totpEnabled}
+							<p class="notice">{ctx.t('security.totp.replaceBody')}</p>
+						{/if}
 						<p>{ctx.t('security.totp.setupBody')}</p>
 						<a class="otpauth-link" href={enrollment.otpauthUrl} rel="external"
 							>{ctx.t('security.totp.openApp')}</a
@@ -230,7 +307,49 @@
 							<button type="submit" disabled={busyAction !== null}
 								>{ctx.t('security.totp.verify')}</button
 							>
+							{#if security.totpEnabled}
+								<button
+									type="button"
+									class="secondary"
+									onclick={cancelEnrollment}
+									disabled={busyAction !== null}
+								>
+									{ctx.t('security.totp.replaceCancel')}
+								</button>
+							{/if}
 						</form>
+					{:else if security.totpEnabled}
+						<p>
+							{ctx.t('security.recovery.remaining', {
+								count: security.recoveryCodesRemaining
+							})}
+						</p>
+						<div class="actions">
+							<button
+								type="button"
+								class="secondary"
+								onclick={regenerateRecovery}
+								disabled={busyAction !== null}
+							>
+								{ctx.t('security.recovery.regenerate')}
+							</button>
+							<button
+								type="button"
+								class="secondary"
+								onclick={beginTotp}
+								disabled={busyAction !== null}
+							>
+								{ctx.t('security.totp.replace')}
+							</button>
+							<button
+								type="button"
+								class="danger"
+								onclick={disableTotp}
+								disabled={busyAction !== null}
+							>
+								{ctx.t('security.totp.disable')}
+							</button>
+						</div>
 					{:else}
 						<p>{ctx.t('security.totp.disabledBody')}</p>
 						<button type="button" onclick={beginTotp} disabled={busyAction !== null}>
@@ -252,6 +371,11 @@
 									<div>
 										<strong>{passkey.name || ctx.t('security.passkeys.defaultName')}</strong>
 										<small>{passkey.created}</small>
+										{#if passkey.cloneWarning}
+											<p class="notice clone-warning">
+												{ctx.t('security.passkeys.cloneWarning')}
+											</p>
+										{/if}
 									</div>
 									<button
 										type="button"
@@ -283,6 +407,16 @@
 			</div>
 		{/if}
 	</section>
+
+	<StepUpDialog
+		methods={stepUp?.methods ?? null}
+		passkeyAvailable={typeof auth.verifyWithPasskey === 'function'}
+		busy={stepUpBusy}
+		error={stepUpError}
+		onSubmitCode={submitStepUpCode}
+		onUsePasskey={useStepUpPasskey}
+		onCancel={cancelStepUp}
+	/>
 {/if}
 
 <style>
@@ -304,6 +438,11 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 0.75rem;
+	}
+
+	/* Tres acciones con TOTP activo: en una tarjeta estrecha bajan de línea en vez de desbordar. */
+	.actions {
+		flex-wrap: wrap;
 	}
 
 	h2,
@@ -412,6 +551,22 @@
 		border-radius: var(--r);
 		background: var(--danger-soft);
 		color: var(--danger);
+	}
+
+	/* Aviso dentro de una tarjeta (cambio de app a medias, passkey posiblemente copiada): mismos
+	   tokens que el bloque de códigos de recuperación. El texto va en `--ink`, no en `--warning`,
+	   para no depender del contraste del tono de aviso sobre su fondo suave. */
+	.notice {
+		padding: 0.6rem 0.75rem;
+		border: 1px solid var(--warning);
+		border-radius: var(--r);
+		background: var(--warning-soft);
+		color: var(--ink);
+		font-size: 0.85rem;
+	}
+
+	.clone-warning {
+		margin-top: 0.4rem;
 	}
 
 	.recovery-codes {

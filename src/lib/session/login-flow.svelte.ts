@@ -17,6 +17,7 @@
  */
 
 import type { SessionStore } from './session.svelte';
+import { strongAuthErrorMessage } from './strong-auth-errors';
 
 /** Traductor del chrome ya resuelto a un idioma (el `t()` local de `/login` y del overlay). */
 export type LoginFlowTranslate = (key: string, params?: Record<string, string | number>) => string;
@@ -114,7 +115,9 @@ export function createLoginFlow(store: SessionStore, t: LoginFlowTranslate): Log
 			if (err.kind === 'forbidden') {
 				return store.mfaChallenge ? t('login.mfa.invalidCode') : t('login.invalidCredentials');
 			}
-			return err.message;
+			// Bloqueo por intentos, intento que el servidor no pudo contar, passkey demasiado
+			// grande: tienen texto propio traducido y ninguno habla de las credenciales.
+			return strongAuthErrorMessage(err, t) ?? err.message;
 		},
 		submitPassword() {
 			return run(() => store.login({ email, password }));
