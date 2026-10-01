@@ -90,6 +90,7 @@ export const es = {
 	'session.reloginTitle': 'Tu sesión ha caducado',
 	'session.reloginBody': 'Vuelve a entrar para seguir donde lo dejaste. No se pierde nada.',
 	'session.reloginSubmit': 'Reautenticar',
+	'session.reloginBackToPassword': 'Volver a la contraseña',
 	'session.logoutConfirm': 'Hay cambios sin guardar. ¿Cerrar sesión igualmente?',
 
 	// ————— Conexión a backend / onboarding genérico (lote L5) —————

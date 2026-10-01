@@ -82,6 +82,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'session.reloginTitle': 'Your session has expired',
 	'session.reloginBody': 'Sign in again to pick up where you left off. Nothing is lost.',
 	'session.reloginSubmit': 'Re-authenticate',
+	'session.reloginBackToPassword': 'Back to password',
 	'session.logoutConfirm': 'There are unsaved changes. Log out anyway?',
 
 	// ————— Backend connection / generic onboarding (batch L5) —————
