@@ -663,3 +663,277 @@
 	color: var(--ink-2);
 	font-size: 0.82rem;
 }
+
+/* ————— Ajustes del servidor dentro de una pantalla (tarjetas de /copias y, después, de /editores).
+   Composiciones de la lámina `design/mockups/2026-10-01-ajustes-y-sembrado` (sección 2.1): ningún
+   token nuevo, cada medida es la de una pieza que ya existe. ————— */
+
+/* Cabecera de sección dentro de una pantalla de administración (h2 bajo el h1 de la página).
+   Mismo reparto que `.vega-admin-head`; tamaño de `.vega-admin-dialog-head h2`. */
+.vega-admin-subhead {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	width: 100%;
+}
+
+/* Sin `flex-wrap`: en estrecho parte línea el TÍTULO y «Cambiar» se queda arriba a la derecha.
+   Con `wrap`, el botón caía solo a una segunda línea, a la izquierda. */
+.vega-admin-subhead > .vega-admin-tag,
+.vega-admin-subhead > .vega-admin-btn {
+	flex-shrink: 0;
+}
+
+/* Por debajo del punto estructural (768 px): título y «Cambiar» en la primera línea, la etiqueta
+   debajo. Sin esto el título se partía en tres líneas para hacer sitio a la etiqueta. */
+@media (max-width: 768px) {
+	.vega-admin-subhead {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: 0.4rem 0.75rem;
+	}
+
+	.vega-admin-subhead > .vega-admin-head-spacer {
+		display: none;
+	}
+
+	.vega-admin-subhead > .vega-admin-btn {
+		grid-column: 2;
+		grid-row: 1;
+	}
+
+	.vega-admin-subhead > .vega-admin-tag {
+		grid-column: 1 / -1;
+		justify-self: start;
+	}
+}
+
+.vega-admin-subhead h2 {
+	min-width: 0;
+	margin: 0;
+	font-size: 1.1rem;
+	color: var(--ink-hi);
+}
+
+/* Formulario dentro de una tarjeta (`.vega-admin-state` alinea a la izquierda): ocupa el ancho y
+   se queda en la medida de `.vega-admin-gate` (34rem) para que las líneas no se estiren a 1440. */
+.vega-admin-form--inset {
+	width: 100%;
+	max-width: 34rem;
+}
+
+/* Dos campos en una línea (servidor + puerto). Se apilan solos cuando no caben. */
+.vega-admin-form-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.9rem; /* el `gap` de `.vega-admin-form` */
+}
+
+.vega-admin-form-row > .vega-admin-field {
+	flex: 1 1 12rem;
+}
+
+/* Campo corto: 8rem, el ancho de los numéricos de `RevisionsSettings`. */
+.vega-admin-form-row > .vega-admin-field--short {
+	flex: 0 1 8rem;
+}
+
+.vega-admin-input--short {
+	width: 8rem;
+	max-width: 100%;
+}
+
+.vega-admin-input--mono {
+	font-family: var(--mono);
+	font-size: 0.92em; /* el del campo ruta/slug (`.vega-field-row--path`) */
+}
+
+.vega-admin-input:focus-visible {
+	outline: 2px solid var(--ring);
+	outline-offset: 1px;
+	border-color: var(--line-strong);
+}
+
+/* Grupo de campos dentro de un formulario de administración: `fieldset` sin caja. */
+.vega-admin-group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.9rem;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.vega-admin-group > legend {
+	margin-bottom: 0.6rem;
+	padding: 0;
+	font-size: 0.6875rem;
+	font-weight: 650;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--ink-2);
+}
+
+/* Casilla con rótulo. Casilla y no interruptor: aquí nada se aplica hasta «Guardar». */
+.vega-admin-check {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.6rem;
+	font-size: 0.88rem;
+	color: var(--ink);
+	cursor: pointer;
+}
+
+.vega-admin-check input {
+	margin-top: 0.2rem;
+	accent-color: var(--accent);
+}
+
+.vega-admin-check span span {
+	display: block;
+	color: var(--ink-2);
+	font-size: 0.82rem;
+}
+
+.vega-admin-form-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+/* Bloque «probar» dentro de la tarjeta: separado del formulario por la misma raya de las filas. */
+.vega-admin-test {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	width: 100%;
+	max-width: 34rem;
+	padding-top: 0.9rem;
+	border-top: 1px solid var(--line);
+}
+
+.vega-admin-test-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 0.5rem;
+}
+
+.vega-admin-test-row .vega-admin-field {
+	flex: 1 1 12rem;
+}
+
+/* Resultado correcto de una prueba: la etiqueta de estado existente + una frase. */
+.vega-admin-result {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.4rem 0.6rem;
+	margin: 0;
+	font-size: 0.88rem;
+	color: var(--ink);
+}
+
+/* Salida literal del servidor: calco de `.vega-revisions-settings-json`, que ya ajusta líneas. */
+.vega-admin-output {
+	max-height: 16rem;
+	margin: 0;
+	padding: 0.5rem;
+	overflow: auto;
+	border: 1px solid var(--line);
+	border-radius: var(--r);
+	background: var(--surface);
+	color: var(--ink);
+	font-family: var(--mono);
+	font-size: 0.75rem;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+/* Resumen de un ajuste guardado: pares rótulo/valor, como `.vega-editor-kv` pero a la izquierda. */
+.vega-admin-summary {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	width: 100%;
+	margin: 0;
+	font-size: 0.88rem;
+}
+
+.vega-admin-summary > div {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.15rem 0.6rem;
+}
+
+.vega-admin-summary dt {
+	flex: 0 0 10rem;
+	color: var(--ink-2);
+}
+
+.vega-admin-summary dd {
+	flex: 1 1 12rem;
+	min-width: 0;
+	margin: 0;
+	color: var(--ink);
+	overflow-wrap: anywhere;
+}
+
+.vega-admin-notice-body {
+	overflow-wrap: anywhere;
+}
+
+.vega-admin-notice code,
+.vega-admin-dialog-text code,
+.vega-admin-summary code {
+	font-family: var(--mono);
+	font-size: 0.92em;
+	overflow-wrap: anywhere;
+}
+
+/* El enlace de `.vega-conflict-link`, para «Detalle técnico» y «Quitar la contraseña guardada». */
+.vega-admin-link {
+	align-self: flex-start;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--accent-text);
+	font: inherit;
+	font-size: 0.82rem;
+	cursor: pointer;
+}
+
+.vega-admin-link:hover {
+	text-decoration: underline;
+}
+
+details > summary.vega-admin-link {
+	list-style-position: inside;
+}
+
+details[open] > summary.vega-admin-link {
+	margin-bottom: 0.4rem;
+}
+
+@media (pointer: coarse) {
+	/* Medido a 390: el `select` se quedaba en 41 px y los campos en mono en 43 px. */
+	.vega-admin-input {
+		min-height: 44px;
+	}
+
+	.vega-admin-check,
+	.vega-admin-link {
+		min-height: 44px;
+		align-items: center;
+	}
+
+	.vega-admin-link {
+		display: inline-flex;
+	}
+
+	.vega-admin-check input {
+		margin-top: 0;
+	}
+}
