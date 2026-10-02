@@ -517,7 +517,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.schedule.hint': "This computer's time.",
 	'editor.schedule.hintProposal': "This computer's time. Suggestion: tomorrow at 09:00.",
 	'editor.schedule.error.empty': 'Choose a date and a time.',
-	'editor.schedule.error.past': 'That time has already passed. Choose a later one or publish now.',
+	'editor.schedule.error.past': 'That time has already passed. Choose a later one.',
 	'editor.schedule.confirm': 'Schedule',
 	'editor.schedule.confirming': 'Scheduling…',
 	'editor.schedule.retry': 'Try again',
