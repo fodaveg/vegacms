@@ -243,6 +243,7 @@
 	import type { RecordVersion } from '$lib/backend/version';
 	import type { PreviewDraft, PreviewDraftRecord } from '$lib/backend/preview-client';
 	import { isConflictError, VegaError, type VegaConflictError } from '$lib/backend/errors';
+	import { vegaErrorMessage } from '$lib/shell/vega-error-message';
 	import { getVegaContext } from '$lib/app-context';
 	import { describeCell, describeStatusBadge } from '$lib/list/cell';
 	import { statusValueLabel } from '$lib/model/default-labels';
@@ -838,7 +839,7 @@
 			return null;
 		} catch (err) {
 			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al guardar', err);
-			redirectFailure = { job, message: vegaErr.message };
+			redirectFailure = { job, message: vegaErrorMessage(vegaErr, ctx.t) };
 			return null;
 		}
 	}
@@ -2191,6 +2192,10 @@
 		margin-left: 0.4rem;
 		font-family: var(--mono);
 		font-size: 0.6875rem;
+		/* El `kbd` es item flex del botón (se blockifica) y heredaba `line-height: 34px` del botón:
+		   su caja medía 34 px + padding + borde y sobresalía. Con su propio interlineado, la caja
+		   es la de la etiqueta y `align-items: center` del botón la centra. */
+		line-height: 1.2;
 		border: 1px solid var(--line-strong);
 		border-bottom-width: 2px;
 		border-radius: 4px;

@@ -59,6 +59,7 @@
 	import { createMergedListState } from '$lib/list/merged-load.svelte';
 	import { persistMergedReorder, planMergedReorder } from '$lib/list/merged-reorder';
 	import { VegaError } from '$lib/backend/errors';
+	import { vegaErrorMessage } from '$lib/shell/vega-error-message';
 	import RouteState from '$lib/shell/RouteState.svelte';
 	import MergedViewTable from '$lib/list/MergedViewTable.svelte';
 	import { mergedReorderBlocker } from '$lib/list/merged-merge';
@@ -163,7 +164,7 @@
 			{:else if status.kind === 'error'}
 				<div class="vega-list-error vega-list-card-pad" data-list-state="error" role="alert">
 					<h2>{ctx.t('list.error.title')}</h2>
-					<p>{ctx.t('list.error.body', { message: status.error.message })}</p>
+					<p>{ctx.t('list.error.body', { message: vegaErrorMessage(status.error, ctx.t) })}</p>
 					{#if status.error.retryable}
 						<button type="button" onclick={() => listState.retry()}>
 							{ctx.t('common.retry')}

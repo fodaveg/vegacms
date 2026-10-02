@@ -24,7 +24,15 @@ describe('transportFeedback.markDisconnected / markConnected', () => {
 		expect(transportFeedback.state).toBe('connected');
 	});
 
-	test('markConnected no borra un banner que puso otro', () => {
+	test('markConnected cierra un banner de RED: la píldora y el banner no se contradicen', () => {
+		transportFeedback.report(VegaError.network());
+		expect(transportFeedback.state).toBe('disconnected');
+		transportFeedback.markConnected();
+		expect(transportFeedback.state).toBe('connected');
+		expect(transportFeedback.bannerError).toBeNull();
+	});
+
+	test('markConnected conserva un banner de backend: el transporte respondió y el aviso sigue vigente', () => {
 		const err = VegaError.backend('boom');
 		transportFeedback.report(err);
 		transportFeedback.markDisconnected();

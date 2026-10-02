@@ -51,6 +51,7 @@
 	import { resolveVisibleContentType } from '$lib/nav/content-type';
 	import { resolveVisualGate } from '$lib/visual/visual-gate';
 	import { VegaError, type VegaRecord } from '$lib/backend';
+	import { vegaErrorMessage } from '$lib/shell/vega-error-message';
 	import { RequestSequencer } from '$lib/list/list-load';
 	import { loadLatest } from '$lib/form/latest-load';
 	import type { ResolvedContentType } from '$lib/model/types';
@@ -153,7 +154,7 @@
 		/>
 	{:else if status.kind === 'error'}
 		<div class="vega-visual-route-error" role="alert">
-			<p>{ctx.t('editor.load.error.body', { message: status.error.message })}</p>
+			<p>{ctx.t('editor.load.error.body', { message: vegaErrorMessage(status.error, ctx.t) })}</p>
 			<button type="button" onclick={() => load(activeType, idParam)}
 				>{ctx.t('common.retry')}</button
 			>

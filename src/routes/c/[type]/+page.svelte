@@ -99,6 +99,7 @@
 	import type { ResolvedContentType } from '$lib/model/types';
 	import type { VegaRecord } from '$lib/backend/types';
 	import { VegaError } from '$lib/backend/errors';
+	import { vegaErrorMessage } from '$lib/shell/vega-error-message';
 	import { DEFAULT_PER_PAGE } from '$lib/backend/query';
 	import { resolveVisibleContentType } from '$lib/nav/content-type';
 	import { deriveColumns } from '$lib/list/columns';
@@ -562,7 +563,7 @@
 			{:else if listStatus.kind === 'error'}
 				<div class="vega-list-error vega-list-card-pad" data-list-state="error" role="alert">
 					<h2>{ctx.t('list.error.title')}</h2>
-					<p>{ctx.t('list.error.body', { message: listStatus.error.message })}</p>
+					<p>{ctx.t('list.error.body', { message: vegaErrorMessage(listStatus.error, ctx.t) })}</p>
 					{#if listStatus.error.retryable}
 						<button type="button" onclick={() => listState.retry()}>
 							{ctx.t('common.retry')}
