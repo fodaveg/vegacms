@@ -6,9 +6,12 @@ import { toMediaItemView, type MediaItemView } from '$lib/media/media-item';
 import { en } from '$lib/i18n/en';
 import { es } from '$lib/i18n/es';
 import {
+	applicableChecks,
+	CHECK_GROUP,
 	CHECK_SEVERITY,
 	collectMediaIds,
 	DESCRIPTION_LONG_AT,
+	REVIEW_GROUPS,
 	reviewRecord,
 	type ReviewCheckId,
 	type ReviewInput,
@@ -501,7 +504,9 @@ describe('imágenes sin texto alternativo', () => {
 					label: 'Imagen'
 				},
 				messageKey: 'review.media.altMissing',
-				params: { file: 'gato.jpg' }
+				params: { file: 'gato.jpg' },
+				// La ficha a abrir desde «Describir la imagen…» (lote 13): el alt vive en Medios.
+				mediaId: 'm1'
 			}
 		]);
 	});
@@ -698,6 +703,172 @@ describe('collectMediaIds en el sembrado', () => {
 	test('un tipo sin bloques no pide ningún medio', () => {
 		const redirects = world.model.types.find((t) => t.name === 'redirects')!;
 		expect(collectMediaIds({ model: world.model, type: redirects, blocks: [] })).toEqual([]);
+	});
+});
+
+// ————— Qué grupos aplican a un tipo (lote 13, la tarjeta) —————
+
+describe('applicableChecks', () => {
+	const base = {
+		required: false,
+		readonly: false,
+		presentable: false,
+		hidden: false,
+		unique: false
+	};
+	const field = (name: string, type: string, extra: Record<string, unknown> = {}): Field =>
+		({ ...base, name, type, ...extra }) as unknown as Field;
+
+	function modelOf(types: ContentType[], collections: Record<string, JsonValue> = {}) {
+		return resolveContentModel({ types, manifestRaw: { schemaVersion: 1, collections } });
+	}
+
+	test('una página del sembrado: SEO, enlaces e imágenes, en el orden de la tarjeta', () => {
+		expect(applicableChecks(world.pagesType, world.model)).toEqual(['seo', 'links', 'media']);
+		expect(REVIEW_GROUPS).toEqual(['seo', 'links', 'media']);
+	});
+
+	test('un tipo sin piezas SEO, sin enlaces y sin bloques: ningún grupo', () => {
+		const model = modelOf([
+			{ name: 'tags', readonly: false, fields: [field('name', 'text', { subtype: 'plain' })] }
+		]);
+		expect(applicableChecks(model.types[0], model)).toEqual([]);
+	});
+
+	test('solo SEO: basta una pieza (descripción, imagen social o noindex)', () => {
+		const withDescription = modelOf([
+			{
+				name: 'notes',
+				readonly: false,
+				fields: [
+					field('title', 'text', { subtype: 'plain' }),
+					field('description', 'text', { subtype: 'plain' })
+				]
+			}
+		]);
+		expect(applicableChecks(withDescription.types[0], withDescription)).toEqual(['seo']);
+		const withNoindex = modelOf([
+			{ name: 'notes', readonly: false, fields: [field('noindex', 'bool')] }
+		]);
+		expect(applicableChecks(withNoindex.types[0], withNoindex)).toEqual(['seo']);
+		// Un `noindex` que no es booleano no cuenta (mismo criterio que `reviewRecord`).
+		const textNoindex = modelOf([
+			{ name: 'notes', readonly: false, fields: [field('noindex', 'text', { subtype: 'plain' })] }
+		]);
+		expect(applicableChecks(textNoindex.types[0], textNoindex)).toEqual([]);
+	});
+
+	test('solo enlaces: un richtext o un url del registro, sin bloques (lámina 1.8)', () => {
+		const model = modelOf([
+			{
+				name: 'posts',
+				readonly: false,
+				fields: [
+					field('title', 'text', { subtype: 'plain' }),
+					field('status', 'select', { options: ['draft', 'published'], multiple: false }),
+					field('body', 'richtext')
+				]
+			}
+		]);
+		expect(applicableChecks(model.types[0], model)).toEqual(['links']);
+		const withUrl = modelOf([{ name: 'posts', readonly: false, fields: [field('site', 'url')] }]);
+		expect(applicableChecks(withUrl.types[0], withUrl)).toEqual(['links']);
+	});
+
+	test('un campo oculto del registro no cuenta', () => {
+		const model = modelOf([
+			{ name: 'posts', readonly: false, fields: [field('body', 'richtext', { hidden: true })] }
+		]);
+		expect(applicableChecks(model.types[0], model)).toEqual([]);
+	});
+
+	test('bloques homogéneos: enlaces por el url del hijo e imágenes por su relación a vega_media', () => {
+		const types: ContentType[] = [
+			{ name: 'landing', readonly: false, fields: [field('title', 'text', { subtype: 'plain' })] },
+			{
+				name: 'sections',
+				readonly: false,
+				fields: [
+					field('landing', 'relation', { target: 'landing', multiple: false }),
+					field('order', 'number'),
+					field('photo', 'relation', { target: 'vega_media', multiple: false }),
+					field('link', 'url')
+				]
+			}
+		];
+		const model = modelOf(types, {
+			landing: { blocks: { collection: 'sections', parentField: 'landing', orderField: 'order' } }
+		});
+		const landing = model.types.find((t) => t.name === 'landing')!;
+		expect(applicableChecks(landing, model)).toEqual(['links', 'media']);
+	});
+
+	test('bloques heterogéneos: solo los campos del vocabulario; un richtext de bloque también cuenta como imágenes', () => {
+		const types: ContentType[] = [
+			{ name: 'landing', readonly: false, fields: [field('title', 'text', { subtype: 'plain' })] },
+			{
+				name: 'sections',
+				readonly: false,
+				fields: [
+					field('landing', 'relation', { target: 'landing', multiple: false }),
+					field('order', 'number'),
+					field('kind', 'text', { subtype: 'plain' }),
+					field('data', 'json'),
+					field('body', 'richtext')
+				]
+			}
+		];
+		const blocksConfig = {
+			collection: 'sections',
+			parentField: 'landing',
+			orderField: 'order',
+			typeField: 'kind',
+			dataField: 'data'
+		};
+		const onlyText = resolveContentModel({
+			types,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { landing: { blocks: blocksConfig } },
+				blockTypes: {
+					hero: { label: 'Hero', fields: [{ name: 'heading', label: 'Título', widget: 'text' }] }
+				}
+			}
+		});
+		expect(
+			applicableChecks(
+				onlyText.types.find((t) => t.name === 'landing')!,
+				onlyText
+			)
+		).toEqual([]);
+		const withBody = resolveContentModel({
+			types,
+			manifestRaw: {
+				schemaVersion: 1,
+				collections: { landing: { blocks: blocksConfig } },
+				blockTypes: {
+					text: {
+						label: 'Texto',
+						fields: [{ name: 'body', label: 'Cuerpo', widget: 'richtext', source: 'record' }]
+					}
+				}
+			}
+		});
+		expect(
+			applicableChecks(
+				withBody.types.find((t) => t.name === 'landing')!,
+				withBody
+			)
+		).toEqual(['links', 'media']);
+	});
+
+	test('cada comprobación cae en un grupo y los grupos son los de la tarjeta', () => {
+		for (const check of Object.keys(CHECK_SEVERITY) as ReviewCheckId[]) {
+			expect(REVIEW_GROUPS).toContain(CHECK_GROUP[check]);
+			expect(CHECK_GROUP[check]).toBe(
+				check.split('.')[0] === 'link' ? 'links' : check.split('.')[0]
+			);
+		}
 	});
 });
 

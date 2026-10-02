@@ -1,7 +1,10 @@
 /**
  * Revisión antes de publicar (Lote 13): qué avisos enseña Vega sobre un registro ANTES de que se
  * publique. Este módulo es el CONTRATO y la LÓGICA PURA (sin Svelte, sin puerto, sin red); la carga
- * de datos está aparte en `load-review-data.ts` y la interfaz todavía no existe (falta su lámina).
+ * de datos está aparte en `load-review-data.ts`, el estado que las junta en `review-state.svelte.ts`
+ * y la interfaz en `ReviewCard.svelte` (formulario) y `VisualPublishControl.svelte` (editor visual).
+ * `applicableChecks` (al final) dice qué GRUPOS de comprobación aplican a un tipo: es lo que la
+ * tarjeta usa para pintar un grupo solo cuando hay algo que mirar.
  *
  * **Qué hace.** `reviewRecord(input)` recibe el registro, su modelo de contenido y los datos YA
  * cargados (rutas de páginas, redirecciones, fichas de medios, bloques) y devuelve `ReviewResult`:
@@ -142,6 +145,26 @@ export type ReviewCheckId =
 /** `'warning'` informa; `'error'` está reservado para un bloqueo futuro (hoy ninguna comprobación lo usa). */
 export type ReviewSeverity = 'warning' | 'error';
 
+/**
+ * Grupos en los que la interfaz reparte las comprobaciones (lote 13, lámina: SEO · Enlaces ·
+ * Imágenes). Cada comprobación cae en uno (`CHECK_GROUP`); el orden de `REVIEW_GROUPS` es el de la
+ * tarjeta, que es también el orden en que `reviewRecord` produce los hallazgos.
+ */
+export type ReviewGroup = 'seo' | 'links' | 'media';
+
+export const REVIEW_GROUPS: readonly ReviewGroup[] = ['seo', 'links', 'media'];
+
+export const CHECK_GROUP: Readonly<Record<ReviewCheckId, ReviewGroup>> = {
+	'seo.description-empty': 'seo',
+	'seo.description-long': 'seo',
+	'seo.social-image-missing': 'seo',
+	'seo.noindex': 'seo',
+	'link.broken': 'links',
+	'link.draft-target': 'links',
+	'media.alt-missing': 'media',
+	'media.alt-missing-inline': 'media'
+};
+
 /** Gravedad de cada comprobación. POR DEFECTO TODO SON AVISOS (ver la cabecera). */
 export const CHECK_SEVERITY: Readonly<Record<ReviewCheckId, ReviewSeverity>> = {
 	'seo.description-empty': 'warning',
@@ -185,6 +208,9 @@ export interface ReviewFinding {
 	params: Record<string, string | number>;
 	/** Solo en `link.broken`: por qué. */
 	reason?: 'not-found' | 'redirect-dead-end' | 'redirect-loop';
+	/** Solo en `media.alt-missing`: la ficha de `vega_media` que no tiene alt, para abrirla desde el
+	 *  aviso («Describir la imagen…»). El alt vive ahí, no en el bloque. */
+	mediaId?: RecordId;
 }
 
 export interface ReviewResult {
@@ -339,6 +365,72 @@ function isEmptyValue(value: unknown): boolean {
 	return false;
 }
 
+// ————— Qué comprobaciones aplican a un tipo (lote 13: la tarjeta pinta un grupo solo si aplica) —————
+
+/** Un campo puede llevar enlaces internos si es texto enriquecido o una URL (ver «Enlaces internos»). */
+function carriesLinks(widget: WidgetId): boolean {
+	return widget === 'richtext' || widget === 'url';
+}
+
+/**
+ * Los campos que PODRÍA tener un bloque de `type`, sin ningún registro delante: en modo
+ * heterogéneo, los de todos los tipos del vocabulario; en homogéneo, los del tipo hijo. Mismo
+ * criterio que `blockSites`, pero sobre el modelo y no sobre un bloque concreto.
+ */
+function possibleBlockFields(
+	type: ResolvedContentType,
+	model: Pick<ContentModel, 'types' | 'blockTypes'>
+): Array<{ widget: WidgetId; isMediaRelation: boolean }> {
+	const config = type.blocks;
+	if (!config) return [];
+	if (config.typeField !== null && config.dataField !== null) {
+		return model.blockTypes.flatMap((blockType) =>
+			blockType.fields.map((field) => ({
+				widget: field.widget,
+				isMediaRelation: field.source === 'record' && field.widget === 'relation'
+			}))
+		);
+	}
+	const childType = model.types.find((candidate) => candidate.name === config.collection);
+	return (childType?.fields ?? [])
+		.filter((field) => !field.hidden)
+		.map((field) => ({
+			widget: field.widget,
+			isMediaRelation: field.schema.type === 'relation' && field.schema.target === MEDIA_COLLECTION
+		}));
+}
+
+/**
+ * Qué grupos de comprobación APLICAN a `type` (`ReviewGroup`, en el orden de la tarjeta), con el
+ * mismo criterio con el que `reviewRecord` decide qué mira: `seo` si el tipo tiene alguna pieza
+ * SEO (`seoFields`); `links` si algún campo del registro o de sus bloques puede llevar enlaces
+ * internos (`richtext` o `url`); `media` si algún bloque puede referenciar la biblioteca por una
+ * relación o llevar imágenes en su texto enriquecido. `reviewRecord` no lo dice por sí solo (un
+ * grupo que no aplica no da hallazgo ni `skipped`), y la tarjeta lo necesita para no pintar un
+ * «Sin avisos» sobre algo que nunca se ha mirado. Que un tipo sin `statusField` no publique nada
+ * (y no lleve tarjeta) lo decide la interfaz, no esta función.
+ */
+export function applicableChecks(
+	type: ResolvedContentType,
+	model: Pick<ContentModel, 'types' | 'blockTypes'>
+): ReviewGroup[] {
+	const seo = seoFields(type);
+	const blockFields = possibleBlockFields(type, model);
+	const recordFields = type.fields.filter((field) => !field.hidden);
+	const groups: ReviewGroup[] = [];
+	if (seo.description !== null || seo.image !== null || seo.noindex !== null) groups.push('seo');
+	if (
+		recordFields.some((field) => carriesLinks(field.widget)) ||
+		blockFields.some((field) => carriesLinks(field.widget))
+	) {
+		groups.push('links');
+	}
+	if (blockFields.some((field) => field.isMediaRelation || field.widget === 'richtext')) {
+		groups.push('media');
+	}
+	return groups;
+}
+
 // ————— Comprobaciones —————
 
 class Collector {
@@ -350,7 +442,7 @@ class Collector {
 		target: ReviewTarget,
 		messageKey: DictKey,
 		params: Record<string, string | number> = {},
-		reason?: ReviewFinding['reason']
+		extra: Pick<ReviewFinding, 'reason' | 'mediaId'> = {}
 	): void {
 		const where =
 			target.kind === 'field' ? `f.${target.field}` : `b.${target.blockId}.${target.field}`;
@@ -364,7 +456,8 @@ class Collector {
 			target,
 			messageKey,
 			params,
-			...(reason ? { reason } : {})
+			...(extra.reason ? { reason: extra.reason } : {}),
+			...(extra.mediaId ? { mediaId: extra.mediaId } : {})
 		});
 	}
 }
@@ -464,7 +557,7 @@ function checkLinks(
 				out.add('link.draft-target', target, 'review.link.draftTarget', { href });
 				break;
 			case 'not-found':
-				out.add('link.broken', target, 'review.link.notFound', { href }, 'not-found');
+				out.add('link.broken', target, 'review.link.notFound', { href }, { reason: 'not-found' });
 				break;
 			case 'redirect-dead-end':
 				out.add(
@@ -472,11 +565,17 @@ function checkLinks(
 					target,
 					'review.link.redirectDeadEnd',
 					{ href, to: result.to },
-					'redirect-dead-end'
+					{ reason: 'redirect-dead-end' }
 				);
 				break;
 			case 'redirect-loop':
-				out.add('link.broken', target, 'review.link.redirectLoop', { href }, 'redirect-loop');
+				out.add(
+					'link.broken',
+					target,
+					'review.link.redirectLoop',
+					{ href },
+					{ reason: 'redirect-loop' }
+				);
 				break;
 		}
 	}
@@ -492,7 +591,13 @@ function checkAlt(
 		for (const id of idsOf(site.value)) {
 			const item = media.get(id);
 			if (item && mediaMissingAlt(item)) {
-				out.add('media.alt-missing', target, 'review.media.altMissing', { file: item.fileName });
+				out.add(
+					'media.alt-missing',
+					target,
+					'review.media.altMissing',
+					{ file: item.fileName },
+					{ mediaId: id }
+				);
 			}
 		}
 	}
