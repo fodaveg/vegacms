@@ -1428,6 +1428,18 @@ const PAGINAS_CONTENT_TYPE: ContentType = {
 			presentable: false,
 			hidden: false,
 			unique: false
+		},
+		// «Publicar el» (lote 12, lámina 2, pieza 2.11): el `publishAtField` del manifiesto de abajo,
+		// para que el e2e de «Programar…» desde la cabecera del editor visual tenga dónde escribir la
+		// fecha. Decisión de fixture, no de producto: `SHOWCASE_SEED` va detrás de su flag.
+		{
+			name: 'publishAt',
+			type: 'date',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
 		}
 	]
 };
@@ -1584,6 +1596,8 @@ const SHOWCASE_MANIFEST: JsonValue = {
 				dataField: 'datos'
 			},
 			statusLabels: { draft: 'Borrador', published: 'Publicada' },
+			// Ver `PAGINAS_CONTENT_TYPE#publishAt`: «Programar…» en la cabecera del editor visual.
+			publishAtField: 'publishAt',
 			fields: { title: { label: 'Título' } }
 		},
 		// La colección hija NO aparece en la nav: se edita dentro de su página, y sacarla también
@@ -2315,6 +2329,10 @@ export const SHOWCASE_SEED: MemorySeed = {
 		// tiempo de siembra — ver `SHOWCASE_MEDIA_RECORDS`/`renderShowcaseBitmap`.
 		vega_media: SHOWCASE_MEDIA_RECORDS
 	},
+	// Como un servidor con `extensions/vegaschedule`: así «Programar…» se ofrece en `paginas` (ver
+	// `PAGINAS_CONTENT_TYPE#publishAt`) y el e2e de la cabecera del editor visual puede recorrerlo.
+	// Solo en el escaparate; `DEMO_SEED` sigue en el default `'inactive'` de `memory`.
+	scheduledPublishing: 'active',
 	// Getter, no un objeto literal: así los cuatro bitmaps se pintan SOLO si alguien abre de verdad
 	// el escaparate (este módulo lo importa `session/backend.ts`, que carga en TODOS los arranques
 	// de la app, también contra PocketBase — generar ahí ~35 ms y ~500 KB de cadenas que nadie va a

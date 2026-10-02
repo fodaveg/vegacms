@@ -532,3 +532,45 @@ test.describe('editor visual — publicar y despublicar desde la cabecera', () =
 		await expect(headingInput(page)).toHaveValue('Cambio que aún no se ha guardado');
 	});
 });
+
+/**
+ * «Programar…» desde la cabecera (lote 12, lámina 2, pieza 2.11; `VisualPublishControl.svelte`
+ * montando el `ScheduleDialog` del formulario). `SHOWCASE_SEED` declara `publishAtField` en
+ * `paginas` y responde `scheduledPublishing: 'active'`, así que en «Inicio» (borrador) el control
+ * ofrece «Programar…». Camino feliz: el diálogo propone una fecha, confirmar la guarda en el
+ * registro, la etiqueta pasa a «Programada · …» y el botón a «Cambiar fecha…».
+ */
+test.describe('editor visual — programar la publicación desde la cabecera', () => {
+	test('«Programar…» abre el diálogo y confirmar deja la página programada', async ({ page }) => {
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+		await openVisualEditor(page, site, 'pagina_1');
+		await waitConnected(page, 3);
+
+		const group = page.getByRole('group', { name: 'Estado de la página' });
+		await expect(group).toContainText('Borrador');
+		const schedule = group.getByRole('button', { name: 'Programar…', exact: true });
+		await schedule.click();
+
+		const dialog = page.getByRole('dialog', { name: 'Programar la publicación' });
+		await expect(dialog).toBeVisible();
+		await expect(dialog).toContainText('Inicio');
+		const date = dialog.getByLabel('Publicar el');
+		await expect(date).toBeFocused();
+		// Propuesta: mañana a las 09:00, hora de este equipo.
+		await expect(date).toHaveValue(/^\d{4}-\d{2}-\d{2}T09:00$/);
+
+		await dialog.getByRole('button', { name: 'Programar', exact: true }).click();
+		await expect(dialog).toHaveCount(0);
+		await expect(page.getByText(/^Se publicará el .+ a las \d{2}:\d{2}\.$/)).toBeVisible();
+
+		await expect(group).toContainText(/Programada · /);
+		const change = group.getByRole('button', { name: 'Cambiar fecha…', exact: true });
+		await expect(change).toBeVisible();
+		await expect(change).toBeFocused();
+
+		// Lo guardado es lo que dice la cabecera: el formulario de la página lo enseña igual.
+		await page.getByRole('button', { name: 'Volver al formulario' }).click();
+		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
+		await expect(page.locator('.vega-editor-tag')).toContainText(/Programada · /);
+	});
+});
