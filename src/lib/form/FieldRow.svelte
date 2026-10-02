@@ -334,6 +334,18 @@
 		border-image: var(--sheen) 1;
 	}
 
+	/* Error: el subrayado pasa a `--danger` (lámina 4.4). La regla `[aria-invalid]` de `Text.svelte`
+	   no llega: el `border-bottom` de arriba lleva la clase de ámbito de Svelte y pesa más. Con foco
+	   el subrayado sigue rojo y a 2px (sin el hilo `--sheen`, que diría «todo bien»). */
+	.vega-field-row--title :global(.vega-widget-text[aria-invalid='true']) {
+		border-bottom-color: var(--danger);
+	}
+
+	.vega-field-row--title :global(.vega-widget-text[aria-invalid='true']:focus-visible) {
+		border-bottom-color: var(--danger);
+		border-image: none;
+	}
+
 	/* Campo slug (mockup `.slug-row input.mono`): VALOR canónico ⇒ `--mono`, un punto más pequeño
 	   para compensar el ancho de la mono. Mismo gancho `:global` que el campo héroe.
 	   Campo ruta (`isPathField`, modelo de páginas): MISMO tratamiento — la dirección pública de

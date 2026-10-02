@@ -111,6 +111,20 @@ describe('FieldRow + Text — el título como área que crece', () => {
 		);
 	});
 
+	test('con error el área lleva aria-invalid, de donde cuelga el subrayado rojo (lámina 4.4)', () => {
+		// jsdom no calcula el CSS de Svelte: aquí solo se ve el atributo del que cuelga la regla
+		// `.vega-field-row--title .vega-widget-text[aria-invalid='true']` (FieldRow.svelte). El color
+		// real (borde inferior `--danger`, sin foco y con foco, 2px y sin `--sheen`) se mira en navegador.
+		const { target } = setup({
+			error: { code: 'validation_required', message: 'Este campo es obligatorio.', known: false }
+		});
+		const area = target.querySelector('textarea')!;
+		expect(target.querySelector('.vega-field-row--title .vega-widget-text')).toBe(area);
+		expect(
+			target.querySelector(".vega-field-row--title .vega-widget-text[aria-invalid='true']")
+		).toBe(area);
+	});
+
 	test('deshabilitado o solo lectura: el área queda deshabilitada', () => {
 		expect(setup({ disabled: true }).target.querySelector('textarea')!.disabled).toBe(true);
 	});
