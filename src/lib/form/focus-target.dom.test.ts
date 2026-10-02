@@ -92,3 +92,62 @@ describe('resolveFocusTarget — casos sin fila / sin candidatos', () => {
 		expect(resolveFocusTarget(root, 'tags')).toBeNull();
 	});
 });
+
+/**
+ * Fila de un widget `richtext` (`Richtext.svelte`): la barra de herramientas (botones) va ANTES del
+ * contenedor con el `inputId`, que no es focusable y dentro lleva el `contenteditable` de TipTap.
+ */
+function richtextRow(name: string, scope: string | null = null): string {
+	const { inputId, labelId } = fieldIds(name, scope);
+	return `<div class="vega-field-row" data-field="${name}">
+		<label id="${labelId}" for="${inputId}">Contenido</label>
+		<div class="vega-widget-richtext">
+			<div role="toolbar"><button type="button">Negrita</button><button type="button">Cursiva</button></div>
+			<div id="${inputId}" aria-labelledby="${labelId}">
+				<div class="ProseMirror" contenteditable="true" tabindex="0" role="textbox"></div>
+			</div>
+		</div>
+	</div>`;
+}
+
+describe('resolveFocusTarget — texto enriquecido y ámbito de bloque (lote 13, «ir al campo»)', () => {
+	test('con el `inputId` como contenedor, el foco va a lo que hay DENTRO (el editor), no a la barra de herramientas', () => {
+		const root = containerWith(richtextRow('body'));
+		const target = resolveFocusTarget(root, 'body');
+		expect(target?.getAttribute('contenteditable')).toBe('true');
+		expect(target?.textContent).not.toBe('Negrita');
+	});
+
+	test('un `contenteditable` cuenta como focusable aunque no lleve `tabindex`', () => {
+		const root = containerWith(
+			`<div class="vega-field-row" data-field="body"><div id="${fieldIds('body').inputId}"><div contenteditable="true"></div></div></div>`
+		);
+		expect(resolveFocusTarget(root, 'body')?.getAttribute('contenteditable')).toBe('true');
+	});
+
+	test('con `scope`, resuelve los ids de ESA fila de bloque y no la del mismo campo de otro bloque', () => {
+		const root = containerWith(
+			`${inputRow('body')}
+			<div id="vega-block-body-b1">${richtextRow('body', 'b1')}</div>
+			<div id="vega-block-body-b2">${richtextRow('body', 'b2')}</div>`
+		);
+		const target = resolveFocusTarget(root, 'body', 'b2');
+		expect(target?.closest('#vega-block-body-b2')).not.toBeNull();
+		expect(target?.getAttribute('contenteditable')).toBe('true');
+		// Sin `scope`, el comportamiento histórico: el campo del registro, no el de un bloque.
+		expect(resolveFocusTarget(root, 'body')?.id).toBe(fieldIds('body').inputId);
+	});
+
+	test('con `scope` y un `inputId` focusable directo (un `<input>` de bloque), lo devuelve', () => {
+		const { inputId } = fieldIds('href', 'b7');
+		const root = containerWith(
+			`<div class="vega-field-row" data-field="href"><input id="${inputId}" type="url" /></div>`
+		);
+		expect(resolveFocusTarget(root, 'href', 'b7')?.id).toBe(inputId);
+	});
+
+	test('con `scope` y sin esa fila de bloque → null', () => {
+		const root = containerWith(richtextRow('body', 'b1'));
+		expect(resolveFocusTarget(root, 'body', 'b9')).toBeNull();
+	});
+});

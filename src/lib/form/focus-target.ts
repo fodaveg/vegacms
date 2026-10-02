@@ -39,10 +39,15 @@ export function isDisabled(el: Element): boolean {
 	return 'disabled' in el && (el as unknown as { disabled: boolean }).disabled === true;
 }
 
-/** `true` si `el` es nativamente focusable (o lleva `tabindex` explícito) Y no está deshabilitado. */
+/** `true` si `el` es nativamente focusable (o lleva `tabindex` explícito, o es editable como el
+ *  cuerpo de TipTap en `Richtext.svelte`) Y no está deshabilitado. */
 export function isFocusable(el: Element): boolean {
 	if (isDisabled(el)) return false;
-	return FOCUSABLE_TAGS.has(el.tagName) || el.hasAttribute('tabindex');
+	return (
+		FOCUSABLE_TAGS.has(el.tagName) ||
+		el.hasAttribute('tabindex') ||
+		el.getAttribute('contenteditable') === 'true'
+	);
 }
 
 /**
@@ -66,16 +71,40 @@ function escapeForSelector(value: string): string {
  * `null` si no hay fila para `name`, o si ninguno de sus candidatos es focusable+habilitado (no
  * debería darse en la práctica: D-P5.1 no permite que un campo con error esté enteramente inerte,
  * ver cabecera).
+ *
+ * `scope` (lote 13, «ir al campo» de un aviso de la revisión): el ámbito de ids de un bloque
+ * (`field-scope.ts`, el id del registro del bloque). Con él, los ids son los de ESA fila de
+ * `BlockEditor` y la fila del campo se localiza por su etiqueta (`labelId`, única en el documento)
+ * en vez de por `data-field`, que varias filas de bloque del mismo tipo comparten. Sin `scope`,
+ * el comportamiento histórico, byte a byte.
  */
-export function resolveFocusTarget(root: ParentNode, name: string): HTMLElement | null {
-	const direct = root.querySelector<HTMLElement>(`#${escapeForSelector(fieldIds(name).inputId)}`);
-	if (direct && isFocusable(direct)) return direct;
+export function resolveFocusTarget(
+	root: ParentNode,
+	name: string,
+	scope: string | null = null
+): HTMLElement | null {
+	const ids = fieldIds(name, scope);
+	const direct = root.querySelector<HTMLElement>(`#${escapeForSelector(ids.inputId)}`);
+	if (direct) {
+		if (isFocusable(direct)) return direct;
+		// El `inputId` es un contenedor (el `role="group"` de `chips`/`relation`, o la caja donde
+		// TipTap monta su `contenteditable` en `Richtext.svelte`): primero lo que hay DENTRO de él.
+		// La fila entera va después, a propósito: la barra de herramientas del texto enriquecido va
+		// ANTES del editor en el DOM y, mirando la fila de entrada, el foco caía en «Negrita».
+		const inner = firstFocusableIn(direct);
+		if (inner) return inner;
+	}
 
-	const row = root.querySelector(`.vega-field-row[data-field="${escapeForSelector(name)}"]`);
-	if (!row) return null;
+	const row = scope
+		? root.querySelector(`#${escapeForSelector(ids.labelId)}`)?.closest('.vega-field-row')
+		: root.querySelector(`.vega-field-row[data-field="${escapeForSelector(name)}"]`);
+	return row ? firstFocusableIn(row) : null;
+}
 
-	const candidates = row.querySelectorAll<HTMLElement>(
-		'input, select, textarea, button, [href], [tabindex]:not([tabindex="-1"])'
+/** Primer elemento focusable Y habilitado dentro de `root`, en el ORDEN del DOM. */
+function firstFocusableIn(root: ParentNode): HTMLElement | null {
+	const candidates = root.querySelectorAll<HTMLElement>(
+		'input, select, textarea, button, [href], [tabindex]:not([tabindex="-1"]), [contenteditable="true"]'
 	);
 	for (const candidate of candidates) {
 		if (isFocusable(candidate)) return candidate;

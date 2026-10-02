@@ -68,6 +68,9 @@
 		onBusyChange?: (busy: boolean) => void;
 		/** Mutex inverso: el padre clona la página y congela todas las mutaciones hijas. */
 		disabled?: boolean;
+		/** Un bloque se acaba de GUARDAR de verdad (lote 13): el padre relee lo que la revisión
+		 *  antes de publicar lee del servidor. Los borradores van por `onDraftChange`. */
+		onSaved?: () => void;
 	}
 
 	let {
@@ -76,7 +79,8 @@
 		onDirtyChange,
 		onDraftChange = () => {},
 		onBusyChange = () => {},
-		disabled = false
+		disabled = false,
+		onSaved = () => {}
 	}: Props = $props();
 
 	const ctx = getVegaContext();
@@ -191,6 +195,16 @@
 	 *  existe tras un borrado con éxito) — la cabecera de la propia tarjeta, `tabindex="-1"`, mismo
 	 *  truco que el `<h1>` oculto de `RecordForm`. */
 	let headingEl = $state<HTMLElement | null>(null);
+
+	/**
+	 * Despliega la fila del bloque `id` desde FUERA de la lista (lote 13: la acción «Bloque N · Tipo
+	 * › Campo» de un aviso de la revisión, en `RecordForm`). Hasta este lote solo lo hacía el propio
+	 * botón de la fila. Handle exportado (`bind:this`), mismo criterio que `BlockEditor#save`: la
+	 * alternativa sería que el padre tocara `blocks.toggle` a ciegas sin saber si ya está abierta.
+	 */
+	export function expand(id: string): void {
+		blocks.expand(id);
+	}
 </script>
 
 <!-- Nivel superior a la fuerza: `<svelte:window>` no puede vivir dentro de un bloque. No hace
@@ -384,7 +398,10 @@
 								name={blocks.blockTitle(record)}
 								structuralFields={blocks.structuralFields}
 								onSubmit={(input, opts) => ctx.port.update(type.name, record.id, input, opts)}
-								onSaved={(saved) => blocks.handleBlockSaved(record.id, saved)}
+								onSaved={(saved) => {
+									blocks.handleBlockSaved(record.id, saved);
+									onSaved();
+								}}
 								onDirtyChange={(dirty) => blocks.setDirty(record.id, dirty)}
 								onDraftChange={(draft) => blocks.handleBlockDraftChange(record.id, draft)}
 								disabled={disabled || blocks.structuralBusy}

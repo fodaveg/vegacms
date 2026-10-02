@@ -170,6 +170,9 @@ export interface BlocksState {
 	say(text: string): void;
 
 	toggle(id: string): void;
+	/** Despliega la fila de `id` si estaba plegada (lote 13: «ir al campo» de un aviso de la
+	 *  revisión llega desde fuera de la lista). No-op si ya estaba desplegada. */
+	expand(id: string): void;
 	setDirty(id: string, dirty: boolean): void;
 	setSaving(id: string, saving: boolean): void;
 	handleBlockDraftChange(id: string, draft: PreviewDraftRecord): void;
@@ -364,6 +367,10 @@ export function createBlocksState(options: BlocksStateOptions): BlocksState {
 	function toggle(id: string): void {
 		if (expandedIds.has(id)) expandedIds.delete(id);
 		else expandedIds.add(id);
+	}
+
+	function expand(id: string): void {
+		expandedIds.add(id);
 	}
 
 	function setDirty(id: string, dirty: boolean): void {
@@ -679,6 +686,7 @@ export function createBlocksState(options: BlocksStateOptions): BlocksState {
 		load,
 		say,
 		toggle,
+		expand,
 		setDirty,
 		setSaving,
 		handleBlockDraftChange,

@@ -152,6 +152,7 @@ function fakeBlocksState(
 		currentDraftRecords: () => [],
 		load: async () => {},
 		toggle: () => {},
+		expand: () => {},
 		setDirty: opts.setDirty ?? (() => {}),
 		setSaving: () => {},
 		handleBlockDraftChange: () => {},
