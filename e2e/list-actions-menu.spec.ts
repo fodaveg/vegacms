@@ -9,11 +9,12 @@
  * El teclado del propio menú (flechas circulares, Home/End, Escape) ya lo cubre
  * `ActionMenu.svelte.test.ts` en jsdom; aquí solo se comprueba el camino completo una vez.
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 
+/** Tras el login se aterriza en Inicio (portada del Lote 12); cada test navega luego a su listado. */
 async function loginAndSettle(page: import('@playwright/test').Page): Promise<void> {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 }
 
 test.describe('menú de acciones de fila (lámina 7)', () => {
