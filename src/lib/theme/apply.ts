@@ -128,7 +128,7 @@ export function setTheme(themeId: string): void {
  * `AppShell.svelte` como una prop booleana normal de Svelte (`Sidebar.svelte`/`Topbar.svelte` no
  * necesitan leer CSS por atributo para esto), así que basta con leer/escribir el
  * almacenamiento. Leída DIRECTA (no en un `$effect`) porque `AppShell` la usa como valor
- * INICIAL de su `$state`, mismo momento que `DensityToggle.svelte#currentDensity`.
+ * INICIAL de su `$state`, mismo momento que `Topbar.svelte#currentDensity` (menú de cuenta).
  */
 export function readSidebarCollapsed(): boolean {
 	return resolveInitialSidebarCollapsed(readBooleanFlag(STORAGE_KEYS.sidebarCollapsed));

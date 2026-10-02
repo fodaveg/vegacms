@@ -30,6 +30,37 @@ import { saveManifest } from '$lib/model/load';
 
 export { previousStarterManifest, starterManifest0ace139 };
 
+/**
+ * Un manifiesto EDITADO A MANO sobre el inicial de `0ace139` (así que aún le faltan las entradas
+ * de la publicación programada). Lo que una persona haría de verdad:
+ * - etiquetas cambiadas: el sitio, `pages`, el campo `description` y el bloque `hero`;
+ * - una columna quitada de `pages.listFields`;
+ * - una colección propia (`recetas`) y un tipo de bloque propio (`receta`);
+ * - una entrada de la base BORRADA a propósito: `collections.redirects`.
+ * Devuelve una copia nueva cada vez.
+ */
+export function handEditedManifest(): JsonValue {
+	const manifest = structuredClone(starterManifest0ace139) as unknown as {
+		site: { name: string };
+		collections: Record<string, Record<string, unknown>>;
+		blockTypes: Record<string, Record<string, unknown>>;
+	};
+	manifest.site.name = 'Mi taller';
+	manifest.collections.pages.label = 'Hojas';
+	manifest.collections.pages.listFields = ['title', 'status'];
+	(manifest.collections.pages.fields as Record<string, Record<string, unknown>>).description.label =
+		'Entradilla';
+	manifest.collections.recetas = { label: 'Recetas', icon: 'tag' };
+	delete manifest.collections.redirects;
+	manifest.blockTypes.hero.label = 'Cabecera';
+	manifest.blockTypes.receta = {
+		label: 'Receta',
+		icon: 'tag',
+		fields: [{ name: 'raciones', label: 'Raciones', widget: 'text', source: 'data', default: '' }]
+	};
+	return manifest as unknown as JsonValue;
+}
+
 const editorRule = SITE_SEED_EDITOR_ACCESS_RULE;
 
 const PAGES_FIELDS_1BDA988: CollectionFieldSpec[] = [

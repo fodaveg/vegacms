@@ -16,10 +16,12 @@ import {
 	SITE_SEED_REDIRECT_TO_PATTERN,
 	SITE_SEED_REDIRECTS_READ_RULE,
 	SiteSeedDivergenceError,
-	seedSiteProject
+	seedSiteProject,
+	type SiteSeedModule
 } from '$lib/backend/site-seeding';
 import starterManifest from '$lib/backend/site-seeding-manifest.json';
 import {
+	handEditedManifest,
 	previousStarterManifest,
 	seedLikePrevious0ace139,
 	seedLikePrevious1bda988,
@@ -537,7 +539,7 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 		expect(editorsMissing).toBe(true);
 	});
 
-	test('un manifiesto humano distinto aborta sin escribir y permanece intacto', async () => {
+	test('un manifiesto humano distinto conserva lo suyo y recibe las entradas de la base', async () => {
 		await seedSiteProject(port);
 		const record = (await admin.collection('vega').getFullList())[0]!;
 		const humanManifest = {
@@ -547,12 +549,154 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 			blockTypes: {}
 		};
 		await admin.collection('vega').update(record.id, { manifest: humanManifest });
+
+		const result = await seedSiteProject(port);
+
+		expect(result.upgradedRecords).toEqual(['manifest']);
+		const manifests = await admin.collection('vega').getFullList();
+		expect(manifests).toHaveLength(1);
+		expect(manifests[0]?.id).toBe(record.id);
+		expect(manifests[0]?.manifest).toEqual({
+			...starterManifest,
+			site: { name: 'Proyecto humano' }
+		});
+	});
+
+	test('un manifiesto editado a mano recibe lo que falta, conserva lo editado y la segunda pasada no cambia nada', async () => {
+		await seedLikePrevious0ace139(port);
+		const record = (await admin.collection('vega').getFullList())[0]!;
+		const edited = handEditedManifest() as Record<string, unknown>;
+		await admin.collection('vega').update(record.id, { manifest: edited });
+		const human = await admin.collection('pages').create({
+			title: 'Quiénes somos',
+			path: '/about',
+			layout: 'default',
+			status: 'published'
+		});
+
+		const result = await seedSiteProject(port);
+
+		expect(result.upgradedRecords).toEqual(['manifest']);
+		expect(result.createdRecords).toEqual([]);
+		expect(result.manifestEntries).toEqual({
+			base: [
+				'collections.pages.publishAtField',
+				'collections.pages.fields.publishAt',
+				// La que el usuario borró a propósito vuelve: decisión abierta (ver la doc).
+				'collections.redirects'
+			]
+		});
+		const manifests = await admin.collection('vega').getFullList();
+		expect(manifests).toHaveLength(1);
+		expect(manifests[0]?.id).toBe(record.id);
+		const saved = manifests[0]!.manifest as Record<string, Record<string, Record<string, unknown>>>;
+		// Todo lo editado sigue, ruta a ruta: el manifiesto previo es un subconjunto del guardado.
+		expect(saved).toMatchObject(edited);
+		expect(saved.site.name).toBe('Mi taller');
+		expect(saved.collections.pages.label).toBe('Hojas');
+		expect(saved.collections.pages.listFields).toEqual(['title', 'status']);
+		expect(saved.collections.recetas).toEqual({ label: 'Recetas', icon: 'tag' });
+		expect(saved.blockTypes.hero.label).toBe('Cabecera');
+		expect(saved.blockTypes.receta.label).toBe('Receta');
+		// Y recibe lo que le faltaba.
+		expect(saved.collections.pages.publishAtField).toBe('publishAt');
+		expect(saved.collections.pages.fields).toMatchObject({ publishAt: { label: 'Publicar el' } });
+		expect(saved.collections.redirects).toEqual(starterManifest.collections.redirects);
+		expectPublishAtField(await admin.collections.getOne('pages'));
+		await expect(admin.collection('pages').getOne(human.id)).resolves.toMatchObject({
+			title: 'Quiénes somos',
+			status: 'published'
+		});
+
+		const before = await logicalSnapshot(admin);
+		const rawBefore = await admin.collection('vega').getOne(record.id);
+		await expect(seedSiteProject(port)).resolves.toEqual({
+			createdCollections: [],
+			addedFields: {},
+			createdRecords: [],
+			upgradedRecords: []
+		});
+		expect(await logicalSnapshot(admin)).toEqual(before);
+		// El registro entero es el mismo, y su `manifest` crudo también clave a clave y en orden.
+		const rawAfter = await admin.collection('vega').getOne(record.id);
+		expect(rawAfter).toEqual(rawBefore);
+		expect(JSON.stringify(rawAfter.manifest)).toBe(JSON.stringify(rawBefore.manifest));
+	});
+
+	test('un módulo añadido a un sitio en marcha crea su colección y suma sus entradas al manifiesto sin tocar el resto', async () => {
+		const notes: SiteSeedModule = {
+			id: 'notas',
+			collections: [
+				{
+					name: 'notes',
+					listRule: SITE_SEED_EDITOR_ACCESS_RULE,
+					viewRule: SITE_SEED_EDITOR_ACCESS_RULE,
+					createRule: SITE_SEED_EDITOR_ACCESS_RULE,
+					updateRule: SITE_SEED_EDITOR_ACCESS_RULE,
+					deleteRule: SITE_SEED_EDITOR_ACCESS_RULE,
+					fields: [
+						{ name: 'title', type: 'text', required: true, max: 200 },
+						{
+							name: 'page',
+							type: 'relation',
+							target: 'pages',
+							multiple: false,
+							cascadeDelete: false
+						}
+					]
+				}
+			],
+			manifest: { collections: { notes: { label: 'Notas', titleField: 'title' } } }
+		};
+		await seedSiteProject(port);
+		const record = (await admin.collection('vega').getFullList())[0]!;
+		const baseCollections = await logicalSnapshot(admin);
+
+		const result = await seedSiteProject(port, { modules: [notes] });
+
+		expect(result).toEqual({
+			createdCollections: ['notes'],
+			addedFields: {},
+			createdRecords: [],
+			upgradedRecords: ['manifest'],
+			manifestEntries: { notas: ['collections.notes'] }
+		});
+		const created = await admin.collections.getOne('notes');
+		expect(created.fields.map((field) => field.name)).toEqual(
+			expect.arrayContaining(['title', 'page'])
+		);
+		const saved = (await admin.collection('vega').getOne(record.id)).manifest;
+		expect(saved).toEqual({
+			...starterManifest,
+			collections: {
+				...starterManifest.collections,
+				notes: { label: 'Notas', titleField: 'title' }
+			}
+		});
+		// Las colecciones y registros de la base no se han movido.
+		const after = await logicalSnapshot(admin);
+		expect(after.collections).toEqual(baseCollections.collections);
+		expect(after.records).toEqual(baseCollections.records);
+
+		await expect(seedSiteProject(port, { modules: [notes] })).resolves.toEqual({
+			createdCollections: [],
+			addedFields: {},
+			createdRecords: [],
+			upgradedRecords: []
+		});
+	});
+
+	test('un manifiesto que no valida ni tras la fusión aborta sin escribir y permanece intacto', async () => {
+		await seedLikePrevious0ace139(port);
+		const record = (await admin.collection('vega').getFullList())[0]!;
+		const invalid = { ...starterManifest0ace139, clave_inventada: 1 };
+		await admin.collection('vega').update(record.id, { manifest: invalid });
 		const before = await logicalSnapshot(admin);
 
 		await expect(seedSiteProject(port)).rejects.toBeInstanceOf(SiteSeedDivergenceError);
 
 		expect(await logicalSnapshot(admin)).toEqual(before);
-		expect((await admin.collection('vega').getOne(record.id)).manifest).toEqual(humanManifest);
+		expect((await admin.collection('vega').getOne(record.id)).manifest).toEqual(invalid);
 	});
 
 	test('una vega preexistente conserva sus reglas manuales aunque el sembrado guarde el manifiesto', async () => {
@@ -854,7 +998,18 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 				blocks: ['created', 'updated']
 			},
 			createdRecords: [],
-			upgradedRecords: ['manifest']
+			upgradedRecords: ['manifest'],
+			manifestEntries: {
+				base: [
+					'collections.pages.publishAtField',
+					'collections.pages.fieldGroups',
+					'collections.pages.fields.publishAt',
+					'collections.pages.fields.description',
+					'collections.pages.fields.socialImage',
+					'collections.pages.fields.noindex',
+					'collections.redirects'
+				]
+			}
 		});
 		const mediaCollection = await admin.collections.getOne('vega_media');
 		expect(mediaCollection.fields.find((field) => field.name === 'focal')).toMatchObject({
@@ -940,7 +1095,10 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 			},
 			constrainedFields: { redirects: ['from', 'to'] },
 			createdRecords: [],
-			upgradedRecords: ['manifest']
+			upgradedRecords: ['manifest'],
+			manifestEntries: {
+				base: ['collections.pages.publishAtField', 'collections.pages.fields.publishAt']
+			}
 		});
 		const pagesAfter = await admin.collections.getOne('pages');
 		expectPublishAtField(pagesAfter);

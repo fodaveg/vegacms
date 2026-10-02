@@ -670,9 +670,12 @@ _Fecha_, _JSON_, _Selección_ (`select`) y _Relación_, más la casilla _No se p
 (`unique`) en texto, dirección web y correo. _Imagen_ se ofrece desactivada mientras `vega_media`
 no exista en el esquema (se crea al abrir «Medios»). Quedan fuera de la UI `file` (tiene su flujo
 en «Medios») y `autodate`. La operación headless `seedSiteProject` declara además `pages.status`,
-`pages.path`, `redirects.from` y `redirects.code` al preparar un proyecto nuevo, pero todavía no hay
-botón ni asistente para dispararla desde la SPA. Que el puerto lo admita, que el sembrado lo use y
-que el panel lo ofrezca son tres cosas distintas.
+`pages.path`, `redirects.from` y `redirects.code` al preparar un proyecto nuevo, y la SPA la dispara desde la
+tarjeta «Base del sitio» de **Ajustes** (solo con `schemaBootstrap`, es decir, superusuario): al
+abrirla hace un preflight de solo lectura (`previewSiteSeed`), enseña la lista de lo que crea o
+añade y, tras confirmar, llama a `seedSiteProject` («Preparar el sitio» en un proyecto sin sembrar,
+«Actualizar el sitio» en uno ya sembrado). Que el puerto lo admita, que el sembrado lo use y que el
+panel lo ofrezca son tres cosas distintas; hoy las tres se cumplen.
 
 Si el campo único nuevo choca con registros que ya existen (dos o más filas compartirían el valor
 vacío de un `text`), PocketBase rechaza la mutación entera. El adaptador lo traduce a un error de
@@ -930,7 +933,9 @@ Preparar el sitio»), el sembrado ya crea
 crear cada colección. El sitio puede leer anónimamente solo páginas publicadas y sus bloques, y
 todas las redirecciones; los registros de `vega_media` se pueden ver por id y expandir, pero no
 enumerar. Un registro autenticado contra `vega_editors` recibe CRUD de las cuatro colecciones de
-contenido. La operación es headless: aún no hay botón ni asistente en la SPA.
+contenido. Se lanza desde la tarjeta «Base del sitio» de Ajustes, que enseña el plan y pide
+confirmación antes de escribir; la operación en sí (`seedSiteProject`) también se puede llamar sin
+interfaz.
 
 #### SEO por página y redirecciones
 
@@ -969,21 +974,160 @@ ayuda en el formulario (tarjeta «SEO» en la columna lateral de la página) y m
 **Un proyecto ya sembrado** recibe todo esto desde «Ajustes → Base del sitio» («Actualizar el
 sitio», que llama a `seedSiteProject` tras enseñar el plan y pedir confirmación): añade a
 `pages` los tres campos ausentes sin tocar los existentes ni sus datos (las páginas quedan con
-descripción vacía, sin imagen y `noindex = false`), crea `redirects` y, si el manifiesto sigue
-siendo EXACTAMENTE el inicial de la versión anterior, lo sustituye por el nuevo. Si alguien editó
-el manifiesto, el sembrado aborta sin escribir nada, como con cualquier manifiesto humano: copia a
-mano las claves `collections.pages.fields`, `collections.pages.fieldGroups` y
-`collections.redirects` del manifiesto del starter.
+descripción vacía, sin imagen y `noindex = false`), crea `redirects` y añade al manifiesto las
+entradas que le falten (ver «Fusión aditiva del manifiesto», más abajo), esté editado a mano o no.
 
 **Publicación programada.** Desde la misma fecha el sembrado añade también `pages.publishAt`
 (`date` opcional, columna real porque la consulta el servidor) y el manifiesto inicial lo declara
 como `publishAtField` con etiqueta «Publicar el» (ver
 [Publicación programada](CONFIG.md#publicación-programada-publishatfield)). Un proyecto ya sembrado
-lo recibe igual que los campos de SEO: campo añadido, datos intactos y manifiesto sustituido solo si
-es EXACTAMENTE uno inicial anterior (el de antes del SEO o el de después); si se editó, copia a mano
-`collections.pages.publishAtField` y `collections.pages.fields.publishAt`. Para que la fecha haga
-algo hace falta la extensión [`vegaschedule`](../extensions/vegaschedule/README.md) en ese
-PocketBase.
+lo recibe igual que los campos de SEO: campo añadido, datos intactos y, en el manifiesto,
+`collections.pages.publishAtField` y `collections.pages.fields.publishAt` añadidos si faltan. Para
+que la fecha haga algo hace falta la extensión
+[`vegaschedule`](../extensions/vegaschedule/README.md) en ese PocketBase.
+
+**Fusión aditiva del manifiesto.** Al sembrar, al manifiesto guardado se le AÑADEN las entradas que
+le faltan y no se le quita ni se le cambia nada de lo que ya tiene: toda clave y todo valor siguen
+exactamente igual, en su mismo orden, y lo nuevo va al final de su nivel. Ese orden es el de lo que
+la fusión escribe: PocketBase devuelve las claves de un objeto JSON en orden alfabético, así que al
+releer el manifiesto el orden de las claves de un objeto (por ejemplo `blockTypes`) no es el
+escrito; el de las listas, como `nav.groups`, sí se conserva. Hasta el 1 oct 2026 la
+regla era otra (el manifiesto solo se sustituía si era EXACTAMENTE uno inicial de Vega, y uno
+editado a mano hacía abortar el sembrado); ya no hay que copiar claves a mano. La lógica vive en
+`src/lib/backend/site-seeding-merge.ts` (`mergeManifestFragment`).
+
+Una entrada se identifica por su clave (en `nav.groups`, por su nombre), y la fusión solo baja por
+estos niveles:
+
+| Nivel                    | Clave que identifica la entrada                 | Si la entrada ya existe                                             |
+| ------------------------ | ----------------------------------------------- | ------------------------------------------------------------------- |
+| raíz                     | `site`, `nav`, `collections`, `blockTypes`      | se entra en `collections`, `blockTypes` y `nav`; el resto, tal cual |
+| `nav`                    | `groups`                                        | se entra solo en `groups`                                           |
+| `nav.groups`             | nombre del grupo                                | tal cual; los grupos que falten van al final de la lista            |
+| `collections`            | nombre de la colección                          | se entra en su configuración                                        |
+| `collections.<c>`        | clave de configuración (`label`, `listFields`…) | se entra solo en `fields`; el resto, tal cual                       |
+| `collections.<c>.fields` | nombre del campo                                | tal cual                                                            |
+| `blockTypes`             | nombre del tipo de bloque                       | tal cual                                                            |
+
+«Tal cual» es literal: lo guardado se conserva entero aunque difiera de lo que traería Vega, y no
+se completa por dentro. Por eso, una vez presentes, no se tocan `site`, la configuración de un
+campo, un tipo de bloque (con su lista de `fields`) ni las listas de una colección (`listFields`,
+`fieldGroups`): una lista es una selección ordenada de quien la escribió. Consecuencia: un tipo de
+bloque que ya existe no recibe los campos que una versión posterior le añada, y una colección con
+`fieldGroups` propios no recibe el grupo «SEO» (los campos de SEO aparecen igual, en un grupo sin
+`placement`).
+
+**El menú (`nav`).** `nav.groups` es la única lista que la fusión completa (desde el 1 oct 2026;
+antes `nav` era opaco entero). Es solo el ORDEN de los grupos del menú: en qué grupo sale cada
+colección lo dice la propia colección (`collections.<c>.group`), así que una colección nueva
+aparece en el menú sin tocar `nav`. Lo que hace la fusión es añadir AL FINAL de `nav.groups` los
+grupos que falten, sin mover ni quitar los que hay: así el grupo de un módulo añadido a un sitio en
+marcha queda en un sitio conocido (el último) y no donde lo ponga el orden alfabético de los grupos
+sin declarar. Solo se fusiona con la forma esperada (`nav` objeto, `groups` lista de textos no
+vacíos). Con cualquier otra, `nav` no se toca; en la práctica ese manifiesto tampoco pasa la
+validación estricta, así que el sembrado aborta antes de escribir (ver más abajo).
+
+**Lo que no se ha podido añadir.** La fusión devuelve, además de las entradas añadidas, lo que
+traía y NO ha puesto (`skipped` en `mergeManifestFragment`; `manifestSkipped` por módulo en
+`previewSiteSeed` y en el resultado de `seedSiteProject`): un campo de un tipo de bloque que ya
+existe, un grupo de campos de una colección con `fieldGroups` propios y un grupo de menú en un
+`nav` de forma inesperada. No es un error ni desaparece con las pasadas: se repite mientras lo
+guardado siga igual. La tarjeta «Base del sitio» lo enseña antes de escribir, en el grupo «No se
+añade», junto a la lista con nombre de cada entrada que sí se va a añadir.
+
+Lo que la fusión NO sabe: distinguir «nunca lo tuvo» de «lo borró a propósito». Una entrada de
+Vega que falte se añade siempre, también si alguien la quitó, y volverá a proponerse en cada
+«Actualizar el sitio»; el plan la nombra antes de escribir. Para prescindir de una entrada sin que
+vuelva, **márcala como oculta en vez de borrarla**: `"hidden": true` existe en el schema del
+manifiesto tanto para una colección (`collections.<c>.hidden`) como para un campo
+(`collections.<c>.fields.<f>.hidden`), y lo presente no se toca. (Un tipo de bloque no tiene
+`hidden`: si se borra, vuelve.) Es el comportamiento decidido, no un fallo pendiente: recordar qué
+se ofreció ya exigiría guardar ese registro en algún sitio, y no se guarda.
+
+El sembrado sigue abortando sin escribir nada si el manifiesto guardado no es un objeto JSON, si
+hay más de un registro candidato o si el resultado de la fusión no pasa la validación estricta
+(por ejemplo, un manifiesto con una clave que el schema no conoce).
+
+**Módulos de sembrado.** Lo que se siembra se agrupa en módulos (`SiteSeedModule` en
+`src/lib/backend/site-seeding.ts`): las colecciones que asegura, en orden de aplicación, más un
+fragmento de manifiesto. La base de siempre es el módulo `base` y va en toda pasada; los demás se
+pasan en `seedSiteProject(port, { modules })` y se registran en
+`src/lib/backend/site-seeding-modules.ts`. Las colecciones de un módulo siguen la misma regla que
+las de la base (ausente se crea, presente recibe los campos que falten, forma incompatible aborta
+el lote) y su fragmento se fusiona como el de la base. `previewSiteSeed(port, { modules })`
+devuelve, además del plan total, el desglose por módulo: colecciones que se crearían, campos que
+se añadirían, entradas de manifiesto que se añadirían y las que no se pueden añadir. Un módulo
+solo aporta colecciones y manifiesto: no siembra registros.
+
+Además de `base` hay dos módulos opcionales, que se añaden desde «Ajustes → Base del sitio →
+Módulos» (cada uno con su vista previa de solo lectura; solo con la base al día, porque la base
+va en toda pasada y lo que tuviera pendiente se escribiría también):
+
+| Módulo     | Fichero                   | Colecciones     | En el menú                           |
+| ---------- | ------------------------- | --------------- | ------------------------------------ |
+| `blog`     | `site-seeding-blog.ts`    | `tags`, `posts` | «Entradas» y «Etiquetas», en «Sitio» |
+| `contacto` | `site-seeding-contact.ts` | `messages`      | «Mensajes», en «Sitio»               |
+
+**Blog.** `posts` se publica como `pages` y comparte con ella las mismas constantes: `status`
+(`draft`/`published`), `publishAt`, los campos de SEO (`description`, `socialImage`, `noindex`),
+`created`/`updated` y las reglas de acceso (sin sesión se lee solo lo publicado; solo los editores
+escriben). Lo propio: `title` y `slug` (único) obligatorios, `excerpt` (máx. 300), `body`
+(`editor`), `cover` (relación simple a `vega_media`, sin cascada), `tags` (relación múltiple a
+`tags`, sin cascada) y `date`, la fecha VISIBLE de la entrada, que existe porque `vegaschedule`
+vacía `publishAt` al publicar. `tags` tiene `name` y `slug` (único), obligatorios; la escriben
+solo los editores y se lee sin sesión (regla `""`), porque no tiene estado de publicación que
+filtrar y el sitio la necesita para pintar las entradas publicadas. **Una etiqueta es pública desde
+que se crea, también si solo la usan entradas en borrador**: cualquiera puede listar `tags` sin
+sesión y ver su nombre, así que no pongas en una etiqueta nada que no quieras publicar. Es una
+decisión tomada (la alternativa exigiría un estado de publicación en `tags`), no un descuido. Las
+etiquetas se crean en su propio listado antes de usarlas: el campo de relación del formulario de
+una entrada no deja crearlas.
+
+**Formulario de contacto.** `messages` es la bandeja: `name` (text, obligatorio, máx. 200),
+`email` (email, obligatorio), `message` (text, obligatorio, máx. 5000), `read` (bool) y `created`
+(autodate). El visitante crea el mensaje SIN SESIÓN desde el formulario del sitio; listar, ver,
+editar y borrar es solo de editores (`@request.auth.collectionName = "vega_editors"`). La regla
+de creación pública es `CONTACT_CREATE_RULE`:
+
+```
+@request.body.website = "" && @request.body.read != true
+```
+
+- `website` es un campo trampa y **no es un campo de la colección**: el formulario del sitio lo
+  pinta escondido, una persona lo deja vacío y un robot lo rellena. PocketBase deja leer del
+  cuerpo una clave que no es campo, y una clave ausente compara igual a `""`, así que vale tanto
+  mandarlo vacío como no mandarlo. Como no es campo, no se guarda.
+- `read != true` impide crear desde fuera un mensaje ya marcado como leído.
+
+Trampas medidas contra PocketBase 0.39.9 (`tests/contract/pocketbase.contact-rule-probe.test.ts`
+y `pocketbase.site-seeding-modules.test.ts`), por si alguien quiere «simplificar» la regla:
+
+- `@request.body.read = false` rechaza el envío normal: con la clave ausente es falso.
+- `@request.body.website:isset = false` rechaza el campo vacío que manda un formulario real.
+
+Lo que tiene que saber el componente del sitio:
+
+- **El rechazo de la regla es un 400 genérico**, `{"message": "Failed to create record.", "data":
+{}}`, sin decir qué condición falló (ni que hay una trampa). Solo un fallo de validación de un
+  campo (mensaje por encima del tope, correo mal formado) trae el campo en `data`. El componente
+  debe tratar **cualquier 400 como «no se pudo enviar»**, sin intentar interpretar el motivo.
+- Sin sesión, listar `messages` responde 200 con cero elementos y ver un registro, 404: no hay
+  forma de leer la bandeja desde fuera.
+
+Lo que Vega NO gestiona y hay que configurar en PocketBase antes de publicar el formulario:
+
+- **Límite de peticiones por IP**, en los ajustes de PocketBase: una regla para la creación en
+  `messages`. Sin ella, la creación pública es un buzón abierto: la trampa para robots no limita
+  el volumen.
+- **CORS**, también en PocketBase: el origen del sitio publicado tiene que estar permitido si el
+  formulario envía desde un origen distinto al de la API.
+- **El aviso por correo** de cada mensaje nuevo se configura en el servidor, fuera de la SPA, que
+  no tiene forma de saber si está activo; por eso la tarjeta del módulo lo dice con una línea fija.
+
+Un editor ve «Nuevo» en el listado de mensajes: para la interfaz, una regla de creación que es una
+expresión cuenta como «depende del registro» y se ofrece. No es el uso previsto de la bandeja (los
+mensajes los crea el visitante desde el sitio), pero se deja así. Ocultar el botón es un lote
+aparte: exige una clave nueva del manifiesto, que hoy no existe y que este módulo no añade.
 
 Los pasos manuales siguientes siguen aplicando a una instalación **existente**. El sembrado es
 `creation-only`: si una colección ya existe, no cambia ninguna de sus reglas, aunque estén vacías,
@@ -1204,8 +1348,8 @@ capacidad `editorPasswordReset`).
 Vega cambia el enlace de la plantilla para que lleve ahí:
 
 - **Cuándo:** al abrir **Editores** un superusuario, y al sembrar el sitio si quien lo lanza pasa
-  `passwordResetUrl` a `seedSiteProject` (el sembrado es headless y no sabe en qué dirección está
-  servida Vega).
+  `passwordResetUrl` a `seedSiteProject` (la función no sabe en qué dirección está servida Vega; la
+  tarjeta «Base del sitio» la pasa, construida con el origen de la SPA).
 - **Solo si la plantilla sigue siendo la de fábrica**, comparada con la que da el propio servidor en
   `GET /api/collections/meta/scaffolds`. Una plantilla que el dueño haya cambiado no se toca, y el
   alta avisa junto a «Enviarle una invitación» de que el enlace es el que diga ella.

@@ -350,6 +350,20 @@ describe('RecordForm: redirección al cambiar la ruta (adaptador memory)', () =>
 		});
 	});
 
+	test('si la redirección falla con un 5xx, el banner pinta el texto del catálogo y no el crudo', async () => {
+		world = await setup({});
+		await typePath(world, NEW);
+		world.port.create = async (type) => {
+			if (type === 'redirects')
+				throw VegaError.backend('Something went wrong.', undefined, 'server-error');
+			throw new Error('inesperado');
+		};
+		await save(world);
+		const alert = world.target.querySelector('[data-redirect-state="failed"]')!;
+		expect(alert.textContent).toContain(translate('es', 'errors.backendCode.serverError'));
+		expect(alert.textContent).not.toContain('Something went wrong.');
+	});
+
 	test('nunca actúa sobre lo que no se enseñó: guardar antes de que cargue no escribe redirecciones', async () => {
 		world = await setup({});
 		const input = world.target.querySelector<HTMLInputElement>('[data-field="path"] input')!;

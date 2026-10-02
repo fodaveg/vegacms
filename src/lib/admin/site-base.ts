@@ -7,10 +7,14 @@
  */
 import type {
 	SiteSeedDivergence,
+	SiteSeedModule,
+	SiteSeedModulePlan,
 	SiteSeedPlanSummary,
 	SiteSeedPreview,
 	SiteSeedResult
 } from '$lib/backend/site-seeding';
+import type { ManifestMergeSkipped } from '$lib/backend/site-seeding-merge';
+import { SITE_SEED_OPTIONAL_MODULES } from '$lib/backend/site-seeding-modules';
 
 export type Translate = (key: string, params?: Record<string, string | number>) => string;
 
@@ -22,6 +26,70 @@ export const SITE_BASE_COLLECTIONS = [
 	'redirects',
 	'vega'
 ] as const;
+
+/**
+ * Los módulos que la tarjeta ofrece añadir, debajo de la base: los opcionales del registro, en su
+ * orden. El nombre y la descripción de cada uno salen de `settings.site.module.<id>.name` y
+ * `.desc`, y los de sus colecciones de `settings.site.collection.<c>` y `settings.site.create.<c>`
+ * (`site-base.test.ts` comprueba que un módulo registrado no se quede sin texto).
+ */
+export const SITE_BASE_MODULES: readonly SiteSeedModule[] = SITE_SEED_OPTIONAL_MODULES;
+
+const MODULE_COLLECTIONS: readonly string[] = SITE_BASE_MODULES.flatMap((module) =>
+	module.collections.map((spec) => spec.name)
+);
+
+/**
+ * Módulos con una línea fija de «esto se configura fuera de Vega» en su fila. El de contacto: el
+ * aviso por correo de cada mensaje lo manda el servidor, y la SPA no tiene forma de saber si está
+ * configurado.
+ */
+const MODULE_NOTES: readonly string[] = ['contacto'];
+
+export function moduleName(t: Translate, id: string): string {
+	return t(`settings.site.module.${id}.name`);
+}
+
+export function moduleDescription(t: Translate, id: string): string {
+	return t(`settings.site.module.${id}.desc`);
+}
+
+export function moduleNote(t: Translate, id: string): string | null {
+	return MODULE_NOTES.includes(id) ? t(`settings.site.module.${id}.note`) : null;
+}
+
+/**
+ * Cómo está un módulo, deducido de su parte del preflight:
+ * - `absent`: no existe ninguna de sus colecciones;
+ * - `incomplete`: existe alguna, pero le falta algo (una colección, un campo, una entrada del
+ *   modelo de contenido): «Añadir» pone lo que falta;
+ * - `added`: no hay nada que añadir.
+ */
+export type SiteModuleState = 'absent' | 'incomplete' | 'added';
+
+export function siteModuleState(module: SiteSeedModule, plan: SiteSeedModulePlan): SiteModuleState {
+	if (plan.createdCollections.length === module.collections.length) return 'absent';
+	const pending =
+		plan.createdCollections.length > 0 ||
+		Object.keys(plan.addedFields).length > 0 ||
+		plan.manifestEntries.length > 0;
+	return pending ? 'incomplete' : 'added';
+}
+
+/**
+ * `true` si el preflight de «base + un módulo» solo escribiría cosas de ESE módulo. Es la condición
+ * para que el diálogo de un módulo pueda decir «nada de lo que ya existe se modifica» enseñando
+ * solo lo del módulo: la base va en toda pasada y, si tuviera algo pendiente, se escribiría también.
+ */
+export function onlyModuleWrites(plan: SiteSeedPlanSummary, base: SiteSeedModulePlan): boolean {
+	return (
+		base.createdCollections.length === 0 &&
+		Object.keys(base.addedFields).length === 0 &&
+		base.manifestEntries.length === 0 &&
+		!plan.constrainedFields &&
+		!plan.pageMissing
+	);
+}
 
 /** Qué muestra la tarjeta cuando el preflight terminó. */
 export type SiteBaseKind = 'unprepared' | 'update' | 'current' | 'blocked';
@@ -40,7 +108,8 @@ export function siteBaseMode(plan: SiteSeedPlanSummary): SiteBaseMode {
 }
 
 function collectionLabel(t: Translate, name: string): string {
-	return (SITE_BASE_COLLECTIONS as readonly string[]).includes(name)
+	return (SITE_BASE_COLLECTIONS as readonly string[]).includes(name) ||
+		MODULE_COLLECTIONS.includes(name)
 		? t(`settings.site.collection.${name}`)
 		: name;
 }
@@ -76,10 +145,17 @@ export interface PlanItem {
 }
 
 export interface PlanGroup {
-	/** `create` | `add` | `replace`: sirve de `data-` y de clave del encabezado. */
-	id: 'create' | 'add' | 'replace';
+	/**
+	 * Sirve de `data-` y de clave del encabezado:
+	 * - `create` y `add`: colecciones, campos y registros;
+	 * - `manifest`: las entradas que se añaden al modelo de contenido, una a una y con su nombre;
+	 * - `skipped`: lo que la versión nueva trae y NO se añade, porque lo guardado se conserva entero.
+	 */
+	id: 'create' | 'add' | 'manifest' | 'skipped';
 	heading: string;
 	items: PlanItem[];
+	/** Texto bajo la lista del grupo (qué pasa con lo que ya hay, y cómo evitar que algo vuelva). */
+	note?: string;
 }
 
 export interface PlanView {
@@ -88,12 +164,172 @@ export interface PlanView {
 	rest: string | null;
 }
 
-/** El plan en grupos «Se crea» / «Se añade» / «Se sustituye», con su texto. */
-export function buildPlanView(plan: SiteSeedPlanSummary, t: Translate): PlanView {
+/** El desglose por módulo del preflight y, si el diálogo es el de un módulo, cuál. */
+export interface PlanDetail {
+	modules: readonly SiteSeedModulePlan[];
+	/** `id` del módulo que se añade. Sin él, el plan es el de la base (preparar o actualizar). */
+	target?: string;
+}
+
+/**
+ * Una entrada del modelo de contenido, con nombre: la ruta que devuelve la fusión
+ * (`collections.posts`, `collections.pages.fields.publishAt`, `blockTypes.hero`,
+ * `nav.groups.Sitio`) dicha en llano. La ruta literal va en `code`.
+ */
+export function describeManifestEntry(path: string, t: Translate): PlanItem {
+	const base = { text: '', code: path };
+	if (path.startsWith('nav.groups.')) {
+		return {
+			...base,
+			title: t('settings.site.entry.navGroup', { name: path.slice('nav.groups.'.length) })
+		};
+	}
+	const parts = path.split('.');
+	if (parts[0] === 'nav') return { ...base, title: t('settings.site.entry.nav') };
+	if (parts[0] === 'blockTypes' && parts.length === 2) {
+		return { ...base, title: t('settings.site.entry.blockType', { name: parts[1] }) };
+	}
+	if (parts[0] === 'collections' && parts.length === 2) {
+		return {
+			...base,
+			title: t('settings.site.entry.collection', { name: collectionLabel(t, parts[1]) })
+		};
+	}
+	if (parts[0] === 'collections' && parts.length === 4 && parts[2] === 'fields') {
+		return {
+			...base,
+			title: t('settings.site.entry.field', {
+				field: fieldLabel(t, parts[3]) ?? parts[3],
+				collection: collectionLabel(t, parts[1])
+			})
+		};
+	}
+	if (parts[0] === 'collections' && parts.length === 3) {
+		return {
+			...base,
+			title: t('settings.site.entry.option', {
+				option: parts[2],
+				collection: collectionLabel(t, parts[1])
+			})
+		};
+	}
+	return { ...base, title: t('settings.site.entry.other', { name: path }) };
+}
+
+/** Una pieza que la fusión no ha podido añadir, con su motivo. La ruta literal va en `code`. */
+export function describeSkipped(item: ManifestMergeSkipped, t: Translate): PlanItem {
+	if (item.kind === 'navGroup') {
+		return {
+			title: t('settings.site.entry.navGroup', { name: item.name }),
+			text: t('settings.site.skipped.navGroup'),
+			code: item.path
+		};
+	}
+	if (item.kind === 'fieldGroup') {
+		return {
+			title: t('settings.site.skipped.fieldGroupTitle', {
+				name: item.name,
+				collection: collectionLabel(t, item.owner ?? '')
+			}),
+			text: t('settings.site.skipped.fieldGroup'),
+			code: item.path
+		};
+	}
+	return {
+		title: t('settings.site.skipped.blockFieldTitle', {
+			name: item.name,
+			block: item.owner ?? ''
+		}),
+		text: t('settings.site.skipped.blockField'),
+		code: item.path
+	};
+}
+
+function fieldItems(addedFields: Record<string, string[]>, t: Translate): PlanItem[] {
+	return Object.entries(addedFields).map(([collection, fields]) => {
+		const friendly = fields
+			.map((field) => fieldLabel(t, field))
+			.filter((label): label is string => label !== null);
+		return {
+			title: t(
+				fields.length === 1 ? 'settings.site.addFields.one' : 'settings.site.addFields.many',
+				{ count: fields.length, collection: collectionLabel(t, collection) }
+			),
+			text: friendly.length > 0 ? friendly.map((label) => `«${label}»`).join(', ') : '',
+			code: fields.join(', ')
+		};
+	});
+}
+
+/**
+ * Los dos grupos del modelo de contenido: las entradas que se añaden, una a una, y lo que no se
+ * ha podido añadir. `listEntries` es `false` cuando el modelo de contenido se CREA: ahí no hay
+ * nada guardado que una entrada pueda devolver, y la lista sería el manifiesto entero.
+ */
+function manifestGroups(
+	modules: readonly SiteSeedModulePlan[],
+	listEntries: boolean,
+	t: Translate
+): PlanGroup[] {
+	const groups: PlanGroup[] = [];
+	const entries = listEntries ? modules.flatMap((module) => module.manifestEntries) : [];
+	if (entries.length > 0) {
+		groups.push({
+			id: 'manifest',
+			heading: t('settings.site.group.manifest'),
+			items: entries.map((path) => describeManifestEntry(path, t)),
+			note: `${t('settings.site.replace.manifest')} ${t('settings.site.manifest.hiddenHelp')}`
+		});
+	}
+	const skipped = modules.flatMap((module) => module.manifestSkipped);
+	if (skipped.length > 0) {
+		groups.push({
+			id: 'skipped',
+			heading: t('settings.site.group.skipped'),
+			items: skipped.map((item) => describeSkipped(item, t)),
+			note: t('settings.site.skipped.note')
+		});
+	}
+	return groups;
+}
+
+/** El plan de añadir UN módulo: solo lo suyo (ver `onlyModuleWrites`). */
+function buildModulePlanView(module: SiteSeedModulePlan, t: Translate): PlanView {
+	const groups: PlanGroup[] = [];
+	if (module.createdCollections.length > 0) {
+		groups.push({
+			id: 'create',
+			heading: t('settings.site.group.create'),
+			items: module.createdCollections.map((name) => ({
+				title: collectionLabel(t, name),
+				code: name,
+				codeFirst: true,
+				text: t(`settings.site.create.${name}`)
+			}))
+		});
+	}
+	const add = fieldItems(module.addedFields, t);
+	if (add.length > 0) groups.push({ id: 'add', heading: t('settings.site.group.add'), items: add });
+	groups.push(...manifestGroups([module], true, t));
+	return { groups, rest: null };
+}
+
+/**
+ * El plan en grupos «Se crea» / «Se añade» / «Se añade al modelo de contenido» / «No se añade»,
+ * con su texto. Con `detail.target`, el de añadir ese módulo; sin él, el de la base.
+ */
+export function buildPlanView(
+	plan: SiteSeedPlanSummary,
+	t: Translate,
+	detail: PlanDetail = { modules: [] }
+): PlanView {
+	if (detail.target !== undefined) {
+		const module = detail.modules.find((item) => item.id === detail.target);
+		return module ? buildModulePlanView(module, t) : { groups: [], rest: null };
+	}
 	const mode = siteBaseMode(plan);
 	const create: PlanItem[] = [];
 	const add: PlanItem[] = [];
-	const replace: PlanItem[] = [];
 
 	// Orden de la lámina (Páginas primero), no el de aplicación (Medios antes que Páginas).
 	const display = SITE_BASE_COLLECTIONS as readonly string[];
@@ -129,22 +365,7 @@ export function buildPlanView(plan: SiteSeedPlanSummary, t: Translate): PlanView
 		create.push({ title: t('settings.site.page.title'), text: t('settings.site.page.text') });
 	}
 
-	for (const [collection, fields] of Object.entries(plan.addedFields)) {
-		const friendly = fields
-			.map((field) => fieldLabel(t, field))
-			.filter((label): label is string => label !== null);
-		add.push({
-			title: t(
-				fields.length === 1 ? 'settings.site.addFields.one' : 'settings.site.addFields.many',
-				{
-					count: fields.length,
-					collection: collectionLabel(t, collection)
-				}
-			),
-			text: friendly.length > 0 ? friendly.map((label) => `«${label}»`).join(', ') : '',
-			code: fields.join(', ')
-		});
-	}
+	add.push(...fieldItems(plan.addedFields, t));
 	for (const [collection, fields] of Object.entries(plan.constrainedFields ?? {})) {
 		add.push({
 			title: t('settings.site.constrain.title', { collection: collectionLabel(t, collection) }),
@@ -159,8 +380,10 @@ export function buildPlanView(plan: SiteSeedPlanSummary, t: Translate): PlanView
 			code: 'created'
 		});
 	}
-	if (plan.manifest === 'upgrade') {
-		replace.push({
+	// Un modelo de contenido que YA existe no se sustituye: se le añaden las entradas que faltan,
+	// y el plan las nombra una a una (quien borró una a propósito ve que va a volver).
+	if (plan.manifest === 'upgrade' && detail.modules.length === 0) {
+		add.push({
 			title: collectionLabel(t, 'vega'),
 			text: t('settings.site.replace.manifest')
 		});
@@ -171,9 +394,7 @@ export function buildPlanView(plan: SiteSeedPlanSummary, t: Translate): PlanView
 		groups.push({ id: 'create', heading: t('settings.site.group.create'), items: create });
 	}
 	if (add.length > 0) groups.push({ id: 'add', heading: t('settings.site.group.add'), items: add });
-	if (replace.length > 0) {
-		groups.push({ id: 'replace', heading: t('settings.site.group.replace'), items: replace });
-	}
+	groups.push(...manifestGroups(detail.modules, plan.manifest === 'upgrade', t));
 
 	let rest: string | null = null;
 	if (mode === 'update') {
@@ -334,6 +555,21 @@ export function summarizeResult(result: SiteSeedResult, t: Translate): string {
 	if (result.createdRecords.includes('page:/')) parts.push(t('settings.site.result.page'));
 	if (parts.length === 0) return t('settings.site.result.nothing');
 	return t('settings.site.result.done', { summary: joinList(t, parts) });
+}
+
+/**
+ * Lo que no se pudo añadir al modelo de contenido, en una frase, para el resultado de la tarjeta.
+ * `null` si se añadió todo. No es un error: lo guardado se conservó tal cual.
+ */
+export function skippedNote(result: SiteSeedResult, t: Translate): string | null {
+	const items = Object.values(result.manifestSkipped ?? {}).flat();
+	if (items.length === 0) return null;
+	return t('settings.site.result.skipped', {
+		names: joinList(
+			t,
+			items.map((item) => describeSkipped(item, t).title)
+		)
+	});
 }
 
 /**

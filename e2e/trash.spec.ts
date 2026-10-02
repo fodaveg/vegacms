@@ -7,11 +7,11 @@
  * `seed_archive_notes.txt` — ver `e2e/form.spec.ts`): es el fixture que ejercita "los ficheros
  * adjuntos no se recuperan" de punta a punta, sin inventar datos nuevos.
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 
 async function loginAndSettle(page: import('@playwright/test').Page): Promise<void> {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 }
 
 async function goToSettings(page: import('@playwright/test').Page): Promise<void> {
@@ -114,7 +114,7 @@ test.describe('un asset con "file" obligatorio en la papelera (fix de code-revie
 		page
 	}) => {
 		await loginAsDemo(page, { seedMedia: true });
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 		await enableRevisions(page);
 
 		await page.getByRole('link', { name: 'Medios', exact: false }).click();

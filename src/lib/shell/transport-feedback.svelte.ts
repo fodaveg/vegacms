@@ -71,11 +71,14 @@ export const transportFeedback = {
 		state = 'disconnected';
 	},
 	/**
-	 * Marca el transporte como recuperado (una operación de red acaba de funcionar). No borra un
-	 * `bannerError` que haya puesto otro: el banner se cierra con `retry()`/`dismiss()`.
+	 * Marca el transporte como recuperado (una operación de red acaba de funcionar). Cierra un
+	 * banner de RED (si no, la píldora en verde y un «sin conexión» abierto se contradicen), pero
+	 * NO uno de `backend`: el transporte respondió, así que ese aviso sigue siendo válido y se
+	 * cierra con `dismiss()`.
 	 */
 	markConnected(): void {
 		state = 'connected';
+		if (bannerError?.kind === 'network') bannerError = null;
 	},
 	/** Descarta el banner sin reintentar (§2.3, "Descartable"). No toca `state`: si seguía
 	 *  'disconnected', `ConnectionStatus` lo refleja hasta el próximo `retry()`/`report()`. */

@@ -4,13 +4,13 @@
  * afordancia; el item activo lleva `aria-current="page"`. Contra la semilla enriquecida de
  * `session/demo-seed.ts` (ver su cabecera para el detalle del escenario).
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, openSiteInfoFromSidebar, test, waitForHome } from './fixtures';
 
 test('pinta los grupos/items del manifiesto en el orden esperado, con el grupo anónimo primero', async ({
 	page
 }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	const sidebar = page.getByRole('navigation', { name: 'Navegación principal' });
 	// `allTextContents()` no reintenta (no es un `expect`): espera explícitamente a que la
@@ -47,7 +47,7 @@ test('pinta los grupos/items del manifiesto en el orden esperado, con el grupo a
 
 test('la colección reservada "vega" nunca aparece en la sidebar', async ({ page }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	const sidebar = page.getByRole('navigation', { name: 'Navegación principal' });
 	await expect(sidebar.getByText('vega', { exact: true })).toHaveCount(0);
@@ -55,7 +55,7 @@ test('la colección reservada "vega" nunca aparece en la sidebar', async ({ page
 
 test('el item singleton sin icono propio lleva la afordancia de singleton', async ({ page }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	const singletonLink = page.getByRole('link', { name: 'Información del sitio' });
 	await expect(singletonLink).toHaveAttribute('data-singleton', 'true');
@@ -63,7 +63,7 @@ test('el item singleton sin icono propio lleva la afordancia de singleton', asyn
 
 test('el item readonly lleva la insignia "Solo lectura"', async ({ page }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	// Localiza el item DE "Páginas" por nombre, no por `[data-readonly="true"]` a secas (desde
 	// L7c, la vista fusionada "Catálogo" TAMBIÉN es `readonly:true` por diseño, ver
@@ -77,13 +77,14 @@ test('el item readonly lleva la insignia "Solo lectura"', async ({ page }) => {
 
 test('el item de nav activo lleva aria-current="page" y ningún otro', async ({ page }) => {
 	await loginAsDemo(page);
-	// La resolución de singleton del índice ya deja "Información del sitio" en su ruta de
-	// creación: ese item nace activo, sin haber hecho click en la sidebar.
-	await page.waitForURL('**/c/site_info/new');
-	await expect(page.getByRole('link', { name: 'Información del sitio' })).toHaveAttribute(
-		'aria-current',
-		'page'
-	);
+	// En la portada «Inicio» (lote 12) ningún item está activo: el menú no tiene entrada «Inicio»
+	// (lámina 1) y la portada no es ninguna de sus colecciones.
+	await waitForHome(page);
+	const sidebar = page.getByRole('navigation', { name: 'Navegación principal' });
+	await expect(sidebar.locator('[aria-current]')).toHaveCount(0);
+
+	// Click en el singleton: su ruta de creación lo deja activo.
+	await openSiteInfoFromSidebar(page);
 	await expect(page.getByRole('link', { name: 'Entradas' })).not.toHaveAttribute('aria-current');
 
 	// Click en un item normal: navega y se convierte en el nuevo activo (el anterior deja de
@@ -104,7 +105,7 @@ test('el recuento por item llega del backend (barato, `perPage: 1`) — nunca in
 	page
 }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	const sidebar = page.getByRole('navigation', { name: 'Navegación principal' });
 

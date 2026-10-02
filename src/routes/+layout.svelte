@@ -65,6 +65,7 @@
 	import { resolveSingletonTarget } from '$lib/nav/singleton';
 	import { VegaError } from '$lib/backend';
 	import { resetRevisionsLatch } from '$lib/revisions/with-revisions';
+	import { setRecentEditsTypes } from '$lib/home/recent-edits-store';
 	import AppShell from '$lib/shell/AppShell.svelte';
 	import ToastHost from '$lib/shell/ToastHost.svelte';
 	import GlobalBanner from '$lib/shell/GlobalBanner.svelte';
@@ -163,7 +164,10 @@
 			if (err.kind === 'network' || err.kind === 'backend') {
 				// Banner global reintentable/descartable (§3.4) + `ConnectionStatus` (vía
 				// `transportFeedback.state`, solo para 'network'). Nunca `err.cause` (P1 §5): el
-				// banner solo pinta `err.message`.
+				// banner solo pinta `err.message` (o su detalle bajo el texto del catálogo).
+				// El mensaje original queda también en consola: lo sustituye el texto traducido y
+				// un error de un hook de servidor con texto útil no debe perderse.
+				if (err.kind === 'backend') console.error('[vega:backend]', err.message, err.backendCode);
 				transportFeedback.report(err);
 				return;
 			}
@@ -312,6 +316,13 @@
 			modelStatus = 'idle';
 			modelError = null;
 		}
+	});
+
+	// «Lo último que editaste» (portada): el decorador de puerto que anota cada guardado no tiene
+	// modelo propio, así que se le entrega aquí qué tipos cuentan (`recent-edits-store.ts`). Sin
+	// modelo (cierre de sesión) deja de anotar.
+	$effect(() => {
+		setRecentEditsTypes(model?.types ?? null);
 	});
 
 	afterNavigate(() => {

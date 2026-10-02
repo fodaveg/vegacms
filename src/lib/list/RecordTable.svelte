@@ -94,8 +94,8 @@
 	 *   (sin checkboxes, sin acciones masivas) — no se inventa aquí; solo queda el hover.
 	 * - **Densidad = MODO de P3, no control propio (Fase 4f, D-P4.10)**: el alto de fila
 	 *   (`--row-h`) y el padding horizontal de celda/cabecera (`--cell-x`) son los tokens §7 de
-	 *   densidad que conmutan solos con `data-density` en la raíz (`DensityToggle.svelte`, ya en
-	 *   la topbar) — antes de 4f el padding horizontal usaba `--vega-space-gutter` (un espaciado
+	 *   densidad que conmutan solos con `data-density` en la raíz (se elige en el menú de
+	 *   cuenta de `Topbar.svelte`) — antes de 4f el padding horizontal usaba `--vega-space-gutter` (un espaciado
 	 *   fijo, ajeno a la densidad); migrado a `--cell-x` para que "Compacta" también estreche la
 	 *   celda, no solo el alto de fila (que ya usaba `--row-h` desde 4c).
 	 * - **Acento como texto (F7w-b)**: el enlace de apertura y el indicador de orden pintan con

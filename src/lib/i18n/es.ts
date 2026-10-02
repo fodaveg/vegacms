@@ -27,6 +27,29 @@ export const es = {
 	'nav.emptyBodyEditor':
 		'Todavía no hay contenido que editar. Habla con quien administre el sitio.',
 
+	// ————— Portada («Inicio», `/`) —————
+	'home.title': 'Inicio',
+	'home.create.title': 'Crear',
+	'home.create.button': 'Nuevo: {label}',
+	'home.pending.title': 'Pendientes',
+	'home.pending.drafts': '{label} en borrador',
+	'home.pending.scheduled': '{label} con publicación programada',
+	'home.pending.description': '{label} sin descripción',
+	'home.pending.mediaAlt': 'Medios sin texto alternativo',
+	'home.pending.unpublished': 'Cambios sin publicar en el sitio',
+	'home.pending.unpublishedYes': 'Sí',
+	'home.pending.unpublishedNo': 'No',
+	'home.recent.title': 'Lo último que editaste',
+	'home.recent.emptyTitle': 'Todavía no has editado nada',
+	'home.recent.emptyBody':
+		'Lo que edites en este navegador aparecerá aquí para que puedas retomarlo.',
+	'home.recent.errorTitle': 'No se pudo cargar lo último que editaste',
+	'home.recent.errorBody': 'El servidor ha contestado: {message}',
+	'home.recent.column.title': 'Título',
+	'home.recent.column.type': 'Tipo',
+	'home.recent.column.status': 'Estado',
+	'home.recent.column.edited': 'Editado',
+
 	// ————— Topbar —————
 	'topbar.logout': 'Cerrar sesión',
 	'topbar.menu.open': 'Abrir navegación',
@@ -57,6 +80,8 @@ export const es = {
 	// DISTINTO del `topbar.avatar.label` de arriba (ese describe la identidad de sesión del
 	// `<span role="img">` interior; este describe la ACCIÓN de abrir el menú).
 	'topbar.userMenu.toggle': 'Menú de cuenta',
+	// La marca «Vega» de la barra es un enlace a la portada (lote 12, lámina 1, estado 1.7).
+	'topbar.home.label': 'Inicio',
 
 	// ————— Publicación (lote "publicación", fase A): `PublishButton.svelte` —————
 	// Ausente por completo (§cabecera del componente) si el proyecto conectado no declaró `build`
@@ -220,6 +245,8 @@ export const es = {
 	'errors.network.title': 'No hay conexión con el servidor',
 	'errors.network.body': 'No se pudo contactar con el servidor. Comprueba tu conexión.',
 	'errors.network.retry': 'Reintentar',
+	'errors.banner.detailShow': 'Ver detalle',
+	'errors.banner.detailHide': 'Ocultar detalle',
 	'errors.backend.title': 'El servidor ha respondido algo inesperado',
 	'errors.forbidden.title': 'No tienes permiso',
 	'errors.forbidden.body': 'Tu sesión no tiene acceso a este recurso.',
@@ -235,7 +262,7 @@ export const es = {
 	'errors.notFoundRecord.title': 'Elemento no encontrado',
 	'errors.notFoundRecord.body': 'Este elemento ya no existe.',
 	'errors.notFoundRecord.backToList': 'Volver al listado',
-	'errors.backToIndex': 'Volver al índice',
+	'errors.backToIndex': 'Volver a Inicio',
 	// ————— Vistas fusionadas (mergedViews, Fase L7c) —————
 	'errors.notFoundView.title': 'Vista no encontrada',
 	'errors.notFoundView.body': 'No existe la vista fusionada "{view}".',
@@ -514,6 +541,34 @@ export const es = {
 		'Este sitio no tiene activada la publicación programada: la fecha no publicará nada. Publica a mano o pide a quien administre el sitio que la active.',
 	'editor.publishAt.unknown':
 		'No se ha podido comprobar si este servidor publica las fechas programadas (lo comprueba un administrador al entrar en Vega). Hasta entonces, no cuentes con que se publique sola.',
+
+	// ————— «Programar…» junto al campo Estado (lote 12, lámina 2) —————
+	'editor.schedule.open': 'Programar…',
+	'editor.schedule.change': 'Cambiar fecha…',
+	'editor.schedule.remove': 'Quitar programación',
+	'editor.schedule.publishNow': 'Publicar ahora',
+	// Los `{when}` de las frases con fecha se pintan en negrita; sin `{when}` no hay negrita.
+	'editor.schedule.summary': 'Se publicará sola el {when}.',
+	'editor.schedule.summaryUnconfirmed':
+		'Fecha puesta para el {when}; no se ha comprobado que el servidor la publique.',
+	'editor.schedule.overdue': 'Tenía que publicarse el {when} y sigue en borrador.',
+	// «Guardado.» + esta frase en el aviso tras programar.
+	'editor.schedule.savedNote': 'Se publicará el {when}.',
+	'editor.schedule.when': '{date} a las {time}',
+	'editor.schedule.title': 'Programar la publicación',
+	'editor.schedule.description':
+		'«{name}» se queda en borrador y se publica sola a la hora que elijas.',
+	'editor.schedule.field': 'Publicar el',
+	'editor.schedule.hint': 'Hora de este equipo.',
+	'editor.schedule.hintProposal': 'Hora de este equipo. Propuesta: mañana a las 09:00.',
+	'editor.schedule.error.empty': 'Elige una fecha y una hora.',
+	'editor.schedule.error.past': 'Esa hora ya ha pasado. Elige una posterior o publica ahora.',
+	'editor.schedule.confirm': 'Programar',
+	'editor.schedule.confirming': 'Programando…',
+	'editor.schedule.retry': 'Reintentar',
+	'editor.schedule.failed.title': 'No se ha podido programar',
+	'editor.schedule.failed.body':
+		'El servidor ha contestado: {message}. El registro sigue como estaba.',
 
 	// ————— Bloques ordenables embebidos (capacidad `blocks`, lote "editor" Fase A) —————
 	// Reutiliza a propósito claves ya existentes para el resto del ciclo de vida de un bloque:
@@ -1368,7 +1423,7 @@ export const es = {
 		'Este PocketBase tiene todo lo que esta versión de Vega necesita. No hay nada que crear ni que actualizar.',
 	'settings.site.change.addFields': 'añadir campos a {names}',
 	'settings.site.change.constrain': 'fijar el formato de las rutas de {names}',
-	'settings.site.change.manifest': 'actualizar el modelo de contenido',
+	'settings.site.change.manifest': 'añadir entradas al modelo de contenido',
 	'settings.site.change.page': 'crear la página «Inicio»',
 	'settings.site.blocked.title': 'Vega no puede actualizar este sitio tal como está',
 	'settings.site.blocked.bodyOne':
@@ -1396,7 +1451,6 @@ export const es = {
 	'settings.site.dialog.updateRunning': 'Actualizando el sitio… {elapsed}',
 	'settings.site.group.create': 'Se crea',
 	'settings.site.group.add': 'Se añade',
-	'settings.site.group.replace': 'Se sustituye',
 	'settings.site.collection.pages': 'Páginas',
 	'settings.site.collection.vega_media': 'Medios',
 	'settings.site.collection.blocks': 'Bloques',
@@ -1425,8 +1479,9 @@ export const es = {
 	'settings.site.field.updated': 'Última edición',
 	'settings.site.constrain.title': 'Formato de las rutas en {collection}',
 	'settings.site.constrain.text': 'solo donde aún no hay ninguno',
+	// La clave conserva el nombre de cuando el modelo de contenido se sustituía; ya no se sustituye.
 	'settings.site.replace.manifest':
-		'Por el de esta versión, que trae las etiquetas y ayudas de los campos nuevos. Nadie lo había editado',
+		'Se añaden las entradas que faltan; lo que ya tiene no se toca.',
 	'settings.site.plan.rest': '{names} ya están al día.',
 	'settings.site.plan.restOne': '{names} ya está al día.',
 	'settings.site.blockedDialog.title': 'No se puede actualizar el sitio',
@@ -1442,7 +1497,7 @@ export const es = {
 	'settings.site.div.collection.body': 'Es una vista, no una colección normal.',
 	'settings.site.div.manifest.title': 'El modelo de contenido',
 	'settings.site.div.manifest.edited':
-		'Se ha editado a mano. Vega no lo sustituye, para no perder ese trabajo.',
+		'Se ha editado a mano y ha quedado con un formato al que Vega no puede añadir lo que falta. No se ha tocado.',
 	'settings.site.div.manifest.other': 'Su registro no es el que Vega espera.',
 	'settings.site.div.page.body': 'Hay más de una con la ruta /.',
 	'settings.site.div.blocks.title': 'Los bloques',
@@ -1463,11 +1518,63 @@ export const es = {
 	'settings.site.result.fields': 'los campos nuevos de {names}',
 	'settings.site.result.constrained': 'el formato de las rutas de {names}',
 	'settings.site.result.manifest': 'el modelo de contenido',
-	'settings.site.result.manifestUpgraded': 'el modelo de contenido, actualizado',
+	'settings.site.result.manifestUpgraded': 'las entradas nuevas del modelo de contenido',
 	'settings.site.result.page': 'la página «Inicio», que queda en borrador',
 	'settings.site.result.next': 'El siguiente paso es dar acceso a quien vaya a editar, en',
 	'settings.site.toast.prepared': 'Sitio preparado.',
 	'settings.site.toast.updated': 'Sitio actualizado.',
+	// Entradas del modelo de contenido, una a una, y lo que no se ha podido añadir.
+	'settings.site.group.manifest': 'Se añade al modelo de contenido',
+	'settings.site.group.skipped': 'No se añade',
+	'settings.site.entry.collection': 'Colección «{name}»',
+	'settings.site.entry.field': 'Campo «{field}» de {collection}',
+	'settings.site.entry.option': 'Opción «{option}» de {collection}',
+	'settings.site.entry.blockType': 'Tipo de bloque «{name}»',
+	'settings.site.entry.navGroup': 'Grupo «{name}» del menú',
+	'settings.site.entry.nav': 'El menú',
+	'settings.site.entry.other': '«{name}»',
+	'settings.site.manifest.hiddenHelp':
+		'Una entrada borrada vuelve en cada actualización. Para que no aparezca, márcala como oculta ("hidden": true) en vez de borrarla.',
+	'settings.site.skipped.note':
+		'Vega no cambia lo que ya está en el modelo de contenido. Si lo quieres, añádelo a mano en «Modelo de contenido».',
+	'settings.site.skipped.navGroup': 'El menú guardado tiene una forma que Vega no sabe completar.',
+	'settings.site.skipped.fieldGroupTitle': 'Grupo de campos «{name}» de {collection}',
+	'settings.site.skipped.fieldGroup': 'La colección ya tiene sus propios grupos de campos.',
+	'settings.site.skipped.blockFieldTitle': 'Campo «{name}» del bloque «{block}»',
+	'settings.site.skipped.blockField': 'El tipo de bloque ya existe y se conserva entero.',
+	'settings.site.result.skipped':
+		'No se ha podido añadir al modelo de contenido: {names}. Lo que ya había se ha conservado tal cual.',
+	// Módulos: lo que se puede añadir encima de la base.
+	'settings.site.modules.title': 'Módulos',
+	'settings.site.modules.state.absent': 'No añadido',
+	'settings.site.modules.state.incomplete': 'Incompleto',
+	'settings.site.modules.state.added': 'Añadido',
+	'settings.site.modules.state.blocked': 'No se puede añadir tal como está',
+	'settings.site.modules.btn.add': 'Añadir',
+	'settings.site.modules.btn.adding': 'Añadiendo…',
+	'settings.site.modules.needsBase.unprepared': 'Antes hay que preparar el sitio.',
+	'settings.site.modules.needsBase.update': 'Antes hay que actualizar el sitio.',
+	'settings.site.modules.needsBase.blocked': 'Antes hay que resolver lo que no encaja en el sitio.',
+	'settings.site.modules.dialog.title': 'Añadir: {name}',
+	'settings.site.modules.dialog.intro':
+		'Esto es lo que Vega va a añadir a tu PocketBase. Nada de lo que ya existe se modifica.',
+	'settings.site.modules.dialog.running': 'Añadiendo… {elapsed}',
+	'settings.site.modules.blockedDialog.title': 'No se puede añadir: {name}',
+	'settings.site.modules.toast.added': 'Añadido: {name}.',
+	'settings.site.module.blog.name': 'Blog',
+	'settings.site.module.blog.desc': 'Entradas con etiquetas, portada, fecha y SEO.',
+	'settings.site.module.contacto.name': 'Formulario de contacto',
+	'settings.site.module.contacto.desc':
+		'Una bandeja con los mensajes que llegan desde el formulario del sitio.',
+	'settings.site.module.contacto.note':
+		'El aviso por correo de cada mensaje se configura en el servidor, no aquí. Cómo hacerlo está en la documentación de Vega, en «Formulario de contacto».',
+	'settings.site.collection.posts': 'Entradas',
+	'settings.site.collection.tags': 'Etiquetas',
+	'settings.site.collection.messages': 'Mensajes',
+	'settings.site.create.posts':
+		'título, dirección, resumen, contenido, portada, estado, fechas, etiquetas y SEO',
+	'settings.site.create.tags': 'el nombre y la dirección de cada etiqueta',
+	'settings.site.create.messages': 'nombre, correo y mensaje de quien escribe, y si ya se ha leído',
 
 	// ————— Apariencia: selector de tema + modo (Fase F7w-a, "encender los temas") —————
 	'settings.appearance.title': 'Apariencia',
@@ -1763,5 +1870,24 @@ export const es = {
 		'No se puede borrar: otro contenido depende de este elemento. Quita antes esa referencia.',
 	'errors.backendCode.badRequest':
 		'La petición no es válida. Recarga la página e inténtalo de nuevo.',
-	'errors.backendCode.serverError': 'El servidor ha fallado. Inténtalo de nuevo en unos minutos.'
+	'errors.backendCode.serverError': 'El servidor ha fallado. Inténtalo de nuevo en unos minutos.',
+
+	// ————— Revisión antes de publicar (`$lib/publish-review`, solo avisos) —————
+	'review.seo.descriptionEmpty':
+		'La descripción para buscadores está vacía: se usará la descripción general del sitio.',
+	'review.seo.descriptionLong':
+		'La descripción tiene {length} caracteres y los buscadores suelen cortarla a partir de {max}.',
+	'review.seo.socialImageMissing':
+		'No hay imagen para redes: al compartir la página saldrá sin imagen.',
+	'review.seo.noindex':
+		'Está marcada como «No indexar»: los buscadores no la mostrarán y no saldrá en el mapa del sitio.',
+	'review.link.notFound': 'El enlace a {href} no lleva a ninguna página ni redirección del sitio.',
+	'review.link.redirectDeadEnd':
+		'El enlace a {href} pasa por una redirección que acaba en {to}, y esa ruta no existe.',
+	'review.link.redirectLoop': 'El enlace a {href} entra en un bucle de redirecciones.',
+	'review.link.draftTarget':
+		'El enlace a {href} lleva a una página que sigue en borrador y no se verá en el sitio.',
+	'review.media.altMissing': 'La imagen «{file}» no tiene texto alternativo. Añádelo en Medios.',
+	'review.media.altMissingInline':
+		'La imagen «{file}» del texto no declara texto alternativo: descríbela, o déjalo vacío si es decorativa.'
 };

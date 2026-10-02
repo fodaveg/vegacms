@@ -160,6 +160,38 @@ declarados en `nav.groups`; cualquier grupo presente pero no declarado se añade
 alfabético. Un grupo vacío no se muestra. Los rótulos de grupo que no caben en el ancho del sidebar
 se truncan visualmente y mantienen el valor completo disponible como `title`.
 
+## Portada («Inicio»)
+
+Al entrar, Vega abre la portada (`/`) en vez de saltar al primer elemento del menú. No se configura:
+sale del modelo. Tiene tres bloques.
+
+- **Crear**: un acceso por tipo de contenido en el que la sesión puede crear, en el orden del menú
+  lateral. Los tipos de un solo registro (`singleton`) no salen. Sin permiso en ninguno, el bloque no
+  se pinta.
+- **Pendientes**: tarjetas con un número. Cada una existe solo si el proyecto tiene el dato; si no,
+  no se pinta (no se enseña un cero de algo que no se puede saber). Una tarjeta a cero sí se pinta,
+  atenuada.
+
+  | Tarjeta                            | Existe si                                                                | Enlaza     |
+  | ---------------------------------- | ------------------------------------------------------------------------ | ---------- |
+  | «… en borrador»                    | el tipo tiene `statusField`                                              | al listado |
+  | «… con publicación programada»     | el tipo tiene `publishAtField` y el servidor tiene `vegaschedule`        | no         |
+  | «… sin descripción»                | el tipo declara `social.descriptionField` o tiene un campo `description` | no         |
+  | «Medios sin texto alternativo»     | existe la biblioteca de medios                                           | no         |
+  | «Cambios sin publicar en el sitio» | el proyecto anuncia `build`                                              | no         |
+
+  Solo enlaza la tarjeta cuyo filtro se puede escribir en la dirección del listado, que hoy admite
+  búsqueda, orden, estado y página. «Medios sin texto alternativo» cuenta todos los archivos de la
+  biblioteca, también los PDF: el tipo de archivo no se puede filtrar en el servidor.
+
+- **Lo último que editaste**: hasta 8 elementos, del más reciente al más antiguo. La lista se guarda
+  **en el navegador** (`localStorage`, clave `vega.recentEdits.v1:…`, una por servidor y por cuenta,
+  con el id de la cuenta y sin su correo): no sale del historial de versiones, que solo ven los
+  superusuarios. Por eso **no sigue a la persona a otro dispositivo ni a otro navegador**, y se
+  pierde si se borran los datos del sitio. Solo guarda el tipo, el id y la hora del guardado; el
+  título y el estado se leen del servidor al abrir la portada. Un elemento borrado, o que la sesión
+  ya no puede ver, desaparece de la lista. Guardar un bloque de una página anota la página.
+
 ## Campos traducibles
 
 El manifiesto puede agrupar campos físicos como `titleEs` y `titleEn` en un único campo editorial.
@@ -545,3 +577,55 @@ Aquí `post` y `page` deben tener ambas un campo `rating` numérico (heredado co
 - No hay autoupdate: Vega es una SPA estática y no puede reescribir sus propios ficheros. El enlace del aviso lleva a la página del release en GitHub para que actualices el despliegue a mano.
 
 **Nota para operadores con CSP estricta**: si defines `Content-Security-Policy` con `connect-src` restringido, añade `https://api.github.com` a esa directiva o la comprobación de actualizaciones fallará silenciosamente (se degrada a "No se pudo comprobar", nunca rompe el resto de la app).
+
+## Aviso por correo de los mensajes de contacto
+
+La imagen de producción (`infra/production/Dockerfile`) incluye un hook de PocketBase,
+`infra/production/pb_hooks/vega-contact-notify.pb.js`, copiado a `/pb/pb_hooks/`. Cuando se crea un
+registro en la colección `messages` manda un correo con el nombre, el correo y el mensaje del
+visitante (escapados: el correo es HTML y el visitante puede mandar marcado) y su correo como
+`Reply-To`. El asunto lleva el nombre del sitio (`Application name` en los ajustes de PocketBase).
+
+Se configura con variables de entorno del proceso de PocketBase (en el `compose.yml`, por ejemplo):
+
+| Variable                             | Efecto                                                               | Por defecto |
+| ------------------------------------ | -------------------------------------------------------------------- | ----------- |
+| `VEGA_CONTACT_NOTIFY_TO`             | Destinatarios, separados por comas. Sin ella no se avisa a nadie.    | (sin valor) |
+| `VEGA_CONTACT_NOTIFY_MAX`            | Máximo de avisos por ventana. Un valor no entero o `0` se ignora.    | `5`         |
+| `VEGA_CONTACT_NOTIFY_WINDOW_MINUTES` | Tamaño de la ventana en minutos. Un valor no entero o `0` se ignora. | `60`        |
+
+- **Sin `VEGA_CONTACT_NOTIFY_TO` los mensajes se guardan y NO se avisa por correo.** El hook no
+  falla ni escribe errores en ese caso. La interfaz de Vega no puede saber si el aviso está
+  configurado (la variable vive en el entorno del servidor, no en PocketBase), así que no puede
+  mostrarlo.
+- **Hace falta SMTP configurado en PocketBase** (ajustes de correo), con remitente. El hook usa ese
+  remitente y ese cliente de correo.
+- **Límite**: se cuentan los `messages` creados en la última ventana; hasta el máximo, cada mensaje
+  manda su aviso; pasado el máximo, el mensaje se guarda igual y no se avisa. No usa ninguna
+  colección auxiliar; necesita el campo `created` (autodate) de `messages`.
+- **Hueco conocido**: no hay bloqueo entre contar y enviar, así que dos altas simultáneas pueden
+  mandar un correo de más.
+- **Si el envío falla** (SMTP caído), el mensaje ya está guardado, el visitante recibe su respuesta
+  normal y el fallo queda en los logs de PocketBase con el id del registro y ningún dato del
+  visitante.
+- **El hook solo corre si la imagen lo incluye**: un despliegue con una imagen anterior, o con otro
+  `--hooksDir`, no avisa aunque las variables estén puestas. Sobre una colección `messages`
+  inexistente no hace nada.
+- Los tests de contrato usan un SMTP sumidero sin TLS. **Antes de desplegar hay que probarlo con un
+  SMTP real con TLS**: no está probado.
+
+## Ocultar una entrada sin borrarla
+
+«Actualizar el sitio» añade al manifiesto las entradas de la base y de los módulos que falten y no
+toca las que ya hay; por eso una entrada borrada a mano vuelve en la siguiente actualización. Para
+que no aparezca, hay que marcarla como oculta en vez de borrarla: `collections.<nombre>.hidden`
+(booleano) para una colección y `collections.<nombre>.fields.<campo>.hidden` para un campo. Las
+colecciones reservadas de Vega (`vega`, `vega_*`) siempre están ocultas y no se pueden anular.
+
+```json
+{
+	"collections": {
+		"messages": { "hidden": true }
+	}
+}
+```

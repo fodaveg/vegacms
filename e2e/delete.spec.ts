@@ -18,11 +18,11 @@
  * ejercer `deleting=true` con acciones reales de Playwright — sin ella, `memory` resuelve casi al
  * instante y la ventana es demasiado corta para simular la carrera de forma determinista.
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 
 async function loginAndSettle(page: import('@playwright/test').Page): Promise<void> {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 }
 
 /** Abre el menú de acciones de `row` y elige «Borrar…» (lámina 7): el disparador se revela con el
@@ -321,7 +321,7 @@ test.describe('aviso de relaciones antes de borrar (fix de code-review contra Po
 		// por medio. Esta referencia SÍ se reconecta sola en cuanto el id vuelve (nunca la toca
 		// PocketBase al borrar), así que el aviso de "no vuelven" sería falso aquí.
 		await loginAsDemo(page, { seedMedia: true });
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 
 		await page.goto('/c/posts/new');
 		await page

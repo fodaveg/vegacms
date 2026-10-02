@@ -21,6 +21,28 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// Settings, so they are told what to do instead.
 	'nav.emptyBodyEditor': 'There is no content to edit yet. Talk to whoever manages the site.',
 
+	// ————— Home (`/`) —————
+	'home.title': 'Home',
+	'home.create.title': 'Create',
+	'home.create.button': 'New: {label}',
+	'home.pending.title': 'To do',
+	'home.pending.drafts': '{label} in draft',
+	'home.pending.scheduled': '{label} scheduled to publish',
+	'home.pending.description': '{label} without a description',
+	'home.pending.mediaAlt': 'Media without alt text',
+	'home.pending.unpublished': 'Unpublished changes on the site',
+	'home.pending.unpublishedYes': 'Yes',
+	'home.pending.unpublishedNo': 'No',
+	'home.recent.title': 'What you edited last',
+	'home.recent.emptyTitle': "You haven't edited anything yet",
+	'home.recent.emptyBody': 'What you edit in this browser will show up here so you can pick it up.',
+	'home.recent.errorTitle': "Couldn't load what you edited last",
+	'home.recent.errorBody': 'The server replied: {message}',
+	'home.recent.column.title': 'Title',
+	'home.recent.column.type': 'Type',
+	'home.recent.column.status': 'Status',
+	'home.recent.column.edited': 'Edited',
+
 	// ————— Topbar —————
 	'topbar.logout': 'Log out',
 	'topbar.menu.open': 'Open navigation',
@@ -48,6 +70,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// from `topbar.avatar.label` above (that one describes the session identity of the inner
 	// `<span role="img">`; this one describes the ACTION of opening the menu).
 	'topbar.userMenu.toggle': 'Account menu',
+	// The «Vega» brand in the bar is a link to the home page (batch 12, plate 1, state 1.7).
+	'topbar.home.label': 'Home',
 
 	// ————— Publish ("publication" batch, phase A): `PublishButton.svelte` —————
 	// Absent entirely (see the component header) when the connected project didn't declare
@@ -208,6 +232,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'errors.network.title': 'No connection to the server',
 	'errors.network.body': 'The server could not be reached. Check your connection.',
 	'errors.network.retry': 'Retry',
+	'errors.banner.detailShow': 'Show details',
+	'errors.banner.detailHide': 'Hide details',
 	'errors.backend.title': 'The server returned something unexpected',
 	'errors.forbidden.title': "You don't have permission",
 	'errors.forbidden.body': "Your session can't access this resource.",
@@ -221,7 +247,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'errors.notFoundRecord.title': 'Item not found',
 	'errors.notFoundRecord.body': 'This item no longer exists.',
 	'errors.notFoundRecord.backToList': 'Back to list',
-	'errors.backToIndex': 'Back to index',
+	'errors.backToIndex': 'Back to Home',
 	// ————— Merged views (mergedViews, Phase L7c) —————
 	'errors.notFoundView.title': 'View not found',
 	'errors.notFoundView.body': 'The merged view "{view}" does not exist.',
@@ -470,6 +496,33 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'This site does not have scheduled publishing turned on: the date will not publish anything. Publish by hand or ask whoever manages the site to turn it on.',
 	'editor.publishAt.unknown':
 		'Could not check whether this server publishes scheduled dates (an administrator checks it when signing in to Vega). Until then, do not count on it publishing itself.',
+
+	// ————— "Schedule…" next to the Status field (batch 12, sheet 2) —————
+	'editor.schedule.open': 'Schedule…',
+	'editor.schedule.change': 'Change date…',
+	'editor.schedule.remove': 'Remove schedule',
+	'editor.schedule.publishNow': 'Publish now',
+	// The `{when}` in sentences with a date is shown in bold; with no `{when}` there is no bold.
+	'editor.schedule.summary': 'It will publish itself on {when}.',
+	'editor.schedule.summaryUnconfirmed':
+		'Date set for {when}; it has not been checked that the server will publish it.',
+	'editor.schedule.overdue': 'It was due to be published on {when} and is still a draft.',
+	// "Saved." + this sentence in the notice after scheduling.
+	'editor.schedule.savedNote': 'It will be published on {when}.',
+	'editor.schedule.when': '{date} at {time}',
+	'editor.schedule.title': 'Schedule publication',
+	'editor.schedule.description':
+		'"{name}" stays a draft and publishes itself at the time you choose.',
+	'editor.schedule.field': 'Publish on',
+	'editor.schedule.hint': "This computer's time.",
+	'editor.schedule.hintProposal': "This computer's time. Suggestion: tomorrow at 09:00.",
+	'editor.schedule.error.empty': 'Choose a date and a time.',
+	'editor.schedule.error.past': 'That time has already passed. Choose a later one or publish now.',
+	'editor.schedule.confirm': 'Schedule',
+	'editor.schedule.confirming': 'Scheduling…',
+	'editor.schedule.retry': 'Try again',
+	'editor.schedule.failed.title': 'Could not schedule',
+	'editor.schedule.failed.body': 'The server answered: {message}. The record is as it was.',
 
 	// ————— Embedded orderable blocks (`blocks` capability, "editor" batch, Phase A) —————
 	// Deliberately reuses existing keys for the rest of a block's lifecycle:
@@ -1295,7 +1348,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'This PocketBase has everything this version of Vega needs. There is nothing to create or update.',
 	'settings.site.change.addFields': 'add fields to {names}',
 	'settings.site.change.constrain': 'set the format of the paths in {names}',
-	'settings.site.change.manifest': 'update the content model',
+	'settings.site.change.manifest': 'add entries to the content model',
 	'settings.site.change.page': 'create the "Home" page',
 	'settings.site.blocked.title': 'Vega cannot update this site as it is',
 	'settings.site.blocked.bodyOne':
@@ -1324,7 +1377,6 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'settings.site.dialog.updateRunning': 'Updating the site… {elapsed}',
 	'settings.site.group.create': 'Will be created',
 	'settings.site.group.add': 'Will be added',
-	'settings.site.group.replace': 'Will be replaced',
 	'settings.site.collection.pages': 'Pages',
 	'settings.site.collection.vega_media': 'Media',
 	'settings.site.collection.blocks': 'Blocks',
@@ -1355,7 +1407,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'settings.site.constrain.title': 'Path format in {collection}',
 	'settings.site.constrain.text': 'only where there is none yet',
 	'settings.site.replace.manifest':
-		'With the one from this version, which brings the labels and help of the new fields. Nobody had edited it',
+		'The missing entries are added; what it already has is left alone.',
 	'settings.site.plan.rest': '{names} are already up to date.',
 	'settings.site.plan.restOne': '{names} is already up to date.',
 	'settings.site.blockedDialog.title': 'The site cannot be updated',
@@ -1370,7 +1422,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'settings.site.div.collection.body': 'It is a view, not a regular collection.',
 	'settings.site.div.manifest.title': 'The content model',
 	'settings.site.div.manifest.edited':
-		'It has been edited by hand. Vega does not replace it, so that work is not lost.',
+		'It has been edited by hand and ended up in a format Vega cannot add the missing entries to. It has not been touched.',
 	'settings.site.div.manifest.other': 'Its record is not the one Vega expects.',
 	'settings.site.div.page.body': 'There is more than one with the path /.',
 	'settings.site.div.blocks.title': 'The blocks',
@@ -1391,11 +1443,63 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'settings.site.result.fields': 'the new fields of {names}',
 	'settings.site.result.constrained': 'the path format of {names}',
 	'settings.site.result.manifest': 'the content model',
-	'settings.site.result.manifestUpgraded': 'the content model, updated',
+	'settings.site.result.manifestUpgraded': 'the new entries of the content model',
 	'settings.site.result.page': 'the "Home" page, which stays as a draft',
 	'settings.site.result.next': 'The next step is to give access to whoever will edit, in',
 	'settings.site.toast.prepared': 'Site set up.',
 	'settings.site.toast.updated': 'Site updated.',
+	'settings.site.group.manifest': 'Will be added to the content model',
+	'settings.site.group.skipped': 'Will not be added',
+	'settings.site.entry.collection': 'Collection "{name}"',
+	'settings.site.entry.field': 'Field "{field}" of {collection}',
+	'settings.site.entry.option': 'Option "{option}" of {collection}',
+	'settings.site.entry.blockType': 'Block type "{name}"',
+	'settings.site.entry.navGroup': 'Menu group "{name}"',
+	'settings.site.entry.nav': 'The menu',
+	'settings.site.entry.other': '"{name}"',
+	'settings.site.manifest.hiddenHelp':
+		'A deleted entry comes back on every update. To keep one from showing, mark it as hidden ("hidden": true) instead of deleting it.',
+	'settings.site.skipped.note':
+		'Vega does not change what is already in the content model. If you want it, add it by hand in "Content model".',
+	'settings.site.skipped.navGroup':
+		'The saved menu has a shape Vega does not know how to complete.',
+	'settings.site.skipped.fieldGroupTitle': 'Field group "{name}" of {collection}',
+	'settings.site.skipped.fieldGroup': 'The collection already has its own field groups.',
+	'settings.site.skipped.blockFieldTitle': 'Field "{name}" of the "{block}" block',
+	'settings.site.skipped.blockField': 'The block type already exists and is kept whole.',
+	'settings.site.result.skipped':
+		'Could not be added to the content model: {names}. What was already there has been kept as it was.',
+	'settings.site.modules.title': 'Modules',
+	'settings.site.modules.state.absent': 'Not added',
+	'settings.site.modules.state.incomplete': 'Incomplete',
+	'settings.site.modules.state.added': 'Added',
+	'settings.site.modules.state.blocked': 'Cannot be added as things are',
+	'settings.site.modules.btn.add': 'Add',
+	'settings.site.modules.btn.adding': 'Adding…',
+	'settings.site.modules.needsBase.unprepared': 'The site has to be set up first.',
+	'settings.site.modules.needsBase.update': 'The site has to be updated first.',
+	'settings.site.modules.needsBase.blocked': 'What does not fit in the site has to be fixed first.',
+	'settings.site.modules.dialog.title': 'Add: {name}',
+	'settings.site.modules.dialog.intro':
+		'This is what Vega will add to your PocketBase. Nothing that already exists is changed.',
+	'settings.site.modules.dialog.running': 'Adding… {elapsed}',
+	'settings.site.modules.blockedDialog.title': 'Cannot add: {name}',
+	'settings.site.modules.toast.added': 'Added: {name}.',
+	'settings.site.module.blog.name': 'Blog',
+	'settings.site.module.blog.desc': 'Posts with tags, cover, date and SEO.',
+	'settings.site.module.contacto.name': 'Contact form',
+	'settings.site.module.contacto.desc':
+		'An inbox with the messages that arrive from the form on the site.',
+	'settings.site.module.contacto.note':
+		'The email notice for each message is configured on the server, not here. How to do it is in the Vega documentation, under "Formulario de contacto".',
+	'settings.site.collection.posts': 'Posts',
+	'settings.site.collection.tags': 'Tags',
+	'settings.site.collection.messages': 'Messages',
+	'settings.site.create.posts':
+		'title, address, summary, content, cover, status, dates, tags and SEO',
+	'settings.site.create.tags': 'the name and address of each tag',
+	'settings.site.create.messages':
+		'name, email and message of whoever writes, and whether it has been read',
 
 	// ————— Appearance: theme + mode picker (Phase F7w-a, "turning the themes on") —————
 	'settings.appearance.title': 'Appearance',
@@ -1691,5 +1795,23 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'errors.backendCode.recordInUse':
 		'It cannot be deleted: other content depends on this item. Remove that reference first.',
 	'errors.backendCode.badRequest': 'The request is not valid. Reload the page and try again.',
-	'errors.backendCode.serverError': 'The server failed. Try again in a few minutes.'
+	'errors.backendCode.serverError': 'The server failed. Try again in a few minutes.',
+
+	// ————— Review before publishing (`$lib/publish-review`, warnings only) —————
+	'review.seo.descriptionEmpty':
+		'The search description is empty: the general site description will be used.',
+	'review.seo.descriptionLong':
+		'The description is {length} characters long and search engines usually cut it after {max}.',
+	'review.seo.socialImageMissing': 'There is no social image: the page will be shared without one.',
+	'review.seo.noindex':
+		'It is marked «Do not index»: search engines will not show it and it will not appear in the sitemap.',
+	'review.link.notFound': 'The link to {href} does not lead to any page or redirect on the site.',
+	'review.link.redirectDeadEnd':
+		'The link to {href} goes through a redirect that ends at {to}, and that path does not exist.',
+	'review.link.redirectLoop': 'The link to {href} enters a redirect loop.',
+	'review.link.draftTarget':
+		'The link to {href} leads to a page that is still a draft and will not be visible on the site.',
+	'review.media.altMissing': 'The image «{file}» has no alt text. Add it in Media.',
+	'review.media.altMissingInline':
+		'The image «{file}» in the text declares no alt text: describe it, or leave it empty if it is decorative.'
 };

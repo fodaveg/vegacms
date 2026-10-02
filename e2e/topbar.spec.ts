@@ -2,11 +2,11 @@
  * Suite R1 del rediseño C2 ("cabina con aire"): wordmark con punto de acento, buscador global
  * centrado (atajo `/`, visual/sin backend todavía) y avatar con la inicial de la sesión.
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, openSiteInfoFromSidebar, test, waitForHome } from './fixtures';
 
 test('el wordmark del sitio pinta el isotipo de Vega junto al nombre', async ({ page }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	const site = page.locator('.vega-topbar-site');
 	await expect(site).toBeVisible();
@@ -16,11 +16,30 @@ test('el wordmark del sitio pinta el isotipo de Vega junto al nombre', async ({ 
 	await expect(site).toHaveAttribute('title', 'Vega Demo');
 });
 
+test('la marca de la barra es un enlace «Inicio» a la portada (lote 12, lámina 1, estado 1.7)', async ({
+	page
+}) => {
+	await loginAsDemo(page);
+	// El login ya aterriza en la portada: para ver que la marca NAVEGA, primero se sale de ella.
+	await waitForHome(page);
+	await openSiteInfoFromSidebar(page);
+
+	// Acotada a la barra superior: en la portada, «Lo último que editaste» puede tener un
+	// registro titulado «Inicio» (una página, por ejemplo), y su enlace casaría también.
+	const brand = page
+		.locator('header.vega-topbar')
+		.getByRole('link', { name: 'Inicio', exact: true });
+	await expect(brand).toHaveAttribute('href', /\/$/);
+	await brand.click();
+	await waitForHome(page);
+	await expect(page).not.toHaveURL(/\/c\/site_info\/new$/);
+});
+
 test('el atajo "/" enfoca el buscador global salvo dentro de un campo editable', async ({
 	page
 }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	// Desde `#lote-shell` la caja es un `combobox` (patrón APG: tiene panel de resultados con
 	// `aria-expanded`/`aria-activedescendant`), ya no un `searchbox` a secas.
@@ -38,7 +57,7 @@ test('el atajo "/" enfoca el buscador global salvo dentro de un campo editable',
 
 test('el avatar muestra la inicial de la sesión de demo', async ({ page }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	// Credenciales de demo: demo@vega.dev (ver `fixtures.ts`).
 	await expect(page.getByRole('img', { name: 'Sesión de demo@vega.dev' })).toHaveText('D');
@@ -49,7 +68,7 @@ test.describe('chip de usuario → menú "Ajustes" (#l12-ux, item 3)', () => {
 		page
 	}) => {
 		await loginAsDemo(page);
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 
 		const trigger = page.getByRole('button', { name: 'Menú de cuenta' });
 		const menu = page.getByRole('menu', { name: 'Menú de cuenta' });
@@ -67,7 +86,7 @@ test.describe('chip de usuario → menú "Ajustes" (#l12-ux, item 3)', () => {
 
 	test('Escape cierra el menú y devuelve el foco al chip', async ({ page }) => {
 		await loginAsDemo(page);
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 
 		const trigger = page.getByRole('button', { name: 'Menú de cuenta' });
 		await trigger.click();
@@ -80,26 +99,33 @@ test.describe('chip de usuario → menú "Ajustes" (#l12-ux, item 3)', () => {
 
 	test('un click fuera del menú lo cierra', async ({ page }) => {
 		await loginAsDemo(page);
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 
 		const trigger = page.getByRole('button', { name: 'Menú de cuenta' });
 		await trigger.click();
 		await expect(page.getByRole('menu', { name: 'Menú de cuenta' })).toBeVisible();
 
-		await page.locator('.vega-topbar-site').click();
+		// Un punto neutro de la barra (la pastilla de conexión no es interactiva): la marca ya es
+		// un enlace a la portada y navegaría, así que no sirve de «fuera» inocuo.
+		await page.locator('.vega-connection-status').click();
 		await expect(page.getByRole('menu', { name: 'Menú de cuenta' })).toBeHidden();
 	});
 
 	test('tabular fuera del menú lo cierra (el foco no queda colgado)', async ({ page }) => {
 		await loginAsDemo(page);
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 
 		const trigger = page.getByRole('button', { name: 'Menú de cuenta' });
 		await trigger.click();
 		const menu = page.getByRole('menu', { name: 'Menú de cuenta' });
 		await expect(menu).toBeVisible();
 
-		// Tab: el foco entra al enlace "Ajustes" (dentro del menú) → sigue abierto.
+		// Tab: el foco recorre por orden las entradas del menú (Cómoda, Compacta y «Ajustes»,
+		// desde el lote 12) → sigue abierto mientras el foco esté dentro.
+		await page.keyboard.press('Tab');
+		await expect(menu.getByRole('menuitemradio', { name: 'Cómoda' })).toBeFocused();
+		await page.keyboard.press('Tab');
+		await expect(menu.getByRole('menuitemradio', { name: 'Compacta' })).toBeFocused();
 		await page.keyboard.press('Tab');
 		await expect(page.getByRole('menuitem', { name: 'Ajustes' })).toBeFocused();
 		await expect(menu).toBeVisible();
@@ -113,7 +139,7 @@ test.describe('chip de usuario → menú "Ajustes" (#l12-ux, item 3)', () => {
 		page
 	}) => {
 		await loginAsDemo(page);
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 
 		await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
 	});

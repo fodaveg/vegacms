@@ -65,11 +65,11 @@
  * llegar a enviar) — cubierto en su lugar por `first-error-field.test.ts` (unit, la lógica de
  * ORDEN es la misma para cualquier tipo de widget) y por revisión manual del fallback.
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 
 async function loginAndSettle(page: import('@playwright/test').Page): Promise<void> {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 }
 
 test.describe('crear (D-P5.11)', () => {
@@ -378,9 +378,9 @@ test.describe('widgets escalares dedicados (F5-b)', () => {
 		await loginAndSettle(page);
 		await page.goto('/c/posts/new');
 
-		// text
+		// text: el campo título es un `<textarea rows="1">` que crece (lote 12, lámina 4)
 		const title = page.getByRole('textbox', { name: 'Título', exact: true });
-		await expect(title).toHaveAttribute('type', 'text');
+		expect(await title.evaluate((el) => el.tagName)).toBe('TEXTAREA');
 		await title.fill('Post con todos los widgets');
 
 		// textarea (override de manifiesto `widget: 'textarea'` sobre un campo `text`, D-P5/L9)

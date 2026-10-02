@@ -8,7 +8,7 @@
 	 *
 	 * - `'network'` → título honesto + botón "Reintentar" (sondea con un `listContentTypes()`
 	 *   barato e idempotente vía `transportFeedback.retry`, sin tocar `modelStatus`).
-	 * - `'backend'` → el texto del catálogo si el error trae un `code` conocido (`vega-error-message.ts`) o, si no, el `message` real (NUNCA `err.cause`, P1 §5); solo descartable.
+	 * - `'backend'` → el texto del catálogo si el error trae un `code` conocido (`vega-error-message.ts`) o, si no, el `message` real (NUNCA `err.cause`, P1 §5); solo descartable. Con texto del catálogo, el `message` original va debajo como detalle técnico secundario (si difiere).
 	 * - Ambos: botón de descarte (§2.3, "Descartable").
 	 */
 	import { getVegaContext } from '$lib/app-context';
@@ -16,10 +16,67 @@
 	import Icon from '$lib/icons/Icon.svelte';
 	import { vegaErrorMessage } from './vega-error-message';
 
+	function defaultIsClipped(el: HTMLElement): boolean {
+		return el.scrollHeight > el.clientHeight + 1;
+	}
+
+	/**
+	 * Decide si el detalle está recortado por el tope de líneas. Por defecto mide el elemento
+	 * (`scrollHeight` > `clientHeight`); jsdom no hace layout y ambas valen 0, así que los tests
+	 * inyectan esta función para fijar la decisión.
+	 */
+	interface Props {
+		isClipped?: (el: HTMLElement) => boolean;
+	}
+	let { isClipped = defaultIsClipped }: Props = $props();
+
 	const ctx = getVegaContext();
+	const id = $props.id();
+	const detailId = `${id}-detail`;
 
 	const err = $derived(transportFeedback.bannerError);
 	const retrying = $derived(transportFeedback.state === 'retrying');
+	// Texto principal y, si es el del catálogo (hay `backendCode`) y difiere del mensaje original,
+	// ese mensaje como detalle técnico para quien administra. NUNCA `err.cause` (P1 §5).
+	const shown = $derived(
+		err
+			? err.kind === 'network'
+				? ctx.t('errors.network.title')
+				: vegaErrorMessage(err, ctx.t)
+			: ''
+	);
+	const detail = $derived(
+		err && err.kind !== 'network' && err.backendCode && err.message !== shown ? err.message : null
+	);
+
+	let detailEl = $state<HTMLElement | undefined>();
+	let clipped = $state(false);
+	let expanded = $state(false);
+
+	// Un error nuevo (o un detalle distinto) vuelve a plegado.
+	$effect(() => {
+		void err;
+		void detail;
+		expanded = false;
+	});
+
+	// Mide el recorte con el detalle plegado y vuelve a medir al cambiar el texto o el ancho.
+	$effect(() => {
+		void detail;
+		const el = detailEl;
+		if (!el) {
+			clipped = false;
+			return;
+		}
+		const measure = () => {
+			if (!expanded) clipped = isClipped(el);
+		};
+		measure();
+		if (typeof ResizeObserver === 'undefined') return;
+		const observer = new ResizeObserver(measure);
+		observer.observe(el);
+		return () => observer.disconnect();
+	});
 
 	async function handleRetry(): Promise<void> {
 		await transportFeedback.retry(async () => {
@@ -31,9 +88,31 @@
 {#if err}
 	<div class="vega-global-banner" role="alert" data-kind={err.kind}>
 		<Icon id="warning" size={16} />
-		<p class="vega-global-banner-message">
-			{err.kind === 'network' ? ctx.t('errors.network.title') : vegaErrorMessage(err, ctx.t)}
-		</p>
+		<div class="vega-global-banner-text">
+			<p class="vega-global-banner-message">{shown}</p>
+			{#if detail}
+				<p
+					class="vega-global-banner-detail"
+					class:vega-global-banner-detail-clamped={!expanded}
+					id={detailId}
+					data-banner-detail
+					bind:this={detailEl}
+				>
+					{detail}
+				</p>
+				{#if clipped || expanded}
+					<button
+						type="button"
+						class="vega-global-banner-toggle"
+						aria-expanded={expanded}
+						aria-controls={detailId}
+						onclick={() => (expanded = !expanded)}
+					>
+						{expanded ? ctx.t('errors.banner.detailHide') : ctx.t('errors.banner.detailShow')}
+					</button>
+				{/if}
+			{/if}
+		</div>
 		<div class="vega-global-banner-actions">
 			{#if err.kind === 'network'}
 				<button type="button" onclick={handleRetry} disabled={retrying}>
@@ -66,10 +145,43 @@
 		color: var(--ink);
 	}
 
-	.vega-global-banner-message {
+	.vega-global-banner-text {
 		flex: 1;
+		min-width: 0;
+	}
+
+	.vega-global-banner-message {
 		margin: 0;
 		font-size: 0.9rem;
+	}
+
+	/* Detalle técnico (mensaje original del backend): secundario y pequeño; envuelve también las
+	   cadenas largas sin espacios para no desbordar a 390 px. */
+	.vega-global-banner-detail {
+		margin: 0.15rem 0 0;
+		font-size: 0.78rem;
+		color: var(--ink-2);
+		overflow-wrap: anywhere;
+	}
+
+	/* Plegado: tope de 3 líneas, solo visual (el texto entero sigue en el DOM para el lector). */
+	.vega-global-banner-detail-clamped {
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 3;
+		line-clamp: 3;
+		overflow: hidden;
+	}
+
+	.vega-global-banner-toggle {
+		margin-top: 0.15rem;
+		padding: 0.1rem 0;
+		border: 0;
+		background: none;
+		color: var(--ink);
+		font-size: 0.78rem;
+		text-decoration: underline;
+		cursor: pointer;
 	}
 
 	.vega-global-banner-actions {
@@ -101,5 +213,21 @@
 		width: 1.6rem;
 		height: 1.6rem;
 		padding: 0 !important;
+	}
+
+	/* Objetivo táctil de 44×44 (`scripts/check-touch-targets.mjs`, mismo patrón que `Topbar.svelte`):
+	   con puntero basto el cierre y «Reintentar» llegan a 44 px; con ratón nada cambia. */
+	@media (pointer: coarse) {
+		.vega-global-banner-dismiss {
+			width: 44px;
+			height: 44px;
+			min-width: 44px;
+			min-height: 44px;
+		}
+
+		.vega-global-banner-actions button,
+		.vega-global-banner-toggle {
+			min-height: 44px;
+		}
 	}
 </style>

@@ -3,7 +3,7 @@
 	 * `Topbar.svelte` (R1 del rediseño C2, mockup `vega-propuesta-C2-cabina-con-aire`): wordmark
 	 * (isotipo Lyra de Vega —`VegaLogo`— + nombre del sitio), `GlobalSearch` CENTRADO,
 	 * `PublishButton` (lote "publicación" — sin render si el proyecto no lo tiene), `ConnectionStatus`
-	 * (pill), `DensityToggle` (segmentado), avatar con la inicial de la sesión, logout, y el botón
+	 * (pill), avatar con la inicial de la sesión, logout, y el botón
 	 * hamburguesa (visible solo en móvil, vía CSS) que abre/cierra la `Sidebar`. Landmark
 	 * `header`.
 	 *
@@ -36,13 +36,27 @@
 	 * `getByRole('button', {name: 'Cerrar sesión'})` justo tras el login, sin ganancia de UX que
 	 * lo justifique (no había "ajustes de cuenta" sueltos que agrupar aparte de la propia entrada a
 	 * `/settings`). Cierra con Escape, con un click fuera, o al seleccionar la entrada.
+	 *
+	 * **Densidad en el menú (lote 12, lámina 3; David, 1 oct 2026)**: el segmentado Cómoda│Compacta
+	 * (`DensityToggle`, ya retirado) ocupaba sitio fijo en la barra y se ocultaba por debajo de 768
+	 * px. Ahora son dos `menuitemradio` (`aria-checked`) bajo un rótulo de grupo, ENCIMA de
+	 * «Ajustes». Elegir una FIJA la densidad al momento (`setDensity`, clave `vega.density.v1`,
+	 * sin cambios) y el menú SE QUEDA abierto para ver el efecto. Teclado: flechas arriba/abajo,
+	 * Inicio y Fin recorren las tres entradas; ArrowDown/ArrowUp en el disparador abren el menú y
+	 * enfocan la primera/última.
+	 *
+	 * **La marca es un enlace a `/`** (lote 12, lámina 1, estado 1.7): mismo aspecto que antes
+	 * (sin subrayado ni color de enlace), con anillo `--ring` al enfocar. Misma navegación con
+	 * exit-guard que el resto del shell (`ctx.nav.toIndex`); un click modificado sigue el `href`.
 	 */
+	import { tick } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
 	import { getSessionContext } from '$lib/session/session.svelte';
-	import { settingsRoute } from '$lib/nav/routes';
+	import { indexRoute, settingsRoute } from '$lib/nav/routes';
+	import { setDensity } from '$lib/theme/apply';
+	import type { Density } from '$lib/theme/preferences';
 	import Icon from '$lib/icons/Icon.svelte';
 	import ConnectionStatus from './ConnectionStatus.svelte';
-	import DensityToggle from './DensityToggle.svelte';
 	import GlobalSearch from './GlobalSearch.svelte';
 	import PublishButton from './PublishButton.svelte';
 	import VegaLogo from './VegaLogo.svelte';
@@ -70,6 +84,33 @@
 	const avatarInitial = $derived(ctx.session.user.email.charAt(0).toUpperCase() || '?');
 
 	const settingsHref = settingsRoute();
+	const indexHref = indexRoute();
+
+	/** Click en la marca: navegación con exit-guard salvo click modificado (mismo patrón que
+	 *  `handleSettingsClick`). */
+	function handleBrandClick(event: MouseEvent): void {
+		if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+			return;
+		}
+		event.preventDefault();
+		ctx.nav.toIndex();
+	}
+
+	// ————— Densidad (menú de cuenta, lámina 3) —————
+	/** Densidad YA aplicada al documento (`+layout.svelte` llama `applyInitialTheme()` antes de que
+	 *  el shell monte, así que `data-density` siempre está escrito). Se relee al abrir el menú:
+	 *  otra pantalla (Ajustes) puede haberla cambiado entre tanto. */
+	function currentDensity(): Density {
+		return document.documentElement.dataset.density === 'compact' ? 'compact' : 'comfortable';
+	}
+
+	let density = $state<Density>(currentDensity());
+
+	function selectDensity(next: Density): void {
+		if (next === density) return;
+		density = next;
+		setDensity(next);
+	}
 
 	// ————— Chip de usuario → menú "Ajustes" (#l12-ux, item 3) —————
 	let userMenuOpen = $state(false);
@@ -77,7 +118,46 @@
 	let userMenuEl = $state<HTMLElement | null>(null);
 
 	function toggleUserMenu(): void {
+		if (!userMenuOpen) density = currentDensity();
 		userMenuOpen = !userMenuOpen;
+	}
+
+	/** Entradas enfocables del menú, en orden visual. */
+	function menuEntries(): HTMLElement[] {
+		return Array.from(
+			userMenuEl?.querySelectorAll<HTMLElement>('[role="menuitemradio"], [role="menuitem"]') ?? []
+		);
+	}
+
+	/** Abre el menú y enfoca la primera o la última entrada (ArrowDown/ArrowUp en el disparador). */
+	async function openUserMenuAndFocus(which: 'first' | 'last'): Promise<void> {
+		density = currentDensity();
+		userMenuOpen = true;
+		await tick();
+		const entries = menuEntries();
+		(which === 'first' ? entries[0] : entries[entries.length - 1])?.focus();
+	}
+
+	function handleTriggerKeydown(event: KeyboardEvent): void {
+		if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+		event.preventDefault();
+		void openUserMenuAndFocus(event.key === 'ArrowDown' ? 'first' : 'last');
+	}
+
+	/** Flechas, Inicio y Fin recorren las entradas del menú (con vuelta al otro extremo). */
+	function handleMenuKeydown(event: KeyboardEvent): void {
+		const keys = ['ArrowDown', 'ArrowUp', 'Home', 'End'];
+		if (!keys.includes(event.key)) return;
+		const entries = menuEntries();
+		if (entries.length === 0) return;
+		event.preventDefault();
+		const at = entries.indexOf(document.activeElement as HTMLElement);
+		let to: number;
+		if (event.key === 'Home') to = 0;
+		else if (event.key === 'End') to = entries.length - 1;
+		else if (event.key === 'ArrowDown') to = at < 0 ? 0 : (at + 1) % entries.length;
+		else to = at < 0 ? entries.length - 1 : (at - 1 + entries.length) % entries.length;
+		entries[to].focus();
 	}
 
 	function closeUserMenu(): void {
@@ -155,11 +235,17 @@
 	     peso (así "Vega Demo" YA hacía de wordmark completo en la demo). `title` se mantiene sobre
 	     TODO el contenedor con `site.name` a solas (nunca "Vega " + site.name): es lo que
 	     `topbar.spec.ts`/`settings.spec.ts` comprueban con igualdad exacta. -->
-	<span class="vega-topbar-site" title={ctx.model.site.name}>
+	<a
+		class="vega-topbar-site"
+		href={indexHref}
+		title={ctx.model.site.name}
+		aria-label={ctx.t('topbar.home.label')}
+		onclick={handleBrandClick}
+	>
 		<VegaLogo size={20} />
 		<span class="vega-topbar-brand">Vega</span>
 		<span class="vega-topbar-sitename">{ctx.model.site.name}</span>
-	</span>
+	</a>
 
 	<GlobalSearch />
 
@@ -168,7 +254,6 @@
 		     conectada (`ctx.port.buildApiUrl`) — ver la cabecera de `PublishButton.svelte`. -->
 		<PublishButton />
 		<ConnectionStatus />
-		<DensityToggle />
 		<button
 			type="button"
 			class="vega-topbar-collapse"
@@ -191,6 +276,7 @@
 				aria-controls="vega-user-menu"
 				aria-label={ctx.t('topbar.userMenu.toggle')}
 				onclick={toggleUserMenu}
+				onkeydown={handleTriggerKeydown}
 			>
 				<span
 					class="vega-topbar-avatar"
@@ -209,7 +295,29 @@
 					role="menu"
 					aria-label={ctx.t('topbar.userMenu.toggle')}
 					bind:this={userMenuEl}
+					tabindex="-1"
+					onkeydown={handleMenuKeydown}
 				>
+					<div role="group" aria-labelledby="vega-user-menu-density">
+						<p id="vega-user-menu-density" class="vega-topbar-user-menu-group">
+							{ctx.t('topbar.density.toggleLabel')}
+						</p>
+						{#each [['comfortable', 'topbar.density.comfortable'], ['compact', 'topbar.density.compact']] as const as [value, label] (value)}
+							<button
+								type="button"
+								role="menuitemradio"
+								class="vega-topbar-user-menu-item"
+								aria-checked={density === value}
+								onclick={() => selectDensity(value)}
+							>
+								<span class="vega-topbar-user-menu-check" aria-hidden="true">
+									{#if density === value}<Icon id="check" size={16} />{/if}
+								</span>
+								{ctx.t(label)}
+							</button>
+						{/each}
+					</div>
+					<div class="vega-topbar-user-menu-sep" role="separator"></div>
 					<a
 						role="menuitem"
 						class="vega-topbar-user-menu-item"
@@ -286,6 +394,16 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+		/* Es un enlace a la portada: mismo aspecto que cuando era un `<span>` (sin subrayado ni
+		   color de enlace); solo se nota con el foco (anillo `--ring`, como el resto de la app). */
+		color: inherit;
+		text-decoration: none;
+		border-radius: 6px;
+	}
+
+	.vega-topbar-site:focus-visible {
+		outline: 2px solid var(--ring);
+		outline-offset: 2px;
 	}
 
 	/* «Vega»: la marca fija, sans (no --mono — es prosa, no un valor canónico). */
@@ -432,6 +550,68 @@
 		color: var(--ink-hi);
 	}
 
+	/* Rótulo de grupo del menú: la tipografía de las cabeceras de tabla (`RecordTable`). */
+	.vega-topbar-user-menu-group {
+		margin: 0;
+		padding: 0.35rem 0.6rem 0.2rem;
+		font-size: 0.6875rem;
+		font-weight: 650;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: var(--ink-2);
+	}
+
+	/* Opción de radio: la misma fila que el enlace «Ajustes», en `<button>`. */
+	.vega-topbar-user-menu [role='menuitemradio'] {
+		display: flex;
+		align-items: center;
+		gap: 0.55rem;
+		width: 100%;
+		padding: 0.45rem 0.6rem;
+		border: 0;
+		border-radius: 6px;
+		background: none;
+		color: var(--ink);
+		font: inherit;
+		font-size: 0.85rem;
+		text-align: left;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	.vega-topbar-user-menu [role='menuitemradio']:hover,
+	.vega-topbar-user-menu [role='menuitemradio']:focus-visible {
+		background: var(--active);
+		color: var(--ink-hi);
+	}
+
+	.vega-topbar-user-menu [role='menuitemradio']:focus-visible,
+	.vega-topbar-user-menu a:focus-visible {
+		outline: 2px solid var(--ring);
+		outline-offset: -2px;
+	}
+
+	.vega-topbar-user-menu [role='menuitemradio'][aria-checked='true'] {
+		color: var(--ink-hi);
+		font-weight: 600;
+	}
+
+	/* Hueco fijo de la marca (16 px, el tamaño del icono de «Ajustes»): los rótulos quedan
+	   alineados esté o no marcada la opción. */
+	.vega-topbar-user-menu-check {
+		display: inline-flex;
+		width: 16px;
+		height: 16px;
+		flex-shrink: 0;
+		color: var(--accent-text);
+	}
+
+	.vega-topbar-user-menu-sep {
+		height: 1px;
+		margin: 0.3rem 0;
+		background: var(--line);
+	}
+
 	.vega-topbar-logout {
 		display: inline-flex;
 		align-items: center;
@@ -517,6 +697,10 @@
 		.vega-topbar-user-menu-item {
 			min-height: 44px;
 			min-width: 44px;
+		}
+
+		.vega-topbar-site {
+			min-height: 44px;
 		}
 	}
 </style>
