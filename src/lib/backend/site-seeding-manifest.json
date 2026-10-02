@@ -46,6 +46,9 @@
           "group": "SEO"
         }
       },
+      "page": {
+        "pathField": "path"
+      },
       "blocks": {
         "collection": "blocks",
         "parentField": "parent",

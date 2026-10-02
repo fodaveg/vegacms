@@ -107,6 +107,7 @@ describe('previewSiteSeed', () => {
 				'collections.pages.fields.description',
 				'collections.pages.fields.socialImage',
 				'collections.pages.fields.noindex',
+				'collections.pages.page',
 				'collections.redirects'
 			],
 			manifestSkipped: [],
@@ -152,6 +153,7 @@ describe('previewSiteSeed', () => {
 		expect(preview.modules[0]!.manifestEntries).toEqual([
 			'collections.pages.publishAtField',
 			'collections.pages.fields.publishAt',
+			'collections.pages.page',
 			'collections.redirects'
 		]);
 	});

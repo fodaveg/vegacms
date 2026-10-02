@@ -402,6 +402,7 @@ describe.skipIf(!AVAILABLE)('módulos de sembrado contra PocketBase real', () =>
 				[
 					'collections.pages.publishAtField',
 					'collections.pages.fields.publishAt',
+					'collections.pages.page',
 					'collections.redirects'
 				]
 			],
