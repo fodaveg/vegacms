@@ -71,8 +71,11 @@
 			model={formModel}
 			typeReadonly={false}
 			onSubmit={(input) => ctx.port.create(activeType.name, input)}
-			onSaved={(record) => {
-				ctx.feedback.toast(ctx.t('editor.saveSuccess'), { kind: 'success' });
+			onSaved={(record, note) => {
+				ctx.feedback.toast(
+					note ? `${ctx.t('editor.saveSuccess')} ${note}` : ctx.t('editor.saveSuccess'),
+					{ kind: 'success' }
+				);
 				ctx.nav.toRecord(activeType.name, record.id);
 			}}
 			onCancel={() => (activeType.singleton ? ctx.nav.toIndex() : ctx.nav.toList(activeType.name))}

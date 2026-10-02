@@ -99,6 +99,9 @@
 		layoutOptions?: ResolvedLayout[];
 		/** Acción inline a la derecha del control (mockup `.slug-row` + `.btn`), o nada. */
 		action?: Snippet;
+		/** Contenido propio bajo el control y sobre la ayuda (lote 12: la línea y el aviso de la
+		 *  programación bajo «Estado»), o nada. Lo pinta quien conoce el modelo; su CSS es suyo. */
+		below?: Snippet;
 		/** Aviso NO bloqueante bajo el control (ver cabecera, `page-path-not-unique`), o nada. */
 		notice?: string;
 		onChange: (value: FieldInputValue) => void;
@@ -117,6 +120,7 @@
 		optionLabels,
 		layoutOptions,
 		action,
+		below,
 		notice,
 		onChange
 	}: Props = $props();
@@ -199,6 +203,9 @@
 				{isTitleField}
 				{onChange}
 			/>
+		{/if}
+		{#if below}
+			{@render below()}
 		{/if}
 		{#if field.help}
 			<p id={ids.helpId} class="vega-field-help">{field.help}</p>
@@ -340,7 +347,9 @@
 	/* Aviso del modelo bajo un campo (`notice`, ver cabecera): mismo lenguaje visual que
 	   `.vega-refs-partial` de `ReferencesSummary.svelte` — informa, no bloquea (por eso NO
 	   comparte estilo con `.vega-field-error`, que sí impide guardar). */
-	.vega-field-notice {
+	/* `:global` desde el lote 12: el aviso de «no se publicó» de `RecordForm` (`.vega-field-notice
+	   .vega-schedule-overdue`) es el mismo aviso con acciones dentro, y se pinta desde allí. */
+	:global(.vega-field-notice) {
 		margin: 0.35rem 0 0;
 		padding: 0.4rem 0.6rem;
 		border: 1px solid var(--warning);

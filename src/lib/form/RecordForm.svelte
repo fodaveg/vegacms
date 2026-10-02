@@ -131,6 +131,18 @@
 	 *   fecha» solo si el servidor tiene `vegaschedule`; si no, «Borrador · fecha sin efecto» o
 	 *   «sin confirmar». Lee `baseline`, no el valor en edición: la cabecera cuenta lo que hay en el
 	 *   servidor, no lo que aún no se ha guardado.
+	 * - **«Programar…» junto al campo Estado** (lote 12, lámina 2): `describeScheduleControl`
+	 *   (`schedule.ts`) decide, a partir de lo que muestra el formulario, si junto a «Estado» va el
+	 *   botón «Programar…» (borrador), «Cambiar fecha…» más la línea con «Quitar programación»
+	 *   (programada), el aviso con «Publicar ahora» (programada que no se publicó, a los 5 min) o
+	 *   nada (publicada, solo lectura, servidor comprobado SIN `vegaschedule`: ahí no se pinta, no
+	 *   se deshabilita). El botón abre `ScheduleDialog`; confirmar deja el registro en borrador con
+	 *   la fecha y GUARDA el registro entero por el mismo `save` que «Guardar» (la fecha y el estado
+	 *   viajan como `overrides`, no se escriben en `current` hasta que cuentan). «Programar» no va
+	 *   junto a «Guardar»: se leería como una segunda forma de guardar. El aviso «Guardado.» lleva la
+	 *   fecha en la nota (`onSaved(record, note)`). Con el diálogo abierto, un conflicto de edición
+	 *   o errores de otros campos lo cierran y salen como siempre; un fallo de red o de servidor lo
+	 *   deja abierto con el motivo.
 	 * - **Ayuda de «Publicar el»** (`type.publishAtField`): si el manifiesto no le da `help`, el
 	 *   campo lleva `editor.publishAt.help`, que avisa de que hace falta `vegaschedule` en el
 	 *   servidor. Una ayuda del manifiesto gana. Además, si `ctx.model.scheduledPublishing` no es
@@ -281,6 +293,9 @@
 	import { resolveFocusTarget } from './focus-target';
 	import { setRecordIdentity } from './record-context';
 	import FieldRow from './FieldRow.svelte';
+	import { fieldIds } from './field-ids';
+	import ScheduleDialog from './ScheduleDialog.svelte';
+	import { describeScheduleControl, formatScheduleMoment } from './schedule';
 	import ConflictNotice from './ConflictNotice.svelte';
 	import { threeWayDiff, toComparableValues } from './conflict';
 	import RedirectOffer from './RedirectOffer.svelte';
@@ -412,6 +427,7 @@
 			syncedModel = model;
 			resetCount += 1;
 			editedByHand = [];
+			scheduleOpen = false;
 			baseline = model.baseline;
 			current = { ...model.baseline };
 			clientErrors = EMPTY_ERRORS;
@@ -522,6 +538,35 @@
 			? null
 			: describeStatusBadge(type, baseline, scheduling, ctx.locale, ctx.t)
 	);
+
+	// ————— «Programar…» junto al campo Estado (lote 12, lámina 2; ver cabecera) —————
+
+	/** Qué se pinta junto a «Estado»: botón, línea de programada, aviso de «no se publicó» o nada. */
+	const scheduleControl = $derived(describeScheduleControl(type, current, scheduling, locked));
+	let scheduleOpen = $state(false);
+	/** Dónde cae el foco al cerrar el diálogo si el botón que lo abrió ya no está (el aviso de «no se
+	 *  publicó» desaparece al programar): el propio campo Estado. */
+	let scheduleFallback = $state<HTMLElement | null>(null);
+	/** Fecha que se enseña al abrir: la puesta si ya hay una vigente; si no, el diálogo propone. */
+	const scheduleAt = $derived.by(() => {
+		const field = type.publishAtField;
+		const value = field ? current[field] : null;
+		return scheduleControl.kind === 'scheduled' && typeof value === 'string' ? value : null;
+	});
+	/** Nombre del registro para el diálogo: su título si ya está escrito (en creación `docName` es
+	 *  «nuevo»), y si no, el de la barra. */
+	const scheduleName = $derived.by(() => {
+		const titled = type.titleField ? current[type.titleField] : null;
+		return typeof titled === 'string' && titled.trim() !== '' ? titled.trim() : docName;
+	});
+
+	/** Una frase con `{when}` partida en [antes, fecha, después] para poner la fecha en negrita sin
+	 *  armar el HTML con el texto del catálogo (cada idioma coloca la fecha donde quiere). */
+	function whenParts(key: string, at: number): [string, string, string] {
+		const marker = '\u0000';
+		const [before, after = ''] = ctx.t(key, { when: marker }).split(marker);
+		return [before, formatScheduleMoment(at, ctx.locale, ctx.t), after];
+	}
 
 	/** Aviso VISIBLE bajo «Publicar el» cuando el servidor no la va a cumplir, o no se sabe. */
 	const publishAtNotice = $derived(
@@ -1133,18 +1178,52 @@
 		}
 	}
 
-	async function handleSubmit(event: SubmitEvent): Promise<void> {
-		event.preventDefault();
-		if (formDisabled) return;
+	/** Cómo acabó un `save`: lo que el diálogo de «Programar…» necesita saber para cerrarse o no. */
+	type SaveOutcome =
+		| { kind: 'saved' }
+		/** Errores de cliente o de campo del backend: ya se enseñan en el formulario y el foco va al primero. */
+		| { kind: 'invalid' }
+		/** Edición concurrente: el aviso de siempre ya está abierto. */
+		| { kind: 'conflict' }
+		/** Cualquier otro fallo (red, servidor, permisos). */
+		| { kind: 'failed'; error: VegaError }
+		/** El formulario está guardando o bloqueado: no se hizo nada. */
+		| { kind: 'busy' };
+
+	interface SaveOptions {
+		/** Valores que mandan sobre `current` en ESTE guardado («Programar…», «Publicar ahora»,
+		 *  «Quitar programación»). No se escriben en `current` hasta que cuentan: tras un guardado
+		 *  con éxito los reasienta `adoptRecord`, y tras un fallo que no es del formulario (red,
+		 *  servidor) el registro sigue como estaba. Sí se escriben si el guardado se queda en el
+		 *  formulario (errores de campo o conflicto): es lo que el usuario quiso hacer. */
+		overrides?: FormInputValues;
+		/** Frase que se añade a «Guardado.» (ver `onSaved`). */
+		note?: () => string | undefined;
+		/** `false`: un fallo que no es de campo ni de conflicto NO va al feedback global, solo vuelve
+		 *  en el resultado (el diálogo de «Programar…» lo enseña dentro). Por defecto `true`. */
+		reportFailures?: boolean;
+	}
+
+	/**
+	 * El único camino de escritura del formulario: «Guardar», ⌘S y «Programar…» pasan por aquí.
+	 * Valida (cliente), escribe (`onSubmit`) y reasienta; los errores salen como siempre.
+	 */
+	async function save(options: SaveOptions = {}): Promise<SaveOutcome> {
+		if (formDisabled) return { kind: 'busy' };
+		const values = options.overrides ? { ...current, ...options.overrides } : current;
+		const keepOverrides = (): void => {
+			if (options.overrides) current = values;
+		};
 
 		// D-P5.3: validación cliente MÍNIMA, solo UX — evita un roundtrip evidente. Si el cliente
 		// ya ve un error, el envío se bloquea aquí SIN tocar la red (L-P5.12 solo exige lo
 		// contrario: si el cliente lo cree válido, SIEMPRE se envía).
-		const clientView = validateForm(type, current);
+		const clientView = validateForm(type, values);
 		clientErrors = clientView;
 		if (Object.keys(clientView.byField).length > 0 || clientView.record) {
+			keepOverrides();
 			await focusFirstErrorField(clientView); // F5-g, L-P5.2: foco al primer campo con error
-			return;
+			return { kind: 'invalid' };
 		}
 
 		// FIX (code-review): `backendErrors` NO se limpia hasta llegar aquí (tras pasar la
@@ -1161,8 +1240,9 @@
 		// él). Se pospone la llamada a DESPUÉS del `finally`, con `saving` ya en `false` y el
 		// control re-habilitado.
 		let errorsToFocus: FieldErrorsView | null = null;
+		let outcome: SaveOutcome = { kind: 'saved' };
 		try {
-			const input = toRecordInput(type, baseline, current, model.mode);
+			const input = toRecordInput(type, baseline, values, model.mode);
 			const job = captureRedirectJob();
 			// Edición: con la versión que este formulario tiene delante (ver "Edición concurrente").
 			// Pulsar «Guardar» con el aviso abierto vuelve a comprobar contra la MISMA versión: si
@@ -1171,26 +1251,88 @@
 				model.mode === 'edit' && version !== null
 					? await onSubmit(input, { expectedVersion: version })
 					: await onSubmit(input);
-			commitSaved(saved, job ? ((await syncRedirects(job)) ?? undefined) : undefined);
+			const redirectNote = job ? await syncRedirects(job) : null;
+			commitSaved(
+				saved,
+				[redirectNote, options.note?.()].filter((part) => !!part).join(' ') || undefined
+			);
 		} catch (err) {
 			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al guardar', err);
 			if (isConflictError(vegaErr)) {
 				// Falló cerrado (ver cabecera): nada se escribió y el formulario sigue intacto.
+				keepOverrides();
 				conflict = vegaErr;
+				outcome = { kind: 'conflict' };
 			} else if (isFieldValidationError(vegaErr)) {
 				// L-P5.4: mapeo por campo + banner de registro (clave '').
+				keepOverrides();
 				backendErrors = mapFieldErrors(vegaErr);
 				errorsToFocus = backendErrors; // F5-g, L-P5.2: foco al primer campo con error
+				outcome = { kind: 'invalid' };
 			} else {
-				// L-P5.5: cualquier otro kind (network/backend/forbidden/auth-expired) es feedback
-				// global de P3, no de este formulario. 'auth-expired' lo tapa el overlay de
-				// re-login SIN desmontar este componente (el estado editable sobrevive).
-				ctx.feedback.reportError(vegaErr, { action: `${model.mode}:save` });
+				if (options.reportFailures !== false) {
+					// L-P5.5: cualquier otro kind (network/backend/forbidden/auth-expired) es feedback
+					// global de P3, no de este formulario. 'auth-expired' lo tapa el overlay de
+					// re-login SIN desmontar este componente (el estado editable sobrevive).
+					ctx.feedback.reportError(vegaErr, { action: `${model.mode}:save` });
+				}
+				outcome = { kind: 'failed', error: vegaErr };
 			}
 		} finally {
 			saving = false;
 		}
 		if (errorsToFocus) await focusFirstErrorField(errorsToFocus);
+		return outcome;
+	}
+
+	async function handleSubmit(event: SubmitEvent): Promise<void> {
+		event.preventDefault();
+		await save();
+	}
+
+	/** Abre el diálogo de «Programar…» / «Cambiar fecha…». */
+	function openSchedule(): void {
+		scheduleFallback = type.statusField
+			? document.getElementById(fieldIds(type.statusField, null).inputId)
+			: null;
+		scheduleOpen = true;
+	}
+
+	/**
+	 * Confirmar el diálogo: deja el registro en borrador con la fecha elegida y GUARDA el registro
+	 * entero (con lo demás que hubiera sin guardar). Devuelve `null` para cerrar el diálogo (guardó,
+	 * o el formulario toma el relevo con el conflicto o los errores de campo) o el motivo si debe
+	 * quedarse abierto (ver el contrato de `ScheduleDialog`).
+	 */
+	async function submitSchedule(iso: string): Promise<string | null> {
+		const statusField = type.statusField;
+		const publishAtField = type.publishAtField;
+		if (!statusField || !publishAtField) return null;
+		const when = formatScheduleMoment(Date.parse(iso), ctx.locale, ctx.t);
+		const outcome = await save({
+			overrides: { [statusField]: 'draft', [publishAtField]: iso },
+			note: () => ctx.t('editor.schedule.savedNote', { when }),
+			reportFailures: false
+		});
+		if (outcome.kind === 'failed') return outcome.error.message;
+		if (outcome.kind === 'busy') return ctx.t('editor.saving');
+		return null;
+	}
+
+	/** «Quitar programación»: vacía la fecha y guarda. El registro sigue en borrador. */
+	async function removeSchedule(): Promise<void> {
+		const publishAtField = type.publishAtField;
+		if (publishAtField) await save({ overrides: { [publishAtField]: null } });
+	}
+
+	/** «Publicar ahora» (programada que no se publicó): pasa a publicado y vacía la fecha, que es lo
+	 *  que habría hecho el servidor (`extensions/vegaschedule`). */
+	async function publishNow(): Promise<void> {
+		const statusField = type.statusField;
+		const publishAtField = type.publishAtField;
+		if (statusField && publishAtField) {
+			await save({ overrides: { [statusField]: 'published', [publishAtField]: null } });
+		}
 	}
 
 	beforeNavigate((navigation) => {
@@ -1387,6 +1529,68 @@
 		</button>
 	{/snippet}
 
+	<!-- «Programar…» (lote 12, lámina 2): a la derecha del campo Estado, como «Regenerar» en el slug.
+	     «Programar» guarda el registro ENTERO, como «Guardar»; por eso va junto al Estado y no en la
+	     barra, donde se leería como una segunda forma de guardar. -->
+	{#snippet scheduleAction()}
+		<button
+			type="button"
+			class="vega-editor-inline-button"
+			disabled={formDisabled}
+			onclick={openSchedule}
+		>
+			{ctx.t(
+				scheduleControl.kind === 'scheduled' ? 'editor.schedule.change' : 'editor.schedule.open'
+			)}
+		</button>
+	{/snippet}
+
+	<!-- Bajo el campo Estado: la línea de «programada» (2.6) o el aviso de «no se publicó» (2.8). -->
+	{#snippet scheduleBelow()}
+		{#if scheduleControl.kind === 'scheduled'}
+			{@const parts = whenParts(
+				scheduleControl.unconfirmed
+					? 'editor.schedule.summaryUnconfirmed'
+					: 'editor.schedule.summary',
+				scheduleControl.at
+			)}
+			<p class="vega-schedule-summary">
+				<span>{parts[0]}<b>{parts[1]}</b>{parts[2]}</span>
+				<button
+					type="button"
+					class="vega-schedule-link"
+					disabled={formDisabled}
+					onclick={removeSchedule}
+				>
+					{ctx.t('editor.schedule.remove')}
+				</button>
+			</p>
+		{:else if scheduleControl.kind === 'overdue'}
+			{@const parts = whenParts('editor.schedule.overdue', scheduleControl.at)}
+			<div class="vega-field-notice vega-schedule-overdue" role="status">
+				<p>{parts[0]}{parts[1]}{parts[2]}</p>
+				<div class="vega-schedule-actions">
+					<button
+						type="button"
+						class="vega-editor-inline-button"
+						disabled={formDisabled}
+						onclick={publishNow}
+					>
+						{ctx.t('editor.schedule.publishNow')}
+					</button>
+					<button
+						type="button"
+						class="vega-editor-inline-button"
+						disabled={formDisabled}
+						onclick={openSchedule}
+					>
+						{ctx.t('editor.schedule.change')}
+					</button>
+				</div>
+			</div>
+		{/if}
+	{/snippet}
+
 	{#snippet fieldRow(field: ResolvedField, stacked: boolean)}
 		{#key resetCount}
 			<FieldRow
@@ -1405,7 +1609,14 @@
 					? slugAction
 					: field.name === pagePathFieldName && model.mode === 'create'
 						? pathAction
-						: undefined}
+						: field.name === type.statusField &&
+							  (scheduleControl.kind === 'draft' || scheduleControl.kind === 'scheduled')
+							? scheduleAction
+							: undefined}
+				below={field.name === type.statusField &&
+				(scheduleControl.kind === 'scheduled' || scheduleControl.kind === 'overdue')
+					? scheduleBelow
+					: undefined}
 				notice={field.name === pagePathFieldName
 					? (pathNotUniqueNotice ?? undefined)
 					: field.name === type.publishAtField
@@ -1632,6 +1843,18 @@
 		{/if}
 	</div>
 </form>
+
+<!-- «Programar…» (lote 12, lámina 2): fuera del `<form>`, como el resto de diálogos — Intro en su
+     campo de fecha no debe enviar el formulario. -->
+<ScheduleDialog
+	open={scheduleOpen}
+	name={scheduleName}
+	at={scheduleAt}
+	unconfirmed={scheduling === 'unknown'}
+	fallbackFocusEl={scheduleFallback}
+	onSubmit={submitSchedule}
+	onClose={() => (scheduleOpen = false)}
+/>
 
 <!-- L-P4.11 (misma ley que el listado): ningún borrado sin pasar por este diálogo. Fuera del
      `<form>` a propósito — es un overlay de pantalla completa, no parte del formulario. -->
@@ -2127,6 +2350,7 @@
 		.vega-editor-preview-link,
 		.vega-editor-save-button,
 		.vega-editor-inline-button,
+		.vega-schedule-link,
 		.vega-editor-delete-button {
 			min-height: 44px;
 			min-width: 44px;
@@ -2254,6 +2478,71 @@
 		flex-direction: column;
 		gap: var(--gap-field);
 		min-width: 0;
+	}
+
+	/* «Programar…» (lote 12, lámina 2). Línea de estado de la programación bajo el campo Estado:
+	   tipografía de `.vega-field-help`. */
+	.vega-schedule-summary {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.25rem 0.75rem;
+		margin: 0.35rem 0 0;
+		font-size: 0.82em;
+		color: var(--ink-2);
+		overflow-wrap: anywhere;
+	}
+
+	.vega-schedule-summary b {
+		color: var(--ink);
+		font-weight: 600;
+	}
+
+	/* Acción de texto: el botón-enlace de `.vega-file-remove` (FileInput). */
+	.vega-schedule-link {
+		padding: 0;
+		border: 0;
+		background: transparent;
+		color: var(--ink-2);
+		font: inherit;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+		cursor: pointer;
+	}
+
+	.vega-schedule-link:hover:not(:disabled) {
+		color: var(--ink-hi);
+	}
+
+	.vega-schedule-link:disabled {
+		cursor: not-allowed;
+		opacity: 0.5;
+	}
+
+	/* Aviso de «no se publicó»: la caja de `.vega-field-notice` (de `FieldRow`) con sus acciones debajo. */
+	.vega-schedule-overdue {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.vega-schedule-overdue p {
+		margin: 0;
+	}
+
+	.vega-schedule-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	/* En el aside (296 px) el control y su acción no caben en una línea: la acción baja. */
+	.vega-fsection--aside :global(.vega-field-inline) {
+		flex-wrap: wrap;
+	}
+
+	.vega-fsection--aside :global(.vega-field-inline-widget) {
+		flex-basis: 6rem;
 	}
 
 	/* En el aside los campos van más juntos (mockup `.aside .field + .field { margin-top: .9rem }`):
