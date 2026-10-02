@@ -670,9 +670,12 @@ _Fecha_, _JSON_, _Selección_ (`select`) y _Relación_, más la casilla _No se p
 (`unique`) en texto, dirección web y correo. _Imagen_ se ofrece desactivada mientras `vega_media`
 no exista en el esquema (se crea al abrir «Medios»). Quedan fuera de la UI `file` (tiene su flujo
 en «Medios») y `autodate`. La operación headless `seedSiteProject` declara además `pages.status`,
-`pages.path`, `redirects.from` y `redirects.code` al preparar un proyecto nuevo, pero todavía no hay
-botón ni asistente para dispararla desde la SPA. Que el puerto lo admita, que el sembrado lo use y
-que el panel lo ofrezca son tres cosas distintas.
+`pages.path`, `redirects.from` y `redirects.code` al preparar un proyecto nuevo, y la SPA la dispara desde la
+tarjeta «Base del sitio» de **Ajustes** (solo con `schemaBootstrap`, es decir, superusuario): al
+abrirla hace un preflight de solo lectura (`previewSiteSeed`), enseña la lista de lo que crea o
+añade y, tras confirmar, llama a `seedSiteProject` («Preparar el sitio» en un proyecto sin sembrar,
+«Actualizar el sitio» en uno ya sembrado). Que el puerto lo admita, que el sembrado lo use y que el
+panel lo ofrezca son tres cosas distintas; hoy las tres se cumplen.
 
 Si el campo único nuevo choca con registros que ya existen (dos o más filas compartirían el valor
 vacío de un `text`), PocketBase rechaza la mutación entera. El adaptador lo traduce a un error de
@@ -930,7 +933,9 @@ Preparar el sitio»), el sembrado ya crea
 crear cada colección. El sitio puede leer anónimamente solo páginas publicadas y sus bloques, y
 todas las redirecciones; los registros de `vega_media` se pueden ver por id y expandir, pero no
 enumerar. Un registro autenticado contra `vega_editors` recibe CRUD de las cuatro colecciones de
-contenido. La operación es headless: aún no hay botón ni asistente en la SPA.
+contenido. Se lanza desde la tarjeta «Base del sitio» de Ajustes, que enseña el plan y pide
+confirmación antes de escribir; la operación en sí (`seedSiteProject`) también se puede llamar sin
+interfaz.
 
 #### SEO por página y redirecciones
 
@@ -1068,9 +1073,12 @@ escriben). Lo propio: `title` y `slug` (único) obligatorios, `excerpt` (máx. 3
 `tags`, sin cascada) y `date`, la fecha VISIBLE de la entrada, que existe porque `vegaschedule`
 vacía `publishAt` al publicar. `tags` tiene `name` y `slug` (único), obligatorios; la escriben
 solo los editores y se lee sin sesión (regla `""`), porque no tiene estado de publicación que
-filtrar y el sitio la necesita para pintar las entradas publicadas. Las etiquetas se crean en su
-propio listado antes de usarlas: el campo de relación del formulario de una entrada no deja
-crearlas.
+filtrar y el sitio la necesita para pintar las entradas publicadas. **Una etiqueta es pública desde
+que se crea, también si solo la usan entradas en borrador**: cualquiera puede listar `tags` sin
+sesión y ver su nombre, así que no pongas en una etiqueta nada que no quieras publicar. Es una
+decisión tomada (la alternativa exigiría un estado de publicación en `tags`), no un descuido. Las
+etiquetas se crean en su propio listado antes de usarlas: el campo de relación del formulario de
+una entrada no deja crearlas.
 
 **Formulario de contacto.** `messages` es la bandeja: `name` (text, obligatorio, máx. 200),
 `email` (email, obligatorio), `message` (text, obligatorio, máx. 5000), `read` (bool) y `created`
@@ -1114,8 +1122,9 @@ Lo que Vega NO gestiona y hay que configurar en PocketBase antes de publicar el 
   no tiene forma de saber si está activo; por eso la tarjeta del módulo lo dice con una línea fija.
 
 Un editor ve «Nuevo» en el listado de mensajes: para la interfaz, una regla de creación que es una
-expresión cuenta como «depende del registro» y se ofrece. No es el uso previsto de la bandeja, y
-ocultarlo exige un cambio fuera de este módulo (hoy el manifiesto no tiene una clave para ello).
+expresión cuenta como «depende del registro» y se ofrece. No es el uso previsto de la bandeja (los
+mensajes los crea el visitante desde el sitio), pero se deja así. Ocultar el botón es un lote
+aparte: exige una clave nueva del manifiesto, que hoy no existe y que este módulo no añade.
 
 Los pasos manuales siguientes siguen aplicando a una instalación **existente**. El sembrado es
 `creation-only`: si una colección ya existe, no cambia ninguna de sus reglas, aunque estén vacías,
@@ -1336,8 +1345,8 @@ capacidad `editorPasswordReset`).
 Vega cambia el enlace de la plantilla para que lleve ahí:
 
 - **Cuándo:** al abrir **Editores** un superusuario, y al sembrar el sitio si quien lo lanza pasa
-  `passwordResetUrl` a `seedSiteProject` (el sembrado es headless y no sabe en qué dirección está
-  servida Vega).
+  `passwordResetUrl` a `seedSiteProject` (la función no sabe en qué dirección está servida Vega; la
+  tarjeta «Base del sitio» la pasa, construida con el origen de la SPA).
 - **Solo si la plantilla sigue siendo la de fábrica**, comparada con la que da el propio servidor en
   `GET /api/collections/meta/scaffolds`. Una plantilla que el dueño haya cambiado no se toca, y el
   alta avisa junto a «Enviarle una invitación» de que el enlace es el que diga ella.
