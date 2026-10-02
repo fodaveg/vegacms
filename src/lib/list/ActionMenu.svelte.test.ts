@@ -259,13 +259,28 @@ describe('ActionMenu.svelte — menú de acciones (patrón APG «menu button»)'
 		expect(list.getAttribute('data-direction')).toBe('down');
 	});
 
-	test('anchor="viewport": un desplazamiento mientras está abierto lo cierra', async () => {
+	test('anchor="viewport": un desplazamiento mientras está abierto lo RECOLOCA, no lo cierra', async () => {
 		mounted = await mountMenu({ anchor: 'viewport' });
 		trigger(mounted).click();
 		await settle();
+		const before = menu(mounted)?.getAttribute('style');
+		// La caja del disparador «se mueve» 100 px (el navegador no mide en jsdom: se simula).
+		trigger(mounted).getBoundingClientRect = () =>
+			({
+				top: 100,
+				right: 300,
+				bottom: 128,
+				left: 272,
+				width: 28,
+				height: 28,
+				x: 272,
+				y: 100
+			}) as DOMRect;
 		window.dispatchEvent(new Event('scroll'));
 		await settle();
-		expect(menu(mounted)).toBeNull();
+		expect(menu(mounted)).not.toBeNull();
+		expect(menu(mounted)?.getAttribute('style')).not.toBe(before);
+		expect(menu(mounted)?.getAttribute('style')).toContain('top: 134px;');
 	});
 
 	test('anchor="below-end" (por defecto): sin coordenadas inline, la coloca el CSS', async () => {

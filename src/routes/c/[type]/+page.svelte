@@ -363,7 +363,13 @@
 		const type = contentType;
 		duplicating = true;
 		try {
-			const created = await duplicateRecord(ctx.port, type, record, ctx.model.types);
+			// `record` sale de `readyPage.items`, que es `$state`: un proxy reactivo. `duplicateInput`
+			// clona cada valor con `structuredClone`, que sobre un proxy lanza `DataCloneError` (medido
+			// en e2e: «No se pudo duplicar» sin ningún VegaError detrás). Se pasa la instantánea plana.
+			// `as unknown`: `Snapshot<VegaRecord>` recursivo sobre `JsonValue` desborda a TypeScript
+			// («excessively deep»); el valor en runtime es el mismo registro, ya sin proxy.
+			const snapshot = $state.snapshot(record as unknown) as VegaRecord;
+			const created = await duplicateRecord(ctx.port, type, snapshot, ctx.model.types);
 			ctx.feedback.toast(ctx.t('list.duplicate.success', { label }), { kind: 'success' });
 			if (page.params.type !== type.name) return;
 			ctx.nav.toRecord(type.name, created.id);

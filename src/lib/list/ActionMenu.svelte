@@ -32,8 +32,7 @@
 	 * - `anchor="viewport"`: menú `position: fixed`, colocado desde la caja del disparador
 	 *   (`placeViewportMenu`, `action-menu.ts`) y abierto hacia ARRIBA si no cabe debajo. Para
 	 *   disparadores dentro de contenedores que recortan o se desplazan (celdas de tabla). Un
-	 *   desplazamiento o cambio de tamaño de la ventana mientras está abierto lo cierra: la
-	 *   posición fija habría quedado desfasada del disparador.
+	 *   desplazamiento o cambio de tamaño mientras está abierto lo recoloca junto al disparador.
 	 *
 	 * `triggerTabindex={-1}` (lámina 7): el disparador sale del recorrido del tabulador y quien lo
 	 *   contiene decide cómo se alcanza (en `RecordTable`, con → desde el título de la fila).
@@ -172,17 +171,19 @@
 		item.onSelect();
 	}
 
-	// Con `anchor="viewport"` la posición es fija respecto a la ventana: si el usuario desplaza
-	// cualquier contenedor (captura) o cambia el tamaño, el menú dejaría de estar pegado a su
-	// disparador. Cerrarlo es más honesto que perseguirlo.
+	// Con `anchor="viewport"` la posición es fija respecto a la ventana: si cualquier contenedor se
+	// desplaza (captura) o la ventana cambia de tamaño, el menú se RECOLOCA junto a su disparador.
+	// La primera versión lo cerraba; medido en e2e, un `scroll` también lo dispara el navegador al
+	// recortar el desplazamiento cuando la página encoge (una fila borrada justo antes) o al
+	// hacer scrollIntoView, y el menú se cerraba solo sin que nadie lo tocara.
 	$effect(() => {
 		if (!open || anchor !== 'viewport') return;
-		const close = (): void => closeMenu();
-		window.addEventListener('scroll', close, true);
-		window.addEventListener('resize', close);
+		const replace = (): void => place();
+		window.addEventListener('scroll', replace, true);
+		window.addEventListener('resize', replace);
 		return () => {
-			window.removeEventListener('scroll', close, true);
-			window.removeEventListener('resize', close);
+			window.removeEventListener('scroll', replace, true);
+			window.removeEventListener('resize', replace);
 		};
 	});
 </script>
