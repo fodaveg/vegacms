@@ -437,6 +437,44 @@ describe('RecordForm — el diálogo de «Programar…»', () => {
 		await vi.waitFor(() => expect(dialog(w)).toBeNull());
 	});
 
+	test('errores en otros campos con el diálogo abierto desde el teclado: el foco acaba en el campo, no en «Programar…»', async () => {
+		const w = await setup({ title: '' });
+		// Como con teclado: el botón TIENE el foco al activarse (un `.click()` a secas no lo enfoca).
+		const opener = buttonIn(w.target, 'Programar…')!;
+		opener.focus();
+		expect(document.activeElement).toBe(opener);
+		opener.click();
+		flushSync();
+		await tick();
+		await tick();
+		await typeDate(
+			dialog(w)!.querySelector<HTMLInputElement>('input[type="datetime-local"]')!,
+			localAt(2)
+		);
+		buttonIn(dialog(w)!, 'Programar')!.click();
+		await vi.waitFor(() => expect(dialog(w)).toBeNull());
+		const title = w.target.querySelector<HTMLElement>('#vega-field-title')!;
+		await tick();
+		await tick();
+		expect(document.activeElement).toBe(title);
+	});
+
+	test('⌘S con el diálogo de programar abierto no guarda el formulario', async () => {
+		const onSubmit = vi.fn(async () => ({ id: 'p1', type: 'posts', values: {} }) as VegaRecord);
+		const w = await setup({ onSubmit });
+		const title = w.target.querySelector<HTMLInputElement>('#vega-field-title')!;
+		title.value = 'Otro título';
+		title.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+		await openDialog(w);
+		window.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 's', metaKey: true, cancelable: true })
+		);
+		await tick();
+		await tick();
+		expect(onSubmit).not.toHaveBeenCalled();
+	});
+
 	test('errores en otros campos: el diálogo se cierra y el foco va al primer campo con error', async () => {
 		const w = await setup({ title: '' });
 		const input = await openDialog(w);

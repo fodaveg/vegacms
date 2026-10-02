@@ -45,19 +45,23 @@ const MAX_PAGES = 50;
 /** Ids por consulta `in` a `vega_media`. */
 const MEDIA_CHUNK = 100;
 
-/** Todos los registros de una consulta, página a página. */
+/**
+ * Todos los registros de una consulta, página a página, o `null` si la colección es más grande que
+ * el tope (`MAX_PAGES`): un listado cortado en silencio haría pasar por «rotos» enlaces a páginas
+ * que existen y no se leyeron. `null` = no comprobado, igual que un fallo de lectura.
+ */
 async function listAll(
 	port: Pick<BackendPort, 'list'>,
 	collection: string,
 	query: Query
-): Promise<VegaRecord[]> {
+): Promise<VegaRecord[] | null> {
 	const found: VegaRecord[] = [];
 	for (let page = 1; page <= MAX_PAGES; page += 1) {
 		const result = await port.list(collection, { ...query, page, perPage: PER_PAGE });
 		found.push(...result.items);
-		if (page >= result.totalPages) break;
+		if (page >= result.totalPages) return found;
 	}
-	return found;
+	return null;
 }
 
 /** Columnas de ruta de un tipo de páginas: la física, o una por idioma con ruta localizada. */
@@ -106,6 +110,7 @@ async function loadPages(
 		for (const { type, columns } of sources) {
 			const fields = type.statusField === null ? columns : [...columns, type.statusField];
 			const records = await listAll(port, type.name, { fields });
+			if (records === null) return null;
 			for (const record of records) {
 				const published =
 					type.statusField === null ? true : record.values[type.statusField] === 'published';
@@ -132,6 +137,7 @@ async function loadRedirects(
 	if (type === undefined || !names.has('from') || !names.has('to')) return [];
 	try {
 		const records = await listAll(port, REDIRECTS_COLLECTION, { fields: ['from', 'to'] });
+		if (records === null) return null;
 		return records.flatMap((record) => {
 			const { from, to } = record.values;
 			return typeof from === 'string' && typeof to === 'string' ? [{ from, to }] : [];
@@ -153,6 +159,7 @@ async function loadMedia(
 				filter: { kind: 'cond', field: 'id', op: 'in', value: chunk },
 				fields: ['file', 'alt']
 			});
+			if (records === null) return null;
 			for (const record of records) media.set(record.id, toMediaItemView(record));
 		}
 	} catch {
@@ -172,12 +179,15 @@ export async function loadReviewData(
 	record: VegaRecord
 ): Promise<ReviewData> {
 	const config = type.blocks;
-	const blocks = config
+	const listed = config
 		? await listAll(port, config.collection, {
 				filter: { kind: 'cond', field: config.parentField, op: 'eq', value: record.id },
 				sort: [{ field: config.orderField, dir: 'asc' }]
 			})
 		: [];
+	// Unos bloques a medias no se pueden revisar: igual que un fallo de lectura, la carga rechaza.
+	if (listed === null) throw new Error(`Demasiados bloques en «${config?.collection}»`);
+	const blocks = listed;
 	const mediaIds = collectMediaIds({ type, model, blocks });
 	const [pages, redirects, media] = await Promise.all([
 		loadPages(port, model),

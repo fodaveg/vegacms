@@ -118,6 +118,27 @@ describe('SEO de una página del sembrado', () => {
 		});
 	});
 
+	test('una descripción en texto enriquecido cuenta sin etiquetas', () => {
+		const html = `<p>${'a'.repeat(160)}</p>`;
+		expect(reviewRecord(input({ record: page({ description: html }) })).findings).toEqual([]);
+		const long = reviewRecord(
+			input({ record: page({ description: `<p><b>${'a'.repeat(161)}</b></p>` }) })
+		);
+		expect(long.findings[0]).toMatchObject({
+			check: 'seo.description-long',
+			params: { length: 161 }
+		});
+	});
+
+	test.each(['<p></p>', '<p> </p>', '<p><br></p>'])(
+		'una descripción que solo tiene etiquetas (%s) cuenta como vacía',
+		(value) => {
+			expect(checks(reviewRecord(input({ record: page({ description: value }) })))).toEqual([
+				'seo.description-empty'
+			]);
+		}
+	);
+
 	test('los espacios de los extremos no cuentan para la longitud', () => {
 		const padded = ` ${'a'.repeat(160)} `;
 		expect(reviewRecord(input({ record: page({ description: padded }) })).findings).toEqual([]);
@@ -289,6 +310,37 @@ describe('enlaces internos', () => {
 	test('el enlace a la propia página vale', () => {
 		expect(
 			reviewRecord(input({ blocks: [richtextBlock(link('/inicio#arriba'))] })).findings
+		).toEqual([]);
+	});
+
+	test('un borrador que enlaza a sí mismo no sale como enlace a un borrador', () => {
+		const stored: ReviewPage[] = [
+			{ type: 'pages', id: 'p1', path: '/inicio', published: false },
+			{ type: 'pages', id: 'p3', path: '/pronto', published: false }
+		];
+		const draft = page({ status: 'draft' });
+		expect(
+			reviewRecord(
+				input({ record: draft, pages: stored, blocks: [richtextBlock(link('/inicio#arriba'))] })
+			).findings
+		).toEqual([]);
+		// Otro borrador sigue avisando.
+		expect(
+			checks(
+				reviewRecord(
+					input({ record: draft, pages: stored, blocks: [richtextBlock(link('/pronto'))] })
+				)
+			)
+		).toEqual(['link.draft-target']);
+	});
+
+	test('un borrador con la ruta cambiada sin guardar se enlaza a sí mismo con la ruta nueva', () => {
+		const stored: ReviewPage[] = [{ type: 'pages', id: 'p1', path: '/inicio', published: false }];
+		const draft = page({ status: 'draft', path: '/portada' });
+		expect(
+			reviewRecord(
+				input({ record: draft, pages: stored, blocks: [richtextBlock(link('/portada'))] })
+			).findings
 		).toEqual([]);
 	});
 

@@ -577,7 +577,7 @@ export const es = {
 	'editor.schedule.hint': 'Hora de este equipo.',
 	'editor.schedule.hintProposal': 'Hora de este equipo. Propuesta: mañana a las 09:00.',
 	'editor.schedule.error.empty': 'Elige una fecha y una hora.',
-	'editor.schedule.error.past': 'Esa hora ya ha pasado. Elige una posterior o publica ahora.',
+	'editor.schedule.error.past': 'Esa hora ya ha pasado. Elige una posterior.',
 	'editor.schedule.confirm': 'Programar',
 	'editor.schedule.confirming': 'Programando…',
 	'editor.schedule.retry': 'Reintentar',

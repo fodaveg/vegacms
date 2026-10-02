@@ -97,6 +97,26 @@ describe('loadReviewData contra el adaptador en memoria y el sembrado real', () 
 		expect(data.pages).toHaveLength(207); // 205 + inicio + el de sembrado
 	});
 
+	test('una colección más grande que el tope de páginas leídas da null (no comprobado), no un listado cortado', async () => {
+		const world = await seededWorld();
+		const home = await createPage(world, { path: '/inicio' });
+		let pagesCalls = 0;
+		const spy = intercept(world, (collection, query) => {
+			if (collection !== 'pages') return undefined;
+			pagesCalls += 1;
+			return Promise.resolve({
+				items: [],
+				page: query?.page ?? 1,
+				perPage: 200,
+				totalItems: 999_999,
+				totalPages: 999
+			});
+		});
+		const data = await loadReviewData(spy.port, world.model, world.pagesType, home);
+		expect(data.pages).toBeNull();
+		expect(pagesCalls).toBe(50);
+	});
+
 	test('el sembrado no declara `page` y aun así se leen sus páginas; si lo declara, no se duplican', async () => {
 		const world = await seededWorld();
 		expect(world.pagesType.page ?? null).toBeNull(); // premisa: así es el manifiesto inicial
