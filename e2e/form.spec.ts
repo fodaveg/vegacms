@@ -1061,3 +1061,101 @@ test.describe('widget file (F5-f)', () => {
 		await expect(field.locator('.vega-file-chip')).toContainText('seed_archive_notes.txt');
 	});
 });
+
+/**
+ * Lote 12, lámina 5: una imagen subida desde un campo `file` pide su texto alternativo y, al
+ * guardar el registro, se copia a Medios con él. Hace falta la biblioteca (`seedMedia`, la semilla
+ * `DEMO_SEED_WITH_MEDIA` con `vega_media` ya creada); el resto de la suite corre sin ella y por
+ * eso sus campos `file` siguen como siempre.
+ */
+test.describe('widget file — texto alternativo y copia en Medios (lote 12, lámina 5)', () => {
+	async function loginWithMedia(page: import('@playwright/test').Page): Promise<void> {
+		await loginAsDemo(page, { seedMedia: true });
+		await waitForHome(page);
+	}
+
+	test('crear: la imagen pide el texto con el foco puesto, avisa si falta, y al guardar aparece en Medios con ese texto', async ({
+		page
+	}) => {
+		await loginWithMedia(page);
+		await page.goto('/c/posts/new');
+		await page.getByRole('textbox', { name: 'Título', exact: true }).fill('Post con calabazas');
+
+		const field = page.locator('[data-field="coverImage"]');
+		await field.getByLabel('Cover image').setInputFiles({
+			name: 'huerto-octubre-calabazas.png',
+			mimeType: 'image/png',
+			buffer: Buffer.from(TINY_PNG_BASE64, 'base64')
+		});
+
+		// La fila se despliega con el texto alternativo y el foco entra en él (5.2).
+		const alt = field.getByRole('textbox', { name: 'Texto alternativo' });
+		await expect(alt).toBeVisible();
+		await expect(alt).toBeFocused();
+		await expect(field.getByRole('status')).toContainText(
+			'Sin texto alternativo: un lector de pantalla leerá «huerto-octubre-calabazas.png».'
+		);
+		await expect(field.getByText('Se guardará en Medios al guardar el registro.')).toBeVisible();
+
+		// Con el texto escrito, el aviso se va (5.3). Avisa, no bloquea: nada impide guardar.
+		await alt.fill('Tres calabazas recién cortadas sobre la mesa del huerto');
+		await expect(field.getByRole('status')).toHaveText('');
+
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		await page.waitForURL(/\/c\/posts\/(?!new)[^/]+$/);
+		await expect(page.getByText('Guardado. Imagen añadida a Medios.')).toBeVisible();
+
+		// La copia está en la biblioteca con ese texto como `alt` del asset. Navegación DENTRO de la
+		// SPA: un `page.goto` recarga la página y el adaptador `memory` vuelve a la semilla.
+		await page.getByRole('link', { name: 'Medios', exact: false }).click();
+		await page.waitForURL('**/media');
+		await expect(page.locator('[data-media-grid-state="ready"]')).toBeVisible();
+		await expect(page.locator('[data-media-item]')).toHaveCount(4);
+		await expect(
+			page.getByRole('img', { name: 'Tres calabazas recién cortadas sobre la mesa del huerto' })
+		).toBeVisible();
+	});
+
+	test('editar: tras guardar, la fila dice «En Medios, con texto alternativo» y la miniatura lleva ese texto (5.5)', async ({
+		page
+	}) => {
+		await loginWithMedia(page);
+		await page.goto('/c/posts/post_1');
+		await expect(page.getByRole('heading', { name: 'Editar «Entrada»' })).toBeVisible();
+
+		const field = page.locator('[data-field="coverImage"]');
+		await field.getByLabel('Cover image').setInputFiles({
+			name: 'tomateras.png',
+			mimeType: 'image/png',
+			buffer: Buffer.from(TINY_PNG_BASE64, 'base64')
+		});
+		await field.getByRole('textbox', { name: 'Texto alternativo' }).fill('Tomateras en julio');
+
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		await expect(page.getByText('Guardado. Imagen añadida a Medios.')).toBeVisible();
+
+		// Reasentado el valor a la `FileRef`, el texto ya no se edita aquí: vive en Medios.
+		await expect(field.locator('.vega-file-library-state[data-state="done"]')).toHaveText(
+			'En Medios, con texto alternativo'
+		);
+		await expect(field.getByRole('textbox', { name: 'Texto alternativo' })).toHaveCount(0);
+		await expect(field.locator('img.vega-file-thumb')).toHaveAttribute('alt', 'Tomateras en julio');
+	});
+
+	test('elegida de la biblioteca: no se pide texto ni se copia otra vez (5.8)', async ({
+		page
+	}) => {
+		await loginWithMedia(page);
+		await page.goto('/c/posts/post_1');
+		const field = page.locator('[data-field="coverImage"]');
+
+		await field.getByRole('button', { name: 'Elegir de la biblioteca' }).click();
+		const dialog = page.getByRole('dialog');
+		await dialog.locator('[data-media-item]').first().click();
+		await dialog.getByRole('button', { name: 'Insertar' }).click();
+
+		await expect(field.locator('.vega-file-item')).toHaveCount(1);
+		await expect(field.getByRole('textbox', { name: 'Texto alternativo' })).toHaveCount(0);
+		await expect(field.locator('.vega-file-library-state')).toHaveCount(0);
+	});
+});
