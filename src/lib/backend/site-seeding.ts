@@ -112,7 +112,6 @@ export const SITE_SEED_AUTODATE_FIELDS: readonly CollectionFieldSpec[] = [
 	{ name: 'created', type: 'autodate' },
 	{ name: 'updated', type: 'autodate', onUpdate: true }
 ];
-const AUTODATE_FIELDS = SITE_SEED_AUTODATE_FIELDS;
 
 /**
  * Los campos de publicación y de SEO de `pages`, con nombre propio para que un módulo cuyo
@@ -165,7 +164,7 @@ const PAGES_COLLECTION: CollectionSpec = {
 		SITE_SEED_STATUS_FIELD,
 		SITE_SEED_PUBLISH_AT_FIELD,
 		...SITE_SEED_SEO_FIELDS,
-		...AUTODATE_FIELDS
+		...SITE_SEED_AUTODATE_FIELDS
 	]
 };
 
@@ -223,7 +222,7 @@ const REDIRECTS_COLLECTION: CollectionSpec = {
 			multiple: false,
 			required: true
 		},
-		...AUTODATE_FIELDS
+		...SITE_SEED_AUTODATE_FIELDS
 	]
 };
 
@@ -254,7 +253,7 @@ const BLOCKS_COLLECTION: CollectionSpec = {
 		{ name: STARTER_BLOCKS.typeField!, type: 'text', required: true, max: 64 },
 		{ name: STARTER_BLOCKS.dataField!, type: 'json' },
 		...deriveBlockRecordFields(STARTER_BLOCK_TYPES, STARTER_BLOCKS),
-		...AUTODATE_FIELDS
+		...SITE_SEED_AUTODATE_FIELDS
 	]
 };
 
