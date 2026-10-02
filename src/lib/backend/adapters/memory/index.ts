@@ -34,6 +34,7 @@ import { assertExplicitRecordIdCapability } from '../../capability-guards';
 import { assertContentTypeWritable, checkUnwritableFields } from '../../write-guards';
 import type {
 	AddFieldsResult,
+	CollectionAccessRules,
 	CollectionFieldSpec,
 	CollectionRule,
 	CollectionRuleKey,
@@ -865,6 +866,21 @@ export function createMemoryBackend(seed?: MemorySeed): MemoryBackendPort {
 			}
 
 			return { added, skipped };
+		},
+
+		async collectionRules(
+			names: readonly string[]
+		): Promise<Record<string, CollectionAccessRules>> {
+			checkSessionAlive();
+			const found: Record<string, CollectionAccessRules> = {};
+			for (const name of names) {
+				const collection = collectionsByName.get(name);
+				if (!collection) continue;
+				found[name] = Object.fromEntries(
+					COMMON_COLLECTION_RULE_KEYS.map((key) => [key, collection.rules[key] ?? null])
+				) as CollectionAccessRules;
+			}
+			return found;
 		},
 
 		async addCollectionFieldPatterns(

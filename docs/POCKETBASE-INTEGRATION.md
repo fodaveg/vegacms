@@ -1136,6 +1136,19 @@ sean más abiertas o sean más cerradas. Si `pages` ya existe con `listRule: nul
 existe, el preflight aborta con un error claro antes de escribir; alinea las reglas manualmente y
 vuelve a sembrar.
 
+**Colecciones de un módulo que ya existen** (`tags`, `posts`, `messages` son nombres genéricos). El
+sembrado sigue sin cambiar ninguna de sus reglas, pero ya no las adopta en silencio: el preflight
+las compara con las que declara el módulo y, si difieren, lo dice por colección y por regla, con
+el valor que tiene y el que espera (`null` es «solo superusuarios» y `""` es «abierta a todo el
+mundo»; son cosas distintas). Con algo que añadir, ese módulo **no se añade sin confirmación
+expresa**: en la tarjeta «Base del sitio», marcando una casilla del diálogo; sin interfaz, con
+`seedSiteProject(port, { modules, confirmRuleDifferences: ['contacto'] })`, y sin ella lanza
+`SiteSeedRuleDifferencesError` antes de escribir nada. Confirmar solo deja seguir con las reglas
+que hay: Vega no las cambia, y lo demás del módulo (campos que falten y entradas del modelo de
+contenido) se añade igualmente. El aviso depende de `BackendPort.collectionRules`, que implementan
+`pocketbase` y `memory`; un puerto sin ella no compara reglas. Una `messages` con `listRule: ""`,
+por ejemplo, dejaría la bandeja legible sin sesión.
+
 La excepción es `vega_editors`: si ya existe con reglas propias (cualquiera de `listRule`,
 `viewRule`, `createRule`, `updateRule`, `deleteRule` o `manageRule` distinta de `null`; `authRule`
 no cuenta, PocketBase la deja en `""` en toda colección `auth`),

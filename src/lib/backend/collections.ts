@@ -69,6 +69,12 @@ export type CommonCollectionRuleKey = (typeof COMMON_COLLECTION_RULE_KEYS)[numbe
 export type AuthCollectionRuleKey = (typeof AUTH_COLLECTION_RULE_KEYS)[number];
 export type CollectionRuleKey = (typeof COLLECTION_RULE_KEYS)[number];
 
+/**
+ * Las cinco reglas de acceso comunes de una colección, tal cual las guarda el backend: `null` =
+ * solo superusuarios, `''` = abierta a todo el mundo, otra cadena = una expresión de filtro.
+ */
+export type CollectionAccessRules = Record<CommonCollectionRuleKey, CollectionRule>;
+
 type CommonCollectionRules = Partial<Record<CommonCollectionRuleKey, CollectionRule>>;
 type AuthOnlyCollectionRules = Partial<Record<AuthCollectionRuleKey, CollectionRule>>;
 

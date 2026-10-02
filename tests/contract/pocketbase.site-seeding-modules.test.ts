@@ -289,6 +289,56 @@ describe.skipIf(!AVAILABLE)('módulos de sembrado contra PocketBase real', () =>
 		expect((await admin.collection('messages').getOne(id)).notifyState).toBe('');
 	});
 
+	test('una `messages` que ya existe con la bandeja abierta: el plan lo dice, sin confirmar no se escribe nada y confirmado no se tocan sus reglas', async () => {
+		await seedSiteProject(port);
+		await port.ensureCollections([
+			{
+				name: 'messages',
+				listRule: '',
+				viewRule: '',
+				createRule: '',
+				updateRule: null,
+				deleteRule: null,
+				fields: [
+					{ name: 'name', type: 'text', required: true, max: 200 },
+					{ name: 'email', type: 'email', required: true },
+					{ name: 'message', type: 'text', required: true, max: 5000 }
+				]
+			}
+		]);
+		const editorsRule = '@request.auth.collectionName = "vega_editors"';
+
+		const preview = await previewSiteSeed(port, { modules: [SITE_SEED_CONTACT_MODULE] });
+		if (preview.status !== 'ready') throw new Error('se esperaba un plan');
+		expect(preview.modules.find((item) => item.id === 'contacto')?.ruleDifferences).toEqual([
+			{ collection: 'messages', rule: 'listRule', actual: '', expected: editorsRule },
+			{ collection: 'messages', rule: 'viewRule', actual: '', expected: editorsRule },
+			{ collection: 'messages', rule: 'createRule', actual: '', expected: CONTACT_CREATE_RULE },
+			{ collection: 'messages', rule: 'updateRule', actual: null, expected: editorsRule },
+			{ collection: 'messages', rule: 'deleteRule', actual: null, expected: editorsRule }
+		]);
+
+		await expect(seedSiteProject(port, { modules: [SITE_SEED_CONTACT_MODULE] })).rejects.toThrow(
+			'reglas de acceso distintas'
+		);
+		const untouched = await admin.collections.getOne('messages');
+		expect(untouched.fields.map((field) => field.name)).not.toContain('notifyState');
+
+		await seedSiteProject(port, {
+			modules: [SITE_SEED_CONTACT_MODULE],
+			confirmRuleDifferences: ['contacto']
+		});
+		const adopted = await admin.collections.getOne('messages');
+		expect(adopted.fields.map((field) => field.name)).toContain('notifyState');
+		expect(rules(adopted)).toEqual({
+			listRule: '',
+			viewRule: '',
+			createRule: '',
+			updateRule: null,
+			deleteRule: null
+		});
+	});
+
 	test('otro editor guarda el manifiesto entre el preflight y su escritura: aborta sin pisarlo y repetir converge', async () => {
 		await seedSiteProject(port);
 		const record = (await admin.collection('vega').getFullList())[0]!;
