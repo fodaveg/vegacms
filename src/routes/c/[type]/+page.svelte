@@ -91,6 +91,19 @@
 	 * `.toolbar` en el mockup. `countsRefreshToken` (la pieza de estado que R2 añadió para que las
 	 * chips con recuento supieran que sus cifras habían quedado obsoletas tras un borrado) ya NO
 	 * hace falta: `ActiveFilterChips` no consulta el puerto para contar nada, así que se retira.
+	 *
+	 * **Lote 12, lámina 6 (`06-listado-movil-crear-primero.html`)**: por debajo de 640 px la
+	 * cabecera pinta «Crear» PRIMERO, a todo el ancho que sobra, y agrupa Exportar e Importar en un
+	 * botón «Más» (`ActionMenu`); con una sola secundaria disponible, botón suelto. Por encima de
+	 * 640 px no se toca nada. El ancho se mide con `matchMedia` (`narrow`) y la decisión vive en
+	 * `planHeaderActions` (`$lib/list/header-actions`, puro): se pinta UNA rama según el ancho en
+	 * vez de reordenar con `order` en CSS, para que el orden visual y el de tabulación coincidan.
+	 *
+	 * **Lote 12, lámina 7 (`07-accion-de-fila-en-menu.html`)**: las acciones de fila pasan a un
+	 * menú dentro de `RecordTable` («Duplicar» y «Borrar…»). «Duplicar» (decisión de David) solo
+	 * se ofrece si `canDuplicateRecord` (`$lib/duplicate/records`) lo permite; la copia la hace
+	 * `duplicateRecord` con la regla campo a campo documentada allí, y al terminar se abre la copia
+	 * (mismo desenlace que «Duplicar» dentro del registro) para renombrarla.
 	 */
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -106,6 +119,9 @@
 	import { cycleSort } from '$lib/list/sort';
 	import { computeSpanReorder } from '$lib/list/reorder';
 	import { createListState } from '$lib/list/list-state.svelte';
+	import { planHeaderActions } from '$lib/list/header-actions';
+	import type { ActionMenuItem } from '$lib/list/action-menu';
+	import { canDuplicateRecord, duplicateRecord } from '$lib/duplicate/records';
 	import { listRoute } from '$lib/nav/routes';
 	import { hasFileValues } from '$lib/revisions/restore';
 	import { isEditableTarget } from '$lib/shell/keyboard';
@@ -115,6 +131,7 @@
 	import Pagination from '$lib/list/Pagination.svelte';
 	import ListToolbar from '$lib/list/ListToolbar.svelte';
 	import ActiveFilterChips from '$lib/list/ActiveFilterChips.svelte';
+	import ActionMenu from '$lib/list/ActionMenu.svelte';
 	import DeleteConfirm from '$lib/list/DeleteConfirm.svelte';
 	import ExportDialog from '$lib/transfer/ExportDialog.svelte';
 	import ImportDialog from '$lib/transfer/ImportDialog.svelte';
@@ -324,6 +341,58 @@
 		}
 	}
 
+	// ————— Duplicar desde la fila (Lote 12, lámina 7) —————
+	// `true` mientras un `duplicateRecord` está en vuelo: una segunda petición (doble click en la
+	// entrada, otra fila) se ignora hasta que termine, mismo criterio que `deleting`.
+	let duplicating = $state(false);
+	/** Si el menú de fila ofrece «Duplicar» para este tipo (`canDuplicateRecord`: crear y listar; en
+	 *  páginas, también los permisos sobre su colección de bloques). */
+	const canDuplicate = $derived(
+		contentType !== null && canDuplicateRecord(contentType, ctx.model.types)
+	);
+
+	/**
+	 * «Duplicar» de la fila: clona `record` con `duplicateRecord` (regla campo a campo en su
+	 * cabecera) y abre la copia para renombrarla — el mismo desenlace que «Duplicar» dentro del
+	 * registro (`/c/[type]/[id]`). Si mientras se clonaba el usuario cambió de colección, la
+	 * respuesta vieja no secuestra la ruta (mismo guard que allí). Fallo →
+	 * `ctx.feedback.reportError` (nunca el `status.error` del listado, solo para fallos de CARGA).
+	 */
+	async function requestDuplicate(record: VegaRecord, label: string): Promise<void> {
+		if (!contentType || duplicating || deleting) return;
+		const type = contentType;
+		duplicating = true;
+		try {
+			const created = await duplicateRecord(ctx.port, type, record, ctx.model.types);
+			ctx.feedback.toast(ctx.t('list.duplicate.success', { label }), { kind: 'success' });
+			if (page.params.type !== type.name) return;
+			ctx.nav.toRecord(type.name, created.id);
+		} catch (err) {
+			ctx.feedback.reportError(
+				err instanceof VegaError
+					? err
+					: VegaError.backend(ctx.t('list.duplicate.error', { label }), err)
+			);
+		} finally {
+			duplicating = false;
+		}
+	}
+
+	// ————— Cabecera en estrecho (Lote 12, lámina 6) —————
+	// `narrow` sigue a `matchMedia('(max-width: 640px)')`, el mismo corte en el que `RecordTable`
+	// pasa el estado bajo el título. En SSR o sin `matchMedia` (jsdom) queda en ancho.
+	let narrow = $state(false);
+	$effect(() => {
+		if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+		const query = window.matchMedia('(max-width: 640px)');
+		const sync = (): void => {
+			narrow = query.matches;
+		};
+		sync();
+		query.addEventListener('change', sync);
+		return () => query.removeEventListener('change', sync);
+	});
+
 	// ————— Exportar (`#lote-esquema`, Fase 1) —————
 	// `true` mientras `ExportDialog` está abierto; la única condición que lo monta más abajo
 	// (mismo patrón que `pendingDelete !== null` para `DeleteConfirm`).
@@ -342,6 +411,38 @@
 		contentType !== null &&
 			(contentType.permissions.create || contentType.permissions.update) &&
 			ctx.port.capabilities.explicitRecordId
+	);
+
+	/** Qué pinta la cabecera y cómo (`planHeaderActions`, ver cabecera del fichero): «Exportar» va
+	 *  por `permissions.list` (visible también en tipos `readonly`: exportar lo ya existente no
+	 *  exige poder escribir), «Importar» por `canImport`, «Crear» por `permissions.create`. */
+	const headerPlan = $derived(
+		planHeaderActions({
+			narrow,
+			canCreate: contentType?.permissions.create ?? false,
+			canExport: contentType?.permissions.list ?? false,
+			canImport
+		})
+	);
+
+	/** Entradas del menú «Más» (estrecho, ≥ 2 secundarias): cada una abre el mismo diálogo de hoy;
+	 *  al cerrarlo, el foco vuelve a «Más» (lo restaura el propio diálogo sobre el disparador). */
+	const moreItems = $derived<ActionMenuItem[]>(
+		headerPlan.secondary.map((action) =>
+			action === 'export'
+				? {
+						id: 'export',
+						label: ctx.t('list.export.button'),
+						action: 'export',
+						onSelect: () => (exportOpen = true)
+					}
+				: {
+						id: 'import',
+						label: ctx.t('list.import.button'),
+						action: 'import',
+						onSelect: () => (importOpen = true)
+					}
+		)
 	);
 
 	// Cierra los dos diálogos si `typeParam` cambia con alguno abierto (fix de code-review): este
@@ -483,41 +584,59 @@
 				</span>
 			{/if}
 			<span class="vega-list-header-spacer"></span>
-			<!-- "Exportar" (M2, G4 del mockup; activado en `#lote-esquema` Fase 1, ver cabecera):
-			     gate por `permissions.list`, visible también en tipos `readonly` (a diferencia de
-			     "Nueva" — exportar lo ya existente no exige poder escribir). -->
-			{#if contentType.permissions.list}
-				<button type="button" class="vega-list-export-button" onclick={() => (exportOpen = true)}>
-					{ctx.t('list.export.button')}
-				</button>
-			{/if}
-			<!-- "Importar" (`#lote-esquema`, Fase 2): gate por permiso de ESCRITURA (create/update, ver
-			     `canImport` arriba) + `capabilities.explicitRecordId` (fallo cerrado, §4.3 del
-			     contrato). A diferencia de "Exportar", nunca se ofrece en un tipo `readonly` (el
-			     writable de `permissions` ya lo pliega) — importar ESCRIBE. -->
-			{#if canImport}
-				<button type="button" class="vega-list-import-button" onclick={() => (importOpen = true)}>
-					{ctx.t('list.import.button')}
-				</button>
-			{/if}
-			<!-- `permissions.create` (`#lote-shell`) en vez de `!readonly`: pliega las DOS razones por
-			     las que no se puede crear aquí —vista del backend, o regla de acceso que lo veda— en
-			     la misma comprobación. Ver `resolvePermissions` (`$lib/backend/access`). -->
-			{#if contentType.permissions.create}
-				<button
-					type="button"
-					class="vega-list-new-button"
-					onclick={() => ctx.nav.toNew(contentType.name)}
-				>
-					<Icon id="plus" size={14} />
-					{ctx.t('list.new.button', { label: contentType.labelSingular })}
-					<!-- Hint de atajo oculto VISUALMENTE (mockup `.btn.primary`, sin `<kbd>`): ya iba
-					     `aria-hidden` (decorativo, nunca anunciado a lectores de pantalla), así que
-					     ocultarlo con CSS no quita nada al atajo REAL — el listener de `N` sigue vivo
-					     en el `$effect` de más abajo, independiente de este `<kbd>`. -->
-					<kbd aria-hidden="true">N</kbd>
-				</button>
-			{/if}
+			<!-- Acciones de la cabecera (Lote 12, lámina 6; `headerPlan`, ver cabecera del fichero).
+			     En ANCHO, los tres botones de siempre en su orden: Exportar, Importar, Crear. En
+			     ESTRECHO, «Crear» primero y las secundarias en «Más» (o un botón suelto si solo hay
+			     una). Se pinta UNA rama según el ancho, nunca se reordena con CSS. -->
+			<div
+				class="vega-list-header-actions"
+				class:vega-list-header-actions--narrow={headerPlan.layout === 'narrow'}
+			>
+				{#if headerPlan.layout === 'narrow' && headerPlan.create}
+					{@render createButton()}
+				{/if}
+				{#if headerPlan.secondaryAs === 'buttons'}
+					{#each headerPlan.secondary as action (action)}
+						{#if action === 'export'}
+							<!-- "Exportar" (M2, G4 del mockup; activado en `#lote-esquema` Fase 1): gate por
+							     `permissions.list`, visible también en tipos `readonly` (a diferencia de
+							     "Nueva" — exportar lo ya existente no exige poder escribir). -->
+							<button
+								type="button"
+								class="vega-list-export-button"
+								onclick={() => (exportOpen = true)}
+							>
+								{ctx.t('list.export.button')}
+							</button>
+						{:else}
+							<!-- "Importar" (`#lote-esquema`, Fase 2): gate por permiso de ESCRITURA
+							     (create/update, ver `canImport` arriba) + `capabilities.explicitRecordId`
+							     (fallo cerrado, §4.3 del contrato). A diferencia de "Exportar", nunca se
+							     ofrece en un tipo `readonly` — importar ESCRIBE. -->
+							<button
+								type="button"
+								class="vega-list-import-button"
+								onclick={() => (importOpen = true)}
+							>
+								{ctx.t('list.import.button')}
+							</button>
+						{/if}
+					{/each}
+				{/if}
+				{#if headerPlan.layout === 'wide' && headerPlan.create}
+					{@render createButton()}
+				{/if}
+				{#if headerPlan.secondaryAs === 'menu'}
+					<!-- «Más» (estado 6.1 de la lámina): el disparador y la tarjeta de «Filtrar», con el
+					     menú alineado a la derecha porque es el último botón de la fila. -->
+					<ActionMenu
+						id="vega-list-more-menu"
+						label={ctx.t('list.more.label')}
+						triggerText={ctx.t('list.more.trigger')}
+						items={moreItems}
+					/>
+				{/if}
+			</div>
 		</div>
 
 		<!-- Toolbar (Fase 4d + M6, mockup `.toolbar`): búsqueda + menú "Filtrar" (`ListToolbar`) +
@@ -615,6 +734,7 @@
 						onSort={(field) =>
 							navigateView({ sort: cycleSort(viewState.sort, field, contentType.defaultSort) })}
 						onDeleteRequest={requestDelete}
+						onDuplicateRequest={canDuplicate ? requestDuplicate : undefined}
 						{reorderable}
 						onReorder={handleReorder}
 					/>
@@ -631,6 +751,29 @@
 		</div>
 	</div>
 {/if}
+
+{#snippet createButton()}
+	<!-- `permissions.create` (`#lote-shell`) en vez de `!readonly`: pliega las DOS razones por las
+	     que no se puede crear aquí —vista del backend, o regla de acceso que lo veda— en la misma
+	     comprobación. Ver `resolvePermissions` (`$lib/backend/access`). El rótulo va en un `<span>`
+	     para poder recortarlo con puntos suspensivos en estrecho (estado 6.4 de la lámina: nombre
+	     largo); el nombre accesible sigue siendo el rótulo completo. -->
+	{#if contentType}
+		<button
+			type="button"
+			class="vega-list-new-button"
+			onclick={() => ctx.nav.toNew(contentType.name)}
+		>
+			<Icon id="plus" size={14} />
+			<span>{ctx.t('list.new.button', { label: contentType.labelSingular })}</span>
+			<!-- Hint de atajo oculto VISUALMENTE (mockup `.btn.primary`, sin `<kbd>`): ya iba
+			     `aria-hidden` (decorativo, nunca anunciado a lectores de pantalla), así que ocultarlo
+			     con CSS no quita nada al atajo REAL — el listener de `N` sigue vivo en el `$effect`
+			     de arriba, independiente de este `<kbd>`. -->
+			<kbd aria-hidden="true">N</kbd>
+		</button>
+	{/if}
+{/snippet}
 
 <DeleteConfirm
 	open={pendingDelete !== null}
@@ -688,6 +831,48 @@
 
 	.vega-list-header-spacer {
 		flex: 1;
+	}
+
+	/* Acciones de la cabecera agrupadas (lámina 6): en ancho son los tres botones de hoy, en el mismo
+	   orden y con la misma separación (el `gap` de `.vega-list-header`). */
+	.vega-list-header-actions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	/* Estrecho (≤ 640 px, decidido por `matchMedia`, no por `@media`: se pinta UNA rama): el grupo
+	   ocupa su propia línea, sin partir; «Crear» ocupa lo que sobra y recorta su rótulo antes que
+	   empujar a «Más» fuera. */
+	.vega-list-header-actions--narrow {
+		flex-basis: 100%;
+		flex-wrap: nowrap;
+		gap: 0.6rem;
+		min-width: 0;
+		max-width: 100%;
+	}
+
+	.vega-list-header-actions--narrow .vega-list-new-button {
+		flex: 1;
+		min-width: 0;
+		justify-content: center;
+	}
+
+	.vega-list-header-actions--narrow .vega-list-new-button span {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	/* Objetivos táctiles de 44 px (lámina 6: «Crear», «Exportar» e «Importar» medían 31 px también
+	   en móvil). Con ratón no cambia nada. */
+	@media (pointer: coarse) {
+		.vega-list-new-button,
+		.vega-list-export-button,
+		.vega-list-import-button {
+			min-height: 44px;
+		}
 	}
 
 	/* Toolbar (Fase 4d + M6, mockup `.toolbar`): búsqueda + menú "Filtrar" + chips de filtro
