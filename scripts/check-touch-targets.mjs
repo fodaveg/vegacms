@@ -78,7 +78,11 @@ export const COMPONENT_FILES = [
 	'src/lib/list/ActionMenu.svelte',
 	'src/routes/c/[type]/+page.svelte',
 	// Barra del editor (atrás, Editor visual, Vista previa, Duplicar, Guardar) + resto del formulario.
-	'src/lib/form/RecordForm.svelte'
+	'src/lib/form/RecordForm.svelte',
+	// Revisión antes de publicar (lote 13): las acciones de cada aviso, «Ver N más», «Volver a
+	// comprobar» y «Reintentar», en la tarjeta del aside y dentro del popover del editor visual.
+	'src/lib/publish-review/ReviewGroups.svelte',
+	'src/lib/publish-review/ReviewCard.svelte'
 ];
 
 /** El número que firma la checklist de accesibilidad del editor visual. */

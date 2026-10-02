@@ -246,6 +246,21 @@
 	 *   sigue siendo global — esta pieza no la toca este encargo). Un tipo sin `page` bilingüe (el
 	 *   caso de siempre) nunca pasa por ninguna de estas ramas: `pagePathLocale` es `null` y todo
 	 *   degrada BYTE A BYTE al comportamiento de antes.
+	 * - **Revisión antes de publicar** (lote 13, lámina `design/mockups/2026-10-02-revision-antes-
+	 *   de-publicar`): `createReviewState` (`$lib/publish-review/review-state.svelte.ts`) sobre los
+	 *   valores EN PANTALLA (`current` y los bloques de `previewBlocks`, guardados o no) — se
+	 *   recalcula en vivo; páginas, redirecciones y medios se releen al abrir, tras cada guardado
+	 *   (`savedCount` y `blocksSavedCount`) y con «Volver a comprobar». Solo con `statusField` y
+	 *   alguna comprobación que aplique (`review.enabled`): entonces `ReviewCard` es la PRIMERA
+	 *   tarjeta del aside y bajo el campo Estado va una línea («La revisión tiene N avisos. Ver la
+	 *   revisión») por el hueco `below` de `FieldRow`, con las piezas de la línea de «Programar…».
+	 *   Cada aviso lleva una acción (`goToReviewTarget`): al campo (cambia la pestaña de idioma si
+	 *   hace falta y enfoca, como el foco al primer error) o al bloque (`RecordBlocks#expand` lo
+	 *   despliega y se enfoca su campo por `resolveFocusTarget` con el ámbito del bloque); una
+	 *   imagen sin alt abre su ficha de Medios encima del formulario (`ReviewMediaDialog`), y al
+	 *   guardar el aviso desaparece sin releer nada. Un `RecordForm` que se monta con una petición
+	 *   de foco pendiente del editor visual (`focus-request.ts`) la cumple al arrancar. Sin permiso
+	 *   de editar (`locked`), los avisos salen sin acciones.
 	 */
 	import { beforeNavigate } from '$app/navigation';
 	import { onMount, tick, untrack } from 'svelte';
@@ -304,6 +319,11 @@
 	import { applyRedirectOps, loadRelevantRedirects, redirectsAvailability } from './redirect-sync';
 	import { loadLatest } from './latest-load';
 	import { RequestSequencer } from '$lib/list/list-load';
+	import { takeFieldFocus } from './focus-request';
+	import type { ReviewFinding } from '$lib/publish-review/publish-review';
+	import { createReviewState } from '$lib/publish-review/review-state.svelte';
+	import ReviewCard from '$lib/publish-review/ReviewCard.svelte';
+	import ReviewMediaDialog from '$lib/publish-review/ReviewMediaDialog.svelte';
 	import {
 		DEFAULT_REDIRECT_CHOICE,
 		hasRedirectConflict,
@@ -674,9 +694,95 @@
 		onDelete !== undefined && type.permissions.delete && model.mode === 'edit'
 	);
 
+	// ————— Revisión antes de publicar (lote 13, ver cabecera) —————
+
+	/** Guardados de bloque con éxito (`RecordBlocks#onSaved`): releen lo que la revisión lee del
+	 *  servidor, igual que `savedCount` para el registro. */
+	let blocksSavedCount = $state(0);
+	let recordBlocksRef = $state<{ expand: (id: string) => void } | undefined>(undefined);
+	let reviewCardRef = $state<{ focus: () => void } | undefined>(undefined);
+	/** Ficha de Medios abierta desde «Describir la imagen…», o `null`. */
+	let reviewMediaId = $state<string | null>(null);
+
+	const review = createReviewState({
+		ctx,
+		// Captura deliberada (como `recordIdentity`): un tipo distinto remonta la ruta entera.
+		type: untrack(() => type),
+		getRecordId: () => model.recordId ?? '',
+		// `current` lleva `File` pendientes en los campos de fichero: para la revisión cuentan como
+		// «hay valor» (igual que un `FileRef`), así que viajan tal cual.
+		getRecord: () => ({
+			id: model.recordId ?? '',
+			type: type.name,
+			values: current as VegaRecord['values']
+		}),
+		getBlocks: () => {
+			const config = type.blocks;
+			if (!config) return [];
+			return previewBlocks.map((block) => ({
+				id: block.id,
+				type: config.collection,
+				values: block.fields as VegaRecord['values']
+			}));
+		},
+		getReloadToken: () => savedCount + blocksSavedCount
+	});
+
+	/** Qué dice la línea bajo Estado (lámina 1.10), o `null` si no se pinta (sin avisos, o cargando
+	 *  sin avisos todavía): el recuento, o «no se ha podido completar» con cero avisos y algo sin
+	 *  comprobar o la carga fallida. */
+	const reviewLine = $derived.by((): [string, string, string] | null => {
+		if (!review.enabled) return null;
+		const count = review.result.findings.length;
+		if (count > 0) {
+			const marker = '\u0000';
+			const [before, after = ''] = ctx
+				.t(count === 1 ? 'review.statusLine.one' : 'review.statusLine.many', { count: marker })
+				.split(marker);
+			return [before, String(count), after];
+		}
+		if (
+			review.phase === 'error' ||
+			(review.phase === 'ready' && review.result.skipped.length > 0)
+		) {
+			return [ctx.t('review.statusLine.incomplete'), '', ''];
+		}
+		return null;
+	});
+
+	/** «Ver la revisión»: la tarjeta, desplazada a la vista y con el foco. */
+	function openReview(): void {
+		reviewCardRef?.focus();
+	}
+
+	/**
+	 * La acción de un aviso: al campo del registro (cambia la pestaña de idioma si hace falta y
+	 * enfoca, por `focusField`), o al bloque — `RecordBlocks#expand` lo despliega y el foco va a su
+	 * campo (`resolveFocusTarget` con el ámbito de ids del bloque, `field-scope.ts`). El enlace NO
+	 * se selecciona dentro del texto con formato (decisión 5 de la lámina: el foco en el campo basta
+	 * y el mensaje ya dice la ruta).
+	 */
+	async function goToReviewTarget(finding: ReviewFinding): Promise<void> {
+		const target = finding.target;
+		if (target.kind === 'field') {
+			await focusField(target.field);
+			return;
+		}
+		recordBlocksRef?.expand(target.blockId);
+		await tick();
+		const element = resolveFocusTarget(document, target.field, target.blockId);
+		element?.focus();
+		element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+	}
+
+	/** «Describir la imagen…»: la ficha de Medios encima del formulario (ver `ReviewMediaDialog`). */
+	function describeReviewImage(finding: ReviewFinding): void {
+		reviewMediaId = finding.mediaId ?? null;
+	}
+
 	/** La columna del aside existe si hay ALGO que poner en ella (ver cabecera). */
 	const showAside = $derived(
-		asideSections.length > 0 || showMeta || canDelete || Boolean(type.social)
+		asideSections.length > 0 || showMeta || canDelete || Boolean(type.social) || review.enabled
 	);
 
 	/** Texto ACTUAL del campo título (no el del baseline): "Regenerar" deriva de lo que el usuario
@@ -1060,8 +1166,15 @@
 	async function focusFirstErrorField(errorsView: FieldErrorsView): Promise<void> {
 		const name = firstErrorFieldName(type.fields, errorsView);
 		if (name === null) return;
-		const errorLocale = localeForField(type, name);
-		if (errorLocale !== null) activeLocale = errorLocale;
+		await focusField(name);
+	}
+
+	/** Foco en el campo `name` del registro: cambia antes la pestaña de idioma si el campo es de
+	 *  otro idioma (`localeForField`), espera al DOM y resuelve el elemento con `resolveFocusTarget`.
+	 *  Lo comparten el foco al primer error y «ir al campo» de la revisión (lote 13). */
+	async function focusField(name: string): Promise<void> {
+		const fieldLocale = localeForField(type, name);
+		if (fieldLocale !== null) activeLocale = fieldLocale;
 		await tick();
 		const target = resolveFocusTarget(document, name);
 		target?.focus();
@@ -1400,6 +1513,10 @@
 		}
 		window.addEventListener('beforeunload', handleBeforeUnload);
 		window.addEventListener('keydown', handleKeydown);
+		// Una petición de foco del editor visual («Abrir Descripción en el formulario», lote 13):
+		// solo si es para ESTE registro; `takeFieldFocus` la consume en cualquier caso.
+		const requested = model.recordId === null ? null : takeFieldFocus(type.name, model.recordId);
+		if (requested !== null) void focusField(requested);
 		return () => {
 			window.removeEventListener('beforeunload', handleBeforeUnload);
 			window.removeEventListener('keydown', handleKeydown);
@@ -1585,8 +1702,10 @@
 		</button>
 	{/snippet}
 
-	<!-- Bajo el campo Estado: la línea de «programada» (2.6) o el aviso de «no se publicó» (2.8). -->
-	{#snippet scheduleBelow()}
+	<!-- Bajo el campo Estado: la línea de «programada» (2.6) o el aviso de «no se publicó» (2.8), y
+	     debajo la línea de la revisión antes de publicar (lote 13, lámina 1.10) si tiene algo que
+	     decir: con avisos o con algo «no comprobado»; sin avisos no se pinta. -->
+	{#snippet statusBelow()}
 		{#if scheduleControl.kind === 'scheduled'}
 			{@const parts = whenParts(
 				scheduleControl.unconfirmed
@@ -1629,6 +1748,16 @@
 				</div>
 			</div>
 		{/if}
+		{#if reviewLine}
+			<p class="vega-schedule-summary" data-review-line>
+				<span
+					>{reviewLine[0]}{#if reviewLine[1]}<b>{reviewLine[1]}</b>{/if}{reviewLine[2]}</span
+				>
+				<button type="button" class="vega-schedule-link" onclick={openReview}>
+					{ctx.t('review.statusLine.open')}
+				</button>
+			</p>
+		{/if}
 	{/snippet}
 
 	{#snippet fieldRow(field: ResolvedField, stacked: boolean)}
@@ -1654,8 +1783,10 @@
 							? scheduleAction
 							: undefined}
 				below={field.name === type.statusField &&
-				(scheduleControl.kind === 'scheduled' || scheduleControl.kind === 'overdue')
-					? scheduleBelow
+				(scheduleControl.kind === 'scheduled' ||
+					scheduleControl.kind === 'overdue' ||
+					reviewLine !== null)
+					? statusBelow
 					: undefined}
 				notice={field.name === pagePathFieldName
 					? (pathNotUniqueNotice ?? undefined)
@@ -1790,11 +1921,13 @@
 			     le pasa el tipo/id del padre y escucha `onDirtyChange` (decisión 2 de su cabecera). -->
 			{#if type.blocks}
 				<RecordBlocks
+					bind:this={recordBlocksRef}
 					parentType={type}
 					parentId={model.recordId}
 					onDirtyChange={(value) => (blocksDirty = value)}
 					onDraftChange={(records) => (previewBlocks = records)}
 					onBusyChange={(value) => (blocksBusy = value)}
+					onSaved={() => (blocksSavedCount += 1)}
 					disabled={duplicating}
 				/>
 			{/if}
@@ -1802,6 +1935,17 @@
 
 		{#if showAside}
 			<aside class="vega-editor-aside">
+				{#if review.enabled}
+					<!-- Revisión antes de publicar (lote 13, decisión 1): la PRIMERA tarjeta del aside,
+					     encima de los campos de SEO que señala la mitad de sus avisos. -->
+					<ReviewCard
+						bind:this={reviewCardRef}
+						{review}
+						canAct={!locked}
+						onGo={(finding) => void goToReviewTarget(finding)}
+						onDescribe={describeReviewImage}
+					/>
+				{/if}
 				{#each asideSections as section (section.group ?? '')}
 					<section class="vega-fsection vega-fsection--aside">
 						{#if section.group}
@@ -1908,6 +2052,17 @@
 	hasFiles={hasFileValues(type.schema.fields, model.baseline)}
 	onConfirm={confirmDelete}
 	onCancel={() => (deleteOpen = false)}
+/>
+
+<!-- «Describir la imagen…» de la revisión (lote 13): la ficha de Medios de siempre, encima del
+     formulario y fuera del `<form>` como los demás diálogos. Guardar sustituye la ficha en la
+     revisión (el aviso desaparece); borrar relee, porque el bloque ya apunta a nada. -->
+<ReviewMediaDialog
+	mediaId={reviewMediaId}
+	onClose={() => (reviewMediaId = null)}
+	onSaved={(item) => review.updateMedia(item)}
+	onDeleted={() => void review.reload()}
+	fallbackFocusEl={headingEl}
 />
 
 <!-- Lote "publicación" fase B (ver cabecera, "Vista previa"): panel FIJO fuera del `<form>`, mismo

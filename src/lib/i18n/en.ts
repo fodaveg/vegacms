@@ -339,6 +339,17 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.status.confirm.body':
 		'The page will be published with what was last saved. Those changes will not go out until you save them.',
 	'editor.visual.status.confirm.publish': 'Publish anyway',
+	'editor.visual.review.title.one': 'Before publishing: 1 warning',
+	'editor.visual.review.title.many': 'Before publishing: {count} warnings',
+	'editor.visual.review.title.mixed': 'Before publishing',
+	'editor.visual.review.title.incomplete': 'Before publishing: incomplete review',
+	'editor.visual.review.body':
+		'No warning prevents publishing. You can publish anyway or fix them first.',
+	'editor.visual.review.checking.title': 'Reviewing the page…',
+	'editor.visual.review.checking.body':
+		'It takes a moment. You can wait or publish without the review.',
+	'editor.visual.review.skipWait': 'Publish without waiting',
+	'editor.visual.review.error': 'The page could not be reviewed',
 	'editor.visual.status.success': '“{name}” is now “{label}”.',
 	'editor.visual.status.success.rebuild': 'It will show on the site after the next publish.',
 	'editor.visual.frameTitle': 'The site page, inside the visual editor',
@@ -1855,7 +1866,40 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'review.link.redirectLoop': 'The link to {href} enters a redirect loop.',
 	'review.link.draftTarget':
 		'The link to {href} leads to a page that is still a draft and will not be visible on the site.',
-	'review.media.altMissing': 'The image «{file}» has no alt text. Add it in Media.',
+	'review.media.altMissing': 'The image «{file}» has no alt text.',
 	'review.media.altMissingInline':
-		'The image «{file}» in the text declares no alt text: describe it, or leave it empty if it is decorative.'
+		'The image «{file}» in the text declares no alt text: describe it, or leave it empty if it is decorative.',
+	// The «Review» card of the form and the popover of the visual editor (batch 13).
+	'review.title': 'Review',
+	'review.count.one': '1 warning',
+	'review.count.many': '{count} warnings',
+	'review.count.none': 'No warnings',
+	'review.count.incomplete': 'Incomplete',
+	'review.checking': 'Checking…',
+	'review.group.seo': 'SEO',
+	'review.group.links': 'Links',
+	'review.group.media': 'Images',
+	'review.group.skipped': 'Not checked',
+	'review.skipped.links':
+		'Vega could not find out which pages and redirects the site has, so links were not checked.',
+	'review.skipped.media':
+		'The media library could not be read, so the alt text of the images was not checked.',
+	'review.recheck': 'Check again',
+	'review.loadError': 'The page blocks could not be read: links and images were not checked.',
+	'review.notBlocking': 'No warning prevents publishing.',
+	'review.more': 'Show {count} more',
+	'review.less': 'Show less',
+	'review.go.field': '{label}',
+	'review.go.field.a11y': 'Go to the {label} field',
+	'review.go.block': 'Block {position} · {block} › {label}',
+	'review.go.block.a11y': 'Go to {label}, in block {position} ({block})',
+	'review.go.form': 'Open {label} in the form',
+	'review.go.visualBlock': 'Block {position} · {block}',
+	'review.go.visualBlock.a11y': 'Select block {position} ({block}) in the tree',
+	'review.where.block': 'Block {position} · {block}',
+	'review.describeImage': 'Describe the image…',
+	'review.statusLine.one': 'The review has {count} warning.',
+	'review.statusLine.many': 'The review has {count} warnings.',
+	'review.statusLine.incomplete': 'The review could not be completed.',
+	'review.statusLine.open': 'See the review'
 };

@@ -362,6 +362,20 @@ export const es = {
 	'editor.visual.status.confirm.body':
 		'La página se publicará con lo último guardado. Esos cambios no saldrán hasta que los guardes.',
 	'editor.visual.status.confirm.publish': 'Publicar igualmente',
+	// Revisión antes de publicar en el MISMO popover (lote 13, lámina 2.1-2.4): «Marcar como
+	// publicada» pregunta si hay avisos o algo sin comprobar; con bloques sin guardar y avisos sale
+	// UNA confirmación (`.title.mixed`), nunca dos seguidas.
+	'editor.visual.review.title.one': 'Antes de publicar: 1 aviso',
+	'editor.visual.review.title.many': 'Antes de publicar: {count} avisos',
+	'editor.visual.review.title.mixed': 'Antes de publicar',
+	'editor.visual.review.title.incomplete': 'Antes de publicar: revisión incompleta',
+	'editor.visual.review.body':
+		'Ningún aviso impide publicar. Puedes publicar igualmente o arreglarlos antes.',
+	'editor.visual.review.checking.title': 'Revisando la página…',
+	'editor.visual.review.checking.body':
+		'Tarda un momento. Puedes esperar o publicar sin la revisión.',
+	'editor.visual.review.skipWait': 'Publicar sin esperar',
+	'editor.visual.review.error': 'No se ha podido revisar la página',
 	'editor.visual.status.success': '«{name}» pasa a «{label}».',
 	'editor.visual.status.success.rebuild': 'Se verá en el sitio tras la próxima publicación.',
 	'editor.visual.frameTitle': 'La página del sitio, dentro del editor visual',
@@ -1935,7 +1949,50 @@ export const es = {
 	'review.link.redirectLoop': 'El enlace a {href} entra en un bucle de redirecciones.',
 	'review.link.draftTarget':
 		'El enlace a {href} lleva a una página que sigue en borrador y no se verá en el sitio.',
-	'review.media.altMissing': 'La imagen «{file}» no tiene texto alternativo. Añádelo en Medios.',
+	// Sin «Añádelo en Medios.» desde el lote 13: la acción «Describir la imagen…» del aviso lo hace.
+	'review.media.altMissing': 'La imagen «{file}» no tiene texto alternativo.',
 	'review.media.altMissingInline':
-		'La imagen «{file}» del texto no declara texto alternativo: descríbela, o déjalo vacío si es decorativa.'
+		'La imagen «{file}» del texto no declara texto alternativo: descríbela, o déjalo vacío si es decorativa.',
+	// La tarjeta «Revisión» del formulario y el popover del editor visual (lote 13, lámina
+	// `design/mockups/2026-10-02-revision-antes-de-publicar`): `ReviewCard.svelte`,
+	// `ReviewGroups.svelte` y `VisualPublishControl.svelte`.
+	'review.title': 'Revisión',
+	'review.count.one': '1 aviso',
+	'review.count.many': '{count} avisos',
+	'review.count.none': 'Sin avisos',
+	// Cero avisos pero algo sin comprobar: nunca «Sin avisos» en verde (lámina 1.5).
+	'review.count.incomplete': 'Incompleta',
+	'review.checking': 'Comprobando…',
+	'review.group.seo': 'SEO',
+	'review.group.links': 'Enlaces',
+	'review.group.media': 'Imágenes',
+	'review.group.skipped': 'No comprobado',
+	'review.skipped.links':
+		'Vega no ha podido saber qué páginas y redirecciones tiene el sitio, así que los enlaces no se han comprobado.',
+	'review.skipped.media':
+		'No se ha podido leer la biblioteca de medios, así que el texto alternativo de las imágenes no se ha comprobado.',
+	'review.recheck': 'Volver a comprobar',
+	'review.loadError':
+		'No se han podido leer los bloques de la página: los enlaces y las imágenes no se han comprobado.',
+	'review.notBlocking': 'Ningún aviso impide publicar.',
+	'review.more': 'Ver {count} más',
+	'review.less': 'Ver menos',
+	// Acciones de un aviso. `.a11y` es el nombre accesible del botón; el texto visible es el corto.
+	'review.go.field': '{label}',
+	'review.go.field.a11y': 'Ir al campo {label}',
+	'review.go.block': 'Bloque {position} · {block} › {label}',
+	'review.go.block.a11y': 'Ir a {label}, en el bloque {position} ({block})',
+	// En el editor visual: un campo del registro abre el formulario; un bloque se elige en el árbol.
+	'review.go.form': 'Abrir {label} en el formulario',
+	'review.go.visualBlock': 'Bloque {position} · {block}',
+	'review.go.visualBlock.a11y': 'Elegir el bloque {position} ({block}) en el árbol',
+	// Dónde está el aviso cuando no es un enlace (la imagen sin alt, o sin permiso de editar).
+	'review.where.block': 'Bloque {position} · {block}',
+	'review.describeImage': 'Describir la imagen…',
+	// La línea bajo el campo Estado (lámina 1.10). Con `{count}` también en singular, para poder
+	// ponerlo en negrita partiendo la frase como `editor.schedule.summary`.
+	'review.statusLine.one': 'La revisión tiene {count} aviso.',
+	'review.statusLine.many': 'La revisión tiene {count} avisos.',
+	'review.statusLine.incomplete': 'La revisión no se ha podido completar.',
+	'review.statusLine.open': 'Ver la revisión'
 };
