@@ -158,8 +158,10 @@ test.describe('borrar definitivamente y vaciar papelera', () => {
 		await page.getByRole('link', { name: 'Entradas', exact: false }).click();
 		await page.waitForURL('**/c/posts');
 		const row = page.locator('tbody tr', { hasText: 'Borrador en curso' });
+		// «Borrar…» vive en el menú de acciones de la fila (Lote 12, lámina 7).
 		await row.hover();
-		await row.getByRole('button', { name: 'Borrar "Borrador en curso"' }).click();
+		await row.getByRole('button', { name: 'Acciones de «Borrador en curso»' }).click();
+		await row.getByRole('menuitem', { name: 'Borrar…' }).click();
 		await page
 			.getByRole('alertdialog')
 			.getByRole('button', { name: 'Borrar', exact: true })
@@ -189,7 +191,8 @@ test.describe('borrar definitivamente y vaciar papelera', () => {
 		for (const title of ['Bienvenido a Vega', 'Borrador en curso']) {
 			const row = page.locator('tbody tr', { hasText: title });
 			await row.hover();
-			await row.getByRole('button', { name: `Borrar "${title}"` }).click();
+			await row.getByRole('button', { name: `Acciones de «${title}»` }).click();
+			await row.getByRole('menuitem', { name: 'Borrar…' }).click();
 			await page
 				.getByRole('alertdialog')
 				.getByRole('button', { name: 'Borrar', exact: true })

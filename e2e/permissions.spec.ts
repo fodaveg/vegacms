@@ -36,14 +36,20 @@ test('una colección sin permiso de creación no ofrece "Nueva" ni en la cabecer
 	await expect(page).toHaveURL(/\/c\/avisos$/);
 });
 
-test('sin permiso de borrado, la fila no revela la acción "Borrar"', async ({ page }) => {
+test('sin permiso de borrado ni de crear, la fila no tiene menú de acciones ni "Borrar"', async ({
+	page
+}) => {
 	await loginAsDemo(page);
 	await page.goto('/c/avisos');
 
 	const row = page.getByRole('row').filter({ hasText: 'Aviso que no se puede editar' });
 	await expect(row).toBeVisible();
 	await row.hover();
+	// `avisos` no deja borrar ni crear (tampoco duplicar): sin nada que ofrecer, el menú de fila
+	// ni se pinta (lámina 7: «sin botón ni hueco»), así que tampoco hay ningún «Borrar».
+	await expect(row.getByRole('button', { name: /^Acciones de/ })).toHaveCount(0);
 	await expect(row.getByRole('button', { name: /Borrar/ })).toHaveCount(0);
+	await expect(row.locator('.vega-cell-menu')).toHaveCount(0);
 });
 
 test('el editor de un registro sin permiso de actualización es de solo lectura y lo explica', async ({

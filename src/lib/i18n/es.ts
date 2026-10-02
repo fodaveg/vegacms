@@ -907,6 +907,22 @@ export const es = {
 	'list.delete.deleting': 'Borrando…',
 	'list.delete.success': '"{label}" se ha borrado.',
 
+	// ————— Menú de acciones de fila (Lote 12, lámina 7) —————
+	// La cabecera de la celda no tiene texto visible; el nombre del disparador lleva el título de la
+	// fila. `hint` es la frase oculta (`aria-describedby` del título) que hace público el atajo →.
+	'list.rowMenu.columnHeader': 'Acciones',
+	'list.rowMenu.trigger': 'Acciones de «{label}»',
+	'list.rowMenu.hint': 'Flecha derecha: acciones de la fila',
+	'list.rowMenu.duplicate': 'Duplicar',
+	// Con puntos suspensivos: abre la confirmación de siempre (`DeleteConfirm`), no borra aún.
+	'list.rowMenu.delete': 'Borrar…',
+	'list.duplicate.success': '"{label}" se ha duplicado.',
+	'list.duplicate.error': 'No se pudo duplicar "{label}".',
+
+	// ————— «Más» de la cabecera del listado en móvil (Lote 12, lámina 6) —————
+	'list.more.trigger': 'Más',
+	'list.more.label': 'Más acciones del listado',
+
 	// ————— Reorder manual (orderField) —————
 	'list.reorder.columnHeader': 'Orden',
 	'list.reorder.handleLabel': 'Arrastra para reordenar "{label}"',
