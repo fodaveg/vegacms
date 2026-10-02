@@ -1747,5 +1747,24 @@ export const es = {
 		'No se puede borrar: otro contenido depende de este elemento. Quita antes esa referencia.',
 	'errors.backendCode.badRequest':
 		'La petición no es válida. Recarga la página e inténtalo de nuevo.',
-	'errors.backendCode.serverError': 'El servidor ha fallado. Inténtalo de nuevo en unos minutos.'
+	'errors.backendCode.serverError': 'El servidor ha fallado. Inténtalo de nuevo en unos minutos.',
+
+	// ————— Revisión antes de publicar (`$lib/publish-review`, solo avisos) —————
+	'review.seo.descriptionEmpty':
+		'La descripción para buscadores está vacía: se usará la descripción general del sitio.',
+	'review.seo.descriptionLong':
+		'La descripción tiene {length} caracteres y los buscadores suelen cortarla a partir de {max}.',
+	'review.seo.socialImageMissing':
+		'No hay imagen para redes: al compartir la página saldrá sin imagen.',
+	'review.seo.noindex':
+		'Está marcada como «No indexar»: los buscadores no la mostrarán y no saldrá en el mapa del sitio.',
+	'review.link.notFound': 'El enlace a {href} no lleva a ninguna página ni redirección del sitio.',
+	'review.link.redirectDeadEnd':
+		'El enlace a {href} pasa por una redirección que acaba en {to}, y esa ruta no existe.',
+	'review.link.redirectLoop': 'El enlace a {href} entra en un bucle de redirecciones.',
+	'review.link.draftTarget':
+		'El enlace a {href} lleva a una página que sigue en borrador y no se verá en el sitio.',
+	'review.media.altMissing': 'La imagen «{file}» no tiene texto alternativo. Añádelo en Medios.',
+	'review.media.altMissingInline':
+		'La imagen «{file}» del texto no declara texto alternativo: descríbela, o déjalo vacío si es decorativa.'
 };

@@ -1678,5 +1678,23 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'errors.backendCode.recordInUse':
 		'It cannot be deleted: other content depends on this item. Remove that reference first.',
 	'errors.backendCode.badRequest': 'The request is not valid. Reload the page and try again.',
-	'errors.backendCode.serverError': 'The server failed. Try again in a few minutes.'
+	'errors.backendCode.serverError': 'The server failed. Try again in a few minutes.',
+
+	// ————— Review before publishing (`$lib/publish-review`, warnings only) —————
+	'review.seo.descriptionEmpty':
+		'The search description is empty: the general site description will be used.',
+	'review.seo.descriptionLong':
+		'The description is {length} characters long and search engines usually cut it after {max}.',
+	'review.seo.socialImageMissing': 'There is no social image: the page will be shared without one.',
+	'review.seo.noindex':
+		'It is marked «Do not index»: search engines will not show it and it will not appear in the sitemap.',
+	'review.link.notFound': 'The link to {href} does not lead to any page or redirect on the site.',
+	'review.link.redirectDeadEnd':
+		'The link to {href} goes through a redirect that ends at {to}, and that path does not exist.',
+	'review.link.redirectLoop': 'The link to {href} enters a redirect loop.',
+	'review.link.draftTarget':
+		'The link to {href} leads to a page that is still a draft and will not be visible on the site.',
+	'review.media.altMissing': 'The image «{file}» has no alt text. Add it in Media.',
+	'review.media.altMissingInline':
+		'The image «{file}» in the text declares no alt text: describe it, or leave it empty if it is decorative.'
 };
