@@ -1203,7 +1203,13 @@
 		/** `false`: un fallo que no es de campo ni de conflicto NO va al feedback global, solo vuelve
 		 *  en el resultado (el diálogo de «Programar…» lo enseña dentro). Por defecto `true`. */
 		reportFailures?: boolean;
+		/** `true`: el foco al primer campo con error NO se pide dentro de `save()`; queda en
+		 *  `deferredFocus` para que quien llama lo pida cuando le convenga (ver `submitSchedule`). */
+		deferFocus?: boolean;
 	}
+
+	/** Foco al primer campo con error que `save({ deferFocus: true })` dejó pendiente. */
+	let deferredFocus: (() => Promise<void>) | null = null;
 
 	/**
 	 * El único camino de escritura del formulario: «Guardar», ⌘S y «Programar…» pasan por aquí.
@@ -1223,7 +1229,9 @@
 		clientErrors = clientView;
 		if (Object.keys(clientView.byField).length > 0 || clientView.record) {
 			keepOverrides();
-			await focusFirstErrorField(clientView); // F5-g, L-P5.2: foco al primer campo con error
+			// F5-g, L-P5.2: foco al primer campo con error
+			if (options.deferFocus) deferredFocus = () => focusFirstErrorField(clientView);
+			else await focusFirstErrorField(clientView);
 			return { kind: 'invalid' };
 		}
 
@@ -1282,7 +1290,11 @@
 		} finally {
 			saving = false;
 		}
-		if (errorsToFocus) await focusFirstErrorField(errorsToFocus);
+		if (errorsToFocus) {
+			const view = errorsToFocus;
+			if (options.deferFocus) deferredFocus = () => focusFirstErrorField(view);
+			else await focusFirstErrorField(view);
+		}
 		return outcome;
 	}
 
@@ -1313,8 +1325,18 @@
 		const outcome = await save({
 			overrides: { [statusField]: 'draft', [publishAtField]: iso },
 			note: () => ctx.t('editor.schedule.savedNote', { when }),
-			reportFailures: false
+			reportFailures: false,
+			deferFocus: true
 		});
+		// Con el diálogo aún abierto, enfocar el campo con error no sirve: al cerrarse, `AdminDialog`
+		// devuelve el foco a «Programar…». Se cierra primero, se espera al DOM y se enfoca después.
+		const pending = deferredFocus;
+		deferredFocus = null;
+		if (pending) {
+			scheduleOpen = false;
+			await tick();
+			await pending();
+		}
 		if (outcome.kind === 'failed') return outcome.error.message;
 		if (outcome.kind === 'busy') return ctx.t('editor.saving');
 		return null;
@@ -1356,6 +1378,7 @@
 		function handleKeydown(event: KeyboardEvent): void {
 			if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 's') return;
 			event.preventDefault(); // siempre: evita el diálogo nativo "Guardar página" del navegador
+			if (scheduleOpen) return; // el diálogo de programar tiene su propio «Programar»
 			if (formDisabled || !dirty) return; // nada que guardar, o formulario inerte (readonly/saving)
 			formEl?.requestSubmit();
 		}
