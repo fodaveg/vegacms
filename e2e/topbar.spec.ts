@@ -2,11 +2,11 @@
  * Suite R1 del rediseño C2 ("cabina con aire"): wordmark con punto de acento, buscador global
  * centrado (atajo `/`, visual/sin backend todavía) y avatar con la inicial de la sesión.
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 
 test('el wordmark del sitio pinta el isotipo de Vega junto al nombre', async ({ page }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	const site = page.locator('.vega-topbar-site');
 	await expect(site).toBeVisible();
@@ -20,7 +20,7 @@ test('el atajo "/" enfoca el buscador global salvo dentro de un campo editable',
 	page
 }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	// Desde `#lote-shell` la caja es un `combobox` (patrón APG: tiene panel de resultados con
 	// `aria-expanded`/`aria-activedescendant`), ya no un `searchbox` a secas.
@@ -38,7 +38,7 @@ test('el atajo "/" enfoca el buscador global salvo dentro de un campo editable',
 
 test('el avatar muestra la inicial de la sesión de demo', async ({ page }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	// Credenciales de demo: demo@vega.dev (ver `fixtures.ts`).
 	await expect(page.getByRole('img', { name: 'Sesión de demo@vega.dev' })).toHaveText('D');
@@ -49,7 +49,7 @@ test.describe('chip de usuario → menú "Ajustes" (#l12-ux, item 3)', () => {
 		page
 	}) => {
 		await loginAsDemo(page);
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 
 		const trigger = page.getByRole('button', { name: 'Menú de cuenta' });
 		const menu = page.getByRole('menu', { name: 'Menú de cuenta' });
@@ -67,7 +67,7 @@ test.describe('chip de usuario → menú "Ajustes" (#l12-ux, item 3)', () => {
 
 	test('Escape cierra el menú y devuelve el foco al chip', async ({ page }) => {
 		await loginAsDemo(page);
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 
 		const trigger = page.getByRole('button', { name: 'Menú de cuenta' });
 		await trigger.click();
@@ -80,7 +80,7 @@ test.describe('chip de usuario → menú "Ajustes" (#l12-ux, item 3)', () => {
 
 	test('un click fuera del menú lo cierra', async ({ page }) => {
 		await loginAsDemo(page);
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 
 		const trigger = page.getByRole('button', { name: 'Menú de cuenta' });
 		await trigger.click();
@@ -92,7 +92,7 @@ test.describe('chip de usuario → menú "Ajustes" (#l12-ux, item 3)', () => {
 
 	test('tabular fuera del menú lo cierra (el foco no queda colgado)', async ({ page }) => {
 		await loginAsDemo(page);
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 
 		const trigger = page.getByRole('button', { name: 'Menú de cuenta' });
 		await trigger.click();
@@ -113,7 +113,7 @@ test.describe('chip de usuario → menú "Ajustes" (#l12-ux, item 3)', () => {
 		page
 	}) => {
 		await loginAsDemo(page);
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 
 		await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
 	});

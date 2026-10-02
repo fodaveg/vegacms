@@ -16,13 +16,13 @@
  * realm JS nuevo). El drag de Playwright usa `locator.dragTo()` (arrastre HTML5 nativo real, no
  * solo eventos de ratón) sobre el asa (`aria-label` `list.reorder.handleLabel`) y la fila destino.
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 
 test('navega a la vista fusionada desde la sidebar y mezcla filas de las dos colecciones', async ({
 	page
 }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	const sidebar = page.getByRole('navigation', { name: 'Navegación principal' });
 	await sidebar.getByRole('link', { name: 'Catálogo' }).click();
@@ -46,7 +46,7 @@ test('navega a la vista fusionada desde la sidebar y mezcla filas de las dos col
 
 test('un enlace de fila abre el editor real del registro correcto', async ({ page }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	await page.goto('/v/catalogo');
 	await expect(page.getByRole('heading', { name: 'Catálogo', level: 1 })).toBeVisible();
@@ -66,7 +66,7 @@ test('un id de vista desconocido resuelve a not-found en contexto, sin redirigir
 	page
 }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	await page.goto('/v/no-existe');
 
@@ -75,15 +75,16 @@ test('un id de vista desconocido resuelve a not-found en contexto, sin redirigir
 	await expect(state).toHaveAttribute('data-route-state', 'not-found');
 	await expect(page).toHaveURL(/\/v\/no-existe$/);
 
+	// El índice es la portada «Inicio» (lote 12): ya no salta al primer elemento del menú.
 	await state.getByRole('button', { name: 'Volver al índice' }).click();
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 });
 
 test('arrastrar una fila reordena el conjunto mezclado cruzado y persiste en ambas colecciones', async ({
 	page
 }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	const sidebar = page.getByRole('navigation', { name: 'Navegación principal' });
 	await sidebar.getByRole('link', { name: 'Catálogo' }).click();
@@ -127,7 +128,7 @@ test('el asa admite teclado (ArrowDown) con el mismo resultado que el arrastre',
 	page
 }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	await page.goto('/v/catalogo');
 	await expect(page.getByRole('heading', { name: 'Catálogo', level: 1 })).toBeVisible();
@@ -153,7 +154,7 @@ test('el arrastre pinta feedback visual: fila agarrada + indicador de destino (#
 	page
 }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	await page.goto('/v/catalogo');
 	await expect(page.getByRole('heading', { name: 'Catálogo', level: 1 })).toBeVisible();

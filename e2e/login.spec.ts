@@ -2,7 +2,7 @@
  * Suite B.8 (§7 del contrato P3): login ok / credenciales malas / sin red, contra el adaptador
  * `memory` sembrado (`e2e/fixtures.ts`).
  */
-import { DEMO_EMAIL, DEMO_PASSWORD, expect, test } from './fixtures';
+import { DEMO_EMAIL, DEMO_PASSWORD, expect, test, waitForHome } from './fixtures';
 
 test.describe('login', () => {
 	test('credenciales correctas entra y muestra el shell autenticado', async ({ page }) => {
@@ -12,11 +12,15 @@ test.describe('login', () => {
 		await page.getByRole('button', { name: 'Entrar' }).click();
 
 		await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
-		// Semilla de demo enriquecida (Fase 2b, §3.3): el índice resuelve al primer `NavItem` del
-		// primer grupo -- aquí el singleton "Información del sitio" del grupo anónimo, sin
-		// registros seed -- y navega directo a su creación.
-		await page.waitForURL('**/c/site_info/new');
-		await expect(page.getByRole('link', { name: 'Entradas' })).toBeVisible();
+		// Portada (lote 12): el login aterriza en `/` y se queda ahí, en «Inicio». Antes saltaba
+		// al primer elemento del menú (el singleton «Información del sitio», `/c/site_info/new`).
+		await waitForHome(page);
+		// Acotado al menú: la tarjeta de pendientes «Entradas en borrador» también es un enlace.
+		await expect(
+			page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', {
+				name: 'Entradas'
+			})
+		).toBeVisible();
 	});
 
 	test('credenciales incorrectas muestra mensaje neutro y se queda en /login', async ({ page }) => {

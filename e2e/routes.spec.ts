@@ -11,17 +11,17 @@
  * Añadir semilla nueva aquí arriesgaba los 25 e2e existentes para un caso ya certificado; se anota
  * en vez de duplicar infraestructura de seed.
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 
 test.describe('singleton por deep-link (§7.B.12)', () => {
 	test('navegar por URL directa a /c/site_info resuelve a /c/site_info/new (0 registros)', async ({
 		page
 	}) => {
 		await loginAsDemo(page);
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 
 		// Deep-link directo al listado del singleton: nunca debe pintarse un listado, siempre
-		// resuelve (§3.3) al mismo destino que la resolución del índice/sidebar.
+		// resuelve (§3.3) al mismo destino que el clic en el item del menú lateral.
 		await page.goto('/c/site_info');
 		await page.waitForURL('**/c/site_info/new');
 		await expect(page.getByRole('link', { name: 'Información del sitio' })).toHaveAttribute(
@@ -35,7 +35,7 @@ test.describe('singleton por deep-link (§7.B.12)', () => {
 });
 
 test.describe('índice por recarga directa (regresión P3-L9)', () => {
-	test('un hard-load directo a / con sesión válida resuelve el índice, no queda colgado en "Cargando…"', async ({
+	test('un hard-load directo a / con sesión válida pinta Inicio, no queda colgado en "Cargando…"', async ({
 		page
 	}) => {
 		// Regresión del bug encontrado en 3a: el índice usaba `afterNavigate`, cuyo único evento en
@@ -43,12 +43,17 @@ test.describe('índice por recarga directa (regresión P3-L9)', () => {
 		// sesión+modelo del layout) → `routerReady` nunca se ponía y la redirección quedaba colgada.
 		// Arreglado con `onMount`. Este test lo ejercita con `page.goto('/')` (carga de documento
 		// completa), el escenario que ningún e2e cubría.
+		//
+		// Desde la portada (lote 12) `/` ya no redirige: se queda en «Inicio», y lo que podría
+		// quedarse colgado es su carga de «Lo último que editaste» (también arranca en `onMount`).
+		// Sin nada editado en este navegador, tiene que acabar en su estado vacío.
 		await loginAsDemo(page);
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 
 		await page.goto('/');
-		// El índice resuelve el singleton del primer NavItem, igual que tras el login.
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
+		await expect(page.locator('[data-home-recent="empty"]')).toBeVisible();
+		await expect(page.locator('[data-home-recent="loading"]')).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
 	});
 });
@@ -58,7 +63,7 @@ test.describe('not-found (§7.B.14)', () => {
 		page
 	}) => {
 		await loginAsDemo(page);
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 
 		await page.goto('/c/no-existe');
 
@@ -71,16 +76,16 @@ test.describe('not-found (§7.B.14)', () => {
 		await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
 		await expect(page.getByRole('link', { name: 'Entradas' })).toBeVisible();
 
-		// La acción "Volver al índice" navega fuera del estado not-found.
+		// La acción "Volver al índice" navega fuera del estado not-found, a la portada «Inicio».
 		await state.getByRole('button', { name: 'Volver al índice' }).click();
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 	});
 
 	test('la colección reservada "vega" también resuelve a not-found por URL directa', async ({
 		page
 	}) => {
 		await loginAsDemo(page);
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 
 		// `vega` existe en el esquema pero está SIEMPRE oculta (P2-L7): un deep-link a ella no debe
 		// tratarse como un tipo válido.
@@ -95,7 +100,7 @@ test.describe('not-found (§7.B.14)', () => {
 test.describe('forbidden', () => {
 	test('/c/pages/new muestra forbidden en contexto (pages es readonly)', async ({ page }) => {
 		await loginAsDemo(page);
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 
 		await page.goto('/c/pages/new');
 

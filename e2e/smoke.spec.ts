@@ -34,11 +34,15 @@ const SMOKE_SEARCH = 'Humo E2E';
 
 test.describe('smoke: login → crear → editar → guardar → persiste', () => {
 	test('el flujo completo de contenido funciona de punta a punta', async ({ page }) => {
-		// 1) Login demo: deja el shell autenticado (aterriza en el singleton `site_info`, §3.3).
+		// 1) Login demo: deja el shell autenticado (aterriza en la portada «Inicio», lote 12).
 		await loginAsDemo(page);
 
-		// 2) Navegar a un tipo desde la sidebar (link real, R5 del rediseño).
-		await page.getByRole('link', { name: 'Entradas' }).click();
+		// 2) Navegar a un tipo desde la sidebar (link real, R5 del rediseño). Acotado al menú: en
+		// «Inicio» la tarjeta de pendientes «Entradas en borrador» también es un enlace.
+		await page
+			.getByRole('navigation', { name: 'Navegación principal' })
+			.getByRole('link', { name: 'Entradas' })
+			.click();
 		await page.waitForURL('**/c/posts');
 
 		// 3) Crear: CTA primaria del listado (R2, "Nuevo: Entrada") → formulario de creación.

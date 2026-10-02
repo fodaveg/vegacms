@@ -6,7 +6,7 @@
  * para la colección `vega`. Reemplaza el viejo test de placeholder honesto (pre-P6), que vivía en
  * `routes.spec.ts`.
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 
 async function goToMedia(page: import('@playwright/test').Page): Promise<void> {
 	await page.getByRole('link', { name: 'Medios', exact: false }).click();
@@ -16,7 +16,7 @@ async function goToMedia(page: import('@playwright/test').Page): Promise<void> {
 test.describe('/media bootstrap de "vega_media" (§9 del contrato P6, Fase 6a)', () => {
 	test('sin "vega_media": estado creatable → confirmar → biblioteca vacía', async ({ page }) => {
 		await loginAsDemo(page);
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 		await goToMedia(page);
 
 		// Estado 'creatable': el marco todavía no es la biblioteca, solo el gate.
@@ -52,7 +52,7 @@ test.describe('/media bootstrap de "vega_media" (§9 del contrato P6, Fase 6a)',
 
 	test('cancelar la confirmación no crea nada: sigue en creatable', async ({ page }) => {
 		await loginAsDemo(page);
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 		await goToMedia(page);
 
 		await page.getByRole('button', { name: 'Crear colección de medios' }).click();
@@ -74,7 +74,7 @@ test.describe('/media bootstrap de "vega_media" (§9 del contrato P6, Fase 6a)',
 test.describe('/media grid + detalle (contrato P6, Fase 6b)', () => {
 	async function goToMediaWithSeed(page: import('@playwright/test').Page): Promise<void> {
 		await loginAsDemo(page, { seedMedia: true });
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 		await goToMedia(page);
 	}
 
@@ -200,7 +200,7 @@ test.describe('/media grid + detalle (contrato P6, Fase 6b)', () => {
 test.describe('/media subida drag&drop (contrato P6, Fase 6c)', () => {
 	async function goToMediaWithSeed(page: import('@playwright/test').Page): Promise<void> {
 		await loginAsDemo(page, { seedMedia: true });
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 		await goToMedia(page);
 	}
 
@@ -333,7 +333,7 @@ test.describe('/media subida drag&drop (contrato P6, Fase 6c)', () => {
 		// Sin `seedMedia`: bootstrap fresco (estado 'creatable') → confirmar crea la colección REAL
 		// (con las constraints de `VEGA_MEDIA_COLLECTION`) y aterriza en 'present', vacía de verdad.
 		await loginAsDemo(page);
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 		await goToMedia(page);
 		await page.getByRole('button', { name: 'Crear colección de medios' }).click();
 		await page
@@ -372,7 +372,7 @@ test.describe('/media subida drag&drop (contrato P6, Fase 6c)', () => {
 test.describe('/media borrado de un asset (contrato P6, Fase 6d)', () => {
 	async function goToMediaWithSeed(page: import('@playwright/test').Page): Promise<void> {
 		await loginAsDemo(page, { seedMedia: true });
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 		await goToMedia(page);
 	}
 
@@ -565,7 +565,7 @@ test.describe('/media borrado de un asset (contrato P6, Fase 6d)', () => {
 test.describe('widget file: picker de biblioteca (contrato P6, Fase P6·6e)', () => {
 	async function loginWithMediaSeed(page: import('@playwright/test').Page): Promise<void> {
 		await loginAsDemo(page, { seedMedia: true });
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 	}
 
 	test('single (coverImage, accept image/*): filtra el pdf; Insertar añade una COPIA con FileRef propio que sobrevive a borrar el original', async ({
@@ -724,8 +724,12 @@ test.describe('widget file: picker de biblioteca (contrato P6, Fase P6·6e)', ()
 
 		// Llega a `/c/posts/post_1` por clics REALES (SPA), para que `page.goBack()` de más abajo
 		// tenga una entrada de historial de verdad a la que volver — nunca `page.goto()` a mitad de
-		// test (sería una carga DURA, ver nota de cabecera de `e2e/form.spec.ts`).
-		await page.getByRole('link', { name: 'Entradas' }).click();
+		// test (sería una carga DURA, ver nota de cabecera de `e2e/form.spec.ts`). Acotado al menú:
+		// en «Inicio» la tarjeta de pendientes «Entradas en borrador» también es un enlace.
+		await page
+			.getByRole('navigation', { name: 'Navegación principal' })
+			.getByRole('link', { name: 'Entradas' })
+			.click();
 		await page.waitForURL('**/c/posts');
 		await page.getByRole('link', { name: 'Bienvenido a Vega' }).click();
 		await page.waitForURL('**/c/posts/post_1');

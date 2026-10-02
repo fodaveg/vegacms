@@ -14,17 +14,19 @@
  * ahí es una transición SPA. Cada test sigue esperando a que el shell esté visible ANTES de
  * inyectar el flag forzado, por higiene frente a cualquier navegación en vuelo.
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, openSiteInfoFromSidebar, test, waitForHome } from './fixtures';
 
 /** Ver `feedback.spec.ts`: mismo motivo para tipar aquí en vez de importar `src/app.d.ts`. */
 interface VegaTestWindow extends Window {
 	__VEGA_FORCE_EXPIRE__?: boolean;
 }
 
+/** Desde la portada (lote 12) el login se queda en «Inicio»: el singleton se abre con un clic,
+ *  para que cada test pueda RE-clicarlo ya activo (ver cabecera). */
 async function loginAndSettle(page: import('@playwright/test').Page): Promise<void> {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
-	await expect(page.getByRole('link', { name: 'Información del sitio' })).toBeVisible();
+	await waitForHome(page);
+	await openSiteInfoFromSidebar(page);
 }
 
 async function forceExpireOnNextOperation(page: import('@playwright/test').Page): Promise<void> {

@@ -15,13 +15,13 @@
  * aviso está abierto, y el nombre accesible sin `exact` casa por subcadena.
  */
 import type { Page } from '@playwright/test';
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 
 const NOTICE_TITLE = '«Bienvenido a Vega» ha cambiado mientras lo editabas';
 
 async function openPost(page: Page): Promise<void> {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 	await page.goto('/c/posts/post_1');
 	await expect(page.getByRole('textbox', { name: 'Título', exact: true })).toHaveValue(
 		'Bienvenido a Vega'

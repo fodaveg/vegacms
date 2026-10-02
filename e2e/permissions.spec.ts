@@ -11,7 +11,7 @@
  * Eso es del backend (y de `tests/contract/`), no de la UI — esto no es control de acceso, es no
  * mentirle al editor.
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 
 test('una colección sin permiso de creación no ofrece "Nueva" ni en la cabecera ni por atajo', async ({
 	page
@@ -77,7 +77,7 @@ test('una colección que no se puede listar no está en la navegación, y su rut
 	page
 }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	const sidebar = page.getByRole('navigation', { name: 'Navegación principal' });
 	await expect(sidebar.getByRole('link', { name: 'Entradas' })).toBeVisible();

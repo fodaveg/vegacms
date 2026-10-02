@@ -2,17 +2,25 @@
  * Suite B.9 (§7 del contrato P3): `restoreSession` tras recarga (token válido mantiene sesión;
  * token caducado → /login) y logout, contra el adaptador `memory` sembrado (`e2e/fixtures.ts`).
  *
- * Con la semilla enriquecida (Fase 2b), el índice ya no se queda en `/`: resuelve el singleton
- * del grupo anónimo y navega a `/c/site_info/new` (ver `login.spec.ts`). Cada test espera ese
- * destino ANTES de recargar/tocar `localStorage`/hacer logout, para no correr contra esa
- * navegación todavía en vuelo (`e2e/fixtures.ts` ya emula el fallback SPA para que no sea una
- * navegación real fuera de la app, pero sigue siendo una transición asíncrona).
+ * Desde la portada (lote 12) el login aterriza en `/` y pinta «Inicio» (ver `login.spec.ts`).
+ * Cada test espera esa portada ANTES de recargar/tocar `localStorage`/hacer logout, para no correr
+ * contra la carga de sesión y modelo todavía en vuelo.
  */
-import { DEMO_SESSION_MARKER_KEY, expect, loginAsDemo, test } from './fixtures';
+import {
+	DEMO_SESSION_MARKER_KEY,
+	expect,
+	loginAsDemo,
+	openSiteInfoFromSidebar,
+	test,
+	waitForHome
+} from './fixtures';
 
 test('recarga con sesión válida mantiene autenticado', async ({ page }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
+	// Recarga en una ruta de dentro, no en la portada: así también se comprueba que la recarga
+	// conserva la ruta y no devuelve a `/`.
+	await openSiteInfoFromSidebar(page);
 
 	await page.reload();
 
@@ -22,7 +30,7 @@ test('recarga con sesión válida mantiene autenticado', async ({ page }) => {
 
 test('recarga con el marcador de sesión caducado vuelve a /login', async ({ page }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	// El adaptador `memory` no persiste nada por diseño; la envoltura de demo de `backend.ts`
 	// simula la caducidad manipulando su propio marcador (ver cabecera de ese módulo).
@@ -41,7 +49,7 @@ test('recarga con el marcador de sesión caducado vuelve a /login', async ({ pag
 
 test('logout vuelve a /login', async ({ page }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	await page.getByRole('button', { name: 'Cerrar sesión' }).click();
 

@@ -27,11 +27,11 @@
  * quedaba cubierto por las suites de orden por cabecera y `e2e/density.spec.ts` — sin test nuevo
  * ahí, ver el resumen de la fase.
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 
 async function loginAndSettle(page: import('@playwright/test').Page): Promise<void> {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 }
 
 /** Rango de registros visibles del "gridfoot" (match 1:1 con el mockup, "1–20 de 24"): ya no hay
@@ -169,7 +169,12 @@ test.describe('error de transporte en el listado (L-P4.4, Audit H2)', () => {
 				window as unknown as { __VEGA_FORCE_NETWORK_ERROR__?: boolean }
 			).__VEGA_FORCE_NETWORK_ERROR__ = true;
 		});
-		await page.getByRole('link', { name: 'Entradas' }).click();
+		// Acotado al menú: en «Inicio» la tarjeta de pendientes «Entradas en borrador» también es
+		// un enlace.
+		await page
+			.getByRole('navigation', { name: 'Navegación principal' })
+			.getByRole('link', { name: 'Entradas' })
+			.click();
 		await page.waitForURL('**/c/posts');
 
 		const state = page.locator('[data-list-state="error"]');

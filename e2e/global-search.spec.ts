@@ -7,7 +7,7 @@
  * (`src/lib/shell/global-search.svelte.test.ts`): no son reproducibles de forma determinista
  * contra la semilla, que siempre responde.
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 
 /** La caja es un `combobox` (patrón APG), no un `searchbox`: tiene panel de resultados. */
 function searchBox(page: Parameters<typeof loginAsDemo>[0]) {
@@ -18,7 +18,7 @@ test('teclear encuentra registros de la colección y abrirlos navega a su edici�
 	page
 }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	const box = searchBox(page);
 	await box.fill('borrador');
@@ -41,7 +41,7 @@ test('↓ marca el resultado activo y Enter lo abre, sin sacar el foco de la caj
 	page
 }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	const box = searchBox(page);
 	await box.fill('Borrador en curso');
@@ -60,7 +60,7 @@ test('↓ marca el resultado activo y Enter lo abre, sin sacar el foco de la caj
 
 test('Escape cierra el panel; un segundo Escape vacía la caja', async ({ page }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	const box = searchBox(page);
 	await box.fill('borrador');
@@ -76,7 +76,7 @@ test('Escape cierra el panel; un segundo Escape vacía la caja', async ({ page }
 
 test('un término sin coincidencias lo dice, en vez de un panel vacío', async ({ page }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	await searchBox(page).fill('zzzqqqxxx');
 
@@ -85,7 +85,7 @@ test('un término sin coincidencias lo dice, en vez de un panel vacío', async (
 
 test('por debajo del mínimo no se busca: se pide más texto', async ({ page }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	await searchBox(page).fill('b');
 
@@ -97,7 +97,7 @@ test('los resultados se agrupan por colección y el grupo lleva al listado con l
 	page
 }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	// "Entrada" casa con las 30 entradas de relleno de la semilla (`EXTRA_POST_RECORDS`): más
 	// aciertos que los que caben en el panel ⇒ aparece el "ver todos" del grupo.
@@ -119,7 +119,7 @@ test('el buscador global no ofrece resultados de una colección que no se puede 
 	page
 }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	// "Contenido reservado" es el registro de `privado`: existe en la semilla, pero esa colección
 	// no está en la navegación y por tanto no se busca.

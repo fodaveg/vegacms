@@ -2,15 +2,15 @@
  * Suite B (§7 del contrato P3, §2.3/§3.4, Fase 2c): toasts reales y banner global de transporte
  * a MITAD de sesión.
  *
- * `/c/site_info/new` (el destino de la resolución de singleton del índice, ver `demo-seed.ts`) es
- * ruta real desde la Fase 3a (`c/[type]/new/+page.svelte`): la navegación hasta ahí es una
+ * `/c/site_info/new` (el destino de la resolución de singleton de «Información del sitio», ver
+ * `demo-seed.ts`) es ruta real desde la Fase 3a (`c/[type]/new/+page.svelte`): la navegación hasta ahí es una
  * transición SPA normal. (Antes de esa fase era un *hard reload* de documento, al no existir
  * todavía el fichero de ruta — ver `e2e/fixtures.ts`.) Cada test sigue esperando a que un elemento
  * del shell esté visible ANTES de inyectar ningún flag por `page.evaluate`, por higiene general
  * frente a cualquier navegación todavía en vuelo (ya no imprescindible para esta ruta concreta,
  * pero inofensivo y consistente con el resto de la suite).
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, openSiteInfoFromSidebar, test, waitForHome } from './fixtures';
 
 /** Ganchos de demo/e2e de `src/lib/session/backend.ts` y `src/routes/+layout.svelte` — Playwright
  *  corre en un runtime Node aparte de Vite y no resuelve `src/app.d.ts`, así que se tipan aquí. */
@@ -23,11 +23,15 @@ interface VegaTestWindow extends Window {
 	) => void;
 }
 
-/** Aterriza en `/c/site_info/new` y espera a que el shell (ya recargado) esté estable. */
+/**
+ * Aterriza en `/c/site_info/new` y espera a que el shell esté estable. Desde la portada (lote 12)
+ * el login se queda en «Inicio», así que se llega con un clic en el menú: los tests de banner
+ * RE-clican ese item ya activo y comprueban que la ruta no cambió.
+ */
 async function loginAndSettle(page: import('@playwright/test').Page): Promise<void> {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
-	await expect(page.getByRole('link', { name: 'Información del sitio' })).toBeVisible();
+	await waitForHome(page);
+	await openSiteInfoFromSidebar(page);
 }
 
 test.describe('toasts', () => {

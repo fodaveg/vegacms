@@ -9,7 +9,7 @@
  * que `/settings` NO llegue nunca con `model.warnings` vacío en esta suite: útil para probar
  * badge+lista sin manipular el manifiesto a mano.
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 
 /** Ver `relogin.spec.ts`/`feedback.spec.ts`: mismo motivo para tipar aquí en vez de importar
  *  `src/app.d.ts` (Playwright corre en un runtime Node aparte que no resuelve esos tipos). */
@@ -19,7 +19,7 @@ interface VegaTestWindow extends Window {
 
 async function loginAndSettle(page: import('@playwright/test').Page): Promise<void> {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 	await expect(page.getByRole('link', { name: 'Información del sitio' })).toBeVisible();
 }
 

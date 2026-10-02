@@ -21,7 +21,7 @@
  * nombre de fichero tal cual.
  */
 import type { Locator } from '@playwright/test';
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 
 // 1×1 PNG transparente real (mismo fixture que `e2e/media.spec.ts`): un buffer arbitrario con
 // `mimeType: 'image/png'` no basta si algo llegara a decodificarlo de verdad.
@@ -30,7 +30,7 @@ const TINY_PNG_BASE64 =
 
 async function loginWithMedia(page: import('@playwright/test').Page): Promise<void> {
 	await loginAsDemo(page, { seedMedia: true });
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 }
 
 async function goToMedia(page: import('@playwright/test').Page): Promise<void> {

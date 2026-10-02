@@ -10,13 +10,13 @@
  * `loginAsDemo(page, { editorMode: true })`, que apaga `capabilities.administration` y quita la
  * sección del puerto (`withEditorCapabilities`).
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 
 const SIDEBAR = { name: 'Navegación principal' } as const;
 
 async function goToEditors(page: import('@playwright/test').Page): Promise<void> {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 	await page.getByRole('navigation', SIDEBAR).getByRole('link', { name: 'Editores' }).click();
 	await page.waitForURL('**/editores');
 	await expect(page.getByRole('heading', { name: 'Editores', level: 1 })).toBeVisible();
@@ -24,7 +24,7 @@ async function goToEditors(page: import('@playwright/test').Page): Promise<void>
 
 async function goToBackups(page: import('@playwright/test').Page): Promise<void> {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 	await page.getByRole('navigation', SIDEBAR).getByRole('link', { name: 'Copias' }).click();
 	await page.waitForURL('**/copias');
 	await expect(page.getByRole('heading', { name: 'Copias de seguridad', level: 1 })).toBeVisible();
@@ -198,7 +198,7 @@ test.describe('gate de editor (sin capabilities.administration)', () => {
 		page
 	}) => {
 		await loginAsDemo(page, { editorMode: true });
-		await page.waitForURL('**/c/site_info/new');
+		await waitForHome(page);
 
 		const sidebar = page.getByRole('navigation', SIDEBAR);
 		await expect(sidebar.getByRole('link', { name: 'Papelera' })).toBeVisible();
