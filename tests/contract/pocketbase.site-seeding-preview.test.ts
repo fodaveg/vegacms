@@ -9,6 +9,7 @@ import {
 	type SiteSeedResult
 } from '$lib/backend/site-seeding';
 import {
+	handEditedManifest,
 	seedLikePrevious0ace139,
 	seedLikePrevious1bda988
 } from '$lib/backend/site-seeding-previous.fixture';
@@ -89,6 +90,15 @@ describe.skipIf(!AVAILABLE)('previewSiteSeed contra PocketBase real', () => {
 
 		const result = await seedSiteProject(port);
 		expect(fromPlan(preview.plan)).toEqual(visibleOnly(result));
+		// El desglose por módulo anuncia las mismas entradas de manifiesto que luego se añaden. (Al
+		// CREAR el manifiesto el resultado no las lista: va entero en `createdRecords`.)
+		if (preview.plan.manifest === 'upgrade') {
+			expect(
+				Object.fromEntries(preview.modules.map((module) => [module.id, module.manifestEntries]))
+			).toEqual(result.manifestEntries);
+		} else {
+			expect(result.manifestEntries).toBeUndefined();
+		}
 		return preview.plan;
 	}
 
@@ -140,7 +150,21 @@ describe.skipIf(!AVAILABLE)('previewSiteSeed contra PocketBase real', () => {
 		expect(plan.constrainedFields).toEqual({ redirects: ['from'] });
 	});
 
-	test('un manifiesto editado a mano: el preflight enseña la MISMA divergencia que aborta el sembrado', async () => {
+	test('un manifiesto editado a mano y válido: el plan anuncia las entradas que el sembrado añade', async () => {
+		await seedLikePrevious0ace139(port);
+		const manifest = (await admin.collection('vega').getFullList())[0]!;
+		await admin.collection('vega').update(manifest.id, { manifest: handEditedManifest() });
+
+		const plan = await expectPlanMatchesSeed();
+
+		expect(plan.manifest).toBe('upgrade');
+		expect(await previewSiteSeed(port)).toMatchObject({
+			status: 'ready',
+			plan: { upToDate: true, manifest: 'keep' }
+		});
+	});
+
+	test('un manifiesto que no valida ni tras la fusión: el preflight enseña la MISMA divergencia que aborta el sembrado', async () => {
 		await seedSiteProject(port);
 		const manifest = (await admin.collection('vega').getFullList())[0]!;
 		await admin.collection('vega').update(manifest.id, { manifest: { editado: 'a mano' } });

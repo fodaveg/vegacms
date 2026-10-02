@@ -4,10 +4,14 @@ import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import { VegaError, type BackendPort } from '$lib/backend';
 import { createMemoryBackend, type MemoryBackendPort } from '$lib/backend/adapters/memory';
 import { seedSiteProject } from '$lib/backend/site-seeding';
+import { SITE_SEED_BLOG_MODULE } from '$lib/backend/site-seeding-blog';
+import { SITE_SEED_CONTACT_MODULE } from '$lib/backend/site-seeding-contact';
 import {
+	handEditedManifest,
 	seedLikePrevious0ace139,
 	seedLikePrevious1bda988
 } from '$lib/backend/site-seeding-previous.fixture';
+import type { JsonValue } from '$lib/backend/types';
 import { ensureLocaleLoaded, t } from '$lib/i18n';
 import SiteBaseCard from './SiteBaseCard.svelte';
 
@@ -63,6 +67,23 @@ async function click(el: HTMLElement): Promise<void> {
 
 function dialog(target: HTMLElement): HTMLElement | null {
 	return target.querySelector('[role="dialog"]');
+}
+
+/** Los títulos de las filas de un grupo del plan, por el rótulo exacto del grupo. */
+function groupTitles(scope: HTMLElement, heading: string): string[] {
+	const title = Array.from(scope.querySelectorAll('h3')).find(
+		(item) => item.textContent?.trim() === heading
+	);
+	if (!title) throw new Error(`no hay grupo «${heading}»`);
+	return Array.from(title.parentElement!.querySelectorAll('li > b')).map(
+		(item) => item.textContent ?? ''
+	);
+}
+
+function moduleRow(target: HTMLElement, id: string): HTMLElement {
+	const row = target.querySelector<HTMLElement>(`[data-site-module="${id}"]`);
+	if (!row) throw new Error(`no hay fila del módulo «${id}»`);
+	return row;
 }
 
 describe('SiteBaseCard', () => {
@@ -239,7 +260,7 @@ describe('SiteBaseCard', () => {
 		expect((await port.listContentTypes()).some((type) => type.name === 'pages')).toBe(false);
 	});
 
-	test('D2: el plan de actualización separa lo que se añade, se crea y se sustituye, y lo que ya está al día', async () => {
+	test('D2: el plan de actualización separa lo que se crea, lo que se añade y las entradas del modelo de contenido, una a una', async () => {
 		const port = await authedMemory();
 		await seedLikePrevious1bda988(port);
 		mounted = mountCard(port);
@@ -249,8 +270,71 @@ describe('SiteBaseCard', () => {
 		const open = dialog(mounted.target)!;
 		expect(open.textContent).toContain('Se crea');
 		expect(open.textContent).toContain('Se añade');
-		expect(open.textContent).toContain('Se sustituye');
 		expect(open.textContent).toContain('Publicar el');
+		// El modelo de contenido ya no se sustituye: se le añaden entradas, y se nombran.
+		expect(open.textContent).not.toMatch(/Se sustituye|Nadie lo había editado/);
+		expect(groupTitles(open, 'Se añade al modelo de contenido')).toEqual([
+			'Opción «publishAtField» de Páginas',
+			'Opción «fieldGroups» de Páginas',
+			'Campo «Publicar el» de Páginas',
+			'Campo «Descripción» de Páginas',
+			'Campo «Imagen para redes» de Páginas',
+			'Campo «No indexar» de Páginas',
+			'Colección «Redirecciones»'
+		]);
+		expect(open.textContent).toContain('collections.pages.fields.publishAt');
+		expect(open.textContent).toContain(
+			'Se añaden las entradas que faltan; lo que ya tiene no se toca.'
+		);
+		expect(open.textContent).toContain('márcala como oculta ("hidden": true) en vez de borrarla');
+		expect(open.textContent).not.toContain('No se añade');
+	});
+
+	test('D2: una entrada borrada a propósito sale en la lista (va a volver), y lo que no se puede añadir, en «No se añade»', async () => {
+		const port = await authedMemory();
+		await seedLikePrevious0ace139(port);
+		const record = (await port.list('vega', { perPage: 1 })).items[0]!;
+		const edited = handEditedManifest() as {
+			collections: { pages: { fieldGroups: unknown } };
+			blockTypes: { hero: { fields: Array<{ name: string }> } };
+		};
+		edited.collections.pages.fieldGroups = ['Meta'];
+		edited.blockTypes.hero.fields = edited.blockTypes.hero.fields.filter(
+			(field) => field.name !== 'eyebrow'
+		);
+		await port.update('vega', record.id, { manifest: edited as unknown as JsonValue });
+		mounted = mountCard(port);
+		await settle();
+
+		await click(button(mounted.target, 'Actualizar el sitio'));
+
+		const open = dialog(mounted.target)!;
+		// `collections.redirects` la borró quien editó el manifiesto: el plan dice que vuelve.
+		expect(groupTitles(open, 'Se añade al modelo de contenido')).toEqual([
+			'Opción «publishAtField» de Páginas',
+			'Campo «Publicar el» de Páginas',
+			'Colección «Redirecciones»'
+		]);
+		expect(groupTitles(open, 'No se añade')).toEqual([
+			'Grupo de campos «SEO» de Páginas',
+			'Campo «eyebrow» del bloque «hero»'
+		]);
+		expect(open.textContent).toContain('La colección ya tiene sus propios grupos de campos.');
+		expect(open.textContent).toContain('El tipo de bloque ya existe y se conserva entero.');
+		expect(open.textContent).toContain('blockTypes.hero.fields.eyebrow');
+
+		await click(button(open, 'Actualizar el sitio'));
+		await until(() => dialog(mounted!.target) === null);
+		await settle();
+
+		const section = mounted.target.querySelector('section')!;
+		expect(section.dataset.siteState).toBe('current');
+		expect(section.querySelector('[data-site-skipped]')!.textContent).toBe(
+			'No se ha podido añadir al modelo de contenido: Grupo de campos «SEO» de Páginas y Campo «eyebrow» del bloque «hero». Lo que ya había se ha conservado tal cual.'
+		);
+		const saved = (await port.list('vega', { perPage: 1 })).items[0]!.values
+			.manifest as typeof edited;
+		expect(saved.collections.pages.fieldGroups).toEqual(['Meta']);
 	});
 
 	test('D2 puro: sin colecciones ausentes el diálogo es «Actualizar el sitio» con el resto al día', async () => {
@@ -265,7 +349,8 @@ describe('SiteBaseCard', () => {
 		expect(open.querySelector('h2')!.textContent).toBe('Actualizar el sitio');
 		expect(open.textContent).toContain('Esto es lo que cambia');
 		expect(open.textContent).toContain('Se añade');
-		expect(open.textContent).toContain('Se sustituye');
+		expect(open.textContent).toContain('Se añade al modelo de contenido');
+		expect(open.textContent).not.toContain('Se sustituye');
 		expect(open.textContent).toContain('ya está al día');
 		expect(open.textContent).not.toContain('Se crea');
 	});
@@ -424,6 +509,286 @@ describe('SiteBaseCard', () => {
 			);
 			const text = await failWith(bare, es, 'Preparar el sitio', 'Preparar el sitio');
 			expect(text).toBe('TEXTO DE RESPALDO');
+		});
+	});
+
+	describe('módulos', () => {
+		async function seededPort(): Promise<MemoryBackendPort> {
+			const port = await authedMemory();
+			await seedSiteProject(port);
+			return port;
+		}
+
+		function writes(port: MemoryBackendPort) {
+			return [
+				vi.spyOn(port, 'ensureCollections'),
+				vi.spyOn(port, 'addCollectionFields'),
+				vi.spyOn(port, 'create'),
+				vi.spyOn(port, 'update')
+			];
+		}
+
+		test('M1 no añadido: cada módulo con su estado, su descripción y un «Añadir» que no es la acción principal', async () => {
+			mounted = mountCard(await seededPort());
+			await settle();
+
+			const section = mounted.target.querySelector('section')!;
+			expect(section.dataset.siteState).toBe('current');
+			expect(section.textContent).toContain('Módulos');
+			const blog = moduleRow(mounted.target, 'blog');
+			const contact = moduleRow(mounted.target, 'contacto');
+			expect(blog.dataset.moduleState).toBe('absent');
+			expect(blog.querySelector('b')!.textContent).toBe('Blog');
+			expect(blog.textContent).toContain('No añadido');
+			expect(blog.textContent).toContain('Entradas con etiquetas, portada, fecha y SEO.');
+			expect(blog.querySelector('[data-module-note]')).toBeNull();
+			expect(contact.dataset.moduleState).toBe('absent');
+			expect(contact.querySelector('b')!.textContent).toBe('Formulario de contacto');
+			// El aviso por correo no se puede comprobar desde aquí: línea fija que remite a la doc.
+			expect(contact.querySelector('[data-module-note]')!.textContent).toContain(
+				'El aviso por correo de cada mensaje se configura en el servidor'
+			);
+			for (const row of [blog, contact]) {
+				const add = button(row, 'Añadir');
+				expect(add.className).not.toContain('vega-admin-btn--primary');
+				expect(add.getAttribute('aria-label')).toContain(row.querySelector('b')!.textContent);
+			}
+			expect(section.textContent).not.toMatch(/sembrado/i);
+		});
+
+		test('M2 vista previa: «Añadir» repite el preflight y enseña, sin escribir, qué colecciones se crean y qué entradas se añaden', async () => {
+			const port = await seededPort();
+			mounted = mountCard(port);
+			await settle();
+			const read = vi.spyOn(port, 'listContentTypes');
+			const written = writes(port);
+
+			await click(button(moduleRow(mounted.target, 'blog'), 'Añadir'));
+
+			expect(read).toHaveBeenCalled();
+			const open = dialog(mounted.target)!;
+			expect(open.querySelector('h2')!.textContent).toBe('Añadir: Blog');
+			expect(open.textContent).toContain('Nada de lo que ya existe se modifica.');
+			expect(groupTitles(open, 'Se crea')).toEqual(['Etiquetas', 'Entradas']);
+			expect(open.textContent).toContain('tags');
+			expect(open.textContent).toContain('posts');
+			expect(groupTitles(open, 'Se añade al modelo de contenido')).toEqual([
+				'Colección «Entradas»',
+				'Colección «Etiquetas»'
+			]);
+			expect(open.textContent).toContain('collections.posts');
+			// Nada de la base: ni «Editores», ni «Inicio», ni «ya está al día».
+			expect(open.textContent).not.toMatch(/vega_editors|Inicio|al día/);
+			expect(open.textContent!.match(/no se deshace/gi)).toHaveLength(1);
+			expect(document.activeElement).toBe(button(open, 'Cancelar'));
+
+			await click(button(open, 'Cancelar'));
+
+			expect(dialog(mounted.target)).toBeNull();
+			for (const spy of written) expect(spy).not.toHaveBeenCalled();
+			expect(moduleRow(mounted.target, 'blog').dataset.moduleState).toBe('absent');
+		});
+
+		test('M3 añadiendo y añadido: en curso no se puede cerrar; al terminar la fila dice «Añadido», sin botón, y el otro módulo sigue igual', async () => {
+			const port = await seededPort();
+			let release!: () => void;
+			const gate = new Promise<void>((resolve) => {
+				release = resolve;
+			});
+			const ensure = port.ensureCollections.bind(port);
+			const seed = vi.spyOn(port, 'ensureCollections').mockImplementation(async (specs) => {
+				await gate;
+				return ensure(specs);
+			});
+			const onChanged = vi.fn();
+			mounted = mountCard(port, onChanged);
+			await settle();
+			await click(button(moduleRow(mounted.target, 'blog'), 'Añadir'));
+			const open = dialog(mounted.target)!;
+
+			await click(button(open, 'Añadir'));
+
+			expect(open.textContent).toContain('Añadiendo… 0:00');
+			expect(button(open, 'Añadiendo…').getAttribute('aria-disabled')).toBe('true');
+			expect(button(open, 'Cancelar').getAttribute('aria-disabled')).toBe('true');
+			await click(button(open, 'Cancelar'));
+			document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+			await settle();
+			expect(dialog(mounted.target)).not.toBeNull();
+
+			release();
+			await until(() => dialog(mounted!.target) === null);
+			await settle();
+
+			// Solo se pidió el módulo: sus dos colecciones, y ninguna del otro.
+			expect(seed.mock.calls.flatMap(([specs]) => specs.map((spec) => spec.name))).toEqual(
+				expect.arrayContaining(['tags', 'posts'])
+			);
+			const names = (await port.listContentTypes()).map((type) => type.name);
+			expect(names).toEqual(expect.arrayContaining(['tags', 'posts']));
+			expect(names).not.toContain('messages');
+			const blog = moduleRow(mounted.target, 'blog');
+			expect(blog.dataset.moduleState).toBe('added');
+			expect(blog.querySelector('.vega-admin-tag')!.textContent!.trim()).toBe('Añadido');
+			expect(blog.querySelector('button')).toBeNull();
+			const contact = moduleRow(mounted.target, 'contacto');
+			expect(contact.dataset.moduleState).toBe('absent');
+			expect(button(contact, 'Añadir')).toBeDefined();
+			const section = mounted.target.querySelector('section')!;
+			expect(section.dataset.siteState).toBe('current');
+			expect(section.textContent).toContain(
+				'Hecho: 2 colecciones y las entradas nuevas del modelo de contenido.'
+			);
+			// El «siguiente paso» (dar acceso a editores) es de preparar el sitio, no de un módulo.
+			expect(section.querySelector('a')).toBeNull();
+			expect(mounted.feedback.toast).toHaveBeenCalledWith('Añadido: Blog.', { kind: 'success' });
+			expect(onChanged).toHaveBeenCalled();
+		});
+
+		test('M4 añadido de antes: al montar, el módulo que ya tiene sus colecciones sale «Añadido»', async () => {
+			const port = await authedMemory();
+			await seedSiteProject(port, { modules: [SITE_SEED_CONTACT_MODULE] });
+			mounted = mountCard(port);
+			await settle();
+
+			expect(mounted.target.querySelector('section')!.dataset.siteState).toBe('current');
+			const contact = moduleRow(mounted.target, 'contacto');
+			expect(contact.dataset.moduleState).toBe('added');
+			expect(contact.querySelector('button')).toBeNull();
+			// La nota del aviso por correo sigue ahí: es justo cuando hace falta.
+			expect(contact.querySelector('[data-module-note]')).not.toBeNull();
+			expect(moduleRow(mounted.target, 'blog').dataset.moduleState).toBe('absent');
+		});
+
+		test('M5 incompleto: con sus colecciones pero sin una entrada del modelo de contenido, «Añadir» pone solo lo que falta', async () => {
+			const port = await authedMemory();
+			await seedSiteProject(port, { modules: [SITE_SEED_BLOG_MODULE] });
+			const record = (await port.list('vega', { perPage: 1 })).items[0]!;
+			const edited = structuredClone(record.values.manifest) as {
+				collections: Record<string, unknown>;
+			};
+			delete edited.collections.tags;
+			await port.update('vega', record.id, { manifest: edited as unknown as JsonValue });
+			mounted = mountCard(port);
+			await settle();
+
+			const blog = moduleRow(mounted.target, 'blog');
+			expect(blog.dataset.moduleState).toBe('incomplete');
+			expect(blog.querySelector('.vega-admin-tag')!.textContent!.trim()).toBe('Incompleto');
+
+			await click(button(blog, 'Añadir'));
+
+			const open = dialog(mounted.target)!;
+			expect(open.textContent).not.toContain('Se crea');
+			expect(groupTitles(open, 'Se añade al modelo de contenido')).toEqual([
+				'Colección «Etiquetas»'
+			]);
+		});
+
+		test('M6 vista previa bloqueada: una `posts` propia con otra forma bloquea SOLO el blog, y «Ver por qué» enseña la divergencia sin escribir', async () => {
+			const port = await seededPort();
+			await port.ensureCollections([
+				{ name: 'posts', fields: [{ name: 'title', type: 'number' }] }
+			]);
+			const written = writes(port);
+			mounted = mountCard(port);
+			await settle();
+
+			// La base no se entera: el sitio sigue al día.
+			expect(mounted.target.querySelector('section')!.dataset.siteState).toBe('current');
+			const blog = moduleRow(mounted.target, 'blog');
+			expect(blog.dataset.moduleState).toBe('blocked');
+			expect(blog.textContent).toContain('No se puede añadir tal como está');
+			expect(
+				Array.from(blog.querySelectorAll('button')).map((item) => item.textContent?.trim())
+			).toEqual(['Ver por qué']);
+			// El otro módulo no paga por la divergencia del blog.
+			const contact = moduleRow(mounted.target, 'contacto');
+			expect(contact.dataset.moduleState).toBe('absent');
+			expect(button(contact, 'Añadir')).toBeDefined();
+
+			await click(button(blog, 'Ver por qué'));
+
+			const open = dialog(mounted.target)!;
+			expect(open.querySelector('h2')!.textContent).toBe('No se puede añadir: Blog');
+			expect(open.textContent).toContain('No se ha escrito nada');
+			expect(open.textContent).toContain('El campo «title» de Entradas');
+			expect(open.querySelector('pre')!.textContent).toContain('campo "posts.title"');
+			expect(document.activeElement).toBe(button(open, 'Cerrar'));
+			await click(button(open, 'Cerrar'));
+			expect(dialog(mounted.target)).toBeNull();
+			for (const spy of written) expect(spy).not.toHaveBeenCalled();
+		});
+
+		test('M7 error al añadir: la salida del servidor, y «Reintentar» vuelve al plan de ESE módulo', async () => {
+			const port = await seededPort();
+			const ensure = port.ensureCollections.bind(port);
+			const onChanged = vi.fn();
+			mounted = mountCard(port, onChanged);
+			await settle();
+			await click(button(moduleRow(mounted.target, 'contacto'), 'Añadir'));
+			vi.spyOn(port, 'ensureCollections').mockRejectedValueOnce(
+				new Error('Failed to create collection "messages": boom')
+			);
+
+			await click(button(dialog(mounted.target)!, 'Añadir'));
+
+			const open = dialog(mounted.target)!;
+			expect(open.querySelector('h2')!.textContent).toBe('Añadir: Formulario de contacto');
+			expect(open.textContent).toContain('No se pudo terminar');
+			expect(open.querySelector('pre')!.textContent).toContain(
+				'Failed to create collection "messages"'
+			);
+			expect(document.activeElement).toBe(button(open, 'Reintentar'));
+			expect(onChanged).toHaveBeenCalled();
+			expect(mounted.feedback.toast).not.toHaveBeenCalled();
+
+			vi.mocked(port.ensureCollections).mockImplementation(ensure);
+			await click(button(open, 'Reintentar'));
+
+			const again = dialog(mounted.target)!;
+			expect(again.querySelector('h2')!.textContent).toBe('Añadir: Formulario de contacto');
+			expect(groupTitles(again, 'Se crea')).toEqual(['Mensajes']);
+			await click(button(again, 'Añadir'));
+			await until(() => dialog(mounted!.target) === null);
+			await settle();
+			expect(moduleRow(mounted.target, 'contacto').dataset.moduleState).toBe('added');
+		});
+
+		test('M8 la base va primero: sin preparar o con una actualización pendiente no hay «Añadir», y se dice por qué', async () => {
+			mounted = mountCard(await authedMemory());
+			await settle();
+
+			const unprepared = moduleRow(mounted.target, 'blog');
+			expect(unprepared.dataset.moduleState).toBe('absent');
+			expect(unprepared.querySelector('button')).toBeNull();
+			expect(unprepared.querySelector('[data-module-gate]')!.textContent).toContain(
+				'Antes hay que preparar el sitio.'
+			);
+			await unmount(mounted.instance);
+			mounted.target.remove();
+
+			const port = await authedMemory();
+			await seedLikePrevious0ace139(port);
+			mounted = mountCard(port);
+			await settle();
+
+			expect(mounted.target.querySelector('section')!.dataset.siteState).toBe('update');
+			const pending = moduleRow(mounted.target, 'contacto');
+			expect(pending.querySelector('button')).toBeNull();
+			expect(pending.querySelector('[data-module-gate]')!.textContent).toContain(
+				'Antes hay que actualizar el sitio.'
+			);
+		});
+
+		test('mientras comprueba y si la comprobación falla no hay lista de módulos', async () => {
+			const port = await authedMemory();
+			vi.spyOn(port, 'listContentTypes').mockRejectedValueOnce(VegaError.backend('boom'));
+			mounted = mountCard(port);
+			await settle();
+
+			expect(mounted.target.querySelector('section')!.dataset.siteState).toBe('error');
+			expect(mounted.target.querySelector('[data-site-module]')).toBeNull();
 		});
 	});
 });

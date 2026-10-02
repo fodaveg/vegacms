@@ -545,3 +545,55 @@ Aquí `post` y `page` deben tener ambas un campo `rating` numérico (heredado co
 - No hay autoupdate: Vega es una SPA estática y no puede reescribir sus propios ficheros. El enlace del aviso lleva a la página del release en GitHub para que actualices el despliegue a mano.
 
 **Nota para operadores con CSP estricta**: si defines `Content-Security-Policy` con `connect-src` restringido, añade `https://api.github.com` a esa directiva o la comprobación de actualizaciones fallará silenciosamente (se degrada a "No se pudo comprobar", nunca rompe el resto de la app).
+
+## Aviso por correo de los mensajes de contacto
+
+La imagen de producción (`infra/production/Dockerfile`) incluye un hook de PocketBase,
+`infra/production/pb_hooks/vega-contact-notify.pb.js`, copiado a `/pb/pb_hooks/`. Cuando se crea un
+registro en la colección `messages` manda un correo con el nombre, el correo y el mensaje del
+visitante (escapados: el correo es HTML y el visitante puede mandar marcado) y su correo como
+`Reply-To`. El asunto lleva el nombre del sitio (`Application name` en los ajustes de PocketBase).
+
+Se configura con variables de entorno del proceso de PocketBase (en el `compose.yml`, por ejemplo):
+
+| Variable                             | Efecto                                                               | Por defecto |
+| ------------------------------------ | -------------------------------------------------------------------- | ----------- |
+| `VEGA_CONTACT_NOTIFY_TO`             | Destinatarios, separados por comas. Sin ella no se avisa a nadie.    | (sin valor) |
+| `VEGA_CONTACT_NOTIFY_MAX`            | Máximo de avisos por ventana. Un valor no entero o `0` se ignora.    | `5`         |
+| `VEGA_CONTACT_NOTIFY_WINDOW_MINUTES` | Tamaño de la ventana en minutos. Un valor no entero o `0` se ignora. | `60`        |
+
+- **Sin `VEGA_CONTACT_NOTIFY_TO` los mensajes se guardan y NO se avisa por correo.** El hook no
+  falla ni escribe errores en ese caso. La interfaz de Vega no puede saber si el aviso está
+  configurado (la variable vive en el entorno del servidor, no en PocketBase), así que no puede
+  mostrarlo.
+- **Hace falta SMTP configurado en PocketBase** (ajustes de correo), con remitente. El hook usa ese
+  remitente y ese cliente de correo.
+- **Límite**: se cuentan los `messages` creados en la última ventana; hasta el máximo, cada mensaje
+  manda su aviso; pasado el máximo, el mensaje se guarda igual y no se avisa. No usa ninguna
+  colección auxiliar; necesita el campo `created` (autodate) de `messages`.
+- **Hueco conocido**: no hay bloqueo entre contar y enviar, así que dos altas simultáneas pueden
+  mandar un correo de más.
+- **Si el envío falla** (SMTP caído), el mensaje ya está guardado, el visitante recibe su respuesta
+  normal y el fallo queda en los logs de PocketBase con el id del registro y ningún dato del
+  visitante.
+- **El hook solo corre si la imagen lo incluye**: un despliegue con una imagen anterior, o con otro
+  `--hooksDir`, no avisa aunque las variables estén puestas. Sobre una colección `messages`
+  inexistente no hace nada.
+- Los tests de contrato usan un SMTP sumidero sin TLS. **Antes de desplegar hay que probarlo con un
+  SMTP real con TLS**: no está probado.
+
+## Ocultar una entrada sin borrarla
+
+«Actualizar el sitio» añade al manifiesto las entradas de la base y de los módulos que falten y no
+toca las que ya hay; por eso una entrada borrada a mano vuelve en la siguiente actualización. Para
+que no aparezca, hay que marcarla como oculta en vez de borrarla: `collections.<nombre>.hidden`
+(booleano) para una colección y `collections.<nombre>.fields.<campo>.hidden` para un campo. Las
+colecciones reservadas de Vega (`vega`, `vega_*`) siempre están ocultas y no se pueden anular.
+
+```json
+{
+	"collections": {
+		"messages": { "hidden": true }
+	}
+}
+```

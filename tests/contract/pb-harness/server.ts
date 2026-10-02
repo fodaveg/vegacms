@@ -127,7 +127,11 @@ export interface PocketBaseServerHandle {
  * de llamar aquí (igual que en un revert real: se revierte junto con su commit en git).
  */
 export async function startPocketBaseServerOn(
-	instance: PocketBaseInstanceDir
+	instance: PocketBaseInstanceDir,
+	/** `hooksDir`: directorio con `*.pb.js` (hooks JS de PocketBase), pasado como `--hooksDir`.
+	 *  Sin él, PB busca `pb_hooks` HERMANO de `--dir` (en `/tmp` compartido), no dentro de él.
+	 *  `env`: variables extra para el proceso (los hooks las leen con `$os.getenv`). */
+	options: { hooksDir?: string; env?: Record<string, string> } = {}
 ): Promise<PocketBaseServerHandle> {
 	const bin = pocketBaseBinaryPath();
 	const port = await findFreePort();
@@ -141,9 +145,10 @@ export async function startPocketBaseServerOn(
 			'--dir',
 			instance.dataDir,
 			'--migrationsDir',
-			instance.migrationsDir
+			instance.migrationsDir,
+			...(options.hooksDir ? ['--hooksDir', options.hooksDir] : [])
 		],
-		{ stdio: 'pipe' }
+		{ stdio: 'pipe', env: { ...process.env, ...options.env } }
 	);
 	child.stderr?.on('data', () => {}); // silencia stderr; los tests no dependen de sus logs
 

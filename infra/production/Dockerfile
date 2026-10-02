@@ -28,6 +28,7 @@ RUN apk add --no-cache ca-certificates unzip wget \
 	&& chown -R vega:vega /pb
 
 COPY --from=builder --chown=vega:vega /app/build/ /pb/pb_public/
+COPY --chown=vega:vega infra/production/pb_hooks/ /pb/pb_hooks/
 
 USER vega
 WORKDIR /pb

@@ -1352,7 +1352,7 @@ export const es = {
 		'Este PocketBase tiene todo lo que esta versión de Vega necesita. No hay nada que crear ni que actualizar.',
 	'settings.site.change.addFields': 'añadir campos a {names}',
 	'settings.site.change.constrain': 'fijar el formato de las rutas de {names}',
-	'settings.site.change.manifest': 'actualizar el modelo de contenido',
+	'settings.site.change.manifest': 'añadir entradas al modelo de contenido',
 	'settings.site.change.page': 'crear la página «Inicio»',
 	'settings.site.blocked.title': 'Vega no puede actualizar este sitio tal como está',
 	'settings.site.blocked.bodyOne':
@@ -1380,7 +1380,6 @@ export const es = {
 	'settings.site.dialog.updateRunning': 'Actualizando el sitio… {elapsed}',
 	'settings.site.group.create': 'Se crea',
 	'settings.site.group.add': 'Se añade',
-	'settings.site.group.replace': 'Se sustituye',
 	'settings.site.collection.pages': 'Páginas',
 	'settings.site.collection.vega_media': 'Medios',
 	'settings.site.collection.blocks': 'Bloques',
@@ -1409,8 +1408,9 @@ export const es = {
 	'settings.site.field.updated': 'Última edición',
 	'settings.site.constrain.title': 'Formato de las rutas en {collection}',
 	'settings.site.constrain.text': 'solo donde aún no hay ninguno',
+	// La clave conserva el nombre de cuando el modelo de contenido se sustituía; ya no se sustituye.
 	'settings.site.replace.manifest':
-		'Por el de esta versión, que trae las etiquetas y ayudas de los campos nuevos. Nadie lo había editado',
+		'Se añaden las entradas que faltan; lo que ya tiene no se toca.',
 	'settings.site.plan.rest': '{names} ya están al día.',
 	'settings.site.plan.restOne': '{names} ya está al día.',
 	'settings.site.blockedDialog.title': 'No se puede actualizar el sitio',
@@ -1426,7 +1426,7 @@ export const es = {
 	'settings.site.div.collection.body': 'Es una vista, no una colección normal.',
 	'settings.site.div.manifest.title': 'El modelo de contenido',
 	'settings.site.div.manifest.edited':
-		'Se ha editado a mano. Vega no lo sustituye, para no perder ese trabajo.',
+		'Se ha editado a mano y ha quedado con un formato al que Vega no puede añadir lo que falta. No se ha tocado.',
 	'settings.site.div.manifest.other': 'Su registro no es el que Vega espera.',
 	'settings.site.div.page.body': 'Hay más de una con la ruta /.',
 	'settings.site.div.blocks.title': 'Los bloques',
@@ -1447,11 +1447,63 @@ export const es = {
 	'settings.site.result.fields': 'los campos nuevos de {names}',
 	'settings.site.result.constrained': 'el formato de las rutas de {names}',
 	'settings.site.result.manifest': 'el modelo de contenido',
-	'settings.site.result.manifestUpgraded': 'el modelo de contenido, actualizado',
+	'settings.site.result.manifestUpgraded': 'las entradas nuevas del modelo de contenido',
 	'settings.site.result.page': 'la página «Inicio», que queda en borrador',
 	'settings.site.result.next': 'El siguiente paso es dar acceso a quien vaya a editar, en',
 	'settings.site.toast.prepared': 'Sitio preparado.',
 	'settings.site.toast.updated': 'Sitio actualizado.',
+	// Entradas del modelo de contenido, una a una, y lo que no se ha podido añadir.
+	'settings.site.group.manifest': 'Se añade al modelo de contenido',
+	'settings.site.group.skipped': 'No se añade',
+	'settings.site.entry.collection': 'Colección «{name}»',
+	'settings.site.entry.field': 'Campo «{field}» de {collection}',
+	'settings.site.entry.option': 'Opción «{option}» de {collection}',
+	'settings.site.entry.blockType': 'Tipo de bloque «{name}»',
+	'settings.site.entry.navGroup': 'Grupo «{name}» del menú',
+	'settings.site.entry.nav': 'El menú',
+	'settings.site.entry.other': '«{name}»',
+	'settings.site.manifest.hiddenHelp':
+		'Una entrada borrada vuelve en cada actualización. Para que no aparezca, márcala como oculta ("hidden": true) en vez de borrarla.',
+	'settings.site.skipped.note':
+		'Vega no cambia lo que ya está en el modelo de contenido. Si lo quieres, añádelo a mano en «Modelo de contenido».',
+	'settings.site.skipped.navGroup': 'El menú guardado tiene una forma que Vega no sabe completar.',
+	'settings.site.skipped.fieldGroupTitle': 'Grupo de campos «{name}» de {collection}',
+	'settings.site.skipped.fieldGroup': 'La colección ya tiene sus propios grupos de campos.',
+	'settings.site.skipped.blockFieldTitle': 'Campo «{name}» del bloque «{block}»',
+	'settings.site.skipped.blockField': 'El tipo de bloque ya existe y se conserva entero.',
+	'settings.site.result.skipped':
+		'No se ha podido añadir al modelo de contenido: {names}. Lo que ya había se ha conservado tal cual.',
+	// Módulos: lo que se puede añadir encima de la base.
+	'settings.site.modules.title': 'Módulos',
+	'settings.site.modules.state.absent': 'No añadido',
+	'settings.site.modules.state.incomplete': 'Incompleto',
+	'settings.site.modules.state.added': 'Añadido',
+	'settings.site.modules.state.blocked': 'No se puede añadir tal como está',
+	'settings.site.modules.btn.add': 'Añadir',
+	'settings.site.modules.btn.adding': 'Añadiendo…',
+	'settings.site.modules.needsBase.unprepared': 'Antes hay que preparar el sitio.',
+	'settings.site.modules.needsBase.update': 'Antes hay que actualizar el sitio.',
+	'settings.site.modules.needsBase.blocked': 'Antes hay que resolver lo que no encaja en el sitio.',
+	'settings.site.modules.dialog.title': 'Añadir: {name}',
+	'settings.site.modules.dialog.intro':
+		'Esto es lo que Vega va a añadir a tu PocketBase. Nada de lo que ya existe se modifica.',
+	'settings.site.modules.dialog.running': 'Añadiendo… {elapsed}',
+	'settings.site.modules.blockedDialog.title': 'No se puede añadir: {name}',
+	'settings.site.modules.toast.added': 'Añadido: {name}.',
+	'settings.site.module.blog.name': 'Blog',
+	'settings.site.module.blog.desc': 'Entradas con etiquetas, portada, fecha y SEO.',
+	'settings.site.module.contacto.name': 'Formulario de contacto',
+	'settings.site.module.contacto.desc':
+		'Una bandeja con los mensajes que llegan desde el formulario del sitio.',
+	'settings.site.module.contacto.note':
+		'El aviso por correo de cada mensaje se configura en el servidor, no aquí. Cómo hacerlo está en la documentación de Vega, en «Formulario de contacto».',
+	'settings.site.collection.posts': 'Entradas',
+	'settings.site.collection.tags': 'Etiquetas',
+	'settings.site.collection.messages': 'Mensajes',
+	'settings.site.create.posts':
+		'título, dirección, resumen, contenido, portada, estado, fechas, etiquetas y SEO',
+	'settings.site.create.tags': 'el nombre y la dirección de cada etiqueta',
+	'settings.site.create.messages': 'nombre, correo y mensaje de quien escribe, y si ya se ha leído',
 
 	// ————— Apariencia: selector de tema + modo (Fase F7w-a, "encender los temas") —————
 	'settings.appearance.title': 'Apariencia',
