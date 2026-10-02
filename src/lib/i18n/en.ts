@@ -243,7 +243,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'errors.notFoundRecord.title': 'Item not found',
 	'errors.notFoundRecord.body': 'This item no longer exists.',
 	'errors.notFoundRecord.backToList': 'Back to list',
-	'errors.backToIndex': 'Back to index',
+	'errors.backToIndex': 'Back to Home',
 	// ————— Merged views (mergedViews, Phase L7c) —————
 	'errors.notFoundView.title': 'View not found',
 	'errors.notFoundView.body': 'The merged view "{view}" does not exist.',

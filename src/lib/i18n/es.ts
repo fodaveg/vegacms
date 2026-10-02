@@ -258,7 +258,7 @@ export const es = {
 	'errors.notFoundRecord.title': 'Elemento no encontrado',
 	'errors.notFoundRecord.body': 'Este elemento ya no existe.',
 	'errors.notFoundRecord.backToList': 'Volver al listado',
-	'errors.backToIndex': 'Volver al índice',
+	'errors.backToIndex': 'Volver a Inicio',
 	// ————— Vistas fusionadas (mergedViews, Fase L7c) —————
 	'errors.notFoundView.title': 'Vista no encontrada',
 	'errors.notFoundView.body': 'No existe la vista fusionada "{view}".',

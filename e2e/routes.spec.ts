@@ -76,8 +76,8 @@ test.describe('not-found (§7.B.14)', () => {
 		await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
 		await expect(page.getByRole('link', { name: 'Entradas' })).toBeVisible();
 
-		// La acción "Volver al índice" navega fuera del estado not-found, a la portada «Inicio».
-		await state.getByRole('button', { name: 'Volver al índice' }).click();
+		// La acción "Volver a Inicio" navega fuera del estado not-found, a la portada.
+		await state.getByRole('button', { name: 'Volver a Inicio' }).click();
 		await waitForHome(page);
 	});
 

@@ -76,7 +76,7 @@ test('un id de vista desconocido resuelve a not-found en contexto, sin redirigir
 	await expect(page).toHaveURL(/\/v\/no-existe$/);
 
 	// El índice es la portada «Inicio» (lote 12): ya no salta al primer elemento del menú.
-	await state.getByRole('button', { name: 'Volver al índice' }).click();
+	await state.getByRole('button', { name: 'Volver a Inicio' }).click();
 	await waitForHome(page);
 });
 
