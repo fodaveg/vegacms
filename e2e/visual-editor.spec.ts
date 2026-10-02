@@ -475,6 +475,11 @@ test.describe('editor visual — paleta de bloques arrastrable, crear sobre el l
  * sobre `pagina_1` («Inicio»), que `SHOWCASE_SEED` siembra en `draft` con `statusLabels`
  * (`Borrador`/`Publicada`). El control está rotulado «Marcar como publicada», distinto del
  * «Publicar» de la barra superior, y la etiqueta solo cambia cuando el servidor confirma.
+ *
+ * Desde el lote 13 («Inicio» siembra avisos de la revisión antes de publicar, ver
+ * `SECCIONES_RECORDS`/`PAGINAS_CONTENT_TYPE`), «Marcar como publicada» pregunta primero: el
+ * camino sin avisos (publicar a la primera) lo mide `VisualPublishControl.svelte.test.ts`; aquí
+ * se pasa por «Publicar igualmente». `e2e/publish-review.spec.ts` cubre el popover en sí.
  */
 test.describe('editor visual — publicar y despublicar desde la cabecera', () => {
 	test('marcar como publicada y volver a borrador, con la etiqueta del servidor', async ({
@@ -487,6 +492,10 @@ test.describe('editor visual — publicar y despublicar desde la cabecera', () =
 		const group = statusGroup(page);
 		await expect(group).toContainText('Borrador');
 		await group.getByRole('button', { name: 'Marcar como publicada', exact: true }).click();
+		await page
+			.getByRole('alertdialog', { name: /^Antes de publicar/ })
+			.getByRole('button', { name: 'Publicar igualmente', exact: true })
+			.click();
 
 		await expect(group).toContainText('Publicada');
 		await expect(page.getByText('«Inicio» pasa a «Publicada».')).toBeVisible();
@@ -514,8 +523,11 @@ test.describe('editor visual — publicar y despublicar desde la cabecera', () =
 		const publish = group.getByRole('button', { name: 'Marcar como publicada', exact: true });
 		await publish.click();
 
-		const confirm = page.getByRole('alertdialog', { name: 'Hay 1 bloque sin guardar' });
+		// Con un bloque sin guardar Y avisos de la revisión (lote 13): UNA sola confirmación, «Antes
+		// de publicar», con los bloques primero y los avisos debajo.
+		const confirm = page.getByRole('alertdialog', { name: 'Antes de publicar', exact: true });
 		await expect(confirm).toBeVisible();
+		await expect(confirm).toContainText('Hay 1 bloque sin guardar');
 		await expect(confirm).toContainText(`«${SECCIONES[0].text}»`);
 		await expect(confirm.getByRole('button', { name: 'Cancelar', exact: true })).toBeFocused();
 		await expect(group).toContainText('Borrador');
@@ -526,7 +538,7 @@ test.describe('editor visual — publicar y despublicar desde la cabecera', () =
 
 		await publish.click();
 		await page
-			.getByRole('alertdialog', { name: 'Hay 1 bloque sin guardar' })
+			.getByRole('alertdialog', { name: 'Antes de publicar', exact: true })
 			.getByRole('button', { name: 'Publicar igualmente', exact: true })
 			.click();
 		await expect(group).toContainText('Publicada');

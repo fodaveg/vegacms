@@ -1440,6 +1440,42 @@ const PAGINAS_CONTENT_TYPE: ContentType = {
 			presentable: false,
 			hidden: false,
 			unique: false
+		},
+		// SEO por página (lote 13, revisión antes de publicar): las TRES columnas que siembra el sitio
+		// real (`site-seeding.ts#SITE_SEED_SEO_FIELDS`), con los mismos nombres, para que
+		// `applicableChecks` las reconozca y la tarjeta «Revisión» tenga grupo SEO en el escaparate.
+		// Sin valor en ninguna página: «Inicio» arranca con sus dos avisos de SEO, que es lo que los
+		// e2e y las capturas necesitan. Misma decisión de fixture que `publishAt`.
+		{
+			name: 'description',
+			type: 'text',
+			subtype: 'plain',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false,
+			maxLength: 300
+		},
+		{
+			name: 'socialImage',
+			type: 'relation',
+			target: 'vega_media',
+			multiple: false,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'noindex',
+			type: 'bool',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
 		}
 	]
 };
@@ -1598,7 +1634,29 @@ const SHOWCASE_MANIFEST: JsonValue = {
 			statusLabels: { draft: 'Borrador', published: 'Publicada' },
 			// Ver `PAGINAS_CONTENT_TYPE#publishAt`: «Programar…» en la cabecera del editor visual.
 			publishAtField: 'publishAt',
-			fields: { title: { label: 'Título' } }
+			// Ver `PAGINAS_CONTENT_TYPE#description`: el grupo SEO en el aside, como en el sitio
+			// sembrado (mismos rótulos y ayudas que `site-seeding-manifest.json`).
+			fieldGroups: [{ name: 'SEO', placement: 'aside' }],
+			fields: {
+				title: { label: 'Título' },
+				publishAt: { label: 'Publicar el' },
+				description: {
+					label: 'Descripción',
+					widget: 'textarea',
+					group: 'SEO',
+					help: 'Resumen de una o dos frases para buscadores y redes sociales. Si lo dejas vacío, el sitio usa su descripción general.'
+				},
+				socialImage: {
+					label: 'Imagen para redes',
+					group: 'SEO',
+					help: 'Aparece al compartir la página en redes y mensajería. Mejor apaisada, de unos 1200 × 630 px.'
+				},
+				noindex: {
+					label: 'No indexar',
+					group: 'SEO',
+					help: 'Pide a los buscadores que no muestren esta página y la saca del mapa del sitio. Quien tenga el enlace puede seguir abriéndola.'
+				}
+			}
 		},
 		// La colección hija NO aparece en la nav: se edita dentro de su página, y sacarla también
 		// como lista suelta duplicaría el mismo contenido en dos sitios con dos modelos mentales
@@ -1662,7 +1720,11 @@ const SHOWCASE_MANIFEST: JsonValue = {
 			icon: 'document',
 			fields: [
 				{ name: 'heading', label: 'Título', widget: 'text', source: 'record' },
-				{ name: 'texto', label: 'Cuerpo', widget: 'text', source: 'record' }
+				{ name: 'texto', label: 'Cuerpo', widget: 'text', source: 'record' },
+				// Lote 13 (revisión antes de publicar): texto con formato en una columna REAL
+				// (`SECCIONES_CONTENT_TYPE#cuerpo`), para que la revisión tenga enlaces e imágenes del
+				// texto que mirar en un bloque. `source: 'record'`: `richtext` no cabe en `datos`.
+				{ name: 'cuerpo', label: 'Contenido', widget: 'richtext', source: 'record' }
 			]
 		},
 		galeria: {
@@ -1670,7 +1732,11 @@ const SHOWCASE_MANIFEST: JsonValue = {
 			icon: 'box',
 			fields: [
 				{ name: 'heading', label: 'Título', widget: 'text', source: 'record' },
-				{ name: 'pie', label: 'Pie de foto', widget: 'text', source: 'data', default: '' }
+				{ name: 'pie', label: 'Pie de foto', widget: 'text', source: 'data', default: '' },
+				// Lote 13: imágenes de la biblioteca en un bloque (`SECCIONES_CONTENT_TYPE#imagenes`),
+				// la relación que la revisión lee para el texto alternativo. `source: 'record'`: una
+				// relación nunca vive en `datos` (frontera de `src/lib/model/types.ts`).
+				{ name: 'imagenes', label: 'Imágenes', widget: 'relation', source: 'record' }
 			]
 		}
 	}
@@ -1964,6 +2030,31 @@ const SECCIONES_CONTENT_TYPE: ContentType = {
 			presentable: false,
 			hidden: false,
 			unique: false
+		},
+		// Lote 13 (revisión antes de publicar): las dos columnas que `SHOWCASE_MANIFEST.blockTypes`
+		// reclama con `source: 'record'` (texto con formato de «Texto», imágenes de «Galería»). Son
+		// lo que la revisión lee en un bloque: enlaces e `<img>` del texto, y el alt de cada imagen
+		// de la biblioteca. Decisión de fixture, detrás del flag del escaparate.
+		{
+			name: 'cuerpo',
+			type: 'richtext',
+			subtype: 'html',
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		},
+		{
+			name: 'imagenes',
+			type: 'relation',
+			target: 'vega_media',
+			multiple: true,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
 		}
 	]
 };
@@ -2003,7 +2094,12 @@ const SECCIONES_RECORDS: { id: string; values: Record<string, FieldValue> }[] = 
 			heading: 'Tu contenido, en tu servidor',
 			texto: 'Sin cuentas de terceros ni exportaciones a medianoche: los datos ya son tuyos.',
 			tipo: 'texto',
-			datos: {}
+			datos: {},
+			// Lote 13: un enlace interno (en el escaparate `paginas` no declara `page`, así que la
+			// revisión lo deja como «no comprobado», lámina 1.4) y una `<img>` SIN atributo `alt`
+			// (aviso `media.alt-missing-inline`, con acción al bloque: lo que mide el e2e).
+			cuerpo:
+				'<p>Los datos viven en tu servidor y los precios están en <a href="/precios">la página de precios</a>.</p><p><img src="/patron-falda.png"></p>'
 		}
 	},
 	{
@@ -2014,7 +2110,10 @@ const SECCIONES_RECORDS: { id: string; values: Record<string, FieldValue> }[] = 
 			heading: 'Se adapta a tu modelo',
 			texto: 'El manifiesto describe lo que ya tienes; Vega no te obliga a rehacer el esquema.',
 			tipo: 'galeria',
-			datos: { pie: 'Capturas del editor visual, la lista y la ficha de un registro.' }
+			datos: { pie: 'Capturas del editor visual, la lista y la ficha de un registro.' },
+			// Lote 13: la imagen de la biblioteca que NO tiene alt (`showcase_media_8`): aviso
+			// `media.alt-missing` con «Describir la imagen…».
+			imagenes: ['showcase_media_8']
 		}
 	}
 ];
