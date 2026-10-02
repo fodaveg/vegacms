@@ -988,7 +988,10 @@ que la fecha haga algo hace falta la extensión
 
 **Fusión aditiva del manifiesto.** Al sembrar, al manifiesto guardado se le AÑADEN las entradas que
 le faltan y no se le quita ni se le cambia nada de lo que ya tiene: toda clave y todo valor siguen
-exactamente igual, en su mismo orden, y lo nuevo va al final de su nivel. Hasta el 1 oct 2026 la
+exactamente igual, en su mismo orden, y lo nuevo va al final de su nivel. Ese orden es el de lo que
+la fusión escribe: PocketBase devuelve las claves de un objeto JSON en orden alfabético, así que al
+releer el manifiesto el orden de las claves de un objeto (por ejemplo `blockTypes`) no es el
+escrito; el de las listas, como `nav.groups`, sí se conserva. Hasta el 1 oct 2026 la
 regla era otra (el manifiesto solo se sustituía si era EXACTAMENTE uno inicial de Vega, y uno
 editado a mano hacía abortar el sembrado); ya no hay que copiar claves a mano. La lógica vive en
 `src/lib/backend/site-seeding-merge.ts` (`mergeManifestFragment`).
