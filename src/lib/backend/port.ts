@@ -32,6 +32,7 @@ import type {
 import type { Query } from './query';
 import type {
 	AddFieldsResult,
+	CollectionAccessRules,
 	CollectionFieldSpec,
 	CollectionSpec,
 	ConstrainPatternsResult,
@@ -390,4 +391,14 @@ export interface BackendPort {
 		collectionName: string,
 		patterns: Record<string, string>
 	): Promise<ConstrainPatternsResult>;
+
+	/**
+	 * Las reglas de acceso, TAL CUAL, de las colecciones `names` que existan (una ausente no aparece
+	 * en el resultado). Es lo único que el preflight del sembrado no podía ver por `listContentTypes`,
+	 * cuyo `access` solo distingue «abierta / condicional / cerrada» y no dice si una expresión es la
+	 * que se esperaba. Solo lectura. En PocketBase pide sesión de superusuario (lee la definición de
+	 * la colección). OPCIONAL (como `addCollectionFieldPatterns`): un puerto que no la tenga no puede
+	 * comparar reglas y el preflight no las comprueba.
+	 */
+	collectionRules?(names: readonly string[]): Promise<Record<string, CollectionAccessRules>>;
 }

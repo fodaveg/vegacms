@@ -109,7 +109,8 @@ describe('previewSiteSeed', () => {
 				'collections.pages.fields.noindex',
 				'collections.redirects'
 			],
-			manifestSkipped: []
+			manifestSkipped: [],
+			ruleDifferences: []
 		});
 		expect(plan.createdCollections).toEqual(['redirects']);
 		expect(plan.addedFields.pages).toEqual(
@@ -180,7 +181,8 @@ describe('previewSiteSeed', () => {
 				createdCollections: [],
 				addedFields: {},
 				manifestEntries: [],
-				manifestSkipped: []
+				manifestSkipped: [],
+				ruleDifferences: []
 			}
 		]);
 	});

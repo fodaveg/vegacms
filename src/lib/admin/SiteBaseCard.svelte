@@ -27,8 +27,13 @@
 	 * del preflight— y «Añadir» abre el MISMO diálogo, con el plan de ese módulo: qué colecciones se
 	 * crean y qué entradas se añaden al modelo de contenido. Dos reglas:
 	 * - Un módulo solo se añade con la base al día. La base va en toda pasada del sembrado, así que
-	 *   con algo suyo pendiente «Añadir» lo escribiría también; el diálogo dice «nada de lo que ya
-	 *   existe se modifica» enseñando solo lo del módulo, y eso tiene que ser verdad.
+	 *   con algo suyo pendiente «Añadir» lo escribiría también; el diálogo enseña solo lo del módulo
+	 *   y dice que solo se añade, y eso tiene que ser verdad.
+	 * - Si una colección del módulo ya existe con reglas de acceso distintas de las del módulo
+	 *   (`SiteSeedModulePlan.ruleDifferences`), el plan las nombra (colección, regla, valor actual y
+	 *   esperado) y «Añadir» no se activa hasta marcar una casilla de confirmación, que se pasa al
+	 *   sembrado como `confirmRuleDifferences`. Sin ella el sembrado no escribe nada. Vega no cambia
+	 *   nunca esas reglas.
 	 * - El preflight de los módulos es UNA lectura con todos a la vez. Solo si esa aborta (una
 	 *   colección con el nombre de la de un módulo y otra forma) se repite módulo a módulo, para
 	 *   saber a cuál culpar sin dejar al otro sin poder añadirse.
@@ -60,6 +65,7 @@
 		moduleDescription,
 		moduleName,
 		moduleNote,
+		moduleRuleDifferences,
 		onlyModuleWrites,
 		SITE_BASE_MODULES,
 		siteBaseKind,
@@ -107,6 +113,8 @@
 	 */
 	let dialogModule = $state.raw<SiteSeedModule | null>(null);
 	let errorMessage = $state('');
+	/** Casilla del diálogo de un módulo con reglas de acceso distintas: confirma seguir con ellas. */
+	let rulesConfirmed = $state(false);
 	let startedAt = $state(0);
 	let now = $state(0);
 	let sectionEl = $state<HTMLElement | null>(null);
@@ -129,6 +137,14 @@
 		dialogDivergences.map((item) => describeDivergence(item, ctx.t))
 	);
 	const canLinkEditors = ctx.port.capabilities.administration;
+	/** El diálogo es el de un módulo con reglas distintas que hay que confirmar. */
+	const needsRulesConfirmation = $derived(
+		dialogModule !== null &&
+			(dialogPreview?.modules.some(
+				(item) => item.id === dialogModule?.id && moduleRuleDifferences(item).length > 0
+			) ??
+				false)
+	);
 	const dialogModuleName = $derived(dialogModule ? moduleName(ctx.t, dialogModule.id) : '');
 
 	/**
@@ -144,6 +160,10 @@
 				name: moduleName(ctx.t, module.id),
 				description: moduleDescription(ctx.t, module.id),
 				note: moduleNote(ctx.t, module.id),
+				rulesHint:
+					check?.status === 'ready' && moduleRuleDifferences(check.plan).length > 0
+						? ctx.t('settings.site.modules.rulesHint')
+						: null,
 				state:
 					check?.status === 'blocked'
 						? ('blocked' as const)
@@ -285,6 +305,7 @@
 			return;
 		}
 		dialogPreview = next;
+		rulesConfirmed = false;
 		dialog = 'plan';
 	}
 
@@ -314,6 +335,7 @@
 
 	async function confirm(): Promise<void> {
 		if (dialog !== 'plan') return;
+		if (needsRulesConfirmation && !rulesConfirmed) return;
 		const wasPrepare = mode === 'prepare';
 		const module = dialogModule;
 		startedAt = Date.now();
@@ -322,7 +344,8 @@
 		try {
 			const done = await seedSiteProject(ctx.port, {
 				passwordResetUrl: absoluteResetUrl(),
-				...(module ? { modules: [module] } : {})
+				...(module ? { modules: [module] } : {}),
+				...(module && needsRulesConfirmation ? { confirmRuleDifferences: [module.id] } : {})
 			});
 			result = done;
 			resultIsModule = module !== null;
@@ -568,6 +591,9 @@
 							{#if row.note}
 								<span data-module-note>{row.note}</span>
 							{/if}
+							{#if row.rulesHint}
+								<span data-module-rules>{row.rulesHint}</span>
+							{/if}
 							{#if row.state === 'blocked'}
 								<button
 									type="button"
@@ -612,6 +638,12 @@
 	{#if (dialog === 'plan' || dialog === 'running') && planView}
 		{@render planList(planView, `${headingId}-plan`)}
 		{#if dialog === 'plan'}
+			{#if needsRulesConfirmation}
+				<label class="vega-admin-check" data-rules-confirm>
+					<input type="checkbox" bind:checked={rulesConfirmed} />
+					<span>{ctx.t('settings.site.rules.confirm')}</span>
+				</label>
+			{/if}
 			<p class="vega-admin-dialog-text">{ctx.t('settings.site.dialog.irreversible')}</p>
 		{:else}
 			<p class="vega-admin-dialog-text" aria-live="polite">
@@ -669,6 +701,7 @@
 			</button>
 		{:else}
 			{@const running = dialog === 'running'}
+			{@const blockedByRules = dialog === 'plan' && needsRulesConfirmation && !rulesConfirmed}
 			<button
 				type="button"
 				class="vega-admin-btn"
@@ -681,7 +714,7 @@
 			<button
 				type="button"
 				class="vega-admin-btn vega-admin-btn--primary"
-				aria-disabled={running}
+				aria-disabled={running || blockedByRules}
 				onclick={confirm}
 			>
 				{ctx.t(running ? modeKeys.going : modeKeys.go)}

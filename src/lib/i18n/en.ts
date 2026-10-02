@@ -1468,7 +1468,23 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'settings.site.modules.needsBase.blocked': 'What does not fit in the site has to be fixed first.',
 	'settings.site.modules.dialog.title': 'Add: {name}',
 	'settings.site.modules.dialog.intro':
-		'This is what Vega will add to your PocketBase. Nothing that already exists is changed.',
+		'This is what Vega will add to your PocketBase. No field, rule, record or entry that already exists is deleted or changed; if a collection of the module already exists, the fields it lacks are added to it.',
+	'settings.site.group.rules': 'Different access rules',
+	'settings.site.rules.title': '{collection} · {rule}',
+	'settings.site.rules.item': 'Now: {actual} · Vega expects: {expected}',
+	'settings.site.rules.none': 'no rule (superusers only)',
+	'settings.site.rules.open': '"" (open to everyone)',
+	'settings.site.rules.note':
+		'These collections already existed with other access rules. Vega does not change them: if you add the module they stay as they are, and everything else is added anyway. Review them in PocketBase before going on.',
+	'settings.site.rules.confirm':
+		'I want to add the module with the access rules these collections already have.',
+	'settings.site.rules.listRule': 'list',
+	'settings.site.rules.viewRule': 'view a record',
+	'settings.site.rules.createRule': 'create',
+	'settings.site.rules.updateRule': 'edit',
+	'settings.site.rules.deleteRule': 'delete',
+	'settings.site.modules.rulesHint':
+		'It has collections whose access rules differ from the module’s.',
 	'settings.site.modules.dialog.running': 'Adding… {elapsed}',
 	'settings.site.modules.blockedDialog.title': 'Cannot add: {name}',
 	'settings.site.modules.toast.added': 'Added: {name}.',

@@ -44,6 +44,18 @@
  * un fragmento de manifiesto. La base de siempre es el módulo `base` y va en toda pasada; los
  * demás se piden en `SiteSeedOptions.modules` y se registran en `site-seeding-modules.ts`.
  *
+ * REGLAS DE ACCESO DE UNA COLECCIÓN DE MÓDULO QUE YA EXISTE. `tags`, `posts` y `messages` son nombres
+ * genéricos y una instalación puede tenerlos con otras reglas (una `messages` con `listRule: ""`
+ * dejaría la bandeja legible sin sesión). Adoptar su forma y añadirle campos es lo de siempre,
+ * pero las reglas se comparan con las que declara el módulo, como hace el adaptador con una `auth`
+ * (`BackendPort.collectionRules`, solo lectura). Cada diferencia sale en el plan del módulo
+ * (`SiteSeedModulePlan.ruleDifferences`: colección, regla, valor actual y esperado) y, si el módulo
+ * tiene algo que escribir, `seedSiteProject` NO escribe NADA y lanza `SiteSeedRuleDifferencesError`
+ * mientras el módulo no figure en `SiteSeedOptions.confirmRuleDifferences`. Confirmar solo significa
+ * «sigue adelante con las reglas que hay»: el sembrado nunca las cambia. Un puerto sin
+ * `collectionRules` no puede compararlas y el preflight no las comprueba. La base queda fuera:
+ * sus colecciones tienen su propio criterio (`pages` y `blocks`, arriba).
+ *
  * Tercera excepción, también acotada: el `pattern` de `redirects.from`/`to`. En una `redirects` ya
  * sembrada sin él, se pone SOLO si el campo no tiene ninguno (`addCollectionFieldPatterns`: el
  * campo se modifica conservando su `id`, nunca se borra y recrea). El patrón no cuenta en la
@@ -52,7 +64,15 @@
 
 import starterManifestDocument from './site-seeding-manifest.json';
 import { deriveBlockRecordFields } from './block-schema';
-import { VEGA_COLLECTION, type CollectionFieldSpec, type CollectionSpec } from './collections';
+import {
+	COMMON_COLLECTION_RULE_KEYS,
+	VEGA_COLLECTION,
+	type CollectionFieldSpec,
+	type CollectionRule,
+	type CollectionSpec,
+	type CommonCollectionRuleKey
+} from './collections';
+import { VegaError } from './errors';
 import type { BackendPort } from './port';
 import {
 	isManifestObject,
@@ -112,7 +132,6 @@ export const SITE_SEED_AUTODATE_FIELDS: readonly CollectionFieldSpec[] = [
 	{ name: 'created', type: 'autodate' },
 	{ name: 'updated', type: 'autodate', onUpdate: true }
 ];
-const AUTODATE_FIELDS = SITE_SEED_AUTODATE_FIELDS;
 
 /**
  * Los campos de publicación y de SEO de `pages`, con nombre propio para que un módulo cuyo
@@ -165,7 +184,7 @@ const PAGES_COLLECTION: CollectionSpec = {
 		SITE_SEED_STATUS_FIELD,
 		SITE_SEED_PUBLISH_AT_FIELD,
 		...SITE_SEED_SEO_FIELDS,
-		...AUTODATE_FIELDS
+		...SITE_SEED_AUTODATE_FIELDS
 	]
 };
 
@@ -223,7 +242,7 @@ const REDIRECTS_COLLECTION: CollectionSpec = {
 			multiple: false,
 			required: true
 		},
-		...AUTODATE_FIELDS
+		...SITE_SEED_AUTODATE_FIELDS
 	]
 };
 
@@ -254,7 +273,7 @@ const BLOCKS_COLLECTION: CollectionSpec = {
 		{ name: STARTER_BLOCKS.typeField!, type: 'text', required: true, max: 64 },
 		{ name: STARTER_BLOCKS.dataField!, type: 'json' },
 		...deriveBlockRecordFields(STARTER_BLOCK_TYPES, STARTER_BLOCKS),
-		...AUTODATE_FIELDS
+		...SITE_SEED_AUTODATE_FIELDS
 	]
 };
 
@@ -325,8 +344,17 @@ interface CollectionPlan {
  */
 type ManifestAction = 'create' | 'upgrade' | 'keep';
 
+/**
+ * Lo que el preflight vio en el registro del manifiesto: `null` si no había ninguno, o su `id` y su
+ * contenido. `seedSiteProject` lo compara con lo que hay JUSTO antes de escribir (ver
+ * `assertManifestUnchanged`).
+ */
+type ManifestBasis = { id: string; manifest: JsonValue } | null;
+
 interface ManifestPlan {
 	action: ManifestAction;
+	/** Lo que había en el preflight; solo se usa con `create` y `upgrade`, que son los que escriben. */
+	basis: ManifestBasis;
 	/** El manifiesto a escribir (`create` y `upgrade`); `null` si no hay nada que escribir. */
 	merged: JsonValue | null;
 	/** Entradas de manifiesto que aporta cada módulo, por `id`. Vacía en `keep`. */
@@ -336,9 +364,21 @@ interface ManifestPlan {
 	skipped: Map<string, ManifestMergeSkipped[]>;
 }
 
+/** Una regla de acceso de una colección de módulo ya existente que no es la que el módulo declara. */
+export interface SiteSeedRuleDifference {
+	collection: string;
+	rule: CommonCollectionRuleKey;
+	/** Lo que tiene la colección ahora: `null` = solo superusuarios, `''` = abierta a todo el mundo. */
+	actual: CollectionRule;
+	/** Lo que declara el módulo (con la misma lectura de `null` y `''`). */
+	expected: CollectionRule;
+}
+
 interface SeedPlan {
 	/** La base primero y luego los módulos pedidos, en ese orden. */
 	modules: readonly SiteSeedModule[];
+	/** Diferencias de reglas por `id` de módulo; sin entrada = ninguna. */
+	ruleDifferences: Map<string, SiteSeedRuleDifference[]>;
 	collections: Map<string, CollectionPlan>;
 	manifest: ManifestPlan;
 	pageMissing: boolean;
@@ -378,6 +418,12 @@ export interface SiteSeedOptions {
 	 * después de las colecciones de la base y antes de escribir el manifiesto.
 	 */
 	modules?: readonly SiteSeedModule[];
+	/**
+	 * `id` de los módulos cuyas colecciones ya existen con reglas de acceso distintas de las del
+	 * módulo y cuya adición confirma expresamente quien llama (ver `SiteSeedRuleDifferencesError`).
+	 * Es una confirmación por módulo, no por valor: no cambia ninguna regla, solo deja seguir.
+	 */
+	confirmRuleDifferences?: readonly string[];
 }
 
 export interface SiteSeedDivergence {
@@ -404,18 +450,71 @@ export class SiteSeedDivergenceError extends Error {
 }
 
 /**
+ * El sembrado se detuvo, sin escribir nada, porque una colección de un módulo ya existe con reglas
+ * de acceso distintas de las del módulo y nadie ha confirmado seguir (`confirmRuleDifferences`).
+ */
+export class SiteSeedRuleDifferencesError extends Error {
+	/** Por `id` de módulo, lo que difiere en cada uno. */
+	readonly differences: Readonly<Record<string, readonly SiteSeedRuleDifference[]>>;
+
+	constructor(differences: Readonly<Record<string, readonly SiteSeedRuleDifference[]>>) {
+		const show = (rule: CollectionRule) =>
+			rule === null ? 'sin regla (solo superusuarios)' : JSON.stringify(rule);
+		super(
+			[
+				'Una colección de un módulo ya existe con reglas de acceso distintas de las del módulo; ' +
+					'no se escribió ninguna pieza. Revisa las reglas en PocketBase o confirma que quieres ' +
+					'añadir el módulo con las reglas que hay (no se cambian):',
+				...Object.entries(differences).flatMap(([id, items]) =>
+					items.map(
+						(item) =>
+							`- ${id}: ${item.collection}.${item.rule} está en ${show(item.actual)}; ` +
+							`el módulo declara ${show(item.expected)}`
+					)
+				)
+			].join('\n')
+		);
+		this.name = 'SiteSeedRuleDifferencesError';
+		this.differences = differences;
+	}
+}
+
+/**
+ * ¿Escribiría algo este módulo? Una diferencia de reglas solo importa si el módulo va a crear o
+ * ampliar una colección o añadir entradas al modelo de contenido; uno ya completo no se «añade».
+ */
+export function moduleHasWrites(plan: SiteSeedModulePlan): boolean {
+	return (
+		plan.createdCollections.length > 0 ||
+		Object.keys(plan.addedFields).length > 0 ||
+		plan.manifestEntries.length > 0
+	);
+}
+
+/** Las diferencias de reglas que exigen confirmación para añadir este módulo (vacío = ninguna). */
+export function ruleDifferencesToConfirm(plan: SiteSeedModulePlan): SiteSeedRuleDifference[] {
+	return moduleHasWrites(plan) ? (plan.ruleDifferences ?? []) : [];
+}
+
+/**
  * Completa una instalación limpia o parcial sin reconciliar jamás una pieza ya presente (al
  * manifiesto solo se le añaden entradas, ver la cabecera del módulo).
  * El orden de aplicación es explícito porque el puerto no ordena specs:
  * `vega_editors` -> `vega_media` (sola) -> `pages` -> `blocks` -> `redirects` -> `vega` -> las
  * colecciones de cada módulo pedido, en su orden -> manifiesto -> página canónica.
  * `vega_media` va antes que `pages` porque `pages.socialImage` la enlaza.
+ *
+ * Entre el preflight y la escritura del manifiesto otro editor puede haberlo guardado: justo antes
+ * de escribirlo se relee el registro y, si ya no es el que vio el preflight, se aborta con un
+ * `VegaError` `backend` SIN escribir el manifiesto (`assertManifestUnchanged`). Lo anterior (las
+ * colecciones y campos añadidos) se queda, porque el sembrado es aditivo y repetirlo converge.
  */
 export async function seedSiteProject(
 	port: BackendPort,
 	options: SiteSeedOptions = {}
 ): Promise<SiteSeedResult> {
 	const plan = await inspectSeedPlan(port, options.modules);
+	assertRuleDifferencesConfirmed(plan, options.confirmRuleDifferences ?? []);
 	const result: SiteSeedResult = {
 		createdCollections: [],
 		addedFields: {},
@@ -453,6 +552,7 @@ export async function seedSiteProject(
 		}
 	}
 
+	if (plan.manifest.action !== 'keep') await assertManifestUnchanged(port, plan.manifest);
 	if (plan.manifest.action === 'create') {
 		await saveManifest(port, plan.manifest.merged!);
 		result.createdRecords.push('manifest');
@@ -474,6 +574,57 @@ export async function seedSiteProject(
 	}
 
 	return result;
+}
+
+/**
+ * Relectura del registro del manifiesto justo antes de escribirlo. Entre el preflight y este punto
+ * pasan las escrituras de todas las colecciones, y otro editor (una segunda pestaña, el Admin de
+ * PocketBase) pudo guardar el manifiesto: `saveManifest` reescribe el valor entero, así que seguir
+ * con el fusionado del preflight pisaría su cambio en silencio. Mismo criterio que
+ * `addFieldsOnPocketBase` con `sameFieldIdentity`: se compara lo visto con lo que hay (el `id` y el
+ * contenido, sin que importe el orden de las claves) y, si difiere, se aborta SIN escribir el
+ * manifiesto. Las colecciones y campos ya añadidos se quedan (el sembrado es aditivo), y repetir
+ * «Actualizar el sitio» recalcula el manifiesto sobre lo que hay ahora.
+ */
+async function assertManifestUnchanged(port: BackendPort, plan: ManifestPlan): Promise<void> {
+	const vegaType = (await port.listContentTypes()).find(
+		(type) => type.name === VEGA_COLLECTION.name
+	);
+	const page = vegaType ? await listManifestRecords(port, vegaType, 2) : null;
+	const found = page?.items ?? [];
+	const unchanged =
+		plan.basis === null
+			? found.length === 0
+			: found.length === 1 &&
+				found[0]!.id === plan.basis.id &&
+				sameJson(found[0]!.values.manifest, plan.basis.manifest);
+	if (unchanged) return;
+	throw VegaError.backend(
+		'El manifiesto cambió mientras se preparaba la actualización del sitio, así que no se ha ' +
+			'escrito. Las colecciones y campos que faltaban ya están añadidos. Vuelve a actualizar el ' +
+			'sitio para recalcular el manifiesto sobre lo que hay ahora.'
+	);
+}
+
+/** Igualdad profunda de dos JSON sin que importe el orden de las claves de un objeto. */
+function sameJson(left: unknown, right: unknown): boolean {
+	if (left === right) return true;
+	if (Array.isArray(left) || Array.isArray(right)) {
+		return (
+			Array.isArray(left) &&
+			Array.isArray(right) &&
+			left.length === right.length &&
+			left.every((item, index) => sameJson(item, right[index]))
+		);
+	}
+	if (isManifestObject(left) && isManifestObject(right)) {
+		const keys = Object.keys(left);
+		return (
+			keys.length === Object.keys(right).length &&
+			keys.every((key) => key in right && sameJson(left[key], right[key]))
+		);
+	}
+	return false;
 }
 
 /**
@@ -522,6 +673,12 @@ export interface SiteSeedModulePlan {
 	 * con `fieldGroups` propios, un campo en un tipo de bloque que ya existe.
 	 */
 	manifestSkipped: ManifestMergeSkipped[];
+	/**
+	 * Reglas de acceso de colecciones del módulo que YA existen y no son las que declara. Ausente o vacía si
+	 * no hay diferencias o si el puerto no puede leer reglas (`BackendPort.collectionRules`). Con
+	 * algo que escribir (`moduleHasWrites`), `seedSiteProject` exige confirmarlas.
+	 */
+	ruleDifferences?: SiteSeedRuleDifference[];
 }
 
 export type SiteSeedPreview =
@@ -571,7 +728,8 @@ export async function previewSiteSeed(
 			createdCollections: [],
 			addedFields: {},
 			manifestEntries: [...(plan.manifest.entries.get(module.id) ?? [])],
-			manifestSkipped: [...(plan.manifest.skipped.get(module.id) ?? [])]
+			manifestSkipped: [...(plan.manifest.skipped.get(module.id) ?? [])],
+			ruleDifferences: [...(plan.ruleDifferences.get(module.id) ?? [])]
 		};
 		for (const { name } of module.collections) {
 			const collection = plan.collections.get(name)!;
@@ -683,7 +841,64 @@ async function inspectSeedPlan(
 	);
 
 	if (divergences.length > 0) throw new SiteSeedDivergenceError(divergences);
-	return { modules, collections, manifest, pageMissing };
+	const ruleDifferences = await inspectRuleDifferences(port, modules, actualByName);
+	return { modules, collections, manifest, pageMissing, ruleDifferences };
+}
+
+/**
+ * Compara las reglas de acceso de las colecciones de módulo que YA existen con las que declara su
+ * módulo. Una regla que el módulo no declara cuenta como `null` (es lo que PocketBase crea). Solo
+ * lectura y solo si el puerto sabe leer reglas.
+ */
+async function inspectRuleDifferences(
+	port: BackendPort,
+	modules: readonly SiteSeedModule[],
+	actualByName: ReadonlyMap<string, ContentType>
+): Promise<Map<string, SiteSeedRuleDifference[]>> {
+	const differences = new Map<string, SiteSeedRuleDifference[]>();
+	if (!port.collectionRules) return differences;
+	const existing = modules
+		.filter((module) => module !== SITE_SEED_BASE_MODULE)
+		.flatMap((module) => module.collections.map((spec) => spec.name))
+		.filter((name) => actualByName.has(name));
+	if (existing.length === 0) return differences;
+
+	const actualRules = await port.collectionRules(existing);
+	for (const module of modules) {
+		if (module === SITE_SEED_BASE_MODULE) continue;
+		const found: SiteSeedRuleDifference[] = [];
+		for (const spec of module.collections) {
+			const actual = actualRules[spec.name];
+			if (!actual) continue;
+			for (const rule of COMMON_COLLECTION_RULE_KEYS) {
+				const expected = spec[rule] ?? null;
+				if ((actual[rule] ?? null) !== expected) {
+					found.push({ collection: spec.name, rule, actual: actual[rule] ?? null, expected });
+				}
+			}
+		}
+		if (found.length > 0) differences.set(module.id, found);
+	}
+	return differences;
+}
+
+/**
+ * Antes de la primera escritura: un módulo con diferencias de reglas y algo que escribir no sigue
+ * sin confirmación. Se mira lo que el plan escribiría de ESE módulo (colecciones, campos, entradas).
+ */
+function assertRuleDifferencesConfirmed(plan: SeedPlan, confirmed: readonly string[]): void {
+	const pending: Record<string, SiteSeedRuleDifference[]> = {};
+	for (const module of plan.modules) {
+		const differences = plan.ruleDifferences.get(module.id);
+		if (!differences || confirmed.includes(module.id)) continue;
+		const writes =
+			module.collections.some((spec) => {
+				const collection = plan.collections.get(spec.name)!;
+				return collection.missing || collection.missingFields.length > 0;
+			}) || (plan.manifest.entries.get(module.id)?.length ?? 0) > 0;
+		if (writes) pending[module.id] = differences;
+	}
+	if (Object.keys(pending).length > 0) throw new SiteSeedRuleDifferencesError(pending);
 }
 
 function inspectCollection(
@@ -770,6 +985,7 @@ async function inspectManifestRecord(
 
 const KEEP_MANIFEST: ManifestPlan = {
 	action: 'keep',
+	basis: null,
 	merged: null,
 	entries: new Map(),
 	skipped: new Map()
@@ -792,7 +1008,7 @@ function createManifestPlan(modules: readonly SiteSeedModule[]): ManifestPlan {
 				.join('; ')}`
 		);
 	}
-	return { action: 'create', merged, entries, skipped };
+	return { action: 'create', basis: null, merged, entries, skipped };
 }
 
 /** Fusiona en `saved` el fragmento de cada módulo, en orden, y anota qué aporta cada uno. */
@@ -863,7 +1079,13 @@ function inspectManifestPage(
 		});
 		return KEEP_MANIFEST;
 	}
-	return { action: 'upgrade', merged, entries, skipped };
+	return {
+		action: 'upgrade',
+		basis: { id: records.items[0]!.id, manifest: saved },
+		merged,
+		entries,
+		skipped
+	};
 }
 
 async function inspectCanonicalPage(
