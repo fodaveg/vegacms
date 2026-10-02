@@ -350,6 +350,35 @@ describe('RecordForm — el diálogo de «Programar…»', () => {
 		expect(dialog(w)).not.toBeNull();
 	});
 
+	test('2.2 con el error a la vista, corregir la fecha sin salir del campo lo quita y habilita «Programar»', async () => {
+		const w = await setup({});
+		const input = await openDialog(w);
+		await typeDate(input, localAt(-2));
+		input.dispatchEvent(new Event('blur'));
+		flushSync();
+		await tick();
+		const confirm = buttonIn(dialog(w)!, 'Programar')!;
+		expect(confirm.getAttribute('aria-disabled')).toBe('true');
+
+		// Sin blur: el foco sigue en el campo.
+		await typeDate(input, localAt(2));
+		flushSync();
+		await tick();
+		expect(input.getAttribute('aria-invalid')).toBeNull();
+		expect(dialog(w)!.querySelector('.vega-admin-field-error')).toBeNull();
+		expect(confirm.getAttribute('aria-disabled')).toBe('false');
+	});
+
+	test('2.2 el error no sale por primera vez mientras se teclea una fecha pasada', async () => {
+		const w = await setup({});
+		const input = await openDialog(w);
+		await typeDate(input, localAt(-2));
+		flushSync();
+		await tick();
+		expect(dialog(w)!.querySelector('.vega-admin-field-error')).toBeNull();
+		expect(buttonIn(dialog(w)!, 'Programar')!.getAttribute('aria-disabled')).toBe('false');
+	});
+
 	test('2.3 servidor sin comprobar: aviso dentro del diálogo y SÍ deja programar', async () => {
 		const w = await setup({ scheduling: 'unknown' });
 		const input = await openDialog(w);

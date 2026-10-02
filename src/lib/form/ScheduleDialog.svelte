@@ -8,7 +8,8 @@
 	 * - Fecha propuesta: la de `at` si el registro ya está programado («Cambiar fecha…»), o mañana a
 	 *   las 09:00 (`proposeScheduleLocal`). Foco inicial en la fecha. Cada apertura empieza de cero.
 	 * - Fecha pasada (2.2): el error sale al SALIR del campo y al pulsar «Programar»; mientras tanto
-	 *   no se escribe ningún mensaje. El botón queda con `aria-disabled` (nunca `disabled`, para no
+	 *   no se escribe ningún mensaje. Una vez visible, el error se recalcula al teclear y se va en cuanto
+	 *   la fecha vale. El botón queda con `aria-disabled` (nunca `disabled`, para no
 	 *   vaciar la trampa de foco de `AdminDialog`).
 	 * - Servidor sin comprobar (2.3, `unconfirmed`): aviso dentro del diálogo, con el mismo texto que
 	 *   el aviso de «Publicar el»; no impide programar.
@@ -90,6 +91,12 @@
 		return iso;
 	}
 
+	/** Con un error ya visible se revalida al teclear, para que el botón se habilite en cuanto la fecha
+	 *  vale; sin error no se hace nada (una fecha a medias no debe reñir antes de salir del campo). */
+	function revalidate(): void {
+		if (error !== null) check();
+	}
+
 	function blur(): void {
 		// Sin nada tecleado no se riñe: el error de «vacío» solo sale al pulsar «Programar».
 		if (value === '') return;
@@ -139,6 +146,7 @@
 			aria-describedby={error ? `${id}-at-error` : `${id}-at-hint`}
 			data-autofocus=""
 			onblur={blur}
+			oninput={revalidate}
 			onkeydown={handleKeydown}
 		/>
 		{#if error}
