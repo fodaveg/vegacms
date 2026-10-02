@@ -69,6 +69,7 @@ export const COMPONENT_FILES = [
 	'src/lib/visual/VisualInspector.svelte',
 	// Audit de móvil del 30 sep (tarea «objetivos táctiles de 44 px»): el chrome de la lista y del
 	// editor. Salían a 32×32 (menú), 55×24 (Borrar) y 13 px (cabeceras ordenables) con el dedo.
+	'src/lib/shell/GlobalBanner.svelte',
 	'src/lib/shell/Topbar.svelte',
 	'src/lib/list/ListToolbar.svelte',
 	'src/lib/list/RecordTable.svelte',
