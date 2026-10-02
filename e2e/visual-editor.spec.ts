@@ -101,6 +101,10 @@ const visibleInspectorBody = (page: Page) => page.locator('.vega-inspector-body:
 const headingInput = (page: Page) =>
 	visibleInspectorBody(page).locator('[data-field="heading"] input');
 
+/** Estado de la página en la cabecera (`VisualPublishControl.svelte`): lo usan el bloque de
+ *  publicar/despublicar y el de «solo textos», así que vive aquí, en el ámbito del fichero. */
+const statusGroup = (page: Page) => page.getByRole('group', { name: 'Estado de la página' });
+
 test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-origin', () => {
 	test('pinta los contornos que reporta el sitio, con la geometría real de sus bloques', async ({
 		page
@@ -473,8 +477,6 @@ test.describe('editor visual — paleta de bloques arrastrable, crear sobre el l
  * «Publicar» de la barra superior, y la etiqueta solo cambia cuando el servidor confirma.
  */
 test.describe('editor visual — publicar y despublicar desde la cabecera', () => {
-	const statusGroup = (page: Page) => page.getByRole('group', { name: 'Estado de la página' });
-
 	test('marcar como publicada y volver a borrador, con la etiqueta del servidor', async ({
 		page
 	}) => {
