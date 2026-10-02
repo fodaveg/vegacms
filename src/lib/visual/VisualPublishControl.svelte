@@ -27,6 +27,23 @@
 	 * igualmente» / «Cancelar», foco inicial en «Cancelar», Esc cierra. «Publicar igualmente» NO
 	 * guarda los bloques (no existe "guardar todos"). Pasar a borrador no pregunta: no expone nada.
 	 *
+	 * **Revisión antes de publicar** (lote 13, lámina 2.1-2.4, decisión 6): con `review` (el estado
+	 * de `review-state.svelte.ts` que crea `VisualEditorScreen`), «Marcar como publicada» pregunta
+	 * también si la revisión tiene avisos o algo sin comprobar (`review.needsAttention`), en el
+	 * MISMO popover y en tono de aviso (`--warning`/`--warning-soft`, la pareja de
+	 * `.vega-field-notice`): la lista de grupos (`ReviewGroups.svelte`, `surface="visual"`), «Ningún
+	 * aviso impide publicar», «Publicar igualmente» / «Cancelar». Sin avisos publica a la primera,
+	 * como hoy. Con bloques sin guardar Y avisos sale UNA sola confirmación («Antes de publicar»:
+	 * los bloques primero, que es lo que más cambia lo que se publica, y los avisos debajo), nunca
+	 * dos seguidas. Si se pulsa antes de que la revisión termine de cargar: «Revisando la página…» y
+	 * «Publicar sin esperar»; al terminar, el popover se rellena en el sitio (con avisos, la lista;
+	 * sin avisos, «Sin avisos» y el botón vuelve a decir «Marcar como publicada»), y NUNCA publica
+	 * solo. Si la revisión falló: «No se ha podido revisar la página» con «Reintentar», y publicar
+	 * sigue a mano (no saber no es lo mismo que no poder). Las acciones de un aviso (`onReviewGo`,
+	 * `onReviewDescribe`) las resuelve la pantalla: un campo del registro abre el formulario con
+	 * ese campo enfocado, un bloque se elige en el árbol, una imagen sin alt abre su ficha; en los
+	 * tres casos el popover se cierra. Sin permiso de editar no hay botón, así que tampoco popover.
+	 *
 	 * **Rótulo distinto del «Publicar» de la barra superior** (`PublishButton`, que reconstruye el
 	 * sitio): «Marcar como publicada». Y si el proyecto tiene reconstrucción configurada
 	 * (`ctx.port.buildApiUrl`), el mensaje de éxito avisa de que se verá en el sitio tras la próxima
@@ -52,6 +69,9 @@
 	import { describeScheduleControl, formatScheduleMoment } from '$lib/form/schedule';
 	import { describeStatusBadge } from '$lib/list/cell';
 	import type { ResolvedContentType } from '$lib/model/types';
+	import type { ReviewFinding } from '$lib/publish-review/publish-review';
+	import type { ReviewState } from '$lib/publish-review/review-state.svelte';
+	import ReviewGroups from '$lib/publish-review/ReviewGroups.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
 
 	interface Props {
@@ -62,9 +82,25 @@
 		name: string;
 		/** Títulos de los bloques con cambios sin guardar (`blocks.isDirty`). */
 		pendingBlocks: readonly string[];
+		/** La revisión antes de publicar de esta página (ver cabecera), o `null` si el tipo no tiene
+		 *  revisión (sin `statusField` ya no se pinta nada; sin comprobaciones que apliquen,
+		 *  `review.enabled` es `false` y se publica a la primera). */
+		review?: ReviewState | null;
+		/** Ir al campo (abre el formulario) o al bloque (lo elige en el árbol) de un aviso. */
+		onReviewGo?: (finding: ReviewFinding) => void;
+		/** «Describir la imagen…» de un aviso de alt: abrir la ficha de Medios. */
+		onReviewDescribe?: (finding: ReviewFinding) => void;
 	}
 
-	let { type, record, name, pendingBlocks }: Props = $props();
+	let {
+		type,
+		record,
+		name,
+		pendingBlocks,
+		review = null,
+		onReviewGo,
+		onReviewDescribe
+	}: Props = $props();
 
 	const ctx = getVegaContext();
 	const uid = $props.id();
@@ -171,8 +207,76 @@
 
 	/** Lo que hace el botón: pasar a borrador si está publicada; publicar en cualquier otro caso. */
 	const target = $derived<Target>(tag?.raw === 'published' ? 'draft' : 'published');
-	const asksConfirmation = $derived(target === 'published' && pendingBlocks.length > 0);
+
+	// ————— Revisión antes de publicar (ver cabecera) —————
+
+	/** La revisión tiene algo que decir antes de publicar: avisos, algo sin comprobar, carga en
+	 *  curso o fallida. `false` sin revisión o con todo en regla. */
+	const reviewSays = $derived(review !== null && review.enabled && review.needsAttention);
+	const reviewLoading = $derived(
+		reviewSays && (review!.phase === 'loading' || review!.phase === 'idle')
+	);
+	const reviewFailed = $derived(reviewSays && review!.phase === 'error');
+	const findingsCount = $derived(review?.result.findings.length ?? 0);
+
+	const asksConfirmation = $derived(
+		target === 'published' && (pendingBlocks.length > 0 || reviewSays)
+	);
 	const retrying = $derived(phase === 'error' && errorKind === 'failed' && errorTarget === target);
+
+	/** Título del popover: UNA confirmación con las dos cosas si hay bloques sin guardar y avisos. */
+	const popTitle = $derived.by(() => {
+		if (pendingBlocks.length > 0 && reviewSays) return ctx.t('editor.visual.review.title.mixed');
+		if (pendingBlocks.length > 0) {
+			return ctx.t(
+				pendingBlocks.length === 1
+					? 'editor.visual.status.confirm.title.one'
+					: 'editor.visual.status.confirm.title.many',
+				{ count: pendingBlocks.length }
+			);
+		}
+		if (reviewLoading) return ctx.t('editor.visual.review.checking.title');
+		if (reviewFailed) return ctx.t('editor.visual.review.error');
+		if (findingsCount > 0) {
+			return ctx.t(
+				findingsCount === 1 ? 'editor.visual.review.title.one' : 'editor.visual.review.title.many',
+				{ count: findingsCount }
+			);
+		}
+		if (reviewSays) return ctx.t('editor.visual.review.title.incomplete');
+		// La carga terminó con el popover abierto y no hay nada que decir (lámina 2.3).
+		return ctx.t('review.count.none');
+	});
+
+	const popBody = $derived.by(() => {
+		if (pendingBlocks.length > 0 && !reviewSays) return ctx.t('editor.visual.status.confirm.body');
+		if (reviewLoading && pendingBlocks.length === 0) {
+			return ctx.t('editor.visual.review.checking.body');
+		}
+		if (findingsCount > 0 && pendingBlocks.length === 0 && !reviewLoading && !reviewFailed) {
+			return ctx.t('editor.visual.review.body');
+		}
+		return ctx.t('review.notBlocking');
+	});
+
+	const confirmLabel = $derived(
+		reviewLoading
+			? ctx.t('editor.visual.review.skipWait')
+			: pendingBlocks.length === 0 && !reviewSays
+				? ctx.t('editor.visual.status.publish')
+				: ctx.t('editor.visual.status.confirm.publish')
+	);
+
+	/** Una acción de un aviso cierra el popover: el foco va al campo, al árbol o a la ficha. */
+	function handleReviewGo(finding: ReviewFinding): void {
+		phase = 'idle';
+		onReviewGo?.(finding);
+	}
+
+	function handleReviewDescribe(finding: ReviewFinding): void {
+		phase = 'idle';
+		onReviewDescribe?.(finding);
+	}
 
 	const actionLabel = $derived(
 		phase === 'changing'
@@ -283,8 +387,10 @@
 				class:vega-visual-publish-btn--primary={target === 'published'}
 				bind:this={actionEl}
 				aria-disabled={phase === 'changing' ? 'true' : undefined}
-				aria-expanded={asksConfirmation ? phase === 'confirming' : undefined}
-				aria-controls={asksConfirmation && phase === 'confirming' ? `${uid}-pop` : undefined}
+				aria-expanded={asksConfirmation || phase === 'confirming'
+					? phase === 'confirming'
+					: undefined}
+				aria-controls={phase === 'confirming' ? `${uid}-pop` : undefined}
 				data-status-target={target}
 				onclick={() => void requestChange()}
 			>
@@ -315,31 +421,79 @@
 			{/if}
 
 			{#if phase === 'confirming'}
-				<!-- Confirmación en línea (patrón `notice-confirm` de /papelera, ver cabecera). -->
+				<!-- Confirmación en línea (patrón `notice-confirm` de /papelera, ver cabecera). Con la
+				     revisión diciendo algo, en tono de aviso y con sus grupos dentro (lote 13). -->
 				<div
 					class="vega-visual-publish-pop"
+					class:vega-visual-publish-pop--review={reviewSays}
 					id="{uid}-pop"
 					role="alertdialog"
 					aria-labelledby="{uid}-pop-title"
 					aria-describedby="{uid}-pop-body"
+					aria-busy={reviewLoading ? 'true' : undefined}
 					tabindex="-1"
 					onkeydown={handlePopKeydown}
 				>
-					<p class="vega-visual-publish-pop-title" id="{uid}-pop-title">
-						{ctx.t(
-							pendingBlocks.length === 1
-								? 'editor.visual.status.confirm.title.one'
-								: 'editor.visual.status.confirm.title.many',
-							{ count: pendingBlocks.length }
-						)}
-					</p>
-					<ul>
-						{#each pendingBlocks as title, i (i)}
-							<li>«{title}»</li>
-						{/each}
-					</ul>
-					<p class="vega-visual-publish-pop-body" id="{uid}-pop-body">
-						{ctx.t('editor.visual.status.confirm.body')}
+					<p class="vega-visual-publish-pop-title" id="{uid}-pop-title">{popTitle}</p>
+					{#if pendingBlocks.length > 0 && reviewSays}
+						<!-- UNA confirmación con las dos cosas (lámina 2.2): los bloques sin guardar primero,
+						     los avisos debajo; lo que puede crecer se desplaza, título y botones no. -->
+						<div class="vega-review-pop-scroll">
+							<div class="vega-review-pop-section">
+								<p class="vega-review-pop-head">
+									{ctx.t(
+										pendingBlocks.length === 1
+											? 'editor.visual.status.confirm.title.one'
+											: 'editor.visual.status.confirm.title.many',
+										{ count: pendingBlocks.length }
+									)}
+								</p>
+								<ul>
+									{#each pendingBlocks as title, i (i)}
+										<li>«{title}»</li>
+									{/each}
+								</ul>
+								<p class="vega-visual-publish-pop-body">
+									{ctx.t('editor.visual.status.confirm.body')}
+								</p>
+							</div>
+							{#if review && !reviewLoading}
+								<div class="vega-review-pop-section">
+									<ReviewGroups
+										{review}
+										surface="visual"
+										canAct={true}
+										onGo={handleReviewGo}
+										onDescribe={handleReviewDescribe}
+									/>
+								</div>
+							{/if}
+						</div>
+					{:else if pendingBlocks.length > 0}
+						<ul>
+							{#each pendingBlocks as title, i (i)}
+								<li>«{title}»</li>
+							{/each}
+						</ul>
+					{:else if review && reviewSays && !reviewLoading}
+						<div class="vega-review-pop-scroll">
+							<div class="vega-review-pop-section">
+								<ReviewGroups
+									{review}
+									surface="visual"
+									canAct={true}
+									onGo={handleReviewGo}
+									onDescribe={handleReviewDescribe}
+								/>
+							</div>
+						</div>
+					{/if}
+					<p
+						class="vega-visual-publish-pop-body"
+						id="{uid}-pop-body"
+						aria-live={reviewLoading ? 'polite' : undefined}
+					>
+						{popBody}
 					</p>
 					<div class="vega-visual-publish-pop-actions">
 						<button
@@ -347,7 +501,7 @@
 							class="vega-visual-publish-pop-btn vega-visual-publish-pop-btn--primary"
 							onclick={() => void change('published')}
 						>
-							{ctx.t('editor.visual.status.confirm.publish')}
+							{confirmLabel}
 						</button>
 						<button
 							type="button"
@@ -558,6 +712,70 @@
 		background: var(--accent-fill);
 		color: var(--accent-ink);
 		font-weight: 600;
+	}
+
+	/* Con avisos (lote 13): del tono `info` al tono `warning`, la misma pareja que
+	   `.vega-field-notice`. El tope de alto es para que una lista larga se desplace dentro. */
+	.vega-visual-publish-pop--review {
+		border-color: var(--warning);
+		background: var(--warning-soft);
+		color: var(--warning);
+		max-height: min(70vh, 34rem);
+	}
+
+	/* Sobre `--warning-soft` tres parejas de la tarjeta bajan de 4,5:1 (medido en los 21 temas en
+	   la lámina): `--ink-2` en claro, `--accent-text` en claro y `--danger` en oscuro. Dentro del
+	   popover pasan a `--ink` (≥ 9:1); la acción conserva el subrayado siempre, así que sigue
+	   leyéndose como enlace sin depender del color. `:global`: viven en `ReviewGroups.svelte`. */
+	.vega-visual-publish-pop--review :global(.vega-review-group-head),
+	.vega-visual-publish-pop--review :global(.vega-review-where),
+	.vega-visual-publish-pop--review :global(.vega-review-more),
+	.vega-visual-publish-pop--review :global(.vega-review-skipped),
+	.vega-visual-publish-pop--review :global(.vega-review-error),
+	.vega-visual-publish-pop--review .vega-review-pop-head {
+		color: var(--ink);
+	}
+
+	.vega-visual-publish-pop--review :global(.vega-review-go) {
+		color: var(--ink);
+		text-decoration-color: currentColor;
+	}
+
+	/* Lo que puede crecer (bloques sin guardar + avisos) se desplaza; título y botones, no. Las dos
+	   hairlines (`--line`, la de `.vega-edit-top`) marcan dónde corta el desplazamiento: sin ellas,
+	   un aviso cortado por abajo parece un fallo de pintado y no algo que sigue. */
+	.vega-review-pop-scroll {
+		display: flex;
+		flex-direction: column;
+		gap: 0.65rem;
+		min-height: 0;
+		padding-block: 0.5rem;
+		border-block: 1px solid var(--line);
+		overflow-y: auto;
+		overscroll-behavior: contain;
+	}
+
+	/* `.vega-visual-publish-pop ul` (lista de bloques sin guardar) sangra y pinta en `--ink`: las
+	   listas de la revisión no llevan viñeta, así que se anula la sangría solo en ellas. */
+	.vega-visual-publish-pop :global(.vega-review-groups),
+	.vega-visual-publish-pop :global(.vega-review-items) {
+		margin: 0;
+		padding-left: 0;
+	}
+
+	.vega-review-pop-section {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+	}
+
+	/* Rótulo de sección dentro del popover: el de grupo de la tarjeta (`.vega-review-group-head`). */
+	.vega-review-pop-head {
+		margin: 0;
+		font-size: 0.82em;
+		font-weight: 650;
+		letter-spacing: 0.03em;
+		color: var(--ink-2);
 	}
 
 	/* Estrecho: el control baja a su propia línea (lámina p2). */

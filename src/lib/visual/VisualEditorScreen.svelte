@@ -281,6 +281,16 @@
 	 * bloques sucios para pedir confirmación antes de publicar con cambios sin guardar. Vive en su
 	 * propio componente (y en la lista de `check-touch-targets`) porque tiene estado propio: el
 	 * registro que el servidor confirmó, la confirmación en línea y el error.
+	 *
+	 * **Revisión antes de publicar** (lote 13): `createReviewState` (`$lib/publish-review`) sobre el
+	 * registro guardado y los bloques EN PANTALLA (`blocks.currentDraftRecords()`, guardados o no);
+	 * páginas, redirecciones y medios se releen al abrir y tras cada guardado real
+	 * (`handleContentSaved`, vía `contentSavedCount`). Se la pasa a `VisualPublishControl`, que la
+	 * mete en su popover. Las acciones de un aviso se resuelven aquí: un campo del registro deja la
+	 * petición en `focus-request.ts` y abre el formulario (`ctx.nav.toRecord`, con la salvaguarda de
+	 * salida de siempre si hay bloques sin guardar); un bloque pasa por `handleBlockSelect` (la
+	 * puerta única de selección); una imagen sin alt abre su ficha de Medios encima
+	 * (`ReviewMediaDialog`).
 	 */
 	import { onDestroy, onMount, untrack } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
@@ -297,6 +307,10 @@
 		type VisualBridgeState
 	} from './bridge-client';
 	import { createBlocksState } from '$lib/form/blocks-state.svelte';
+	import { requestFieldFocus } from '$lib/form/focus-request';
+	import type { ReviewFinding } from '$lib/publish-review/publish-review';
+	import { createReviewState } from '$lib/publish-review/review-state.svelte';
+	import ReviewMediaDialog from '$lib/publish-review/ReviewMediaDialog.svelte';
 	import { isEditableTarget } from '$lib/shell/keyboard';
 	import { describeCell } from '$lib/list/cell';
 	import { resolveTitleCellText } from '$lib/list/list-load';
@@ -350,6 +364,49 @@
 		getDisabled: () => false,
 		onDirtyChange: () => {} // el guard de salida lee `blocks.anyDirty` directo, ver más abajo
 	});
+
+	// ————— Revisión antes de publicar (ver cabecera) —————
+
+	/** Guardados reales ocurridos aquí (`handleContentSaved`): releen lo que la revisión lee del
+	 *  servidor. */
+	let contentSavedCount = $state(0);
+	/** Ficha de Medios abierta desde «Describir la imagen…», o `null`. */
+	let reviewMediaId = $state<string | null>(null);
+
+	const review = createReviewState({
+		ctx,
+		type: untrack(() => type),
+		getRecordId: () => record.id,
+		getRecord: () => record,
+		// Los bloques EN PANTALLA, con las ediciones sin guardar de cada ficha (`draftOverrides`):
+		// la revisión mira lo que se ve, guardado o no. `null` mientras la lista no tiene tipo hijo.
+		getBlocks: () => {
+			const child = blocks.childType;
+			if (!child) return null;
+			return blocks.currentDraftRecords().map((draft) => ({
+				id: draft.id,
+				type: child.name,
+				values: draft.fields as VegaRecord['values']
+			}));
+		},
+		getReloadToken: () => contentSavedCount
+	});
+
+	/** La acción de un aviso del popover (ver cabecera): al formulario con el campo enfocado, o al
+	 *  bloque en el árbol. */
+	function handleReviewGo(finding: ReviewFinding): void {
+		const target = finding.target;
+		if (target.kind === 'field') {
+			requestFieldFocus({ type: type.name, id: record.id, field: target.field });
+			ctx.nav.toRecord(type.name, record.id);
+			return;
+		}
+		handleBlockSelect(target.blockId);
+	}
+
+	function handleReviewDescribe(finding: ReviewFinding): void {
+		reviewMediaId = finding.mediaId ?? null;
+	}
 
 	/** Guard de salida (ver cabecera): mismo mecanismo y mismo texto que `RecordForm.svelte`.
 	 *  `beforeNavigate` se registra en la inicialización del componente y SvelteKit lo da de baja
@@ -619,6 +676,7 @@
 	 *  refresco no cambia ni una coma, esta función solo le añade el reloj por delante. */
 	function handleContentSaved(): void {
 		savedAt = new Date();
+		contentSavedCount += 1; // la revisión relee páginas, redirecciones y medios (ver cabecera)
 		// Sin lienzo (modo «solo textos», ver cabecera) no hay marco que refrescar: pedir un token
 		// aquí lo descargaría para nadie y rearmaría su renovación en un móvil. Al ensanchar,
 		// `applyWidth(true)` pide uno nuevo y el lienzo nace ya con lo guardado.
@@ -1140,6 +1198,9 @@
 				pendingBlocks={blocks.records
 					.filter((r) => blocks.isDirty(r.id))
 					.map((r) => blocks.blockTitle(r))}
+				{review}
+				onReviewGo={handleReviewGo}
+				onReviewDescribe={handleReviewDescribe}
 			/>
 		{/snippet}
 		{#snippet actions()}
@@ -1442,6 +1503,16 @@
 			</div>
 		</div>
 	{/if}
+
+	<!-- «Describir la imagen…» de la revisión (lote 13): la ficha de Medios de siempre, encima del
+	     editor visual. Guardar sustituye la ficha en la revisión; borrar relee. -->
+	<ReviewMediaDialog
+		mediaId={reviewMediaId}
+		onClose={() => (reviewMediaId = null)}
+		onSaved={(item) => review.updateMedia(item)}
+		onDeleted={() => void review.reload()}
+		fallbackFocusEl={null}
+	/>
 </div>
 
 <style>

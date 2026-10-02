@@ -19,6 +19,14 @@ import { formatScheduleMoment, proposeScheduleLocal } from '$lib/form/schedule';
 import { isoUtcToLocalInput, localInputToIsoUtc } from '$lib/form/widgets/datetime';
 import type { ResolvedContentType } from '$lib/model/types';
 import { resolveContentModel } from '$lib/model/resolve';
+import type { ReviewFinding } from '$lib/publish-review/publish-review';
+import type { ReviewState } from '$lib/publish-review/review-state.svelte';
+import {
+	blockTarget,
+	fakeReviewState,
+	fieldTarget,
+	finding
+} from '$lib/publish-review/review-state.fixture';
 import { t as translate } from '$lib/i18n';
 
 const pagesType: ContentType = {
@@ -103,6 +111,10 @@ function mountControl(opts: {
 	buildApiUrl?: string | null;
 	/** `ContentModel.scheduledPublishing`; default `'active'`, como un servidor con `vegaschedule`. */
 	scheduling?: ScheduledPublishingState;
+	/** La revisión antes de publicar (lote 13), o nada: como un tipo sin revisión. */
+	review?: ReviewState;
+	onReviewGo?: (finding: ReviewFinding) => void;
+	onReviewDescribe?: (finding: ReviewFinding) => void;
 }): Harness {
 	const update =
 		opts.update ??
@@ -127,7 +139,10 @@ function mountControl(opts: {
 			type: opts.type ?? resolvedPages(),
 			record: opts.record,
 			name: 'Inicio',
-			pendingBlocks: opts.pendingBlocks ?? []
+			pendingBlocks: opts.pendingBlocks ?? [],
+			review: opts.review ?? null,
+			onReviewGo: opts.onReviewGo,
+			onReviewDescribe: opts.onReviewDescribe
 		},
 		context: new Map([[VEGA_CONTEXT_KEY, ctx]])
 	});
@@ -534,5 +549,269 @@ describe('VisualPublishControl.svelte — «Programar…»', () => {
 		expect(scheduleButton(h)).toBeNull();
 		expect(document.activeElement).toBe(action(h));
 		expect(h.feedback.reportError).not.toHaveBeenCalled();
+	});
+});
+
+// ————— Revisión antes de publicar (lote 13, lámina 2.1-2.5): el popover con los avisos —————
+
+const DESCRIPTION = finding('seo.description-long', fieldTarget('description', 'Descripción'), {
+	params: { length: 211, max: 160 }
+});
+const BROKEN = finding('link.broken', blockTarget('b2', 2, 'Texto rico', 'body', 'Contenido'), {
+	params: { href: '/precios' },
+	reason: 'not-found'
+});
+const ALT = finding('media.alt-missing', blockTarget('b3', 3, 'Galería', 'images', 'Imágenes'), {
+	params: { file: 'chaqueta.jpg' },
+	mediaId: 'm1'
+});
+
+const pop = (h: Harness) => h.target.querySelector<HTMLElement>('[role="alertdialog"]');
+const popTitle = (h: Harness) =>
+	pop(h)?.querySelector('.vega-visual-publish-pop-title')?.textContent?.trim() ?? null;
+const popButton = (h: Harness, label: string) =>
+	[...(pop(h)?.querySelectorAll<HTMLButtonElement>('button') ?? [])].find(
+		(b) => b.textContent?.trim() === label || b.getAttribute('aria-label') === label
+	) ?? null;
+
+describe('VisualPublishControl.svelte — revisión antes de publicar', () => {
+	let h: Harness | null = null;
+
+	afterEach(async () => {
+		if (h) {
+			await unmount(h.instance);
+			h.target.remove();
+			h = null;
+		}
+	});
+
+	test('2.5 sin avisos (todo comprobado): publica a la primera, sin popover', async () => {
+		h = mountControl({ record: page('draft'), review: fakeReviewState() });
+		action(h)!.click();
+		await settle();
+		expect(pop(h)).toBeNull();
+		expect(h.update).toHaveBeenCalledWith(
+			'pages',
+			'p1',
+			{ status: 'published' },
+			expect.anything()
+		);
+	});
+
+	test('un tipo sin comprobaciones que apliquen tampoco pregunta', async () => {
+		h = mountControl({
+			record: page('draft'),
+			review: fakeReviewState({ enabled: false, phase: 'idle', groups: [] })
+		});
+		action(h)!.click();
+		await settle();
+		expect(pop(h)).toBeNull();
+		expect(h.update).toHaveBeenCalledTimes(1);
+	});
+
+	test('2.1 con avisos: confirmación en tono de aviso con la lista, foco en Cancelar, Esc cierra, y publica solo al confirmar', async () => {
+		h = mountControl({
+			record: page('draft'),
+			review: fakeReviewState({ findings: [DESCRIPTION, BROKEN, ALT] })
+		});
+		const button = action(h)!;
+		expect(button.getAttribute('aria-expanded')).toBe('false');
+		button.click();
+		await settle();
+
+		const dialog = pop(h)!;
+		expect(dialog.classList.contains('vega-visual-publish-pop--review')).toBe(true);
+		expect(button.getAttribute('aria-expanded')).toBe('true');
+		expect(popTitle(h)).toBe('Antes de publicar: 3 avisos');
+		expect(dialog.querySelectorAll('[data-review-group]')).toHaveLength(3);
+		expect(
+			dialog.querySelector('#' + dialog.getAttribute('aria-describedby'))?.textContent?.trim()
+		).toBe('Ningún aviso impide publicar. Puedes publicar igualmente o arreglarlos antes.');
+		expect(document.activeElement?.textContent?.trim()).toBe(t('common.cancel'));
+		expect(h.update).not.toHaveBeenCalled();
+
+		dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		await settle();
+		expect(pop(h)).toBeNull();
+		expect(document.activeElement).toBe(button);
+		expect(h.update).not.toHaveBeenCalled();
+
+		button.click();
+		await settle();
+		popButton(h, 'Publicar igualmente')!.click();
+		await settle();
+		expect(h.update).toHaveBeenCalledWith(
+			'pages',
+			'p1',
+			{ status: 'published' },
+			expect.anything()
+		);
+	});
+
+	test('2.1 las acciones del popover: campo → abrir el formulario; bloque → el árbol; imagen → su ficha; y se cierra', async () => {
+		const onReviewGo = vi.fn();
+		const onReviewDescribe = vi.fn();
+		h = mountControl({
+			record: page('draft'),
+			review: fakeReviewState({ findings: [DESCRIPTION, BROKEN, ALT] }),
+			onReviewGo,
+			onReviewDescribe
+		});
+		action(h)!.click();
+		await settle();
+		const toForm = popButton(h, 'Abrir Descripción en el formulario')!;
+		expect(toForm.textContent?.trim()).toBe('Abrir Descripción en el formulario');
+		toForm.click();
+		await settle();
+		expect(onReviewGo).toHaveBeenLastCalledWith(DESCRIPTION);
+		expect(pop(h)).toBeNull();
+
+		action(h)!.click();
+		await settle();
+		const toBlock = popButton(h, 'Elegir el bloque 2 (Texto rico) en el árbol')!;
+		expect(toBlock.textContent?.trim()).toBe('Bloque 2 · Texto rico');
+		toBlock.click();
+		await settle();
+		expect(onReviewGo).toHaveBeenLastCalledWith(BROKEN);
+		expect(pop(h)).toBeNull();
+
+		action(h)!.click();
+		await settle();
+		popButton(h, 'Describir la imagen…')!.click();
+		await settle();
+		expect(onReviewDescribe).toHaveBeenCalledWith(ALT);
+		expect(pop(h)).toBeNull();
+		expect(h.update).not.toHaveBeenCalled();
+	});
+
+	test('2.2 con avisos Y un bloque sin guardar: UNA sola confirmación con las dos cosas', async () => {
+		h = mountControl({
+			record: page('draft'),
+			pendingBlocks: ['Reserva tu plaza'],
+			review: fakeReviewState({ findings: [BROKEN] })
+		});
+		action(h)!.click();
+		await settle();
+		expect(h.target.querySelectorAll('[role="alertdialog"]')).toHaveLength(1);
+		const dialog = pop(h)!;
+		expect(popTitle(h)).toBe('Antes de publicar');
+		expect(dialog.textContent).toContain('Hay 1 bloque sin guardar');
+		expect(dialog.textContent).toContain('«Reserva tu plaza»');
+		expect(dialog.textContent).toContain(t('editor.visual.status.confirm.body'));
+		expect(dialog.querySelectorAll('[data-review-group]')).toHaveLength(3);
+		expect(document.activeElement?.textContent?.trim()).toBe(t('common.cancel'));
+
+		popButton(h, 'Publicar igualmente')!.click();
+		await settle();
+		expect(h.update).toHaveBeenCalledTimes(1);
+		expect(h.target.querySelectorAll('[role="alertdialog"]')).toHaveLength(0);
+	});
+
+	test('solo bloques sin guardar (revisión en regla): el popover de siempre, en tono info', async () => {
+		h = mountControl({
+			record: page('draft'),
+			pendingBlocks: ['Galería'],
+			review: fakeReviewState()
+		});
+		action(h)!.click();
+		await settle();
+		expect(popTitle(h)).toBe('Hay 1 bloque sin guardar');
+		expect(pop(h)!.classList.contains('vega-visual-publish-pop--review')).toBe(false);
+		expect(pop(h)!.querySelector('[data-review-group]')).toBeNull();
+	});
+
+	test('2.3 revisando todavía: «Publicar sin esperar»; al terminar sin avisos se rellena en el sitio y NO publica solo', async () => {
+		const review = fakeReviewState({ phase: 'loading' });
+		h = mountControl({ record: page('draft'), review });
+		action(h)!.click();
+		await settle();
+		const dialog = pop(h)!;
+		expect(popTitle(h)).toBe('Revisando la página…');
+		expect(dialog.getAttribute('aria-busy')).toBe('true');
+		const body = dialog.querySelector('#' + dialog.getAttribute('aria-describedby'))!;
+		expect(body.textContent?.trim()).toBe(
+			'Tarda un momento. Puedes esperar o publicar sin la revisión.'
+		);
+		expect(body.getAttribute('aria-live')).toBe('polite');
+		expect(popButton(h, 'Publicar sin esperar')).not.toBeNull();
+		expect(document.activeElement?.textContent?.trim()).toBe(t('common.cancel'));
+
+		review.set({ phase: 'ready' });
+		flushSync();
+		await settle();
+		expect(pop(h)).not.toBeNull();
+		expect(popTitle(h)).toBe('Sin avisos');
+		expect(popButton(h, 'Marcar como publicada')).not.toBeNull();
+		expect(h.update).not.toHaveBeenCalled();
+
+		popButton(h, 'Marcar como publicada')!.click();
+		await settle();
+		expect(h.update).toHaveBeenCalledTimes(1);
+	});
+
+	test('2.3 al terminar CON avisos, el popover pasa a la lista', async () => {
+		const review = fakeReviewState({ phase: 'loading' });
+		h = mountControl({ record: page('draft'), review });
+		action(h)!.click();
+		await settle();
+		review.set({ phase: 'ready', findings: [DESCRIPTION] });
+		flushSync();
+		await settle();
+		expect(popTitle(h)).toBe('Antes de publicar: 1 aviso');
+		expect(pop(h)!.querySelectorAll('[data-review-group]')).toHaveLength(3);
+		expect(popButton(h, 'Publicar igualmente')).not.toBeNull();
+		expect(h.update).not.toHaveBeenCalled();
+	});
+
+	test('«Publicar sin esperar» publica sin la revisión', async () => {
+		h = mountControl({ record: page('draft'), review: fakeReviewState({ phase: 'loading' }) });
+		action(h)!.click();
+		await settle();
+		popButton(h, 'Publicar sin esperar')!.click();
+		await settle();
+		expect(h.update).toHaveBeenCalledWith(
+			'pages',
+			'p1',
+			{ status: 'published' },
+			expect.anything()
+		);
+	});
+
+	test('2.4 no se pudo revisar: el error con «Reintentar», y publicar sigue a mano', async () => {
+		const review = fakeReviewState({ phase: 'error', errorMessage: 'Demasiados bloques' });
+		h = mountControl({ record: page('draft'), review });
+		action(h)!.click();
+		await settle();
+		expect(popTitle(h)).toBe('No se ha podido revisar la página');
+		const error = pop(h)!.querySelector<HTMLElement>('.vega-review-error')!;
+		expect(error.textContent).toContain('No se han podido leer los bloques de la página');
+		popButton(h, t('common.retry'))!.click();
+		expect(review.reload).toHaveBeenCalledTimes(1);
+		expect(pop(h)!.textContent).toContain('Ningún aviso impide publicar.');
+		expect(popButton(h, 'Publicar igualmente')).not.toBeNull();
+		expect(h.update).not.toHaveBeenCalled();
+	});
+
+	test('cero avisos con algo sin comprobar también pregunta («revisión incompleta»)', async () => {
+		h = mountControl({
+			record: page('draft'),
+			review: fakeReviewState({ skipped: ['link.broken', 'link.draft-target'] })
+		});
+		action(h)!.click();
+		await settle();
+		expect(popTitle(h)).toBe('Antes de publicar: revisión incompleta');
+		expect(pop(h)!.textContent).toContain('No comprobado');
+		expect(popButton(h, 'Publicar igualmente')).not.toBeNull();
+	});
+
+	test('«Pasar a borrador» nunca pregunta, ni con avisos', async () => {
+		h = mountControl({
+			record: page('published'),
+			review: fakeReviewState({ findings: [DESCRIPTION] })
+		});
+		action(h)!.click();
+		await settle();
+		expect(pop(h)).toBeNull();
+		expect(h.update).toHaveBeenCalledWith('pages', 'p1', { status: 'draft' }, expect.anything());
 	});
 });
