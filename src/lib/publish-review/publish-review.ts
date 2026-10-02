@@ -391,6 +391,19 @@ function fieldTarget(type: ResolvedContentType, name: string): ReviewTarget {
 	return { kind: 'field', field: name, label: field?.label ?? name };
 }
 
+/** Quita las etiquetas HTML y decodifica `&nbsp;` y compañía lo justo para contar caracteres. */
+function stripHtml(value: string): string {
+	if (!value.includes('<')) return value;
+	return value
+		.replace(/<[^>]*>/g, '')
+		.replace(/&nbsp;/g, ' ')
+		.replace(/&amp;/g, '&')
+		.replace(/&lt;/g, '<')
+		.replace(/&gt;/g, '>')
+		.replace(/&quot;/g, '"')
+		.replace(/&#0?39;/g, "'");
+}
+
 function checkSeo(input: ReviewInput, out: Collector): void {
 	const { type, record } = input;
 	const fields = seoFields(type);
@@ -399,7 +412,8 @@ function checkSeo(input: ReviewInput, out: Collector): void {
 	if (fields.description !== null) {
 		const target = fieldTarget(type, fields.description);
 		const raw = record.values[fields.description];
-		const text = typeof raw === 'string' ? raw.trim() : '';
+		// Texto enriquecido: la longitud (y el «vacío») se cuentan sin etiquetas HTML.
+		const text = typeof raw === 'string' ? stripHtml(raw).trim() : '';
 		if (text === '') {
 			out.add('seo.description-empty', target, 'review.seo.descriptionEmpty');
 		} else if (text.length > max) {
@@ -494,6 +508,32 @@ function checkAlt(
 }
 
 /**
+ * Las páginas del sitio tal como quedarán al publicar ESTE registro: si el registro revisado es una
+ * de ellas (mismo tipo e id), cuenta como publicada y con la ruta que trae `record` (puede estar
+ * sin guardar), no con la guardada. Sin esto, un borrador que enlaza a sí mismo (`/mi-pagina#arriba`)
+ * saldría como «enlace a un borrador».
+ */
+function pagesAsPublished(input: ReviewInput): readonly ReviewPage[] | null {
+	const { pages, type, record } = input;
+	if (pages === null) return null;
+	const own = (page: ReviewPage): boolean => page.type === type.name && page.id === record.id;
+	if (!pages.some(own)) return pages;
+	const columns = type.page
+		? type.page.localizedPath
+			? Object.values(type.page.localizedPath.fields)
+			: [type.page.pathField]
+		: ['path'];
+	const mine: ReviewPage[] = [];
+	for (const column of columns) {
+		const path = record.values[column];
+		if (typeof path === 'string' && path.trim() !== '') {
+			mine.push({ type: type.name, id: record.id, path, published: true });
+		}
+	}
+	return [...pages.filter((page) => !own(page)), ...mine];
+}
+
+/**
  * Revisa un registro (ver la cabecera). Puro y determinista: mismos datos, mismo resultado y mismo
  * orden (SEO; enlaces del registro y de sus bloques en orden de lectura; imágenes de los bloques).
  */
@@ -515,10 +555,9 @@ export function reviewRecord(input: ReviewInput): ReviewResult {
 		)
 	];
 	const hasLinks = linkSites.some(({ site }) => internalHrefs(site).length > 0);
+	const pages = pagesAsPublished(input);
 	const targets =
-		input.pages !== null && input.redirects !== null
-			? buildLinkTargets(input.pages, input.redirects)
-			: null;
+		pages !== null && input.redirects !== null ? buildLinkTargets(pages, input.redirects) : null;
 	if (hasLinks && targets === null) skipped.push('link.broken', 'link.draft-target');
 
 	const mediaSites = blocks.some((block) =>
