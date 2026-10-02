@@ -1,0 +1,1540 @@
+<!--TITULO Revisión antes de publicar: tarjeta en el formulario y aviso en el editor visual-->
+
+<!-- ===================================================================================
+     PIEZAS DEL FORMULARIO (marcado de `RecordForm`, `FieldRow`, `RecordBlocks`)
+     Página «Talleres de otoño» de un sitio sembrado («Aguja»). Contenido: relleno de la lámina.
+     =================================================================================== -->
+
+<!--PIEZA barra-form-->
+<div class="vega-edit-top vega-edit-top--bleed">
+	<button type="button" class="vega-editor-back">{{i:chevron:14}} Páginas</button>
+	<span class="vega-editor-doc">
+		<span class="vega-editor-crumb-name">Talleres de otoño</span>
+		<span class="vega-editor-tag" data-status="draft" data-status-kind="draft">Borrador</span>
+	</span>
+	<span class="vega-edit-top-spacer"></span>
+	<span class="vega-editor-saved-at">último guardado 10:31</span>
+	<button type="button" class="vega-editor-visual-button">{{i:box:14}} Editor visual</button>
+	<button type="button" class="vega-editor-duplicate-button">Duplicar</button>
+	<button type="submit" class="vega-editor-save-button">
+		Guardar <kbd aria-hidden="true">⌘S</kbd>
+	</button>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA f-titulo-->
+<div class="vega-field-row vega-field-row--title" data-field="title">
+	<label>Título<span class="vega-field-required" aria-hidden="true">*</span></label>
+	<div class="vega-field-control">
+		<textarea class="vega-widget-text" rows="1">Talleres de otoño</textarea>
+	</div>
+</div>
+<div class="vega-field-row vega-field-row--slug vega-field-row--path" data-field="path">
+	<label>Path<span class="vega-field-required" aria-hidden="true">*</span></label>
+	<div class="vega-field-control">
+		<input type="text" class="vega-widget-text" value="/talleres-de-otono" />
+	</div>
+</div>
+<div class="vega-field-row" data-field="layout">
+	<label>Layout</label>
+	<div class="vega-field-control">
+		<select class="vega-widget-select">
+			<option>— sin selección —</option>
+		</select>
+	</div>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA f-estado-->
+<div class="vega-field-row" data-field="status">
+	<label>Estado</label>
+	<div class="vega-field-control">
+		<div class="vega-field-inline">
+			<div class="vega-field-inline-widget">
+				<select class="vega-widget-select">
+					<option>Borrador</option>
+					<option>Publicado</option>
+				</select>
+			</div>
+			<button type="button" class="vega-editor-inline-button">Programar…</button>
+		</div>
+	</div>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA f-estado-linea-->
+<div class="vega-field-row" data-field="status">
+	<label>Estado</label>
+	<div class="vega-field-control">
+		<div class="vega-field-inline">
+			<div class="vega-field-inline-widget">
+				<select class="vega-widget-select">
+					<option>Borrador</option>
+					<option>Publicado</option>
+				</select>
+			</div>
+			<button type="button" class="vega-editor-inline-button">Programar…</button>
+		</div>
+		<p class="vega-schedule-summary">
+			<span>La revisión tiene <b>7 avisos</b>.</span>
+			<button type="button" class="vega-schedule-link">Ver la revisión</button>
+		</p>
+	</div>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA f-publicar-el-->
+<div class="vega-field-row" data-field="publishAt">
+	<label>Publicar el</label>
+	<div class="vega-field-control">
+		<input type="datetime-local" class="vega-widget-datetime" />
+		<p class="vega-field-help">
+			Si la página está en borrador, se publica sola a esta hora. Requiere la extensión vegaschedule
+			en el servidor; sin ella, la fecha no hace nada.
+		</p>
+	</div>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA cab-bloque-1-->
+<div class="vega-block-header">
+	<button type="button" class="vega-block-handle" aria-label="Reordenar «Talleres de otoño»">
+		<span aria-hidden="true">⠿</span>
+	</button>
+	<button type="button" class="vega-block-toggle" aria-expanded="false">
+		<span class="vega-block-chevron">{{i:chevron:14}}</span>
+		<span class="vega-block-type">{{i:box:12}} Hero</span>
+		<span class="vega-block-title">Talleres de otoño</span>
+	</button>
+	<button type="button" class="vega-block-delete">Borrar</button>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA cab-bloque-3-4-->
+<li class="vega-block-row">
+	<div class="vega-block-header">
+		<button type="button" class="vega-block-handle" aria-label="Reordenar">
+			<span aria-hidden="true">⠿</span>
+		</button>
+		<button type="button" class="vega-block-toggle" aria-expanded="false">
+			<span class="vega-block-chevron">{{i:chevron:14}}</span>
+			<span class="vega-block-type">{{i:media:12}} Galería</span>
+			<span class="vega-block-title">Trabajos del curso pasado</span>
+		</button>
+		<button type="button" class="vega-block-delete">Borrar</button>
+	</div>
+</li>
+<li class="vega-block-row">
+	<div class="vega-block-header">
+		<button type="button" class="vega-block-handle" aria-label="Reordenar">
+			<span aria-hidden="true">⠿</span>
+		</button>
+		<button type="button" class="vega-block-toggle" aria-expanded="false">
+			<span class="vega-block-chevron">{{i:chevron:14}}</span>
+			<span class="vega-block-type">{{i:tag:12}} Llamada a la acción</span>
+			<span class="vega-block-title">Reserva tu plaza</span>
+		</button>
+		<button type="button" class="vega-block-delete">Borrar</button>
+	</div>
+</li>
+<!--/PIEZA-->
+
+<!--PIEZA bloques-->
+<section class="vega-blocks">
+	<div class="vega-blocks-head">
+		<h2>Bloques<span class="vega-blocks-count">4</span></h2>
+		<button type="button" class="vega-blocks-add">Añadir Bloque {{i:chevron:12}}</button>
+	</div>
+	<ul class="vega-blocks-list">
+		<li class="vega-block-row"><!--USA cab-bloque-1--></li>
+		<li class="vega-block-row">
+			<div class="vega-block-header">
+				<button type="button" class="vega-block-handle" aria-label="Reordenar">
+					<span aria-hidden="true">⠿</span>
+				</button>
+				<button type="button" class="vega-block-toggle" aria-expanded="false">
+					<span class="vega-block-chevron">{{i:chevron:14}}</span>
+					<span class="vega-block-type">{{i:document:12}} Texto rico</span>
+					<span class="vega-block-title">Qué vas a aprender</span>
+				</button>
+				<button type="button" class="vega-block-delete">Borrar</button>
+			</div>
+		</li>
+		<!--USA cab-bloque-3-4-->
+	</ul>
+</section>
+<!--/PIEZA-->
+
+<!--PIEZA bloques-abierto-->
+<section class="vega-blocks">
+	<div class="vega-blocks-head">
+		<h2>Bloques<span class="vega-blocks-count">4</span></h2>
+		<button type="button" class="vega-blocks-add">Añadir Bloque {{i:chevron:12}}</button>
+	</div>
+	<ul class="vega-blocks-list">
+		<li class="vega-block-row"><!--USA cab-bloque-1--></li>
+		<li class="vega-block-row">
+			<div class="vega-block-header">
+				<button type="button" class="vega-block-handle" aria-label="Reordenar">
+					<span aria-hidden="true">⠿</span>
+				</button>
+				<button type="button" class="vega-block-toggle" aria-expanded="true">
+					<span class="vega-block-chevron">{{i:chevron:14}}</span>
+					<span class="vega-block-type">{{i:document:12}} Texto rico</span>
+					<span class="vega-block-title">Qué vas a aprender</span>
+				</button>
+				<button type="button" class="vega-block-delete">Borrar</button>
+			</div>
+			<div class="vega-block-body">
+				<div class="vega-block-fields">
+					<div class="vega-field-row">
+						<label>Título</label>
+						<div class="vega-field-control">
+							<input type="text" class="vega-widget-text" value="Qué vas a aprender" />
+						</div>
+					</div>
+					<div class="vega-field-row">
+						<label>Contenido</label>
+						<div class="vega-field-control">
+							<div class="lam-richtext lam-foco">
+								<p>
+									Cada taller dura cuatro sábados por la mañana. Los precios y los descuentos para
+									quien repite están en <a href="#">la página de precios</a>.
+								</p>
+								<p>Te acompañan <a href="#">las profesoras del taller</a>, con grupos de seis.</p>
+								<p>[imagen: patron-falda.png]</p>
+							</div>
+						</div>
+					</div>
+					<div class="vega-block-actions">
+						<button type="button" class="vega-block-save-button" disabled>Guardar</button>
+					</div>
+				</div>
+			</div>
+		</li>
+		<!--USA cab-bloque-3-4-->
+	</ul>
+</section>
+<!--/PIEZA-->
+
+<!--PIEZA seo-->
+<section class="vega-fsection vega-fsection--aside">
+	<h2>SEO</h2>
+	<div class="vega-fields">
+		<div class="vega-field-row" data-field="description">
+			<label>Descripción</label>
+			<div class="vega-field-control">
+				<textarea class="vega-widget-textarea" rows="5">
+Cuatro talleres de costura para este otoño: patronaje básico, arreglos de ropa, bordado a mano y una chaqueta de lino de principio a fin. Grupos de seis personas, máquinas incluidas y material a precio de coste.</textarea>
+				<p class="vega-field-help">
+					Resumen de una o dos frases para buscadores y redes sociales. Si lo dejas vacío, el sitio
+					usa su descripción general.
+				</p>
+			</div>
+		</div>
+		<div class="vega-field-row" data-field="socialImage">
+			<label>Imagen para redes</label>
+			<div class="vega-field-control">
+				<div class="vega-widget-relation" role="group">
+					<ul class="vega-relation-selected">
+						<li class="vega-relation-empty">— sin selección —</li>
+					</ul>
+					<p class="vega-relation-degraded-note">Elige un archivo de la mediateca.</p>
+				</div>
+				<p class="vega-field-help">
+					Aparece al compartir la página en redes y mensajería. Mejor apaisada, de unos 1200 × 630
+					px.
+				</p>
+			</div>
+		</div>
+		<div class="vega-field-row" data-field="noindex">
+			<label>No indexar</label>
+			<div class="vega-field-control">
+				<input type="checkbox" role="switch" class="vega-widget-switch" />
+				<p class="vega-field-help">
+					Pide a los buscadores que no muestren esta página y la saca del mapa del sitio. Quien
+					tenga el enlace puede seguir abriéndola.
+				</p>
+			</div>
+		</div>
+	</div>
+</section>
+<!--/PIEZA-->
+
+<!--PIEZA aside-resto-->
+<section class="vega-fsection vega-fsection--aside">
+	<h2>Ficha</h2>
+	<dl class="vega-editor-kv">
+		<div>
+			<dt>Código interno</dt>
+			<dd class="vega-editor-kv-mono">r4w8k2m9x1p0q7z</dd>
+		</div>
+		<div>
+			<dt>Creado</dt>
+			<dd>28 sept 2026</dd>
+		</div>
+		<div>
+			<dt>Actualizado</dt>
+			<dd>hoy, 10:31</dd>
+		</div>
+	</dl>
+</section>
+<div class="vega-revisions-panel">
+	<button type="button" class="vega-revisions-toggle" aria-expanded="false">Historial</button>
+</div>
+<div class="vega-used-in">
+	<button type="button" class="vega-used-in-toggle" aria-expanded="false">Se usa en</button>
+</div>
+<section class="vega-fsection vega-fsection--aside vega-editor-danger">
+	<h2>Zona de peligro</h2>
+	<button type="button" class="vega-editor-delete-button">Borrar Página…</button>
+</section>
+<!--/PIEZA-->
+
+<!-- ===================================================================================
+     PIEZAS DE LA REVISIÓN (propuestas)
+     =================================================================================== -->
+
+<!--PIEZA g-seo-2-->
+<li class="vega-review-group">
+	<p class="vega-review-group-head">
+		<span>SEO</span>
+		<span class="vega-review-status" data-tone="warn">2 avisos</span>
+	</p>
+	<ul class="vega-review-items">
+		<li class="vega-review-item">
+			{{i:warning:14}}
+			<p>La descripción tiene 211 caracteres y los buscadores suelen cortarla a partir de 160.</p>
+			<div class="vega-review-meta">
+				<button type="button" class="vega-review-go" aria-label="Ir al campo Descripción">
+					Descripción {{i:chevron:12}}
+				</button>
+			</div>
+		</li>
+		<li class="vega-review-item">
+			{{i:warning:14}}
+			<p>No hay imagen para redes: al compartir la página saldrá sin imagen.</p>
+			<div class="vega-review-meta">
+				<button type="button" class="vega-review-go" aria-label="Ir al campo Imagen para redes">
+					Imagen para redes {{i:chevron:12}}
+				</button>
+			</div>
+		</li>
+	</ul>
+</li>
+<!--/PIEZA-->
+
+<!--PIEZA g-enlaces-3-->
+<li class="vega-review-group">
+	<p class="vega-review-group-head">
+		<span>Enlaces</span>
+		<span class="vega-review-status" data-tone="warn">3 avisos</span>
+	</p>
+	<ul class="vega-review-items">
+		<li class="vega-review-item">
+			{{i:warning:14}}
+			<p>
+				El enlace a <span class="vega-review-value">/precios</span> no lleva a ninguna página ni
+				redirección del sitio.
+			</p>
+			<div class="vega-review-meta">
+				<button
+					type="button"
+					class="vega-review-go"
+					aria-label="Ir a Contenido, en el bloque 2 (Texto rico)"
+				>
+					Bloque 2 · Texto rico › Contenido {{i:chevron:12}}
+				</button>
+			</div>
+		</li>
+		<li class="vega-review-item">
+			{{i:warning:14}}
+			<p>
+				El enlace a <span class="vega-review-value">/profesoras</span> lleva a una página que sigue
+				en borrador y no se verá en el sitio.
+			</p>
+			<div class="vega-review-meta">
+				<button
+					type="button"
+					class="vega-review-go"
+					aria-label="Ir a Contenido, en el bloque 2 (Texto rico)"
+				>
+					Bloque 2 · Texto rico › Contenido {{i:chevron:12}}
+				</button>
+			</div>
+		</li>
+		<li class="vega-review-item">
+			{{i:warning:14}}
+			<p>
+				El enlace a <span class="vega-review-value">/inscripcion</span> pasa por una redirección que
+				acaba en <span class="vega-review-value">/reservas</span>, y esa ruta no existe.
+			</p>
+			<div class="vega-review-meta">
+				<button
+					type="button"
+					class="vega-review-go"
+					aria-label="Ir a Enlace, en el bloque 4 (Llamada a la acción)"
+				>
+					Bloque 4 · Llamada a la acción › Enlace {{i:chevron:12}}
+				</button>
+			</div>
+		</li>
+	</ul>
+</li>
+<!--/PIEZA-->
+
+<!--PIEZA g-imagenes-2-->
+<li class="vega-review-group">
+	<p class="vega-review-group-head">
+		<span>Imágenes</span>
+		<span class="vega-review-status" data-tone="warn">2 avisos</span>
+	</p>
+	<ul class="vega-review-items">
+		<li class="vega-review-item">
+			{{i:warning:14}}
+			<p>
+				La imagen «<span class="vega-review-value">chaqueta_lino_k3v8q1m2zt.jpg</span>» no tiene
+				texto alternativo.
+			</p>
+			<div class="vega-review-meta">
+				<span class="vega-review-where">Bloque 3 · Galería</span>
+				<button type="button" class="vega-review-go">Describir la imagen…</button>
+			</div>
+		</li>
+		<li class="vega-review-item">
+			{{i:warning:14}}
+			<p>
+				La imagen «<span class="vega-review-value">patron-falda.png</span>» del texto no declara
+				texto alternativo: descríbela, o déjalo vacío si es decorativa.
+			</p>
+			<div class="vega-review-meta">
+				<button
+					type="button"
+					class="vega-review-go"
+					aria-label="Ir a Contenido, en el bloque 2 (Texto rico)"
+				>
+					Bloque 2 · Texto rico › Contenido {{i:chevron:12}}
+				</button>
+			</div>
+		</li>
+	</ul>
+</li>
+<!--/PIEZA-->
+
+<!--PIEZA g-seo-ok-->
+<li class="vega-review-group">
+	<p class="vega-review-group-head">
+		<span>SEO</span>
+		<span class="vega-review-status" data-tone="ok">{{i:check:12}} Sin avisos</span>
+	</p>
+</li>
+<!--/PIEZA-->
+
+<!--PIEZA g-enlaces-ok-->
+<li class="vega-review-group">
+	<p class="vega-review-group-head">
+		<span>Enlaces</span>
+		<span class="vega-review-status" data-tone="ok">{{i:check:12}} Sin avisos</span>
+	</p>
+</li>
+<!--/PIEZA-->
+
+<!--PIEZA g-imagenes-ok-->
+<li class="vega-review-group">
+	<p class="vega-review-group-head">
+		<span>Imágenes</span>
+		<span class="vega-review-status" data-tone="ok">{{i:check:12}} Sin avisos</span>
+	</p>
+</li>
+<!--/PIEZA-->
+
+<!--PIEZA rev-varios-->
+<section class="vega-fsection vega-fsection--aside vega-review" aria-labelledby="rev-h">
+	<div class="vega-review-head">
+		<h2 id="rev-h">Revisión</h2>
+		<span class="vega-review-count" data-tone="warn">7 avisos</span>
+	</div>
+	<ul class="vega-review-groups">
+		<!--USA g-seo-2-->
+		<!--USA g-enlaces-3-->
+		<!--USA g-imagenes-2-->
+	</ul>
+	<p class="vega-review-note">Ningún aviso impide publicar.</p>
+</section>
+<!--/PIEZA-->
+
+<!--PIEZA form-antes-->
+<form class="vega-record-form" novalidate>
+	<!--USA barra-form-->
+	<div class="vega-editor-grid vega-editor-grid--aside">
+		<div class="vega-editor-main">
+			<div class="vega-form-content">
+				<section class="vega-fsection">
+					<div class="vega-fields">
+						<!--USA f-titulo-->
+						<!--USA f-estado-->
+						<!--USA f-publicar-el-->
+					</div>
+				</section>
+			</div>
+			<!--USA bloques-->
+		</div>
+		<aside class="vega-editor-aside">
+			<!--USA seo-->
+			<!--USA aside-resto-->
+		</aside>
+	</div>
+</form>
+<!--/PIEZA-->
+
+<!--PIEZA form-despues-->
+<form class="vega-record-form" novalidate>
+	<!--USA barra-form-->
+	<div class="vega-editor-grid vega-editor-grid--aside">
+		<div class="vega-editor-main">
+			<div class="vega-form-content">
+				<section class="vega-fsection">
+					<div class="vega-fields">
+						<!--USA f-titulo-->
+						<!--USA f-estado-linea-->
+						<!--USA f-publicar-el-->
+					</div>
+				</section>
+			</div>
+			<!--USA bloques-->
+		</div>
+		<aside class="vega-editor-aside">
+			<!--USA rev-varios-->
+			<!--USA seo-->
+			<!--USA aside-resto-->
+		</aside>
+	</div>
+</form>
+<!--/PIEZA-->
+
+<!-- ===================================================================================
+     PIEZAS DEL EDITOR VISUAL (marcado de `VisualEditorScreen` + `VisualPublishControl`)
+     =================================================================================== -->
+
+<!--PIEZA migas-->
+<button type="button" class="vega-visual-back">{{i:chevron:14}} Volver al formulario</button>
+<nav class="vega-visual-breadcrumbs" aria-label="Dónde estás">
+	<ol>
+		<li>Páginas</li>
+		<li aria-current="page">Talleres de otoño</li>
+	</ol>
+</nav>
+<!--/PIEZA-->
+
+<!--PIEZA lienzo-->
+<div class="lam-lienzo">
+	<div class="lam-hueco">Árbol de secciones (sin cambios)</div>
+	<div class="lam-hueco">Lienzo: la página del sitio (sin cambios)</div>
+	<div class="lam-hueco">Ficha del bloque (sin cambios)</div>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA pop-avisos-cuerpo-->
+<div class="vega-review-pop-section">
+	<ul class="vega-review-groups">
+		<li class="vega-review-group">
+			<p class="vega-review-group-head">
+				<span>SEO</span>
+				<span class="vega-review-status" data-tone="warn">2 avisos</span>
+			</p>
+			<ul class="vega-review-items">
+				<li class="vega-review-item">
+					{{i:warning:14}}
+					<p>
+						La descripción tiene 211 caracteres y los buscadores suelen cortarla a partir de 160.
+					</p>
+					<div class="vega-review-meta">
+						<button type="button" class="vega-review-go">
+							Abrir Descripción en el formulario {{i:chevron:12}}
+						</button>
+					</div>
+				</li>
+				<li class="vega-review-item">
+					{{i:warning:14}}
+					<p>No hay imagen para redes: al compartir la página saldrá sin imagen.</p>
+					<div class="vega-review-meta">
+						<button type="button" class="vega-review-go">
+							Abrir Imagen para redes en el formulario {{i:chevron:12}}
+						</button>
+					</div>
+				</li>
+			</ul>
+		</li>
+		<li class="vega-review-group">
+			<p class="vega-review-group-head">
+				<span>Enlaces</span>
+				<span class="vega-review-status" data-tone="warn">3 avisos</span>
+			</p>
+			<ul class="vega-review-items">
+				<li class="vega-review-item">
+					{{i:warning:14}}
+					<p>
+						El enlace a <span class="vega-review-value">/precios</span> no lleva a ninguna página ni
+						redirección del sitio.
+					</p>
+					<div class="vega-review-meta">
+						<button type="button" class="vega-review-go">
+							Bloque 2 · Texto rico {{i:chevron:12}}
+						</button>
+					</div>
+				</li>
+				<li class="vega-review-item">
+					{{i:warning:14}}
+					<p>
+						El enlace a <span class="vega-review-value">/profesoras</span> lleva a una página que
+						sigue en borrador y no se verá en el sitio.
+					</p>
+					<div class="vega-review-meta">
+						<button type="button" class="vega-review-go">
+							Bloque 2 · Texto rico {{i:chevron:12}}
+						</button>
+					</div>
+				</li>
+			</ul>
+			<button type="button" class="vega-review-more">Ver 1 más</button>
+		</li>
+		<li class="vega-review-group">
+			<p class="vega-review-group-head">
+				<span>Imágenes</span>
+				<span class="vega-review-status" data-tone="warn">2 avisos</span>
+			</p>
+			<ul class="vega-review-items">
+				<li class="vega-review-item">
+					{{i:warning:14}}
+					<p>
+						La imagen «<span class="vega-review-value">chaqueta_lino_k3v8q1m2zt.jpg</span>» no tiene
+						texto alternativo.
+					</p>
+					<div class="vega-review-meta">
+						<span class="vega-review-where">Bloque 3 · Galería</span>
+						<button type="button" class="vega-review-go">Describir la imagen…</button>
+					</div>
+				</li>
+				<li class="vega-review-item">
+					{{i:warning:14}}
+					<p>
+						La imagen «<span class="vega-review-value">patron-falda.png</span>» del texto no declara
+						texto alternativo: descríbela, o déjalo vacío si es decorativa.
+					</p>
+					<div class="vega-review-meta">
+						<button type="button" class="vega-review-go">
+							Bloque 2 · Texto rico {{i:chevron:12}}
+						</button>
+					</div>
+				</li>
+			</ul>
+		</li>
+	</ul>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA pop-acciones-->
+<div class="vega-visual-publish-pop-actions">
+	<button type="button" class="vega-visual-publish-pop-btn vega-visual-publish-pop-btn--primary">
+		Publicar igualmente
+	</button>
+	<button type="button" class="vega-visual-publish-pop-btn lam-foco">Cancelar</button>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA pop-avisos-->
+<div
+	class="vega-visual-publish-pop vega-visual-publish-pop--review"
+	role="alertdialog"
+	aria-labelledby="pop-t"
+	aria-describedby="pop-b"
+>
+	<p class="vega-visual-publish-pop-title" id="pop-t">Antes de publicar: 7 avisos</p>
+	<div class="vega-review-pop-scroll">
+		<!--USA pop-avisos-cuerpo-->
+	</div>
+	<p class="vega-visual-publish-pop-body" id="pop-b">
+		Ningún aviso impide publicar. Puedes publicar igualmente o arreglarlos antes.
+	</p>
+	<!--USA pop-acciones-->
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA barra-visual-antes-->
+<div class="vega-edit-top vega-edit-top--bleed">
+	<!--USA migas-->
+	<span class="vega-visual-publish" role="group" aria-label="Estado de la página">
+		<span class="vega-visual-publish-tag" data-status-kind="draft">Borrador</span>
+		<button type="button" class="vega-visual-publish-btn vega-visual-publish-btn--primary">
+			Marcar como publicada
+		</button>
+	</span>
+	<span class="vega-edit-top-spacer"></span>
+	<span class="vega-visual-saved-at">último guardado 10:31</span>
+</div>
+<!--/PIEZA-->
+
+<!--PIEZA visual-despues-->
+<div class="lam-stage lam-visual lam-sangre">
+	<div class="vega-edit-top vega-edit-top--bleed">
+		<!--USA migas-->
+		<span class="vega-visual-publish" role="group" aria-label="Estado de la página">
+			<span class="vega-visual-publish-tag" data-status-kind="draft">Borrador</span>
+			<button
+				type="button"
+				class="vega-visual-publish-btn vega-visual-publish-btn--primary"
+				aria-expanded="true"
+			>
+				Marcar como publicada
+			</button>
+			<!--USA pop-avisos-->
+		</span>
+		<span class="vega-edit-top-spacer"></span>
+		<span class="vega-visual-saved-at">último guardado 10:31</span>
+	</div>
+	<div class="lam-lienzo lam-lienzo--alto">
+		<div class="lam-hueco">Árbol de secciones</div>
+		<div class="lam-hueco">Lienzo: la página del sitio</div>
+		<div class="lam-hueco">Ficha del bloque</div>
+	</div>
+</div>
+<!--/PIEZA-->
+
+<!-- ===================================================================================
+     LA LÁMINA
+     =================================================================================== -->
+
+<section class="lam-section">
+	<h2>Qué cambia</h2>
+	<p>
+		La lógica de la revisión ya existe (<code>src/lib/publish-review/</code>): ocho comprobaciones,
+		<b>todas avisos, ninguna bloquea</b>. Faltaba dónde verlas. La propuesta las enseña en dos
+		sitios y con el mismo marcado:
+	</p>
+	<ul class="lam-notes">
+		<li>
+			<b>Formulario: una tarjeta «Revisión», la primera del aside</b>, encima de «SEO», más una
+			línea bajo el campo Estado que dice cuántos avisos hay y lleva a la tarjeta. Los avisos se
+			recalculan mientras se escribe: arreglar la descripción quita su aviso en el acto.
+		</li>
+		<li>
+			<b>Editor visual: «Marcar como publicada» pregunta solo si hay avisos</b>, en el mismo popover
+			que hoy pregunta por los bloques sin guardar. Sin avisos, publica a la primera, como hoy.
+		</li>
+		<li>
+			Cada aviso trae <b>una sola acción</b>: ir al campo o al bloque donde se arregla, o abrir la
+			ficha de la imagen para describirla, cuando el texto alternativo vive en Medios y no en la
+			página.
+		</li>
+	</ul>
+	<p>
+		Contenido: la página «Talleres de otoño» de un sitio sembrado («Aguja»: Páginas con SEO y
+		bloques, del manifiesto real del sembrado). Los textos, rutas y ficheros son relleno escrito
+		para la lámina; los mensajes de los avisos son los de <code>review.*</code> en
+		<code>src/lib/i18n/es.ts</code>.
+	</p>
+	<table class="lam-cifras">
+		<thead>
+			<tr>
+				<th>Saber qué falla antes de publicar</th>
+				<th>Antes</th>
+				<th>Después</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>Comprobaciones que se ven</td>
+				<td>0 de 8 (solo el aviso de alt al subir un fichero)</td>
+				<td>8 de 8</td>
+			</tr>
+			<tr>
+				<td>Clics para llegar a un enlace roto de un bloque</td>
+				<td>abrir cada bloque y leer (4 bloques: 4 o más)</td>
+				<td>1</td>
+			</tr>
+			<tr>
+				<td>Clics de más al publicar desde el editor visual</td>
+				<td>0</td>
+				<td>0 sin avisos; 1 con avisos («Publicar igualmente»)</td>
+			</tr>
+			<tr>
+				<td>Paradas de tabulación añadidas al formulario</td>
+				<td></td>
+				<td>1 por aviso visible (máx. 3 por grupo) + «Ver la revisión»</td>
+			</tr>
+		</tbody>
+	</table>
+</section>
+
+<section class="lam-section lam-solo-ancho">
+	<h2>El formulario a 1440 px</h2>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>ANTES</b> Estado real de hoy (sin revisión)</figcaption>
+		<!--SHELL pages-->
+		<!--USA form-antes-->
+		<!--/SHELL-->
+	</figure>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>DESPUÉS</b> Tarjeta «Revisión» en el aside y línea bajo Estado</figcaption>
+		<!--SHELL pages-->
+		<!--USA form-despues-->
+		<!--/SHELL-->
+	</figure>
+</section>
+
+<section class="lam-section lam-solo-estrecho">
+	<h2>El formulario a 390 px</h2>
+	<p>
+		Por debajo de 900 px el aside baja entero bajo los bloques. La línea bajo Estado es lo que queda
+		a la vista al decidir publicar; «Ver la revisión» baja a la tarjeta y le pone el foco.
+	</p>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>ANTES</b> Estado real de hoy</figcaption>
+		<!--SHELL pages-->
+		<!--USA form-antes-->
+		<!--/SHELL-->
+	</figure>
+	<figure class="lam-spec lam-spec--frame">
+		<figcaption><b>DESPUÉS</b></figcaption>
+		<!--SHELL pages-->
+		<!--USA form-despues-->
+		<!--/SHELL-->
+	</figure>
+</section>
+
+<section class="lam-section">
+	<h2>La tarjeta, estado por estado</h2>
+	<p>
+		Siempre la misma estructura: cabecera con un resumen, y un grupo por cada comprobación que
+		<b>aplica</b> al tipo (SEO, Enlaces, Imágenes). Un grupo que no aplica no se pinta. El resumen
+		lleva texto siempre: el color nunca dice nada solo.
+	</p>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption><b>1.1</b> Sin avisos</figcaption>
+			<div class="lam-stage">
+				<section class="vega-fsection vega-fsection--aside vega-review">
+					<div class="vega-review-head">
+						<h2>Revisión</h2>
+						<span class="vega-review-count" data-tone="ok">Sin avisos</span>
+					</div>
+					<ul class="vega-review-groups">
+						<!--USA g-seo-ok-->
+						<!--USA g-enlaces-ok-->
+						<!--USA g-imagenes-ok-->
+					</ul>
+				</section>
+			</div>
+			<p class="lam-why">
+				Tres líneas, no un hueco: dice qué se ha mirado. Un «0 avisos» a secas no distingue «está
+				bien» de «no se ha mirado».
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>1.2</b> Varios avisos de tipos distintos</figcaption>
+			<div class="lam-stage"><!--USA rev-varios--></div>
+			<p class="lam-why">
+				Agrupados por comprobación, en el orden de <code>reviewRecord</code> (SEO, enlaces del
+				registro y de los bloques en orden de lectura, imágenes). Rutas y ficheros en mono.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>1.3</b> Muchos avisos de un tipo: hasta 3 por grupo</figcaption>
+			<div class="lam-stage">
+				<section class="vega-fsection vega-fsection--aside vega-review">
+					<div class="vega-review-head">
+						<h2>Revisión</h2>
+						<span class="vega-review-count" data-tone="warn">9 avisos</span>
+					</div>
+					<ul class="vega-review-groups">
+						<!--USA g-seo-ok-->
+						<!--USA g-enlaces-ok-->
+						<li class="vega-review-group">
+							<p class="vega-review-group-head">
+								<span>Imágenes</span>
+								<span class="vega-review-status" data-tone="warn">9 avisos</span>
+							</p>
+							<ul class="vega-review-items">
+								<li class="vega-review-item">
+									{{i:warning:14}}
+									<p>
+										La imagen «<span class="vega-review-value">falda_plisada_01_x7k2m9qa1b.jpg</span
+										>» no tiene texto alternativo.
+									</p>
+									<div class="vega-review-meta">
+										<span class="vega-review-where">Bloque 2 · Galería</span>
+										<button type="button" class="vega-review-go">Describir la imagen…</button>
+									</div>
+								</li>
+								<li class="vega-review-item">
+									{{i:warning:14}}
+									<p>
+										La imagen «<span class="vega-review-value">falda_plisada_02_p0w4n8c6vd.jpg</span
+										>» no tiene texto alternativo.
+									</p>
+									<div class="vega-review-meta">
+										<span class="vega-review-where">Bloque 2 · Galería</span>
+										<button type="button" class="vega-review-go">Describir la imagen…</button>
+									</div>
+								</li>
+								<li class="vega-review-item">
+									{{i:warning:14}}
+									<p>
+										La imagen «<span class="vega-review-value">bolso_retales_h5j1t9r3ye.jpg</span>»
+										no tiene texto alternativo.
+									</p>
+									<div class="vega-review-meta">
+										<span class="vega-review-where">Bloque 2 · Galería</span>
+										<button type="button" class="vega-review-go">Describir la imagen…</button>
+									</div>
+								</li>
+							</ul>
+							<button type="button" class="vega-review-more" aria-expanded="false">
+								Ver 6 más
+							</button>
+						</li>
+					</ul>
+					<p class="vega-review-note">Ningún aviso impide publicar.</p>
+				</section>
+			</div>
+			<p class="lam-why">
+				Una galería de nueve fotos sin describir daría nueve filas y empujaría el resto del aside
+				fuera de la pantalla (el aside es pegajoso). «Ver 6 más» despliega en el sitio y pasa a «Ver
+				menos». El resumen cuenta los nueve.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>1.4</b> Una comprobación «no comprobada»</figcaption>
+			<div class="lam-stage">
+				<section class="vega-fsection vega-fsection--aside vega-review">
+					<div class="vega-review-head">
+						<h2>Revisión</h2>
+						<span class="vega-review-count" data-tone="warn">2 avisos</span>
+					</div>
+					<ul class="vega-review-groups">
+						<!--USA g-seo-2-->
+						<li class="vega-review-group">
+							<p class="vega-review-group-head">
+								<span>Enlaces</span>
+								<span class="vega-review-status" data-tone="muted">No comprobado</span>
+							</p>
+							<p class="vega-review-skipped">
+								<span
+									>Vega no ha podido saber qué páginas y redirecciones tiene el sitio, así que los
+									enlaces no se han comprobado.</span
+								>
+								<button type="button" class="vega-review-more">Volver a comprobar</button>
+							</p>
+						</li>
+						<!--USA g-imagenes-ok-->
+					</ul>
+					<p class="vega-review-note">Ningún aviso impide publicar.</p>
+				</section>
+			</div>
+			<p class="lam-why">
+				Sale cuando <code>skipped</code> trae <code>link.*</code> o <code>media.alt-missing</code>.
+				Nunca se convierte en «Sin avisos». El texto vale para los dos motivos que el cargador
+				confunde en <code>null</code>: que la lectura falle y que el modelo no diga de dónde salen
+				las páginas.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>1.5</b> Sin avisos en lo comprobado, con algo sin comprobar</figcaption>
+			<div class="lam-stage">
+				<section class="vega-fsection vega-fsection--aside vega-review">
+					<div class="vega-review-head">
+						<h2>Revisión</h2>
+						<span class="vega-review-count" data-tone="muted">Incompleta</span>
+					</div>
+					<ul class="vega-review-groups">
+						<!--USA g-seo-ok-->
+						<!--USA g-enlaces-ok-->
+						<li class="vega-review-group">
+							<p class="vega-review-group-head">
+								<span>Imágenes</span>
+								<span class="vega-review-status" data-tone="muted">No comprobado</span>
+							</p>
+							<p class="vega-review-skipped">
+								<span
+									>No se ha podido leer la biblioteca de medios, así que el texto alternativo de las
+									imágenes no se ha comprobado.</span
+								>
+								<button type="button" class="vega-review-more">Volver a comprobar</button>
+							</p>
+						</li>
+					</ul>
+				</section>
+			</div>
+			<p class="lam-why">
+				El caso que más miente si se descuida: cero avisos y algo sin mirar. El resumen dice
+				«Incompleta», en neutro, no «Sin avisos» en verde.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>1.6</b> Cargando</figcaption>
+			<div class="lam-stage">
+				<section class="vega-fsection vega-fsection--aside vega-review" aria-busy="true">
+					<div class="vega-review-head">
+						<h2>Revisión</h2>
+						<span class="vega-review-checking" aria-live="polite">Comprobando…</span>
+					</div>
+					<ul class="vega-review-groups">
+						<!--USA g-seo-2-->
+						<li class="vega-review-group">
+							<p class="vega-review-group-head">
+								<span>Enlaces</span>
+								<span class="vega-review-status" data-tone="muted">Comprobando…</span>
+							</p>
+						</li>
+						<li class="vega-review-group">
+							<p class="vega-review-group-head">
+								<span>Imágenes</span>
+								<span class="vega-review-status" data-tone="muted">Comprobando…</span>
+							</p>
+						</li>
+					</ul>
+				</section>
+			</div>
+			<p class="lam-why">
+				SEO no necesita leer nada (solo los valores del registro) y sale ya. Enlaces e imágenes
+				esperan a páginas, redirecciones y medios. Sin esqueletos animados: el texto basta.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>1.7</b> Error al cargar</figcaption>
+			<div class="lam-stage">
+				<section class="vega-fsection vega-fsection--aside vega-review">
+					<div class="vega-review-head">
+						<h2>Revisión</h2>
+						<span class="vega-review-count" data-tone="warn">2 avisos</span>
+					</div>
+					<ul class="vega-review-groups">
+						<!--USA g-seo-2-->
+						<li class="vega-review-group">
+							<p class="vega-review-error" role="alert">
+								No se han podido leer los bloques de la página: los enlaces y las imágenes no se han
+								comprobado.
+								<button type="button">Reintentar</button>
+							</p>
+						</li>
+					</ul>
+					<p class="vega-review-note">Ningún aviso impide publicar.</p>
+				</section>
+			</div>
+			<p class="lam-why">
+				<code>loadReviewData</code> rechaza solo si fallan los bloques. SEO se sigue enseñando: no
+				depende de esa lectura. Rojo y «Reintentar»: lo mismo que el fallo de «Historial» y «Se usa
+				en».
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>1.8</b> Colección sin campos de SEO</figcaption>
+			<div class="lam-stage">
+				<section class="vega-fsection vega-fsection--aside vega-review">
+					<div class="vega-review-head">
+						<h2>Revisión</h2>
+						<span class="vega-review-count" data-tone="warn">1 aviso</span>
+					</div>
+					<ul class="vega-review-groups">
+						<li class="vega-review-group">
+							<p class="vega-review-group-head">
+								<span>Enlaces</span>
+								<span class="vega-review-status" data-tone="warn">1 aviso</span>
+							</p>
+							<ul class="vega-review-items">
+								<li class="vega-review-item">
+									{{i:warning:14}}
+									<p>
+										El enlace a <span class="vega-review-value">/talleres-de-invierno</span> lleva a
+										una página que sigue en borrador y no se verá en el sitio.
+									</p>
+									<div class="vega-review-meta">
+										<button type="button" class="vega-review-go" aria-label="Ir al campo Contenido">
+											Contenido {{i:chevron:12}}
+										</button>
+									</div>
+								</li>
+							</ul>
+						</li>
+					</ul>
+					<p class="vega-review-note">Ningún aviso impide publicar.</p>
+				</section>
+			</div>
+			<p class="lam-why">
+				Una colección con Estado y un campo de texto con formato, sin descripción, imagen social ni
+				«No indexar» y sin bloques: solo aplica «Enlaces», así que solo se pinta ese grupo. Una
+				colección sin Estado (Etiquetas, Redirecciones) no publica nada: <b>no hay tarjeta</b>.
+				Tampoco la hay si no aplica ninguna comprobación.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>1.9</b> Sin permiso para editar</figcaption>
+			<div class="lam-stage">
+				<p class="vega-record-form-notice">
+					No tienes permiso para editar este contenido: puedes verlo, pero no guardar cambios.
+				</p>
+				<section class="vega-fsection vega-fsection--aside vega-review">
+					<div class="vega-review-head">
+						<h2>Revisión</h2>
+						<span class="vega-review-count" data-tone="warn">2 avisos</span>
+					</div>
+					<ul class="vega-review-groups">
+						<li class="vega-review-group">
+							<p class="vega-review-group-head">
+								<span>Enlaces</span>
+								<span class="vega-review-status" data-tone="warn">1 aviso</span>
+							</p>
+							<ul class="vega-review-items">
+								<li class="vega-review-item">
+									{{i:warning:14}}
+									<p>
+										El enlace a <span class="vega-review-value">/precios</span> no lleva a ninguna
+										página ni redirección del sitio.
+									</p>
+									<div class="vega-review-meta">
+										<span class="vega-review-where">Bloque 2 · Texto rico › Contenido</span>
+									</div>
+								</li>
+							</ul>
+						</li>
+						<li class="vega-review-group">
+							<p class="vega-review-group-head">
+								<span>Imágenes</span>
+								<span class="vega-review-status" data-tone="warn">1 aviso</span>
+							</p>
+							<ul class="vega-review-items">
+								<li class="vega-review-item">
+									{{i:warning:14}}
+									<p>
+										La imagen «<span class="vega-review-value">chaqueta_lino_k3v8q1m2zt.jpg</span>»
+										no tiene texto alternativo.
+									</p>
+									<div class="vega-review-meta">
+										<span class="vega-review-where">Bloque 3 · Galería</span>
+									</div>
+								</li>
+							</ul>
+						</li>
+					</ul>
+				</section>
+			</div>
+			<p class="lam-why">
+				Los avisos se ven (quien revisa puede avisar a quien edita), pero sin acciones: el sitio
+				sale como texto y no hay «Describir…». El aviso de arriba es el de hoy. Sin el pie «Ningún
+				aviso impide publicar»: no puede publicar.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>1.10</b> La línea bajo Estado</figcaption>
+			<div class="lam-stage">
+				<section class="vega-fsection">
+					<div class="vega-fields"><!--USA f-estado-linea--></div>
+				</section>
+				<section class="vega-fsection">
+					<div class="vega-fields">
+						<div class="vega-field-row" data-field="status">
+							<label>Estado</label>
+							<div class="vega-field-control">
+								<div class="vega-field-inline">
+									<div class="vega-field-inline-widget">
+										<select class="vega-widget-select">
+											<option>Borrador</option>
+										</select>
+									</div>
+									<button type="button" class="vega-editor-inline-button">Cambiar fecha…</button>
+								</div>
+								<p class="vega-schedule-summary">
+									<span>Se publicará sola el <b>3 oct a las 09:00</b>.</span>
+									<button type="button" class="vega-schedule-link">Quitar programación</button>
+								</p>
+								<p class="vega-schedule-summary">
+									<span>La revisión tiene <b>1 aviso</b>.</span>
+									<button type="button" class="vega-schedule-link">Ver la revisión</button>
+								</p>
+							</div>
+						</div>
+					</div>
+				</section>
+			</div>
+			<p class="lam-why">
+				Las piezas de la línea de «Programar…» (<code>.vega-schedule-summary</code> y
+				<code>-link</code>), por el hueco <code>below</code> de <code>FieldRow</code>. Debajo de la
+				programación si la hay. Solo con avisos o con algo «no comprobado»; sin avisos no se pinta.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>1.11</b> Adónde lleva «Bloque 2 · Texto rico › Contenido»</figcaption>
+			<div class="lam-stage"><!--USA bloques-abierto--></div>
+			<p class="lam-why">
+				Despliega el bloque si estaba plegado, lo desplaza a la vista y pone el foco en el campo. El
+				enlace no se selecciona dentro del texto (ver la nota). Con un campo del registro (SEO) es
+				lo mismo sin desplegar nada.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>1.12</b> Adónde lleva «Describir la imagen…»</figcaption>
+			<div class="lam-stage lam-stage--veil">
+				<div class="lam-hueco lam-hueco--dialogo">
+					MediaDetail tal cual (ya existe en /media): la imagen, su nombre y el campo «Texto
+					alternativo» con el foco. Al guardar, el aviso desaparece de la tarjeta.
+				</div>
+			</div>
+			<p class="lam-why">
+				El alt de una imagen de la biblioteca vive en su ficha de Medios, no en la página: ir al
+				bloque no deja arreglarlo. Se abre la ficha que ya existe, encima del formulario, sin salir
+				de él.
+			</p>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>Editor visual: «Marcar como publicada»</h2>
+	<p>
+		Aquí sí hay botón de publicar. Si la revisión tiene avisos o algo sin comprobar, el botón abre
+		el popover de confirmación que ya existe, en tono de aviso; si no, publica a la primera. «Pasar
+		a borrador» nunca pregunta.
+	</p>
+	<div class="lam-grid lam-grid--wide">
+		<figure class="lam-spec">
+			<figcaption><b>ANTES</b> Hoy: publica a la primera (salvo bloques sin guardar)</figcaption>
+			<div class="lam-stage lam-visual lam-sangre">
+				<!--USA barra-visual-antes-->
+				<!--USA lienzo-->
+			</div>
+		</figure>
+		<figure class="lam-spec">
+			<figcaption><b>2.1</b> Con avisos: confirmación con la lista</figcaption>
+			<!--USA visual-despues-->
+			<p class="lam-why">
+				El foco va a «Cancelar», como hoy. Esc cierra. Las acciones de bloque eligen el bloque en el
+				árbol (la ficha de la derecha lo abre); las de un campo del registro abren el formulario con
+				ese campo enfocado (si hay bloques sin guardar, avisa la salvaguarda de salida de siempre).
+			</p>
+		</figure>
+	</div>
+
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption><b>2.2</b> Con avisos y un bloque sin guardar</figcaption>
+			<div class="lam-stage">
+				<div class="vega-visual-publish-pop vega-visual-publish-pop--review" role="alertdialog">
+					<p class="vega-visual-publish-pop-title">Antes de publicar</p>
+					<div class="vega-review-pop-scroll">
+						<div class="vega-review-pop-section">
+							<p class="vega-review-group-head"><span>Hay 1 bloque sin guardar</span></p>
+							<ul>
+								<li>«Reserva tu plaza»</li>
+							</ul>
+							<p class="vega-visual-publish-pop-body">
+								La página se publicará con lo último guardado. Esos cambios no saldrán hasta que los
+								guardes.
+							</p>
+						</div>
+						<div class="vega-review-pop-section">
+							<ul class="vega-review-groups">
+								<li class="vega-review-group">
+									<p class="vega-review-group-head">
+										<span>Enlaces</span>
+										<span class="vega-review-status" data-tone="warn">1 aviso</span>
+									</p>
+									<ul class="vega-review-items">
+										<li class="vega-review-item">
+											{{i:warning:14}}
+											<p>
+												El enlace a <span class="vega-review-value">/inscripcion</span> pasa por una
+												redirección que acaba en <span class="vega-review-value">/reservas</span>, y
+												esa ruta no existe.
+											</p>
+											<div class="vega-review-meta">
+												<button type="button" class="vega-review-go">
+													Bloque 4 · Llamada a la acción {{i:chevron:12}}
+												</button>
+											</div>
+										</li>
+									</ul>
+								</li>
+							</ul>
+						</div>
+					</div>
+					<p class="vega-visual-publish-pop-body">Ningún aviso impide publicar.</p>
+					<!--USA pop-acciones-->
+				</div>
+			</div>
+			<p class="lam-why">
+				Una sola confirmación, no dos seguidas: los bloques sin guardar primero (es lo que más
+				cambia lo que se publica) y los avisos debajo. La revisión mira los bloques en pantalla,
+				guardados o no.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>2.3</b> Revisando todavía</figcaption>
+			<div class="lam-stage">
+				<div
+					class="vega-visual-publish-pop vega-visual-publish-pop--review"
+					role="alertdialog"
+					aria-busy="true"
+				>
+					<p class="vega-visual-publish-pop-title">Revisando la página…</p>
+					<p class="vega-visual-publish-pop-body" aria-live="polite">
+						Tarda un momento. Puedes esperar o publicar sin la revisión.
+					</p>
+					<div class="vega-visual-publish-pop-actions">
+						<button
+							type="button"
+							class="vega-visual-publish-pop-btn vega-visual-publish-pop-btn--primary"
+						>
+							Publicar sin esperar
+						</button>
+						<button type="button" class="vega-visual-publish-pop-btn lam-foco">Cancelar</button>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">
+				Solo si se pulsa antes de que acabe la carga (empieza al abrir el editor). Al terminar, el
+				popover se rellena en el sitio: con avisos pasa a 2.1; sin avisos dice «Sin avisos» y el
+				botón pasa a «Marcar como publicada». Nunca publica solo.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>2.4</b> No se pudo revisar</figcaption>
+			<div class="lam-stage">
+				<div class="vega-visual-publish-pop vega-visual-publish-pop--review" role="alertdialog">
+					<p class="vega-visual-publish-pop-title">No se ha podido revisar la página</p>
+					<p class="vega-review-error">
+						No se han podido leer los bloques de la página.
+						<button type="button">Reintentar</button>
+					</p>
+					<p class="vega-visual-publish-pop-body">Ningún aviso impide publicar.</p>
+					<!--USA pop-acciones-->
+				</div>
+			</div>
+			<p class="lam-why">
+				Mismo texto que la tarjeta (1.7). Publicar sigue a mano: no saber no es lo mismo que no
+				poder.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>2.5</b> Sin avisos: no hay popover</figcaption>
+			<div class="lam-stage">
+				<span class="vega-visual-publish" role="group" aria-label="Estado de la página">
+					<span class="vega-visual-publish-tag" data-status-kind="pub">Publicado</span>
+					<button type="button" class="vega-visual-publish-btn">Pasar a borrador</button>
+				</span>
+				<div class="lam-toast">
+					<div class="vega-toast" data-kind="success">
+						<span>«Talleres de otoño» pasa a «Publicado».</span>
+					</div>
+				</div>
+			</div>
+			<p class="lam-why">
+				El camino de hoy, sin un clic más: etiqueta nueva y el aviso de siempre.
+			</p>
+		</figure>
+
+		<figure class="lam-spec">
+			<figcaption><b>2.6</b> Sin permiso para editar</figcaption>
+			<div class="lam-stage">
+				<span class="vega-visual-publish">
+					<span class="vega-visual-publish-tag" data-status-kind="draft">Borrador</span>
+				</span>
+			</div>
+			<p class="lam-why">
+				Hoy ya sale solo la etiqueta. No hay botón, así que no hay revisión que enseñar aquí; la
+				tarjeta del formulario sí la enseña (1.9).
+			</p>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>Editor visual a 390 px</h2>
+	<p>
+		Por debajo de 768 px el control baja a su propia línea y el popover ocupa el ancho de la
+		pantalla menos 2 rem (<code>min(23rem, 100vw − 2rem)</code>, el de hoy). Con muchos avisos, la
+		lista se desplaza dentro y el título y los botones se quedan fijos.
+	</p>
+	<div class="lam-grid">
+		<figure class="lam-spec">
+			<figcaption><b>2.7</b> El popover con avisos en un móvil</figcaption>
+			<div class="lam-stage lam-movil lam-visual lam-sangre">
+				<div class="vega-edit-top vega-edit-top--bleed">
+					<!--USA migas-->
+					<span class="vega-visual-publish" role="group" aria-label="Estado de la página">
+						<span class="vega-visual-publish-tag" data-status-kind="draft">Borrador</span>
+						<button
+							type="button"
+							class="vega-visual-publish-btn vega-visual-publish-btn--primary"
+							aria-expanded="true"
+						>
+							Marcar como publicada
+						</button>
+						<!--USA pop-avisos-->
+					</span>
+					<span class="vega-edit-top-spacer"></span>
+				</div>
+				<div class="lam-lienzo lam-lienzo--alto">
+					<div class="lam-hueco">Árbol</div>
+					<div class="lam-hueco">Solo textos (lámina 8 del lote 12)</div>
+					<div class="lam-hueco">Ficha</div>
+				</div>
+			</div>
+		</figure>
+	</div>
+</section>
+
+<section class="lam-section">
+	<h2>Textos: qué dice cada aviso y adónde lleva</h2>
+	<p>
+		Mensajes de <code>review.*</code> tal cual, salvo el marcado como <b>cambio</b>. Los valores
+		entre llaves se pintan en mono.
+	</p>
+	<table class="lam-cifras">
+		<thead>
+			<tr>
+				<th>Comprobación</th>
+				<th>Mensaje</th>
+				<th>Acción en el formulario</th>
+				<th>Acción en el editor visual</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>seo.description-empty</td>
+				<td>
+					La descripción para buscadores está vacía: se usará la descripción general del sitio.
+				</td>
+				<td>«Descripción ›»: foco en el campo</td>
+				<td>«Abrir Descripción en el formulario ›»</td>
+			</tr>
+			<tr>
+				<td>seo.description-long</td>
+				<td>
+					La descripción tiene {length} caracteres y los buscadores suelen cortarla a partir de
+					{max}.
+				</td>
+				<td>Ídem</td>
+				<td>Ídem</td>
+			</tr>
+			<tr>
+				<td>seo.social-image-missing</td>
+				<td>No hay imagen para redes: al compartir la página saldrá sin imagen.</td>
+				<td>«Imagen para redes ›»: foco en el campo</td>
+				<td>Abrir el campo en el formulario</td>
+			</tr>
+			<tr>
+				<td>seo.noindex</td>
+				<td>
+					Está marcada como «No indexar»: los buscadores no la mostrarán y no saldrá en el mapa del
+					sitio.
+				</td>
+				<td>«No indexar ›»: foco en el interruptor</td>
+				<td>Abrir el campo en el formulario</td>
+			</tr>
+			<tr>
+				<td>link.broken (not-found)</td>
+				<td>El enlace a {href} no lleva a ninguna página ni redirección del sitio.</td>
+				<td>Al campo (registro) o «Bloque N · Tipo › Campo ›» (bloque desplegado, foco)</td>
+				<td>Campo del registro: al formulario. Bloque: lo elige en el árbol</td>
+			</tr>
+			<tr>
+				<td>link.broken (redirect-dead-end)</td>
+				<td>
+					El enlace a {href} pasa por una redirección que acaba en {to}, y esa ruta no existe.
+				</td>
+				<td>Ídem</td>
+				<td>Ídem</td>
+			</tr>
+			<tr>
+				<td>link.broken (redirect-loop)</td>
+				<td>El enlace a {href} entra en un bucle de redirecciones.</td>
+				<td>Ídem</td>
+				<td>Ídem</td>
+			</tr>
+			<tr>
+				<td>link.draft-target</td>
+				<td>
+					El enlace a {href} lleva a una página que sigue en borrador y no se verá en el sitio.
+				</td>
+				<td>Ídem</td>
+				<td>Ídem</td>
+			</tr>
+			<tr>
+				<td>media.alt-missing</td>
+				<td>
+					<b>Cambio:</b> La imagen «{file}» no tiene texto alternativo. (Hoy acaba en «Añádelo en
+					Medios.», que sobra: la acción lo hace.)
+				</td>
+				<td>«Describir la imagen…»: abre MediaDetail con el foco en el alt</td>
+				<td>Ídem, encima del editor visual</td>
+			</tr>
+			<tr>
+				<td>media.alt-missing-inline</td>
+				<td>
+					La imagen «{file}» del texto no declara texto alternativo: descríbela, o déjalo vacío si
+					es decorativa.
+				</td>
+				<td>«Bloque N · Tipo › Campo ›»</td>
+				<td>Elige el bloque en el árbol</td>
+			</tr>
+		</tbody>
+	</table>
+</section>
+
+<section class="lam-section">
+	<h2>Nota</h2>
+	<ul class="lam-notes">
+		<li>
+			<b>Recomendación: tarjeta arriba del aside, no junto al campo Estado.</b> En el modelo real
+			(Páginas y Entradas del sembrado) Estado no tiene grupo y cae en la columna central, entre
+			Layout y «Publicar el», y SEO va en el aside. Una tarjeta de diez líneas ahí partiría los
+			campos y empujaría los bloques hacia abajo. Arriba del aside está a la vista mientras se edita
+			(es pegajoso), justo encima de los campos de SEO que señala la mitad de los avisos. Lo que
+			queda junto a Estado es la línea de 1.10. El punto débil: por debajo de 900 px la tarjeta
+			queda al final; la línea bajo Estado lo cubre.
+		</li>
+		<li>
+			<b>Se recalcula en vivo</b> con los valores del formulario y los bloques en pantalla (<code
+				>reviewRecord</code
+			>
+			es puro). Páginas, redirecciones y medios se leen al abrir, tras cada guardado y con «Volver a
+			comprobar». Por voz solo se anuncia el resultado de una carga, no cada pulsación.
+		</li>
+		<li>
+			<b>Estados que hay que construir.</b> Tarjeta: sin avisos, con avisos, más de 3 en un grupo,
+			no comprobado (con y sin avisos), cargando, error, sin SEO (grupos que no aplican, fuera), sin
+			Estado (sin tarjeta), sin permiso (sin acciones), creando un registro (SEO y enlaces del
+			registro; los bloques todavía no existen). Popover: con avisos, con avisos y bloques sin
+			guardar, revisando, error; sin avisos no hay popover.
+		</li>
+		<li>
+			<b>Piezas y tokens.</b> Ningún token ni icono nuevo. Tarjeta:
+			<code>.vega-fsection--aside</code>. Resumen: la píldora de <code>.vega-editor-tag</code>.
+			Icono: <code>warning</code> a 14 px y <code>check</code> a 12. Enlaces: el de
+			<code>.vega-refs-sample a</code>. Error: el de «Historial». Popover:
+			<code>.vega-visual-publish-pop</code> con la pareja <code>--warning</code>/<code
+				>--warning-soft</code
+			>
+			de <code>.vega-field-notice</code>.
+		</li>
+		<li>
+			<b>Gravedad «error».</b> Hoy ninguna comprobación la usa. Si un día alguna bloquea, su fila
+			lleva el icono en <code>--danger</code> y el popover deja de ofrecer «Publicar igualmente». No
+			se dibuja aquí.
+		</li>
+	</ul>
+</section>
