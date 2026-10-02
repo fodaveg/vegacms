@@ -961,8 +961,12 @@
 	}
 
 	/* La caja la pone `.vega-widget-text` (global, `Text.svelte`); aquí solo lo que la lámina añade.
-	   `:global` porque el `<textarea>` lo pinta `GrowingTextarea`, otro componente. */
-	.vega-widget-file :global(.vega-file-alt-input) {
+	   `:global` porque el `<textarea>` lo pinta `GrowingTextarea`, otro componente: la regla de
+	   arriba (`> :not(.vega-file-item-head)`) lleva la clase de ámbito de ESTE componente y no le
+	   llega, así que sin esto el textarea se queda en la columna de la miniatura (5 rem de ancho). */
+	.vega-file-item--alt :global(.vega-file-alt-input) {
+		grid-column: 1 / -1;
+		width: 100%;
 		font-size: 0.92em;
 	}
 
