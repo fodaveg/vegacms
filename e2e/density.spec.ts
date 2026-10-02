@@ -55,7 +55,7 @@ test('la densidad se puede cambiar con el teclado y en una pantalla estrecha', a
 	// Por debajo de 768 px el segmentado de la barra se ocultaba: el menú sí es alcanzable.
 	await page.setViewportSize({ width: 390, height: 800 });
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	const trigger = page.getByRole('button', { name: 'Menú de cuenta' });
 	await trigger.focus();

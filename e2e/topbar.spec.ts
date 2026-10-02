@@ -2,7 +2,7 @@
  * Suite R1 del rediseño C2 ("cabina con aire"): wordmark con punto de acento, buscador global
  * centrado (atajo `/`, visual/sin backend todavía) y avatar con la inicial de la sesión.
  */
-import { expect, loginAsDemo, test, waitForHome } from './fixtures';
+import { expect, loginAsDemo, openSiteInfoFromSidebar, test, waitForHome } from './fixtures';
 
 test('el wordmark del sitio pinta el isotipo de Vega junto al nombre', async ({ page }) => {
 	await loginAsDemo(page);
@@ -20,13 +20,19 @@ test('la marca de la barra es un enlace «Inicio» a la portada (lote 12, lámin
 	page
 }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	// El login ya aterriza en la portada: para ver que la marca NAVEGA, primero se sale de ella.
+	await waitForHome(page);
+	await openSiteInfoFromSidebar(page);
 
-	const brand = page.getByRole('link', { name: 'Inicio' });
+	// Acotada a la barra superior: en la portada, «Lo último que editaste» puede tener un
+	// registro titulado «Inicio» (una página, por ejemplo), y su enlace casaría también.
+	const brand = page
+		.locator('header.vega-topbar')
+		.getByRole('link', { name: 'Inicio', exact: true });
 	await expect(brand).toHaveAttribute('href', /\/$/);
 	await brand.click();
+	await waitForHome(page);
 	await expect(page).not.toHaveURL(/\/c\/site_info\/new$/);
-	await expect(page).toHaveURL(/\/$/);
 });
 
 test('el atajo "/" enfoca el buscador global salvo dentro de un campo editable', async ({
