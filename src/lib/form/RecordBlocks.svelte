@@ -71,6 +71,10 @@
 		/** Un bloque se acaba de GUARDAR de verdad (lote 13): el padre relee lo que la revisión
 		 *  antes de publicar lee del servidor. Los borradores van por `onDraftChange`. */
 		onSaved?: () => void;
+		/** `true` cuando la lista del padre ACTUAL ha cargado; `false` mientras carga o si falló
+		 *  (lote 13). `onDraftChange` publica `[]` mientras carga, si falla y si no hay bloques;
+		 *  solo esto distingue el último de los otros dos. */
+		onReadyChange?: (ready: boolean) => void;
 	}
 
 	let {
@@ -80,7 +84,8 @@
 		onDraftChange = () => {},
 		onBusyChange = () => {},
 		disabled = false,
-		onSaved = () => {}
+		onSaved = () => {},
+		onReadyChange = () => {}
 	}: Props = $props();
 
 	const ctx = getVegaContext();
@@ -102,6 +107,11 @@
 		onDirtyChange: (dirty) => onDirtyChange(dirty),
 		onDraftChange: (records) => onDraftChange(records),
 		onBusyChange: (busy) => onBusyChange(busy)
+	});
+
+	// Lista cargada o no (ver `onReadyChange`): cambiar de padre vuelve a `loading` y avisa solo.
+	$effect(() => {
+		onReadyChange(blocks.status.kind === 'ready');
 	});
 
 	// ————— Menú "Añadir bloque" (patrón APG de ListToolbar: click-fuera, Escape y focusout) —————

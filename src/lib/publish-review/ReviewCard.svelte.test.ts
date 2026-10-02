@@ -132,10 +132,9 @@ describe('ReviewCard.svelte — la tarjeta, estado por estado', () => {
 			expect(h.group(name)!.querySelector('.vega-review-items')).toBeNull();
 		}
 		expect(h.target.querySelector('.vega-review-note')).toBeNull();
-		// El resumen es lo que se anuncia por voz: el resultado de la carga, no cada tecla.
-		expect(h.target.querySelector('.vega-review-summary')?.getAttribute('aria-live')).toBe(
-			'polite'
-		);
+		// Lo que se anuncia por voz es el resultado: la píldora vive en la región `aria-live`.
+		const live = h.target.querySelector('.vega-review-summary [aria-live="polite"]');
+		expect(live?.textContent?.trim()).toBe('Sin avisos');
 	});
 
 	test('1.2 varios avisos: el resumen los cuenta, cada grupo el suyo, en el orden SEO · Enlaces · Imágenes', () => {
@@ -177,11 +176,13 @@ describe('ReviewCard.svelte — la tarjeta, estado por estado', () => {
 		toField.click();
 		expect(h.onGo).toHaveBeenLastCalledWith(SEO_LONG);
 
-		const toBlock = byLabel('Ir a Contenido, en el bloque 2 (Texto rico)')!;
+		// El nombre accesible EMPIEZA por el texto visible (WCAG 2.5.3): se dicta lo que se ve.
+		const toBlock = byLabel('Bloque 2 · Texto rico › Contenido: ir al campo')!;
 		expect(toBlock.textContent?.trim()).toBe('Bloque 2 · Texto rico › Contenido');
+		expect(toBlock.getAttribute('aria-label')?.startsWith(toBlock.textContent!.trim())).toBe(true);
 		toBlock.click();
 		expect(h.onGo).toHaveBeenLastCalledWith(LINK_BROKEN);
-		expect(byLabel('Ir a Enlace, en el bloque 4 (Llamada a la acción)')).not.toBeNull();
+		expect(byLabel('Bloque 4 · Llamada a la acción › Enlace: ir al campo')).not.toBeNull();
 
 		// La imagen sin alt: dónde está como texto y «Describir la imagen…», nunca «ir al bloque».
 		const altItem = h.group('media')!.querySelector('[data-review-check="media.alt-missing"]')!;
@@ -251,6 +252,19 @@ describe('ReviewCard.svelte — la tarjeta, estado por estado', () => {
 		expect(h.target.querySelector('.vega-review-note')).toBeNull();
 	});
 
+	test('imágenes sin la biblioteca pero con una <img> del texto sin alt: el grupo pinta su aviso y dice qué no se comprobó', () => {
+		// `reviewRecord` marca `media.alt-missing` como no comprobado, pero `alt-missing-inline` no
+		// necesita la biblioteca y sí avisa: el grupo no puede esconderlo tras «No comprobado».
+		h = mountCard(fakeReviewState({ findings: [ALT_INLINE], skipped: ['media.alt-missing'] }));
+		expect(h.summary()).toBe('1 aviso');
+		const media = h.group('media')!;
+		expect(groupStatus(media)).toBe('1 aviso');
+		expect(media.querySelector('[data-review-check="media.alt-missing-inline"]')).not.toBeNull();
+		expect(media.querySelector('.vega-review-skipped')?.textContent).toContain(
+			'el texto alternativo de sus imágenes no se ha comprobado'
+		);
+	});
+
 	test('1.6 cargando: «Comprobando…» en la cabecera y en enlaces e imágenes; SEO sale ya', async () => {
 		const review = fakeReviewState({ phase: 'loading', findings: [SEO_LONG, SEO_IMAGE] });
 		h = mountCard(review);
@@ -260,6 +274,10 @@ describe('ReviewCard.svelte — la tarjeta, estado por estado', () => {
 		expect(groupStatus(h.group('seo')!)).toBe('2 avisos');
 		expect(groupStatus(h.group('links')!)).toBe('Comprobando…');
 		expect(groupStatus(h.group('media')!)).toBe('Comprobando…');
+		// «Comprobando…» se ve pero NO se anuncia: se relee tras cada guardado.
+		const live = () => h!.target.querySelectorAll('[aria-live]');
+		expect(live()).toHaveLength(1);
+		expect(live()[0].textContent?.trim()).toBe('');
 
 		// La carga termina: el resultado se anuncia en el mismo sitio.
 		review.set({ phase: 'ready', findings: [SEO_LONG, SEO_IMAGE, LINK_BROKEN] });
@@ -267,6 +285,7 @@ describe('ReviewCard.svelte — la tarjeta, estado por estado', () => {
 		await tick();
 		expect(h.card().getAttribute('aria-busy')).toBeNull();
 		expect(h.summary()).toBe('3 avisos');
+		expect(live()[0].textContent?.trim()).toBe('3 avisos');
 		expect(groupStatus(h.group('links')!)).toBe('1 aviso');
 		expect(groupStatus(h.group('media')!)).toBe('Sin avisos');
 	});

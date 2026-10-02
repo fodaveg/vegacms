@@ -250,8 +250,10 @@
 	 *   de-publicar`): `createReviewState` (`$lib/publish-review/review-state.svelte.ts`) sobre los
 	 *   valores EN PANTALLA (`current` y los bloques de `previewBlocks`, guardados o no) — se
 	 *   recalcula en vivo; páginas, redirecciones y medios se releen al abrir, tras cada guardado
-	 *   (`savedCount` y `blocksSavedCount`) y con «Volver a comprobar». Solo con `statusField` y
-	 *   alguna comprobación que aplique (`review.enabled`): entonces `ReviewCard` es la PRIMERA
+	 *   (`savedCount` y `blocksSavedCount`) y con «Volver a comprobar». Hasta que `RecordBlocks`
+	 *   carga la lista (`blocksReady`), los bloques son «no se sabe» (`null`), nunca «ninguno».
+	 *   Solo con `statusField`, alguna comprobación que aplique y un registro ya creado
+	 *   (`review.enabled`; en `/new` no hay tarjeta ni se lee nada): entonces `ReviewCard` es la PRIMERA
 	 *   tarjeta del aside y bajo el campo Estado va una línea («La revisión tiene N avisos. Ver la
 	 *   revisión») por el hueco `below` de `FieldRow`, con las piezas de la línea de «Programar…».
 	 *   Cada aviso lleva una acción (`goToReviewTarget`): al campo (cambia la pestaña de idioma si
@@ -704,11 +706,16 @@
 	/** Ficha de Medios abierta desde «Describir la imagen…», o `null`. */
 	let reviewMediaId = $state<string | null>(null);
 
+	/** `RecordBlocks` ya tiene la lista de ESTE registro (`onReadyChange`): hasta entonces, o si su
+	 *  carga falló, `previewBlocks` vale `[]` sin querer decir «no hay bloques». */
+	let blocksReady = $state(false);
+
 	const review = createReviewState({
 		ctx,
 		// Captura deliberada (como `recordIdentity`): un tipo distinto remonta la ruta entera.
 		type: untrack(() => type),
-		getRecordId: () => model.recordId ?? '',
+		// En creación no hay id: nada que leer ni que revisar (ver `review-state.svelte.ts`).
+		getRecordId: () => model.recordId,
 		// `current` lleva `File` pendientes en los campos de fichero: para la revisión cuentan como
 		// «hay valor» (igual que un `FileRef`), así que viajan tal cual.
 		getRecord: () => ({
@@ -716,9 +723,13 @@
 			type: type.name,
 			values: current as VegaRecord['values']
 		}),
+		// `null` (no se sabe todavía) hasta que `RecordBlocks` cargue de verdad: devolver `[]` antes
+		// borraría los avisos de los bloques y la tarjeta diría «Sin avisos» (ver `getBlocks` en
+		// `review-state.svelte.ts`).
 		getBlocks: () => {
 			const config = type.blocks;
 			if (!config) return [];
+			if (!blocksReady) return null;
 			return previewBlocks.map((block) => ({
 				id: block.id,
 				type: config.collection,
@@ -1927,6 +1938,7 @@
 					onDirtyChange={(value) => (blocksDirty = value)}
 					onDraftChange={(records) => (previewBlocks = records)}
 					onBusyChange={(value) => (blocksBusy = value)}
+					onReadyChange={(value) => (blocksReady = value)}
 					onSaved={() => (blocksSavedCount += 1)}
 					disabled={duplicating}
 				/>

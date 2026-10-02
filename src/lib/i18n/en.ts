@@ -1884,6 +1884,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'Vega could not find out which pages and redirects the site has, so links were not checked.',
 	'review.skipped.media':
 		'The media library could not be read, so the alt text of the images was not checked.',
+	'review.skipped.mediaPartial':
+		'The media library could not be read, so the alt text of its images was not checked.',
 	'review.recheck': 'Check again',
 	'review.loadError': 'The page blocks could not be read: links and images were not checked.',
 	'review.notBlocking': 'No warning prevents publishing.',
@@ -1892,10 +1894,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'review.go.field': '{label}',
 	'review.go.field.a11y': 'Go to the {label} field',
 	'review.go.block': 'Block {position} · {block} › {label}',
-	'review.go.block.a11y': 'Go to {label}, in block {position} ({block})',
+	'review.go.block.a11y': 'Block {position} · {block} › {label}: go to the field',
 	'review.go.form': 'Open {label} in the form',
 	'review.go.visualBlock': 'Block {position} · {block}',
-	'review.go.visualBlock.a11y': 'Select block {position} ({block}) in the tree',
+	'review.go.visualBlock.a11y': 'Block {position} · {block}: select it in the tree',
 	'review.where.block': 'Block {position} · {block}',
 	'review.describeImage': 'Describe the image…',
 	'review.statusLine.one': 'The review has {count} warning.',

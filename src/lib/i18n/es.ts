@@ -1971,6 +1971,10 @@ export const es = {
 		'Vega no ha podido saber qué páginas y redirecciones tiene el sitio, así que los enlaces no se han comprobado.',
 	'review.skipped.media':
 		'No se ha podido leer la biblioteca de medios, así que el texto alternativo de las imágenes no se ha comprobado.',
+	// Imágenes con avisos de las `<img>` del texto (que no leen la biblioteca) y la biblioteca sin
+	// leer: lo que falta son SOLO las de la biblioteca.
+	'review.skipped.mediaPartial':
+		'No se ha podido leer la biblioteca de medios, así que el texto alternativo de sus imágenes no se ha comprobado.',
 	'review.recheck': 'Volver a comprobar',
 	'review.loadError':
 		'No se han podido leer los bloques de la página: los enlaces y las imágenes no se han comprobado.',
@@ -1978,14 +1982,16 @@ export const es = {
 	'review.more': 'Ver {count} más',
 	'review.less': 'Ver menos',
 	// Acciones de un aviso. `.a11y` es el nombre accesible del botón; el texto visible es el corto.
+	// El nombre accesible CONTIENE el texto visible (WCAG 2.5.3, quien dicta por voz dice lo que
+	// ve); en los de bloque, además, empieza por él.
 	'review.go.field': '{label}',
 	'review.go.field.a11y': 'Ir al campo {label}',
 	'review.go.block': 'Bloque {position} · {block} › {label}',
-	'review.go.block.a11y': 'Ir a {label}, en el bloque {position} ({block})',
+	'review.go.block.a11y': 'Bloque {position} · {block} › {label}: ir al campo',
 	// En el editor visual: un campo del registro abre el formulario; un bloque se elige en el árbol.
 	'review.go.form': 'Abrir {label} en el formulario',
 	'review.go.visualBlock': 'Bloque {position} · {block}',
-	'review.go.visualBlock.a11y': 'Elegir el bloque {position} ({block}) en el árbol',
+	'review.go.visualBlock.a11y': 'Bloque {position} · {block}: elegirlo en el árbol',
 	// Dónde está el aviso cuando no es un enlace (la imagen sin alt, o sin permiso de editar).
 	'review.where.block': 'Bloque {position} · {block}',
 	'review.describeImage': 'Describir la imagen…',

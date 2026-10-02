@@ -10,9 +10,9 @@
 	 * **Resumen en la cabecera, siempre con texto** (decisión 3): «7 avisos» (tono aviso), «Sin
 	 * avisos» (éxito) o «Incompleta» (neutro: cero avisos pero algo sin comprobar o la carga
 	 * fallida). La píldora es la de `.vega-editor-tag`. Mientras carga, en su lugar el texto
-	 * «Comprobando…» de `.vega-used-in-loading`. El resumen lleva `aria-live="polite"`: por voz se
-	 * anuncia el RESULTADO de una carga, no cada pulsación (los avisos de SEO cambian mientras se
-	 * escribe, y anunciar cada tecla sería ruido).
+	 * «Comprobando…» de `.vega-used-in-loading`. Solo la píldora del resultado va en la región
+	 * `aria-live="polite"`; «Comprobando…» queda fuera, porque la revisión se relee tras cada
+	 * guardado y anunciarlo cada vez sería ruido. Por voz se oye el recuento cuando cambia.
 	 *
 	 * **Quién decide si hay tarjeta** (decisión 8): `RecordForm` la monta solo con `review.enabled`
 	 * (`statusField` y alguna comprobación que aplique); Etiquetas y Redirecciones no publican nada.
@@ -71,21 +71,26 @@
 >
 	<div class="vega-review-head">
 		<h2 id="{uid}-title">{ctx.t('review.title')}</h2>
-		<span class="vega-review-summary" aria-live="polite">
+		<span class="vega-review-summary">
 			{#if loading}
 				<span class="vega-review-checking">{ctx.t('review.checking')}</span>
-			{:else}
-				<span
-					class="vega-review-count"
-					data-tone={count > 0 ? 'warn' : incomplete ? 'muted' : 'ok'}
-				>
-					{count > 0
-						? ctx.t(count === 1 ? 'review.count.one' : 'review.count.many', { count })
-						: incomplete
-							? ctx.t('review.count.incomplete')
-							: ctx.t('review.count.none')}
-				</span>
 			{/if}
+			<!-- Solo el resultado vive en la región: «Comprobando…» se ve pero no se anuncia, que se
+			     relee tras CADA guardado y por voz sería ruido. -->
+			<span class="vega-review-live" aria-live="polite">
+				{#if !loading}
+					<span
+						class="vega-review-count"
+						data-tone={count > 0 ? 'warn' : incomplete ? 'muted' : 'ok'}
+					>
+						{count > 0
+							? ctx.t(count === 1 ? 'review.count.one' : 'review.count.many', { count })
+							: incomplete
+								? ctx.t('review.count.incomplete')
+								: ctx.t('review.count.none')}
+					</span>
+				{/if}
+			</span>
 		</span>
 	</div>
 	<ReviewGroups {review} surface="form" {canAct} {onGo} {onDescribe} />

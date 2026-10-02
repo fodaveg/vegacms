@@ -248,11 +248,19 @@
 		return ctx.t('review.count.none');
 	});
 
+	/** Pie del popover. Con bloques sin guardar y la revisión sin terminar (cargando o fallida),
+	 *  «Ningún aviso impide publicar» afirmaría algo que no se sabe: va el texto de «revisando» o
+	 *  el del error. Sin bloques sin guardar, el error lleva su título arriba y la fila de error
+	 *  con «Reintentar»; ahí el pie es el de la lámina 2.4. */
 	const popBody = $derived.by(() => {
 		if (pendingBlocks.length > 0 && !reviewSays) return ctx.t('editor.visual.status.confirm.body');
 		if (reviewLoading && pendingBlocks.length === 0) {
 			return ctx.t('editor.visual.review.checking.body');
 		}
+		if (reviewLoading) {
+			return `${ctx.t('editor.visual.review.checking.title')} ${ctx.t('editor.visual.review.checking.body')}`;
+		}
+		if (reviewFailed && pendingBlocks.length > 0) return ctx.t('editor.visual.review.error');
 		if (findingsCount > 0 && pendingBlocks.length === 0 && !reviewLoading && !reviewFailed) {
 			return ctx.t('editor.visual.review.body');
 		}
@@ -309,6 +317,12 @@
 			return;
 		}
 		await change(target);
+	}
+
+	/** Pone el foco en el botón de estado. Lo usa la pantalla al cerrar algo que se abrió desde el
+	 *  popover y ya no tiene adónde devolverlo (la ficha de Medios de «Describir la imagen…»). */
+	export function focus(): void {
+		actionEl?.focus();
 	}
 
 	async function cancelConfirm(): Promise<void> {

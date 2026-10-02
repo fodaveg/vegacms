@@ -10,7 +10,11 @@
 	 * su estado: «Sin avisos», «N avisos», «Comprobando…» (la carga sigue en curso y el grupo depende
 	 * de ella: enlaces e imágenes; SEO sale ya, no lee nada) o «No comprobado» (`skipped`: la carga
 	 * terminó y ese dato no se pudo leer, con su motivo y «Volver a comprobar»). Así un «0 avisos»
-	 * nunca se confunde con «no se ha mirado». Si la carga FALLÓ (`phase === 'error'`), SEO se sigue
+	 * nunca se confunde con «no se ha mirado». Un grupo puede tener las DOS cosas: sin la biblioteca
+	 * de medios, `media.alt-missing` queda `skipped` pero `media.alt-missing-inline` (las `<img>` del
+	 * texto, que no la necesitan) sí avisa. Entonces el grupo dice «N avisos», los pinta y debajo
+	 * dice qué no se comprobó; si no, la tarjeta contaría avisos que el grupo esconde.
+	 * Si la carga FALLÓ (`phase === 'error'`), SEO se sigue
 	 * enseñando y los otros dos grupos se sustituyen por una sola fila de error con «Reintentar»
 	 * (lámina 1.7).
 	 *
@@ -86,12 +90,23 @@
 		return review.result.findings.filter((finding) => CHECK_GROUP[finding.check] === group);
 	}
 
+	/** Los avisos mandan sobre «No comprobado»: lo que se comprobó y avisa se enseña siempre, y lo
+	 *  que no se pudo comprobar se dice debajo (ver cabecera). */
 	function statusOf(group: ReviewGroup, findings: ReviewFinding[]): GroupStatus {
 		if (group !== 'seo' && (review.phase === 'loading' || review.phase === 'idle')) {
 			return 'checking';
 		}
-		if (skippedGroups.has(group)) return 'skipped';
-		return findings.length > 0 ? 'warn' : 'ok';
+		if (findings.length > 0) return 'warn';
+		return skippedGroups.has(group) ? 'skipped' : 'ok';
+	}
+
+	/** Qué no se comprobó en un grupo. Con avisos al lado, el de imágenes dice que faltan las de la
+	 *  biblioteca (las del texto sí se miraron); el de enlaces no tiene caso parcial (sin páginas no
+	 *  corre ninguna de sus dos comprobaciones). */
+	function skippedText(group: ReviewGroup, status: GroupStatus): string {
+		return group === 'media' && status === 'warn'
+			? ctx.t('review.skipped.mediaPartial')
+			: ctx.t(`review.skipped.${group}`);
 	}
 
 	function statusText(status: GroupStatus, count: number): string {
@@ -181,16 +196,7 @@
 					{statusText(status, findings.length)}
 				</span>
 			</p>
-			{#if status === 'skipped'}
-				<!-- El motivo vale para los dos casos que el cargador confunde en `null`: que la lectura
-				     falle y que el modelo no diga de dónde salen las páginas (lámina 1.4). -->
-				<p class="vega-review-skipped">
-					<span>{ctx.t(`review.skipped.${group}`)}</span>
-					<button type="button" class="vega-review-more" onclick={() => void review.reload()}>
-						{ctx.t('review.recheck')}
-					</button>
-				</p>
-			{:else if status === 'warn'}
+			{#if status === 'warn'}
 				<ul class="vega-review-items">
 					{#each visible as finding (finding.id)}
 						{@const describes = finding.check === 'media.alt-missing'}
@@ -244,6 +250,17 @@
 							: ctx.t('review.more', { count: findings.length - MAX_VISIBLE })}
 					</button>
 				{/if}
+			{/if}
+			{#if status !== 'checking' && skippedGroups.has(group)}
+				<!-- El motivo vale para los dos casos que el cargador confunde en `null`: que la lectura
+				     falle y que el modelo no diga de dónde salen las páginas (lámina 1.4). Con avisos
+				     encima, va DEBAJO de ellos (ver cabecera). -->
+				<p class="vega-review-skipped">
+					<span>{skippedText(group, status)}</span>
+					<button type="button" class="vega-review-more" onclick={() => void review.reload()}>
+						{ctx.t('review.recheck')}
+					</button>
+				</p>
 			{/if}
 		</li>
 	{/each}

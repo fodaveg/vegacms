@@ -52,7 +52,9 @@ test.describe('revisión antes de publicar — el formulario', () => {
 		const body = page.locator('#vega-block-body-seccion_2');
 		await expect(body).toBeHidden();
 
-		await card.getByRole('button', { name: 'Ir a Contenido, en el bloque 2 (Texto)' }).click();
+		await card
+			.getByRole('button', { name: 'Bloque 2 · Texto › Contenido: ir al campo', exact: true })
+			.click();
 
 		await expect(toggle).toHaveAttribute('aria-expanded', 'true');
 		await expect(body).toBeVisible();

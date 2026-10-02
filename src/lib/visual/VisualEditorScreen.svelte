@@ -286,14 +286,20 @@
 	 * registro guardado y los bloques EN PANTALLA (`blocks.currentDraftRecords()`, guardados o no);
 	 * páginas, redirecciones y medios se releen al abrir y tras cada guardado real
 	 * (`handleContentSaved`, vía `contentSavedCount`). Se la pasa a `VisualPublishControl`, que la
-	 * mete en su popover. Las acciones de un aviso se resuelven aquí: un campo del registro deja la
-	 * petición en `focus-request.ts` y abre el formulario (`ctx.nav.toRecord`, con la salvaguarda de
-	 * salida de siempre si hay bloques sin guardar); un bloque pasa por `handleBlockSelect` (la
-	 * puerta única de selección); una imagen sin alt abre su ficha de Medios encima
-	 * (`ReviewMediaDialog`).
+	 * mete en su popover. Las acciones de un aviso se resuelven aquí: un campo del registro abre el
+	 * formulario (`ctx.nav.toRecord`, con la salvaguarda de salida de siempre si hay bloques sin
+	 * guardar) con ese campo enfocado; un bloque pasa por `handleBlockSelect` (la puerta única de
+	 * selección); una imagen sin alt abre su ficha de Medios encima (`ReviewMediaDialog`) y, al
+	 * cerrarla, el foco vuelve al botón de estado (el popover que la abrió ya no existe).
+	 *
+	 * La petición de foco solo llega a `focus-request.ts` si la navegación se HACE: `beforeNavigate`
+	 * la ata a la navegación que sale y `onNavigate` (que SvelteKit solo llama si nadie la canceló)
+	 * la entrega. Si la salvaguarda la cancela, se pierde con ella; dejarla antes de navegar la
+	 * dejaba colgada, y la siguiente visita al formulario de esta página enfocaba ese campo sin que
+	 * nadie lo hubiera pedido.
 	 */
-	import { onDestroy, onMount, untrack } from 'svelte';
-	import { beforeNavigate } from '$app/navigation';
+	import { onDestroy, onMount, tick, untrack } from 'svelte';
+	import { beforeNavigate, onNavigate } from '$app/navigation';
 	import { getVegaContext } from '$lib/app-context';
 	import type { ResolvedBlockType, ResolvedContentType } from '$lib/model/types';
 	import type { VegaRecord } from '$lib/backend';
@@ -307,7 +313,8 @@
 		type VisualBridgeState
 	} from './bridge-client';
 	import { createBlocksState } from '$lib/form/blocks-state.svelte';
-	import { requestFieldFocus } from '$lib/form/focus-request';
+	import { requestFieldFocus, type FieldFocusRequest } from '$lib/form/focus-request';
+	import { recordRoute } from '$lib/nav/routes';
 	import type { ReviewFinding } from '$lib/publish-review/publish-review';
 	import { createReviewState } from '$lib/publish-review/review-state.svelte';
 	import ReviewMediaDialog from '$lib/publish-review/ReviewMediaDialog.svelte';
@@ -379,10 +386,12 @@
 		getRecordId: () => record.id,
 		getRecord: () => record,
 		// Los bloques EN PANTALLA, con las ediciones sin guardar de cada ficha (`draftOverrides`):
-		// la revisión mira lo que se ve, guardado o no. `null` mientras la lista no tiene tipo hijo.
+		// la revisión mira lo que se ve, guardado o no. `null` (no se sabe) mientras la lista no
+		// tiene tipo hijo, no ha cargado o su carga falló: ahí `currentDraftRecords()` da `[]`, y
+		// la revisión lo leería como «no hay bloques» y publicaría sin preguntar.
 		getBlocks: () => {
 			const child = blocks.childType;
-			if (!child) return null;
+			if (!child || blocks.status.kind !== 'ready') return null;
 			return blocks.currentDraftRecords().map((draft) => ({
 				id: draft.id,
 				type: child.name,
@@ -392,12 +401,17 @@
 		getReloadToken: () => contentSavedCount
 	});
 
+	/** Campo que pidió un aviso, a la espera de la navegación al formulario (ver cabecera). */
+	let reviewFocusPending: FieldFocusRequest | null = null;
+	/** La misma petición, atada a la navegación que acaba de salir (`beforeNavigate`). */
+	let reviewFocusArmed: FieldFocusRequest | null = null;
+
 	/** La acción de un aviso del popover (ver cabecera): al formulario con el campo enfocado, o al
 	 *  bloque en el árbol. */
 	function handleReviewGo(finding: ReviewFinding): void {
 		const target = finding.target;
 		if (target.kind === 'field') {
-			requestFieldFocus({ type: type.name, id: record.id, field: target.field });
+			reviewFocusPending = { type: type.name, id: record.id, field: target.field };
 			ctx.nav.toRecord(type.name, record.id);
 			return;
 		}
@@ -408,12 +422,44 @@
 		reviewMediaId = finding.mediaId ?? null;
 	}
 
+	let publishControlRef = $state<{ focus: () => void } | undefined>(undefined);
+
+	/**
+	 * Cierre de la ficha de Medios de un aviso. `MediaDetail` devuelve el foco a lo que lo tenía al
+	 * abrirse, pero eso era «Describir la imagen…» DENTRO del popover, que ya se cerró: sin esto el
+	 * foco acaba en `body`. Se lleva al botón de estado, como `closeSchedule()` en
+	 * `VisualPublishControl`. No por `fallbackFocusEl`: `MediaDetail` solo se lo pasa a sus
+	 * confirmaciones de borrar y reemplazar, nunca lo usa al cerrarse ella.
+	 */
+	async function closeReviewMedia(): Promise<void> {
+		reviewMediaId = null;
+		await tick();
+		const active = document.activeElement;
+		if (active === null || active === document.body || !active.isConnected) {
+			publishControlRef?.focus();
+		}
+	}
+
 	/** Guard de salida (ver cabecera): mismo mecanismo y mismo texto que `RecordForm.svelte`.
 	 *  `beforeNavigate` se registra en la inicialización del componente y SvelteKit lo da de baja
-	 *  solo al desmontar; `beforeunload` se añade y se quita a mano en `onMount`/`onDestroy`. */
+	 *  solo al desmontar; `beforeunload` se añade y se quita a mano en `onMount`/`onDestroy`.
+	 *  Antes de nada, la petición de foco de un aviso pasa a ser de ESTA navegación: si alguien la
+	 *  cancela, la siguiente vuelve a empezar sin ella. */
 	beforeNavigate((navigation) => {
+		reviewFocusArmed = reviewFocusPending;
+		reviewFocusPending = null;
 		if (!blocks.anyDirty) return;
 		if (!window.confirm(ctx.t('editor.leaveConfirm'))) navigation.cancel();
+	});
+
+	/** SvelteKit solo llama a esto con la navegación en marcha (nadie la canceló): ahora sí se deja
+	 *  la petición para el formulario que se va a montar, si es el de esta página. */
+	onNavigate((navigation) => {
+		const request = reviewFocusArmed;
+		reviewFocusArmed = null;
+		if (request && navigation.to?.url.pathname === recordRoute(request.type, request.id)) {
+			requestFieldFocus(request);
+		}
 	});
 
 	// Capturados UNA vez (`untrack`, mismo patrón que `PreviewPanel.svelte`): esta pantalla se
@@ -1192,6 +1238,7 @@
 			<!-- Estado de la página (lámina del audit p2): tras las migas; sin `statusField` no pinta
 			     nada. Escribe por el mismo `port.update` que el formulario (ver su cabecera). -->
 			<VisualPublishControl
+				bind:this={publishControlRef}
 				{type}
 				{record}
 				name={docName}
@@ -1505,10 +1552,12 @@
 	{/if}
 
 	<!-- «Describir la imagen…» de la revisión (lote 13): la ficha de Medios de siempre, encima del
-	     editor visual. Guardar sustituye la ficha en la revisión; borrar relee. -->
+	     editor visual. Guardar sustituye la ficha en la revisión; borrar relee. Al cerrar, el foco
+	     vuelve al botón de estado a mano (`closeReviewMedia`); `fallbackFocusEl` solo lo usan las
+	     confirmaciones de borrar y reemplazar de la ficha, y aquí no hay un nodo estable que darles. -->
 	<ReviewMediaDialog
 		mediaId={reviewMediaId}
-		onClose={() => (reviewMediaId = null)}
+		onClose={() => void closeReviewMedia()}
 		onSaved={(item) => review.updateMedia(item)}
 		onDeleted={() => void review.reload()}
 		fallbackFocusEl={null}

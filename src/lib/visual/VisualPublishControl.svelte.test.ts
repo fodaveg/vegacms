@@ -668,8 +668,9 @@ describe('VisualPublishControl.svelte — revisión antes de publicar', () => {
 
 		action(h)!.click();
 		await settle();
-		const toBlock = popButton(h, 'Elegir el bloque 2 (Texto rico) en el árbol')!;
+		const toBlock = popButton(h, 'Bloque 2 · Texto rico: elegirlo en el árbol')!;
 		expect(toBlock.textContent?.trim()).toBe('Bloque 2 · Texto rico');
+		expect(toBlock.getAttribute('aria-label')?.startsWith('Bloque 2 · Texto rico')).toBe(true);
 		toBlock.click();
 		await settle();
 		expect(onReviewGo).toHaveBeenLastCalledWith(BROKEN);
@@ -705,6 +706,29 @@ describe('VisualPublishControl.svelte — revisión antes de publicar', () => {
 		await settle();
 		expect(h.update).toHaveBeenCalledTimes(1);
 		expect(h.target.querySelectorAll('[role="alertdialog"]')).toHaveLength(0);
+	});
+
+	test('bloques sin guardar con la revisión cargando o fallida: el pie no dice «Ningún aviso impide publicar»', async () => {
+		const review = fakeReviewState({ phase: 'loading' });
+		h = mountControl({ record: page('draft'), pendingBlocks: ['Reserva tu plaza'], review });
+		action(h)!.click();
+		await settle();
+		const body = () => {
+			const dialog = pop(h!)!;
+			return dialog.querySelector('#' + dialog.getAttribute('aria-describedby'))!;
+		};
+		expect(popTitle(h)).toBe('Antes de publicar');
+		expect(body().textContent?.trim()).toBe(
+			`${t('editor.visual.review.checking.title')} ${t('editor.visual.review.checking.body')}`
+		);
+		expect(pop(h)!.textContent).not.toContain(t('review.notBlocking'));
+
+		review.set({ phase: 'error', errorMessage: 'Demasiados bloques' });
+		flushSync();
+		await settle();
+		expect(body().textContent?.trim()).toBe(t('editor.visual.review.error'));
+		expect(pop(h)!.textContent).not.toContain(t('review.notBlocking'));
+		expect(pop(h)!.querySelector('.vega-review-error')).not.toBeNull();
 	});
 
 	test('solo bloques sin guardar (revisión en regla): el popover de siempre, en tono info', async () => {

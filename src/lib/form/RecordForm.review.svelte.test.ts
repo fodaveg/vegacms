@@ -15,6 +15,7 @@ import { fieldIds } from './field-ids';
 import { requestFieldFocus } from './focus-request';
 import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import type { VegaRecord } from '$lib/backend/types';
+import type { BackendPort } from '$lib/backend/port';
 import type { ResolvedContentType } from '$lib/model/types';
 import { t as translate } from '$lib/i18n';
 import {
@@ -26,6 +27,25 @@ import {
 } from '$lib/publish-review/review-world.fixture';
 
 vi.mock('$app/navigation', () => ({ beforeNavigate: () => {} }));
+
+/**
+ * La revisión y `RecordBlocks` leen los bloques con la MISMA consulta por el mismo `ctx.port`, así
+ * que un puerto que retrasa o rompe esa lectura las retrasa o rompe a las dos. Para medir «la
+ * revisión ya cargó y la lista de bloques no», la carga de la revisión puede ir por otro puerto
+ * (`reviewLoad.port`); sin él, pasa tal cual. `reviewLoad.calls` cuenta las cargas.
+ */
+const reviewLoad = vi.hoisted(() => ({
+	port: null as null | Pick<BackendPort, 'list'>,
+	calls: [] as string[]
+}));
+vi.mock('$lib/publish-review/load-review-data', async (importOriginal) => {
+	const real = await importOriginal<typeof import('$lib/publish-review/load-review-data')>();
+	const loadReviewData: typeof real.loadReviewData = (port, model, type, record) => {
+		reviewLoad.calls.push(record.id);
+		return real.loadReviewData(reviewLoad.port ?? port, model, type, record);
+	};
+	return { ...real, loadReviewData };
+});
 
 // jsdom no implementa `scrollIntoView`, que el foco en un campo sí usa.
 Element.prototype.scrollIntoView = vi.fn();
@@ -50,13 +70,39 @@ afterEach(async () => {
 		mounted.target.remove();
 		mounted = null;
 	}
+	reviewLoad.port = null;
+	reviewLoad.calls = [];
 });
 
-function mountForm(type: ResolvedContentType, record: VegaRecord): Mounted {
+/**
+ * El puerto del sembrado con `list` desviado para UNA colección: `list` decide qué devuelve esa
+ * lectura (colgarse, fallar); el resto pasa al puerto de verdad.
+ */
+function portWithList(
+	collection: string,
+	list: () => ReturnType<BackendPort['list']>
+): BackendPort {
+	return new Proxy(world.port, {
+		get(target, prop) {
+			if (prop === 'list') {
+				return (name: string, query?: Parameters<BackendPort['list']>[1]) =>
+					name === collection ? list() : target.list(name, query);
+			}
+			const value = Reflect.get(target, prop, target) as unknown;
+			return typeof value === 'function' ? value.bind(target) : value;
+		}
+	});
+}
+
+function mountForm(
+	type: ResolvedContentType,
+	record: VegaRecord | null,
+	port: BackendPort = world.port
+): Mounted {
 	const toast = vi.fn();
 	const reportError = vi.fn();
 	const ctx = {
-		port: world.port,
+		port,
 		model: world.model,
 		session: { token: 't', user: { id: 'u', email: 'admin@vega.test' } },
 		t: (key: string, params?: Record<string, string | number>) => translate('es', key, params),
@@ -74,7 +120,10 @@ function mountForm(type: ResolvedContentType, record: VegaRecord): Mounted {
 			type,
 			model: buildFormModel(type, record),
 			typeReadonly: false,
-			onSubmit: (input, opts) => world.port.update(type.name, record.id, input, opts),
+			onSubmit: (input, opts) =>
+				record
+					? world.port.update(type.name, record.id, input, opts)
+					: world.port.create(type.name, input),
 			onSaved: () => {},
 			onCancel: () => {}
 		},
@@ -198,7 +247,7 @@ describe('RecordForm — la tarjeta «Revisión» en el aside', () => {
 
 		const body = m.target.querySelector<HTMLElement>(`#vega-block-body-${hero.id}`)!;
 		expect(body.hidden).toBe(true);
-		const go = buttonByLabel(m, 'Ir a Enlace, en el bloque 1 (Hero)')!;
+		const go = buttonByLabel(m, 'Bloque 1 · Hero › Enlace: ir al campo')!;
 		expect(go.textContent?.trim()).toBe('Bloque 1 · Hero › Enlace');
 		go.click();
 		flushSync();
@@ -286,6 +335,88 @@ describe('RecordForm — la tarjeta «Revisión» en el aside', () => {
 		};
 		const m = mountForm(redirects, record);
 		await settle();
+		expect(card(m)).toBeNull();
+		expect(reviewLine(m)).toBeNull();
+	});
+});
+
+describe('RecordForm — la revisión con lecturas lentas o fallidas', () => {
+	const groupStatus = (m: Mounted, group: string) =>
+		m.target
+			.querySelector(`[data-review-group="${group}"] .vega-review-status`)
+			?.textContent?.trim();
+
+	test('sin la biblioteca de medios, una <img> del texto sin alt sigue avisando en Imágenes, y el grupo dice qué no se comprobó', async () => {
+		const { page } = await pageWithWarnings();
+		// Un bloque de texto con formato con una `<img>` sin `alt` (no necesita la biblioteca), y
+		// el `hero` de `pageWithWarnings` con una imagen de la biblioteca (que sí la necesita).
+		await createBlock(world, page.id, 1, 'richtext', {
+			body: '<p>Patrón</p><img src="/api/files/vega_media/x/patron-falda.png">'
+		});
+		reviewLoad.port = portWithList('vega_media', () =>
+			Promise.reject(new Error('sin permiso en vega_media'))
+		);
+		const m = mountForm(world.pagesType, page);
+		await settle();
+
+		// SEO 2 + enlace roto 1 + `<img>` sin alt 1; la imagen del hero, sin comprobar.
+		expect(summary(m)).toBe('4 avisos');
+		expect(reviewLine(m)?.textContent).toContain('La revisión tiene 4 avisos.');
+		const media = m.target.querySelector<HTMLElement>('[data-review-group="media"]')!;
+		expect(groupStatus(m, 'media')).toBe('1 aviso');
+		expect(
+			media.querySelector('[data-review-check="media.alt-missing-inline"]')?.textContent
+		).toContain('patron-falda.png');
+		expect(media.querySelector('.vega-review-skipped')?.textContent).toContain(
+			'No se ha podido leer la biblioteca de medios'
+		);
+	});
+
+	test('con la lista de bloques todavía cargando, los avisos de los bloques salen igual (los lee la revisión)', async () => {
+		const { page } = await pageWithWarnings();
+		// La lista de `RecordBlocks` no termina nunca; la revisión lee por el puerto de verdad.
+		const port = portWithList('blocks', () => new Promise(() => {}));
+		reviewLoad.port = world.port;
+		const m = mountForm(world.pagesType, page, port);
+		await settle();
+
+		expect(m.target.querySelector('.vega-blocks-notice')?.textContent?.trim()).toBe(
+			translate('es', 'common.loading')
+		);
+		// descripción vacía + imagen social + enlace roto del hero + imagen sin alt del hero
+		expect(summary(m)).toBe('4 avisos');
+		expect(groupStatus(m, 'links')).toBe('1 aviso');
+		expect(groupStatus(m, 'media')).toBe('1 aviso');
+	});
+
+	test('con la lista de bloques fallida, los avisos de los bloques no desaparecen', async () => {
+		const { page } = await pageWithWarnings();
+		const port = portWithList('blocks', () => Promise.reject(new Error('red caída')));
+		reviewLoad.port = world.port;
+		const m = mountForm(world.pagesType, page, port);
+		await settle();
+
+		expect(summary(m)).toBe('4 avisos');
+		expect(groupStatus(m, 'links')).toBe('1 aviso');
+		expect(groupStatus(m, 'media')).toBe('1 aviso');
+	});
+
+	test('sin carga de la revisión ni de los bloques todavía: «Comprobando…», nunca «Sin avisos»', async () => {
+		const { page } = await pageWithWarnings();
+		const port = portWithList('blocks', () => new Promise(() => {}));
+		reviewLoad.port = port;
+		const m = mountForm(world.pagesType, page, port);
+		await settle();
+
+		expect(summary(m)).toBe('Comprobando…');
+		expect(groupStatus(m, 'links')).toBe('Comprobando…');
+	});
+
+	test('en creación no hay registro que revisar: ni se lee nada ni hay tarjeta', async () => {
+		const m = mountForm(world.pagesType, null);
+		await settle();
+
+		expect(reviewLoad.calls).toEqual([]);
 		expect(card(m)).toBeNull();
 		expect(reviewLine(m)).toBeNull();
 	});
