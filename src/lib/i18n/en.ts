@@ -21,6 +21,28 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// Settings, so they are told what to do instead.
 	'nav.emptyBodyEditor': 'There is no content to edit yet. Talk to whoever manages the site.',
 
+	// ————— Home (`/`) —————
+	'home.title': 'Home',
+	'home.create.title': 'Create',
+	'home.create.button': 'New: {label}',
+	'home.pending.title': 'To do',
+	'home.pending.drafts': '{label} in draft',
+	'home.pending.scheduled': '{label} scheduled to publish',
+	'home.pending.description': '{label} without a description',
+	'home.pending.mediaAlt': 'Media without alt text',
+	'home.pending.unpublished': 'Unpublished changes on the site',
+	'home.pending.unpublishedYes': 'Yes',
+	'home.pending.unpublishedNo': 'No',
+	'home.recent.title': 'What you edited last',
+	'home.recent.emptyTitle': "You haven't edited anything yet",
+	'home.recent.emptyBody': 'What you edit in this browser will show up here so you can pick it up.',
+	'home.recent.errorTitle': "Couldn't load what you edited last",
+	'home.recent.errorBody': 'The server replied: {message}',
+	'home.recent.column.title': 'Title',
+	'home.recent.column.type': 'Type',
+	'home.recent.column.status': 'Status',
+	'home.recent.column.edited': 'Edited',
+
 	// ————— Topbar —————
 	'topbar.logout': 'Log out',
 	'topbar.menu.open': 'Open navigation',
@@ -221,7 +243,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'errors.notFoundRecord.title': 'Item not found',
 	'errors.notFoundRecord.body': 'This item no longer exists.',
 	'errors.notFoundRecord.backToList': 'Back to list',
-	'errors.backToIndex': 'Back to index',
+	'errors.backToIndex': 'Back to Home',
 	// ————— Merged views (mergedViews, Phase L7c) —————
 	'errors.notFoundView.title': 'View not found',
 	'errors.notFoundView.body': 'The merged view "{view}" does not exist.',

@@ -3,13 +3,13 @@
  * `Cómoda│Compacta`) cambia `data-density` en la raíz del documento y PERSISTE tras recargar
  * (`vega.density.v1`, §2.6).
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 
 test('el segmento pulsado cambia data-density en la raíz y persiste tras recargar', async ({
 	page
 }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 
 	const html = page.locator('html');
 	const group = page.getByRole('group', { name: 'Densidad' });

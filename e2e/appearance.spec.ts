@@ -3,7 +3,7 @@
  * `data-theme`/`data-mode` en la raíz del documento y PERSISTE tras recargar (mismo criterio que
  * `density.spec.ts` para `data-density`, §2.6/§6.3 — `vega.theme.v1`/`vega.mode.v1`).
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 
 async function goToSettings(page: import('@playwright/test').Page): Promise<void> {
 	await page.getByRole('link', { name: 'Ajustes', exact: false }).click();
@@ -15,7 +15,7 @@ test('el selector de tema cambia data-theme en la raíz y persiste tras recargar
 	page
 }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 	await goToSettings(page);
 
 	const html = page.locator('html');
@@ -42,7 +42,7 @@ test('el selector de tema cambia data-theme en la raíz y persiste tras recargar
 
 test('el selector presenta las pinturas especiales del catálogo de Lumbre', async ({ page }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 	await goToSettings(page);
 
 	const aquelarre = page.getByRole('button', { name: 'Aquelarre' });
@@ -55,7 +55,7 @@ test('el selector presenta las pinturas especiales del catálogo de Lumbre', asy
 
 test('el toggle de modo cambia data-mode en la raíz y persiste tras recargar', async ({ page }) => {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 	await goToSettings(page);
 
 	const html = page.locator('html');

@@ -19,11 +19,11 @@
  *   (`data-media-state="manual-editor"`), nunca el JSON de importación/instrucciones de bootstrap
  *   (ese es el mensaje pensado para quien SÍ tiene acceso al Admin de PocketBase).
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 
 async function loginAsEditorAndSettle(page: import('@playwright/test').Page): Promise<void> {
 	await loginAsDemo(page, { editorMode: true });
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 }
 
 test.describe('nav de contenido + CRUD normal (rol editor)', () => {

@@ -27,6 +27,29 @@ export const es = {
 	'nav.emptyBodyEditor':
 		'Todavía no hay contenido que editar. Habla con quien administre el sitio.',
 
+	// ————— Portada («Inicio», `/`) —————
+	'home.title': 'Inicio',
+	'home.create.title': 'Crear',
+	'home.create.button': 'Nuevo: {label}',
+	'home.pending.title': 'Pendientes',
+	'home.pending.drafts': '{label} en borrador',
+	'home.pending.scheduled': '{label} con publicación programada',
+	'home.pending.description': '{label} sin descripción',
+	'home.pending.mediaAlt': 'Medios sin texto alternativo',
+	'home.pending.unpublished': 'Cambios sin publicar en el sitio',
+	'home.pending.unpublishedYes': 'Sí',
+	'home.pending.unpublishedNo': 'No',
+	'home.recent.title': 'Lo último que editaste',
+	'home.recent.emptyTitle': 'Todavía no has editado nada',
+	'home.recent.emptyBody':
+		'Lo que edites en este navegador aparecerá aquí para que puedas retomarlo.',
+	'home.recent.errorTitle': 'No se pudo cargar lo último que editaste',
+	'home.recent.errorBody': 'El servidor ha contestado: {message}',
+	'home.recent.column.title': 'Título',
+	'home.recent.column.type': 'Tipo',
+	'home.recent.column.status': 'Estado',
+	'home.recent.column.edited': 'Editado',
+
 	// ————— Topbar —————
 	'topbar.logout': 'Cerrar sesión',
 	'topbar.menu.open': 'Abrir navegación',
@@ -235,7 +258,7 @@ export const es = {
 	'errors.notFoundRecord.title': 'Elemento no encontrado',
 	'errors.notFoundRecord.body': 'Este elemento ya no existe.',
 	'errors.notFoundRecord.backToList': 'Volver al listado',
-	'errors.backToIndex': 'Volver al índice',
+	'errors.backToIndex': 'Volver a Inicio',
 	// ————— Vistas fusionadas (mergedViews, Fase L7c) —————
 	'errors.notFoundView.title': 'Vista no encontrada',
 	'errors.notFoundView.body': 'No existe la vista fusionada "{view}".',

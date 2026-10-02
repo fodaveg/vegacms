@@ -31,6 +31,9 @@
  * como consecuencia, la transición post-login a `/c/site_info/new` (semilla de demo) pasó de ser
  * un hard reload de documento a una navegación SPA pura — ver el comentario de
  * `e2e/a11y-smoke.spec.ts` ("contorno de foco visible") para el ajuste que esto obligó.
+ *
+ * **Portada (lote 12, 1 oct 2026)**: el índice ya no salta a `/c/site_info/new`; el login aterriza
+ * en `/` y pinta «Inicio». Ver `waitForHome` y `openSiteInfoFromSidebar` más abajo.
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -126,4 +129,36 @@ export async function loginAsDemo(
 	await page.getByLabel('Contraseña').fill(DEMO_PASSWORD);
 	await page.getByRole('button', { name: 'Entrar' }).click();
 	await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
+}
+
+/**
+ * Espera a que la app se asiente en la portada «Inicio» (`/`, lote 12): es donde aterriza el
+ * login y donde se queda una carga directa de `/` con sesión. Hasta el 1 oct 2026 el índice no
+ * tenía pantalla y saltaba al primer elemento del menú (con la semilla de demo,
+ * `/c/site_info/new`); por eso tantos specs esperaban esa URL tras `loginAsDemo`.
+ *
+ * Exige la ruta Y el `h1` «Inicio»: solo la URL no prueba nada, porque el layout ya está en `/`
+ * mientras resuelve sesión y modelo.
+ */
+export async function waitForHome(page: import('@playwright/test').Page): Promise<void> {
+	await page.waitForURL((url) => url.pathname === '/');
+	await expect(page.getByRole('heading', { level: 1, name: 'Inicio', exact: true })).toBeVisible();
+}
+
+/**
+ * Desde una vista con el menú lateral visible (escritorio), abre «Información del sitio» con un
+ * clic, como haría quien edita, y espera a su formulario de crear (`/c/site_info/new`: el
+ * singleton de la semilla de demo no tiene registros). Es el destino al que antes llevaba solo
+ * el índice; los specs que trabajan sobre ese formulario o re-clican su enlace ya activo llegan
+ * ahora por aquí. La navegación es SPA, igual que lo era la redirección del índice.
+ */
+export async function openSiteInfoFromSidebar(
+	page: import('@playwright/test').Page
+): Promise<void> {
+	await page.getByRole('link', { name: 'Información del sitio' }).click();
+	await page.waitForURL('**/c/site_info/new');
+	await expect(page.getByRole('link', { name: 'Información del sitio' })).toHaveAttribute(
+		'aria-current',
+		'page'
+	);
 }

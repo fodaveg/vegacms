@@ -65,11 +65,11 @@
  * llegar a enviar) — cubierto en su lugar por `first-error-field.test.ts` (unit, la lógica de
  * ORDEN es la misma para cualquier tipo de widget) y por revisión manual del fallback.
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 
 async function loginAndSettle(page: import('@playwright/test').Page): Promise<void> {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 }
 
 test.describe('crear (D-P5.11)', () => {

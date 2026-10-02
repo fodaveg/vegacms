@@ -56,12 +56,18 @@ export default defineConfig(
 		// la celda-título de `RecordTable` de arriba (la colección de destino es dinámica, resuelta
 		// en runtime contra el esquema descubierto — no hay ID de ruta literal que `resolve()` pueda
 		// tipar en el call-site).
+		// `src/lib/home/**` se sumó con la portada «Inicio» (lote 12): la tabla de lo último que
+		// editaste enlaza cada fila a `recordRoute(type, id)` (mismo patrón que `RecordTable`) y las
+		// tarjetas de pendientes a `listStatusRoute(type, status)`, que además lleva `?status=` y
+		// `resolve()` no compone query strings. Un `eslint-disable-next-line` encima del `<a>` no
+		// sirve: Prettier parte el elemento y el `href` cae dos líneas más abajo.
 		files: [
 			'src/routes/**',
 			'src/lib/shell/**',
 			'src/lib/nav/**',
 			'src/lib/list/**',
-			'src/lib/integrity/**'
+			'src/lib/integrity/**',
+			'src/lib/home/**'
 		],
 		rules: {
 			'svelte/no-navigation-without-resolve': 'off'

@@ -8,11 +8,11 @@
  * La papelera (Fase B2: borrar → `/papelera` → restaurar) vive en `e2e/trash.spec.ts`, fichero
  * dedicado — este cubre solo `kind:'update'` (§8·B1).
  */
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 
 async function loginAndSettle(page: import('@playwright/test').Page): Promise<void> {
 	await loginAsDemo(page);
-	await page.waitForURL('**/c/site_info/new');
+	await waitForHome(page);
 }
 
 async function goToSettings(page: import('@playwright/test').Page): Promise<void> {
