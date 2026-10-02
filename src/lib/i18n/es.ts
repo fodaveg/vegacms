@@ -1541,7 +1541,23 @@ export const es = {
 	'settings.site.modules.needsBase.blocked': 'Antes hay que resolver lo que no encaja en el sitio.',
 	'settings.site.modules.dialog.title': 'Añadir: {name}',
 	'settings.site.modules.dialog.intro':
-		'Esto es lo que Vega va a añadir a tu PocketBase. Nada de lo que ya existe se modifica.',
+		'Esto es lo que Vega va a añadir a tu PocketBase. No se borra ni se cambia ningún campo, regla, registro o entrada que ya exista; si una colección del módulo ya existe, se le añaden los campos que le falten.',
+	'settings.site.group.rules': 'Reglas de acceso distintas',
+	'settings.site.rules.title': '{collection} · {rule}',
+	'settings.site.rules.item': 'Ahora: {actual} · Vega espera: {expected}',
+	'settings.site.rules.none': 'sin regla (solo superusuarios)',
+	'settings.site.rules.open': '"" (abierta a todo el mundo)',
+	'settings.site.rules.note':
+		'Estas colecciones ya existían con otras reglas de acceso. Vega no las cambia: si añades el módulo se quedan como están, y lo demás se añade igualmente. Revísalas en PocketBase antes de seguir.',
+	'settings.site.rules.confirm':
+		'Quiero añadir el módulo con las reglas de acceso que ya tienen estas colecciones.',
+	'settings.site.rules.listRule': 'listado',
+	'settings.site.rules.viewRule': 'ver un registro',
+	'settings.site.rules.createRule': 'crear',
+	'settings.site.rules.updateRule': 'editar',
+	'settings.site.rules.deleteRule': 'borrar',
+	'settings.site.modules.rulesHint':
+		'Tiene colecciones con reglas de acceso distintas de las del módulo.',
 	'settings.site.modules.dialog.running': 'Añadiendo… {elapsed}',
 	'settings.site.modules.blockedDialog.title': 'No se puede añadir: {name}',
 	'settings.site.modules.toast.added': 'Añadido: {name}.',

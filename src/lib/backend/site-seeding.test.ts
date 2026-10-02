@@ -1054,14 +1054,16 @@ describe('seedSiteProject', () => {
 						createdCollections: [],
 						addedFields: {},
 						manifestEntries: [],
-						manifestSkipped: []
+						manifestSkipped: [],
+						ruleDifferences: []
 					},
 					{
 						id: 'notas',
 						createdCollections: ['notes'],
 						addedFields: {},
 						manifestEntries: ['collections.notes', 'blockTypes.note-list'],
-						manifestSkipped: []
+						manifestSkipped: [],
+						ruleDifferences: []
 					}
 				]
 			});

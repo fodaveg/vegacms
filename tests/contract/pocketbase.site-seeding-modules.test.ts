@@ -6,7 +6,7 @@
  * el sembrado de verdad.
  */
 
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createPocketBaseBackend } from '$lib/backend/adapters/pocketbase';
 import type { BackendPort } from '$lib/backend/port';
 import {
@@ -258,6 +258,120 @@ describe.skipIf(!AVAILABLE)('módulos de sembrado contra PocketBase real', () =>
 		});
 		expect([marked.status, marked.body.read]).toEqual([200, true]);
 		expect((await admin.collection('messages').getOne(id)).read).toBe(true);
+	});
+
+	test('base + contacto: `notifyState` es un campo oculto que ni el visitante ni un editor leen ni fijan', async () => {
+		await seedSiteProject(port, { modules: [SITE_SEED_CONTACT_MODULE] });
+		const field = (await admin.collections.getOne('messages')).fields.find(
+			(candidate) => candidate.name === 'notifyState'
+		);
+		expect(field).toMatchObject({ type: 'text', hidden: true, max: 20 });
+
+		const sent = await request('/api/collections/messages/records', {
+			method: 'POST',
+			body: { ...MESSAGE, notifyState: 'sent' }
+		});
+		expect(sent.status).toBe(200);
+		expect(sent.body).not.toHaveProperty('notifyState');
+		const id = String(sent.body.id);
+		// El superusuario sí lo ve y está vacío: lo que mandó el visitante se descartó.
+		expect((await admin.collection('messages').getOne(id)).notifyState).toBe('');
+
+		const token = await editorToken();
+		const asEditor = await request(`/api/collections/messages/records/${id}`, { token });
+		expect(asEditor.body).not.toHaveProperty('notifyState');
+		const patched = await request(`/api/collections/messages/records/${id}`, {
+			method: 'PATCH',
+			token,
+			body: { read: true, notifyState: 'pending' }
+		});
+		expect(patched.status).toBe(200);
+		expect((await admin.collection('messages').getOne(id)).notifyState).toBe('');
+	});
+
+	test('una `messages` que ya existe con la bandeja abierta: el plan lo dice, sin confirmar no se escribe nada y confirmado no se tocan sus reglas', async () => {
+		await seedSiteProject(port);
+		await port.ensureCollections([
+			{
+				name: 'messages',
+				listRule: '',
+				viewRule: '',
+				createRule: '',
+				updateRule: null,
+				deleteRule: null,
+				fields: [
+					{ name: 'name', type: 'text', required: true, max: 200 },
+					{ name: 'email', type: 'email', required: true },
+					{ name: 'message', type: 'text', required: true, max: 5000 }
+				]
+			}
+		]);
+		const editorsRule = '@request.auth.collectionName = "vega_editors"';
+
+		const preview = await previewSiteSeed(port, { modules: [SITE_SEED_CONTACT_MODULE] });
+		if (preview.status !== 'ready') throw new Error('se esperaba un plan');
+		expect(preview.modules.find((item) => item.id === 'contacto')?.ruleDifferences).toEqual([
+			{ collection: 'messages', rule: 'listRule', actual: '', expected: editorsRule },
+			{ collection: 'messages', rule: 'viewRule', actual: '', expected: editorsRule },
+			{ collection: 'messages', rule: 'createRule', actual: '', expected: CONTACT_CREATE_RULE },
+			{ collection: 'messages', rule: 'updateRule', actual: null, expected: editorsRule },
+			{ collection: 'messages', rule: 'deleteRule', actual: null, expected: editorsRule }
+		]);
+
+		await expect(seedSiteProject(port, { modules: [SITE_SEED_CONTACT_MODULE] })).rejects.toThrow(
+			'reglas de acceso distintas'
+		);
+		const untouched = await admin.collections.getOne('messages');
+		expect(untouched.fields.map((field) => field.name)).not.toContain('notifyState');
+
+		await seedSiteProject(port, {
+			modules: [SITE_SEED_CONTACT_MODULE],
+			confirmRuleDifferences: ['contacto']
+		});
+		const adopted = await admin.collections.getOne('messages');
+		expect(adopted.fields.map((field) => field.name)).toContain('notifyState');
+		expect(rules(adopted)).toEqual({
+			listRule: '',
+			viewRule: '',
+			createRule: '',
+			updateRule: null,
+			deleteRule: null
+		});
+	});
+
+	test('otro editor guarda el manifiesto entre el preflight y su escritura: aborta sin pisarlo y repetir converge', async () => {
+		await seedSiteProject(port);
+		const record = (await admin.collection('vega').getFullList())[0]!;
+		const theirs = structuredClone(record.manifest) as {
+			collections: Record<string, { label?: string }>;
+		};
+		theirs.collections.pages = { ...theirs.collections.pages, label: 'Páginas, por otro editor' };
+		const original = port.ensureCollections.bind(port);
+		const spy = vi.spyOn(port, 'ensureCollections').mockImplementation(async (specs) => {
+			const result = await original(specs);
+			if (specs.some((spec) => spec.name === 'tags')) {
+				await admin.collection('vega').update(record.id, { manifest: theirs });
+			}
+			return result;
+		});
+
+		await expect(seedSiteProject(port, { modules: [SITE_SEED_BLOG_MODULE] })).rejects.toThrow(
+			'El manifiesto cambió'
+		);
+
+		const after = await admin.collection('vega').getOne(record.id);
+		expect(after.manifest).toEqual(theirs);
+		expect(Object.keys((after.manifest as { collections: object }).collections)).not.toContain(
+			'posts'
+		);
+		spy.mockRestore();
+		const again = await seedSiteProject(port, { modules: [SITE_SEED_BLOG_MODULE] });
+		expect(again.upgradedRecords).toEqual(['manifest']);
+		const final = (await admin.collection('vega').getOne(record.id)).manifest as {
+			collections: Record<string, { label?: string }>;
+		};
+		expect(final.collections.pages!.label).toBe('Páginas, por otro editor');
+		expect(final.collections).toHaveProperty('posts');
 	});
 
 	test('los dos módulos sobre un sitio ya sembrado y con el manifiesto editado a mano: conserva lo editado, van al menú y la segunda pasada no añade nada', async () => {

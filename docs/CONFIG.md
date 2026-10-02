@@ -581,10 +581,16 @@ Aquí `post` y `page` deben tener ambas un campo `rating` numérico (heredado co
 ## Aviso por correo de los mensajes de contacto
 
 La imagen de producción (`infra/production/Dockerfile`) incluye un hook de PocketBase,
-`infra/production/pb_hooks/vega-contact-notify.pb.js`, copiado a `/pb/pb_hooks/`. Cuando se crea un
-registro en la colección `messages` manda un correo con el nombre, el correo y el mensaje del
+`infra/production/pb_hooks/vega-contact-notify.pb.js`, copiado a `/pb/pb_hooks/`. Avisa por correo de
+los mensajes que llegan a la colección `messages` con el nombre, el correo y el mensaje del
 visitante (escapados: el correo es HTML y el visitante puede mandar marcado) y su correo como
 `Reply-To`. El asunto lleva el nombre del sitio (`Application name` en los ajustes de PocketBase).
+
+**Cómo funciona.** El envío NO ocurre en la petición del visitante. Al crearse el mensaje, el hook
+solo lo marca como pendiente (campo `notifyState`) y devuelve la respuesta normal sin tocar el SMTP;
+un cron de PocketBase (`vega-contact-notify`, cada minuto) avisa de los pendientes. **El aviso llega
+hasta un minuto después del mensaje.** Un SMTP lento, caído o que no contesta no retrasa ni rompe el
+formulario del visitante.
 
 Se configura con variables de entorno del proceso de PocketBase (en el `compose.yml`, por ejemplo):
 
@@ -597,20 +603,41 @@ Se configura con variables de entorno del proceso de PocketBase (en el `compose.
 - **Sin `VEGA_CONTACT_NOTIFY_TO` los mensajes se guardan y NO se avisa por correo.** El hook no
   falla ni escribe errores en ese caso. La interfaz de Vega no puede saber si el aviso está
   configurado (la variable vive en el entorno del servidor, no en PocketBase), así que no puede
-  mostrarlo.
+  mostrarlo. Un mensaje que llega sin destinatarios configurados no se avisa después, aunque se
+  configure más tarde.
 - **Hace falta SMTP configurado en PocketBase** (ajustes de correo), con remitente. El hook usa ese
   remitente y ese cliente de correo.
-- **Límite**: se cuentan los `messages` creados en la última ventana; hasta el máximo, cada mensaje
-  manda su aviso; pasado el máximo, el mensaje se guarda igual y no se avisa. No usa ninguna
-  colección auxiliar; necesita el campo `created` (autodate) de `messages`.
-- **Hueco conocido**: no hay bloqueo entre contar y enviar, así que dos altas simultáneas pueden
-  mandar un correo de más.
-- **Si el envío falla** (SMTP caído), el mensaje ya está guardado, el visitante recibe su respuesta
-  normal y el fallo queda en los logs de PocketBase con el id del registro y ningún dato del
-  visitante.
-- **El hook solo corre si la imagen lo incluye**: un despliegue con una imagen anterior, o con otro
-  `--hooksDir`, no avisa aunque las variables estén puestas. Sobre una colección `messages`
-  inexistente no hace nada.
+- **Solo se avisa de los mensajes creados SIN sesión**, que son los del formulario del sitio. Los que
+  da de alta un editor con «Nuevo», una importación o una migración no avisan. El hook lo decide al
+  crear el mensaje y lo guarda en `notifyState`, un campo **oculto** de `messages`: la API no lo
+  devuelve (solo a un superusuario) y un cuerpo de petición que lo traiga se descarta, así que ni un
+  visitante ni un editor lo fijan por accidente desde un formulario. Los estados son `pending`
+  (pendiente), `sending`, `sent`, `more`, `capped` y `failed`; vacío = no se avisa. La colección la
+  crea el módulo `contacto` de «Base del sitio», que ya incluye el campo; una `messages` anterior lo
+  recibe al actualizar el sitio, y mientras no lo tenga el hook no marca ni avisa de nada.
+- **Límite**: se cuentan los avisos de la última ventana. Al llegar a `VEGA_CONTACT_NOTIFY_MAX`, el
+  siguiente mensaje manda UN último correo de «hay más mensajes» (sin datos de ningún visitante) y
+  los siguientes se guardan sin avisar hasta que la ventana corra. Se calcula por la fecha de alta
+  del mensaje (campo `created`, autodate, de `messages`); no usa ninguna colección auxiliar.
+- **Si el envío falla** (SMTP caído o que rechaza), el mensaje ya está guardado y el visitante no se
+  entera. El mensaje NO se marca como avisado: vuelve a la cola y se reintenta cada minuto, **hasta
+  una hora** después de haber llegado; pasada esa hora pasa a `failed` y no se reintenta más (así un
+  destinatario o un SMTP que nunca funcionan no producen reintentos eternos). El fallo queda en los
+  logs de PocketBase con el id del registro y el error recortado a 200 caracteres, sin el nombre, el
+  correo ni el texto del visitante.
+- **Si el SMTP acepta la conexión y no contesta**, el formulario sigue respondiendo con normalidad.
+  Dos ejecuciones del cron no se solapan (la segunda sale sin hacer nada) y el cerrojo caduca a los
+  5 minutos. Un envío que se queda a medias deja el mensaje en `sending`; la siguiente ejecución que
+  recupere el cerrojo no sabe si el correo salió y lo pasa a `failed` sin reenviarlo: se prefiere
+  perder un aviso a mandarlo dos veces. La conexión colgada sigue ocupando su hilo en PocketBase
+  hasta que el sistema operativo la cierre.
+- **Hueco conocido**: el cerrojo vive en la memoria de cada proceso de PocketBase. Con varios
+  procesos sobre la misma base de datos, dos ejecuciones podrían solaparse y mandar un aviso de más.
+- **El hook solo corre si la imagen lo incluye**: una instancia cuya imagen no se construye desde
+  `infra/production/Dockerfile` de este repo, o que usa otro `--hooksDir`, **no tiene el hook** y no
+  avisa aunque las variables estén puestas ni aunque `messages` tenga el campo. En concreto,
+  **admin.lumbre.pro nunca lo tendrá**: su imagen solo copia `pb_public` de la de Vega. Sobre una
+  colección `messages` inexistente no hace nada.
 - Los tests de contrato usan un SMTP sumidero sin TLS. **Antes de desplegar hay que probarlo con un
   SMTP real con TLS**: no está probado.
 

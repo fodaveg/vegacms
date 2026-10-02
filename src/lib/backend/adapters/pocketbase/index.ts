@@ -35,6 +35,7 @@ import { assertContentTypeWritable, checkUnwritableFields } from '../../write-gu
 import { validateFileFieldInput } from '../../file-guards';
 import type {
 	AddFieldsResult,
+	CollectionAccessRules,
 	CollectionFieldSpec,
 	CollectionSpec,
 	ConstrainPatternsResult,
@@ -42,6 +43,7 @@ import type {
 } from '../../collections';
 import {
 	checkCollectionSpecAccess,
+	COMMON_COLLECTION_RULE_KEYS,
 	checkCollectionFieldSpecs,
 	checkCreatableCollectionNames,
 	VEGA_COLLECTION,
@@ -806,6 +808,28 @@ export function createPocketBaseBackend({
 				} finally {
 					invalidateLiveSchema();
 				}
+			});
+		},
+
+		async collectionRules(
+			names: readonly string[]
+		): Promise<Record<string, CollectionAccessRules>> {
+			return guarded(async () => {
+				const found: Record<string, CollectionAccessRules> = {};
+				for (const name of names) {
+					let collection;
+					try {
+						collection = await pb.collections.getOne(name);
+					} catch (err) {
+						if (err instanceof ClientResponseError && err.status === 404) continue;
+						throw err;
+					}
+					const raw = collection as unknown as Record<string, string | null | undefined>;
+					found[name] = Object.fromEntries(
+						COMMON_COLLECTION_RULE_KEYS.map((key) => [key, raw[key] ?? null])
+					) as CollectionAccessRules;
+				}
+				return found;
 			});
 		},
 
