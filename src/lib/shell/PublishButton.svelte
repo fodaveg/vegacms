@@ -2,7 +2,7 @@
 	/**
 	 * `PublishButton.svelte` (lote "publicación", fase A): el puente "guardado → publicado" para
 	 * proyectos `output: 'static'` (Astro y similares) que hoy dependen de que un humano corra el
-	 * build a mano. Vive en la topbar, junto a `ConnectionStatus`/`DensityToggle`.
+	 * build a mano. Vive en la topbar, junto a `ConnectionStatus` (la densidad vive en el menú de cuenta).
 	 *
 	 * **Ausencia = "cero pintar nada"** (P3-L3, decisión ya tomada en el encargo): si el proyecto
 	 * conectado no declaró `build` en su discovery, `ctx.port.buildApiUrl` es `null`/`undefined`

@@ -16,6 +16,19 @@ test('el wordmark del sitio pinta el isotipo de Vega junto al nombre', async ({ 
 	await expect(site).toHaveAttribute('title', 'Vega Demo');
 });
 
+test('la marca de la barra es un enlace «Inicio» a la portada (lote 12, lámina 1, estado 1.7)', async ({
+	page
+}) => {
+	await loginAsDemo(page);
+	await page.waitForURL('**/c/site_info/new');
+
+	const brand = page.getByRole('link', { name: 'Inicio' });
+	await expect(brand).toHaveAttribute('href', /\/$/);
+	await brand.click();
+	await expect(page).not.toHaveURL(/\/c\/site_info\/new$/);
+	await expect(page).toHaveURL(/\/$/);
+});
+
 test('el atajo "/" enfoca el buscador global salvo dentro de un campo editable', async ({
 	page
 }) => {
@@ -86,7 +99,9 @@ test.describe('chip de usuario → menú "Ajustes" (#l12-ux, item 3)', () => {
 		await trigger.click();
 		await expect(page.getByRole('menu', { name: 'Menú de cuenta' })).toBeVisible();
 
-		await page.locator('.vega-topbar-site').click();
+		// Un punto neutro de la barra (la pastilla de conexión no es interactiva): la marca ya es
+		// un enlace a la portada y navegaría, así que no sirve de «fuera» inocuo.
+		await page.locator('.vega-connection-status').click();
 		await expect(page.getByRole('menu', { name: 'Menú de cuenta' })).toBeHidden();
 	});
 
@@ -99,7 +114,12 @@ test.describe('chip de usuario → menú "Ajustes" (#l12-ux, item 3)', () => {
 		const menu = page.getByRole('menu', { name: 'Menú de cuenta' });
 		await expect(menu).toBeVisible();
 
-		// Tab: el foco entra al enlace "Ajustes" (dentro del menú) → sigue abierto.
+		// Tab: el foco recorre por orden las entradas del menú (Cómoda, Compacta y «Ajustes»,
+		// desde el lote 12) → sigue abierto mientras el foco esté dentro.
+		await page.keyboard.press('Tab');
+		await expect(menu.getByRole('menuitemradio', { name: 'Cómoda' })).toBeFocused();
+		await page.keyboard.press('Tab');
+		await expect(menu.getByRole('menuitemradio', { name: 'Compacta' })).toBeFocused();
 		await page.keyboard.press('Tab');
 		await expect(page.getByRole('menuitem', { name: 'Ajustes' })).toBeFocused();
 		await expect(menu).toBeVisible();

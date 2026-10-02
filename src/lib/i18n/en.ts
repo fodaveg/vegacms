@@ -70,6 +70,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// from `topbar.avatar.label` above (that one describes the session identity of the inner
 	// `<span role="img">`; this one describes the ACTION of opening the menu).
 	'topbar.userMenu.toggle': 'Account menu',
+	// The «Vega» brand in the bar is a link to the home page (batch 12, plate 1, state 1.7).
+	'topbar.home.label': 'Home',
 
 	// ————— Publish ("publication" batch, phase A): `PublishButton.svelte` —————
 	// Absent entirely (see the component header) when the connected project didn't declare
