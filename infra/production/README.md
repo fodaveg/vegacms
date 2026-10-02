@@ -122,6 +122,85 @@ docker logs --since 10m vega-pb
 
 Completa el smoke con login real, navegación, guardado reversible y comprobación de `/settings`.
 
+## CSP del admin
+
+La política vive en `admin.vegacms.com.caddy` (con un comentario por directiva) y se aplica solo a lo
+que sirve la SPA, no a `/api/*` ni a `/_/*`. El token de sesión vive en `localStorage`, así que lo que
+protege es sobre todo la inyección de script.
+
+### Qué quedó validado en local (2 oct 2026, sin desplegar)
+
+Con la SPA construida (`pnpm exec vite build`, adaptador `memory` de la demo) servida detrás de Caddy
+2 (la imagen fijada en `validate.sh`) con el fichero real adaptado a `localhost` (sitio `:PUERTO`,
+proxy a un servidor estático en lugar de `vega-pb`), y recorrida con Playwright como librería (un
+Chromium; escucha `securitypolicyviolation` en todos los marcos y recoge errores de consola):
+arranque y login, listado, formulario nuevo con texto enriquecido (TipTap), formulario con campo de
+fichero e imagen (`blob:`), Medios con subida y detalle, vista de Markdown dividida con una imagen
+`https` externa, ajustes, copias y el editor visual contra un sitio de OTRO origen
+(`https://vega-visual-site.example`, el de `e2e/visual-site.ts`) hasta ver «Conectado al sitio» y los
+contornos de los bloques. Resultado con la política final: **0 violaciones** y todas las pantallas en
+verde, tanto con un servidor estático como a través de Caddy. `caddy validate` da «Valid
+configuration» y `curl -I` confirma que `/` y las rutas de cliente llevan la CSP y que `/api/*` y
+`/_/*` no.
+
+La sonda demostró que caza: con `default-src 'self'; frame-ancestors 'none'; object-src 'none';
+base-uri 'self'` (la política pedida en origen) la app no arranca y se miden `script-src-elem` en
+línea (el `<script>` de arranque de SvelteKit) y `style-src-attr` en línea (el
+`<div style="display: contents">` de `src/app.html`). Cada directiva se aflojó solo con una violación
+medida delante, y se comprobó el control contrario: sin `https:` en `img-src` la imagen externa de
+Markdown no carga; sin `https:` en `connect-src` el `POST` de `/api/vega-preview/token` del editor
+visual se bloquea y no conecta; sin `https:` en `frame-src` se bloquea el `<iframe>` del sitio.
+
+### Quitar `'unsafe-inline'` de `script-src` (no aplicado)
+
+`script-src 'self' 'unsafe-inline'` es lo único grande que queda. Medido en una build de prueba con
+`csp: { mode: 'hash', directives: { 'script-src': ['self'] } }` en `sveltekit({...})` de
+`vite.config.ts` (no está en el repo): `adapter-static` escribe en el `index.html` de fallback un
+`<meta http-equiv="content-security-policy">` con el hash del script de arranque, y la app arranca y
+recorre las mismas pantallas con 0 violaciones. Un `<script>` en línea y un `onerror=` inyectados en
+el HTML se bloquean; con la política de Caddy sola, el `<script>` en línea se ejecuta.
+
+Cómo se combinan: la cabecera de Caddy y la etiqueta meta se evalúan por separado y gana la más
+restrictiva. Por eso, **aunque se ponga el hash, la cabecera de Caddy debe conservar
+`script-src 'self' 'unsafe-inline'`**: medido que con la cabecera estricta la app no arranca,
+porque Caddy no conoce el hash (cambia en cada build). La vía que recomiendo es la meta de
+SvelteKit para `script-src` y mantener el resto en Caddy; el hash solo puede salir del build. Una
+política entera en la meta no sirve, porque `frame-ancestors` se ignora en una meta.
+
+No se aplicó porque cambia el arranque de rutas que no se pudieron medir aquí: la suite e2e (que
+sirve esta misma build con `vite preview`), `vite dev` y la demo de GitHub Pages con
+`VEGA_BASE_PATH`. Antes de ponerlo: `pnpm test:e2e`, un arranque con `vite dev` y la build de Pages.
+
+### Solo se puede validar desplegado
+
+1. **El editor visual y la vista previa contra el sitio real de cada instancia**: la sonda usó un
+   sitio de mentira interceptado por `page.route()`. Falta comprobar con el sitio de verdad que
+   `frame-src` y `connect-src` dejan pasar su origen (el `POST /api/vega-preview/token` y el
+   `<iframe>`), que el puente `postMessage` conecta y que no sale ningún `securitypolicyviolation`.
+   La vista previa por `<form>` POST (no hay botón en la demo, no se recorrió) tampoco: por eso no
+   hay `form-action`.
+2. **`frame-ancestors` del lado del SITIO**: es otro Caddy y otra política. Debe permitir al admin
+   de cada instancia (`https://admin.vegacms.com`, `https://admin.lumbre.pro`,
+   `https://admin.fodaveg.net`) y la CSP de ese sitio no se ha tocado ni medido.
+3. **Las cabeceras en las tres instancias**, con `curl -I` a la raíz y a una ruta de cliente, y sin
+   CSP de este fichero en `/api/health`:
+
+   ```sh
+   for h in admin.vegacms.com admin.lumbre.pro admin.fodaveg.net; do
+     echo "== $h"; curl -sI "https://$h/" | grep -iE 'content-security-policy|x-content-type|referrer-policy'
+     curl -sI "https://$h/c/posts" | grep -ci 'content-security-policy'
+     curl -sI "https://$h/api/health" | grep -i 'content-security-policy'
+   done
+   ```
+
+   Las otras dos instancias tienen su propio Caddy fuera de este repo y no se tocaron.
+
+4. **Con PocketBase real**: la sonda corrió con el adaptador demo en memoria. Falta un login real,
+   una subida real de medios (`/api/files/…`, mismo origen), el realtime por SSE y la importación
+   de una colección desde otro servidor. Se leyó en el código, no se midió.
+5. Un día en `Content-Security-Policy-Report-Only` primero si se quiere un margen: es la misma
+   cadena, cambiando el nombre de la cabecera.
+
 ## Backup
 
 Para una copia manual consistente, detén solo Vega, archiva el volumen y vuelve a levantarlo:

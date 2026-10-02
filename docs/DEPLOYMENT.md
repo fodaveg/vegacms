@@ -141,7 +141,7 @@ Además de HSTS, la instancia de referencia (`infra/production/admin.vegacms.com
 @vegaSpa {
 	not path /api/* /_/*
 }
-header @vegaSpa Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:; frame-src 'self' https:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+header @vegaSpa Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:; frame-src 'self' https:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
 ```
 
 Un `default-src 'self'` a secas **rompe la app**. Lo que necesita, y por qué:
@@ -149,6 +149,7 @@ Un `default-src 'self'` a secas **rompe la app**. Lo que necesita, y por qué:
 | Directiva                              | Motivo                                                                                                                                                                                                                                                   |
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `script-src 'self' 'unsafe-inline'`    | El `index.html` arranca la app con un `<script>` en línea cuyo texto cambia en cada build (nombres con hash de los chunks): no cabe un hash fijo en el servidor. Sigue bloqueando scripts de otros orígenes y `eval`.                                    |
+| `script-src-attr 'none'`               | Ningún manejador en línea (`onclick=`, `onerror=`): la app no usa ninguno y, sin esta directiva, el `'unsafe-inline'` de arriba dejaría ejecutar uno inyectado.                                                                                          |
 | `style-src 'self' 'unsafe-inline'`     | Atributos `style` de la app y la hoja `<style>` que inyecta el editor de texto enriquecido.                                                                                                                                                              |
 | `img-src 'self' data: blob: https:`    | Medios de PocketBase, vistas previas locales antes de subir e imágenes externas que referencia el contenido.                                                                                                                                             |
 | `connect-src 'self' https:`            | API y realtime de PocketBase (mismo origen), el aviso de versión opt-in (`https://api.github.com`) y la importación de una colección exportada, que descarga los medios del servidor de origen. Sin importaciones, vale `'self' https://api.github.com`. |
