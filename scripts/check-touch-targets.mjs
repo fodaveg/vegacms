@@ -69,6 +69,10 @@ export const COMPONENT_FILES = [
 	'src/lib/shell/Topbar.svelte',
 	'src/lib/list/ListToolbar.svelte',
 	'src/lib/list/RecordTable.svelte',
+	// Lote 12 (láminas 6 y 7): el menú de acciones («Más» de la cabecera y el de cada fila) y los
+	// botones de la cabecera del listado, que medían 31 px también con el dedo.
+	'src/lib/list/ActionMenu.svelte',
+	'src/routes/c/[type]/+page.svelte',
 	// Barra del editor (atrás, Editor visual, Vista previa, Duplicar, Guardar) + resto del formulario.
 	'src/lib/form/RecordForm.svelte'
 ];

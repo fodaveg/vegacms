@@ -42,6 +42,7 @@ const ICON_IDS = [
 	'logout',
 	'media',
 	'menu',
+	'more',
 	'plus',
 	'search',
 	'settings',
