@@ -564,14 +564,20 @@ test.describe('editor visual — modo «solo textos» por debajo de 900 px', () 
 		await expect(sections.nth(2).getByRole('heading', { level: 3 })).toHaveText('Galería');
 		// Cada campo con su etiqueta, alcanzable por nombre accesible dentro de SU sección (los ids
 		// van namespaceados por bloque, `field-scope.ts`): «Título» en las tres, «Cuerpo» solo en
-		// «Texto», «Subtítulo» solo en «Portada».
-		await expect(sections.nth(0).getByLabel('Título')).toHaveValue(SECCIONES[0].text);
-		await expect(sections.nth(0).getByLabel('Subtítulo')).toBeVisible();
-		await expect(sections.nth(1).getByLabel('Cuerpo')).toBeVisible();
-		await expect(sections.nth(2).getByLabel('Pie de foto')).toBeVisible();
+		// «Texto», «Subtítulo» solo en «Portada». SIEMPRE `exact: true`: `getByLabel` casa por
+		// subcadena y «Título» también resolvería «Subtítulo» (medido: strict mode violation en el
+		// gate del candidato que integró este spec).
+		await expect(sections.nth(0).getByLabel('Título', { exact: true })).toHaveValue(
+			SECCIONES[0].text
+		);
+		await expect(sections.nth(0).getByLabel('Subtítulo', { exact: true })).toBeVisible();
+		await expect(sections.nth(1).getByLabel('Cuerpo', { exact: true })).toBeVisible();
+		await expect(sections.nth(2).getByLabel('Pie de foto', { exact: true })).toBeVisible();
 		// Un «Guardar» por sección, inerte mientras no hay cambios.
 		await expect(page.getByRole('button', { name: 'Guardar', exact: true })).toHaveCount(3);
-		await expect(sections.nth(0).getByRole('button', { name: 'Guardar' })).toBeDisabled();
+		await expect(
+			sections.nth(0).getByRole('button', { name: 'Guardar', exact: true })
+		).toBeDisabled();
 
 		// La barra de arriba es la de hoy: volver, migas y estado de la página.
 		await expect(page.getByRole('button', { name: 'Volver al formulario' })).toBeVisible();
@@ -592,7 +598,9 @@ test.describe('editor visual — modo «solo textos» por debajo de 900 px', () 
 		await openVisualEditor(page, site, 'pagina_1');
 		const second = textsSections(page).nth(1);
 
-		await second.getByLabel('Título').fill('Titular corregido desde el móvil');
+		// `exact: true` (ver arriba): la sección «Texto» solo tiene «Título» y «Cuerpo», pero el
+		// criterio es uno para todo el bloque.
+		await second.getByLabel('Título', { exact: true }).fill('Titular corregido desde el móvil');
 		const save = second.getByRole('button', { name: 'Guardar', exact: true });
 		await expect(save).toBeEnabled();
 		await save.click();
