@@ -343,7 +343,7 @@
 
 	.vega-field-row--title :global(.vega-widget-text[aria-invalid='true']:focus-visible) {
 		border-bottom-color: var(--danger);
-		border-image: none;
+		border-image-source: none;
 	}
 
 	/* Campo slug (mockup `.slug-row input.mono`): VALOR canónico ⇒ `--mono`, un punto más pequeño
