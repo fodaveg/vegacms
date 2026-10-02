@@ -239,6 +239,13 @@ export function describeManifestEntry(path: string, t: Translate): PlanItem {
 		};
 	}
 	if (parts[0] === 'collections' && parts.length === 3) {
+		// `page` declara que cada registro es una página con ruta: dicho en llano, no como opción.
+		if (parts[2] === 'page') {
+			return {
+				...base,
+				title: t('settings.site.entry.pageOption', { collection: collectionLabel(t, parts[1]) })
+			};
+		}
 		return {
 			...base,
 			title: t('settings.site.entry.option', {

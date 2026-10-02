@@ -1512,6 +1512,7 @@ export const es = {
 	'settings.site.group.skipped': 'No se añade',
 	'settings.site.entry.collection': 'Colección «{name}»',
 	'settings.site.entry.field': 'Campo «{field}» de {collection}',
+	'settings.site.entry.pageOption': '{collection}: cada una tiene su dirección en el sitio',
 	'settings.site.entry.option': 'Opción «{option}» de {collection}',
 	'settings.site.entry.blockType': 'Tipo de bloque «{name}»',
 	'settings.site.entry.navGroup': 'Grupo «{name}» del menú',

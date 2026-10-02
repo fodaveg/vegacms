@@ -1439,6 +1439,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'settings.site.group.skipped': 'Will not be added',
 	'settings.site.entry.collection': 'Collection "{name}"',
 	'settings.site.entry.field': 'Field "{field}" of {collection}',
+	'settings.site.entry.pageOption': '{collection}: each one has its own address on the site',
 	'settings.site.entry.option': 'Option "{option}" of {collection}',
 	'settings.site.entry.blockType': 'Block type "{name}"',
 	'settings.site.entry.navGroup': 'Menu group "{name}"',

@@ -280,6 +280,7 @@ describe('SiteBaseCard', () => {
 			'Campo «Descripción» de Páginas',
 			'Campo «Imagen para redes» de Páginas',
 			'Campo «No indexar» de Páginas',
+			'Páginas: cada una tiene su dirección en el sitio',
 			'Colección «Redirecciones»'
 		]);
 		expect(open.textContent).toContain('collections.pages.fields.publishAt');
@@ -313,6 +314,7 @@ describe('SiteBaseCard', () => {
 		expect(groupTitles(open, 'Se añade al modelo de contenido')).toEqual([
 			'Opción «publishAtField» de Páginas',
 			'Campo «Publicar el» de Páginas',
+			'Páginas: cada una tiene su dirección en el sitio',
 			'Colección «Redirecciones»'
 		]);
 		expect(groupTitles(open, 'No se añade')).toEqual([

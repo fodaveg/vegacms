@@ -97,9 +97,15 @@ describe('loadReviewData contra el adaptador en memoria y el sembrado real', () 
 		expect(data.pages).toHaveLength(207); // 205 + inicio + el de sembrado
 	});
 
-	test('el sembrado no declara `page` y aun así se leen sus páginas; si lo declara, no se duplican', async () => {
+	test('un sitio sembrado antes de declarar `page` aún lee sus páginas por la columna `path`; si lo declara, no se duplican', async () => {
 		const world = await seededWorld();
-		expect(world.pagesType.page ?? null).toBeNull(); // premisa: así es el manifiesto inicial
+		// El sembrado actual ya declara `page`; se le quita a mano para simular un sitio sembrado antes.
+		expect(world.pagesType.page).not.toBeNull();
+		const legacyPagesType = { ...world.pagesType, page: null };
+		const legacy = {
+			...world.model,
+			types: world.model.types.map((type) => (type.name === 'pages' ? legacyPagesType : type))
+		};
 		const home = await createPage(world, { path: '/inicio' });
 		const declared = {
 			...world.model,
@@ -118,7 +124,7 @@ describe('loadReviewData contra el adaptador en memoria y el sembrado real', () 
 			)
 		};
 		const withDeclared = await loadReviewData(world.port, declared, declared.types[0], home);
-		const withSeeded = await loadReviewData(world.port, world.model, world.pagesType, home);
+		const withSeeded = await loadReviewData(world.port, legacy, legacyPagesType, home);
 		expect(withDeclared.pages).toHaveLength(2);
 		expect(withDeclared.pages).toEqual(withSeeded.pages);
 	});
