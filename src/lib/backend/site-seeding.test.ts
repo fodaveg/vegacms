@@ -39,6 +39,9 @@ import {
 	VEGA_MEDIA_EDITOR_ACCESS_RULE,
 	VEGA_MEDIA_VIEW_RULE
 } from '$lib/media/media-collection';
+import { pageTypesWithPath } from '$lib/form/widgets/richtext-link';
+import { redirectsAvailability } from '$lib/form/redirect-sync';
+import { planRedirect } from '$lib/model/redirect-plan';
 import { resolveContentModel } from '$lib/model/resolve';
 import { validateManifestStrict } from '$lib/model/validate';
 
@@ -322,6 +325,31 @@ describe('seedSiteProject', () => {
 		}
 	});
 
+	test('un sitio recién sembrado declara `page` en pages: el enlace a páginas y la redirección tienen de qué tirar', async () => {
+		const port = await authedMemory();
+		await seedSiteProject(port);
+
+		const model = resolveContentModel({
+			types: await port.listContentTypes(),
+			manifestRaw: starterManifest as JsonValue
+		});
+
+		const pages = model.types.find((type) => type.name === 'pages')!;
+		expect(pages.page).toMatchObject({ pathField: 'path', pathFieldUnique: true });
+		// Lo que lee el selector «enlace a una página del sitio» del texto enriquecido.
+		expect(pageTypesWithPath(model).map((type) => type.name)).toEqual(['pages']);
+		// Lo que activa la oferta de redirección al cambiar la ruta (`RecordForm`).
+		expect(
+			planRedirect({
+				oldPath: '/sobre-nosotros',
+				newPath: '/quienes-somos',
+				published: true,
+				...redirectsAvailability(model),
+				existing: []
+			})
+		).not.toBeNull();
+	});
+
 	test('un proyecto sembrado con la versión anterior recibe SEO, redirects y el manifiesto nuevo sin perder datos', async () => {
 		const port = await authedMemory();
 		await seedLikePrevious1bda988(port);
@@ -356,6 +384,7 @@ describe('seedSiteProject', () => {
 					'collections.pages.fields.description',
 					'collections.pages.fields.socialImage',
 					'collections.pages.fields.noindex',
+					'collections.pages.page',
 					'collections.redirects'
 				]
 			}
@@ -406,7 +435,11 @@ describe('seedSiteProject', () => {
 			createdRecords: [],
 			upgradedRecords: ['manifest'],
 			manifestEntries: {
-				base: ['collections.pages.publishAtField', 'collections.pages.fields.publishAt']
+				base: [
+					'collections.pages.publishAtField',
+					'collections.pages.fields.publishAt',
+					'collections.pages.page'
+				]
 			}
 		});
 		const after = await canonicalPage(port);
@@ -522,7 +555,11 @@ describe('seedSiteProject', () => {
 
 		expect(result.upgradedRecords).toEqual(['manifest']);
 		expect(result.manifestEntries).toEqual({
-			base: ['collections.pages.publishAtField', 'collections.pages.fields.publishAt']
+			base: [
+				'collections.pages.publishAtField',
+				'collections.pages.fields.publishAt',
+				'collections.pages.page'
+			]
 		});
 		const after = (await port.get('vega', manifestRecord.id)).values.manifest;
 		expect(after).toEqual({ ...(starterManifest as Record<string, unknown>), site: edited.site });
@@ -542,6 +579,7 @@ describe('seedSiteProject', () => {
 			base: [
 				'collections.pages.publishAtField',
 				'collections.pages.fields.publishAt',
+				'collections.pages.page',
 				// La entrada que el usuario borró a propósito vuelve: decisión abierta, ver
 				// `site-seeding-merge.test.ts` y docs/POCKETBASE-INTEGRATION.md.
 				'collections.redirects'

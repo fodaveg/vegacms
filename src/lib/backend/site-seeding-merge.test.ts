@@ -119,15 +119,16 @@ describe('mergeManifestFragment', () => {
 			'collections.pages.fields.description',
 			'collections.pages.fields.socialImage',
 			'collections.pages.fields.noindex',
+			'collections.pages.page',
 			'collections.redirects'
 		]);
 		const collections = (manifest as JsonObject).collections as JsonObject;
 		// `redirects` va DETRÁS de `blocks`, que ya estaba: en el inicial actual va antes.
 		expect(Object.keys(collections)).toEqual(['pages', 'blocks', 'redirects']);
 		expect(Object.keys(collections.pages as JsonObject).slice(-3)).toEqual([
-			'publishAtField',
 			'fieldGroups',
-			'fields'
+			'fields',
+			'page'
 		]);
 	});
 
@@ -174,6 +175,26 @@ describe('mergeManifestFragment', () => {
 		expect(added).toContain('collections.pages.fields.publishAt');
 		expect(pages.publishAtField).toBe('publishAt');
 		expect(validateManifestStrict(manifest).ok).toBe(true);
+	});
+
+	test('`pages.page`: se añade a un sitio que no lo declara y, si ya tiene el suyo, no se toca', () => {
+		const withoutPage = previousStarterManifest as JsonValue;
+		const { manifest, added } = mergeManifestFragment(withoutPage, BASE);
+		expect(added).toContain('collections.pages.page');
+		expect(((manifest as JsonObject).collections as JsonObject).pages).toMatchObject({
+			page: { pathField: 'path' }
+		});
+
+		const own = structuredClone(withoutPage) as JsonObject;
+		((own.collections as JsonObject).pages as JsonObject).page = {
+			pathField: 'slug',
+			layoutField: 'layout'
+		};
+		const merged = mergeManifestFragment(own, BASE);
+		expect(merged.added).not.toContain('collections.pages.page');
+		expect(((merged.manifest as JsonObject).collections as JsonObject).pages).toMatchObject({
+			page: { pathField: 'slug', layoutField: 'layout' }
+		});
 	});
 
 	test('DECISIÓN ABIERTA: una entrada de la base que el usuario borró a propósito VUELVE', () => {

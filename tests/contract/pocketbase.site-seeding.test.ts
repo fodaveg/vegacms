@@ -582,6 +582,7 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 			base: [
 				'collections.pages.publishAtField',
 				'collections.pages.fields.publishAt',
+				'collections.pages.page',
 				// La que el usuario borró a propósito vuelve: decisión abierta (ver la doc).
 				'collections.redirects'
 			]
@@ -601,6 +602,7 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 		// Y recibe lo que le faltaba.
 		expect(saved.collections.pages.publishAtField).toBe('publishAt');
 		expect(saved.collections.pages.fields).toMatchObject({ publishAt: { label: 'Publicar el' } });
+		expect(saved.collections.pages.page).toEqual({ pathField: 'path' });
 		expect(saved.collections.redirects).toEqual(starterManifest.collections.redirects);
 		expectPublishAtField(await admin.collections.getOne('pages'));
 		await expect(admin.collection('pages').getOne(human.id)).resolves.toMatchObject({
@@ -1007,6 +1009,7 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 					'collections.pages.fields.description',
 					'collections.pages.fields.socialImage',
 					'collections.pages.fields.noindex',
+					'collections.pages.page',
 					'collections.redirects'
 				]
 			}
@@ -1097,7 +1100,11 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 			createdRecords: [],
 			upgradedRecords: ['manifest'],
 			manifestEntries: {
-				base: ['collections.pages.publishAtField', 'collections.pages.fields.publishAt']
+				base: [
+					'collections.pages.publishAtField',
+					'collections.pages.fields.publishAt',
+					'collections.pages.page'
+				]
 			}
 		});
 		const pagesAfter = await admin.collections.getOne('pages');
