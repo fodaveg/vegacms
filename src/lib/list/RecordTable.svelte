@@ -100,28 +100,33 @@
 	 *   celda, no solo el alto de fila (que ya usaba `--row-h` desde 4c).
 	 * - **Acento como texto (F7w-b)**: el enlace de apertura y el indicador de orden pintan con
 	 *   `--accent-text` (AA sobre papel), no `--accent` — ese es el relleno, no el color de texto.
-	 * - **Borrado SIN columna dedicada (OLA 1 del rediseño visual, mockup `aquelarre-dark.html`
-	 *   no la tiene, decisión de David), overlay sobre la última celda de datos**: hasta esta ola
-	 *   había una `<th>`/`<td>` EXTRA al final de la fila; ahora el botón vive DENTRO de la última
-	 *   `<td>` renderizada (la del último `ColumnSpec`, o la celda sintética de apertura si
-	 *   `columns.length === 0`) como HERMANO del contenido normal de esa celda — nunca anidado en
-	 *   la `<a>` de apertura (L-P4.15) cuando esa celda es además la de título, así un click en
-	 *   "Borrar" sigue sin disparar `openRecord`. La celda se marca `.vega-cell-actions-anchor`
-	 *   (`position: relative`) y el botón se pinta `position: absolute` pegado a su borde derecho,
-	 *   tapando visualmente el contenido truncado de esa celda al revelarse (mismo lenguaje que el
-	 *   hover-reveal de listados tipo GitHub) — SOLO si `contentType.permissions.delete` (una vista
-	 *   del backend nunca ofrece borrar, y desde `#lote-shell` tampoco una colección cuya regla de
-	 *   borrado esté vedada a esta sesión: `resolvePermissions` pliega las dos razones en una). Solo EMITE `onDeleteRequest` con el registro y el
-	 *   mismo texto de apertura (`openText`, reutilizado, DRY) que ya se pinta en la celda-título —
-	 *   así el diálogo de confirmación (`DeleteConfirm.svelte`, dueño de `+page.svelte`) puede decir
-	 *   QUÉ se borra sin recalcularlo. Este componente sigue TONTO: no borra nada, no confirma nada,
-	 *   no navega — eso es responsabilidad de `+page.svelte`.
-	 * - **"Borrar" oculto hasta hover/foco (R3, decisión cerrada de David)**: sigue igual tras
-	 *   quitar la columna (arriba) — presente en el DOM y en el orden de tabulación (nunca
-	 *   `display:none`, que lo sacaría del árbol de foco), solo `opacity` conmutada por
-	 *   `tbody tr:hover`/`tbody tr:focus-within`, así Tab lo alcanza igual y `:focus-within` de la
-	 *   fila lo revela ANTES de que el propio botón tenga el foco (llega ya visible cuando el
-	 *   usuario tabula hasta él).
+	 * - **Acciones de fila en un MENÚ (Lote 12, lámina 7 `07-accion-de-fila-en-menu.html`;
+	 *   sustituye al «Borrar» que vivía como overlay dentro de la última celda de datos)**: una
+	 *   celda PROPIA y estrecha al final de la fila (`.vega-cell-menu`, medidas de
+	 *   `.vega-reorder-cell`), PEGADA al borde derecho de la tabla (`position: sticky`): en estrecho
+	 *   la tabla se desplaza de lado y el «Borrar» de antes quedaba fuera de la pantalla, al final
+	 *   del desplazamiento. Dentro, un `ActionMenu` (`variant="icon"`, icono `more`) con «Duplicar»
+	 *   (decisión de David, solo si llega `onDuplicateRequest`) y «Borrar…» (solo con
+	 *   `contentType.permissions.delete`: una vista del backend nunca ofrece borrar, y desde
+	 *   `#lote-shell` tampoco una colección cuya regla de borrado esté vedada a esta sesión). Sin
+	 *   ninguna de las dos, ni celda ni hueco, como antes. El menú se pinta anclado a la VENTANA
+	 *   (`anchor="viewport"`): las celdas recortan y la tabla tiene su propio scroll, así que dentro
+	 *   de la celda saldría cortado; en las últimas filas se abre hacia arriba. Este componente
+	 *   sigue TONTO: solo EMITE `onDeleteRequest`/`onDuplicateRequest` con el registro y el mismo
+	 *   texto de apertura (`openText`, DRY) que ya se pinta en la celda-título — el diálogo de
+	 *   confirmación y la escritura son de `+page.svelte`.
+	 * - **Una sola parada de tabulación por fila (la lámina cuenta 60 → 30 en una página de 30
+	 *   filas)**: el disparador del menú lleva `tabindex="-1"` y se alcanza con → desde el título
+	 *   (← vuelve). Para que el atajo no sea un secreto, el enlace del título lleva
+	 *   `aria-describedby` a una frase oculta («Flecha derecha: acciones de la fila»), y borrar sigue
+	 *   estando también dentro del registro, en «Zona de peligro». Fila sin permiso de ver (el
+	 *   título no es enlace): el disparador pasa a ser LA parada de tabulación de esa fila
+	 *   (`tabindex="0"`), si no la fila no tendría ninguna. Tabla reordenable: el asa de arrastre
+	 *   sigue siendo su propia parada (no cambia).
+	 * - **Disparador oculto hasta hover/foco (misma aparición que tenía «Borrar», R3)**: `opacity`,
+	 *   nunca `display:none`; lo revela `tbody tr:hover`/`tbody tr:focus-within` (vía `:global`, el
+	 *   botón vive dentro de `ActionMenu`) o el propio menú abierto; con puntero basto o sin hover,
+	 *   siempre visible (44×44).
 	 * - **Marco de tarjeta (`.vega-record-table-wrap`), MOVIDO a `+page.svelte` (R4 del
 	 *   rediseño)**: el borde/fondo/sombra de tarjeta que este wrapper llevaba (WIP sin commitear
 	 *   de lote-1, absorbido aquí) suben un nivel — `+page.svelte` envuelve `<RecordTable>` +
@@ -171,6 +176,8 @@
 	import { isRightAlignedColumn } from './column-align';
 	import { resolveTitleCellText } from './list-load';
 	import { createReorderDndController, dropIndicatorEdge } from './reorder-dnd';
+	import ActionMenu from './ActionMenu.svelte';
+	import type { ActionMenuItem } from './action-menu';
 	import { selectThumbSpec } from '$lib/backend/thumb-select';
 	import type { ResolvedContentType } from '$lib/model/types';
 	import { fieldDisplayLabel } from '$lib/model/default-labels';
@@ -186,11 +193,15 @@
 		/** Avisa de un click en la cabecera de `field` (siempre una columna `sortable`); quien
 		 *  escucha decide el próximo estado (`cycleSort`) y navega. */
 		onSort: (field: string) => void;
-		/** Avisa de un click en "Borrar" de una fila (Fase 4e): `label` es el mismo texto que la
+		/** Avisa de «Borrar…» en el menú de una fila (Fase 4e): `label` es el mismo texto que la
 		 *  celda de apertura de esa fila (`openText`, reutilizado). Solo se invoca cuando
-		 *  `contentType.permissions.delete` (la acción ni se pinta si no). Quien escucha decide
+		 *  `contentType.permissions.delete` (la entrada ni se pinta si no). Quien escucha decide
 		 *  si abre la confirmación (`+page.svelte`, dueño del diálogo `DeleteConfirm`). */
 		onDeleteRequest: (record: VegaRecord, label: string) => void;
+		/** Avisa de «Duplicar» en el menú de una fila (Lote 12, lámina 7), con el mismo `label`.
+		 *  AUSENTE = la entrada no se ofrece (quien monta decide con `canDuplicateRecord`); este
+		 *  componente no sabe qué se puede copiar, solo emite. */
+		onDuplicateRequest?: (record: VegaRecord, label: string) => void;
 		/** `true` cuando `+page.svelte` decide que ESTA vista se puede reordenar a mano (ver
 		 *  cabecera): pinta la columna del asa de arrastre. `false` en cualquier otro caso, ni
 		 *  siquiera se pinta la columna. */
@@ -209,11 +220,75 @@
 		sort,
 		onSort,
 		onDeleteRequest,
+		onDuplicateRequest,
 		reorderable,
 		onReorder
 	}: Props = $props();
 
 	const ctx = getVegaContext();
+
+	/** Prefijo único de esta tabla para los `id` del menú de cada fila y de la frase oculta del
+	 *  atajo (`aria-describedby`): dos tablas en la misma página no pueden compartirlos. */
+	const uid = $props.id();
+	const hintId = `${uid}-row-menu-hint`;
+
+	// ————— Menú de acciones de fila (ver cabecera) —————
+
+	/** ¿Hay alguna acción de fila que ofrecer? Sin ninguna, ni celda ni hueco (lámina 7). */
+	const hasRowMenu = $derived(contentType.permissions.delete || onDuplicateRequest !== undefined);
+
+	/** Entradas del menú de `record`, en el orden de la lámina: «Duplicar» antes que «Borrar…» (la
+	 *  destructiva la última, con su tono de peligro). Cada una emite al dueño con el mismo `label`
+	 *  que la celda de apertura. */
+	function rowMenuItems(record: VegaRecord): ActionMenuItem[] {
+		const label = openText(record);
+		const items: ActionMenuItem[] = [];
+		const duplicate = onDuplicateRequest;
+		if (duplicate) {
+			items.push({
+				id: 'duplicate',
+				label: ctx.t('list.rowMenu.duplicate'),
+				icon: 'copy',
+				action: 'duplicate',
+				onSelect: () => duplicate(record, label)
+			});
+		}
+		if (contentType.permissions.delete) {
+			items.push({
+				id: 'delete',
+				label: ctx.t('list.rowMenu.delete'),
+				icon: 'trash',
+				tone: 'danger',
+				action: 'delete',
+				onSelect: () => onDeleteRequest(record, label)
+			});
+		}
+		return items;
+	}
+
+	/** → desde el enlace del título lleva el foco al disparador del menú de SU fila (ver cabecera:
+	 *  el disparador no es parada de tabulación). Se busca en el DOM de la fila en el momento, no
+	 *  con una ref por fila: `records` cambia con cada recarga. */
+	function handleTitleKeydown(event: KeyboardEvent): void {
+		if (event.key !== 'ArrowRight' || !hasRowMenu) return;
+		const trigger = (event.currentTarget as HTMLElement)
+			.closest('tr')
+			?.querySelector<HTMLElement>('[aria-haspopup="menu"]');
+		if (!trigger) return;
+		event.preventDefault();
+		trigger.focus();
+	}
+
+	/** ← en el disparador (con el menú cerrado) devuelve el foco al título de la fila. */
+	function handleTriggerKeydown(event: KeyboardEvent): void {
+		if (event.key !== 'ArrowLeft') return;
+		const title = (event.currentTarget as HTMLElement)
+			.closest('tr')
+			?.querySelector<HTMLElement>('.vega-cell-title a');
+		if (!title) return;
+		event.preventDefault();
+		title.focus();
+	}
 
 	/** Miniatura fija de listado (§4.4 del contrato P1): 28x28 recortada, best-effort — `memory`
 	 *  la ignora siempre (`capabilities.thumbs: false`), PB la compila a su propia sintaxis.
@@ -376,14 +451,11 @@
 					     fila sigue necesitando una celda de apertura sintética (abajo). -->
 					<th scope="col"></th>
 				{:else}
-					{#each columns as column, colIndex (column.field.name)}
-						{@const hasDeleteSlot =
-							colIndex === columns.length - 1 && contentType.permissions.delete}
+					{#each columns as column (column.field.name)}
 						{#if column.sortable}
 							<th
 								scope="col"
 								class:vega-th-right={isRightAlignedColumn(column)}
-								class:vega-th-delete-slot={hasDeleteSlot}
 								class:vega-col-status={column.isStatus}
 								aria-sort={ariaSortFor(column.field.name)}
 							>
@@ -409,7 +481,6 @@
 							<th
 								scope="col"
 								class:vega-th-right={isRightAlignedColumn(column)}
-								class:vega-th-delete-slot={hasDeleteSlot}
 								class:vega-col-status={column.isStatus}
 							>
 								{fieldDisplayLabel(column.field, ctx.t)}
@@ -417,9 +488,13 @@
 						{/if}
 					{/each}
 				{/if}
-				<!-- SIN columna de "Acciones" (ver cabecera del módulo): el mockup no la tiene; el
-				     botón "Borrar" se pinta como overlay dentro de la última celda de DATOS de cada
-				     fila (abajo), no aquí. -->
+				{#if hasRowMenu}
+					<!-- Celda del menú de acciones (lámina 7): cabecera sin texto visible, rótulo
+					     accesible oculto (mismo criterio que la columna del asa). -->
+					<th scope="col" class="vega-th-menu">
+						<span class="vega-visually-hidden">{ctx.t('list.rowMenu.columnHeader')}</span>
+					</th>
+				{/if}
 			</tr>
 		</thead>
 		<tbody>
@@ -449,19 +524,12 @@
 						</td>
 					{/if}
 					{#if columns.length === 0}
-						<!-- Única celda de la fila: también es la "última celda de datos", así que lleva el
-						     overlay de borrado (ver cabecera del módulo). -->
-						<td
-							class="vega-cell-title"
-							class:vega-cell-actions-anchor={contentType.permissions.delete}
-						>
+						<!-- Única celda de datos de la fila (listFields vacío, ver cabecera). -->
+						<td class="vega-cell-title">
 							{@render titleLink(record)}
-							{#if contentType.permissions.delete}
-								{@render deleteOverlay(record)}
-							{/if}
 						</td>
 					{:else}
-						{#each columns as column, colIndex (column.field.name)}
+						{#each columns as column (column.field.name)}
 							{@const descriptor = describeCell(
 								column.field,
 								record.values[column.field.name] ?? null,
@@ -470,13 +538,11 @@
 							{@const isOpenColumn = Boolean(
 								openColumn && column.field.name === openColumn.field.name
 							)}
-							{@const isLastColumn = colIndex === columns.length - 1}
 							<td
 								class:vega-cell-title={isOpenColumn}
 								class:vega-cell-mono={!isOpenColumn &&
 									(descriptor.kind === 'date' || descriptor.kind === 'mono')}
 								class:vega-cell-right={!isOpenColumn && isRightAlignedColumn(column)}
-								class:vega-cell-actions-anchor={isLastColumn && contentType.permissions.delete}
 								class:vega-col-status={column.isStatus}
 							>
 								{#if isOpenColumn}
@@ -499,16 +565,34 @@
 								{:else}
 									{@render cellContent(descriptor, record, column)}
 								{/if}
-								{#if isLastColumn && contentType.permissions.delete}
-									{@render deleteOverlay(record)}
-								{/if}
 							</td>
 						{/each}
+					{/if}
+					{#if hasRowMenu}
+						<!-- Celda del menú (ver cabecera): pegada al borde derecho, fuera del recorrido del
+						     tabulador salvo que la fila no tenga enlace (sin permiso de ver). -->
+						<td class="vega-cell-menu">
+							<ActionMenu
+								id="{uid}-row-menu-{record.id}"
+								label={ctx.t('list.rowMenu.trigger', { label: openText(record) })}
+								items={rowMenuItems(record)}
+								variant="icon"
+								anchor="viewport"
+								reveal
+								triggerTabindex={contentType.permissions.view ? -1 : 0}
+								onTriggerKeydown={handleTriggerKeydown}
+							/>
+						</td>
 					{/if}
 				</tr>
 			{/each}
 		</tbody>
 	</table>
+	{#if hasRowMenu}
+		<!-- Frase oculta que hace público el atajo del menú de fila (`aria-describedby` de cada
+		     título, ver cabecera). Una por tabla, no por fila. -->
+		<span id={hintId} class="vega-visually-hidden">{ctx.t('list.rowMenu.hint')}</span>
+	{/if}
 </div>
 
 {#snippet titleLink(record: VegaRecord)}
@@ -520,7 +604,9 @@
 		<a
 			href={recordRoute(contentType.name, record.id)}
 			title={openText(record)}
+			aria-describedby={hasRowMenu ? hintId : undefined}
 			onclick={(event) => openRecord(event, record.id)}
+			onkeydown={handleTitleKeydown}
 		>
 			{openText(record)}
 		</a>
@@ -548,21 +634,6 @@
 			{inlineBadge.label}
 		</span>
 	{/if}
-{/snippet}
-
-{#snippet deleteOverlay(record: VegaRecord)}
-	<!-- Overlay de borrado (ver cabecera del módulo): HERMANO del contenido normal de la celda
-	     ancla (`.vega-cell-actions-anchor`), nunca anidado en la `<a>` de `titleLink` — un click
-	     aquí sigue sin disparar `openRecord`. -->
-	<button
-		type="button"
-		class="vega-delete-button"
-		data-action="delete"
-		aria-label={ctx.t('list.delete.rowButtonLabel', { label: openText(record) })}
-		onclick={() => onDeleteRequest(record, openText(record))}
-	>
-		{ctx.t('list.delete.rowButton')}
-	</button>
 {/snippet}
 
 {#snippet cellContent(descriptor: CellDescriptor, record: VegaRecord, column: ColumnSpec)}
@@ -888,65 +959,35 @@
 		color: var(--ink-2);
 	}
 
-	/* Ancla del overlay de borrado (ver cabecera del módulo, "Borrado SIN columna dedicada"): la
-	   ÚLTIMA celda de datos de la fila (o la sintética si `columns.length === 0`) se vuelve el
-	   contenedor posicionado del botón — sin columna dedicada, a diferencia de antes. */
-	.vega-record-table td.vega-cell-actions-anchor {
-		position: relative;
-	}
-
-	/* Hueco PROPIO para «Borrar» (overlay absoluto de abajo): sin él el botón tapaba la insignia de
-	   estado (táctil, donde está siempre visible) o la fecha (escritorio, al pasar el ratón). El
-	   contenido de la celda acaba donde empieza el hueco; la cabecera de esa última columna lo
-	   reserva igual para que título de columna y valores sigan alineados. Selectores calificados
-	   porque `.vega-record-table td`/`thead th` (padding base) ganan por especificidad. */
-	.vega-record-table td.vega-cell-actions-anchor,
-	.vega-record-table thead th.vega-th-delete-slot {
-		padding-right: calc(var(--cell-x) + 4.5rem);
-	}
-
-	/* "Borrar" oculto hasta hover/foco (R3, decisión de David — ver cabecera): `opacity`, nunca
-	   `display:none`/`visibility:hidden`, para que Tab lo siga alcanzando. Overlay ABSOLUTO (ver
-	   cabecera del módulo): pegado al borde derecho de `.vega-cell-actions-anchor`, por encima de
-	   su contenido truncado (mismo lenguaje que el hover-reveal de listados tipo GitHub) — el
-	   margen (`right`) deja hueco de sobra para el anillo de foco dentro del `overflow:hidden` de
-	   la celda (nunca lo recorta). */
-	.vega-delete-button {
-		position: absolute;
-		top: 50%;
-		right: 0.35rem;
-		transform: translateY(-50%);
+	/* Celda del menú de acciones (lámina 7, ver cabecera): el hueco de 4.5rem que «Borrar» reservaba
+	   dentro de la última columna desaparece; en su lugar una celda propia y estrecha, PEGADA al
+	   borde derecho de la tabla. Mismas medidas que la celda del asa (`.vega-reorder-cell`). Fondo
+	   opaco `--paper` (el de la tarjeta): en estrecho las columnas pasan por debajo al desplazar y,
+	   sin él, el texto se transparentaría. Selectores calificados porque `.vega-record-table td`/
+	   `thead th` ganan por especificidad. */
+	.vega-record-table td.vega-cell-menu,
+	.vega-record-table thead th.vega-th-menu {
+		position: sticky;
+		right: 0;
 		z-index: 1;
-		padding: 0.25rem 0.6rem;
-		border: 1px solid var(--danger);
-		border-radius: 5px;
-		background: var(--danger-soft);
-		color: var(--danger);
-		font-size: 0.75rem;
-		font-weight: 500;
-		cursor: pointer;
-		opacity: 0;
-		transition: opacity 0.12s ease;
+		width: 2rem;
+		max-width: none;
+		padding: 0 0.35rem;
+		overflow: visible;
+		background: var(--paper);
 	}
 
-	.vega-record-table tbody tr:hover .vega-delete-button,
-	.vega-record-table tbody tr:focus-within .vega-delete-button {
+	/* Sobre la fila resaltada, el resalte ENCIMA del papel: el fondo tiene que seguir siendo opaco
+	   (un `--accent-soft` suelto es translúcido y dejaría ver el texto que pasa por debajo). */
+	.vega-record-table tbody tr:hover td.vega-cell-menu {
+		background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--paper);
+	}
+
+	/* El disparador vive dentro de `ActionMenu` (CSS con ámbito propio): lo revela la fila en hover
+	   o con el foco dentro, misma aparición que tenía «Borrar». */
+	.vega-record-table tbody tr:hover :global(.vega-action-menu-trigger--reveal),
+	.vega-record-table tbody tr:focus-within :global(.vega-action-menu-trigger--reveal) {
 		opacity: 1;
-	}
-
-	/* Fallback táctil (fix de code-review): en un dispositivo sin ratón ni foco por Tab (admin en
-	   tablet) no hay `:hover` persistente que revele el botón — sin esto quedaría en `opacity:0`
-	   permanente, alcanzable solo a ciegas. Con puntero grueso/sin hover, siempre visible. */
-	@media (hover: none), (pointer: coarse) {
-		.vega-delete-button {
-			opacity: 1;
-		}
-	}
-
-	.vega-delete-button:hover,
-	.vega-delete-button:focus-visible {
-		background: var(--danger);
-		color: var(--surface);
 	}
 
 	/* Insignia de estado, píldora + punto (mockup final `aquelarre-dark.html` `.status`/
@@ -1076,18 +1117,27 @@
 			overflow: hidden;
 			text-overflow: ellipsis;
 		}
+
+		/* Donde las columnas pasan por debajo de la celda pegada, una línea a su izquierda deja claro
+		   que es un borde y no un texto cortado por error. */
+		.vega-record-table td.vega-cell-menu,
+		.vega-record-table thead th.vega-th-menu {
+			box-shadow: inset 1px 0 var(--line);
+		}
 	}
 
-	/* Objetivo táctil de 44×44 (`scripts/check-touch-targets.mjs`): «Borrar», cabeceras ordenables y
-	   asa de arrastre suben a 44 px con puntero grueso; con ratón no cambia nada (densidad). */
+	/* Objetivo táctil de 44×44 (`scripts/check-touch-targets.mjs`): cabeceras ordenables, asa de
+	   arrastre y la celda del menú (su disparador lo mide `ActionMenu.svelte`) suben a 44 px con
+	   puntero grueso; con ratón no cambia nada (densidad). */
 	@media (pointer: coarse) {
 		.vega-record-table tbody tr {
 			height: max(var(--row-h), 44px);
 		}
 
-		.vega-delete-button {
-			min-width: 44px;
-			min-height: 44px;
+		.vega-record-table td.vega-cell-menu,
+		.vega-record-table thead th.vega-th-menu {
+			width: 44px;
+			padding: 0;
 		}
 
 		.vega-sort-button {

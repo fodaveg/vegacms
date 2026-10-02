@@ -792,6 +792,19 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.delete.deleting': 'Deleting…',
 	'list.delete.success': '"{label}" was deleted.',
 
+	// ————— Row actions menu (Batch 12, sheet 7) —————
+	'list.rowMenu.columnHeader': 'Actions',
+	'list.rowMenu.trigger': 'Actions for "{label}"',
+	'list.rowMenu.hint': 'Right arrow: row actions',
+	'list.rowMenu.duplicate': 'Duplicate',
+	'list.rowMenu.delete': 'Delete…',
+	'list.duplicate.success': '"{label}" was duplicated.',
+	'list.duplicate.error': 'Could not duplicate "{label}".',
+
+	// ————— "More" in the list header on mobile (Batch 12, sheet 6) —————
+	'list.more.trigger': 'More',
+	'list.more.label': 'More list actions',
+
 	// ————— Manual reorder (orderField) —————
 	'list.reorder.columnHeader': 'Order',
 	'list.reorder.handleLabel': 'Drag to reorder "{label}"',

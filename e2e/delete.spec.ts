@@ -7,10 +7,11 @@
  * Confirmación (`DeleteConfirm.svelte`) SIEMPRE de por medio, `role="alertdialog"`, cancelable
  * con `Esc`/"Cancelar" — ningún test de esta suite llama a `port.delete` sin pasar por ella.
  *
- * **"Borrar" oculto hasta hover/foco (R3 del rediseño C2)**: el botón sigue en el DOM/orden de
- * tabulación (`opacity`, nunca `display:none`), pero cada test que lo clica hace `row.hover()`
- * antes — fiel al gesto real (a diferencia de un click síncrono de Playwright, que ignora
- * `opacity` y clicaría igual sin hover; el hover previo documenta el comportamiento esperado).
+ * **«Borrar…» vive en el MENÚ de acciones de la fila (Lote 12, lámina 7; antes era un botón
+ * suelto)**: cada test abre el menú de la fila («Acciones de «título»», oculto hasta hover/foco,
+ * `opacity`, nunca `display:none`) y elige «Borrar…». `row.hover()` antes, fiel al gesto real (un
+ * click síncrono de Playwright ignora `opacity` y clicaría igual sin hover; el hover previo
+ * documenta el comportamiento esperado). El teclado del menú se mide en `list-actions-menu.spec.ts`.
  *
  * El bloque "estado deleting en vuelo" (fix de code-review) usa la afordance de test
  * `__VEGA_DELETE_DELAY_MS__` (`session/backend.ts`) para abrir una ventana FIABLE en la que
@@ -24,6 +25,20 @@ async function loginAndSettle(page: import('@playwright/test').Page): Promise<vo
 	await page.waitForURL('**/c/site_info/new');
 }
 
+/** Abre el menú de acciones de `row` y elige «Borrar…» (lámina 7): el disparador se revela con el
+ *  hover de la fila; el nombre accesible lleva el título cuando se conoce (`title`), o cualquiera
+ *  (`/^Acciones de/`) cuando se opera por posición. */
+async function requestRowDelete(
+	row: import('@playwright/test').Locator,
+	title?: string
+): Promise<void> {
+	await row.hover();
+	await row
+		.getByRole('button', { name: title ? `Acciones de «${title}»` : /^Acciones de/ })
+		.click();
+	await row.getByRole('menuitem', { name: 'Borrar…' }).click();
+}
+
 test.describe('borrar con confirmación (L-P4.11)', () => {
 	test('borrar un registro: desaparece de la tabla y muestra un toast de éxito', async ({
 		page
@@ -34,10 +49,9 @@ test.describe('borrar con confirmación (L-P4.11)', () => {
 		const row = page.locator('tbody tr', { hasText: 'Bienvenido a Vega' });
 		await expect(row).toBeVisible();
 
-		// "Borrar" está oculto hasta hover/foco de la fila (R3 del rediseño C2, decisión de David):
-		// el hover es lo que lo revela antes de poder clicarlo.
-		await row.hover();
-		await row.getByRole('button', { name: 'Borrar "Bienvenido a Vega"' }).click();
+		// El disparador del menú está oculto hasta hover/foco de la fila (misma aparición que tenía
+		// «Borrar»): el hover es lo que lo revela antes de poder clicarlo.
+		await requestRowDelete(row, 'Bienvenido a Vega');
 
 		const dialog = page.getByRole('alertdialog');
 		await expect(dialog).toBeVisible();
@@ -60,8 +74,7 @@ test.describe('borrar con confirmación (L-P4.11)', () => {
 		await page.goto('/c/posts');
 
 		const row = page.locator('tbody tr', { hasText: 'Bienvenido a Vega' });
-		await row.hover();
-		await row.getByRole('button', { name: 'Borrar "Bienvenido a Vega"' }).click();
+		await requestRowDelete(row, 'Bienvenido a Vega');
 
 		const dialog = page.getByRole('alertdialog');
 		await expect(dialog).toBeVisible();
@@ -77,8 +90,7 @@ test.describe('borrar con confirmación (L-P4.11)', () => {
 		await page.goto('/c/posts');
 
 		const row = page.locator('tbody tr', { hasText: 'Bienvenido a Vega' });
-		await row.hover();
-		await row.getByRole('button', { name: 'Borrar "Bienvenido a Vega"' }).click();
+		await requestRowDelete(row, 'Bienvenido a Vega');
 
 		const dialog = page.getByRole('alertdialog');
 		await expect(dialog).toBeVisible();
@@ -104,10 +116,9 @@ test.describe('borrar la última fila de una página > 1 retrocede (L-P4.13, rel
 		await expect(page.locator('tbody tr')).toHaveCount(2);
 
 		// Primer borrado: la página 2 queda con 1 fila, sigue siendo una página válida (sin retroceso).
-		// "Borrar" oculto hasta hover/foco (R3): la fila se hover primero.
+		// Por posición: el título concreto no importa, el menú se abre por `/^Acciones de/`.
 		const firstRow = page.locator('tbody tr').first();
-		await firstRow.hover();
-		await firstRow.getByRole('button', { name: /^Borrar/ }).click();
+		await requestRowDelete(firstRow);
 		await page
 			.getByRole('alertdialog')
 			.getByRole('button', { name: 'Borrar', exact: true })
@@ -119,8 +130,7 @@ test.describe('borrar la última fila de una página > 1 retrocede (L-P4.13, rel
 		// Segundo borrado: la página 2 queda VACÍA (`items: []`, `totalItems: 30 > 0`) — el mismo
 		// `$effect` de "página fuera de rango" de 4c/L-P4.13 retrocede a la 1, sin lógica nueva.
 		const remainingRow = page.locator('tbody tr').first();
-		await remainingRow.hover();
-		await remainingRow.getByRole('button', { name: /^Borrar/ }).click();
+		await requestRowDelete(remainingRow);
 		await page
 			.getByRole('alertdialog')
 			.getByRole('button', { name: 'Borrar', exact: true })
@@ -152,8 +162,7 @@ test.describe('estado "deleting" en vuelo (fix de code-review de 4e)', () => {
 		});
 
 		const rowA = page.locator('tbody tr', { hasText: 'Bienvenido a Vega' });
-		await rowA.hover();
-		await rowA.getByRole('button', { name: 'Borrar "Bienvenido a Vega"' }).click();
+		await requestRowDelete(rowA, 'Bienvenido a Vega');
 
 		const dialog = page.getByRole('alertdialog');
 		// Locator ESTABLE por clase (no por nombre accesible: ese cambia de "Borrar" a "Borrando…"
@@ -178,7 +187,8 @@ test.describe('estado "deleting" en vuelo (fix de code-review de 4e)', () => {
 		// `pendingDelete` mientras el primer borrado sigue en vuelo — el diálogo sigue hablando de
 		// "Bienvenido a Vega", nunca de la otra fila.
 		const rowB = page.locator('tbody tr', { hasText: 'Borrador en curso' });
-		await rowB.getByRole('button', { name: /^Borrar/ }).click({ force: true });
+		await rowB.getByRole('button', { name: /^Acciones de/ }).click({ force: true });
+		await rowB.getByRole('menuitem', { name: 'Borrar…' }).click({ force: true });
 		await expect(dialog).toContainText('Bienvenido a Vega');
 		await expect(dialog).not.toContainText('Borrador en curso');
 		await expect(rowB).toBeVisible(); // la fila B, ajena al borrado en vuelo, ni se tocó
@@ -200,11 +210,15 @@ test.describe('tipo readonly: sin botón de borrar (L-P4.9)', () => {
 		await page.goto('/c/pages');
 
 		// `pages` es readonly y ya lleva la insignia "Solo lectura" en la cabecera (§4.1); ningún
-		// control de borrado existe en su ruta, contraste directo con `posts` (arriba), que SÍ los
-		// pinta por fila (`data-action="delete"`, ver `RecordTable.svelte`).
+		// control de borrado existe en su ruta, contraste directo con `posts` (arriba), que SÍ lo
+		// ofrece por fila en el menú de acciones (`data-action="delete"`, ver `RecordTable.svelte`).
+		// Sin borrar ni duplicar (readonly tampoco crea), ni siquiera hay menú de fila: ni celda ni
+		// hueco (lámina 7).
 		await expect(page.locator('.vega-list-readonly-badge')).toHaveText('Solo lectura');
 		await expect(page.locator('[data-action="delete"]')).toHaveCount(0);
 		await expect(page.getByRole('button', { name: /^Borrar/ })).toHaveCount(0);
+		await expect(page.locator('tbody [aria-haspopup="menu"]')).toHaveCount(0);
+		await expect(page.locator('.vega-cell-menu')).toHaveCount(0);
 	});
 });
 
@@ -221,8 +235,7 @@ test.describe('borrado que falla (afordance de test, L-P4.4/Audit H6)', () => {
 		});
 
 		const row = page.locator('tbody tr', { hasText: 'Bienvenido a Vega' });
-		await row.hover();
-		await row.getByRole('button', { name: 'Borrar "Bienvenido a Vega"' }).click();
+		await requestRowDelete(row, 'Bienvenido a Vega');
 		await page
 			.getByRole('alertdialog')
 			.getByRole('button', { name: 'Borrar', exact: true })
