@@ -628,6 +628,21 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// the library. The `file` field stores neither the alt nor the `mediaId` (L-P6.8, [SUP-5]).
 	'form.file.libraryMissingAltOne': 'This image has no alt text in the library.',
 	'form.file.libraryMissingAltMany': '{count} images have no alt text in the library.',
+	// Batch 12, sheet 5: an image uploaded from the field asks for its alt text and, when the
+	// record is saved, is copied to Media with it (`file-library-copy.ts`). The text lives in the
+	// Media entry, not in the field: after saving, the row only says where it is.
+	'form.file.altLabel': 'Alt text',
+	'form.file.libraryPending': 'It will be saved to Media when the record is saved.',
+	'form.file.libraryUploading': 'Saving to Media…',
+	'form.file.libraryDone': 'In Media, with alt text',
+	'form.file.libraryDoneNoAlt': 'Image added to Media, without alt text.',
+	'form.file.libraryError': 'Could not save to Media: {message}',
+	'form.file.libraryRetry': 'retry',
+	'form.file.libraryRetryLabel': 'Retry saving «{name}» to Media',
+	// Phrases appended to the «Saved.» toast.
+	'form.file.copiedOne': 'Image added to Media.',
+	'form.file.copiedOneFile': 'File added to Media.',
+	'form.file.copiedMany': '{count} files added to Media.',
 
 	// ————— Richtext/markdown editor (P5 contract, Phase F5-d) —————
 	'form.editor.toolbarLabel': 'Formatting tools',

@@ -680,6 +680,22 @@ export const es = {
 	'form.file.libraryMissingAltOne': 'Esta imagen no tiene texto alternativo en la biblioteca.',
 	'form.file.libraryMissingAltMany':
 		'{count} imágenes no tienen texto alternativo en la biblioteca.',
+	// Lote 12, lámina 5: una imagen subida desde el campo pide su texto alternativo y, al guardar
+	// el registro, se copia a Medios con él (`file-library-copy.ts`). El texto vive en la ficha de
+	// Medios, no en el campo: tras guardar, la fila solo dice dónde está. La ayuda y el aviso de
+	// «sin texto» son los de la ficha de Medios (`media.detail.altHelp`/`altMissingHint`).
+	'form.file.altLabel': 'Texto alternativo',
+	'form.file.libraryPending': 'Se guardará en Medios al guardar el registro.',
+	'form.file.libraryUploading': 'Guardando en Medios…',
+	'form.file.libraryDone': 'En Medios, con texto alternativo',
+	'form.file.libraryDoneNoAlt': 'Imagen añadida a Medios, sin texto alternativo.',
+	'form.file.libraryError': 'No se pudo guardar en Medios: {message}',
+	'form.file.libraryRetry': 'reintentar',
+	'form.file.libraryRetryLabel': 'Reintentar guardar «{name}» en Medios',
+	// Frases que se suman al toast de «Guardado.».
+	'form.file.copiedOne': 'Imagen añadida a Medios.',
+	'form.file.copiedOneFile': 'Archivo añadido a Medios.',
+	'form.file.copiedMany': '{count} archivos añadidos a Medios.',
 
 	// ————— Editor richtext/markdown (Fase F5-d del contrato P5) —————
 	'form.editor.toolbarLabel': 'Herramientas de formato',
