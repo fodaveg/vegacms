@@ -11,14 +11,18 @@ import { t as translate } from '$lib/i18n';
 import GlobalBanner from './GlobalBanner.svelte';
 import { transportFeedback } from './transport-feedback.svelte';
 
-function mountBanner() {
+function mountBanner(isClipped?: (el: HTMLElement) => boolean) {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const ctx = {
 		t: (key: string, params?: Record<string, string | number>) => translate('es', key, params),
 		port: {}
 	} as unknown as VegaAppContext;
-	const instance = mount(GlobalBanner, { target, context: new Map([[VEGA_CONTEXT_KEY, ctx]]) });
+	const instance = mount(GlobalBanner, {
+		target,
+		props: isClipped ? { isClipped } : {},
+		context: new Map([[VEGA_CONTEXT_KEY, ctx]])
+	});
 	return { target, instance };
 }
 
@@ -75,5 +79,77 @@ describe('GlobalBanner: detalle técnico bajo el texto del catálogo', () => {
 		mounted = mountBanner();
 		await tick();
 		expect(mounted.target.querySelector('[data-banner-detail]')).toBeNull();
+	});
+});
+
+describe('GlobalBanner: detalle plegable', () => {
+	let mounted: ReturnType<typeof mountBanner> | null = null;
+	const LONG = 'hook: ' + 'cuota excedida en la colección X. '.repeat(10).trim();
+
+	afterEach(async () => {
+		if (mounted) {
+			await unmount(mounted.instance);
+			mounted.target.remove();
+			mounted = null;
+		}
+		transportFeedback.dismiss();
+		transportFeedback.markConnected();
+	});
+
+	const toggle = () =>
+		mounted!.target.querySelector<HTMLButtonElement>('.vega-global-banner-toggle');
+	const detail = () => mounted!.target.querySelector<HTMLElement>('[data-banner-detail]')!;
+	const reportLong = (message = LONG) =>
+		transportFeedback.report(VegaError.backend(message, undefined, 'server-error'));
+
+	test('sin recorte no hay botón', async () => {
+		reportLong();
+		mounted = mountBanner(() => false);
+		await tick();
+		expect(toggle()).toBeNull();
+		expect(detail().classList.contains('vega-global-banner-detail-clamped')).toBe(true);
+	});
+
+	test('con recorte aparece el botón, enlazado al detalle y plegado', async () => {
+		reportLong();
+		mounted = mountBanner(() => true);
+		await tick();
+		const button = toggle()!;
+		expect(button.textContent?.trim()).toBe(translate('es', 'errors.banner.detailShow'));
+		expect(button.getAttribute('aria-expanded')).toBe('false');
+		expect(button.getAttribute('aria-controls')).toBe(detail().id);
+		expect(detail().id).not.toBe('');
+	});
+
+	test('pulsar alterna aria-expanded y el texto entero está en el DOM plegado y desplegado', async () => {
+		reportLong();
+		mounted = mountBanner(() => true);
+		await tick();
+		expect(detail().textContent?.trim()).toBe(LONG);
+		toggle()!.click();
+		await tick();
+		expect(toggle()!.getAttribute('aria-expanded')).toBe('true');
+		expect(toggle()!.textContent?.trim()).toBe(translate('es', 'errors.banner.detailHide'));
+		expect(detail().classList.contains('vega-global-banner-detail-clamped')).toBe(false);
+		expect(detail().textContent?.trim()).toBe(LONG);
+		toggle()!.click();
+		await tick();
+		expect(toggle()!.getAttribute('aria-expanded')).toBe('false');
+		expect(detail().classList.contains('vega-global-banner-detail-clamped')).toBe(true);
+		expect(detail().textContent?.trim()).toBe(LONG);
+	});
+
+	test('un error nuevo vuelve a plegado', async () => {
+		reportLong();
+		mounted = mountBanner(() => true);
+		await tick();
+		toggle()!.click();
+		await tick();
+		expect(toggle()!.getAttribute('aria-expanded')).toBe('true');
+		reportLong(LONG + ' otra vez');
+		await tick();
+		await tick();
+		expect(toggle()!.getAttribute('aria-expanded')).toBe('false');
+		expect(detail().classList.contains('vega-global-banner-detail-clamped')).toBe(true);
 	});
 });

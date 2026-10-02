@@ -245,6 +245,8 @@ export const es = {
 	'errors.network.title': 'No hay conexión con el servidor',
 	'errors.network.body': 'No se pudo contactar con el servidor. Comprueba tu conexión.',
 	'errors.network.retry': 'Reintentar',
+	'errors.banner.detailShow': 'Ver detalle',
+	'errors.banner.detailHide': 'Ocultar detalle',
 	'errors.backend.title': 'El servidor ha respondido algo inesperado',
 	'errors.forbidden.title': 'No tienes permiso',
 	'errors.forbidden.body': 'Tu sesión no tiene acceso a este recurso.',

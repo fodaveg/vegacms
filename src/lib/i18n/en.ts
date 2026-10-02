@@ -232,6 +232,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'errors.network.title': 'No connection to the server',
 	'errors.network.body': 'The server could not be reached. Check your connection.',
 	'errors.network.retry': 'Retry',
+	'errors.banner.detailShow': 'Show details',
+	'errors.banner.detailHide': 'Hide details',
 	'errors.backend.title': 'The server returned something unexpected',
 	'errors.forbidden.title': "You don't have permission",
 	'errors.forbidden.body': "Your session can't access this resource.",
