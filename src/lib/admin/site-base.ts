@@ -5,13 +5,16 @@
  *
  * La palabra «sembrado» no sale en la interfaz: la pieza se llama «Base del sitio».
  */
-import type {
-	SiteSeedDivergence,
-	SiteSeedModule,
-	SiteSeedModulePlan,
-	SiteSeedPlanSummary,
-	SiteSeedPreview,
-	SiteSeedResult
+import { COMMON_COLLECTION_RULE_KEYS, type CollectionRule } from '$lib/backend/collections';
+import {
+	ruleDifferencesToConfirm,
+	type SiteSeedDivergence,
+	type SiteSeedModule,
+	type SiteSeedModulePlan,
+	type SiteSeedPlanSummary,
+	type SiteSeedPreview,
+	type SiteSeedResult,
+	type SiteSeedRuleDifference
 } from '$lib/backend/site-seeding';
 import type { ManifestMergeSkipped } from '$lib/backend/site-seeding-merge';
 import { SITE_SEED_OPTIONAL_MODULES } from '$lib/backend/site-seeding-modules';
@@ -78,8 +81,8 @@ export function siteModuleState(module: SiteSeedModule, plan: SiteSeedModulePlan
 
 /**
  * `true` si el preflight de «base + un módulo» solo escribiría cosas de ESE módulo. Es la condición
- * para que el diálogo de un módulo pueda decir «nada de lo que ya existe se modifica» enseñando
- * solo lo del módulo: la base va en toda pasada y, si tuviera algo pendiente, se escribiría también.
+ * para que el diálogo de un módulo pueda enseñar solo lo del módulo y decir que solo se añade: la
+ * base va en toda pasada y, si tuviera algo pendiente, se escribiría también.
  */
 export function onlyModuleWrites(plan: SiteSeedPlanSummary, base: SiteSeedModulePlan): boolean {
 	return (
@@ -89,6 +92,35 @@ export function onlyModuleWrites(plan: SiteSeedPlanSummary, base: SiteSeedModule
 		!plan.constrainedFields &&
 		!plan.pageMissing
 	);
+}
+
+/**
+ * Las diferencias de reglas que hay que confirmar para añadir este módulo, o ninguna: solo cuentan
+ * si el módulo tiene algo que escribir (ver `ruleDifferencesToConfirm`).
+ */
+export function moduleRuleDifferences(plan: SiteSeedModulePlan): SiteSeedRuleDifference[] {
+	return ruleDifferencesToConfirm(plan);
+}
+
+/** Una regla de acceso dicha en llano: `null` y `""` son las dos que se confunden. */
+function describeRuleValue(t: Translate, rule: CollectionRule): string {
+	if (rule === null) return t('settings.site.rules.none');
+	return rule === '' ? t('settings.site.rules.open') : rule;
+}
+
+function ruleDifferenceItem(item: SiteSeedRuleDifference, t: Translate): PlanItem {
+	const known = (COMMON_COLLECTION_RULE_KEYS as readonly string[]).includes(item.rule);
+	return {
+		title: t('settings.site.rules.title', {
+			collection: collectionLabel(t, item.collection),
+			rule: known ? t(`settings.site.rules.${item.rule}`) : item.rule
+		}),
+		text: t('settings.site.rules.item', {
+			actual: describeRuleValue(t, item.actual),
+			expected: describeRuleValue(t, item.expected)
+		}),
+		code: `${item.collection}.${item.rule}`
+	};
 }
 
 /** Qué muestra la tarjeta cuando el preflight terminó. */
@@ -148,10 +180,12 @@ export interface PlanGroup {
 	/**
 	 * Sirve de `data-` y de clave del encabezado:
 	 * - `create` y `add`: colecciones, campos y registros;
+	 * - `rules`: reglas de acceso de una colección que ya existe y no son las del módulo (hay que
+	 *   confirmarlas para añadirlo);
 	 * - `manifest`: las entradas que se añaden al modelo de contenido, una a una y con su nombre;
 	 * - `skipped`: lo que la versión nueva trae y NO se añade, porque lo guardado se conserva entero.
 	 */
-	id: 'create' | 'add' | 'manifest' | 'skipped';
+	id: 'rules' | 'create' | 'add' | 'manifest' | 'skipped';
 	heading: string;
 	items: PlanItem[];
 	/** Texto bajo la lista del grupo (qué pasa con lo que ya hay, y cómo evitar que algo vuelva). */
@@ -296,6 +330,15 @@ function manifestGroups(
 /** El plan de añadir UN módulo: solo lo suyo (ver `onlyModuleWrites`). */
 function buildModulePlanView(module: SiteSeedModulePlan, t: Translate): PlanView {
 	const groups: PlanGroup[] = [];
+	const rules = moduleRuleDifferences(module);
+	if (rules.length > 0) {
+		groups.push({
+			id: 'rules',
+			heading: t('settings.site.group.rules'),
+			items: rules.map((item) => ruleDifferenceItem(item, t)),
+			note: t('settings.site.rules.note')
+		});
+	}
 	if (module.createdCollections.length > 0) {
 		groups.push({
 			id: 'create',

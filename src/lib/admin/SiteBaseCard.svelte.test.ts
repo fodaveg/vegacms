@@ -568,7 +568,10 @@ describe('SiteBaseCard', () => {
 			expect(read).toHaveBeenCalled();
 			const open = dialog(mounted.target)!;
 			expect(open.querySelector('h2')!.textContent).toBe('Añadir: Blog');
-			expect(open.textContent).toContain('Nada de lo que ya existe se modifica.');
+			expect(open.textContent).toContain(
+				'No se borra ni se cambia ningún campo, regla, registro o entrada que ya exista'
+			);
+			expect(open.textContent).not.toContain('Nada de lo que ya existe se modifica');
 			expect(groupTitles(open, 'Se crea')).toEqual(['Etiquetas', 'Entradas']);
 			expect(open.textContent).toContain('tags');
 			expect(open.textContent).toContain('posts');
@@ -683,6 +686,100 @@ describe('SiteBaseCard', () => {
 			expect(groupTitles(open, 'Se añade al modelo de contenido')).toEqual([
 				'Colección «Etiquetas»'
 			]);
+		});
+
+		describe('reglas de acceso distintas en una colección que ya existe', () => {
+			/** Una `messages` anterior al módulo, con la bandeja abierta sin sesión. */
+			async function portWithOpenMessages(): Promise<MemoryBackendPort> {
+				const port = await seededPort();
+				await port.ensureCollections([
+					{
+						name: 'messages',
+						listRule: '',
+						viewRule: null,
+						createRule: '',
+						updateRule: null,
+						deleteRule: null,
+						fields: [
+							{ name: 'name', type: 'text', required: true, max: 200 },
+							{ name: 'email', type: 'email', required: true },
+							{ name: 'message', type: 'text', required: true, max: 5000 }
+						]
+					}
+				]);
+				return port;
+			}
+
+			const confirmBox = (scope: HTMLElement) =>
+				scope.querySelector<HTMLInputElement>('[data-rules-confirm] input')!;
+
+			test('R1 la fila lo avisa y el plan nombra colección, regla, valor actual y esperado', async () => {
+				mounted = mountCard(await portWithOpenMessages());
+				await settle();
+
+				const row = moduleRow(mounted.target, 'contacto');
+				expect(row.dataset.moduleState).toBe('incomplete');
+				expect(row.textContent).toContain('reglas de acceso distintas');
+
+				await click(button(row, 'Añadir'));
+
+				const open = dialog(mounted.target)!;
+				expect(groupTitles(open, 'Reglas de acceso distintas')).toEqual([
+					'Mensajes · listado',
+					'Mensajes · ver un registro',
+					'Mensajes · crear',
+					'Mensajes · editar',
+					'Mensajes · borrar'
+				]);
+				expect(open.textContent).toContain('Ahora: "" (abierta a todo el mundo)');
+				expect(open.textContent).toContain('Ahora: sin regla (solo superusuarios)');
+				expect(open.textContent).toContain('@request.auth.collectionName = "vega_editors"');
+				expect(open.textContent).toContain('Vega no las cambia');
+			});
+
+			test('R2 sin marcar la casilla «Añadir» no hace nada; marcada, añade el módulo y no toca las reglas', async () => {
+				const port = await portWithOpenMessages();
+				mounted = mountCard(port);
+				await settle();
+				await click(button(moduleRow(mounted.target, 'contacto'), 'Añadir'));
+				const open = dialog(mounted.target)!;
+				const written = writes(port);
+
+				const go = button(open, 'Añadir');
+				expect(go.getAttribute('aria-disabled')).toBe('true');
+				await click(go);
+				// Sigue el diálogo del plan y no se escribió nada.
+				expect(dialog(mounted.target)).not.toBeNull();
+				for (const spy of written) expect(spy).not.toHaveBeenCalled();
+
+				await click(confirmBox(open));
+				expect(button(open, 'Añadir').getAttribute('aria-disabled')).toBe('false');
+				await click(button(open, 'Añadir'));
+				await until(() => dialog(mounted!.target) === null);
+
+				expect(dialog(mounted.target)).toBeNull();
+				expect(port.inspectCollection('messages')?.rules).toMatchObject({
+					listRule: '',
+					createRule: ''
+				});
+				expect(
+					(await port.listContentTypes())
+						.find((type) => type.name === 'messages')!
+						.fields.map((field) => field.name)
+				).toContain('notifyState');
+				expect(moduleRow(mounted.target, 'contacto').dataset.moduleState).toBe('added');
+			});
+
+			test('R3 un módulo sin diferencias no enseña grupo ni casilla', async () => {
+				mounted = mountCard(await seededPort());
+				await settle();
+				await click(button(moduleRow(mounted.target, 'contacto'), 'Añadir'));
+
+				const open = dialog(mounted.target)!;
+				expect(open.textContent).not.toContain('Reglas de acceso distintas');
+				expect(open.querySelector('[data-rules-confirm]')).toBeNull();
+				expect(button(open, 'Añadir').getAttribute('aria-disabled')).toBe('false');
+			});
 		});
 
 		test('M6 vista previa bloqueada: una `posts` propia con otra forma bloquea SOLO el blog, y «Ver por qué» enseña la divergencia sin escribir', async () => {
