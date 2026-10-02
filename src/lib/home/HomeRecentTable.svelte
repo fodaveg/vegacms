@@ -79,7 +79,6 @@
 				<tr>
 					<td class="vega-cell-title">
 						<!-- `recordRoute` (`nav/routes.ts`) ya antepone `base`; mismo patrón que `RecordTable`. -->
-						<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 						<a
 							href={recordRoute(row.type.name, row.record.id)}
 							{title}

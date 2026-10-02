@@ -95,7 +95,6 @@
 				<li>
 					{#if card.href !== null}
 						<!-- `card.href` sale de `listStatusRoute` (`nav/routes.ts`), que ya antepone `base`. -->
-						<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 						<a
 							class="vega-home-pending-card"
 							href={card.href}
