@@ -16,7 +16,23 @@
 	import Icon from '$lib/icons/Icon.svelte';
 	import { vegaErrorMessage } from './vega-error-message';
 
+	function defaultIsClipped(el: HTMLElement): boolean {
+		return el.scrollHeight > el.clientHeight + 1;
+	}
+
+	/**
+	 * Decide si el detalle está recortado por el tope de líneas. Por defecto mide el elemento
+	 * (`scrollHeight` > `clientHeight`); jsdom no hace layout y ambas valen 0, así que los tests
+	 * inyectan esta función para fijar la decisión.
+	 */
+	interface Props {
+		isClipped?: (el: HTMLElement) => boolean;
+	}
+	let { isClipped = defaultIsClipped }: Props = $props();
+
 	const ctx = getVegaContext();
+	const id = $props.id();
+	const detailId = `${id}-detail`;
 
 	const err = $derived(transportFeedback.bannerError);
 	const retrying = $derived(transportFeedback.state === 'retrying');
@@ -33,6 +49,35 @@
 		err && err.kind !== 'network' && err.backendCode && err.message !== shown ? err.message : null
 	);
 
+	let detailEl = $state<HTMLElement | undefined>();
+	let clipped = $state(false);
+	let expanded = $state(false);
+
+	// Un error nuevo (o un detalle distinto) vuelve a plegado.
+	$effect(() => {
+		void err;
+		void detail;
+		expanded = false;
+	});
+
+	// Mide el recorte con el detalle plegado y vuelve a medir al cambiar el texto o el ancho.
+	$effect(() => {
+		void detail;
+		const el = detailEl;
+		if (!el) {
+			clipped = false;
+			return;
+		}
+		const measure = () => {
+			if (!expanded) clipped = isClipped(el);
+		};
+		measure();
+		if (typeof ResizeObserver === 'undefined') return;
+		const observer = new ResizeObserver(measure);
+		observer.observe(el);
+		return () => observer.disconnect();
+	});
+
 	async function handleRetry(): Promise<void> {
 		await transportFeedback.retry(async () => {
 			await ctx.port.listContentTypes();
@@ -46,7 +91,26 @@
 		<div class="vega-global-banner-text">
 			<p class="vega-global-banner-message">{shown}</p>
 			{#if detail}
-				<p class="vega-global-banner-detail" data-banner-detail>{detail}</p>
+				<p
+					class="vega-global-banner-detail"
+					class:vega-global-banner-detail-clamped={!expanded}
+					id={detailId}
+					data-banner-detail
+					bind:this={detailEl}
+				>
+					{detail}
+				</p>
+				{#if clipped || expanded}
+					<button
+						type="button"
+						class="vega-global-banner-toggle"
+						aria-expanded={expanded}
+						aria-controls={detailId}
+						onclick={() => (expanded = !expanded)}
+					>
+						{expanded ? ctx.t('errors.banner.detailHide') : ctx.t('errors.banner.detailShow')}
+					</button>
+				{/if}
 			{/if}
 		</div>
 		<div class="vega-global-banner-actions">
@@ -100,6 +164,26 @@
 		overflow-wrap: anywhere;
 	}
 
+	/* Plegado: tope de 3 líneas, solo visual (el texto entero sigue en el DOM para el lector). */
+	.vega-global-banner-detail-clamped {
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 3;
+		line-clamp: 3;
+		overflow: hidden;
+	}
+
+	.vega-global-banner-toggle {
+		margin-top: 0.15rem;
+		padding: 0.1rem 0;
+		border: 0;
+		background: none;
+		color: var(--ink);
+		font-size: 0.78rem;
+		text-decoration: underline;
+		cursor: pointer;
+	}
+
 	.vega-global-banner-actions {
 		display: flex;
 		align-items: center;
@@ -141,7 +225,8 @@
 			min-height: 44px;
 		}
 
-		.vega-global-banner-actions button {
+		.vega-global-banner-actions button,
+		.vega-global-banner-toggle {
 			min-height: 44px;
 		}
 	}
