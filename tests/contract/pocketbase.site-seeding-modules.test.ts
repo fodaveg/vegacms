@@ -6,7 +6,7 @@
  * el sembrado de verdad.
  */
 
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createPocketBaseBackend } from '$lib/backend/adapters/pocketbase';
 import type { BackendPort } from '$lib/backend/port';
 import {
@@ -287,6 +287,41 @@ describe.skipIf(!AVAILABLE)('módulos de sembrado contra PocketBase real', () =>
 		});
 		expect(patched.status).toBe(200);
 		expect((await admin.collection('messages').getOne(id)).notifyState).toBe('');
+	});
+
+	test('otro editor guarda el manifiesto entre el preflight y su escritura: aborta sin pisarlo y repetir converge', async () => {
+		await seedSiteProject(port);
+		const record = (await admin.collection('vega').getFullList())[0]!;
+		const theirs = structuredClone(record.manifest) as {
+			collections: Record<string, { label?: string }>;
+		};
+		theirs.collections.pages = { ...theirs.collections.pages, label: 'Páginas, por otro editor' };
+		const original = port.ensureCollections.bind(port);
+		const spy = vi.spyOn(port, 'ensureCollections').mockImplementation(async (specs) => {
+			const result = await original(specs);
+			if (specs.some((spec) => spec.name === 'tags')) {
+				await admin.collection('vega').update(record.id, { manifest: theirs });
+			}
+			return result;
+		});
+
+		await expect(seedSiteProject(port, { modules: [SITE_SEED_BLOG_MODULE] })).rejects.toThrow(
+			'El manifiesto cambió'
+		);
+
+		const after = await admin.collection('vega').getOne(record.id);
+		expect(after.manifest).toEqual(theirs);
+		expect(Object.keys((after.manifest as { collections: object }).collections)).not.toContain(
+			'posts'
+		);
+		spy.mockRestore();
+		const again = await seedSiteProject(port, { modules: [SITE_SEED_BLOG_MODULE] });
+		expect(again.upgradedRecords).toEqual(['manifest']);
+		const final = (await admin.collection('vega').getOne(record.id)).manifest as {
+			collections: Record<string, { label?: string }>;
+		};
+		expect(final.collections.pages!.label).toBe('Páginas, por otro editor');
+		expect(final.collections).toHaveProperty('posts');
 	});
 
 	test('los dos módulos sobre un sitio ya sembrado y con el manifiesto editado a mano: conserva lo editado, van al menú y la segunda pasada no añade nada', async () => {

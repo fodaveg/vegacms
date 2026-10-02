@@ -53,6 +53,7 @@
 import starterManifestDocument from './site-seeding-manifest.json';
 import { deriveBlockRecordFields } from './block-schema';
 import { VEGA_COLLECTION, type CollectionFieldSpec, type CollectionSpec } from './collections';
+import { VegaError } from './errors';
 import type { BackendPort } from './port';
 import {
 	isManifestObject,
@@ -324,8 +325,17 @@ interface CollectionPlan {
  */
 type ManifestAction = 'create' | 'upgrade' | 'keep';
 
+/**
+ * Lo que el preflight vio en el registro del manifiesto: `null` si no había ninguno, o su `id` y su
+ * contenido. `seedSiteProject` lo compara con lo que hay JUSTO antes de escribir (ver
+ * `assertManifestUnchanged`).
+ */
+type ManifestBasis = { id: string; manifest: JsonValue } | null;
+
 interface ManifestPlan {
 	action: ManifestAction;
+	/** Lo que había en el preflight; solo se usa con `create` y `upgrade`, que son los que escriben. */
+	basis: ManifestBasis;
 	/** El manifiesto a escribir (`create` y `upgrade`); `null` si no hay nada que escribir. */
 	merged: JsonValue | null;
 	/** Entradas de manifiesto que aporta cada módulo, por `id`. Vacía en `keep`. */
@@ -409,6 +419,11 @@ export class SiteSeedDivergenceError extends Error {
  * `vega_editors` -> `vega_media` (sola) -> `pages` -> `blocks` -> `redirects` -> `vega` -> las
  * colecciones de cada módulo pedido, en su orden -> manifiesto -> página canónica.
  * `vega_media` va antes que `pages` porque `pages.socialImage` la enlaza.
+ *
+ * Entre el preflight y la escritura del manifiesto otro editor puede haberlo guardado: justo antes
+ * de escribirlo se relee el registro y, si ya no es el que vio el preflight, se aborta con un
+ * `VegaError` `backend` SIN escribir el manifiesto (`assertManifestUnchanged`). Lo anterior (las
+ * colecciones y campos añadidos) se queda, porque el sembrado es aditivo y repetirlo converge.
  */
 export async function seedSiteProject(
 	port: BackendPort,
@@ -452,6 +467,7 @@ export async function seedSiteProject(
 		}
 	}
 
+	if (plan.manifest.action !== 'keep') await assertManifestUnchanged(port, plan.manifest);
 	if (plan.manifest.action === 'create') {
 		await saveManifest(port, plan.manifest.merged!);
 		result.createdRecords.push('manifest');
@@ -473,6 +489,57 @@ export async function seedSiteProject(
 	}
 
 	return result;
+}
+
+/**
+ * Relectura del registro del manifiesto justo antes de escribirlo. Entre el preflight y este punto
+ * pasan las escrituras de todas las colecciones, y otro editor (una segunda pestaña, el Admin de
+ * PocketBase) pudo guardar el manifiesto: `saveManifest` reescribe el valor entero, así que seguir
+ * con el fusionado del preflight pisaría su cambio en silencio. Mismo criterio que
+ * `addFieldsOnPocketBase` con `sameFieldIdentity`: se compara lo visto con lo que hay (el `id` y el
+ * contenido, sin que importe el orden de las claves) y, si difiere, se aborta SIN escribir el
+ * manifiesto. Las colecciones y campos ya añadidos se quedan (el sembrado es aditivo), y repetir
+ * «Actualizar el sitio» recalcula el manifiesto sobre lo que hay ahora.
+ */
+async function assertManifestUnchanged(port: BackendPort, plan: ManifestPlan): Promise<void> {
+	const vegaType = (await port.listContentTypes()).find(
+		(type) => type.name === VEGA_COLLECTION.name
+	);
+	const page = vegaType ? await listManifestRecords(port, vegaType, 2) : null;
+	const found = page?.items ?? [];
+	const unchanged =
+		plan.basis === null
+			? found.length === 0
+			: found.length === 1 &&
+				found[0]!.id === plan.basis.id &&
+				sameJson(found[0]!.values.manifest, plan.basis.manifest);
+	if (unchanged) return;
+	throw VegaError.backend(
+		'El manifiesto cambió mientras se preparaba la actualización del sitio, así que no se ha ' +
+			'escrito. Las colecciones y campos que faltaban ya están añadidos. Vuelve a actualizar el ' +
+			'sitio para recalcular el manifiesto sobre lo que hay ahora.'
+	);
+}
+
+/** Igualdad profunda de dos JSON sin que importe el orden de las claves de un objeto. */
+function sameJson(left: unknown, right: unknown): boolean {
+	if (left === right) return true;
+	if (Array.isArray(left) || Array.isArray(right)) {
+		return (
+			Array.isArray(left) &&
+			Array.isArray(right) &&
+			left.length === right.length &&
+			left.every((item, index) => sameJson(item, right[index]))
+		);
+	}
+	if (isManifestObject(left) && isManifestObject(right)) {
+		const keys = Object.keys(left);
+		return (
+			keys.length === Object.keys(right).length &&
+			keys.every((key) => key in right && sameJson(left[key], right[key]))
+		);
+	}
+	return false;
 }
 
 /**
@@ -769,6 +836,7 @@ async function inspectManifestRecord(
 
 const KEEP_MANIFEST: ManifestPlan = {
 	action: 'keep',
+	basis: null,
 	merged: null,
 	entries: new Map(),
 	skipped: new Map()
@@ -791,7 +859,7 @@ function createManifestPlan(modules: readonly SiteSeedModule[]): ManifestPlan {
 				.join('; ')}`
 		);
 	}
-	return { action: 'create', merged, entries, skipped };
+	return { action: 'create', basis: null, merged, entries, skipped };
 }
 
 /** Fusiona en `saved` el fragmento de cada módulo, en orden, y anota qué aporta cada uno. */
@@ -862,7 +930,13 @@ function inspectManifestPage(
 		});
 		return KEEP_MANIFEST;
 	}
-	return { action: 'upgrade', merged, entries, skipped };
+	return {
+		action: 'upgrade',
+		basis: { id: records.items[0]!.id, manifest: saved },
+		merged,
+		entries,
+		skipped
+	};
 }
 
 async function inspectCanonicalPage(
