@@ -260,6 +260,35 @@ describe.skipIf(!AVAILABLE)('módulos de sembrado contra PocketBase real', () =>
 		expect((await admin.collection('messages').getOne(id)).read).toBe(true);
 	});
 
+	test('base + contacto: `notifyState` es un campo oculto que ni el visitante ni un editor leen ni fijan', async () => {
+		await seedSiteProject(port, { modules: [SITE_SEED_CONTACT_MODULE] });
+		const field = (await admin.collections.getOne('messages')).fields.find(
+			(candidate) => candidate.name === 'notifyState'
+		);
+		expect(field).toMatchObject({ type: 'text', hidden: true, max: 20 });
+
+		const sent = await request('/api/collections/messages/records', {
+			method: 'POST',
+			body: { ...MESSAGE, notifyState: 'sent' }
+		});
+		expect(sent.status).toBe(200);
+		expect(sent.body).not.toHaveProperty('notifyState');
+		const id = String(sent.body.id);
+		// El superusuario sí lo ve y está vacío: lo que mandó el visitante se descartó.
+		expect((await admin.collection('messages').getOne(id)).notifyState).toBe('');
+
+		const token = await editorToken();
+		const asEditor = await request(`/api/collections/messages/records/${id}`, { token });
+		expect(asEditor.body).not.toHaveProperty('notifyState');
+		const patched = await request(`/api/collections/messages/records/${id}`, {
+			method: 'PATCH',
+			token,
+			body: { read: true, notifyState: 'pending' }
+		});
+		expect(patched.status).toBe(200);
+		expect((await admin.collection('messages').getOne(id)).notifyState).toBe('');
+	});
+
 	test('los dos módulos sobre un sitio ya sembrado y con el manifiesto editado a mano: conserva lo editado, van al menú y la segunda pasada no añade nada', async () => {
 		await seedLikePrevious0ace139(port);
 		const record = (await admin.collection('vega').getFullList())[0]!;

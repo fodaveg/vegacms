@@ -218,6 +218,13 @@ export type CollectionFieldSpec =
 			/** Expresión regular (RE2 en PocketBase, JS en `memory`) que el valor debe cumplir. NO
 			 *  está anclada por el servidor: lleva sus propios `^`/`$`. Vacío u omitido = sin patrón. */
 			pattern?: string;
+			/**
+			 * Campo OCULTO de PocketBase (`hidden`): no sale en ninguna respuesta de la API salvo a un
+			 * superusuario, y un cuerpo de petición que lo traiga se ignora si no lo manda uno. Es para
+			 * un campo que escribe solo el servidor (un hook) y que ni un visitante ni un editor deben
+			 * poder leer ni fijar. En `memory` solo se refleja como `Field.hidden`.
+			 */
+			hidden?: true;
 	  }
 	| {
 			name: string;

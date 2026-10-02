@@ -218,6 +218,8 @@ describe('módulo contacto', () => {
 			{ name: 'email', type: 'email', required: true },
 			{ name: 'message', type: 'text', required: true, max: 5000 },
 			{ name: 'read', type: 'bool' },
+			// Control del aviso por correo: oculto, para que ni el visitante ni un editor lo fijen.
+			{ name: 'notifyState', type: 'text', max: 20, hidden: true },
 			{ name: 'created', type: 'autodate' }
 		]);
 		// El campo trampa NO es un campo de la colección.

@@ -264,7 +264,8 @@ export function collectionFieldSpecToPbField(
 				required: spec.required ?? false,
 				max: spec.max ?? 0,
 				// Omitido (no `''`) para que el payload de un campo sin patrón no cambie.
-				...(spec.pattern ? { pattern: spec.pattern } : {})
+				...(spec.pattern ? { pattern: spec.pattern } : {}),
+				...(spec.hidden ? { hidden: true } : {})
 			};
 		case 'editor':
 			return { name: spec.name, type: 'editor', required: spec.required ?? false };

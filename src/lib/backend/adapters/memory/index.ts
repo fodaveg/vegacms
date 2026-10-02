@@ -957,6 +957,7 @@ function collectionFieldSpecToField(spec: CollectionFieldSpec): Field {
 			return {
 				...base,
 				unique: spec.unique ?? false,
+				hidden: spec.hidden ?? false,
 				type: 'text',
 				subtype: 'plain',
 				required: spec.required ?? false,

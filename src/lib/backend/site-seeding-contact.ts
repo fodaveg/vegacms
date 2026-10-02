@@ -7,6 +7,13 @@
  * la acota `CONTACT_CREATE_RULE`, medida contra PocketBase real en
  * `tests/contract/pocketbase.contact-rule-probe.test.ts`.
  *
+ * EL AVISO POR CORREO. El hook `infra/production/pb_hooks/vega-contact-notify.pb.js` avisa de los
+ * mensajes nuevos desde un cron de PocketBase, NO dentro de la petición del visitante. Para eso
+ * lee y escribe `notifyState` (ver `NOTIFY_STATE_FIELD`): un campo OCULTO que solo toca el
+ * servidor. Garantías de este módulo: el campo existe, es de texto y es oculto, de modo que ni un
+ * visitante ni un editor lo ven ni lo fijan por la API. NO garantiza que haya hook: una instancia
+ * cuya imagen no lo trae (admin.lumbre.pro) deja el campo vacío y no avisa de nada.
+ *
  * LO QUE VEGA NO GESTIONA y hay que configurar en PocketBase: el límite de peticiones por IP y
  * los orígenes permitidos (CORS). Una colección con creación pública sin límite de frecuencia es
  * un buzón abierto (ver `docs/POCKETBASE-INTEGRATION.md`, «Módulos de sembrado»).
@@ -37,6 +44,17 @@ export const CONTACT_CREATE_RULE = '@request.body.website = "" && @request.body.
 /** Tope del texto del mensaje. Se rechaza en el servidor con un 400 que sí nombra el campo. */
 export const CONTACT_MESSAGE_MAX_LENGTH = 5000;
 
+/**
+ * Campo de control del aviso por correo. Texto y no `select` a propósito: el sembrado compara las
+ * opciones de un `select` existente con las del módulo, y añadir un estado nuevo más adelante
+ * dejaría divergentes las colecciones ya sembradas. `hidden` (PocketBase) lo saca de toda respuesta
+ * de la API que no sea de un superusuario y descarta lo que un cuerpo de petición intente fijar en
+ * él (medido en 0.39.6: un `POST` público con `notifyState: "sent"` lo deja vacío y la regla de
+ * creación lo ve como `""`), así que la regla pública no necesita nombrarlo. Su valor lo fija el
+ * hook: vacío = no se avisa de este mensaje; ver la cabecera del hook para los estados.
+ */
+export const CONTACT_NOTIFY_STATE_FIELD = 'notifyState';
+
 const MESSAGES_COLLECTION: CollectionSpec = {
 	name: 'messages',
 	listRule: SITE_SEED_EDITOR_ACCESS_RULE,
@@ -49,6 +67,7 @@ const MESSAGES_COLLECTION: CollectionSpec = {
 		{ name: 'email', type: 'email', required: true },
 		{ name: 'message', type: 'text', required: true, max: CONTACT_MESSAGE_MAX_LENGTH },
 		{ name: 'read', type: 'bool' },
+		{ name: CONTACT_NOTIFY_STATE_FIELD, type: 'text', max: 20, hidden: true },
 		// Solo fecha de llegada: un mensaje no se edita, se marca como leído.
 		{ name: 'created', type: 'autodate' }
 	]
