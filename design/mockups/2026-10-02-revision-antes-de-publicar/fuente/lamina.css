@@ -1,0 +1,918 @@
+/* =====================================================================================
+   1. CROMO DE LA LÁMINA — no es producto, no se lleva a Svelte.
+   Copiado de `design/mockups/2026-10-01-lote-12/fuente/lamina.css` (parte 1), sin cambios.
+   Solo tokens del tema; ningún color propio.
+   ===================================================================================== */
+
+body.lam {
+	padding: 0 0 4rem;
+	line-height: 1.45;
+}
+
+.lam-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 0.75rem 1.5rem;
+	padding: 1.5rem clamp(0.75rem, 3vw, 2.5rem) 1rem;
+	border-bottom: 1px solid var(--line);
+}
+
+.lam-head h1 {
+	margin: 0.15rem 0 0;
+	font-size: 1.45rem;
+	color: var(--ink-hi);
+	letter-spacing: -0.01em;
+}
+
+.lam-kicker {
+	margin: 0;
+	font-family: var(--mono);
+	font-size: 0.72rem;
+	color: var(--ink-2);
+}
+
+.lam-tools {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.lam-tools [aria-pressed='true'] {
+	border-color: var(--accent);
+	color: var(--accent-text);
+}
+
+.lam-tool-label {
+	margin-left: 0.5rem;
+	font-size: 0.8rem;
+	color: var(--ink-2);
+}
+
+.lam-theme {
+	width: auto;
+	padding: 0.3rem 0.5rem;
+	font-size: 0.8rem;
+}
+
+.lam-section {
+	padding: 1.75rem clamp(0.75rem, 3vw, 2.5rem) 0;
+}
+
+.lam-section > h2 {
+	margin: 0 0 0.25rem;
+	font-size: 1.1rem;
+	color: var(--ink-hi);
+}
+
+.lam-section > p,
+.lam-notes li {
+	max-width: 62rem;
+	margin: 0 0 1rem;
+	font-size: 0.88rem;
+	color: var(--ink-2);
+}
+
+.lam-section > p b,
+.lam-notes li b {
+	color: var(--ink);
+}
+
+.lam-notes {
+	margin: 0;
+	padding-left: 1.1rem;
+}
+
+.lam-notes li {
+	margin-bottom: 0.45rem;
+}
+
+.lam-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 27rem), 1fr));
+	gap: 1.5rem;
+	align-items: start;
+}
+
+.lam-grid + .lam-grid {
+	margin-top: 1.5rem;
+}
+
+.lam-grid--wide {
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 38rem), 1fr));
+}
+
+/* Una figura por línea: para piezas que necesitan el ancho entero (una tabla con sus columnas). */
+.lam-grid--una {
+	grid-template-columns: minmax(0, 62rem);
+}
+
+.lam-spec {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	min-width: 0;
+	margin: 0;
+}
+
+.lam-spec + .lam-spec--frame {
+	margin-top: 1.5rem;
+}
+
+.lam-spec figcaption {
+	font-size: 0.8rem;
+	color: var(--ink-2);
+}
+
+.lam-spec figcaption b {
+	margin-right: 0.4rem;
+	font-family: var(--mono);
+	font-weight: 500;
+	color: var(--accent-text);
+}
+
+.lam-stage {
+	display: flex;
+	flex-direction: column;
+	gap: var(--vega-space-gutter);
+	min-width: 0;
+	padding: 1rem;
+	border: 1px dashed var(--line-strong);
+	border-radius: var(--r);
+	background: var(--paper);
+}
+
+/* Velo del diálogo: el mismo literal que `AdminDialog.svelte` (no hay token de velo). */
+.lam-stage--veil {
+	align-items: center;
+	background: linear-gradient(rgb(15 17 21 / 55%), rgb(15 17 21 / 55%)), var(--paper);
+}
+
+/* En la lámina el diálogo se enseña entero; en producto conserva su `max-height` y hace scroll. */
+.lam-stage--veil .vega-admin-dialog {
+	max-height: none;
+}
+
+/* Una barra suelta (topbar o cabecera de listado) dentro de un escenario, sin relleno. */
+.lam-stage--bar {
+	padding: 0;
+	overflow: hidden;
+}
+
+/* Hueco para un menú desplegado que cuelga de una barra: sin él lo recortaría el escenario. */
+.lam-stage--menu {
+	padding-bottom: 9.5rem;
+}
+
+.lam-why {
+	margin: 0;
+	font-size: 0.8rem;
+	color: var(--ink-2);
+}
+
+.lam-why b {
+	color: var(--ink);
+}
+
+/* Marco de pantalla completa: la app real ocupa el viewport; aquí crece con su contenido. */
+.lam-frame {
+	/* A sangre: el marco mide lo mismo que la ventana (1440 o 390 px), como la app real. Con el
+	   margen de la lámina alrededor quedaba 80 px más estrecho y las barras partían línea antes
+	   de tiempo. */
+	margin-inline: calc(-1 * clamp(0.75rem, 3vw, 2.5rem));
+	border-block: 1px solid var(--line-strong);
+	overflow: hidden;
+}
+
+.lam-frame .vega-shell {
+	height: auto;
+}
+
+.lam-frame .vega-main {
+	overflow: visible;
+	background-attachment: scroll;
+}
+
+.lam-frame .vega-edit-top {
+	position: static;
+}
+
+/* La pantalla del editor visual mide el alto de la ventana; en la lámina, el de su contenido. */
+.lam-frame .vega-visual-screen,
+.lam-movil .vega-visual-screen {
+	height: auto;
+}
+
+/* El aside del editor es pegajoso en producto; en la lámina va en su sitio. */
+.lam-frame .vega-editor-aside {
+	position: static;
+}
+
+/* El cajón lateral de móvil es `position: fixed`: fuera del marco no pinta nada en la lámina. */
+@media (max-width: 768px) {
+	.lam-frame .vega-sidebar {
+		display: none;
+	}
+}
+
+/* El toast real es `position: fixed`; en la lámina se enseña en su sitio relativo. */
+.lam-toast {
+	display: flex;
+	justify-content: flex-end;
+}
+
+.lam-toast .vega-toast {
+	width: min(22rem, 100%);
+	box-sizing: border-box;
+}
+
+.lam-icons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem 1.25rem;
+	margin: 0 0 1rem;
+	padding: 0;
+	list-style: none;
+	font-family: var(--mono);
+	font-size: 0.75rem;
+	color: var(--ink-2);
+}
+
+.lam-icons li {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.lam-icons svg {
+	color: var(--ink);
+}
+
+.lam-icons .lam-icon-nuevo {
+	padding: 0.25rem 0.5rem;
+	border: 1px dashed var(--accent-line);
+	border-radius: var(--r);
+	color: var(--accent-text);
+}
+
+/* Hueco reservado para algo que NO se diseña en esta lámina. */
+.lam-hueco {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 4.5rem;
+	padding: 0.75rem 1rem;
+	border: 1px dashed var(--line-strong);
+	border-radius: var(--r);
+	font-family: var(--mono);
+	font-size: 0.72rem;
+	color: var(--ink-2);
+	text-align: center;
+}
+
+/* Escenario de móvil: 390 px de ancho, con el relleno real de `.vega-main`. Sirve para enseñar la
+   pantalla estrecha también en la captura de 1440 px. Los objetivos táctiles de 44 px solo se ven
+   en la captura de 390 px (dependen de `pointer: coarse`, no del ancho). */
+.lam-movil {
+	width: 100%;
+	max-width: 390px;
+	padding: 0;
+	overflow: hidden;
+}
+
+.lam-movil > .vega-main {
+	overflow: visible;
+	background-attachment: scroll;
+}
+
+.lam-movil .vega-edit-top {
+	position: static;
+}
+
+.lam-movil .vega-editor-aside {
+	position: static;
+}
+
+/* La rejilla del editor pasa a una columna por debajo de 900 px (`RecordForm.svelte`): forzado
+   aquí porque el escenario estrecho vive dentro de una ventana ancha. */
+.lam-movil .vega-editor-grid {
+	grid-template-columns: minmax(0, 1fr);
+}
+
+/* Lo mismo con las reglas de ≤640 px de la propuesta de la lámina 6. */
+.lam-movil .vega-list-header-actions--wide {
+	display: none;
+}
+
+.lam-movil .vega-list-header-actions--narrow {
+	display: flex;
+	flex-basis: 100%;
+	flex-wrap: nowrap;
+	gap: 0.6rem;
+	min-width: 0;
+	max-width: 100%;
+}
+
+.lam-movil .vega-list-header-actions--narrow .vega-list-new-button {
+	flex: 1;
+	min-width: 0;
+	justify-content: center;
+}
+
+.lam-movil .vega-list-header-actions--narrow .vega-list-more {
+	flex-shrink: 0;
+}
+
+.lam-movil .vega-list-header-actions--narrow .vega-list-new-button span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* …y con las de ≤640 px de `RecordTable.svelte` (título acotado, estado bajo el título). */
+.lam-movil .vega-record-table td.vega-cell-title {
+	width: 14rem;
+	min-width: 14rem;
+	max-width: 14rem;
+}
+
+.lam-movil .vega-col-status {
+	display: none;
+}
+
+.lam-movil .vega-status-badge-inline {
+	display: inline-flex;
+	margin-top: 0.3rem;
+}
+
+.lam-movil .vega-cell-title a {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* Piezas que solo tienen sentido en una de las dos capturas. */
+@media (max-width: 900px) {
+	.lam-solo-ancho {
+		display: none;
+	}
+}
+
+@media (min-width: 901px) {
+	.lam-solo-estrecho {
+		display: none;
+	}
+}
+
+/* Tabla de cifras de la nota (clics y paradas de tabulación). */
+.lam-cifras {
+	max-width: 62rem;
+	margin: 0 0 1rem;
+	border-collapse: collapse;
+	font-size: 0.85rem;
+	color: var(--ink);
+}
+
+.lam-cifras th,
+.lam-cifras td {
+	padding: 0.35rem 0.9rem 0.35rem 0;
+	border-bottom: 1px solid var(--line);
+	text-align: left;
+	vertical-align: top;
+}
+
+.lam-cifras th {
+	font-size: 0.6875rem;
+	font-weight: 650;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--ink-2);
+}
+
+.lam-cifras td:not(:first-child) {
+	font-family: var(--mono);
+	font-size: 0.8rem;
+}
+
+/* Estados que en producto dependen de :hover / :focus / JS, fijados para poder capturarlos. */
+.lam-fila-foco .vega-delete-button,
+.lam-fila-foco .vega-row-menu-trigger,
+.lam-fila-abierta .vega-row-menu-trigger {
+	opacity: 1;
+}
+
+.vega-record-table tbody tr.lam-fila-foco {
+	background: var(--accent-soft);
+}
+
+.lam-fila-foco td:first-child {
+	position: relative;
+}
+
+.lam-fila-foco td:first-child::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	width: 2.5px;
+	background: var(--sheen);
+}
+
+.lam-foco {
+	outline: 2px solid var(--ring);
+	outline-offset: 2px;
+}
+
+/* El menú de fila real va en la capa superior (ver nota de la lámina 7); aquí se ancla a mano. */
+.lam-ancla {
+	position: relative;
+}
+
+.lam-ancla > .vega-row-menu {
+	position: absolute;
+	top: var(--top-ancho);
+	right: 0.35rem;
+	z-index: 2;
+}
+
+@media (max-width: 900px) {
+	.lam-ancla > .vega-row-menu {
+		top: var(--top-estrecho);
+	}
+}
+
+/* Miniatura de muestra: el mismo bloque tintado con icono que usa `MediaUpload` mientras no hay
+   imagen real que pintar (las láminas no llevan fotos). */
+.lam-thumb {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 4px;
+	background: linear-gradient(140deg, var(--accent-soft), var(--surface-2));
+	color: var(--accent-text);
+}
+
+/* `NavItem.svelte` tiene selectores de elemento sueltos (`a`, `li`) que solo valen con ámbito de
+   Svelte: transcritos aquí bajo `.vega-nav-group`, mismos valores. */
+.vega-nav-group a {
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+	min-height: var(--row-h);
+	padding: 0 var(--vega-space-gutter);
+	border-radius: var(--r);
+	color: var(--ink-2);
+	text-decoration: none;
+}
+
+.vega-nav-group a svg {
+	color: var(--ink-3);
+}
+
+.vega-nav-group a[aria-current='page'] {
+	background: var(--accent-soft);
+	color: var(--accent-text);
+	font-weight: 600;
+}
+
+.vega-nav-group a[aria-current='page'] svg {
+	color: var(--accent-text);
+}
+
+/* —— Cromo propio de esta lámina —— */
+
+/* El popover real es `position: absolute` bajo su botón; en la lámina el escenario le guarda sitio
+   con un lienzo de relleno debajo de la barra, que es lo que tapa en producto. */
+.lam-visual {
+	position: relative;
+	padding: 0;
+	overflow: visible;
+}
+
+.lam-visual .vega-edit-top {
+	position: static;
+}
+
+.lam-lienzo {
+	display: grid;
+	grid-template-columns: 13rem minmax(0, 1fr) 15rem;
+	gap: 0.75rem;
+	min-height: 30rem;
+	padding: 0.75rem;
+}
+
+.lam-lienzo--alto {
+	min-height: 40rem;
+}
+
+@media (max-width: 900px) {
+	.lam-lienzo {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.lam-lienzo .lam-hueco:not(:nth-child(2)) {
+		display: none;
+	}
+}
+
+/* El escenario de 390 px fuerza el corte de 767 px de `VisualPublishControl` (el control baja a su
+   línea), que la ventana ancha no dispara. */
+.lam-movil .vega-visual-publish {
+	flex-basis: 100%;
+	order: 3;
+	padding-left: 0;
+	border-left: 0;
+}
+
+/* `100vw` del popover vale 1440 en la captura ancha: se fija el valor que tendría a 390 px. */
+.lam-movil .vega-visual-publish-pop {
+	width: calc(390px - 2rem);
+}
+
+/* A 390 px el escenario de móvil va a sangre, como el marco: si no, mide 366 px y no 390. */
+@media (max-width: 900px) {
+	.lam-sangre {
+		max-width: none;
+		width: auto;
+		margin-inline: calc(-1 * clamp(0.75rem, 3vw, 2.5rem));
+		border-inline: 0;
+		border-radius: 0;
+	}
+
+	.lam-sangre .vega-visual-publish-pop {
+		width: min(23rem, calc(100vw - 2rem));
+	}
+}
+
+/* La tabla de textos tiene identificadores largos sin espacios: rompen dentro de la celda. */
+.lam-cifras td {
+	overflow-wrap: anywhere;
+}
+
+.lam-movil .lam-lienzo {
+	grid-template-columns: minmax(0, 1fr);
+}
+
+.lam-movil .lam-lienzo .lam-hueco:not(:nth-child(2)) {
+	display: none;
+}
+
+/* Popover suelto en un escenario (sin su botón): en su sitio, no colgando. */
+.lam-stage > .vega-visual-publish-pop {
+	position: static;
+	width: min(23rem, 100%);
+}
+
+/* Hueco con el tamaño de un diálogo, sobre el velo. */
+.lam-hueco--dialogo {
+	width: min(28rem, 100%);
+	min-height: 12rem;
+	background: var(--paper);
+}
+
+/* Texto con formato dibujado como texto: el editor real (`Richtext.svelte`) no entra en la lámina. */
+.lam-richtext {
+	padding: 0.55rem 0.7rem;
+	border: 1px solid var(--line);
+	border-radius: var(--r);
+	background: var(--surface);
+	color: var(--ink);
+	font-size: 0.9rem;
+	line-height: 1.55;
+}
+
+.lam-richtext p {
+	margin: 0 0 0.5rem;
+}
+
+.lam-richtext p:last-child {
+	margin-bottom: 0;
+}
+
+.lam-richtext a {
+	color: var(--accent-text);
+}
+
+/* =====================================================================================
+   2. COMPOSICIONES PROPUESTAS — lo que el implementer lleva a producto.
+   Ningún token nuevo, ningún color literal ni icono nuevo. Cada medida es la de una pieza que ya
+   existe (se cita). Prefijo `vega-review-`.
+   ===================================================================================== */
+
+/* ——— 2.1 Tarjeta «Revisión» (`RecordForm`, primera tarjeta del aside) ———
+   La caja es `.vega-fsection.vega-fsection--aside` tal cual; aquí solo va lo de dentro. */
+
+/* Cabecera: el rótulo de tarjeta de siempre a la izquierda y el resumen a la derecha, como
+   `.vega-blocks-head` (título + acción). */
+.vega-review-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	min-height: 24px;
+}
+
+/* Resumen: la píldora de `.vega-editor-tag` (RecordForm) con sus mismas parejas de color.
+   `warn` = la de «Programada, no se publicó» (`overdue`); `ok` = Publicado (`pub`);
+   `muted` = Borrador (`draft`). Lleva texto siempre: el color no dice nada solo. */
+.vega-review-count {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	flex-shrink: 0;
+	height: 24px;
+	padding: 0 0.65rem;
+	border-radius: 999px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	line-height: 24px;
+	white-space: nowrap;
+}
+
+.vega-review-count[data-tone='warn'] {
+	color: var(--warning);
+	background: var(--warning-soft);
+}
+
+.vega-review-count[data-tone='ok'] {
+	color: var(--success);
+	background: var(--success-soft);
+}
+
+.vega-review-count[data-tone='muted'] {
+	color: var(--ink-2);
+	background: var(--btn);
+}
+
+/* Mientras carga, en vez de píldora: el texto de `.vega-used-in-loading`. */
+.vega-review-checking {
+	font-size: 0.8rem;
+	color: var(--ink-2);
+}
+
+/* Grupos (SEO · Enlaces · Imágenes): separados por la hairline de `.vega-editor-kv` (`--line-soft`). */
+.vega-review-groups {
+	display: flex;
+	flex-direction: column;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.vega-review-group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding: 0.65rem 0;
+	border-top: 1px solid var(--line-soft);
+	min-width: 0;
+}
+
+.vega-review-group:first-child {
+	padding-top: 0;
+	border-top: 0;
+}
+
+.vega-review-group:last-child {
+	padding-bottom: 0;
+}
+
+/* Rótulo de grupo: el de `.vega-field-row > label` (0.82em, 650, `--ink-2`). */
+.vega-review-group-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.5rem;
+	margin: 0;
+	font-size: 0.82em;
+	font-weight: 650;
+	letter-spacing: 0.03em;
+	color: var(--ink-2);
+}
+
+/* Estado del grupo: icono + texto, a la derecha. Las mismas tres parejas de la píldora. */
+.vega-review-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	flex-shrink: 0;
+	font-weight: 600;
+	letter-spacing: 0;
+}
+
+.vega-review-status[data-tone='ok'] {
+	color: var(--success);
+}
+
+.vega-review-status[data-tone='warn'] {
+	color: var(--warning);
+}
+
+.vega-review-status[data-tone='muted'] {
+	color: var(--ink-2);
+	font-weight: 500;
+}
+
+/* Lista de avisos de un grupo. */
+.vega-review-items {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* Un aviso: el icono `warning` de 14 px que ya usa `.vega-visual-publish-error`, y el texto. */
+.vega-review-item {
+	display: grid;
+	grid-template-columns: 14px minmax(0, 1fr);
+	gap: 0.15rem 0.45rem;
+	font-size: 0.85rem;
+	line-height: 1.4;
+	color: var(--ink);
+	overflow-wrap: anywhere;
+}
+
+.vega-review-item > svg {
+	margin-top: 0.15rem;
+	color: var(--warning);
+}
+
+.vega-review-item p {
+	margin: 0;
+}
+
+/* Valores del mensaje (`{href}`, `{to}`, `{file}`): mono, el criterio de `.vega-field-row--slug`
+   para un valor canónico. Rompen donde haga falta: una ruta larga no desborda los 296 px. */
+.vega-review-value {
+	font-family: var(--mono);
+	font-size: 0.92em;
+	color: var(--ink-hi);
+	overflow-wrap: anywhere;
+}
+
+/* Pie del aviso: dónde está y qué se puede hacer. */
+.vega-review-meta {
+	grid-column: 2;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.15rem 0.6rem;
+}
+
+/* Dónde está, cuando no es un enlace: la tipografía de `.vega-field-help`. */
+.vega-review-where {
+	font-size: 0.82em;
+	color: var(--ink-2);
+}
+
+/* La acción: el enlace de `.vega-refs-sample a` (ReferencesSummary), en botón. */
+.vega-review-go {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.2rem;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--accent-text);
+	font: inherit;
+	font-size: 0.82em;
+	font-weight: 550;
+	text-align: left;
+	text-decoration: underline;
+	text-decoration-color: transparent;
+	text-underline-offset: 3px;
+	cursor: pointer;
+}
+
+.vega-review-go:hover {
+	text-decoration-color: currentColor;
+}
+
+/* «Ver 4 más» y «Volver a comprobar»: el botón-enlace de `.vega-schedule-link`. */
+.vega-review-more {
+	align-self: flex-start;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--ink-2);
+	font: inherit;
+	font-size: 0.82em;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	cursor: pointer;
+}
+
+.vega-review-more:hover {
+	color: var(--ink-hi);
+}
+
+/* «No comprobado»: el motivo, en la tipografía de `.vega-field-help`, con su salida al lado. */
+.vega-review-skipped {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.25rem 0.75rem;
+	margin: 0;
+	font-size: 0.82em;
+	color: var(--ink-2);
+}
+
+.vega-review-skipped .vega-review-more {
+	font-size: 1em;
+}
+
+/* Fallo de lectura: `.vega-used-in-error` y su botón, los de los paneles del aside. */
+.vega-review-error {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin: 0;
+	color: var(--danger);
+	font-size: 0.85rem;
+}
+
+.vega-review-error button {
+	padding: 0.2rem 0.55rem;
+	border: 1px solid var(--danger);
+	border-radius: 6px;
+	background: var(--danger-soft);
+	color: var(--danger);
+	font-size: 0.8rem;
+	cursor: pointer;
+}
+
+/* Pie de la tarjeta: «Ningún aviso impide publicar». */
+.vega-review-note {
+	margin: 0;
+	font-size: 0.78rem;
+	color: var(--ink-2);
+}
+
+@media (pointer: coarse) {
+	.vega-review-go,
+	.vega-review-more,
+	.vega-review-error button {
+		min-height: 44px;
+	}
+}
+
+/* ——— 2.2 Popover del editor visual (`VisualPublishControl`) ———
+   La caja es `.vega-visual-publish-pop` tal cual (la de «Hay 1 bloque sin guardar»). Con avisos,
+   cambia del tono `info` al tono `warning`: la misma pareja que `.vega-field-notice`. */
+.vega-visual-publish-pop--review {
+	border-color: var(--warning);
+	background: var(--warning-soft);
+	color: var(--warning);
+	max-height: min(70vh, 34rem);
+}
+
+/* Sobre `--warning-soft` tres parejas de la tarjeta bajan de 4,5:1 (medido en los 21 temas):
+   `--ink-2` en claro (3,92 en tornasol), `--accent-text` en claro (4,28 en aquelarre) y `--danger`
+   en oscuro (4,41 en bosque). Dentro del popover pasan a `--ink` (≥ 9:1); la acción conserva el
+   subrayado siempre, así que sigue leyéndose como enlace sin depender del color. */
+.vega-visual-publish-pop--review .vega-review-group-head,
+.vega-visual-publish-pop--review .vega-review-where,
+.vega-visual-publish-pop--review .vega-review-more,
+.vega-visual-publish-pop--review .vega-review-error {
+	color: var(--ink);
+}
+
+.vega-visual-publish-pop--review .vega-review-go {
+	color: var(--ink);
+	text-decoration-color: currentColor;
+}
+
+/* Lo que puede crecer (bloques sin guardar + avisos) se desplaza; título y botones, no. Las dos
+   hairlines (`--line`, la de `.vega-edit-top`) marcan dónde corta el desplazamiento: sin ellas, un
+   aviso cortado por abajo parece un fallo de pintado y no algo que sigue. */
+.vega-review-pop-scroll {
+	display: flex;
+	flex-direction: column;
+	gap: 0.65rem;
+	min-height: 0;
+	padding-block: 0.5rem;
+	border-block: 1px solid var(--line);
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
+/* `.vega-visual-publish-pop ul` (lista de bloques sin guardar) sangra y pinta en `--ink`: las
+   listas de la revisión no llevan viñeta, así que se anula la sangría solo en ellas. */
+.vega-visual-publish-pop .vega-review-groups,
+.vega-visual-publish-pop .vega-review-items {
+	margin: 0;
+	padding-left: 0;
+}
+
+/* Rótulo de sección dentro del popover: el de grupo de la tarjeta. */
+.vega-review-pop-section {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
