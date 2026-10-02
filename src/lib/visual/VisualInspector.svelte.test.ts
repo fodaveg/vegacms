@@ -197,15 +197,16 @@ function mountInspector(
 function mountInspectorReactive(
 	blocks: BlocksState,
 	selectedId: string | null,
-	ctx: VegaAppContext
+	ctx: VegaAppContext,
+	mode: 'inspector' | 'texts' = 'inspector'
 ): {
 	target: HTMLElement;
 	instance: ReturnType<typeof mount>;
-	props: { selectedId: string | null };
+	props: { selectedId: string | null; mode: 'inspector' | 'texts' };
 } {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
-	const props = $state({ blocks, selectedId, onBlockSaved: vi.fn() });
+	const props = $state({ blocks, selectedId, onBlockSaved: vi.fn(), mode });
 	const instance = mount(VisualInspector, {
 		target,
 		props,
@@ -424,6 +425,258 @@ describe('VisualInspector.svelte', () => {
 
 			expect(document.activeElement).toBe(outside);
 			outside.remove();
+		});
+	});
+
+	// ————— Modo «solo textos» (Lote 12, lámina 8): `mode="texts"` —————
+	describe('modo «solo textos»', () => {
+		/** Tipo de bloque con un campo que NO es texto (`count`, número) además de `heading`: para
+		 *  ver la nota «tiene N campos más». */
+		const mixedBlockType: ContentType = {
+			...postBlockType,
+			fields: [
+				...postBlockType.fields,
+				{
+					name: 'count',
+					type: 'number',
+					integer: true,
+					required: false,
+					readonly: false,
+					presentable: false,
+					hidden: false,
+					unique: false
+				}
+			]
+		};
+		/** Tipo de bloque SIN ningún texto editable: solo los estructurales y un número. */
+		const numericBlockType: ContentType = {
+			...postBlockType,
+			fields: [
+				...postBlockType.fields.filter((f) => f.name !== 'heading'),
+				{
+					name: 'count',
+					type: 'number',
+					integer: true,
+					required: false,
+					readonly: false,
+					presentable: false,
+					hidden: false,
+					unique: false
+				}
+			]
+		};
+
+		function buildChildTypeFrom(blockContentType: ContentType): ResolvedContentType {
+			const model = resolveContentModel({
+				types: [postType, blockContentType],
+				manifestRaw: {
+					schemaVersion: 1,
+					collections: {
+						post: { blocks: { collection: 'post_block', parentField: 'post', orderField: 'sort' } }
+					}
+				}
+			});
+			expect(model.warnings).toEqual([]);
+			return model.types.find((t) => t.name === 'post_block')!;
+		}
+
+		function mountTexts(
+			blocks: BlocksState,
+			ctx: VegaAppContext,
+			onBack: () => void = vi.fn()
+		): { target: HTMLElement; instance: ReturnType<typeof mount> } {
+			const target = document.createElement('div');
+			document.body.appendChild(target);
+			const instance = mount(VisualInspector, {
+				target,
+				props: { blocks, selectedId: null, onBlockSaved: vi.fn(), mode: 'texts', onBack },
+				context: new Map([[VEGA_CONTEXT_KEY, ctx]])
+			});
+			return { target, instance };
+		}
+
+		test('todas las secciones visibles, en orden, cada una nombrada por su cabecera (`aria-labelledby`)', () => {
+			const blocks = fakeBlocksState(
+				{ records: [record('b1', 'Hero'), record('b2', 'Features')] },
+				childType,
+				structuralFields
+			);
+			mounted = mountTexts(blocks, fakeCtx(vi.fn()));
+
+			// La región se llama «Solo textos» y lleva su aviso de qué se puede hacer aquí.
+			expect(mounted.target.querySelector('#vega-inspector-heading')?.textContent?.trim()).toBe(
+				translate('es', 'editor.visual.texts.title')
+			);
+			expect(mounted.target.querySelector('.vega-inspector-intro')?.textContent).toBe(
+				translate('es', 'editor.visual.texts.intro')
+			);
+
+			const sections = mounted.target.querySelectorAll<HTMLElement>('section.vega-inspector-body');
+			expect(sections).toHaveLength(2);
+			for (const [index, section] of Array.from(sections).entries()) {
+				expect(section.hasAttribute('hidden')).toBe(false); // ninguna oculta: son las secciones
+				const labelledBy = section.getAttribute('aria-labelledby')!;
+				const heading = section.querySelector<HTMLElement>(`#${labelledBy}`);
+				expect(heading?.tagName).toBe('H3');
+				// Sin vocabulario de tipos, la cabecera es el título del bloque, en el orden de la página.
+				expect(heading?.textContent?.trim()).toBe(index === 0 ? 'Hero' : 'Features');
+			}
+			// Cada sección con su propio «Guardar» (el de `BlockEditor`, no otro).
+			expect(mounted.target.querySelectorAll('.vega-block-save-button')).toHaveLength(2);
+			// Y sin los avisos del inspector («elige un bloque»): aquí no hay selección.
+			expect(mounted.target.querySelector('.vega-inspector-notice')).toBeNull();
+		});
+
+		test('solo los campos de texto; el resto se cuenta y se nombra sin editarse', () => {
+			const mixed = buildChildTypeFrom(mixedBlockType);
+			const countLabel = mixed.fields.find((f) => f.name === 'count')!.label;
+			const blocks = fakeBlocksState(
+				{
+					records: [
+						{
+							id: 'b1',
+							type: 'post_block',
+							values: { post: 'rec-1', sort: 0, heading: 'Hero', count: 3 }
+						}
+					]
+				},
+				mixed,
+				structuralFields
+			);
+			mounted = mountTexts(blocks, fakeCtx(vi.fn()));
+
+			expect(mounted.target.querySelector('[data-field="heading"]')).not.toBeNull();
+			expect(mounted.target.querySelector('[data-field="count"]')).toBeNull();
+			expect(mounted.target.querySelector('.vega-block-rest')?.textContent?.trim()).toBe(
+				translate('es', 'editor.visual.texts.rest.one', { count: 1, fields: countLabel })
+			);
+			expect(mounted.target.querySelector('.vega-block-save-button')).not.toBeNull();
+		});
+
+		test('sección sin ningún texto: se lista igual, lo dice, y no ofrece «Guardar»', () => {
+			const numeric = buildChildTypeFrom(numericBlockType);
+			const blocks = fakeBlocksState(
+				{
+					records: [{ id: 'b1', type: 'post_block', values: { post: 'rec-1', sort: 0, count: 3 } }]
+				},
+				numeric,
+				structuralFields
+			);
+			mounted = mountTexts(blocks, fakeCtx(vi.fn()));
+
+			expect(mounted.target.querySelectorAll('section.vega-inspector-body')).toHaveLength(1);
+			expect(mounted.target.querySelector('.vega-field-row')).toBeNull();
+			expect(mounted.target.querySelector('.vega-block-rest')?.textContent?.trim()).toBe(
+				translate('es', 'editor.visual.texts.none')
+			);
+			expect(mounted.target.querySelector('.vega-block-save-button')).toBeNull();
+		});
+
+		test('sin permiso de editar: campos deshabilitados, sin «Guardar» y el aviso de siempre', () => {
+			const lockedType: ResolvedContentType = {
+				...childType,
+				permissions: { ...childType.permissions, update: false }
+			};
+			const blocks = fakeBlocksState(
+				{ records: [record('b1', 'Hero')] },
+				lockedType,
+				structuralFields
+			);
+			mounted = mountTexts(blocks, fakeCtx(vi.fn()));
+
+			expect(mounted.target.querySelector('.vega-inspector-notice')?.textContent).toBe(
+				translate('es', 'editor.noUpdateNotice')
+			);
+			expect(mounted.target.querySelector<HTMLInputElement>('input[type="text"]')?.disabled).toBe(
+				true
+			);
+			expect(mounted.target.querySelector('.vega-block-save-button')).toBeNull();
+		});
+
+		test('página sin secciones: la caja de salida con su motivo y «Volver al formulario»', () => {
+			const onBack = vi.fn();
+			const blocks = fakeBlocksState({ records: [] }, childType, structuralFields);
+			mounted = mountTexts(blocks, fakeCtx(vi.fn()), onBack);
+
+			const empty = mounted.target.querySelector('.vega-texts-empty');
+			expect(empty?.textContent).toContain(translate('es', 'editor.visual.texts.empty.title'));
+			expect(empty?.textContent).toContain(translate('es', 'editor.visual.texts.empty.body'));
+			empty?.querySelector<HTMLButtonElement>('.vega-texts-back')?.click();
+			expect(onBack).toHaveBeenCalledTimes(1);
+		});
+
+		test('guardar desde «solo textos» va por el MISMO `port.update` con la MISMA versión esperada', async () => {
+			const update = vi.fn().mockResolvedValue({
+				id: 'b1',
+				type: 'post_block',
+				values: { post: 'rec-1', sort: 0, heading: 'Hero guardado' }
+			});
+			const setDirty = vi.fn();
+			const handleBlockSaved = vi.fn();
+			const blocks = fakeBlocksState(
+				{ records: [record('b1', 'Hero'), record('b2', 'Features')], setDirty, handleBlockSaved },
+				childType,
+				structuralFields
+			);
+			mounted = mountTexts(blocks, fakeCtx(update));
+
+			const first = mounted.target.querySelectorAll<HTMLElement>('section.vega-inspector-body')[0];
+			const input = first.querySelector<HTMLInputElement>('input[type="text"]')!;
+			input.value = 'Hero editado';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			await tick();
+			expect(setDirty).toHaveBeenCalledWith('b1', true);
+
+			first.querySelector<HTMLButtonElement>('.vega-block-save-button')!.click();
+			await Promise.resolve();
+			await Promise.resolve();
+			await tick();
+
+			expect(update).toHaveBeenCalledTimes(1);
+			expect(update).toHaveBeenCalledWith(
+				'post_block',
+				'b1',
+				expect.objectContaining({ heading: 'Hero editado' }),
+				{ expectedVersion: recordVersion(record('b1', 'Hero')) }
+			);
+			expect(handleBlockSaved).toHaveBeenCalledWith('b1', expect.objectContaining({ id: 'b1' }));
+		});
+
+		test('cambiar de modo NO remonta las fichas: un borrador a medio escribir sobrevive al cambio de ancho', async () => {
+			const blocks = fakeBlocksState(
+				{ records: [record('b1', 'Hero'), record('b2', 'Features')] },
+				childType,
+				structuralFields
+			);
+			const reactive = mountInspectorReactive(blocks, 'b2', fakeCtx(vi.fn()), 'inspector');
+			await settleFocus();
+
+			const bodies = reactive.target.querySelectorAll<HTMLElement>('.vega-inspector-body');
+			const inputB = bodies[1].querySelector<HTMLInputElement>('input[type="text"]')!;
+			inputB.value = 'Borrador en la ficha ancha';
+			inputB.dispatchEvent(new Event('input', { bubbles: true }));
+			await tick();
+
+			// Ancho → estrecho: las MISMAS secciones (identidad de nodo), ahora todas visibles.
+			reactive.props.mode = 'texts';
+			await tick();
+			const after = reactive.target.querySelectorAll<HTMLElement>('.vega-inspector-body');
+			expect(after[1]).toBe(bodies[1]);
+			expect(after[0].hasAttribute('hidden')).toBe(false);
+			expect(after[1].querySelector<HTMLInputElement>('input[type="text"]')?.value).toBe(
+				'Borrador en la ficha ancha'
+			);
+
+			// Y de vuelta a ancho: sigue ahí, oculto el que no está seleccionado.
+			reactive.props.mode = 'inspector';
+			await tick();
+			expect(after[0].hasAttribute('hidden')).toBe(true);
+			expect(after[1].querySelector<HTMLInputElement>('input[type="text"]')?.value).toBe(
+				'Borrador en la ficha ancha'
+			);
+
+			await unmount(reactive.instance);
+			reactive.target.remove();
 		});
 	});
 });

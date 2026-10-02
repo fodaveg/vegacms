@@ -367,9 +367,21 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'The connected site does not advertise visual editing. It needs the bridge installed and declared in its discovery.',
 	'editor.visual.unavailable.noBlocks':
 		'The content type "{label}" is not made of blocks, so there is nothing to select on the canvas.',
-	'editor.visual.tooNarrow.title': 'The visual editor needs a wider screen',
-	'editor.visual.tooNarrow.body':
-		"Below 900px there's no room for the canvas next to its panels. The usual form still works here.",
+	// "Text only" mode (batch 12, sheet 8), see `es.ts` for the full rationale.
+	'editor.visual.texts.title': 'Text only',
+	'editor.visual.texts.intro':
+		'Here you can fix the text of each section. To see the page, move sections or change images you need a window 900px wide or more.',
+	'editor.visual.texts.rest.one':
+		'This section has 1 more field ({fields}) that is edited on a wide screen or in the form.',
+	'editor.visual.texts.rest.many':
+		'This section has {count} more fields ({fields}) that are edited on a wide screen or in the form.',
+	'editor.visual.texts.none':
+		'This section has no text. It is edited on a wide screen or in the form.',
+	'editor.visual.texts.hiddenErrors':
+		'Could not save: there is an error in {fields}, which is not edited here. Fix it on a wide screen or in the form.',
+	'editor.visual.texts.empty.title': 'This page has no sections yet',
+	'editor.visual.texts.empty.body':
+		'To add the first one you need a window 900px wide or more, or the form.',
 	// ————— Selection outlines (`VisualOverlay.svelte`), see `es.ts` for the full rationale —————
 	'editor.visual.overlay.waiting': 'Waiting for the page to describe its blocks…',
 	'editor.visual.overlay.empty': 'This page has no blocks to select yet.',

@@ -64,6 +64,9 @@ export const COMPONENT_FILES = [
 	'src/lib/visual/VisualPalette.svelte',
 	// Estado de la página en la cabecera (lámina del audit p2): botones nuevos en la barra del editor.
 	'src/lib/visual/VisualPublishControl.svelte',
+	// Modo «solo textos» (Lote 12, lámina 8): el inspector gana el botón de vuelta al formulario de
+	// la página sin secciones, que en móvil es justo donde el dedo lo toca.
+	'src/lib/visual/VisualInspector.svelte',
 	// Audit de móvil del 30 sep (tarea «objetivos táctiles de 44 px»): el chrome de la lista y del
 	// editor. Salían a 32×32 (menú), 55×24 (Borrar) y 13 px (cabeceras ordenables) con el dedo.
 	'src/lib/shell/Topbar.svelte',

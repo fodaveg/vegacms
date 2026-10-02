@@ -565,26 +565,180 @@ describe('VisualEditorScreen.svelte', () => {
 		expect(mounted.target.querySelector('.vega-visual-retry')).toBeNull();
 	});
 
-	test('ventana estrecha: ni se monta el lienzo ni se pide token, solo el aviso', async () => {
+	// ————— Modo «solo textos» (Lote 12, lámina 8): por debajo de 900px —————
+
+	test('ventana estrecha: ni se monta el lienzo ni se pide token; la rejilla es el modo «solo textos»', async () => {
 		const fetchMock = vi.fn().mockResolvedValue(jsonResponse(tokenBody()));
 		vi.stubGlobal('fetch', fetchMock);
 		const { setCanvasNarrow } = stubMatchMedia(true);
 
-		const { ctx, type } = await setup();
+		const { ctx, type } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
 		mounted = mountScreen(ctx, type);
 		await flush();
 
 		expect(fetchMock).not.toHaveBeenCalled();
-		expect(mounted.target.querySelector('.vega-visual-grid')).toBeNull();
-		expect(mounted.target.querySelector('.vega-visual-narrow')?.textContent).toContain(
-			translate('es', 'editor.visual.tooNarrow.title')
+		expect(mounted.target.querySelector('.vega-visual-frame')).toBeNull();
+		expect(mounted.target.querySelector('.vega-tree-panel')).toBeNull();
+		const grid = mounted.target.querySelector('.vega-visual-grid')!;
+		expect(grid.classList.contains('vega-visual-grid--texts')).toBe(true);
+		expect(grid.classList.contains('vega-visual-grid--inspector')).toBe(false);
+		// El inspector en modo «solo textos»: su cabecera y las dos secciones, ninguna oculta.
+		expect(mounted.target.querySelector('#vega-inspector-heading')?.textContent?.trim()).toBe(
+			translate('es', 'editor.visual.texts.title')
 		);
+		const sections = mounted.target.querySelectorAll<HTMLElement>('.vega-inspector-body--texts');
+		expect(sections).toHaveLength(2);
+		expect(Array.from(sections).some((s) => s.hasAttribute('hidden'))).toBe(false);
+		// La barra sigue siendo la de siempre: volver, migas y estado de la página; sin los
+		// controles del lienzo (tamaño de pantalla, zoom, ayuda), que no tienen lienzo que gobernar.
+		expect(mounted.target.querySelector('.vega-visual-back')).not.toBeNull();
+		expect(mounted.target.querySelector('.vega-visual-screen-group')).toBeNull();
 
 		// Y al ensancharse SÍ arranca: el lienzo se monta y entonces se pide el token.
 		setCanvasNarrow(false);
 		await flush();
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 		expect(mounted.target.querySelector('.vega-visual-frame')).not.toBeNull();
+		expect(mounted.target.querySelector('.vega-visual-grid--texts')).toBeNull();
+	});
+
+	test('ventana estrecha sin secciones: la caja de salida con su motivo y «Volver al formulario»', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		stubMatchMedia(true);
+
+		const { ctx, type } = await setup([]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		const empty = mounted.target.querySelector('.vega-texts-empty');
+		expect(empty?.textContent).toContain(translate('es', 'editor.visual.texts.empty.title'));
+		empty?.querySelector<HTMLButtonElement>('.vega-texts-back')?.click();
+		expect(ctx.nav.toRecord).toHaveBeenCalledWith('post', 'rec-1');
+	});
+
+	test('guardar desde «solo textos» escribe por `port.update` con la versión esperada y NO pide token', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(jsonResponse(tokenBody()));
+		vi.stubGlobal('fetch', fetchMock);
+		stubMatchMedia(true);
+
+		const { ctx, type, port } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		const updateSpy = vi.spyOn(port, 'update');
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		const second = mounted.target.querySelectorAll<HTMLElement>('.vega-inspector-body--texts')[1];
+		const input = second.querySelector<HTMLInputElement>('[data-field="heading"] input')!;
+		input.value = 'Titular corregido desde el móvil';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		// La marca «sin guardar» de la barra Y la de la propia sección.
+		expect(mounted.target.querySelector('.vega-visual-dirty')).not.toBeNull();
+		expect(second.querySelector('.vega-texts-dirty')).not.toBeNull();
+
+		second.querySelector<HTMLButtonElement>('.vega-block-save-button')!.click();
+		await flush();
+
+		expect(updateSpy).toHaveBeenCalledTimes(1);
+		const [collection, id, input2, opts] = updateSpy.mock.calls[0];
+		expect(collection).toBe('post_block');
+		expect(id).toBe('b2');
+		expect(input2).toEqual(
+			expect.objectContaining({ heading: 'Titular corregido desde el móvil' })
+		);
+		expect(opts).toEqual(expect.objectContaining({ expectedVersion: expect.anything() }));
+		// Guardado de verdad: lo confirma el backend de memoria, no el array reactivo.
+		const saved = await port.get('post_block', 'b2');
+		expect(saved.values.heading).toBe('Titular corregido desde el móvil');
+		// Sin lienzo no hay refresco que pedir: ni un token.
+		expect(fetchMock).not.toHaveBeenCalled();
+		expect(mounted.target.querySelector('.vega-visual-dirty')).toBeNull();
+		expect(second.querySelector('.vega-texts-dirty')).toBeNull();
+		expect(mounted.target.querySelector('.vega-visual-saved-at')).not.toBeNull();
+	});
+
+	test('conflicto al guardar desde «solo textos»: otro guardó entre medias → el aviso de `BlockEditor` dentro de la sección, borrador intacto', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		stubMatchMedia(true);
+
+		const { ctx, type, port } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		const second = mounted.target.querySelectorAll<HTMLElement>('.vega-inspector-body--texts')[1];
+		const input = second.querySelector<HTMLInputElement>('[data-field="heading"] input')!;
+		input.value = 'Mi titular';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+
+		// Otra persona guarda b2 mientras tanto.
+		await port.update('post_block', 'b2', { heading: 'El titular de Ana' });
+
+		second.querySelector<HTMLButtonElement>('.vega-block-save-button')!.click();
+		await flush();
+
+		// Falló cerrado: el aviso de edición concurrente vive DENTRO de la sección, nada se escribió
+		// y el borrador sigue en el campo. Mismo `BlockEditor`, mismo contrato que la ficha ancha.
+		expect(second.querySelector('.vega-conflict')).not.toBeNull();
+		expect(input.value).toBe('Mi titular');
+		expect((await port.get('post_block', 'b2')).values.heading).toBe('El titular de Ana');
+		expect(mounted.target.querySelector('.vega-visual-dirty')).not.toBeNull();
+	});
+
+	test('un borrador de la ficha ancha sobrevive a estrechar la ventana, y a volver a ensanchar', async () => {
+		// Un `Response` NUEVO por petición: el cuerpo de uno solo se lee una vez, y aquí el token
+		// se pide dos veces (al montar ancho y al volver a ensanchar).
+		const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse(tokenBody())));
+		vi.stubGlobal('fetch', fetchMock);
+		const { setCanvasNarrow } = stubMatchMedia(false);
+
+		const { ctx, type } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+
+		// Ancho: elegir b2 en el árbol y escribir en su ficha SIN guardar.
+		mounted.target.querySelectorAll<HTMLButtonElement>('.vega-tree-row')[1].click();
+		await tick();
+		const bodies = mounted.target.querySelectorAll<HTMLElement>('.vega-inspector-body');
+		const inputB = bodies[1].querySelector<HTMLInputElement>('[data-field="heading"] input')!;
+		inputB.value = 'Borrador a medias';
+		inputB.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		expect(mounted.target.querySelector('.vega-visual-dirty')).not.toBeNull();
+
+		// Estrecho: el lienzo se va, las secciones son los MISMOS nodos y el borrador sigue.
+		setCanvasNarrow(true);
+		await flush();
+		expect(mounted.target.querySelector('.vega-visual-frame')).toBeNull();
+		const sections = mounted.target.querySelectorAll<HTMLElement>('.vega-inspector-body');
+		expect(sections[1]).toBe(bodies[1]);
+		expect(sections[1].hasAttribute('hidden')).toBe(false);
+		expect(sections[0].hasAttribute('hidden')).toBe(false);
+		expect(sections[1].querySelector<HTMLInputElement>('[data-field="heading"] input')?.value).toBe(
+			'Borrador a medias'
+		);
+		expect(mounted.target.querySelector('.vega-visual-dirty')).not.toBeNull();
+		expect(sections[1].querySelector('.vega-texts-dirty')).not.toBeNull();
+
+		// Y de vuelta a ancho: el mismo borrador, en la ficha del bloque que seguía seleccionado.
+		setCanvasNarrow(false);
+		await flush();
+		expect(mounted.target.querySelector('.vega-visual-frame')).not.toBeNull();
+		expect(sections[1].querySelector<HTMLInputElement>('[data-field="heading"] input')?.value).toBe(
+			'Borrador a medias'
+		);
+		expect(mounted.target.querySelector('.vega-visual-dirty')).not.toBeNull();
 	});
 
 	test('desmontar da de baja el escuchador de `message`', async () => {

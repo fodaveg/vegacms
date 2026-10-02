@@ -101,6 +101,10 @@ const visibleInspectorBody = (page: Page) => page.locator('.vega-inspector-body:
 const headingInput = (page: Page) =>
 	visibleInspectorBody(page).locator('[data-field="heading"] input');
 
+/** Estado de la página en la cabecera (`VisualPublishControl.svelte`): lo usan el bloque de
+ *  publicar/despublicar y el de «solo textos», así que vive aquí, en el ámbito del fichero. */
+const statusGroup = (page: Page) => page.getByRole('group', { name: 'Estado de la página' });
+
 test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-origin', () => {
 	test('pinta los contornos que reporta el sitio, con la geometría real de sus bloques', async ({
 		page
@@ -473,8 +477,6 @@ test.describe('editor visual — paleta de bloques arrastrable, crear sobre el l
  * «Publicar» de la barra superior, y la etiqueta solo cambia cuando el servidor confirma.
  */
 test.describe('editor visual — publicar y despublicar desde la cabecera', () => {
-	const statusGroup = (page: Page) => page.getByRole('group', { name: 'Estado de la página' });
-
 	test('marcar como publicada y volver a borrador, con la etiqueta del servidor', async ({
 		page
 	}) => {
@@ -530,5 +532,107 @@ test.describe('editor visual — publicar y despublicar desde la cabecera', () =
 		await expect(group).toContainText('Publicada');
 		// «Publicar igualmente» NO guarda los bloques: el borrador sigue en la ficha.
 		await expect(headingInput(page)).toHaveValue('Cambio que aún no se ha guardado');
+	});
+});
+
+/**
+ * Modo «solo textos» (Lote 12, lámina 8): por debajo de los 900 px del lienzo
+ * (`VisualEditorScreen.svelte#NARROW_QUERY`) la pantalla ya no es una salida, enseña las secciones
+ * de la página con solo sus campos de texto (`VisualInspector.svelte` en `mode="texts"`,
+ * `BlockEditor` con `textsOnly`). Lo que estos tests compran de punta a punta y la suite de
+ * componente no puede: que en un viewport de móvil REAL el sitio no se descarga (cero peticiones
+ * de token al `visual-site`), y que lo guardado desde el móvil lo relee `RecordBlocks.svelte` con su
+ * propio `list()` (misma comprobación independiente que el test del reorden, más arriba).
+ */
+test.describe('editor visual — modo «solo textos» por debajo de 900 px', () => {
+	const textsSections = (page: Page) => page.locator('section.vega-inspector-body--texts');
+
+	test('a 390 px: sin lienzo ni token; las tres secciones con sus textos, en orden y con su tipo', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: 390, height: 844 });
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+		await openVisualEditor(page, site, 'pagina_1');
+
+		await expect(page.getByRole('region', { name: 'Solo textos' })).toBeVisible();
+		await expect(page.locator('iframe.vega-visual-frame')).toHaveCount(0);
+		await expect(page.locator('.vega-tree-panel')).toHaveCount(0);
+
+		const sections = textsSections(page);
+		await expect(sections).toHaveCount(3);
+		// Cabecera = etiqueta del tipo de bloque del manifiesto (`SHOWCASE_MANIFEST.blockTypes`).
+		await expect(sections.nth(0).getByRole('heading', { level: 3 })).toHaveText('Portada');
+		await expect(sections.nth(1).getByRole('heading', { level: 3 })).toHaveText('Texto');
+		await expect(sections.nth(2).getByRole('heading', { level: 3 })).toHaveText('Galería');
+		// Cada campo con su etiqueta, alcanzable por nombre accesible dentro de SU sección (los ids
+		// van namespaceados por bloque, `field-scope.ts`): «Título» en las tres, «Cuerpo» solo en
+		// «Texto», «Subtítulo» solo en «Portada». SIEMPRE `exact: true`: `getByLabel` casa por
+		// subcadena y «Título» también resolvería «Subtítulo» (medido: strict mode violation en el
+		// gate del candidato que integró este spec).
+		await expect(sections.nth(0).getByLabel('Título', { exact: true })).toHaveValue(
+			SECCIONES[0].text
+		);
+		await expect(sections.nth(0).getByLabel('Subtítulo', { exact: true })).toBeVisible();
+		await expect(sections.nth(1).getByLabel('Cuerpo', { exact: true })).toBeVisible();
+		await expect(sections.nth(2).getByLabel('Pie de foto', { exact: true })).toBeVisible();
+		// Un «Guardar» por sección, inerte mientras no hay cambios.
+		await expect(page.getByRole('button', { name: 'Guardar', exact: true })).toHaveCount(3);
+		await expect(
+			sections.nth(0).getByRole('button', { name: 'Guardar', exact: true })
+		).toBeDisabled();
+
+		// La barra de arriba es la de hoy: volver, migas y estado de la página.
+		await expect(page.getByRole('button', { name: 'Volver al formulario' })).toBeVisible();
+		await expect(statusGroup(page)).toContainText('Borrador');
+
+		// Y el sitio NO se ha descargado en el móvil: ni una petición de token.
+		expect(site.tokenRequestCount()).toBe(0);
+		expect(await page.locator('body').evaluate((b) => b.scrollWidth <= window.innerWidth)).toBe(
+			true
+		);
+	});
+
+	test('a 390 px: corregir un titular y guardarlo lo relee el formulario con su propio `list()`', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: 390, height: 844 });
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+		await openVisualEditor(page, site, 'pagina_1');
+		const second = textsSections(page).nth(1);
+
+		// `exact: true` (ver arriba): la sección «Texto» solo tiene «Título» y «Cuerpo», pero el
+		// criterio es uno para todo el bloque.
+		await second.getByLabel('Título', { exact: true }).fill('Titular corregido desde el móvil');
+		const save = second.getByRole('button', { name: 'Guardar', exact: true });
+		await expect(save).toBeEnabled();
+		await save.click();
+		// Guardado: el botón vuelve a inerte y la marca «sin guardar» de la barra desaparece.
+		await expect(save).toBeDisabled();
+		await expect(page.locator('.vega-visual-dirty')).toHaveCount(0);
+		await expect(page.locator('.vega-visual-saved-at')).toBeVisible();
+		expect(site.tokenRequestCount()).toBe(0);
+
+		// Navegación CLIENTE (ver el test del reorden): un `goto()` reiniciaría el adaptador `memory`.
+		await page.getByRole('button', { name: 'Volver al formulario' }).click();
+		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
+		const titles = page.locator('.vega-block-title');
+		await expect(titles).toHaveCount(3);
+		await expect(titles.nth(1)).toHaveText('Titular corregido desde el móvil');
+	});
+
+	test('el límite: a 899 px es «solo textos»; a 901 px vuelve el lienzo', async ({ page }) => {
+		await page.setViewportSize({ width: 899, height: 900 });
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+		await openVisualEditor(page, site, 'pagina_1');
+		await expect(page.getByRole('region', { name: 'Solo textos' })).toBeVisible();
+		await expect(page.locator('iframe.vega-visual-frame')).toHaveCount(0);
+		expect(site.tokenRequestCount()).toBe(0);
+
+		// Ensanchar SIN recargar: el lienzo se monta y entonces (y solo entonces) se pide el token.
+		await page.setViewportSize({ width: 901, height: 900 });
+		await expect(page.locator('iframe.vega-visual-frame')).toHaveCount(1);
+		await expect(page.getByRole('region', { name: 'Inspector' })).toBeVisible();
+		await waitConnected(page, 3);
+		expect(site.tokenRequestCount()).toBe(1);
 	});
 });
