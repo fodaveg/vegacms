@@ -293,6 +293,7 @@
 	import { firstErrorFieldName } from './first-error-field';
 	import { resolveFocusTarget } from './focus-target';
 	import { setRecordIdentity } from './record-context';
+	import { createAfterSaveRegistry, setAfterSaveRegistry } from './after-save';
 	import FieldRow from './FieldRow.svelte';
 	import { fieldIds } from './field-ids';
 	import ScheduleDialog from './ScheduleDialog.svelte';
@@ -400,6 +401,14 @@
 		id: untrack(() => model.recordId)
 	});
 	setRecordIdentity(recordIdentity);
+
+	// Ganchos tras guardar (lote 12, lámina 5; `after-save.ts`): lo que un widget hace con el
+	// registro YA escrito y ANTES de reasentar el formulario — hoy, la copia a Medios de las
+	// imágenes subidas desde un campo `file`, con su texto alternativo. Corren dentro de la ventana
+	// de `saving` (el formulario sigue deshabilitado, la fila enseña «Guardando en Medios…») y sus
+	// frases se suman al toast de «Guardado.». Un gancho que falla no deshace el guardado.
+	const afterSave = createAfterSaveRegistry();
+	setAfterSaveRegistry(afterSave);
 
 	// "Último guardado" (R7 del rediseño, ver cabecera): se siembra del autodate `updated` del
 	// baseline SI el tipo declara uno de verdad (`date` + `readonly`, como lo hornea PB) — la regla
@@ -1105,6 +1114,11 @@
 		clientErrors = EMPTY_ERRORS;
 	}
 
+	/** Frase única para el toast de «Guardado.» a partir de sus partes (sin las vacías), o nada. */
+	function joinNotes(parts: (string | null | undefined)[]): string | undefined {
+		return parts.filter((part) => !!part).join(' ') || undefined;
+	}
+
 	/** Desenlace de un guardado que SÍ se hizo (normal o «Guardar igualmente»). */
 	function commitSaved(saved: VegaRecord, note?: string): void {
 		// L-P5.6/D-P5.11: reasentar baseline (→ no-dirty) ANTES de avisar al padre — si no, el
@@ -1147,7 +1161,9 @@
 			const input = toRecordInput(type, baseline, current);
 			const job = captureRedirectJob();
 			const saved = await onSubmit(input, { expectedVersion: conflict.serverVersion });
-			commitSaved(saved, job ? ((await syncRedirects(job)) ?? undefined) : undefined);
+			const redirectNote = job ? await syncRedirects(job) : null;
+			const hookNotes = await afterSave.run(saved);
+			commitSaved(saved, joinNotes([redirectNote, ...hookNotes]));
 		} catch (err) {
 			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al guardar', err);
 			if (isConflictError(vegaErr)) {
@@ -1253,10 +1269,10 @@
 					? await onSubmit(input, { expectedVersion: version })
 					: await onSubmit(input);
 			const redirectNote = job ? await syncRedirects(job) : null;
-			commitSaved(
-				saved,
-				[redirectNote, options.note?.()].filter((part) => !!part).join(' ') || undefined
-			);
+			// Ganchos de los widgets (ver `afterSave`): con el registro escrito y `saving` aún en
+			// `true`, antes de que `commitSaved` sustituya los `File` pendientes por sus `FileRef`.
+			const hookNotes = await afterSave.run(saved);
+			commitSaved(saved, joinNotes([redirectNote, options.note?.(), ...hookNotes]));
 		} catch (err) {
 			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al guardar', err);
 			if (isConflictError(vegaErr)) {
