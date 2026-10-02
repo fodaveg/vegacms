@@ -186,6 +186,77 @@ describe('loadUnpublishedChanges', () => {
 		expect(fetcher).not.toHaveBeenCalled();
 		expect(port.list).not.toHaveBeenCalled();
 	});
+
+	/** Tipo con fecha de última edición legible (`updated`, autodate de PocketBase). */
+	const EDITED = type('posts', {
+		fields: [field('updated', { type: 'date', readonly: true } as never)]
+	});
+	const BUILD_URL = 'https://build.example/api/vega/build';
+
+	/** `fetch` de mentira para `GET {BUILD_URL}/status`. */
+	function statusFetcher(body: unknown, status = 200) {
+		return vi.fn(
+			async () =>
+				new Response(JSON.stringify(body), {
+					status,
+					headers: { 'Content-Type': 'application/json' }
+				})
+		);
+	}
+
+	/** Puerto cuya última edición de `posts` es `updated` (o ninguna, con `null`). */
+	function editedPort(updated: string | null) {
+		return {
+			buildApiUrl: BUILD_URL,
+			list: vi.fn(async () => ({
+				items: updated === null ? [] : [{ id: 'p1', type: 'posts', values: { updated } }],
+				page: 1,
+				perPage: 1,
+				totalItems: updated === null ? 0 : 1,
+				totalPages: updated === null ? 0 : 1
+			}))
+		} as unknown as BackendPort;
+	}
+
+	test('una edición posterior a la última publicación: true, con el token de la sesión', async () => {
+		const fetcher = statusFetcher({ state: 'ok', lastPublishedAt: '2026-10-01T09:00:00.000Z' });
+		const port = editedPort('2026-10-01 09:30:00.000Z');
+
+		await expect(loadUnpublishedChanges(port, model([EDITED]), 'tok', fetcher)).resolves.toBe(true);
+		expect(fetcher).toHaveBeenCalledWith(
+			`${BUILD_URL}/status`,
+			expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'tok' }) })
+		);
+	});
+
+	test('nada editado desde la última publicación: false', async () => {
+		const fetcher = statusFetcher({ state: 'ok', lastPublishedAt: '2026-10-01T09:00:00.000Z' });
+		const port = editedPort('2026-10-01 08:00:00.000Z');
+
+		await expect(loadUnpublishedChanges(port, model([EDITED]), 't', fetcher)).resolves.toBe(false);
+	});
+
+	test('ningún tipo con fecha de edición legible: null («no lo sé»), no un false', async () => {
+		const fetcher = statusFetcher({ state: 'ok', lastPublishedAt: null });
+		const port = editedPort(null);
+
+		await expect(
+			loadUnpublishedChanges(port, model([type('tags')]), 't', fetcher)
+		).resolves.toBeNull();
+		expect(port.list).not.toHaveBeenCalled();
+	});
+
+	test('el estado del build no se puede leer: rechaza (la tarjeta se retira)', async () => {
+		const port = editedPort('2026-10-01 09:30:00.000Z');
+
+		await expect(
+			loadUnpublishedChanges(port, model([EDITED]), 't', statusFetcher({}, 500))
+		).rejects.toThrow();
+		await expect(
+			loadUnpublishedChanges(port, model([EDITED]), 't', statusFetcher({ state: 'raro' }))
+		).rejects.toThrow();
+		expect(port.list).not.toHaveBeenCalled();
+	});
 });
 
 describe('tipos de la portada', () => {

@@ -70,7 +70,15 @@ function seed(edits: RecentEdit[]): void {
 
 let mounted: { target: HTMLElement; instance: Record<string, never> } | null = null;
 
-function mountHome(opts: { model?: ContentModel; list?: ListFn; buildApiUrl?: string } = {}) {
+function mountHome(
+	opts: {
+		model?: ContentModel;
+		list?: ListFn;
+		buildApiUrl?: string;
+		/** `schemaBootstrap` = quien administra (criterio de `/settings`). Por defecto, sí. */
+		capabilities?: { schemaBootstrap: boolean };
+	} = {}
+) {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const list = vi.fn(opts.list ?? defaultList());
@@ -82,7 +90,7 @@ function mountHome(opts: { model?: ContentModel; list?: ListFn; buildApiUrl?: st
 		model: opts.model ?? SITE_MODEL,
 		session: { token: 't', user: { id: 'u1', email: 'a@b.c' }, expiresAt: null },
 		port: {
-			capabilities: {},
+			capabilities: opts.capabilities ?? { schemaBootstrap: true },
 			buildApiUrl: opts.buildApiUrl ?? null,
 			list,
 			get: vi.fn(async () => {
@@ -132,6 +140,7 @@ afterEach(async () => {
 		mounted = null;
 	}
 	vi.restoreAllMocks();
+	vi.unstubAllGlobals();
 });
 
 describe('portada: lo último que editaste', () => {
@@ -306,10 +315,25 @@ describe('portada: accesos a crear', () => {
 		await settle();
 
 		expect(target.querySelector('.vega-empty-nav h1')?.textContent).toBe('nav.emptyTitle');
+		expect(target.querySelector('.vega-empty-nav p')?.textContent).toBe('nav.emptyBody');
 		expect(target.querySelector('.vega-home')).toBeNull();
 		expect(list).not.toHaveBeenCalled();
 		target.querySelector<HTMLButtonElement>('.vega-empty-nav button')?.click();
 		expect(nav.toSettings).toHaveBeenCalled();
+	});
+
+	test('1.6 sitio sin colecciones visto por quien edita: le toca hablar con quien administra', async () => {
+		const { target, list } = mountHome({
+			model: model([]),
+			capabilities: { schemaBootstrap: false }
+		});
+		await settle();
+
+		expect(target.querySelector('.vega-empty-nav h1')?.textContent).toBe('nav.emptyTitle');
+		expect(target.querySelector('.vega-empty-nav p')?.textContent).toBe('nav.emptyBodyEditor');
+		expect(target.querySelector('.vega-empty-nav button')).toBeNull();
+		expect(target.querySelector('.vega-home')).toBeNull();
+		expect(list).not.toHaveBeenCalled();
 	});
 });
 
@@ -375,5 +399,179 @@ describe('portada: pendientes', () => {
 		await settle();
 
 		expect(target.querySelector('[data-pending="unpublished"]')).toBeNull();
+	});
+
+	test('mientras cuenta, la tarjeta ya está, con «…» y aria-busy', async () => {
+		const { target } = mountHome({ list: () => new Promise(() => {}) });
+		await settle();
+
+		const drafts = target.querySelector('[data-pending="drafts:posts"]');
+		expect(drafts?.querySelector('.vega-home-pending-value')?.textContent).toBe('…');
+		expect(drafts?.getAttribute('aria-busy')).toBe('true');
+		expect(drafts?.getAttribute('data-zero')).toBe('false');
+	});
+});
+
+describe('portada: cambios sin publicar en el sitio', () => {
+	const BUILD_URL = 'https://build.example/api/vega/build';
+	/** Un tipo sin estado ni descripción, con fecha de última edición: solo da esta tarjeta. */
+	const EDITED_MODEL = model([
+		type('posts', {
+			label: 'Entradas',
+			labelSingular: 'Entrada',
+			fields: [field('updated', { type: 'date', readonly: true } as never)]
+		})
+	]);
+
+	/** `fetch` global de mentira para `GET {BUILD_URL}/status`. `body = null` → 500. */
+	function stubBuildStatus(body: unknown | null): void {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async () => ({
+				ok: body !== null,
+				status: body === null ? 500 : 200,
+				json: async () => body
+			}))
+		);
+	}
+
+	/** `list` cuya última edición de `posts` es `updated` (o ninguna con `null`). */
+	function lastEdited(updated: string | null): ListFn {
+		return async () =>
+			page(updated === null ? [] : [{ id: 'p1', type: 'posts', values: { updated } }]);
+	}
+
+	function unpublishedCard(target: HTMLElement) {
+		return target.querySelector('[data-pending="unpublished"]');
+	}
+
+	test('con ediciones posteriores a la última publicación dice «Sí»', async () => {
+		stubBuildStatus({ state: 'ok', lastPublishedAt: '2026-10-01T09:00:00.000Z' });
+		const { target } = mountHome({
+			model: EDITED_MODEL,
+			buildApiUrl: BUILD_URL,
+			list: lastEdited('2026-10-01 09:30:00.000Z')
+		});
+		await settle();
+
+		const card = unpublishedCard(target);
+		expect(card?.tagName).toBe('DIV');
+		expect(card?.querySelector('.vega-home-pending-value')?.textContent).toBe(
+			'home.pending.unpublishedYes'
+		);
+		expect(card?.querySelector('.vega-home-pending-label')?.textContent).toBe(
+			'home.pending.unpublished'
+		);
+		expect(card?.getAttribute('data-zero')).toBe('false');
+		expect(card?.getAttribute('aria-busy')).toBe('false');
+	});
+
+	test('sin nada que publicar dice «No» y se pinta atenuada', async () => {
+		stubBuildStatus({ state: 'ok', lastPublishedAt: '2026-10-01T09:00:00.000Z' });
+		const { target } = mountHome({
+			model: EDITED_MODEL,
+			buildApiUrl: BUILD_URL,
+			list: lastEdited('2026-10-01 08:00:00.000Z')
+		});
+		await settle();
+
+		const card = unpublishedCard(target);
+		expect(card?.querySelector('.vega-home-pending-value')?.textContent).toBe(
+			'home.pending.unpublishedNo'
+		);
+		expect(card?.getAttribute('data-zero')).toBe('true');
+	});
+
+	test('mientras lo calcula, la tarjeta está con «…»', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(() => new Promise(() => {}))
+		);
+		const { target } = mountHome({ model: EDITED_MODEL, buildApiUrl: BUILD_URL });
+		await settle();
+
+		const card = unpublishedCard(target);
+		expect(card?.querySelector('.vega-home-pending-value')?.textContent).toBe('…');
+		expect(card?.getAttribute('aria-busy')).toBe('true');
+	});
+
+	test('si el estado del build falla, la tarjeta se retira (y con ella el bloque)', async () => {
+		stubBuildStatus(null);
+		const { target } = mountHome({ model: EDITED_MODEL, buildApiUrl: BUILD_URL });
+		await settle();
+
+		expect(unpublishedCard(target)).toBeNull();
+		expect(target.querySelector('#vega-home-pending-title')).toBeNull();
+	});
+
+	test('si no se puede saber (ningún tipo con fecha de edición), no se pinta', async () => {
+		stubBuildStatus({ state: 'ok', lastPublishedAt: null });
+		const { target } = mountHome({ model: model([type('tags')]), buildApiUrl: BUILD_URL });
+		await settle();
+
+		expect(unpublishedCard(target)).toBeNull();
+	});
+});
+
+describe('portada: tabla de lo último que editaste', () => {
+	test('Cmd/Ctrl/Mayús o botón central: deja al navegador abrir el enlace, sin navegar aquí', async () => {
+		seed([{ collection: 'posts', id: 'p1', savedAt: 1 }]);
+		const { target, nav } = mountHome();
+		await settle();
+
+		// En `document` (lo último del burbujeo): anota si la tabla canceló el clic y lo cancela
+		// después, para que jsdom no intente abrir el enlace (no sabe navegar).
+		let preventedByTable: boolean | null = null;
+		const observe = (event: Event) => {
+			preventedByTable = event.defaultPrevented;
+			event.preventDefault();
+		};
+		document.addEventListener('click', observe);
+		try {
+			const link = target.querySelector('tbody a');
+			for (const init of [
+				{ metaKey: true },
+				{ ctrlKey: true },
+				{ shiftKey: true },
+				{ button: 1 }
+			]) {
+				preventedByTable = null;
+				link?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ...init }));
+				expect(preventedByTable).toBe(false);
+			}
+			expect(nav.toRecord).not.toHaveBeenCalled();
+
+			link?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+			expect(preventedByTable).toBe(true);
+			expect(nav.toRecord).toHaveBeenCalledWith('posts', 'p1');
+		} finally {
+			document.removeEventListener('click', observe);
+		}
+	});
+
+	test('un tipo sin campo título enseña el id del registro', async () => {
+		const noTitle = type('notes', { label: 'Notas', labelSingular: 'Nota', titleField: null });
+		seed([{ collection: 'notes', id: 'n1', savedAt: 1 }]);
+		const { target } = mountHome({
+			model: model([noTitle]),
+			list: async (_collection, query) =>
+				isRecentQuery(query) ? page([{ id: 'n1', type: 'notes', values: {} }]) : page([])
+		});
+		await settle();
+
+		const link = target.querySelector('tbody a');
+		expect(link?.textContent?.trim()).toBe('n1');
+		expect(link?.getAttribute('href')).toBe('/c/notes/n1');
+	});
+
+	test('la hora del guardado: relativa en la celda y completa en su title', async () => {
+		const savedAt = Date.parse('2026-10-01T08:00:00.000Z');
+		seed([{ collection: 'posts', id: 'p1', savedAt }]);
+		const { target } = mountHome();
+		await settle();
+
+		const cell = target.querySelector('tbody td.vega-cell-mono span');
+		expect(cell?.textContent?.trim()).not.toBe('');
+		expect(cell?.getAttribute('title')).toMatch(/2026/);
 	});
 });
