@@ -542,6 +542,34 @@ export const es = {
 	'editor.publishAt.unknown':
 		'No se ha podido comprobar si este servidor publica las fechas programadas (lo comprueba un administrador al entrar en Vega). Hasta entonces, no cuentes con que se publique sola.',
 
+	// ————— «Programar…» junto al campo Estado (lote 12, lámina 2) —————
+	'editor.schedule.open': 'Programar…',
+	'editor.schedule.change': 'Cambiar fecha…',
+	'editor.schedule.remove': 'Quitar programación',
+	'editor.schedule.publishNow': 'Publicar ahora',
+	// Los `{when}` de las frases con fecha se pintan en negrita; sin `{when}` no hay negrita.
+	'editor.schedule.summary': 'Se publicará sola el {when}.',
+	'editor.schedule.summaryUnconfirmed':
+		'Fecha puesta para el {when}; no se ha comprobado que el servidor la publique.',
+	'editor.schedule.overdue': 'Tenía que publicarse el {when} y sigue en borrador.',
+	// «Guardado.» + esta frase en el aviso tras programar.
+	'editor.schedule.savedNote': 'Se publicará el {when}.',
+	'editor.schedule.when': '{date} a las {time}',
+	'editor.schedule.title': 'Programar la publicación',
+	'editor.schedule.description':
+		'«{name}» se queda en borrador y se publica sola a la hora que elijas.',
+	'editor.schedule.field': 'Publicar el',
+	'editor.schedule.hint': 'Hora de este equipo.',
+	'editor.schedule.hintProposal': 'Hora de este equipo. Propuesta: mañana a las 09:00.',
+	'editor.schedule.error.empty': 'Elige una fecha y una hora.',
+	'editor.schedule.error.past': 'Esa hora ya ha pasado. Elige una posterior o publica ahora.',
+	'editor.schedule.confirm': 'Programar',
+	'editor.schedule.confirming': 'Programando…',
+	'editor.schedule.retry': 'Reintentar',
+	'editor.schedule.failed.title': 'No se ha podido programar',
+	'editor.schedule.failed.body':
+		'El servidor ha contestado: {message}. El registro sigue como estaba.',
+
 	// ————— Bloques ordenables embebidos (capacidad `blocks`, lote "editor" Fase A) —————
 	// Reutiliza a propósito claves ya existentes para el resto del ciclo de vida de un bloque:
 	// `editor.save`/`editor.saving`/`editor.saveSuccess` (guardar un bloque es lo mismo que

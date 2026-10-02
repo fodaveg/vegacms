@@ -497,6 +497,33 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.publishAt.unknown':
 		'Could not check whether this server publishes scheduled dates (an administrator checks it when signing in to Vega). Until then, do not count on it publishing itself.',
 
+	// ————— "Schedule…" next to the Status field (batch 12, sheet 2) —————
+	'editor.schedule.open': 'Schedule…',
+	'editor.schedule.change': 'Change date…',
+	'editor.schedule.remove': 'Remove schedule',
+	'editor.schedule.publishNow': 'Publish now',
+	// The `{when}` in sentences with a date is shown in bold; with no `{when}` there is no bold.
+	'editor.schedule.summary': 'It will publish itself on {when}.',
+	'editor.schedule.summaryUnconfirmed':
+		'Date set for {when}; it has not been checked that the server will publish it.',
+	'editor.schedule.overdue': 'It was due to be published on {when} and is still a draft.',
+	// "Saved." + this sentence in the notice after scheduling.
+	'editor.schedule.savedNote': 'It will be published on {when}.',
+	'editor.schedule.when': '{date} at {time}',
+	'editor.schedule.title': 'Schedule publication',
+	'editor.schedule.description':
+		'"{name}" stays a draft and publishes itself at the time you choose.',
+	'editor.schedule.field': 'Publish on',
+	'editor.schedule.hint': "This computer's time.",
+	'editor.schedule.hintProposal': "This computer's time. Suggestion: tomorrow at 09:00.",
+	'editor.schedule.error.empty': 'Choose a date and a time.',
+	'editor.schedule.error.past': 'That time has already passed. Choose a later one or publish now.',
+	'editor.schedule.confirm': 'Schedule',
+	'editor.schedule.confirming': 'Scheduling…',
+	'editor.schedule.retry': 'Try again',
+	'editor.schedule.failed.title': 'Could not schedule',
+	'editor.schedule.failed.body': 'The server answered: {message}. The record is as it was.',
+
 	// ————— Embedded orderable blocks (`blocks` capability, "editor" batch, Phase A) —————
 	// Deliberately reuses existing keys for the rest of a block's lifecycle:
 	// `editor.save`/`editor.saving`/`editor.saveSuccess` (saving a block is the same as saving

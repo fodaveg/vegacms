@@ -23,7 +23,9 @@
 	 *
 	 * **`isTitleField` (mockup `.field.title-field`)**: el campo que el tipo declara como
 	 * `titleField` se edita EN GRANDE — sin recuadro, solo una hairline inferior que al foco pasa a
-	 * ser el hilo `--sheen`. Ver el CSS de más abajo para por qué la caja se aplana del todo.
+	 * ser el hilo `--sheen`. Ver el CSS de más abajo para por qué la caja se aplana del todo. Desde el
+	 * lote 12 el flag también baja al widget (`WidgetProps.isTitleField`): `Text.svelte` pinta un
+	 * área que crece con el texto en vez de un `<input>` de una línea.
 	 *
 	 * **`isSlugField` (capacidad `slugField`, mockup `.slug-row`)**: el campo derivable del título
 	 * se pinta en `--mono` (es un VALOR canónico, como los ids y las fechas — misma regla de tokens
@@ -81,7 +83,7 @@
 		stacked?: boolean;
 		/** `true` cuando `field.name === type.titleField` (`RecordForm.svelte`, mockup `.field.
 		 *  title-field`): el campo héroe. Ver cabecera y el CSS `:global` de abajo — solo afecta al
-		 *  `<input>` que renderiza `Text.svelte`, nunca a otro tipo de widget. Default `false`. */
+		 *  control que renderiza `Text.svelte` (`<input>` o área que crece), nunca a otro widget. Default `false`. */
 		isTitleField?: boolean;
 		/** `true` cuando `field.name === type.slugField` (mockup `.slug-row input.mono`): control en
 		 *  tipografía mono. Default `false`. */
@@ -97,6 +99,9 @@
 		layoutOptions?: ResolvedLayout[];
 		/** Acción inline a la derecha del control (mockup `.slug-row` + `.btn`), o nada. */
 		action?: Snippet;
+		/** Contenido propio bajo el control y sobre la ayuda (lote 12: la línea y el aviso de la
+		 *  programación bajo «Estado»), o nada. Lo pinta quien conoce el modelo; su CSS es suyo. */
+		below?: Snippet;
 		/** Aviso NO bloqueante bajo el control (ver cabecera, `page-path-not-unique`), o nada. */
 		notice?: string;
 		onChange: (value: FieldInputValue) => void;
@@ -115,6 +120,7 @@
 		optionLabels,
 		layoutOptions,
 		action,
+		below,
 		notice,
 		onChange
 	}: Props = $props();
@@ -162,7 +168,16 @@
 							{onChange}
 						/>
 					{:else}
-						<Widget {field} {value} {error} {disabled} {readonly} {optionLabels} {onChange} />
+						<Widget
+							{field}
+							{value}
+							{error}
+							{disabled}
+							{readonly}
+							{optionLabels}
+							{isTitleField}
+							{onChange}
+						/>
 					{/if}
 				</div>
 				{@render action()}
@@ -178,7 +193,19 @@
 				{onChange}
 			/>
 		{:else}
-			<Widget {field} {value} {error} {disabled} {readonly} {optionLabels} {onChange} />
+			<Widget
+				{field}
+				{value}
+				{error}
+				{disabled}
+				{readonly}
+				{optionLabels}
+				{isTitleField}
+				{onChange}
+			/>
+		{/if}
+		{#if below}
+			{@render below()}
 		{/if}
 		{#if field.help}
 			<p id={ids.helpId} class="vega-field-help">{field.help}</p>
@@ -277,8 +304,8 @@
 
 	/* Campo héroe: el título del registro (mockup `.field.title-field input`, firma de David — el
 	   hilo `--sheen` en trazos-resalte finos, nunca en rellenos). `:global()` porque el `<input>`
-	   real lo pinta `Text.svelte` (D-P5.1: la interfaz de widget no lleva un flag "soy el título",
-	   así que el gancho vive aquí, en el contenedor) — targetea su clase estable
+	   real lo pinta `Text.svelte` (el gancho de ESTILO vive aquí, en el contenedor; el flag que
+	   cambia el control solo lo lee `Text.svelte`) — targetea su clase estable
 	   `.vega-widget-text`, nunca un selector de posición.
 	   La caja se aplana a una sola hairline inferior (sin recuadro/radio): un `border-image` NO
 	   respeta `border-radius` (esquinas cuadradas encima de una caja redondeada, artefacto visual
@@ -307,6 +334,18 @@
 		border-image: var(--sheen) 1;
 	}
 
+	/* Error: el subrayado pasa a `--danger` (lámina 4.4). La regla `[aria-invalid]` de `Text.svelte`
+	   no llega: el `border-bottom` de arriba lleva la clase de ámbito de Svelte y pesa más. Con foco
+	   el subrayado sigue rojo y a 2px (sin el hilo `--sheen`, que diría «todo bien»). */
+	.vega-field-row--title :global(.vega-widget-text[aria-invalid='true']) {
+		border-bottom-color: var(--danger);
+	}
+
+	.vega-field-row--title :global(.vega-widget-text[aria-invalid='true']:focus-visible) {
+		border-bottom-color: var(--danger);
+		border-image: none;
+	}
+
 	/* Campo slug (mockup `.slug-row input.mono`): VALOR canónico ⇒ `--mono`, un punto más pequeño
 	   para compensar el ancho de la mono. Mismo gancho `:global` que el campo héroe.
 	   Campo ruta (`isPathField`, modelo de páginas): MISMO tratamiento — la dirección pública de
@@ -320,7 +359,9 @@
 	/* Aviso del modelo bajo un campo (`notice`, ver cabecera): mismo lenguaje visual que
 	   `.vega-refs-partial` de `ReferencesSummary.svelte` — informa, no bloquea (por eso NO
 	   comparte estilo con `.vega-field-error`, que sí impide guardar). */
-	.vega-field-notice {
+	/* `:global` desde el lote 12: el aviso de «no se publicó» de `RecordForm` (`.vega-field-notice
+	   .vega-schedule-overdue`) es el mismo aviso con acciones dentro, y se pinta desde allí. */
+	:global(.vega-field-notice) {
 		margin: 0.35rem 0 0;
 		padding: 0.4rem 0.6rem;
 		border: 1px solid var(--warning);
