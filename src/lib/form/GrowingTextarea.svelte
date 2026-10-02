@@ -69,8 +69,9 @@
 
 	function handleKeydown(event: KeyboardEvent): void {
 		if (!singleLine || event.key !== 'Enter') return;
-		// Intro con un IME abierto confirma la composición: no es un Intro del usuario.
-		if (event.isComposing) return;
+		// Intro con un IME abierto confirma la composición: no es un Intro del usuario. WebKit lo
+		// entrega ya con `isComposing === false` y `keyCode === 229`.
+		if (event.isComposing || event.keyCode === 229) return;
 		event.preventDefault();
 		onEnter?.(event);
 	}

@@ -106,6 +106,21 @@ describe('GrowingTextarea.svelte', () => {
 		expect(onEnter).toHaveBeenCalledTimes(1);
 	});
 
+	test('singleLine: el Intro que confirma el IME en WebKit (isComposing false, keyCode 229) no envía', () => {
+		const onEnter = vi.fn();
+		const area = setup({ singleLine: true, onEnter });
+		const event = new KeyboardEvent('keydown', {
+			key: 'Enter',
+			keyCode: 229,
+			isComposing: false,
+			bubbles: true,
+			cancelable: true
+		});
+		area.dispatchEvent(event);
+		expect(event.defaultPrevented).toBe(false);
+		expect(onEnter).not.toHaveBeenCalled();
+	});
+
 	test('singleLine: Intro durante una composición de IME no se toca', () => {
 		const onEnter = vi.fn();
 		const area = setup({ singleLine: true, onEnter });
