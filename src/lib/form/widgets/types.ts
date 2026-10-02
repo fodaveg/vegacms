@@ -43,6 +43,12 @@ export interface WidgetProps {
 	 * Opcional a propósito: ningún widget existente cambia por esto.
 	 */
 	optionLabels?: Record<string, string>;
+	/**
+	 * `true` cuando el campo es el `titleField` del tipo (lo pasa `FieldRow`). Solo lo consume
+	 * `Text.svelte`, que pinta un área que crece en vez de un `<input>` (lote 12, lámina 4); el
+	 * resto de widgets lo ignoran. Opcional por la misma razón que `optionLabels`.
+	 */
+	isTitleField?: boolean;
 	/** Notifica el nuevo valor. Un widget readonly nunca la invoca. */
 	onChange: (value: FieldInputValue) => void;
 }
