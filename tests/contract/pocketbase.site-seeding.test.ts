@@ -1166,7 +1166,11 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 			.collection('redirects')
 			.create({ from: '/viejo', to: '/nuevo', code: '301' });
 		expect(redirect.created).not.toBe('');
-		expect(redirect.updated).toBe(redirect.created);
+		// PocketBase rellena los dos autodate en instantes distintos: a veces difieren en 1 ms. Lo que
+		// importa es que `updated` no sea anterior a `created` y que sean de la misma escritura.
+		const instant = (value: unknown) => Date.parse(String(value).replace(' ', 'T'));
+		expect(instant(redirect.updated)).toBeGreaterThanOrEqual(instant(redirect.created));
+		expect(instant(redirect.updated) - instant(redirect.created)).toBeLessThan(1000);
 		await new Promise((resolve) => setTimeout(resolve, 20));
 		const edited = await admin.collection('redirects').update(redirect.id, { to: '/otro' });
 		expect(edited.created).toBe(redirect.created);
