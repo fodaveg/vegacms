@@ -158,7 +158,9 @@ test.describe('estado "deleting" en vuelo (fix de code-review de 4e)', () => {
 		// `list.spec.ts`): `page.goto()` es una navegación de DOCUMENTO real, que recrea `window` y
 		// se llevaría por delante cualquier flag fijado antes.
 		await page.evaluate(() => {
-			(window as unknown as { __VEGA_DELETE_DELAY_MS__?: number }).__VEGA_DELETE_DELAY_MS__ = 600;
+			// 1500 ms (antes 600): el camino por el menú de fila añade una apertura forzada y una
+			// aserción más dentro de la ventana de `deleting`.
+			(window as unknown as { __VEGA_DELETE_DELAY_MS__?: number }).__VEGA_DELETE_DELAY_MS__ = 1500;
 		});
 
 		const rowA = page.locator('tbody tr', { hasText: 'Bienvenido a Vega' });
@@ -182,19 +184,22 @@ test.describe('estado "deleting" en vuelo (fix de code-review de 4e)', () => {
 		await page.keyboard.press('Tab');
 		await expect(dialog.getByRole('button', { name: 'Cancelar' })).toBeFocused();
 
-		// Defensa en profundidad de `requestDelete()` en `+page.svelte`: un click FORZADO (bypass
-		// del backdrop, que en uso real ya bloquea esto) en el botón de OTRA fila no debe reescribir
-		// `pendingDelete` mientras el primer borrado sigue en vuelo — el diálogo sigue hablando de
-		// "Bienvenido a Vega", nunca de la otra fila.
+		// Con el menú de fila (lámina 7) el guard de `requestDelete()` en `+page.svelte` ya no es
+		// alcanzable desde la UI mientras el diálogo está abierto: un click FORZADO (bypass del
+		// backdrop) en el disparador de OTRA fila no deja ningún menú abierto (el trap de foco del
+		// diálogo recupera el foco y el menú se cierra por focusout antes de poder elegir «Borrar…»;
+		// medido: el `menuitem` nunca llega a existir para Playwright). El diálogo sigue hablando
+		// de "Bienvenido a Vega" y la fila B ni se tocó. El guard en sí queda como defensa en
+		// profundidad del código, ya no como camino de la interfaz.
 		const rowB = page.locator('tbody tr', { hasText: 'Borrador en curso' });
 		await rowB.getByRole('button', { name: /^Acciones de/ }).click({ force: true });
-		await rowB.getByRole('menuitem', { name: 'Borrar…' }).click({ force: true });
+		await expect(rowB.getByRole('menu')).toHaveCount(0);
 		await expect(dialog).toContainText('Bienvenido a Vega');
 		await expect(dialog).not.toContainText('Borrador en curso');
 		await expect(rowB).toBeVisible(); // la fila B, ajena al borrado en vuelo, ni se tocó
 
 		// El retraso termina, el borrado A se completa con normalidad.
-		await expect(dialog).toBeHidden({ timeout: 2000 });
+		await expect(dialog).toBeHidden({ timeout: 4000 });
 		await expect(page.getByText('"Bienvenido a Vega" se ha borrado.')).toBeVisible();
 		await expect(rowA).toHaveCount(0);
 
@@ -285,8 +290,7 @@ test.describe('aviso de relaciones antes de borrar (fix de code-review contra Po
 		await page.waitForURL('**/c/posts');
 
 		const row = page.locator('tbody tr', { hasText: 'Bienvenido a Vega' });
-		await row.hover();
-		await row.getByRole('button', { name: 'Borrar "Bienvenido a Vega"' }).click();
+		await requestRowDelete(row, 'Bienvenido a Vega');
 
 		const dialog = page.getByRole('alertdialog');
 		await expect(dialog).toBeVisible();

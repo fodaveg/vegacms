@@ -119,7 +119,10 @@ test.describe('menú de acciones de fila (lámina 7)', () => {
 			'Bienvenido a Vega'
 		);
 
-		await page.goto('/c/posts');
+		// Vuelta al listado por la barra lateral (navegación SPA): un `goto` sería una carga de
+		// documento y el adaptador `memory` volvería a sembrarse, perdiendo la copia.
+		await page.getByRole('link', { name: 'Entradas', exact: false }).click();
+		await page.waitForURL('**/c/posts');
 		await expect(page.locator('tbody tr', { hasText: 'Bienvenido a Vega' })).toHaveCount(2);
 		await expect(page.locator('.vega-pagination-status')).toHaveText('1–30 de 33');
 	});
