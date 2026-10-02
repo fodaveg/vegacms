@@ -1084,8 +1084,9 @@ etiquetas se crean en su propio listado antes de usarlas: el campo de relación 
 una entrada no deja crearlas.
 
 **Formulario de contacto.** `messages` es la bandeja: `name` (text, obligatorio, máx. 200),
-`email` (email, obligatorio), `message` (text, obligatorio, máx. 5000), `read` (bool) y `created`
-(autodate). El visitante crea el mensaje SIN SESIÓN desde el formulario del sitio; listar, ver,
+`email` (email, obligatorio), `message` (text, obligatorio, máx. 5000), `read` (bool),
+`notifyState` (text oculto, máx. 20: lo escribe solo el hook del aviso por correo, ver
+`docs/CONFIG.md`) y `created` (autodate). El visitante crea el mensaje SIN SESIÓN desde el formulario del sitio; listar, ver,
 editar y borrar es solo de editores (`@request.auth.collectionName = "vega_editors"`). La regla
 de creación pública es `CONTACT_CREATE_RULE`:
 
