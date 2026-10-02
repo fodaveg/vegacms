@@ -43,19 +43,21 @@
 
 import { VegaError } from '$lib/backend/errors';
 import type { VegaAppContext } from '$lib/app-context';
-import { MEDIA_FILE_FIELD } from './media-item';
 import {
 	validateMediaFile,
 	type MediaFileFieldSchema,
 	type MediaFileRejectionReason
 } from './media-upload';
 import {
-	isShrinkableType,
-	shrinkImage,
-	type ShrinkKeptReason,
-	type ShrinkOutcome
-} from './shrink-image';
+	mediaUploadErrorMessage,
+	uploadMediaFile,
+	type MediaUploadShrink,
+	type ShrinkFn
+} from './media-upload-file';
+import { isShrinkableType, shrinkImage } from './shrink-image';
 import { browserShrinkDeps } from './shrink-image-browser';
+
+export type { MediaUploadShrink, ShrinkFn } from './media-upload-file';
 
 export type MediaUploadItemStatus =
 	| { kind: 'pending' }
@@ -63,11 +65,6 @@ export type MediaUploadItemStatus =
 	| { kind: 'done' }
 	| { kind: 'rejected'; reason: MediaFileRejectionReason }
 	| { kind: 'error'; message: string };
-
-/** Qué pasó con el paso de reducir en UN ítem (solo se rellena si se redujo o se intentó). */
-export type MediaUploadShrink =
-	| { kind: 'shrunk'; fromBytes: number; toBytes: number }
-	| { kind: 'original'; why: ShrinkKeptReason };
 
 export interface MediaUploadItem {
 	/** Clave estable del ítem DENTRO de este lote (nunca la `RecordId` real: el fichero puede no
@@ -93,9 +90,7 @@ export interface MediaUploadOptions {
 	keepOriginal?: boolean;
 }
 
-/** Función que reduce una imagen (inyectable en tests; por defecto, la del navegador). */
-export type ShrinkFn = (file: File, options: { maxBytes?: number }) => Promise<ShrinkOutcome>;
-
+/** La reducción del navegador (`shrink-image-browser`); los tests inyectan otra. */
 const defaultShrink: ShrinkFn = (file, options) => shrinkImage(file, browserShrinkDeps, options);
 
 export interface MediaUploadState {
@@ -135,12 +130,6 @@ export interface MediaUploadState {
  *  intentando el resto de ficheros no tiene sentido. */
 function abortsBatch(err: VegaError): boolean {
 	return err.kind === 'network' || err.kind === 'forbidden';
-}
-
-/** Mensaje legible de un `VegaError` de `create()` para el estado por-fichero: el de validación
- *  del propio campo `file` (`fieldErrors.file`) si lo trae, si no el `message` general del error. */
-function messageFor(err: VegaError): string {
-	return err.fieldErrors?.[MEDIA_FILE_FIELD]?.message ?? err.message;
 }
 
 /** Construye un `MediaUploadState` vacío (sin lote todavía). `shrink` se inyecta en los tests. */
@@ -238,29 +227,18 @@ export function createMediaUploadState(shrink: ShrinkFn = defaultShrink): MediaU
 			const item = batch[i];
 			setStatus(item.id, { kind: 'uploading' });
 			try {
-				let toUpload = files[i];
-				if (canShrink(toUpload)) {
-					// De una en una (nunca el lote entero en memoria). `shrinkImage` no lanza.
-					const outcome = await shrink(toUpload, { maxBytes: schema.maxSizeBytes });
-					if (outcome.kind === 'shrunk') {
-						toUpload = outcome.file;
-						setShrink(item.id, {
-							kind: 'shrunk',
-							fromBytes: outcome.fromBytes,
-							toBytes: outcome.toBytes
-						});
-					} else if (outcome.kind === 'kept-original') {
-						setShrink(item.id, { kind: 'original', why: outcome.reason });
-					}
-				}
-				// Validación definitiva sobre lo que de verdad se sube (tope tras reducir).
-				const rejection = validateMediaFile(schema, toUpload);
-				if (rejection !== null) {
-					setStatus(item.id, { kind: 'rejected', reason: rejection });
+				// De una en una (nunca el lote entero en memoria): reducir si procede, validar el tope
+				// sobre lo que de verdad se sube y crear (`uploadMediaFile`, el mismo camino que la
+				// copia a Medios desde un campo `file`).
+				const result = await uploadMediaFile(ctx.port, schema, files[i], {
+					shrink: keepOriginal ? null : shrink
+				});
+				if (result.shrink) setShrink(item.id, result.shrink);
+				if (result.kind === 'rejected') {
+					setStatus(item.id, { kind: 'rejected', reason: result.reason });
 					failed++;
 					continue;
 				}
-				await ctx.port.create('vega_media', { [MEDIA_FILE_FIELD]: toUpload });
 				setStatus(item.id, { kind: 'done' });
 				uploaded++;
 				onUploaded();
@@ -277,7 +255,7 @@ export function createMediaUploadState(shrink: ShrinkFn = defaultShrink): MediaU
 					break;
 				}
 
-				setStatus(item.id, { kind: 'error', message: messageFor(vegaErr) });
+				setStatus(item.id, { kind: 'error', message: mediaUploadErrorMessage(vegaErr) });
 				failed++;
 
 				if (abortsBatch(vegaErr)) {
