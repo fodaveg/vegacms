@@ -31,13 +31,26 @@
 	 * sitio): «Marcar como publicada». Y si el proyecto tiene reconstrucción configurada
 	 * (`ctx.port.buildApiUrl`), el mensaje de éxito avisa de que se verá en el sitio tras la próxima
 	 * publicación.
+	 *
+	 * **«Programar…»** (lote 12, lámina 2, pieza 2.11): el mismo cableado que `RecordForm` junto al
+	 * campo Estado. `describeScheduleControl` decide con lo que el servidor confirmó si va el botón
+	 * («Programar…» en un borrador; «Cambiar fecha…» si ya hay fecha vigente o vencida) o nada
+	 * (publicada, sin permiso, sin `publishAtField`, servidor comprobado SIN `vegaschedule`). Abre el
+	 * mismo `ScheduleDialog`; confirmar escribe por el MISMO `port.update` de arriba, solo
+	 * `statusField: 'draft'` + `publishAtField`, con la versión esperada. La etiqueta pasa por
+	 * `describeStatusBadge` (la misma píldora que el formulario y la tabla), así que una página
+	 * programada dice «Programada · fecha». Un fallo al guardar deja el diálogo abierto con el
+	 * motivo (contrato de `ScheduleDialog`); un conflicto de versión lo cierra y el control adopta el
+	 * registro del servidor, igual que al cambiar el estado.
 	 */
 	import { tick, untrack } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
 	import type { VegaRecord } from '$lib/backend/types';
 	import { isConflictError, VegaError } from '$lib/backend/errors';
 	import { recordVersion } from '$lib/backend/version';
-	import { classifyStatusBadge } from '$lib/list/cell';
+	import ScheduleDialog from '$lib/form/ScheduleDialog.svelte';
+	import { describeScheduleControl, formatScheduleMoment } from '$lib/form/schedule';
+	import { describeStatusBadge } from '$lib/list/cell';
 	import type { ResolvedContentType } from '$lib/model/types';
 	import Icon from '$lib/icons/Icon.svelte';
 
@@ -81,12 +94,80 @@
 	const statusField = $derived(type.statusField);
 	const canEdit = $derived(type.permissions.update && !type.readonly);
 
-	const tag = $derived.by(() => {
-		if (statusField === null) return null;
-		const raw = confirmed.values[statusField];
-		if (typeof raw !== 'string' || raw === '') return null;
-		return { raw, label: type.statusLabels?.[raw] ?? raw, kind: classifyStatusBadge(raw) };
+	/** ¿Cumple el servidor «Publicar el»? (`ContentModel.scheduledPublishing`, como en `RecordForm`). */
+	const scheduling = $derived(ctx.model.scheduledPublishing ?? 'unknown');
+
+	/** La misma píldora que la cabecera del formulario y la tabla (`describeStatusBadge`): con
+	 *  `publishAtField`, un borrador con fecha dice «Programada · fecha» o «no se publicó». */
+	const tag = $derived(describeStatusBadge(type, confirmed.values, scheduling, ctx.locale, ctx.t));
+
+	// ————— «Programar…» (ver cabecera): mismo cableado que junto al campo Estado del formulario —————
+
+	/** Botón de programar o nada, decidido sobre el registro que el servidor confirmó. */
+	const scheduleControl = $derived(
+		describeScheduleControl(type, confirmed.values, scheduling, !canEdit)
+	);
+	let scheduleOpen = $state(false);
+	/** Fecha que se enseña al abrir: la vigente si ya está programada; si no, el diálogo propone. */
+	const scheduleAt = $derived.by(() => {
+		const field = type.publishAtField;
+		const value = field ? confirmed.values[field] : null;
+		return scheduleControl.kind === 'scheduled' && typeof value === 'string' ? value : null;
 	});
+
+	/** Abre el diálogo de «Programar…» / «Cambiar fecha…». */
+	function openSchedule(): void {
+		if (phase === 'changing') return;
+		scheduleOpen = true;
+	}
+
+	/** Cierra el diálogo. Si el botón que lo abrió ya no está (un conflicto dejó la página publicada),
+	 *  el foco cae en el botón de estado, como tras cancelar la confirmación en línea. */
+	async function closeSchedule(): Promise<void> {
+		scheduleOpen = false;
+		await tick();
+		if (scheduleControl.kind === 'none') actionEl?.focus();
+	}
+
+	/**
+	 * Confirmar el diálogo: deja la página en borrador con la fecha elegida, por el mismo
+	 * `port.update` que el cambio de estado. Devuelve `null` para cerrar el diálogo (guardó, o el
+	 * conflicto toma el relevo en el control) o el motivo si debe quedarse abierto (contrato de
+	 * `ScheduleDialog`). Un fallo no va al feedback global: el motivo se lee en el diálogo.
+	 */
+	async function submitSchedule(iso: string): Promise<string | null> {
+		const publishAtField = type.publishAtField;
+		if (statusField === null || !publishAtField) return null;
+		try {
+			const saved = await ctx.port.update(
+				type.name,
+				confirmed.id,
+				{ [statusField]: 'draft', [publishAtField]: iso },
+				{ expectedVersion: recordVersion(confirmed) }
+			);
+			confirmed = saved;
+			phase = 'idle';
+			const when = formatScheduleMoment(Date.parse(iso), ctx.locale, ctx.t);
+			ctx.feedback.toast(ctx.t('editor.schedule.savedNote', { when }), { kind: 'success' });
+			return null;
+		} catch (err) {
+			const vegaErr =
+				err instanceof VegaError ? err : VegaError.backend('No se pudo programar', err);
+			if (isConflictError(vegaErr)) {
+				// Como al cambiar el estado: la etiqueta pasa a la verdad del servidor y se pide revisar.
+				confirmed = vegaErr.serverRecord;
+				errorTarget = 'draft';
+				errorKind = 'conflict';
+				errorDetail = '';
+				phase = 'error';
+				// Que el botón de programar se haya ido YA cuando el diálogo cierre: así `AdminDialog` no
+				// devuelve el foco a un nodo a punto de desaparecer, y `closeSchedule` lo lleva al de estado.
+				await tick();
+				return null;
+			}
+			return vegaErr.message;
+		}
+	}
 
 	/** Lo que hace el botón: pasar a borrador si está publicada; publicar en cualquier otro caso. */
 	const target = $derived<Target>(tag?.raw === 'published' ? 'draft' : 'published');
@@ -210,6 +291,22 @@
 				{actionLabel}
 			</button>
 
+			<!-- «Programar…» / «Cambiar fecha…» (ver cabecera): solo en un borrador y si el servidor
+			     puede cumplir la fecha. Mismo rótulo que junto al campo Estado del formulario. -->
+			{#if scheduleControl.kind !== 'none'}
+				<button
+					type="button"
+					class="vega-visual-publish-btn vega-visual-publish-schedule"
+					aria-disabled={phase === 'changing' ? 'true' : undefined}
+					data-schedule-kind={scheduleControl.kind}
+					onclick={openSchedule}
+				>
+					{ctx.t(
+						scheduleControl.kind === 'draft' ? 'editor.schedule.open' : 'editor.schedule.change'
+					)}
+				</button>
+			{/if}
+
 			{#if phase === 'error'}
 				<span class="vega-visual-publish-error" role="alert" title={errorDetail || undefined}>
 					<Icon id="warning" size={14} />
@@ -265,6 +362,20 @@
 			{/if}
 		{/if}
 	</span>
+
+	{#if canEdit}
+		<!-- El mismo diálogo que el formulario; al cerrar el foco vuelve al botón que lo abrió, y si ese
+		     botón ya no está (la página dejó de ser borrador), al botón de estado. -->
+		<ScheduleDialog
+			open={scheduleOpen}
+			{name}
+			at={scheduleAt}
+			unconfirmed={scheduling === 'unknown'}
+			fallbackFocusEl={actionEl ?? null}
+			onSubmit={submitSchedule}
+			onClose={() => void closeSchedule()}
+		/>
+	{/if}
 {/if}
 
 <style>
@@ -316,6 +427,12 @@
 	.vega-visual-publish-tag[data-status-kind='other'] {
 		color: var(--info);
 		background: var(--info-soft);
+	}
+
+	/* Programada: mismos tokens que `.vega-editor-tag` del formulario. */
+	.vega-visual-publish-tag[data-status-kind='scheduled'] {
+		color: var(--accent-text);
+		background: var(--accent-soft);
 	}
 
 	.vega-visual-publish-tag[data-status-kind='overdue'] {
