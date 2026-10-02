@@ -144,9 +144,24 @@
 	 *
 	 * **Por debajo de 900 px no se monta el lienzo, no solo se oculta**: la anchura se mide con
 	 * `matchMedia` y el marco ni siquiera existe, así que en un móvil no se pide token ni se
-	 * descarga el sitio del cliente entero para acabar enseñando un aviso de «no cabe». Ocultarlo
-	 * por CSS habría dejado esa carga en marcha, invisible. Si la ventana se ensancha, se monta y
-	 * se pide el token entonces; si se estrecha, se para el puente y se cancela la renovación.
+	 * descarga el sitio del cliente entero. Ocultarlo por CSS habría dejado esa carga en marcha,
+	 * invisible. Si la ventana se ensancha, se monta y se pide el token entonces; si se estrecha, se
+	 * para el puente y se cancela la renovación.
+	 *
+	 * **Y lo que SÍ hay por debajo de 900 px es el modo «solo textos» (Lote 12, lámina 8)**: hasta
+	 * ese lote esta rama era una pantalla de salida («no cabe, vuelve al formulario»). Ahora la
+	 * rejilla se queda con UNA celda, `VisualInspector.svelte` en `mode="texts"`: las secciones de la
+	 * página en su orden, cada una con sus campos de texto y su «Guardar» (`BlockEditor` con
+	 * `textsOnly`, ver `texts-mode.ts`). La decisión de qué es «estrecho» sigue siendo UNA,
+	 * `canvasActive`: la misma que desmonta el lienzo elige el modo del inspector — nunca un segundo
+	 * `matchMedia` ni un `@media` paralelo con el mismo número. El inspector se monta en los DOS
+	 * anchos y solo cambia de `mode`: sus `BlockEditor` son las mismas instancias, así que un
+	 * borrador a medio escribir sobrevive al cambio de ancho (ver su cabecera, "Dos modos, un solo
+	 * `{#each}`"). Guardar desde este modo es el mismo camino que desde la ficha ancha (`onSubmit` →
+	 * `port.update` con `expectedVersion`, conflictos incluidos); lo único que `handleContentSaved`
+	 * NO hace sin lienzo es pedir el refresco — no hay marco que refrescar, y pedir un token para
+	 * nada volvería a arrancar la cadena de renovaciones en un móvil. Al ensanchar, `applyWidth`
+	 * pide el token y el lienzo nace ya con lo guardado.
 	 *
 	 * El cliente del puente se crea UNA VEZ, cuando llega el PRIMER token (necesita su `previewUrl`
 	 * para fijar el origen contra el que valida, `bridge-client.ts#originOf`): las renovaciones
@@ -604,6 +619,10 @@
 	 *  refresco no cambia ni una coma, esta función solo le añade el reloj por delante. */
 	function handleContentSaved(): void {
 		savedAt = new Date();
+		// Sin lienzo (modo «solo textos», ver cabecera) no hay marco que refrescar: pedir un token
+		// aquí lo descargaría para nadie y rearmaría su renovación en un móvil. Al ensanchar,
+		// `applyWidth(true)` pide uno nuevo y el lienzo nace ya con lo guardado.
+		if (!canvasActive) return;
 		scheduleCanvasRefresh();
 	}
 
@@ -1240,12 +1259,19 @@
 		{/snippet}
 	</EditTopBar>
 
-	{#if canvasActive}
-		<div
-			class="vega-visual-grid vega-visual-grid--tree vega-visual-grid--inspector"
-			style:--vega-visual-tree-w="{columnWidths.tree}px"
-			style:--vega-visual-inspector-w="{columnWidths.inspector}px"
-		>
+	<!-- La rejilla existe en los DOS anchos; lo que cambia con `canvasActive` es cuántas celdas
+	     tiene (ver cabecera, "lo que SÍ hay por debajo de 900 px"). Las clases de columnas van
+	     condicionadas al lienzo: sin él, `.vega-visual-grid` es una sola columna y el inspector en
+	     modo «solo textos» la ocupa entera. -->
+	<div
+		class="vega-visual-grid"
+		class:vega-visual-grid--tree={canvasActive}
+		class:vega-visual-grid--inspector={canvasActive}
+		class:vega-visual-grid--texts={!canvasActive}
+		style:--vega-visual-tree-w="{columnWidths.tree}px"
+		style:--vega-visual-inspector-w="{columnWidths.inspector}px"
+	>
+		{#if canvasActive}
 			<!-- Tres columnas, mismo patrón que `.vega-editor-grid--rail`/`--aside` de
 			     `RecordForm.svelte` (ver su cabecera): árbol | lienzo | inspector. Las dos columnas
 			     laterales SIEMPRE están presentes en esta rama (a diferencia del raíl/aside de
@@ -1344,26 +1370,20 @@
 				onResize={setInspectorWidth}
 				onDragChange={setResizing}
 			/>
-			<VisualInspector
-				bind:this={inspectorRef}
-				{blocks}
-				selectedId={selectedBlockId}
-				onBlockSaved={handleContentSaved}
-			/>
-		</div>
-	{:else}
-		<!-- Responsive (ver cabecera): por debajo de 900px (mismo punto de corte en el que
-	     `PreviewPanel.svelte` se retira entera) no tiene sitio un lienzo junto a sus futuros
-	     paneles. Degradación HONESTA y COMPLETA: el lienzo no se oculta, no se monta — así no se
-	     descarga el sitio del cliente para acabar enseñando este aviso. -->
-		<div class="vega-visual-narrow">
-			<p class="vega-visual-narrow-title">{ctx.t('editor.visual.tooNarrow.title')}</p>
-			<p>{ctx.t('editor.visual.tooNarrow.body')}</p>
-			<button type="button" onclick={() => ctx.nav.toRecord(type.name, record.id)}>
-				{ctx.t('editor.visual.back')}
-			</button>
-		</div>
-	{/if}
+		{/if}
+		<!-- FUERA del `{#if canvasActive}` a propósito (ver cabecera): es la misma instancia en los
+		     dos anchos, solo cambia de `mode`. Por debajo de 900px (mismo punto de corte en el que
+		     `PreviewPanel.svelte` se retira entera) es el modo «solo textos»; el lienzo no se
+		     oculta, no se monta — así no se descarga el sitio del cliente en un móvil. -->
+		<VisualInspector
+			bind:this={inspectorRef}
+			{blocks}
+			selectedId={selectedBlockId}
+			mode={canvasActive ? 'inspector' : 'texts'}
+			onBlockSaved={handleContentSaved}
+			onBack={() => ctx.nav.toRecord(type.name, record.id)}
+		/>
+	</div>
 
 	<!-- Panel de ayuda de atajos (ver cabecera, "Atajos de teclado" + `handleVisualKeydown`):
 	     diálogo modal con foco atrapado (mismo patrón que `ExportDialog.svelte`) — `Esc` lo cierra
@@ -1924,42 +1944,12 @@
 		border-color: var(--line-strong);
 	}
 
-	/* Aviso de pantalla estrecha. NO lleva `@media` ni `display: none` de partida: quien decide si
-	   existe es `matchMedia` en el script (ver cabecera), porque el punto de corte gobierna si el
-	   lienzo se MONTA, no solo si se ve. Duplicar aquí la condición dejaría dos dueños del mismo
-	   umbral y la puerta abierta a que solo uno de los dos cambie. */
-	.vega-visual-narrow {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 0.75rem;
-		max-width: 32rem;
-		margin: 0 calc(var(--vega-space-gutter) * 1.5) calc(var(--vega-space-gutter) * 1.25);
-	}
-
-	.vega-visual-narrow-title {
-		margin: 0;
-		font-size: 1.1rem;
-		font-weight: 650;
-		color: var(--ink-hi);
-	}
-
-	.vega-visual-narrow p {
-		margin: 0;
-	}
-
-	.vega-visual-narrow button {
-		padding: 0.45rem 0.9rem;
-		min-height: 44px;
-		border: 1px solid var(--line);
-		border-radius: var(--r);
-		background: var(--surface-2);
-		color: var(--ink);
-		font: inherit;
-		cursor: pointer;
-	}
-
-	.vega-visual-narrow button:hover {
-		border-color: var(--line-strong);
+	/* Modo «solo textos» (ver cabecera). NO lleva `@media`: quien decide si la rejilla está en este
+	   modo es `matchMedia` en el script (`canvasActive`), porque el mismo punto de corte gobierna si
+	   el lienzo se MONTA. Duplicar aquí la condición dejaría dos dueños del mismo umbral y la puerta
+	   abierta a que solo uno de los dos cambie. El padding superior es el de la columna de la lámina
+	   (`.vega-visual-texts`, `.vega-editor-grid`): sin lienzo no hay barra de lienzo que lo aporte. */
+	.vega-visual-grid--texts {
+		padding-top: calc(var(--vega-space-gutter) * 1.25);
 	}
 </style>

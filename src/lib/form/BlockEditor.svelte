@@ -25,6 +25,24 @@
 	 * borrador. Mismo camino de escritura que siempre (`onSubmit` → `port.update`): el editor visual
 	 * monta esta MISMA ficha, no un segundo escritor. Un reorden (cambio solo estructural, ver el
 	 * `$effect` de más abajo) no cuenta como edición ajena.
+	 *
+	 * **Modo «solo textos»** (`textsOnly`, Lote 12, lámina 8; lo pide `VisualInspector.svelte` por
+	 * debajo de los 900 px del lienzo): la ficha pinta SOLO los campos de texto (`texts-mode.ts`:
+	 * `text`/`textarea`) y cuenta y nombra el resto en una línea («Esta sección tiene 2 campos más
+	 * (Imágenes, Enlace)…»). Es una PRESENTACIÓN del mismo estado, no otro formulario: `current`/
+	 * `dataCurrent`, el `dirty`, la validación, `handleSave` y el conflicto son los de siempre, así
+	 * que guardar desde el móvil escribe por el MISMO `onSubmit` → `port.update` con la MISMA
+	 * `expectedVersion`. La prop es REACTIVA a propósito (nunca `untrack`): la pantalla la cambia al
+	 * ensanchar o estrechar la ventana sin remontar la ficha, y el borrador a medio escribir
+	 * sobrevive al cambio porque es la misma instancia. Lo que esta presentación no puede enseñar es
+	 * un error de validación de un campo que no pinta (un `required` vacío fuera de los textos):
+	 * `handleSave` se queda igual (no guarda con errores), y la ficha lo DICE en su banner
+	 * (`hiddenErrorLabels`) en vez de dejar el botón mudo.
+	 *
+	 * **`locked`** (sin permiso de editar la colección hija, `permissions.update`): campos
+	 * deshabilitados y SIN botón «Guardar» — a diferencia de `disabled`, que es el mutex temporal del
+	 * padre («clonando página») y deja el botón visible pero inerte. Son dos motivos distintos para
+	 * no poder escribir, y el autor merece distinguir «ahora no» de «tú no».
 	 */
 	import { tick, untrack } from 'svelte';
 	import type {
@@ -40,6 +58,8 @@
 	import { recordVersion, type RecordVersion } from '$lib/backend/version';
 	import { getVegaContext } from '$lib/app-context';
 	import { settingsRoute } from '$lib/nav/routes';
+	import { fieldDisplayLabel } from '$lib/model/default-labels';
+	import { isTextWidget } from '$lib/visual/texts-mode';
 	import {
 		readBlockData,
 		resolveBlockDataFields,
@@ -88,6 +108,10 @@
 		onDraftChange?: (record: PreviewDraftRecord) => void;
 		disabled?: boolean;
 		onBusyChange?: (busy: boolean) => void;
+		/** Modo «solo textos» (ver cabecera): pinta solo `text`/`textarea` y nombra el resto. */
+		textsOnly?: boolean;
+		/** Sin permiso de editar (ver cabecera): campos deshabilitados y sin «Guardar». */
+		locked?: boolean;
 	}
 
 	let {
@@ -103,7 +127,9 @@
 		onDirtyChange,
 		onDraftChange = () => {},
 		disabled = false,
-		onBusyChange = () => {}
+		onBusyChange = () => {},
+		textsOnly = false,
+		locked = false
 	}: Props = $props();
 
 	const ctx = getVegaContext();
@@ -206,7 +232,40 @@
 	const dirty = $derived(
 		typed ? blockType !== null && !invalidData && (recordDirty || dataDirty) : recordDirty
 	);
-	const inert = $derived(disabled || saving || invalidData);
+	const inert = $derived(disabled || saving || invalidData || locked);
+
+	// ————— Modo «solo textos» (ver cabecera) —————
+
+	/** Un campo tipado cuenta como texto si existe de verdad y su widget es de texto; una columna
+	 *  declarada que falta (`missing-record`) no se puede editar en ningún modo, así que va al resto. */
+	function isTypedText(item: TypedField): boolean {
+		return item.kind !== 'missing-record' && isTextWidget(item.field.widget);
+	}
+
+	/** Lo que la ficha PINTA: en modo normal, todo; en «solo textos», solo los textos. */
+	const visibleTypedFields = $derived(textsOnly ? typedFields.filter(isTypedText) : typedFields);
+	const visibleLegacyFields = $derived(
+		textsOnly ? legacyFields.filter((field) => isTextWidget(field.widget)) : legacyFields
+	);
+	/** Lo que «solo textos» cuenta y nombra sin editar (vacío fuera de ese modo). */
+	const restLabels = $derived.by<string[]>(() => {
+		if (!textsOnly) return [];
+		if (typed) {
+			return typedFields
+				.filter((item) => !isTypedText(item))
+				.map((item) =>
+					item.kind === 'missing-record'
+						? item.declaration.label
+						: fieldDisplayLabel(item.field, ctx.t)
+				);
+		}
+		return legacyFields
+			.filter((field) => !isTextWidget(field.widget))
+			.map((field) => fieldDisplayLabel(field, ctx.t));
+	});
+	const hasTexts = $derived(
+		!textsOnly || (typed ? visibleTypedFields.length > 0 : visibleLegacyFields.length > 0)
+	);
 
 	const errors = $derived.by<FieldErrorsView>(() => {
 		const dataColumnError: TranslatedError | null =
@@ -215,6 +274,29 @@
 			byField: { ...clientErrors.byField, ...backendErrors.byField },
 			record: backendErrors.record ?? dataColumnError ?? clientErrors.record
 		};
+	});
+
+	/** Errores de campos que «solo textos» NO pinta (ver cabecera): se dicen en el banner, con la
+	 *  etiqueta de cada campo, para que el botón «Guardar» nunca falle en silencio. */
+	const hiddenErrorLabels = $derived.by<string[]>(() => {
+		if (!textsOnly) return [];
+		const visibleNames = new Set(
+			typed
+				? visibleTypedFields.flatMap((item) =>
+						item.kind === 'missing-record' ? [] : [item.field.name]
+					)
+				: visibleLegacyFields.map((field) => field.name)
+		);
+		const labelOf = (fieldName: string): string => {
+			const field = typed
+				? typedFields.flatMap((item) => (item.kind === 'missing-record' ? [] : [item.field]))
+				: legacyFields;
+			const match = field.find((f) => f.name === fieldName);
+			return match ? fieldDisplayLabel(match, ctx.t) : fieldName;
+		};
+		return Object.keys(errors.byField)
+			.filter((fieldName) => !visibleNames.has(fieldName))
+			.map(labelOf);
 	});
 
 	$effect(() => {
@@ -493,6 +575,13 @@
 		{#if errors.record}
 			<p class="vega-block-banner" role="alert">{fieldErrorMessage(ctx.t, errors.record)}</p>
 		{/if}
+		{#if hiddenErrorLabels.length > 0}
+			<!-- «Solo textos» (ver cabecera): el error vive en un campo que esta presentación no
+			     pinta, así que se dice aquí con su nombre en vez de dejar el botón mudo. -->
+			<p class="vega-block-banner" role="alert">
+				{ctx.t('editor.visual.texts.hiddenErrors', { fields: hiddenErrorLabels.join(', ') })}
+			</p>
+		{/if}
 
 		{#if invalidData && dataField !== null}
 			<section class="vega-block-readonly vega-block-readonly--danger" role="alert">
@@ -504,8 +593,12 @@
 			</section>
 		{/if}
 
-		{#if typed}
-			{#each typedFields as item (item.kind === 'missing-record' ? item.declaration.name : item.field.name)}
+		{#if !hasTexts}
+			<!-- «Solo textos» sobre una sección sin ningún texto (lámina 8.2): se lista igual, en su
+			     sitio, para que el orden de la página se reconozca; sin campos y sin «Guardar». -->
+			<p class="vega-block-rest">{ctx.t('editor.visual.texts.none')}</p>
+		{:else if typed}
+			{#each visibleTypedFields as item (item.kind === 'missing-record' ? item.declaration.name : item.field.name)}
 				{#if item.kind === 'missing-record'}
 					<div
 						class="vega-block-missing-field"
@@ -554,7 +647,7 @@
 				{/if}
 			{/each}
 		{:else}
-			{#each legacyFields as field (field.name)}
+			{#each visibleLegacyFields as field (field.name)}
 				<FieldRow
 					{field}
 					value={current[field.name]}
@@ -567,16 +660,31 @@
 			{/each}
 		{/if}
 
-		<div class="vega-block-actions">
-			<button
-				type="button"
-				class="vega-block-save-button"
-				disabled={inert || !dirty || (typed && blockType === null)}
-				onclick={handleSave}
-			>
-				{saving ? ctx.t('editor.saving') : ctx.t('editor.save')}
-			</button>
-		</div>
+		{#if hasTexts && restLabels.length > 0}
+			<!-- «Solo textos» (lámina 8.1): se dice que hay más, con sus nombres, para que nadie crea
+			     que la sección es solo esto. -->
+			<p class="vega-block-rest">
+				{ctx.t(
+					restLabels.length === 1
+						? 'editor.visual.texts.rest.one'
+						: 'editor.visual.texts.rest.many',
+					{ count: restLabels.length, fields: restLabels.join(', ') }
+				)}
+			</p>
+		{/if}
+
+		{#if hasTexts && !locked}
+			<div class="vega-block-actions">
+				<button
+					type="button"
+					class="vega-block-save-button"
+					disabled={inert || !dirty || (typed && blockType === null)}
+					onclick={handleSave}
+				>
+					{saving ? ctx.t('editor.saving') : ctx.t('editor.save')}
+				</button>
+			</div>
+		{/if}
 	{/if}
 </div>
 
@@ -676,6 +784,15 @@
 	.vega-block-missing-field p {
 		margin: 0.3rem 0 0;
 		color: var(--warning);
+		font-size: 0.82em;
+		overflow-wrap: anywhere;
+	}
+
+	/* Lo que «solo textos» no enseña (lámina 8, `.vega-visual-texts-rest`): tipografía de
+	   `.vega-field-help` (`FieldRow.svelte`), sin caja — es una nota, no un aviso. */
+	.vega-block-rest {
+		margin: 0;
+		color: var(--ink-2);
 		font-size: 0.82em;
 		overflow-wrap: anywhere;
 	}

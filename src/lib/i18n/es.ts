@@ -362,9 +362,24 @@ export const es = {
 		'El sitio conectado no anuncia edición visual. Hay que instalarle el puente y declararlo en su discovery.',
 	'editor.visual.unavailable.noBlocks':
 		'El tipo de contenido «{label}» no se compone de bloques, así que no hay nada que seleccionar en el lienzo.',
-	'editor.visual.tooNarrow.title': 'El editor visual necesita una pantalla más ancha',
-	'editor.visual.tooNarrow.body':
-		'Por debajo de 900 px no cabe el lienzo junto a sus paneles. El formulario de siempre sí funciona aquí.',
+	// Modo «solo textos» (Lote 12, lámina 8; `VisualInspector.svelte` con `mode="texts"` y
+	// `BlockEditor.svelte` con `textsOnly`): por debajo de los 900 px del lienzo la pantalla deja
+	// de ser una salida y enseña las secciones con solo sus campos de texto (`texts-mode.ts`). Los
+	// «900 px» del texto son el mismo punto de corte que `NARROW_QUERY` en `VisualEditorScreen`.
+	'editor.visual.texts.title': 'Solo textos',
+	'editor.visual.texts.intro':
+		'Aquí puedes corregir los textos de cada sección. Para ver la página, mover secciones o cambiar imágenes hace falta una ventana de 900 px o más.',
+	'editor.visual.texts.rest.one':
+		'Esta sección tiene 1 campo más ({fields}) que se edita en una pantalla ancha o en el formulario.',
+	'editor.visual.texts.rest.many':
+		'Esta sección tiene {count} campos más ({fields}) que se editan en una pantalla ancha o en el formulario.',
+	'editor.visual.texts.none':
+		'Esta sección no tiene textos. Se edita en una pantalla ancha o en el formulario.',
+	'editor.visual.texts.hiddenErrors':
+		'No se pudo guardar: hay un error en {fields}, que aquí no se edita. Corrígelo en una pantalla ancha o en el formulario.',
+	'editor.visual.texts.empty.title': 'Esta página todavía no tiene secciones',
+	'editor.visual.texts.empty.body':
+		'Para añadir la primera hace falta una ventana de 900 px o más, o el formulario.',
 	// ————— Contornos de selección (`VisualOverlay.svelte`): estados del propio lienzo, no de
 	// la barra superior — ver la cabecera del componente para el porqué de cada uno.
 	'editor.visual.overlay.waiting': 'Esperando a que la página describa sus bloques…',
