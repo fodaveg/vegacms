@@ -130,4 +130,19 @@
 		height: 1.6rem;
 		padding: 0 !important;
 	}
+
+	/* Objetivo táctil de 44×44 (`scripts/check-touch-targets.mjs`, mismo patrón que `Topbar.svelte`):
+	   con puntero basto el cierre y «Reintentar» llegan a 44 px; con ratón nada cambia. */
+	@media (pointer: coarse) {
+		.vega-global-banner-dismiss {
+			width: 44px;
+			height: 44px;
+			min-width: 44px;
+			min-height: 44px;
+		}
+
+		.vega-global-banner-actions button {
+			min-height: 44px;
+		}
+	}
 </style>
