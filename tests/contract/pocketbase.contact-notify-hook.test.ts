@@ -17,7 +17,7 @@ import { afterEach, beforeAll, afterAll, describe, expect, test } from 'vitest';
 import net from 'node:net';
 import path from 'node:path';
 import { isPocketBaseBinaryAvailable } from './pb-harness/binary';
-import { startSmtpSink, type SmtpSink } from './pb-harness/smtp-sink';
+import { startSmtpSink, startTlsSmtpSink, type SmtpSink } from './pb-harness/smtp-sink';
 import {
 	ADMIN_EMAIL,
 	ADMIN_PASSWORD,
@@ -33,6 +33,9 @@ const AVAILABLE = isPocketBaseBinaryAvailable();
 const HOOKS_DIR = path.join(import.meta.dirname, '..', '..', 'infra', 'production', 'pb_hooks');
 const TO = 'editor@example.test';
 const CRON = 'vega-contact-notify';
+// Opt-in tras acreditar que el proceso PB admite SSL_CERT_FILE: Linux o Go >= 1.27 con override.
+// El PB local Darwin/Go 1.26 usa Keychain; no se instala la CA ni se rebaja la verificación.
+const TLS_TRUST_ENV = process.env.VEGA_CONTACT_SMTP_TLS_TRUST_TEST === '1';
 
 describe.skipIf(!AVAILABLE)('pb_hooks de producto: aviso de mensajes de contacto', () => {
 	let sink: SmtpSink;
@@ -41,6 +44,7 @@ describe.skipIf(!AVAILABLE)('pb_hooks de producto: aviso de mensajes de contacto
 	let token = '';
 	/** Servidores TCP auxiliares de un test (SMTP que no contesta, que rechaza…). */
 	let extras: net.Server[] = [];
+	let tlsSinks: SmtpSink[] = [];
 
 	beforeAll(async () => {
 		sink = await startSmtpSink();
@@ -49,12 +53,18 @@ describe.skipIf(!AVAILABLE)('pb_hooks de producto: aviso de mensajes de contacto
 		await sink?.stop();
 	});
 	afterEach(async () => {
-		await server?.stop();
-		if (instance) destroyPocketBaseInstanceDir(instance);
-		server = instance = undefined;
-		sink.messages.length = 0;
-		for (const extra of extras) extra.close();
-		extras = [];
+		try {
+			await server?.stop();
+			if (instance) destroyPocketBaseInstanceDir(instance);
+			server = instance = undefined;
+			sink.messages.length = 0;
+			for (const extra of extras) extra.close();
+			extras = [];
+		} finally {
+			const owned = tlsSinks;
+			tlsSinks = [];
+			await Promise.all(owned.map((tlsSink) => tlsSink.stop()));
+		}
 	});
 
 	async function api(method: string, route: string, body?: object, auth = token) {
@@ -71,7 +81,12 @@ describe.skipIf(!AVAILABLE)('pb_hooks de producto: aviso de mensajes de contacto
 	}
 
 	/** Arranca PocketBase con el hook de producto, el entorno dado y el SMTP en `smtpPort`. */
-	async function start(env: Record<string, string>, smtpPort = sink.port, withMessages = true) {
+	async function start(
+		env: Record<string, string>,
+		smtpPort = sink.port,
+		withMessages = true,
+		smtp: { host?: string; tls?: boolean } = {}
+	) {
 		instance = createPocketBaseInstanceDir();
 		await createPocketBaseSuperuser(instance.dataDir);
 		server = await startPocketBaseServerOn(instance, { hooksDir: HOOKS_DIR, env });
@@ -97,11 +112,11 @@ describe.skipIf(!AVAILABLE)('pb_hooks de producto: aviso de mensajes de contacto
 				],
 				createRule: ''
 			});
-		await setSmtp(smtpPort);
+		await setSmtp(smtpPort, smtp);
 	}
-	const setSmtp = (port: number) =>
+	const setSmtp = (port: number, smtp: { host?: string; tls?: boolean } = {}) =>
 		api('PATCH', '/api/settings', {
-			smtp: { enabled: true, host: '127.0.0.1', port, tls: false },
+			smtp: { enabled: true, host: smtp.host ?? '127.0.0.1', port, tls: smtp.tls ?? false },
 			meta: { appName: 'Sitio de prueba', senderAddress: 'noreply@vega.test', senderName: 'Vega' }
 		});
 	/** Entradas del log de PocketBase de nivel ERROR (8) o superior. */
@@ -129,6 +144,17 @@ describe.skipIf(!AVAILABLE)('pb_hooks de producto: aviso de mensajes de contacto
 	const runCron = () => api('POST', `/api/crons/${CRON}`);
 	/** Margen para que un correo que NO debe llegar tuviera tiempo de hacerlo. */
 	const settle = () => new Promise((resolve) => setTimeout(resolve, 600));
+	const tlsSink = async () => {
+		const smtp = await startTlsSmtpSink();
+		tlsSinks.push(smtp);
+		return smtp;
+	};
+	/** Un fallo TLS no cambia el resultado ni el tiempo de respuesta del POST independiente. */
+	async function assertIndependentPost(n: number) {
+		const start = Date.now();
+		expect((await send(n)).status).toBe(200);
+		expect(Date.now() - start).toBeLessThan(3000);
+	}
 
 	/** Un SMTP que acepta la conexión, saluda y NO contesta nunca más. Cuenta las conexiones. */
 	async function startSilentSmtp() {
@@ -309,6 +335,61 @@ describe.skipIf(!AVAILABLE)('pb_hooks de producto: aviso de mensajes de contacto
 		await sink.waitForMessages(1);
 		await expect.poll(states, { timeout: 10_000 }).toEqual(['sent']);
 	}, 40_000);
+
+	test('(TLS CA) una CA no confiable impide el correo y conserva el mensaje pendiente', async () => {
+		const smtp = await tlsSink();
+		await start({ VEGA_CONTACT_NOTIFY_TO: TO }, smtp.port, true, { host: 'localhost', tls: true });
+		await assertIndependentPost(1);
+		expect(await states()).toEqual(['pending']);
+		expect(smtp.messages).toHaveLength(0);
+		expect((await runCron()).status).toBe(204);
+		await expect.poll(() => smtp.stats.rejected, { timeout: 10_000 }).toBeGreaterThanOrEqual(1);
+		await expect.poll(errorLogs, { timeout: 10_000 }).toBeGreaterThanOrEqual(1);
+		await expect.poll(states, { timeout: 10_000 }).toEqual(['pending']);
+		expect(smtp.stats.handshakes).toBe(0);
+		expect(smtp.messages).toHaveLength(0);
+		await assertIndependentPost(2);
+		expect(await totalMessages()).toBe(2);
+		expect(await states()).toEqual(['pending', 'pending']);
+	}, 40_000);
+
+	test.skipIf(!TLS_TRUST_ENV)(
+		'(TLS hostname y entrega) con CA solo en el proceso, rechaza la IP y entrega al hostname válido',
+		async () => {
+			const smtp = await tlsSink();
+			await start({ VEGA_CONTACT_NOTIFY_TO: TO, ...smtp.trustEnv }, smtp.port, true, {
+				host: '127.0.0.1',
+				tls: true
+			});
+			await assertIndependentPost(1);
+			expect(await states()).toEqual(['pending']);
+			expect(smtp.messages).toHaveLength(0);
+			expect((await runCron()).status).toBe(204);
+			await expect.poll(() => smtp.stats.rejected, { timeout: 10_000 }).toBeGreaterThanOrEqual(1);
+			await expect.poll(errorLogs, { timeout: 10_000 }).toBeGreaterThanOrEqual(1);
+			await expect.poll(states, { timeout: 10_000 }).toEqual(['pending']);
+			expect(smtp.stats.handshakes).toBe(0);
+			expect(smtp.messages).toHaveLength(0);
+
+			// La misma CA, certificado y registro: corregir SOLO el hostname permite reintentar.
+			expect((await setSmtp(smtp.port, { host: 'localhost', tls: true })).status).toBe(200);
+			expect((await runCron()).status).toBe(204);
+			const [mail] = await smtp.waitForMessages(1);
+			expect(mail).toContain(`To: ${TO}`);
+			await expect.poll(states, { timeout: 10_000 }).toEqual(['sent']);
+			expect(smtp.stats.handshakes).toBeGreaterThanOrEqual(1);
+			expect(
+				smtp.stats.protocols.every((protocol) => ['TLSv1.2', 'TLSv1.3'].includes(protocol))
+			).toBe(true);
+			await runCron();
+			await settle();
+			expect(smtp.messages).toHaveLength(1);
+			await assertIndependentPost(2);
+			expect(await totalMessages()).toBe(2);
+			expect((await states()).sort()).toEqual(['pending', 'sent']);
+		},
+		40_000
+	);
 
 	test('(d2) un SMTP que rechaza repitiendo datos del visitante no los deja en el log', async () => {
 		const rejecting = net.createServer((socket) => {
