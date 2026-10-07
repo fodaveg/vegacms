@@ -106,6 +106,88 @@ const headingInput = (page: Page) =>
 const statusGroup = (page: Page) => page.getByRole('group', { name: 'Estado de la página' });
 
 test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-origin', () => {
+	test('escritorio 1280 con ajustar conserva media queries y overlay al redimensionar', async ({
+		page
+	}, testInfo) => {
+		await page.setViewportSize({ width: 1440, height: 900 });
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+		await openVisualEditor(page, site, 'pagina_1');
+		await waitConnected(page, 3);
+		const iframe = page.locator('iframe.vega-visual-frame');
+		const frame = await (await iframe.elementHandle())!.contentFrame();
+		if (!frame) throw new Error('El marco conectado debe existir');
+		// CSS propio del sitio: el breakpoint responde al viewport del iframe, no al lienzo de Vega.
+		await frame.addStyleTag({
+			content:
+				'.block { --site-layout: desktop; } @media (max-width: 899px) { .block { --site-layout: narrow; } }'
+		});
+		const siteViewport = () =>
+			frame.evaluate(() => ({
+				width: window.innerWidth,
+				desktop: window.matchMedia('(min-width: 1000px)').matches,
+				layout: getComputedStyle(document.querySelector('.block')!)
+					.getPropertyValue('--site-layout')
+					.trim()
+			}));
+		const alignedOverlay = async () => {
+			const block = await frame.locator('[data-vega-block-id="seccion_1"]').boundingBox();
+			const overlay = await page
+				.locator('.vega-visual-overlay-box[data-vega-block-id="seccion_1"]')
+				.boundingBox();
+			if (!block || !overlay) return false;
+			return ['x', 'y', 'width', 'height'].every(
+				(key) =>
+					Math.abs(block[key as keyof typeof block] - overlay[key as keyof typeof overlay]) < 2
+			);
+		};
+		const fitFillsCanvas = async () => {
+			const canvasWidth = await page
+				.locator('.vega-visual-canvas')
+				.evaluate((el) => el.clientWidth);
+			const painted = await iframe.boundingBox();
+			return !!painted && Math.abs(canvasWidth - painted.width) < 2;
+		};
+		await expect(page.getByRole('button', { name: 'Ajustar', exact: true })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+		await expect(page.locator('#vega-sidebar')).toHaveClass(/vega-sidebar-collapsed/);
+		await expect.poll(siteViewport).toEqual({ width: 1280, desktop: true, layout: 'desktop' });
+		await expect.poll(fitFillsCanvas).toBe(true);
+		await expect.poll(alignedOverlay).toBe(true);
+		await page.screenshot({ path: testInfo.outputPath('desktop-fit-1440.png') });
+
+		await page.setViewportSize({ width: 1200, height: 900 });
+		await expect.poll(siteViewport).toEqual({ width: 1280, desktop: true, layout: 'desktop' });
+		await expect.poll(fitFillsCanvas).toBe(true);
+		await expect.poll(alignedOverlay).toBe(true);
+		for (const [name, width] of [
+			['Móvil', 390],
+			['Tableta', 834]
+		] as const) {
+			await page.getByRole('button', { name, exact: true }).click();
+			await expect.poll(siteViewport).toEqual({ width, desktop: false, layout: 'narrow' });
+			await expect.poll(alignedOverlay).toBe(true);
+		}
+		await page.getByRole('button', { name: '50 %', exact: true }).click();
+		await page.getByRole('button', { name: 'Escritorio', exact: true }).click();
+		await expect(page.getByRole('button', { name: '50 %', exact: true })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+		await expect.poll(siteViewport).toEqual({ width: 1280, desktop: true, layout: 'desktop' });
+		await expect.poll(alignedOverlay).toBe(true);
+		await page.getByRole('button', { name: 'Ajustar', exact: true }).click();
+		await expect.poll(fitFillsCanvas).toBe(true);
+		// Ventanas pequeñas conservan el modo de textos; el nuevo preset no habilita el lienzo allí.
+		for (const width of [834, 390]) {
+			await page.setViewportSize({ width, height: 844 });
+			await expect(page.getByRole('region', { name: 'Solo textos' })).toBeVisible();
+			await expect(iframe).toHaveCount(0);
+		}
+		await page.screenshot({ path: testInfo.outputPath('mobile-texts-390.png') });
+	});
+
 	test('pinta los contornos que reporta el sitio, con la geometría real de sus bloques', async ({
 		page
 	}) => {

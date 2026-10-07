@@ -8,6 +8,7 @@ import { describe, expect, test } from 'vitest';
 import {
 	DEFAULT_SCREEN_PRESET,
 	DEFAULT_ZOOM,
+	DESKTOP_WIDTH,
 	frameWidthFor,
 	MOBILE_WIDTH,
 	resolveZoomFactor,
@@ -17,24 +18,21 @@ import {
 } from './viewport';
 
 describe('frameWidthFor', () => {
-	test('móvil/tablet: anchos fijos, sin mirar el lienzo', () => {
-		expect(frameWidthFor('mobile', 999)).toBe(MOBILE_WIDTH);
-		expect(frameWidthFor('tablet', 12)).toBe(TABLET_WIDTH);
-	});
-
-	test('escritorio: el ancho MEDIDO, redondeado', () => {
-		expect(frameWidthFor('desktop', 712.4)).toBe(712);
-		expect(frameWidthFor('desktop', 712.6)).toBe(713);
-	});
-
-	test('escritorio con una medida no honesta (negativa, NaN, Infinity): nunca negativo', () => {
-		expect(frameWidthFor('desktop', -50)).toBe(0);
-		expect(frameWidthFor('desktop', Number.NaN)).toBe(0);
-		expect(frameWidthFor('desktop', Number.POSITIVE_INFINITY)).toBe(0);
+	test('los tres presets tienen un ancho CSS fijo, sin depender del lienzo', () => {
+		expect(frameWidthFor('mobile')).toBe(MOBILE_WIDTH);
+		expect(frameWidthFor('tablet')).toBe(TABLET_WIDTH);
+		expect(frameWidthFor('desktop')).toBe(1280);
 	});
 });
 
 describe('resolveZoomFactor', () => {
+	test('escritorio ajusta el espacio físico sin cambiar su ancho CSS', () => {
+		expect(resolveZoomFactor('fit', 425, DESKTOP_WIDTH)).toBe(425 / 1280);
+		expect(resolveZoomFactor('fit', 0, DESKTOP_WIDTH)).toBe(0.1);
+		expect(resolveZoomFactor('fit', Number.NaN, DESKTOP_WIDTH)).toBe(1);
+		expect(resolveZoomFactor('fit', 1440, DESKTOP_WIDTH)).toBe(1);
+	});
+
 	test('niveles fijos: se traducen a factor sin mirar el lienzo', () => {
 		expect(resolveZoomFactor(50, 100, 834)).toBe(0.5);
 		expect(resolveZoomFactor(75, 100, 834)).toBe(0.75);
@@ -97,7 +95,9 @@ describe('sanitizeViewportPreference', () => {
 		});
 	});
 
-	test('sin nada guardado (objeto vacío) → los defaults', () => {
+	test('sin nada guardado → escritorio con ajustar', () => {
+		expect(DEFAULT_SCREEN_PRESET).toBe('desktop');
+		expect(DEFAULT_ZOOM).toBe('fit');
 		expect(sanitizeViewportPreference({})).toEqual({
 			preset: DEFAULT_SCREEN_PRESET,
 			zoom: DEFAULT_ZOOM

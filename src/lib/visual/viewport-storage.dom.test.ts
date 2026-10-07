@@ -14,6 +14,16 @@ beforeEach(() => {
 });
 
 describe('readViewportPreference', () => {
+	test.each([50, 75, 100, 'fit'] as const)(
+		'conserva el zoom de escritorio guardado: %s',
+		(zoom) => {
+			const saved = JSON.stringify({ preset: 'desktop', zoom });
+			localStorage.setItem(STORAGE_KEY, saved);
+			expect(readViewportPreference()).toEqual({ preset: 'desktop', zoom });
+			expect(localStorage.getItem(STORAGE_KEY)).toBe(saved);
+		}
+	);
+
 	test('sin nada guardado → la preferencia de partida', () => {
 		expect(readViewportPreference()).toEqual(DEFAULT_VIEWPORT_PREFERENCE);
 	});

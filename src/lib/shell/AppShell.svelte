@@ -17,7 +17,9 @@
 	 * `sidebarOpen`: vive aquí porque el botón que lo cambia (`Topbar.svelte`) y el panel que lo
 	 * aplica (`Sidebar.svelte`) tampoco pueden compartirlo entre sí. Se inicializa leyendo la
 	 * preferencia guardada (`theme/apply.ts#readSidebarCollapsed`, mismo mecanismo que la
-	 * densidad — ver su cabecera) y cada toggle la persiste de vuelta.
+	 * densidad — ver su cabecera) y cada toggle manual la persiste de vuelta. Al entrar al editor
+	 * visual se pliega temporalmente sin escribir esa preferencia; al salir se restaura la última
+	 * elección manual, incluso si se cambió durante la edición.
 	 *
 	 * Responsive (§4.2): en escritorio la sidebar es una columna fija; por debajo del punto de
 	 * colapso estructural (fijado en `Sidebar.svelte`/`Topbar.svelte`) se convierte en un overlay
@@ -64,14 +66,22 @@
 	});
 
 	let sidebarOpen = $state(false);
-	let sidebarCollapsed = $state(readSidebarCollapsed());
+	let manualSidebarCollapsed = readSidebarCollapsed();
+	let sidebarCollapsed = $state(manualSidebarCollapsed);
+	let visualRoute = false;
 
-	afterNavigate(() => {
+	afterNavigate(({ to }) => {
 		sidebarOpen = false;
+		const nextVisualRoute = to?.route.id === '/c/[type]/[id]/visual';
+		if (nextVisualRoute !== visualRoute) {
+			visualRoute = nextVisualRoute;
+			sidebarCollapsed = visualRoute ? true : manualSidebarCollapsed;
+		}
 	});
 
 	function toggleSidebarCollapsed(): void {
 		sidebarCollapsed = !sidebarCollapsed;
+		manualSidebarCollapsed = sidebarCollapsed;
 		setSidebarCollapsed(sidebarCollapsed);
 	}
 </script>

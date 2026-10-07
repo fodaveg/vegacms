@@ -423,6 +423,14 @@ bridge installed and offers the ordinary preview, which still works.
 viewport**. Vega applies the frame's offset and any canvas zoom itself; the bridge never
 needs to know it is being scaled.
 
+The screen presets set the iframe's CSS viewport to 390px (mobile), 834px (tablet),
+or 1280px (desktop), independently of the physical canvas width. A new viewport preference
+defaults to desktop with fit zoom; valid saved preferences remain in effect. Fit scales the
+iframe and overlay together to the available canvas width, never above 100%, without changing
+the site's CSS viewport. Entering visual editing temporarily collapses the app's desktop
+sidebar without persisting that automatic change. Manual sidebar toggles still persist; leaving
+visual editing restores the latest manual preference. The mobile drawer remains independent.
+
 `layout` is sent at most once per animation frame. Measuring on every scroll event is the
 straightforward way to make a canvas stutter, and the site is the only side that can throttle
 it, because the site is where the scrolling happens.

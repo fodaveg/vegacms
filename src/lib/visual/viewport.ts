@@ -8,14 +8,14 @@
  * **Por qué el ancho del IFRAME, nunca el de la ventana** (§encargo): el sitio dispara sus propios
  * puntos de corte contra el viewport que VE, que es el del `<iframe>` — ensanchar o encoger un
  * `<div>` de Vega no movería ni un solo `@media` del sitio. Móvil/tablet son anchos FIJOS (390/834,
- * los mismos números que trae cualquier DevTools de navegador, no un invento de Vega); escritorio
- * no tiene ancho fijo — el encargo pide "llenar el lienzo", así que su ancho es el MEDIDO del
- * propio `.vega-visual-canvas` (`frameWidthFor`, más abajo), nunca un número inventado.
+ * los mismos números que trae cualquier DevTools de navegador); escritorio usa 1280px CSS.
+ * "Llenar el lienzo" se resuelve con el zoom "ajustar": el espacio físico disponible nunca
+ * convierte el preset de escritorio en un viewport CSS móvil.
  *
  * **Zoom: por qué el `<iframe>` se escala con `transform`, no con `width`.** `transform: scale()`
  * NO cambia el viewport CSS que ve el documento de dentro (a diferencia de tocar `width`, que sí
  * dispararía los puntos de corte del sitio) — es justo la propiedad que hace falta: el sitio sigue
- * creyendo que mide 390/834/lo medido aunque Vega lo PINTE más pequeño. Este módulo solo calcula EL
+ * creyendo que mide 390/834/1280 aunque Vega lo PINTE más pequeño. Este módulo solo calcula EL
  * FACTOR (`resolveZoomFactor`); quién escala qué elemento del DOM (el "escenario" que envuelve
  * iframe + overlay, para que los dos se muevan a la vez — ver la cabecera de
  * `VisualEditorScreen.svelte`) es decisión de quien monta el componente, no de este módulo.
@@ -38,6 +38,7 @@ export type ScreenPreset = 'mobile' | 'tablet' | 'desktop';
 /** Mismos números que cualquier DevTools de navegador (§encargo): no son un invento de Vega. */
 export const MOBILE_WIDTH = 390;
 export const TABLET_WIDTH = 834;
+export const DESKTOP_WIDTH = 1280;
 
 export const SCREEN_PRESETS: readonly ScreenPreset[] = ['mobile', 'tablet', 'desktop'];
 
@@ -48,10 +49,8 @@ export const ZOOM_LEVELS: readonly ZoomLevel[] = [50, 75, 100];
 export type ZoomPreference = ZoomLevel | 'fit';
 
 export const DEFAULT_SCREEN_PRESET: ScreenPreset = 'desktop';
-/** 100 %, no `'fit'`: quien nunca toca los controles nuevos ve la pantalla de siempre (lienzo a
- *  tamaño real, sin escalar) — mismo criterio de "el default reproduce el comportamiento de antes
- *  de este encargo" que ya usa `DEFAULT_COLUMN_WIDTHS`. */
-export const DEFAULT_ZOOM: ZoomPreference = 100;
+/** Un escritorio nuevo encaja en el lienzo; las preferencias válidas guardadas se conservan. */
+export const DEFAULT_ZOOM: ZoomPreference = 'fit';
 
 /** Piso de seguridad del factor de zoom: sin él, un lienzo momentáneamente sin medir (0px, antes
  *  del primer aviso de `ResizeObserver`) dividiría entre cero y `resolveZoomFactor` devolvería
@@ -63,23 +62,18 @@ const MIN_ZOOM_FACTOR = 0.1;
 
 /**
  * Ancho de LAYOUT del `<iframe>` (el que el sitio de dentro cree que mide), en px. Fijo para
- * móvil/tablet; en escritorio es el ancho MEDIDO de `.vega-visual-canvas` — que no cambia con el
- * zoom elegido (mide el CONTENEDOR, no la caja ya escalada de dentro, ver la cabecera de
- * `VisualEditorScreen.svelte`), así que este número es estable sea cual sea el nivel de zoom: un
- * escritorio al 50 % sigue midiendo lo mismo que al 100 %, solo se pinta más pequeño.
- * `measuredCanvasWidth` no finito o negativo (todavía sin medir, o un valor corrupto) cae a `0`:
- * sin ancho honesto que enseñar hasta el primer aviso de `ResizeObserver`.
+ * los tres presets, independiente del ancho físico del lienzo y del zoom. Un escritorio al
+ * 50 % sigue midiendo 1280px CSS; solo se pinta más pequeño. Existe también antes del primer
+ * aviso de `ResizeObserver`: la medida del lienzo solo interviene en `resolveZoomFactor`.
  */
-export function frameWidthFor(preset: ScreenPreset, measuredCanvasWidth: number): number {
+export function frameWidthFor(preset: ScreenPreset): number {
 	switch (preset) {
 		case 'mobile':
 			return MOBILE_WIDTH;
 		case 'tablet':
 			return TABLET_WIDTH;
-		case 'desktop': {
-			const safe = Number.isFinite(measuredCanvasWidth) ? measuredCanvasWidth : 0;
-			return Math.max(0, Math.round(safe));
-		}
+		case 'desktop':
+			return DESKTOP_WIDTH;
 	}
 }
 
