@@ -1,0 +1,1193 @@
+{
+	"baseline": "8a10f7f61da35a777b51d6cd8b3290e136660636",
+	"method": "Existing resolveNeutral + contrastRatio; OKLab mix rounded to sRGB 8-bit. Not browser computed styles.",
+	"proposed": { "sharedLightBase": "#625e56", "aquelarreLightOverride": "#605a57" },
+	"summary": {
+		"before": {
+			"light": { "pairs": 105, "fail": 24, "min": 4.10920656602214, "max": 5.722321629013982 },
+			"dark": { "pairs": 105, "fail": 0, "min": 5.2481847910165405, "max": 7.511781328053032 }
+		},
+		"after": {
+			"light": { "pairs": 105, "fail": 0, "min": 4.644480019229373, "max": 6.467722671651236 },
+			"dark": { "pairs": 105, "fail": 0, "min": 5.2481847910165405, "max": 7.511781328053032 }
+		}
+	},
+	"samples": [
+		{
+			"variant": "before",
+			"theme": "brasa",
+			"name": "Brasa",
+			"mode": "light",
+			"ink": "#71675d",
+			"surfaces": {
+				"bg": { "background": "#ede2db", "ratio": 4.3423742794959646 },
+				"sidebar": { "background": "#f0e7e1", "ratio": 4.531918327737085 },
+				"surface": { "background": "#fffbf9", "ratio": 5.3729341137352105 },
+				"paper": { "background": "#f7efe9", "ratio": 4.862261242894992 },
+				"surface-2": { "background": "#fffbf8", "ratio": 5.369658468598046 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "brasa",
+			"name": "Brasa",
+			"mode": "dark",
+			"ink": "#aca2a5",
+			"surfaces": {
+				"bg": { "background": "#251915", "ratio": 6.890747943936923 },
+				"sidebar": { "background": "#291c19", "ratio": 6.6426847186832365 },
+				"surface": { "background": "#382d2c", "ratio": 5.358390157110631 },
+				"paper": { "background": "#2e211d", "ratio": 6.264063706311508 },
+				"surface-2": { "background": "#322724", "ratio": 5.8330872359446655 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "faro",
+			"name": "Faro",
+			"mode": "light",
+			"ink": "#70665d",
+			"surfaces": {
+				"bg": { "background": "#ebe1da", "ratio": 4.353475257935883 },
+				"sidebar": { "background": "#eee6e0", "ratio": 4.544428265612047 },
+				"surface": { "background": "#fefaf9", "ratio": 5.40520208619068 },
+				"paper": { "background": "#f6ede8", "ratio": 4.855820692291185 },
+				"surface-2": { "background": "#fefaf8", "ratio": 5.401880339011111 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "faro",
+			"name": "Faro",
+			"mode": "dark",
+			"ink": "#aaa1a4",
+			"surfaces": {
+				"bg": { "background": "#221714", "ratio": 6.948772052286182 },
+				"sidebar": { "background": "#261a17", "ratio": 6.7146311563593 },
+				"surface": { "background": "#362b2a", "ratio": 5.4323590268811754 },
+				"paper": { "background": "#2b1f1c", "ratio": 6.342337767843974 },
+				"surface-2": { "background": "#302523", "ratio": 5.898052911787718 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "rescoldo",
+			"name": "Rescoldo",
+			"mode": "light",
+			"ink": "#68655d",
+			"surfaces": {
+				"bg": { "background": "#e1dfdc", "ratio": 4.376220299749564 },
+				"sidebar": { "background": "#e4e3e1", "ratio": 4.537975511374853 },
+				"surface": { "background": "#f9f9f9", "ratio": 5.528082893962574 },
+				"paper": { "background": "#ecebe9", "ratio": 4.885207992350757 },
+				"surface-2": { "background": "#f9f9f8", "ratio": 5.524632798870987 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "rescoldo",
+			"name": "Rescoldo",
+			"mode": "dark",
+			"ink": "#9d9da5",
+			"surfaces": {
+				"bg": { "background": "#131316", "ratio": 6.8876424354870815 },
+				"sidebar": { "background": "#161619", "ratio": 6.707046632706352 },
+				"surface": { "background": "#27272c", "ratio": 5.52058707866975 },
+				"paper": { "background": "#1b1b1e", "ratio": 6.382115815459922 },
+				"surface-2": { "background": "#212125", "ratio": 5.9588894827899725 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "miel",
+			"name": "Miel",
+			"mode": "light",
+			"ink": "#6f695d",
+			"surfaces": {
+				"bg": { "background": "#ebe4db", "ratio": 4.3202183855679674 },
+				"sidebar": { "background": "#eee9e1", "ratio": 4.508449179971999 },
+				"surface": { "background": "#fefcf9", "ratio": 5.31994721287774 },
+				"paper": { "background": "#f5f1e9", "ratio": 4.836112764141167 },
+				"surface-2": { "background": "#fefcf8", "ratio": 5.3167177038325 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "miel",
+			"name": "Miel",
+			"mode": "dark",
+			"ink": "#a9a5a5",
+			"surfaces": {
+				"bg": { "background": "#221c15", "ratio": 6.917871465514287 },
+				"sidebar": { "background": "#262019", "ratio": 6.609370062768646 },
+				"surface": { "background": "#36302c", "ratio": 5.329426952523954 },
+				"paper": { "background": "#2b241d", "ratio": 6.273538415433914 },
+				"surface-2": { "background": "#2f2a24", "ratio": 5.828909966266495 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "halloween",
+			"name": "Halloween",
+			"mode": "light",
+			"ink": "#6b6562",
+			"surfaces": {
+				"bg": { "background": "#e1dae0", "ratio": 4.178660500200836 },
+				"sidebar": { "background": "#e4dee5", "ratio": 4.33489843274895 },
+				"surface": { "background": "#fbf9fc", "ratio": 5.475776948146898 },
+				"paper": { "background": "#ebe5ed", "ratio": 4.630914763277556 },
+				"surface-2": { "background": "#fbf9fb", "ratio": 5.472324025489314 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "halloween",
+			"name": "Halloween",
+			"mode": "dark",
+			"ink": "#a29dad",
+			"surfaces": {
+				"bg": { "background": "#1f1628", "ratio": 6.6152036454648 },
+				"sidebar": { "background": "#231a2b", "ratio": 6.3491351292715414 },
+				"surface": { "background": "#2d2734", "ratio": 5.486182057650789 },
+				"paper": { "background": "#271e30", "ratio": 6.056708978370324 },
+				"surface-2": { "background": "#26212d", "ratio": 5.951712431447226 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "aquelarre",
+			"name": "Aquelarre",
+			"mode": "light",
+			"ink": "#68625f",
+			"surfaces": {
+				"bg": { "background": "#dad3e1", "ratio": 4.10920656602214 },
+				"sidebar": { "background": "#ddd8e6", "ratio": 4.295834548955651 },
+				"surface": { "background": "#faf9fd", "ratio": 5.722321629013982 },
+				"paper": { "background": "#e3deed", "ratio": 4.552384376717546 },
+				"surface-2": { "background": "#faf9fc", "ratio": 5.718689794237809 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "aquelarre",
+			"name": "Aquelarre",
+			"mode": "dark",
+			"ink": "#a09eaf",
+			"surfaces": {
+				"bg": { "background": "#0d0913", "ratio": 7.511781328053032 },
+				"sidebar": { "background": "#100c17", "ratio": 7.363883707199422 },
+				"surface": { "background": "#2a2034", "ratio": 5.908944357632285 },
+				"paper": { "background": "#17121f", "ratio": 7.004646485548646 },
+				"surface-2": { "background": "#221a2d", "ratio": 6.384864368908915 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "cereza",
+			"name": "Cereza",
+			"mode": "light",
+			"ink": "#6f655f",
+			"surfaces": {
+				"bg": { "background": "#ebdfdd", "ratio": 4.3568076008204875 },
+				"sidebar": { "background": "#eee4e3", "ratio": 4.548672969546517 },
+				"surface": { "background": "#fef9fa", "ratio": 5.44070780111856 },
+				"paper": { "background": "#f5eceb", "ratio": 4.883114246379335 },
+				"surface-2": { "background": "#fef9f9", "ratio": 5.437327792165146 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "cereza",
+			"name": "Cereza",
+			"mode": "dark",
+			"ink": "#a99ea8",
+			"surfaces": {
+				"bg": { "background": "#211418", "ratio": 6.913192734183232 },
+				"sidebar": { "background": "#25171c", "ratio": 6.685753793951624 },
+				"surface": { "background": "#35282f", "ratio": 5.443516406779016 },
+				"paper": { "background": "#2a1c21", "ratio": 6.3296616459405906 },
+				"surface-2": { "background": "#2e2227", "ratio": 5.92543074345523 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "tinta",
+			"name": "Tinta",
+			"mode": "light",
+			"ink": "#6b6965",
+			"surfaces": {
+				"bg": { "background": "#e4e5e6", "ratio": 4.342834317045394 },
+				"sidebar": { "background": "#e7eaec", "ratio": 4.532985299842831 },
+				"surface": { "background": "#fbfcff", "ratio": 5.339481261178768 },
+				"paper": { "background": "#eff1f4", "ratio": 4.840900299046258 },
+				"surface-2": { "background": "#fbfcfe", "ratio": 5.336129786654116 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "tinta",
+			"name": "Tinta",
+			"mode": "dark",
+			"ink": "#a1a5b3",
+			"surfaces": {
+				"bg": { "background": "#171d27", "ratio": 6.885685508237082 },
+				"sidebar": { "background": "#1b212b", "ratio": 6.5806110372250615 },
+				"surface": { "background": "#2c313c", "ratio": 5.3040693305188045 },
+				"paper": { "background": "#202530", "ratio": 6.2455332337117895 },
+				"surface-2": { "background": "#252a34", "ratio": 5.857334750740439 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "niebla",
+			"name": "Niebla",
+			"mode": "light",
+			"ink": "#696764",
+			"surfaces": {
+				"bg": { "background": "#e2e2e5", "ratio": 4.360999028050979 },
+				"sidebar": { "background": "#e5e6eb", "ratio": 4.523757732905078 },
+				"surface": { "background": "#f9fbfe", "ratio": 5.438716285359401 },
+				"paper": { "background": "#eceef3", "ratio": 4.856836085895815 },
+				"surface-2": { "background": "#f9fbfd", "ratio": 5.435284763078609 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "niebla",
+			"name": "Niebla",
+			"mode": "dark",
+			"ink": "#9ea1b1",
+			"surfaces": {
+				"bg": { "background": "#131724", "ratio": 6.963063342529015 },
+				"sidebar": { "background": "#171b28", "ratio": 6.689271965005143 },
+				"surface": { "background": "#282c3a", "ratio": 5.415894819705213 },
+				"paper": { "background": "#1c202d", "ratio": 6.327233814003742 },
+				"surface-2": { "background": "#222532", "ratio": 5.937930858501957 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "marea",
+			"name": "Marea",
+			"mode": "light",
+			"ink": "#686760",
+			"surfaces": {
+				"bg": { "background": "#e0e2df", "ratio": 4.35781967689525 },
+				"sidebar": { "background": "#e3e7e5", "ratio": 4.551033078688938 },
+				"surface": { "background": "#f8fbfb", "ratio": 5.458427983571866 },
+				"paper": { "background": "#eaeeed", "ratio": 4.854799457157803 },
+				"surface-2": { "background": "#f8fbfa", "ratio": 5.455025407478556 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "marea",
+			"name": "Marea",
+			"mode": "dark",
+			"ink": "#9ca2aa",
+			"surfaces": {
+				"bg": { "background": "#10181b", "ratio": 6.98510045082437 },
+				"sidebar": { "background": "#141c1f", "ratio": 6.714345337529496 },
+				"surface": { "background": "#252c31", "ratio": 5.502763516963196 },
+				"paper": { "background": "#182024", "ratio": 6.422266190974899 },
+				"surface-2": { "background": "#1f262a", "ratio": 5.96240300593592 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "sea-wingnow",
+			"name": "Sea Wingnow",
+			"mode": "light",
+			"ink": "#6a6964",
+			"surfaces": {
+				"bg": { "background": "#e4e5e5", "ratio": 4.358354228807031 },
+				"sidebar": { "background": "#e6eaea", "ratio": 4.537498298643872 },
+				"surface": { "background": "#fafcfe", "ratio": 5.349101528683692 },
+				"paper": { "background": "#eef1f3", "ratio": 4.849203929507783 },
+				"surface-2": { "background": "#fafcfd", "ratio": 5.345753346409204 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "sea-wingnow",
+			"name": "Sea Wingnow",
+			"mode": "dark",
+			"ink": "#a0a5b1",
+			"surfaces": {
+				"bg": { "background": "#161d24", "ratio": 6.89014019615531 },
+				"sidebar": { "background": "#192128", "ratio": 6.600635711409248 },
+				"surface": { "background": "#2a313a", "ratio": 5.323528646048672 },
+				"paper": { "background": "#1e262d", "ratio": 6.211324090763686 },
+				"surface-2": { "background": "#242b32", "ratio": 5.803563293858088 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "bosque",
+			"name": "Bosque",
+			"mode": "light",
+			"ink": "#6c6a5e",
+			"surfaces": {
+				"bg": { "background": "#e6e7dd", "ratio": 4.361463218357664 },
+				"sidebar": { "background": "#e9ebe3", "ratio": 4.52158611547678 },
+				"surface": { "background": "#fbfdfa", "ratio": 5.318067388494691 },
+				"paper": { "background": "#f0f3eb", "ratio": 4.849918928265416 },
+				"surface-2": { "background": "#fbfdf9", "ratio": 5.314825924005287 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "bosque",
+			"name": "Bosque",
+			"mode": "dark",
+			"ink": "#a3a7a7",
+			"surfaces": {
+				"bg": { "background": "#1a2018", "ratio": 6.839188383373518 },
+				"sidebar": { "background": "#1e241c", "ratio": 6.526202695616595 },
+				"surface": { "background": "#2e342e", "ratio": 5.2481847910165405 },
+				"paper": { "background": "#232820", "ratio": 6.1918310489804815 },
+				"surface-2": { "background": "#282d27", "ratio": 5.781620863286435 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "menta",
+			"name": "Menta",
+			"mode": "light",
+			"ink": "#69695f",
+			"surfaces": {
+				"bg": { "background": "#e2e5de", "ratio": 4.356568189715618 },
+				"sidebar": { "background": "#e5e9e3", "ratio": 4.515055994486979 },
+				"surface": { "background": "#f9fcfb", "ratio": 5.373029025356601 },
+				"paper": { "background": "#ecf1ec", "ratio": 4.848749601046522 },
+				"surface-2": { "background": "#f9fcfa", "ratio": 5.369706344134572 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "menta",
+			"name": "Menta",
+			"mode": "dark",
+			"ink": "#9ea5a8",
+			"surfaces": {
+				"bg": { "background": "#131c19", "ratio": 6.955710082319611 },
+				"sidebar": { "background": "#16201d", "ratio": 6.675855590574272 },
+				"surface": { "background": "#283030", "ratio": 5.400391590565278 },
+				"paper": { "background": "#1b2522", "ratio": 6.296280576552329 },
+				"surface-2": { "background": "#212a28", "ratio": 5.889483181037452 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "salvia",
+			"name": "Salvia",
+			"mode": "light",
+			"ink": "#6b695f",
+			"surfaces": {
+				"bg": { "background": "#e5e4de", "ratio": 4.325268637544259 },
+				"sidebar": { "background": "#e8e9e4", "ratio": 4.5150503355234255 },
+				"surface": { "background": "#fbfcfb", "ratio": 5.35786623060201 },
+				"paper": { "background": "#eff0ec", "ratio": 4.813759726901248 },
+				"surface-2": { "background": "#fbfcfa", "ratio": 5.354564917245484 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "salvia",
+			"name": "Salvia",
+			"mode": "dark",
+			"ink": "#a2a4a9",
+			"surfaces": {
+				"bg": { "background": "#181c1a", "ratio": 6.901942431387743 },
+				"sidebar": { "background": "#1c201e", "ratio": 6.604842788641443 },
+				"surface": { "background": "#2d3030", "ratio": 5.338724242950624 },
+				"paper": { "background": "#212422", "ratio": 6.282572717730344 },
+				"surface-2": { "background": "#262929", "ratio": 5.881060988381989 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "lavanda",
+			"name": "Lavanda",
+			"mode": "light",
+			"ink": "#6c6864",
+			"surfaces": {
+				"bg": { "background": "#e6e3e4", "ratio": 4.3328499845370425 },
+				"sidebar": { "background": "#e9e8ea", "ratio": 4.523012537369588 },
+				"surface": { "background": "#fbfbfe", "ratio": 5.347994082303941 },
+				"paper": { "background": "#f0eff2", "ratio": 4.822435688038445 },
+				"surface-2": { "background": "#fbfbfd", "ratio": 5.344632064817919 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "lavanda",
+			"name": "Lavanda",
+			"mode": "dark",
+			"ink": "#a3a3b0",
+			"surfaces": {
+				"bg": { "background": "#1a1923", "ratio": 6.9771290414843214 },
+				"sidebar": { "background": "#1e1d27", "ratio": 6.683693410968207 },
+				"surface": { "background": "#2e2e39", "ratio": 5.378571386699352 },
+				"paper": { "background": "#23222c", "ratio": 6.301670360697923 },
+				"surface-2": { "background": "#282731", "ratio": 5.911856428503386 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "ciruela",
+			"name": "Ciruela",
+			"mode": "light",
+			"ink": "#6b6561",
+			"surfaces": {
+				"bg": { "background": "#e5dfe1", "ratio": 4.365359292215694 },
+				"sidebar": { "background": "#e8e4e7", "ratio": 4.5589797008654696 },
+				"surface": { "background": "#fbf9fc", "ratio": 5.481395860131083 },
+				"paper": { "background": "#efebef", "ratio": 4.864356701041932 },
+				"surface-2": { "background": "#fbf9fb", "ratio": 5.477939394292561 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "ciruela",
+			"name": "Ciruela",
+			"mode": "dark",
+			"ink": "#a29eac",
+			"surfaces": {
+				"bg": { "background": "#19131e", "ratio": 6.95674281037062 },
+				"sidebar": { "background": "#1c1722", "ratio": 6.713401251520028 },
+				"surface": { "background": "#2d2834", "ratio": 5.477459905617546 },
+				"paper": { "background": "#211c26", "ratio": 6.373538686115306 },
+				"surface-2": { "background": "#27222c", "ratio": 5.936398016664152 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "carbon",
+			"name": "Carbón",
+			"mode": "light",
+			"ink": "#68655d",
+			"surfaces": {
+				"bg": { "background": "#e1dfdc", "ratio": 4.376220299749564 },
+				"sidebar": { "background": "#e4e3e1", "ratio": 4.537975511374853 },
+				"surface": { "background": "#f9f9f9", "ratio": 5.528082893962574 },
+				"paper": { "background": "#ecebe9", "ratio": 4.885207992350757 },
+				"surface-2": { "background": "#f9f9f8", "ratio": 5.524632798870987 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "carbon",
+			"name": "Carbón",
+			"mode": "dark",
+			"ink": "#9d9da5",
+			"surfaces": {
+				"bg": { "background": "#131316", "ratio": 6.8876424354870815 },
+				"sidebar": { "background": "#161619", "ratio": 6.707046632706352 },
+				"surface": { "background": "#27272c", "ratio": 5.52058707866975 },
+				"paper": { "background": "#1b1b1e", "ratio": 6.382115815459922 },
+				"surface-2": { "background": "#212125", "ratio": 5.9588894827899725 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "colibri",
+			"name": "Colibrí",
+			"mode": "light",
+			"ink": "#696760",
+			"surfaces": {
+				"bg": { "background": "#e2e2e0", "ratio": 4.363923515790011 },
+				"sidebar": { "background": "#e5e7e5", "ratio": 4.553898106348182 },
+				"surface": { "background": "#fafbfc", "ratio": 5.463936310448863 },
+				"paper": { "background": "#edeeee", "ratio": 4.86981194081113 },
+				"surface-2": { "background": "#fafbfb", "ratio": 5.4605268147075074 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "colibri",
+			"name": "Colibrí",
+			"mode": "dark",
+			"ink": "#9fa2ab",
+			"surfaces": {
+				"bg": { "background": "#14191c", "ratio": 6.942153043085874 },
+				"sidebar": { "background": "#181c20", "ratio": 6.714306010075158 },
+				"surface": { "background": "#292d32", "ratio": 5.430095807509543 },
+				"paper": { "background": "#1c2125", "ratio": 6.362220152493323 },
+				"surface-2": { "background": "#22262b", "ratio": 5.963410936199816 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "tornasol",
+			"name": "Tornasol",
+			"mode": "light",
+			"ink": "#696661",
+			"surfaces": {
+				"bg": { "background": "#dcdbdd", "ratio": 4.142787223030076 },
+				"sidebar": { "background": "#dfdfe2", "ratio": 4.2982211904501275 },
+				"surface": { "background": "#fafafc", "ratio": 5.4833204453214 },
+				"paper": { "background": "#e6e6ea", "ratio": 4.592347249773381 },
+				"surface-2": { "background": "#fafafb", "ratio": 5.479877685513309 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "tornasol",
+			"name": "Tornasol",
+			"mode": "dark",
+			"ink": "#9f9fab",
+			"surfaces": {
+				"bg": { "background": "#191a23", "ratio": 6.61096494555661 },
+				"sidebar": { "background": "#1d1d27", "ratio": 6.380014752218717 },
+				"surface": { "background": "#292a32", "ratio": 5.451137115601902 },
+				"paper": { "background": "#21222c", "ratio": 6.031891540228591 },
+				"surface-2": { "background": "#23232b", "ratio": 5.956137454147692 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "pizarra",
+			"name": "Pizarra",
+			"mode": "light",
+			"ink": "#696660",
+			"surfaces": {
+				"bg": { "background": "#e3e1df", "ratio": 4.38728701618977 },
+				"sidebar": { "background": "#e6e6e5", "ratio": 4.581544742420259 },
+				"surface": { "background": "#fafafb", "ratio": 5.48541391344701 },
+				"paper": { "background": "#ededed", "ratio": 4.887451871997805 },
+				"surface-2": { "background": "#fafafa", "ratio": 5.481985832313351 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "pizarra",
+			"name": "Pizarra",
+			"mode": "dark",
+			"ink": "#9fa0aa",
+			"surfaces": {
+				"bg": { "background": "#15171b", "ratio": 6.90691791719581 },
+				"sidebar": { "background": "#191a1f", "ratio": 6.686334306324629 },
+				"surface": { "background": "#2a2b31", "ratio": 5.430825243496743 },
+				"paper": { "background": "#1d1f23", "ratio": 6.352001550940581 },
+				"surface-2": { "background": "#23252a", "ratio": 5.902017483321757 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "terracota",
+			"name": "Terracota",
+			"mode": "light",
+			"ink": "#6f655b",
+			"surfaces": {
+				"bg": { "background": "#ebdfd9", "ratio": 4.362130206965833 },
+				"sidebar": { "background": "#ede4de", "ratio": 4.542042718190229 },
+				"surface": { "background": "#fef9f8", "ratio": 5.454854058434513 },
+				"paper": { "background": "#f5ece7", "ratio": 4.889487611439669 },
+				"surface-2": { "background": "#fef9f7", "ratio": 5.451497053047772 }
+			}
+		},
+		{
+			"variant": "before",
+			"theme": "terracota",
+			"name": "Terracota",
+			"mode": "dark",
+			"ink": "#a99ea2",
+			"surfaces": {
+				"bg": { "background": "#211411", "ratio": 6.905963836570188 },
+				"sidebar": { "background": "#251715", "ratio": 6.6824587414049 },
+				"surface": { "background": "#352828", "ratio": 5.452231614628797 },
+				"paper": { "background": "#291c19", "ratio": 6.355408125549586 },
+				"surface-2": { "background": "#2e2221", "ratio": 5.925257264061695 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "brasa",
+			"name": "Brasa",
+			"mode": "light",
+			"ink": "#696056",
+			"surfaces": {
+				"bg": { "background": "#ede2db", "ratio": 4.8419849367635415 },
+				"sidebar": { "background": "#f0e7e1", "ratio": 5.053336922420388 },
+				"surface": { "background": "#fffbf9", "ratio": 5.9911155442705395 },
+				"paper": { "background": "#f7efe9", "ratio": 5.421687349216579 },
+				"surface-2": { "background": "#fffbf8", "ratio": 5.987463020698994 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "brasa",
+			"name": "Brasa",
+			"mode": "dark",
+			"ink": "#aca2a5",
+			"surfaces": {
+				"bg": { "background": "#251915", "ratio": 6.890747943936923 },
+				"sidebar": { "background": "#291c19", "ratio": 6.6426847186832365 },
+				"surface": { "background": "#382d2c", "ratio": 5.358390157110631 },
+				"paper": { "background": "#2e211d", "ratio": 6.264063706311508 },
+				"surface-2": { "background": "#322724", "ratio": 5.8330872359446655 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "faro",
+			"name": "Faro",
+			"mode": "light",
+			"ink": "#685f55",
+			"surfaces": {
+				"bg": { "background": "#ebe1da", "ratio": 4.860444703993538 },
+				"sidebar": { "background": "#eee6e0", "ratio": 5.0736345075141625 },
+				"surface": { "background": "#fefaf9", "ratio": 6.034646873426022 },
+				"paper": { "background": "#f6ede8", "ratio": 5.421289101015612 },
+				"surface-2": { "background": "#fefaf8", "ratio": 6.0309383032538335 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "faro",
+			"name": "Faro",
+			"mode": "dark",
+			"ink": "#aaa1a4",
+			"surfaces": {
+				"bg": { "background": "#221714", "ratio": 6.948772052286182 },
+				"sidebar": { "background": "#261a17", "ratio": 6.7146311563593 },
+				"surface": { "background": "#362b2a", "ratio": 5.4323590268811754 },
+				"paper": { "background": "#2b1f1c", "ratio": 6.342337767843974 },
+				"surface-2": { "background": "#302523", "ratio": 5.898052911787718 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "rescoldo",
+			"name": "Rescoldo",
+			"mode": "light",
+			"ink": "#615d56",
+			"surfaces": {
+				"bg": { "background": "#e1dfdc", "ratio": 4.9214772339603945 },
+				"sidebar": { "background": "#e4e3e1", "ratio": 5.103386401452228 },
+				"surface": { "background": "#f9f9f9", "ratio": 6.216856612917688 },
+				"paper": { "background": "#ecebe9", "ratio": 5.493882453516219 },
+				"surface-2": { "background": "#f9f9f8", "ratio": 6.212976651835926 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "rescoldo",
+			"name": "Rescoldo",
+			"mode": "dark",
+			"ink": "#9d9da5",
+			"surfaces": {
+				"bg": { "background": "#131316", "ratio": 6.8876424354870815 },
+				"sidebar": { "background": "#161619", "ratio": 6.707046632706352 },
+				"surface": { "background": "#27272c", "ratio": 5.52058707866975 },
+				"paper": { "background": "#1b1b1e", "ratio": 6.382115815459922 },
+				"surface-2": { "background": "#212125", "ratio": 5.9588894827899725 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "miel",
+			"name": "Miel",
+			"mode": "light",
+			"ink": "#676156",
+			"surfaces": {
+				"bg": { "background": "#ebe4db", "ratio": 4.867829938167805 },
+				"sidebar": { "background": "#eee9e1", "ratio": 5.079920025869377 },
+				"surface": { "background": "#fefcf9", "ratio": 5.994279918540294 },
+				"paper": { "background": "#f5f1e9", "ratio": 5.44911677990253 },
+				"surface-2": { "background": "#fefcf8", "ratio": 5.990641051378274 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "miel",
+			"name": "Miel",
+			"mode": "dark",
+			"ink": "#a9a5a5",
+			"surfaces": {
+				"bg": { "background": "#221c15", "ratio": 6.917871465514287 },
+				"sidebar": { "background": "#262019", "ratio": 6.609370062768646 },
+				"surface": { "background": "#36302c", "ratio": 5.329426952523954 },
+				"paper": { "background": "#2b241d", "ratio": 6.273538415433914 },
+				"surface-2": { "background": "#2f2a24", "ratio": 5.828909966266495 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "halloween",
+			"name": "Halloween",
+			"mode": "light",
+			"ink": "#635d5a",
+			"surfaces": {
+				"bg": { "background": "#e1dae0", "ratio": 4.718518372238057 },
+				"sidebar": { "background": "#e4dee5", "ratio": 4.894941308519513 },
+				"surface": { "background": "#fbf9fc", "ratio": 6.1832144848491435 },
+				"paper": { "background": "#ebe5ed", "ratio": 5.229201173376824 },
+				"surface-2": { "background": "#fbf9fb", "ratio": 6.179315465295642 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "halloween",
+			"name": "Halloween",
+			"mode": "dark",
+			"ink": "#a29dad",
+			"surfaces": {
+				"bg": { "background": "#1f1628", "ratio": 6.6152036454648 },
+				"sidebar": { "background": "#231a2b", "ratio": 6.3491351292715414 },
+				"surface": { "background": "#2d2734", "ratio": 5.486182057650789 },
+				"paper": { "background": "#271e30", "ratio": 6.056708978370324 },
+				"surface-2": { "background": "#26212d", "ratio": 5.951712431447226 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "aquelarre",
+			"name": "Aquelarre",
+			"mode": "light",
+			"ink": "#605a57",
+			"surfaces": {
+				"bg": { "background": "#dad3e1", "ratio": 4.644480019229373 },
+				"sidebar": { "background": "#ddd8e6", "ratio": 4.855418535908241 },
+				"surface": { "background": "#faf9fd", "ratio": 6.467722671651236 },
+				"paper": { "background": "#e3deed", "ratio": 5.145387056553896 },
+				"surface-2": { "background": "#faf9fc", "ratio": 6.463617746824493 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "aquelarre",
+			"name": "Aquelarre",
+			"mode": "dark",
+			"ink": "#a09eaf",
+			"surfaces": {
+				"bg": { "background": "#0d0913", "ratio": 7.511781328053032 },
+				"sidebar": { "background": "#100c17", "ratio": 7.363883707199422 },
+				"surface": { "background": "#2a2034", "ratio": 5.908944357632285 },
+				"paper": { "background": "#17121f", "ratio": 7.004646485548646 },
+				"surface-2": { "background": "#221a2d", "ratio": 6.384864368908915 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "cereza",
+			"name": "Cereza",
+			"mode": "light",
+			"ink": "#675e57",
+			"surfaces": {
+				"bg": { "background": "#ebdfdd", "ratio": 4.865628985400644 },
+				"sidebar": { "background": "#eee4e3", "ratio": 5.079901862447622 },
+				"surface": { "background": "#fef9fa", "ratio": 6.076115358693483 },
+				"paper": { "background": "#f5eceb", "ratio": 5.45340175492984 },
+				"surface-2": { "background": "#fef9f9", "ratio": 6.072340606388251 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "cereza",
+			"name": "Cereza",
+			"mode": "dark",
+			"ink": "#a99ea8",
+			"surfaces": {
+				"bg": { "background": "#211418", "ratio": 6.913192734183232 },
+				"sidebar": { "background": "#25171c", "ratio": 6.685753793951624 },
+				"surface": { "background": "#35282f", "ratio": 5.443516406779016 },
+				"paper": { "background": "#2a1c21", "ratio": 6.3296616459405906 },
+				"surface-2": { "background": "#2e2227", "ratio": 5.92543074345523 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "tinta",
+			"name": "Tinta",
+			"mode": "light",
+			"ink": "#63625d",
+			"surfaces": {
+				"bg": { "background": "#e4e5e6", "ratio": 4.845976705673787 },
+				"sidebar": { "background": "#e7eaec", "ratio": 5.058157775898052 },
+				"surface": { "background": "#fbfcff", "ratio": 5.958090943164927 },
+				"paper": { "background": "#eff1f4", "ratio": 5.4017465026451825 },
+				"surface-2": { "background": "#fbfcfe", "ratio": 5.954351180997999 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "tinta",
+			"name": "Tinta",
+			"mode": "dark",
+			"ink": "#a1a5b3",
+			"surfaces": {
+				"bg": { "background": "#171d27", "ratio": 6.885685508237082 },
+				"sidebar": { "background": "#1b212b", "ratio": 6.5806110372250615 },
+				"surface": { "background": "#2c313c", "ratio": 5.3040693305188045 },
+				"paper": { "background": "#202530", "ratio": 6.2455332337117895 },
+				"surface-2": { "background": "#252a34", "ratio": 5.857334750740439 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "niebla",
+			"name": "Niebla",
+			"mode": "light",
+			"ink": "#615f5d",
+			"surfaces": {
+				"bg": { "background": "#e2e2e5", "ratio": 4.91753595501778 },
+				"sidebar": { "background": "#e5e6eb", "ratio": 5.101065411906895 },
+				"surface": { "background": "#f9fbfe", "ratio": 6.132788086024529 },
+				"paper": { "background": "#eceef3", "ratio": 5.476650172677199 },
+				"surface-2": { "background": "#f9fbfd", "ratio": 6.128918643704616 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "niebla",
+			"name": "Niebla",
+			"mode": "dark",
+			"ink": "#9ea1b1",
+			"surfaces": {
+				"bg": { "background": "#131724", "ratio": 6.963063342529015 },
+				"sidebar": { "background": "#171b28", "ratio": 6.689271965005143 },
+				"surface": { "background": "#282c3a", "ratio": 5.415894819705213 },
+				"paper": { "background": "#1c202d", "ratio": 6.327233814003742 },
+				"surface-2": { "background": "#222532", "ratio": 5.937930858501957 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "marea",
+			"name": "Marea",
+			"mode": "light",
+			"ink": "#605f58",
+			"surfaces": {
+				"bg": { "background": "#e0e2df", "ratio": 4.919927204986849 },
+				"sidebar": { "background": "#e3e7e5", "ratio": 5.138062865095227 },
+				"surface": { "background": "#f8fbfb", "ratio": 6.16250104960051 },
+				"paper": { "background": "#eaeeed", "ratio": 5.481011536724078 },
+				"surface-2": { "background": "#f8fbfa", "ratio": 6.158659581175997 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "marea",
+			"name": "Marea",
+			"mode": "dark",
+			"ink": "#9ca2aa",
+			"surfaces": {
+				"bg": { "background": "#10181b", "ratio": 6.98510045082437 },
+				"sidebar": { "background": "#141c1f", "ratio": 6.714345337529496 },
+				"surface": { "background": "#252c31", "ratio": 5.502763516963196 },
+				"paper": { "background": "#182024", "ratio": 6.422266190974899 },
+				"surface-2": { "background": "#1f262a", "ratio": 5.96240300593592 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "sea-wingnow",
+			"name": "Sea Wingnow",
+			"mode": "light",
+			"ink": "#62625c",
+			"surfaces": {
+				"bg": { "background": "#e4e5e5", "ratio": 4.863548694495686 },
+				"sidebar": { "background": "#e6eaea", "ratio": 5.063458078001692 },
+				"surface": { "background": "#fafcfe", "ratio": 5.969137520902113 },
+				"paper": { "background": "#eef1f3", "ratio": 5.411294769208429 },
+				"surface-2": { "background": "#fafcfd", "ratio": 5.965401237278725 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "sea-wingnow",
+			"name": "Sea Wingnow",
+			"mode": "dark",
+			"ink": "#a0a5b1",
+			"surfaces": {
+				"bg": { "background": "#161d24", "ratio": 6.89014019615531 },
+				"sidebar": { "background": "#192128", "ratio": 6.600635711409248 },
+				"surface": { "background": "#2a313a", "ratio": 5.323528646048672 },
+				"paper": { "background": "#1e262d", "ratio": 6.211324090763686 },
+				"surface-2": { "background": "#242b32", "ratio": 5.803563293858088 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "bosque",
+			"name": "Bosque",
+			"mode": "light",
+			"ink": "#646357",
+			"surfaces": {
+				"bg": { "background": "#e6e7dd", "ratio": 4.8608435181584815 },
+				"sidebar": { "background": "#e9ebe3", "ratio": 5.039300221242476 },
+				"surface": { "background": "#fbfdfa", "ratio": 5.926977278104506 },
+				"paper": { "background": "#f0f3eb", "ratio": 5.4052265961628985 },
+				"surface-2": { "background": "#fbfdf9", "ratio": 5.923364671310909 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "bosque",
+			"name": "Bosque",
+			"mode": "dark",
+			"ink": "#a3a7a7",
+			"surfaces": {
+				"bg": { "background": "#1a2018", "ratio": 6.839188383373518 },
+				"sidebar": { "background": "#1e241c", "ratio": 6.526202695616595 },
+				"surface": { "background": "#2e342e", "ratio": 5.2481847910165405 },
+				"paper": { "background": "#232820", "ratio": 6.1918310489804815 },
+				"surface-2": { "background": "#282d27", "ratio": 5.781620863286435 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "menta",
+			"name": "Menta",
+			"mode": "light",
+			"ink": "#616157",
+			"surfaces": {
+				"bg": { "background": "#e2e5de", "ratio": 4.915776580957612 },
+				"sidebar": { "background": "#e5e9e3", "ratio": 5.094607854826252 },
+				"surface": { "background": "#f9fcfb", "ratio": 6.062710165768715 },
+				"paper": { "background": "#ecf1ec", "ratio": 5.471134318985134 },
+				"surface-2": { "background": "#f9fcfa", "ratio": 6.058960985720118 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "menta",
+			"name": "Menta",
+			"mode": "dark",
+			"ink": "#9ea5a8",
+			"surfaces": {
+				"bg": { "background": "#131c19", "ratio": 6.955710082319611 },
+				"sidebar": { "background": "#16201d", "ratio": 6.675855590574272 },
+				"surface": { "background": "#283030", "ratio": 5.400391590565278 },
+				"paper": { "background": "#1b2522", "ratio": 6.296280576552329 },
+				"surface-2": { "background": "#212a28", "ratio": 5.889483181037452 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "salvia",
+			"name": "Salvia",
+			"mode": "light",
+			"ink": "#636158",
+			"surfaces": {
+				"bg": { "background": "#e5e4de", "ratio": 4.8749398454705535 },
+				"sidebar": { "background": "#e8e9e4", "ratio": 5.08883970671593 },
+				"surface": { "background": "#fbfcfb", "ratio": 6.038763777015362 },
+				"paper": { "background": "#eff0ec", "ratio": 5.425510197331001 },
+				"surface-2": { "background": "#fbfcfa", "ratio": 6.035042920492275 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "salvia",
+			"name": "Salvia",
+			"mode": "dark",
+			"ink": "#a2a4a9",
+			"surfaces": {
+				"bg": { "background": "#181c1a", "ratio": 6.901942431387743 },
+				"sidebar": { "background": "#1c201e", "ratio": 6.604842788641443 },
+				"surface": { "background": "#2d3030", "ratio": 5.338724242950624 },
+				"paper": { "background": "#212422", "ratio": 6.282572717730344 },
+				"surface-2": { "background": "#262929", "ratio": 5.881060988381989 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "lavanda",
+			"name": "Lavanda",
+			"mode": "light",
+			"ink": "#64605c",
+			"surfaces": {
+				"bg": { "background": "#e6e3e4", "ratio": 4.888633978940124 },
+				"sidebar": { "background": "#e9e8ea", "ratio": 5.103189091768132 },
+				"surface": { "background": "#fbfbfe", "ratio": 6.033992795325277 },
+				"paper": { "background": "#f0eff2", "ratio": 5.4410198945111174 },
+				"surface-2": { "background": "#fbfbfd", "ratio": 6.030199524619249 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "lavanda",
+			"name": "Lavanda",
+			"mode": "dark",
+			"ink": "#a3a3b0",
+			"surfaces": {
+				"bg": { "background": "#1a1923", "ratio": 6.9771290414843214 },
+				"sidebar": { "background": "#1e1d27", "ratio": 6.683693410968207 },
+				"surface": { "background": "#2e2e39", "ratio": 5.378571386699352 },
+				"paper": { "background": "#23222c", "ratio": 6.301670360697923 },
+				"surface-2": { "background": "#282731", "ratio": 5.911856428503386 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "ciruela",
+			"name": "Ciruela",
+			"mode": "light",
+			"ink": "#635d5a",
+			"surfaces": {
+				"bg": { "background": "#e5dfe1", "ratio": 4.924284524590675 },
+				"sidebar": { "background": "#e8e4e7", "ratio": 5.142695408583474 },
+				"surface": { "background": "#fbf9fc", "ratio": 6.1832144848491435 },
+				"paper": { "background": "#efebef", "ratio": 5.48717180456224 },
+				"surface-2": { "background": "#fbf9fb", "ratio": 6.179315465295642 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "ciruela",
+			"name": "Ciruela",
+			"mode": "dark",
+			"ink": "#a29eac",
+			"surfaces": {
+				"bg": { "background": "#19131e", "ratio": 6.95674281037062 },
+				"sidebar": { "background": "#1c1722", "ratio": 6.713401251520028 },
+				"surface": { "background": "#2d2834", "ratio": 5.477459905617546 },
+				"paper": { "background": "#211c26", "ratio": 6.373538686115306 },
+				"surface-2": { "background": "#27222c", "ratio": 5.936398016664152 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "carbon",
+			"name": "Carbón",
+			"mode": "light",
+			"ink": "#615d56",
+			"surfaces": {
+				"bg": { "background": "#e1dfdc", "ratio": 4.9214772339603945 },
+				"sidebar": { "background": "#e4e3e1", "ratio": 5.103386401452228 },
+				"surface": { "background": "#f9f9f9", "ratio": 6.216856612917688 },
+				"paper": { "background": "#ecebe9", "ratio": 5.493882453516219 },
+				"surface-2": { "background": "#f9f9f8", "ratio": 6.212976651835926 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "carbon",
+			"name": "Carbón",
+			"mode": "dark",
+			"ink": "#9d9da5",
+			"surfaces": {
+				"bg": { "background": "#131316", "ratio": 6.8876424354870815 },
+				"sidebar": { "background": "#161619", "ratio": 6.707046632706352 },
+				"surface": { "background": "#27272c", "ratio": 5.52058707866975 },
+				"paper": { "background": "#1b1b1e", "ratio": 6.382115815459922 },
+				"surface-2": { "background": "#212125", "ratio": 5.9588894827899725 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "colibri",
+			"name": "Colibrí",
+			"mode": "light",
+			"ink": "#626059",
+			"surfaces": {
+				"bg": { "background": "#e2e2e0", "ratio": 4.851643987263935 },
+				"sidebar": { "background": "#e5e7e5", "ratio": 5.06285050284092 },
+				"surface": { "background": "#fafbfc", "ratio": 6.074596324033721 },
+				"paper": { "background": "#edeeee", "ratio": 5.414071474042609 },
+				"surface-2": { "background": "#fafbfb", "ratio": 6.070805776501598 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "colibri",
+			"name": "Colibrí",
+			"mode": "dark",
+			"ink": "#9fa2ab",
+			"surfaces": {
+				"bg": { "background": "#14191c", "ratio": 6.942153043085874 },
+				"sidebar": { "background": "#181c20", "ratio": 6.714306010075158 },
+				"surface": { "background": "#292d32", "ratio": 5.430095807509543 },
+				"paper": { "background": "#1c2125", "ratio": 6.362220152493323 },
+				"surface-2": { "background": "#22262b", "ratio": 5.963410936199816 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "tornasol",
+			"name": "Tornasol",
+			"mode": "light",
+			"ink": "#625e59",
+			"surfaces": {
+				"bg": { "background": "#dcdbdd", "ratio": 4.661981433037107 },
+				"sidebar": { "background": "#dfdfe2", "ratio": 4.836895139960624 },
+				"surface": { "background": "#fafafc", "ratio": 6.170516787677063 },
+				"paper": { "background": "#e6e6ea", "ratio": 5.16788250516121 },
+				"surface-2": { "background": "#fafafb", "ratio": 6.166642564493574 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "tornasol",
+			"name": "Tornasol",
+			"mode": "dark",
+			"ink": "#9f9fab",
+			"surfaces": {
+				"bg": { "background": "#191a23", "ratio": 6.61096494555661 },
+				"sidebar": { "background": "#1d1d27", "ratio": 6.380014752218717 },
+				"surface": { "background": "#292a32", "ratio": 5.451137115601902 },
+				"paper": { "background": "#21222c", "ratio": 6.031891540228591 },
+				"surface-2": { "background": "#23232b", "ratio": 5.956137454147692 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "pizarra",
+			"name": "Pizarra",
+			"mode": "light",
+			"ink": "#625f58",
+			"surfaces": {
+				"bg": { "background": "#e3e1df", "ratio": 4.883577031137163 },
+				"sidebar": { "background": "#e6e6e5", "ratio": 5.099809196126459 },
+				"surface": { "background": "#fafafb", "ratio": 6.105924069963175 },
+				"paper": { "background": "#ededed", "ratio": 5.4403205477096135 },
+				"surface-2": { "background": "#fafafa", "ratio": 6.102108204207541 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "pizarra",
+			"name": "Pizarra",
+			"mode": "dark",
+			"ink": "#9fa0aa",
+			"surfaces": {
+				"bg": { "background": "#15171b", "ratio": 6.90691791719581 },
+				"sidebar": { "background": "#191a1f", "ratio": 6.686334306324629 },
+				"surface": { "background": "#2a2b31", "ratio": 5.430825243496743 },
+				"paper": { "background": "#1d1f23", "ratio": 6.352001550940581 },
+				"surface-2": { "background": "#23252a", "ratio": 5.902017483321757 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "terracota",
+			"name": "Terracota",
+			"mode": "light",
+			"ink": "#675d54",
+			"surfaces": {
+				"bg": { "background": "#ebdfd9", "ratio": 4.919612625241917 },
+				"sidebar": { "background": "#ede4de", "ratio": 5.122518045223447 },
+				"surface": { "background": "#fef9f8", "ratio": 6.15198713047878 },
+				"paper": { "background": "#f5ece7", "ratio": 5.514366569294603 },
+				"surface-2": { "background": "#fef9f7", "ratio": 6.148201098127603 }
+			}
+		},
+		{
+			"variant": "after",
+			"theme": "terracota",
+			"name": "Terracota",
+			"mode": "dark",
+			"ink": "#a99ea2",
+			"surfaces": {
+				"bg": { "background": "#211411", "ratio": 6.905963836570188 },
+				"sidebar": { "background": "#251715", "ratio": 6.6824587414049 },
+				"surface": { "background": "#352828", "ratio": 5.452231614628797 },
+				"paper": { "background": "#291c19", "ratio": 6.355408125549586 },
+				"surface-2": { "background": "#2e2221", "ratio": 5.925257264061695 }
+			}
+		}
+	]
+}
