@@ -93,6 +93,13 @@
 		onReviewGo?: (finding: ReviewFinding) => void;
 		/** «Describir la imagen…» de un aviso de alt: abrir la ficha de Medios. */
 		onReviewDescribe?: (finding: ReviewFinding) => void;
+		/** Formulario: conserva su único camino de validación/guardado y feedback. null indica
+		 *  un rechazo ya mostrado allí; sin delegado se mantiene la escritura del editor visual. */
+		onChange?: (values: RecordInput) => Promise<VegaRecord | null>;
+		/** Cabecera del formulario: ya tiene etiqueta y programación junto al campo Estado. */
+		compact?: boolean;
+		/** Mutex externo: incluye los guardados del formulario y las mutaciones de bloques. */
+		disabled?: boolean;
 	}
 
 	let {
@@ -102,7 +109,10 @@
 		pendingBlocks,
 		review = null,
 		onReviewGo,
-		onReviewDescribe
+		onReviewDescribe,
+		onChange,
+		compact = false,
+		disabled = false
 	}: Props = $props();
 
 	const ctx = getVegaContext();
@@ -155,7 +165,7 @@
 		if (record !== syncedRecord) {
 			syncedRecord = record;
 			confirmed = record;
-			phase = 'idle';
+			if (phase !== 'changing') phase = 'idle';
 		}
 	});
 
@@ -346,8 +356,8 @@
 		await change('draft', 'removeSchedule');
 	}
 
-	async function requestChange(): Promise<void> {
-		if (phase === 'changing') return;
+	export async function requestChange(): Promise<void> {
+		if (phase === 'changing' || disabled || !canEdit) return;
 		if (phase === 'confirming') {
 			await cancelConfirm();
 			return;
@@ -384,7 +394,7 @@
 		to: Target,
 		operation: 'status' | 'removeSchedule' = 'status'
 	): Promise<void> {
-		if (statusField === null) return;
+		if (statusField === null || disabled || !canEdit || phase === 'changing') return;
 		const values: RecordInput = { [statusField]: to };
 		const publishAtField = type.publishAtField;
 		if (
@@ -398,20 +408,31 @@
 		}
 		const refocus = phase === 'confirming';
 		phase = 'changing';
-		if (refocus) {
-			await tick();
-			actionEl?.focus();
-		}
 		try {
-			const saved = await ctx.port.update(type.name, confirmed.id, values, {
-				expectedVersion: recordVersion(confirmed)
-			});
+			// Invocar el delegado ANTES de ceder el turno: el mutex del formulario ya cubre el
+			// refoco al cerrar la confirmación y no deja hueco para otro Guardar.
+			const mutation = onChange
+				? onChange(values)
+				: ctx.port.update(type.name, confirmed.id, values, {
+						expectedVersion: recordVersion(confirmed)
+					});
+			if (refocus) {
+				await tick();
+				actionEl?.focus();
+			}
+			const saved = await mutation;
+			if (saved === null) {
+				phase = 'idle';
+				return;
+			}
 			confirmed = saved;
 			phase = 'idle';
 			if (operation === 'removeSchedule') {
 				await tick();
 				scheduleEl?.focus();
 			}
+			// El delegado ya notificó el guardado completo, incluidas sus notas de afterSave.
+			if (onChange) return;
 			const label = type.statusLabels?.[to] ?? to;
 			const message =
 				operation === 'removeSchedule'
@@ -459,7 +480,7 @@
 		role={canEdit ? 'group' : undefined}
 		aria-label={canEdit ? ctx.t('editor.visual.status.groupLabel') : undefined}
 	>
-		{#if tag}
+		{#if tag && !compact}
 			<span class="vega-visual-publish-tag" data-status={tag.raw} data-status-kind={tag.kind}>
 				{tag.label}
 			</span>
@@ -471,7 +492,7 @@
 				class="vega-visual-publish-btn"
 				class:vega-visual-publish-btn--primary={target === 'published'}
 				bind:this={actionEl}
-				aria-disabled={phase === 'changing' ? 'true' : undefined}
+				aria-disabled={phase === 'changing' || disabled ? 'true' : undefined}
 				aria-expanded={asksConfirmation || phase === 'confirming'
 					? phase === 'confirming'
 					: undefined}
@@ -479,12 +500,13 @@
 				data-status-target={target}
 				onclick={() => void requestChange()}
 			>
+				{#if target === 'published'}<Icon id="publish" size={16} />{/if}
 				{actionLabel}
 			</button>
 
 			<!-- «Programar…» / «Cambiar fecha…» (ver cabecera): solo en un borrador y si el servidor
 			     puede cumplir la fecha. Mismo rótulo que junto al campo Estado del formulario. -->
-			{#if scheduleControl.kind !== 'none'}
+			{#if !compact && scheduleControl.kind !== 'none'}
 				<button
 					type="button"
 					class="vega-visual-publish-btn vega-visual-publish-schedule"
@@ -498,7 +520,7 @@
 					)}
 				</button>
 			{/if}
-			{#if scheduleControl.kind === 'scheduled' || scheduleControl.kind === 'overdue'}
+			{#if !compact && (scheduleControl.kind === 'scheduled' || scheduleControl.kind === 'overdue')}
 				<button
 					type="button"
 					class="vega-visual-publish-btn vega-visual-publish-remove-schedule"
@@ -717,6 +739,7 @@
 	.vega-visual-publish-btn {
 		display: inline-flex;
 		align-items: center;
+		gap: 0.35rem;
 		height: 30px;
 		padding: 0 0.75rem;
 		border: 1px solid var(--line);

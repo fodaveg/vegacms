@@ -356,7 +356,7 @@
 		onmousedown={keepEditorFocus}
 		onclick={openLinkDialog}
 	>
-		🔗
+		<Icon id="link" size={16} />
 	</button>
 	{#if ctx.mediaPicker}
 		<button

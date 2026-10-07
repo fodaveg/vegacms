@@ -461,4 +461,44 @@ describe('RecordForm — la revisión con lecturas lentas o fallidas', () => {
 		expect(card(m)).toBeNull();
 		expect(reviewLine(m)).toBeNull();
 	});
+	test('publicar reúne revisión y bloque sin guardar; cancelar conserva borrador y confirmar no autoguarda el bloque', async () => {
+		const { page, hero } = await pageWithWarnings();
+		const m = mountForm(world.pagesType, page);
+		await settle();
+		buttonByLabel(m, 'Bloque 1 · Hero › Enlace: ir al campo')!.click();
+		await tick();
+		const field = m.target.querySelector<HTMLInputElement>(
+			`#${fieldIds('actionHref', hero.id).inputId}`
+		)!;
+		field.value = '/otro-enlace-roto';
+		field.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+		await tick();
+		const publish = m.target.querySelector<HTMLButtonElement>('[data-status-target="published"]')!;
+		publish.click();
+		flushSync();
+		await tick();
+		const dialog = m.target.querySelector<HTMLElement>('[role="alertdialog"]')!;
+		expect(dialog).not.toBeNull();
+		expect(dialog.querySelectorAll('.vega-review-pop-section')).toHaveLength(2);
+		expect(dialog.querySelector('ul')!.textContent?.trim()).not.toBe('');
+		expect(document.activeElement?.textContent?.trim()).toBe('Cancelar');
+		dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		await tick();
+		expect(document.activeElement).toBe(publish);
+		expect((await world.port.get('pages', page.id)).values.status).toBe('draft');
+		publish.click();
+		flushSync();
+		await tick();
+		const confirm = m.target.querySelector<HTMLButtonElement>(
+			'.vega-visual-publish-pop-btn--primary'
+		)!;
+		confirm.click();
+		await vi.waitFor(async () => {
+			flushSync();
+			expect((await world.port.get('pages', page.id)).values.status).toBe('published');
+		});
+		expect((await world.port.get('blocks', hero.id)).values.data).toEqual(hero.values.data);
+		expect(field.value).toBe('/otro-enlace-roto');
+	});
 });

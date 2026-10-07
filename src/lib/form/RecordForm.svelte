@@ -96,12 +96,10 @@
 	 *   el control; los e2e que antes buscaban el rol "Volver" buscan el nombre accesible del tipo.
 	 *   Es un `<button>` y no el `<a href>` del mockup A PROPÓSITO: el destino depende de
 	 *   `type.singleton` y lo decide la ruta, así que un enlace mentiría sobre a dónde lleva.
-	 * - **Sin botón "Publicar" (desviación consciente del mockup)**: el mockup pinta `<button
-	 *   class="btn">Publicar</button>` junto a "Guardar". P5 (el puerto `BackendPort`, §5) NO expone
-	 *   ninguna transición de estado/publicación — solo `create`/`update`/`delete` sobre el mismo
-	 *   registro. Fabricar ese botón sería un elemento decorativo sin acción real detrás, así que
-	 *   esta fase lo omite: la fidelidad 1:1 se detiene donde empezaría a mentir sobre lo que Vega
-	 *   puede hacer. Si un P futuro añade transiciones de estado al puerto, este es el hueco natural.
+	 * - **Publicar desde edición**: comparte confirmación y revisión con `VisualPublishControl`.
+	 *   Si hay cambios del registro, los guarda primero; solo tras éxito guarda el estado con la
+	 *   nueva versión. Ambos pasos pasan por `save`/historial, bajo un mutex común y sin avisar al
+	 *   padre entre medias. Creación conserva Guardar → registro; los bloques no se autoguardan.
 	 * - **`<h1>` visualmente oculto, no eliminado del todo**: el mockup no pinta NINGÚN heading
 	 *   visible en el editor (el crumb es un `<span>`, no un heading) — pero dejar la página sin
 	 *   ningún heading de nivel superior sería un agujero de a11y (eje 4 de la checklist: un lector
@@ -328,6 +326,7 @@
 	import { describeScheduleControl, formatScheduleMoment } from './schedule';
 	import ConflictNotice from './ConflictNotice.svelte';
 	import { classifyRecordSaveError, sendRecord } from './record-save';
+	import VisualPublishControl from '$lib/visual/VisualPublishControl.svelte';
 	import { recordConflictRows } from './record-conflict-rows';
 	import { handleRecordSaveKeydown } from './record-save-keyboard';
 	import RedirectOffer from './RedirectOffer.svelte';
@@ -418,6 +417,10 @@
 	let clientErrors = $state<FieldErrorsView>(EMPTY_ERRORS);
 	let backendErrors = $state<FieldErrorsView>(EMPTY_ERRORS);
 	let saving = $state(false);
+	/** Mutex del guardado de contenido seguido de la transición de estado. */
+	let publishing = $state(false);
+	let publicationNotice = $state<string | null>(null);
+	let publishControl = $state<VisualPublishControl | null>(null);
 	let duplicating = $state(false);
 	let activeLocale = $state(untrack(() => type.localization?.defaultLocale ?? ''));
 	/** Decisión 2 de `RecordBlocks.svelte` (capacidad `blocks`): `true` mientras AL MENOS un bloque
@@ -510,6 +513,7 @@
 			// Los bloques del registro ANTERIOR ya no aplican (misma LANDMINE): `RecordBlocks` se
 			// remonta con el `parentId`/`parentType` nuevos y recalculará su propio dirty desde cero.
 			blocksDirty = false;
+			publicationNotice = null;
 			blocksBusy = false;
 			previewBlocks = [];
 			// Lote "publicación" fase B: un panel de preview abierto para el registro ANTERIOR ya no
@@ -552,7 +556,7 @@
 
 	const dirty = $derived(isDirty(baseline, current) || blocksDirty);
 	$effect(() => {
-		onStateChange?.({ dirty, busy: saving });
+		onStateChange?.({ dirty, busy: saving || publishing });
 	});
 	/** Envío explícito desde las acciones del diálogo, con validez nativa del form. */
 	export function requestSubmit(): void {
@@ -578,7 +582,7 @@
 			!(modal && model.mode === 'create' ? type.permissions.create : type.permissions.update)
 	);
 
-	const formDisabled = $derived(saving || duplicating || locked);
+	const formDisabled = $derived(saving || publishing || duplicating || locked);
 	const activeLocaleTabId = $derived(
 		type.localization ? `vega-locale-tab-${fieldScope ?? type.name}-${activeLocale}` : undefined
 	);
@@ -764,6 +768,17 @@
 	 *  aunque hoy la condición coincida: aquello decide si una TARJETA informa de algo, esto es la
 	 *  identidad del registro, y estrecharlo a un `RecordId` no-nulo evita el `?? ''` en cada uso. */
 	const existingRecordId = $derived(model.mode === 'edit' ? model.recordId : null);
+	const publicationRecord = $derived({
+		id: existingRecordId ?? '',
+		type: type.name,
+		values: baseline
+	});
+	/** toRecordInput omite readonly: no ofrecer una transición que no puede escribir Estado. */
+	const publicationWritable = $derived(
+		type.statusField !== null &&
+			type.fields.some((field) => field.name === type.statusField && !field.schema.readonly)
+	);
+
 	const createdText = $derived(autodateText(type, baseline, 'created', ctx.locale));
 	const updatedText = $derived(autodateText(type, baseline, 'updated', ctx.locale));
 
@@ -778,7 +793,9 @@
 	/** Guardados de bloque con éxito (`RecordBlocks#onSaved`): releen lo que la revisión lee del
 	 *  servidor, igual que `savedCount` para el registro. */
 	let blocksSavedCount = $state(0);
-	let recordBlocksRef = $state<{ expand: (id: string) => void } | undefined>(undefined);
+	let recordBlocksRef = $state<
+		{ expand: (id: string) => void; pendingBlockTitles: () => readonly string[] } | undefined
+	>(undefined);
 	let reviewCardRef = $state<{ focus: () => void } | undefined>(undefined);
 	/** Ficha de Medios abierta desde «Describir la imagen…», o `null`. */
 	let reviewMediaId = $state<string | null>(null);
@@ -1316,7 +1333,7 @@
 	}
 
 	/** Desenlace de un guardado que SÍ se hizo (normal o «Guardar igualmente»). */
-	function commitSaved(saved: VegaRecord, note?: string): void {
+	function commitSaved(saved: VegaRecord, note?: string, notifyParent = true): void {
 		// L-P5.6/D-P5.11: reasentar baseline (→ no-dirty) ANTES de avisar al padre — si no, el
 		// guard de salida de abajo se dispararía sobre el propio guardado que acaba de navegar.
 		adoptRecord(saved);
@@ -1325,7 +1342,7 @@
 		savedAt = new Date();
 		savedCount += 1;
 		lastSaved = saved; // el raíl actualiza en sitio su fila (título/estado/fecha pueden haber cambiado)
-		onSaved(saved, note);
+		if (notifyParent) onSaved(saved, note);
 	}
 
 	// ————— Aviso de edición concurrente (ver cabecera, "Edición concurrente") —————
@@ -1341,7 +1358,7 @@
 	 * debe enseñar como error (ver el contrato en la cabecera de `ConflictNotice.svelte`).
 	 */
 	async function forceSave(): Promise<void> {
-		if (!conflict) return;
+		if (!conflict || publishing || saving) return;
 		backendErrors = EMPTY_ERRORS;
 		saving = true;
 		let errorsToFocus: FieldErrorsView | null = null;
@@ -1390,7 +1407,7 @@
 
 	/** Cómo acabó un `save`: lo que el diálogo de «Programar…» necesita saber para cerrarse o no. */
 	type SaveOutcome =
-		| { kind: 'saved' }
+		| { kind: 'saved'; record: VegaRecord; note?: string }
 		/** Errores de cliente o de campo del backend: ya se enseñan en el formulario y el foco va al primero. */
 		| { kind: 'invalid' }
 		/** Edición concurrente: el aviso de siempre ya está abierto. */
@@ -1415,6 +1432,8 @@
 		/** `true`: el foco al primer campo con error NO se pide dentro de `save()`; queda en
 		 *  `deferredFocus` para que quien llama lo pida cuando le convenga (ver `submitSchedule`). */
 		deferFocus?: boolean;
+		/** Paso interno de publicación: mantiene el mutex y difiere aviso/navegación del padre. */
+		publication?: boolean;
 	}
 
 	/** Foco al primer campo con error que `save({ deferFocus: true })` dejó pendiente. */
@@ -1425,7 +1444,9 @@
 	 * Valida (cliente), escribe (`onSubmit`) y reasienta; los errores salen como siempre.
 	 */
 	async function save(options: SaveOptions = {}): Promise<SaveOutcome> {
-		if (formDisabled || submitBlocked) return { kind: 'busy' };
+		if (!options.publication) publicationNotice = null;
+		if (saving || duplicating || locked || submitBlocked || (publishing && !options.publication))
+			return { kind: 'busy' };
 		const values = options.overrides ? { ...current, ...options.overrides } : current;
 		const keepOverrides = (): void => {
 			if (options.overrides) current = values;
@@ -1458,7 +1479,7 @@
 		// él). Se pospone la llamada a DESPUÉS del `finally`, con `saving` ya en `false` y el
 		// control re-habilitado.
 		let errorsToFocus: FieldErrorsView | null = null;
-		let outcome: SaveOutcome = { kind: 'saved' };
+		let outcome: SaveOutcome = { kind: 'busy' };
 		try {
 			// Edición: con la versión que este formulario tiene delante (ver "Edición concurrente").
 			// Pulsar «Guardar» con el aviso abierto vuelve a comprobar contra la MISMA versión: si
@@ -1474,7 +1495,10 @@
 				syncRedirects,
 				runAfterSave: (saved) => afterSave.run(saved),
 				note: options.note,
-				commitSaved
+				commitSaved: (saved, note) => {
+					commitSaved(saved, note, !options.publication);
+					outcome = { kind: 'saved', record: saved, note };
+				}
 			});
 		} catch (err) {
 			const failure = classifyRecordSaveError(err);
@@ -1508,6 +1532,79 @@
 			else await focusFirstErrorField(view);
 		}
 		return outcome;
+	}
+
+	/** Publicar preserva el contenido y la versión: jamás cambia estado tras un save rechazado. */
+	async function changePublication(values: RecordInput): Promise<VegaRecord | null> {
+		if (formDisabled || submitBlocked || blocksBusy || !type.statusField || !publicationWritable)
+			return null;
+		publishing = true;
+		publicationNotice = null;
+		let contentSaved = false;
+		let result: SaveOutcome;
+		let contentNote: string | undefined;
+		try {
+			// El selector Estado puede estar editado: conservar su valor CONFIRMADO hasta el segundo
+			// paso evita publicar anticipadamente al guardar los demás campos.
+			const content = { ...current, [type.statusField]: baseline[type.statusField] };
+			if (isDirty(baseline, content)) {
+				const saved = await save({
+					overrides: { [type.statusField]: baseline[type.statusField] },
+					publication: true,
+					deferFocus: true
+				});
+				if (saved.kind !== 'saved') return null;
+				contentNote = saved.note;
+				contentSaved = true;
+			}
+			const label =
+				type.statusLabels?.[String(values[type.statusField])] ?? String(values[type.statusField]);
+			const statusNote = ctx.t('editor.visual.status.success', { name: docName, label });
+			result = await save({
+				overrides: values as FormInputValues,
+				publication: true,
+				deferFocus: true,
+				note: () =>
+					[
+						contentNote,
+						statusNote,
+						ctx.port.buildApiUrl ? ctx.t('editor.visual.status.success.rebuild') : null
+					]
+						.filter(Boolean)
+						.join(' ')
+			});
+			if (
+				result.kind === 'saved' &&
+				result.record.values[type.statusField] !== values[type.statusField]
+			) {
+				const error = VegaError.backend(
+					ctx.t(
+						values[type.statusField] === 'published'
+							? 'editor.visual.status.error.publish'
+							: 'editor.visual.status.error.unpublish'
+					)
+				);
+				ctx.feedback.reportError(error, { action: 'form:status' });
+				result = { kind: 'failed', error };
+			}
+		} finally {
+			publishing = false;
+			await tick();
+			const focus = deferredFocus;
+			deferredFocus = null;
+			if (focus) await focus();
+		}
+		if (result.kind !== 'saved') {
+			if (contentSaved)
+				publicationNotice = `${ctx.t('editor.saveSuccess')} ${ctx.t(
+					values[type.statusField] === 'published'
+						? 'editor.visual.status.error.publish'
+						: 'editor.visual.status.error.unpublish'
+				)}`;
+			return null;
+		}
+		onSaved(result.record, result.note);
+		return result.record;
 	}
 
 	async function handleSubmit(event: SubmitEvent): Promise<void> {
@@ -1564,11 +1661,7 @@
 	/** «Publicar ahora» (programada que no se publicó): pasa a publicado y vacía la fecha, que es lo
 	 *  que habría hecho el servidor (`extensions/vegaschedule`). */
 	async function publishNow(): Promise<void> {
-		const statusField = type.statusField;
-		const publishAtField = type.publishAtField;
-		if (statusField && publishAtField) {
-			await save({ overrides: { [statusField]: 'published', [publishAtField]: null } });
-		}
+		await publishControl?.requestChange();
 	}
 
 	if (!modal)
@@ -1576,6 +1669,10 @@
 			// `discarding` (ver cabecera): la navegación la ha provocado el propio borrado del registro
 			// — preguntar "hay cambios sin guardar, ¿salir igualmente?" por un registro que acaba de
 			// dejar de existir sería absurdo (y la única respuesta útil sería "sí").
+			if (publishing) {
+				navigation.cancel();
+				return;
+			}
 			if (!dirty || discarding) return;
 			if (!window.confirm(ctx.t('editor.leaveConfirm'))) navigation.cancel();
 		});
@@ -1591,7 +1688,7 @@
 			return;
 		}
 		function handleBeforeUnload(event: BeforeUnloadEvent): void {
-			if (!dirty) return;
+			if (!dirty && !publishing) return;
 			event.preventDefault();
 			event.returnValue = '';
 		}
@@ -1635,9 +1732,9 @@
 				<button
 					type="button"
 					class="vega-editor-back"
-					disabled={duplicating}
+					disabled={duplicating || publishing}
 					onclick={() => {
-						if (!duplicating) onCancel();
+						if (!duplicating && !publishing) onCancel();
 					}}
 				>
 					<Icon id="chevron" size={14} />
@@ -1757,6 +1854,24 @@
 							{duplicating ? ctx.t('editor.duplicating') : ctx.t('editor.duplicate')}
 						</button>
 					{/if}
+					{#if existingRecordId && publicationWritable}
+						<VisualPublishControl
+							bind:this={publishControl}
+							{type}
+							record={publicationRecord}
+							name={docName}
+							pendingBlocks={recordBlocksRef?.pendingBlockTitles() ?? []}
+							{review}
+							onReviewGo={goToReviewTarget}
+							onReviewDescribe={describeReviewImage}
+							onChange={changePublication}
+							compact
+							disabled={formDisabled || blocksBusy || submitBlocked}
+						/>
+					{/if}
+					{#if publicationNotice}<span class="vega-visual-publish-error" role="alert"
+							>{publicationNotice}</span
+						>{/if}
 					<button type="submit" class="vega-editor-save-button" disabled={formDisabled}>
 						{ctx.t('editor.save')}
 						<kbd aria-hidden="true">{shortcutLabel}</kbd>
@@ -1835,14 +1950,16 @@
 			<div class="vega-field-notice vega-schedule-overdue" role="status">
 				<p>{parts[0]}{parts[1]}{parts[2]}</p>
 				<div class="vega-schedule-actions">
-					<button
-						type="button"
-						class="vega-editor-inline-button"
-						disabled={formDisabled}
-						onclick={publishNow}
-					>
-						{ctx.t('editor.schedule.publishNow')}
-					</button>
+					{#if publicationWritable}
+						<button
+							type="button"
+							class="vega-editor-inline-button"
+							disabled={formDisabled}
+							onclick={publishNow}
+						>
+							{ctx.t('editor.schedule.publishNow')}
+						</button>
+					{/if}
 					<button
 						type="button"
 						class="vega-editor-inline-button"
@@ -2060,7 +2177,7 @@
 						onBusyChange={(value) => (blocksBusy = value)}
 						onReadyChange={(value) => (blocksReady = value)}
 						onSaved={() => (blocksSavedCount += 1)}
-						disabled={duplicating}
+						disabled={duplicating || publishing}
 					/>
 				{/if}
 			</div>
