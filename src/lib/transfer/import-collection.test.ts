@@ -7,7 +7,8 @@
  * pocketbase.contract.test.ts`.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { fetchTransferFile, ImportMediaPolicyError } from './import-media';
 import { ALL_PERMISSIONS } from '$lib/backend/access';
 import type { Field, Page, RecordId, RecordInput, VegaRecord } from '$lib/backend/types';
 import type { Query } from '$lib/backend/query';
@@ -19,6 +20,7 @@ import type { TransferFileValue, TransferRecord } from './record-serializer';
 import {
 	buildImportPreview,
 	createCachingFileFetcher,
+	collectImportMediaOrigins,
 	IMPORT_WRITE_CONCURRENCY,
 	runImport,
 	type ImportPort
@@ -243,7 +245,8 @@ describe('buildImportPreview', () => {
 			{
 				id: 'p1',
 				status: 'blocked',
-				reasons: [{ kind: 'unreachable-required-file', field: 'cover' }]
+				reasons: [{ kind: 'unreachable-required-file', field: 'cover' }],
+				missingFiles: ['cover']
 			}
 		]);
 	});
@@ -810,10 +813,10 @@ describe('runImport: relaciones cíclicas en dos fases', () => {
 		]);
 		const file = new File(['image'], 'image.png');
 		let downloads = 0;
-		const fetchFile = async () => {
+		const fetchFile = createCachingFileFetcher(async () => {
 			downloads++;
 			return file;
-		};
+		});
 		const preview = await buildImportPreview(
 			port,
 			[
@@ -842,4 +845,290 @@ describe('runImport: relaciones cíclicas en dos fases', () => {
 		expect(writes[0].data).toEqual({ cover: file });
 		expect(writes[1].data).toEqual({ ref: 'x' });
 	});
+});
+
+describe('importación con política de medios', () => {
+	const type = contentType('posts', [field({ name: 'cover', type: 'file', multiple: false })]);
+	const file = { file: 'a.jpg', url: 'https://media.test/a.jpg' };
+	const collection = {
+		collection: { type: 'posts', records: [record('p1', { cover: file })] },
+		contentType: type
+	};
+	it('un medio opcional no autorizado bloquea PISA sin vaciar el fichero existente', async () => {
+		const { port, writes } = fakePort({ posts: ['p1'] });
+		const preview = await buildImportPreview(port, [collection]);
+		expect(preview.collections[0].entries[0]).toMatchObject({
+			status: 'blocked',
+			reasons: [
+				{ kind: 'file-origin-policy', field: 'cover', block: { origin: 'https://media.test' } }
+			]
+		});
+		expect(await runImport(port, preview, { overwriteConfirmed: true })).toMatchObject({
+			skippedCount: 1
+		});
+		expect(writes).toEqual([]);
+	});
+	it('una política rechazada durante escritura aborta antes de create/update', async () => {
+		for (const existing of [[], ['p1']]) {
+			const { port, writes } = fakePort({ posts: existing });
+			const preview = await buildImportPreview(
+				port,
+				[collection],
+				async () => new File(['x'], 'a.jpg')
+			);
+			const report = await runImport(port, preview, { overwriteConfirmed: true }, async () => {
+				throw new ImportMediaPolicyError({
+					kind: 'unapproved-origin',
+					origin: 'https://media.test'
+				});
+			});
+			expect(report.failedCount).toBe(1);
+			expect(writes).toEqual([]);
+		}
+	});
+	it('los fallos de red autorizados avisan antes de PISA y comparten null con la escritura', async () => {
+		const { port, writes } = fakePort({ posts: ['p1'] });
+		const download = vi.fn(async () => null);
+		const fetcher = createCachingFileFetcher(download);
+		const preview = await buildImportPreview(port, [collection], fetcher);
+		expect(preview.collections[0].entries[0]).toEqual({
+			id: 'p1',
+			status: 'overwrite',
+			reasons: [],
+			missingFiles: ['cover']
+		});
+		const report = await runImport(port, preview, { overwriteConfirmed: true }, fetcher);
+		expect(download).toHaveBeenCalledTimes(1);
+		expect(writes[0].data.cover).toBeNull();
+		expect(report.outcomes[0].missingFiles).toEqual(['cover']);
+	});
+	it('una aprobación nueva recrea la caché; preview y escritura usan la misma descarga', async () => {
+		const fetchSpy = vi.fn(
+			async () => new Response(new Uint8Array([1]), { headers: { 'content-type': 'image/png' } })
+		);
+		vi.stubGlobal('fetch', fetchSpy);
+		try {
+			const { port, writes } = fakePort({ posts: [] });
+			const denied = createCachingFileFetcher((f) => fetchTransferFile(f));
+			expect(
+				(await buildImportPreview(port, [collection], denied)).collections[0].entries[0].status
+			).toBe('blocked');
+			expect(fetchSpy).not.toHaveBeenCalled();
+			const approved = createCachingFileFetcher((f) =>
+				fetchTransferFile(f, { authorizedOrigins: new Set(['https://media.test']) })
+			);
+			const preview = await buildImportPreview(port, [collection], approved);
+			await runImport(port, preview, { overwriteConfirmed: false }, approved);
+			expect(fetchSpy).toHaveBeenCalledTimes(1);
+			expect(writes[0].id).toBe('p1');
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+	it('reúne orígenes normalizados sin credenciales/query y excluye campos readonly', () => {
+		const multi = contentType('posts', [
+			field({ name: 'cover', type: 'file', multiple: true }),
+			field({ name: 'computed', type: 'file', readonly: true })
+		]);
+		const media = collectImportMediaOrigins([
+			{
+				contentType: multi,
+				collection: {
+					type: 'posts',
+					records: [
+						record('p1', {
+							cover: [
+								{ file: 'a', url: 'https://u:secret@MEDIA.test:443/a?secret=1' },
+								file,
+								{ file: 'b', url: 'data:image/png,a' }
+							],
+							computed: { file: 'c', url: 'https://readonly.test/a' }
+						})
+					]
+				}
+			}
+		]);
+		expect(media).toEqual({ origins: ['https://media.test'], fileCount: 3 });
+	});
+	it('un campo multiple required con un medio traíble y otro prohibido sigue bloqueado', async () => {
+		const multi = contentType('posts', [
+			field({ name: 'cover', type: 'file', multiple: true, required: true })
+		]);
+		const { port, writes } = fakePort({ posts: [] });
+		const preview = await buildImportPreview(
+			port,
+			[
+				{
+					contentType: multi,
+					collection: {
+						type: 'posts',
+						records: [record('p1', { cover: [file, { file: 'b', url: 'https://foreign.test/b' }] })]
+					}
+				}
+			],
+			async (f) => {
+				if (f.url.includes('foreign'))
+					throw new ImportMediaPolicyError({
+						kind: 'unapproved-origin',
+						origin: 'https://foreign.test'
+					});
+				return new File(['x'], f.file);
+			}
+		);
+		expect(preview.collections[0].entries[0].status).toBe('blocked');
+		await runImport(port, preview, { overwriteConfirmed: true });
+		expect(writes).toEqual([]);
+	});
+});
+
+it('una URL no string manipulada nunca se convierte en vaciado opcional', async () => {
+	const type = contentType('posts', [field({ name: 'cover', type: 'file', multiple: false })]);
+	const tampered = record('p1', {
+		cover: { file: 'a.png', url: { href: 'https://media.test/a' } }
+	} as unknown as TransferRecord['values']);
+	const collection = { contentType: type, collection: { type: 'posts', records: [tampered] } };
+	const { port, writes } = fakePort({ posts: ['p1'] });
+	expect(collectImportMediaOrigins([collection])).toEqual({ origins: [], fileCount: 1 });
+	const preview = await buildImportPreview(port, [collection]);
+	expect(preview.collections[0].entries[0]).toMatchObject({
+		status: 'blocked',
+		reasons: [{ kind: 'file-origin-policy', block: { kind: 'invalid-url' } }]
+	});
+	await runImport(port, preview, { overwriteConfirmed: true });
+	expect(writes).toEqual([]);
+	const forced = {
+		collections: [
+			{
+				...collection,
+				type: 'posts',
+				records: [tampered],
+				entries: [{ id: 'p1', status: 'overwrite' as const, reasons: [] }]
+			}
+		]
+	};
+	expect(await runImport(port, forced, { overwriteConfirmed: true })).toMatchObject({
+		failedCount: 1
+	});
+	expect(writes).toEqual([]);
+});
+
+it.each([
+	[true, { file: 'a.png', url: 'https://unapproved.test/a' }],
+	[true, { file: 'a.png', url: { href: 'https://unapproved.test/a' } }],
+	[false, [{ file: 'a.png', url: 'https://unapproved.test/a' }]],
+	[false, [{ file: 'a.png', url: { href: 'https://unapproved.test/a' } }]]
+])(
+	'la cardinalidad inesperada (multiple=%s) tampoco puede saltar la política al PISA',
+	async (multiple, raw) => {
+		const type = contentType('posts', [field({ name: 'cover', type: 'file', multiple })]);
+		const tampered = record('p1', { cover: raw } as unknown as TransferRecord['values']);
+		const { port, writes } = fakePort({ posts: ['p1'] });
+		const forced = {
+			collections: [
+				{
+					type: 'posts',
+					contentType: type,
+					records: [tampered],
+					entries: [{ id: 'p1', status: 'overwrite' as const, reasons: [] }]
+				}
+			]
+		};
+		const fetchSpy = vi.fn();
+		vi.stubGlobal('fetch', fetchSpy);
+		try {
+			const report = await runImport(port, forced, { overwriteConfirmed: true });
+			expect(report.failedCount).toBe(1);
+			expect(writes).toEqual([]);
+			expect(fetchSpy).not.toHaveBeenCalled();
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	}
+);
+
+it.each([true, false])(
+	'la cardinalidad inesperada autorizada (multiple=%s) avisa antes de PISA',
+	async (multiple) => {
+		const type = contentType('posts', [field({ name: 'cover', type: 'file', multiple })]);
+		const file = { file: 'a.png', url: 'https://media.test/a' };
+		const raw = multiple ? file : [file];
+		const transfer = record('p1', { cover: raw });
+		const { port, writes } = fakePort({ posts: ['p1'] });
+		const fetcher = createCachingFileFetcher(async () => new File(['x'], 'a.png'));
+		const preview = await buildImportPreview(
+			port,
+			[{ contentType: type, collection: { type: 'posts', records: [transfer] } }],
+			fetcher
+		);
+		expect(preview.collections[0].entries[0]).toMatchObject({
+			status: 'overwrite',
+			missingFiles: ['cover']
+		});
+		const report = await runImport(port, preview, { overwriteConfirmed: true }, fetcher);
+		expect(writes[0].data.cover).toEqual(multiple ? [] : null);
+		expect(report.outcomes[0].missingFiles).toEqual(['cover']);
+	}
+);
+
+it.each([false, true])(
+	'cambiar de contexto durante una descarga impide create/update (PISA=%s)',
+	async (overwrite) => {
+		const type = contentType('posts', [field({ name: 'cover', type: 'file', multiple: false })]);
+		const transfer = record('p1', { cover: { file: 'a.png', url: 'https://media.test/a' } });
+		const { port, writes } = fakePort({ posts: overwrite ? ['p1'] : [] });
+		let userId = 'first';
+		let release!: (file: File) => void;
+		const download = new Promise<File>((resolve) => (release = resolve));
+		const preview = {
+			collections: [
+				{
+					type: 'posts',
+					contentType: type,
+					records: [transfer],
+					entries: [
+						{
+							id: 'p1',
+							status: overwrite ? ('overwrite' as const) : ('create' as const),
+							reasons: []
+						}
+					]
+				}
+			]
+		};
+		const result = runImport(
+			port,
+			preview,
+			{ overwriteConfirmed: true, isContextCurrent: () => userId === 'first' },
+			async () => download
+		);
+		await Promise.resolve();
+		userId = 'second';
+		release(new File(['x'], 'a.png'));
+		expect(await result).toMatchObject({ failedCount: 1, createdCount: 0, updatedCount: 0 });
+		expect(writes).toEqual([]);
+	}
+);
+
+it('las relaciones diferidas tampoco se escriben si cambia el contexto tras crear', async () => {
+	const type = contentType('posts', [
+		field({ name: 'ref', type: 'relation', target: 'posts', required: false, multiple: false })
+	]);
+	const { port, writes } = fakePort({ posts: [] });
+	const preview = await buildImportPreview(port, [
+		{ contentType: type, collection: { type: 'posts', records: [record('p1', { ref: 'p1' })] } }
+	]);
+	let current = true;
+	const create = port.create;
+	port.create = async (...args) => {
+		const result = await create(...args);
+		current = false;
+		return result;
+	};
+	const report = await runImport(port, preview, {
+		overwriteConfirmed: false,
+		isContextCurrent: () => current
+	});
+	expect(writes.map((w) => w.op)).toEqual(['create']);
+	expect(report).toMatchObject({ failedCount: 1, createdCount: 0 });
+	expect(report.outcomes[0].partialWrite).toBe('created');
 });

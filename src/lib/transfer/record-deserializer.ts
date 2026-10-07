@@ -16,7 +16,9 @@
  *
  * **Campos `file`** (§4.4): cada `{ file, url }` se trae con `fetchFile` (inyectado por el
  * llamador — `import-media.ts#fetchTransferFile` en producción, un doble en tests) y se sustituye
- * por el `File` resultante. Si `fetchFile` no puede traerlo (red, CORS, 404 — o el valor era un
+ * por el `File` resultante. Un `ImportMediaPolicyError` se propaga: el llamador registra el
+ * fallo ANTES de cualquier create/update, incluso en un PISA con ficheros opcionales. Solo las
+ * descargas autorizadas que devuelven `null` siguen la semántica de campo vacío. Si `fetchFile` no puede traerlo (red, CORS, 404 — o el valor era un
  * `FileRef` crudo sin `url`, caso de deriva de esquema entre origen y exportación, ver la cabecera
  * de `record-serializer.ts`), el campo se escribe VACÍO — nunca se omite la clave: un PISA es una
  * sobreescritura de verdad (el usuario ya confirmó "sí, quiero que este registro quede como el del
@@ -43,6 +45,7 @@
  */
 
 import type { Field, FieldValue, FileRef, RecordInput } from '$lib/backend/types';
+import { assertTransferMediaShape, hasTransferMediaUrl } from './import-media';
 import {
 	isTransferFileValue,
 	type TransferFileValue,
@@ -55,6 +58,18 @@ interface DeserializeRecordResult {
 	missingFiles: string[];
 }
 
+/** Una cardinalidad inesperada conserva la semántica vacía histórica, pero no puede eludir
+ * la política de las URLs presentes. Preview avisa esa pérdida antes de confirmar PISA. */
+async function checkUnexpectedFileUrls(
+	raw: unknown,
+	fetchFile: (file: TransferFileValue) => Promise<File | null>
+): Promise<void> {
+	for (const entry of Array.isArray(raw) ? raw : [raw]) {
+		assertTransferMediaShape(entry);
+		if (isTransferFileValue(entry)) await fetchFile(entry);
+	}
+}
+
 /** Resuelve un campo `file` NO múltiple: `{file,url}` → `File` vía `fetchFile`; cualquier otra
  *  forma no vacía (un `FileRef` crudo sin `url`, deriva de esquema) es igual de irresoluble que un
  *  fallo de red — mismo desenlace, "sin ese fichero". Vacío (`''`/`null`) viaja intacto, sin llamar
@@ -63,11 +78,13 @@ async function resolveSingleFile(
 	raw: unknown,
 	fetchFile: (file: TransferFileValue) => Promise<File | null>
 ): Promise<{ value: FileRef | File | null; missing: boolean }> {
+	assertTransferMediaShape(raw);
 	if (raw === '' || raw === null || raw === undefined) return { value: null, missing: false };
 	if (isTransferFileValue(raw)) {
 		const file = await fetchFile(raw);
 		return file ? { value: file, missing: false } : { value: null, missing: true };
 	}
+	if (Array.isArray(raw)) await checkUnexpectedFileUrls(raw, fetchFile);
 	// FileRef crudo sin url, o cualquier otra forma inesperada: irresoluble (ver cabecera).
 	return { value: null, missing: true };
 }
@@ -79,10 +96,14 @@ async function resolveMultipleFile(
 	raw: unknown,
 	fetchFile: (file: TransferFileValue) => Promise<File | null>
 ): Promise<{ value: (FileRef | File)[]; missing: boolean }> {
-	if (!Array.isArray(raw)) return { value: [], missing: false };
+	if (!Array.isArray(raw)) {
+		await checkUnexpectedFileUrls(raw, fetchFile);
+		return { value: [], missing: hasTransferMediaUrl(raw) };
+	}
 	const resolved: (FileRef | File)[] = [];
 	let missing = false;
 	for (const entry of raw) {
+		assertTransferMediaShape(entry);
 		if (isTransferFileValue(entry)) {
 			const file = await fetchFile(entry);
 			if (file) resolved.push(file);

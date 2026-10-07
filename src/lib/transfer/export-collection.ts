@@ -86,6 +86,12 @@
  * - **Sin transacción** (PocketBase no la expone al cliente): el import es parcial por
  *   naturaleza — `allSettled`, nunca "importado" si algo falló, informe final de qué entró y qué
  *   no. Ese es el invariante que hace la feature confiable.
+ * - **Política de medios (7 oct 2026)**: antes de descargar, mostrar orígenes HTTP(S) exactos
+ *   sin credenciales/query; el JSON no concede permisos. Autorización explícita por fichero,
+ *   ninguna preselección, locales permitidos si se autorizan. Rechazar otros protocolos y URLs
+ *   con usuario/contraseña; omitir credenciales/referente y no seguir redirects. Un rechazo de
+ *   política BLOQUEA el registro aunque el campo sea opcional; nunca vacía al PISA. Una descarga
+ *   autorizada fallida se avisa en preview antes de PISA y conserva la semántica siguiente.
  * - **Media**: por cada `{ file, url }`, `fetch(url)` del origen → `File` → mismo `create`/
  *   `update`. Si el origen no es alcanzable, el registro entra SIN ese fichero (el informe lo dice
  *   registro a registro) salvo que el campo sea `required` (entonces BLOQUEADO, avisado en la

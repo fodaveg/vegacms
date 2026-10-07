@@ -26,6 +26,7 @@ import type { Field, RecordId } from '$lib/backend/types';
 import { isEmptyValue, normalizeFieldValue } from '$lib/backend/normalize';
 import type { ResolvedContentType } from '$lib/model/types';
 import type { TransferRecord } from './record-serializer';
+import type { ImportMediaBlock } from './import-media';
 
 type ImportEntryStatus = 'create' | 'overwrite' | 'blocked';
 
@@ -40,6 +41,7 @@ type BlockedReason =
 	 *  `number` `required` llega con `0` (ver cabecera del módulo). Distinto de
 	 *  `unreachable-required-file`: aquí NO hay nada que traer, el campo simplemente no trae valor. */
 	| { kind: 'required-empty'; field: string }
+	| { kind: 'file-origin-policy'; field: string; block: ImportMediaBlock }
 	| { kind: 'unreachable-required-file'; field: string };
 
 export interface ImportEntry {
@@ -47,6 +49,8 @@ export interface ImportEntry {
 	status: ImportEntryStatus;
 	/** Vacío salvo `status === 'blocked'`. */
 	reasons: BlockedReason[];
+	/** Medios autorizados no alcanzables; se muestran antes de confirmar cualquier escritura. */
+	missingFiles?: string[];
 }
 
 interface ClassifyCollectionInput {
@@ -64,8 +68,10 @@ interface ClassifyCollectionInput {
 	relationTargetExists: (targetType: string, id: RecordId) => boolean;
 	/** `true` si un campo `file` `required` con valor no vacío se pudo traer de origen
 	 *  (`fetchTransferFile`, ya resuelto por el llamador) — solo se CONSULTA para campos
-	 *  `required`; el resto de campos `file` nunca bloquea (§4.4). */
+	 *  `required`; un fallo de red en los opcionales no bloquea (§4.4). Una política rechazada sí bloquea. */
 	requiredFileReachable: (recordId: RecordId, fieldName: string) => boolean;
+	/** Política de origen: bloquea también los campos opcionales, sin convertirlos en vaciados. */
+	filePolicyBlock?: (recordId: RecordId, fieldName: string) => ImportMediaBlock | undefined;
 }
 
 /** `true` si `value` es un valor de campo "con algo" (no vacío) — mismo criterio para relaciones y
@@ -144,6 +150,11 @@ export function classifyCollectionImport(input: ClassifyCollectionInput): Import
 		}
 
 		for (const field of fileFields) {
+			const block = input.filePolicyBlock?.(record.id, field.name);
+			if (block) {
+				reasons.push({ kind: 'file-origin-policy', field: field.name, block });
+				continue;
+			}
 			if (!field.required) continue;
 			if (!isNonEmpty(record.values[field.name])) continue; // vacío: ya lo cubrió el bucle de
 			// `requiredFields` de arriba con `required-empty` — esto es solo "no vacío, irresoluble".
