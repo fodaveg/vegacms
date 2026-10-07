@@ -77,6 +77,7 @@ const CONTACT_MANIFEST: JsonValue = {
 	nav: { groups: ['Sitio'] },
 	collections: {
 		messages: {
+			hideCreate: true,
 			label: 'Mensajes',
 			labelSingular: 'Mensaje',
 			icon: 'archive',

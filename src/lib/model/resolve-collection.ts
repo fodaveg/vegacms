@@ -116,13 +116,22 @@ export function resolveContentType(
 		labelSingular,
 		icon,
 		hidden,
+		hideCreate:
+			readKey(
+				collectionRaw,
+				'hideCreate',
+				readBoolean,
+				`${base}/hideCreate`,
+				`hideCreate de "${type.name}" no es booleano; se ignora.`,
+				warnings
+			) ?? false,
 		group,
 		singleton,
 		readonly: type.readonly,
 		// `#lote-shell`: reglas del backend + bypass de la sesión, ya compuestos (`resolvePermissions`
-		// pliega `readonly` dentro). Es lo ÚNICO que la UI debe consultar para decidir si ofrece
-		// crear/editar/borrar; `readonly` se queda para el rótulo "Solo lectura", que describe la
-		// naturaleza de la colección y no un permiso.
+		// pliega `readonly` dentro). Conserva los permisos para importación y escrituras técnicas;
+		// las altas manuales componen además `hideCreate` mediante `canCreateManually`.
+		// `readonly` se queda para el rótulo "Solo lectura".
 		permissions: resolvePermissions(type, accessBypass),
 		titleField,
 		subtitleField,

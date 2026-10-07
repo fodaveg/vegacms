@@ -5,7 +5,8 @@
 	 * - `type` inexistente u oculto → `not-found` (P3-L2, mismo criterio que `/c/[type]`).
 	 * - `type.readonly` (view) → `forbidden`: §2.4 "no se crea en views" (P4 tampoco ofrece el
 	 *   botón crear para un tipo readonly; esta ruta cierra el hueco si se llega por URL directa).
-	 * - Si no, `buildFormModel(type, null)` (D-P5.11: baseline = defaults, PURO, sin red) y
+	 * - Sin permiso de creación → motivo de permiso; con `hideCreate` → estado honesto sin formulario.
+	 * - Si se admite el alta manual, `buildFormModel(type, null)` (D-P5.11: baseline = defaults, PURO, sin red) y
 	 *   `RecordForm` hace el resto: "Guardar" llama `ctx.port.create`; al terminar, reasienta
 	 *   baseline (dentro de `RecordForm`, L-P5.6) y esta ruta navega a la EDICIÓN del nuevo id
 	 *   (D-P5.11 "destino post-create"), el mismo camino que resuelve un singleton con 1 registro
@@ -22,6 +23,7 @@
 	import { page } from '$app/state';
 	import { getVegaContext } from '$lib/app-context';
 	import { resolveVisibleContentType } from '$lib/nav/content-type';
+	import { canCreateManually } from '$lib/model/creation';
 	import { buildFormModel } from '$lib/form/form-model';
 	import RouteState from '$lib/shell/RouteState.svelte';
 	import RecordForm from '$lib/form/RecordForm.svelte';
@@ -30,7 +32,9 @@
 
 	const typeParam = $derived(page.params.type ?? '');
 	const contentType = $derived(resolveVisibleContentType(ctx.model, typeParam));
-	const formModel = $derived(contentType ? buildFormModel(contentType, null) : null);
+	const formModel = $derived(
+		contentType && canCreateManually(contentType) ? buildFormModel(contentType, null) : null
+	);
 </script>
 
 {#if !contentType}
@@ -58,6 +62,16 @@
 		kind="forbidden"
 		title={ctx.t('errors.forbidden.title')}
 		body={ctx.t('errors.forbidden.noCreate.body', { label: contentType.label })}
+		action={{
+			label: ctx.t('errors.notFoundRecord.backToList'),
+			onClick: () => ctx.nav.toList(contentType.name)
+		}}
+	/>
+{:else if !canCreateManually(contentType)}
+	<RouteState
+		kind="forbidden"
+		title={ctx.t('errors.creationUnavailable.title')}
+		body={ctx.t('errors.creationUnavailable.body')}
 		action={{
 			label: ctx.t('errors.notFoundRecord.backToList'),
 			onClick: () => ctx.nav.toList(contentType.name)

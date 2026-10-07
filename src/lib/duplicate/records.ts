@@ -12,6 +12,7 @@
  * El rollback de `duplicatePage` es best-effort: el puerto no tiene transacciones, y el error
  * original manda aunque la limpieza también falle.
  */
+import { canCreateManually } from '$lib/model/creation';
 import type { BackendPort } from '$lib/backend/port';
 import type { RecordInput, VegaRecord } from '$lib/backend/types';
 import { VegaError } from '$lib/backend/errors';
@@ -100,11 +101,12 @@ interface DuplicatePageResult {
 	blocks: VegaRecord[];
 }
 
+/** Duplicado manual del padre; sus hijos se crean conforme a sus permisos técnicos. */
 export function canDuplicatePage(
 	pageType: ResolvedContentType,
 	modelTypes: readonly ResolvedContentType[]
 ): boolean {
-	if (!pageType.page || !pageType.permissions.create || !pageType.permissions.list) return false;
+	if (!pageType.page || !canCreateManually(pageType) || !pageType.permissions.list) return false;
 	const blocks = pageType.blocks;
 	if (!blocks) return true;
 	const childType = modelTypes.find((type) => type.name === blocks.collection);
@@ -124,8 +126,12 @@ export async function duplicatePage(
 	modelTypes: readonly ResolvedContentType[]
 ): Promise<DuplicatePageResult> {
 	if (!pageType.page) throw VegaError.backend(`"${pageType.name}" no es una colección de páginas.`);
-	if (!pageType.permissions.create) {
-		throw VegaError.forbidden(`No tienes permiso para duplicar ${pageType.labelSingular}.`);
+	if (!canCreateManually(pageType)) {
+		throw VegaError.forbidden(
+			pageType.hideCreate
+				? `La creación manual de ${pageType.label} no está disponible.`
+				: `No tienes permiso para duplicar ${pageType.labelSingular}.`
+		);
 	}
 	if (!pageType.permissions.list) {
 		throw VegaError.forbidden(`No tienes permiso para listar ${pageType.label}.`);
@@ -210,14 +216,14 @@ export async function duplicatePage(
  * ¿Se ofrece «Duplicar» en la fila del listado para `type`? (Lote 12, lámina 7, decisión de
  * David: el menú de fila lleva Duplicar además de Borrar.) Una colección de páginas sigue las
  * reglas de `canDuplicatePage` (sus bloques también se clonan); cualquier otra, con permiso de
- * crear y de listar (`availableCopyValue` consulta la colección para encontrar un valor libre).
+ * crear manualmente y de listar (`availableCopyValue` consulta la colección para encontrar un valor libre).
  */
 export function canDuplicateRecord(
 	type: ResolvedContentType,
 	modelTypes: readonly ResolvedContentType[]
 ): boolean {
 	if (type.page) return canDuplicatePage(type, modelTypes);
-	return type.permissions.create && type.permissions.list;
+	return canCreateManually(type) && type.permissions.list;
 }
 
 /**
@@ -254,8 +260,12 @@ export async function duplicateRecord(
 	modelTypes: readonly ResolvedContentType[]
 ): Promise<VegaRecord> {
 	if (type.page) return (await duplicatePage(port, type, source, modelTypes)).page;
-	if (!type.permissions.create) {
-		throw VegaError.forbidden(`No tienes permiso para duplicar ${type.labelSingular}.`);
+	if (!canCreateManually(type)) {
+		throw VegaError.forbidden(
+			type.hideCreate
+				? `La creación manual de ${type.label} no está disponible.`
+				: `No tienes permiso para duplicar ${type.labelSingular}.`
+		);
 	}
 	if (!type.permissions.list) {
 		throw VegaError.forbidden(`No tienes permiso para listar ${type.label}.`);

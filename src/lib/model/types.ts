@@ -142,6 +142,8 @@ export interface ResolvedContentType {
 	labelSingular: string; // (D+M) default = label (sin heurísticas de plural)
 	icon: string | null; // (M) validado contra el set si se inyecta (§4.8)
 	hidden: boolean; // (D+M) `vega`/`vega_*` SIEMPRE true, no anulable (L7)
+	/** (M) Oculta altas manuales; no modifica `permissions` ni las escrituras técnicas. */
+	hideCreate?: boolean;
 	group: string | null; // (M)
 	singleton: boolean; // (M) SOLO manifiesto; jamás autodetectado (§4.6)
 	readonly: boolean; // (D) = schema.readonly
@@ -155,6 +157,8 @@ export interface ResolvedContentType {
 	 * **No es control de acceso**: la regla la sigue aplicando el backend. Esto solo evita ofrecer
 	 * lo que se sabe SEGURO que va a dar 403; una regla `'conditional'` (depende del registro o del
 	 * usuario) se ofrece igual y el error de permiso sigue siendo el camino honesto para ella.
+	 * Las decoraciones del manifiesto no se pliegan aquí: `canCreateManually` compone `hideCreate`
+	 * para las altas manuales; importación y escrituras técnicas mantienen estos permisos.
 	 */
 	permissions: TypePermissions;
 	/** (D+M) nombre del campo título, o null ⇒ la UI muestra el id. Cascada §4.4. */

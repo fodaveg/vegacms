@@ -53,6 +53,7 @@ const COLLECTION_ALLOWED_KEYS = [
 	'group',
 	'order',
 	'hidden',
+	'hideCreate',
 	'singleton',
 	'titleField',
 	'subtitleField',
@@ -583,6 +584,8 @@ function validateCollection(
 		checkNonNegativeInt(value.order, `${base}/order`, errors, `order de "${name}"`);
 	if ('hidden' in value)
 		checkBoolean(value.hidden, `${base}/hidden`, errors, `hidden de "${name}"`);
+	if ('hideCreate' in value)
+		checkBoolean(value.hideCreate, `${base}/hideCreate`, errors, `hideCreate de "${name}"`);
 	if ('singleton' in value) {
 		checkBoolean(value.singleton, `${base}/singleton`, errors, `singleton de "${name}"`);
 	}

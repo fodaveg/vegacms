@@ -89,6 +89,23 @@ describe('classifyCollectionImport', () => {
 		expect(entries).toEqual([{ id: 'r1', status: 'overwrite', reasons: [] }]);
 	});
 
+	it('hideCreate conserva altas y actualizaciones permitidas en importación', () => {
+		const type = contentType([field({ name: 'title', type: 'text', subtype: 'plain' })], {
+			hideCreate: true
+		});
+		const entries = classifyCollectionImport({
+			contentType: type,
+			records: [record('new', { title: 'Nuevo' }), record('old', { title: 'Editado' })],
+			existingIds: new Set(['old']),
+			relationTargetExists: () => true,
+			requiredFileReachable: () => true
+		});
+		expect(entries).toEqual([
+			{ id: 'new', status: 'create', reasons: [] },
+			{ id: 'old', status: 'overwrite', reasons: [] }
+		]);
+	});
+
 	it('sin permissions.create → BLOQUEADO (id nuevo)', () => {
 		const type = contentType([field({ name: 'title', type: 'text', subtype: 'plain' })], {
 			permissions: { ...ALL_PERMISSIONS, create: false }

@@ -201,6 +201,8 @@ describe.skipIf(!AVAILABLE)('módulos de sembrado contra PocketBase real', () =>
 		const result = await seedSiteProject(port, { modules: [SITE_SEED_CONTACT_MODULE] });
 
 		expect(result.createdCollections).toContain('messages');
+		const manifest = (await port.list('vega', { perPage: 1 })).items[0]!.values.manifest as Json;
+		expect((manifest.collections as Json).messages).toMatchObject({ hideCreate: true });
 		const messages = await admin.collections.getOne('messages');
 		// Literales, no las constantes: si alguien cambia una regla, este test lo tiene que notar.
 		expect(rules(messages)).toEqual({
@@ -214,6 +216,35 @@ describe.skipIf(!AVAILABLE)('módulos de sembrado contra PocketBase real', () =>
 		// `website` es una trampa del cuerpo de la petición, no un campo.
 		expect(messages.fields.map((field) => field.name)).not.toContain('website');
 	});
+
+	test.each([undefined, false])(
+		'contacto anterior hideCreate=%s: preview, actualización e idempotencia sin tocar reglas',
+		async (hideCreate) => {
+			await seedSiteProject(port, { modules: [SITE_SEED_CONTACT_MODULE] });
+			const record = (await port.list('vega', { perPage: 1 })).items[0]!;
+			const manifest = structuredClone(record.values.manifest) as Json;
+			const messages = (manifest.collections as Json).messages as Json;
+			if (hideCreate === undefined) delete messages.hideCreate;
+			else messages.hideCreate = hideCreate;
+			await port.update('vega', record.id, { manifest: manifest as never });
+			const rulesBefore = rules(await admin.collections.getOne('messages'));
+			const preview = await previewSiteSeed(port, { modules: [SITE_SEED_CONTACT_MODULE] });
+			expect(preview.status).not.toBe('blocked');
+			if (preview.status === 'blocked') throw new Error('Preflight inesperadamente bloqueado.');
+			expect(preview.modules.find((module) => module.id === 'contacto')!.manifestEntries).toEqual(
+				hideCreate === undefined ? ['collections.messages.hideCreate'] : []
+			);
+			await seedSiteProject(port, { modules: [SITE_SEED_CONTACT_MODULE] });
+			const saved = (await port.get('vega', record.id)).values.manifest as Json;
+			expect(((saved.collections as Json).messages as Json).hideCreate).toBe(hideCreate ?? true);
+			expect(rules(await admin.collections.getOne('messages'))).toEqual(rulesBefore);
+			const update = vi.spyOn(port, 'update');
+			expect(
+				(await seedSiteProject(port, { modules: [SITE_SEED_CONTACT_MODULE] })).upgradedRecords
+			).toEqual([]);
+			expect(update).not.toHaveBeenCalled();
+		}
+	);
 
 	// Sin aserción sobre las reglas declaradas: aquí se mide lo que el servidor HACE con ellas.
 	test('base + contacto: sin sesión se envía un mensaje normal, la trampa y `read: true` dan 400 y listar sale vacío; un editor lista y marca como leído', async () => {

@@ -887,6 +887,8 @@ describe('1e. layouts (RAÍZ, modelo de páginas p1 "1dc63001") contra el schema
  * `resolve.test.ts`, no aquí.
  */
 const VALID_ZERO_WARNING_MANIFESTS: JsonValue[] = [
+	{ schemaVersion: 1, collections: { post: { hideCreate: true } } },
+	{ schemaVersion: 1, collections: { post: { hideCreate: false } } },
 	{ schemaVersion: 1 },
 	{ schemaVersion: 1, site: { name: 'fodaveg.net', defaultTheme: 'grafito', locale: 'es' } },
 	{ schemaVersion: 1, nav: { groups: ['Contenido', 'Sitio'] } },
@@ -1080,6 +1082,13 @@ describe('2. Escritor ⊆ lector: manifiestos válidos → resolveContentModel s
 
 /** Batería INVÁLIDA (schema-violations), independiente de la batería válida de arriba. */
 const INVALID_MANIFESTS: JsonValue[] = [
+	...[null, 'true', 1, [], {}].map(
+		(hideCreate) =>
+			({
+				schemaVersion: 1,
+				collections: { post: { hideCreate } }
+			}) as JsonValue
+	),
 	null,
 	42,
 	'no es un objeto',

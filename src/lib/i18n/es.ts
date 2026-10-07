@@ -253,6 +253,8 @@ export const es = {
 	'errors.banner.detailShow': 'Ver detalle',
 	'errors.banner.detailHide': 'Ocultar detalle',
 	'errors.backend.title': 'El servidor ha respondido algo inesperado',
+	'errors.creationUnavailable.title': 'Creación no disponible',
+	'errors.creationUnavailable.body': 'La creación manual está desactivada para esta colección.',
 	'errors.forbidden.title': 'No tienes permiso',
 	'errors.forbidden.readonlyType.body':
 		'«{label}» es de solo lectura: no se puede crear contenido nuevo aquí.',

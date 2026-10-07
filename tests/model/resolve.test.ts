@@ -7,6 +7,7 @@
 
 import { describe, expect, test } from 'vitest';
 import type { ContentType, JsonValue } from '$lib/backend/types';
+import { canCreateManually } from '$lib/model/creation';
 import { readBlockData } from '$lib/model/block-data-form';
 import { WIDGET_IDS } from '$lib/model/types';
 import { resolveContentModel } from '$lib/model/resolve';
@@ -4231,5 +4232,74 @@ describe('fixture', () => {
 		expect(names).toEqual(
 			[categoryType, postType, settingsViewType, vegaMediaType, vegaType].map((t) => t.name).sort()
 		);
+	});
+});
+
+describe('hideCreate: decoración de altas manuales', () => {
+	test.each([undefined, false, true])('hideCreate=%s conserva esquema y permisos', (hideCreate) => {
+		for (const accessBypass of [false, true]) {
+			const baseline = resolveContentModel({ types: [postType], manifestRaw: null, accessBypass })
+				.types[0]!;
+			const model = resolveContentModel({
+				types: [postType],
+				manifestRaw: {
+					schemaVersion: 1,
+					collections: { post: hideCreate === undefined ? {} : { hideCreate } }
+				},
+				accessBypass
+			});
+			const type = model.types[0]!;
+			expect(type.hideCreate).toBe(hideCreate ?? false);
+			expect(type.schema).toBe(postType);
+			expect(type.permissions).toEqual(baseline.permissions);
+			expect(canCreateManually(type)).toBe(baseline.permissions.create && !hideCreate);
+			expect(model.warnings).toEqual([]);
+		}
+	});
+
+	test.each(['true', 1, null, [], {}] as JsonValue[])(
+		'valor inválido %j se ignora solo en esa clave',
+		(hideCreate) => {
+			const model = resolveContentModel({
+				types: [postType],
+				manifestRaw: { schemaVersion: 1, collections: { post: { hideCreate, label: 'Noticias' } } }
+			});
+			expect(model.types[0]).toMatchObject({ hideCreate: false, label: 'Noticias' });
+			expect(model.warnings).toEqual([
+				expect.objectContaining({
+					code: 'manifest-invalid-key',
+					path: '/collections/post/hideCreate'
+				})
+			]);
+		}
+	);
+
+	test('false nunca concede un permiso denegado ni altas sobre readonly, incluso con bypass', () => {
+		const denied: ContentType = {
+			...postType,
+			access: {
+				list: 'allowed',
+				view: 'allowed',
+				create: 'denied',
+				update: 'allowed',
+				delete: 'allowed'
+			}
+		};
+		const type = resolveContentModel({ types: [denied], manifestRaw: null, accessBypass: false })
+			.types[0]!;
+		expect(canCreateManually(type)).toBe(false);
+		const view = resolveContentModel({
+			types: [settingsViewType],
+			manifestRaw: null,
+			accessBypass: true
+		}).types[0]!;
+		expect(canCreateManually(view)).toBe(false);
+		expect(
+			canCreateManually({
+				...type,
+				hideCreate: undefined,
+				permissions: { ...type.permissions, create: true }
+			})
+		).toBe(true);
 	});
 });

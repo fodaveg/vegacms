@@ -2,6 +2,7 @@
  * Qué tipos de contenido enseña la portada (`/`), leído del modelo ya resuelto. Módulo puro.
  */
 
+import { canCreateManually } from '$lib/model/creation';
 import type { ContentModel, ResolvedContentType } from '$lib/model/types';
 
 /**
@@ -23,9 +24,9 @@ export function navContentTypes(model: ContentModel): ResolvedContentType[] {
 
 /**
  * Tipos para los que la portada pinta un acceso a crear: los del menú en los que esta sesión
- * PUEDE crear (`permissions.create`, el mismo dato con el que el listado decide si pinta
+ * PUEDE crear manualmente (`canCreateManually`, el mismo dato con el que el listado decide si pinta
  * «Crear»). Los singleton no salen: no se crean, se editan.
  */
 export function creatableTypes(model: ContentModel): ResolvedContentType[] {
-	return navContentTypes(model).filter((type) => !type.singleton && type.permissions.create);
+	return navContentTypes(model).filter((type) => !type.singleton && canCreateManually(type));
 }

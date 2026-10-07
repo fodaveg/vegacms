@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import type { ContentType, VegaRecord } from '$lib/backend/types';
 import { createMemoryBackend } from '$lib/backend/adapters/memory';
 import { resolveContentModel } from '$lib/model/resolve';
@@ -145,6 +145,25 @@ describe('duplicado de páginas y bloques', () => {
 		const input = duplicateInput(type, source);
 
 		expect(input).toEqual({ title: 'Inicio', path: '/', slug: 'inicio' });
+	});
+
+	test('hideCreate bloquea la copia manual del padre sin afectar los hijos técnicos', async () => {
+		const model = resolvedModel();
+		const page = model.types.find((type) => type.name === 'pages')!;
+		const blocks = model.types.find((type) => type.name === 'blocks')!;
+		expect(canDuplicatePage({ ...page, hideCreate: true }, model.types)).toBe(false);
+		expect(canDuplicatePage(page, [page, { ...blocks, hideCreate: true }])).toBe(true);
+		const port = createMemoryBackend();
+		const create = vi.spyOn(port, 'create');
+		await expect(
+			duplicatePage(
+				port,
+				{ ...page, hideCreate: true },
+				{ id: 'p1', type: 'pages', values: {} },
+				model.types
+			)
+		).rejects.toMatchObject({ kind: 'forbidden' });
+		expect(create).not.toHaveBeenCalled();
 	});
 
 	test('no ofrece duplicar una página si no puede crear sus bloques', () => {

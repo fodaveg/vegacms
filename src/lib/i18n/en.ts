@@ -240,6 +240,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'errors.banner.detailShow': 'Show details',
 	'errors.banner.detailHide': 'Hide details',
 	'errors.backend.title': 'The server returned something unexpected',
+	'errors.creationUnavailable.title': 'Creation unavailable',
+	'errors.creationUnavailable.body': 'Manual creation is disabled for this collection.',
 	'errors.forbidden.title': "You don't have permission",
 	'errors.forbidden.readonlyType.body':
 		'"{label}" is read-only: no new content can be created here.',

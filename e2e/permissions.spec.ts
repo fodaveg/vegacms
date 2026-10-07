@@ -97,3 +97,82 @@ test('una colección que no se puede listar no está en la navegación, y su rut
 		page.getByText('No tienes permiso para ver el contenido de «Privado»')
 	).toBeVisible();
 });
+
+test('hideCreate oculta altas manuales en escritorio, móvil, atajo, fila e Inicio y conserva Importar', async ({
+	page
+}) => {
+	await loginAsDemo(page);
+	await waitForHome(page);
+	const sidebar = page.getByRole('navigation', { name: 'Navegación principal' });
+	// Los recuentos forman parte del nombre accesible; mismo selector que los tests de navegación.
+	const authorsLink = sidebar.getByRole('link', { name: 'Autores' });
+	await expect(authorsLink).toBeVisible();
+	await expect(authorsLink).toHaveAttribute('href', '/c/authors');
+	await page.getByRole('link', { name: 'Ajustes', exact: false }).click();
+	const editor = page.locator('#manifest-editor-textarea');
+	await expect(editor).toBeVisible();
+	const manifest = JSON.parse(await editor.inputValue());
+	manifest.collections.authors.hideCreate = true;
+	manifest.collections.posts.hideCreate = true;
+	await editor.fill(JSON.stringify(manifest, null, 2));
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+	await expect(page.getByRole('status')).toContainText('Guardado.');
+	await authorsLink.click();
+	await expect(page.getByRole('heading', { name: 'Autores', level: 1 })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Nuevo: Autor' })).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Importar', exact: true })).toBeVisible();
+	await page.keyboard.press('n');
+	await expect(page).toHaveURL(/\/c\/authors$/);
+	await expect(
+		page.getByText('La creación manual está desactivada para esta colección.')
+	).toBeVisible();
+	await sidebar.getByRole('link', { name: 'Entradas' }).click();
+	const row = page.getByRole('row').filter({ hasText: 'Bienvenido a Vega' });
+	await row.getByRole('button', { name: /^Acciones de/ }).click();
+	await expect(page.getByRole('menuitem', { name: /Duplicar/ })).toHaveCount(0);
+	await expect(page.getByRole('menuitem', { name: /Borrar/ })).toBeVisible();
+	await page.keyboard.press('Escape');
+	await authorsLink.click();
+	await page.setViewportSize({ width: 390, height: 844 });
+	await expect(page.getByRole('button', { name: 'Nuevo: Autor' })).toHaveCount(0);
+	await page.keyboard.press('n');
+	await expect(page).toHaveURL(/\/c\/authors$/);
+	await page.setViewportSize({ width: 1280, height: 800 });
+	await page.getByRole('banner').getByRole('link', { name: 'Inicio', exact: true }).click();
+	await expect(page.locator('[data-create-type="authors"]')).toHaveCount(0);
+	await expect(page.locator('[data-create-type="metrics"]')).toBeVisible();
+	await sidebar.getByRole('link', { name: 'Métricas' }).click();
+	await expect(page.getByRole('button', { name: 'Nuevo: Métrica' })).toBeVisible();
+});
+
+for (const existing of [false, true]) {
+	test(`singleton hideCreate con registro existente=${existing} conserva el destino y la edición`, async ({
+		page
+	}) => {
+		await loginAsDemo(page);
+		await waitForHome(page);
+		if (existing) {
+			await page.getByRole('link', { name: 'Información del sitio', exact: true }).click();
+			await page.getByRole('textbox', { name: 'Tagline' }).fill('Sitio existente');
+			await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+			await expect(page).toHaveURL(/\/c\/site_info\/(?!new)[^/]+$/);
+		}
+		await page.getByRole('link', { name: 'Ajustes', exact: false }).click();
+		const editor = page.locator('#manifest-editor-textarea');
+		await expect(editor).toBeVisible();
+		const manifest = JSON.parse(await editor.inputValue());
+		manifest.collections.site_info.hideCreate = true;
+		await editor.fill(JSON.stringify(manifest, null, 2));
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await expect(page.getByRole('status')).toContainText('Guardado.');
+		await page.getByRole('link', { name: 'Información del sitio', exact: true }).click();
+		if (existing) {
+			await expect(page.getByRole('textbox', { name: 'Tagline' })).toHaveValue('Sitio existente');
+			await expect(page.getByRole('button', { name: 'Guardar', exact: true })).toBeVisible();
+		} else {
+			await expect(page).toHaveURL(/\/c\/site_info\/new$/);
+			await expect(page.getByRole('heading', { name: 'Creación no disponible' })).toBeVisible();
+			await expect(page.locator('form')).toHaveCount(0);
+		}
+	});
+}

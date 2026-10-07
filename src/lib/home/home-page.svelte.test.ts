@@ -302,6 +302,13 @@ describe('portada: accesos a crear', () => {
 		expect(recentState(target)).toBe('empty');
 	});
 
+	test('hideCreate oculta solo ese acceso rápido aunque permita crear en el backend', async () => {
+		const mixed = model([type('a', { hideCreate: true }), type('b', { hideCreate: false })]);
+		const { target } = mountHome({ model: mixed });
+		await settle();
+		expect(createButtons(target)).toEqual(['b']);
+	});
+
 	test('1.5 con permiso solo en algunos, salen solo esos', async () => {
 		const mixed = model([type('a'), type('b', { permissions: { create: false } }), type('c')]);
 		const { target } = mountHome({ model: mixed });

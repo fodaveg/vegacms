@@ -68,6 +68,7 @@
 					"group": { "type": "string", "minLength": 1 },
 					"order": { "type": "integer", "minimum": 0 },
 					"hidden": { "type": "boolean" },
+					"hideCreate": { "type": "boolean" },
 					"singleton": { "type": "boolean" },
 					"titleField": { "type": "string", "minLength": 1 },
 					"subtitleField": {

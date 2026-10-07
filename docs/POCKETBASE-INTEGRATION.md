@@ -1126,10 +1126,17 @@ Lo que Vega NO gestiona y hay que configurar en PocketBase antes de publicar el 
 - **El aviso por correo** de cada mensaje nuevo se configura en el servidor, fuera de la SPA, que
   no tiene forma de saber si está activo; por eso la tarjeta del módulo lo dice con una línea fija.
 
-Un editor ve «Nuevo» en el listado de mensajes: para la interfaz, una regla de creación que es una
-expresión cuenta como «depende del registro» y se ofrece. No es el uso previsto de la bandeja (los
-mensajes los crea el visitante desde el sitio), pero se deja así. Ocultar el botón es un lote
-aparte: exige una clave nueva del manifiesto, que hoy no existe y que este módulo no añade.
+El módulo declara `collections.messages.hideCreate: true`: la bandeja recibe registros del
+formulario público y Vega no ofrece altas manuales, tampoco al superusuario. La ruta `/new`
+explica que la creación manual está desactivada, sin atribuirlo a las reglas de PocketBase. Lectura, marcar como leído, edición y
+borrado conservan sus permisos. El POST público, importación y sembrado siguen operativos.
+
+Al actualizar una bandeja anterior se añade la clave si falta y la vista previa la enumera;
+un `false` explícito se conserva y la segunda pasada no vuelve a escribir. Si se borra,
+la fusión aditiva la ofrece otra vez. Actualiza Vega antes de activar la clave: el lector
+antiguo la ignora, pero su escritor estricto rechaza el manifiesto. El preflight antiguo
+aborta sin escrituras cuando hay adiciones pendientes; sin adiciones retorna `keep`
+antes de validar. Véase [Ocultar las altas manuales](CONFIG.md#ocultar-las-altas-manuales).
 
 Los pasos manuales siguientes siguen aplicando a una instalación **existente**. El sembrado es
 `creation-only`: si una colección ya existe, no cambia ninguna de sus reglas, aunque estén vacías,

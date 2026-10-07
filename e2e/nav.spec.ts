@@ -129,3 +129,43 @@ test('el recuento por item llega del backend (barato, `perPage: 1`) — nunca in
 		sidebar.getByRole('link', { name: 'Medios' }).locator('.vega-nav-count')
 	).toHaveCount(0);
 });
+
+test('un grupo declarado vacío, oculto o sin permiso no se pinta; al asignar un tipo visible sí', async ({
+	page
+}) => {
+	await loginAsDemo(page);
+	await waitForHome(page);
+	const sidebar = page.getByRole('navigation', { name: 'Navegación principal' });
+	const authorsLink = sidebar.getByRole('link', { name: 'Autores' });
+	await expect(authorsLink).toBeVisible();
+	await expect(authorsLink).toHaveAttribute('href', '/c/authors');
+	const label = 'Grupo sin colecciones L13';
+	await page.getByRole('link', { name: 'Ajustes', exact: false }).click();
+	const editor = page.locator('#manifest-editor-textarea');
+	await expect(editor).toBeVisible();
+	const original = await editor.inputValue();
+	const manifest = JSON.parse(original);
+	manifest.nav.groups.push(label);
+	const groupLabel = page.locator('p.vega-nav-group-label').filter({ hasText: label });
+	for (const collection of [null, 'authors', 'privado']) {
+		const candidate = structuredClone(manifest);
+		if (collection) {
+			candidate.collections[collection].group = label;
+			if (collection === 'authors') candidate.collections.authors.hidden = true;
+		}
+		await editor.fill(JSON.stringify(candidate, null, 2));
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await expect(page.getByRole('status')).toContainText('Guardado.');
+		await expect(groupLabel).toHaveCount(0);
+	}
+	manifest.collections.authors.group = label;
+	await editor.fill(JSON.stringify(manifest, null, 2));
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+	await expect(page.getByRole('status')).toContainText('Guardado.');
+	await expect(groupLabel).toBeVisible();
+	await expect(authorsLink).toBeVisible();
+	await editor.fill(original);
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+	await expect(page.getByRole('status')).toContainText('Guardado.');
+	await expect(groupLabel).toHaveCount(0);
+});

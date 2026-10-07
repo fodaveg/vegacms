@@ -656,3 +656,33 @@ colecciones reservadas de Vega (`vega`, `vega_*`) siempre están ocultas y no se
 	}
 }
 ```
+
+## Ocultar las altas manuales
+
+`collections.<nombre>.hideCreate` es un booleano opcional (ausente o `false` conserva el
+comportamiento actual). Con `true`, Vega oculta Nuevo en escritorio y móvil, el atajo N,
+el acceso rápido de Inicio y Duplicar. La ruta `/c/<nombre>/new` explica que la creación manual
+está desactivada para esa colección. Un singleton vacío tampoco ofrece formulario de alta;
+uno existente sigue abriéndose para editar.
+
+```json
+{
+	"schemaVersion": 1,
+	"collections": {
+		"messages": { "hideCreate": true }
+	}
+}
+```
+
+Es presentación, también para superusuarios: no altera `permissions`, las reglas de
+PocketBase ni la API. Importación, bulk import, sembrado, ensure y altas de hijos como
+parte de guardar otra entidad conservan sus comprobaciones. La interfaz compone
+`permissions.create && !hideCreate` mediante `canCreateManually`.
+
+El lector ignora un valor no booleano y avisa de esa clave; el escritor lo rechaza.
+Es una adición a `schemaVersion: 1`. Actualiza Vega antes de activar la clave: un cliente
+anterior la ignora al leer y puede mostrar Nuevo, pero su editor técnico rechaza la
+clave desconocida al guardar. Un sembrado anterior con entradas pendientes valida el
+manifiesto fusionado y aborta antes de escribir; si no tiene entradas que añadir,
+retorna `keep` antes de validar. Un fragmento nuevo tampoco pasa el preflight antiguo.
+No requiere migración ni relaja la validación de versiones anteriores.

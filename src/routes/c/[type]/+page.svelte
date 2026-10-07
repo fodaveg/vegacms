@@ -108,6 +108,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { canCreateManually } from '$lib/model/creation';
 	import { getVegaContext } from '$lib/app-context';
 	import type { ResolvedContentType } from '$lib/model/types';
 	import type { VegaRecord } from '$lib/backend/types';
@@ -422,11 +423,11 @@
 
 	/** Qué pinta la cabecera y cómo (`planHeaderActions`, ver cabecera del fichero): «Exportar» va
 	 *  por `permissions.list` (visible también en tipos `readonly`: exportar lo ya existente no
-	 *  exige poder escribir), «Importar» por `canImport`, «Crear» por `permissions.create`. */
+	 *  exige poder escribir), «Importar» por `canImport`, «Crear» por `canCreateManually`. */
 	const headerPlan = $derived(
 		planHeaderActions({
 			narrow,
-			canCreate: contentType?.permissions.create ?? false,
+			canCreate: contentType ? canCreateManually(contentType) : false,
 			canExport: contentType?.permissions.list ?? false,
 			canImport
 		})
@@ -521,9 +522,9 @@
 	// (nunca ofrecen "Nueva"), coherente con el botón.
 	$effect(() => {
 		const type = contentType;
-		// `permissions.create` cubre también el caso `readonly` (lo pliega dentro): el atajo nunca
+		// `canCreateManually` compone permisos y ocultación: el atajo nunca
 		// existe si el botón "Nueva" tampoco.
-		if (!type || !type.permissions.create || type.singleton) return;
+		if (!type || !canCreateManually(type) || type.singleton) return;
 		const typeName = type.name; // capturado como string plano: el closure de abajo no depende
 		// del estrechamiento de `type` (`function` con nombre, no una flecha — TS no lo preserva).
 		const handleKeydown = (event: KeyboardEvent): void => {
@@ -720,9 +721,11 @@
 					<!-- UNA sola llamada a crear: el botón «Nuevo» de la cabecera. El texto lo nombra, sin
 					     repetir un segundo botón aquí. -->
 					<p>
-						{contentType.permissions.create
+						{canCreateManually(contentType)
 							? ctx.t('list.empty.body', { label: contentType.labelSingular })
-							: ctx.t('list.empty.bodyReadonly', { label: contentType.label })}
+							: contentType.hideCreate && contentType.permissions.create
+								? ctx.t('errors.creationUnavailable.body')
+								: ctx.t('list.empty.bodyReadonly', { label: contentType.label })}
 					</p>
 				</div>
 			{:else if readyPage}
@@ -754,11 +757,8 @@
 {/if}
 
 {#snippet createButton()}
-	<!-- `permissions.create` (`#lote-shell`) en vez de `!readonly`: pliega las DOS razones por las
-	     que no se puede crear aquí —vista del backend, o regla de acceso que lo veda— en la misma
-	     comprobación. Ver `resolvePermissions` (`$lib/backend/access`). El rótulo va en un `<span>`
-	     para poder recortarlo con puntos suspensivos en estrecho (estado 6.4 de la lámina: nombre
-	     largo); el nombre accesible sigue siendo el rótulo completo. -->
+	<!-- La cabecera usa `canCreateManually`, igual que el atajo y el estado vacío.
+	     El rótulo completo sigue siendo accesible aunque se recorte en estrecho. -->
 	{#if contentType}
 		<button
 			type="button"

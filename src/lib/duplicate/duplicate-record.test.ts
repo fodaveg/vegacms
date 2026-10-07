@@ -244,6 +244,18 @@ describe('duplicateRecord — regla campo a campo (lámina 7)', () => {
 		expect(copy.values.created).not.toBe(sourceCreated);
 	});
 
+	test('hideCreate oculta la copia y bloquea también la invocación directa sin escribir', async () => {
+		const { type, types } = resolvedPosts();
+		const { port, source } = await backendWithSource();
+		const hiddenCreate = { ...type, hideCreate: true };
+		const before = await port.list(type.name);
+		expect(canDuplicateRecord(hiddenCreate, types)).toBe(false);
+		await expect(duplicateRecord(port, hiddenCreate, source, types)).rejects.toMatchObject({
+			kind: 'forbidden'
+		});
+		expect(await port.list(type.name)).toEqual(before);
+	});
+
 	test('sin permiso de crear o de listar no se ofrece ni se ejecuta', async () => {
 		const { type, types } = resolvedPosts();
 		const { port, source } = await backendWithSource();
