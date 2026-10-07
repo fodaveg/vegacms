@@ -771,7 +771,7 @@ Hasta entonces la ficha no ofrece el punto focal y un editor no ve ningún aviso
 
 ## Historial de versiones
 
-Vega puede guardar una copia del estado de un registro justo ANTES de cada guardado, para poder
+Vega puede guardar una copia del estado anterior de un registro, para poder
 compararla con la versión actual o recuperar los valores en el formulario. Vive en una colección
 propia, `vega_revisions`, con el mismo mecanismo de bootstrap que `vega_media`: **Ajustes → Historial
 y papelera → Crear colección de historial** (requiere sesión de superuser; un rol editor no puede
@@ -782,21 +782,24 @@ registran con sesión de superusuario**; un editor (`vega_editors`) no puede usa
 
 Cómo funciona:
 
-- Cada vez que guardas cambios sobre un registro ya existente, Vega lee su estado ANTERIOR y lo
-  guarda en `vega_revisions` antes de aplicar el cambio nuevo. Crear un registro nuevo **no** genera
-  ninguna revisión (no hay "antes" que guardar).
+- Cada vez que guardas cambios sobre un registro ya existente, Vega lee su estado ANTERIOR antes
+  de aplicar el cambio nuevo. Solo después de guardar el registro intenta crear esa copia en
+  `vega_revisions`, y espera a que termine ese intento antes de devolver el resultado. Si el
+  guardado del registro falla, no crea revisión. Crear un registro nuevo **no** genera ninguna
+  revisión (no hay "antes" que guardar).
 - El panel **«Historial»** del editor (aside, junto a «Se usa en») lista las revisiones guardadas de
   ese registro. Al abrir una, se compara contra la versión ACTUAL (nunca revisión contra revisión).
 - **«Restaurar en el formulario»** carga los valores de esa revisión como cambios SIN GUARDAR — nunca
   escribe directo al backend. Revisas y pulsas «Guardar» tú mismo, como cualquier otro cambio.
-- Si el guardado de una revisión falla (red, colección todavía sin bootstrapear, etc.), el guardado
-  del registro en sí **nunca se ve afectado**: seguirá completándose con normalidad, simplemente sin
-  dejar rastro en el historial esa vez.
+- Si la lectura del estado anterior o el guardado de su revisión falla (red, colección todavía sin
+  bootstrapear, etc.), el guardado del registro en sí **nunca se ve afectado**. Un fallo de revisión
+  no deshace el contenido ya guardado; esa vez puede quedar sin rastro en el historial.
 - Retención: por defecto se conservan 20 versiones por registro (las más antiguas se podan solas,
   en segundo plano, sin bloquear ningún guardado). Ajustable desde **Ajustes → Historial y
   papelera**, o directamente en el manifiesto (`revisions.keepPerRecord`).
-- **Coste**: cada guardado de un registro ya existente hace una lectura y una escritura extra contra
-  `vega_revisions`. Ningún otro camino de la app (listados, navegación) paga ningún coste adicional.
+- **Coste**: con historial activo, guardar cambios en un registro ya existente lee su estado
+  anterior y crea una revisión en `vega_revisions`. La lectura se comparte con la comprobación
+  de conflictos, sin repetirla. Los listados y la navegación no crean revisiones.
 
 ## Papelera
 
