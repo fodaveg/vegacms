@@ -339,3 +339,20 @@ secret is 32 bytes from `crypto/rand`, base64url encoded.
 go vet ./...
 go test -race ./...
 ```
+
+To verify the real Go/PocketBase extension against the Astro share route, with Node 22 and
+the Astro repository's dependencies already present, run from this module:
+
+```sh
+VEGA_ASTRO_SHARE_HARNESS=/absolute/path/to/vega-astro/scripts/share-preview-http-harness.mjs \
+  go test -race -count=1 -run '^TestShareAstroHTTPConsumer$' ./...
+```
+
+The opt-in test creates and revokes links through authenticated HTTP, visits the real Astro
+recipe, checks saved-content changes on the same link, and checks expiry, deleted records and
+removed collections. It compares refused HTML by its digest, including unknown and malformed
+tokens, and verifies private/no-store responses and exactly one resolution per visit, without
+returning credentials or HTML to the test log. The harness closes its loopback
+server and removes its temporary site when the test ends. Without the environment variable,
+the ordinary Go suite skips this cross-repository test; it never installs dependencies.
+This exercises Astro SSR in DEV; it does not certify a production adapter or deployment.

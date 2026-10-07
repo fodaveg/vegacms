@@ -1024,9 +1024,11 @@ colección lo dice la propia colección (`collections.<c>.group`), así que una 
 aparece en el menú sin tocar `nav`. Lo que hace la fusión es añadir AL FINAL de `nav.groups` los
 grupos que falten, sin mover ni quitar los que hay: así el grupo de un módulo añadido a un sitio en
 marcha queda en un sitio conocido (el último) y no donde lo ponga el orden alfabético de los grupos
-sin declarar. Solo se fusiona con la forma esperada (`nav` objeto, `groups` lista de textos no
-vacíos). Con cualquier otra, `nav` no se toca; en la práctica ese manifiesto tampoco pasa la
-validación estricta, así que el sembrado aborta antes de escribir (ver más abajo).
+sin declarar. Los grupos sin colecciones no se muestran en el menú; se conserva su posición en
+`nav.groups` para futuras colecciones, sin filtrar la fusión por uso (decisión de David, 7 oct 2026).
+Solo se fusiona con la forma esperada (`nav` objeto, `groups` lista de textos no vacíos). Con
+cualquier otra, `nav` no se toca; en la práctica ese manifiesto tampoco pasa la validación estricta,
+así que el sembrado aborta antes de escribir (ver más abajo).
 
 **Lo que no se ha podido añadir.** La fusión devuelve, además de las entradas añadidas, lo que
 traía y NO ha puesto (`skipped` en `mergeManifestFragment`; `manifestSkipped` por módulo en
@@ -1081,8 +1083,10 @@ filtrar y el sitio la necesita para pintar las entradas publicadas. **Una etique
 que se crea, también si solo la usan entradas en borrador**: cualquiera puede listar `tags` sin
 sesión y ver su nombre, así que no pongas en una etiqueta nada que no quieras publicar. Es una
 decisión tomada (la alternativa exigiría un estado de publicación en `tags`), no un descuido. Las
-etiquetas se crean en su propio listado antes de usarlas: el campo de relación del formulario de
-una entrada no deja crearlas.
+etiquetas se pueden crear en su listado o desde el campo de relación de una entrada. La acción de
+creación abre un formulario en diálogo. La etiqueta se guarda de forma independiente y se
+selecciona al confirmar; la entrada conserva sus cambios sin guardar. El diálogo exige permiso de
+creación en `tags` y respeta `hideCreate` y el límite de selección.
 
 **Formulario de contacto.** `messages` es la bandeja: `name` (text, obligatorio, máx. 200),
 `email` (email, obligatorio), `message` (text, obligatorio, máx. 5000), `read` (bool),

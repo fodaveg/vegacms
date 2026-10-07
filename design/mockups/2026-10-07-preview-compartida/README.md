@@ -32,15 +32,15 @@ Estados representados: lista activa/vacía/error/cargando; cambios sin guardar; 
 
 ## Checklist de siete ejes
 
-| Eje | Estado | Evidencia / límite |
-|---|---|---|
-| Tokens | Cubierto | CSS vigente incrustado sin cambios; semánticos papel/tinta/acento/error/aviso/éxito. |
-| Componentes y estados | Cubierto para diseño | AdminDialog, botones, campos, ayudas y confirmación existentes; estados y límites descritos arriba. |
-| Responsive por componente | Cubierto para diseño | Modal 26rem, 390/1440, botones 44px, wrap y scroll; capturas en recibo. |
-| Accesibilidad | Parcial | Roles, labels, foco, Escape, reduced-motion y contraste computado; no lector de pantalla físico ni auditoría integral. |
-| Contenido real y límites | Cubierto | Página fixture, fechas de contrato, ES/EN, etiqueta larga, vacío y pérdida de URL. |
-| Feedback | Cubierto para diseño | Busy, inline error reteniendo valores, éxito local y confirmaciones; no red real. |
-| Assets | No aplicable | Sin imágenes, fuentes remotas ni CDN. Tipografía del sistema. |
+| Eje                       | Estado               | Evidencia / límite                                                                                                     |
+| ------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Tokens                    | Cubierto             | CSS vigente incrustado sin cambios; semánticos papel/tinta/acento/error/aviso/éxito.                                   |
+| Componentes y estados     | Cubierto para diseño | AdminDialog, botones, campos, ayudas y confirmación existentes; estados y límites descritos arriba.                    |
+| Responsive por componente | Cubierto para diseño | Modal 26rem, 390/1440, botones 44px, wrap y scroll; capturas en recibo.                                                |
+| Accesibilidad             | Parcial              | Roles, labels, foco, Escape, reduced-motion y contraste computado; no lector de pantalla físico ni auditoría integral. |
+| Contenido real y límites  | Cubierto             | Página fixture, fechas de contrato, ES/EN, etiqueta larga, vacío y pérdida de URL.                                     |
+| Feedback                  | Cubierto para diseño | Busy, inline error reteniendo valores, éxito local y confirmaciones; no red real.                                      |
+| Assets                    | No aplicable         | Sin imágenes, fuentes remotas ni CDN. Tipografía del sistema.                                                          |
 
 ## Verificación y límites
 

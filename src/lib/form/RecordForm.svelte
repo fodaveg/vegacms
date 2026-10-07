@@ -265,7 +265,17 @@
 	 *   de editar (`locked`), los avisos salen sin acciones.
 	 */
 	import { beforeNavigate } from '$app/navigation';
-	import { onMount, tick, untrack } from 'svelte';
+	import { onDestroy, onMount, tick, untrack } from 'svelte';
+	import { canManagePreviewShare } from './preview-share-state';
+	type ShareDialogComponent = typeof import('./PreviewShareDialog.svelte').default;
+	let ShareDialog = $state.raw<ShareDialogComponent | null>(null);
+	let shareOpen = $state(false);
+	let shareOpening = $state(false);
+	let shareOpener = $state<HTMLElement | null>(null);
+	let shareDestroyed = false;
+	onDestroy(() => {
+		shareDestroyed = true;
+	});
 	import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
 	import type { FieldInputValue, RecordInput, VegaRecord } from '$lib/backend/types';
 	import type { UpdateOptions } from '$lib/backend/port';
@@ -506,6 +516,7 @@
 			// tiene sentido (otra colección/id) — se cierra, `RecordForm` lo reabrirá si el usuario
 			// vuelve a pedirlo para el registro nuevo.
 			previewPanelOpen = false;
+			shareOpen = false;
 		}
 	});
 
@@ -668,6 +679,37 @@
 	const previewCapable = $derived(
 		(ctx.port.previewApiUrl ?? null) !== null && model.recordId !== null
 	);
+	const shareAvailable = $derived(
+		!modal && canManagePreviewShare(type, model.recordId, ctx.port, typeReadonly)
+	);
+	/** Diferir el diálogo mantiene el presupuesto del editor y descarta aperturas ya obsoletas. */
+	async function openShare(event: MouseEvent): Promise<void> {
+		if (!shareAvailable || formDisabled || shareOpening || shareOpen) return;
+		const identity = { type: type.name, id: model.recordId, token: ctx.session.token };
+		const opener = event.currentTarget as HTMLElement;
+		shareOpening = true;
+		try {
+			const component = (await import('./PreviewShareDialog.svelte')).default;
+			if (
+				shareDestroyed ||
+				!shareAvailable ||
+				identity.type !== type.name ||
+				identity.id !== model.recordId ||
+				identity.token !== ctx.session.token
+			)
+				return;
+			ShareDialog = component;
+			shareOpener = opener;
+			shareOpen = true;
+		} catch {
+			if (!shareDestroyed)
+				ctx.feedback.reportError(VegaError.backend(ctx.t('editor.share.error.server')), {
+					action: 'preview-share:open'
+				});
+		} finally {
+			if (!shareDestroyed) shareOpening = false;
+		}
+	}
 
 	/** Tarea "pantalla del editor visual" (aditiva sobre "Vista previa" de arriba): visible SOLO
 	 *  con las MISMAS cuatro puertas que `visual-gate.ts` («forbidden» no aplica aquí — esta ruta
@@ -1670,6 +1712,15 @@
 						{ctx.t('editor.preview.toggle')}
 					</button>
 				{/if}
+				{#if shareAvailable}
+					<button
+						type="button"
+						class="vega-editor-preview-toggle vega-editor-share-toggle"
+						aria-busy={shareOpening}
+						disabled={formDisabled}
+						onclick={(event) => void openShare(event)}>{ctx.t('editor.share.open')}</button
+					>
+				{/if}
 				{#if previewUrl}
 					<!-- `rel="external"` (además de `noreferrer`): `previewUrl` es SIEMPRE un sitio ajeno
 				     a esta SPA (el sitio público del propio manifiesto, cualquier dominio) — nunca
@@ -2150,6 +2201,20 @@
 
 	<!-- Lote "publicación" fase B (ver cabecera, "Vista previa"): panel FIJO fuera del `<form>`, mismo
      criterio que `DeleteConfirm` arriba — no es contenido del formulario, es un overlay propio. -->
+	{#if shareOpen && ShareDialog && model.recordId && ctx.port.previewApiUrl}
+		<ShareDialog
+			apiUrl={ctx.port.previewApiUrl}
+			collection={type.name}
+			recordId={model.recordId}
+			{dirty}
+			allowed={shareAvailable}
+			opener={shareOpener}
+			fallback={headingEl ?? null}
+			onClose={() => {
+				shareOpen = false;
+			}}
+		/>
+	{/if}
 	{#if previewPanelOpen && previewCapable}
 		{@const previewApiUrl = ctx.port.previewApiUrl ?? null}
 		{@const previewRecordId = model.recordId}
@@ -2635,7 +2700,7 @@
 	/* Mismo breakpoint que `PreviewPanel.svelte` se oculta por completo (ver su cabecera,
 	   "Responsive"): sin panel que abrir, el botón que lo abriría sobraría. */
 	@media (max-width: 900px) {
-		.vega-editor-preview-toggle {
+		.vega-editor-preview-toggle:not(.vega-editor-share-toggle) {
 			display: none;
 		}
 	}

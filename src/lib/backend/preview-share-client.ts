@@ -182,7 +182,7 @@ export function createPreviewShareClient(opts: PreviewShareClientOptions): Previ
 					? { collection, id, ttlSeconds: options.ttlSeconds }
 					: { collection, id, ttlSeconds: options.ttlSeconds, label: options.label };
 			const response = await post(base, body);
-			if (!response.ok) {
+			if (response.status !== 201) {
 				throw new PreviewShareRequestError(response.status, 'POST', base);
 			}
 			const link = parseCreatedPreviewShareLink(await readJson(response));
@@ -201,7 +201,7 @@ export function createPreviewShareClient(opts: PreviewShareClientOptions): Previ
 				headers: { Accept: 'application/json', Authorization: opts.token },
 				cache: 'no-store'
 			});
-			if (!response.ok) {
+			if (response.status !== 200) {
 				throw new PreviewShareRequestError(response.status, 'GET', base);
 			}
 			const links = parsePreviewShareLinkList(await readJson(response));
@@ -216,7 +216,7 @@ export function createPreviewShareClient(opts: PreviewShareClientOptions): Previ
 		async revokeLink(collection, id, linkId) {
 			const path = `${base}/revoke`;
 			const response = await post(path, { collection, id, linkId });
-			if (!response.ok) {
+			if (response.status !== 204) {
 				throw new PreviewShareRequestError(response.status, 'POST', path);
 			}
 		}

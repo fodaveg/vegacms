@@ -258,6 +258,9 @@ export interface BackendPort {
 	 * demostrada.
 	 */
 	readonly previewVisualEditing?: boolean;
+	/** Enlaces revocables anunciados por el proyecto (`preview.share`); ausencia equivale a false.
+	 *  La administración usa el cliente HTTP de share y requiere ver y actualizar el registro. */
+	readonly previewShare?: boolean;
 	/**
 	 * Vocabulario de renderers anunciado por el sitio en discovery. `null`/ausente = proyecto
 	 * legacy, sin contraste; `[]` = el sitio declara que no sabe pintar ningún tipo.

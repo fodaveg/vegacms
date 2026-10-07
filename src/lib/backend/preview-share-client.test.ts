@@ -213,6 +213,17 @@ describe('createPreviewShareClient', () => {
 		});
 	});
 
+	test('un status exitoso distinto del contractual no acredita crear ni anular', async () => {
+		const create = clientWith(() => new Response(JSON.stringify(CREATED), { status: 200 })).client;
+		await expect(create.createLink('posts', 'abc123', { ttlSeconds: 1 })).rejects.toMatchObject({
+			status: 200
+		});
+		const revoke = clientWith(() => new Response('{}', { status: 200 })).client;
+		await expect(revoke.revokeLink('posts', 'abc123', LINK.id)).rejects.toMatchObject({
+			status: 200
+		});
+	});
+
 	test.each([400, 401, 403, 404, 413, 500])(
 		'un %i en cualquiera de las tres rutas rechaza con PreviewShareRequestError y su status',
 		async (status) => {
@@ -261,7 +272,9 @@ describe('createPreviewShareClient', () => {
 		// cuerpo, y ese trozo es la URL con el secreto.
 		const secret = 's1.abc123def456ghi.SECRETO-QUE-NO-DEBE-SALIR';
 		const truncated = `{"url":"https://example.test/preview-share/${secret}","id":`;
-		const { client } = clientWith(() => new Response(truncated, { status: 201 }));
+		const { client } = clientWith(
+			(_url, init) => new Response(truncated, { status: init.method === 'GET' ? 200 : 201 })
+		);
 
 		const created = await client
 			.createLink('posts', 'abc123', { ttlSeconds: 3600 })

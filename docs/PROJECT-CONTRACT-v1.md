@@ -648,6 +648,24 @@ link or a record.
 A server whose storage for links is not ready answers `503` on all four routes. The reference
 extension does so until its `EnsureCollections` has validated the links collection.
 
+#### Vega's management UI
+
+The admin offers sharing only for a saved record with the advertised capability and View and
+Update permissions. A dirty form may manage links, with a permanent notice that the link shows
+saved content; sharing never saves that form automatically or submits its draft.
+
+The dialog loads a fresh list on every opening. Only live links are persistent; revocation
+removes a row after `204` and confirms locally. Expiry may be shown transiently while open,
+without inventing a server history. The created URL lives only in that mounted dialog, with
+manual selection if copying fails. Closing without copying asks for confirmation, then clears
+the URL from state and DOM. Late responses after close or a context change cannot restore it.
+
+The initial lifetime is 24 hours, editable in whole seconds, minutes, hours or days. Local
+validation permits positive whole seconds up to 30 days, without a fictitious 300-second
+minimum: configured limits are not advertised, and the server decides acceptance. A rejected
+selection is kept rather than silently clamped. An uncertain create response is never retried
+automatically; the editor can reload the live list and revoke an orphan before creating another.
+
 #### Create
 
 ```http
@@ -873,8 +891,13 @@ is the site's responsibility, and each of these is load-bearing:
 
 ### `@vega/astro`: the function this needs
 
-`@vega/astro` lives in another repository and does not implement this yet. The function it
-has to add, so that a site does not re-derive the key or the error handling by hand:
+The server-only `@vega/astro/server` entry point implements the function below. Its browser
+export exposes no server functions: a named `resolveShareLink` import fails client bundling.
+The default starter keeps sharing disabled and provides an opt-in, pages-only SSR recipe at
+`editor-mode/preview-share/[token].astro`. Discovery advertises `preview.share: true` only with
+both `VEGA_EDITOR_MODE=true` and `VEGA_PREVIEW_SHARE=true`, after the operator has deployed and
+verified the extension and on-demand route. The recipe resolves every visit, loads current
+saved content, and omits URL-bearing SEO and the visual editing bridge.
 
 ```ts
 resolveShareLink(options: {
@@ -901,6 +924,8 @@ page cannot accidentally render a different error for "expired" than for "never 
 must run only on the server: importing it into client code would ship the signing secret. A
 missing or short `secret` (under 32 bytes) is the one case where it throws, at call time and
 before any request, because that is a deployment error and not a refused link.
+Resolution refuses HTTP redirects and bounds fetching and reading the response body to ten
+seconds, including when a custom fetch implementation ignores abort.
 
 ### Limits
 

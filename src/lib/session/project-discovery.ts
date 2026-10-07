@@ -52,7 +52,7 @@ export interface ProjectDiscovery {
 	 * detrás de `apiBasePath`, pedido en caliente y autenticado con el MISMO token de editor que
 	 * ya usa `backend/preview-client.ts#createPreviewClient` (igual patrón que `build-client.ts`).
 	 */
-	preview: { apiBasePath: string; visualEditing: boolean } | null;
+	preview: { apiBasePath: string; visualEditing: boolean; share: boolean } | null;
 	/**
 	 * Tipos de bloque que el SITIO conectado sabe renderizar (`@vega/astro`), no los que Vega
 	 * permite editar. Campo aditivo: ausente/`null`/inválido ⇒ servidor legacy, sin contraste;
@@ -159,7 +159,9 @@ export function parseProjectDiscovery(raw: unknown): ProjectDiscovery | null {
 		if (previewApiBasePath) {
 			preview = {
 				apiBasePath: previewApiBasePath,
-				visualEditing: previewObj?.visualEditing === true
+				visualEditing: previewObj?.visualEditing === true,
+				// Opt-in independiente del puente: una ruta SSR debe resolver cada visita al enlace.
+				share: previewObj?.share === true
 			};
 		}
 	}

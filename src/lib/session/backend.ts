@@ -216,6 +216,8 @@ declare global {
 		 * adaptador `memory`: en modo `pocketbase` esta flag nunca se lee.
 		 */
 		__VEGA_PREVIEW_API_URL__?: string;
+		/** Opt-in de share exclusivo del harness memory; no habilita la función en toda la demo. */
+		__VEGA_PREVIEW_SHARE__?: boolean;
 	}
 }
 
@@ -296,7 +298,8 @@ async function createInstance(): Promise<BackendPort> {
 			? {
 					...withHistory,
 					previewApiUrl: window.__VEGA_PREVIEW_API_URL__,
-					previewVisualEditing: true
+					previewVisualEditing: true,
+					previewShare: window.__VEGA_PREVIEW_SHARE__ === true
 				}
 			: withHistory;
 	}
@@ -339,6 +342,7 @@ async function createInstance(): Promise<BackendPort> {
 					// `project-discovery.ts` ya degradó cualquier valor que no sea el booleano `true` a
 					// `false` campo a campo dentro de `preview`, así que aquí basta leerlo tal cual.
 					previewVisualEditing: discovery?.preview?.visualEditing === true,
+					previewShare: discovery?.preview?.share === true,
 					renderedBlockTypes: discovery?.blockTypes ?? null
 				})
 			),

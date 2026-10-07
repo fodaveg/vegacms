@@ -19,7 +19,10 @@ const DOCUMENT = {
 describe('project discovery', () => {
 	/** `DOCUMENT` es un documento de servidor REALISTA, o sea sin `preview.visualEditing`: ese campo
 	 *  lo NORMALIZA el parseo a `false`, y por eso el resultado no es idéntico a la entrada. */
-	const PARSED = { ...DOCUMENT, preview: { ...DOCUMENT.preview, visualEditing: false } };
+	const PARSED = {
+		...DOCUMENT,
+		preview: { ...DOCUMENT.preview, visualEditing: false, share: false }
+	};
 
 	it('parses the versioned contract', () => {
 		expect(parseProjectDiscovery(DOCUMENT)).toEqual(PARSED);
@@ -57,7 +60,8 @@ describe('project discovery', () => {
 			apiBasePath: '/api/vega-preview',
 			// Un `preview` sin `visualEditing` es el caso NORMAL (todo servidor anterior a la
 			// enmienda del puente de edición visual): sin puente, no a medias.
-			visualEditing: false
+			visualEditing: false,
+			share: false
 		});
 	});
 
@@ -67,7 +71,7 @@ describe('project discovery', () => {
 				...DOCUMENT,
 				preview: { apiBasePath: '/api/vega-preview', visualEditing: true }
 			})?.preview
-		).toEqual({ apiBasePath: '/api/vega-preview', visualEditing: true });
+		).toEqual({ apiBasePath: '/api/vega-preview', visualEditing: true, share: false });
 
 		// Cualquier otra cosa se lee como `false`, que es el valor SEGURO: anunciar el puente sin
 		// tenerlo dejaría a Vega esperando un saludo que no llega. Ojo a `"true"` en cadena, que es
@@ -78,7 +82,18 @@ describe('project discovery', () => {
 					...DOCUMENT,
 					preview: { apiBasePath: '/api/vega-preview', visualEditing: value }
 				})?.preview
-			).toEqual({ apiBasePath: '/api/vega-preview', visualEditing: false });
+			).toEqual({ apiBasePath: '/api/vega-preview', visualEditing: false, share: false });
+		}
+	});
+
+	it('share habilita solo el booleano true y conserva preview ante valores inválidos', () => {
+		for (const share of [undefined, null, false, 'true', 1, {}, true]) {
+			expect(
+				parseProjectDiscovery({
+					...DOCUMENT,
+					preview: { apiBasePath: '/api/vega-preview', visualEditing: true, share }
+				})?.preview
+			).toEqual({ apiBasePath: '/api/vega-preview', visualEditing: true, share: share === true });
 		}
 	});
 

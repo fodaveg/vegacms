@@ -138,6 +138,8 @@ interface PocketBaseBackendOptions {
 	 *  `ProjectDiscovery.preview.visualEditing`, mismo criterio que `previewApiUrl` — este
 	 *  adaptador no decide nada con él, solo lo expone. */
 	previewVisualEditing?: boolean;
+	/** Opt-in de enlaces compartidos del discovery; no cambia permisos ni capabilities. */
+	previewShare?: boolean;
 	/** Ver `BackendPort.renderedBlockTypes`: transportado desde discovery, sin interpretarlo. */
 	renderedBlockTypes?: readonly string[] | null;
 }
@@ -151,6 +153,7 @@ export function createPocketBaseBackend({
 	buildApiUrl = null,
 	previewApiUrl = null,
 	previewVisualEditing = false,
+	previewShare = false,
 	renderedBlockTypes = null
 }: PocketBaseBackendOptions): BackendPort {
 	const pb = new PocketBase(url);
@@ -566,6 +569,7 @@ export function createPocketBaseBackend({
 		buildApiUrl,
 		previewApiUrl,
 		previewVisualEditing,
+		previewShare,
 		renderedBlockTypes,
 
 		async login(credentials) {

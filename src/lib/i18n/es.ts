@@ -333,6 +333,76 @@ export const es = {
 	// Solo se pintan cuando el proyecto declaró `preview` en su discovery (`ctx.port.previewApiUrl`,
 	// ver la cabecera de `RecordForm.svelte`) — igual criterio que las claves `topbar.publish.*`
 	// con `build`.
+	'editor.share.open': 'Compartir vista previa',
+	'editor.share.title.list': 'Enlaces de vista previa',
+	'editor.share.title.create': 'Crear enlace',
+	'editor.share.title.copy': 'Copia el enlace ahora',
+	'editor.share.title.close': '¿Cerrar sin copiar?',
+	'editor.share.title.revoke': '¿Anular este enlace?',
+	'editor.share.scope':
+		'Quien tenga el enlace verá lo que esté guardado al abrirlo, aunque no esté publicado.',
+	'editor.share.dirty':
+		'Hay cambios sin guardar. Se compartirá la versión guardada; estos cambios no se incluyen. Cada guardado posterior cambiará lo que verá el enlace.',
+	'editor.share.label': 'Etiqueta (opcional)',
+	'editor.share.labelHelp':
+		'Para reconocer el enlace. Máximo 120 caracteres de texto plano. No cambia quién puede abrirlo.',
+	'editor.share.duration': 'Duración',
+	'editor.share.durationHelp': 'Máximo 30 días. El servidor valida la duración permitida.',
+	'editor.share.unit': 'Unidad de duración',
+	'editor.share.unit.seconds': 'Segundos',
+	'editor.share.unit.minutes': 'Minutos',
+	'editor.share.unit.hours': 'Horas',
+	'editor.share.unit.days': 'Días',
+	'editor.share.active': 'Activo',
+	'editor.share.expired': 'Caducado',
+	'editor.share.createdAt': 'Creado: {date}',
+	'editor.share.expiresAt': 'Caduca: {date}',
+	'editor.share.dateUnknown': 'Fecha no disponible',
+	'editor.share.zone': 'Zona horaria: {zone}',
+	'editor.share.empty': 'No hay enlaces activos. Crea uno para compartir la versión guardada.',
+	'editor.share.noLabel': 'Sin etiqueta',
+	'editor.share.noRecovery':
+		'Las direcciones no se pueden recuperar. Si has perdido una, crea otro enlace y anula el anterior.',
+	'editor.share.create': 'Crear enlace',
+	'editor.share.creating': 'Creando…',
+	'editor.share.created': 'Enlace creado',
+	'editor.share.url': 'Enlace para compartir',
+	'editor.share.oneTime':
+		'Esta dirección solo se muestra ahora. Cópiala antes de cerrar: después no podrás recuperarla.',
+	'editor.share.copy': 'Copiar enlace',
+	'editor.share.copied': 'Enlace copiado',
+	'editor.share.copyFailed': 'No se pudo copiar. Selecciona la dirección y cópiala manualmente.',
+	'editor.share.closeWarning':
+		'No volverás a ver esta dirección. El enlace seguirá activo hasta que caduque o lo anules.',
+	'editor.share.keep': 'Volver al enlace',
+	'editor.share.closeWithoutCopy': 'Cerrar sin copiar',
+	'editor.share.revoke': 'Anular',
+	'editor.share.revokeNamed': 'Anular: {label}',
+	'editor.share.revokeConfirm': 'Anular enlace',
+	'editor.share.revoking': 'Anulando…',
+	'editor.share.revoked': 'Enlace anulado. Ya no funcionará en la siguiente visita.',
+	'editor.share.revokeWarning':
+		'Quien lo abra a partir de ahora ya no podrá ver el contenido. Anular no borra el registro ni se puede deshacer.',
+	'editor.share.loading': 'Cargando enlaces…',
+	'editor.share.listError':
+		'No se pudieron cargar los enlaces. La lista no se ha confirmado; vuelve a intentarlo.',
+	'editor.share.refresh': 'Consultar enlaces activos',
+	'editor.share.uncertain':
+		'No sabemos si el enlace llegó a crearse. Consulta la lista fresca. Si aparece el nuevo pero no recibiste su dirección, anúlalo y crea otro al volver a abrir el diálogo. No encontrarlo no garantiza que no se haya creado.',
+	'editor.share.validation.duration':
+		'Escribe una duración entera positiva, de 30 días como máximo.',
+	'editor.share.validation.label':
+		'Escribe hasta 120 caracteres de texto plano, sin caracteres de control.',
+	'editor.share.error.session':
+		'Tu sesión ha caducado. Vuelve a entrar para gestionar los enlaces.',
+	'editor.share.error.forbidden': 'Compartir requiere permiso para ver y editar este registro.',
+	'editor.share.error.unavailable': 'El registro o los enlaces compartidos no están disponibles.',
+	'editor.share.error.limit': 'Ya hay 20 enlaces vigentes. Anula uno antes de crear otro.',
+	'editor.share.error.notReady': 'El servidor todavía no tiene lista la función de compartir.',
+	'editor.share.error.input':
+		'El servidor no admite esta duración o etiqueta; ajusta los valores. Se conservan los datos.',
+	'editor.share.error.network': 'No se pudo completar la petición por un problema de conexión.',
+	'editor.share.error.server': 'No se pudo confirmar la operación. Se conservan los datos.',
 	'editor.preview.toggle': 'Vista previa',
 	'editor.preview.panel.label': 'Panel de vista previa',
 	'editor.preview.panel.title': 'Vista previa del borrador',

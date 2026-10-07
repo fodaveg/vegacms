@@ -1,337 +1,337 @@
 {
-  "kind": "HTML mockup only; not application QA",
-  "node": "v22.22.3",
-  "checks": [
-    {
-      "name": "01-enlaces-1440-claro horizontal",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "01-enlaces-1440-claro modal bounds",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "02-crear-390-sin-guardar horizontal",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "02-crear-390-sin-guardar modal bounds",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "03-copiar-390-dark-en horizontal",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "03-copiar-390-dark-en modal bounds",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "04-anular-1440-dark-en horizontal",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "04-anular-1440-dark-en modal bounds",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "05-caducado-390 horizontal",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "05-caducado-390 modal bounds",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "06-error-1440-dark horizontal",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "06-error-1440-dark modal bounds",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "close warns before uncopied URL loss",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "return retains URL",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "close erases URL DOM",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "focus returned to trigger",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "reopen metadata only",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "revoke cancel retains row",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "revoke removes row",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "gate denied",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "gate new",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "gate unsupported",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "dirty warning",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "TTL >30d stays with error",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "1 second accepted by mock local validation",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "simulated copy acknowledged",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "copied close clears URL",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "server rejection retains input",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "busy blocks Escape",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "busy blocks submit",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "loading does not show empty",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "empty state",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "Tab wraps to close",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "niebla light text >=4.5",
-      "ok": true,
-      "detail": [
-        {
-          "selector": ".context",
-          "fg": "oklab(0.487107 0.00114333 0.00445946)",
-          "bg": "oklab(0.986881 -0.0000089168 -0.00498621)",
-          "ratio": 6.132788086024529
-        },
-        {
-          "selector": ".note",
-          "fg": "oklab(0.487107 0.00114333 0.00445946)",
-          "bg": "oklab(0.986612 -0.000369374 -0.00376368)",
-          "ratio": 6.128918643704616
-        },
-        {
-          "selector": ".notice",
-          "fg": "rgb(104, 72, 0)",
-          "bg": "oklab(0.896451 0.00177962 0.00210779)",
-          "ratio": 6.108425523343999
-        }
-      ]
-    },
-    {
-      "name": "niebla dark text >=4.5",
-      "ok": true,
-      "detail": [
-        {
-          "selector": ".context",
-          "fg": "oklab(0.711487 0.00280986 -0.0234493)",
-          "bg": "oklab(0.294406 0.00158487 -0.0263053)",
-          "ratio": 5.415894819705213
-        },
-        {
-          "selector": ".note",
-          "fg": "oklab(0.711487 0.00280986 -0.0234493)",
-          "bg": "oklab(0.267933 0.00118394 -0.0248777)",
-          "ratio": 5.937930858501957
-        },
-        {
-          "selector": ".notice",
-          "fg": "rgb(223, 174, 77)",
-          "bg": "oklab(0.324066 0.00328607 -0.00380563)",
-          "ratio": 6.13712853042196
-        }
-      ]
-    },
-    {
-      "name": "miel light text >=4.5",
-      "ok": true,
-      "detail": [
-        {
-          "selector": ".context",
-          "fg": "oklab(0.495238 0.00267955 0.0194705)",
-          "bg": "oklab(0.991759 0.000912814 0.00402038)",
-          "ratio": 5.994279918540294
-        },
-        {
-          "selector": ".note",
-          "fg": "oklab(0.495238 0.00267955 0.0194705)",
-          "bg": "oklab(0.99149 0.000552357 0.00524291)",
-          "ratio": 5.990641051378274
-        },
-        {
-          "selector": ".notice",
-          "fg": "rgb(104, 72, 0)",
-          "bg": "oklab(0.905232 0.00343874 0.0183197)",
-          "ratio": 6.300909508501372
-        }
-      ]
-    },
-    {
-      "name": "miel dark text >=4.5",
-      "ok": true,
-      "detail": [
-        {
-          "selector": ".context",
-          "fg": "oklab(0.724497 0.00526781 0.000568321)",
-          "bg": "oklab(0.31392 0.00527179 0.00972112)",
-          "ratio": 5.329426952523954
-        },
-        {
-          "selector": ".note",
-          "fg": "oklab(0.724497 0.00526781 0.000568321)",
-          "bg": "oklab(0.287447 0.00487087 0.0111487)",
-          "ratio": 5.828909966266495
-        },
-        {
-          "selector": ".notice",
-          "fg": "rgb(223, 174, 77)",
-          "bg": "oklab(0.343418 0.00694227 0.0319205)",
-          "ratio": 5.706423523135374
-        }
-      ]
-    },
-    {
-      "name": "aquelarre light text >=4.5",
-      "ok": true,
-      "detail": [
-        {
-          "selector": ".context",
-          "fg": "rgb(96, 90, 87)",
-          "bg": "oklab(0.984606 0.00252826 -0.00470754)",
-          "ratio": 6.467722671651236
-        },
-        {
-          "selector": ".note",
-          "fg": "rgb(96, 90, 87)",
-          "bg": "oklab(0.984337 0.0021678 -0.00348501)",
-          "ratio": 6.463617746824493
-        },
-        {
-          "selector": ".notice",
-          "fg": "rgb(104, 72, 0)",
-          "bg": "oklab(0.861721 0.0115432 -0.00749823)",
-          "ratio": 5.480118756479575
-        }
-      ]
-    },
-    {
-      "name": "aquelarre dark text >=4.5",
-      "ok": true,
-      "detail": [
-        {
-          "selector": ".context",
-          "fg": "oklab(0.705422 0.00957568 -0.0227062)",
-          "bg": "rgb(42, 32, 52)",
-          "ratio": 5.908944357632285
-        },
-        {
-          "selector": ".note",
-          "fg": "oklab(0.705422 0.00957568 -0.0227062)",
-          "bg": "rgb(34, 26, 45)",
-          "ratio": 6.384864368908915
-        },
-        {
-          "selector": ".notice",
-          "fg": "rgb(223, 174, 77)",
-          "bg": "oklab(0.282336 0.0145833 -0.000452521)",
-          "ratio": 7.113173179289884
-        }
-      ]
-    },
-    {
-      "name": "board three frames",
-      "ok": true,
-      "detail": null
-    },
-    {
-      "name": "board drives dark frames",
-      "ok": true,
-      "detail": null
-    }
-  ],
-  "captures": [
-    "01-enlaces-1440-claro.png",
-    "02-crear-390-sin-guardar.png",
-    "03-copiar-390-dark-en.png",
-    "04-anular-1440-dark-en.png",
-    "05-caducado-390.png",
-    "06-error-1440-dark.png"
-  ],
-  "errors": [],
-  "browser": "149.0.7827.55",
-  "resourcesClosed": true,
-  "failed": 0
+	"kind": "HTML mockup only; not application QA",
+	"node": "v22.22.3",
+	"checks": [
+		{
+			"name": "01-enlaces-1440-claro horizontal",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "01-enlaces-1440-claro modal bounds",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "02-crear-390-sin-guardar horizontal",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "02-crear-390-sin-guardar modal bounds",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "03-copiar-390-dark-en horizontal",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "03-copiar-390-dark-en modal bounds",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "04-anular-1440-dark-en horizontal",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "04-anular-1440-dark-en modal bounds",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "05-caducado-390 horizontal",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "05-caducado-390 modal bounds",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "06-error-1440-dark horizontal",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "06-error-1440-dark modal bounds",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "close warns before uncopied URL loss",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "return retains URL",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "close erases URL DOM",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "focus returned to trigger",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "reopen metadata only",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "revoke cancel retains row",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "revoke removes row",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "gate denied",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "gate new",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "gate unsupported",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "dirty warning",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "TTL >30d stays with error",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "1 second accepted by mock local validation",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "simulated copy acknowledged",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "copied close clears URL",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "server rejection retains input",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "busy blocks Escape",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "busy blocks submit",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "loading does not show empty",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "empty state",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "Tab wraps to close",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "niebla light text >=4.5",
+			"ok": true,
+			"detail": [
+				{
+					"selector": ".context",
+					"fg": "oklab(0.487107 0.00114333 0.00445946)",
+					"bg": "oklab(0.986881 -0.0000089168 -0.00498621)",
+					"ratio": 6.132788086024529
+				},
+				{
+					"selector": ".note",
+					"fg": "oklab(0.487107 0.00114333 0.00445946)",
+					"bg": "oklab(0.986612 -0.000369374 -0.00376368)",
+					"ratio": 6.128918643704616
+				},
+				{
+					"selector": ".notice",
+					"fg": "rgb(104, 72, 0)",
+					"bg": "oklab(0.896451 0.00177962 0.00210779)",
+					"ratio": 6.108425523343999
+				}
+			]
+		},
+		{
+			"name": "niebla dark text >=4.5",
+			"ok": true,
+			"detail": [
+				{
+					"selector": ".context",
+					"fg": "oklab(0.711487 0.00280986 -0.0234493)",
+					"bg": "oklab(0.294406 0.00158487 -0.0263053)",
+					"ratio": 5.415894819705213
+				},
+				{
+					"selector": ".note",
+					"fg": "oklab(0.711487 0.00280986 -0.0234493)",
+					"bg": "oklab(0.267933 0.00118394 -0.0248777)",
+					"ratio": 5.937930858501957
+				},
+				{
+					"selector": ".notice",
+					"fg": "rgb(223, 174, 77)",
+					"bg": "oklab(0.324066 0.00328607 -0.00380563)",
+					"ratio": 6.13712853042196
+				}
+			]
+		},
+		{
+			"name": "miel light text >=4.5",
+			"ok": true,
+			"detail": [
+				{
+					"selector": ".context",
+					"fg": "oklab(0.495238 0.00267955 0.0194705)",
+					"bg": "oklab(0.991759 0.000912814 0.00402038)",
+					"ratio": 5.994279918540294
+				},
+				{
+					"selector": ".note",
+					"fg": "oklab(0.495238 0.00267955 0.0194705)",
+					"bg": "oklab(0.99149 0.000552357 0.00524291)",
+					"ratio": 5.990641051378274
+				},
+				{
+					"selector": ".notice",
+					"fg": "rgb(104, 72, 0)",
+					"bg": "oklab(0.905232 0.00343874 0.0183197)",
+					"ratio": 6.300909508501372
+				}
+			]
+		},
+		{
+			"name": "miel dark text >=4.5",
+			"ok": true,
+			"detail": [
+				{
+					"selector": ".context",
+					"fg": "oklab(0.724497 0.00526781 0.000568321)",
+					"bg": "oklab(0.31392 0.00527179 0.00972112)",
+					"ratio": 5.329426952523954
+				},
+				{
+					"selector": ".note",
+					"fg": "oklab(0.724497 0.00526781 0.000568321)",
+					"bg": "oklab(0.287447 0.00487087 0.0111487)",
+					"ratio": 5.828909966266495
+				},
+				{
+					"selector": ".notice",
+					"fg": "rgb(223, 174, 77)",
+					"bg": "oklab(0.343418 0.00694227 0.0319205)",
+					"ratio": 5.706423523135374
+				}
+			]
+		},
+		{
+			"name": "aquelarre light text >=4.5",
+			"ok": true,
+			"detail": [
+				{
+					"selector": ".context",
+					"fg": "rgb(96, 90, 87)",
+					"bg": "oklab(0.984606 0.00252826 -0.00470754)",
+					"ratio": 6.467722671651236
+				},
+				{
+					"selector": ".note",
+					"fg": "rgb(96, 90, 87)",
+					"bg": "oklab(0.984337 0.0021678 -0.00348501)",
+					"ratio": 6.463617746824493
+				},
+				{
+					"selector": ".notice",
+					"fg": "rgb(104, 72, 0)",
+					"bg": "oklab(0.861721 0.0115432 -0.00749823)",
+					"ratio": 5.480118756479575
+				}
+			]
+		},
+		{
+			"name": "aquelarre dark text >=4.5",
+			"ok": true,
+			"detail": [
+				{
+					"selector": ".context",
+					"fg": "oklab(0.705422 0.00957568 -0.0227062)",
+					"bg": "rgb(42, 32, 52)",
+					"ratio": 5.908944357632285
+				},
+				{
+					"selector": ".note",
+					"fg": "oklab(0.705422 0.00957568 -0.0227062)",
+					"bg": "rgb(34, 26, 45)",
+					"ratio": 6.384864368908915
+				},
+				{
+					"selector": ".notice",
+					"fg": "rgb(223, 174, 77)",
+					"bg": "oklab(0.282336 0.0145833 -0.000452521)",
+					"ratio": 7.113173179289884
+				}
+			]
+		},
+		{
+			"name": "board three frames",
+			"ok": true,
+			"detail": null
+		},
+		{
+			"name": "board drives dark frames",
+			"ok": true,
+			"detail": null
+		}
+	],
+	"captures": [
+		"01-enlaces-1440-claro.png",
+		"02-crear-390-sin-guardar.png",
+		"03-copiar-390-dark-en.png",
+		"04-anular-1440-dark-en.png",
+		"05-caducado-390.png",
+		"06-error-1440-dark.png"
+	],
+	"errors": [],
+	"browser": "149.0.7827.55",
+	"resourcesClosed": true,
+	"failed": 0
 }

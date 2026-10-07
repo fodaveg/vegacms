@@ -314,6 +314,74 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// Only rendered when the connected project declared `preview` in its discovery
 	// (`ctx.port.previewApiUrl`, see `RecordForm.svelte`'s header) — same criteria as the
 	// `topbar.publish.*` keys with `build`.
+	'editor.share.open': 'Share preview',
+	'editor.share.title.list': 'Preview links',
+	'editor.share.title.create': 'Create link',
+	'editor.share.title.copy': 'Copy the link now',
+	'editor.share.title.close': 'Close without copying?',
+	'editor.share.title.revoke': 'Revoke this link?',
+	'editor.share.scope':
+		'Anyone with the link sees the saved content when opening it, even if unpublished.',
+	'editor.share.dirty':
+		'There are unsaved changes. The saved version will be shared; these changes are not included. Each later save changes what the link shows.',
+	'editor.share.label': 'Label (optional)',
+	'editor.share.labelHelp':
+		'To recognise the link. Up to 120 plain text characters. It does not change who can open it.',
+	'editor.share.duration': 'Duration',
+	'editor.share.durationHelp': 'Up to 30 days. The server validates the allowed duration.',
+	'editor.share.unit': 'Duration unit',
+	'editor.share.unit.seconds': 'Seconds',
+	'editor.share.unit.minutes': 'Minutes',
+	'editor.share.unit.hours': 'Hours',
+	'editor.share.unit.days': 'Days',
+	'editor.share.active': 'Active',
+	'editor.share.expired': 'Expired',
+	'editor.share.createdAt': 'Created: {date}',
+	'editor.share.expiresAt': 'Expires: {date}',
+	'editor.share.dateUnknown': 'Date unavailable',
+	'editor.share.zone': 'Time zone: {zone}',
+	'editor.share.empty': 'No active links. Create one to share the saved version.',
+	'editor.share.noLabel': 'No label',
+	'editor.share.noRecovery':
+		'URLs cannot be recovered. If you lose one, create another link and revoke the old one.',
+	'editor.share.create': 'Create link',
+	'editor.share.creating': 'Creating…',
+	'editor.share.created': 'Link created',
+	'editor.share.url': 'Share link',
+	'editor.share.oneTime':
+		'This URL is shown only now. Copy it before closing: you cannot recover it later.',
+	'editor.share.copy': 'Copy link',
+	'editor.share.copied': 'Link copied',
+	'editor.share.copyFailed': 'Could not copy. Select the URL and copy it manually.',
+	'editor.share.closeWarning':
+		'You will not see this URL again. The link stays active until it expires or you revoke it.',
+	'editor.share.keep': 'Back to the link',
+	'editor.share.closeWithoutCopy': 'Close without copying',
+	'editor.share.revoke': 'Revoke',
+	'editor.share.revokeNamed': 'Revoke: {label}',
+	'editor.share.revokeConfirm': 'Revoke link',
+	'editor.share.revoking': 'Revoking…',
+	'editor.share.revoked': 'Link revoked. It will no longer work on the next visit.',
+	'editor.share.revokeWarning':
+		'Anyone opening it from now on cannot see the content. Revoking does not delete the record and cannot be undone.',
+	'editor.share.loading': 'Loading links…',
+	'editor.share.listError': 'Could not load links. The list has not been confirmed; try again.',
+	'editor.share.refresh': 'Check active links',
+	'editor.share.uncertain':
+		'We do not know whether the link was created. Check a fresh list. If the new link appears but its URL was not received, revoke it and create another after reopening the dialog. Not finding it does not guarantee it was not created.',
+	'editor.share.validation.duration': 'Enter a positive whole duration, up to 30 days.',
+	'editor.share.validation.label':
+		'Enter up to 120 plain text characters, without control characters.',
+	'editor.share.error.session': 'Your session expired. Sign in again to manage links.',
+	'editor.share.error.forbidden': 'Sharing requires permission to view and edit this record.',
+	'editor.share.error.unavailable': 'The record or shared links are unavailable.',
+	'editor.share.error.limit':
+		'There are already 20 active links. Revoke one before creating another.',
+	'editor.share.error.notReady': 'The server is not ready to share links yet.',
+	'editor.share.error.input':
+		'The server does not accept this duration or label; adjust the values. Your input has been kept.',
+	'editor.share.error.network': 'A connection problem prevented the request from completing.',
+	'editor.share.error.server': 'The operation could not be confirmed. Your input has been kept.',
 	'editor.preview.toggle': 'Preview',
 	'editor.preview.panel.label': 'Preview panel',
 	'editor.preview.panel.title': 'Draft preview',

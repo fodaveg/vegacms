@@ -22,11 +22,15 @@ function mockConfigResponse(data: unknown | null): void {
 beforeEach(() => {
 	localStorage.clear();
 	delete window.__VEGA_ADAPTER__;
+	delete window.__VEGA_PREVIEW_API_URL__;
+	delete window.__VEGA_PREVIEW_SHARE__;
 });
 
 afterEach(() => {
 	vi.restoreAllMocks();
 	delete window.__VEGA_ADAPTER__;
+	delete window.__VEGA_PREVIEW_API_URL__;
+	delete window.__VEGA_PREVIEW_SHARE__;
 });
 
 describe('resolveDisplayBackendUrl', () => {
@@ -73,6 +77,44 @@ describe('resolveDisplayBackendUrl', () => {
  * se retiene hasta que el test la suelta, para ver si el discovery sale antes o después.
  */
 describe('getBackend — config y discovery', () => {
+	test.each([undefined, false, true, 'true'])(
+		'transporta preview.share=%s desde discovery hasta el puerto real',
+		async (share) => {
+			writeBackendOverride('https://pb-share.example.test');
+			global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+				const url = String(input);
+				if (!url.endsWith('/api/vega/discovery')) return new Response('', { status: 404 });
+				return new Response(
+					JSON.stringify({
+						protocolVersion: 1,
+						project: { key: 'default', name: 'Share' },
+						auth: { collection: '_superusers' },
+						manifest: { collection: 'vega', key: 'default', schemaVersion: 1 },
+						preview: { apiBasePath: '/api/custom-preview', share }
+					}),
+					{ status: 200 }
+				);
+			}) as typeof fetch;
+			vi.resetModules();
+			const { getBackend } = await import('./backend');
+			const port = await getBackend();
+			expect(port.previewApiUrl).toBe('https://pb-share.example.test/api/custom-preview');
+			expect(port.previewShare).toBe(share === true);
+		}
+	);
+
+	test.each([undefined, false, true])(
+		'memory share=%s requiere opt-in explícito del harness',
+		async (share) => {
+			window.__VEGA_ADAPTER__ = 'memory';
+			window.__VEGA_PREVIEW_API_URL__ = 'http://localhost:4173/api/vega-preview';
+			window.__VEGA_PREVIEW_SHARE__ = share;
+			vi.resetModules();
+			const { getBackend } = await import('./backend');
+			expect((await getBackend()).previewShare).toBe(share === true);
+		}
+	);
+
 	function holdConfig(config: unknown): { requested: string[]; release: () => void } {
 		const requested: string[] = [];
 		let release!: () => void;

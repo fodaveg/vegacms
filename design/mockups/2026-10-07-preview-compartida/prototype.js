@@ -147,7 +147,6 @@ const $ = (id) => document.getElementById(id),
 let lang = params.get('lang') || 'es',
 	scenario = params.get('state') || 'normal',
 	stage = '{{STAGE}}',
-	view = 'manage',
 	secret = null,
 	copied = false,
 	busy = false,
@@ -176,7 +175,6 @@ function theme() {
 		$('mode').value === 'system' ? (mq.matches ? 'dark' : 'light') : $('mode').value;
 }
 function setView(next) {
-	view = next;
 	for (const id of ['manage', 'create', 'success', 'close-confirm', 'revoke-confirm'])
 		$(id).hidden = id !== next;
 	const key = {

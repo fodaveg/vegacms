@@ -418,6 +418,29 @@ Las escrituras son las mismas que las del formulario de bloques, no un segundo c
 igual que arriba que **cada bloque se guarda por su cuenta** y que **el reorden persiste al soltar**.
 La barra superior enseña esa asimetría en vez de dejarla para quien lea el código.
 
+### Compartir la vista previa guardada
+
+El botón **Compartir vista previa** aparece en registros ya guardados cuando el discovery anuncia
+`preview.apiBasePath` y `preview.share: true`, y la persona puede **ver y editar** el registro. No se
+configura desde el manifiesto. Los tipos de solo lectura y los registros nuevos no lo ofrecen; las
+reglas del backend vuelven a comprobar cada operación.
+
+El diálogo permite crear, copiar y anular enlaces. Comparte lo **guardado actual a cada visita**,
+aunque no esté publicado: abrirlo con cambios sin guardar muestra un aviso y conserva el borrador,
+sin guardarlo ni incluirlo. La duración inicial es 24 horas, editable en segundos, minutos, horas o
+días, con máximo de 30 días. El servidor valida su rango propio; Vega no presupone un mínimo de
+300 segundos. La etiqueta es texto plano opcional de hasta 120 caracteres.
+
+La dirección solo aparece al crear el enlace, en esa apertura del diálogo. Cópiala antes de cerrar;
+si cierras sin copiar, Vega pide confirmación. Volver a abrir consulta la lista vigente con fechas y
+zona horaria, pero no recupera direcciones ni ofrece un historial de enlaces anulados. Si pierdes una
+dirección, anula su enlace y crea otro. Una petición de creación con resultado incierto conserva los
+datos y permite consultar la lista fresca, sin repetir el alta automáticamente; una lista vacía no
+garantiza que el alta no llegara a ocurrir.
+
+La activación del servidor y del sitio está documentada en la sección «Share links» del
+[contrato de proyecto v1](PROJECT-CONTRACT-v1.md#share-links-optional).
+
 ## Vista previa de tarjeta social (`social`)
 
 Cómo queda un registro al compartirlo. Es un mapeo sobre campos que la colección **ya tiene**, no campos nuevos: qué campo es el título social, cuál la descripción y cuál la imagen, más una plantilla de URL opcional.
