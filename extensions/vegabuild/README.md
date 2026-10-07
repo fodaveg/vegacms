@@ -185,10 +185,15 @@ deliberately withholds from editors: log it, never return it to a client.
 - The webhook URL (and any header/body configured on `WebhookRunner`) is a credential. It is never
   embedded in Vega's discovery document, and no error of `WebhookRunner` quotes it: a non-2xx
   webhook response is reported only as an HTTP status code.
-- When `Runner.Start` fails, the editor is told nothing the Runner said. `POST {RoutePrefix}/trigger`
-  answers `502` with the fixed message `failed to start the build`, and the run is stored with the
-  fixed `detail` `the build could not be started; the server log has the reason`, which is what
-  `GET {RoutePrefix}/status` then emits. The Runner's own error (a `CommandRunner` that cannot spawn
+- When `Runner.Start` fails, `POST {RoutePrefix}/trigger` answers `502` with the fixed message
+  `failed to start the build`, and the run is stored with the fixed `detail`
+  `the build could not be started; the server log has the reason`, which is what
+  `GET {RoutePrefix}/status` then emits. An actual webhook HTTP `400`–`599` response adds only its
+  numeric status to both texts, for example `(HTTP 500)`. Transport, request-construction and
+  command-start errors keep the fixed texts, as do responses outside that range. Vega refreshes
+  the run's status after a failed trigger so the editor sees that sanitized detail immediately.
+  Webhook URLs, headers, request/response bodies and arbitrary Runner error text are never added.
+  The Runner's own error (a `CommandRunner` that cannot spawn
   quotes the executable and the log file path; a Runner of your own may quote anything) goes to
   PocketBase's log only, as `vegabuild: the runner failed to start the build` with the run id. A
   server-side caller of `Extension.Trigger` still receives it in `StartError.Err` and must not

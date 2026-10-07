@@ -572,12 +572,12 @@ func (x *Extension) applyHandoff(app core.App, runID string, handoff Handoff) er
 // POST /trigger answers with 409.
 var ErrRunInProgress = errors.New("vegabuild: a build is already running")
 
-// What an editor is told when Runner.Start fails. Both are fixed strings on purpose: the error a
+// What an editor is told when Runner.Start fails. Both have fixed wording on purpose: the error a
 // Runner returns from Start is whatever the operating system or the provider said (a CommandRunner
 // that cannot spawn its command quotes the executable's path and the log file's path; a
 // project-supplied Runner can quote anything, an environment variable included), and both of these
-// reach the browser of anyone allowed to press Publish. The real error goes to the server log only
-// (see Trigger).
+// reach the browser of anyone allowed to press Publish. Only the numeric status of an actual
+// webhook 4xx/5xx response can be added; the real error stays in the server log (see Trigger).
 const (
 	// startFailureMessage is the `message` of the 502 that POST /trigger answers.
 	startFailureMessage = "failed to start the build"
@@ -585,6 +585,19 @@ const (
 	// shows next to the Publish button.
 	startFailureDetail = "the build could not be started; the server log has the reason"
 )
+
+// startFailureText never reads the Runner's error text. Only WebhookRunner's private response
+// error can contribute a bounded numeric HTTP status to the fixed message and stored detail.
+func startFailureText(err error) (message, detail string) {
+	message, detail = startFailureMessage, startFailureDetail
+	if responseErr, ok := err.(*webhookResponseError); ok && responseErr != nil &&
+		responseErr.statusCode >= 400 && responseErr.statusCode <= 599 {
+		suffix := fmt.Sprintf(" (HTTP %d)", responseErr.statusCode)
+		message += suffix
+		detail += suffix
+	}
+	return message, detail
+}
 
 // StartError wraps the error a Runner returned from Start. The run it belongs to has already been
 // closed as failed by the time Trigger returns it; POST /trigger answers it with 502.
@@ -633,7 +646,8 @@ func (x *Extension) Trigger(app core.App) (string, error) {
 	})
 	if startErr != nil {
 		// The Runner's own words stay on the server: this log line is the ONLY place they go. What
-		// is stored as the run's detail (and so emitted by GET /status) is startFailureDetail.
+		// is stored as the run's detail (and so emitted by GET /status) is sanitized fixed text,
+		// optionally accompanied by the webhook's numeric HTTP error status.
 		app.Logger().Error(
 			"vegabuild: the runner failed to start the build",
 			"run", runID,
@@ -642,7 +656,8 @@ func (x *Extension) Trigger(app core.App) (string, error) {
 		// Route the failure through closeRun (not a direct Set+Save on the stale in-memory `run`):
 		// the same reread-fresh discipline as applyHandoff, in case a Runner that errors out of
 		// Start still managed to call report first.
-		if _, err := x.closeRun(app, runID, runStateFailed, "", startFailureDetail); err != nil {
+		_, detail := startFailureText(startErr)
+		if _, err := x.closeRun(app, runID, runStateFailed, "", detail); err != nil {
 			return "", err
 		}
 		return runID, &StartError{RunID: runID, Err: startErr}
@@ -661,8 +676,9 @@ func (x *Extension) triggerHandler(e *core.RequestEvent) error {
 	case errors.Is(err, ErrRunInProgress):
 		return apis.NewApiError(http.StatusConflict, "a build is already running", nil)
 	case errors.As(err, &startErr):
-		// Never startErr.Err.Error(): see startFailureMessage. Trigger has already logged it.
-		return apis.NewApiError(http.StatusBadGateway, startFailureMessage, nil)
+		// Never startErr.Err.Error(): Trigger has already logged it.
+		message, _ := startFailureText(startErr.Err)
+		return apis.NewApiError(http.StatusBadGateway, message, nil)
 	case err != nil:
 		return err
 	}
