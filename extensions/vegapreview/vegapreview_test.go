@@ -22,6 +22,8 @@ import (
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tests"
+	"github.com/pocketbase/pocketbase/tools/filesystem"
+	"github.com/pocketbase/pocketbase/tools/router"
 )
 
 const testSecret = "0123456789abcdef0123456789abcdef"
@@ -510,6 +512,284 @@ func TestDraftRequiresTheUpdateRule(t *testing.T) {
 					withoutDraft.Body.String())
 			}
 		})
+	}
+}
+
+// TestDraftUpdateRuleEvaluatesProposedFields checks both field-change restrictions and rules that
+// explicitly admit a proposed value. The HTTP envelope must not stand in for the record fields.
+func TestDraftUpdateRuleEvaluatesProposedFields(t *testing.T) {
+	cases := []struct {
+		name       string
+		updateRule string
+		fields     map[string]any
+		wantDraft  int
+	}{
+		{
+			name:       "unchanged title is allowed",
+			updateRule: "@request.body.title:changed = false",
+			fields:     map[string]any{"title": "Draft A"},
+			wantDraft:  http.StatusOK,
+		},
+		{
+			name:       "changed title is forbidden",
+			updateRule: "@request.body.title:changed = false",
+			fields:     map[string]any{"title": "unsaved forbidden title"},
+			wantDraft:  http.StatusForbidden,
+		},
+		{
+			name:       "explicit proposed title is allowed with the saved owner",
+			updateRule: `owner = @request.auth.id && @request.body.title = "permitido"`,
+			fields:     map[string]any{"title": "permitido", "owner": "unsaved owner"},
+			wantDraft:  http.StatusOK,
+		},
+		{
+			name:       "other proposed title is forbidden",
+			updateRule: `@request.body.title = "permitido"`,
+			fields:     map[string]any{"title": "prohibido"},
+			wantDraft:  http.StatusForbidden,
+		},
+		{
+			name:       "omitted title is unchanged",
+			updateRule: "@request.body.title:changed = false",
+			fields:     map[string]any{"status": "draft"},
+			wantDraft:  http.StatusOK,
+		},
+		{
+			name: "only proposed fields are in the update body",
+			updateRule: "@request.body.title:isset = true && " +
+				"@request.body.collection:isset = false && @request.body.draft:isset = false",
+			fields:    map[string]any{"title": "permitido"},
+			wantDraft: http.StatusOK,
+		},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			fixture := newPreviewFixture(t)
+			viewRule := `@request.auth.id != ""`
+			setPagesRules(t, fixture.app, &viewRule, &testCase.updateRule)
+			before, err := fixture.app.FindRecordById("pages", fixture.pageA)
+			if err != nil {
+				t.Fatal(err)
+			}
+			beforeBytes, err := json.Marshal(before)
+			if err != nil {
+				t.Fatal(err)
+			}
+			draft := &previewDraft{
+				Record: previewDraftRecord{ID: fixture.pageA, Fields: testCase.fields},
+				Blocks: []previewDraftRecord{},
+			}
+			response := requestTokenWithDraft(fixture.mux, fixture.editorA, "pages", fixture.pageA, draft)
+			if response.Code != testCase.wantDraft {
+				t.Fatalf("expected %d, got %d: %s", testCase.wantDraft, response.Code, response.Body.String())
+			}
+			var body tokenResponse
+			if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+				t.Fatal(err)
+			}
+			if testCase.wantDraft == http.StatusOK {
+				opened := decryptDraftTokenForTest(t, body.PostToken, "pages", fixture.pageA, fixture.now)
+				if got := opened.Record.Fields["title"]; got != testCase.fields["title"] {
+					t.Fatalf("draft title changed before encryption: %v", got)
+				}
+			} else if body.PostToken != "" || body.URL != "" {
+				t.Fatalf("a refused draft must not receive any token: %s", response.Body.String())
+			}
+			after, err := fixture.app.FindRecordById("pages", fixture.pageA)
+			if err != nil {
+				t.Fatal(err)
+			}
+			afterBytes, err := json.Marshal(after)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(beforeBytes, afterBytes) {
+				t.Fatalf("preview changed the persisted record:\nbefore %s\nafter %s", beforeBytes, afterBytes)
+			}
+			withoutDraft := requestToken(fixture.mux, fixture.editorA, "pages", fixture.pageA)
+			if withoutDraft.Code != http.StatusOK {
+				t.Fatalf("request without draft: expected 200, got %d: %s", withoutDraft.Code, withoutDraft.Body.String())
+			}
+			var saved tokenResponse
+			if err := json.Unmarshal(withoutDraft.Body.Bytes(), &saved); err != nil {
+				t.Fatal(err)
+			}
+			preview, err := url.Parse(saved.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+			expected := signToken(testSecret, "pages", fixture.pageA, fixture.now.Add(5*time.Minute).Unix())
+			if saved.PostToken != "" || preview.Query().Get("token") != expected {
+				t.Fatalf("request without draft must keep the v1 response: %s", withoutDraft.Body.String())
+			}
+		})
+	}
+}
+
+// TestDraftUpdateRulePreparesFieldValues compares ISO dates with PocketBase timestamps and file
+// references with saved filenames. The ciphertext keeps the original draft values.
+func TestDraftUpdateRulePreparesFieldValues(t *testing.T) {
+	fixture := newPreviewFixture(t)
+	pages, err := fixture.app.FindCollectionByNameOrId("pages")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pages.Fields.Add(&core.DateField{Name: "publishAt"}, &core.FileField{Name: "cover"})
+	if err := fixture.app.Save(pages); err != nil {
+		t.Fatal(err)
+	}
+	page, err := fixture.app.FindRecordById("pages", fixture.pageA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	page.Set("publishAt", "2026-10-07 08:00:00.000Z")
+	file, err := filesystem.NewFileFromBytes([]byte("saved preview fixture"), "cover.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	page.Set("cover", file)
+	if err := fixture.app.Save(page); err != nil {
+		t.Fatal(err)
+	}
+	viewRule := "owner = @request.auth.id"
+	savedFilename := page.GetString("cover")
+	cases := []struct {
+		name  string
+		field string
+		value string
+		want  int
+	}{
+		{name: "same instant in Vega ISO format", field: "publishAt", value: "2026-10-07T08:00:00.000Z", want: http.StatusOK},
+		{name: "same instant with timezone offset", field: "publishAt", value: "2026-10-07T10:00:00.000+02:00", want: http.StatusOK},
+		{name: "changed instant", field: "publishAt", value: "2026-10-07T09:00:00.000Z", want: http.StatusForbidden},
+		{name: "same file reference", field: "cover", value: savedFilename, want: http.StatusOK},
+		{name: "changed file reference", field: "cover", value: "other.txt", want: http.StatusForbidden},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			updateRule := "@request.body." + testCase.field + ":changed = false"
+			setPagesRules(t, fixture.app, &viewRule, &updateRule)
+			draft := &previewDraft{
+				Record: previewDraftRecord{ID: fixture.pageA, Fields: map[string]any{testCase.field: testCase.value}},
+				Blocks: []previewDraftRecord{},
+			}
+			response := requestTokenWithDraft(fixture.mux, fixture.editorA, "pages", fixture.pageA, draft)
+			if response.Code != testCase.want {
+				t.Fatalf("expected %d, got %d: %s", testCase.want, response.Code, response.Body.String())
+			}
+			var body tokenResponse
+			if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+				t.Fatal(err)
+			}
+			if testCase.want == http.StatusOK {
+				opened := decryptDraftTokenForTest(t, body.PostToken, "pages", fixture.pageA, fixture.now)
+				if opened.Record.Fields[testCase.field] != testCase.value {
+					t.Fatal("authorization changed the field value encrypted into the draft")
+				}
+			} else if body.PostToken != "" || body.URL != "" {
+				t.Fatal("a refused draft received a token")
+			}
+			persisted, err := fixture.app.FindRecordById("pages", fixture.pageA)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if persisted.GetString("publishAt") != "2026-10-07 08:00:00.000Z" ||
+				persisted.GetString("cover") != savedFilename {
+				t.Fatal("authorization changed the persisted date or file")
+			}
+		})
+	}
+}
+
+// TestDraftViewRuleUsesTheOriginalRequest makes the read check discriminate between the HTTP
+// envelope and the proposed update body. A draft cannot make an inaccessible record viewable.
+func TestDraftViewRuleUsesTheOriginalRequest(t *testing.T) {
+	cases := []struct {
+		name     string
+		viewRule string
+		want     int
+	}{
+		{
+			name:     "view rule still sees the HTTP envelope",
+			viewRule: `owner = @request.auth.id && @request.body.collection = "pages" && @request.body.title:isset = false`,
+			want:     http.StatusOK,
+		},
+		{
+			name:     "proposed title does not grant view access",
+			viewRule: `@request.body.title = "permitido"`,
+			want:     http.StatusNotFound,
+		},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			fixture := newPreviewFixture(t)
+			updateRule := `@request.body.title = "permitido"`
+			setPagesRules(t, fixture.app, &testCase.viewRule, &updateRule)
+			draft := &previewDraft{
+				Record: previewDraftRecord{ID: fixture.pageA, Fields: map[string]any{"title": "permitido"}},
+				Blocks: []previewDraftRecord{},
+			}
+			response := requestTokenWithDraft(fixture.mux, fixture.editorA, "pages", fixture.pageA, draft)
+			if response.Code != testCase.want {
+				t.Fatalf("expected %d, got %d: %s", testCase.want, response.Code, response.Body.String())
+			}
+		})
+	}
+}
+
+// TestDraftAuthorizationKeepsTheOriginalRequestInfo protects middleware that reuses the cached
+// request info: update authorization must preserve its HTTP body, query, headers and editor.
+func TestDraftAuthorizationKeepsTheOriginalRequestInfo(t *testing.T) {
+	fixture := newPreviewFixture(t)
+	viewRule := "owner = @request.auth.id"
+	updateRule := `owner = @request.auth.id && @request.body.title = "permitido" && ` +
+		`@request.query.preview_probe = "original" && @request.headers.x_preview_probe = "original"`
+	setPagesRules(t, fixture.app, &viewRule, &updateRule)
+	page, err := fixture.app.FindRecordById("pages", fixture.pageA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	editor, err := fixture.app.FindRecordById("vega_editors", page.GetString("owner"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := json.Marshal(tokenRequest{
+		Collection: "pages",
+		ID:         fixture.pageA,
+		Draft: &previewDraft{
+			Record: previewDraftRecord{ID: fixture.pageA, Fields: map[string]any{"title": "permitido"}},
+			Blocks: []previewDraftRecord{},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/api/vega-preview/token?preview_probe=original", bytes.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Preview-Probe", "original")
+	response := httptest.NewRecorder()
+	event := &core.RequestEvent{
+		App:   fixture.app,
+		Auth:  editor,
+		Event: router.Event{Request: request, Response: response},
+	}
+	if err := fixture.extension.tokenHandler(event); err != nil {
+		t.Fatal(err)
+	}
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", response.Code, response.Body.String())
+	}
+	info, err := event.RequestInfo()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Body["collection"] != "pages" || info.Body["id"] != fixture.pageA ||
+		info.Body["draft"] == nil || info.Body["title"] != nil {
+		t.Fatalf("update authorization replaced the original HTTP body: %v", info.Body)
+	}
+	if info.Auth != editor || info.Query["preview_probe"] != "original" ||
+		info.Headers["x_preview_probe"] != "original" || info.Method != http.MethodPost {
+		t.Fatal("update authorization changed the original request identity or metadata")
 	}
 }
 

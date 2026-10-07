@@ -84,7 +84,7 @@ const DETAIL_MAX_LENGTH = 200;
 /** Rectángulo de un bloque en píxeles CSS, relativo al VIEWPORT DEL PROPIO MARCO. El
  *  desplazamiento del marco y el zoom del lienzo los aplica Vega; el puente no sabe que lo están
  *  escalando. */
-export interface BlockRect {
+interface BlockRect {
 	top: number;
 	left: number;
 	width: number;
@@ -111,7 +111,7 @@ export interface VisualBlock {
 
 /** Mensajes del SITIO a Vega, ya validados. `skipped` no viaja por el cable: lo cuenta el
  *  parseo (ver `parseBlocks`). */
-export type SiteMessage =
+type SiteMessage =
 	| {
 			type: 'ready';
 			collection: string;
@@ -131,7 +131,7 @@ export type SiteMessage =
 
 /** Veredicto del parseo. `foreign` es el caso ABUNDANTE (una ventana recibe mensajes de todo el
  *  mundo) y por eso se distingue de `malformed`, que sí es un puente hablando mal. */
-export type ParsedSiteMessage =
+type ParsedSiteMessage =
 	| { status: 'ok'; message: SiteMessage }
 	| { status: 'foreign' }
 	| { status: 'version'; version: string }
@@ -327,7 +327,7 @@ export interface MessagePoster {
 }
 
 /** Lo mínimo de un `MessageEvent` que este cliente mira. */
-export interface MessageEventLike {
+interface MessageEventLike {
 	origin: string;
 	data: unknown;
 	source?: unknown;
@@ -335,7 +335,7 @@ export interface MessageEventLike {
 
 /** Qué se hizo con un mensaje. Se devuelve para poder afirmarlo en tests y para que el lienzo
  *  pueda contar los descartes sin que este módulo decida cómo se registran. */
-export type MessageVerdict =
+type MessageVerdict =
 	| 'accepted'
 	/** El cliente no está escuchando (parado, o nunca arrancó). */
 	| 'inactive'
@@ -354,7 +354,7 @@ export type MessageVerdict =
 	/** Saludo bueno, pero el marco pinta otro registro. */
 	| 'record-mismatch';
 
-export interface VisualBridgeClientOptions {
+interface VisualBridgeClientOptions {
 	/** Registro que esta sesión de edición está editando. El `ready` del sitio dice cuál está
 	 *  pintando, y aquí es donde se contrasta: sin este dato, el `{collection, id}` del contrato
 	 *  sería decorativo y un marco que enseña OTRO registro pasaría por bueno. */

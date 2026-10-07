@@ -66,7 +66,7 @@ export type MediaUploadItemStatus =
 	| { kind: 'rejected'; reason: MediaFileRejectionReason }
 	| { kind: 'error'; message: string };
 
-export interface MediaUploadItem {
+interface MediaUploadItem {
 	/** Clave estable del ítem DENTRO de este lote (nunca la `RecordId` real: el fichero puede no
 	 *  haber llegado a crearse). */
 	id: string;
@@ -84,7 +84,7 @@ export interface MediaUploadSummary {
 }
 
 /** Opciones de un lote. */
-export interface MediaUploadOptions {
+interface MediaUploadOptions {
 	/** «Subir el original»: no se reduce nada y se valida el fichero tal cual (comportamiento de
 	 *  siempre). Por defecto `false`. */
 	keepOriginal?: boolean;
@@ -93,7 +93,7 @@ export interface MediaUploadOptions {
 /** La reducción del navegador (`shrink-image-browser`); los tests inyectan otra. */
 const defaultShrink: ShrinkFn = (file, options) => shrinkImage(file, browserShrinkDeps, options);
 
-export interface MediaUploadState {
+interface MediaUploadState {
 	/** Ficheros del ÚLTIMO lote arrancado, con su estado en vivo. Vacío antes del primer lote o
 	 *  tras `clear()`. */
 	readonly items: MediaUploadItem[];

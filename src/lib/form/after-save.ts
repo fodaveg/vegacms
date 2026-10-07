@@ -21,9 +21,9 @@ import { getContext, setContext } from 'svelte';
 import type { VegaRecord } from '$lib/backend/types';
 
 /** Un gancho tras guardar: devuelve la frase que añade al toast, o nada. */
-export type AfterSaveHook = (saved: VegaRecord) => Promise<string | undefined>;
+type AfterSaveHook = (saved: VegaRecord) => Promise<string | undefined>;
 
-export interface AfterSaveRegistry {
+interface AfterSaveRegistry {
 	/** Apunta `hook`; devuelve la función de baja (llamarla al desmontar el widget). */
 	register(hook: AfterSaveHook): () => void;
 	/** Ejecuta los ganchos apuntados, en orden de alta y uno tras otro. Devuelve las frases que

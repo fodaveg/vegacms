@@ -122,7 +122,7 @@ import type { TransferCollection } from './transfer-format';
  *  `viewState` por completo; `'filtered'` reutiliza `buildListQuery` tal cual la usa el listado. */
 export type ExportScope = 'all' | 'filtered';
 
-export interface ExportCollectionResult {
+interface ExportCollectionResult {
 	collection: TransferCollection;
 	/** `true` si la exportación se canceló a mitad (ver `paginate.ts`): `collection.records` queda
 	 *  con lo YA descargado, pero el llamador (`ExportDialog.svelte`) lo descarta sin usarlo — la

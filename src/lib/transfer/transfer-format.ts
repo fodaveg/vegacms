@@ -22,7 +22,7 @@ export interface TransferCollection {
  *  `backendUrl` es mejor-esfuerzo (ver `export-collection.ts`, no hay una fuente única y fiable
  *  del backend conectado en `VegaAppContext`) — un dato de contexto para quien abra el fichero a
  *  mano, no una promesa de que apunta exactamente al backend que sirvió cada registro. */
-export interface TransferOrigin {
+interface TransferOrigin {
 	backendUrl: string;
 	vegaVersion: string;
 }

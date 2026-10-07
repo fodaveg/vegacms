@@ -49,7 +49,7 @@ import {
 	type TransferRecord
 } from './record-serializer';
 
-export interface DeserializeRecordResult {
+interface DeserializeRecordResult {
 	values: RecordInput;
 	/** Nombres de campo `file` cuyo binario no se pudo traer de origen (ver cabecera). */
 	missingFiles: string[];

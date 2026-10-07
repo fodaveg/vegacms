@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"net/http"
 	"net/url"
 	"slices"
@@ -419,16 +420,31 @@ func (x *Extension) tokenHandler(event *core.RequestEvent) error {
 		return event.NotFoundError("", nil)
 	}
 	if body.Draft != nil {
+		if strings.TrimSpace(body.Draft.Record.ID) != body.ID ||
+			body.Draft.Record.Fields == nil {
+			return event.BadRequestError("draft.record must describe the requested record.", nil)
+		}
 		// A draft is content the editor proposes for this record, sealed into a token the site
 		// will render as if it were the record. Being able to READ the record is not enough for
-		// that: it takes the same right as saving the change, the collection's UpdateRule,
-		// evaluated the same way as the ViewRule above (nil = superusers only, which
-		// AuthCollections never admits; "" = any authenticated editor; otherwise a filter over the
-		// record and the session). This is 403, not 404: the caller has just been proven able to
-		// view the record, so there is nothing left to hide about its existence.
+		// that: the UpdateRule must admit the saved record with these proposed field values in
+		// @request.body, including :changed comparisons. Keep the cached HTTP request info intact
+		// for the ViewRule and middleware; the clone retains the editor and request metadata.
+		// This is 403, not 404: the caller has just been proven able to view the record.
+		updateInfo := requestInfo.Clone()
+		updateInfo.Body = maps.Clone(body.Draft.Record.Fields)
+		// Vega uses domain values (for example ISO dates with T). Prepare recognized fields with
+		// PocketBase itself so an unchanged value compares like a CRUD request. Only exact field
+		// names are prepared: this does not interpret update modifiers, validate, save or run hooks.
+		proposedRecord := record.Fresh()
+		for name, value := range body.Draft.Record.Fields {
+			if record.Collection().Fields.GetByName(name) != nil {
+				proposedRecord.Set(name, value)
+				updateInfo.Body[name] = proposedRecord.Get(name)
+			}
+		}
 		canUpdate, updateErr := event.App.CanAccessRecord(
 			record,
-			requestInfo,
+			updateInfo,
 			record.Collection().UpdateRule,
 		)
 		if updateErr != nil {
@@ -445,10 +461,6 @@ func (x *Extension) tokenHandler(event *core.RequestEvent) error {
 	expires := x.config.Clock().UTC().Add(x.config.TokenTTL).Truncate(time.Second)
 	event.Response.Header().Set("Cache-Control", "no-store")
 	if body.Draft != nil {
-		if strings.TrimSpace(body.Draft.Record.ID) != body.ID ||
-			body.Draft.Record.Fields == nil {
-			return event.BadRequestError("draft.record must describe the requested record.", nil)
-		}
 		for _, block := range body.Draft.Blocks {
 			if strings.TrimSpace(block.ID) == "" || block.Fields == nil {
 				return event.BadRequestError("draft.blocks must contain records with id and fields.", nil)

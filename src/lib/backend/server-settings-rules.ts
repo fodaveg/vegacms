@@ -7,7 +7,6 @@
 
 import type {
 	SecretChange,
-	ServerBackups,
 	ServerS3,
 	ServerSettings,
 	ServerSettingsDraft,
@@ -55,11 +54,6 @@ export function cronFor(frequency: BackupFrequency, custom: string): string {
 /** `true` si `n` es un entero que PocketBase acepta como `cronMaxKeep` (1 o más). */
 export function isValidMaxKeep(n: number): boolean {
 	return Number.isInteger(n) && n >= 1;
-}
-
-/** `true` si el destino S3 de las copias está activado. */
-export function usesExternalStore(backups: ServerBackups): boolean {
-	return backups.s3.enabled;
 }
 
 /** El secreto que viaja: solo un valor nuevo no vacío o el `""` explícito de «quitar». */

@@ -18,7 +18,7 @@ import type { MergedRow } from './merged-merge';
 import type { BackendPort } from '$lib/backend/port';
 
 /** Una escritura pendiente de orden: en qué colección, qué registro, qué campo y qué valor. */
-export interface MergedReorderWrite {
+interface MergedReorderWrite {
 	collection: string;
 	id: string;
 	field: string;

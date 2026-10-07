@@ -28,7 +28,7 @@ type Translate = (key: string, params?: Record<string, string | number>) => stri
  * `unconfirmed` es `true` cuando el servidor no se ha podido comprobar (`'unknown'`): se puede
  * programar, pero se avisa (2.3).
  */
-export type ScheduleControl =
+type ScheduleControl =
 	| { kind: 'none' }
 	| { kind: 'draft'; unconfirmed: boolean }
 	| { kind: 'scheduled'; at: number; unconfirmed: boolean }

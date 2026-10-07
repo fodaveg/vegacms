@@ -19,12 +19,12 @@
 
 /** Aviso de P7 (D-P7.6): P3 lo muestra junto al resto de avisos de tema (topbar/ajustes), NUNCA
  * en el indicador de warnings del manifiesto (ese es el `WarningCode` cerrado de P2). */
-export interface ThemeNotice {
+interface ThemeNotice {
 	readonly code: 'default-theme-unknown';
 	readonly message: string;
 }
 
-export interface ResolveDefaultThemeInput {
+interface ResolveDefaultThemeInput {
 	/** Elección persistida del dispositivo (`localStorage`), o `null` si aún no eligió nada. */
 	readonly stored: string | null;
 	/** `ContentModel.site.defaultTheme` de P2 — string OPACO, P7 es quien lo valida (§0). */
@@ -37,7 +37,7 @@ export interface ResolveDefaultThemeInput {
 	readonly fallback: string;
 }
 
-export interface ResolveDefaultThemeResult {
+interface ResolveDefaultThemeResult {
 	readonly themeId: string;
 	readonly notice: ThemeNotice | null;
 }

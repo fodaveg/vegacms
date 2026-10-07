@@ -253,11 +253,21 @@ writing them down here rather than leaving them to each implementation:
 
 Authorisation gets stricter, never looser: the saved record's `ViewRule` is still evaluated
 with the editor's own identity before any token is issued, and a request that carries
-`draft` must also satisfy the collection's `UpdateRule`. A draft is content proposed for
-the record and rendered as if it were the record, so the right to read it is not enough.
-The reference extension answers `403` (and issues no token) to an editor who may view the
-record but not update it; the same request without `draft` keeps returning the `v1` URL.
-Previewing a draft therefore never grants access the editor did not already have.
+`draft` must also satisfy the collection's `UpdateRule`, evaluated against the saved record
+with `draft.record.fields` as `@request.body`. These are final field values, not PocketBase
+update modifiers: value restrictions and `:changed` comparisons must inspect those proposed
+values. For authorization, the reference extension prepares values for exact, recognized
+field names using PocketBase's field types on an in-memory record copy; this lets unchanged
+ISO dates compare like their stored PocketBase timestamps. Omitted fields stay omitted and
+other keys retain their original values. The `ViewRule` retains the original preview request
+context; the update check must not mutate that context, the saved record, or the draft
+encrypted into the token. A draft is content proposed for the record and
+rendered as if it were the record, so the right to read it is not enough. The reference
+extension answers `403` (and issues no token) when the editor's proposed fields fail the
+update rule; the same request without `draft` keeps returning the `v1` URL. Previewing a draft
+therefore never grants access the editor did not already have. This authorization check does
+not run save validation or hooks, normalize update modifiers, or independently authorize
+draft blocks.
 
 #### Two limits the reference extension enforces on both paths
 

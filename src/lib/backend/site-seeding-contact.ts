@@ -42,7 +42,7 @@ import type { JsonValue } from './types';
 export const CONTACT_CREATE_RULE = '@request.body.website = "" && @request.body.read != true';
 
 /** Tope del texto del mensaje. Se rechaza en el servidor con un 400 que sí nombra el campo. */
-export const CONTACT_MESSAGE_MAX_LENGTH = 5000;
+const CONTACT_MESSAGE_MAX_LENGTH = 5000;
 
 /**
  * Campo de control del aviso por correo. Texto y no `select` a propósito: el sembrado compara las
@@ -53,7 +53,7 @@ export const CONTACT_MESSAGE_MAX_LENGTH = 5000;
  * creación lo ve como `""`), así que la regla pública no necesita nombrarlo. Su valor lo fija el
  * hook: vacío = no se avisa de este mensaje; ver la cabecera del hook para los estados.
  */
-export const CONTACT_NOTIFY_STATE_FIELD = 'notifyState';
+const CONTACT_NOTIFY_STATE_FIELD = 'notifyState';
 
 const MESSAGES_COLLECTION: CollectionSpec = {
 	name: 'messages',

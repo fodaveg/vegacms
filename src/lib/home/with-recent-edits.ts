@@ -17,11 +17,7 @@ import type { BackendPort } from '$lib/backend/port';
 import type { VegaRecord } from '$lib/backend/types';
 
 /** Aviso de un guardado terminado: `userId` es la cuenta de la sesión activa (o `null`). */
-export type SavedRecordListener = (
-	userId: string | null,
-	collection: string,
-	saved: VegaRecord
-) => void;
+type SavedRecordListener = (userId: string | null, collection: string, saved: VegaRecord) => void;
 
 export function withRecentEdits(port: BackendPort, onSaved: SavedRecordListener): BackendPort {
 	function notify(collection: string, saved: VegaRecord): void {

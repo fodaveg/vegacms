@@ -291,6 +291,11 @@
 		mediaPicker: { open: mediaPickerState.open }
 	});
 
+	// `$effect` solo corre en cliente y sigue el idioma efectivo también tras recargar el modelo.
+	$effect(() => {
+		document.documentElement.lang = locale;
+	});
+
 	onMount(() => {
 		applyInitialTheme();
 		void sessionStore.restore();

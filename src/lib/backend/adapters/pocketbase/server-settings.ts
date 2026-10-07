@@ -99,7 +99,7 @@ function toS3(raw: unknown): ServerS3 {
 }
 
 /** Lee la respuesta cruda de `/api/settings` a los tipos del puerto (sin ningún secreto). */
-export function toServerSettings(raw: unknown): ServerSettings {
+function toServerSettings(raw: unknown): ServerSettings {
 	const body = record(raw);
 	const smtp = record(body.smtp);
 	const backups = record(body.backups);
@@ -131,7 +131,7 @@ export function toServerSettings(raw: unknown): ServerSettings {
 }
 
 /** Aplana `data.<bloque>.<campo>` anidado a `{ 'bloque.campo': FieldError }`. */
-export function flattenFieldErrors(
+function flattenFieldErrors(
 	data: unknown,
 	prefix = '',
 	out: Record<string, FieldError> = {}

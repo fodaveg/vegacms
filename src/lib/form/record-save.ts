@@ -60,6 +60,6 @@ export function classifyRecordSaveError(
 }
 
 /** Une solo las notas presentes para el aviso de guardado. */
-export function joinSaveNotes(parts: (string | null | undefined)[]): string | undefined {
+function joinSaveNotes(parts: (string | null | undefined)[]): string | undefined {
 	return parts.filter((part) => !!part).join(' ') || undefined;
 }

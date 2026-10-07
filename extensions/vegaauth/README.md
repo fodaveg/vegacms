@@ -206,6 +206,14 @@ proofs and challenges.
   successful login clears the counter; a correct password that still needs its second factor
   hands its reservation back without clearing earlier failures. If the counter cannot be stored
   the request is refused with `503 attempt_failed` instead of being evaluated uncounted.
+- TOTP and recovery also share a persistent **account-wide** budget of five evaluated codes,
+  regardless of IP, pending challenge or email changes. Both this budget and the identity/IP
+  budget are reserved in one transaction; a refusal spends neither. Only a successful second
+  factor clears the account budget: a correct password or a new challenge does not. It follows
+  the same temporary, escalating locks below, and refused requests do not prolong a lock.
+  Someone who already knows the password can therefore temporarily block the owner's TOTP and
+  recovery login; passkey login keeps its existing independent policy. Once the lock expires,
+  another code can be evaluated, and a successful TOTP or recovery login clears the lock.
 - Passkey login requires **user verification** (PIN or biometrics): the options sent to the
   browser carry `userVerification: "required"` and an assertion without the UV flag is rejected.
   Registration already required it, so every stored passkey can satisfy it.

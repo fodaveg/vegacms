@@ -21,7 +21,7 @@ import { localeForField, physicalFieldFor } from './form-sections';
 import type { FormMode } from './form-model';
 
 /** Escritura que debe hacer el formulario: `value` en el campo físico `field`. */
-export interface SlugWrite {
+interface SlugWrite {
 	field: string;
 	value: string;
 }

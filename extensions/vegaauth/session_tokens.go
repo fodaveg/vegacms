@@ -37,11 +37,22 @@ func (x *Extension) distinctAuthToken(record *core.Record, token string) (string
 	return security.NewJWT(claims, key, 0)
 }
 
+// authTokenFromHeader matches PocketBase's getAuthTokenFromRequest: the optional
+// Bearer scheme is case-insensitive and followed by exactly one ASCII space.
+// Use the same extraction for signature validation and proof keys so changing the
+// header representation cannot create a different proof identity.
+func authTokenFromHeader(header string) string {
+	if len(header) > 7 && strings.EqualFold(header[:7], "Bearer ") {
+		return header[7:]
+	}
+	return header
+}
+
 // proofSessionEligible verifies signed claims, not a client-provided identifier. Matching PB's
 // refreshable coercion also prevents a noncanonical signed "true" from posing as a static token.
 // Static tokens are a deliberate PB capability, not new login sessions, and keep their contract.
 func proofSessionEligible(record *core.Record, token string) (bool, error) {
-	token = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(token), "Bearer "))
+	token = authTokenFromHeader(token)
 	claims, err := security.ParseJWT(token, record.TokenKey()+record.Collection().AuthToken.Secret)
 	if err != nil {
 		return false, err

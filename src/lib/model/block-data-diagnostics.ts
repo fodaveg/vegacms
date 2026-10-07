@@ -15,7 +15,7 @@ type DeclaredBlockDataKeyDiagnostic = {
 	field: ResolvedBlockField;
 };
 
-export type BlockDataKeyDiagnostic =
+type BlockDataKeyDiagnostic =
 	| (DeclaredBlockDataKeyDiagnostic & { status: 'claimed' })
 	| (DeclaredBlockDataKeyDiagnostic & { status: 'shadowed' })
 	| {

@@ -3,8 +3,8 @@
  * Datetime y Richtext, y `min`/`max` del campo `date` en Datetime. Antes lo ignoraban (solo
  * `Text`/`Textarea`/`Number`/`Email`/`Url`/`Markdown` lo leían).
  */
-import { mount, unmount, tick, type Component } from 'svelte';
-import type { WidgetComponent } from './types';
+import { flushSync, mount, unmount, tick, type Component } from 'svelte';
+import type { WidgetComponent, WidgetProps } from './types';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import Select from './Select.svelte';
 import Chips from './Chips.svelte';
@@ -13,7 +13,9 @@ import Richtext from './Richtext.svelte';
 import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import type { FieldInputValue } from '$lib/backend/types';
 import type { ResolvedField } from '$lib/model/types';
-import { isoUtcToLocalInput } from './datetime';
+import { isoUtcToLocalInput, localInputToIsoUtc } from './datetime';
+import { ensureLocaleLoaded, t, type Locale } from '$lib/i18n';
+import { fieldIds } from '../field-ids';
 
 function field(schema: Record<string, unknown>, placeholder: string | null): ResolvedField {
 	return {
@@ -38,17 +40,30 @@ function field(schema: Record<string, unknown>, placeholder: string | null): Res
 	} as unknown as ResolvedField;
 }
 
-const ctx = { t: (key: string) => key } as unknown as VegaAppContext;
+const ctx = { t: (key: string) => key, locale: 'es' } as unknown as VegaAppContext;
 
 let mounted: { target: HTMLElement; instance: ReturnType<typeof mount> } | null = null;
 
-function mountWidget(widget: WidgetComponent, f: ResolvedField, value: FieldInputValue) {
+function mountWidget(
+	widget: WidgetComponent,
+	f: ResolvedField,
+	value: FieldInputValue,
+	opts?: { props?: Partial<WidgetProps>; ctx?: VegaAppContext }
+) {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const instance = mount(widget as unknown as Component<Record<string, unknown>>, {
 		target,
-		props: { field: f, value, error: null, disabled: false, readonly: false, onChange: vi.fn() },
-		context: new Map([[VEGA_CONTEXT_KEY, ctx]])
+		props: {
+			field: f,
+			value,
+			error: null,
+			disabled: false,
+			readonly: false,
+			onChange: vi.fn(),
+			...opts?.props
+		},
+		context: new Map([[VEGA_CONTEXT_KEY, opts?.ctx ?? ctx]])
 	});
 	mounted = { target, instance };
 	return target;
@@ -122,6 +137,98 @@ describe('Datetime — placeholder, min y max', () => {
 		expect(input.hasAttribute('max')).toBe(false);
 		expect(input.hasAttribute('placeholder')).toBe(false);
 	});
+
+	test('idioma efectivo, mes escrito y ayuda enlazada se actualizan sin cambiar el valor UTC', async () => {
+		await ensureLocaleLoaded('en');
+		const state = $state({ locale: 'es' as Locale });
+		const localizedCtx = {
+			get locale() {
+				return state.locale;
+			},
+			t: (key: string, params?: Record<string, string | number>) => t(state.locale, key, params)
+		} as unknown as VegaAppContext;
+		const value = '2026-07-15T13:30:00.000Z';
+		const onChange = vi.fn();
+		const f = { ...field({ type: 'date' }, null), help: 'Ayuda del manifiesto' };
+		const target = mountWidget(Datetime, f, value, {
+			ctx: localizedCtx,
+			props: { onChange, error: { code: 'invalid-date', message: 'Fecha inválida', known: false } }
+		});
+		const input = target.querySelector<HTMLInputElement>('input')!;
+		const help = target.querySelector<HTMLElement>('.vega-datetime-help')!;
+		const ids = fieldIds(f.name);
+		expect(input.type).toBe('datetime-local');
+		expect(input.lang).toBe('es');
+		expect(input.value).toBe(isoUtcToLocalInput(value));
+		expect(input.getAttribute('aria-describedby')?.split(' ')).toEqual([
+			ids.helpId,
+			ids.errorId,
+			help.id
+		]);
+		expect(input.getAttribute('aria-invalid')).toBe('true');
+		expect(help.textContent).toContain('Fecha y hora locales de este dispositivo');
+		expect(help.textContent).toContain('julio');
+		expect(help.textContent).not.toContain('form.datetime.');
+
+		state.locale = 'en';
+		flushSync();
+		expect(input.lang).toBe('en');
+		expect(help.textContent).toContain('July');
+		expect(help.textContent).toContain('Selected date:');
+		expect(input.value).toBe(isoUtcToLocalInput(value));
+		expect(onChange).not.toHaveBeenCalled();
+	});
+
+	test('vacío o inválido conserva ayuda sin inventar una fecha legible', async () => {
+		for (const value of [null, 'invalid-date']) {
+			const target = mountWidget(Datetime, field({ type: 'date' }, null), value);
+			expect(target.querySelector<HTMLInputElement>('input')?.value).toBe('');
+			expect(target.querySelector('.vega-datetime-help')).not.toBeNull();
+			expect(target.querySelector('.vega-datetime-value')).toBeNull();
+			await unmount(mounted!.instance);
+			mounted!.target.remove();
+			mounted = null;
+		}
+	});
+
+	test('editar y vaciar usan la conversión existente, sin emitir al montar', () => {
+		const onChange = vi.fn();
+		const target = mountWidget(
+			Datetime,
+			field({ type: 'date' }, null),
+			'2026-07-15T13:30:00.000Z',
+			{
+				props: { onChange }
+			}
+		);
+		const input = target.querySelector<HTMLInputElement>('input')!;
+		expect(onChange).not.toHaveBeenCalled();
+		input.value = '2026-07-15T16:45';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		expect(onChange).toHaveBeenLastCalledWith(localInputToIsoUtc('2026-07-15T16:45'));
+		input.value = '';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		expect(onChange).toHaveBeenLastCalledWith(null);
+	});
+
+	test.each(['readonly', 'disabled'] as const)(
+		'%s: la fecha sigue legible y no emite cambios',
+		(state) => {
+			const onChange = vi.fn();
+			const target = mountWidget(
+				Datetime,
+				field({ type: 'date' }, null),
+				'2026-07-15T13:30:00.000Z',
+				{
+					props: { [state]: true, onChange }
+				}
+			);
+			const input = target.querySelector<HTMLInputElement>('input')!;
+			expect(input.disabled).toBe(true);
+			expect(target.querySelector('.vega-datetime-value')).not.toBeNull();
+			expect(onChange).not.toHaveBeenCalled();
+		}
+	);
 
 	test('un valor existente anterior al mínimo no bloquea el submit nativo', () => {
 		const target = mountWidget(

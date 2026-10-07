@@ -42,7 +42,7 @@ export interface ResolvedImportCollection {
 	contentType: ResolvedContentType;
 }
 
-export type ImportValidation =
+type ImportValidation =
 	| { ok: true; collections: ResolvedImportCollection[] }
 	| { ok: false; errors: ImportValidationError[] };
 

@@ -326,7 +326,7 @@
 	import type { ReviewFinding } from '$lib/publish-review/publish-review';
 	import { createReviewState } from '$lib/publish-review/review-state.svelte';
 	import ReviewCard from '$lib/publish-review/ReviewCard.svelte';
-	import ReviewMediaDialog from '$lib/publish-review/ReviewMediaDialog.svelte';
+	import ReviewMediaLoader from '$lib/publish-review/ReviewMediaLoader.svelte';
 	import {
 		DEFAULT_REDIRECT_CHOICE,
 		hasRedirectConflict,
@@ -2061,7 +2061,7 @@
 <!-- «Describir la imagen…» de la revisión (lote 13): la ficha de Medios de siempre, encima del
      formulario y fuera del `<form>` como los demás diálogos. Guardar sustituye la ficha en la
      revisión (el aviso desaparece); borrar relee, porque el bloque ya apunta a nada. -->
-<ReviewMediaDialog
+<ReviewMediaLoader
 	mediaId={reviewMediaId}
 	onClose={() => (reviewMediaId = null)}
 	onSaved={(item) => review.updateMedia(item)}

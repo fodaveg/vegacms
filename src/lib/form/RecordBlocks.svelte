@@ -603,6 +603,7 @@
 	}
 
 	.vega-block-row {
+		container-type: inline-size;
 		border: 1px solid var(--line);
 		border-radius: var(--r);
 		background: var(--surface);
@@ -756,6 +757,68 @@
 
 	.vega-block-delete:hover {
 		background: var(--danger-soft);
+	}
+
+	/* El ancho útil depende de la tarjeta, no de la ventana: el rail del editor también lo
+	   reduce. En una fila estrecha las acciones tienen su propia línea y el botón de desplegar
+	   dispone de todo el ancho; tipo y título no compiten por un hueco que puede llegar a cero.
+	   El DOM y el orden de tabulación siguen siendo los mismos que en escritorio. */
+	@container (max-width: 32rem) {
+		.vega-block-header {
+			display: grid;
+			grid-template-columns: auto minmax(0, 1fr) auto;
+		}
+
+		.vega-block-duplicate {
+			justify-self: start;
+		}
+
+		.vega-block-delete {
+			grid-column: 3;
+			grid-row: 1;
+		}
+
+		.vega-block-toggle {
+			grid-column: 1 / -1;
+			grid-row: 2;
+			display: grid;
+			grid-template-columns: auto minmax(0, 1fr) auto;
+			row-gap: 0.35rem;
+		}
+
+		.vega-block-chevron,
+		.vega-block-dirty {
+			grid-row: 1 / span 2;
+		}
+
+		.vega-block-dirty {
+			grid-column: 3;
+		}
+
+		.vega-block-type {
+			grid-column: 2;
+			grid-row: 1;
+			justify-self: start;
+			max-width: 100%;
+			min-width: 0;
+			box-sizing: border-box;
+			overflow-wrap: anywhere;
+		}
+
+		.vega-block-type :global(svg) {
+			flex-shrink: 0;
+		}
+
+		.vega-block-title {
+			grid-column: 2;
+			grid-row: 2;
+			white-space: normal;
+			overflow-wrap: anywhere;
+		}
+
+		.vega-block-toggle:not(:has(.vega-block-type)) .vega-block-title {
+			grid-row: 1;
+		}
 	}
 
 	@media (pointer: coarse) {

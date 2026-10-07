@@ -123,7 +123,6 @@ export const es = {
 	'session.reloginBody': 'Vuelve a entrar para seguir donde lo dejaste. No se pierde nada.',
 	'session.reloginSubmit': 'Reautenticar',
 	'session.reloginBackToPassword': 'Volver a la contraseña',
-	'session.logoutConfirm': 'Hay cambios sin guardar. ¿Cerrar sesión igualmente?',
 	// `ReloginModal.svelte`: quien reentró no es quien tenía la sesión que caducó.
 	'session.reloginOtherAccount':
 		'Has entrado con otra cuenta. Hay que recargar Vega para no mezclar su trabajo con el de la sesión anterior; lo que estuviera sin guardar se pierde.',
@@ -255,7 +254,6 @@ export const es = {
 	'errors.banner.detailHide': 'Ocultar detalle',
 	'errors.backend.title': 'El servidor ha respondido algo inesperado',
 	'errors.forbidden.title': 'No tienes permiso',
-	'errors.forbidden.body': 'Tu sesión no tiene acceso a este recurso.',
 	'errors.forbidden.readonlyType.body':
 		'«{label}» es de solo lectura: no se puede crear contenido nuevo aquí.',
 	// `#lote-shell`: vedado por una REGLA de acceso del backend, no por la naturaleza de la
@@ -351,7 +349,6 @@ export const es = {
 	// (`ctx.port`, ver su cabecera). `unavailable.*` son las TRES puertas propias de la ruta
 	// (`visual-gate.ts`); `error.*` son los CINCO desenlaces de `bridge-client.ts` tras el saludo.
 	'editor.visual.open': 'Editor visual',
-	'editor.visual.title': 'Editor visual',
 	'editor.visual.back': 'Volver al formulario',
 	// Estado de la página en la cabecera del editor visual (`VisualPublishControl.svelte`, lámina
 	// del audit p2). Rotulado DISTINTO del «Publicar» de la barra superior (`topbar.publish.*`, que
@@ -702,7 +699,13 @@ export const es = {
 	'form.relation.media.type.video': 'Vídeo',
 	'form.relation.media.type.document': 'Archivo',
 
+	// ————— Widget datetime (hora local del dispositivo) —————
+	'form.datetime.help':
+		'Fecha y hora locales de este dispositivo. El formato del control depende del navegador.',
+	'form.datetime.localValue': 'Fecha seleccionada: {value}',
+
 	// ————— Widget file (Fase F5-f del contrato P5) —————
+
 	'form.file.dropHint': 'Arrastra archivos aquí o haz clic para elegir',
 	'form.file.empty': 'Sin archivos',
 	'form.file.remove': 'Quitar',

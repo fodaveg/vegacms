@@ -316,7 +316,7 @@
 	import { recordRoute } from '$lib/nav/routes';
 	import type { ReviewFinding } from '$lib/publish-review/publish-review';
 	import { createReviewState } from '$lib/publish-review/review-state.svelte';
-	import ReviewMediaDialog from '$lib/publish-review/ReviewMediaDialog.svelte';
+	import ReviewMediaLoader from '$lib/publish-review/ReviewMediaLoader.svelte';
 	import { visualKeyboardAction } from './visual-keyboard';
 	import { describeCell } from '$lib/list/cell';
 	import { resolveTitleCellText } from '$lib/list/list-load';
@@ -1322,7 +1322,7 @@
 	     editor visual. Guardar sustituye la ficha en la revisión; borrar relee. Al cerrar, el foco
 	     vuelve al botón de estado a mano (`closeReviewMedia`); `fallbackFocusEl` solo lo usan las
 	     confirmaciones de borrar y reemplazar de la ficha, y aquí no hay un nodo estable que darles. -->
-	<ReviewMediaDialog
+	<ReviewMediaLoader
 		mediaId={reviewMediaId}
 		onClose={() => void closeReviewMedia()}
 		onSaved={(item) => review.updateMedia(item)}

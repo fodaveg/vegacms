@@ -113,7 +113,6 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'session.reloginBody': 'Sign in again to pick up where you left off. Nothing is lost.',
 	'session.reloginSubmit': 'Re-authenticate',
 	'session.reloginBackToPassword': 'Back to password',
-	'session.logoutConfirm': 'There are unsaved changes. Log out anyway?',
 	// `ReloginModal.svelte`: whoever signed back in is not who held the session that expired.
 	'session.reloginOtherAccount':
 		'You signed in with a different account. Vega needs to reload so its work is not mixed with the previous session; anything left unsaved is lost.',
@@ -242,7 +241,6 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'errors.banner.detailHide': 'Hide details',
 	'errors.backend.title': 'The server returned something unexpected',
 	'errors.forbidden.title': "You don't have permission",
-	'errors.forbidden.body': "Your session can't access this resource.",
 	'errors.forbidden.readonlyType.body':
 		'"{label}" is read-only: no new content can be created here.',
 	'errors.forbidden.noCreate.body': 'You do not have permission to create content in "{label}".',
@@ -328,7 +326,6 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 
 	// ————— Visual editor screen (see `es.ts` for the full rationale) —————
 	'editor.visual.open': 'Visual editor',
-	'editor.visual.title': 'Visual editor',
 	'editor.visual.back': 'Back to the form',
 	// Page status in the visual editor header (`VisualPublishControl.svelte`, audit sheet p2).
 	// Worded DIFFERENTLY from the top bar's «Publish» (`topbar.publish.*`, which rebuilds the site):
@@ -647,7 +644,13 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'form.relation.media.type.video': 'Video',
 	'form.relation.media.type.document': 'File',
 
+	// ————— Datetime widget (device local time) —————
+	'form.datetime.help':
+		'Date and time in this device’s local time. The control’s format depends on the browser.',
+	'form.datetime.localValue': 'Selected date: {value}',
+
 	// ————— File widget (P5 contract, Phase F5-f) —————
+
 	'form.file.dropHint': 'Drag files here or click to choose',
 	'form.file.empty': 'No files',
 	'form.file.remove': 'Remove',

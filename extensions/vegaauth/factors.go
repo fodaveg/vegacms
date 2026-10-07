@@ -388,12 +388,12 @@ func (x *Extension) loginRecovery(e *core.RequestEvent) error {
 	if !ok {
 		return e.JSON(http.StatusUnauthorized, map[string]string{"error": "pending_expired"})
 	}
-	if refused, response := x.attemptRefused(e, pending.identity, ip); refused {
+	if refused, response := x.secondFactorAttemptRefused(e, pending, ip); refused {
 		return response
 	}
 	verified, err := x.verifyRecoveryCode(e.App, pending.userID, body.Code)
 	if err != nil {
-		x.releaseLoginAttempt(e.App, pending.identity, ip)
+		x.releaseSecondFactorAttempt(e.App, pending, ip)
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "verify_failed"})
 	}
 	if !verified {
@@ -401,10 +401,10 @@ func (x *Extension) loginRecovery(e *core.RequestEvent) error {
 	}
 	record, err := e.App.FindRecordById(x.config.AuthCollection, pending.userID)
 	if err != nil {
-		x.releaseLoginAttempt(e.App, pending.identity, ip)
+		x.releaseSecondFactorAttempt(e.App, pending, ip)
 		return e.JSON(http.StatusUnauthorized, map[string]string{"error": "unknown_user"})
 	}
-	x.resetLoginAttempts(e.App, pending.identity, ip)
+	x.resetSecondFactorAttempts(e.App, pending, ip)
 	x.deletePending(body.Pending)
 	// A recovery code stands in for the lost authenticator, so it must also let its owner
 	// replace that authenticator right after logging in.

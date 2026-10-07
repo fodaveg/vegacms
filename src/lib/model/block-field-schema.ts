@@ -80,7 +80,7 @@ export function blockDataFieldSchema(field: BlockFieldShape): Field | null {
 	}
 }
 
-export type ResolvedBlockFieldDefault =
+type ResolvedBlockFieldDefault =
 	{ status: 'value'; value: JsonValue } | { status: 'absent' } | { status: 'invalid' };
 
 /**

@@ -518,18 +518,21 @@ describe('FileInput.svelte — texto alternativo y copia en Medios (lote 12, lá
 		expect(create).not.toHaveBeenCalled();
 	});
 
-	test('un fichero que no es imagen se copia sin pedir texto ni línea de estado', async () => {
+	test('un fichero que no es imagen conserva su fila compacta y muestra la copia sin pedir texto', async () => {
 		const anyFile: ResolvedField = {
 			...fileField,
 			name: 'attachment',
 			schema: { ...fileField.schema, name: 'attachment', mimeTypes: undefined } as never
 		};
-		const { target, registry, create } = mountWithLibrary({ field: anyFile });
+		const { target, props, registry, create } = mountWithLibrary({ field: anyFile });
 		const pdf = new File(['%PDF-1.4'], 'calendario.pdf', { type: 'application/pdf' });
 		await chooseFiles(target, [pdf]);
 
 		expect(target.querySelector('.vega-file-item--alt')).toBeNull();
-		expect(target.querySelector('.vega-file-library-state')).toBeNull();
+		expect(target.querySelector('.vega-file-alt-input')).toBeNull();
+		expect(target.querySelector('.vega-file-library-state')?.textContent).toContain(
+			'form.file.libraryPending'
+		);
 
 		const notes = await registry.run({
 			id: 'post_1',
@@ -538,6 +541,77 @@ describe('FileInput.svelte — texto alternativo y copia en Medios (lote 12, lá
 		});
 		expect(create).toHaveBeenCalledWith('vega_media', { file: pdf });
 		expect(notes).toEqual(['form.file.copiedOneFile']);
+		props.value = 'abc_calendario.pdf';
+		flushSync();
+		expect(target.querySelector('.vega-file-item--alt')).toBeNull();
+		expect(target.querySelector('.vega-file-alt-input')).toBeNull();
+		expect(target.querySelector('.vega-file-library-state')?.textContent).toContain(
+			'form.file.copiedOneFile'
+		);
+		expect(target.textContent).not.toContain('form.file.libraryDoneNoAlt');
+	});
+
+	test('PDF: un fallo síncrono se ve tras reasentar la FileRef y los reintentos conservan el fichero original', async () => {
+		const anyFile: ResolvedField = {
+			...fileField,
+			name: 'attachment',
+			schema: { ...fileField.schema, name: 'attachment', mimeTypes: undefined } as never
+		};
+		const create = vi
+			.fn<CreateFn>()
+			.mockImplementationOnce(() => {
+				throw VegaError.backend('falló la copia PDF');
+			})
+			.mockRejectedValueOnce(VegaError.network(undefined, 'sin conexión'))
+			.mockResolvedValue({ id: 'm_pdf', type: 'vega_media', values: {} });
+		const { target, props, registry, toast } = mountWithLibrary({ field: anyFile, create });
+		const pdf = new File(['%PDF-1.4'], 'calendario.pdf', { type: 'application/pdf' });
+		await chooseFiles(target, [pdf]);
+
+		expect(
+			await registry.run({
+				id: 'post_1',
+				type: 'posts',
+				values: { attachment: 'abc_calendario.pdf' }
+			})
+		).toEqual([]);
+		props.value = 'abc_calendario.pdf';
+		flushSync();
+
+		const state = () => target.querySelector('.vega-file-library-state');
+		expect(state()?.getAttribute('data-state')).toBe('error');
+		expect(state()?.getAttribute('role')).toBe('alert');
+		expect(state()?.textContent).toContain('form.file.libraryError');
+		expect(target.querySelector('.vega-file-item--alt')).toBeNull();
+		expect(target.querySelector('.vega-file-alt-input')).toBeNull();
+		expect(toast).not.toHaveBeenCalled();
+
+		props.disabled = true;
+		flushSync();
+		const blocked = state()?.querySelector<HTMLButtonElement>('button');
+		expect(blocked?.disabled).toBe(true);
+		blocked?.click();
+		expect(create).toHaveBeenCalledTimes(1);
+		props.disabled = false;
+		flushSync();
+
+		state()?.querySelector<HTMLButtonElement>('button')?.click();
+		await vi.waitFor(() => {
+			flushSync();
+			expect(create).toHaveBeenCalledTimes(2);
+			expect(state()?.getAttribute('data-state')).toBe('error');
+		});
+		state()?.querySelector<HTMLButtonElement>('button')?.click();
+		await vi.waitFor(() => {
+			flushSync();
+			expect(state()?.getAttribute('data-state')).toBe('done');
+		});
+
+		expect(create).toHaveBeenCalledTimes(3);
+		for (const call of create.mock.calls) expect(call).toEqual(['vega_media', { file: pdf }]);
+		expect(props.value).toBe('abc_calendario.pdf');
+		expect(target.querySelector('.vega-file-item--alt')).toBeNull();
+		expect(target.textContent).not.toContain('form.file.libraryDoneNoAlt');
 	});
 
 	test('elegida de la biblioteca: ya está en Medios, ni se pregunta ni se vuelve a copiar', async () => {

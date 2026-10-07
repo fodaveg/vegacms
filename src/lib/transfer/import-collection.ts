@@ -38,12 +38,12 @@ import {
  *  para que los tests fabriquen un doble mínimo sin construir ningún adaptador real. */
 export type ImportPort = Pick<BackendPort, 'list' | 'create' | 'update'>;
 
-export type FetchTransferFileFn = (file: TransferFileValue) => Promise<File | null>;
+type FetchTransferFileFn = (file: TransferFileValue) => Promise<File | null>;
 
 /** `FetchTransferFileFn` con caché (`createCachingFileFetcher`): además de traer, sabe SOLTAR el
  *  fichero de una `url` ya escrita. Un fetcher sin `release` (un doble de test, el de red a pelo)
  *  es válido — `runImport` lo llama con `?.`. */
-export type ReleasableFileFetcher = FetchTransferFileFn & {
+type ReleasableFileFetcher = FetchTransferFileFn & {
 	release?: (url: string) => void;
 };
 
@@ -84,7 +84,7 @@ export function createCachingFileFetcher(
 	return cached;
 }
 
-export interface ImportCollectionPreview {
+interface ImportCollectionPreview {
 	type: string;
 	contentType: ResolvedContentType;
 	/** En el MISMO orden que `entries` (uno a uno) — `ImportDialog.svelte` los pinta emparejados. */
@@ -312,9 +312,9 @@ export async function buildImportPreview(
 	return { collections: result };
 }
 
-export type ImportOutcomeStatus = 'created' | 'updated' | 'failed';
+type ImportOutcomeStatus = 'created' | 'updated' | 'failed';
 
-export interface ImportOutcome {
+interface ImportOutcome {
 	type: string;
 	id: RecordId;
 	status: ImportOutcomeStatus;
@@ -342,7 +342,7 @@ export interface ImportReport {
 	success: boolean;
 }
 
-export interface RunImportOptions {
+interface RunImportOptions {
 	/** `true` si el usuario confirmó EXPLÍCITAMENTE sobrescribir los PISA (§4.2: "requiere
 	 *  confirmación aparte; jamás el default silencioso"). Con `false`, las entradas `overwrite` se
 	 *  tratan como saltadas: `ImportDialog.svelte` es quien no debe ofrecer "Importar" sin esta

@@ -27,7 +27,7 @@ import { mergeViewResults, truncatedCollections, type MergedRow } from './merged
 
 /** Estado de carga de una vista fusionada, unión discriminada por `kind` (mismo vocabulario que
  *  `ListLoadStatus` de `list-state.svelte.ts`: loading/ready/error). */
-export type MergedLoadStatus =
+type MergedLoadStatus =
 	| { kind: 'loading' }
 	| {
 			kind: 'ready';

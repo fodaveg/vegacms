@@ -634,6 +634,7 @@
 				<li
 					class="vega-file-item"
 					class:vega-file-item--alt={isExpanded}
+					class:vega-file-item--feedback={!isExpanded && copy !== undefined}
 					class:vega-file-item--warn={warns(item)}
 				>
 					{#if isImage && src}
@@ -690,36 +691,6 @@
 									<p id={altHelpId} class="vega-file-alt-help">{ctx.t('media.detail.altHelp')}</p>
 								{/if}
 							{/if}
-
-							{#if copy?.kind === 'pending'}
-								<p class="vega-file-library-state">{ctx.t('form.file.libraryPending')}</p>
-							{:else if copy?.kind === 'uploading'}
-								<p class="vega-file-library-state" data-state="uploading">
-									{ctx.t('form.file.libraryUploading')}
-								</p>
-							{:else if copy?.kind === 'done'}
-								<p class="vega-file-library-state" data-state="done">
-									<Icon id="check" size={12} />
-									{copy.alt !== ''
-										? ctx.t('form.file.libraryDone')
-										: ctx.t('form.file.libraryDoneNoAlt')}
-								</p>
-							{:else if copy?.kind === 'error'}
-								<!-- Son dos escrituras y la segunda puede fallar sola: el registro no se deshace y
-								     el aviso se queda aquí hasta reintentar o quitar la imagen. -->
-								<p class="vega-file-library-state" data-state="error" role="alert">
-									<span>{ctx.t('form.file.libraryError', { message: copy.message })} ·</span>
-									<button
-										type="button"
-										onclick={() => retryCopy(item)}
-										aria-label={ctx.t('form.file.libraryRetryLabel', {
-											name: itemDisplayName(item)
-										})}
-									>
-										{ctx.t('form.file.libraryRetry')}
-									</button>
-								</p>
-							{/if}
 						</div>
 					{:else if !inert}
 						<button
@@ -730,6 +701,39 @@
 						>
 							{ctx.t('form.file.remove')}
 						</button>
+					{/if}
+
+					{#if copy?.kind === 'pending'}
+						<p class="vega-file-library-state">{ctx.t('form.file.libraryPending')}</p>
+					{:else if copy?.kind === 'uploading'}
+						<p class="vega-file-library-state" data-state="uploading">
+							{ctx.t('form.file.libraryUploading')}
+						</p>
+					{:else if copy?.kind === 'done'}
+						<p class="vega-file-library-state" data-state="done">
+							<Icon id="check" size={12} />
+							{classifyItem(item) !== 'image'
+								? ctx.t('form.file.copiedOneFile')
+								: copy.alt !== ''
+									? ctx.t('form.file.libraryDone')
+									: ctx.t('form.file.libraryDoneNoAlt')}
+						</p>
+					{:else if copy?.kind === 'error'}
+						<!-- Son dos escrituras y la segunda puede fallar sola: el registro no se deshace y
+						     el aviso se queda aquí hasta reintentar o quitar el fichero. -->
+						<p class="vega-file-library-state" data-state="error" role="alert">
+							<span>{ctx.t('form.file.libraryError', { message: copy.message })} ·</span>
+							<button
+								type="button"
+								onclick={() => retryCopy(item)}
+								disabled={inert}
+								aria-label={ctx.t('form.file.libraryRetryLabel', {
+									name: itemDisplayName(item)
+								})}
+							>
+								{ctx.t('form.file.libraryRetry')}
+							</button>
+						</p>
 					{/if}
 				</li>
 			{/each}
@@ -888,6 +892,13 @@
 		background: var(--surface-2);
 	}
 
+	/* El feedback de copia también acompaña a los ficheros compactos, sin controles de imagen. */
+	.vega-file-item--feedback {
+		flex-wrap: wrap;
+		max-width: 100%;
+		box-sizing: border-box;
+	}
+
 	/* Imagen sin texto alternativo: traída de la biblioteca sin él (lámina del audit, pieza 3) o
 	   subida desde el campo y todavía sin describir (lámina 5). Avisa, no bloquea. */
 	.vega-file-item--warn {
@@ -980,6 +991,8 @@
 
 	/* Estado de la copia en Medios: mono como `.vega-media-upload-status`, con `--ink-2` (AA). */
 	.vega-file-library-state {
+		flex-basis: 100%;
+		grid-column: 1 / -1;
 		margin: 0;
 		font-family: var(--mono);
 		font-size: 0.72em;

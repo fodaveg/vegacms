@@ -48,7 +48,7 @@ export interface PreviewDraft {
 	blocks: PreviewDraftRecord[];
 }
 
-export interface PreviewClientOptions {
+interface PreviewClientOptions {
 	/** Base ABSOLUTA ya resuelta (mismo criterio que `BuildClientOptions.apiUrl`), con o sin barra
 	 *  final — se normaliza aquí. */
 	apiUrl: string;
@@ -58,7 +58,7 @@ export interface PreviewClientOptions {
 	fetcher?: typeof fetch;
 }
 
-export interface PreviewClient {
+interface PreviewClient {
 	/** Pide un token de preview NUEVO para `{collection, id}`. Rechaza si la respuesta no es
 	 *  `2xx` o no trae una `url`/`expiresAt` utilizables — nunca inventa una URL a partir de una
 	 *  forma parcial (P3-L3, "nunca un dato inventado"). */

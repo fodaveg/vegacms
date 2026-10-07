@@ -14,7 +14,7 @@ export interface FormFieldError {
 	params?: Record<string, string | number>;
 }
 
-export type EditorFormField = 'email' | 'password' | 'confirm' | 'form';
+type EditorFormField = 'email' | 'password' | 'confirm' | 'form';
 export type EditorFormErrors = Partial<Record<EditorFormField, FormFieldError>>;
 
 /** Mismo criterio mínimo que PocketBase: algo@algo.algo, sin espacios. */

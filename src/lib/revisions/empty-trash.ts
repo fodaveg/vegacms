@@ -23,7 +23,7 @@ import type { BackendPort } from '$lib/backend/port';
 import { MAX_PER_PAGE } from '$lib/backend/query';
 import { VEGA_REVISIONS_COLLECTION } from './revisions-collection';
 
-export interface EmptyTrashResult {
+interface EmptyTrashResult {
 	/** Entradas borradas de verdad (con éxito), sumadas a través de TODAS las páginas. */
 	deleted: number;
 	/** Entradas `kind:'delete'` que quedan según el último recuento fiable del backend — `0` solo

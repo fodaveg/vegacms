@@ -26,7 +26,7 @@ import {
 	type MemoryState
 } from './state';
 
-export type MemorySchemaOps = Pick<
+type MemorySchemaOps = Pick<
 	BackendPort,
 	| 'listContentTypes'
 	| 'ensureCollections'

@@ -24,12 +24,12 @@ import type { VegaAppContext } from '$lib/app-context';
 import { normalizeListError, RequestSequencer } from '$lib/list/list-load';
 import { buildMediaListQuery } from './media-query';
 
-export type MediaListStatus =
+type MediaListStatus =
 	| { kind: 'loading' }
 	| { kind: 'ready'; page: Page<VegaRecord> }
 	| { kind: 'error'; error: VegaError };
 
-export interface MediaListState {
+interface MediaListState {
 	readonly status: MediaListStatus;
 	/** Dispara una carga de `vega_media` para `page` (1-based), con `search` opcional (Fase P6·6e,
 	 *  ver cabecera). Anti-carrera: una respuesta que ya no es la última emitida se descarta sin

@@ -329,8 +329,15 @@ describe('VisualEditorScreen — «Describir la imagen…»', () => {
 		await settle();
 		popButton(m, 'Describir la imagen…')!.click();
 		await settle();
-		const dialog = m.target.querySelector<HTMLElement>('[role="dialog"]')!;
-		expect(dialog).not.toBeNull();
+		const dialog = await vi.waitFor(
+			() => {
+				flushSync();
+				const detail = m.target.querySelector<HTMLElement>('.vega-media-detail-dialog');
+				expect(detail).not.toBeNull();
+				return detail!;
+			},
+			{ timeout: 5000 }
+		);
 		expect(pop(m)).toBeNull();
 
 		dialog.querySelector<HTMLButtonElement>('.vega-media-detail-close')!.click();

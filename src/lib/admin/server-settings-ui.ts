@@ -12,7 +12,7 @@ export function formatClock(date: Date, locale: Locale): string {
 	return new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' }).format(date);
 }
 
-export interface LocalClock {
+interface LocalClock {
 	/** La hora local equivalente, ya formateada («2:00»). */
 	time: string;
 	/** `true` si la hora local es la misma que la UTC: entonces «las 2:00 aquí» sobra. */

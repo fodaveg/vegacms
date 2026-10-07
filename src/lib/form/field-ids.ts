@@ -14,7 +14,7 @@
  * exactamente como antes.
  */
 
-export interface FieldIds {
+interface FieldIds {
 	/** Id del control interactivo real (el `<input>`/`<select>`/… que pinta el widget). */
 	inputId: string;
 	/** Id de la etiqueta (`FieldRow`), para `aria-labelledby` en widgets cuyo control NO es un

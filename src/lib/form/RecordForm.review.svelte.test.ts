@@ -28,6 +28,13 @@ import {
 
 vi.mock('$app/navigation', () => ({ beforeNavigate: () => {} }));
 
+// El diálogo de Medios llega después del shell lazy: la prueba de foco debe esperar la ficha
+// real aunque el import tarde más que los ciclos de `settle()`.
+vi.mock('$lib/publish-review/ReviewMediaDialog.svelte', async (importOriginal) => {
+	await new Promise((resolve) => setTimeout(resolve, 250));
+	return importOriginal();
+});
+
 /**
  * La revisión y `RecordBlocks` leen los bloques con la MISMA consulta por el mismo `ctx.port`, así
  * que un puerto que retrasa o rompe esa lectura las retrasa o rompe a las dos. Para medir «la
@@ -153,6 +160,20 @@ const buttonByLabel = (m: Mounted, label: string) =>
 		(b) => b.getAttribute('aria-label') === label || b.textContent?.trim() === label
 	) ?? null;
 
+/** La ficha llega tras el import diferido y la lectura de `vega_media`; el shell de carga también
+ * tiene `role="dialog"`, así que esperar solo ese rol confundiría ambos estados. */
+async function mediaDetailDialog(m: Mounted): Promise<HTMLElement> {
+	return vi.waitFor(
+		() => {
+			flushSync();
+			const dialog = m.target.querySelector<HTMLElement>('.vega-media-detail-dialog');
+			expect(dialog).not.toBeNull();
+			return dialog!;
+		},
+		{ timeout: 5000 }
+	);
+}
+
 /**
  * Una página del sembrado con avisos de los tres grupos: descripción vacía e imagen social
  * ausente (SEO), un bloque `hero` con un enlace a una ruta que no existe (enlaces) y una imagen de
@@ -273,10 +294,10 @@ describe('RecordForm — la tarjeta «Revisión» en el aside', () => {
 		opener.focus();
 		opener.click();
 		await settle();
-		const dialog = m.target.querySelector<HTMLElement>('[role="dialog"]')!;
-		expect(dialog).not.toBeNull();
+		const dialog = await mediaDetailDialog(m);
 		expect(dialog.getAttribute('aria-modal')).toBe('true');
 		const alt = dialog.querySelector<HTMLInputElement>('#vega-media-detail-alt')!;
+		await vi.waitFor(() => expect(document.activeElement).toBe(alt));
 		expect(document.activeElement).toBe(alt);
 
 		alt.value = 'Chaqueta de lino sobre la mesa de corte';
@@ -306,7 +327,9 @@ describe('RecordForm — la tarjeta «Revisión» en el aside', () => {
 		opener.focus();
 		opener.click();
 		await settle();
-		m.target.querySelector<HTMLButtonElement>('.vega-media-detail-close')!.click();
+		(await mediaDetailDialog(m))
+			.querySelector<HTMLButtonElement>('.vega-media-detail-close')!
+			.click();
 		await settle();
 		expect(m.target.querySelector('[role="dialog"]')).toBeNull();
 		expect(document.activeElement).toBe(opener);

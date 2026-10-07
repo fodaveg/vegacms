@@ -483,7 +483,7 @@ export class SiteSeedRuleDifferencesError extends Error {
  * ¿Escribiría algo este módulo? Una diferencia de reglas solo importa si el módulo va a crear o
  * ampliar una colección o añadir entradas al modelo de contenido; uno ya completo no se «añade».
  */
-export function moduleHasWrites(plan: SiteSeedModulePlan): boolean {
+function moduleHasWrites(plan: SiteSeedModulePlan): boolean {
 	return (
 		plan.createdCollections.length > 0 ||
 		Object.keys(plan.addedFields).length > 0 ||

@@ -10,7 +10,7 @@
 
 import type { FieldValue, RecordId, VegaRecord } from '$lib/backend/types';
 
-export type RevisionKind = 'update' | 'delete';
+type RevisionKind = 'update' | 'delete';
 
 /** Vista ya desnormalizada de una fila de `vega_revisions` (§1 del contrato de Fase B). */
 export interface RevisionRecord {

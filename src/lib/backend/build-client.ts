@@ -84,7 +84,7 @@ export const MAX_BUILD_DETAIL_LENGTH = 300;
  * escapa nada: el valor se pinta como nodo de texto, que ya es seguro; escapar aquí lo mostraría
  * doblemente escapado.
  */
-export function detailOrNull(value: unknown): string | null {
+function detailOrNull(value: unknown): string | null {
 	if (typeof value !== 'string') return null;
 	// eslint-disable-next-line no-control-regex
 	const flat = value.replace(/[\u0000-\u001f\u007f\s]+/g, ' ').trim();
@@ -114,7 +114,7 @@ function stringOrNull(value: unknown): string | null {
  * (espacios iniciales, tabuladores y saltos de línea dentro del esquema): comparar el prefijo a
  * mano dejaría pasar `java\tscript:`.
  */
-export function httpUrlOrNull(value: unknown): string | null {
+function httpUrlOrNull(value: unknown): string | null {
 	if (typeof value !== 'string' || !value) return null;
 	let protocol: string;
 	try {

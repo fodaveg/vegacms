@@ -165,6 +165,48 @@ describe('SecuritySettings', () => {
 
 		const dialog = (root: ParentNode) => root.querySelector<HTMLElement>('[role="dialog"]');
 
+		test.each(['Escape', 'cancelar'] as const)(
+			'%s devuelve el foco a Cambiar de app aunque disabled lo haya dejado en BODY',
+			async (close) => {
+				const auth = fakeStrongAuth();
+				let requireProof!: (error: unknown) => void;
+				vi.mocked(auth.enrollTotp).mockImplementationOnce(
+					() => new Promise((_, reject) => (requireProof = reject))
+				);
+				const root = await mountEnabled(auth);
+				const opener = button(root, 'security.totp.replace');
+				opener.focus();
+				opener.click();
+				await settle();
+				expect(opener.disabled).toBe(true);
+				// jsdom ni pierde el foco al deshabilitar ni permite blur() estando disabled.
+				// Se reproduce BODY + disabled antes del rechazo async que abre el diálogo.
+				opener.disabled = false;
+				opener.blur();
+				opener.disabled = true;
+				expect(document.activeElement).toBe(document.body);
+				requireProof(stepUp(['totp']));
+				await settle();
+				expect(document.activeElement).toBe(dialog(root)!.querySelector('input'));
+
+				if (close === 'Escape') {
+					document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+				} else {
+					button(dialog(root)!, 'common.cancel').click();
+				}
+				await settle();
+
+				expect(dialog(root)).toBeNull();
+				expect(document.activeElement).toBe(opener);
+				expect(opener.disabled).toBe(false);
+				expect(auth.enrollTotp).toHaveBeenCalledOnce();
+				expect(auth.generateRecoveryCodes).not.toHaveBeenCalled();
+				expect(root.querySelector('.card-title span')?.textContent).toContain(
+					'security.status.enabled'
+				);
+			}
+		);
+
 		async function submitCode(root: ParentNode, value: string): Promise<void> {
 			const input = dialog(root)!.querySelector<HTMLInputElement>('input')!;
 			input.value = value;

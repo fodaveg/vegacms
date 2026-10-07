@@ -19,16 +19,19 @@
 	 * de que Vega pueda mostrar el error de campo devuelto por el backend.
 	 */
 	import type { WidgetProps } from './types';
+	import { getVegaContext } from '$lib/app-context';
 	import { fieldIds } from '../field-ids';
 	import { getFieldScope } from '../field-scope';
 	import { isoUtcToLocalInput, localInputToIsoUtc } from './datetime';
 
 	let { field, value, error, disabled, readonly, onChange }: WidgetProps = $props();
 
+	const ctx = getVegaContext();
 	const fieldScope = getFieldScope();
 	const ids = $derived(fieldIds(field.name, fieldScope));
+	const datetimeHelpId = $derived(`${ids.inputId}-datetime-help`);
 	const describedBy = $derived(
-		[field.help ? ids.helpId : null, error ? ids.errorId : null]
+		[field.help ? ids.helpId : null, error ? ids.errorId : null, datetimeHelpId]
 			.filter((id): id is string => id !== null)
 			.join(' ') || undefined
 	);
@@ -49,6 +52,20 @@
 	);
 	const localValue = $derived(typeof value === 'string' ? isoUtcToLocalInput(value) : '');
 
+	// Mes escrito y reloj de 24 horas: la lectura no depende del orden numérico del control nativo.
+	const localDisplay = $derived(
+		localValue !== ''
+			? new Intl.DateTimeFormat(ctx.locale, {
+					year: 'numeric',
+					month: 'long',
+					day: 'numeric',
+					hour: '2-digit',
+					minute: '2-digit',
+					hourCycle: 'h23'
+				}).format(new Date(value as string))
+			: ''
+	);
+
 	function handleInput(event: Event): void {
 		const raw = (event.currentTarget as HTMLInputElement).value;
 		onChange(localInputToIsoUtc(raw));
@@ -58,6 +75,7 @@
 <input
 	id={ids.inputId}
 	type="datetime-local"
+	lang={ctx.locale}
 	class="vega-widget-datetime"
 	value={localValue}
 	placeholder={field.placeholder ?? undefined}
@@ -69,7 +87,27 @@
 	aria-describedby={describedBy}
 />
 
+<p id={datetimeHelpId} class="vega-datetime-help">
+	{ctx.t('form.datetime.help')}
+	{#if localDisplay}
+		<span class="vega-datetime-value"
+			>{ctx.t('form.datetime.localValue', { value: localDisplay })}</span
+		>
+	{/if}
+</p>
+
 <style>
+	.vega-datetime-help {
+		margin: 0.35rem 0 0;
+		color: var(--ink-2);
+		font-size: 0.82em;
+		overflow-wrap: anywhere;
+	}
+
+	.vega-datetime-value {
+		display: block;
+	}
+
 	.vega-widget-datetime {
 		width: 100%;
 		box-sizing: border-box;

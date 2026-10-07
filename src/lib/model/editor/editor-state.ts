@@ -22,7 +22,7 @@ import { validateManifestStrict, type ManifestValidationErrorEntry } from '../va
 import { humanizeLabel, resolveTitleField } from '../conventions';
 
 /** Estado completo del editor para un texto de borrador dado (§6.4). */
-export interface EditorState {
+interface EditorState {
 	/** `JSON.parse(rawText)` falló: el texto ni siquiera es JSON. `null` si parseó. */
 	parseError: { message: string } | null;
 	/** Errores de `validateManifestStrict` sobre el JSON parseado; `[]` si `parseError` o si es válido. */

@@ -27,7 +27,7 @@ import { applyQuery } from './query';
 import { defaultReadonlyValue } from './schema-ops';
 import type { MemoryState } from './state';
 
-export type MemoryRecordOps = Pick<
+type MemoryRecordOps = Pick<
 	BackendPort,
 	'list' | 'get' | 'create' | 'update' | 'delete' | 'fileUrl' | 'subscribe'
 > & {

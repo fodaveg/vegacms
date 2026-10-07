@@ -15,7 +15,7 @@ import { PB_VALIDATION_CODES } from '../../errors';
 import { isEmptyValue } from '../../normalize';
 
 /** Contexto que necesita la validación para comprobar `relation` (existencia del id destino). */
-export interface ValidationContext {
+interface ValidationContext {
 	recordExists(targetType: string, id: RecordId): boolean;
 }
 

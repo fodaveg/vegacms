@@ -76,7 +76,7 @@ export interface FeedbackApi {
  * `MediaPickResult[]` (copia de bytes, INVARIANTE L-P6.8 — ver `$lib/media/media-picker.ts`) o
  * `null` si el usuario cancela.
  */
-export interface MediaPickerService {
+interface MediaPickerService {
 	open(opts: MediaPickerOpenOptions): Promise<MediaPickResult[] | null>;
 }
 

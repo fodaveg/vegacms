@@ -116,18 +116,27 @@ without `draft` still receives the exact v1 response above.
   PocketBase `CanAccessRecord` with that collection's current `ViewRule`.
   Internal server access alone is never treated as editor permission.
 - A request that carries `draft` must also satisfy that collection's current
-  `UpdateRule`, checked with the same `CanAccessRecord` call: a draft is
+  `UpdateRule`, checked with `CanAccessRecord`: a draft is
   content proposed for the record, and the site renders it as if it were the
   record, so reading rights are not enough. PocketBase semantics apply as
   usual: a `nil` rule admits only superusers (which `AuthCollections` never
   lets in, so drafts are refused for everyone), an empty rule admits any
   authenticated editor, and anything else is a filter evaluated against the
-  saved record and the editor's session. An editor who may view but not
-  update gets `403` and no token; the same request without `draft` still
-  returns the v1 URL. `@request.body.*` clauses in an `UpdateRule` see the
-  body of this preview request (`collection`, `id`, `draft`), not the fields
-  inside the draft, so a rule that restricts WHICH fields may change is not
-  enforced here; it is enforced by PocketBase when the editor actually saves.
+  saved record and the editor's session. For this update check only, a cloned
+  request context exposes `draft.record.fields` as `@request.body`. Values for
+  exact, recognized field names are prepared with PocketBase's field types
+  on an in-memory record copy, so an unchanged ISO date compares like its
+  stored PocketBase timestamp. Omitted fields stay omitted and other keys
+  keep their original values. Value restrictions and
+  `@request.body.title:changed = false` inspect those proposed fields against
+  the saved record. The `ViewRule` keeps the original HTTP
+  request context; authorization does not mutate it, the saved record, or
+  the draft encrypted into the token. An
+  editor whose proposed fields fail the `UpdateRule` gets `403` and no token;
+  the same request without `draft` still returns the v1 URL. Draft fields are
+  final values, as sent by Vega's form, not PocketBase update modifiers such
+  as `field+` or `field-`. This check does not run save validation or hooks,
+  normalize update modifiers, or independently authorize the draft's blocks.
 - Missing, unsupported, nonexistent, and inaccessible records all return 404,
   so the endpoint does not become a record-enumeration oracle. The `403`
   above is only ever returned for a record the caller was already proven able

@@ -33,7 +33,7 @@ import {
 /** Por qué se rechaza un destino. Cada motivo tiene su texto en `form.editor.linkDialog.error.*`. */
 export type LinkHrefError = 'empty' | 'scheme' | 'format';
 
-export type LinkHrefResult =
+type LinkHrefResult =
 	{ ok: true; href: string; internal: boolean } | { ok: false; reason: LinkHrefError };
 
 /** Esquemas que puede llevar un enlace escrito a mano. */

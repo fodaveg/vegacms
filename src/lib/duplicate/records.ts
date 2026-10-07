@@ -95,7 +95,7 @@ async function listAllChildren(
 	}
 }
 
-export interface DuplicatePageResult {
+interface DuplicatePageResult {
 	page: VegaRecord;
 	blocks: VegaRecord[];
 }

@@ -28,20 +28,20 @@ export interface ActionMenuItem {
 }
 
 /** Caja del disparador, en coordenadas de la ventana (lo que da `getBoundingClientRect`). */
-export interface AnchorRect {
+interface AnchorRect {
 	top: number;
 	right: number;
 	bottom: number;
 }
 
-export interface ViewportSize {
+interface ViewportSize {
 	width: number;
 	height: number;
 }
 
 /** Colocación resuelta de un menú anclado a la ventana (ver cabecera). `direction` vale para
  *  tests y para quien quiera animar o marcar el menú; `style` es lo que se pinta. */
-export interface ViewportPlacement {
+interface ViewportPlacement {
 	direction: 'down' | 'up';
 	/** Declaraciones CSS listas para el atributo `style` del menú (`position: fixed` lo pone la
 	 *  clase, aquí solo van las coordenadas). */

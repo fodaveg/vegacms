@@ -37,7 +37,7 @@
 import DOMPurify from 'dompurify';
 
 /** Vocabulario CERRADO de etiquetas (D-P5.6), en el orden en que lo enuncia el contrato. */
-export const ALLOWED_TAGS = [
+const ALLOWED_TAGS = [
 	'p',
 	'h1',
 	'h2',

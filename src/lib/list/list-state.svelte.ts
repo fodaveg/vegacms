@@ -26,7 +26,7 @@ export type ListLoadStatus =
 	| { kind: 'ready'; page: Page<VegaRecord> }
 	| { kind: 'error'; error: VegaError };
 
-export interface ListState {
+interface ListState {
 	/** Estado ACTUAL de la última carga que no fue descartada por anti-carrera. */
 	readonly status: ListLoadStatus;
 	/**

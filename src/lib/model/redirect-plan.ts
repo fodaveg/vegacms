@@ -45,7 +45,7 @@
  */
 
 /** Código de la redirección creada: permanente, como el resto de las del sitio. */
-export const REDIRECT_CODE = '301';
+const REDIRECT_CODE = '301';
 
 /** Una redirección existente, lo mínimo que este módulo necesita de ella. */
 export interface RedirectRef {

@@ -10,9 +10,9 @@
  *   un error sin que alguien lo haya visto y lo haya cerrado).
  */
 
-export type ToastKind = 'success' | 'error' | 'info';
+type ToastKind = 'success' | 'error' | 'info';
 
-export interface ToastEntry {
+interface ToastEntry {
 	readonly id: number;
 	readonly message: string;
 	readonly kind: ToastKind;

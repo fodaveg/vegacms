@@ -36,7 +36,7 @@ export interface ReorderDragState {
 /** Los cinco manejadores de evento que un `<table>` con asa de reorder necesita cablear — mismos
  *  nombres que llevaban en `RecordTable` antes de la extracción, para que el diff de migración de
  *  ese componente sea mínimo. */
-export interface ReorderDndController {
+interface ReorderDndController {
 	/** `dragstart` en el asa de la fila `index`: guarda el origen y marca el `dataTransfer` (varios
 	 *  navegadores exigen `setData` para que el gesto de arrastre se complete). */
 	handleDragStart(event: DragEvent, index: number): void;

@@ -40,14 +40,14 @@ export type MediaUploadShrink =
 	| { kind: 'shrunk'; fromBytes: number; toBytes: number }
 	| { kind: 'original'; why: ShrinkKeptReason };
 
-export interface MediaUploadFileOptions {
+interface MediaUploadFileOptions {
 	/** Reduce la imagen antes de validar y subir; `null` la sube tal cual. */
 	shrink: ShrinkFn | null;
 	/** Texto alternativo que se guarda en la ficha (`alt`). Vacío o ausente = sin texto. */
 	alt?: string;
 }
 
-export type MediaUploadFileResult =
+type MediaUploadFileResult =
 	| { kind: 'done'; record: VegaRecord; shrink?: MediaUploadShrink }
 	| { kind: 'rejected'; reason: MediaFileRejectionReason; shrink?: MediaUploadShrink };
 

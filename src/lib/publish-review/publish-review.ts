@@ -143,7 +143,7 @@ export type ReviewCheckId =
 	| 'media.alt-missing-inline';
 
 /** `'warning'` informa; `'error'` está reservado para un bloqueo futuro (hoy ninguna comprobación lo usa). */
-export type ReviewSeverity = 'warning' | 'error';
+type ReviewSeverity = 'warning' | 'error';
 
 /**
  * Grupos en los que la interfaz reparte las comprobaciones (lote 13, lámina: SEO · Enlaces ·

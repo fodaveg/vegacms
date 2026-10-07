@@ -34,6 +34,7 @@
 		action: string;
 		operation: (proof?: StepUpProof) => Promise<void>;
 		methods: StepUpMethod[];
+		returnFocusEl: HTMLElement | null;
 	}
 	let stepUp = $state<PendingStepUp | null>(null);
 	let sectionEl = $state<HTMLElement | null>(null);
@@ -76,6 +77,9 @@
 		action: string,
 		operation: (proof?: StepUpProof) => Promise<void>
 	): Promise<void> {
+		// Deshabilitar la acción durante la petición puede dejar el foco en BODY. Se conserva
+		// antes de busyAction, porque el diálogo solo se abrirá al llegar el rechazo del servidor.
+		const returnFocusEl = document.activeElement as HTMLElement | null;
 		busyAction = action;
 		error = null;
 		try {
@@ -83,7 +87,7 @@
 		} catch (err) {
 			if (isStrongAuthError(err, 'step-up-required')) {
 				stepUpError = null;
-				stepUp = { action, operation, methods: err.methods };
+				stepUp = { action, operation, methods: err.methods, returnFocusEl };
 			} else {
 				error = errorMessage(err);
 			}
@@ -456,6 +460,7 @@
 		passkeyAvailable={typeof auth.verifyWithPasskey === 'function'}
 		busy={stepUpBusy}
 		error={stepUpError}
+		returnFocusEl={stepUp?.returnFocusEl ?? null}
 		fallbackFocusEl={sectionEl}
 		onSubmitCode={submitStepUpCode}
 		onUsePasskey={useStepUpPasskey}

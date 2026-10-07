@@ -43,7 +43,7 @@ export const SCREEN_PRESETS: readonly ScreenPreset[] = ['mobile', 'tablet', 'des
 
 /** Niveles fijos de zoom (§encargo). El modo "ajustar" vive en `ZoomPreference`, no aquí: no es un
  *  nivel, es un CÁLCULO (ver cabecera). */
-export type ZoomLevel = 50 | 75 | 100;
+type ZoomLevel = 50 | 75 | 100;
 export const ZOOM_LEVELS: readonly ZoomLevel[] = [50, 75, 100];
 export type ZoomPreference = ZoomLevel | 'fit';
 

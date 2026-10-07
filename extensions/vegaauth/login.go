@@ -2,6 +2,7 @@ package vegaauth
 
 import (
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"errors"
 	"net"
@@ -19,7 +20,11 @@ const (
 	attemptWindow = 15 * 60
 	lockBase      = 5 * 60
 	lockMax       = 60 * 60
+	// The account-wide second-factor bucket cannot collide with a real client address.
+	secondFactorAccountIP = "account"
 )
+
+var errSecondFactorLocked = errors.New("second factor locked")
 
 type passwordBody struct {
 	Email    string `json:"email"`
@@ -88,7 +93,7 @@ func (x *Extension) loginTOTP(e *core.RequestEvent) error {
 	if !ok {
 		return e.JSON(http.StatusUnauthorized, map[string]string{"error": "pending_expired"})
 	}
-	if refused, response := x.attemptRefused(e, pending.identity, ip); refused {
+	if refused, response := x.secondFactorAttemptRefused(e, pending, ip); refused {
 		return response
 	}
 	record, err := e.App.FindRecordById(x.config.AuthCollection, pending.userID)
@@ -96,14 +101,14 @@ func (x *Extension) loginTOTP(e *core.RequestEvent) error {
 	if err == nil {
 		// A replayed code is answered exactly like a wrong one.
 		if valid, err = x.consumeTOTP(e.App, record, body.Code); err != nil {
-			x.releaseLoginAttempt(e.App, pending.identity, ip)
+			x.releaseSecondFactorAttempt(e.App, pending, ip)
 			return e.JSON(http.StatusInternalServerError, map[string]string{"error": "verify_failed"})
 		}
 	}
 	if !valid {
 		return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_code"})
 	}
-	x.resetLoginAttempts(e.App, pending.identity, ip)
+	x.resetSecondFactorAttempts(e.App, pending, ip)
 	x.deletePending(body.Pending)
 	return x.authTokenResponse(e, record, true)
 }
@@ -119,6 +124,81 @@ func (x *Extension) attemptRefused(e *core.RequestEvent, identity, ip string) (b
 		return true, lockedResponse(e, wait)
 	}
 	return false, nil
+}
+
+// secondFactorIdentity uses the stable account ID, so changing an email or creating another
+// password challenge cannot give that account a fresh second-factor budget.
+func secondFactorIdentity(userID string) string {
+	return loginIdentity("second-factor:" + userID)
+}
+
+// reserveSecondFactorAttempt reserves both the identity+IP and account-wide budgets in one
+// transaction. A locked bucket rolls back the other reservation: rejected requests neither
+// consume attempts nor extend a lock. Both TOTP and recovery spend the same account budget.
+func (x *Extension) reserveSecondFactorAttempt(app core.App, pending pendingEntry, ip string) (int, error) {
+	wait := 0
+	err := app.RunInTransaction(func(tx core.App) error {
+		var err error
+		wait, err = x.reserveLoginAttempt(tx, secondFactorIdentity(pending.userID), secondFactorAccountIP)
+		if err != nil {
+			return err
+		}
+		if wait > 0 {
+			return errSecondFactorLocked
+		}
+		wait, err = x.reserveLoginAttempt(tx, pending.identity, ip)
+		if err != nil {
+			return err
+		}
+		if wait > 0 {
+			return errSecondFactorLocked
+		}
+		return nil
+	})
+	if errors.Is(err, errSecondFactorLocked) {
+		err = nil
+	}
+	return wait, err
+}
+
+// secondFactorAttemptRefused fails closed before evaluating a code if either budget is locked
+// or the two reservations cannot be persisted.
+func (x *Extension) secondFactorAttemptRefused(e *core.RequestEvent, pending pendingEntry, ip string) (bool, error) {
+	wait, err := x.reserveSecondFactorAttempt(e.App, pending, ip)
+	if err != nil {
+		return true, e.JSON(http.StatusServiceUnavailable, map[string]string{"error": "attempt_failed"})
+	}
+	if wait > 0 {
+		return true, lockedResponse(e, wait)
+	}
+	return false, nil
+}
+
+// releaseSecondFactorAttempt returns both reservations when verification itself failed.
+// A persistence failure leaves both reservations intact and is logged without changing the
+// verification response.
+func (x *Extension) releaseSecondFactorAttempt(app core.App, pending pendingEntry, ip string) {
+	if err := app.RunInTransaction(func(tx core.App) error {
+		if err := x.releaseLoginAttempt(tx, pending.identity, ip); err != nil {
+			return err
+		}
+		return x.releaseLoginAttempt(tx, secondFactorIdentity(pending.userID), secondFactorAccountIP)
+	}); err != nil {
+		app.Logger().Error("vega second-factor attempt release failed", "user", pending.userID)
+	}
+}
+
+// resetSecondFactorAttempts clears both budgets only after a successful second-factor login.
+// A persistence failure preserves both counters and is logged; the valid login still succeeds.
+func (x *Extension) resetSecondFactorAttempts(app core.App, pending pendingEntry, ip string) {
+	if err := app.RunInTransaction(func(tx core.App) error {
+		if err := x.resetLoginAttempts(tx, pending.identity, ip); err != nil {
+			return err
+		}
+		return x.resetLoginAttempts(tx, secondFactorIdentity(pending.userID), secondFactorAccountIP)
+	}); err != nil {
+		app.Logger().Error("vega second-factor attempt reset failed", "user", pending.userID)
+	}
 }
 
 // authTokenResponse issues the session token. proven says the login was completed with a second
@@ -250,10 +330,17 @@ func (x *Extension) countLoginAttempt(app core.App, identity, ip string, respect
 
 // releaseLoginAttempt hands back one reserved attempt. Only a request that reserved while the
 // identity was unlocked can get here, so any lock on the row was set by that same reservation.
-func (x *Extension) releaseLoginAttempt(app core.App, identity, ip string) {
-	_ = app.RunInTransaction(func(tx core.App) error {
+// Missing rows are already released; other failures must reach any enclosing transaction.
+func (x *Extension) releaseLoginAttempt(app core.App, identity, ip string) error {
+	return app.RunInTransaction(func(tx core.App) error {
 		row, err := tx.FindFirstRecordByFilter(attemptsCollection, "identity = {:identity} && ip = {:ip}", dbx.Params{"identity": identity, "ip": ip})
-		if err != nil || row == nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if row == nil {
 			return nil
 		}
 		attempts := row.GetInt("attempts") - 1
@@ -266,11 +353,20 @@ func (x *Extension) releaseLoginAttempt(app core.App, identity, ip string) {
 	})
 }
 
-func (x *Extension) resetLoginAttempts(app core.App, identity, ip string) {
+// resetLoginAttempts removes a completed login's counter, propagating storage errors while
+// treating an already absent counter as success.
+func (x *Extension) resetLoginAttempts(app core.App, identity, ip string) error {
 	row, err := app.FindFirstRecordByFilter(attemptsCollection, "identity = {:identity} && ip = {:ip}", dbx.Params{"identity": identity, "ip": ip})
-	if err == nil && row != nil {
-		_ = app.Delete(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
 	}
+	if err != nil {
+		return err
+	}
+	if row == nil {
+		return nil
+	}
+	return app.Delete(row)
 }
 
 func lockedResponse(e *core.RequestEvent, wait int) error {

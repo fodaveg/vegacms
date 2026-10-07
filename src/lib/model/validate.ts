@@ -24,7 +24,7 @@ export interface ManifestValidationErrorEntry {
 	message: string;
 }
 
-export type ManifestValidationResult =
+type ManifestValidationResult =
 	{ ok: true } | { ok: false; errors: ManifestValidationErrorEntry[] };
 
 type JsonObject = Record<string, JsonValue>;

@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/go-webauthn/webauthn/protocol"
@@ -29,7 +28,7 @@ const (
 // to the session that gave it, so another token of the same account (a stolen one, another
 // device) does not inherit it. Only the hash is kept in memory, never the token.
 func sessionKey(token string) string {
-	token = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(token), "Bearer "))
+	token = authTokenFromHeader(token)
 	if token == "" {
 		return ""
 	}

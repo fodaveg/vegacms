@@ -83,7 +83,7 @@ import { canDuplicateBlock, duplicateInput } from '$lib/duplicate/records';
 export type BlocksStatus =
 	{ kind: 'loading' } | { kind: 'ready'; records: VegaRecord[] } | { kind: 'error' };
 
-export interface BlocksStateOptions {
+interface BlocksStateOptions {
 	ctx: VegaAppContext;
 	/** El tipo padre que declara `blocks` (`ResolvedContentType.blocks`, ya validado por P2).
 	 *  Capturado UNA VEZ (misma captura deliberada que el componente hacía con `untrack`): no

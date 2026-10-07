@@ -16,7 +16,7 @@ import { ClientResponseError } from 'pocketbase';
 import type { FieldError } from '../../errors';
 import { VegaError } from '../../errors';
 
-export interface ErrorMapContext {
+interface ErrorMapContext {
 	/** `true` si, según nuestro propio estado (no el del servidor), creíamos tener sesión activa. */
 	hadSession: boolean;
 	/**

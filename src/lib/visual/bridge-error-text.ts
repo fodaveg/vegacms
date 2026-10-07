@@ -5,7 +5,7 @@ import {
 	type VisualBridgeState
 } from './bridge-client';
 
-export interface BridgeErrorText {
+interface BridgeErrorText {
 	title: string;
 	body: string;
 	/** La URL errónea se fija al crear el cliente; los demás fallos admiten reintento. */

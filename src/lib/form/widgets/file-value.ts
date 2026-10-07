@@ -30,7 +30,7 @@ export type FileFieldSchema = Extract<Field, { type: 'file' }>;
 export type FileItem = File | FileRef;
 
 /** Motivo de rechazo de un fichero, SOLO-UX (§4.4): el backend es quien manda de verdad. */
-export type FileRejectionReason = 'tooLarge' | 'invalidType' | 'tooMany';
+type FileRejectionReason = 'tooLarge' | 'invalidType' | 'tooMany';
 
 export interface FileRejection {
 	name: string;
@@ -39,7 +39,7 @@ export interface FileRejection {
 
 /** Resultado de intentar añadir uno o más ficheros: el value resultante, y lo que se rechazó
  *  (vacío si todo entró). */
-export interface FileAddOutcome<T> {
+interface FileAddOutcome<T> {
 	value: T;
 	rejections: FileRejection[];
 }
@@ -110,7 +110,7 @@ export function removeFromMultiple(current: FileItem[], item: FileItem): FileIte
 	return current.filter((existing) => existing !== item);
 }
 
-export type FileKind = 'image' | 'other';
+type FileKind = 'image' | 'other';
 
 /** Clasifica un `File` nuevo por su mime REAL (Audit Finding 4). */
 export function classifyFile(file: File): FileKind {
