@@ -28,6 +28,16 @@ export const es = {
 		'Todavía no hay contenido que editar. Habla con quien administre el sitio.',
 
 	// ————— Portada («Inicio», `/`) —————
+	'home.revisions.title': 'Guarda versiones anteriores y recupera registros borrados',
+	'home.revisions.body':
+		'Prepara el historial y la papelera para este sitio. Podrás consultar versiones anteriores de tu contenido.',
+	'home.revisions.limits':
+		'Los archivos adjuntos y los enlaces que se eliminan al borrar no se recuperan.',
+	'home.revisions.demo': 'En esta demo, los cambios se conservan durante esta sesión.',
+	'home.revisions.prepare': 'Preparar historial y papelera',
+	'home.revisions.later': 'Ahora no',
+	'home.revisions.dismissHint':
+		'El descarte se guarda en este navegador si su almacenamiento está disponible.',
 	'home.title': 'Inicio',
 	'home.create.title': 'Crear',
 	'home.create.button': 'Nuevo: {label}',
@@ -1226,6 +1236,8 @@ export const es = {
 		'Los archivos adjuntos no se recuperan, aunque restaures la entrada.',
 
 	// ————— Papelera — ruta /papelera —————
+	'revisions.trash.savedVersion': 'Puedes consultar la versión guardada en la papelera.',
+	'revisions.trash.viewSaved': 'Ver en papelera',
 	'revisions.trash.pageTitle': 'Papelera',
 	'revisions.trash.description':
 		'Aquí están los elementos y archivos que has borrado. Puedes restaurarlos tal como estaban hasta que se cumpla el plazo de conservación que se fija en Ajustes.',

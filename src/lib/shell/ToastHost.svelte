@@ -31,8 +31,27 @@
 	{#if politeToasts.length > 0}
 		<div class="vega-toast-region" aria-live="polite">
 			{#each politeToasts as toastEntry (toastEntry.id)}
-				<div class="vega-toast" data-kind={toastEntry.kind}>
+				<div
+					class="vega-toast"
+					data-kind={toastEntry.kind}
+					data-action={toastEntry.action ? true : undefined}
+				>
 					<span>{toastEntry.message}</span>
+					{#if toastEntry.action}
+						<button
+							type="button"
+							class="vega-toast-action"
+							onclick={() => toastStore.invokeAction(toastEntry.id)}
+							>{toastEntry.action.label}</button
+						>
+						<button
+							type="button"
+							class="vega-toast-dismiss"
+							aria-label={ctx.t('toast.dismiss')}
+							onclick={() => toastStore.dismiss(toastEntry.id)}
+							><Icon id="close" size={12} /></button
+						>
+					{/if}
 				</div>
 			{/each}
 		</div>
@@ -125,6 +144,30 @@
 		   un estado interactivo momentáneo. Sobre el toast `[data-kind]` teñido da un oscurecimiento
 		   coherente en vez del parche gris neutro de `--btn`. */
 		background: var(--active);
+	}
+
+	.vega-toast[data-action] {
+		flex-wrap: wrap;
+	}
+	.vega-toast[data-action] span {
+		flex-basis: calc(100% - 44px - 0.6rem);
+	}
+	.vega-toast-action {
+		min-height: 44px;
+		padding: 0.5rem 0.75rem;
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		background: var(--btn);
+		color: var(--ink);
+		font: inherit;
+		cursor: pointer;
+	}
+	.vega-toast-action:hover {
+		background: var(--active);
+	}
+	.vega-toast[data-action] .vega-toast-dismiss {
+		width: 44px;
+		height: 44px;
 	}
 
 	@media (prefers-reduced-motion: reduce) {

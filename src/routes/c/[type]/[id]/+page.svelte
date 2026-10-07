@@ -48,6 +48,7 @@
 	 *   va siempre al registro que el formulario tiene delante.
 	 */
 	import { page } from '$app/state';
+	import { deleteRecordWithFeedback } from '$lib/revisions/delete-feedback';
 	import { getVegaContext } from '$lib/app-context';
 	import { resolveVisibleContentType } from '$lib/nav/content-type';
 	import { buildFormModel, type FormModel } from '$lib/form/form-model';
@@ -186,11 +187,19 @@
 						}
 					: undefined}
 				onDelete={async (label) => {
-					await ctx.port.delete(activeType.name, readyModel.recordId ?? idParam);
-					ctx.feedback.toast(ctx.t('list.delete.success', { label }), { kind: 'success' });
+					const collection = activeType.name;
+					if (
+						!(await deleteRecordWithFeedback(
+							ctx,
+							collection,
+							readyModel.recordId ?? idParam,
+							label
+						))
+					)
+						return;
 					// Al listado también desde un singleton: si su ÚNICO registro se borra, `/c/[type]`
 					// resuelve solo el siguiente destino (crear uno nuevo, §3.3) — nunca al índice.
-					ctx.nav.toList(activeType.name);
+					ctx.nav.toList(collection);
 				}}
 			/>
 		</div>

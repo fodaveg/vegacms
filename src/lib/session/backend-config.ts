@@ -7,6 +7,8 @@
  * `window`/`localStorage`, trivialmente testeable con objetos planos.
  */
 
+import { VEGA_PROJECT_KEY } from '$lib/backend/collections';
+
 /**
  * Forma de `static/vega.config.json` (D-P3.5-a): fichero opcional, leído en runtime (fetch,
  * cero build), para apuntar a un PocketBase que NO es same-origin. Si el fichero no existe o
@@ -129,4 +131,19 @@ export function resolveAuthApiBasePath(config: VegaConfig | null): string | null
 	const value = config?.authApiBasePath?.trim().replace(/\/+$/, '');
 	if (!value || !value.startsWith('/') || value.startsWith('//')) return null;
 	return value;
+}
+
+/** Identidad local de la instalación resuelta; excluye credenciales y conserva el subpath. */
+export function backendInstallationIdentity(url: string, manifestKey?: string): string | null {
+	if (!isAbsoluteUrl(url)) return null;
+	const canonical = new URL(url);
+	canonical.username = '';
+	canonical.password = '';
+	canonical.search = '';
+	canonical.hash = '';
+	canonical.pathname = canonical.pathname.replace(/\/+$/, '') || '/';
+	return JSON.stringify([
+		canonical.href.replace(/\/$/, ''),
+		manifestKey?.trim() || VEGA_PROJECT_KEY
+	]);
 }

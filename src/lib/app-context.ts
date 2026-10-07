@@ -50,10 +50,20 @@ export interface NavApi {
 	toLogin(): void;
 }
 
+/** Acción de una notificación, válida exclusivamente mientras siga vigente su contexto. */
+export interface ToastAction {
+	readonly label: string;
+	isCurrent(): boolean;
+	invoke(): void;
+}
+
 /** Feedback global del sistema (§2.3): toasts + reporte de `VegaError` contextual. */
 export interface FeedbackApi {
-	/** Toast efímero. `timeoutMs` por defecto según `kind`; `'error'` es persistente hasta descartar. */
-	toast(message: string, opts?: { kind?: 'success' | 'error' | 'info'; timeoutMs?: number }): void;
+	/** Los errores y las acciones permanecen hasta descartar; el resto usa `timeoutMs`. */
+	toast(
+		message: string,
+		opts?: { kind?: 'success' | 'error' | 'info'; timeoutMs?: number; action?: ToastAction }
+	): void;
 	/**
 	 * Pinta un `VegaError` como mensaje accionable (maestra L4). P3 elige la superficie según
 	 * `kind` (§2.3): `network` → banner reintentable; `auth-expired` → overlay de re-login (no

@@ -29,7 +29,12 @@ import type {
 import { VegaConflictError, VegaError } from '$lib/backend/errors';
 import { createMemoryBackend } from '$lib/backend/adapters/memory';
 import { VEGA_REVISIONS_COLLECTION } from './revisions-collection';
-import { pruneTrashRevisions, resetRevisionsLatch, withRevisions } from './with-revisions';
+import {
+	deleteWithRecovery,
+	pruneTrashRevisions,
+	resetRevisionsLatch,
+	withRevisions
+} from './with-revisions';
 
 interface FakePortOptions {
 	/** `values.manifest.revisions` del registro `vega` — `undefined` = sin registro `vega` (list
@@ -809,5 +814,47 @@ describe('withRevisions — delete (Fase B2, §8·B2)', () => {
 
 		await expect(wrapped.delete('posts', 'p1')).resolves.toBeUndefined();
 		await Promise.resolve();
+	});
+});
+
+describe('deleteWithRecovery — ticket por operación sin cambiar BackendPort', () => {
+	test('dos borrados concurrentes devuelven sus propios IDs de revisión', async () => {
+		const { port } = buildFakePort();
+		vi.mocked(port.create).mockImplementation(async (type, input) => {
+			await Promise.resolve();
+			return { id: `revision-${input.recordId}`, type, values: input } as VegaRecord;
+		});
+		const wrapped = withRevisions(port);
+		const results = await Promise.all([
+			deleteWithRecovery(wrapped, 'posts', 'p1'),
+			deleteWithRecovery({ ...wrapped }, 'posts', 'p2')
+		]);
+		expect(results).toEqual([
+			{ revisionId: 'revision-p1', collection: 'posts', recordId: 'p1' },
+			{ revisionId: 'revision-p2', collection: 'posts', recordId: 'p2' }
+		]);
+		expect(await wrapped.delete('posts', 'p3')).toBeUndefined();
+	});
+	test('un snapshot fallido sigue borrando sin ofrecer ticket', async () => {
+		const { port } = buildFakePort({ revisionsCollectionMissing: true });
+		expect(await deleteWithRecovery(withRevisions(port), 'posts', 'p1')).toBeNull();
+		expect(port.delete).toHaveBeenCalledWith('posts', 'p1');
+	});
+	test('un wrapper que sustituye delete se ejecuta sin saltarlo ni inventar ticket', async () => {
+		const { port } = buildFakePort();
+		const wrapped = withRevisions(port);
+		const deleteFn = vi.fn(async () => {});
+		expect(await deleteWithRecovery({ ...wrapped, delete: deleteFn }, 'posts', 'p1')).toBeNull();
+		expect(deleteFn).toHaveBeenCalledOnce();
+		expect(port.delete).not.toHaveBeenCalled();
+	});
+	test('delete fallido conserva el error original y compensa el snapshot', async () => {
+		const { port } = buildFakePort();
+		const error = VegaError.network();
+		vi.mocked(port.delete).mockImplementation(async (type) => {
+			if (type === 'posts') throw error;
+		});
+		await expect(deleteWithRecovery(withRevisions(port), 'posts', 'p1')).rejects.toBe(error);
+		expect(port.delete).toHaveBeenCalledWith('vega_revisions', 'newid');
 	});
 });

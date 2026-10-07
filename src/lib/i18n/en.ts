@@ -22,6 +22,14 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'nav.emptyBodyEditor': 'There is no content to edit yet. Talk to whoever manages the site.',
 
 	// ————— Home (`/`) —————
+	'home.revisions.title': 'Keep earlier versions and recover deleted records',
+	'home.revisions.body':
+		'Prepare history and trash for this site. You can consult earlier versions of your content.',
+	'home.revisions.limits': 'Attached files and links removed during deletion cannot be recovered.',
+	'home.revisions.demo': 'In this demo, changes last for this session.',
+	'home.revisions.prepare': 'Prepare history and trash',
+	'home.revisions.later': 'Not now',
+	'home.revisions.dismissHint': 'Dismissal is saved in this browser if its storage is available.',
 	'home.title': 'Home',
 	'home.create.title': 'Create',
 	'home.create.button': 'New: {label}',
@@ -1172,6 +1180,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'Attached files are not recovered, even if you restore the entry.',
 
 	// ————— Trash — /trash route —————
+	'revisions.trash.savedVersion': 'You can consult the saved version in trash.',
+	'revisions.trash.viewSaved': 'View in trash',
 	'revisions.trash.pageTitle': 'Trash',
 	'revisions.trash.description':
 		'Here are the items and files you have deleted. You can restore them as they were until the retention period set in Settings runs out.',
