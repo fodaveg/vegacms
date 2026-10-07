@@ -68,6 +68,16 @@ type WebhookRunner struct {
 	config WebhookConfig
 }
 
+// webhookResponseError preserves only the numeric status of an actual webhook response. Its
+// private type lets the extension distinguish this safe value from arbitrary Runner error text.
+type webhookResponseError struct {
+	statusCode int
+}
+
+func (e *webhookResponseError) Error() string {
+	return fmt.Sprintf("vegabuild: build webhook responded with status %d", e.statusCode)
+}
+
 // NewWebhookRunner validates config and returns a ready WebhookRunner.
 func NewWebhookRunner(config WebhookConfig) (*WebhookRunner, error) {
 	config, err := config.normalized()
@@ -94,9 +104,8 @@ func (r *WebhookRunner) Completes() bool { return false }
 // The error returned for anything other than a 2xx response (or for the call failing outright)
 // NEVER includes the URL, headers or body: URL/headers/body are exactly the credential this Runner
 // exists to keep away from Vega, and they do not belong in a log either. Only the HTTP status code
-// (or a generic "request failed") is safe to write down. Editors no longer see even that: the
-// extension answers a failed Start with a fixed text and sends this error to the server log only
-// (see startFailureMessage in vegabuild.go).
+// (or a generic "request failed") is safe to write down. The extension adds the numeric status
+// to its fixed editor-facing text only for an actual 4xx/5xx response (see startFailureText).
 func (r *WebhookRunner) Start(ctx context.Context, _ string, _ func(Result)) (Handoff, error) {
 	requestCtx, cancel := context.WithTimeout(ctx, r.config.Timeout)
 	defer cancel()
@@ -124,7 +133,7 @@ func (r *WebhookRunner) Start(ctx context.Context, _ string, _ func(Result)) (Ha
 	_, _ = io.Copy(io.Discard, response.Body)
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return Handoff{}, fmt.Errorf("vegabuild: build webhook responded with status %d", response.StatusCode)
+		return Handoff{}, &webhookResponseError{statusCode: response.StatusCode}
 	}
 
 	return Handoff{LogURL: r.config.LogURL}, nil

@@ -160,6 +160,9 @@
 			beginPolling();
 		} catch {
 			ctx.feedback.toast(ctx.t('topbar.publish.triggerError'), { kind: 'error' });
+			// El servidor puede haber cerrado el intento como fallido: consultar su detalle
+			// sanitizado también cuando /trigger rechaza, sin mostrar el error de la petición.
+			beginPolling();
 		} finally {
 			triggering = false;
 		}

@@ -301,6 +301,46 @@ describe('PublishButton.svelte', () => {
 		expect(button?.textContent).toContain('topbar.publish.unavailableOffline');
 	});
 
+	test('un trigger rechazado consulta el estado fallido y muestra solo el detalle sanitizado', async () => {
+		const idle: BuildStatus = {
+			state: 'idle',
+			startedAt: null,
+			finishedAt: null,
+			lastPublishedAt: null,
+			logUrl: null,
+			detail: null
+		};
+		const detail = 'the build could not be started; the server log has the reason (HTTP 500)';
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(jsonResponse(idle))
+			.mockResolvedValueOnce(
+				jsonResponse({ message: 'private-provider-token /opt/deploy.sh' }, 502)
+			)
+			.mockResolvedValue(jsonResponse({ ...idle, state: 'failed', detail }));
+		vi.stubGlobal('fetch', fetchMock);
+		const ctx = fakeCtx({ buildApiUrl: 'https://pb.test/api/vega-build' });
+		mounted = mountButton(ctx);
+		await flush();
+
+		const button = mounted.target.querySelector<HTMLButtonElement>('.vega-publish-trigger');
+		button?.click();
+		await flush();
+
+		expect(fetchMock.mock.calls[2]?.[0]).toBe('https://pb.test/api/vega-build/status');
+		expect(button?.getAttribute('data-state')).toBe('failed');
+		expect(button?.disabled).toBe(false);
+		expect(mounted.target.querySelector('.vega-publish-detail')?.textContent).toBe(detail);
+		expect(ctx.feedback.toast).toHaveBeenCalledWith('topbar.publish.triggerError', {
+			kind: 'error'
+		});
+		expect(mounted.target.textContent).not.toContain('private-provider-token');
+		expect(mounted.target.textContent).not.toContain('/opt/deploy.sh');
+		// El estado terminal detiene el ciclo; no queda un segundo sondeo inmediato pendiente.
+		await flush();
+		expect(fetchMock).toHaveBeenCalledTimes(3);
+	});
+
 	test('click en estado accionable dispara POST /trigger con el token de sesión en Authorization', async () => {
 		const idle: BuildStatus = {
 			state: 'idle',

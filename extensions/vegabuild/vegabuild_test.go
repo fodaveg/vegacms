@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -1026,6 +1027,120 @@ func TestUnauthenticatedRequestsAreRejected(t *testing.T) {
 	}
 	if response := doRequest(mux, http.MethodGet, "/api/vega-build/status", "", ""); response.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401 for /status without Authorization, got %d", response.Code)
+	}
+}
+
+// TestWebhookStartFailureExposesOnlyHTTPStatus exercises the real HTTP dispatch, both public
+// routes and persistence. Even an error response echoing the configured credentials stays private.
+func TestWebhookStartFailureExposesOnlyHTTPStatus(t *testing.T) {
+	for _, code := range []int{302, 399, 400, 403, 429, 500, 599, 600} {
+		t.Run(fmt.Sprintf("HTTP_%d", code), func(t *testing.T) {
+			const secret = "private-webhook-token"
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("X-Private", secret)
+				w.WriteHeader(code)
+				_, _ = io.WriteString(w, secret+" /opt/private/deploy.sh Authorization")
+			}))
+			defer server.Close()
+			runner, err := NewWebhookRunner(WebhookConfig{
+				URL:     server.URL + "/" + secret,
+				Headers: map[string]string{"Authorization": "Bearer " + secret},
+				Body:    secret,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			app := newTestApp(t)
+			extension, err := New(Config{
+				Runner:          runner,
+				AuthCollections: []string{"vega_editors"},
+				CallbackSecret:  "local-callback-secret",
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := extension.EnsureCollections(app); err != nil {
+				t.Fatal(err)
+			}
+			mux := newTestMux(t, app, extension)
+			token := newAuthToken(t, app)
+			trigger := doRequest(mux, http.MethodPost, "/api/vega-build/trigger", token, "")
+			if trigger.Code != http.StatusBadGateway {
+				t.Fatalf("expected a failed dispatch to return 502, got %d", trigger.Code)
+			}
+			var triggerBody struct {
+				Message string `json:"message"`
+			}
+			decodeJSON(t, trigger, &triggerBody)
+			message, detail := startFailureMessage, startFailureDetail
+			if code >= 400 && code <= 599 {
+				suffix := fmt.Sprintf(" (HTTP %d)", code)
+				message += suffix
+				detail += suffix
+			}
+			if !strings.EqualFold(strings.TrimRight(triggerBody.Message, "."), message) {
+				t.Fatalf("expected safe message %q, got %q", message, triggerBody.Message)
+			}
+			status := doRequest(mux, http.MethodGet, "/api/vega-build/status", token, "")
+			if status.Code != http.StatusOK {
+				t.Fatalf("expected status 200, got %d", status.Code)
+			}
+			var statusBody statusResponse
+			decodeJSON(t, status, &statusBody)
+			if statusBody.State != runStateFailed || statusBody.Detail == nil || *statusBody.Detail != detail {
+				t.Fatalf("expected failed state and safe detail %q, got %s", detail, status.Body.String())
+			}
+			stored, err := extension.currentRun(app)
+			if err != nil || stored == nil || stored.GetString("detail") != detail {
+				t.Fatalf("expected persisted safe detail %q, got %v, %v", detail, stored, err)
+			}
+			for name, exposed := range map[string]string{
+				"trigger": trigger.Body.String(), "status": status.Body.String(), "record": stored.GetString("detail"),
+			} {
+				for _, private := range []string{secret, server.URL, "/opt/private", "Authorization", "X-Private"} {
+					if strings.Contains(exposed, private) {
+						t.Errorf("%s exposes private webhook data %q", name, private)
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestWebhookFailureWithoutResponseKeepsFixedText checks that construction/transport failures
+// and arbitrary Runner errors mentioning an HTTP status cannot masquerade as a webhook response.
+func TestWebhookFailureWithoutResponseKeepsFixedText(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		connection, _, err := w.(http.Hijacker).Hijack()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		_ = connection.Close()
+	}))
+	defer server.Close()
+	for _, method := range []string{http.MethodPost, "invalid method"} {
+		t.Run(method, func(t *testing.T) {
+			runner, err := NewWebhookRunner(WebhookConfig{URL: server.URL + "/private-token", Method: method})
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = runner.Start(context.Background(), "run-1", func(Result) {})
+			if err == nil {
+				t.Fatal("expected dispatch to fail without an HTTP response")
+			}
+			if strings.Contains(err.Error(), "private-token") || strings.Contains(err.Error(), server.URL) {
+				t.Fatal("the Runner error exposes the configured URL")
+			}
+			message, detail := startFailureText(err)
+			if message != startFailureMessage || detail != startFailureDetail {
+				t.Fatalf("a failure without an HTTP response changed the fixed text: %q, %q", message, detail)
+			}
+		})
+	}
+	message, detail := startFailureText(errors.New("HTTP 500 private-token /opt/deploy.sh"))
+	if message != startFailureMessage || detail != startFailureDetail {
+		t.Fatal("arbitrary Runner error text must not supply an HTTP status")
 	}
 }
 

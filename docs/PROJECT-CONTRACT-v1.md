@@ -140,7 +140,11 @@ Returns `200` with:
   editor allowed to publish reads it, so an implementation must not put server
   paths, command lines, environment values or raw error text from its own
   tooling in it. The reference extension reports a build that could not even
-  be started with a fixed sentence and keeps the cause in the server log.
+  be started with a fixed sentence and keeps the cause in the server log. When
+  the webhook actually responds with HTTP `400`–`599`, it appends only that
+  numeric status to the fixed sentence, for example `(HTTP 500)`. Transport,
+  request-construction and command-start failures retain the fixed sentence;
+  webhook URLs, headers, response bodies and raw errors remain private.
 
 Vega never stores or exposes the real deploy webhook; the project's own
 backend owns that secret and decides how `/trigger` reaches it.
