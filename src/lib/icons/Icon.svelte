@@ -74,6 +74,11 @@
 		     representa "un registro"), para no confundir "abrir el registro" con "ver cómo queda". -->
 		<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z" />
 		<circle cx="12" cy="12" r="3" />
+	{:else if resolvedId === 'link'}
+		<!-- Cadena: enlace en las barras de richtext y Markdown, mismo trazo que el set. -->
+		<path
+			d="m10 14 4-4M8 16l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0M16 8l1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0"
+		/>
 	{:else if resolvedId === 'list'}
 		<line x1="8" y1="6" x2="21" y2="6" />
 		<line x1="8" y1="12" x2="21" y2="12" />
@@ -103,6 +108,12 @@
 	{:else if resolvedId === 'plus'}
 		<line x1="12" y1="5" x2="12" y2="19" />
 		<line x1="5" y1="12" x2="19" y2="12" />
+	{:else if resolvedId === 'publish'}
+		<!-- Cohete: publicar contenido o reconstruir el sitio; upload conserva subir ficheros. -->
+		<path
+			d="M8 16c-1-4 3-10 12-12 0 9-6 13-10 12l-2-2zM8 10H4l-2 5 6-1M14 16v4l-5 2 1-6M5 18l-2 3 4-1"
+		/>
+		<circle cx="15" cy="9" r="2" />
 	{:else if resolvedId === 'search'}
 		<circle cx="10" cy="10" r="6" />
 		<line x1="21" y1="21" x2="15" y2="15" />

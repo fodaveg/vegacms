@@ -233,7 +233,7 @@
 			onclick={handleTrigger}
 		>
 			<Icon
-				id={uiState === 'failed' || uiState === 'unavailable' ? 'warning' : 'upload'}
+				id={uiState === 'failed' || uiState === 'unavailable' ? 'warning' : 'publish'}
 				size={14}
 			/>
 			<span role="status">{label}</span>

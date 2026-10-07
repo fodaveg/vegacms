@@ -206,6 +206,11 @@
 	 *  truco que el `<h1>` oculto de `RecordForm`. */
 	let headingEl = $state<HTMLElement | null>(null);
 
+	/** Títulos vivos de los bloques sin guardar para la confirmación de publicación del padre. */
+	export function pendingBlockTitles(): readonly string[] {
+		return blocks.records.filter((record) => blocks.isDirty(record.id)).map(blocks.blockTitle);
+	}
+
 	/**
 	 * Despliega la fila del bloque `id` desde FUERA de la lista (lote 13: la acción «Bloque N · Tipo
 	 * › Campo» de un aviso de la revisión, en `RecordForm`). Hasta este lote solo lo hacía el propio

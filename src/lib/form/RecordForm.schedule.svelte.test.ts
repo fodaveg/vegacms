@@ -239,7 +239,9 @@ describe('RecordForm — estados del control junto a «Estado»', () => {
 		buttonIn(statusRow(w), 'Publicar ahora')!.click();
 		await vi.waitFor(async () => expect((await stored(w)).status).toBe('published'));
 		expect((await stored(w)).publishAt).toBeNull();
-		expect(w.toast).toHaveBeenLastCalledWith('Guardado.');
+		expect(w.toast).toHaveBeenLastCalledWith(
+			'Guardado. «Notas del huerto: octubre» pasa a «published».'
+		);
 		await tick();
 		expect(w.target.querySelector('.vega-schedule-overdue')).toBeNull();
 		expect(buttonIn(statusRow(w), 'Programar…')).toBeNull();
