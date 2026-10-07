@@ -109,7 +109,13 @@
 			// Si la reordenación saca al abierto de la página, ya conocemos su última versión:
 			// conservarla como extra evita perderlo o pisarlo con otro GET más antiguo.
 			const savedActive = pendingSaves.find((r) => r.id === activeId);
-			if (savedActive && !items.some((r) => r.id === savedActive.id)) {
+			if (activeId !== null && items.some((r) => r.id === activeId)) {
+				// La nueva página ya contiene al abierto: quitar el extra ANTES de publicar ready.
+				// Dejarlo al efecto de abajo duplica su key durante un render intermedio.
+				extra = null;
+				extraKey = null;
+				extraSequencer.next();
+			} else if (savedActive) {
 				extra = savedActive;
 				extraKey = `${type.name}:${savedActive.id}`;
 				extraSequencer.next();

@@ -256,4 +256,51 @@ describe('EditorRail.svelte — peticiones', () => {
 			expect(mounted.getFn).not.toHaveBeenCalled();
 		}
 	);
+
+	test('al entrar el abierto en la página reordenada no duplica su fila y conserva otros registros', async () => {
+		let resolveList!: (page: Page<VegaRecord>) => void;
+		const firstPage = Array.from({ length: 30 }, (_, index) =>
+			rec(`page${String(index + 1).padStart(2, '0')}`, `Página ${index + 1}`)
+		);
+		const outside = { ...rec('page60', 'Fuera'), values: { title: 'Fuera', sort: 60 } };
+		mounted = setup({
+			list: firstPage,
+			outside: [outside],
+			activeId: 'page60',
+			totalItems: 60,
+			type: makeType({ orderField: 'sort' })
+		});
+		await flush();
+		expect(mounted.titles()).toHaveLength(31);
+		expect(mounted.getFn).toHaveBeenCalledTimes(1);
+
+		mounted.listFn.mockImplementationOnce(() => new Promise((resolve) => (resolveList = resolve)));
+		mounted.props.savedRecord = { ...outside, values: { title: 'Reordenado', sort: 1 } };
+		await flush();
+		expect(mounted.listFn).toHaveBeenCalledTimes(2);
+		// La LIST ya leyó el estado anterior; llegan dos PATCH después, antes de liberarla.
+		mounted.props.savedRecord = { ...outside, values: { title: 'Intermedio', sort: 1 } };
+		await flush();
+		mounted.props.savedRecord = { ...outside, values: { title: 'Último guardado', sort: 1 } };
+		await flush();
+		const movedPage = [
+			{ ...outside, values: { title: 'Reordenado', sort: 1 } },
+			...firstPage
+				.slice(0, 29)
+				.map((record) => (record.id === 'page02' ? rec('page02', 'Otro actualizado') : record))
+		];
+		resolveList(pageOf(movedPage, 60));
+		await flush();
+
+		const rows = [...mounted.target.querySelectorAll('.vega-rail-items a')];
+		expect(rows.map((el) => el.getAttribute('href')?.split('/').at(-1))).toEqual(
+			movedPage.map((record) => record.id)
+		);
+		expect(rows[0].querySelector('.vega-rail-title')?.textContent).toBe('Último guardado');
+		expect(rows[2].querySelector('.vega-rail-title')?.textContent).toBe('Otro actualizado');
+		expect(
+			mounted.target.querySelector('[aria-current="true"] .vega-rail-title')?.textContent
+		).toBe('Último guardado');
+		expect(mounted.getFn).toHaveBeenCalledTimes(1);
+	});
 });
