@@ -34,6 +34,7 @@ export type ImportEntryStatus = 'create' | 'overwrite' | 'blocked';
 export type BlockedReason =
 	| { kind: 'no-create-permission' }
 	| { kind: 'no-update-permission' }
+	| { kind: 'required-relation-cycle' }
 	| { kind: 'dangling-relation'; field: string; targetId: RecordId }
 	/** Un campo `required` (de CUALQUIER tipo) llega vacío — o, caso especial de PocketBase, un
 	 *  `number` `required` llega con `0` (ver cabecera del módulo). Distinto de
@@ -238,11 +239,21 @@ export function outgoingRelationKeys(record: TransferRecord, fields: readonly Fi
  * de entrada.
  *
  * Una auto-referencia (A → A) y un ciclo (A → B → A) no tienen orden válido: ninguno de sus
- * miembros llega a quedarse sin dependencias pendientes. Esos nodos —y los que dependen de ellos—
- * van juntos en un ÚLTIMO nivel, sin más orden entre sí: el resultado es el mismo que antes
- * (se intentan todos y el que apunte a algo aún no escrito falla en su `create`/`update`).
+ * miembros llega a quedarse sin dependencias pendientes. Esta representación los agrupa en un
+ * último nivel. El import usa `partitionRelationLevels` para distinguir ese remanente y diferir
+ * sus relaciones opcionales; intentar escribirlo directamente no garantiza que los destinos existan.
  */
 export function levelByRelations<T>(nodes: readonly RelationNode<T>[]): T[][] {
+	const { levels, cyclic } = partitionRelationLevels(nodes);
+	return cyclic.length > 0 ? [...levels, cyclic] : levels;
+}
+
+/** Separa el remanente sin orden válido para que el import pueda diferir sus relaciones
+ * opcionales. `cyclic` incluye también los registros que dependen de ese remanente. */
+export function partitionRelationLevels<T>(nodes: readonly RelationNode<T>[]): {
+	levels: T[][];
+	cyclic: T[];
+} {
 	const inBatch = new Set(nodes.map((n) => n.key));
 	const pending = new Map<string, Set<string>>(
 		nodes.map((n) => [n.key, new Set(n.deps.filter((d) => inBatch.has(d)))])
@@ -252,13 +263,12 @@ export function levelByRelations<T>(nodes: readonly RelationNode<T>[]): T[][] {
 	while (remaining.length > 0) {
 		const ready = remaining.filter((n) => pending.get(n.key)!.size === 0);
 		if (ready.length === 0) {
-			levels.push(remaining.map((n) => n.item)); // ciclos / auto-referencias: ver arriba
-			break;
+			return { levels, cyclic: remaining.map((n) => n.item) };
 		}
 		const readyKeys = new Set(ready.map((n) => n.key));
 		remaining = remaining.filter((n) => !readyKeys.has(n.key));
 		for (const n of remaining) for (const k of readyKeys) pending.get(n.key)!.delete(k);
 		levels.push(ready.map((n) => n.item));
 	}
-	return levels;
+	return { levels, cyclic: [] };
 }

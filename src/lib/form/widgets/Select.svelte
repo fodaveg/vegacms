@@ -49,7 +49,9 @@
 	aria-invalid={error ? 'true' : undefined}
 	aria-describedby={describedBy}
 >
-	<option value="">{field.placeholder ?? ctx.t('form.select.empty')}</option>
+	<option value=""
+		>{field.placeholder?.trim() ? field.placeholder : ctx.t('form.select.empty')}</option
+	>
 	{#each schema?.options ?? [] as option (option)}
 		<option value={option}>{optionLabels?.[option] ?? option}</option>
 	{/each}

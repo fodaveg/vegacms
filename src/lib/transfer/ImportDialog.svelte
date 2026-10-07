@@ -215,14 +215,22 @@
 		// Sesión caducada (cerrado/reabierto/otro fichero): lo escrito en el backend ya está escrito,
 		// así que la tabla se refresca, pero el estado del diálogo ya es de OTRA sesión y no se toca.
 		if (mine !== session) {
-			if (result.createdCount + result.updatedCount > 0) onImported();
+			if (
+				result.createdCount + result.updatedCount > 0 ||
+				result.outcomes.some((o) => o.partialWrite)
+			)
+				onImported();
 			return;
 		}
 		report = result;
 		// Ya escrito: la vista previa (con todos los registros del fichero) no se vuelve a pintar.
 		preview = null;
 		phase = 'done';
-		if (report.createdCount + report.updatedCount > 0) onImported();
+		if (
+			report.createdCount + report.updatedCount > 0 ||
+			report.outcomes.some((o) => o.partialWrite)
+		)
+			onImported();
 		if (report.success) {
 			const total = report.createdCount + report.updatedCount;
 			ctx.feedback.toast(
@@ -267,6 +275,8 @@
 				return ctx.t('list.import.blockedReason.noCreatePermission');
 			case 'no-update-permission':
 				return ctx.t('list.import.blockedReason.noUpdatePermission');
+			case 'required-relation-cycle':
+				return ctx.t('list.import.blockedReason.requiredRelationCycle');
 			case 'dangling-relation':
 				return ctx.t('list.import.blockedReason.danglingRelation', { field: reason.field });
 			case 'required-empty':
@@ -453,7 +463,12 @@
 								{#each report.outcomes.filter((o) => o.status === 'failed') as outcome (outcome.type + outcome.id)}
 									<li class="vega-import-entry" data-status="failed">
 										<code>{outcome.type}/{outcome.id}</code>
-										<span class="vega-import-status">{outcome.error}</span>
+										<span class="vega-import-status">
+											{#if outcome.partialWrite === 'created'}
+												{ctx.t('list.import.report.relationsPending')}
+											{/if}
+											{outcome.error}
+										</span>
 									</li>
 								{/each}
 							</ul>

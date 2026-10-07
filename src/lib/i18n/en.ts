@@ -863,6 +863,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.import.report.summary':
 		'{created} created · {updated} updated · {failed} failed · {skipped} skipped',
 	'list.import.report.failedTitle': 'Items that failed',
+	'list.import.blockedReason.requiredRelationCycle':
+		'the required relations form a cycle that cannot be created in an empty destination',
+	'list.import.report.relationsPending':
+		'The item was created, but its relations are still pending. Import the file again and confirm updating existing items.',
 	// Same "two keys, no generic plural" idiom as `list.export.success.*` above.
 	'list.import.success.one': 'Imported 1 item.',
 	'list.import.success.many': 'Imported {count} items.',

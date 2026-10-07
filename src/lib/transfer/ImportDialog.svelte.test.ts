@@ -121,6 +121,53 @@ async function settle() {
 }
 
 describe('ImportDialog — sesión de importación', () => {
+	test('creación parcial refresca la lista, informa relaciones pendientes y nunca anuncia éxito', async () => {
+		mocks.buildImportPreview.mockResolvedValueOnce(previewOf('parcial'));
+		mocks.runImport.mockResolvedValueOnce({
+			outcomes: [
+				{
+					type: 'posts',
+					id: 'parcial',
+					status: 'failed',
+					partialWrite: 'created',
+					error: 'rechazado'
+				}
+			],
+			createdCount: 0,
+			updatedCount: 0,
+			failedCount: 1,
+			skippedCount: 0,
+			success: false
+		} satisfies ImportReport);
+		const { target } = mountDialog();
+		await pickFile(target, 'ciclo.vega.json');
+		target.querySelector<HTMLButtonElement>('.vega-import-confirm-button')!.click();
+		await settle();
+		expect(onImported).toHaveBeenCalledTimes(1);
+		expect(target.textContent).toContain('0 creados · 0 actualizados · 1 con error');
+		expect(target.textContent).toContain('sus relaciones quedaron pendientes');
+		expect(toast).toHaveBeenCalledWith(expect.any(String), { kind: 'error' });
+		expect(toast).not.toHaveBeenCalledWith(expect.any(String), { kind: 'success' });
+	});
+
+	test('un ciclo obligatorio se explica en preview y no ofrece importar', async () => {
+		const preview = previewOf('ciclo');
+		preview.collections[0].entries[0] = {
+			id: 'ciclo',
+			status: 'blocked',
+			reasons: [{ kind: 'required-relation-cycle' }]
+		};
+		mocks.buildImportPreview.mockResolvedValueOnce(preview);
+		const { target } = mountDialog();
+		await pickFile(target, 'ciclo.vega.json');
+		await settle();
+		expect(target.textContent).toContain('relaciones obligatorias forman un ciclo');
+		expect(
+			target.querySelector<HTMLButtonElement>('.vega-import-confirm-button')?.disabled ?? true
+		).toBe(true);
+		expect(mocks.runImport).not.toHaveBeenCalled();
+	});
+
 	test('cerrar durante `running`, reabrir y cargar otro fichero: la escritura vieja NO pisa la sesión nueva', async () => {
 		const firstRun = deferred<ImportReport>();
 		mocks.buildImportPreview

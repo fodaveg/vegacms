@@ -936,6 +936,10 @@ export const es = {
 	'list.import.report.summary':
 		'{created} creados · {updated} actualizados · {failed} con error · {skipped} omitidos',
 	'list.import.report.failedTitle': 'Elementos que fallaron',
+	'list.import.blockedReason.requiredRelationCycle':
+		'las relaciones obligatorias forman un ciclo que no se puede crear en un destino vacío',
+	'list.import.report.relationsPending':
+		'El elemento se creó, pero sus relaciones quedaron pendientes. Vuelve a importar el archivo y confirma la actualización de los elementos existentes.',
 	// Mismo criterio "dos claves, no plural genérico" que `list.export.success.*` de arriba.
 	'list.import.success.one': 'Se ha importado 1 elemento.',
 	'list.import.success.many': 'Se han importado {count} elementos.',

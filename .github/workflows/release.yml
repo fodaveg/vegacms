@@ -2,20 +2,25 @@ name: Release
 
 # P8·F2: workflow de release, disparado SOLO por push de un tag `v*` (nunca por push a `main` ni
 # por PR — es lo que hace SEGURO mergear este fichero: hasta que alguien empuje un tag, no
-# dispara nada). Publica un `.zip` determinista de `build/` como asset de un GitHub Release.
+# dispara nada). Publica un `.zip` determinista de `build/` con checksum y procedencia verificable.
 on:
   push:
     tags:
       - 'v*'
 
+permissions:
+  contents: read
+
 jobs:
   release:
     runs-on: ubuntu-latest
-    # Mínimo privilegio: `gh release create` necesita escritura sobre el repo (crear el release +
-    # subir el asset), pero SOLO este job — `permissions` a nivel de job, no de workflow, para que
-    # `pb-contract-matrix` (que solo corre tests) herede el default de solo lectura.
+    # El candidato solo puede leer código y registrar la procedencia de sus artefactos.
     permissions:
-      contents: write
+      contents: read
+      id-token: write
+      attestations: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     # El release NO se publica hasta que la matriz de contrato PB (mínimo 0.26.0 D-P1.3 + pineada
     # 0.39.9) esté verde: publicar un asset cuyo `package.json` promete `>=0.26.0` sin haber
     # ejercido nunca ese mínimo sería mentir en el metadato. `needs` serializa el orden.
@@ -23,9 +28,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
 
       - name: Setup Node
         uses: actions/setup-node@v5
@@ -44,8 +51,9 @@ jobs:
       # el tag que disparó el workflow (`v0.1.0`) debe casar EXACTAMENTE con `package.json#version`
       # (`0.1.0`). Fallar aquí en segundos —en vez de tras minutos de gate/Playwright— si alguien
       # olvidó bumpear la versión antes del tag. `VERSION` se exporta a `$GITHUB_ENV` para los pasos
-      # de empaquetado/publicación de más abajo (evita repetir el `node -p` en cada uno).
+      # de empaquetado y como salida validada para el job de publicación.
       - name: Verificar que el tag coincide con package.json#version
+        id: version
         run: |
           VERSION=$(node -p "require('./package.json').version")
           TAG="${GITHUB_REF_NAME}"
@@ -55,13 +63,10 @@ jobs:
             exit 1
           fi
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      # MISMA disciplina que el guard de arriba, por la misma razón: el paso de publicación lee las
-      # notas de `.github/release-notes/$GITHUB_REF_NAME.md` con `--notes-file`, y si el fichero no
-      # existe `gh release create` falla en el cliente —limpiamente, sin dejar media release— pero
-      # LO ÚLTIMO DE TODO: después de la matriz de contrato, del gate con Playwright y del doble
-      # empaquetado determinista. Comprobar aquí que el fichero existe cuesta un segundo y convierte
-      # ese "olvidé escribir las notas" en un fallo inmediato en vez de en diez minutos tirados.
+      # Las notas se leen en `publish`; comprobarlas antes del gate evita gastar el runner en un
+      # candidato que de todos modos no se podría publicar.
       - name: Verificar que existen las notas de la release
         run: |
           NOTES=".github/release-notes/${GITHUB_REF_NAME}.md"
@@ -141,11 +146,84 @@ jobs:
           fi
           echo "Empaquetado determinista verificado (sha256=$SUM_A)."
 
+      - name: Crear SHA256SUMS del candidato
+        run: |
+          sha256sum "vega-$VERSION.zip" > SHA256SUMS
+          sha256sum --check SHA256SUMS
+
+      - name: Atestar zip y SHA256SUMS
+        id: attest
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            vega-*.zip
+            SHA256SUMS
+
+      - name: Preparar bundle de atestación
+        env:
+          BUNDLE_PATH: ${{ steps.attest.outputs.bundle-path }}
+        run: cp "$BUNDLE_PATH" "vega-$VERSION.sigstore.json"
+
+      - name: Subir candidato validado
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-candidate
+          if-no-files-found: error
+          path: |
+            vega-*.zip
+            SHA256SUMS
+            vega-*.sigstore.json
+
+  # Solo este job recibe escritura: publica los bytes exactos que superaron matriz, gate,
+  # determinismo y atestación en `release`. No instala dependencias ni reconstruye el candidato.
+  publish:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout de las notas de release
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Descargar candidato validado
+        uses: actions/download-artifact@v4
+        with:
+          name: release-candidate
+          path: release-candidate
+
+      - name: Verificar candidato antes de publicar
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.release.outputs.version }}
+        working-directory: release-candidate
+        run: |
+          test -f "vega-$VERSION.zip"
+          test -f SHA256SUMS
+          test -f "vega-$VERSION.sigstore.json"
+          test "$(find . -maxdepth 1 -type f | wc -l)" -eq 3
+          test "$(wc -l < SHA256SUMS)" -eq 1
+          test "$(cat SHA256SUMS)" = "$(sha256sum "vega-$VERSION.zip")"
+          sha256sum --check SHA256SUMS
+          gh attestation verify "vega-$VERSION.zip" -R "$GITHUB_REPOSITORY" \
+            --bundle "vega-$VERSION.sigstore.json" \
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" \
+            --source-digest "$GITHUB_SHA" --source-ref "$GITHUB_REF"
+          gh attestation verify SHA256SUMS -R "$GITHUB_REPOSITORY" \
+            --bundle "vega-$VERSION.sigstore.json" \
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" \
+            --source-digest "$GITHUB_SHA" --source-ref "$GITHUB_REF"
+
       - name: Publicar GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.release.outputs.version }}
         run: |
-          gh release create "$GITHUB_REF_NAME" "vega-$VERSION.zip" \
+          gh release create "$GITHUB_REF_NAME" \
+            "release-candidate/vega-$VERSION.zip" \
+            release-candidate/SHA256SUMS \
+            "release-candidate/vega-$VERSION.sigstore.json" \
             --title "Vega $GITHUB_REF_NAME" \
             --notes-file ".github/release-notes/$GITHUB_REF_NAME.md"
 
@@ -166,9 +244,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
 
       - name: Setup Node
         uses: actions/setup-node@v5

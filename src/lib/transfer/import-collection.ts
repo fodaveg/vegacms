@@ -13,7 +13,7 @@
  */
 
 import type { BackendPort } from '$lib/backend/port';
-import type { Field, RecordId } from '$lib/backend/types';
+import type { Field, RecordId, RecordInput } from '$lib/backend/types';
 import { MAX_PER_PAGE } from '$lib/backend/query';
 import type { ResolvedContentType } from '$lib/model/types';
 import type { ResolvedImportCollection } from './import-format';
@@ -27,7 +27,7 @@ import { fetchTransferFile } from './import-media';
 import {
 	classifyCollectionImport,
 	isNonEmpty,
-	levelByRelations,
+	partitionRelationLevels,
 	outgoingRelationKeys,
 	relationKey,
 	type ImportEntry,
@@ -256,12 +256,14 @@ export async function buildImportPreview(
 	]);
 
 	const result: ImportCollectionPreview[] = [];
+	const existingKeys = new Set<string>();
 	for (const { collection, contentType } of collections) {
 		const existingIds = await resolveExistingIds(
 			port.list,
 			collection.type,
 			collection.records.map((r) => r.id)
 		);
+		for (const id of existingIds) existingKeys.add(relationKey(collection.type, id));
 		const entries = classifyCollectionImport({
 			contentType,
 			records: collection.records,
@@ -272,6 +274,41 @@ export async function buildImportPreview(
 		});
 		result.push({ type: collection.type, contentType, records: collection.records, entries });
 	}
+	const plan = planWrites(writeTasks(result));
+	for (const task of plan.blocked) {
+		if (plan.requiredBlocked.has(task)) {
+			task.entry.status = 'blocked';
+			task.entry.reasons.push({ kind: 'required-relation-cycle' });
+		} else if (!task.collection.contentType.permissions.update) {
+			task.entry.status = 'blocked';
+			task.entry.reasons.push({ kind: 'no-update-permission' });
+		}
+	}
+	// Un destino nuevo BLOQUEADO tampoco existirá al escribir sus dependientes. Propagar hasta
+	// estabilizar; un registro bloqueado que YA existe sigue siendo un destino válido.
+	let changed: boolean;
+	do {
+		changed = false;
+		const unavailable = new Set(
+			result.flatMap((c) =>
+				c.entries
+					.filter((e) => e.status === 'blocked' && !existingKeys.has(relationKey(c.type, e.id)))
+					.map((e) => relationKey(c.type, e.id))
+			)
+		);
+		for (const task of writeTasks(result)) {
+			for (const field of task.collection.contentType.schema.fields) {
+				if (field.type !== 'relation' || field.readonly) continue;
+				const value = task.record.values[field.name];
+				for (const id of Array.isArray(value) ? value : [value]) {
+					if (typeof id !== 'string' || !unavailable.has(relationKey(field.target, id))) continue;
+					task.entry.status = 'blocked';
+					task.entry.reasons.push({ kind: 'dangling-relation', field: field.name, targetId: id });
+					changed = true;
+				}
+			}
+		}
+	} while (changed);
 	return { collections: result };
 }
 
@@ -283,8 +320,11 @@ export interface ImportOutcome {
 	status: ImportOutcomeStatus;
 	/** Solo con `status: 'failed'`: mensaje humano del error que rechazó la escritura. */
 	error?: string;
+	/** El registro se creó, pero falló enlazar las relaciones diferidas. Sigue siendo `failed`;
+	 * el consumidor debe refrescar la lista y el reintento requiere una vista previa nueva. */
+	partialWrite?: 'created';
 	/** Nombres de campo `file` que no se pudieron traer y entraron vacíos (§4.4) — presente solo en
-	 *  un `created`/`updated` con éxito (un `failed` no llegó a escribir nada). */
+	 *  un `created`/`updated` con éxito o una creación parcial. */
 	missingFiles?: string[];
 }
 
@@ -322,6 +362,93 @@ interface WriteTask {
 	collection: ImportCollectionPreview;
 	record: TransferRecord;
 	entry: ImportEntry;
+	/** Solo en creaciones cíclicas: se escriben tras crear todos los destinos posibles. */
+	deferredRelations?: RecordInput;
+}
+
+function writeTasks(collections: readonly ImportCollectionPreview[]): WriteTask[] {
+	return collections.flatMap((collection) => {
+		const records = new Map(collection.records.map((r) => [r.id, r]));
+		return collection.entries.flatMap((entry) => {
+			const record = records.get(entry.id);
+			return entry.status !== 'blocked' && record ? [{ collection, record, entry }] : [];
+		});
+	});
+}
+
+/** Primero conserva el orden acíclico normal. Solo el remanente necesita dos fases: crear
+ * manteniendo sus relaciones obligatorias, y enlazar las opcionales que aún no existen.
+ * Los PISA nunca pierden relaciones: se escriben enteros una vez creados sus destinos. */
+function planWrites(tasks: readonly WriteTask[]): {
+	levels: WriteTask[][];
+	blocked: WriteTask[];
+	requiredBlocked: Set<WriteTask>;
+} {
+	const newKeys = new Set(
+		tasks
+			.filter((t) => t.entry.status === 'create')
+			.map((t) => relationKey(t.collection.type, t.record.id))
+	);
+	const canDefer = (task: WriteTask) =>
+		task.entry.status === 'create' && task.collection.contentType.permissions.update;
+	const node = (
+		task: WriteTask,
+		mode: 'all' | 'required' | 'nondeferrable' = 'all'
+	): RelationNode<WriteTask> => ({
+		item: task,
+		key: relationKey(task.collection.type, task.record.id),
+		deps: outgoingRelationKeys(
+			task.record,
+			task.collection.contentType.schema.fields.filter(
+				(f) =>
+					!f.readonly &&
+					(mode === 'all' ||
+						task.entry.status !== 'create' ||
+						f.required ||
+						(mode === 'nondeferrable' && !canDefer(task)))
+			)
+		).filter((key) => newKeys.has(key))
+	});
+	const ordered = partitionRelationLevels(tasks.map((task) => node(task)));
+	if (ordered.cyclic.length === 0)
+		return { levels: ordered.levels, blocked: [], requiredBlocked: new Set() };
+	const unresolvedKeys = new Set(
+		ordered.cyclic.map((t) => relationKey(t.collection.type, t.record.id))
+	);
+	// Sin permiso update, incluso una relación opcional debe estar completa al crear.
+	const hard = partitionRelationLevels(ordered.cyclic.map((task) => node(task, 'nondeferrable')));
+	const requiredBlocked = new Set(
+		partitionRelationLevels(ordered.cyclic.map((task) => node(task, 'required'))).cyclic
+	);
+	const levels = hard.levels.map((level) => {
+		const planned = level.map((task) => {
+			if (!canDefer(task)) return task;
+			const values = { ...task.record.values };
+			const deferredRelations: RecordInput = {};
+			for (const field of task.collection.contentType.schema.fields) {
+				if (field.type !== 'relation' || field.required || field.readonly) continue;
+				if (
+					!outgoingRelationKeys(task.record, [field]).some(
+						(key) => newKeys.has(key) && unresolvedKeys.has(key)
+					)
+				)
+					continue;
+				deferredRelations[field.name] = values[field.name] as RecordInput[string];
+				delete values[field.name];
+			}
+			return Object.keys(deferredRelations).length === 0
+				? task
+				: {
+						...task,
+						record: { ...task.record, values },
+						deferredRelations
+					};
+		});
+		for (const task of level)
+			unresolvedKeys.delete(relationKey(task.collection.type, task.record.id));
+		return planned;
+	});
+	return { levels: [...ordered.levels, ...levels], blocked: hard.cyclic, requiredBlocked };
 }
 
 /** Cuántos registros pendientes de escribir usan cada `url` de fichero (una entrada por uso). */
@@ -396,7 +523,7 @@ async function runPool(
 	tasks: readonly WriteTask[],
 	fetchFile: ReleasableFileFetcher,
 	fileUses: FileUses,
-	onSettled: () => void
+	onSettled: (outcome: ImportOutcome, task: WriteTask) => void
 ): Promise<ImportOutcome[]> {
 	const outcomes = new Array<ImportOutcome>(tasks.length);
 	let next = 0;
@@ -414,7 +541,7 @@ async function runPool(
 					error: err instanceof Error ? err.message : 'Error inesperado al escribir el registro'
 				};
 			}
-			onSettled();
+			onSettled(outcomes[index], task);
 		}
 	}
 	await Promise.all(
@@ -425,12 +552,13 @@ async function runPool(
 
 /**
  * Escribe `preview` (§4.3): agrupa las entradas escribibles (CREA + PISA confirmado) de TODAS las
- * colecciones en NIVELES GLOBALES por orden topológico (`levelByRelations`) — un nivel no arranca
+ * colecciones en NIVELES GLOBALES por orden topológico (`planWrites`) — un nivel no arranca
  * hasta que el anterior TERMINA entero (con éxito o no). DENTRO de cada nivel las escrituras van
  * por un pool de `IMPORT_WRITE_CONCURRENCY` y cada fichero se suelta de la caché del
  * fetcher cuando termina el ÚLTIMO registro que lo usa. Sin transacción (PocketBase no la expone al cliente): cada registro se intenta con
- * `writeOne`, que nunca deja escapar un fallo — el informe final dice qué entró y qué no,
- * `success` nunca es `true` si algo falló.
+ * `writeOne`, que nunca deja escapar un fallo. En ciclos opcionales crea primero conservando ids,
+ * luego enlaza solo sus relaciones diferidas. Un fallo al enlazar informa creación parcial;
+ * `success` nunca es `true` si algo falló, y no se vacía ni borra un registro existente.
  */
 export async function runImport(
 	port: ImportPort,
@@ -438,46 +566,16 @@ export async function runImport(
 	options: RunImportOptions,
 	fetchFile: ReleasableFileFetcher = fetchTransferFile
 ): Promise<ImportReport> {
-	let skippedCount = 0;
-	const nodes: RelationNode<WriteTask>[] = [];
-
-	for (const collection of preview.collections) {
-		const recordsById = new Map(collection.records.map((r) => [r.id, r]));
-		const writableEntries = collection.entries.filter((entry) => {
-			if (entry.status === 'blocked') {
-				skippedCount += 1;
-				return false;
-			}
-			if (entry.status === 'overwrite' && !options.overwriteConfirmed) {
-				skippedCount += 1;
-				return false;
-			}
-			return true;
-		});
-		const entryById = new Map(writableEntries.map((e) => [e.id, e]));
-		const writableRecords = writableEntries
-			.map((entry) => recordsById.get(entry.id))
-			.filter((record): record is TransferRecord => record !== undefined);
-
-		for (const record of writableRecords) {
-			const task = { collection, record, entry: entryById.get(record.id)! };
-			nodes.push({
-				item: task,
-				key: relationKey(collection.type, record.id),
-				deps: outgoingRelationKeys(record, collection.contentType.schema.fields)
-			});
-		}
-	}
-
-	// Niveles en serie: cada uno solo depende de los anteriores (ver `levelByRelations`), así que
-	// una relación saliente se escribe siempre después de su destino aunque ambos estén en el
-	// fichero. Dentro de un nivel, el pool concurrente.
-	const levels = levelByRelations(nodes);
+	const tasks = writeTasks(preview.collections).filter(
+		(task) => task.entry.status !== 'overwrite' || options.overwriteConfirmed
+	);
+	const skippedCount = preview.collections.reduce((n, c) => n + c.entries.length, 0) - tasks.length;
+	const plan = planWrites(tasks);
 	const fileUses: FileUses = new Map();
-	for (const { item } of nodes) {
-		for (const url of recordFileUrls(item.record)) fileUses.set(url, (fileUses.get(url) ?? 0) + 1);
+	for (const task of tasks) {
+		for (const url of recordFileUrls(task.record)) fileUses.set(url, (fileUses.get(url) ?? 0) + 1);
 	}
-	const total = nodes.length;
+	const total = tasks.length;
 	let done = 0;
 	const tick = () => {
 		done += 1;
@@ -485,8 +583,43 @@ export async function runImport(
 	};
 	options.onProgress?.({ done: 0, total });
 	const outcomes: ImportOutcome[] = [];
-	for (const level of levels)
-		outcomes.push(...(await runPool(port, level, fetchFile, fileUses, tick)));
+	const pending: { task: WriteTask; outcome: ImportOutcome }[] = [];
+	for (const task of plan.blocked) {
+		outcomes.push({
+			type: task.collection.type,
+			id: task.record.id,
+			status: 'failed',
+			error: plan.requiredBlocked.has(task)
+				? 'No se puede crear un ciclo de relaciones obligatorias.'
+				: 'No se puede enlazar este ciclo con los permisos de actualización disponibles.'
+		});
+		releaseRecordFiles(task.record, fetchFile, fileUses);
+		tick();
+	}
+	for (const level of plan.levels) {
+		outcomes.push(
+			...(await runPool(port, level, fetchFile, fileUses, (outcome, task) => {
+				if (task.deferredRelations && outcome.status === 'created') pending.push({ task, outcome });
+				else tick();
+			}))
+		);
+	}
+	// La segunda fase solo manda relaciones: no reenvía ficheros ni valores de contenido.
+	const links = pending.map(({ task }) => ({
+		...task,
+		record: { id: task.record.id, values: task.deferredRelations as TransferRecord['values'] },
+		entry: { ...task.entry, status: 'overwrite' as const },
+		deferredRelations: undefined
+	}));
+	const linked = await runPool(port, links, fetchFile, new Map(), tick);
+	for (let i = 0; i < pending.length; i++) {
+		const outcome = pending[i].outcome;
+		if (linked[i].status === 'failed') {
+			outcome.status = 'failed';
+			outcome.partialWrite = 'created';
+			outcome.error = linked[i].error;
+		}
+	}
 
 	const createdCount = outcomes.filter((o) => o.status === 'created').length;
 	const updatedCount = outcomes.filter((o) => o.status === 'updated').length;

@@ -36,7 +36,8 @@
 	 * mismo rechazo, así que ahí el enlace no se pinta — sería una acción falsa, misma doctrina que
 	 * omitir botones que no hacen nada. El `File` original se recuerda por índice (`batchFiles`,
 	 * paralelo a `uploadState.items`, que `start()` construye con `files.map`) porque el estado del
-	 * lote guarda nombre y estado, nunca los bytes.
+	 * lote guarda nombre y estado, nunca los bytes. El reintento conserva el resto de las celdas
+	 * y su estado, incluido el que ya se subió o fue rechazado.
 	 *
 	 * **Sesión caducada a mitad de lote**: el estado corta el lote y deja los ficheros no subidos en
 	 * `pending` (no `error`); con el lote parado, su "reintentar" (`handleResume`) reanuda todos los pendientes a la vez, y el toast
@@ -152,13 +153,12 @@
 		input.value = '';
 	}
 
-	/** "Reintentar" de un fichero que falló CONTRA EL BACKEND (ver cabecera): arranca un lote nuevo
-	 *  con solo ese fichero — la lista pasa a mostrar ese único ítem, que es justo lo que el usuario
-	 *  está mirando en ese momento. */
+	/** "Reintentar" de un fichero que falló CONTRA EL BACKEND: reintenta ese mismo ítem
+	 *  conservando el resto del lote y la alineación con `batchFiles`. */
 	function handleRetry(index: number): void {
 		const file = batchFiles[index];
 		if (!file) return;
-		handleFiles([file]);
+		void uploadState.retry(ctx, index, file, onUploaded, reportSummary);
 	}
 
 	/** "Reintentar" de un fichero `pending` con el lote parado (sesión caducada, ver cabecera):

@@ -14,8 +14,9 @@
 	 * widgets de texto; los navegadores no lo pintan sobre `datetime-local`, pero queda en el DOM
 	 * para quien sí lo use, p.ej. un `Datetime` sin soporte nativo). `min`/`max` NO son del manifiesto:
 	 * son del campo `date` del esquema (`Field.min`/`Field.max`, ISO UTC) y se pasan por la misma
-	 * conversión a hora de pared que el valor — así el selector nativo no ofrece fechas que el
-	 * backend rechazará, y la validación nativa del `<form>` las marca.
+	 * conversión a hora de pared que el valor. Si el valor ACTUAL (cargado o editado) queda fuera
+	 * del rango, se omite solo el límite infringido: la validación nativa impediría el submit antes
+	 * de que Vega pueda mostrar el error de campo devuelto por el backend.
 	 */
 	import type { WidgetProps } from './types';
 	import { fieldIds } from '../field-ids';
@@ -33,11 +34,18 @@
 	);
 	const inert = $derived(disabled || readonly);
 	const dateSchema = $derived(field.schema.type === 'date' ? field.schema : null);
+	const valueTime = $derived(typeof value === 'string' ? Date.parse(value) : NaN);
+	const belowMin = $derived(
+		dateSchema?.min !== undefined && valueTime < Date.parse(dateSchema.min)
+	);
+	const aboveMax = $derived(
+		dateSchema?.max !== undefined && valueTime > Date.parse(dateSchema.max)
+	);
 	const minLocal = $derived(
-		dateSchema?.min ? isoUtcToLocalInput(dateSchema.min) || undefined : undefined
+		dateSchema?.min && !belowMin ? isoUtcToLocalInput(dateSchema.min) || undefined : undefined
 	);
 	const maxLocal = $derived(
-		dateSchema?.max ? isoUtcToLocalInput(dateSchema.max) || undefined : undefined
+		dateSchema?.max && !aboveMax ? isoUtcToLocalInput(dateSchema.max) || undefined : undefined
 	);
 	const localValue = $derived(typeof value === 'string' ? isoUtcToLocalInput(value) : '');
 

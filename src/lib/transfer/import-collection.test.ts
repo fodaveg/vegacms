@@ -642,3 +642,204 @@ describe('createCachingFileFetcher', () => {
 		expect(calls).toBe(1);
 	});
 });
+
+describe('runImport: relaciones cíclicas en dos fases', () => {
+	it('corta el ciclo por la colección que permite update; la otra se crea con su relación completa', async () => {
+		const { port, writes } = fakePort({ a: [], b: [] });
+		const preview = await buildImportPreview(port, [
+			collection(
+				contentType('a', [relation('b')], { permissions: { ...ALL_PERMISSIONS, update: false } }),
+				[record('a1', { ref: 'b1' })]
+			),
+			collection(contentType('b', [relation('a')]), [record('b1', { ref: 'a1' })])
+		]);
+		expect(preview.collections.flatMap((c) => c.entries.map((e) => e.status))).toEqual([
+			'create',
+			'create'
+		]);
+		expect(await runImport(port, preview, { overwriteConfirmed: false })).toMatchObject({
+			success: true,
+			createdCount: 2,
+			failedCount: 0
+		});
+		expect(writes).toEqual([
+			{ op: 'create', type: 'b', id: 'b1', data: {} },
+			{ op: 'create', type: 'a', id: 'a1', data: { ref: 'b1' } },
+			{ op: 'update', type: 'b', id: 'b1', data: { ref: 'a1' } }
+		]);
+	});
+
+	function collection(
+		type: ResolvedContentType,
+		records: TransferRecord[]
+	): ResolvedImportCollection {
+		return { contentType: type, collection: { type: type.name, records } };
+	}
+	const relation = (target: string, required = false) =>
+		field({ name: 'ref', type: 'relation', target, required, multiple: false });
+
+	it('ciclo entre colecciones con el mismo id conserva claves compuestas y required al crear', async () => {
+		const { port, writes } = fakePort({ a: [], b: [] });
+		const preview = await buildImportPreview(port, [
+			collection(contentType('a', [relation('b')]), [record('same', { ref: 'same' })]),
+			collection(contentType('b', [relation('a', true)]), [record('same', { ref: 'same' })])
+		]);
+		const progress: number[] = [];
+		const report = await runImport(port, preview, {
+			overwriteConfirmed: false,
+			onProgress: ({ done }) => progress.push(done)
+		});
+		expect(writes).toEqual([
+			{ op: 'create', type: 'a', id: 'same', data: {} },
+			{ op: 'create', type: 'b', id: 'same', data: { ref: 'same' } },
+			{ op: 'update', type: 'a', id: 'same', data: { ref: 'same' } }
+		]);
+		expect(report).toMatchObject({
+			success: true,
+			createdCount: 2,
+			updatedCount: 0,
+			failedCount: 0
+		});
+		expect(progress).toEqual([0, 1, 2]);
+	});
+
+	it('ciclos required y sus dependientes quedan bloqueados antes de cualquier escritura', async () => {
+		const { port, writes } = fakePort({ a: [], b: [] });
+		const preview = await buildImportPreview(port, [
+			collection(contentType('a', [relation('a', true)]), [
+				record('x', { ref: 'y' }),
+				record('y', { ref: 'x' })
+			]),
+			collection(contentType('b', [relation('a')]), [record('z', { ref: 'x' })])
+		]);
+		expect(preview.collections[0].entries.every((e) => e.status === 'blocked')).toBe(true);
+		expect(preview.collections[1].entries[0]).toMatchObject({
+			status: 'blocked',
+			reasons: [{ kind: 'dangling-relation', field: 'ref', targetId: 'x' }]
+		});
+		expect(await runImport(port, preview, { overwriteConfirmed: true })).toMatchObject({
+			createdCount: 0,
+			skippedCount: 3
+		});
+		expect(writes).toEqual([]);
+	});
+
+	it('un ciclo opcional sin permiso update se bloquea: no crea un registro que no pueda enlazar', async () => {
+		const { port, writes } = fakePort({ a: [] });
+		const type = contentType('a', [relation('a')], {
+			permissions: { ...ALL_PERMISSIONS, update: false }
+		});
+		const preview = await buildImportPreview(port, [collection(type, [record('x', { ref: 'x' })])]);
+		expect(preview.collections[0].entries[0]).toEqual({
+			id: 'x',
+			status: 'blocked',
+			reasons: [{ kind: 'no-update-permission' }]
+		});
+		await runImport(port, preview, { overwriteConfirmed: false });
+		expect(writes).toEqual([]);
+	});
+
+	it('un ciclo opcional sin ningún corte permitido se bloquea por permisos, no por required', async () => {
+		const { port, writes } = fakePort({ a: [], b: [] });
+		const permissions = { ...ALL_PERMISSIONS, update: false };
+		const preview = await buildImportPreview(port, [
+			collection(contentType('a', [relation('b')], { permissions }), [record('a1', { ref: 'b1' })]),
+			collection(contentType('b', [relation('a')], { permissions }), [record('b1', { ref: 'a1' })])
+		]);
+		expect(preview.collections.flatMap((c) => c.entries)).toEqual([
+			{ id: 'a1', status: 'blocked', reasons: [{ kind: 'no-update-permission' }] },
+			{ id: 'b1', status: 'blocked', reasons: [{ kind: 'no-update-permission' }] }
+		]);
+		expect(await runImport(port, preview, { overwriteConfirmed: false })).toMatchObject({
+			skippedCount: 2,
+			createdCount: 0
+		});
+		expect(writes).toEqual([]);
+	});
+
+	it('un destino existente rompe el ciclo; PISA conserva todas las relaciones en una única escritura', async () => {
+		const { port, writes } = fakePort({ a: ['old'] });
+		const preview = await buildImportPreview(port, [
+			collection(contentType('a', [relation('a', true)]), [
+				record('old', { ref: 'new' }),
+				record('new', { ref: 'old' })
+			])
+		]);
+		expect(await runImport(port, preview, { overwriteConfirmed: true })).toMatchObject({
+			createdCount: 1,
+			updatedCount: 1,
+			failedCount: 0
+		});
+		expect(writes).toEqual([
+			{ op: 'create', type: 'a', id: 'new', data: { ref: 'old' } },
+			{ op: 'update', type: 'a', id: 'old', data: { ref: 'new' } }
+		]);
+	});
+
+	it('fallo de la primera fase no dispara PATCH sobre el id que no pudo crearse', async () => {
+		const { port, writes, failingIds } = fakePort({ a: [] });
+		failingIds.add('x');
+		const preview = await buildImportPreview(port, [
+			collection(contentType('a', [relation('a')]), [record('x', { ref: 'x' })])
+		]);
+		const report = await runImport(port, preview, { overwriteConfirmed: false });
+		expect(report).toMatchObject({ createdCount: 0, failedCount: 1, success: false });
+		expect(report.outcomes[0].partialWrite).toBeUndefined();
+		expect(writes).toEqual([]);
+	});
+
+	it('la fase de relaciones no reenvía ni descarga otra vez ficheros, y espera antes de completar progreso', async () => {
+		const { port, writes } = fakePort({ a: [] });
+		let release!: () => void;
+		const blocked = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		let started!: () => void;
+		const patchStarted = new Promise<void>((resolve) => {
+			started = resolve;
+		});
+		const update = port.update;
+		port.update = async (...args) => {
+			started();
+			await blocked;
+			return update(...args);
+		};
+		const type = contentType('a', [
+			relation('a'),
+			field({ name: 'cover', type: 'file', multiple: false })
+		]);
+		const file = new File(['image'], 'image.png');
+		let downloads = 0;
+		const fetchFile = async () => {
+			downloads++;
+			return file;
+		};
+		const preview = await buildImportPreview(
+			port,
+			[
+				collection(type, [
+					record('x', {
+						ref: 'x',
+						cover: { file: 'image.png', url: 'https://origin.test/image.png' }
+					})
+				])
+			],
+			fetchFile
+		);
+		const progress: number[] = [];
+		const promise = runImport(
+			port,
+			preview,
+			{ overwriteConfirmed: false, onProgress: ({ done }) => progress.push(done) },
+			fetchFile
+		);
+		await patchStarted;
+		expect(progress).toEqual([0]);
+		release();
+		expect(await promise).toMatchObject({ createdCount: 1, failedCount: 0 });
+		expect(progress).toEqual([0, 1]);
+		expect(downloads).toBe(1);
+		expect(writes[0].data).toEqual({ cover: file });
+		expect(writes[1].data).toEqual({ ref: 'x' });
+	});
+});

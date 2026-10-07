@@ -75,6 +75,16 @@ describe('Select — placeholder', () => {
 		const target = mountWidget(Select, field(selectSchema, null), null);
 		expect(target.querySelector('option[value=""]')?.textContent).toBe('form.select.empty');
 	});
+
+	test('placeholder vacío o solo espacios conserva una opción vacía legible', async () => {
+		for (const placeholder of ['', '   ']) {
+			const target = mountWidget(Select, field(selectSchema, placeholder), null);
+			expect(target.querySelector('option[value=""]')?.textContent).toBe('form.select.empty');
+			await unmount(mounted!.instance);
+			mounted!.target.remove();
+			mounted = null;
+		}
+	});
 });
 
 describe('Chips — placeholder', () => {
@@ -111,6 +121,30 @@ describe('Datetime — placeholder, min y max', () => {
 		expect(input.hasAttribute('min')).toBe(false);
 		expect(input.hasAttribute('max')).toBe(false);
 		expect(input.hasAttribute('placeholder')).toBe(false);
+	});
+
+	test('un valor existente anterior al mínimo no bloquea el submit nativo', () => {
+		const target = mountWidget(
+			Datetime,
+			field({ type: 'date', ...iso }, null),
+			'2023-12-01T10:00:00.000Z'
+		);
+		const input = target.querySelector('input') as HTMLInputElement;
+		expect(input.hasAttribute('min')).toBe(false);
+		expect(input.max).toBe(isoUtcToLocalInput(iso.max));
+		expect(input.validity.rangeUnderflow).toBe(false);
+	});
+
+	test('un valor existente posterior al máximo no bloquea el submit nativo', () => {
+		const target = mountWidget(
+			Datetime,
+			field({ type: 'date', ...iso }, null),
+			'2031-01-01T10:00:00.000Z'
+		);
+		const input = target.querySelector('input') as HTMLInputElement;
+		expect(input.hasAttribute('max')).toBe(false);
+		expect(input.min).toBe(isoUtcToLocalInput(iso.min));
+		expect(input.validity.rangeOverflow).toBe(false);
 	});
 });
 

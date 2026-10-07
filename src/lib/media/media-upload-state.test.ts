@@ -180,6 +180,88 @@ describe('createMediaUploadState — reanudar tras sesión caducada', () => {
 	});
 });
 
+describe('createMediaUploadState — reintento de un error individual', () => {
+	test('conserva los demás ítems y sus claves, y solo reenvía el fichero fallido', async () => {
+		const create = vi
+			.fn()
+			.mockResolvedValueOnce({})
+			.mockRejectedValueOnce(VegaError.backend('falló'))
+			.mockResolvedValue({});
+		const { ctx } = fakeCtx(create);
+		const state = createMediaUploadState();
+		const batchFiles = files(3);
+		const onUploaded = vi.fn();
+		const onSummary = vi.fn();
+		await state.start(ctx, schema, batchFiles, onUploaded, onSummary);
+		const ids = state.items.map((item) => item.id);
+		expect(state.items.map((item) => item.status.kind)).toEqual(['done', 'error', 'done']);
+		create.mockClear();
+		onSummary.mockClear();
+
+		await state.retry(ctx, 1, batchFiles[1], onUploaded, onSummary);
+
+		expect(state.items.map((item) => item.id)).toEqual(ids);
+		expect(state.items.map((item) => item.name)).toEqual(batchFiles.map((file) => file.name));
+		expect(state.items.map((item) => item.status.kind)).toEqual(['done', 'done', 'done']);
+		expect(create).toHaveBeenCalledTimes(1);
+		expect((create.mock.calls[0][1] as { file: File }).file).toBe(batchFiles[1]);
+		expect(onUploaded).toHaveBeenCalledTimes(3);
+		expect(onSummary).toHaveBeenCalledWith({ uploaded: 1, failed: 0, pending: 0 });
+	});
+
+	test('rechaza reintentar ítems que no son errores sin otra escritura', async () => {
+		const create = vi.fn().mockResolvedValue({});
+		const { ctx } = fakeCtx(create);
+		const state = createMediaUploadState();
+		const batchFiles = files(1);
+		await state.start(
+			ctx,
+			schema,
+			batchFiles,
+			() => {},
+			() => {}
+		);
+		create.mockClear();
+		await state.retry(
+			ctx,
+			0,
+			batchFiles[0],
+			() => {},
+			() => {}
+		);
+		expect(create).not.toHaveBeenCalled();
+	});
+
+	test('si caduca la sesión en el reintento, resume el mismo índice sin reenviar done', async () => {
+		const expired = VegaError.authExpired('caducada');
+		const create = vi
+			.fn()
+			.mockResolvedValueOnce({})
+			.mockRejectedValueOnce(VegaError.backend('falló'))
+			.mockResolvedValueOnce({})
+			.mockRejectedValueOnce(expired)
+			.mockResolvedValue({});
+		const { ctx, reportError } = fakeCtx(create);
+		const state = createMediaUploadState();
+		const batchFiles = files(3);
+		const onSummary = vi.fn();
+		await state.start(ctx, schema, batchFiles, () => {}, onSummary);
+		const ids = state.items.map((item) => item.id);
+
+		await state.retry(ctx, 1, batchFiles[1], () => {}, onSummary);
+		expect(state.items.map((item) => item.status.kind)).toEqual(['done', 'pending', 'done']);
+		expect(onSummary).toHaveBeenLastCalledWith({ uploaded: 0, failed: 0, pending: 1 });
+		expect(reportError).toHaveBeenCalledWith(expired, expect.anything());
+		create.mockClear();
+
+		await state.resume(ctx, batchFiles, () => {}, onSummary);
+		expect(state.items.map((item) => item.id)).toEqual(ids);
+		expect(state.items.map((item) => item.status.kind)).toEqual(['done', 'done', 'done']);
+		expect(create).toHaveBeenCalledTimes(1);
+		expect((create.mock.calls[0][1] as { file: File }).file).toBe(batchFiles[1]);
+	});
+});
+
 const MB = 1024 * 1024;
 const bigSchema = { maxSizeBytes: 10 * MB, mimeTypes: [] } as unknown as MediaFileFieldSchema;
 const photo = (name: string, size: number, type = 'image/jpeg') =>

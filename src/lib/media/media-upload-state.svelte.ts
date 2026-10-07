@@ -121,6 +121,15 @@ export interface MediaUploadState {
 		onUploaded: () => void,
 		onSummary: (summary: MediaUploadSummary) => void
 	): Promise<void>;
+	/** Reintenta un error del backend en su posición, sin reemplazar los demás ítems del lote.
+	 *  `file` es el original alineado con `items[index]`; el resumen cubre solo este intento. */
+	retry(
+		ctx: VegaAppContext,
+		index: number,
+		file: File,
+		onUploaded: () => void,
+		onSummary: (summary: MediaUploadSummary) => void
+	): Promise<void>;
 	/** Limpia la lista de ficheros del último lote (p.ej. tras leer el resumen) — no cancela nada
 	 *  en vuelo, solo la vista; llamarla mientras `running` es `true` no tiene efecto útil. */
 	clear(): void;
@@ -196,6 +205,20 @@ export function createMediaUploadState(shrink: ShrinkFn = defaultShrink): MediaU
 			return;
 		}
 		await run(ctx, lastSchema, batch, files, onUploaded, onSummary);
+	}
+
+	async function retry(
+		ctx: VegaAppContext,
+		index: number,
+		file: File,
+		onUploaded: () => void,
+		onSummary: (summary: MediaUploadSummary) => void
+	): Promise<void> {
+		const item = items[index];
+		if (running || lastSchema === null || item?.status.kind !== 'error') return;
+		const pending: MediaUploadItem = { ...item, status: { kind: 'pending' } };
+		setStatus(item.id, pending.status);
+		await run(ctx, lastSchema, [pending], [file], onUploaded, onSummary);
 	}
 
 	/** Sube en secuencia los `pending` de `batch` (alineado por índice con `files`). Los demás
@@ -289,6 +312,7 @@ export function createMediaUploadState(shrink: ShrinkFn = defaultShrink): MediaU
 		},
 		start,
 		resume,
+		retry,
 		clear
 	};
 }

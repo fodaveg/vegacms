@@ -6,7 +6,7 @@ Cómo desplegar Vega en distintas configuraciones y bajo subrutas.
 
 Vega se distribuye como un zip de `build/` (lote L5, distribución/onboarding genérico). Hay dos fuentes:
 
-- **Release oficial por tag** (`v*`): `.github/workflows/release.yml` publica `vega-<version>.zip` como asset de un [GitHub Release](https://github.com/fodaveg/vegacms/releases), determinista y verificado en CI (ver [Actualizar a una versión nueva](INSTALL.md#actualizar-a-una-versión-nueva)).
+- **Release oficial por tag** (`v*`): `.github/workflows/release.yml` publica `vega-<version>.zip`, `SHA256SUMS` y `vega-<version>.sigstore.json` como assets de un [GitHub Release](https://github.com/fodaveg/vegacms/releases), tras el gate y la atestación del candidato (ver [Actualizar a una versión nueva](INSTALL.md#actualizar-a-una-versión-nueva)).
 - **Empaquetado local/ad hoc** (`pnpm package`): genera `dist/vega-<version>.zip` a partir de un `build/` que ya tengas en tu máquina.
 
   ```sh

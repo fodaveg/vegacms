@@ -161,7 +161,7 @@ Vega se distribuye como un **artefacto versionado independiente**, no como códi
 
 ### Same-origin (SPA dentro de `pb_public/`)
 
-1. Descarga el zip de la versión deseada desde la [página de releases](https://github.com/fodaveg/vegacms/releases) (verifica el sha256 si lo necesitas).
+1. Descarga `vega-<version>.zip` y `SHA256SUMS` de la misma [release](https://github.com/fodaveg/vegacms/releases). Antes de descomprimir, ejecuta `sha256sum --check SHA256SUMS` (Linux) o `shasum -a 256 --check SHA256SUMS` (macOS) en el directorio de descarga. Para comprobar también su procedencia, descarga `vega-<version>.sigstore.json` y ejecuta `gh attestation verify vega-<version>.zip -R fodaveg/vegacms --bundle vega-<version>.sigstore.json --signer-workflow fodaveg/vegacms/.github/workflows/release.yml`.
 2. **Conserva** cualquier fichero propio que tengas en `pb_public/` y que NO venga de Vega — en particular un `vega.config.json` real (el que apunta a otro backend): el zip no lo incluye y se perdería si borras a ciegas.
 3. Sustituye los ficheros de la SPA (`index.html`, `_app/`, `robots.txt`, `vega.config.example.json`) por los del zip. `pb_data/` no se toca en ningún momento. El zip del release lleva **carpeta contenedora** (`vega-<version>/`), así que la fuente a copiar es su interior, no la raíz del zip (el de `pnpm package`, en cambio, trae el contenido en la raíz).
 4. No hace falta reiniciar PocketBase (solo sirve ficheros estáticos); si acaso, un reinicio es inocuo.
