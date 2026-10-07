@@ -115,11 +115,12 @@ export interface TlsSmtpSink extends SmtpSink {
 }
 
 /**
- * SMTP TLS implícito con CA efímera propia y certificado válido SOLO para localhost (no para IP).
+ * SMTP TLS implícito con CA efímera propia y certificado válido SOLO para el hostname (no para IP).
  * Usa OpenSSL existente; el directorio privado y sus claves se retiran al parar o fallar el arranque.
  * No simula validación: el cliente real debe confiar en la CA y verificar el hostname.
  */
-export async function startTlsSmtpSink(): Promise<TlsSmtpSink> {
+export async function startTlsSmtpSink(hostname = 'localhost'): Promise<TlsSmtpSink> {
+	if (!/^[a-zA-Z0-9.-]+$/.test(hostname)) throw new Error('Hostname de fixture TLS inválido.');
 	const dir = await mkdtemp(path.join(tmpdir(), 'vega-smtp-tls-'));
 	const file = (name: string) => path.join(dir, name);
 	const openssl = promisify(execFile);
@@ -154,7 +155,7 @@ export async function startTlsSmtpSink(): Promise<TlsSmtpSink> {
 			'-nodes',
 			'-sha256',
 			'-subj',
-			'/CN=localhost',
+			`/CN=${hostname}`,
 			'-keyout',
 			file('server.key'),
 			'-out',
@@ -166,7 +167,7 @@ export async function startTlsSmtpSink(): Promise<TlsSmtpSink> {
 				'basicConstraints=critical,CA:FALSE',
 				'keyUsage=critical,digitalSignature,keyEncipherment',
 				'extendedKeyUsage=serverAuth',
-				'subjectAltName=DNS:localhost'
+				`subjectAltName=DNS:${hostname}`
 			].join('\n')
 		);
 		await openssl('openssl', [
