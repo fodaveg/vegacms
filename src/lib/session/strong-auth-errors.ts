@@ -32,5 +32,12 @@ export function strongAuthErrorMessage(err: unknown, t: Translate): string | nul
 			minutes: Math.max(1, Math.ceil(err.waitSeconds / 60))
 		});
 	}
+	if (err.code === 'invalid-code' && err.codeSource !== null) {
+		return t(
+			err.codeSource === 'current'
+				? 'security.error.invalidCurrentCode'
+				: 'security.error.invalidNewCode'
+		);
+	}
 	return t(MESSAGE_KEYS[err.code]);
 }

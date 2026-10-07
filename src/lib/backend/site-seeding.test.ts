@@ -1342,11 +1342,32 @@ describe('seedSiteProject', () => {
 		const port = await authedMemory();
 		await port.ensureCollections([{ name: 'pages', type: 'auth', fields: [] }]);
 
-		await expect(seedSiteProject(port)).rejects.toThrow(
-			'La colección "pages" ya existe como auth, no como base'
-		);
+		await expect(seedSiteProject(port)).rejects.toMatchObject({
+			message: 'La colección "pages" ya existe como auth, no como base',
+			fieldErrors: {
+				pages: {
+					code: 'vega_collection_type_mismatch',
+					params: { collection: 'pages', existingType: 'auth', expectedType: 'base' }
+				}
+			}
+		});
 		expect(port.inspectCollection('vega_editors')).toMatchObject({ type: 'auth' });
 		expect(port.inspectCollection('pages')).toMatchObject({ type: 'auth' });
+	});
+
+	test('la colisión con una vista conserva view/base en los parámetros del puerto memory', async () => {
+		const port = await authedMemoryWithTypes([
+			{ ...emptyType('pages', 'allowed'), readonly: true }
+		]);
+		await expect(port.ensureCollections([{ name: 'pages', fields: [] }])).rejects.toMatchObject({
+			message: 'La colección "pages" ya existe como view, no como base',
+			fieldErrors: {
+				pages: {
+					code: 'vega_collection_type_mismatch',
+					params: { collection: 'pages', existingType: 'view', expectedType: 'base' }
+				}
+			}
+		});
 	});
 });
 

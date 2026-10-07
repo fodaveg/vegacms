@@ -108,8 +108,15 @@
 			await pending.operation(proof);
 			stepUp = null;
 		} catch (err) {
-			if (isStrongAuthError(err, 'enrollment-expired') || isStrongAuthError(err, 'not-enrolled')) {
-				// Ya no hay alta que confirmar: el diálogo se cierra y el aviso va a la pantalla.
+			if (
+				isStrongAuthError(err, 'enrollment-expired') ||
+				isStrongAuthError(err, 'not-enrolled') ||
+				(pending.action === 'totp-verify' &&
+					isStrongAuthError(err, 'invalid-code') &&
+					err.codeSource === 'new')
+			) {
+				// El alta caducó o hay que corregir su código nuevo, que vive en la pantalla.
+				// Solo el servidor distingue ese código de la prueba del autenticador actual.
 				stepUp = null;
 				error = errorMessage(err);
 			} else {
@@ -329,7 +336,7 @@
 						>
 						<code class="secret">{enrollment.secret}</code>
 						<form onsubmit={verifyTotp}>
-							<label for="security-totp-code">{ctx.t('security.totp.codeLabel')}</label>
+							<label for="security-totp-code">{ctx.t('security.totp.newCodeLabel')}</label>
 							<input
 								id="security-totp-code"
 								type="text"

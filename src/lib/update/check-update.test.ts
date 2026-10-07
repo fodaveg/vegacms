@@ -58,7 +58,10 @@ describe('checkForUpdate', () => {
 		const fetchImpl = vi.fn().mockResolvedValue(
 			fakeResponse({
 				ok: true,
-				body: { tag_name: 'v999.0.0', html_url: 'https://github.com/example/release' }
+				body: {
+					tag_name: 'v999.0.0',
+					html_url: 'https://github.com/fodaveg/vegacms/releases/tag/v999.0.0'
+				}
 			})
 		);
 		const result = await checkForUpdate(fetchImpl as unknown as typeof fetch);
@@ -66,7 +69,7 @@ describe('checkForUpdate', () => {
 			kind: 'update-available',
 			current: VEGA_VERSION,
 			latest: '999.0.0',
-			releaseUrl: 'https://github.com/example/release'
+			releaseUrl: 'https://github.com/fodaveg/vegacms/releases/tag/v999.0.0'
 		});
 		expect(fetchImpl).toHaveBeenCalledWith(
 			`https://api.github.com/repos/${VEGA_REPO_SLUG}/releases/latest`,
@@ -112,8 +115,10 @@ describe('checkForUpdate', () => {
 	});
 
 	// Segunda barrera (revisión de seguridad del 30 sep 2026): el `html_url` viaja hasta un
-	// `<a href>`; solo se enlaza si es, de verdad, una página de `https://github.com/`.
+	// `<a href>`; solo se enlaza si es, de verdad, una página del repositorio de Vega en GitHub.
 	test.each([
+		['otro repositorio GitHub', 'https://github.com/otro/otro/releases/tag/v999.0.0'],
+		['prefijo de repo', 'https://github.com/fodaveg/vegacms-evil/releases'],
 		['prefijo de cadena con otro host', 'https://github.com.evil.example/fodaveg/vegacms'],
 		['github.com como usuario de otro host', 'https://github.com@evil.example/'],
 		['credenciales delante del host bueno', 'https://alguien@github.com/fodaveg/vegacms'],

@@ -263,6 +263,21 @@ describe('PocketBase strong auth: prueba de posesión para cambiar factores', ()
 		expect(create).not.toHaveBeenCalled();
 	});
 
+	test.each(['current', 'new', undefined, 'unexpected'] as const)(
+		'invalid_code conserva el origen explícito %s sin caducar la sesión ni inferirlo',
+		async (source) => {
+			const { auth, reasons } = await signedIn({
+				'/api/vega-auth/totp/verify': () =>
+					jsonResponse({ error: 'invalid_code', code_source: source }, 401)
+			});
+			await expect(auth.verifyTotp('123456', { code: '654321' })).rejects.toMatchObject({
+				code: 'invalid-code',
+				codeSource: source === 'current' || source === 'new' ? source : null
+			});
+			expect(reasons).toEqual(['login']);
+		}
+	);
+
 	test('un código de prueba incorrecto es invalid-code y el bloqueo trae la espera', async () => {
 		let attempts = 0;
 		const { port, auth, reasons } = await signedIn({

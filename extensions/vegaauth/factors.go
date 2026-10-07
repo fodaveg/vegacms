@@ -165,7 +165,7 @@ func (x *Extension) verifyTOTP(e *core.RequestEvent) error {
 		// Enrollment in progress: only now does the new secret replace the active one.
 		step, ok := matchTOTPStep(body.Code, pendingSecret, time.Now())
 		if !ok {
-			return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_code"})
+			return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_code", "code_source": "new"})
 		}
 		e.Auth.Set("totp_secret", pendingSecret)
 		e.Auth.Set("totp_pending_secret", "")
@@ -180,7 +180,11 @@ func (x *Extension) verifyTOTP(e *core.RequestEvent) error {
 			return e.JSON(http.StatusInternalServerError, map[string]string{"error": "verify_failed"})
 		}
 		if !valid {
-			return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_code"})
+			source := "current"
+			if !e.Auth.GetBool("totp_enabled") {
+				source = "new"
+			}
+			return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_code", "code_source": source})
 		}
 	}
 	firstActivation := !e.Auth.GetBool("totp_enabled")

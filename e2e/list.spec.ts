@@ -341,6 +341,7 @@ test.describe('vacío-búsqueda (L-P4.12, Fase 4d): distinto de vacío-colecció
 		await page.goto('/c/posts?q=xyzw-no-existe');
 		const emptySearch = page.locator('[data-list-state="empty-search"]');
 		await expect(emptySearch).toBeVisible();
+		await page.clock.install();
 
 		// Teclea un valor NUEVO (arranca el debounce de ~300ms) y, SIN esperarlo, pulsa "Limpiar
 		// filtros" antes de que dispare.
@@ -354,7 +355,7 @@ test.describe('vacío-búsqueda (L-P4.12, Fase 4d): distinto de vacío-colecció
 		// Pasado el debounce (> 300ms), el timer viejo NO debe haber revivido `q=` — antes del fix,
 		// `onSearch('otra-busqueda-nunca-emitida')` disparaba igualmente y navegaba de vuelta a
 		// `?q=otra-busqueda-nunca-emitida`, revirtiendo silenciosamente "Limpiar filtros".
-		await page.waitForTimeout(400);
+		await page.clock.runFor(400);
 		await expect(page).not.toHaveURL(/q=/);
 		await expect(page.locator('[data-list-state="ready"]')).toBeVisible();
 	});

@@ -156,6 +156,8 @@ export interface StrongAuthErrorDetails {
 	methods?: StepUpMethod[];
 	/** Solo con `'locked'`, si el servidor lo dice: segundos hasta poder reintentar. */
 	waitSeconds?: number;
+	/** Solo invalid-code: autenticador rechazado, si el servidor lo identifica. */
+	codeSource?: 'current' | 'new';
 	cause?: unknown;
 }
 
@@ -170,6 +172,7 @@ export class VegaStrongAuthError extends VegaError {
 	readonly code: StrongAuthErrorCode;
 	readonly methods: StepUpMethod[];
 	readonly waitSeconds: number | null;
+	readonly codeSource: 'current' | 'new' | null;
 
 	constructor(
 		kind: 'forbidden' | 'backend',
@@ -182,6 +185,7 @@ export class VegaStrongAuthError extends VegaError {
 		this.code = code;
 		this.methods = details.methods ?? [];
 		this.waitSeconds = details.waitSeconds ?? null;
+		this.codeSource = details.codeSource ?? null;
 	}
 }
 

@@ -271,7 +271,7 @@
 	import type { UpdateOptions } from '$lib/backend/port';
 	import type { RecordVersion } from '$lib/backend/version';
 	import type { PreviewDraft, PreviewDraftRecord } from '$lib/backend/preview-client';
-	import { isConflictError, VegaError, type VegaConflictError } from '$lib/backend/errors';
+	import { VegaError, type VegaConflictError } from '$lib/backend/errors';
 	import { vegaErrorMessage } from '$lib/shell/vega-error-message';
 	import { getVegaContext } from '$lib/app-context';
 	import { describeCell, describeStatusBadge } from '$lib/list/cell';
@@ -302,10 +302,9 @@
 	import { currentPlatform, saveShortcutLabel } from './save-shortcut';
 	import { localeStatus, type LocaleStatus } from './locale-status';
 	import { isDirty, type FormInputValues } from './dirty';
-	import { toRecordInput } from './to-record-input';
 	import { slugWriteForTitleEdit } from './slug-from-title';
 	import { validateForm } from './validation';
-	import { isFieldValidationError, mapFieldErrors, type FieldErrorsView } from './field-errors';
+	import { type FieldErrorsView } from './field-errors';
 	import { fieldErrorMessage } from './field-error-message';
 	import { firstErrorFieldName } from './first-error-field';
 	import { resolveFocusTarget } from './focus-target';
@@ -316,7 +315,9 @@
 	import ScheduleDialog from './ScheduleDialog.svelte';
 	import { describeScheduleControl, formatScheduleMoment } from './schedule';
 	import ConflictNotice from './ConflictNotice.svelte';
-	import { threeWayDiff, toComparableValues } from './conflict';
+	import { classifyRecordSaveError, sendRecord } from './record-save';
+	import { recordConflictRows } from './record-conflict-rows';
+	import { handleRecordSaveKeydown } from './record-save-keyboard';
 	import RedirectOffer from './RedirectOffer.svelte';
 	import { applyRedirectOps, loadRelevantRedirects, redirectsAvailability } from './redirect-sync';
 	import { loadLatest } from './latest-load';
@@ -1238,11 +1239,6 @@
 		clientErrors = EMPTY_ERRORS;
 	}
 
-	/** Frase única para el toast de «Guardado.» a partir de sus partes (sin las vacías), o nada. */
-	function joinNotes(parts: (string | null | undefined)[]): string | undefined {
-		return parts.filter((part) => !!part).join(' ') || undefined;
-	}
-
 	/** Desenlace de un guardado que SÍ se hizo (normal o «Guardar igualmente»). */
 	function commitSaved(saved: VegaRecord, note?: string): void {
 		// L-P5.6/D-P5.11: reasentar baseline (→ no-dirty) ANTES de avisar al padre — si no, el
@@ -1259,15 +1255,7 @@
 	// ————— Aviso de edición concurrente (ver cabecera, "Edición concurrente") —————
 
 	/** Filas del diff a tres bandas: abrir (`baseline`) · tú (`current`) · servidor. */
-	const conflictRows = $derived.by(() => {
-		if (!conflict) return [];
-		return threeWayDiff(
-			type.fields.map((f) => f.schema),
-			baseline,
-			toComparableValues(current),
-			buildFormModel(type, conflict.serverRecord).baseline
-		);
-	});
+	const conflictRows = $derived(recordConflictRows(type, baseline, current, conflict));
 
 	/**
 	 * «Guardar igualmente»: SOLO lo que tocó quien guarda (`toRecordInput` ya es eso: lo que difiere
@@ -1282,21 +1270,26 @@
 		saving = true;
 		let errorsToFocus: FieldErrorsView | null = null;
 		try {
-			const input = toRecordInput(type, baseline, current);
-			const job = captureRedirectJob();
-			const saved = await onSubmit(input, { expectedVersion: conflict.serverVersion });
-			const redirectNote = job ? await syncRedirects(job) : null;
-			const hookNotes = await afterSave.run(saved);
-			commitSaved(saved, joinNotes([redirectNote, ...hookNotes]));
+			await sendRecord({
+				type,
+				baseline,
+				values: current,
+				expectedVersion: () => conflict!.serverVersion,
+				onSubmit,
+				captureRedirectJob,
+				syncRedirects,
+				runAfterSave: (saved) => afterSave.run(saved),
+				commitSaved
+			});
 		} catch (err) {
-			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al guardar', err);
-			if (isConflictError(vegaErr)) {
-				conflict = vegaErr;
-			} else if (isFieldValidationError(vegaErr)) {
-				backendErrors = mapFieldErrors(vegaErr);
+			const failure = classifyRecordSaveError(err);
+			if (failure.kind === 'conflict') {
+				conflict = failure.error;
+			} else if (failure.kind === 'field') {
+				backendErrors = failure.errors;
 				errorsToFocus = backendErrors;
 			} else {
-				throw vegaErr;
+				throw failure.error;
 			}
 		} finally {
 			saving = false;
@@ -1391,34 +1384,37 @@
 		let errorsToFocus: FieldErrorsView | null = null;
 		let outcome: SaveOutcome = { kind: 'saved' };
 		try {
-			const input = toRecordInput(type, baseline, values, model.mode);
-			const job = captureRedirectJob();
 			// Edición: con la versión que este formulario tiene delante (ver "Edición concurrente").
 			// Pulsar «Guardar» con el aviso abierto vuelve a comprobar contra la MISMA versión: si
 			// el servidor sigue distinto, el aviso se renueva con la hora nueva.
-			const saved =
-				model.mode === 'edit' && version !== null
-					? await onSubmit(input, { expectedVersion: version })
-					: await onSubmit(input);
-			const redirectNote = job ? await syncRedirects(job) : null;
-			// Ganchos de los widgets (ver `afterSave`): con el registro escrito y `saving` aún en
-			// `true`, antes de que `commitSaved` sustituya los `File` pendientes por sus `FileRef`.
-			const hookNotes = await afterSave.run(saved);
-			commitSaved(saved, joinNotes([redirectNote, options.note?.(), ...hookNotes]));
+			await sendRecord({
+				type,
+				baseline,
+				values,
+				mode: model.mode,
+				expectedVersion: () => (model.mode === 'edit' && version !== null ? version : undefined),
+				onSubmit,
+				captureRedirectJob,
+				syncRedirects,
+				runAfterSave: (saved) => afterSave.run(saved),
+				note: options.note,
+				commitSaved
+			});
 		} catch (err) {
-			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al guardar', err);
-			if (isConflictError(vegaErr)) {
+			const failure = classifyRecordSaveError(err);
+			if (failure.kind === 'conflict') {
 				// Falló cerrado (ver cabecera): nada se escribió y el formulario sigue intacto.
 				keepOverrides();
-				conflict = vegaErr;
+				conflict = failure.error;
 				outcome = { kind: 'conflict' };
-			} else if (isFieldValidationError(vegaErr)) {
+			} else if (failure.kind === 'field') {
 				// L-P5.4: mapeo por campo + banner de registro (clave '').
 				keepOverrides();
-				backendErrors = mapFieldErrors(vegaErr);
+				backendErrors = failure.errors;
 				errorsToFocus = backendErrors; // F5-g, L-P5.2: foco al primer campo con error
 				outcome = { kind: 'invalid' };
 			} else {
+				const vegaErr = failure.error;
 				if (options.reportFailures !== false) {
 					// L-P5.5: cualquier otro kind (network/backend/forbidden/auth-expired) es feedback
 					// global de P3, no de este formulario. 'auth-expired' lo tapa el overlay de
@@ -1516,11 +1512,7 @@
 		// `$lib/shell/keyboard.isEditableTarget`), este SÍ debe funcionar con el foco dentro de
 		// cualquier input del formulario — nunca se comprueba el target.
 		function handleKeydown(event: KeyboardEvent): void {
-			if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 's') return;
-			event.preventDefault(); // siempre: evita el diálogo nativo "Guardar página" del navegador
-			if (scheduleOpen) return; // el diálogo de programar tiene su propio «Programar»
-			if (formDisabled || !dirty) return; // nada que guardar, o formulario inerte (readonly/saving)
-			formEl?.requestSubmit();
+			handleRecordSaveKeydown(event, { scheduleOpen, formDisabled, dirty, form: formEl });
 		}
 		window.addEventListener('beforeunload', handleBeforeUnload);
 		window.addEventListener('keydown', handleKeydown);

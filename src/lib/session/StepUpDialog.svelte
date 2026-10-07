@@ -84,7 +84,7 @@
 	{#if withCode}
 		<form id="{id}-form" class="vega-admin-form" novalidate onsubmit={submit}>
 			<div class="vega-admin-field">
-				<label for="{id}-code">{ctx.t('security.totp.codeLabel')}</label>
+				<label for="{id}-code">{ctx.t('security.totp.currentCodeLabel')}</label>
 				<input
 					id="{id}-code"
 					class="vega-admin-input step-up-code"

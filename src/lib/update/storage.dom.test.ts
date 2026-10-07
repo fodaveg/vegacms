@@ -38,23 +38,30 @@ describe('caché de la comprobación (vega.updateCheck.v1)', () => {
 	// La caché es la ÚNICA fuente de `UpdateBanner`: lo que haya guardado (una versión anterior al
 	// filtro, o cualquier script del origen) no llega a un `<a href>` sin pasar por `safeReleaseUrl`.
 	test.each([
+		'https://github.com/otro/otro/releases/tag/v1.1.0',
+		'https://github.com/fodaveg/vegacms-evil/releases',
+		'https://github.com/fodaveg/vegacms/../otro/releases',
+		'https://github.com/fodaveg/%76egacms/releases',
 		'https://example.com',
 		'https://github.com.evil.example/',
 		'https://github.com@evil.example/',
 		'javascript:alert(1)'
-	])('un releaseUrl guardado que no es de github.com (%s) se lee como null', (releaseUrl) => {
-		localStorage.setItem(
-			'vega.updateCheck.v1',
-			JSON.stringify({
+	])(
+		'un releaseUrl guardado que no es del repositorio de Vega (%s) se lee como null',
+		(releaseUrl) => {
+			localStorage.setItem(
+				'vega.updateCheck.v1',
+				JSON.stringify({
+					checkedAt: 1,
+					status: { kind: 'update-available', current: '1.0.0', latest: '1.1.0', releaseUrl }
+				})
+			);
+			expect(readCachedUpdateCheck()).toEqual({
 				checkedAt: 1,
-				status: { kind: 'update-available', current: '1.0.0', latest: '1.1.0', releaseUrl }
-			})
-		);
-		expect(readCachedUpdateCheck()).toEqual({
-			checkedAt: 1,
-			status: { kind: 'update-available', current: '1.0.0', latest: '1.1.0', releaseUrl: null }
-		});
-	});
+				status: { kind: 'update-available', current: '1.0.0', latest: '1.1.0', releaseUrl: null }
+			});
+		}
+	);
 
 	test('un releaseUrl guardado con otra forma (ausente, no string) se lee como null', () => {
 		localStorage.setItem(

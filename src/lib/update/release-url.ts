@@ -3,21 +3,24 @@
  *
  * La URL del release llega de fuera — del `html_url` de la respuesta de GitHub, o de lo que haya
  * guardado en `localStorage` una comprobación anterior — y termina en un `<a href>` de
- * `UpdateBanner` y de `/settings`. Solo se enlaza si es una página de `https://github.com/`.
+ * `UpdateBanner` y de `/settings`. Solo se enlaza si es una página del repositorio
+ * `VEGA_REPO_SLUG` en `https://github.com/`.
  *
  * Se decide PARSEANDO con `URL` y comparando protocolo y host, nunca por prefijo de cadena:
  * `https://github.com.evil.example/` y `https://github.com@evil.example/` empiezan por
- * `https://github.com` y apuntan a otro sitio. Módulo puro y sin imports a propósito: lo usan
- * `check-update.ts` y `storage.ts`, que ya se importan entre sí.
+ * `https://github.com` y apuntan a otro sitio. La identidad del repositorio vive en un módulo puro
+ * compartido: lo usan `check-update.ts` y `storage.ts`, que ya se importan entre sí.
  */
+
+import { VEGA_REPO_SLUG } from './repo';
 
 const RELEASE_PROTOCOL = 'https:';
 const RELEASE_HOST = 'github.com';
 
 /**
  * Devuelve la URL NORMALIZADA (`URL#href`) si `candidate` es un string que apunta a
- * `https://github.com/…` sin credenciales ni puerto distinto del de por defecto; `null` en
- * cualquier otro caso (otro host, otro esquema, relativa, no parseable, no es un string).
+ * `https://github.com/${VEGA_REPO_SLUG}` o una de sus rutas, sin credenciales ni puerto distinto
+ * del de por defecto; `null` en cualquier otro caso (otro host, otro esquema, relativa, no parseable, no es un string).
  *
  * Se devuelve la forma normalizada y no la cadena recibida para que lo validado sea exactamente
  * lo que se enlaza: el navegador aplicaría el mismo parseo al `href`, pero así no depende de ello.
@@ -34,5 +37,18 @@ export function safeReleaseUrl(candidate: unknown): string | null {
 	// `host` incluye el puerto cuando no es el de por defecto: `github.com:8443` no casa.
 	if (url.host !== RELEASE_HOST) return null;
 	if (url.username !== '' || url.password !== '') return null;
+	const repoPath = `/${VEGA_REPO_SLUG}`;
+	if (url.pathname !== repoPath && !url.pathname.startsWith(`${repoPath}/`)) return null;
+	// `URL` resuelve los segmentos punto (también %2e) antes de exponer pathname. Rechazarlos
+	// en la entrada evita aceptar rutas que entran o salen del repo mediante normalización.
+	// Cuenta también separadores codificados: un servidor puede decodificarlos antes de resolver
+	// la ruta, aunque `URL#pathname` los conserve. Un slash codificado sin segmento punto sí vale.
+	const rawPath = candidate.trim().match(/^[a-z][a-z\d+.-]*:\/\/[^/\\?#]*([^?#]*)/i)?.[1];
+	if (
+		rawPath === undefined ||
+		/(?:^|[/\\])(?:\.|%2e){1,2}(?:[/\\]|$)/i.test(rawPath.replace(/%2f|%5c/gi, '/'))
+	) {
+		return null;
+	}
 	return url.href;
 }

@@ -13,8 +13,7 @@ import { ClientResponseError, type CollectionModel } from 'pocketbase';
 import type {
 	AddFieldsResult,
 	CollectionFieldSpec,
-	CollectionRule,
-	CollectionRuleKey,
+	CollectionRules,
 	CollectionSpec,
 	ConstrainPatternsResult,
 	EnsureResult
@@ -61,7 +60,8 @@ export async function ensureCollectionsOnPocketBase(
 						{
 							[spec.name]: {
 								code: 'vega_collection_type_mismatch',
-								message: `La colección "${spec.name}" ya existe como ${existing.type}, no como ${expectedType}`
+								message: `La colección "${spec.name}" ya existe como ${existing.type}, no como ${expectedType}`,
+								params: { collection: spec.name, existingType: existing.type, expectedType }
 							}
 						},
 						`La colección "${spec.name}" ya existe como ${existing.type}, no como ${expectedType}`
@@ -99,7 +99,7 @@ const EXISTING_AUTH_RULE_KEYS = [...COMMON_COLLECTION_RULE_KEYS, 'manageRule'] a
  */
 function assertExistingAuthRules(spec: CollectionSpec, existing: CollectionModel): void {
 	const declared = collectionSpecCreationMetadata(spec);
-	const found = existing as unknown as Partial<Record<CollectionRuleKey, CollectionRule>>;
+	const found: CollectionRules = existing;
 	const mismatched = EXISTING_AUTH_RULE_KEYS.filter(
 		(key) => (found[key] ?? null) !== (declared[key] ?? null)
 	);

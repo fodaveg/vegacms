@@ -17,6 +17,7 @@ import type {
 import type { StrongAuthPort } from '../../port';
 import { VegaError, VegaStrongAuthError } from '../../errors';
 import { mapPocketBaseError } from './errors';
+import { asRaw } from './raw';
 
 interface AuthResponse {
 	token: string;
@@ -127,7 +128,7 @@ export function createPocketBaseStrongAuth(options: StrongAuthOptions): StrongAu
 				request<{ passkeys?: PasskeySummary[] }>('/passkey/list', { method: 'GET' }),
 				request<{ remaining?: number }>('/recovery/count', { method: 'GET' })
 			]);
-			const record = pb.authStore.record as unknown as Record<string, unknown> | null;
+			const record = pb.authStore.record ? asRaw(pb.authStore.record) : null;
 			return {
 				totpEnabled: record?.totp_enabled === true,
 				recoveryCodesRemaining:
@@ -357,7 +358,12 @@ function mapStrongAuthError(
 			// `invalid_code`. Ese caso NO caduca la sesión; cualquier otro 401 de una ruta
 			// autenticada sí debe pasar por el mismo latch central que el resto del adaptador.
 			if (code === 'invalid_code') {
-				return new VegaStrongAuthError('forbidden', 'invalid-code', 'El código no es válido.');
+				return new VegaStrongAuthError('forbidden', 'invalid-code', 'El código no es válido.', {
+					codeSource:
+						response?.code_source === 'current' || response?.code_source === 'new'
+							? response.code_source
+							: undefined
+				});
 			}
 			return onAuthExpired();
 		}

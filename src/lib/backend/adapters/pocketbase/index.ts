@@ -36,6 +36,7 @@ import { validateFileFieldInput } from '../../file-guards';
 import type {
 	AddFieldsResult,
 	CollectionAccessRules,
+	CollectionRules,
 	CollectionFieldSpec,
 	CollectionSpec,
 	ConstrainPatternsResult,
@@ -63,6 +64,7 @@ import { clearPersistedToken, loadPersistedToken, savePersistedToken } from './p
 import { createPocketBaseStrongAuth } from './strong-auth';
 import { deferredAdministration, deferredPasswordReset } from '../../administration';
 import { deferredServerSettings } from '../../server-settings';
+import { asRaw } from './raw';
 
 /** Colección de auth por defecto (v1, D1): superuser real de PB, sin restricciones de esquema. */
 const DEFAULT_AUTH_COLLECTION = '_superusers';
@@ -458,7 +460,7 @@ export function createPocketBaseBackend({
 			}
 			throw err;
 		}
-		const raw = result.items[0] as unknown as Record<string, unknown> | undefined;
+		const raw = result.items[0] === undefined ? undefined : asRaw(result.items[0]);
 		return assertSchemaSnapshotShape(raw?.[SCHEMA_SNAPSHOT_FIELD]);
 	}
 
@@ -664,9 +666,7 @@ export function createPocketBaseBackend({
 				// Con proyección, `values` lleva SOLO los campos pedidos (ver `Query.fields`).
 				const returnedFields = projectedFields(ct.fields, query?.fields);
 				return {
-					items: result.items.map((r) =>
-						toVegaRecord(type, r as unknown as Record<string, unknown>, returnedFields)
-					),
+					items: result.items.map((r) => toVegaRecord(type, asRaw(r), returnedFields)),
 					page: result.page,
 					perPage: result.perPage,
 					totalItems: result.totalItems,
@@ -679,7 +679,7 @@ export function createPocketBaseBackend({
 			return guarded(async () => {
 				const ct = await getContentTypeOrThrow(type);
 				const raw = await pb.collection(type).getOne(id);
-				return toVegaRecord(type, raw as unknown as Record<string, unknown>, ct.fields);
+				return toVegaRecord(type, asRaw(raw), ct.fields);
 			});
 		},
 
@@ -696,7 +696,7 @@ export function createPocketBaseBackend({
 				if (opts?.id !== undefined) body.id = opts.id;
 				try {
 					const raw = await pb.collection(type).create(body);
-					return toVegaRecord(type, raw as unknown as Record<string, unknown>, ct.fields);
+					return toVegaRecord(type, asRaw(raw), ct.fields);
 				} catch (err) {
 					throw mapKnownFieldWriteError(err, ct.fields);
 				}
@@ -719,7 +719,7 @@ export function createPocketBaseBackend({
 				const existingRaw = shared ? null : await pb.collection(type).getOne(id);
 				const existingValues = shared
 					? shared.values
-					: buildValuesFromRaw(ct.fields, existingRaw as unknown as Record<string, unknown>);
+					: buildValuesFromRaw(ct.fields, asRaw(existingRaw!));
 				if (opts?.expectedVersion !== undefined) {
 					const current: VegaRecord = {
 						id: shared ? shared.id : String(existingRaw!.id),
@@ -735,7 +735,7 @@ export function createPocketBaseBackend({
 				const body = buildWriteBody(ct.fields, data, existingValues);
 				try {
 					const raw = await pb.collection(type).update(id, body);
-					return toVegaRecord(type, raw as unknown as Record<string, unknown>, ct.fields);
+					return toVegaRecord(type, asRaw(raw), ct.fields);
 				} catch (err) {
 					throw mapKnownFieldWriteError(err, ct.fields);
 				}
@@ -761,7 +761,7 @@ export function createPocketBaseBackend({
 				const unsubscribe = await pb.collection(type).subscribe('*', (e) => {
 					cb({
 						action: e.action as RecordEvent['action'],
-						record: toVegaRecord(type, e.record as unknown as Record<string, unknown>, ct.fields)
+						record: toVegaRecord(type, asRaw(e.record), ct.fields)
 					});
 				});
 				return () => {
@@ -824,7 +824,7 @@ export function createPocketBaseBackend({
 						if (err instanceof ClientResponseError && err.status === 404) continue;
 						throw err;
 					}
-					const raw = collection as unknown as Record<string, string | null | undefined>;
+					const raw: CollectionRules = collection;
 					found[name] = Object.fromEntries(
 						COMMON_COLLECTION_RULE_KEYS.map((key) => [key, raw[key] ?? null])
 					) as CollectionAccessRules;

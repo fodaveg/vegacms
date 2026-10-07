@@ -174,7 +174,7 @@
 	} from './cell';
 	import type { ColumnSpec } from './columns';
 	import { isRightAlignedColumn } from './column-align';
-	import { resolveTitleCellText } from './list-load';
+	import { recordInlineStatusBadge, recordOpenText, recordSubtitleText } from './record-table-text';
 	import { createReorderDndController, dropIndicatorEdge } from './reorder-dnd';
 	import ActionMenu from './ActionMenu.svelte';
 	import type { ActionMenuItem } from './action-menu';
@@ -306,13 +306,7 @@
 	 *  (fallback `list.untitled` si está vacía o no es texto), o el id si no hay ninguna columna
 	 *  que pintar (caso límite `listFields: []`, sin datos de los que tirar). */
 	function openText(record: VegaRecord): string {
-		if (!openColumn) return record.id;
-		const descriptor = describeCell(
-			openColumn.field,
-			record.values[openColumn.field.name] ?? null,
-			ctx.locale
-		);
-		return resolveTitleCellText(descriptor, ctx.t('list.untitled'));
+		return recordOpenText(record, openColumn, ctx);
 	}
 
 	/** Campo subtítulo ya resuelto (M3, `ResolvedContentType.subtitleField`, + modelo de páginas
@@ -345,22 +339,7 @@
 	 *  `select-multi`/`relation`/`file`/`empty` no tienen una representación de una línea sensata
 	 *  aquí y se ignoran (degradado silencioso, mismo criterio que el resto del módulo). */
 	function subtitleText(record: VegaRecord): string | null {
-		if (!subtitleField) return null;
-		const descriptor = describeCell(
-			subtitleField,
-			record.values[subtitleField.name] ?? null,
-			ctx.locale
-		);
-		switch (descriptor.kind) {
-			case 'text':
-			case 'number':
-			case 'date':
-			case 'mono':
-			case 'richtext':
-				return descriptor.text;
-			default:
-				return null;
-		}
+		return recordSubtitleText(record, subtitleField, ctx);
 	}
 
 	/** Columna de estado de la lista (la que pinta la píldora), o `undefined` si no hay ninguna. */
@@ -370,24 +349,7 @@
 	 *  pantallas estrechas (misma función y mismas entradas que la celda de la columna Estado), o
 	 *  `null` si no hay columna de estado o el valor no es de los que se pintan como píldora. */
 	function inlineStatusBadge(record: VegaRecord): { label: string; kind: string } | null {
-		if (!statusColumn) return null;
-		const descriptor = describeCell(
-			statusColumn.field,
-			record.values[statusColumn.field.name] ?? null,
-			ctx.locale
-		);
-		if (descriptor.kind !== 'text') return null;
-		const badge = describeStatusBadge(
-			contentType,
-			record.values,
-			ctx.model.scheduledPublishing ?? 'unknown',
-			ctx.locale,
-			ctx.t
-		);
-		return {
-			label: badge?.label ?? descriptor.text,
-			kind: badge?.kind ?? classifyStatusBadge(descriptor.text)
-		};
+		return recordInlineStatusBadge(record, statusColumn, contentType, ctx);
 	}
 
 	/** Abre el registro (L-P4.15), respetando los gestos nativos del navegador — mismo patrón que

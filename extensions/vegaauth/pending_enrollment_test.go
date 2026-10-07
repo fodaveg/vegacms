@@ -149,3 +149,40 @@ func TestAPendingEnrollmentExpiresAndDeletingAPasskeyDiscardsIt(t *testing.T) {
 		t.Fatal("deleting a passkey must discard the pending secret and keep the active factor")
 	}
 }
+
+func TestReplacementCodeErrorsIdentifyTheRejectedAuthenticator(t *testing.T) {
+	for _, source := range []string{"current", "new"} {
+		t.Run(source, func(t *testing.T) {
+			server := newTestServer(t)
+			user := server.newUser("editor@example.com", true)
+			token := server.token(user)
+			enroll := server.post("/totp/enroll", token, `{"code":"`+totpCode(t, testTOTPSecret, 0)+`"}`)
+			if enroll.Code != http.StatusOK {
+				t.Fatalf("enrollment failed: %d %s", enroll.Code, errorCode(enroll))
+			}
+			pending := server.reload(user).GetString("totp_pending_secret")
+			server.extension.proofMu.Lock()
+			delete(server.extension.proofs, sessionKey(token))
+			server.extension.proofMu.Unlock()
+			proof, code := "invalid", totpCode(t, pending, 0)
+			if source == "new" {
+				proof, code = totpCode(t, testTOTPSecret, 1), "invalid"
+			}
+			response := server.post("/totp/verify", token, `{"code":"`+code+`","proof":"`+proof+`"}`)
+			var body struct {
+				Error  string `json:"error"`
+				Source string `json:"code_source"`
+			}
+			if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+				t.Fatal(err)
+			}
+			if response.Code != http.StatusUnauthorized || body.Error != "invalid_code" || body.Source != source {
+				t.Fatalf("expected invalid_code from %s, got HTTP %d error=%s source=%s", source, response.Code, body.Error, body.Source)
+			}
+			fresh := server.reload(user)
+			if fresh.GetString("totp_secret") != testTOTPSecret || fresh.GetString("totp_pending_secret") != pending || !fresh.GetBool("totp_enabled") {
+				t.Fatal("a rejected code must preserve both the active factor and pending enrollment")
+			}
+		})
+	}
+}

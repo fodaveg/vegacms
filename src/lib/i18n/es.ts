@@ -171,6 +171,10 @@ export const es = {
 	'security.error.stepUpRequired': 'Hace falta confirmar que eres tú para cambiar esto.',
 	'security.error.invalidCode':
 		'El código no es válido. Espera a que la app muestre el siguiente y vuelve a probar.',
+	'security.error.invalidCurrentCode':
+		'El código de tu app actual no es válido. Espera al siguiente código de esa app y vuelve a probar.',
+	'security.error.invalidNewCode':
+		'El código de la app que estás configurando no es válido. Corrígelo en el formulario de configuración.',
 	'security.error.locked': 'Demasiados intentos. Espera unos minutos y vuelve a probar.',
 	'security.error.lockedWait': 'Demasiados intentos. Espera {minutes} min y vuelve a probar.',
 	'security.error.payloadTooLarge':
@@ -185,10 +189,10 @@ export const es = {
 		'El alta se ha descartado porque cambiaron las passkeys de la cuenta. Empieza de nuevo.',
 	'security.stepUp.title': 'Confirma que eres tú',
 	'security.stepUp.bodyTotp':
-		'Para cambiar esto, escribe el código que muestra ahora tu app de autenticación.',
+		'Para cambiar esto, escribe el código que muestra tu app de autenticación actual.',
 	'security.stepUp.bodyPasskey': 'Para cambiar esto, confirma con una de tus passkeys.',
 	'security.stepUp.bodyBoth':
-		'Para cambiar esto, escribe el código que muestra ahora tu app de autenticación o confirma con una passkey.',
+		'Para cambiar esto, escribe el código que muestra tu app de autenticación actual o confirma con una passkey.',
 	'security.stepUp.unavailable':
 		'Desde aquí no se puede confirmar tu identidad. Cierra la sesión, vuelve a entrar con tu segundo paso y repite el cambio.',
 	'security.stepUp.confirm': 'Confirmar',
@@ -207,6 +211,8 @@ export const es = {
 		'Abre el enlace en tu gestor de contraseñas o introduce manualmente el secreto. Después confirma un código de seis dígitos.',
 	'security.totp.openApp': 'Abrir en la app de autenticación',
 	'security.totp.codeLabel': 'Código de 6 dígitos',
+	'security.totp.currentCodeLabel': 'Código de tu app actual',
+	'security.totp.newCodeLabel': 'Código de la app que estás configurando',
 	'security.totp.verify': 'Activar y verificar',
 	'security.totp.disabledBody':
 		'Añade un segundo paso al login con una app compatible con códigos TOTP.',
@@ -1563,6 +1569,8 @@ export const es = {
 	'settings.site.error.title': 'No se pudo terminar',
 	'settings.site.error.body':
 		'Lo que se creó antes del fallo se queda como está. Al reintentar, Vega solo crea lo que falte.',
+	'settings.site.error.typeMismatch':
+		'La colección "{collection}" ya existe como {existingType}, no como {expectedType}',
 	'settings.site.error.rulesMismatchNull':
 		'La colección "{collection}" ya existe con reglas de acceso distintas de las que Vega espera: {rules}. No se ha modificado nada. En PocketBase, Collections → {collection} → API Rules, déjalas sin regla (null: solo superusuarios) y repite la operación.',
 	'settings.site.error.rulesMismatchDeclared':

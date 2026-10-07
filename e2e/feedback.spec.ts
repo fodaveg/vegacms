@@ -37,6 +37,7 @@ async function loginAndSettle(page: import('@playwright/test').Page): Promise<vo
 test.describe('toasts', () => {
 	test('un toast de error persiste hasta descartarlo', async ({ page }) => {
 		await loginAndSettle(page);
+		await page.clock.install();
 
 		await page.evaluate(() => {
 			(window as unknown as VegaTestWindow).__VEGA_TEST_TOAST__?.('Algo falló de verdad', {
@@ -48,7 +49,7 @@ test.describe('toasts', () => {
 		await expect(toast).toBeVisible();
 
 		// Sigue visible pasado un rato (§2.3: 'error' es persistente, sin `timeoutMs` por defecto).
-		await page.waitForTimeout(1200);
+		await page.clock.runFor(1200);
 		await expect(toast).toBeVisible();
 
 		await page

@@ -69,6 +69,9 @@ export type CommonCollectionRuleKey = (typeof COMMON_COLLECTION_RULE_KEYS)[numbe
 export type AuthCollectionRuleKey = (typeof AUTH_COLLECTION_RULE_KEYS)[number];
 export type CollectionRuleKey = (typeof COLLECTION_RULE_KEYS)[number];
 
+/** Reglas declaradas o leídas de una colección, incluidas las exclusivas de `auth`. */
+export type CollectionRules = Partial<Record<CollectionRuleKey, CollectionRule>>;
+
 /**
  * Las cinco reglas de acceso comunes de una colección, tal cual las guarda el backend: `null` =
  * solo superusuarios, `''` = abierta a todo el mundo, otra cadena = una expresión de filtro.
@@ -107,10 +110,8 @@ export type CollectionSpec = BaseCollectionSpec | AuthCollectionSpec;
  * `""` y los filtros viajan sin transformación. */
 export function collectionSpecCreationMetadata(
 	spec: CollectionSpec
-): { name: string; type: CollectionType } & Partial<Record<CollectionRuleKey, CollectionRule>> {
-	const metadata: { name: string; type: CollectionType } & Partial<
-		Record<CollectionRuleKey, CollectionRule>
-	> = {
+): { name: string; type: CollectionType } & CollectionRules {
+	const metadata: { name: string; type: CollectionType } & CollectionRules = {
 		name: spec.name,
 		type: spec.type ?? 'base'
 	};
@@ -140,8 +141,7 @@ export function checkCollectionSpecAccess(specs: CollectionSpec[]): Record<strin
 	const fieldErrors: Record<string, FieldError> = {};
 
 	for (const declared of specs) {
-		const spec = declared as unknown as CollectionSpecBase &
-			Partial<Record<CollectionRuleKey, CollectionRule>> & { type?: string };
+		const spec = declared as unknown as CollectionSpecBase & CollectionRules & { type?: string };
 		const type = spec.type ?? 'base';
 
 		if (type !== 'base' && type !== 'auth') {

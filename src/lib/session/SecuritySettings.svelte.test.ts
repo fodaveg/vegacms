@@ -428,6 +428,56 @@ describe('SecuritySettings', () => {
 		expect(mounted!.toast).toHaveBeenCalledWith('security.totp.replaced', { kind: 'success' });
 	});
 
+	test.each(['current', 'new', undefined] as const)(
+		'el rechazo TOTP %s permite corregir el código que el servidor identifica',
+		async (codeSource) => {
+			const auth = fakeStrongAuth();
+			vi.mocked(auth.verifyTotp)
+				.mockRejectedValueOnce(
+					new VegaStrongAuthError('forbidden', 'step-up-required', 'falta', { methods: ['totp'] })
+				)
+				.mockRejectedValueOnce(
+					new VegaStrongAuthError('forbidden', 'invalid-code', 'inválido', { codeSource })
+				);
+			const root = await submitReplacementCode(auth, '654321');
+			const input = root.querySelector<HTMLInputElement>('[role="dialog"] input')!;
+			input.value = '111222';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			input
+				.closest('form')!
+				.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+			await settle();
+			await settle();
+			const dialog = root.querySelector('[role="dialog"]');
+			const newCode = root.querySelector<HTMLInputElement>('#security-totp-code')!;
+			expect(newCode.value).toBe('654321');
+			expect(root.textContent).toContain('ABCDEF');
+			expect(auth.enrollTotp).toHaveBeenCalledOnce();
+			expect(mounted!.toast).not.toHaveBeenCalled();
+			if (codeSource === 'new') {
+				expect(dialog).toBeNull();
+				expect(root.querySelector('.error')?.textContent).toContain(
+					'security.error.invalidNewCode'
+				);
+				newCode.value = '777888';
+				newCode.dispatchEvent(new Event('input', { bubbles: true }));
+				newCode
+					.closest('form')!
+					.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+				await settle();
+				await settle();
+				expect(auth.verifyTotp).toHaveBeenLastCalledWith('777888', undefined);
+				expect(mounted!.toast).toHaveBeenCalledWith('security.totp.replaced', { kind: 'success' });
+			} else {
+				expect(dialog?.textContent).toContain(
+					codeSource === 'current'
+						? 'security.error.invalidCurrentCode'
+						: 'security.error.invalidCode'
+				);
+			}
+		}
+	);
+
 	test.each([
 		['enrollment-expired', 'security.error.enrollmentExpired'],
 		['not-enrolled', 'security.error.notEnrolled']
@@ -493,6 +543,51 @@ describe('SecuritySettings', () => {
 		expect(find('security.totp.disable')).toBeDefined();
 		expect(auth.verifyTotp).not.toHaveBeenCalled();
 		expect(auth.disableTotp).not.toHaveBeenCalled();
+	});
+
+	test('no refresca el token durante una acción protegida, su diálogo ni el reintento pendiente', async () => {
+		const auth = fakeStrongAuth();
+		let finish!: () => void;
+		const pending = new Promise<void>((resolve) => {
+			finish = resolve;
+		});
+		vi.mocked(auth.enrollTotp).mockRejectedValueOnce(
+			new VegaStrongAuthError('forbidden', 'step-up-required', 'falta', { methods: ['totp'] })
+		);
+		vi.mocked(auth.enrollTotp).mockImplementationOnce(async () => {
+			await pending;
+			return { secret: 'ABCDEF', otpauthUrl: 'otpauth://totp/Vega?secret=ABCDEF' };
+		});
+		mounted = mountSettings(auth);
+		await settle();
+		const button = (key: string) =>
+			Array.from(mounted!.target.querySelectorAll('button')).find((b) =>
+				b.textContent?.includes(key)
+			)!;
+		const refresh = button('security.refresh');
+		button('security.totp.enroll').click();
+		// Direct event also exercises load's guard before the disabled DOM state flushes.
+		refresh.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		await settle();
+		refresh.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		await settle();
+		expect(auth.getStatus).toHaveBeenCalledOnce();
+		const input = mounted.target.querySelector<HTMLInputElement>('[role="dialog"] input')!;
+		input.value = '111222';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		input.closest('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await settle();
+		refresh.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		await settle();
+		expect(auth.getStatus).toHaveBeenCalledOnce();
+		expect(auth.enrollTotp).toHaveBeenCalledTimes(2);
+		finish();
+		await settle();
+		await settle();
+		expect(mounted.target.querySelector('[role="dialog"]')).toBeNull();
+		refresh.click();
+		await settle();
+		expect(auth.getStatus).toHaveBeenCalledTimes(2);
 	});
 
 	test('una passkey con aviso de copia lo enseña en su fila y solo en la suya', async () => {

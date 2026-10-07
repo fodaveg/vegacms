@@ -25,6 +25,7 @@ const (
 	attemptsCollection    = "vega_login_attempts"
 	challengeTTL          = 5 * time.Minute
 	maxPendingChallenges  = 512
+	// Independent budgets: anonymous login and authenticated verify/register each get this cap.
 	maxWebAuthnChallenges = 2048
 	challengeBeginLimit   = 30
 	challengeBeginWindow  = time.Minute
@@ -137,22 +138,26 @@ func (x *Extension) RegisterRoutes(se *core.ServeEvent) {
 	p := x.config.RoutePrefix
 	x.bindProofToRefresh(se.App)
 	x.bindFactorFieldGuard(se.App)
+	// Keep existing authentication/status handling in each handler; only the session format
+	// requirement is shared by operations that mutate factors or establish proof.
+	securityRoutes := se.Router.Group(p)
+	securityRoutes.BindFunc(x.requireProofSession)
 	se.Router.POST(p+"/login/password", x.loginPassword)
 	se.Router.POST(p+"/login/totp", x.loginTOTP)
 	se.Router.POST(p+"/login/recovery", x.loginRecovery)
-	se.Router.POST(p+"/totp/enroll", x.enrollTOTP)
-	se.Router.POST(p+"/totp/verify", x.verifyTOTP)
-	se.Router.POST(p+"/totp/disable", x.disableTOTP)
-	se.Router.POST(p+"/recovery/generate", x.generateRecoveryHandler)
+	securityRoutes.POST("/totp/enroll", x.enrollTOTP)
+	securityRoutes.POST("/totp/verify", x.verifyTOTP)
+	securityRoutes.POST("/totp/disable", x.disableTOTP)
+	securityRoutes.POST("/recovery/generate", x.generateRecoveryHandler)
 	se.Router.GET(p+"/recovery/count", x.recoveryCountHandler)
-	se.Router.POST(p+"/passkey/register/begin", x.beginRegister)
-	se.Router.POST(p+"/passkey/register/finish", x.finishRegister)
+	securityRoutes.POST("/passkey/register/begin", x.beginRegister)
+	securityRoutes.POST("/passkey/register/finish", x.finishRegister)
 	se.Router.POST(p+"/passkey/login/discoverable/begin", x.beginDiscoverableLogin)
 	se.Router.POST(p+"/passkey/login/discoverable/finish", x.finishDiscoverableLogin)
-	se.Router.POST(p+"/passkey/verify/begin", x.beginPasskeyVerify)
-	se.Router.POST(p+"/passkey/verify/finish", x.finishPasskeyVerify)
+	securityRoutes.POST("/passkey/verify/begin", x.beginPasskeyVerify)
+	securityRoutes.POST("/passkey/verify/finish", x.finishPasskeyVerify)
 	se.Router.GET(p+"/passkey/list", x.listPasskeys)
-	se.Router.POST(p+"/passkey/delete", x.deletePasskey)
+	securityRoutes.POST("/passkey/delete", x.deletePasskey)
 	se.Router.GET(p+"/health", func(e *core.RequestEvent) error {
 		return e.JSON(http.StatusOK, map[string]string{"status": "ok"})
 	})
@@ -199,16 +204,24 @@ func (x *Extension) deletePending(token string) {
 	x.pendingMu.Unlock()
 }
 
+func authenticatedChallenge(key string) bool {
+	return strings.HasPrefix(key, "verify:") || strings.HasPrefix(key, "register:")
+}
+
 func (x *Extension) putSession(key string, data *webauthn.SessionData) bool {
 	x.sessionMu.Lock()
 	defer x.sessionMu.Unlock()
 	now := time.Now()
+	authenticated := authenticatedChallenge(key)
+	active := 0
 	for storedKey, entry := range x.sessions {
 		if !entry.expires.After(now) {
 			delete(x.sessions, storedKey)
+		} else if authenticatedChallenge(storedKey) == authenticated {
+			active++
 		}
 	}
-	if _, replacing := x.sessions[key]; !replacing && len(x.sessions) >= maxWebAuthnChallenges {
+	if _, replacing := x.sessions[key]; !replacing && active >= maxWebAuthnChallenges {
 		return false
 	}
 	x.sessions[key] = sessionEntry{data: data, expires: now.Add(challengeTTL)}

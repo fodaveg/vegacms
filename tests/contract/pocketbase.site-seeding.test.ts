@@ -940,9 +940,15 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 		});
 		const before = await logicalSnapshot(admin);
 
-		await expect(seedSiteProject(port)).rejects.toThrow(
-			'La colección "vega_editors" ya existe como base, no como auth'
-		);
+		await expect(seedSiteProject(port)).rejects.toMatchObject({
+			message: 'La colección "vega_editors" ya existe como base, no como auth',
+			fieldErrors: {
+				vega_editors: {
+					code: 'vega_collection_type_mismatch',
+					params: { collection: 'vega_editors', existingType: 'base', expectedType: 'auth' }
+				}
+			}
+		});
 
 		expect(await logicalSnapshot(admin)).toEqual(before);
 	});
@@ -950,9 +956,15 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 	test('pages auth falla de forma explícita aunque quede fuera de la garantía de no escritura', async () => {
 		await admin.collections.create({ name: 'pages', type: 'auth', fields: [] });
 
-		await expect(seedSiteProject(port)).rejects.toThrow(
-			'La colección "pages" ya existe como auth, no como base'
-		);
+		await expect(seedSiteProject(port)).rejects.toMatchObject({
+			message: 'La colección "pages" ya existe como auth, no como base',
+			fieldErrors: {
+				pages: {
+					code: 'vega_collection_type_mismatch',
+					params: { collection: 'pages', existingType: 'auth', expectedType: 'base' }
+				}
+			}
+		});
 
 		await expect(admin.collections.getOne('pages')).resolves.toMatchObject({ type: 'auth' });
 		await expect(admin.collections.getOne('vega_editors')).resolves.toMatchObject({

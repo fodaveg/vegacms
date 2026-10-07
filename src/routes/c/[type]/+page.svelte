@@ -125,7 +125,7 @@
 	import { canDuplicateRecord, duplicateRecord } from '$lib/duplicate/records';
 	import { listRoute } from '$lib/nav/routes';
 	import { hasFileValues } from '$lib/revisions/restore';
-	import { isEditableTarget } from '$lib/shell/keyboard';
+	import { handleNewRecordKeydown } from '$lib/list/record-list-keyboard';
 	import RouteState from '$lib/shell/RouteState.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
 	import RecordTable from '$lib/list/RecordTable.svelte';
@@ -527,18 +527,12 @@
 		const typeName = type.name; // capturado como string plano: el closure de abajo no depende
 		// del estrechamiento de `type` (`function` con nombre, no una flecha — TS no lo preserva).
 		const handleKeydown = (event: KeyboardEvent): void => {
-			if (event.key.toLowerCase() !== 'n' || event.metaKey || event.ctrlKey || event.altKey) {
-				return;
-			}
-			if (isEditableTarget(event.target)) return;
-			// Con el diálogo de borrado abierto (fix de code-review, 🔴): sus botones "Cancelar"/
-			// "Borrar" NO son campos editables, así que `isEditableTarget` no los filtra — sin este
-			// guard, teclear "no" (empieza por `n`) reflexivamente ABANDONARÍA la confirmación de un
-			// borrado destructivo navegando a "Nueva". `DeleteConfirm` solo detiene la propagación de
-			// `Escape`, no de cualquier tecla, así que el guard vive aquí, único dueño de ambos estados.
-			if (pendingDelete !== null) return;
-			event.preventDefault();
-			ctx.nav.toNew(typeName);
+			handleNewRecordKeydown(
+				event,
+				typeName,
+				() => pendingDelete !== null,
+				(name) => ctx.nav.toNew(name)
+			);
 		};
 		document.addEventListener('keydown', handleKeydown);
 		return () => document.removeEventListener('keydown', handleKeydown);

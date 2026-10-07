@@ -4,6 +4,7 @@ import type { ContentType, Field, FieldValue, RecordEvent, RecordId } from '../.
 import type {
 	CollectionRule,
 	CollectionRuleKey,
+	CollectionRules,
 	CollectionSpec,
 	CollectionType
 } from '../../collections';
@@ -16,7 +17,7 @@ import type { MemorySeed } from './seed';
 export interface MemoryCollectionSnapshot {
 	name: string;
 	type: CollectionType | 'view';
-	rules: Partial<Record<CollectionRuleKey, CollectionRule>>;
+	rules: CollectionRules;
 	fieldNames: string[];
 }
 
@@ -80,7 +81,7 @@ export function collectionSpecToMemorySnapshot(spec: CollectionSpec): MemoryColl
 		type === 'auth'
 			? [...COMMON_COLLECTION_RULE_KEYS, ...AUTH_COLLECTION_RULE_KEYS]
 			: COMMON_COLLECTION_RULE_KEYS;
-	const rules: Partial<Record<CollectionRuleKey, CollectionRule>> = {};
+	const rules: CollectionRules = {};
 	for (const key of keys) {
 		rules[key] = Object.prototype.hasOwnProperty.call(spec, key)
 			? (spec as unknown as Record<CollectionRuleKey, CollectionRule>)[key]

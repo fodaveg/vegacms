@@ -114,7 +114,26 @@ func (x *Extension) bindFactorFieldGuard(app core.App) {
 func (x *Extension) bindProofToRefresh(app core.App) {
 	app.OnRecordAuthRequest(x.config.AuthCollection).BindFunc(func(e *core.RecordAuthRequestEvent) error {
 		if e.AuthMethod == "" {
-			x.moveProof(requestSessionKey(e.RequestEvent), sessionKey(e.Token))
+			eligible, err := proofSessionEligible(e.Record, e.Request.Header.Get("Authorization"))
+			if err != nil {
+				return unauthorized(e.RequestEvent)
+			}
+			// PocketBase mints a deterministic JWT on refresh too. Distinguish each replacement
+			// before transferring proof; parallel refreshes cannot merge back into one token.
+			token, err := x.distinctAuthToken(e.Record, e.Token)
+			if err != nil {
+				return e.InternalServerError("Failed to refresh auth token.", nil)
+			}
+			e.Token = token
+			if eligible {
+				x.moveProof(requestSessionKey(e.RequestEvent), sessionKey(e.Token))
+			} else {
+				// A legacy token may have been shared by independent logins. Never hand its
+				// cached proof to the first refresher; each new session must prove possession.
+				x.proofMu.Lock()
+				delete(x.proofs, requestSessionKey(e.RequestEvent))
+				x.proofMu.Unlock()
+			}
 		}
 		return e.Next()
 	})
@@ -176,7 +195,7 @@ func (x *Extension) codeRefused(e *core.RequestEvent, code string) (bool, error)
 		return true, e.JSON(http.StatusInternalServerError, map[string]string{"error": "verify_failed"})
 	}
 	if !valid {
-		return true, e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_code"})
+		return true, e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid_code", "code_source": "current"})
 	}
 	x.resetLoginAttempts(e.App, identity, stepUpScope)
 	x.markProof(requestSessionKey(e))

@@ -514,6 +514,56 @@ describe('SiteBaseCard', () => {
 		});
 	});
 
+	describe('desajuste de tipo de colección', () => {
+		async function failWith(error: Error, translate: VegaAppContext['t'], open: string) {
+			const port = await authedMemory();
+			vi.spyOn(port, 'ensureCollections').mockRejectedValueOnce(error);
+			mounted = mountCard(port, vi.fn(), translate);
+			await settle();
+			await click(button(mounted.target, open));
+			await click(button(dialog(mounted.target)!, open));
+			return dialog(mounted.target)!.querySelector('pre')!.textContent ?? '';
+		}
+
+		const mismatch = (existingType: string, expectedType: string) =>
+			VegaError.validation(
+				{
+					pages: {
+						code: 'vega_collection_type_mismatch',
+						message: 'TEXTO DE RESPALDO',
+						params: { collection: 'pages', existingType, expectedType }
+					}
+				},
+				'TEXTO DE RESPALDO'
+			);
+
+		test('traduce al castellano el tipo auth existente', async () => {
+			const spanish = await failWith(mismatch('auth', 'base'), es, 'Preparar el sitio');
+			expect(spanish).toBe('La colección "pages" ya existe como auth, no como base');
+		});
+
+		test('traduce al inglés un tipo view existente', async () => {
+			await ensureLocaleLoaded('en');
+			const en = (key: string, params?: Record<string, string | number>) => t('en', key, params);
+			const english = await failWith(mismatch('view', 'auth'), en, 'Set up the site');
+			expect(english).toBe('The "pages" collection already exists as view, not as auth');
+		});
+
+		test('sin parámetros completos conserva el mensaje de respaldo', async () => {
+			const bare = VegaError.validation(
+				{
+					pages: {
+						code: 'vega_collection_type_mismatch',
+						message: 'TEXTO DE RESPALDO',
+						params: { collection: 'pages', existingType: 'auth' }
+					}
+				},
+				'TEXTO DE RESPALDO'
+			);
+			expect(await failWith(bare, es, 'Preparar el sitio')).toBe('TEXTO DE RESPALDO');
+		});
+	});
+
 	describe('módulos', () => {
 		async function seededPort(): Promise<MemoryBackendPort> {
 			const port = await authedMemory();

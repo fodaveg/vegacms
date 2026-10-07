@@ -84,7 +84,8 @@ export function createSchemaOps(
 							{
 								[spec.name]: {
 									code: 'vega_collection_type_mismatch',
-									message: `La colección "${spec.name}" ya existe como ${existing.type}, no como ${expectedType}`
+									message: `La colección "${spec.name}" ya existe como ${existing.type}, no como ${expectedType}`,
+									params: { collection: spec.name, existingType: existing.type, expectedType }
 								}
 							},
 							`La colección "${spec.name}" ya existe como ${existing.type}, no como ${expectedType}`

@@ -90,6 +90,7 @@
 	import { mediaDisplayName, mediaImgAlt, toMediaItemView, type MediaItemView } from './media-item';
 	import { resolveMediaFullSrc } from './media-thumb';
 	import { findMediaFileFieldSchema, validateMediaFile } from './media-upload';
+	import { handleMediaDetailKeyboard } from './media-detail-keyboard';
 	import MediaDeleteConfirm from './MediaDeleteConfirm.svelte';
 	import MediaReplaceConfirm from './MediaReplaceConfirm.svelte';
 
@@ -254,40 +255,14 @@
 		focalPending = null;
 	}
 
-	function focusableItems(): HTMLElement[] {
-		if (!dialogEl) return [];
-		return Array.from(dialogEl.querySelectorAll<HTMLElement>('button, input'));
-	}
-
 	function handleKeydown(event: KeyboardEvent): void {
-		// Ver cabecera del componente ("Doble trampa de foco"): mientras `MediaDeleteConfirm`/
-		// `MediaReplaceConfirm` están abiertos, ES SU trampa la que debe reaccionar a Esc/Tab, no
-		// la de este diálogo — todos instalan un listener en `document`, y sin este guard `Escape`
-		// dispararía varios a la vez.
-		if (confirmingDelete || confirmingReplace) return;
-		if (event.key === 'Escape') {
-			event.preventDefault();
-			event.stopPropagation();
-			// Un punto focal a medio mover se suelta primero; el siguiente `Esc` ya cierra.
-			if (focalPending) {
-				focalPending = null;
-				return;
-			}
-			requestClose();
-			return;
-		}
-		if (event.key !== 'Tab') return;
-		const focusable = focusableItems();
-		if (focusable.length === 0) return;
-		const first = focusable[0];
-		const last = focusable[focusable.length - 1];
-		if (event.shiftKey && document.activeElement === first) {
-			event.preventDefault();
-			last.focus();
-		} else if (!event.shiftKey && document.activeElement === last) {
-			event.preventDefault();
-			first.focus();
-		}
+		handleMediaDetailKeyboard(event, {
+			confirmationOpen: confirmingDelete || confirmingReplace,
+			focalPending: focalPending !== null,
+			clearFocalPending: () => (focalPending = null),
+			requestClose,
+			dialog: dialogEl
+		});
 	}
 
 	$effect(() => {

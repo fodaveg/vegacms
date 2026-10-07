@@ -37,15 +37,15 @@
 	 * el trabajo sin guardar de la sesión anterior: si reentrara otra persona, lo siguiente que
 	 * guardase saldría con su identidad y con el contenido de otra. Al abrirse, el overlay anota el
 	 * `user.id` de la sesión que caducó, y tras una entrada con éxito lo compara con el de la sesión
-	 * nueva. Si es el mismo, se retira como siempre. Si no, NO se retira: avisa y recarga la
-	 * aplicación (`reload`), que arranca limpia con la cuenta nueva y sin el borrador ajeno. El
-	 * overlay se queda puesto, con `#vega-app-shell` inerte, por si la recarga no llega a ocurrir
+	 * nueva. Si es el mismo, se retira como siempre. Si no, NO se retira: avisa y ofrece recargar la
+	 * aplicación (`reload`) tras confirmarlo, que arranca limpia con la cuenta nueva y sin el
+	 * borrador ajeno. El overlay se queda puesto, con `#vega-app-shell` inerte, por si la recarga no llega a ocurrir
 	 * (el aviso de «cambios sin guardar» del navegador se puede cancelar): desde ahí solo se ofrece
 	 * recargar.
 	 *
 	 * - Sin id previo conocido (el store no tenía sesión al caducar) no hay con qué comparar: se
-	 *   trata como «otra cuenta» y se recarga. Falla cerrado; sin sesión previa tampoco había vista
-	 *   protegida que conservar.
+	 *   trata como «otra cuenta» y se pide confirmar la recarga. Falla cerrado; sin sesión previa
+	 *   tampoco había vista protegida que conservar.
 	 * - Solo se compara el id. `Session` (`backend/types.ts`) no expone colección ni rol, y no hace
 	 *   falta: el puerto autentica SIEMPRE contra la misma colección (la `authCollection` con la que
 	 *   se construyó el adaptador), así que dos sesiones de este overlay nunca vienen de
@@ -87,13 +87,12 @@
 	/** Éxito (§4.1): descarta el overlay. El resto de la vista de debajo nunca se desmontó, así que
 	 *  "restaurar" es simplemente dejar de taparla. Con `false` (fallo, o contraseña válida con el
 	 *  segundo factor pendiente) el overlay se queda donde está. Y si quien entró NO es quien
-	 *  estaba, tampoco se descarta: se recarga la aplicación (ver cabecera). */
+	 *  estaba, tampoco se descarta: pide confirmar la recarga (ver cabecera). */
 	function settle(authenticated: boolean): void {
 		if (!authenticated) return;
 		const currentUserId = sessionStore.session?.user.id ?? null;
 		if (expectedUserId === null || currentUserId === null || currentUserId !== expectedUserId) {
 			identityChanged = true;
-			reload();
 			return;
 		}
 		sessionStore.clearExpired();

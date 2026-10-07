@@ -253,10 +253,10 @@ function stubResizeObserver(): { triggerResize: () => void } {
 	};
 }
 
-/** Mismo criterio que `PreviewPanel.svelte.test.ts`: macrotask real (drena la cadena de
- *  microtasks de `requestPreview`/`createBlocksState#load`) + `tick()` de Svelte. */
+/** Drena las promesas de `requestPreview`/`createBlocksState#load` y el DOM de Svelte con el
+ *  reloj falso de la suite, sin esperar un macrotask de duración arbitraria. */
 async function flush(): Promise<void> {
-	await new Promise((resolve) => setTimeout(resolve, 10));
+	await vi.advanceTimersByTimeAsync(0);
 	await tick();
 }
 
@@ -307,13 +307,17 @@ async function connectBridge(
 	await tick();
 }
 
-/** Ventana de rebote de `scheduleCanvasRefresh` (`REFRESH_DEBOUNCE_MS = 200`), agotada con
- *  temporizadores REALES (mismo criterio que `flush()`, no falsos): 250ms de margen y una `flush()`
- *  final para que se resuelva la promesa de `client.requestPreview` que dispara `refreshCanvas`. */
+/** Vence el rebote de `scheduleCanvasRefresh` (`REFRESH_DEBOUNCE_MS = 200`) con el reloj falso;
+ *  `flush()` completa la promesa de `client.requestPreview` y la actualización del DOM. */
 async function flushRefreshDebounce(): Promise<void> {
-	await new Promise((resolve) => setTimeout(resolve, 250));
+	await vi.advanceTimersByTimeAsync(200);
 	await flush();
 }
+
+// `flush` se comparte entre todas las familias de tests de este fichero: el mismo reloj
+// controla sus timers desde el montaje y se restaura después del desmontaje.
+beforeEach(() => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] }));
+afterEach(() => vi.useRealTimers());
 
 describe('VisualEditorScreen.svelte', () => {
 	let mounted: { target: HTMLElement; instance: ReturnType<typeof mount> } | null = null;
@@ -1871,7 +1875,8 @@ describe('VisualEditorScreen.svelte — refresco en vivo del lienzo', () => {
 		// `requestPreview()`, que pide OTRO token — la tercera petición que este test prohíbe.
 		pending.shift()!(jsonResponse(tokenBody()));
 		await flush();
-		await new Promise((resolve) => setTimeout(resolve, 200));
+		// Otro ciclo de rebote/renovación: no debe sobrevivir ningún timer tras desmontar.
+		await vi.advanceTimersByTimeAsync(200);
 		await flush();
 
 		// Dos peticiones y ni una más: la del montaje y la del refresco. Nada pidió token después.

@@ -13,17 +13,17 @@
  * lo pinte como un estado más, nunca como una excepción sin capturar (mismo criterio que
  * `VegaError` en el resto de la app, aunque este módulo no forma parte del puerto de backend).
  *
- * El enlace al release (`releaseUrl`) solo sale de aquí si apunta a `https://github.com/`
+ * El enlace al release (`releaseUrl`) solo sale de aquí si apunta al repositorio `VEGA_REPO_SLUG`
+ * en `https://github.com/`
  * (`release-url.ts#safeReleaseUrl`); si no, va `null` y el aviso de versión se da SIN enlace.
  */
 
 import { VEGA_VERSION } from '$lib/version';
 import { safeReleaseUrl } from './release-url';
+import { VEGA_REPO_SLUG } from './repo';
 import { readCachedUpdateCheck, writeCachedUpdateCheck } from './storage';
 
-/** `owner/repo` de GitHub. Constante explícita: `package.json` no declara el campo
- *  `repository`, así que no hay de dónde derivarlo sin inventar una convención nueva. */
-export const VEGA_REPO_SLUG = 'fodaveg/vegacms';
+export { VEGA_REPO_SLUG } from './repo';
 
 const RELEASES_URL = `https://api.github.com/repos/${VEGA_REPO_SLUG}/releases/latest`;
 

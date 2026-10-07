@@ -190,8 +190,8 @@ function expectResolved(h: Harness): void {
  * nueva (el backend la dio por buena), y justo por eso el borrador de debajo sigue tapado e
  * inerte: no se puede guardar con esa identidad.
  */
-function expectReloadInsteadOfResolve(h: Harness, session: Session): void {
-	expect(h.reload).toHaveBeenCalledOnce();
+function expectWarningBeforeReload(h: Harness, session: Session): void {
+	expect(h.reload).not.toHaveBeenCalled();
 	expect(h.store.session).toEqual(session);
 	expect(dialog(h)).not.toBeNull();
 	expect(h.store.expired).toBe(true);
@@ -201,6 +201,8 @@ function expectReloadInsteadOfResolve(h: Harness, session: Session): void {
 	expect(h.target.querySelector('form')).toBeNull();
 	expect(h.target.querySelector('input')).toBeNull();
 	expect(h.target.querySelector('[role="alert"]')?.textContent).toContain('otra cuenta');
+	expect(h.target.querySelector('[role="alert"]')?.textContent).toContain('sin guardar');
+	expect(h.draft.value).toBe('borrador sin guardar');
 }
 
 describe('ReloginModal', () => {
@@ -350,7 +352,7 @@ describe('ReloginModal', () => {
 	// Revisión de seguridad del 30 sep 2026: el overlay aceptaba las credenciales de CUALQUIER
 	// cuenta y dejaba el borrador de debajo listo para guardarse con la identidad nueva.
 	describe('quien reentra tiene que ser quien estaba', () => {
-		test('otra cuenta con contraseña: recarga en vez de destapar el borrador', async () => {
+		test('otra cuenta con contraseña: pide confirmar la recarga sin destapar el borrador', async () => {
 			h = await mountExpired(
 				null,
 				vi.fn(async () => OTHER)
@@ -358,10 +360,10 @@ describe('ReloginModal', () => {
 
 			await submitPassword(h);
 
-			expectReloadInsteadOfResolve(h, OTHER);
+			expectWarningBeforeReload(h, OTHER);
 		});
 
-		test('otra cuenta que completa el segundo factor: recarga', async () => {
+		test('otra cuenta que completa el segundo factor: pide confirmar la recarga', async () => {
 			const auth = strongAuthPort({
 				loginWithPassword: mfaRequired(),
 				loginWithTotp: vi.fn(async () => OTHER)
@@ -373,10 +375,10 @@ describe('ReloginModal', () => {
 			type(h, '#relogin-totp', '123456');
 			await submit(h, '#relogin-totp');
 
-			expectReloadInsteadOfResolve(h, OTHER);
+			expectWarningBeforeReload(h, OTHER);
 		});
 
-		test('otra cuenta con código de recuperación: recarga', async () => {
+		test('otra cuenta con código de recuperación: pide confirmar la recarga', async () => {
 			const auth = strongAuthPort({
 				loginWithPassword: mfaRequired(['recovery']),
 				loginWithRecovery: vi.fn(async () => OTHER)
@@ -387,20 +389,20 @@ describe('ReloginModal', () => {
 			type(h, '#relogin-recovery', 'ABCDE-12345');
 			await submit(h, '#relogin-recovery');
 
-			expectReloadInsteadOfResolve(h, OTHER);
+			expectWarningBeforeReload(h, OTHER);
 		});
 
-		test('otra cuenta con passkey: recarga', async () => {
+		test('otra cuenta con passkey: pide confirmar la recarga', async () => {
 			const auth = strongAuthPort({ loginWithPasskey: vi.fn(async () => OTHER) });
 			h = await mountExpired(auth);
 
 			buttonByText(h, 'Entrar con passkey')!.click();
 			await settle();
 
-			expectReloadInsteadOfResolve(h, OTHER);
+			expectWarningBeforeReload(h, OTHER);
 		});
 
-		test('mismo correo pero otro id (cuenta borrada y vuelta a crear): recarga', async () => {
+		test('mismo correo pero otro id (cuenta borrada y vuelta a crear): pide confirmar la recarga', async () => {
 			const recreated: Session = { ...FRESH, user: { id: 'editor-9', email: STALE.user.email } };
 			h = await mountExpired(
 				null,
@@ -409,7 +411,7 @@ describe('ReloginModal', () => {
 
 			await submitPassword(h);
 
-			expectReloadInsteadOfResolve(h, recreated);
+			expectWarningBeforeReload(h, recreated);
 		});
 
 		test('mismo id con otro correo (lo cambió) y otro token: es la misma cuenta, resuelve', async () => {
@@ -431,7 +433,7 @@ describe('ReloginModal', () => {
 			expect(h.store.session).toEqual(renamed);
 		});
 
-		test('sin id previo conocido no se puede comparar: recarga', async () => {
+		test('sin id previo conocido no se puede comparar: pide confirmar la recarga', async () => {
 			h = await mountExpired(
 				null,
 				vi.fn(async () => FRESH),
@@ -441,7 +443,7 @@ describe('ReloginModal', () => {
 
 			await submitPassword(h);
 
-			expectReloadInsteadOfResolve(h, FRESH);
+			expectWarningBeforeReload(h, FRESH);
 		});
 
 		test('una credencial incorrecta de otra cuenta no recarga: sigue en el formulario', async () => {
@@ -458,19 +460,21 @@ describe('ReloginModal', () => {
 			expect(h.reload).not.toHaveBeenCalled();
 		});
 
-		test('si la recarga no llega a ocurrir, el botón «Recargar» la vuelve a pedir y el foco está en él', async () => {
+		test('avisa antes de recargar; el botón explícito conserva el foco y permite reintentar si se cancela', async () => {
 			h = await mountExpired(
 				null,
 				vi.fn(async () => OTHER)
 			);
 			await submitPassword(h);
-			expectReloadInsteadOfResolve(h, OTHER);
+			expectWarningBeforeReload(h, OTHER);
 
 			const reloadButton = buttonByText(h, 'Recargar');
 			expect(reloadButton).not.toBeNull();
 			expect(document.activeElement).toBe(reloadButton);
 			reloadButton!.click();
 
+			expect(h.reload).toHaveBeenCalledOnce();
+			reloadButton!.click();
 			expect(h.reload).toHaveBeenCalledTimes(2);
 			expect(dialog(h)).not.toBeNull();
 			expect(h.shell.inert).toBe(true);

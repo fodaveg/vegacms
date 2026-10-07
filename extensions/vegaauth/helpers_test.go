@@ -86,7 +86,18 @@ func (s *testServer) reload(user *core.Record) *core.Record {
 	return fresh
 }
 
+// token models sessions issued by the current extension. Use legacyToken explicitly when
+// testing pre-nonce sessions, which remain valid for ordinary PocketBase operations.
 func (s *testServer) token(user *core.Record) string {
+	s.t.Helper()
+	token, err := s.extension.distinctAuthToken(user, s.legacyToken(user))
+	if err != nil {
+		s.t.Fatal("could not issue test session")
+	}
+	return token
+}
+
+func (s *testServer) legacyToken(user *core.Record) string {
 	s.t.Helper()
 	token, err := user.NewAuthToken()
 	if err != nil {

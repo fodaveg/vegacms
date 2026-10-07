@@ -159,6 +159,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'security.error.stepUpRequired': 'You need to confirm it is you to change this.',
 	'security.error.invalidCode':
 		'The code is not valid. Wait for the app to show the next one and try again.',
+	'security.error.invalidCurrentCode':
+		'The code from your current app is not valid. Wait for its next code and try again.',
+	'security.error.invalidNewCode':
+		'The code from the app you are setting up is not valid. Correct it in the setup form.',
 	'security.error.locked': 'Too many attempts. Wait a few minutes and try again.',
 	'security.error.lockedWait': 'Too many attempts. Wait {minutes} min and try again.',
 	'security.error.payloadTooLarge':
@@ -173,10 +177,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'The setup was discarded because the passkeys of the account changed. Start again.',
 	'security.stepUp.title': 'Confirm it is you',
 	'security.stepUp.bodyTotp':
-		'To change this, enter the code your authenticator app is showing now.',
+		'To change this, enter the code your current authenticator app is showing.',
 	'security.stepUp.bodyPasskey': 'To change this, confirm with one of your passkeys.',
 	'security.stepUp.bodyBoth':
-		'To change this, enter the code your authenticator app is showing now or confirm with a passkey.',
+		'To change this, enter the code your current authenticator app is showing or confirm with a passkey.',
 	'security.stepUp.unavailable':
 		'Your identity cannot be confirmed from here. Sign out, sign back in with your second step and repeat the change.',
 	'security.stepUp.confirm': 'Confirm',
@@ -195,6 +199,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'Open the link in your password manager or enter the secret manually. Then confirm a six-digit code.',
 	'security.totp.openApp': 'Open in authenticator app',
 	'security.totp.codeLabel': '6-digit code',
+	'security.totp.currentCodeLabel': 'Code from your current app',
+	'security.totp.newCodeLabel': 'Code from the app you are setting up',
 	'security.totp.verify': 'Enable and verify',
 	'security.totp.disabledBody': 'Add a second sign-in step with any app that supports TOTP codes.',
 	'security.totp.enroll': 'Set up TOTP',
@@ -1481,6 +1487,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'settings.site.error.title': 'It could not be finished',
 	'settings.site.error.body':
 		'What was created before the failure stays as it is. When you retry, Vega only creates what is missing.',
+	'settings.site.error.typeMismatch':
+		'The "{collection}" collection already exists as {existingType}, not as {expectedType}',
 	'settings.site.error.rulesMismatchNull':
 		'The "{collection}" collection already exists with access rules different from the ones Vega expects: {rules}. Nothing has been changed. In PocketBase, go to Collections → {collection} → API Rules, leave them empty (null: superusers only) and run the operation again.',
 	'settings.site.error.rulesMismatchDeclared':

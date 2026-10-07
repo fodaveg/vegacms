@@ -104,7 +104,7 @@ A guarded request goes through when either of these holds:
 Otherwise the answer is `428 {"error":"step_up_required","methods":["totp","passkey"],"message":…}`,
 where `methods` lists what the account can prove with. The status is deliberately not 401/403:
 Vega's client treats those as an expired session, and this session is valid. A wrong `code` is
-`401 {"error":"invalid_code"}` (which the client already shows as a wrong code)
+`401 {"error":"invalid_code","code_source":"current"}` (the current authenticator rejected it)
 and, after five of them, `429 {"error":"locked","wait":<seconds>}`; that budget is per account
 (not per IP), is shared with `/totp/verify` and is separate from the login lock.
 
@@ -121,7 +121,10 @@ proof on purpose: it is how the owner of a lost authenticator replaces it.
 
 `POST /totp/enroll` no longer switches TOTP off. The new secret is kept in the hidden
 `totp_pending_secret` field and only replaces the active one when `POST /totp/verify` accepts a
-code generated from it; until then logins keep asking for the old authenticator. Abandoning the
+code generated from it; until then logins keep asking for the old authenticator.
+An invalid pending-secret code returns `401 {"error":"invalid_code","code_source":"new"}`.
+`code_source` is additive: older servers may omit it, so clients must keep their generic code
+error in that case. A client must not infer which code failed from the submitted form. Abandoning the
 enrollment changes nothing, and enrolling again overwrites the pending secret.
 
 An unverified secret cannot outlive the moment it was created for. It expires ten minutes after
@@ -152,10 +155,33 @@ memory under the SHA-256 of the session token (never the token itself). Another 
 account, such as a stolen one or a login on another device, does not inherit it and gets `428`.
 When PocketBase's `auth-refresh` replaces the token, which the SPA does every time it opens the
 security screen, the proof moves to the new token with its original expiry: refreshing never
-extends the five minutes and the replaced token stops carrying the proof. Two limits remain:
-PocketBase issues identical tokens for logins of one account within the same second, so those are
-one session to this rule; and a multi-replica deployment needs sticky routing for the proof to be
-found.
+extends the five minutes and the replaced token stops carrying the proof. Every refreshable token
+issued by this extension, including PocketBase auth-refresh, adds a cryptographically random
+192-bit `jti` claim while preserving PocketBase's claims, expiry and signing key. Independent
+logins within one second therefore remain separate sessions. No schema or client storage change
+is required; normal PocketBase middleware and token-key revocation still apply. Failure to obtain
+randomness rejects issuance/refresh without transferring the proof.
+
+Concurrent refresh requests receive distinct tokens; at most one inherits the old token's proof,
+with its original expiry. Other successful refreshes must prove possession again before changing
+factors. The old token loses its **proof**, not its underlying PocketBase authentication validity;
+this extension does not introduce session revocation. Non-refreshable tokens are returned unchanged,
+as PocketBase specifies. Tokens already open before upgrading remain valid for normal PocketBase
+reads/writes, but a refreshable token without a signed, well-formed nonce cannot mutate factors or
+establish/use proof. All factor/proof routes reject it before consuming a code or challenge with
+`428 {"error":"step_up_required","methods":[]}`. This uses the existing unavailable-step-up
+contract, not an expired-session response: it does not sign the user out or discard editor state.
+
+The remedy is the standard PocketBase `POST /api/collections/{authCollection}/auth-refresh`.
+It returns a unique `jti` and discards, rather than inherits, any proof cached for the legacy token:
+identical old tokens may have belonged to different logins. The owner then proves possession on
+the new session normally; another copy of the legacy token gains no authority. Vega already
+refreshes before loading security settings. Direct clients must also refresh before security
+operations (or sign in again); merely resending a TOTP code on the legacy session is rejected
+without spending that code. Non-refreshable static/impersonation tokens retain their existing
+proof contract because they are a deliberate PocketBase capability, not independently issued
+refreshable login sessions. A multi-replica deployment still needs sticky routing for in-memory
+proofs and challenges.
 
 ## Security notes
 
@@ -197,7 +223,11 @@ found.
 - Pending password challenges and WebAuthn challenges live in process memory for five minutes.
   A multi-replica deployment therefore needs sticky routing or a shared challenge store.
 - Anonymous challenge creation is rate-limited per IP; both MFA and WebAuthn stores prune expired
-  entries and reject new work at a fixed capacity instead of growing without bound.
+  entries and reject new work at a fixed capacity instead of growing without bound. WebAuthn has
+  independent budgets of 2048 anonymous discoverable-login challenges and 2048 authenticated
+  verify/register challenges (shared by those two operations). Filling either budget cannot block
+  the other. Both retain the five-minute TTL, replacement of an existing slot and single-use
+  consumption. The anonymous per-IP begin limit is unchanged.
 
 ## Upgrading an existing installation
 

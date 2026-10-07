@@ -7,21 +7,46 @@ import { describe, expect, test } from 'vitest';
 import { safeReleaseUrl } from './release-url';
 
 describe('safeReleaseUrl', () => {
-	test('una página de https://github.com/ se acepta', () => {
+	test('una página del repositorio de Vega se acepta', () => {
 		expect(safeReleaseUrl('https://github.com/fodaveg/vegacms/releases/tag/v1.2.3')).toBe(
 			'https://github.com/fodaveg/vegacms/releases/tag/v1.2.3'
 		);
 	});
 
 	test('devuelve la forma NORMALIZADA (lo que se validó es lo que se enlaza)', () => {
-		expect(safeReleaseUrl('  HTTPS://GitHub.com:443/fodaveg  ')).toBe('https://github.com/fodaveg');
-		// La barra invertida es separador de ruta en `https:`: queda dentro de github.com.
-		expect(safeReleaseUrl('https://github.com\\@evil.example/')).toBe(
-			'https://github.com/@evil.example/'
+		expect(safeReleaseUrl('  HTTPS://GitHub.com:443/fodaveg/vegacms  ')).toBe(
+			'https://github.com/fodaveg/vegacms'
 		);
 	});
 
 	test.each([
+		'https://github.com/fodaveg/vegacms',
+		'https://github.com/fodaveg/vegacms/',
+		'https://github.com/fodaveg/vegacms/issues/1?view=all#comentario',
+		'https://github.com/fodaveg/vegacms/releases/tag/v1.2.3%2ffeature'
+	])('acepta una ruta del repositorio sin exigir releases (%s)', (candidate) => {
+		expect(safeReleaseUrl(candidate)).toBe(candidate);
+	});
+
+	test.each([
+		'https://github.com/fodaveg/otro/releases/tag/v1.2.3',
+		'https://github.com/otro/vegacms/releases/tag/v1.2.3',
+		'https://github.com/fodaveg/vegacms-evil/releases',
+		'https://github.com/fodaveg/prefijo-vegacms/releases',
+		'https://github.com/fodaveg/vegacms.evil/releases',
+		'https://github.com/fodaveg/vegacms%2freleases',
+		'https://github.com/%66odaveg/vegacms/releases',
+		'https://github.com/fodaveg/%76egacms/releases',
+		'https://github.com/fodaveg/vegacms/../otro/releases',
+		'https://github.com/fodaveg/otro/../vegacms/releases',
+		'https://github.com/fodaveg/vegacms/%2e%2e/otro/releases',
+		'https://github.com/fodaveg/vegacms/releases/../issues',
+		'https://github.com/fodaveg/vegacms/%2e%2e%2fother',
+		'https://github.com/fodaveg/vegacms/%2f..%2fother',
+		'https://github.com/fodaveg/vegacms/%2e%2e%5cother',
+		'https://github.com/fodaveg/vegacms/releases%2f..%2fissues',
+		'https://github.com/fodaveg',
+		'https://github.com\\@evil.example/',
 		'https://github.com.evil.example/',
 		'https://github.com@evil.example/',
 		'https://github.com:pass@evil.example/',

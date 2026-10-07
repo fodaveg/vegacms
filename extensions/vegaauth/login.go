@@ -125,6 +125,9 @@ func (x *Extension) attemptRefused(e *core.RequestEvent, identity, ip string) (b
 // factor; the proof of possession is then attached to this very token and to no other.
 func (x *Extension) authTokenResponse(e *core.RequestEvent, record *core.Record, proven bool) error {
 	token, err := record.NewAuthToken()
+	if err == nil {
+		token, err = x.distinctAuthToken(record, token)
+	}
 	if err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]string{"error": "token_failed"})
 	}

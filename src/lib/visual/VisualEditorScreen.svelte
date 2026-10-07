@@ -303,22 +303,21 @@
 	import { getVegaContext } from '$lib/app-context';
 	import type { ResolvedBlockType, ResolvedContentType } from '$lib/model/types';
 	import type { VegaRecord } from '$lib/backend';
-	import { createPreviewClient, type PreviewToken } from '$lib/backend/preview-client';
-	import { classifyPreviewError } from '$lib/backend/preview-error';
+	import { createPreviewClient } from '$lib/backend/preview-client';
 	import {
 		createVisualBridgeClient,
-		VISUAL_PROTOCOL_VERSION,
 		type VisualBridgeClient,
-		type VisualBridgeErrorKind,
 		type VisualBridgeState
 	} from './bridge-client';
+	import { bridgeErrorText } from './bridge-error-text';
+	import { createVisualPreviewState, type TokenState } from './visual-preview-state';
 	import { createBlocksState } from '$lib/form/blocks-state.svelte';
 	import { requestFieldFocus, type FieldFocusRequest } from '$lib/form/focus-request';
 	import { recordRoute } from '$lib/nav/routes';
 	import type { ReviewFinding } from '$lib/publish-review/publish-review';
 	import { createReviewState } from '$lib/publish-review/review-state.svelte';
 	import ReviewMediaDialog from '$lib/publish-review/ReviewMediaDialog.svelte';
-	import { isEditableTarget } from '$lib/shell/keyboard';
+	import { visualKeyboardAction } from './visual-keyboard';
 	import { describeCell } from '$lib/list/cell';
 	import { resolveTitleCellText } from '$lib/list/list-load';
 	import EditTopBar from '$lib/shell/EditTopBar.svelte';
@@ -469,14 +468,9 @@
 		token: ctx.session.token
 	});
 
-	type TokenState =
-		| { kind: 'loading' }
-		| { kind: 'ready'; token: PreviewToken }
-		| { kind: 'error'; message: string };
-
-	let tokenState = $state<TokenState>({ kind: 'loading' });
 	// `true` tras el evento `load` del documento ACTUAL del iframe (ver cabecera de
 	// `PreviewPanel.svelte`, "Qué NO hace"): se resetea en cada petición nueva.
+	let tokenState = $state<TokenState>({ kind: 'loading' });
 	let frameLoaded = $state(false);
 	let bridgeState = $state<VisualBridgeState>({ status: 'idle' });
 	let iframeEl = $state<HTMLIFrameElement | undefined>(undefined);
@@ -509,25 +503,8 @@
 	// llega a salir ninguna petición.
 	let canvasActive = $state(true);
 
-	let renewTimer: ReturnType<typeof setTimeout> | null = null;
-	/** `true` desde `onDestroy`. Las generaciones NO bastan para cortar la cadena de renovaciones:
-	 *  `refreshCanvas({ renew: true })` arma `scheduleRenew` ANTES de su guarda de generación (una
-	 *  respuesta tardía por una petición posterior con el componente VIVO no puede dejar la cadena sin
-	 *  temporizador), así que solo el desmontaje, que es definitivo, la corta: con esta bandera
-	 *  `scheduleRenew` no arma nada. */
-	let destroyed = false;
-	let requestGeneration = 0;
 	let bridgeClient: VisualBridgeClient | null = null;
 	let narrowQuery: MediaQueryList | null = null;
-	// ————— Refresco en vivo (ver cabecera, camino nuevo de esta tarea) —————
-	/** Rebote de `scheduleCanvasRefresh`: PROPIO, no comparte reloj con `renewTimer` (renovación de
-	 *  token) ni con nada de `bridge-client.ts` (su plazo de `refresh()` es interno del cliente). */
-	let refreshDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-	/** Contador de generación de `refreshCanvas` (misma disciplina que `requestGeneration`, ver
-	 *  `requestPreview`): distingue la petición de token EN VUELO de una que ya no importa —
-	 *  `requestPreview()` también lo incrementa, porque una recarga entera deja sin sentido
-	 *  cualquier refresco que siguiera en camino. */
-	let refreshGeneration = 0;
 	// ————— Anchos de columna ajustables (ver cabecera) —————
 	let columnWidths = $state(readColumnWidths());
 	// `true` mientras cualquiera de las dos manillas está en medio de un arrastre: gobierna el
@@ -574,144 +551,19 @@
 	 *  `VisualBlockTree.svelte`, "Colapsable"): por debajo, su manilla no tiene columna que mover. */
 	const TREE_QUERY = '(max-width: 1180px)';
 
-	/** Margen de seguridad antes de `expiresAt` (ver cabecera de `PreviewPanel.svelte`). */
-	const RENEW_BUFFER_MS = 15000;
-	/** Tope del propio `setTimeout` (entero de 32 bits, ver la misma cabecera para el porqué). */
-	const MAX_RENEW_DELAY_MS = 2_147_483_647;
-	/** Rebote de `scheduleCanvasRefresh` (ver cabecera): varios campos guardados o varias acciones
-	 *  estructurales seguidas piden UN solo token, no uno por cambio. */
-	const REFRESH_DEBOUNCE_MS = 200;
-
-	function clearRenewTimer(): void {
-		if (renewTimer) clearTimeout(renewTimer);
-		renewTimer = null;
-	}
-
-	function scheduleRenew(token: PreviewToken): void {
-		clearRenewTimer();
-		// Pantalla desmontada: nadie podría cancelar el temporizador (`onDestroy` no vuelve a correr).
-		if (destroyed) return;
-		const delay = Math.min(
-			MAX_RENEW_DELAY_MS,
-			Math.max(0, new Date(token.expiresAt).getTime() - Date.now() - RENEW_BUFFER_MS)
-		);
-		renewTimer = setTimeout(() => void renewToken(), delay);
-	}
-
-	function clearRefreshDebounce(): void {
-		if (refreshDebounceTimer) clearTimeout(refreshDebounceTimer);
-		refreshDebounceTimer = null;
-	}
-
-	async function requestPreview(): Promise<void> {
-		const generation = ++requestGeneration;
-		// Recarga entera: cualquier rebote de refresco en vivo pendiente y cualquier `refreshCanvas`
-		// en vuelo dejan de tener sentido (el marco que iban a actualizar va a desmontarse igualmente).
-		clearRefreshDebounce();
-		refreshGeneration++;
-		// Pedir token nuevo desmonta el `<iframe>` (`{#if tokenState.kind === 'ready'}`), así que el
-		// documento con el que el puente estaba hablando deja de existir. Sin este `stop()` el
-		// cliente se quedaría en `connected` —enseñando en la barra los bloques de una página que ya
-		// no está— y el `start()` del `load` siguiente sería un no-op, porque desde `connected` no
-		// vuelve a saludar: la reconexión dependería por entero de que el sitio se anuncie solo.
-		bridgeClient?.stop();
-		tokenState = { kind: 'loading' };
-		frameLoaded = false;
-		try {
-			// SIN `draft` (ver cabecera): esta pantalla no tiene formulario, enseña el registro
-			// guardado tal cual `ctx.port.get` lo trajo.
-			const token = await client.requestPreview(type.name, String(record.id));
-			if (generation !== requestGeneration) return; // llegó tarde: manda la petición posterior
-			tokenState = { kind: 'ready', token };
-			scheduleRenew(token);
-		} catch (err) {
-			if (generation !== requestGeneration) return;
-			clearRenewTimer();
-			// Mismo criterio que `PreviewPanel.svelte` (hallazgo p3, `classifyPreviewError`): un
-			// fallo de RED no se enseña en crudo ("Failed to fetch"), cae a un mensaje genérico ya
-			// traducido; un fallo HTTP conserva el suyo, con el código de estado incluido.
-			const classified = classifyPreviewError(err);
-			tokenState = {
-				kind: 'error',
-				message:
-					classified.kind === 'http' && classified.message !== null
-						? classified.message
-						: classified.kind === 'network'
-							? ctx.t('common.networkError')
-							: ctx.t('editor.preview.panel.genericError')
-			};
-		}
-	}
-
-	/** Puerta ÚNICA por la que la estructura o un campo guardado piden refrescar el lienzo (ver
-	 *  cabecera, "Refresco en vivo"). El camino se decide AQUÍ, antes de esperar nada, para que el
-	 *  camino viejo (recarga entera, `requestPreview`) conserve su tiempo exacto de respuesta — si el
-	 *  rebote se aplicara primero a los dos caminos por igual, un sitio SIN refresco en vivo notaría
-	 *  200ms más de retraso en cada guardado sin motivo. */
-	function scheduleCanvasRefresh(): void {
-		const state = bridgeClient?.state;
-		if (!(state?.status === 'connected' && state.liveRefresh)) {
-			void requestPreview();
-			return;
-		}
-		clearRefreshDebounce();
-		refreshDebounceTimer = setTimeout(() => {
-			refreshDebounceTimer = null;
-			void refreshCanvas();
-		}, REFRESH_DEBOUNCE_MS);
-	}
-
-	/** Pide un token nuevo y se lo pasa al puente como `refresh()` en vez de escribirlo en
-	 *  `tokenState` — escribir ahí cambiaría el `src` del `<iframe>` y recargaría el marco, que es
-	 *  justo lo que este camino viene a evitar. Por defecto NO toca `scheduleRenew`: el token del `src`
-	 *  (el que sigue en el iframe) conserva su propia renovación, independiente de este refresco.
-	 *  Con `renew: true` (la llama `renewToken` al vencer ese temporizador) SÍ la rearma con el token
-	 *  recién pedido. Cualquier fallo —la petición del token, que llegue tarde, o que el puente rechace el
-	 *  refresco (sin `liveRefresh`, o su plazo interno venció)— cae al camino de siempre: un flicker
-	 *  es preferible a un lienzo que se queda sin actualizar en silencio. */
-	async function refreshCanvas(opts: { renew?: boolean } = {}): Promise<void> {
-		const generation = ++refreshGeneration;
-		try {
-			// SIN `draft`, mismo motivo que `requestPreview` (ver cabecera): esta pantalla no tiene
-			// formulario.
-			const token = await client.requestPreview(type.name, String(record.id));
-			// Renovación programada (ver `renewToken`): este token SÍ es el vigente, así que la
-			// siguiente renovación se arma con él ANTES de comprobar la generación — si esta petición
-			// llegó tarde y se calla, la cadena de renovaciones no puede quedarse sin temporizador.
-			if (opts.renew) scheduleRenew(token);
-			// Llegó tarde: manda la petición posterior (misma disciplina que `requestPreview`). Callarse
-			// es la ÚNICA salida correcta: caer aquí a la recarga entera no solo tiraría el refresco en
-			// vivo que ya estaba en marcha, es que `requestPreview()` incrementa `refreshGeneration` y
-			// dejaría obsoleta a esa petición posterior, que recargaría otra vez. Dos guardados seguidos
-			// acabarían en dos recargas enteras, justo lo contrario de lo que hace esta pantalla.
-			if (generation !== refreshGeneration) return;
-			// El token se reenvía ENTERO, sin interpretarlo (§contrato: "the same two fields ...
-			// forwarded without being parsed or rewritten"). Hoy `postToken` siempre viene vacío porque
-			// esta pantalla pide sin borrador, pero omitirlo aquí sería una divergencia silenciosa que
-			// solo se notaría el día que alguien le añada borrador a esta pantalla y no se acuerde de
-			// este sitio.
-			if (bridgeClient?.refresh({ url: token.url, postToken: token.postToken }) !== true) {
-				void requestPreview();
-			}
-		} catch {
-			if (generation !== refreshGeneration) return;
-			void requestPreview();
-		}
-	}
-
-	/** Renovación programada del token (`scheduleRenew`). Con el puente `connected` y `liveRefresh`
-	 *  se renueva por `refreshCanvas({ renew: true })`: el token nuevo se entrega al puente y el
-	 *  `<iframe>` ni se recarga (sin parpadeo, el scroll se queda donde estaba), y la renovación se
-	 *  rearma con el token recién pedido. Sin puente, o sin `liveRefresh`, o si el camino por puente
-	 *  falla en cualquier punto, cae a la recarga entera de siempre (`requestPreview`). */
-	async function renewToken(): Promise<void> {
-		const state = bridgeClient?.state;
-		if (state?.status === 'connected' && state.liveRefresh) {
-			await refreshCanvas({ renew: true });
-			return;
-		}
-		await requestPreview();
-	}
+	// El controlador posee peticiones, generaciones y temporizadores; la pantalla conserva el
+	// estado visible del token, iframe y puente para que selección, foco y montaje tengan un dueño.
+	const preview = createVisualPreviewState({
+		client,
+		typeName: untrack(() => type.name),
+		recordId: untrack(() => String(record.id)),
+		bridge: () => bridgeClient,
+		setTokenState: (state) => (tokenState = state),
+		resetFrameLoaded: () => (frameLoaded = false),
+		t: ctx.t
+	});
+	const requestPreview = preview.requestPreview;
+	const scheduleCanvasRefresh = preview.scheduleCanvasRefresh;
 
 	/** Un guardado de VERDAD acaba de completarse aquí — un campo (`VisualInspector#onBlockSaved`)
 	 *  o una mutación estructural (`VisualBlockTree`/`VisualOverlay#onStructuralChange`, y las
@@ -851,13 +703,7 @@
 			void requestPreview();
 			return;
 		}
-		requestGeneration++;
-		refreshGeneration++;
-		clearRefreshDebounce();
-		bridgeClient?.stop();
-		clearRenewTimer();
-		tokenState = { kind: 'loading' };
-		frameLoaded = false;
+		preview.deactivate();
 	}
 
 	function handleNarrowChange(event: MediaQueryListEvent): void {
@@ -1013,49 +859,27 @@
 	// | ⌘S / Ctrl+S              | guardar el bloque seleccionado                       |
 	// | ?                        | abrir/cerrar el panel de ayuda de atajos             |
 	function handleVisualKeydown(event: KeyboardEvent): void {
-		// Callado ENTERO sin lienzo montado (ver cabecera): nada seleccionable ni nada que guardar
-		// en esa vista.
-		if (!canvasActive) return;
-
-		// ⌘S: ÚNICA excepción a `isEditableTarget` (ver cabecera) — nunca mira el target, siempre
-		// `preventDefault()` para matar el diálogo nativo "Guardar página" del navegador.
-		if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
-			event.preventDefault();
-			inspectorRef?.saveSelected();
-			return;
-		}
-
-		// Resto: atajos de una sola tecla (o con Alt). Se callan con el foco en un campo editable
-		// (`isEditableTarget`), o robarían la pulsación al propio campo. `Escape` NO es excepción y
-		// va por debajo de esta guarda a propósito: con el foco dentro de un campo de la ficha, Esc
-		// es del campo (el navegador lo usa para descartar el autocompletado), no de la pantalla —
-		// deseleccionar ahí cerraría de golpe la ficha que se está escribiendo.
-		if (isEditableTarget(event.target)) return;
-
-		if (event.key === 'Escape') {
-			// Con el panel de ayuda abierto, Esc LO CIERRA y no deselecciona (§encargo): el panel
-			// gana mientras está abierto.
-			if (helpOpen) closeHelp();
-			else selectedBlockId = null; // mismo dueño único que `handleBlockSelect` (ver cabecera)
-			return;
-		}
-
-		if (event.key === '?') {
-			event.preventDefault();
-			helpOpen = !helpOpen;
-			return;
-		}
-
-		if (helpOpen) return; // con el panel abierto, ninguna otra tecla actúa sobre el lienzo
-
-		if (event.altKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
-			event.preventDefault();
-			void moveSelectedBlock(event.key === 'ArrowUp' ? -1 : 1);
-			return;
-		}
-		if (event.key === 'Delete' || event.key === 'Backspace') {
-			event.preventDefault();
-			requestDeleteSelected();
+		switch (visualKeyboardAction(event, canvasActive, helpOpen)) {
+			case 'save':
+				inspectorRef?.saveSelected();
+				break;
+			case 'close-help':
+				closeHelp();
+				break;
+			case 'clear-selection':
+				selectedBlockId = null;
+				break;
+			case 'toggle-help':
+				helpOpen = !helpOpen;
+				break;
+			case 'move-up':
+				void moveSelectedBlock(-1);
+				break;
+			case 'move-down':
+				void moveSelectedBlock(1);
+				break;
+			case 'delete':
+				requestDeleteSelected();
 		}
 	}
 
@@ -1084,11 +908,7 @@
 		// Las generaciones cubren `requestPreview` y la escritura de estado de `refreshCanvas`, pero
 		// no el `scheduleRenew` de `refreshCanvas({ renew: true })`, que va antes de su guarda a
 		// propósito (ver `destroyed`): esa la corta la bandera.
-		destroyed = true;
-		requestGeneration++;
-		refreshGeneration++;
-		clearRenewTimer();
-		clearRefreshDebounce();
+		preview.dispose();
 		window.removeEventListener('message', handleMessage);
 		window.removeEventListener('beforeunload', handleBeforeUnload);
 		window.removeEventListener('keydown', handleVisualKeydown);
@@ -1156,58 +976,6 @@
 	const unpublishedBlockIds = $derived(
 		new Set(overlayBlocks.filter((block) => block.unpublished).map((block) => block.id))
 	);
-	interface BridgeErrorText {
-		title: string;
-		body: string;
-		/** `false` para `bad-preview-url`: la URL se fija al crear el cliente, así que reintentar
-		 *  no puede cambiar nada (ver `bridge-client.ts#start`). Los otros cuatro SÍ pueden curarse
-		 *  solos (un `ready` tardío) o con un reintento (el sitio se redespliega, la versión se
-		 *  actualiza). */
-		canRetry: boolean;
-	}
-
-	function bridgeErrorText(kind: VisualBridgeErrorKind, state: VisualBridgeState): BridgeErrorText {
-		switch (kind) {
-			case 'no-bridge':
-				return {
-					title: ctx.t('editor.visual.error.noBridge.title'),
-					body: ctx.t('editor.visual.error.noBridge.body'),
-					canRetry: true
-				};
-			case 'protocol-version':
-				return {
-					title: ctx.t('editor.visual.error.protocolVersion.title'),
-					body: ctx.t('editor.visual.error.protocolVersion.body', {
-						found: state.status === 'error' ? (state.version ?? '') : '',
-						expected: VISUAL_PROTOCOL_VERSION
-					}),
-					canRetry: true
-				};
-			case 'site-error':
-				return {
-					title: ctx.t('editor.visual.error.siteError.title'),
-					body: ctx.t('editor.visual.error.siteError.body', {
-						code: state.status === 'error' ? (state.code ?? '') : ''
-					}),
-					canRetry: true
-				};
-			case 'record-mismatch':
-				return {
-					title: ctx.t('editor.visual.error.recordMismatch.title'),
-					body: ctx.t('editor.visual.error.recordMismatch.body', {
-						collection: state.status === 'error' ? (state.found?.collection ?? '') : '',
-						id: state.status === 'error' ? (state.found?.id ?? '') : ''
-					}),
-					canRetry: true
-				};
-			case 'bad-preview-url':
-				return {
-					title: ctx.t('editor.visual.error.badPreviewUrl.title'),
-					body: ctx.t('editor.visual.error.badPreviewUrl.body'),
-					canRetry: false
-				};
-		}
-	}
 </script>
 
 <div class="vega-visual-screen">
@@ -1345,7 +1113,7 @@
 						)}
 					</span>
 				{:else if bridgeState.status === 'error'}
-					{@const errorText = bridgeErrorText(bridgeState.kind, bridgeState)}
+					{@const errorText = bridgeErrorText(bridgeState.kind, bridgeState, ctx.t)}
 					<span class="vega-visual-status-text vega-visual-status-text--error">
 						{errorText.title}
 					</span>

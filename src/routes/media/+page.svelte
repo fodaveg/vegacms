@@ -97,7 +97,7 @@
 	import { ALL_PERMISSIONS, permissionsFor } from '$lib/backend/access';
 	import { matchesMediaTypeFilter, type MediaTypeFilter } from '$lib/media/media-card';
 	import { mediaDisplayName, toMediaItemView, type MediaItemView } from '$lib/media/media-item';
-	import { resolveMediaFileUrl } from '$lib/media/media-thumb';
+	import { copySelectedMediaUrls, deleteSelectedMedia } from '$lib/media/media-selection-actions';
 	import {
 		MEDIA_PER_PAGE,
 		MEDIA_SEARCH_DEBOUNCE_MS,
@@ -354,20 +354,7 @@
 	 * transporte contra el backend.
 	 */
 	async function copySelectedUrls(): Promise<void> {
-		const urls: string[] = [];
-		for (const item of selectedItems) {
-			const url = resolveMediaFileUrl(ctx.port, item);
-			if (url !== null) urls.push(url);
-		}
-		if (urls.length === 0) return;
-		try {
-			await navigator.clipboard.writeText(urls.join('\n'));
-			ctx.feedback.toast(ctx.t('media.selection.copySuccess', { count: urls.length }), {
-				kind: 'success'
-			});
-		} catch {
-			ctx.feedback.toast(ctx.t('media.selection.copyError'), { kind: 'error' });
-		}
+		await copySelectedMediaUrls(ctx, selectedItems);
 	}
 
 	/** `true` mientras se pide confirmar el borrado de la selección (D-P6.5: ninguna vía borra sin
@@ -409,18 +396,9 @@
 		const targets = [...selectedItems];
 		if (targets.length === 0) return;
 		bulkDeleting = true;
-		let deleted = 0;
-		let failure: unknown = null;
-		for (const item of targets) {
-			try {
-				await ctx.port.delete('vega_media', item.id);
-				selectedIds.delete(item.id);
-				deleted++;
-			} catch (err) {
-				failure = err;
-				break;
-			}
-		}
+		const { deleted, failure } = await deleteSelectedMedia(ctx.port, targets, (id) =>
+			selectedIds.delete(id)
+		);
 		bulkDeleting = false;
 		confirmingBulkDelete = false;
 		if (deleted > 0) {

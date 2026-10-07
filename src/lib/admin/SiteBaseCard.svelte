@@ -366,15 +366,28 @@
 	}
 
 	/**
-	 * Texto del diálogo de error. Un desajuste de reglas de una colección `auth` viaja con su código
-	 * y sus parámetros para poder traducirlo; cualquier otro fallo (o parámetros ausentes o
-	 * malformados) sigue enseñando `err.message`.
+	 * Texto del diálogo de error. Los desajustes de tipo y reglas viajan con código y parámetros
+	 * para poder traducirlos; errores antiguos o parámetros malformados muestran `err.message`.
 	 */
 	function describeSeedError(err: unknown): string {
 		if (err instanceof VegaError && err.kind === 'validation') {
 			for (const fieldError of Object.values(err.fieldErrors ?? {})) {
-				if (fieldError.code !== 'vega_collection_rules_mismatch') continue;
 				const params = fieldError.params;
+				if (fieldError.code === 'vega_collection_type_mismatch') {
+					if (
+						typeof params?.collection === 'string' &&
+						typeof params.existingType === 'string' &&
+						typeof params.expectedType === 'string'
+					) {
+						return ctx.t('settings.site.error.typeMismatch', {
+							collection: params.collection,
+							existingType: params.existingType,
+							expectedType: params.expectedType
+						});
+					}
+					continue;
+				}
+				if (fieldError.code !== 'vega_collection_rules_mismatch') continue;
 				const rules = params?.rules;
 				if (typeof params?.collection !== 'string' || !Array.isArray(rules)) continue;
 				return ctx.t(
