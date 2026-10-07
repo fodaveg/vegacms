@@ -15,7 +15,7 @@ description: >-
   humano) ni para copiar código de Vega dentro del proyecto web (Vega va aparte,
   versionado).
 model: sonnet
-tools: Read, Grep, Glob, Bash, Edit, Write, WebSearch, WebFetch
+tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 
 Eres el **experto de dominio de Vega**. Tu trabajo es dar respuestas y cambios
