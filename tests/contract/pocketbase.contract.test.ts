@@ -4,7 +4,7 @@
  * entero se salta declarándolo — nunca rompe `pnpm gate` para quien no tenga el binario.
  */
 
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import { EventSource } from 'eventsource';
 import PocketBase, { ClientResponseError } from 'pocketbase';
 import { VEGA_EDITORS_COLLECTION_NAME, type VegaError } from '$lib/backend';
@@ -16,7 +16,13 @@ import type { Query } from '$lib/backend/query';
 import type { ContentModel, ResolvedContentType } from '$lib/model/types';
 import { exportCollection } from '$lib/transfer/export-collection';
 import { validateTransferDocument } from '$lib/transfer/import-format';
-import { buildImportPreview, runImport } from '$lib/transfer/import-collection';
+import {
+	buildImportPreview,
+	createCachingFileFetcher,
+	runImport
+} from '$lib/transfer/import-collection';
+import { fetchTransferFile } from '$lib/transfer/import-media';
+import type { TransferFileValue } from '$lib/transfer/record-serializer';
 import { buildTransferDocument } from '$lib/transfer/transfer-format';
 import { describeBackendContract } from './backend-contract';
 import {
@@ -837,7 +843,26 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 				expect(validation.ok).toBe(true);
 				if (!validation.ok) return;
 
-				const preview = await buildImportPreview(port, validation.collections);
+				// Declarar el backend en JSON no concede permiso para descargar sus medios.
+				const deniedPreview = await buildImportPreview(port, validation.collections);
+				expect(
+					deniedPreview.collections.flatMap((c) => c.entries).find((e) => e.id === post.id)
+				).toMatchObject({
+					status: 'blocked',
+					reasons: [
+						{ kind: 'file-origin-policy', field: 'cover', block: { kind: 'unapproved-origin' } }
+					]
+				});
+				expect((await admin.collection('import_probe_posts_dst').getList()).totalItems).toBe(0);
+
+				// Consentimiento explícito del test al único origen del servidor que acaba de arrancar;
+				// nunca se deriva de doc.origin. La misma política y caché viven en preview y escritura.
+				const authorizedOrigins = new Set([new URL(running.url).origin]);
+				const download = vi.fn((file: TransferFileValue) =>
+					fetchTransferFile(file, { authorizedOrigins })
+				);
+				const fetchFile = createCachingFileFetcher(download);
+				const preview = await buildImportPreview(port, validation.collections, fetchFile);
 				// El destino está VIRGEN: los dos ids son CREA, cero bloqueados (la relación resuelve
 				// dentro del propio fichero, `import_probe_authors_dst` viaja en la misma colección).
 				expect(preview.collections.flatMap((c) => c.entries)).toEqual([
@@ -845,10 +870,11 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 					{ id: post.id, status: 'create', reasons: [] }
 				]);
 
-				const report = await runImport(port, preview, { overwriteConfirmed: false });
+				const report = await runImport(port, preview, { overwriteConfirmed: false }, fetchFile);
 				expect(report.success).toBe(true);
 				expect(report.createdCount).toBe(2);
 				expect(report.failedCount).toBe(0);
+				expect(download).toHaveBeenCalledTimes(1); // preview y escritura comparten el binario
 
 				// Relectura por la API de PB directamente (nunca por `port`, que es justo lo que se
 				// está probando): §6 del contrato — "comprobar por la API que los ids son los mismos y
