@@ -28,6 +28,8 @@
 		busy?: boolean;
 		/** `false` en una confirmación: se sale por «Cancelar», como en `DeleteConfirm`. */
 		showClose?: boolean;
+		/** Opener capturado antes de una operación asíncrona que pudo quitarle el foco. */
+		returnFocusEl?: HTMLElement | null;
 		fallbackFocusEl?: HTMLElement | null;
 		onClose: () => void;
 		/** Texto que explica la decisión; se enlaza con `aria-describedby` (confirmaciones). */
@@ -42,6 +44,7 @@
 		role = 'dialog',
 		busy = false,
 		showClose = true,
+		returnFocusEl = null,
 		fallbackFocusEl = null,
 		onClose,
 		description,
@@ -99,7 +102,7 @@
 
 	$effect(() => {
 		if (!open) return;
-		previouslyFocused = document.activeElement as HTMLElement | null;
+		previouslyFocused = returnFocusEl ?? (document.activeElement as HTMLElement | null);
 		// Tras `tick()`: el panel (y su `bind:this`) ya está en el DOM, y leer `dialogEl` fuera del
 		// cuerpo síncrono del efecto evita que el efecto se repita cuando la referencia cambia.
 		void tick().then(() => {

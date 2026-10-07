@@ -25,6 +25,8 @@
 		busy: boolean;
 		/** Mensaje del último intento fallido, ya traducido. */
 		error: string | null;
+		/** Elemento enfocado antes de la petición que deshabilita la acción protegida. */
+		returnFocusEl?: HTMLElement | null;
 		/** Destino estable cuando la acción confirmada retira el botón que abrió el diálogo. */
 		fallbackFocusEl?: HTMLElement | null;
 		onSubmitCode: (code: string) => void;
@@ -37,6 +39,7 @@
 		passkeyAvailable,
 		busy,
 		error,
+		returnFocusEl = null,
 		fallbackFocusEl = null,
 		onSubmitCode,
 		onUsePasskey,
@@ -78,6 +81,7 @@
 	title={ctx.t('security.stepUp.title')}
 	description={ctx.t(bodyKey)}
 	{busy}
+	{returnFocusEl}
 	{fallbackFocusEl}
 	onClose={onCancel}
 >
