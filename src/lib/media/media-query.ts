@@ -27,7 +27,7 @@ export const MEDIA_PER_PAGE = 24;
  *  (`MediaPicker.svelte`) y `/media`; mismo valor que el buscador de `Relation.svelte` (F5-e). */
 export const MEDIA_SEARCH_DEBOUNCE_MS = 250;
 
-export interface MediaListQueryOptions {
+interface MediaListQueryOptions {
 	/** Término de búsqueda SERVER-SIDE por `alt`/`title` (Fase P6·6e, ver cabecera). En blanco o
 	 *  ausente ⇒ sin filtro (mismo criterio que `buildTitleSearchQuery` de P5, `relation-search.ts`). */
 	search?: string;

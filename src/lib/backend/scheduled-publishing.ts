@@ -19,7 +19,7 @@
 import type { ContentType, ScheduledPublishingState } from './types';
 
 /** Id del job que registra `extensions/vegaschedule` con su configuración por defecto. */
-export const VEGASCHEDULE_JOB_ID = 'vegaschedule';
+const VEGASCHEDULE_JOB_ID = 'vegaschedule';
 
 /** Colección del registro de proyecto (duplicada a propósito, ver `collections.ts#VEGA_COLLECTION`). */
 const VEGA_COLLECTION_NAME = 'vega';

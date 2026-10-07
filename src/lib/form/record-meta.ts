@@ -21,7 +21,7 @@ import { describeCell } from '$lib/list/cell';
 import type { FormValues } from './form-model';
 
 /** Los dos campos de sistema que este módulo reconoce (ver cabecera). */
-export type AutodateName = 'created' | 'updated';
+type AutodateName = 'created' | 'updated';
 
 /**
  * El `ResolvedField` autodate llamado `name` (`date` + `readonly`), o `null` si el tipo no lo

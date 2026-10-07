@@ -32,7 +32,7 @@ export interface MarkdownCommandPlaceholders {
 	alt: string;
 }
 
-export interface MarkdownEditResult {
+interface MarkdownEditResult {
 	value: string;
 	selectionStart: number;
 	selectionEnd: number;

@@ -59,7 +59,7 @@ export function resolveInitialDensity(storedDensity: Density | null): Density {
 /** Plegado de la sidebar en ESCRITORIO (petición de David tras usar el editor visual en prod):
  *  sin equivalente de `prefers-*` (mismo caso que la densidad), así que sin preferencia guardada
  *  arranca DESPLEGADA — el default menos sorprendente la primera vez que alguien abre Vega. */
-export const DEFAULT_SIDEBAR_COLLAPSED = false;
+const DEFAULT_SIDEBAR_COLLAPSED = false;
 
 /** Mismo escalón que `resolveInitialDensity`, para el plegado de la sidebar. */
 export function resolveInitialSidebarCollapsed(storedCollapsed: boolean | null): boolean {

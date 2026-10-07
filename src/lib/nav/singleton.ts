@@ -15,7 +15,7 @@ import { newRoute, recordRoute } from './routes';
  * - `>1` registros → `kind: 'edit'` sobre el PRIMERO + `warnManyRecords: true` (P3 pinta el
  *   aviso "marcada como Ajustes pero tiene N registros", §3.3).
  */
-export type SingletonTarget =
+type SingletonTarget =
 	| { kind: 'new'; url: string; warnManyRecords: false }
 	| { kind: 'edit'; url: string; warnManyRecords: boolean };
 

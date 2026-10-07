@@ -16,9 +16,9 @@
  * iguales.
  */
 
-export type SecondaryAction = 'export' | 'import';
+type SecondaryAction = 'export' | 'import';
 
-export interface HeaderActionsInput {
+interface HeaderActionsInput {
 	/** `true` por debajo del corte de 640 px. */
 	narrow: boolean;
 	canCreate: boolean;
@@ -26,7 +26,7 @@ export interface HeaderActionsInput {
 	canImport: boolean;
 }
 
-export interface HeaderActionsPlan {
+interface HeaderActionsPlan {
 	layout: 'wide' | 'narrow';
 	/** Si se pinta «Crear» (en ancho va el último; en estrecho, el primero). */
 	create: boolean;

@@ -66,7 +66,7 @@ export type ShrinkOutcome =
 	| { kind: 'shrunk'; file: File; fromBytes: number; toBytes: number }
 	| { kind: 'kept-original'; reason: ShrinkKeptReason };
 
-export interface ShrinkOptions {
+interface ShrinkOptions {
 	/** Tope de tamaño de la colección (`schema.maxSizeBytes`); `undefined` = sin tope. */
 	maxBytes?: number;
 }

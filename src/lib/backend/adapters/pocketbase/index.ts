@@ -113,7 +113,7 @@ function computeCapabilities(authCollection: string, strongAuth: boolean): Capab
 	};
 }
 
-export interface PocketBaseBackendOptions {
+interface PocketBaseBackendOptions {
 	url: string;
 	/**
 	 * Colección de auth contra la que `login()`/`restoreSession()` autentican (lote L6a).

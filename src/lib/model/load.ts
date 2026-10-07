@@ -288,7 +288,7 @@ export async function saveManifest(port: BackendPort, manifest: JsonValue): Prom
 }
 
 /** Qué hizo `syncSchemaSnapshot`: `skipped` = no aplica (ver sus condiciones). */
-export type SchemaSnapshotSyncResult = 'written' | 'unchanged' | 'skipped';
+type SchemaSnapshotSyncResult = 'written' | 'unchanged' | 'skipped';
 
 /**
  * Reescribe `vega.schemaSnapshot` si ya no describe el esquema vivo (audit de rendimiento del

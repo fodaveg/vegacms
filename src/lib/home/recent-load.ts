@@ -23,7 +23,7 @@ export interface RecentRow {
 	savedAt: number;
 }
 
-export interface RecentRowsResult {
+interface RecentRowsResult {
 	/** Filas a pintar, el guardado más reciente primero. */
 	rows: RecentRow[];
 	/** Entradas que hay que quitar de la lista local: el registro ya no existe o esta sesión ya

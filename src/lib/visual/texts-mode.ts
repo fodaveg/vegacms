@@ -24,7 +24,7 @@ export function isTextWidget(widget: WidgetId): boolean {
 	return TEXT_WIDGETS.includes(widget);
 }
 
-export interface TextsSplit<T> {
+interface TextsSplit<T> {
 	/** Lo que el modo enseña y deja editar, en el orden original. */
 	texts: T[];
 	/** Lo que el modo cuenta y nombra pero NO edita, en el orden original. */

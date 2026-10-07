@@ -11,7 +11,7 @@ import type { MemoryAdministration } from './administration';
 import type { MemoryServerSecrets, MemoryServerSettings } from './server-settings';
 import type { MemoryState } from './state';
 
-export type MemoryServiceOps = Pick<
+type MemoryServiceOps = Pick<
 	BackendPort,
 	'administration' | 'editorPasswordReset' | 'serverSettings'
 > & {

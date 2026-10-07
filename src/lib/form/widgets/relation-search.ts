@@ -122,11 +122,11 @@ export function buildTitlesByIdsQuery(ids: RecordId[], projection?: string[]): Q
 }
 
 /** `get` simultáneos como máximo al recuperar los ids que el `list` por lote no devolvió. */
-export const RELATION_GET_FALLBACK_CONCURRENCY = 5;
+const RELATION_GET_FALLBACK_CONCURRENCY = 5;
 
 /** Resultado de `fetchRecordsByIds`: cada id cae en `records` o en `notFound`, o en ninguno si su
  *  `get` falló con algo que no es 404 (queda sin caché y el fallo va en `errors`). */
-export interface FetchedRecords {
+interface FetchedRecords {
 	records: Map<RecordId, VegaRecord>;
 	/** Ids cuyo `get` respondió 404: ya no existen (o no son visibles con la `ViewRule`). */
 	notFound: Set<RecordId>;

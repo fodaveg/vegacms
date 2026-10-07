@@ -62,7 +62,7 @@ import type { JsonValue } from './types';
 type JsonObject = { [key: string]: JsonValue };
 
 /** Qué clase de pieza del fragmento se quedó sin añadir (ver «LO QUE NO SE AÑADE» en la cabecera). */
-export type ManifestMergeSkipKind = 'navGroup' | 'fieldGroup' | 'blockTypeField';
+type ManifestMergeSkipKind = 'navGroup' | 'fieldGroup' | 'blockTypeField';
 
 export interface ManifestMergeSkipped {
 	kind: ManifestMergeSkipKind;
@@ -75,7 +75,7 @@ export interface ManifestMergeSkipped {
 	name: string;
 }
 
-export interface ManifestMergeResult {
+interface ManifestMergeResult {
 	/** Copia nueva: ni `saved` ni `fragment` se mutan ni se comparten con ella. */
 	manifest: JsonValue;
 	/**

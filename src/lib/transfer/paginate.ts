@@ -70,7 +70,7 @@ export interface FetchAllPagesOptions {
 	isCancelled?: () => boolean;
 }
 
-export interface FetchAllPagesResult {
+interface FetchAllPagesResult {
 	records: VegaRecord[];
 	/** `true` si `isCancelled()` cortó la iteración antes de agotar todas las páginas. */
 	cancelled: boolean;

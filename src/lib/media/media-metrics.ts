@@ -34,7 +34,7 @@ export interface MediaAssetMetrics {
 }
 
 /** Opciones de `fetchAssetByteSize`. */
-export interface FetchAssetByteSizeOptions {
+interface FetchAssetByteSizeOptions {
 	/** Cancela la petición (cambio de página/filtro, desmontaje): la respuesta tardía nunca debe
 	 *  escribir sobre una rejilla que ya no es la suya. */
 	signal?: AbortSignal;

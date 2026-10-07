@@ -40,7 +40,7 @@ export function sortBackups(backups: BackupFile[]): BackupFile[] {
  * vez en `resetPasswordTemplate.body` de una colección `auth` nueva, y es la misma plantilla que
  * sirve `GET /api/collections/meta/scaffolds`). Lleva al Admin de PB (`/_/`).
  */
-export const FACTORY_RESET_LINK = '{APP_URL}/_/#/auth/confirm-password-reset/{TOKEN}';
+const FACTORY_RESET_LINK = '{APP_URL}/_/#/auth/confirm-password-reset/{TOKEN}';
 
 /**
  * Cuerpo de la plantilla de restablecimiento con el enlace cambiado a la ruta pública de Vega:

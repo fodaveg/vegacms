@@ -19,7 +19,7 @@ import { normalizeMediaFocal, type MediaFocalPoint } from './media-focal';
  *  string mágico en cada llamada a `port.fileUrl`. */
 export const MEDIA_FILE_FIELD = 'file';
 
-export type MediaFileKind = 'image' | 'other';
+type MediaFileKind = 'image' | 'other';
 
 /** Vista de un asset de `vega_media`, ya desnormalizada a los tipos que consume la UI (nunca
  *  `FieldValue`/`JsonValue` crudo fuera de este módulo). */

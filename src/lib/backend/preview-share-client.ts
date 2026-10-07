@@ -40,7 +40,7 @@ export interface CreatedPreviewShareLink extends PreviewShareLink {
 	url: string;
 }
 
-export interface CreatePreviewShareLinkOptions {
+interface CreatePreviewShareLinkOptions {
 	/** Duración en SEGUNDOS enteros. El servidor rechaza con 400 lo que quede fuera de su rango
 	 *  configurado (30 días como máximo absoluto); este cliente no lo recorta por su cuenta. */
 	ttlSeconds: number;
@@ -48,7 +48,7 @@ export interface CreatePreviewShareLinkOptions {
 	label?: string;
 }
 
-export interface PreviewShareClientOptions {
+interface PreviewShareClientOptions {
 	/** Base ABSOLUTA ya resuelta del endpoint de preview (la misma que recibe
 	 *  `createPreviewClient`), con o sin barra final. */
 	apiUrl: string;
@@ -58,7 +58,7 @@ export interface PreviewShareClientOptions {
 	fetcher?: typeof fetch;
 }
 
-export interface PreviewShareClient {
+interface PreviewShareClient {
 	/** Crea un enlace para `{collection, id}`. Exige poder ver Y editar el registro (403 si solo se
 	 *  puede ver; 404 si no existe, no se puede ver o la colección no admite enlaces). Un 409
 	 *  significa que el registro ya tiene el máximo de enlaces vivos (20): hay que anular uno. */

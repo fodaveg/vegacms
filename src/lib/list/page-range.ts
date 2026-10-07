@@ -15,7 +15,7 @@
  */
 
 /** Un slot del rango: un número de página 1-based, o `'ellipsis'` (hueco colapsado, sin acción). */
-export type PageRangeItem = number | 'ellipsis';
+type PageRangeItem = number | 'ellipsis';
 
 function range(start: number, end: number): number[] {
 	const items: number[] = [];

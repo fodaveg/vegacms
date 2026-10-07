@@ -23,7 +23,7 @@ import { getContext, setContext } from 'svelte';
 import type { RecordId } from '$lib/backend/types';
 
 /** Identidad mínima que necesita `ctx.port.fileUrl` (§4.4 del contrato de backend). */
-export interface RecordIdentity {
+interface RecordIdentity {
 	type: string;
 	id: RecordId | null;
 }

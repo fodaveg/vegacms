@@ -60,7 +60,7 @@ import {
 
 export type ReviewPhase = 'idle' | 'loading' | 'ready' | 'error';
 
-export interface ReviewStateOptions {
+interface ReviewStateOptions {
 	ctx: Pick<VegaAppContext, 'port' | 'model'>;
 	/** Capturado una vez: quien monta la revisión se remonta si cambia de tipo. */
 	type: ResolvedContentType;

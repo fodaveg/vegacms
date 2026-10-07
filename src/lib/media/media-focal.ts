@@ -26,8 +26,8 @@ export interface MediaFocalPoint {
 export const MEDIA_FOCAL_CENTER: Readonly<MediaFocalPoint> = Object.freeze({ x: 0.5, y: 0.5 });
 
 /** Paso de las flechas del teclado: 5 % de la imagen; con Mayúsculas, 1 % para afinar. */
-export const MEDIA_FOCAL_STEP = 0.05;
-export const MEDIA_FOCAL_FINE_STEP = 0.01;
+const MEDIA_FOCAL_STEP = 0.05;
+const MEDIA_FOCAL_FINE_STEP = 0.01;
 
 function clamp01(value: number): number {
 	return Math.min(1, Math.max(0, value));
@@ -40,7 +40,7 @@ function round(value: number): number {
 }
 
 /** Construye un punto acotado a `0..1` y redondeado (ver `round`). */
-export function mediaFocalPoint(x: number, y: number): MediaFocalPoint {
+function mediaFocalPoint(x: number, y: number): MediaFocalPoint {
 	return { x: round(clamp01(x)), y: round(clamp01(y)) };
 }
 

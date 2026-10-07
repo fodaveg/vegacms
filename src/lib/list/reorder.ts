@@ -8,7 +8,7 @@
  */
 
 /** Un update pendiente de `orderField` para un registro: nuevo valor, listo para `port.update`. */
-export interface ReorderUpdate {
+interface ReorderUpdate {
 	id: string;
 	value: number;
 }

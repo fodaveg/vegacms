@@ -81,7 +81,7 @@ export interface ServerSettings {
 }
 
 /** Un secreto nuevo. Un valor vacío no significa «borrar»: se ignora (ver `buildServerSettingsPatch`). */
-export interface SecretSet {
+interface SecretSet {
 	kind: 'set';
 	value: string;
 }

@@ -12,7 +12,7 @@
  */
 import { VegaError } from '$lib/backend';
 
-export type TransportState = 'connected' | 'disconnected' | 'retrying';
+type TransportState = 'connected' | 'disconnected' | 'retrying';
 
 let state = $state<TransportState>('connected');
 let bannerError = $state<VegaError | null>(null);

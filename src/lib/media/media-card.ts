@@ -30,7 +30,7 @@ export type MediaAssetType = 'image' | 'video' | 'document';
 export type MediaTypeFilter = 'all' | MediaAssetType;
 
 /** Los cuatro matices de placeholder del mockup (`.ph-a`…`.ph-d`), en orden. */
-export type MediaThumbTone = 'a' | 'b' | 'c' | 'd';
+type MediaThumbTone = 'a' | 'b' | 'c' | 'd';
 
 // Mismo set que `IMAGE_EXTENSIONS` de `media-item.ts` (que decide `<img>` vs icono): se repite
 // aquí a propósito, porque esta clasificación tiene TRES cajones y aquella solo dos — mezclarlas

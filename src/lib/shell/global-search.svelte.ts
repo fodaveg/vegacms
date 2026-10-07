@@ -43,10 +43,10 @@ import {
 
 /** Rebote por defecto: suficiente para que escribir una palabra entera no dispare una consulta
  *  por letra, y lo bastante corto para no percibirse como retardo. */
-export const GLOBAL_SEARCH_DEBOUNCE_MS = 220;
+const GLOBAL_SEARCH_DEBOUNCE_MS = 220;
 
 /** Estado de la última búsqueda no descartada por anti-carrera. */
-export type GlobalSearchStatus =
+type GlobalSearchStatus =
 	/** Nada que buscar todavía (caja vacía o término por debajo del mínimo). */
 	| { kind: 'idle' }
 	| { kind: 'searching' }
@@ -57,7 +57,7 @@ export type GlobalSearchStatus =
 	| { kind: 'ready'; groups: GlobalSearchGroup[]; failedCount: number }
 	| { kind: 'error'; error: VegaError };
 
-export interface GlobalSearchState {
+interface GlobalSearchState {
 	/** Lo que hay escrito en la caja AHORA (incluye espacios y el término aún corto). */
 	readonly input: string;
 	/** El término normalizado de los resultados EN PANTALLA (''` si aún no se ha buscado nada). */

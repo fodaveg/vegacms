@@ -18,13 +18,13 @@ import type { VegaAppContext } from '$lib/app-context';
 import { RequestSequencer } from '$lib/list/list-load';
 import { findReferences, type FindReferencesTarget, type ReferencesReport } from './references';
 
-export type DeleteGuardStatus =
+type DeleteGuardStatus =
 	| { kind: 'idle' }
 	| { kind: 'loading' }
 	| { kind: 'ready'; report: ReferencesReport }
 	| { kind: 'error' };
 
-export interface DeleteReferencesGuard {
+interface DeleteReferencesGuard {
 	readonly status: DeleteGuardStatus;
 	/** Ver cabecera del módulo: gatea el checkbox de confirmación adicional del llamador. */
 	readonly needsExplicitConfirm: boolean;

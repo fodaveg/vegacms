@@ -83,7 +83,7 @@ function compareRows(a: MergedRow, b: MergedRow): number {
 }
 
 /** Motivo por el que NO se puede reordenar a mano una vista fusionada (ver `mergedReorderBlocker`). */
-export type MergedReorderBlocker = 'failed' | 'truncated' | 'forbidden';
+type MergedReorderBlocker = 'failed' | 'truncated' | 'forbidden';
 
 /**
  * ¿Se puede reordenar el conjunto mezclado? `null` = sí. El reorden calcula el `orderField` sobre

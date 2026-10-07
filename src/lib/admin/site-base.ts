@@ -22,13 +22,7 @@ import { SITE_SEED_OPTIONAL_MODULES } from '$lib/backend/site-seeding-modules';
 export type Translate = (key: string, params?: Record<string, string | number>) => string;
 
 /** Colecciones visibles que comprueba el preflight (sin `vega_editors`, que no se puede leer). */
-export const SITE_BASE_COLLECTIONS = [
-	'pages',
-	'vega_media',
-	'blocks',
-	'redirects',
-	'vega'
-] as const;
+const SITE_BASE_COLLECTIONS = ['pages', 'vega_media', 'blocks', 'redirects', 'vega'] as const;
 
 /**
  * Los módulos que la tarjeta ofrece añadir, debajo de la base: los opcionales del registro, en su
@@ -68,7 +62,7 @@ export function moduleNote(t: Translate, id: string): string | null {
  *   modelo de contenido): «Añadir» pone lo que falta;
  * - `added`: no hay nada que añadir.
  */
-export type SiteModuleState = 'absent' | 'incomplete' | 'added';
+type SiteModuleState = 'absent' | 'incomplete' | 'added';
 
 export function siteModuleState(module: SiteSeedModule, plan: SiteSeedModulePlan): SiteModuleState {
 	if (plan.createdCollections.length === module.collections.length) return 'absent';
@@ -124,7 +118,7 @@ function ruleDifferenceItem(item: SiteSeedRuleDifference, t: Translate): PlanIte
 }
 
 /** Qué muestra la tarjeta cuando el preflight terminó. */
-export type SiteBaseKind = 'unprepared' | 'update' | 'current' | 'blocked';
+type SiteBaseKind = 'unprepared' | 'update' | 'current' | 'blocked';
 
 export function siteBaseKind(preview: SiteSeedPreview): SiteBaseKind {
 	if (preview.status === 'blocked') return 'blocked';
@@ -133,7 +127,7 @@ export function siteBaseKind(preview: SiteSeedPreview): SiteBaseKind {
 }
 
 /** El diálogo prepara (hay colecciones por crear) o actualiza. */
-export type SiteBaseMode = 'prepare' | 'update';
+type SiteBaseMode = 'prepare' | 'update';
 
 export function siteBaseMode(plan: SiteSeedPlanSummary): SiteBaseMode {
 	return plan.createdCollections.length > 0 ? 'prepare' : 'update';
@@ -167,7 +161,7 @@ export function joinList(t: Translate, items: readonly string[]): string {
 	return `${items.slice(0, -1).join(', ')} ${t('settings.site.listAnd')} ${items[items.length - 1]}`;
 }
 
-export interface PlanItem {
+interface PlanItem {
 	title: string;
 	text: string;
 	/** Nombre técnico (colección o campos), en `<code>`. */
@@ -176,7 +170,7 @@ export interface PlanItem {
 	codeFirst?: boolean;
 }
 
-export interface PlanGroup {
+interface PlanGroup {
 	/**
 	 * Sirve de `data-` y de clave del encabezado:
 	 * - `create` y `add`: colecciones, campos y registros;
@@ -199,7 +193,7 @@ export interface PlanView {
 }
 
 /** El desglose por módulo del preflight y, si el diálogo es el de un módulo, cuál. */
-export interface PlanDetail {
+interface PlanDetail {
 	modules: readonly SiteSeedModulePlan[];
 	/** `id` del módulo que se añade. Sin él, el plan es el de la base (preparar o actualizar). */
 	target?: string;
@@ -210,7 +204,7 @@ export interface PlanDetail {
  * (`collections.posts`, `collections.pages.fields.publishAt`, `blockTypes.hero`,
  * `nav.groups.Sitio`) dicha en llano. La ruta literal va en `code`.
  */
-export function describeManifestEntry(path: string, t: Translate): PlanItem {
+function describeManifestEntry(path: string, t: Translate): PlanItem {
 	const base = { text: '', code: path };
 	if (path.startsWith('nav.groups.')) {
 		return {
@@ -258,7 +252,7 @@ export function describeManifestEntry(path: string, t: Translate): PlanItem {
 }
 
 /** Una pieza que la fusión no ha podido añadir, con su motivo. La ruta literal va en `code`. */
-export function describeSkipped(item: ManifestMergeSkipped, t: Translate): PlanItem {
+function describeSkipped(item: ManifestMergeSkipped, t: Translate): PlanItem {
 	if (item.kind === 'navGroup') {
 		return {
 			title: t('settings.site.entry.navGroup', { name: item.name }),
@@ -502,7 +496,7 @@ export function describeCardPlan(plan: SiteSeedPlanSummary, t: Translate): strin
 	return t('settings.site.desc.update', { changes: joinList(t, changes) });
 }
 
-export interface DivergenceView {
+interface DivergenceView {
 	title: string;
 	body: string;
 	/** El texto literal de `SiteSeedDivergence`, para plegar y copiar. */
@@ -510,7 +504,7 @@ export interface DivergenceView {
 }
 
 /** El texto técnico literal de una divergencia, tal como lo escribe `SiteSeedDivergenceError`. */
-export function divergenceDetail(item: SiteSeedDivergence): string {
+function divergenceDetail(item: SiteSeedDivergence): string {
 	// «sembrado» no sale en la interfaz, ni siquiera en el texto técnico plegado.
 	return `${item.piece}: encontró ${item.actual}; esperaba ${item.expected}`.replace(
 		/del sembrado/g,

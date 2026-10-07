@@ -35,7 +35,7 @@ const FOCUSABLE_TAGS: ReadonlySet<string> = new Set(['INPUT', 'SELECT', 'TEXTARE
  * (`input`/`select`/`textarea`/`button`); un `<a>`/`[tabindex]` sin ella nunca cuenta como
  * deshabilitado por esta vía (HTML no los deshabilita así).
  */
-export function isDisabled(el: Element): boolean {
+function isDisabled(el: Element): boolean {
 	return 'disabled' in el && (el as unknown as { disabled: boolean }).disabled === true;
 }
 

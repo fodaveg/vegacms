@@ -157,7 +157,7 @@ function fetchableUrl(url: unknown): string | null {
 	return FETCHABLE_PROTOCOLS.has(parsed.protocol) ? parsed.href : null;
 }
 
-export interface FetchTransferFileOptions {
+interface FetchTransferFileOptions {
 	/** Ver `DEFAULT_TIMEOUT_MS`. */
 	timeoutMs?: number;
 	/** Ver `DEFAULT_MAX_BYTES`. */

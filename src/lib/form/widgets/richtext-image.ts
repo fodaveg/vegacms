@@ -21,7 +21,7 @@ import type { MediaPickResult } from '$lib/media/media-picker';
 /** Colección de la biblioteca de medios (D-P6.1). */
 const MEDIA_COLLECTION = 'vega_media';
 
-export interface RichtextImage {
+interface RichtextImage {
 	/** Lo que va al `src`: la URL pública del fichero en la biblioteca. */
 	src: string;
 	/** El texto alternativo del medio, recortado; `''` si no tiene. */

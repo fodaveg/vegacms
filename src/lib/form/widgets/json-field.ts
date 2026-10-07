@@ -14,7 +14,7 @@ export function stringifyJsonValue(value: JsonValue): string {
 	return JSON.stringify(value, null, 2);
 }
 
-export type JsonParseResult = { ok: true; value: JsonValue } | { ok: false };
+type JsonParseResult = { ok: true; value: JsonValue } | { ok: false };
 
 /**
  * Texto del `<textarea>` → `JsonValue`, best-effort. Una entrada en blanco (o solo espacios) se

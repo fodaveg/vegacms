@@ -67,7 +67,7 @@ export interface ReviewRedirect {
 /** Cota de saltos al seguir una cadena de redirecciones: pasada, se trata como bucle. */
 export const MAX_REDIRECT_HOPS = 10;
 
-export type LinkResolution =
+type LinkResolution =
 	| { status: 'ok' }
 	/** La ruta es de una página (directa o tras redirecciones) pero está en borrador. */
 	| { status: 'draft' }
@@ -182,7 +182,7 @@ export function extractAnchorHrefs(html: string): string[] {
 }
 
 /** Una `<img>` de un HTML. `alt` es `null` si la etiqueta NO trae el atributo (`alt=""` = `''`). */
-export interface HtmlImage {
+interface HtmlImage {
 	src: string;
 	alt: string | null;
 }

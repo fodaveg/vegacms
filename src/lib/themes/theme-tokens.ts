@@ -17,10 +17,10 @@
  */
 
 /** Agrupación temática de §3 (columna "Familia" de la tabla del contrato). */
-export type TokenFamily =
+type TokenFamily =
 	'papel' | 'lineas' | 'tinta' | 'marca' | 'efectos' | 'semanticos' | 'forma' | 'densidad';
 
-export interface ThemeToken {
+interface ThemeToken {
 	/** Nombre del custom property SIN el prefijo `--` (p.ej. `"ink"` para `var(--ink)`). */
 	readonly name: string;
 	readonly family: TokenFamily;

@@ -12,7 +12,7 @@
 import type { RequestSequencer } from '$lib/list/list-load';
 
 /** Resultado de `loadLatest`: `stale` ⟹ una carga más reciente la reemplazó; no hay que pintar nada. */
-export type LatestLoad<T> =
+type LatestLoad<T> =
 	| { stale: true }
 	| { stale: false; ok: true; value: T }
 	| { stale: false; ok: false; error: unknown };

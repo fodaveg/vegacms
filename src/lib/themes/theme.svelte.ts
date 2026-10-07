@@ -36,7 +36,7 @@ export const STORAGE_KEYS = {
 	density: 'vega.density'
 } as const;
 
-export interface ThemeStore {
+interface ThemeStore {
 	readonly themeId: ThemeId;
 	readonly mode: Mode;
 	readonly density: Density;

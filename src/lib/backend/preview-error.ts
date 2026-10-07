@@ -15,9 +15,9 @@
  * traducido (`common.networkError`).
  */
 
-export type PreviewErrorKind = 'network' | 'http' | 'unknown';
+type PreviewErrorKind = 'network' | 'http' | 'unknown';
 
-export interface ClassifiedPreviewError {
+interface ClassifiedPreviewError {
 	kind: PreviewErrorKind;
 	/** Mensaje YA legible del `Error` lanzado por `preview-client.ts` (`kind: 'http'`); `null`
 	 *  para `'network'` (mensaje del motor, no apto para el usuario) y `'unknown'` (lo lanzado ni

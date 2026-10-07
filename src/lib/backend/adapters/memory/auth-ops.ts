@@ -7,7 +7,7 @@ import type { MemoryState } from './state';
 
 const DEFAULT_USER_EMAIL = 'admin@vega.test';
 
-export type MemoryAuthOps = Pick<
+type MemoryAuthOps = Pick<
 	BackendPort,
 	'login' | 'logout' | 'currentSession' | 'restoreSession' | 'onAuthChange'
 > & {

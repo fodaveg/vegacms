@@ -21,7 +21,7 @@
 
 /** El único dato de geometría que hace falta del bloque sobrevolado: su borde superior y su alto,
  *  en el MISMO sistema de coordenadas que `y` (ver cabecera). */
-export interface InsertPositionRect {
+interface InsertPositionRect {
 	top: number;
 	height: number;
 }

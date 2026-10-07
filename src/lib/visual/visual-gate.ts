@@ -33,7 +33,7 @@
 import type { ResolvedContentType } from '$lib/model/types';
 import type { BackendPort } from '$lib/backend';
 
-export type VisualGateResult =
+type VisualGateResult =
 	| { status: 'ok' }
 	| { status: 'forbidden' }
 	| { status: 'no-blocks' }

@@ -27,11 +27,11 @@ import { isEmptyValue, normalizeFieldValue } from '$lib/backend/normalize';
 import type { ResolvedContentType } from '$lib/model/types';
 import type { TransferRecord } from './record-serializer';
 
-export type ImportEntryStatus = 'create' | 'overwrite' | 'blocked';
+type ImportEntryStatus = 'create' | 'overwrite' | 'blocked';
 
 /** Por qué un registro queda BLOQUEADO (§4.2) — un registro puede acumular varios a la vez (p.ej.
  *  sin permiso Y con una relación colgante); la vista previa los lista todos, no solo el primero. */
-export type BlockedReason =
+type BlockedReason =
 	| { kind: 'no-create-permission' }
 	| { kind: 'no-update-permission' }
 	| { kind: 'required-relation-cycle' }
@@ -49,7 +49,7 @@ export interface ImportEntry {
 	reasons: BlockedReason[];
 }
 
-export interface ClassifyCollectionInput {
+interface ClassifyCollectionInput {
 	contentType: ResolvedContentType;
 	records: readonly TransferRecord[];
 	/** ids de esta colección que YA existen en destino (`import-collection.ts`, `list` en lotes,

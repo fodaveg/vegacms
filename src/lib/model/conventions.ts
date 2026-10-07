@@ -356,7 +356,7 @@ function defaultSubtypeFor(field: Field): 'plain' | 'html' | 'markdown' | null {
 	return null;
 }
 
-export interface WidgetResolution {
+interface WidgetResolution {
 	widget: WidgetId;
 	subtype: 'plain' | 'html' | 'markdown' | null;
 }
@@ -427,7 +427,7 @@ export function defaultListable(field: Field): boolean {
 
 // ————— 4.9 Orden y grupos (misma regla para nav y campos) —————
 
-export interface GroupOrderResult<T> {
+interface GroupOrderResult<T> {
 	/** `items`, en orden efectivo (grupo → order explícito asc → orden base). */
 	orderedItems: T[];
 	/** Grupos presentes, en orden de render; `null` = grupo anónimo (siempre primero si hay). */

@@ -53,10 +53,10 @@ import { VegaError, type VegaErrorKind } from '$lib/backend/errors';
  *  unos pocos registros y dejar que `totalItems` cargue con el recuento real. */
 const DEFAULT_SAMPLE_SIZE = 5;
 
-export type ReferenceVia = 'relation' | 'url';
+type ReferenceVia = 'relation' | 'url';
 
 /** Coincidencia de UNA vía en UNA colección, ya resuelta con éxito. */
-export interface ReferenceMatchOk {
+interface ReferenceMatchOk {
 	via: ReferenceVia;
 	status: 'ok';
 	/** Campo(s) de la colección origen que generaron la query (para depurar/mostrar el "por qué"). */
@@ -79,11 +79,11 @@ export interface ReferenceMatchDegraded {
 	reason: VegaErrorKind | 'unknown';
 }
 
-export type ReferenceMatch = ReferenceMatchOk | ReferenceMatchDegraded;
+type ReferenceMatch = ReferenceMatchOk | ReferenceMatchDegraded;
 
 /** Todo lo encontrado (o fallado) en UNA colección origen. `matches` nunca está vacío: una
  *  colección solo aparece aquí si al menos una de sus vías produjo algo que mostrar. */
-export interface CollectionReferences {
+interface CollectionReferences {
 	collection: string;
 	/** Copia de `ContentType.readonly` (vista `view` de PB): la UI la marca de solo lectura, no la
 	 *  excluye — una vista SÍ puede referenciar el destino. */
@@ -128,7 +128,7 @@ export interface FindReferencesTarget {
 	fileRef?: FileRef | null;
 }
 
-export interface FindReferencesOptions {
+interface FindReferencesOptions {
 	/** Tamaño de muestra por colección/vía (default `DEFAULT_SAMPLE_SIZE`). */
 	sampleSize?: number;
 }
