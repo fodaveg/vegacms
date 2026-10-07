@@ -20,12 +20,14 @@ const harness = vi.hoisted(() => ({
 	topbar: null as TopbarProps | null,
 	sidebar: null as SidebarProps | null,
 	read: vi.fn(() => false),
-	persist: vi.fn()
+	persist: vi.fn(),
+	page: { route: { id: '/c/[type]' as string | null } }
 }));
 
 vi.mock('$app/navigation', () => ({
 	afterNavigate: (callback: NonNullable<typeof harness.navigate>) => (harness.navigate = callback)
 }));
+vi.mock('$app/state', () => ({ page: harness.page }));
 vi.mock('$lib/theme/apply', () => ({
 	readSidebarCollapsed: harness.read,
 	setSidebarCollapsed: harness.persist
@@ -67,6 +69,7 @@ function toggle(): void {
 beforeEach(() => {
 	vi.clearAllMocks();
 	harness.navigate = null;
+	harness.page.route.id = '/c/[type]';
 	target = document.createElement('div');
 	document.body.appendChild(target);
 });
@@ -77,6 +80,19 @@ afterEach(async () => {
 });
 
 describe('AppShell: sidebar durante edición visual', () => {
+	test.each([false, true])(
+		'montar ya en visual pliega sin evento ni persistir y restaura %s',
+		(saved) => {
+			harness.page.route.id = '/c/[type]/[id]/visual';
+			start(saved);
+			expect(harness.sidebar!.collapsed).toBe(true);
+			expect(harness.persist).not.toHaveBeenCalled();
+			navigate('/c/[type]');
+			expect(harness.sidebar!.collapsed).toBe(saved);
+			expect(harness.persist).not.toHaveBeenCalled();
+		}
+	);
+
 	test.each([false, true])('entrar pliega sin persistir y salir restaura %s', (saved) => {
 		start(saved);
 		navigate('/c/[type]');

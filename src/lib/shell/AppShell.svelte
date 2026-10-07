@@ -46,6 +46,7 @@
 	 */
 	import type { Snippet } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
+	import { page } from '$app/state';
 	import { readSidebarCollapsed, setSidebarCollapsed } from '$lib/theme/apply';
 	import Topbar from './Topbar.svelte';
 	import Sidebar from './Sidebar.svelte';
@@ -67,8 +68,10 @@
 
 	let sidebarOpen = $state(false);
 	let manualSidebarCollapsed = readSidebarCollapsed();
-	let sidebarCollapsed = $state(manualSidebarCollapsed);
-	let visualRoute = false;
+	// La restauración de sesión/modelo puede montar la carcasa después de la navegación inicial:
+	// esa entrada directa ya tiene ruta, aunque no llegue otro evento afterNavigate.
+	let visualRoute = page.route.id === '/c/[type]/[id]/visual';
+	let sidebarCollapsed = $state(visualRoute ? true : manualSidebarCollapsed);
 
 	afterNavigate(({ to }) => {
 		sidebarOpen = false;
