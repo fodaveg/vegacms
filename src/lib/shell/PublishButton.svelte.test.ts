@@ -341,6 +341,60 @@ describe('PublishButton.svelte', () => {
 		expect(fetchMock).toHaveBeenCalledTimes(3);
 	});
 
+	test.each(['rechazado', 'aceptado'])(
+		'un trigger %s después de desmontar no reinicia peticiones ni temporizadores con la sesión anterior',
+		async (outcome) => {
+			const idle: BuildStatus = {
+				state: 'idle',
+				startedAt: null,
+				finishedAt: null,
+				lastPublishedAt: null,
+				logUrl: null,
+				detail: null
+			};
+			let finishTrigger!: (response: Response) => void;
+			const pendingTrigger = new Promise<Response>((resolve) => {
+				finishTrigger = resolve;
+			});
+			const fetchMock = vi
+				.fn()
+				.mockResolvedValueOnce(jsonResponse(idle))
+				.mockReturnValueOnce(pendingTrigger)
+				.mockResolvedValue(jsonResponse({ message: 'sesión anterior' }, 401));
+			vi.stubGlobal('fetch', fetchMock);
+			const ctx = fakeCtx({ buildApiUrl: 'https://pb.test/api/vega-build' });
+			mounted = mountButton(ctx);
+			await flush();
+			mounted.target.querySelector<HTMLButtonElement>('.vega-publish-trigger')?.click();
+			await flush();
+			expect(fetchMock).toHaveBeenCalledTimes(2);
+
+			await unmount(mounted.instance);
+			mounted.target.remove();
+			mounted = null;
+			const timers = vi.spyOn(globalThis, 'setTimeout');
+			try {
+				finishTrigger(
+					outcome === 'rechazado'
+						? jsonResponse({ message: 'failed to start the build (HTTP 500)' }, 502)
+						: jsonResponse({ id: 'run-1' }, 202)
+				);
+				await flush();
+				await flush();
+				expect(fetchMock).toHaveBeenCalledTimes(2);
+				expect(ctx.feedback.toast).not.toHaveBeenCalled();
+				// Solo los dos flush de 10 ms: ningún sondeo inmediato ni reintento del 401.
+				expect(timers.mock.calls.map(([, delay]) => delay)).toEqual([10, 10]);
+			} finally {
+				// El control rojo también debe limpiar cualquier reintento que haya creado.
+				for (const result of timers.mock.results) {
+					if (result.type === 'return') clearTimeout(result.value);
+				}
+				timers.mockRestore();
+			}
+		}
+	);
+
 	test('click en estado accionable dispara POST /trigger con el token de sesión en Authorization', async () => {
 		const idle: BuildStatus = {
 			state: 'idle',

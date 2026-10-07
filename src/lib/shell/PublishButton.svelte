@@ -62,6 +62,8 @@
 	 *  honesta de saberlo (ver su cabecera) — nunca bloquea el botón por sí solo. */
 	let hasChanges = $state<boolean | null>(null);
 	let stopPolling: (() => void) | null = null;
+	/** Un trigger pendiente puede resolverse después de desmontar la sesión que lo lanzó. */
+	let destroyed = false;
 	/** Por qué falló la última consulta de estado (`null` = la última fue bien o aún no hubo fallo). */
 	let fetchProblem = $state<'denied' | 'unreachable' | null>(null);
 
@@ -141,6 +143,7 @@
 	});
 
 	onDestroy(() => {
+		destroyed = true;
 		// Ver la cabecera de `pollBuildStatus` (`backend/build-client.ts`): SIEMPRE hay que llamar a
 		// `stop()` al desmontar, o el `setTimeout` del sondeo sobrevive al componente.
 		stopPolling?.();
@@ -154,17 +157,17 @@
 		triggering = true;
 		try {
 			await client.trigger();
-			// Optimista: no fabricamos un `BuildStatus` local con `state: 'running'` (P3-L3, nunca
-			// un dato inventado) — el sondeo que arranca justo debajo hace su primer `fetchStatus()`
-			// de inmediato y trae el estado REAL casi al instante.
-			beginPolling();
 		} catch {
+			if (destroyed) return;
 			ctx.feedback.toast(ctx.t('topbar.publish.triggerError'), { kind: 'error' });
-			// El servidor puede haber cerrado el intento como fallido: consultar su detalle
-			// sanitizado también cuando /trigger rechaza, sin mostrar el error de la petición.
-			beginPolling();
 		} finally {
-			triggering = false;
+			if (!destroyed) {
+				triggering = false;
+				// Consultar el estado real también si /trigger rechaza: puede haber cerrado el
+				// intento como fallido. No inventar un BuildStatus ni mostrar el error de petición.
+				// Una sesión desmontada no debe reiniciar el sondeo con su token anterior.
+				beginPolling();
+			}
 		}
 	}
 
