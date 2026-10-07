@@ -220,7 +220,8 @@ export function collectImportMediaOrigins(collections: readonly ResolvedImportCo
 			for (const field of contentType.schema.fields) {
 				if (field.type !== 'file' || field.readonly) continue;
 				const raw = record.values[field.name];
-				for (const file of (Array.isArray(raw) ? raw : [raw]).filter(hasTransferMediaUrl)) {
+				for (const file of Array.isArray(raw) ? raw : [raw]) {
+					if (!hasTransferMediaUrl(file)) continue;
 					fileCount += 1;
 					const origin = transferMediaOrigin(file.url);
 					if (origin) origins.add(origin);
