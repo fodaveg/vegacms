@@ -7,13 +7,16 @@
 	 * validar → previsualizar → confirmar → escribir → informar, nunca saltarse un paso.
 	 *
 	 * ## Máquina de fases
-	 * `phase: 'pick' | 'reading' | 'invalid' | 'preview' | 'running' | 'done'`.
+	 * `phase: 'pick' | 'reading' | 'invalid' | 'authorize' | 'preview' | 'running' | 'done'`.
 	 * - `pick`: `<input type="file">` a la espera.
 	 * - `reading`: leyendo el fichero (con barra de avance en bytes, `readTextWithProgress`) y luego
 	 *   parseando JSON + `validateTransferDocument` (§4.1, síncrono), para que un fichero gigante no
 	 *   bloquee el diálogo sin feedback.
 	 * - `invalid`: §4.1 encontró algo que no casa — SOLO "Cerrar", nada se ha escrito (todo-o-nada,
 	 *   ver `import-format.ts`).
+	 * - `authorize`: muestra los orígenes sanitizados sin permisos preseleccionados ni fetch de
+	 *   medios. El consentimiento se reinicia también si cambia el puerto/usuario; renovar el
+	 *   token del mismo usuario lo conserva. Confirmar crea un snapshot nuevo de permisos/caché para preview y escritura.
 	 * - `preview`: `buildImportPreview` ya resolvió existencia/relaciones/ficheros contra el puerto
 	 *   (§4.2) — el corazón del diálogo. Con algún PISA, el botón "Importar" exige el checkbox de
 	 *   confirmación aparte (§4.2: "nunca el default silencioso"); con TODO bloqueado, no hay nada
@@ -47,14 +50,22 @@
 	import { VegaError } from '$lib/backend/errors';
 	import {
 		buildImportPreview,
+		collectImportMediaOrigins,
 		createCachingFileFetcher,
 		runImport,
 		type ImportPreview,
 		type ImportProgress,
-		type ImportReport
+		type ImportReport,
+		type ImportPort
 	} from './import-collection';
 	import { readTextWithProgress } from './read-file-progress';
-	import { validateTransferDocument, type ImportValidationError } from './import-format';
+	import {
+		validateTransferDocument,
+		type ImportValidationError,
+		type ResolvedImportCollection
+	} from './import-format';
+	import { fetchTransferFile, isLocalMediaOrigin, transferMediaOrigin } from './import-media';
+	import { isPlainObject } from '$lib/is-plain-object';
 
 	interface Props {
 		open: boolean;
@@ -71,12 +82,17 @@
 
 	const ctx = getVegaContext();
 
-	type Phase = 'pick' | 'reading' | 'invalid' | 'preview' | 'running' | 'done';
+	type Phase = 'pick' | 'reading' | 'invalid' | 'authorize' | 'preview' | 'running' | 'done';
 	let phase = $state<Phase>('pick');
 	let fileName = $state('');
 	let invalidErrors = $state<ImportValidationError[]>([]);
 	let preview = $state<ImportPreview | null>(null);
 	let overwriteConfirmed = $state(false);
+	let collections = $state<ResolvedImportCollection[]>([]);
+	let mediaOrigins = $state<string[]>([]);
+	let selectedOrigins = $state<string[]>([]);
+	let declaredOrigin = $state<string | null>(null);
+	let hasMedia = $state(false);
 	let report = $state<ImportReport | null>(null);
 	/** Avance de la lectura del fichero (0–100) y de la escritura (`runImport`, `onProgress`). */
 	let readPercent = $state(0);
@@ -94,11 +110,40 @@
 	// reactivo a propósito (solo se compara, nunca se pinta; si lo fuera, el `$effect` de abajo lo
 	// leería y se reejecutaría al escribirlo).
 	let session = 0;
+	/** El consentimiento pertenece también al puerto/usuario, nunca al token renovable. */
+	type ImportOwner = { port: ImportPort; userId: string | null };
+	let fileOwner: ImportOwner | null = null;
+	let observedOwner: ImportOwner | null = null;
+	let observedOpen: boolean | undefined;
+	function ownsContext(owner: ImportOwner): boolean {
+		return (
+			owner.userId !== null &&
+			ctx.port === owner.port &&
+			(ctx.session?.user.id ?? null) === owner.userId
+		);
+	}
 
 	// Reasienta TODO el estado en cada apertura (mismo criterio que `ExportDialog`/`DeleteConfirm`):
 	// un diálogo reabierto nunca hereda el fichero/vista previa/informe de una importación anterior.
 	$effect(() => {
+		const currentPort = ctx.port;
+		const currentUserId = ctx.session?.user.id ?? null;
+		if (
+			observedOpen === open &&
+			observedOwner?.port === currentPort &&
+			observedOwner.userId === currentUserId
+		)
+			return;
+		observedOpen = open;
+		observedOwner = { port: currentPort, userId: currentUserId };
+		fileOwner = observedOwner;
 		session += 1; // al cerrar Y al abrir: lo que estuviera en vuelo ya no es de esta sesión
+		selectedOrigins = [];
+		mediaOrigins = [];
+		declaredOrigin = null;
+		hasMedia = false;
+		collections = [];
+		fileFetcher = createCachingFileFetcher();
 		if (!open) return;
 		phase = 'pick';
 		fileName = '';
@@ -138,6 +183,15 @@
 		const file = input.files?.[0];
 		if (!file) return;
 		const mine = ++session;
+		const owner: ImportOwner = { port: ctx.port, userId: ctx.session?.user.id ?? null };
+		fileOwner = owner;
+		selectedOrigins = [];
+		mediaOrigins = [];
+		declaredOrigin = null;
+		hasMedia = false;
+		preview = null;
+		overwriteConfirmed = false;
+		fileFetcher = createCachingFileFetcher();
 		fileName = file.name;
 		phase = 'reading';
 
@@ -145,12 +199,13 @@
 		readPercent = 0;
 		try {
 			const text = await readTextWithProgress(file, (read, total) => {
-				if (mine === session) readPercent = total === 0 ? 100 : Math.floor((read / total) * 100);
+				if (mine === session && ownsContext(owner))
+					readPercent = total === 0 ? 100 : Math.floor((read / total) * 100);
 			});
-			if (mine !== session) return;
+			if (mine !== session || !ownsContext(owner)) return;
 			parsed = JSON.parse(text);
 		} catch {
-			if (mine !== session) return;
+			if (mine !== session || !ownsContext(owner)) return;
 			invalidErrors = [{ kind: 'malformed' }];
 			phase = 'invalid';
 			return;
@@ -163,13 +218,50 @@
 			return;
 		}
 
+		collections = validation.collections;
+		const media = collectImportMediaOrigins(collections);
+		mediaOrigins = media.origins;
+		hasMedia = media.fileCount > 0;
+		declaredOrigin =
+			isPlainObject(parsed) && isPlainObject(parsed.origin)
+				? transferMediaOrigin(parsed.origin.backendUrl)
+				: null;
+		if (hasMedia) {
+			phase = 'authorize';
+			return;
+		}
+		await preparePreview();
+	}
+
+	/** Cada aprobación nueva invalida preview, PISA y resultados de la política anterior. */
+	function selectOrigin(origin: string, checked: boolean): void {
+		selectedOrigins = checked
+			? [...selectedOrigins, origin]
+			: selectedOrigins.filter((o) => o !== origin);
+		preview = null;
+		overwriteConfirmed = false;
+		phase = 'authorize';
+	}
+
+	/** Snapshot por fichero/política: no se consulta un conjunto mutable durante una descarga. */
+	async function preparePreview(): Promise<void> {
+		const owner = fileOwner;
+		if (!owner || !ownsContext(owner)) return;
+		const mine = ++session;
+		const authorizedOrigins = new Set(selectedOrigins);
+		const fetcher = createCachingFileFetcher((file) =>
+			fetchTransferFile(file, { authorizedOrigins })
+		);
+		fileFetcher = fetcher;
+		overwriteConfirmed = false;
+		phase = 'reading';
 		try {
-			const built = await buildImportPreview(ctx.port, validation.collections, fileFetcher);
-			if (mine !== session) return;
+			const built = await buildImportPreview(owner.port, collections, fetcher);
+			if (mine !== session || !ownsContext(owner)) return;
 			preview = built;
 			phase = 'preview';
 		} catch (err) {
-			if (mine !== session) return;
+			if (mine !== session || !ownsContext(owner)) return;
 			// Un fallo AQUÍ es de red/backend (resolver existencia contra el puerto, §4.2), no del
 			// fichero — a diferencia de `invalid` (§4.1, problema DETERMINISTA del propio fichero),
 			// el mismo reparto que usa `ExportDialog` para sus propios fallos de `ctx.port`.
@@ -182,19 +274,21 @@
 
 	/** Botón "Importar" de la fase `preview` (§4.3/§4.4): escribe y pasa a `done` con el informe. */
 	async function startImport(): Promise<void> {
-		if (!preview || !canImport) return;
+		const owner = fileOwner;
+		if (!preview || !canImport || !owner || !ownsContext(owner)) return;
 		const mine = session;
 		phase = 'running';
 		progress = { done: 0, total: 0 };
 		let result: ImportReport;
 		try {
 			result = await runImport(
-				ctx.port,
+				owner.port,
 				preview,
 				{
 					overwriteConfirmed,
+					isContextCurrent: () => ownsContext(owner),
 					onProgress: (p) => {
-						if (mine === session) progress = p;
+						if (mine === session && ownsContext(owner)) progress = p;
 					}
 				},
 				fileFetcher
@@ -204,7 +298,7 @@
 			// la fase no puede quedarse en `running` para siempre: se vuelve a `pick` (no a `preview`,
 			// que ya puede estar desfasada si algo llegó a escribirse) con el error por el mismo camino
 			// que usa `handleFileChange`.
-			if (mine !== session) return;
+			if (mine !== session || !ownsContext(owner)) return;
 			preview = null;
 			phase = 'pick';
 			ctx.feedback.reportError(
@@ -214,6 +308,7 @@
 		}
 		// Sesión caducada (cerrado/reabierto/otro fichero): lo escrito en el backend ya está escrito,
 		// así que la tabla se refresca, pero el estado del diálogo ya es de OTRA sesión y no se toca.
+		if (!ownsContext(owner)) return;
 		if (mine !== session) {
 			if (
 				result.createdCount + result.updatedCount > 0 ||
@@ -251,6 +346,9 @@
 	 *  "cancelar a medias" de forma segura sin transacción, así que simplemente se deja terminar en
 	 *  segundo plano si el usuario cierra). */
 	function requestClose(): void {
+		session += 1;
+		selectedOrigins = [];
+		fileFetcher = createCachingFileFetcher();
 		onClose();
 	}
 
@@ -281,6 +379,11 @@
 				return ctx.t('list.import.blockedReason.danglingRelation', { field: reason.field });
 			case 'required-empty':
 				return ctx.t('list.import.blockedReason.requiredEmpty', { field: reason.field });
+			case 'file-origin-policy':
+				return ctx.t(`list.import.media.block.${reason.block.kind}`, {
+					field: reason.field,
+					origin: reason.block.origin ?? ''
+				});
 			case 'unreachable-required-file':
 				return ctx.t('list.import.blockedReason.unreachableRequiredFile', { field: reason.field });
 		}
@@ -294,7 +397,7 @@
 	function focusableItems(): HTMLElement[] {
 		if (!dialogEl) return [];
 		return Array.from(
-			dialogEl.querySelectorAll<HTMLElement>('button, input:not([disabled])')
+			dialogEl.querySelectorAll<HTMLElement>('button, input:not([disabled]), summary')
 		).filter((el) => !el.hasAttribute('disabled'));
 	}
 
@@ -344,6 +447,43 @@
 		>
 			<h2 id="vega-import-title">{ctx.t('list.import.dialog.title')}</h2>
 
+			{#if hasMedia && (phase === 'authorize' || phase === 'preview')}
+				<input
+					type="file"
+					accept=".json,application/json"
+					aria-label={ctx.t('list.import.pick.label')}
+					onchange={handleFileChange}
+				/>
+				<fieldset class="vega-import-origins">
+					<legend>{ctx.t('list.import.media.title')}</legend>
+					<p class="vega-import-hint">{ctx.t('list.import.media.hint')}</p>
+					<p class="vega-import-hint">
+						{ctx.t('list.import.media.declared', {
+							origin: declaredOrigin ?? ctx.t('list.import.media.unknown')
+						})}
+					</p>
+					{#if declaredOrigin && isLocalMediaOrigin(declaredOrigin)}
+						<p class="vega-import-hint">{ctx.t('list.import.media.localDeclared')}</p>
+					{/if}
+					{#each mediaOrigins as origin (origin)}
+						<label class="vega-import-confirm vega-import-origin">
+							<input
+								type="checkbox"
+								checked={selectedOrigins.includes(origin)}
+								onchange={(e) => selectOrigin(origin, e.currentTarget.checked)}
+							/>
+							<span
+								><code>{origin}</code>{#if isLocalMediaOrigin(origin)}
+									<small>{ctx.t('list.import.media.local')}</small>{/if}</span
+							>
+						</label>
+					{/each}
+					{#if mediaOrigins.length === 0}<p class="vega-import-hint">
+							{ctx.t('list.import.media.noAllowedUrls')}
+						</p>{/if}
+				</fieldset>
+			{/if}
+
 			{#if phase === 'pick' || phase === 'reading'}
 				<p class="vega-import-hint">{ctx.t('list.import.pick.hint')}</p>
 				<input
@@ -363,6 +503,16 @@
 				{/if}
 				<div class="vega-import-actions">
 					<button type="button" onclick={requestClose}>{ctx.t('common.cancel')}</button>
+				</div>
+			{:else if phase === 'authorize'}
+				<div class="vega-import-actions">
+					<button type="button" onclick={requestClose}>{ctx.t('common.cancel')}</button>
+					<button
+						type="button"
+						class="vega-import-preview-button"
+						onclick={preparePreview}
+						bind:this={firstFocusEl}>{ctx.t('list.import.media.preview')}</button
+					>
 				</div>
 			{:else if phase === 'invalid'}
 				<div class="vega-import-invalid" role="alert">
@@ -403,6 +553,13 @@
 													<li>{blockedReasonText(reason)}</li>
 												{/each}
 											</ul>
+										{/if}
+										{#if entry.missingFiles?.length}
+											<p class="vega-import-hint">
+												{ctx.t('list.import.media.missingPreview', {
+													fields: entry.missingFiles.join(', ')
+												})}
+											</p>
 										{/if}
 									</li>
 								{/each}
@@ -456,6 +613,13 @@
 							skipped: report.skippedCount
 						})}
 					</p>
+					{#each report.outcomes.filter((o) => o.missingFiles?.length) as outcome (outcome.type + outcome.id)}
+						<p class="vega-import-hint">
+							<code>{outcome.type}/{outcome.id}</code>: {ctx.t('list.import.media.missingReport', {
+								fields: outcome.missingFiles!.join(', ')
+							})}
+						</p>
+					{/each}
 					{#if report.failedCount > 0}
 						<details class="vega-import-collection" open>
 							<summary>{ctx.t('list.import.report.failedTitle')}</summary>
@@ -503,6 +667,7 @@
 		gap: 1rem;
 		width: 100%;
 		max-width: 32rem;
+		overflow-wrap: anywhere;
 		max-height: calc(100vh - 4rem);
 		overflow-y: auto;
 		padding: 1.5rem;
@@ -522,6 +687,29 @@
 		font-size: 0.95rem;
 	}
 
+	.vega-import-origins {
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		padding: 0.75rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		min-width: 0;
+	}
+	.vega-import-origins legend {
+		font-weight: 600;
+	}
+	.vega-import-origin {
+		min-height: 44px;
+		align-items: center;
+	}
+	.vega-import-origin span {
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
+	.vega-import-origin small {
+		color: var(--ink-2);
+	}
 	.vega-import-hint {
 		margin: 0;
 		color: var(--ink-2);

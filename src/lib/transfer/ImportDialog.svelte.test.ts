@@ -17,18 +17,22 @@ import ImportDialog from './ImportDialog.svelte';
 
 const mocks = vi.hoisted(() => ({
 	runImport: vi.fn(),
-	buildImportPreview: vi.fn()
+	buildImportPreview: vi.fn(),
+	collectImportMediaOrigins: vi.fn(() => ({ origins: [] as string[], fileCount: 0 })),
+	readText: vi.fn(async () => '{}'),
+	createCachingFileFetcher: vi.fn((fetcher?: unknown) => fetcher ?? (async () => null))
 }));
 
 vi.mock('./import-collection', () => ({
-	createCachingFileFetcher: () => async () => null,
+	createCachingFileFetcher: mocks.createCachingFileFetcher,
+	collectImportMediaOrigins: mocks.collectImportMediaOrigins,
 	buildImportPreview: mocks.buildImportPreview,
 	runImport: mocks.runImport
 }));
 vi.mock('./import-format', () => ({
 	validateTransferDocument: () => ({ ok: true, collections: [] })
 }));
-vi.mock('./read-file-progress', () => ({ readTextWithProgress: async () => '{}' }));
+vi.mock('./read-file-progress', () => ({ readTextWithProgress: mocks.readText }));
 
 /** Vista previa con un solo registro CREA: lo mínimo para que «Importar» esté habilitado. */
 function previewOf(id: string): ImportPreview {
@@ -75,12 +79,15 @@ afterEach(() => {
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	mocks.collectImportMediaOrigins.mockReturnValue({ origins: [], fileCount: 0 });
+	mocks.readText.mockResolvedValue('{}');
 });
 
 function mountDialog() {
 	const ctx = {
 		t: (key: string, params?: Record<string, string | number>) => t('es', key, params),
 		model: {},
+		session: { user: { id: 'tester' } },
 		port: {},
 		feedback: { reportError, toast }
 	} as unknown as VegaAppContext;

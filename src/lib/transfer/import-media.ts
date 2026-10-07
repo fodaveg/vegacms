@@ -6,12 +6,15 @@
  * (que usa esta misma función para comprobar si un `file` `required` es traíble ANTES de escribir,
  * §4.2) puedan testearse con un doble sin tocar `fetch` real.
  *
- * **Nunca lanza**: red caída, CORS, 404, timeout, `content-type` que no puede ser un fichero real
- * o cualquier otra forma de "no se puede traer" resuelven igual a `null` — es al llamador
- * (`record-deserializer.ts`/`import-preview.ts`) a quien le toca decidir qué significa `null` en su
- * contexto (campo vacío vs registro BLOQUEADO). Distinguir el motivo exacto del fallo no aporta
- * nada aquí: el desenlace para el usuario es el mismo, "esta imagen no se pudo traer, resúbela a
- * mano" (§4.4, "el texto es lo caro de rehacer, una imagen se resube").
+ * **Contrato de orígenes (7 oct 2026)**: el JSON no autoriza red. Antes del semáforo,
+ * exigir HTTP(S) absoluto, sin usuario/contraseña y un origen exacto autorizado explícitamente
+ * para este fichero. Un rechazo de política lanza `ImportMediaPolicyError` sanitizado y BLOQUEA
+ * el registro incluso si el campo es opcional; nunca se transforma en un vaciado al PISA.
+ * Solo un fallo de red de un origen autorizado devuelve `null`: required bloquea; optional
+ * puede entrar sin el fichero, avisado en la vista previa antes de confirmar sobreescritura.
+ * Peticiones sin credenciales/referente y sin seguir redirects; no hay clasificación DNS ni
+ * proxy de servidor. Preview/escritura comparten caché bajo la misma política; otra aprobación
+ * o fichero crea otra sesión. Las direcciones locales son válidas tras consentimiento explícito.
  *
  * **Fix de code-review (commit `e4dd164`)**: la primera versión solo miraba `response.ok`. Un
  * origen que responde con un 200 de basura —una página de login, el `index.html` de fallback de
@@ -26,7 +29,7 @@
  *   un fichero", venga lo que venga después.
  * - **Cuerpo vacío** (`size === 0`): un fichero de 0 bytes no es un fichero traído con éxito.
  * - **Timeout** (`timeoutMs`, 30s por defecto): sin límite, un origen que cuelga (nunca responde,
- *   ni error ni éxito) colgaba el import ENTERO — `buildRequiredFileReachability` congela la fase
+ *   ni error ni éxito) colgaba el import ENTERO — `buildFileReachability` congela la fase
  *   `reading` del diálogo con su `Promise.all`, y `runImport` cuelga la fase `running`, que la
  *   cabecera de `ImportDialog.svelte` documenta como no cancelable. Un único `AbortController` ata
  *   la petición Y la lectura del cuerpo al mismo plazo (su `signal` viaja al `fetch` real, que
@@ -40,22 +43,14 @@
  *   (`ReadableStreamDefaultReader`) y aborta en cuanto se supera `maxBytes`, sin llegar a
  *   materializar el resto.
  * - **Concurrencia acotada** (`MAX_CONCURRENT_FETCHES`): un semáforo a nivel de MÓDULO (no por
- *   llamada) — `buildRequiredFileReachability` lanzaba TODOS los `fetch` de la vista previa a la
+ *   llamada) — `buildFileReachability` lanzaba TODOS los `fetch` de la vista previa a la
  *   vez con `Promise.all`; puesto aquí, en el ÚNICO punto de red de la Fase 2, cualquier llamador
  *   (vista previa o escritura) queda acotado por construcción, sin que cada uno tenga que coordinar
  *   su propio límite.
  *
- * **Solo `http:`/`https:`** (revisión de seguridad del 30 sep 2026): la `url` sale del fichero
- * importado, que es un dato de fuera y puede venir escrito a mano. Se parsea con `URL` y solo se
- * pide si es absoluta y de `http:` o `https:`; `file:`, `data:`, `blob:`, `javascript:`, una
- * relativa o una que no parsea resuelven a `null` SIN llegar a `fetch`, con el mismo desenlace que
- * un 404. Consecuencia asumida: un export hecho desde el adaptador `memory` (la demo), cuyas
- * `url` son `data:` URI, se reimporta sin sus ficheros — salen en `missingFiles`, no en silencio.
- * Esto acota el ESQUEMA, no el destino: una `url` `http(s)` a cualquier host (incluida la red
- * local de quien importa) se sigue pidiendo.
  */
 
-import type { TransferFileValue } from './record-serializer';
+import { isTransferFileValue, type TransferFileValue } from './record-serializer';
 
 /** Nº máximo de `fetch` de esta Fase en vuelo a la vez, GLOBAL al módulo (ver cabecera): evita que
  *  un import con muchos ficheros abra cientos de conexiones a la vez. Nº pequeño y conservador —
@@ -142,11 +137,11 @@ async function readBoundedBlob(response: Response, maxBytes: number): Promise<Bl
 const FETCHABLE_PROTOCOLS: ReadonlySet<string> = new Set(['http:', 'https:']);
 
 /**
- * La `url` de un `{ file, url }` ya normalizada (`URL#href`) si es absoluta y de `http:`/`https:`;
+ * El origen de una `url` de medio normalizado (`URL#origin`) si es absoluta y de `http:`/`https:`;
  * `null` si no (otro esquema, relativa, no parseable, o ni siquiera un string: el fichero
  * importado es JSON de fuera y su tipo en TypeScript no obliga a nada en runtime).
  */
-function fetchableUrl(url: unknown): string | null {
+export function transferMediaOrigin(url: unknown): string | null {
 	if (typeof url !== 'string') return null;
 	let parsed: URL;
 	try {
@@ -154,10 +149,76 @@ function fetchableUrl(url: unknown): string | null {
 	} catch {
 		return null;
 	}
-	return FETCHABLE_PROTOCOLS.has(parsed.protocol) ? parsed.href : null;
+	return FETCHABLE_PROTOCOLS.has(parsed.protocol) ? parsed.origin : null;
 }
 
-interface FetchTransferFileOptions {
+export type ImportMediaBlock = {
+	kind: 'invalid-url' | 'url-credentials' | 'unapproved-origin';
+	/** Solo esquema/host/puerto; nunca usuario, contraseña, ruta o query del JSON. */
+	origin: string | null;
+};
+
+/** Un bloqueo de política no es un fallo de descarga: debe impedir toda escritura del registro. */
+export class ImportMediaPolicyError extends Error {
+	constructor(readonly block: ImportMediaBlock) {
+		super('El origen de este medio no está autorizado o su URL no está permitida.');
+		this.name = 'ImportMediaPolicyError';
+	}
+}
+
+/** Reconoce también una URL manipulada, para no confundirla con un FileRef sin URL. */
+export function hasTransferMediaUrl(value: unknown): value is { url: unknown } {
+	return typeof value === 'object' && value !== null && Object.hasOwn(value, 'url');
+}
+
+/** El guard del formato no debe ocultar una URL no string y convertirla en un vaciado opcional. */
+export function assertTransferMediaShape(value: unknown): void {
+	if (hasTransferMediaUrl(value) && !isTransferFileValue(value)) {
+		throw new ImportMediaPolicyError({
+			kind: 'invalid-url',
+			origin: transferMediaOrigin(value.url)
+		});
+	}
+}
+
+/** Direcciones explícitamente locales; no clasifica DNS ni bloquea el acceso tras consentimiento. */
+export function isLocalMediaOrigin(origin: string): boolean {
+	const host = new URL(origin).hostname;
+	if (
+		host === 'localhost' ||
+		host.endsWith('.localhost') ||
+		host === '[::1]' ||
+		/^\[(f[cd]|fe[89ab])/.test(host)
+	)
+		return true;
+	// Exigir una IPv4 literal evita rotular dominios como 127.example.test como red local.
+	if (!/^\d+\.\d+\.\d+\.\d+$/.test(host)) return false;
+	const [first, second] = host.split('.').map(Number);
+	return (
+		first === 127 ||
+		first === 10 ||
+		first === 0 ||
+		(first === 192 && second === 168) ||
+		(first === 169 && second === 254) ||
+		(first === 172 && second >= 16 && second <= 31)
+	);
+}
+
+/** Rechaza antes del semáforo; la aprobación es por origen exacto normalizado, sin DNS. */
+function authorizedMediaUrl(value: unknown, origins: ReadonlySet<string>): string {
+	const origin = transferMediaOrigin(value);
+	if (origin === null) throw new ImportMediaPolicyError({ kind: 'invalid-url', origin: null });
+	const parsed = new URL(value as string);
+	if (parsed.username || parsed.password) {
+		throw new ImportMediaPolicyError({ kind: 'url-credentials', origin });
+	}
+	if (!origins.has(origin)) throw new ImportMediaPolicyError({ kind: 'unapproved-origin', origin });
+	return parsed.href;
+}
+
+export interface FetchTransferFileOptions {
+	/** Orígenes HTTP(S) normalizados autorizados para el fichero actual. Por defecto, ninguno. */
+	authorizedOrigins?: ReadonlySet<string>;
 	/** Ver `DEFAULT_TIMEOUT_MS`. */
 	timeoutMs?: number;
 	/** Ver `DEFAULT_MAX_BYTES`. */
@@ -179,8 +240,7 @@ export async function fetchTransferFile(
 	const maxBytes = opts.maxBytes ?? DEFAULT_MAX_BYTES;
 
 	// Antes de pedir hueco en la cola: una `url` que no se va a pedir no ocupa ninguno.
-	const url = fetchableUrl(file.url);
-	if (url === null) return null;
+	const url = authorizedMediaUrl(file.url, opts.authorizedOrigins ?? new Set());
 
 	await acquireFetchSlot();
 	// UN solo temporizador para TODO el ciclo de vida de esta petición (cabeceras + cuerpo, ver
@@ -192,7 +252,12 @@ export async function fetchTransferFile(
 	const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
 	try {
 		const response = await Promise.race([
-			fetch(url, { signal: controller.signal }),
+			fetch(url, {
+				signal: controller.signal,
+				credentials: 'omit',
+				referrerPolicy: 'no-referrer',
+				redirect: 'error'
+			}),
 			new Promise<never>((_, reject) => {
 				controller.signal.addEventListener('abort', () => reject(new Error('timeout')), {
 					once: true

@@ -1038,6 +1038,27 @@ export const es = {
 		'el archivo obligatorio del campo «{field}» no se pudo traer del origen',
 
 	// ————— Escritura + informe (§4.3/§4.4) —————
+	'list.import.media.title': 'Autorizar descarga de medios',
+	'list.import.media.hint':
+		'Este archivo puede pedir medios a los siguientes orígenes desde tu navegador. Marca solo los que reconoces. Los orígenes sin autorizar bloquearán sus registros; esta autorización no confirma sobrescrituras.',
+	'list.import.media.declared': 'Backend declarado por el archivo: {origin}',
+	'list.import.media.unknown': 'no declarado o URL no válida',
+	'list.import.media.localDeclared':
+		'El backend declarado está en una dirección local. Autorízalo solo si esperas acceder a ese servidor.',
+	'list.import.media.local': 'dirección local',
+	'list.import.media.noAllowedUrls':
+		'Las URLs de medios no usan HTTP(S) absoluto. Sus registros quedarán bloqueados.',
+	'list.import.media.preview': 'Calcular vista previa',
+	'list.import.media.block.invalid-url':
+		'el medio del campo «{field}» no tiene una URL HTTP(S) absoluta válida',
+	'list.import.media.block.url-credentials':
+		'el medio del campo «{field}» incluye credenciales en su URL ({origin})',
+	'list.import.media.block.unapproved-origin':
+		'el origen del medio del campo «{field}» no está autorizado: {origin}',
+	'list.import.media.missingPreview':
+		'No se pudieron traer todos los medios de: {fields}. Los opcionales se importarán sin esos ficheros, también al sobrescribir. Comprueba el origen y usa URLs directas; no se siguen redirecciones.',
+	'list.import.media.missingReport':
+		'Medios no traídos: {fields}. Revisa esos campos y sube los ficheros que faltan.',
 	'list.import.dialog.confirm': 'Importar',
 	'list.import.progress': 'Importando…',
 	'list.import.report.summary':

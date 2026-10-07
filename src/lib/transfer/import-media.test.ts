@@ -6,7 +6,17 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { TransferFileValue } from './record-serializer';
-import { fetchTransferFile } from './import-media';
+import {
+	fetchTransferFile as fetchWithPolicy,
+	ImportMediaPolicyError,
+	transferMediaOrigin,
+	isLocalMediaOrigin,
+	type FetchTransferFileOptions
+} from './import-media';
+
+const authorizedOrigins = new Set(['https://origin.test', 'http://127.0.0.1:8090']);
+const fetchTransferFile = (file: TransferFileValue, options: FetchTransferFileOptions = {}) =>
+	fetchWithPolicy(file, { authorizedOrigins, ...options });
 
 const FILE_REF: TransferFileValue = { file: 'foto.png', url: 'https://origin.test/foto.png' };
 
@@ -149,7 +159,7 @@ describe('fetchTransferFile', () => {
 		['relativa al protocolo', '//origin.test/foto.png'],
 		['no parseable', 'http://'],
 		['cadena vacía', '']
-	])('url %s → null y SIN llamar a fetch', async (_caso, url) => {
+	])('url %s → bloqueo de política y SIN llamar a fetch', async (_caso, url) => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(new Uint8Array([1, 2, 3]), {
 				status: 200,
@@ -158,16 +168,20 @@ describe('fetchTransferFile', () => {
 		);
 		vi.stubGlobal('fetch', fetchSpy);
 
-		expect(await fetchTransferFile({ file: 'foto.png', url })).toBeNull();
+		await expect(fetchTransferFile({ file: 'foto.png', url })).rejects.toBeInstanceOf(
+			ImportMediaPolicyError
+		);
 		expect(fetchSpy).not.toHaveBeenCalled();
 	});
 
-	it('una url que no es un string (fichero importado manipulado) → null y SIN llamar a fetch', async () => {
+	it('una url que no es un string (fichero importado manipulado) → bloqueo de política y SIN llamar a fetch', async () => {
 		const fetchSpy = vi.fn();
 		vi.stubGlobal('fetch', fetchSpy);
 		const tampered = { file: 'foto.png', url: { href: 'https://origin.test/foto.png' } };
 
-		expect(await fetchTransferFile(tampered as unknown as TransferFileValue)).toBeNull();
+		await expect(
+			fetchTransferFile(tampered as unknown as TransferFileValue)
+		).rejects.toBeInstanceOf(ImportMediaPolicyError);
 		expect(fetchSpy).not.toHaveBeenCalled();
 	});
 
@@ -196,10 +210,12 @@ describe('fetchTransferFile', () => {
 				})
 			)
 		);
-		const rejected = await Promise.all(
+		const rejected = await Promise.allSettled(
 			Array.from({ length: 12 }, () => fetchTransferFile({ file: 'x.png', url: 'file:///x.png' }))
 		);
-		expect(rejected.every((f) => f === null)).toBe(true);
+		expect(
+			rejected.every((f) => f.status === 'rejected' && f.reason instanceof ImportMediaPolicyError)
+		).toBe(true);
 
 		expect(await fetchTransferFile(FILE_REF)).toBeInstanceOf(File);
 	});
@@ -229,5 +245,98 @@ describe('fetchTransferFile', () => {
 
 		expect(results.every((f) => f instanceof File)).toBe(true);
 		expect(peak).toBeLessThanOrEqual(4);
+	});
+});
+
+describe('política de orígenes de importación', () => {
+	afterEach(() => vi.unstubAllGlobals());
+	it.each([
+		['https://origin.test/a', []],
+		['http://origin.test/a', ['https://origin.test']],
+		['https://origin.test:444/a', ['https://origin.test']],
+		['https://origin.test.evil.test/a', ['https://origin.test']],
+		['http://127.0.0.1:8090/a', []],
+		['http://192.168.1.5/a', []]
+	])('rechaza %s sin pedir red', async (url, allowed) => {
+		const fetchSpy = vi.fn();
+		vi.stubGlobal('fetch', fetchSpy);
+		await expect(
+			fetchWithPolicy({ file: 'a', url }, { authorizedOrigins: new Set(allowed) })
+		).rejects.toMatchObject({ block: { kind: 'unapproved-origin', origin: new URL(url).origin } });
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+	it('el default no concede ningún permiso', async () => {
+		const fetchSpy = vi.fn();
+		vi.stubGlobal('fetch', fetchSpy);
+		await expect(fetchWithPolicy(FILE_REF)).rejects.toBeInstanceOf(ImportMediaPolicyError);
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+	it.each([
+		['https://ORIGIN.test:443/a?token=secret', 'https://origin.test'],
+		['http://localhost:80/a', 'http://localhost'],
+		['http://127.1:8090/a', 'http://127.0.0.1:8090'],
+		['http://2130706433/a', 'http://127.0.0.1'],
+		['http://192.168.1.5:8080/a', 'http://192.168.1.5:8080'],
+		['http://[::1]:8090/a', 'http://[::1]:8090']
+	])('normaliza %s y exige autorización exacta %s', async (url, origin) => {
+		const fetchSpy = vi
+			.fn()
+			.mockImplementation(
+				async () => new Response(new Uint8Array([1]), { headers: { 'content-type': 'image/png' } })
+			);
+		vi.stubGlobal('fetch', fetchSpy);
+		expect(transferMediaOrigin(url)).toBe(origin);
+		expect(
+			await fetchWithPolicy({ file: 'a', url }, { authorizedOrigins: new Set([origin]) })
+		).toBeInstanceOf(File);
+		expect(fetchSpy).toHaveBeenCalledWith(
+			new URL(url).href,
+			expect.objectContaining({
+				credentials: 'omit',
+				referrerPolicy: 'no-referrer',
+				redirect: 'error'
+			})
+		);
+	});
+	it.each(['https://name:secret@origin.test/a?token=secret', 'https://name@origin.test/a'])(
+		'rechaza credenciales sin incluirlas en el error',
+		async (url) => {
+			const fetchSpy = vi.fn();
+			vi.stubGlobal('fetch', fetchSpy);
+			const error = await fetchTransferFile({ file: 'a', url }).catch((err) => err);
+			expect(error).toBeInstanceOf(ImportMediaPolicyError);
+			expect(error.block).toEqual({ kind: 'url-credentials', origin: 'https://origin.test' });
+			expect(JSON.stringify(error)).not.toContain('secret');
+			expect(fetchSpy).not.toHaveBeenCalled();
+		}
+	);
+	it('los rechazos no esperan al pool ocupado ni consumen sus slots', async () => {
+		const complete: ((value: Response) => void)[] = [];
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(() => new Promise<Response>((resolve) => complete.push(resolve)))
+		);
+		const busy = Array.from({ length: 4 }, () => fetchTransferFile(FILE_REF));
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(complete).toHaveLength(4);
+		await expect(fetchWithPolicy(FILE_REF)).rejects.toBeInstanceOf(ImportMediaPolicyError);
+		for (const finish of complete)
+			finish(new Response(new Uint8Array([1]), { headers: { 'content-type': 'image/png' } }));
+		expect((await Promise.all(busy)).every((f) => f instanceof File)).toBe(true);
+	});
+	it('identifica solo direcciones locales explícitas, sin afirmar resolver DNS', () => {
+		for (const origin of [
+			'http://localhost',
+			'http://host.localhost',
+			'http://10.0.0.1',
+			'http://172.16.0.1',
+			'http://192.168.1.1',
+			'http://[::1]',
+			'http://[fc00::1]'
+		])
+			expect(isLocalMediaOrigin(origin)).toBe(true);
+		for (const origin of ['https://example.test', 'https://127.evil.test', 'http://172.32.0.1'])
+			expect(isLocalMediaOrigin(origin)).toBe(false);
 	});
 });

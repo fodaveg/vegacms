@@ -8,8 +8,8 @@
  *
  * `ImportDialog.svelte` llama primero a `buildImportPreview` (nada se escribe todavía) y, tras la
  * confirmación del usuario, a `runImport` con el MISMO `ImportPreview` — las dos funciones
- * comparten un `fetchFile` cacheado por URL (`createCachingFileFetcher`) para que un campo `file`
- * `required` ya comprobado en la vista previa NO se vuelva a traer de origen al escribir.
+ * comparten un `fetchFile` cacheado por URL (`createCachingFileFetcher`) para que cualquier medio
+ * ya comprobado en la vista previa NO se vuelva a traer de origen al escribir.
  */
 
 import type { BackendPort } from '$lib/backend/port';
@@ -23,7 +23,14 @@ import {
 	type TransferRecord
 } from './record-serializer';
 import { deserializeRecord } from './record-deserializer';
-import { fetchTransferFile } from './import-media';
+import {
+	fetchTransferFile,
+	hasTransferMediaUrl,
+	assertTransferMediaShape,
+	ImportMediaPolicyError,
+	transferMediaOrigin,
+	type ImportMediaBlock
+} from './import-media';
 import {
 	classifyCollectionImport,
 	isNonEmpty,
@@ -120,10 +127,6 @@ function isRelationField(field: Field): field is Field & { type: 'relation'; tar
 	return field.type === 'relation';
 }
 
-function isRequiredFileField(field: Field): field is Field & { type: 'file'; required: true } {
-	return field.type === 'file' && field.required;
-}
-
 /** ids de cada colección del FICHERO, por nombre de colección — la mitad "viaja en el fichero" de
  *  la condición de relación colgante (§4.2). */
 function collectFileIds(
@@ -197,44 +200,91 @@ async function buildRelationExistence(
 	return (targetType, id) => confirmed.get(targetType)?.has(id) ?? false;
 }
 
-/**
- * Comprueba, SOLO para campos `file` `required` con un valor no vacío, si se pueden traer de
- * origen (§4.2/§4.4) — el resto de campos `file` nunca se prueba aquí, se resuelve perezosamente
- * en la escritura. Clave del mapa devuelto: `"<tipo>\0<id>\0<campo>"`. Un campo `multiple`
- * `required` cuenta como traíble si AL MENOS una de sus entradas se trae (mismo criterio que
- * `record-deserializer.ts`: el campo queda con lo que se pudo traer, nunca vacío del todo si algo
- * sí llegó).
- */
-async function buildRequiredFileReachability(
+/** Resultado por campo escribible: una política rechazada impide el registro completo;
+ * un fallo de descarga solo bloquea si el campo es obligatorio. */
+interface FileReachability {
+	reachable: boolean;
+	missing: boolean;
+	block?: ImportMediaBlock;
+}
+
+/** Orígenes de medios escribibles; el backend declarado en JSON nunca concede permisos. */
+export function collectImportMediaOrigins(collections: readonly ResolvedImportCollection[]): {
+	origins: string[];
+	fileCount: number;
+} {
+	const origins = new Set<string>();
+	let fileCount = 0;
+	for (const { collection, contentType } of collections) {
+		for (const record of collection.records) {
+			for (const field of contentType.schema.fields) {
+				if (field.type !== 'file' || field.readonly) continue;
+				const raw = record.values[field.name];
+				for (const file of (Array.isArray(raw) ? raw : [raw]).filter(hasTransferMediaUrl)) {
+					fileCount += 1;
+					const origin = transferMediaOrigin(file.url);
+					if (origin) origins.add(origin);
+				}
+			}
+		}
+	}
+	return { origins: [...origins].sort(), fileCount };
+}
+
+/** Comprueba también los opcionales antes de PISA; la política nunca se confunde con red caída. */
+async function buildFileReachability(
 	collections: readonly ResolvedImportCollection[],
 	fetchFile: FetchTransferFileFn
-): Promise<Map<string, boolean>> {
-	const reachable = new Map<string, boolean>();
+): Promise<Map<string, FileReachability>> {
+	const reachable = new Map<string, FileReachability>();
 	const tasks: Promise<void>[] = [];
-
 	for (const { collection, contentType } of collections) {
-		const requiredFileFields = contentType.schema.fields.filter(isRequiredFileField);
-		if (requiredFileFields.length === 0) continue;
-
+		const fileFields = contentType.schema.fields.filter(
+			(f): f is Field & { type: 'file' } => f.type === 'file' && !f.readonly
+		);
 		for (const record of collection.records) {
-			for (const field of requiredFileFields) {
+			for (const field of fileFields) {
 				const raw = record.values[field.name];
-				if (!isNonEmpty(raw)) continue; // vacío: no es esta comprobación la que lo bloquea
-				const entries = (Array.isArray(raw) ? raw : [raw]).filter(isTransferFileValue);
-				const key = `${collection.type} ${record.id} ${field.name}`;
+				if (!isNonEmpty(raw)) continue;
+				const candidates = Array.isArray(raw) ? raw : [raw];
+				const entries = candidates.filter(isTransferFileValue);
+				const key = `${collection.type}\u0000${record.id}\u0000${field.name}`;
 				tasks.push(
 					(async () => {
-						const results = await Promise.all(entries.map((entry) => fetchFile(entry)));
-						reachable.set(
-							key,
-							results.some((file) => file !== null)
+						let block: ImportMediaBlock | undefined;
+						for (const candidate of candidates) {
+							try {
+								assertTransferMediaShape(candidate);
+							} catch (err) {
+								if (!(err instanceof ImportMediaPolicyError)) throw err;
+								block = err.block;
+							}
+						}
+						const results = await Promise.all(
+							entries.map(async (entry) => {
+								try {
+									return await fetchFile(entry);
+								} catch (err) {
+									if (!(err instanceof ImportMediaPolicyError)) throw err;
+									block = err.block;
+									return null;
+								}
+							})
 						);
+						reachable.set(key, {
+							reachable: results.some((file) => file !== null),
+							missing:
+								entries.length === 0 ||
+								Boolean(field.multiple) !== Array.isArray(raw) ||
+								(Array.isArray(raw) && entries.length !== raw.length) ||
+								results.some((file) => file === null),
+							block
+						});
 					})()
 				);
 			}
 		}
 	}
-
 	await Promise.all(tasks);
 	return reachable;
 }
@@ -252,7 +302,7 @@ export async function buildImportPreview(
 ): Promise<ImportPreview> {
 	const [relationTargetExists, reachability] = await Promise.all([
 		buildRelationExistence(port, collections),
-		buildRequiredFileReachability(collections, fetchFile)
+		buildFileReachability(collections, fetchFile)
 	]);
 
 	const result: ImportCollectionPreview[] = [];
@@ -270,8 +320,22 @@ export async function buildImportPreview(
 			existingIds,
 			relationTargetExists,
 			requiredFileReachable: (recordId, fieldName) =>
-				reachability.get(`${collection.type} ${recordId} ${fieldName}`) ?? true
+				reachability.get(`${collection.type}\u0000${recordId}\u0000${fieldName}`)?.reachable ??
+				true,
+			filePolicyBlock: (recordId, fieldName) =>
+				reachability.get(`${collection.type}\u0000${recordId}\u0000${fieldName}`)?.block
 		});
+		for (const entry of entries) {
+			const missing = contentType.schema.fields
+				.filter((field) => {
+					const checked = reachability.get(
+						`${collection.type}\u0000${entry.id}\u0000${field.name}`
+					);
+					return checked?.missing && !checked.block;
+				})
+				.map((field) => field.name);
+			if (missing.length > 0) entry.missingFiles = missing;
+		}
 		result.push({ type: collection.type, contentType, records: collection.records, entries });
 	}
 	const plan = planWrites(writeTasks(result));
@@ -351,6 +415,9 @@ interface RunImportOptions {
 	/** Se llama tras cada registro escrito (con éxito o no) con lo hecho hasta ahora y el total a
 	 *  escribir — es lo que pinta el progreso de `ImportDialog.svelte`. Omitidos no cuentan. */
 	onProgress?: (progress: ImportProgress) => void;
+	/** Contexto (puerto/usuario) que autorizó el fichero. Se consulta antes de cada escritura,
+	 * incluidas relaciones diferidas; renovar el token del mismo usuario no lo invalida. */
+	isContextCurrent?: () => boolean;
 }
 
 export interface ImportProgress {
@@ -473,15 +540,20 @@ async function writeOne(
 	port: ImportPort,
 	task: WriteTask,
 	fetchFile: ReleasableFileFetcher,
-	fileUses: FileUses
+	fileUses: FileUses,
+	isContextCurrent?: () => boolean
 ): Promise<ImportOutcome> {
 	const { collection, record, entry } = task;
 	try {
+		if (isContextCurrent && !isContextCurrent())
+			throw new Error('El contexto de importación ha cambiado.');
 		const { values, missingFiles } = await deserializeRecord(
 			record,
 			collection.contentType.schema.fields,
 			fetchFile
 		);
+		if (isContextCurrent && !isContextCurrent())
+			throw new Error('El contexto de importación ha cambiado.');
 		if (entry.status === 'create') {
 			await port.create(collection.type, values, { id: record.id });
 			return { type: collection.type, id: record.id, status: 'created', missingFiles };
@@ -523,7 +595,8 @@ async function runPool(
 	tasks: readonly WriteTask[],
 	fetchFile: ReleasableFileFetcher,
 	fileUses: FileUses,
-	onSettled: (outcome: ImportOutcome, task: WriteTask) => void
+	onSettled: (outcome: ImportOutcome, task: WriteTask) => void,
+	isContextCurrent?: () => boolean
 ): Promise<ImportOutcome[]> {
 	const outcomes = new Array<ImportOutcome>(tasks.length);
 	let next = 0;
@@ -532,7 +605,7 @@ async function runPool(
 			const index = next++;
 			const task = tasks[index];
 			try {
-				outcomes[index] = await writeOne(port, task, fetchFile, fileUses);
+				outcomes[index] = await writeOne(port, task, fetchFile, fileUses, isContextCurrent);
 			} catch (err) {
 				outcomes[index] = {
 					type: task.collection.type,
@@ -598,10 +671,18 @@ export async function runImport(
 	}
 	for (const level of plan.levels) {
 		outcomes.push(
-			...(await runPool(port, level, fetchFile, fileUses, (outcome, task) => {
-				if (task.deferredRelations && outcome.status === 'created') pending.push({ task, outcome });
-				else tick();
-			}))
+			...(await runPool(
+				port,
+				level,
+				fetchFile,
+				fileUses,
+				(outcome, task) => {
+					if (task.deferredRelations && outcome.status === 'created')
+						pending.push({ task, outcome });
+					else tick();
+				},
+				options.isContextCurrent
+			))
 		);
 	}
 	// La segunda fase solo manda relaciones: no reenvía ficheros ni valores de contenido.
@@ -611,7 +692,7 @@ export async function runImport(
 		entry: { ...task.entry, status: 'overwrite' as const },
 		deferredRelations: undefined
 	}));
-	const linked = await runPool(port, links, fetchFile, new Map(), tick);
+	const linked = await runPool(port, links, fetchFile, new Map(), tick, options.isContextCurrent);
 	for (let i = 0; i < pending.length; i++) {
 		const outcome = pending[i].outcome;
 		if (linked[i].status === 'failed') {

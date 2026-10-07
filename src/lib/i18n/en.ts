@@ -963,6 +963,27 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'the required file in field "{field}" could not be fetched from its source',
 
 	// ————— Write + report (§4.3/§4.4) —————
+	'list.import.media.title': 'Allow media downloads',
+	'list.import.media.hint':
+		'This file can request media from the following origins in your browser. Select only those you recognize. Unapproved origins block their records; this permission does not confirm overwrites.',
+	'list.import.media.declared': 'Backend declared by the file: {origin}',
+	'list.import.media.unknown': 'not declared or invalid URL',
+	'list.import.media.localDeclared':
+		'The declared backend uses a local address. Allow it only if you expect to access that server.',
+	'list.import.media.local': 'local address',
+	'list.import.media.noAllowedUrls':
+		'The media URLs are not absolute HTTP(S) URLs. Their records will be blocked.',
+	'list.import.media.preview': 'Calculate preview',
+	'list.import.media.block.invalid-url':
+		'media in field "{field}" does not have a valid absolute HTTP(S) URL',
+	'list.import.media.block.url-credentials':
+		'media in field "{field}" includes URL credentials ({origin})',
+	'list.import.media.block.unapproved-origin':
+		'the media origin in field "{field}" is not approved: {origin}',
+	'list.import.media.missingPreview':
+		'Some media could not be fetched in: {fields}. Optional files will be imported without that media, including overwrites. Check the origin and use direct URLs; redirects are not followed.',
+	'list.import.media.missingReport':
+		'Media not fetched: {fields}. Check those fields and upload the missing files.',
 	'list.import.dialog.confirm': 'Import',
 	'list.import.progress': 'Importing…',
 	'list.import.report.summary':

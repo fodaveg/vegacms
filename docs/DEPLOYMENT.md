@@ -157,6 +157,15 @@ Un `default-src 'self'` a secas **rompe la app**. Lo que necesita, y por qué:
 | `frame-ancestors 'none'`               | Nadie puede enmarcar el admin.                                                                                                                                                                                                                           |
 | `object-src 'none'`, `base-uri 'self'` | Sin plugins y sin `<base>` que redirija las rutas.                                                                                                                                                                                                       |
 
+La importación de contenido pide autorización por cada origen HTTP(S) de medios antes de
+previsualizar o escribir. El backend declarado en el JSON no concede permisos, y las URLs con
+usuario/contraseña o protocolos distintos quedan bloqueadas incluso en campos opcionales. Las
+peticiones omiten credenciales y referente, y no siguen redirecciones: un CDN/proxy debe exportar
+URLs directas. Un origen local se puede autorizar explícitamente; su descarga sigue sujeta a CORS,
+contenido mixto y `connect-src` del navegador. Una descarga autorizada fallida se avisa en la vista
+previa antes de confirmar sobrescrituras: bloquea campos obligatorios y puede vaciar los opcionales.
+Un rechazo de política bloquea el registro completo y conserva su contenido existente.
+
 Tres cosas que no son evidentes:
 
 - **No añadas `form-action`** sin incluir el origen del sitio: la vista previa envía su token con un `<form>` POST a ese origen, y `form-action` no hereda de `default-src`.
