@@ -186,6 +186,16 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 			await expect(iframe).toHaveCount(0);
 		}
 		await page.screenshot({ path: testInfo.outputPath('mobile-texts-390.png') });
+		// La entrada directa monta AppShell tras restaurar sesión/modelo; al salir y volver por
+		// navegación SPA conserva la preferencia manual y vuelve a aplicar el plegado temporal.
+		await page.setViewportSize({ width: 1440, height: 900 });
+		await waitConnected(page, 3);
+		await page.locator('.vega-visual-back').click();
+		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
+		await expect(page.locator('#vega-sidebar')).not.toHaveClass(/vega-sidebar-collapsed/);
+		await page.locator('.vega-editor-visual-button').click();
+		await waitConnected(page, 3);
+		await expect(page.locator('#vega-sidebar')).toHaveClass(/vega-sidebar-collapsed/);
 	});
 
 	test('pinta los contornos que reporta el sitio, con la geometría real de sus bloques', async ({
