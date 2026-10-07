@@ -131,7 +131,14 @@ export async function startPocketBaseServerOn(
 	/** `hooksDir`: directorio con `*.pb.js` (hooks JS de PocketBase), pasado como `--hooksDir`.
 	 *  Sin él, PB busca `pb_hooks` HERMANO de `--dir` (en `/tmp` compartido), no dentro de él.
 	 *  `env`: variables extra para el proceso (los hooks las leen con `$os.getenv`). */
-	options: { hooksDir?: string; env?: Record<string, string> } = {}
+	options: {
+		hooksDir?: string;
+		env?: Record<string, string>;
+		/** Orígenes explícitos para comprobar el contrato CORS del comando de producción. */
+		origins?: string;
+		/** Captura local de stdout/stderr para comprobar que no se escriben credenciales. */
+		onOutput?: (text: string) => void;
+	} = {}
 ): Promise<PocketBaseServerHandle> {
 	const bin = pocketBaseBinaryPath();
 	const port = await findFreePort();
@@ -146,11 +153,13 @@ export async function startPocketBaseServerOn(
 			instance.dataDir,
 			'--migrationsDir',
 			instance.migrationsDir,
-			...(options.hooksDir ? ['--hooksDir', options.hooksDir] : [])
+			...(options.hooksDir ? ['--hooksDir', options.hooksDir] : []),
+			...(options.origins ? ['--origins', options.origins] : [])
 		],
 		{ stdio: 'pipe', env: { ...process.env, ...options.env } }
 	);
-	child.stderr?.on('data', () => {}); // silencia stderr; los tests no dependen de sus logs
+	child.stdout?.on('data', (chunk: Buffer) => options.onOutput?.(chunk.toString()));
+	child.stderr?.on('data', (chunk: Buffer) => options.onOutput?.(chunk.toString()));
 
 	await waitForHealth(url).catch((err) => {
 		child.kill();

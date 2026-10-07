@@ -19,7 +19,7 @@ services:
     volumes:
       - vega_data:/pb/pb_data
     networks:
-      edge:
+      vega-edge:
         aliases:
           - vega-pb
     read_only: true
@@ -46,6 +46,6 @@ volumes:
     name: vega_data
 
 networks:
-  edge:
+  vega-edge:
     external: true
-    name: edge
+    name: vega-edge

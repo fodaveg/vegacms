@@ -79,7 +79,7 @@
 	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
 	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
 }
 [data-theme='brasa'][data-mode='dark'] {
@@ -127,7 +127,7 @@
 	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
 	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
 }
 [data-theme='faro'][data-mode='dark'] {
@@ -177,7 +177,7 @@
 	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
 	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
 }
 [data-theme='rescoldo'][data-mode='dark'] {
@@ -225,7 +225,7 @@
 	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
 	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
 }
 [data-theme='miel'][data-mode='dark'] {
@@ -295,7 +295,7 @@
 	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
 	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
 }
 [data-theme='halloween'][data-mode='dark'] {
@@ -366,7 +366,7 @@
 	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
 	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: #68625f;
+	--ink-2: #605a57;
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
 }
 [data-theme='aquelarre'][data-mode='dark'] {
@@ -414,7 +414,7 @@
 	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
 	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
 }
 [data-theme='cereza'][data-mode='dark'] {
@@ -462,7 +462,7 @@
 	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
 	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
 }
 [data-theme='tinta'][data-mode='dark'] {
@@ -512,7 +512,7 @@
 	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
 	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
 }
 :where(:root)[data-mode='dark'],
@@ -561,7 +561,7 @@
 	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
 	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
 }
 [data-theme='marea'][data-mode='dark'] {
@@ -609,7 +609,7 @@
 	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
 	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
 }
 [data-theme='sea-wingnow'][data-mode='dark'] {
@@ -657,7 +657,7 @@
 	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
 	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
 }
 [data-theme='bosque'][data-mode='dark'] {
@@ -705,7 +705,7 @@
 	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
 	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
 }
 [data-theme='menta'][data-mode='dark'] {
@@ -753,7 +753,7 @@
 	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
 	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
 }
 [data-theme='salvia'][data-mode='dark'] {
@@ -801,7 +801,7 @@
 	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
 	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
 }
 [data-theme='lavanda'][data-mode='dark'] {
@@ -849,7 +849,7 @@
 	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
 	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
 }
 [data-theme='ciruela'][data-mode='dark'] {
@@ -897,7 +897,7 @@
 	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
 	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
 }
 [data-theme='carbon'][data-mode='dark'] {
@@ -961,7 +961,7 @@
 	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
 	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
 }
 [data-theme='colibri'][data-mode='dark'] {
@@ -1026,7 +1026,7 @@
 	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
 	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
 }
 [data-theme='tornasol'][data-mode='dark'] {
@@ -1074,7 +1074,7 @@
 	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
 	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
 }
 [data-theme='pizarra'][data-mode='dark'] {
@@ -1122,7 +1122,7 @@
 	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
 	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: color-mix(in oklab, var(--tint) 5%, #6a665e);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
 }
 [data-theme='terracota'][data-mode='dark'] {

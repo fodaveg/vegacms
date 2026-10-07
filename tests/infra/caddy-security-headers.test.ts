@@ -82,11 +82,11 @@ describe('infra: cabeceras de seguridad en Caddy', () => {
 				expect(sources).not.toContain('http:');
 			});
 
-			test('la CSP no alcanza /api ni /_/, donde PocketBase pone la suya', () => {
+			test('la CSP no alcanza la API ni el panel PocketBase', () => {
 				const matcher = match![1];
 				const start = lines.indexOf(`${matcher} {`);
 				expect(start).toBeGreaterThanOrEqual(0);
-				expect(lines[start + 1]).toBe('not path /api/* /_/*');
+				expect(lines[start + 1]).toMatch(/^not path \/api\/\* (?:\/_ )?\/_\/\*$/);
 				expect(lines[start + 2]).toBe('}');
 			});
 
@@ -108,5 +108,15 @@ describe('infra: cabeceras de seguridad en Caddy', () => {
 		const docs = readFileSync(path.join(REPO_ROOT, 'docs', 'DEPLOYMENT.md'), 'utf8');
 
 		expect(docs).toContain(`Content-Security-Policy "${policy}"`);
+	});
+
+	test('el panel de producción tiene un 404 propio sin capturar los assets de /_app', () => {
+		const source = readFileSync(path.join(INFRA_DIR, 'production/admin.vegacms.com.caddy'), 'utf8');
+		const lines = directives(source);
+		expect(lines).toContain('@pocketbasePanel path /_ /_/*');
+		expect(lines).toContain('respond @pocketbasePanel 404');
+		expect(lines).not.toContain('@pocketbasePanel path /_*');
+		expect(lines).toContain('reverse_proxy vega-pb:8090 {');
+		expect(lines).toContain('@vegaImmutable path /_app/immutable/*');
 	});
 });

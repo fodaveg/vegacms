@@ -289,7 +289,7 @@ export const BASE_NEUTRALS = {
 		ring: '#c9c6bf',
 		'ink-hi': '#26241f',
 		ink: '#2c2a24',
-		'ink-2': '#6a665e',
+		'ink-2': '#625e56',
 		'ink-3': '#a8a49b'
 	},
 	dark: {
@@ -472,6 +472,8 @@ export function resolveComponentTokens(theme, mode) {
 	const paper = resolveNeutral(theme, mode, 'paper');
 	const ink = resolveNeutral(theme, mode, 'ink');
 	const tokens = {
+		bg: resolveNeutral(theme, mode, 'bg'),
+		sidebar: resolveNeutral(theme, mode, 'sidebar'),
 		paper,
 		surface: resolveNeutral(theme, mode, 'surface'),
 		'surface-2': resolveNeutral(theme, mode, 'surface-2'),
@@ -496,7 +498,8 @@ export function resolveComponentTokens(theme, mode) {
  * Pares TEXTO/FONDO (nombres de `resolveComponentTokens`) que el gate exige a ≥4.5:1 (§5.3, L2
  * "AA MEDIDO, sin excepciones"). `ink-3` NO aparece a propósito (exento por diseño, muted/
  * placeholder). Los 4 semánticos (`danger` incluido desde el día 1) se añaden programáticamente:
- * cada uno sobre su propia `-soft` y sobre `paper`/`surface`.
+ * cada uno sobre su propia `-soft` y sobre `paper`/`surface`. `ink-2` también se lee sobre
+ * `bg`/`sidebar` en los rótulos y metadatos del lienzo y del rail.
  */
 export const COMPONENT_CONTRAST_PAIRS = [
 	['accentInk', 'accent'],
@@ -512,6 +515,8 @@ export const COMPONENT_CONTRAST_PAIRS = [
 	['ink-2', 'paper'],
 	['ink-2', 'surface'],
 	['ink-2', 'surface-2'],
+	['ink-2', 'bg'],
+	['ink-2', 'sidebar'],
 	['ink-hi', 'paper'],
 	['ink-hi', 'surface'],
 	...SEMANTIC_KEYS.flatMap((key) => [

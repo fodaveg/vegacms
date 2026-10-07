@@ -4,14 +4,14 @@ Infraestructura de la instancia oficial de Vega en el VPS compartido con Lumbre:
 
 ```text
 Internet
-  -> edge-caddy (TLS, red Docker `edge`)
+  -> edge-caddy (TLS, red Docker `vega-edge`)
   -> vega-pb:8090
        |- /api/*      PocketBase 0.39.9
        `- /*          SPA de Vega en /pb/pb_public
 ```
 
 No se publica ningún puerto de PocketBase en el host. La persistencia vive en el volumen Docker
-`vega_data`; la imagen contiene solo el binario de PocketBase y el build estático de Vega.
+`vega_data`; la imagen contiene PocketBase, el build estático de Vega y los hooks de producción.
 
 > **Sin auth fuerte por defecto.** Este `Dockerfile` despliega PocketBase vanilla: **no** incluye
 > la extensión [`extensions/vegaauth`](../../extensions/vegaauth/README.md) (TOTP, códigos de
@@ -88,6 +88,120 @@ infra/production/smoke.sh
 
 No levantes otro proxy en 80/443. Si falla cualquier prueba del borde, retira
 `/srv/edge/conf.d/vega.caddy`, vuelve a validar y recarga antes de investigar.
+
+## Red dedicada y cierre del panel
+
+Antes de usar este Compose por primera vez, crea la red externa `vega-edge` y añade **de forma
+durable** esa red al servicio real de Caddy en su Compose versionado. Este ejemplo se fusiona con
+su definición existente; conserva las redes necesarias para los demás proyectos:
+
+```yaml
+services:
+  caddy:
+    networks:
+      - edge
+      - vega-edge
+networks:
+  vega-edge:
+    external: true
+    name: vega-edge
+```
+
+Orden de migración (requiere autorización del borde y sus fuentes reales):
+
+1. `docker network create vega-edge` si aún no existe. No es una red `internal`: PocketBase
+   necesita salida para SMTP, S3 y otras integraciones.
+2. Valida y aplica el Compose de Caddy con ambas redes. Una conexión manual con
+   `docker network connect` no sustituye ese cambio durable. Revisa el efecto de recrear el proxy
+   compartido sobre los demás sitios antes de aplicarlo.
+3. Recrea solo el servicio `pocketbase` con este Compose; conserva `vega_data`, UID/GID 10001,
+   alias `vega-pb`, healthcheck y la ausencia de puertos publicados. No uses `down --volumes`.
+4. Comprueba salud y resolución de `vega-pb:8090` desde Caddy; inspecciona las redes para acreditar
+   que Vega pertenece a `vega-edge` y ya no a `edge`. Ejecuta el smoke de todos los sitios del borde.
+
+Rollback: restaura la definición anterior de red del servicio Vega y recréalo sobre el mismo
+volumen; conserva las redes que Caddy necesita. Cambiar solo la red de Vega, sin conectar antes
+Caddy, corta el acceso al admin.
+
+El fragmento responde 404 a `/_` y `/_/*`. `/_app/*`, `/api/*` y las rutas de Vega siguen pasando
+al backend. Prepara el acceso de mantenimiento antes de aplicar el cierre: CLI dentro del
+contenedor para superusers y operaciones de API autorizadas desde Vega. Los endpoints superuser
+siguen exigiendo autenticación; cerrar el HTML no los elimina.
+
+## CORS por instancia
+
+El CMD de referencia permite únicamente `https://admin.vegacms.com` mediante `--origins`.
+Consulta la [receta de integración](../../docs/POCKETBASE-INTEGRATION.md#cors-cross-origin-resource-sharing)
+para otros orígenes. Los consumidores que solo copian `pb_public`, como la imagen documentada de
+`admin.lumbre.pro`, deben cambiar su propio comando; no heredan este flag ni los hooks.
+No amplíes la lista sin inventariar las peticiones de navegador del sitio público.
+
+Con el candidato desplegado y autorización para medir cada instancia:
+
+```sh
+for origin in https://admin.vegacms.com https://admin.lumbre.pro https://admin.fodaveg.net; do
+  VEGA_ORIGIN="$origin" infra/production/smoke.sh
+done
+```
+
+El smoke comprueba 404 del panel, GET/preflight CORS permitido y rechazado, petición sin Origin,
+SPA, deep link, asset y health. Complétalo con login, discovery, medios, SSE y cada consumidor
+cross-origin realmente usado. Un test local no acredita estas tres instancias.
+
+## URLs de copias en los logs
+
+`pb_hooks/vega-backup-log-redaction.pb.js` conserva la query hasta después del handler de
+PocketBase y la retira de `URL` y `RequestURI` al volver, antes de su activity logger. También
+retira `Referer` si su query contiene `token` (también nombres codificados/repetidos) o no se puede
+decodificar un nombre. Conserva referencias ordinarias. Esto se aplica a todas las rutas: una URL
+sensible puede referir a otra petición.
+Cubre los rechazos de autenticación/IP y rate limit gracias a la prioridad -1035, entre el
+activity logger (-1040) y esos middlewares en **PocketBase 0.39.9**. La prueba de contrato real
+es `tests/contract/pocketbase.backup-log-redaction.test.ts`; hay que ejecutarla al actualizar PB.
+Los hooks que registren la petición antes de esta vuelta no quedan cubiertos.
+
+La imagen de referencia copia el hook. En otras imágenes copia explícitamente este fichero al
+`--hooksDir` efectivo y comprueba que su ejecutable incluye la JSVM; reutilizar solo `pb_public`
+no lo instala. Se mantiene la descarga nativa por URL: PB requiere el token en query y no se carga
+la copia completa en memoria del navegador.
+
+### Caddy: modificar el encoder del destino existente
+
+El fragmento de este repo no declara ningún `log`. Antes de aplicarlo, inventaría la configuración
+adaptada de Caddy, su versión, sus access logs, logs de runtime (incluidos errores del proxy),
+stdout/stderr y recolectores. No añadas un segundo access log dejando el primero sin sanear.
+Dentro del `log` **ya existente**, conserva el `output` y fusiona este encoder con sus filtros:
+
+```caddyfile
+format filter {
+  request>uri query {
+    delete token
+  }
+  request>headers>Referer delete
+  wrap json
+}
+```
+
+La sintaxis está documentada por [Caddy, `log` y filtro `query`](https://caddyserver.com/docs/caddyfile/directives/log#query).
+El filtro opera al serializar el log; no elimina el token que necesita el upstream. Quitar
+`Referer` entero cubre sus valores múltiples. Debe aplicarse a **cada destino que serialice la
+petición**, incluido un logger global de runtime si recibe errores del proxy. El mismo destino
+puede recibir varias categorías: inspecciona `include`/`exclude` y no supongas cobertura global
+por tener un filtro en el bloque del sitio. Conserva los filtros y formato requeridos por sus
+consumidores; el ejemplo usa JSON.
+
+**Pendiente del entorno real:** no se conoce aquí la versión de Caddy instalada ni su configuración
+global. No se ha validado este encoder contra el binario fijado en `validate.sh`. Antes de aplicar,
+ejecuta `caddy version`, adapta/valida con ese mismo binario y prueba el destino real con un marcador
+artificial (nunca una credencial). El filtro `query` usa el parser de URLs: una URL mal formada puede
+no sanearse; comprueba ese caso. Si el destino debe cubrirlas también, reemplaza `request>uri` entero
+(`request>uri replace REDACTED`) en ese encoder, aceptando perder la ruta en ese destino.
+
+Prueba una copia sintética pequeña: bytes íntegros al descargar y marcador artificial ausente de
+los logs PB (mensaje, `data.url`, Referer y errores), Caddy y sus recolectores. Incluye 200, 403,
+429, fallo de upstream, parámetros repetidos/codificados y Referer hacia otra ruta. Espera el vaciado
+del buffer de PB antes de afirmar ausencia. Estos cambios no borran logs previos ni acreditan la
+retención o acceso efectivo de las tres instancias.
 
 ## Primer superuser
 

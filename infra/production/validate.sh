@@ -32,7 +32,7 @@ if [[ -n "$(git -C "$repo_root" status --porcelain --untracked-files=all)" ]]; t
 	exit 1
 fi
 
-docker network inspect edge >/dev/null
+docker network inspect vega-edge >/dev/null
 docker compose --env-file "$env_file" config --quiet
 
 docker run --rm \

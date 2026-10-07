@@ -73,6 +73,11 @@ describe('1. El catálogo completo pasa el gate AA en claro y oscuro', () => {
 		expect(COMPONENT_CONTRAST_PAIRS).toContainEqual(['danger', 'surface']);
 	});
 
+	test('ink-2 cubre también el lienzo y el rail, donde se leen rótulos y metadatos', () => {
+		expect(COMPONENT_CONTRAST_PAIRS).toContainEqual(['ink-2', 'bg']);
+		expect(COMPONENT_CONTRAST_PAIRS).toContainEqual(['ink-2', 'sidebar']);
+	});
+
 	test('COMPONENT_CONTRAST_PAIRS cubre success/warning/info igual que danger', () => {
 		for (const key of ['success', 'warning', 'info']) {
 			expect(COMPONENT_CONTRAST_PAIRS).toContainEqual([key, `${key}-soft`]);
@@ -88,6 +93,22 @@ describe('1. El catálogo completo pasa el gate AA en claro y oscuro', () => {
 });
 
 describe('2. El gate MUERDE (fixtures sub-AA)', () => {
+	test.each(['bg', 'sidebar'])(
+		'ink-2 sub-AA únicamente sobre %s → falla sin alterar los pares de tarjeta',
+		(surface) => {
+			const theme = makeTheme({
+				id: `sub-aa-ink-2-${surface}`,
+				modes: { light: { neutrals: { [surface]: '#666666' } } }
+			});
+			const errors: string[] = [];
+			validateComponentContrast(theme, errors);
+			expect(errors).toHaveLength(1);
+			expect(errors[0]).toContain('ink-2');
+			expect(errors[0]).toContain(`sobre ${surface}`);
+			expect(errors[0]).toContain('necesita ≥4.5:1');
+		}
+	);
+
 	test('accentInk sub-AA sobre accent → validateContrast falla con mensaje accionable', () => {
 		const theme = makeTheme({
 			id: 'sub-aa-ink',

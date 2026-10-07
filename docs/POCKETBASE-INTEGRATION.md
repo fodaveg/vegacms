@@ -26,30 +26,31 @@ Si Vega y PocketBase están en **orígenes distintos** (dominios, subdomios o pu
 
 ### Configurar CORS en PocketBase
 
-1. Abre el admin de PocketBase (`http://localhost:8090/_/`).
-2. Ve a **Settings** → **CORS origins allowed**.
-3. Añade el origen de Vega. Ejemplo:
-   - `https://admin.example.com` (con protocolo y dominio exacto).
-   - Para desarrollo local: `http://localhost:5173` (puerto exacto).
+En PocketBase **0.39.9** (la versión de la imagen de referencia), la lista se configura con el
+flag de arranque `--origins`, no desde un ajuste del panel:
 
-4. Guarda cambios.
+```sh
+# Desarrollo: Vega corre en otro puerto.
+./pocketbase serve --http=127.0.0.1:8090 --origins=http://localhost:5173
 
-**Múltiples orígenes**: si Vega (o tus usuarios) acceden desde distintos dominios, lista todos separados por coma o línea nueva.
-
-Ejemplo para desarrollo local (Vega en puerto 5173, PocketBase en 8090):
-
-```
-http://localhost:5173
+# Producción: solo añade el sitio público si su navegador consulta esta API.
+./pocketbase serve --http=0.0.0.0:8090 \
+  --origins=https://admin.example.com,https://www.example.com
 ```
 
-Ejemplo para producción (Vega en admin.example.com, PocketBase en api.example.com):
+Mantén el resto de flags de tu instalación (`--dir`, `--publicDir`, `--hooksDir`, etc.). Los
+orígenes llevan protocolo, dominio y puerto, sin ruta ni barra final. Comprueba `serve --help`
+al actualizar o usar otra versión soportada de PocketBase.
 
-```
-https://admin.example.com
-https://www.example.com
-```
+El CMD de `infra/production/Dockerfile` permite únicamente `https://admin.vegacms.com`.
+Una imagen con CMD propio debe declarar su lista; copiar `pb_public` de Vega no hereda este
+flag ni los hooks. Cada instancia permite su admin y los consumidores de navegador realmente
+inventariados: no copies los tres dominios de los admins a todas las instancias.
+Las llamadas servidor-servidor no necesitan autorización CORS.
 
-(añade `https://www.example.com` si tu sitio público también consume PocketBase).
+CORS limita la lectura desde otro origen en el navegador; no sustituye la autenticación de la API.
+Un origen no permitido puede recibir HTTP 200 sin `Access-Control-Allow-Origin`, no necesariamente 403. Comprueba GET y preflight desde un origen permitido, uno ajeno y una petición sin `Origin`.
+La receta de [producción](../infra/production/README.md) incluye el smoke por instancia.
 
 ### Validación
 
@@ -59,7 +60,7 @@ Abre DevTools del navegador (F12) → Consola. Si CORS está mal configurado, ve
 Access to XMLHttpRequest at 'https://api.example.com/api/...' from origin 'https://admin.example.com' has been blocked by CORS policy.
 ```
 
-Si lo ves, vuelve a Settings → CORS origins en PocketBase y asegúrate de que el origen está en la lista.
+Si lo ves, comprueba el `--origins` efectivo del proceso de PocketBase y reinícialo tras corregirlo.
 
 ## Configuración de origen en Vega
 

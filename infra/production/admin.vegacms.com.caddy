@@ -5,6 +5,11 @@ admin.vegacms.com {
 		max_size 25MB
 	}
 
+	# Cierra el panel público sin alcanzar los assets SvelteKit de `/_app/`.
+	@pocketbasePanel path /_ /_/*
+	respond @pocketbasePanel 404
+
+	# El encoder de los logs se configura en el sink existente del borde; ver README.
 	reverse_proxy vega-pb:8090 {
 		header_up X-Real-IP {remote_host}
 		transport http {
@@ -27,8 +32,7 @@ admin.vegacms.com {
 	# - `/api/*`: PocketBase pone su propia política, más estricta, a los ficheros subidos
 	#   (`default-src 'none'; …; sandbox`, leído en PocketBase 0.39.9): un HTML o SVG subido como
 	#   medio no debe ejecutarse en este origen. Esta regla no la toca.
-	# - `/_/*`: el panel de superusuario de PocketBase ya trae la suya, con lo que él necesita
-	#   (las teselas de mapa de los campos de coordenadas, por ejemplo).
+	# - `/_` y `/_/*`: el panel de superusuario se cierra con 404 antes del proxy.
 	#
 	# Va en su propio `header`, sin borrados, para que NO se difiera: si algún día PocketBase manda
 	# una CSP en estas rutas, el navegador aplica las dos (la intersección), nunca solo la de aquí.
@@ -70,7 +74,7 @@ admin.vegacms.com {
 	# - Sin `form-action` a propósito: la vista previa envía su token con un `<form>` POST al
 	#   sitio del proyecto (otro origen), y esa directiva no hereda de `default-src`.
 	@vegaSpa {
-		not path /api/* /_/*
+		not path /api/* /_ /_/*
 	}
 	header @vegaSpa Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:; frame-src 'self' https:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
 
@@ -92,10 +96,10 @@ admin.vegacms.com {
 	# existe) es CONTENIDO sin hash en el nombre: nunca debe quedar cacheado sin revalidar, o un
 	# despliegue nuevo tardaría en verse en clientes con caché fría. Excluye EXPLÍCITAMENTE
 	# `/api/*` (las extensiones Go fijan su propio `Cache-Control` — `vegapreview.go` pone
-	# `no-store` en credenciales de preview — y esta regla NO debe pisarlo) y `/_/*` (el panel de
-	# superusuario de PocketBase, fuera del alcance de este fix).
+	# `no-store` en credenciales de preview — y esta regla NO debe pisarlo) y `/_` / `/_/*`
+	# (el panel de superusuario cerrado con 404).
 	@vegaContent {
-		not path /_app/immutable/* /api/* /_/*
+		not path /_app/immutable/* /api/* /_ /_/*
 	}
 	header @vegaContent Cache-Control "no-cache"
 }
