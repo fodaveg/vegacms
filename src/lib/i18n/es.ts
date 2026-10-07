@@ -676,6 +676,32 @@ export const es = {
 		'La ruta debe empezar por «/», sin espacios, y sin barra final salvo la raíz «/».',
 
 	// ————— Widget relation (Fase F5-e del contrato P5) —————
+	'form.relation.createContextChanged':
+		'La creación ya no está disponible en este contexto. Conservamos el borrador.',
+	'form.relation.createTitle': 'Crear {label}…',
+	'form.relation.createNamed': 'Crear {label} «{name}»…',
+	'form.relation.createSelect': 'Crear y seleccionar',
+	'form.relation.creating': 'Creando…',
+	'form.relation.createPersistence':
+		'Este registro de {label} se guarda ahora. El formulario de origen se guarda después, con «Guardar». Si lo descartas, el registro creado seguirá existiendo.',
+	'form.relation.createSuccess':
+		'Registro de {label} «{name}» creado y seleccionado. El formulario de origen sigue sin guardar.',
+	'form.relation.createPartial':
+		'El registro de {label} se ha creado, pero no se ha añadido al formulario de origen. Conserva su identificador para seleccionarlo después.',
+	'form.relation.createLimit': 'Quita una selección antes de crear otro registro.',
+	'form.relation.createDiscard': '¿Descartar el borrador de {label}?',
+	'form.relation.createDiscardBody':
+		'Se perderán solo los cambios de este borrador de {label}. El formulario de origen conserva sus cambios.',
+	'form.relation.createKeepEditing': 'Seguir editando',
+	'form.relation.createDiscardConfirm': 'Descartar borrador',
+	'form.relation.createUnavailable':
+		'No se puede crear aquí: hay campos obligatorios que este formulario no permite completar. Conserva el formulario de origen y usa el editor correspondiente.',
+	'form.relation.createUncertain':
+		'Se perdió la conexión durante el envío. El registro puede haberse creado. Conservamos el borrador y bloqueamos otra creación para evitar duplicados. Busca el registro antes de continuar.',
+	'form.relation.createReconcile': 'Buscar registros coincidentes',
+	'form.relation.createSearchLimit':
+		'Solo se muestran registros visibles para tu sesión. No encontrarlo no confirma que no se haya creado. Comprueba el registro antes de usarlo.',
+	'form.relation.createUseExisting': 'Usar existente «{name}»',
 	'form.relation.searchAriaLabel': 'Buscar «{label}»',
 	'form.relation.searchPlaceholder': 'Buscar por título…',
 	'form.relation.typeToSearch': 'Escribe para buscar…',

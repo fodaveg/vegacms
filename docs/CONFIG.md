@@ -686,3 +686,29 @@ clave desconocida al guardar. Un sembrado anterior con entradas pendientes valid
 manifiesto fusionado y aborta antes de escribir; si no tiene entradas que añadir,
 retorna `keep` antes de validar. Un fragmento nuevo tampoco pasa el preflight antiguo.
 No requiere migración ni relaja la validación de versiones anteriores.
+
+## Crear el destino de una relación
+
+Un campo de relación editable permite crear un registro de su colección destino sin salir del
+formulario. El diálogo muestra los mismos campos, grupos, ayudas y errores del formulario normal.
+«Crear y seleccionar» guarda únicamente el destino y lo incorpora a la relación; el formulario de
+origen conserva sus cambios sin guardar. Descartar ese formulario o quitar la selección no elimina
+el destino creado.
+
+La acción respeta los permisos de creación, `hideCreate` y `maxSelect`. Las colecciones internas,
+singletons y los editores especializados de páginas/bloques conservan sus flujos propios. Dentro
+del diálogo se pueden seleccionar relaciones existentes, sin encadenar otras creaciones. Si un
+campo obligatorio está oculto o no tiene editor compatible, el diálogo explica el límite y no
+envía un registro parcial.
+
+Si se pierde la conexión durante el envío, el resultado puede ser incierto. Vega conserva el
+borrador, bloquea otra creación y permite buscar registros visibles para reconciliarlo. No encontrar
+el destino en esa búsqueda no prueba que no exista. Si el destino ya se creó pero no puede añadirse
+al formulario, el diálogo conserva su identificador y explica el resultado parcial.
+
+El módulo Blog incluye ahora una ayuda actualizada para `posts.tags`. El sembrado sigue siendo
+aditivo: los manifiestos existentes conservan su ayuda anterior y las personalizaciones. Para
+actualizar el texto de un sitio ya sembrado, edita manualmente
+`collections.posts.fields.tags.help` en el manifiesto, por ejemplo: «Elige etiquetas existentes o
+crea una sin salir de la entrada. La etiqueta se guarda de forma independiente». La creación inline
+funciona aunque el manifiesto mantenga la ayuda antigua.

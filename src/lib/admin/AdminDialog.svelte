@@ -68,12 +68,15 @@
 		if (!dialogEl) return [];
 		return Array.from(
 			dialogEl.querySelectorAll<HTMLElement>(
-				'button, input:not([disabled]), select, textarea, a[href]'
+				'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [contenteditable="true"]'
 			)
-		);
+		).filter((item) => !item.closest('[hidden]'));
 	}
 
 	function handleKeydown(event: KeyboardEvent): void {
+		// El re-login y los pickers pueden tapar este diálogo sin desmontarlo. Su foco manda.
+		const activeModal = document.activeElement?.closest('[aria-modal="true"]');
+		if (activeModal && activeModal !== dialogEl) return;
 		if (event.key === 'Escape') {
 			event.preventDefault();
 			event.stopPropagation();

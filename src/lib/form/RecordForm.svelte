@@ -312,6 +312,8 @@
 	import { createAfterSaveRegistry, setAfterSaveRegistry } from './after-save';
 	import FieldRow from './FieldRow.svelte';
 	import { fieldIds } from './field-ids';
+	import { setFieldScope, getFieldScope } from './field-scope';
+	import { setRelationCreationAllowed } from './relation-creation-context';
 	import ScheduleDialog from './ScheduleDialog.svelte';
 	import { describeScheduleControl, formatScheduleMoment } from './schedule';
 	import ConflictNotice from './ConflictNotice.svelte';
@@ -339,6 +341,11 @@
 	interface Props {
 		type: ResolvedContentType;
 		model: FormModel;
+		/** L12: el mismo controlador/campos, sin barra, navegación, guard ni atajo global. */
+		presentation?: 'page' | 'relation';
+		/** Impide repetir una alta cuyo resultado de red es incierto. No bloquea editar. */
+		submitBlocked?: boolean;
+		onStateChange?: (state: { dirty: boolean; busy: boolean }) => void;
 		/** `contentType.readonly` (view, L-P5.2): deshabilita TODOS los campos y oculta "Guardar".
 		 *  Desde `#lote-shell` NO es la única razón por la que el formulario puede quedar bloqueado
 		 *  —una regla de acceso que veda actualizar hace lo mismo, ver `locked` más abajo— pero sí la
@@ -365,8 +372,25 @@
 		onDuplicate?: () => Promise<void>;
 	}
 
-	let { type, model, typeReadonly, onSubmit, onSaved, onCancel, onDelete, onDuplicate }: Props =
-		$props();
+	let {
+		type,
+		model,
+		typeReadonly,
+		onSubmit,
+		onSaved,
+		onCancel,
+		onDelete,
+		onDuplicate,
+		presentation = 'page',
+		submitBlocked = false,
+		onStateChange
+	}: Props = $props();
+	const modal = untrack(() => presentation === 'relation');
+	const inheritedScope = getFieldScope();
+	const instanceId = $props.id();
+	const fieldScope = modal ? instanceId : inheritedScope;
+	if (modal) setFieldScope(fieldScope!);
+	setRelationCreationAllowed(!modal);
 
 	const ctx = getVegaContext();
 	const EMPTY_ERRORS: FieldErrorsView = { byField: {}, record: null };
@@ -516,6 +540,13 @@
 	});
 
 	const dirty = $derived(isDirty(baseline, current) || blocksDirty);
+	$effect(() => {
+		onStateChange?.({ dirty, busy: saving });
+	});
+	/** Envío explícito desde las acciones del diálogo, con validez nativa del form. */
+	export function requestSubmit(): void {
+		formEl?.requestSubmit();
+	}
 	const previewDraft = $derived.by((): PreviewDraft => ({
 		record: {
 			id: model.recordId ?? '',
@@ -531,11 +562,14 @@
 	 * mensaje, ver la nota del cuerpo y el rótulo "Solo lectura" de la cabecera (que sigue colgado
 	 * de `typeReadonly` a secas: describe la naturaleza de la colección, no un permiso).
 	 */
-	const locked = $derived(typeReadonly || !type.permissions.update);
+	const locked = $derived(
+		typeReadonly ||
+			!(modal && model.mode === 'create' ? type.permissions.create : type.permissions.update)
+	);
 
 	const formDisabled = $derived(saving || duplicating || locked);
 	const activeLocaleTabId = $derived(
-		type.localization ? `vega-locale-tab-${type.name}-${activeLocale}` : undefined
+		type.localization ? `vega-locale-tab-${fieldScope ?? type.name}-${activeLocale}` : undefined
 	);
 
 	/** `<h1>` visualmente oculto (ver cabecera): mismo texto que antes era la cabecera VISIBLE. */
@@ -1188,7 +1222,7 @@
 		const fieldLocale = localeForField(type, name);
 		if (fieldLocale !== null) activeLocale = fieldLocale;
 		await tick();
-		const target = resolveFocusTarget(document, name);
+		const target = resolveFocusTarget(document, name, fieldScope);
 		target?.focus();
 		target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 	}
@@ -1349,7 +1383,7 @@
 	 * Valida (cliente), escribe (`onSubmit`) y reasienta; los errores salen como siempre.
 	 */
 	async function save(options: SaveOptions = {}): Promise<SaveOutcome> {
-		if (formDisabled) return { kind: 'busy' };
+		if (formDisabled || submitBlocked) return { kind: 'busy' };
 		const values = options.overrides ? { ...current, ...options.overrides } : current;
 		const keepOverrides = (): void => {
 			if (options.overrides) current = values;
@@ -1389,7 +1423,7 @@
 			// el servidor sigue distinto, el aviso se renueva con la hora nueva.
 			await sendRecord({
 				type,
-				baseline,
+				baseline: modal && model.mode === 'create' ? buildFormModel(type, null).baseline : baseline,
 				values,
 				mode: model.mode,
 				expectedVersion: () => (model.mode === 'edit' && version !== null ? version : undefined),
@@ -1436,6 +1470,7 @@
 
 	async function handleSubmit(event: SubmitEvent): Promise<void> {
 		event.preventDefault();
+		event.stopPropagation();
 		await save();
 	}
 
@@ -1494,15 +1529,25 @@
 		}
 	}
 
-	beforeNavigate((navigation) => {
-		// `discarding` (ver cabecera): la navegación la ha provocado el propio borrado del registro
-		// — preguntar "hay cambios sin guardar, ¿salir igualmente?" por un registro que acaba de
-		// dejar de existir sería absurdo (y la única respuesta útil sería "sí").
-		if (!dirty || discarding) return;
-		if (!window.confirm(ctx.t('editor.leaveConfirm'))) navigation.cancel();
-	});
+	if (!modal)
+		beforeNavigate((navigation) => {
+			// `discarding` (ver cabecera): la navegación la ha provocado el propio borrado del registro
+			// — preguntar "hay cambios sin guardar, ¿salir igualmente?" por un registro que acaba de
+			// dejar de existir sería absurdo (y la única respuesta útil sería "sí").
+			if (!dirty || discarding) return;
+			if (!window.confirm(ctx.t('editor.leaveConfirm'))) navigation.cancel();
+		});
 
 	onMount(() => {
+		if (modal) {
+			void tick().then(() => {
+				const first = sections
+					.flatMap((section) => section.fields)
+					.find((field) => !field.schema.readonly && field.widget !== 'unsupported');
+				if (first) void focusField(first.name);
+			});
+			return;
+		}
 		function handleBeforeUnload(event: BeforeUnloadEvent): void {
 			if (!dirty) return;
 			event.preventDefault();
@@ -1527,141 +1572,148 @@
 	});
 </script>
 
-<form class="vega-record-form" bind:this={formEl} onsubmit={handleSubmit}>
+<form
+	class="vega-record-form"
+	class:vega-record-form--relation={modal}
+	bind:this={formEl}
+	onsubmit={handleSubmit}
+>
 	<!-- Ver cabecera del módulo: h1 presente para a11y (jerarquía de headings) pero sin el peso
 	     visual que el mockup no pide — el título del documento en `EditTopBar`, abajo, es el título
 	     "visible". `tabindex="-1"`: destino de foco de reserva de `DeleteConfirm` (ver su cabecera),
 	     nunca alcanzable con Tab. -->
-	<h1 class="vega-visually-hidden" tabindex="-1" bind:this={headingEl}>{pageTitle}</h1>
+	{#if !modal}
+		<h1 class="vega-visually-hidden" tabindex="-1" bind:this={headingEl}>{pageTitle}</h1>
 
-	<EditTopBar bleed={true}>
-		{#snippet crumb()}
-			<!-- Atrás (mockup `.back`): chevron + label del tipo. El icono `chevron` del set apunta a
+		<EditTopBar bleed={true}>
+			{#snippet crumb()}
+				<!-- Atrás (mockup `.back`): chevron + label del tipo. El icono `chevron` del set apunta a
 			     la DERECHA (es el mismo que usa la nav); se espeja con CSS en vez de añadir un id
 			     nuevo al registro de iconos por un giro de 180°. -->
-			<button
-				type="button"
-				class="vega-editor-back"
-				disabled={duplicating}
-				onclick={() => {
-					if (!duplicating) onCancel();
-				}}
-			>
-				<Icon id="chevron" size={14} />
-				{type.label}
-			</button>
-			<span class="vega-editor-doc">
-				<span class="vega-editor-crumb-name">{docName}</span>
-				{#if dirty}
-					<!-- Punto "sin guardar" (mockup `.dirty-dot`): el texto sigue ahí para lectores de
+				<button
+					type="button"
+					class="vega-editor-back"
+					disabled={duplicating}
+					onclick={() => {
+						if (!duplicating) onCancel();
+					}}
+				>
+					<Icon id="chevron" size={14} />
+					{type.label}
+				</button>
+				<span class="vega-editor-doc">
+					<span class="vega-editor-crumb-name">{docName}</span>
+					{#if dirty}
+						<!-- Punto "sin guardar" (mockup `.dirty-dot`): el texto sigue ahí para lectores de
 					     pantalla (ver cabecera), solo deja de verse. -->
-					<span class="vega-editor-dirty" title={ctx.t('editor.dirty')}>
-						<span class="vega-visually-hidden">{ctx.t('editor.dirty')}</span>
-					</span>
-				{/if}
-				{#if typeReadonly}
-					<span class="vega-editor-readonly-badge">{ctx.t('nav.readonlyBadge')}</span>
-				{/if}
-				{#if statusTag}
-					<span
-						class="vega-editor-tag"
-						data-status={statusTag.raw}
-						data-status-kind={statusTag.kind}
-					>
-						{statusTag.label}
-					</span>
-				{/if}
-			</span>
-		{/snippet}
-		{#snippet actions()}
-			<!-- Estado de guardado (mockup `.save-state`): "Guardando…" mientras el envío está en
+						<span class="vega-editor-dirty" title={ctx.t('editor.dirty')}>
+							<span class="vega-visually-hidden">{ctx.t('editor.dirty')}</span>
+						</span>
+					{/if}
+					{#if typeReadonly}
+						<span class="vega-editor-readonly-badge">{ctx.t('nav.readonlyBadge')}</span>
+					{/if}
+					{#if statusTag}
+						<span
+							class="vega-editor-tag"
+							data-status={statusTag.raw}
+							data-status-kind={statusTag.kind}
+						>
+							{statusTag.label}
+						</span>
+					{/if}
+				</span>
+			{/snippet}
+			{#snippet actions()}
+				<!-- Estado de guardado (mockup `.save-state`): "Guardando…" mientras el envío está en
 			     vuelo, si no la hora del último guardado conocido. El BOTÓN ya no cambia de texto al
 			     guardar (el mockup lo deja fijo en "Guardar" y solo lo deshabilita): así su nombre
 			     accesible es estable para cualquier locator, y el feedback vive aquí. -->
-			{#if saving}
-				<span class="vega-editor-saved-at vega-editor-saved-at--saving">
-					{ctx.t('editor.saving')}
-				</span>
-			{:else if conflict}
-				<span class="vega-editor-saved-at vega-editor-saved-at--conflict">
-					{ctx.t('editor.conflict.topbar')}
-				</span>
-			{:else if savedAtText}
-				<span class="vega-editor-saved-at">{savedAtText}</span>
-			{/if}
-			{#if visualEditorAvailable}
-				{@const visualRecordId = model.recordId}
-				{#if visualRecordId !== null}
-					<!-- Tarea "pantalla del editor visual" (ver cabecera, `visualEditorAvailable`):
+				{#if saving}
+					<span class="vega-editor-saved-at vega-editor-saved-at--saving">
+						{ctx.t('editor.saving')}
+					</span>
+				{:else if conflict}
+					<span class="vega-editor-saved-at vega-editor-saved-at--conflict">
+						{ctx.t('editor.conflict.topbar')}
+					</span>
+				{:else if savedAtText}
+					<span class="vega-editor-saved-at">{savedAtText}</span>
+				{/if}
+				{#if visualEditorAvailable}
+					{@const visualRecordId = model.recordId}
+					{#if visualRecordId !== null}
+						<!-- Tarea "pantalla del editor visual" (ver cabecera, `visualEditorAvailable`):
 					     navega a `/c/[type]/[id]/visual` — no abre nada en el sitio, sustituye esta
 					     pantalla. -->
+						<button
+							type="button"
+							class="vega-editor-visual-button"
+							onclick={() => ctx.nav.toVisual(type.name, visualRecordId)}
+						>
+							<Icon id="box" size={14} />
+							{ctx.t('editor.visual.open')}
+						</button>
+					{/if}
+				{/if}
+				{#if previewCapable}
+					<!-- Lote "publicación" fase B (ver cabecera, "Vista previa"): OPT-IN, independiente de
+				     "Ver en el sitio" — alterna `PreviewPanel`, nunca abre una pestaña. -->
 					<button
 						type="button"
-						class="vega-editor-visual-button"
-						onclick={() => ctx.nav.toVisual(type.name, visualRecordId)}
+						class="vega-editor-preview-toggle"
+						class:vega-editor-preview-toggle--active={previewPanelOpen}
+						aria-pressed={previewPanelOpen}
+						onclick={() => (previewPanelOpen = !previewPanelOpen)}
 					>
-						<Icon id="box" size={14} />
-						{ctx.t('editor.visual.open')}
+						<Icon id="eye" size={14} />
+						{ctx.t('editor.preview.toggle')}
 					</button>
 				{/if}
-			{/if}
-			{#if previewCapable}
-				<!-- Lote "publicación" fase B (ver cabecera, "Vista previa"): OPT-IN, independiente de
-				     "Ver en el sitio" — alterna `PreviewPanel`, nunca abre una pestaña. -->
-				<button
-					type="button"
-					class="vega-editor-preview-toggle"
-					class:vega-editor-preview-toggle--active={previewPanelOpen}
-					aria-pressed={previewPanelOpen}
-					onclick={() => (previewPanelOpen = !previewPanelOpen)}
-				>
-					<Icon id="eye" size={14} />
-					{ctx.t('editor.preview.toggle')}
-				</button>
-			{/if}
-			{#if previewUrl}
-				<!-- `rel="external"` (además de `noreferrer`): `previewUrl` es SIEMPRE un sitio ajeno
+				{#if previewUrl}
+					<!-- `rel="external"` (además de `noreferrer`): `previewUrl` es SIEMPRE un sitio ajeno
 				     a esta SPA (el sitio público del propio manifiesto, cualquier dominio) — nunca
 				     una ruta interna de SvelteKit, así que no necesita `resolve()`
 				     (`svelte/no-navigation-without-resolve` reconoce `rel="external"` como la señal
 				     explícita de "esto no es navegación interna", ver `eslint.config.js`). -->
-				<a
-					class="vega-editor-preview-link"
-					href={previewUrl}
-					target="_blank"
-					rel="noreferrer external"
-				>
-					{ctx.t('editor.previewLink')}
-				</a>
-			{:else}
-				<button
-					type="button"
-					class="vega-editor-preview-link"
-					disabled
-					title={ctx.t('editor.previewDisabledTitle')}
-				>
-					{ctx.t('editor.previewLink')}
-				</button>
-			{/if}
-			{#if !locked}
-				{#if onDuplicate && model.mode === 'edit'}
+					<a
+						class="vega-editor-preview-link"
+						href={previewUrl}
+						target="_blank"
+						rel="noreferrer external"
+					>
+						{ctx.t('editor.previewLink')}
+					</a>
+				{:else}
 					<button
 						type="button"
-						class="vega-editor-duplicate-button"
-						disabled={formDisabled || dirty || blocksBusy}
-						title={dirty ? ctx.t('editor.duplicate.saveFirst') : undefined}
-						onclick={handleDuplicate}
+						class="vega-editor-preview-link"
+						disabled
+						title={ctx.t('editor.previewDisabledTitle')}
 					>
-						{duplicating ? ctx.t('editor.duplicating') : ctx.t('editor.duplicate')}
+						{ctx.t('editor.previewLink')}
 					</button>
 				{/if}
-				<button type="submit" class="vega-editor-save-button" disabled={formDisabled}>
-					{ctx.t('editor.save')}
-					<kbd aria-hidden="true">{shortcutLabel}</kbd>
-				</button>
-			{/if}
-		{/snippet}
-	</EditTopBar>
+				{#if !locked}
+					{#if onDuplicate && model.mode === 'edit'}
+						<button
+							type="button"
+							class="vega-editor-duplicate-button"
+							disabled={formDisabled || dirty || blocksBusy}
+							title={dirty ? ctx.t('editor.duplicate.saveFirst') : undefined}
+							onclick={handleDuplicate}
+						>
+							{duplicating ? ctx.t('editor.duplicating') : ctx.t('editor.duplicate')}
+						</button>
+					{/if}
+					<button type="submit" class="vega-editor-save-button" disabled={formDisabled}>
+						{ctx.t('editor.save')}
+						<kbd aria-hidden="true">{shortcutLabel}</kbd>
+					</button>
+				{/if}
+			{/snippet}
+		</EditTopBar>
+	{/if}
 
 	<!-- "Regenerar" (mockup `.slug-row .btn`): deriva el slug del título ACTUAL. Deshabilitado si
 	     el título no da nada utilizable — nunca borra el slug que ya había. -->
@@ -1763,6 +1815,36 @@
 		{/if}
 	{/snippet}
 
+	{#snippet localeTabs()}
+		{#if type.localization}
+			<div
+				class="vega-locale-tabs"
+				role="tablist"
+				aria-label={ctx.t('form.locale.tabsLabel')}
+				aria-orientation="horizontal"
+			>
+				{#each type.localization.locales as locale, index (locale.id)}
+					{@const status = localeStatus(type, locale.id, baseline, current, errors)}
+					<button
+						id={`vega-locale-tab-${fieldScope ?? type.name}-${locale.id}`}
+						type="button"
+						role="tab"
+						aria-selected={activeLocale === locale.id}
+						aria-controls={`vega-locale-panel-${fieldScope ?? type.name}`}
+						aria-label={localeStatusText(locale.label, status)}
+						tabindex={activeLocale === locale.id ? 0 : -1}
+						data-status={status}
+						onclick={() => (activeLocale = locale.id)}
+						onkeydown={(event) => handleLocaleTabKeydown(event, index)}
+					>
+						<span>{locale.label}</span>
+						<span class="vega-locale-status" aria-hidden="true"></span>
+					</button>
+				{/each}
+			</div>
+		{/if}
+	{/snippet}
+
 	{#snippet fieldRow(field: ResolvedField, stacked: boolean)}
 		{#key resetCount}
 			<FieldRow
@@ -1781,11 +1863,13 @@
 					? slugAction
 					: field.name === pagePathFieldName && model.mode === 'create'
 						? pathAction
-						: field.name === type.statusField &&
+						: !modal &&
+							  field.name === type.statusField &&
 							  (scheduleControl.kind === 'draft' || scheduleControl.kind === 'scheduled')
 							? scheduleAction
 							: undefined}
-				below={field.name === type.statusField &&
+				below={!modal &&
+				field.name === type.statusField &&
 				(scheduleControl.kind === 'scheduled' ||
 					scheduleControl.kind === 'overdue' ||
 					reviewLine !== null)
@@ -1818,275 +1902,293 @@
 		{/if}
 	{/snippet}
 
-	<!-- Rejilla maestro-detalle del mockup final (ver cabecera): las columnas laterales solo
-	     existen si su capacidad está declarada / hay algo que poner en ellas. -->
-	<div
-		class="vega-editor-grid"
-		class:vega-editor-grid--rail={showRail}
-		class:vega-editor-grid--aside={showAside}
-	>
-		{#if showRail}
-			<EditorRail contentType={type} activeId={model.recordId} savedRecord={lastSaved} />
+	{#if modal}
+		{@render localeTabs()}
+		{#if errors.record}
+			<p class="vega-record-form-banner" role="alert">{fieldErrorMessage(ctx.t, errors.record)}</p>
 		{/if}
+		<div
+			class="vega-relation-form-fields"
+			id={type.localization ? `vega-locale-panel-${fieldScope}` : undefined}
+			role={type.localization ? 'tabpanel' : undefined}
+			aria-labelledby={activeLocaleTabId}
+		>
+			{#each sections as section (section.group ?? '')}
+				<section class="vega-relation-form-section">
+					{#if section.group}<h3>{section.group}</h3>{/if}
+					{@render fieldSection(section)}
+				</section>
+			{/each}
+		</div>
+	{:else}
+		<!-- Rejilla maestro-detalle del mockup final (ver cabecera): las columnas laterales solo
+	     existen si su capacidad está declarada / hay algo que poner en ellas. -->
+		<div
+			class="vega-editor-grid"
+			class:vega-editor-grid--rail={showRail}
+			class:vega-editor-grid--aside={showAside}
+		>
+			{#if showRail}
+				<EditorRail contentType={type} activeId={model.recordId} savedRecord={lastSaved} />
+			{/if}
 
-		<div class="vega-editor-main">
-			{#if typeReadonly}
-				<p class="vega-record-form-notice">{ctx.t('editor.readonlyNotice')}</p>
-			{:else if locked}
-				<!-- Bloqueado por REGLA de acceso, no por ser una vista: el motivo se dice tal cual,
+			<div class="vega-editor-main">
+				{#if typeReadonly}
+					<p class="vega-record-form-notice">{ctx.t('editor.readonlyNotice')}</p>
+				{:else if locked}
+					<!-- Bloqueado por REGLA de acceso, no por ser una vista: el motivo se dice tal cual,
 				     porque "solo lectura" haría pensar que la colección entera es inmutable. -->
-				<p class="vega-record-form-notice">{ctx.t('editor.noUpdateNotice')}</p>
-			{/if}
-			{#if conflict && model.recordId !== null && version !== null}
-				<!-- Aviso de edición concurrente (ver cabecera): el hueco del banner de registro,
+					<p class="vega-record-form-notice">{ctx.t('editor.noUpdateNotice')}</p>
+				{/if}
+				{#if conflict && model.recordId !== null && version !== null}
+					<!-- Aviso de edición concurrente (ver cabecera): el hueco del banner de registro,
 				     encima de todo lo demás de la columna principal. -->
-				<ConflictNotice
-					name={docName}
-					fields={type.fields}
-					rows={conflictRows}
-					collection={type.name}
-					recordId={model.recordId}
-					openedVersion={version}
-					serverVersion={conflict.serverVersion}
-					fallbackAt={autodateInstant(type, conflict.serverRecord.values, 'updated')}
-					onDiscard={discardAndReload}
-					onForce={forceSave}
-				/>
-			{/if}
-			{#if redirectFailure || redirectPlan}
-				<!-- Redirección al cambiar la ruta de una página publicada (ver «Redirección al
+					<ConflictNotice
+						name={docName}
+						fields={type.fields}
+						rows={conflictRows}
+						collection={type.name}
+						recordId={model.recordId}
+						openedVersion={version}
+						serverVersion={conflict.serverVersion}
+						fallbackAt={autodateInstant(type, conflict.serverRecord.values, 'updated')}
+						onDiscard={discardAndReload}
+						onForce={forceSave}
+					/>
+				{/if}
+				{#if redirectFailure || redirectPlan}
+					<!-- Redirección al cambiar la ruta de una página publicada (ver «Redirección al
 				     cambiar la ruta» arriba): mismo hueco que el aviso de edición concurrente. -->
-				<RedirectOffer
-					plan={redirectPlan}
-					bind:choice={redirectChoice}
-					failure={redirectFailure
-						? { from: redirectFailure.job.from, message: redirectFailure.message }
-						: null}
-					retrying={redirectRetrying}
-					disabled={saving}
-					onRetry={retryRedirects}
-				/>
-			{/if}
-			{#if errors.record}
-				<p class="vega-record-form-banner" role="alert">
-					{fieldErrorMessage(ctx.t, errors.record)}
-				</p>
-			{/if}
+					<RedirectOffer
+						plan={redirectPlan}
+						bind:choice={redirectChoice}
+						failure={redirectFailure
+							? { from: redirectFailure.job.from, message: redirectFailure.message }
+							: null}
+						retrying={redirectRetrying}
+						disabled={saving}
+						onRetry={retryRedirects}
+					/>
+				{/if}
+				{#if errors.record}
+					<p class="vega-record-form-banner" role="alert">
+						{fieldErrorMessage(ctx.t, errors.record)}
+					</p>
+				{/if}
 
-			{#if type.localization}
+				{@render localeTabs()}
+
 				<div
-					class="vega-locale-tabs"
-					role="tablist"
-					aria-label={ctx.t('form.locale.tabsLabel')}
-					aria-orientation="horizontal"
+					id={type.localization ? `vega-locale-panel-${type.name}` : undefined}
+					class="vega-form-content"
+					role={type.localization ? 'tabpanel' : undefined}
+					aria-labelledby={activeLocaleTabId}
 				>
-					{#each type.localization.locales as locale, index (locale.id)}
-						{@const status = localeStatus(type, locale.id, baseline, current, errors)}
-						<button
-							id={`vega-locale-tab-${type.name}-${locale.id}`}
-							type="button"
-							role="tab"
-							aria-selected={activeLocale === locale.id}
-							aria-controls={`vega-locale-panel-${type.name}`}
-							aria-label={localeStatusText(locale.label, status)}
-							tabindex={activeLocale === locale.id ? 0 : -1}
-							data-status={status}
-							onclick={() => (activeLocale = locale.id)}
-							onkeydown={(event) => handleLocaleTabKeydown(event, index)}
-						>
-							<span>{locale.label}</span>
-							<span class="vega-locale-status" aria-hidden="true"></span>
-						</button>
+					{#each mainSections as section (section.group ?? '')}
+						<section class="vega-fsection">
+							{#if section.group}
+								<h2>{section.group}</h2>
+							{/if}
+							{@render fieldSection(section)}
+						</section>
 					{/each}
 				</div>
-			{/if}
 
-			<div
-				id={type.localization ? `vega-locale-panel-${type.name}` : undefined}
-				class="vega-form-content"
-				role={type.localization ? 'tabpanel' : undefined}
-				aria-labelledby={activeLocaleTabId}
-			>
-				{#each mainSections as section (section.group ?? '')}
-					<section class="vega-fsection">
-						{#if section.group}
-							<h2>{section.group}</h2>
-						{/if}
-						{@render fieldSection(section)}
-					</section>
-				{/each}
-			</div>
-
-			<!-- Bloques ordenables embebidos (capacidad `blocks`, lote "editor" Fase A): FUERA de
+				<!-- Bloques ordenables embebidos (capacidad `blocks`, lote "editor" Fase A): FUERA de
 			     `.vega-form-content`/el tabpanel de idioma a propósito — un bloque no es contenido
 			     LOCALIZADO de este registro, es una lista de registros hijos con su propia identidad.
 			     `RecordBlocks` se carga y se muta a sí misma (ver su cabecera); este componente solo
 			     le pasa el tipo/id del padre y escucha `onDirtyChange` (decisión 2 de su cabecera). -->
-			{#if type.blocks}
-				<RecordBlocks
-					bind:this={recordBlocksRef}
-					parentType={type}
-					parentId={model.recordId}
-					onDirtyChange={(value) => (blocksDirty = value)}
-					onDraftChange={(records) => (previewBlocks = records)}
-					onBusyChange={(value) => (blocksBusy = value)}
-					onReadyChange={(value) => (blocksReady = value)}
-					onSaved={() => (blocksSavedCount += 1)}
-					disabled={duplicating}
-				/>
-			{/if}
-		</div>
-
-		{#if showAside}
-			<aside class="vega-editor-aside">
-				{#if review.enabled}
-					<!-- Revisión antes de publicar (lote 13, decisión 1): la PRIMERA tarjeta del aside,
-					     encima de los campos de SEO que señala la mitad de sus avisos. -->
-					<ReviewCard
-						bind:this={reviewCardRef}
-						{review}
-						canAct={!locked}
-						onGo={(finding) => void goToReviewTarget(finding)}
-						onDescribe={describeReviewImage}
+				{#if type.blocks}
+					<RecordBlocks
+						bind:this={recordBlocksRef}
+						parentType={type}
+						parentId={model.recordId}
+						onDirtyChange={(value) => (blocksDirty = value)}
+						onDraftChange={(records) => (previewBlocks = records)}
+						onBusyChange={(value) => (blocksBusy = value)}
+						onReadyChange={(value) => (blocksReady = value)}
+						onSaved={() => (blocksSavedCount += 1)}
+						disabled={duplicating}
 					/>
 				{/if}
-				{#each asideSections as section (section.group ?? '')}
-					<section class="vega-fsection vega-fsection--aside">
-						{#if section.group}
-							<h2>{section.group}</h2>
-						{/if}
-						{@render fieldSection(section)}
-					</section>
-				{/each}
+			</div>
 
-				{#if type.social}
-					<!-- Vista previa de tarjeta social (capacidad `social`, lote "editor" Fase B):
+			{#if showAside}
+				<aside class="vega-editor-aside">
+					{#if review.enabled}
+						<!-- Revisión antes de publicar (lote 13, decisión 1): la PRIMERA tarjeta del aside,
+					     encima de los campos de SEO que señala la mitad de sus avisos. -->
+						<ReviewCard
+							bind:this={reviewCardRef}
+							{review}
+							canAct={!locked}
+							onGo={(finding) => void goToReviewTarget(finding)}
+							onDescribe={describeReviewImage}
+						/>
+					{/if}
+					{#each asideSections as section (section.group ?? '')}
+						<section class="vega-fsection vega-fsection--aside">
+							{#if section.group}
+								<h2>{section.group}</h2>
+							{/if}
+							{@render fieldSection(section)}
+						</section>
+					{/each}
+
+					{#if type.social}
+						<!-- Vista previa de tarjeta social (capacidad `social`, lote "editor" Fase B):
 					     lee `current` (LIVE, no `baseline`) para que la previsualización responda
 					     mientras se escribe, igual que "Regenerar" del slug lee `titleText` actual. -->
-					<SocialCardPreview config={type.social} {type} values={current} />
-				{/if}
+						<SocialCardPreview config={type.social} {type} values={current} />
+					{/if}
 
-				{#if showMeta}
-					<!-- Tarjeta "Registro" (mockup `.kv`): solo filas que el schema respalde de verdad
+					{#if showMeta}
+						<!-- Tarjeta "Registro" (mockup `.kv`): solo filas que el schema respalde de verdad
 					     (ver `record-meta.ts`) — el `id` siempre, las fechas solo si hay autodate. -->
-					<section class="vega-fsection vega-fsection--aside">
-						<h2>{ctx.t('editor.meta.title')}</h2>
-						<dl class="vega-editor-kv">
-							<div>
-								<dt>{ctx.t('editor.meta.id')}</dt>
-								<dd class="vega-editor-kv-mono">{model.recordId}</dd>
-							</div>
-							{#if createdText}
+						<section class="vega-fsection vega-fsection--aside">
+							<h2>{ctx.t('editor.meta.title')}</h2>
+							<dl class="vega-editor-kv">
 								<div>
-									<dt>{ctx.t('editor.meta.created')}</dt>
-									<dd>{createdText}</dd>
+									<dt>{ctx.t('editor.meta.id')}</dt>
+									<dd class="vega-editor-kv-mono">{model.recordId}</dd>
 								</div>
-							{/if}
-							{#if updatedText}
-								<div>
-									<dt>{ctx.t('editor.meta.updated')}</dt>
-									<dd>{updatedText}</dd>
-								</div>
-							{/if}
-						</dl>
-					</section>
-				{/if}
+								{#if createdText}
+									<div>
+										<dt>{ctx.t('editor.meta.created')}</dt>
+										<dd>{createdText}</dd>
+									</div>
+								{/if}
+								{#if updatedText}
+									<div>
+										<dt>{ctx.t('editor.meta.updated')}</dt>
+										<dd>{updatedText}</dd>
+									</div>
+								{/if}
+							</dl>
+						</section>
+					{/if}
 
-				{#if existingRecordId !== null}
-					<!-- Panel "Historial" (`#lote-integridad`, Fase B §10.1): las revisiones guardadas de
+					{#if existingRecordId !== null}
+						<!-- Panel "Historial" (`#lote-integridad`, Fase B §10.1): las revisiones guardadas de
 					     ESTE registro + "Restaurar en el formulario" (`applyRestoredValues`, ver su
 					     cabecera). Va ANTES de "Se usa en": el historial es lo primero que se quiere ver
 					     al reabrir un registro, mientras que "Se usa en" es la información que hace falta
 					     justo antes de BORRAR, así que se queda pegada a la zona de peligro. Colapsado por
 					     defecto, mismo criterio que "Se usa en". Nunca en `/new`. -->
-					<RevisionsPanel
-						{type}
-						recordId={existingRecordId}
-						onRestore={applyRestoredValues}
-						refreshToken={savedCount}
-					/>
+						<RevisionsPanel
+							{type}
+							recordId={existingRecordId}
+							onRestore={applyRestoredValues}
+							refreshToken={savedCount}
+						/>
 
-					<!-- Panel "Se usa en" (`#lote-integridad`, Fase A): quién apunta a este registro.
+						<!-- Panel "Se usa en" (`#lote-integridad`, Fase A): quién apunta a este registro.
 					     Va DEBAJO de la tarjeta "Registro" y ENCIMA de la zona de peligro a propósito —
 					     es la información que hace falta justo antes de borrar. Colapsado por defecto:
 					     abrir un registro no paga las N consultas del motor de referencias si nadie las
 					     pide (ver cabecera de `UsedInPanel.svelte`). Nunca en `/new`: un registro sin
 					     guardar no puede tener referencias. -->
-					<UsedInPanel targetCollection={type.name} targetId={existingRecordId} />
-				{/if}
+						<UsedInPanel targetCollection={type.name} targetId={existingRecordId} />
+					{/if}
 
-				{#if canDelete}
-					<section class="vega-fsection vega-fsection--aside vega-editor-danger">
-						<h2>{ctx.t('editor.dangerZone.title')}</h2>
-						<button
-							type="button"
-							class="vega-editor-delete-button"
-							onclick={() => (deleteOpen = true)}
-						>
-							{ctx.t('editor.delete', { label: type.labelSingular })}
-						</button>
-					</section>
-				{/if}
-			</aside>
-		{/if}
-	</div>
+					{#if canDelete}
+						<section class="vega-fsection vega-fsection--aside vega-editor-danger">
+							<h2>{ctx.t('editor.dangerZone.title')}</h2>
+							<button
+								type="button"
+								class="vega-editor-delete-button"
+								onclick={() => (deleteOpen = true)}
+							>
+								{ctx.t('editor.delete', { label: type.labelSingular })}
+							</button>
+						</section>
+					{/if}
+				</aside>
+			{/if}
+		</div>
+	{/if}
 </form>
 
-<!-- «Programar…» (lote 12, lámina 2): fuera del `<form>`, como el resto de diálogos — Intro en su
+{#if !modal}
+	<!-- «Programar…» (lote 12, lámina 2): fuera del `<form>`, como el resto de diálogos — Intro en su
      campo de fecha no debe enviar el formulario. -->
-<ScheduleDialog
-	open={scheduleOpen}
-	name={scheduleName}
-	at={scheduleAt}
-	unconfirmed={scheduling === 'unknown'}
-	fallbackFocusEl={scheduleFallback}
-	onSubmit={submitSchedule}
-	onClose={() => (scheduleOpen = false)}
-/>
+	<ScheduleDialog
+		open={scheduleOpen}
+		name={scheduleName}
+		at={scheduleAt}
+		unconfirmed={scheduling === 'unknown'}
+		fallbackFocusEl={scheduleFallback}
+		onSubmit={submitSchedule}
+		onClose={() => (scheduleOpen = false)}
+	/>
 
-<!-- L-P4.11 (misma ley que el listado): ningún borrado sin pasar por este diálogo. Fuera del
+	<!-- L-P4.11 (misma ley que el listado): ningún borrado sin pasar por este diálogo. Fuera del
      `<form>` a propósito — es un overlay de pantalla completa, no parte del formulario. -->
-<DeleteConfirm
-	open={deleteOpen}
-	recordLabel={docName}
-	targetCollection={type.name}
-	targetId={existingRecordId}
-	{deleting}
-	fallbackFocusEl={headingEl}
-	hasFiles={hasFileValues(type.schema.fields, model.baseline)}
-	onConfirm={confirmDelete}
-	onCancel={() => (deleteOpen = false)}
-/>
+	<DeleteConfirm
+		open={deleteOpen}
+		recordLabel={docName}
+		targetCollection={type.name}
+		targetId={existingRecordId}
+		{deleting}
+		fallbackFocusEl={headingEl}
+		hasFiles={hasFileValues(type.schema.fields, model.baseline)}
+		onConfirm={confirmDelete}
+		onCancel={() => (deleteOpen = false)}
+	/>
 
-<!-- «Describir la imagen…» de la revisión (lote 13): la ficha de Medios de siempre, encima del
+	<!-- «Describir la imagen…» de la revisión (lote 13): la ficha de Medios de siempre, encima del
      formulario y fuera del `<form>` como los demás diálogos. Guardar sustituye la ficha en la
      revisión (el aviso desaparece); borrar relee, porque el bloque ya apunta a nada. -->
-<ReviewMediaLoader
-	mediaId={reviewMediaId}
-	onClose={() => (reviewMediaId = null)}
-	onSaved={(item) => review.updateMedia(item)}
-	onDeleted={() => void review.reload()}
-	fallbackFocusEl={headingEl}
-/>
+	<ReviewMediaLoader
+		mediaId={reviewMediaId}
+		onClose={() => (reviewMediaId = null)}
+		onSaved={(item) => review.updateMedia(item)}
+		onDeleted={() => void review.reload()}
+		fallbackFocusEl={headingEl}
+	/>
 
-<!-- Lote "publicación" fase B (ver cabecera, "Vista previa"): panel FIJO fuera del `<form>`, mismo
+	<!-- Lote "publicación" fase B (ver cabecera, "Vista previa"): panel FIJO fuera del `<form>`, mismo
      criterio que `DeleteConfirm` arriba — no es contenido del formulario, es un overlay propio. -->
-{#if previewPanelOpen && previewCapable}
-	{@const previewApiUrl = ctx.port.previewApiUrl ?? null}
-	{@const previewRecordId = model.recordId}
-	{#if previewApiUrl !== null && previewRecordId !== null}
-		<PreviewPanel
-			apiBasePath={previewApiUrl}
-			collection={type.name}
-			recordId={previewRecordId}
-			draft={previewDraft}
-			refreshToken={savedCount}
-			onClose={() => (previewPanelOpen = false)}
-		/>
+	{#if previewPanelOpen && previewCapable}
+		{@const previewApiUrl = ctx.port.previewApiUrl ?? null}
+		{@const previewRecordId = model.recordId}
+		{#if previewApiUrl !== null && previewRecordId !== null}
+			<PreviewPanel
+				apiBasePath={previewApiUrl}
+				collection={type.name}
+				recordId={previewRecordId}
+				draft={previewDraft}
+				refreshToken={savedCount}
+				onClose={() => (previewPanelOpen = false)}
+			/>
+		{/if}
 	{/if}
 {/if}
 
 <style>
+	.vega-record-form--relation .vega-fgroup-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.vega-relation-form-fields {
+		display: flex;
+		flex-direction: column;
+		gap: var(--gap-field);
+	}
+	/* El formulario modal tiene su propio lienzo: no hereda los márgenes a sangre de la página. */
+	.vega-record-form.vega-record-form--relation {
+		margin: var(--gap-field) 0 0;
+		gap: var(--gap-field);
+	}
+	.vega-relation-form-section {
+		display: flex;
+		flex-direction: column;
+		gap: var(--gap-field);
+	}
+	.vega-relation-form-section h3 {
+		margin: 0;
+		font-size: 0.95rem;
+	}
 	/* El editor va A SANGRE (mockup final, ver cabecera): `.vega-main` (AppShell) pinta el papel
 	   con `padding: 1.75rem 2rem 2.5rem` para TODAS las rutas, y aquí se cancela con márgenes
 	   negativos para que la hairline de la barra pegajosa y el fondo lleguen de borde a borde —

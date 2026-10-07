@@ -26,9 +26,15 @@
 	 * - **`maxSelect` (múltiple)**: al alcanzarlo, los candidatos NO seleccionados se deshabilitan
 	 *   (`toggleRelationSelection`, afordancia UX — la validación dura ya la hace F5-c/backend).
 	 */
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
+	type CreateDialogComponent = typeof import('../RelationCreateDialog.svelte').default;
+	let CreateDialog = $state.raw<CreateDialogComponent | null>(null);
+	let createLoading = $state(false);
+	import { relationCreationAllowed } from '../relation-creation-context';
+	import { canCreateRelationTarget, incorporateCreatedRelation } from '../relation-create';
 	import type { WidgetProps } from './types';
 	import type { RecordId, VegaRecord } from '$lib/backend/types';
+	import type { ResolvedContentType } from '$lib/model/types';
 	import { VegaError } from '$lib/backend/errors';
 	import { fieldIds } from '../field-ids';
 	import { getFieldScope } from '../field-scope';
@@ -69,6 +75,12 @@
 
 	const ctx = getVegaContext();
 	const fieldScope = getFieldScope();
+	const creationAllowed = relationCreationAllowed();
+	let createOpen = $state(false);
+	let createTarget = $state.raw<ResolvedContentType | null>(null);
+	let createOpener = $state<HTMLElement | null>(null);
+	let relationEl = $state<HTMLElement | null>(null);
+	let creationNotice = $state<string | null>(null);
 	const ids = $derived(fieldIds(field.name, fieldScope));
 	const describedBy = $derived(
 		[field.help ? ids.helpId : null, error ? ids.errorId : null]
@@ -90,6 +102,7 @@
 	// el modelo. El camino genérico conserva su degradación; media explica ese estado por separado.
 	const degraded = $derived(isMediaTarget || (target ? !supportsTitleSearch(target) : true));
 	const titleField = $derived(target?.titleField ?? null);
+	const offerCreation = $derived(!inert && creationAllowed && canCreateRelationTarget(target));
 
 	const selectedIds = $derived<RecordId[]>(
 		multiple
@@ -363,6 +376,54 @@
 		titleCache = withCachedTitle(titleCache, id, { status: 'ok', title });
 	}
 
+	/** Captura el disparador; el padre sigue montado y no se guarda al abrir. */
+	async function openCreate(event: MouseEvent): Promise<void> {
+		if (!offerCreation || limitReached || createLoading) return;
+		createOpener = event.currentTarget as HTMLElement;
+		createLoading = true;
+		try {
+			const module = await import('../RelationCreateDialog.svelte');
+			if (destroyed || !offerCreation || limitReached) return;
+			CreateDialog = module.default;
+			createTarget = target;
+			createOpen = true;
+		} catch (error) {
+			if (!destroyed) reportUnexpected(error, 'relation:loadCreate');
+		} finally {
+			if (!destroyed) createLoading = false;
+		}
+	}
+
+	/** Recomprueba capacidad y cardinalidad tras el alta; nunca borra un destino confirmado. */
+	function incorporateCreated(record: VegaRecord): boolean {
+		const selection = incorporateCreatedRelation(
+			selectedIds,
+			record.id,
+			multiple,
+			schema?.maxSelect
+		);
+		if (destroyed || inert || !target || target.name !== record.type || selection === null)
+			return false;
+		titleCache = withCachedTitle(titleCache, record.id, {
+			status: 'ok',
+			title: titleOf(record, titleField)
+		});
+		onChange(multiple ? selection : record.id);
+		searchTerm = '';
+		candidates = [];
+		creationNotice = ctx.t('form.relation.createSuccess', {
+			label: target.labelSingular,
+			name: titleOf(record, titleField)
+		});
+		void tick().then(() => {
+			const chip = Array.from(
+				relationEl?.querySelectorAll<HTMLElement>('[data-created-id]') ?? []
+			).find((chip) => chip.dataset.createdId === record.id);
+			chip?.focus();
+		});
+		return true;
+	}
+
 	function removeSelected(id: RecordId): void {
 		if (inert) return;
 		onChange(multiple ? selectedIds.filter((x) => x !== id) : null);
@@ -377,6 +438,8 @@
 
 <div
 	id={ids.inputId}
+	bind:this={relationEl}
+	tabindex="-1"
 	class="vega-widget-relation"
 	role="group"
 	aria-labelledby={ids.labelId}
@@ -387,7 +450,7 @@
 	<ul class="vega-relation-selected">
 		{#each selectedIds as id (id)}
 			{@const cached = titleCache[id]}
-			<li class="vega-relation-chip">
+			<li class="vega-relation-chip" tabindex="-1" data-created-id={id}>
 				<span>{titleFor(cached, id)}</span>
 				{#if cached?.status === 'not-found'}
 					<span class="vega-relation-not-found">{ctx.t('form.relation.notFound')}</span>
@@ -512,6 +575,9 @@
 			aria-label={ctx.t('form.relation.searchAriaLabel', { label: field.label })}
 			disabled={inert}
 			oninput={handleSearchInput}
+			onkeydown={(event) => {
+				if (event.key === 'Enter') event.preventDefault();
+			}}
 		/>
 		<ul class="vega-relation-candidates">
 			{#if searching}
@@ -540,9 +606,56 @@
 			{/if}
 		</ul>
 	{/if}
+	{#if offerCreation && target}
+		<button
+			type="button"
+			class="vega-relation-create"
+			aria-disabled={limitReached || createLoading}
+			aria-busy={createLoading}
+			onclick={(event) => void openCreate(event)}
+		>
+			{ctx.t(searchTerm.trim() ? 'form.relation.createNamed' : 'form.relation.createTitle', {
+				label: target.labelSingular,
+				name: searchTerm.trim()
+			})}
+		</button>
+		{#if limitReached}<p class="vega-relation-status">{ctx.t('form.relation.createLimit')}</p>{/if}
+	{/if}
+	{#if creationNotice}<p class="vega-relation-status" role="status">{creationNotice}</p>{/if}
+	{#if createOpen && createTarget && CreateDialog}
+		<CreateDialog
+			type={createTarget}
+			canCreate={offerCreation && target?.name === createTarget.name && !limitReached}
+			term={searchTerm}
+			opener={createOpener}
+			fallback={relationEl}
+			onClose={() => {
+				createOpen = false;
+			}}
+			onCreated={incorporateCreated}
+		/>
+	{/if}
 </div>
 
 <style>
+	.vega-relation-create {
+		align-self: flex-start;
+		min-height: 44px;
+		padding: var(--pad-field);
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--btn);
+		color: var(--ink);
+		font: inherit;
+		white-space: normal;
+		overflow-wrap: anywhere;
+		cursor: pointer;
+	}
+	.vega-relation-create[aria-disabled='true'] {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
 	.vega-widget-relation {
 		display: flex;
 		flex-direction: column;

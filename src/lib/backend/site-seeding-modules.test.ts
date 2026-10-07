@@ -165,13 +165,26 @@ describe('módulo blog', () => {
 		]);
 	});
 
-	test('la ayuda del campo de etiquetas dice dónde se crean', () => {
+	test('la ayuda de etiquetas explica la creación inline y el guardado independiente', () => {
 		const posts = ((SITE_SEED_BLOG_MODULE.manifest as JsonObject).collections as JsonObject)
 			.posts as { fields: { tags: { help: string } }; listFields: string[] };
 
-		expect(posts.fields.tags.help).toContain('«Etiquetas»');
+		expect(posts.fields.tags.help).toContain('crea una sin salir de la entrada');
+		expect(posts.fields.tags.help).toContain('se guarda de forma independiente');
 		expect(posts.listFields).toEqual(['title', 'status', 'date']);
 	});
+
+	test.each(['Ayuda propia del sitio', 'Crea las etiquetas en «Etiquetas»'])(
+		'la fusión aditiva conserva la ayuda guardada: %s',
+		(help) => {
+			const saved = { collections: { posts: { fields: { tags: { help } } } } };
+			const { manifest } = mergeManifestFragment(saved, SITE_SEED_BLOG_MODULE.manifest);
+			const posts = ((manifest as JsonObject).collections as JsonObject).posts as {
+				fields: { tags: { help: string } };
+			};
+			expect(posts.fields.tags.help).toBe(help);
+		}
+	);
 
 	test('añadido a un sitio en memoria: crea `tags` y `posts`, el `slug` es único y la segunda pasada no hace nada', async () => {
 		const port = await authedMemory();

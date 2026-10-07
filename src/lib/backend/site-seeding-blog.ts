@@ -11,9 +11,8 @@
  * `posts.date` es la fecha VISIBLE de la entrada. Existe porque `publishAt` no sirve para eso: la
  * extensión `vegaschedule` la vacía al publicar.
  *
- * El campo `posts.tags` enlaza etiquetas que ya existen: el formulario de una relación no deja
- * crear el destino, así que las etiquetas se crean antes, en su propio listado (lo dice la ayuda
- * del campo).
+ * El campo `posts.tags` permite elegir etiquetas existentes o crearlas en un diálogo sin salir
+ * de la entrada. El destino se guarda de forma independiente, antes del formulario de origen.
  *
  * NAVEGACIÓN. Las dos colecciones van al grupo «Sitio», detrás de `pages` y `redirects` (`order`
  * 2 y 3). Qué colección sale en qué grupo lo dice su `group`, así que aparecen en el menú también
@@ -129,7 +128,7 @@ const BLOG_MANIFEST: JsonValue = {
 				},
 				tags: {
 					label: 'Etiquetas',
-					help: 'Las etiquetas se crean antes en su propio listado, «Etiquetas». Aquí solo se eligen.'
+					help: 'Elige etiquetas existentes o crea una sin salir de la entrada. La etiqueta se guarda de forma independiente.'
 				},
 				description: {
 					label: 'Descripción',

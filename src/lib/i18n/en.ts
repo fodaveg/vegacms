@@ -623,6 +623,32 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'The route must start with "/", contain no spaces, and not end with "/" unless it is the root "/".',
 
 	// ————— Relation widget (P5 contract, Phase F5-e) —————
+	'form.relation.createContextChanged':
+		'Creation is no longer available in this context. We kept the draft.',
+	'form.relation.createTitle': 'Create {label}…',
+	'form.relation.createNamed': 'Create {label} “{name}”…',
+	'form.relation.createSelect': 'Create and select',
+	'form.relation.creating': 'Creating…',
+	'form.relation.createPersistence':
+		'This {label} record is saved now. Save the source form afterwards using “Save”. If you discard it, the created record will still exist.',
+	'form.relation.createSuccess':
+		'{label} “{name}” created and selected. The source form is still unsaved.',
+	'form.relation.createPartial':
+		'The {label} record was created but was not added to the source form. Keep its ID to select it later.',
+	'form.relation.createLimit': 'Remove a selection before creating another record.',
+	'form.relation.createDiscard': 'Discard the {label} draft?',
+	'form.relation.createDiscardBody':
+		'Only the changes in this {label} draft will be lost. The source form keeps its changes.',
+	'form.relation.createKeepEditing': 'Keep editing',
+	'form.relation.createDiscardConfirm': 'Discard draft',
+	'form.relation.createUnavailable':
+		'Creation is unavailable here: required fields cannot be completed in this form. Keep the source form and use the appropriate editor.',
+	'form.relation.createUncertain':
+		'Connection was lost while sending. The record may have been created. We kept the draft and blocked another creation to prevent duplicates. Search for the record before continuing.',
+	'form.relation.createReconcile': 'Search for matching records',
+	'form.relation.createSearchLimit':
+		'Only records visible to your session are shown. Not finding it does not confirm it was not created. Check the record before using it.',
+	'form.relation.createUseExisting': 'Use existing “{name}”',
 	'form.relation.searchAriaLabel': 'Search «{label}»',
 	'form.relation.searchPlaceholder': 'Search by title…',
 	'form.relation.typeToSearch': 'Type to search…',
