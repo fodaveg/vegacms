@@ -530,6 +530,24 @@ The path that preserves every guarantee this document already makes:
    changed, and `ready` is already idempotent and already carries `{ collection, id }`, so a
    swap that somehow landed on another record is caught by the check Vega already makes.
 
+For a successful **GET** refresh (no `postToken`), the site bridge also replaces
+its current history entry's URL with the renewed, opaque preview URL, before
+posting `ready`. It preserves `history.state`, adds no history entry and does
+not navigate or reset scroll. This makes a later reload of the current preview,
+or a full navigation to its current URL, use the renewed token. The browser's
+same-origin restriction still applies. A stale response, or one arriving after
+the bridge stops, changes neither document nor history. If history cannot be
+updated, the bridge follows the explicit refresh-failure fallback rather than
+announcing a fully renewed preview. This does not rewrite arbitrary site links
+or grant access to another record.
+
+A **POST** refresh keeps `postToken` exclusively in its request body. It never
+places it in a URL, history state, browser storage or diagnostic message, and
+does not replace the history entry. Live draft refresh therefore does not
+promise that F5 can replay the renewed POST body; preview resumption across such
+a navigation needs a separate contract. The current visual canvas requests
+saved-record GET previews. Refresh error messages must omit token-bearing URLs.
+
 Passing the draft to the frame in the clear would save one round trip and is explicitly not
 recommended: it would break the "must be confidential and bound" obligation above, letting
 anyone holding a valid token render arbitrary content into the preview.
