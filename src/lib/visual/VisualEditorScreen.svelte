@@ -206,7 +206,7 @@
 	 * **Tamaño de pantalla + zoom del lienzo (tarea "el acabado: tamaños de pantalla, zoom, atajos
 	 * y estado de guardado" del lote del editor visual)**: el cálculo puro vive en `viewport.ts`
 	 * (ver su cabecera para el porqué de cada número); aquí solo el DOM. `screenPreset` cambia el
-	 * ancho de LAYOUT del `<iframe>` (390/834/el medido, nunca el ancho del `<div>` de Vega — así
+	 * ancho de LAYOUT del `<iframe>` (390/834/1280, nunca el ancho del `<div>` de Vega — así
 	 * el sitio dispara sus propios puntos de corte de verdad); `zoomPreference` decide el factor de
 	 * `transform: scale()`.
 	 *
@@ -231,12 +231,9 @@
 	 * tamaño (la ventana, arrastrar una manilla, el árbol colapsando a cajón) dispara el mismo
 	 * aviso sin que este componente tenga que enterarse de la causa.
 	 *
-	 * "Ajustar" en escritorio es (a propósito) un no-op visual: el ancho de layout de escritorio ES
-	 * el ancho medido del lienzo, así que la proporción siempre sale `1`. Un zoom FIJO por debajo
-	 * de 100% en escritorio sigue teniendo sentido (ver `viewport.ts`, "por qué el iframe se escala
-	 * con transform"): el escenario mide el ancho completo del lienzo pero se PINTA más pequeño,
-	 * dejando aire alrededor — una miniatura del layout de escritorio entero, no una recarga a otro
-	 * tamaño.
+	 * "Ajustar" encaja el escritorio de 1280px CSS en el ancho físico del lienzo. Cambiar la
+	 * ventana o plegar la sidebar recalcula la escala sin disparar otros puntos de corte del sitio.
+	 * El mismo escenario escala iframe y overlay, conservando las coordenadas que reporta el puente.
 	 *
 	 * **Atajos de teclado, a nivel de PANTALLA** (mismo encargo): un solo escuchador de `keydown`
 	 * en `window`, añadido/quitado en el MISMO `onMount`/`onDestroy` que ya gestiona `message` y
@@ -520,8 +517,8 @@
 	let screenPreset = $state<ScreenPreset>(initialViewport.preset);
 	let zoomPreference = $state<ZoomPreference>(initialViewport.zoom);
 	/** `.vega-visual-canvas`, medido por `ResizeObserver` (ver cabecera): arranca en `{0, 0}`, sin
-	 *  ancho honesto que enseñar hasta el primer aviso — mismo criterio que `frameWidthFor`/
-	 *  `resolveZoomFactor` (`viewport.ts`), que degradan sin dividir por cero mientras tanto. */
+	 *  medida física hasta el primer aviso; `resolveZoomFactor` (`viewport.ts`) mantiene un factor
+	 *  finito mientras tanto. El ancho CSS del preset ya está disponible. */
 	let canvasEl = $state<HTMLDivElement | undefined>(undefined);
 	let canvasSize = $state({ width: 0, height: 0 });
 	// ————— Panel de ayuda de atajos (ver `handleVisualKeydown`) —————
@@ -768,8 +765,8 @@
 		return () => observer.disconnect();
 	});
 
-	/** Ancho de LAYOUT del iframe (390/834/el medido de `.vega-visual-canvas`, ver `viewport.ts`). */
-	const frameWidth = $derived(frameWidthFor(screenPreset, canvasSize.width));
+	/** Ancho de LAYOUT del iframe (390/834/1280, ver `viewport.ts`). */
+	const frameWidth = $derived(frameWidthFor(screenPreset));
 	/** Factor de `transform: scale()` del "escenario" (ver cabecera). */
 	const zoomFactor = $derived(resolveZoomFactor(zoomPreference, canvasSize.width, frameWidth));
 	/** Alto propio del escenario, para que al escalarlo llene el lienzo exacto (ver `viewport.ts`). */

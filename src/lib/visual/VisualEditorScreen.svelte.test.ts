@@ -1986,6 +1986,7 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 	let mounted: { target: HTMLElement; instance: ReturnType<typeof mount> } | null = null;
 
 	beforeEach(() => {
+		localStorage.clear();
 		stubMatchMedia(false);
 		stubResizeObserver();
 	});
@@ -1998,6 +1999,7 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		}
 		vi.unstubAllGlobals();
 		vi.restoreAllMocks();
+		localStorage.clear();
 	});
 
 	/** Mismo camino que `saveHeading` de la describe de refresco en vivo (no accesible desde aquí,
@@ -2036,11 +2038,10 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		mounted = mountScreen(ctx, type);
 		await flush();
 
-		// Escritorio (preset de partida): el ancho de layout es el MEDIDO del lienzo, nunca uno
-		// inventado — se fuerza una medida controlada y se dispara el aviso a mano (ver cabecera de
-		// `stubResizeObserver`).
+		// Escritorio conserva 1280px CSS y ajusta su escala al lienzo medido. La medida física
+		// controlada dispara el mismo observer que una ventana o una sidebar redimensionada.
 		const canvasEl = mounted.target.querySelector('.vega-visual-canvas')!;
-		vi.spyOn(canvasEl, 'getBoundingClientRect').mockReturnValue({
+		const canvasRect = vi.spyOn(canvasEl, 'getBoundingClientRect').mockReturnValue({
 			width: 700,
 			height: 500,
 			top: 0,
@@ -2055,8 +2056,9 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		await tick();
 
 		const stage = mounted.target.querySelector<HTMLElement>('.vega-visual-stage')!;
-		expect(stage.style.width).toBe('700px');
-		expect(stage.style.transform).toBe('scale(1)'); // 100% de partida
+		expect(stage.style.width).toBe('1280px');
+		expect(stage.style.transform).toBe(`scale(${700 / 1280})`); // ajustar de partida
+		expect(parseFloat(stage.style.height)).toBeCloseTo(500 / (700 / 1280));
 
 		const zoom50 = Array.from(
 			mounted.target.querySelectorAll<HTMLButtonElement>('.vega-visual-zoom-btn')
@@ -2070,9 +2072,26 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		// El ancho de LAYOUT no se movió ni un píxel: solo cambió `transform`. Es la landmine
 		// central de la tarea (ver cabecera del componente) — si esto fallara, el overlay se
 		// despegaría del iframe.
-		expect(stage.style.width).toBe('700px');
+		expect(stage.style.width).toBe('1280px');
 		expect(stage.style.transform).toBe('scale(0.5)');
 		expect(zoom50.getAttribute('aria-pressed')).toBe('true');
+
+		const fit = Array.from(
+			mounted.target.querySelectorAll<HTMLButtonElement>('.vega-visual-zoom-btn')
+		).find((btn) => btn.textContent?.trim() === translate('es', 'editor.visual.zoom.fit'))!;
+		fit.click();
+		await tick();
+		expect(stage.style.transform).toBe(`scale(${700 / 1280})`);
+		canvasRect.mockReturnValue({ ...canvasEl.getBoundingClientRect(), width: 900, right: 900 });
+		resize.triggerResize();
+		await tick();
+		expect(stage.style.width).toBe('1280px');
+		expect(stage.style.transform).toBe(`scale(${900 / 1280})`);
+		expect(parseFloat(stage.style.height)).toBeCloseTo(500 / (900 / 1280));
+		expect(JSON.parse(localStorage.getItem('vega.visual.viewport.v1')!)).toEqual({
+			preset: 'desktop',
+			zoom: 'fit'
+		});
 	});
 
 	test('conmutador de tamaño: móvil/tableta fijan el ancho del iframe SIN mirar el lienzo', async () => {
