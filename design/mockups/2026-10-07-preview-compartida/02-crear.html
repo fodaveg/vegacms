@@ -1,0 +1,2993 @@
+<!doctype html>
+<html lang="es" data-theme="niebla" data-density="comfortable">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Vega · enlaces de vista previa · propuesta</title>
+		<style>
+			/* GENERADO por scripts/build-themes.mjs — NO EDITAR */
+
+			:root {
+				--sans: -apple-system, 'Segoe UI', system-ui, sans-serif;
+				--mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+				--r: 8px;
+				--accent-grad: linear-gradient(115deg, var(--accent), var(--accent-hover));
+				--sheen: linear-gradient(100deg, var(--accent), var(--accent-text));
+				--accent-fill: var(--accent);
+				--halo: none;
+				--brand-a: var(--accent);
+				--brand-b: var(--accent);
+				--brand-c: var(--accent);
+				--brand-edge-opacity: 0.35;
+			}
+			:root {
+				--row-h: 44px;
+				--cell-x: 1.1rem;
+				--fs-base: 14px;
+				--pad-field: 1.1rem;
+				--gap-field: 1.75rem;
+				--pad-card: 1.5rem;
+				--sidebar-item-h: 40px;
+				--topbar-h: 54px;
+			}
+			[data-density='compact'] {
+				--row-h: 36px;
+				--cell-x: 0.8rem;
+				--fs-base: 13px;
+				--pad-field: 0.8rem;
+				--gap-field: 1.2rem;
+				--pad-card: 1rem;
+				--sidebar-item-h: 32px;
+				--topbar-h: 44px;
+			}
+			[data-mode='light'] {
+				--shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 3px 12px rgb(0 0 0 / 0.04);
+				--success: #045a26;
+				--success-soft: color-mix(in oklab, #045a26 10%, var(--paper));
+				--danger: #a91408;
+				--danger-soft: color-mix(in oklab, #a91408 10%, var(--paper));
+				--warning: #684800;
+				--warning-soft: color-mix(in oklab, #684800 10%, var(--paper));
+				--info: #07517d;
+				--info-soft: color-mix(in oklab, #07517d 10%, var(--paper));
+			}
+			[data-mode='dark'] {
+				--shadow-card: 0 1px 3px rgb(0 0 0 / 0.4), 0 5px 16px rgb(0 0 0 / 0.28);
+				--success: #5cbd8e;
+				--success-soft: color-mix(in oklab, #5cbd8e 17%, var(--paper));
+				--danger: #ef8078;
+				--danger-soft: color-mix(in oklab, #ef8078 15%, var(--paper));
+				--warning: #dfae4d;
+				--warning-soft: color-mix(in oklab, #dfae4d 15%, var(--paper));
+				--info: #74b6d6;
+				--info-soft: color-mix(in oklab, #74b6d6 15%, var(--paper));
+			}
+
+			[data-theme='brasa'] {
+				--tint: #e8763a;
+				--accent: #e8763a;
+				--accent-ink: #1f1206;
+			}
+			[data-theme='brasa'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='brasa'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='faro'] {
+				--tint: #d1642f;
+				--accent: #d1642f;
+				--accent-ink: #2a1408;
+			}
+			[data-theme='faro'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='faro'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='rescoldo'] {
+				--tint: #4a4a52;
+				--accent: #f0842f;
+				--accent-ink: #201206;
+				--accent-grad: linear-gradient(115deg, #f6a63b 0%, #f0842f 42%, #e4583c 75%, #dd4f52 100%);
+				--brand-edge-opacity: 0.7;
+			}
+			[data-theme='rescoldo'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='rescoldo'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='miel'] {
+				--tint: #d59a2e;
+				--accent: #d59a2e;
+				--accent-ink: #241905;
+			}
+			[data-theme='miel'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='miel'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='halloween'] {
+				--tint: #7a3fa0;
+				--accent: #ef7a26;
+				--accent-ink: #201206;
+				--accent-grad: linear-gradient(115deg, #f7b13a 0%, #ef7a26 42%, #e2542f 75%, #dd4f52 100%);
+				--accent-fill: var(--accent-grad);
+				--halo:
+					radial-gradient(
+						125% 72% at 86% -14%,
+						color-mix(in oklab, #f6a63b 26%, transparent),
+						transparent 48%
+					),
+					radial-gradient(
+						110% 66% at -12% 112%,
+						color-mix(in oklab, #9558cc 20%, transparent),
+						transparent 46%
+					),
+					radial-gradient(
+						90% 50% at 50% 128%,
+						color-mix(in oklab, #c9342a 13%, transparent),
+						transparent 42%
+					);
+				--brand-a: #f7b13a;
+				--brand-b: #e04f28;
+				--brand-c: #c9342a;
+				--brand-edge-opacity: 0.7;
+			}
+			[data-theme='halloween'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, #f6a63b 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, #ef7a26 52%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 9%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 9%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 9%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='halloween'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, #f6a63b 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, #ef7a26 52%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 21%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 21%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 21%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='aquelarre'] {
+				--tint: #6e3fb5;
+				--accent: #f0842f;
+				--accent-ink: #201206;
+				--accent-grad: linear-gradient(115deg, #f6a63b 0%, #f0842f 42%, #e4583c 75%, #dd4f52 100%);
+				--sheen: linear-gradient(100deg, #7ac943 0%, #3fbf8f 38%, #8a7ae0 74%, #b05fd6 100%);
+				--accent-fill: var(--accent-grad);
+				--halo:
+					radial-gradient(
+						125% 72% at 86% -14%,
+						color-mix(in oklab, #f6a63b 24%, transparent),
+						transparent 48%
+					),
+					radial-gradient(
+						110% 66% at -12% 112%,
+						color-mix(in oklab, #9a7ae8 17%, transparent),
+						transparent 46%
+					),
+					radial-gradient(
+						90% 50% at 50% 128%,
+						color-mix(in oklab, #e4583c 12%, transparent),
+						transparent 42%
+					);
+				--brand-a: #f6a63b;
+				--brand-b: #e4583c;
+				--brand-c: #dd4f52;
+				--brand-edge-opacity: 0.7;
+			}
+			[data-theme='aquelarre'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, #f6a63b 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, #f0842f 52%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 13%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 13%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 13%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: #605a57;
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='aquelarre'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, #f6a63b 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, #f0842f 52%, var(--line));
+				--bg: #0d0913;
+				--sidebar: #100c17;
+				--paper: #17121f;
+				--surface: #2a2034;
+				--surface-2: #221a2d;
+				--btn: #2e2136;
+				--active: #382845;
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='cereza'] {
+				--tint: #c0466b;
+				--accent: #c0466b;
+				--accent-ink: #ffffff;
+			}
+			[data-theme='cereza'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='cereza'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='tinta'] {
+				--tint: #6ea3f0;
+				--accent: #6ea3f0;
+				--accent-ink: #0e1a2e;
+			}
+			[data-theme='tinta'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='tinta'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			:where(:root),
+			[data-theme='niebla'] {
+				--tint: #4f6bd6;
+				--accent: #4f6bd6;
+				--accent-ink: #ffffff;
+			}
+			:where(:root)[data-mode='light'],
+			[data-theme='niebla'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			:where(:root)[data-mode='dark'],
+			[data-theme='niebla'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='marea'] {
+				--tint: #147885;
+				--accent: #147885;
+				--accent-ink: #ffffff;
+			}
+			[data-theme='marea'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='marea'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='sea-wingnow'] {
+				--tint: #58a6d8;
+				--accent: #58a6d8;
+				--accent-ink: #0c1c29;
+			}
+			[data-theme='sea-wingnow'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='sea-wingnow'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='bosque'] {
+				--tint: #8bbf5a;
+				--accent: #8bbf5a;
+				--accent-ink: #16240c;
+			}
+			[data-theme='bosque'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='bosque'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='menta'] {
+				--tint: #2f9e73;
+				--accent: #2f9e73;
+				--accent-ink: #08201a;
+			}
+			[data-theme='menta'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='menta'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='salvia'] {
+				--tint: #7a9b78;
+				--accent: #7a9b78;
+				--accent-ink: #16210f;
+			}
+			[data-theme='salvia'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='salvia'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='lavanda'] {
+				--tint: #8f84cf;
+				--accent: #8f84cf;
+				--accent-ink: #1a1630;
+			}
+			[data-theme='lavanda'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='lavanda'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='ciruela'] {
+				--tint: #7d4a9c;
+				--accent: #7d4a9c;
+				--accent-ink: #ffffff;
+			}
+			[data-theme='ciruela'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='ciruela'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='carbon'] {
+				--tint: #4a4a52;
+				--accent: #4a4a52;
+				--accent-ink: #ffffff;
+			}
+			[data-theme='carbon'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='carbon'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='colibri'] {
+				--tint: #527d8f;
+				--accent: #2f8f96;
+				--accent-ink: #0a1d1f;
+				--sheen: linear-gradient(100deg, #2f8f96 0%, #8a7ad9 55%, #c9a24e 100%);
+				--halo:
+					radial-gradient(
+						120% 68% at 84% -12%,
+						color-mix(in oklab, #2f8f96 11%, transparent),
+						transparent 46%
+					),
+					radial-gradient(
+						100% 60% at -10% 110%,
+						color-mix(in oklab, #8a7ad9 8%, transparent),
+						transparent 44%
+					);
+				--brand-a: #2f8f96;
+				--brand-b: #8a7ad9;
+				--brand-c: #c9a24e;
+				--brand-edge-opacity: 0.3;
+			}
+			[data-theme='colibri'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='colibri'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='tornasol'] {
+				--tint: #5b5f8f;
+				--accent: #2f9a94;
+				--accent-ink: #14102a;
+				--accent-grad: linear-gradient(115deg, #2fb7a8 0%, #8d7bf0 42%, #d16bb2 72%, #dda63f 100%);
+				--accent-fill: var(--accent-grad);
+				--halo:
+					radial-gradient(
+						120% 68% at 84% -12%,
+						color-mix(in oklab, #2fb7a8 13%, transparent),
+						transparent 46%
+					),
+					radial-gradient(
+						100% 60% at -10% 110%,
+						color-mix(in oklab, #d16bb2 9%, transparent),
+						transparent 44%
+					);
+				--brand-a: #2fb7a8;
+				--brand-b: #8d7bf0;
+				--brand-c: #dda63f;
+				--brand-edge-opacity: 0.5;
+			}
+			[data-theme='tornasol'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 10%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 10%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 10%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='tornasol'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 20%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 20%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 20%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='pizarra'] {
+				--tint: #5d6d83;
+				--accent: #5d6d83;
+				--accent-ink: #ffffff;
+			}
+			[data-theme='pizarra'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='pizarra'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			[data-theme='terracota'] {
+				--tint: #bd430f;
+				--accent: #bd430f;
+				--accent-ink: #ffffff;
+			}
+			[data-theme='terracota'][data-mode='light'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+				--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+				--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+				--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+				--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+				--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+				--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+				--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+				--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+				--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+				--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+				--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+				--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+				--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			}
+			[data-theme='terracota'][data-mode='dark'] {
+				--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+				--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+				--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+				--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+				--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+				--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+				--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+				--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+				--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+				--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+				--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+				--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+				--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+				--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+				--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+				--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+				--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+				--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+				--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			}
+
+			/**
+ * Estilos de las pantallas de superusuario (`/editores`, `/copias`) y de sus diálogos.
+ *
+ * Hoja GLOBAL con todo bajo `.vega-admin-*`, importada solo por esas dos rutas y por sus diálogos:
+ * las dos pantallas comparten el mismo esqueleto (cabecera, tarjeta de lista, tabla que se apila en
+ * móvil, estados, puerta de superusuario, diálogo con campos) y copiar ese CSS en cada componente,
+ * como hacen `/papelera` y `/c/[type]`, duplicaría unas 300 líneas que tienen que cambiar juntas.
+ * Global porque el contenido de los diálogos lo pinta la página que los usa: un `<style>` con
+ * ámbito no llegaría a ese marcado. El prefijo evita choques con el resto de la app, y al
+ * importarse desde las rutas va en su chunk diferido, no en la carga inicial.
+ *
+ * Medidas y tokens: calco de las piezas existentes que cita la lámina del audit (piezas 5 y 6):
+ * cabecera de `/papelera`, `.vega-list-card` + tabla de `RecordTable`, `.vega-status-badge`,
+ * diálogo de `DeleteConfirm`, `.vega-manifest-gate` de `/settings` y `.notice` de `/papelera`.
+ * Sin tokens nuevos y sin ningún color literal (el velo del diálogo está en `AdminDialog.svelte`).
+ */
+
+			.vega-admin-page {
+				display: flex;
+				flex-direction: column;
+				gap: var(--vega-space-gutter);
+			}
+
+			/* ————— Cabecera ————— */
+
+			.vega-admin-head {
+				display: flex;
+				align-items: baseline;
+				flex-wrap: wrap;
+				gap: 0.6rem 1rem;
+				margin-bottom: 0.4rem;
+			}
+
+			.vega-admin-head h1 {
+				margin: 0;
+				font-size: 1.45em;
+				font-weight: 700;
+				color: var(--ink-hi);
+				letter-spacing: -0.01em;
+			}
+
+			.vega-admin-meta {
+				color: var(--ink-2);
+				font-size: 0.9em;
+			}
+
+			.vega-admin-meta b {
+				font-family: var(--mono);
+				font-weight: 500;
+			}
+
+			.vega-admin-head-spacer {
+				flex: 1;
+			}
+
+			.vega-admin-desc {
+				margin: 0;
+				max-width: 46rem;
+				color: var(--ink-2);
+				font-size: 0.9rem;
+			}
+
+			/* ————— Botones ————— */
+
+			.vega-admin-btn {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.4rem;
+				height: 34px;
+				padding: 0 0.9rem;
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--btn);
+				color: var(--ink);
+				font: inherit;
+				font-size: 0.8125rem;
+				font-weight: 550;
+				line-height: 1.2;
+				white-space: nowrap;
+				cursor: pointer;
+			}
+
+			.vega-admin-btn:hover:not([aria-disabled='true']) {
+				border-color: var(--line-strong);
+			}
+
+			.vega-admin-btn[aria-disabled='true'] {
+				cursor: not-allowed;
+				opacity: 0.5;
+			}
+
+			.vega-admin-btn--primary {
+				border-color: transparent;
+				background: var(--accent-fill);
+				color: var(--accent-ink);
+				font-weight: 600;
+			}
+
+			.vega-admin-btn--primary:hover:not([aria-disabled='true']) {
+				border-color: transparent;
+				box-shadow: 0 0 0 1.5px var(--accent-line);
+			}
+
+			.vega-admin-btn--primary[aria-disabled='true'] {
+				opacity: 0.45;
+			}
+
+			.vega-admin-btn--danger {
+				border-color: transparent;
+				background: var(--danger-soft);
+				color: var(--danger);
+			}
+
+			.vega-admin-btn--danger:hover:not([aria-disabled='true']) {
+				border-color: transparent;
+				box-shadow: 0 0 0 1.5px var(--danger);
+			}
+
+			.vega-admin-btn--sm {
+				height: 30px;
+				padding: 0 0.75rem;
+				font-size: 0.8rem;
+			}
+
+			.vega-admin-icon-btn {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				width: 1.8rem;
+				height: 1.8rem;
+				flex-shrink: 0;
+				border: 0;
+				border-radius: 6px;
+				background: transparent;
+				color: var(--ink-2);
+				cursor: pointer;
+			}
+
+			.vega-admin-icon-btn:hover {
+				background: var(--active);
+				color: var(--ink);
+			}
+
+			/* Objetivo táctil de 44 px con puntero basto (misma regla que el resto de la app). */
+			@media (pointer: coarse) {
+				.vega-admin-btn {
+					min-height: 44px;
+				}
+
+				.vega-admin-icon-btn {
+					min-width: 44px;
+					min-height: 44px;
+				}
+			}
+
+			/* ————— Tarjeta de lista, estados y tabla ————— */
+
+			.vega-admin-card {
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--paper);
+				box-shadow: var(--shadow-card);
+				overflow: hidden;
+			}
+
+			.vega-admin-state {
+				display: flex;
+				flex-direction: column;
+				align-items: flex-start;
+				gap: 0.6rem;
+				padding: 1.25rem var(--cell-x);
+				color: var(--ink-2);
+			}
+
+			.vega-admin-state p {
+				margin: 0;
+			}
+
+			.vega-admin-state-title {
+				color: var(--ink-hi);
+				font-weight: 600;
+			}
+
+			/* «⟳ …» de lo que está en curso: mismo glifo que `.vega-editor-saved-at--saving`. */
+			.vega-admin-saving {
+				font-family: var(--mono);
+				font-size: 0.85rem;
+				white-space: nowrap;
+			}
+
+			.vega-admin-saving::before {
+				content: '⟳ ';
+				color: var(--info);
+			}
+
+			.vega-admin-table {
+				width: 100%;
+				border-collapse: collapse;
+				font-size: 0.9rem;
+			}
+
+			.vega-admin-table thead th {
+				padding: 0.5rem var(--cell-x);
+				text-align: left;
+				white-space: nowrap;
+				font-size: 0.6875rem;
+				font-weight: 650;
+				text-transform: uppercase;
+				letter-spacing: 0.06em;
+				color: var(--ink-2);
+				background: var(--paper);
+				border-bottom: 1px solid var(--line-strong);
+			}
+
+			.vega-admin-table thead th.vega-admin-right,
+			.vega-admin-table td.vega-admin-right {
+				text-align: right;
+			}
+
+			.vega-admin-table tbody tr {
+				height: var(--row-h);
+				border-bottom: 1px solid var(--line);
+			}
+
+			.vega-admin-table tbody tr:last-child {
+				border-bottom: 0;
+			}
+
+			.vega-admin-table tbody tr:hover {
+				background: var(--accent-soft);
+			}
+
+			.vega-admin-table td {
+				max-width: 24rem;
+				padding: 0.4rem var(--cell-x);
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				vertical-align: middle;
+			}
+
+			.vega-admin-table td.vega-admin-main {
+				width: 50%;
+				max-width: 0;
+			}
+
+			.vega-admin-table td.vega-admin-actions {
+				width: 1%;
+				max-width: none;
+				overflow: visible;
+			}
+
+			.vega-admin-mono {
+				font-family: var(--mono);
+				font-size: 0.75rem;
+				color: var(--ink-2);
+				font-variant-numeric: tabular-nums;
+			}
+
+			.vega-admin-title {
+				display: block;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				color: var(--ink-hi);
+				font-weight: 500;
+			}
+
+			.vega-admin-title--mono {
+				font-family: var(--mono);
+				font-size: 0.85rem;
+			}
+
+			.vega-admin-row-actions {
+				display: flex;
+				justify-content: flex-end;
+				gap: 0.4rem;
+			}
+
+			/* Fecha con rótulo dentro de la fila apilada («Alta 3 feb 2026»): solo en móvil; la de la tabla,
+   solo en escritorio (ver el `@media` de abajo). */
+			.vega-admin-stack-only {
+				display: none;
+			}
+
+			.vega-admin-who {
+				display: flex;
+				align-items: center;
+				gap: 0.6rem;
+				min-width: 0;
+			}
+
+			.vega-admin-avatar {
+				display: inline-grid;
+				place-items: center;
+				flex-shrink: 0;
+				width: 24px;
+				height: 24px;
+				border-radius: 50%;
+				background: var(--accent-soft);
+				color: var(--accent-text);
+				font-size: 0.68rem;
+				font-weight: 700;
+			}
+
+			.vega-admin-you {
+				flex-shrink: 0;
+				color: var(--ink-2);
+				font-size: 0.72rem;
+			}
+
+			/* Etiqueta de estado: la de `.vega-status-badge` (punto + fondo suave, nunca solo color: el
+   texto dice el estado). */
+			.vega-admin-tag {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.4rem;
+				flex-shrink: 0;
+				height: 24px;
+				padding: 0 0.65rem;
+				border-radius: 999px;
+				font-size: 0.72rem;
+				font-weight: 600;
+				white-space: nowrap;
+			}
+
+			.vega-admin-tag::before {
+				content: '';
+				width: 6px;
+				height: 6px;
+				border-radius: 50%;
+				background: currentColor;
+				flex-shrink: 0;
+			}
+
+			.vega-admin-tag[data-kind='pub'] {
+				color: var(--success);
+				background: var(--success-soft);
+			}
+
+			.vega-admin-tag[data-kind='other'] {
+				color: var(--info);
+				background: var(--info-soft);
+			}
+
+			/* Fila provisional de la copia en curso (tokens `--info`/`--info-soft`, contraste medido en la
+   lámina: 6,19 en claro y 5,72 en oscuro). */
+			.vega-admin-table tbody tr.vega-admin-running,
+			.vega-admin-table tbody tr.vega-admin-running:hover {
+				background: var(--info-soft);
+			}
+
+			.vega-admin-running .vega-admin-saving {
+				color: var(--info);
+			}
+
+			.vega-admin-sr-only {
+				position: absolute;
+				width: 1px;
+				height: 1px;
+				padding: 0;
+				margin: -1px;
+				overflow: hidden;
+				clip: rect(0, 0, 0, 0);
+				white-space: nowrap;
+				border: 0;
+			}
+
+			/* Por debajo del punto estructural de la app (768 px) la tabla se apila por filas: fila 1 =
+   principal + etiqueta, fila 2 = meta, fila 3 = acciones. */
+			@media (max-width: 768px) {
+				.vega-admin-table thead {
+					position: absolute;
+					width: 1px;
+					height: 1px;
+					overflow: hidden;
+					clip: rect(0, 0, 0, 0);
+				}
+
+				.vega-admin-table,
+				.vega-admin-table tbody,
+				.vega-admin-table tr,
+				.vega-admin-table td {
+					display: block;
+					width: 100%;
+					box-sizing: border-box;
+				}
+
+				.vega-admin-table tbody tr {
+					display: grid;
+					grid-template-columns: minmax(0, 1fr) auto;
+					gap: 0.25rem 0.6rem;
+					height: auto;
+					padding: 0.7rem var(--cell-x);
+				}
+
+				.vega-admin-table td,
+				.vega-admin-table td.vega-admin-main,
+				.vega-admin-table td.vega-admin-actions {
+					width: auto;
+					max-width: none;
+					padding: 0;
+				}
+
+				.vega-admin-table td.vega-admin-main {
+					grid-column: 1 / 2;
+				}
+
+				.vega-admin-table td.vega-admin-side {
+					grid-column: 2;
+					grid-row: 1;
+					justify-self: end;
+				}
+
+				.vega-admin-table td.vega-admin-meta-cell {
+					grid-column: 1 / -1;
+					text-align: left;
+				}
+
+				.vega-admin-table td.vega-admin-actions {
+					grid-column: 1 / -1;
+				}
+
+				.vega-admin-table td.vega-admin-actions .vega-admin-row-actions {
+					justify-content: flex-start;
+					flex-wrap: wrap;
+				}
+
+				.vega-admin-stack-only {
+					display: inline;
+				}
+
+				.vega-admin-table-only {
+					display: none;
+				}
+
+				.vega-admin-head .vega-admin-btn--primary {
+					order: 5;
+				}
+			}
+
+			/* ————— Puerta de superusuario (`.vega-manifest-gate` de /settings) ————— */
+
+			.vega-admin-gate {
+				display: flex;
+				flex-direction: column;
+				gap: 0.5rem;
+				max-width: 34rem;
+				padding: 1rem 1.2rem;
+				border: 1px solid var(--line);
+				border-radius: 8px;
+				background: var(--surface-2);
+			}
+
+			.vega-admin-gate h1 {
+				margin: 0;
+				font-size: 1.1rem;
+				color: var(--ink-hi);
+			}
+
+			.vega-admin-gate p {
+				margin: 0;
+				color: var(--ink-2);
+				font-size: 0.9rem;
+			}
+
+			/* ————— Avisos (`.notice` de /papelera) ————— */
+
+			.vega-admin-notice {
+				display: flex;
+				flex-direction: column;
+				gap: 0.5rem;
+				padding: 0.75rem 1rem;
+				border: 1px solid;
+				border-radius: var(--r);
+			}
+
+			.vega-admin-notice p {
+				margin: 0;
+			}
+
+			.vega-admin-notice-title {
+				font-weight: 600;
+				color: var(--ink-hi);
+			}
+
+			.vega-admin-notice-body {
+				color: var(--ink);
+				font-size: 0.88rem;
+			}
+
+			.vega-admin-notice-actions {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.5rem;
+				margin-top: 0.15rem;
+			}
+
+			.vega-admin-notice--info {
+				border-color: var(--info);
+				background: var(--info-soft);
+				color: var(--info);
+			}
+
+			.vega-admin-notice--warning {
+				border-color: var(--warning);
+				background: var(--warning-soft);
+				color: var(--warning);
+			}
+
+			.vega-admin-notice--danger {
+				border-color: var(--danger);
+				background: var(--danger-soft);
+				color: var(--danger);
+			}
+
+			/* ————— Diálogo (`DeleteConfirm`/`MediaDetail`). El velo vive en `AdminDialog.svelte`, donde
+   `check-theme-coverage.mjs` lo puede ver: esa comprobación solo lee `.svelte` y `.ts`. ————— */
+
+			.vega-admin-dialog {
+				display: flex;
+				flex-direction: column;
+				gap: 0.9rem;
+				width: 100%;
+				max-width: 26rem;
+				max-height: calc(100vh - 2 * var(--vega-space-gutter));
+				overflow-y: auto;
+				box-sizing: border-box;
+				padding: 1.5rem;
+				border-radius: 10px;
+				background: var(--surface);
+				color: var(--ink);
+				box-shadow: var(--shadow-card);
+			}
+
+			.vega-admin-dialog-head {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 0.5rem;
+			}
+
+			.vega-admin-dialog-head h2 {
+				margin: 0;
+				font-size: 1.1rem;
+				color: var(--ink-hi);
+			}
+
+			.vega-admin-dialog > p,
+			.vega-admin-dialog-text {
+				margin: 0;
+				color: var(--ink-2);
+				font-size: 0.9rem;
+			}
+
+			.vega-admin-dialog-text b {
+				color: var(--ink);
+				overflow-wrap: anywhere;
+			}
+
+			.vega-admin-dialog-actions {
+				display: flex;
+				justify-content: flex-end;
+				flex-wrap: wrap;
+				gap: 0.5rem;
+				margin-top: 0.25rem;
+			}
+
+			/* ————— Campos ————— */
+
+			.vega-admin-form {
+				display: flex;
+				flex-direction: column;
+				gap: 0.9rem;
+				margin: 0;
+			}
+
+			.vega-admin-field {
+				display: flex;
+				flex-direction: column;
+				min-width: 0;
+			}
+
+			.vega-admin-field > label {
+				display: block;
+				margin-bottom: 0.35rem;
+				font-size: 0.82em;
+				font-weight: 650;
+				letter-spacing: 0.03em;
+				color: var(--ink-2);
+			}
+
+			.vega-admin-input {
+				width: 100%;
+				box-sizing: border-box;
+				padding: calc(var(--pad-field) * 0.55) calc(var(--pad-field) * 0.7);
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--surface);
+				color: var(--ink);
+				font: inherit;
+			}
+
+			.vega-admin-input:hover {
+				border-color: var(--line-strong);
+			}
+
+			.vega-admin-input[aria-invalid='true'] {
+				border-color: var(--danger);
+			}
+
+			/* Ayuda en `--ink-2`, no en `--ink-3`: medido en la lámina, `--ink-3` da 2,2:1 en claro. */
+			.vega-admin-help {
+				margin: 0.3rem 0 0;
+				font-size: 0.82em;
+				color: var(--ink-2);
+			}
+
+			.vega-admin-field-error {
+				margin: 0.35rem 0 0;
+				font-size: 0.84em;
+				font-weight: 600;
+				color: var(--danger);
+			}
+
+			.vega-admin-choices {
+				display: flex;
+				flex-direction: column;
+				gap: 0.45rem;
+				margin: 0;
+				padding: 0;
+				border: 0;
+			}
+
+			.vega-admin-radio-card {
+				display: flex;
+				align-items: flex-start;
+				gap: 0.6rem;
+				padding: 0.6rem 0.75rem;
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--surface-2);
+				font-size: 0.88rem;
+				cursor: pointer;
+			}
+
+			.vega-admin-radio-card[data-checked='true'] {
+				border-color: var(--accent-line);
+				background: var(--accent-soft);
+			}
+
+			.vega-admin-radio-card input {
+				margin-top: 0.2rem;
+				accent-color: var(--accent);
+			}
+
+			.vega-admin-radio-card b {
+				display: block;
+				color: var(--ink-hi);
+				font-weight: 600;
+			}
+
+			.vega-admin-radio-card span span {
+				color: var(--ink-2);
+				font-size: 0.82rem;
+			}
+
+			/* ————— Ajustes del servidor dentro de una pantalla (tarjetas de /copias y, después, de /editores).
+   Composiciones de la lámina `design/mockups/2026-10-01-ajustes-y-sembrado` (sección 2.1): ningún
+   token nuevo, cada medida es la de una pieza que ya existe. ————— */
+
+			/* Cabecera de sección dentro de una pantalla de administración (h2 bajo el h1 de la página).
+   Mismo reparto que `.vega-admin-head`; tamaño de `.vega-admin-dialog-head h2`. */
+			.vega-admin-subhead {
+				display: flex;
+				align-items: center;
+				gap: 0.75rem;
+				width: 100%;
+			}
+
+			/* Sin `flex-wrap`: en estrecho parte línea el TÍTULO y «Cambiar» se queda arriba a la derecha.
+   Con `wrap`, el botón caía solo a una segunda línea, a la izquierda. */
+			.vega-admin-subhead > .vega-admin-tag,
+			.vega-admin-subhead > .vega-admin-btn {
+				flex-shrink: 0;
+			}
+
+			/* Por debajo del punto estructural (768 px): título y «Cambiar» en la primera línea, la etiqueta
+   debajo. Sin esto el título se partía en tres líneas para hacer sitio a la etiqueta. */
+			@media (max-width: 768px) {
+				.vega-admin-subhead {
+					display: grid;
+					grid-template-columns: minmax(0, 1fr) auto;
+					gap: 0.4rem 0.75rem;
+				}
+
+				.vega-admin-subhead > .vega-admin-head-spacer {
+					display: none;
+				}
+
+				.vega-admin-subhead > .vega-admin-btn {
+					grid-column: 2;
+					grid-row: 1;
+				}
+
+				.vega-admin-subhead > .vega-admin-tag {
+					grid-column: 1 / -1;
+					justify-self: start;
+				}
+			}
+
+			.vega-admin-subhead h2 {
+				min-width: 0;
+				margin: 0;
+				font-size: 1.1rem;
+				color: var(--ink-hi);
+			}
+
+			/* Formulario dentro de una tarjeta (`.vega-admin-state` alinea a la izquierda): ocupa el ancho y
+   se queda en la medida de `.vega-admin-gate` (34rem) para que las líneas no se estiren a 1440. */
+			.vega-admin-form--inset {
+				width: 100%;
+				max-width: 34rem;
+			}
+
+			/* Dos campos en una línea (servidor + puerto). Se apilan solos cuando no caben. */
+			.vega-admin-form-row {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.9rem; /* el `gap` de `.vega-admin-form` */
+			}
+
+			.vega-admin-form-row > .vega-admin-field {
+				flex: 1 1 12rem;
+			}
+
+			/* Campo corto: 8rem, el ancho de los numéricos de `RevisionsSettings`. */
+			.vega-admin-form-row > .vega-admin-field--short {
+				flex: 0 1 8rem;
+			}
+
+			.vega-admin-input--short {
+				width: 8rem;
+				max-width: 100%;
+			}
+
+			.vega-admin-input--mono {
+				font-family: var(--mono);
+				font-size: 0.92em; /* el del campo ruta/slug (`.vega-field-row--path`) */
+			}
+
+			.vega-admin-input:focus-visible {
+				outline: 2px solid var(--ring);
+				outline-offset: 1px;
+				border-color: var(--line-strong);
+			}
+
+			/* Grupo de campos dentro de un formulario de administración: `fieldset` sin caja. */
+			.vega-admin-group {
+				display: flex;
+				flex-direction: column;
+				gap: 0.9rem;
+				min-width: 0;
+				margin: 0;
+				padding: 0;
+				border: 0;
+			}
+
+			.vega-admin-group > legend {
+				margin-bottom: 0.6rem;
+				padding: 0;
+				font-size: 0.6875rem;
+				font-weight: 650;
+				text-transform: uppercase;
+				letter-spacing: 0.06em;
+				color: var(--ink-2);
+			}
+
+			/* Casilla con rótulo. Casilla y no interruptor: aquí nada se aplica hasta «Guardar». */
+			.vega-admin-check {
+				display: flex;
+				align-items: flex-start;
+				gap: 0.6rem;
+				font-size: 0.88rem;
+				color: var(--ink);
+				cursor: pointer;
+			}
+
+			.vega-admin-check input {
+				margin-top: 0.2rem;
+				accent-color: var(--accent);
+			}
+
+			.vega-admin-check span span {
+				display: block;
+				color: var(--ink-2);
+				font-size: 0.82rem;
+			}
+
+			.vega-admin-form-actions {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: center;
+				gap: 0.5rem;
+			}
+
+			/* Bloque «probar» dentro de la tarjeta: separado del formulario por la misma raya de las filas. */
+			.vega-admin-test {
+				display: flex;
+				flex-direction: column;
+				gap: 0.6rem;
+				width: 100%;
+				max-width: 34rem;
+				padding-top: 0.9rem;
+				border-top: 1px solid var(--line);
+			}
+
+			.vega-admin-test-row {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: flex-end;
+				gap: 0.5rem;
+			}
+
+			.vega-admin-test-row .vega-admin-field {
+				flex: 1 1 12rem;
+			}
+
+			/* Resultado correcto de una prueba: la etiqueta de estado existente + una frase. */
+			.vega-admin-result {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: center;
+				gap: 0.4rem 0.6rem;
+				margin: 0;
+				font-size: 0.88rem;
+				color: var(--ink);
+			}
+
+			/* Salida literal del servidor: calco de `.vega-revisions-settings-json`, que ya ajusta líneas. */
+			.vega-admin-output {
+				max-height: 16rem;
+				margin: 0;
+				padding: 0.5rem;
+				overflow: auto;
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--surface);
+				color: var(--ink);
+				font-family: var(--mono);
+				font-size: 0.75rem;
+				white-space: pre-wrap;
+				overflow-wrap: anywhere;
+			}
+
+			/* Resumen de un ajuste guardado: pares rótulo/valor, como `.vega-editor-kv` pero a la izquierda. */
+			.vega-admin-summary {
+				display: flex;
+				flex-direction: column;
+				gap: 0.2rem;
+				width: 100%;
+				margin: 0;
+				font-size: 0.88rem;
+			}
+
+			.vega-admin-summary > div {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.15rem 0.6rem;
+			}
+
+			.vega-admin-summary dt {
+				flex: 0 0 10rem;
+				color: var(--ink-2);
+			}
+
+			.vega-admin-summary dd {
+				flex: 1 1 12rem;
+				min-width: 0;
+				margin: 0;
+				color: var(--ink);
+				overflow-wrap: anywhere;
+			}
+
+			.vega-admin-notice-body {
+				overflow-wrap: anywhere;
+			}
+
+			.vega-admin-notice code,
+			.vega-admin-dialog-text code,
+			.vega-admin-summary code {
+				font-family: var(--mono);
+				font-size: 0.92em;
+				overflow-wrap: anywhere;
+			}
+
+			/* El enlace de `.vega-conflict-link`, para «Detalle técnico» y «Quitar la contraseña guardada». */
+			.vega-admin-link {
+				align-self: flex-start;
+				padding: 0;
+				border: 0;
+				background: none;
+				color: var(--accent-text);
+				font: inherit;
+				font-size: 0.82rem;
+				cursor: pointer;
+			}
+
+			.vega-admin-link:hover {
+				text-decoration: underline;
+			}
+
+			details > summary.vega-admin-link {
+				list-style-position: inside;
+			}
+
+			details[open] > summary.vega-admin-link {
+				margin-bottom: 0.4rem;
+			}
+
+			@media (pointer: coarse) {
+				/* Medido a 390: el `select` se quedaba en 41 px y los campos en mono en 43 px. */
+				.vega-admin-input {
+					min-height: 44px;
+				}
+
+				.vega-admin-check,
+				.vega-admin-link {
+					min-height: 44px;
+					align-items: center;
+				}
+
+				.vega-admin-link {
+					display: inline-flex;
+				}
+
+				.vega-admin-check input {
+					margin-top: 0;
+				}
+			}
+
+			/* Existing P7 roles and AdminDialog geometry. This composition is design-only. */
+			* {
+				box-sizing: border-box;
+			}
+			html {
+				color-scheme: light dark;
+			}
+			body {
+				margin: 0;
+				background: var(--bg);
+				color: var(--ink);
+				font:
+					14px/1.5 system-ui,
+					-apple-system,
+					'Segoe UI',
+					sans-serif;
+			}
+			[hidden] {
+				display: none !important;
+			}
+			button,
+			input,
+			select,
+			textarea {
+				font: inherit;
+			}
+			button {
+				cursor: pointer;
+			}
+			:focus-visible {
+				outline: 2px solid var(--accent-text);
+				outline-offset: 2px;
+			}
+			.lab {
+				padding: 0.75rem 1rem;
+				display: flex;
+				align-items: center;
+				gap: 0.75rem;
+				flex-wrap: wrap;
+				background: var(--surface);
+				color: var(--ink-2);
+				border-bottom: 1px solid var(--line);
+			}
+			.lab small {
+				flex: 1 1 100%;
+			}
+			.lab select {
+				background: var(--surface);
+				color: var(--ink);
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				min-height: 44px;
+			}
+			.topbar {
+				height: 54px;
+				display: flex;
+				align-items: center;
+				gap: 1rem;
+				padding: 0 1rem;
+				background: var(--paper);
+				border-bottom: 1px solid var(--line);
+			}
+			.layout {
+				display: grid;
+				grid-template-columns: 236px minmax(0, 1fr);
+				min-height: 690px;
+			}
+			.sidebar {
+				padding: 1rem;
+				background: var(--sidebar);
+				border-right: 1px solid var(--line);
+			}
+			.sidebar p {
+				padding: 0.65rem 1rem;
+				margin: 0;
+			}
+			.active {
+				background: var(--active);
+				border-radius: var(--r);
+			}
+			main.workspace {
+				padding: 1.5rem;
+				min-width: 0;
+			}
+			.editbar {
+				display: flex;
+				gap: 0.75rem;
+				flex-wrap: wrap;
+				align-items: center;
+				margin-bottom: 1.5rem;
+			}
+			.editbar h1 {
+				font-size: 1.3rem;
+				margin: 0;
+			}
+			.editbar .actions {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.5rem;
+				margin-left: auto;
+			}
+			.field-card {
+				padding: var(--pad-card);
+				background: var(--paper);
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				max-width: 60rem;
+			}
+			.field-card h2 {
+				font-size: 1.3rem;
+				margin: 0 0 1rem;
+			}
+			.field-card p {
+				color: var(--ink-2);
+			}
+			.backdrop {
+				position: fixed;
+				z-index: 70;
+				inset: 0;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				padding: 1rem;
+				background: rgb(15 17 21 / 55%);
+			}
+			.vega-admin-dialog {
+				max-height: calc(100dvh - 2rem);
+			}
+			.vega-admin-dialog-head h2 {
+				overflow-wrap: anywhere;
+			}
+			.vega-admin-icon-btn {
+				min-width: 44px;
+				min-height: 44px;
+			}
+			.vega-admin-input {
+				min-height: 44px;
+			}
+			.vega-admin-dialog-actions button,
+			.vega-admin-dialog .vega-admin-btn {
+				height: auto;
+				min-height: 44px;
+				white-space: normal;
+				justify-content: center;
+			}
+			.context {
+				margin: 0;
+				font-size: 0.85rem;
+				color: var(--ink-2);
+				overflow-wrap: anywhere;
+			}
+			.note {
+				padding: 0.75rem;
+				border: 1px solid var(--line);
+				border-radius: var(--r);
+				background: var(--surface-2);
+				font-size: 0.85rem;
+				color: var(--ink-2);
+			}
+			.notice {
+				padding: 0.75rem;
+				background: var(--warning-soft);
+				color: var(--warning);
+				border-radius: var(--r);
+				font-size: 0.85rem;
+			}
+			.success {
+				padding: 0.75rem;
+				background: var(--success-soft);
+				color: var(--success);
+				border-radius: var(--r);
+				font-size: 0.85rem;
+			}
+			.error {
+				padding: 0.75rem;
+				background: var(--danger-soft);
+				color: var(--danger);
+				border-radius: var(--r);
+				font-size: 0.85rem;
+			}
+			.status {
+				font-size: 0.85rem;
+				color: var(--ink-2);
+				margin: 0;
+			}
+			.duration {
+				display: grid;
+				grid-template-columns: 1fr 1.2fr;
+				gap: 0.5rem;
+			}
+			.link-row {
+				padding: 1rem 0;
+				border-block: 1px solid var(--line);
+				display: flex;
+				flex-direction: column;
+				gap: 0.5rem;
+			}
+			.link-row h3 {
+				margin: 0;
+				font-size: 1rem;
+				overflow-wrap: anywhere;
+			}
+			.link-meta {
+				display: grid;
+				gap: 0.25rem;
+				font-size: 0.82rem;
+				color: var(--ink-2);
+			}
+			.row-foot {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				gap: 0.5rem;
+			}
+			.state-label {
+				font-size: 0.82rem;
+				font-weight: 650;
+				color: var(--success);
+			}
+			.state-label.expired {
+				color: var(--ink-2);
+			}
+			.url {
+				font-family: var(--mono);
+				font-size: 0.82rem;
+				resize: none;
+				overflow-wrap: anywhere;
+				width: 100%;
+				min-height: 7rem;
+			}
+			.actions-stack {
+				display: flex;
+				gap: 0.5rem;
+				flex-wrap: wrap;
+			}
+			.empty {
+				padding: 1.5rem 0;
+				text-align: left;
+			}
+			.empty h3 {
+				font-size: 1rem;
+				margin: 0 0 0.5rem;
+			}
+			.close-note {
+				font-size: 0.85rem;
+				color: var(--ink-2);
+				margin: 0;
+			}
+			.view {
+				display: flex;
+				flex-direction: column;
+				gap: 0.9rem;
+			}
+			.vega-admin-field-error {
+				margin: 0.35rem 0 0;
+			}
+			@media (max-width: 768px) {
+				.layout {
+					display: block;
+				}
+				.sidebar {
+					display: none;
+				}
+				main.workspace {
+					padding: 1rem;
+				}
+				.editbar .actions {
+					margin-left: 0;
+				}
+				.editbar button {
+					min-height: 44px;
+				}
+				.field-card {
+					padding: 1.1rem;
+				}
+				.lab label {
+					display: grid;
+					width: 100%;
+					gap: 0.25rem;
+				}
+				.vega-admin-dialog-actions {
+					display: grid;
+					grid-template-columns: 1fr;
+				}
+				.vega-admin-dialog-actions .primary {
+					order: -1;
+				}
+				.vega-admin-dialog {
+					padding: 1.5rem;
+				}
+				.actions-stack {
+					display: grid;
+					grid-template-columns: 1fr;
+				}
+			}
+			@media (prefers-reduced-motion: reduce) {
+				*,
+				*::before,
+				*::after {
+					animation: none !important;
+					transition: none !important;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="lab">
+			<strong>Vega · preview compartida · mockup</strong
+			><label
+				>Idioma
+				<select id="language">
+					<option value="es">Español</option>
+					<option value="en">English</option>
+				</select></label
+			><label
+				>Tema
+				<select id="theme">
+					<option>niebla</option>
+					<option>miel</option>
+					<option>aquelarre</option>
+				</select></label
+			><label
+				>Modo
+				<select id="mode">
+					<option value="system">Sistema</option>
+					<option value="light">Claro</option>
+					<option value="dark">Oscuro</option>
+				</select></label
+			><label
+				>Estado
+				<select id="scenario">
+					<option value="normal">Normal</option>
+					<option value="dirty">Sin guardar</option>
+					<option value="empty">Sin enlaces</option>
+					<option value="expired">Caduca mientras está abierto</option>
+					<option value="revoked">Anulado en esta sesión</option>
+					<option value="long">Etiqueta larga</option>
+					<option value="loading">Cargando lista</option>
+					<option value="busy">Creando</option>
+					<option value="error">Error de servidor</option>
+					<option value="ttl">Duración rechazada</option>
+					<option value="uncertain">Creación incierta</option>
+					<option value="denied">Sin permiso de edición</option>
+					<option value="new">Registro nuevo</option>
+					<option value="unsupported">Sin preview.share</option>
+				</select></label
+			><small data-copy="mockup"></small>
+		</div>
+		<div id="parent-screen">
+			<header class="topbar"><strong>Vega</strong><span>fodaveg.net</span></header>
+			<div class="layout">
+				<aside class="sidebar">
+					<p class="active">Páginas</p>
+					<p>Entradas</p>
+					<p>Medios</p>
+					<p>Ajustes</p>
+				</aside>
+				<main class="workspace">
+					<header class="editbar">
+						<h1>Sobre mí</h1>
+						<span id="saved-state"></span>
+						<div class="actions">
+							<button class="vega-admin-btn" id="open" data-copy="open"></button
+							><button class="vega-admin-btn" data-copy="save"></button>
+						</div>
+					</header>
+					<div class="field-card">
+						<h2>Sobre mí</h2>
+						<p>/sobre-mi</p>
+						<p id="availability" hidden></p>
+					</div>
+				</main>
+			</div>
+		</div>
+		<div class="backdrop" id="modal" hidden>
+			<section
+				class="vega-admin-dialog"
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="dialog-title"
+				aria-describedby="context"
+			>
+				<header class="vega-admin-dialog-head">
+					<h2 id="dialog-title"></h2>
+					<button id="close" class="vega-admin-icon-btn" aria-label="Cerrar">×</button>
+				</header>
+				<p class="context" id="context">Sobre mí · /sobre-mi</p>
+				<div class="notice" id="dirty-notice" data-copy="dirtyNotice" hidden></div>
+				<div id="manage" class="view">
+					<p class="vega-admin-dialog-text" data-copy="scope"></p>
+					<p id="load-status" class="status" hidden></p>
+					<div id="list-error" class="error" hidden>
+						<p data-copy="listError"></p>
+						<button id="retry" class="vega-admin-btn" data-copy="retry"></button>
+					</div>
+					<div id="link-row" class="link-row">
+						<h3 id="link-label">Ana (client)</h3>
+						<div class="link-meta"><span id="created"></span><span id="expires"></span></div>
+						<div class="row-foot">
+							<span class="state-label" id="link-state"></span
+							><button class="vega-admin-btn" id="revoke" data-copy="revoke"></button>
+						</div>
+					</div>
+					<div id="empty" class="empty" hidden>
+						<h3 data-copy="emptyTitle"></h3>
+						<p class="status" data-copy="emptyBody"></p>
+					</div>
+					<p class="success" id="revoked-notice" data-copy="revoked" hidden></p>
+					<p class="close-note" data-copy="listNoUrl"></p>
+					<div class="vega-admin-dialog-actions">
+						<button id="done" class="vega-admin-btn" data-copy="close"></button
+						><button
+							id="new-link"
+							class="vega-admin-btn vega-admin-btn--primary primary"
+							data-copy="newLink"
+						></button>
+					</div>
+				</div>
+				<form id="create" class="view" novalidate hidden>
+					<div class="vega-admin-field">
+						<label for="label" data-copy="label"></label
+						><input id="label" class="vega-admin-input" maxlength="120" />
+						<p class="vega-admin-help" data-copy="labelHelp"></p>
+					</div>
+					<div class="vega-admin-field">
+						<label for="quantity" data-copy="duration"></label>
+						<div class="duration">
+							<input
+								id="quantity"
+								class="vega-admin-input"
+								inputmode="numeric"
+								type="number"
+								step="1"
+								value="1"
+							/><select id="unit" class="vega-admin-input" aria-label="Unidad de duración">
+								<option value="86400" data-copy="days"></option>
+								<option value="3600" data-copy="hours"></option>
+								<option value="60" data-copy="minutes"></option>
+								<option value="1" data-copy="seconds"></option>
+							</select>
+						</div>
+						<p class="vega-admin-help" data-copy="durationHelp"></p>
+						<p id="ttl-error" class="vega-admin-field-error" hidden></p>
+					</div>
+					<p class="note" data-copy="publicScope"></p>
+					<div id="create-error" class="error" role="alert" hidden></div>
+					<div class="vega-admin-dialog-actions">
+						<button type="button" id="back" class="vega-admin-btn" data-copy="cancel"></button
+						><button
+							type="submit"
+							id="create-submit"
+							class="vega-admin-btn vega-admin-btn--primary primary"
+							data-copy="create"
+						></button>
+					</div>
+				</form>
+				<div id="success" class="view" hidden>
+					<p class="success" data-copy="createdSuccess"></p>
+					<p class="status" id="new-expires"></p>
+					<div class="vega-admin-field">
+						<label for="url" data-copy="url"></label
+						><textarea id="url" class="vega-admin-input url" readonly spellcheck="false"></textarea>
+					</div>
+					<p class="note" data-copy="oneTime"></p>
+					<p class="status" id="copy-status" role="status"></p>
+					<div class="vega-admin-dialog-actions">
+						<button id="success-close" class="vega-admin-btn" data-copy="close"></button
+						><button
+							id="copy"
+							class="vega-admin-btn vega-admin-btn--primary primary"
+							data-copy="copy"
+						></button>
+					</div>
+				</div>
+				<div id="close-confirm" class="view" hidden>
+					<p data-copy="closeWarning"></p>
+					<div class="vega-admin-dialog-actions">
+						<button id="keep" class="vega-admin-btn primary" data-copy="keep"></button
+						><button id="lose" class="vega-admin-btn" data-copy="closeLose"></button>
+					</div>
+				</div>
+				<div id="revoke-confirm" class="view" hidden>
+					<p><strong id="revoke-label"></strong></p>
+					<p class="vega-admin-dialog-text" data-copy="revokeWarning"></p>
+					<div id="revoke-error" class="error" role="alert" hidden></div>
+					<div class="vega-admin-dialog-actions">
+						<button id="revoke-cancel" class="vega-admin-btn" data-copy="cancel"></button
+						><button
+							id="revoke-submit"
+							class="vega-admin-btn vega-admin-btn--danger primary"
+							data-copy="revokeConfirm"
+						></button>
+					</div>
+				</div>
+			</section>
+		</div>
+		<script>
+			// Local simulation. Reserved .test URL is a synthetic fixture, never a live secret.
+			const copy = {
+				es: {
+					mockup:
+						'Montaje con página real de fixture y datos del contrato · simulación local · no crea enlaces reales ni modifica el portapapeles.',
+					open: 'Compartir vista previa',
+					save: 'Guardar',
+					saved: 'Guardado',
+					dirty: 'sin guardar',
+					dirtyNotice:
+						'Hay cambios sin guardar. El enlace muestra lo guardado, no estos cambios. Cada vez que guardes después, el enlace mostrará esa versión.',
+					scope:
+						'Quien tenga un enlace verá lo que esté guardado al abrirlo, aunque la página no esté publicada.',
+					manageTitle: 'Enlaces de vista previa',
+					createTitle: 'Crear enlace',
+					successTitle: 'Copia el enlace ahora',
+					revokeTitle: '¿Anular este enlace?',
+					closeTitle: '¿Cerrar sin copiar?',
+					label: 'Etiqueta (opcional)',
+					labelHelp: 'Para reconocer el enlace. No cambia quién puede abrirlo.',
+					duration: 'Duración',
+					durationHelp: 'Máximo 30 días. El servidor valida la duración permitida.',
+					days: 'Días',
+					hours: 'Horas',
+					minutes: 'Minutos',
+					seconds: 'Segundos',
+					publicScope:
+						'Cualquiera que reciba el enlace podrá ver la página guardada. Puedes anularlo; dejará de funcionar en la siguiente visita.',
+					active: 'Activo',
+					expired: 'Caducado',
+					createdAt: 'Creado: {date}',
+					expiresAt: 'Caduca: {date}',
+					expiredAt: 'Caducó: {date}',
+					emptyTitle: 'No hay enlaces activos',
+					emptyBody: 'Crea uno cuando quieras compartir la página guardada.',
+					revoked: 'Enlace anulado. Ya no funcionará en la siguiente visita.',
+					listNoUrl:
+						'Las direcciones no se pueden recuperar. Si has perdido una, crea otro enlace y anula el anterior.',
+					newLink: 'Crear enlace',
+					create: 'Crear enlace',
+					cancel: 'Cancelar',
+					close: 'Cerrar',
+					revoke: 'Anular',
+					revokeConfirm: 'Anular enlace',
+					revokeWarning:
+						'Quien lo abra a partir de ahora ya no podrá ver la página. Anular no borra la página ni se puede deshacer.',
+					createdSuccess: 'Enlace creado',
+					url: 'Enlace para compartir',
+					oneTime:
+						'Esta dirección solo se muestra ahora. Cópiala antes de cerrar: después no podrás recuperarla.',
+					copy: 'Copiar enlace',
+					copied: 'Copiado (simulación)',
+					closeWarning:
+						'No volverás a ver esta dirección. El enlace seguirá activo hasta que caduque o lo anules.',
+					keep: 'Volver al enlace',
+					closeLose: 'Cerrar sin copiar',
+					loading: 'Cargando enlaces…',
+					creating: 'Creando…',
+					listError:
+						'No se pudieron cargar los enlaces. La lista puede estar incompleta; vuelve a intentarlo.',
+					retry: 'Reintentar',
+					ttlLocal: 'Escribe una duración entera positiva, de 30 días como máximo.',
+					ttlServer: 'El servidor no acepta esta duración. Elige otra; el valor no se ha cambiado.',
+					createError: 'No se pudo crear el enlace. Se conservan la etiqueta y la duración.',
+					uncertain:
+						'No sabemos si el enlace llegó a crearse. Consulta los enlaces activos antes de repetir: si aparece el nuevo pero no recibiste su URL, anúlalo y crea otro.',
+					denied: 'Compartir requiere permiso para editar esta página.',
+					new: 'Guarda la página antes de compartir una vista previa.',
+					unsupported: 'Este sitio no ofrece enlaces de vista previa.',
+					unlabeled: 'Sin etiqueta',
+					limit: 'Esta página ya tiene 20 enlaces activos. Anula uno antes de crear otro.'
+				},
+				en: {
+					mockup:
+						'Composition with a real fixture page and contract data · local simulation · no real links or clipboard changes.',
+					open: 'Share preview',
+					save: 'Save',
+					saved: 'Saved',
+					dirty: 'unsaved',
+					dirtyNotice:
+						'There are unsaved changes. The link shows saved content, not these changes. Each later save will be visible through the link.',
+					scope:
+						'Anyone with a link sees what is saved when they open it, even if the page is not published.',
+					manageTitle: 'Preview links',
+					createTitle: 'Create link',
+					successTitle: 'Copy the link now',
+					revokeTitle: 'Revoke this link?',
+					closeTitle: 'Close without copying?',
+					label: 'Label (optional)',
+					labelHelp: 'To recognise this link. It does not change who can open it.',
+					duration: 'Lifetime',
+					durationHelp: 'Up to 30 days. The server validates the allowed lifetime.',
+					days: 'Days',
+					hours: 'Hours',
+					minutes: 'Minutes',
+					seconds: 'Seconds',
+					publicScope:
+						'Anyone who receives the link can view the saved page. You can revoke it; it stops working on the next visit.',
+					active: 'Active',
+					expired: 'Expired',
+					createdAt: 'Created: {date}',
+					expiresAt: 'Expires: {date}',
+					expiredAt: 'Expired: {date}',
+					emptyTitle: 'No active links',
+					emptyBody: 'Create one when you want to share the saved page.',
+					revoked: 'Link revoked. It will no longer work on the next visit.',
+					listNoUrl:
+						'Link addresses cannot be recovered. If you lose one, create a new link and revoke the old one.',
+					newLink: 'Create link',
+					create: 'Create link',
+					cancel: 'Cancel',
+					close: 'Close',
+					revoke: 'Revoke',
+					revokeConfirm: 'Revoke link',
+					revokeWarning:
+						'Anyone opening it from now on will no longer see the page. Revoking does not delete the page and cannot be undone.',
+					createdSuccess: 'Link created',
+					url: 'Link to share',
+					oneTime:
+						'This address is only shown now. Copy it before closing: you cannot recover it afterwards.',
+					copy: 'Copy link',
+					copied: 'Copied (simulation)',
+					closeWarning:
+						'You will not see this address again. The link remains active until it expires or you revoke it.',
+					keep: 'Back to the link',
+					closeLose: 'Close without copying',
+					loading: 'Loading links…',
+					creating: 'Creating…',
+					listError: 'Links could not be loaded. The list may be incomplete; please try again.',
+					retry: 'Retry',
+					ttlLocal: 'Enter a positive whole lifetime, up to 30 days.',
+					ttlServer:
+						'The server does not accept this lifetime. Choose another; the value has not been changed.',
+					createError: 'The link could not be created. Label and lifetime have been kept.',
+					uncertain:
+						'We do not know whether the link was created. Check active links before retrying. If it appears but you did not receive its URL, revoke it and create another.',
+					denied: 'Sharing requires permission to edit this page.',
+					new: 'Save the page before sharing a preview.',
+					unsupported: 'This site does not offer preview links.',
+					unlabeled: 'No label',
+					limit: 'This page already has 20 active links. Revoke one before creating another.'
+				}
+			};
+			const $ = (id) => document.getElementById(id),
+				params = new URLSearchParams(location.search),
+				mq = matchMedia('(prefers-color-scheme:dark)');
+			let lang = params.get('lang') || 'es',
+				scenario = params.get('state') || 'normal',
+				stage = 'create',
+				view = 'manage',
+				secret = null,
+				copied = false,
+				busy = false,
+				rowExists = true,
+				label = 'Ana (client)';
+			const fixtureCreated = '2026-10-01T12:00:00.000Z',
+				fixtureExpires = '2026-10-08T12:00:00.000Z',
+				clock = '2026-10-07T08:00:00.000Z';
+			const t = (k, v = '') => copy[lang][k].replace('{date}', v);
+			const fmt = (iso) =>
+				new Intl.DateTimeFormat(lang === 'es' ? 'es-ES' : 'en-GB', {
+					dateStyle: 'medium',
+					timeStyle: 'short',
+					timeZone: 'Europe/Madrid'
+				}).format(new Date(iso)) + ' · Europe/Madrid';
+			function translate() {
+				document.documentElement.lang = lang;
+				document
+					.querySelectorAll('[data-copy]')
+					.forEach((el) => (el.textContent = t(el.dataset.copy)));
+				$('close').ariaLabel = t('close');
+				$('unit').ariaLabel = lang === 'es' ? 'Unidad de duración' : 'Lifetime unit';
+				$('saved-state').textContent = t(scenario === 'dirty' ? 'dirty' : 'saved');
+			}
+			function theme() {
+				document.documentElement.dataset.theme = $('theme').value;
+				document.documentElement.dataset.mode =
+					$('mode').value === 'system' ? (mq.matches ? 'dark' : 'light') : $('mode').value;
+			}
+			function setView(next) {
+				view = next;
+				for (const id of ['manage', 'create', 'success', 'close-confirm', 'revoke-confirm'])
+					$(id).hidden = id !== next;
+				const key = {
+					manage: 'manageTitle',
+					create: 'createTitle',
+					success: 'successTitle',
+					'close-confirm': 'closeTitle',
+					'revoke-confirm': 'revokeTitle'
+				}[next];
+				$('dialog-title').textContent = t(key);
+				$('dirty-notice').hidden = scenario !== 'dirty';
+				requestAnimationFrame(() => {
+					const first = $(next).querySelector('input,textarea,button');
+					(first || $('close')).focus();
+				});
+			}
+			function manage() {
+				setView('manage');
+				const loading = scenario === 'loading',
+					error = scenario === 'error',
+					expired = scenario === 'expired';
+				$('load-status').hidden = !loading;
+				$('load-status').textContent = t('loading');
+				$('list-error').hidden = !error;
+				$('link-row').hidden = !rowExists || loading || error;
+				$('empty').hidden = rowExists || loading || error;
+				$('link-label').textContent = label || t('unlabeled');
+				$('created').textContent = t('createdAt', fmt(fixtureCreated));
+				$('expires').textContent = t(expired ? 'expiredAt' : 'expiresAt', fmt(fixtureExpires));
+				$('link-state').textContent = t(expired ? 'expired' : 'active');
+				$('link-state').classList.toggle('expired', expired);
+				$('revoke').hidden = expired;
+				$('new-link').disabled = loading || error;
+				$('revoked-notice').hidden = scenario !== 'revoked';
+			}
+			function showSuccess(ttl = 86400) {
+				secret = 'https://example.test/preview-share/s1.k3j9x0q2m5n8p1r.Zm9vYmFyLW1vY2t1cC1vbmx5';
+				copied = false;
+				$('url').value = secret;
+				$('copy-status').textContent = '';
+				$('new-expires').textContent = t(
+					'expiresAt',
+					fmt(new Date(Date.parse(clock) + ttl * 1000).toISOString())
+				);
+				setView('success');
+			}
+			function clearAndClose() {
+				secret = null;
+				$('url').value = '';
+				$('copy-status').textContent = '';
+				$('modal').hidden = true;
+				$('parent-screen').inert = false;
+				$('open').focus();
+			}
+			function requestClose() {
+				if (busy) return;
+				if (secret && !copied) {
+					setView('close-confirm');
+					return;
+				}
+				clearAndClose();
+			}
+			function open() {
+				if (['denied', 'new', 'unsupported'].includes(scenario)) return;
+				$('modal').hidden = false;
+				$('parent-screen').inert = true;
+				if (scenario === 'expired' || scenario === 'revoked') {
+					rowExists = false;
+					scenario = 'empty';
+				}
+				manage();
+			}
+			function reset() {
+				lang = $('language').value;
+				scenario = $('scenario').value;
+				translate();
+				theme();
+				busy = scenario === 'busy';
+				rowExists = !['empty', 'revoked'].includes(scenario);
+				label =
+					scenario === 'long'
+						? 'Migrar el blog de Hugo a Astro sin romper las URLs · revisión de contenido y enlaces existentes'
+						: 'Ana (client)';
+				secret = null;
+				copied = false;
+				$('url').value = '';
+				$('label').value = scenario === 'long' ? label : '';
+				$('create-error').hidden = true;
+				$('ttl-error').hidden = true;
+				$('quantity').removeAttribute('aria-invalid');
+				$('create').ariaBusy = String(busy);
+				$('close').ariaDisabled = String(busy);
+				$('create-submit').disabled = busy;
+				$('back').disabled = busy;
+				$('label').readOnly = busy;
+				$('quantity').readOnly = busy;
+				$('unit').disabled = busy;
+				const unavailable = ['denied', 'new', 'unsupported'].includes(scenario);
+				$('open').hidden = unavailable;
+				$('availability').hidden = !unavailable;
+				if (unavailable) $('availability').textContent = t(scenario);
+				$('modal').hidden = unavailable;
+				$('parent-screen').inert = !unavailable;
+				if (unavailable) return;
+				manage();
+				if (stage === 'create' || ['busy', 'ttl', 'uncertain'].includes(scenario)) {
+					setView('create');
+					if (busy) $('create-submit').textContent = t('creating');
+					if (scenario === 'ttl') {
+						$('ttl-error').hidden = false;
+						$('ttl-error').textContent = t('ttlServer');
+						$('quantity').setAttribute('aria-invalid', 'true');
+					}
+					if (scenario === 'uncertain') {
+						$('create-error').hidden = false;
+						$('create-error').textContent = t('uncertain');
+						$('create-submit').disabled = true;
+						$('back').textContent =
+							lang === 'es' ? 'Consultar enlaces activos' : 'Check active links';
+					}
+				}
+				if (stage === 'success') showSuccess();
+			}
+			$('open').onclick = open;
+			for (const id of ['close', 'done', 'success-close']) $(id).onclick = requestClose;
+			$('keep').onclick = () => setView('success');
+			$('lose').onclick = clearAndClose;
+			$('new-link').onclick = () => setView('create');
+			$('back').onclick = () => {
+				if (busy) return;
+				scenario = 'normal';
+				manage();
+			};
+			$('copy').onclick = () => {
+				copied = true;
+				$('copy-status').textContent = t('copied');
+			};
+			$('retry').onclick = () => {
+				scenario = 'normal';
+				manage();
+			};
+			$('revoke').onclick = () => {
+				$('revoke-label').textContent = label || t('unlabeled');
+				setView('revoke-confirm');
+			};
+			$('revoke-cancel').onclick = () => {
+				manage();
+				requestAnimationFrame(() => $('revoke').focus());
+			};
+			$('revoke-submit').onclick = () => {
+				rowExists = false;
+				scenario = 'revoked';
+				manage();
+			};
+			$('create').onsubmit = (e) => {
+				e.preventDefault();
+				if (busy) return;
+				const qty = Number($('quantity').value),
+					ttl = qty * Number($('unit').value);
+				if (!Number.isInteger(qty) || qty <= 0 || !Number.isInteger(ttl) || ttl > 2592000) {
+					$('ttl-error').hidden = false;
+					$('ttl-error').textContent = t('ttlLocal');
+					$('quantity').setAttribute('aria-invalid', 'true');
+					$('quantity').focus();
+					return;
+				}
+				if (scenario === 'ttl') {
+					$('ttl-error').hidden = false;
+					$('ttl-error').textContent = t('ttlServer');
+					$('quantity').focus();
+					return;
+				}
+				if (scenario === 'error') {
+					$('create-error').hidden = false;
+					$('create-error').textContent = t('createError');
+					return;
+				}
+				label = $('label').value.trim();
+				rowExists = true;
+				showSuccess(ttl);
+			};
+			$('quantity').ariaDescribedBy = 'ttl-error';
+			$('modal').addEventListener('keydown', (e) => {
+				if (e.key === 'Escape') {
+					e.preventDefault();
+					requestClose();
+				}
+				if (e.key === 'Tab') {
+					const els = [...$('modal').querySelectorAll('button,input,select,textarea')].filter(
+						(el) => !el.disabled && el.getClientRects().length
+					);
+					const first = els[0],
+						last = els.at(-1);
+					if (e.shiftKey && document.activeElement === first) {
+						e.preventDefault();
+						last.focus();
+					} else if (!e.shiftKey && document.activeElement === last) {
+						e.preventDefault();
+						first.focus();
+					}
+				}
+			});
+			$('language').value = ['es', 'en'].includes(lang) ? lang : 'es';
+			$('scenario').value = scenario;
+			$('theme').value = params.get('theme') || 'niebla';
+			$('mode').value = params.get('mode') || 'system';
+			for (const id of ['language', 'scenario']) $(id).onchange = reset;
+			for (const id of ['theme', 'mode']) $(id).onchange = theme;
+			mq.addEventListener('change', theme);
+			window.addEventListener('message', (e) => {
+				if (e.source !== parent || e.data?.type !== 'preview-design') return;
+				for (const key of ['theme', 'mode']) if (e.data[key]) $(key).value = e.data[key];
+				if (e.data.lang) $('language').value = e.data.lang;
+				reset();
+			});
+			reset();
+		</script>
+	</body>
+</html>
