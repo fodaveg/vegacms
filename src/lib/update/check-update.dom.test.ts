@@ -36,6 +36,26 @@ describe('checkForUpdate: TTL de la caché', () => {
 		expect(result).toEqual(cachedStatus);
 	});
 
+	test('caché reciente con enlace a otro repo → aviso sin enlace y sin fetch', async () => {
+		writeCachedUpdateCheck({
+			kind: 'update-available',
+			current: VEGA_VERSION,
+			latest: '999.0.0',
+			releaseUrl: 'https://github.com/otro/otro/releases/tag/v999.0.0'
+		});
+		const fetchImpl = vi.fn();
+
+		const result = await checkForUpdate(fetchImpl as unknown as typeof fetch);
+
+		expect(fetchImpl).not.toHaveBeenCalled();
+		expect(result).toEqual({
+			kind: 'update-available',
+			current: VEGA_VERSION,
+			latest: '999.0.0',
+			releaseUrl: null
+		});
+	});
+
 	test('caché caducada (> 4h) → SÍ llama a fetch y re-escribe la caché', async () => {
 		const staleStatus = { kind: 'up-to-date' as const, current: '0.0.1', latest: '0.0.1' };
 		writeCachedUpdateCheck(staleStatus);
