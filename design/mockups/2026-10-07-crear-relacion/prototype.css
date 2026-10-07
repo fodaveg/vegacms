@@ -1,0 +1,286 @@
+/* Composition only. Tokens, dialog, buttons and fields come from existing Vega CSS. */
+* {
+	box-sizing: border-box;
+}
+html {
+	color-scheme: light dark;
+}
+body {
+	margin: 0;
+	font:
+		14px/1.5 system-ui,
+		-apple-system,
+		'Segoe UI',
+		sans-serif;
+	background: var(--bg);
+	color: var(--ink);
+}
+[hidden] {
+	display: none !important;
+}
+button,
+input,
+textarea,
+select {
+	font: inherit;
+}
+button {
+	cursor: pointer;
+}
+:focus-visible {
+	outline: 2px solid var(--accent-text);
+	outline-offset: 2px;
+}
+.lab {
+	padding: 0.75rem 1rem;
+	background: var(--surface);
+	border-bottom: 1px solid var(--line);
+	display: flex;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+	align-items: center;
+	color: var(--ink-2);
+}
+.lab select {
+	color: var(--ink);
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--r);
+	min-height: 44px;
+	max-width: 100%;
+}
+.lab small {
+	flex: 1 1 100%;
+}
+.topbar {
+	height: 54px;
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	padding: 0 1rem;
+	background: var(--paper);
+	border-bottom: 1px solid var(--line);
+}
+.layout {
+	display: grid;
+	grid-template-columns: 236px minmax(0, 1fr);
+	min-height: 690px;
+}
+.sidebar {
+	background: var(--sidebar);
+	border-right: 1px solid var(--line);
+	padding: 1rem;
+}
+.sidebar p {
+	padding: 0.65rem 1rem;
+	margin: 0;
+	color: var(--ink);
+}
+.sidebar .active {
+	background: var(--active);
+	border-radius: var(--r);
+}
+.workspace {
+	min-width: 0;
+	padding: 1.5rem;
+}
+.editbar {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	margin-bottom: 1.5rem;
+}
+.editbar h1 {
+	margin: 0;
+	font-size: 1.3rem;
+	color: var(--ink-hi);
+}
+.editbar .save-parent {
+	margin-left: auto;
+}
+.dirty {
+	color: var(--ink);
+	font-size: 0.85rem;
+}
+.field-card {
+	padding: var(--pad-card);
+	background: var(--paper);
+	border: 1px solid var(--line);
+	border-radius: var(--r);
+	max-width: 60rem;
+}
+.field {
+	margin-bottom: 1.75rem;
+}
+.field:last-child {
+	margin: 0;
+}
+.field label {
+	display: block;
+	color: var(--ink-2);
+	font-size: 0.85rem;
+	font-weight: 600;
+	margin-bottom: 0.5rem;
+}
+.title-input {
+	width: 100%;
+	resize: vertical;
+	min-height: 3rem;
+	background: transparent;
+	border: 0;
+	border-bottom: 1px solid var(--line);
+	color: var(--ink-hi);
+	font-size: 1.3rem;
+	font-weight: 650;
+}
+.relation {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+.selected {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+}
+.chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 0.25rem 0.6rem;
+	border: 1px solid var(--accent);
+	border-radius: 999px;
+	background: var(--accent);
+	color: var(--accent-ink);
+	font-size: 0.85rem;
+	max-width: 100%;
+	min-width: 0;
+}
+.chip span {
+	overflow-wrap: anywhere;
+	min-width: 0;
+}
+.chip button {
+	min-height: 44px;
+	background: transparent;
+	color: inherit;
+	border: 0;
+	text-decoration: underline;
+}
+.status,
+.help {
+	color: var(--ink-2);
+	font-size: 0.85rem;
+	margin: 0.3rem 0;
+}
+.create-row {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+.create-row button {
+	white-space: normal;
+	height: auto;
+	min-height: 44px;
+	text-align: left;
+	overflow-wrap: anywhere;
+}
+.success {
+	color: var(--success);
+	background: var(--success-soft);
+	padding: 0.75rem;
+	border-radius: var(--r);
+	margin-top: 1rem;
+}
+.backdrop {
+	position: fixed;
+	z-index: 70;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1rem;
+	background: rgb(15 17 21 / 55%);
+}
+.vega-admin-dialog {
+	max-height: calc(100dvh - 2rem);
+}
+.vega-admin-dialog-head h2 {
+	overflow-wrap: anywhere;
+}
+.vega-admin-dialog-actions button {
+	white-space: normal;
+	height: auto;
+	min-height: 44px;
+	justify-content: center;
+}
+.vega-admin-icon-btn {
+	min-width: 44px;
+	min-height: 44px;
+}
+.vega-admin-input {
+	min-height: 44px;
+}
+.modal-note {
+	padding: 0.75rem;
+	background: var(--surface-2);
+	border: 1px solid var(--line);
+	border-radius: var(--r);
+	color: var(--ink-2);
+	font-size: 0.85rem;
+}
+.form-message {
+	color: var(--danger);
+	font-size: 0.85rem;
+}
+.duplicate {
+	background: var(--warning-soft);
+	color: var(--warning);
+	padding: 0.75rem;
+	border-radius: var(--r);
+}
+.duplicate button {
+	margin-top: 0.5rem;
+}
+@media (max-width: 768px) {
+	.layout {
+		display: block;
+	}
+	.sidebar {
+		display: none;
+	}
+	.workspace {
+		padding: 1rem;
+	}
+	.field-card {
+		padding: 1.1rem;
+	}
+	.editbar .save-parent {
+		margin-left: 0;
+		min-height: 44px;
+	}
+	.vega-admin-dialog {
+		padding: 1.5rem;
+	}
+	.vega-admin-dialog-actions {
+		display: grid;
+		grid-template-columns: 1fr;
+	}
+	.vega-admin-dialog-actions .primary {
+		order: -1;
+	}
+	.lab label {
+		display: grid;
+		width: 100%;
+		gap: 0.25rem;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation: none !important;
+		transition: none !important;
+	}
+}
