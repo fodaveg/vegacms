@@ -887,6 +887,31 @@ descubrible. En **Ajustes → Seguridad de la cuenta** se puede configurar/desac
 códigos de recuperación y registrar/eliminar passkeys. Si `authApiBasePath` no existe, la UI de
 seguridad no aparece y Vega usa exactamente el login estándar anterior.
 
+#### Un proceso para el flujo de autenticación reforzada
+
+La extensión de referencia requiere **un único proceso de PocketBase por servicio de
+autenticación**: guarda en memoria los retos pendientes de login/WebAuthn y las pruebas recientes
+de posesión. La prueba pertenece a la **sesión que la dio**, nunca a todas las sesiones de la cuenta,
+y dura cinco minutos; renovar el token conserva su vencimiento, sin alargarlo.
+
+Al reiniciar, los retos y las pruebas desaparecen. Hay que empezar de nuevo un login o una operación
+de passkey pendiente. Un token que sigue siendo válido conserva el uso normal de PocketBase, pero
+cambiar factores ya configurados sin una nueva prueba devuelve `428 step_up_required`: vuelve a
+acreditar posesión.
+Los factores y códigos de recuperación guardados permanecen en la base de datos.
+
+Para usar varias réplicas, hace falta enrutado fijo al mismo proceso durante login y su segundo paso,
+los pasos `begin`/`finish` de WebAuthn, la renovación de sesión y los cambios autorizados durante los
+cinco minutos de prueba. La afinidad debe sobrevivir a la renovación: el token de `Authorization`
+cambia y su hash tampoco sirve como clave estable de enrutado. Si se pierde el proceso asignado,
+se repiten los retos pendientes y se acredita de nuevo posesión en el sustituto.
+
+La alternativa es un almacén compartido de **pruebas y retos**, que esta extensión no implementa.
+Debe preservar el aislamiento por sesión, el vencimiento original y el consumo único de retos;
+compartir una prueba por cuenta daría autoridad a otras sesiones. No actives réplicas sin resolver
+esa frontera y revisar aparte las restricciones de despliegue y base de datos de PocketBase.
+Consulta los [límites de despliegue de `vegaauth`](../extensions/vegaauth/README.md#deployment-one-process-owns-the-authentication-flow).
+
 El backend bespoke de fodaveg ya implementa ese mismo protocolo de cliente: para reutilizarlo se
 configura `"authApiBasePath": "/api/fodaveg"`, sin duplicar sus handlers. Antes de considerar
 TOTP realmente obligatorio hay que desactivar también sus emisores nativos de token; el módulo

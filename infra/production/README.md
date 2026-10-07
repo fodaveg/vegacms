@@ -19,6 +19,17 @@ No se publica ningún puerto de PocketBase en el host. La persistencia vive en e
 > según [`docs/POCKETBASE-INTEGRATION.md`](../../docs/POCKETBASE-INTEGRATION.md). No asumas que
 > `admin.vegacms.com` tiene MFA disponible salvo que se haya desplegado esa variante.
 
+Si instalas esa variante Go, mantén **un único proceso de autenticación** mientras uses la extensión
+de referencia: los retos pendientes y las pruebas recientes de cada sesión viven en su memoria.
+Reiniciar el proceso obliga a repetir los retos y a acreditar posesión antes de cambiar factores
+ya configurados.
+Añadir réplicas requiere afinidad estable a través del login, WebAuthn y la renovación del token,
+o un almacén compartido de pruebas y retos que la extensión no implementa; el token renovable no
+sirve como clave estable de enrutado. Sigue los
+[límites operativos de autenticación](../../docs/POCKETBASE-INTEGRATION.md#un-proceso-para-el-flujo-de-autenticación-reforzada).
+Tener un único destino en el proxy o recibir un health check correcto no demuestra que la variante
+Go esté instalada ni que sus rutas de autenticación reforzada estén activas.
+
 ## Ubicaciones del servidor
 
 - checkout y Compose: `/srv/vega`;

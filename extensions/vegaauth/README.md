@@ -95,7 +95,7 @@ enabled or at least one passkey). These routes are guarded:
 
 A guarded request goes through when either of these holds:
 
-- the account proved possession of a second factor in the last **five minutes**: a login finished
+- this session proved possession of a second factor in the last **five minutes**: a login finished
   with TOTP, a recovery code or a passkey, a successful `POST /totp/verify`, or a passkey
   verification (below);
 - its JSON body carries `"code"` with the account's current TOTP code. A right code also counts as
@@ -180,8 +180,35 @@ refreshes before loading security settings. Direct clients must also refresh bef
 operations (or sign in again); merely resending a TOTP code on the legacy session is rejected
 without spending that code. Non-refreshable static/impersonation tokens retain their existing
 proof contract because they are a deliberate PocketBase capability, not independently issued
-refreshable login sessions. A multi-replica deployment still needs sticky routing for in-memory
-proofs and challenges.
+refreshable login sessions.
+
+## Deployment: one process owns the authentication flow
+
+Run this reference extension in **one PocketBase process per authentication service**. Pending
+password/TOTP logins, WebAuthn challenges and recent proofs of possession are held in that
+process's memory; sharing the PocketBase database does not share them.
+
+A restart loses those pending challenges and proofs. Start an interrupted login or WebAuthn
+ceremony again from its first step. A still-valid session token remains valid for normal
+PocketBase requests, but when the account already has a factor, a change without a new proof
+receives `428 step_up_required`: the session must prove possession again. A restart never turns
+another session's proof into authority, and stored factors and recovery codes are not lost with
+the in-memory state.
+
+Before putting multiple replicas behind the same authentication service, provide **stable
+affinity to the same process** across the whole flow: password login and its TOTP/recovery step,
+WebAuthn `begin`/`finish`, PocketBase auth-refresh, proof verification and the factor changes
+authorized during the five-minute proof window. Affinity must survive token renewal; routing by
+the current `Authorization` token or its hash is unsuitable because refresh changes that token.
+If the selected process restarts or disappears, restart pending ceremonies and ask for a fresh
+proof on the replacement process rather than assuming the old in-memory state survived.
+
+A shared proof **and challenge** store is the alternative, but this extension does not implement
+one. Such a design must keep proofs isolated by session, preserve their original expiry when a
+token is renewed and consume challenges only once. Sharing proof by account would let unrelated
+sessions inherit authority and violates the proof-of-possession contract. Multiple replicas
+without either stable affinity or a shared store are unsupported; enabling them also requires a
+separate review of PocketBase's database and deployment constraints.
 
 ## Security notes
 
@@ -228,8 +255,9 @@ proofs and challenges.
 - Locks escalate (5, 10, 15… up to 60 minutes) for as long as the failures keep coming: the
   15-minute window is measured from the last attempt or from the end of the last lock, whichever
   is later, so sitting out a long lock does not reset the count.
-- Pending password challenges and WebAuthn challenges live in process memory for five minutes.
-  A multi-replica deployment therefore needs sticky routing or a shared challenge store.
+- Pending password challenges and WebAuthn challenges live in process memory for five minutes,
+  as do recent session proofs. Apply the [single-process deployment requirements](#deployment-one-process-owns-the-authentication-flow)
+  before adding replicas.
 - Anonymous challenge creation is rate-limited per IP; both MFA and WebAuthn stores prune expired
   entries and reject new work at a fixed capacity instead of growing without bound. WebAuthn has
   independent budgets of 2048 anonymous discoverable-login challenges and 2048 authenticated
