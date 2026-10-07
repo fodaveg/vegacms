@@ -36,7 +36,7 @@ Cada conjunto cubre `ink-2` sobre `bg`, `sidebar`, `surface`, `paper` y `surface
 | Miel              | `#6f695d` → `#676156`          | 4,32 → 4,87 | 4,51 → 5,08 | 5,32 → 5,99 |
 | Aquelarre         | `#68625f` → `#605a57`          | 4,11 → 4,64 | 4,30 → 4,86 | 5,72 → 6,47 |
 
-El cálculo resuelve la mezcla a sRGB de 8 bits como hace el motor actual. **No es una medición de estilos computados en navegador ni una certificación de toda la app.** No se han medido otros tokens, estados con opacidad, gradientes, foco o lectores de pantalla. Capturas headless y contraste en navegador quedan pendientes de coordinar el runner con la sesión principal.
+El cálculo resuelve la mezcla a sRGB de 8 bits como hace el motor actual. **La matriz completa procede del motor puro; la comprobación de estilos computados cubre los tres temas de la lámina. No es una certificación de toda la app.** No se han medido otros tokens, estados con opacidad, gradientes, foco o lectores de pantalla. Chromium headless 149.0.7827.55, ejecutado con Node 22.22.3, confirma estos ratios en Niebla, Miel y Aquelarre: diferencia máxima con el cálculo puro de 1,78 × 10⁻¹⁵ (precisión numérica). Los otros 18 temas conservan cobertura del motor puro; no se afirma medición de navegador para ellos.
 
 ## Fidelidad de los mockups
 
@@ -60,15 +60,15 @@ En la composición, 1440 px mantiene rail lateral y el contenido de 60 rem máxi
 
 ## Checklist de siete ejes
 
-| Eje                       | Estado de esta propuesta    | Evidencia y límite                                                                                                                             |
-| ------------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tokens                    | Cubierto                    | Dos valores existentes; sin nuevo vocabulario; 21 temas medidos.                                                                               |
-| Componentes y estados     | Parcial                     | Vacío, normal y error representados; hover/active/disabled/loading no certificados en app.                                                     |
-| Responsive por componente | Parcial                     | Mockups preparados para 390/1440; rail colapsable, texto largo envuelve; captura y QA pendientes.                                              |
-| Accesibilidad             | Parcial                     | 210 pares por variante calculados; controles de lámina etiquetados y ≥44 px, foco explícito; sin auditoría general ni medición de navegador.   |
-| Contenido real y límites  | Cubierto dentro del alcance | Copia del diccionario real, vacío y ayuda larga; sin cifras inventadas. Tablas con muchos registros no son necesarias para decidir este token. |
-| Feedback                  | Parcial                     | Error estático real y botón de reintento; no se simulan peticiones ni se verifica recuperación de red.                                         |
-| Assets                    | No aplicable                | No se proponen iconos, imágenes ni identidad nueva.                                                                                            |
+| Eje                       | Estado de esta propuesta    | Evidencia y límite                                                                                                                                                                            |
+| ------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tokens                    | Cubierto                    | Dos valores existentes; sin nuevo vocabulario; 21 temas medidos.                                                                                                                              |
+| Componentes y estados     | Parcial                     | Vacío, normal y error representados; hover/active/disabled/loading no certificados en app.                                                                                                    |
+| Responsive por componente | Parcial                     | Capturas a 390/1440 sin overflow; rail colapsable y texto largo revisados; QA de la app pendiente.                                                                                            |
+| Accesibilidad             | Parcial                     | 210 pares por variante calculados; controles de lámina etiquetados y ≥44 px, foco explícito; medición de navegador confirmada para los tres temas mostrados; sin auditoría general de la app. |
+| Contenido real y límites  | Cubierto dentro del alcance | Copia del diccionario real, vacío y ayuda larga; sin cifras inventadas. Tablas con muchos registros no son necesarias para decidir este token.                                                |
+| Feedback                  | Parcial                     | Error estático real y botón de reintento; no se simulan peticiones ni se verifica recuperación de red.                                                                                        |
+| Assets                    | No aplicable                | No se proponen iconos, imágenes ni identidad nueva.                                                                                                                                           |
 
 ## Reproducir
 
@@ -80,4 +80,20 @@ node design/mockups/2026-10-07-contraste-ink-2/generate.mjs
 
 `generate.mjs` es una sonda de diseño, no un preflight ni un test de producto. Escribe únicamente este directorio. Los `.html.tpl` y `mockup.css` son la fuente; los HTML y JSON son artefactos regenerables del mismo baseline. La lámina final es autocontenida para abrirla sin servidor; los enlaces a HTML individuales requieren conservar la carpeta.
 
-Pendientes para cerrar la decisión: inspección visual coordinada, elección de David y, solo tras aprobar, implementación y gates del candidato de producto.
+Pendientes para cerrar la decisión: elección de David y, solo tras aprobar, implementación y gates del candidato de producto.
+
+## Verificación de navegador de los mockups
+
+62 PNG: 48 pantallas (3 temas × antes/después × claro/oscuro × 390/1440 × Inicio/Ajustes), 6 railes móviles, 4 estados de error y 4 láminas completas. La ejecución final pasó **247 comprobaciones, cero fallos y cero errores JS**. Tras actualizar únicamente la redacción del estado de la lámina, se refrescaron sus cuatro imágenes con **67 comprobaciones correctas**. Se comprobó también el modo sistema y su cambio en caliente.
+
+La primera ejecución detectó 24 fallos: el override del mockup tenía menor especificidad que el CSS generado y la tinta propuesta no se aplicaba. Se corrigió el selector a `[data-theme="<id>"][data-mode="light"]`, se regeneró y se repitió la verificación. El registro rojo se conserva como evidencia; no se confundieron las mediciones puras con lo renderizado. Las capturas completas ajustan el viewport al alto de la lámina para que Chromium pinte también los iframes inferiores.
+
+[Resumen y hashes](browser-summary.json) identifica fuentes, capturas y resultados. Los PNG e informes detallados se entregan fuera del repo en `/private/tmp/vega-l10-ink2-captures-20261007/`; esta ubicación es temporal y debe conservarse en el archivo de evidencia de la sesión principal. Las imágenes revisadas visualmente incluyen la lámina clara de escritorio, lámina oscura móvil, Ajustes Aquelarre claro móvil, su rail y la portada Miel oscura de escritorio.
+
+Driver reproducible (solo con el runner de navegador libre):
+
+```sh
+~/.nvm/versions/node/v22.22.3/bin/node design/mockups/2026-10-07-contraste-ink-2/capture.mjs /ruta/de/evidencia
+```
+
+No inicia servidor, no construye, no instala, no abre ventanas y no conecta a PocketBase. Cierra contexto y navegador en `finally`. Todos los procesos de estas ejecuciones terminaron; recursos cerrados. Capturas y evidencia ocupan 3,5 MiB, bajo el presupuesto de 0,5 GiB. Disco libre al finalizar: 150 GiB (148 GiB al inicio; el delta es global y no se atribuye a una limpieza propia). Se conservan worktree, fuentes y evidencia para revisión.

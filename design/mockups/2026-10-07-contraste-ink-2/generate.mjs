@@ -90,7 +90,7 @@ for (const id of selected)
 	for (const variant of ['before', 'after']) {
 		const override =
 			variant === 'after'
-				? `[data-mode="light"] { --ink-2: ${id === 'aquelarre' ? proposed.aquelarreLightOverride : `color-mix(in oklab, var(--tint) 5%, ${proposed.sharedLightBase})`}; }`
+				? `[data-theme="${id}"][data-mode="light"] { --ink-2: ${id === 'aquelarre' ? proposed.aquelarreLightOverride : `color-mix(in oklab, var(--tint) 5%, ${proposed.sharedLightBase})`}; }`
 				: '';
 		const doc = template
 			.replaceAll('{{THEME}}', id)

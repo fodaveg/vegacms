@@ -5,11 +5,11 @@
 	"summary": {
 		"before": {
 			"light": { "pairs": 105, "fail": 24, "min": 4.10920656602214, "max": 5.722321629013982 },
-			"dark": { "pairs": 105, "fail": 0, "min": 5.2481847910165405, "max": 7.511781328053032 }
+			"dark": { "pairs": 105, "fail": 0, "min": 5.2481847910165405, "max": 7.511781328053033 }
 		},
 		"after": {
 			"light": { "pairs": 105, "fail": 0, "min": 4.644480019229373, "max": 6.467722671651236 },
-			"dark": { "pairs": 105, "fail": 0, "min": 5.2481847910165405, "max": 7.511781328053032 }
+			"dark": { "pairs": 105, "fail": 0, "min": 5.2481847910165405, "max": 7.511781328053033 }
 		}
 	},
 	"samples": [
@@ -118,11 +118,11 @@
 			"mode": "dark",
 			"ink": "#a9a5a5",
 			"surfaces": {
-				"bg": { "background": "#221c15", "ratio": 6.917871465514287 },
-				"sidebar": { "background": "#262019", "ratio": 6.609370062768646 },
-				"surface": { "background": "#36302c", "ratio": 5.329426952523954 },
-				"paper": { "background": "#2b241d", "ratio": 6.273538415433914 },
-				"surface-2": { "background": "#2f2a24", "ratio": 5.828909966266495 }
+				"bg": { "background": "#221c15", "ratio": 6.917871465514286 },
+				"sidebar": { "background": "#262019", "ratio": 6.609370062768645 },
+				"surface": { "background": "#36302c", "ratio": 5.329426952523952 },
+				"paper": { "background": "#2b241d", "ratio": 6.273538415433912 },
+				"surface-2": { "background": "#2f2a24", "ratio": 5.828909966266494 }
 			}
 		},
 		{
@@ -174,11 +174,11 @@
 			"mode": "dark",
 			"ink": "#a09eaf",
 			"surfaces": {
-				"bg": { "background": "#0d0913", "ratio": 7.511781328053032 },
-				"sidebar": { "background": "#100c17", "ratio": 7.363883707199422 },
-				"surface": { "background": "#2a2034", "ratio": 5.908944357632285 },
-				"paper": { "background": "#17121f", "ratio": 7.004646485548646 },
-				"surface-2": { "background": "#221a2d", "ratio": 6.384864368908915 }
+				"bg": { "background": "#0d0913", "ratio": 7.511781328053033 },
+				"sidebar": { "background": "#100c17", "ratio": 7.363883707199423 },
+				"surface": { "background": "#2a2034", "ratio": 5.9089443576322855 },
+				"paper": { "background": "#17121f", "ratio": 7.004646485548647 },
+				"surface-2": { "background": "#221a2d", "ratio": 6.384864368908916 }
 			}
 		},
 		{
@@ -202,11 +202,11 @@
 			"mode": "dark",
 			"ink": "#a99ea8",
 			"surfaces": {
-				"bg": { "background": "#211418", "ratio": 6.913192734183232 },
-				"sidebar": { "background": "#25171c", "ratio": 6.685753793951624 },
-				"surface": { "background": "#35282f", "ratio": 5.443516406779016 },
-				"paper": { "background": "#2a1c21", "ratio": 6.3296616459405906 },
-				"surface-2": { "background": "#2e2227", "ratio": 5.92543074345523 }
+				"bg": { "background": "#211418", "ratio": 6.913192734183233 },
+				"sidebar": { "background": "#25171c", "ratio": 6.6857537939516245 },
+				"surface": { "background": "#35282f", "ratio": 5.4435164067790165 },
+				"paper": { "background": "#2a1c21", "ratio": 6.329661645940591 },
+				"surface-2": { "background": "#2e2227", "ratio": 5.925430743455231 }
 			}
 		},
 		{
@@ -230,11 +230,11 @@
 			"mode": "dark",
 			"ink": "#a1a5b3",
 			"surfaces": {
-				"bg": { "background": "#171d27", "ratio": 6.885685508237082 },
-				"sidebar": { "background": "#1b212b", "ratio": 6.5806110372250615 },
-				"surface": { "background": "#2c313c", "ratio": 5.3040693305188045 },
+				"bg": { "background": "#171d27", "ratio": 6.885685508237081 },
+				"sidebar": { "background": "#1b212b", "ratio": 6.580611037225061 },
+				"surface": { "background": "#2c313c", "ratio": 5.304069330518804 },
 				"paper": { "background": "#202530", "ratio": 6.2455332337117895 },
-				"surface-2": { "background": "#252a34", "ratio": 5.857334750740439 }
+				"surface-2": { "background": "#252a34", "ratio": 5.8573347507404385 }
 			}
 		},
 		{
@@ -288,7 +288,7 @@
 			"surfaces": {
 				"bg": { "background": "#10181b", "ratio": 6.98510045082437 },
 				"sidebar": { "background": "#141c1f", "ratio": 6.714345337529496 },
-				"surface": { "background": "#252c31", "ratio": 5.502763516963196 },
+				"surface": { "background": "#252c31", "ratio": 5.5027635169631965 },
 				"paper": { "background": "#182024", "ratio": 6.422266190974899 },
 				"surface-2": { "background": "#1f262a", "ratio": 5.96240300593592 }
 			}
@@ -314,11 +314,11 @@
 			"mode": "dark",
 			"ink": "#a0a5b1",
 			"surfaces": {
-				"bg": { "background": "#161d24", "ratio": 6.89014019615531 },
-				"sidebar": { "background": "#192128", "ratio": 6.600635711409248 },
-				"surface": { "background": "#2a313a", "ratio": 5.323528646048672 },
-				"paper": { "background": "#1e262d", "ratio": 6.211324090763686 },
-				"surface-2": { "background": "#242b32", "ratio": 5.803563293858088 }
+				"bg": { "background": "#161d24", "ratio": 6.8901401961553095 },
+				"sidebar": { "background": "#192128", "ratio": 6.6006357114092475 },
+				"surface": { "background": "#2a313a", "ratio": 5.323528646048671 },
+				"paper": { "background": "#1e262d", "ratio": 6.211324090763685 },
+				"surface-2": { "background": "#242b32", "ratio": 5.803563293858087 }
 			}
 		},
 		{
@@ -329,7 +329,7 @@
 			"ink": "#6c6a5e",
 			"surfaces": {
 				"bg": { "background": "#e6e7dd", "ratio": 4.361463218357664 },
-				"sidebar": { "background": "#e9ebe3", "ratio": 4.52158611547678 },
+				"sidebar": { "background": "#e9ebe3", "ratio": 4.521586115476781 },
 				"surface": { "background": "#fbfdfa", "ratio": 5.318067388494691 },
 				"paper": { "background": "#f0f3eb", "ratio": 4.849918928265416 },
 				"surface-2": { "background": "#fbfdf9", "ratio": 5.314825924005287 }
@@ -346,7 +346,7 @@
 				"sidebar": { "background": "#1e241c", "ratio": 6.526202695616595 },
 				"surface": { "background": "#2e342e", "ratio": 5.2481847910165405 },
 				"paper": { "background": "#232820", "ratio": 6.1918310489804815 },
-				"surface-2": { "background": "#282d27", "ratio": 5.781620863286435 }
+				"surface-2": { "background": "#282d27", "ratio": 5.7816208632864345 }
 			}
 		},
 		{
@@ -371,10 +371,10 @@
 			"ink": "#9ea5a8",
 			"surfaces": {
 				"bg": { "background": "#131c19", "ratio": 6.955710082319611 },
-				"sidebar": { "background": "#16201d", "ratio": 6.675855590574272 },
-				"surface": { "background": "#283030", "ratio": 5.400391590565278 },
+				"sidebar": { "background": "#16201d", "ratio": 6.675855590574271 },
+				"surface": { "background": "#283030", "ratio": 5.4003915905652775 },
 				"paper": { "background": "#1b2522", "ratio": 6.296280576552329 },
-				"surface-2": { "background": "#212a28", "ratio": 5.889483181037452 }
+				"surface-2": { "background": "#212a28", "ratio": 5.889483181037451 }
 			}
 		},
 		{
@@ -387,7 +387,7 @@
 				"bg": { "background": "#e5e4de", "ratio": 4.325268637544259 },
 				"sidebar": { "background": "#e8e9e4", "ratio": 4.5150503355234255 },
 				"surface": { "background": "#fbfcfb", "ratio": 5.35786623060201 },
-				"paper": { "background": "#eff0ec", "ratio": 4.813759726901248 },
+				"paper": { "background": "#eff0ec", "ratio": 4.813759726901249 },
 				"surface-2": { "background": "#fbfcfa", "ratio": 5.354564917245484 }
 			}
 		},
@@ -454,11 +454,11 @@
 			"mode": "dark",
 			"ink": "#a29eac",
 			"surfaces": {
-				"bg": { "background": "#19131e", "ratio": 6.95674281037062 },
-				"sidebar": { "background": "#1c1722", "ratio": 6.713401251520028 },
-				"surface": { "background": "#2d2834", "ratio": 5.477459905617546 },
-				"paper": { "background": "#211c26", "ratio": 6.373538686115306 },
-				"surface-2": { "background": "#27222c", "ratio": 5.936398016664152 }
+				"bg": { "background": "#19131e", "ratio": 6.956742810370621 },
+				"sidebar": { "background": "#1c1722", "ratio": 6.713401251520029 },
+				"surface": { "background": "#2d2834", "ratio": 5.477459905617547 },
+				"paper": { "background": "#211c26", "ratio": 6.373538686115307 },
+				"surface-2": { "background": "#27222c", "ratio": 5.936398016664153 }
 			}
 		},
 		{
@@ -552,7 +552,7 @@
 			"mode": "light",
 			"ink": "#696660",
 			"surfaces": {
-				"bg": { "background": "#e3e1df", "ratio": 4.38728701618977 },
+				"bg": { "background": "#e3e1df", "ratio": 4.387287016189771 },
 				"sidebar": { "background": "#e6e6e5", "ratio": 4.581544742420259 },
 				"surface": { "background": "#fafafb", "ratio": 5.48541391344701 },
 				"paper": { "background": "#ededed", "ratio": 4.887451871997805 },
@@ -594,11 +594,11 @@
 			"mode": "dark",
 			"ink": "#a99ea2",
 			"surfaces": {
-				"bg": { "background": "#211411", "ratio": 6.905963836570188 },
-				"sidebar": { "background": "#251715", "ratio": 6.6824587414049 },
+				"bg": { "background": "#211411", "ratio": 6.905963836570189 },
+				"sidebar": { "background": "#251715", "ratio": 6.682458741404901 },
 				"surface": { "background": "#352828", "ratio": 5.452231614628797 },
-				"paper": { "background": "#291c19", "ratio": 6.355408125549586 },
-				"surface-2": { "background": "#2e2221", "ratio": 5.925257264061695 }
+				"paper": { "background": "#291c19", "ratio": 6.3554081255495865 },
+				"surface-2": { "background": "#2e2221", "ratio": 5.925257264061696 }
 			}
 		},
 		{
@@ -706,11 +706,11 @@
 			"mode": "dark",
 			"ink": "#a9a5a5",
 			"surfaces": {
-				"bg": { "background": "#221c15", "ratio": 6.917871465514287 },
-				"sidebar": { "background": "#262019", "ratio": 6.609370062768646 },
-				"surface": { "background": "#36302c", "ratio": 5.329426952523954 },
-				"paper": { "background": "#2b241d", "ratio": 6.273538415433914 },
-				"surface-2": { "background": "#2f2a24", "ratio": 5.828909966266495 }
+				"bg": { "background": "#221c15", "ratio": 6.917871465514286 },
+				"sidebar": { "background": "#262019", "ratio": 6.609370062768645 },
+				"surface": { "background": "#36302c", "ratio": 5.329426952523952 },
+				"paper": { "background": "#2b241d", "ratio": 6.273538415433912 },
+				"surface-2": { "background": "#2f2a24", "ratio": 5.828909966266494 }
 			}
 		},
 		{
@@ -749,7 +749,7 @@
 			"ink": "#605a57",
 			"surfaces": {
 				"bg": { "background": "#dad3e1", "ratio": 4.644480019229373 },
-				"sidebar": { "background": "#ddd8e6", "ratio": 4.855418535908241 },
+				"sidebar": { "background": "#ddd8e6", "ratio": 4.85541853590824 },
 				"surface": { "background": "#faf9fd", "ratio": 6.467722671651236 },
 				"paper": { "background": "#e3deed", "ratio": 5.145387056553896 },
 				"surface-2": { "background": "#faf9fc", "ratio": 6.463617746824493 }
@@ -762,11 +762,11 @@
 			"mode": "dark",
 			"ink": "#a09eaf",
 			"surfaces": {
-				"bg": { "background": "#0d0913", "ratio": 7.511781328053032 },
-				"sidebar": { "background": "#100c17", "ratio": 7.363883707199422 },
-				"surface": { "background": "#2a2034", "ratio": 5.908944357632285 },
-				"paper": { "background": "#17121f", "ratio": 7.004646485548646 },
-				"surface-2": { "background": "#221a2d", "ratio": 6.384864368908915 }
+				"bg": { "background": "#0d0913", "ratio": 7.511781328053033 },
+				"sidebar": { "background": "#100c17", "ratio": 7.363883707199423 },
+				"surface": { "background": "#2a2034", "ratio": 5.9089443576322855 },
+				"paper": { "background": "#17121f", "ratio": 7.004646485548647 },
+				"surface-2": { "background": "#221a2d", "ratio": 6.384864368908916 }
 			}
 		},
 		{
@@ -790,11 +790,11 @@
 			"mode": "dark",
 			"ink": "#a99ea8",
 			"surfaces": {
-				"bg": { "background": "#211418", "ratio": 6.913192734183232 },
-				"sidebar": { "background": "#25171c", "ratio": 6.685753793951624 },
-				"surface": { "background": "#35282f", "ratio": 5.443516406779016 },
-				"paper": { "background": "#2a1c21", "ratio": 6.3296616459405906 },
-				"surface-2": { "background": "#2e2227", "ratio": 5.92543074345523 }
+				"bg": { "background": "#211418", "ratio": 6.913192734183233 },
+				"sidebar": { "background": "#25171c", "ratio": 6.6857537939516245 },
+				"surface": { "background": "#35282f", "ratio": 5.4435164067790165 },
+				"paper": { "background": "#2a1c21", "ratio": 6.329661645940591 },
+				"surface-2": { "background": "#2e2227", "ratio": 5.925430743455231 }
 			}
 		},
 		{
@@ -818,11 +818,11 @@
 			"mode": "dark",
 			"ink": "#a1a5b3",
 			"surfaces": {
-				"bg": { "background": "#171d27", "ratio": 6.885685508237082 },
-				"sidebar": { "background": "#1b212b", "ratio": 6.5806110372250615 },
-				"surface": { "background": "#2c313c", "ratio": 5.3040693305188045 },
+				"bg": { "background": "#171d27", "ratio": 6.885685508237081 },
+				"sidebar": { "background": "#1b212b", "ratio": 6.580611037225061 },
+				"surface": { "background": "#2c313c", "ratio": 5.304069330518804 },
 				"paper": { "background": "#202530", "ratio": 6.2455332337117895 },
-				"surface-2": { "background": "#252a34", "ratio": 5.857334750740439 }
+				"surface-2": { "background": "#252a34", "ratio": 5.8573347507404385 }
 			}
 		},
 		{
@@ -876,7 +876,7 @@
 			"surfaces": {
 				"bg": { "background": "#10181b", "ratio": 6.98510045082437 },
 				"sidebar": { "background": "#141c1f", "ratio": 6.714345337529496 },
-				"surface": { "background": "#252c31", "ratio": 5.502763516963196 },
+				"surface": { "background": "#252c31", "ratio": 5.5027635169631965 },
 				"paper": { "background": "#182024", "ratio": 6.422266190974899 },
 				"surface-2": { "background": "#1f262a", "ratio": 5.96240300593592 }
 			}
@@ -902,11 +902,11 @@
 			"mode": "dark",
 			"ink": "#a0a5b1",
 			"surfaces": {
-				"bg": { "background": "#161d24", "ratio": 6.89014019615531 },
-				"sidebar": { "background": "#192128", "ratio": 6.600635711409248 },
-				"surface": { "background": "#2a313a", "ratio": 5.323528646048672 },
-				"paper": { "background": "#1e262d", "ratio": 6.211324090763686 },
-				"surface-2": { "background": "#242b32", "ratio": 5.803563293858088 }
+				"bg": { "background": "#161d24", "ratio": 6.8901401961553095 },
+				"sidebar": { "background": "#192128", "ratio": 6.6006357114092475 },
+				"surface": { "background": "#2a313a", "ratio": 5.323528646048671 },
+				"paper": { "background": "#1e262d", "ratio": 6.211324090763685 },
+				"surface-2": { "background": "#242b32", "ratio": 5.803563293858087 }
 			}
 		},
 		{
@@ -917,7 +917,7 @@
 			"ink": "#646357",
 			"surfaces": {
 				"bg": { "background": "#e6e7dd", "ratio": 4.8608435181584815 },
-				"sidebar": { "background": "#e9ebe3", "ratio": 5.039300221242476 },
+				"sidebar": { "background": "#e9ebe3", "ratio": 5.039300221242477 },
 				"surface": { "background": "#fbfdfa", "ratio": 5.926977278104506 },
 				"paper": { "background": "#f0f3eb", "ratio": 5.4052265961628985 },
 				"surface-2": { "background": "#fbfdf9", "ratio": 5.923364671310909 }
@@ -934,7 +934,7 @@
 				"sidebar": { "background": "#1e241c", "ratio": 6.526202695616595 },
 				"surface": { "background": "#2e342e", "ratio": 5.2481847910165405 },
 				"paper": { "background": "#232820", "ratio": 6.1918310489804815 },
-				"surface-2": { "background": "#282d27", "ratio": 5.781620863286435 }
+				"surface-2": { "background": "#282d27", "ratio": 5.7816208632864345 }
 			}
 		},
 		{
@@ -959,10 +959,10 @@
 			"ink": "#9ea5a8",
 			"surfaces": {
 				"bg": { "background": "#131c19", "ratio": 6.955710082319611 },
-				"sidebar": { "background": "#16201d", "ratio": 6.675855590574272 },
-				"surface": { "background": "#283030", "ratio": 5.400391590565278 },
+				"sidebar": { "background": "#16201d", "ratio": 6.675855590574271 },
+				"surface": { "background": "#283030", "ratio": 5.4003915905652775 },
 				"paper": { "background": "#1b2522", "ratio": 6.296280576552329 },
-				"surface-2": { "background": "#212a28", "ratio": 5.889483181037452 }
+				"surface-2": { "background": "#212a28", "ratio": 5.889483181037451 }
 			}
 		},
 		{
@@ -975,7 +975,7 @@
 				"bg": { "background": "#e5e4de", "ratio": 4.8749398454705535 },
 				"sidebar": { "background": "#e8e9e4", "ratio": 5.08883970671593 },
 				"surface": { "background": "#fbfcfb", "ratio": 6.038763777015362 },
-				"paper": { "background": "#eff0ec", "ratio": 5.425510197331001 },
+				"paper": { "background": "#eff0ec", "ratio": 5.425510197331002 },
 				"surface-2": { "background": "#fbfcfa", "ratio": 6.035042920492275 }
 			}
 		},
@@ -1042,11 +1042,11 @@
 			"mode": "dark",
 			"ink": "#a29eac",
 			"surfaces": {
-				"bg": { "background": "#19131e", "ratio": 6.95674281037062 },
-				"sidebar": { "background": "#1c1722", "ratio": 6.713401251520028 },
-				"surface": { "background": "#2d2834", "ratio": 5.477459905617546 },
-				"paper": { "background": "#211c26", "ratio": 6.373538686115306 },
-				"surface-2": { "background": "#27222c", "ratio": 5.936398016664152 }
+				"bg": { "background": "#19131e", "ratio": 6.956742810370621 },
+				"sidebar": { "background": "#1c1722", "ratio": 6.713401251520029 },
+				"surface": { "background": "#2d2834", "ratio": 5.477459905617547 },
+				"paper": { "background": "#211c26", "ratio": 6.373538686115307 },
+				"surface-2": { "background": "#27222c", "ratio": 5.936398016664153 }
 			}
 		},
 		{
@@ -1182,11 +1182,11 @@
 			"mode": "dark",
 			"ink": "#a99ea2",
 			"surfaces": {
-				"bg": { "background": "#211411", "ratio": 6.905963836570188 },
-				"sidebar": { "background": "#251715", "ratio": 6.6824587414049 },
+				"bg": { "background": "#211411", "ratio": 6.905963836570189 },
+				"sidebar": { "background": "#251715", "ratio": 6.682458741404901 },
 				"surface": { "background": "#352828", "ratio": 5.452231614628797 },
-				"paper": { "background": "#291c19", "ratio": 6.355408125549586 },
-				"surface-2": { "background": "#2e2221", "ratio": 5.925257264061695 }
+				"paper": { "background": "#291c19", "ratio": 6.3554081255495865 },
+				"surface-2": { "background": "#2e2221", "ratio": 5.925257264061696 }
 			}
 		}
 	]
