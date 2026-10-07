@@ -7,6 +7,7 @@ import { mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import type { BackendPort } from '$lib/backend';
+import { model } from '$lib/home/fixture';
 
 import HomePage from './+page.svelte';
 
@@ -15,7 +16,9 @@ function mountPage(schemaBootstrap: boolean) {
 	document.body.appendChild(target);
 	const ctx = {
 		t: (key: string) => key,
-		model: { nav: { groups: [] } },
+		// Este caso conserva la guía general: el proyecto ha desactivado el historial.
+		model: model([], { revisions: { enabled: false, keepPerRecord: 20, trashDays: 30 } }),
+		session: { token: 't', user: { id: 'u1', email: 'admin@vega.test' }, expiresAt: null },
 		port: { capabilities: { schemaBootstrap } } as unknown as BackendPort,
 		nav: { toSettings: vi.fn() }
 	} as unknown as VegaAppContext;
