@@ -16,6 +16,11 @@ import { serializeRecentEdits, type RecentEdit } from './recent-edits';
 
 import HomePage from '../../routes/+page.svelte';
 
+vi.mock('$lib/session/backend', () => ({
+	backendInstallationKey: () => 'site-a',
+	backendIsDemo: () => false
+}));
+
 const STORAGE_KEY = 'vega.recentEdits.v1::u1';
 
 const POSTS = type('posts', {
@@ -580,5 +585,37 @@ describe('portada: tabla de lo último que editaste', () => {
 		const cell = target.querySelector('tbody td.vega-cell-mono span');
 		expect(cell?.textContent?.trim()).not.toBe('');
 		expect(cell?.getAttribute('title')).toMatch(/2026/);
+	});
+});
+
+describe('portada: preparar historial sin activación automática', () => {
+	test('la tarjeta aparece una vez y enlaza a la preparación existente sin escribir', async () => {
+		const { target, list } = mountHome({
+			model: model([POSTS], { revisions: { enabled: true, keepPerRecord: 20, trashDays: 30 } })
+		});
+		await settle();
+		expect(target.querySelectorAll('.vega-revisions-offer')).toHaveLength(1);
+		expect(target.querySelector('.vega-revisions-offer a')?.getAttribute('href')).toBe(
+			'/settings#vega-revisions-settings-title'
+		);
+		expect(list.mock.calls.some(([collection]) => collection === 'vega_revisions')).toBe(false);
+	});
+	test('sitio vacío: sustituye el CTA genérico y tras descartar lo devuelve', async () => {
+		const { target } = mountHome({
+			model: model([], { revisions: { enabled: true, keepPerRecord: 20, trashDays: 30 } })
+		});
+		await settle();
+		expect(target.textContent).not.toContain('nav.emptyCta');
+		(target.querySelector('.vega-revisions-offer button') as HTMLButtonElement).click();
+		await settle();
+		expect(target.querySelector('.vega-revisions-offer')).toBeNull();
+		expect(target.textContent).toContain('nav.emptyCta');
+		expect(localStorage.getItem('vega.revisionsOffer.v1:site-a')).toBe('dismissed');
+	});
+	test('el descarte guardado y el rol editor no muestran la oferta', async () => {
+		localStorage.setItem('vega.revisionsOffer.v1:site-a', 'dismissed');
+		const { target } = mountHome({ model: model([POSTS], { revisions: { enabled: true } }) });
+		await settle();
+		expect(target.querySelector('.vega-revisions-offer')).toBeNull();
 	});
 });

@@ -156,6 +156,34 @@ async function fetchRevisionsConfig(port: BackendPort): Promise<RevisionsManifes
  *  lanzar por un detalle de mantenimiento). */
 const resetHooks = new WeakMap<BackendPort, () => void>();
 
+/** Resultado privado de ESTA operación; la identidad de delete sobrevive al spread de preview.
+ *  No se guarda un último ticket compartido ni se amplía el contrato destructivo del puerto. */
+const deleteRecoveryHandlers = new WeakMap<
+	BackendPort['delete'],
+	(type: string, id: RecordId) => Promise<RecordId | null>
+>();
+
+export interface DeleteRecoveryTicket {
+	revisionId: RecordId;
+	collection: string;
+	recordId: RecordId;
+}
+
+/** Borrado habitual con el id de su snapshot, si se creó; todavía no prueba acceso ni vigencia. */
+export async function deleteWithRecovery(
+	port: BackendPort,
+	collection: string,
+	id: RecordId
+): Promise<DeleteRecoveryTicket | null> {
+	const perform = deleteRecoveryHandlers.get(port.delete);
+	if (!perform) {
+		await port.delete(collection, id);
+		return null;
+	}
+	const revisionId = await perform(collection, id);
+	return revisionId === null ? null : { revisionId, collection, recordId: id };
+}
+
 export function resetRevisionsLatch(port: BackendPort): void {
 	resetHooks.get(port)?.();
 }
@@ -408,6 +436,21 @@ export function withRevisions(port: BackendPort): BackendPort {
 		return revisionId;
 	}
 
+	/** Misma compensación y best-effort para el void público y el resultado privado. */
+	async function performDelete(type: string, id: RecordId): Promise<RecordId | null> {
+		const revisionId = await snapshotBeforeDelete(type, id);
+		try {
+			await port.delete(type, id);
+			return revisionId;
+		} catch (err) {
+			// Si el borrado falla, retirar la entrada ficticia sin ocultar el error original.
+			if (revisionId !== null) {
+				await port.delete(VEGA_REVISIONS_COLLECTION.name, revisionId).catch(() => {});
+			}
+			throw err;
+		}
+	}
+
 	const wrapped: BackendPort = {
 		...port,
 		async update(type, id, data, opts) {
@@ -428,20 +471,10 @@ export function withRevisions(port: BackendPort): BackendPort {
 			return saved;
 		},
 		async delete(type, id) {
-			const revisionId = await snapshotBeforeDelete(type, id);
-			try {
-				return await port.delete(type, id);
-			} catch (err) {
-				// El borrado falló: el registro sigue vivo, así que su revisión de papelera sería una
-				// mentira («Restaurar» fallaría contra un registro que nunca se fue). Se retira; si
-				// esa compensación también falla, manda el error ORIGINAL del borrado.
-				if (revisionId !== null) {
-					await port.delete(VEGA_REVISIONS_COLLECTION.name, revisionId).catch(() => {});
-				}
-				throw err;
-			}
+			await performDelete(type, id);
 		}
 	};
+	deleteRecoveryHandlers.set(wrapped.delete, performDelete);
 
 	resetHooks.set(wrapped, () => {
 		revisionsUnavailable = false;

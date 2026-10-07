@@ -42,7 +42,12 @@
 	import { loadContentModel } from '$lib/model/load';
 	import { getBackend } from '$lib/session/backend';
 	import { createSessionStore, setSessionContext } from '$lib/session/session.svelte';
-	import { setVegaContext, type NavApi, type FeedbackApi } from '$lib/app-context';
+	import {
+		setVegaContext,
+		type NavApi,
+		type FeedbackApi,
+		type VegaAppContext
+	} from '$lib/app-context';
 	import { t as translate, resolveLocale, ensureLocaleLoaded, type Locale } from '$lib/i18n';
 	import { iconRegistry } from '$lib/icons/registry';
 	import { applyInitialTheme } from '$lib/theme/apply';
@@ -294,6 +299,21 @@
 	// `$effect` solo corre en cliente y sigue el idioma efectivo también tras recargar el modelo.
 	$effect(() => {
 		document.documentElement.lang = locale;
+	});
+
+	let actionSession: { port: VegaAppContext['port']; token: string; userId: string } | null = null;
+	$effect(() => {
+		const session = sessionStore.session;
+		const current = session
+			? { port: sessionStore.port, token: session.token, userId: session.user.id }
+			: null;
+		if (
+			current?.port !== actionSession?.port ||
+			current?.token !== actionSession?.token ||
+			current?.userId !== actionSession?.userId
+		)
+			toastStore.dismissActions();
+		actionSession = current;
 	});
 
 	onMount(() => {

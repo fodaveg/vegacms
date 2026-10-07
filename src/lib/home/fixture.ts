@@ -56,6 +56,7 @@ export function model(
 ): ContentModel {
 	return {
 		types,
+		revisions: { enabled: false, keepPerRecord: 20, trashDays: 30 },
 		nav: {
 			groups: [
 				{

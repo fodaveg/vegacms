@@ -117,6 +117,7 @@ import { VegaError } from '$lib/backend';
 import { createMemoryBackend } from '$lib/backend/adapters/memory';
 import { createPocketBaseBackend } from '$lib/backend/adapters/pocketbase';
 import {
+	backendInstallationIdentity,
 	isAbsoluteUrl,
 	resolveAuthApiBasePath,
 	resolveAuthCollection,
@@ -249,6 +250,16 @@ interface DemoSessionMarker {
 }
 
 let instancePromise: Promise<BackendPort> | null = null;
+let installationKey: string | null = null;
+let demoInstallation = false;
+
+/** Metadatos de la instancia YA construida: no hacen fetch ni contienen la sesión. */
+export function backendInstallationKey(): string | null {
+	return installationKey;
+}
+export function backendIsDemo(): boolean {
+	return demoInstallation;
+}
 
 /**
  * Devuelve el `BackendPort` singleton (perezoso, memoizado): la primera llamada lo construye;
@@ -271,7 +282,8 @@ async function createInstance(): Promise<BackendPort> {
 		// `pocketbase` (producción) nunca la descarga. `createInstance` ya era async.
 		const { DEMO_CREDENTIALS, DEMO_SEED, DEMO_SEED_WITH_MEDIA, SHOWCASE_SEED } =
 			await import('./demo-seed');
-		const seed = useShowcaseSeed()
+		const showcase = useShowcaseSeed();
+		const seed = showcase
 			? SHOWCASE_SEED
 			: window.__VEGA_SEED_MEDIA__
 				? DEMO_SEED_WITH_MEDIA
@@ -294,6 +306,12 @@ async function createInstance(): Promise<BackendPort> {
 		// producción salen del discovery, para que la suite e2e pueda alcanzar el editor visual.
 		// Se aplica al FINAL, sobre el puerto ya envuelto, porque las dos son campos de datos y no
 		// operaciones: ninguna envoltura anterior las lee ni las reescribe.
+		demoInstallation = true;
+		installationKey = JSON.stringify([
+			'memory',
+			showcase ? 'showcase' : window.__VEGA_SEED_MEDIA__ ? 'media' : 'demo',
+			withHistory.manifestKey
+		]);
 		return window.__VEGA_PREVIEW_API_URL__
 			? {
 					...withHistory,
@@ -328,7 +346,7 @@ async function createInstance(): Promise<BackendPort> {
 	const authApiBasePath = resolveAuthApiBasePath(projectConfig);
 	// `#lote-integridad` Fase B (§3): la rama `pocketbase`, envuelta igual que la de `memory`
 	// arriba — las DOS ramas de `createInstance()`, ninguna excepción.
-	return withRevisions(
+	const port = withRevisions(
 		withRecentEdits(
 			withSchemaSnapshotSync(
 				createPocketBaseBackend({
@@ -349,6 +367,8 @@ async function createInstance(): Promise<BackendPort> {
 			noteSavedRecord
 		)
 	);
+	installationKey = backendInstallationIdentity(url, port.manifestKey);
+	return port;
 }
 
 /**

@@ -109,6 +109,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { canCreateManually } from '$lib/model/creation';
+	import { deleteRecordWithFeedback } from '$lib/revisions/delete-feedback';
 	import { getVegaContext } from '$lib/app-context';
 	import type { ResolvedContentType } from '$lib/model/types';
 	import type { VegaRecord } from '$lib/backend/types';
@@ -329,8 +330,7 @@
 		const { record, label } = pendingDelete;
 		deleting = true;
 		try {
-			await ctx.port.delete(contentType.name, record.id);
-			ctx.feedback.toast(ctx.t('list.delete.success', { label }), { kind: 'success' });
+			if (!(await deleteRecordWithFeedback(ctx, contentType.name, record.id, label))) return;
 			pendingDelete = null;
 			listState.reload();
 		} catch (err) {

@@ -32,6 +32,9 @@
 	import type { VegaError } from '$lib/backend/errors';
 	import Icon from '$lib/icons/Icon.svelte';
 	import { normalizeListError } from '$lib/list/list-load';
+	import RevisionsOnboarding from '$lib/home/RevisionsOnboarding.svelte';
+	import { isRevisionsOfferDismissed, shouldOfferRevisions } from '$lib/home/revisions-onboarding';
+	import { backendInstallationKey } from '$lib/session/backend';
 	import HomePending from '$lib/home/HomePending.svelte';
 	import HomeRecentTable from '$lib/home/HomeRecentTable.svelte';
 	import { creatableTypes } from '$lib/home/home-types';
@@ -47,6 +50,8 @@
 	// quien puede preparar el sitio recibe la guía a Ajustes; quien edita, la de hablar con quien
 	// administra.
 	const isAdmin = ctx.port.capabilities.schemaBootstrap;
+	let offerDismissed = $state(isRevisionsOfferDismissed(backendInstallationKey()));
+	const hasRevisionsOffer = $derived(!offerDismissed && shouldOfferRevisions(ctx.model, isAdmin));
 
 	type RecentStatus =
 		| { kind: 'loading' }
@@ -94,7 +99,14 @@
 		<h1>{ctx.t('nav.emptyTitle')}</h1>
 		{#if isAdmin}
 			<p>{ctx.t('nav.emptyBody')}</p>
-			<button type="button" onclick={() => ctx.nav.toSettings()}>{ctx.t('nav.emptyCta')}</button>
+			{#if !hasRevisionsOffer}<button type="button" onclick={() => ctx.nav.toSettings()}
+					>{ctx.t('nav.emptyCta')}</button
+				>{/if}
+			<RevisionsOnboarding
+				onDismiss={() => {
+					offerDismissed = true;
+				}}
+			/>
 		{:else}
 			<p>{ctx.t('nav.emptyBodyEditor')}</p>
 		{/if}
@@ -123,6 +135,7 @@
 			</section>
 		{/if}
 
+		<RevisionsOnboarding />
 		<HomePending />
 
 		<section class="vega-home-block" aria-labelledby="vega-home-recent-title">
