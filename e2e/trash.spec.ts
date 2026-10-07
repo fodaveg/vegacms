@@ -32,7 +32,7 @@ async function enableRevisions(page: import('@playwright/test').Page): Promise<v
 }
 
 async function goToTrash(page: import('@playwright/test').Page): Promise<void> {
-	await page.getByRole('link', { name: 'Papelera', exact: false }).click();
+	await page.getByRole('link', { name: 'Papelera', exact: true }).click();
 	await page.waitForURL('**/papelera');
 }
 
