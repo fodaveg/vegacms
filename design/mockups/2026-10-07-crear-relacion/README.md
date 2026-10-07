@@ -1,6 +1,6 @@
 # L12 · Crear el destino de una relación
 
-**Propuesta pendiente de enseñar y aprobar.** Tarea `3506984a-de71-4d12-95b7-23fe9103776a`; padre `d99e681e-5545-40ac-8bb0-afaa188859e3`, leídos íntegros en Lumbre el 7 de octubre de 2026. El padre exige «lámina enseñada» antes de construir. Este directorio contiene diseño y simulación local, sin Svelte de producción ni escrituras en el backend.
+**Lámina inspeccionada y aceptada técnicamente por la sesión principal, que confirma haberla enseñado a David el 7 de octubre de 2026.** Tarea `3506984a-de71-4d12-95b7-23fe9103776a`; padre `d99e681e-5545-40ac-8bb0-afaa188859e3`, leídos íntegros en Lumbre el 7 de octubre de 2026. El padre exige «lámina enseñada» antes de construir. Este directorio contiene diseño y simulación local, sin Svelte de producción ni escrituras en el backend.
 
 Baseline: `fb5ebe6e946b624d87c1cca91dafdd862c19c93a`. Se usa su CSS real, incluido el contraste de texto secundario ya aprobado. La propuesta no reabre identidad ni tokens.
 
@@ -102,18 +102,30 @@ A 1440, el padre conserva el rail de 236 px y el diálogo se centra. A 390, desa
 
 ## Checklist de siete ejes
 
-| Eje                    | Estado estático       | Evidencia/límite                                                                                                                  |
-| ---------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Tokens                 | Cubierto              | CSS real del baseline certificado; sin tokens nuevos. Medición pura de los pares consumidos en `contrast.json`.                   |
-| Componentes/estados    | Cubierto en propuesta | Normal, vacío, loading, error, duplicado, readonly, denied, oculto, límite y cancelación con cambios. No es ejecución de backend. |
-| Responsive             | Parcial               | Composición preparada a 390/1440; capturas coordinadas pendientes.                                                                |
-| Accesibilidad          | Parcial               | Contraste puro, foco, labels y targets previstos; prueba de navegador y tecnologías de asistencia pendientes.                     |
-| Contenido real/límites | Cubierto              | Esquema Blog real, dos requeridos y unicidad, fixtures citados, largo y cero seleccionados.                                       |
-| Feedback               | Cubierto en propuesta | Guardado independiente, error local/global, resultado incierto y éxito parcial especificados. Integración real pendiente.         |
-| Assets                 | No aplicable          | Sin identidad ni assets nuevos; controles del sistema.                                                                            |
+| Eje                    | Estado estático       | Evidencia/límite                                                                                                                                 |
+| ---------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Tokens                 | Cubierto              | CSS real del baseline certificado; sin tokens nuevos. Medición pura de los pares consumidos en `contrast.json`.                                  |
+| Componentes/estados    | Cubierto en propuesta | Normal, vacío, loading, error, duplicado, readonly, denied, oculto, límite y cancelación con cambios. No es ejecución de backend.                |
+| Responsive             | Parcial               | Capturas de seis estados priorizados y lámina a 390/1440; sin overflow en los casos comprobados. QA de producto pendiente.                       |
+| Accesibilidad          | Parcial               | Contraste puro y comprobaciones focales de navegador sobre layout, targets, foco y cancelación; tecnologías de asistencia y app real pendientes. |
+| Contenido real/límites | Cubierto              | Esquema Blog real, dos requeridos y unicidad, fixtures citados, largo y cero seleccionados.                                                      |
+| Feedback               | Cubierto en propuesta | Guardado independiente, error local/global, resultado incierto y éxito parcial especificados. Integración real pendiente.                        |
+| Assets                 | No aplicable          | Sin identidad ni assets nuevos; controles del sistema.                                                                                           |
 
 ## Reproducción y límites
 
 Con Node 22 y dependencias existentes: `node design/mockups/2026-10-07-crear-relacion/generate.mjs`. Solo escribe este directorio. El JS simula selección, cancelación y errores para revisar interacción; no es un prototipo conectado, una implementación ni QA de Vega. No valida reglas de PocketBase, carreras reales, duración de peticiones, teclado del móvil ni lectores de pantalla.
 
 Cierre de este encargo de diseño: lámina revisable, contrato propuesto y evidencia de mockup. Cierre de la tarea Lumbre: lámina enseñada, implementación real, estados/tamaños/temas y gate del candidato, conforme al padre. No marcarla cerrada al generar estos ficheros.
+
+## Evidencia de Chromium
+
+Node 22.22.3 y Chromium 149.0.7827.55; **53 comprobaciones, cero fallos, cero errores JS**. Se capturaron seis casos priorizados: búsqueda de escritorio, diálogo de creación, selección en oscuro/EN, diálogo largo en móvil/EN, dirección duplicada en móvil y resultado de red incierto. Se añaden dos capturas de la lámina a 390/1440, ocho PNG en total.
+
+Se comprobó además, en simulación local: Enter del buscador no crea; foco inicial y restitución; padre inert durante diálogo; conservación del título editado y dirty tras creación/cancelación; confirmación de descarte del hijo; lookup conservado con creación denied/hidden; readonly/límite; validación requerida; busy/Escape; uso de una etiqueta existente. No se ejecutó la app ni se escribió en PocketBase.
+
+[Resumen y hashes](browser-summary.json) conserva la identidad de fuentes y evidencia. PNG e informe detallado: `/private/tmp/vega-l12-relation-create-captures-20261007/`, ruta local temporal a archivar por la sesión principal. Se revisaron visualmente `04-long-mobile-en.png`, `03-selected-dark-en.png` y `05-duplicate-mobile.png`. El input del nombre permite desplazamiento horizontal de texto largo; el implementer debe respetar la presentación del `titleField` y los widgets reales del formulario reutilizado, incluida el área creciente cuando corresponda.
+
+`capture.mjs` es un driver exclusivo de este mockup, no un preflight de producto. Usa URLs locales y cierra contexto y navegador en `finally`; todas sus ejecuciones terminaron. El runner fue liberado explícitamente para el siguiente lote. No se instalaron dependencias ni se construyó la app.
+
+La confirmación de muestra y aceptación procede de la sesión principal. No equivale a una implementación ni a QA de la app; los rótulos de «propuesta» de las capturas identifican el artefacto revisado. La sesión principal reconcilia P5 antes de despachar la implementación.

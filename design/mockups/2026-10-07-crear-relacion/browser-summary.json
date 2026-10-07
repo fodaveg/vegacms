@@ -1,0 +1,40 @@
+{
+	"kind": "local mockup only; not Vega QA",
+	"baseline": "fb5ebe6e946b624d87c1cca91dafdd862c19c93a",
+	"node": "v22.22.3",
+	"browser": "149.0.7827.55",
+	"summary": {
+		"checks": 53,
+		"failures": 0,
+		"captures": 8,
+		"pageErrors": 0
+	},
+	"sources": {
+		"lamina.html": "0c51a4133566d1cfcf31128299ed74daa4a505226d84d4ecab6dbe215d8ac901",
+		"capture.mjs": "589ac65f2d2db0dca766534a586da59e1a1ea64faca3cc0d4e7e7fd2922b58df",
+		"prototype.css": "66cfe1525197bcfe3dde9dbbec2f3caa1921fd0f0f4139823256f74b5ead32a4",
+		"01-buscar.html": "7098eae95f6e7f22b3fb3e56e9e026ffbbb0fac918a19e166a7179d40bdaab8e",
+		"prototype.js": "c25cfcca720452037a56909349648326cffea86ce9ef439e94d4783b50611377",
+		"generate.mjs": "115ce040a81e7d5198fea70a63e8e327d96de580b85c57c84660909d65ee8c27",
+		"03-seleccionada.html": "fb7cd8d16b3312f34dc7e56c770eea97d350d4314da669c289cf96ace59c667c",
+		"02-crear.html": "4fdf45ba849bbaae22dbb81af98d12fa5386bf0858bb02c0aed10d4f3773add2"
+	},
+	"artifacts": {
+		"02-create-desktop.png": "5f61a8b2dc4a887853f3da687a513199dae01dae4d1d43606d6c8c2c23c3f036",
+		"04-long-mobile-en.png": "a442c4e68a5ec9dfa4ac63f31055e75afc1656e485e58b09d955a51b80e87181",
+		"06-network-mobile.png": "d2538594edb3cc53e15722da127528a25025ad73ade4872e099e381b69faf5cc",
+		"01-search-desktop.png": "7d1f8d3d5b436a76b5322948082763cb2b32c21bc4f226a8cefc31b1abb87468",
+		"03-selected-dark-en.png": "82924b2bcf4070f8e718c87a101d9ed74cf92784ca9e1c166ac807e201bba71e",
+		"05-duplicate-mobile.png": "0da53ac5211f201fa464cccb9b099a9fcca0697544b399a1a3a58d68c8c03713",
+		"browser-evidence.json": "311d4b129a2b946605e7af922f621399c18564aaaf4049390ef89ff41abe07cd",
+		"lamina-1440.png": "4f5761f21eb51bf40555ee9de3b3eb992f06152a2bb5ffce73adc884b37a9a62",
+		"lamina-390.png": "7bf5e702443b2095ddf87f051431c626232707f3b8087922d92250363511784e"
+	},
+	"externalEvidence": "/private/tmp/vega-l12-relation-create-captures-20261007",
+	"resources": "Context and browser closed in finally; process exit0; no server started",
+	"limits": [
+		"Local simulation only, no Vega/backend QA",
+		"Pure contrast covers54 consumed solid pairs; no browser contrast/gradient audit",
+		"Root must show the sheet before implementation"
+	]
+}
