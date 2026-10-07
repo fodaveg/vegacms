@@ -84,6 +84,7 @@
 
 	async function load(type: ResolvedContentType): Promise<void> {
 		const seq = sequencer.next();
+		loadPending = true;
 		// Cambio de colección (o primera carga): no hay nada válido que enseñar. Relectura de la
 		// MISMA colección (orden cambiado por un guardado): se conservan las filas hasta que llegue.
 		if (status.kind !== 'ready' || loadedType !== type.name) status = { kind: 'loading' };
@@ -98,16 +99,26 @@
 				buildListQuery(type, { q: '', status: null, sort: null, page: 1 })
 			);
 			if (!sequencer.isLatest(seq)) return;
+			loadPending = false;
 			// Guardados llegados durante la carga: su respuesta puede ser ANTERIOR al guardado, así
 			// que se aplican encima (solo a registros de esta página; mismo orden de filas).
 			const items =
 				pendingSaves.length === 0
 					? result.items
 					: result.items.map((r) => pendingSaves.find((s) => s.id === r.id) ?? r);
+			// Si la reordenación saca al abierto de la página, ya conocemos su última versión:
+			// conservarla como extra evita perderlo o pisarlo con otro GET más antiguo.
+			const savedActive = pendingSaves.find((r) => r.id === activeId);
+			if (savedActive && !items.some((r) => r.id === savedActive.id)) {
+				extra = savedActive;
+				extraKey = `${type.name}:${savedActive.id}`;
+				extraSequencer.next();
+			}
 			pendingSaves = [];
 			status = { kind: 'ready', page: { ...result, items } };
 		} catch (err) {
 			if (!sequencer.isLatest(seq)) return;
+			loadPending = false;
 			pendingSaves = [];
 			const vegaErr = normalizeListError(err);
 			// Ver cabecera: solo `auth-expired` sale de este componente (overlay global, §2.3).
@@ -117,7 +128,9 @@
 	}
 
 	let loadedType: string | null = null;
-	/** Guardados (`savedRecord`) que llegaron con la lista en «Cargando…», por id (gana el último):
+	// La relectura mantiene `ready`: el estado visual no indica si hay una petición en vuelo.
+	let loadPending = false;
+	/** Guardados (`savedRecord`) que llegaron durante una carga, por id (gana el último):
 	 *  se aplican sobre la página cuando esa carga termina. Plano, no `$state`: no pinta nada. */
 	let pendingSaves: VegaRecord[] = [];
 
@@ -179,10 +192,11 @@
 		const saved = savedRecord;
 		if (saved === null) return;
 		untrack(() => {
-			if (status.kind === 'loading') {
+			if (saved.type !== contentType.name) return;
+			if (loadPending) {
 				pendingSaves = [...pendingSaves.filter((r) => r.id !== saved.id), saved];
-				return;
 			}
+			if (status.kind === 'loading') return;
 			const current =
 				status.kind === 'ready' ? status.page.items.find((r) => r.id === saved.id) : undefined;
 			const previous = current ?? (extra?.id === saved.id ? extra : undefined);

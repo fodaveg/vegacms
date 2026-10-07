@@ -194,10 +194,12 @@ describe('PublishButton.svelte', () => {
 			expect(button?.textContent).not.toContain('topbar.publish.ok');
 		});
 
-		test('hasChanges false: nunca «Publicar de nuevo» (la máquina lo lleva a «Sin cambios»)', async () => {
+		test('hasChanges false tras un build ok: «Sitio al día» y permite reconstruir', async () => {
 			const button = await mountOk({ withPostType: true, updated: '2026-07-19T10:00:00.000Z' });
 			expect(button?.getAttribute('data-state')).toBe('no-changes');
-			expect(button?.textContent).toContain('topbar.publish.noChanges');
+			expect(button?.disabled).toBe(false);
+			expect(button?.textContent).toContain('topbar.publish.ok');
+			expect(button?.getAttribute('aria-label')).toBe('topbar.publish.ok');
 			expect(button?.textContent).not.toContain('topbar.publish.again');
 		});
 	});

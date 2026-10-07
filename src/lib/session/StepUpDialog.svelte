@@ -25,13 +25,23 @@
 		busy: boolean;
 		/** Mensaje del último intento fallido, ya traducido. */
 		error: string | null;
+		/** Destino estable cuando la acción confirmada retira el botón que abrió el diálogo. */
+		fallbackFocusEl?: HTMLElement | null;
 		onSubmitCode: (code: string) => void;
 		onUsePasskey: () => void;
 		onCancel: () => void;
 	}
 
-	let { methods, passkeyAvailable, busy, error, onSubmitCode, onUsePasskey, onCancel }: Props =
-		$props();
+	let {
+		methods,
+		passkeyAvailable,
+		busy,
+		error,
+		fallbackFocusEl = null,
+		onSubmitCode,
+		onUsePasskey,
+		onCancel
+	}: Props = $props();
 
 	const ctx = getVegaContext();
 	const id = $props.id();
@@ -68,6 +78,7 @@
 	title={ctx.t('security.stepUp.title')}
 	description={ctx.t(bodyKey)}
 	{busy}
+	{fallbackFocusEl}
 	onClose={onCancel}
 >
 	{#if withCode}

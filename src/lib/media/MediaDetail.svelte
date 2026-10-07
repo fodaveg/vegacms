@@ -301,6 +301,8 @@
 			document.removeEventListener('keydown', handleKeydown, true);
 			if (previouslyFocused && document.contains(previouslyFocused)) {
 				previouslyFocused.focus();
+			} else if (fallbackFocusEl && document.contains(fallbackFocusEl)) {
+				fallbackFocusEl.focus();
 			}
 		};
 	});

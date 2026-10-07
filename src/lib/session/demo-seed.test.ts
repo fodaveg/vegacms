@@ -4,6 +4,10 @@
  * para ejemplos (RFC 2606) y los propios del proyecto.
  */
 import { describe, expect, test } from 'vitest';
+import { createMemoryBackend } from '$lib/backend/adapters/memory';
+import { loadContentModel } from '$lib/model/load';
+import { loadReviewData } from '$lib/publish-review/load-review-data';
+import { reviewRecord } from '$lib/publish-review/publish-review';
 import { DEMO_CREDENTIALS, DEMO_SEED, DEMO_SEED_WITH_MEDIA, SHOWCASE_SEED } from './demo-seed';
 
 /** Dominios admitidos en un correo de la semilla; un subdominio suyo también vale. */
@@ -38,4 +42,30 @@ describe('demo-seed: dominios de los correos', () => {
 		expect(longest.length).toBeGreaterThan(60);
 		expect(longest.endsWith('.example.org')).toBe(true);
 	});
+});
+
+test('el escaparate declara páginas con rutas reales y detecta /precios como enlace roto', async () => {
+	const { users, contentTypes, records, scheduledPublishing } = SHOWCASE_SEED;
+	const port = createMemoryBackend({ users, contentTypes, records, scheduledPublishing });
+	await port.login(DEMO_CREDENTIALS);
+	const model = await loadContentModel(port);
+	const type = model.types.find((candidate) => candidate.name === 'paginas')!;
+	const home = await port.get('paginas', 'pagina_1');
+
+	expect(type.page).toMatchObject({ pathField: 'path', pathFieldUnique: true });
+	const data = await loadReviewData(port, model, type, home);
+	expect(data.pages).toEqual(
+		expect.arrayContaining([
+			{ type: 'paginas', id: 'pagina_1', path: '/', published: false },
+			{ type: 'paginas', id: 'pagina_2', path: '/sobre-mi', published: true }
+		])
+	);
+	expect(data.pages).toHaveLength(5);
+	const result = reviewRecord({ type, record: home, model, ...data });
+	expect(result.skipped).not.toContain('link.broken');
+	expect(result.findings).toEqual(
+		expect.arrayContaining([
+			expect.objectContaining({ check: 'link.broken', params: { href: '/precios' } })
+		])
+	);
 });

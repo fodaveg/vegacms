@@ -20,10 +20,17 @@ describe('fieldDisplayLabel', () => {
 		expect(fieldDisplayLabel({ name: 'status', label: 'Status' }, tFor('es'))).toBe('Estado');
 		expect(fieldDisplayLabel({ name: 'title', label: 'Title' }, tFor('en'))).toBe('Title');
 		expect(fieldDisplayLabel({ name: 'status', label: 'Status' }, tFor('en'))).toBe('Status');
+		expect(fieldDisplayLabel({ name: 'path', label: 'Path' }, tFor('es'))).toBe('Ruta');
+		expect(fieldDisplayLabel({ name: 'layout', label: 'Layout' }, tFor('es'))).toBe('Plantilla');
+		expect(fieldDisplayLabel({ name: 'path', label: 'Path' }, tFor('en'))).toBe('Path');
+		expect(fieldDisplayLabel({ name: 'layout', label: 'Layout' }, tFor('en'))).toBe('Layout');
 	});
 
 	test('etiqueta del manifiesto: se respeta', () => {
 		expect(fieldDisplayLabel({ name: 'title', label: 'Titular' }, tFor('es'))).toBe('Titular');
+		expect(fieldDisplayLabel({ name: 'path', label: 'URL pública' }, tFor('es'))).toBe(
+			'URL pública'
+		);
 	});
 
 	test('campo sin entrada en el catálogo: la etiqueta resuelta', () => {

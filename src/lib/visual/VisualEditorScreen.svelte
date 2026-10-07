@@ -426,10 +426,9 @@
 
 	/**
 	 * Cierre de la ficha de Medios de un aviso. `MediaDetail` devuelve el foco a lo que lo tenía al
-	 * abrirse, pero eso era «Describir la imagen…» DENTRO del popover, que ya se cerró: sin esto el
-	 * foco acaba en `body`. Se lleva al botón de estado, como `closeSchedule()` en
-	 * `VisualPublishControl`. No por `fallbackFocusEl`: `MediaDetail` solo se lo pasa a sus
-	 * confirmaciones de borrar y reemplazar, nunca lo usa al cerrarse ella.
+	 * abrirse, pero eso era «Describir la imagen…» DENTRO del popover, que ya se cerró. La ficha
+	 * usa entonces su destino de foco estable; este cierre lleva el foco al botón de estado,
+	 * como `closeSchedule()` en `VisualPublishControl`.
 	 */
 	async function closeReviewMedia(): Promise<void> {
 		reviewMediaId = null;

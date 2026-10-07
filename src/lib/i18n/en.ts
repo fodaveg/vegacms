@@ -350,6 +350,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'It takes a moment. You can wait or publish without the review.',
 	'editor.visual.review.skipWait': 'Publish without waiting',
 	'editor.visual.review.error': 'The page could not be reviewed',
+	'editor.visual.review.canPublish': 'You can publish anyway.',
+	'editor.visual.review.scrollLabel': 'Review details before publishing',
+	'editor.visual.review.scrollMore': 'Scroll to see more',
 	'editor.visual.status.success': '“{name}” is now “{label}”.',
 	'editor.visual.status.success.rebuild': 'It will show on the site after the next publish.',
 	'editor.visual.frameTitle': 'The site page, inside the visual editor',
@@ -524,6 +527,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.schedule.open': 'Schedule…',
 	'editor.schedule.change': 'Change date…',
 	'editor.schedule.remove': 'Remove schedule',
+	'editor.schedule.removed': 'Schedule removed.',
+	'editor.schedule.removeFailed': 'Could not remove the schedule',
 	'editor.schedule.publishNow': 'Publish now',
 	// The `{when}` in sentences with a date is shown in bold; with no `{when}` there is no bold.
 	'editor.schedule.summary': 'It will publish itself on {when}.',
@@ -772,6 +777,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'form.field.default.status': 'Status',
 	'form.field.default.name': 'Name',
 	'form.field.default.description': 'Description',
+	'form.field.default.path': 'Path',
+	'form.field.default.layout': 'Layout',
 
 	// ————— List toolbar (P4 contract, Phase 4d) —————
 	'list.search.placeholder': 'Search in {label}…',

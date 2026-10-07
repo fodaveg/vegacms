@@ -376,6 +376,9 @@ export const es = {
 		'Tarda un momento. Puedes esperar o publicar sin la revisión.',
 	'editor.visual.review.skipWait': 'Publicar sin esperar',
 	'editor.visual.review.error': 'No se ha podido revisar la página',
+	'editor.visual.review.canPublish': 'Puedes publicar igualmente.',
+	'editor.visual.review.scrollLabel': 'Detalles de la revisión antes de publicar',
+	'editor.visual.review.scrollMore': 'Desplázate para ver más',
 	'editor.visual.status.success': '«{name}» pasa a «{label}».',
 	'editor.visual.status.success.rebuild': 'Se verá en el sitio tras la próxima publicación.',
 	'editor.visual.frameTitle': 'La página del sitio, dentro del editor visual',
@@ -575,6 +578,8 @@ export const es = {
 	'editor.schedule.open': 'Programar…',
 	'editor.schedule.change': 'Cambiar fecha…',
 	'editor.schedule.remove': 'Quitar programación',
+	'editor.schedule.removed': 'Programación quitada.',
+	'editor.schedule.removeFailed': 'No se pudo quitar la programación',
 	'editor.schedule.publishNow': 'Publicar ahora',
 	// Los `{when}` de las frases con fecha se pintan en negrita; sin `{when}` no hay negrita.
 	'editor.schedule.summary': 'Se publicará sola el {when}.',
@@ -836,6 +841,8 @@ export const es = {
 	'form.field.default.status': 'Estado',
 	'form.field.default.name': 'Nombre',
 	'form.field.default.description': 'Descripción',
+	'form.field.default.path': 'Ruta',
+	'form.field.default.layout': 'Plantilla',
 
 	// ————— Toolbar de listado (Fase 4d del contrato P4) —————
 	'list.search.placeholder': 'Buscar en {label}…',

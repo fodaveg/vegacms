@@ -10,9 +10,10 @@
 	 * **Resumen en la cabecera, siempre con texto** (decisión 3): «7 avisos» (tono aviso), «Sin
 	 * avisos» (éxito) o «Incompleta» (neutro: cero avisos pero algo sin comprobar o la carga
 	 * fallida). La píldora es la de `.vega-editor-tag`. Mientras carga, en su lugar el texto
-	 * «Comprobando…» de `.vega-used-in-loading`. Solo la píldora del resultado va en la región
-	 * `aria-live="polite"`; «Comprobando…» queda fuera, porque la revisión se relee tras cada
-	 * guardado y anunciarlo cada vez sería ruido. Por voz se oye el recuento cuando cambia.
+	 * «Comprobando…» de `.vega-used-in-loading`. Una región oculta anuncia el resultado;
+	 * «Comprobando…» queda fuera, porque la revisión se relee tras cada
+	 * guardado y anunciarlo cada vez sería ruido. El recuento visible se actualiza al instante;
+	 * por voz se anuncia tras una pausa al editar, sin repetir el último resultado anunciado.
 	 *
 	 * **Quién decide si hay tarjeta** (decisión 8): `RecordForm` la monta solo con `review.enabled`
 	 * (`statusField` y alguna comprobación que aplique); Etiquetas y Redirecciones no publican nada.
@@ -24,6 +25,7 @@
 	 * viven en los estilos de `RecordForm.svelte` y Svelte los acota a ese componente (mismo motivo
 	 * y mismos valores que `SocialCardPreview.svelte`).
 	 */
+	import { untrack } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
 	import type { ReviewFinding } from './publish-review';
 	import type { ReviewState } from './review-state.svelte';
@@ -52,6 +54,24 @@
 	const incomplete = $derived(
 		count === 0 && (review.result.skipped.length > 0 || review.phase === 'error')
 	);
+	const summaryText = $derived(
+		count > 0
+			? ctx.t(count === 1 ? 'review.count.one' : 'review.count.many', { count })
+			: incomplete
+				? ctx.t('review.count.incomplete')
+				: ctx.t('review.count.none')
+	);
+	let announced = $state(untrack(() => (loading ? '' : summaryText)));
+
+	/** Agrupa los cambios rápidos de SEO y cancela el anuncio pendiente al cambiar o desmontar. */
+	$effect(() => {
+		if (loading || summaryText === announced) return;
+		const next = summaryText;
+		const timeout = window.setTimeout(() => {
+			announced = next;
+		}, 700);
+		return () => window.clearTimeout(timeout);
+	});
 
 	/** «Ver la revisión» (la línea bajo Estado): desplaza hasta aquí y pone el foco en la tarjeta. */
 	export function focus(): void {
@@ -75,22 +95,18 @@
 			{#if loading}
 				<span class="vega-review-checking">{ctx.t('review.checking')}</span>
 			{/if}
-			<!-- Solo el resultado vive en la región: «Comprobando…» se ve pero no se anuncia, que se
-			     relee tras CADA guardado y por voz sería ruido. -->
-			<span class="vega-review-live" aria-live="polite">
-				{#if !loading}
-					<span
-						class="vega-review-count"
-						data-tone={count > 0 ? 'warn' : incomplete ? 'muted' : 'ok'}
-					>
-						{count > 0
-							? ctx.t(count === 1 ? 'review.count.one' : 'review.count.many', { count })
-							: incomplete
-								? ctx.t('review.count.incomplete')
-								: ctx.t('review.count.none')}
-					</span>
-				{/if}
-			</span>
+			{#if !loading}
+				<span
+					class="vega-review-count"
+					data-tone={count > 0 ? 'warn' : incomplete ? 'muted' : 'ok'}
+					aria-hidden="true"
+				>
+					{summaryText}
+				</span>
+			{/if}
+			<!-- Región separada: las pulsaciones repintan la píldora, pero solo una pausa anuncia
+			     el resultado. Mantiene el último texto durante la recarga para no repetirlo. -->
+			<span class="vega-review-live" aria-live="polite" aria-atomic="true">{announced}</span>
 		</span>
 	</div>
 	<ReviewGroups {review} surface="form" {canAct} {onGo} {onDescribe} />
@@ -147,6 +163,18 @@
 	.vega-review-summary {
 		display: inline-flex;
 		flex-shrink: 0;
+	}
+
+	.vega-review-live {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
 	}
 
 	/* Resumen: la píldora de `.vega-editor-tag` con sus mismas parejas de color (`warn` = overdue,

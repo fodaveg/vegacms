@@ -49,7 +49,8 @@ function mountCard(review: FakeReviewState, canAct = true): Harness {
 		onGo,
 		onDescribe,
 		card: () => target.querySelector<HTMLElement>('[data-review-card]')!,
-		summary: () => target.querySelector('.vega-review-summary')?.textContent?.trim() ?? '',
+		summary: () =>
+			target.querySelector('.vega-review-count, .vega-review-checking')?.textContent?.trim() ?? '',
 		group: (name) => target.querySelector<HTMLElement>(`[data-review-group="${name}"]`),
 		buttons: () => [...target.querySelectorAll<HTMLButtonElement>('button')]
 	};
@@ -279,15 +280,55 @@ describe('ReviewCard.svelte — la tarjeta, estado por estado', () => {
 		expect(live()).toHaveLength(1);
 		expect(live()[0].textContent?.trim()).toBe('');
 
-		// La carga termina: el resultado se anuncia en el mismo sitio.
+		// La carga termina: lo visible se actualiza enseguida y el anuncio espera una pausa.
+		vi.useFakeTimers();
 		review.set({ phase: 'ready', findings: [SEO_LONG, SEO_IMAGE, LINK_BROKEN] });
 		flushSync();
 		await tick();
 		expect(h.card().getAttribute('aria-busy')).toBeNull();
 		expect(h.summary()).toBe('3 avisos');
+		expect(live()[0].textContent?.trim()).toBe('');
+		vi.advanceTimersByTime(700);
+		flushSync();
 		expect(live()[0].textContent?.trim()).toBe('3 avisos');
 		expect(groupStatus(h.group('links')!)).toBe('1 aviso');
 		expect(groupStatus(h.group('media')!)).toBe('Sin avisos');
+		vi.useRealTimers();
+	});
+
+	test('el recuento visible cambia al teclear pero aria-live anuncia una sola vez tras la pausa', () => {
+		vi.useFakeTimers();
+		try {
+			const review = fakeReviewState({ findings: [SEO_LONG] });
+			h = mountCard(review);
+			const live = () => h!.target.querySelector('.vega-review-live')?.textContent?.trim();
+			expect(live()).toBe('1 aviso');
+
+			review.set({ findings: [SEO_LONG, SEO_IMAGE] });
+			flushSync();
+			expect(h.summary()).toBe('2 avisos');
+			vi.advanceTimersByTime(400);
+			expect(live()).toBe('1 aviso');
+
+			review.set({ findings: [SEO_LONG, SEO_IMAGE, LINK_BROKEN] });
+			flushSync();
+			expect(h.summary()).toBe('3 avisos');
+			vi.advanceTimersByTime(699);
+			expect(live()).toBe('1 aviso');
+			vi.advanceTimersByTime(1);
+			flushSync();
+			expect(live()).toBe('3 avisos');
+
+			// Volver al mismo resultado durante una recarga no dispara otro anuncio.
+			review.set({ phase: 'loading' });
+			flushSync();
+			review.set({ phase: 'ready' });
+			flushSync();
+			vi.advanceTimersByTime(700);
+			expect(live()).toBe('3 avisos');
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	test('1.7 error al cargar: SEO sigue, enlaces e imágenes dejan paso al error con «Reintentar»', () => {

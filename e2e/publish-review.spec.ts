@@ -3,7 +3,7 @@
  * `design/mockups/2026-10-02-revision-antes-de-publicar`) de punta a punta sobre el escaparate
  * (`SHOWCASE_SEED`, `loginAsDemo(page, { seedShowcase: true })`): «Inicio» (`pagina_1`) siembra
  * avisos de los tres grupos — descripción vacía e imagen para redes ausente (SEO), un enlace
- * interno que queda «no comprobado» (en el escaparate `paginas` no declara `page`) y dos imágenes
+ * interno a `/precios` que se comprueba y está roto (no hay página con esa ruta) y dos imágenes
  * sin alt: una de la biblioteca en la galería y una `<img>` del texto con formato del bloque 2.
  *
  * Lo que compra y la suite de componente no puede: que «ir al bloque» DESPLIEGA la fila plegada y
@@ -34,16 +34,15 @@ test.describe('revisión antes de publicar — el formulario', () => {
 		await loginAsDemo(page, { seedShowcase: true });
 		await page.goto('/c/paginas/pagina_1');
 
-		// La tarjeta, la primera del aside, con el resumen de la carga: SEO (2) + imágenes (2); los
-		// enlaces quedan «no comprobado» en el escaparate (ver cabecera).
+		// SEO (2) + enlace roto (1) + imágenes (2). La revisión conoce las rutas sembradas.
 		const card = reviewCard(page);
 		await expect(card).toBeVisible();
-		await expect(card.locator('.vega-review-summary')).toHaveText('4 avisos');
-		await expect(card.locator('[data-review-group="links"]')).toContainText('No comprobado');
+		await expect(card.locator('.vega-review-count')).toHaveText('5 avisos');
+		await expect(card.locator('[data-review-group="links"]')).toContainText('/precios');
 		await expect(card.locator('[data-review-group="media"]')).toContainText('2 avisos');
 		// Y la línea bajo el campo Estado.
 		await expect(page.locator('[data-field="status"]')).toContainText(
-			'La revisión tiene 4 avisos.'
+			'La revisión tiene 5 avisos.'
 		);
 
 		// El bloque 2 («Texto») está plegado.
@@ -52,7 +51,9 @@ test.describe('revisión antes de publicar — el formulario', () => {
 		const body = page.locator('#vega-block-body-seccion_2');
 		await expect(body).toBeHidden();
 
+		// El mismo campo tiene avisos de enlace y de imagen; este recorrido comprueba el alt.
 		await card
+			.locator('[data-review-group="media"]')
 			.getByRole('button', { name: 'Bloque 2 · Texto › Contenido: ir al campo', exact: true })
 			.click();
 
@@ -63,7 +64,7 @@ test.describe('revisión antes de publicar — el formulario', () => {
 
 		// En vivo: escribir la descripción quita su aviso sin guardar nada.
 		await page.getByLabel('Descripción', { exact: true }).fill('Un CMS sobre tu PocketBase.');
-		await expect(card.locator('.vega-review-summary')).toHaveText('3 avisos');
+		await expect(card.locator('.vega-review-count')).toHaveText('4 avisos');
 	});
 });
 
@@ -84,7 +85,7 @@ test.describe('revisión antes de publicar — el editor visual', () => {
 		const publish = group.getByRole('button', { name: 'Marcar como publicada', exact: true });
 		await publish.click();
 
-		const confirm = page.getByRole('alertdialog', { name: 'Antes de publicar: 4 avisos' });
+		const confirm = page.getByRole('alertdialog', { name: 'Antes de publicar: 5 avisos' });
 		await expect(confirm).toBeVisible();
 		await expect(confirm).toContainText('La descripción para buscadores está vacía');
 		await expect(confirm).toContainText('Ningún aviso impide publicar.');
@@ -93,6 +94,16 @@ test.describe('revisión antes de publicar — el editor visual', () => {
 		).toBeVisible();
 		await expect(confirm.getByRole('button', { name: 'Cancelar', exact: true })).toBeFocused();
 		await expect(group).toContainText('Borrador');
+		// A 390 px la lista larga muestra que se puede desplazar y retira la pista al llegar abajo.
+		await page.setViewportSize({ width: 390, height: 400 });
+		const details = confirm.getByRole('region', {
+			name: 'Detalles de la revisión antes de publicar'
+		});
+		await expect(confirm.getByText('Desplázate para ver más')).toBeVisible();
+		await details.evaluate((element) => {
+			element.scrollTop = element.scrollHeight;
+		});
+		await expect(confirm.getByText('Desplázate para ver más')).toHaveCount(0);
 
 		// Esc cierra sin publicar y devuelve el foco al botón.
 		await page.keyboard.press('Escape');
@@ -102,7 +113,7 @@ test.describe('revisión antes de publicar — el editor visual', () => {
 
 		await publish.click();
 		await page
-			.getByRole('alertdialog', { name: 'Antes de publicar: 4 avisos' })
+			.getByRole('alertdialog', { name: 'Antes de publicar: 5 avisos' })
 			.getByRole('button', { name: 'Publicar igualmente', exact: true })
 			.click();
 		await expect(group).toContainText('Publicada');

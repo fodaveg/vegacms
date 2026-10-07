@@ -180,8 +180,15 @@ describe('SecuritySettings', () => {
 			const auth = fakeStrongAuth();
 			vi.mocked(auth.disableTotp).mockRejectedValueOnce(stepUp(['totp']));
 			const root = await mountEnabled(auth);
+			vi.mocked(auth.getStatus).mockResolvedValue({
+				totpEnabled: false,
+				recoveryCodesRemaining: 0,
+				passkeys: [{ id: 'passkey-1', name: 'Touch ID', created: '2026-07-22' }]
+			});
 
-			button(root, 'security.totp.disable').click();
+			const opener = button(root, 'security.totp.disable');
+			opener.focus();
+			opener.click();
 			await settle();
 
 			expect(dialog(root)?.textContent).toContain('security.stepUp.title');
@@ -198,6 +205,8 @@ describe('SecuritySettings', () => {
 
 			expect(vi.mocked(auth.disableTotp).mock.calls).toEqual([[undefined], [{ code: '123456' }]]);
 			expect(dialog(root)).toBeNull();
+			expect(document.contains(opener)).toBe(false);
+			expect(document.activeElement).toBe(root.querySelector('.vega-security'));
 			// La confirmación «¿Desactivar…?» no se repite al reintentar.
 			expect(window.confirm).toHaveBeenCalledOnce();
 			const ctxToast = vi.mocked(mounted!.toast);

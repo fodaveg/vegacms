@@ -353,6 +353,8 @@ const iso = (ms: number): string => new Date(ms).toISOString();
 
 const scheduleButton = (h: Harness) =>
 	h.target.querySelector<HTMLButtonElement>('.vega-visual-publish-schedule');
+const removeScheduleButton = (h: Harness) =>
+	h.target.querySelector<HTMLButtonElement>('.vega-visual-publish-remove-schedule');
 const dialog = (h: Harness) => h.target.querySelector<HTMLElement>('[role="dialog"]');
 const dateInput = (h: Harness) =>
 	dialog(h)?.querySelector<HTMLInputElement>('input[type="datetime-local"]') ?? null;
@@ -408,8 +410,9 @@ describe('VisualPublishControl.svelte — «Programar…»', () => {
 			...withPublishAt,
 			permissions: { ...withPublishAt.permissions, update: false }
 		};
-		h = mountControl({ record: page('draft'), type: locked });
+		h = mountControl({ record: page('draft', iso(Date.now() - DAY)), type: locked });
 		expect(scheduleButton(h)).toBeNull();
+		expect(removeScheduleButton(h)).toBeNull();
 		expect(dialog(h)).toBeNull();
 		void unmount(h.instance);
 		h.target.remove();
@@ -419,8 +422,13 @@ describe('VisualPublishControl.svelte — «Programar…»', () => {
 		void unmount(h.instance);
 		h.target.remove();
 
-		h = mountControl({ record: page('draft'), type: withPublishAt, scheduling: 'inactive' });
+		h = mountControl({
+			record: page('draft', iso(Date.now() - DAY)),
+			type: withPublishAt,
+			scheduling: 'inactive'
+		});
 		expect(scheduleButton(h)).toBeNull();
+		expect(removeScheduleButton(h)).toBeNull();
 		// Deshabilitado tampoco: no se promete nada que el servidor no va a cumplir.
 		expect(h.target.querySelector('[aria-disabled="true"]')).toBeNull();
 	});
@@ -471,6 +479,188 @@ describe('VisualPublishControl.svelte — «Programar…»', () => {
 		expect(scheduleButton(h)!.textContent?.trim()).toBe('Cambiar fecha…');
 		const input = await openSchedule(h);
 		expect(input.value).toBe(isoUtcToLocalInput(at));
+	});
+
+	test('programación futura: quitarla mantiene borrador; publicar limpia la fecha de forma atómica', async () => {
+		const at = iso(Date.now() + 2 * DAY);
+		const record = page('draft', at);
+		h = mountControl({ record, type: resolvedPages(true) });
+		expect(removeScheduleButton(h)?.textContent?.trim()).toBe('Quitar programación');
+		removeScheduleButton(h)!.click();
+		await settle();
+		expect(h.update).toHaveBeenCalledWith(
+			'pages',
+			'p1',
+			{ status: 'draft', publishAt: null },
+			{ expectedVersion: recordVersion(record) }
+		);
+		expect(tagText(h)).toBe('Borrador');
+		expect(removeScheduleButton(h)).toBeNull();
+		expect(scheduleButton(h)?.textContent?.trim()).toBe('Programar…');
+		expect(document.activeElement).toBe(scheduleButton(h));
+		expect(h.feedback.toast).toHaveBeenCalledWith(t('editor.schedule.removed'), {
+			kind: 'success'
+		});
+
+		// Con una fecha futura, la acción principal también debe limpiar el campo al publicar.
+		await unmount(h.instance);
+		h.target.remove();
+		h = mountControl({ record, type: resolvedPages(true) });
+		action(h)!.click();
+		await settle();
+		expect(h.update).toHaveBeenCalledWith(
+			'pages',
+			'p1',
+			{ status: 'published', publishAt: null },
+			{ expectedVersion: recordVersion(record) }
+		);
+		expect(tagText(h)).toBe('Publicado');
+	});
+
+	test('programación vencida: «Publicar ahora» vacía fecha y estado en una escritura', async () => {
+		const record = page('draft', iso(Date.now() - DAY));
+		h = mountControl({ record, type: resolvedPages(true) });
+		expect(
+			h.target.querySelector('.vega-visual-publish-tag')?.getAttribute('data-status-kind')
+		).toBe('overdue');
+		expect(action(h)?.textContent?.trim()).toBe(t('editor.schedule.publishNow'));
+		expect(scheduleButton(h)?.textContent?.trim()).toBe(t('editor.schedule.change'));
+		expect(removeScheduleButton(h)?.textContent?.trim()).toBe(t('editor.schedule.remove'));
+		action(h)!.click();
+		await settle();
+		expect(h.update).toHaveBeenCalledTimes(1);
+		expect(h.update).toHaveBeenCalledWith(
+			'pages',
+			'p1',
+			{ status: 'published', publishAt: null },
+			{ expectedVersion: recordVersion(record) }
+		);
+		expect(tagText(h)).toBe('Publicado');
+		expect(removeScheduleButton(h)).toBeNull();
+	});
+
+	test('«Publicar ahora» fallido conserva la fecha y reintenta la escritura atómica', async () => {
+		const record = page('draft', iso(Date.now() - DAY));
+		const update = vi
+			.fn()
+			.mockRejectedValueOnce(VegaError.network(undefined, 'Sin conexión con el backend'))
+			.mockImplementationOnce(async (_type: string, id: string, data: Record<string, unknown>) => ({
+				id,
+				type: 'pages',
+				values: { ...record.values, ...data }
+			}));
+		h = mountControl({ record, type: resolvedPages(true), update });
+		action(h)!.click();
+		await settle();
+		expect(tagText(h)).toContain('no se publicó');
+		expect(h.target.querySelector('.vega-visual-publish-error')?.textContent?.trim()).toBe(
+			t('editor.visual.status.error.publish')
+		);
+		expect(action(h)?.textContent?.trim()).toBe(t('common.retry'));
+		expect(h.feedback.reportError).toHaveBeenCalledTimes(1);
+		action(h)!.click();
+		await settle();
+		expect(update).toHaveBeenCalledTimes(2);
+		expect(update).toHaveBeenLastCalledWith(
+			'pages',
+			'p1',
+			{ status: 'published', publishAt: null },
+			{ expectedVersion: recordVersion(record) }
+		);
+		expect(tagText(h)).toBe('Publicado');
+	});
+
+	test('programación vencida: quitarla no publica y un error permite reintentar', async () => {
+		const record = page('draft', iso(Date.now() - DAY));
+		const update = vi
+			.fn()
+			.mockRejectedValueOnce(VegaError.network(undefined, 'Sin conexión con el backend'))
+			.mockImplementationOnce(async (_type: string, id: string, data: Record<string, unknown>) => ({
+				id,
+				type: 'pages',
+				values: { ...record.values, ...data }
+			}));
+		h = mountControl({ record, type: resolvedPages(true), update });
+		removeScheduleButton(h)!.click();
+		await settle();
+		expect(tagText(h)).toContain('no se publicó');
+		expect(h.target.querySelector('.vega-visual-publish-error')?.textContent?.trim()).toBe(
+			t('editor.schedule.removeFailed')
+		);
+		expect(h.feedback.reportError).toHaveBeenCalledTimes(1);
+		expect(removeScheduleButton(h)).not.toBeNull();
+		removeScheduleButton(h)!.click();
+		await settle();
+		expect(update).toHaveBeenCalledTimes(2);
+		expect(update).toHaveBeenLastCalledWith(
+			'pages',
+			'p1',
+			{ status: 'draft', publishAt: null },
+			{ expectedVersion: recordVersion(record) }
+		);
+		expect(tagText(h)).toBe('Borrador');
+	});
+
+	test('quitar programación con conflicto adopta la versión del servidor y no la borra', async () => {
+		const server = page('published');
+		const update = vi.fn(async () => {
+			throw new VegaConflictError(server, recordVersion(server));
+		});
+		h = mountControl({
+			record: page('draft', iso(Date.now() - DAY)),
+			type: resolvedPages(true),
+			update
+		});
+		removeScheduleButton(h)!.click();
+		await settle();
+		expect(update).toHaveBeenCalledTimes(1);
+		expect(tagText(h)).toBe('Publicado');
+		expect(removeScheduleButton(h)).toBeNull();
+		expect(h.target.querySelector('.vega-visual-publish-error')?.textContent?.trim()).toBe(
+			t('editor.visual.status.error.conflict')
+		);
+		expect(document.activeElement).toBe(action(h));
+		expect(h.feedback.reportError).not.toHaveBeenCalled();
+	});
+
+	test('si el servidor ya quitó la fecha, el conflicto enfoca «Programar…» al desaparecer el botón', async () => {
+		const server = page('draft');
+		const update = vi.fn(async () => {
+			throw new VegaConflictError(server, recordVersion(server));
+		});
+		h = mountControl({
+			record: page('draft', iso(Date.now() - DAY)),
+			type: resolvedPages(true),
+			update
+		});
+		const opener = removeScheduleButton(h)!;
+		opener.focus();
+		opener.click();
+		await settle();
+		expect(update).toHaveBeenCalledTimes(1);
+		expect(document.contains(opener)).toBe(false);
+		expect(removeScheduleButton(h)).toBeNull();
+		expect(scheduleButton(h)?.textContent?.trim()).toBe(t('editor.schedule.open'));
+		expect(document.activeElement).toBe(scheduleButton(h));
+	});
+
+	test('si el servidor conserva otra fecha, el conflicto conserva el foco en «Quitar programación»', async () => {
+		const server = page('draft', iso(Date.now() + 2 * DAY));
+		const update = vi.fn(async () => {
+			throw new VegaConflictError(server, recordVersion(server));
+		});
+		h = mountControl({
+			record: page('draft', iso(Date.now() - DAY)),
+			type: resolvedPages(true),
+			update
+		});
+		const opener = removeScheduleButton(h)!;
+		opener.focus();
+		opener.click();
+		await settle();
+		expect(update).toHaveBeenCalledTimes(1);
+		expect(document.contains(opener)).toBe(true);
+		expect(document.activeElement).toBe(opener);
 	});
 
 	test('servidor sin confirmar: se ofrece, y el diálogo lleva el aviso', async () => {
@@ -685,6 +875,39 @@ describe('VisualPublishControl.svelte — revisión antes de publicar', () => {
 		expect(h.update).not.toHaveBeenCalled();
 	});
 
+	test('la pista de desplazamiento aparece solo si quedan detalles fuera de vista y se oculta al final', async () => {
+		h = mountControl({
+			record: page('draft'),
+			review: fakeReviewState({ findings: [DESCRIPTION] })
+		});
+		action(h)!.click();
+		await settle();
+		const scroll = pop(h)!.querySelector<HTMLElement>('.vega-review-pop-scroll')!;
+		let top = 0;
+		Object.defineProperties(scroll, {
+			scrollHeight: { configurable: true, get: () => 500 },
+			clientHeight: { configurable: true, get: () => 500 },
+			scrollTop: { configurable: true, get: () => top }
+		});
+		const hint = () => pop(h!)!.querySelector('.vega-review-pop-more');
+		scroll.dispatchEvent(new Event('scroll'));
+		flushSync();
+		expect(hint()).toBeNull();
+
+		Object.defineProperty(scroll, 'clientHeight', { configurable: true, get: () => 250 });
+		scroll.dispatchEvent(new Event('scroll'));
+		flushSync();
+		expect(hint()?.textContent).toBe('Desplázate para ver más');
+		expect(scroll.classList.contains('vega-review-pop-scroll--more')).toBe(true);
+		expect(scroll.getAttribute('aria-label')).toBe('Detalles de la revisión antes de publicar');
+		expect(scroll.getAttribute('tabindex')).toBe('0');
+
+		top = 250;
+		scroll.dispatchEvent(new Event('scroll'));
+		flushSync();
+		expect(hint()).toBeNull();
+	});
+
 	test('2.2 con avisos Y un bloque sin guardar: UNA sola confirmación con las dos cosas', async () => {
 		h = mountControl({
 			record: page('draft'),
@@ -706,6 +929,40 @@ describe('VisualPublishControl.svelte — revisión antes de publicar', () => {
 		await settle();
 		expect(h.update).toHaveBeenCalledTimes(1);
 		expect(h.target.querySelectorAll('[role="alertdialog"]')).toHaveLength(0);
+	});
+
+	test('«Publicar ahora» con fecha vencida conserva la confirmación conjunta y limpia la fecha solo al confirmar', async () => {
+		const record = page('draft', iso(Date.now() - DAY));
+		h = mountControl({
+			record,
+			type: resolvedPages(true),
+			pendingBlocks: ['Reserva tu plaza'],
+			review: fakeReviewState({ findings: [BROKEN] })
+		});
+		expect(action(h)?.textContent?.trim()).toBe(t('editor.schedule.publishNow'));
+		action(h)!.click();
+		await settle();
+		expect(h.target.querySelectorAll('[role="alertdialog"]')).toHaveLength(1);
+		expect(popTitle(h)).toBe('Antes de publicar');
+		expect(pop(h)?.textContent).toContain('Reserva tu plaza');
+		expect(pop(h)?.textContent).toContain('1 aviso');
+		expect(h.update).not.toHaveBeenCalled();
+		popButton(h, t('common.cancel'))!.click();
+		await settle();
+		expect(h.update).not.toHaveBeenCalled();
+		expect(action(h)?.textContent?.trim()).toBe(t('editor.schedule.publishNow'));
+
+		action(h)!.click();
+		await settle();
+		popButton(h, t('editor.visual.status.confirm.publish'))!.click();
+		await settle();
+		expect(h.update).toHaveBeenCalledTimes(1);
+		expect(h.update).toHaveBeenCalledWith(
+			'pages',
+			'p1',
+			{ status: 'published', publishAt: null },
+			{ expectedVersion: recordVersion(record) }
+		);
 	});
 
 	test('bloques sin guardar con la revisión cargando o fallida: el pie no dice «Ningún aviso impide publicar»', async () => {
@@ -811,7 +1068,8 @@ describe('VisualPublishControl.svelte — revisión antes de publicar', () => {
 		expect(error.textContent).toContain('No se han podido leer los bloques de la página');
 		popButton(h, t('common.retry'))!.click();
 		expect(review.reload).toHaveBeenCalledTimes(1);
-		expect(pop(h)!.textContent).toContain('Ningún aviso impide publicar.');
+		expect(pop(h)!.textContent).toContain('Puedes publicar igualmente.');
+		expect(pop(h)!.textContent).not.toContain('Ningún aviso impide publicar.');
 		expect(popButton(h, 'Publicar igualmente')).not.toBeNull();
 		expect(h.update).not.toHaveBeenCalled();
 	});

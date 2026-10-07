@@ -215,4 +215,45 @@ describe('EditorRail.svelte — peticiones', () => {
 		expect(mounted.titles()).toEqual(['Uno nuevo', 'Dos']);
 		expect(mounted.listFn).toHaveBeenCalledTimes(1);
 	});
+
+	test.each([true, false])(
+		'la relectura ready integra otros registros sin pisar el guardado posterior (abierto en página: %s)',
+		async (included) => {
+			let resolveList!: (page: Page<VegaRecord>) => void;
+			const initial = { ...rec('a', 'Inicial'), values: { title: 'Inicial', sort: 1 } };
+			mounted = setup({
+				list: [initial, rec('b', 'Otro inicial')],
+				activeId: 'a',
+				type: makeType({ orderField: 'sort' })
+			});
+			await flush();
+			mounted.listFn.mockImplementationOnce(
+				() => new Promise((resolve) => (resolveList = resolve))
+			);
+			mounted.props.savedRecord = { ...initial, values: { title: 'Reordenado', sort: 5 } };
+			await flush();
+			expect(mounted.target.querySelector('.vega-rail-loading')).toBeNull();
+			// Mientras la lista sigue visible, dos guardados sin reordenar: el último prevalece.
+			mounted.props.savedRecord = { ...initial, values: { title: 'Intermedio', sort: 5 } };
+			await flush();
+			mounted.props.savedRecord = { ...initial, values: { title: 'Último guardado', sort: 5 } };
+			await flush();
+			resolveList(
+				pageOf(
+					[
+						rec('b', 'Otro actualizado'),
+						...(included ? [{ ...initial, values: { title: 'Reordenado', sort: 5 } }] : [])
+					],
+					2
+				)
+			);
+			await flush();
+			expect(mounted.titles()).toEqual(['Otro actualizado', 'Último guardado']);
+			expect(
+				mounted.target.querySelector('[aria-current="true"] .vega-rail-title')?.textContent
+			).toBe('Último guardado');
+			expect(mounted.listFn).toHaveBeenCalledTimes(2);
+			expect(mounted.getFn).not.toHaveBeenCalled();
+		}
+	);
 });

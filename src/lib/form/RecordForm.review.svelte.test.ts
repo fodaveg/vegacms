@@ -146,7 +146,7 @@ async function settle(): Promise<void> {
 
 const card = (m: Mounted) => m.target.querySelector<HTMLElement>('[data-review-card]');
 const summary = (m: Mounted) =>
-	m.target.querySelector('.vega-review-summary')?.textContent?.trim() ?? '';
+	m.target.querySelector('.vega-review-count, .vega-review-checking')?.textContent?.trim() ?? '';
 const reviewLine = (m: Mounted) => m.target.querySelector<HTMLElement>('[data-review-line]');
 const buttonByLabel = (m: Mounted, label: string) =>
 	[...m.target.querySelectorAll<HTMLButtonElement>('button')].find(
@@ -269,7 +269,9 @@ describe('RecordForm — la tarjeta «Revisión» en el aside', () => {
 		await settle();
 		expect(m.target.querySelector('[role="dialog"]')).toBeNull();
 
-		buttonByLabel(m, 'Describir la imagen…')!.click();
+		const opener = buttonByLabel(m, 'Describir la imagen…')!;
+		opener.focus();
+		opener.click();
 		await settle();
 		const dialog = m.target.querySelector<HTMLElement>('[role="dialog"]')!;
 		expect(dialog).not.toBeNull();
@@ -284,6 +286,8 @@ describe('RecordForm — la tarjeta «Revisión» en el aside', () => {
 		await settle();
 
 		expect(m.target.querySelector('[role="dialog"]')).toBeNull();
+		expect(document.contains(opener)).toBe(false);
+		expect(document.activeElement).toBe(m.target.querySelector('h1'));
 		expect((await world.port.get('vega_media', media.id)).values.alt).toBe(
 			'Chaqueta de lino sobre la mesa de corte'
 		);
@@ -292,6 +296,20 @@ describe('RecordForm — la tarjeta «Revisión» en el aside', () => {
 		expect(
 			m.target.querySelector('[data-review-group="media"] .vega-review-status')?.textContent?.trim()
 		).toBe('Sin avisos');
+	});
+
+	test('cerrar la ficha sin guardar devuelve el foco al aviso que sigue visible', async () => {
+		const { page } = await pageWithWarnings();
+		const m = mountForm(world.pagesType, page);
+		await settle();
+		const opener = buttonByLabel(m, 'Describir la imagen…')!;
+		opener.focus();
+		opener.click();
+		await settle();
+		m.target.querySelector<HTMLButtonElement>('.vega-media-detail-close')!.click();
+		await settle();
+		expect(m.target.querySelector('[role="dialog"]')).toBeNull();
+		expect(document.activeElement).toBe(opener);
 	});
 
 	test('una petición de foco del editor visual se cumple al montar, solo si es para este registro', async () => {

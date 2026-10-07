@@ -31,8 +31,9 @@
 	 * de `review-state.svelte.ts` que crea `VisualEditorScreen`), «Marcar como publicada» pregunta
 	 * también si la revisión tiene avisos o algo sin comprobar (`review.needsAttention`), en el
 	 * MISMO popover y en tono de aviso (`--warning`/`--warning-soft`, la pareja de
-	 * `.vega-field-notice`): la lista de grupos (`ReviewGroups.svelte`, `surface="visual"`), «Ningún
-	 * aviso impide publicar», «Publicar igualmente» / «Cancelar». Sin avisos publica a la primera,
+	 * `.vega-field-notice`): la lista de grupos (`ReviewGroups.svelte`, `surface="visual"`),
+	 * un pie que distingue avisos conocidos de revisión incompleta, «Publicar igualmente» /
+	 * «Cancelar». Sin avisos publica a la primera,
 	 * como hoy. Con bloques sin guardar Y avisos sale UNA sola confirmación («Antes de publicar»:
 	 * los bloques primero, que es lo que más cambia lo que se publica, y los avisos debajo), nunca
 	 * dos seguidas. Si se pulsa antes de que la revisión termine de cargar: «Revisando la página…» y
@@ -56,13 +57,15 @@
 	 * mismo `ScheduleDialog`; confirmar escribe por el MISMO `port.update` de arriba, solo
 	 * `statusField: 'draft'` + `publishAtField`, con la versión esperada. La etiqueta pasa por
 	 * `describeStatusBadge` (la misma píldora que el formulario y la tabla), así que una página
-	 * programada dice «Programada · fecha». Un fallo al guardar deja el diálogo abierto con el
-	 * motivo (contrato de `ScheduleDialog`); un conflicto de versión lo cierra y el control adopta el
-	 * registro del servidor, igual que al cambiar el estado.
+	 * programada dice «Programada · fecha». «Quitar programación» deja el borrador sin fecha;
+	 * si venció, la acción principal dice «Publicar ahora» y respeta la confirmación de avisos y
+	 * bloques. Publicar vacía la fecha en la misma escritura. Un fallo al guardar deja el diálogo
+	 * abierto con el motivo (contrato de `ScheduleDialog`); un conflicto de versión lo cierra y
+	 * el control adopta el registro del servidor, igual que al cambiar el estado.
 	 */
 	import { tick, untrack } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
-	import type { VegaRecord } from '$lib/backend/types';
+	import type { RecordInput, VegaRecord } from '$lib/backend/types';
 	import { isConflictError, VegaError } from '$lib/backend/errors';
 	import { recordVersion } from '$lib/backend/version';
 	import ScheduleDialog from '$lib/form/ScheduleDialog.svelte';
@@ -113,9 +116,38 @@
 	let phase = $state<Phase>('idle');
 	let errorKind = $state<'failed' | 'conflict'>('failed');
 	let errorTarget = $state<Target>('published');
+	let errorOperation = $state<'status' | 'removeSchedule'>('status');
 	let errorDetail = $state('');
 	let actionEl = $state<HTMLButtonElement | undefined>(undefined);
+	let scheduleEl = $state<HTMLButtonElement | undefined>(undefined);
+	let removeScheduleEl = $state<HTMLButtonElement | undefined>(undefined);
 	let cancelEl = $state<HTMLButtonElement | undefined>(undefined);
+	let moreReviewContent = $state(false);
+
+	/** Mide el desbordamiento real del popover, también tras expandir grupos o cambiar el tamaño. */
+	function watchReviewScroll(node: HTMLElement): { destroy: () => void } {
+		let active = true;
+		const update = () => {
+			if (!active) return;
+			moreReviewContent = node.scrollHeight - node.clientHeight - node.scrollTop > 2;
+		};
+		const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update);
+		observer?.observe(node);
+		for (const child of node.children) observer?.observe(child);
+		const changes = new MutationObserver(update);
+		changes.observe(node, { childList: true, subtree: true, characterData: true });
+		node.addEventListener('scroll', update, { passive: true });
+		void tick().then(update);
+		return {
+			destroy: () => {
+				active = false;
+				observer?.disconnect();
+				changes.disconnect();
+				node.removeEventListener('scroll', update);
+				moreReviewContent = false;
+			}
+		};
+	}
 
 	// Otra página (la ruta reutiliza el componente): se parte de SU registro, sin arrastrar estado.
 	let syncedRecord = untrack(() => record);
@@ -248,10 +280,7 @@
 		return ctx.t('review.count.none');
 	});
 
-	/** Pie del popover. Con bloques sin guardar y la revisión sin terminar (cargando o fallida),
-	 *  «Ningún aviso impide publicar» afirmaría algo que no se sabe: va el texto de «revisando» o
-	 *  el del error. Sin bloques sin guardar, el error lleva su título arriba y la fila de error
-	 *  con «Reintentar»; ahí el pie es el de la lámina 2.4. */
+	/** Pie del popover: con revisión incompleta o fallida no se afirma que no haya avisos. */
 	const popBody = $derived.by(() => {
 		if (pendingBlocks.length > 0 && !reviewSays) return ctx.t('editor.visual.status.confirm.body');
 		if (reviewLoading && pendingBlocks.length === 0) {
@@ -264,7 +293,7 @@
 		if (findingsCount > 0 && pendingBlocks.length === 0 && !reviewLoading && !reviewFailed) {
 			return ctx.t('editor.visual.review.body');
 		}
-		return ctx.t('review.notBlocking');
+		return ctx.t('editor.visual.review.canPublish');
 	});
 
 	const confirmLabel = $derived(
@@ -292,17 +321,30 @@
 			: retrying
 				? ctx.t('common.retry')
 				: target === 'published'
-					? ctx.t('editor.visual.status.publish')
+					? ctx.t(
+							scheduleControl.kind === 'overdue'
+								? 'editor.schedule.publishNow'
+								: 'editor.visual.status.publish'
+						)
 					: ctx.t('editor.visual.status.unpublish')
 	);
 
 	const errorText = $derived(
 		errorKind === 'conflict'
 			? ctx.t('editor.visual.status.error.conflict')
-			: errorTarget === 'published'
-				? ctx.t('editor.visual.status.error.publish')
-				: ctx.t('editor.visual.status.error.unpublish')
+			: errorOperation === 'removeSchedule'
+				? ctx.t('editor.schedule.removeFailed')
+				: errorTarget === 'published'
+					? ctx.t('editor.visual.status.error.publish')
+					: ctx.t('editor.visual.status.error.unpublish')
 	);
+
+	/** Como en el formulario: borrar la fecha sin publicar, con la versión confirmada. */
+	async function removeSchedule(): Promise<void> {
+		if (phase === 'changing') return;
+		if (scheduleControl.kind !== 'scheduled' && scheduleControl.kind !== 'overdue') return;
+		await change('draft', 'removeSchedule');
+	}
 
 	async function requestChange(): Promise<void> {
 		if (phase === 'changing') return;
@@ -338,8 +380,22 @@
 		void cancelConfirm();
 	}
 
-	async function change(to: Target): Promise<void> {
+	async function change(
+		to: Target,
+		operation: 'status' | 'removeSchedule' = 'status'
+	): Promise<void> {
 		if (statusField === null) return;
+		const values: RecordInput = { [statusField]: to };
+		const publishAtField = type.publishAtField;
+		if (
+			publishAtField &&
+			(operation === 'removeSchedule' ||
+				(to === 'published' &&
+					confirmed.values[publishAtField] != null &&
+					confirmed.values[publishAtField] !== ''))
+		) {
+			values[publishAtField] = null;
+		}
 		const refocus = phase === 'confirming';
 		phase = 'changing';
 		if (refocus) {
@@ -347,16 +403,20 @@
 			actionEl?.focus();
 		}
 		try {
-			const saved = await ctx.port.update(
-				type.name,
-				confirmed.id,
-				{ [statusField]: to },
-				{ expectedVersion: recordVersion(confirmed) }
-			);
+			const saved = await ctx.port.update(type.name, confirmed.id, values, {
+				expectedVersion: recordVersion(confirmed)
+			});
 			confirmed = saved;
 			phase = 'idle';
+			if (operation === 'removeSchedule') {
+				await tick();
+				scheduleEl?.focus();
+			}
 			const label = type.statusLabels?.[to] ?? to;
-			const message = ctx.t('editor.visual.status.success', { name, label });
+			const message =
+				operation === 'removeSchedule'
+					? ctx.t('editor.schedule.removed')
+					: ctx.t('editor.visual.status.success', { name, label });
 			ctx.feedback.toast(
 				ctx.port.buildApiUrl
 					? `${message} ${ctx.t('editor.visual.status.success.rebuild')}`
@@ -367,6 +427,7 @@
 			const vegaErr =
 				err instanceof VegaError ? err : VegaError.backend('No se pudo cambiar el estado', err);
 			errorTarget = to;
+			errorOperation = operation;
 			if (isConflictError(vegaErr)) {
 				// Falla cerrado y enseña la verdad: la etiqueta pasa a la del servidor.
 				confirmed = vegaErr.serverRecord;
@@ -375,9 +436,19 @@
 			} else {
 				errorKind = 'failed';
 				errorDetail = vegaErr.message;
-				ctx.feedback.reportError(vegaErr, { action: 'visual:status' });
+				ctx.feedback.reportError(vegaErr, {
+					action: operation === 'removeSchedule' ? 'visual:schedule-remove' : 'visual:status'
+				});
 			}
 			phase = 'error';
+			if (errorKind === 'conflict' && operation === 'removeSchedule') {
+				await tick();
+				// El servidor puede haber quitado la fecha sin publicar: «Programar…» permanece,
+				// pero el botón que inició esta operación desaparece igualmente.
+				if (!removeScheduleEl?.isConnected) {
+					(scheduleEl?.isConnected ? scheduleEl : actionEl)?.focus();
+				}
+			}
 		}
 	}
 </script>
@@ -417,6 +488,7 @@
 				<button
 					type="button"
 					class="vega-visual-publish-btn vega-visual-publish-schedule"
+					bind:this={scheduleEl}
 					aria-disabled={phase === 'changing' ? 'true' : undefined}
 					data-schedule-kind={scheduleControl.kind}
 					onclick={openSchedule}
@@ -424,6 +496,17 @@
 					{ctx.t(
 						scheduleControl.kind === 'draft' ? 'editor.schedule.open' : 'editor.schedule.change'
 					)}
+				</button>
+			{/if}
+			{#if scheduleControl.kind === 'scheduled' || scheduleControl.kind === 'overdue'}
+				<button
+					type="button"
+					class="vega-visual-publish-btn vega-visual-publish-remove-schedule"
+					bind:this={removeScheduleEl}
+					aria-disabled={phase === 'changing' ? 'true' : undefined}
+					onclick={() => void removeSchedule()}
+				>
+					{ctx.t('editor.schedule.remove')}
 				</button>
 			{/if}
 
@@ -452,7 +535,15 @@
 					{#if pendingBlocks.length > 0 && reviewSays}
 						<!-- UNA confirmación con las dos cosas (lámina 2.2): los bloques sin guardar primero,
 						     los avisos debajo; lo que puede crecer se desplaza, título y botones no. -->
-						<div class="vega-review-pop-scroll">
+						<!-- svelte-ignore a11y_no_noninteractive_tabindex --><!-- La lista desplazable admite teclado. -->
+						<div
+							class="vega-review-pop-scroll"
+							class:vega-review-pop-scroll--more={moreReviewContent}
+							use:watchReviewScroll
+							role="region"
+							aria-label={ctx.t('editor.visual.review.scrollLabel')}
+							tabindex="0"
+						>
 							<div class="vega-review-pop-section">
 								<p class="vega-review-pop-head">
 									{ctx.t(
@@ -483,6 +574,9 @@
 								</div>
 							{/if}
 						</div>
+						{#if moreReviewContent}
+							<p class="vega-review-pop-more">{ctx.t('editor.visual.review.scrollMore')}</p>
+						{/if}
 					{:else if pendingBlocks.length > 0}
 						<ul>
 							{#each pendingBlocks as title, i (i)}
@@ -490,7 +584,15 @@
 							{/each}
 						</ul>
 					{:else if review && reviewSays && !reviewLoading}
-						<div class="vega-review-pop-scroll">
+						<!-- svelte-ignore a11y_no_noninteractive_tabindex --><!-- La lista desplazable admite teclado. -->
+						<div
+							class="vega-review-pop-scroll"
+							class:vega-review-pop-scroll--more={moreReviewContent}
+							use:watchReviewScroll
+							role="region"
+							aria-label={ctx.t('editor.visual.review.scrollLabel')}
+							tabindex="0"
+						>
 							<div class="vega-review-pop-section">
 								<ReviewGroups
 									{review}
@@ -501,6 +603,9 @@
 								/>
 							</div>
 						</div>
+						{#if moreReviewContent}
+							<p class="vega-review-pop-more">{ctx.t('editor.visual.review.scrollMore')}</p>
+						{/if}
 					{/if}
 					<p
 						class="vega-visual-publish-pop-body"
@@ -769,6 +874,16 @@
 		overscroll-behavior: contain;
 	}
 
+	.vega-review-pop-scroll--more {
+		border-bottom-color: var(--warning);
+		box-shadow: inset 0 -12px 10px -12px var(--warning);
+	}
+
+	.vega-review-pop-more {
+		color: var(--ink);
+		font-size: 0.75rem;
+	}
+
 	/* `.vega-visual-publish-pop ul` (lista de bloques sin guardar) sangra y pinta en `--ink`: las
 	   listas de la revisión no llevan viñeta, así que se anula la sangría solo en ellas. */
 	.vega-visual-publish-pop :global(.vega-review-groups),
@@ -799,6 +914,19 @@
 			order: 3;
 			padding-left: 0;
 			border-left: 0;
+		}
+
+		/* La barra visual puede ocupar varias líneas. Anclar la confirmación debajo de ella
+		   deja sus botones fuera de un viewport bajo (390 × 400), también con bloques sin revisión. */
+		.vega-visual-publish-pop {
+			position: fixed;
+			top: calc(var(--topbar-h) + 0.5rem);
+			left: 1rem;
+			width: calc(100vw - 2rem);
+			max-height: calc(100vh - var(--topbar-h) - 1rem);
+			max-height: calc(100dvh - var(--topbar-h) - 1rem);
+			/* Respaldo para una lista de bloques sola que no usa `.vega-review-pop-scroll`. */
+			overflow-y: auto;
 		}
 	}
 

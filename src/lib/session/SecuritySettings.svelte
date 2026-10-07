@@ -36,6 +36,7 @@
 		methods: StepUpMethod[];
 	}
 	let stepUp = $state<PendingStepUp | null>(null);
+	let sectionEl = $state<HTMLElement | null>(null);
 	let stepUpBusy = $state(false);
 	let stepUpError = $state<string | null>(null);
 
@@ -260,7 +261,12 @@
 </script>
 
 {#if auth}
-	<section class="vega-security" aria-labelledby="vega-security-title">
+	<section
+		class="vega-security"
+		aria-labelledby="vega-security-title"
+		tabindex="-1"
+		bind:this={sectionEl}
+	>
 		<header>
 			<div>
 				<h2 id="vega-security-title">{ctx.t('security.title')}</h2>
@@ -443,6 +449,7 @@
 		passkeyAvailable={typeof auth.verifyWithPasskey === 'function'}
 		busy={stepUpBusy}
 		error={stepUpError}
+		fallbackFocusEl={sectionEl}
 		onSubmitCode={submitStepUpCode}
 		onUsePasskey={useStepUpPasskey}
 		onCancel={cancelStepUp}

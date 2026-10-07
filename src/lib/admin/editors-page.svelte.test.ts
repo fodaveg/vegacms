@@ -200,7 +200,9 @@ describe('/editores', () => {
 		expect(admin.mailEnabled).toHaveBeenCalledTimes(1);
 		expect(admin.ensureInvitationLink).toHaveBeenCalledTimes(1);
 
-		button(target, 'admin.editors.remove').click();
+		const opener = button(target, 'admin.editors.remove');
+		opener.focus();
+		opener.click();
 		await settle();
 		button(document.body, 'admin.editors.removeDialog.confirm').click();
 		await settle();
@@ -208,6 +210,8 @@ describe('/editores', () => {
 		expect(admin.removeEditor).toHaveBeenCalledExactlyOnceWith('e1');
 		expect(admin.listEditors).toHaveBeenCalledTimes(1);
 		expect(target.querySelector('[data-editor-email]')).toBeNull();
+		expect(document.contains(opener)).toBe(false);
+		expect(document.activeElement).toBe(target.querySelector('h1'));
 		expect(ctx.feedback.toast).toHaveBeenCalledWith(
 			expect.stringContaining('admin.editors.removeDialog.success'),
 			{ kind: 'success' }

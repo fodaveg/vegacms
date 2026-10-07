@@ -123,6 +123,9 @@ describe.skipIf(!AVAILABLE)('pb_hooks de producto: aviso de mensajes de contacto
 			(await api('GET', '/api/collections/messages/records?sort=created,id&perPage=100')).body
 				.items as { notifyState: string }[]
 		).map((item) => item.notifyState);
+	/** El cron ordena solo por `created`: altas con la misma marca temporal pueden intercambiar
+	 *  qué registro recibe `more`. El contrato del tope es el recuento exacto de cada estado. */
+	const capStates = async () => (await states()).sort();
 	const runCron = () => api('POST', `/api/crons/${CRON}`);
 	/** Margen para que un correo que NO debe llegar tuviera tiempo de hacerlo. */
 	const settle = () => new Promise((resolve) => setTimeout(resolve, 600));
@@ -225,7 +228,7 @@ describe.skipIf(!AVAILABLE)('pb_hooks de producto: aviso de mensajes de contacto
 		for (const n of [1, 2, 3, 4]) expect((await send(n)).status).toBe(200);
 		await runCron();
 		await sink.waitForMessages(3);
-		await expect.poll(states, { timeout: 10_000 }).toEqual(['sent', 'sent', 'more', 'capped']);
+		await expect.poll(capStates, { timeout: 10_000 }).toEqual(['capped', 'more', 'sent', 'sent']);
 		await settle();
 		expect(sink.messages.length).toBe(3);
 		expect(sink.messages.filter((mail) => /Hay[ _]m/.test(mail)).length).toBe(1);
@@ -246,8 +249,8 @@ describe.skipIf(!AVAILABLE)('pb_hooks de producto: aviso de mensajes de contacto
 		await runCron();
 		await sink.waitForMessages(6);
 		await expect
-			.poll(states, { timeout: 10_000 })
-			.toEqual(['sent', 'sent', 'sent', 'sent', 'sent', 'more', 'capped']);
+			.poll(capStates, { timeout: 10_000 })
+			.toEqual(['capped', 'more', 'sent', 'sent', 'sent', 'sent', 'sent']);
 	}, 30_000);
 
 	test('(g) solo avisa de las altas SIN sesión: un superusuario (como el botón «Nuevo») no', async () => {

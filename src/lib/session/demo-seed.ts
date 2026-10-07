@@ -1414,6 +1414,18 @@ const PAGINAS_CONTENT_TYPE: ContentType = {
 			hidden: false,
 			unique: false
 		},
+		// Ruta pública real para que la revisión contraste enlaces con las páginas sembradas.
+		// Se guarda en una columna propia: editar el título no cambia los enlaces del sitio.
+		{
+			name: 'path',
+			type: 'text',
+			subtype: 'plain',
+			required: true,
+			readonly: false,
+			presentable: true,
+			hidden: false,
+			unique: true
+		},
 		// Lote de edición concurrente (lámina del audit p2): sin un `statusField`, el control de
 		// estado de la cabecera del editor visual (`VisualPublishControl.svelte`) no se pinta, y
 		// `paginas` es la ÚNICA colección de e2e con editor visual. Convención de publicación de
@@ -1617,6 +1629,7 @@ const SHOWCASE_MANIFEST: JsonValue = {
 			icon: 'document',
 			group: 'Contenido',
 			order: 2,
+			page: { pathField: 'path' },
 			// `blocks`: la página se compone de secciones ordenables, editadas EN LÍNEA dentro de su
 			// propio formulario. Abre «Inicio» para verlo; el resto de páginas enseñan el estado
 			// vacío de la lista embebida. `typeField`/`dataField` (encargo "fixture de tipos para la
@@ -1934,12 +1947,13 @@ const ENTRADAS_RECORDS = [
 
 const PAGINAS_RECORDS = [
 	// `status` (ver `PAGINAS_CONTENT_TYPE`): «Inicio», la página con secciones, arranca en borrador
-	// para que el editor visual ofrezca «Marcar como publicada».
-	{ id: 'pagina_1', values: { title: 'Inicio', status: 'draft' } },
-	{ id: 'pagina_2', values: { title: 'Sobre mí', status: 'published' } },
-	{ id: 'pagina_3', values: { title: 'Contacto', status: 'published' } },
-	{ id: 'pagina_4', values: { title: 'Ahora', status: 'draft' } },
-	{ id: 'pagina_5', values: { title: 'Colofón', status: 'published' } }
+	// para que el editor visual ofrezca «Marcar como publicada». Las rutas son datos fijos de la
+	// fixture; /precios sigue ausente y debe aparecer como enlace roto en la revisión.
+	{ id: 'pagina_1', values: { title: 'Inicio', path: '/', status: 'draft' } },
+	{ id: 'pagina_2', values: { title: 'Sobre mí', path: '/sobre-mi', status: 'published' } },
+	{ id: 'pagina_3', values: { title: 'Contacto', path: '/contacto', status: 'published' } },
+	{ id: 'pagina_4', values: { title: 'Ahora', path: '/ahora', status: 'draft' } },
+	{ id: 'pagina_5', values: { title: 'Colofón', path: '/colofon', status: 'published' } }
 ];
 
 /**
@@ -2095,8 +2109,8 @@ const SECCIONES_RECORDS: { id: string; values: Record<string, FieldValue> }[] = 
 			texto: 'Sin cuentas de terceros ni exportaciones a medianoche: los datos ya son tuyos.',
 			tipo: 'texto',
 			datos: {},
-			// Lote 13: un enlace interno (en el escaparate `paginas` no declara `page`, así que la
-			// revisión lo deja como «no comprobado», lámina 1.4) y una `<img>` SIN atributo `alt`
+			// Lote 13: un enlace interno a `/precios`, destino ausente de `PAGINAS_RECORDS`: la
+			// revisión lo marca como roto, y una `<img>` SIN atributo `alt`
 			// (aviso `media.alt-missing-inline`, con acción al bloque: lo que mide el e2e).
 			cuerpo:
 				'<p>Los datos viven en tu servidor y los precios están en <a href="/precios">la página de precios</a>.</p><p><img src="/patron-falda.png"></p>'
