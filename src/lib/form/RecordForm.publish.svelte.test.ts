@@ -46,6 +46,7 @@ async function setup(
 		statusReadonly?: boolean;
 		dateReadonly?: boolean;
 		ignoreStatus?: boolean;
+		preview?: boolean;
 		beforeSubmit?: (input: RecordInput, call: number) => Promise<void>;
 	} = {}
 ) {
@@ -95,7 +96,7 @@ async function setup(
 		return opts.create ? port.create('posts', actual) : port.update('posts', 'p1', actual, options);
 	});
 	const ctx = {
-		port,
+		port: opts.preview ? { ...port, previewApiUrl: 'https://preview.test/api/vega-preview' } : port,
 		model,
 		session: { token: 't', user: { id: 'u', email: 'a@b.c' } },
 		t: (key: string, params?: Record<string, string | number>) => translate('es', key, params),
@@ -107,32 +108,37 @@ async function setup(
 	} as unknown as VegaAppContext;
 	const target = document.createElement('div');
 	document.body.appendChild(target);
+	const props = $state({
+		type,
+		model: buildFormModel(type, opts.create ? null : initial),
+		typeReadonly: opts.readonly ?? false,
+		onSubmit,
+		onSaved: saved,
+		onCancel: () => {}
+	});
 	const instance = mount(RecordForm, {
 		target,
-		props: {
-			type,
-			model: buildFormModel(type, opts.create ? null : initial),
-			typeReadonly: opts.readonly ?? false,
-			onSubmit,
-			onSaved: saved,
-			onCancel: () => {}
-		},
+		props,
 		context: new Map([[VEGA_CONTEXT_KEY, ctx]])
 	});
-	const w = { port, type, initial, saved, reportError, onSubmit, target, instance };
+	const w = { port, ctx, props, type, initial, saved, reportError, onSubmit, target, instance };
 	mounted = w;
 	await tick();
 	return w;
 }
 type World = Awaited<ReturnType<typeof setup>>;
 let mounted: World | null = null;
+let releasePreview = () => {};
 afterEach(async () => {
+	releasePreview();
 	if (mounted) {
 		await unmount(mounted.instance);
 		mounted.target.remove();
 		mounted = null;
 	}
 	navigation.guard = null;
+	vi.doUnmock('./PreviewPanel.svelte');
+	vi.unstubAllGlobals();
 });
 const publish = (w: World) =>
 	w.target.querySelector<HTMLButtonElement>('[data-status-target="published"]')!;
@@ -359,3 +365,75 @@ describe('RecordForm — publicar', () => {
 		}
 	);
 });
+
+/** Exercise the form's intent boundary separately from PreviewPanel's HTTP/timer engine suite. */
+function deferredPreview() {
+	let loads = 0;
+	let completed = 0;
+	const gate = new Promise<void>((resolve) => {
+		releasePreview = resolve;
+	});
+	vi.doMock('./PreviewPanel.svelte', async (original) => {
+		loads++;
+		await gate;
+		const component = await original();
+		completed++;
+		return component;
+	});
+	const fetch = vi.fn().mockResolvedValue(
+		new Response(
+			JSON.stringify({
+				url: 'https://site.test/preview?token=fixture',
+				expiresAt: '2099-01-01T00:00:00Z'
+			}),
+			{ headers: { 'Content-Type': 'application/json' } }
+		)
+	);
+	vi.stubGlobal('fetch', fetch);
+	return { fetch, loads: () => loads, completed: () => completed };
+}
+const previewToggle = (w: World) =>
+	w.target.querySelector<HTMLButtonElement>('.vega-editor-preview-toggle')!;
+
+test('preview loads only on intent; closing a pending opening discards it and reopening starts once', async () => {
+	const probe = deferredPreview();
+	const w = await setup({ preview: true });
+	expect(probe.loads()).toBe(0);
+	expect(probe.fetch).not.toHaveBeenCalled();
+	previewToggle(w).click();
+	await settled(() => expect(probe.loads()).toBe(1));
+	previewToggle(w).click();
+	releasePreview();
+	await settled(() => expect(probe.completed()).toBe(1));
+	await settled(() => expect(previewToggle(w).getAttribute('aria-busy')).toBe('false'));
+	expect(w.target.querySelector('iframe')).toBeNull();
+	expect(probe.fetch).not.toHaveBeenCalled();
+	previewToggle(w).click();
+	await settled(() => expect(w.target.querySelector('iframe')).not.toBeNull());
+	expect(probe.fetch).toHaveBeenCalledTimes(1);
+	expect(probe.fetch.mock.calls[0][1].method).toBe('POST');
+});
+
+for (const boundary of ['logout', 'port', 'token', 'record', 'unmount'] as const) {
+	test(`preview discards a pending opening after ${boundary} without a token request`, async () => {
+		const probe = deferredPreview();
+		const w = await setup({ preview: true });
+		previewToggle(w).click();
+		await settled(() => expect(probe.loads()).toBe(1));
+		if (boundary === 'logout') Object.defineProperty(w.ctx, 'session', { get: () => null });
+		if (boundary === 'port') Object.defineProperty(w.ctx, 'port', { get: () => w.port });
+		if (boundary === 'token') w.ctx.session.token = 'new-session';
+		if (boundary === 'record') w.props.model = buildFormModel(w.type, { ...w.initial, id: 'p2' });
+		if (boundary === 'unmount') {
+			await unmount(w.instance);
+			w.target.remove();
+			mounted = null;
+		}
+		releasePreview();
+		await settled(() => expect(probe.completed()).toBe(1));
+		if (boundary !== 'unmount')
+			await settled(() => expect(previewToggle(w).getAttribute('aria-pressed')).toBe('false'));
+		else await new Promise((resolve) => setTimeout(resolve, 20));
+		expect(probe.fetch).not.toHaveBeenCalled();
+	});
+}
