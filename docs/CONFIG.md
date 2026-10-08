@@ -659,10 +659,13 @@ Se configura con variables de entorno del proceso de PocketBase (en el `compose.
 - **El hook solo corre si la imagen lo incluye**: una instancia cuya imagen no se construye desde
   `infra/production/Dockerfile` de este repo, o que usa otro `--hooksDir`, **no tiene el hook** y no
   avisa aunque las variables estén puestas ni aunque `messages` tenga el campo. En concreto,
-  **admin.lumbre.pro nunca lo tendrá**: su imagen solo copia `pb_public` de la de Vega. Sobre una
-  colección `messages` inexistente no hace nada.
-- Los tests de contrato usan un SMTP sumidero sin TLS. **Antes de desplegar hay que probarlo con un
-  SMTP real con TLS**: no está probado.
+  la imagen actual de **admin.lumbre.pro** copia de Vega solo `pb_public` y no incluye este hook
+  de avisos (su hook de redacción de logs es independiente). Sobre una colección `messages`
+  inexistente no hace nada.
+- Los tests de contrato incluyen un SMTP sumidero local con TLS y pruebas positivas y negativas
+  con la imagen Linux real; no acreditan un proveedor externo. **La bandeja puede entregarse sin
+  SMTP**: los mensajes se guardan sin avisos si `VEGA_CONTACT_NOTIFY_TO` está vacío; el operador
+  debe verificar su proveedor cuando configure y active el correo.
 
 ## Ocultar una entrada sin borrarla
 
