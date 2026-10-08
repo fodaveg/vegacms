@@ -718,6 +718,21 @@ describe('VisualPublishControl.svelte — «Programar…»', () => {
 		expect(tagText(h)).toMatch(/^Programada · /);
 	});
 
+	test('un rechazo 400 con código conocido se traduce en el diálogo sin mostrar el texto crudo', async () => {
+		const update = vi
+			.fn()
+			.mockRejectedValue(VegaError.backend('Failed to update record.', undefined, 'bad-request'));
+		h = mountControl({ record: page('draft'), type: resolvedPages(true), update });
+		await openSchedule(h);
+		dialogButton(h, t('editor.schedule.confirm')).click();
+		await settle();
+
+		const failed = dialog(h)!.querySelector<HTMLElement>('[data-schedule="failed"]')!;
+		expect(failed.textContent).toContain(t('errors.backendCode.badRequest'));
+		expect(failed.textContent).not.toContain('Failed to update record.');
+		expect(h.feedback.reportError).not.toHaveBeenCalled();
+	});
+
 	test('conflicto de versión: cierra el diálogo, adopta el registro del servidor y pide revisar', async () => {
 		const server = page('published');
 		const update = vi.fn(async () => {

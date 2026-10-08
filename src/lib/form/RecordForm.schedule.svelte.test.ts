@@ -433,6 +433,24 @@ describe('RecordForm — el diálogo de «Programar…»', () => {
 		expect(w.saved).toHaveBeenCalledTimes(1);
 	});
 
+	test('un fallo 5xx con código conocido muestra el motivo traducido en el diálogo', async () => {
+		const w = await setup({
+			onSubmit: async () => {
+				throw VegaError.backend('Failed to update record.', undefined, 'server-error');
+			}
+		});
+		const input = await openDialog(w);
+		await typeDate(input, localAt(2));
+		buttonIn(dialog(w)!, 'Programar')!.click();
+		await vi.waitFor(() =>
+			expect(dialog(w)!.querySelector('[data-schedule="failed"]')).not.toBeNull()
+		);
+		const failed = dialog(w)!.querySelector('[data-schedule="failed"]')!;
+		expect(failed.textContent).toContain(w.ctx.t('errors.backendCode.serverError'));
+		expect(failed.textContent).not.toContain('Failed to update record.');
+		expect(w.reportError).not.toHaveBeenCalled();
+	});
+
 	test('mientras guarda: «Programando…» y el diálogo no se puede cerrar', async () => {
 		let release: (record: VegaRecord) => void = () => {};
 		const w = await setup({

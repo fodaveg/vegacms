@@ -1715,7 +1715,8 @@
 	 * Confirmar el diálogo: deja el registro en borrador con la fecha elegida y GUARDA el registro
 	 * entero (con lo demás que hubiera sin guardar). Devuelve `null` para cerrar el diálogo (guardó,
 	 * o el formulario toma el relevo con el conflicto o los errores de campo) o el motivo si debe
-	 * quedarse abierto (ver el contrato de `ScheduleDialog`).
+	 * quedarse abierto (ver el contrato de `ScheduleDialog`). Los códigos conocidos del backend se
+	 * traducen aquí, antes de entregar el motivo al diálogo.
 	 */
 	async function submitSchedule(iso: string): Promise<string | null> {
 		const statusField = type.statusField;
@@ -1737,7 +1738,7 @@
 			await tick();
 			await pending();
 		}
-		if (outcome.kind === 'failed') return outcome.error.message;
+		if (outcome.kind === 'failed') return vegaErrorMessage(outcome.error, ctx.t);
 		if (outcome.kind === 'busy') return ctx.t('editor.saving');
 		return null;
 	}

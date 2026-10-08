@@ -67,6 +67,7 @@
 	import { getVegaContext } from '$lib/app-context';
 	import type { RecordInput, VegaRecord } from '$lib/backend/types';
 	import { isConflictError, VegaError } from '$lib/backend/errors';
+	import { vegaErrorMessage } from '$lib/shell/vega-error-message';
 	import { recordVersion } from '$lib/backend/version';
 	import ScheduleDialog from '$lib/form/ScheduleDialog.svelte';
 	import { describeScheduleControl, formatScheduleMoment } from '$lib/form/schedule';
@@ -211,7 +212,8 @@
 	 * Confirmar el diálogo: deja la página en borrador con la fecha elegida, por el mismo
 	 * `port.update` que el cambio de estado. Devuelve `null` para cerrar el diálogo (guardó, o el
 	 * conflicto toma el relevo en el control) o el motivo si debe quedarse abierto (contrato de
-	 * `ScheduleDialog`). Un fallo no va al feedback global: el motivo se lee en el diálogo.
+	 * `ScheduleDialog`). Los códigos conocidos se traducen antes de mostrar el motivo. Un fallo no
+	 * va al feedback global: el motivo se lee en el diálogo.
 	 */
 	async function submitSchedule(iso: string): Promise<string | null> {
 		const publishAtField = type.publishAtField;
@@ -243,7 +245,7 @@
 				await tick();
 				return null;
 			}
-			return vegaErr.message;
+			return vegaErrorMessage(vegaErr, ctx.t);
 		}
 	}
 
