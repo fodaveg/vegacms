@@ -227,7 +227,6 @@ function compileNode(
 			// Campo MÚLTIPLE: pertenencia por VALOR EXACTO (`:each ?=`, como `contains`), igual que
 			// `memory`. Un `~` casaría por subcadena (`in ['a']` casaría `["ab"]`). Hoy solo llega aquí la
 			// relación múltiple (el select múltiple filtra con `contains`), pero la rama cubre ambos.
-			const lhsOp = isMultiField(field) ? `${name}:each ?=` : `${name} =`;
 			return values
 				.map((v) =>
 					isMultiField(field)
