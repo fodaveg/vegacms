@@ -662,8 +662,8 @@ Se configura con variables de entorno del proceso de PocketBase (en el `compose.
   la imagen actual de **admin.lumbre.pro** copia de Vega solo `pb_public` y no incluye este hook
   de avisos (su hook de redacción de logs es independiente). Sobre una colección `messages`
   inexistente no hace nada.
-- Los tests de contrato incluyen un SMTP sumidero local con TLS y pruebas positivas y negativas
-  con la imagen Linux real; no acreditan un proveedor externo. **La bandeja puede entregarse sin
+- Se ha verificado un SMTP sumidero local con TLS, con casos positivos y negativos en una imagen
+  Linux real; esa prueba no acredita un proveedor externo. **La bandeja puede entregarse sin
   SMTP**: los mensajes se guardan sin avisos si `VEGA_CONTACT_NOTIFY_TO` está vacío; el operador
   debe verificar su proveedor cuando configure y active el correo.
 
