@@ -221,14 +221,14 @@ Abre [http://localhost:4173/](http://localhost:4173/). **Nota**: `pnpm preview` 
 
 ### El bundle es muy grande
 
-Vega tiene un presupuesto de bundle de 430 KB (gzip). Si lo superas:
+Vega comprueba tres presupuestos de JavaScript y CSS comprimidos con gzip: 200 KB de carga inicial, 80 KB de coste adicional para la pantalla más pesada y 1024 KB para el build completo. Para medirlos:
 
 ```sh
 pnpm build
 pnpm check-bundle-budget
 ```
 
-Este comando reporta el tamaño real. Si está fuera del presupuesto, el build de producción lo rechazará.
+El comando falla si se supera cualquiera de los tres límites y también informa de la carga diferida al usar una función. El CI lo ejecuta después de `pnpm gate`, reutilizando su build; superar un límite hace fallar el job.
 
 ## Pruebas
 
