@@ -271,8 +271,10 @@
 	let shareOpening = $state(false);
 	let shareOpener = $state<HTMLElement | null>(null);
 	let shareDestroyed = false;
+	let pendingReviewFocus: MutationObserver | null = null;
 	onDestroy(() => {
 		shareDestroyed = true;
+		pendingReviewFocus?.disconnect();
 	});
 	import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
 	import type { FieldInputValue, RecordInput, VegaRecord } from '$lib/backend/types';
@@ -322,7 +324,6 @@
 	import { type FieldErrorsView } from './field-errors';
 	import { fieldErrorMessage } from './field-error-message';
 	import { firstErrorFieldName } from './first-error-field';
-	import { resolveFocusTarget } from './focus-target';
 	import { setRecordIdentity } from './record-context';
 	import { createAfterSaveRegistry, setAfterSaveRegistry } from './after-save';
 	import FieldRow from './FieldRow.svelte';
@@ -921,16 +922,36 @@
 	 * y el mensaje ya dice la ruta).
 	 */
 	async function goToReviewTarget(finding: ReviewFinding): Promise<void> {
+		pendingReviewFocus?.disconnect();
+		pendingReviewFocus = null;
 		const target = finding.target;
-		if (target.kind === 'field') {
-			await focusField(target.field);
-			return;
-		}
+		if (target.kind === 'field') return focusField(target.field, document.activeElement);
 		recordBlocksRef?.expand(target.blockId);
 		await tick();
+		const origin = document.activeElement;
+		const { resolveFocusTarget } = await import('./focus-target');
+		if (shareDestroyed || document.activeElement !== origin) return;
 		const element = resolveFocusTarget(document, target.field, target.blockId);
-		element?.focus();
-		element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		if (element) {
+			element.focus();
+			element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			return;
+		}
+		// TipTap puede terminar sus import() después de tick(): esperar su contenteditable.
+		const host = document.getElementById(fieldIds(target.field, target.blockId).inputId);
+		if (!host) return;
+		const observer = new MutationObserver(() => {
+			const ready = resolveFocusTarget(document, target.field, target.blockId);
+			if (!ready) return;
+			observer.disconnect();
+			if (pendingReviewFocus === observer) pendingReviewFocus = null;
+			if (document.activeElement !== origin || !host.isConnected || host.closest('[hidden]'))
+				return;
+			ready.focus();
+			ready.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		});
+		pendingReviewFocus = observer;
+		observer.observe(host, { childList: true });
 	}
 
 	/** «Describir la imagen…»: la ficha de Medios encima del formulario (ver `ReviewMediaDialog`). */
@@ -1330,10 +1351,12 @@
 	/** Foco en el campo `name` del registro: cambia antes la pestaña de idioma si el campo es de
 	 *  otro idioma (`localeForField`), espera al DOM y resuelve el elemento con `resolveFocusTarget`.
 	 *  Lo comparten el foco al primer error y «ir al campo» de la revisión (lote 13). */
-	async function focusField(name: string): Promise<void> {
+	async function focusField(name: string, origin?: Element | null): Promise<void> {
 		const fieldLocale = localeForField(type, name);
 		if (fieldLocale !== null) activeLocale = fieldLocale;
 		await tick();
+		const { resolveFocusTarget } = await import('./focus-target');
+		if (shareDestroyed || (origin && document.activeElement !== origin)) return;
 		const target = resolveFocusTarget(document, name, fieldScope);
 		target?.focus();
 		target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -2295,7 +2318,7 @@
 							bind:this={reviewCardRef}
 							{review}
 							canAct={!locked}
-							onGo={(finding) => void goToReviewTarget(finding)}
+							onGo={goToReviewTarget}
 							onDescribe={describeReviewImage}
 						/>
 					{/if}

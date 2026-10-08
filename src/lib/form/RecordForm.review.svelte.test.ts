@@ -256,9 +256,9 @@ describe('RecordForm — la tarjeta «Revisión» en el aside', () => {
 		const m = mountForm(world.pagesType, page);
 		await settle();
 		buttonByLabel(m, 'Ir al campo Descripción')!.click();
-		await tick();
-		await tick();
-		expect(document.activeElement?.id).toBe(fieldIds('description').inputId);
+		await vi.waitFor(() =>
+			expect(document.activeElement?.id).toBe(fieldIds('description').inputId)
+		);
 	});
 
 	test('«Bloque 1 · Hero › Enlace ›» despliega el bloque plegado y pone el foco en su campo', async () => {
@@ -281,7 +281,9 @@ describe('RecordForm — la tarjeta «Revisión» en el aside', () => {
 				.querySelector(`[aria-controls="vega-block-body-${hero.id}"]`)
 				?.getAttribute('aria-expanded')
 		).toBe('true');
-		expect(document.activeElement?.id).toBe(fieldIds('actionHref', hero.id).inputId);
+		await vi.waitFor(() =>
+			expect(document.activeElement?.id).toBe(fieldIds('actionHref', hero.id).inputId)
+		);
 	});
 
 	test('«Describir la imagen…» abre la ficha de Medios con el foco en el alt; guardarlo quita el aviso', async () => {
