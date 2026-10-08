@@ -844,6 +844,39 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 				expect(ids(page.items)).toEqual([]);
 			});
 
+			test('select multi: barra terminal exige una opción exacta en el mismo elemento', async () => {
+				const port = await makeAuthedPort();
+				const exact = await port.create('kitchen_sink', {
+					title: 'Exact multi',
+					tags: ['exact\\', 'exact\\long']
+				});
+				await port.create('kitchen_sink', {
+					title: 'Solo largo multi',
+					tags: ['exact\\long', 'other']
+				});
+				const matches = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'tags', op: 'contains', value: 'exact\\' }
+				});
+				expect(ids(matches.items)).toEqual([exact.id]);
+			});
+
+			test('id: gt/gte/lt/lte con barra terminal comparan sin error de parser', async () => {
+				const port = await makeAuthedPort();
+				const all = (await port.list('kitchen_sink')).items.map((item) => item.id);
+				const value = 'm\\';
+				for (const [op, compare] of [
+					['gt', (id: string) => id > value],
+					['gte', (id: string) => id >= value],
+					['lt', (id: string) => id < value],
+					['lte', (id: string) => id <= value]
+				] as const) {
+					const page = await port.list('kitchen_sink', {
+						filter: { kind: 'cond', field: 'id', op, value }
+					});
+					expect(ids(page.items)).toEqual(all.filter(compare).sort());
+				}
+			});
+
 			test('relation multi: in casa por id EXACTO, nunca por subcadena (`a` vs `ab`)', async () => {
 				const port = await makeAuthedPort();
 				// Dos ids donde uno es subcadena del otro: el JSON de la columna `["ab"]` contiene `a`.
@@ -924,6 +957,29 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 					filter: { kind: 'cond', field: 'title', op: 'contains', value: '\\' }
 				});
 				expect(ids(contains.items)).toEqual([slash.id]);
+
+				// En PB 0.26 un literal de filtro que termina en `\` da HTTP 400. El valor debe
+				// viajar como dato también cuando la barra precede al cierre o a una comilla.
+				const trailing = await port.create('kitchen_sink', {
+					title: 'trail\\',
+					slug: 'bs-trailing'
+				});
+				const quoted = await port.create('kitchen_sink', {
+					title: "slash\\'quote",
+					slug: 'bs-quoted'
+				});
+				const trailingEq = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'title', op: 'eq', value: 'trail\\' }
+				});
+				expect(ids(trailingEq.items)).toEqual([trailing.id]);
+				const trailingIn = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'title', op: 'in', value: ['trail\\'] }
+				});
+				expect(ids(trailingIn.items)).toEqual([trailing.id]);
+				const quotedEq = await port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'title', op: 'eq', value: "slash\\'quote" }
+				});
+				expect(ids(quotedEq.items)).toEqual([quoted.id]);
 			});
 
 			test('in: azúcar de OR de eq; vacío no casa nada (§9.8)', async () => {

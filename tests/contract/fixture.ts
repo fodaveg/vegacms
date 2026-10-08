@@ -140,7 +140,7 @@ const kitchenSinkFields: Field[] = [
 	{
 		name: 'tags',
 		type: 'select',
-		options: ['a', 'b', 'c', 'd'],
+		options: ['a', 'b', 'c', 'd', 'exact\\', 'exact\\long', 'other'],
 		multiple: true,
 		maxSelect: 2,
 		required: false,

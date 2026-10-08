@@ -9,6 +9,7 @@ import { EventSource } from 'eventsource';
 import PocketBase, { ClientResponseError } from 'pocketbase';
 import { VEGA_EDITORS_COLLECTION_NAME, type VegaError } from '$lib/backend';
 import { createPocketBaseBackend } from '$lib/backend/adapters/pocketbase';
+import { seedSiteProject, SITE_SEED_MANIFEST_READ_RULE } from '$lib/backend/site-seeding';
 import { uniqueIndexName } from '$lib/backend/collections';
 import { ALL_PERMISSIONS } from '$lib/backend/access';
 import { MAX_PER_PAGE } from '$lib/backend/query';
@@ -917,11 +918,315 @@ describe.skipIf(!AVAILABLE)('BackendPort contract — pocketbase (binario real e
 	 * y la configuración de correo se devuelve a su estado de fábrica al terminar.
 	 */
 	describe('administration: lo que depende del servidor real', () => {
+		const parserProbeFilter = "('x' = '\\\\')";
+		function recordFilter(input: Parameters<typeof fetch>[0]): string | null {
+			const url = new URL(
+				typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+			);
+			return url.pathname.includes('/records') ? url.searchParams.get('filter') : null;
+		}
+
 		async function superuserPort() {
 			const port = createPocketBaseBackend({ url: running.url });
 			await port.login({ email: running.adminEmail, password: running.adminPassword });
 			return port;
 		}
+
+		test('el editor filtra caracteres especiales con su regla real de acceso', async () => {
+			const superuser = await superuserPort();
+			await admin.collections.delete(VEGA_EDITORS_COLLECTION_NAME).catch(() => undefined);
+			await seedSiteProject(superuser);
+			// La suite de contrato comparte el servidor y puede haber creado `vega` con
+			// la regla genérica cerrada. El sembrado es creation-only; normalizamos aquí
+			// el permiso de lectura del snapshot que exige el editor real del sitio.
+			await admin.collections.update('vega', {
+				listRule: SITE_SEED_MANIFEST_READ_RULE,
+				viewRule: SITE_SEED_MANIFEST_READ_RULE
+			});
+			await admin.collection(VEGA_EDITORS_COLLECTION_NAME).create({
+				email: 'filtro-editor@vega.test',
+				password: 'clave-filtro-123',
+				passwordConfirm: 'clave-filtro-123',
+				verified: true
+			});
+			const page = await superuser.create('pages', {
+				title: 'Literal 50% del texto',
+				path: '/literal-percent',
+				status: 'draft'
+			});
+			const slash = await superuser.create('pages', {
+				title: 'back\\',
+				path: '/slash-end',
+				status: 'draft'
+			});
+			const slashTail = await superuser.create('pages', {
+				title: 'back\\tail',
+				path: '/slash-tail',
+				status: 'draft'
+			});
+			const upperSlash = await superuser.create('pages', {
+				title: 'Back\\',
+				path: '/upper-slash',
+				status: 'draft'
+			});
+			const doubleSlash = await superuser.create('pages', {
+				title: 'back\\\\',
+				path: '/double-slash',
+				status: 'draft'
+			});
+			const quoteSingle = await superuser.create('pages', {
+				title: "slash\\'quote",
+				path: '/slash-single-quote',
+				status: 'draft'
+			});
+			const quoteBoth = await superuser.create('pages', {
+				title: 'both\\\'and\\"quote',
+				path: '/slash-both-quotes',
+				status: 'draft'
+			});
+			const editor = createPocketBaseBackend({
+				url: running.url,
+				authCollection: VEGA_EDITORS_COLLECTION_NAME
+			});
+			await editor.login({ email: 'filtro-editor@vega.test', password: 'clave-filtro-123' });
+			const matches = await editor.list('pages', {
+				filter: { kind: 'cond', field: 'title', op: 'contains', value: '%' }
+			});
+			expect(matches.items.map((item) => item.id)).toEqual([page.id]);
+			const exact = await editor.list('pages', {
+				filter: { kind: 'cond', field: 'title', op: 'eq', value: 'back\\' }
+			});
+			expect(exact.items.map((item) => item.id)).toEqual([slash.id]);
+			const doubleExact = await editor.list('pages', {
+				filter: { kind: 'cond', field: 'title', op: 'eq', value: 'back\\\\' }
+			});
+			expect(doubleExact.items.map((item) => item.id)).toEqual([doubleSlash.id]);
+			const exactIn = await editor.list('pages', {
+				filter: { kind: 'cond', field: 'title', op: 'in', value: ['back\\', 'back\\\\'] }
+			});
+			expect(exactIn.items.map((item) => item.id).sort()).toEqual(
+				[slash.id, doubleSlash.id].sort()
+			);
+			const singleQuoted = await editor.list('pages', {
+				filter: { kind: 'cond', field: 'title', op: 'eq', value: "slash\\'quote" }
+			});
+			expect(singleQuoted.items.map((item) => item.id)).toEqual([quoteSingle.id]);
+			const bothQuoted = await editor.list('pages', {
+				filter: { kind: 'cond', field: 'title', op: 'eq', value: 'both\\\'and\\"quote' }
+			});
+			expect(bothQuoted.items.map((item) => item.id)).toEqual([quoteBoth.id]);
+			const withSlash = await editor.list('pages', {
+				filter: { kind: 'cond', field: 'title', op: 'contains', value: '\\' }
+			});
+			expect(withSlash.items.map((item) => item.id)).toEqual(
+				expect.arrayContaining([slash.id, slashTail.id, upperSlash.id, doubleSlash.id])
+			);
+			expect(withSlash.items.map((item) => item.id)).not.toContain(page.id);
+			const excluded = await editor.list('pages', {
+				filter: { kind: 'cond', field: 'title', op: 'neq', value: 'back\\' }
+			});
+			expect(excluded.items.map((item) => item.id)).not.toContain(slash.id);
+			expect(excluded.items.map((item) => item.id)).toEqual(
+				expect.arrayContaining([slashTail.id, upperSlash.id])
+			);
+		});
+
+		test('dos listas iniciales comparten una sola sonda y luego cada lista hace una petición', async () => {
+			const port = await superuserPort();
+			const actualFetch = globalThis.fetch;
+			const filters: string[] = [];
+			let markStarted!: () => void;
+			let release!: () => void;
+			const started = new Promise<void>((resolve) => {
+				markStarted = resolve;
+			});
+			const gate = new Promise<void>((resolve) => {
+				release = resolve;
+			});
+			const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+				const filter = recordFilter(input);
+				if (filter) filters.push(filter);
+				if (filter === parserProbeFilter) {
+					markStarted();
+					await gate;
+				}
+				return actualFetch(input, init);
+			});
+			try {
+				const first = port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'title', op: 'eq', value: 'back\\' }
+				});
+				await started;
+				const second = port.list('category', {
+					filter: { kind: 'cond', field: 'name', op: 'eq', value: 'back\\' }
+				});
+				await Promise.resolve();
+				release();
+				await Promise.all([first, second]);
+				expect(filters.filter((filter) => filter === parserProbeFilter)).toHaveLength(1);
+				expect(filters.filter((filter) => filter !== parserProbeFilter)).toHaveLength(2);
+				await port.list('category', {
+					filter: { kind: 'cond', field: 'name', op: 'eq', value: 'back\\' }
+				});
+				expect(filters.filter((filter) => filter === parserProbeFilter)).toHaveLength(1);
+				expect(filters.filter((filter) => filter !== parserProbeFilter)).toHaveLength(3);
+			} finally {
+				release();
+				spy.mockRestore();
+			}
+		});
+
+		test('si la sonda de otro tipo falla por red, la lista válida reintenta en su tipo', async () => {
+			const port = await superuserPort();
+			const actualFetch = globalThis.fetch;
+			const filters: string[] = [];
+			let markStarted!: () => void;
+			let release!: () => void;
+			const started = new Promise<void>((resolve) => {
+				markStarted = resolve;
+			});
+			const gate = new Promise<void>((resolve) => {
+				release = resolve;
+			});
+			let failOnce = true;
+			const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+				const filter = recordFilter(input);
+				if (filter) filters.push(filter);
+				if (filter === parserProbeFilter && failOnce) {
+					failOnce = false;
+					markStarted();
+					await gate;
+					throw new TypeError('Conexión de prueba interrumpida');
+				}
+				return actualFetch(input, init);
+			});
+			try {
+				const first = port.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'title', op: 'eq', value: 'back\\' }
+				});
+				await started;
+				const second = port.list('category', {
+					filter: { kind: 'cond', field: 'name', op: 'eq', value: 'back\\' }
+				});
+				await Promise.resolve();
+				release();
+				await expect(first).rejects.toMatchObject({ kind: 'network' });
+				await expect(second).resolves.toMatchObject({ items: expect.any(Array) });
+				expect(filters.filter((filter) => filter === parserProbeFilter)).toHaveLength(2);
+				expect(filters.filter((filter) => filter !== parserProbeFilter)).toHaveLength(1);
+			} finally {
+				release();
+				spy.mockRestore();
+			}
+		});
+
+		test('un 403 de sonda sin sesión no contamina otro tipo ni otra instancia', async () => {
+			// El superuser entrega solo el esquema del fixture; las dos listas usan un
+			// BackendPort invitado y respuestas de transporte controladas (sin token).
+			const schema = await admin.send('/api/collections', {
+				method: 'GET',
+				query: { page: 1, perPage: 200 }
+			});
+			const guest = createPocketBaseBackend({ url: running.url });
+			const actualFetch = globalThis.fetch;
+			const probes: string[] = [];
+			let markStarted!: () => void;
+			let release!: () => void;
+			const started = new Promise<void>((resolve) => {
+				markStarted = resolve;
+			});
+			const gate = new Promise<void>((resolve) => {
+				release = resolve;
+			});
+			const json = (body: unknown, status = 200) =>
+				new Response(JSON.stringify(body), {
+					status,
+					headers: { 'Content-Type': 'application/json' }
+				});
+			const empty = { page: 1, perPage: 30, totalItems: 0, totalPages: 0, items: [] };
+			const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+				const url = new URL(
+					typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+				);
+				if (url.pathname === '/api/collections') return json(schema);
+				if (url.pathname.endsWith('/records')) {
+					const type = url.pathname.split('/')[3];
+					const filter = recordFilter(input);
+					if (filter === parserProbeFilter) probes.push(type);
+					if (type === 'kitchen_sink' && filter === parserProbeFilter) {
+						markStarted();
+						await gate;
+						return json({ status: 403, message: 'List denied', data: {} }, 403);
+					}
+					if (type === 'category') return json(empty);
+				}
+				return actualFetch(input, init);
+			});
+			try {
+				const first = guest.list('kitchen_sink', {
+					filter: { kind: 'cond', field: 'title', op: 'eq', value: 'back\\' }
+				});
+				await started;
+				const second = guest.list('category', {
+					filter: { kind: 'cond', field: 'name', op: 'eq', value: 'back\\' }
+				});
+				await Promise.resolve();
+				release();
+				await expect(first).rejects.toMatchObject({ kind: 'forbidden' });
+				await expect(second).resolves.toMatchObject({ items: [] });
+				expect(probes).toEqual(['kitchen_sink', 'category']);
+				const fresh = createPocketBaseBackend({ url: running.url });
+				await expect(
+					fresh.list('category', {
+						filter: { kind: 'cond', field: 'name', op: 'eq', value: 'back\\' }
+					})
+				).resolves.toMatchObject({ items: [] });
+				expect(probes).toEqual(['kitchen_sink', 'category', 'category']);
+			} finally {
+				release();
+				spy.mockRestore();
+			}
+		});
+
+		test('401, 403 y red en la sonda se propagan y permiten reintento', async () => {
+			for (const status of [401, 403, 0] as const) {
+				const port = await superuserPort();
+				const actualFetch = globalThis.fetch;
+				const filters: string[] = [];
+				let failOnce = true;
+				const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+					const filter = recordFilter(input);
+					if (filter) filters.push(filter);
+					if (filter === parserProbeFilter && failOnce) {
+						failOnce = false;
+						if (status === 0) throw new TypeError('Conexión de prueba interrumpida');
+						return new Response(JSON.stringify({ status, message: 'Probe denied', data: {} }), {
+							status,
+							headers: { 'Content-Type': 'application/json' }
+						});
+					}
+					return actualFetch(input, init);
+				});
+				try {
+					const query = {
+						filter: { kind: 'cond', field: 'title', op: 'eq', value: 'back\\' }
+					} as const;
+					await expect(port.list('kitchen_sink', query)).rejects.toMatchObject({
+						kind: status === 0 ? 'network' : 'auth-expired'
+					});
+					if (status !== 0) {
+						await port.login({ email: running.adminEmail, password: running.adminPassword });
+					}
+					await expect(port.list('kitchen_sink', query)).resolves.toMatchObject({
+						items: expect.any(Array)
+					});
+					expect(filters.filter((filter) => filter === parserProbeFilter)).toHaveLength(2);
+					expect(filters.filter((filter) => filter !== parserProbeFilter)).toHaveLength(1);
+				} finally {
+					spy.mockRestore();
+				}
+			}
+		});
 
 		test('sin la colección vega_editors, listEditors() → not-found', async () => {
 			await admin.collections.delete(VEGA_EDITORS_COLLECTION_NAME).catch(() => undefined);

@@ -53,7 +53,8 @@ import {
 } from '../../collections';
 import { mapPocketBaseError } from './errors';
 import { mapCollectionsToContentTypes } from './schema';
-import { compileFields, compileFilter, compileSort } from './query';
+import { compileFields, compileFilter, compileSort, filterNeedsParserMode } from './query';
+import type { FilterParserMode } from './query';
 import { planFileFieldWrite, resolveFileUrl } from './files';
 import {
 	addFieldPatternsOnPocketBase,
@@ -160,6 +161,60 @@ export function createPocketBaseBackend({
 	// LANDMINE (ver README): el SDK cancela peticiones "duplicadas" en vuelo por defecto. La
 	// política de cancelación es de los consumidores (P3/P4), no del transporte (§4.6).
 	pb.autoCancellation(false);
+
+	// Fexpr 0.4.1 (PB 0.26) y 0.6 (PB 0.39) interpretan las barras de forma distinta.
+	// Esta expresión constante no devuelve filas: el parser nuevo responde 200/0 y el
+	// antiguo 400 al no cerrar el literal. Se prueba solo cuando el filtro lo necesita,
+	// se comparte entre primeras listas concurrentes y se olvida si falla por otra causa.
+	const parserProbeFilter = "('x' = '\\\\')";
+	let resolvedParserMode: FilterParserMode | null = null;
+	let parserModePromise: Promise<FilterParserMode> | null = null;
+	let parserProbeType: string | null = null;
+	function parserMode(type: string): Promise<FilterParserMode> {
+		if (resolvedParserMode) return Promise.resolve(resolvedParserMode);
+		if (parserModePromise) {
+			// Una colección ajena puede tener ListRule cerrada. Si su sonda falla,
+			// esta lista reintenta sobre SU colección; si triunfa, ambas comparten modo.
+			return parserProbeType === type
+				? parserModePromise
+				: parserModePromise.catch(() => parserMode(type));
+		}
+		const current = pb
+			.collection(type)
+			.getList(1, 1, { filter: parserProbeFilter })
+			.then(
+				(result): FilterParserMode => {
+					if (result.totalItems !== 0 || result.items.length !== 0) {
+						throw new Error('El filtro de capacidad de PocketBase devolvió registros');
+					}
+					return 'modern';
+				},
+				(error: unknown): FilterParserMode => {
+					if (error instanceof ClientResponseError && error.status === 400) return 'legacy';
+					throw error;
+				}
+			);
+		const shared = current.then(
+			(mode) => {
+				resolvedParserMode = mode;
+				if (parserModePromise === shared) {
+					parserModePromise = null;
+					parserProbeType = null;
+				}
+				return mode;
+			},
+			(error: unknown) => {
+				if (parserModePromise === shared) {
+					parserModePromise = null;
+					parserProbeType = null;
+				}
+				throw error;
+			}
+		);
+		parserModePromise = shared;
+		parserProbeType = type;
+		return shared;
+	}
 
 	const normalizedAuthApiBasePath = authApiBasePath?.trim().replace(/\/+$/, '') || null;
 	const normalizedManifestKey = manifestKey.trim() || VEGA_PROJECT_KEY;
@@ -655,7 +710,8 @@ export function createPocketBaseBackend({
 			return guarded(async () => {
 				const ct = await getContentTypeOrThrow(type);
 				validateQuery(ct.fields, query);
-				const filter = compileFilter(pb, ct.fields, query?.filter);
+				const mode = filterNeedsParserMode(query?.filter) ? await parserMode(type) : 'modern';
+				const filter = compileFilter(pb, ct.fields, query?.filter, mode);
 				const sort = compileSort(query?.sort);
 				const page = query?.page ?? DEFAULT_PAGE;
 				const perPage = query?.perPage ?? DEFAULT_PER_PAGE;

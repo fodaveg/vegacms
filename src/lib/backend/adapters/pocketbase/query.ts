@@ -49,11 +49,27 @@ const ID_FIELD: Field = {
 	unique: true
 };
 
+export type FilterParserMode = 'legacy' | 'modern';
+
+/** Solo los filtros cuyo escape cambia entre parsers necesitan la sonda de capacidad. */
+export function filterNeedsParserMode(node: FilterNode | undefined): boolean {
+	if (!node) return false;
+	if (node.kind === 'group') return node.nodes.some(filterNeedsParserMode);
+	if (typeof node.value === 'string') {
+		return node.value.includes('\\') || (node.op === 'contains' && /[%_]/.test(node.value));
+	}
+	return (
+		Array.isArray(node.value) &&
+		node.value.some((value) => typeof value === 'string' && value.includes('\\'))
+	);
+}
+
 /** Compila `query.filter` a una expresión de filtro PB con placeholders `{:pN}` y sus params. */
 export function compileFilter(
 	pb: PocketBase,
 	fields: Field[],
-	filter: FilterNode | undefined
+	filter: FilterNode | undefined,
+	mode: FilterParserMode = 'modern'
 ): string | undefined {
 	if (!filter) return undefined;
 	const byName = new Map(fields.map((f) => [f.name, f]));
@@ -62,24 +78,105 @@ export function compileFilter(
 	const nextParam = (value: unknown): string => {
 		counter += 1;
 		const name = `p${counter}`;
-		// `pb.filter` del SDK solo escapa comillas: una `\` del valor llegaría cruda al literal de
-		// filtro, cuyo parser la consume (`\'` cierra mal la cadena → HTTP 400; medido con `id = '\'`).
-		// Se duplica para TODO operador que emite una cadena entre comillas.
-		params[name] = typeof value === 'string' ? value.replace(/\\/g, '\\\\') : value;
+		// fexpr 0.6 consume `\\` como una barra; fexpr 0.4.1 conserva las barras.
+		// `pb.filter` escapa la comilla de cierre en ambos.
+		params[name] =
+			mode === 'modern' && typeof value === 'string' ? value.replace(/\\/g, '\\\\') : value;
 		return `{:${name}}`;
 	};
-	const raw = compileNode(filter, byName, nextParam);
+	const raw = compileNode(filter, byName, nextParam, mode);
 	return pb.filter(raw, params);
+}
+
+/**
+ * Fexpr 0.4.1 (PB 0.26) no cierra una cadena si el carácter anterior a la comilla
+ * es `\`, incluso con barras duplicadas. Para una cadena que acaba en `\`, LIKE
+ * comprueba el prefijo literal y la ausencia de un carácter adicional. El rango
+ * binario entre `[` y `]` (vecinos de `\`) conserva la distinción de mayúsculas.
+ * La sonda previa escoge el escape del parser real. El parser moderno puede usar `=`
+ * directamente; esta composición solo se aplica al antiguo.
+ */
+function likeEquality(
+	name: string,
+	value: string,
+	nextParam: (value: unknown) => string,
+	any = false,
+	negated = false
+): string {
+	const like = any ? '?~' : '~';
+	const unlike = any ? '?!~' : '!~';
+	const escaped = escapeLike(value);
+	const leading = `${name} ${negated ? unlike : like} ${nextParam(`${escaped}%`)}`;
+	const longer = `${name} ${negated ? like : unlike} ${nextParam(`${escaped}_%`)}`;
+	return `${leading} ${negated ? '||' : '&&'} ${longer}`;
+}
+
+function stringEquals(
+	name: string,
+	value: unknown,
+	nextParam: (value: unknown) => string,
+	mode: FilterParserMode,
+	any = false
+): string {
+	if (mode === 'modern' || typeof value !== 'string' || !value.endsWith('\\'))
+		return `${name} ${any ? '?=' : '='} ${nextParam(value)}`;
+	const prefix = value.slice(0, -1);
+	const gt = any ? '?>' : '>';
+	const lt = any ? '?<' : '<';
+	return `(${name} ${gt} ${nextParam(`${prefix}[`)} && ${name} ${lt} ${nextParam(`${prefix}]`)} && ${likeEquality(name, value, nextParam, any)})`;
+}
+
+function stringNotEquals(
+	name: string,
+	value: unknown,
+	nextParam: (value: unknown) => string,
+	mode: FilterParserMode
+): string {
+	if (mode === 'modern' || typeof value !== 'string' || !value.endsWith('\\'))
+		return `${name} != ${nextParam(value)}`;
+	const prefix = value.slice(0, -1);
+	return `(${name} <= ${nextParam(`${prefix}[`)} || ${name} >= ${nextParam(`${prefix}]`)} || ${likeEquality(name, value, nextParam, false, true)} || ${name} = null)`;
+}
+
+function stringOrder(
+	name: string,
+	op: 'gt' | 'gte' | 'lt' | 'lte',
+	value: unknown,
+	nextParam: (value: unknown) => string,
+	mode: FilterParserMode
+): string {
+	const sign = { gt: '>', gte: '>=', lt: '<', lte: '<=' }[op];
+	if (mode === 'modern' || typeof value !== 'string' || !value.endsWith('\\')) {
+		return `${name} ${sign} ${nextParam(value)}`;
+	}
+	const prefix = value.slice(0, -1);
+	const lower = nextParam(`${prefix}[`);
+	const upper = nextParam(`${prefix}]`);
+	const escaped = escapeLike(value);
+	const starts = `${name} ~ ${nextParam(`${escaped}%`)}`;
+	const longer = `${name} ~ ${nextParam(`${escaped}_%`)}`;
+	const range = `${name} > ${lower} && ${name} < ${upper}`;
+	switch (op) {
+		case 'gt':
+			return `(${name} >= ${upper} || (${range} && ${longer}))`;
+		case 'gte':
+			return `(${name} >= ${upper} || (${range} && ${starts}))`;
+		case 'lt':
+			return `(${name} <= ${lower} || (${range} && ${name} !~ ${nextParam(`${escaped}%`)}))`;
+		case 'lte':
+			return `(${name} <= ${lower} || (${range} && ${name} !~ ${nextParam(`${escaped}_%`)}))`;
+	}
 }
 
 function compileNode(
 	node: FilterNode,
 	byName: Map<string, Field>,
-	nextParam: (value: unknown) => string
+	nextParam: (value: unknown) => string,
+	mode: FilterParserMode
 ): string {
 	if (node.kind === 'group') {
 		const combinator = node.combinator === 'and' ? '&&' : '||';
-		const parts = node.nodes.map((n) => `(${compileNode(n, byName, nextParam)})`);
+		const parts = node.nodes.map((n) => `(${compileNode(n, byName, nextParam, mode)})`);
 		return parts.join(` ${combinator} `);
 	}
 
@@ -98,22 +195,25 @@ function compileNode(
 				? `${name}:length > 0`
 				: `${name} != ${literalEmpty(field, nextParam)}`;
 		case 'eq':
-			return `${name} = ${nextParam(node.value)}`;
+			return stringEquals(name, node.value, nextParam, mode);
 		case 'neq':
-			return `${name} != ${nextParam(node.value)}`;
+			return stringNotEquals(name, node.value, nextParam, mode);
 		case 'gt':
-			return `${name} > ${nextParam(node.value)}`;
+			return stringOrder(name, 'gt', node.value, nextParam, mode);
 		case 'gte':
-			return `${name} >= ${nextParam(node.value)}`;
+			return stringOrder(name, 'gte', node.value, nextParam, mode);
 		case 'lt':
-			return `${name} < ${nextParam(node.value)}`;
+			return stringOrder(name, 'lt', node.value, nextParam, mode);
 		case 'lte':
-			return `${name} <= ${nextParam(node.value)}`;
+			return stringOrder(name, 'lte', node.value, nextParam, mode);
 		case 'contains':
 			// select MÚLTIPLE: pertenencia por VALOR EXACTO de una opción (`:each ?=`, "algún
 			// elemento iguala"), igual que `memory`. Un `~` casaría por subcadena sobre el JSON de la
 			// columna. Verificado contra PB real: `?=` a secas NO casa sobre esta columna JSON.
 			if (field.type === 'select' && field.multiple) {
+				if (mode === 'legacy' && typeof node.value === 'string' && node.value.endsWith('\\')) {
+					return stringEquals(`${name}:each`, node.value, nextParam, mode, true);
+				}
 				return `${name}:each ?= ${nextParam(node.value)}`;
 			}
 			// Texto: `~` con el valor ESCAPADO y envuelto en `%…%` a mano (ver `escapeLike`).
@@ -128,7 +228,13 @@ function compileNode(
 			// `memory`. Un `~` casaría por subcadena (`in ['a']` casaría `["ab"]`). Hoy solo llega aquí la
 			// relación múltiple (el select múltiple filtra con `contains`), pero la rama cubre ambos.
 			const lhsOp = isMultiField(field) ? `${name}:each ?=` : `${name} =`;
-			return values.map((v) => `${lhsOp} ${nextParam(v)}`).join(' || ');
+			return values
+				.map((v) =>
+					isMultiField(field)
+						? stringEquals(`${name}:each`, v, nextParam, mode, true)
+						: stringEquals(name, v, nextParam, mode)
+				)
+				.join(' || ');
 		}
 	}
 }
@@ -136,14 +242,12 @@ function compileNode(
 /**
  * Escapa `\`, `%` y `_`, que en el operador `~` de PB (LIKE de SQLite) son sintaxis, no datos
  * (ley L6): sin esto, buscar `%` casa todo y `e_c` casa `exc`. PB solo envuelve el operando en
- * `%…%` (y le escapa `_` y `\`) cuando NO trae ningún `%`; al escaparlos siempre lo traería, así
- * que el llamador envuelve a mano. Es la capa de LIKE (`\` delante de cada `\ % _`); la capa del
- * literal de filtro (duplicar `\`, que `pb.filter` no hace) la aplica `nextParam` a TODO string.
- * Medido contra PB real: hacen falta las dos. `memory` es subcadena literal, y el contrato exige
- * que coincidan.
+ * `%…%` cuando no trae `%`, así que el llamador lo envuelve a mano. SQLite LIKE
+ * requiere dos barras para una barra literal y una para `%`/`_`. `nextParam`
+ * duplica la capa de barras solo para fexpr 0.6.
  */
 function escapeLike(value: string): string {
-	return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+	return value.replace(/[\\%_]/g, (ch) => (ch === '\\' ? '\\\\' : `\\${ch}`));
 }
 
 /** El literal de "vacío" en el almacén PB para un campo escalar (§2.1, verificado en Fase 2). */
