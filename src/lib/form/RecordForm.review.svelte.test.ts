@@ -474,10 +474,13 @@ describe('RecordForm — la revisión con lecturas lentas o fallidas', () => {
 		field.dispatchEvent(new Event('input', { bubbles: true }));
 		flushSync();
 		await tick();
-		const publish = m.target.querySelector<HTMLButtonElement>('[data-status-target="published"]')!;
+		let publish = m.target.querySelector<HTMLButtonElement>('[data-status-target="published"]')!;
 		publish.click();
-		flushSync();
-		await tick();
+		await vi.waitFor(() => {
+			flushSync();
+			expect(m.target.querySelector('[role="alertdialog"]')).not.toBeNull();
+		});
+		publish = m.target.querySelector<HTMLButtonElement>('[data-status-target="published"]')!;
 		const dialog = m.target.querySelector<HTMLElement>('[role="alertdialog"]')!;
 		expect(dialog).not.toBeNull();
 		expect(dialog.querySelectorAll('.vega-review-pop-section')).toHaveLength(2);

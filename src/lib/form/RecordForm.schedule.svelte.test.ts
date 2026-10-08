@@ -46,6 +46,9 @@ const iso = (ms: number): string => new Date(ms).toISOString();
 
 interface World {
 	port: MemoryBackendPort;
+	ctx: VegaAppContext;
+	props: { model: ReturnType<typeof buildFormModel>; typeReadonly: boolean };
+	onSubmit: ReturnType<typeof vi.fn>;
 	toast: ReturnType<typeof vi.fn>;
 	reportError: ReturnType<typeof vi.fn>;
 	saved: ReturnType<typeof vi.fn>;
@@ -54,16 +57,19 @@ interface World {
 }
 
 let world: World | null = null;
+let releaseSchedule = () => {};
 
 // jsdom no implementa `scrollIntoView`, que el foco al primer campo con error sí usa.
 Element.prototype.scrollIntoView = vi.fn();
 
 afterEach(async () => {
+	releaseSchedule();
 	if (world) {
 		await unmount(world.instance);
 		world.target.remove();
 		world = null;
 	}
+	vi.doUnmock('./ScheduleDialog.svelte');
 });
 
 async function setup(opts: {
@@ -106,25 +112,28 @@ async function setup(opts: {
 	} as unknown as VegaAppContext;
 	const target = document.createElement('div');
 	document.body.appendChild(target);
+	const onSubmit = vi.fn(
+		opts.onSubmit ??
+			((input: Record<string, unknown>, o?: unknown) =>
+				port.update('posts', 'p1', input as never, o as never))
+	);
+	const props = $state({
+		type,
+		model: buildFormModel(type, record),
+		typeReadonly: opts.typeReadonly ?? false,
+		onSubmit,
+		onSaved: (rec: VegaRecord, note?: string) => {
+			saved(rec, note);
+			toast(note ? `${ctx.t('editor.saveSuccess')} ${note}` : ctx.t('editor.saveSuccess'));
+		},
+		onCancel: () => {}
+	});
 	const instance = mount(RecordForm, {
 		target,
-		props: {
-			type,
-			model: buildFormModel(type, record),
-			typeReadonly: opts.typeReadonly ?? false,
-			onSubmit:
-				opts.onSubmit ??
-				((input: Record<string, unknown>, o?: unknown) =>
-					port.update('posts', 'p1', input as never, o as never)),
-			onSaved: (rec: VegaRecord, note?: string) => {
-				saved(rec, note);
-				toast(note ? `${ctx.t('editor.saveSuccess')} ${note}` : ctx.t('editor.saveSuccess'));
-			},
-			onCancel: () => {}
-		},
+		props,
 		context: new Map([[VEGA_CONTEXT_KEY, ctx]])
 	});
-	world = { port, toast, reportError, saved, target, instance };
+	world = { port, ctx, props, onSubmit, toast, reportError, saved, target, instance };
 	await tick();
 	return world;
 }
@@ -143,8 +152,10 @@ const dialog = (w: World): HTMLElement | null => w.target.querySelector('[role="
 
 async function openDialog(w: World, label = 'Programar…'): Promise<HTMLInputElement> {
 	buttonIn(w.target, label)!.click();
-	flushSync();
-	await tick();
+	await vi.waitFor(() => {
+		flushSync();
+		expect(dialog(w)).not.toBeNull();
+	});
 	await tick();
 	return dialog(w)!.querySelector<HTMLInputElement>('input[type="datetime-local"]')!;
 }
@@ -446,8 +457,10 @@ describe('RecordForm — el diálogo de «Programar…»', () => {
 		opener.focus();
 		expect(document.activeElement).toBe(opener);
 		opener.click();
-		flushSync();
-		await tick();
+		await vi.waitFor(() => {
+			flushSync();
+			expect(dialog(w)).not.toBeNull();
+		});
 		await tick();
 		await typeDate(
 			dialog(w)!.querySelector<HTMLInputElement>('input[type="datetime-local"]')!,
@@ -512,4 +525,102 @@ describe('RecordForm — el diálogo de «Programar…»', () => {
 			''
 		);
 	});
+});
+
+function deferredSchedule(failLoad = false) {
+	let loads = 0;
+	let completed = 0;
+	const gate = new Promise<void>((resolve) => {
+		releaseSchedule = resolve;
+	});
+	vi.doMock('./ScheduleDialog.svelte', async (original) => {
+		loads++;
+		if (failLoad) throw new Error('Controlled schedule loading failure');
+		await gate;
+		const component = await original();
+		completed++;
+		return component;
+	});
+	return { loads: () => loads, completed: () => completed };
+}
+async function settled(assertion: () => void) {
+	await vi.waitFor(() => {
+		flushSync();
+		assertion();
+	});
+	await tick();
+}
+
+test('schedule stays unloaded before intent; doubleclick loads once and blocks save shortcut during opening', async () => {
+	const probe = deferredSchedule();
+	const w = await setup({});
+	expect(probe.loads()).toBe(0);
+	const title = w.target.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+		'[data-field="title"] input, [data-field="title"] textarea'
+	)!;
+	title.value = 'Cambios pendientes';
+	title.dispatchEvent(new Event('input', { bubbles: true }));
+	flushSync();
+	const opener = buttonIn(statusRow(w), 'Programar…')!;
+	opener.focus();
+	opener.click();
+	await settled(() => expect(probe.loads()).toBe(1));
+	opener.click();
+	window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', metaKey: true, cancelable: true }));
+	expect(w.onSubmit).not.toHaveBeenCalled();
+	releaseSchedule();
+	await settled(() => expect(dialog(w)).not.toBeNull());
+	expect(probe.loads()).toBe(1);
+	expect(document.activeElement).toBe(dialog(w)!.querySelector('input'));
+	document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+	await tick();
+	expect(document.activeElement).toBe(opener);
+	expect(w.onSubmit).not.toHaveBeenCalled();
+});
+
+for (const boundary of [
+	'logout',
+	'token',
+	'port',
+	'record',
+	'readonly',
+	'escape',
+	'unmount'
+] as const) {
+	test(`a pending schedule opening is discarded after ${boundary}, without writing`, async () => {
+		const probe = deferredSchedule();
+		const w = await setup({});
+		const opener = buttonIn(statusRow(w), 'Programar…')!;
+		opener.click();
+		await settled(() => expect(probe.loads()).toBe(1));
+		if (boundary === 'logout') Object.defineProperty(w.ctx, 'session', { get: () => null });
+		if (boundary === 'token') w.ctx.session.token = 'new-session';
+		if (boundary === 'port') Object.defineProperty(w.ctx, 'port', { get: () => ({ ...w.port }) });
+		if (boundary === 'record') w.props.model = { ...w.props.model, recordId: 'p2' };
+		if (boundary === 'readonly') w.props.typeReadonly = true;
+		if (boundary === 'escape')
+			window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
+		if (boundary === 'unmount') {
+			await unmount(w.instance);
+			w.target.remove();
+			world = null;
+		}
+		releaseSchedule();
+		await settled(() => expect(probe.completed()).toBe(1));
+		expect(dialog(w)).toBeNull();
+		expect(w.onSubmit).not.toHaveBeenCalled();
+	});
+}
+
+test('failed schedule loading reports the existing error without saving and permits another attempt', async () => {
+	deferredSchedule(true);
+	const w = await setup({});
+	buttonIn(statusRow(w), 'Programar…')!.click();
+	await settled(() => expect(w.reportError).toHaveBeenCalledTimes(1));
+	expect(w.onSubmit).not.toHaveBeenCalled();
+	expect(dialog(w)).toBeNull();
+	vi.doMock('./ScheduleDialog.svelte', (original) => original());
+	await openDialog(w);
+	expect(document.activeElement).toBe(dialog(w)!.querySelector('input'));
+	expect(w.onSubmit).not.toHaveBeenCalled();
 });

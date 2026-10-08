@@ -297,7 +297,14 @@
 	import RevisionsPanel from '$lib/revisions/RevisionsPanel.svelte';
 	import { hasFileValues } from '$lib/revisions/restore';
 	import SocialCardPreview from './SocialCardPreview.svelte';
-	import PreviewPanel from './PreviewPanel.svelte';
+	type PreviewPanelComponent = typeof import('./PreviewPanel.svelte').default;
+	let PreviewPanel = $state.raw<PreviewPanelComponent | null>(null);
+	let previewOpening = $state(false);
+	let previewRequest = 0;
+	onDestroy(() => {
+		previewRequest++;
+		scheduleRequest++;
+	});
 	import { buildFormModel, type FormModel } from './form-model';
 	import {
 		buildFormSections,
@@ -322,11 +329,15 @@
 	import { fieldIds } from './field-ids';
 	import { setFieldScope, getFieldScope } from './field-scope';
 	import { setRelationCreationAllowed } from './relation-creation-context';
-	import ScheduleDialog from './ScheduleDialog.svelte';
+	type ScheduleDialogComponent = typeof import('./ScheduleDialog.svelte').default;
+	let ScheduleDialog = $state.raw<ScheduleDialogComponent | null>(null);
+	let scheduleOpening = $state(false);
+	let scheduleRequest = 0;
 	import { describeScheduleControl, formatScheduleMoment } from './schedule';
 	import ConflictNotice from './ConflictNotice.svelte';
 	import { classifyRecordSaveError, sendRecord } from './record-save';
-	import VisualPublishControl from '$lib/visual/VisualPublishControl.svelte';
+	import FormPublishControl from './FormPublishControl.svelte';
+	import { captureEditorIdentity, currentEditorIdentity } from './deferred-editor-identity';
 	import { recordConflictRows } from './record-conflict-rows';
 	import { handleRecordSaveKeydown } from './record-save-keyboard';
 	import RedirectOffer from './RedirectOffer.svelte';
@@ -420,7 +431,7 @@
 	/** Mutex del guardado de contenido seguido de la transición de estado. */
 	let publishing = $state(false);
 	let publicationNotice = $state<string | null>(null);
-	let publishControl = $state<VisualPublishControl | null>(null);
+	let publishControl = $state<FormPublishControl | null>(null);
 	let duplicating = $state(false);
 	let activeLocale = $state(untrack(() => type.localization?.defaultLocale ?? ''));
 	/** Decisión 2 de `RecordBlocks.svelte` (capacidad `blocks`): `true` mientras AL MENOS un bloque
@@ -498,6 +509,8 @@
 			resetCount += 1;
 			editedByHand = [];
 			scheduleOpen = false;
+			scheduleRequest++;
+			scheduleOpening = false;
 			baseline = model.baseline;
 			current = { ...model.baseline };
 			clientErrors = EMPTY_ERRORS;
@@ -520,6 +533,8 @@
 			// tiene sentido (otra colección/id) — se cierra, `RecordForm` lo reabrirá si el usuario
 			// vuelve a pedirlo para el registro nuevo.
 			previewPanelOpen = false;
+			previewRequest++;
+			previewOpening = false;
 			shareOpen = false;
 		}
 	});
@@ -683,6 +698,44 @@
 	const previewCapable = $derived(
 		(ctx.port.previewApiUrl ?? null) !== null && model.recordId !== null
 	);
+	/** Fetch the panel only on explicit opening, preserving its mount/unmount timer lifecycle.
+	 * Each opening has its own identity; closing or changing session discards a pending import. */
+	async function togglePreview(): Promise<void> {
+		if (previewPanelOpen) {
+			previewPanelOpen = false;
+			previewRequest++;
+			previewOpening = false;
+			return;
+		}
+		const identity = captureEditorIdentity(ctx, type.name, model.recordId);
+		if (!previewCapable || !identity || shareDestroyed) return;
+		previewPanelOpen = true;
+		if (PreviewPanel) return;
+		const request = ++previewRequest;
+		const current = () =>
+			!shareDestroyed &&
+			request === previewRequest &&
+			previewPanelOpen &&
+			previewCapable &&
+			currentEditorIdentity(ctx, identity, type.name, model.recordId);
+		previewOpening = true;
+		try {
+			const component = (await import('./PreviewPanel.svelte')).default;
+			if (current()) PreviewPanel = component;
+		} catch {
+			if (current()) {
+				previewPanelOpen = false;
+				ctx.feedback.reportError(VegaError.backend(ctx.t('editor.preview.panel.loadError')), {
+					action: 'preview:open'
+				});
+			}
+		} finally {
+			if (!shareDestroyed && request === previewRequest) {
+				previewOpening = false;
+				if (!current()) previewPanelOpen = false;
+			}
+		}
+	}
 	const shareAvailable = $derived(
 		!modal && canManagePreviewShare(type, model.recordId, ctx.port, typeReadonly)
 	);
@@ -1614,11 +1667,48 @@
 	}
 
 	/** Abre el diálogo de «Programar…» / «Cambiar fecha…». */
-	function openSchedule(): void {
+	function scheduleActionAvailable(): boolean {
+		return !formDisabled && !submitBlocked && scheduleControl.kind !== 'none';
+	}
+	async function openSchedule(event: MouseEvent): Promise<void> {
+		const identity = captureEditorIdentity(ctx, type.name, model.recordId);
+		if (
+			!identity ||
+			shareDestroyed ||
+			!scheduleActionAvailable() ||
+			scheduleOpen ||
+			scheduleOpening
+		)
+			return;
 		scheduleFallback = type.statusField
 			? document.getElementById(fieldIds(type.statusField, null).inputId)
 			: null;
-		scheduleOpen = true;
+		if (ScheduleDialog) {
+			scheduleOpen = true;
+			return;
+		}
+		const request = ++scheduleRequest;
+		const opener = event.currentTarget as HTMLElement;
+		const current = () =>
+			!shareDestroyed &&
+			request === scheduleRequest &&
+			scheduleActionAvailable() &&
+			currentEditorIdentity(ctx, identity, type.name, model.recordId);
+		scheduleOpening = true;
+		try {
+			const component = (await import('./ScheduleDialog.svelte')).default;
+			if (!current()) return;
+			if (opener.isConnected) opener.focus();
+			ScheduleDialog = component;
+			scheduleOpen = true;
+		} catch {
+			if (current())
+				ctx.feedback.reportError(VegaError.backend(ctx.t('editor.schedule.failed.title')), {
+					action: 'schedule:open'
+				});
+		} finally {
+			if (!shareDestroyed && request === scheduleRequest) scheduleOpening = false;
+		}
 	}
 
 	/**
@@ -1696,7 +1786,18 @@
 		// `$lib/shell/keyboard.isEditableTarget`), este SÍ debe funcionar con el foco dentro de
 		// cualquier input del formulario — nunca se comprueba el target.
 		function handleKeydown(event: KeyboardEvent): void {
-			handleRecordSaveKeydown(event, { scheduleOpen, formDisabled, dirty, form: formEl });
+			if (scheduleOpening && event.key === 'Escape') {
+				scheduleRequest++;
+				scheduleOpening = false;
+				event.preventDefault();
+				return;
+			}
+			handleRecordSaveKeydown(event, {
+				scheduleOpen: scheduleOpen || scheduleOpening,
+				formDisabled,
+				dirty,
+				form: formEl
+			});
 		}
 		window.addEventListener('beforeunload', handleBeforeUnload);
 		window.addEventListener('keydown', handleKeydown);
@@ -1803,7 +1904,8 @@
 						class="vega-editor-preview-toggle"
 						class:vega-editor-preview-toggle--active={previewPanelOpen}
 						aria-pressed={previewPanelOpen}
-						onclick={() => (previewPanelOpen = !previewPanelOpen)}
+						aria-busy={previewOpening}
+						onclick={() => void togglePreview()}
 					>
 						<Icon id="eye" size={14} />
 						{ctx.t('editor.preview.toggle')}
@@ -1855,7 +1957,7 @@
 						</button>
 					{/if}
 					{#if existingRecordId && publicationWritable}
-						<VisualPublishControl
+						<FormPublishControl
 							bind:this={publishControl}
 							{type}
 							record={publicationRecord}
@@ -1865,7 +1967,6 @@
 							onReviewGo={goToReviewTarget}
 							onReviewDescribe={describeReviewImage}
 							onChange={changePublication}
-							compact
 							disabled={formDisabled || blocksBusy || submitBlocked}
 						/>
 					{/if}
@@ -1915,6 +2016,7 @@
 			type="button"
 			class="vega-editor-inline-button"
 			disabled={formDisabled}
+			aria-busy={scheduleOpening}
 			onclick={openSchedule}
 		>
 			{ctx.t(
@@ -1964,6 +2066,7 @@
 						type="button"
 						class="vega-editor-inline-button"
 						disabled={formDisabled}
+						aria-busy={scheduleOpening}
 						onclick={openSchedule}
 					>
 						{ctx.t('editor.schedule.change')}
@@ -2281,15 +2384,15 @@
 {#if !modal}
 	<!-- «Programar…» (lote 12, lámina 2): fuera del `<form>`, como el resto de diálogos — Intro en su
      campo de fecha no debe enviar el formulario. -->
-	<ScheduleDialog
-		open={scheduleOpen}
-		name={scheduleName}
-		at={scheduleAt}
-		unconfirmed={scheduling === 'unknown'}
-		fallbackFocusEl={scheduleFallback}
-		onSubmit={submitSchedule}
-		onClose={() => (scheduleOpen = false)}
-	/>
+	{#if ScheduleDialog}<ScheduleDialog
+			open={scheduleOpen}
+			name={scheduleName}
+			at={scheduleAt}
+			unconfirmed={scheduling === 'unknown'}
+			fallbackFocusEl={scheduleFallback}
+			onSubmit={submitSchedule}
+			onClose={() => (scheduleOpen = false)}
+		/>{/if}
 
 	<!-- L-P4.11 (misma ley que el listado): ningún borrado sin pasar por este diálogo. Fuera del
      `<form>` a propósito — es un overlay de pantalla completa, no parte del formulario. -->
@@ -2332,7 +2435,7 @@
 			}}
 		/>
 	{/if}
-	{#if previewPanelOpen && previewCapable}
+	{#if previewPanelOpen && previewCapable && PreviewPanel}
 		{@const previewApiUrl = ctx.port.previewApiUrl ?? null}
 		{@const previewRecordId = model.recordId}
 		{#if previewApiUrl !== null && previewRecordId !== null}
