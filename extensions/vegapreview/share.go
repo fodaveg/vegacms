@@ -358,7 +358,7 @@ func bindShareBody(event *core.RequestEvent, target any) error {
 // the record to whoever holds the URL, so it takes the right to change the record, not just to
 // read it: the collection must be in RecordCollections, and the caller must pass the record's
 // ViewRule (404 otherwise, as for a missing record) and its UpdateRule (403 otherwise).
-func (x *Extension) authorizeShare(event *core.RequestEvent, collection, id string) error {
+func (x *Extension) authorizeShare(app core.App, event *core.RequestEvent, collection, id string) error {
 	// RequireAuth already guarantees a session; this keeps the handlers closed if a route is ever
 	// mounted without it.
 	if event.Auth == nil {
@@ -370,23 +370,23 @@ func (x *Extension) authorizeShare(event *core.RequestEvent, collection, id stri
 	if !slices.Contains(x.config.RecordCollections, collection) {
 		return event.NotFoundError("", nil)
 	}
-	record, err := event.App.FindRecordById(collection, id)
+	record, err := app.FindRecordById(collection, id)
 	if err != nil || record == nil {
-		logRecordLookupFailure(event.App.Logger(), collection, id, err)
+		logRecordLookupFailure(app.Logger(), collection, id, err)
 		return event.NotFoundError("", nil)
 	}
 	requestInfo, err := event.RequestInfo()
 	if err != nil {
 		return event.BadRequestError("Could not resolve request authorization.", err)
 	}
-	canView, err := event.App.CanAccessRecord(record, requestInfo, record.Collection().ViewRule)
+	canView, err := app.CanAccessRecord(record, requestInfo, record.Collection().ViewRule)
 	if err != nil {
 		return err
 	}
 	if !canView {
 		return event.NotFoundError("", nil)
 	}
-	canUpdate, err := event.App.CanAccessRecord(record, requestInfo, record.Collection().UpdateRule)
+	canUpdate, err := app.CanAccessRecord(record, requestInfo, record.Collection().UpdateRule)
 	if err != nil {
 		return err
 	}
@@ -477,7 +477,7 @@ func (x *Extension) shareCreateHandler(event *core.RequestEvent) error {
 	}
 	body.Collection = strings.TrimSpace(body.Collection)
 	body.ID = strings.TrimSpace(body.ID)
-	if err := x.authorizeShare(event, body.Collection, body.ID); err != nil {
+	if err := x.authorizeShare(event.App, event, body.Collection, body.ID); err != nil {
 		return err
 	}
 
@@ -528,9 +528,15 @@ func (x *Extension) shareCreateHandler(event *core.RequestEvent) error {
 	link.Set("createdByCollection", event.Auth.Collection().Name)
 	link.Set("label", label)
 
-	// Count and insert inside one transaction, so two simultaneous requests cannot both take the
-	// last free slot of a record.
+	// Recheck existence and access using the same transaction as count and insert. A deletion
+	// or permission change since the initial check must not leave a new unauthorized link.
+	// PocketBase serializes this transaction with record writes through NonconcurrentDB.
+	var authorizationErr error
 	err = event.App.RunInTransaction(func(txApp core.App) error {
+		authorizationErr = x.authorizeShare(txApp, event, body.Collection, body.ID)
+		if authorizationErr != nil {
+			return authorizationErr
+		}
 		live, err := txApp.FindRecordsByFilter(
 			shareLinksCollection,
 			"collection = {:collection} && recordId = {:recordId} && expires > {:now}",
@@ -551,6 +557,9 @@ func (x *Extension) shareCreateHandler(event *core.RequestEvent) error {
 		}
 		return txApp.Save(link)
 	})
+	if authorizationErr != nil {
+		return authorizationErr
+	}
 	if errors.Is(err, errShareLinkLimit) {
 		limit := apis.NewApiError(
 			http.StatusConflict,
@@ -579,7 +588,7 @@ func (x *Extension) shareListHandler(event *core.RequestEvent) error {
 	event.Response.Header().Set("Cache-Control", "no-store")
 	collection := strings.TrimSpace(event.Request.URL.Query().Get("collection"))
 	id := strings.TrimSpace(event.Request.URL.Query().Get("id"))
-	if err := x.authorizeShare(event, collection, id); err != nil {
+	if err := x.authorizeShare(event.App, event, collection, id); err != nil {
 		return err
 	}
 
@@ -631,7 +640,7 @@ func (x *Extension) shareRevokeHandler(event *core.RequestEvent) error {
 	if body.LinkID == "" {
 		return event.BadRequestError("linkId is required.", nil)
 	}
-	if err := x.authorizeShare(event, body.Collection, body.ID); err != nil {
+	if err := x.authorizeShare(event.App, event, body.Collection, body.ID); err != nil {
 		return err
 	}
 

@@ -1043,6 +1043,110 @@ func TestShareLinksAreDeletedWithTheirRecord(t *testing.T) {
 	}
 }
 
+type shareReadFunc func([]byte) (int, error)
+
+func (read shareReadFunc) Read(buffer []byte) (int, error) { return read(buffer) }
+
+// The random source is reached after the initial authorization and before the write
+// transaction. Interleave real PocketBase writes there, without sleeps or a product test hook.
+func TestShareCreateRechecksAuthorizationInTransaction(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		want int
+	}{
+		{"deleted", http.StatusNotFound},
+		{"recreated_for_another_editor", http.StatusNotFound},
+		{"view_permission_revoked", http.StatusNotFound},
+		{"update_permission_revoked", http.StatusForbidden},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			fixture := newShareFixture(t)
+			pages, err := fixture.app.FindCollectionByNameOrId("pages")
+			if err != nil {
+				t.Fatal(err)
+			}
+			updateDrafts := "owner = @request.auth.id && status = 'draft'"
+			pages.UpdateRule = &updateDrafts
+			if err := fixture.app.Save(pages); err != nil {
+				t.Fatal(err)
+			}
+			page, err := fixture.app.FindRecordById("pages", fixture.pageA)
+			if err != nil {
+				t.Fatal(err)
+			}
+			otherPage, err := fixture.app.FindRecordById("pages", fixture.pageB)
+			if err != nil {
+				t.Fatal(err)
+			}
+			recreate := func() {
+				reborn := core.NewRecord(pages)
+				reborn.Id = page.Id
+				reborn.Set("owner", otherPage.GetString("owner"))
+				reborn.Set("status", "draft")
+				reborn.Set("title", "Another editor's private replacement")
+				if err := fixture.app.Save(reborn); err != nil {
+					t.Fatal(err)
+				}
+			}
+			originalRandom := fixture.extension.config.RandomSource
+			interleaved := false
+			fixture.extension.config.RandomSource = shareReadFunc(func(buffer []byte) (int, error) {
+				if !interleaved {
+					interleaved = true
+					switch test.name {
+					case "deleted", "recreated_for_another_editor":
+						if err := fixture.app.Delete(page); err != nil {
+							t.Fatal(err)
+						}
+						if test.name == "recreated_for_another_editor" {
+							recreate()
+						}
+					case "view_permission_revoked":
+						page.Set("owner", otherPage.GetString("owner"))
+						if err := fixture.app.Save(page); err != nil {
+							t.Fatal(err)
+						}
+					case "update_permission_revoked":
+						page.Set("status", "published")
+						if err := fixture.app.Save(page); err != nil {
+							t.Fatal(err)
+						}
+					}
+				}
+				return originalRandom.Read(buffer)
+			})
+
+			response := fixture.create(fixture.editorA, "pages", fixture.pageA, 3600, "")
+			if !interleaved {
+				t.Fatal("creation never reached the interleaving after its initial authorization")
+			}
+			if test.name == "deleted" {
+				// Reuse the id only after creation completed: an orphan must not publish it.
+				recreate()
+			}
+			if response.Code == http.StatusCreated {
+				var created shareCreateResponse
+				if err := json.Unmarshal(response.Body.Bytes(), &created); err != nil {
+					t.Fatal(err)
+				}
+				token := strings.TrimPrefix(created.URL, "https://site.example/preview-share/")
+				if resolved := fixture.resolve(token, "203.0.113.7"); resolved.Code == http.StatusOK {
+					t.Error("a link created after authorization was lost resolves the current private record")
+				}
+			}
+			if response.Code != test.want {
+				t.Errorf("expected authorization refusal %d, got %d", test.want, response.Code)
+			}
+			if links := fixture.storedLinks(t); len(links) != 0 {
+				t.Errorf("creation stored %d unauthorized links", len(links))
+			}
+			if response.Header().Get("Cache-Control") != "no-store" {
+				t.Error("authorization refusal must not be cached")
+			}
+		})
+	}
+}
+
 // TestShareResolveRefusalsAreIndistinguishable: every reason to refuse a token must look the same
 // from outside, so the route cannot be used to learn whether a link ever existed.
 func TestShareResolveRefusalsAreIndistinguishable(t *testing.T) {
