@@ -176,15 +176,25 @@ La imagen de referencia copia el hook. En otras imágenes copia explícitamente 
 no lo instala. Se mantiene la descarga nativa por URL: PB requiere el token en query y no se carga
 la copia completa en memoria del navegador.
 
-### Caddy: filtrar el logger global `default` existente
+### Caddy: redactar los destinos que reciben las peticiones afectadas
 
 El fragmento de este repo no declara un logger. La lectura dirigida del
 `logging.logs.default` efectivo de Caddy 2.11.4 observó encoder y writer omitidos y ninguna regla
 de filtro para el token; no acreditó la cobertura de loggers nombrados ni de recolectores. La
-propuesta vigente se fusiona únicamente en el bloque global `log default` existente de la fuente
-real. Conserva `output`, nivel, `include`/`exclude`, `sampling`, otros filtros y routing. Si el
-bloque falta, hay varios, ya tiene `format` o no se puede demostrar esa conservación, detén la
-fusión y revisa la fuente. No crees otro destino.
+propuesta configura el logger global `default` efectivo. Si una declaración global resuelve a
+`default`, se fusiona allí; si es implícito, puede declararse dentro del bloque global existente,
+previa comprobación de equivalencia de routing y opciones con el adaptador nativo. Los nombres
+pueden depender de variables referenciadas en la fuente. Conserva `output`, nivel,
+`include`/`exclude`, `sampling`, otros filtros y la configuración de acceso. Si ya existe un
+encoder, conserva su configuración como envolvente; resuelve cualquier conflicto con filtros
+previos antes de fusionar. Si no se puede demostrar esa conservación, detén la fusión.
+
+Los loggers nombrados reciben entradas por sus propias reglas: el filtro de `default` no los
+sanea. Comprueba qué destinos reciben errores HTTP (incluidos los sufijos por host), acceso y
+peticiones de reverse proxy a nivel DEBUG, y conserva las exclusiones efectivas de acceso de los
+tres admins. La pertenencia a `skip_hosts` por sí sola no acredita esa exclusión si existe un
+mapping de logger que tiene prioridad. Cualquier filtro adicional se prepara y revisa dentro de
+su autorización específica. La cobertura de `default` por sí sola no cierra esta comprobación.
 
 ```caddyfile
 format filter {
@@ -203,13 +213,15 @@ sin marcador en el logger `default` y dos respuestas ZIP 200 cuyos
 bytes y query llegaron íntegros al upstream instrumental; usaron otra imagen Caddy 2.11.4 y no
 acreditan la configuración privada servida.
 
-La fusión productiva requiere leer sólo la fuente real autorizada en RAM, comprobar el bloque y
-los cuatro Caddyfiles/imports ya acotados, aplicar los tres patches de sitio y este cuarto delta
-con CAS de fuente, adaptar y validar una copia aislada con la imagen seleccionada y obtener una
+La fusión productiva requiere leer sólo la fuente real autorizada en RAM, comprobar los
+destinos efectivos y los cuatro Caddyfiles/imports ya acotados, aplicar los tres patches de sitio
+y los deltas de logger autorizados con CAS de fuente, adaptar y validar una copia aislada con la
+imagen seleccionada y obtener una
 autorización de aplicación separada. No exportes valores de entorno, la fuente privada ni logs
 brutos. Comprueba con un marcador artificial el destino servido y todos sus consumidores. Los
-loggers nombrados, mensajes `msg` que incrusten URL, URI con marcador antes del primer `?`,
-colectores y logs históricos quedan fuera de este filtro y exigen comprobación propia.
+mensajes `msg` que incrusten URL, URI con marcador antes del primer `?`, cores adicionales,
+colectores y logs históricos exigen comprobación propia. Los destinos cuya cobertura sea
+desconocida impiden afirmar la ausencia del token en todos los logs afectados.
 
 Prueba una copia sintética pequeña: bytes íntegros al descargar y marcador artificial ausente de
 los logs PB (mensaje, `data.url`, Referer y errores), Caddy y sus recolectores. Incluye 200, 403,
