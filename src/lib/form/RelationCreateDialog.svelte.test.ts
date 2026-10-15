@@ -168,7 +168,7 @@ describe('L12: diálogo de creación de relación', () => {
 		expect(name.value).toBe('Taller');
 		expect(name.id).not.toBe(parentName.id);
 		expect(dialog().querySelector<HTMLInputElement>('input[type="text"]')!.value).toBe('taller');
-		expect(document.activeElement).toBe(name);
+		await vi.waitFor(() => expect(document.activeElement).toBe(name));
 		expect(dialog().querySelector('.vega-relation-create')).toBeNull();
 		expect(navigation).toHaveBeenCalledTimes(1);
 		name.dispatchEvent(
