@@ -1334,11 +1334,49 @@ const INVALID_MANIFESTS: JsonValue[] = [
 	{ schemaVersion: 1, layouts: { default: { label: 'Página normal', extra: 1 } } }
 ];
 
+/** `relation` de un campo de bloque: el oráculo ajv y el validador propio deben coincidir. */
+function blockRelationManifest(field: Record<string, JsonValue>): JsonValue {
+	return {
+		schemaVersion: 1,
+		blockTypes: {
+			featured: {
+				label: 'Destacados',
+				fields: [{ name: 'items', label: 'Elementos', source: 'record', ...field }]
+			}
+		}
+	};
+}
+
+const BLOCK_RELATION_BATTERY: JsonValue[] = [
+	blockRelationManifest({
+		widget: 'relation',
+		relation: {
+			collection: 'posts',
+			multiple: true,
+			thumbField: 'cover',
+			filter: { a: 'b', n: 1, f: true }
+		}
+	}),
+	blockRelationManifest({ widget: 'relation', relation: { collection: 'posts' } }),
+	blockRelationManifest({ widget: 'relation', relation: {} }),
+	blockRelationManifest({ widget: 'relation', relation: { collection: 'posts', multiple: 'yes' } }),
+	blockRelationManifest({
+		widget: 'relation',
+		relation: { collection: 'posts', filter: { a: [1] } }
+	}),
+	blockRelationManifest({ widget: 'relation', relation: { collection: 'posts', extra: 1 } }),
+	blockRelationManifest({ widget: 'text', relation: { collection: 'posts' } })
+];
+
 describe('3. Oráculo: ajv(manifest-schema.json) vs validateManifestStrict', () => {
 	const ajv = new Ajv2020({ strict: true, allErrors: true });
 	const validateWithAjv = ajv.compile(manifestSchema);
 
-	const battery = [...VALID_ZERO_WARNING_MANIFESTS, ...INVALID_MANIFESTS];
+	const battery = [
+		...VALID_ZERO_WARNING_MANIFESTS,
+		...INVALID_MANIFESTS,
+		...BLOCK_RELATION_BATTERY
+	];
 
 	test.each(battery.map((m, i) => [i, m] as const))(
 		'manifiesto #%i: mismo veredicto ok/ko',

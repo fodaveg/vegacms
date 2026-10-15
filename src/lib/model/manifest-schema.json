@@ -304,7 +304,7 @@
 											"description": "Igualdades campo -> valor escalar unidas con AND; se aplican al listado y la búsqueda del selector, no a los ya elegidos.",
 											"type": "object",
 											"additionalProperties": {
-												"type": ["string", "number", "boolean"]
+												"anyOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }]
 											}
 										}
 									}
@@ -328,7 +328,7 @@
 									}
 								},
 								{
-									"if": { "required": ["relation"] },
+									"if": { "properties": { "relation": true }, "required": ["relation"] },
 									"then": {
 										"properties": { "widget": { "const": "relation" } },
 										"required": ["widget"]
