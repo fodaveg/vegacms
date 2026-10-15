@@ -321,7 +321,7 @@ describe('Richtext.svelte — enlace e imagen de la barra', () => {
 	async function openLinkDialog(target: HTMLElement): Promise<void> {
 		toolbarButton(target, 'form.editor.link').click();
 		await flush();
-		expect(dialog(target)).not.toBeNull();
+		await vi.waitFor(() => expect(dialog(target)).not.toBeNull());
 	}
 
 	async function submitDialog(target: HTMLElement): Promise<void> {
