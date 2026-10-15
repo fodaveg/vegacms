@@ -628,4 +628,37 @@ describe('relation de bloque con destino declarado', () => {
 		expect(migration?.contents).toContain('posts');
 		expect(migration?.contents).toContain('"maxSelect": 99');
 	});
+
+	test('la reconciliación excluye una relación hacia una colección inexistente', () => {
+		const diagnostics = diagnoseBlockRecordFields(
+			[
+				blockType('featured', [declared('ghosts', true)]),
+				blockType('hero', [field('image', 'relation')])
+			],
+			blocks,
+			[]
+		);
+		// El diagnóstico sigue diciendo `missing` para las dos.
+		expect(diagnostics.map((d) => d.status)).toEqual(['missing', 'missing']);
+
+		const known = new Set(['vega_media', 'posts']);
+		const migration = generateBlockReconciliationMigration(
+			blocks,
+			diagnostics,
+			new Date('2026-01-05T00:00:00.000Z'),
+			known
+		);
+		expect(migration?.contents).toContain('"name": "image"');
+		expect(migration?.contents).not.toContain('featuredPosts');
+		expect(migration?.contents).not.toContain('ghosts');
+
+		const onlyGhost = diagnoseBlockRecordFields(
+			[blockType('featured', [declared('ghosts', true)])],
+			blocks,
+			[]
+		);
+		expect(generateBlockReconciliationMigration(blocks, onlyGhost, undefined, known)).toBeNull();
+		// Sin el conjunto, comportamiento histórico.
+		expect(generateBlockReconciliationMigration(blocks, onlyGhost)?.contents).toContain('ghosts');
+	});
 });

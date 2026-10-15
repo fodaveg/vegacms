@@ -155,6 +155,31 @@ describe('resolución de blockTypes.<t>.fields[].relation', () => {
 	});
 });
 
+describe('colección destino de una relation de bloque', () => {
+	const manifest = manifestWith({
+		widget: 'relation',
+		relation: { collection: 'posts', multiple: true, thumbField: 'cover' }
+	});
+	const COLLECTION_PATH = '/blockTypes/featured/fields/items/relation/collection';
+
+	it('avisa si la colección no existe y conserva la declaración', () => {
+		const { relation, warnings } = relationOf(manifest, []);
+		expect(relation).toMatchObject({ collection: 'posts', multiple: true, thumbField: null });
+		const hit = warnings.filter((w) => w.path === COLLECTION_PATH);
+		expect(hit).toHaveLength(1);
+		expect(hit[0]!.code).toBe('manifest-invalid-key');
+		// El thumbField no suma un segundo aviso: ya lo explica el de la colección.
+		expect(warnings).toHaveLength(1);
+	});
+
+	it('no avisa si la colección existe', () => {
+		const { warnings } = relationOf(manifest, [
+			{ name: 'posts', readonly: false, fields: [fileField('cover')] }
+		] as ContentType[]);
+		expect(warnings).toEqual([]);
+	});
+});
+
 describe('validateManifestStrict con relation de bloque', () => {
 	const ok = manifestWith({
 		widget: 'relation',

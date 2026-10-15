@@ -374,18 +374,28 @@ export function diagnoseBlockRecordFields(
  * Emite una migración `add-fields` únicamente para los diagnósticos `missing`. Los compatibles no
  * requieren acción y los incompatibles se omiten deliberadamente: cambiar columnas con datos no
  * es una reconciliación segura. `null` significa que no hay nada automatizable.
+ *
+ * `knownCollections` (nombres del esquema descubierto, opcional): un campo `missing` que sea una
+ * relación hacia una colección que NO está en el conjunto se excluye, porque la migración
+ * apuntaría a algo inexistente. El motivo lo da el aviso de manifiesto de `validateBlockRelationThumbs`.
+ * Sin el parámetro no se filtra nada (comportamiento histórico).
  */
 export function generateBlockReconciliationMigration(
 	blocks: ResolvedBlocksConfig,
 	diagnostics: readonly BlockRecordFieldDiagnostic[],
-	now: Date = new Date()
+	now: Date = new Date(),
+	knownCollections?: ReadonlySet<string>
 ): GeneratedMigration | null {
 	const fields = diagnostics
 		.filter(
 			(diagnostic): diagnostic is Extract<BlockRecordFieldDiagnostic, { status: 'missing' }> =>
 				diagnostic.status === 'missing'
 		)
-		.map(({ expected }) => expected);
+		.map(({ expected }) => expected)
+		.filter(
+			(expected) =>
+				!knownCollections || expected.type !== 'relation' || knownCollections.has(expected.target)
+		);
 
 	if (fields.length === 0) return null;
 	return generateSchemaMigration(

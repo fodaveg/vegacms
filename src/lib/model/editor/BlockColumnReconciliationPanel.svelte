@@ -151,7 +151,8 @@
 		const migration = generateBlockReconciliationMigration(
 			group.blocks,
 			[...group.missing, ...group.incompatible],
-			new Date(generationSecond * 1000)
+			new Date(generationSecond * 1000),
+			new Set(model.types.map((type) => type.name))
 		);
 		if (!migration) return;
 		lastGenerationSecond = generationSecond;

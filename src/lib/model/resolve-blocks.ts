@@ -391,11 +391,13 @@ function resolveBlockField(
 }
 
 /**
- * Comprueba contra el esquema descubierto que cada `relation.thumbField` existe en la colección
- * destino y es un campo `file`. Si no, se avisa (`manifest-invalid-key`) y SOLO ese `thumbField`
- * pasa a `null` (el selector funciona sin miniatura). Muta los campos ya resueltos: se llama una vez
- * desde `resolveContentModel`, antes de publicar el modelo. Una colección destino ausente del
- * esquema también anula la miniatura: no hay campo contra el que validarla.
+ * Comprueba contra el esquema descubierto cada `relation` de bloque. (1) La colección destino debe
+ * existir: si no, `manifest-invalid-key` en `/blockTypes/<t>/fields/<name>/relation/collection`; la
+ * declaración se CONSERVA (el diagnóstico de columnas sigue igual) pero la reconciliación no
+ * propone una migración hacia ella (`generateBlockReconciliationMigration`). (2) `thumbField` debe
+ * existir en el destino y ser `file`: si no, aviso y SOLO ese `thumbField` pasa a `null` (selector
+ * sin miniatura); con destino ausente se anula en silencio, porque ya avisó el punto (1). Muta los
+ * campos ya resueltos: se llama una vez desde `resolveContentModel`, antes de publicar el modelo.
  */
 export function validateBlockRelationThumbs(
 	blockTypes: readonly ResolvedBlockType[],
@@ -406,15 +408,24 @@ export function validateBlockRelationThumbs(
 	for (const blockType of blockTypes) {
 		for (const field of blockType.fields) {
 			const relation = field.relation;
-			if (!relation || relation.thumbField === null) continue;
+			if (!relation) continue;
 			const target = byName.get(relation.collection);
-			const thumb = target?.fields.find((f) => f.name === relation.thumbField);
+			if (!target) {
+				warnings.push({
+					code: 'manifest-invalid-key',
+					message: `La colección "${relation.collection}" de blockTypes.${blockType.name}.${field.name} no existe en el esquema; la declaración se conserva, pero la reconciliación no propondrá una migración hacia ella.`,
+					blockType: blockType.name,
+					path: `/blockTypes/${blockType.name}/fields/${field.name}/relation/collection`
+				});
+				relation.thumbField = null;
+				continue;
+			}
+			if (relation.thumbField === null) continue;
+			const thumb = target.fields.find((f) => f.name === relation.thumbField);
 			if (thumb?.type === 'file') continue;
 			warnings.push({
 				code: 'manifest-invalid-key',
-				message: target
-					? `thumbField "${relation.thumbField}" de blockTypes.${blockType.name}.${field.name} no es un campo file de "${relation.collection}"; el selector se muestra sin miniatura.`
-					: `thumbField "${relation.thumbField}" de blockTypes.${blockType.name}.${field.name} no se puede comprobar: la colección "${relation.collection}" no existe en el esquema; el selector se muestra sin miniatura.`,
+				message: `thumbField "${relation.thumbField}" de blockTypes.${blockType.name}.${field.name} no es un campo file de "${relation.collection}"; el selector se muestra sin miniatura.`,
 				blockType: blockType.name,
 				path: `/blockTypes/${blockType.name}`
 			});
