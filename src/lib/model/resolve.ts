@@ -39,7 +39,7 @@ import {
 	readStringArray,
 	type JsonObject
 } from './resolve-readers';
-import { resolveBlockTypes } from './resolve-blocks';
+import { resolveBlockTypes, validateBlockRelationThumbs } from './resolve-blocks';
 import { resolveLayouts } from './resolve-presentation';
 import { resolveContentType } from './resolve-collection';
 import { buildNav, resolveMergedView } from './resolve-nav';
@@ -188,6 +188,10 @@ export function resolveContentModel(input: {
 	// colecciones visibles + vistas fusionadas en una sola pasada de `orderByGroups` (ver
 	// `buildNav`), así que necesita las dos listas ya resueltas.
 	const nav = buildNav(resolvedTypes, navOrderByType, declaredNavGroups, mergedViews);
+
+	// `blockTypes` se resolvió sin esquema; la miniatura de una relación de bloque solo se puede
+	// comprobar contra el destino descubierto.
+	validateBlockRelationThumbs(blockTypes, input.types, warnings);
 
 	return {
 		site,

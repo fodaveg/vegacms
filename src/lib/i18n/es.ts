@@ -790,6 +790,10 @@ export const es = {
 	'form.relation.emptySelection': '— sin selección —',
 	'form.relation.remove': 'Quitar',
 	'form.relation.removeLabel': 'Quitar «{title}»',
+	'form.relation.moveUp': 'Subir',
+	'form.relation.moveDown': 'Bajar',
+	'form.relation.moveUpLabel': 'Subir «{title}»',
+	'form.relation.moveDownLabel': 'Bajar «{title}»',
 	'form.relation.notFound': 'no encontrado',
 	'form.relation.degradedNote':
 		'Este tipo no tiene un campo de título con el que buscar: elige de la lista.',

@@ -336,10 +336,40 @@ es la opción para datos que PocketBase debe indexar, consultar o gestionar con 
 `relation` y `file` solo son válidos con `source: "record"` porque una relación y un fichero
 necesitan una columna física de PocketBase; declararlos en `data` descarta ese campo.
 
-En el vocabulario actual, `relation` está especializado en medios: la columna derivada siempre apunta
-a `vega_media`. Su cardinalidad tampoco es configurable todavía; solo el nombre convencional
-`images` crea una relación múltiple y cualquier otro nombre crea una relación simple. El manifiesto
-no puede expresar hoy una relación a otra colección ni elegir la cardinalidad explícitamente.
+Sin más datos, `relation` es el campo de medios: la columna derivada apunta a `vega_media` y solo
+el nombre convencional `images` la hace múltiple (cualquier otro nombre crea una relación simple).
+Para apuntar a cualquier otra colección, o fijar la cardinalidad explícitamente, el campo declara la
+clave opcional `relation` (solo válida con `widget: "relation"`):
+
+```json
+{ "name": "featuredPosts", "label": "Entradas destacadas", "widget": "relation", "source": "record",
+  "relation": { "collection": "posts", "multiple": true, "filter": { "status": "published" } } }
+{ "name": "featuredArtworks", "label": "Obras destacadas", "widget": "relation", "source": "record",
+  "relation": { "collection": "artworks", "multiple": true, "thumbField": "image" } }
+```
+
+- `collection` (texto, obligatorio dentro de `relation`): colección destino. La columna derivada
+  apunta a ella y el borrado en cascada queda desactivado (borrar un destino no arrastra bloques).
+  Si la columna ya existe con otro destino, el diagnóstico de Ajustes la marca incompatible.
+- `multiple` (booleano, por defecto `false`): cardinalidad de la columna. Con `relation` declarado
+  manda este valor, no el nombre del campo.
+- `thumbField` (texto, opcional): campo `file` del destino del que sale la miniatura en el selector
+  y en los elegidos. Si no existe o no es `file`, hay un aviso `manifest-invalid-key` y el selector
+  funciona sin miniatura.
+- `filter` (objeto, opcional): igualdades `campo: valor` (texto, número o booleano), unidas con AND.
+  Se aplica al listado y la búsqueda del selector, no a los ya elegidos: uno que deje de cumplir el
+  filtro se sigue mostrando. No acepta cadenas de filtro de PocketBase. Un valor no escalar descarta
+  todo el `filter` con aviso.
+
+La etiqueta de cada opción es el campo de título (`titleField`) de la colección destino en el
+manifiesto. Cuando la relación es múltiple, el editor reordena los elegidos con los botones
+«Subir»/«Bajar» (también con medios) y el valor guardado es la lista de ids en ese orden. Una forma
+inválida descarta solo esa clave (o ese sub-valor) con `manifest-invalid-key`; el manifiesto no se
+tumba. Dos tipos de bloque que declaren el mismo nombre de columna con distinto destino o distinta
+cardinalidad entran en conflicto, igual que cualquier otra diferencia de columna compartida;
+`thumbField` y `filter` no cuentan para ese conflicto.
+
+Si la colección de bloques y la destino se crean en la misma migración, el destino se crea antes.
 
 Las columnas `record` se derivan del conjunto completo de `blockTypes`. El generador de esquema las
 incluye en la migración de creación. El backend también puede comparar esa derivación con un esquema

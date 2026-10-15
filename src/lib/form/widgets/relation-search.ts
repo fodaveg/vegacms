@@ -32,12 +32,12 @@
  */
 
 import type { Field } from '$lib/backend/types';
-import type { RecordId, VegaRecord, Page } from '$lib/backend/types';
+import type { FileRef, RecordId, VegaRecord, Page } from '$lib/backend/types';
 import type { BackendPort } from '$lib/backend/port';
 import { VegaError } from '$lib/backend/errors';
-import type { Query } from '$lib/backend/query';
+import type { FilterNode, Query } from '$lib/backend/query';
 import { allowedFilterOps } from '$lib/backend/query';
-import type { ResolvedContentType } from '$lib/model/types';
+import type { BlockRelationFilter, ResolvedContentType } from '$lib/model/types';
 import { toggleValue } from './select-value';
 
 // ————— Anti-carrera —————
@@ -78,22 +78,72 @@ export function supportsTitleSearch(target: ResolvedContentType): boolean {
 export const RELATION_SEARCH_PER_PAGE = 20;
 
 /**
- * `Query` de búsqueda por título (L-P5.9): `term` en blanco ⇒ sin filtro (primera página tal
- * cual, útil para ofrecer candidatos antes de que el usuario teclee nada tras limpiar el buscador);
- * cualquier otro texto ⇒ `contains` sobre `titleField`.
+ * Filtro del selector de una relación de bloque (`relation.filter` del manifiesto) como AST del
+ * puerto: igualdades `eq` unidas con AND. `null` si no hay ninguna. Nunca cadenas crudas del backend.
  */
-export function buildTitleSearchQuery(titleField: string, term: string): Query {
+export function buildRelationFilter(filter: BlockRelationFilter | null): FilterNode | null {
+	if (filter === null) return null;
+	const nodes: FilterNode[] = Object.entries(filter).map(([field, value]) => ({
+		kind: 'cond',
+		field,
+		op: 'eq',
+		value
+	}));
+	if (nodes.length === 0) return null;
+	return nodes.length === 1 ? nodes[0]! : { kind: 'group', combinator: 'and', nodes };
+}
+
+/** `a AND b`, aplanando ausencias: `null`/`undefined` no restringen. */
+function andFilters(base: FilterNode | null | undefined, extra: FilterNode): FilterNode {
+	return base ? { kind: 'group', combinator: 'and', nodes: [base, extra] } : extra;
+}
+
+/**
+ * `Query` de búsqueda por título (L-P5.9): `term` en blanco ⇒ sin filtro propio (primera página tal
+ * cual, útil para ofrecer candidatos antes de que el usuario teclee nada tras limpiar el buscador);
+ * cualquier otro texto ⇒ `contains` sobre `titleField`. `baseFilter` (filtro del selector de una
+ * relación de bloque) se une siempre con AND.
+ */
+export function buildTitleSearchQuery(
+	titleField: string,
+	term: string,
+	baseFilter?: FilterNode | null
+): Query {
 	const trimmed = term.trim();
-	if (trimmed === '') return { perPage: RELATION_SEARCH_PER_PAGE };
+	if (trimmed === '') {
+		return { ...(baseFilter ? { filter: baseFilter } : {}), perPage: RELATION_SEARCH_PER_PAGE };
+	}
 	return {
-		filter: { kind: 'cond', field: titleField, op: 'contains', value: trimmed },
+		filter: andFilters(baseFilter, {
+			kind: 'cond',
+			field: titleField,
+			op: 'contains',
+			value: trimmed
+		}),
 		perPage: RELATION_SEARCH_PER_PAGE
 	};
 }
 
-/** `Query` del listado paginado sin búsqueda: sin filtro, solo paginación. */
-export function buildDegradedListQuery(page: number): Query {
-	return { page, perPage: RELATION_SEARCH_PER_PAGE };
+/** `Query` del listado paginado sin búsqueda: solo paginación (más `baseFilter` si lo hay). */
+export function buildDegradedListQuery(page: number, baseFilter?: FilterNode | null): Query {
+	return {
+		...(baseFilter ? { filter: baseFilter } : {}),
+		page,
+		perPage: RELATION_SEARCH_PER_PAGE
+	};
+}
+
+/**
+ * Mueve el elemento en `index` una posición (`-1` arriba, `1` abajo) dentro de `ids`. Copia nueva;
+ * fuera de rango devuelve `ids` tal cual (los botones de los extremos están deshabilitados, esto es
+ * defensa en profundidad).
+ */
+export function moveRelationItem(ids: RecordId[], index: number, delta: -1 | 1): RecordId[] {
+	const to = index + delta;
+	if (index < 0 || index >= ids.length || to < 0 || to >= ids.length) return ids;
+	const next = [...ids];
+	[next[index], next[to]] = [next[to]!, next[index]!];
+	return next;
 }
 
 /** Ids por petición al resolver los títulos de los ya seleccionados: acota la longitud del
@@ -177,6 +227,9 @@ export interface RelationCandidate {
 	/** Título legible (valor de `titleField`), o el propio id si no hay `titleField` (modo
 	 *  degradado) o el valor está vacío. */
 	title: string;
+	/** Fichero del que sale la miniatura (`thumbField` de una relación de bloque); ausente/`null` si
+	 *  no hay `thumbField` o el registro no tiene fichero. */
+	thumbRef?: FileRef | null;
 }
 
 /** Título de `record` para `titleField` (`null` ⇒ modo degradado, representa por id; un valor
@@ -187,13 +240,31 @@ export function titleOf(record: VegaRecord, titleField: string | null): string {
 	return typeof raw === 'string' && raw.trim() !== '' ? raw : record.id;
 }
 
+/** Primer fichero de `record[thumbField]` (campo `file` simple o múltiple), o `null`. */
+export function thumbRefOf(record: VegaRecord, thumbField: string | null): FileRef | null {
+	if (thumbField === null) return null;
+	const raw = record.values[thumbField];
+	if (typeof raw === 'string') return raw !== '' ? raw : null;
+	if (Array.isArray(raw)) {
+		for (const item of raw) {
+			if (typeof item === 'string' && item !== '') return item;
+		}
+	}
+	return null;
+}
+
 /** Mapea una `Page<VegaRecord>` (resultado de `ctx.port.list`) a los candidatos que pinta el
  *  widget, en el mismo orden. */
 export function candidatesFromPage(
 	page: Page<VegaRecord>,
-	titleField: string | null
+	titleField: string | null,
+	thumbField: string | null = null
 ): RelationCandidate[] {
-	return page.items.map((record) => ({ id: record.id, title: titleOf(record, titleField) }));
+	return page.items.map((record) => ({
+		id: record.id,
+		title: titleOf(record, titleField),
+		...(thumbField !== null ? { thumbRef: thumbRefOf(record, thumbField) } : {})
+	}));
 }
 
 // ————— Caché de títulos de los seleccionados (D-P5.9, sin `expand`) —————
@@ -201,7 +272,8 @@ export function candidatesFromPage(
 /** Resultado de resolver un id ya seleccionado vía `ctx.port.list` por lotes: `'not-found'` si el
  *  id no vuelve en el listado (registro borrado entre tanto) — el shell lo pinta con una
  *  marca de "no encontrado" en vez de reventar. */
-export type TitleCacheEntry = { status: 'ok'; title: string } | { status: 'not-found' };
+export type TitleCacheEntry =
+	{ status: 'ok'; title: string; thumbRef?: FileRef | null } | { status: 'not-found' };
 
 /** Caché por id, INMUTABLE (mismo criterio que `toggleValue`): nunca se muta, `withCachedTitle`
  *  siempre devuelve una copia. */

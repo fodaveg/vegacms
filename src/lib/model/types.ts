@@ -504,6 +504,30 @@ export interface ResolvedBlockField {
 	/** Solo para `widget: 'select' | 'chips'`; `null` en el resto (declarado o no, se ignora: sin
 	 *  opciones que ofrecer no hay nada que validar contra ellas). */
 	options: string[] | null;
+	/**
+	 * Solo para `widget: 'relation'` con `source: 'record'` y SOLO si el manifiesto declara la clave
+	 * `relation`. Ausente = contrato histórico: la columna enlaza `vega_media` y es múltiple si el
+	 * campo se llama `images`. Presente, manda: ver `ResolvedBlockRelation`.
+	 */
+	relation?: ResolvedBlockRelation;
+}
+
+/** Igualdades `campo -> valor escalar` unidas con AND (filtro del selector de una relación de bloque). */
+export type BlockRelationFilter = Record<string, string | number | boolean>;
+
+/**
+ * Destino declarado de un campo de bloque `relation` (`blockTypes.<t>.fields[].relation`).
+ * `collection` es la colección destino (cualquiera, no solo `vega_media`); `multiple` decide la
+ * cardinalidad de la columna física y el orden lo elige el editor. `thumbField` (campo `file` del
+ * destino) y `filter` solo afectan al SELECTOR: nunca al esquema físico.
+ */
+export interface ResolvedBlockRelation {
+	collection: string;
+	multiple: boolean;
+	/** Campo `file` del destino del que sale la miniatura; `null` si no se declaró o no es válido. */
+	thumbField: string | null;
+	/** Filtro del listado y la búsqueda del selector; `null` si no se declaró. */
+	filter: BlockRelationFilter | null;
 }
 
 export interface ResolvedLocale {
@@ -571,6 +595,13 @@ export interface ResolvedField {
 	subtype: FieldSubtype | null; // null para tipos sin subtype (number, bool…)
 	/** (D+M) candidato a columna en P4. Defaults por tipo en §4.10. */
 	listable: boolean;
+	/**
+	 * Solo lo rellena `BlockEditor` para una relación de bloque que declara `relation` en el
+	 * manifiesto: miniatura y filtro del selector. Opcional a propósito (misma razón que
+	 * `optionLabels` en `WidgetProps`): la interfaz de widget de D-P5.1 no cambia, el dato viaja en
+	 * el `field` que el widget ya recibe. Ningún campo de nivel superior lo lleva.
+	 */
+	relationPicker?: { thumbField: string | null; filter: FilterNode | null };
 }
 
 // ————— Vistas fusionadas (mergedViews, L7a) —————

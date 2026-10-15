@@ -476,3 +476,156 @@ describe('diagnoseBlockRecordFields', () => {
 		expect(diagnostic).toHaveProperty('conflict', expect.any(BlockRecordFieldConflictError));
 	});
 });
+
+describe('relation de bloque con destino declarado', () => {
+	const declared = (collection: string, multiple?: boolean) =>
+		field('featuredPosts', 'relation', {
+			relation: { collection, multiple: multiple ?? false, thumbField: null, filter: null }
+		});
+
+	test('el spec derivado usa colección y cardinalidad declaradas; sin relation, como antes', () => {
+		const specs = deriveBlockRecordFields(
+			[
+				blockType('featured', [declared('posts', true)]),
+				blockType('hero', [field('image', 'relation')]),
+				// Un nombre `images` con relation declarado manda lo declarado, no la convención.
+				blockType('one', [
+					field('images', 'relation', {
+						relation: { collection: 'posts', multiple: false, thumbField: null, filter: null }
+					})
+				])
+			],
+			blocks
+		);
+
+		expect(specs).toEqual([
+			{
+				name: 'featuredPosts',
+				type: 'relation',
+				target: 'posts',
+				required: false,
+				multiple: true,
+				cascadeDelete: false
+			},
+			{
+				name: 'image',
+				type: 'relation',
+				target: 'vega_media',
+				required: false,
+				multiple: false,
+				cascadeDelete: false
+			},
+			{
+				name: 'images',
+				type: 'relation',
+				target: 'posts',
+				required: false,
+				multiple: false,
+				cascadeDelete: false
+			}
+		]);
+	});
+
+	test('thumbField y filter no cambian la firma física: dos tipos pueden diferir en ellos', () => {
+		expect(() =>
+			deriveBlockRecordFields(
+				[
+					blockType('a', [
+						field('items', 'relation', {
+							relation: { collection: 'posts', multiple: true, thumbField: 'cover', filter: null }
+						})
+					]),
+					blockType('b', [
+						field('items', 'relation', {
+							relation: {
+								collection: 'posts',
+								multiple: true,
+								thumbField: null,
+								filter: { status: 'published' }
+							}
+						})
+					])
+				],
+				blocks
+			)
+		).not.toThrow();
+	});
+
+	test('compatible contra una columna real relation -> posts múltiple', () => {
+		const [diagnostic] = diagnoseBlockRecordFields(
+			[blockType('featured', [declared('posts', true)])],
+			blocks,
+			[
+				backendField({
+					name: 'featuredPosts',
+					type: 'relation',
+					target: 'posts',
+					multiple: true,
+					maxSelect: 99,
+					cascadeDelete: false
+				})
+			]
+		);
+		expect(diagnostic).toMatchObject({ status: 'compatible' });
+	});
+
+	test('incompatible si la columna apunta a otra colección', () => {
+		const [diagnostic] = diagnoseBlockRecordFields(
+			[blockType('featured', [declared('posts', true)])],
+			blocks,
+			[
+				backendField({
+					name: 'featuredPosts',
+					type: 'relation',
+					target: 'artworks',
+					multiple: true,
+					maxSelect: 99,
+					cascadeDelete: false
+				})
+			]
+		);
+		expect(diagnostic).toMatchObject({ status: 'incompatible' });
+	});
+
+	test('dos tipos con el mismo nombre y destino distinto entran en conflicto', () => {
+		expect(() =>
+			deriveBlockRecordFields(
+				[blockType('a', [declared('posts', true)]), blockType('b', [declared('artworks', true)])],
+				blocks
+			)
+		).toThrow(BlockRecordFieldConflictError);
+	});
+
+	test('la migración crea la colección destino antes que la de bloques y la reconciliación apunta a ella', () => {
+		const specs = [
+			{
+				name: 'blocks',
+				fields: [
+					{ name: 'type', type: 'text' as const },
+					{ name: 'data', type: 'json' as const }
+				]
+			},
+			{ name: 'posts', fields: [{ name: 'title', type: 'text' as const }] }
+		];
+		const { contents } = generateBlockSchemaMigration(
+			{
+				specs,
+				blocks: { ...blocks, collection: 'blocks' },
+				blockTypes: [blockType('featured', [declared('posts', true)])]
+			},
+			new Date('2026-01-04T00:00:00.000Z')
+		);
+		const up = contents.slice(0, contents.indexOf('}, (app) => {'));
+		expect(up.indexOf('"name": "posts"')).toBeLessThan(up.indexOf('"name": "blocks"'));
+		expect(up).toContain('"name": "featuredPosts"');
+
+		const diagnostics = diagnoseBlockRecordFields(
+			[blockType('featured', [declared('posts', true)])],
+			blocks,
+			[]
+		);
+		const migration = generateBlockReconciliationMigration(blocks, diagnostics);
+		expect(migration?.contents).toContain('posts');
+		expect(migration?.contents).toContain('"maxSelect": 99');
+	});
+});

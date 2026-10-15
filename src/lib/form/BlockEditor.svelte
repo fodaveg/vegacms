@@ -57,6 +57,7 @@
 	import { isConflictError, VegaError, type VegaConflictError } from '$lib/backend/errors';
 	import { recordVersion, type RecordVersion } from '$lib/backend/version';
 	import { getVegaContext } from '$lib/app-context';
+	import { buildRelationFilter } from './widgets/relation-search';
 	import { settingsRoute } from '$lib/nav/routes';
 	import { fieldDisplayLabel } from '$lib/model/default-labels';
 	import { isTextWidget } from '$lib/visual/texts-mode';
@@ -209,7 +210,19 @@
 					kind: 'record',
 					// El schema/widget salen de la columna descubierta; el rótulo y el orden,
 					// del tipo de bloque que dirige este formulario.
-					field: { ...column, label: declaration.label }
+					field: {
+						...column,
+						label: declaration.label,
+						...(declaration.relation && column.widget === 'relation'
+							? {
+									// Miniatura y filtro del selector: viajan en el `field` (ver `ResolvedField`).
+									relationPicker: {
+										thumbField: declaration.relation.thumbField,
+										filter: buildRelationFilter(declaration.relation.filter)
+									}
+								}
+							: {})
+					}
 				});
 			} else {
 				items.push({ kind: 'missing-record', declaration });

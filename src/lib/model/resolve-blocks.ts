@@ -1,9 +1,11 @@
 /** Resolución de bloques embebidos y del vocabulario raíz de tipos de bloque. */
-import type { ContentType, JsonValue } from '$lib/backend/types';
+import type { ContentType, Field, JsonValue } from '$lib/backend/types';
 import { isReservedCollectionName } from '$lib/backend/collections';
 import type {
+	BlockRelationFilter,
 	ModelWarning,
 	ResolvedBlockField,
+	ResolvedBlockRelation,
 	ResolvedBlocksConfig,
 	ResolvedBlockType,
 	WidgetId
@@ -371,6 +373,11 @@ function resolveBlockField(
 		options
 	};
 
+	if (obj && Object.hasOwn(obj, 'relation')) {
+		const relation = resolveBlockRelation(typeName, index, widget, obj.relation, warnings);
+		if (relation) resolvedField.relation = relation;
+	}
+
 	if (obj && Object.hasOwn(obj, 'default')) {
 		const resolvedDefault = resolveBlockFieldDefault(resolvedField, obj.default);
 		if (resolvedDefault.status === 'value') {
@@ -381,4 +388,145 @@ function resolveBlockField(
 	}
 
 	return resolvedField;
+}
+
+/**
+ * Comprueba contra el esquema descubierto que cada `relation.thumbField` existe en la colección
+ * destino y es un campo `file`. Si no, se avisa (`manifest-invalid-key`) y SOLO ese `thumbField`
+ * pasa a `null` (el selector funciona sin miniatura). Muta los campos ya resueltos: se llama una vez
+ * desde `resolveContentModel`, antes de publicar el modelo. Una colección destino ausente del
+ * esquema también anula la miniatura: no hay campo contra el que validarla.
+ */
+export function validateBlockRelationThumbs(
+	blockTypes: readonly ResolvedBlockType[],
+	types: ReadonlyArray<{ name: string; fields: readonly Field[] }>,
+	warnings: ModelWarning[]
+): void {
+	const byName = new Map(types.map((type) => [type.name, type]));
+	for (const blockType of blockTypes) {
+		for (const field of blockType.fields) {
+			const relation = field.relation;
+			if (!relation || relation.thumbField === null) continue;
+			const target = byName.get(relation.collection);
+			const thumb = target?.fields.find((f) => f.name === relation.thumbField);
+			if (thumb?.type === 'file') continue;
+			warnings.push({
+				code: 'manifest-invalid-key',
+				message: target
+					? `thumbField "${relation.thumbField}" de blockTypes.${blockType.name}.${field.name} no es un campo file de "${relation.collection}"; el selector se muestra sin miniatura.`
+					: `thumbField "${relation.thumbField}" de blockTypes.${blockType.name}.${field.name} no se puede comprobar: la colección "${relation.collection}" no existe en el esquema; el selector se muestra sin miniatura.`,
+				blockType: blockType.name,
+				path: `/blockTypes/${blockType.name}`
+			});
+			relation.thumbField = null;
+		}
+	}
+}
+
+const BLOCK_RELATION_KEYS = ['collection', 'multiple', 'thumbField', 'filter'];
+
+/**
+ * Resuelve `blockTypes.<t>.fields[].relation`. Una forma inválida descarta SOLO esa clave (el campo
+ * sobrevive con el contrato histórico, `vega_media`) con `manifest-invalid-key`; dentro de una
+ * `relation` válida, `multiple`/`thumbField`/`filter` inválidos se descartan cada uno por su cuenta
+ * y `collection` ausente o mal tipada descarta la clave entera. `filter` es todo o nada: un filtro
+ * parcial haría pasar por filtrado lo que no lo está.
+ */
+function resolveBlockRelation(
+	typeName: string,
+	index: number,
+	widget: WidgetId,
+	raw: JsonValue | undefined,
+	warnings: ModelWarning[]
+): ResolvedBlockRelation | null {
+	const base = `/blockTypes/${typeName}/fields/${index}/relation`;
+	const where = `relation del campo ${index} de blockTypes.${typeName}`;
+	if (widget !== 'relation') {
+		warnings.push(
+			manifestInvalidKey(base, `${where} solo tiene sentido con widget "relation"; se ignora.`)
+		);
+		return null;
+	}
+	const obj = asJsonObject(raw ?? null);
+	if (!obj) {
+		warnings.push(manifestInvalidKey(base, `${where} debe ser un objeto; se ignora.`));
+		return null;
+	}
+	for (const key of Object.keys(obj)) {
+		if (!BLOCK_RELATION_KEYS.includes(key)) {
+			warnings.push(
+				manifestInvalidKey(`${base}/${key}`, `${where} no admite la clave "${key}"; se ignora.`)
+			);
+		}
+	}
+	const collection = obj.collection;
+	if (typeof collection !== 'string' || collection.length < 1) {
+		warnings.push(
+			manifestInvalidKey(
+				`${base}/collection`,
+				`${where} debe declarar "collection" como texto no vacío; se ignora toda la clave relation.`
+			)
+		);
+		return null;
+	}
+
+	let multiple = false;
+	if (obj.multiple !== undefined) {
+		if (typeof obj.multiple === 'boolean') {
+			multiple = obj.multiple;
+		} else {
+			warnings.push(
+				manifestInvalidKey(`${base}/multiple`, `multiple de ${where} no es booleano; se usa false.`)
+			);
+		}
+	}
+
+	let thumbField: string | null = null;
+	if (obj.thumbField !== undefined) {
+		if (typeof obj.thumbField === 'string' && obj.thumbField.length >= 1) {
+			thumbField = obj.thumbField;
+		} else {
+			warnings.push(
+				manifestInvalidKey(
+					`${base}/thumbField`,
+					`thumbField de ${where} no es un texto no vacío; se ignora.`
+				)
+			);
+		}
+	}
+
+	let filter: BlockRelationFilter | null = null;
+	if (obj.filter !== undefined) {
+		const parsed = readRelationFilter(obj.filter);
+		if (parsed === undefined) {
+			warnings.push(
+				manifestInvalidKey(
+					`${base}/filter`,
+					`filter de ${where} debe ser un objeto de igualdades campo -> texto, número o booleano; se ignora.`
+				)
+			);
+		} else {
+			filter = parsed;
+		}
+	}
+
+	return { collection, multiple, thumbField, filter };
+}
+
+/** `undefined` = forma inválida; `null` = objeto vacío (sin restricción). */
+function readRelationFilter(raw: JsonValue): BlockRelationFilter | null | undefined {
+	const obj = asJsonObject(raw);
+	if (!obj) return undefined;
+	const filter: BlockRelationFilter = {};
+	for (const [field, value] of Object.entries(obj)) {
+		if (field.length < 1) return undefined;
+		if (typeof value === 'string' || typeof value === 'boolean') {
+			filter[field] = value;
+		} else if (typeof value === 'number' && Number.isFinite(value)) {
+			filter[field] = value;
+		} else {
+			return undefined;
+		}
+	}
+	return Object.keys(filter).length === 0 ? null : filter;
 }

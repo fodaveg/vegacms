@@ -729,3 +729,209 @@ describe('Relation.svelte con destinos normales', () => {
 		expect(mounted.target.textContent).not.toContain(t('form.relation.media.targetMissing'));
 	});
 });
+
+describe('Relation.svelte: orden, filtro de bloque y miniatura', () => {
+	let mounted: MountedRelation | null = null;
+
+	afterEach(async () => {
+		if (mounted) {
+			await unmount(mounted.instance);
+			mounted.target.remove();
+			mounted = null;
+		}
+		vi.restoreAllMocks();
+	});
+
+	const IDS = ['article0000001', 'article0000002', 'article0000003'];
+
+	/** `list` falso que devuelve los artículos de `IDS` tanto en la resolución por ids como en el listado. */
+	function articlesList(extra: Record<string, string> = {}): BackendPort['list'] {
+		return vi.fn(async () =>
+			page(IDS.map((id, i) => record(id, 'articles', { title: `Artículo ${i + 1}`, ...extra })))
+		) as unknown as BackendPort['list'];
+	}
+
+	function chipButtons(target: HTMLElement, kind: 'up' | 'down'): HTMLButtonElement[] {
+		return Array.from(target.querySelectorAll<HTMLButtonElement>(`[data-move="${kind}"]`));
+	}
+
+	test('subir y bajar cambian el orden del valor emitido, y los extremos están deshabilitados', async () => {
+		mounted = mountRelation({
+			field: relationField('articles', { name: 'items', multiple: true }),
+			types: [ARTICLES_TYPE],
+			value: [...IDS],
+			list: articlesList()
+		});
+		await settle();
+
+		const ups = chipButtons(mounted.target, 'up');
+		const downs = chipButtons(mounted.target, 'down');
+		expect(ups).toHaveLength(3);
+		expect(ups[0]!.disabled).toBe(true);
+		expect(downs[2]!.disabled).toBe(true);
+		expect(ups[1]!.disabled).toBe(false);
+		expect(ups[1]!.getAttribute('aria-label')).toBe(
+			t('form.relation.moveUpLabel', { title: 'Artículo 2' })
+		);
+
+		ups[1]!.click();
+		expect(mounted.onChange).toHaveBeenLastCalledWith([IDS[1], IDS[0], IDS[2]]);
+
+		downs[0]!.click();
+		expect(mounted.onChange).toHaveBeenLastCalledWith([IDS[1], IDS[0], IDS[2]]);
+		mounted.props.value = [IDS[1]!, IDS[0]!, IDS[2]!];
+		await settle();
+		chipButtons(mounted.target, 'down')[1]!.click();
+		expect(mounted.onChange).toHaveBeenLastCalledWith([IDS[1], IDS[2], IDS[0]]);
+	});
+
+	test('una relación simple o con un solo elegido no ofrece mover', async () => {
+		mounted = mountRelation({
+			field: relationField('articles'),
+			types: [ARTICLES_TYPE],
+			value: IDS[0]!,
+			list: articlesList()
+		});
+		await settle();
+		expect(mounted.target.querySelector('[data-move]')).toBeNull();
+	});
+
+	test('reordenar también funciona con destino vega_media', async () => {
+		const list = vi.fn(async () =>
+			page([mediaRecord(MEDIA_ID_A, 'a.png'), mediaRecord(MEDIA_ID_B, 'b.png')])
+		) as unknown as BackendPort['list'];
+		mounted = mountRelation({
+			field: relationField('vega_media', { name: 'images', multiple: true }),
+			types: [MEDIA_TYPE],
+			value: [MEDIA_ID_A, MEDIA_ID_B],
+			list
+		});
+		await settle();
+		chipButtons(mounted.target, 'down')[0]!.click();
+		expect(mounted.onChange).toHaveBeenLastCalledWith([MEDIA_ID_B, MEDIA_ID_A]);
+	});
+
+	test('el filtro de bloque llega al listado y a la búsqueda, pero no a los ya elegidos', async () => {
+		const filter = { kind: 'cond', field: 'status', op: 'eq', value: 'published' } as const;
+		const list = articlesList();
+		mounted = mountRelation({
+			field: {
+				...relationField('articles', { name: 'items', multiple: true }),
+				relationPicker: { thumbField: null, filter }
+			},
+			types: [ARTICLES_TYPE],
+			value: [IDS[0]!],
+			list
+		});
+		await settle();
+
+		const input = mounted.target.querySelector<HTMLInputElement>('input[type="search"]')!;
+		input.value = 'art';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await new Promise((resolve) => setTimeout(resolve, 275));
+		await tick();
+
+		expect(list).toHaveBeenCalledWith('articles', {
+			filter: {
+				kind: 'group',
+				combinator: 'and',
+				nodes: [filter, { kind: 'cond', field: 'title', op: 'contains', value: 'art' }]
+			},
+			perPage: 20
+		});
+		// La resolución del elegido se pide por ids, sin el filtro del selector.
+		const byIds = vi
+			.mocked(list)
+			.mock.calls.find(
+				([, query]) =>
+					(query as Query).filter?.kind === 'cond' &&
+					(query as { filter: { field: string } }).filter.field === 'id'
+			);
+		expect(byIds).toBeDefined();
+		expect(JSON.stringify(byIds![1])).not.toContain('published');
+	});
+
+	test('el filtro también se aplica al listado degradado paginado', async () => {
+		const filter = { kind: 'cond', field: 'status', op: 'eq', value: 'published' } as const;
+		const list = vi.fn(async () => page([])) as unknown as BackendPort['list'];
+		mounted = mountRelation({
+			field: { ...relationField('tags'), relationPicker: { thumbField: null, filter } },
+			types: [TAGS_TYPE],
+			list
+		});
+		await settle();
+		expect(list).toHaveBeenCalledWith('tags', { filter, page: 1, perPage: 20 });
+	});
+
+	test('thumbField pinta miniatura de candidatos y elegidos desde el campo file del destino', async () => {
+		const withCover: ResolvedContentType = resolvedType('artworks', 'title', [
+			...ARTICLES_TYPE.schema.fields,
+			{
+				name: 'image',
+				type: 'file',
+				multiple: false,
+				protected: false,
+				thumbs: ['120x120'],
+				required: false,
+				readonly: false,
+				presentable: false,
+				hidden: false,
+				unique: false
+			}
+		]);
+		const fileUrl = vi.fn(
+			(rec: Pick<VegaRecord, 'type' | 'id'>, fieldName: string, file: string) =>
+				`https://files.test/${rec.type}/${rec.id}/${fieldName}/${file}`
+		) as unknown as BackendPort['fileUrl'];
+		const list = vi.fn(async () =>
+			page([record('art00000000001', 'artworks', { title: 'Obra', image: 'obra.png' })])
+		) as unknown as BackendPort['list'];
+		mounted = mountRelation({
+			field: {
+				...relationField('artworks', { name: 'featured', multiple: true }),
+				relationPicker: { thumbField: 'image', filter: null }
+			},
+			types: [withCover],
+			value: ['art00000000001'],
+			list,
+			fileUrl
+		});
+		await settle();
+
+		const imgs = Array.from(
+			mounted.target.querySelectorAll<HTMLImageElement>('img.vega-relation-thumb')
+		);
+		// El elegido ya lleva miniatura; el candidato aparece al buscar.
+		expect(imgs).toHaveLength(1);
+		const input = mounted.target.querySelector<HTMLInputElement>('input[type="search"]')!;
+		input.value = 'Obra';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await new Promise((resolve) => setTimeout(resolve, 275));
+		await tick();
+		expect(mounted.target.querySelectorAll('img.vega-relation-thumb')).toHaveLength(2);
+		expect(candidateButtons(mounted.target)[0]?.textContent).toBe('Obra');
+		expect(imgs[0]!.getAttribute('src')).toBe(
+			'https://files.test/artworks/art00000000001/image/obra.png'
+		);
+		expect(fileUrl).toHaveBeenCalledWith(
+			{ type: 'artworks', id: 'art00000000001' },
+			'image',
+			'obra.png',
+			{ thumb: { width: 120, height: 120, fit: 'crop' } }
+		);
+	});
+
+	test('un thumbField que no es file en el destino se ignora sin romper', async () => {
+		mounted = mountRelation({
+			field: {
+				...relationField('articles', { name: 'items', multiple: true }),
+				relationPicker: { thumbField: 'title', filter: null }
+			},
+			types: [ARTICLES_TYPE],
+			value: [IDS[0]!],
+			list: articlesList()
+		});
+		await settle();
+		expect(mounted.target.querySelector('img.vega-relation-thumb')).toBeNull();
+	});
+});

@@ -118,7 +118,15 @@ const BLOCK_TYPE_FIELD_ALLOWED_KEYS = [
 	'source',
 	'default',
 	'required',
-	'options'
+	'options',
+	'relation'
+] as const;
+/** Claves de `blockTypes.<t>.fields[].relation`. */
+const BLOCK_FIELD_RELATION_ALLOWED_KEYS = [
+	'collection',
+	'multiple',
+	'thumbField',
+	'filter'
 ] as const;
 /** Patrón de la clave de un tipo de bloque: viaja al nombre de componente Astro y al documento de
  *  discovery del sitio, de ahí lo estricto (mismo patrón que `BLOCK_TYPE_NAME_PATTERN` de
@@ -1191,6 +1199,73 @@ function validateBlockTypeField(
 		checkStringArray(value.options, `${base}/options`, { minItemLength: 1 }, errors, label);
 		if (Array.isArray(value.options) && value.options.length < 1) {
 			fail(errors, `${base}/options`, `${label} debe tener al menos un elemento.`);
+		}
+	}
+	if ('relation' in value) {
+		validateBlockFieldRelation(typeName, index, value.widget, value.relation, errors);
+	}
+}
+
+function validateBlockFieldRelation(
+	typeName: string,
+	index: number,
+	widget: JsonValue | undefined,
+	value: JsonValue,
+	errors: ManifestValidationErrorEntry[]
+): void {
+	const base = `/blockTypes/${typeName}/fields/${index}/relation`;
+	const where = `relation del campo ${index} de blockTypes.${typeName}`;
+	if (widget !== 'relation') {
+		fail(errors, base, `${where} solo se admite con widget "relation".`);
+	}
+	if (!isPlainObject(value)) {
+		fail(errors, base, `${where} debe ser un objeto.`);
+		return;
+	}
+	checkAdditionalProperties(value, BLOCK_FIELD_RELATION_ALLOWED_KEYS, base, errors);
+	if (!('collection' in value)) {
+		fail(errors, `${base}/collection`, `${where} debe declarar "collection".`);
+	} else {
+		checkString(
+			value.collection,
+			`${base}/collection`,
+			1,
+			Infinity,
+			errors,
+			`collection de ${where}`
+		);
+	}
+	if ('multiple' in value) {
+		checkBoolean(value.multiple, `${base}/multiple`, errors, `multiple de ${where}`);
+	}
+	if ('thumbField' in value) {
+		checkString(
+			value.thumbField,
+			`${base}/thumbField`,
+			1,
+			Infinity,
+			errors,
+			`thumbField de ${where}`
+		);
+	}
+	if ('filter' in value) {
+		const filter = value.filter;
+		if (!isPlainObject(filter)) {
+			fail(errors, `${base}/filter`, `filter de ${where} debe ser un objeto.`);
+		} else {
+			for (const [field, scalar] of Object.entries(filter)) {
+				if (
+					typeof scalar !== 'string' &&
+					typeof scalar !== 'number' &&
+					typeof scalar !== 'boolean'
+				) {
+					fail(
+						errors,
+						`${base}/filter/${field}`,
+						`filter.${field} de ${where} debe ser un texto, un número o un booleano.`
+					);
+				}
+			}
 		}
 	}
 }

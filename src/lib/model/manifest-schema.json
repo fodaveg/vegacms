@@ -287,6 +287,28 @@
 									"description": "Valor inicial aditivo para campos nuevos. Puede ser cualquier valor JSON."
 								},
 								"required": { "type": "boolean" },
+								"relation": {
+									"description": "Solo con widget relation (source record). Destino de la relación: cualquier colección, no solo vega_media. Ausente = contrato histórico (vega_media; múltiple si el campo se llama images).",
+									"type": "object",
+									"additionalProperties": false,
+									"required": ["collection"],
+									"properties": {
+										"collection": { "type": "string", "minLength": 1 },
+										"multiple": { "type": "boolean", "default": false },
+										"thumbField": {
+											"description": "Campo file de la colección destino del que sale la miniatura del selector y de los elegidos.",
+											"type": "string",
+											"minLength": 1
+										},
+										"filter": {
+											"description": "Igualdades campo -> valor escalar unidas con AND; se aplican al listado y la búsqueda del selector, no a los ya elegidos.",
+											"type": "object",
+											"additionalProperties": {
+												"type": ["string", "number", "boolean"]
+											}
+										}
+									}
+								},
 								"options": {
 									"description": "Solo tiene efecto con widget select/chips.",
 									"type": "array",
@@ -303,6 +325,13 @@
 									"then": {
 										"properties": { "source": { "const": "record" } },
 										"required": ["source"]
+									}
+								},
+								{
+									"if": { "required": ["relation"] },
+									"then": {
+										"properties": { "widget": { "const": "relation" } },
+										"required": ["widget"]
 									}
 								}
 							]

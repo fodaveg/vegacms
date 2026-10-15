@@ -23,6 +23,14 @@
 	 *   tocan el mismo puerto, una sola "última llamada" tiene sentido).
 	 * - **Debounce (~250ms)**: solo aplica al buscador (modo no degradado); el listado degradado
 	 *   pagina al instante (clic en Anterior/Siguiente, sin tecleo de por medio).
+	 * - **Orden (múltiple)**: los elegidos se reordenan con «Subir»/«Bajar» (botones, accesibles por
+	 *   teclado, deshabilitados en los extremos) para TODOS los destinos; el valor es el array de ids
+	 *   en ese orden y reordenar lo marca sucio (`dirty.ts` compara arrays posición a posición).
+	 * - **Relación de bloque** (`field.relationPicker`, lo rellena `BlockEditor`): `filter` (AST ya
+	 *   compilado) se une con AND a la query del listado y de la búsqueda, pero NO a la resolución
+	 *   de los ya elegidos (uno que deja de cumplir el filtro se sigue mostrando). `thumbField`
+	 *   (campo `file` del destino) pinta miniatura en candidatos y elegidos; si el destino no tiene
+	 *   ese campo `file`, se ignora sin miniatura.
 	 * - **`maxSelect` (múltiple)**: al alcanzarlo, los candidatos NO seleccionados se deshabilitan
 	 *   (`toggleRelationSelection`, afordancia UX — la validación dura ya la hace F5-c/backend).
 	 */
@@ -53,6 +61,8 @@
 		type MediaAssetType
 	} from '$lib/media/media-card';
 	import { resolveMediaGridSrc } from '$lib/media/media-thumb';
+	import { selectThumbSpec } from '$lib/backend/thumb-select';
+	import type { FileRef } from '$lib/backend/types';
 	import {
 		buildDegradedListQuery,
 		buildTitleSearchQuery,
@@ -60,9 +70,11 @@
 		chunkIds,
 		fetchRecordsByIds,
 		idsNeedingTitles,
+		moveRelationItem,
 		RELATION_SEARCH_PER_PAGE,
 		RelationSearchSequencer,
 		supportsTitleSearch,
+		thumbRefOf,
 		titleOf,
 		toggleRelationSelection,
 		withCachedTitle,
@@ -102,6 +114,15 @@
 	// el modelo. El camino genérico conserva su degradación; media explica ese estado por separado.
 	const degraded = $derived(isMediaTarget || (target ? !supportsTitleSearch(target) : true));
 	const titleField = $derived(target?.titleField ?? null);
+	// Relación de bloque (ver cabecera): filtro del selector y miniatura. Ambos ausentes fuera de ella.
+	const baseFilter = $derived(field.relationPicker?.filter ?? null);
+	const thumbSchema = $derived.by(() => {
+		const name = field.relationPicker?.thumbField;
+		if (!name || isMediaTarget || !target) return null;
+		const candidate = target.schema.fields.find((f) => f.name === name);
+		return candidate?.type === 'file' ? candidate : null;
+	});
+	const thumbField = $derived(thumbSchema?.name ?? null);
 	const offerCreation = $derived(!inert && creationAllowed && canCreateRelationTarget(target));
 
 	const selectedIds = $derived<RecordId[]>(
@@ -193,9 +214,12 @@
 		const seq = sequencer.next();
 		searching = true;
 		try {
-			const page = await ctx.port.list(target.name, buildTitleSearchQuery(titleField, term));
+			const page = await ctx.port.list(
+				target.name,
+				buildTitleSearchQuery(titleField, term, baseFilter)
+			);
 			if (destroyed || !sequencer.isLatest(seq)) return; // stale: se descarta sin pintar
-			candidates = candidatesFromPage(page, titleField);
+			candidates = candidatesFromPage(page, titleField, thumbField);
 		} catch (err) {
 			if (destroyed || !sequencer.isLatest(seq)) return;
 			candidates = [];
@@ -261,11 +285,11 @@
 			degradedLoading = true;
 		}
 		try {
-			const result = await ctx.port.list(target.name, buildDegradedListQuery(page));
+			const result = await ctx.port.list(target.name, buildDegradedListQuery(page, baseFilter));
 			if (destroyed || !sequencer.isLatest(seq)) return;
 			degradedItems = mediaMode
 				? result.items.map(toMediaCandidate)
-				: candidatesFromPage(result, null);
+				: candidatesFromPage(result, null, thumbField);
 			degradedPage = result.page;
 			degradedTotalPages = result.totalPages;
 			degradedTotalItems = result.totalItems;
@@ -311,7 +335,10 @@
 		// por OTRO lote resolviendo) volvería a ver estos ids como "sin caché, sin pending".
 		for (const id of ids) pendingTitleFetches.add(id);
 		// Destino media: `file`, `title` y `alt` salen del registro entero; el resto, solo el título.
-		const projection = isMediaTarget || titleField === null ? undefined : [titleField];
+		const projectedFields = [titleField, thumbField].filter(
+			(name): name is string => name !== null
+		);
+		const projection = isMediaTarget || projectedFields.length === 0 ? undefined : projectedFields;
 		await Promise.all(
 			chunkIds(ids).map(async (chunk) => {
 				try {
@@ -330,7 +357,8 @@
 								status: 'ok',
 								title: isMediaTarget
 									? mediaDisplayName(toMediaItemView(record)) || record.id
-									: titleOf(record, titleField)
+									: titleOf(record, titleField),
+								...(thumbField !== null ? { thumbRef: thumbRefOf(record, thumbField) } : {})
 							});
 						} else if (notFound.has(id)) {
 							next = withCachedTitle(next, id, { status: 'not-found' });
@@ -373,7 +401,11 @@
 		} else {
 			onChange(selectedIds.includes(id) ? null : id);
 		}
-		titleCache = withCachedTitle(titleCache, id, { status: 'ok', title });
+		titleCache = withCachedTitle(titleCache, id, {
+			status: 'ok',
+			title,
+			...(candidate.thumbRef !== undefined ? { thumbRef: candidate.thumbRef } : {})
+		});
 	}
 
 	/** Captura el disparador; el padre sigue montado y no se guarda al abrir. */
@@ -406,7 +438,8 @@
 			return false;
 		titleCache = withCachedTitle(titleCache, record.id, {
 			status: 'ok',
-			title: titleOf(record, titleField)
+			title: titleOf(record, titleField),
+			...(thumbField !== null ? { thumbRef: thumbRefOf(record, thumbField) } : {})
 		});
 		onChange(multiple ? selection : record.id);
 		searchTerm = '';
@@ -427,6 +460,39 @@
 	function removeSelected(id: RecordId): void {
 		if (inert) return;
 		onChange(multiple ? selectedIds.filter((x) => x !== id) : null);
+	}
+
+	/** URL de la miniatura de `ref` (campo `thumbField` del destino) o `null` sin miniatura posible. */
+	function thumbSrcFor(id: RecordId, ref: FileRef | null | undefined): string | null {
+		if (!target || !thumbSchema || !ref) return null;
+		try {
+			const opts = ctx.port.capabilities.thumbs
+				? { thumb: selectThumbSpec({ width: 120, height: 120, fit: 'crop' }, thumbSchema.thumbs) }
+				: undefined;
+			return ctx.port.fileUrl({ type: target.name, id }, thumbSchema.name, ref, opts);
+		} catch {
+			// Una FileRef huérfana no puede tumbar el widget: se pinta sin miniatura.
+			return null;
+		}
+	}
+
+	/** Mueve el elegido `id` una posición y devuelve el foco al botón de esa dirección (o al
+	 *  opuesto si se acaba de topar con el extremo): el nodo se reordena en el DOM y, sin esto, el
+	 *  teclado perdería el sitio. */
+	function moveSelected(id: RecordId, delta: -1 | 1): void {
+		if (inert || !multiple) return;
+		const index = selectedIds.indexOf(id);
+		const next = moveRelationItem(selectedIds, index, delta);
+		if (next === selectedIds) return;
+		onChange(next);
+		const atEdge = delta === -1 ? index - 1 === 0 : index + 1 === selectedIds.length - 1;
+		const wanted = atEdge ? (delta === -1 ? 'down' : 'up') : delta === -1 ? 'up' : 'down';
+		void tick().then(() => {
+			const chip = Array.from(
+				relationEl?.querySelectorAll<HTMLElement>('[data-created-id]') ?? []
+			).find((el) => el.dataset.createdId === id);
+			chip?.querySelector<HTMLElement>(`[data-move="${wanted}"]`)?.focus();
+		});
 	}
 
 	/** Título a pintar para `id`, a partir de la entrada YA leída de `titleCache` (evita indexar la
@@ -450,10 +516,37 @@
 	<ul class="vega-relation-selected">
 		{#each selectedIds as id (id)}
 			{@const cached = titleCache[id]}
+			{@const chipThumb = thumbSrcFor(id, cached?.status === 'ok' ? cached.thumbRef : null)}
+			{@const position = selectedIds.indexOf(id)}
 			<li class="vega-relation-chip" tabindex="-1" data-created-id={id}>
+				{#if chipThumb}
+					{@render thumb(chipThumb)}
+				{/if}
 				<span>{titleFor(cached, id)}</span>
 				{#if cached?.status === 'not-found'}
 					<span class="vega-relation-not-found">{ctx.t('form.relation.notFound')}</span>
+				{/if}
+				{#if !inert && multiple && selectedIds.length > 1}
+					<button
+						type="button"
+						class="vega-relation-move"
+						data-move="up"
+						disabled={position === 0}
+						onclick={() => moveSelected(id, -1)}
+						aria-label={ctx.t('form.relation.moveUpLabel', { title: titleFor(cached, id) })}
+					>
+						{ctx.t('form.relation.moveUp')}
+					</button>
+					<button
+						type="button"
+						class="vega-relation-move"
+						data-move="down"
+						disabled={position === selectedIds.length - 1}
+						onclick={() => moveSelected(id, 1)}
+						aria-label={ctx.t('form.relation.moveDownLabel', { title: titleFor(cached, id) })}
+					>
+						{ctx.t('form.relation.moveDown')}
+					</button>
 				{/if}
 				{#if !inert}
 					<button
@@ -538,7 +631,9 @@
 								disabled={inert || (limitReached && !isSelected)}
 								onclick={() => selectCandidate(candidate)}
 							>
-								{candidate.title}
+								{#if thumbSrcFor(candidate.id, candidate.thumbRef)}{@render thumb(
+										thumbSrcFor(candidate.id, candidate.thumbRef)!
+									)}{/if}{candidate.title}
 							</button>
 						</li>
 					{/each}
@@ -599,7 +694,9 @@
 							disabled={inert || (limitReached && !isSelected)}
 							onclick={() => selectCandidate(candidate)}
 						>
-							{candidate.title}
+							{#if thumbSrcFor(candidate.id, candidate.thumbRef)}{@render thumb(
+									thumbSrcFor(candidate.id, candidate.thumbRef)!
+								)}{/if}{candidate.title}
 						</button>
 					</li>
 				{/each}
@@ -637,7 +734,18 @@
 	{/if}
 </div>
 
+{#snippet thumb(src: string)}
+	<img class="vega-relation-thumb" {src} alt="" loading="lazy" />
+{/snippet}
+
 <style>
+	.vega-relation-thumb {
+		width: 1.75rem;
+		height: 1.75rem;
+		flex: none;
+		border-radius: 0.25rem;
+		object-fit: cover;
+	}
 	.vega-relation-create {
 		align-self: flex-start;
 		min-height: 44px;
@@ -697,7 +805,8 @@
 		opacity: 0.85;
 	}
 
-	.vega-relation-remove {
+	.vega-relation-remove,
+	.vega-relation-move {
 		border: none;
 		background: transparent;
 		color: inherit;
@@ -706,6 +815,12 @@
 		text-decoration: underline;
 		cursor: pointer;
 		padding: 0;
+	}
+
+	.vega-relation-move:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+		text-decoration: none;
 	}
 
 	.vega-relation-empty {

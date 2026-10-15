@@ -3,13 +3,17 @@
  * consume el generador de migraciones. No toca el puerto ni decide CUÁNDO proponer/aplicar una
  * migración: ese flujo de producto queda deliberadamente fuera de este módulo.
  *
- * El contrato v1 ya fijado por el starter Astro es estrecho: los campos `relation` de bloque
- * enlazan `vega_media`; `image` es simple e `images` múltiple. No se infiere una colección por
- * tipo de bloque ni se crea `hero_image`: el nombre lógico es la columna física compartida por
- * todos los tipos. El resto de widgets `record` compila al tipo físico equivalente.
+ * Los campos `relation` de bloque tienen dos formas. SIN clave `relation` en el manifiesto rige el
+ * contrato v1 ya fijado por el starter Astro: enlazan `vega_media`; `image` es simple e `images`
+ * múltiple. CON `relation: { collection, multiple }` manda lo declarado: la columna apunta a esa
+ * colección (cualquiera) con esa cardinalidad. `thumbField`/`filter` del manifiesto afectan solo al
+ * selector y NO participan en el esquema físico ni en su firma. En ambos casos `cascadeDelete` es
+ * `false`: borrar un destino nunca arrastra bloques. No se infiere una colección por tipo de bloque
+ * ni se crea `hero_image`: el nombre lógico es la columna física compartida por todos los tipos. El
+ * resto de widgets `record` compila al tipo físico equivalente.
  *
  * `generateBlockSchemaMigration` entrega TODOS los specs enriquecidos a
- * `generateSchemaMigration`; así las nuevas aristas `blocks -> vega_media` y la estructural
+ * `generateSchemaMigration`; así las nuevas aristas `blocks -> <destino de cada relation>` y la estructural
  * `blocks -> pages` pasan por `topologicallySortCollectionSpecs` en vez de abrir un segundo
  * generador o reproducir su ordenación aquí.
  */
@@ -108,8 +112,8 @@ function blockFieldToCollectionFieldSpec(field: ResolvedBlockField): CollectionF
 			return {
 				...base,
 				type: 'relation',
-				target: MEDIA_COLLECTION,
-				multiple: field.name === MULTIPLE_MEDIA_FIELD,
+				target: field.relation?.collection ?? MEDIA_COLLECTION,
+				multiple: field.relation?.multiple ?? field.name === MULTIPLE_MEDIA_FIELD,
 				cascadeDelete: false
 			};
 		case 'file':
