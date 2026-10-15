@@ -37,7 +37,6 @@
 	import { getVegaContext } from '$lib/app-context';
 	import { VegaError } from '$lib/backend/errors';
 	import Icon from '$lib/icons/Icon.svelte';
-	import RichtextLinkDialog from '$lib/form/widgets/RichtextLinkDialog.svelte';
 	import RichtextImageDialog from '$lib/form/widgets/RichtextImageDialog.svelte';
 	import { richtextImageFromPick } from '$lib/form/widgets/richtext-image';
 
@@ -111,6 +110,11 @@
 	// Diálogos de enlace e imagen (ver cabecera): `null` = cerrado. Guardan solo lo que el diálogo
 	// necesita para pintarse, nunca el editor.
 	let linkDialog = $state<{ currentHref: string | null } | null>(null);
+	// El diálogo de enlace pesa (buscador de páginas del sitio) y solo se usa al pulsar el botón:
+	// se importa bajo demanda en vez de viajar en el chunk de toda pantalla con un registro
+	// (presupuesto de bundle de la pantalla más cara). El `import()` se lanza al abrir.
+	type LinkDialogComponent = typeof import('$lib/form/widgets/RichtextLinkDialog.svelte').default;
+	let LinkDialog = $state.raw<LinkDialogComponent | null>(null);
 	let imageDialog = $state<{ src: string; fileName: string } | null>(null);
 
 	/** Cierra lo que haya abierto y devuelve el foco al editor. Tras `flushed()`: el diálogo ya se
@@ -129,6 +133,20 @@
 			const href = ed.isActive('link') ? ed.getAttributes('link').href : null;
 			linkDialog = { currentHref: typeof href === 'string' ? href : null };
 		});
+		if (LinkDialog === null) {
+			void import('$lib/form/widgets/RichtextLinkDialog.svelte').then(
+				(module) => {
+					LinkDialog = module.default;
+				},
+				(error: unknown) => {
+					linkDialog = null;
+					ctx.feedback.reportError(
+						error instanceof VegaError ? error : VegaError.backend('Error inesperado', error),
+						{ action: 'richtext:loadLinkDialog' }
+					);
+				}
+			);
+		}
 	}
 
 	/**
@@ -374,8 +392,8 @@
 	{/if}
 </div>
 
-{#if linkDialog}
-	<RichtextLinkDialog
+{#if linkDialog && LinkDialog}
+	<LinkDialog
 		currentHref={linkDialog.currentHref}
 		onApply={applyLink}
 		onRemove={removeLink}
