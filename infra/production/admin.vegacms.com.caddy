@@ -1,4 +1,12 @@
 admin.vegacms.com {
+	# Logger con nombre y SIN salida: no hay log de acceso de este host. Solo sirve para que sus
+	# errores (502, timeout…) salgan como `http.log.error.vega_admin` y los recoja el bloque global
+	# `log admins_vega_errores` de /srv/edge/Caddyfile (repo edge-infra), que quita la query
+	# (`?token=` de las descargas de copias). Las dos piezas van juntas.
+	log vega_admin {
+		output discard
+	}
+
 	encode zstd gzip
 
 	request_body {
@@ -9,7 +17,7 @@ admin.vegacms.com {
 	@pocketbasePanel path /_ /_/*
 	respond @pocketbasePanel 404
 
-	# El encoder de los logs se configura en el sink existente del borde; ver README.
+	# La query de los errores se quita en el borde: ver el logger `vega_admin` de arriba y el README.
 	reverse_proxy vega-pb:8090 {
 		header_up X-Real-IP {remote_host}
 		transport http {
