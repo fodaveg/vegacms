@@ -10,6 +10,9 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { resolveDisplayBackendUrl } from './backend';
 import { clearBackendOverride, writeBackendOverride } from './backend-override';
 
+const paths = vi.hoisted(() => ({ base: '' }));
+vi.mock('$app/paths', () => paths);
+
 /** Sustituye `global.fetch` por un mock que responde `data` como `/vega.config.json`, o un 404 si
  *  `data` es `null` (ausencia del fichero, ver `fetchVegaConfig`). */
 function mockConfigResponse(data: unknown | null): void {
@@ -20,6 +23,7 @@ function mockConfigResponse(data: unknown | null): void {
 }
 
 beforeEach(() => {
+	paths.base = '';
 	localStorage.clear();
 	delete window.__VEGA_ADAPTER__;
 	delete window.__VEGA_PREVIEW_API_URL__;
@@ -34,6 +38,19 @@ afterEach(() => {
 });
 
 describe('resolveDisplayBackendUrl', () => {
+	test.each(['', '/admin'])('lee la config bajo la base %j', async (base) => {
+		paths.base = base;
+		const configPath = `${base}/vega.config.json`;
+		global.fetch = vi.fn(async (input: RequestInfo | URL) =>
+			String(input) === configPath
+				? Response.json({ backendUrl: 'https://pb-config.example.com' })
+				: new Response(null, { status: 404 })
+		) as typeof fetch;
+
+		expect(await resolveDisplayBackendUrl()).toBe('https://pb-config.example.com');
+		expect(global.fetch).toHaveBeenCalledWith(configPath, { cache: 'no-store' });
+	});
+
 	test('adaptador memory (window.__VEGA_ADAPTER__) → null, ni siquiera lee vega.config.json', async () => {
 		window.__VEGA_ADAPTER__ = 'memory';
 		const fetchSpy = vi.fn();

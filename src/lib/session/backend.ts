@@ -112,6 +112,7 @@
  * hecho desde el panel de PocketBase — el aviso cae entonces a «Se guardó otra versión…».
  */
 
+import { base } from '$app/paths';
 import type { AuthChangeReason, BackendPort, RecordInput, Session } from '$lib/backend';
 import { VegaError } from '$lib/backend';
 import { createMemoryBackend } from '$lib/backend/adapters/memory';
@@ -435,11 +436,12 @@ export async function resolveDisplayBackendUrl(): Promise<string | null> {
 
 /**
  * Lee `static/vega.config.json` en runtime (§3.7, D-P3.5-a): fetch best-effort, cero build.
+ * Respeta la base de la SPA también cuando se sirve bajo una subruta.
  * Ausencia (404), fallo de red o forma inesperada ⇒ `null` (same-origin), NUNCA bloquea ni lanza.
  */
 async function fetchVegaConfig(): Promise<VegaConfig | null> {
 	try {
-		const res = await fetch('/vega.config.json', { cache: 'no-store' });
+		const res = await fetch(`${base}/vega.config.json`, { cache: 'no-store' });
 		if (!res.ok) return null;
 		const data: unknown = await res.json();
 		return typeof data === 'object' && data !== null ? (data as VegaConfig) : null;
