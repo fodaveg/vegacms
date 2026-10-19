@@ -1674,10 +1674,19 @@ test.describe('UX04: objetivos del menú con puntero táctil', () => {
 			await page.setViewportSize({ width, height: 900 });
 			for (const zoom of ['50', '75', '100']) {
 				await page.getByRole('combobox', { name: 'Zoom', exact: true }).selectOption(zoom);
-				await page.locator('[data-vega-tree-row="seccion_1"]').click();
+				// En 901px el árbol vive en un cajón: seleccionar por el sitio recorre el mismo
+				// protocolo sin depender de una fila oculta por el breakpoint.
+				const frame = page
+					.frames()
+					.find((frame) => frame.url().includes('vega-visual-site.example/preview'))!;
+				await frame
+					.locator('[data-vega-block-id="seccion_1"]')
+					.click({ position: { x: 16, y: 16 } });
+				await expect(page.locator('.vega-visual-overlay-insert:enabled')).toHaveCount(4);
 				const targets = page.locator(
 					'.vega-visual-overlay-toolbar button:enabled, .vega-visual-overlay-insert:enabled'
 				);
+				await expect(targets).toHaveCount(8);
 				const count = await targets.count();
 				const toolbarEnabled = await page
 					.locator('.vega-visual-overlay-toolbar button:enabled')
@@ -1734,13 +1743,17 @@ test.describe('UX04: objetivos del menú con puntero táctil', () => {
 						).toBe(false);
 					}
 				await page.locator('.vega-visual-overlay-insert').nth(1).click();
-				for (const item of await page.getByRole('menuitem').all()) {
+				const menu = page.getByRole('menu');
+				await expect(menu).toBeVisible();
+				await expect(menu.getByRole('menuitem')).toHaveCount(3);
+				for (const item of await menu.getByRole('menuitem').all()) {
 					const box = (await item.boundingBox())!;
 					expect(box.height).toBeGreaterThanOrEqual(43.99);
 					expect(box.width).toBeGreaterThanOrEqual(43.99);
 					evidence.push({ width, zoom, menu: await item.textContent(), box });
 				}
 				await page.keyboard.press('Escape');
+				await expect(menu).toHaveCount(0);
 			}
 		}
 		await page.setViewportSize({ width: 390, height: 844 });
