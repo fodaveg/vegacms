@@ -218,7 +218,7 @@
 
 <svelte:window onclick={handleWindowClick} onkeydown={handleWindowKeydown} />
 
-<header class="vega-topbar">
+<header class="vega-topbar" class:vega-topbar--build={Boolean(ctx.port.buildApiUrl)}>
 	<button
 		type="button"
 		class="vega-topbar-menu"
@@ -252,7 +252,9 @@
 	<div class="vega-topbar-actions">
 		<!-- Ausente por completo (sin render, ni un botón) si el proyecto no tiene publicación
 		     conectada (`ctx.port.buildApiUrl`) — ver la cabecera de `PublishButton.svelte`. -->
-		<PublishButton />
+		{#if ctx.port.buildApiUrl}
+			<div class="vega-topbar-publication"><PublishButton /></div>
+		{/if}
 		<ConnectionStatus />
 		<button
 			type="button"
@@ -360,6 +362,13 @@
 	   `--sheen` a un degradado acento→acento-texto y `--brand-edge-opacity` a 0.35, así que nunca
 	   desaparece del todo, solo pierde intensidad. `--sheen` = trazo/resalte (nunca relleno, ver
 	   `--accent-fill` del botón primario), coherente con la barra de fila activa de `RecordTable`. */
+	.vega-topbar--build {
+		box-sizing: border-box;
+		height: auto;
+		min-height: var(--topbar-h);
+		padding-block: 0.35rem;
+	}
+
 	.vega-topbar::after {
 		content: '';
 		position: absolute;
@@ -402,7 +411,7 @@
 	}
 
 	.vega-topbar-site:focus-visible {
-		outline: 2px solid var(--ring);
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
 
@@ -455,6 +464,15 @@
 		   TRES márgenes en vez de dos). */
 	}
 
+	.vega-topbar--build .vega-topbar-actions {
+		min-width: 0;
+		flex-shrink: 1;
+	}
+
+	.vega-topbar-publication {
+		min-width: 0;
+	}
+
 	.vega-topbar-avatar {
 		width: 28px;
 		height: 28px;
@@ -492,12 +510,13 @@
 
 	.vega-topbar-user-trigger:hover,
 	.vega-topbar-user-trigger[aria-expanded='true'] {
+		color: var(--ink);
 		background: var(--active);
 		border-color: var(--line);
 	}
 
 	.vega-topbar-user-trigger:focus-visible {
-		outline: 2px solid var(--accent);
+		outline: 2px solid var(--ink);
 		outline-offset: 1px;
 	}
 
@@ -587,7 +606,7 @@
 
 	.vega-topbar-user-menu [role='menuitemradio']:focus-visible,
 	.vega-topbar-user-menu a:focus-visible {
-		outline: 2px solid var(--ring);
+		outline: 2px solid var(--ink);
 		outline-offset: -2px;
 	}
 
@@ -598,6 +617,13 @@
 
 	/* Hueco fijo de la marca (16 px, el tamaño del icono de «Ajustes»): los rótulos quedan
 	   alineados esté o no marcada la opción. */
+	.vega-topbar-user-trigger:hover :global(svg),
+	.vega-topbar-user-trigger[aria-expanded='true'] :global(svg),
+	.vega-topbar-user-menu-item:hover .vega-topbar-user-menu-check,
+	.vega-topbar-user-menu-item:focus-visible .vega-topbar-user-menu-check {
+		color: var(--ink);
+	}
+
 	.vega-topbar-user-menu-check {
 		display: inline-flex;
 		width: 16px;
@@ -651,6 +677,24 @@
 	   (§4.2): topbar compacta a íconos, el hamburguesa aparece. CSS `@media` no admite `var()`, así
 	   que el valor se replica; si P7 lo cambia, cambiarlo EN LOS TRES ficheros. */
 	@media (max-width: 768px) {
+		.vega-topbar--build {
+			display: grid;
+			grid-template-columns: 44px minmax(0, 1fr) auto auto auto;
+			height: auto;
+			min-height: var(--topbar-h);
+			gap: 0.35rem;
+			padding-block: 0.35rem;
+		}
+
+		.vega-topbar--build .vega-topbar-actions {
+			display: contents;
+		}
+
+		.vega-topbar-publication {
+			grid-column: 1 / -1;
+			grid-row: 2;
+		}
+
 		.vega-topbar-menu {
 			display: flex;
 		}

@@ -84,18 +84,35 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// ————— Publish ("publication" batch, phase A): `PublishButton.svelte` —————
 	// Absent entirely (see the component header) when the connected project didn't declare
 	// `build` in its discovery — these keys only render when the feature actually exists.
-	'topbar.publish.loading': 'Checking publish status…',
-	'topbar.publish.unavailableDenied': 'Publishing unavailable: your account has no permission',
-	'topbar.publish.unavailableOffline': 'Publishing unavailable: the server cannot be reached',
-	'topbar.publish.running': 'Publishing…',
-	'topbar.publish.failed': 'Retry publish',
-	'topbar.publish.noChanges': 'No changes',
-	'topbar.publish.ok': 'Site up to date',
-	'topbar.publish.ready': 'Publish',
+	'topbar.publish.loading': 'Checking status…',
+	'topbar.publish.unavailableDenied': 'Your account has no permission to update',
+	'topbar.publish.unavailableOffline': 'Current status could not be checked',
+	'topbar.publish.running': 'Site update in progress',
+	'topbar.publish.failed': 'The site update failed',
+	'topbar.publish.noChanges': 'No later saved changes were detected',
+	'topbar.publish.ok': 'Latest site update completed',
+	'topbar.publish.ready': 'Update site',
 	'topbar.publish.viewLog': 'View log',
-	'topbar.publish.triggerError': 'Could not start the publish.',
-	'topbar.publish.lastPublished': 'Last published: {date}',
-	'topbar.publish.again': 'Publish again',
+	'topbar.publish.triggerError': 'The request could not be confirmed',
+	'topbar.publish.lastPublished': 'Last known success: {date}',
+	'topbar.publish.again': 'Update again',
+	'topbar.publish.requesting': 'Requesting update…',
+	'topbar.publish.accepted': 'Request accepted · waiting for status',
+	'topbar.publish.uncertain': 'The request outcome is unconfirmed',
+	'topbar.publish.check': 'Check status',
+	'topbar.publish.checking': 'Checking status…',
+	'topbar.publish.details': 'Site status',
+	'topbar.publish.ambiguousRunning': 'Request unconfirmed · site update in progress',
+	'topbar.publish.scope':
+		'Updates the site with saved data. It does not save local changes or change page status.',
+	'topbar.publish.unknownChanges': 'Pending changes could not be determined',
+	'topbar.publish.changes': 'Later saved changes were detected',
+	'topbar.publish.history': 'Last known result: {result}',
+	'topbar.publish.idle': 'No site update observed',
+	'topbar.publish.retryUncertain':
+		'The previous request outcome is still unconfirmed. Updating again sends another request.',
+	'topbar.publish.resultScope':
+		'The latest result does not confirm that all changes or this page are visible.',
 
 	// ————— Login / session —————
 	'login.title': 'Sign in to Vega',
@@ -314,7 +331,18 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// ————— Editor sticky bar (redesign C2, Part R7, `.edit-top` mockup) —————
 	'editor.new': 'new',
 	'editor.dirty': 'unsaved',
-	'editor.savedAt': 'last saved {time}',
+	'editor.publicationPartial':
+		'Saved to the server. The page status change could not be confirmed.',
+	'editor.localChanges': 'Unsaved changes on this screen',
+	'editor.noLocalChanges': 'No local changes',
+	'editor.savedOnServer': 'Saved to the server',
+	'editor.pageState': 'Page',
+	'editor.publicationScope.label': 'Saving and visibility',
+	'editor.publicationScope.build':
+		'Saving changes the data. Page status determines whether it can be public; updating the site uses the saved data.',
+	'editor.publicationScope.site':
+		'Saving changes the data and may change an already published page. Visibility depends on the site.',
+	'editor.savedAt': 'Last saved {time}',
 	'editor.previewLink': 'View on site',
 	'editor.previewDisabledTitle': 'The draft has no public URL yet',
 
@@ -435,7 +463,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.review.scrollLabel': 'Review details before publishing',
 	'editor.visual.review.scrollMore': 'Scroll to see more',
 	'editor.visual.status.success': '“{name}” is now “{label}”.',
-	'editor.visual.status.success.rebuild': 'It will show on the site after the next publish.',
+	'editor.visual.status.success.rebuild': 'The site uses saved data after it is updated.',
 	'editor.visual.frameTitle': 'The site page, inside the visual editor',
 	'editor.visual.connecting': 'Connecting to the site…',
 	'editor.visual.connected.many': 'Connected to the site: {count} blocks on the page.',

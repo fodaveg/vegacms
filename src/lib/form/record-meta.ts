@@ -1,7 +1,7 @@
 /**
  * Metadatos de PROCEDENCIA de un registro (mockup `aquelarre-detalle-post.html`, tarjeta
- * "Registro" del aside: `id` / Creado / Actualizado) más el "último guardado" de la barra
- * pegajosa. Módulo PURO (sin Svelte, sin el puerto): solo lee `type.fields` + el `baseline` del
+ * "Registro" del aside: `id` / Creado / Actualizado) y del aviso de conflicto.
+ * El último guardado de la barra procede de escrituras observadas en la pantalla. Módulo PURO (sin Svelte, sin el puerto): solo lee `type.fields` + el `baseline` del
  * formulario y decide QUÉ se puede afirmar de verdad.
  *
  * **Por qué `created`/`updated` por NOMBRE y no una capacidad de manifiesto**: son los dos campos
@@ -11,8 +11,7 @@
  * CMS generalista y un proyecto puede tener un campo `updated` de dominio, editable, que signifique
  * cualquier otra cosa: pintarlo como "Actualizado (automático)" sería mentir sobre la procedencia
  * del dato. Sin campo que cumpla las tres condiciones, la fila simplemente NO se pinta (nunca una
- * fecha inventada) — mismo criterio que ya aplicaba `RecordForm.svelte` con "último guardado",
- * cuya lógica se extrajo aquí para no tener dos copias de la misma regla.
+ * fecha inventada). Estos metadatos no acreditan un guardado local ni el de registros hijos.
  */
 
 import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
@@ -35,7 +34,7 @@ export function autodateField(type: ResolvedContentType, name: AutodateName): Re
 
 /**
  * El instante del autodate `name` en `values`, o `null` si no hay campo autodate o su valor no es
- * una fecha parseable. Lo usa la barra pegajosa para sembrar "último guardado".
+ * una fecha parseable. Describe procedencia del servidor, no una escritura observada localmente.
  */
 export function autodateInstant(
 	type: ResolvedContentType,

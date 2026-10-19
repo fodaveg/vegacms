@@ -41,6 +41,7 @@ const posts: ContentType = {
 async function setup(
 	opts: {
 		create?: boolean;
+		withUpdated?: boolean;
 		readonly?: boolean;
 		noStatus?: boolean;
 		statusReadonly?: boolean;
@@ -56,6 +57,11 @@ async function setup(
 			field.name === 'status' && opts.statusReadonly ? { ...field, readonly: true } : field
 		)
 	};
+	if (opts.withUpdated)
+		writableSource.fields = [
+			...writableSource.fields,
+			{ ...base, name: 'updated', type: 'date', readonly: true }
+		];
 	if (opts.dateReadonly)
 		writableSource.fields = [
 			...writableSource.fields,
@@ -66,6 +72,7 @@ async function setup(
 		: writableSource;
 	const values = {
 		title: 'Notas del huerto',
+		...(opts.withUpdated ? { updated: '2020-01-01T00:00:00Z' } : {}),
 		status: 'draft',
 		...(opts.dateReadonly ? { publishAt: '2020-01-01T00:00:00Z' } : {})
 	};
@@ -164,6 +171,25 @@ async function stored(w: World) {
 }
 
 describe('RecordForm — publicar', () => {
+	test('loaded server metadata is not a locally observed save; dirty overrides a prior save', async () => {
+		const w = await setup({ withUpdated: true });
+		expect(w.target.querySelector('.vega-editor-local-state')?.textContent).toContain(
+			'Sin cambios locales'
+		);
+		expect(w.target.querySelector('.vega-editor-saved-at')).toBeNull();
+		await editTitle(w, 'Cambio confirmado');
+		w.target.querySelector<HTMLButtonElement>('.vega-editor-save-button')!.click();
+		await settled(() => expect(w.saved).toHaveBeenCalledTimes(1));
+		expect(w.target.querySelector('.vega-editor-local-state')?.textContent).toContain(
+			'Guardado en el servidor'
+		);
+		expect(w.target.querySelector('.vega-editor-saved-at')).not.toBeNull();
+		await editTitle(w, 'Borrador posterior');
+		expect(w.target.querySelector('.vega-editor-local-state')?.textContent).toContain(
+			'Cambios sin guardar en esta pantalla'
+		);
+		expect(w.target.querySelector('.vega-editor-saved-at')).toBeNull();
+	});
 	test('limpio escribe solo estado y avisa una vez', async () => {
 		const w = await setup();
 		publish(w).click();
@@ -269,7 +295,7 @@ describe('RecordForm — publicar', () => {
 		expect(await stored(w)).toMatchObject({ title: 'Título guardado', status: 'draft' });
 		expect(w.saved).not.toHaveBeenCalled();
 		expect(w.target.querySelector('[role="alert"]')?.textContent).toContain(
-			'Guardado. No se pudo marcar como publicada'
+			'Guardado en el servidor. No se pudo confirmar el cambio de estado'
 		);
 		reject = false;
 		publish(w).click();

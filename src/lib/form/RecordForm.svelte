@@ -167,13 +167,10 @@
 	 *   registro remoto cambia de verdad, así que es también el disparo correcto de refresco del
 	 *   preview. Cambiar de registro (el `$effect` de resincronía, más abajo) cierra el panel: la
 	 *   colección/id que tenía abiertos ya no son los del registro nuevo.
-	 * - **"Último guardado"**: semilla desde el campo autodate `updated` de `baseline` SI el tipo lo
-	 *   declara (`type.fields`, no todo backend de demo lo modela — PocketBase real siempre lo
-	 *   trae) y tiene un valor parseable; tras cualquier guardado con éxito se actualiza a
-	 *   `new Date()` SIN mirar si el tipo declara `updated` — a partir de ahí sabemos la hora real
-	 *   del guardado por haberlo hecho nosotros mismos, no hace falta que el propio schema lo
-	 *   confirme. Formateado HH:MM con `Intl.DateTimeFormat(ctx.locale, …)`, mismo criterio de
-	 *   locale que `cell.ts`. Ausente (`null`) → la barra no pinta nada ahí (nunca una hora falsa).
+	 * - **"Último guardado"**: solo una escritura confirmada en esta pantalla aporta la hora.
+	 *   Cargar o recargar un registro conserva sus metadatos en el aside, pero la barra empieza
+	 *   con «Sin cambios locales». Dirty tiene texto visible; no anuncia guardado completo si
+	 *   queda un bloque pendiente. Guardado, estado editorial y visibilidad son ámbitos distintos.
 	 * - **Atajo ⌘S/Ctrl+S**: listener `keydown` en `window` (añadido/quitado en el mismo `onMount`
 	 *   que ya gestionaba `beforeunload`, sin abrir un segundo `onMount`). SIEMPRE hace
 	 *   `preventDefault()` sobre la combinación (evita el diálogo nativo "Guardar página" del
@@ -482,13 +479,9 @@
 	const afterSave = createAfterSaveRegistry();
 	setAfterSaveRegistry(afterSave);
 
-	// "Último guardado" (R7 del rediseño, ver cabecera): se siembra del autodate `updated` del
-	// baseline SI el tipo declara uno de verdad (`date` + `readonly`, como lo hornea PB) — la regla
-	// completa, y por qué el nombre a secas no basta, viven en `record-meta.ts`, compartidas con la
-	// tarjeta "Registro" del aside.
-	let savedAt = $state<Date | null>(
-		untrack(() => autodateInstant(type, model.baseline, 'updated'))
-	);
+	/** Hora de un guardado confirmado en esta pantalla; la fecha cargada del registro no acredita
+	 *  el guardado de los bloques ni una escritura observada en esta sesión. */
+	let savedAt = $state<Date | null>(null);
 
 	// Edición concurrente (ver cabecera): versión del registro que tiene delante este formulario
 	// —la del `model` al abrir, la del registro devuelto tras cada guardado— y el conflicto vigente,
@@ -520,8 +513,8 @@
 			recordIdentity.type = type.name;
 			recordIdentity.id = model.recordId;
 			// Un `model` nuevo es un registro DISTINTO (ver LANDMINE de más abajo): "último guardado"
-			// tiene que resembrarse de SU PROPIO baseline, no arrastrar la hora del registro anterior.
-			savedAt = autodateInstant(type, model.baseline, 'updated');
+			// se reinicia: cargar otro registro no acredita un guardado propio.
+			savedAt = null;
 			version = model.version;
 			conflict = null;
 			// Los bloques del registro ANTERIOR ya no aplican (misma LANDMINE): `RecordBlocks` se
@@ -1474,7 +1467,7 @@
 			adoptRecord(await ctx.port.get(type.name, recordId));
 			resetCount += 1;
 			backendErrors = EMPTY_ERRORS;
-			savedAt = autodateInstant(type, baseline, 'updated');
+			savedAt = null;
 		} catch (err) {
 			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al recargar', err);
 			ctx.feedback.reportError(vegaErr, { action: `${model.mode}:reload` });
@@ -1671,12 +1664,7 @@
 			if (focus) await focus();
 		}
 		if (result.kind !== 'saved') {
-			if (contentSaved)
-				publicationNotice = `${ctx.t('editor.saveSuccess')} ${ctx.t(
-					values[type.statusField] === 'published'
-						? 'editor.visual.status.error.publish'
-						: 'editor.visual.status.error.unpublish'
-				)}`;
+			if (contentSaved) publicationNotice = ctx.t('editor.publicationPartial');
 			return null;
 		}
 		onSaved(result.record, result.note);
@@ -1878,6 +1866,7 @@
 						<span class="vega-editor-readonly-badge">{ctx.t('nav.readonlyBadge')}</span>
 					{/if}
 					{#if statusTag}
+						<span class="vega-editor-status-label">{ctx.t('editor.pageState')} ·</span>
 						<span
 							class="vega-editor-tag"
 							data-status={statusTag.raw}
@@ -1901,8 +1890,13 @@
 					<span class="vega-editor-saved-at vega-editor-saved-at--conflict">
 						{ctx.t('editor.conflict.topbar')}
 					</span>
-				{:else if savedAtText}
-					<span class="vega-editor-saved-at">{savedAtText}</span>
+				{:else if dirty}
+					<span class="vega-editor-local-state" role="status">{ctx.t('editor.localChanges')}</span>
+				{:else}
+					<span class="vega-editor-local-state" role="status">
+						{ctx.t(savedAtText ? 'editor.savedOnServer' : 'editor.noLocalChanges')}
+						{#if savedAtText}<span class="vega-editor-saved-at"> · {savedAtText}</span>{/if}
+					</span>
 				{/if}
 				{#if visualEditorAvailable}
 					{@const visualRecordId = model.recordId}
@@ -2053,6 +2047,11 @@
 	     debajo la línea de la revisión antes de publicar (lote 13, lámina 1.10) si tiene algo que
 	     decir: con avisos o con algo «no comprobado»; sin avisos no se pinta. -->
 	{#snippet statusBelow()}
+		<p class="vega-publication-scope">
+			{ctx.t(
+				ctx.port.buildApiUrl ? 'editor.publicationScope.build' : 'editor.publicationScope.site'
+			)}
+		</p>
 		{#if scheduleControl.kind === 'scheduled'}
 			{@const parts = whenParts(
 				scheduleControl.unconfirmed
@@ -2644,7 +2643,7 @@
 	}
 
 	.vega-locale-tabs button:focus-visible {
-		outline: 2px solid var(--accent);
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
 
@@ -2812,11 +2811,28 @@
 	}
 
 	/* Estado de guardado (mockup `.save-state`): tenue; con `⟳` en `--info` mientras se guarda. */
+	.vega-publication-scope {
+		margin: 0.5rem 0;
+		font-size: 0.8125rem;
+		color: var(--ink-2);
+	}
+
+	.vega-editor-status-label {
+		font-size: 0.75rem;
+		color: var(--ink-2);
+	}
+
+	.vega-editor-local-state {
+		max-width: 26rem;
+		font-size: 0.75rem;
+		color: var(--ink-2);
+		overflow-wrap: anywhere;
+	}
+
 	.vega-editor-saved-at {
 		font-family: var(--mono);
 		font-size: 0.72rem;
 		color: var(--ink-2);
-		white-space: nowrap;
 	}
 
 	.vega-editor-saved-at--saving::before {
@@ -2888,7 +2904,7 @@
 
 	.vega-editor-preview-toggle--active {
 		border-color: var(--accent-line);
-		color: var(--accent-text);
+		color: var(--ink);
 		background: var(--active);
 	}
 
@@ -2953,6 +2969,7 @@
 	   Editor visual, Vista previa, Duplicar, Guardar), las acciones inline y «Eliminar» miden 34 px
 	   con el dedo; con ratón nada cambia (densidad). `height` sigue en 34 y `min-height` manda. */
 	@media (pointer: coarse) {
+		.vega-locale-tabs button,
 		.vega-editor-back,
 		.vega-editor-duplicate-button,
 		.vega-editor-visual-button,

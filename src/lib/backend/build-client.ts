@@ -53,11 +53,11 @@ export interface BuildClientOptions {
 
 export interface BuildClient {
 	/** Dispara un build nuevo. Rechaza si la respuesta no es `2xx` o no trae un `id` no vacío. */
-	trigger(): Promise<BuildTriggerResult>;
+	trigger(signal?: AbortSignal): Promise<BuildTriggerResult>;
 	/** Consulta el estado actual. Rechaza si la respuesta no es `2xx` o no encaja con `BuildStatus`
 	 *  (nunca infiere un estado a partir de una forma parcial — mejor un error explícito que un
 	 *  estado inventado, P3-L3). */
-	fetchStatus(): Promise<BuildStatus>;
+	fetchStatus(signal?: AbortSignal): Promise<BuildStatus>;
 }
 
 /**
@@ -132,11 +132,16 @@ export function createBuildClient(opts: BuildClientOptions): BuildClient {
 	const fetcher = opts.fetcher ?? fetch;
 	const base = opts.apiUrl.replace(/\/+$/, '');
 
-	async function request<T>(path: string, method: 'GET' | 'POST'): Promise<T> {
+	async function request<T>(
+		path: string,
+		method: 'GET' | 'POST',
+		signal?: AbortSignal
+	): Promise<T> {
 		const response = await fetcher(`${base}${path}`, {
 			method,
 			headers: { Accept: 'application/json', Authorization: opts.token },
-			cache: 'no-store'
+			cache: 'no-store',
+			...(signal ? { signal } : {})
 		});
 		if (!response.ok) {
 			throw new BuildRequestError(response.status, method, path);
@@ -145,15 +150,15 @@ export function createBuildClient(opts: BuildClientOptions): BuildClient {
 	}
 
 	return {
-		async trigger() {
-			const data = await request<Record<string, unknown>>('/trigger', 'POST');
+		async trigger(signal) {
+			const data = await request<Record<string, unknown>>('/trigger', 'POST', signal);
 			if (typeof data.id !== 'string' || !data.id) {
 				throw new Error('El endpoint de build no devolvió un "id" de disparo válido.');
 			}
 			return { id: data.id };
 		},
-		async fetchStatus() {
-			const status = parseBuildStatus(await request('/status', 'GET'));
+		async fetchStatus(signal) {
+			const status = parseBuildStatus(await request('/status', 'GET', signal));
 			if (!status) {
 				throw new Error('El endpoint de build devolvió un estado con forma inesperada.');
 			}
@@ -181,14 +186,23 @@ export interface PollBuildStatusOptions {
 	onError?: (err: unknown) => void;
 	intervalMs?: number;
 	maxIntervalMs?: number;
+	/** Optional consumer policy: defaults to polling only while running. */
+	shouldContinue?: (status: BuildStatus) => boolean;
+	/** Bounds the whole observation cycle, including a stalled GET; absent means no deadline. */
+	maxDurationMs?: number;
+	onTimeout?: () => void;
 }
 
 /**
  * Sondea `client.fetchStatus()` MIENTRAS el estado devuelto siga siendo `'running'`. Se detiene
- * SOLO (sin más temporizadores programados) en cuanto ve un estado terminal (`'idle'`/`'ok'`/
+ * por defecto (sin más temporizadores programados) en cuanto ve un estado terminal (`'idle'`/`'ok'`/
  * `'failed'`) o en cuanto quien llama invoca la función `stop()` devuelta — nunca deja un
  * `setTimeout` huérfano corriendo tras desmontar el componente que lo inició (la razón de ser de
  * esta función: `onDestroy` de `PublishButton.svelte` SIEMPRE debe poder llamar a `stop()`).
+ *
+ * Un consumidor puede conservar terminales históricos mediante `shouldContinue` y acotar la
+ * observación con `maxDurationMs`. Stop/deadline abortan la espera HTTP, no el trabajo del servidor;
+ * `stopped` también descarta transportes que resuelvan tarde pese al abort.
  *
  * El primer sondeo es INMEDIATO (sin esperar `intervalMs`): quien llama normalmente acaba de
  * disparar un `trigger()` o acaba de montar el botón y quiere el estado real cuanto antes.
@@ -196,36 +210,55 @@ export interface PollBuildStatusOptions {
 export function pollBuildStatus(client: BuildClient, opts: PollBuildStatusOptions): () => void {
 	const interval = opts.intervalMs ?? POLL_INTERVAL_MS;
 	const maxInterval = opts.maxIntervalMs ?? POLL_MAX_INTERVAL_MS;
+	const controller = new AbortController();
 	let stopped = false;
 	let timer: ReturnType<typeof setTimeout> | null = null;
+	let deadline: ReturnType<typeof setTimeout> | null = null;
 	let delay = interval;
 
+	function stop(): void {
+		stopped = true;
+		if (timer !== null) clearTimeout(timer);
+		if (deadline !== null) clearTimeout(deadline);
+		timer = null;
+		deadline = null;
+		controller.abort();
+	}
+
 	function schedule(ms: number): void {
-		if (stopped) return;
-		timer = setTimeout(tick, ms);
+		if (!stopped) timer = setTimeout(tick, ms);
 	}
 
 	async function tick(): Promise<void> {
 		if (stopped) return;
 		try {
-			const status = await client.fetchStatus();
-			delay = interval; // éxito: resetea el back-off para el próximo fallo, si lo hay
+			const status = await client.fetchStatus(controller.signal);
+			delay = interval;
 			if (stopped) return;
 			opts.onStatus(status);
-			if (status.state !== 'running') return; // terminal: no se reprograma más
+			if (stopped) return;
+			const keepPolling = opts.shouldContinue?.(status) ?? status.state === 'running';
+			if (stopped) return;
+			if (!keepPolling) {
+				stop();
+				return;
+			}
 		} catch (err) {
 			if (stopped) return;
 			opts.onError?.(err);
+			if (stopped) return;
 			delay = Math.min(delay * 2, maxInterval);
 		}
 		schedule(delay);
 	}
 
+	if (opts.maxDurationMs !== undefined) {
+		deadline = setTimeout(() => {
+			if (stopped) return;
+			stop();
+			opts.onTimeout?.();
+		}, opts.maxDurationMs);
+	}
 	schedule(0);
-
-	return () => {
-		stopped = true;
-		if (timer) clearTimeout(timer);
-		timer = null;
-	};
+	return stop;
 }

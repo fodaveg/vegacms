@@ -45,10 +45,10 @@
 	 * ese campo enfocado, un bloque se elige en el árbol, una imagen sin alt abre su ficha; en los
 	 * tres casos el popover se cierra. Sin permiso de editar no hay botón, así que tampoco popover.
 	 *
-	 * **Rótulo distinto del «Publicar» de la barra superior** (`PublishButton`, que reconstruye el
+	 * **Rótulo distinto de «Actualizar sitio» de la barra superior** (`PublishButton`, que reconstruye el
 	 * sitio): «Marcar como publicada». Y si el proyecto tiene reconstrucción configurada
-	 * (`ctx.port.buildApiUrl`), el mensaje de éxito avisa de que se verá en el sitio tras la próxima
-	 * publicación.
+	 * (`ctx.port.buildApiUrl`), el mensaje de éxito avisa de que el sitio usará los datos guardados tras
+	 * actualizarlo.
 	 *
 	 * **«Programar…»** (lote 12, lámina 2, pieza 2.11): el mismo cableado que `RecordForm` junto al
 	 * campo Estado. `describeScheduleControl` decide con lo que el servidor confirmó si va el botón
@@ -483,9 +483,21 @@
 		aria-label={canEdit ? ctx.t('editor.visual.status.groupLabel') : undefined}
 	>
 		{#if tag && !compact}
+			<span class="vega-visual-publication-label">{ctx.t('editor.pageState')} ·</span>
 			<span class="vega-visual-publish-tag" data-status={tag.raw} data-status-kind={tag.kind}>
 				{tag.label}
 			</span>
+		{/if}
+
+		{#if !compact}
+			<details class="vega-publication-scope">
+				<summary>{ctx.t('editor.publicationScope.label')}</summary>
+				<p>
+					{ctx.t(
+						ctx.port.buildApiUrl ? 'editor.publicationScope.build' : 'editor.publicationScope.site'
+					)}
+				</p>
+			</details>
 		{/if}
 
 		{#if canEdit}
@@ -783,6 +795,34 @@
 		outline-offset: 2px;
 	}
 
+	.vega-visual-publication-label {
+		font-size: 0.75rem;
+		color: var(--ink-2);
+	}
+
+	.vega-publication-scope {
+		max-width: 24rem;
+		font-size: 0.75rem;
+		color: var(--ink-2);
+	}
+
+	.vega-publication-scope summary {
+		min-height: 30px;
+		display: flex;
+		align-items: center;
+		cursor: pointer;
+		text-decoration: underline;
+	}
+
+	.vega-publication-scope summary:focus-visible {
+		outline: 2px solid var(--ink);
+		outline-offset: 2px;
+	}
+
+	.vega-publication-scope p {
+		margin: 0.4rem 0;
+	}
+
 	.vega-visual-publish-error {
 		display: inline-flex;
 		align-items: center;
@@ -956,6 +996,10 @@
 	}
 
 	@media (pointer: coarse) {
+		.vega-publication-scope summary {
+			min-height: 44px;
+			min-width: 44px;
+		}
 		.vega-visual-publish-btn,
 		.vega-visual-publish-pop-btn {
 			min-width: 44px;
