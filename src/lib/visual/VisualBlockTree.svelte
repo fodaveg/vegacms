@@ -901,7 +901,8 @@
 			display: block;
 			position: fixed;
 			inset: 0;
-			z-index: 7;
+			/* El cajón y su velo cubren también la cabecera editorial pegajosa (z-index: 9). */
+			z-index: 10;
 			border: 0;
 			padding: 0;
 			/* Scrim theme-independiente (§3 no tiene token de velo, mismo motivo que
@@ -934,7 +935,7 @@
 			top: 0;
 			bottom: 0;
 			left: 0;
-			z-index: 8;
+			z-index: 11;
 			width: min(320px, 86vw);
 			border-radius: 0;
 			transform: translateX(-100%);

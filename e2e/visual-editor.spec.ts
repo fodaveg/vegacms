@@ -1669,19 +1669,20 @@ test.describe('UX04: objetivos del menú con puntero táctil', () => {
 		await openVisualEditor(page, site, 'pagina_1');
 		await waitConnected(page, 3);
 		expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true);
+		const selected = page.locator('[data-vega-tree-row="seccion_1"]');
+		await selected.click();
+		await expect(selected).toHaveAttribute('aria-current', 'true');
 		const evidence: unknown[] = [];
 		for (const width of [1440, 901]) {
 			await page.setViewportSize({ width, height: 900 });
+			const tree = page.locator('.vega-tree-panel');
+			// El cambio de breakpoint desliza el árbol sobre el lienzo mientras termina de cerrarse.
+			await tree.evaluate(async (el) => {
+				await Promise.all(el.getAnimations().map((animation) => animation.finished));
+			});
 			for (const zoom of ['50', '75', '100']) {
 				await page.getByRole('combobox', { name: 'Zoom', exact: true }).selectOption(zoom);
-				// En 901px el árbol vive en un cajón: seleccionar por el sitio recorre el mismo
-				// protocolo sin depender de una fila oculta por el breakpoint.
-				const frame = page
-					.frames()
-					.find((frame) => frame.url().includes('vega-visual-site.example/preview'))!;
-				await frame
-					.locator('[data-vega-block-id="seccion_1"]')
-					.click({ position: { x: 16, y: 16 } });
+				await expect(selected).toHaveAttribute('aria-current', 'true');
 				await expect(page.locator('.vega-visual-overlay-insert:enabled')).toHaveCount(4);
 				const targets = page.locator(
 					'.vega-visual-overlay-toolbar button:enabled, .vega-visual-overlay-insert:enabled'
@@ -1752,12 +1753,80 @@ test.describe('UX04: objetivos del menú con puntero táctil', () => {
 					expect(box.width).toBeGreaterThanOrEqual(43.99);
 					evidence.push({ width, zoom, menu: await item.textContent(), box });
 				}
-				await page.keyboard.press('Escape');
+				// Tab sale del menú sin ejecutar el Escape de pantalla que deselecciona el bloque.
+				await page.keyboard.press('Tab');
 				await expect(menu).toHaveCount(0);
 			}
 		}
+		// El cajón queda por encima de la cabecera editorial, también cuando ésta ocupa varias filas.
+		for (const locale of ['es', 'en']) {
+			if (locale === 'en') {
+				await page.setViewportSize({ width: 1440, height: 900 });
+				await page.locator('.vega-visual-back').click();
+				await page.getByRole('link', { name: 'Ajustes', exact: true }).click();
+				const editor = page.getByRole('textbox', { name: 'JSON del manifiesto' });
+				const manifest = JSON.parse(await editor.inputValue());
+				manifest.site.locale = locale;
+				await editor.fill(JSON.stringify(manifest, null, 2));
+				await page
+					.locator('.manifest-editor')
+					.getByRole('button', { name: 'Guardar', exact: true })
+					.click();
+				await page.locator('a[href="/c/paginas"]').first().click();
+				await page.locator('a[href="/c/paginas/pagina_1"]').first().click();
+				await page.getByRole('button', { name: 'Visual editor', exact: true }).click();
+				await expect(page.locator('.vega-visual-status-text')).toContainText('Connected');
+			}
+			for (const width of [1180, 901]) {
+				await page.setViewportSize({ width, height: 900 });
+				const tree = page.locator('.vega-tree-panel');
+				await tree.evaluate(async (el) => {
+					await Promise.all(el.getAnimations().map((a) => a.finished));
+				});
+				const toggle = page.locator('.vega-tree-toggle');
+				await toggle.click();
+				await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+				await tree.evaluate(async (el) => {
+					await Promise.all(el.getAnimations().map((a) => a.finished));
+				});
+				const row = page.locator('[data-vega-tree-row="seccion_1"]');
+				for (const control of [row, page.locator('.vega-tree-close')]) {
+					const measured = await control.evaluate((el) => {
+						const r = el.getBoundingClientRect();
+						const points = [
+							[r.x + r.width / 2, r.y + r.height / 2],
+							[r.x + r.width / 2, r.y + 2],
+							[r.x + r.width / 2, r.bottom - 2],
+							[r.x + 2, r.y + r.height / 2],
+							[r.right - 2, r.y + r.height / 2]
+						];
+						return {
+							label: el.getAttribute('aria-label') ?? el.textContent,
+							box: r.toJSON(),
+							hits: points.map(([x, y]) => el.contains(document.elementFromPoint(x, y)))
+						};
+					});
+					evidence.push({ locale, width, drawer: measured });
+					expect(measured.box.width).toBeGreaterThanOrEqual(43.99);
+					expect(measured.box.height).toBeGreaterThanOrEqual(43.99);
+					expect(measured.hits).toEqual([true, true, true, true, true]);
+				}
+				await row.click();
+				await expect(row).toHaveAttribute('aria-current', 'true');
+				await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+				await tree.evaluate(async (el) => {
+					await Promise.all(el.getAnimations().map((a) => a.finished));
+				});
+				await toggle.click();
+				await page.locator('.vega-tree-close').click();
+				await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+				await tree.evaluate(async (el) => {
+					await Promise.all(el.getAnimations().map((a) => a.finished));
+				});
+			}
+		}
 		await page.setViewportSize({ width: 390, height: 844 });
-		await expect(page.getByRole('region', { name: 'Solo textos' })).toBeVisible();
+		await expect(page.getByRole('region', { name: 'Text only' })).toBeVisible();
 		await expect(page.locator('.vega-visual-overlay-insert')).toHaveCount(0);
 		const textActions = page.locator(
 			'.vega-edit-top button:visible:enabled, .vega-visual-grid--texts button:visible:enabled'

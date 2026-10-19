@@ -877,6 +877,14 @@ test.describe('UX12: toolbar táctil sobre bloque estrecho', () => {
 		const reports = [];
 		for (const width of [1440, 901]) {
 			await page.setViewportSize({ width, height: 900 });
+			// A 901px el árbol se cierra sobre el lienzo; medir durante esa transición daría hits del árbol.
+			await page.locator('.vega-tree-panel').evaluate(async (el) => {
+				await Promise.all(el.getAnimations().map((animation) => animation.finished));
+			});
+			await expect(page.locator('[data-vega-tree-row=seccion_1]')).toHaveAttribute(
+				'aria-current',
+				'true'
+			);
 			for (const zoom of ['50', '75', '100']) {
 				await page.locator('.vega-visual-zoom-select').selectOption(zoom);
 				const boundaryHeight = await page
