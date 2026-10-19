@@ -372,6 +372,39 @@
 		if (moved) onStructuralChange();
 	}
 
+	/** Las acciones comparten control y foco; solo borrar admite borradores pendientes. */
+	const selectedActions = $derived([
+		{
+			key: 'duplicate',
+			label: 'editor.blocks.duplicateLabel',
+			icon: 'copy',
+			disabled: structuralGuard,
+			run: handleDuplicateSelected
+		},
+		{
+			key: 'up',
+			label: 'editor.blocks.moveUpLabel',
+			icon: 'chevron',
+			disabled: structuralGuard || selectedIndex <= 0,
+			run: () => handleMoveSelected(-1)
+		},
+		{
+			key: 'down',
+			label: 'editor.blocks.moveDownLabel',
+			icon: 'chevron',
+			disabled:
+				structuralGuard || selectedIndex < 0 || selectedIndex >= blocksState.records.length - 1,
+			run: () => handleMoveSelected(1)
+		},
+		{
+			key: 'delete',
+			label: 'list.delete.rowButtonLabel',
+			icon: 'trash',
+			disabled: blocksState.anySaving || blocksState.structuralBusy,
+			run: handleDeleteSelected
+		}
+	] as const);
+
 	// ————— Arrastrar en el lienzo (ver cabecera) —————
 
 	/** Espejo local del estado EN VUELO del controlador, para pintar el bloque agarrado y la guía
@@ -450,6 +483,20 @@
 		return idx === -1 ? blocksState.records.length : idx;
 	}
 
+	/** El destino usa el mismo índice de registros que la creación, también con bloques del
+	 *  puente ausentes. El nombre real distingue los huecos interiores antes de elegir tipo. */
+	function insertionLabel(position: number): string {
+		const index = recordIndexForInsertion(position);
+		return ctx.t(
+			index === 0
+				? 'editor.visual.insert.start'
+				: index === blocksState.records.length
+					? 'editor.visual.insert.end'
+					: 'editor.visual.insert.after',
+			{ label: index > 0 ? blocksState.blockTitle(blocksState.records[index - 1]) : '' }
+		);
+	}
+
 	/** Crea y LUEGO reordena hasta `position` (ver cabecera, "Puntos de inserción" — la receta que
 	 *  el encargo pide por escrito cuando `handleCreate` no sabe crear en una posición concreta).
 	 *  `blockType` llega ya elegido por quien llama (ver "Menú de tipos del punto de inserción",
@@ -458,25 +505,16 @@
 		position: number,
 		blockType: ResolvedBlockType | null = null
 	): Promise<void> {
+		if (structuralGuard) return;
 		const target = recordIndexForInsertion(position);
 		const before = blocksState.records.length;
 		await blocksState.handleCreate(blockType);
 		if (blocksState.records.length !== before + 1) return; // creación fallida, `ctx.feedback` ya avisó
 		const newIndex = blocksState.records.length - 1;
 		const created = blocksState.records[newIndex];
-		// Si hay bloques con cambios sin guardar, `handleReorder` se niega (guard interno, ver su
-		// cabecera de `blocks-state.svelte.ts`): la sección nueva queda creada pero al FINAL en vez
-		// de en la posición pedida. No se repite aquí un segundo guard delante — el mismo criterio
-		// que ya protege el reorden basta, y el autor sigue viendo la sección nueva (solo que no
-		// exactamente donde la pidió).
 		if (newIndex !== target) await blocksState.handleReorder(newIndex, target);
 		onStructuralChange();
-		// Anuncio por voz (encargo "paleta de bloques arrastrable", §6): ni `handleCreate` ni este
-		// `+` anunciaban nada por sí solos. Se localiza `created` por ID en vez de fiarse de
-		// `target` a ciegas —si `handleReorder` se negó por su guard (arriba), la sección se quedó
-		// al FINAL, no en `target`— y se anuncia DESPUÉS de que `handleReorder` (si corrió) haya
-		// escrito su propio "movido": este `say()` posterior lo sustituye por el mensaje correcto,
-		// "creada", no "movida".
+		// Anuncia la posición confirmada, también si el backend rechazó el reorden.
 		const finalIndex = blocksState.records.findIndex((r) => r.id === created.id);
 		if (finalIndex < 0) return;
 		blocksState.say(
@@ -514,7 +552,7 @@
 	 *  razonablemente a los puntos intermedios de la mitad de abajo; documentado para que se pueda
 	 *  desmentir si algún día hace falta más precisión. */
 	function insertMenuOpensUpward(position: number): boolean {
-		return blocks.length > 0 && position * 2 >= blocks.length;
+		return position * 2 >= blocks.length;
 	}
 
 	function handleInsertClick(position: number, event: MouseEvent): void {
@@ -576,7 +614,8 @@
 	 *  siguiera "abierto" en el estado quedaría anclado a un botón que ya no existe — huérfano en
 	 *  cuanto el gesto terminara y los puntos volvieran a montarse. */
 	$effect(() => {
-		if (dragState.fromIndex !== null || paletteDragType !== null) closeInsertMenu();
+		if (structuralGuard || dragState.fromIndex !== null || paletteDragType !== null)
+			closeInsertMenu();
 	});
 
 	// ————— Caída de la PALETA (ver cabecera, "Soltar una sección de la PALETA...") —————
@@ -719,54 +758,27 @@
 			>
 				<span aria-hidden="true">⠿</span>
 			</button>
-			{#if blocksState.blockDuplicateAllowed}
-				<button
-					type="button"
-					class="vega-visual-overlay-toolbar-btn"
-					style:pointer-events="auto"
-					disabled={structuralGuard}
-					aria-label={ctx.t('editor.blocks.duplicateLabel', { label })}
-					onclick={() => void handleDuplicateSelected()}
-				>
-					<Icon id="copy" size={14} />
-				</button>
-			{/if}
-			<button
-				type="button"
-				class="vega-visual-overlay-toolbar-btn"
-				style:pointer-events="auto"
-				disabled={selectedIndex <= 0 || structuralGuard}
-				aria-label={ctx.t('editor.blocks.moveUpLabel', { label })}
-				onclick={() => void handleMoveSelected(-1)}
-			>
-				<span class="vega-visual-overlay-toolbar-icon vega-visual-overlay-toolbar-icon--up">
-					<Icon id="chevron" size={14} />
-				</span>
-			</button>
-			<button
-				type="button"
-				class="vega-visual-overlay-toolbar-btn"
-				style:pointer-events="auto"
-				disabled={selectedIndex < 0 ||
-					selectedIndex >= blocksState.records.length - 1 ||
-					structuralGuard}
-				aria-label={ctx.t('editor.blocks.moveDownLabel', { label })}
-				onclick={() => void handleMoveSelected(1)}
-			>
-				<span class="vega-visual-overlay-toolbar-icon vega-visual-overlay-toolbar-icon--down">
-					<Icon id="chevron" size={14} />
-				</span>
-			</button>
-			<button
-				type="button"
-				class="vega-visual-overlay-toolbar-btn vega-visual-overlay-toolbar-btn--danger"
-				style:pointer-events="auto"
-				disabled={blocksState.anySaving || blocksState.structuralBusy}
-				aria-label={ctx.t('list.delete.rowButtonLabel', { label })}
-				onclick={handleDeleteSelected}
-			>
-				<Icon id="trash" size={14} />
-			</button>
+			{#each selectedActions as action (action.key)}
+				{#if action.key !== 'duplicate' || blocksState.blockDuplicateAllowed}
+					<button
+						type="button"
+						class="vega-visual-overlay-toolbar-btn"
+						class:vega-visual-overlay-toolbar-btn--danger={action.key === 'delete'}
+						style:pointer-events="auto"
+						disabled={action.disabled}
+						aria-label={ctx.t(action.label, { label })}
+						onclick={() => void action.run()}
+					>
+						<span
+							class="vega-visual-overlay-toolbar-icon"
+							class:vega-visual-overlay-toolbar-icon--up={action.key === 'up'}
+							class:vega-visual-overlay-toolbar-icon--down={action.key === 'down'}
+						>
+							<Icon id={action.icon} size={14} />
+						</span>
+					</button>
+				{/if}
+			{/each}
 		</div>
 	{/if}
 
@@ -866,16 +878,14 @@
 					class="vega-visual-overlay-insert"
 					style:top="{point.top}px"
 					style:pointer-events="auto"
-					disabled={blocksState.structuralBusy || blocksState.anySaving}
+					disabled={structuralGuard}
 					aria-haspopup={blocksState.hasTypeMenu ? 'menu' : undefined}
 					aria-expanded={blocksState.hasTypeMenu
 						? insertMenuPosition === point.position
 						: undefined}
 					aria-controls={blocksState.hasTypeMenu ? insertMenuId(point.position) : undefined}
-					aria-label={ctx.t('editor.visual.overlay.insertLabel', {
-						position: point.position + 1,
-						total: insertPoints.length
-					})}
+					aria-label={insertionLabel(point.position)}
+					title={insertionLabel(point.position)}
 					onclick={(event) => handleInsertClick(point.position, event)}
 				>
 					<Icon id="plus" size={14} />
@@ -896,12 +906,13 @@
 						class:vega-visual-overlay-insert-menu--up={insertMenuOpensUpward(point.position)}
 						role="menu"
 						tabindex="-1"
-						aria-label={ctx.t('editor.blocks.addMenu.label')}
+						aria-label={insertionLabel(point.position)}
 						style:top="{point.top}px"
 						bind:this={insertMenuEl}
 						onkeydown={handleInsertMenuKeydown}
 						onfocusout={handleInsertMenuFocusOut}
 					>
+						<p class="vega-visual-insert-destination">{insertionLabel(point.position)}</p>
 						{#each blocksState.blockTypes as blockType (blockType.name)}
 							<button
 								type="button"
@@ -1205,7 +1216,9 @@
 		transform: translateX(-50%);
 		display: flex;
 		flex-direction: column;
-		min-width: 11rem;
+		width: min(22rem, 90%);
+		max-height: 18rem;
+		overflow-y: auto;
 		padding: 0.3rem;
 		border: 1px solid var(--line);
 		border-radius: 8px;
@@ -1222,6 +1235,15 @@
 		transform: translate(-50%, -100%);
 	}
 
+	.vega-visual-insert-destination {
+		margin: 0;
+		padding: 0.45rem 0.6rem;
+		color: var(--ink-hi);
+		font-size: 0.85rem;
+		font-weight: 650;
+		overflow-wrap: anywhere;
+	}
+
 	.vega-visual-overlay-insert-menu-item {
 		display: flex;
 		align-items: center;
@@ -1235,7 +1257,7 @@
 		font-size: 0.85rem;
 		text-align: left;
 		cursor: pointer;
-		white-space: nowrap;
+		overflow-wrap: anywhere;
 	}
 
 	.vega-visual-overlay-insert-menu-item:hover,

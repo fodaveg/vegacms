@@ -495,6 +495,13 @@ export const es = {
 	// `BlockEditor.svelte` con `textsOnly`): por debajo de los 900 px del lienzo la pantalla deja
 	// de ser una salida y enseña las secciones con solo sus campos de texto (`texts-mode.ts`). Los
 	// «900 px» del texto son el mismo punto de corte que `NARROW_QUERY` en `VisualEditorScreen`.
+	'editor.visual.insert.start': 'Añadir al principio',
+	'editor.visual.insert.end': 'Añadir al final',
+	'editor.visual.insert.after': 'Añadir después de «{label}»',
+	'editor.visual.texts.jump': 'Ir a sección',
+	'editor.visual.texts.form': 'Abrir formulario completo',
+	'editor.visual.texts.formGuard':
+		'Guarda los cambios antes de abrir el formulario para conservarlos.',
 	'editor.visual.texts.title': 'Solo textos',
 	'editor.visual.texts.intro':
 		'Aquí puedes corregir los textos de cada sección. Para ver la página, mover secciones o cambiar imágenes hace falta una ventana de 900 px o más.',

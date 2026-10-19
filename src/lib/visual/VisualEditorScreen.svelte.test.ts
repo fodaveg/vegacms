@@ -658,7 +658,9 @@ describe('VisualEditorScreen.svelte', () => {
 		await tick();
 		// La marca «sin guardar» de la barra Y la de la propia sección.
 		expect(mounted.target.querySelector('.vega-visual-dirty')).not.toBeNull();
-		expect(second.querySelector('.vega-texts-dirty')).not.toBeNull();
+		expect(second.querySelector('.vega-block-context-state')?.textContent).toContain(
+			translate('es', 'editor.visual.pending.title')
+		);
 
 		second.querySelector<HTMLButtonElement>('.vega-block-save-button')!.click();
 		await flush();
@@ -677,7 +679,9 @@ describe('VisualEditorScreen.svelte', () => {
 		// Sin lienzo no hay refresco que pedir: ni un token.
 		expect(fetchMock).not.toHaveBeenCalled();
 		expect(mounted.target.querySelector('.vega-visual-dirty')).toBeNull();
-		expect(second.querySelector('.vega-texts-dirty')).toBeNull();
+		expect(second.querySelector('.vega-block-context-state')?.textContent).not.toContain(
+			translate('es', 'editor.visual.pending.title')
+		);
 		expect(mounted.target.querySelector('.vega-visual-saved-at')).not.toBeNull();
 	});
 
@@ -748,7 +752,9 @@ describe('VisualEditorScreen.svelte', () => {
 			'Borrador a medias'
 		);
 		expect(mounted.target.querySelector('.vega-visual-dirty')).not.toBeNull();
-		expect(sections[1].querySelector('.vega-texts-dirty')).not.toBeNull();
+		expect(sections[1].querySelector('.vega-block-context-state')?.textContent).toContain(
+			translate('es', 'editor.visual.pending.title')
+		);
 
 		// Y de vuelta a ancho: el mismo borrador, en la ficha del bloque que seguía seleccionado.
 		setCanvasNarrow(false);

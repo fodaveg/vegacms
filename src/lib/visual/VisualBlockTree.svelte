@@ -880,9 +880,9 @@
 			display: inline-flex;
 			align-items: center;
 			gap: 0.4rem;
-			position: fixed;
-			top: calc(var(--topbar-h) + 0.85rem);
-			left: 0.85rem;
+			position: absolute;
+			top: 0.25rem;
+			left: calc(var(--vega-space-gutter) * 1.5);
 			z-index: 6;
 			height: 36px;
 			padding: 0 0.75rem;

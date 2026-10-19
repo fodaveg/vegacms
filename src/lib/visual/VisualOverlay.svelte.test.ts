@@ -647,18 +647,69 @@ describe('VisualOverlay.svelte', () => {
 		);
 		expect(points).toHaveLength(3);
 		expect(points[0].getAttribute('aria-label')).toBe(
-			translate('es', 'editor.visual.overlay.insertLabel', { position: 1, total: 3 })
+			translate('es', 'editor.visual.insert.start')
 		);
 		expect(points[1].getAttribute('aria-label')).toBe(
-			translate('es', 'editor.visual.overlay.insertLabel', { position: 2, total: 3 })
+			translate('es', 'editor.visual.insert.after', { label: 'Hero' })
 		);
-		expect(points[2].getAttribute('aria-label')).toBe(
-			translate('es', 'editor.visual.overlay.insertLabel', { position: 3, total: 3 })
-		);
+		expect(points[2].getAttribute('aria-label')).toBe(translate('es', 'editor.visual.insert.end'));
 		// Antes del primero, entre los dos, y después del segundo — mismo orden Y creciente.
 		expect(points[0].style.top).toBe('0px');
 		expect(points[1].style.top).toBe('75px'); // punto medio entre 50 (fin de b1) y 100 (inicio de b2)
 		expect(points[2].style.top).toBe('150px');
+	});
+
+	test.each(['dirty', 'saving', 'busy'])(
+		'inserción bloqueada por %s no escribe ni por clic ni por drop',
+		async (guard) => {
+			const handleCreate = vi.fn(async () => {});
+			const handleReorder = vi.fn(async () => false);
+			mounted = mountOverlay({
+				status: 'ready',
+				blocks: [block('b1', 'hero')],
+				paletteDragType: HERO_TYPE,
+				blocksState: fakeBlocksState({
+					records: [record('b1', 'Hero')],
+					handleCreate,
+					handleReorder,
+					anyDirtyIds: new Set(guard === 'dirty' ? ['b1'] : []),
+					anySavingIds: new Set(guard === 'saving' ? ['b1'] : []),
+					structuralBusy: guard === 'busy'
+				})
+			});
+			await tick();
+			firePaletteDragEvent(mounted.target.querySelector('.vega-visual-overlay-drop-zone')!, 'drop');
+			await settle();
+			expect(handleCreate).not.toHaveBeenCalled();
+			expect(handleReorder).not.toHaveBeenCalled();
+		}
+	);
+
+	test('un menú abierto se cierra si aparece un borrador y los + ya no crean', async () => {
+		const handleCreate = vi.fn(async () => {});
+		const state = $state({
+			...fakeBlocksState({
+				records: [record('b1', 'Hero')],
+				hasTypeMenu: true,
+				blockTypes: [HERO_TYPE, GALLERY_TYPE],
+				handleCreate
+			})
+		});
+		mounted = mountOverlay({ status: 'ready', blocks: [block('b1', 'hero')], blocksState: state });
+		await tick();
+		const trigger = mounted.target.querySelector<HTMLButtonElement>('.vega-visual-overlay-insert')!;
+		trigger.click();
+		await tick();
+		expect(mounted.target.querySelector('[role="menu"]')?.textContent).toContain(
+			'Añadir al principio'
+		);
+		state.anyDirty = true;
+		await tick();
+		expect(mounted.target.querySelector('[role="menu"]')).toBeNull();
+		expect(trigger.disabled).toBe(true);
+		trigger.click();
+		await settle();
+		expect(handleCreate).not.toHaveBeenCalled();
 	});
 
 	test('sin bloques que el sitio reporte: ningún punto de inserción (el árbol sigue siendo la vía)', async () => {

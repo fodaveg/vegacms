@@ -118,7 +118,7 @@
 {#if blocks.hasTypeMenu && !blocks.hidden}
 	<div class="vega-palette-panel" role="region" aria-labelledby="vega-palette-heading">
 		<div class="vega-palette-head">
-			<h2 id="vega-palette-heading">{ctx.t('editor.blocks.addMenu.label')}</h2>
+			<h2 id="vega-palette-heading">{ctx.t('editor.visual.insert.end')}</h2>
 		</div>
 		{#if blocks.anyDirty}
 			<p class="vega-palette-notice" id="vega-palette-pending">

@@ -116,7 +116,10 @@
 		/** Inspector visual: una sola cabecera con nombre/estado y el mismo Guardar, persistente
 		 *  dentro de la ficha. El consumidor aporta presentación, nunca otro dueño del guardado.
 		 *  Sin snippet, el formulario clásico conserva su acción al pie. */
-		contextualHeader?: Snippet<[name: string, state: string, save: Snippet | undefined]>;
+		fullFormHref?: string;
+		contextualHeader?: Snippet<
+			[name: string, state: string, save: Snippet | undefined, id: string]
+		>;
 	}
 
 	let {
@@ -135,7 +138,8 @@
 		onBusyChange = () => {},
 		textsOnly = false,
 		locked = false,
-		contextualHeader
+		contextualHeader,
+		fullFormHref
 	}: Props = $props();
 
 	const ctx = getVegaContext();
@@ -582,7 +586,8 @@
 									? 'editor.visual.pending.title'
 									: 'topbar.publish.noChanges'
 			),
-			hasTexts && !locked && (!typed || blockType !== null) ? saveButton : undefined
+			hasTexts && !locked && (!typed || blockType !== null) ? saveButton : undefined,
+			record.id
 		)}
 	{/if}
 	{#if typed && blockType === null}
@@ -718,6 +723,16 @@
 						: 'editor.visual.texts.rest.many',
 					{ count: restLabels.length, fields: restLabels.join(', ') }
 				)}
+			</p>
+		{/if}
+
+		{#if textsOnly && fullFormHref && (!hasTexts || restLabels.length > 0)}
+			<p class="vega-block-rest">
+				<!-- Ruta real del registro padre: la guarda de salida del editor decide si se abandona. -->
+				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+				<a class="vega-block-full-form" href={fullFormHref}>{ctx.t('editor.visual.texts.form')}</a>
+				{#if dirty}
+					{ctx.t('editor.visual.texts.formGuard')}{/if}
 			</p>
 		{/if}
 
@@ -861,6 +876,11 @@
 	.vega-block-save-button:focus-visible,
 	.vega-block-settings-link:focus-visible {
 		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.vega-block-full-form:focus-visible {
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
 

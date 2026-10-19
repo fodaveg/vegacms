@@ -1270,6 +1270,8 @@
 			mode={canvasActive ? 'inspector' : 'texts'}
 			onBlockSaved={handleContentSaved}
 			onBack={() => ctx.nav.toRecord(type.name, record.id)}
+			onSelectBlock={openPendingBlock}
+			fullFormHref={recordRoute(type.name, record.id)}
 		/>
 	</div>
 
@@ -1671,6 +1673,7 @@
 	   vive dentro de una pantalla de alto FIJO (`.vega-visual-screen`), no de una página que
 	   scrollea. */
 	.vega-visual-grid {
+		position: relative;
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
 		gap: calc(var(--vega-space-gutter) * 1.25);
@@ -1708,6 +1711,13 @@
 	   como columna normal hasta los 900px en los que el lienzo entero deja de montarse
 	   (`canvasActive`, ver el script). */
 	@media (max-width: 1180px) {
+		.vega-visual-preview-tools::before {
+			content: '';
+			width: 7rem;
+			height: 36px;
+			flex-shrink: 0;
+		}
+
 		.vega-visual-grid--tree {
 			grid-template-columns: minmax(0, 1fr);
 		}

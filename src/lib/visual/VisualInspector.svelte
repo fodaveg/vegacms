@@ -126,7 +126,6 @@
 	import { getVegaContext } from '$lib/app-context';
 	import BlockEditor from '$lib/form/BlockEditor.svelte';
 	import type { BlocksState } from '$lib/form/blocks-state.svelte';
-	import Icon from '$lib/icons/Icon.svelte';
 	import { resolveFocusTarget } from '$lib/form/focus-target';
 	import { focusables } from './a11y-audit';
 
@@ -142,9 +141,19 @@
 		mode?: 'inspector' | 'texts';
 		/** Solo en `texts`, página sin secciones (lámina 8.5): el botón de vuelta al formulario. */
 		onBack?: () => void;
+		onSelectBlock?: (id: string) => void;
+		fullFormHref?: string;
 	}
 
-	let { blocks, selectedId, onBlockSaved, mode = 'inspector', onBack }: Props = $props();
+	let {
+		blocks,
+		selectedId,
+		onBlockSaved,
+		mode = 'inspector',
+		onBack,
+		onSelectBlock,
+		fullFormHref
+	}: Props = $props();
 	const ctx = getVegaContext();
 
 	const texts = $derived(mode === 'texts');
@@ -220,7 +229,9 @@
 			const target = resolveFocusTarget(body, row.dataset.field!, body.dataset.blockId);
 			if (target && !target.closest('[hidden]')) return target;
 		}
-		return focusables(body).find((control) => !control.closest('[hidden], .vega-block-context'));
+		return focusables(body).find(
+			(control) => !control.closest('[hidden], .vega-block-context, .vega-block-full-form')
+		);
 	}
 
 	/** `$effect.pre` (ver cabecera): corre ANTES de que Svelte aplique el `hidden` nuevo al DOM, así
@@ -256,12 +267,36 @@
 	}
 </script>
 
-{#snippet blockHeader(name: string, state: string, save: Snippet | undefined)}
+{#snippet blockHeader(name: string, state: string, save: Snippet | undefined, id: string)}
 	<header class="vega-block-context">
 		<div class="vega-block-context-name">
-			<p class="vega-block-context-title" title={name}>{name}</p>
+			<h3 id="vega-texts-title-{id}" class="vega-block-context-title" title={name}>{name}</h3>
 			<p class="vega-block-context-state" role="status">{state}</p>
 		</div>
+		{#if texts}
+			{#if blocks.records.length > 1 && onSelectBlock}
+				<select
+					class="vega-texts-index"
+					aria-label={ctx.t('editor.visual.texts.jump')}
+					value={id}
+					onchange={(event) => onSelectBlock?.(event.currentTarget.value)}
+				>
+					{#each blocks.records as item, index (item.id)}
+						<option value={item.id}
+							>{index + 1}/{blocks.records.length} · {sectionTitle(item)} — {blocks.blockTitle(
+								item
+							)}</option
+						>
+					{/each}
+				</select>
+			{:else}
+				<span class="vega-texts-single"
+					>{blocks.records.findIndex((item) => item.id === id) + 1}/{blocks.records.length} · {sectionTitle(
+						blocks.records.find((item) => item.id === id)!
+					)}</span
+				>
+			{/if}
+		{/if}
 		{#if save}{@render save()}{/if}
 	</header>
 {/snippet}
@@ -334,19 +369,6 @@
 				data-block-id={record.id}
 				tabindex="-1"
 			>
-				{#if texts}
-					<div class="vega-texts-head">
-						<h3 id="vega-texts-title-{record.id}">
-							{#if blockType?.icon}<Icon id={blockType.icon} size={14} />{/if}
-							{sectionTitle(record)}
-						</h3>
-						{#if blocks.isDirty(record.id)}
-							<span class="vega-texts-dirty" title={ctx.t('editor.dirty')}>
-								<span class="vega-visually-hidden">{ctx.t('editor.dirty')}</span>
-							</span>
-						{/if}
-					</div>
-				{/if}
 				<BlockEditor
 					bind:this={editorRefs[record.id]}
 					{childType}
@@ -365,6 +387,7 @@
 					onDraftChange={(draft) => blocks.handleBlockDraftChange(record.id, draft)}
 					onBusyChange={(saving) => blocks.setSaving(record.id, saving)}
 					textsOnly={texts}
+					{fullFormHref}
 					contextualHeader={blockHeader}
 					{locked}
 				/>
@@ -538,49 +561,28 @@
 		min-width: 0;
 	}
 
-	/* Cabecera de sección (lámina 8, `.vega-visual-texts-head`): rótulo de tarjeta (`.vega-fsection
-	   h2`) + marca de «sin guardar» (`.vega-visual-dirty` de la barra, mismo punto de 8 px). */
-	.vega-texts-head {
-		display: flex;
-		align-items: center;
-		gap: 0.55rem;
+	.vega-texts-index {
+		width: 5rem;
+		min-height: 44px;
+		flex-shrink: 0;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--surface);
+		color: var(--ink);
+		font: inherit;
+		font-size: 0.8em;
 	}
 
-	.vega-texts-head h3 {
-		display: flex;
-		flex: 1;
-		align-items: center;
-		gap: 0.45rem;
-		min-width: 0;
-		margin: 0;
-		font-size: 0.76em;
-		font-weight: 650;
-		letter-spacing: 0.09em;
-		text-transform: uppercase;
+	.vega-texts-index:focus-visible {
+		outline: 2px solid var(--ink);
+		outline-offset: 2px;
+	}
+
+	.vega-texts-single {
+		max-width: 5rem;
+		font-size: 0.75em;
 		color: var(--ink-2);
 		overflow-wrap: anywhere;
-	}
-
-	.vega-texts-dirty {
-		display: inline-block;
-		flex-shrink: 0;
-		width: 8px;
-		height: 8px;
-		border-radius: 50%;
-		background: var(--warning);
-		overflow: hidden;
-	}
-
-	.vega-visually-hidden {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		margin: -1px;
-		padding: 0;
-		border: 0;
-		overflow: hidden;
-		clip: rect(0 0 0 0);
-		white-space: nowrap;
 	}
 
 	/* Página sin secciones (lámina 8.5): la caja de la antigua pantalla de salida de

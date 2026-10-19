@@ -622,13 +622,22 @@ describe('VisualInspector.svelte', () => {
 		function mountTexts(
 			blocks: BlocksState,
 			ctx: VegaAppContext,
-			onBack: () => void = vi.fn()
+			onBack: () => void = vi.fn(),
+			onSelectBlock: (id: string) => void = vi.fn()
 		): { target: HTMLElement; instance: ReturnType<typeof mount> } {
 			const target = document.createElement('div');
 			document.body.appendChild(target);
 			const instance = mount(VisualInspector, {
 				target,
-				props: { blocks, selectedId: null, onBlockSaved: vi.fn(), mode: 'texts', onBack },
+				props: {
+					blocks,
+					selectedId: null,
+					onBlockSaved: vi.fn(),
+					mode: 'texts',
+					onBack,
+					onSelectBlock,
+					fullFormHref: '/c/post/rec-1'
+				},
 				context: new Map([[VEGA_CONTEXT_KEY, ctx]])
 			});
 			return { target, instance };
@@ -666,6 +675,24 @@ describe('VisualInspector.svelte', () => {
 			expect(mounted.target.querySelector('.vega-inspector-notice')).toBeNull();
 		});
 
+		test('el índice conserva el orden real y pide selección al dueño de pantalla', async () => {
+			const onSelect = vi.fn();
+			const blocks = fakeBlocksState(
+				{ records: [record('b1', 'Hero'), record('b2', 'Features')] },
+				childType,
+				structuralFields
+			);
+			mounted = mountTexts(blocks, fakeCtx(vi.fn()), vi.fn(), onSelect);
+			await tick();
+			const indexes = mounted.target.querySelectorAll<HTMLSelectElement>('select');
+			expect(indexes).toHaveLength(2);
+			expect(Array.from(indexes[0].options).map((o) => o.value)).toEqual(['b1', 'b2']);
+			expect(indexes[1].value).toBe('b2');
+			indexes[0].value = 'b2';
+			indexes[0].dispatchEvent(new Event('change', { bubbles: true }));
+			expect(onSelect).toHaveBeenCalledWith('b2');
+		});
+
 		test('solo los campos de texto; el resto se cuenta y se nombra sin editarse', () => {
 			const mixed = buildChildTypeFrom(mixedBlockType);
 			const countLabel = mixed.fields.find((f) => f.name === 'count')!.label;
@@ -690,6 +717,10 @@ describe('VisualInspector.svelte', () => {
 				translate('es', 'editor.visual.texts.rest.one', { count: 1, fields: countLabel })
 			);
 			expect(mounted.target.querySelector('.vega-block-save-button')).not.toBeNull();
+			expect(mounted.target.querySelector('a[href="/c/post/rec-1"]')?.textContent).toContain(
+				'Abrir formulario completo'
+			);
+			expect(mounted.target.querySelector('select')).toBeNull();
 		});
 
 		test('sección sin ningún texto: se lista igual, lo dice, y no ofrece «Guardar»', async () => {

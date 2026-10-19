@@ -463,6 +463,12 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.unavailable.noBlocks':
 		'The content type "{label}" is not made of blocks, so there is nothing to select on the canvas.',
 	// "Text only" mode (batch 12, sheet 8), see `es.ts` for the full rationale.
+	'editor.visual.insert.start': 'Add at the start',
+	'editor.visual.insert.end': 'Add at the end',
+	'editor.visual.insert.after': 'Add after “{label}”',
+	'editor.visual.texts.jump': 'Go to section',
+	'editor.visual.texts.form': 'Open full form',
+	'editor.visual.texts.formGuard': 'Save your changes before opening the form to keep them.',
 	'editor.visual.texts.title': 'Text only',
 	'editor.visual.texts.intro':
 		'Here you can fix the text of each section. To see the page, move sections or change images you need a window 900px wide or more.',

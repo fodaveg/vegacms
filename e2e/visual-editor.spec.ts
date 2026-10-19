@@ -658,9 +658,12 @@ test.describe('editor visual — modo «solo textos» por debajo de 900 px', () 
 		const sections = textsSections(page);
 		await expect(sections).toHaveCount(3);
 		// Cabecera = etiqueta del tipo de bloque del manifiesto (`SHOWCASE_MANIFEST.blockTypes`).
-		await expect(sections.nth(0).getByRole('heading', { level: 3 })).toHaveText('Portada');
-		await expect(sections.nth(1).getByRole('heading', { level: 3 })).toHaveText('Texto');
-		await expect(sections.nth(2).getByRole('heading', { level: 3 })).toHaveText('Galería');
+		await expect(sections.nth(0).getByRole('heading', { level: 3 })).toHaveText(SECCIONES[0].text);
+		await expect(sections.nth(0).locator('option').nth(0)).toContainText('Portada');
+		await expect(sections.nth(1).getByRole('heading', { level: 3 })).toHaveText(SECCIONES[1].text);
+		await expect(sections.nth(1).locator('option').nth(1)).toContainText('Texto');
+		await expect(sections.nth(2).getByRole('heading', { level: 3 })).toHaveText(SECCIONES[2].text);
+		await expect(sections.nth(2).locator('option').nth(2)).toContainText('Galería');
 		// Cada campo con su etiqueta, alcanzable por nombre accesible dentro de SU sección (los ids
 		// van namespaceados por bloque, `field-scope.ts`): «Título» en las tres, «Cuerpo» solo en
 		// «Texto», «Subtítulo» solo en «Portada». SIEMPRE `exact: true`: `getByLabel` casa por
@@ -1319,4 +1322,141 @@ test('UX02: desmontar mientras carga ayuda no abre ni enfoca el diálogo despué
 	await expect(page.getByRole('dialog')).toHaveCount(0);
 	await expect(page.locator('.vega-visual-help-loading')).toHaveCount(0);
 	await expect(page.locator('.vega-record-form')).toBeVisible();
+});
+
+for (const insertion of [
+	{ point: 0, label: 'Añadir al principio', type: 'Portada', index: 0, keyboard: true },
+	{
+		point: 1,
+		label: `Añadir después de «${SECCIONES[0].text}»`,
+		type: 'Texto',
+		index: 1,
+		keyboard: false
+	},
+	{ point: 3, label: 'Añadir al final', type: 'Galería', index: 3, keyboard: true }
+]) {
+	test(`UX04: destino confirmado antes de insertar ${insertion.type} en ${insertion.index}`, async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: 1440, height: 900 });
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+		await openVisualEditor(page, site, 'pagina_1');
+		await waitConnected(page, 3);
+		const trigger = page.locator('.vega-visual-overlay-insert').nth(insertion.point);
+		await expect(trigger).toHaveAccessibleName(insertion.label);
+		if (insertion.keyboard) {
+			await trigger.focus();
+			await trigger.press('Enter');
+		} else await trigger.click();
+		const menu = page.getByRole('menu', { name: insertion.label, exact: true });
+		await expect(menu.locator('.vega-visual-insert-destination')).toHaveText(insertion.label);
+		await expect(page.locator('.vega-tree-list li')).toHaveCount(3);
+		const item = menu.getByRole('menuitem', { name: insertion.type, exact: true });
+		if (insertion.keyboard) {
+			await item.focus();
+			await item.press('Enter');
+		} else await item.click();
+		await expect(page.locator('.vega-tree-list li')).toHaveCount(4);
+		await page.getByRole('button', { name: 'Volver al formulario', exact: true }).click();
+		await expect(page.locator('.vega-block-type').nth(insertion.index)).toHaveText(insertion.type);
+	});
+}
+
+test('UX04: el borrador cierra el menú abierto y ningún + crea hasta guardarlo', async ({
+	page
+}) => {
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openVisualEditor(page, site, 'pagina_1');
+	await waitConnected(page, 3);
+	await page.locator('[data-vega-tree-row="seccion_1"]').click();
+	const trigger = page.locator('.vega-visual-overlay-insert').first();
+	await trigger.focus();
+	await trigger.press('Enter');
+	await expect(page.getByRole('menu')).toBeVisible();
+	// El borrador puede llegar mientras el menú mantiene el foco (p.ej. entrada de editor).
+	await headingInput(page).evaluate((input: HTMLInputElement) => {
+		input.value = 'Borrador conservado';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+	});
+	await expect(page.getByRole('menu')).toHaveCount(0);
+	for (const point of await page.locator('.vega-visual-overlay-insert').all())
+		await expect(point).toBeDisabled();
+	await expect(page.locator('.vega-tree-list li')).toHaveCount(3);
+	await headingInput(page).focus();
+	await page.keyboard.press('Control+s');
+	await expect(trigger).toBeEnabled();
+	await expect(headingInput(page)).toHaveValue('Borrador conservado');
+});
+
+test('UX04: Secciones a 901 recibe clic y teclado y devuelve el foco al cerrar', async ({
+	page
+}) => {
+	await page.setViewportSize({ width: 901, height: 900 });
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openVisualEditor(page, site, 'pagina_1');
+	await waitConnected(page, 3);
+	const trigger = page.locator('.vega-tree-toggle');
+	await expect
+		.poll(() =>
+			trigger.evaluate((el) => {
+				const r = el.getBoundingClientRect();
+				return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+			})
+		)
+		.toBe(true);
+	await trigger.click();
+	await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+	await page.keyboard.press('Escape');
+	await expect(trigger).toBeFocused();
+	await trigger.press('Enter');
+	await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+	await page.locator('[data-vega-tree-row="seccion_2"]').click();
+	await expect(trigger).toBeFocused();
+	await expect(headingInput(page)).toHaveValue(SECCIONES[1].text);
+	const frame = await (await page
+		.locator('iframe.vega-visual-frame')
+		.elementHandle())!.contentFrame();
+	expect(await frame!.evaluate(() => innerWidth)).toBe(1280);
+});
+
+test('UX11: índice de secciones conserva borrador/error y el formulario respeta cancelar o guardar', async ({
+	page
+}) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openLongBlockForm(page, site);
+	await page.setViewportSize({ width: 390, height: 844 });
+	const first = page.locator('[data-block-id="seccion_2"].vega-inspector-body');
+	const third = page.locator('[data-block-id="seccion_3"].vega-inspector-body');
+	await first.getByLabel('Título', { exact: true }).fill('Borrador con error retenido');
+	await first.getByRole('button', { name: 'Guardar', exact: true }).click();
+	await expect(first.locator('.vega-field-error').first()).toBeVisible();
+	const error = await first.locator('.vega-field-error').first().textContent();
+	await first.getByRole('combobox', { name: 'Ir a sección' }).selectOption('seccion_3');
+	await expect(third.getByLabel('Título', { exact: true })).toBeFocused();
+	await third.getByRole('combobox', { name: 'Ir a sección' }).selectOption('seccion_2');
+	await expect(first.getByLabel('Título', { exact: true })).toBeFocused();
+	await expect(first.locator('.vega-field-error').first()).toHaveText(error!);
+	await page.setViewportSize({ width: 1440, height: 900 });
+	await expect(page.locator('.vega-visual-canvas')).toBeVisible();
+	await expect(page.locator('.vega-inspector-body:not([hidden])')).toHaveCount(1);
+	await expect(headingInput(page)).toHaveValue('Borrador con error retenido');
+	await page.setViewportSize({ width: 390, height: 844 });
+	page.once('dialog', (dialog) => dialog.dismiss());
+	await first.getByRole('link', { name: 'Abrir formulario completo' }).click();
+	await expect(page).toHaveURL(/\/visual$/);
+	await expect(first.getByLabel('Título', { exact: true })).toHaveValue(
+		'Borrador con error retenido'
+	);
+	await expect(first.locator('.vega-field-error').first()).toHaveText(error!);
+	await first.locator('[data-field="detalle_1"] textarea').fill('Campo requerido corregido');
+	await first.getByRole('button', { name: 'Guardar', exact: true }).click();
+	await expect(first.getByRole('button', { name: 'Guardar', exact: true })).toBeDisabled();
+	await first.getByRole('link', { name: 'Abrir formulario completo' }).click();
+	await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
+	await expect(page.locator('.vega-block-title').nth(1)).toHaveText('Borrador con error retenido');
+	await page.locator('.vega-block-toggle').nth(1).click();
+	await expect(page.getByRole('textbox', { name: 'Detalle editorial 1', exact: true })).toHaveValue(
+		'Campo requerido corregido'
+	);
 });

@@ -135,6 +135,23 @@ describe('VisualPalette.svelte', () => {
 		vi.restoreAllMocks();
 	});
 
+	test('el catálogo largo conserva vocabulario y orden y explicita crear al final', async () => {
+		// Fixture explícita: veinte variantes del mismo tipo admitido, sin categorías añadidas.
+		const types = Array.from({ length: 20 }, (_, index) => ({
+			...HERO_TYPE,
+			name: `hero_${index}`,
+			label: `Portada variante ${index + 1} con nombre editorial largo`
+		}));
+		mounted = mountPalette({ blocks: fakeBlocksState({ hasTypeMenu: true, blockTypes: types }) });
+		await tick();
+		expect(mounted.target.querySelector('h2')?.textContent).toBe('Añadir al final');
+		expect(
+			Array.from(mounted.target.querySelectorAll('.vega-palette-item')).map((el) =>
+				el.textContent?.trim()
+			)
+		).toEqual(types.map((type) => type.label));
+	});
+
 	test('sin menú de tipos (modo homogéneo), no se pinta nada', () => {
 		const blocks = fakeBlocksState({ hasTypeMenu: false, blockTypes: [HERO_TYPE] });
 		mounted = mountPalette({ blocks });
