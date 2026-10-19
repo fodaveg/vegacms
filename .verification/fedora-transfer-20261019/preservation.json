@@ -1,0 +1,93 @@
+{
+  "branch": "wip/fedora-fodaveg-20261019",
+  "sourceBranch": "codex/fodaveg-cutover-failure-20261008",
+  "baseCommit": "a51b8521e1eeef52a522d2a065b36a03578c0c3a",
+  "sourceWorktree": "/Users/david/code/vegacms/.verification/worktrees/fodaveg-cutover-failure-20261008",
+  "copiedFiles": [
+    {
+      "path": ".verification/fodaveg-forward-reconcile-20261015/BRIEF.md",
+      "sha256": "5dae010dde10b2b35cdc7fa2211148acdcf550ac9ee79f0638a70065d291b771"
+    },
+    {
+      "path": ".verification/fodaveg-forward-reconcile-20261015/SHA256SUMS",
+      "sha256": "dffcd73a083dae844817baf91ce3f73f067a45a6e633f16e9d33b2697b4bd0ac"
+    },
+    {
+      "path": ".verification/fodaveg-forward-reconcile-20261015/aggregate.py",
+      "sha256": "4d83c88e22143e8d2cbda118026bb91f6e9af77811df34b4f6ce03ec8f3b94d0"
+    },
+    {
+      "path": ".verification/fodaveg-forward-reconcile-20261015/receipt.json",
+      "sha256": "ac3334c07a2f95db384a8422987a79d109539cbc9f904fc6f3a015b9cd7e80c1"
+    },
+    {
+      "path": ".verification/fodaveg-forward-reconcile-20261015/selftest.log",
+      "sha256": "53134c51fb5a01b8db82641103776713c7abf56b483d6d52244a328307c0d534"
+    },
+    {
+      "path": ".verification/fodaveg-forward-reconcile-20261015/selftest.py",
+      "sha256": "54f2e7755a399f4d5336fbbdc5edbb1ff5c13e81a4988c2f8122676041ba3344"
+    },
+    {
+      "path": ".verification/image-only-delivery-20261008/fod_failure_selftest.py",
+      "sha256": "2a5d0c3cf82ff8bcf607a5f626d846449549ad53ba40501ac3eea6f323f6376d"
+    },
+    {
+      "path": ".verification/image-only-delivery-20261008/fod_forward_recovery_fragment.py",
+      "sha256": "4ec3761585953e37a50ed233c202f9f6c4d80cdbc395c50f201d55bfe10aee90"
+    },
+    {
+      "path": ".verification/image-only-delivery-20261008/fod_forward_selftest.py",
+      "sha256": "569fa19db6560e930d34370043cf915571f73ec724b21efa368b9e9ebef6f17d"
+    },
+    {
+      "path": ".verification/image-only-delivery-20261008/fodaveg-failure-readonly-20261008.json",
+      "sha256": "c2fc6e2986c815f5ba14271734e2fdac9e9101654bbb207c26d157acd07f50b3"
+    },
+    {
+      "path": ".verification/image-only-delivery-20261008/fodaveg-forward-recovery-20261008.json",
+      "sha256": "9c63372b97c0ff52ddb112b2d807b64ca61130c94bc466d3a3f0e6f0a85065cc"
+    },
+    {
+      "path": ".verification/image-only-delivery-20261008/fodaveg-post-recovery-readonly-20261008.json",
+      "sha256": "ae29b8562c14d537ad0ce46340ab4899762499b93be400dc7549e685b50b684e"
+    },
+    {
+      "path": ".verification/image-only-delivery-20261008/health-output-auto-review-rejection-20261008.json",
+      "sha256": "d5b4b96dc6bbf8d3582c433e5ccff72bfca59165d33f3ce07adea899b0f6f810"
+    },
+    {
+      "path": ".verification/image-only-delivery-20261008/remote_fod_failure_readonly.py",
+      "sha256": "d41a733c44cc0aae9df3db0eb9eb1ca7ce8fd2799448ccc568dde44c22eb694a"
+    },
+    {
+      "path": ".verification/image-only-delivery-20261008/remote_fod_forward_recovery.py",
+      "sha256": "643c5b144f2a85c31c33cb691e0ce91df1fc36c4683cbcbad008a5f91148ed5a"
+    },
+    {
+      "path": ".verification/image-only-delivery-20261008/remote_fod_health_classifier.py",
+      "sha256": "d81883f176f5e1a5989abd0a9fa9c717408fc958d32a4aebdaf62ebe25c9b61f"
+    },
+    {
+      "path": ".verification/image-only-delivery-20261008/run_fod_failure_readonly.py",
+      "sha256": "d46cbcb6ec34125c120e8beb2ed45a318ba981fde1f1f5e7624bcaf799714a11"
+    },
+    {
+      "path": ".verification/image-only-delivery-20261008/run_fod_forward_recovery.py",
+      "sha256": "31a55ef884dd7e09beeacb2dcaaad8cab92c9642b4d336c1565231c94da293fd"
+    },
+    {
+      "path": ".verification/image-only-delivery-20261008/run_fod_health_classifier.py",
+      "sha256": "b53f2bd3aa9e65fbe3e886880d94761a95ffe0cce02665951ebbb0bc40d623d2"
+    }
+  ],
+  "checks": {
+    "sha256CopyComparison": "PASS",
+    "credentialPatternReview": "PASS; only synthetic fixture credential detected in root handoff selection"
+  },
+  "limits": [
+    "WIP checkpoint for Fedora continuation; no product tests, gate or deployment run.",
+    "Original source worktree/index preserved.",
+    "Python bytecode excluded."
+  ]
+}

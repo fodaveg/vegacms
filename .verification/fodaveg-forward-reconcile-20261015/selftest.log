@@ -1,0 +1,11 @@
+test_foreign_record_or_container_rejected (__main__.AggregateTest.test_foreign_record_or_container_rejected) ... ok
+test_input_sha_and_receipt_drift_rejected (__main__.AggregateTest.test_input_sha_and_receipt_drift_rejected) ... ok
+test_original_stop_cannot_be_recast (__main__.AggregateTest.test_original_stop_cannot_be_recast) ... ok
+test_public_failure_rejected (__main__.AggregateTest.test_public_failure_rejected) ... ok
+test_real_evidence (__main__.AggregateTest.test_real_evidence) ... ok
+test_unhealthy_or_unowned_snapshot_rejected (__main__.AggregateTest.test_unhealthy_or_unowned_snapshot_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.006s
+
+OK

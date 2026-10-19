@@ -1,0 +1,44 @@
+{
+  "backupId": "fodaveg-20261015T020337Z-50583",
+  "dependency": {
+    "composeSha": "eb62c0447d4cce8a8af1ceedeeabb11602770d48d6bf952618ef19e7b8a1008b",
+    "containerId": "c25a7858f2692b395925d5b7f8d80512378dccbaa58ec55e432d8c5f186b73e6",
+    "imageId": "sha256:22cf0983980e3bf9562a0a518f258e6e69cdd58cb3d23a19516f1da60a6d403e",
+    "status": "PASS"
+  },
+  "diagnostic": {
+    "healthClass": "HEALTHY",
+    "journalPhase": "CREATED",
+    "receiptSha": "49d03b44db3aa147cfac0b9be9e853aac5722b8b4d890d46546b818afc43fc3f",
+    "runtimeGuard": "PASS",
+    "status": "PROJECTED"
+  },
+  "historicalBaseline": {
+    "date": "2026-10-09",
+    "freshPreCutover": false,
+    "receiptSha": "96569b55e02cbf3a7706a81d95b9373042d3a479661b14501553da228e5d575d"
+  },
+  "limits": [
+    "The original operation stopped; this receipt does not change that result or the remote journal.",
+    "The diagnostic was a read-only snapshot; dependency guards must recheck ID, image and Compose.",
+    "The public smoke compared with a historical 2026-10-09 baseline, not a fresh pre-cutover snapshot."
+  ],
+  "meaning": "effective-fodaveg-runtime-and-public-cors-after-failed-forward-execution",
+  "operationId": "d42f490f-606d-42d5-84f9-bd0c31da2492",
+  "originalExecution": {
+    "checkpoint": "HEALTH",
+    "failureClass": "NewRuntimeUnhealthy",
+    "receiptSha": "39e2fc2404b3bcf8b9cb94dbf686afa16f43b1accf3085dbd83eb987f6f67e43",
+    "status": "STOP_NEEDS_OPERATOR",
+    "transportExit": 2
+  },
+  "public": {
+    "assetsMatched": 155,
+    "receiptSha": "29b5775d04ba0ed5fa5999263ae2e55be2e513e9978b898b47edfb7e7ea88879",
+    "status": "CORS_PUBLIC_OK"
+  },
+  "recordId": "fodaveg-reprobe-20261015T020337Z-50583",
+  "schema": 1,
+  "service": "fodaveg",
+  "status": "PASS"
+}

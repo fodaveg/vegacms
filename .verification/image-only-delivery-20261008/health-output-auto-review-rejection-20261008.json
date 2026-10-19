@@ -1,0 +1,11 @@
+{
+  "status": "REJECTED_BEFORE_PROCESS_CREATION",
+  "operation": "read at most five private Fodaveg healthcheck outputs into VPS RAM and emit fixed signals",
+  "payloadSha256": "d81883f176f5e1a5989abd0a9fa9c717408fc958d32a4aebdaf62ebe25c9b61f",
+  "wrapperSha256": "b53f2bd3aa9e65fbe3e886880d94761a95ffe0cce02665951ebbb0bc40d623d2",
+  "reason": "Private healthcheck output-derived data egress was not specifically authorized.",
+  "sshExecuted": false,
+  "explicitConsent": "pending asynchronous question",
+  "retryOrIndirectExecution": "forbidden absent new authorization",
+  "unaffectedWork": "forward recovery using same image, post-attempt backup and known public endpoint statuses without reading health Outputs/Test/logs"
+}
