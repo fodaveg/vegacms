@@ -80,6 +80,25 @@ async function waitConnected(page: Page, blockCount: number): Promise<void> {
 	);
 }
 
+/** El índice se descarga bajo demanda; las pruebas que lo usan lo abren como haría una persona. */
+async function openStructure(page: Page): Promise<void> {
+	const toggle = page.locator('.vega-visual-panel-toggle--tree');
+	if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+	await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+	await expect(page.locator('.vega-tree-panel')).toBeVisible();
+}
+
+const pendingDetails = (page: Page) => page.locator('.vega-visual-pending');
+
+/** El resumen conserva el aviso compacto; sus enlaces son accesibles al desplegarlo. */
+async function openPendingDetails(page: Page) {
+	const details = pendingDetails(page);
+	await expect(details).toBeVisible();
+	if ((await details.getAttribute('open')) === null) await details.locator('summary').click();
+	await expect(details).toHaveAttribute('open', '');
+	return details;
+}
+
 const visibleInspectorBody = (page: Page) => page.locator('.vega-inspector-body:not([hidden])');
 
 /**
@@ -145,7 +164,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 				.locator('.vega-visual-canvas')
 				.evaluate((el) => el.clientWidth);
 			const painted = await iframe.boundingBox();
-			return !!painted && Math.abs(canvasWidth - painted.width) < 2;
+			return !!painted && Math.abs(Math.min(canvasWidth, 1280) - painted.width) < 2;
 		};
 		await expect(page.getByRole('combobox', { name: 'Zoom', exact: true })).toHaveValue('fit');
 		await expect(page.locator('#vega-sidebar')).toHaveClass(/vega-sidebar-collapsed/);
@@ -183,7 +202,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		// navegación SPA conserva la preferencia manual y vuelve a aplicar el plegado temporal.
 		await page.setViewportSize({ width: 1440, height: 900 });
 		await waitConnected(page, 3);
-		await page.locator('.vega-visual-back').click();
+		await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
 		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
 		await expect(page.locator('#vega-sidebar')).not.toHaveClass(/vega-sidebar-collapsed/);
 		await page.locator('.vega-editor-visual-button').click();
@@ -232,6 +251,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
 		await openVisualEditor(page, site, 'pagina_1');
 		await waitConnected(page, 3);
+		await openStructure(page);
 
 		const frame = page.frameLocator('iframe.vega-visual-frame');
 		await frame.locator('[data-vega-block-id="seccion_2"]').click();
@@ -346,6 +366,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
 		await openVisualEditor(page, site, 'pagina_1');
 		await waitConnected(page, 3);
+		await openStructure(page);
 
 		// Baja «Escribe. Publica…» (índice 0) un puesto: intercambia con «Tu contenido…».
 		await page.getByRole('button', { name: `Bajar «${SECCIONES[0].text}»` }).click();
@@ -356,7 +377,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		// Navegación CLIENTE (el botón llama a `ctx.nav.toRecord`, nunca `page.goto`): un `goto()`
 		// real recargaría el documento y con él el adaptador `memory` entero (vuelve a la semilla),
 		// perdiendo la escritura que este test quiere comprobar.
-		await page.getByRole('button', { name: 'Volver al formulario' }).click();
+		await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
 		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
 
 		// `RecordBlocks.svelte` hace su PROPIO `list()` sobre el mismo adaptador — si el orden
@@ -418,6 +439,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		// El menú se cierra y la sección nueva llega al árbol: nunca crea directo sin preguntar
 		// (defecto original), y nunca dos menús a la vez.
 		await expect(page.locator('[role="menu"]')).toHaveCount(0);
+		await openStructure(page);
 		await expect(page.locator('.vega-tree-list li')).toHaveCount(4);
 
 		// Persistencia real (mismo criterio que el test de "mover" de arriba): una consulta
@@ -425,7 +447,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		// elegido viajó a su columna REAL (`tipo`), no se perdió por el camino: `RecordBlocks.svelte`
 		// pinta `.vega-block-type` desde `blocks.blockTypeOf(record)`, que lee esa columna, nunca el
 		// menú que se acaba de cerrar.
-		await page.getByRole('button', { name: 'Volver al formulario' }).click();
+		await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
 		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
 		await expect(page.locator('.vega-block-title')).toHaveCount(4);
 		await expect(page.locator('.vega-block-type').last()).toHaveText(/Galería/);
@@ -456,10 +478,12 @@ test.describe('editor visual — paleta de bloques arrastrable, crear sobre el l
 		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
 		await openVisualEditor(page, site, 'pagina_1');
 		await waitConnected(page, 3);
+		await openStructure(page);
 
 		const paletteItem = page
 			.locator('.vega-palette-panel')
-			.getByRole('button', { name: 'Texto', exact: true });
+			.locator('.vega-palette-item')
+			.filter({ has: page.getByText('Texto', { exact: true }) });
 		await expect(paletteItem).toBeVisible();
 		const sourceBox = await paletteItem.boundingBox();
 		if (!sourceBox) throw new Error('bounding box ausente (layout no resuelto)');
@@ -496,7 +520,7 @@ test.describe('editor visual — paleta de bloques arrastrable, crear sobre el l
 
 		// Comprueba el resultado leyendo el backend por su cuenta (`RecordBlocks.svelte`, un
 		// `list()` PROPIO), no la lista del árbol que el propio gesto acaba de tocar.
-		await page.getByRole('button', { name: 'Volver al formulario' }).click();
+		await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
 		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
 		const titles = page.locator('.vega-block-title');
 		const types = page.locator('.vega-block-type');
@@ -518,10 +542,12 @@ test.describe('editor visual — paleta de bloques arrastrable, crear sobre el l
 		const site = createVisualSite({ collection: 'paginas', id: 'pagina_2', blocks: [] });
 		await openVisualEditor(page, site, 'pagina_2');
 		await waitConnected(page, 0);
+		await openStructure(page);
 
 		const paletteItem = page
 			.locator('.vega-palette-panel')
-			.getByRole('button', { name: 'Portada', exact: true });
+			.locator('.vega-palette-item')
+			.filter({ has: page.getByText('Portada', { exact: true }) });
 		await expect(paletteItem).toBeVisible();
 		const sourceBox = await paletteItem.boundingBox();
 		if (!sourceBox) throw new Error('bounding box ausente (layout no resuelto)');
@@ -548,7 +574,7 @@ test.describe('editor visual — paleta de bloques arrastrable, crear sobre el l
 
 		await expect(page.locator('.vega-visual-overlay-empty-drop')).toHaveCount(0);
 
-		await page.getByRole('button', { name: 'Volver al formulario' }).click();
+		await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
 		await expect(page).toHaveURL(/\/c\/paginas\/pagina_2$/);
 		await expect(page.locator('.vega-block-title')).toHaveCount(1);
 		await expect(page.locator('.vega-block-type')).toHaveText(/Portada/);
@@ -682,7 +708,7 @@ test.describe('editor visual — modo «solo textos» por debajo de 900 px', () 
 		).toBeDisabled();
 
 		// La barra de arriba es la de hoy: volver, migas y estado de la página.
-		await expect(page.getByRole('button', { name: 'Volver al formulario' })).toBeVisible();
+		await expect(page.getByRole('link', { name: 'Campos de página', exact: true })).toBeVisible();
 		await expect(statusGroup(page)).toContainText('Borrador');
 
 		// Y el sitio NO se ha descargado en el móvil: ni una petición de token.
@@ -713,7 +739,7 @@ test.describe('editor visual — modo «solo textos» por debajo de 900 px', () 
 		expect(site.tokenRequestCount()).toBe(0);
 
 		// Navegación CLIENTE (ver el test del reorden): un `goto()` reiniciaría el adaptador `memory`.
-		await page.getByRole('button', { name: 'Volver al formulario' }).click();
+		await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
 		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
 		const titles = page.locator('.vega-block-title');
 		await expect(titles).toHaveCount(3);
@@ -731,8 +757,12 @@ test.describe('editor visual — modo «solo textos» por debajo de 900 px', () 
 		// Ensanchar SIN recargar: el lienzo se monta y entonces (y solo entonces) se pide el token.
 		await page.setViewportSize({ width: 901, height: 900 });
 		await expect(page.locator('iframe.vega-visual-frame')).toHaveCount(1);
-		await expect(page.getByRole('region', { name: 'Inspector' })).toBeVisible();
 		await waitConnected(page, 3);
+		await page
+			.frameLocator('iframe.vega-visual-frame')
+			.locator('[data-vega-block-id="seccion_1"]')
+			.click();
+		await expect(page.getByRole('region', { name: 'Inspector' })).toBeVisible();
 		expect(site.tokenRequestCount()).toBe(1);
 	});
 });
@@ -773,7 +803,7 @@ test.describe('editor visual — programar la publicación desde la cabecera', (
 		await expect(change).toBeFocused();
 
 		// Lo guardado es lo que dice la cabecera: el formulario de la página lo enseña igual.
-		await page.getByRole('button', { name: 'Volver al formulario' }).click();
+		await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
 		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
 		await expect(page.locator('.vega-editor-tag')).toContainText(/Programada · /);
 	});
@@ -787,15 +817,18 @@ test('UX03: abrir y guardar el bloque pendiente desbloquea la paleta', async ({
 	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
 	await openVisualEditor(page, site, 'pagina_1');
 	await waitConnected(page, 3);
+	await openStructure(page);
 	const rows = page.locator('.vega-tree-row');
 	await rows.nth(0).click();
 	await headingInput(page).fill('Borrador A pendiente');
+	await openStructure(page);
 	await rows.nth(1).click();
-	const notice = page.getByRole('region', { name: 'Cambios sin guardar', exact: true });
+	const notice = pendingDetails(page);
 	await expect(notice).toContainText('antes de insertar o reordenar');
 	const paletteItems = page.locator('.vega-palette-item');
 	await expect(paletteItems.first()).toBeDisabled();
 	await page.screenshot({ path: testInfo.outputPath('ux03-after-1280-es-light.png') });
+	await openPendingDetails(page);
 	const open = notice.getByRole('button', {
 		name: `Abrir bloque: ${SECCIONES[0].text}`,
 		exact: true
@@ -819,6 +852,7 @@ test('UX03: abrir y guardar el bloque pendiente desbloquea la paleta', async ({
 		.poll(() => page.locator('#vega-sidebar').evaluate((el) => el.getBoundingClientRect().right))
 		.toBeLessThanOrEqual(0);
 	await page.screenshot({ path: testInfo.outputPath('ux03-after-390-es-light.png') });
+	await openPendingDetails(page);
 	const narrowOpen = notice.getByRole('button', {
 		name: 'Abrir bloque: Borrador A pendiente',
 		exact: true
@@ -841,7 +875,7 @@ test('UX01: título largo, controles de vista y error del puente conservan las a
 	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
 	await openVisualEditor(page, site, 'pagina_1');
 	await waitConnected(page, 3);
-	await page.getByRole('button', { name: 'Volver al formulario', exact: true }).click();
+	await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
 	const longTitle =
 		'Una página con un título largo para editar sin perder el contexto del documento';
 	await page
@@ -908,6 +942,7 @@ test('UX01: los selectores conservan el bloque al usar teclas nativas y CtrlS gu
 	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
 	await openVisualEditor(page, site, 'pagina_1');
 	await waitConnected(page, 3);
+	await openStructure(page);
 	await page.locator('[data-vega-tree-row="seccion_1"]').click();
 	const originalOrder = await page.locator('.vega-tree-row').allTextContents();
 	for (const name of ['Vista', 'Zoom']) {
@@ -926,7 +961,7 @@ test('UX01: los selectores conservan el bloque al usar teclas nativas y CtrlS gu
 	await page.getByRole('combobox', { name: 'Vista', exact: true }).focus();
 	await page.keyboard.press('Control+s');
 	await expect(page.locator('.vega-visual-pending')).toHaveCount(0);
-	await page.getByRole('button', { name: 'Volver al formulario', exact: true }).click();
+	await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
 	await expect(page.locator('.vega-block-title').first()).toHaveText(
 		'Borrador guardado desde el selector'
 	);
@@ -936,7 +971,7 @@ test('UX01: los selectores conservan el bloque al usar teclas nativas y CtrlS gu
 async function openLongBlockForm(page: Page, site: VisualSite): Promise<void> {
 	await openVisualEditor(page, site, 'pagina_1');
 	await waitConnected(page, 3);
-	await page.getByRole('button', { name: 'Volver al formulario', exact: true }).click();
+	await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
 	await page.getByRole('link', { name: 'Ajustes', exact: true }).click();
 	const editor = page.getByRole('textbox', { name: 'JSON del manifiesto' });
 	const manifest = JSON.parse(await editor.inputValue());
@@ -975,6 +1010,7 @@ async function openLongBlockForm(page: Page, site: VisualSite): Promise<void> {
 	await page.locator('a[href="/c/paginas/pagina_1"]').click();
 	await page.getByRole('button', { name: 'Editor visual', exact: true }).click();
 	await waitConnected(page, 3);
+	await openStructure(page);
 }
 
 test('UX02: contexto y Guardar siguen accesibles al recorrer un formulario largo y reflow', async ({
@@ -1004,10 +1040,12 @@ test('UX02: contexto y Guardar siguen accesibles al recorrer un formulario largo
 	const error = first.locator('.vega-field-error').first();
 	await expect(error).toBeVisible();
 	const retainedError = await error.textContent();
+	await openStructure(page);
 	await page.locator('[data-vega-tree-row="seccion_2"]').click();
 	await headingInput(page).fill('Borrador B retenido');
-	await page
-		.getByRole('region', { name: 'Cambios sin guardar', exact: true })
+	await (
+		await openPendingDetails(page)
+	)
 		.getByRole('button', { name: `Abrir bloque: ${longName}`, exact: true })
 		.click();
 	await expect(heading).toBeFocused();
@@ -1052,8 +1090,9 @@ test('UX02: contexto y Guardar siguen accesibles al recorrer un formulario largo
 		await page.screenshot({
 			path: testInfo.outputPath(`ux02-${size.width}-long-error-scroll.png`)
 		});
-		await page
-			.getByRole('region', { name: 'Cambios sin guardar', exact: true })
+		await (
+			await openPendingDetails(page)
+		)
 			.getByRole('button', { name: `Abrir bloque: ${longName}`, exact: true })
 			.click();
 		await expect(heading).toBeFocused();
@@ -1088,8 +1127,9 @@ test('UX02: contexto y Guardar siguen accesibles al recorrer un formulario largo
 		expect((await second.boundingBox())!.y).toBeGreaterThan(
 			(await panel.boundingBox())!.y + (await panel.boundingBox())!.height
 		);
-		await page
-			.getByRole('region', { name: 'Cambios sin guardar', exact: true })
+		await (
+			await openPendingDetails(page)
+		)
 			.getByRole('button', { name: `Abrir bloque: ${SECCIONES[1].text}`, exact: true })
 			.click();
 		const secondInput = second.locator('[data-field="heading"] input');
@@ -1107,8 +1147,9 @@ test('UX02: contexto y Guardar siguen accesibles al recorrer un formulario largo
 
 		expect(field.y - 3).toBeGreaterThanOrEqual(header.y + header.height - 1);
 		expect(field.y + field.height + 3).toBeLessThanOrEqual(viewport.y + viewport.height + 1);
-		await page
-			.getByRole('region', { name: 'Cambios sin guardar', exact: true })
+		await (
+			await openPendingDetails(page)
+		)
 			.getByRole('button', { name: `Abrir bloque: ${longName}`, exact: true })
 			.click();
 		await expect(heading).toBeFocused();
@@ -1200,14 +1241,16 @@ for (const empty of [false, true]) {
 		await richtext.fill(
 			empty ? '' : 'Borrador enriquecido con muchas líneas para un panel corto.\n'.repeat(30)
 		);
+		await openStructure(page);
 		await page.locator('[data-vega-tree-row="seccion_3"]').click();
 		await headingInput(page).fill('Borrador galería');
-		const pending = page.getByRole('region', { name: 'Cambios sin guardar', exact: true });
+		const pending = await openPendingDetails(page);
 		await pending
 			.getByRole('button', { name: `Abrir bloque: ${SECCIONES[1].text}`, exact: true })
 			.click();
 		await expect(richtext).toBeFocused();
 		await page.setViewportSize({ width: 1440, height: 500 });
+		await openPendingDetails(page);
 		await pending
 			.getByRole('button', { name: `Abrir bloque: ${SECCIONES[1].text}`, exact: true })
 			.click();
@@ -1240,6 +1283,7 @@ for (const empty of [false, true]) {
 		expect(caret.rect.top).toBeGreaterThanOrEqual(headerBox.y + headerBox.height);
 		expect(caret.rect.bottom).toBeLessThanOrEqual(panelBox.y + panelBox.height);
 
+		await openPendingDetails(page);
 		await pending
 			.getByRole('button', { name: `Abrir bloque: ${SECCIONES[2].text}`, exact: true })
 			.click();
@@ -1333,6 +1377,7 @@ test('UX02: fallo de descarga de ayuda permite cerrar y guardar sin perder borra
 	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
 	await openVisualEditor(page, site, 'pagina_1');
 	await waitConnected(page, 3);
+	await openStructure(page);
 	await page.locator('[data-vega-tree-row="seccion_1"]').click();
 	await headingInput(page).fill('Borrador conservado durante la descarga');
 	await page.getByRole('button', { name: 'Atajos de teclado', exact: true }).click();
@@ -1346,9 +1391,7 @@ test('UX02: fallo de descarga de ayuda permite cerrar y guardar sin perder borra
 	await expect(headingInput(page)).toHaveValue('Borrador conservado durante la descarga');
 	await headingInput(page).fill('Borrador corregido después del fallo de ayuda');
 	await visibleInspectorBody(page).getByRole('button', { name: 'Guardar', exact: true }).click();
-	await expect(page.getByRole('region', { name: 'Cambios sin guardar', exact: true })).toHaveCount(
-		0
-	);
+	await expect(pendingDetails(page)).toHaveCount(0);
 	await expect(headingInput(page)).toHaveValue('Borrador corregido después del fallo de ayuda');
 	expect(requests).toBe(1);
 });
@@ -1370,7 +1413,7 @@ test('UX02: desmontar mientras carga ayuda no abre ni enfoca el diálogo despué
 	await waitConnected(page, 3);
 	await page.getByRole('button', { name: 'Atajos de teclado', exact: true }).click();
 	await expect(page.locator('.vega-visual-help-loading')).toBeVisible();
-	await page.getByRole('button', { name: 'Volver al formulario', exact: true }).click();
+	await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
 	await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
 	const response = page.waitForResponse((r) => r.url().endsWith(chunk));
 	release();
@@ -1398,6 +1441,7 @@ for (const insertion of [
 		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
 		await openVisualEditor(page, site, 'pagina_1');
 		await waitConnected(page, 3);
+		await openStructure(page);
 		const trigger = page.locator('.vega-visual-overlay-insert').nth(insertion.point);
 		await expect(trigger).toHaveAccessibleName(insertion.label);
 		if (insertion.keyboard) {
@@ -1413,7 +1457,7 @@ for (const insertion of [
 			await item.press('Enter');
 		} else await item.click();
 		await expect(page.locator('.vega-tree-list li')).toHaveCount(4);
-		await page.getByRole('button', { name: 'Volver al formulario', exact: true }).click();
+		await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
 		await expect(page.locator('.vega-block-type').nth(insertion.index)).toHaveText(insertion.type);
 	});
 }
@@ -1424,6 +1468,7 @@ test('UX04: el borrador cierra el menú abierto y ningún + crea hasta guardarlo
 	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
 	await openVisualEditor(page, site, 'pagina_1');
 	await waitConnected(page, 3);
+	await openStructure(page);
 	await page.locator('[data-vega-tree-row="seccion_1"]').click();
 	const trigger = page.locator('.vega-visual-overlay-insert').first();
 	await trigger.focus();
@@ -1566,10 +1611,12 @@ for (const locale of ['es', 'en']) {
 		await expect(page.locator('.vega-visual-status')).toContainText(
 			locale === 'es' ? 'Conectado' : 'Connected'
 		);
+		await openStructure(page);
 		const longName =
 			'Guía editorial de una página con un nombre largo para reconocer el bloque al recorrer todos sus campos. ' +
 			'Guía editorial de una página con un nombre largo para reconocer el bloque al recorrer todos sus campos';
 		for (const id of ['seccion_1', 'seccion_2']) {
+			await openStructure(page);
 			await page.locator(`[data-vega-tree-row="${id}"]`).click();
 			const body = page.locator(`.vega-inspector-body[data-block-id="${id}"]`);
 			await body.locator('[data-field="heading"] input').fill(longName);
@@ -1613,7 +1660,10 @@ for (const locale of ['es', 'en']) {
 					});
 				await page.keyboard.press('End');
 				await expect(menu.getByRole('menuitem').last()).toBeFocused();
-				await expect(menu.locator('.vega-visual-insert-destination')).toBeInViewport({ ratio: 1 });
+				// Un borde fraccional puede redondear la intersección a 0.999999 en Chromium.
+				await expect(menu.locator('.vega-visual-insert-destination')).toBeInViewport({
+					ratio: 0.999
+				});
 				await page.keyboard.press('Home');
 				await expect(menu.getByRole('menuitem').first()).toBeFocused();
 				await page.keyboard.press('Escape');
@@ -1646,13 +1696,19 @@ for (const locale of ['es', 'en']) {
 		const option = (await last.boundingBox())!;
 		expect(option.y).toBeGreaterThanOrEqual(options.y - 1);
 		expect(option.y + option.height).toBeLessThanOrEqual(options.y + options.height + 1);
-		await expect(menu.locator('.vega-visual-insert-destination')).toBeInViewport({ ratio: 1 });
+		// Un borde fraccional puede redondear la intersección a 0.999999 en Chromium.
+		await expect(menu.locator('.vega-visual-insert-destination')).toBeInViewport({ ratio: 0.999 });
 		await page.screenshot({
 			path: testInfo.outputPath(`ux04-901x420-${locale}-long-destination.png`)
 		});
 		await page.keyboard.press('Enter');
 		await expect(page.locator('.vega-tree-list li')).toHaveCount(4);
-		await page.locator('.vega-visual-back').click();
+		await page
+			.getByRole('link', {
+				name: locale === 'es' ? 'Campos de página' : 'Page fields',
+				exact: true
+			})
+			.click();
 		await expect(page.locator('.vega-block-type').nth(2)).toHaveText(
 			manifest.blockTypes['texto-variante-20'].label
 		);
@@ -1668,6 +1724,7 @@ test.describe('UX04: objetivos del menú con puntero táctil', () => {
 		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
 		await openVisualEditor(page, site, 'pagina_1');
 		await waitConnected(page, 3);
+		await openStructure(page);
 		expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true);
 		const selected = page.locator('[data-vega-tree-row="seccion_1"]');
 		await selected.click();
