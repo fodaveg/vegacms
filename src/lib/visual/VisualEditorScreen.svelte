@@ -1320,14 +1320,16 @@
 		height: calc(100dvh - var(--topbar-h) - 1.75rem);
 	}
 
-	/* Solo ocupa espacio con borradores. La lista scrollea si hay muchos; nombres largos fluyen
-	   sin truncar la acción que permite resolver el bloqueo. Usa los roles de tinta existentes. */
+	/* Un único scroll conserva todo el aviso, también si su guía crece al cambiar de tipografía.
+	   La cota evita que muchos borradores consuman el espacio reservado al inspector. */
 	.vega-visual-pending {
-		flex-shrink: 0;
+		min-height: 0;
+		max-height: 12rem;
 		padding: 0.75rem 1rem;
 		border-bottom: 1px solid var(--line-strong);
 		background: var(--surface);
 		color: var(--ink);
+		overflow-y: auto;
 	}
 
 	.vega-visual-pending h2 {
@@ -1342,16 +1344,12 @@
 		font-size: 0.85rem;
 	}
 
-	/* Con poca altura, los nombres largos siguen accesibles por scroll y dejan sitio al campo
-	   enfocado y su cabecera; desplazar el inspector no basta si ambos ya no caben en el panel. */
 	.vega-visual-pending-list {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.25rem 0.5rem;
-		max-height: min(8rem, 16vh);
 		margin: 0.5rem 0 0;
 		padding: 0.25rem;
-		overflow-y: auto;
 		list-style: none;
 	}
 
@@ -1677,7 +1675,8 @@
 		grid-template-columns: minmax(0, 1fr);
 		gap: calc(var(--vega-space-gutter) * 1.25);
 		flex: 1;
-		min-height: 0;
+		/* Cabecera, etiqueta, campo y contorno de foco caben antes de ceder alto al aviso. */
+		min-height: 12rem;
 		padding: 0 calc(var(--vega-space-gutter) * 1.5) calc(var(--vega-space-gutter) * 1.25);
 	}
 

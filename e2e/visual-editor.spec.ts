@@ -1129,6 +1129,60 @@ test('UX02: contexto y Guardar siguen accesibles al recorrer un formulario largo
 	}
 });
 
+// Solo al fallar este recorrido: recoge geometría y tipografía, nunca valores ni contenido.
+test.afterEach(async ({ page }, testInfo) => {
+	if (
+		testInfo.status === testInfo.expectedStatus ||
+		!testInfo.title.startsWith('UX02: contexto y Guardar')
+	)
+		return;
+	const geometry = await page.evaluate(() => {
+		const active = document.activeElement;
+		const section = active?.closest('.vega-inspector-body');
+		const measure = (element: Element | null) => {
+			if (!element) return null;
+			const rect = element.getBoundingClientRect();
+			const style = getComputedStyle(element);
+			return {
+				x: rect.x,
+				y: rect.y,
+				width: rect.width,
+				height: rect.height,
+				fontFamily: style.fontFamily,
+				fontSize: style.fontSize,
+				lineHeight: style.lineHeight,
+				minHeight: style.minHeight,
+				maxHeight: style.maxHeight,
+				overflowY: style.overflowY,
+				scrollTop: element.scrollTop,
+				scrollHeight: element.scrollHeight,
+				clientHeight: element.clientHeight
+			};
+		};
+		return {
+			viewport: { width: innerWidth, height: innerHeight, scale: devicePixelRatio },
+			fonts: document.fonts.status,
+			screen: measure(document.querySelector('.vega-visual-screen')),
+			topbar: measure(document.querySelector('.vega-edit-top')),
+			pending: measure(document.querySelector('.vega-visual-pending')),
+			pendingTitle: measure(document.querySelector('.vega-visual-pending h2')),
+			pendingGuide: measure(document.querySelector('.vega-visual-pending p')),
+			pendingList: measure(document.querySelector('.vega-visual-pending-list')),
+			pendingAction: measure(document.querySelector('.vega-visual-pending button')),
+			grid: measure(document.querySelector('.vega-visual-grid')),
+			panel: measure(document.querySelector('.vega-inspector-panel')),
+			header: measure(section?.querySelector('.vega-block-context') ?? null),
+			control: measure(active)
+		};
+	});
+	const serialized = JSON.stringify(geometry);
+	console.error(`UX02_FOCUS_GEOMETRY ${serialized}`);
+	await testInfo.attach('ux02-focus-geometry', {
+		body: serialized,
+		contentType: 'application/json'
+	});
+});
+
 for (const empty of [false, true]) {
 	test(`UX02: abrir pendiente enfoca richtext ${empty ? 'vacío' : 'largo'} y relación reales antes que Guardar`, async ({
 		page
