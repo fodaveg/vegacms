@@ -169,6 +169,18 @@
 	let panelEl = $state<HTMLElement | undefined>(undefined);
 	let headingEl = $state<HTMLElement | undefined>(undefined);
 
+	/** Acceso explícito desde el aviso de borradores, tras actualizar la selección en la pantalla.
+	 *  En estrecho todas las fichas están visibles: se busca por id, nunca la primera del panel.
+	 *  Un control deshabilitado no es destino; sin controles se enfoca la sección contextual. */
+	export function focusBlock(id: string): void {
+		const body = Array.from(
+			panelEl?.querySelectorAll<HTMLElement>('.vega-inspector-body:not([hidden])') ?? []
+		).find((section) => section.dataset.blockId === id);
+		if (!body) return;
+		const target = focusables(body).find((control) => !control.closest('[hidden]'));
+		(target ?? body).focus();
+	}
+
 	/** Primer enfocable de la ficha VISIBLE de `panelEl` (la que no lleva `hidden`), o `null` si no
 	 *  hay ninguna ficha visible o está vacía de controles. Reusa `focusables()` (ver cabecera de
 	 *  `a11y-audit.ts`) en vez de reinventar el criterio de "qué es enfocable". */
@@ -271,7 +283,9 @@
 				class:vega-inspector-body--texts={texts}
 				hidden={texts ? undefined : record.id !== selectedId}
 				aria-labelledby={texts ? `vega-texts-title-${record.id}` : undefined}
+				aria-label={texts ? undefined : blocks.blockTitle(record)}
 				data-block-id={record.id}
+				tabindex="-1"
 			>
 				{#if texts}
 					<div class="vega-texts-head">

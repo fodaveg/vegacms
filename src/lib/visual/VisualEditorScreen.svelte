@@ -536,7 +536,9 @@
 	// instancia de un COMPONENTE, no un nodo DOM nativo, y el compilador exige que el destino sea
 	// reactivo para poder rastrear la reasignación — se lee de forma imperativa igual que `formEl`,
 	// pero declararlo así calla el aviso `non_reactive_update` sin cambiar nada del criterio.
-	let inspectorRef = $state<{ saveSelected: () => void } | undefined>(undefined);
+	let inspectorRef = $state<
+		{ saveSelected: () => void; focusBlock: (id: string) => void } | undefined
+	>(undefined);
 	/** Hora del último guardado CONOCIDO en esta sesión de pantalla (ver cabecera, "Estado de
 	 *  guardado en la barra"): `null` hasta el primer guardado real ocurrido aquí. */
 	let savedAt = $state<Date | null>(null);
@@ -576,6 +578,13 @@
 		// `applyWidth(true)` pide uno nuevo y el lienzo nace ya con lo guardado.
 		if (!canvasActive) return;
 		scheduleCanvasRefresh();
+	}
+
+	/** Abre un borrador desde el aviso y lleva el foco a su ficha ya visible, sin guardar nada. */
+	async function openPendingBlock(blockId: string): Promise<void> {
+		handleBlockSelect(blockId);
+		await tick();
+		inspectorRef?.focusBlock(blockId);
 	}
 
 	/** Puerta ÚNICA de selección (ver cabecera): la llama tanto el sitio (§contrato, `select`, clic
@@ -936,6 +945,9 @@
 		return selectedRecord ? blocks.blockTitle(selectedRecord) : null;
 	});
 
+	/** La MISMA fuente dirty del guard estructural, también para bloques no seleccionados. */
+	const pendingBlocks = $derived(blocks.records.filter((block) => blocks.isDirty(block.id)));
+
 	/** HH:MM localizado (mismo criterio de locale que `RecordForm.svelte#savedAtText`), o `null`
 	 *  sin hora conocida todavía (ver `savedAt`). */
 	const savedAtText = $derived(
@@ -1006,9 +1018,7 @@
 				{type}
 				{record}
 				name={docName}
-				pendingBlocks={blocks.records
-					.filter((r) => blocks.isDirty(r.id))
-					.map((r) => blocks.blockTitle(r))}
+				pendingBlocks={pendingBlocks.map((block) => blocks.blockTitle(block))}
 				{review}
 				onReviewGo={handleReviewGo}
 				onReviewDescribe={handleReviewDescribe}
@@ -1130,6 +1140,28 @@
 			</div>
 		{/snippet}
 	</EditTopBar>
+
+	{#if pendingBlocks.length > 0}
+		<section class="vega-visual-pending" aria-labelledby="vega-visual-pending-title">
+			<div role="status">
+				<h2 id="vega-visual-pending-title">{ctx.t('editor.visual.pending.title')}</h2>
+				<p>{ctx.t('editor.visual.pending.body')}</p>
+			</div>
+			<ul class="vega-visual-pending-list">
+				{#each pendingBlocks as block (block.id)}
+					<li>
+						<button
+							type="button"
+							class="vega-visual-pending-block"
+							onclick={() => void openPendingBlock(block.id)}
+						>
+							{ctx.t('editor.visual.pending.open', { label: blocks.blockTitle(block) })}
+						</button>
+					</li>
+				{/each}
+			</ul>
+		</section>
+	{/if}
 
 	<!-- La rejilla existe en los DOS anchos; lo que cambia con `canvasActive` es cuántas celdas
 	     tiene (ver cabecera, "lo que SÍ hay por debajo de 900 px"). Las clases de columnas van
@@ -1349,6 +1381,68 @@
 		margin: 0 -2rem -2.5rem;
 		height: calc(100vh - var(--topbar-h) - 1.75rem);
 		height: calc(100dvh - var(--topbar-h) - 1.75rem);
+	}
+
+	/* Solo ocupa espacio con borradores. La lista scrollea si hay muchos; nombres largos fluyen
+	   sin truncar la acción que permite resolver el bloqueo. Usa los roles de tinta existentes. */
+	.vega-visual-pending {
+		flex-shrink: 0;
+		padding: 0.75rem 1rem;
+		border-bottom: 1px solid var(--line-strong);
+		background: var(--surface);
+		color: var(--ink);
+	}
+
+	.vega-visual-pending h2 {
+		margin: 0;
+		color: var(--ink-hi);
+		font-size: 0.9rem;
+		font-weight: 650;
+	}
+
+	.vega-visual-pending p {
+		margin: 0.25rem 0 0;
+		font-size: 0.85rem;
+	}
+
+	.vega-visual-pending-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem 0.5rem;
+		max-height: 8rem;
+		margin: 0.5rem 0 0;
+		padding: 0.25rem;
+		overflow-y: auto;
+		list-style: none;
+	}
+
+	.vega-visual-pending-list li {
+		min-width: 0;
+		max-width: 100%;
+	}
+
+	.vega-visual-pending-block {
+		min-width: 44px;
+		min-height: 44px;
+		padding: 0.5rem 0.75rem;
+		border: 1px solid var(--line-strong);
+		border-radius: var(--r);
+		background: var(--paper);
+		color: var(--ink);
+		font: inherit;
+		font-size: 0.85rem;
+		text-align: start;
+		overflow-wrap: anywhere;
+		cursor: pointer;
+	}
+
+	.vega-visual-pending-block:hover {
+		background: var(--surface);
+	}
+
+	.vega-visual-pending-block:focus-visible {
+		outline: 2px solid var(--ink);
+		outline-offset: 2px;
 	}
 
 	.vega-visual-back {

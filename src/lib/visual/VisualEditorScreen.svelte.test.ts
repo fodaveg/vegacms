@@ -2332,6 +2332,93 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 
 	// ————— Estado de guardado en la barra: las TRES ramas —————
 
+	test.each([false, true])(
+		'el aviso abre el borrador correcto sin perder otro (estrecho=%s)',
+		async (narrow) => {
+			stubMatchMedia(narrow);
+			vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+			const longTitle = 'Bloque pendiente con un nombre muy largo '.repeat(8);
+			const { ctx, type, port } = await setup([
+				{ id: 'b1', heading: longTitle, sort: 0 },
+				{ id: 'b2', heading: 'Otro bloque', sort: 1 }
+			]);
+			mounted = mountScreen(ctx, type);
+			await flush();
+			expect(mounted.target.querySelector('.vega-visual-pending')).toBeNull();
+			const rows = mounted.target.querySelectorAll<HTMLButtonElement>('.vega-tree-row');
+			const body = (id: string) =>
+				mounted!.target.querySelector<HTMLElement>(`[data-block-id="${id}"].vega-inspector-body`)!;
+			const edit = async (id: string, value: string) => {
+				if (!narrow) {
+					rows[id === 'b1' ? 0 : 1].click();
+					await tick();
+				}
+				const input = body(id).querySelector<HTMLInputElement>('input[type="text"]')!;
+				input.value = value;
+				input.dispatchEvent(new Event('input', { bubbles: true }));
+				await tick();
+			};
+			await edit('b1', 'Borrador A');
+			await edit('b2', 'Borrador B');
+			const notice = mounted.target.querySelector('.vega-visual-pending')!;
+			expect(notice.textContent).toContain('Cambios sin guardar');
+			expect(notice.textContent).toContain('antes de insertar o reordenar');
+			expect(notice.textContent).toContain(longTitle);
+			expect(notice.querySelectorAll('button')).toHaveLength(2);
+			const openFirst = notice.querySelector<HTMLButtonElement>('button')!;
+			openFirst.focus();
+			openFirst.click();
+			await tick();
+			await tick();
+			expect(body('b1').hidden).toBe(false);
+			expect(body('b1').contains(document.activeElement)).toBe(true);
+			expect(body('b1').querySelector<HTMLInputElement>('input[type="text"]')!.value).toBe(
+				'Borrador A'
+			);
+			expect(body('b2').querySelector<HTMLInputElement>('input[type="text"]')!.value).toBe(
+				'Borrador B'
+			);
+			// Un éxito solo quita SU borrador; el otro sigue bloqueando la estructura.
+			body('b1').querySelector<HTMLButtonElement>('.vega-block-save-button')!.click();
+			await flush();
+			expect(mounted.target.querySelectorAll('.vega-visual-pending-block')).toHaveLength(1);
+			expect(mounted.target.querySelector('.vega-visual-pending-block')?.textContent).toContain(
+				'Otro bloque'
+			);
+			expect((await port.get('post_block', 'b1')).values.heading).toBe('Borrador A');
+			expect((await port.get('post_block', 'b2')).values.heading).toBe('Otro bloque');
+		}
+	);
+
+	test('un error conserva el aviso y el borrador; solo el éxito confirmado lo retira', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type, port } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		const originalUpdate = port.update.bind(port);
+		const update = vi.spyOn(port, 'update').mockRejectedValueOnce(new Error('Sin conexión'));
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await editHeading(mounted.target, 'Borrador conservado');
+		const save = mounted.target.querySelector<HTMLButtonElement>(
+			'.vega-inspector-body:not([hidden]) .vega-block-save-button'
+		)!;
+		save.click();
+		await flush();
+		expect(mounted.target.querySelector('.vega-visual-pending')?.textContent).toContain(
+			'Cambios sin guardar'
+		);
+		expect(
+			mounted.target.querySelector<HTMLInputElement>(
+				'.vega-inspector-body:not([hidden]) input[type="text"]'
+			)!.value
+		).toBe('Borrador conservado');
+		expect((await port.get('post_block', 'b1')).values.heading).toBe('Hero');
+		update.mockImplementation(originalUpdate);
+		save.click();
+		await flush();
+		expect(mounted.target.querySelector('.vega-visual-pending')).toBeNull();
+		expect((await port.get('post_block', 'b1')).values.heading).toBe('Borrador conservado');
+	});
+
 	test('estado de guardado: sin guardar → guardando → hora del último guardado', async () => {
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
 		const { ctx, type, port } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
@@ -2369,6 +2456,16 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 			translate('es', 'editor.saving')
 		);
 		expect(mounted.target.querySelector('.vega-visual-dirty')).toBeNull(); // guardando gana
+		// El aviso sigue hasta la confirmación; una ficha temporalmente bloqueada ofrece ancla contextual.
+		const pending = mounted.target.querySelector<HTMLButtonElement>('.vega-visual-pending-block')!;
+		expect(pending).not.toBeNull();
+		pending.focus();
+		pending.click();
+		await tick();
+		await tick();
+		expect(document.activeElement).toBe(
+			mounted.target.querySelector('.vega-inspector-body:not([hidden])')
+		);
 
 		// 3) Hora del último guardado.
 		releaseSave();

@@ -120,6 +120,11 @@
 		<div class="vega-palette-head">
 			<h2 id="vega-palette-heading">{ctx.t('editor.blocks.addMenu.label')}</h2>
 		</div>
+		{#if blocks.anyDirty}
+			<p class="vega-palette-notice" id="vega-palette-pending">
+				{ctx.t('editor.visual.pending.palette')}
+			</p>
+		{/if}
 		<div class="vega-palette-list">
 			{#each blocks.blockTypes as blockType (blockType.name)}
 				<button
@@ -127,6 +132,7 @@
 					class="vega-palette-item"
 					draggable={!structuralGuard}
 					disabled={structuralGuard}
+					aria-describedby={blocks.anyDirty ? 'vega-palette-pending' : undefined}
 					ondragstart={(event) => handleDragStart(event, blockType)}
 					ondragend={onDragEnd}
 					onclick={() => void createAtEnd(blockType)}
@@ -158,6 +164,14 @@
 		letter-spacing: 0.09em;
 		text-transform: uppercase;
 		color: var(--ink-2);
+	}
+
+	.vega-palette-notice {
+		margin: 0;
+		padding: 0 0.9rem 0.75rem;
+		color: var(--ink);
+		font-size: 0.8em;
+		overflow-wrap: anywhere;
 	}
 
 	.vega-palette-list {

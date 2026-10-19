@@ -782,3 +782,57 @@ test.describe('editor visual — programar la publicación desde la cabecera', (
 		await expect(page.locator('.vega-editor-tag')).toContainText(/Programada · /);
 	});
 });
+
+/** UX03: el borrador de A explica la guarda aunque B esté seleccionado; acceso nativo de teclado. */
+test('UX03: abrir y guardar el bloque pendiente desbloquea la paleta', async ({
+	page
+}, testInfo) => {
+	await page.setViewportSize({ width: 1280, height: 900 });
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openVisualEditor(page, site, 'pagina_1');
+	await waitConnected(page, 3);
+	const rows = page.locator('.vega-tree-row');
+	await rows.nth(0).click();
+	await headingInput(page).fill('Borrador A pendiente');
+	await rows.nth(1).click();
+	const notice = page.getByRole('region', { name: 'Cambios sin guardar', exact: true });
+	await expect(notice).toContainText('antes de insertar o reordenar');
+	const paletteItems = page.locator('.vega-palette-item');
+	await expect(paletteItems.first()).toBeDisabled();
+	await page.screenshot({ path: testInfo.outputPath('ux03-after-1280-es-light.png') });
+	const open = notice.getByRole('button', {
+		name: `Abrir bloque: ${SECCIONES[0].text}`,
+		exact: true
+	});
+	await open.focus();
+	await open.press('Enter');
+	await expect(headingInput(page)).toBeFocused();
+	await expect(headingInput(page)).toHaveValue('Borrador A pendiente');
+	await expect(visibleInspectorBody(page)).toHaveAttribute('data-block-id', 'seccion_1');
+	await visibleInspectorBody(page).getByRole('button', { name: 'Guardar', exact: true }).click();
+	await expect(notice).toHaveCount(0);
+	await expect(paletteItems.first()).toBeEnabled();
+
+	// El mismo borrador sobrevive a estrecharse; el aviso lleva a ESA ficha entre todas las visibles.
+	await headingInput(page).fill('Segundo borrador pendiente');
+	await page.setViewportSize({ width: 390, height: 844 });
+	await expect(page.locator('iframe.vega-visual-frame')).toHaveCount(0);
+	const closeNav = page.locator('.vega-sidebar-open .vega-sidebar-close');
+	if (await closeNav.count()) await closeNav.click();
+	await expect
+		.poll(() => page.locator('#vega-sidebar').evaluate((el) => el.getBoundingClientRect().right))
+		.toBeLessThanOrEqual(0);
+	await page.screenshot({ path: testInfo.outputPath('ux03-after-390-es-light.png') });
+	const narrowOpen = notice.getByRole('button', {
+		name: 'Abrir bloque: Borrador A pendiente',
+		exact: true
+	});
+	await narrowOpen.focus();
+	await narrowOpen.press('Space');
+	const first = page.locator('.vega-inspector-body[data-block-id="seccion_1"]');
+	await expect(first.locator('[data-field="heading"] input')).toBeFocused();
+	await expect(first.locator('[data-field="heading"] input')).toHaveValue(
+		'Segundo borrador pendiente'
+	);
+	expect(await page.locator('body').evaluate((body) => body.scrollWidth <= innerWidth)).toBe(true);
+});
