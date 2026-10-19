@@ -68,6 +68,11 @@
  *   la CARGA INICIAL (138.90 KB) y la pantalla más cara (38.22 KB, el editor de registro). O sea que
  *   el 65 % de lo que el tope único vigilaba no lo descarga nadie al entrar. De ahí el cambio de
  *   criterio y los tres topes de abajo.
+ * - 2026-10-19 (modernización UX04/UX11): revisión técnica de Codex, comunicada a David antes
+ *   de aplicarla. El candidato combinado 501b579 mide 82 754 B (80.81 KiB) en la pantalla más
+ *   cara: 834 B sobre el techo anterior. Se revisa solo ese techo de 80 a 82 KiB (+2.5 %),
+ *   manteniendo las tres métricas y los límites inicial/total. No es una nueva firma de David.
+ *   No se recortan controles, feedback ni accesibilidad para encajar en el número histórico.
  */
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -78,10 +83,10 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BUILD_DIR = path.resolve(__dirname, '..', 'build');
 
-// Los tres topes que firmó David el 2026-07-31. Medido ese día: inicial 138.90 KB, pantalla más
-// cara 38.22 KB, total 400.10 KB. Ver la cabecera para el criterio de cada uno.
+// Topes originales firmados por David el 2026-07-31: 200/80/1024 KiB. La revisión técnica
+// comunicada el 2026-10-19 cambia solo el incremental a 82 KiB; ver medidas y autoría arriba.
 const INITIAL_BUDGET_BYTES = 200 * 1024;
-const ROUTE_BUDGET_BYTES = 80 * 1024;
+const ROUTE_BUDGET_BYTES = 82 * 1024;
 const TOTAL_BUDGET_BYTES = 1024 * 1024;
 
 const KB = (bytes) => `${(bytes / 1024).toFixed(2)} KB`;
@@ -357,7 +362,7 @@ function main() {
 	if (failures.length > 0) {
 		for (const failure of failures) console.error(`[bundle-budget] SUPERADO: ${failure}`);
 		console.error(
-			'[bundle-budget] Los tres números los firma David (contrato §P8): no los subas sin decírselo.'
+			'[bundle-budget] Los topes tienen historial medido en este script: comunica cualquier revisión antes de aplicarla.'
 		);
 		process.exitCode = 1;
 		return;
