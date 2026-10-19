@@ -690,7 +690,7 @@
 	}
 
 	.vega-tree-row:focus-visible {
-		outline: 2px solid var(--accent);
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
 
@@ -797,7 +797,7 @@
 		border: 0;
 		border-radius: 6px;
 		background: transparent;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		cursor: pointer;
 	}
 
@@ -807,7 +807,7 @@
 	}
 
 	.vega-tree-action:focus-visible {
-		outline: 2px solid var(--accent);
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
 
@@ -953,5 +953,15 @@
 			transform: translateX(0);
 			visibility: visible;
 		}
+	}
+
+	.vega-tree-row:hover,
+	.vega-tree-row--selected,
+	.vega-tree-row:hover .vega-tree-saving,
+	.vega-tree-row--selected .vega-tree-saving {
+		color: var(--ink);
+	}
+	.vega-tree-close:hover {
+		color: var(--ink);
 	}
 </style>

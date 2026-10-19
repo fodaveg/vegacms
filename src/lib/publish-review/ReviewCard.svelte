@@ -147,7 +147,7 @@
 
 	/* Destino de foco de «Ver la revisión»: el anillo de siempre, solo con foco de teclado/programa. */
 	.vega-review:focus-visible {
-		outline: 2px solid var(--ring);
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
 

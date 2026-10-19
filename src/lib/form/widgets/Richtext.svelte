@@ -278,14 +278,14 @@
 	   `.richtext:focus-within`): el `<div contenteditable>` de TipTap no es un `<input>`, así que el
 	   `:focus-visible` global de `theme/base.css` nunca lo alcanza. */
 	.vega-widget-richtext {
-		border: 1px solid var(--line);
+		border: 1px solid var(--ink-2);
 		border-radius: var(--r);
 		background: var(--surface);
 		overflow: hidden;
 	}
 
 	.vega-widget-richtext:focus-within {
-		outline: 2px solid var(--ring);
+		outline: 2px solid var(--ink);
 		outline-offset: 1px;
 	}
 

@@ -128,4 +128,8 @@
 		cursor: not-allowed;
 		opacity: 0.4;
 	}
+
+	.vega-pagination-chevron:hover:not(:disabled) {
+		color: var(--ink);
+	}
 </style>

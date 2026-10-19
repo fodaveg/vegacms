@@ -795,7 +795,7 @@
 	.field input,
 	.field select {
 		padding: 0.45rem 0.6rem;
-		border: 1px solid var(--line);
+		border: 1px solid var(--ink-2);
 		border-radius: 6px;
 		font-size: 0.9rem;
 		background: var(--surface);
@@ -825,7 +825,7 @@
 	.vega-field-row input[type='text'],
 	.vega-field-row select {
 		padding: 0.35rem 0.5rem;
-		border: 1px solid var(--line);
+		border: 1px solid var(--ink-2);
 		border-radius: 6px;
 		font-size: 0.85rem;
 		background: var(--surface);
@@ -839,7 +839,7 @@
 	.vega-field-max {
 		width: 8rem;
 		padding: 0.35rem 0.5rem;
-		border: 1px solid var(--line);
+		border: 1px solid var(--ink-2);
 		border-radius: 6px;
 		font-size: 0.85rem;
 		background: var(--surface);
@@ -927,7 +927,7 @@
 	.vega-field-select-option input[type='text'] {
 		flex: 1 1 10rem;
 		padding: 0.35rem 0.5rem;
-		border: 1px solid var(--line);
+		border: 1px solid var(--ink-2);
 		border-radius: 6px;
 		font-size: 0.85rem;
 		background: var(--surface);
@@ -955,7 +955,7 @@
 	}
 
 	.vega-schema-authoring :is(input, select, button):focus-visible {
-		outline: 2px solid var(--accent);
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
 

@@ -236,22 +236,22 @@
 		align-items: center;
 		gap: 0.6rem;
 		background: var(--surface);
-		border: 1px solid var(--line-strong);
+		border: 1px solid var(--ink-2);
 		border-radius: var(--r);
 		padding: 0.42rem 0.75rem;
-		color: var(--ink-3);
+		color: var(--ink-2);
 	}
 
 	.vega-list-search:focus-within {
-		border-color: var(--accent);
+		border-color: var(--ink-2);
 	}
 
 	/* El `<input>` interior no dibuja su anillo (`outline: none`, abajo: lo lleva la caja entera),
-	   así que el anillo `--ring` de 2 px de los demás controles (regla de `form/widgets/*`:
-	   `outline: 2px solid var(--ring)` + `outline-offset: 1px`) sube a la caja cuando el foco es de
+	   así que el anillo `--ink` de 2 px de los demás controles (regla de `form/widgets/*`:
+	   `outline: 2px solid var(--ink)` + `outline-offset: 1px`) sube a la caja cuando el foco es de
 	   teclado; antes solo cambiaba el borde. */
 	.vega-list-search:has(input:focus-visible) {
-		outline: 2px solid var(--ring);
+		outline: 2px solid var(--ink);
 		outline-offset: 1px;
 	}
 
@@ -265,7 +265,8 @@
 	}
 
 	.vega-list-search input::placeholder {
-		color: var(--ink-3);
+		color: var(--ink-2);
+		opacity: 1;
 	}
 
 	.vega-list-search input:focus {

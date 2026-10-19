@@ -655,7 +655,7 @@
 	}
 
 	.vega-trash-item-restore-unavailable {
-		color: var(--ink-3);
+		color: var(--ink-2);
 		font-size: 0.8rem;
 		font-style: italic;
 	}

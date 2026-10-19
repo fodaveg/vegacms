@@ -404,7 +404,7 @@
 	.vega-redirect-btn:focus-visible,
 	.vega-redirect-check input:focus-visible,
 	.vega-redirect-choices input:focus-visible {
-		outline: 2px solid var(--ring);
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
 

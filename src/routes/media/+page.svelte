@@ -808,16 +808,16 @@
 		height: 34px;
 		min-width: 240px;
 		padding: 0 0.7rem;
-		border: 1px solid var(--line);
+		border: 1px solid var(--ink-2);
 		border-radius: var(--r);
 		background: var(--surface);
-		color: var(--ink-3);
+		color: var(--ink-2);
 	}
 
 	.vega-media-search:focus-within {
-		outline: 2px solid var(--ring);
+		outline: 2px solid var(--ink);
 		outline-offset: 1px;
-		border-color: var(--line-strong);
+		border-color: var(--ink-2);
 	}
 
 	.vega-media-search input {
@@ -830,7 +830,8 @@
 	}
 
 	.vega-media-search input::placeholder {
-		color: var(--ink-3);
+		color: var(--ink-2);
+		opacity: 1;
 	}
 
 	/* Chips de tipo (mockup `.type-chip`): píldoras con `aria-pressed` — un grupo de toggles de
@@ -990,5 +991,17 @@
 		   hardcodeada por el token. */
 		font-family: var(--mono);
 		font-size: 0.8rem;
+	}
+
+	@media (pointer: coarse) {
+		.vega-media-page button,
+		.vega-media-search input {
+			min-width: 44px;
+			min-height: 44px;
+		}
+
+		.vega-media-search {
+			height: auto;
+		}
 	}
 </style>

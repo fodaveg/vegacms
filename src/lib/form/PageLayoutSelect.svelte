@@ -86,7 +86,7 @@
 		   en los siete widgets escalares (ver la cabecera de `widgets/Select.svelte`): padding
 		   derivado de la densidad (`--pad-field`), radio `--r` y superficie `--surface`. */
 		padding: calc(var(--pad-field) * 0.55) calc(var(--pad-field) * 0.7);
-		border: 1px solid var(--line);
+		border: 1px solid var(--ink-2);
 		border-radius: var(--r);
 		background: var(--surface);
 		color: var(--ink);
@@ -94,13 +94,13 @@
 	}
 
 	.vega-widget-select:hover:not(:disabled) {
-		border-color: var(--line-strong);
+		border-color: var(--ink-2);
 	}
 
 	.vega-widget-select:focus-visible {
-		outline: 2px solid var(--ring);
+		outline: 2px solid var(--ink);
 		outline-offset: 1px;
-		border-color: var(--line-strong);
+		border-color: var(--ink-2);
 	}
 
 	.vega-widget-select:disabled {

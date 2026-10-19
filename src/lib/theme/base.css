@@ -66,9 +66,16 @@ body {
 	display: none !important;
 }
 
+/* Los placeholders habilitados son texto de ayuda, con el mismo contraste que un label. */
+input:enabled::placeholder,
+textarea:enabled::placeholder {
+	color: var(--ink-2);
+	opacity: 1;
+}
+
 /* A11y transversal (§4.3 del checklist): foco visible en todo interactivo. */
 :focus-visible {
-	outline: 2px solid var(--ring);
+	outline: 2px solid var(--ink);
 	outline-offset: 2px;
 }
 
