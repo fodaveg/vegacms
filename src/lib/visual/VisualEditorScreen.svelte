@@ -1601,7 +1601,8 @@
 	}
 
 	.vega-visual-view-select:focus-visible,
-	.vega-visual-zoom-select:focus-visible {
+	.vega-visual-zoom-select:focus-visible,
+	.vega-visual-help-loading-close:focus-visible {
 		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}

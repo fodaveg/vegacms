@@ -1071,68 +1071,128 @@ test('UX02: contexto y Guardar siguen accesibles al recorrer un formulario largo
 		.toBe(true);
 	const secondHeader = (await second.locator('.vega-block-context').boundingBox())!;
 	expect(secondHeader.y).toBeGreaterThanOrEqual((await panel.boundingBox())!.y);
+	// UX03 puede abrir cualquier borrador, aunque su ficha esté completamente fuera del panel.
+	for (const size of [
+		{ width: 390, height: 844 },
+		{ width: 720, height: 500 }
+	]) {
+		await page.setViewportSize(size);
+		await panel.evaluate((el) => {
+			el.scrollTop = 0;
+		});
+		expect((await second.boundingBox())!.y).toBeGreaterThan(
+			(await panel.boundingBox())!.y + (await panel.boundingBox())!.height
+		);
+		await page
+			.getByRole('region', { name: 'Cambios sin guardar', exact: true })
+			.getByRole('button', { name: `Abrir bloque: ${SECCIONES[1].text}`, exact: true })
+			.click();
+		const secondInput = second.locator('[data-field="heading"] input');
+		await expect(secondInput).toBeFocused();
+		await page.evaluate(
+			() =>
+				new Promise<void>((resolve) =>
+					requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+				)
+		);
+		const field = (await secondInput.boundingBox())!,
+			header = (await second.locator('.vega-block-context').boundingBox())!,
+			viewport = (await panel.boundingBox())!;
+		expect(field.y).toBeGreaterThanOrEqual(header.y + header.height);
+
+		expect(field.y - 3).toBeGreaterThanOrEqual(header.y + header.height - 1);
+		expect(field.y + field.height + 3).toBeLessThanOrEqual(viewport.y + viewport.height + 1);
+		await page
+			.getByRole('region', { name: 'Cambios sin guardar', exact: true })
+			.getByRole('button', { name: `Abrir bloque: ${longName}`, exact: true })
+			.click();
+		await expect(heading).toBeFocused();
+		await page.evaluate(
+			() =>
+				new Promise<void>((resolve) =>
+					requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+				)
+		);
+		const firstField = (await heading.boundingBox())!,
+			firstHeader = (await first.locator('.vega-block-context').boundingBox())!;
+		expect(firstField.y).toBeGreaterThanOrEqual(firstHeader.y + firstHeader.height);
+		expect(firstField.y - 3).toBeGreaterThanOrEqual(firstHeader.y + firstHeader.height - 1);
+		expect(firstField.y + firstField.height + 3).toBeLessThanOrEqual(
+			viewport.y + viewport.height + 1
+		);
+		if (size.width === 720)
+			await page.screenshot({
+				path: testInfo.outputPath('ux02-720x500-two-drafts-focused-field.png')
+			});
+	}
 });
 
-test('UX02: abrir pendiente enfoca el richtext y la relación reales antes que Guardar', async ({
-	page
-}) => {
-	await page.setViewportSize({ width: 1440, height: 900 });
-	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
-	await openLongBlockForm(page, site);
-	await page.locator('[data-vega-tree-row="seccion_2"]').click();
-	const richtext = page.locator(
-		'[data-block-id="seccion_2"] [data-field="cuerpo"] [contenteditable="true"]'
-	);
-	await richtext.fill('Borrador enriquecido con muchas líneas para un panel corto.\n'.repeat(30));
-	await page.locator('[data-vega-tree-row="seccion_3"]').click();
-	await headingInput(page).fill('Borrador galería');
-	const pending = page.getByRole('region', { name: 'Cambios sin guardar', exact: true });
-	await pending
-		.getByRole('button', { name: `Abrir bloque: ${SECCIONES[1].text}`, exact: true })
-		.click();
-	await expect(richtext).toBeFocused();
-	await page.setViewportSize({ width: 1440, height: 500 });
-	await pending
-		.getByRole('button', { name: `Abrir bloque: ${SECCIONES[1].text}`, exact: true })
-		.click();
-	await expect(richtext).toBeFocused();
-	// TipTap restaura su caret después de pintar: el rect del control completo puede empezar
-	// fuera del panel si es muy alto; lo que debe seguir visible es la posición editable actual.
-	await page.evaluate(
-		() =>
-			new Promise<void>((resolve) =>
-				requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-			)
-	);
-	const caret = await richtext.evaluate((el) => {
-		const selection = document.getSelection()!;
-		const range = selection.getRangeAt(0);
-		return {
-			inside: el.contains(range.startContainer),
-			collapsed: selection.isCollapsed,
-			rect: range.getBoundingClientRect().toJSON()
-		};
+for (const empty of [false, true]) {
+	test(`UX02: abrir pendiente enfoca richtext ${empty ? 'vacío' : 'largo'} y relación reales antes que Guardar`, async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: 1440, height: 900 });
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+		await openLongBlockForm(page, site);
+		await page.locator('[data-vega-tree-row="seccion_2"]').click();
+		const richtext = page.locator(
+			'[data-block-id="seccion_2"] [data-field="cuerpo"] [contenteditable="true"]'
+		);
+		await richtext.fill(
+			empty ? '' : 'Borrador enriquecido con muchas líneas para un panel corto.\n'.repeat(30)
+		);
+		await page.locator('[data-vega-tree-row="seccion_3"]').click();
+		await headingInput(page).fill('Borrador galería');
+		const pending = page.getByRole('region', { name: 'Cambios sin guardar', exact: true });
+		await pending
+			.getByRole('button', { name: `Abrir bloque: ${SECCIONES[1].text}`, exact: true })
+			.click();
+		await expect(richtext).toBeFocused();
+		await page.setViewportSize({ width: 1440, height: 500 });
+		await pending
+			.getByRole('button', { name: `Abrir bloque: ${SECCIONES[1].text}`, exact: true })
+			.click();
+		await expect(richtext).toBeFocused();
+		// TipTap restaura su caret después de pintar: el rect del control completo puede empezar
+		// fuera del panel si es muy alto; lo que debe seguir visible es la posición editable actual.
+		await page.evaluate(
+			() =>
+				new Promise<void>((resolve) =>
+					requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+				)
+		);
+		const caret = await richtext.evaluate((el) => {
+			const selection = document.getSelection()!;
+			const range = selection.getRangeAt(0);
+			return {
+				inside: el.contains(range.startContainer),
+				collapsed: selection.isCollapsed,
+				rect: range.getBoundingClientRect().height
+					? range.getBoundingClientRect().toJSON()
+					: el.getBoundingClientRect().toJSON()
+			};
+		});
+		const headerBox = (await page
+			.locator('[data-block-id="seccion_2"] .vega-block-context')
+			.boundingBox())!;
+		const panelBox = (await page.locator('.vega-inspector-panel').boundingBox())!;
+		if (!empty) expect((await richtext.boundingBox())!.height).toBeGreaterThan(panelBox.height);
+		expect(caret.inside && caret.collapsed).toBe(true);
+		expect(caret.rect.top).toBeGreaterThanOrEqual(headerBox.y + headerBox.height);
+		expect(caret.rect.bottom).toBeLessThanOrEqual(panelBox.y + panelBox.height);
+
+		await pending
+			.getByRole('button', { name: `Abrir bloque: ${SECCIONES[2].text}`, exact: true })
+			.click();
+		const relation = page.locator('[data-block-id="seccion_3"] [data-field="imagenes"]');
+		await expect
+			.poll(() => relation.evaluate((el) => el.contains(document.activeElement)))
+			.toBe(true);
+		await expect(
+			page.locator('[data-block-id="seccion_3"] .vega-block-save-button')
+		).not.toBeFocused();
 	});
-	const headerBox = (await page
-		.locator('[data-block-id="seccion_2"] .vega-block-context')
-		.boundingBox())!;
-	const panelBox = (await page.locator('.vega-inspector-panel').boundingBox())!;
-	expect((await richtext.boundingBox())!.height).toBeGreaterThan(panelBox.height);
-	expect(caret.inside && caret.collapsed).toBe(true);
-	expect(caret.rect.top).toBeGreaterThanOrEqual(headerBox.y + headerBox.height);
-	expect(caret.rect.bottom).toBeLessThanOrEqual(panelBox.y + panelBox.height);
-
-	await pending
-		.getByRole('button', { name: `Abrir bloque: ${SECCIONES[2].text}`, exact: true })
-		.click();
-	const relation = page.locator('[data-block-id="seccion_3"] [data-field="imagenes"]');
-	await expect
-		.poll(() => relation.evaluate((el) => el.contains(document.activeElement)))
-		.toBe(true);
-	await expect(
-		page.locator('[data-block-id="seccion_3"] .vega-block-save-button')
-	).not.toBeFocused();
-});
+}
 
 /** URL con hash de la distribución real, sin acoplar la prueba al nombre de un chunk. */
 async function visualHelpChunkPath(): Promise<string> {

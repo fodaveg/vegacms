@@ -197,17 +197,16 @@
 			const header = section?.querySelector('.vega-block-context');
 			const viewport = panel.getBoundingClientRect();
 			const selection = document.getSelection();
-			const rect =
+			const caret =
 				editable && selection?.rangeCount && target.contains(selection.anchorNode)
 					? selection.getRangeAt(0).getBoundingClientRect()
-					: target.getBoundingClientRect();
+					: null;
+			const rect = caret?.height ? caret : target.getBoundingClientRect();
 			const top =
-				target === section
-					? viewport.top
-					: (header?.getBoundingClientRect().bottom ?? viewport.top) + 12;
-			const bottom = viewport.bottom - 12;
-			if (rect.height > bottom - top || rect.top < top) panel.scrollTop += rect.top - top;
-			else if (rect.bottom > bottom) panel.scrollTop += rect.bottom - bottom;
+				viewport.top + (target === section ? 0 : (header?.getBoundingClientRect().height ?? 0)) + 3;
+			const bottom = viewport.bottom - 3;
+			// Desplazamiento mínimo; si no cabe, alinea el inicio.
+			panel.scrollTop += Math.min(rect.top - top, Math.max(0, rect.bottom - bottom));
 		};
 		// La selección de TipTap se restaura después del foco; no se fuerza primero al comienzo.
 		if (editable) requestAnimationFrame(() => requestAnimationFrame(reveal));
@@ -218,7 +217,7 @@
 	 *  primer campo, nunca al nuevo Guardar. Se excluye también cualquier control oculto. */
 	function firstFieldControl(body: HTMLElement): HTMLElement | undefined {
 		for (const row of body.querySelectorAll<HTMLElement>('.vega-field-row[data-field]')) {
-			const target = resolveFocusTarget(body, row.dataset.field!, body.dataset.blockId ?? null);
+			const target = resolveFocusTarget(body, row.dataset.field!, body.dataset.blockId);
 			if (target && !target.closest('[hidden]')) return target;
 		}
 		return focusables(body).find((control) => !control.closest('[hidden], .vega-block-context'));
@@ -387,6 +386,13 @@
 		padding: 0.75rem 0;
 		border-bottom: 1px solid var(--line);
 		background: var(--paper);
+	}
+
+	/* En poca altura la cabecera conserva nombre/estado y Guardar44px, dejando espacio al campo. */
+	@media (max-height: 600px) {
+		.vega-block-context {
+			padding-block: 0.25rem;
+		}
 	}
 
 	.vega-block-context-name {
