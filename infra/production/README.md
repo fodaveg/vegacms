@@ -95,7 +95,12 @@ scripts/smoke.sh
 
 cd /srv/vega
 infra/production/smoke.sh
+infra/production/prune-images.sh --apply vegacms
 ```
+
+La poda conserva la imagen en uso y una de rollback (la más nueva sin contenedor) y borra el resto
+de imágenes de `vegacms`, sin tocar otros repositorios ni la caché de build compartida. Ejecútala
+solo con el smoke en verde. Conviene pasarla antes sin `--apply` para ver qué borrará.
 
 No levantes otro proxy en 80/443. Si falla cualquier prueba del borde, retira
 `/srv/edge/conf.d/vega.caddy`, vuelve a validar y recarga antes de investigar.
@@ -379,6 +384,9 @@ docker compose --env-file infra/production/.env \
   --file infra/production/compose.yml up --detach --wait --no-build
 infra/production/smoke.sh
 ```
+
+La imagen de rollback disponible es la que conservó la poda del último deploy; tras volver atrás
+no se poda hasta el siguiente deploy correcto.
 
 La imagen nunca contiene `pb_data`, por lo que cambiarla no altera el volumen. Si el primer
 despliegue falla, elimina `/srv/edge/conf.d/vega.caddy`, valida y recarga Caddy, y detén el Compose
