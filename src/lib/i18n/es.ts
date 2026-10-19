@@ -2102,6 +2102,7 @@ export const es = {
 	'admin.form.rejected': 'El servidor rechazó los datos: {message}',
 
 	// ————— Toasts (§2.3) —————
+	'shell.skipToContent': 'Saltar al contenido',
 	'toast.dismiss': 'Descartar aviso',
 
 	// ————— Genérico —————

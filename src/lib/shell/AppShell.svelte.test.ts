@@ -2,6 +2,7 @@
 import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import AppShell from './AppShell.svelte';
+import { VEGA_CONTEXT_KEY } from '$lib/app-context';
 
 interface TopbarProps {
 	sidebarCollapsed: boolean;
@@ -53,7 +54,8 @@ function start(saved = false): void {
 	harness.read.mockReturnValue(saved);
 	instance = mount(AppShell, {
 		target,
-		props: { children: createRawSnippet(() => ({ render: () => '<p>Contenido</p>' })) }
+		props: { children: createRawSnippet(() => ({ render: () => '<p>Contenido</p>' })) },
+		context: new Map([[VEGA_CONTEXT_KEY, { t: (key: string) => key }]])
 	});
 	flushSync();
 }
@@ -80,6 +82,23 @@ afterEach(async () => {
 });
 
 describe('AppShell: sidebar durante edición visual', () => {
+	test('el primer enlace salta con foco real al main y sigue válido después de navegar', () => {
+		start();
+		const first = target.querySelector<HTMLAnchorElement>('a')!;
+		const main = target.querySelector<HTMLElement>('main')!;
+		expect(first.textContent).toBe('shell.skipToContent');
+		expect(first.hash).toBe(`#${main.id}`);
+		expect(main.tabIndex).toBe(-1);
+		first.focus();
+		first.click();
+		expect(document.activeElement).toBe(main);
+		navigate('/media');
+		first.focus();
+		first.click();
+		expect(document.activeElement).toBe(main);
+		expect(main.inert).toBe(false);
+	});
+
 	test.each([false, true])(
 		'montar ya en visual pliega sin evento ni persistir y restaura %s',
 		(saved) => {

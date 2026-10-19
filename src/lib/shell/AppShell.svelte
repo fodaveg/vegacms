@@ -45,6 +45,7 @@
 	 * scroll sigue siendo INTERNO (`.vega-main`/`Sidebar`), nunca del documento.
 	 */
 	import type { Snippet } from 'svelte';
+	import { getVegaContext } from '$lib/app-context';
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import { readSidebarCollapsed, setSidebarCollapsed } from '$lib/theme/apply';
@@ -65,6 +66,13 @@
 		onpresence?.(true);
 		return () => onpresence?.(false);
 	});
+
+	const ctx = getVegaContext();
+	let mainEl: HTMLElement | null = null;
+	function skipToContent(event: MouseEvent): void {
+		event.preventDefault();
+		mainEl?.focus();
+	}
 
 	let sidebarOpen = $state(false);
 	let manualSidebarCollapsed = readSidebarCollapsed();
@@ -90,6 +98,9 @@
 </script>
 
 <div class="vega-shell" id="vega-app-shell">
+	<a class="vega-skip-link" href="#vega-main-content" onclick={skipToContent}
+		>{ctx.t('shell.skipToContent')}</a
+	>
 	<Topbar
 		{sidebarOpen}
 		onToggleSidebar={() => (sidebarOpen = !sidebarOpen)}
@@ -116,13 +127,48 @@
 		     marca `inert`: refuerza el trap de foco de teclado impidiendo que un lector de pantalla
 		     en modo virtual navegue al `<main>` de detrás (§4.3). En escritorio `sidebarOpen` es
 		     siempre falso, así que `<main>` nunca queda inerte. -->
-		<main class="vega-main" inert={sidebarOpen}>
+		<main
+			class="vega-main"
+			id="vega-main-content"
+			tabindex="-1"
+			bind:this={mainEl}
+			inert={sidebarOpen}
+		>
 			{@render children()}
 		</main>
 	</div>
 </div>
 
 <style>
+	.vega-skip-link {
+		position: fixed;
+		z-index: 80;
+		top: 0.5rem;
+		left: 0.5rem;
+		display: inline-flex;
+		align-items: center;
+		box-sizing: border-box;
+		min-width: 44px;
+		min-height: 44px;
+		max-width: calc(100% - 1rem);
+		padding: 0.5rem 0.75rem;
+		border: 1px solid var(--line-strong);
+		border-radius: var(--r);
+		background: var(--surface);
+		color: var(--ink);
+		font-weight: 600;
+		overflow-wrap: anywhere;
+		transform: translateY(calc(-100% - 1rem));
+	}
+	.vega-skip-link:focus {
+		transform: none;
+		outline-color: var(--ink);
+	}
+	.vega-main:focus-visible {
+		outline-color: var(--ink);
+		outline-offset: -2px;
+	}
+
 	.vega-shell {
 		display: flex;
 		flex-direction: column;
