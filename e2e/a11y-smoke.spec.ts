@@ -85,3 +85,190 @@ test('overlay móvil: la hamburguesa abre la sidebar con foco atrapado y Esc la 
 	// El foco vuelve a quien abrió el overlay.
 	await expect(page.getByRole('button', { name: 'Abrir navegación' })).toBeFocused();
 });
+
+/** Lote A: comportamiento de teclado y regiones vivas, sin atribuir un anuncio de lector real. */
+for (const viewport of [
+	{ width: 1440, height: 900 },
+	{ width: 390, height: 844 }
+]) {
+	test(`saltar al contenido es el primer Tab visible y enfoca main tras navegar (${viewport.width})`, async ({
+		page
+	}) => {
+		await page.setViewportSize(viewport);
+		await loginAsDemo(page);
+		await waitForHome(page);
+		await page.goto('/');
+		await waitForHome(page);
+		const skip = page.getByRole('link', { name: 'Saltar al contenido', exact: true });
+		await expect(skip).not.toBeInViewport();
+		await page.keyboard.press('Tab');
+		await expect(skip).toBeFocused();
+		await expect(skip).toBeInViewport();
+		await page.keyboard.press('Enter');
+		await expect(page.getByRole('main')).toBeFocused();
+		await page.keyboard.press('Tab');
+		expect(await page.getByRole('main').evaluate((el) => el.contains(document.activeElement))).toBe(
+			true
+		);
+		await page
+			.getByRole('main')
+			.getByRole('button', { name: 'Nuevo: Entrada', exact: true })
+			.click();
+		await page.waitForURL('**/c/posts/new');
+		await skip.focus();
+		await page.keyboard.press('Enter');
+		await expect(page.getByRole('main')).toBeFocused();
+		await expect(page.getByRole('heading', { name: 'Nuevo: Entrada', exact: true })).toBeVisible();
+	});
+}
+
+test('barra richtext: una entrada Tab, flechas entre botones y selector final con teclas nativas', async ({
+	page
+}) => {
+	await loginAsDemo(page);
+	await waitForHome(page);
+	await page.goto('/c/posts/new');
+	const field = page.locator('[data-field="content"]'),
+		toolbar = field.getByRole('toolbar'),
+		editor = field.getByRole('textbox');
+	const bold = toolbar.getByRole('button', { name: 'Negrita', exact: true }),
+		italic = toolbar.getByRole('button', { name: 'Cursiva', exact: true }),
+		select = toolbar.getByRole('combobox');
+	await expect(bold).toBeEnabled();
+	expect(
+		await toolbar
+			.locator('button,select')
+			.evaluateAll(
+				(els) =>
+					els.filter((e) => !(e as HTMLButtonElement).disabled && (e as HTMLElement).tabIndex === 0)
+						.length
+			)
+	).toBe(1);
+	await editor.fill('Texto de teclado');
+	await page.keyboard.press('Shift+Tab');
+	await expect(bold).toBeFocused();
+	await page.keyboard.press('ArrowRight');
+	await expect(italic).toBeFocused();
+	await page.keyboard.press('Home');
+	await expect(bold).toBeFocused();
+	await page.keyboard.press('End');
+	await expect(select).toBeFocused();
+	await page.keyboard.press('Tab');
+	await expect(editor).toBeFocused();
+	await page.keyboard.press('Shift+Tab');
+	await expect(bold).toBeFocused();
+	// El select conserva la selección nativa, no se interpreta como navegación de herramientas.
+	await page.keyboard.press('End');
+	await page.keyboard.press('ArrowDown');
+	await expect(select).toHaveValue('1');
+	await expect(editor.locator('h1')).toHaveText('Texto de teclado');
+	await select.focus();
+	await page.keyboard.press('Home');
+	await expect(select).toHaveValue('paragraph');
+	await expect(editor.locator('p').first()).toHaveText('Texto de teclado');
+	await expect(editor.locator('h1')).toHaveCount(0);
+});
+
+test('abrir y cancelar enlace e imagen con teclado conserva texto, cursor y selección', async ({
+	page
+}) => {
+	await loginAsDemo(page, { seedMedia: true });
+	await waitForHome(page);
+	await page.goto('/c/posts/new');
+	const field = page.locator('[data-field="content"]'),
+		toolbar = field.getByRole('toolbar'),
+		editor = field.locator('[contenteditable=true][role=textbox]');
+	await expect(toolbar.getByRole('button', { name: 'Negrita', exact: true })).toBeEnabled();
+	await editor.fill('Texto seleccionado para conservar');
+	// TipTap publica su instancia en el DOM: observar update distingue selección de edición.
+	await editor.evaluate((el) => {
+		const instance = (el as HTMLElement & { editor: import('@tiptap/core').Editor }).editor;
+		el.setAttribute('data-document-updates', '0');
+		let updates = 0;
+		instance.on('update', () => el.setAttribute('data-document-updates', String(++updates)));
+	});
+	for (const bounds of [
+		[0, 5],
+		[6, 6],
+		[5, 0]
+	]) {
+		const before = await editor.innerHTML();
+		for (const [tool, dialogName] of [
+			['Enlace', 'Enlace'],
+			['Imagen', 'Elegir de la biblioteca']
+		]) {
+			await editor.focus();
+			await page.evaluate(
+				() =>
+					new Promise<void>((resolve) =>
+						requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+					)
+			);
+			await page.keyboard.press('Home');
+			for (let i = 0; i < bounds[0]; i++) await page.keyboard.press('ArrowRight');
+			for (let i = 0; i < Math.abs(bounds[1] - bounds[0]); i++)
+				await page.keyboard.press(bounds[1] > bounds[0] ? 'Shift+ArrowRight' : 'Shift+ArrowLeft');
+			await expect
+				.poll(() =>
+					page.evaluate(() => {
+						const selection = getSelection();
+						return [selection?.anchorOffset, selection?.focusOffset];
+					})
+				)
+				.toEqual(bounds);
+			await page.keyboard.press('Shift+Tab');
+			await expect(toolbar.getByRole('button', { name: 'Negrita', exact: true })).toBeFocused();
+			for (let i = 0; i < 12; i++) {
+				if (
+					await toolbar
+						.getByRole('button', { name: tool, exact: true })
+						.evaluate((el) => el === document.activeElement)
+				)
+					break;
+				await page.keyboard.press('ArrowRight');
+			}
+			await expect(toolbar.getByRole('button', { name: tool, exact: true })).toBeFocused();
+			await page.keyboard.press('Enter');
+			await expect(page.getByRole('dialog', { name: dialogName, exact: true })).toBeVisible();
+			await page.keyboard.press('Escape');
+			await expect(page.getByRole('dialog')).toHaveCount(0);
+			await expect(editor).toBeFocused();
+			await expect
+				.poll(() => page.evaluate(() => getSelection()?.toString()))
+				.toBe(bounds[0] === bounds[1] ? '' : 'Texto');
+			await expect
+				.poll(() =>
+					page.evaluate(() => {
+						const selection = getSelection();
+						return [selection?.anchorOffset, selection?.focusOffset];
+					})
+				)
+				.toEqual(bounds);
+			expect(await editor.innerHTML()).toBe(before);
+			await expect(editor).toHaveAttribute('data-document-updates', '0');
+		}
+	}
+});
+
+test('el primer Guardado actualiza la región polite preexistente sin crear un alert', async ({
+	page
+}) => {
+	await loginAsDemo(page);
+	await waitForHome(page);
+	const polite = page.locator('.vega-toast-region[aria-live="polite"]');
+	await expect(polite).toBeAttached();
+	await expect(polite).toHaveText('');
+	await page.goto('/c/posts/new');
+	await page
+		.getByRole('textbox', { name: 'Título', exact: true })
+		.fill('Primer aviso con región preparada');
+	// La carga dura anterior monta la región de esta nueva página antes de emitir el aviso.
+	const mounted = await polite.elementHandle();
+	expect(mounted).not.toBeNull();
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+	await expect(polite).toContainText('Guardado.');
+	expect(await mounted!.evaluate((el) => el.isConnected)).toBe(true);
+	await expect(polite).not.toHaveAttribute('role', 'alert');
+	await expect(page.locator('.vega-toast-region[role="alert"]')).toHaveCount(0);
+	await mounted?.dispose();
+});

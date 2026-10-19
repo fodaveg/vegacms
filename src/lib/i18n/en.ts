@@ -2017,6 +2017,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'admin.form.rejected': 'The server rejected the data: {message}',
 
 	// ————— Toasts (§2.3) —————
+	'shell.skipToContent': 'Skip to content',
 	'toast.dismiss': 'Dismiss notification',
 
 	// ————— Generic —————

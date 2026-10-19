@@ -9,10 +9,9 @@
 	 * persistentes, §2.3); `success`/`info` son `polite` (no interrumpen). Mezclarlas forzaría el
 	 * nivel más agresivo para todo, y un `success` efímero no merece interrumpir.
 	 *
-	 * Ambas regiones solo se RENDERIZAN cuando tienen algo que mostrar (`{#if}`, no CSS
-	 * `display:none`): un landmark `role="alert"` vacío y permanente en el DOM colisionaría con
-	 * `getByRole('alert')` de otras superficies honestas del shell (p.ej. el error inline de
-	 * `/login`, `ReloginModal`), que ya usan ese rol y esperan ser el único match.
+	 * La región polite ya existe vacía antes del primer aviso, para que la inserción sea una
+	 * actualización de contenido anunciable. Solo `alert` se monta al haber errores: un alert
+	 * vacío no aporta información y colisiona con otros errores inline del shell.
 	 *
 	 * Fondo del toast (F7w-b): `--surface` (tarjeta), no `--surface-2` — flota sobre el lienzo,
 	 * no está apilado sobre otra tarjeta.
@@ -28,34 +27,30 @@
 </script>
 
 <div class="vega-toast-host">
-	{#if politeToasts.length > 0}
-		<div class="vega-toast-region" aria-live="polite">
-			{#each politeToasts as toastEntry (toastEntry.id)}
-				<div
-					class="vega-toast"
-					data-kind={toastEntry.kind}
-					data-action={toastEntry.action ? true : undefined}
-				>
-					<span>{toastEntry.message}</span>
-					{#if toastEntry.action}
-						<button
-							type="button"
-							class="vega-toast-action"
-							onclick={() => toastStore.invokeAction(toastEntry.id)}
-							>{toastEntry.action.label}</button
-						>
-						<button
-							type="button"
-							class="vega-toast-dismiss"
-							aria-label={ctx.t('toast.dismiss')}
-							onclick={() => toastStore.dismiss(toastEntry.id)}
-							><Icon id="close" size={12} /></button
-						>
-					{/if}
-				</div>
-			{/each}
-		</div>
-	{/if}
+	<div class="vega-toast-region" aria-live="polite">
+		{#each politeToasts as toastEntry (toastEntry.id)}
+			<div
+				class="vega-toast"
+				data-kind={toastEntry.kind}
+				data-action={toastEntry.action ? true : undefined}
+			>
+				<span>{toastEntry.message}</span>
+				{#if toastEntry.action}
+					<button
+						type="button"
+						class="vega-toast-action"
+						onclick={() => toastStore.invokeAction(toastEntry.id)}>{toastEntry.action.label}</button
+					>
+					<button
+						type="button"
+						class="vega-toast-dismiss"
+						aria-label={ctx.t('toast.dismiss')}
+						onclick={() => toastStore.dismiss(toastEntry.id)}><Icon id="close" size={12} /></button
+					>
+				{/if}
+			</div>
+		{/each}
+	</div>
 
 	<!-- Persistente HASTA descartar (§2.3): siempre lleva botón de cierre; las efímeras de arriba
 	     nunca lo necesitan porque desaparecen solas. -->
@@ -134,8 +129,13 @@
 		border: none;
 		border-radius: 6px;
 		background: transparent;
-		color: inherit;
+		color: var(--ink);
 		cursor: pointer;
+	}
+
+	.vega-toast-action:focus-visible,
+	.vega-toast-dismiss:focus-visible {
+		outline-color: var(--ink);
 	}
 
 	.vega-toast-dismiss:hover {

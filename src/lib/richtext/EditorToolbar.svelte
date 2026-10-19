@@ -34,6 +34,8 @@
 	 */
 	import { tick as flushed, untrack } from 'svelte';
 	import type { Editor } from '@tiptap/core';
+	import { rovingToolbar } from './toolbar-keyboard';
+	import { syncToolbarSelection } from './toolbar-selection';
 	import { getVegaContext } from '$lib/app-context';
 	import { VegaError } from '$lib/backend/errors';
 	import Icon from '$lib/icons/Icon.svelte';
@@ -233,23 +235,13 @@
 	}
 </script>
 
-<div class="vega-editor-toolbar" role="toolbar" aria-label={t('form.editor.toolbarLabel')}>
-	<select
-		class="vega-editor-toolbar-select"
-		aria-label={t('form.editor.headingLabel')}
-		value={headingValue}
-		disabled={disabled || !editor}
-		onchange={handleHeadingChange}
-	>
-		<option value="paragraph">{t('form.editor.paragraph')}</option>
-		{#each HEADING_LEVELS as level (level)}
-			<!-- `String(level)`: `headingValue` es una cadena y Svelte compara el valor de las opciones
-			     de forma estricta; con el número a secas ninguna casaba y el selector salía en blanco
-			     con el cursor en un título. -->
-			<option value={String(level)}>{t('form.editor.heading', { level })}</option>
-		{/each}
-	</select>
-
+<div
+	class="vega-editor-toolbar"
+	role="toolbar"
+	aria-label={t('form.editor.toolbarLabel')}
+	use:rovingToolbar
+	onfocusin={(event) => syncToolbarSelection(editor, event, disabled)}
+>
 	<button
 		type="button"
 		class="vega-editor-toolbar-btn"
@@ -390,6 +382,22 @@
 			<Icon id="media" size={16} />
 		</button>
 	{/if}
+	<!-- APG: el control con teclas propias va último; Tab conserva su salida nativa. -->
+	<select
+		class="vega-editor-toolbar-select"
+		aria-label={t('form.editor.headingLabel')}
+		value={headingValue}
+		disabled={disabled || !editor}
+		onchange={handleHeadingChange}
+	>
+		<option value="paragraph">{t('form.editor.paragraph')}</option>
+		{#each HEADING_LEVELS as level (level)}
+			<!-- `String(level)`: `headingValue` es una cadena y Svelte compara el valor de las opciones
+			     de forma estricta; con el número a secas ninguna casaba y el selector salía en blanco
+			     con el cursor en un título. -->
+			<option value={String(level)}>{t('form.editor.heading', { level })}</option>
+		{/each}
+	</select>
 </div>
 
 {#if linkDialog && LinkDialog}
@@ -446,14 +454,18 @@
 
 	.vega-editor-toolbar-btn:hover:not(:disabled) {
 		background: var(--active);
-		color: var(--ink-hi);
+		color: var(--ink);
 	}
 
-	/* Activo = fondo tenue de marca + acento como texto (mockup `button[aria-pressed='true']`):
+	/* Activo = fondo tenue de marca con tinta legible (`button[aria-pressed='true']`):
 	   NUNCA el relleno `--accent` sólido, que es lenguaje de acción primaria (el botón "Guardar"). */
 	.vega-editor-toolbar-btn[aria-pressed='true'] {
 		background: var(--accent-soft);
-		color: var(--accent-text);
+		color: var(--ink);
+	}
+
+	.vega-editor-toolbar :is(button, select):focus-visible {
+		outline-color: var(--ink);
 	}
 
 	/* Separador de 1px (mockup `.sep`), con aire arriba y abajo para que no toque los bordes. */
@@ -494,6 +506,7 @@
 		}
 
 		.vega-editor-toolbar-select {
+			min-width: 44px;
 			height: 44px;
 		}
 	}
