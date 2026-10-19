@@ -268,9 +268,11 @@
 	let shareOpening = $state(false);
 	let shareOpener = $state<HTMLElement | null>(null);
 	let shareDestroyed = false;
+	let cancelSaveFocus: (() => void) | undefined;
 	let pendingReviewFocus: MutationObserver | null = null;
 	onDestroy(() => {
 		shareDestroyed = true;
+		cancelSaveFocus?.();
 		pendingReviewFocus?.disconnect();
 	});
 	import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
@@ -499,6 +501,7 @@
 
 	$effect(() => {
 		if (model !== syncedModel) {
+			cancelSaveFocus?.();
 			syncedModel = model;
 			resetCount += 1;
 			editedByHand = [];
@@ -1508,6 +1511,54 @@
 	/** Foco al primer campo con error que `save({ deferFocus: true })` dejó pendiente. */
 	let deferredFocus: (() => Promise<void>) | null = null;
 
+	/** El disabled temporal del guardado borra el foco nativo. Recupera sólo su origen y selección
+	 *  si no hubo otro foco, gesto, cambio de ventana/registro o desmontaje durante la escritura. */
+	function rememberSaveFocus(): ((success: boolean) => void) | undefined {
+		const origin = document.activeElement;
+		if (
+			!(
+				origin instanceof HTMLInputElement ||
+				origin instanceof HTMLTextAreaElement ||
+				origin instanceof HTMLSelectElement
+			) ||
+			!formEl?.contains(origin)
+		)
+			return;
+		const owner = model;
+		const selection =
+			origin instanceof HTMLSelectElement
+				? null
+				: ([origin.selectionStart, origin.selectionEnd, origin.selectionDirection] as const);
+		const controller = new AbortController();
+		const cancel = () => controller.abort();
+		cancelSaveFocus = cancel;
+		document.addEventListener(
+			'focusin',
+			(event) => {
+				if (event.target !== origin) cancel();
+			},
+			{ signal: controller.signal }
+		);
+		document.addEventListener('pointerdown', cancel, { signal: controller.signal });
+		window.addEventListener('blur', cancel, { signal: controller.signal });
+		return (success) => {
+			const restore =
+				success &&
+				!controller.signal.aborted &&
+				model === owner &&
+				origin.isConnected &&
+				formEl?.contains(origin) &&
+				!origin.matches(':disabled') &&
+				document.activeElement === document.body;
+			cancel();
+			if (cancelSaveFocus === cancel) cancelSaveFocus = undefined;
+			if (!restore) return;
+			origin.focus({ preventScroll: true });
+			if (selection && selection[0] !== null && !(origin instanceof HTMLSelectElement))
+				origin.setSelectionRange(selection[0], selection[1], selection[2] ?? undefined);
+		};
+	}
+
 	/**
 	 * El único camino de escritura del formulario: «Guardar», ⌘S y «Programar…» pasan por aquí.
 	 * Valida (cliente), escribe (`onSubmit`) y reasienta; los errores salen como siempre.
@@ -1541,6 +1592,7 @@
 		// pero el error de A ya se habría borrado sin haberse corregido de verdad, mintiendo sobre
 		// el estado real del registro.
 		backendErrors = EMPTY_ERRORS;
+		const restoreFocus = options.publication ? undefined : rememberSaveFocus();
 		saving = true;
 		// LANDMINE (F5-g, cazada en e2e): el foco NO puede pedirse todavía dentro del `catch` — el
 		// campo sigue `disabled` (`formDisabled = saving || typeReadonly`, `saving` aún `true` hasta
@@ -1594,6 +1646,8 @@
 			}
 		} finally {
 			saving = false;
+			await tick();
+			restoreFocus?.('record' in outcome);
 		}
 		if (errorsToFocus) {
 			const view = errorsToFocus;

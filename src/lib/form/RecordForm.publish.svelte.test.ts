@@ -463,3 +463,99 @@ for (const boundary of ['logout', 'port', 'token', 'record', 'unmount'] as const
 		expect(probe.fetch).not.toHaveBeenCalled();
 	});
 }
+
+describe('RecordForm — foco tras guardar con el campo activo', () => {
+	async function pendingSave(select = false) {
+		let release!: () => void;
+		const pending = new Promise<void>((resolve) => (release = resolve));
+		const w = await setup({ beforeSubmit: () => pending });
+		await editTitle(w, 'Texto guardado conservando cursor');
+		const origin = select
+			? w.target.querySelector<HTMLSelectElement>('[data-field="status"] select')!
+			: title(w);
+		origin.focus();
+		if (!(origin instanceof HTMLSelectElement)) origin.setSelectionRange(2, 8, 'backward');
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true }));
+		await settled(() => expect(origin.disabled).toBe(true));
+		// jsdom retiene el foco e ignora blur() en controles disabled. Simula aquí sólo
+		// el blur nativo observado en Chromium; la prueba E2E conserva disabled real.
+		origin.disabled = false;
+		origin.blur();
+		origin.disabled = true;
+		expect(document.activeElement).toBe(document.body);
+		return { w, origin, release };
+	}
+
+	test.each([false, true])(
+		'restaura el mismo campo; select=%s no requiere caret',
+		async (select) => {
+			const { w, origin, release } = await pendingSave(select);
+			window.dispatchEvent(
+				new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true })
+			);
+			expect(w.onSubmit).toHaveBeenCalledTimes(1);
+			release();
+			await settled(() => expect(document.activeElement).toBe(origin));
+			expect(origin.isConnected).toBe(true);
+			expect(origin.disabled).toBe(false);
+			if (!(origin instanceof HTMLSelectElement)) {
+				expect([origin.selectionStart, origin.selectionEnd, origin.selectionDirection]).toEqual([
+					2,
+					8,
+					'backward'
+				]);
+			}
+			expect(w.saved).toHaveBeenCalledTimes(1);
+		}
+	);
+
+	for (const boundary of ['focus', 'pointer', 'window', 'record', 'unmount'] as const) {
+		test(`no recupera foco tras ${boundary}`, async () => {
+			const { w, origin, release } = await pendingSave();
+			const focus = vi.spyOn(origin, 'focus');
+			if (boundary === 'focus') {
+				const other = document.createElement('button');
+				w.target.append(other);
+				other.focus();
+				other.blur(); // incluso si vuelve al body, hubo una intención de foco posterior
+			}
+			if (boundary === 'pointer')
+				document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+			if (boundary === 'window') window.dispatchEvent(new Event('blur'));
+			if (boundary === 'record') {
+				w.props.model = buildFormModel(w.type, { ...w.initial, id: 'p2' });
+				flushSync();
+			}
+			if (boundary === 'unmount') {
+				await unmount(w.instance);
+				w.target.remove();
+				mounted = null;
+			}
+			release();
+			await settled(() => expect(w.saved).toHaveBeenCalledTimes(1));
+			expect(focus).not.toHaveBeenCalled();
+		});
+	}
+
+	test('el primer error sigue recibiendo foco en lugar del campo de origen', async () => {
+		let release!: () => void;
+		const pending = new Promise<void>((resolve) => (release = resolve));
+		const w = await setup({
+			beforeSubmit: async () => {
+				await pending;
+				throw VegaError.validation({
+					title: { code: 'validation_required', message: 'Título rechazado' }
+				});
+			}
+		});
+		await editTitle(w, 'Guardado rechazado');
+		const origin = w.target.querySelector<HTMLSelectElement>('[data-field="status"] select')!;
+		origin.focus();
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true }));
+		await settled(() => expect(origin.disabled).toBe(true));
+		origin.blur();
+		release();
+		await settled(() => expect(document.activeElement).toBe(title(w)));
+		expect(w.saved).not.toHaveBeenCalled();
+	});
+});

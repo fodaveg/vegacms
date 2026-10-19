@@ -275,9 +275,22 @@ test.describe('barra pegajosa del editor (R7 del rediseño C2 «Cabina»)', () =
 			'Cambios sin guardar en esta pantalla'
 		);
 
+		const focusedTitle = page.getByRole('textbox', { name: 'Título', exact: true });
+		const titleNode = await focusedTitle.elementHandle();
+		await focusedTitle.evaluate((el) =>
+			(el as HTMLTextAreaElement).setSelectionRange(3, 9, 'backward')
+		);
 		// Atajo ⌘S/Ctrl+S (`ControlOrMeta`, cross-platform): dispara el MISMO envío que "Guardar".
 		await page.keyboard.press('ControlOrMeta+s');
 		await expect(page.getByText('Guardado.')).toBeVisible();
+		await expect(focusedTitle).toBeFocused();
+		expect(await focusedTitle.evaluate((el, node) => el === node, titleNode)).toBe(true);
+		expect(
+			await focusedTitle.evaluate((el) => {
+				const field = el as HTMLTextAreaElement;
+				return [field.selectionStart, field.selectionEnd, field.selectionDirection];
+			})
+		).toEqual([3, 9, 'backward']);
 
 		// Tras guardar: ya no dirty, y el crumb refleja el nuevo título (misma derivación que
 		// `RecordTable`, ver cabecera de `RecordForm.svelte`).
@@ -289,6 +302,16 @@ test.describe('barra pegajosa del editor (R7 del rediseño C2 «Cabina»)', () =
 		await expect(page.locator('.vega-editor-saved-at')).toContainText('Último guardado');
 		await expect(tag).toHaveText('Publicada');
 		await expect(page.locator('.vega-publish')).toHaveCount(0);
+
+		// El select nativo también recupera foco, sin intentar restaurar un caret que no tiene.
+		await focusedTitle.fill('Bienvenido a Vega (guardado desde Estado)');
+		await expect(page.locator('.vega-editor-dirty')).toBeVisible();
+		const statusField = page.locator('[data-field="status"] select');
+		await statusField.focus();
+		await page.keyboard.press('ControlOrMeta+s');
+		await expect(page.locator('.vega-editor-dirty')).toHaveCount(0);
+		await expect(statusField).toBeFocused();
+		await expect(tag).toHaveText('Publicada');
 	});
 
 	test('⌘S no hace nada sin cambios (sin dirty, sin roundtrip visible)', async ({ page }) => {
