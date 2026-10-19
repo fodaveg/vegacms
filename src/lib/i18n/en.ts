@@ -529,6 +529,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// ————— The finishing touches (screen sizes, zoom, shortcuts, save status): see the header of
 	// `VisualEditorScreen.svelte` for why —————
 	'editor.visual.breadcrumbs.label': 'Where you are',
+	'editor.visual.preview.label': 'Preview',
+	'editor.visual.view.label': 'View',
+	'editor.visual.zoom.fitWithLevel': 'Fit · {percent} %',
 	'editor.visual.screen.groupLabel': 'Screen size',
 	'editor.visual.screen.mobile': 'Mobile',
 	'editor.visual.screen.tablet': 'Tablet',

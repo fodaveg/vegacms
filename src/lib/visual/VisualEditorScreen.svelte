@@ -136,7 +136,7 @@
 	 * - El TOKEN (`tokenState`): si no hay una URL que embeber, no hay NADA que enseñar en el
 	 *   lienzo — mientras carga o si falla, el hueco del iframe pinta su propio aviso con
 	 *   "Reintentar" (mismo criterio que el `frame-wrap` de `PreviewPanel`).
-	 * - El PUENTE (`bridgeState`, `createVisualBridgeClient`): gobierna SOLO la barra superior.
+	 * - El PUENTE (`bridgeState`, `createVisualBridgeClient`): gobierna SOLO el estado de la franja del lienzo.
 	 *   Un `error/no-bridge` (o cualquier otro `kind`) no tapa el iframe — el contrato es explícito
 	 *   en que un sitio sin puente (o con un puente que falla) "sigue sirviendo la vista previa de
 	 *   siempre, que sí funciona" (§"Handshake and message envelope"). Cubrir el lienzo con un
@@ -266,14 +266,13 @@
 	 * `--warning`), con nombres de clase propios de este fichero porque el CSS con ámbito de
 	 * Svelte no cruza de un componente a otro.
 	 *
-	 * **Migas** (mismo encargo): colección › documento › bloque seleccionado, para saber dónde
-	 * estás cuando la pantalla es todo lienzo. La miga del bloque usa `blocks.blockTitle` sobre el
+	 * **Contexto documental** (UX01): documento como H1; colección y bloque seleccionado en las
+	 * migas, para saber dónde estás cuando la pantalla es todo lienzo. La miga del bloque usa `blocks.blockTitle` sobre el
 	 * MISMO registro que resuelve `selectedBlockId` — si el id no resuelve a ningún registro
 	 * (selección fantasma, ver la cabecera de `VisualInspector.svelte`) no se pinta esa miga, ni un
 	 * guion ni un "ninguno": mentiría sobre algo que el autor no eligió.
 	 *
-	 * **Estado de la página** (lámina del audit p2): `VisualPublishControl.svelte` justo después de
-	 * las migas — etiqueta del `statusField` y botón para publicar / pasar a borrador, escribiendo
+	 * **Estado de la página** (lámina del audit p2): `VisualPublishControl.svelte` junto al documento — etiqueta del `statusField` y botón para publicar / pasar a borrador, escribiendo
 	 * por el mismo `port.update` que el formulario (un solo escritor). Recibe los títulos de los
 	 * bloques sucios para pedir confirmación antes de publicar con cambios sin guardar. Vive en su
 	 * propio componente (y en la lista de `check-touch-targets`) porque tiene estado propio: el
@@ -962,7 +961,7 @@
 
 	/** Traduce los CINCO estados de `bridgeState` a los DOS que necesita `VisualOverlay.svelte`
 	 *  (ver su cabecera): solo `connected` trae bloques ciertos. `idle`/`connecting`/`error`
-	 *  caen todos en `'waiting'` — un `error` (p.ej. `no-bridge`) ya lo cuenta la barra superior
+	 *  caen todos en `'waiting'` — un `error` (p.ej. `no-bridge`) ya lo cuenta la franja del lienzo
 	 *  con su propio texto y botón de reintentar (ver cabecera, "Dos relojes distintos"); el
 	 *  lienzo no necesita repetir esa historia con otras palabras, solo no mentir sobre bloques
 	 *  que no existen. */
@@ -990,153 +989,56 @@
 <div class="vega-visual-screen">
 	<EditTopBar bleed>
 		{#snippet crumb()}
-			<button
-				type="button"
-				class="vega-visual-back"
-				onclick={() => ctx.nav.toRecord(type.name, record.id)}
-			>
-				<Icon id="chevron" size={14} />
-				{ctx.t('editor.visual.back')}
-			</button>
-			<!-- Migas (ver cabecera, "Migas"): colección › documento › bloque seleccionado. `<ol>`
-			     + `aria-current="page"` en la ÚLTIMA (patrón APG de breadcrumb) — el separador `›`
-			     es un `::before` de CSS, decorativo por construcción (no entra en el árbol de
-			     accesibilidad salvo que se referencie, que no es el caso). -->
-			<nav class="vega-visual-breadcrumbs" aria-label={ctx.t('editor.visual.breadcrumbs.label')}>
-				<ol>
-					<li>{type.label}</li>
-					<li aria-current={selectedBlockTitle === null ? 'page' : undefined}>{docName}</li>
-					{#if selectedBlockTitle !== null}
-						<li aria-current="page">{selectedBlockTitle}</li>
-					{/if}
-				</ol>
-			</nav>
-			<!-- Estado de la página (lámina del audit p2): tras las migas; sin `statusField` no pinta
-			     nada. Escribe por el mismo `port.update` que el formulario (ver su cabecera). -->
-			<VisualPublishControl
-				bind:this={publishControlRef}
-				{type}
-				{record}
-				name={docName}
-				pendingBlocks={pendingBlocks.map((block) => blocks.blockTitle(block))}
-				{review}
-				onReviewGo={handleReviewGo}
-				onReviewDescribe={handleReviewDescribe}
-			/>
-		{/snippet}
-		{#snippet actions()}
-			<!-- Estado de guardado (ver cabecera, "Estado de guardado en la barra"): mismo patrón que
-			     `RecordForm.svelte` (`.vega-editor-dirty`/`editor.dirty`/`editor.saving`/
-			     `editor.savedAt`), nombres de clase propios de este fichero (el CSS con ámbito de
-			     Svelte no cruza componentes). Las TRES ramas son mutuamente excluyentes, en el mismo
-			     orden de prioridad que allí: guardando > sin guardar > última hora conocida. -->
-			{#if blocks.anySaving || blocks.structuralBusy}
-				<span class="vega-visual-saved-at vega-visual-saved-at--saving">
-					{ctx.t('editor.saving')}
-				</span>
-			{:else if blocks.anyDirty}
-				<span class="vega-visual-dirty" title={ctx.t('editor.dirty')}>
-					<span class="vega-visually-hidden">{ctx.t('editor.dirty')}</span>
-				</span>
-			{:else if savedAtText}
-				<span class="vega-visual-saved-at">{savedAtText}</span>
-			{/if}
-
-			{#if canvasActive}
-				<!-- Conmutador de tamaño de pantalla (ver cabecera): `role="group"` + `aria-pressed`,
-				     no `radiogroup` — son TRES botones alcanzables por Tab con un clic simple cada
-				     uno, sin necesidad de navegación por flechas (mismo criterio que el propio botón
-				     "Vista previa" de `RecordForm.svelte`, que también usa `aria-pressed` para su
-				     toggle). Un `radiogroup` de verdad exigiría implementar esa navegación sin que
-				     este control la necesite. -->
-				<div
-					class="vega-visual-screen-group"
-					role="group"
-					aria-label={ctx.t('editor.visual.screen.groupLabel')}
-				>
-					{#each SCREEN_PRESETS as preset (preset)}
-						<button
-							type="button"
-							class="vega-visual-screen-btn"
-							aria-pressed={screenPreset === preset}
-							onclick={() => setScreenPreset(preset)}
-						>
-							{ctx.t(`editor.visual.screen.${preset}`)}
-						</button>
-					{/each}
-				</div>
-				<span class="vega-visual-screen-width">
-					{ctx.t('editor.visual.screen.width', { width: frameWidth })}
-				</span>
-
-				<!-- Zoom (ver cabecera): mismo criterio de accesibilidad que el conmutador de arriba. -->
-				<div
-					class="vega-visual-zoom-group"
-					role="group"
-					aria-label={ctx.t('editor.visual.zoom.groupLabel')}
-				>
-					{#each ZOOM_LEVELS as level (level)}
-						<button
-							type="button"
-							class="vega-visual-zoom-btn"
-							aria-pressed={zoomPreference === level}
-							onclick={() => setZoom(level)}
-						>
-							{ctx.t('editor.visual.zoom.level', { percent: level })}
-						</button>
-					{/each}
-					<button
-						type="button"
-						class="vega-visual-zoom-btn"
-						aria-pressed={zoomPreference === 'fit'}
-						onclick={() => setZoom('fit')}
-					>
-						{ctx.t('editor.visual.zoom.fit')}
-					</button>
-				</div>
-				<span class="vega-visual-zoom-value">
-					{ctx.t('editor.visual.zoom.level', { percent: Math.round(zoomFactor * 100) })}
-				</span>
-
+			<div class="vega-visual-document">
 				<button
 					type="button"
-					class="vega-visual-help-toggle"
-					aria-label={ctx.t('editor.visual.help.toggle')}
-					aria-pressed={helpOpen}
-					onclick={() => (helpOpen = !helpOpen)}
+					class="vega-visual-back"
+					aria-label={ctx.t('editor.visual.back')}
+					title={ctx.t('editor.visual.back')}
+					onclick={() => ctx.nav.toRecord(type.name, record.id)}
 				>
-					?
+					<Icon id="chevron" size={16} />
 				</button>
-			{/if}
-
-			<div class="vega-visual-status" aria-live="polite">
-				{#if bridgeState.status === 'connected'}
-					<span class="vega-visual-status-text">
-						{ctx.t(
-							bridgeState.blocks.length === 1
-								? 'editor.visual.connected.one'
-								: 'editor.visual.connected.many',
-							{ count: bridgeState.blocks.length }
-						)}
+				<div class="vega-visual-document-name">
+					<h1 title={docName}>{docName}</h1>
+					<nav
+						class="vega-visual-breadcrumbs"
+						aria-label={ctx.t('editor.visual.breadcrumbs.label')}
+					>
+						<ol>
+							<li>{type.label}</li>
+							{#if selectedBlockTitle !== null}
+								<li aria-current="page" title={selectedBlockTitle}>{selectedBlockTitle}</li>
+							{/if}
+						</ol>
+					</nav>
+				</div>
+			</div>
+		{/snippet}
+		{#snippet actions()}
+			<div class="vega-visual-document-actions">
+				{#if blocks.anySaving || blocks.structuralBusy}
+					<span class="vega-visual-saved-at vega-visual-saved-at--saving">
+						{ctx.t('editor.saving')}
 					</span>
-				{:else if bridgeState.status === 'error'}
-					{@const errorText = bridgeErrorText(bridgeState.kind, bridgeState, ctx.t)}
-					<span class="vega-visual-status-text vega-visual-status-text--error">
-						{errorText.title}
+				{:else if blocks.anyDirty}
+					<span class="vega-visual-dirty" title={ctx.t('editor.dirty')}>
+						<span class="vega-visually-hidden">{ctx.t('editor.dirty')}</span>
 					</span>
-					<span class="vega-visual-status-detail">{errorText.body}</span>
-					{#if errorText.canRetry}
-						<button type="button" class="vega-visual-retry" onclick={retryBridge}>
-							{ctx.t('common.retry')}
-						</button>
-					{/if}
-				{:else if canvasActive && tokenState.kind !== 'error'}
-					<!-- "Conectando" SOLO mientras la conexión sigue viva. Con el token caído no hay
-					     marco con el que saludar, y decir aquí que se está conectando mientras el lienzo
-					     enseña el error del token sería contar dos historias distintas del mismo fallo:
-					     el mensaje lo da el lienzo, que es quien lo sabe. -->
-					<span class="vega-visual-status-text">{ctx.t('editor.visual.connecting')}</span>
+				{:else if savedAtText}
+					<span class="vega-visual-saved-at">{savedAtText}</span>
 				{/if}
+
+				<VisualPublishControl
+					bind:this={publishControlRef}
+					{type}
+					{record}
+					name={docName}
+					pendingBlocks={pendingBlocks.map((block) => blocks.blockTitle(block))}
+					{review}
+					onReviewGo={handleReviewGo}
+					onReviewDescribe={handleReviewDescribe}
+				/>
 			</div>
 		{/snippet}
 	</EditTopBar>
@@ -1206,63 +1108,150 @@
 					onDragChange={setResizing}
 				/>
 			{/if}
-			<div class="vega-visual-canvas" bind:this={canvasEl}>
-				{#if tokenState.kind === 'ready'}
-					<!-- Escenario del zoom (ver cabecera, "Tamaño de pantalla + zoom del lienzo"):
+			<div
+				class="vega-visual-preview"
+				role="region"
+				aria-label={ctx.t('editor.visual.preview.label')}
+			>
+				<div class="vega-visual-preview-tools">
+					<label class="vega-visual-view-control">
+						<span>{ctx.t('editor.visual.view.label')}</span>
+						<select
+							class="vega-visual-view-select"
+							aria-label={ctx.t('editor.visual.view.label')}
+							value={screenPreset}
+							onchange={(event) => setScreenPreset(event.currentTarget.value as ScreenPreset)}
+						>
+							{#each SCREEN_PRESETS as preset (preset)}
+								<option value={preset}>
+									{ctx.t(`editor.visual.screen.${preset}`)} · {ctx.t('editor.visual.screen.width', {
+										width: frameWidthFor(preset)
+									})}
+								</option>
+							{/each}
+						</select>
+					</label>
+					<label class="vega-visual-view-control">
+						<span>{ctx.t('editor.visual.zoom.groupLabel')}</span>
+						<select
+							class="vega-visual-zoom-select"
+							value={zoomPreference}
+							onchange={(event) =>
+								setZoom(
+									event.currentTarget.value === 'fit'
+										? 'fit'
+										: (Number(event.currentTarget.value) as ZoomPreference)
+								)}
+						>
+							<option value="fit"
+								>{ctx.t('editor.visual.zoom.fitWithLevel', {
+									percent: Math.round(zoomFactor * 100)
+								})}</option
+							>
+							{#each ZOOM_LEVELS as level (level)}
+								<option value={level}
+									>{ctx.t('editor.visual.zoom.level', { percent: level })}</option
+								>
+							{/each}
+						</select>
+					</label>
+					<button
+						type="button"
+						class="vega-visual-help-toggle"
+						aria-label={ctx.t('editor.visual.help.toggle')}
+						aria-pressed={helpOpen}
+						onclick={() => (helpOpen = !helpOpen)}>?</button
+					>
+					<div class="vega-visual-status" aria-live="polite">
+						{#if bridgeState.status === 'connected'}
+							{@const connectedText = ctx.t(
+								bridgeState.blocks.length === 1
+									? 'editor.visual.connected.one'
+									: 'editor.visual.connected.many',
+								{ count: bridgeState.blocks.length }
+							)}
+							<span class="vega-visual-status-short" title={connectedText} aria-hidden="true"
+								>{ctx.t('topbar.connection.connected')}</span
+							>
+							<span class="vega-visual-status-text vega-visually-hidden">{connectedText}</span>
+						{:else if bridgeState.status === 'error'}
+							{@const errorText = bridgeErrorText(bridgeState.kind, bridgeState, ctx.t)}
+							<span class="vega-visual-status-text vega-visual-status-text--error">
+								{errorText.title}
+							</span>
+							<span class="vega-visual-status-detail">{errorText.body}</span>
+							{#if errorText.canRetry}
+								<button type="button" class="vega-visual-retry" onclick={retryBridge}>
+									{ctx.t('common.retry')}
+								</button>
+							{/if}
+						{:else if canvasActive && tokenState.kind !== 'error'}
+							<!-- "Conectando" SOLO mientras la conexión sigue viva. Con el token caído no hay
+					     marco con el que saludar, y decir aquí que se está conectando mientras el lienzo
+					     enseña el error del token sería contar dos historias distintas del mismo fallo:
+					     el mensaje lo da el lienzo, que es quien lo sabe. -->
+							<span class="vega-visual-status-text">{ctx.t('editor.visual.connecting')}</span>
+						{/if}
+					</div>
+				</div>
+				<div class="vega-visual-canvas" bind:this={canvasEl}>
+					{#if tokenState.kind === 'ready'}
+						<!-- Escenario del zoom (ver cabecera, "Tamaño de pantalla + zoom del lienzo"):
 					     iframe + overlay viven dentro de la MISMA caja escalada, así que los
 					     contornos siguen casando con las coordenadas del puente sin tocar ni un
 					     `rect`. Ancho/alto/escala van INLINE (`style:`): son números calculados, no
 					     constantes que quepan en una regla CSS. -->
-					<div
-						class="vega-visual-stage"
-						style:width="{frameWidth}px"
-						style:height="{stageHeightPx}px"
-						style:transform="scale({zoomFactor})"
-					>
-						<iframe
-							class="vega-visual-frame"
-							bind:this={iframeEl}
-							src={tokenState.token.url}
-							title={ctx.t('editor.visual.frameTitle')}
-							referrerpolicy="no-referrer"
-							onload={handleFrameLoad}
-						></iframe>
-						<!-- ANTES del skeleton de token de abajo en el DOM a propósito: mientras el
+						<div
+							class="vega-visual-stage"
+							style:width="{frameWidth}px"
+							style:height="{stageHeightPx}px"
+							style:transform="scale({zoomFactor})"
+						>
+							<iframe
+								class="vega-visual-frame"
+								bind:this={iframeEl}
+								src={tokenState.token.url}
+								title={ctx.t('editor.visual.frameTitle')}
+								referrerpolicy="no-referrer"
+								onload={handleFrameLoad}
+							></iframe>
+							<!-- ANTES del skeleton de token de abajo en el DOM a propósito: mientras el
 						     token sigue cargando o el `load` del marco no ha disparado, ese skeleton
 						     (más adelante, misma pila de apilamiento) tapa este overlay entero — no
 						     hace falta `z-index`, solo el orden. Una vez visible, no tiene nada que
 						     tapar: pinta "sin bloques todavía" hasta que el puente conteste. -->
-						<VisualOverlay
-							blocks={overlayBlocks}
-							selectedId={selectedBlockId}
-							highlightedId={highlightedBlockId}
-							skippedBlocks={overlaySkippedBlocks}
-							status={overlayStatus}
-							renderedBlockTypes={ctx.port.renderedBlockTypes ?? null}
-							blocksState={blocks}
-							onStructuralChange={handleContentSaved}
-							{paletteDragType}
-						/>
-					</div>
-				{/if}
-				{#if tokenState.kind === 'loading' || (tokenState.kind === 'ready' && !frameLoaded)}
-					<div class="vega-visual-overlay" aria-live="polite">
-						<p>{ctx.t('editor.visual.connecting')}</p>
-					</div>
-				{:else if tokenState.kind === 'error'}
-					<div class="vega-visual-overlay vega-visual-overlay--error" role="alert">
-						<p>{ctx.t('editor.visual.token.error', { message: tokenState.message })}</p>
-						<button type="button" onclick={() => void requestPreview()}>
-							{ctx.t('common.retry')}
-						</button>
-					</div>
-				{/if}
-				{#if resizing}
-					<!-- Escudo del arrastre (ver cabecera): solo existe mientras dura, así que fuera de
+							<VisualOverlay
+								blocks={overlayBlocks}
+								selectedId={selectedBlockId}
+								highlightedId={highlightedBlockId}
+								skippedBlocks={overlaySkippedBlocks}
+								status={overlayStatus}
+								renderedBlockTypes={ctx.port.renderedBlockTypes ?? null}
+								blocksState={blocks}
+								onStructuralChange={handleContentSaved}
+								{paletteDragType}
+							/>
+						</div>
+					{/if}
+					{#if tokenState.kind === 'loading' || (tokenState.kind === 'ready' && !frameLoaded)}
+						<div class="vega-visual-overlay" aria-live="polite">
+							<p>{ctx.t('editor.visual.connecting')}</p>
+						</div>
+					{:else if tokenState.kind === 'error'}
+						<div class="vega-visual-overlay vega-visual-overlay--error" role="alert">
+							<p>{ctx.t('editor.visual.token.error', { message: tokenState.message })}</p>
+							<button type="button" onclick={() => void requestPreview()}>
+								{ctx.t('common.retry')}
+							</button>
+						</div>
+					{/if}
+					{#if resizing}
+						<!-- Escudo del arrastre (ver cabecera): solo existe mientras dura, así que fuera de
 					     un arrastre el iframe recibe sus eventos de siempre sin ninguna capa de por
 					     medio. -->
-					<div class="vega-visual-shield" aria-hidden="true"></div>
-				{/if}
+						<div class="vega-visual-shield" aria-hidden="true"></div>
+					{/if}
+				</div>
 			</div>
 			<VisualColumnResizer
 				value={columnWidths.inspector}
@@ -1445,11 +1434,48 @@
 		outline-offset: 2px;
 	}
 
+	.vega-visual-document {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		flex: 1 1 12rem;
+		min-width: 0;
+	}
+
+	.vega-visual-document-name {
+		min-width: 0;
+	}
+
+	.vega-visual-document-name h1 {
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		overflow: hidden;
+		overflow-wrap: anywhere;
+		margin: 0;
+		color: var(--ink-hi);
+		font-size: 1.2rem;
+		line-height: 1.25;
+		font-weight: 650;
+	}
+
+	.vega-visual-document-actions {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+		margin-left: auto;
+	}
+
 	.vega-visual-back {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;
 		min-height: 44px;
+		min-width: 44px;
+		justify-content: center;
 		padding: 0 0.5rem;
 		border: 0;
 		background: none;
@@ -1475,8 +1501,8 @@
 	.vega-visual-breadcrumbs ol {
 		display: flex;
 		align-items: baseline;
-		flex-wrap: wrap;
 		gap: 0.35rem;
+		min-width: 0;
 		margin: 0;
 		padding: 0;
 		list-style: none;
@@ -1484,8 +1510,10 @@
 
 	.vega-visual-breadcrumbs li {
 		color: var(--ink-2);
-		font-size: 0.85rem;
-		overflow-wrap: anywhere;
+		font-size: 0.75rem;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
 	}
 
 	/* La última miga (`aria-current="page"`) es la que importa de verdad: mismo peso/tinta que
@@ -1547,6 +1575,7 @@
 		font-size: 0.8125rem;
 	}
 
+	.vega-visual-status-short,
 	.vega-visual-status-text {
 		color: var(--ink-2);
 	}
@@ -1580,64 +1609,51 @@
 		border-color: var(--line-strong);
 	}
 
-	/* Conmutador de tamaño de pantalla + zoom (ver cabecera): mismo lenguaje visual que otras
-	   "píldoras de grupo" de la app (`.vega-locale-tabs`…): un contenedor con borde, botones sin
-	   borde propio, el activo se distingue por fondo/tinta de acento (`aria-pressed`, ver el
-	   marcado). */
-	.vega-visual-screen-group,
-	.vega-visual-zoom-group {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.15rem;
-		padding: 0.15rem;
-		border: 1px solid var(--line);
-		border-radius: var(--r);
-		background: var(--surface);
+	/* La franja de vista pertenece al lienzo, no a las acciones de la página. El iframe y su
+	   overlay conservan su caja escalada y el observador mide SOLO el canvas, sin esta franja. */
+	.vega-visual-preview {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		min-height: 0;
 	}
 
-	.vega-visual-screen-btn,
-	.vega-visual-zoom-btn {
+	.vega-visual-preview-tools {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.25rem 0.5rem;
+		flex-shrink: 0;
+		padding: 0.25rem 0;
+	}
+
+	.vega-visual-view-control {
 		display: inline-flex;
 		align-items: center;
-		justify-content: center;
-		height: 26px;
-		padding: 0 0.55rem;
-		border: 0;
-		border-radius: calc(var(--r) / 1.5);
-		background: transparent;
-		color: var(--ink-2);
+		gap: 0.35rem;
+		min-width: 0;
 		font-size: 0.75rem;
-		font-weight: 600;
+		color: var(--ink-2);
+	}
+
+	.vega-visual-view-select,
+	.vega-visual-zoom-select {
+		min-width: 44px;
+		max-width: 100%;
+		height: 32px;
+		padding: 0 0.4rem;
+		border: 1px solid var(--line-strong);
+		border-radius: var(--r);
+		background: var(--paper);
+		color: var(--ink);
+		font: inherit;
 		cursor: pointer;
 	}
 
-	.vega-visual-screen-btn:hover,
-	.vega-visual-zoom-btn:hover {
-		background: var(--active);
-		color: var(--ink);
-	}
-
-	.vega-visual-screen-btn:focus-visible,
-	.vega-visual-zoom-btn:focus-visible,
-	.vega-visual-help-toggle:focus-visible {
-		outline: 2px solid var(--accent);
+	.vega-visual-view-select:focus-visible,
+	.vega-visual-zoom-select:focus-visible {
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
-	}
-
-	.vega-visual-screen-btn[aria-pressed='true'],
-	.vega-visual-zoom-btn[aria-pressed='true'] {
-		background: var(--accent-soft);
-		color: var(--accent-text);
-	}
-
-	/* Los VALORES numéricos (ancho en px, % de zoom) van en `--mono` (§transversal del encargo):
-	   son datos, no prosa. */
-	.vega-visual-screen-width,
-	.vega-visual-zoom-value {
-		font-family: var(--mono);
-		font-size: 0.75rem;
-		color: var(--ink-2);
-		white-space: nowrap;
 	}
 
 	.vega-visual-help-toggle {
@@ -1666,8 +1682,8 @@
 	   (tamaño de pantalla, zoom) ya crecen con su propio padding, así que basta con el alto; los dos
 	   iconos-solo (ayuda, cerrar el panel de ayuda) son cuadrados y necesitan las dos dimensiones. */
 	@media (pointer: coarse) {
-		.vega-visual-screen-btn,
-		.vega-visual-zoom-btn {
+		.vega-visual-view-select,
+		.vega-visual-zoom-select {
 			min-height: 44px;
 		}
 
@@ -1845,6 +1861,7 @@
 	}
 
 	.vega-visual-canvas {
+		flex: 1;
 		position: relative;
 		min-height: 0;
 		border: 1px solid var(--line);

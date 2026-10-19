@@ -147,10 +147,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 			const painted = await iframe.boundingBox();
 			return !!painted && Math.abs(canvasWidth - painted.width) < 2;
 		};
-		await expect(page.getByRole('button', { name: 'Ajustar', exact: true })).toHaveAttribute(
-			'aria-pressed',
-			'true'
-		);
+		await expect(page.getByRole('combobox', { name: 'Zoom', exact: true })).toHaveValue('fit');
 		await expect(page.locator('#vega-sidebar')).toHaveClass(/vega-sidebar-collapsed/);
 		await expect.poll(siteViewport).toEqual({ width: 1280, desktop: true, layout: 'desktop' });
 		await expect.poll(fitFillsCanvas).toBe(true);
@@ -161,23 +158,19 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		await expect.poll(siteViewport).toEqual({ width: 1280, desktop: true, layout: 'desktop' });
 		await expect.poll(fitFillsCanvas).toBe(true);
 		await expect.poll(alignedOverlay).toBe(true);
-		for (const [name, width] of [
-			['Móvil', 390],
-			['Tableta', 834]
-		] as const) {
-			await page.getByRole('button', { name, exact: true }).click();
+		for (const width of [390, 834] as const) {
+			await page
+				.getByRole('combobox', { name: 'Vista', exact: true })
+				.selectOption(width === 390 ? 'mobile' : 'tablet');
 			await expect.poll(siteViewport).toEqual({ width, desktop: false, layout: 'narrow' });
 			await expect.poll(alignedOverlay).toBe(true);
 		}
-		await page.getByRole('button', { name: '50 %', exact: true }).click();
-		await page.getByRole('button', { name: 'Escritorio', exact: true }).click();
-		await expect(page.getByRole('button', { name: '50 %', exact: true })).toHaveAttribute(
-			'aria-pressed',
-			'true'
-		);
+		await page.getByRole('combobox', { name: 'Zoom', exact: true }).selectOption('50');
+		await page.getByRole('combobox', { name: 'Vista', exact: true }).selectOption('desktop');
+		await expect(page.getByRole('combobox', { name: 'Zoom', exact: true })).toHaveValue('50');
 		await expect.poll(siteViewport).toEqual({ width: 1280, desktop: true, layout: 'desktop' });
 		await expect.poll(alignedOverlay).toBe(true);
-		await page.getByRole('button', { name: 'Ajustar', exact: true }).click();
+		await page.getByRole('combobox', { name: 'Zoom', exact: true }).selectOption('fit');
 		await expect.poll(fitFillsCanvas).toBe(true);
 		// Ventanas pequeñas conservan el modo de textos; el nuevo preset no habilita el lienzo allí.
 		for (const width of [834, 390]) {
@@ -835,4 +828,71 @@ test('UX03: abrir y guardar el bloque pendiente desbloquea la paleta', async ({
 		'Segundo borrador pendiente'
 	);
 	expect(await page.locator('body').evaluate((body) => body.scrollWidth <= innerWidth)).toBe(true);
+});
+
+/** UX01: identidad documental estable y precisión del sitio en los controles secundarios. */
+test('UX01: título largo, controles de vista y error del puente conservan las acciones documentales', async ({
+	page
+}, testInfo) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openVisualEditor(page, site, 'pagina_1');
+	await waitConnected(page, 3);
+	await page.getByRole('button', { name: 'Volver al formulario', exact: true }).click();
+	const longTitle =
+		'Una página con un título largo para editar sin perder el contexto del documento';
+	await page
+		.locator('.vega-record-form')
+		.getByRole('textbox', { name: 'Título', exact: true })
+		.fill(longTitle);
+	const save = page.locator('.vega-edit-top').getByRole('button', { name: 'Guardar', exact: true });
+	await save.click();
+	await expect(page.locator('.vega-editor-dirty')).toHaveCount(0);
+	await expect(
+		page.locator('.vega-editor-saved-at:not(.vega-editor-saved-at--saving)')
+	).toBeVisible();
+	await page.getByRole('button', { name: 'Editor visual', exact: true }).click();
+	await waitConnected(page, 3);
+	await expect(page.getByRole('heading', { name: longTitle, level: 1, exact: true })).toBeVisible();
+	const preview = page.getByRole('region', { name: 'Vista previa', exact: true });
+	const view = preview.getByRole('combobox', { name: 'Vista', exact: true });
+	await view.focus();
+	await view.press('ArrowUp');
+	await view.press('Enter');
+	await expect(view).toHaveValue('tablet');
+	const frame = await (await page
+		.locator('iframe.vega-visual-frame')
+		.elementHandle())!.contentFrame();
+	if (!frame) throw new Error('El marco conectado debe existir');
+	await expect.poll(() => frame.evaluate(() => innerWidth)).toBe(834);
+	await view.selectOption('desktop');
+	await preview.getByRole('combobox', { name: 'Zoom', exact: true }).selectOption('50');
+	await expect.poll(() => frame.evaluate(() => innerWidth)).toBe(1280);
+	await expect(page.locator('.vega-visual-stage')).toHaveCSS(
+		'transform',
+		'matrix(0.5, 0, 0, 0.5, 0, 0)'
+	);
+	await page.setViewportSize({ width: 901, height: 900 });
+	await frame.evaluate(() =>
+		parent.postMessage(
+			{
+				vega: 'vega-visual-1',
+				type: 'error',
+				code: 'render-unavailable',
+				detail: 'Test: bridge rendering failed'
+			},
+			'http://localhost:4173'
+		)
+	);
+	const retry = preview.getByRole('button', { name: 'Reintentar', exact: true });
+	await expect(retry).toBeVisible();
+	await expect(
+		statusGroup(page).getByRole('button', { name: 'Marcar como publicada', exact: true })
+	).toBeVisible();
+	await expect(page.getByRole('heading', { name: longTitle, level: 1, exact: true })).toBeVisible();
+	await page.screenshot({ path: testInfo.outputPath('ux01-long-title-901-bridge-error.png') });
+	await retry.focus();
+	await retry.press('Enter');
+	await waitConnected(page, 3);
+	await expect(page.getByRole('heading', { name: longTitle, level: 1, exact: true })).toBeVisible();
 });

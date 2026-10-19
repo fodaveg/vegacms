@@ -583,6 +583,9 @@ export const es = {
 	// ————— El acabado (tamaños de pantalla, zoom, atajos y estado de guardado): ver la cabecera
 	// de `VisualEditorScreen.svelte` para el porqué de cada pieza —————
 	'editor.visual.breadcrumbs.label': 'Dónde estás',
+	'editor.visual.preview.label': 'Vista previa',
+	'editor.visual.view.label': 'Vista',
+	'editor.visual.zoom.fitWithLevel': 'Ajustar · {percent} %',
 	'editor.visual.screen.groupLabel': 'Tamaño de pantalla',
 	'editor.visual.screen.mobile': 'Móvil',
 	'editor.visual.screen.tablet': 'Tableta',
