@@ -58,18 +58,21 @@ interface World {
 
 let world: World | null = null;
 let releaseSchedule = () => {};
+let releaseFocus = () => {};
 
 // jsdom no implementa `scrollIntoView`, que el foco al primer campo con error sí usa.
 Element.prototype.scrollIntoView = vi.fn();
 
 afterEach(async () => {
 	releaseSchedule();
+	releaseFocus();
 	if (world) {
 		await unmount(world.instance);
 		world.target.remove();
 		world = null;
 	}
 	vi.doUnmock('./ScheduleDialog.svelte');
+	vi.doUnmock('./focus-target');
 });
 
 async function setup(opts: {
@@ -469,6 +472,13 @@ describe('RecordForm — el diálogo de «Programar…»', () => {
 	});
 
 	test('errores en otros campos con el diálogo abierto desde el teclado: el foco acaba en el campo, no en «Programar…»', async () => {
+		const loading = new Promise<void>((resolve) => (releaseFocus = resolve));
+		let focusLoads = 0;
+		vi.doMock('./focus-target', async (original) => {
+			focusLoads++;
+			await loading;
+			return original();
+		});
 		const w = await setup({ title: '' });
 		// Como con teclado: el botón TIENE el foco al activarse (un `.click()` a secas no lo enfoca).
 		const opener = buttonIn(w.target, 'Programar…')!;
@@ -487,9 +497,13 @@ describe('RecordForm — el diálogo de «Programar…»', () => {
 		buttonIn(dialog(w)!, 'Programar')!.click();
 		await vi.waitFor(() => expect(dialog(w)).toBeNull());
 		const title = w.target.querySelector<HTMLElement>('#vega-field-title')!;
-		await tick();
-		await tick();
-		expect(document.activeElement).toBe(title);
+		// Dos ticks cierran el DOM, pero no esperan el import asíncrono del foco.
+		await settled(() => expect(focusLoads).toBe(1));
+		expect(title.getAttribute('aria-invalid')).toBe('true');
+		expect(document.activeElement).toBe(opener);
+		expect(w.onSubmit).not.toHaveBeenCalled();
+		releaseFocus();
+		await settled(() => expect(document.activeElement).toBe(title));
 	});
 
 	test('⌘S con el diálogo de programar abierto no guarda el formulario', async () => {
