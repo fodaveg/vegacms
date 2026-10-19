@@ -516,6 +516,14 @@
 	function retryTree(): void {
 		treeRequest = import('./VisualBlockTree.svelte');
 	}
+	// El único DeleteConfirm vive en el árbol. Una petición desde el lienzo o el teclado puede
+	// llegar antes de abrir Estructura: se carga el árbol y se muestra su columna para que el
+	// diálogo y su ancla de foco no queden dentro del wrapper plegado (display:none).
+	$effect(() => {
+		if (blocks.pendingDelete === null) return;
+		ensureTreeLoaded();
+		treeVisible = true;
+	});
 	let editBlockButtonEl = $state<HTMLButtonElement | undefined>(undefined);
 
 	/** Cerrar conserva el editor montado y devuelve el foco a su disparador recién mostrado. */

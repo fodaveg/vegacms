@@ -2544,6 +2544,53 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		expect((await port.list('post_block', { perPage: 50 })).totalItems).toBe(1);
 	});
 
+	test('borrar desde el lienzo carga el diálogo visible aunque Estructura no se hubiera abierto', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type, port } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		const deleteSpy = vi.spyOn(port, 'delete');
+		mounted = mountScreen(ctx, type, RECORD, false);
+		await flush();
+		expect(mounted.target.querySelector('.vega-tree-panel')).toBeNull();
+		await connectBridge(mounted.target, [
+			{ id: 'b1', type: 'hero' },
+			{ id: 'b2', type: 'gallery' }
+		]);
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'select', blockId: 'b1' });
+		await tick();
+
+		const toolbarDelete = mounted.target.querySelector<HTMLButtonElement>(
+			'.vega-visual-overlay-toolbar-btn--danger'
+		)!;
+		toolbarDelete.focus();
+		toolbarDelete.click();
+		await import('./VisualBlockTree.svelte');
+		await tick();
+		const treeShell = mounted.target.querySelector('.vega-visual-tree-shell')!;
+		expect(treeShell.classList.contains('vega-visual-tree-shell--hidden')).toBe(false);
+		const dialog = mounted.target.querySelector<HTMLElement>('[role="alertdialog"]')!;
+		expect(dialog).not.toBeNull();
+		expect(dialog.closest('.vega-visual-tree-shell--hidden')).toBeNull();
+		expect(document.activeElement).toBe(dialog.querySelector('.vega-delete-actions button'));
+		dialog.querySelector<HTMLButtonElement>('.vega-delete-actions button')!.click();
+		await tick();
+		expect(mounted.target.querySelector('[role="alertdialog"]')).toBeNull();
+		expect(deleteSpy).not.toHaveBeenCalled();
+		expect(document.activeElement).toBe(toolbarDelete);
+
+		// Reabrir con teclado conserva la misma confirmación obligatoria y su ancla de foco.
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }));
+		await tick();
+		expect(mounted.target.querySelector('[role="alertdialog"]')).not.toBeNull();
+		mounted.target.querySelector<HTMLButtonElement>('.vega-delete-confirm')!.click();
+		await flush();
+		expect(deleteSpy).toHaveBeenCalledTimes(1);
+		expect((await port.list('post_block', { perPage: 50 })).totalItems).toBe(1);
+		expect(document.activeElement).not.toBe(document.body);
+	});
+
 	test('ninguno de los atajos de una sola tecla dispara con el foco en un campo de texto', async () => {
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
 		const { ctx, type } = await setup([
