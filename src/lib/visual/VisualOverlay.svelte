@@ -930,7 +930,9 @@
 						onkeydown={handleInsertMenuKeydown}
 						onfocusout={handleInsertMenuFocusOut}
 					>
-						<p class="vega-visual-insert-destination" title={destination}>{destination}</p>
+						<p class="vega-visual-insert-destination" title={destination}>
+							<span>{destination}</span>
+						</p>
 						<div role="presentation" class="vega-visual-insert-options">
 							{#each blocksState.blockTypes as blockType (blockType.name)}
 								<button
@@ -1267,12 +1269,7 @@
 	}
 
 	.vega-visual-insert-destination {
-		display: -webkit-box;
-		-webkit-box-orient: vertical;
-		-webkit-line-clamp: 2;
-		line-clamp: 2;
 		flex-shrink: 0;
-		overflow: hidden;
 		margin: 0;
 		padding: 0.45rem 0.6rem;
 		color: var(--ink-hi);
@@ -1281,12 +1278,23 @@
 		overflow-wrap: anywhere;
 	}
 
+	.vega-visual-insert-destination span {
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		overflow: hidden;
+	}
+
 	/* Un destino largo conserva sitio para elegir; el menú anuncia el nombre completo. */
 	@media (max-height: 600px) {
 		.vega-visual-insert-destination {
+			padding-block: 0.25rem;
+		}
+
+		.vega-visual-insert-destination span {
 			-webkit-line-clamp: 1;
 			line-clamp: 1;
-			padding-block: 0.25rem;
 		}
 	}
 
