@@ -201,16 +201,15 @@ test('abrir y cancelar enlace e imagen con teclado conserva texto, cursor y sele
 			['Imagen', 'Elegir de la biblioteca']
 		]) {
 			await editor.focus();
-			await page.evaluate(
-				() =>
-					new Promise<void>((resolve) =>
-						requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-					)
-			);
-			await page.keyboard.press('Home');
-			for (let i = 0; i < bounds[0]; i++) await page.keyboard.press('ArrowRight');
-			for (let i = 0; i < Math.abs(bounds[1] - bounds[0]); i++)
-				await page.keyboard.press(bounds[1] > bounds[0] ? 'Shift+ArrowRight' : 'Shift+ArrowLeft');
+			// Prepara sólo el rango nativo: Home puede competir con el foco diferido de TipTap.
+			// La barra recibe esa selección DOM y se recorre/activa/cancela con teclado real.
+			await editor.evaluate((el, [anchor, head]) => {
+				const text = el.querySelector('p')?.firstChild;
+				const selection = el.ownerDocument.getSelection();
+				if (!text || text.nodeType !== Node.TEXT_NODE || !selection)
+					throw new Error('El texto de prueba debe estar listo para seleccionar');
+				selection.setBaseAndExtent(text, anchor, text, head);
+			}, bounds);
 			await expect
 				.poll(() =>
 					page.evaluate(() => {
@@ -790,7 +789,22 @@ test('UX12: árbol, inspector y overlay miden los 21 temas en ambos modos y dens
 	await loginAsDemo(page, { seedShowcase: true });
 	await page.goto('/c/paginas/pagina_1/visual');
 	await expect(page.locator('.vega-visual-status-text')).toContainText('Conectado');
-	await page.locator('.vega-tree-row').first().click();
+	const structure = page.getByRole('button', { name: 'Estructura', exact: true });
+	await expect(structure).toHaveAttribute('aria-expanded', 'false');
+	// El lienzo abre el inspector; «Estructura» carga el árbol sin cambiar esa selección.
+	await page
+		.frameLocator('iframe.vega-visual-frame')
+		.locator('[data-vega-block-id=seccion_1]')
+		.click();
+	await expect(
+		page.locator('.vega-inspector-body:not([hidden]) .vega-widget-text').first()
+	).toBeVisible();
+	await structure.click();
+	await expect(structure).toHaveAttribute('aria-expanded', 'true');
+	await expect(page.locator('.vega-tree-row')).toHaveCount(3);
+	await expect(
+		page.locator('.vega-visual-overlay-toolbar-btn:not(:disabled)').first()
+	).toBeVisible();
 	const selected = page.locator('.vega-tree-row--selected');
 	await selected.focus();
 	await page.keyboard.press('Tab');
