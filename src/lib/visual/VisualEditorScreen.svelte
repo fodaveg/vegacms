@@ -252,8 +252,8 @@
 	 *   papelera del overlay/árbol — un borrado no necesita esperar a que OTRO bloque termine de
 	 *   escribir un campo).
 	 *
-	 * **Estado de guardado en la barra (mismo encargo)**: `savedAt` es PROPIO de esta pantalla — a
-	 * diferencia de `RecordForm.svelte`, NO se siembra del autodate `updated` del registro. Ese
+	 * **Estado de guardado en la barra (mismo encargo)**: `savedAt` es PROPIO de esta pantalla:
+	 * igual que `RecordForm.svelte`, no se siembra del autodate `updated` del registro. Ese
 	 * campo pertenece al registro PADRE, y lo que se guarda aquí son sus BLOQUES (otra colección):
 	 * editar un bloque nunca toca el `updated` del padre, así que sembrar desde ahí enseñaría una
 	 * hora sin relación con lo que se acaba de guardar. Arranca en `null` (nada sabido todavía en
@@ -262,8 +262,7 @@
 	 * `onBlockSaved`/`onStructuralChange`, y que sigue pidiendo el refresco del lienzo exactamente
 	 * igual que antes de esta tarea (nada de ese contrato cambia, solo se le añade marcar la hora).
 	 * Reusa el patrón `.vega-editor-dirty`/`editor.dirty`/`editor.saving`/`editor.savedAt` de
-	 * `RecordForm.svelte` — mismas claves i18n y mismo lenguaje visual (punto de 8px en
-	 * `--warning`), con nombres de clase propios de este fichero porque el CSS con ámbito de
+	 * `RecordForm.svelte` — mismas claves i18n y texto visible de estado local, con nombres de clase propios de este fichero porque el CSS con ámbito de
 	 * Svelte no cruza de un componente a otro.
 	 *
 	 * **Contexto documental** (UX01): documento como H1; colección y bloque seleccionado en las
@@ -1017,11 +1016,12 @@
 						{ctx.t('editor.saving')}
 					</span>
 				{:else if blocks.anyDirty}
-					<span class="vega-visual-dirty" title={ctx.t('editor.dirty')}>
-						<span class="vega-visually-hidden">{ctx.t('editor.dirty')}</span>
+					<span class="vega-visual-dirty" role="status">{ctx.t('editor.localChanges')}</span>
+				{:else}
+					<span class="vega-visual-local-state" role="status">
+						{ctx.t(savedAtText ? 'editor.savedOnServer' : 'editor.noLocalChanges')}
+						{#if savedAtText}<span class="vega-visual-saved-at"> · {savedAtText}</span>{/if}
 					</span>
-				{:else if savedAtText}
-					<span class="vega-visual-saved-at">{savedAtText}</span>
 				{/if}
 
 				<VisualPublishControl
@@ -1485,14 +1485,12 @@
 	   que `.vega-editor-dirty`/`.vega-editor-saved-at` de `RecordForm.svelte` (ver su cabecera para
 	   el porqué de cada pieza) — nombres de clase propios porque el CSS con ámbito de Svelte no
 	   cruza de un componente a otro. */
-	.vega-visual-dirty {
-		display: inline-block;
-		flex-shrink: 0;
-		width: 8px;
-		height: 8px;
-		border-radius: 50%;
-		background: var(--warning);
-		overflow: hidden;
+	.vega-visual-dirty,
+	.vega-visual-local-state {
+		max-width: 26rem;
+		font-size: 0.75rem;
+		color: var(--ink-2);
+		overflow-wrap: anywhere;
 	}
 
 	.vega-visual-saved-at {
@@ -1596,7 +1594,7 @@
 		max-width: 100%;
 		height: 32px;
 		padding: 0 0.4rem;
-		border: 1px solid var(--line-strong);
+		border: 1px solid var(--ink-2);
 		border-radius: var(--r);
 		background: var(--paper);
 		color: var(--ink);
@@ -1642,7 +1640,9 @@
 			min-height: 44px;
 		}
 
-		.vega-visual-help-toggle {
+		.vega-visual-help-toggle,
+		.vega-visual-help-loading-close,
+		.vega-visual-overlay button {
 			min-height: 44px;
 			min-width: 44px;
 		}

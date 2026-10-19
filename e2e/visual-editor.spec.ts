@@ -1661,20 +1661,111 @@ for (const locale of ['es', 'en']) {
 
 test.describe('UX04: objetivos del menú con puntero táctil', () => {
 	test.use({ hasTouch: true });
-	test('las opciones mantienen 44 px reales dentro del escenario escalado', async ({ page }) => {
+	test('toolbar, inserción y opciones conservan 44 px físicos en cada zoom', async ({
+		page
+	}, testInfo) => {
 		await page.setViewportSize({ width: 1440, height: 900 });
 		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
 		await openVisualEditor(page, site, 'pagina_1');
 		await waitConnected(page, 3);
+		expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true);
+		const evidence: unknown[] = [];
 		for (const width of [1440, 901]) {
 			await page.setViewportSize({ width, height: 900 });
-			await page.locator('.vega-visual-overlay-insert').nth(1).click();
-			for (const item of await page.getByRole('menuitem').all()) {
-				const box = (await item.boundingBox())!;
-				expect(box.height).toBeGreaterThanOrEqual(43.99);
-				expect(box.width).toBeGreaterThanOrEqual(43.99);
+			for (const zoom of ['50', '75', '100']) {
+				await page.getByRole('combobox', { name: 'Zoom', exact: true }).selectOption(zoom);
+				await page.locator('[data-vega-tree-row="seccion_1"]').click();
+				const targets = page.locator(
+					'.vega-visual-overlay-toolbar button:enabled, .vega-visual-overlay-insert:enabled'
+				);
+				const count = await targets.count();
+				const toolbarEnabled = await page
+					.locator('.vega-visual-overlay-toolbar button:enabled')
+					.count();
+				expect(toolbarEnabled).toBeGreaterThan(0);
+				expect(count).toBeGreaterThan(toolbarEnabled);
+				evidence.push({
+					width,
+					zoom,
+					measuredEnabled: count,
+					excludedDisabled: await page
+						.locator(
+							'.vega-visual-overlay-toolbar button:disabled, .vega-visual-overlay-insert:disabled'
+						)
+						.count()
+				});
+				for (const target of await targets.all()) {
+					await target.scrollIntoViewIfNeeded();
+					await expect(target).toBeVisible();
+					const measured = await target.evaluate((el) => {
+						const box = el.getBoundingClientRect();
+						const canvas = el.closest('.vega-visual-canvas')!.getBoundingClientRect();
+						const center = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+						return {
+							label: el.getAttribute('aria-label') ?? el.textContent,
+							box: box.toJSON(),
+							canvas: canvas.toJSON(),
+							hit: center === el || el.contains(center)
+						};
+					});
+					evidence.push({ width, zoom, ...measured });
+					expect(measured.box.width, measured.label ?? '').toBeGreaterThanOrEqual(43.99);
+					expect(measured.box.height, measured.label ?? '').toBeGreaterThanOrEqual(43.99);
+					expect(measured.hit, measured.label ?? '').toBe(true);
+					expect(measured.box.left).toBeGreaterThanOrEqual(Math.max(0, measured.canvas.left) - 1);
+					expect(measured.box.right).toBeLessThanOrEqual(
+						Math.min(width, measured.canvas.right) + 1
+					);
+					expect(measured.box.top).toBeGreaterThanOrEqual(Math.max(0, measured.canvas.top) - 1);
+					expect(measured.box.bottom).toBeLessThanOrEqual(
+						Math.min(900, measured.canvas.bottom) + 1
+					);
+				}
+				const toolbar = await page
+					.locator('.vega-visual-overlay-toolbar button:enabled')
+					.evaluateAll((buttons) => buttons.map((el) => el.getBoundingClientRect().toJSON()));
+				for (let i = 0; i < toolbar.length; i++)
+					for (let j = i + 1; j < toolbar.length; j++) {
+						const first = toolbar[i],
+							second = toolbar[j];
+						expect(
+							Math.min(first.right, second.right) - Math.max(first.left, second.left) > 0.5 &&
+								Math.min(first.bottom, second.bottom) - Math.max(first.top, second.top) > 0.5
+						).toBe(false);
+					}
+				await page.locator('.vega-visual-overlay-insert').nth(1).click();
+				for (const item of await page.getByRole('menuitem').all()) {
+					const box = (await item.boundingBox())!;
+					expect(box.height).toBeGreaterThanOrEqual(43.99);
+					expect(box.width).toBeGreaterThanOrEqual(43.99);
+					evidence.push({ width, zoom, menu: await item.textContent(), box });
+				}
+				await page.keyboard.press('Escape');
 			}
-			await page.keyboard.press('Escape');
 		}
+		await page.setViewportSize({ width: 390, height: 844 });
+		await expect(page.getByRole('region', { name: 'Solo textos' })).toBeVisible();
+		await expect(page.locator('.vega-visual-overlay-insert')).toHaveCount(0);
+		const textActions = page.locator(
+			'.vega-edit-top button:visible:enabled, .vega-visual-grid--texts button:visible:enabled'
+		);
+		expect(await textActions.count()).toBeGreaterThan(0);
+		for (const action of await textActions.all()) {
+			await action.scrollIntoViewIfNeeded();
+			const box = (await action.boundingBox())!;
+			expect(box.width).toBeGreaterThanOrEqual(43.99);
+			expect(box.height).toBeGreaterThanOrEqual(43.99);
+			evidence.push({
+				width: 390,
+				mode: 'texts',
+				label: (await action.getAttribute('aria-label')) ?? (await action.textContent()),
+				box
+			});
+		}
+		evidence.push({ width: 390, mode: 'texts', overlay: 'not applicable: canvas is unmounted' });
+		await testInfo.attach('ux04-touch-targets', {
+			body: JSON.stringify(evidence, null, 2),
+			contentType: 'application/json'
+		});
 	});
 });

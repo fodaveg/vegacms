@@ -2485,7 +2485,10 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		mounted = mountScreen(ctx, type);
 		await flush();
 
-		// Antes de tocar nada: ninguna de las tres ramas.
+		// Cargar el padre no inventa un guardado de sus bloques.
+		expect(mounted.target.querySelector('.vega-visual-local-state')?.textContent).toContain(
+			translate('es', 'editor.noLocalChanges')
+		);
 		expect(mounted.target.querySelector('.vega-visual-dirty')).toBeNull();
 		expect(mounted.target.querySelector('.vega-visual-saved-at')).toBeNull();
 
@@ -2532,6 +2535,9 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		await flush();
 
 		expect(mounted.target.querySelector('.vega-visual-saved-at--saving')).toBeNull();
+		expect(mounted.target.querySelector('.vega-visual-local-state')?.textContent).toContain(
+			translate('es', 'editor.savedOnServer')
+		);
 		const savedAtEl = mounted.target.querySelector('.vega-visual-saved-at');
 		expect(savedAtEl).not.toBeNull();
 		expect(savedAtEl!.textContent).not.toBe('');

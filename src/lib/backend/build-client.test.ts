@@ -247,4 +247,64 @@ describe('pollBuildStatus', () => {
 		await vi.advanceTimersByTimeAsync(60000);
 		expect(onStatus).toHaveBeenCalledTimes(2); // terminal: no se reprograma más
 	});
+	test('optional continuation can cross historical terminals without changing the default', async () => {
+		const terminal = { ...RUNNING, state: 'ok' as const };
+		const { client } = fakeClient([terminal, RUNNING, terminal]);
+		const onStatus = vi.fn();
+		pollBuildStatus(client, {
+			onStatus,
+			intervalMs: 1000,
+			shouldContinue: () => onStatus.mock.calls.length < 3
+		});
+		await vi.advanceTimersByTimeAsync(10000);
+		expect(onStatus.mock.calls.map(([status]) => status.state)).toEqual(['ok', 'running', 'ok']);
+	});
+
+	test('deadline aborts a stalled GET and ignores its eventual response', async () => {
+		let finish!: (status: BuildStatus) => void;
+		const client = {
+			trigger: vi.fn(),
+			fetchStatus: vi.fn(
+				(_signal?: AbortSignal) =>
+					new Promise<BuildStatus>((resolve) => {
+						finish = resolve;
+					})
+			)
+		};
+		const onStatus = vi.fn(),
+			onTimeout = vi.fn(),
+			onError = vi.fn();
+		pollBuildStatus(client, { onStatus, onTimeout, onError, maxDurationMs: 5000 });
+		await vi.advanceTimersByTimeAsync(0);
+		const signal = client.fetchStatus.mock.calls[0]?.[0] as AbortSignal | undefined;
+		await vi.advanceTimersByTimeAsync(5000);
+		expect(signal?.aborted).toBe(true);
+		expect(onTimeout).toHaveBeenCalledTimes(1);
+		finish(RUNNING);
+		await vi.advanceTimersByTimeAsync(60000);
+		expect(onStatus).not.toHaveBeenCalled();
+		expect(onError).not.toHaveBeenCalled();
+	});
+
+	test('stop inside onStatus clears cadence and deadline', async () => {
+		const { client } = fakeClient([RUNNING]);
+		const onTimeout = vi.fn();
+		const onStatus = vi.fn(() => stop());
+		const stop = pollBuildStatus(client, { onStatus, onTimeout, maxDurationMs: 5000 });
+		await vi.advanceTimersByTimeAsync(60000);
+		expect(onStatus).toHaveBeenCalledTimes(1);
+		expect(onTimeout).not.toHaveBeenCalled();
+	});
+
+	test('stop inside onError does not schedule a backoff retry', async () => {
+		const client = {
+			trigger: vi.fn(),
+			fetchStatus: vi.fn().mockRejectedValue(new Error('offline'))
+		};
+		const onError = vi.fn(() => stop());
+		const stop = pollBuildStatus(client, { onStatus: vi.fn(), onError, maxDurationMs: 5000 });
+		await vi.advanceTimersByTimeAsync(60000);
+		expect(onError).toHaveBeenCalledTimes(1);
+		expect(client.fetchStatus).toHaveBeenCalledTimes(1);
+	});
 });

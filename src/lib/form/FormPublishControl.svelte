@@ -178,7 +178,7 @@
 		opacity: 0.5;
 	}
 	.vega-visual-publish-btn:focus-visible {
-		outline: 2px solid var(--ring);
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
 	.vega-visual-publish-error {

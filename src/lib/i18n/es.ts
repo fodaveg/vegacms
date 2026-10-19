@@ -96,18 +96,35 @@ export const es = {
 	// ————— Publicación (lote "publicación", fase A): `PublishButton.svelte` —————
 	// Ausente por completo (§cabecera del componente) si el proyecto conectado no declaró `build`
 	// en su discovery — estas claves solo se pintan cuando la funcionalidad existe de verdad.
-	'topbar.publish.loading': 'Comprobando publicación…',
-	'topbar.publish.unavailableDenied': 'Publicar no disponible: tu cuenta no tiene permiso',
-	'topbar.publish.unavailableOffline': 'Publicar no disponible: no se llega al servidor',
-	'topbar.publish.running': 'Publicando…',
-	'topbar.publish.failed': 'Reintentar publicación',
-	'topbar.publish.noChanges': 'Sin cambios',
-	'topbar.publish.ok': 'Sitio al día',
-	'topbar.publish.ready': 'Publicar',
+	'topbar.publish.loading': 'Comprobando estado…',
+	'topbar.publish.unavailableDenied': 'Tu cuenta no tiene permiso para actualizar',
+	'topbar.publish.unavailableOffline': 'No se puede comprobar el estado actual',
+	'topbar.publish.running': 'Actualización en curso',
+	'topbar.publish.failed': 'La actualización del sitio ha fallado',
+	'topbar.publish.noChanges': 'No se detectan cambios guardados posteriores',
+	'topbar.publish.ok': 'Última actualización completada',
+	'topbar.publish.ready': 'Actualizar sitio',
 	'topbar.publish.viewLog': 'Ver registro',
-	'topbar.publish.triggerError': 'No se pudo iniciar la publicación.',
-	'topbar.publish.lastPublished': 'Última publicación: {date}',
-	'topbar.publish.again': 'Publicar de nuevo',
+	'topbar.publish.triggerError': 'No se pudo confirmar la solicitud',
+	'topbar.publish.lastPublished': 'Último éxito conocido: {date}',
+	'topbar.publish.again': 'Actualizar de nuevo',
+	'topbar.publish.requesting': 'Solicitando actualización…',
+	'topbar.publish.accepted': 'Solicitud aceptada · esperando estado',
+	'topbar.publish.uncertain': 'Resultado de la solicitud no confirmado',
+	'topbar.publish.check': 'Comprobar estado',
+	'topbar.publish.checking': 'Comprobando estado…',
+	'topbar.publish.details': 'Estado del sitio',
+	'topbar.publish.ambiguousRunning': 'No se pudo confirmar la solicitud · actualización en curso',
+	'topbar.publish.scope':
+		'Actualiza el sitio con los datos guardados. No guarda los cambios locales ni cambia el estado de las páginas.',
+	'topbar.publish.unknownChanges': 'No se puede determinar si hay cambios pendientes',
+	'topbar.publish.changes': 'Se detectan cambios guardados posteriores',
+	'topbar.publish.history': 'Último resultado conocido: {result}',
+	'topbar.publish.idle': 'Sin actualización observada',
+	'topbar.publish.retryUncertain':
+		'El resultado de la solicitud anterior sigue sin confirmarse. Actualizar de nuevo envía otra solicitud.',
+	'topbar.publish.resultScope':
+		'El último resultado no confirma que todos los cambios o esta página estén visibles.',
 
 	// ————— Login / sesión —————
 	'login.title': 'Acceder a Vega',
@@ -335,7 +352,18 @@ export const es = {
 	// ————— Barra pegajosa del editor (R7 del rediseño C2, mockup `.edit-top`) —————
 	'editor.new': 'nuevo',
 	'editor.dirty': 'sin guardar',
-	'editor.savedAt': 'último guardado {time}',
+	'editor.publicationPartial':
+		'Guardado en el servidor. No se pudo confirmar el cambio de estado de la página.',
+	'editor.localChanges': 'Cambios sin guardar en esta pantalla',
+	'editor.noLocalChanges': 'Sin cambios locales',
+	'editor.savedOnServer': 'Guardado en el servidor',
+	'editor.pageState': 'Página',
+	'editor.publicationScope.label': 'Guardado y visibilidad',
+	'editor.publicationScope.build':
+		'Guardar modifica los datos. El estado de la página decide si puede ser pública; actualizar el sitio usa los datos ya guardados.',
+	'editor.publicationScope.site':
+		'Guardar modifica los datos y puede cambiar una página ya publicada. La visibilidad depende del sitio.',
+	'editor.savedAt': 'Último guardado {time}',
 	'editor.previewLink': 'Ver en el sitio',
 	'editor.previewDisabledTitle': 'El borrador no tiene URL pública todavía',
 
@@ -465,7 +493,7 @@ export const es = {
 	'editor.visual.review.scrollLabel': 'Detalles de la revisión antes de publicar',
 	'editor.visual.review.scrollMore': 'Desplázate para ver más',
 	'editor.visual.status.success': '«{name}» pasa a «{label}».',
-	'editor.visual.status.success.rebuild': 'Se verá en el sitio tras la próxima publicación.',
+	'editor.visual.status.success.rebuild': 'El sitio usa los datos guardados tras actualizarlo.',
 	'editor.visual.frameTitle': 'La página del sitio, dentro del editor visual',
 	'editor.visual.connecting': 'Conectando con el sitio…',
 	'editor.visual.connected.many': 'Conectado al sitio: {count} bloques en la página.',

@@ -55,9 +55,9 @@ describe('t()', () => {
 		expect(t('es', 'nav.warningsBadge', { count: 3 })).toBe('3 avisos');
 	});
 
-	test('el botón de publicar de la barra no se llama como el estado de una entrada (lote 11)', () => {
-		expect(t('es', 'topbar.publish.ok')).toBe('Sitio al día');
-		expect(t('en', 'topbar.publish.ok')).toBe('Site up to date');
+	test('la actualización del sitio se distingue del estado editorial y de su frescura', () => {
+		expect(t('es', 'topbar.publish.ok')).toBe('Última actualización completada');
+		expect(t('en', 'topbar.publish.ok')).toBe('Latest site update completed');
 		expect(t('es', 'topbar.publish.ok')).not.toBe(t('es', 'status.value.published'));
 		expect(t('en', 'topbar.publish.ok')).not.toBe(t('en', 'status.value.published'));
 	});

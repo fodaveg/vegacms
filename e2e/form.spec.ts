@@ -262,13 +262,18 @@ test.describe('barra pegajosa del editor (R7 del rediseño C2 «Cabina»)', () =
 		await expect(tag).toHaveText('Publicada');
 		await expect(tag).toHaveAttribute('data-status-kind', 'pub');
 
-		// Sin cambios: ningún indicador "sin guardar".
+		// El registro cargado no acredita una escritura propia ni una hora de guardado.
 		await expect(page.locator('.vega-editor-dirty')).toHaveCount(0);
+		await expect(page.locator('.vega-editor-local-state')).toHaveText('Sin cambios locales');
+		await expect(page.locator('.vega-editor-saved-at')).toHaveCount(0);
 
 		await page
 			.getByRole('textbox', { name: 'Título', exact: true })
 			.fill('Bienvenido a Vega (editado por ⌘S)');
 		await expect(page.locator('.vega-editor-dirty')).toBeVisible();
+		await expect(page.locator('.vega-editor-local-state')).toHaveText(
+			'Cambios sin guardar en esta pantalla'
+		);
 
 		// Atajo ⌘S/Ctrl+S (`ControlOrMeta`, cross-platform): dispara el MISMO envío que "Guardar".
 		await page.keyboard.press('ControlOrMeta+s');
@@ -280,6 +285,10 @@ test.describe('barra pegajosa del editor (R7 del rediseño C2 «Cabina»)', () =
 		await expect(page.locator('.vega-editor-crumb-name')).toHaveText(
 			'Bienvenido a Vega (editado por ⌘S)'
 		);
+		await expect(page.locator('.vega-editor-local-state')).toContainText('Guardado en el servidor');
+		await expect(page.locator('.vega-editor-saved-at')).toContainText('Último guardado');
+		await expect(tag).toHaveText('Publicada');
+		await expect(page.locator('.vega-publish')).toHaveCount(0);
 	});
 
 	test('⌘S no hace nada sin cambios (sin dirty, sin roundtrip visible)', async ({ page }) => {

@@ -127,7 +127,16 @@ Returns `200` with:
 
 - `state`: one of `"idle"`, `"running"`, `"ok"`, `"failed"`. Vega polls this
   endpoint while `state` is `"running"` and stops as soon as it sees any other
-  value.
+  value by default. After a local trigger, the shell may keep observing a
+  historical terminal while waiting for a newer server result: `/status` has
+  no run ID, so POST acceptance cannot identify a later GET as that request's
+  outcome. This local observation is bounded (120 seconds); a failed GET stops
+  it immediately and offers a GET-only status check. A POST wait is bounded at
+  30 seconds. Ending either HTTP wait does not cancel work on the server.
+  After an explicit check returns a terminal that still cannot explain the
+  request, the shell may offer another explicit update while preserving the
+  uncertainty warning. A newer observed result never proves that every saved
+  change or the current page is visible.
 - `startedAt`/`finishedAt`: ISO 8601 UTC of the CURRENT or LAST run, or `null`.
 - `lastPublishedAt`: ISO 8601 UTC of the last run that finished with
   `state: "ok"`, or `null` if none ever did. Vega compares this timestamp
