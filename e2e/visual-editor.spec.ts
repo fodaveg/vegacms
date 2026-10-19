@@ -1660,9 +1660,9 @@ for (const locale of ['es', 'en']) {
 					});
 				await page.keyboard.press('End');
 				await expect(menu.getByRole('menuitem').last()).toBeFocused();
-				// Un borde fraccional puede redondear la intersección a 0.999999 en Chromium.
+				// Chromium midió 0.999999225 en ES y EN: toleramos solo 1 ppm de redondeo.
 				await expect(menu.locator('.vega-visual-insert-destination')).toBeInViewport({
-					ratio: 0.999
+					ratio: 0.999999
 				});
 				await page.keyboard.press('Home');
 				await expect(menu.getByRole('menuitem').first()).toBeFocused();
@@ -1696,8 +1696,7 @@ for (const locale of ['es', 'en']) {
 		const option = (await last.boundingBox())!;
 		expect(option.y).toBeGreaterThanOrEqual(options.y - 1);
 		expect(option.y + option.height).toBeLessThanOrEqual(options.y + options.height + 1);
-		// Un borde fraccional puede redondear la intersección a 0.999999 en Chromium.
-		await expect(menu.locator('.vega-visual-insert-destination')).toBeInViewport({ ratio: 0.999 });
+		await expect(menu.locator('.vega-visual-insert-destination')).toBeInViewport({ ratio: 1 });
 		await page.screenshot({
 			path: testInfo.outputPath(`ux04-901x420-${locale}-long-destination.png`)
 		});
