@@ -843,7 +843,9 @@ test('UX12: árbol, inspector y overlay miden los 21 temas en ambos modos y dens
 /** La barra pertenece a Vega aunque el bloque del sitio sea más estrecho que sus acciones. */
 test.describe('UX12: toolbar táctil sobre bloque estrecho', () => {
 	test.use({ hasTouch: true });
-	test('conserva objetivos44 alcanzables a 901px y zoom50/75/100', async ({ page }, testInfo) => {
+	test('conserva objetivos44 y foco en bloques estrechos y extremos a zoom50/75/100', async ({
+		page
+	}, testInfo) => {
 		await page.setViewportSize({ width: 901, height: 900 });
 		const site = createVisualSite({
 			collection: 'paginas',
@@ -873,36 +875,101 @@ test.describe('UX12: toolbar táctil sobre bloque estrecho', () => {
 		});
 		await frame.locator('[data-vega-block-id=seccion_1]').click();
 		const reports = [];
-		for (const zoom of ['50', '75', '100']) {
-			await page.locator('.vega-visual-zoom-select').selectOption(zoom);
-			const toolbar = page.locator('.vega-visual-overlay-toolbar');
-			await expect(toolbar).toBeVisible();
-			const report = await toolbar.evaluate((el) => {
-				const root = el.closest('.vega-visual-overlay-root')!.getBoundingClientRect();
-				return [...el.querySelectorAll<HTMLButtonElement>('button')].map((button) => {
-					const r = button.getBoundingClientRect();
-					const target = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-					return {
-						name: button.getAttribute('aria-label'),
-						disabled: button.disabled,
-						width: r.width,
-						height: r.height,
-						clipped:
-							r.left < root.left - 0.5 ||
-							r.right > Math.min(root.right, innerWidth) + 0.5 ||
-							r.top < root.top - 0.5 ||
-							r.bottom > Math.min(root.bottom, innerHeight) + 0.5,
-						hit: target === button || (target !== null && button.contains(target))
-					};
+		for (const width of [1440, 901]) {
+			await page.setViewportSize({ width, height: 900 });
+			for (const zoom of ['50', '75', '100']) {
+				await page.locator('.vega-visual-zoom-select').selectOption(zoom);
+				const boundaryHeight = await page
+					.locator('.vega-visual-stage')
+					.evaluate((el) => parseFloat((el as HTMLElement).style.height) - 1);
+				await frame.evaluate((height) => {
+					const last = [...document.querySelectorAll<HTMLElement>('[data-vega-block-id]')].at(-1)!;
+					last.style.boxSizing = 'border-box';
+					last.style.height = `${height - last.getBoundingClientRect().top}px`;
+					last.style.marginBottom = '0';
+					window.dispatchEvent(new Event('resize'));
+				}, boundaryHeight);
+				await expect
+					.poll(() =>
+						page
+							.locator('.vega-visual-overlay-insert')
+							.last()
+							.evaluate((el) =>
+								parseFloat((el as HTMLElement).style.getPropertyValue('--insert-top'))
+							)
+					)
+					.toBeCloseTo(boundaryHeight, 1);
+				const toolbar = page.locator('.vega-visual-overlay-toolbar');
+				await expect(toolbar).toBeVisible();
+				const report = await toolbar.evaluate((el) => {
+					const root = el.closest('.vega-visual-overlay-root')!.getBoundingClientRect();
+					return [...el.querySelectorAll<HTMLButtonElement>('button')].map((button) => {
+						const r = button.getBoundingClientRect();
+						const target = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+						return {
+							name: button.getAttribute('aria-label'),
+							disabled: button.disabled,
+							width: r.width,
+							height: r.height,
+							clipped:
+								r.left < root.left - 0.5 ||
+								r.right > Math.min(root.right, innerWidth) + 0.5 ||
+								r.top < root.top - 0.5 ||
+								r.bottom > Math.min(root.bottom, innerHeight) + 0.5,
+							hit: target === button || (target !== null && button.contains(target))
+						};
+					});
 				});
-			});
-			reports.push({
-				zoom,
-				discovered: report.length,
-				measured: report.filter((row) => !row.disabled).length,
-				exclusions: report.filter((row) => row.disabled),
-				controls: report
-			});
+				const ends = page.locator('.vega-visual-overlay-insert');
+				for (const index of [0, (await ends.count()) - 1]) {
+					const control = ends.nth(index);
+					await control.focus();
+					await page.keyboard.press('Tab');
+					await page.keyboard.press('Shift+Tab');
+					await expect(control).toBeFocused();
+					const bounds = await control.evaluate((el) => {
+						const r = el.getBoundingClientRect(),
+							root = el.closest('.vega-visual-overlay-root')!.getBoundingClientRect(),
+							css = getComputedStyle(el);
+						const gap = parseFloat(css.outlineWidth) + parseFloat(css.outlineOffset);
+						const points = [
+							[r.left + r.width / 2, r.top + r.height / 2],
+							[r.left + r.width / 2, r.top + 2],
+							[r.left + r.width / 2, r.bottom - 2]
+						];
+						return {
+							label: el.getAttribute('aria-label'),
+							width: r.width,
+							height: r.height,
+							top: r.top,
+							bottom: r.bottom,
+							rootTop: root.top,
+							rootBottom: root.bottom,
+							gap,
+							outline: css.outlineStyle,
+							hit: points.every(([x, y]) => {
+								const target = document.elementFromPoint(x, y);
+								return target === el || (target !== null && el.contains(target));
+							})
+						};
+					});
+					reports.push({ width, zoom, endpoint: index, bounds });
+					expect(bounds.width).toBeGreaterThanOrEqual(43.99);
+					expect(bounds.height).toBeGreaterThanOrEqual(43.99);
+					expect(bounds.hit).toBe(true);
+					expect(bounds.outline).not.toBe('none');
+					expect(bounds.top - bounds.gap).toBeGreaterThanOrEqual(bounds.rootTop - 0.5);
+					expect(bounds.bottom + bounds.gap).toBeLessThanOrEqual(bounds.rootBottom + 0.5);
+				}
+				reports.push({
+					width,
+					zoom,
+					discovered: report.length,
+					measured: report.filter((row) => !row.disabled).length,
+					exclusions: report.filter((row) => row.disabled),
+					controls: report
+				});
+			}
 		}
 		await testInfo.attach('overlay-narrow-touch.json', {
 			body: JSON.stringify(reports, null, 2),
@@ -910,7 +977,7 @@ test.describe('UX12: toolbar táctil sobre bloque estrecho', () => {
 		});
 		expect(
 			reports.flatMap((state) =>
-				state.controls.filter(
+				('controls' in state ? state.controls : []).filter(
 					(row) =>
 						!row.disabled && (row.width < 43.99 || row.height < 43.99 || row.clipped || !row.hit)
 				)

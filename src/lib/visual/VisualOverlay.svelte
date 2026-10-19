@@ -552,6 +552,18 @@
 		insertMenuTriggerEl = null;
 	}
 
+	/** Sólo el control táctil de los extremos se separa del borde: 22px de radio + 2 de
+	 *  offset + 2 de outline. El punto real y su índice no cambian. Un punto fuera del lienzo
+	 *  sigue fuera: no apilamos acciones de secciones no visibles en el borde. */
+	function insertTouchTop(point: InsertPoint): number {
+		if (point.position !== 0 && point.position !== blocks.length) return point.top;
+		const inset = 26 / zoomFactor;
+		if (canvasHeight === undefined) return point.top;
+		const height = canvasHeight / zoomFactor;
+		if (point.top < 0 || point.top > height) return point.top;
+		return Math.min(Math.max(point.top, inset), Math.max(inset, height - inset));
+	}
+
 	/** Abre hacia el lado con más espacio real del lienzo. Sin medida (consumidor aislado),
 	 *  conserva el criterio anterior de mitad de los bloques. No altera los puntos ni su índice. */
 	function insertMenuOpensUpward(point: InsertPoint): boolean {
@@ -888,6 +900,7 @@
 			{#each insertPoints as point (point.position)}
 				{@const destination = insertionLabel(point.position)}
 				{@const upward = insertMenuOpensUpward(point)}
+				{@const touchTop = insertTouchTop(point)}
 				<!-- Con menú de tipos (`hasTypeMenu`), mismo contrato APG que `.vega-tree-add` de
 				     `VisualBlockTree.svelte`: `aria-haspopup`/`aria-expanded`/`aria-controls` en el
 				     disparador. Sin menú (modo homogéneo), ninguno de los tres — igual que el botón
@@ -895,7 +908,8 @@
 				<button
 					type="button"
 					class="vega-visual-overlay-insert"
-					style:top="{point.top}px"
+					style:--insert-top="{point.top}px"
+					style:--insert-touch-top="{touchTop}px"
 					style:pointer-events="auto"
 					aria-disabled={structuralGuard}
 					aria-haspopup={blocksState.hasTypeMenu ? 'menu' : undefined}
@@ -913,8 +927,8 @@
 					<!-- Mismo algoritmo de foco que el menú "Añadir sección" que existía antes en
 					     `VisualBlockTree.svelte` (`type-menu.ts`, ver cabecera del script, EXTRAÍDO de
 					     ahí para que este menú lo comparta): el marcado y el posicionamiento SÍ son
-					     propios de aquí, anclados a `point.top` en vez de a `top: 100%` de un botón en
-					     flujo normal — `top` en línea
+					     propios de aquí, anclados al mismo eje del disparador (ajustado sólo en coarse) en vez de
+					     a `top: 100%` de un botón en flujo normal — su custom property
 					     coincide con el mismo eje Y del "+" (ver el CSS, la dirección hacia arriba/abajo
 					     la decide `insertMenuOpensUpward` con `margin-top`/`transform`), y queda
 					     recortado dentro del lienzo porque vive dentro del `overflow: hidden` de
@@ -926,10 +940,14 @@
 						role="menu"
 						tabindex="-1"
 						aria-label={destination}
+						style:--touch-menu-space={canvasHeight === undefined
+							? undefined
+							: `${upward ? touchTop * zoomFactor : canvasHeight - touchTop * zoomFactor}px`}
 						style:--menu-space={canvasHeight === undefined
 							? undefined
 							: `${upward ? point.top * zoomFactor : canvasHeight - point.top * zoomFactor}px`}
-						style:top="{point.top}px"
+						style:--insert-top="{point.top}px"
+						style:--insert-touch-top="{touchTop}px"
 						bind:this={insertMenuEl}
 						onkeydown={handleInsertMenuKeydown}
 						onfocusout={handleInsertMenuFocusOut}
@@ -1198,6 +1216,7 @@
 
 	.vega-visual-overlay-insert {
 		position: absolute;
+		top: var(--insert-top);
 		left: 50%;
 		display: inline-flex;
 		align-items: center;
@@ -1218,9 +1237,11 @@
 		color: var(--accent);
 	}
 
+	/* El exterior es el sitio del cliente: el doble trazo mantiene el foco sobre cualquier foto. */
 	.vega-visual-overlay-insert:focus-visible {
-		outline: 2px solid var(--ink);
+		outline: 2px solid var(--paper);
 		outline-offset: 2px;
+		box-shadow: 0 0 0 2px var(--ink-hi);
 	}
 
 	.vega-visual-overlay-insert[aria-disabled='true'] {
@@ -1236,6 +1257,7 @@
 	   `top`/`left`/`margin`/`transform` en vez de heredar el suyo. La lista interior recibe el puntero para desplazar sus opciones; el destino permanece fuera
 	   de ese scroll y el resto del overlay sigue sin interceptar la página. */
 	.vega-visual-overlay-insert-menu {
+		top: var(--insert-top);
 		position: absolute;
 		left: 50%;
 		z-index: 10;
@@ -1420,7 +1442,19 @@
 		}
 
 		.vega-visual-overlay-insert {
+			top: var(--insert-touch-top);
 			transform: translate(-50%, -50%) scale(var(--menu-scale));
+		}
+
+		.vega-visual-overlay-insert-menu {
+			top: var(--insert-touch-top);
+			/* El menú deja 2px tras el radio44 del disparador y usa el espacio desde su ancla visible. */
+			margin-top: calc(24px * var(--menu-scale));
+			max-height: min(18rem, calc(var(--touch-menu-space, 100vh) - 24px));
+		}
+
+		.vega-visual-overlay-insert-menu--up {
+			margin-top: calc(-24px * var(--menu-scale));
 		}
 
 		.vega-visual-overlay-insert-menu-item {
