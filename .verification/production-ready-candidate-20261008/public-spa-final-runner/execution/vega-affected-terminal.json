@@ -1,0 +1,18 @@
+{
+  "argv": [
+    "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+    "/private/tmp/vegacms-backlog-r2-20261007/node_modules/@playwright/test/cli.js",
+    "test",
+    "--config",
+    "/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-final-runner/vega-lumbre/current-spa-proof.config.mjs",
+    "--workers=1",
+    "--grep",
+    "source: visual editor fetches HTTPS token"
+  ],
+  "cwd": "/private/tmp/vegacms-backlog-r2-20261007",
+  "env": {
+    "VEGA_CSP_PROOF_CANDIDATE_ROOT": "/private/tmp/vegacms-backlog-r2-20261007",
+    "VEGA_CSP_PUBLIC_BUNDLE_ROOT": "/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-clones/vega-lumbre"
+  },
+  "exit_code": 0
+}

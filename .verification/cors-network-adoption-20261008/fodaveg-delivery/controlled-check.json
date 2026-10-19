@@ -1,0 +1,15 @@
+{
+  "candidateSha": "eb62c0447d4cce8a8af1ceedeeabb11602770d48d6bf952618ef19e7b8a1008b",
+  "composeSha": "a18777c55d583c8eab43671d968108c9560f8a41152440e04ba610e583a9b500",
+  "containerId": "6bddffa88de1c2738bf9aee711425f512deac30365f6183bb3d2ad008a2ff452",
+  "freeDockerKiB": 4901796,
+  "freeSrvKiB": 2238184,
+  "imageId": "sha256:22cf0983980e3bf9562a0a518f258e6e69cdd58cb3d23a19516f1da60a6d403e",
+  "remoteWrites": false,
+  "requiredDockerKiB": 1378500,
+  "requiredSrvKiB": 1378500,
+  "sameFilesystem": false,
+  "service": "fodaveg",
+  "status": "READY_FOR_REVIEW",
+  "volumeKiB": 854212
+}

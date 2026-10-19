@@ -1,0 +1,19 @@
+
+Running 3 tests using 1 worker
+
+
+(node:85352) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/3] scripts/l9-measure/visual.spec.ts:35:1 › visual renewal and reload: real Go and Astro consumers
+
+(node:94102) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[2/3] scripts/l9-measure/visual.spec.ts:35:1 › visual renewal and reload: real Go and Astro consumers
+
+(node:3238) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[3/3] scripts/l9-measure/visual.spec.ts:35:1 › visual renewal and reload: real Go and Astro consumers
+  3 passed (1.7m)

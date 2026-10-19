@@ -1,0 +1,14 @@
+{
+  "archiveBytes": 488653312,
+  "archiveSha256": "abac0eb3feb7432880c7cc2a4a3d34444507347ff82c72967a4626a38a1bad8e",
+  "configId": "sha256:1b6436fee8c23615d7f7826cb4f87cb1d6e7e97d2d56150ff87a90571b951c40",
+  "effectiveRemoteId": "sha256:22cf0983980e3bf9562a0a518f258e6e69cdd58cb3d23a19516f1da60a6d403e",
+  "freeDockerKiB": 3419356,
+  "freeSrvKiB": 3419356,
+  "platformAndLayersMatch": true,
+  "remoteWrites": true,
+  "requiredDockerKiB": 1955891,
+  "requiredSrvKiB": 1955891,
+  "sameFilesystem": true,
+  "status": "FODAVEG_LOADED_CHAIN_PROVED"
+}

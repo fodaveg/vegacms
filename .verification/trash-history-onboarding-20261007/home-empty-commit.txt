@@ -1,0 +1,11 @@
+test: use resolved model fixture for empty home
+
+Preserve the admin Settings guide and editor message with explicitly
+disabled revisions and empty types from the neighboring Home fixture.
+Provide the protected route session; keep product code unchanged.
+
+Verified tree: 30445ce2c6d7c884538b8e146931b3710e93c808
+Checks: Home focal 2/2; ESLint, Prettier and diff --check exit 0.
+Environment: Darwin, Node22, existing deps, maxWorkers=1; no install/build.
+Limits: fixture-only focal; root owns combined gate.
+Evidence: /Users/david/code/vegacms/.verification/trash-history-onboarding-20261007/home-empty-receipt.json

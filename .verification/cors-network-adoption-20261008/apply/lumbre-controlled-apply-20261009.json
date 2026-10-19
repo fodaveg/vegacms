@@ -1,0 +1,14 @@
+{
+  "archiveBytes": 2735038,
+  "archiveSha": "ac2c56ddedae88f952c4b4aa3d75c5656ee05980fb10467660c28406fbe013a1",
+  "backupId": "lumbre-admin-pb-20261008T230237Z-3633172",
+  "composeSha": "56caa1a1273feaa3c56b34db7724177c448190d1c28d723d53a5b62fbe110ae9",
+  "imageId": "sha256:40df6a9bbcfd4edbc93680b0f45946d0be7c50c4e5c470167e33646fe499c1b7",
+  "newContainerId": "3774856bc7cbb6aa193b3db9ad2d0545d25bd4a66a35ef53c398b786d89ca9ca",
+  "oldContainerId": "6241f7d6b8d1a2dda326770a318a1d3b94d84b032cc5df050527f9631e75f7d6",
+  "remoteWrites": true,
+  "restoredBytes": 19979069,
+  "restoredFiles": 5,
+  "service": "lumbre-admin-pb",
+  "status": "CORS_APPLIED_AWAITING_PUBLIC_SMOKE"
+}

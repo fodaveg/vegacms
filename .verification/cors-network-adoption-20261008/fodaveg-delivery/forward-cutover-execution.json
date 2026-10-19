@@ -1,0 +1,33 @@
+{
+  "operationId": "d42f490f-606d-42d5-84f9-bd0c31da2492",
+  "ownedBackupId": "fodaveg-20261015T020337Z-50583",
+  "ownedRecordId": "fodaveg-reprobe-20261015T020337Z-50583",
+  "result": {
+    "backupId": "fodaveg-20261015T020337Z-50583",
+    "baselineFields": {
+      "aliasesCanonicalSame": null,
+      "aliasesRawSame": null,
+      "mountCanonicalSame": null,
+      "mountRawSame": null,
+      "networkRawSame": null,
+      "portsStoppedEquivalent": null
+    },
+    "checkpoint": "HEALTH",
+    "commandExit": null,
+    "createExit": null,
+    "failureClass": "NewRuntimeUnhealthy",
+    "probe": {
+      "bytes": 875285637,
+      "cleanup": [],
+      "files": 71,
+      "finished": true,
+      "primary": null,
+      "recordId": "fodaveg-reprobe-20261015T020337Z-50583"
+    },
+    "remoteWrites": true,
+    "service": "fodaveg",
+    "status": "STOP_NEEDS_OPERATOR"
+  },
+  "status": "STOP_NEEDS_OPERATOR",
+  "transportExit": 2
+}

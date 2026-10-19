@@ -1,0 +1,49 @@
+{
+  "name": "vega-served-fodaveg-csp-20261008",
+  "services": {
+    "csp-pb": {
+      "image": "sha256:be13075b6a2040dbfe20713b79ef715c89fbeee7990118ec6605f3de799948fd",
+      "volumes": [
+        "proof-db:/pb/pb_data",
+        "/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-clones/fodaveg/build:/pb/pb_public:ro"
+      ],
+      "networks": [
+        "proof"
+      ],
+      "security_opt": [
+        "no-new-privileges:true"
+      ]
+    },
+    "csp-edge": {
+      "image": "sha256:6b08c1b9858ca9a7d99c1da13c3695081e0e604c6cf214ca26a7ce0e2c4fd9b4",
+      "volumes": [
+        "/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-clones/fodaveg/current-spa-proof-runtime/Caddyfile:/etc/caddy/Caddyfile:ro"
+      ],
+      "ports": [
+        "127.0.0.1:4173:4173",
+        "127.0.0.1:4174:4174",
+        "127.0.0.1:4175:4175",
+        "127.0.0.1:4176:4176",
+        "127.0.0.1:4177:4177"
+      ],
+      "networks": [
+        "proof"
+      ],
+      "read_only": true,
+      "tmpfs": [
+        "/data",
+        "/config",
+        "/tmp"
+      ],
+      "security_opt": [
+        "no-new-privileges:true"
+      ]
+    }
+  },
+  "networks": {
+    "proof": {}
+  },
+  "volumes": {
+    "proof-db": {}
+  }
+}

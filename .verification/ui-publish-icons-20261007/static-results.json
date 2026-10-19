@@ -1,0 +1,48 @@
+[
+  {
+    "name": "prettier-final",
+    "argv": [
+      "node",
+      "node_modules/prettier/bin/prettier.cjs",
+      "--check",
+      "src/lib/form/RecordBlocks.svelte",
+      "src/lib/form/RecordForm.publish.svelte.test.ts",
+      "src/lib/form/RecordForm.review.svelte.test.ts",
+      "src/lib/form/RecordForm.schedule.svelte.test.ts",
+      "src/lib/form/RecordForm.svelte",
+      "src/lib/icons/Icon.svelte",
+      "src/lib/icons/registry.ts",
+      "src/lib/richtext/EditorToolbar.svelte",
+      "src/lib/shell/PublishButton.svelte",
+      "src/lib/visual/VisualPublishControl.svelte"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "eslint-final2",
+    "argv": [
+      "node",
+      "node_modules/eslint/bin/eslint.js",
+      "src/lib/form/RecordBlocks.svelte",
+      "src/lib/form/RecordForm.publish.svelte.test.ts",
+      "src/lib/form/RecordForm.review.svelte.test.ts",
+      "src/lib/form/RecordForm.schedule.svelte.test.ts",
+      "src/lib/form/RecordForm.svelte",
+      "src/lib/icons/Icon.svelte",
+      "src/lib/icons/registry.ts",
+      "src/lib/richtext/EditorToolbar.svelte",
+      "src/lib/shell/PublishButton.svelte",
+      "src/lib/visual/VisualPublishControl.svelte"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "check-final4",
+    "argv": [
+      "pnpm",
+      "--config.verifyDepsBeforeRun=warn",
+      "check"
+    ],
+    "exit_code": 0
+  }
+]

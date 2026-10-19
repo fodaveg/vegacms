@@ -1,0 +1,19 @@
+{
+  "recordedUTC": "2026-10-07T19:24:38.727764+00:00",
+  "base": "87f4680f2d53911be0180b71990ca7e319ee7b25",
+  "worktree": "/private/tmp/vegacms-trash-history-20261007",
+  "paths": {
+    "src/lib/form/FormPublishControl.svelte": "d10512d98bd9d56527e27a959dcc8220510ebfcdd17abb37694dd7ffd7eb7613",
+    "src/lib/form/FormPublishControl.svelte.test.ts": "40e0d4f544f38f5b087d19f35687dfeb2920398a2f6e0327f4ac24afc8fb33a8",
+    "src/lib/form/RecordForm.publish.svelte.test.ts": "2ebc28c4de92741136f4aedcc14237ada1fb581543b841717ce806fc4a6b0a03",
+    "src/lib/form/RecordForm.review.svelte.test.ts": "7f0128dd8d9bcafbf7e9ca366c6e68c68d398bc5298814d91da8e118abef39e0",
+    "src/lib/form/RecordForm.svelte": "70e76fe9ffed4218e8293ad24cb046fad61112c0e950ff0568fa88e35f9c2efa"
+  },
+  "status": "unfinished-preserved-user-requested-close",
+  "lastRuntime": "39195 exit1:127 passed/1 failed test harness; no build2",
+  "priorRuntime": "84685 exit0:127 passed; earlier wrapper107 passed",
+  "indexTreeRecorded": false,
+  "ui-budget-working.patchSHA256": "c5e7bd554338ee7a9aed5ddce00344a3d86bc6f4be3e5122a39d97720cd9fbc0",
+  "ui-budget-staged.patchSHA256": "e7e8a9e5387fa523fe4b1b22505457c25034f4380c0f2343f5863c75f2994645",
+  "ui-budget-unstaged.patchSHA256": "b6aaecb767fa8423c39530f0291e9644f516de7498f65aef261cf705b61377f6"
+}

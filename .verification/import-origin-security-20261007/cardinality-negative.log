@@ -1,0 +1,39 @@
+
+ RUN  v4.1.10 /private/tmp/vegacms-import-origins-20261007
+
+ ❯ |server| src/lib/transfer/import-collection.test.ts (41 tests | 4 failed | 37 skipped) 8ms
+   × la cardinalidad inesperada (multiple=true) tampoco puede saltar la política al PISA 5ms
+   × la cardinalidad inesperada (multiple=true) tampoco puede saltar la política al PISA 0ms
+   × la cardinalidad inesperada (multiple=false) tampoco puede saltar la política al PISA 1ms
+   × la cardinalidad inesperada (multiple=false) tampoco puede saltar la política al PISA 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |server| src/lib/transfer/import-collection.test.ts > la cardinalidad inesperada (multiple=true) tampoco puede saltar la política al PISA
+ FAIL  |server| src/lib/transfer/import-collection.test.ts > la cardinalidad inesperada (multiple=true) tampoco puede saltar la política al PISA
+ FAIL  |server| src/lib/transfer/import-collection.test.ts > la cardinalidad inesperada (multiple=false) tampoco puede saltar la política al PISA
+ FAIL  |server| src/lib/transfer/import-collection.test.ts > la cardinalidad inesperada (multiple=false) tampoco puede saltar la política al PISA
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/lib/transfer/import-collection.test.ts:1028:30
+    1026|  try {
+    1027|   const report = await runImport(port, forced, { overwriteConfirmed: t…
+    1028|   expect(report.failedCount).toBe(1); expect(writes).toEqual([]); expe…
+       |                              ^
+    1029|  } finally { vi.unstubAllGlobals(); }
+    1030| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 37 skipped (41)
+   Start at  19:41:03
+   Duration  226ms (transform 74ms, setup 0ms, import 92ms, tests 8ms, environment 0ms)
+

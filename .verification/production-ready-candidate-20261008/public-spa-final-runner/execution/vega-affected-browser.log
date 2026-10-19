@@ -1,0 +1,8 @@
+
+Running 1 test using 1 worker
+
+(node:50040) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-final-runner/vega-lumbre/current-spa-proof.spec.ts:209:1 › source: visual editor fetches HTTPS token, completes bridge and selects real block (1.7s)
+
+  1 passed (2.5s)

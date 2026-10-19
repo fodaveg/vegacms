@@ -1,0 +1,33 @@
+{
+  "tree": "80757b27437d67e33d5fe68cda2d6b3a53077ca6",
+  "buildStarted": false,
+  "buildBudgetGiB": 1,
+  "dfAvailableKiB": 133455036,
+  "observedForeignProcesses": [
+    {
+      "pid": 57204,
+      "scope": "Claude Hebra worktree agent-ab5e985031a6177ad",
+      "command": "playwright test --config playwright.e1c.config.ts e2e/e1c/zz-probe.spec.ts --project=chromium --workers=1"
+    },
+    {
+      "pid": 57939,
+      "command": "Playwright workerProcessEntry.js"
+    },
+    {
+      "pid": 57530,
+      "command": "vite --port 6428 --strictPort"
+    },
+    {
+      "pids": [
+        58000,
+        58001
+      ],
+      "command": "Chromium headless GPU/network subprocesses"
+    }
+  ],
+  "limits": [
+    "CLI test and worker observed; CPU utilization and test progress not inspected.",
+    "No foreign process stopped or modified; serial execution decision deferred to root.",
+    "No build launched from this census."
+  ]
+}

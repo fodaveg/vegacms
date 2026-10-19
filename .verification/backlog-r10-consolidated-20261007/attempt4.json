@@ -1,0 +1,18 @@
+{
+  "candidate": "9165fb964b8743d4be5cf65621a687acc7534e1e",
+  "tree": "1b24a844a33898bc98158534f1a78becf208e938",
+  "worktree": "/private/tmp/vegacms-backlog-r2-20261007",
+  "status": "passed",
+  "budgetGiB": 2,
+  "dfAvailableKiB": 145155412,
+  "concurrency": "Observed external Vite build45012 already exited by kernel registration ESRCH; remaining observed Playwright probes1/3files workers1 classified focused rather than heavy. Root owns single full gate. No external processes modified.",
+  "node": "22.22.3",
+  "GOFLAGS": "-race",
+  "install": false,
+  "log": "gate-1b24a844.log",
+  "terminal": true,
+  "session_id": 62345,
+  "gate_exit": 0,
+  "budget_exit": 0,
+  "receipt": "receipt.json"
+}

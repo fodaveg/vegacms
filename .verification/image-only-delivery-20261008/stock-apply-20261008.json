@@ -1,0 +1,15 @@
+{
+  "backupDir": "/srv/vega-image-rollout/vega-pb-20261008T194934Z-3210332",
+  "cloneServeProbePassed": false,
+  "isolatedRestoreBytes": 16305618,
+  "isolatedRestoreFiles": 17,
+  "newComposeSha256": "bae812ef0031b5e6aeb65f4678905e65d74cfadf62a5e78fe156250166377f7e",
+  "newDotenvSha256": "3eae28c7de82aae4006bbce9bd50fc65d47f1e2a9821a4e157b33ddf73dfda6d",
+  "newId": "sha256:dd978b8d23081d2e3c69ebf6ef8ff4599a1acdd3f38dc559ae6fa379e46449b4",
+  "oldId": "sha256:e1eb49a883852c13d4c46cb326e56d146c116327883d970aadea769364ec4c0d",
+  "remoteWrites": true,
+  "service": "vega-pb",
+  "snapshotBytes": 10362092,
+  "snapshotSha256": "8cfea38ad6ffe5ece9ac83acb1eea0ca5ff94d1ed76bb12991f722f5fadd7852",
+  "status": "CUTOVER_WAITING_SERVED_SMOKE"
+}

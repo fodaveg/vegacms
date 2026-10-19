@@ -1,0 +1,5 @@
+{
+  "exit_code": 1,
+  "source_restored_sha256": "4ea1769a58369ecb9368791152ad364eddca2a869395b0cab7f96b360b4bfd55",
+  "mutation": "omit failed-trigger status refresh, preserving compile"
+}

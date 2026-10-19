@@ -1,0 +1,11 @@
+COMMAND: ['/Users/david/.nvm/versions/node/v22.22.3/bin/node', 'node_modules/vitest/vitest.mjs', 'run', 'tests/contract/pocketbase.contact-notify-image.test.ts', '--project', 'server']; image ID sha256:f59dc6354915b5716febbc933817a3f59aca135a32a8946f6be6d8d3a1f29a6b; candidate ee5e4c00eda92d1204070225a7c8445f13164e5a
+
+ RUN  v4.1.10 /private/tmp/vegacms-contact-smtp-tls-20261007
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  15:14:47
+   Duration  3.54s (transform 35ms, setup 0ms, import 47ms, tests 3.42s, environment 0ms)
+
+EXIT_CODE=0

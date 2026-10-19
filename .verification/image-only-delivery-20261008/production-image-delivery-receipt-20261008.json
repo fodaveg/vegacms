@@ -1,0 +1,132 @@
+{
+  "status": "THREE_ADMINS_IMAGE_ONLY_PRODUCTION_VERIFIED",
+  "source": "a51b8521e1eeef52a522d2a065b36a03578c0c3a",
+  "services": {
+    "vega-pb": {
+      "servedAssets": {
+        "checked": 153,
+        "failedPaths": [],
+        "manifestSha256": "3b1ab3a9090c47da65b90c2234dc5dbf22eebcc0e15a351752a1f7a02223067e",
+        "matched": 153
+      },
+      "rootHealthDeep200": true,
+      "peerBaselinePreserved": true,
+      "fullSecurityContractPassed": false,
+      "proofs": {
+        "stock-baseline-20261008.json": {
+          "sha256": "596cc751757854a91b4a631c0cc3f9bfc5e224deb6466cd8c2a8b75c0ffdb2bc",
+          "status": "BASELINE_CAPTURED"
+        },
+        "stock-check-20261008.json": {
+          "sha256": "be89041ebbc9017fe4a49b6e4d01ce2537b7cfd3105d053da099c6908c68e339",
+          "status": "READY_FOR_REVIEW"
+        },
+        "stock-apply-20261008.json": {
+          "sha256": "eb8d878ad952ddd4a0e70dcf73cc7c7f6ca442b14eaafecf1fa8ee98ee48bd68",
+          "status": "CUTOVER_WAITING_SERVED_SMOKE"
+        },
+        "stock-served-20261008.json": {
+          "sha256": "2aaebf6b82916b74e1585b6ba9775c8542d7d1adbde799cbd8e5066f1799ae62",
+          "status": "IMAGE_ONLY_SERVING_OK"
+        },
+        "edge-hashes-after-stock-20261008.json": {
+          "sha256": "543ff530d8967768bbf22dc7de57af8682460e315d45eecb0f96388ccc32ff1f",
+          "status": "EDGE_UNCHANGED"
+        }
+      }
+    },
+    "lumbre-admin-pb": {
+      "servedAssets": {
+        "checked": 153,
+        "failedPaths": [],
+        "manifestSha256": "3b1ab3a9090c47da65b90c2234dc5dbf22eebcc0e15a351752a1f7a02223067e",
+        "matched": 153
+      },
+      "rootHealthDeep200": true,
+      "peerBaselinePreserved": true,
+      "fullSecurityContractPassed": false,
+      "proofs": {
+        "lumbre-baseline-20261008.json": {
+          "sha256": "d2c806d8744b8252dd6446ad4a2ffbb0b487c6e3944618e6076c4cabe53a99e9",
+          "status": "BASELINE_CAPTURED"
+        },
+        "lumbre-check-20261008.json": {
+          "sha256": "9d648f76bcff390d471a800deba30ff86437707176126efafe1f86694e341ed2",
+          "status": "READY_FOR_REVIEW"
+        },
+        "lumbre-apply-20261008.json": {
+          "sha256": "3b939d1850242b1a51103434585189a7ed214c8b4e8dca9933d4eb4cb062c20a",
+          "status": "CUTOVER_WAITING_SERVED_SMOKE"
+        },
+        "lumbre-served-20261008.json": {
+          "sha256": "4bb65a2a70bb0d962a10ae1b41c5495ce6a50234eef7e522e4e89fe60922d1c6",
+          "status": "IMAGE_ONLY_SERVING_OK"
+        },
+        "edge-hashes-after-lumbre-20261008.json": {
+          "sha256": "543ff530d8967768bbf22dc7de57af8682460e315d45eecb0f96388ccc32ff1f",
+          "status": "EDGE_UNCHANGED"
+        }
+      }
+    },
+    "fodaveg": {
+      "servedAssets": {
+        "checked": 155,
+        "failedPaths": [],
+        "manifestSha256": "0f776edfbbed5886a858238317ce3b6742bbcba881824ce5b775677f669be82e",
+        "matched": 155
+      },
+      "rootHealthDeep200": true,
+      "peerBaselinePreserved": true,
+      "fullSecurityContractPassed": false,
+      "proofs": {
+        "fodaveg-baseline-20261008.json": {
+          "sha256": "aefb752628f7b4966d9e00720566abad5ea1590500f2566a5ce6e95023a68175",
+          "status": "BASELINE_CAPTURED"
+        },
+        "fodaveg-check-20261008.json": {
+          "sha256": "9bd66b459e9e33f333b4f82d8af4321a71dfe3cf61306a0b03c54757dc7000b8",
+          "status": "READY_FOR_REVIEW"
+        },
+        "fodaveg-apply-20261008.json": {
+          "sha256": "68dd9ff6985284adf3dd275072204f4151791d593fb90a0896478bf53f2e81e6",
+          "status": "STOP_AFTER_NEW_IMAGE_POSSIBLE_DATA_MIGRATION"
+        },
+        "fodaveg-served-20261008.json": {
+          "sha256": "894d1577d36efab3edfec1b797aea0310d2da9230a2f7050c39437aa67f26fcf",
+          "status": "IMAGE_ONLY_SERVING_OK"
+        },
+        "edge-hashes-after-fodaveg-20261008.json": {
+          "sha256": "543ff530d8967768bbf22dc7de57af8682460e315d45eecb0f96388ccc32ff1f",
+          "status": "EDGE_UNCHANGED"
+        }
+      }
+    }
+  },
+  "fodavegRecovery": {
+    "fodaveg-failure-readonly-20261008.json": {
+      "path": ".verification/worktrees/fodaveg-cutover-failure-20261008/.verification/image-only-delivery-20261008/fodaveg-failure-readonly-20261008.json",
+      "sha256": "c2fc6e2986c815f5ba14271734e2fdac9e9101654bbb207c26d157acd07f50b3",
+      "status": "DIAGNOSED"
+    },
+    "fodaveg-forward-recovery-20261008.json": {
+      "path": ".verification/worktrees/fodaveg-cutover-failure-20261008/.verification/image-only-delivery-20261008/fodaveg-forward-recovery-20261008.json",
+      "sha256": "9c63372b97c0ff52ddb112b2d807b64ca61130c94bc466d3a3f0e6f0a85065cc",
+      "status": "FORWARD_NATIVE_SMOKE_PASS_HEALTH_PENDING"
+    },
+    "fodaveg-post-recovery-readonly-20261008.json": {
+      "path": ".verification/worktrees/fodaveg-cutover-failure-20261008/.verification/image-only-delivery-20261008/fodaveg-post-recovery-readonly-20261008.json",
+      "sha256": "ae29b8562c14d537ad0ce46340ab4899762499b93be400dc7549e685b50b684e",
+      "status": "DIAGNOSED"
+    }
+  },
+  "fodavegInitialFailureCause": "not confirmed; healthcheck initially failed exit4, no private outputs read",
+  "fodavegReopen": "same new image, PB/NodeHTTP200 and nativehealthhealthy; old image never started, live data never restored",
+  "publicAvailability": "root terminal9fce98 all3adminhealth200+fodaveg.net200",
+  "pending": [
+    "CSP/panel/CORS/network policy changes",
+    "Caddy effective logs/sinks/retention and contact activation",
+    "Lumbre public static/SSR/CMS source installation",
+    "authenticated production login/actions and reserved human QA"
+  ],
+  "taskClosureMatrix": "../lumbre-status-reconcile-20261008/production-closure-matrix.md"
+}

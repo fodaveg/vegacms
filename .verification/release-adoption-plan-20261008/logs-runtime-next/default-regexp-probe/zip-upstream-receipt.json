@@ -1,0 +1,33 @@
+{
+  "cases": [
+    {
+      "case": 0,
+      "status": 200,
+      "upstreamQueryExact": true,
+      "zipBytes": 175,
+      "zipDigestMatches": true
+    },
+    {
+      "case": 1,
+      "status": 200,
+      "upstreamQueryExact": true,
+      "zipBytes": 175,
+      "zipDigestMatches": true
+    }
+  ],
+  "cleanup": {
+    "containerExit": 0,
+    "networkExit": 0
+  },
+  "fragmentSHA256": "79cb9a1ac82ef4dda07c822794a8ca3e9091f3a0cab1a854ea8a20941492c441",
+  "hostPort": "127.0.0.1:ephemeral",
+  "image": "sha256:6b08c1b9858ca9a7d99c1da13c3695081e0e604c6cf214ca26a7ce0e2c4fd9b4",
+  "network": "owned_bridge",
+  "owner": "vega-default-zip-82522a07d0d5",
+  "rawLogsPersisted": false,
+  "status": "LOCAL_ZIP_UPSTREAM_PASS",
+  "syntheticLogSHA256": "e6f9b1b5d91a04243e0900d99cf4315d020ee98dcc999af4932f454424676c81",
+  "syntheticZIPBytes": 175,
+  "syntheticZIPSHA256": "f863530618de8c2ab2d82b2bb0affd369a38287af5b912f3919289a7bf5aac3b",
+  "upstreamRecordCount": 2
+}

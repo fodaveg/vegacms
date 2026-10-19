@@ -1,0 +1,20 @@
+{
+  "archiveBytesMatch": true,
+  "archiveSha256Match": true,
+  "caddyRead": false,
+  "configEnvRead": false,
+  "dockerClientVersion": "29.7.2",
+  "dockerServerVersion": "29.7.2",
+  "freeDockerKiB": 5469300,
+  "freeSrvKiB": 5469300,
+  "imageStates": {
+    "fodaveg:f92bac858e904817ffc4cf6bf6307a6de0190c32": "WRONG_ID",
+    "lumbre-admin-pb:a598bfe-vega-a51b852": "WRONG_ID",
+    "vegacms:a51b8521e1eeef52a522d2a065b36a03578c0c3a": "WRONG_ID"
+  },
+  "logsRead": false,
+  "remoteWrites": false,
+  "sameFilesystem": true,
+  "schemaVersion": 1,
+  "status": "RESIDUAL_REVIEW"
+}

@@ -1,0 +1,9 @@
+# Fodaveg: alcance del TEST real b32
+
+Resultado acreditado: **TEST_REPROBE_PASSED_AND_CLEANED**, transportExit0. Recibo `.verification/cors-network-adoption-20261008/fodaveg-delivery/reprobe-test-execution.json` SHA `be5c282e179635e0f2bdc4891351f268517b044d4498a76880e403e0afdde2ab`. Root4948/terminal532f12 EXIT0. Revisión RO del recibo existente sin SSH, Docker, HTTP ni repetición de tests.
+
+Se reutiliza el protocolo revisado core327dc/wrapperfc177/manifest a391, informe estático6c74fb. OwnedRecordId local y resultado coinciden: `fodaveg-reprobe-20261009T054222Z-86851`. El resultado contiene71files y875290525bytes verificados, primaryFailure null y cleanupFailures vacíos. Conforme al flujo sellado, PASS sólo llega tras FD/tuple seguro, bytecompare del clone, health JSON200 de nativePB22cf sobre TEST, retirada propia de ambos contenedores y volumen, pins OLD/state preservados y journal FINAL. No se leyó el journal remoto ni logs privados de forma independiente para esta revisión.
+
+`remoteWrites=true` corresponde a registro y recursos propios TEST. Los flags productionControlOperations, productionDataRestore y privateValuesExported sonfalse. No se afirma montaje/restauración del volumen productivo, stop/start OLD, cleanup de un TEST antiguo, cambios Compose/dotenv o Caddy. Presupuesto padre y mountpoint frescos pertenecen a las precondiciones del PASS; el recibo finito no exporta sus valores numéricos y no reserva capacidad para otro intento.
+
+El resultado confirma la frontera archive→clone byteexact→PB health y cleanup que los mocks no acreditaban. El proceso TEST ejecuta PB directamente, sin entrypoint completo Node/tini. No es adopción de la imagen nueva por Fod de producción, prueba de autenticación/UI, CORS público, hooks exhaustivos ni smoke155 servido del candidato nuevo. El siguiente cutover necesita candidato revisado, guards actuales, aprobación y pruebas posteriores propias. El intento b32 está consumido y no se relanza.

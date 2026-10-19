@@ -1,0 +1,14 @@
+{
+  "archiveSha256": "34a1780fe31f9c1b50a5e47435fa6183cdd53d956ce00ddab82a247ae8e1ee0a",
+  "archiveBytes": 606022656,
+  "archiveIncludes": ["index.json", "manifest.json", "oci-layout"],
+  "ociManifestMediaTypes": [
+    "application/vnd.oci.image.manifest.v1+json",
+    "application/vnd.oci.image.manifest.v1+json",
+    "application/vnd.oci.image.manifest.v1+json"
+  ],
+  "dockerManifestEntries": 3,
+  "dockerManifestLayerCounts": [5, 8, 16],
+  "dockerManifestConfigIdsMatchExpectedImages": true,
+  "source": "Read-only inspection of the locally sealed images.tar; no remote load conclusion"
+}

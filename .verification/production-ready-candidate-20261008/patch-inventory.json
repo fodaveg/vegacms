@@ -1,0 +1,119 @@
+[
+  {
+    "name": "admin.vegacms.com.patch",
+    "path": "patches/retained-conditional/admin.vegacms.com.patch",
+    "SHA256": "7e6c4e4b49cef5570e4c883ae58e0a0c480149094ae31ad13bd7c39a7b16d85a",
+    "source": "/Users/david/code/vegacms/.verification/production-rollout-proposal-20261007/patches/admin.vegacms.com.patch",
+    "byteIdenticalToReviewedBaseline": true,
+    "disposition": "retained-conditional",
+    "productionApplyReady": false
+  },
+  {
+    "name": "admin.lumbre.pro.patch",
+    "path": "patches/retained-conditional/admin.lumbre.pro.patch",
+    "SHA256": "ca3678b9d201031736896118d98063face9f710f9ef183cd7155ac4e4699e598",
+    "source": "/Users/david/code/vegacms/.verification/production-rollout-proposal-20261007/patches/admin.lumbre.pro.patch",
+    "byteIdenticalToReviewedBaseline": true,
+    "disposition": "retained-conditional",
+    "productionApplyReady": false
+  },
+  {
+    "name": "admin.fodaveg.net.patch",
+    "path": "patches/retained-conditional/admin.fodaveg.net.patch",
+    "SHA256": "7e543198b0b4325ac536b4220419a401b276e415841e4e509e90ae8dab14d315",
+    "source": "/Users/david/code/vegacms/.verification/production-rollout-proposal-20261007/patches/admin.fodaveg.net.patch",
+    "byteIdenticalToReviewedBaseline": true,
+    "disposition": "retained-conditional",
+    "productionApplyReady": false
+  },
+  {
+    "name": "edge-caddy-networks.patch",
+    "path": "patches/retained-conditional/edge-caddy-networks.patch",
+    "SHA256": "c74027367bdc5a93d9a60650e3949eace030101044b14c163c299f082cfebe81",
+    "source": "/Users/david/code/vegacms/.verification/production-rollout-proposal-20261007/patches/edge-caddy-networks.patch",
+    "byteIdenticalToReviewedBaseline": true,
+    "disposition": "retained-conditional",
+    "productionApplyReady": false
+  },
+  {
+    "name": "vega-pb-networks.patch",
+    "path": "patches/retained-conditional/vega-pb-networks.patch",
+    "SHA256": "2d99fdd31fe71a3340b8a6a9944b85e85fe7909d470deaa8cd21779139ffc7a1",
+    "source": "/Users/david/code/vegacms/.verification/production-rollout-proposal-20261007/patches/vega-pb-networks.patch",
+    "byteIdenticalToReviewedBaseline": true,
+    "disposition": "retained-conditional",
+    "productionApplyReady": false
+  },
+  {
+    "name": "lumbre-admin-pb-networks.patch",
+    "path": "patches/retained-conditional/lumbre-admin-pb-networks.patch",
+    "SHA256": "1435414fe87d1ae77e2ebf2ac72caa435aed150e919dba64c32d90599e80cfe4",
+    "source": "/Users/david/code/vegacms/.verification/production-rollout-proposal-20261007/patches/lumbre-admin-pb-networks.patch",
+    "byteIdenticalToReviewedBaseline": true,
+    "disposition": "retained-conditional",
+    "productionApplyReady": false
+  },
+  {
+    "name": "fodaveg-networks.patch",
+    "path": "patches/retained-conditional/fodaveg-networks.patch",
+    "SHA256": "2bfa798c918a72839d213fc4ee1b087a8dae8212006b17f45c53faa7b7b7a3cf",
+    "source": "/Users/david/code/vegacms/.verification/production-rollout-proposal-20261007/patches/fodaveg-networks.patch",
+    "byteIdenticalToReviewedBaseline": true,
+    "disposition": "retained-conditional",
+    "productionApplyReady": false
+  },
+  {
+    "name": "vega-pb-cors-command.proposed.patch",
+    "path": "patches/held-until-effective-data/vega-pb-cors-command.proposed.patch",
+    "SHA256": "46db86db6e8870ce5866ece721a3b32d0f9a9a8aeac176cc0e13ef140538c8d6",
+    "source": "/Users/david/code/vegacms/.verification/production-rollout-proposal-20261007/patches/vega-pb-cors-command.proposed.patch",
+    "byteIdenticalToReviewedBaseline": true,
+    "disposition": "held-until-effective-data",
+    "productionApplyReady": false
+  },
+  {
+    "name": "lumbre-admin-pb-cors-command.proposed.patch",
+    "path": "patches/held-until-effective-data/lumbre-admin-pb-cors-command.proposed.patch",
+    "SHA256": "81f45998cd8c24217d65d350d0bd102ed0840ef141cefc24ae23f1c1d0e669dc",
+    "source": "/Users/david/code/vegacms/.verification/production-rollout-proposal-20261007/patches/lumbre-admin-pb-cors-command.proposed.patch",
+    "byteIdenticalToReviewedBaseline": true,
+    "disposition": "held-until-effective-data",
+    "productionApplyReady": false
+  },
+  {
+    "name": "edge-default-runtime-log.patch",
+    "path": "patches/held-until-effective-data/edge-default-runtime-log.patch",
+    "SHA256": "254f3fa73cacffc50449fa66edad747752fd53b68a67505d5828fe197bf93c36",
+    "source": "/Users/david/code/vegacms/.verification/production-rollout-proposal-20261007/patches/edge-default-runtime-log.patch",
+    "byteIdenticalToReviewedBaseline": true,
+    "disposition": "held-until-effective-data",
+    "productionApplyReady": false
+  },
+  {
+    "name": "admin.fodaveg.net.access-log.proposed.caddy",
+    "path": "excluded-access-log-reference/admin.fodaveg.net.access-log.proposed.caddy",
+    "SHA256": "305352f27ca771b5e6f0c470a5707aee6fa8d9b52ac8fd9e37c71160824f661d",
+    "source": "/Users/david/code/vegacms/.verification/production-rollout-proposal-20261007/patches/admin.fodaveg.net.access-log.proposed.caddy",
+    "byteIdenticalToReviewedBaseline": true,
+    "disposition": "EXCLUDED_PRESERVE_KNOWN_SKIP_HOSTS",
+    "productionApplyReady": false
+  },
+  {
+    "name": "admin.lumbre.pro.access-log.proposed.caddy",
+    "path": "excluded-access-log-reference/admin.lumbre.pro.access-log.proposed.caddy",
+    "SHA256": "3acd22c1028086bb244a8d4fe03dc25b9c92f5d87348b5485395526dbe0ab071",
+    "source": "/Users/david/code/vegacms/.verification/production-rollout-proposal-20261007/patches/admin.lumbre.pro.access-log.proposed.caddy",
+    "byteIdenticalToReviewedBaseline": true,
+    "disposition": "EXCLUDED_PRESERVE_KNOWN_SKIP_HOSTS",
+    "productionApplyReady": false
+  },
+  {
+    "name": "admin.vegacms.com.access-log.proposed.caddy",
+    "path": "excluded-access-log-reference/admin.vegacms.com.access-log.proposed.caddy",
+    "SHA256": "0fd948800f622c51a2a5e3964c25d52c524643b8cdc6119f633d570d5e068d07",
+    "source": "/Users/david/code/vegacms/.verification/production-rollout-proposal-20261007/patches/admin.vegacms.com.access-log.proposed.caddy",
+    "byteIdenticalToReviewedBaseline": true,
+    "disposition": "EXCLUDED_PRESERVE_KNOWN_SKIP_HOSTS",
+    "productionApplyReady": false
+  }
+]

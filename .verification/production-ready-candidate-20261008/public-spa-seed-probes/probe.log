@@ -1,0 +1,9 @@
+
+Running 2 tests using 1 worker
+
+(node:3309) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-seed-probes/seed.spec.ts:5:2 › public seeded landing: demo (1.1s)
+  ✓  2 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-seed-probes/seed.spec.ts:5:2 › public seeded landing: showcase (320ms)
+
+  2 passed (2.0s)

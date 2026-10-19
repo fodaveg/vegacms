@@ -1,0 +1,21 @@
+{
+  "seed": "demo",
+  "landingPathname": "/c/site_info/new",
+  "heading": "Crear «Información del sitio»",
+  "authenticated": true,
+  "fields": [
+    {
+      "pathname": "/c/posts/post_1",
+      "label": "Title",
+      "id": "vega-field-title",
+      "name": null
+    },
+    {
+      "pathname": "/c/posts/new",
+      "label": "Title",
+      "id": "vega-field-title",
+      "name": null
+    }
+  ],
+  "violations": []
+}

@@ -1,0 +1,83 @@
+[
+  {
+    "name": "eslint",
+    "argv": [
+      "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+      "node_modules/eslint/bin/eslint.js",
+      "src/lib/app-context.ts",
+      "src/lib/home/RevisionsOnboarding.svelte",
+      "src/lib/home/fixture.ts",
+      "src/lib/home/home-page.svelte.test.ts",
+      "src/lib/home/revisions-onboarding.dom.test.ts",
+      "src/lib/home/revisions-onboarding.ts",
+      "src/lib/i18n/en.ts",
+      "src/lib/i18n/es.ts",
+      "src/lib/revisions/delete-feedback.test.ts",
+      "src/lib/revisions/delete-feedback.ts",
+      "src/lib/revisions/with-revisions.test.ts",
+      "src/lib/revisions/with-revisions.ts",
+      "src/lib/session/backend-config.test.ts",
+      "src/lib/session/backend-config.ts",
+      "src/lib/session/backend.ts",
+      "src/lib/shell/ToastHost.svelte",
+      "src/lib/shell/toasts.svelte.test.ts",
+      "src/lib/shell/toasts.svelte.ts",
+      "src/routes/+layout.svelte",
+      "src/routes/+page.svelte",
+      "src/routes/c/[type]/+page.svelte",
+      "src/routes/c/[type]/[id]/+page.svelte"
+    ],
+    "exitCode": 0,
+    "log": "eslint-verified.log"
+  },
+  {
+    "name": "prettier",
+    "argv": [
+      "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+      "node_modules/prettier/bin/prettier.cjs",
+      "--check",
+      "src/lib/app-context.ts",
+      "src/lib/home/RevisionsOnboarding.svelte",
+      "src/lib/home/fixture.ts",
+      "src/lib/home/home-page.svelte.test.ts",
+      "src/lib/home/revisions-onboarding.dom.test.ts",
+      "src/lib/home/revisions-onboarding.ts",
+      "src/lib/i18n/en.ts",
+      "src/lib/i18n/es.ts",
+      "src/lib/revisions/delete-feedback.test.ts",
+      "src/lib/revisions/delete-feedback.ts",
+      "src/lib/revisions/with-revisions.test.ts",
+      "src/lib/revisions/with-revisions.ts",
+      "src/lib/session/backend-config.test.ts",
+      "src/lib/session/backend-config.ts",
+      "src/lib/session/backend.ts",
+      "src/lib/shell/ToastHost.svelte",
+      "src/lib/shell/toasts.svelte.test.ts",
+      "src/lib/shell/toasts.svelte.ts",
+      "src/routes/+layout.svelte",
+      "src/routes/+page.svelte",
+      "src/routes/c/[type]/+page.svelte",
+      "src/routes/c/[type]/[id]/+page.svelte"
+    ],
+    "exitCode": 0,
+    "log": "prettier-verified.log"
+  },
+  {
+    "name": "focal",
+    "argv": [
+      "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "src/lib/revisions/with-revisions.test.ts",
+      "src/lib/revisions/delete-feedback.test.ts",
+      "src/lib/session/backend-config.test.ts",
+      "src/lib/home/revisions-onboarding.dom.test.ts",
+      "src/lib/home/home-page.svelte.test.ts",
+      "src/lib/shell/toasts.svelte.test.ts",
+      "tests/shell/i18n.test.ts",
+      "--maxWorkers=1"
+    ],
+    "exitCode": 0,
+    "log": "focal-verified.log"
+  }
+]

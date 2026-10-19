@@ -1,0 +1,36 @@
+
+Running 1 test using 1 worker
+
+
+(node:98473) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/1] scripts/l9-measure/visual.spec.ts:35:1 › visual renewal and reload: real Go and Astro consumers
+  1) scripts/l9-measure/visual.spec.ts:35:1 › visual renewal and reload: real Go and Astro consumers 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('navigation', { name: 'Navegación principal' })
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 15000ms
+      - waiting for getByRole('navigation', { name: 'Navegación principal' })
+
+
+      153 | 		await page.getByLabel('Contraseña', { exact: true }).fill(EDITOR_PASSWORD);
+      154 | 		await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+    > 155 | 		await expect(page.getByRole('navigation', { name: 'Navegación principal' })).toBeVisible();
+          | 		                                                                             ^
+      156 | 		const pbBrowser = browserLedger(context, proxy.url),
+      157 | 			siteBrowser = browserLedger(context, astroOrigin);
+      158 | 		let expiry = 0;
+        at /private/tmp/vegacms-l9-measure-20261007/scripts/l9-measure/visual.spec.ts:155:80
+
+    Error Context: ../vega-l9-measure-playwright/visual-visual-renewal-and-reload-real-Go-and-Astro-consumers/error-context.md
+
+
+  1 failed
+    scripts/l9-measure/visual.spec.ts:35:1 › visual renewal and reload: real Go and Astro consumers 

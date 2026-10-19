@@ -1,0 +1,29 @@
+
+Running 1 test using 1 worker
+
+
+(node:68321) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/1] scripts/l9-measure/visual.spec.ts:35:1 › visual renewal and reload: real Go and Astro consumers
+  1) scripts/l9-measure/visual.spec.ts:35:1 › visual renewal and reload: real Go and Astro consumers 
+
+    Error: expect(received).toBeGreaterThan(expected)
+
+    Expected: > 0
+    Received:   0
+
+      176 | 		});
+      177 | 		const initialScroll = await frame()!.evaluate(() => scrollY);
+    > 178 | 		expect(initialScroll).toBeGreaterThan(0);
+          | 		                      ^
+      179 | 		await pbBrowser.settle();
+      180 | 		await siteBrowser.settle();
+      181 | 		const initial = {
+        at /private/tmp/vegacms-l9-measure-20261007/scripts/l9-measure/visual.spec.ts:178:25
+
+    Error Context: ../vega-l9-measure-playwright/visual-visual-renewal-and-reload-real-Go-and-Astro-consumers/error-context.md
+
+
+  1 failed
+    scripts/l9-measure/visual.spec.ts:35:1 › visual renewal and reload: real Go and Astro consumers 

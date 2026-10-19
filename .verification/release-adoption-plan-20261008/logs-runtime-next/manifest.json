@@ -1,0 +1,49 @@
+{
+  "evidence": {
+    ".verification/caddy-approved-logger-mapping-20261008/projection.json": "748054e034d3af1df062833732ad24e1336df8e873f30fc463049942b58e2b98",
+    ".verification/production-security-real-20261007/local/tasks-read-snapshot.json": "498098758565049ef6b92591ad121c7cf53832ad3ae7eafce89c6122d7af0688",
+    ".verification/release-adoption-plan-20261008/logs-docker-production-observation-20261009.json": "ae977542762b57998a55e545bdcef2c1bfe2864c06753c9c9dbb2800ff9cdb45",
+    ".verification/worktrees/caddy-referenced-env-20261008/.verification/release-adoption-plan-20261008/logs-selective-next-step/execution-receipt.json": "22d29022f57bbe18d03f978d79fd80c1c18cd9fc0be10f5d94d735c541197d78"
+  },
+  "helper": {
+    "path": ".verification/worktrees/caddy-referenced-env-20261008/.verification/release-adoption-plan-20261008/logs-selective-next-step/capture.py",
+    "sha256": "d48e4a2705ebaac2d32720b38ebab1040fde26b3348a2aeeeb906702af4e9b01"
+  },
+  "operationId": "e544677b-b75b-4734-bdf7-cda99e4f013a",
+  "permission": "No approval template or grant installed; root must obtain the new exact runtime grant; prior permissions consumed; Env rejection preserved.",
+  "scope": {
+    "configEnvRead": false,
+    "configField": "logging.logs.default",
+    "container": "edge-caddy",
+    "endpoint": "/config/logging/logs/default/",
+    "identityChecks": 2,
+    "identityFields": [
+      "Id",
+      "Image"
+    ],
+    "logsRead": false,
+    "otherHostRead": false,
+    "otherLoggerRead": false,
+    "projection": "finite writer/encoder module types and exact URI token/Referer rule classes",
+    "rawBodyOnlyInRemoteRAM": true,
+    "remoteWrites": false,
+    "requests": 1,
+    "retryAllowed": false,
+    "taskClosureProved": false,
+    "wholeConfigRead": false
+  },
+  "sources": {
+    "PROPOSAL.md": "fb7e87460209f83ee02a8742ee455549c7f1e3a7475fc7aaac68093fddf3a3da",
+    "project_default.py": "ec171100d9f150a5f505e3516093512579e26c1af1661c911b9fd7f20ad1245f",
+    "read_default.py": "dc5a93a9d96b88c578d993dd4f6f25410e371815856fb9991ff7de32d5e5ba4c"
+  },
+  "status": "LOCAL_PREPARATION_REQUIRES_INDEPENDENT_REVIEW_AND_NEW_RUNTIME_GRANT",
+  "taskId": "8ce56224-4787-4bf1-9ba4-6537a6ee3a2b",
+  "verification": {
+    "ASTParse": "PASS",
+    "buildExecuted": false,
+    "remoteExecuted": false,
+    "suiteExecuted": false,
+    "testsExecuted": false
+  }
+}

@@ -1,0 +1,14 @@
+--- a/srv/edge/Caddyfile
++++ b/srv/edge/Caddyfile
+@@ -1,1 +1,10 @@
+-{
++{
++	log {
++		format filter {
++			request>uri query {
++				delete token
++			}
++			request>headers>Referer delete
++			wrap json
++		}
++	}

@@ -1,0 +1,17 @@
+{
+  "backupId": "fodaveg-20261008T231304Z-3656162",
+  "hostReserveKiB": 1048576,
+  "memAvailableAfterKiB": 2201368,
+  "memAvailableBeforeKiB": 2201368,
+  "memTotalKiB": 3906288,
+  "memoryBudgetPassed": false,
+  "oldRuntimePinsPreserved": true,
+  "privateValuesExported": false,
+  "remoteAllocationPerformed": false,
+  "remoteWrites": false,
+  "requiredAvailableKiB": 2621440,
+  "snapshotStable": true,
+  "status": "MEMORY_METADATA_PROJECTED",
+  "testCgroupAndTmpfsControlsProved": false,
+  "testMemoryCapKiB": 1572864
+}

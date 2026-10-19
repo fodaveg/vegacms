@@ -1,0 +1,8699 @@
+{
+  "kind": "static-design-mockups-not-app-QA",
+  "node": "v22.22.3",
+  "browser": "149.0.7827.55",
+  "source": "/private/tmp/vegacms-ink2-design-20261007/design/mockups/2026-10-07-contraste-ink-2",
+  "dimensions": [
+    390,
+    1440
+  ],
+  "captures": [
+    "niebla-before-light-1440-home.png",
+    "niebla-before-light-1440-settings.png",
+    "niebla-before-dark-1440-home.png",
+    "niebla-before-dark-1440-settings.png",
+    "niebla-after-light-1440-home.png",
+    "niebla-after-light-1440-settings.png",
+    "niebla-after-dark-1440-home.png",
+    "niebla-after-dark-1440-settings.png",
+    "miel-before-light-1440-home.png",
+    "miel-before-light-1440-settings.png",
+    "miel-before-dark-1440-home.png",
+    "miel-before-dark-1440-settings.png",
+    "miel-after-light-1440-home.png",
+    "miel-after-light-1440-settings.png",
+    "miel-after-dark-1440-home.png",
+    "miel-after-dark-1440-settings.png",
+    "aquelarre-before-light-1440-home.png",
+    "aquelarre-before-light-1440-settings.png",
+    "aquelarre-before-dark-1440-home.png",
+    "aquelarre-before-dark-1440-settings.png",
+    "aquelarre-after-light-1440-home.png",
+    "aquelarre-after-light-1440-settings.png",
+    "aquelarre-after-dark-1440-home.png",
+    "aquelarre-after-dark-1440-settings.png",
+    "aquelarre-before-light-1440-error.png",
+    "aquelarre-after-light-1440-error.png",
+    "lamina-light-1440.png",
+    "lamina-dark-1440.png",
+    "niebla-before-light-390-home.png",
+    "niebla-before-light-390-rail.png",
+    "niebla-before-light-390-settings.png",
+    "niebla-before-dark-390-home.png",
+    "niebla-before-dark-390-settings.png",
+    "niebla-after-light-390-home.png",
+    "niebla-after-light-390-rail.png",
+    "niebla-after-light-390-settings.png",
+    "niebla-after-dark-390-home.png",
+    "niebla-after-dark-390-settings.png",
+    "miel-before-light-390-home.png",
+    "miel-before-light-390-rail.png",
+    "miel-before-light-390-settings.png",
+    "miel-before-dark-390-home.png",
+    "miel-before-dark-390-settings.png",
+    "miel-after-light-390-home.png",
+    "miel-after-light-390-rail.png",
+    "miel-after-light-390-settings.png",
+    "miel-after-dark-390-home.png",
+    "miel-after-dark-390-settings.png",
+    "aquelarre-before-light-390-home.png",
+    "aquelarre-before-light-390-rail.png",
+    "aquelarre-before-light-390-settings.png",
+    "aquelarre-before-dark-390-home.png",
+    "aquelarre-before-dark-390-settings.png",
+    "aquelarre-after-light-390-home.png",
+    "aquelarre-after-light-390-rail.png",
+    "aquelarre-after-light-390-settings.png",
+    "aquelarre-after-dark-390-home.png",
+    "aquelarre-after-dark-390-settings.png",
+    "aquelarre-before-light-390-error.png",
+    "aquelarre-after-light-390-error.png",
+    "lamina-light-390.png",
+    "lamina-dark-390.png"
+  ],
+  "checks": [
+    {
+      "name": "overflow:niebla:before:light:1440:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:niebla:before:light:1440:home",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "niebla",
+        "ink": [
+          105,
+          103,
+          100
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              226,
+              226,
+              229
+            ],
+            "ratio": 4.360999028050979
+          },
+          "sidebar": {
+            "background": [
+              229,
+              230,
+              235
+            ],
+            "ratio": 4.523757732905078
+          },
+          "surface": {
+            "background": [
+              249,
+              251,
+              254
+            ],
+            "ratio": 5.438716285359401
+          },
+          "paper": {
+            "background": [
+              236,
+              238,
+              243
+            ],
+            "ratio": 4.856836085895815
+          },
+          "surface-2": {
+            "background": [
+              249,
+              251,
+              253
+            ],
+            "ratio": 5.435284763078609
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "oklab(0.514006 0.00112846 0.00428894)",
+            "rgb": [
+              105,
+              103,
+              100
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.514006 0.00112846 0.00428894)",
+            "rgb": [
+              105,
+              103,
+              100
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.514006 0.00112846 0.00428894)",
+            "rgb": [
+              105,
+              103,
+              100
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:niebla:before:light:1440:home",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "overflow:niebla:before:light:1440:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:niebla:before:light:1440:settings",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "niebla",
+        "ink": [
+          105,
+          103,
+          100
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              226,
+              226,
+              229
+            ],
+            "ratio": 4.360999028050979
+          },
+          "sidebar": {
+            "background": [
+              229,
+              230,
+              235
+            ],
+            "ratio": 4.523757732905078
+          },
+          "surface": {
+            "background": [
+              249,
+              251,
+              254
+            ],
+            "ratio": 5.438716285359401
+          },
+          "paper": {
+            "background": [
+              236,
+              238,
+              243
+            ],
+            "ratio": 4.856836085895815
+          },
+          "surface-2": {
+            "background": [
+              249,
+              251,
+              253
+            ],
+            "ratio": 5.435284763078609
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.514006 0.00112846 0.00428894)",
+            "rgb": [
+              105,
+              103,
+              100
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.514006 0.00112846 0.00428894)",
+            "rgb": [
+              105,
+              103,
+              100
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.514006 0.00112846 0.00428894)",
+            "rgb": [
+              105,
+              103,
+              100
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.514006 0.00112846 0.00428894)",
+            "rgb": [
+              105,
+              103,
+              100
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:niebla:before:light:1440:settings",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "overflow:niebla:before:dark:1440:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:niebla:before:dark:1440:home",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "niebla",
+        "ink": [
+          158,
+          161,
+          177
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              19,
+              23,
+              36
+            ],
+            "ratio": 6.963063342529015
+          },
+          "sidebar": {
+            "background": [
+              23,
+              27,
+              40
+            ],
+            "ratio": 6.689271965005143
+          },
+          "surface": {
+            "background": [
+              40,
+              44,
+              58
+            ],
+            "ratio": 5.415894819705213
+          },
+          "paper": {
+            "background": [
+              28,
+              32,
+              45
+            ],
+            "ratio": 6.327233814003742
+          },
+          "surface-2": {
+            "background": [
+              34,
+              37,
+              50
+            ],
+            "ratio": 5.937930858501957
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:niebla:before:dark:1440:home",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "overflow:niebla:before:dark:1440:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:niebla:before:dark:1440:settings",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "niebla",
+        "ink": [
+          158,
+          161,
+          177
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              19,
+              23,
+              36
+            ],
+            "ratio": 6.963063342529015
+          },
+          "sidebar": {
+            "background": [
+              23,
+              27,
+              40
+            ],
+            "ratio": 6.689271965005143
+          },
+          "surface": {
+            "background": [
+              40,
+              44,
+              58
+            ],
+            "ratio": 5.415894819705213
+          },
+          "paper": {
+            "background": [
+              28,
+              32,
+              45
+            ],
+            "ratio": 6.327233814003742
+          },
+          "surface-2": {
+            "background": [
+              34,
+              37,
+              50
+            ],
+            "ratio": 5.937930858501957
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:niebla:before:dark:1440:settings",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "overflow:niebla:after:light:1440:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:niebla:after:light:1440:home",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "niebla",
+        "ink": [
+          97,
+          95,
+          93
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              226,
+              226,
+              229
+            ],
+            "ratio": 4.91753595501778
+          },
+          "sidebar": {
+            "background": [
+              229,
+              230,
+              235
+            ],
+            "ratio": 5.101065411906895
+          },
+          "surface": {
+            "background": [
+              249,
+              251,
+              254
+            ],
+            "ratio": 6.132788086024529
+          },
+          "paper": {
+            "background": [
+              236,
+              238,
+              243
+            ],
+            "ratio": 5.476650172677199
+          },
+          "surface-2": {
+            "background": [
+              249,
+              251,
+              253
+            ],
+            "ratio": 6.128918643704616
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "oklab(0.487107 0.00114333 0.00445946)",
+            "rgb": [
+              97,
+              95,
+              93
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.487107 0.00114333 0.00445946)",
+            "rgb": [
+              97,
+              95,
+              93
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.487107 0.00114333 0.00445946)",
+            "rgb": [
+              97,
+              95,
+              93
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:niebla:after:light:1440:home",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "AA:niebla:light:1440:home",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            226,
+            226,
+            229
+          ],
+          "ratio": 4.91753595501778
+        },
+        "sidebar": {
+          "background": [
+            229,
+            230,
+            235
+          ],
+          "ratio": 5.101065411906895
+        },
+        "surface": {
+          "background": [
+            249,
+            251,
+            254
+          ],
+          "ratio": 6.132788086024529
+        },
+        "paper": {
+          "background": [
+            236,
+            238,
+            243
+          ],
+          "ratio": 5.476650172677199
+        },
+        "surface-2": {
+          "background": [
+            249,
+            251,
+            253
+          ],
+          "ratio": 6.128918643704616
+        }
+      }
+    },
+    {
+      "name": "overflow:niebla:after:light:1440:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:niebla:after:light:1440:settings",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "niebla",
+        "ink": [
+          97,
+          95,
+          93
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              226,
+              226,
+              229
+            ],
+            "ratio": 4.91753595501778
+          },
+          "sidebar": {
+            "background": [
+              229,
+              230,
+              235
+            ],
+            "ratio": 5.101065411906895
+          },
+          "surface": {
+            "background": [
+              249,
+              251,
+              254
+            ],
+            "ratio": 6.132788086024529
+          },
+          "paper": {
+            "background": [
+              236,
+              238,
+              243
+            ],
+            "ratio": 5.476650172677199
+          },
+          "surface-2": {
+            "background": [
+              249,
+              251,
+              253
+            ],
+            "ratio": 6.128918643704616
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.487107 0.00114333 0.00445946)",
+            "rgb": [
+              97,
+              95,
+              93
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.487107 0.00114333 0.00445946)",
+            "rgb": [
+              97,
+              95,
+              93
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.487107 0.00114333 0.00445946)",
+            "rgb": [
+              97,
+              95,
+              93
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.487107 0.00114333 0.00445946)",
+            "rgb": [
+              97,
+              95,
+              93
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:niebla:after:light:1440:settings",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "AA:niebla:light:1440:settings",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            226,
+            226,
+            229
+          ],
+          "ratio": 4.91753595501778
+        },
+        "sidebar": {
+          "background": [
+            229,
+            230,
+            235
+          ],
+          "ratio": 5.101065411906895
+        },
+        "surface": {
+          "background": [
+            249,
+            251,
+            254
+          ],
+          "ratio": 6.132788086024529
+        },
+        "paper": {
+          "background": [
+            236,
+            238,
+            243
+          ],
+          "ratio": 5.476650172677199
+        },
+        "surface-2": {
+          "background": [
+            249,
+            251,
+            253
+          ],
+          "ratio": 6.128918643704616
+        }
+      }
+    },
+    {
+      "name": "overflow:niebla:after:dark:1440:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:niebla:after:dark:1440:home",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "niebla",
+        "ink": [
+          158,
+          161,
+          177
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              19,
+              23,
+              36
+            ],
+            "ratio": 6.963063342529015
+          },
+          "sidebar": {
+            "background": [
+              23,
+              27,
+              40
+            ],
+            "ratio": 6.689271965005143
+          },
+          "surface": {
+            "background": [
+              40,
+              44,
+              58
+            ],
+            "ratio": 5.415894819705213
+          },
+          "paper": {
+            "background": [
+              28,
+              32,
+              45
+            ],
+            "ratio": 6.327233814003742
+          },
+          "surface-2": {
+            "background": [
+              34,
+              37,
+              50
+            ],
+            "ratio": 5.937930858501957
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:niebla:after:dark:1440:home",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "AA:niebla:dark:1440:home",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            19,
+            23,
+            36
+          ],
+          "ratio": 6.963063342529015
+        },
+        "sidebar": {
+          "background": [
+            23,
+            27,
+            40
+          ],
+          "ratio": 6.689271965005143
+        },
+        "surface": {
+          "background": [
+            40,
+            44,
+            58
+          ],
+          "ratio": 5.415894819705213
+        },
+        "paper": {
+          "background": [
+            28,
+            32,
+            45
+          ],
+          "ratio": 6.327233814003742
+        },
+        "surface-2": {
+          "background": [
+            34,
+            37,
+            50
+          ],
+          "ratio": 5.937930858501957
+        }
+      }
+    },
+    {
+      "name": "overflow:niebla:after:dark:1440:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:niebla:after:dark:1440:settings",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "niebla",
+        "ink": [
+          158,
+          161,
+          177
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              19,
+              23,
+              36
+            ],
+            "ratio": 6.963063342529015
+          },
+          "sidebar": {
+            "background": [
+              23,
+              27,
+              40
+            ],
+            "ratio": 6.689271965005143
+          },
+          "surface": {
+            "background": [
+              40,
+              44,
+              58
+            ],
+            "ratio": 5.415894819705213
+          },
+          "paper": {
+            "background": [
+              28,
+              32,
+              45
+            ],
+            "ratio": 6.327233814003742
+          },
+          "surface-2": {
+            "background": [
+              34,
+              37,
+              50
+            ],
+            "ratio": 5.937930858501957
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:niebla:after:dark:1440:settings",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "AA:niebla:dark:1440:settings",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            19,
+            23,
+            36
+          ],
+          "ratio": 6.963063342529015
+        },
+        "sidebar": {
+          "background": [
+            23,
+            27,
+            40
+          ],
+          "ratio": 6.689271965005143
+        },
+        "surface": {
+          "background": [
+            40,
+            44,
+            58
+          ],
+          "ratio": 5.415894819705213
+        },
+        "paper": {
+          "background": [
+            28,
+            32,
+            45
+          ],
+          "ratio": 6.327233814003742
+        },
+        "surface-2": {
+          "background": [
+            34,
+            37,
+            50
+          ],
+          "ratio": 5.937930858501957
+        }
+      }
+    },
+    {
+      "name": "overflow:miel:before:light:1440:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:miel:before:light:1440:home",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "miel",
+        "ink": [
+          111,
+          105,
+          93
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              235,
+              228,
+              219
+            ],
+            "ratio": 4.3202183855679674
+          },
+          "sidebar": {
+            "background": [
+              238,
+              233,
+              225
+            ],
+            "ratio": 4.508449179971999
+          },
+          "surface": {
+            "background": [
+              254,
+              252,
+              249
+            ],
+            "ratio": 5.31994721287774
+          },
+          "paper": {
+            "background": [
+              245,
+              241,
+              233
+            ],
+            "ratio": 4.836112764141167
+          },
+          "surface-2": {
+            "background": [
+              254,
+              252,
+              248
+            ],
+            "ratio": 5.3167177038325
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "oklab(0.522137 0.00266468 0.0192999)",
+            "rgb": [
+              111,
+              105,
+              93
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.522137 0.00266468 0.0192999)",
+            "rgb": [
+              111,
+              105,
+              93
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.522137 0.00266468 0.0192999)",
+            "rgb": [
+              111,
+              105,
+              93
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:miel:before:light:1440:home",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "overflow:miel:before:light:1440:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:miel:before:light:1440:settings",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "miel",
+        "ink": [
+          111,
+          105,
+          93
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              235,
+              228,
+              219
+            ],
+            "ratio": 4.3202183855679674
+          },
+          "sidebar": {
+            "background": [
+              238,
+              233,
+              225
+            ],
+            "ratio": 4.508449179971999
+          },
+          "surface": {
+            "background": [
+              254,
+              252,
+              249
+            ],
+            "ratio": 5.31994721287774
+          },
+          "paper": {
+            "background": [
+              245,
+              241,
+              233
+            ],
+            "ratio": 4.836112764141167
+          },
+          "surface-2": {
+            "background": [
+              254,
+              252,
+              248
+            ],
+            "ratio": 5.3167177038325
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.522137 0.00266468 0.0192999)",
+            "rgb": [
+              111,
+              105,
+              93
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.522137 0.00266468 0.0192999)",
+            "rgb": [
+              111,
+              105,
+              93
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.522137 0.00266468 0.0192999)",
+            "rgb": [
+              111,
+              105,
+              93
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.522137 0.00266468 0.0192999)",
+            "rgb": [
+              111,
+              105,
+              93
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:miel:before:light:1440:settings",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "overflow:miel:before:dark:1440:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:miel:before:dark:1440:home",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "miel",
+        "ink": [
+          169,
+          165,
+          165
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              34,
+              28,
+              21
+            ],
+            "ratio": 6.917871465514287
+          },
+          "sidebar": {
+            "background": [
+              38,
+              32,
+              25
+            ],
+            "ratio": 6.609370062768646
+          },
+          "surface": {
+            "background": [
+              54,
+              48,
+              44
+            ],
+            "ratio": 5.329426952523954
+          },
+          "paper": {
+            "background": [
+              43,
+              36,
+              29
+            ],
+            "ratio": 6.273538415433914
+          },
+          "surface-2": {
+            "background": [
+              47,
+              42,
+              36
+            ],
+            "ratio": 5.828909966266495
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:miel:before:dark:1440:home",
+      "ok": true,
+      "detail": {
+        "bg": 1.7763568394002505e-15,
+        "sidebar": 8.881784197001252e-16,
+        "surface": 1.7763568394002505e-15,
+        "paper": 1.7763568394002505e-15,
+        "surface-2": 8.881784197001252e-16
+      }
+    },
+    {
+      "name": "overflow:miel:before:dark:1440:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:miel:before:dark:1440:settings",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "miel",
+        "ink": [
+          169,
+          165,
+          165
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              34,
+              28,
+              21
+            ],
+            "ratio": 6.917871465514287
+          },
+          "sidebar": {
+            "background": [
+              38,
+              32,
+              25
+            ],
+            "ratio": 6.609370062768646
+          },
+          "surface": {
+            "background": [
+              54,
+              48,
+              44
+            ],
+            "ratio": 5.329426952523954
+          },
+          "paper": {
+            "background": [
+              43,
+              36,
+              29
+            ],
+            "ratio": 6.273538415433914
+          },
+          "surface-2": {
+            "background": [
+              47,
+              42,
+              36
+            ],
+            "ratio": 5.828909966266495
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:miel:before:dark:1440:settings",
+      "ok": true,
+      "detail": {
+        "bg": 1.7763568394002505e-15,
+        "sidebar": 8.881784197001252e-16,
+        "surface": 1.7763568394002505e-15,
+        "paper": 1.7763568394002505e-15,
+        "surface-2": 8.881784197001252e-16
+      }
+    },
+    {
+      "name": "overflow:miel:after:light:1440:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:miel:after:light:1440:home",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "miel",
+        "ink": [
+          103,
+          97,
+          86
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              235,
+              228,
+              219
+            ],
+            "ratio": 4.867829938167805
+          },
+          "sidebar": {
+            "background": [
+              238,
+              233,
+              225
+            ],
+            "ratio": 5.079920025869377
+          },
+          "surface": {
+            "background": [
+              254,
+              252,
+              249
+            ],
+            "ratio": 5.994279918540294
+          },
+          "paper": {
+            "background": [
+              245,
+              241,
+              233
+            ],
+            "ratio": 5.44911677990253
+          },
+          "surface-2": {
+            "background": [
+              254,
+              252,
+              248
+            ],
+            "ratio": 5.990641051378274
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "oklab(0.495238 0.00267955 0.0194705)",
+            "rgb": [
+              103,
+              97,
+              86
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.495238 0.00267955 0.0194705)",
+            "rgb": [
+              103,
+              97,
+              86
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.495238 0.00267955 0.0194705)",
+            "rgb": [
+              103,
+              97,
+              86
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:miel:after:light:1440:home",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "AA:miel:light:1440:home",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            235,
+            228,
+            219
+          ],
+          "ratio": 4.867829938167805
+        },
+        "sidebar": {
+          "background": [
+            238,
+            233,
+            225
+          ],
+          "ratio": 5.079920025869377
+        },
+        "surface": {
+          "background": [
+            254,
+            252,
+            249
+          ],
+          "ratio": 5.994279918540294
+        },
+        "paper": {
+          "background": [
+            245,
+            241,
+            233
+          ],
+          "ratio": 5.44911677990253
+        },
+        "surface-2": {
+          "background": [
+            254,
+            252,
+            248
+          ],
+          "ratio": 5.990641051378274
+        }
+      }
+    },
+    {
+      "name": "overflow:miel:after:light:1440:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:miel:after:light:1440:settings",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "miel",
+        "ink": [
+          103,
+          97,
+          86
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              235,
+              228,
+              219
+            ],
+            "ratio": 4.867829938167805
+          },
+          "sidebar": {
+            "background": [
+              238,
+              233,
+              225
+            ],
+            "ratio": 5.079920025869377
+          },
+          "surface": {
+            "background": [
+              254,
+              252,
+              249
+            ],
+            "ratio": 5.994279918540294
+          },
+          "paper": {
+            "background": [
+              245,
+              241,
+              233
+            ],
+            "ratio": 5.44911677990253
+          },
+          "surface-2": {
+            "background": [
+              254,
+              252,
+              248
+            ],
+            "ratio": 5.990641051378274
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.495238 0.00267955 0.0194705)",
+            "rgb": [
+              103,
+              97,
+              86
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.495238 0.00267955 0.0194705)",
+            "rgb": [
+              103,
+              97,
+              86
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.495238 0.00267955 0.0194705)",
+            "rgb": [
+              103,
+              97,
+              86
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.495238 0.00267955 0.0194705)",
+            "rgb": [
+              103,
+              97,
+              86
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:miel:after:light:1440:settings",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "AA:miel:light:1440:settings",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            235,
+            228,
+            219
+          ],
+          "ratio": 4.867829938167805
+        },
+        "sidebar": {
+          "background": [
+            238,
+            233,
+            225
+          ],
+          "ratio": 5.079920025869377
+        },
+        "surface": {
+          "background": [
+            254,
+            252,
+            249
+          ],
+          "ratio": 5.994279918540294
+        },
+        "paper": {
+          "background": [
+            245,
+            241,
+            233
+          ],
+          "ratio": 5.44911677990253
+        },
+        "surface-2": {
+          "background": [
+            254,
+            252,
+            248
+          ],
+          "ratio": 5.990641051378274
+        }
+      }
+    },
+    {
+      "name": "overflow:miel:after:dark:1440:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:miel:after:dark:1440:home",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "miel",
+        "ink": [
+          169,
+          165,
+          165
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              34,
+              28,
+              21
+            ],
+            "ratio": 6.917871465514287
+          },
+          "sidebar": {
+            "background": [
+              38,
+              32,
+              25
+            ],
+            "ratio": 6.609370062768646
+          },
+          "surface": {
+            "background": [
+              54,
+              48,
+              44
+            ],
+            "ratio": 5.329426952523954
+          },
+          "paper": {
+            "background": [
+              43,
+              36,
+              29
+            ],
+            "ratio": 6.273538415433914
+          },
+          "surface-2": {
+            "background": [
+              47,
+              42,
+              36
+            ],
+            "ratio": 5.828909966266495
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:miel:after:dark:1440:home",
+      "ok": true,
+      "detail": {
+        "bg": 1.7763568394002505e-15,
+        "sidebar": 8.881784197001252e-16,
+        "surface": 1.7763568394002505e-15,
+        "paper": 1.7763568394002505e-15,
+        "surface-2": 8.881784197001252e-16
+      }
+    },
+    {
+      "name": "AA:miel:dark:1440:home",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            34,
+            28,
+            21
+          ],
+          "ratio": 6.917871465514287
+        },
+        "sidebar": {
+          "background": [
+            38,
+            32,
+            25
+          ],
+          "ratio": 6.609370062768646
+        },
+        "surface": {
+          "background": [
+            54,
+            48,
+            44
+          ],
+          "ratio": 5.329426952523954
+        },
+        "paper": {
+          "background": [
+            43,
+            36,
+            29
+          ],
+          "ratio": 6.273538415433914
+        },
+        "surface-2": {
+          "background": [
+            47,
+            42,
+            36
+          ],
+          "ratio": 5.828909966266495
+        }
+      }
+    },
+    {
+      "name": "overflow:miel:after:dark:1440:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:miel:after:dark:1440:settings",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "miel",
+        "ink": [
+          169,
+          165,
+          165
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              34,
+              28,
+              21
+            ],
+            "ratio": 6.917871465514287
+          },
+          "sidebar": {
+            "background": [
+              38,
+              32,
+              25
+            ],
+            "ratio": 6.609370062768646
+          },
+          "surface": {
+            "background": [
+              54,
+              48,
+              44
+            ],
+            "ratio": 5.329426952523954
+          },
+          "paper": {
+            "background": [
+              43,
+              36,
+              29
+            ],
+            "ratio": 6.273538415433914
+          },
+          "surface-2": {
+            "background": [
+              47,
+              42,
+              36
+            ],
+            "ratio": 5.828909966266495
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:miel:after:dark:1440:settings",
+      "ok": true,
+      "detail": {
+        "bg": 1.7763568394002505e-15,
+        "sidebar": 8.881784197001252e-16,
+        "surface": 1.7763568394002505e-15,
+        "paper": 1.7763568394002505e-15,
+        "surface-2": 8.881784197001252e-16
+      }
+    },
+    {
+      "name": "AA:miel:dark:1440:settings",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            34,
+            28,
+            21
+          ],
+          "ratio": 6.917871465514287
+        },
+        "sidebar": {
+          "background": [
+            38,
+            32,
+            25
+          ],
+          "ratio": 6.609370062768646
+        },
+        "surface": {
+          "background": [
+            54,
+            48,
+            44
+          ],
+          "ratio": 5.329426952523954
+        },
+        "paper": {
+          "background": [
+            43,
+            36,
+            29
+          ],
+          "ratio": 6.273538415433914
+        },
+        "surface-2": {
+          "background": [
+            47,
+            42,
+            36
+          ],
+          "ratio": 5.828909966266495
+        }
+      }
+    },
+    {
+      "name": "overflow:aquelarre:before:light:1440:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:aquelarre:before:light:1440:home",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "aquelarre",
+        "ink": [
+          104,
+          98,
+          95
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              218,
+              211,
+              225
+            ],
+            "ratio": 4.10920656602214
+          },
+          "sidebar": {
+            "background": [
+              221,
+              216,
+              230
+            ],
+            "ratio": 4.295834548955651
+          },
+          "surface": {
+            "background": [
+              250,
+              249,
+              253
+            ],
+            "ratio": 5.722321629013982
+          },
+          "paper": {
+            "background": [
+              227,
+              222,
+              237
+            ],
+            "ratio": 4.552384376717546
+          },
+          "surface-2": {
+            "background": [
+              250,
+              249,
+              252
+            ],
+            "ratio": 5.718689794237809
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "rgb(104, 98, 95)",
+            "rgb": [
+              104,
+              98,
+              95
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "rgb(104, 98, 95)",
+            "rgb": [
+              104,
+              98,
+              95
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "rgb(104, 98, 95)",
+            "rgb": [
+              104,
+              98,
+              95
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:aquelarre:before:light:1440:home",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "overflow:aquelarre:before:light:1440:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:aquelarre:before:light:1440:settings",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "aquelarre",
+        "ink": [
+          104,
+          98,
+          95
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              218,
+              211,
+              225
+            ],
+            "ratio": 4.10920656602214
+          },
+          "sidebar": {
+            "background": [
+              221,
+              216,
+              230
+            ],
+            "ratio": 4.295834548955651
+          },
+          "surface": {
+            "background": [
+              250,
+              249,
+              253
+            ],
+            "ratio": 5.722321629013982
+          },
+          "paper": {
+            "background": [
+              227,
+              222,
+              237
+            ],
+            "ratio": 4.552384376717546
+          },
+          "surface-2": {
+            "background": [
+              250,
+              249,
+              252
+            ],
+            "ratio": 5.718689794237809
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "rgb(104, 98, 95)",
+            "rgb": [
+              104,
+              98,
+              95
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "rgb(104, 98, 95)",
+            "rgb": [
+              104,
+              98,
+              95
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "rgb(104, 98, 95)",
+            "rgb": [
+              104,
+              98,
+              95
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "rgb(104, 98, 95)",
+            "rgb": [
+              104,
+              98,
+              95
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:aquelarre:before:light:1440:settings",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "overflow:aquelarre:before:dark:1440:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:aquelarre:before:dark:1440:home",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "aquelarre",
+        "ink": [
+          160,
+          158,
+          175
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              13,
+              9,
+              19
+            ],
+            "ratio": 7.511781328053032
+          },
+          "sidebar": {
+            "background": [
+              16,
+              12,
+              23
+            ],
+            "ratio": 7.363883707199422
+          },
+          "surface": {
+            "background": [
+              42,
+              32,
+              52
+            ],
+            "ratio": 5.908944357632285
+          },
+          "paper": {
+            "background": [
+              23,
+              18,
+              31
+            ],
+            "ratio": 7.004646485548646
+          },
+          "surface-2": {
+            "background": [
+              34,
+              26,
+              45
+            ],
+            "ratio": 6.384864368908915
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:aquelarre:before:dark:1440:home",
+      "ok": true,
+      "detail": {
+        "bg": -8.881784197001252e-16,
+        "sidebar": -8.881784197001252e-16,
+        "surface": -8.881784197001252e-16,
+        "paper": -8.881784197001252e-16,
+        "surface-2": -8.881784197001252e-16
+      }
+    },
+    {
+      "name": "overflow:aquelarre:before:dark:1440:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:aquelarre:before:dark:1440:settings",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "aquelarre",
+        "ink": [
+          160,
+          158,
+          175
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              13,
+              9,
+              19
+            ],
+            "ratio": 7.511781328053032
+          },
+          "sidebar": {
+            "background": [
+              16,
+              12,
+              23
+            ],
+            "ratio": 7.363883707199422
+          },
+          "surface": {
+            "background": [
+              42,
+              32,
+              52
+            ],
+            "ratio": 5.908944357632285
+          },
+          "paper": {
+            "background": [
+              23,
+              18,
+              31
+            ],
+            "ratio": 7.004646485548646
+          },
+          "surface-2": {
+            "background": [
+              34,
+              26,
+              45
+            ],
+            "ratio": 6.384864368908915
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:aquelarre:before:dark:1440:settings",
+      "ok": true,
+      "detail": {
+        "bg": -8.881784197001252e-16,
+        "sidebar": -8.881784197001252e-16,
+        "surface": -8.881784197001252e-16,
+        "paper": -8.881784197001252e-16,
+        "surface-2": -8.881784197001252e-16
+      }
+    },
+    {
+      "name": "overflow:aquelarre:after:light:1440:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:aquelarre:after:light:1440:home",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "aquelarre",
+        "ink": [
+          96,
+          90,
+          87
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              218,
+              211,
+              225
+            ],
+            "ratio": 4.644480019229373
+          },
+          "sidebar": {
+            "background": [
+              221,
+              216,
+              230
+            ],
+            "ratio": 4.855418535908241
+          },
+          "surface": {
+            "background": [
+              250,
+              249,
+              253
+            ],
+            "ratio": 6.467722671651236
+          },
+          "paper": {
+            "background": [
+              227,
+              222,
+              237
+            ],
+            "ratio": 5.145387056553896
+          },
+          "surface-2": {
+            "background": [
+              250,
+              249,
+              252
+            ],
+            "ratio": 6.463617746824493
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "rgb(96, 90, 87)",
+            "rgb": [
+              96,
+              90,
+              87
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "rgb(96, 90, 87)",
+            "rgb": [
+              96,
+              90,
+              87
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "rgb(96, 90, 87)",
+            "rgb": [
+              96,
+              90,
+              87
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:aquelarre:after:light:1440:home",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 8.881784197001252e-16,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "AA:aquelarre:light:1440:home",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            218,
+            211,
+            225
+          ],
+          "ratio": 4.644480019229373
+        },
+        "sidebar": {
+          "background": [
+            221,
+            216,
+            230
+          ],
+          "ratio": 4.855418535908241
+        },
+        "surface": {
+          "background": [
+            250,
+            249,
+            253
+          ],
+          "ratio": 6.467722671651236
+        },
+        "paper": {
+          "background": [
+            227,
+            222,
+            237
+          ],
+          "ratio": 5.145387056553896
+        },
+        "surface-2": {
+          "background": [
+            250,
+            249,
+            252
+          ],
+          "ratio": 6.463617746824493
+        }
+      }
+    },
+    {
+      "name": "overflow:aquelarre:after:light:1440:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:aquelarre:after:light:1440:settings",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "aquelarre",
+        "ink": [
+          96,
+          90,
+          87
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              218,
+              211,
+              225
+            ],
+            "ratio": 4.644480019229373
+          },
+          "sidebar": {
+            "background": [
+              221,
+              216,
+              230
+            ],
+            "ratio": 4.855418535908241
+          },
+          "surface": {
+            "background": [
+              250,
+              249,
+              253
+            ],
+            "ratio": 6.467722671651236
+          },
+          "paper": {
+            "background": [
+              227,
+              222,
+              237
+            ],
+            "ratio": 5.145387056553896
+          },
+          "surface-2": {
+            "background": [
+              250,
+              249,
+              252
+            ],
+            "ratio": 6.463617746824493
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "rgb(96, 90, 87)",
+            "rgb": [
+              96,
+              90,
+              87
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "rgb(96, 90, 87)",
+            "rgb": [
+              96,
+              90,
+              87
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "rgb(96, 90, 87)",
+            "rgb": [
+              96,
+              90,
+              87
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "rgb(96, 90, 87)",
+            "rgb": [
+              96,
+              90,
+              87
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:aquelarre:after:light:1440:settings",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 8.881784197001252e-16,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "AA:aquelarre:light:1440:settings",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            218,
+            211,
+            225
+          ],
+          "ratio": 4.644480019229373
+        },
+        "sidebar": {
+          "background": [
+            221,
+            216,
+            230
+          ],
+          "ratio": 4.855418535908241
+        },
+        "surface": {
+          "background": [
+            250,
+            249,
+            253
+          ],
+          "ratio": 6.467722671651236
+        },
+        "paper": {
+          "background": [
+            227,
+            222,
+            237
+          ],
+          "ratio": 5.145387056553896
+        },
+        "surface-2": {
+          "background": [
+            250,
+            249,
+            252
+          ],
+          "ratio": 6.463617746824493
+        }
+      }
+    },
+    {
+      "name": "overflow:aquelarre:after:dark:1440:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:aquelarre:after:dark:1440:home",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "aquelarre",
+        "ink": [
+          160,
+          158,
+          175
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              13,
+              9,
+              19
+            ],
+            "ratio": 7.511781328053032
+          },
+          "sidebar": {
+            "background": [
+              16,
+              12,
+              23
+            ],
+            "ratio": 7.363883707199422
+          },
+          "surface": {
+            "background": [
+              42,
+              32,
+              52
+            ],
+            "ratio": 5.908944357632285
+          },
+          "paper": {
+            "background": [
+              23,
+              18,
+              31
+            ],
+            "ratio": 7.004646485548646
+          },
+          "surface-2": {
+            "background": [
+              34,
+              26,
+              45
+            ],
+            "ratio": 6.384864368908915
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:aquelarre:after:dark:1440:home",
+      "ok": true,
+      "detail": {
+        "bg": -8.881784197001252e-16,
+        "sidebar": -8.881784197001252e-16,
+        "surface": -8.881784197001252e-16,
+        "paper": -8.881784197001252e-16,
+        "surface-2": -8.881784197001252e-16
+      }
+    },
+    {
+      "name": "AA:aquelarre:dark:1440:home",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            13,
+            9,
+            19
+          ],
+          "ratio": 7.511781328053032
+        },
+        "sidebar": {
+          "background": [
+            16,
+            12,
+            23
+          ],
+          "ratio": 7.363883707199422
+        },
+        "surface": {
+          "background": [
+            42,
+            32,
+            52
+          ],
+          "ratio": 5.908944357632285
+        },
+        "paper": {
+          "background": [
+            23,
+            18,
+            31
+          ],
+          "ratio": 7.004646485548646
+        },
+        "surface-2": {
+          "background": [
+            34,
+            26,
+            45
+          ],
+          "ratio": 6.384864368908915
+        }
+      }
+    },
+    {
+      "name": "overflow:aquelarre:after:dark:1440:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:aquelarre:after:dark:1440:settings",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "aquelarre",
+        "ink": [
+          160,
+          158,
+          175
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              13,
+              9,
+              19
+            ],
+            "ratio": 7.511781328053032
+          },
+          "sidebar": {
+            "background": [
+              16,
+              12,
+              23
+            ],
+            "ratio": 7.363883707199422
+          },
+          "surface": {
+            "background": [
+              42,
+              32,
+              52
+            ],
+            "ratio": 5.908944357632285
+          },
+          "paper": {
+            "background": [
+              23,
+              18,
+              31
+            ],
+            "ratio": 7.004646485548646
+          },
+          "surface-2": {
+            "background": [
+              34,
+              26,
+              45
+            ],
+            "ratio": 6.384864368908915
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:aquelarre:after:dark:1440:settings",
+      "ok": true,
+      "detail": {
+        "bg": -8.881784197001252e-16,
+        "sidebar": -8.881784197001252e-16,
+        "surface": -8.881784197001252e-16,
+        "paper": -8.881784197001252e-16,
+        "surface-2": -8.881784197001252e-16
+      }
+    },
+    {
+      "name": "AA:aquelarre:dark:1440:settings",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            13,
+            9,
+            19
+          ],
+          "ratio": 7.511781328053032
+        },
+        "sidebar": {
+          "background": [
+            16,
+            12,
+            23
+          ],
+          "ratio": 7.363883707199422
+        },
+        "surface": {
+          "background": [
+            42,
+            32,
+            52
+          ],
+          "ratio": 5.908944357632285
+        },
+        "paper": {
+          "background": [
+            23,
+            18,
+            31
+          ],
+          "ratio": 7.004646485548646
+        },
+        "surface-2": {
+          "background": [
+            34,
+            26,
+            45
+          ],
+          "ratio": 6.384864368908915
+        }
+      }
+    },
+    {
+      "name": "board-frames:1440:light",
+      "ok": true,
+      "detail": 6
+    },
+    {
+      "name": "board-frame-size:niebla:1440:light",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "niebla",
+        "ink": [
+          105,
+          103,
+          100
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              226,
+              226,
+              229
+            ],
+            "ratio": 4.360999028050979
+          },
+          "sidebar": {
+            "background": [
+              229,
+              230,
+              235
+            ],
+            "ratio": 4.523757732905078
+          },
+          "surface": {
+            "background": [
+              249,
+              251,
+              254
+            ],
+            "ratio": 5.438716285359401
+          },
+          "paper": {
+            "background": [
+              236,
+              238,
+              243
+            ],
+            "ratio": 4.856836085895815
+          },
+          "surface-2": {
+            "background": [
+              249,
+              251,
+              253
+            ],
+            "ratio": 5.435284763078609
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.514006 0.00112846 0.00428894)",
+            "rgb": [
+              105,
+              103,
+              100
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.514006 0.00112846 0.00428894)",
+            "rgb": [
+              105,
+              103,
+              100
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.514006 0.00112846 0.00428894)",
+            "rgb": [
+              105,
+              103,
+              100
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.514006 0.00112846 0.00428894)",
+            "rgb": [
+              105,
+              103,
+              100
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "self-contained:niebla:1440:light",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-size:niebla:1440:light",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "niebla",
+        "ink": [
+          97,
+          95,
+          93
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              226,
+              226,
+              229
+            ],
+            "ratio": 4.91753595501778
+          },
+          "sidebar": {
+            "background": [
+              229,
+              230,
+              235
+            ],
+            "ratio": 5.101065411906895
+          },
+          "surface": {
+            "background": [
+              249,
+              251,
+              254
+            ],
+            "ratio": 6.132788086024529
+          },
+          "paper": {
+            "background": [
+              236,
+              238,
+              243
+            ],
+            "ratio": 5.476650172677199
+          },
+          "surface-2": {
+            "background": [
+              249,
+              251,
+              253
+            ],
+            "ratio": 6.128918643704616
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.487107 0.00114333 0.00445946)",
+            "rgb": [
+              97,
+              95,
+              93
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.487107 0.00114333 0.00445946)",
+            "rgb": [
+              97,
+              95,
+              93
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.487107 0.00114333 0.00445946)",
+            "rgb": [
+              97,
+              95,
+              93
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.487107 0.00114333 0.00445946)",
+            "rgb": [
+              97,
+              95,
+              93
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "board-AA:niebla:1440:light",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            226,
+            226,
+            229
+          ],
+          "ratio": 4.91753595501778
+        },
+        "sidebar": {
+          "background": [
+            229,
+            230,
+            235
+          ],
+          "ratio": 5.101065411906895
+        },
+        "surface": {
+          "background": [
+            249,
+            251,
+            254
+          ],
+          "ratio": 6.132788086024529
+        },
+        "paper": {
+          "background": [
+            236,
+            238,
+            243
+          ],
+          "ratio": 5.476650172677199
+        },
+        "surface-2": {
+          "background": [
+            249,
+            251,
+            253
+          ],
+          "ratio": 6.128918643704616
+        }
+      }
+    },
+    {
+      "name": "self-contained:niebla:1440:light",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-size:miel:1440:light",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "miel",
+        "ink": [
+          111,
+          105,
+          93
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              235,
+              228,
+              219
+            ],
+            "ratio": 4.3202183855679674
+          },
+          "sidebar": {
+            "background": [
+              238,
+              233,
+              225
+            ],
+            "ratio": 4.508449179971999
+          },
+          "surface": {
+            "background": [
+              254,
+              252,
+              249
+            ],
+            "ratio": 5.31994721287774
+          },
+          "paper": {
+            "background": [
+              245,
+              241,
+              233
+            ],
+            "ratio": 4.836112764141167
+          },
+          "surface-2": {
+            "background": [
+              254,
+              252,
+              248
+            ],
+            "ratio": 5.3167177038325
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.522137 0.00266468 0.0192999)",
+            "rgb": [
+              111,
+              105,
+              93
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.522137 0.00266468 0.0192999)",
+            "rgb": [
+              111,
+              105,
+              93
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.522137 0.00266468 0.0192999)",
+            "rgb": [
+              111,
+              105,
+              93
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.522137 0.00266468 0.0192999)",
+            "rgb": [
+              111,
+              105,
+              93
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "self-contained:miel:1440:light",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-size:miel:1440:light",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "miel",
+        "ink": [
+          103,
+          97,
+          86
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              235,
+              228,
+              219
+            ],
+            "ratio": 4.867829938167805
+          },
+          "sidebar": {
+            "background": [
+              238,
+              233,
+              225
+            ],
+            "ratio": 5.079920025869377
+          },
+          "surface": {
+            "background": [
+              254,
+              252,
+              249
+            ],
+            "ratio": 5.994279918540294
+          },
+          "paper": {
+            "background": [
+              245,
+              241,
+              233
+            ],
+            "ratio": 5.44911677990253
+          },
+          "surface-2": {
+            "background": [
+              254,
+              252,
+              248
+            ],
+            "ratio": 5.990641051378274
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.495238 0.00267955 0.0194705)",
+            "rgb": [
+              103,
+              97,
+              86
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.495238 0.00267955 0.0194705)",
+            "rgb": [
+              103,
+              97,
+              86
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.495238 0.00267955 0.0194705)",
+            "rgb": [
+              103,
+              97,
+              86
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.495238 0.00267955 0.0194705)",
+            "rgb": [
+              103,
+              97,
+              86
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "board-AA:miel:1440:light",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            235,
+            228,
+            219
+          ],
+          "ratio": 4.867829938167805
+        },
+        "sidebar": {
+          "background": [
+            238,
+            233,
+            225
+          ],
+          "ratio": 5.079920025869377
+        },
+        "surface": {
+          "background": [
+            254,
+            252,
+            249
+          ],
+          "ratio": 5.994279918540294
+        },
+        "paper": {
+          "background": [
+            245,
+            241,
+            233
+          ],
+          "ratio": 5.44911677990253
+        },
+        "surface-2": {
+          "background": [
+            254,
+            252,
+            248
+          ],
+          "ratio": 5.990641051378274
+        }
+      }
+    },
+    {
+      "name": "self-contained:miel:1440:light",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-size:aquelarre:1440:light",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "aquelarre",
+        "ink": [
+          104,
+          98,
+          95
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              218,
+              211,
+              225
+            ],
+            "ratio": 4.10920656602214
+          },
+          "sidebar": {
+            "background": [
+              221,
+              216,
+              230
+            ],
+            "ratio": 4.295834548955651
+          },
+          "surface": {
+            "background": [
+              250,
+              249,
+              253
+            ],
+            "ratio": 5.722321629013982
+          },
+          "paper": {
+            "background": [
+              227,
+              222,
+              237
+            ],
+            "ratio": 4.552384376717546
+          },
+          "surface-2": {
+            "background": [
+              250,
+              249,
+              252
+            ],
+            "ratio": 5.718689794237809
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "rgb(104, 98, 95)",
+            "rgb": [
+              104,
+              98,
+              95
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "rgb(104, 98, 95)",
+            "rgb": [
+              104,
+              98,
+              95
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "rgb(104, 98, 95)",
+            "rgb": [
+              104,
+              98,
+              95
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "rgb(104, 98, 95)",
+            "rgb": [
+              104,
+              98,
+              95
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "self-contained:aquelarre:1440:light",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-size:aquelarre:1440:light",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "aquelarre",
+        "ink": [
+          96,
+          90,
+          87
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              218,
+              211,
+              225
+            ],
+            "ratio": 4.644480019229373
+          },
+          "sidebar": {
+            "background": [
+              221,
+              216,
+              230
+            ],
+            "ratio": 4.855418535908241
+          },
+          "surface": {
+            "background": [
+              250,
+              249,
+              253
+            ],
+            "ratio": 6.467722671651236
+          },
+          "paper": {
+            "background": [
+              227,
+              222,
+              237
+            ],
+            "ratio": 5.145387056553896
+          },
+          "surface-2": {
+            "background": [
+              250,
+              249,
+              252
+            ],
+            "ratio": 6.463617746824493
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "rgb(96, 90, 87)",
+            "rgb": [
+              96,
+              90,
+              87
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "rgb(96, 90, 87)",
+            "rgb": [
+              96,
+              90,
+              87
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "rgb(96, 90, 87)",
+            "rgb": [
+              96,
+              90,
+              87
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "rgb(96, 90, 87)",
+            "rgb": [
+              96,
+              90,
+              87
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "board-AA:aquelarre:1440:light",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            218,
+            211,
+            225
+          ],
+          "ratio": 4.644480019229373
+        },
+        "sidebar": {
+          "background": [
+            221,
+            216,
+            230
+          ],
+          "ratio": 4.855418535908241
+        },
+        "surface": {
+          "background": [
+            250,
+            249,
+            253
+          ],
+          "ratio": 6.467722671651236
+        },
+        "paper": {
+          "background": [
+            227,
+            222,
+            237
+          ],
+          "ratio": 5.145387056553896
+        },
+        "surface-2": {
+          "background": [
+            250,
+            249,
+            252
+          ],
+          "ratio": 6.463617746824493
+        }
+      }
+    },
+    {
+      "name": "self-contained:aquelarre:1440:light",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frames:1440:dark",
+      "ok": true,
+      "detail": 6
+    },
+    {
+      "name": "board-frame-size:niebla:1440:dark",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "niebla",
+        "ink": [
+          158,
+          161,
+          177
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              19,
+              23,
+              36
+            ],
+            "ratio": 6.963063342529015
+          },
+          "sidebar": {
+            "background": [
+              23,
+              27,
+              40
+            ],
+            "ratio": 6.689271965005143
+          },
+          "surface": {
+            "background": [
+              40,
+              44,
+              58
+            ],
+            "ratio": 5.415894819705213
+          },
+          "paper": {
+            "background": [
+              28,
+              32,
+              45
+            ],
+            "ratio": 6.327233814003742
+          },
+          "surface-2": {
+            "background": [
+              34,
+              37,
+              50
+            ],
+            "ratio": 5.937930858501957
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "self-contained:niebla:1440:dark",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-size:niebla:1440:dark",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "niebla",
+        "ink": [
+          158,
+          161,
+          177
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              19,
+              23,
+              36
+            ],
+            "ratio": 6.963063342529015
+          },
+          "sidebar": {
+            "background": [
+              23,
+              27,
+              40
+            ],
+            "ratio": 6.689271965005143
+          },
+          "surface": {
+            "background": [
+              40,
+              44,
+              58
+            ],
+            "ratio": 5.415894819705213
+          },
+          "paper": {
+            "background": [
+              28,
+              32,
+              45
+            ],
+            "ratio": 6.327233814003742
+          },
+          "surface-2": {
+            "background": [
+              34,
+              37,
+              50
+            ],
+            "ratio": 5.937930858501957
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "board-AA:niebla:1440:dark",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            19,
+            23,
+            36
+          ],
+          "ratio": 6.963063342529015
+        },
+        "sidebar": {
+          "background": [
+            23,
+            27,
+            40
+          ],
+          "ratio": 6.689271965005143
+        },
+        "surface": {
+          "background": [
+            40,
+            44,
+            58
+          ],
+          "ratio": 5.415894819705213
+        },
+        "paper": {
+          "background": [
+            28,
+            32,
+            45
+          ],
+          "ratio": 6.327233814003742
+        },
+        "surface-2": {
+          "background": [
+            34,
+            37,
+            50
+          ],
+          "ratio": 5.937930858501957
+        }
+      }
+    },
+    {
+      "name": "self-contained:niebla:1440:dark",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-size:miel:1440:dark",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "miel",
+        "ink": [
+          169,
+          165,
+          165
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              34,
+              28,
+              21
+            ],
+            "ratio": 6.917871465514287
+          },
+          "sidebar": {
+            "background": [
+              38,
+              32,
+              25
+            ],
+            "ratio": 6.609370062768646
+          },
+          "surface": {
+            "background": [
+              54,
+              48,
+              44
+            ],
+            "ratio": 5.329426952523954
+          },
+          "paper": {
+            "background": [
+              43,
+              36,
+              29
+            ],
+            "ratio": 6.273538415433914
+          },
+          "surface-2": {
+            "background": [
+              47,
+              42,
+              36
+            ],
+            "ratio": 5.828909966266495
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "self-contained:miel:1440:dark",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-size:miel:1440:dark",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "miel",
+        "ink": [
+          169,
+          165,
+          165
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              34,
+              28,
+              21
+            ],
+            "ratio": 6.917871465514287
+          },
+          "sidebar": {
+            "background": [
+              38,
+              32,
+              25
+            ],
+            "ratio": 6.609370062768646
+          },
+          "surface": {
+            "background": [
+              54,
+              48,
+              44
+            ],
+            "ratio": 5.329426952523954
+          },
+          "paper": {
+            "background": [
+              43,
+              36,
+              29
+            ],
+            "ratio": 6.273538415433914
+          },
+          "surface-2": {
+            "background": [
+              47,
+              42,
+              36
+            ],
+            "ratio": 5.828909966266495
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "board-AA:miel:1440:dark",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            34,
+            28,
+            21
+          ],
+          "ratio": 6.917871465514287
+        },
+        "sidebar": {
+          "background": [
+            38,
+            32,
+            25
+          ],
+          "ratio": 6.609370062768646
+        },
+        "surface": {
+          "background": [
+            54,
+            48,
+            44
+          ],
+          "ratio": 5.329426952523954
+        },
+        "paper": {
+          "background": [
+            43,
+            36,
+            29
+          ],
+          "ratio": 6.273538415433914
+        },
+        "surface-2": {
+          "background": [
+            47,
+            42,
+            36
+          ],
+          "ratio": 5.828909966266495
+        }
+      }
+    },
+    {
+      "name": "self-contained:miel:1440:dark",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-size:aquelarre:1440:dark",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "aquelarre",
+        "ink": [
+          160,
+          158,
+          175
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              13,
+              9,
+              19
+            ],
+            "ratio": 7.511781328053032
+          },
+          "sidebar": {
+            "background": [
+              16,
+              12,
+              23
+            ],
+            "ratio": 7.363883707199422
+          },
+          "surface": {
+            "background": [
+              42,
+              32,
+              52
+            ],
+            "ratio": 5.908944357632285
+          },
+          "paper": {
+            "background": [
+              23,
+              18,
+              31
+            ],
+            "ratio": 7.004646485548646
+          },
+          "surface-2": {
+            "background": [
+              34,
+              26,
+              45
+            ],
+            "ratio": 6.384864368908915
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "self-contained:aquelarre:1440:dark",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-size:aquelarre:1440:dark",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "aquelarre",
+        "ink": [
+          160,
+          158,
+          175
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              13,
+              9,
+              19
+            ],
+            "ratio": 7.511781328053032
+          },
+          "sidebar": {
+            "background": [
+              16,
+              12,
+              23
+            ],
+            "ratio": 7.363883707199422
+          },
+          "surface": {
+            "background": [
+              42,
+              32,
+              52
+            ],
+            "ratio": 5.908944357632285
+          },
+          "paper": {
+            "background": [
+              23,
+              18,
+              31
+            ],
+            "ratio": 7.004646485548646
+          },
+          "surface-2": {
+            "background": [
+              34,
+              26,
+              45
+            ],
+            "ratio": 6.384864368908915
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          },
+          {
+            "selector": ".sidebar .secondary",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          },
+          {
+            "selector": ".nav-item",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          }
+        ],
+        "viewport": 1440,
+        "overflow": false
+      }
+    },
+    {
+      "name": "board-AA:aquelarre:1440:dark",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            13,
+            9,
+            19
+          ],
+          "ratio": 7.511781328053032
+        },
+        "sidebar": {
+          "background": [
+            16,
+            12,
+            23
+          ],
+          "ratio": 7.363883707199422
+        },
+        "surface": {
+          "background": [
+            42,
+            32,
+            52
+          ],
+          "ratio": 5.908944357632285
+        },
+        "paper": {
+          "background": [
+            23,
+            18,
+            31
+          ],
+          "ratio": 7.004646485548646
+        },
+        "surface-2": {
+          "background": [
+            34,
+            26,
+            45
+          ],
+          "ratio": 6.384864368908915
+        }
+      }
+    },
+    {
+      "name": "self-contained:aquelarre:1440:dark",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "overflow:niebla:before:light:390:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:niebla:before:light:390:home",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "niebla",
+        "ink": [
+          105,
+          103,
+          100
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              226,
+              226,
+              229
+            ],
+            "ratio": 4.360999028050979
+          },
+          "sidebar": {
+            "background": [
+              229,
+              230,
+              235
+            ],
+            "ratio": 4.523757732905078
+          },
+          "surface": {
+            "background": [
+              249,
+              251,
+              254
+            ],
+            "ratio": 5.438716285359401
+          },
+          "paper": {
+            "background": [
+              236,
+              238,
+              243
+            ],
+            "ratio": 4.856836085895815
+          },
+          "surface-2": {
+            "background": [
+              249,
+              251,
+              253
+            ],
+            "ratio": 5.435284763078609
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "oklab(0.514006 0.00112846 0.00428894)",
+            "rgb": [
+              105,
+              103,
+              100
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:niebla:before:light:390:home",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "mobile-rail:niebla:before",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "mobile-rail-close:niebla:before",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "overflow:niebla:before:light:390:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:niebla:before:light:390:settings",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "niebla",
+        "ink": [
+          105,
+          103,
+          100
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              226,
+              226,
+              229
+            ],
+            "ratio": 4.360999028050979
+          },
+          "sidebar": {
+            "background": [
+              229,
+              230,
+              235
+            ],
+            "ratio": 4.523757732905078
+          },
+          "surface": {
+            "background": [
+              249,
+              251,
+              254
+            ],
+            "ratio": 5.438716285359401
+          },
+          "paper": {
+            "background": [
+              236,
+              238,
+              243
+            ],
+            "ratio": 4.856836085895815
+          },
+          "surface-2": {
+            "background": [
+              249,
+              251,
+              253
+            ],
+            "ratio": 5.435284763078609
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.514006 0.00112846 0.00428894)",
+            "rgb": [
+              105,
+              103,
+              100
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.514006 0.00112846 0.00428894)",
+            "rgb": [
+              105,
+              103,
+              100
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:niebla:before:light:390:settings",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "overflow:niebla:before:dark:390:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:niebla:before:dark:390:home",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "niebla",
+        "ink": [
+          158,
+          161,
+          177
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              19,
+              23,
+              36
+            ],
+            "ratio": 6.963063342529015
+          },
+          "sidebar": {
+            "background": [
+              23,
+              27,
+              40
+            ],
+            "ratio": 6.689271965005143
+          },
+          "surface": {
+            "background": [
+              40,
+              44,
+              58
+            ],
+            "ratio": 5.415894819705213
+          },
+          "paper": {
+            "background": [
+              28,
+              32,
+              45
+            ],
+            "ratio": 6.327233814003742
+          },
+          "surface-2": {
+            "background": [
+              34,
+              37,
+              50
+            ],
+            "ratio": 5.937930858501957
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:niebla:before:dark:390:home",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "overflow:niebla:before:dark:390:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:niebla:before:dark:390:settings",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "niebla",
+        "ink": [
+          158,
+          161,
+          177
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              19,
+              23,
+              36
+            ],
+            "ratio": 6.963063342529015
+          },
+          "sidebar": {
+            "background": [
+              23,
+              27,
+              40
+            ],
+            "ratio": 6.689271965005143
+          },
+          "surface": {
+            "background": [
+              40,
+              44,
+              58
+            ],
+            "ratio": 5.415894819705213
+          },
+          "paper": {
+            "background": [
+              28,
+              32,
+              45
+            ],
+            "ratio": 6.327233814003742
+          },
+          "surface-2": {
+            "background": [
+              34,
+              37,
+              50
+            ],
+            "ratio": 5.937930858501957
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:niebla:before:dark:390:settings",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "overflow:niebla:after:light:390:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:niebla:after:light:390:home",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "niebla",
+        "ink": [
+          97,
+          95,
+          93
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              226,
+              226,
+              229
+            ],
+            "ratio": 4.91753595501778
+          },
+          "sidebar": {
+            "background": [
+              229,
+              230,
+              235
+            ],
+            "ratio": 5.101065411906895
+          },
+          "surface": {
+            "background": [
+              249,
+              251,
+              254
+            ],
+            "ratio": 6.132788086024529
+          },
+          "paper": {
+            "background": [
+              236,
+              238,
+              243
+            ],
+            "ratio": 5.476650172677199
+          },
+          "surface-2": {
+            "background": [
+              249,
+              251,
+              253
+            ],
+            "ratio": 6.128918643704616
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "oklab(0.487107 0.00114333 0.00445946)",
+            "rgb": [
+              97,
+              95,
+              93
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:niebla:after:light:390:home",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "AA:niebla:light:390:home",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            226,
+            226,
+            229
+          ],
+          "ratio": 4.91753595501778
+        },
+        "sidebar": {
+          "background": [
+            229,
+            230,
+            235
+          ],
+          "ratio": 5.101065411906895
+        },
+        "surface": {
+          "background": [
+            249,
+            251,
+            254
+          ],
+          "ratio": 6.132788086024529
+        },
+        "paper": {
+          "background": [
+            236,
+            238,
+            243
+          ],
+          "ratio": 5.476650172677199
+        },
+        "surface-2": {
+          "background": [
+            249,
+            251,
+            253
+          ],
+          "ratio": 6.128918643704616
+        }
+      }
+    },
+    {
+      "name": "mobile-rail:niebla:after",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "mobile-rail-close:niebla:after",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "overflow:niebla:after:light:390:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:niebla:after:light:390:settings",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "niebla",
+        "ink": [
+          97,
+          95,
+          93
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              226,
+              226,
+              229
+            ],
+            "ratio": 4.91753595501778
+          },
+          "sidebar": {
+            "background": [
+              229,
+              230,
+              235
+            ],
+            "ratio": 5.101065411906895
+          },
+          "surface": {
+            "background": [
+              249,
+              251,
+              254
+            ],
+            "ratio": 6.132788086024529
+          },
+          "paper": {
+            "background": [
+              236,
+              238,
+              243
+            ],
+            "ratio": 5.476650172677199
+          },
+          "surface-2": {
+            "background": [
+              249,
+              251,
+              253
+            ],
+            "ratio": 6.128918643704616
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.487107 0.00114333 0.00445946)",
+            "rgb": [
+              97,
+              95,
+              93
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.487107 0.00114333 0.00445946)",
+            "rgb": [
+              97,
+              95,
+              93
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:niebla:after:light:390:settings",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "AA:niebla:light:390:settings",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            226,
+            226,
+            229
+          ],
+          "ratio": 4.91753595501778
+        },
+        "sidebar": {
+          "background": [
+            229,
+            230,
+            235
+          ],
+          "ratio": 5.101065411906895
+        },
+        "surface": {
+          "background": [
+            249,
+            251,
+            254
+          ],
+          "ratio": 6.132788086024529
+        },
+        "paper": {
+          "background": [
+            236,
+            238,
+            243
+          ],
+          "ratio": 5.476650172677199
+        },
+        "surface-2": {
+          "background": [
+            249,
+            251,
+            253
+          ],
+          "ratio": 6.128918643704616
+        }
+      }
+    },
+    {
+      "name": "overflow:niebla:after:dark:390:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:niebla:after:dark:390:home",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "niebla",
+        "ink": [
+          158,
+          161,
+          177
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              19,
+              23,
+              36
+            ],
+            "ratio": 6.963063342529015
+          },
+          "sidebar": {
+            "background": [
+              23,
+              27,
+              40
+            ],
+            "ratio": 6.689271965005143
+          },
+          "surface": {
+            "background": [
+              40,
+              44,
+              58
+            ],
+            "ratio": 5.415894819705213
+          },
+          "paper": {
+            "background": [
+              28,
+              32,
+              45
+            ],
+            "ratio": 6.327233814003742
+          },
+          "surface-2": {
+            "background": [
+              34,
+              37,
+              50
+            ],
+            "ratio": 5.937930858501957
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:niebla:after:dark:390:home",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "AA:niebla:dark:390:home",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            19,
+            23,
+            36
+          ],
+          "ratio": 6.963063342529015
+        },
+        "sidebar": {
+          "background": [
+            23,
+            27,
+            40
+          ],
+          "ratio": 6.689271965005143
+        },
+        "surface": {
+          "background": [
+            40,
+            44,
+            58
+          ],
+          "ratio": 5.415894819705213
+        },
+        "paper": {
+          "background": [
+            28,
+            32,
+            45
+          ],
+          "ratio": 6.327233814003742
+        },
+        "surface-2": {
+          "background": [
+            34,
+            37,
+            50
+          ],
+          "ratio": 5.937930858501957
+        }
+      }
+    },
+    {
+      "name": "overflow:niebla:after:dark:390:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:niebla:after:dark:390:settings",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "niebla",
+        "ink": [
+          158,
+          161,
+          177
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              19,
+              23,
+              36
+            ],
+            "ratio": 6.963063342529015
+          },
+          "sidebar": {
+            "background": [
+              23,
+              27,
+              40
+            ],
+            "ratio": 6.689271965005143
+          },
+          "surface": {
+            "background": [
+              40,
+              44,
+              58
+            ],
+            "ratio": 5.415894819705213
+          },
+          "paper": {
+            "background": [
+              28,
+              32,
+              45
+            ],
+            "ratio": 6.327233814003742
+          },
+          "surface-2": {
+            "background": [
+              34,
+              37,
+              50
+            ],
+            "ratio": 5.937930858501957
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:niebla:after:dark:390:settings",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "AA:niebla:dark:390:settings",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            19,
+            23,
+            36
+          ],
+          "ratio": 6.963063342529015
+        },
+        "sidebar": {
+          "background": [
+            23,
+            27,
+            40
+          ],
+          "ratio": 6.689271965005143
+        },
+        "surface": {
+          "background": [
+            40,
+            44,
+            58
+          ],
+          "ratio": 5.415894819705213
+        },
+        "paper": {
+          "background": [
+            28,
+            32,
+            45
+          ],
+          "ratio": 6.327233814003742
+        },
+        "surface-2": {
+          "background": [
+            34,
+            37,
+            50
+          ],
+          "ratio": 5.937930858501957
+        }
+      }
+    },
+    {
+      "name": "overflow:miel:before:light:390:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:miel:before:light:390:home",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "miel",
+        "ink": [
+          111,
+          105,
+          93
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              235,
+              228,
+              219
+            ],
+            "ratio": 4.3202183855679674
+          },
+          "sidebar": {
+            "background": [
+              238,
+              233,
+              225
+            ],
+            "ratio": 4.508449179971999
+          },
+          "surface": {
+            "background": [
+              254,
+              252,
+              249
+            ],
+            "ratio": 5.31994721287774
+          },
+          "paper": {
+            "background": [
+              245,
+              241,
+              233
+            ],
+            "ratio": 4.836112764141167
+          },
+          "surface-2": {
+            "background": [
+              254,
+              252,
+              248
+            ],
+            "ratio": 5.3167177038325
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "oklab(0.522137 0.00266468 0.0192999)",
+            "rgb": [
+              111,
+              105,
+              93
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:miel:before:light:390:home",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "mobile-rail:miel:before",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "mobile-rail-close:miel:before",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "overflow:miel:before:light:390:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:miel:before:light:390:settings",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "miel",
+        "ink": [
+          111,
+          105,
+          93
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              235,
+              228,
+              219
+            ],
+            "ratio": 4.3202183855679674
+          },
+          "sidebar": {
+            "background": [
+              238,
+              233,
+              225
+            ],
+            "ratio": 4.508449179971999
+          },
+          "surface": {
+            "background": [
+              254,
+              252,
+              249
+            ],
+            "ratio": 5.31994721287774
+          },
+          "paper": {
+            "background": [
+              245,
+              241,
+              233
+            ],
+            "ratio": 4.836112764141167
+          },
+          "surface-2": {
+            "background": [
+              254,
+              252,
+              248
+            ],
+            "ratio": 5.3167177038325
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.522137 0.00266468 0.0192999)",
+            "rgb": [
+              111,
+              105,
+              93
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.522137 0.00266468 0.0192999)",
+            "rgb": [
+              111,
+              105,
+              93
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:miel:before:light:390:settings",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "overflow:miel:before:dark:390:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:miel:before:dark:390:home",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "miel",
+        "ink": [
+          169,
+          165,
+          165
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              34,
+              28,
+              21
+            ],
+            "ratio": 6.917871465514287
+          },
+          "sidebar": {
+            "background": [
+              38,
+              32,
+              25
+            ],
+            "ratio": 6.609370062768646
+          },
+          "surface": {
+            "background": [
+              54,
+              48,
+              44
+            ],
+            "ratio": 5.329426952523954
+          },
+          "paper": {
+            "background": [
+              43,
+              36,
+              29
+            ],
+            "ratio": 6.273538415433914
+          },
+          "surface-2": {
+            "background": [
+              47,
+              42,
+              36
+            ],
+            "ratio": 5.828909966266495
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:miel:before:dark:390:home",
+      "ok": true,
+      "detail": {
+        "bg": 1.7763568394002505e-15,
+        "sidebar": 8.881784197001252e-16,
+        "surface": 1.7763568394002505e-15,
+        "paper": 1.7763568394002505e-15,
+        "surface-2": 8.881784197001252e-16
+      }
+    },
+    {
+      "name": "overflow:miel:before:dark:390:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:miel:before:dark:390:settings",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "miel",
+        "ink": [
+          169,
+          165,
+          165
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              34,
+              28,
+              21
+            ],
+            "ratio": 6.917871465514287
+          },
+          "sidebar": {
+            "background": [
+              38,
+              32,
+              25
+            ],
+            "ratio": 6.609370062768646
+          },
+          "surface": {
+            "background": [
+              54,
+              48,
+              44
+            ],
+            "ratio": 5.329426952523954
+          },
+          "paper": {
+            "background": [
+              43,
+              36,
+              29
+            ],
+            "ratio": 6.273538415433914
+          },
+          "surface-2": {
+            "background": [
+              47,
+              42,
+              36
+            ],
+            "ratio": 5.828909966266495
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:miel:before:dark:390:settings",
+      "ok": true,
+      "detail": {
+        "bg": 1.7763568394002505e-15,
+        "sidebar": 8.881784197001252e-16,
+        "surface": 1.7763568394002505e-15,
+        "paper": 1.7763568394002505e-15,
+        "surface-2": 8.881784197001252e-16
+      }
+    },
+    {
+      "name": "overflow:miel:after:light:390:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:miel:after:light:390:home",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "miel",
+        "ink": [
+          103,
+          97,
+          86
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              235,
+              228,
+              219
+            ],
+            "ratio": 4.867829938167805
+          },
+          "sidebar": {
+            "background": [
+              238,
+              233,
+              225
+            ],
+            "ratio": 5.079920025869377
+          },
+          "surface": {
+            "background": [
+              254,
+              252,
+              249
+            ],
+            "ratio": 5.994279918540294
+          },
+          "paper": {
+            "background": [
+              245,
+              241,
+              233
+            ],
+            "ratio": 5.44911677990253
+          },
+          "surface-2": {
+            "background": [
+              254,
+              252,
+              248
+            ],
+            "ratio": 5.990641051378274
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "oklab(0.495238 0.00267955 0.0194705)",
+            "rgb": [
+              103,
+              97,
+              86
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:miel:after:light:390:home",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "AA:miel:light:390:home",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            235,
+            228,
+            219
+          ],
+          "ratio": 4.867829938167805
+        },
+        "sidebar": {
+          "background": [
+            238,
+            233,
+            225
+          ],
+          "ratio": 5.079920025869377
+        },
+        "surface": {
+          "background": [
+            254,
+            252,
+            249
+          ],
+          "ratio": 5.994279918540294
+        },
+        "paper": {
+          "background": [
+            245,
+            241,
+            233
+          ],
+          "ratio": 5.44911677990253
+        },
+        "surface-2": {
+          "background": [
+            254,
+            252,
+            248
+          ],
+          "ratio": 5.990641051378274
+        }
+      }
+    },
+    {
+      "name": "mobile-rail:miel:after",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "mobile-rail-close:miel:after",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "overflow:miel:after:light:390:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:miel:after:light:390:settings",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "miel",
+        "ink": [
+          103,
+          97,
+          86
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              235,
+              228,
+              219
+            ],
+            "ratio": 4.867829938167805
+          },
+          "sidebar": {
+            "background": [
+              238,
+              233,
+              225
+            ],
+            "ratio": 5.079920025869377
+          },
+          "surface": {
+            "background": [
+              254,
+              252,
+              249
+            ],
+            "ratio": 5.994279918540294
+          },
+          "paper": {
+            "background": [
+              245,
+              241,
+              233
+            ],
+            "ratio": 5.44911677990253
+          },
+          "surface-2": {
+            "background": [
+              254,
+              252,
+              248
+            ],
+            "ratio": 5.990641051378274
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.495238 0.00267955 0.0194705)",
+            "rgb": [
+              103,
+              97,
+              86
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.495238 0.00267955 0.0194705)",
+            "rgb": [
+              103,
+              97,
+              86
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:miel:after:light:390:settings",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "AA:miel:light:390:settings",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            235,
+            228,
+            219
+          ],
+          "ratio": 4.867829938167805
+        },
+        "sidebar": {
+          "background": [
+            238,
+            233,
+            225
+          ],
+          "ratio": 5.079920025869377
+        },
+        "surface": {
+          "background": [
+            254,
+            252,
+            249
+          ],
+          "ratio": 5.994279918540294
+        },
+        "paper": {
+          "background": [
+            245,
+            241,
+            233
+          ],
+          "ratio": 5.44911677990253
+        },
+        "surface-2": {
+          "background": [
+            254,
+            252,
+            248
+          ],
+          "ratio": 5.990641051378274
+        }
+      }
+    },
+    {
+      "name": "overflow:miel:after:dark:390:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:miel:after:dark:390:home",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "miel",
+        "ink": [
+          169,
+          165,
+          165
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              34,
+              28,
+              21
+            ],
+            "ratio": 6.917871465514287
+          },
+          "sidebar": {
+            "background": [
+              38,
+              32,
+              25
+            ],
+            "ratio": 6.609370062768646
+          },
+          "surface": {
+            "background": [
+              54,
+              48,
+              44
+            ],
+            "ratio": 5.329426952523954
+          },
+          "paper": {
+            "background": [
+              43,
+              36,
+              29
+            ],
+            "ratio": 6.273538415433914
+          },
+          "surface-2": {
+            "background": [
+              47,
+              42,
+              36
+            ],
+            "ratio": 5.828909966266495
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:miel:after:dark:390:home",
+      "ok": true,
+      "detail": {
+        "bg": 1.7763568394002505e-15,
+        "sidebar": 8.881784197001252e-16,
+        "surface": 1.7763568394002505e-15,
+        "paper": 1.7763568394002505e-15,
+        "surface-2": 8.881784197001252e-16
+      }
+    },
+    {
+      "name": "AA:miel:dark:390:home",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            34,
+            28,
+            21
+          ],
+          "ratio": 6.917871465514287
+        },
+        "sidebar": {
+          "background": [
+            38,
+            32,
+            25
+          ],
+          "ratio": 6.609370062768646
+        },
+        "surface": {
+          "background": [
+            54,
+            48,
+            44
+          ],
+          "ratio": 5.329426952523954
+        },
+        "paper": {
+          "background": [
+            43,
+            36,
+            29
+          ],
+          "ratio": 6.273538415433914
+        },
+        "surface-2": {
+          "background": [
+            47,
+            42,
+            36
+          ],
+          "ratio": 5.828909966266495
+        }
+      }
+    },
+    {
+      "name": "overflow:miel:after:dark:390:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:miel:after:dark:390:settings",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "miel",
+        "ink": [
+          169,
+          165,
+          165
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              34,
+              28,
+              21
+            ],
+            "ratio": 6.917871465514287
+          },
+          "sidebar": {
+            "background": [
+              38,
+              32,
+              25
+            ],
+            "ratio": 6.609370062768646
+          },
+          "surface": {
+            "background": [
+              54,
+              48,
+              44
+            ],
+            "ratio": 5.329426952523954
+          },
+          "paper": {
+            "background": [
+              43,
+              36,
+              29
+            ],
+            "ratio": 6.273538415433914
+          },
+          "surface-2": {
+            "background": [
+              47,
+              42,
+              36
+            ],
+            "ratio": 5.828909966266495
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:miel:after:dark:390:settings",
+      "ok": true,
+      "detail": {
+        "bg": 1.7763568394002505e-15,
+        "sidebar": 8.881784197001252e-16,
+        "surface": 1.7763568394002505e-15,
+        "paper": 1.7763568394002505e-15,
+        "surface-2": 8.881784197001252e-16
+      }
+    },
+    {
+      "name": "AA:miel:dark:390:settings",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            34,
+            28,
+            21
+          ],
+          "ratio": 6.917871465514287
+        },
+        "sidebar": {
+          "background": [
+            38,
+            32,
+            25
+          ],
+          "ratio": 6.609370062768646
+        },
+        "surface": {
+          "background": [
+            54,
+            48,
+            44
+          ],
+          "ratio": 5.329426952523954
+        },
+        "paper": {
+          "background": [
+            43,
+            36,
+            29
+          ],
+          "ratio": 6.273538415433914
+        },
+        "surface-2": {
+          "background": [
+            47,
+            42,
+            36
+          ],
+          "ratio": 5.828909966266495
+        }
+      }
+    },
+    {
+      "name": "overflow:aquelarre:before:light:390:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:aquelarre:before:light:390:home",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "aquelarre",
+        "ink": [
+          104,
+          98,
+          95
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              218,
+              211,
+              225
+            ],
+            "ratio": 4.10920656602214
+          },
+          "sidebar": {
+            "background": [
+              221,
+              216,
+              230
+            ],
+            "ratio": 4.295834548955651
+          },
+          "surface": {
+            "background": [
+              250,
+              249,
+              253
+            ],
+            "ratio": 5.722321629013982
+          },
+          "paper": {
+            "background": [
+              227,
+              222,
+              237
+            ],
+            "ratio": 4.552384376717546
+          },
+          "surface-2": {
+            "background": [
+              250,
+              249,
+              252
+            ],
+            "ratio": 5.718689794237809
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "rgb(104, 98, 95)",
+            "rgb": [
+              104,
+              98,
+              95
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:aquelarre:before:light:390:home",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "mobile-rail:aquelarre:before",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "mobile-rail-close:aquelarre:before",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "overflow:aquelarre:before:light:390:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:aquelarre:before:light:390:settings",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "aquelarre",
+        "ink": [
+          104,
+          98,
+          95
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              218,
+              211,
+              225
+            ],
+            "ratio": 4.10920656602214
+          },
+          "sidebar": {
+            "background": [
+              221,
+              216,
+              230
+            ],
+            "ratio": 4.295834548955651
+          },
+          "surface": {
+            "background": [
+              250,
+              249,
+              253
+            ],
+            "ratio": 5.722321629013982
+          },
+          "paper": {
+            "background": [
+              227,
+              222,
+              237
+            ],
+            "ratio": 4.552384376717546
+          },
+          "surface-2": {
+            "background": [
+              250,
+              249,
+              252
+            ],
+            "ratio": 5.718689794237809
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "rgb(104, 98, 95)",
+            "rgb": [
+              104,
+              98,
+              95
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "rgb(104, 98, 95)",
+            "rgb": [
+              104,
+              98,
+              95
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:aquelarre:before:light:390:settings",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 0,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "overflow:aquelarre:before:dark:390:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:aquelarre:before:dark:390:home",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "aquelarre",
+        "ink": [
+          160,
+          158,
+          175
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              13,
+              9,
+              19
+            ],
+            "ratio": 7.511781328053032
+          },
+          "sidebar": {
+            "background": [
+              16,
+              12,
+              23
+            ],
+            "ratio": 7.363883707199422
+          },
+          "surface": {
+            "background": [
+              42,
+              32,
+              52
+            ],
+            "ratio": 5.908944357632285
+          },
+          "paper": {
+            "background": [
+              23,
+              18,
+              31
+            ],
+            "ratio": 7.004646485548646
+          },
+          "surface-2": {
+            "background": [
+              34,
+              26,
+              45
+            ],
+            "ratio": 6.384864368908915
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:aquelarre:before:dark:390:home",
+      "ok": true,
+      "detail": {
+        "bg": -8.881784197001252e-16,
+        "sidebar": -8.881784197001252e-16,
+        "surface": -8.881784197001252e-16,
+        "paper": -8.881784197001252e-16,
+        "surface-2": -8.881784197001252e-16
+      }
+    },
+    {
+      "name": "overflow:aquelarre:before:dark:390:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:aquelarre:before:dark:390:settings",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "aquelarre",
+        "ink": [
+          160,
+          158,
+          175
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              13,
+              9,
+              19
+            ],
+            "ratio": 7.511781328053032
+          },
+          "sidebar": {
+            "background": [
+              16,
+              12,
+              23
+            ],
+            "ratio": 7.363883707199422
+          },
+          "surface": {
+            "background": [
+              42,
+              32,
+              52
+            ],
+            "ratio": 5.908944357632285
+          },
+          "paper": {
+            "background": [
+              23,
+              18,
+              31
+            ],
+            "ratio": 7.004646485548646
+          },
+          "surface-2": {
+            "background": [
+              34,
+              26,
+              45
+            ],
+            "ratio": 6.384864368908915
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:aquelarre:before:dark:390:settings",
+      "ok": true,
+      "detail": {
+        "bg": -8.881784197001252e-16,
+        "sidebar": -8.881784197001252e-16,
+        "surface": -8.881784197001252e-16,
+        "paper": -8.881784197001252e-16,
+        "surface-2": -8.881784197001252e-16
+      }
+    },
+    {
+      "name": "overflow:aquelarre:after:light:390:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:aquelarre:after:light:390:home",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "aquelarre",
+        "ink": [
+          96,
+          90,
+          87
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              218,
+              211,
+              225
+            ],
+            "ratio": 4.644480019229373
+          },
+          "sidebar": {
+            "background": [
+              221,
+              216,
+              230
+            ],
+            "ratio": 4.855418535908241
+          },
+          "surface": {
+            "background": [
+              250,
+              249,
+              253
+            ],
+            "ratio": 6.467722671651236
+          },
+          "paper": {
+            "background": [
+              227,
+              222,
+              237
+            ],
+            "ratio": 5.145387056553896
+          },
+          "surface-2": {
+            "background": [
+              250,
+              249,
+              252
+            ],
+            "ratio": 6.463617746824493
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "rgb(96, 90, 87)",
+            "rgb": [
+              96,
+              90,
+              87
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:aquelarre:after:light:390:home",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 8.881784197001252e-16,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "AA:aquelarre:light:390:home",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            218,
+            211,
+            225
+          ],
+          "ratio": 4.644480019229373
+        },
+        "sidebar": {
+          "background": [
+            221,
+            216,
+            230
+          ],
+          "ratio": 4.855418535908241
+        },
+        "surface": {
+          "background": [
+            250,
+            249,
+            253
+          ],
+          "ratio": 6.467722671651236
+        },
+        "paper": {
+          "background": [
+            227,
+            222,
+            237
+          ],
+          "ratio": 5.145387056553896
+        },
+        "surface-2": {
+          "background": [
+            250,
+            249,
+            252
+          ],
+          "ratio": 6.463617746824493
+        }
+      }
+    },
+    {
+      "name": "mobile-rail:aquelarre:after",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "mobile-rail-close:aquelarre:after",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "overflow:aquelarre:after:light:390:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:aquelarre:after:light:390:settings",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "aquelarre",
+        "ink": [
+          96,
+          90,
+          87
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              218,
+              211,
+              225
+            ],
+            "ratio": 4.644480019229373
+          },
+          "sidebar": {
+            "background": [
+              221,
+              216,
+              230
+            ],
+            "ratio": 4.855418535908241
+          },
+          "surface": {
+            "background": [
+              250,
+              249,
+              253
+            ],
+            "ratio": 6.467722671651236
+          },
+          "paper": {
+            "background": [
+              227,
+              222,
+              237
+            ],
+            "ratio": 5.145387056553896
+          },
+          "surface-2": {
+            "background": [
+              250,
+              249,
+              252
+            ],
+            "ratio": 6.463617746824493
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "rgb(96, 90, 87)",
+            "rgb": [
+              96,
+              90,
+              87
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "rgb(96, 90, 87)",
+            "rgb": [
+              96,
+              90,
+              87
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:aquelarre:after:light:390:settings",
+      "ok": true,
+      "detail": {
+        "bg": 0,
+        "sidebar": 8.881784197001252e-16,
+        "surface": 0,
+        "paper": 0,
+        "surface-2": 0
+      }
+    },
+    {
+      "name": "AA:aquelarre:light:390:settings",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            218,
+            211,
+            225
+          ],
+          "ratio": 4.644480019229373
+        },
+        "sidebar": {
+          "background": [
+            221,
+            216,
+            230
+          ],
+          "ratio": 4.855418535908241
+        },
+        "surface": {
+          "background": [
+            250,
+            249,
+            253
+          ],
+          "ratio": 6.467722671651236
+        },
+        "paper": {
+          "background": [
+            227,
+            222,
+            237
+          ],
+          "ratio": 5.145387056553896
+        },
+        "surface-2": {
+          "background": [
+            250,
+            249,
+            252
+          ],
+          "ratio": 6.463617746824493
+        }
+      }
+    },
+    {
+      "name": "overflow:aquelarre:after:dark:390:home",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:aquelarre:after:dark:390:home",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "aquelarre",
+        "ink": [
+          160,
+          158,
+          175
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              13,
+              9,
+              19
+            ],
+            "ratio": 7.511781328053032
+          },
+          "sidebar": {
+            "background": [
+              16,
+              12,
+              23
+            ],
+            "ratio": 7.363883707199422
+          },
+          "surface": {
+            "background": [
+              42,
+              32,
+              52
+            ],
+            "ratio": 5.908944357632285
+          },
+          "paper": {
+            "background": [
+              23,
+              18,
+              31
+            ],
+            "ratio": 7.004646485548646
+          },
+          "surface-2": {
+            "background": [
+              34,
+              26,
+              45
+            ],
+            "ratio": 6.384864368908915
+          }
+        },
+        "actual": [
+          {
+            "selector": ".block > h2",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:aquelarre:after:dark:390:home",
+      "ok": true,
+      "detail": {
+        "bg": -8.881784197001252e-16,
+        "sidebar": -8.881784197001252e-16,
+        "surface": -8.881784197001252e-16,
+        "paper": -8.881784197001252e-16,
+        "surface-2": -8.881784197001252e-16
+      }
+    },
+    {
+      "name": "AA:aquelarre:dark:390:home",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            13,
+            9,
+            19
+          ],
+          "ratio": 7.511781328053032
+        },
+        "sidebar": {
+          "background": [
+            16,
+            12,
+            23
+          ],
+          "ratio": 7.363883707199422
+        },
+        "surface": {
+          "background": [
+            42,
+            32,
+            52
+          ],
+          "ratio": 5.908944357632285
+        },
+        "paper": {
+          "background": [
+            23,
+            18,
+            31
+          ],
+          "ratio": 7.004646485548646
+        },
+        "surface-2": {
+          "background": [
+            34,
+            26,
+            45
+          ],
+          "ratio": 6.384864368908915
+        }
+      }
+    },
+    {
+      "name": "overflow:aquelarre:after:dark:390:settings",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "state:aquelarre:after:dark:390:settings",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "aquelarre",
+        "ink": [
+          160,
+          158,
+          175
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              13,
+              9,
+              19
+            ],
+            "ratio": 7.511781328053032
+          },
+          "sidebar": {
+            "background": [
+              16,
+              12,
+              23
+            ],
+            "ratio": 7.363883707199422
+          },
+          "surface": {
+            "background": [
+              42,
+              32,
+              52
+            ],
+            "ratio": 5.908944357632285
+          },
+          "paper": {
+            "background": [
+              23,
+              18,
+              31
+            ],
+            "ratio": 7.004646485548646
+          },
+          "surface-2": {
+            "background": [
+              34,
+              26,
+              45
+            ],
+            "ratio": 6.384864368908915
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "pure-browser-delta:aquelarre:after:dark:390:settings",
+      "ok": true,
+      "detail": {
+        "bg": -8.881784197001252e-16,
+        "sidebar": -8.881784197001252e-16,
+        "surface": -8.881784197001252e-16,
+        "paper": -8.881784197001252e-16,
+        "surface-2": -8.881784197001252e-16
+      }
+    },
+    {
+      "name": "AA:aquelarre:dark:390:settings",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            13,
+            9,
+            19
+          ],
+          "ratio": 7.511781328053032
+        },
+        "sidebar": {
+          "background": [
+            16,
+            12,
+            23
+          ],
+          "ratio": 7.363883707199422
+        },
+        "surface": {
+          "background": [
+            42,
+            32,
+            52
+          ],
+          "ratio": 5.908944357632285
+        },
+        "paper": {
+          "background": [
+            23,
+            18,
+            31
+          ],
+          "ratio": 7.004646485548646
+        },
+        "surface-2": {
+          "background": [
+            34,
+            26,
+            45
+          ],
+          "ratio": 6.384864368908915
+        }
+      }
+    },
+    {
+      "name": "board-frames:390:light",
+      "ok": true,
+      "detail": 6
+    },
+    {
+      "name": "board-frame-size:niebla:390:light",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "niebla",
+        "ink": [
+          105,
+          103,
+          100
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              226,
+              226,
+              229
+            ],
+            "ratio": 4.360999028050979
+          },
+          "sidebar": {
+            "background": [
+              229,
+              230,
+              235
+            ],
+            "ratio": 4.523757732905078
+          },
+          "surface": {
+            "background": [
+              249,
+              251,
+              254
+            ],
+            "ratio": 5.438716285359401
+          },
+          "paper": {
+            "background": [
+              236,
+              238,
+              243
+            ],
+            "ratio": 4.856836085895815
+          },
+          "surface-2": {
+            "background": [
+              249,
+              251,
+              253
+            ],
+            "ratio": 5.435284763078609
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.514006 0.00112846 0.00428894)",
+            "rgb": [
+              105,
+              103,
+              100
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.514006 0.00112846 0.00428894)",
+            "rgb": [
+              105,
+              103,
+              100
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "self-contained:niebla:390:light",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-size:niebla:390:light",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "niebla",
+        "ink": [
+          97,
+          95,
+          93
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              226,
+              226,
+              229
+            ],
+            "ratio": 4.91753595501778
+          },
+          "sidebar": {
+            "background": [
+              229,
+              230,
+              235
+            ],
+            "ratio": 5.101065411906895
+          },
+          "surface": {
+            "background": [
+              249,
+              251,
+              254
+            ],
+            "ratio": 6.132788086024529
+          },
+          "paper": {
+            "background": [
+              236,
+              238,
+              243
+            ],
+            "ratio": 5.476650172677199
+          },
+          "surface-2": {
+            "background": [
+              249,
+              251,
+              253
+            ],
+            "ratio": 6.128918643704616
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.487107 0.00114333 0.00445946)",
+            "rgb": [
+              97,
+              95,
+              93
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.487107 0.00114333 0.00445946)",
+            "rgb": [
+              97,
+              95,
+              93
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "board-AA:niebla:390:light",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            226,
+            226,
+            229
+          ],
+          "ratio": 4.91753595501778
+        },
+        "sidebar": {
+          "background": [
+            229,
+            230,
+            235
+          ],
+          "ratio": 5.101065411906895
+        },
+        "surface": {
+          "background": [
+            249,
+            251,
+            254
+          ],
+          "ratio": 6.132788086024529
+        },
+        "paper": {
+          "background": [
+            236,
+            238,
+            243
+          ],
+          "ratio": 5.476650172677199
+        },
+        "surface-2": {
+          "background": [
+            249,
+            251,
+            253
+          ],
+          "ratio": 6.128918643704616
+        }
+      }
+    },
+    {
+      "name": "self-contained:niebla:390:light",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-size:miel:390:light",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "miel",
+        "ink": [
+          111,
+          105,
+          93
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              235,
+              228,
+              219
+            ],
+            "ratio": 4.3202183855679674
+          },
+          "sidebar": {
+            "background": [
+              238,
+              233,
+              225
+            ],
+            "ratio": 4.508449179971999
+          },
+          "surface": {
+            "background": [
+              254,
+              252,
+              249
+            ],
+            "ratio": 5.31994721287774
+          },
+          "paper": {
+            "background": [
+              245,
+              241,
+              233
+            ],
+            "ratio": 4.836112764141167
+          },
+          "surface-2": {
+            "background": [
+              254,
+              252,
+              248
+            ],
+            "ratio": 5.3167177038325
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.522137 0.00266468 0.0192999)",
+            "rgb": [
+              111,
+              105,
+              93
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.522137 0.00266468 0.0192999)",
+            "rgb": [
+              111,
+              105,
+              93
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "self-contained:miel:390:light",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-size:miel:390:light",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "miel",
+        "ink": [
+          103,
+          97,
+          86
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              235,
+              228,
+              219
+            ],
+            "ratio": 4.867829938167805
+          },
+          "sidebar": {
+            "background": [
+              238,
+              233,
+              225
+            ],
+            "ratio": 5.079920025869377
+          },
+          "surface": {
+            "background": [
+              254,
+              252,
+              249
+            ],
+            "ratio": 5.994279918540294
+          },
+          "paper": {
+            "background": [
+              245,
+              241,
+              233
+            ],
+            "ratio": 5.44911677990253
+          },
+          "surface-2": {
+            "background": [
+              254,
+              252,
+              248
+            ],
+            "ratio": 5.990641051378274
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.495238 0.00267955 0.0194705)",
+            "rgb": [
+              103,
+              97,
+              86
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.495238 0.00267955 0.0194705)",
+            "rgb": [
+              103,
+              97,
+              86
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "board-AA:miel:390:light",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            235,
+            228,
+            219
+          ],
+          "ratio": 4.867829938167805
+        },
+        "sidebar": {
+          "background": [
+            238,
+            233,
+            225
+          ],
+          "ratio": 5.079920025869377
+        },
+        "surface": {
+          "background": [
+            254,
+            252,
+            249
+          ],
+          "ratio": 5.994279918540294
+        },
+        "paper": {
+          "background": [
+            245,
+            241,
+            233
+          ],
+          "ratio": 5.44911677990253
+        },
+        "surface-2": {
+          "background": [
+            254,
+            252,
+            248
+          ],
+          "ratio": 5.990641051378274
+        }
+      }
+    },
+    {
+      "name": "self-contained:miel:390:light",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-size:aquelarre:390:light",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "aquelarre",
+        "ink": [
+          104,
+          98,
+          95
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              218,
+              211,
+              225
+            ],
+            "ratio": 4.10920656602214
+          },
+          "sidebar": {
+            "background": [
+              221,
+              216,
+              230
+            ],
+            "ratio": 4.295834548955651
+          },
+          "surface": {
+            "background": [
+              250,
+              249,
+              253
+            ],
+            "ratio": 5.722321629013982
+          },
+          "paper": {
+            "background": [
+              227,
+              222,
+              237
+            ],
+            "ratio": 4.552384376717546
+          },
+          "surface-2": {
+            "background": [
+              250,
+              249,
+              252
+            ],
+            "ratio": 5.718689794237809
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "rgb(104, 98, 95)",
+            "rgb": [
+              104,
+              98,
+              95
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "rgb(104, 98, 95)",
+            "rgb": [
+              104,
+              98,
+              95
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "self-contained:aquelarre:390:light",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-size:aquelarre:390:light",
+      "ok": true,
+      "detail": {
+        "mode": "light",
+        "theme": "aquelarre",
+        "ink": [
+          96,
+          90,
+          87
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              218,
+              211,
+              225
+            ],
+            "ratio": 4.644480019229373
+          },
+          "sidebar": {
+            "background": [
+              221,
+              216,
+              230
+            ],
+            "ratio": 4.855418535908241
+          },
+          "surface": {
+            "background": [
+              250,
+              249,
+              253
+            ],
+            "ratio": 6.467722671651236
+          },
+          "paper": {
+            "background": [
+              227,
+              222,
+              237
+            ],
+            "ratio": 5.145387056553896
+          },
+          "surface-2": {
+            "background": [
+              250,
+              249,
+              252
+            ],
+            "ratio": 6.463617746824493
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "rgb(96, 90, 87)",
+            "rgb": [
+              96,
+              90,
+              87
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "rgb(96, 90, 87)",
+            "rgb": [
+              96,
+              90,
+              87
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "board-AA:aquelarre:390:light",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            218,
+            211,
+            225
+          ],
+          "ratio": 4.644480019229373
+        },
+        "sidebar": {
+          "background": [
+            221,
+            216,
+            230
+          ],
+          "ratio": 4.855418535908241
+        },
+        "surface": {
+          "background": [
+            250,
+            249,
+            253
+          ],
+          "ratio": 6.467722671651236
+        },
+        "paper": {
+          "background": [
+            227,
+            222,
+            237
+          ],
+          "ratio": 5.145387056553896
+        },
+        "surface-2": {
+          "background": [
+            250,
+            249,
+            252
+          ],
+          "ratio": 6.463617746824493
+        }
+      }
+    },
+    {
+      "name": "self-contained:aquelarre:390:light",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frames:390:dark",
+      "ok": true,
+      "detail": 6
+    },
+    {
+      "name": "board-frame-size:niebla:390:dark",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "niebla",
+        "ink": [
+          158,
+          161,
+          177
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              19,
+              23,
+              36
+            ],
+            "ratio": 6.963063342529015
+          },
+          "sidebar": {
+            "background": [
+              23,
+              27,
+              40
+            ],
+            "ratio": 6.689271965005143
+          },
+          "surface": {
+            "background": [
+              40,
+              44,
+              58
+            ],
+            "ratio": 5.415894819705213
+          },
+          "paper": {
+            "background": [
+              28,
+              32,
+              45
+            ],
+            "ratio": 6.327233814003742
+          },
+          "surface-2": {
+            "background": [
+              34,
+              37,
+              50
+            ],
+            "ratio": 5.937930858501957
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "self-contained:niebla:390:dark",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-size:niebla:390:dark",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "niebla",
+        "ink": [
+          158,
+          161,
+          177
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              19,
+              23,
+              36
+            ],
+            "ratio": 6.963063342529015
+          },
+          "sidebar": {
+            "background": [
+              23,
+              27,
+              40
+            ],
+            "ratio": 6.689271965005143
+          },
+          "surface": {
+            "background": [
+              40,
+              44,
+              58
+            ],
+            "ratio": 5.415894819705213
+          },
+          "paper": {
+            "background": [
+              28,
+              32,
+              45
+            ],
+            "ratio": 6.327233814003742
+          },
+          "surface-2": {
+            "background": [
+              34,
+              37,
+              50
+            ],
+            "ratio": 5.937930858501957
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.711487 0.00280986 -0.0234493)",
+            "rgb": [
+              158,
+              161,
+              177
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "board-AA:niebla:390:dark",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            19,
+            23,
+            36
+          ],
+          "ratio": 6.963063342529015
+        },
+        "sidebar": {
+          "background": [
+            23,
+            27,
+            40
+          ],
+          "ratio": 6.689271965005143
+        },
+        "surface": {
+          "background": [
+            40,
+            44,
+            58
+          ],
+          "ratio": 5.415894819705213
+        },
+        "paper": {
+          "background": [
+            28,
+            32,
+            45
+          ],
+          "ratio": 6.327233814003742
+        },
+        "surface-2": {
+          "background": [
+            34,
+            37,
+            50
+          ],
+          "ratio": 5.937930858501957
+        }
+      }
+    },
+    {
+      "name": "self-contained:niebla:390:dark",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-size:miel:390:dark",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "miel",
+        "ink": [
+          169,
+          165,
+          165
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              34,
+              28,
+              21
+            ],
+            "ratio": 6.917871465514287
+          },
+          "sidebar": {
+            "background": [
+              38,
+              32,
+              25
+            ],
+            "ratio": 6.609370062768646
+          },
+          "surface": {
+            "background": [
+              54,
+              48,
+              44
+            ],
+            "ratio": 5.329426952523954
+          },
+          "paper": {
+            "background": [
+              43,
+              36,
+              29
+            ],
+            "ratio": 6.273538415433914
+          },
+          "surface-2": {
+            "background": [
+              47,
+              42,
+              36
+            ],
+            "ratio": 5.828909966266495
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "self-contained:miel:390:dark",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-size:miel:390:dark",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "miel",
+        "ink": [
+          169,
+          165,
+          165
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              34,
+              28,
+              21
+            ],
+            "ratio": 6.917871465514287
+          },
+          "sidebar": {
+            "background": [
+              38,
+              32,
+              25
+            ],
+            "ratio": 6.609370062768646
+          },
+          "surface": {
+            "background": [
+              54,
+              48,
+              44
+            ],
+            "ratio": 5.329426952523954
+          },
+          "paper": {
+            "background": [
+              43,
+              36,
+              29
+            ],
+            "ratio": 6.273538415433914
+          },
+          "surface-2": {
+            "background": [
+              47,
+              42,
+              36
+            ],
+            "ratio": 5.828909966266495
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.724497 0.00526781 0.000568321)",
+            "rgb": [
+              169,
+              165,
+              165
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "board-AA:miel:390:dark",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            34,
+            28,
+            21
+          ],
+          "ratio": 6.917871465514287
+        },
+        "sidebar": {
+          "background": [
+            38,
+            32,
+            25
+          ],
+          "ratio": 6.609370062768646
+        },
+        "surface": {
+          "background": [
+            54,
+            48,
+            44
+          ],
+          "ratio": 5.329426952523954
+        },
+        "paper": {
+          "background": [
+            43,
+            36,
+            29
+          ],
+          "ratio": 6.273538415433914
+        },
+        "surface-2": {
+          "background": [
+            47,
+            42,
+            36
+          ],
+          "ratio": 5.828909966266495
+        }
+      }
+    },
+    {
+      "name": "self-contained:miel:390:dark",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-size:aquelarre:390:dark",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "aquelarre",
+        "ink": [
+          160,
+          158,
+          175
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              13,
+              9,
+              19
+            ],
+            "ratio": 7.511781328053032
+          },
+          "sidebar": {
+            "background": [
+              16,
+              12,
+              23
+            ],
+            "ratio": 7.363883707199422
+          },
+          "surface": {
+            "background": [
+              42,
+              32,
+              52
+            ],
+            "ratio": 5.908944357632285
+          },
+          "paper": {
+            "background": [
+              23,
+              18,
+              31
+            ],
+            "ratio": 7.004646485548646
+          },
+          "surface-2": {
+            "background": [
+              34,
+              26,
+              45
+            ],
+            "ratio": 6.384864368908915
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "self-contained:aquelarre:390:dark",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-size:aquelarre:390:dark",
+      "ok": true,
+      "detail": {
+        "mode": "dark",
+        "theme": "aquelarre",
+        "ink": [
+          160,
+          158,
+          175
+        ],
+        "pairs": {
+          "bg": {
+            "background": [
+              13,
+              9,
+              19
+            ],
+            "ratio": 7.511781328053032
+          },
+          "sidebar": {
+            "background": [
+              16,
+              12,
+              23
+            ],
+            "ratio": 7.363883707199422
+          },
+          "surface": {
+            "background": [
+              42,
+              32,
+              52
+            ],
+            "ratio": 5.908944357632285
+          },
+          "paper": {
+            "background": [
+              23,
+              18,
+              31
+            ],
+            "ratio": 7.004646485548646
+          },
+          "surface-2": {
+            "background": [
+              34,
+              26,
+              45
+            ],
+            "ratio": 6.384864368908915
+          }
+        },
+        "actual": [
+          {
+            "selector": ".label",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          },
+          {
+            "selector": ".surface-sample p",
+            "color": "oklab(0.705422 0.00957568 -0.0227062)",
+            "rgb": [
+              160,
+              158,
+              175
+            ]
+          }
+        ],
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "board-AA:aquelarre:390:dark",
+      "ok": true,
+      "detail": {
+        "bg": {
+          "background": [
+            13,
+            9,
+            19
+          ],
+          "ratio": 7.511781328053032
+        },
+        "sidebar": {
+          "background": [
+            16,
+            12,
+            23
+          ],
+          "ratio": 7.363883707199422
+        },
+        "surface": {
+          "background": [
+            42,
+            32,
+            52
+          ],
+          "ratio": 5.908944357632285
+        },
+        "paper": {
+          "background": [
+            23,
+            18,
+            31
+          ],
+          "ratio": 7.004646485548646
+        },
+        "surface-2": {
+          "background": [
+            34,
+            26,
+            45
+          ],
+          "ratio": 6.384864368908915
+        }
+      }
+    },
+    {
+      "name": "self-contained:aquelarre:390:dark",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "individual-system-dark",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-system-dark",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-system-live-change",
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "errors": [],
+  "method": "Computed CSS colors resolved through canvas into sRGB 8-bit, WCAG luminance; actual mockup elements and token probes.",
+  "summary": {
+    "captures": 62,
+    "checks": 247,
+    "failed": 0,
+    "pageErrors": 0
+  }
+}

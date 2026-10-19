@@ -1,0 +1,18 @@
+{
+  "backupId": "fodaveg-20261008T231304Z-3656162",
+  "baselineFields": {
+    "aliasesCanonicalSame": null,
+    "aliasesRawSame": null,
+    "mountCanonicalSame": null,
+    "mountRawSame": null,
+    "networkRawSame": null,
+    "portsStoppedEquivalent": null
+  },
+  "checkpoint": "CLONE_CLEANUP_VOLUME",
+  "commandExit": 1,
+  "createExit": null,
+  "failureClass": "CommandExitNonzero",
+  "remoteWrites": true,
+  "service": "fodaveg",
+  "status": "STOP_NEEDS_OPERATOR"
+}

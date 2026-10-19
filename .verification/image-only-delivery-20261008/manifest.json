@@ -1,0 +1,64 @@
+{
+  "status": "ARCHIVE_SEALED_THREE_SERVER_OCI_IDENTITIES_MATCH_CUTOVER_NOT_EXECUTED",
+  "candidate": "a51b8521e1eeef52a522d2a065b36a03578c0c3a",
+  "tree": "9cd0bf74ce59c78e3b0961c9a57c6010a84976c3",
+  "releaseTag": "v0.11.0",
+  "images": {
+    "vega-pb": {
+      "tag": "vegacms:a51b8521e1eeef52a522d2a065b36a03578c0c3a",
+      "id": "sha256:9cd8aaaee3b486b8d9bc3f19de89ecab2e5d67a62717f2b492e7a20dfd428adc",
+      "sourceReceipt": ".verification/release-stock-image-a51b-20261008/receipt.json",
+      "sourceReceiptSha256": "9e1c58db08988b8191d6cb095dd2c347249df2f193ef1df522060fb9bbff7816"
+    },
+    "lumbre-admin-pb": {
+      "tag": "lumbre-admin-pb:a598bfe-vega-a51b852",
+      "id": "sha256:7465d6b88612beff8a68d6f9b727935e76898fd4d4a76e200459bea2eeeebfe4",
+      "consumerCommit": "a598bfeee0b7ee072cdf26a5196ac534a07ebc49",
+      "consumerTree": "bf79c382e48093138d1aafa91846599c60b074fd",
+      "sourceReview": ".verification/release-adoption-plan-20261008/final-images-review.md"
+    },
+    "fodaveg": {
+      "tag": "fodaveg:f92bac858e904817ffc4cf6bf6307a6de0190c32",
+      "id": "sha256:fbb072fe3a1a80f8c5ee87104e470fb71729c07d3e158b696c020eaf9ce7f223",
+      "consumerCommit": "f92bac858e904817ffc4cf6bf6307a6de0190c32",
+      "consumerTree": "1332d0bcab327dbd6c705f2530b592a82e86ee41",
+      "sourceReceipt": ".verification/fodaveg-admin-adoption-20261008/final-image-receipt.md",
+      "sourceReceiptSha256": "cc32f6d2347eb810c88804f7174d7bb06db52acb381f5ce5dd9f6f79518eda7e",
+      "nativeCases": "18/18",
+      "entrypointCases": "18/18",
+      "cspCases": "13/13",
+      "cspReceiptSha256": "01da53676a435dd9d47456bbb548142d4be4a782b1c323c49887da13202d53fd",
+      "assets": 155,
+      "sourceArchive": "attested v0.11.0 ZIP, 155/155 paths and hashes exact"
+    }
+  },
+  "transportArchive": ".verification/release-image-distribution-a51b-20261008/images.tar",
+  "transportArchiveSha256": "34a1780fe31f9c1b50a5e47435fa6183cdd53d956ce00ddab82a247ae8e1ee0a",
+  "transportArchiveBytes": 606022656,
+  "transportReceiptSha256": "6828d8da3214e61cf10c93ae1a6a9427ca975ade0878edd8c49b0b7a5e93d103",
+  "remoteMetadata": {
+    "preflight": "remote-projection-20261008.json",
+    "runtimeDiagnostic": "remote-runtime-diagnostic-20261008.json",
+    "edgeHashesBefore": "edge-hashes-before-20261008.json",
+    "loadResidual": "load-residual-20261008.json",
+    "imageIdentities": "image-identities-20261008.json",
+    "loadedImageCorrespondence": "loaded-image-correspondence-20261008.json",
+    "loadedImageCorrespondenceSha256": "314631b76bf76057fb62d59c437508903f4c6fd180a577f87773e6a94c7049ec",
+    "serverOciImageIds": {
+      "vega-pb": "sha256:dd978b8d23081d2e3c69ebf6ef8ff4599a1acdd3f38dc559ae6fa379e46449b4",
+      "lumbre-admin-pb": "sha256:40df6a9bbcfd4edbc93680b0f45946d0be7c50c4e5c470167e33646fe499c1b7",
+      "fodaveg": "sha256:0e0ef56341d677366cfc00d91e2ead83da0ebcc4372f7ba627f575be682ee51f"
+    },
+    "stockPocketBaseVersion": "0.39.9",
+    "lumbrePocketBaseVersion": "0.39.9",
+    "fodavegPocketBaseVersion": "0.39.7",
+    "volumeKiB": {
+      "vega_data": 20700,
+      "lumbre_admin_pb_data": 23840,
+      "fodaveg_fodaveg_pb": 913192
+    }
+  },
+  "remoteWrites": 2,
+  "remoteReads": 6,
+  "cutovers": 0
+}

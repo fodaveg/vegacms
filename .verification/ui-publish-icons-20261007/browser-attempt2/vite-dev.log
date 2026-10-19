@@ -1,0 +1,20 @@
+
+  VITE v8.1.5  ready in 394 ms
+
+  ➜  Local:   http://127.0.0.1:4287/
+
+[1;31m[404] GET /vega.config.json[0m
+
+[1;31m[404] GET /api/vega/discovery[0m
+
+[1;31m[404] GET /vega.config.json[0m
+
+[1;31m[404] GET /api/vega/discovery[0m
+
+[1;31m[404] GET /vega.config.json[0m
+
+[1;31m[404] GET /api/vega/discovery[0m
+
+[1;31m[404] GET /vega.config.json[0m
+
+[1;31m[404] GET /api/vega/discovery[0m

@@ -1,0 +1,61 @@
+{
+  "antecedent": {
+    "operationId": "e544677b-b75b-4734-bdf7-cda99e4f013a",
+    "receiptSHA256": "6e146e6334cecea7e43289c0fa0db9de0bef469eb73b462ffcb3774a82ae99ec"
+  },
+  "capture": {
+    "path": ".verification/worktrees/caddy-referenced-env-20261008/.verification/release-adoption-plan-20261008/logs-selective-next-step/capture.py",
+    "sha256": "d48e4a2705ebaac2d32720b38ebab1040fde26b3348a2aeeeb906702af4e9b01"
+  },
+  "files": {
+    "BINARY_METADATA_PROPOSAL.md": "5f46b7d2116d80fcd5b5c9878c583f493998ff047814dbe743a4d3af18ce0569",
+    "OPERATE_BINARY.md": "60ed7c3a86ef226853cad6ee1305aa9494316abef421f9843821accbda20da95",
+    "read_binary_metadata.py": "41a433f09cb20b9501e2c9e72108c6fbc0126e6ea7360566d91da546423e3f45",
+    "run_binary_metadata.py": "673d8a7289b8e7884088c938712f06b26bfdbdc41b4fe586bd74ab4a89cf9fa9",
+    "test_binary_metadata.py": "1a73b562c050cd09defabef4bceaffe4f06344c6b729ffa6acb01a04adfeffa0"
+  },
+  "operationId": "c459ae09-0a35-46a8-9470-f2f12dd2fb4d",
+  "scope": {
+    "caddyGET": false,
+    "commandTimeoutSeconds": 12,
+    "configEnvRead": false,
+    "container": "edge-caddy",
+    "containerId": "ae97fc0c57fbe4c3a97f5dce15dfc9da92f33f527b60d95c3f74de9d2a160a7a",
+    "execListModules": true,
+    "execVersion": true,
+    "identityAndTtyChecks": 2,
+    "imageId": "sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648",
+    "logsRead": false,
+    "maxDockerCommands": 4,
+    "moduleProjection": [
+      "filterAvailable",
+      "jsonAvailable",
+      "stderrAvailable"
+    ],
+    "moduleStdoutLimitBytes": 65536,
+    "newRuntimeGrantRequired": true,
+    "otherHostRead": false,
+    "otherLoggerRead": false,
+    "pinVersionLimitBytes": 1024,
+    "rawModuleNamesOnlyInRemoteRAM": true,
+    "remoteWrites": false,
+    "retryAllowed": false,
+    "selectedDockerFields": [
+      "Id",
+      "Image",
+      "Config.Tty"
+    ],
+    "taskClosureProved": false,
+    "versionProjection": "strict stable semver only",
+    "wholeConfigRead": false
+  },
+  "status": "REVIEW_PENDING_NO_RUNTIME_APPROVAL",
+  "verification": {
+    "Docker": false,
+    "SSH": false,
+    "command": "python3 -B test_binary_metadata.py",
+    "exitCode": 0,
+    "runtimeApproval": false,
+    "tests": 6
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "checks": {},
+  "containerOwner": "vega-default-regexp-local-428a48042350",
+  "dockerRunCount": 0,
+  "failureClass": "IMAGE_ID_OR_PLATFORM_UNKNOWN",
+  "fragmentSHA256": "79cb9a1ac82ef4dda07c822794a8ca3e9091f3a0cab1a854ea8a20941492c441",
+  "hostMounts": 0,
+  "hostPorts": 0,
+  "imageExpected": "sha256:6b08c1b9858ca9a7d99c1da13c3695081e0e604c6cf214ca26a7ce0e2c4fd9b4",
+  "network": "none",
+  "pull": "never",
+  "readOnly": true,
+  "status": "STOP"
+}

@@ -1,0 +1,149 @@
+[WARN] Your node_modules are out of sync with your lockfile. The value of the enableGlobalVirtualStore setting has changed
+
+ RUN  v4.1.10 /private/tmp/vegacms-ui-publish-icons-20261007
+
+ ❯ |component| src/lib/form/RecordForm.publish.svelte.test.ts (12 tests | 8 failed) 201ms
+     × sucio guarda contenido en borrador antes de estado, con la versión nueva 12ms
+     × Estado editado no anticipa publicación durante el guardado del contenido 10ms
+     × validación cliente aborta publicación y devuelve foco al campo 9ms
+     × rechazo de campo del backend no publica ni avisa de éxito 11ms
+     × fallo de contenido conserva edición y nunca escribe estado 7ms
+     × conflicto de contenido falla cerrado con el aviso habitual 7ms
+     × fallo de estado conserva contenido guardado; reintento solo estado 7ms
+     × mutex entre pasos impide doble click, Guardar y navegación incluso con contenido limpio 11ms
+ ❯ |component| src/lib/form/RecordForm.schedule.svelte.test.ts (24 tests | 1 failed) 631ms
+     × 2.8 «Publicar ahora» publica y vacía la fecha, como habría hecho el servidor 17ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |component| src/lib/form/RecordForm.publish.svelte.test.ts > RecordForm — publicar > sucio guarda contenido en borrador antes de estado, con la versión nueva
+TypeError: Cannot set properties of null (setting 'value')
+ ❯ editTitle src/lib/form/RecordForm.publish.svelte.test.ts:116:11
+    114| const title = (w: World) => w.target.querySelector<HTMLInputElement>('…
+    115| async function editTitle(w: World, value: string) {
+    116|  title(w).value = value;
+       |           ^
+    117|  title(w).dispatchEvent(new Event('input', { bubbles: true }));
+    118|  flushSync();
+ ❯ src/lib/form/RecordForm.publish.svelte.test.ts:147:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  |component| src/lib/form/RecordForm.publish.svelte.test.ts > RecordForm — publicar > Estado editado no anticipa publicación durante el guardado del contenido
+TypeError: Cannot set properties of null (setting 'value')
+ ❯ editTitle src/lib/form/RecordForm.publish.svelte.test.ts:116:11
+    114| const title = (w: World) => w.target.querySelector<HTMLInputElement>('…
+    115| async function editTitle(w: World, value: string) {
+    116|  title(w).value = value;
+       |           ^
+    117|  title(w).dispatchEvent(new Event('input', { bubbles: true }));
+    118|  flushSync();
+ ❯ src/lib/form/RecordForm.publish.svelte.test.ts:168:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  |component| src/lib/form/RecordForm.publish.svelte.test.ts > RecordForm — publicar > validación cliente aborta publicación y devuelve foco al campo
+TypeError: Cannot set properties of null (setting 'value')
+ ❯ editTitle src/lib/form/RecordForm.publish.svelte.test.ts:116:11
+    114| const title = (w: World) => w.target.querySelector<HTMLInputElement>('…
+    115| async function editTitle(w: World, value: string) {
+    116|  title(w).value = value;
+       |           ^
+    117|  title(w).dispatchEvent(new Event('input', { bubbles: true }));
+    118|  flushSync();
+ ❯ src/lib/form/RecordForm.publish.svelte.test.ts:179:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  |component| src/lib/form/RecordForm.publish.svelte.test.ts > RecordForm — publicar > rechazo de campo del backend no publica ni avisa de éxito
+TypeError: Cannot set properties of null (setting 'value')
+ ❯ editTitle src/lib/form/RecordForm.publish.svelte.test.ts:116:11
+    114| const title = (w: World) => w.target.querySelector<HTMLInputElement>('…
+    115| async function editTitle(w: World, value: string) {
+    116|  title(w).value = value;
+       |           ^
+    117|  title(w).dispatchEvent(new Event('input', { bubbles: true }));
+    118|  flushSync();
+ ❯ src/lib/form/RecordForm.publish.svelte.test.ts:194:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  |component| src/lib/form/RecordForm.publish.svelte.test.ts > RecordForm — publicar > fallo de contenido conserva edición y nunca escribe estado
+TypeError: Cannot set properties of null (setting 'value')
+ ❯ editTitle src/lib/form/RecordForm.publish.svelte.test.ts:116:11
+    114| const title = (w: World) => w.target.querySelector<HTMLInputElement>('…
+    115| async function editTitle(w: World, value: string) {
+    116|  title(w).value = value;
+       |           ^
+    117|  title(w).dispatchEvent(new Event('input', { bubbles: true }));
+    118|  flushSync();
+ ❯ src/lib/form/RecordForm.publish.svelte.test.ts:207:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  |component| src/lib/form/RecordForm.publish.svelte.test.ts > RecordForm — publicar > conflicto de contenido falla cerrado con el aviso habitual
+TypeError: Cannot set properties of null (setting 'value')
+ ❯ editTitle src/lib/form/RecordForm.publish.svelte.test.ts:116:11
+    114| const title = (w: World) => w.target.querySelector<HTMLInputElement>('…
+    115| async function editTitle(w: World, value: string) {
+    116|  title(w).value = value;
+       |           ^
+    117|  title(w).dispatchEvent(new Event('input', { bubbles: true }));
+    118|  flushSync();
+ ❯ src/lib/form/RecordForm.publish.svelte.test.ts:217:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  |component| src/lib/form/RecordForm.publish.svelte.test.ts > RecordForm — publicar > fallo de estado conserva contenido guardado; reintento solo estado
+TypeError: Cannot set properties of null (setting 'value')
+ ❯ editTitle src/lib/form/RecordForm.publish.svelte.test.ts:116:11
+    114| const title = (w: World) => w.target.querySelector<HTMLInputElement>('…
+    115| async function editTitle(w: World, value: string) {
+    116|  title(w).value = value;
+       |           ^
+    117|  title(w).dispatchEvent(new Event('input', { bubbles: true }));
+    118|  flushSync();
+ ❯ src/lib/form/RecordForm.publish.svelte.test.ts:232:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  |component| src/lib/form/RecordForm.publish.svelte.test.ts > RecordForm — publicar > mutex entre pasos impide doble click, Guardar y navegación incluso con contenido limpio
+TypeError: Cannot set properties of null (setting 'value')
+ ❯ editTitle src/lib/form/RecordForm.publish.svelte.test.ts:116:11
+    114| const title = (w: World) => w.target.querySelector<HTMLInputElement>('…
+    115| async function editTitle(w: World, value: string) {
+    116|  title(w).value = value;
+       |           ^
+    117|  title(w).dispatchEvent(new Event('input', { bubbles: true }));
+    118|  flushSync();
+ ❯ src/lib/form/RecordForm.publish.svelte.test.ts:256:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  |component| src/lib/form/RecordForm.schedule.svelte.test.ts > RecordForm — estados del control junto a «Estado» > 2.8 «Publicar ahora» publica y vacía la fecha, como habría hecho el servidor
+AssertionError: expected last "vi.fn()" call to have been called with [ 'Guardado.' ]
+
+- Expected
++ Received
+
+  [
+-   "Guardado.",
++   "Guardado. «Notas del huerto: octubre» pasa a «published».",
+  ]
+
+ ❯ src/lib/form/RecordForm.schedule.svelte.test.ts:242:19
+    240|   await vi.waitFor(async () => expect((await stored(w)).status).toBe('…
+    241|   expect((await stored(w)).publishAt).toBeNull();
+    242|   expect(w.toast).toHaveBeenLastCalledWith('Guardado.');
+       |                   ^
+    243|   await tick();
+    244|   expect(w.target.querySelector('.vega-schedule-overdue')).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+
+ Test Files  2 failed | 5 passed (7)
+      Tests  9 failed | 165 passed (174)
+   Start at  18:53:37
+   Duration  5.71s (transform 7.20s, setup 0ms, import 8.59s, tests 4.53s, environment 3.11s)
+

@@ -1,0 +1,14 @@
+{
+  "bodyValuesStored": false,
+  "credentialsSent": false,
+  "peerShas": {
+    "fodavegSite": "946e0bee8053e1fe7df4d97a61f73930a17e8fdec3d5bb13efec1b2f5d4fe59f",
+    "lumbre-admin-pb": "913b2db3b47e5a53f4bf4872d3624b893e972f8ba0dd3206d02692fcb105f1bf",
+    "vega-pb": "643fa1464c83bb756ee86268e40e7f0d923ac219ac1a3aca2a96b9338db3952d"
+  },
+  "service": "fodaveg",
+  "stage": "baseline",
+  "status": "CORS_BASELINE_CAPTURED",
+  "targetCorsSha": "309b120f3ec620f011672da31e8e4e5fa188fe37096cb92062b2ab633bbeece0",
+  "targetPathsSha": "6342b03316de7ffdfe730085250da62f1e838f05d606e0698abd5cba6474d243"
+}

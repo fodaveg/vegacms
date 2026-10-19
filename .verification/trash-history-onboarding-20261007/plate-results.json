@@ -1,0 +1,146 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "width": 1440,
+      "mode": "light",
+      "overflow": false,
+      "contrast": [
+        {
+          "foreground": "ink",
+          "background": "bg",
+          "ratio": 9.489322214070803
+        },
+        {
+          "foreground": "ink",
+          "background": "surface",
+          "ratio": 13.214461935123763
+        },
+        {
+          "foreground": "ink-2",
+          "background": "surface",
+          "ratio": 6.467722671651236
+        },
+        {
+          "foreground": "ink",
+          "background": "info-soft",
+          "ratio": 9.066419750380142
+        },
+        {
+          "foreground": "accent-ink",
+          "background": "accent",
+          "ratio": 6.993597444469922
+        }
+      ],
+      "touchTargetHeight": 44,
+      "homeDoesNotAutoConfirm": true,
+      "escapeCancels": true
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "overflow": false,
+      "contrast": [
+        {
+          "foreground": "ink",
+          "background": "bg",
+          "ratio": 14.615833526104874
+        },
+        {
+          "foreground": "ink",
+          "background": "surface",
+          "ratio": 11.497159365334559
+        },
+        {
+          "foreground": "ink-2",
+          "background": "surface",
+          "ratio": 5.908944357632285
+        },
+        {
+          "foreground": "ink",
+          "background": "info-soft",
+          "ratio": 10.936864304004958
+        },
+        {
+          "foreground": "accent-ink",
+          "background": "accent",
+          "ratio": 6.993597444469922
+        }
+      ],
+      "touchTargetHeight": 44,
+      "homeDoesNotAutoConfirm": true,
+      "escapeCancels": true
+    },
+    {
+      "width": 390,
+      "mode": "light",
+      "overflow": false,
+      "contrast": [
+        {
+          "foreground": "ink",
+          "background": "bg",
+          "ratio": 9.489322214070803
+        },
+        {
+          "foreground": "ink",
+          "background": "surface",
+          "ratio": 13.214461935123763
+        },
+        {
+          "foreground": "ink-2",
+          "background": "surface",
+          "ratio": 6.467722671651236
+        },
+        {
+          "foreground": "ink",
+          "background": "info-soft",
+          "ratio": 9.066419750380142
+        },
+        {
+          "foreground": "accent-ink",
+          "background": "accent",
+          "ratio": 6.993597444469922
+        }
+      ],
+      "touchTargetHeight": 44,
+      "homeDoesNotAutoConfirm": true,
+      "escapeCancels": true
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "overflow": false,
+      "contrast": [
+        {
+          "foreground": "ink",
+          "background": "bg",
+          "ratio": 14.615833526104874
+        },
+        {
+          "foreground": "ink",
+          "background": "surface",
+          "ratio": 11.497159365334559
+        },
+        {
+          "foreground": "ink-2",
+          "background": "surface",
+          "ratio": 5.908944357632285
+        },
+        {
+          "foreground": "ink",
+          "background": "info-soft",
+          "ratio": 10.936864304004958
+        },
+        {
+          "foreground": "accent-ink",
+          "background": "accent",
+          "ratio": 6.993597444469922
+        }
+      ],
+      "touchTargetHeight": 44,
+      "homeDoesNotAutoConfirm": true,
+      "escapeCancels": true
+    }
+  ],
+  "pageErrors": []
+}

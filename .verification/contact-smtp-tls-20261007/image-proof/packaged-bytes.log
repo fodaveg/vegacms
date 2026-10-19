@@ -1,0 +1,16 @@
+10001
+pocketbase version 0.39.9
+fd71a262c3e8e1b9622969fb76e34bc597d7f12cfcb5a42046b417d9c93bf62d  /pb/pocketbase
+1727a1229fb49e62a057eaae4a706f99b6b06a8f7e80811e033f9e23113548c4  /pb/pb_hooks/vega-contact-notify.pb.js
+ca-certificates: Common CA certificates PEM files from Mozilla
+ca-certificates: https://www.mozilla.org/en-US/about/governance/policies/security-group/certs/
+ca-certificates: 210 KiB
+Server:		192.168.65.7
+Address:	192.168.65.7:53
+
+Non-authoritative answer:
+Name:	host.docker.internal
+Address: 192.168.65.254
+
+Non-authoritative answer:
+

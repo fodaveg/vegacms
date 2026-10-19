@@ -1,0 +1,13 @@
+{
+  "operationId": "836eb9dd-ec1b-4d81-a542-3c57a855b7de",
+  "manifestSHA256": "6c513e2bfb13f9d35ff61379ca2091be33325291dd7a9577fded893fb85550da",
+  "status": "REJECTED_BEFORE_PROCESS_CREATION",
+  "reason": "El usuario no autorizo explicitamente esta retirada exacta; adelante es ambiguo.",
+  "approvalCreated": false,
+  "markerCreated": false,
+  "remoteExecution": false,
+  "remoteArchiveRemoved": false,
+  "userConsentQuestionPresented": true,
+  "userConsentReceived": false,
+  "retryOrIndirectExecutionAllowed": false
+}

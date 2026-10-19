@@ -1,0 +1,1025 @@
+diff --git a/src/lib/form/RecordBlocks.svelte b/src/lib/form/RecordBlocks.svelte
+index 3114175..278d3c3 100644
+--- a/src/lib/form/RecordBlocks.svelte
++++ b/src/lib/form/RecordBlocks.svelte
+@@ -206,6 +206,11 @@
+ 	 *  truco que el `<h1>` oculto de `RecordForm`. */
+ 	let headingEl = $state<HTMLElement | null>(null);
+ 
++	/** Títulos vivos de los bloques sin guardar para la confirmación de publicación del padre. */
++	export function pendingBlockTitles(): readonly string[] {
++		return blocks.records.filter((record) => blocks.isDirty(record.id)).map(blocks.blockTitle);
++	}
++
+ 	/**
+ 	 * Despliega la fila del bloque `id` desde FUERA de la lista (lote 13: la acción «Bloque N · Tipo
+ 	 * › Campo» de un aviso de la revisión, en `RecordForm`). Hasta este lote solo lo hacía el propio
+diff --git a/src/lib/form/RecordForm.publish.svelte.test.ts b/src/lib/form/RecordForm.publish.svelte.test.ts
+new file mode 100644
+index 0000000..c170123
+--- /dev/null
++++ b/src/lib/form/RecordForm.publish.svelte.test.ts
+@@ -0,0 +1,361 @@
++/** Publicar desde el formulario sobre memory real: contenido, versión, errores y mutex entre pasos. */
++import { flushSync, mount, tick, unmount } from 'svelte';
++import { afterEach, describe, expect, test, vi } from 'vitest';
++import RecordForm from './RecordForm.svelte';
++import { buildFormModel } from './form-model';
++import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
++import { createMemoryBackend } from '$lib/backend/adapters/memory';
++import { VegaError } from '$lib/backend/errors';
++import { recordVersion } from '$lib/backend/version';
++import type { ContentType, Field, RecordInput } from '$lib/backend/types';
++import type { UpdateOptions } from '$lib/backend/port';
++import { resolveContentModel } from '$lib/model/resolve';
++import { t as translate } from '$lib/i18n';
++
++const navigation = vi.hoisted(() => ({
++	guard: null as null | ((event: { cancel: () => void }) => void)
++}));
++vi.mock('$app/navigation', () => ({
++	beforeNavigate: (guard: typeof navigation.guard) => {
++		navigation.guard = guard;
++	}
++}));
++Element.prototype.scrollIntoView = vi.fn();
++
++const base = {
++	required: false,
++	readonly: false,
++	presentable: false,
++	hidden: false,
++	unique: false
++} as const;
++const posts: ContentType = {
++	name: 'posts',
++	readonly: false,
++	fields: [
++		{ ...base, name: 'title', type: 'text', subtype: 'plain', required: true, presentable: true },
++		{ ...base, name: 'status', type: 'select', options: ['draft', 'published'], multiple: false }
++	] as Field[]
++};
++
++async function setup(
++	opts: {
++		create?: boolean;
++		readonly?: boolean;
++		noStatus?: boolean;
++		statusReadonly?: boolean;
++		dateReadonly?: boolean;
++		ignoreStatus?: boolean;
++		beforeSubmit?: (input: RecordInput, call: number) => Promise<void>;
++	} = {}
++) {
++	const writableSource = {
++		...posts,
++		fields: posts.fields.map((field) =>
++			field.name === 'status' && opts.statusReadonly ? { ...field, readonly: true } : field
++		)
++	};
++	if (opts.dateReadonly)
++		writableSource.fields = [
++			...writableSource.fields,
++			{ ...base, name: 'publishAt', type: 'date', readonly: true }
++		];
++	const source = opts.noStatus
++		? { ...posts, fields: posts.fields.filter((f) => f.name !== 'status') }
++		: writableSource;
++	const values = {
++		title: 'Notas del huerto',
++		status: 'draft',
++		...(opts.dateReadonly ? { publishAt: '2020-01-01T00:00:00Z' } : {})
++	};
++	const port = createMemoryBackend({
++		users: [{ email: 'a@b.c', password: 'pw' }],
++		contentTypes: [source],
++		records: { posts: [{ id: 'p1', values }] }
++	});
++	await port.login({ email: 'a@b.c', password: 'pw' });
++	const model = resolveContentModel({
++		types: [source],
++		manifestRaw: {
++			collections: {
++				posts: {
++					statusLabels: { draft: 'Borrador', published: 'Publicado' },
++					...(opts.dateReadonly ? { publishAtField: 'publishAt' } : {})
++				}
++			}
++		}
++	});
++	const type = model.types.find((t) => t.name === 'posts')!;
++	const initial = await port.get('posts', 'p1');
++	const saved = vi.fn();
++	const reportError = vi.fn();
++	const onSubmit = vi.fn(async (input: RecordInput, options?: UpdateOptions) => {
++		await opts.beforeSubmit?.(input, onSubmit.mock.calls.length);
++		const actual = opts.ignoreStatus && input.status ? {} : input;
++		return opts.create ? port.create('posts', actual) : port.update('posts', 'p1', actual, options);
++	});
++	const ctx = {
++		port,
++		model,
++		session: { token: 't', user: { id: 'u', email: 'a@b.c' } },
++		t: (key: string, params?: Record<string, string | number>) => translate('es', key, params),
++		locale: 'es',
++		nav: {},
++		feedback: { toast: vi.fn(), reportError },
++		registerExitGuard: () => () => {},
++		reloadModel: async () => {}
++	} as unknown as VegaAppContext;
++	const target = document.createElement('div');
++	document.body.appendChild(target);
++	const instance = mount(RecordForm, {
++		target,
++		props: {
++			type,
++			model: buildFormModel(type, opts.create ? null : initial),
++			typeReadonly: opts.readonly ?? false,
++			onSubmit,
++			onSaved: saved,
++			onCancel: () => {}
++		},
++		context: new Map([[VEGA_CONTEXT_KEY, ctx]])
++	});
++	const w = { port, type, initial, saved, reportError, onSubmit, target, instance };
++	mounted = w;
++	await tick();
++	return w;
++}
++type World = Awaited<ReturnType<typeof setup>>;
++let mounted: World | null = null;
++afterEach(async () => {
++	if (mounted) {
++		await unmount(mounted.instance);
++		mounted.target.remove();
++		mounted = null;
++	}
++	navigation.guard = null;
++});
++const publish = (w: World) =>
++	w.target.querySelector<HTMLButtonElement>('[data-status-target="published"]')!;
++const title = (w: World) =>
++	w.target.querySelector<HTMLInputElement | HTMLTextAreaElement>(
++		'[data-field="title"] input, [data-field="title"] textarea'
++	)!;
++async function editTitle(w: World, value: string) {
++	title(w).value = value;
++	title(w).dispatchEvent(new Event('input', { bubbles: true }));
++	flushSync();
++	await tick();
++}
++async function settled(assertion: () => void) {
++	await vi.waitFor(() => {
++		flushSync();
++		assertion();
++	});
++	await tick();
++}
++async function stored(w: World) {
++	return (await w.port.get('posts', 'p1')).values;
++}
++
++describe('RecordForm — publicar', () => {
++	test('limpio escribe solo estado y avisa una vez', async () => {
++		const w = await setup();
++		publish(w).click();
++		await settled(() => expect(w.saved).toHaveBeenCalledTimes(1));
++		expect(w.onSubmit).toHaveBeenCalledTimes(1);
++		expect(w.onSubmit.mock.calls[0]).toEqual([
++			{ status: 'published' },
++			{ expectedVersion: recordVersion(w.initial) }
++		]);
++		expect((await stored(w)).status).toBe('published');
++		expect(w.saved.mock.calls[0][1]).toContain('Publicado');
++	});
++	test('sucio guarda contenido en borrador antes de estado, con la versión nueva', async () => {
++		const w = await setup();
++		await editTitle(w, 'Huerto de invierno');
++		publish(w).click();
++		await settled(() => expect(w.saved).toHaveBeenCalledTimes(1));
++		expect(w.onSubmit.mock.calls.map((call) => call[0])).toEqual([
++			{ title: 'Huerto de invierno' },
++			{ status: 'published' }
++		]);
++		expect(w.onSubmit.mock.calls[1][1]).toEqual({
++			expectedVersion: recordVersion({
++				values: { ...w.initial.values, title: 'Huerto de invierno' }
++			})
++		});
++		expect(await stored(w)).toMatchObject({ title: 'Huerto de invierno', status: 'published' });
++	});
++	test('Estado editado no anticipa publicación durante el guardado del contenido', async () => {
++		const writes: RecordInput[] = [];
++		const w = await setup({
++			beforeSubmit: async (input) => {
++				writes.push(input);
++			}
++		});
++		await editTitle(w, 'Cambio de título');
++		const select = w.target.querySelector<HTMLSelectElement>('[data-field="status"] select')!;
++		select.value = 'published';
++		select.dispatchEvent(new Event('change', { bubbles: true }));
++		flushSync();
++		publish(w).click();
++		await settled(() => expect(w.saved).toHaveBeenCalledTimes(1));
++		expect(writes).toEqual([{ title: 'Cambio de título' }, { status: 'published' }]);
++	});
++	test('validación cliente aborta publicación y devuelve foco al campo', async () => {
++		const w = await setup();
++		await editTitle(w, '');
++		publish(w).click();
++		await settled(() => expect(title(w).getAttribute('aria-invalid')).toBe('true'));
++		await settled(() => expect(document.activeElement).toBe(title(w)));
++		expect(w.onSubmit).not.toHaveBeenCalled();
++		expect((await stored(w)).status).toBe('draft');
++	});
++	test('rechazo de campo del backend no publica ni avisa de éxito', async () => {
++		const w = await setup({
++			beforeSubmit: async () => {
++				throw VegaError.validation({
++					title: { code: 'validation_required', message: 'Título rechazado' }
++				});
++			}
++		});
++		await editTitle(w, 'Nuevo título');
++		publish(w).click();
++		await settled(() => expect(title(w).getAttribute('aria-invalid')).toBe('true'));
++		expect(w.onSubmit).toHaveBeenCalledTimes(1);
++		expect(w.saved).not.toHaveBeenCalled();
++		expect((await stored(w)).status).toBe('draft');
++	});
++	test('fallo de contenido conserva edición y nunca escribe estado', async () => {
++		const w = await setup({
++			beforeSubmit: async () => {
++				throw VegaError.backend('No se pudo guardar');
++			}
++		});
++		await editTitle(w, 'Contenido nuevo');
++		publish(w).click();
++		await settled(() => expect(w.reportError).toHaveBeenCalledTimes(1));
++		expect(w.onSubmit).toHaveBeenCalledTimes(1);
++		expect(title(w).value).toBe('Contenido nuevo');
++		expect((await stored(w)).status).toBe('draft');
++		expect(w.saved).not.toHaveBeenCalled();
++	});
++	test('conflicto de contenido falla cerrado con el aviso habitual', async () => {
++		const w = await setup();
++		await editTitle(w, 'Mi título');
++		await w.port.update('posts', 'p1', { title: 'Título ajeno' });
++		publish(w).click();
++		await settled(() => expect(w.target.querySelector('.vega-conflict')).not.toBeNull());
++		expect(w.onSubmit).toHaveBeenCalledTimes(1);
++		expect(await stored(w)).toMatchObject({ title: 'Título ajeno', status: 'draft' });
++		expect(title(w).value).toBe('Mi título');
++	});
++	test('fallo de estado conserva contenido guardado; reintento solo estado', async () => {
++		let reject = true;
++		const w = await setup({
++			beforeSubmit: async (input) => {
++				if (input.status === 'published' && reject) throw VegaError.backend('Publicación fallida');
++			}
++		});
++		await editTitle(w, 'Título guardado');
++		publish(w).click();
++		await settled(() => expect(w.reportError).toHaveBeenCalledTimes(1));
++		expect(await stored(w)).toMatchObject({ title: 'Título guardado', status: 'draft' });
++		expect(w.saved).not.toHaveBeenCalled();
++		expect(w.target.querySelector('[role="alert"]')?.textContent).toContain(
++			'Guardado. No se pudo marcar como publicada'
++		);
++		reject = false;
++		publish(w).click();
++		await settled(() => expect(w.saved).toHaveBeenCalledTimes(1));
++		expect(w.onSubmit.mock.calls.map((call) => call[0])).toEqual([
++			{ title: 'Título guardado' },
++			{ status: 'published' },
++			{ status: 'published' }
++		]);
++	});
++	test('mutex entre pasos impide doble click, Guardar y navegación incluso con contenido limpio', async () => {
++		let release!: () => void;
++		const hold = new Promise<void>((resolve) => {
++			release = resolve;
++		});
++		const w = await setup({
++			beforeSubmit: async (input) => {
++				if (input.status === 'published') await hold;
++			}
++		});
++		await editTitle(w, 'Nuevo contenido');
++		publish(w).click();
++		await settled(() => expect(w.onSubmit).toHaveBeenCalledTimes(2));
++		expect(w.saved).not.toHaveBeenCalled();
++		expect(title(w).disabled).toBe(true);
++		publish(w).click();
++		w.target
++			.querySelector<HTMLFormElement>('form')!
++			.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
++		const cancel = vi.fn();
++		navigation.guard!({ cancel });
++		expect(cancel).toHaveBeenCalledTimes(1);
++		expect(w.onSubmit).toHaveBeenCalledTimes(2);
++		release();
++		await settled(() => expect(w.saved).toHaveBeenCalledTimes(1));
++		expect(title(w).disabled).toBe(false);
++	});
++	test.each([{ create: true }, { readonly: true }, { noStatus: true }])(
++		'no añade control fuera del alcance: %j',
++		async (opts) => {
++			const w = await setup(opts);
++			expect(publish(w)).toBeNull();
++		}
++	);
++	test.each([false, true])(
++		'readonly status: limpio/sucio=%s no ofrece publicación ni confirma un no-op',
++		async (dirty) => {
++			const w = await setup({ statusReadonly: true });
++			if (dirty) await editTitle(w, 'Contenido permitido');
++			expect(publish(w)).toBeNull();
++			expect(w.onSubmit).not.toHaveBeenCalled();
++			expect(w.saved).not.toHaveBeenCalled();
++			expect((await stored(w)).status).toBe('draft');
++			if (dirty) {
++				w.target
++					.querySelector<HTMLFormElement>('form')!
++					.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
++				await settled(() => expect(w.saved).toHaveBeenCalledTimes(1));
++				expect(w.onSubmit.mock.calls.map((call) => call[0])).toEqual([
++					{ title: 'Contenido permitido' }
++				]);
++				expect(await stored(w)).toMatchObject({ title: 'Contenido permitido', status: 'draft' });
++			}
++		}
++	);
++	test('readonly publishAt no resuelve programación: no ofrece vencido ni borra una fecha arbitraria', async () => {
++		const w = await setup({ dateReadonly: true });
++		expect(w.type.publishAtField).toBeNull();
++		expect(
++			[...w.target.querySelectorAll('button')].some(
++				(b) => b.textContent?.trim() === 'Publicar ahora'
++			)
++		).toBe(false);
++		publish(w).click();
++		await settled(() => expect(w.saved).toHaveBeenCalledTimes(1));
++		expect(w.onSubmit.mock.calls.map((call) => call[0])).toEqual([{ status: 'published' }]);
++		expect(await stored(w)).toMatchObject({
++			status: 'published',
++			publishAt: w.initial.values.publishAt
++		});
++	});
++
++	test.each([false, true])(
++		'no confirma publicación si el backend devuelve borrador; sucio=%s',
++		async (dirty) => {
++			const w = await setup({ ignoreStatus: true });
++			if (dirty) await editTitle(w, 'Contenido conservado');
++			publish(w).click();
++			await settled(() => expect(w.reportError).toHaveBeenCalledTimes(1));
++			expect(w.saved).not.toHaveBeenCalled();
++			expect((await stored(w)).status).toBe('draft');
++			if (dirty) expect((await stored(w)).title).toBe('Contenido conservado');
++		}
++	);
++});
+diff --git a/src/lib/form/RecordForm.review.svelte.test.ts b/src/lib/form/RecordForm.review.svelte.test.ts
+index 305901d..56f19fe 100644
+--- a/src/lib/form/RecordForm.review.svelte.test.ts
++++ b/src/lib/form/RecordForm.review.svelte.test.ts
+@@ -461,4 +461,44 @@ describe('RecordForm — la revisión con lecturas lentas o fallidas', () => {
+ 		expect(card(m)).toBeNull();
+ 		expect(reviewLine(m)).toBeNull();
+ 	});
++	test('publicar reúne revisión y bloque sin guardar; cancelar conserva borrador y confirmar no autoguarda el bloque', async () => {
++		const { page, hero } = await pageWithWarnings();
++		const m = mountForm(world.pagesType, page);
++		await settle();
++		buttonByLabel(m, 'Bloque 1 · Hero › Enlace: ir al campo')!.click();
++		await tick();
++		const field = m.target.querySelector<HTMLInputElement>(
++			`#${fieldIds('actionHref', hero.id).inputId}`
++		)!;
++		field.value = '/otro-enlace-roto';
++		field.dispatchEvent(new Event('input', { bubbles: true }));
++		flushSync();
++		await tick();
++		const publish = m.target.querySelector<HTMLButtonElement>('[data-status-target="published"]')!;
++		publish.click();
++		flushSync();
++		await tick();
++		const dialog = m.target.querySelector<HTMLElement>('[role="alertdialog"]')!;
++		expect(dialog).not.toBeNull();
++		expect(dialog.querySelectorAll('.vega-review-pop-section')).toHaveLength(2);
++		expect(dialog.querySelector('ul')!.textContent?.trim()).not.toBe('');
++		expect(document.activeElement?.textContent?.trim()).toBe('Cancelar');
++		dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
++		await tick();
++		expect(document.activeElement).toBe(publish);
++		expect((await world.port.get('pages', page.id)).values.status).toBe('draft');
++		publish.click();
++		flushSync();
++		await tick();
++		const confirm = m.target.querySelector<HTMLButtonElement>(
++			'.vega-visual-publish-pop-btn--primary'
++		)!;
++		confirm.click();
++		await vi.waitFor(async () => {
++			flushSync();
++			expect((await world.port.get('pages', page.id)).values.status).toBe('published');
++		});
++		expect((await world.port.get('blocks', hero.id)).values.data).toEqual(hero.values.data);
++		expect(field.value).toBe('/otro-enlace-roto');
++	});
+ });
+diff --git a/src/lib/form/RecordForm.schedule.svelte.test.ts b/src/lib/form/RecordForm.schedule.svelte.test.ts
+index 47b6eb7..457e6c6 100644
+--- a/src/lib/form/RecordForm.schedule.svelte.test.ts
++++ b/src/lib/form/RecordForm.schedule.svelte.test.ts
+@@ -239,7 +239,9 @@ describe('RecordForm — estados del control junto a «Estado»', () => {
+ 		buttonIn(statusRow(w), 'Publicar ahora')!.click();
+ 		await vi.waitFor(async () => expect((await stored(w)).status).toBe('published'));
+ 		expect((await stored(w)).publishAt).toBeNull();
+-		expect(w.toast).toHaveBeenLastCalledWith('Guardado.');
++		expect(w.toast).toHaveBeenLastCalledWith(
++			'Guardado. «Notas del huerto: octubre» pasa a «published».'
++		);
+ 		await tick();
+ 		expect(w.target.querySelector('.vega-schedule-overdue')).toBeNull();
+ 		expect(buttonIn(statusRow(w), 'Programar…')).toBeNull();
+diff --git a/src/lib/form/RecordForm.svelte b/src/lib/form/RecordForm.svelte
+index aae8414..bc698b1 100644
+--- a/src/lib/form/RecordForm.svelte
++++ b/src/lib/form/RecordForm.svelte
+@@ -96,12 +96,10 @@
+ 	 *   el control; los e2e que antes buscaban el rol "Volver" buscan el nombre accesible del tipo.
+ 	 *   Es un `<button>` y no el `<a href>` del mockup A PROPÓSITO: el destino depende de
+ 	 *   `type.singleton` y lo decide la ruta, así que un enlace mentiría sobre a dónde lleva.
+-	 * - **Sin botón "Publicar" (desviación consciente del mockup)**: el mockup pinta `<button
+-	 *   class="btn">Publicar</button>` junto a "Guardar". P5 (el puerto `BackendPort`, §5) NO expone
+-	 *   ninguna transición de estado/publicación — solo `create`/`update`/`delete` sobre el mismo
+-	 *   registro. Fabricar ese botón sería un elemento decorativo sin acción real detrás, así que
+-	 *   esta fase lo omite: la fidelidad 1:1 se detiene donde empezaría a mentir sobre lo que Vega
+-	 *   puede hacer. Si un P futuro añade transiciones de estado al puerto, este es el hueco natural.
++	 * - **Publicar desde edición**: comparte confirmación y revisión con `VisualPublishControl`.
++	 *   Si hay cambios del registro, los guarda primero; solo tras éxito guarda el estado con la
++	 *   nueva versión. Ambos pasos pasan por `save`/historial, bajo un mutex común y sin avisar al
++	 *   padre entre medias. Creación conserva Guardar → registro; los bloques no se autoguardan.
+ 	 * - **`<h1>` visualmente oculto, no eliminado del todo**: el mockup no pinta NINGÚN heading
+ 	 *   visible en el editor (el crumb es un `<span>`, no un heading) — pero dejar la página sin
+ 	 *   ningún heading de nivel superior sería un agujero de a11y (eje 4 de la checklist: un lector
+@@ -328,6 +326,7 @@
+ 	import { describeScheduleControl, formatScheduleMoment } from './schedule';
+ 	import ConflictNotice from './ConflictNotice.svelte';
+ 	import { classifyRecordSaveError, sendRecord } from './record-save';
++	import VisualPublishControl from '$lib/visual/VisualPublishControl.svelte';
+ 	import { recordConflictRows } from './record-conflict-rows';
+ 	import { handleRecordSaveKeydown } from './record-save-keyboard';
+ 	import RedirectOffer from './RedirectOffer.svelte';
+@@ -418,6 +417,10 @@
+ 	let clientErrors = $state<FieldErrorsView>(EMPTY_ERRORS);
+ 	let backendErrors = $state<FieldErrorsView>(EMPTY_ERRORS);
+ 	let saving = $state(false);
++	/** Mutex del guardado de contenido seguido de la transición de estado. */
++	let publishing = $state(false);
++	let publicationNotice = $state<string | null>(null);
++	let publishControl = $state<VisualPublishControl | null>(null);
+ 	let duplicating = $state(false);
+ 	let activeLocale = $state(untrack(() => type.localization?.defaultLocale ?? ''));
+ 	/** Decisión 2 de `RecordBlocks.svelte` (capacidad `blocks`): `true` mientras AL MENOS un bloque
+@@ -510,6 +513,7 @@
+ 			// Los bloques del registro ANTERIOR ya no aplican (misma LANDMINE): `RecordBlocks` se
+ 			// remonta con el `parentId`/`parentType` nuevos y recalculará su propio dirty desde cero.
+ 			blocksDirty = false;
++			publicationNotice = null;
+ 			blocksBusy = false;
+ 			previewBlocks = [];
+ 			// Lote "publicación" fase B: un panel de preview abierto para el registro ANTERIOR ya no
+@@ -552,7 +556,7 @@
+ 
+ 	const dirty = $derived(isDirty(baseline, current) || blocksDirty);
+ 	$effect(() => {
+-		onStateChange?.({ dirty, busy: saving });
++		onStateChange?.({ dirty, busy: saving || publishing });
+ 	});
+ 	/** Envío explícito desde las acciones del diálogo, con validez nativa del form. */
+ 	export function requestSubmit(): void {
+@@ -578,7 +582,7 @@
+ 			!(modal && model.mode === 'create' ? type.permissions.create : type.permissions.update)
+ 	);
+ 
+-	const formDisabled = $derived(saving || duplicating || locked);
++	const formDisabled = $derived(saving || publishing || duplicating || locked);
+ 	const activeLocaleTabId = $derived(
+ 		type.localization ? `vega-locale-tab-${fieldScope ?? type.name}-${activeLocale}` : undefined
+ 	);
+@@ -764,6 +768,17 @@
+ 	 *  aunque hoy la condición coincida: aquello decide si una TARJETA informa de algo, esto es la
+ 	 *  identidad del registro, y estrecharlo a un `RecordId` no-nulo evita el `?? ''` en cada uso. */
+ 	const existingRecordId = $derived(model.mode === 'edit' ? model.recordId : null);
++	const publicationRecord = $derived({
++		id: existingRecordId ?? '',
++		type: type.name,
++		values: baseline
++	});
++	/** toRecordInput omite readonly: no ofrecer una transición que no puede escribir Estado. */
++	const publicationWritable = $derived(
++		type.statusField !== null &&
++			type.fields.some((field) => field.name === type.statusField && !field.schema.readonly)
++	);
++
+ 	const createdText = $derived(autodateText(type, baseline, 'created', ctx.locale));
+ 	const updatedText = $derived(autodateText(type, baseline, 'updated', ctx.locale));
+ 
+@@ -778,7 +793,9 @@
+ 	/** Guardados de bloque con éxito (`RecordBlocks#onSaved`): releen lo que la revisión lee del
+ 	 *  servidor, igual que `savedCount` para el registro. */
+ 	let blocksSavedCount = $state(0);
+-	let recordBlocksRef = $state<{ expand: (id: string) => void } | undefined>(undefined);
++	let recordBlocksRef = $state<
++		{ expand: (id: string) => void; pendingBlockTitles: () => readonly string[] } | undefined
++	>(undefined);
+ 	let reviewCardRef = $state<{ focus: () => void } | undefined>(undefined);
+ 	/** Ficha de Medios abierta desde «Describir la imagen…», o `null`. */
+ 	let reviewMediaId = $state<string | null>(null);
+@@ -1316,7 +1333,7 @@
+ 	}
+ 
+ 	/** Desenlace de un guardado que SÍ se hizo (normal o «Guardar igualmente»). */
+-	function commitSaved(saved: VegaRecord, note?: string): void {
++	function commitSaved(saved: VegaRecord, note?: string, notifyParent = true): void {
+ 		// L-P5.6/D-P5.11: reasentar baseline (→ no-dirty) ANTES de avisar al padre — si no, el
+ 		// guard de salida de abajo se dispararía sobre el propio guardado que acaba de navegar.
+ 		adoptRecord(saved);
+@@ -1325,7 +1342,7 @@
+ 		savedAt = new Date();
+ 		savedCount += 1;
+ 		lastSaved = saved; // el raíl actualiza en sitio su fila (título/estado/fecha pueden haber cambiado)
+-		onSaved(saved, note);
++		if (notifyParent) onSaved(saved, note);
+ 	}
+ 
+ 	// ————— Aviso de edición concurrente (ver cabecera, "Edición concurrente") —————
+@@ -1341,7 +1358,7 @@
+ 	 * debe enseñar como error (ver el contrato en la cabecera de `ConflictNotice.svelte`).
+ 	 */
+ 	async function forceSave(): Promise<void> {
+-		if (!conflict) return;
++		if (!conflict || publishing || saving) return;
+ 		backendErrors = EMPTY_ERRORS;
+ 		saving = true;
+ 		let errorsToFocus: FieldErrorsView | null = null;
+@@ -1390,7 +1407,7 @@
+ 
+ 	/** Cómo acabó un `save`: lo que el diálogo de «Programar…» necesita saber para cerrarse o no. */
+ 	type SaveOutcome =
+-		| { kind: 'saved' }
++		| { kind: 'saved'; record: VegaRecord; note?: string }
+ 		/** Errores de cliente o de campo del backend: ya se enseñan en el formulario y el foco va al primero. */
+ 		| { kind: 'invalid' }
+ 		/** Edición concurrente: el aviso de siempre ya está abierto. */
+@@ -1415,6 +1432,8 @@
+ 		/** `true`: el foco al primer campo con error NO se pide dentro de `save()`; queda en
+ 		 *  `deferredFocus` para que quien llama lo pida cuando le convenga (ver `submitSchedule`). */
+ 		deferFocus?: boolean;
++		/** Paso interno de publicación: mantiene el mutex y difiere aviso/navegación del padre. */
++		publication?: boolean;
+ 	}
+ 
+ 	/** Foco al primer campo con error que `save({ deferFocus: true })` dejó pendiente. */
+@@ -1425,7 +1444,9 @@
+ 	 * Valida (cliente), escribe (`onSubmit`) y reasienta; los errores salen como siempre.
+ 	 */
+ 	async function save(options: SaveOptions = {}): Promise<SaveOutcome> {
+-		if (formDisabled || submitBlocked) return { kind: 'busy' };
++		if (!options.publication) publicationNotice = null;
++		if (saving || duplicating || locked || submitBlocked || (publishing && !options.publication))
++			return { kind: 'busy' };
+ 		const values = options.overrides ? { ...current, ...options.overrides } : current;
+ 		const keepOverrides = (): void => {
+ 			if (options.overrides) current = values;
+@@ -1458,7 +1479,7 @@
+ 		// él). Se pospone la llamada a DESPUÉS del `finally`, con `saving` ya en `false` y el
+ 		// control re-habilitado.
+ 		let errorsToFocus: FieldErrorsView | null = null;
+-		let outcome: SaveOutcome = { kind: 'saved' };
++		let outcome: SaveOutcome = { kind: 'busy' };
+ 		try {
+ 			// Edición: con la versión que este formulario tiene delante (ver "Edición concurrente").
+ 			// Pulsar «Guardar» con el aviso abierto vuelve a comprobar contra la MISMA versión: si
+@@ -1474,7 +1495,10 @@
+ 				syncRedirects,
+ 				runAfterSave: (saved) => afterSave.run(saved),
+ 				note: options.note,
+-				commitSaved
++				commitSaved: (saved, note) => {
++					commitSaved(saved, note, !options.publication);
++					outcome = { kind: 'saved', record: saved, note };
++				}
+ 			});
+ 		} catch (err) {
+ 			const failure = classifyRecordSaveError(err);
+@@ -1510,6 +1534,79 @@
+ 		return outcome;
+ 	}
+ 
++	/** Publicar preserva el contenido y la versión: jamás cambia estado tras un save rechazado. */
++	async function changePublication(values: RecordInput): Promise<VegaRecord | null> {
++		if (formDisabled || submitBlocked || blocksBusy || !type.statusField || !publicationWritable)
++			return null;
++		publishing = true;
++		publicationNotice = null;
++		let contentSaved = false;
++		let result: SaveOutcome;
++		let contentNote: string | undefined;
++		try {
++			// El selector Estado puede estar editado: conservar su valor CONFIRMADO hasta el segundo
++			// paso evita publicar anticipadamente al guardar los demás campos.
++			const content = { ...current, [type.statusField]: baseline[type.statusField] };
++			if (isDirty(baseline, content)) {
++				const saved = await save({
++					overrides: { [type.statusField]: baseline[type.statusField] },
++					publication: true,
++					deferFocus: true
++				});
++				if (saved.kind !== 'saved') return null;
++				contentNote = saved.note;
++				contentSaved = true;
++			}
++			const label =
++				type.statusLabels?.[String(values[type.statusField])] ?? String(values[type.statusField]);
++			const statusNote = ctx.t('editor.visual.status.success', { name: docName, label });
++			result = await save({
++				overrides: values as FormInputValues,
++				publication: true,
++				deferFocus: true,
++				note: () =>
++					[
++						contentNote,
++						statusNote,
++						ctx.port.buildApiUrl ? ctx.t('editor.visual.status.success.rebuild') : null
++					]
++						.filter(Boolean)
++						.join(' ')
++			});
++			if (
++				result.kind === 'saved' &&
++				result.record.values[type.statusField] !== values[type.statusField]
++			) {
++				const error = VegaError.backend(
++					ctx.t(
++						values[type.statusField] === 'published'
++							? 'editor.visual.status.error.publish'
++							: 'editor.visual.status.error.unpublish'
++					)
++				);
++				ctx.feedback.reportError(error, { action: 'form:status' });
++				result = { kind: 'failed', error };
++			}
++		} finally {
++			publishing = false;
++			await tick();
++			const focus = deferredFocus;
++			deferredFocus = null;
++			if (focus) await focus();
++		}
++		if (result.kind !== 'saved') {
++			if (contentSaved)
++				publicationNotice = `${ctx.t('editor.saveSuccess')} ${ctx.t(
++					values[type.statusField] === 'published'
++						? 'editor.visual.status.error.publish'
++						: 'editor.visual.status.error.unpublish'
++				)}`;
++			return null;
++		}
++		onSaved(result.record, result.note);
++		return result.record;
++	}
++
+ 	async function handleSubmit(event: SubmitEvent): Promise<void> {
+ 		event.preventDefault();
+ 		event.stopPropagation();
+@@ -1564,11 +1661,7 @@
+ 	/** «Publicar ahora» (programada que no se publicó): pasa a publicado y vacía la fecha, que es lo
+ 	 *  que habría hecho el servidor (`extensions/vegaschedule`). */
+ 	async function publishNow(): Promise<void> {
+-		const statusField = type.statusField;
+-		const publishAtField = type.publishAtField;
+-		if (statusField && publishAtField) {
+-			await save({ overrides: { [statusField]: 'published', [publishAtField]: null } });
+-		}
++		await publishControl?.requestChange();
+ 	}
+ 
+ 	if (!modal)
+@@ -1576,6 +1669,10 @@
+ 			// `discarding` (ver cabecera): la navegación la ha provocado el propio borrado del registro
+ 			// — preguntar "hay cambios sin guardar, ¿salir igualmente?" por un registro que acaba de
+ 			// dejar de existir sería absurdo (y la única respuesta útil sería "sí").
++			if (publishing) {
++				navigation.cancel();
++				return;
++			}
+ 			if (!dirty || discarding) return;
+ 			if (!window.confirm(ctx.t('editor.leaveConfirm'))) navigation.cancel();
+ 		});
+@@ -1591,7 +1688,7 @@
+ 			return;
+ 		}
+ 		function handleBeforeUnload(event: BeforeUnloadEvent): void {
+-			if (!dirty) return;
++			if (!dirty && !publishing) return;
+ 			event.preventDefault();
+ 			event.returnValue = '';
+ 		}
+@@ -1635,9 +1732,9 @@
+ 				<button
+ 					type="button"
+ 					class="vega-editor-back"
+-					disabled={duplicating}
++					disabled={duplicating || publishing}
+ 					onclick={() => {
+-						if (!duplicating) onCancel();
++						if (!duplicating && !publishing) onCancel();
+ 					}}
+ 				>
+ 					<Icon id="chevron" size={14} />
+@@ -1757,6 +1854,24 @@
+ 							{duplicating ? ctx.t('editor.duplicating') : ctx.t('editor.duplicate')}
+ 						</button>
+ 					{/if}
++					{#if existingRecordId && publicationWritable}
++						<VisualPublishControl
++							bind:this={publishControl}
++							{type}
++							record={publicationRecord}
++							name={docName}
++							pendingBlocks={recordBlocksRef?.pendingBlockTitles() ?? []}
++							{review}
++							onReviewGo={goToReviewTarget}
++							onReviewDescribe={describeReviewImage}
++							onChange={changePublication}
++							compact
++							disabled={formDisabled || blocksBusy || submitBlocked}
++						/>
++					{/if}
++					{#if publicationNotice}<span class="vega-visual-publish-error" role="alert"
++							>{publicationNotice}</span
++						>{/if}
+ 					<button type="submit" class="vega-editor-save-button" disabled={formDisabled}>
+ 						{ctx.t('editor.save')}
+ 						<kbd aria-hidden="true">{shortcutLabel}</kbd>
+@@ -1835,14 +1950,16 @@
+ 			<div class="vega-field-notice vega-schedule-overdue" role="status">
+ 				<p>{parts[0]}{parts[1]}{parts[2]}</p>
+ 				<div class="vega-schedule-actions">
+-					<button
+-						type="button"
+-						class="vega-editor-inline-button"
+-						disabled={formDisabled}
+-						onclick={publishNow}
+-					>
+-						{ctx.t('editor.schedule.publishNow')}
+-					</button>
++					{#if publicationWritable}
++						<button
++							type="button"
++							class="vega-editor-inline-button"
++							disabled={formDisabled}
++							onclick={publishNow}
++						>
++							{ctx.t('editor.schedule.publishNow')}
++						</button>
++					{/if}
+ 					<button
+ 						type="button"
+ 						class="vega-editor-inline-button"
+@@ -2060,7 +2177,7 @@
+ 						onBusyChange={(value) => (blocksBusy = value)}
+ 						onReadyChange={(value) => (blocksReady = value)}
+ 						onSaved={() => (blocksSavedCount += 1)}
+-						disabled={duplicating}
++						disabled={duplicating || publishing}
+ 					/>
+ 				{/if}
+ 			</div>
+diff --git a/src/lib/icons/Icon.svelte b/src/lib/icons/Icon.svelte
+index 656b697..74575ee 100644
+--- a/src/lib/icons/Icon.svelte
++++ b/src/lib/icons/Icon.svelte
+@@ -74,6 +74,11 @@
+ 		     representa "un registro"), para no confundir "abrir el registro" con "ver cómo queda". -->
+ 		<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z" />
+ 		<circle cx="12" cy="12" r="3" />
++	{:else if resolvedId === 'link'}
++		<!-- Cadena: enlace en las barras de richtext y Markdown, mismo trazo que el set. -->
++		<path
++			d="m10 14 4-4M8 16l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0M16 8l1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0"
++		/>
+ 	{:else if resolvedId === 'list'}
+ 		<line x1="8" y1="6" x2="21" y2="6" />
+ 		<line x1="8" y1="12" x2="21" y2="12" />
+@@ -103,6 +108,12 @@
+ 	{:else if resolvedId === 'plus'}
+ 		<line x1="12" y1="5" x2="12" y2="19" />
+ 		<line x1="5" y1="12" x2="19" y2="12" />
++	{:else if resolvedId === 'publish'}
++		<!-- Cohete: publicar contenido o reconstruir el sitio; upload conserva subir ficheros. -->
++		<path
++			d="M8 16c-1-4 3-10 12-12 0 9-6 13-10 12l-2-2zM8 10H4l-2 5 6-1M14 16v4l-5 2 1-6M5 18l-2 3 4-1"
++		/>
++		<circle cx="15" cy="9" r="2" />
+ 	{:else if resolvedId === 'search'}
+ 		<circle cx="10" cy="10" r="6" />
+ 		<line x1="21" y1="21" x2="15" y2="15" />
+diff --git a/src/lib/icons/registry.ts b/src/lib/icons/registry.ts
+index cd6a298..2bba93b 100644
+--- a/src/lib/icons/registry.ts
++++ b/src/lib/icons/registry.ts
+@@ -38,12 +38,14 @@ const ICON_IDS = [
+ 	'document',
+ 	'eye',
+ 	'generic',
++	'link',
+ 	'list',
+ 	'logout',
+ 	'media',
+ 	'menu',
+ 	'more',
+ 	'plus',
++	'publish',
+ 	'search',
+ 	'settings',
+ 	'tag',
+diff --git a/src/lib/richtext/EditorToolbar.svelte b/src/lib/richtext/EditorToolbar.svelte
+index 975357b..bb1e856 100644
+--- a/src/lib/richtext/EditorToolbar.svelte
++++ b/src/lib/richtext/EditorToolbar.svelte
+@@ -356,7 +356,7 @@
+ 		onmousedown={keepEditorFocus}
+ 		onclick={openLinkDialog}
+ 	>
+-		🔗
++		<Icon id="link" size={16} />
+ 	</button>
+ 	{#if ctx.mediaPicker}
+ 		<button
+diff --git a/src/lib/shell/PublishButton.svelte b/src/lib/shell/PublishButton.svelte
+index 43cb0ec..cdde091 100644
+--- a/src/lib/shell/PublishButton.svelte
++++ b/src/lib/shell/PublishButton.svelte
+@@ -227,7 +227,7 @@
+ 			onclick={handleTrigger}
+ 		>
+ 			<Icon
+-				id={uiState === 'failed' || uiState === 'unavailable' ? 'warning' : 'upload'}
++				id={uiState === 'failed' || uiState === 'unavailable' ? 'warning' : 'publish'}
+ 				size={14}
+ 			/>
+ 			<span role="status">{label}</span>
+diff --git a/src/lib/visual/VisualPublishControl.svelte b/src/lib/visual/VisualPublishControl.svelte
+index 5079812..ad34144 100644
+--- a/src/lib/visual/VisualPublishControl.svelte
++++ b/src/lib/visual/VisualPublishControl.svelte
+@@ -93,6 +93,13 @@
+ 		onReviewGo?: (finding: ReviewFinding) => void;
+ 		/** «Describir la imagen…» de un aviso de alt: abrir la ficha de Medios. */
+ 		onReviewDescribe?: (finding: ReviewFinding) => void;
++		/** Formulario: conserva su único camino de validación/guardado y feedback. null indica
++		 *  un rechazo ya mostrado allí; sin delegado se mantiene la escritura del editor visual. */
++		onChange?: (values: RecordInput) => Promise<VegaRecord | null>;
++		/** Cabecera del formulario: ya tiene etiqueta y programación junto al campo Estado. */
++		compact?: boolean;
++		/** Mutex externo: incluye los guardados del formulario y las mutaciones de bloques. */
++		disabled?: boolean;
+ 	}
+ 
+ 	let {
+@@ -102,7 +109,10 @@
+ 		pendingBlocks,
+ 		review = null,
+ 		onReviewGo,
+-		onReviewDescribe
++		onReviewDescribe,
++		onChange,
++		compact = false,
++		disabled = false
+ 	}: Props = $props();
+ 
+ 	const ctx = getVegaContext();
+@@ -155,7 +165,7 @@
+ 		if (record !== syncedRecord) {
+ 			syncedRecord = record;
+ 			confirmed = record;
+-			phase = 'idle';
++			if (phase !== 'changing') phase = 'idle';
+ 		}
+ 	});
+ 
+@@ -346,8 +356,8 @@
+ 		await change('draft', 'removeSchedule');
+ 	}
+ 
+-	async function requestChange(): Promise<void> {
+-		if (phase === 'changing') return;
++	export async function requestChange(): Promise<void> {
++		if (phase === 'changing' || disabled || !canEdit) return;
+ 		if (phase === 'confirming') {
+ 			await cancelConfirm();
+ 			return;
+@@ -384,7 +394,7 @@
+ 		to: Target,
+ 		operation: 'status' | 'removeSchedule' = 'status'
+ 	): Promise<void> {
+-		if (statusField === null) return;
++		if (statusField === null || disabled || !canEdit || phase === 'changing') return;
+ 		const values: RecordInput = { [statusField]: to };
+ 		const publishAtField = type.publishAtField;
+ 		if (
+@@ -398,20 +408,31 @@
+ 		}
+ 		const refocus = phase === 'confirming';
+ 		phase = 'changing';
+-		if (refocus) {
+-			await tick();
+-			actionEl?.focus();
+-		}
+ 		try {
+-			const saved = await ctx.port.update(type.name, confirmed.id, values, {
+-				expectedVersion: recordVersion(confirmed)
+-			});
++			// Invocar el delegado ANTES de ceder el turno: el mutex del formulario ya cubre el
++			// refoco al cerrar la confirmación y no deja hueco para otro Guardar.
++			const mutation = onChange
++				? onChange(values)
++				: ctx.port.update(type.name, confirmed.id, values, {
++						expectedVersion: recordVersion(confirmed)
++					});
++			if (refocus) {
++				await tick();
++				actionEl?.focus();
++			}
++			const saved = await mutation;
++			if (saved === null) {
++				phase = 'idle';
++				return;
++			}
+ 			confirmed = saved;
+ 			phase = 'idle';
+ 			if (operation === 'removeSchedule') {
+ 				await tick();
+ 				scheduleEl?.focus();
+ 			}
++			// El delegado ya notificó el guardado completo, incluidas sus notas de afterSave.
++			if (onChange) return;
+ 			const label = type.statusLabels?.[to] ?? to;
+ 			const message =
+ 				operation === 'removeSchedule'
+@@ -459,7 +480,7 @@
+ 		role={canEdit ? 'group' : undefined}
+ 		aria-label={canEdit ? ctx.t('editor.visual.status.groupLabel') : undefined}
+ 	>
+-		{#if tag}
++		{#if tag && !compact}
+ 			<span class="vega-visual-publish-tag" data-status={tag.raw} data-status-kind={tag.kind}>
+ 				{tag.label}
+ 			</span>
+@@ -471,7 +492,7 @@
+ 				class="vega-visual-publish-btn"
+ 				class:vega-visual-publish-btn--primary={target === 'published'}
+ 				bind:this={actionEl}
+-				aria-disabled={phase === 'changing' ? 'true' : undefined}
++				aria-disabled={phase === 'changing' || disabled ? 'true' : undefined}
+ 				aria-expanded={asksConfirmation || phase === 'confirming'
+ 					? phase === 'confirming'
+ 					: undefined}
+@@ -479,12 +500,13 @@
+ 				data-status-target={target}
+ 				onclick={() => void requestChange()}
+ 			>
++				{#if target === 'published'}<Icon id="publish" size={16} />{/if}
+ 				{actionLabel}
+ 			</button>
+ 
+ 			<!-- «Programar…» / «Cambiar fecha…» (ver cabecera): solo en un borrador y si el servidor
+ 			     puede cumplir la fecha. Mismo rótulo que junto al campo Estado del formulario. -->
+-			{#if scheduleControl.kind !== 'none'}
++			{#if !compact && scheduleControl.kind !== 'none'}
+ 				<button
+ 					type="button"
+ 					class="vega-visual-publish-btn vega-visual-publish-schedule"
+@@ -498,7 +520,7 @@
+ 					)}
+ 				</button>
+ 			{/if}
+-			{#if scheduleControl.kind === 'scheduled' || scheduleControl.kind === 'overdue'}
++			{#if !compact && (scheduleControl.kind === 'scheduled' || scheduleControl.kind === 'overdue')}
+ 				<button
+ 					type="button"
+ 					class="vega-visual-publish-btn vega-visual-publish-remove-schedule"
+@@ -717,6 +739,7 @@
+ 	.vega-visual-publish-btn {
+ 		display: inline-flex;
+ 		align-items: center;
++		gap: 0.35rem;
+ 		height: 30px;
+ 		padding: 0 0.75rem;
+ 		border: 1px solid var(--line);

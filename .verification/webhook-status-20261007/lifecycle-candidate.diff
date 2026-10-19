@@ -1,0 +1,112 @@
+diff --git a/src/lib/shell/PublishButton.svelte b/src/lib/shell/PublishButton.svelte
+index 52b9199..4f244fe 100644
+--- a/src/lib/shell/PublishButton.svelte
++++ b/src/lib/shell/PublishButton.svelte
+@@ -62,6 +62,8 @@
+ 	 *  honesta de saberlo (ver su cabecera) — nunca bloquea el botón por sí solo. */
+ 	let hasChanges = $state<boolean | null>(null);
+ 	let stopPolling: (() => void) | null = null;
++	/** Un trigger pendiente puede resolverse después de desmontar la sesión que lo lanzó. */
++	let destroyed = false;
+ 	/** Por qué falló la última consulta de estado (`null` = la última fue bien o aún no hubo fallo). */
+ 	let fetchProblem = $state<'denied' | 'unreachable' | null>(null);
+ 
+@@ -141,6 +143,7 @@
+ 	});
+ 
+ 	onDestroy(() => {
++		destroyed = true;
+ 		// Ver la cabecera de `pollBuildStatus` (`backend/build-client.ts`): SIEMPRE hay que llamar a
+ 		// `stop()` al desmontar, o el `setTimeout` del sondeo sobrevive al componente.
+ 		stopPolling?.();
+@@ -154,17 +157,17 @@
+ 		triggering = true;
+ 		try {
+ 			await client.trigger();
+-			// Optimista: no fabricamos un `BuildStatus` local con `state: 'running'` (P3-L3, nunca
+-			// un dato inventado) — el sondeo que arranca justo debajo hace su primer `fetchStatus()`
+-			// de inmediato y trae el estado REAL casi al instante.
+-			beginPolling();
+ 		} catch {
++			if (destroyed) return;
+ 			ctx.feedback.toast(ctx.t('topbar.publish.triggerError'), { kind: 'error' });
+-			// El servidor puede haber cerrado el intento como fallido: consultar su detalle
+-			// sanitizado también cuando /trigger rechaza, sin mostrar el error de la petición.
+-			beginPolling();
+ 		} finally {
+-			triggering = false;
++			if (!destroyed) {
++				triggering = false;
++				// Consultar el estado real también si /trigger rechaza: puede haber cerrado el
++				// intento como fallido. No inventar un BuildStatus ni mostrar el error de petición.
++				// Una sesión desmontada no debe reiniciar el sondeo con su token anterior.
++				beginPolling();
++			}
+ 		}
+ 	}
+ 
+diff --git a/src/lib/shell/PublishButton.svelte.test.ts b/src/lib/shell/PublishButton.svelte.test.ts
+index 717ee52..54f637c 100644
+--- a/src/lib/shell/PublishButton.svelte.test.ts
++++ b/src/lib/shell/PublishButton.svelte.test.ts
+@@ -341,6 +341,60 @@ describe('PublishButton.svelte', () => {
+ 		expect(fetchMock).toHaveBeenCalledTimes(3);
+ 	});
+ 
++	test.each(['rechazado', 'aceptado'])(
++		'un trigger %s después de desmontar no reinicia peticiones ni temporizadores con la sesión anterior',
++		async (outcome) => {
++			const idle: BuildStatus = {
++				state: 'idle',
++				startedAt: null,
++				finishedAt: null,
++				lastPublishedAt: null,
++				logUrl: null,
++				detail: null
++			};
++			let finishTrigger!: (response: Response) => void;
++			const pendingTrigger = new Promise<Response>((resolve) => {
++				finishTrigger = resolve;
++			});
++			const fetchMock = vi
++				.fn()
++				.mockResolvedValueOnce(jsonResponse(idle))
++				.mockReturnValueOnce(pendingTrigger)
++				.mockResolvedValue(jsonResponse({ message: 'sesión anterior' }, 401));
++			vi.stubGlobal('fetch', fetchMock);
++			const ctx = fakeCtx({ buildApiUrl: 'https://pb.test/api/vega-build' });
++			mounted = mountButton(ctx);
++			await flush();
++			mounted.target.querySelector<HTMLButtonElement>('.vega-publish-trigger')?.click();
++			await flush();
++			expect(fetchMock).toHaveBeenCalledTimes(2);
++
++			await unmount(mounted.instance);
++			mounted.target.remove();
++			mounted = null;
++			const timers = vi.spyOn(globalThis, 'setTimeout');
++			try {
++				finishTrigger(
++					outcome === 'rechazado'
++						? jsonResponse({ message: 'failed to start the build (HTTP 500)' }, 502)
++						: jsonResponse({ id: 'run-1' }, 202)
++				);
++				await flush();
++				await flush();
++				expect(fetchMock).toHaveBeenCalledTimes(2);
++				expect(ctx.feedback.toast).not.toHaveBeenCalled();
++				// Solo los dos flush de 10 ms: ningún sondeo inmediato ni reintento del 401.
++				expect(timers.mock.calls.map(([, delay]) => delay)).toEqual([10, 10]);
++			} finally {
++				// El control rojo también debe limpiar cualquier reintento que haya creado.
++				for (const result of timers.mock.results) {
++					if (result.type === 'return') clearTimeout(result.value);
++				}
++				timers.mockRestore();
++			}
++		}
++	);
++
+ 	test('click en estado accionable dispara POST /trigger con el token de sesión en Authorization', async () => {
+ 		const idle: BuildStatus = {
+ 			state: 'idle',

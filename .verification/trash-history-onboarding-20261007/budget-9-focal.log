@@ -1,0 +1,48 @@
+
+ RUN  v4.1.10 /private/tmp/vegacms-trash-history-20261007
+
+ ❯ |component| src/lib/form/FormPublishControl.svelte.test.ts (11 tests | 2 failed) 6434ms
+   × a load failure writes nothing and another activation can retry 5003ms
+   × unmounting discards an in-flight activation 1007ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |component| src/lib/form/FormPublishControl.svelte.test.ts > a load failure writes nothing and another activation can retry
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ src/lib/form/FormPublishControl.svelte.test.ts:129:1
+    127| }
+    128|
+    129| test('a load failure writes nothing and another activation can retry',…
+       | ^
+    130|  const w = await setup();
+    131|  vi.doMock('$lib/visual/VisualPublishControl.svelte', () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |component| src/lib/form/FormPublishControl.svelte.test.ts > unmounting discards an in-flight activation
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/lib/form/FormPublishControl.svelte.test.ts:147:40
+    145|  const w = await setup();
+    146|  const action = w.instance.requestChange();
+    147|  await settled(() => expect(w.loads()).toBe(1));
+       |                                        ^
+    148|  await unmount(w.instance);
+    149|  w.target.remove();
+ ❯ src/lib/form/FormPublishControl.svelte.test.ts:85:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 5 passed (6)
+      Tests  2 failed | 126 passed (128)
+   Start at  06:53:51
+   Duration  18.28s (transform 2.38s, setup 0ms, import 3.04s, tests 12.57s, environment 2.22s)
+

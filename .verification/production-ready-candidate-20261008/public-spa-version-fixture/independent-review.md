@@ -1,0 +1,7 @@
+# Revisión focal de fixture de versión pública
+
+**Aprobado para reanudar2×13 autorizadas; runtime pendiente.** Freeze13 `245152af48eeb91aa8a051b32ae9b8de1948955aaaec3ec3e1c6b4bd84486f4d`;13 hashes exactos. Revisión diff-first de helper y dos specs, lectura de sus patches y receipt. Artefacto reviewer fuera13; ninguna ejecución propia.
+
+Helper recibe el mismo showcase boolean declarado al seedShowcase en login y selecciona expectativas exactas: demo /c/site_info/new+Crear «Información del sitio», showcase /c/entradas+Entradas. No infiere éxito de cualquier heading ni ruta. Los cuatro cambios Título→Title en dos acciones de test conservan fill, guardar, reopen y toHaveValue; el campo real de la semilla sigue siendo title/idvega-field-title, acreditado por probe78721 terminal0 de dos semillas, zeroCSPviolations. No se sustituye el campo ni acción verificada.
+
+Guard/config/identities/probe siguen byteidénticos al suplemento anterior; ambos specs comparten el mismo delta. Historia/new/media/visual/preview/trash y negativos reales frame-ancestors/connect-src/form-action POST permanecen sin skips/asserts omitidas. Rojo67402 (6pass7fail) conserva las dos discrepancias de etiqueta y cinco de showcase landing; no se proclama CSP incompatible por esos fallos de precondición. Afirmar13 verdes exige recibos del runtime próximo y readiness109 por clon, zeroabort inesperado y cleanup; los límites públicos/memoryauth/TLS/CORS/closure previos siguen vigentes.

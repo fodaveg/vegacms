@@ -1,0 +1,354 @@
+{
+  "status": "complete local L9 network measurement; rail correction verified; private harness, no publication",
+  "before": {
+    "commit": "dae1c8c1e90db2567efe3ea0ecaf5ce5f09ac193",
+    "tree": "4537fbdcf63dfccde590ab2e38eb30eb9aebaea8",
+    "buildIndexSha256": "37b679fc1a36f0761ec2b81fad0f64a578b579f74c6693f3077a380f59b69b9a",
+    "worktree": "/private/tmp/vegacms-l9-before-20261007",
+    "builds": 1
+  },
+  "after": {
+    "commit": "108ab234a2a639d35fa70a54921f44866d095561",
+    "tree": "8053577aef918fd0ddf8e444154fc22a3238a263",
+    "buildIndexSha256": "ea14e8b53dd6b981a51f12116dbae2d5306a982dc00cf95e4fecf6915434d3f9",
+    "worktree": "/private/tmp/vegacms-backlog-r2-20261007",
+    "gateReceipt": "../backlog-r7-20261007/receipt.json",
+    "buildsByMeasurement": 0
+  },
+  "harness": {
+    "base": "894eade0ef68a90721e6a2ba6c7f9ea5a1f7f467",
+    "worktree": "/private/tmp/vegacms-l9-measure-20261007",
+    "filesSha256": {
+      "extensions/vegapreview/l9_network_server_test.go": "48d1b90958b048d4f79d666c3b02fb4f3d8bfe767bcb1f11b112b81d814419d6",
+      "scripts/l9-measure/.gitignore": "65e9502b890bd2528c417e7e3f93546bfcbed8af935b9478a246256bb0109433",
+      "scripts/l9-measure/README.md": "73cb0164eb726470ab38e4b9659b2f0693a8816d7c85c4f66933978f7684200a",
+      "scripts/l9-measure/admin.spec.ts": "215600850dfe7c2aedfd06ef38f7b306ce848f5e56201c51febc85a423fc62b5",
+      "scripts/l9-measure/astro-consumer.mjs": "bb1482fe2a7f55f9188150574aa5ed94a284f4999f5a27326f444e082af082d2",
+      "scripts/l9-measure/playwright.config.ts": "bcbd11b8e043e8514b6b721899df6bfcf7a07fcbaa88677ebf565e9fc077741e",
+      "scripts/l9-measure/transport.ts": "da5877e57e1d3021cd5eb4ebb1b93fabe5218f404dbe40ac72c7f2f7c9dd31eb",
+      "scripts/l9-measure/tsconfig.json": "55dd166479029f1b3192b22f0a965844619218b8578af8fe28120742361fa5ff",
+      "scripts/l9-measure/visual.spec.ts": "84008bcf6b70ed922e9c0942ba9401b0f318462339eaeec4f1a07ed1c73e2465",
+      "tests/contract/pb-harness/l9-network-seed.ts": "c0e5e6ad792eccdb7c18a987070607f2f8de84849886e172c27d9a1ffc4d77c4"
+    },
+    "snapshot": "harness/",
+    "tree": "5ddf7ae6cf2e0eb5cbbc7533a1d82a8ebd633a48",
+    "review": "/private/tmp/vega-l9-network-harness-review-20261007.md",
+    "checks": {
+      "prettier": 0,
+      "nodeCheckAstroConsumer": 0,
+      "eslintTargeted": 0,
+      "gitDiffCachedCheck": 0,
+      "goCompile": "Go1.26.3 exit0; no Go-race run for this opt-in measurement fixture",
+      "runtime": "admin162 + correctedrail18 windows; nine visual repetitions completed; probes/failures retained"
+    },
+    "commit": "1798e95242c805d4d3f0ed5ec14b1c5b6eec7233",
+    "commitExitCode": 0,
+    "branch": "test/l9-real-network-20261007",
+    "postCommitTreeVerified": "5ddf7ae6cf2e0eb5cbbc7533a1d82a8ebd633a48"
+  },
+  "environment": {
+    "node": "22.22.3",
+    "chromium": "149.0.7827.55",
+    "pocketbase": "0.39.9",
+    "goFailed": "1.27.1 JSONv2 recursive Collection.UnmarshalJSON",
+    "goWorkingSeed": "1.26.3 existing toolchain; GOTOOLCHAIN=local GOPROXY=off"
+  },
+  "measurements": {
+    "adminBeforeWindows": 81,
+    "adminAfterWindows": 81,
+    "repetitions": 3,
+    "phases": "first + subsequent SPA visit in each fresh per-surface browser context; not claimed as three cold-cache browser runs",
+    "browserProxyCountsAndBytesMatching": 162,
+    "bytes": "decoded HTTP response body, not compressed wire bytes",
+    "normalCases": "real Chromium screen operations and real PocketBase through transparent proxy; seed bypasses proxy",
+    "railRace": "proxy retains a real already fetched LIST, not fabricated JSON; three actual PATCH/snapshot pairs complete before release",
+    "railRegressionAfter": {
+      "first": 3,
+      "warm": 0,
+      "error": "each_key_duplicate",
+      "listCount": 30,
+      "uniqueIds": 30,
+      "latestVisible": true,
+      "peerPreserved": false
+    },
+    "beforePageErrors": 0,
+    "visualCompleted": true,
+    "preflightAccounting": "Admin summaries exclude OPTIONS; visual raw server summaries include it. Final application counts derived from non-OPTIONS groups; preflight listed separately, raw preserved.",
+    "concurrencyAccounting": "maxInFlight is observed collector overlap, not physical network concurrency. Browser body() settles asynchronously; only proxy observed1→4 supports bounded deletion concurrency together with source/tests, without equating browser peaks to pool size.",
+    "visualRepetitions": 9,
+    "visualComparison": "visual-comparison.json",
+    "visualPageErrors": "not collected; no zero-JavaScript-error claim. Admin pageerror events were collected.",
+    "adminCorrectedRailWindows": 18,
+    "totalAdminWindows": 180,
+    "browserProxyCountsAndBytesMatchingIncludingReplay": 180,
+    "normalization": "Derived application/preflight counts in visual-comparison.json preserve raw JSON. Same-document frameNavigationEvents is not document navigation; documentRequests uses actual resourceType.",
+    "visualFindings": {
+      "parentRenewal": "BA three times: documentRequests1 markerfalse scroll200→0, site13requests (1document200+12cached304). AA three times: documentRequests0 markertrue scroll200→200 site1GET. BrowserPB1POST and serverPB3application+1preflight in both; renewal body bytes same current Astro HTML27254. No claim of production-dev-asset equivalence.",
+      "bridgeHistory": "AB three times: active renewal preserves marker/scroll but reload after original token expiry404. AA three times: reload200. GET saved-record mode only."
+    }
+  },
+  "terminals": [
+    {
+      "session": 83340,
+      "exit": 0,
+      "log": "smoke-after.log"
+    },
+    {
+      "session": 86465,
+      "exit": 0,
+      "log": "build-before.log"
+    },
+    {
+      "session": 26492,
+      "exit": 130,
+      "log": "admin-after-attempt1.log",
+      "reason": "interrupted unbounded fixture selector wait; partial preserved"
+    },
+    {
+      "session": 29521,
+      "exit": 1,
+      "log": "list-discriminator.log",
+      "reason": "fixture order/defaultSort excluded reorder"
+    },
+    {
+      "session": 38215,
+      "exit": 1,
+      "log": "remaining-discriminator.log",
+      "reason": "incorrect mail selector"
+    },
+    {
+      "session": 93723,
+      "exit": 1,
+      "log": "admin-after-attempt2.log",
+      "reason": "mail selector matched two buttons"
+    },
+    {
+      "session": 63153,
+      "exit": 0,
+      "log": "admin-after-final.log",
+      "note": "measurement completed; rail observed failures remain"
+    },
+    {
+      "session": 11846,
+      "exit": 1,
+      "log": "admin-before-attempt1.log",
+      "reason": "historical file input label differed"
+    },
+    {
+      "session": 22589,
+      "exit": 1,
+      "log": "admin-before-attempt2.log",
+      "reason": "historical import success label differed"
+    },
+    {
+      "session": 57626,
+      "exit": 0,
+      "log": "admin-before-final.log"
+    },
+    {
+      "session": 98234,
+      "exit": 0,
+      "log": "go-fixture-compile.log"
+    },
+    {
+      "session": 73816,
+      "exit": 1,
+      "log": "visual-after-attempt1.log",
+      "reason": "Go JSONv2 process exit2; cleanup EPIPE"
+    },
+    {
+      "session": 40071,
+      "exit": 1,
+      "log": "visual-after-attempt2.log",
+      "reason": "Go JSONv2 recursive decode; sanitized diagnostic saved"
+    },
+    {
+      "session": 69324,
+      "exit": 0,
+      "log": "go-fixture-compile-1.26.3.log"
+    },
+    {
+      "session": 59496,
+      "exit": 1,
+      "log": "visual-after-attempt3.log",
+      "reason": "Astro startup readiness missing"
+    },
+    {
+      "session": 16046,
+      "exit": 1,
+      "log": "visual-after-attempt4.log",
+      "reason": "Astro PLUGIN_ERROR caught; readiness error class projected"
+    },
+    {
+      "session": 23067,
+      "exit": 1,
+      "reason": "standalone synthetic Astro discriminator: PLUGIN_ERROR; tool transcript"
+    },
+    {
+      "session": 91865,
+      "exit": 1,
+      "reason": "standalone synthetic Astro discriminator: missing ancestor Vega tsconfig; tool transcript"
+    },
+    {
+      "session": 42043,
+      "exit": 1,
+      "log": "astro-start-discriminator.log",
+      "reason": "same missing ancestor tsconfig despite correct cwd"
+    },
+    {
+      "session": 73514,
+      "exit": 0,
+      "log": "rail-corrected-after.log"
+    },
+    {
+      "session": 59872,
+      "exit": 0,
+      "log": "astro-start-isolated.log",
+      "note": "controlled SyntaxError childexit1 captured before config; isolated realAstro childexit0"
+    },
+    {
+      "session": 54634,
+      "exit": 1,
+      "log": "visual-current-site-current-1.log",
+      "reason": "browser login blocked by omitted fixture CORS; source server parity corrected after realOPTIONS404 probe"
+    },
+    {
+      "session": 11710,
+      "exit": 0,
+      "log": "go-fixture-cors-compile.log"
+    },
+    {
+      "session": 56206,
+      "exit": 1,
+      "log": "visual-current-site-current-1-cors.log",
+      "reason": "scroll0 measured before smooth-scroll advancement; assertion correctly rejected"
+    },
+    {
+      "session": 46690,
+      "exit": 1,
+      "log": "visual-current-site-current-1-scroll.log",
+      "reason": "scroll200 and real renewal reached; global parent networkidle after reload timed out"
+    },
+    {
+      "session": 26112,
+      "exit": 0,
+      "log": "visual-current-site-current-1-load.log",
+      "note": "complete discriminator; final repeats collect additional documentRequests metric"
+    },
+    {
+      "session": 96049,
+      "exit": 0,
+      "log": "visual-aa.log",
+      "repetitions": 3
+    },
+    {
+      "session": 92434,
+      "exit": 0,
+      "log": "visual-ab.log",
+      "repetitions": 3
+    },
+    {
+      "session": 13958,
+      "exit": 0,
+      "log": "visual-ba.log",
+      "repetitions": 3
+    },
+    {
+      "session": 61451,
+      "exit": 0,
+      "log": "harness-eslint.log"
+    }
+  ],
+  "limits": [
+    "Local real PocketBase0.39.9/Chromium149/Astro7.1.3 dev; not remote production, production SSR adapter or physical QA",
+    "Common BEFORE predates intermediate d74 rail race; current corrected replay covers final race, not that intermediate state",
+    "Admin measurements81before+81originalafter retained; correctedEditorRail18window replay uses d6/ff build; other app source consumers unchanged by final2-file correction",
+    "Three first/subsequent SPA repetitions per admin surface; fresh browser context per surface, reused isolated PB process/SMTP settings across iterations; not three cold browser-cache runs",
+    "Visual9full repetitions; pageerrors not separately monitored in visual driver; no zero-JS-error claim",
+    "GET saved-record preview only; POST body-only token confidentiality/reload behavior is not measured by this GET matrix",
+    "Astro historical/current revisions include other features; report does not attribute all cross-Astro byte differences to token history",
+    "Visual dev asset304 requests counted as requests with zero response bytes; decoded bytes are not compressed wire transfer",
+    "Browser/proxy maxInFlight are collector overlap; browser body settlement timing is not physical network concurrency or pool size",
+    "SMTP settings updated only on isolated PB; no SMTP messages sent",
+    "Product final gateff is independently accredited; no extra product fullgate and no Go-race claim for newly added measurement fixture",
+    "Private harness commit only; no product merge, push, npm publish, site deploy or production mutation"
+  ],
+  "disk": {
+    "budgetGiB": 0.5,
+    "dfBeforeGiB": 142,
+    "dfAfterGiB": 140,
+    "note": "shared-machine df; apparent APFS dependency clones not physical allocation measurement; own build and evidence retained for replay; no broad cleanup"
+  },
+  "astroArchives": {
+    "before": {
+      "commit": "1ff64d74a60ed5ed6ebf714eba0adc950c474e47",
+      "root": "/private/tmp/vega-l9-sites-20261007/before",
+      "trackedFilesVerified": 71,
+      "mismatches": []
+    },
+    "after": {
+      "commit": "4469e482c69571b54605c31e29360b82dbff0f75",
+      "root": "/private/tmp/vega-l9-sites-20261007/after",
+      "trackedFilesVerified": 101,
+      "mismatches": []
+    }
+  },
+  "next": [],
+  "correctedAfter": {
+    "commit": "d6df7619434e86035a9d3c133948b5d290dc7d2e",
+    "tree": "ff9985f7d18ecaaf6606f8efe5011d8923d28e9c",
+    "buildIndexSha256": "5d1eb946ed126196f3c78e2865c7dd67622ec5cf7a75367abe323ce60e7edf93",
+    "gate": {
+      "handle": 66910,
+      "exit": 0,
+      "unitPassed": 4695,
+      "unitSkipped": 9,
+      "chromiumPassed": 245
+    },
+    "deltaFromAfter805": "EditorRail.svelte and its test only",
+    "railReplay": {
+      "session": 73514,
+      "exit": 0,
+      "log": "rail-corrected-after.log",
+      "results": "rail-corrected-after.json",
+      "windows": 18,
+      "races": 6,
+      "latestVisible": true,
+      "peerPreserved": true,
+      "selected": 1,
+      "pageErrors": 0,
+      "listCount": 30,
+      "uniqueIds": 30
+    },
+    "gateReceipt": "../backlog-r8-20261007/receipt.json"
+  },
+  "fixtureCORS": {
+    "negative": "go-cors-negative.json",
+    "observed": "OPTIONS auth 404; ACAO/methods absent",
+    "fix": "bind exact CORS configuration from PocketBase apis.Serve in httptest fixture; no product auth changes",
+    "primarySource": "PB0.39.9 apis/serve.go77 and apis/base.go19"
+  },
+  "cleanup": {
+    "runnerReleased": true,
+    "freshProcessCheck": "only own ps/rg matched; no l9-pb-server/Astro consumer/measurement Playwright remains",
+    "allFinalGoAndAstroExits": 0,
+    "removedOwnCrashFixtures": 2,
+    "removedLogicalBytes": 1110826,
+    "ownershipProof": "read-only SQLite query matched unique synthetic network-admin@vega.test in both abandoned pb_test directories; no processes, then removed only those directories",
+    "dfBeforeCleanupGiB": 140,
+    "dfAfterCleanupGiB": 140,
+    "retained": "own source worktrees, historical7.2MiB build/generated config,33MiB Go fixture binary, exact Astro archives with reused APFS-cloned dependencies and ~1.5MiB evidence for replay/integration; no foreign cleanup"
+  },
+  "root_verification": {
+    "admin_windows_checked": 180,
+    "visual_reports_checked": 9,
+    "harness_snapshot_hashes_checked": 10,
+    "commit_fuller_and_inventory_checked": "1798e95242c805d4d3f0ed5ec14b1c5b6eec7233;10 files; tracked worktree clean with own .network-measure artifacts retained",
+    "product_gate_receipt": "../backlog-r8-20261007/receipt.json",
+    "task_notes": "fresh append and visible reread, all child development tags @done",
+    "parent_development_tag": "@done; exact title replacement explicitly approved by David, managed tagger applied and root reread confirmed; notes and native checkbox unchanged",
+    "disk_free_root_gate_beforeGiB": 138,
+    "disk_free_root_observed_afterGiB": 139,
+    "disk_delta": "shared machine; not attributed to our changes or logical cleanup bytes"
+  }
+}

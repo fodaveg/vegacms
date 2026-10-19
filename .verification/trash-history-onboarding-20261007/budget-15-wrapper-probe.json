@@ -1,0 +1,12 @@
+{
+  "before": {
+    "sourceBytes": 5996,
+    "compiledGzip": 2256,
+    "limit": "Unminified standalone compiler output, not bundle savings."
+  },
+  "after": {
+    "sourceBytes": 5604,
+    "compiledGzip": 2076
+  },
+  "limit": "Unminified standalone output omits extracted helper; not route savings."
+}

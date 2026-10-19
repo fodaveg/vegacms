@@ -1,0 +1,33 @@
+{
+  "backupUtilityCached": true,
+  "caddyRead": false,
+  "configEnvRead": false,
+  "containers": {
+    "fodaveg": {
+      "errorCode": "MetadataUnavailable",
+      "status": "STOP"
+    },
+    "lumbre-admin-pb": {
+      "errorCode": "MetadataUnavailable",
+      "status": "STOP"
+    },
+    "vega-pb": {
+      "health": "healthy",
+      "noPublishedPorts": true,
+      "oldIdStillRunning": true,
+      "oldTagStillResolves": true,
+      "pocketBaseVersion": "0.39.9",
+      "portKeys": [
+        "8090/tcp"
+      ],
+      "stateRunning": true,
+      "status": "READY_FOR_REVIEW"
+    }
+  },
+  "filesRead": [],
+  "freeKiB": 7274396,
+  "mode": "image-only-second-metadata",
+  "remoteWrites": false,
+  "schemaVersion": 1,
+  "status": "STOP"
+}

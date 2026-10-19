@@ -1,0 +1,32 @@
+{
+  "candidate": "9165fb964b8743d4be5cf65621a687acc7534e1e",
+  "tree": "1b24a844a33898bc98158534f1a78becf208e938",
+  "status": "seven-local-tasks-verified-done",
+  "taskIds": [
+    "bbc42d52-501d-4b81-8dfd-c39f89805603",
+    "c46a0999-fc61-43d3-8fa6-81b789f24176",
+    "566da926-e10f-4c9c-b281-c5cf34f7623b",
+    "db189d99-8768-48fd-bc0d-c22499623836",
+    "16864548-279d-4305-9229-1acbafe79aa5",
+    "c49bf0f1-a6d1-474d-a408-d7546dc7d9f7",
+    "c0d0ff6e-43a9-46c8-b66a-e0a4a57921d5"
+  ],
+  "nativeCheckboxes": "all remained pending; no machine completion",
+  "notes": "accepted with warnings then all7 reread exact notes visible",
+  "receipt": "receipt.json",
+  "publication": "private branch only; no main/push/deploy",
+  "productionCSPClosure": {
+    "taskId": "7690c838-e02e-4f9f-b4c9-1a2284eba30c",
+    "parentId": "0c91e4a0-b098-4e50-8bfe-fdde68aa9860",
+    "tags": "both @acked",
+    "nativeCheckbox": "pending preserved",
+    "verification": "2/2 applied then fresh exact-content/notes reread",
+    "localCSP": "final75993 terminal0 13/13",
+    "production": "pending custom runtime/peers/logmapping/config/authorized application and served verification"
+  },
+  "otherParents": {
+    "e9a61baa-66ad-47bf-8ffb-5ee4176c0143": "@acked; next-phase decision remains",
+    "ff0531b8-4264-4b26-8418-2083cc4ea6d1": "@acked; production prerequisites remain"
+  },
+  "ownedTasksRemainingWip": false
+}

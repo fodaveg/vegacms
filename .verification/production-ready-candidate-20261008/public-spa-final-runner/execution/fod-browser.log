@@ -1,0 +1,20 @@
+
+Running 13 tests using 1 worker
+
+(node:80771) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-final-runner/fodaveg/current-spa-proof.spec.ts:146:1 › source: exact current index bytes and source CSP served by isolated Caddy (629ms)
+  ✓   2 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-final-runner/fodaveg/current-spa-proof.spec.ts:159:1 › source: login reaches exact historical landing and exposes content navigation (629ms)
+  ✓   3 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-final-runner/fodaveg/current-spa-proof.spec.ts:169:1 › source: list search actually filters seeded content (854ms)
+  ✓   4 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-final-runner/fodaveg/current-spa-proof.spec.ts:177:1 › source: edit form writes and reopens saved title via SPA; history panel opens (970ms)
+  ✓   5 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-final-runner/fodaveg/current-spa-proof.spec.ts:196:1 › source: new form creates a record and resolves its real memory ID (629ms)
+  ✓   6 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-final-runner/fodaveg/current-spa-proof.spec.ts:209:1 › source: visual editor fetches HTTPS token, completes bridge and selects real block (765ms)
+  ✓   7 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-final-runner/fodaveg/current-spa-proof.spec.ts:233:2 › source: preview panel uses actual external GET document transport (593ms)
+  ✓   8 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-final-runner/fodaveg/current-spa-proof.spec.ts:233:2 › source: preview panel uses actual external POST document transport (535ms)
+  ✓   9 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-final-runner/fodaveg/current-spa-proof.spec.ts:255:1 › source: media bootstrap and settings change run real UI handlers (514ms)
+  ✓  10 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-final-runner/fodaveg/current-spa-proof.spec.ts:272:1 › source: trash exposes actual fallback and navigates its CTA (414ms)
+  ✓  11 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-final-runner/fodaveg/current-spa-proof.spec.ts:281:1 › ancestor control: same built app embeds without ancestor rule; source actually blocks it (615ms)
+  ✓  12 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-final-runner/fodaveg/current-spa-proof.spec.ts:385:2 › connect negative › removing only https connect permission blocks actual preview fetch before endpoint (759ms)
+  ✓  13 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-final-runner/fodaveg/current-spa-proof.spec.ts:402:2 › form negative › adding form-action self blocks actual panel POST while token fetch still succeeds (844ms)
+
+  13 passed (10.3s)

@@ -1,0 +1,29 @@
+{
+  "mode": "PUBLIC_VEGA_CONFIG_CLASSIFIER",
+  "pages": {
+    "fodaveg": {
+      "backend": "SAME_ORIGIN",
+      "httpStatus": 200,
+      "mime": "HTML",
+      "overrideUninspected": true,
+      "shape": "PARSE_FAILURE"
+    },
+    "lumbre": {
+      "backend": "SAME_ORIGIN",
+      "httpStatus": 200,
+      "mime": "HTML",
+      "overrideUninspected": true,
+      "shape": "PARSE_FAILURE"
+    },
+    "vega": {
+      "backend": "SAME_ORIGIN",
+      "httpStatus": 200,
+      "mime": "HTML",
+      "overrideUninspected": true,
+      "shape": "PARSE_FAILURE"
+    }
+  },
+  "remoteWrites": false,
+  "schemaVersion": 1,
+  "status": "PROJECTED"
+}

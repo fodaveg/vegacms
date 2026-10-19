@@ -1,0 +1,130 @@
+[WARN] Your node_modules are out of sync with your lockfile. The value of the enableGlobalVirtualStore setting has changed
+
+ RUN  v4.1.10 /private/tmp/vegacms-ui-publish-icons-20261007
+
+ ❯ |component| src/lib/form/RecordForm.publish.svelte.test.ts (16 tests | 4 failed | 11 skipped) 1088ms
+     × readonly status: limpio/sucio=false no ofrece publicación ni confirma un no-op 13ms
+     × readonly status: limpio/sucio=true no ofrece publicación ni confirma un no-op 12ms
+     × readonly publishAt vencido no ofrece acción que requiera vaciar esa fecha 12ms
+     × no confirma publicación si el backend devuelve todavía borrador 1010ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |component| src/lib/form/RecordForm.publish.svelte.test.ts > RecordForm — publicar > readonly status: limpio/sucio=false no ofrece publicación ni confirma un no-op
+ FAIL  |component| src/lib/form/RecordForm.publish.svelte.test.ts > RecordForm — publicar > readonly status: limpio/sucio=true no ofrece publicación ni confirma un no-op
+AssertionError: expected <button type="button" …(2)>…(1)</button> to be null
+
+- Expected:
+null
+
++ Received:
+<button
+  class="vega-visual-publish-btn svelte-a7cl90 vega-visual-publish-btn--primary"
+  data-status-target="published"
+  type="button"
+>
+  <svg
+    aria-hidden="true"
+    fill="none"
+    focusable="false"
+    height="16"
+    role="presentation"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="2"
+    viewBox="0 0 24 24"
+    width="16"
+  >
+    <path
+      d="M8 16c-1-4 3-10 12-12 0 9-6 13-10 12l-2-2zM8 10H4l-2 5 6-1M14 16v4l-5 2 1-6M5 18l-2 3 4-1"
+    />
+    <circle
+      cx="15"
+      cy="9"
+      r="2"
+    />
+    <!---->
+  </svg>
+  <!---->
+   Marcar como publicada
+</button>
+
+ ❯ src/lib/form/RecordForm.publish.svelte.test.ts:316:23
+    314|    const w = await setup({ statusReadonly: true });
+    315|    if (dirty) await editTitle(w, 'Contenido permitido');
+    316|    expect(publish(w)).toBeNull();
+       |                       ^
+    317|    expect(w.onSubmit).not.toHaveBeenCalled();
+    318|    expect(w.saved).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  |component| src/lib/form/RecordForm.publish.svelte.test.ts > RecordForm — publicar > readonly publishAt vencido no ofrece acción que requiera vaciar esa fecha
+AssertionError: expected <button type="button" …(2)>…(1)</button> to be null
+
+- Expected:
+null
+
++ Received:
+<button
+  class="vega-visual-publish-btn svelte-a7cl90 vega-visual-publish-btn--primary"
+  data-status-target="published"
+  type="button"
+>
+  <svg
+    aria-hidden="true"
+    fill="none"
+    focusable="false"
+    height="16"
+    role="presentation"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="2"
+    viewBox="0 0 24 24"
+    width="16"
+  >
+    <path
+      d="M8 16c-1-4 3-10 12-12 0 9-6 13-10 12l-2-2zM8 10H4l-2 5 6-1M14 16v4l-5 2 1-6M5 18l-2 3 4-1"
+    />
+    <circle
+      cx="15"
+      cy="9"
+      r="2"
+    />
+    <!---->
+  </svg>
+  <!---->
+   Marcar como publicada
+</button>
+
+ ❯ src/lib/form/RecordForm.publish.svelte.test.ts:324:22
+    322|  test('readonly publishAt vencido no ofrece acción que requiera vaciar…
+    323|   const w = await setup({ dateReadonly: true });
+    324|   expect(publish(w)).toBeNull();
+       |                      ^
+    325|   expect(
+    326|    [...w.target.querySelectorAll('button')].some(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  |component| src/lib/form/RecordForm.publish.svelte.test.ts > RecordForm — publicar > no confirma publicación si el backend devuelve todavía borrador
+AssertionError: expected "vi.fn()" to be called 1 times, but got 0 times
+ ❯ src/lib/form/RecordForm.publish.svelte.test.ts:336:45
+    334|   const w = await setup({ ignoreStatus: true });
+    335|   publish(w).click();
+    336|   await settled(() => expect(w.reportError).toHaveBeenCalledTimes(1));
+       |                                             ^
+    337|   expect(w.saved).not.toHaveBeenCalled();
+    338|   expect((await stored(w)).status).toBe('draft');
+ ❯ src/lib/form/RecordForm.publish.svelte.test.ts:152:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 1 passed | 11 skipped (16)
+   Start at  19:05:08
+   Duration  3.31s (transform 1.49s, setup 0ms, import 1.71s, tests 1.09s, environment 436ms)
+

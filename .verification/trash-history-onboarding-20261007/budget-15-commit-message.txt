@@ -1,0 +1,20 @@
+perf(form): load editor actions on explicit intent
+
+Load publication, preview and scheduling engines only when requested. Preserve
+save-before-status, review confirmation, permissions, session/record identity,
+focus and cancellation; share the identity guard between deferred consumers.
+
+Verified tree: 80757b27437d67e33d5fe68cda2d6b3a53077ca6
+Checks: six affected Vitest suites --maxWorkers=1, 137/137; svelte-check 0/0;
+ESLint and Prettier seven paths exit 0. Exact argv and log hashes in receipt.
+Build: node scripts/build-themes.mjs; node node_modules/vite/bin/vite.js build
+(session 27217 exit 0); node scripts/check-bundle-budget.mjs exit 0.
+Budget KB: initial 150.26/200, route 79.92/80, total 644.83/1024.
+Review: seven paths and exact-tree evidence accepted in budget-review.md.
+Environment: Darwin, Node 22.22.3, existing dependencies, no install.
+Evidence: /Users/david/code/vegacms/.verification/trash-history-onboarding-20261007/budget-receipt.json
+
+Limits: route margin 0.08 KB; combined root gate remains pending. Retry tests
+exercise a new attempt when the loader is available, not real browser JS/CSS
+chunk cache recovery. Scheduling decision and earlier red budgets retained in
+receipt. No author browser/fullgate, push or deployment.

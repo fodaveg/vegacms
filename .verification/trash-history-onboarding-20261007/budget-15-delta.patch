@@ -1,0 +1,289 @@
+diff --git a/src/lib/form/FormPublishControl.svelte b/src/lib/form/FormPublishControl.svelte
+index 5cef5f7..30ab8e3 100644
+--- a/src/lib/form/FormPublishControl.svelte
++++ b/src/lib/form/FormPublishControl.svelte
+@@ -5,19 +5,10 @@
+ 	import { getVegaContext } from '$lib/app-context';
+ 	import Icon from '$lib/icons/Icon.svelte';
+ 	import { describeScheduleControl } from './schedule';
++	import { captureEditorIdentity, currentEditorIdentity } from './deferred-editor-identity';
+ 
+ 	type ControlComponent = typeof import('$lib/visual/VisualPublishControl.svelte').default;
+-	let {
+-		type,
+-		record,
+-		name,
+-		pendingBlocks,
+-		review = null,
+-		onReviewGo,
+-		onReviewDescribe,
+-		onChange,
+-		disabled = false
+-	}: Omit<ComponentProps<ControlComponent>, 'compact'> = $props();
++	let props: Omit<ComponentProps<ControlComponent>, 'compact'> = $props();
+ 	const ctx = getVegaContext();
+ 	let Control = $state.raw<ControlComponent | null>(null);
+ 	let control = $state<{ requestChange(): Promise<void>; focus(): void } | null>(null);
+@@ -31,25 +22,29 @@
+ 	});
+ 
+ 	const canEdit = $derived(
+-		type.permissions.update &&
+-			!type.readonly &&
+-			type.statusField !== null &&
+-			type.fields.some((field) => field.name === type.statusField && !field.schema.readonly)
++		props.type.permissions.update &&
++			!props.type.readonly &&
++			props.type.statusField !== null &&
++			props.type.fields.some(
++				(field) => field.name === props.type.statusField && !field.schema.readonly
++			)
+ 	);
+ 	const target = $derived(
+-		type.statusField && record.values[type.statusField] === 'published' ? 'draft' : 'published'
++		props.type.statusField && props.record.values[props.type.statusField] === 'published'
++			? 'draft'
++			: 'published'
+ 	);
+ 	const schedule = $derived(
+ 		describeScheduleControl(
+-			type,
+-			record.values,
++			props.type,
++			props.record.values,
+ 			ctx.model.scheduledPublishing ?? 'unknown',
+ 			!canEdit
+ 		)
+ 	);
+ 	const asksConfirmation = $derived(
+ 		target === 'published' &&
+-			(pendingBlocks.length > 0 || (review?.enabled && review.needsAttention))
++			(props.pendingBlocks.length > 0 || (props.review?.enabled && props.review.needsAttention))
+ 	);
+ 	const actionLabel = $derived(
+ 		loading
+@@ -65,38 +60,21 @@
+ 					)
+ 	);
+ 
+-	/** One activation, even while loading. Discard an old intent after navigation or auth changes;
+-	 * an import failure never writes, and another activation can retry loading the same control. */
++	/** One activation while loading; discard stale identity or permission without writing. */
+ 	export async function requestChange(): Promise<void> {
+-		const session = ctx.session;
+-		if (!alive || !session || loading || disabled || !canEdit) return;
++		const identity = captureEditorIdentity(ctx, props.type.name, props.record.id);
++		if (!alive || !identity || loading || props.disabled || !canEdit) return;
+ 		if (control) {
+ 			await control.requestChange();
+ 			return;
+ 		}
+-		const identity = {
+-			port: ctx.port,
+-			token: session.token,
+-			user: session.user.id,
+-			type: type.name,
+-			id: record.id,
+-			target
+-		};
+-		const current = () => {
+-			const session = ctx.session;
+-			return (
+-				alive &&
+-				session &&
+-				!disabled &&
+-				canEdit &&
+-				identity.port === ctx.port &&
+-				identity.token === session.token &&
+-				identity.user === session.user.id &&
+-				identity.type === type.name &&
+-				identity.id === record.id &&
+-				identity.target === target
+-			);
+-		};
++		const intendedTarget = target;
++		const current = () =>
++			alive &&
++			!props.disabled &&
++			canEdit &&
++			intendedTarget === target &&
++			currentEditorIdentity(ctx, identity, props.type.name, props.record.id);
+ 		loading = true;
+ 		loadFailed = false;
+ 		try {
+@@ -118,7 +96,6 @@
+ 			if (alive) loading = false;
+ 		}
+ 	}
+-
+ 	export function focus(): void {
+ 		if (control) control.focus();
+ 		else actionEl?.focus();
+@@ -126,19 +103,7 @@
+ </script>
+ 
+ {#if Control}
+-	<Control
+-		bind:this={control}
+-		{type}
+-		{record}
+-		{name}
+-		{pendingBlocks}
+-		{review}
+-		{onReviewGo}
+-		{onReviewDescribe}
+-		{onChange}
+-		{disabled}
+-		compact
+-	/>
++	<Control {...props} bind:this={control} compact />
+ {:else if canEdit}
+ 	<span
+ 		class="vega-visual-publish"
+@@ -150,24 +115,21 @@
+ 			class="vega-visual-publish-btn"
+ 			class:vega-visual-publish-btn--primary={target === 'published'}
+ 			bind:this={actionEl}
+-			aria-disabled={loading || disabled ? 'true' : undefined}
++			aria-disabled={loading || props.disabled ? 'true' : undefined}
+ 			aria-busy={loading ? 'true' : undefined}
+ 			aria-expanded={asksConfirmation ? false : undefined}
+ 			data-status-target={target}
+ 			onclick={() => void requestChange()}
+ 		>
+-			{#if target === 'published'}<Icon id="publish" size={16} />{/if}
+-			{actionLabel}
++			{#if target === 'published'}<Icon id="publish" size={16} />{/if}{actionLabel}
+ 		</button>
+-		{#if loadFailed}
+-			<span class="vega-visual-publish-error" role="alert">
+-				{ctx.t(
++		{#if loadFailed}<span class="vega-visual-publish-error" role="alert"
++				>{ctx.t(
+ 					target === 'published'
+ 						? 'editor.visual.status.error.publish'
+ 						: 'editor.visual.status.error.unpublish'
+-				)}
+-			</span>
+-		{/if}
++				)}</span
++			>{/if}
+ 	</span>
+ {/if}
+ 
+diff --git a/src/lib/form/RecordForm.svelte b/src/lib/form/RecordForm.svelte
+index 0edd550..5480297 100644
+--- a/src/lib/form/RecordForm.svelte
++++ b/src/lib/form/RecordForm.svelte
+@@ -337,6 +337,7 @@
+ 	import ConflictNotice from './ConflictNotice.svelte';
+ 	import { classifyRecordSaveError, sendRecord } from './record-save';
+ 	import FormPublishControl from './FormPublishControl.svelte';
++	import { captureEditorIdentity, currentEditorIdentity } from './deferred-editor-identity';
+ 	import { recordConflictRows } from './record-conflict-rows';
+ 	import { handleRecordSaveKeydown } from './record-save-keyboard';
+ 	import RedirectOffer from './RedirectOffer.svelte';
+@@ -697,33 +698,6 @@
+ 	const previewCapable = $derived(
+ 		(ctx.port.previewApiUrl ?? null) !== null && model.recordId !== null
+ 	);
+-	/** Local identity shared by interaction-only editor loads. Logout has a null session before
+-	 * the form unmounts; capture once and compare the full backend/user/record boundary. */
+-	function captureEditorIdentity() {
+-		const session = ctx.session;
+-		return session
+-			? {
+-					port: ctx.port,
+-					token: session.token,
+-					user: session.user.id,
+-					type: type.name,
+-					id: model.recordId
+-				}
+-			: null;
+-	}
+-	function currentEditorIdentity(
+-		identity: NonNullable<ReturnType<typeof captureEditorIdentity>>
+-	): boolean {
+-		const current = captureEditorIdentity();
+-		return (
+-			current !== null &&
+-			identity.port === current.port &&
+-			identity.token === current.token &&
+-			identity.user === current.user &&
+-			identity.type === current.type &&
+-			identity.id === current.id
+-		);
+-	}
+ 	/** Fetch the panel only on explicit opening, preserving its mount/unmount timer lifecycle.
+ 	 * Each opening has its own identity; closing or changing session discards a pending import. */
+ 	async function togglePreview(): Promise<void> {
+@@ -733,7 +707,7 @@
+ 			previewOpening = false;
+ 			return;
+ 		}
+-		const identity = captureEditorIdentity();
++		const identity = captureEditorIdentity(ctx, type.name, model.recordId);
+ 		if (!previewCapable || !identity || shareDestroyed) return;
+ 		previewPanelOpen = true;
+ 		if (PreviewPanel) return;
+@@ -743,7 +717,7 @@
+ 			request === previewRequest &&
+ 			previewPanelOpen &&
+ 			previewCapable &&
+-			currentEditorIdentity(identity);
++			currentEditorIdentity(ctx, identity, type.name, model.recordId);
+ 		previewOpening = true;
+ 		try {
+ 			const component = (await import('./PreviewPanel.svelte')).default;
+@@ -1697,7 +1671,7 @@
+ 		return !formDisabled && !submitBlocked && scheduleControl.kind !== 'none';
+ 	}
+ 	async function openSchedule(event: MouseEvent): Promise<void> {
+-		const identity = captureEditorIdentity();
++		const identity = captureEditorIdentity(ctx, type.name, model.recordId);
+ 		if (
+ 			!identity ||
+ 			shareDestroyed ||
+@@ -1719,7 +1693,7 @@
+ 			!shareDestroyed &&
+ 			request === scheduleRequest &&
+ 			scheduleActionAvailable() &&
+-			currentEditorIdentity(identity);
++			currentEditorIdentity(ctx, identity, type.name, model.recordId);
+ 		scheduleOpening = true;
+ 		try {
+ 			const component = (await import('./ScheduleDialog.svelte')).default;
+diff --git a/src/lib/form/deferred-editor-identity.ts b/src/lib/form/deferred-editor-identity.ts
+new file mode 100644
+index 0000000..0865645
+--- /dev/null
++++ b/src/lib/form/deferred-editor-identity.ts
+@@ -0,0 +1,28 @@
++import type { VegaAppContext } from '$lib/app-context';
++
++type Context = Pick<VegaAppContext, 'port' | 'session'>;
++
++/** Interaction-only imports belong to one backend, authenticated person and editor record.
++ * Logout can expose a null session before the editor unmounts. */
++export function captureEditorIdentity(ctx: Context, type: string, id: string | null) {
++	const session = ctx.session;
++	return session ? { port: ctx.port, token: session.token, user: session.user.id, type, id } : null;
++}
++
++/** Recheck the same boundary after await; it never revives an intent from an earlier context. */
++export function currentEditorIdentity(
++	ctx: Context,
++	identity: NonNullable<ReturnType<typeof captureEditorIdentity>>,
++	type: string,
++	id: string | null
++): boolean {
++	const current = captureEditorIdentity(ctx, type, id);
++	return (
++		current !== null &&
++		identity.port === current.port &&
++		identity.token === current.token &&
++		identity.user === current.user &&
++		identity.type === current.type &&
++		identity.id === current.id
++	);
++}

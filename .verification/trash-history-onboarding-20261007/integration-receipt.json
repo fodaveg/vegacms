@@ -1,0 +1,142 @@
+{
+  "author": "fa03bf15e5d50ebbe315e73509fb11f5de6f1fa4",
+  "candidate": "fddd65b75375cd0c8e52b98696e0fcf9b8640276",
+  "tree": "db235679f77d56df5fd27867aed716ed797e92ec",
+  "file_blobs": [
+    {
+      "path": "src/lib/app-context.ts",
+      "author_blob": "df0ad432761f6d6d32ff05050258da8ba22478f9",
+      "root_blob": "df0ad432761f6d6d32ff05050258da8ba22478f9",
+      "equal": true
+    },
+    {
+      "path": "src/lib/home/RevisionsOnboarding.svelte",
+      "author_blob": "cfdc234056358aa8ca1333eb88cd646541504a2a",
+      "root_blob": "cfdc234056358aa8ca1333eb88cd646541504a2a",
+      "equal": true
+    },
+    {
+      "path": "src/lib/home/fixture.ts",
+      "author_blob": "4b695a500c8b8b6cbeb38d5b862f95156c6cf120",
+      "root_blob": "4b695a500c8b8b6cbeb38d5b862f95156c6cf120",
+      "equal": true
+    },
+    {
+      "path": "src/lib/home/home-page.svelte.test.ts",
+      "author_blob": "33c52118490793f41224f0da3a1fb4faad741d97",
+      "root_blob": "33c52118490793f41224f0da3a1fb4faad741d97",
+      "equal": true
+    },
+    {
+      "path": "src/lib/home/revisions-onboarding.dom.test.ts",
+      "author_blob": "d8e358dd9286b0467bd308ece8b1903fe992c0c4",
+      "root_blob": "d8e358dd9286b0467bd308ece8b1903fe992c0c4",
+      "equal": true
+    },
+    {
+      "path": "src/lib/home/revisions-onboarding.ts",
+      "author_blob": "b016252467d264bca7c6442664cb039e96726a8e",
+      "root_blob": "b016252467d264bca7c6442664cb039e96726a8e",
+      "equal": true
+    },
+    {
+      "path": "src/lib/i18n/en.ts",
+      "author_blob": "a00cc062b2755228f7e42bc0ea564276933e5037",
+      "root_blob": "3ae302620b515a5bb5d955c7f74633e9fed64df2",
+      "equal": false
+    },
+    {
+      "path": "src/lib/i18n/es.ts",
+      "author_blob": "1e872b86ee1c54b4ad7d2620155cf1cd067a4498",
+      "root_blob": "9813331c113e75f51877cb1e58dc2b6d7b49b9c4",
+      "equal": false
+    },
+    {
+      "path": "src/lib/revisions/delete-feedback.test.ts",
+      "author_blob": "7e483efc579acf6ffefed9208566e921a53b641a",
+      "root_blob": "7e483efc579acf6ffefed9208566e921a53b641a",
+      "equal": true
+    },
+    {
+      "path": "src/lib/revisions/delete-feedback.ts",
+      "author_blob": "eb4ac98534504e365049bbc3ae7a7175ff48a8c5",
+      "root_blob": "eb4ac98534504e365049bbc3ae7a7175ff48a8c5",
+      "equal": true
+    },
+    {
+      "path": "src/lib/revisions/with-revisions.test.ts",
+      "author_blob": "3570962860c8819a0ece9fad3893fc9253a80595",
+      "root_blob": "3570962860c8819a0ece9fad3893fc9253a80595",
+      "equal": true
+    },
+    {
+      "path": "src/lib/revisions/with-revisions.ts",
+      "author_blob": "f1aff6d988e748fca25ab4d9e6ed0eaeb5e3f6bd",
+      "root_blob": "f1aff6d988e748fca25ab4d9e6ed0eaeb5e3f6bd",
+      "equal": true
+    },
+    {
+      "path": "src/lib/session/backend-config.test.ts",
+      "author_blob": "cb4552417d1dcbd7bfb32581b369a7bd09b75370",
+      "root_blob": "cb4552417d1dcbd7bfb32581b369a7bd09b75370",
+      "equal": true
+    },
+    {
+      "path": "src/lib/session/backend-config.ts",
+      "author_blob": "5d3d05722b90dece1ed9dd5fa244a0f8540fac8d",
+      "root_blob": "5d3d05722b90dece1ed9dd5fa244a0f8540fac8d",
+      "equal": true
+    },
+    {
+      "path": "src/lib/session/backend.ts",
+      "author_blob": "6a942b7d57112da6984eb960d9fd8dc93291ddae",
+      "root_blob": "6a942b7d57112da6984eb960d9fd8dc93291ddae",
+      "equal": true
+    },
+    {
+      "path": "src/lib/shell/ToastHost.svelte",
+      "author_blob": "a067c434b683ed542103c91e66a17d00db3658e1",
+      "root_blob": "a067c434b683ed542103c91e66a17d00db3658e1",
+      "equal": true
+    },
+    {
+      "path": "src/lib/shell/toasts.svelte.test.ts",
+      "author_blob": "b1d4d0f9812fa9794649d1f3bc17c777bcef8ffa",
+      "root_blob": "b1d4d0f9812fa9794649d1f3bc17c777bcef8ffa",
+      "equal": true
+    },
+    {
+      "path": "src/lib/shell/toasts.svelte.ts",
+      "author_blob": "afa41b740f23ff14c802071893a08bcba9419860",
+      "root_blob": "afa41b740f23ff14c802071893a08bcba9419860",
+      "equal": true
+    },
+    {
+      "path": "src/routes/+layout.svelte",
+      "author_blob": "3e035fb8d02e3d1fc48e49392e5badfa476d22a5",
+      "root_blob": "3e035fb8d02e3d1fc48e49392e5badfa476d22a5",
+      "equal": true
+    },
+    {
+      "path": "src/routes/+page.svelte",
+      "author_blob": "a93020551b71c3b13701c3f3fbce07be0fa6376d",
+      "root_blob": "a93020551b71c3b13701c3f3fbce07be0fa6376d",
+      "equal": true
+    },
+    {
+      "path": "src/routes/c/[type]/+page.svelte",
+      "author_blob": "0493b9005d4d6af99b542e50e8f017b800d0e57e",
+      "root_blob": "0493b9005d4d6af99b542e50e8f017b800d0e57e",
+      "equal": true
+    },
+    {
+      "path": "src/routes/c/[type]/[id]/+page.svelte",
+      "author_blob": "3b1e36b4ae54efec023b2122df0c6081562f3a47",
+      "root_blob": "3b1e36b4ae54efec023b2122df0c6081562f3a47",
+      "equal": true
+    }
+  ],
+  "language_merges": "added/removed source lines match author exactly; imports namespace retained",
+  "full_gate": "pending combined viewport",
+  "clean": true
+}

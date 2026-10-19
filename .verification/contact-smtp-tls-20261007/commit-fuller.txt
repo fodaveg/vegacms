@@ -1,0 +1,35 @@
+commit 57ad99221e174173f9575a36624ea219b49c24a5
+Author:     David Velasco <fodaveg@fodaveg.net>
+AuthorDate: Wed Oct 7 14:02:03 2026 +0200
+Commit:     David Velasco <fodaveg@fodaveg.net>
+CommitDate: Wed Oct 7 14:02:03 2026 +0200
+
+    test(contact): verify SMTP TLS rejection with real PocketBase
+    
+    Add an ephemeral TLS SMTP sink and exercise rejection of an untrusted CA
+    against the real contact notification hook. Keep the trusted-CA hostname
+    rejection and pending-to-sent retry behind an explicit process-trust opt-in.
+    
+    Verified source tree: a9000fd5d230cd482dbbb425f21a64367e283e26
+    Canonical receipt:
+     /Users/david/code/vegacms/.verification/contact-smtp-tls-20261007/receipt.json
+    
+    Verification on Node 22.22.3, PocketBase 0.39.9 (Darwin, Go 1.26.5),
+    and existing OpenSSL 4.0.3:
+    - TLS negative: passed; handshake rejected, no mail, pending preserved,
+      and a second anonymous POST independent.
+    - Contact and SMTP settings: 38 passed, 1 trusted-CA opt-in skipped.
+    - SMTP invitation flow: passed (unrelated tests filtered).
+    - svelte-check: zero errors/warnings; ESLint on both paths and format clean.
+    - Complete worktree inventory/diff: only the two owned TS files changed;
+      no tracked package, lockfile or configuration changes.
+    
+    pnpm exec ran automatic prepare on the existing APFS-cloned dependencies;
+    no package downloads were observed. Subsequent checks used existing CLIs
+    directly. OpenSSL executed to generate ephemeral certificates; no OpenSSL
+    installation was performed by this task.
+    
+    The trusted-CA positive was not executed because the current Darwin
+    Go 1.26.5 binary ignores file-based platform trust. Exact image identity,
+    packaged-hook runtime and the real SMTP provider remain unverified.
+    This private test candidate does not close the SMTP task.

@@ -1,0 +1,14 @@
+[WARN] Your node_modules are out of sync with your lockfile. The value of the enableGlobalVirtualStore setting has changed
+$ svelte-kit sync && svelte-check --tsconfig ./tsconfig.json
+Loading svelte-check in workspace: /private/tmp/vegacms-ui-publish-icons-20261007
+Getting Svelte diagnostics...
+
+/private/tmp/vegacms-ui-publish-icons-20261007/src/lib/form/RecordForm.svelte:1828:40
+Error: Property 'pendingBlockTitles' does not exist on type '{ expand: (id: string) => void; }'. (ts)
+							name={docName}
+							pendingBlocks={recordBlocksRef?.pendingBlockTitles() ?? []}
+							{review}
+
+====================================
+svelte-check found 1 error and 0 warnings in 1 file
+[ELIFECYCLE] Command failed with exit code 1.

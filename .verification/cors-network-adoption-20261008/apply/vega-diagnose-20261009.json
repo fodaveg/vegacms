@@ -1,0 +1,19 @@
+{
+  "backupId": "vega-pb-20261008T220737Z-3510397",
+  "commandClass": "BEFORE",
+  "composeClass": "TARGET",
+  "composeOwned": true,
+  "envMatches": true,
+  "imageMatches": true,
+  "labelsMatch": true,
+  "phase": "INSTALLED",
+  "privateValuesExported": false,
+  "recordNewId": null,
+  "recordRollbackId": null,
+  "remoteWrites": false,
+  "running": false,
+  "selection": "OLD",
+  "status": "PROJECTED",
+  "topologyMatch": false,
+  "volumeUsers": "NONE"
+}

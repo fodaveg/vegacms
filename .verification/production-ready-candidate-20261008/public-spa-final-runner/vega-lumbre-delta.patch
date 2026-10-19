@@ -1,0 +1,11 @@
+--- version/spec
++++ final/spec
+@@ -213,7 +213,7 @@
+ 	await login(page, true);
+ 	await page.goto('/c/paginas/pagina_1/visual');
+ 	await expect(page.locator('.vega-visual-status-text')).toHaveText(
+-		'Conectado al sitio: 3 bloques en la página.'
++		'Conectado al sitio: 3 bloque(s) en la página.'
+ 	);
+ 	await expect.poll(() => counts.tokenPosts).toBeGreaterThan(0);
+ 	await page

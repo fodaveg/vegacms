@@ -1,0 +1,13 @@
+{
+  "operationId": "d42f490f-606d-42d5-84f9-bd0c31da2492",
+  "status": "REJECTED_BEFORE_CREATE_PROCESS",
+  "reason": "Visible authorization did not explicitly cover this concrete remote production cutover",
+  "remoteExecuted": false,
+  "executionArtifactsPresent": {
+    "forward-cutover-approval.json": false,
+    "forward-cutover-started.json": false,
+    "forward-cutover-execution.json": false
+  },
+  "userQuestion": "Exact forward cutover approval requested asynchronously; no reply yet",
+  "recordedAt": "2026-10-09T06:23:22.800318+00:00"
+}

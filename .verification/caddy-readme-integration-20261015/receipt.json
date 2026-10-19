@@ -1,0 +1,14 @@
+{
+  "sourceCommit": "77177f62b858d61c93ce163775348660294c2ade",
+  "baseCommit": "b00186ce5587fcc7323aefdd9d3cdcbfea281750",
+  "verifiedStagedTree": "74c3ff5a2ba5372f97bc48fa5734a1b3b57bc095",
+  "scope": ["infra/production/README.md"],
+  "completeDiffRead": true,
+  "cachedDiffCheckExitCode": 0,
+  "independentReview": ".verification/release-adoption-plan-20261008/caddy-global-logs-20261015-fresh-review.md",
+  "candidateManifestSHA256": "6714b66cf757b22fae420e75f2b0135e9358d239f01d0b6c1f4d151458998646",
+  "localOnly": true,
+  "pushExecuted": false,
+  "deployExecuted": false,
+  "platform": "Darwin"
+}

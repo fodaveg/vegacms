@@ -1,0 +1,28 @@
+{
+  "archiveBytes": 110406535,
+  "archiveFiles": 71,
+  "archiveIdentity": [
+    2049,
+    433285,
+    0,
+    0,
+    384,
+    110406535,
+    1791501199906887961,
+    1791501200051887374
+  ],
+  "archiveSha": "3a78532b99aea0dd1a424039ea0fca0eed67b9ef4026d48049cfc0f89285bdde",
+  "backupId": "fodaveg-20261008T231304Z-3656162",
+  "budgetPassed": false,
+  "expandedBytes": 875290525,
+  "freeDockerKiB": 1280472,
+  "freeSrvKiB": 1280472,
+  "oldRuntimePinsPreserved": true,
+  "privateValuesExported": false,
+  "remoteWrites": false,
+  "requiredDockerKiB": 1510136,
+  "requiredSrvKiB": 1511160,
+  "sameFilesystem": true,
+  "snapshotStable": true,
+  "status": "ARCHIVE_AND_BUDGET_PROJECTED"
+}

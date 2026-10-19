@@ -1,0 +1,15 @@
+{
+  "candidateSha": "56caa1a1273feaa3c56b34db7724177c448190d1c28d723d53a5b62fbe110ae9",
+  "composeSha": "7ed9a9e225790a4e15ccef3ce4c110b8d3b22e0fef53e6c1840d286181ebb8dd",
+  "containerId": "6241f7d6b8d1a2dda326770a318a1d3b94d84b032cc5df050527f9631e75f7d6",
+  "freeDockerKiB": 4880048,
+  "freeSrvKiB": 3201132,
+  "imageId": "sha256:40df6a9bbcfd4edbc93680b0f45946d0be7c50c4e5c470167e33646fe499c1b7",
+  "remoteWrites": false,
+  "requiredDockerKiB": 547888,
+  "requiredSrvKiB": 547888,
+  "sameFilesystem": false,
+  "service": "lumbre-admin-pb",
+  "status": "READY_FOR_REVIEW",
+  "volumeKiB": 23600
+}

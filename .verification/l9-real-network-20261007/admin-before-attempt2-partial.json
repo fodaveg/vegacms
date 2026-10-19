@@ -1,0 +1,1794 @@
+{
+  "candidate": "before-dae1c8c",
+  "tree": "4537fbdcf63dfccde590ab2e38eb30eb9aebaea8",
+  "browserVersion": "149.0.7827.55",
+  "scope": "local real PocketBase HTTP + static admin build",
+  "results": [
+    {
+      "scenario": "relation-50-titles",
+      "iteration": 1,
+      "phase": "first",
+      "observations": {
+        "resolvedChips": 50
+      },
+      "pageErrors": [],
+      "browser": {
+        "count": 53,
+        "decodedBodyBytes": 739306,
+        "maxInFlight": 53,
+        "listIds": [],
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 66678,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 663717,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/tags/records/:id": {
+            "count": 50,
+            "bytes": 8600,
+            "statuses": {
+              "200": 50
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/blocks/records": {
+            "count": 1,
+            "bytes": 311,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      },
+      "pocketbase": {
+        "count": 53,
+        "decodedBodyBytes": 739306,
+        "maxInFlight": 5,
+        "listIds": [
+          {
+            "count": 30,
+            "unique": 30
+          }
+        ],
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 66678,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 663717,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/tags/records/:id": {
+            "count": 50,
+            "bytes": 8600,
+            "statuses": {
+              "200": 50
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/blocks/records": {
+            "count": 1,
+            "bytes": 311,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      }
+    },
+    {
+      "scenario": "relation-50-titles",
+      "iteration": 1,
+      "phase": "warm",
+      "observations": {
+        "resolvedChips": 50
+      },
+      "pageErrors": [],
+      "browser": {
+        "count": 53,
+        "decodedBodyBytes": 739306,
+        "maxInFlight": 53,
+        "listIds": [],
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 66678,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 663717,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/tags/records/:id": {
+            "count": 50,
+            "bytes": 8600,
+            "statuses": {
+              "200": 50
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/blocks/records": {
+            "count": 1,
+            "bytes": 311,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      },
+      "pocketbase": {
+        "count": 53,
+        "decodedBodyBytes": 739306,
+        "maxInFlight": 6,
+        "listIds": [
+          {
+            "count": 30,
+            "unique": 30
+          }
+        ],
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 66678,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 663717,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/tags/records/:id": {
+            "count": 50,
+            "bytes": 8600,
+            "statuses": {
+              "200": 50
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/blocks/records": {
+            "count": 1,
+            "bytes": 311,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      }
+    },
+    {
+      "scenario": "relation-list-denied-get-visible",
+      "iteration": 1,
+      "phase": "warm",
+      "observations": {
+        "resolvedChips": 50
+      },
+      "pageErrors": [],
+      "browser": {
+        "count": 53,
+        "decodedBodyBytes": 739306,
+        "maxInFlight": 53,
+        "listIds": [],
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 66678,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 663717,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/tags/records/:id": {
+            "count": 50,
+            "bytes": 8600,
+            "statuses": {
+              "200": 50
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/blocks/records": {
+            "count": 1,
+            "bytes": 311,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      },
+      "pocketbase": {
+        "count": 53,
+        "decodedBodyBytes": 739306,
+        "maxInFlight": 6,
+        "listIds": [
+          {
+            "count": 30,
+            "unique": 30
+          }
+        ],
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 66678,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 663717,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/tags/records/:id": {
+            "count": 50,
+            "bytes": 8600,
+            "statuses": {
+              "200": 50
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/blocks/records": {
+            "count": 1,
+            "bytes": 311,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      }
+    },
+    {
+      "scenario": "global-search-projection",
+      "iteration": 1,
+      "phase": "first",
+      "observations": {
+        "options": 5
+      },
+      "pageErrors": [],
+      "browser": {
+        "count": 3,
+        "decodedBodyBytes": 329986,
+        "maxInFlight": 3,
+        "listIds": [],
+        "groups": {
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 329858,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/tags/records": {
+            "count": 1,
+            "bytes": 64,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/blocks/records": {
+            "count": 1,
+            "bytes": 64,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      },
+      "pocketbase": {
+        "count": 3,
+        "decodedBodyBytes": 329986,
+        "maxInFlight": 3,
+        "listIds": [
+          {
+            "count": 5,
+            "unique": 5
+          }
+        ],
+        "groups": {
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 329858,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/tags/records": {
+            "count": 1,
+            "bytes": 64,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/blocks/records": {
+            "count": 1,
+            "bytes": 64,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      }
+    },
+    {
+      "scenario": "global-search-projection",
+      "iteration": 1,
+      "phase": "warm",
+      "observations": {
+        "options": 5
+      },
+      "pageErrors": [],
+      "browser": {
+        "count": 3,
+        "decodedBodyBytes": 329986,
+        "maxInFlight": 3,
+        "listIds": [],
+        "groups": {
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 329858,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/tags/records": {
+            "count": 1,
+            "bytes": 64,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/blocks/records": {
+            "count": 1,
+            "bytes": 64,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      },
+      "pocketbase": {
+        "count": 3,
+        "decodedBodyBytes": 329986,
+        "maxInFlight": 3,
+        "listIds": [
+          {
+            "count": 5,
+            "unique": 5
+          }
+        ],
+        "groups": {
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 329858,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/tags/records": {
+            "count": 1,
+            "bytes": 64,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/blocks/records": {
+            "count": 1,
+            "bytes": 64,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      }
+    },
+    {
+      "scenario": "save-preimage-and-snapshot",
+      "iteration": 1,
+      "phase": "first",
+      "observations": {},
+      "pageErrors": [],
+      "browser": {
+        "count": 7,
+        "decodedBodyBytes": 932905,
+        "maxInFlight": 3,
+        "listIds": [],
+        "groups": {
+          "GET /api/collections/vega/records": {
+            "count": 1,
+            "bytes": 5758,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records/:id": {
+            "count": 2,
+            "bytes": 131558,
+            "statuses": {
+              "200": 2
+            },
+            "fields": [
+              null
+            ]
+          },
+          "PATCH /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 65784,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "POST /api/collections/vega_revisions/records": {
+            "count": 1,
+            "bytes": 65956,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/vega_revisions/records": {
+            "count": 1,
+            "bytes": 127,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              "id,created"
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 663722,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      },
+      "pocketbase": {
+        "count": 7,
+        "decodedBodyBytes": 932905,
+        "maxInFlight": 2,
+        "listIds": [
+          {
+            "count": 30,
+            "unique": 30
+          }
+        ],
+        "groups": {
+          "GET /api/collections/vega/records": {
+            "count": 1,
+            "bytes": 5758,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records/:id": {
+            "count": 2,
+            "bytes": 131558,
+            "statuses": {
+              "200": 2
+            },
+            "fields": [
+              null
+            ]
+          },
+          "PATCH /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 65784,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "POST /api/collections/vega_revisions/records": {
+            "count": 1,
+            "bytes": 65956,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 663722,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/vega_revisions/records": {
+            "count": 1,
+            "bytes": 127,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              "id,created"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "scenario": "save-preimage-and-snapshot",
+      "iteration": 1,
+      "phase": "warm",
+      "observations": {},
+      "pageErrors": [],
+      "browser": {
+        "count": 6,
+        "decodedBodyBytes": 927165,
+        "maxInFlight": 3,
+        "listIds": [],
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 2,
+            "bytes": 131568,
+            "statuses": {
+              "200": 2
+            },
+            "fields": [
+              null
+            ]
+          },
+          "PATCH /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 65783,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "POST /api/collections/vega_revisions/records": {
+            "count": 1,
+            "bytes": 65966,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/vega_revisions/records": {
+            "count": 1,
+            "bytes": 127,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              "id,created"
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 663721,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      },
+      "pocketbase": {
+        "count": 6,
+        "decodedBodyBytes": 927165,
+        "maxInFlight": 2,
+        "listIds": [
+          {
+            "count": 30,
+            "unique": 30
+          }
+        ],
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 2,
+            "bytes": 131568,
+            "statuses": {
+              "200": 2
+            },
+            "fields": [
+              null
+            ]
+          },
+          "PATCH /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 65783,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "POST /api/collections/vega_revisions/records": {
+            "count": 1,
+            "bytes": 65966,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/vega_revisions/records": {
+            "count": 1,
+            "bytes": 127,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              "id,created"
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 663721,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      }
+    },
+    {
+      "scenario": "rail-open-outside-first-page",
+      "iteration": 1,
+      "phase": "first",
+      "observations": {
+        "selected": 0
+      },
+      "pageErrors": [],
+      "browser": {
+        "count": 3,
+        "decodedBodyBytes": 664031,
+        "maxInFlight": 3,
+        "listIds": [],
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 248,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 663717,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/blocks/records": {
+            "count": 1,
+            "bytes": 66,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      },
+      "pocketbase": {
+        "count": 3,
+        "decodedBodyBytes": 664031,
+        "maxInFlight": 2,
+        "listIds": [
+          {
+            "count": 30,
+            "unique": 30
+          }
+        ],
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 248,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 663717,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/blocks/records": {
+            "count": 1,
+            "bytes": 66,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      }
+    },
+    {
+      "scenario": "rail-save-title",
+      "iteration": 1,
+      "phase": "first",
+      "observations": {
+        "selected": 0
+      },
+      "pageErrors": [],
+      "browser": {
+        "count": 7,
+        "decodedBodyBytes": 670775,
+        "maxInFlight": 3,
+        "listIds": [],
+        "groups": {
+          "GET /api/collections/vega/records": {
+            "count": 1,
+            "bytes": 5758,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records/:id": {
+            "count": 2,
+            "bytes": 496,
+            "statuses": {
+              "200": 2
+            },
+            "fields": [
+              null
+            ]
+          },
+          "PATCH /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 253,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "POST /api/collections/vega_revisions/records": {
+            "count": 1,
+            "bytes": 424,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/vega_revisions/records": {
+            "count": 1,
+            "bytes": 127,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              "id,created"
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 663717,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      },
+      "pocketbase": {
+        "count": 7,
+        "decodedBodyBytes": 670775,
+        "maxInFlight": 2,
+        "listIds": [
+          {
+            "count": 30,
+            "unique": 30
+          }
+        ],
+        "groups": {
+          "GET /api/collections/vega/records": {
+            "count": 1,
+            "bytes": 5758,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records/:id": {
+            "count": 2,
+            "bytes": 496,
+            "statuses": {
+              "200": 2
+            },
+            "fields": [
+              null
+            ]
+          },
+          "PATCH /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 253,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "POST /api/collections/vega_revisions/records": {
+            "count": 1,
+            "bytes": 424,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 663717,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/vega_revisions/records": {
+            "count": 1,
+            "bytes": 127,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              "id,created"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "scenario": "rail-save-during-real-list-response",
+      "iteration": 1,
+      "phase": "first",
+      "observations": {
+        "selected": 1,
+        "latestVisible": true,
+        "peerPreserved": true
+      },
+      "pageErrors": [],
+      "browser": {
+        "count": 18,
+        "decodedBodyBytes": 1995570,
+        "maxInFlight": 5,
+        "listIds": [],
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 6,
+            "bytes": 1530,
+            "statuses": {
+              "200": 6
+            },
+            "fields": [
+              null
+            ]
+          },
+          "PATCH /api/collections/pages/records/:id": {
+            "count": 3,
+            "bytes": 766,
+            "statuses": {
+              "200": 3
+            },
+            "fields": [
+              null
+            ]
+          },
+          "POST /api/collections/vega_revisions/records": {
+            "count": 3,
+            "bytes": 1316,
+            "statuses": {
+              "200": 3
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/vega_revisions/records": {
+            "count": 3,
+            "bytes": 753,
+            "statuses": {
+              "200": 3
+            },
+            "fields": [
+              "id,created"
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 3,
+            "bytes": 1991205,
+            "statuses": {
+              "200": 3
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      },
+      "pocketbase": {
+        "count": 18,
+        "decodedBodyBytes": 1995570,
+        "maxInFlight": 2,
+        "listIds": [
+          {
+            "count": 30,
+            "unique": 30
+          },
+          {
+            "count": 30,
+            "unique": 30
+          },
+          {
+            "count": 30,
+            "unique": 30
+          }
+        ],
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 6,
+            "bytes": 1530,
+            "statuses": {
+              "200": 6
+            },
+            "fields": [
+              null
+            ]
+          },
+          "PATCH /api/collections/pages/records/:id": {
+            "count": 3,
+            "bytes": 766,
+            "statuses": {
+              "200": 3
+            },
+            "fields": [
+              null
+            ]
+          },
+          "POST /api/collections/vega_revisions/records": {
+            "count": 3,
+            "bytes": 1316,
+            "statuses": {
+              "200": 3
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/vega_revisions/records": {
+            "count": 3,
+            "bytes": 753,
+            "statuses": {
+              "200": 3
+            },
+            "fields": [
+              "id,created"
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 3,
+            "bytes": 1991205,
+            "statuses": {
+              "200": 3
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      }
+    },
+    {
+      "scenario": "rail-open-outside-first-page",
+      "iteration": 1,
+      "phase": "warm",
+      "observations": {
+        "selected": 1
+      },
+      "pageErrors": [],
+      "browser": {
+        "count": 3,
+        "decodedBodyBytes": 664054,
+        "maxInFlight": 3,
+        "listIds": [],
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 254,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 663734,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/blocks/records": {
+            "count": 1,
+            "bytes": 66,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      },
+      "pocketbase": {
+        "count": 3,
+        "decodedBodyBytes": 664054,
+        "maxInFlight": 2,
+        "listIds": [
+          {
+            "count": 30,
+            "unique": 30
+          }
+        ],
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 254,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 663734,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/blocks/records": {
+            "count": 1,
+            "bytes": 66,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      }
+    },
+    {
+      "scenario": "rail-save-title",
+      "iteration": 1,
+      "phase": "warm",
+      "observations": {
+        "selected": 0
+      },
+      "pageErrors": [],
+      "browser": {
+        "count": 6,
+        "decodedBodyBytes": 665302,
+        "maxInFlight": 3,
+        "listIds": [],
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 2,
+            "bytes": 508,
+            "statuses": {
+              "200": 2
+            },
+            "fields": [
+              null
+            ]
+          },
+          "PATCH /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 251,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "POST /api/collections/vega_revisions/records": {
+            "count": 1,
+            "bytes": 437,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/vega_revisions/records": {
+            "count": 1,
+            "bytes": 375,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              "id,created"
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 663731,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      },
+      "pocketbase": {
+        "count": 6,
+        "decodedBodyBytes": 665302,
+        "maxInFlight": 2,
+        "listIds": [
+          {
+            "count": 30,
+            "unique": 30
+          }
+        ],
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 2,
+            "bytes": 508,
+            "statuses": {
+              "200": 2
+            },
+            "fields": [
+              null
+            ]
+          },
+          "PATCH /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 251,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "POST /api/collections/vega_revisions/records": {
+            "count": 1,
+            "bytes": 437,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/vega_revisions/records": {
+            "count": 1,
+            "bytes": 375,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              "id,created"
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 663731,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      }
+    },
+    {
+      "scenario": "rail-save-during-real-list-response",
+      "iteration": 1,
+      "phase": "warm",
+      "observations": {
+        "selected": 1,
+        "latestVisible": true,
+        "peerPreserved": true
+      },
+      "pageErrors": [],
+      "browser": {
+        "count": 18,
+        "decodedBodyBytes": 1996293,
+        "maxInFlight": 5,
+        "listIds": [],
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 6,
+            "bytes": 1522,
+            "statuses": {
+              "200": 6
+            },
+            "fields": [
+              null
+            ]
+          },
+          "PATCH /api/collections/pages/records/:id": {
+            "count": 3,
+            "bytes": 763,
+            "statuses": {
+              "200": 3
+            },
+            "fields": [
+              null
+            ]
+          },
+          "POST /api/collections/vega_revisions/records": {
+            "count": 3,
+            "bytes": 1309,
+            "statuses": {
+              "200": 3
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/vega_revisions/records": {
+            "count": 3,
+            "bytes": 1497,
+            "statuses": {
+              "200": 3
+            },
+            "fields": [
+              "id,created"
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 3,
+            "bytes": 1991202,
+            "statuses": {
+              "200": 3
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      },
+      "pocketbase": {
+        "count": 18,
+        "decodedBodyBytes": 1996293,
+        "maxInFlight": 2,
+        "listIds": [
+          {
+            "count": 30,
+            "unique": 30
+          },
+          {
+            "count": 30,
+            "unique": 30
+          },
+          {
+            "count": 30,
+            "unique": 30
+          }
+        ],
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 6,
+            "bytes": 1522,
+            "statuses": {
+              "200": 6
+            },
+            "fields": [
+              null
+            ]
+          },
+          "PATCH /api/collections/pages/records/:id": {
+            "count": 3,
+            "bytes": 763,
+            "statuses": {
+              "200": 3
+            },
+            "fields": [
+              null
+            ]
+          },
+          "POST /api/collections/vega_revisions/records": {
+            "count": 3,
+            "bytes": 1309,
+            "statuses": {
+              "200": 3
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/vega_revisions/records": {
+            "count": 3,
+            "bytes": 1497,
+            "statuses": {
+              "200": 3
+            },
+            "fields": [
+              "id,created"
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 3,
+            "bytes": 1991202,
+            "statuses": {
+              "200": 3
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      }
+    },
+    {
+      "scenario": "list-reorder",
+      "iteration": 1,
+      "phase": "first",
+      "observations": {
+        "tableRetained": false
+      },
+      "pageErrors": [],
+      "browser": {
+        "count": 5,
+        "decodedBodyBytes": 923671,
+        "maxInFlight": 2,
+        "listIds": [],
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 2,
+            "bytes": 132457,
+            "statuses": {
+              "200": 2
+            },
+            "fields": [
+              null
+            ]
+          },
+          "PATCH /api/collections/pages/records/:id": {
+            "count": 2,
+            "bytes": 132457,
+            "statuses": {
+              "200": 2
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 658757,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      },
+      "pocketbase": {
+        "count": 5,
+        "decodedBodyBytes": 923671,
+        "maxInFlight": 1,
+        "listIds": [
+          {
+            "count": 10,
+            "unique": 10
+          }
+        ],
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 2,
+            "bytes": 132457,
+            "statuses": {
+              "200": 2
+            },
+            "fields": [
+              null
+            ]
+          },
+          "PATCH /api/collections/pages/records/:id": {
+            "count": 2,
+            "bytes": 132457,
+            "statuses": {
+              "200": 2
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 658757,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      }
+    },
+    {
+      "scenario": "list-delete",
+      "iteration": 1,
+      "phase": "first",
+      "observations": {
+        "tableRetained": false
+      },
+      "pageErrors": [],
+      "browser": {
+        "count": 7,
+        "decodedBodyBytes": 730618,
+        "maxInFlight": 3,
+        "listIds": [],
+        "groups": {
+          "GET /api/collections/blocks/records": {
+            "count": 1,
+            "bytes": 64,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/vega/records": {
+            "count": 1,
+            "bytes": 5711,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 65782,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "POST /api/collections/vega_revisions/records": {
+            "count": 1,
+            "bytes": 65960,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/vega_revisions/records": {
+            "count": 1,
+            "bytes": 127,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              "id,created"
+            ]
+          },
+          "DELETE /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 0,
+            "statuses": {
+              "204": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 592974,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      },
+      "pocketbase": {
+        "count": 7,
+        "decodedBodyBytes": 730618,
+        "maxInFlight": 2,
+        "listIds": [
+          {
+            "count": 9,
+            "unique": 9
+          }
+        ],
+        "groups": {
+          "GET /api/collections/blocks/records": {
+            "count": 1,
+            "bytes": 64,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/vega/records": {
+            "count": 1,
+            "bytes": 5711,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 65782,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "POST /api/collections/vega_revisions/records": {
+            "count": 1,
+            "bytes": 65960,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "DELETE /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 0,
+            "statuses": {
+              "204": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/vega_revisions/records": {
+            "count": 1,
+            "bytes": 127,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              "id,created"
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 592974,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

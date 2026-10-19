@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /private/tmp/vegacms-config-base-20261018
+
+
+ Test Files  10 passed (10)
+      Tests  108 passed (108)
+   Start at  13:23:25
+   Duration  6.28s (transform 11.97s, setup 0ms, import 14.21s, tests 866ms, environment 10.11s)
+

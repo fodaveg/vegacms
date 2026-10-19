@@ -1,0 +1,87 @@
+{
+  "observedAtUTC": "2026-10-07T18:39:24.587592+00:00",
+  "remoteReads": {
+    "initialSession": 77923,
+    "detailsSession": 52349,
+    "refinedSession": 97327,
+    "allTerminalExit": 0
+  },
+  "sourceGuards": {
+    "/srv/vega/infra/production/compose.yml": "812e521c2280704b62761ad5014cd9b6982bb2a548b7db47d5fcbd404dedddff",
+    "/srv/lumbre-admin/compose.yml": "7ed9a9e225790a4e15ccef3ce4c110b8d3b22e0fef53e6c1840d286181ebb8dd",
+    "/root/fodaveg/compose.yml": "a18777c55d583c8eab43671d968108c9560f8a41152440e04ba610e583a9b500",
+    "/srv/edge/compose.yml": "c6c47d481ff63296d8818680e6b20d351a73b34d00b9339b2654df7679abbee2",
+    "/srv/edge/conf.d/fodaveg.caddy": "0bdaa9f5ef1af907f7a4746ad2be5af22c7553457af8871563de00fe56e171f0",
+    "/srv/edge/conf.d/admin-lumbre-pro.caddy": "9a3322ce14562e20bfb5bdc10eac6a63c077120a327aafcf4a222492cc0c1f53",
+    "/srv/edge/conf.d/vega.caddy": "772440180332741a8716b440cc699dfe117f1fe716ab7a38458a9e7eea9c7b06",
+    "/srv/edge/Caddyfile": "ff093f30330f8a7fa536bffcafb12cc316b096e4210142461889da66eaabb09b"
+  },
+  "applyAuthority": "proposal only, no patches applied",
+  "consumerPrerequisites": {
+    "vega-pb": "trusted origin client inventory and fresh immutable image of gated source",
+    "lumbre-admin-pb": "custom startup source/Cobra integration and JSVM registration required despite PB module0.39.9",
+    "fodaveg": "PB0.39.7 hook priority/runtime test and entrypoint preserving Node+tini; do not override compose command"
+  },
+  "hostBlockGuards": [
+    {
+      "file": "/srv/edge/conf.d/fodaveg.caddy",
+      "host": "admin.fodaveg.net",
+      "originalFirstLine": 24,
+      "originalLastLine": 68,
+      "rule": "before any file edit, parse exact host block; verify every original hunk at its stated original line lies wholly inside it and matches exact public context; no fuzzy offset into another block"
+    },
+    {
+      "file": "/srv/edge/conf.d/admin-lumbre-pro.caddy",
+      "host": "admin.lumbre.pro",
+      "originalFirstLine": 15,
+      "originalLastLine": 49,
+      "rule": "before any file edit, parse exact host block; verify every original hunk at its stated original line lies wholly inside it and matches exact public context; no fuzzy offset into another block"
+    },
+    {
+      "file": "/srv/edge/conf.d/vega.caddy",
+      "host": "admin.vegacms.com",
+      "originalFirstLine": 1,
+      "originalLastLine": 44,
+      "rule": "before any file edit, parse exact host block; verify every original hunk at its stated original line lies wholly inside it and matches exact public context; no fuzzy offset into another block"
+    }
+  ],
+  "perFilePatchBatches": [
+    {
+      "file": "/srv/vega/infra/production/compose.yml",
+      "originalSHA256": "812e521c2280704b62761ad5014cd9b6982bb2a548b7db47d5fcbd404dedddff",
+      "patchOrder": [
+        "vega-pb-networks.patch",
+        "vega-pb-cors-command.proposed.patch"
+      ],
+      "rule": "check original hash ONCE before the whole file batch; apply both deltas against staged base, validate resulting config and record resultingSHA256; do not demand original hash after first delta; conditional CORS patch requires no existing command"
+    },
+    {
+      "file": "/srv/lumbre-admin/compose.yml",
+      "originalSHA256": "7ed9a9e225790a4e15ccef3ce4c110b8d3b22e0fef53e6c1840d286181ebb8dd",
+      "patchOrder": [
+        "lumbre-admin-pb-networks.patch",
+        "lumbre-admin-pb-cors-command.proposed.patch"
+      ],
+      "rule": "check original hash ONCE before the whole file batch; apply both deltas against staged base, validate resulting config and record resultingSHA256; do not demand original hash after first delta; conditional CORS patch requires no existing command"
+    },
+    {
+      "file": "/root/fodaveg/compose.yml",
+      "originalSHA256": "a18777c55d583c8eab43671d968108c9560f8a41152440e04ba610e583a9b500",
+      "patchOrder": [
+        "fodaveg-networks.patch"
+      ],
+      "rule": "check original hash ONCE before the whole file batch; apply both deltas against staged base, validate resulting config and record resultingSHA256; do not demand original hash after first delta; conditional CORS patch requires no existing command"
+    },
+    {
+      "file": "/srv/edge/compose.yml",
+      "originalSHA256": "c6c47d481ff63296d8818680e6b20d351a73b34d00b9339b2654df7679abbee2",
+      "patchOrder": [
+        "edge-caddy-networks.patch"
+      ],
+      "rule": "check original hash ONCE before the whole file batch; apply both deltas against staged base, validate resulting config and record resultingSHA256; do not demand original hash after first delta; conditional CORS patch requires no existing command"
+    }
+  ],
+  "runtimeLoggerMapping": "restricted logging metadata reads unavailable; no claimed current per-host effective access mapping",
+  "networkRemovalPrerequisite": "no backend leaves edge until direct legitimate peer calls resolved; localhost/sourceURL alone is not deployed topology proof",
+  "publicationReadiness": "CONDITIONAL for all consumers; patches are READY_LOCAL for review only"
+}

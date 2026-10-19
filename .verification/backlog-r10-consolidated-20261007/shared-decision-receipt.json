@@ -1,0 +1,10 @@
+{
+  "decision": "shared-decision-proposal.md",
+  "vaultSHA256": "5189e8cf8638f957f7f5d893364623f47f75d8b4efbfc5cdb7020072dfd4868b",
+  "hebraNote": "3b63d067-cbcc-56de-ab8a-b137ebd3d44b",
+  "hebraRevision": 29,
+  "hebraSync": "uploaded",
+  "freshVerificationBoth": true,
+  "wholeHistoricalCopiesReconciled": false,
+  "scope": "new confirmed technical decision only; previous historical discrepancies not rewritten"
+}

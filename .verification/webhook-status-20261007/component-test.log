@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /private/tmp/vegacms-webhook-status-20261007
+
+
+ Test Files  1 passed (1)
+      Tests  16 passed (16)
+   Start at  18:44:10
+   Duration  1.39s (transform 432ms, setup 0ms, import 528ms, tests 299ms, environment 462ms)
+

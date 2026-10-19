@@ -1,0 +1,47 @@
+diff --git a/src/lib/form/RecordForm.publish.svelte.test.ts b/src/lib/form/RecordForm.publish.svelte.test.ts
+index 2f395b0..236e894 100644
+--- a/src/lib/form/RecordForm.publish.svelte.test.ts
++++ b/src/lib/form/RecordForm.publish.svelte.test.ts
+@@ -369,13 +369,16 @@ describe('RecordForm — publicar', () => {
+ /** Exercise the form's intent boundary separately from PreviewPanel's HTTP/timer engine suite. */
+ function deferredPreview() {
+ 	let loads = 0;
++	let completed = 0;
+ 	const gate = new Promise<void>((resolve) => {
+ 		releasePreview = resolve;
+ 	});
+ 	vi.doMock('./PreviewPanel.svelte', async (original) => {
+ 		loads++;
+ 		await gate;
+-		return original();
++		const component = await original();
++		completed++;
++		return component;
+ 	});
+ 	const fetch = vi.fn().mockResolvedValue(
+ 		new Response(
+@@ -387,7 +390,7 @@ function deferredPreview() {
+ 		)
+ 	);
+ 	vi.stubGlobal('fetch', fetch);
+-	return { fetch, loads: () => loads };
++	return { fetch, loads: () => loads, completed: () => completed };
+ }
+ const previewToggle = (w: World) =>
+ 	w.target.querySelector<HTMLButtonElement>('.vega-editor-preview-toggle')!;
+@@ -401,6 +404,7 @@ test('preview loads only on intent; closing a pending opening discards it and re
+ 	await settled(() => expect(probe.loads()).toBe(1));
+ 	previewToggle(w).click();
+ 	releasePreview();
++	await settled(() => expect(probe.completed()).toBe(1));
+ 	await settled(() => expect(previewToggle(w).getAttribute('aria-busy')).toBe('false'));
+ 	expect(w.target.querySelector('iframe')).toBeNull();
+ 	expect(probe.fetch).not.toHaveBeenCalled();
+@@ -426,6 +430,7 @@ for (const boundary of ['logout', 'port', 'token', 'record', 'unmount'] as const
+ 			mounted = null;
+ 		}
+ 		releasePreview();
++		await settled(() => expect(probe.completed()).toBe(1));
+ 		if (boundary !== 'unmount')
+ 			await settled(() => expect(previewToggle(w).getAttribute('aria-pressed')).toBe('false'));
+ 		else await new Promise((resolve) => setTimeout(resolve, 20));

@@ -1,0 +1,164 @@
+{
+  "task": "c0d0ff6e-43a9-46c8-b66a-e0a4a57921d5",
+  "delta": "Initialize sidebar from current route after late AppShell mount; future navigation callback unchanged",
+  "worktree": "/private/tmp/vegacms-visual-desktop-20261007",
+  "base": "ea9f0d26d69685c55fdbf98b55d465d9a7d80a32",
+  "verifiedTree": "173a93b0f244062fd17936f5ae009a9e01fb6e27",
+  "graph": "vegacms-visual-desktop-20261007",
+  "paths": [
+    "src/lib/shell/AppShell.svelte",
+    "src/lib/shell/AppShell.svelte.test.ts",
+    "e2e/visual-editor.spec.ts"
+  ],
+  "sourceBlobs": {
+    "src/lib/shell/AppShell.svelte": "79c7c46c100c9336c8fcd91906cfa955b5b68bf0",
+    "src/lib/shell/AppShell.svelte.test.ts": "102c891c7c8b1659538a8e25357415b018c122d2",
+    "e2e/visual-editor.spec.ts": "8ce1e333f6865b414a39090e1e79bd97dbd1e404"
+  },
+  "checks": [
+    {
+      "argv": [
+        "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "src/lib/shell/AppShell.svelte.test.ts",
+        "--maxWorkers=1"
+      ],
+      "session": 19679,
+      "exit": 1,
+      "result": "before fix:1 failed/5 passed; saved false and current visual route does not fold without event",
+      "log": "/Users/david/code/vegacms/.verification/visual-desktop-20261007/sidebar-mount-negative.log",
+      "originalSourceBlob": "cad680df512188d62028fe7be8e022f398a0f615"
+    },
+    {
+      "argv": [
+        "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "src/lib/shell/AppShell.svelte.test.ts",
+        "--maxWorkers=1"
+      ],
+      "session": 10635,
+      "exit": 0,
+      "result": "6/6 passed",
+      "log": "/Users/david/code/vegacms/.verification/visual-desktop-20261007/sidebar-mount-final.log"
+    },
+    {
+      "argv": [
+        "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+        "node_modules/vite/bin/vite.js",
+        "build"
+      ],
+      "session": 71795,
+      "exit": 0,
+      "log": "/Users/david/code/vegacms/.verification/visual-desktop-20261007/sidebar-mount-build.log",
+      "identity": "/Users/david/code/vegacms/.verification/visual-desktop-20261007/sidebar-mount-build-identity.json"
+    },
+    {
+      "argv": [
+        "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+        "node_modules/@playwright/test/cli.js",
+        "test",
+        "e2e/visual-editor.spec.ts",
+        "--project=chromium",
+        "--workers=1",
+        "--grep",
+        "escritorio 1280 con ajustar"
+      ],
+      "session": 18401,
+      "exit": 0,
+      "result": "1/1 passed",
+      "env": "VEGA_E2E_PREBUILT=1; PATH Node22 first; own exact prebuilt preview reused",
+      "log": "/Users/david/code/vegacms/.verification/visual-desktop-20261007/sidebar-mount-e2e.log"
+    },
+    {
+      "argv": [
+        "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+        "node_modules/prettier/bin/prettier.cjs",
+        "--check",
+        "src/lib/shell/AppShell.svelte",
+        "src/lib/shell/AppShell.svelte.test.ts",
+        "e2e/visual-editor.spec.ts"
+      ],
+      "exit": 0,
+      "evidence": "tool stdout All matched files use Prettier code style"
+    },
+    {
+      "argv": [
+        "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+        "node_modules/eslint/bin/eslint.js",
+        "src/lib/shell/AppShell.svelte",
+        "src/lib/shell/AppShell.svelte.test.ts",
+        "e2e/visual-editor.spec.ts"
+      ],
+      "exit": 0,
+      "evidence": "tool terminal empty success"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--cached",
+        "--check"
+      ],
+      "exit": 0,
+      "evidence": "tool terminal empty success"
+    }
+  ],
+  "environment": {
+    "node": "22.22.3",
+    "deps": "existing shared symlink; no installs",
+    "budget": "<1GiB",
+    "dfBefore": "133GiB",
+    "dfAfter": "133GiB",
+    "concurrency": "root authorized exclusive focal slot after process census found none; released after terminal",
+    "noMainPushDeploy": true
+  },
+  "server": {
+    "argv": [
+      "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+      "node_modules/vite/bin/vite.js",
+      "preview",
+      "--port",
+      "4173",
+      "--strictPort"
+    ],
+    "session": 19773,
+    "exit": 130,
+    "reason": "intentional Ctrl+C after test terminal0",
+    "log": "/Users/david/code/vegacms/.verification/visual-desktop-20261007/sidebar-mount-preview.log"
+  },
+  "runtimeAssertions": [
+    "deep-link sidebar folds",
+    "iframe innerWidth1280 and actual desktop media query/siteCSS",
+    "fit fills canvas; iframe/overlay real bounds aligned after resize",
+    "preset390/834,50% thenfit",
+    "small-window834/390 text-only and iframe absent",
+    "SPA exit restores manualfalse; reentry folds"
+  ],
+  "screenshots": [
+    "/Users/david/code/vegacms/.verification/visual-desktop-20261007/sidebar-mount-desktop-fit-1440.png",
+    "/Users/david/code/vegacms/.verification/visual-desktop-20261007/sidebar-mount-mobile-texts-390.png"
+  ],
+  "limitations": [
+    "Full combined gate remains root responsibility; focal only.",
+    "Mobile screenshot caught sidebar during resize transition; text-only/iframe0 assertions pass, image does not prove unobscured mobile UI.",
+    "No remote production/main/shared-memory writes."
+  ],
+  "review": {
+    "path": "/Users/david/code/vegacms/.verification/visual-desktop-20261007/sidebar-mount-review.md",
+    "source": "ready for merge, independent3/3 plus receipt/runtime checked"
+  },
+  "cleanup": "Preview stopped; active WT/build/shared dependencies retained for root; no files removed.",
+  "commit": "faa1ad7241818cb0323c7ea3f0fa31e51332fb02",
+  "commitVerification": {
+    "tree": "173a93b0f244062fd17936f5ae009a9e01fb6e27",
+    "clean": true,
+    "commands": [
+      "git show --no-patch --format=fuller HEAD",
+      "git status --short",
+      "git rev-parse HEAD^{tree}"
+    ],
+    "exit": 0
+  }
+}

@@ -1,0 +1,263 @@
+{
+  "browser": {
+    "fodaveg": {
+      "config": {
+        "backendOrigin": null,
+        "sameOrigin": null,
+        "state": "UNKNOWN"
+      },
+      "overrideUninspected": true,
+      "pageOrigin": "https://admin.fodaveg.net"
+    },
+    "lumbre-admin-pb": {
+      "config": {
+        "backendOrigin": null,
+        "sameOrigin": null,
+        "state": "UNKNOWN"
+      },
+      "overrideUninspected": true,
+      "pageOrigin": "https://admin.lumbre.pro"
+    },
+    "vega-pb": {
+      "config": {
+        "backendOrigin": null,
+        "sameOrigin": null,
+        "state": "UNKNOWN"
+      },
+      "overrideUninspected": true,
+      "pageOrigin": "https://admin.vegacms.com"
+    }
+  },
+  "compose": {
+    "edge": {
+      "matchesReceipt": true,
+      "sha256": "c6c47d481ff63296d8818680e6b20d351a73b34d00b9339b2654df7679abbee2"
+    },
+    "fodaveg": {
+      "matchesReceipt": true,
+      "sha256": "a18777c55d583c8eab43671d968108c9560f8a41152440e04ba610e583a9b500"
+    },
+    "lumbre": {
+      "matchesReceipt": true,
+      "sha256": "7ed9a9e225790a4e15ccef3ce4c110b8d3b22e0fef53e6c1840d286181ebb8dd"
+    },
+    "vega": {
+      "matchesReceipt": true,
+      "sha256": "bae812ef0031b5e6aeb65f4678905e65d74cfadf62a5e78fe156250166377f7e"
+    }
+  },
+  "configEnvRequested": false,
+  "containers": {
+    "edge-caddy": {
+      "command": {
+        "allowed": [],
+        "originsExplicit": false,
+        "unknownCount": 6
+      },
+      "entrypoint": {
+        "allowed": [],
+        "originsExplicit": null,
+        "unknownCount": 1
+      },
+      "id": "ae97fc0c57fbe4c3a97f5dce15dfc9da92f33f527b60d95c3f74de9d2a160a7a",
+      "imageId": "sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648",
+      "networks": {
+        "edge": {
+          "known": [
+            "edge-caddy"
+          ],
+          "unknownCount": 1
+        }
+      },
+      "pbArgs": null,
+      "ports": {
+        "2019/tcp": false,
+        "443/tcp": true,
+        "80/tcp": true
+      },
+      "state": "running",
+      "unknownNetworkCount": 0,
+      "unknownPortCount": 1
+    },
+    "fodaveg": {
+      "command": {
+        "allowed": [],
+        "originsExplicit": null,
+        "unknownCount": 1
+      },
+      "entrypoint": {
+        "allowed": [
+          "/usr/bin/tini",
+          "--"
+        ],
+        "originsExplicit": false,
+        "unknownCount": 2
+      },
+      "id": "6bddffa88de1c2738bf9aee711425f512deac30365f6183bb3d2ad008a2ff452",
+      "imageId": "sha256:0e0ef56341d677366cfc00d91e2ead83da0ebcc4372f7ba627f575be682ee51f",
+      "networks": {
+        "edge": {
+          "known": [
+            "fodaveg"
+          ],
+          "unknownCount": 0
+        }
+      },
+      "pbArgs": {
+        "allowed": [
+          "/pb/fodaveg-pb",
+          "--dir=/pb/pb_data",
+          "serve",
+          "--http=0.0.0.0:8090"
+        ],
+        "originsExplicit": false,
+        "unknownCount": 0
+      },
+      "ports": {
+        "4321/tcp": false,
+        "8090/tcp": false
+      },
+      "state": "running",
+      "unknownNetworkCount": 0,
+      "unknownPortCount": 0
+    },
+    "lumbre-admin-pb": {
+      "command": {
+        "allowed": [
+          "serve",
+          "--http=0.0.0.0:8090",
+          "--dir=/pb/pb_data",
+          "--publicDir=/pb/pb_public"
+        ],
+        "originsExplicit": false,
+        "unknownCount": 0
+      },
+      "entrypoint": {
+        "allowed": [
+          "/pb/lumbre-admin"
+        ],
+        "originsExplicit": false,
+        "unknownCount": 0
+      },
+      "id": "6241f7d6b8d1a2dda326770a318a1d3b94d84b032cc5df050527f9631e75f7d6",
+      "imageId": "sha256:40df6a9bbcfd4edbc93680b0f45946d0be7c50c4e5c470167e33646fe499c1b7",
+      "networks": {
+        "edge": {
+          "known": [
+            "lumbre-admin-pb"
+          ],
+          "unknownCount": 1
+        }
+      },
+      "pbArgs": {
+        "allowed": [
+          "/pb/lumbre-admin",
+          "serve",
+          "--http=0.0.0.0:8090",
+          "--dir=/pb/pb_data",
+          "--publicDir=/pb/pb_public"
+        ],
+        "originsExplicit": false,
+        "unknownCount": 0
+      },
+      "ports": {
+        "8090/tcp": false
+      },
+      "state": "running",
+      "unknownNetworkCount": 0,
+      "unknownPortCount": 0
+    },
+    "lumbre-preview": {
+      "command": {
+        "allowed": [
+          "node"
+        ],
+        "originsExplicit": false,
+        "unknownCount": 1
+      },
+      "entrypoint": {
+        "allowed": [],
+        "originsExplicit": false,
+        "unknownCount": 1
+      },
+      "id": "356eb3fc77c2e5c6dd895c3b7dc4bb92d9363aee7476355e72034902a5c72795",
+      "imageId": "sha256:fbfa35eec344c70c21f802a82ed91dfcb8441c5c4a0ab022042eefe4ae366422",
+      "networks": {
+        "edge": {
+          "known": [
+            "lumbre-preview"
+          ],
+          "unknownCount": 1
+        }
+      },
+      "pbArgs": null,
+      "ports": {},
+      "state": "running",
+      "unknownNetworkCount": 0,
+      "unknownPortCount": 1
+    },
+    "vega-pb": {
+      "command": {
+        "allowed": [
+          "serve",
+          "--http=0.0.0.0:8090",
+          "--dir=/pb/pb_data",
+          "--publicDir=/pb/pb_public"
+        ],
+        "originsExplicit": false,
+        "unknownCount": 0
+      },
+      "entrypoint": {
+        "allowed": [
+          "/pb/pocketbase"
+        ],
+        "originsExplicit": false,
+        "unknownCount": 0
+      },
+      "id": "5f8fed3402b9be46851f6909ad0bb59b4d21ca27be1e385711e6c0985c6aaef7",
+      "imageId": "sha256:dd978b8d23081d2e3c69ebf6ef8ff4599a1acdd3f38dc559ae6fa379e46449b4",
+      "networks": {
+        "edge": {
+          "known": [
+            "vega-pb"
+          ],
+          "unknownCount": 1
+        }
+      },
+      "pbArgs": {
+        "allowed": [
+          "/pb/pocketbase",
+          "serve",
+          "--http=0.0.0.0:8090",
+          "--dir=/pb/pb_data",
+          "--publicDir=/pb/pb_public"
+        ],
+        "originsExplicit": false,
+        "unknownCount": 0
+      },
+      "ports": {
+        "8090/tcp": false
+      },
+      "state": "running",
+      "unknownNetworkCount": 0,
+      "unknownPortCount": 0
+    }
+  },
+  "edge": {
+    "id": "f53c7021a71ee33a06a0845a00a55b92be28143d9d237eb2356cf574a4d9d1f6",
+    "known": [
+      "edge-caddy",
+      "fodaveg",
+      "lumbre-admin-pb",
+      "lumbre-preview",
+      "vega-pb"
+    ],
+    "total": 13,
+    "unknownCount": 8
+  },
+  "mode": "CORS_NETWORK_SELECTIVE_READONLY",
+  "privateValuesExported": false,
+  "remoteWrites": false,
+  "schemaVersion": 1,
+  "status": "PROJECTED"
+}

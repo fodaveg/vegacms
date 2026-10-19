@@ -1,0 +1,12 @@
+{
+  "assetsChecked": 153,
+  "assetsMatched": 152,
+  "bodyValuesStored": false,
+  "corsRestored": true,
+  "credentialsSent": false,
+  "pathsUnchanged": true,
+  "peersUnchanged": true,
+  "service": "vega-pb",
+  "stage": "rollback",
+  "status": "STOP_CORS_ROLLBACK_PUBLIC"
+}

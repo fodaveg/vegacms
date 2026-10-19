@@ -1,0 +1,14 @@
+{
+  "performedUTC": "2026-10-08T09:51:43.260434+00:00",
+  "scope": "local artifact identity and cross-reference consistency only; no repeated suite/source review",
+  "reviewedBaselineFilesHashVerified": 31,
+  "reviewedPatchesCopiedByteIdentical": 10,
+  "excludedFragmentsCopiedByteIdentical": 3,
+  "destinationsHistoricalGuardsPreserved": 8,
+  "retainedConditional": 7,
+  "heldUntilEffectiveData": 3,
+  "accessLoggingPreservedSkippedHosts": 3,
+  "newSSHGETBuildInstallGateOrSourceEdits": false,
+  "unknownsRemainUnknown": true,
+  "result": "PASS"
+}

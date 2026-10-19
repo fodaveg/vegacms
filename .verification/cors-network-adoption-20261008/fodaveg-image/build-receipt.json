@@ -1,0 +1,25 @@
+{
+  "candidate": "cc8f3b14dca9bf10e4a60502da9e17503362bbb8",
+  "command": [
+    "docker",
+    "buildx",
+    "build",
+    "--platform",
+    "linux/amd64",
+    "--load",
+    "--provenance=false",
+    "--progress=plain",
+    "--metadata-file",
+    "/Users/david/code/vegacms/.verification/cors-network-adoption-20261008/fodaveg-image/build-metadata.json",
+    "--tag",
+    "fodaveg-cors:cc8f3b1-candidate",
+    "--file",
+    "/Users/david/code/vegacms/.verification/worktrees/fodaveg-vega-adoption-20261008/Dockerfile",
+    "/Users/david/code/vegacms/.verification/worktrees/fodaveg-vega-adoption-20261008"
+  ],
+  "completedUTC": "2026-10-08T21:45:57.338945+00:00",
+  "exitCode": 0,
+  "log": "/Users/david/code/vegacms/.verification/cors-network-adoption-20261008/fodaveg-image/build.log",
+  "status": "LOCAL_IMAGE_BUILT",
+  "tree": "693fc1ae70e8a28e64a87950e25883905a0de1d4"
+}

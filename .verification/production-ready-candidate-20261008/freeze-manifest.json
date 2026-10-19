@@ -1,0 +1,32 @@
+{
+  "scope": "Consolidate reviewed candidate images, exact proposed patches and eight guarded destinations; no publication",
+  "ownership": "/Users/david/code/vegacms/.verification/production-ready-candidate-20261008",
+  "files": {
+    "consistency.json": "c7d8f4b37dfb80b11356c7b8b3b815edde3c3cf4f5fc9f329418be43990187cd",
+    "patch-disposition.md": "f6299bd232cc098c7c2ee76d205060f9701f549eab8c3f7fed1055058f2f1645",
+    "destination-matrix.md": "5652295d108bc4750a67f23a0e4ec70f16f4cb9292cbbad993f62f87b805e459",
+    "candidate.md": "53ff98479cb08a641fa678dde07f8dfe31e538592e8af1bd4010612da5cbae04",
+    "candidate-inputs.json": "40314cd7a82ee5ae3ddced980c16b5f3e058be1d7e10cb047bfe4f7120bdfb2c",
+    "staging-contract.md": "a36ee0b6921078cd562393c918a4978affafc78fe9ff9c11dc21138ac799834a",
+    "destination-matrix.json": "48f57311df21a3cabdc6406ef354ff2011ed11945deec2d2be22c9652f031aac",
+    "patch-inventory.json": "2f818adbb10f391d0c857067b3bd8433b02ad1dcbda7aa3477705a521811804f",
+    "baseline/apply-preconditions.json": "edce74e1250881ebf040c3e3e52d162ed7fe02abd50a38b59fc5da47c0c08ea4",
+    "excluded-access-log-reference/admin.vegacms.com.access-log.proposed.caddy": "0fd948800f622c51a2a5e3964c25d52c524643b8cdc6119f633d570d5e068d07",
+    "excluded-access-log-reference/admin.lumbre.pro.access-log.proposed.caddy": "3acd22c1028086bb244a8d4fe03dc25b9c92f5d87348b5485395526dbe0ab071",
+    "excluded-access-log-reference/admin.fodaveg.net.access-log.proposed.caddy": "305352f27ca771b5e6f0c470a5707aee6fa8d9b52ac8fd9e37c71160824f661d",
+    "patches/held-until-effective-data/vega-pb-cors-command.proposed.patch": "46db86db6e8870ce5866ece721a3b32d0f9a9a8aeac176cc0e13ef140538c8d6",
+    "patches/held-until-effective-data/edge-default-runtime-log.patch": "254f3fa73cacffc50449fa66edad747752fd53b68a67505d5828fe197bf93c36",
+    "patches/held-until-effective-data/lumbre-admin-pb-cors-command.proposed.patch": "81f45998cd8c24217d65d350d0bd102ed0840ef141cefc24ae23f1c1d0e669dc",
+    "patches/retained-conditional/lumbre-admin-pb-networks.patch": "1435414fe87d1ae77e2ebf2ac72caa435aed150e919dba64c32d90599e80cfe4",
+    "patches/retained-conditional/fodaveg-networks.patch": "2bfa798c918a72839d213fc4ee1b087a8dae8212006b17f45c53faa7b7b7a3cf",
+    "patches/retained-conditional/admin.vegacms.com.patch": "7e6c4e4b49cef5570e4c883ae58e0a0c480149094ae31ad13bd7c39a7b16d85a",
+    "patches/retained-conditional/admin.fodaveg.net.patch": "7e543198b0b4325ac536b4220419a401b276e415841e4e509e90ae8dab14d315",
+    "patches/retained-conditional/edge-caddy-networks.patch": "c74027367bdc5a93d9a60650e3949eace030101044b14c163c299f082cfebe81",
+    "patches/retained-conditional/admin.lumbre.pro.patch": "ca3678b9d201031736896118d98063face9f710f9ef183cd7155ac4e4699e598",
+    "patches/retained-conditional/vega-pb-networks.patch": "2d99fdd31fe71a3340b8a6a9944b85e85fe7909d470deaa8cd21779139ffc7a1",
+    "receipt.json": "ce852cdb693e4c2cc821874afb37ae4585664e285c8968d33b7a0f99433d4cba"
+  },
+  "fileCount": 23,
+  "productionApplyReady": false,
+  "reviewReferenceExpectedOutsideSeal": true
+}

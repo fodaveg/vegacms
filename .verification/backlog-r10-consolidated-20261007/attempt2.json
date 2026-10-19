@@ -1,0 +1,93 @@
+{
+  "candidate": "4a509dc53a0e1cf701e4cd58df570355521859f6",
+  "tree": "2bc88a2f1f04449b3b9d244bb454926b2dd50119",
+  "cwd": "/private/tmp/vegacms-backlog-r2-20261007",
+  "started_utc": "2026-10-07T18:20:22.717648+00:00",
+  "space_budget_GiB": 2,
+  "viewport_blobs": [
+    {
+      "path": "docs/PROJECT-CONTRACT-v1.md",
+      "author": "f4071b0cfd316c4c76d03d6316cecf2fcfdabe43",
+      "root": "f4071b0cfd316c4c76d03d6316cecf2fcfdabe43"
+    },
+    {
+      "path": "e2e/visual-editor.spec.ts",
+      "author": "573dffcca264baf918f5afbbda91b55cac7edc6a",
+      "root": "573dffcca264baf918f5afbbda91b55cac7edc6a"
+    },
+    {
+      "path": "src/lib/shell/AppShell.svelte",
+      "author": "cad680df512188d62028fe7be8e022f398a0f615",
+      "root": "cad680df512188d62028fe7be8e022f398a0f615"
+    },
+    {
+      "path": "src/lib/shell/AppShell.svelte.test.ts",
+      "author": "b62dfe8055d13e68dea37bc3367c075d09324710",
+      "root": "b62dfe8055d13e68dea37bc3367c075d09324710"
+    },
+    {
+      "path": "src/lib/visual/VisualEditorScreen.svelte",
+      "author": "42b508878c146c09c6e20fd7943daec0894f1d89",
+      "root": "42b508878c146c09c6e20fd7943daec0894f1d89"
+    },
+    {
+      "path": "src/lib/visual/VisualEditorScreen.svelte.test.ts",
+      "author": "53a6c0e96dacbe1ddb27734c44c84c5a443b46b6",
+      "root": "53a6c0e96dacbe1ddb27734c44c84c5a443b46b6"
+    },
+    {
+      "path": "src/lib/visual/viewport-storage.dom.test.ts",
+      "author": "22005a947a53dfe042d7c0745baef6b5991cabcf",
+      "root": "22005a947a53dfe042d7c0745baef6b5991cabcf"
+    },
+    {
+      "path": "src/lib/visual/viewport.test.ts",
+      "author": "7b0987a543ae6d26e46e2f4a6bad6ef0c39b8d41",
+      "root": "7b0987a543ae6d26e46e2f4a6bad6ef0c39b8d41"
+    },
+    {
+      "path": "src/lib/visual/viewport.ts",
+      "author": "e0047086408672641576b3fb959fb1e51356cbfb",
+      "root": "e0047086408672641576b3fb959fb1e51356cbfb"
+    }
+  ],
+  "included_lots": [
+    "publication/icons",
+    "webhook sanitized HTTP and lifecycle",
+    "imports consent/context/narrowing",
+    "history onboarding verified trash action",
+    "desktop viewport1280 fit/sidebar"
+  ],
+  "source_frozen": true,
+  "command": "pnpm --config.verifyDepsBeforeRun=warn gate",
+  "gate": "failed in unit/contract tests",
+  "prior_attempt": "attempt1.json typecheck1, no tests/build",
+  "environment": {
+    "Node": "22.22.3",
+    "CI": "1",
+    "GOFLAGS": "-race",
+    "COREPACK_ENABLE_NETWORK": "0",
+    "VEGA_ASTRO_SHARE_HARNESS": "/private/tmp/vega-astro-l13-share-20261007/scripts/share-preview-http-harness.mjs"
+  },
+  "session_id": 99440,
+  "df_before_available_KiB": 140463740,
+  "exit_code": 1,
+  "completed_utc": "2026-10-07T18:30:36.259040+00:00",
+  "results": {
+    "typecheck_errors": 0,
+    "typecheck_warnings": 0,
+    "lint_exit": 0,
+    "pocketbase_guard": "0.39.9 actual binary",
+    "test_files_passed": 296,
+    "test_files_failed": 2,
+    "test_files_skipped": 1,
+    "tests_passed": 4796,
+    "tests_failed": 2,
+    "tests_skipped": 12,
+    "Go_build_e2e_reached": false
+  },
+  "failures": [
+    "home-empty.svelte.test.ts partial model lacks revisions",
+    "pocketbase.contract.test.ts positive import fixture missing explicit origin authorization"
+  ]
+}

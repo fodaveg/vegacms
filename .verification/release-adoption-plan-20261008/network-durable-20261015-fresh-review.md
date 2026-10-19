@@ -1,0 +1,19 @@
+# Red durable Vega: revisión fresca del rollback corregido
+
+**Veredicto: APTO estático, sin must-fix identificado.** Queda corregido el bloqueo P2 del dictamen de 9 octubre. Este veredicto permite preparar dependencias y autorización de operación; no acredita ejecución remota, red real, cutover ni smokes.
+
+## Candidato e inventario
+
+Se revisó el árbol `b00186ce5587fcc7323aefdd9d3cdcbfea281750` del worktree `codex/network-durable-20261009`, directorio `.verification/network-durable-candidate-20261009`. `git diff --stat` y `git diff --name-status` están vacíos porque el candidato es untracked; `git status --short` muestra `?? .verification/`. Frente al dictamen previo se contabilizaron los **11 archivos**: `remote_stock_durable.py` y `selftest.py` contienen el arreglo y las regresiones; `BRIEF.md`, `offline-selftest.log`, `seals.json` y `SHA256SUMS` reflejan esa versión; `remote_edge_durable.py`, `remote_dependencies.py` y `run_candidate.py` conservan los hashes previos; `dependencies.draft.json` y `frozen-stock-selftest.log` se comprobaron en el sello actual. Se leyeron completos el nuevo guard y el test dirigido, más el consumidor congelado en `remote_apply.py` y `remote_stock_network_adapter.py`. La revisión previa cubrió íntegramente los demás fuentes y contratos del candidato.
+
+`SHA256SUMS` tiene SHA-256 `5670cf430e91bb1e4e2489a6275a457937ab46422defa5a8e3175ae8b6ea70ba` y sus diez entradas coinciden. `seals.json` tiene SHA-256 `68817475ef00b9b739141f471e807a5c2c88aad4300d4767d16cbc6e4f390bae`; los nombres y hashes de los diez módulos que cargará `run_candidate.py` coinciden, incluidos los siete módulos congelados de la raíz y los tres módulos del candidato. Los logs sellados registran **13/13** pruebas offline y **5/5** del adaptador congelado; no se repitieron.
+
+## Resolución del hallazgo anterior
+
+El fallo previo ocurría tras recrear PocketBase en `edge`: `gate_files()` llamaba al guard sin argumentos y exigía que el nuevo ID siguiese en `vega-edge`, dejando el estado en `ROLLBACK_CREATED`. El nuevo `restored_on_edge()` (`remote_stock_durable.py:19`) reconoce únicamente el backup elegido por el comando de rollback y solo en `ROLLBACK_CREATED` o `ROLLED_BACK`. Ata el registro al servicio, ID antiguo, ID nuevo distinto, ID de restauración seleccionado, hashes Compose base/destino e imagen; relee el Compose restaurado y su identidad y exige el runtime sano con `stock.runtime(..., after=False, expected_id=selected_pb)`. Ese runtime congelado comprueba una sola red `edge`, aliases, volumen, imagen, comando, salud y propietario del volumen. El guard exige entonces `vega-edge` con Caddy solo. En apply y antes de demostrar la restauración, un reemplazo running continúa obligado a estar en `vega-edge`.
+
+Se trazó `cors_apply.rollback()` desde CREATED/AWAITING_PUBLIC_SMOKE por stop, restauración Compose, recreación, arranque sano, `gate_files()`, `ROLLED_BACK` y recibo. La nueva prueba ejercita ese flujo real con fronteras Docker/FS simuladas, y `run_candidate.valid()` acepta el recibo. El control con el criterio anterior vuelve a `ROLLBACK_CREATED`/`STOP_NETWORK_ROLLBACK_NEEDS_OPERATOR`; los negativos de ID ajeno, miembro ajeno, Compose restaurado y recibo durable cambiados permanecen en rojo como rechazo esperado.
+
+## Límite operativo
+
+`dependencies.draft.json` sigue en DRAFT: hacen falta recibos CORS actuales de los tres consumidores, Caddy preflight final, tuplas reales y un input REVIEWED sellado antes de publicar. La rama conserva pines OLD y no se ha verificado el runtime remoto, el modelo Compose real, la selección de gateway tras recreación, los propietarios Git/red, el resolver desde Caddy ni los smokes públicos. El source rollback sigue siendo solo de fuente y conserva la red; una retirada posterior de la red requerirá un procedimiento propio. No se hizo SSH, Docker, build, instalación ni grant desde esta revisión.

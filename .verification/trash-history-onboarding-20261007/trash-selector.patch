@@ -1,0 +1,13 @@
+diff --git a/e2e/trash.spec.ts b/e2e/trash.spec.ts
+index 8d66183..cbb378f 100644
+--- a/e2e/trash.spec.ts
++++ b/e2e/trash.spec.ts
+@@ -32,7 +32,7 @@ async function enableRevisions(page: import('@playwright/test').Page): Promise<v
+ }
+ 
+ async function goToTrash(page: import('@playwright/test').Page): Promise<void> {
+-	await page.getByRole('link', { name: 'Papelera', exact: false }).click();
++	await page.getByRole('link', { name: 'Papelera', exact: true }).click();
+ 	await page.waitForURL('**/papelera');
+ }
+ 

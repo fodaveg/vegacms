@@ -1,0 +1,6 @@
+Verified command in /private/tmp/vegacms-import-origins-20261007
+Node 22.22.3
+git diff --check: exit 0
+prettier --check src/lib/transfer/import-collection.ts: All matched files use Prettier code style, exit 0
+eslint src/lib/transfer/import-collection.ts: exit 0
+Combined tool command exit 0 (chunk 84145d)

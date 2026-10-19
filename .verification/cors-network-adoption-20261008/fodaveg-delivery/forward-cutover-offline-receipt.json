@@ -1,0 +1,60 @@
+{
+  "actualRemoteOperationsByThisAgent": false,
+  "approvalOrMarkerCreated": false,
+  "checks": {
+    "AST": "PASS",
+    "diffCheck": {
+      "FORWARD_CUTOVER.md": {
+        "exitCode": 1,
+        "noIndexAdditionsExit1Expected": true,
+        "status": "PASS_NO_WHITESPACE_FINDINGS"
+      },
+      "forward-cutover-run.py": {
+        "exitCode": 1,
+        "noIndexAdditionsExit1Expected": true,
+        "status": "PASS_NO_WHITESPACE_FINDINGS"
+      },
+      "forward-cutover-selftest.py": {
+        "exitCode": 1,
+        "noIndexAdditionsExit1Expected": true,
+        "status": "PASS_NO_WHITESPACE_FINDINGS"
+      },
+      "forward-cutover-wrapper-selftest.py": {
+        "exitCode": 1,
+        "noIndexAdditionsExit1Expected": true,
+        "status": "PASS_NO_WHITESPACE_FINDINGS"
+      },
+      "forward-probe.py": {
+        "exitCode": 1,
+        "noIndexAdditionsExit1Expected": true,
+        "status": "PASS_NO_WHITESPACE_FINDINGS"
+      },
+      "remote_cutover_forward.py": {
+        "exitCode": 1,
+        "noIndexAdditionsExit1Expected": true,
+        "status": "PASS_NO_WHITESPACE_FINDINGS"
+      }
+    },
+    "protocolTests": {
+      "command": "python3 -B forward-cutover-selftest.py",
+      "exitCode": 0,
+      "passed": 12
+    },
+    "wrapperTests": {
+      "command": "python3 -B forward-cutover-wrapper-selftest.py",
+      "exitCode": 0,
+      "passed": 6
+    }
+  },
+  "files": {
+    "FORWARD_CUTOVER.md": "9b9152e9066894270762b12b34e61a5ad40fbce09d462a12d2573cdb3958daa2",
+    "forward-cutover-run.py": "a3ff1c57aa96b4a8a6a2ee114e2864c106c2e3b19b46a2296f49dbaea4be4c0e",
+    "forward-cutover-selftest.py": "d0da1b473dea199a3eeda505e6684ff157fb2a28a4f0ad80e9a5d2484a9422c3",
+    "forward-cutover-wrapper-selftest.py": "a43b04143a6a6ba6405a41e167d2060864ee18a771e8c16219c6482b48ead76a",
+    "forward-probe.py": "2d12576a32bf2a6b670adf817449e9ed39845cfac2f260dd028ea74da5ef77c3",
+    "remote_cutover_forward.py": "901715c3b00b3f034effdb11846ebf475cab1b9698472165bc1b9f2b41a9ffd5"
+  },
+  "limits": "Fake state-machine tests do not certify the new snapshot or production cutover. Reused actual standalone TEST proves native clone boundary for the same image.",
+  "operationId": "d42f490f-606d-42d5-84f9-bd0c31da2492",
+  "status": "OFFLINE_DIRECTED_PASSED"
+}

@@ -1,0 +1,20 @@
+[WARN] Your node_modules are out of sync with your lockfile. The value of the enableGlobalVirtualStore setting has changed
+$ node scripts/check-bundle-budget.mjs
+[bundle-budget] 145 ficheros .js/.css bajo build/
+[bundle-budget] CARGA INICIAL : 150.81 KB / 200.00 KB  (44 ficheros)
+[bundle-budget] PANTALLA MÁS CARA: 79.92 KB / 80.00 KB  (4.B_0_usKW.js)
+[bundle-budget] coste de abrir cada pantalla, ya descontada la carga inicial:
+  79.92 KB  4.B_0_usKW.js (+ 301.68 KB diferido al usarla, ver abajo)
+  79.01 KB  5.JOA8wW8k.js (+ 278.61 KB diferido al usarla, ver abajo)
+  78.01 KB  6.DaG4QE8m.js (+ 301.68 KB diferido al usarla, ver abajo)
+  43.49 KB  13.KHq5lpUl.js
+  31.72 KB  3.Ca2mqUd_.js
+[bundle-budget] TOTAL BUILD   : 647.57 KB / 1024.00 KB
+[bundle-budget] CSS sin atribuir a ninguna pantalla: 22.65 KB en 19 hoja(s) (ver cabecera; cuenta en el total)
+[bundle-budget] COSTE DIFERIDO (import() dinámico — no cuenta en los tres topes de arriba, ya cuenta en TOTAL BUILD, y lo paga quien lo dispara):
+  278.61 KB  al usar _app/immutable/chunks/CQwmsr4b.js (30 módulo(s) bajo demanda) — rutas: 4.B_0_usKW.js, 5.JOA8wW8k.js, 6.DaG4QE8m.js
+  26.00 KB  al usar _app/immutable/chunks/BXZLl9qt.js (1 módulo(s) bajo demanda) — rutas: 9.BzX2--m8.js, 0.bvWMXM5i.js
+  23.07 KB  al usar _app/immutable/chunks/BxEJhMkK.js (12 módulo(s) bajo demanda) — rutas: 4.B_0_usKW.js, 6.DaG4QE8m.js
+  13.21 KB  al usar _app/immutable/chunks/Do3MmloM.js (7 módulo(s) bajo demanda) — rutas: 2.DGRcDBad.js, 9.BzX2--m8.js, 12.B6-raD4Z.js, 0.bvWMXM5i.js
+  8.32 KB  al usar _app/immutable/nodes/0.bvWMXM5i.js (6 módulo(s) bajo demanda) — rutas: 0.bvWMXM5i.js
+[bundle-budget] OK, dentro de presupuesto.

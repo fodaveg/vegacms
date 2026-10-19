@@ -1,0 +1,14 @@
+{
+  "candidate": "4d9f891e1237504ed136573f76493b1b77497c56",
+  "artifact_only": true,
+  "ids": 29,
+  "duplicate_ids": [],
+  "missing_literal_dom_refs": [],
+  "sha256": {
+    "contract-proposal.md": "d4b71e07e79d2ecdb4a71fe977c9217ded5300a0be6e0afbb8689f9ec71fd0c5",
+    "plate.html": "b2a008ca69dc435c6ab1a522db723068102d2a193489999e43f5e75a3d649dfa"
+  },
+  "browser": "plate-results.json: terminal0",
+  "source_edits": false,
+  "states": 12
+}

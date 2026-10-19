@@ -1,0 +1,18 @@
+COMMAND: ['pnpm', 'exec', 'vitest', 'run', 'tests/contract/pocketbase.contact-notify-hook.test.ts', '--project', 'server', '-t', 'TLS']; Node22 PATH; trust opt-in absent
+✓ Lockfile passes supply-chain policies (verified 6d ago)
+Lockfile is up to date, resolution step is skipped
+Already up to date
+
+. prepare$ svelte-kit sync || echo ''
+. prepare: Done
+Done in 1.1s using pnpm v11.11.0
+
+ RUN  v4.1.10 /private/tmp/vegacms-contact-smtp-tls-20261007
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 14 skipped (15)
+   Start at  13:52:25
+   Duration  3.55s (transform 30ms, setup 0ms, import 40ms, tests 3.44s, environment 0ms)
+
+EXIT_CODE=0

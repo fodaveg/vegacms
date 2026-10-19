@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /private/tmp/vegacms-trash-history-20261007
+
+
+ Test Files  6 passed (6)
+      Tests  137 passed (137)
+   Start at  07:07:24
+   Duration  21.37s (transform 4.70s, setup 0ms, import 6.18s, tests 9.71s, environment 4.62s)
+

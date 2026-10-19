@@ -1,0 +1,30 @@
+{
+  "status": "static-reviewed-runtime-pending",
+  "base": "147e51b84d6f16e50107a88ec014d15f1a5eca7a",
+  "tree": "1154ca9d92a2603e5b4887580ea683319220d566",
+  "paths": [
+    "e2e/trash.spec.ts"
+  ],
+  "changes": "Select the exact Papelera navigation link, excluding the Home setup CTA. Existing route/content/restore assertions unchanged.",
+  "redEvidence": "../backlog-r10-consolidated-20261007/gate-939bec8f.log",
+  "checks": [
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "log": "trash-selector-eslint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "prettier",
+      "exitCode": 0,
+      "log": "trash-selector-prettier.log",
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    }
+  ],
+  "review": "trash-selector-review.md",
+  "patch": "trash-selector.patch",
+  "environment": "Node22; existing dependencies; no install/build/browser. Root owns combined E2E.",
+  "limits": [
+    "Runtime not repeated for this selector; root combined gate pending."
+  ]
+}

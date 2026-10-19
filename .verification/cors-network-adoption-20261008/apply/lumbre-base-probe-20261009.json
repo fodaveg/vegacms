@@ -1,0 +1,15 @@
+{
+  "baselineComparable": false,
+  "candidateExact": true,
+  "configClass": "PASS",
+  "dryCreateClass": "PASS",
+  "modelClass": "EXPECTED",
+  "phase": "ROLLED_BACK",
+  "privateValuesExported": false,
+  "rawAliasOrderChanged": false,
+  "rawMountOrderChanged": false,
+  "remoteWrites": false,
+  "runtimeClass": "PASS_WITHOUT_BASELINE",
+  "snapshotStable": true,
+  "status": "PROJECTED"
+}

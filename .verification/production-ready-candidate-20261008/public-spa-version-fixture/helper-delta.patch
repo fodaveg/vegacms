@@ -1,0 +1,17 @@
+--- historical/fixtures.ts
++++ version/fixtures.ts
+@@ -150,9 +150,11 @@
+  * Autentica y redirige al singleton vacío; no afirma que exista la portada Inicio actual.
+  * El guard y las acciones siguientes conservan su intención original.
+  */
+-export async function waitForHistoricalLanding(page: import('@playwright/test').Page): Promise<void> {
+-	await page.waitForURL((url) => url.pathname === '/c/site_info/new');
+-	await expect(page.getByRole('heading', { level: 1, name: 'Crear «Información del sitio»', exact: true })).toBeVisible();
++export async function waitForHistoricalLanding(page: import('@playwright/test').Page, showcase = false): Promise<void> {
++	const pathname = showcase ? '/c/entradas' : '/c/site_info/new';
++	const heading = showcase ? 'Entradas' : 'Crear «Información del sitio»';
++	await page.waitForURL((url) => url.pathname === pathname);
++	await expect(page.getByRole('heading', { level: 1, name: heading, exact: true })).toBeVisible();
+ }
+ 
+ /**

@@ -1,0 +1,9 @@
+# Home vacío — revisión del fixture consumidor
+
+**Listo para merge. Sin hallazgos pendientes.** Base `fa03bf15e5d50ebbe315e73509fb11f5de6f1fa4`, WT `/private/tmp/vegacms-trash-history-20261007`, árbol congelado `30445ce2c6d7c884538b8e146931b3710e93c808`.
+
+Inventario git diff --stat/--name-status y lectura íntegra **1/1 archivo**, `src/routes/home-empty.svelte.test.ts`, 4 inserciones/1 eliminación. Index coincide con el árbol y no hay cambios unstaged. Se reutiliza el helper model vecino con types vacíos, revisions explícitamente disabled y límites20/30; se aporta sesión. El escenario queda definido: guía general de proyecto vacío con historial desactivado. Assertions admin/editor, botón Ajustes y ausencia de botón para editor permanecen intactas. No añade un guard falso en shouldOfferRevisions ni cambia producción para tolerar un mock inválido.
+
+Contexto de impacto ampliado por petición de raíz: grafo `vega-backlog-r2-20261007` primero, sin tests indexados suficientes; fallback acotado y lectura de mocks/fixture. Los consumidores directos de Home +page son este test y `src/lib/home/home-page.svelte.test.ts`. El segundo ya construye types/revisions mediante model; `revisions-onboarding.dom.test.ts` usa el mismo helper para enabled/disabled/colección presente/rol. El helper model garantiza las propiedades consumidas en estos escenarios y genera navegación vacía sin contenido. No se localizó otro mock HomePage ni consumidor de shouldOfferRevisions externo a los ya revisados. La elegibilidad enabled/admin/colección ausente mantiene su revisión original.
+
+Receipt y logs finales leídos: **2/2 tests**, session68847 terminal0, Node22/Vitest4.1.10; ESLint/Prettier/diffcheck0. La reproducción roja conserva el TypeError del gate conjunto sobre el mock anterior. Solo evidencia focal de este fixture: no equivale a gate completo. No ejecuté suite/browser/build ni edité fuente; gate conjunto y pruebas posteriores pertenecen a raíz.

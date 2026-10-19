@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /private/tmp/vegacms-import-origins-20261007
+
+
+ Test Files  1 passed (1)
+      Tests  46 passed (46)
+   Start at  19:56:56
+   Duration  251ms (transform 60ms, setup 0ms, import 75ms, tests 110ms, environment 0ms)
+

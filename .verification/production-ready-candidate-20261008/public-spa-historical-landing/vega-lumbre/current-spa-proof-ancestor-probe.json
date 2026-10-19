@@ -1,0 +1,39 @@
+{
+  "diagnostics": {
+    "consoleCategories": [],
+    "pageErrorNames": [],
+    "networkErrors": []
+  },
+  "frames": [
+    {
+      "isMain": true,
+      "isExpectedControl": false,
+      "emailInputs": 0,
+      "englishEmailLabels": 0,
+      "loginEmailID": 0,
+      "emailTypeInputs": 0,
+      "DOM": {
+        "readyState": "complete",
+        "language": "es-ES",
+        "elements": 4,
+        "inputs": 0,
+        "memoryAdapter": true
+      }
+    },
+    {
+      "isMain": false,
+      "isExpectedControl": true,
+      "emailInputs": 1,
+      "englishEmailLabels": 0,
+      "loginEmailID": 1,
+      "emailTypeInputs": 1,
+      "DOM": {
+        "readyState": "complete",
+        "language": "es-ES",
+        "elements": 111,
+        "inputs": 4,
+        "memoryAdapter": true
+      }
+    }
+  ]
+}

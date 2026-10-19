@@ -1,0 +1,18 @@
+[bundle-budget] 145 ficheros .js/.css bajo build/
+[bundle-budget] CARGA INICIAL : 150.26 KB / 200.00 KB  (44 ficheros)
+[bundle-budget] PANTALLA MÁS CARA: 79.92 KB / 80.00 KB  (4.SdPWHgsL.js)
+[bundle-budget] coste de abrir cada pantalla, ya descontada la carga inicial:
+  79.92 KB  4.SdPWHgsL.js (+ 301.67 KB diferido al usarla, ver abajo)
+  79.01 KB  5.BmUTF729.js (+ 278.60 KB diferido al usarla, ver abajo)
+  78.01 KB  6.D7ztNxcU.js (+ 301.67 KB diferido al usarla, ver abajo)
+  43.49 KB  13.BpoyJER7.js
+  29.93 KB  3.CjK05hv9.js
+[bundle-budget] TOTAL BUILD   : 644.83 KB / 1024.00 KB
+[bundle-budget] CSS sin atribuir a ninguna pantalla: 22.65 KB en 19 hoja(s) (ver cabecera; cuenta en el total)
+[bundle-budget] COSTE DIFERIDO (import() dinámico — no cuenta en los tres topes de arriba, ya cuenta en TOTAL BUILD, y lo paga quien lo dispara):
+  278.60 KB  al usar _app/immutable/chunks/Bz6v-_EL.js (30 módulo(s) bajo demanda) — rutas: 4.SdPWHgsL.js, 5.BmUTF729.js, 6.D7ztNxcU.js
+  25.60 KB  al usar _app/immutable/chunks/B7ySpV8t.js (1 módulo(s) bajo demanda) — rutas: 9.DYWZBhec.js, 0.CP7-1M7I.js
+  23.07 KB  al usar _app/immutable/chunks/CLS0q-lK.js (12 módulo(s) bajo demanda) — rutas: 4.SdPWHgsL.js, 6.D7ztNxcU.js
+  13.21 KB  al usar _app/immutable/chunks/Do3MmloM.js (7 módulo(s) bajo demanda) — rutas: 2.Ct0pvpee.js, 9.DYWZBhec.js, 12.BOse1qSd.js, 0.CP7-1M7I.js
+  8.32 KB  al usar _app/immutable/nodes/0.CP7-1M7I.js (6 módulo(s) bajo demanda) — rutas: 0.CP7-1M7I.js
+[bundle-budget] OK, dentro de presupuesto.

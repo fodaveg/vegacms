@@ -1,0 +1,11 @@
+--- a/docker-entrypoint.sh
++++ b/docker-entrypoint.sh
+@@ -20,7 +20,7 @@
+ # publica el puerto al host: Astro entra por localhost y Caddy por `edge`.
+ # Migraciones Go al vuelo. RP_ID/RP_ORIGINS/TRUST_PROXY llegan por Compose.
+ echo "[entrypoint] Iniciando PocketBase en 0.0.0.0:8090…"
+-/pb/fodaveg-pb --dir "$PB_DATA" serve --http=0.0.0.0:8090 &
++/pb/fodaveg-pb --dir "$PB_DATA" serve --http=0.0.0.0:8090 --origins=https://admin.fodaveg.net &
+ PB_PID=$!
+ 
+ # Esperar a que PB responda antes de arrancar Astro (Astro le pega en el primer

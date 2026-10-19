@@ -1,0 +1,26 @@
+--- modulefix/fixtures.ts
++++ historical/fixtures.ts
+@@ -146,17 +146,13 @@
+ }
+ 
+ /**
+- * Espera a que la app se asiente en la portada «Inicio» (`/`, lote 12): es donde aterriza el
+- * login y donde se queda una carga directa de `/` con sesión. Hasta el 1 oct 2026 el índice no
+- * tenía pantalla y saltaba al primer elemento del menú (con la semilla de demo,
+- * `/c/site_info/new`); por eso tantos specs esperaban esa URL tras `loginAsDemo`.
+- *
+- * Exige la ruta Y el `h1` «Inicio»: solo la URL no prueba nada, porque el layout ya está en `/`
+- * mientras resuelve sesión y modelo.
++ * Landing exacto de la SPA pública histórica, acreditado por probe local con CSP real.
++ * Autentica y redirige al singleton vacío; no afirma que exista la portada Inicio actual.
++ * El guard y las acciones siguientes conservan su intención original.
+  */
+-export async function waitForHome(page: import('@playwright/test').Page): Promise<void> {
+-	await page.waitForURL((url) => url.pathname === '/');
+-	await expect(page.getByRole('heading', { level: 1, name: 'Inicio', exact: true })).toBeVisible();
++export async function waitForHistoricalLanding(page: import('@playwright/test').Page): Promise<void> {
++	await page.waitForURL((url) => url.pathname === '/c/site_info/new');
++	await expect(page.getByRole('heading', { level: 1, name: 'Crear «Información del sitio»', exact: true })).toBeVisible();
+ }
+ 
+ /**

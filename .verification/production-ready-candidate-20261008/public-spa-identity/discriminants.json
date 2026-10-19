@@ -1,0 +1,111 @@
+{
+  "completedAtUTC": "2026-10-08T10:18:17.200597+00:00",
+  "referenceSHA256": {
+    ".verification/production-rollout-proposal-20261007/current-spa-proof-final-receipt.json": "67c4b43feafdc45c97b929a9876d62f750e6d056d1b376d2f49d434bddf734cb",
+    ".verification/local-consumer-runtime-20261008/vega-current-packaged-image/frontend-manifest.json": "d77470958c89fe263b155b3a885a988c435d0eb404b195a46d0b861af4e29472",
+    ".verification/production-security-real-20261007/receipt.json": "0ef24d597958f9e08da18145a50b53d017fdc1586f784f6b7ae06afd4fc3a05d"
+  },
+  "expected": {
+    "historical-csp13-mounted-build": {
+      "index.html": "0ad48a6a2dbbde529d1e1a4d043e0c392702c07dcd9a70669ef140d14dbfbd02",
+      "_app/version.json": "06b7476b8cc99b044080f682d8799d3ae195b02bb0361c54d70a43dc96c6d6dc"
+    },
+    "current-be130-image": {
+      "index.html": "9b6f93f83a47c862b13824cf4d821a07d9f4e9b059e33005d72a19b210c8007b",
+      "_app/version.json": "495c203bc3bbc3d68945f142790c8433dde0cf39a09d9da2ac5be61e67abdc7d"
+    },
+    "historical-f59-image-index-only": {
+      "index.html": "362177c30431c6c473c8d1b663c9108e09ed1e2ab833f3558089679081a0a6d3"
+    }
+  },
+  "results": [
+    {
+      "host": "admin.vegacms.com",
+      "responses": {
+        "index.html": {
+          "path": "/",
+          "status": 200,
+          "sha256": "92696276c1727cdc6fdc33a711be36e1bf0a890a6ed8c0f20610fc9b16953d0c",
+          "bytes": 3436,
+          "errorClass": null
+        },
+        "_app/version.json": {
+          "path": "/_app/version.json",
+          "status": 200,
+          "sha256": "422166a9ac1f7ddbc38c57386dff547a7f1c6d8364930282e56b34fdc0393096",
+          "bytes": 27,
+          "errorClass": null,
+          "version": "1790238198788"
+        }
+      },
+      "matches": {
+        "historical-csp13-mounted-build": false,
+        "current-be130-image": false,
+        "historical-f59-image-index-only": false
+      }
+    },
+    {
+      "host": "admin.lumbre.pro",
+      "responses": {
+        "index.html": {
+          "path": "/",
+          "status": 200,
+          "sha256": "92696276c1727cdc6fdc33a711be36e1bf0a890a6ed8c0f20610fc9b16953d0c",
+          "bytes": 3436,
+          "errorClass": null
+        },
+        "_app/version.json": {
+          "path": "/_app/version.json",
+          "status": 200,
+          "sha256": "422166a9ac1f7ddbc38c57386dff547a7f1c6d8364930282e56b34fdc0393096",
+          "bytes": 27,
+          "errorClass": null,
+          "version": "1790238198788"
+        }
+      },
+      "matches": {
+        "historical-csp13-mounted-build": false,
+        "current-be130-image": false,
+        "historical-f59-image-index-only": false
+      }
+    },
+    {
+      "host": "admin.fodaveg.net",
+      "responses": {
+        "index.html": {
+          "path": "/",
+          "status": 200,
+          "sha256": "4cdfa4a5ca28b5376273e4b7db055fafce90f56dedd5d1844518d82f1a57ef86",
+          "bytes": 3437,
+          "errorClass": null
+        },
+        "_app/version.json": {
+          "path": "/_app/version.json",
+          "status": 200,
+          "sha256": "9ecb8534f8bd8978813c4b4928e9aec5c4a6b2b3fce98384e25ac1d0e496f326",
+          "bytes": 27,
+          "errorClass": null,
+          "version": "1790238028368"
+        }
+      },
+      "matches": {
+        "historical-csp13-mounted-build": false,
+        "current-be130-image": false,
+        "historical-f59-image-index-only": false
+      }
+    }
+  ],
+  "requestCount": 6,
+  "redirectsFollowed": false,
+  "retries": 0,
+  "cookies": false,
+  "credentials": false,
+  "queryStrings": false,
+  "browser": false,
+  "rawResponseBodiesRetained": false,
+  "all151AssetsDownloaded": false,
+  "limits": [
+    "Index plus version discriminants cannot prove all151 asset identity.",
+    "Historical CSP13 mounted the candidate9165 build on f59; image name alone does not transfer this proof."
+  ]
+}

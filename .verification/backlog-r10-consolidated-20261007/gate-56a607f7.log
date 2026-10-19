@@ -1,0 +1,22 @@
+$ pnpm check && pnpm lint && pnpm pb:download && pnpm check-pb-binary && pnpm test && pnpm test:go && pnpm build && VEGA_E2E_PREBUILT=1 pnpm test:e2e
+$ svelte-kit sync && svelte-check --tsconfig ./tsconfig.json
+Loading svelte-check in workspace: /private/tmp/vegacms-backlog-r2-20261007
+Getting Svelte diagnostics...
+
+/private/tmp/vegacms-backlog-r2-20261007/src/lib/transfer/import-collection.ts:225:41
+Error: 'file' is possibly 'null'. 
+					fileCount += 1;
+					const origin = transferMediaOrigin(file.url);
+					if (origin) origins.add(origin);
+
+/private/tmp/vegacms-backlog-r2-20261007/src/lib/transfer/import-collection.ts:225:46
+Error: Property 'url' does not exist on type 'string | number | boolean | JsonValue[] | { [key: string]: JsonValue; } | TransferFileValue'.
+  Property 'url' does not exist on type 'string'. 
+					fileCount += 1;
+					const origin = transferMediaOrigin(file.url);
+					if (origin) origins.add(origin);
+
+====================================
+svelte-check found 2 errors and 0 warnings in 1 file
+[ELIFECYCLE] Command failed with exit code 1.
+[ELIFECYCLE] Command failed with exit code 1.

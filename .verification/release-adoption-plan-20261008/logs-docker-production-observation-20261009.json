@@ -1,0 +1,70 @@
+{
+  "status": "DOCKER_LOG_ROTATION_OBSERVED_PARTIAL",
+  "taskId": "8ce56224-4787-4bf1-9ba4-6537a6ee3a2b",
+  "receiptPath": "/Users/david/code/vegacms/.verification/worktrees/caddy-referenced-env-20261008/.verification/release-adoption-plan-20261008/logs-selective-next-step/execution-receipt.json",
+  "receiptSHA256": "22d29022f57bbe18d03f978d79fd80c1c18cd9fc0be10f5d94d735c541197d78",
+  "observations": {
+    "edge-caddy": {
+      "bufferBytes": null,
+      "collectorPolicy": "NOT_OBSERVED",
+      "compressed": "UNSET_NO_DEFAULT_INFERRED",
+      "delivery": "UNSET_NO_DEFAULT_INFERRED",
+      "driver": "JSON_FILE",
+      "effectiveTokenSafetyProved": false,
+      "filterPolicy": "NOT_OBSERVED",
+      "maxBytes": 10485760,
+      "maxFiles": 3,
+      "readerPolicy": "NOT_OBSERVED",
+      "retentionDays": null,
+      "status": "CONFIGURED_SIZE_COUNT_ONLY_OTHER_SINKS_UNKNOWN"
+    },
+    "fodaveg": {
+      "bufferBytes": null,
+      "collectorPolicy": "NOT_OBSERVED",
+      "compressed": "UNSET_NO_DEFAULT_INFERRED",
+      "delivery": "UNSET_NO_DEFAULT_INFERRED",
+      "driver": "JSON_FILE",
+      "effectiveTokenSafetyProved": false,
+      "filterPolicy": "NOT_OBSERVED",
+      "maxBytes": 10485760,
+      "maxFiles": 3,
+      "readerPolicy": "NOT_OBSERVED",
+      "retentionDays": null,
+      "status": "CONFIGURED_SIZE_COUNT_ONLY_OTHER_SINKS_UNKNOWN"
+    },
+    "lumbre-admin-pb": {
+      "bufferBytes": null,
+      "collectorPolicy": "NOT_OBSERVED",
+      "compressed": "UNSET_NO_DEFAULT_INFERRED",
+      "delivery": "UNSET_NO_DEFAULT_INFERRED",
+      "driver": "JSON_FILE",
+      "effectiveTokenSafetyProved": false,
+      "filterPolicy": "NOT_OBSERVED",
+      "maxBytes": 10485760,
+      "maxFiles": 3,
+      "readerPolicy": "NOT_OBSERVED",
+      "retentionDays": null,
+      "status": "CONFIGURED_SIZE_COUNT_ONLY_OTHER_SINKS_UNKNOWN"
+    },
+    "vega-pb": {
+      "bufferBytes": null,
+      "collectorPolicy": "NOT_OBSERVED",
+      "compressed": "UNSET_NO_DEFAULT_INFERRED",
+      "delivery": "UNSET_NO_DEFAULT_INFERRED",
+      "driver": "JSON_FILE",
+      "effectiveTokenSafetyProved": false,
+      "filterPolicy": "NOT_OBSERVED",
+      "maxBytes": 10485760,
+      "maxFiles": 3,
+      "readerPolicy": "NOT_OBSERVED",
+      "retentionDays": null,
+      "status": "CONFIGURED_SIZE_COUNT_ONLY_OTHER_SINKS_UNKNOWN"
+    }
+  },
+  "taskClosureProved": false,
+  "remaining": "Caddy runtime encoder/filter and custom channels able to retain file-token; existing installed PB redactor/access hostSkipped preserved",
+  "scope": "No additional retention/readers acceptance requirements; no logs/Env/Caddy GET/remote writes",
+  "lumbreStatus": "@wip",
+  "parentStatus": "@wip",
+  "nativeCheckbox": "preserved"
+}

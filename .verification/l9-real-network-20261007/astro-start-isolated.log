@@ -1,0 +1,2 @@
+{"probe":"syntax","exitCode":1,"ready":false,"errorClass":"SyntaxError","errorCode":null,"phases":["failed"]}
+{"probe":"isolated-start","exitCode":0,"ready":true,"errorClass":null,"errorCode":null,"phases":["config","imported","recipe","ready"]}

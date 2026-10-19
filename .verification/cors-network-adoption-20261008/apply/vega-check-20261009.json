@@ -1,0 +1,15 @@
+{
+  "candidateSha": "11593d1da51e580f988058bfac8288194eaeb7697ac7db2f6926815f8d14dcde",
+  "composeSha": "bae812ef0031b5e6aeb65f4678905e65d74cfadf62a5e78fe156250166377f7e",
+  "containerId": "5f8fed3402b9be46851f6909ad0bb59b4d21ca27be1e385711e6c0985c6aaef7",
+  "freeDockerKiB": 4877884,
+  "freeSrvKiB": 3917704,
+  "imageId": "sha256:dd978b8d23081d2e3c69ebf6ef8ff4599a1acdd3f38dc559ae6fa379e46449b4",
+  "remoteWrites": false,
+  "requiredDockerKiB": 544324,
+  "requiredSrvKiB": 544324,
+  "sameFilesystem": false,
+  "service": "vega-pb",
+  "status": "READY_FOR_REVIEW",
+  "volumeKiB": 20036
+}

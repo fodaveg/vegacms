@@ -1,0 +1,5 @@
+{
+  "exit_code": 1,
+  "source_restored_sha256": "73cde6f66528bc31301ce2a3c58d79b2c2d5602cf70ee35f21bae11bd8a9d170",
+  "mutation": "fixed-only message/detail, preserving compile and real webhook requests"
+}

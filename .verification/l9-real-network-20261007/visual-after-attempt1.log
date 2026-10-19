@@ -1,0 +1,46 @@
+
+Running 1 test using 1 worker
+
+
+(node:86336) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/1] scripts/l9-measure/visual.spec.ts:35:1 › visual renewal and reload: real Go and Astro consumers
+  1) scripts/l9-measure/visual.spec.ts:35:1 › visual renewal and reload: real Go and Astro consumers 
+
+    Error: write EPIPE
+
+      24 | async function stop(child: ChildProcessWithoutNullStreams, line: string) {
+      25 | 	if (child.exitCode !== null) return;
+    > 26 | 	child.stdin.end(line + '\n');
+         | 	            ^
+      27 | 	await Promise.race([
+      28 | 		new Promise<void>((r) => child.once('close', () => r())),
+      29 | 		sleep(5000).then(() => {
+        at stop (/private/tmp/vegacms-l9-measure-20261007/scripts/l9-measure/visual.spec.ts:26:14)
+        at /private/tmp/vegacms-l9-measure-20261007/scripts/l9-measure/visual.spec.ts:268:9
+
+    ClientResponseError 0: Something went wrong.
+
+       at ../../tests/contract/pb-harness/l9-network-seed.ts:33
+
+      31 | 			...rules
+      32 | 		});
+    > 33 | 	await admin.collections.create({
+         | 	^
+      34 | 		name: 'vega_editors',
+      35 | 		type: 'auth',
+      36 | 		fields: [text('name')],
+        at /private/tmp/vegacms-l9-measure-20261007/node_modules/.pnpm/pocketbase@0.27.0/node_modules/pocketbase/src/Client.ts:463:23
+        at seedL9 (/private/tmp/vegacms-l9-measure-20261007/tests/contract/pb-harness/l9-network-seed.ts:33:2)
+        at /private/tmp/vegacms-l9-measure-20261007/scripts/l9-measure/visual.spec.ts:77:17
+    [cause]: TypeError: fetch failed
+        at seedL9 (/private/tmp/vegacms-l9-measure-20261007/tests/contract/pb-harness/l9-network-seed.ts:33:2)
+        at /private/tmp/vegacms-l9-measure-20261007/scripts/l9-measure/visual.spec.ts:77:17
+    [cause]: SocketError: other side closed
+
+    Error Context: ../vega-l9-measure-playwright/visual-visual-renewal-and-reload-real-Go-and-Astro-consumers/error-context.md
+
+
+  1 failed
+    scripts/l9-measure/visual.spec.ts:35:1 › visual renewal and reload: real Go and Astro consumers 

@@ -1,0 +1,235 @@
+{
+  "status": "PUBLIC_SPA_CSP_AFFECTED_SCOPE_PASSED",
+  "completedAtUTC": "2026-10-08T11:29:27.733073+00:00",
+  "capture": {
+    "session_id": 60473,
+    "exit_code": 0,
+    "requests": 226,
+    "filesPerBundle": 109,
+    "VegaBytes": 1568205,
+    "FodBytes": 1568212,
+    "stableDiscriminantsBeforeAfter": true,
+    "fullDynamicClosureProven": false
+  },
+  "coverage": {
+    "admin.vegacms.com": "12 unchanged cases52086 plus affected visual78097",
+    "admin.lumbre.pro": "same109 public hashes asVega verified separately71318; same publicSPA CSPscope",
+    "admin.fodaveg.net": "13 cases in one full execution37624"
+  },
+  "vega": {
+    "reuse": {
+      "session_id": 52086,
+      "exit_code": 1,
+      "passed": 12,
+      "failed": 1,
+      "scope": "Only visual label assertion failed; all code outside that case is unchanged"
+    },
+    "affected": {
+      "session_id": 78097,
+      "exit_code": 0,
+      "passed": 1,
+      "durationSeconds": 2.5
+    },
+    "sourceScopeHashProof": {
+      "outsideVisualCaseBeforeSHA256": "d84be3f04a80ee01bb6ddf8079e62ee751905ead2cace1cc18a9cd7dd2e21857",
+      "outsideVisualCaseAfterSHA256": "d84be3f04a80ee01bb6ddf8079e62ee751905ead2cace1cc18a9cd7dd2e21857",
+      "equal": true
+    },
+    "singleFullFinalVega13Execution": false
+  },
+  "fod": {
+    "session_id": 37624,
+    "exit_code": 0,
+    "passed": 13,
+    "durationSeconds": 10.3
+  },
+  "readiness": {
+    "Vega": {
+      "files": 109,
+      "SHA200Matches": 109,
+      "exit_code": 0
+    },
+    "Fod": {
+      "files": 109,
+      "SHA200Matches": 109,
+      "exit_code": 0
+    }
+  },
+  "threeRealNegativeControls": [
+    "frame-ancestors actualblock against reachable parent4177/controlwithoutXFO",
+    "connect-src removesHTTPS and blocks token before endpoint",
+    "form-action self blocksPOST after successfultokenfetch"
+  ],
+  "guard": {
+    "syntheticProbeCases": 14,
+    "probeRealNetworkRequests": 0,
+    "contextTeardownAssertions": "blocked==0 and unhandledSynthetic==0 executed; no separate numeric counter artifact",
+    "routeFetchGateBeforeNetwork": true,
+    "routeFetchMaxRedirects": 0,
+    "ancestorPageUnroutePreservesContextGuard": true
+  },
+  "cleanup": {
+    "VegaHandle": 63077,
+    "VegaExit": 0,
+    "FodExit": 0,
+    "ownContainers": 0,
+    "ownNetworks": 0,
+    "ownVolumes": 0,
+    "heavySlotReleased": true,
+    "dfAvailableBeforeKiB": 140400000,
+    "dfAvailableAfterKiB": 138800000,
+    "dfDeltaAttribution": "Sharedfilesystem variation, not claimed as own recovery/usage",
+    "budgetBytes": 1073741824,
+    "retained": "Publicassets/source/logs needed for proof and reuse"
+  },
+  "priorAttempts": [
+    {
+      "cause": "CJS moduleinterop failed beforetests",
+      "exit_code": 1,
+      "tests": 0
+    },
+    {
+      "session_id": 38334,
+      "passed": 2,
+      "failed": 11,
+      "cause": "currentInicio helper not historicallanding"
+    },
+    {
+      "session_id": 67402,
+      "passed": 6,
+      "failed": 7,
+      "cause": "2Titlelabel mismatches+5showcase landing mismatches"
+    },
+    {
+      "session_id": 52086,
+      "passed": 12,
+      "failed": 1,
+      "cause": "historical3bloque(s) copy versusnewplural"
+    }
+  ],
+  "referenceSHA256": {
+    "production-ready-candidate-20261008/public-spa-identity/receipt.json": "006a29db16503231e0fe3a0097033ccfbc4441b1ea00d09d4fdace22587a80e6",
+    "production-ready-candidate-20261008/public-spa-identity/freeze-manifest.json": "78b008e9ee59473c6ea44c426c0c945abe9cb09467446f3d73800cb93455005c",
+    "production-ready-candidate-20261008/public-spa-clones/receipt.json": "a1e2e98207758e99f19d8e4890b8416cedf448cf17a2cdf9b681edf3ebccf740",
+    "production-ready-candidate-20261008/public-spa-clones/freeze-manifest.json": "ba54b306c32a164c663905e63c63b3083d50c935d8024487e64d9aeda5ed0f76",
+    "production-ready-candidate-20261008/public-spa-clones/capture-result.json": "5a77a4fa68b30909a4d17d2094a2d1e3aed84eb71a5ba455c05b0782cbdce9fc",
+    "production-ready-candidate-20261008/public-spa-clones/vega-lumbre/frontend-manifest.json": "de9791dd8b1ba06907c1f03f77d7ea748680e10b31d333a79fd63fd091c20dcf",
+    "production-ready-candidate-20261008/public-spa-clones/fodaveg/frontend-manifest.json": "8adea0994196b9dd7f3c002cc09c4e2d0f0c81add671e6ad4ec760dcbc14e860",
+    "production-ready-candidate-20261008/public-spa-isolation/receipt.json": "7614995ff54ae957f6540017ef00d21612f054be369c650e5d89712f14306614",
+    "production-ready-candidate-20261008/public-spa-isolation/freeze-manifest.json": "8977cc924f9d945b890ca444cf925b16c09cd9eae72b9206ea2fcb78820dc54c",
+    "production-ready-candidate-20261008/public-spa-isolation/execution/preflight.json": "56e9ed84894abd2a5be7156d8e746405fc95714b6227ac9d2ae245a255b6c2eb",
+    "production-ready-candidate-20261008/public-spa-isolation/execution/vega-browser-terminal.json": "086f7895764bc380400fd9e42efef4cb2ecac7e874ace8826fcfd0d222905eda",
+    "production-ready-candidate-20261008/public-spa-isolation/execution/vega-browser.log": "dff3dc565fe271ee0d63dd9eaa813776e0ef02ad126b252a72c314781168c54f",
+    "production-ready-candidate-20261008/public-spa-isolation/execution/vega-health.json": "281a9ea9f89241f5fd962deb68ffe3759097ae54967b097db109c9c8104dd31b",
+    "production-ready-candidate-20261008/public-spa-isolation/execution/vega-readiness-terminal.json": "583669ee7d41d26d1696b818085a406c3c8c628bf115dcce2ad0ea459f7f1d36",
+    "production-ready-candidate-20261008/public-spa-isolation/execution/vega-readiness.log": "6f38b3880f808bc27eec8c74ec35b123b6b94e22d93484c86196293051889d61",
+    "production-ready-candidate-20261008/public-spa-isolation/execution/vega-startup.json": "7b073681fe115832145a3340835d67eed39ab8bfaeeacf77d27ce1ad80fdb33e",
+    "production-ready-candidate-20261008/public-spa-isolation/execution/vega-startup.log": "0d848f2081fa3e7a565e915cd5de6f83d83f4c713b499602378dc1e83137c866",
+    "production-ready-candidate-20261008/public-spa-isolation/vega-lumbre/readiness.json": "7398f79d163ec2e425065abab01dd810dadd10cf30343bb62cd272f321142e4d",
+    "production-ready-candidate-20261008/public-spa-isolation-module-fix/receipt.json": "f1e9796bf11d2b78592a732c1aa0d14808fa45ff97881ec0030d88dd0ce007eb",
+    "production-ready-candidate-20261008/public-spa-isolation-module-fix/freeze-manifest.json": "aa021630cc4065f47f9c608a4a24c97c27462891606ea293e7b7134fbc97a9b6",
+    "production-ready-candidate-20261008/public-spa-isolation-module-fix/exports-probe.json": "df819793fb257c94a1541f621480a46b53914c8e6b7e5a554882de537ce08438",
+    "production-ready-candidate-20261008/public-spa-isolation-module-fix/execution/vega-browser-terminal.json": "8e99b979970caa7617251556922ac1e72d4bedfccffc03fc027706cb5c5c294b",
+    "production-ready-candidate-20261008/public-spa-isolation-module-fix/execution/vega-browser.log": "10626bff14220b0f23d6a23b55913f00edda493eec8a38ad3615ea95fb324722",
+    "production-ready-candidate-20261008/public-spa-landing-probe/result.json": "d748d8d2648312e576636b1367960bbe557724f2f2e62d9edd442aee93cc99c2",
+    "production-ready-candidate-20261008/public-spa-landing-probe/terminal.json": "20cc6bb98e3586f448b33cdc68b8cd649a671a352801b70a2b1c38aaaffdea43",
+    "production-ready-candidate-20261008/public-spa-historical-landing/receipt.json": "7c8b6c95566c6f958517de1a2e8dd38f0911240a8bec062406fc729f5b6e0c22",
+    "production-ready-candidate-20261008/public-spa-historical-landing/freeze-manifest.json": "e730e3bd00c618183c8f7332018d949a72fb8c5c30f06f6305b41bf811fe5449",
+    "production-ready-candidate-20261008/public-spa-historical-landing/execution/vega-browser-terminal.json": "72688412bb9a068a7b20ea1d79dcbb8d222268efe27b8fca26a94281b01880b4",
+    "production-ready-candidate-20261008/public-spa-historical-landing/execution/vega-browser.log": "14208080cb6dacd9bcd5ecb00cd4555e87ba39febbe118ecb4726c8e17d82384",
+    "production-ready-candidate-20261008/public-spa-seed-probes/terminal.json": "9535c5c54a09cdb9266ee160a1e868a8859d4e539f60d0db808505f876a713bc",
+    "production-ready-candidate-20261008/public-spa-seed-probes/demo-result.json": "06d67d11e007b99d70b404aaece6db213d94935b9d9ca8615ce46a6fcc30d5aa",
+    "production-ready-candidate-20261008/public-spa-seed-probes/showcase-result.json": "025381b2fc0234fe9b8e2f11f846e178393c3cd2ce1a49f32e67be68ca0ce801",
+    "production-ready-candidate-20261008/public-spa-version-fixture/receipt.json": "323b64f71f35e551f9462b68f34965a261f993a754f99db47847a8f354658eeb",
+    "production-ready-candidate-20261008/public-spa-version-fixture/freeze-manifest.json": "245152af48eeb91aa8a051b32ae9b8de1948955aaaec3ec3e1c6b4bd84486f4d",
+    "production-ready-candidate-20261008/public-spa-version-fixture/execution/vega-browser-terminal.json": "3f9610cc414a4eb56b6bd6e181abbea7468213306aea7c900f954c24dbb4a129",
+    "production-ready-candidate-20261008/public-spa-version-fixture/execution/vega-browser.log": "dbb0c8b458acf16b18cf3026b66a3a0da2aa6d5ae7648331a4e5c8a49f51004b",
+    "production-ready-candidate-20261008/public-spa-final-runner/receipt.json": "40b4efab3d255ddc54d9329dcd91721b7429d6a7def820bde14d1fb89e2ab129",
+    "production-ready-candidate-20261008/public-spa-final-runner/freeze-manifest.json": "486040e708f17e3af934faeff134a1b9f80650d56db13b7d6ea893f223b6cffb",
+    "production-ready-candidate-20261008/public-spa-final-runner/execution/fod-browser-terminal.json": "07f06984e7745e8a9fdacd4fd8cac53ac81f8e78b0c84bc5fab9c024063d7210",
+    "production-ready-candidate-20261008/public-spa-final-runner/execution/fod-browser.log": "ec90cd7ef213f1cf7eb3f529d1b139cc522131a5f55c0038f52b6baca614b284",
+    "production-ready-candidate-20261008/public-spa-final-runner/execution/fod-cleanup.json": "b675e14e903699294ddad8eb57704588e837956657e32929668e83a3561ceb12",
+    "production-ready-candidate-20261008/public-spa-final-runner/execution/fod-cleanup.log": "d777a0c3ad09b15d860bfb6848ac6434236517c64cd6691b61e2631e32f9bae3",
+    "production-ready-candidate-20261008/public-spa-final-runner/execution/fod-health.json": "33d31989b0404df3a44e8c3697fca352a4039fe6062d1564cbf433519258b61b",
+    "production-ready-candidate-20261008/public-spa-final-runner/execution/fod-readiness-terminal.json": "2c4a2d2588ab9c3522a39e4aa780fd89757f68d4e7176d7fb87a39ab81f1f6aa",
+    "production-ready-candidate-20261008/public-spa-final-runner/execution/fod-readiness.log": "6f38b3880f808bc27eec8c74ec35b123b6b94e22d93484c86196293051889d61",
+    "production-ready-candidate-20261008/public-spa-final-runner/execution/fod-resources-after.json": "011b70eac3c85c5738f6b3803b77099d6e2070188c86b9f24f412560c309ce9d",
+    "production-ready-candidate-20261008/public-spa-final-runner/execution/fod-startup.json": "f0eb29d7a5119e3eade433fc9ac46978c1c4b27b347e7c0f21af832789556e2c",
+    "production-ready-candidate-20261008/public-spa-final-runner/execution/fod-startup.log": "59429e548aa2e914ea128e948c9a90960f33c7af6284700d6b1042797163424f",
+    "production-ready-candidate-20261008/public-spa-final-runner/execution/vega-affected-browser.log": "f5d9a59414a0fd60399c72f658ae7bb0b2d039df51bf2812621e649790318d69",
+    "production-ready-candidate-20261008/public-spa-final-runner/execution/vega-affected-terminal.json": "7fd82e3ac11299e22341dadfa957c31af137b65a3f13fd794ac8b468c162726d",
+    "production-ready-candidate-20261008/public-spa-final-runner/execution/vega-cleanup.json": "2481aa8239fc1bd0ad2f5c78c91f0fde1bdca706a2bfa657d8adac55e80b908b",
+    "production-ready-candidate-20261008/public-spa-final-runner/execution/vega-cleanup.log": "cbc8e73ba6939826369e5bc73fb4674349a8ce89ef3962f8631a39b2133e356f",
+    "production-ready-candidate-20261008/public-spa-final-runner/execution/vega-resources-after.json": "011b70eac3c85c5738f6b3803b77099d6e2070188c86b9f24f412560c309ce9d",
+    "production-ready-candidate-20261008/public-spa-final-runner/fodaveg/readiness.json": "8ea5b8115ab4b00e3dcdb63c07269a930e8c44287fc2d74173bd7288bbda1d42",
+    "private-runtime-metadata-read-ready-20261008/public-lumbre-equivalence-20261008/execution-receipt.json": "b59ec3eb1d052a8c649c3af6a58d58a84950c3c7499a9f20d71bddaea083330f",
+    "private-runtime-metadata-read-ready-20261008/public-lumbre-equivalence-20261008/result.json": "43d3e0c67253c5252b0e6d29358f07b0d6fe4d1ae53b45589931b25e08fbe62d",
+    "private-runtime-metadata-read-ready-20261008/public-lumbre-equivalence-20261008/execution-manifest.json": "70a2a220f4054b02a495ad7c74b6eab4e256de435f5b5fce0d4d419fe4b70a67"
+  },
+  "sourceSealsChecked": [
+    {
+      "manifest": "freeze-manifest.json",
+      "sha256": "d2b4938650389701fb7240827a46b5e3433198e01c4a08feece19246dc6c833d",
+      "entries": 23,
+      "mismatches": 0
+    },
+    {
+      "manifest": "headers-panel-batch/freeze-manifest.json",
+      "sha256": "d6fa3f557b6c710f94d5cab551cf07da54521d597ae50ebb43a05298884b2a83",
+      "entries": 8,
+      "mismatches": 0
+    },
+    {
+      "manifest": "public-spa-identity/freeze-manifest.json",
+      "sha256": "78b008e9ee59473c6ea44c426c0c945abe9cb09467446f3d73800cb93455005c",
+      "entries": 5,
+      "mismatches": 0
+    },
+    {
+      "manifest": "public-spa-clones/freeze-manifest.json",
+      "sha256": "ba54b306c32a164c663905e63c63b3083d50c935d8024487e64d9aeda5ed0f76",
+      "entries": 237,
+      "mismatches": 0
+    },
+    {
+      "manifest": "public-spa-isolation/freeze-manifest.json",
+      "sha256": "8977cc924f9d945b890ca444cf925b16c09cd9eae72b9206ea2fcb78820dc54c",
+      "entries": 15,
+      "mismatches": 0
+    },
+    {
+      "manifest": "public-spa-isolation-module-fix/freeze-manifest.json",
+      "sha256": "aa021630cc4065f47f9c608a4a24c97c27462891606ea293e7b7134fbc97a9b6",
+      "entries": 13,
+      "mismatches": 0
+    },
+    {
+      "manifest": "public-spa-historical-landing/freeze-manifest.json",
+      "sha256": "e730e3bd00c618183c8f7332018d949a72fb8c5c30f06f6305b41bf811fe5449",
+      "entries": 13,
+      "mismatches": 0
+    },
+    {
+      "manifest": "public-spa-version-fixture/freeze-manifest.json",
+      "sha256": "245152af48eeb91aa8a051b32ae9b8de1948955aaaec3ec3e1c6b4bd84486f4d",
+      "entries": 13,
+      "mismatches": 0
+    },
+    {
+      "manifest": "public-spa-final-runner/freeze-manifest.json",
+      "sha256": "486040e708f17e3af934faeff134a1b9f80650d56db13b7d6ea893f223b6cffb",
+      "entries": 12,
+      "mismatches": 0
+    }
+  ],
+  "limits": [
+    "Publicclones exercised locally under proposedpolicy; no production headers changed.",
+    "Memoryauth/backend and interceptedHTTPSsite/token synthetic; noPBcryptoauth/CORS/TLS QA.",
+    "Stockbe130 only localPBengine; publicclone mount explicit. Liveimage/CMD not certified.",
+    "109 captured literal dependencies; exercised actions do not prove all dynamic/unvisiteddependencies.",
+    "SharedCaddy/imports/Fodcontextpatch privatevalidation and apply/reload remain separate pendingpermission."
+  ],
+  "privateReads": false,
+  "productionWrites": false,
+  "buildsInstallsPulls": false
+}

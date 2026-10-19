@@ -1,0 +1,45 @@
+{
+  "consumer": "fodaveg",
+  "binarySHA256": "94d356a6215bfc3a0be539a64cd823bdc23b68d36074783d04333a638f99cbd8",
+  "hookSHA256": "c11c225c49511ba2578572689be1a49a5c9b54bd083ef3f0be791d124b6f462a",
+  "image": "sha256:1b6436fee8c23615d7f7826cb4f87cb1d6e7e97d2d56150ff87a90571b951c40",
+  "cases": {
+    "negative-auth403": {
+      "passed": true
+    }
+  },
+  "cleanup": [
+    {
+      "container": "vega-l15-packaged-fodaveg-negative",
+      "exit": 0
+    }
+  ],
+  "limits": [
+    "Actual custom PB binary; synthetic auth/database.",
+    "Literal Fod Dockerfile final image; synthetic backend proof, not production or complete frontend/auth QA.",
+    "No Caddy logger mapping claim. Node/tini not started by this backend-only proof."
+  ],
+  "runtimeVariants": {
+    "negative": {
+      "mountTargets": [
+        "/pb/pb_data",
+        "/pb/pb_hooks/l15-observer.pb.js",
+        "/pb/pb_hooks/packaged-redactor.pb.js"
+      ],
+      "entrypoint": [
+        "/pb/fodaveg-pb"
+      ],
+      "uid": 0,
+      "healthStatus": 200,
+      "redactorFromImage": false,
+      "binaryFromImage": true,
+      "control": "file mask disables redactor only"
+    }
+  },
+  "passed": false,
+  "failure": {
+    "class": "AssertionError",
+    "label": "negative-discriminant-marker-retained"
+  },
+  "fixtureRemoved": true
+}

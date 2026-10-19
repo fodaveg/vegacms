@@ -1,0 +1,116 @@
+{
+  "consumer": "fodaveg",
+  "binarySHA256": "94d356a6215bfc3a0be539a64cd823bdc23b68d36074783d04333a638f99cbd8",
+  "hookSHA256": "c11c225c49511ba2578572689be1a49a5c9b54bd083ef3f0be791d124b6f462a",
+  "image": "sha256:1b6436fee8c23615d7f7826cb4f87cb1d6e7e97d2d56150ff87a90571b951c40",
+  "cases": {
+    "negative-auth403": {
+      "passed": true
+    },
+    "negative-discriminant-marker-retained": {
+      "passed": true
+    },
+    "negative-observer-query-retained": {
+      "passed": true
+    },
+    "positive-native-authZIP200-identical": {
+      "passed": true,
+      "bytes": 2355760,
+      "sha256": "c7eabbc33fdabc295028b06d95ae459d35ee0a6282de9cc9002a16f3dd12f780"
+    },
+    "positive-auth403-0": {
+      "passed": true
+    },
+    "positive-auth403-1": {
+      "passed": true
+    },
+    "positive-auth403-2": {
+      "passed": true
+    },
+    "positive-exception500": {
+      "passed": true
+    },
+    "positive-sensitiveReferer-0": {
+      "passed": true
+    },
+    "positive-sensitiveReferer-1": {
+      "passed": true
+    },
+    "positive-sensitiveReferer-2": {
+      "passed": true
+    },
+    "positive-rate-403": {
+      "passed": true
+    },
+    "positive-rate-429": {
+      "passed": true
+    },
+    "positive-real-flush-complete": {
+      "passed": true,
+      "records": 7,
+      "statuses": [
+        200,
+        403,
+        429,
+        500
+      ]
+    },
+    "positive-no-token-query-referer": {
+      "passed": true
+    },
+    "positive-ordinaryReferer-preserved": {
+      "passed": true
+    },
+    "positive-observer-after-finally": {
+      "passed": true
+    },
+    "positive-stdout-no-token": {
+      "passed": true,
+      "bytes": 227
+    }
+  },
+  "cleanup": [
+    {
+      "container": "vega-l15-packaged-fodaveg-positive",
+      "exit": 0
+    }
+  ],
+  "limits": [
+    "Actual custom PB binary; synthetic auth/database.",
+    "Literal Fod Dockerfile final image; synthetic backend proof, not production or complete frontend/auth QA.",
+    "No Caddy logger mapping claim. Node/tini not started by this backend-only proof."
+  ],
+  "runtimeVariants": {
+    "negative": {
+      "mountTargets": [
+        "/pb/pb_data",
+        "/pb/pb_hooks/l15-observer.pb.js",
+        "/pb/pb_hooks/vega-backup-log-redaction.pb.js"
+      ],
+      "entrypoint": [
+        "/pb/fodaveg-pb"
+      ],
+      "uid": 0,
+      "healthStatus": 200,
+      "redactorFromImage": false,
+      "binaryFromImage": true,
+      "control": "file mask disables redactor only"
+    },
+    "positive": {
+      "mountTargets": [
+        "/pb/pb_data",
+        "/pb/pb_hooks/l15-observer.pb.js"
+      ],
+      "entrypoint": [
+        "/pb/fodaveg-pb"
+      ],
+      "uid": 0,
+      "healthStatus": 200,
+      "redactorFromImage": true,
+      "binaryFromImage": true,
+      "control": null
+    }
+  },
+  "passed": true,
+  "fixtureRemoved": true
+}

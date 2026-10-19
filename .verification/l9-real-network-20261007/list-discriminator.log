@@ -1,0 +1,33 @@
+
+Running 1 test using 1 worker
+
+
+(node:93676) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/1] scripts/l9-measure/admin.spec.ts:208:1 › seven admin surfaces: repeated first and warm visits
+  1) scripts/l9-measure/admin.spec.ts:208:1 › seven admin surfaces: repeated first and warm visits ─
+
+    TimeoutError: locator.focus: Timeout 10000ms exceeded.
+    Call log:
+      - waiting for locator('.vega-reorder-handle').first()
+
+
+      306 | 							const table = await page.locator('table').elementHandle();
+      307 | 							const handles = page.locator('.vega-reorder-handle');
+    > 308 | 							await handles.first().focus();
+          | 							                      ^
+      309 | 							await handles.first().press('ArrowDown');
+      310 | 							await settle(page);
+      311 | 							return { tableRetained: await table?.evaluate((el) => el.isConnected) };
+        at /private/tmp/vegacms-l9-measure-20261007/scripts/l9-measure/admin.spec.ts:308:30
+        at measure (/private/tmp/vegacms-l9-measure-20261007/scripts/l9-measure/admin.spec.ts:162:23)
+        at /private/tmp/vegacms-l9-measure-20261007/scripts/l9-measure/admin.spec.ts:305:7
+
+    Error Context: ../vega-l9-measure-playwright/admin-seven-admin-surfaces-repeated-first-and-warm-visits/error-context.md
+
+    Error Context: ../vega-l9-measure-playwright/admin-seven-admin-surfaces-repeated-first-and-warm-visits/error-context.md
+
+
+  1 failed
+    scripts/l9-measure/admin.spec.ts:208:1 › seven admin surfaces: repeated first and warm visits ──

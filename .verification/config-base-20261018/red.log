@@ -1,0 +1,48 @@
+
+ RUN  v4.1.10 /private/tmp/vegacms-config-base-20261018
+
+ ❯ |dom| src/lib/session/backend.dom.test.ts (17 tests | 1 failed) 90ms
+     × lee la config bajo la base "/admin" 5ms
+ ❯ |component| src/lib/session/BackendUrlForm.svelte.test.ts (22 tests | 1 failed) 1254ms
+     × muestra la colección de la config bajo la base "/admin" 1009ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |dom| src/lib/session/backend.dom.test.ts > resolveDisplayBackendUrl > lee la config bajo la base "/admin"
+AssertionError: expected 'http://localhost:3000' to be 'https://pb-config.example.com' // Object.is equality
+
+Expected: "https://pb-config.example.com"
+Received: "http://localhost:3000"
+
+ ❯ src/lib/session/backend.dom.test.ts:50:44
+     48|   ) as typeof fetch;
+     49|
+     50|   expect(await resolveDisplayBackendUrl()).toBe('https://pb-config.exa…
+       |                                            ^
+     51|   expect(global.fetch).toHaveBeenCalledWith(configPath, { cache: 'no-s…
+     52|  });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |component| src/lib/session/BackendUrlForm.svelte.test.ts > BackendUrlForm.svelte > muestra la colección de la config bajo la base "/admin"
+AssertionError: expected 'connect.current.sameOrigin connect.cu…' to contain 'connect.current.authCollectionEffecti…'
+
+Expected: "connect.current.authCollectionEffective:{"authCollection":"config_editors"}"
+Received: "connect.current.sameOrigin connect.current.authCollectionEffective:{"authCollection":"_superusers"} connect.urlLabel  connect.authCollectionLabel  connect.authCollectionHint   connect.test connect.save "
+
+ ❯ src/lib/session/BackendUrlForm.svelte.test.ts:304:40
+    302|
+    303|   await vi.waitFor(() => {
+    304|    expect(mounted?.target.textContent).toContain(
+       |                                        ^
+    305|     'connect.current.authCollectionEffective:{"authCollection":"config…
+    306|    );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 37 passed (39)
+   Start at  13:22:19
+   Duration  3.28s (transform 1.31s, setup 0ms, import 1.56s, tests 1.34s, environment 1.94s)
+

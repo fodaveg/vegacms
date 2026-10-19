@@ -1,0 +1,14 @@
+  ➜  Local:   http://localhost:4173/
+  ➜  Network: use --host to expose
+
+[1;31m[404] GET /vega.config.json[0m
+
+[1;31m[404] GET /api/vega/discovery[0m
+
+[1;31m[404] GET /patron-falda.png[0m
+
+[1;31m[404] GET /patron-falda.png[0m
+
+[1;31m[404] GET /patron-falda.png[0m
+
+[1;31m[404] GET /patron-falda.png[0m

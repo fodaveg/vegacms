@@ -1,0 +1,13 @@
+# Proposed inside EXACT host block admin.fodaveg.net; CONDITIONAL, not installed.
+# If effective access logging already exists, MERGE filters into that logger; do not add duplicate.
+# For a verified host without access logging: stderr keeps existing Docker json-file 10m/3 rotation.
+log fodaveg_admin {
+	output stderr
+	format filter {
+		request>uri query {
+			delete token
+		}
+		request>headers>Referer delete
+		wrap json
+	}
+}

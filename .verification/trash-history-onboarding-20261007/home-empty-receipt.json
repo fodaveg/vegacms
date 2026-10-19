@@ -1,0 +1,71 @@
+{
+  "status": "verified-reviewed-private-commit",
+  "base": "fa03bf15e5d50ebbe315e73509fb11f5de6f1fa4",
+  "tree": "30445ce2c6d7c884538b8e146931b3710e93c808",
+  "worktree": "/private/tmp/vegacms-trash-history-20261007",
+  "paths": [
+    "src/routes/home-empty.svelte.test.ts"
+  ],
+  "changes": "Use neighbor Home fixture with empty types and explicitly disabled revisions; provide session. Existing admin/editor assertions unchanged. No product changes.",
+  "redEvidence": "/Users/david/code/vegacms/.verification/backlog-r10-consolidated-20261007/gate-2bc88a2f.log",
+  "checks": [
+    {
+      "name": "focal",
+      "argv": [
+        "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "src/routes/home-empty.svelte.test.ts",
+        "--maxWorkers=1"
+      ],
+      "exitCode": 0,
+      "sessionId": 68847,
+      "passed": 2,
+      "testFiles": 1,
+      "log": "home-empty-focal.log",
+      "logSha256": "efde3430ccaa626ae0cf7b4c2e1fdc7cc8862d78ba18e47c60bea20fd2e1c4e3"
+    },
+    {
+      "name": "eslint",
+      "argv": [
+        "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+        "node_modules/eslint/bin/eslint.js",
+        "src/routes/home-empty.svelte.test.ts"
+      ],
+      "exitCode": 0,
+      "log": "home-empty-eslint.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "prettier",
+      "argv": [
+        "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+        "node_modules/prettier/bin/prettier.cjs",
+        "--check",
+        "src/routes/home-empty.svelte.test.ts"
+      ],
+      "exitCode": 0,
+      "log": "home-empty-prettier.log",
+      "logSha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    {
+      "name": "diff-check",
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exitCode": 0
+    }
+  ],
+  "environment": "Darwin/Node22/existing dependencies/maxWorkers1. No install/headless/build/fullgate.",
+  "limits": [
+    "Only Home empty fixture focal; root owns combined gate."
+  ],
+  "patch": "home-empty.patch",
+  "commit": "147e51b84d6f16e50107a88ec014d15f1a5eca7a",
+  "worktreeClean": true,
+  "review": "home-empty-review.md",
+  "reviewPaths": 1,
+  "slotReleased": true
+}

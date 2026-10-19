@@ -1,0 +1,108 @@
+diff --git a/src/lib/form/RecordForm.svelte b/src/lib/form/RecordForm.svelte
+index a015edc..ba8deff 100644
+--- a/src/lib/form/RecordForm.svelte
++++ b/src/lib/form/RecordForm.svelte
+@@ -297,7 +297,13 @@
+ 	import RevisionsPanel from '$lib/revisions/RevisionsPanel.svelte';
+ 	import { hasFileValues } from '$lib/revisions/restore';
+ 	import SocialCardPreview from './SocialCardPreview.svelte';
+-	import PreviewPanel from './PreviewPanel.svelte';
++	type PreviewPanelComponent = typeof import('./PreviewPanel.svelte').default;
++	let PreviewPanel = $state.raw<PreviewPanelComponent | null>(null);
++	let previewOpening = $state(false);
++	let previewRequest = 0;
++	onDestroy(() => {
++		previewRequest++;
++	});
+ 	import { buildFormModel, type FormModel } from './form-model';
+ 	import {
+ 		buildFormSections,
+@@ -520,6 +526,8 @@
+ 			// tiene sentido (otra colección/id) — se cierra, `RecordForm` lo reabrirá si el usuario
+ 			// vuelve a pedirlo para el registro nuevo.
+ 			previewPanelOpen = false;
++			previewRequest++;
++			previewOpening = false;
+ 			shareOpen = false;
+ 		}
+ 	});
+@@ -683,6 +691,60 @@
+ 	const previewCapable = $derived(
+ 		(ctx.port.previewApiUrl ?? null) !== null && model.recordId !== null
+ 	);
++	/** Fetch the panel only on explicit opening, preserving its mount/unmount timer lifecycle.
++	 * Each opening has its own identity; closing or changing session discards a pending import. */
++	async function togglePreview(): Promise<void> {
++		if (previewPanelOpen) {
++			previewPanelOpen = false;
++			previewRequest++;
++			previewOpening = false;
++			return;
++		}
++		const session = ctx.session;
++		if (!previewCapable || !session || shareDestroyed) return;
++		previewPanelOpen = true;
++		if (PreviewPanel) return;
++		const request = ++previewRequest;
++		const identity = {
++			port: ctx.port,
++			token: session.token,
++			user: session.user.id,
++			type: type.name,
++			id: model.recordId
++		};
++		const current = () => {
++			const session = ctx.session;
++			return (
++				!shareDestroyed &&
++				request === previewRequest &&
++				previewPanelOpen &&
++				previewCapable &&
++				session !== null &&
++				identity.port === ctx.port &&
++				identity.token === session.token &&
++				identity.user === session.user.id &&
++				identity.type === type.name &&
++				identity.id === model.recordId
++			);
++		};
++		previewOpening = true;
++		try {
++			const component = (await import('./PreviewPanel.svelte')).default;
++			if (current()) PreviewPanel = component;
++		} catch {
++			if (current()) {
++				previewPanelOpen = false;
++				ctx.feedback.reportError(VegaError.backend(ctx.t('preview.error.server')), {
++					action: 'preview:open'
++				});
++			}
++		} finally {
++			if (!shareDestroyed && request === previewRequest) {
++				previewOpening = false;
++				if (!current()) previewPanelOpen = false;
++			}
++		}
++	}
+ 	const shareAvailable = $derived(
+ 		!modal && canManagePreviewShare(type, model.recordId, ctx.port, typeReadonly)
+ 	);
+@@ -1803,7 +1865,8 @@
+ 						class="vega-editor-preview-toggle"
+ 						class:vega-editor-preview-toggle--active={previewPanelOpen}
+ 						aria-pressed={previewPanelOpen}
+-						onclick={() => (previewPanelOpen = !previewPanelOpen)}
++						aria-busy={previewOpening}
++						onclick={() => void togglePreview()}
+ 					>
+ 						<Icon id="eye" size={14} />
+ 						{ctx.t('editor.preview.toggle')}
+@@ -2331,7 +2394,7 @@
+ 			}}
+ 		/>
+ 	{/if}
+-	{#if previewPanelOpen && previewCapable}
++	{#if previewPanelOpen && previewCapable && PreviewPanel}
+ 		{@const previewApiUrl = ctx.port.previewApiUrl ?? null}
+ 		{@const previewRecordId = model.recordId}
+ 		{#if previewApiUrl !== null && previewRecordId !== null}

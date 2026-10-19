@@ -1,0 +1,37 @@
+{
+  "status": "local-closure-complete-production-and-human-prerequisites-open",
+  "candidate": "9165fb964b8743d4be5cf65621a687acc7534e1e",
+  "tree": "1b24a844a33898bc98158534f1a78becf208e938",
+  "gateReceipt": "receipt.json",
+  "lumbreClosure": "lumbre-local-closure.json",
+  "CSPReceipt": "/Users/david/code/vegacms/.verification/production-rollout-proposal-20261007/current-spa-proof-final-receipt.json",
+  "CSPReceiptSHA256": "67c4b43feafdc45c97b929a9876d62f750e6d056d1b376d2f49d434bddf734cb",
+  "CSPRootReview": "/Users/david/code/vegacms/.verification/production-rollout-proposal-20261007/current-spa-proof-root-review.json",
+  "teardown": {
+    "evidence": "current-spa-proof-final-teardown.json",
+    "exit": 0,
+    "ownContainersAfter": "",
+    "removed": [
+      "own csp-pb container",
+      "own csp-edge container",
+      "own proof network",
+      "own proof-db test volume"
+    ],
+    "retained": [
+      "gated candidate build (shared root owner)",
+      "existing shared image/dependencies/browser caches",
+      "canonical scripts/configs/logs/identities/source snapshots"
+    ],
+    "globalDFBefore": "Filesystem   1024-blocks      Used Available Capacity iused      ifree %iused  Mounted on\n/dev/disk3s1   971298980 720284112 148370808    83% 6679188 1483708080    0%   /System/Volumes/Data\n",
+    "globalDFAfter": "Filesystem   1024-blocks      Used Available Capacity iused      ifree %iused  Mounted on\n/dev/disk3s1   971298980 720549712 148105244    83% 6739742 1481052440    0%   /System/Volumes/Data\n",
+    "attribution": "Concurrent system activity; no reclaimed physical space attributed to this proof",
+    "budgetGiB": 1
+  },
+  "rootDFBeforeCloseKiB": 138400000,
+  "rootDFAfterClose": "Filesystem   1024-blocks      Used Available Capacity iused      ifree %iused  Mounted on\n/dev/disk3s1   971298980 720000000 149200000    83% 6754960 1493498960    0%   /System/Volumes/Data\n",
+  "rootDFAttribution": "Shared machine; no recovery amount attributed",
+  "sourceWorktrees": "retained; private code not integrated into main, evidence needed",
+  "otherChanges": "foreign main design screenshots preserved",
+  "publication": "no main integration, push or deploy",
+  "remaining": "custom runtimes/JSVM, peers/origins, logger mapping/configuration, authorized publication/served3instances and reserved human choices/QA"
+}

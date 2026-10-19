@@ -1,0 +1,5 @@
+A  src/lib/form/FormPublishControl.svelte
+A  src/lib/form/FormPublishControl.svelte.test.ts
+MM src/lib/form/RecordForm.publish.svelte.test.ts
+M  src/lib/form/RecordForm.review.svelte.test.ts
+M  src/lib/form/RecordForm.svelte

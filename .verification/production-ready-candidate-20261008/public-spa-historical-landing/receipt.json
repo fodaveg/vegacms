@@ -1,0 +1,25 @@
+{
+  "status": "HISTORICAL_LANDING_ADAPTATION_REVIEW_PENDING",
+  "probe": {
+    "session_id": 74616,
+    "exit_code": 0,
+    "pathname": "/c/site_info/new",
+    "heading": "Crear \u00abInformaci\u00f3n del sitio\u00bb",
+    "violations": 0,
+    "missingAssets": 0
+  },
+  "prior13": {
+    "session_id": 38334,
+    "exit_code": 1,
+    "passed": 2,
+    "failed": 11,
+    "cause": "current-home precondition absent in historical SPA"
+  },
+  "changes": [
+    "exact historical landing helper",
+    "postlogin assertion/title bound to this version"
+  ],
+  "guardPolicyNegativeControlsUnchanged": true,
+  "original13IntentionsPreservedWithHistoricalLandingExplicit": true,
+  "prodWrites": false
+}

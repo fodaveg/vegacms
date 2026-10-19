@@ -1,0 +1,33 @@
+{
+  "count": 2,
+  "decodedBodyBytes": 68297,
+  "maxInFlight": 1,
+  "listIds": [
+    {
+      "count": 1,
+      "unique": 1
+    }
+  ],
+  "groups": {
+    "GET /api/collections/pages/records": {
+      "count": 1,
+      "bytes": 66743,
+      "statuses": {
+        "200": 1
+      },
+      "fields": [
+        null
+      ]
+    },
+    "GET /api/collections/blocks/records": {
+      "count": 1,
+      "bytes": 1554,
+      "statuses": {
+        "200": 1
+      },
+      "fields": [
+        null
+      ]
+    }
+  }
+}

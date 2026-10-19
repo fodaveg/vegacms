@@ -1,0 +1,9 @@
+fix(visual): fold sidebar on direct editor entry
+
+AppShell mounts after session/model restoration, after the initial navigation event. Initialize temporary folding from the current route while preserving manual preferences and subsequent SPA transitions.
+
+Verified tree: 173a93b0f244062fd17936f5ae009a9e01fb6e27
+Evidence: /Users/david/code/vegacms/.verification/visual-desktop-20261007/sidebar-mount-receipt.json
+Independent review: /Users/david/code/vegacms/.verification/visual-desktop-20261007/sidebar-mount-review.md
+Negative mount regression fails before fix; AppShell6/6, focused static build0, Chromium desktop1280/fit/overlay/deep-link/SPA/mobile assertions1/1, formatting/lint/diff0. Node22, existing dependencies, exclusive focal slot.
+Limits: combined gate remains root responsibility; mobile screenshot caught resize transition, not unobscured UI proof. Local evidence retained outside tmp; no push/deploy.

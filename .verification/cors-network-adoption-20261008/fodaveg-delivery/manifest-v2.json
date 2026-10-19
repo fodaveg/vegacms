@@ -1,0 +1,84 @@
+{
+  "archive": {
+    "allBlobHashesVerified": true,
+    "architecture": "amd64",
+    "archiveBytes": 488653312,
+    "archiveSha256": "abac0eb3feb7432880c7cc2a4a3d34444507347ff82c72967a4626a38a1bad8e",
+    "commit": "cc8f3b14dca9bf10e4a60502da9e17503362bbb8",
+    "configEnvProjected": false,
+    "configId": "sha256:1b6436fee8c23615d7f7826cb4f87cb1d6e7e97d2d56150ff87a90571b951c40",
+    "layers": [
+      "sha256:e58989146fcec76699871403b9897b5c014af1ccd85f5a9300a215e7975525d7",
+      "sha256:4990a62cab1587a2ed690c9d4f41675b9216d68120e99033d664b558662e90c8",
+      "sha256:3714bbaf32038e259cddcddea09e13fc9aaa1a86a644274a6c6e263b00972240",
+      "sha256:f6becc1249c39a0f6d687460220dcfcf9f2a46d01770a70fc0a8ed4c98a6fd49",
+      "sha256:cae24708e29a74f04cc1ec51fc52e2d283c35f243ab21912e036095a2b50dbde",
+      "sha256:9fbe3aed5e5205c4ab3b69a51833c2ed91345e401b8835595aa4a28150e74151",
+      "sha256:bff9a32ad7a1a82ad6c69b1e8edcc8055ccd317642b192bd59ea081c12fa54c1",
+      "sha256:d5fa04c4862406391ac76687c229121096e1796e1685c9d35e9ef85b673520e5",
+      "sha256:6595ba18ee1ecb659d2c39a41aca8ba324968d902da2756e09be2865d9a4c852",
+      "sha256:76df8aa567eba956d49d6af92ff6c4ba1a3030ebb66cc9a24bca9fc2a9266199",
+      "sha256:66cd04e4a667feafe6e338c132f0e73ab81d9376c4dd22ba5be6444852362850",
+      "sha256:b61ad1272e1aaedd007bcca47e3b96e97ae62fa78cedd2a6711417d71e997161",
+      "sha256:5f58cbe2dc2527f3c69a4d956a6972e63ccbd537ecb6879354b14e4b684e2421",
+      "sha256:809a531ce53f2668ed44aa6cd5607826cc727457ee04b27ce390171e6000d985",
+      "sha256:32d3a8074bc1399aaead12eee3c4a6d6f32461f4150398786e681b5e98255137",
+      "sha256:0bcc41565bee15e9875b81b1e9ddc04b0827cee5212713f16f3b0823452a4a91"
+    ],
+    "ociManifestDigest": "sha256:22cf0983980e3bf9562a0a518f258e6e69cdd58cb3d23a19516f1da60a6d403e",
+    "ociMediaType": "application/vnd.oci.image.manifest.v1+json",
+    "os": "linux",
+    "status": "FODAVEG_ARCHIVE_CHAIN_SEALED",
+    "tag": "fodaveg-cors:cc8f3b1-candidate",
+    "tree": "693fc1ae70e8a28e64a87950e25883905a0de1d4"
+  },
+  "candidate": "cc8f3b14dca9bf10e4a60502da9e17503362bbb8",
+  "causalEvidence": {
+    ".verification/cors-network-adoption-20261008/apply/peer-canonical-index-proof-20261009.json": "cee2dc145fa1bddf28819d9bdd09c390b375a8901c0bdddb8fdd15211a2eba0f",
+    ".verification/cors-network-adoption-20261008/apply/remote_apply.py": "079f3cfa28378d551b29893ef4e47d71b6417eb8cd3c0f32ea3133d2fcc21682"
+  },
+  "helper": {
+    "path": ".verification/image-only-delivery-20261008/remote_cutover.py",
+    "sha256": "5d4131c229d7aa88918c932dd517b0d33e024a3497aa4fcc4b9f0c9940467128"
+  },
+  "limits": [
+    "No SSH, Docker, build, push or deploy executed by preparation agent",
+    "No authenticated native production QA; reuse same binary/hook native18 local",
+    "CORS public proof is forward 155 hashes/MIME and peer+site baseline, not authenticated UI",
+    "No Caddy or env content/logs exported",
+    "Original and post-adoption prior snapshots retained untouched"
+  ],
+  "offlineReceipt": "offline-receipt-v2.json",
+  "operationsScope": [
+    "receive one own archive",
+    "load one tag",
+    "identity read only",
+    "quiesced snapshot and isolated TEST restore proof",
+    "replace one Compose image line to fixed OCI ID",
+    "create only fodaveg stopped with no-build pull-never",
+    "persist installed identity and created container ID before start",
+    "rollback only own Compose and adopted old image; never data restore"
+  ],
+  "protocol": {
+    "file": "OPERATE.md",
+    "sha256": "11935ec89b81e392c974ce7d3e8240935dd0293201af9b2525b428ef8705cd11"
+  },
+  "runtimeEvidence": {
+    "build-receipt.json": "f4c746d24169115b44c716d28aceb59ab96224c775fbdf313db4e2044ee0ce10",
+    "native-proof/receipt.json": "cfc3ce9aae4c18f4e62dca668cd19970ba76da1121aa0abb7e6d4bff932b04e6"
+  },
+  "sources": {
+    "cutover_selftest.py": "a14eddfca0837cc2d188fd444ec8e6ebc15b5117fcf8112fa59897e277520fb2",
+    "remote_cutover.py": "de511d31f3c92c18ada597ac6de09f01112b125374eb6c1643ca0cdcce98168e",
+    "remote_transport.py": "ad47c6a2c2ec238ef545ecbcd6f06e0bc53df838ab100dcbbcbf3f5b34a10cc5",
+    "run_cutover.py": "6ff2e8a6eed8daf09779406f2aa2e06c461d72d6deeede31e930387f57c26c0b",
+    "run_transport.py": "f02218f204623f60f008b3f121745a7d53d9c38f1e6fa612776ad232d4e5e491",
+    "seal_archive.py": "14d98ad09b4b2425172a66e4ce64403f5b4b58b59fda6808a448ee99fa74d3ae",
+    "seal_selftest.py": "0e652a8465e2ef5e5be14aad71b3f9945eb6687470bf0cefefcbefbd2f3658bc",
+    "served_selftest.py": "d0c5df1ca2ea293880fca53c9fb08e5aa8cb5db6b4239b6789f2c42ee13c47c7",
+    "served_smoke.py": "6d6028c7a0e5437121d126ec22b616a1d2ccbeec2bc22c3c366bbddf8a9924af",
+    "transport_selftest.py": "0f7cf6f5f62e6faf1c893ab5d710d2a491f2be15548a417ac65d28444fc70af4"
+  },
+  "status": "PREPARED_OFFLINE_CAUSAL_FIXES_APPLIED_REMOTE_NOT_EXECUTED",
+  "tree": "693fc1ae70e8a28e64a87950e25883905a0de1d4"
+}

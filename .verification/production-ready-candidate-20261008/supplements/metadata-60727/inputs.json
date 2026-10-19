@@ -1,0 +1,104 @@
+{
+  "projection": "/Users/david/code/vegacms/.verification/private-runtime-metadata-read-ready-20261008/projection.json",
+  "projectionSHA256": "264d27f0db83f5485bc1fff950c721594f31edd1c2356c6be55e027de3aa7e5b",
+  "executionReceipt": "/Users/david/code/vegacms/.verification/private-runtime-metadata-read-ready-20261008/execution-receipt.json",
+  "executionReceiptSHA256": "81c1acbcdab1ffc235c4b6d70f19749a24192bda1cbacda05a2ee53e81d1313c",
+  "wrapperSessionId": 60727,
+  "wrapperTerminalExitCode": 0,
+  "sshExitCode": 0,
+  "metadataReadAttempts": 1,
+  "sourceParsed": false,
+  "CaddyGET": false,
+  "ourNewRemoteReads": 0,
+  "sealed23ManifestSHA256": "d2b4938650389701fb7240827a46b5e3433198e01c4a08feece19246dc6c833d",
+  "sealed23HashDiscrepancies": [],
+  "freshGuardMatches": 8,
+  "containersProjection": {
+    "fodaveg": {
+      "command": {
+        "allowed": [],
+        "originsExplicit": null,
+        "unknownCount": 1
+      },
+      "entrypoint": {
+        "allowed": [
+          "/usr/bin/tini",
+          "-g",
+          "--"
+        ],
+        "originsExplicit": false,
+        "unknownCount": 1
+      },
+      "imageId": "sha256:5f5fb452e12c131e273a2b0be6c85f981a9f73cfa2902b2fa0a7a8c5143252be",
+      "mountDestinations": [
+        "/pb/pb_data"
+      ],
+      "networks": [
+        "edge"
+      ],
+      "pbProcessArgs": null,
+      "unknownMounts": 0,
+      "unknownNetworks": 1
+    },
+    "lumbre-admin-pb": {
+      "command": {
+        "allowed": [
+          "serve",
+          "--http=0.0.0.0:8090",
+          "--dir=/pb/pb_data",
+          "--publicDir=/pb/pb_public"
+        ],
+        "originsExplicit": false,
+        "unknownCount": 0
+      },
+      "entrypoint": {
+        "allowed": [
+          "/pb/lumbre-admin"
+        ],
+        "originsExplicit": false,
+        "unknownCount": 0
+      },
+      "imageId": "sha256:47f4c28349e923b164ea6db717988be26ec645b73c2e3901d5b8db239244b533",
+      "mountDestinations": [
+        "/pb/pb_data",
+        "/pb/publish"
+      ],
+      "networks": [
+        "edge"
+      ],
+      "pbProcessArgs": null,
+      "unknownMounts": 1,
+      "unknownNetworks": 1
+    },
+    "vega-pb": {
+      "command": {
+        "allowed": [
+          "serve",
+          "--http=0.0.0.0:8090",
+          "--dir=/pb/pb_data",
+          "--publicDir=/pb/pb_public"
+        ],
+        "originsExplicit": false,
+        "unknownCount": 0
+      },
+      "entrypoint": {
+        "allowed": [
+          "/pb/pocketbase"
+        ],
+        "originsExplicit": false,
+        "unknownCount": 0
+      },
+      "imageId": "sha256:e1eb49a883852c13d4c46cb326e56d146c116327883d970aadea769364ec4c0d",
+      "mountDestinations": [
+        "/pb/pb_data"
+      ],
+      "networks": [
+        "edge"
+      ],
+      "pbProcessArgs": null,
+      "unknownMounts": 0,
+      "unknownNetworks": 1
+    }
+  },
+  "metadataUnknownsAreNotClosedLists": true
+}

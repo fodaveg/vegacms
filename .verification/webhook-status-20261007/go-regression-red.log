@@ -1,0 +1,14 @@
+--- FAIL: TestWebhookStartFailureExposesOnlyHTTPStatus (0.66s)
+    --- FAIL: TestWebhookStartFailureExposesOnlyHTTPStatus/HTTP_400 (0.09s)
+        vegabuild_test.go:1082: expected safe message "failed to start the build (HTTP 400)", got "Failed to start the build."
+    --- FAIL: TestWebhookStartFailureExposesOnlyHTTPStatus/HTTP_403 (0.08s)
+        vegabuild_test.go:1082: expected safe message "failed to start the build (HTTP 403)", got "Failed to start the build."
+    --- FAIL: TestWebhookStartFailureExposesOnlyHTTPStatus/HTTP_429 (0.08s)
+        vegabuild_test.go:1082: expected safe message "failed to start the build (HTTP 429)", got "Failed to start the build."
+    --- FAIL: TestWebhookStartFailureExposesOnlyHTTPStatus/HTTP_500 (0.08s)
+        vegabuild_test.go:1082: expected safe message "failed to start the build (HTTP 500)", got "Failed to start the build."
+    --- FAIL: TestWebhookStartFailureExposesOnlyHTTPStatus/HTTP_599 (0.09s)
+        vegabuild_test.go:1082: expected safe message "failed to start the build (HTTP 599)", got "Failed to start the build."
+FAIL
+FAIL	github.com/fodaveg/vegacms/extensions/vegabuild	1.008s
+FAIL

@@ -1,0 +1,92 @@
+{
+  "tree": "d70667727a7c869bc6ba2704935273bf291a4a8c",
+  "route": "_app/immutable/nodes/4.BoUtZJGV.js",
+  "staticIncremental": [
+    {
+      "file": "_app/immutable/chunks/ab2pyR96.js",
+      "name": "ReviewMediaLoader",
+      "gzipBytes": 33334
+    },
+    {
+      "file": "_app/immutable/chunks/D31bNUek.js",
+      "name": "RecordForm",
+      "gzipBytes": 21749
+    },
+    {
+      "file": "_app/immutable/chunks/BzIHGITS.js",
+      "name": "ReviewGroups",
+      "gzipBytes": 7340
+    },
+    {
+      "file": "_app/immutable/chunks/f-Fcr8TH.js",
+      "name": "DeleteConfirm",
+      "gzipBytes": 3031
+    },
+    {
+      "file": "_app/immutable/chunks/CT31PelQ.js",
+      "name": "ReferencesSummary",
+      "gzipBytes": 1886
+    },
+    {
+      "file": "_app/immutable/chunks/DBalRjjs.js",
+      "name": "preview-share-state",
+      "gzipBytes": 1875
+    },
+    {
+      "file": "_app/immutable/nodes/4.BoUtZJGV.js",
+      "name": "nodes/4",
+      "gzipBytes": 1580
+    },
+    {
+      "file": "_app/immutable/chunks/Dcd0nHxQ.js",
+      "name": "AdminDialog",
+      "gzipBytes": 1275
+    },
+    {
+      "file": "_app/immutable/chunks/Do1GUX32.js",
+      "name": "shrink-image-browser",
+      "gzipBytes": 1158
+    },
+    {
+      "file": "_app/immutable/chunks/CrG5oJAl.js",
+      "name": "UsedInPanel",
+      "gzipBytes": 1039
+    },
+    {
+      "file": "_app/immutable/chunks/COl1ufwQ.js",
+      "name": "media-thumb",
+      "gzipBytes": 978
+    },
+    {
+      "file": "_app/immutable/chunks/BPp-W-Kp.js",
+      "name": "index-client",
+      "gzipBytes": 932
+    },
+    {
+      "file": "_app/immutable/chunks/CfJcG0YK2.js",
+      "name": "relation-search",
+      "gzipBytes": 803
+    },
+    {
+      "file": "_app/immutable/chunks/D5bSxoNQ2.js",
+      "name": "delete-feedback",
+      "gzipBytes": 772
+    },
+    {
+      "file": "_app/immutable/chunks/BKFeCj0l.js",
+      "name": "media-card",
+      "gzipBytes": 729
+    }
+  ],
+  "adminDialogParents": [
+    {
+      "from": "ReviewGroups",
+      "to": "AdminDialog"
+    },
+    {
+      "from": "ReviewMediaLoader",
+      "to": "AdminDialog"
+    }
+  ],
+  "limitation": "Manifest names identify output labels, not source module attribution. CSS as current budget log; no base build difference isolated."
+}

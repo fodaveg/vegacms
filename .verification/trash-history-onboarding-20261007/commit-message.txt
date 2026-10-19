@@ -1,0 +1,12 @@
+feat: offer history setup and verified trash access
+
+Offer the existing history bootstrap from Home and a persistent trash action
+only after the exact delete revision is readable and listed. Keep delete
+best-effort and BackendPort unchanged; isolate actions by port/user/token.
+
+Verified tree: e0adf41389a61c213bdd6f70f6eeae94bfdc84ca
+Checks: Svelte0/0; ESLint/Prettier22paths;119/119 focal;4 headless
+browser cases,0pageErrors/overflow; independent review22/22+deltas.
+Environment: Darwin,Node22,existing deps,no install; <1GiB budget.
+Limits: Vite dev+memory only; no live PB/build/fullgate/push/deploy.
+Evidence: /Users/david/code/vegacms/.verification/trash-history-onboarding-20261007/receipt.json

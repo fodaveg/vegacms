@@ -1,0 +1,27 @@
+{
+  "status": "FINAL_LITERAL_DELTA_REVIEW_PENDING",
+  "change": "Exact historical block-count label only",
+  "unchangedTwelveCasesAndSetupScope": {
+    "vega-lumbre": {
+      "outsideVisualCaseBeforeSHA256": "d84be3f04a80ee01bb6ddf8079e62ee751905ead2cace1cc18a9cd7dd2e21857",
+      "outsideVisualCaseAfterSHA256": "d84be3f04a80ee01bb6ddf8079e62ee751905ead2cace1cc18a9cd7dd2e21857",
+      "equal": true
+    },
+    "fodaveg": {
+      "outsideVisualCaseBeforeSHA256": "d84be3f04a80ee01bb6ddf8079e62ee751905ead2cace1cc18a9cd7dd2e21857",
+      "outsideVisualCaseAfterSHA256": "d84be3f04a80ee01bb6ddf8079e62ee751905ead2cace1cc18a9cd7dd2e21857",
+      "equal": true
+    }
+  },
+  "vegaReuse12": {
+    "session_id": 52086,
+    "exit_code": 1,
+    "passed": 12,
+    "failed": 1,
+    "affectedCase": "visual editor"
+  },
+  "requiredAffectedRun": "Vega visual case only",
+  "requiredNewRun": "Fod all13",
+  "guardPolicyAndThreeControlsUnchanged": true,
+  "noSkipsOrAssertionsRemoved": true
+}

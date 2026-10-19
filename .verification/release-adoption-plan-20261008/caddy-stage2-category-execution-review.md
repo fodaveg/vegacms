@@ -1,0 +1,7 @@
+# Discriminante Caddy 98e49030: resultado real
+
+Recibo aceptado como evidencia del primer rechazo léxico, sin afirmar validación completa. Operación `98e49030-98bc-4895-b466-054196dda7f5`, transporte 0/PROJECTED; recibo SHA-256 `236471643f85d460f30c232678c90ba09e6dea7b489460fbcb3969a8b1ee6bc2` y proyección `23e73507a0679f644d42d9c73273479fdf3dd038cb1fdeac2fa7c6d14b3297ba`.
+
+La proyección finita informa BACKTICK en contexto COMMENT, guardMatched true, sourceFiles 1, valuesQueried false y remoteWrites false. A diferencia de los ceros asignados tarde en e87, aquí estos campos corresponden al lector sellado que solo abre el único snapshot conocido Vega, reproduce tokens y clasifica sin ninguna función de consulta de valores o escritura remota. No se exportaron fuente, líneas, tokens ni operandos. No se ejecutaron SSH, Docker ni tests desde esta revisión.
+
+El flujo y el resultado sitúan el primer rechazo en un backtick dentro del contexto de comentario del bloque conocido. Esto discrimina el arreglo mínimo del lexer reducido; no prueba todavía que los demás tokens, imports, expansión referenciada, patches o adapt/validate terminen correctamente. La semántica oficial de comentarios y los controles agrupados deberán revisarse en un candidato nuevo, manteniendo el guard de fuente y el alcance autorizado. No hay evidencia de modificación ni reinicio de Caddy en producción por esta sonda.

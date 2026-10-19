@@ -1,0 +1,31 @@
+
+Running 1 test using 1 worker
+
+
+(node:22185) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/1] scripts/l9-measure/admin.spec.ts:217:1 › seven admin surfaces: repeated first and warm visits
+  1) scripts/l9-measure/admin.spec.ts:217:1 › seven admin surfaces: repeated first and warm visits ─
+
+    TimeoutError: locator.click: Timeout 10000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Cambiar los datos', exact: true })
+
+
+      417 | 						});
+      418 | 						if (await configure.isVisible()) await configure.click();
+    > 419 | 						else await page.getByRole('button', { name: 'Cambiar los datos', exact: true }).click();
+          | 						                                                                                ^
+      420 | 						await page
+      421 | 							.getByLabel('Nombre del remitente', { exact: true })
+      422 | 							.fill(`Fixture ${iteration} ${phase}`);
+        at /private/tmp/vegacms-l9-measure-20261007/scripts/l9-measure/admin.spec.ts:419:87
+
+    Error Context: ../vega-l9-measure-playwright/admin-seven-admin-surfaces-repeated-first-and-warm-visits/error-context.md
+
+    Error Context: ../vega-l9-measure-playwright/admin-seven-admin-surfaces-repeated-first-and-warm-visits/error-context.md
+
+
+  1 failed
+    scripts/l9-measure/admin.spec.ts:217:1 › seven admin surfaces: repeated first and warm visits ──

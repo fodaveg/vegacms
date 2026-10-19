@@ -1,0 +1,20 @@
+{
+  "assetsChecked": 155,
+  "assetsMatched": 155,
+  "bodyValuesStored": false,
+  "canonicalIndexAlias": true,
+  "cors": {
+    "discoveryJsonAndCors": true,
+    "foreignDenied": true,
+    "methodHeaderPreflights": true,
+    "nullDenied": true,
+    "ownOrigin": true,
+    "withoutOrigin": true
+  },
+  "credentialsSent": false,
+  "pathsUnchanged": true,
+  "peersUnchanged": true,
+  "service": "fodaveg",
+  "stage": "after",
+  "status": "CORS_PUBLIC_OK"
+}

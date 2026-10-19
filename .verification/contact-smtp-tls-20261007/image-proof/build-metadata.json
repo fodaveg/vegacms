@@ -1,0 +1,78 @@
+{
+  "buildx.build.provenance": {
+    "builder": {
+      "id": ""
+    },
+    "buildType": "https://mobyproject.org/buildkit@v1",
+    "materials": [
+      {
+        "uri": "pkg:docker/alpine@3.23?digest=sha256:fd791d74b68913cbb027c6546007b3f0d3bc45125f797758156952bc2d6daf40\u0026platform=linux%2Famd64",
+        "digest": {
+          "sha256": "fd791d74b68913cbb027c6546007b3f0d3bc45125f797758156952bc2d6daf40"
+        }
+      },
+      {
+        "uri": "pkg:docker/node@22.22.0-alpine3.23?digest=sha256:e4bf2a82ad0a4037d28035ae71529873c069b13eb0455466ae0bc13363826e34\u0026platform=linux%2Famd64",
+        "digest": {
+          "sha256": "e4bf2a82ad0a4037d28035ae71529873c069b13eb0455466ae0bc13363826e34"
+        }
+      }
+    ],
+    "invocation": {
+      "configSource": {
+        "entryPoint": "Dockerfile"
+      },
+      "parameters": {
+        "frontend": "dockerfile.v0",
+        "args": {
+          "label:org.opencontainers.image.revision": "d6df7619434e86035a9d3c133948b5d290dc7d2e",
+          "label:org.opencontainers.image.source": "https://github.com/fodaveg/vegacms"
+        },
+        "locals": [
+          {
+            "name": "context"
+          },
+          {
+            "name": "dockerfile"
+          }
+        ],
+        "root": {
+          "configSource": {
+            "path": "Dockerfile"
+          },
+          "request": {
+            "args": {
+              "label:org.opencontainers.image.revision": "d6df7619434e86035a9d3c133948b5d290dc7d2e",
+              "label:org.opencontainers.image.source": "https://github.com/fodaveg/vegacms",
+              "vcs:localdir:context": ".",
+              "vcs:localdir:dockerfile": "infra/production",
+              "vcs:revision": "d6df7619434e86035a9d3c133948b5d290dc7d2e",
+              "vcs:source": "git@github-fodaveg:fodaveg/vegacms.git"
+            }
+          }
+        },
+        "compatibilityVersion": 30
+      },
+      "environment": {
+        "dockerfileVersion": "1.27.0",
+        "platform": "linux/arm64"
+      }
+    }
+  },
+  "buildx.build.ref": "vega-contact-proof-20261007/vega-contact-proof-202610070/1e40sutb4i36zlnof2onlwdvc",
+  "containerimage.config.digest": "sha256:f59dc6354915b5716febbc933817a3f59aca135a32a8946f6be6d8d3a1f29a6b",
+  "containerimage.descriptor": {
+    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+    "digest": "sha256:8fccab314dc0cba05a2f029d6f7b68212a24dcbc9135f10d7f704cf8ce36bdc7",
+    "size": 1241,
+    "annotations": {
+      "org.opencontainers.image.created": "2026-10-07T13:06:23Z"
+    },
+    "platform": {
+      "architecture": "amd64",
+      "os": "linux"
+    }
+  },
+  "containerimage.digest": "sha256:8fccab314dc0cba05a2f029d6f7b68212a24dcbc9135f10d7f704cf8ce36bdc7",
+  "image.name": "docker.io/library/vega-contact-image-proof:d6df761-20261007"
+}

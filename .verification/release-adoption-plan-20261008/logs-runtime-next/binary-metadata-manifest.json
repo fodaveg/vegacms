@@ -1,0 +1,60 @@
+{
+  "antecedent": {
+    "operationId": "e544677b-b75b-4734-bdf7-cda99e4f013a",
+    "path": "execution-receipt.json",
+    "sha256": "6e146e6334cecea7e43289c0fa0db9de0bef469eb73b462ffcb3774a82ae99ec",
+    "writerAndEncoderOmitted": true
+  },
+  "capture": {
+    "path": ".verification/worktrees/caddy-referenced-env-20261008/.verification/release-adoption-plan-20261008/logs-selective-next-step/capture.py",
+    "sha256": "d48e4a2705ebaac2d32720b38ebab1040fde26b3348a2aeeeb906702af4e9b01"
+  },
+  "files": {
+    "BINARY_METADATA_PROPOSAL.md": "1af19ffe249b9bd2cc69982b3e435b9e0082e65150c3937da83fd73ade6cd7d9",
+    "read_binary_metadata.py": "a2ae3f365f5f2392a611fda3d68bfffae86e4725b6b22ff7dee42c9083d29d82"
+  },
+  "operationId": "c459ae09-0a35-46a8-9470-f2f12dd2fb4d",
+  "scope": {
+    "caddyGET": false,
+    "commands": 4,
+    "configEnvRead": false,
+    "containerId": "ae97fc0c57fbe4c3a97f5dce15dfc9da92f33f527b60d95c3f74de9d2a160a7a",
+    "identityChecks": 2,
+    "imageId": "sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648",
+    "logsRead": false,
+    "moduleProjection": [
+      "filterAvailable",
+      "jsonAvailable",
+      "stderrAvailable"
+    ],
+    "namedLoggerRead": false,
+    "rawModuleNamesOnlyInRemoteRAM": true,
+    "remoteWrites": false,
+    "selectedDockerFields": [
+      "Id",
+      "Image",
+      "Config.Tty"
+    ],
+    "taskClosureProved": false,
+    "versionProjection": "strict stable semver only",
+    "wholeConfigRead": false
+  },
+  "status": "LOCAL_RECIPE_REQUIRES_REVIEW_CONCRETE_WRAPPER_AND_NEW_GRANT",
+  "verification": {
+    "ASTParse": "PASS",
+    "Docker": false,
+    "SSH": false,
+    "build": false,
+    "caseNames": [
+      "finite projection discards custom module identity",
+      "post pin drift discards all evidence",
+      "unknown version stops without fallback"
+    ],
+    "exitCode": 0,
+    "inlineOfflineCases": 3,
+    "productionHTTP": false,
+    "publicPrimarySourceRead": "Caddy master logging.go and filterencoder.go only; no production-version evidence",
+    "publicWebPrimarySourcesConsulted": true,
+    "suite": false
+  }
+}

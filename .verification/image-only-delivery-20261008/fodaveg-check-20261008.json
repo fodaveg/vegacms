@@ -1,0 +1,18 @@
+{
+  "backupUtilityCached": true,
+  "freeDockerKiB": 4794732,
+  "freeSrvKiB": 5456152,
+  "newComposeSha256": "a18777c55d583c8eab43671d968108c9560f8a41152440e04ba610e583a9b500",
+  "newDotenvSha256": "6c6730312e9e32942398294d840a7b78f6040f5e9f43d893b238f7dfe9d4676c",
+  "newId": "sha256:0e0ef56341d677366cfc00d91e2ead83da0ebcc4372f7ba627f575be682ee51f",
+  "oldComposeSha256": "a18777c55d583c8eab43671d968108c9560f8a41152440e04ba610e583a9b500",
+  "oldDotenvSha256": "1bf6ed5f10fb8e47ef76591f89724fd1a53f35504e876a951f15c4f296a140cf",
+  "oldId": "sha256:5f5fb452e12c131e273a2b0be6c85f981a9f73cfa2902b2fa0a7a8c5143252be",
+  "remoteWrites": false,
+  "requiredDockerKiB": 1437480,
+  "requiredSrvKiB": 1437480,
+  "sameFilesystem": false,
+  "service": "fodaveg",
+  "status": "READY_FOR_REVIEW",
+  "volumeKiB": 913192
+}

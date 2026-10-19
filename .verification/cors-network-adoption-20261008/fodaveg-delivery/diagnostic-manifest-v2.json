@@ -1,0 +1,28 @@
+{
+  "backupId": "fodaveg-20261008T231304Z-3656162",
+  "frozenImports": {
+    "../../image-only-delivery-20261008/remote_cutover.py": "5d4131c229d7aa88918c932dd517b0d33e024a3497aa4fcc4b9f0c9940467128",
+    "remote_cutover_controlled.py": "43b68aba0c937deef45ff3a9e2e33f6d3933fb06949605fdc3b0d9448d31c7b4"
+  },
+  "offline": {
+    "AST": "PASS",
+    "command": "python3 -B .verification/cors-network-adoption-20261008/fodaveg-delivery/diagnostic-selftest-v2.py",
+    "exitCode": 0,
+    "tests": 5
+  },
+  "privateValuesExported": false,
+  "recoveryCriterion": "Same OLD fixedID, BASE/env fullidentity, exact runtime healthy and stable => no recovery required; otherwise root must review specific evidence before any control operation.",
+  "remoteExecuted": false,
+  "scope": [
+    "new own backup state metadata finite phase/checkpoint",
+    "own Compose/env RAM hash/fullidentity",
+    "selected fixed OLD/NEW ownID class and read-only runtime/health/process rechecks"
+  ],
+  "sources": {
+    "diagnostic-read-v2.py": "5bd641467962efe86718599b5abc2a37aecf7f0b5699f859fdd2552153d0baa9",
+    "diagnostic-run-v2.py": "e5e2d806c329b167f6c7aecc80fcb4f7375089f29dfbf55d66da917969c0df00",
+    "diagnostic-selftest-v2.py": "fe0880a20bca9b427c086e5cdce9212f0d7195a1c6534e38f98b8065c1ead684"
+  },
+  "status": "READ_ONLY_NEW_BACKUP_DIAGNOSTIC_PREPARED",
+  "testVolumeLimit": "Frozen protocol does not record TEST nonce/name. Projection NOT_RECORDED_NO_QUERY; no volume inventory or attribution by name/mtime/label. No cleanup or restart authorized."
+}

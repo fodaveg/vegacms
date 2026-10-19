@@ -1,0 +1,12 @@
+{
+  "status": "MODULE_LOAD_FIX_RUNTIME_PENDING",
+  "priorAttempt": {
+    "exit_code": 1,
+    "testsExecuted": 0,
+    "cause": "CJS namespace named test missing"
+  },
+  "change": "Load existing Playwright package via createRequire already rooted at fixture9165, instead of dynamic import CJS namespace",
+  "priorGuard15Unchanged": true,
+  "guardSourceIdentical": true,
+  "specsConfigsIdentityIdentical": true
+}

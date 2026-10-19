@@ -1,0 +1,11 @@
+--- a/srv/lumbre-admin/compose.yml
++++ b/srv/lumbre-admin/compose.yml
+@@ -58,1 +58,7 @@
+-          - lumbre-admin-pb
++          - lumbre-admin-pb
++    command:
++      - serve
++      - --http=0.0.0.0:8090
++      - --dir=/pb/pb_data
++      - --publicDir=/pb/pb_public
++      - --origins=https://admin.lumbre.pro

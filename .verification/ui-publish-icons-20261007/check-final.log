@@ -1,0 +1,14 @@
+[WARN] Your node_modules are out of sync with your lockfile. The value of the enableGlobalVirtualStore setting has changed
+$ svelte-kit sync && svelte-check --tsconfig ./tsconfig.json
+Loading svelte-check in workspace: /private/tmp/vegacms-ui-publish-icons-20261007
+Getting Svelte diagnostics...
+
+/private/tmp/vegacms-ui-publish-icons-20261007/src/lib/form/RecordForm.publish.svelte.test.ts:10:48
+Error: Module '"$lib/backend/types"' has no exported member 'UpdateOptions'. 
+import { recordVersion } from '$lib/backend/version';
+import type { ContentType, Field, RecordInput, UpdateOptions } from '$lib/backend/types';
+import { resolveContentModel } from '$lib/model/resolve';
+
+====================================
+svelte-check found 1 error and 0 warnings in 1 file
+[ELIFECYCLE] Command failed with exit code 1.

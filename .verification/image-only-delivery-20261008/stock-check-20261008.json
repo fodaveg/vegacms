@@ -1,0 +1,18 @@
+{
+  "backupUtilityCached": true,
+  "freeDockerKiB": 4788308,
+  "freeSrvKiB": 5469212,
+  "newComposeSha256": "bae812ef0031b5e6aeb65f4678905e65d74cfadf62a5e78fe156250166377f7e",
+  "newDotenvSha256": "3eae28c7de82aae4006bbce9bd50fc65d47f1e2a9821a4e157b33ddf73dfda6d",
+  "newId": "sha256:dd978b8d23081d2e3c69ebf6ef8ff4599a1acdd3f38dc559ae6fa379e46449b4",
+  "oldComposeSha256": "812e521c2280704b62761ad5014cd9b6982bb2a548b7db47d5fcbd404dedddff",
+  "oldDotenvSha256": "2db44bb494e491582a47d211a3588b3b6078fffb4525c38e37bf2a3213c425f9",
+  "oldId": "sha256:e1eb49a883852c13d4c46cb326e56d146c116327883d970aadea769364ec4c0d",
+  "remoteWrites": false,
+  "requiredDockerKiB": 544988,
+  "requiredSrvKiB": 544988,
+  "sameFilesystem": false,
+  "service": "vega-pb",
+  "status": "READY_FOR_REVIEW",
+  "volumeKiB": 20700
+}

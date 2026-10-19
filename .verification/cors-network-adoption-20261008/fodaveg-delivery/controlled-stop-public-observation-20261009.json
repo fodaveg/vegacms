@@ -1,0 +1,13 @@
+{
+  "assetsChecked": 155,
+  "assetsMatched": 155,
+  "bodyValuesStored": false,
+  "canonicalIndexAlias": true,
+  "corsRestored": true,
+  "credentialsSent": false,
+  "pathsUnchanged": true,
+  "peersUnchanged": true,
+  "service": "fodaveg",
+  "stage": "rollback",
+  "status": "CORS_ROLLBACK_PUBLIC_OK"
+}

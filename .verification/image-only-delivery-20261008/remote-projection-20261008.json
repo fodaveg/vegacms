@@ -1,0 +1,221 @@
+{
+  "caddyRead": false,
+  "composeBodyParsed": false,
+  "composeHashRead": true,
+  "composeMayInterpolateSecretsInRAM": true,
+  "configEnvRequested": false,
+  "containers": {
+    "fodaveg": {
+      "composeQuietValid": true,
+      "composeSha256": "a18777c55d583c8eab43671d968108c9560f8a41152440e04ba610e583a9b500",
+      "composeStable": true,
+      "mountsMatch": true,
+      "networkMatches": true,
+      "runtime": {
+        "cmd": {
+          "allowed": [],
+          "unknownCount": 0
+        },
+        "composeIdentityMatches": true,
+        "entrypoint": {
+          "allowed": [
+            "/usr/bin/tini",
+            "-g",
+            "--",
+            "./docker-entrypoint.sh"
+          ],
+          "unknownCount": 0
+        },
+        "imageId": "sha256:5f5fb452e12c131e273a2b0be6c85f981a9f73cfa2902b2fa0a7a8c5143252be",
+        "imageRef": "fodaveg:2be1119b15c0516d16f89316d6c356e49ec93ef1",
+        "mounts": [
+          {
+            "destination": "/pb/pb_data",
+            "name": "fodaveg_fodaveg_pb",
+            "readWrite": true,
+            "sourceFingerprint": "5758553f1921872ef0782119baaefb0716fa527c4fa42e7b01a5757d6da6f26a",
+            "type": "volume"
+          }
+        ],
+        "networks": [
+          {
+            "aliases": [
+              "fodaveg",
+              "fodaveg"
+            ],
+            "name": "edge"
+          }
+        ],
+        "pbArgv": {
+          "allowed": [
+            "/pb/fodaveg-pb",
+            "--dir",
+            "/pb/pb_data",
+            "serve",
+            "--http=0.0.0.0:8090"
+          ],
+          "unknownCount": 0
+        },
+        "unknownMounts": 0,
+        "unknownNetworks": 0
+      },
+      "selectorMatchesRuntime": true,
+      "selectorResolvesCurrentImage": true,
+      "selectors": {
+        "FODAVEG_IMAGE": "fodaveg:2be1119b15c0516d16f89316d6c356e49ec93ef1"
+      },
+      "status": "READY_FOR_REVIEW",
+      "stockCorsBaselineMatches": true
+    },
+    "lumbre-admin-pb": {
+      "composeQuietValid": true,
+      "composeSha256": "7ed9a9e225790a4e15ccef3ce4c110b8d3b22e0fef53e6c1840d286181ebb8dd",
+      "composeStable": true,
+      "mountsMatch": true,
+      "networkMatches": true,
+      "runtime": {
+        "cmd": {
+          "allowed": [
+            "serve",
+            "--http=0.0.0.0:8090",
+            "--dir=/pb/pb_data",
+            "--publicDir=/pb/pb_public"
+          ],
+          "unknownCount": 0
+        },
+        "composeIdentityMatches": true,
+        "entrypoint": {
+          "allowed": [
+            "/pb/lumbre-admin"
+          ],
+          "unknownCount": 0
+        },
+        "imageId": "sha256:47f4c28349e923b164ea6db717988be26ec645b73c2e3901d5b8db239244b533",
+        "imageRef": "lumbre-admin-pb:64830ad-vega-c04f0aa",
+        "mounts": [
+          {
+            "destination": "/pb/pb_data",
+            "name": "lumbre_admin_pb_data",
+            "readWrite": true,
+            "sourceFingerprint": "28cfbd5cd84ab241c8ed45754acc2e3f8483ebadf5d79f638ea45f8610a640ce",
+            "type": "volume"
+          },
+          {
+            "destination": "/pb/pb_migrations",
+            "name": null,
+            "readWrite": false,
+            "sourceFingerprint": "9bb42da9478f098e7b28fe1688335fdf501b786d0675094c03f2cc5b9ae522fd",
+            "type": "bind"
+          },
+          {
+            "destination": "/pb/publish",
+            "name": null,
+            "readWrite": true,
+            "sourceFingerprint": "2516668ee5245f5a019b3d3cac9d843e8bb3f455d268ac34b44743af6e43773d",
+            "type": "bind"
+          }
+        ],
+        "networks": [
+          {
+            "aliases": [
+              "lumbre-admin-pb",
+              "lumbre-admin-pb",
+              "pocketbase"
+            ],
+            "name": "edge"
+          }
+        ],
+        "pbArgv": {
+          "allowed": [
+            "/pb/lumbre-admin",
+            "serve",
+            "--http=0.0.0.0:8090",
+            "--dir=/pb/pb_data",
+            "--publicDir=/pb/pb_public"
+          ],
+          "unknownCount": 0
+        },
+        "unknownMounts": 0,
+        "unknownNetworks": 0
+      },
+      "selectorMatchesRuntime": true,
+      "selectorResolvesCurrentImage": true,
+      "selectors": {
+        "LUMBRE_ADMIN_IMAGE": "lumbre-admin-pb:64830ad-vega-c04f0aa"
+      },
+      "status": "READY_FOR_REVIEW",
+      "stockCorsBaselineMatches": true
+    },
+    "vega-pb": {
+      "composeQuietValid": true,
+      "composeSha256": "812e521c2280704b62761ad5014cd9b6982bb2a548b7db47d5fcbd404dedddff",
+      "composeStable": true,
+      "mountsMatch": true,
+      "networkMatches": true,
+      "runtime": {
+        "cmd": {
+          "allowed": [
+            "serve",
+            "--http=0.0.0.0:8090",
+            "--dir=/pb/pb_data",
+            "--publicDir=/pb/pb_public"
+          ],
+          "unknownCount": 0
+        },
+        "composeIdentityMatches": true,
+        "entrypoint": {
+          "allowed": [
+            "/pb/pocketbase"
+          ],
+          "unknownCount": 0
+        },
+        "imageId": "sha256:e1eb49a883852c13d4c46cb326e56d146c116327883d970aadea769364ec4c0d",
+        "imageRef": "vegacms:c04f0aaf14651415a368605546b8a205a2c063a7",
+        "mounts": [
+          {
+            "destination": "/pb/pb_data",
+            "name": "vega_data",
+            "readWrite": true,
+            "sourceFingerprint": "24bae05fc866a1c360dd895da69d9f3a828f7d4b804694a02135d484b24ed59e",
+            "type": "volume"
+          }
+        ],
+        "networks": [
+          {
+            "aliases": [
+              "pocketbase",
+              "vega-pb",
+              "vega-pb"
+            ],
+            "name": "edge"
+          }
+        ],
+        "pbArgv": {
+          "allowed": [
+            "/pb/pocketbase",
+            "serve",
+            "--http=0.0.0.0:8090",
+            "--dir=/pb/pb_data",
+            "--publicDir=/pb/pb_public"
+          ],
+          "unknownCount": 0
+        },
+        "unknownMounts": 0,
+        "unknownNetworks": 0
+      },
+      "selectorMatchesRuntime": true,
+      "selectorResolvesCurrentImage": true,
+      "selectors": {
+        "VEGA_GIT_SHA": "c04f0aaf14651415a368605546b8a205a2c063a7",
+        "VEGA_IMAGE_TAG": "c04f0aaf14651415a368605546b8a205a2c063a7"
+      },
+      "status": "READY_FOR_REVIEW",
+      "stockCorsBaselineMatches": true
+    }
+  },
+  "dotenvSelectorScan": true,
+  "mode": "image-only-metadata-preflight",
+  "remoteWrites": false,
+  "schemaVersion": 1,
+  "status": "READY_FOR_REVIEW"
+}

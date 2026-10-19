@@ -1,0 +1,220 @@
+{
+  "status": "local-exact-image-tls-proof-passed-provider-pending",
+  "worktree": "/private/tmp/vegacms-contact-smtp-tls-20261007",
+  "branch": "test/contact-smtp-tls-20261007",
+  "base": "0cacf4cb8673369fcdec7b40ea676277cec5c331",
+  "candidateTree": "ee5e4c00eda92d1204070225a7c8445f13164e5a",
+  "patchSha256": "f81eb6c12a35bc5e7dc7e79442143517c6bdffdd9f6108f76c618da6bad2c6ad",
+  "files": [
+    "tests/contract/pb-harness/smtp-sink.ts",
+    "tests/contract/pocketbase.contact-notify-hook.test.ts",
+    "tests/contract/pb-harness/docker-server.ts",
+    "tests/contract/pocketbase.contact-notify-image.test.ts"
+  ],
+  "staticChecks": [
+    {
+      "command": "Node22 root Prettier CLI --config root/prettier.config.js --check two owned TS files",
+      "exitCode": 0,
+      "result": "All matched files use Prettier code style"
+    },
+    {
+      "command": "Node22 TypeScript transpileModule with reportDiagnostics=true on two owned TS files",
+      "exitCode": 0,
+      "result": "syntax OK; no semantic typecheck"
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0,
+      "result": "no whitespace errors"
+    }
+  ],
+  "review": "Root independently reviewed 2/2 source diffs and PB child env scope; no findings",
+  "runtime": {
+    "executed": true,
+    "candidateTree": "a9000fd5d230cd482dbbb425f21a64367e283e26",
+    "candidateUnchangedCheck": {
+      "command": "git diff --exit-code a9000fd5d230cd482dbbb425f21a64367e283e26 -- two owned source paths",
+      "exitCode": 0
+    },
+    "environment": {
+      "node": "22.22.3",
+      "pocketbase": "0.39.9",
+      "goCompiler": "1.26.5",
+      "goos": "darwin",
+      "openssl": "4.0.3",
+      "AVAILABLE": true,
+      "pocketbaseSha256": "45299ddf90af5a52dbca4ea62c5020c9de6606f16dded91e6849d2d4b4c01de7",
+      "trustOptIn": false
+    },
+    "runs": [
+      {
+        "command": "PATH=Node22 pnpm exec vitest run tests/contract/pocketbase.contact-notify-hook.test.ts --project server -t TLS (trust opt-in absent)",
+        "sessionId": 10723,
+        "exitCode": 0,
+        "durationSeconds": 3.55,
+        "passed": 1,
+        "skipped": 14,
+        "skipBreakdown": "13 filtered by -t; 1 opt-in positive skipped",
+        "log": "tls-negative.log",
+        "signals": [
+          "rejected>=1",
+          "handshakes=0",
+          "messages=0",
+          "notifyState=pending after failed cron",
+          "second anonymous POST200 <3000ms and persisted"
+        ]
+      },
+      {
+        "command": "Node22 node_modules/vitest/vitest.mjs run tests/contract/pocketbase.contact-notify-hook.test.ts tests/contract/pocketbase.server-settings.contract.test.ts --project server",
+        "sessionId": 92405,
+        "exitCode": 0,
+        "durationSeconds": 19.17,
+        "passed": 38,
+        "skipped": 1,
+        "skipBreakdown": "positive TLS opt-in only",
+        "log": "consumers.log"
+      },
+      {
+        "command": "Node22 node_modules/vitest/vitest.mjs run tests/contract/pocketbase.contract.test.ts --project server -t invitación de extremo a extremo",
+        "sessionId": 92405,
+        "exitCode": 0,
+        "durationSeconds": 1.01,
+        "passed": 1,
+        "skipped": 129,
+        "skipBreakdown": "unrelated filtered tests",
+        "log": "consumers.log"
+      },
+      {
+        "command": "Node22 svelte-kit sync; svelte-check --tsconfig ./tsconfig.json; eslint two owned paths (sequential)",
+        "sessionId": 15826,
+        "exitCodes": [
+          0,
+          0,
+          0
+        ],
+        "result": "svelte-check 0 errors/0 warnings; ESLint clean",
+        "log": "checks.log"
+      }
+    ],
+    "bootstrap": {
+      "method": "cp -cR APFS clone of existing root node_modules/.svelte-kit/.pbbin",
+      "sessionId": 42862,
+      "exitCode": 0,
+      "installNote": "pnpm11 exec performed automatic prepare: lockfile up to date, resolution skipped, already up to date, svelte-kit sync. No package download observed. Subsequent executions used direct existing Node CLIs."
+    },
+    "positiveCurrentBinary": "not executed; opt-in skipped honestly because Darwin Go1.26.5 does not use SSL_CERT_FILE for platform trust",
+    "cleanup": {
+      "ownProcesses": "no own test/Node/PB process in final fresh PS",
+      "tlsTempDirs": [],
+      "keysAndSockets": "removed by fixture finally/stop",
+      "manualRemoval": "none; source/evidence and APFS prerequisite clones reserved for exact candidate follow-up",
+      "externalProcess": "Final PS detected unrelated Claude Hebra Vitest PID70340; root notified, not touched. No claim of global idle."
+    },
+    "runner": "Own slot explicitly released to root after all three command handles terminal; no further runtime"
+  },
+  "prerequisites": {
+    "node": "22.22.3 existing",
+    "openssl": "Existing OpenSSL 4.0.3 executed for version check and ephemeral TLS fixture generation; no OpenSSL installation by this task.",
+    "pb": "APFS clone completed; same SHA256 as root PB binary",
+    "deps": "APFS clones prepared, no package download observed; retained for candidate follow-up"
+  },
+  "limits": [
+    "Native Darwin trusted-CA case remains skipped as historical native receipt says; Linux image positive and negatives now passed",
+    "Local implicit TLS fixture does not certify provider SMTP, AUTH or STARTTLS",
+    "No production NOTIFY_TO, global CA, image publication/deployment, main integration or push",
+    "No full product gate repeated for image adapter; affected checks and exact image proof only",
+    "Shared cache untouched; isolated builder/cache removed; final image and evidence retained for reproduction"
+  ],
+  "hookExpectedSha256": "1727a1229fb49e62a057eaae4a706f99b6b06a8f7e80811e033f9e23113548c4",
+  "disk": {
+    "budgetGiB": 0.3,
+    "dfInitialGiB": 144,
+    "dfDuringPreparationGiB": 145,
+    "dfFinalGiB": 143,
+    "worktreeApparentMiB": 14,
+    "note": "Rounded df -h unchanged during this run; shared-machine consumption cannot be attributed precisely to APFS clones. Budget 0.3GiB proposed; no manual cleanup, source/evidence/prerequisite clones reserved.",
+    "runtimeBeforeGiB": 142,
+    "runtimeAfterGiB": 142
+  },
+  "artifactExclusion": "Untracked intentional per root; explicit integration paths/patch only. No shared exclude or .gitignore edits.",
+  "committed": true,
+  "precommitInventory": {
+    "gitStatus": "only two owned TS sources modified; no untracked source files",
+    "diff": "complete 2/2 source diffs reread; cached diff empty before staging",
+    "packageLockConfig": "no tracked package.json, pnpm-lock.yaml or config changes from automatic prepare",
+    "bootstrapNote": "pnpm11 automatic prepare observed; no package downloads observed, not an absolute no-install claim"
+  },
+  "privateCommit": {
+    "sha": "76a27a4fe4ec3efb1175111e59b5cc142bf6ec78",
+    "tree": "ee5e4c00eda92d1204070225a7c8445f13164e5a",
+    "metadata": "image-proof/commit-fuller.txt",
+    "branch": "test/contact-smtp-tls-20261007",
+    "integrated": false,
+    "pushed": false,
+    "worktree": "clean tracked/untracked; ignored prerequisite APFS copies retained"
+  },
+  "imageFollowupAssessment": {
+    "status": "static-only-no-image-identity-accredited",
+    "artifact": "image-minimal-probe-plan.md",
+    "sourceCommit": "57ad99221e174173f9575a36624ea219b49c24a5",
+    "sourceTree": "a9000fd5d230cd482dbbb425f21a64367e283e26",
+    "dfGiB": 140,
+    "cachedImageMetadata": "none found in scoped persisted verification artifacts; no Docker commands executed",
+    "nextDecision": "authorize metadata-only local image inventory before considering a run/build",
+    "runtimeBudgetIfImageReusableGiB": 0.1,
+    "buildCost": "unknown until image/cache inventory; recipe includes package install/build and apk/wget, beyond current offline scope",
+    "parityPrerequisites": [
+      "immutable local image ID/architecture",
+      "PB and hook bytes/version/provenance consistent with pinned recipe",
+      "actual Docker→fixture reachability and verified SAN hostname",
+      "packaged /pb/pb_hooks path, no host hook override"
+    ],
+    "providerStillPending": true
+  },
+  "imageMetadataProbe": {
+    "scope": "local image ls and selected image inspect only",
+    "exitCode": 0,
+    "artifact": "image-inspect-metadata.json",
+    "imagesInspected": [
+      "sha256:2f2eafc859501d9e198db10c9fdd8fb028aa8f46c1ee7165c4b681d72effc6b8",
+      "sha256:0821a5b31fe8cd98e8045d1827d5adefcb84107143875a19083db78b4bf8ab99"
+    ],
+    "result": "No image accredited as exact backend: both linux/amd64, old fodaveg tags, no RepoDigests/OCI provenance and tini/docker-entrypoint.sh differs from recipe /pb/pocketbase",
+    "envOrApplicationArgsExposed": false,
+    "containersStarted": false,
+    "buildPullDownloadPrune": false,
+    "dfGiB": 140,
+    "buildEstimate": {
+      "proposedIncrementalBudgetGiB": 2,
+      "expectedFinalImageMiB": "50-100",
+      "estimatedTimeMinutes": "10-30, unverified, depends on shared-cache reuse, registry network and amd64 emulation",
+      "basis": "Existing root node_modules 206MiB; evidence 37MiB; ignored deps/build; Alpine+PB runtime small; reserve builder base, dependency/store/layer duplication and context",
+      "certainty": "Low/moderate estimate, not measured; no cache contents proven",
+      "sharedCacheGiBFromRoot": 16.52,
+      "foreignPruningAuthorized": false
+    },
+    "nextDecision": "Root may authorize faithful build from reviewed frozen context with linux/amd64 and explicit source label, within assigned budget; no build authorized/executed in this probe",
+    "providerStillPending": true
+  },
+  "imageProof": {
+    "receipt": "image-proof/receipt.json",
+    "status": "exact-local-linux-image-tls-negative-and-positive-passed",
+    "testSourceTree": "ee5e4c00eda92d1204070225a7c8445f13164e5a",
+    "productionCommit": "d6df7619434e86035a9d3c133948b5d290dc7d2e",
+    "imageId": "sha256:f59dc6354915b5716febbc933817a3f59aca135a32a8946f6be6d8d3a1f29a6b",
+    "runtimePassed": 2,
+    "runtimeSkipped": 0,
+    "providerStillPending": true,
+    "privateCommit": "76a27a4fe4ec3efb1175111e59b5cc142bf6ec78"
+  },
+  "currentCandidateTree": "ee5e4c00eda92d1204070225a7c8445f13164e5a",
+  "nativePrivateCommit": {
+    "sha": "57ad99221e174173f9575a36624ea219b49c24a5",
+    "tree": "a9000fd5d230cd482dbbb425f21a64367e283e26",
+    "branch": "test/contact-smtp-tls-20261007",
+    "metadata": "commit-fuller.txt",
+    "status": "private; not integrated/pushed",
+    "worktreeStatus": "clean tracked/untracked inventory after commit; ignored APFS prerequisites retained"
+  },
+  "nativeCandidateTree": "a9000fd5d230cd482dbbb425f21a64367e283e26"
+}

@@ -1,0 +1,14 @@
+{
+  "status": "PROPOSED_PERMISSION_SCOPE_ONLY_NO_EXECUTION",
+  "parent23Immutable": true,
+  "headers8Immutable": true,
+  "scopeFileSHA256": "036b5bcaae0d212433293ba1ee9e8de79646ae311a2847d8fdacff69f33bc2d3",
+  "priorExactPaths": 8,
+  "headerConfigPathsInsidePriorScope": 4,
+  "importsOutsidePriorEightPossible": true,
+  "actualImportListKnown": false,
+  "privateHostsDiscovered": false,
+  "newRemoteReadsOrValidators": false,
+  "recommendedNextAuthority": "One private isolated validation of four Caddy files plus explicitly declared import closure inside /srv/edge; no apply/reload; explicit source scope expansion and conservative external-resource stop",
+  "eightOnlyAuthorityCannotGuaranteeCompleteCaddy": true
+}

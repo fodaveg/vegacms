@@ -1,0 +1,372 @@
+
+Running 13 tests using 1 worker
+
+(node:65319) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:146:1 › source: exact current index bytes and source CSP served by isolated Caddy (543ms)
+  ✘   2 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:159:1 › source: login and home perform authentication and expose current home actions (5.5s)
+(node:67746) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   3 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:169:1 › source: list search actually filters seeded content (5.2s)
+(node:69638) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   4 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:177:1 › source: edit form writes and reopens saved title via SPA; history panel opens (5.2s)
+(node:71628) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   5 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:196:1 › source: new form creates a record and resolves its real memory ID (5.3s)
+(node:73689) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   6 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:209:1 › source: visual editor fetches HTTPS token, completes bridge and selects real block (5.6s)
+(node:75958) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   7 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:233:2 › source: preview panel uses actual external GET document transport (5.3s)
+(node:78019) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   8 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:233:2 › source: preview panel uses actual external POST document transport (5.3s)
+(node:80080) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   9 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:255:1 › source: media bootstrap and settings change run real UI handlers (5.3s)
+(node:82039) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  10 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:272:1 › source: trash exposes actual fallback and navigates its CTA (5.2s)
+(node:84055) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  11 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:281:1 › ancestor control: same built app embeds without ancestor rule; source actually blocks it (979ms)
+  ✘  12 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:385:2 › connect negative › removing only https connect permission blocks actual preview fetch before endpoint (5.2s)
+(node:86419) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  13 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:402:2 › form negative › adding form-action self blocks actual panel POST while token fetch still succeeds (5.3s)
+
+
+  1) ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:159:1 › source: login and home perform authentication and expose current home actions 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+
+
+       at ../fixtures.ts:159
+
+      157 | export async function waitForHome(page: import('@playwright/test').Page): Promise<void> {
+      158 | 	await page.waitForURL((url) => url.pathname === '/');
+    > 159 | 	await expect(page.getByRole('heading', { level: 1, name: 'Inicio', exact: true })).toBeVisible();
+          | 	                                                                                   ^
+      160 | }
+      161 |
+      162 | /**
+        at waitForHome (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/fixtures.ts:159:85)
+        at login (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:85:2)
+        at /Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:162:2
+
+    Error Context: ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof-runtime/test-results/current-spa-proof-source-l-5ed58-expose-current-home-actions/error-context.md
+
+  2) ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:169:1 › source: list search actually filters seeded content 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+
+
+       at ../fixtures.ts:159
+
+      157 | export async function waitForHome(page: import('@playwright/test').Page): Promise<void> {
+      158 | 	await page.waitForURL((url) => url.pathname === '/');
+    > 159 | 	await expect(page.getByRole('heading', { level: 1, name: 'Inicio', exact: true })).toBeVisible();
+          | 	                                                                                   ^
+      160 | }
+      161 |
+      162 | /**
+        at waitForHome (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/fixtures.ts:159:85)
+        at login (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:85:2)
+        at /Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:170:2
+
+    Error Context: ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof-runtime/test-results/current-spa-proof-source-l-aef5d-ally-filters-seeded-content/error-context.md
+
+  3) ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:177:1 › source: edit form writes and reopens saved title via SPA; history panel opens 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+
+
+       at ../fixtures.ts:159
+
+      157 | export async function waitForHome(page: import('@playwright/test').Page): Promise<void> {
+      158 | 	await page.waitForURL((url) => url.pathname === '/');
+    > 159 | 	await expect(page.getByRole('heading', { level: 1, name: 'Inicio', exact: true })).toBeVisible();
+          | 	                                                                                   ^
+      160 | }
+      161 |
+      162 | /**
+        at waitForHome (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/fixtures.ts:159:85)
+        at login (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:85:2)
+        at /Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:180:2
+
+    Error Context: ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof-runtime/test-results/current-spa-proof-source-e-8bf0e-via-SPA-history-panel-opens/error-context.md
+
+  4) ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:196:1 › source: new form creates a record and resolves its real memory ID 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+
+
+       at ../fixtures.ts:159
+
+      157 | export async function waitForHome(page: import('@playwright/test').Page): Promise<void> {
+      158 | 	await page.waitForURL((url) => url.pathname === '/');
+    > 159 | 	await expect(page.getByRole('heading', { level: 1, name: 'Inicio', exact: true })).toBeVisible();
+          | 	                                                                                   ^
+      160 | }
+      161 |
+      162 | /**
+        at waitForHome (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/fixtures.ts:159:85)
+        at login (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:85:2)
+        at /Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:197:2
+
+    Error Context: ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof-runtime/test-results/current-spa-proof-source-n-14ce3-resolves-its-real-memory-ID/error-context.md
+
+  5) ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:209:1 › source: visual editor fetches HTTPS token, completes bridge and selects real block 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+
+
+       at ../fixtures.ts:159
+
+      157 | export async function waitForHome(page: import('@playwright/test').Page): Promise<void> {
+      158 | 	await page.waitForURL((url) => url.pathname === '/');
+    > 159 | 	await expect(page.getByRole('heading', { level: 1, name: 'Inicio', exact: true })).toBeVisible();
+          | 	                                                                                   ^
+      160 | }
+      161 |
+      162 | /**
+        at waitForHome (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/fixtures.ts:159:85)
+        at login (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:85:2)
+        at /Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:213:2
+
+    Error Context: ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof-runtime/test-results/current-spa-proof-source-v-bafd7-idge-and-selects-real-block/error-context.md
+
+  6) ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:233:2 › source: preview panel uses actual external GET document transport 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+
+
+       at ../fixtures.ts:159
+
+      157 | export async function waitForHome(page: import('@playwright/test').Page): Promise<void> {
+      158 | 	await page.waitForURL((url) => url.pathname === '/');
+    > 159 | 	await expect(page.getByRole('heading', { level: 1, name: 'Inicio', exact: true })).toBeVisible();
+          | 	                                                                                   ^
+      160 | }
+      161 |
+      162 | /**
+        at waitForHome (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/fixtures.ts:159:85)
+        at login (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:85:2)
+        at /Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:237:3
+
+    Error Context: ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof-runtime/test-results/current-spa-proof-source-p-b9fe5-rnal-GET-document-transport/error-context.md
+
+  7) ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:233:2 › source: preview panel uses actual external POST document transport 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+
+
+       at ../fixtures.ts:159
+
+      157 | export async function waitForHome(page: import('@playwright/test').Page): Promise<void> {
+      158 | 	await page.waitForURL((url) => url.pathname === '/');
+    > 159 | 	await expect(page.getByRole('heading', { level: 1, name: 'Inicio', exact: true })).toBeVisible();
+          | 	                                                                                   ^
+      160 | }
+      161 |
+      162 | /**
+        at waitForHome (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/fixtures.ts:159:85)
+        at login (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:85:2)
+        at /Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:237:3
+
+    Error Context: ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof-runtime/test-results/current-spa-proof-source-p-09982-nal-POST-document-transport/error-context.md
+
+  8) ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:255:1 › source: media bootstrap and settings change run real UI handlers 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+
+
+       at ../fixtures.ts:159
+
+      157 | export async function waitForHome(page: import('@playwright/test').Page): Promise<void> {
+      158 | 	await page.waitForURL((url) => url.pathname === '/');
+    > 159 | 	await expect(page.getByRole('heading', { level: 1, name: 'Inicio', exact: true })).toBeVisible();
+          | 	                                                                                   ^
+      160 | }
+      161 |
+      162 | /**
+        at waitForHome (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/fixtures.ts:159:85)
+        at login (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:85:2)
+        at /Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:256:2
+
+    Error Context: ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof-runtime/test-results/current-spa-proof-source-m-521e5-change-run-real-UI-handlers/error-context.md
+
+  9) ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:272:1 › source: trash exposes actual fallback and navigates its CTA 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+
+
+       at ../fixtures.ts:159
+
+      157 | export async function waitForHome(page: import('@playwright/test').Page): Promise<void> {
+      158 | 	await page.waitForURL((url) => url.pathname === '/');
+    > 159 | 	await expect(page.getByRole('heading', { level: 1, name: 'Inicio', exact: true })).toBeVisible();
+          | 	                                                                                   ^
+      160 | }
+      161 |
+      162 | /**
+        at waitForHome (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/fixtures.ts:159:85)
+        at login (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:85:2)
+        at /Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:273:2
+
+    Error Context: ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof-runtime/test-results/current-spa-proof-source-t-d7a00-lback-and-navigates-its-CTA/error-context.md
+
+  10) ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:385:2 › connect negative › removing only https connect permission blocks actual preview fetch before endpoint 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+
+
+       at ../fixtures.ts:159
+
+      157 | export async function waitForHome(page: import('@playwright/test').Page): Promise<void> {
+      158 | 	await page.waitForURL((url) => url.pathname === '/');
+    > 159 | 	await expect(page.getByRole('heading', { level: 1, name: 'Inicio', exact: true })).toBeVisible();
+          | 	                                                                                   ^
+      160 | }
+      161 |
+      162 | /**
+        at waitForHome (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/fixtures.ts:159:85)
+        at login (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:85:2)
+        at /Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:389:3
+
+    Error Context: ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof-runtime/test-results/current-spa-proof-connect--cb962-eview-fetch-before-endpoint/error-context.md
+
+  11) ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:402:2 › form negative › adding form-action self blocks actual panel POST while token fetch still succeeds 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('heading', { name: 'Inicio', exact: true, level: 1 })
+
+
+       at ../fixtures.ts:159
+
+      157 | export async function waitForHome(page: import('@playwright/test').Page): Promise<void> {
+      158 | 	await page.waitForURL((url) => url.pathname === '/');
+    > 159 | 	await expect(page.getByRole('heading', { level: 1, name: 'Inicio', exact: true })).toBeVisible();
+          | 	                                                                                   ^
+      160 | }
+      161 |
+      162 | /**
+        at waitForHome (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/fixtures.ts:159:85)
+        at login (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:85:2)
+        at /Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:406:3
+
+    Error Context: ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof-runtime/test-results/current-spa-proof-form-neg-8c5d9--token-fetch-still-succeeds/error-context.md
+
+  11 failed
+    ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:159:1 › source: login and home perform authentication and expose current home actions 
+    ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:169:1 › source: list search actually filters seeded content 
+    ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:177:1 › source: edit form writes and reopens saved title via SPA; history panel opens 
+    ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:196:1 › source: new form creates a record and resolves its real memory ID 
+    ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:209:1 › source: visual editor fetches HTTPS token, completes bridge and selects real block 
+    ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:233:2 › source: preview panel uses actual external GET document transport 
+    ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:233:2 › source: preview panel uses actual external POST document transport 
+    ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:255:1 › source: media bootstrap and settings change run real UI handlers 
+    ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:272:1 › source: trash exposes actual fallback and navigates its CTA 
+    ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:385:2 › connect negative › removing only https connect permission blocks actual preview fetch before endpoint 
+    ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation-module-fix/vega-lumbre/current-spa-proof.spec.ts:402:2 › form negative › adding form-action self blocks actual panel POST while token fetch still succeeds 
+  2 passed (1.1m)

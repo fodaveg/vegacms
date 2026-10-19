@@ -1,0 +1,7 @@
+{
+  "backupDir": "/srv/vega-image-rollout/fodaveg-20261008T200548Z-3247510",
+  "oldImageNotRestarted": true,
+  "remoteWrites": true,
+  "service": "fodaveg",
+  "status": "STOP_AFTER_NEW_IMAGE_POSSIBLE_DATA_MIGRATION"
+}

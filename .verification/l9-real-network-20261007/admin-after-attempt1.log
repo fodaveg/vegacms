@@ -1,0 +1,32 @@
+
+Running 1 test using 1 worker
+
+
+(node:50422) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/1] scripts/l9-measure/admin.spec.ts:208:1 › seven admin surfaces: repeated first and warm visits
+  1) scripts/l9-measure/admin.spec.ts:208:1 › seven admin surfaces: repeated first and warm visits ─
+
+    Test was interrupted.
+
+    Error: browserContext.close: Test ended.
+    Browser logs:
+
+    <launching> /Users/david/Library/Caches/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/m5/6hxhsn0j33g1txs0_8cn3bsm0000gn/T/playwright_chromiumdev_profile-NCxERh --remote-debugging-pipe --no-startup-window
+    <launched> pid=50661
+    [pid=50661][err] [1007/135857.419469:INFO:CONSOLE:1] "Uncaught Error: https://svelte.dev/e/each_key_duplicate", source: http://127.0.0.1:59959/_app/immutable/chunks/CXn3WWNK.js (1)
+    [pid=50661] <gracefully close start>
+
+      457 | 				}
+      458 | 			} finally {
+    > 459 | 				await client.context.close();
+          | 				^
+      460 | 			}
+      461 | 		}
+      462 | 	}
+        at /private/tmp/vegacms-l9-measure-20261007/scripts/l9-measure/admin.spec.ts:459:5
+
+
+  1 interrupted
+    scripts/l9-measure/admin.spec.ts:208:1 › seven admin surfaces: repeated first and warm visits ──

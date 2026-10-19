@@ -1,0 +1,28 @@
+
+ RUN  v4.1.10 /private/tmp/vegacms-webhook-status-20261007
+
+ ❯ |component| src/lib/shell/PublishButton.svelte.test.ts (18 tests | 2 failed | 16 skipped) 115ms
+     × un trigger rechazado después de desmontar no reinicia peticiones ni temporizadores con la sesión anterior 64ms
+     × un trigger aceptado después de desmontar no reinicia peticiones ni temporizadores con la sesión anterior 50ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |component| src/lib/shell/PublishButton.svelte.test.ts > PublishButton.svelte > un trigger rechazado después de desmontar no reinicia peticiones ni temporizadores con la sesión anterior
+ FAIL  |component| src/lib/shell/PublishButton.svelte.test.ts > PublishButton.svelte > un trigger aceptado después de desmontar no reinicia peticiones ni temporizadores con la sesión anterior
+AssertionError: expected "vi.fn()" to be called 2 times, but got 3 times
+ ❯ src/lib/shell/PublishButton.svelte.test.ts:384:23
+    382|     await flush();
+    383|     await flush();
+    384|     expect(fetchMock).toHaveBeenCalledTimes(2);
+       |                       ^
+    385|     expect(ctx.feedback.toast).not.toHaveBeenCalled();
+    386|     // Solo los dos flush de 10 ms: ningún sondeo inmediato ni reinten…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 16 skipped (18)
+   Start at  18:51:40
+   Duration  1.12s (transform 405ms, setup 0ms, import 486ms, tests 115ms, environment 436ms)
+

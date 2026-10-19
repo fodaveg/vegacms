@@ -1,0 +1,57 @@
+{
+  "candidate": "8a46d9e73b86d4b32ffddf3d20d010e5c2ec4ff2",
+  "tree": "939bec8f7b6ac35a9733e4b6dd49d4a60f290b0f",
+  "status": "failed in Chromium E2E",
+  "sourceClean": true,
+  "fixtureBlobsExact": true,
+  "freeKiB": 140000000,
+  "budgetGiB": 2,
+  "log": "gate-939bec8f.log",
+  "exitFile": "gate-939bec8f.exit",
+  "session_id": 27417,
+  "command": "pnpm --config.verifyDepsBeforeRun=warn gate",
+  "environment": {
+    "Node": "22.22.3",
+    "CI": "1",
+    "GOFLAGS": "-race",
+    "COREPACK_ENABLE_NETWORK": "0",
+    "VEGA_ASTRO_SHARE_HARNESS": "/private/tmp/vega-astro-l13-share-20261007/scripts/share-preview-http-harness.mjs"
+  },
+  "exitCode": 1,
+  "completedUTC": "2026-10-07T18:53:13.724189+00:00",
+  "results": {
+    "typeErrors": 0,
+    "typeWarnings": 0,
+    "lint": 0,
+    "unitPassed": 4798,
+    "unitSkipped": 12,
+    "unitFilesPassed": 298,
+    "unitFilesSkipped": 1,
+    "goRaceModules": 4,
+    "goRaceCachedModules": [
+      "vegaauth",
+      "vegaschedule"
+    ],
+    "goFreshSeconds": {
+      "vegabuild": 22.559,
+      "vegapreview": 102.863
+    },
+    "buildExit": 0,
+    "chromiumPassed": 244,
+    "chromiumFailed": 2,
+    "chromiumSeconds": 36.0
+  },
+  "failures": [
+    "trash.spec.ts ambiguous non-exact Papelera navigation locator matches new CTA",
+    "visual-editor.spec.ts desktop1280 sidebar not collapsed assertion; root cause pending author"
+  ],
+  "budget": {
+    "exitCode": 1,
+    "initialKB": 150.54,
+    "maxScreenKB": 83.16,
+    "secondScreenKB": 81.25,
+    "screenLimitKB": 80,
+    "totalKB": 642.19,
+    "log": "budget-939bec8f.log"
+  }
+}

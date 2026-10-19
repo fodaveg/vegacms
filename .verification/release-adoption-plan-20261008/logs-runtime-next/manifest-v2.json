@@ -1,0 +1,57 @@
+{
+  "evidence": {
+    ".verification/caddy-approved-logger-mapping-20261008/projection.json": "748054e034d3af1df062833732ad24e1336df8e873f30fc463049942b58e2b98",
+    ".verification/production-security-real-20261007/local/tasks-read-snapshot.json": "498098758565049ef6b92591ad121c7cf53832ad3ae7eafce89c6122d7af0688",
+    ".verification/release-adoption-plan-20261008/logs-docker-production-observation-20261009.json": "ae977542762b57998a55e545bdcef2c1bfe2864c06753c9c9dbb2800ff9cdb45",
+    ".verification/worktrees/caddy-referenced-env-20261008/.verification/release-adoption-plan-20261008/logs-selective-next-step/execution-receipt.json": "22d29022f57bbe18d03f978d79fd80c1c18cd9fc0be10f5d94d735c541197d78"
+  },
+  "files": {
+    "OPERATE.md": "f60d476777b5de9e14d09d3c4d67035573d6a5032f1e659d5e574cedb5a25ea7",
+    "PROPOSAL.md": "e9f8ed15e411ec74a60d5fcde1b3bb61a90c2c34c09a0a6e69f347ff6739d87f",
+    "project_default.py": "ec171100d9f150a5f505e3516093512579e26c1af1661c911b9fd7f20ad1245f",
+    "read_default.py": "dc5a93a9d96b88c578d993dd4f6f25410e371815856fb9991ff7de32d5e5ba4c",
+    "run_default.py": "807cd80962f7b99cf1eab6a60be978b6f6e9c1f5eb89058599791bad59ca9645",
+    "test_wrapper.py": "9cf27d0f7221910740c682a1f08949b54a892773bcfb457c43fc410e4c570737"
+  },
+  "helper": {
+    "path": ".verification/worktrees/caddy-referenced-env-20261008/.verification/release-adoption-plan-20261008/logs-selective-next-step/capture.py",
+    "sha256": "d48e4a2705ebaac2d32720b38ebab1040fde26b3348a2aeeeb906702af4e9b01"
+  },
+  "operationId": "e544677b-b75b-4734-bdf7-cda99e4f013a",
+  "preparation": {
+    "ASTParse": "PASS",
+    "command": "python3 -B .verification/release-adoption-plan-20261008/logs-runtime-next/test_wrapper.py",
+    "independentReviewPending": true,
+    "offlineExitCode": 0,
+    "offlineTests": 4,
+    "remoteExecuted": false,
+    "runtimeGrantInstalled": false
+  },
+  "scope": {
+    "bodyLimitBytes": 65536,
+    "configEnvRead": false,
+    "configField": "logging.logs.default",
+    "container": "edge-caddy",
+    "containerId": "ae97fc0c57fbe4c3a97f5dce15dfc9da92f33f527b60d95c3f74de9d2a160a7a",
+    "endpoint": "/config/logging/logs/default/",
+    "identityChecks": 2,
+    "identityFields": [
+      "Id",
+      "Image"
+    ],
+    "imageId": "sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648",
+    "logsRead": false,
+    "maxDockerCommands": 3,
+    "newRuntimeGrantRequired": true,
+    "otherHostRead": false,
+    "otherLoggerRead": false,
+    "privateSubtreeOnlyInRemoteRAM": true,
+    "projection": "finite writer/encoder classes and exact URI token/Referer rule classes",
+    "remoteWrites": false,
+    "requests": 1,
+    "retryAllowed": false,
+    "taskClosureProved": false,
+    "wholeConfigRead": false,
+    "wireLimitBytes": 98304
+  }
+}

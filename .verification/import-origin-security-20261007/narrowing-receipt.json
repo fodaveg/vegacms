@@ -1,0 +1,49 @@
+{
+  "task": "16864548-279d-4305-9229-1acbafe79aa5",
+  "worktree": "/private/tmp/vegacms-import-origins-20261007",
+  "base": "949f8355dbfc032a00ae2af45d77c5576bbcd19b",
+  "verifiedTree": "ffd60013f0c038309a5b398ae28e0eed27416dfe",
+  "scope": [
+    "src/lib/transfer/import-collection.ts"
+  ],
+  "environment": {
+    "node": "22.22.3",
+    "existingDependencies": true,
+    "installs": false,
+    "diskFree": "130 GiB",
+    "budget": "<1 GiB"
+  },
+  "checks": [
+    {
+      "command": "pnpm --config.verifyDepsBeforeRun=warn check",
+      "session": 40090,
+      "exit": 0,
+      "log": "/Users/david/code/vegacms/.verification/import-origin-security-20261007/narrowing-check-existing.log",
+      "result": "0 errors, 0 warnings"
+    },
+    {
+      "command": "node node_modules/vitest/vitest.mjs run src/lib/transfer/import-collection.test.ts --maxWorkers=1",
+      "exit": 0,
+      "files": 1,
+      "tests": 46,
+      "log": "/Users/david/code/vegacms/.verification/import-origin-security-20261007/narrowing-tests.log"
+    },
+    {
+      "command": "node node_modules/prettier/bin/prettier.cjs --check src/lib/transfer/import-collection.ts; node node_modules/eslint/bin/eslint.js src/lib/transfer/import-collection.ts; git diff --check",
+      "exit": 0
+    }
+  ],
+  "earlierAttempt": {
+    "command": "pnpm check",
+    "exit": 1,
+    "log": "/Users/david/code/vegacms/.verification/import-origin-security-20261007/narrowing-check.log",
+    "reason": "pnpm automatic deps verification requested install; rejected no-TTY removal. Retried with verifyDepsBeforeRun=warn to preserve existing shared dependencies."
+  },
+  "limitations": [
+    "No full gate/build/headless. Combined gate remains root responsibility.",
+    "Dependency configuration warning is preserved in check log; no dependencies changed."
+  ],
+  "commit": "2abd32a3eab62a08a5055e1780d50fdff77e35f9",
+  "review": "/Users/david/code/vegacms/.verification/import-origin-security-20261007/narrowing-review.md",
+  "worktreeStatus": "clean"
+}

@@ -1,0 +1,19 @@
+# Caddy: revisión fresca del cuarto delta de logs globales
+
+**Veredicto: APTO estático, sin must-fix identificado.** El candidato valida cuatro deltas en copia aislada; este dictamen no concede autoridad para lectura remota, aplicación, reload ni prueba servida.
+
+## Inventario y sello
+
+`git diff --stat` / `git diff --name-status` del worktree identificaron el cambio de `infra/production/README.md`; el directorio operativo nuevo es untracked. La comparación `git diff --no-index --stat` / `--name-status` contra `caddy-bare-backslash-validator-20261015` contabilizó 13 entradas: diez artefactos sellados actuales, incluidos `procedure.md` y `global-log-fragment.caddy` nuevos, más tres `__pycache__` binarios regenerables fuera del sello. Se leyeron completos los deltas de `remote_validate.py`, `run_once.py`, `projection.py`, `probe.py`, README, manifiesto y documentos; `patch-inputs.json` es byte idéntico al candidato anterior. El manifiesto SHA-256 `6714b66cf757b22fae420e75f2b0135e9358d239f01d0b6c1f4d151458998646` coincide y sus diez hashes coinciden con los archivos presentes. El fragmento mantiene SHA-256 `79cb9a1ac82ef4dda07c822794a8ca3e9091f3a0cab1a854ea8a20941492c441`. El log sellado registra **30 tests, OK**; no se repitieron.
+
+El README se entregó en el commit aislado `77177f62b858d61c93ce163775348660294c2ade`, único fichero modificado. Describe las condiciones de fusión y distingue explícitamente la validación aislada de la aplicación y comprobación servida. Su evidencia de regexp se atribuye a pruebas sintéticas con otra imagen Caddy 2.11.4; no afirma que los logs privados estén ya saneados. La elección de `wrap` omitido concuerda con la [documentación oficial de Caddy](https://caddyserver.com/docs/caddyfile/directives/log#filter): el formato por defecto depende del destino y de si stderr/stdout es terminal.
+
+## Contrato del delta
+
+`merge_default_log()` exige un bloque global inicial y exactamente un `log default {` existente; detiene bloque ausente/duplicado y `format` o `import` previos en ese bloque. Inserta solo los bytes sellados antes de su cierre y conserva el resto del Caddyfile, incluidos writer, nivel, include/exclude, sampling y comentarios. `reject_imported_default_log()` detiene otra declaración en imports. Las pruebas nuevas cubren preservación de bytes, ambigüedad, filtro JSON exacto y módulos ajenos. El lexer bare anterior permanece sin delta.
+
+El root Caddyfile original sin expandir se inspecciona en RAM y no se escribe en los inputs temporales; tras `closure()` se repite la fusión sobre los bytes expandidos en `/dev/shm` para el adapt/validate aislado. `validate_global_log_filter()` exige el encoder exacto en `logging.logs.default`; `isolated_test_copy()` acepta ese filtro solo en default, conserva la política de writers y después ejecuta validación nativa sobre la copia remapeada. Los campos nuevos `globalLogMerged` y `globalLogFilterVerified` son booleanos cerrados y obligatorios para el estado VALIDATED. No se amplían imports, lecturas de entorno ni exportaciones. Wrapper y proyección siguen rechazando approval/manifest equivocados antes de cualquier SSH; no hay approval en este directorio.
+
+Los pines Fodaveg cambiaron de OLD a ID `c25a7858f2692b395925d5b7f8d80512378dccbaa58ec55e432d8c5f186b73e6`, imagen `sha256:22cf0983980e3bf9562a0a518f258e6e69cdd58cb3d23a19516f1da60a6d403e` y Compose `eb62c0447d4cce8a8af1ceedeeabb11602770d48d6bf952618ef19e7b8a1008b`, acordes con el diagnóstico dirigido de 15 octubre. El guard vuelve a comprobar los valores vivos antes de ejecución; cualquier drift exige candidato y sello nuevos.
+
+**Límites:** el log `default` observado no acredita loggers nombrados, `msg`, colectores ni logs históricos. La validación local no ejecutó el binario del contenedor seleccionado ni probó configuración privada/servida. No se hizo SSH, Docker, build ni tests desde esta revisión.

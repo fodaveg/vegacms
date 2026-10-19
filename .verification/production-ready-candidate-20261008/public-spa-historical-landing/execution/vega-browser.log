@@ -1,0 +1,206 @@
+
+Running 13 tests using 1 worker
+
+(node:71600) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:146:1 › source: exact current index bytes and source CSP served by isolated Caddy (443ms)
+  ✓   2 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:159:1 › source: login reaches exact historical landing and exposes content navigation (325ms)
+  ✓   3 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:169:1 › source: list search actually filters seeded content (290ms)
+  ✘   4 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:177:1 › source: edit form writes and reopens saved title via SPA; history panel opens (30.0s)
+(node:82569) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   5 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:196:1 › source: new form creates a record and resolves its real memory ID (30.0s)
+(node:93432) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   6 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:209:1 › source: visual editor fetches HTTPS token, completes bridge and selects real block (30.0s)
+(node:4544) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   7 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:233:2 › source: preview panel uses actual external GET document transport (30.0s)
+(node:15055) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   8 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:233:2 › source: preview panel uses actual external POST document transport (30.0s)
+(node:25638) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   9 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:255:1 › source: media bootstrap and settings change run real UI handlers (950ms)
+  ✓  10 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:272:1 › source: trash exposes actual fallback and navigates its CTA (409ms)
+  ✓  11 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:281:1 › ancestor control: same built app embeds without ancestor rule; source actually blocks it (640ms)
+  ✘  12 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:385:2 › connect negative › removing only https connect permission blocks actual preview fetch before endpoint (30.0s)
+(node:37073) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  13 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:402:2 › form negative › adding form-action self blocks actual panel POST while token fetch still succeeds (30.0s)
+
+
+  1) ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:177:1 › source: edit form writes and reopens saved title via SPA; history panel opens 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.fill: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('textbox', { name: 'Título', exact: true })
+
+
+      180 | 	await login(page);
+      181 | 	await page.goto('/c/posts/post_1');
+    > 182 | 	await page.getByRole('textbox', { name: 'Título', exact: true }).fill('CSP título guardado');
+          | 	                                                                 ^
+      183 | 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+      184 | 	await page.getByRole('button', { name: 'Historial', exact: true }).click();
+      185 | 	await expect(
+        at /Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:182:67
+
+    Error Context: ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof-runtime/test-results/current-spa-proof-source-e-8bf0e-via-SPA-history-panel-opens/error-context.md
+
+  2) ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:196:1 › source: new form creates a record and resolves its real memory ID 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.fill: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('textbox', { name: 'Título', exact: true })
+
+
+      197 | 	await login(page);
+      198 | 	await page.goto('/c/posts/new');
+    > 199 | 	await page.getByRole('textbox', { name: 'Título', exact: true }).fill('CSP nueva entrada');
+          | 	                                                                 ^
+      200 | 	await page.getByLabel('Body').fill('Contenido de prueba CSP.');
+      201 | 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+      202 | 	await expect(page).toHaveURL(/\/c\/posts\/(?!new)[^/]+$/);
+        at /Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:199:67
+
+    Error Context: ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof-runtime/test-results/current-spa-proof-source-n-14ce3-resolves-its-real-memory-ID/error-context.md
+
+  3) ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:209:1 › source: visual editor fetches HTTPS token, completes bridge and selects real block 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.waitForURL: Test timeout of 30000ms exceeded.
+    =========================== logs ===========================
+    waiting for navigation until "load"
+      navigated to "http://localhost:4173/c/entradas"
+    ============================================================
+
+       at ../fixtures.ts:154
+
+      152 |  */
+      153 | export async function waitForHistoricalLanding(page: import('@playwright/test').Page): Promise<void> {
+    > 154 | 	await page.waitForURL((url) => url.pathname === '/c/site_info/new');
+          | 	           ^
+      155 | 	await expect(page.getByRole('heading', { level: 1, name: 'Crear «Información del sitio»', exact: true })).toBeVisible();
+      156 | }
+      157 |
+        at waitForHistoricalLanding (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/fixtures.ts:154:13)
+        at login (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:85:8)
+        at /Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:213:2
+
+    Error Context: ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof-runtime/test-results/current-spa-proof-source-v-bafd7-idge-and-selects-real-block/error-context.md
+
+  4) ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:233:2 › source: preview panel uses actual external GET document transport 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.waitForURL: Test timeout of 30000ms exceeded.
+    =========================== logs ===========================
+    waiting for navigation until "load"
+      navigated to "http://localhost:4173/c/entradas"
+    ============================================================
+
+       at ../fixtures.ts:154
+
+      152 |  */
+      153 | export async function waitForHistoricalLanding(page: import('@playwright/test').Page): Promise<void> {
+    > 154 | 	await page.waitForURL((url) => url.pathname === '/c/site_info/new');
+          | 	           ^
+      155 | 	await expect(page.getByRole('heading', { level: 1, name: 'Crear «Información del sitio»', exact: true })).toBeVisible();
+      156 | }
+      157 |
+        at waitForHistoricalLanding (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/fixtures.ts:154:13)
+        at login (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:85:8)
+        at /Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:237:3
+
+    Error Context: ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof-runtime/test-results/current-spa-proof-source-p-b9fe5-rnal-GET-document-transport/error-context.md
+
+  5) ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:233:2 › source: preview panel uses actual external POST document transport 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.waitForURL: Test timeout of 30000ms exceeded.
+    =========================== logs ===========================
+    waiting for navigation until "load"
+      navigated to "http://localhost:4173/c/entradas"
+    ============================================================
+
+       at ../fixtures.ts:154
+
+      152 |  */
+      153 | export async function waitForHistoricalLanding(page: import('@playwright/test').Page): Promise<void> {
+    > 154 | 	await page.waitForURL((url) => url.pathname === '/c/site_info/new');
+          | 	           ^
+      155 | 	await expect(page.getByRole('heading', { level: 1, name: 'Crear «Información del sitio»', exact: true })).toBeVisible();
+      156 | }
+      157 |
+        at waitForHistoricalLanding (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/fixtures.ts:154:13)
+        at login (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:85:8)
+        at /Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:237:3
+
+    Error Context: ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof-runtime/test-results/current-spa-proof-source-p-09982-nal-POST-document-transport/error-context.md
+
+  6) ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:385:2 › connect negative › removing only https connect permission blocks actual preview fetch before endpoint 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.waitForURL: Test timeout of 30000ms exceeded.
+    =========================== logs ===========================
+    waiting for navigation until "load"
+      navigated to "http://localhost:4175/c/entradas"
+    ============================================================
+
+       at ../fixtures.ts:154
+
+      152 |  */
+      153 | export async function waitForHistoricalLanding(page: import('@playwright/test').Page): Promise<void> {
+    > 154 | 	await page.waitForURL((url) => url.pathname === '/c/site_info/new');
+          | 	           ^
+      155 | 	await expect(page.getByRole('heading', { level: 1, name: 'Crear «Información del sitio»', exact: true })).toBeVisible();
+      156 | }
+      157 |
+        at waitForHistoricalLanding (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/fixtures.ts:154:13)
+        at login (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:85:8)
+        at /Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:389:3
+
+    Error Context: ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof-runtime/test-results/current-spa-proof-connect--cb962-eview-fetch-before-endpoint/error-context.md
+
+  7) ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:402:2 › form negative › adding form-action self blocks actual panel POST while token fetch still succeeds 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.waitForURL: Test timeout of 30000ms exceeded.
+    =========================== logs ===========================
+    waiting for navigation until "load"
+      navigated to "http://localhost:4176/c/entradas"
+    ============================================================
+
+       at ../fixtures.ts:154
+
+      152 |  */
+      153 | export async function waitForHistoricalLanding(page: import('@playwright/test').Page): Promise<void> {
+    > 154 | 	await page.waitForURL((url) => url.pathname === '/c/site_info/new');
+          | 	           ^
+      155 | 	await expect(page.getByRole('heading', { level: 1, name: 'Crear «Información del sitio»', exact: true })).toBeVisible();
+      156 | }
+      157 |
+        at waitForHistoricalLanding (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/fixtures.ts:154:13)
+        at login (/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:85:8)
+        at /Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:406:3
+
+    Error Context: ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof-runtime/test-results/current-spa-proof-form-neg-8c5d9--token-fetch-still-succeeds/error-context.md
+
+  7 failed
+    ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:177:1 › source: edit form writes and reopens saved title via SPA; history panel opens 
+    ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:196:1 › source: new form creates a record and resolves its real memory ID 
+    ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:209:1 › source: visual editor fetches HTTPS token, completes bridge and selects real block 
+    ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:233:2 › source: preview panel uses actual external GET document transport 
+    ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:233:2 › source: preview panel uses actual external POST document transport 
+    ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:385:2 › connect negative › removing only https connect permission blocks actual preview fetch before endpoint 
+    ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-historical-landing/vega-lumbre/current-spa-proof.spec.ts:402:2 › form negative › adding form-action self blocks actual panel POST while token fetch still succeeds 
+  6 passed (3.6m)

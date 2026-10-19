@@ -1,0 +1,11 @@
+--- a/srv/vega/infra/production/compose.yml
++++ b/srv/vega/infra/production/compose.yml
+@@ -24,1 +24,7 @@
+-          - vega-pb
++          - vega-pb
++    command:
++      - serve
++      - --http=0.0.0.0:8090
++      - --dir=/pb/pb_data
++      - --publicDir=/pb/pb_public
++      - --origins=https://admin.vegacms.com

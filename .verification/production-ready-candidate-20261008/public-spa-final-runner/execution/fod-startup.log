@@ -1,0 +1,17 @@
+ Network vega-served-fodaveg-csp-20261008_proof Creating 
+ Volume vega-served-fodaveg-csp-20261008_proof-db Creating 
+ Volume vega-served-fodaveg-csp-20261008_proof-db Creating 
+ Network vega-served-fodaveg-csp-20261008_proof Creating 
+ Volume vega-served-fodaveg-csp-20261008_proof-db Created 
+ Volume vega-served-fodaveg-csp-20261008_proof-db Created 
+ Network vega-served-fodaveg-csp-20261008_proof Created 
+ Network vega-served-fodaveg-csp-20261008_proof Created 
+ Container vega-served-fodaveg-csp-20261008-csp-pb-1 Creating 
+ Container vega-served-fodaveg-csp-20261008-csp-edge-1 Creating 
+ csp-pb The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested 
+ Container vega-served-fodaveg-csp-20261008-csp-edge-1 Created 
+ Container vega-served-fodaveg-csp-20261008-csp-pb-1 Created 
+ Container vega-served-fodaveg-csp-20261008-csp-pb-1 Starting 
+ Container vega-served-fodaveg-csp-20261008-csp-edge-1 Starting 
+ Container vega-served-fodaveg-csp-20261008-csp-pb-1 Started 
+ Container vega-served-fodaveg-csp-20261008-csp-edge-1 Started 

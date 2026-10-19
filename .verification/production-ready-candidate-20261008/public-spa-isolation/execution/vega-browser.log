@@ -1,0 +1,14 @@
+TypeError: Cannot read properties of undefined (reading 'extend')
+
+   at ../fixtures.ts:58
+
+  56 | const INDEX_HTML_PATH = join(bundleRoot, 'build/index.html');
+  57 |
+> 58 | export const test = base.extend({
+     |                          ^
+  59 | 	context: async ({ context }, use) => {
+  60 | 		const guard = createGuard();
+  61 | 		await context.route('**/*', (route) => guard.handle(route));
+    at /Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-isolation/fixtures.ts:58:26
+Error: No tests found
+

@@ -1,0 +1,57 @@
+--- canonical/e2e/fixtures.ts
++++ isolation/fixtures.ts
+@@ -37,7 +37,15 @@
+  */
+ import { readFileSync } from 'node:fs';
+ import { fileURLToPath } from 'node:url';
+-import { test as base, expect } from '@playwright/test';
++import { createRequire } from 'node:module';
++import { join } from 'node:path';
++import { pathToFileURL } from 'node:url';
++import { createGuard } from './network-guard.mjs';
++const fixtureRoot = process.env.VEGA_CSP_PROOF_CANDIDATE_ROOT;
++const bundleRoot = process.env.VEGA_CSP_PUBLIC_BUNDLE_ROOT;
++if (!fixtureRoot || !bundleRoot) throw new Error('Explicit fixture and public bundle roots required');
++const require = createRequire(join(fixtureRoot, 'package.json'));
++const { test: base, expect } = await import(pathToFileURL(require.resolve('@playwright/test')).href);
+ 
+ export const DEMO_EMAIL = 'demo@vega.dev';
+ export const DEMO_PASSWORD = 'vega-demo';
+@@ -45,9 +53,16 @@
+ /** Clave de `localStorage` del marcador de sesión de demo (ver `session/backend.ts`). */
+ export const DEMO_SESSION_MARKER_KEY = 'vega.demoSession.v1';
+ 
+-const INDEX_HTML_PATH = fileURLToPath(new URL('../build/index.html', import.meta.url));
++const INDEX_HTML_PATH = join(bundleRoot, 'build/index.html');
+ 
+ export const test = base.extend({
++	context: async ({ context }, use) => {
++		const guard = createGuard();
++		await context.route('**/*', (route) => guard.handle(route));
++		await use(context);
++		expect(guard.counts.blocked, 'Unexpected outbound browser origin blocked').toBe(0);
++		expect(guard.counts.unhandledSynthetic, 'Synthetic site escaped its local mock').toBe(0);
++	},
+ 	page: async ({ page }, use) => {
+ 		await page.addInitScript(() => {
+ 			(window as unknown as { __VEGA_ADAPTER__?: string }).__VEGA_ADAPTER__ = 'memory';
+@@ -58,15 +73,16 @@
+ 		await page.route('**/*', async (route) => {
+ 			const request = route.request();
+ 			if (request.resourceType() !== 'document') {
+-				await route.continue();
++				await route.fallback();
+ 				return;
+ 			}
+ 			const url = new URL(request.url());
+ 			if (url.pathname === '/' || url.pathname === '/login') {
+-				await route.continue();
++				await route.fallback();
+ 				return;
+ 			}
+-			const response = await route.fetch();
++			const response = await createGuard().guardedFetch(route);
++			if (!response) return;
+ 			if (response.status() !== 404) {
+ 				await route.fulfill({ response });
+ 				return;

@@ -1,0 +1,131 @@
+{
+  "task": "c0d0ff6e-43a9-46c8-b66a-e0a4a57921d5",
+  "worktree": "/private/tmp/vegacms-visual-desktop-20261007",
+  "branch": "codex/visual-desktop-20261007",
+  "base": "51de23c9a7375649e8992b27d14b5fe51217d607",
+  "verifiedTree": "08872fff27dd3d0a363049e6f2017b4132bb01a2",
+  "graph": "vegacms-visual-desktop-20261007",
+  "comparison": "/Users/david/code/vegacms/.verification/visual-desktop-20261007/comparison.html",
+  "environment": {
+    "node": "22.22.3",
+    "vitest": "4.1.10",
+    "dependencies": "existing shared symlink",
+    "installation": false,
+    "heavyRestriction": "Only4 focal files maxWorkers=1; no author build/e2e/headless",
+    "diskFreeBefore": "130 GiB",
+    "budget": "<1 GiB",
+    "diskFreeAfter": "130 GiB"
+  },
+  "checks": [
+    {
+      "argv": [
+        "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "src/lib/visual/viewport.test.ts",
+        "src/lib/visual/viewport-storage.dom.test.ts",
+        "src/lib/shell/AppShell.svelte.test.ts",
+        "src/lib/visual/VisualEditorScreen.svelte.test.ts",
+        "--maxWorkers=1"
+      ],
+      "session": 9537,
+      "exit": 0,
+      "files": 4,
+      "tests": 96,
+      "log": "/Users/david/code/vegacms/.verification/visual-desktop-20261007/focal-consumers-final.log"
+    },
+    {
+      "argv": [
+        [
+          "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+          "node_modules/prettier/bin/prettier.cjs",
+          "--check",
+          "src/lib/visual/viewport.ts",
+          "src/lib/visual/viewport.test.ts",
+          "src/lib/visual/viewport-storage.dom.test.ts",
+          "src/lib/visual/VisualEditorScreen.svelte",
+          "src/lib/visual/VisualEditorScreen.svelte.test.ts",
+          "src/lib/shell/AppShell.svelte",
+          "src/lib/shell/AppShell.svelte.test.ts",
+          "e2e/visual-editor.spec.ts",
+          "docs/PROJECT-CONTRACT-v1.md"
+        ],
+        [
+          "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+          "node_modules/eslint/bin/eslint.js",
+          "src/lib/visual/viewport.ts",
+          "src/lib/visual/viewport.test.ts",
+          "src/lib/visual/viewport-storage.dom.test.ts",
+          "src/lib/visual/VisualEditorScreen.svelte",
+          "src/lib/visual/VisualEditorScreen.svelte.test.ts",
+          "src/lib/shell/AppShell.svelte",
+          "src/lib/shell/AppShell.svelte.test.ts",
+          "e2e/visual-editor.spec.ts"
+        ],
+        [
+          "git",
+          "diff",
+          "--check"
+        ]
+      ],
+      "exit": 0,
+      "log": "/Users/david/code/vegacms/.verification/visual-desktop-20261007/static-final.log"
+    }
+  ],
+  "limitations": [
+    "Runtime e2e and screenshots pending root combined gate/build; test code is prepared, not executed.",
+    "No full typecheck/build/gate from author. Root combined gate checks integrated candidate.",
+    "Comparison is static design artifact with real tokens/demo content, not mounted application evidence.",
+    "No push/deploy/shared memory writes."
+  ],
+  "designAxes": {
+    "tokens": "covered, existing theme/base tokens",
+    "componentsStates": "covered, existing screen/zoom controls and sidebar toggle",
+    "responsive": "partial,96 targeted tests include mounted editor width1280/fit/50%/resize/height and AppShell; runtime e2e pending",
+    "accessibility": "partial, labels and keyboard unchanged; mounted AppShell state tests; runtime pending",
+    "contentEdgeCases": "covered, demo section text, 0/NaN canvas, saved zoom50/75/100/fit",
+    "feedback": "covered, existing connection status and zoom percentage",
+    "assets": "not applicable, no new assets"
+  },
+  "review": {
+    "verdict": "ready for merge; no pending findings; runtime gate remains pending",
+    "path": "/Users/david/code/vegacms/.verification/visual-desktop-20261007/review-final.md",
+    "tree": "08872fff27dd3d0a363049e6f2017b4132bb01a2",
+    "inventory": "9/9 +consumer delta1/1"
+  },
+  "sourceBlobs": {
+    "docs/PROJECT-CONTRACT-v1.md": "f4071b0cfd316c4c76d03d6316cecf2fcfdabe43",
+    "e2e/visual-editor.spec.ts": "573dffcca264baf918f5afbbda91b55cac7edc6a",
+    "src/lib/shell/AppShell.svelte": "cad680df512188d62028fe7be8e022f398a0f615",
+    "src/lib/shell/AppShell.svelte.test.ts": "b62dfe8055d13e68dea37bc3367c075d09324710",
+    "src/lib/visual/VisualEditorScreen.svelte": "42b508878c146c09c6e20fd7943daec0894f1d89",
+    "src/lib/visual/VisualEditorScreen.svelte.test.ts": "53a6c0e96dacbe1ddb27734c44c84c5a443b46b6",
+    "src/lib/visual/viewport-storage.dom.test.ts": "22005a947a53dfe042d7c0745baef6b5991cabcf",
+    "src/lib/visual/viewport.test.ts": "7b0987a543ae6d26e46e2f4a6bad6ef0c39b8d41",
+    "src/lib/visual/viewport.ts": "e0047086408672641576b3fb959fb1e51356cbfb"
+  },
+  "rebaseEvidence": {
+    "command": [
+      "cmp",
+      "/Users/david/code/vegacms/.verification/visual-desktop-20261007/source-before-rebase.patch",
+      "/Users/david/code/vegacms/.verification/visual-desktop-20261007/source-after-rebase.patch"
+    ],
+    "exit": 0,
+    "preservedSources": "byte-identical initial eight-path patch before/after authorized base change; subsequent ninth path explicitly updates existing editor component tests to new contract",
+    "beforeBase": "269a41c",
+    "afterBase": "51de23c9a7375649e8992b27d14b5fe51217d607",
+    "beforeTree": "973aa3aabad35f11abb740b8510cc6b16a7b6742"
+  },
+  "commit": "ea9f0d26d69685c55fdbf98b55d465d9a7d80a32",
+  "commitVerification": {
+    "command": [
+      "git show --no-patch --format=fuller HEAD",
+      "git status --short",
+      "git rev-parse HEAD^{tree}"
+    ],
+    "exit": 0,
+    "tree": "08872fff27dd3d0a363049e6f2017b4132bb01a2",
+    "worktree": "clean"
+  },
+  "cleanup": "No artifacts removed: active worktree and shared dependencies retained for root integration/runtime gate; canonical evidence preserved. Disk free before/after130GiB."
+}

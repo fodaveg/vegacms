@@ -1,0 +1,12 @@
+{
+  "status": "NO_EXTERNAL_MUTATION_RUNTIME_REJECTED",
+  "taskId": "8ce56224-4787-4bf1-9ba4-6537a6ee3a2b",
+  "taskStatusVerified": "@wip",
+  "attemptedOperation": "append technical progress by replacing existing notes",
+  "reason": "Auto-review rejected an extensive block with local paths and internal infrastructure metadata to an unverified destination",
+  "existingNotesChanged": false,
+  "checkboxChanged": false,
+  "optionalTechnicalNoteRequiresApprovalIfRetried": true,
+  "actualEvidence": "binary-execution-receipt.json",
+  "workContinues": true
+}

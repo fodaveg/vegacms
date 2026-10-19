@@ -1,0 +1,49 @@
+{
+  "limits": [
+    "Runtime CORS not applied/proved by source publication.",
+    "Stock Dockerfile already includes origin flag in main; remote-exact Compose override delta is separate from its dedicated-network main recipe.",
+    "Fod requires new literal linux/amd64 image and runtime/correspondence proof.",
+    "Browser-local overrides uninspected."
+  ],
+  "observedUTC": "2026-10-08T21:48:09.404622+00:00",
+  "patchManifestSHA256": "7d11d746bc2f27cf29f09b4723aea6d7dc0ae2f7fd3461fdc6ffd7ca10d1f64d",
+  "publicBrowserDefaults": {
+    "fodaveg": {
+      "backend": "SAME_ORIGIN",
+      "httpStatus": 200,
+      "mime": "HTML",
+      "overrideUninspected": true,
+      "shape": "PARSE_FAILURE"
+    },
+    "lumbre": {
+      "backend": "SAME_ORIGIN",
+      "httpStatus": 200,
+      "mime": "HTML",
+      "overrideUninspected": true,
+      "shape": "PARSE_FAILURE"
+    },
+    "vega": {
+      "backend": "SAME_ORIGIN",
+      "httpStatus": 200,
+      "mime": "HTML",
+      "overrideUninspected": true,
+      "shape": "PARSE_FAILURE"
+    }
+  },
+  "review": ".verification/release-adoption-plan-20261008/cors-three-consumers-source-fresh-review.md",
+  "source": {
+    "fodaveg": {
+      "commit": "cc8f3b14dca9bf10e4a60502da9e17503362bbb8",
+      "ffTerminal": "bf7685 exit0",
+      "pushTerminal": "1b6c13 exit0",
+      "tree": "693fc1ae70e8a28e64a87950e25883905a0de1d4"
+    },
+    "lumbre": {
+      "commit": "4439b3a6c64bc33a7e309493af10e7ede5282159",
+      "ffTerminal": "1cdb06 exit0",
+      "pushTerminal": "f1db8c exit0",
+      "tree": "95290f7620d542367b175a7164c0750594658e57"
+    }
+  },
+  "status": "SOURCE_PUBLISHED_RUNTIME_PENDING"
+}

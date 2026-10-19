@@ -1,0 +1,38 @@
+{
+  "localArchiveRetainedVerified": true,
+  "operationId": "836eb9dd-ec1b-4d81-a542-3c57a855b7de",
+  "result": {
+    "archiveAllocatedBytes": 488660992,
+    "archiveBytes": 488653312,
+    "archiveIdentity": [
+      2049,
+      195624,
+      0,
+      0,
+      384,
+      488653312,
+      1791498664848419588,
+      1791498664848419588
+    ],
+    "archiveRemoved": true,
+    "archiveSHA256": "abac0eb3feb7432880c7cc2a4a3d34444507347ff82c72967a4626a38a1bad8e",
+    "backupStatePreserved": true,
+    "budgetAfterPassed": true,
+    "failureClass": null,
+    "freeAllocatorAfterKiB": 1729900,
+    "freeAllocatorBeforeKiB": 1252700,
+    "freeSrvAfterKiB": 1729900,
+    "freeSrvBeforeKiB": 1252700,
+    "imageAndOldPinsPreserved": true,
+    "operationId": "836eb9dd-ec1b-4d81-a542-3c57a855b7de",
+    "privateValuesExported": false,
+    "productionControlOperations": false,
+    "remoteWrites": true,
+    "requiredAllocatorKiB": 1510136,
+    "requiredSrvKiB": 1511160,
+    "sameFilesystemProved": true,
+    "status": "RETIRE_PASSED_BUDGET_READY"
+  },
+  "status": "RETIRE_PASSED_BUDGET_READY",
+  "transportExit": 0
+}

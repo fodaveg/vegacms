@@ -1,0 +1,5 @@
+## Controles del formulario: carga tras intención explícita (2026-10-08)
+
+- Decisión técnica dentro del encargo de continuar el backlog: los motores de publicación, vista previa y programación del formulario se cargan al solicitar su acción. Montar el formulario o pintar sus botones no debe anticipar esas importaciones. Se conservan los motores y los flujos de guardado, confirmación, fechas y permisos existentes.
+- Una carga pendiente pertenece al puerto, sesión, usuario, modelo y registro de esa intención. Cerrar, cancelar, desmontar o cambiar ese contexto descarta su resolución tardía; los permisos se comprueban de nuevo antes de abrir el control. La espera comunica carga, evita doble acción y conserva el foco del diálogo; la programación pendiente también bloquea el atajo de guardado.
+- Un fallo de carga conserva el contenido y permite otra solicitud, sin guardar ni recargar automáticamente. No se promete invalidación de caché ni recuperación de un chunk o CSS fallido mediante ese reintento.

@@ -1,0 +1,22 @@
+{
+  "oldImage": "sha256:fbb072fe3a1a80f8c5ee87104e470fb71729c07d3e158b696c020eaf9ce7f223",
+  "newImage": "sha256:1b6436fee8c23615d7f7826cb4f87cb1d6e7e97d2d56150ff87a90571b951c40",
+  "pbPublicFilesByteEqual": 155,
+  "publicManifestEqual": true,
+  "runtimeConfigEqualByField": {
+    "User": true,
+    "WorkingDir": true,
+    "Entrypoint": true,
+    "Cmd": true,
+    "Env": true,
+    "Healthcheck": true,
+    "Volumes": true,
+    "ExposedPorts": true,
+    "StopSignal": true,
+    "Shell": true,
+    "Labels": true
+  },
+  "frontendCSPReceipt": ".verification/release-csp-final-a51b-20261008/fodaveg/receipt.json",
+  "frontendCSPReceiptSHA256": "01da53676a435dd9d47456bbb548142d4be4a782b1c323c49887da13202d53fd",
+  "reuseLimit": "Prior13/13 CSP evidence reused only for byte-identical SPA and same policy fixtures, no fresh browser execution or served/edge claim."
+}

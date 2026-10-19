@@ -1,0 +1,36 @@
+{
+  "status": "FOD_CORS_PENDING_OLD_RUNTIME_HEALTHY",
+  "backupId": "fodaveg-20261008T231304Z-3656162",
+  "checkpoint": "CLONE_CLEANUP_VOLUME",
+  "failureClass": "CommandExitNonzero",
+  "commandExit": 1,
+  "productionImageChanged": false,
+  "recoveryRequired": false,
+  "productionStopCauseProved": false,
+  "TESTIdentityRecorded": false,
+  "publicAssetsMatched": 155,
+  "CORSBeforeUnchanged": true,
+  "peersUnchanged": true,
+  "proofs": {
+    "controlled-apply.json": "e61a328562b5d42a9e5603cebd7ed0fd3c4e10b1a451fb82ec921e602b64c7dd",
+    "diagnostic-observation-v2.json": "d029ef6c80f161d1761c926220a23de3dff8bdafd9c9440ad19b668b77b615e3",
+    "controlled-stop-public-observation-20261009.json": "4da5b3a51bf7a2a067fb7ef6f1dc6364e357e5a3c5a614200c1d262ba9d1c3a0"
+  },
+  "terminalEvidence": {
+    "apply": {
+      "sessionId": 97968,
+      "chunk": "5f060a",
+      "exitCode": 2
+    },
+    "diagnostic": {
+      "sessionId": 91954,
+      "chunk": "7dab83",
+      "exitCode": 0
+    },
+    "public": {
+      "sessionId": 9023,
+      "chunk": "759c24",
+      "exitCode": 0
+    }
+  }
+}

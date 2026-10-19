@@ -1,0 +1,1 @@
+PASS container → host.docker.internal → host bind127.0.0.1; marker exact; no TLS or SMTP yet

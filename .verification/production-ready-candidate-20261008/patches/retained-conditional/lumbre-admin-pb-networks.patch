@@ -1,0 +1,11 @@
+--- a/srv/lumbre-admin/compose.yml
++++ b/srv/lumbre-admin/compose.yml
+@@ -56,1 +56,1 @@
+-      edge:
++      lumbre-admin-edge:
+@@ -82,1 +82,4 @@
+-networks:
++networks:
++  lumbre-admin-edge:
++    external: true
++    name: lumbre-admin-edge

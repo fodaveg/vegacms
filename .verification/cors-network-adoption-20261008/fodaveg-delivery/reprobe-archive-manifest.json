@@ -1,0 +1,28 @@
+{
+  "backupId": "fodaveg-20261008T231304Z-3656162",
+  "budget": "existing archive retained; one expanded TEST clone +128MiB PB headroom +512MiB free reserve +1MiB own receipts; PASS boolean only when both actual filesystems fit",
+  "frozenImports": {
+    "../../image-only-delivery-20261008/remote_cutover.py": "5d4131c229d7aa88918c932dd517b0d33e024a3497aa4fcc4b9f0c9940467128",
+    "remote_cutover_controlled.py": "43b68aba0c937deef45ff3a9e2e33f6d3933fb06949605fdc3b0d9448d31c7b4"
+  },
+  "offline": {
+    "AST": "PASS",
+    "command": "python3 -B .verification/cors-network-adoption-20261008/fodaveg-delivery/reprobe-archive-selftest.py",
+    "exitCode": 0,
+    "tests": 4
+  },
+  "remoteExecuted": false,
+  "remoteWrites": false,
+  "reprobeNext": "Review tuple/budget first; new TEST-only grant and frozen artifact tuple needed; no production stop, Compose change or data restore.",
+  "scope": [
+    "own exact archive data.tgz hash and tar header validation in remote RAM; no bytes/names exported",
+    "regularfile fullidentity+literal parent dev/ino recheck, state snapshot and known OLD Id/Image/Running/Health.Status before/after",
+    "fresh statvfs only own backup filesystem and /var/lib/docker/volumes parent, no production-volume data or Env read"
+  ],
+  "sources": {
+    "reprobe-archive-read.py": "6e5ce179e7e79a81f77222fcf0c0aaf4551f8dd1f002619ba1155e16a190ce2c",
+    "reprobe-archive-run.py": "0855dfc63ddc4c97946a1cf5acb41031484dc560ab4e0ccb258c23966f653b5a",
+    "reprobe-archive-selftest.py": "07a516d536871b7b00c749405a74d53264a80fe5a5192334dd39e6e3181b8812"
+  },
+  "status": "READ_ONLY_ARCHIVE_ATTESTATION_AND_BUDGET_REVIEW_PENDING"
+}

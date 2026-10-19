@@ -1,0 +1,205 @@
+/* Mockup composition. Roles, values and component styling follow the cited real CSS. */
+* {
+	box-sizing: border-box;
+}
+html {
+	color-scheme: light dark;
+}
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--ink);
+	font:
+		14px/1.5 system-ui,
+		-apple-system,
+		'Segoe UI',
+		sans-serif;
+}
+button {
+	font: inherit;
+	cursor: pointer;
+}
+button:focus-visible {
+	outline: 2px solid var(--accent-text);
+	outline-offset: 2px;
+}
+[hidden] {
+	display: none !important;
+}
+.topbar {
+	height: var(--topbar-h);
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	padding: 0 1rem;
+	border-bottom: 1px solid var(--line);
+	background: var(--paper);
+}
+.topbar strong {
+	font-size: 1.1rem;
+}
+.topbar span {
+	color: var(--ink-2);
+}
+.layout {
+	display: flex;
+	min-height: 690px;
+}
+.sidebar {
+	width: 236px;
+	flex-shrink: 0;
+	padding: 1rem;
+	background: var(--sidebar);
+	border-right: 1px solid var(--line);
+}
+.sidebar p {
+	margin: 0 0 1rem;
+}
+.secondary {
+	color: var(--ink-2);
+}
+.nav-item {
+	display: flex;
+	align-items: center;
+	min-height: var(--row-h);
+	padding: 0 1rem;
+	color: var(--ink-2);
+	border-radius: var(--r);
+}
+main {
+	flex: 1;
+	padding: 1.5rem;
+	min-width: 0;
+}
+.page {
+	max-width: 60rem;
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+}
+h1 {
+	margin: 0;
+	font-size: 1.3rem;
+	color: var(--ink-hi);
+	letter-spacing: -0.01em;
+}
+.block {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+}
+.block > h2 {
+	margin: 0;
+	font-size: 0.76em;
+	font-weight: 650;
+	letter-spacing: 0.09em;
+	text-transform: uppercase;
+	color: var(--ink-2);
+}
+.card {
+	border: 1px solid var(--line);
+	border-radius: var(--r);
+	background: var(--paper);
+	overflow: hidden;
+	padding: 2rem 1.5rem;
+}
+.card h3 {
+	margin: 0 0 0.75rem;
+	font-size: 1rem;
+}
+.card p {
+	margin: 0;
+}
+.appearance {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	padding: 1rem 1.2rem;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: var(--surface-2);
+}
+.appearance h2 {
+	margin: 0;
+	font-size: 1.1rem;
+}
+.appearance-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem;
+}
+.label {
+	min-width: 4rem;
+	font-size: 0.85rem;
+	color: var(--ink-2);
+}
+.option,
+.retry {
+	padding: 0.45rem 0.9rem;
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	background: var(--surface);
+	color: var(--ink);
+}
+.surface-sample {
+	margin-top: 1.5rem;
+	padding: 1rem 1.2rem;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: var(--surface);
+}
+.surface-sample p {
+	margin: 0;
+	color: var(--ink-2);
+	font-size: 0.85rem;
+}
+.menu {
+	display: none;
+}
+.mockup-label {
+	margin-left: auto;
+	font-size: 0.8rem;
+}
+@media (max-width: 768px) {
+	.sidebar {
+		display: none;
+	}
+	.menu {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 44px;
+		min-height: 44px;
+		border: 1px solid var(--line);
+		background: var(--paper);
+		color: var(--ink);
+		border-radius: var(--r);
+	}
+	main {
+		padding: 1rem;
+	}
+	.option,
+	.retry {
+		min-height: 44px;
+	}
+	.mockup-label {
+		display: none;
+	}
+	.sidebar.open {
+		display: block;
+		position: absolute;
+		top: 54px;
+		bottom: 0;
+		width: 236px;
+		z-index: 1;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation: none !important;
+		transition: none !important;
+	}
+}

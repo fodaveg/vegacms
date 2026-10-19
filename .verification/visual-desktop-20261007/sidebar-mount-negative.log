@@ -1,0 +1,33 @@
+
+ RUN  v4.1.10 /private/tmp/vegacms-visual-desktop-20261007
+
+ ❯ |component| src/lib/shell/AppShell.svelte.test.ts (6 tests | 1 failed) 18ms
+     × montar ya en visual pliega sin evento ni persistir y restaura false 10ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |component| src/lib/shell/AppShell.svelte.test.ts > AppShell: sidebar durante edición visual > montar ya en visual pliega sin evento ni persistir y restaura false
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/lib/shell/AppShell.svelte.test.ts:86:38
+     84|   harness.page.route.id = '/c/[type]/[id]/visual';
+     85|   start(saved);
+     86|   expect(harness.sidebar!.collapsed).toBe(true);
+       |                                      ^
+     87|   expect(harness.persist).not.toHaveBeenCalled();
+     88|   navigate('/c/[type]');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 5 passed (6)
+   Start at  20:56:33
+   Duration  808ms (transform 239ms, setup 0ms, import 295ms, tests 18ms, environment 422ms)
+

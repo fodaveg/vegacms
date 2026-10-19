@@ -1,0 +1,1174 @@
+<!doctype html>
+<html lang="es" data-theme="aquelarre" data-mode="light" data-density="comfortable"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Preparar historial y papelera — propuesta Vega</title><style>/* GENERADO por scripts/build-themes.mjs — NO EDITAR */
+
+:root {
+	--sans: -apple-system, 'Segoe UI', system-ui, sans-serif;
+	--mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+	--r: 8px;
+	--accent-grad: linear-gradient(115deg, var(--accent), var(--accent-hover));
+	--sheen: linear-gradient(100deg, var(--accent), var(--accent-text));
+	--accent-fill: var(--accent);
+	--halo: none;
+	--brand-a: var(--accent);
+	--brand-b: var(--accent);
+	--brand-c: var(--accent);
+	--brand-edge-opacity: 0.35;
+}
+:root {
+	--row-h: 44px;
+	--cell-x: 1.1rem;
+	--fs-base: 14px;
+	--pad-field: 1.1rem;
+	--gap-field: 1.75rem;
+	--pad-card: 1.5rem;
+	--sidebar-item-h: 40px;
+	--topbar-h: 54px;
+}
+[data-density='compact'] {
+	--row-h: 36px;
+	--cell-x: 0.8rem;
+	--fs-base: 13px;
+	--pad-field: 0.8rem;
+	--gap-field: 1.2rem;
+	--pad-card: 1rem;
+	--sidebar-item-h: 32px;
+	--topbar-h: 44px;
+}
+[data-mode='light'] {
+	--shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 3px 12px rgb(0 0 0 / 0.04);
+	--success: #045a26;
+	--success-soft: color-mix(in oklab, #045a26 10%, var(--paper));
+	--danger: #a91408;
+	--danger-soft: color-mix(in oklab, #a91408 10%, var(--paper));
+	--warning: #684800;
+	--warning-soft: color-mix(in oklab, #684800 10%, var(--paper));
+	--info: #07517d;
+	--info-soft: color-mix(in oklab, #07517d 10%, var(--paper));
+}
+[data-mode='dark'] {
+	--shadow-card: 0 1px 3px rgb(0 0 0 / 0.4), 0 5px 16px rgb(0 0 0 / 0.28);
+	--success: #5cbd8e;
+	--success-soft: color-mix(in oklab, #5cbd8e 17%, var(--paper));
+	--danger: #ef8078;
+	--danger-soft: color-mix(in oklab, #ef8078 15%, var(--paper));
+	--warning: #dfae4d;
+	--warning-soft: color-mix(in oklab, #dfae4d 15%, var(--paper));
+	--info: #74b6d6;
+	--info-soft: color-mix(in oklab, #74b6d6 15%, var(--paper));
+}
+
+[data-theme='brasa'] {
+	--tint: #e8763a;
+	--accent: #e8763a;
+	--accent-ink: #1f1206;
+}
+[data-theme='brasa'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='brasa'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='faro'] {
+	--tint: #d1642f;
+	--accent: #d1642f;
+	--accent-ink: #2a1408;
+}
+[data-theme='faro'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='faro'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='rescoldo'] {
+	--tint: #4a4a52;
+	--accent: #f0842f;
+	--accent-ink: #201206;
+	--accent-grad: linear-gradient(115deg, #f6a63b 0%, #f0842f 42%, #e4583c 75%, #dd4f52 100%);
+	--brand-edge-opacity: 0.7;
+}
+[data-theme='rescoldo'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='rescoldo'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='miel'] {
+	--tint: #d59a2e;
+	--accent: #d59a2e;
+	--accent-ink: #241905;
+}
+[data-theme='miel'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='miel'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='halloween'] {
+	--tint: #7a3fa0;
+	--accent: #ef7a26;
+	--accent-ink: #201206;
+	--accent-grad: linear-gradient(115deg, #f7b13a 0%, #ef7a26 42%, #e2542f 75%, #dd4f52 100%);
+	--accent-fill: var(--accent-grad);
+	--halo:
+		radial-gradient(
+			125% 72% at 86% -14%,
+			color-mix(in oklab, #f6a63b 26%, transparent),
+			transparent 48%
+		),
+		radial-gradient(
+			110% 66% at -12% 112%,
+			color-mix(in oklab, #9558cc 20%, transparent),
+			transparent 46%
+		),
+		radial-gradient(
+			90% 50% at 50% 128%,
+			color-mix(in oklab, #c9342a 13%, transparent),
+			transparent 42%
+		);
+	--brand-a: #f7b13a;
+	--brand-b: #e04f28;
+	--brand-c: #c9342a;
+	--brand-edge-opacity: 0.7;
+}
+[data-theme='halloween'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, #f6a63b 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, #ef7a26 52%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 9%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 9%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 9%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='halloween'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, #f6a63b 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, #ef7a26 52%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 21%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 21%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 21%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='aquelarre'] {
+	--tint: #6e3fb5;
+	--accent: #f0842f;
+	--accent-ink: #201206;
+	--accent-grad: linear-gradient(115deg, #f6a63b 0%, #f0842f 42%, #e4583c 75%, #dd4f52 100%);
+	--sheen: linear-gradient(100deg, #7ac943 0%, #3fbf8f 38%, #8a7ae0 74%, #b05fd6 100%);
+	--accent-fill: var(--accent-grad);
+	--halo:
+		radial-gradient(
+			125% 72% at 86% -14%,
+			color-mix(in oklab, #f6a63b 24%, transparent),
+			transparent 48%
+		),
+		radial-gradient(
+			110% 66% at -12% 112%,
+			color-mix(in oklab, #9a7ae8 17%, transparent),
+			transparent 46%
+		),
+		radial-gradient(
+			90% 50% at 50% 128%,
+			color-mix(in oklab, #e4583c 12%, transparent),
+			transparent 42%
+		);
+	--brand-a: #f6a63b;
+	--brand-b: #e4583c;
+	--brand-c: #dd4f52;
+	--brand-edge-opacity: 0.7;
+}
+[data-theme='aquelarre'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, #f6a63b 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, #f0842f 52%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 13%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 13%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 13%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: #605a57;
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='aquelarre'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, #f6a63b 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, #f0842f 52%, var(--line));
+	--bg: #0d0913;
+	--sidebar: #100c17;
+	--paper: #17121f;
+	--surface: #2a2034;
+	--surface-2: #221a2d;
+	--btn: #2e2136;
+	--active: #382845;
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='cereza'] {
+	--tint: #c0466b;
+	--accent: #c0466b;
+	--accent-ink: #ffffff;
+}
+[data-theme='cereza'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='cereza'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='tinta'] {
+	--tint: #6ea3f0;
+	--accent: #6ea3f0;
+	--accent-ink: #0e1a2e;
+}
+[data-theme='tinta'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='tinta'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+:where(:root),
+[data-theme='niebla'] {
+	--tint: #4f6bd6;
+	--accent: #4f6bd6;
+	--accent-ink: #ffffff;
+}
+:where(:root)[data-mode='light'],
+[data-theme='niebla'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+:where(:root)[data-mode='dark'],
+[data-theme='niebla'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='marea'] {
+	--tint: #147885;
+	--accent: #147885;
+	--accent-ink: #ffffff;
+}
+[data-theme='marea'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='marea'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='sea-wingnow'] {
+	--tint: #58a6d8;
+	--accent: #58a6d8;
+	--accent-ink: #0c1c29;
+}
+[data-theme='sea-wingnow'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='sea-wingnow'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='bosque'] {
+	--tint: #8bbf5a;
+	--accent: #8bbf5a;
+	--accent-ink: #16240c;
+}
+[data-theme='bosque'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='bosque'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='menta'] {
+	--tint: #2f9e73;
+	--accent: #2f9e73;
+	--accent-ink: #08201a;
+}
+[data-theme='menta'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='menta'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='salvia'] {
+	--tint: #7a9b78;
+	--accent: #7a9b78;
+	--accent-ink: #16210f;
+}
+[data-theme='salvia'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='salvia'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='lavanda'] {
+	--tint: #8f84cf;
+	--accent: #8f84cf;
+	--accent-ink: #1a1630;
+}
+[data-theme='lavanda'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='lavanda'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='ciruela'] {
+	--tint: #7d4a9c;
+	--accent: #7d4a9c;
+	--accent-ink: #ffffff;
+}
+[data-theme='ciruela'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='ciruela'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='carbon'] {
+	--tint: #4a4a52;
+	--accent: #4a4a52;
+	--accent-ink: #ffffff;
+}
+[data-theme='carbon'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='carbon'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='colibri'] {
+	--tint: #527d8f;
+	--accent: #2f8f96;
+	--accent-ink: #0a1d1f;
+	--sheen: linear-gradient(100deg, #2f8f96 0%, #8a7ad9 55%, #c9a24e 100%);
+	--halo:
+		radial-gradient(
+			120% 68% at 84% -12%,
+			color-mix(in oklab, #2f8f96 11%, transparent),
+			transparent 46%
+		),
+		radial-gradient(
+			100% 60% at -10% 110%,
+			color-mix(in oklab, #8a7ad9 8%, transparent),
+			transparent 44%
+		);
+	--brand-a: #2f8f96;
+	--brand-b: #8a7ad9;
+	--brand-c: #c9a24e;
+	--brand-edge-opacity: 0.3;
+}
+[data-theme='colibri'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='colibri'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='tornasol'] {
+	--tint: #5b5f8f;
+	--accent: #2f9a94;
+	--accent-ink: #14102a;
+	--accent-grad: linear-gradient(115deg, #2fb7a8 0%, #8d7bf0 42%, #d16bb2 72%, #dda63f 100%);
+	--accent-fill: var(--accent-grad);
+	--halo:
+		radial-gradient(
+			120% 68% at 84% -12%,
+			color-mix(in oklab, #2fb7a8 13%, transparent),
+			transparent 46%
+		),
+		radial-gradient(
+			100% 60% at -10% 110%,
+			color-mix(in oklab, #d16bb2 9%, transparent),
+			transparent 44%
+		);
+	--brand-a: #2fb7a8;
+	--brand-b: #8d7bf0;
+	--brand-c: #dda63f;
+	--brand-edge-opacity: 0.5;
+}
+[data-theme='tornasol'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 10%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 10%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 10%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='tornasol'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 20%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 20%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 20%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='pizarra'] {
+	--tint: #5d6d83;
+	--accent: #5d6d83;
+	--accent-ink: #ffffff;
+}
+[data-theme='pizarra'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='pizarra'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='terracota'] {
+	--tint: #bd430f;
+	--accent: #bd430f;
+	--accent-ink: #ffffff;
+}
+[data-theme='terracota'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='terracota'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--sans)}button,select,input{font:inherit;color:inherit}button,a,select{min-height:44px}button,a{cursor:pointer}button{border:1px solid var(--line);border-radius:6px;background:var(--btn);padding:10px 16px}button:hover{background:var(--active)}button:active{transform:translateY(1px)}button:disabled{opacity:.6;cursor:wait}button.primary{background:var(--accent);color:var(--accent-ink);font-weight:650;border-color:var(--accent)}button.primary:hover{background:var(--accent-hover)}a{display:inline-flex;align-items:center;padding:8px;color:var(--ink);text-decoration:underline;text-underline-offset:3px}:focus-visible{outline:2px solid var(--ink);outline-offset:3px}h1{font-size:24px;line-height:1.25;margin:0 0 24px;color:var(--ink-hi)}h2{font-size:18px;line-height:1.35;margin:0 0 8px}p{margin:0 0 12px}.muted{color:var(--ink-2)}small{font-size:12px}svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}header.preview{background:var(--paper);border-bottom:1px solid var(--line);padding:12px 24px;display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}.preview strong{font-size:13px}.controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.controls label{display:flex;gap:8px;align-items:center}.controls select{background:var(--surface);border:1px solid var(--line);border-radius:6px;max-width:230px;padding:6px}.topbar{height:54px;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid var(--line);background:var(--surface);font-size:16px;font-weight:700}.topbar span:last-child{margin-left:auto;font-size:12px;font-weight:400;color:var(--ink-2)}.shell{display:grid;grid-template-columns:236px 1fr;min-height:calc(100vh - 138px)}aside{background:var(--sidebar);border-right:1px solid var(--line);padding:24px 16px}.navitem{display:block;padding:10px 16px;border-radius:6px;color:var(--ink-2);margin:4px 0}.navitem.active{background:var(--active);color:var(--ink);font-weight:600}main{max-width:1120px;padding:32px 24px;width:100%}.homeblock{margin-bottom:28px}.rowactions{display:flex;flex-wrap:wrap;gap:8px}.setup{background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow-card);padding:24px;margin:24px 0;max-width:780px}.setup .title{display:flex;gap:12px;align-items:flex-start}.setup .title svg{margin-top:4px}.copy{max-width:64ch}.limits{padding:12px 16px;background:var(--info-soft);border-left:3px solid var(--info);color:var(--ink);margin:16px 0;font-size:13px}.confirm{border:1px solid var(--info);background:var(--info-soft);padding:16px;border-radius:6px;margin-top:16px}.error{border-left:3px solid var(--danger);background:var(--danger-soft);padding:12px 16px;margin-top:16px}.fields{display:flex;flex-wrap:wrap;gap:16px;margin:16px 0}.fields label{display:flex;flex-direction:column;gap:8px}.fields input{width:130px;min-height:44px;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:8px}.check{display:flex;gap:8px;align-items:center}.check input{width:20px;height:20px}.recent{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}.recent .row{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;gap:16px;justify-content:space-between}.recent .row:last-child{border-bottom:0}.tag{display:inline-block;padding:2px 10px;border-radius:16px;background:var(--success-soft);color:var(--success);font-size:12px;white-space:nowrap;align-self:start}.toast{position:fixed;right:16px;bottom:16px;width:min(450px,calc(100vw - 32px));border:1px solid var(--success);border-radius:8px;padding:16px;background:var(--surface);box-shadow:var(--shadow-card);z-index:20}.toast p{padding-right:32px}.toast .close{position:absolute;right:4px;top:4px;width:44px;height:44px;padding:8px;background:transparent;border:0}.toast .rowactions{margin-top:8px}.designnote{border-top:1px solid var(--line);margin-top:32px;padding-top:16px;color:var(--ink-2);font-size:12px}[hidden]{display:none!important}
+@media(max-width:900px){.shell{grid-template-columns:180px 1fr}aside{padding:16px 8px}main{padding:24px 16px}.setup{padding:20px}}
+@media(max-width:600px){header.preview{padding:12px 16px}.controls{width:100%;gap:8px}.controls label{flex-wrap:wrap}.shell{display:block}aside{display:none}main{padding:24px 16px 220px}.topbar{padding:0 16px}.setup{padding:20px 16px}.rowactions>button{flex:1 1 auto}.recent .row{flex-direction:column;gap:4px}.copy{width:100%}.toast{padding:16px}.toast .rowactions>button{width:100%}.fields{flex-direction:column}h1{font-size:24px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}button:active{transform:none}}
+</style></head><body>
+<header class="preview"><strong>Propuesta de diseño · sin conexión a Vega</strong><div class="controls"><label>Modo <select id="mode"><option value="light">Claro</option><option value="dark">Oscuro</option></select></label><label>Estado <select id="state"><option value="missing">Inicio · falta preparar</option><option value="demo">Inicio · demo sin historial</option><option value="setup">Ajustes · preparar</option><option value="confirm">Ajustes · confirmación</option><option value="creating">Ajustes · preparando</option><option value="failed">Ajustes · error</option><option value="ready">Ajustes · preparado</option><option value="disabled">Desactivado a propósito</option><option value="editor">Cuenta de editor</option><option value="recovery">Borrado · versión confirmada</option><option value="files">Borrado · con archivos/enlaces</option><option value="noticket">Borrado · sin versión guardada</option></select></label></div></header>
+<div class="topbar">Vega <span>Notas del huerto</span></div><div class="shell"><aside aria-label="Menú del sitio"><div class="navitem active">Inicio</div><div class="navitem">Entradas</div><div class="navitem">Páginas</div><div class="navitem">Medios</div><div class="navitem">Papelera</div><div class="navitem">Ajustes</div></aside>
+<main id="content"><h1 id="heading">Inicio</h1><section class="homeblock" id="create"><h2>Crear</h2><div class="rowactions"><button>Entrada</button><button>Página</button></div></section>
+<section class="setup" id="offer" aria-labelledby="offer-title"><div class="title"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 11a9 9 0 1 1 3 7M3 4v7h7M12 7v5l3 2"/></svg><div><h2 id="offer-title">Guarda versiones anteriores y recupera registros borrados</h2><p class="muted copy">Prepara el historial y la papelera para este sitio. Podrás consultar versiones anteriores de tu contenido.</p></div></div><p class="copy">Los archivos adjuntos y los enlaces que se eliminan al borrar no se recuperan.</p><div class="rowactions"><button class="primary" id="prepare">Preparar historial y papelera</button><button id="later">Ahora no</button></div><small class="muted">«Ahora no» oculta esta propuesta para este sitio en este navegador. Puedes prepararlo después desde Ajustes.</small></section>
+<section class="setup" id="settings" hidden aria-labelledby="settings-title"><h2 id="settings-title">Historial y papelera</h2><p class="muted copy">Guarda versiones anteriores de los registros y permite consultar registros borrados.</p><div id="bootstrap"><p>El historial todavía no tiene dónde guardar las versiones de este sitio.</p><button id="createcollection">Crear colección de historial</button></div><div class="confirm" id="confirmbox" hidden role="alertdialog" aria-labelledby="confirm-title"><h3 id="confirm-title">Crear el historial de este sitio</h3><p>Se creará la colección de historial. Tus registros actuales se conservan.</p><div class="rowactions"><button class="primary" id="confirmcreate">Crear colección</button><button id="cancelcreate">Cancelar</button></div></div><p id="busy" hidden aria-live="polite">Preparando el historial y la papelera…</p><div id="readyform" hidden><p class="tag">Preparado</p><p class="check"><input type="checkbox" id="enabled" checked><label for="enabled">Historial activado</label></p><div class="fields"><label>Versiones por registro<input type="number" value="20" min="0"></label><label>Días en la papelera<input type="number" value="30" min="0"></label></div><button>Guardar retención</button></div><div class="error" id="error" hidden role="alert"><p>No se pudo comprobar el historial. La preparación puede haberse guardado.</p><button id="retry">Comprobar de nuevo</button></div><div class="limits"><p>Restaurar recupera los campos guardados con el mismo identificador. Los archivos adjuntos y los enlaces eliminados al borrar no vuelven.</p></div></section>
+<section class="homeblock" id="recent"><h2>Lo último que editaste</h2><div class="recent"><div class="row"><span>Qué plantar en el huerto durante los meses de invierno</span><span class="tag">Publicada</span></div><div class="row"><span>Calendario de riego de octubre</span><span class="muted">Borrador</span></div></div></section>
+<div class="limits" id="notice" hidden role="status"></div><section class="recent" id="trash" hidden><div class="row"><div><strong>Calendario de riego de octubre</strong><p class="muted">Versión guardada antes del borrado · Hoy</p><p>Consulta los datos guardados antes de decidir si restaurar.</p><p class="muted">Los archivos adjuntos y los enlaces que se eliminaron al borrar no se recuperan.</p><button>Restaurar</button></div></div></section>
+<p class="designnote">Lámina de la opción elegida: propuesta contextual en Inicio, configuración existente y acceso a papelera tras una versión confirmada. Sin ventanas de primer arranque ni promesa de Deshacer íntegro.</p></main></div>
+<div class="toast" id="toast" hidden aria-live="polite"><button class="close" id="dismiss" aria-label="Cerrar aviso"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button><p id="toastcopy"></p><div class="rowactions"><button id="viewtrash">Ver en papelera</button></div></div>
+<script>
+const el=id=>document.getElementById(id);const hide=(id,b=true)=>el(id).hidden=b;let timer=null;
+function render(state){clearTimeout(timer);el('state').value=state;['offer','settings','confirmbox','busy','readyform','error','notice','toast','trash'].forEach(id=>hide(id));hide('create',false);hide('recent',false);el('heading').textContent='Inicio';el('createcollection').disabled=false;el('enabled').checked=true;
+if(['missing','demo'].includes(state))hide('offer',false);if(state==='demo'){hide('notice',false);el('notice').textContent='En esta demo, la preparación y las versiones se conservan durante esta sesión.'}
+if(['setup','confirm','creating','failed','ready','disabled'].includes(state)){hide('settings',false);hide('create');hide('recent');el('heading').textContent='Ajustes';hide('bootstrap',['creating','ready','disabled'].includes(state));hide('confirmbox',state!=='confirm');hide('busy',state!=='creating');hide('readyform',!['ready','disabled'].includes(state));hide('error',state!=='failed');if(state==='creating')el('createcollection').disabled=true;if(state==='disabled'){el('enabled').checked=false;hide('notice',false);el('notice').textContent='El historial está desactivado en este sitio. Se conserva esta elección; no se activa desde Inicio.'}}
+if(state==='editor'){hide('notice',false);el('notice').textContent='Tu cuenta no puede preparar el historial del sitio. Si necesitas consultar versiones anteriores, habla con quien administra el sitio.'}
+if(['recovery','files','noticket'].includes(state)){el('heading').textContent='Entradas';hide('create');hide('toast',false);hide('viewtrash',state==='noticket');el('toastcopy').textContent=state==='noticket'?'«Calendario de riego de octubre» borrado.':state==='files'?'Borrado. Puedes consultar la versión guardada en la papelera. Los archivos adjuntos y los enlaces eliminados no se recuperan.':'Borrado. Puedes consultar la versión guardada en la papelera.'}
+}
+el('mode').addEventListener('change',e=>{document.documentElement.dataset.mode=e.target.value;document.documentElement.style.colorScheme=e.target.value});el('state').addEventListener('change',e=>render(e.target.value));el('prepare').onclick=()=>{render('setup');el('settings-title').setAttribute('tabindex','-1');el('settings-title').focus()};el('later').onclick=()=>{hide('offer');hide('notice',false);el('notice').textContent='Propuesta oculta en este navegador. El historial sigue disponible para preparar desde Ajustes.'};el('createcollection').onclick=()=>{hide('confirmbox',false);el('cancelcreate').focus()};el('cancelcreate').onclick=()=>{hide('confirmbox');el('createcollection').focus()};el('confirmcreate').onclick=()=>{render('creating');timer=setTimeout(()=>render('ready'),700)};el('retry').onclick=()=>render('ready');el('dismiss').onclick=()=>hide('toast');el('viewtrash').onclick=()=>{hide('toast');hide('offer');hide('create');hide('recent');hide('settings');hide('trash',false);el('heading').textContent='Papelera';el('heading').tabIndex=-1;el('heading').focus()};el('confirmbox').addEventListener('keydown',e=>{if(e.key==='Escape'){hide('confirmbox');el('createcollection').focus()}});render('missing');
+</script></body></html>

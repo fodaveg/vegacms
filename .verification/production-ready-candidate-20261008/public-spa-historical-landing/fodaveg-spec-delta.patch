@@ -1,0 +1,34 @@
+--- modulefix/spec
++++ historical/spec
+@@ -11,7 +11,7 @@
+ 	readFileSync(new URL('./current-spa-proof-runtime/identity.json', import.meta.url), 'utf8')
+ );
+ if (identity.candidateRoot !== candidateRoot) throw new Error('Prepared identity/root mismatch');
+-const { test, expect, loginAsDemo, waitForHome } = await import(
++const { test, expect, loginAsDemo, waitForHistoricalLanding } = await import(
+ 	new URL('../fixtures.ts', import.meta.url).href
+ );
+ const { createVisualSite, SITE_ORIGIN } = await import(
+@@ -82,7 +82,7 @@
+ }
+ async function login(page: Page, showcase = false): Promise<void> {
+ 	await loginAsDemo(page, { seedShowcase: showcase });
+-	await waitForHome(page);
++	await waitForHistoricalLanding(page);
+ }
+ 
+ const blocks = [
+@@ -156,11 +156,11 @@
+ 	).toBe(identity.buildFilesSHA256['index.html']);
+ });
+ 
+-test('source: login and home perform authentication and expose current home actions', async ({
++test('source: login reaches exact historical landing and exposes content navigation', async ({
+ 	page
+ }) => {
+ 	await login(page);
+-	await expect(page.getByRole('heading', { level: 1, name: 'Inicio', exact: true })).toBeVisible();
++	await expect(page.getByRole('heading', { level: 1, name: 'Crear «Información del sitio»', exact: true })).toBeVisible();
+ 	await page.locator('#vega-sidebar a[href="/c/posts"]').click();
+ 	await expect(page).toHaveURL(/\/c\/posts$/);
+ 	await clean();

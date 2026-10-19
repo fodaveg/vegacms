@@ -1,0 +1,72 @@
+{
+  "author_commit": "64be058982b628717561ecca9dbced2a9ff936ac",
+  "candidate_commit": "4d9f891e1237504ed136573f76493b1b77497c56",
+  "candidate_tree": "ea4a545149a2d9888344e338e64f8cf20bfda6dd",
+  "file_blobs": [
+    {
+      "path": "src/lib/form/RecordBlocks.svelte",
+      "author_blob": "278d3c35785a7ff9f7df4c1dfad2336fc77fa64b",
+      "root_blob": "278d3c35785a7ff9f7df4c1dfad2336fc77fa64b",
+      "equal": true
+    },
+    {
+      "path": "src/lib/form/RecordForm.publish.svelte.test.ts",
+      "author_blob": "c170123ecf6c79e7b847fd16aed27e0b0df145f5",
+      "root_blob": "c170123ecf6c79e7b847fd16aed27e0b0df145f5",
+      "equal": true
+    },
+    {
+      "path": "src/lib/form/RecordForm.review.svelte.test.ts",
+      "author_blob": "56f19fe20a432a14406c867020672fcabc3f7aad",
+      "root_blob": "56f19fe20a432a14406c867020672fcabc3f7aad",
+      "equal": true
+    },
+    {
+      "path": "src/lib/form/RecordForm.schedule.svelte.test.ts",
+      "author_blob": "457e6c65c276efb593b5aac7fbe2bf80f84e7661",
+      "root_blob": "457e6c65c276efb593b5aac7fbe2bf80f84e7661",
+      "equal": true
+    },
+    {
+      "path": "src/lib/form/RecordForm.svelte",
+      "author_blob": "bc698b1656c63d8e8ce9b17df7b1b0fdc762d4b4",
+      "root_blob": "bc698b1656c63d8e8ce9b17df7b1b0fdc762d4b4",
+      "equal": true
+    },
+    {
+      "path": "src/lib/icons/Icon.svelte",
+      "author_blob": "74575eeeac52f8dd6cda412c7725add59c5eca52",
+      "root_blob": "74575eeeac52f8dd6cda412c7725add59c5eca52",
+      "equal": true
+    },
+    {
+      "path": "src/lib/icons/registry.ts",
+      "author_blob": "2bba93b8851b06977b61129fee3543f2a45f1821",
+      "root_blob": "2bba93b8851b06977b61129fee3543f2a45f1821",
+      "equal": true
+    },
+    {
+      "path": "src/lib/richtext/EditorToolbar.svelte",
+      "author_blob": "bb1e85637e7def188a3a32e7534851ef3119c877",
+      "root_blob": "bb1e85637e7def188a3a32e7534851ef3119c877",
+      "equal": true
+    },
+    {
+      "path": "src/lib/shell/PublishButton.svelte",
+      "author_blob": "cdde091534036f35caa990482f3cc406f8c579e5",
+      "root_blob": "0e4ca56ff447b479a162466730bcba2338428c26",
+      "equal": false
+    },
+    {
+      "path": "src/lib/visual/VisualPublishControl.svelte",
+      "author_blob": "ad34144d80726048394983f5d9ab5e709396eea7",
+      "root_blob": "ad34144d80726048394983f5d9ab5e709396eea7",
+      "equal": true
+    }
+  ],
+  "publish_button_diff": "diff --git a/src/lib/shell/PublishButton.svelte b/src/lib/shell/PublishButton.svelte\nindex 4f244fe..0e4ca56 100644\n--- a/src/lib/shell/PublishButton.svelte\n+++ b/src/lib/shell/PublishButton.svelte\n@@ -233,7 +233,7 @@\n \t\t\tonclick={handleTrigger}\n \t\t>\n \t\t\t<Icon\n-\t\t\t\tid={uiState === 'failed' || uiState === 'unavailable' ? 'warning' : 'upload'}\n+\t\t\t\tid={uiState === 'failed' || uiState === 'unavailable' ? 'warning' : 'publish'}\n \t\t\t\tsize={14}\n \t\t\t/>\n \t\t\t<span role=\"status\">{label}</span>\n",
+  "author_receipt": ".verification/ui-publish-icons-20261007/receipt.json",
+  "review": ".verification/ui-publish-icons-20261007/review-final.md",
+  "full_gate": "pending combined imports candidate",
+  "status": ""
+}

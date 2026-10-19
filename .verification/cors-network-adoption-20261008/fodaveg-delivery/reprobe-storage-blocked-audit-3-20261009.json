@@ -1,0 +1,19 @@
+{
+  "archiveAndAllocatorSameFilesystem": true,
+  "backupId": "fodaveg-20261008T231304Z-3656162",
+  "budgetPassed": false,
+  "freeAllocatorKiB": 1280680,
+  "freeRootKiB": 1280680,
+  "freeSrvKiB": 1280680,
+  "futureDriver": "EXPLICIT_LOCAL_NO_OPTIONS_RUNTIME_MOUNTPOINT_CHECK_REQUIRED",
+  "localAllocatorParentDirectoryProved": true,
+  "oldRuntimePinsPreserved": true,
+  "privateValuesExported": false,
+  "remoteWrites": false,
+  "requiredAllocatorKiB": 1510136,
+  "requiredSrvKiB": 1511160,
+  "rootAndAllocatorSameFilesystem": true,
+  "rootDirectoryProved": true,
+  "snapshotStable": true,
+  "status": "DAEMON_ALLOCATOR_METADATA_PROJECTED"
+}

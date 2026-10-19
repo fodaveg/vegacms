@@ -1,0 +1,22 @@
+{
+  "operationId": "c459ae09-0a35-46a8-9470-f2f12dd2fb4d",
+  "result": {
+    "configEnvRead": false,
+    "customProducerMessageSafetyProved": false,
+    "effectiveTokenSafetyProved": false,
+    "identitiesPreserved": true,
+    "logsRead": false,
+    "modules": {
+      "filterAvailable": true,
+      "jsonAvailable": true,
+      "stderrAvailable": true
+    },
+    "namedLoggerCoverageProved": false,
+    "remoteWrites": false,
+    "status": "CADDY_BINARY_METADATA_PROJECTED",
+    "tty": false,
+    "version": "2.11.4"
+  },
+  "status": "CADDY_BINARY_METADATA_PROJECTED",
+  "transportExit": 0
+}

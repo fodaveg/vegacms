@@ -1,0 +1,66 @@
+{
+  "buildx.build.provenance": {
+    "builder": {
+      "id": ""
+    },
+    "buildType": "https://mobyproject.org/buildkit@v1",
+    "materials": [
+      {
+        "uri": "pkg:docker/golang@1.26-bookworm?platform=linux%2Farm64",
+        "digest": {
+          "sha256": "d9c68c2c51161e12fd77e4c6320687c9cd86e1af1e3ad6e6cd63ff970641453c"
+        }
+      },
+      {
+        "uri": "pkg:docker/node@22-bookworm?platform=linux%2Famd64",
+        "digest": {
+          "sha256": "0e5f906573693feaa1e21057ebdcfdb5bd5021f050b2dc7c9deceb629c7da2a8"
+        }
+      },
+      {
+        "uri": "pkg:docker/node@22-bookworm-slim?platform=linux%2Famd64",
+        "digest": {
+          "sha256": "c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392"
+        }
+      }
+    ],
+    "invocation": {
+      "configSource": {
+        "entryPoint": "Dockerfile"
+      },
+      "parameters": {
+        "frontend": "dockerfile.v0",
+        "locals": [
+          {
+            "name": "context"
+          },
+          {
+            "name": "dockerfile"
+          }
+        ],
+        "root": {
+          "configSource": {
+            "path": "Dockerfile"
+          },
+          "request": {
+            "args": {
+              "vcs:localdir:context": ".",
+              "vcs:localdir:dockerfile": ".",
+              "vcs:revision": "cc8f3b14dca9bf10e4a60502da9e17503362bbb8",
+              "vcs:source": "git@github.com:fodaveg/astro_fodaveg-backup.git"
+            }
+          }
+        },
+        "compatibilityVersion": 30
+      },
+      "environment": {
+        "dockerfileVersion": "1.27.0",
+        "platform": "linux/arm64"
+      }
+    }
+  },
+  "buildx.build.ref": "desktop-linux/desktop-linux/niw2zbj9rumna8ep95w7fwrhs",
+  "containerimage.config.digest": "sha256:1b6436fee8c23615d7f7826cb4f87cb1d6e7e97d2d56150ff87a90571b951c40",
+  "containerimage.digest": "sha256:1b6436fee8c23615d7f7826cb4f87cb1d6e7e97d2d56150ff87a90571b951c40",
+  "image.name": "docker.io/library/fodaveg-cors:cc8f3b1-candidate"
+}

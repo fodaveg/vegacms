@@ -1,0 +1,82 @@
+{
+  "status": "PROPOSED_PRIVATE_VALIDATION_AND_APPLY_NOT_EXECUTED",
+  "destinationsChanged": [
+    "/srv/edge/conf.d/vega.caddy",
+    "/srv/edge/conf.d/admin-lumbre-pro.caddy",
+    "/srv/edge/conf.d/fodaveg.caddy"
+  ],
+  "eightFileGuards": {
+    "/srv/vega/infra/production/compose.yml": "812e521c2280704b62761ad5014cd9b6982bb2a548b7db47d5fcbd404dedddff",
+    "/srv/lumbre-admin/compose.yml": "7ed9a9e225790a4e15ccef3ce4c110b8d3b22e0fef53e6c1840d286181ebb8dd",
+    "/root/fodaveg/compose.yml": "a18777c55d583c8eab43671d968108c9560f8a41152440e04ba610e583a9b500",
+    "/srv/edge/compose.yml": "c6c47d481ff63296d8818680e6b20d351a73b34d00b9339b2654df7679abbee2",
+    "/srv/edge/conf.d/fodaveg.caddy": "0bdaa9f5ef1af907f7a4746ad2be5af22c7553457af8871563de00fe56e171f0",
+    "/srv/edge/conf.d/admin-lumbre-pro.caddy": "9a3322ce14562e20bfb5bdc10eac6a63c077120a327aafcf4a222492cc0c1f53",
+    "/srv/edge/conf.d/vega.caddy": "772440180332741a8716b440cc699dfe117f1fe716ab7a38458a9e7eea9c7b06",
+    "/srv/edge/Caddyfile": "ff093f30330f8a7fa536bffcafb12cc316b096e4210142461889da66eaabb09b"
+  },
+  "metadataProjectionSHA256": "264d27f0db83f5485bc1fff950c721594f31edd1c2356c6be55e027de3aa7e5b",
+  "hostBlockGuards": [
+    {
+      "file": "/srv/edge/conf.d/fodaveg.caddy",
+      "host": "admin.fodaveg.net",
+      "originalFirstLine": 24,
+      "originalLastLine": 68,
+      "rule": "before any file edit, parse exact host block; verify every original hunk at its stated original line lies wholly inside it and matches exact public context; no fuzzy offset into another block"
+    },
+    {
+      "file": "/srv/edge/conf.d/admin-lumbre-pro.caddy",
+      "host": "admin.lumbre.pro",
+      "originalFirstLine": 15,
+      "originalLastLine": 49,
+      "rule": "before any file edit, parse exact host block; verify every original hunk at its stated original line lies wholly inside it and matches exact public context; no fuzzy offset into another block"
+    },
+    {
+      "file": "/srv/edge/conf.d/vega.caddy",
+      "host": "admin.vegacms.com",
+      "originalFirstLine": 1,
+      "originalLastLine": 44,
+      "rule": "before any file edit, parse exact host block; verify every original hunk at its stated original line lies wholly inside it and matches exact public context; no fuzzy offset into another block"
+    }
+  ],
+  "orderedPatches": [
+    "admin.vegacms.com.patch",
+    "admin.lumbre.pro.patch",
+    "admin.fodaveg.net.patch"
+  ],
+  "noNetworkCORSLoggerImageChanges": true,
+  "preserveSkipHosts": true,
+  "privateValidationPermissionObtained": false,
+  "applyPermissionObtained": false,
+  "exactDiffSHA256": {
+    "admin.vegacms.com.patch": "7e6c4e4b49cef5570e4c883ae58e0a0c480149094ae31ad13bd7c39a7b16d85a",
+    "admin.fodaveg.net.patch": "7e543198b0b4325ac536b4220419a401b276e415841e4e509e90ae8dab14d315",
+    "admin.lumbre.pro.patch": "ca3678b9d201031736896118d98063face9f710f9ef183cd7155ac4e4699e598"
+  },
+  "CaddyCommandReference": {
+    "canonicalVegaSourceValidateSHA256": "0f4083a62bb3bfe521c5c30f00e182070027d07a02be53194647e30cb1ea5e97",
+    "pinnedImage": "caddy@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648",
+    "commandFamily": "caddy adapt/validate on isolated complete private staging; reload only after approved live command/config path known",
+    "runningSharedEdgeCommandOrConfigPathConfirmed": false
+  },
+  "servedSPACompatibility": {
+    "stockProofImage": "be13075b",
+    "stockObservedImage": "e1eb49a8",
+    "lumbreProofImage": "c883afc9",
+    "lumbreObservedImage": "47f4c283",
+    "fodObservedImage": "5f5fb452",
+    "allServedAssetsEqualCSPProofConfirmed": false,
+    "imageAdoptionIsNotMandatoryForHeadersCodeChange": true,
+    "servedExactSPAEvidenceOrReviewedImageAdoptionStillRequiredForCSPClaim": true
+  },
+  "publicObservationReferencesSHA256": {
+    ".verification/private-runtime-metadata-read-ready-20261008/public-current-20261008/receipt.json": "535f0279196095a8ef0f322008113650e79d20b80660b6863f815ca7f43254cc",
+    ".verification/private-runtime-metadata-read-ready-20261008/public-current-20261008/manifest.json": "01739e0455f5e4985d4b8b614fdb29f53b2e58a430166fd17c540c4ee09d44d7",
+    ".verification/private-runtime-metadata-read-ready-20261008/public-current-20261008/result.json": "1ce54f9568eafd50fc4092383548247922d347d41fe7c6536916b8494e9b7816",
+    ".verification/private-runtime-metadata-read-ready-20261008/local-config-base-20261008/receipt.json": "17e326eeed57d9681cf016d6cae281186ccda73876ea5d7eb9aba77715aecd14",
+    ".verification/private-runtime-metadata-read-ready-20261008/local-config-base-20261008/manifest.json": "6ba531781b8b2398b2135a2017b68c617e60b77eb289773002adc669b5f5f4a2"
+  },
+  "twoHeaderLocalBasesFound": true,
+  "localDryRunProducerAuthorizedButReceiptPending": true,
+  "remainingPrivateCompleteBase": "FodCaddy plus shared Caddyfile/imports; edgeCompose not changed by this batch"
+}

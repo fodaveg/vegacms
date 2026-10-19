@@ -1,0 +1,10 @@
+--- a/infra/production/compose.yml
++++ b/infra/production/compose.yml
+@@ -7,6 +7,7 @@
+       - --http=0.0.0.0:8090
+       - --dir=/pb/pb_data
+       - --publicDir=/pb/pb_public
++      - --origins=https://admin.vegacms.com
+     build:
+       context: ../..
+       dockerfile: infra/production/Dockerfile

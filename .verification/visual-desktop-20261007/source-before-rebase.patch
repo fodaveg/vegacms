@@ -1,0 +1,493 @@
+diff --git a/docs/PROJECT-CONTRACT-v1.md b/docs/PROJECT-CONTRACT-v1.md
+index ffee970..f4071b0 100644
+--- a/docs/PROJECT-CONTRACT-v1.md
++++ b/docs/PROJECT-CONTRACT-v1.md
+@@ -423,6 +423,14 @@ bridge installed and offers the ordinary preview, which still works.
+ viewport**. Vega applies the frame's offset and any canvas zoom itself; the bridge never
+ needs to know it is being scaled.
+ 
++The screen presets set the iframe's CSS viewport to 390px (mobile), 834px (tablet),
++or 1280px (desktop), independently of the physical canvas width. A new viewport preference
++defaults to desktop with fit zoom; valid saved preferences remain in effect. Fit scales the
++iframe and overlay together to the available canvas width, never above 100%, without changing
++the site's CSS viewport. Entering visual editing temporarily collapses the app's desktop
++sidebar without persisting that automatic change. Manual sidebar toggles still persist; leaving
++visual editing restores the latest manual preference. The mobile drawer remains independent.
++
+ `layout` is sent at most once per animation frame. Measuring on every scroll event is the
+ straightforward way to make a canvas stutter, and the site is the only side that can throttle
+ it, because the site is where the scrolling happens.
+diff --git a/e2e/visual-editor.spec.ts b/e2e/visual-editor.spec.ts
+index 6182ad4..573dffc 100644
+--- a/e2e/visual-editor.spec.ts
++++ b/e2e/visual-editor.spec.ts
+@@ -106,6 +106,88 @@ const headingInput = (page: Page) =>
+ const statusGroup = (page: Page) => page.getByRole('group', { name: 'Estado de la página' });
+ 
+ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-origin', () => {
++	test('escritorio 1280 con ajustar conserva media queries y overlay al redimensionar', async ({
++		page
++	}, testInfo) => {
++		await page.setViewportSize({ width: 1440, height: 900 });
++		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
++		await openVisualEditor(page, site, 'pagina_1');
++		await waitConnected(page, 3);
++		const iframe = page.locator('iframe.vega-visual-frame');
++		const frame = await (await iframe.elementHandle())!.contentFrame();
++		if (!frame) throw new Error('El marco conectado debe existir');
++		// CSS propio del sitio: el breakpoint responde al viewport del iframe, no al lienzo de Vega.
++		await frame.addStyleTag({
++			content:
++				'.block { --site-layout: desktop; } @media (max-width: 899px) { .block { --site-layout: narrow; } }'
++		});
++		const siteViewport = () =>
++			frame.evaluate(() => ({
++				width: window.innerWidth,
++				desktop: window.matchMedia('(min-width: 1000px)').matches,
++				layout: getComputedStyle(document.querySelector('.block')!)
++					.getPropertyValue('--site-layout')
++					.trim()
++			}));
++		const alignedOverlay = async () => {
++			const block = await frame.locator('[data-vega-block-id="seccion_1"]').boundingBox();
++			const overlay = await page
++				.locator('.vega-visual-overlay-box[data-vega-block-id="seccion_1"]')
++				.boundingBox();
++			if (!block || !overlay) return false;
++			return ['x', 'y', 'width', 'height'].every(
++				(key) =>
++					Math.abs(block[key as keyof typeof block] - overlay[key as keyof typeof overlay]) < 2
++			);
++		};
++		const fitFillsCanvas = async () => {
++			const canvasWidth = await page
++				.locator('.vega-visual-canvas')
++				.evaluate((el) => el.clientWidth);
++			const painted = await iframe.boundingBox();
++			return !!painted && Math.abs(canvasWidth - painted.width) < 2;
++		};
++		await expect(page.getByRole('button', { name: 'Ajustar', exact: true })).toHaveAttribute(
++			'aria-pressed',
++			'true'
++		);
++		await expect(page.locator('#vega-sidebar')).toHaveClass(/vega-sidebar-collapsed/);
++		await expect.poll(siteViewport).toEqual({ width: 1280, desktop: true, layout: 'desktop' });
++		await expect.poll(fitFillsCanvas).toBe(true);
++		await expect.poll(alignedOverlay).toBe(true);
++		await page.screenshot({ path: testInfo.outputPath('desktop-fit-1440.png') });
++
++		await page.setViewportSize({ width: 1200, height: 900 });
++		await expect.poll(siteViewport).toEqual({ width: 1280, desktop: true, layout: 'desktop' });
++		await expect.poll(fitFillsCanvas).toBe(true);
++		await expect.poll(alignedOverlay).toBe(true);
++		for (const [name, width] of [
++			['Móvil', 390],
++			['Tableta', 834]
++		] as const) {
++			await page.getByRole('button', { name, exact: true }).click();
++			await expect.poll(siteViewport).toEqual({ width, desktop: false, layout: 'narrow' });
++			await expect.poll(alignedOverlay).toBe(true);
++		}
++		await page.getByRole('button', { name: '50 %', exact: true }).click();
++		await page.getByRole('button', { name: 'Escritorio', exact: true }).click();
++		await expect(page.getByRole('button', { name: '50 %', exact: true })).toHaveAttribute(
++			'aria-pressed',
++			'true'
++		);
++		await expect.poll(siteViewport).toEqual({ width: 1280, desktop: true, layout: 'desktop' });
++		await expect.poll(alignedOverlay).toBe(true);
++		await page.getByRole('button', { name: 'Ajustar', exact: true }).click();
++		await expect.poll(fitFillsCanvas).toBe(true);
++		// Ventanas pequeñas conservan el modo de textos; el nuevo preset no habilita el lienzo allí.
++		for (const width of [834, 390]) {
++			await page.setViewportSize({ width, height: 844 });
++			await expect(page.getByRole('region', { name: 'Solo textos' })).toBeVisible();
++			await expect(iframe).toHaveCount(0);
++		}
++		await page.screenshot({ path: testInfo.outputPath('mobile-texts-390.png') });
++	});
++
+ 	test('pinta los contornos que reporta el sitio, con la geometría real de sus bloques', async ({
+ 		page
+ 	}) => {
+diff --git a/src/lib/shell/AppShell.svelte b/src/lib/shell/AppShell.svelte
+index a2e2e75..cad680d 100644
+--- a/src/lib/shell/AppShell.svelte
++++ b/src/lib/shell/AppShell.svelte
+@@ -17,7 +17,9 @@
+ 	 * `sidebarOpen`: vive aquí porque el botón que lo cambia (`Topbar.svelte`) y el panel que lo
+ 	 * aplica (`Sidebar.svelte`) tampoco pueden compartirlo entre sí. Se inicializa leyendo la
+ 	 * preferencia guardada (`theme/apply.ts#readSidebarCollapsed`, mismo mecanismo que la
+-	 * densidad — ver su cabecera) y cada toggle la persiste de vuelta.
++	 * densidad — ver su cabecera) y cada toggle manual la persiste de vuelta. Al entrar al editor
++	 * visual se pliega temporalmente sin escribir esa preferencia; al salir se restaura la última
++	 * elección manual, incluso si se cambió durante la edición.
+ 	 *
+ 	 * Responsive (§4.2): en escritorio la sidebar es una columna fija; por debajo del punto de
+ 	 * colapso estructural (fijado en `Sidebar.svelte`/`Topbar.svelte`) se convierte en un overlay
+@@ -64,14 +66,22 @@
+ 	});
+ 
+ 	let sidebarOpen = $state(false);
+-	let sidebarCollapsed = $state(readSidebarCollapsed());
++	let manualSidebarCollapsed = readSidebarCollapsed();
++	let sidebarCollapsed = $state(manualSidebarCollapsed);
++	let visualRoute = false;
+ 
+-	afterNavigate(() => {
++	afterNavigate(({ to }) => {
+ 		sidebarOpen = false;
++		const nextVisualRoute = to?.route.id === '/c/[type]/[id]/visual';
++		if (nextVisualRoute !== visualRoute) {
++			visualRoute = nextVisualRoute;
++			sidebarCollapsed = visualRoute ? true : manualSidebarCollapsed;
++		}
+ 	});
+ 
+ 	function toggleSidebarCollapsed(): void {
+ 		sidebarCollapsed = !sidebarCollapsed;
++		manualSidebarCollapsed = sidebarCollapsed;
+ 		setSidebarCollapsed(sidebarCollapsed);
+ 	}
+ </script>
+diff --git a/src/lib/shell/AppShell.svelte.test.ts b/src/lib/shell/AppShell.svelte.test.ts
+new file mode 100644
+index 0000000..b62dfe8
+--- /dev/null
++++ b/src/lib/shell/AppShell.svelte.test.ts
+@@ -0,0 +1,130 @@
++/** Plegado temporal del editor visual: AppShell es el único dueño; el cajón móvil es independiente. */
++import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
++import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
++import AppShell from './AppShell.svelte';
++
++interface TopbarProps {
++	sidebarCollapsed: boolean;
++	sidebarOpen: boolean;
++	onToggleCollapse: () => void;
++	onToggleSidebar: () => void;
++}
++interface SidebarProps {
++	collapsed: boolean;
++	open: boolean;
++	onClose: () => void;
++}
++
++const harness = vi.hoisted(() => ({
++	navigate: null as null | ((navigation: { to: { route: { id: string } } | null }) => void),
++	topbar: null as TopbarProps | null,
++	sidebar: null as SidebarProps | null,
++	read: vi.fn(() => false),
++	persist: vi.fn()
++}));
++
++vi.mock('$app/navigation', () => ({
++	afterNavigate: (callback: NonNullable<typeof harness.navigate>) => (harness.navigate = callback)
++}));
++vi.mock('$lib/theme/apply', () => ({
++	readSidebarCollapsed: harness.read,
++	setSidebarCollapsed: harness.persist
++}));
++// Los hijos consumen las mismas props que el chrome real; no intervienen sus contextos de sesión.
++vi.mock('./Topbar.svelte', () => ({
++	default: (_anchor: unknown, props: TopbarProps) => {
++		harness.topbar = props;
++	}
++}));
++vi.mock('./Sidebar.svelte', () => ({
++	default: (_anchor: unknown, props: SidebarProps) => {
++		harness.sidebar = props;
++	}
++}));
++vi.mock('./GlobalBanner.svelte', () => ({ default: () => {} }));
++vi.mock('./UpdateBanner.svelte', () => ({ default: () => {} }));
++
++let instance: ReturnType<typeof mount> | null = null;
++let target: HTMLElement;
++
++function start(saved = false): void {
++	harness.read.mockReturnValue(saved);
++	instance = mount(AppShell, {
++		target,
++		props: { children: createRawSnippet(() => ({ render: () => '<p>Contenido</p>' })) }
++	});
++	flushSync();
++}
++function navigate(id: string): void {
++	harness.navigate!({ to: { route: { id } } });
++	flushSync();
++}
++function toggle(): void {
++	harness.topbar!.onToggleCollapse();
++	flushSync();
++}
++
++beforeEach(() => {
++	vi.clearAllMocks();
++	harness.navigate = null;
++	target = document.createElement('div');
++	document.body.appendChild(target);
++});
++afterEach(async () => {
++	if (instance) await unmount(instance);
++	instance = null;
++	target.remove();
++});
++
++describe('AppShell: sidebar durante edición visual', () => {
++	test.each([false, true])('entrar pliega sin persistir y salir restaura %s', (saved) => {
++		start(saved);
++		navigate('/c/[type]');
++		expect(harness.sidebar!.collapsed).toBe(saved);
++		navigate('/c/[type]/[id]/visual');
++		expect(harness.topbar!.sidebarCollapsed).toBe(true);
++		expect(harness.sidebar!.collapsed).toBe(true);
++		expect(harness.persist).not.toHaveBeenCalled();
++		navigate('/c/[type]/[id]');
++		expect(harness.sidebar!.collapsed).toBe(saved);
++		expect(harness.persist).not.toHaveBeenCalled();
++	});
++
++	test('el toggle manual durante edición persiste y se restaura al salir', () => {
++		start(true);
++		navigate('/c/[type]/[id]/visual');
++		toggle();
++		expect(harness.persist).toHaveBeenLastCalledWith(false);
++		// Navegar entre registros visuales no deshace una apertura manual.
++		navigate('/c/[type]/[id]/visual');
++		expect(harness.sidebar!.collapsed).toBe(false);
++		navigate('/c/[type]');
++		expect(harness.sidebar!.collapsed).toBe(false);
++		navigate('/c/[type]/[id]/visual');
++		expect(harness.sidebar!.collapsed).toBe(true);
++		toggle();
++		toggle();
++		navigate('/c/[type]');
++		expect(harness.sidebar!.collapsed).toBe(true);
++		expect(harness.persist.mock.calls).toEqual([[false], [false], [true]]);
++	});
++
++	test('el cajón móvil abre/cierra aunque escritorio esté plegado y cierra al navegar', () => {
++		start();
++		navigate('/c/[type]/[id]/visual');
++		harness.topbar!.onToggleSidebar();
++		flushSync();
++		expect(harness.sidebar!.open).toBe(true);
++		expect(harness.sidebar!.collapsed).toBe(true);
++		expect(target.querySelector('main')!.inert).toBe(true);
++		harness.sidebar!.onClose();
++		flushSync();
++		expect(harness.sidebar!.open).toBe(false);
++		harness.topbar!.onToggleSidebar();
++		navigate('/c/[type]');
++		expect(harness.sidebar!.open).toBe(false);
++		expect(harness.sidebar!.collapsed).toBe(false);
++		expect(target.querySelector('main')!.inert).toBe(false);
++		expect(harness.persist).not.toHaveBeenCalled();
++	});
++});
+diff --git a/src/lib/visual/VisualEditorScreen.svelte b/src/lib/visual/VisualEditorScreen.svelte
+index ebbaa07..42b5088 100644
+--- a/src/lib/visual/VisualEditorScreen.svelte
++++ b/src/lib/visual/VisualEditorScreen.svelte
+@@ -206,7 +206,7 @@
+ 	 * **Tamaño de pantalla + zoom del lienzo (tarea "el acabado: tamaños de pantalla, zoom, atajos
+ 	 * y estado de guardado" del lote del editor visual)**: el cálculo puro vive en `viewport.ts`
+ 	 * (ver su cabecera para el porqué de cada número); aquí solo el DOM. `screenPreset` cambia el
+-	 * ancho de LAYOUT del `<iframe>` (390/834/el medido, nunca el ancho del `<div>` de Vega — así
++	 * ancho de LAYOUT del `<iframe>` (390/834/1280, nunca el ancho del `<div>` de Vega — así
+ 	 * el sitio dispara sus propios puntos de corte de verdad); `zoomPreference` decide el factor de
+ 	 * `transform: scale()`.
+ 	 *
+@@ -231,12 +231,9 @@
+ 	 * tamaño (la ventana, arrastrar una manilla, el árbol colapsando a cajón) dispara el mismo
+ 	 * aviso sin que este componente tenga que enterarse de la causa.
+ 	 *
+-	 * "Ajustar" en escritorio es (a propósito) un no-op visual: el ancho de layout de escritorio ES
+-	 * el ancho medido del lienzo, así que la proporción siempre sale `1`. Un zoom FIJO por debajo
+-	 * de 100% en escritorio sigue teniendo sentido (ver `viewport.ts`, "por qué el iframe se escala
+-	 * con transform"): el escenario mide el ancho completo del lienzo pero se PINTA más pequeño,
+-	 * dejando aire alrededor — una miniatura del layout de escritorio entero, no una recarga a otro
+-	 * tamaño.
++	 * "Ajustar" encaja el escritorio de 1280px CSS en el ancho físico del lienzo. Cambiar la
++	 * ventana o plegar la sidebar recalcula la escala sin disparar otros puntos de corte del sitio.
++	 * El mismo escenario escala iframe y overlay, conservando las coordenadas que reporta el puente.
+ 	 *
+ 	 * **Atajos de teclado, a nivel de PANTALLA** (mismo encargo): un solo escuchador de `keydown`
+ 	 * en `window`, añadido/quitado en el MISMO `onMount`/`onDestroy` que ya gestiona `message` y
+@@ -520,8 +517,8 @@
+ 	let screenPreset = $state<ScreenPreset>(initialViewport.preset);
+ 	let zoomPreference = $state<ZoomPreference>(initialViewport.zoom);
+ 	/** `.vega-visual-canvas`, medido por `ResizeObserver` (ver cabecera): arranca en `{0, 0}`, sin
+-	 *  ancho honesto que enseñar hasta el primer aviso — mismo criterio que `frameWidthFor`/
+-	 *  `resolveZoomFactor` (`viewport.ts`), que degradan sin dividir por cero mientras tanto. */
++	 *  medida física hasta el primer aviso; `resolveZoomFactor` (`viewport.ts`) mantiene un factor
++	 *  finito mientras tanto. El ancho CSS del preset ya está disponible. */
+ 	let canvasEl = $state<HTMLDivElement | undefined>(undefined);
+ 	let canvasSize = $state({ width: 0, height: 0 });
+ 	// ————— Panel de ayuda de atajos (ver `handleVisualKeydown`) —————
+@@ -768,8 +765,8 @@
+ 		return () => observer.disconnect();
+ 	});
+ 
+-	/** Ancho de LAYOUT del iframe (390/834/el medido de `.vega-visual-canvas`, ver `viewport.ts`). */
+-	const frameWidth = $derived(frameWidthFor(screenPreset, canvasSize.width));
++	/** Ancho de LAYOUT del iframe (390/834/1280, ver `viewport.ts`). */
++	const frameWidth = $derived(frameWidthFor(screenPreset));
+ 	/** Factor de `transform: scale()` del "escenario" (ver cabecera). */
+ 	const zoomFactor = $derived(resolveZoomFactor(zoomPreference, canvasSize.width, frameWidth));
+ 	/** Alto propio del escenario, para que al escalarlo llene el lienzo exacto (ver `viewport.ts`). */
+diff --git a/src/lib/visual/viewport-storage.dom.test.ts b/src/lib/visual/viewport-storage.dom.test.ts
+index e0780db..22005a9 100644
+--- a/src/lib/visual/viewport-storage.dom.test.ts
++++ b/src/lib/visual/viewport-storage.dom.test.ts
+@@ -14,6 +14,16 @@ beforeEach(() => {
+ });
+ 
+ describe('readViewportPreference', () => {
++	test.each([50, 75, 100, 'fit'] as const)(
++		'conserva el zoom de escritorio guardado: %s',
++		(zoom) => {
++			const saved = JSON.stringify({ preset: 'desktop', zoom });
++			localStorage.setItem(STORAGE_KEY, saved);
++			expect(readViewportPreference()).toEqual({ preset: 'desktop', zoom });
++			expect(localStorage.getItem(STORAGE_KEY)).toBe(saved);
++		}
++	);
++
+ 	test('sin nada guardado → la preferencia de partida', () => {
+ 		expect(readViewportPreference()).toEqual(DEFAULT_VIEWPORT_PREFERENCE);
+ 	});
+diff --git a/src/lib/visual/viewport.test.ts b/src/lib/visual/viewport.test.ts
+index e1a47b1..7b0987a 100644
+--- a/src/lib/visual/viewport.test.ts
++++ b/src/lib/visual/viewport.test.ts
+@@ -8,6 +8,7 @@ import { describe, expect, test } from 'vitest';
+ import {
+ 	DEFAULT_SCREEN_PRESET,
+ 	DEFAULT_ZOOM,
++	DESKTOP_WIDTH,
+ 	frameWidthFor,
+ 	MOBILE_WIDTH,
+ 	resolveZoomFactor,
+@@ -17,24 +18,21 @@ import {
+ } from './viewport';
+ 
+ describe('frameWidthFor', () => {
+-	test('móvil/tablet: anchos fijos, sin mirar el lienzo', () => {
+-		expect(frameWidthFor('mobile', 999)).toBe(MOBILE_WIDTH);
+-		expect(frameWidthFor('tablet', 12)).toBe(TABLET_WIDTH);
+-	});
+-
+-	test('escritorio: el ancho MEDIDO, redondeado', () => {
+-		expect(frameWidthFor('desktop', 712.4)).toBe(712);
+-		expect(frameWidthFor('desktop', 712.6)).toBe(713);
+-	});
+-
+-	test('escritorio con una medida no honesta (negativa, NaN, Infinity): nunca negativo', () => {
+-		expect(frameWidthFor('desktop', -50)).toBe(0);
+-		expect(frameWidthFor('desktop', Number.NaN)).toBe(0);
+-		expect(frameWidthFor('desktop', Number.POSITIVE_INFINITY)).toBe(0);
++	test('los tres presets tienen un ancho CSS fijo, sin depender del lienzo', () => {
++		expect(frameWidthFor('mobile')).toBe(MOBILE_WIDTH);
++		expect(frameWidthFor('tablet')).toBe(TABLET_WIDTH);
++		expect(frameWidthFor('desktop')).toBe(1280);
+ 	});
+ });
+ 
+ describe('resolveZoomFactor', () => {
++	test('escritorio ajusta el espacio físico sin cambiar su ancho CSS', () => {
++		expect(resolveZoomFactor('fit', 425, DESKTOP_WIDTH)).toBe(425 / 1280);
++		expect(resolveZoomFactor('fit', 0, DESKTOP_WIDTH)).toBe(0.1);
++		expect(resolveZoomFactor('fit', Number.NaN, DESKTOP_WIDTH)).toBe(1);
++		expect(resolveZoomFactor('fit', 1440, DESKTOP_WIDTH)).toBe(1);
++	});
++
+ 	test('niveles fijos: se traducen a factor sin mirar el lienzo', () => {
+ 		expect(resolveZoomFactor(50, 100, 834)).toBe(0.5);
+ 		expect(resolveZoomFactor(75, 100, 834)).toBe(0.75);
+@@ -97,7 +95,9 @@ describe('sanitizeViewportPreference', () => {
+ 		});
+ 	});
+ 
+-	test('sin nada guardado (objeto vacío) → los defaults', () => {
++	test('sin nada guardado → escritorio con ajustar', () => {
++		expect(DEFAULT_SCREEN_PRESET).toBe('desktop');
++		expect(DEFAULT_ZOOM).toBe('fit');
+ 		expect(sanitizeViewportPreference({})).toEqual({
+ 			preset: DEFAULT_SCREEN_PRESET,
+ 			zoom: DEFAULT_ZOOM
+diff --git a/src/lib/visual/viewport.ts b/src/lib/visual/viewport.ts
+index 4f02b27..e004708 100644
+--- a/src/lib/visual/viewport.ts
++++ b/src/lib/visual/viewport.ts
+@@ -8,14 +8,14 @@
+  * **Por qué el ancho del IFRAME, nunca el de la ventana** (§encargo): el sitio dispara sus propios
+  * puntos de corte contra el viewport que VE, que es el del `<iframe>` — ensanchar o encoger un
+  * `<div>` de Vega no movería ni un solo `@media` del sitio. Móvil/tablet son anchos FIJOS (390/834,
+- * los mismos números que trae cualquier DevTools de navegador, no un invento de Vega); escritorio
+- * no tiene ancho fijo — el encargo pide "llenar el lienzo", así que su ancho es el MEDIDO del
+- * propio `.vega-visual-canvas` (`frameWidthFor`, más abajo), nunca un número inventado.
++ * los mismos números que trae cualquier DevTools de navegador); escritorio usa 1280px CSS.
++ * "Llenar el lienzo" se resuelve con el zoom "ajustar": el espacio físico disponible nunca
++ * convierte el preset de escritorio en un viewport CSS móvil.
+  *
+  * **Zoom: por qué el `<iframe>` se escala con `transform`, no con `width`.** `transform: scale()`
+  * NO cambia el viewport CSS que ve el documento de dentro (a diferencia de tocar `width`, que sí
+  * dispararía los puntos de corte del sitio) — es justo la propiedad que hace falta: el sitio sigue
+- * creyendo que mide 390/834/lo medido aunque Vega lo PINTE más pequeño. Este módulo solo calcula EL
++ * creyendo que mide 390/834/1280 aunque Vega lo PINTE más pequeño. Este módulo solo calcula EL
+  * FACTOR (`resolveZoomFactor`); quién escala qué elemento del DOM (el "escenario" que envuelve
+  * iframe + overlay, para que los dos se muevan a la vez — ver la cabecera de
+  * `VisualEditorScreen.svelte`) es decisión de quien monta el componente, no de este módulo.
+@@ -38,6 +38,7 @@ export type ScreenPreset = 'mobile' | 'tablet' | 'desktop';
+ /** Mismos números que cualquier DevTools de navegador (§encargo): no son un invento de Vega. */
+ export const MOBILE_WIDTH = 390;
+ export const TABLET_WIDTH = 834;
++export const DESKTOP_WIDTH = 1280;
+ 
+ export const SCREEN_PRESETS: readonly ScreenPreset[] = ['mobile', 'tablet', 'desktop'];
+ 
+@@ -48,10 +49,8 @@ export const ZOOM_LEVELS: readonly ZoomLevel[] = [50, 75, 100];
+ export type ZoomPreference = ZoomLevel | 'fit';
+ 
+ export const DEFAULT_SCREEN_PRESET: ScreenPreset = 'desktop';
+-/** 100 %, no `'fit'`: quien nunca toca los controles nuevos ve la pantalla de siempre (lienzo a
+- *  tamaño real, sin escalar) — mismo criterio de "el default reproduce el comportamiento de antes
+- *  de este encargo" que ya usa `DEFAULT_COLUMN_WIDTHS`. */
+-export const DEFAULT_ZOOM: ZoomPreference = 100;
++/** Un escritorio nuevo encaja en el lienzo; las preferencias válidas guardadas se conservan. */
++export const DEFAULT_ZOOM: ZoomPreference = 'fit';
+ 
+ /** Piso de seguridad del factor de zoom: sin él, un lienzo momentáneamente sin medir (0px, antes
+  *  del primer aviso de `ResizeObserver`) dividiría entre cero y `resolveZoomFactor` devolvería
+@@ -63,23 +62,18 @@ const MIN_ZOOM_FACTOR = 0.1;
+ 
+ /**
+  * Ancho de LAYOUT del `<iframe>` (el que el sitio de dentro cree que mide), en px. Fijo para
+- * móvil/tablet; en escritorio es el ancho MEDIDO de `.vega-visual-canvas` — que no cambia con el
+- * zoom elegido (mide el CONTENEDOR, no la caja ya escalada de dentro, ver la cabecera de
+- * `VisualEditorScreen.svelte`), así que este número es estable sea cual sea el nivel de zoom: un
+- * escritorio al 50 % sigue midiendo lo mismo que al 100 %, solo se pinta más pequeño.
+- * `measuredCanvasWidth` no finito o negativo (todavía sin medir, o un valor corrupto) cae a `0`:
+- * sin ancho honesto que enseñar hasta el primer aviso de `ResizeObserver`.
++ * los tres presets, independiente del ancho físico del lienzo y del zoom. Un escritorio al
++ * 50 % sigue midiendo 1280px CSS; solo se pinta más pequeño. Existe también antes del primer
++ * aviso de `ResizeObserver`: la medida del lienzo solo interviene en `resolveZoomFactor`.
+  */
+-export function frameWidthFor(preset: ScreenPreset, measuredCanvasWidth: number): number {
++export function frameWidthFor(preset: ScreenPreset): number {
+ 	switch (preset) {
+ 		case 'mobile':
+ 			return MOBILE_WIDTH;
+ 		case 'tablet':
+ 			return TABLET_WIDTH;
+-		case 'desktop': {
+-			const safe = Number.isFinite(measuredCanvasWidth) ? measuredCanvasWidth : 0;
+-			return Math.max(0, Math.round(safe));
+-		}
++		case 'desktop':
++			return DESKTOP_WIDTH;
+ 	}
+ }
+ 

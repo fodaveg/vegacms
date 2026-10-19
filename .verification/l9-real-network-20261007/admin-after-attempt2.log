@@ -1,0 +1,34 @@
+
+Running 1 test using 1 worker
+
+
+(node:50441) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/1] scripts/l9-measure/admin.spec.ts:217:1 › seven admin surfaces: repeated first and warm visits
+  1) scripts/l9-measure/admin.spec.ts:217:1 › seven admin surfaces: repeated first and warm visits ─
+
+    Error: locator.click: Error: strict mode violation: locator('[data-mail-card]').getByRole('button', { name: 'Cambiar', exact: true }) resolved to 2 elements:
+        1) <button type="button" aria-disabled="false" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button> aka getByRole('button', { name: 'Cambiar' }).nth(1)
+        2) <button type="button" aria-disabled="false" class="vega-admin-btn vega-admin-btn--sm">Cambiar</button> aka getByRole('button', { name: 'Cambiar' }).nth(2)
+
+    Call log:
+      - waiting for locator('[data-mail-card]').getByRole('button', { name: 'Cambiar', exact: true })
+
+
+      421 | 								.locator('[data-mail-card]')
+      422 | 								.getByRole('button', { name: 'Cambiar', exact: true })
+    > 423 | 								.click();
+          | 								 ^
+      424 | 						await page
+      425 | 							.getByLabel('Nombre del remitente', { exact: true })
+      426 | 							.fill(`Fixture ${iteration} ${phase}`);
+        at /private/tmp/vegacms-l9-measure-20261007/scripts/l9-measure/admin.spec.ts:423:10
+
+    Error Context: ../vega-l9-measure-playwright/admin-seven-admin-surfaces-repeated-first-and-warm-visits/error-context.md
+
+    Error Context: ../vega-l9-measure-playwright/admin-seven-admin-surfaces-repeated-first-and-warm-visits/error-context.md
+
+
+  1 failed
+    scripts/l9-measure/admin.spec.ts:217:1 › seven admin surfaces: repeated first and warm visits ──

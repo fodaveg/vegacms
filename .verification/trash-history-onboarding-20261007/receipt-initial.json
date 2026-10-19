@@ -1,0 +1,172 @@
+{
+  "status": "frozen-review-pending",
+  "taskId": "c49bf0f1-a6d1-474d-a408-d7546dc7d9f7",
+  "base": "4d9f891e1237504ed136573f76493b1b77497c56",
+  "head": "4d9f891e1237504ed136573f76493b1b77497c56",
+  "tree": "8b46b95ca05f5555b1d5216f7d5020fb8c510a78",
+  "branch": "feat/trash-history-onboarding-20261007",
+  "worktree": "/private/tmp/vegacms-trash-history-20261007",
+  "graph": "vega-backlog-r2-20261007 (base graph; new WT not indexed)",
+  "paths": [
+    "src/lib/app-context.ts",
+    "src/lib/home/RevisionsOnboarding.svelte",
+    "src/lib/home/fixture.ts",
+    "src/lib/home/home-page.svelte.test.ts",
+    "src/lib/home/revisions-onboarding.dom.test.ts",
+    "src/lib/home/revisions-onboarding.ts",
+    "src/lib/i18n/en.ts",
+    "src/lib/i18n/es.ts",
+    "src/lib/revisions/delete-feedback.test.ts",
+    "src/lib/revisions/delete-feedback.ts",
+    "src/lib/revisions/with-revisions.test.ts",
+    "src/lib/revisions/with-revisions.ts",
+    "src/lib/session/backend-config.test.ts",
+    "src/lib/session/backend-config.ts",
+    "src/lib/session/backend.ts",
+    "src/lib/shell/ToastHost.svelte",
+    "src/lib/shell/toasts.svelte.test.ts",
+    "src/lib/shell/toasts.svelte.ts",
+    "src/routes/+layout.svelte",
+    "src/routes/+page.svelte",
+    "src/routes/c/[type]/+page.svelte",
+    "src/routes/c/[type]/[id]/+page.svelte"
+  ],
+  "checks": [
+    {
+      "name": "sync",
+      "argv": [
+        "node",
+        "node_modules/@sveltejs/kit/svelte-kit.js",
+        "sync"
+      ],
+      "log": "sync.log",
+      "exitCode": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "check",
+      "argv": [
+        "node",
+        "node_modules/svelte-check/bin/svelte-check",
+        "--tsconfig",
+        "./tsconfig.json"
+      ],
+      "log": "check.log",
+      "sessionId": 48458,
+      "exitCode": 0,
+      "logSha256": "788c8433ff80f1aaa4c91e5ba324dbbba10b741293c70ceb3272109ad605501b"
+    },
+    {
+      "name": "focal",
+      "argv": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "src/lib/revisions/with-revisions.test.ts",
+        "src/lib/revisions/delete-feedback.test.ts",
+        "src/lib/session/backend-config.test.ts",
+        "src/lib/home/revisions-onboarding.dom.test.ts",
+        "src/lib/home/home-page.svelte.test.ts",
+        "src/lib/shell/toasts.svelte.test.ts",
+        "tests/shell/i18n.test.ts",
+        "--maxWorkers=1"
+      ],
+      "log": "focal-attempt1.log",
+      "sessionId": 65926,
+      "passed": 119,
+      "testFiles": 7,
+      "exitCode": 0,
+      "logSha256": "d3e1f179d25df65557cafa74a98f42a69e8562da63ff8961c7d09f978ea55ebc"
+    },
+    {
+      "name": "eslint",
+      "argv": [
+        "node",
+        "node_modules/eslint/bin/eslint.js",
+        "src/lib/app-context.ts",
+        "src/lib/home/RevisionsOnboarding.svelte",
+        "src/lib/home/fixture.ts",
+        "src/lib/home/home-page.svelte.test.ts",
+        "src/lib/home/revisions-onboarding.dom.test.ts",
+        "src/lib/home/revisions-onboarding.ts",
+        "src/lib/i18n/en.ts",
+        "src/lib/i18n/es.ts",
+        "src/lib/revisions/delete-feedback.test.ts",
+        "src/lib/revisions/delete-feedback.ts",
+        "src/lib/revisions/with-revisions.test.ts",
+        "src/lib/revisions/with-revisions.ts",
+        "src/lib/session/backend-config.test.ts",
+        "src/lib/session/backend-config.ts",
+        "src/lib/session/backend.ts",
+        "src/lib/shell/ToastHost.svelte",
+        "src/lib/shell/toasts.svelte.test.ts",
+        "src/lib/shell/toasts.svelte.ts",
+        "src/routes/+layout.svelte",
+        "src/routes/+page.svelte",
+        "src/routes/c/[type]/+page.svelte",
+        "src/routes/c/[type]/[id]/+page.svelte"
+      ],
+      "log": "eslint-attempt1.log",
+      "sessionId": 32517,
+      "exitCode": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "prettier",
+      "argv": [
+        "node",
+        "node_modules/prettier/bin/prettier.cjs",
+        "--check",
+        "src/lib/app-context.ts",
+        "src/lib/home/RevisionsOnboarding.svelte",
+        "src/lib/home/fixture.ts",
+        "src/lib/home/home-page.svelte.test.ts",
+        "src/lib/home/revisions-onboarding.dom.test.ts",
+        "src/lib/home/revisions-onboarding.ts",
+        "src/lib/i18n/en.ts",
+        "src/lib/i18n/es.ts",
+        "src/lib/revisions/delete-feedback.test.ts",
+        "src/lib/revisions/delete-feedback.ts",
+        "src/lib/revisions/with-revisions.test.ts",
+        "src/lib/revisions/with-revisions.ts",
+        "src/lib/session/backend-config.test.ts",
+        "src/lib/session/backend-config.ts",
+        "src/lib/session/backend.ts",
+        "src/lib/shell/ToastHost.svelte",
+        "src/lib/shell/toasts.svelte.test.ts",
+        "src/lib/shell/toasts.svelte.ts",
+        "src/routes/+layout.svelte",
+        "src/routes/+page.svelte",
+        "src/routes/c/[type]/+page.svelte",
+        "src/routes/c/[type]/[id]/+page.svelte"
+      ],
+      "log": "prettier.log",
+      "exitCode": 0,
+      "logSha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    {
+      "name": "diff-check",
+      "argv": [
+        "git",
+        "diff",
+        "--cached",
+        "--check"
+      ],
+      "exitCode": 0
+    }
+  ],
+  "environment": {
+    "os": "Darwin",
+    "node": "v22.22.3",
+    "dependencies": "existing node_modules APFS clone, no install",
+    "availableKiBBefore": 136000000,
+    "budget": "<1GiB",
+    "slot": "root authorized focal, now released"
+  },
+  "limits": [
+    "Actual implementation browser proof pending; plate.html only has 16 screenshots, 4 combinations and contrast/overflow checks.",
+    "Fullgate/build reserved for root combined candidate.",
+    "No live PocketBase evidence. BackendPort/Settings/restore unchanged; delete best-effort preserved.",
+    "Storage failure keeps dismissal only while mounted."
+  ]
+}

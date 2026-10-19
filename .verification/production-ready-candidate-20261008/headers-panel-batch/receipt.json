@@ -1,0 +1,36 @@
+{
+  "status": "HEADERS_PANEL_PROPOSED_PRIVATE_PERMISSION_PENDING",
+  "preparedUTC": "2026-10-08T10:03:06.612667+00:00",
+  "parent23ImmutableManifestSHA256": "d2b4938650389701fb7240827a46b5e3433198e01c4a08feece19246dc6c833d",
+  "metadataSupplementReceiptSHA256": "b91e9652639d5de32b41bec851889134fc50ff9b50866a6d80bdf541d77e8618",
+  "privateValidationPerformed": false,
+  "applyOrReloadPerformed": false,
+  "sourceChangesRemoteReadsOrRepeatedGates": false,
+  "threePatchesByteIdentical": true,
+  "eightFreshGuardsProvided": true,
+  "noNetworkCORSLoggerImageChanges": true,
+  "servedSPAIdentityStillUnconfirmed": true,
+  "artifactsSHA256": {
+    "commands.md": "e8c4a4c79cd7ef56c5371d469bcd17ff1c861dcddb5655e3d669697875c70415",
+    "batch.json": "0f2d188d76ec780f491e835f529cfb1d6c0786de7f529865fcd2b8d370f13dbb",
+    "proposal.md": "a78f23feb0f32ff3c40d7dc2873c427cb3b551c117b966cd593c548adca056de",
+    "patches/admin.vegacms.com.patch": "7e6c4e4b49cef5570e4c883ae58e0a0c480149094ae31ad13bd7c39a7b16d85a",
+    "patches/admin.fodaveg.net.patch": "7e543198b0b4325ac536b4220419a401b276e415841e4e509e90ae8dab14d315",
+    "patches/admin.lumbre.pro.patch": "ca3678b9d201031736896118d98063face9f710f9ef183cd7155ac4e4699e598",
+    "next-step.md": "d8d63b403551a90ca6bc808cd292e8e3289a54fb1d931a1b8c9b20bf5c685364"
+  },
+  "remaining": [
+    "explicit private staging/source/imports validation authority",
+    "exact current Caddy activation/config path + safe staging/module/resource reconciliation",
+    "actual served SPA identity/CSP compatibility proof or separate reviewed image-adoption scope",
+    "isolated adapt/validate + unchanged-subtree proof + window/backups/rollback and explicit apply authority"
+  ],
+  "publicObservationAndLocalBaseReferencesSHA256": {
+    ".verification/private-runtime-metadata-read-ready-20261008/public-current-20261008/receipt.json": "535f0279196095a8ef0f322008113650e79d20b80660b6863f815ca7f43254cc",
+    ".verification/private-runtime-metadata-read-ready-20261008/public-current-20261008/manifest.json": "01739e0455f5e4985d4b8b614fdb29f53b2e58a430166fd17c540c4ee09d44d7",
+    ".verification/private-runtime-metadata-read-ready-20261008/public-current-20261008/result.json": "1ce54f9568eafd50fc4092383548247922d347d41fe7c6536916b8494e9b7816",
+    ".verification/private-runtime-metadata-read-ready-20261008/local-config-base-20261008/receipt.json": "17e326eeed57d9681cf016d6cae281186ccda73876ea5d7eb9aba77715aecd14",
+    ".verification/private-runtime-metadata-read-ready-20261008/local-config-base-20261008/manifest.json": "6ba531781b8b2398b2135a2017b68c617e60b77eb289773002adc669b5f5f4a2"
+  },
+  "nextPermission": "Private isolated shared-Caddy validation only; no apply/reload yet; two header local dryruns advance under existing authority"
+}

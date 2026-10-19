@@ -1,0 +1,20 @@
+--- guard15/fixtures.ts
++++ modulefix/fixtures.ts
+@@ -36,16 +36,14 @@
+  * en `/` y pinta «Inicio». Ver `waitForHome` y `openSiteInfoFromSidebar` más abajo.
+  */
+ import { readFileSync } from 'node:fs';
+-import { fileURLToPath } from 'node:url';
+ import { createRequire } from 'node:module';
+ import { join } from 'node:path';
+-import { pathToFileURL } from 'node:url';
+ import { createGuard } from './network-guard.mjs';
+ const fixtureRoot = process.env.VEGA_CSP_PROOF_CANDIDATE_ROOT;
+ const bundleRoot = process.env.VEGA_CSP_PUBLIC_BUNDLE_ROOT;
+ if (!fixtureRoot || !bundleRoot) throw new Error('Explicit fixture and public bundle roots required');
+ const require = createRequire(join(fixtureRoot, 'package.json'));
+-const { test: base, expect } = await import(pathToFileURL(require.resolve('@playwright/test')).href);
++const { test: base, expect } = require('@playwright/test');
+ 
+ export const DEMO_EMAIL = 'demo@vega.dev';
+ export const DEMO_PASSWORD = 'vega-demo';

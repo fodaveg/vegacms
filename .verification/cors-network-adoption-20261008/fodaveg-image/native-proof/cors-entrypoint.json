@@ -1,0 +1,849 @@
+{
+  "image": "sha256:1b6436fee8c23615d7f7826cb4f87cb1d6e7e97d2d56150ff87a90571b951c40",
+  "cases": {
+    "default-entrypoint-preserved": true,
+    "data-only-mount": true,
+    "boot-one-tini-Node-PB": true,
+    "boot-exact-PB-argv": true,
+    "boot-/api/health-https://admin.fodaveg.net-GET-own-allowed": true,
+    "boot-/api/health-https://admin.fodaveg.net-GET-health-preserved": true,
+    "boot-/api/health-https://admin.fodaveg.net-OPTIONS-own-allowed": true,
+    "boot-/api/health-https://admin.fodaveg.net-OPTIONS-preflight-success": true,
+    "boot-/api/health-https://admin.fodaveg.net-OPTIONS-method-headers-allowed": true,
+    "boot-/api/health-https://foreign.invalid-GET-no-permissive-ACAO": true,
+    "boot-/api/health-https://foreign.invalid-GET-health-preserved": true,
+    "boot-/api/health-https://foreign.invalid-OPTIONS-no-permissive-ACAO": true,
+    "boot-/api/health-null-GET-no-permissive-ACAO": true,
+    "boot-/api/health-null-GET-health-preserved": true,
+    "boot-/api/health-null-OPTIONS-no-permissive-ACAO": true,
+    "boot-/api/health-None-GET-no-permissive-ACAO": true,
+    "boot-/api/health-None-GET-health-preserved": true,
+    "boot-/api/health-None-OPTIONS-no-permissive-ACAO": true,
+    "boot-/api/collections/users/records-https://admin.fodaveg.net-GET-own-allowed": true,
+    "boot-/api/collections/users/records-https://admin.fodaveg.net-GET-normal-API-routed": true,
+    "boot-/api/collections/users/records-https://admin.fodaveg.net-OPTIONS-own-allowed": true,
+    "boot-/api/collections/users/records-https://admin.fodaveg.net-OPTIONS-preflight-success": true,
+    "boot-/api/collections/users/records-https://admin.fodaveg.net-OPTIONS-method-headers-allowed": true,
+    "boot-/api/collections/users/records-https://foreign.invalid-GET-no-permissive-ACAO": true,
+    "boot-/api/collections/users/records-https://foreign.invalid-GET-normal-API-routed": true,
+    "boot-/api/collections/users/records-https://foreign.invalid-OPTIONS-no-permissive-ACAO": true,
+    "boot-/api/collections/users/records-null-GET-no-permissive-ACAO": true,
+    "boot-/api/collections/users/records-null-GET-normal-API-routed": true,
+    "boot-/api/collections/users/records-null-OPTIONS-no-permissive-ACAO": true,
+    "boot-/api/collections/users/records-None-GET-no-permissive-ACAO": true,
+    "boot-/api/collections/users/records-None-GET-normal-API-routed": true,
+    "boot-/api/collections/users/records-None-OPTIONS-no-permissive-ACAO": true,
+    "boot-/api/vega/discovery-https://admin.fodaveg.net-GET-own-allowed": true,
+    "boot-/api/vega/discovery-https://admin.fodaveg.net-GET-health-preserved": true,
+    "boot-/api/vega/discovery-https://admin.fodaveg.net-OPTIONS-own-allowed": true,
+    "boot-/api/vega/discovery-https://admin.fodaveg.net-OPTIONS-preflight-success": true,
+    "boot-/api/vega/discovery-https://admin.fodaveg.net-OPTIONS-method-headers-allowed": true,
+    "boot-/api/vega/discovery-https://foreign.invalid-GET-no-permissive-ACAO": true,
+    "boot-/api/vega/discovery-https://foreign.invalid-GET-health-preserved": true,
+    "boot-/api/vega/discovery-https://foreign.invalid-OPTIONS-no-permissive-ACAO": true,
+    "boot-/api/vega/discovery-null-GET-no-permissive-ACAO": true,
+    "boot-/api/vega/discovery-null-GET-health-preserved": true,
+    "boot-/api/vega/discovery-null-OPTIONS-no-permissive-ACAO": true,
+    "boot-/api/vega/discovery-None-GET-no-permissive-ACAO": true,
+    "boot-/api/vega/discovery-None-GET-health-preserved": true,
+    "boot-/api/vega/discovery-None-OPTIONS-no-permissive-ACAO": true,
+    "boot-/api/fodaveg/health-https://admin.fodaveg.net-GET-own-allowed": true,
+    "boot-/api/fodaveg/health-https://admin.fodaveg.net-GET-health-preserved": true,
+    "boot-/api/fodaveg/health-https://admin.fodaveg.net-OPTIONS-own-allowed": true,
+    "boot-/api/fodaveg/health-https://admin.fodaveg.net-OPTIONS-preflight-success": true,
+    "boot-/api/fodaveg/health-https://admin.fodaveg.net-OPTIONS-method-headers-allowed": true,
+    "boot-/api/fodaveg/health-https://foreign.invalid-GET-no-permissive-ACAO": true,
+    "boot-/api/fodaveg/health-https://foreign.invalid-GET-health-preserved": true,
+    "boot-/api/fodaveg/health-https://foreign.invalid-OPTIONS-no-permissive-ACAO": true,
+    "boot-/api/fodaveg/health-null-GET-no-permissive-ACAO": true,
+    "boot-/api/fodaveg/health-null-GET-health-preserved": true,
+    "boot-/api/fodaveg/health-null-OPTIONS-no-permissive-ACAO": true,
+    "boot-/api/fodaveg/health-None-GET-no-permissive-ACAO": true,
+    "boot-/api/fodaveg/health-None-GET-health-preserved": true,
+    "boot-/api/fodaveg/health-None-OPTIONS-no-permissive-ACAO": true,
+    "boot-no-Origin-auth-body-validation-preserved": true,
+    "boot-no-Origin-backups-auth-required": true,
+    "container-exits-when-PB-child-exits": true,
+    "reopen-one-tini-Node-PB": true,
+    "reopen-exact-PB-argv": true,
+    "reopen-/api/health-https://admin.fodaveg.net-GET-own-allowed": true,
+    "reopen-/api/health-https://admin.fodaveg.net-GET-health-preserved": true,
+    "reopen-/api/health-https://admin.fodaveg.net-OPTIONS-own-allowed": true,
+    "reopen-/api/health-https://admin.fodaveg.net-OPTIONS-preflight-success": true,
+    "reopen-/api/health-https://admin.fodaveg.net-OPTIONS-method-headers-allowed": true,
+    "reopen-/api/health-https://foreign.invalid-GET-no-permissive-ACAO": true,
+    "reopen-/api/health-https://foreign.invalid-GET-health-preserved": true,
+    "reopen-/api/health-https://foreign.invalid-OPTIONS-no-permissive-ACAO": true,
+    "reopen-/api/health-null-GET-no-permissive-ACAO": true,
+    "reopen-/api/health-null-GET-health-preserved": true,
+    "reopen-/api/health-null-OPTIONS-no-permissive-ACAO": true,
+    "reopen-/api/health-None-GET-no-permissive-ACAO": true,
+    "reopen-/api/health-None-GET-health-preserved": true,
+    "reopen-/api/health-None-OPTIONS-no-permissive-ACAO": true,
+    "reopen-/api/collections/users/records-https://admin.fodaveg.net-GET-own-allowed": true,
+    "reopen-/api/collections/users/records-https://admin.fodaveg.net-GET-normal-API-routed": true,
+    "reopen-/api/collections/users/records-https://admin.fodaveg.net-OPTIONS-own-allowed": true,
+    "reopen-/api/collections/users/records-https://admin.fodaveg.net-OPTIONS-preflight-success": true,
+    "reopen-/api/collections/users/records-https://admin.fodaveg.net-OPTIONS-method-headers-allowed": true,
+    "reopen-/api/collections/users/records-https://foreign.invalid-GET-no-permissive-ACAO": true,
+    "reopen-/api/collections/users/records-https://foreign.invalid-GET-normal-API-routed": true,
+    "reopen-/api/collections/users/records-https://foreign.invalid-OPTIONS-no-permissive-ACAO": true,
+    "reopen-/api/collections/users/records-null-GET-no-permissive-ACAO": true,
+    "reopen-/api/collections/users/records-null-GET-normal-API-routed": true,
+    "reopen-/api/collections/users/records-null-OPTIONS-no-permissive-ACAO": true,
+    "reopen-/api/collections/users/records-None-GET-no-permissive-ACAO": true,
+    "reopen-/api/collections/users/records-None-GET-normal-API-routed": true,
+    "reopen-/api/collections/users/records-None-OPTIONS-no-permissive-ACAO": true,
+    "reopen-/api/vega/discovery-https://admin.fodaveg.net-GET-own-allowed": true,
+    "reopen-/api/vega/discovery-https://admin.fodaveg.net-GET-health-preserved": true,
+    "reopen-/api/vega/discovery-https://admin.fodaveg.net-OPTIONS-own-allowed": true,
+    "reopen-/api/vega/discovery-https://admin.fodaveg.net-OPTIONS-preflight-success": true,
+    "reopen-/api/vega/discovery-https://admin.fodaveg.net-OPTIONS-method-headers-allowed": true,
+    "reopen-/api/vega/discovery-https://foreign.invalid-GET-no-permissive-ACAO": true,
+    "reopen-/api/vega/discovery-https://foreign.invalid-GET-health-preserved": true,
+    "reopen-/api/vega/discovery-https://foreign.invalid-OPTIONS-no-permissive-ACAO": true,
+    "reopen-/api/vega/discovery-null-GET-no-permissive-ACAO": true,
+    "reopen-/api/vega/discovery-null-GET-health-preserved": true,
+    "reopen-/api/vega/discovery-null-OPTIONS-no-permissive-ACAO": true,
+    "reopen-/api/vega/discovery-None-GET-no-permissive-ACAO": true,
+    "reopen-/api/vega/discovery-None-GET-health-preserved": true,
+    "reopen-/api/vega/discovery-None-OPTIONS-no-permissive-ACAO": true,
+    "reopen-/api/fodaveg/health-https://admin.fodaveg.net-GET-own-allowed": true,
+    "reopen-/api/fodaveg/health-https://admin.fodaveg.net-GET-health-preserved": true,
+    "reopen-/api/fodaveg/health-https://admin.fodaveg.net-OPTIONS-own-allowed": true,
+    "reopen-/api/fodaveg/health-https://admin.fodaveg.net-OPTIONS-preflight-success": true,
+    "reopen-/api/fodaveg/health-https://admin.fodaveg.net-OPTIONS-method-headers-allowed": true,
+    "reopen-/api/fodaveg/health-https://foreign.invalid-GET-no-permissive-ACAO": true,
+    "reopen-/api/fodaveg/health-https://foreign.invalid-GET-health-preserved": true,
+    "reopen-/api/fodaveg/health-https://foreign.invalid-OPTIONS-no-permissive-ACAO": true,
+    "reopen-/api/fodaveg/health-null-GET-no-permissive-ACAO": true,
+    "reopen-/api/fodaveg/health-null-GET-health-preserved": true,
+    "reopen-/api/fodaveg/health-null-OPTIONS-no-permissive-ACAO": true,
+    "reopen-/api/fodaveg/health-None-GET-no-permissive-ACAO": true,
+    "reopen-/api/fodaveg/health-None-GET-health-preserved": true,
+    "reopen-/api/fodaveg/health-None-OPTIONS-no-permissive-ACAO": true,
+    "reopen-no-Origin-auth-body-validation-preserved": true,
+    "reopen-no-Origin-backups-auth-required": true
+  },
+  "responses": [
+    {
+      "round": "boot",
+      "path": "/api/health",
+      "origin": "https://admin.fodaveg.net",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "access-control-allow-origin": "https://admin.fodaveg.net",
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/health",
+      "origin": "https://admin.fodaveg.net",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "access-control-allow-headers": "content-type,authorization",
+        "access-control-allow-methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
+        "access-control-allow-origin": "https://admin.fodaveg.net",
+        "vary": "Access-Control-Request-Headers"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/health",
+      "origin": "https://foreign.invalid",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/health",
+      "origin": "https://foreign.invalid",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/health",
+      "origin": "null",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/health",
+      "origin": "null",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/health",
+      "origin": null,
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/health",
+      "origin": null,
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/collections/users/records",
+      "origin": "https://admin.fodaveg.net",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "access-control-allow-origin": "https://admin.fodaveg.net",
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/collections/users/records",
+      "origin": "https://admin.fodaveg.net",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "access-control-allow-headers": "content-type,authorization",
+        "access-control-allow-methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
+        "access-control-allow-origin": "https://admin.fodaveg.net",
+        "vary": "Access-Control-Request-Headers"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/collections/users/records",
+      "origin": "https://foreign.invalid",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/collections/users/records",
+      "origin": "https://foreign.invalid",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/collections/users/records",
+      "origin": "null",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/collections/users/records",
+      "origin": "null",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/collections/users/records",
+      "origin": null,
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/collections/users/records",
+      "origin": null,
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/vega/discovery",
+      "origin": "https://admin.fodaveg.net",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "access-control-allow-origin": "https://admin.fodaveg.net",
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/vega/discovery",
+      "origin": "https://admin.fodaveg.net",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "access-control-allow-headers": "content-type,authorization",
+        "access-control-allow-methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
+        "access-control-allow-origin": "https://admin.fodaveg.net",
+        "vary": "Access-Control-Request-Headers"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/vega/discovery",
+      "origin": "https://foreign.invalid",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/vega/discovery",
+      "origin": "https://foreign.invalid",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/vega/discovery",
+      "origin": "null",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/vega/discovery",
+      "origin": "null",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/vega/discovery",
+      "origin": null,
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/vega/discovery",
+      "origin": null,
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/fodaveg/health",
+      "origin": "https://admin.fodaveg.net",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "access-control-allow-origin": "https://admin.fodaveg.net",
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/fodaveg/health",
+      "origin": "https://admin.fodaveg.net",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "access-control-allow-headers": "content-type,authorization",
+        "access-control-allow-methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
+        "access-control-allow-origin": "https://admin.fodaveg.net",
+        "vary": "Access-Control-Request-Headers"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/fodaveg/health",
+      "origin": "https://foreign.invalid",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/fodaveg/health",
+      "origin": "https://foreign.invalid",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/fodaveg/health",
+      "origin": "null",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/fodaveg/health",
+      "origin": "null",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/fodaveg/health",
+      "origin": null,
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "boot",
+      "path": "/api/fodaveg/health",
+      "origin": null,
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/health",
+      "origin": "https://admin.fodaveg.net",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "access-control-allow-origin": "https://admin.fodaveg.net",
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/health",
+      "origin": "https://admin.fodaveg.net",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "access-control-allow-headers": "content-type,authorization",
+        "access-control-allow-methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
+        "access-control-allow-origin": "https://admin.fodaveg.net",
+        "vary": "Access-Control-Request-Headers"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/health",
+      "origin": "https://foreign.invalid",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/health",
+      "origin": "https://foreign.invalid",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/health",
+      "origin": "null",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/health",
+      "origin": "null",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/health",
+      "origin": null,
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/health",
+      "origin": null,
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/collections/users/records",
+      "origin": "https://admin.fodaveg.net",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "access-control-allow-origin": "https://admin.fodaveg.net",
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/collections/users/records",
+      "origin": "https://admin.fodaveg.net",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "access-control-allow-headers": "content-type,authorization",
+        "access-control-allow-methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
+        "access-control-allow-origin": "https://admin.fodaveg.net",
+        "vary": "Access-Control-Request-Headers"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/collections/users/records",
+      "origin": "https://foreign.invalid",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/collections/users/records",
+      "origin": "https://foreign.invalid",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/collections/users/records",
+      "origin": "null",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/collections/users/records",
+      "origin": "null",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/collections/users/records",
+      "origin": null,
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/collections/users/records",
+      "origin": null,
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/vega/discovery",
+      "origin": "https://admin.fodaveg.net",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "access-control-allow-origin": "https://admin.fodaveg.net",
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/vega/discovery",
+      "origin": "https://admin.fodaveg.net",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "access-control-allow-headers": "content-type,authorization",
+        "access-control-allow-methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
+        "access-control-allow-origin": "https://admin.fodaveg.net",
+        "vary": "Access-Control-Request-Headers"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/vega/discovery",
+      "origin": "https://foreign.invalid",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/vega/discovery",
+      "origin": "https://foreign.invalid",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/vega/discovery",
+      "origin": "null",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/vega/discovery",
+      "origin": "null",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/vega/discovery",
+      "origin": null,
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/vega/discovery",
+      "origin": null,
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/fodaveg/health",
+      "origin": "https://admin.fodaveg.net",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "access-control-allow-origin": "https://admin.fodaveg.net",
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/fodaveg/health",
+      "origin": "https://admin.fodaveg.net",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "access-control-allow-headers": "content-type,authorization",
+        "access-control-allow-methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
+        "access-control-allow-origin": "https://admin.fodaveg.net",
+        "vary": "Access-Control-Request-Headers"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/fodaveg/health",
+      "origin": "https://foreign.invalid",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/fodaveg/health",
+      "origin": "https://foreign.invalid",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/fodaveg/health",
+      "origin": "null",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/fodaveg/health",
+      "origin": "null",
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/fodaveg/health",
+      "origin": null,
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "vary": "Origin"
+      }
+    },
+    {
+      "round": "reopen",
+      "path": "/api/fodaveg/health",
+      "origin": null,
+      "method": "OPTIONS",
+      "status": 204,
+      "headers": {
+        "vary": "Origin"
+      }
+    }
+  ],
+  "limits": [
+    "Local Linux amd64 image via Docker Desktop; synthetic empty PB database.",
+    "Public GET/preflight and unauthenticated denial only; no production authentication, browser or Caddy QA."
+  ],
+  "imageId": "sha256:1b6436fee8c23615d7f7826cb4f87cb1d6e7e97d2d56150ff87a90571b951c40",
+  "mounts": [
+    {
+      "Type": "bind",
+      "Source": "/var/folders/m5/6hxhsn0j33g1txs0_8cn3bsm0000gn/T/fodaveg-cors-native-20261008-u8s13e8h/data",
+      "Destination": "/pb/pb_data",
+      "RW": true
+    }
+  ],
+  "bootProcesses": {
+    "tini": 1,
+    "node": 1,
+    "pb": 1,
+    "pbArgs": [
+      "/pb/fodaveg-pb",
+      "--dir",
+      "/pb/pb_data",
+      "serve",
+      "--http=0.0.0.0:8090",
+      "--origins=https://admin.fodaveg.net"
+    ],
+    "tiniPid": 1
+  },
+  "bootUnauthenticatedBackupsStatus": 401,
+  "childExitCode": 0,
+  "reopenProcesses": {
+    "tini": 1,
+    "node": 1,
+    "pb": 1,
+    "pbArgs": [
+      "/pb/fodaveg-pb",
+      "--dir",
+      "/pb/pb_data",
+      "serve",
+      "--http=0.0.0.0:8090",
+      "--origins=https://admin.fodaveg.net"
+    ],
+    "tiniPid": 1
+  },
+  "reopenUnauthenticatedBackupsStatus": 401,
+  "passed": true,
+  "cleanupExit": 0,
+  "fixtureRemoved": true
+}

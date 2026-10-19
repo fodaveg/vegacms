@@ -1,0 +1,35 @@
+{
+  "diskBudgetFalsePreserved": true,
+  "frozenImports": {
+    "../../image-only-delivery-20261008/remote_cutover.py": "5d4131c229d7aa88918c932dd517b0d33e024a3497aa4fcc4b9f0c9940467128",
+    "remote_cutover_controlled.py": "43b68aba0c937deef45ff3a9e2e33f6d3933fb06949605fdc3b0d9448d31c7b4"
+  },
+  "limits": [
+    "Host metadata only; no actual cgroup, tmpfs or reservation proof.",
+    "Future own container controls and real tmpfs budget require separate reviewed implementation and new grant."
+  ],
+  "memoryThresholdKiB": 2621440,
+  "newRuntimeApprovalRequired": true,
+  "offline": {
+    "AST": "PASS",
+    "command": "python3 -B .verification/cors-network-adoption-20261008/fodaveg-delivery/reprobe-memory-selftest.py",
+    "exitCode": 0,
+    "tests": 6
+  },
+  "remoteExecuted": false,
+  "remoteWrites": false,
+  "scope": [
+    "MemTotal/MemAvailable quantities only, twice",
+    "own backup state metadata pre/post",
+    "selected fixed OLD Id/Image/Running/Health.Status before/after"
+  ],
+  "sources": {
+    "REPROBE_MEMORY.md": "86c867f1c58c06b5d72bef5e1b81c9c037109c471684baeb99121996fac8fe06",
+    "reprobe-memory-read.py": "d5fde6c51873ec245f586e046fa0e740af95b64f69e5ab2c3f6483fae8000088",
+    "reprobe-memory-run.py": "c6c0dd0bf99e4c933aa2a59fcf68bcb948d7e11621dbfa77fbc44ec88999e0c9",
+    "reprobe-memory-selftest.py": "e2333f4cae11f0e4683da5dcddedb5892e9995eeac14646ae437bf60d12b4b2c"
+  },
+  "status": "READ_ONLY_MEMORY_METADATA_REVIEW_PENDING",
+  "storageObservationSha256": "d556eb4b9673e6091820b4d7916de42d13760ca719c2b52c15a8db7cc2f94e7c",
+  "tmpfsAllocationAuthorized": false
+}

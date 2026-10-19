@@ -1,0 +1,32 @@
+[
+  {
+    "branch": "wip/fedora-caddy-20261019",
+    "commit": "8652c38f458237a8e92e4d1854f0efad1bb3bedc",
+    "tree": "296b153342715beee3c423340c2f7f320975888b",
+    "worktree": "/private/tmp/vegacms-fedora-caddy-20261019",
+    "source": "/Users/david/code/vegacms/.verification/worktrees/caddy-referenced-env-20261008",
+    "files": 148,
+    "whitespaceExit": 2,
+    "whitespaceOutput": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/web-Caddyfile.patch:5: space before tab in indent.\n+ \troot * /srv/site\n.verification/lumbre-astro-production-20261008/serving-verification/mime-fix/web-Caddyfile.patch:6: space before tab in indent.\n+ \tencode zstd gzip\n.verification/lumbre-astro-production-20261008/serving-verification/mime-fix/web-Caddyfile.patch:12: space before tab in indent.\n+ \tfile_server\n.verification/lumbre-astro-production-20261008/serving-verification/mime-fix/web-Caddyfile.patch:13: trailing whitespace.\n+ \n.verification/lumbre-astro-production-20261008/serving-verification/mime-fix/web-Caddyfile.patch:14: space before tab in indent.\n+ \t# El build de Astro pone un hash en el nombre de todo lo de `/_astro/`, as\u00ed\n"
+  },
+  {
+    "branch": "wip/fedora-fodaveg-20261019",
+    "commit": "2dee6deaf9ae5a3a444b275198400d445ecc2757",
+    "tree": "60c95c5779e2b3a99eee71d9ae3adc3f3a4d35a7",
+    "worktree": "/private/tmp/vegacms-fedora-fodaveg-20261019",
+    "source": "/Users/david/code/vegacms/.verification/worktrees/fodaveg-cutover-failure-20261008",
+    "files": 19,
+    "whitespaceExit": 0,
+    "whitespaceOutput": ""
+  },
+  {
+    "branch": "wip/fedora-network-20261019",
+    "commit": "be3bc37c0101c5ca8e3564c0275d3bea6fee1ab8",
+    "tree": "4e9a47262d2165ffeed8977c47eeccf0a491ffa5",
+    "worktree": "/private/tmp/vegacms-fedora-network-20261019",
+    "source": "/Users/david/code/vegacms/.verification/worktrees/network-durable-20261009",
+    "files": 30,
+    "whitespaceExit": 0,
+    "whitespaceOutput": ""
+  }
+]

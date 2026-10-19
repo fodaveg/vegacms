@@ -1,0 +1,235 @@
+{
+  "status": "verified-reviewed-private-commit",
+  "taskId": "c49bf0f1-a6d1-474d-a408-d7546dc7d9f7",
+  "base": "4d9f891e1237504ed136573f76493b1b77497c56",
+  "head": "4d9f891e1237504ed136573f76493b1b77497c56",
+  "tree": "e0adf41389a61c213bdd6f70f6eeae94bfdc84ca",
+  "branch": "feat/trash-history-onboarding-20261007",
+  "worktree": "/private/tmp/vegacms-trash-history-20261007",
+  "graph": "vega-backlog-r2-20261007 (base graph; new WT not indexed)",
+  "paths": [
+    "src/lib/app-context.ts",
+    "src/lib/home/RevisionsOnboarding.svelte",
+    "src/lib/home/fixture.ts",
+    "src/lib/home/home-page.svelte.test.ts",
+    "src/lib/home/revisions-onboarding.dom.test.ts",
+    "src/lib/home/revisions-onboarding.ts",
+    "src/lib/i18n/en.ts",
+    "src/lib/i18n/es.ts",
+    "src/lib/revisions/delete-feedback.test.ts",
+    "src/lib/revisions/delete-feedback.ts",
+    "src/lib/revisions/with-revisions.test.ts",
+    "src/lib/revisions/with-revisions.ts",
+    "src/lib/session/backend-config.test.ts",
+    "src/lib/session/backend-config.ts",
+    "src/lib/session/backend.ts",
+    "src/lib/shell/ToastHost.svelte",
+    "src/lib/shell/toasts.svelte.test.ts",
+    "src/lib/shell/toasts.svelte.ts",
+    "src/routes/+layout.svelte",
+    "src/routes/+page.svelte",
+    "src/routes/c/[type]/+page.svelte",
+    "src/routes/c/[type]/[id]/+page.svelte"
+  ],
+  "checks": [
+    {
+      "name": "eslint",
+      "argv": [
+        "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+        "node_modules/eslint/bin/eslint.js",
+        "src/lib/app-context.ts",
+        "src/lib/home/RevisionsOnboarding.svelte",
+        "src/lib/home/fixture.ts",
+        "src/lib/home/home-page.svelte.test.ts",
+        "src/lib/home/revisions-onboarding.dom.test.ts",
+        "src/lib/home/revisions-onboarding.ts",
+        "src/lib/i18n/en.ts",
+        "src/lib/i18n/es.ts",
+        "src/lib/revisions/delete-feedback.test.ts",
+        "src/lib/revisions/delete-feedback.ts",
+        "src/lib/revisions/with-revisions.test.ts",
+        "src/lib/revisions/with-revisions.ts",
+        "src/lib/session/backend-config.test.ts",
+        "src/lib/session/backend-config.ts",
+        "src/lib/session/backend.ts",
+        "src/lib/shell/ToastHost.svelte",
+        "src/lib/shell/toasts.svelte.test.ts",
+        "src/lib/shell/toasts.svelte.ts",
+        "src/routes/+layout.svelte",
+        "src/routes/+page.svelte",
+        "src/routes/c/[type]/+page.svelte",
+        "src/routes/c/[type]/[id]/+page.svelte"
+      ],
+      "exitCode": 0,
+      "log": "eslint-verified.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "prettier",
+      "argv": [
+        "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+        "node_modules/prettier/bin/prettier.cjs",
+        "--check",
+        "src/lib/app-context.ts",
+        "src/lib/home/RevisionsOnboarding.svelte",
+        "src/lib/home/fixture.ts",
+        "src/lib/home/home-page.svelte.test.ts",
+        "src/lib/home/revisions-onboarding.dom.test.ts",
+        "src/lib/home/revisions-onboarding.ts",
+        "src/lib/i18n/en.ts",
+        "src/lib/i18n/es.ts",
+        "src/lib/revisions/delete-feedback.test.ts",
+        "src/lib/revisions/delete-feedback.ts",
+        "src/lib/revisions/with-revisions.test.ts",
+        "src/lib/revisions/with-revisions.ts",
+        "src/lib/session/backend-config.test.ts",
+        "src/lib/session/backend-config.ts",
+        "src/lib/session/backend.ts",
+        "src/lib/shell/ToastHost.svelte",
+        "src/lib/shell/toasts.svelte.test.ts",
+        "src/lib/shell/toasts.svelte.ts",
+        "src/routes/+layout.svelte",
+        "src/routes/+page.svelte",
+        "src/routes/c/[type]/+page.svelte",
+        "src/routes/c/[type]/[id]/+page.svelte"
+      ],
+      "exitCode": 0,
+      "log": "prettier-verified.log",
+      "logSha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    {
+      "name": "focal",
+      "argv": [
+        "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "src/lib/revisions/with-revisions.test.ts",
+        "src/lib/revisions/delete-feedback.test.ts",
+        "src/lib/session/backend-config.test.ts",
+        "src/lib/home/revisions-onboarding.dom.test.ts",
+        "src/lib/home/home-page.svelte.test.ts",
+        "src/lib/shell/toasts.svelte.test.ts",
+        "tests/shell/i18n.test.ts",
+        "--maxWorkers=1"
+      ],
+      "exitCode": 0,
+      "log": "focal-verified.log",
+      "logSha256": "744e22978dbf3754a68a2b893edbb41454a25cc6fc6b0f1ed0d5d0c4a55f3090",
+      "passed": 119,
+      "testFiles": 7,
+      "sessionId": 18488
+    },
+    {
+      "name": "check",
+      "argv": [
+        "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+        "node_modules/svelte-check/bin/svelte-check",
+        "--tsconfig",
+        "./tsconfig.json"
+      ],
+      "exitCode": 0,
+      "sessionId": 17968,
+      "log": "check-verified.log",
+      "logSha256": "788c8433ff80f1aaa4c91e5ba324dbbba10b741293c70ceb3272109ad605501b"
+    },
+    {
+      "name": "diff-check",
+      "argv": [
+        "git",
+        "diff",
+        "--cached",
+        "--check"
+      ],
+      "exitCode": 0
+    },
+    {
+      "name": "browser",
+      "argv": [
+        "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+        "/Users/david/code/vegacms/.verification/trash-history-onboarding-20261007/browser-proof.mjs"
+      ],
+      "exitCode": 0,
+      "sessionId": 64315,
+      "log": "browser-attempt5.log",
+      "cases": 4,
+      "pageErrors": 0,
+      "overflow": 0,
+      "results": "browser-attempt5/browser-results.json",
+      "cleanup": "browser-attempt5/browser-cleanup.json",
+      "effectiveTheme": true,
+      "lightDarkDistinct": true,
+      "logSha256": "a2d5c8e2ad069a854c06dda6b6f98f5fc5fe3f5a3e8a23d0681d2ab926d8f631"
+    }
+  ],
+  "environment": {
+    "os": "Darwin",
+    "node": "v22.22.3",
+    "dependencies": "existing node_modules APFS clone, no install",
+    "availableKiBBefore": 136000000,
+    "budget": "<1GiB",
+    "slot": "root authorized focal, now released",
+    "availableKiBAfter": 136000000,
+    "cleanup": "Vite/Chromium own processes closed; node_modules APFS clone and clean reserved WT retained for integration. No disk cleanup."
+  },
+  "limits": [
+    "Fullgate/build reserved for root combined candidate.",
+    "No live PocketBase evidence; browser uses Vite dev and seeded memory.",
+    "BackendPort/delete best-effort/Settings/restore unchanged.",
+    "Storage failure keeps dismissal only while mounted, copy conditional."
+  ],
+  "checksInitialTree": "8b46b95ca05f5555b1d5216f7d5020fb8c510a78",
+  "verificationPending": [],
+  "browserAttempts": [
+    {
+      "attempt": 1,
+      "exitCode": 1,
+      "reason": "Harness used button instead of existing navigation link; source unchanged."
+    },
+    {
+      "attempt": 2,
+      "exitCode": 1,
+      "reason": "Harness isVisible accepted CSS offscreen mobile navigation; source unchanged."
+    },
+    {
+      "attempt": 3,
+      "exitCode": 0,
+      "tree": "6d7cbdc670d38fde9f66fde09181fb5d95c8e71d",
+      "cases": 4,
+      "pageErrors": 0,
+      "overflow": 0,
+      "darkCoverageWithdrawn": "mode reset after reload/model bootstrap; use attempt5"
+    },
+    {
+      "attempt": 4,
+      "exitCode": 0,
+      "tree": "e0adf41389a61c213bdd6f70f6eeae94bfdc84ca",
+      "cases": 4,
+      "pageErrors": 0,
+      "overflow": 0,
+      "darkCoverageWithdrawn": "mode reset after reload/model bootstrap; use attempt5"
+    },
+    {
+      "attempt": 5,
+      "exitCode": 0,
+      "sessionId": 64315,
+      "tree": "e0adf41389a61c213bdd6f70f6eeae94bfdc84ca",
+      "cases": 4,
+      "pageErrors": 0,
+      "overflow": 0,
+      "effectiveColors": true,
+      "lightDarkDistinct": true
+    }
+  ],
+  "review": {
+    "file": "review-final.md",
+    "tree": "e0adf41389a61c213bdd6f70f6eeae94bfdc84ca",
+    "paths": 22,
+    "verdict": "sin hallazgos pendientes"
+  },
+  "candidatePatchSha256": "1cdfa6af8eff51b67c8ad7a537047eb17572cf90e2069e9b8e1c334c22d1892c",
+  "commit": "fa03bf15e5d50ebbe315e73509fb11f5de6f1fa4",
+  "commitTree": "e0adf41389a61c213bdd6f70f6eeae94bfdc84ca",
+  "worktreeClean": true,
+  "slotReleased": true,
+  "darkBrowserEvidence": "attempt5 accredited effective modes and computed colors before every capture; attempt4 dark claim withdrawn"
+}

@@ -1,0 +1,22 @@
+fix(import): require explicit media origin consent
+
+Ask for per-file HTTP(S) origins before fetching media. Keep policy rejections
+separate from authorized network failures so optional overwrites never clear a
+file from a rejected origin. Cache previews under an immutable policy snapshot,
+reset consent when the file, backend or user changes, and guard every write
+against a changed context, including deferred relations.
+
+Verified tree: e50b95ced36bf739288e6b04987ae115335aafbd
+Checks: Node 22.22.3, existing shared dependencies; transfer suite 12 files /
+165 tests passed (exit 0); scoped Prettier, ESLint and diff checks passed.
+Cardinality bypass regression demonstrated 4 failures before the fix.
+Headless design lamina: 390/1440 px light/dark and long origins, no overflow.
+Independent diff review: 13/13 files plus 6/6 delta, both P2 fixes closed.
+
+Local canonical evidence (retained on this machine; not a portable CI artifact):
+/Users/david/code/vegacms/.verification/import-origin-security-20261007/receipt.json
+/Users/david/code/vegacms/.verification/import-origin-security-20261007/review-final.md
+
+Limits: no full gate/typecheck/build or real backend in this author lane; root
+runs the combined gate. Visual captures are CSS design lamina, while the actual
+dialog is covered by jsdom tests. No push, deploy or shared-note edits.

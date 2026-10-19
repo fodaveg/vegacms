@@ -1,0 +1,104 @@
+{
+  "passed": true,
+  "tree": "6d7cbdc670d38fde9f66fde09181fb5d95c8e71d",
+  "source": "Vite dev candidate, seeded memory; no build/live PocketBase",
+  "results": [
+    {
+      "width": 1440,
+      "mode": "light",
+      "singleOffer": true,
+      "explicitBootstrap": true,
+      "dismissalSurvivesReload": true,
+      "noSnapshotNoAction": true,
+      "confirmedSnapshotAction": true,
+      "actionPersistent": true,
+      "keyboardAction": true,
+      "actionTarget": {
+        "x": 1085.796875,
+        "y": 929.40625,
+        "width": 129.75,
+        "height": 44
+      },
+      "closeTarget": {
+        "x": 1225.140625,
+        "y": 929.40625,
+        "width": 44,
+        "height": 44
+      },
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "singleOffer": true,
+      "explicitBootstrap": true,
+      "dismissalSurvivesReload": true,
+      "noSnapshotNoAction": true,
+      "confirmedSnapshotAction": true,
+      "actionPersistent": true,
+      "keyboardAction": true,
+      "actionTarget": {
+        "x": 1085.796875,
+        "y": 929.40625,
+        "width": 129.75,
+        "height": 44
+      },
+      "closeTarget": {
+        "x": 1225.140625,
+        "y": 929.40625,
+        "width": 44,
+        "height": 44
+      },
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "mode": "light",
+      "singleOffer": true,
+      "explicitBootstrap": true,
+      "dismissalSurvivesReload": true,
+      "noSnapshotNoAction": true,
+      "confirmedSnapshotAction": true,
+      "actionPersistent": true,
+      "keyboardAction": true,
+      "actionTarget": {
+        "x": 35.796875,
+        "y": 929.40625,
+        "width": 129.75,
+        "height": 44
+      },
+      "closeTarget": {
+        "x": 175.140625,
+        "y": 929.40625,
+        "width": 44,
+        "height": 44
+      },
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "singleOffer": true,
+      "explicitBootstrap": true,
+      "dismissalSurvivesReload": true,
+      "noSnapshotNoAction": true,
+      "confirmedSnapshotAction": true,
+      "actionPersistent": true,
+      "keyboardAction": true,
+      "actionTarget": {
+        "x": 35.796875,
+        "y": 929.40625,
+        "width": 129.75,
+        "height": 44
+      },
+      "closeTarget": {
+        "x": 175.140625,
+        "y": 929.40625,
+        "width": 44,
+        "height": 44
+      },
+      "overflow": false
+    }
+  ],
+  "pageErrors": []
+}

@@ -1,0 +1,78 @@
+{
+  "status": "LOCAL_FODAVEG_CORS_NATIVE_PASSED",
+  "commit": "cc8f3b14dca9bf10e4a60502da9e17503362bbb8",
+  "tree": "693fc1ae70e8a28e64a87950e25883905a0de1d4",
+  "image": "sha256:1b6436fee8c23615d7f7826cb4f87cb1d6e7e97d2d56150ff87a90571b951c40",
+  "platform": "linux/amd64 on Darwin Docker Desktop",
+  "runs": [
+    {
+      "command": "python3 cors-entrypoint-proof.py --image sha256:1b6436fee8c23615d7f7826cb4f87cb1d6e7e97d2d56150ff87a90571b951c40 --out cors-entrypoint.json",
+      "exitCode": 0,
+      "assertions": 123,
+      "responses": 64,
+      "proof": "cors-entrypoint.json"
+    },
+    {
+      "command": "python3 runtime-proof.py --consumer fodaveg --binary fodaveg-pb-linux-amd64 --hook vega-backup-log-redaction.pb.js --image sha256:1b6436fee8c23615d7f7826cb4f87cb1d6e7e97d2d56150ff87a90571b951c40 --out runtime.json",
+      "exitCode": 0,
+      "cases": 18,
+      "proof": "runtime.json"
+    }
+  ],
+  "initialFailedRuns": [
+    {
+      "proof": "cors-entrypoint-initial.json",
+      "exitCode": 1,
+      "cause": "Harness expected403 for backups list; actual401 denial; corrected assertion accepts401/403."
+    },
+    {
+      "proof": "runtime-initial.json",
+      "exitCode": 1,
+      "cause": "Invocation hook basename packaged-redactor.pb.js masks wrong negative file; reran unchanged runner with canonical basename."
+    }
+  ],
+  "assetReuse": "asset-config-reuse.json",
+  "cleanup": {
+    "corsContainerExit": 0,
+    "nativeContainers": [
+      {
+        "container": "vega-l15-packaged-fodaveg-positive",
+        "exit": 0
+      }
+    ],
+    "fixturesRemoved": true,
+    "ownResidualContainers": 0,
+    "removedRegenerableExtractions": [
+      "fodaveg-pb-linux-amd64",
+      "pb_public",
+      "__pycache__",
+      "packaged-redactor.pb.js"
+    ],
+    "preserved": "proofs/runners/manifests/canonical hook+entrypoint; candidate image retained by root release owner",
+    "dockerPruneOrSharedCacheMutation": false
+  },
+  "limits": [
+    "No production data/auth/SSH/deploy.",
+    "Native backend runner overrides ENTRYPOINT only for backend/hook differential controls; separate CORS proof uses actual default entrypoint.",
+    "Prior CSP13/13 reused for equal155/155 assets and existing unchanged policy fixtures; no new browser run.",
+    "Node missing-route404 proves HTTP process readiness, not complete Astro/auth UI."
+  ],
+  "diskBeforeApproxGiB": 121,
+  "proofHashes": {
+    "runtime.json": "82d4a938bb55b0f60c7ab8c69acb7b70b8d445cc0fb424f3f902ed8cd95bac3e",
+    "cors-entrypoint-initial.json": "d82fdc1a41d3433f302a5eaf274bc963878b724552c17975d3bbc0919e741010",
+    "packaged-identity.json": "8ff3567ebe4357f3df251e11b35bbfa5c9d8bcbaaef501736f807bb706940574",
+    "cors-entrypoint.json": "5f136e742454ced788963bb20e565ee8951db1a4dde1a2e03ba95489a4f70e1c",
+    "asset-config-reuse.json": "6eda76b51150b513ee49b030bbe6b1878d5dc86c7442c46f48889dd5c0eb53da",
+    "runtime-initial.json": "3f15f04cf7faa27fcac4e6a5297bc828d64c1d014acf482ebc009c3f9e226903"
+  },
+  "diskAfterApproxGiB": 121,
+  "runtimeBudget": {
+    "corsMemoryMiB": 512,
+    "corsCPUs": 2,
+    "corsPidsLimit": 128,
+    "tmpfsMiB": 16,
+    "expectedTemporaryDiskMiB": 150,
+    "noBuildInstallOrPull": true
+  }
+}

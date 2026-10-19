@@ -1,0 +1,57 @@
+{
+  "passed": true,
+  "source": "Vite dev del worktree candidato, memory sembrado; no build/distribución",
+  "results": [
+    {
+      "width": 1440,
+      "mode": "light",
+      "invalidStopsPublish": true,
+      "invalidFocus": true,
+      "contentPublished": true,
+      "spaPersistence": true,
+      "chainSvgAccessible": true,
+      "publicationWithinViewport": true,
+      "touchTarget": null
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "invalidStopsPublish": true,
+      "invalidFocus": true,
+      "contentPublished": true,
+      "spaPersistence": true,
+      "chainSvgAccessible": true,
+      "publicationWithinViewport": true,
+      "touchTarget": null
+    },
+    {
+      "width": 390,
+      "mode": "light",
+      "invalidStopsPublish": true,
+      "invalidFocus": true,
+      "contentPublished": true,
+      "spaPersistence": true,
+      "chainSvgAccessible": true,
+      "publicationWithinViewport": true,
+      "touchTarget": {
+        "width": 128.90625,
+        "height": 44
+      }
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "invalidStopsPublish": true,
+      "invalidFocus": true,
+      "contentPublished": true,
+      "spaPersistence": true,
+      "chainSvgAccessible": true,
+      "publicationWithinViewport": true,
+      "touchTarget": {
+        "width": 128.90625,
+        "height": 44
+      }
+    }
+  ],
+  "pageErrors": []
+}

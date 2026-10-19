@@ -1,0 +1,137 @@
+diff --git a/src/lib/session/BackendUrlForm.svelte b/src/lib/session/BackendUrlForm.svelte
+index 4db6a97..20e5b72 100644
+--- a/src/lib/session/BackendUrlForm.svelte
++++ b/src/lib/session/BackendUrlForm.svelte
+@@ -41,6 +41,7 @@
+ 	 * best-effort, si el usuario cancela NO se escribe/borra ningún override ni se recarga (estado
+ 	 * consistente).
+ 	 */
++	import { base } from '$app/paths';
+ 	import { onMount } from 'svelte';
+ 	import {
+ 		isAbsoluteUrl,
+@@ -108,7 +109,7 @@
+ 
+ 	async function fetchVegaConfigForDisplay(): Promise<VegaConfig | null> {
+ 		try {
+-			const response = await fetch('/vega.config.json', { cache: 'no-store' });
++			const response = await fetch(`${base}/vega.config.json`, { cache: 'no-store' });
+ 			if (!response.ok) return null;
+ 			const data: unknown = await response.json();
+ 			return typeof data === 'object' && data !== null ? (data as VegaConfig) : null;
+diff --git a/src/lib/session/BackendUrlForm.svelte.test.ts b/src/lib/session/BackendUrlForm.svelte.test.ts
+index 9e14d91..5f97481 100644
+--- a/src/lib/session/BackendUrlForm.svelte.test.ts
++++ b/src/lib/session/BackendUrlForm.svelte.test.ts
+@@ -21,6 +21,9 @@ import {
+ 	writeBackendOverride
+ } from './backend-override';
+ 
++const paths = vi.hoisted(() => ({ base: '' }));
++vi.mock('$app/paths', () => paths);
++
+ function t(key: string, params?: Record<string, string | number>): string {
+ 	return params ? `${key}:${JSON.stringify(params)}` : key;
+ }
+@@ -48,6 +51,7 @@ describe('BackendUrlForm.svelte', () => {
+ 	let mounted: { target: HTMLElement; instance: ReturnType<typeof mount> } | null = null;
+ 
+ 	beforeEach(() => {
++		paths.base = '';
+ 		localStorage.clear();
+ 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 404 })));
+ 	});
+@@ -285,6 +289,25 @@ describe('BackendUrlForm.svelte', () => {
+ 
+ 	// ————— Colección de autenticación (lote L6c) —————
+ 
++	test.each(['', '/admin'])('muestra la colección de la config bajo la base %j', async (base) => {
++		paths.base = base;
++		const configPath = `${base}/vega.config.json`;
++		const fetchSpy = vi.fn(async (input: RequestInfo | URL) =>
++			String(input) === configPath
++				? Response.json({ authCollection: 'config_editors' })
++				: new Response(null, { status: 404 })
++		);
++		vi.stubGlobal('fetch', fetchSpy);
++		mounted = mountForm();
++
++		await vi.waitFor(() => {
++			expect(mounted?.target.textContent).toContain(
++				'connect.current.authCollectionEffective:{"authCollection":"config_editors"}'
++			);
++		});
++		expect(fetchSpy).toHaveBeenCalledWith(configPath, { cache: 'no-store' });
++	});
++
+ 	test('sin override ni discovery/config: muestra el fallback efectivo sin atribuirlo al campo vacío', async () => {
+ 		mounted = mountForm();
+ 
+diff --git a/src/lib/session/backend.dom.test.ts b/src/lib/session/backend.dom.test.ts
+index 01daa21..f3d7d70 100644
+--- a/src/lib/session/backend.dom.test.ts
++++ b/src/lib/session/backend.dom.test.ts
+@@ -10,6 +10,9 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+ import { resolveDisplayBackendUrl } from './backend';
+ import { clearBackendOverride, writeBackendOverride } from './backend-override';
+ 
++const paths = vi.hoisted(() => ({ base: '' }));
++vi.mock('$app/paths', () => paths);
++
+ /** Sustituye `global.fetch` por un mock que responde `data` como `/vega.config.json`, o un 404 si
+  *  `data` es `null` (ausencia del fichero, ver `fetchVegaConfig`). */
+ function mockConfigResponse(data: unknown | null): void {
+@@ -20,6 +23,7 @@ function mockConfigResponse(data: unknown | null): void {
+ }
+ 
+ beforeEach(() => {
++	paths.base = '';
+ 	localStorage.clear();
+ 	delete window.__VEGA_ADAPTER__;
+ 	delete window.__VEGA_PREVIEW_API_URL__;
+@@ -34,6 +38,19 @@ afterEach(() => {
+ });
+ 
+ describe('resolveDisplayBackendUrl', () => {
++	test.each(['', '/admin'])('lee la config bajo la base %j', async (base) => {
++		paths.base = base;
++		const configPath = `${base}/vega.config.json`;
++		global.fetch = vi.fn(async (input: RequestInfo | URL) =>
++			String(input) === configPath
++				? Response.json({ backendUrl: 'https://pb-config.example.com' })
++				: new Response(null, { status: 404 })
++		) as typeof fetch;
++
++		expect(await resolveDisplayBackendUrl()).toBe('https://pb-config.example.com');
++		expect(global.fetch).toHaveBeenCalledWith(configPath, { cache: 'no-store' });
++	});
++
+ 	test('adaptador memory (window.__VEGA_ADAPTER__) → null, ni siquiera lee vega.config.json', async () => {
+ 		window.__VEGA_ADAPTER__ = 'memory';
+ 		const fetchSpy = vi.fn();
+diff --git a/src/lib/session/backend.ts b/src/lib/session/backend.ts
+index 6a942b7..9d20472 100644
+--- a/src/lib/session/backend.ts
++++ b/src/lib/session/backend.ts
+@@ -112,6 +112,7 @@
+  * hecho desde el panel de PocketBase — el aviso cae entonces a «Se guardó otra versión…».
+  */
+ 
++import { base } from '$app/paths';
+ import type { AuthChangeReason, BackendPort, RecordInput, Session } from '$lib/backend';
+ import { VegaError } from '$lib/backend';
+ import { createMemoryBackend } from '$lib/backend/adapters/memory';
+@@ -435,11 +436,12 @@ export async function resolveDisplayBackendUrl(): Promise<string | null> {
+ 
+ /**
+  * Lee `static/vega.config.json` en runtime (§3.7, D-P3.5-a): fetch best-effort, cero build.
++ * Respeta la base de la SPA también cuando se sirve bajo una subruta.
+  * Ausencia (404), fallo de red o forma inesperada ⇒ `null` (same-origin), NUNCA bloquea ni lanza.
+  */
+ async function fetchVegaConfig(): Promise<VegaConfig | null> {
+ 	try {
+-		const res = await fetch('/vega.config.json', { cache: 'no-store' });
++		const res = await fetch(`${base}/vega.config.json`, { cache: 'no-store' });
+ 		if (!res.ok) return null;
+ 		const data: unknown = await res.json();
+ 		return typeof data === 'object' && data !== null ? (data as VegaConfig) : null;

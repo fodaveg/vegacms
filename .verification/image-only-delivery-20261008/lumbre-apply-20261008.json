@@ -1,0 +1,15 @@
+{
+  "backupDir": "/srv/vega-image-rollout/lumbre-admin-pb-20261008T200148Z-3238300",
+  "cloneServeProbePassed": false,
+  "isolatedRestoreBytes": 19979069,
+  "isolatedRestoreFiles": 5,
+  "newComposeSha256": "7ed9a9e225790a4e15ccef3ce4c110b8d3b22e0fef53e6c1840d286181ebb8dd",
+  "newDotenvSha256": "3c6cde6808d6b73fefb4bbe20b175df60e3b0196ac403667c85c38e7dfd1552f",
+  "newId": "sha256:40df6a9bbcfd4edbc93680b0f45946d0be7c50c4e5c470167e33646fe499c1b7",
+  "oldId": "sha256:47f4c28349e923b164ea6db717988be26ec645b73c2e3901d5b8db239244b533",
+  "remoteWrites": true,
+  "service": "lumbre-admin-pb",
+  "snapshotBytes": 2732099,
+  "snapshotSha256": "0c1dc45af82521c06e7c7f279f7fec559ecd7ce21cf1cb7ed2da2f7b0a7dd3cc",
+  "status": "CUTOVER_WAITING_SERVED_SMOKE"
+}

@@ -1,0 +1,1290 @@
+diff --git a/src/lib/app-context.ts b/src/lib/app-context.ts
+index defe7fe..df0ad43 100644
+--- a/src/lib/app-context.ts
++++ b/src/lib/app-context.ts
+@@ -50,10 +50,20 @@ export interface NavApi {
+ 	toLogin(): void;
+ }
+ 
++/** Acción de una notificación, válida exclusivamente mientras siga vigente su contexto. */
++export interface ToastAction {
++	readonly label: string;
++	isCurrent(): boolean;
++	invoke(): void;
++}
++
+ /** Feedback global del sistema (§2.3): toasts + reporte de `VegaError` contextual. */
+ export interface FeedbackApi {
+-	/** Toast efímero. `timeoutMs` por defecto según `kind`; `'error'` es persistente hasta descartar. */
+-	toast(message: string, opts?: { kind?: 'success' | 'error' | 'info'; timeoutMs?: number }): void;
++	/** Los errores y las acciones permanecen hasta descartar; el resto usa `timeoutMs`. */
++	toast(
++		message: string,
++		opts?: { kind?: 'success' | 'error' | 'info'; timeoutMs?: number; action?: ToastAction }
++	): void;
+ 	/**
+ 	 * Pinta un `VegaError` como mensaje accionable (maestra L4). P3 elige la superficie según
+ 	 * `kind` (§2.3): `network` → banner reintentable; `auth-expired` → overlay de re-login (no
+diff --git a/src/lib/home/RevisionsOnboarding.svelte b/src/lib/home/RevisionsOnboarding.svelte
+new file mode 100644
+index 0000000..cfdc234
+--- /dev/null
++++ b/src/lib/home/RevisionsOnboarding.svelte
+@@ -0,0 +1,105 @@
++<script lang="ts">
++	/** Oferta contextual sin autoactivar: navega al bootstrap existente y permite descartarla. */
++	import { getVegaContext } from '$lib/app-context';
++	import { settingsRoute } from '$lib/nav/routes';
++	import { backendInstallationKey, backendIsDemo } from '$lib/session/backend';
++	import {
++		dismissRevisionsOffer,
++		isRevisionsOfferDismissed,
++		shouldOfferRevisions
++	} from './revisions-onboarding';
++	let { onDismiss }: { onDismiss?: () => void } = $props();
++	const ctx = getVegaContext();
++	const identity = backendInstallationKey();
++	let dismissed = $state(isRevisionsOfferDismissed(identity));
++	const offered = $derived(
++		!dismissed && shouldOfferRevisions(ctx.model, ctx.port.capabilities.schemaBootstrap)
++	);
++	function dismiss(): void {
++		dismissed = true;
++		dismissRevisionsOffer(identity);
++		onDismiss?.();
++	}
++</script>
++
++{#if offered}
++	<section class="vega-revisions-offer" aria-labelledby="vega-revisions-offer-title">
++		<h2 id="vega-revisions-offer-title">{ctx.t('home.revisions.title')}</h2>
++		<p>{ctx.t('home.revisions.body')}</p>
++		<p>{ctx.t('home.revisions.limits')}</p>
++		{#if backendIsDemo()}<p>{ctx.t('home.revisions.demo')}</p>{/if}
++		<div class="vega-revisions-offer-actions">
++			<a href={`${settingsRoute()}#vega-revisions-settings-title`}
++				>{ctx.t('home.revisions.prepare')}</a
++			>
++			<button type="button" onclick={dismiss}>{ctx.t('home.revisions.later')}</button>
++		</div>
++		<p class="vega-revisions-offer-hint">{ctx.t('home.revisions.dismissHint')}</p>
++	</section>
++{/if}
++
++<style>
++	.vega-revisions-offer {
++		margin-block: 1.5rem;
++		padding: 1.5rem;
++		border: 1px solid var(--line);
++		border-radius: 8px;
++		background: var(--surface);
++		box-shadow: var(--shadow-card);
++	}
++	h2 {
++		margin: 0 0 0.5rem;
++		font-size: 1.1rem;
++	}
++	p {
++		margin: 0 0 0.75rem;
++		max-width: 64ch;
++	}
++	.vega-revisions-offer-actions {
++		display: flex;
++		flex-wrap: wrap;
++		gap: 0.5rem;
++		margin-block: 1rem;
++	}
++	a,
++	button {
++		display: inline-flex;
++		align-items: center;
++		justify-content: center;
++		min-height: 44px;
++		padding: 0.6rem 1rem;
++		border: 1px solid var(--line);
++		border-radius: 6px;
++		background: var(--btn);
++		color: var(--ink);
++		font: inherit;
++		cursor: pointer;
++		text-decoration: none;
++	}
++	a {
++		background: var(--accent);
++		color: var(--accent-ink);
++		border-color: var(--accent);
++		font-weight: 600;
++	}
++	a:hover {
++		background: var(--accent-hover);
++	}
++	button:hover {
++		background: var(--active);
++	}
++	.vega-revisions-offer-hint {
++		margin: 0;
++		color: var(--ink-2);
++		font-size: 0.82rem;
++	}
++	@media (max-width: 640px) {
++		.vega-revisions-offer {
++			padding: 1rem;
++		}
++		a,
++		button {
++			flex: 1 1 100%;
++		}
++	}
++</style>
+diff --git a/src/lib/home/fixture.ts b/src/lib/home/fixture.ts
+index 7d067b4..4b695a5 100644
+--- a/src/lib/home/fixture.ts
++++ b/src/lib/home/fixture.ts
+@@ -56,6 +56,7 @@ export function model(
+ ): ContentModel {
+ 	return {
+ 		types,
++		revisions: { enabled: false, keepPerRecord: 20, trashDays: 30 },
+ 		nav: {
+ 			groups: [
+ 				{
+diff --git a/src/lib/home/home-page.svelte.test.ts b/src/lib/home/home-page.svelte.test.ts
+index 06f97e3..33c5211 100644
+--- a/src/lib/home/home-page.svelte.test.ts
++++ b/src/lib/home/home-page.svelte.test.ts
+@@ -16,6 +16,11 @@ import { serializeRecentEdits, type RecentEdit } from './recent-edits';
+ 
+ import HomePage from '../../routes/+page.svelte';
+ 
++vi.mock('$lib/session/backend', () => ({
++	backendInstallationKey: () => 'site-a',
++	backendIsDemo: () => false
++}));
++
+ const STORAGE_KEY = 'vega.recentEdits.v1::u1';
+ 
+ const POSTS = type('posts', {
+@@ -582,3 +587,35 @@ describe('portada: tabla de lo último que editaste', () => {
+ 		expect(cell?.getAttribute('title')).toMatch(/2026/);
+ 	});
+ });
++
++describe('portada: preparar historial sin activación automática', () => {
++	test('la tarjeta aparece una vez y enlaza a la preparación existente sin escribir', async () => {
++		const { target, list } = mountHome({
++			model: model([POSTS], { revisions: { enabled: true, keepPerRecord: 20, trashDays: 30 } })
++		});
++		await settle();
++		expect(target.querySelectorAll('.vega-revisions-offer')).toHaveLength(1);
++		expect(target.querySelector('.vega-revisions-offer a')?.getAttribute('href')).toBe(
++			'/settings#vega-revisions-settings-title'
++		);
++		expect(list.mock.calls.some(([collection]) => collection === 'vega_revisions')).toBe(false);
++	});
++	test('sitio vacío: sustituye el CTA genérico y tras descartar lo devuelve', async () => {
++		const { target } = mountHome({
++			model: model([], { revisions: { enabled: true, keepPerRecord: 20, trashDays: 30 } })
++		});
++		await settle();
++		expect(target.textContent).not.toContain('nav.emptyCta');
++		(target.querySelector('.vega-revisions-offer button') as HTMLButtonElement).click();
++		await settle();
++		expect(target.querySelector('.vega-revisions-offer')).toBeNull();
++		expect(target.textContent).toContain('nav.emptyCta');
++		expect(localStorage.getItem('vega.revisionsOffer.v1:site-a')).toBe('dismissed');
++	});
++	test('el descarte guardado y el rol editor no muestran la oferta', async () => {
++		localStorage.setItem('vega.revisionsOffer.v1:site-a', 'dismissed');
++		const { target } = mountHome({ model: model([POSTS], { revisions: { enabled: true } }) });
++		await settle();
++		expect(target.querySelector('.vega-revisions-offer')).toBeNull();
++	});
++});
+diff --git a/src/lib/home/revisions-onboarding.dom.test.ts b/src/lib/home/revisions-onboarding.dom.test.ts
+new file mode 100644
+index 0000000..d8e358d
+--- /dev/null
++++ b/src/lib/home/revisions-onboarding.dom.test.ts
+@@ -0,0 +1,42 @@
++import { beforeEach, describe, expect, test, vi } from 'vitest';
++import { model, type } from './fixture';
++import {
++	dismissRevisionsOffer,
++	isRevisionsOfferDismissed,
++	shouldOfferRevisions
++} from './revisions-onboarding';
++
++beforeEach(() => {
++	vi.restoreAllMocks();
++	localStorage.clear();
++});
++describe('oferta de historial por instalación', () => {
++	test('solo administradores con historial permitido y colección ausente', () => {
++		const missing = model([], { revisions: { enabled: true, keepPerRecord: 20, trashDays: 30 } });
++		expect(shouldOfferRevisions(missing, true)).toBe(true);
++		expect(shouldOfferRevisions(missing, false)).toBe(false);
++		expect(shouldOfferRevisions(model([], { revisions: { enabled: false } }), true)).toBe(false);
++		expect(
++			shouldOfferRevisions(model([type('vega_revisions')], { revisions: { enabled: true } }), true)
++		).toBe(false);
++	});
++	test('descartar persiste solo en este navegador y esta instalación sin alterar configuración', () => {
++		expect(isRevisionsOfferDismissed('site-a')).toBe(false);
++		dismissRevisionsOffer('site-a');
++		expect(isRevisionsOfferDismissed('site-a')).toBe(true);
++		expect(isRevisionsOfferDismissed('site-b')).toBe(false);
++		expect(localStorage.length).toBe(1);
++	});
++	test('almacenamiento bloqueado o sin identidad no rompe Home', () => {
++		vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
++			throw new Error('blocked');
++		});
++		vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
++			throw new Error('blocked');
++		});
++		expect(() => dismissRevisionsOffer('site')).not.toThrow();
++		expect(isRevisionsOfferDismissed('site')).toBe(false);
++		expect(() => dismissRevisionsOffer(null)).not.toThrow();
++		expect(isRevisionsOfferDismissed(null)).toBe(false);
++	});
++});
+diff --git a/src/lib/home/revisions-onboarding.ts b/src/lib/home/revisions-onboarding.ts
+new file mode 100644
+index 0000000..b016252
+--- /dev/null
++++ b/src/lib/home/revisions-onboarding.ts
+@@ -0,0 +1,38 @@
++/** Preferencia del ofrecimiento inicial: por instalación EN ESTE navegador, nunca configuración. */
++import type { ContentModel } from '$lib/model/types';
++
++export function shouldOfferRevisions(model: ContentModel, schemaBootstrap: boolean): boolean {
++	return (
++		schemaBootstrap &&
++		model.revisions.enabled &&
++		!model.types.some((type) => type.name === 'vega_revisions')
++	);
++}
++
++function storage(): Pick<Storage, 'getItem' | 'setItem'> | null {
++	try {
++		return typeof localStorage === 'undefined' ? null : localStorage;
++	} catch {
++		return null;
++	}
++}
++
++/** Sin identidad/almacenamiento, el componente conserva el descarte solo mientras está montado. */
++export function isRevisionsOfferDismissed(identity: string | null): boolean {
++	try {
++		return (
++			identity !== null && storage()?.getItem(`vega.revisionsOffer.v1:${identity}`) === 'dismissed'
++		);
++	} catch {
++		return false;
++	}
++}
++
++/** Fallar al guardar esta comodidad no bloquea Inicio ni modifica revisions.enabled. */
++export function dismissRevisionsOffer(identity: string | null): void {
++	try {
++		if (identity !== null) storage()?.setItem(`vega.revisionsOffer.v1:${identity}`, 'dismissed');
++	} catch {
++		/* Sin persistencia entre visitas. */
++	}
++}
+diff --git a/src/lib/i18n/en.ts b/src/lib/i18n/en.ts
+index 06d2f8f..a00cc06 100644
+--- a/src/lib/i18n/en.ts
++++ b/src/lib/i18n/en.ts
+@@ -22,6 +22,14 @@ export const en: Record<keyof typeof import('./es').es, string> = {
+ 	'nav.emptyBodyEditor': 'There is no content to edit yet. Talk to whoever manages the site.',
+ 
+ 	// ————— Home (`/`) —————
++	'home.revisions.title': 'Keep earlier versions and recover deleted records',
++	'home.revisions.body':
++		'Prepare history and trash for this site. You can consult earlier versions of your content.',
++	'home.revisions.limits': 'Attached files and links removed during deletion cannot be recovered.',
++	'home.revisions.demo': 'In this demo, changes last for this session.',
++	'home.revisions.prepare': 'Prepare history and trash',
++	'home.revisions.later': 'Not now',
++	'home.revisions.dismissHint': 'Dismissal is saved in this browser if its storage is available.',
+ 	'home.title': 'Home',
+ 	'home.create.title': 'Create',
+ 	'home.create.button': 'New: {label}',
+@@ -1151,6 +1159,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
+ 		'Attached files are not recovered, even if you restore the entry.',
+ 
+ 	// ————— Trash — /trash route —————
++	'revisions.trash.savedVersion': 'You can consult the saved version in trash.',
++	'revisions.trash.viewSaved': 'View in trash',
+ 	'revisions.trash.pageTitle': 'Trash',
+ 	'revisions.trash.description':
+ 		'Here are the items and files you have deleted. You can restore them as they were until the retention period set in Settings runs out.',
+diff --git a/src/lib/i18n/es.ts b/src/lib/i18n/es.ts
+index 0e6a19b..1e872b8 100644
+--- a/src/lib/i18n/es.ts
++++ b/src/lib/i18n/es.ts
+@@ -28,6 +28,16 @@ export const es = {
+ 		'Todavía no hay contenido que editar. Habla con quien administre el sitio.',
+ 
+ 	// ————— Portada («Inicio», `/`) —————
++	'home.revisions.title': 'Guarda versiones anteriores y recupera registros borrados',
++	'home.revisions.body':
++		'Prepara el historial y la papelera para este sitio. Podrás consultar versiones anteriores de tu contenido.',
++	'home.revisions.limits':
++		'Los archivos adjuntos y los enlaces que se eliminan al borrar no se recuperan.',
++	'home.revisions.demo': 'En esta demo, los cambios se conservan durante esta sesión.',
++	'home.revisions.prepare': 'Preparar historial y papelera',
++	'home.revisions.later': 'Ahora no',
++	'home.revisions.dismissHint':
++		'El descarte se guarda en este navegador si su almacenamiento está disponible.',
+ 	'home.title': 'Inicio',
+ 	'home.create.title': 'Crear',
+ 	'home.create.button': 'Nuevo: {label}',
+@@ -1205,6 +1215,8 @@ export const es = {
+ 		'Los archivos adjuntos no se recuperan, aunque restaures la entrada.',
+ 
+ 	// ————— Papelera — ruta /papelera —————
++	'revisions.trash.savedVersion': 'Puedes consultar la versión guardada en la papelera.',
++	'revisions.trash.viewSaved': 'Ver en papelera',
+ 	'revisions.trash.pageTitle': 'Papelera',
+ 	'revisions.trash.description':
+ 		'Aquí están los elementos y archivos que has borrado. Puedes restaurarlos tal como estaban hasta que se cumpla el plazo de conservación que se fija en Ajustes.',
+diff --git a/src/lib/revisions/delete-feedback.test.ts b/src/lib/revisions/delete-feedback.test.ts
+new file mode 100644
+index 0000000..7e483ef
+--- /dev/null
++++ b/src/lib/revisions/delete-feedback.test.ts
+@@ -0,0 +1,194 @@
++import { beforeEach, describe, expect, test, vi } from 'vitest';
++import type { ToastAction, VegaAppContext } from '$lib/app-context';
++import type { Field } from '$lib/backend/types';
++import { VegaError } from '$lib/backend/errors';
++import { createMemoryBackend } from '$lib/backend/adapters/memory';
++import { model, type } from '$lib/home/fixture';
++import { VEGA_REVISIONS_COLLECTION } from './revisions-collection';
++import { withRevisions } from './with-revisions';
++import { deleteRecordWithFeedback } from './delete-feedback';
++
++const REVISIONS = VEGA_REVISIONS_COLLECTION.name;
++async function setup() {
++	const title: Field = {
++		name: 'title',
++		type: 'text',
++		subtype: 'plain',
++		required: false,
++		readonly: false,
++		hidden: false,
++		presentable: false,
++		unique: false
++	};
++	const inner = createMemoryBackend({
++		users: [{ email: 'admin@vega.test', password: 'pw' }],
++		contentTypes: [{ name: 'posts', readonly: false, fields: [title] }],
++		records: {
++			posts: [
++				{ id: 'p1', values: { title: 'Primera' } },
++				{ id: 'p2', values: { title: 'Segunda' } }
++			]
++		}
++	});
++	const session = await inner.login({ email: 'admin@vega.test', password: 'pw' });
++	await inner.ensureCollections([VEGA_REVISIONS_COLLECTION]);
++	const toast = vi.fn();
++	const toTrash = vi.fn();
++	const ctx = {
++		port: withRevisions(inner),
++		session,
++		model: model([type('posts'), type(REVISIONS, { hidden: true })], {
++			revisions: { enabled: true, trashDays: 30, keepPerRecord: 20 }
++		}),
++		t: (key: string) => key,
++		feedback: { toast },
++		nav: { toTrash }
++	} as unknown as VegaAppContext;
++	return { ctx, inner, toast, toTrash };
++}
++function action(toast: ReturnType<typeof vi.fn>): ToastAction | undefined {
++	return toast.mock.calls[0]?.[1]?.action;
++}
++
++beforeEach(() => {
++	vi.restoreAllMocks();
++});
++describe('borrado con acceso acreditado a papelera', () => {
++	test('borrado real + get/list exactos: ofrece navegar por el contrato existente', async () => {
++		const { ctx, inner, toast, toTrash } = await setup();
++		const list = vi.spyOn(ctx.port, 'list');
++		expect(await deleteRecordWithFeedback(ctx, 'posts', 'p1', 'Primera')).toBe(true);
++		await expect(inner.get('posts', 'p1')).rejects.toMatchObject({ kind: 'not-found' });
++		const revision = (await inner.list(REVISIONS)).items[0];
++		expect(list).toHaveBeenCalledWith(
++			REVISIONS,
++			expect.objectContaining({
++				perPage: 1,
++				filter: expect.objectContaining({
++					nodes: expect.arrayContaining([
++						{ kind: 'cond', field: 'id', op: 'eq', value: revision.id }
++					])
++				})
++			})
++		);
++		expect(action(toast)?.label).toBe('revisions.trash.viewSaved');
++		action(toast)?.invoke();
++		expect(toTrash).toHaveBeenCalledWith();
++	});
++	test('listRule que devuelve [] no acredita acceso aunque get resuelva', async () => {
++		const { ctx, inner, toast } = await setup();
++		vi.spyOn(ctx.port, 'list').mockResolvedValue({
++			items: [],
++			page: 1,
++			perPage: 1,
++			totalItems: 0,
++			totalPages: 0
++		});
++		expect(await deleteRecordWithFeedback(ctx, 'posts', 'p1', 'Primera')).toBe(true);
++		await expect(inner.get('posts', 'p1')).rejects.toMatchObject({ kind: 'not-found' });
++		expect(action(toast)).toBeUndefined();
++	});
++	test.each(['kind', 'id', 'expired', 'invalidDate', 'futureDate'])(
++		'una revisión %s no demuestra que esté en papelera',
++		async (invalid) => {
++			const { ctx, toast } = await setup();
++			const get = ctx.port.get;
++			vi.spyOn(ctx.port, 'get').mockImplementation(async (collection, id) => {
++				const record = await get(collection, id);
++				if (collection !== REVISIONS) return record;
++				return {
++					...record,
++					id: invalid === 'id' ? 'another' : record.id,
++					values: {
++						...record.values,
++						kind: invalid === 'kind' ? 'update' : 'delete',
++						created:
++							invalid === 'expired'
++								? '2000-01-01T00:00:00Z'
++								: invalid === 'invalidDate'
++									? 'bad'
++									: invalid === 'futureDate'
++										? '2999-01-01T00:00:00Z'
++										: record.values.created
++					}
++				};
++			});
++			expect(await deleteRecordWithFeedback(ctx, 'posts', 'p1', 'Primera')).toBe(true);
++			expect(action(toast)).toBeUndefined();
++		}
++	);
++	test.each(['getDenied', 'listDenied', 'permissions', 'disabled', 'missingCollection'])(
++		'%s: no ofrece acción ni convierte el delete en fallo',
++		async (scenario) => {
++			const { ctx, toast } = await setup();
++			if (scenario === 'getDenied')
++				vi.spyOn(ctx.port, 'get').mockRejectedValue(VegaError.forbidden());
++			if (scenario === 'listDenied')
++				vi.spyOn(ctx.port, 'list').mockRejectedValue(VegaError.forbidden());
++			if (scenario === 'permissions')
++				ctx.model.types.find((t) => t.name === REVISIONS)!.permissions.list = false;
++			if (scenario === 'disabled') ctx.model.revisions.enabled = false;
++			if (scenario === 'missingCollection') ctx.model.types.splice(1, 1);
++			expect(await deleteRecordWithFeedback(ctx, 'posts', 'p1', 'Primera')).toBe(true);
++			expect(action(toast)).toBeUndefined();
++		}
++	);
++	test('el listado debe contener el mismo ticket, no otra revisión válida', async () => {
++		const { ctx, toast } = await setup();
++		vi.spyOn(ctx.port, 'list').mockResolvedValue({
++			items: [
++				{
++					id: 'other',
++					type: REVISIONS,
++					values: {
++						kind: 'delete',
++						collection: 'posts',
++						recordId: 'p1',
++						created: new Date().toISOString()
++					}
++				}
++			],
++			page: 1,
++			perPage: 1,
++			totalItems: 1,
++			totalPages: 1
++		});
++		expect(await deleteRecordWithFeedback(ctx, 'posts', 'p1', 'Primera')).toBe(true);
++		expect(action(toast)).toBeUndefined();
++	});
++	test.each(['token', 'user', 'port'])(
++		'cambio de %s durante la lectura: no emite datos ni permite navegar',
++		async (part) => {
++			const { ctx, toast, toTrash } = await setup();
++			const get = ctx.port.get;
++			vi.spyOn(ctx.port, 'get').mockImplementation(async (collection, id) => {
++				const record = await get(collection, id);
++				if (collection === REVISIONS) {
++					if (part === 'token') ctx.session.token = 'new-token';
++					if (part === 'user') ctx.session.user.id = 'new-user';
++					if (part === 'port') Object.assign(ctx, { port: { ...ctx.port } });
++				}
++				return record;
++			});
++			expect(await deleteRecordWithFeedback(ctx, 'posts', 'p1', 'Primera')).toBe(false);
++			expect(toast).not.toHaveBeenCalled();
++			expect(toTrash).not.toHaveBeenCalled();
++		}
++	);
++	test('una acción ya visible no navega después de cambiar sesión', async () => {
++		const { ctx, toast, toTrash } = await setup();
++		await deleteRecordWithFeedback(ctx, 'posts', 'p1', 'Primera');
++		ctx.session.token = 'other';
++		expect(action(toast)?.isCurrent()).toBe(false);
++		action(toast)?.invoke();
++		expect(toTrash).not.toHaveBeenCalled();
++	});
++	test('sin decorador real se ejecuta delete una sola vez y no inventa recuperación', async () => {
++		const { ctx, inner, toast } = await setup();
++		Object.assign(ctx, { port: inner });
++		const deletion = vi.spyOn(inner, 'delete');
++		expect(await deleteRecordWithFeedback(ctx, 'posts', 'p1', 'Primera')).toBe(true);
++		expect(deletion).toHaveBeenCalledOnce();
++		expect(action(toast)).toBeUndefined();
++	});
++});
+diff --git a/src/lib/revisions/delete-feedback.ts b/src/lib/revisions/delete-feedback.ts
+new file mode 100644
+index 0000000..eb4ac98
+--- /dev/null
++++ b/src/lib/revisions/delete-feedback.ts
+@@ -0,0 +1,116 @@
++/** Borrado unitario: acceso a la papelera solo tras acreditar su revisión exacta y la sesión.
++ *  Las lecturas de recuperación son best-effort; nunca convierten un delete exitoso en fallo. */
++import type { VegaAppContext } from '$lib/app-context';
++import type { BackendPort } from '$lib/backend/port';
++import type { RecordId } from '$lib/backend/types';
++import { parseRevisionRecord } from './revision';
++import { VEGA_REVISIONS_COLLECTION } from './revisions-collection';
++import { buildTrashListQuery } from './trash-query';
++import { deleteWithRecovery, type DeleteRecoveryTicket } from './with-revisions';
++
++function canConsult(ctx: VegaAppContext): boolean {
++	const type = ctx.model.types.find((item) => item.name === VEGA_REVISIONS_COLLECTION.name);
++	return ctx.model.revisions.enabled && Boolean(type?.permissions.view && type.permissions.list);
++}
++
++function matches(
++	ticket: DeleteRecoveryTicket,
++	record: Parameters<typeof parseRevisionRecord>[0],
++	days: number
++): boolean {
++	const revision = parseRevisionRecord(record);
++	const created = revision?.created ? Date.parse(revision.created) : NaN;
++	return Boolean(
++		revision &&
++		revision.id === ticket.revisionId &&
++		revision.kind === 'delete' &&
++		revision.collection === ticket.collection &&
++		revision.recordId === ticket.recordId &&
++		Number.isFinite(created) &&
++		created >= Date.now() - days * 86400000 &&
++		created <= Date.now()
++	);
++}
++
++/** La listRule puede filtrar a vacío sin error: get y list deben acreditar ESTA revisión. */
++async function confirmedRecovery(
++	ctx: VegaAppContext,
++	port: BackendPort,
++	ticket: DeleteRecoveryTicket,
++	isCurrent: () => boolean
++): Promise<boolean> {
++	try {
++		if (!isCurrent() || !canConsult(ctx)) return false;
++		const revision = await port.get(VEGA_REVISIONS_COLLECTION.name, ticket.revisionId);
++		if (
++			!isCurrent() ||
++			!canConsult(ctx) ||
++			!matches(ticket, revision, ctx.model.revisions.trashDays)
++		)
++			return false;
++		const query = buildTrashListQuery(1, ctx.model.revisions.trashDays);
++		const result = await port.list(VEGA_REVISIONS_COLLECTION.name, {
++			...query,
++			perPage: 1,
++			filter: {
++				kind: 'group',
++				combinator: 'and',
++				nodes: [query.filter!, { kind: 'cond', field: 'id', op: 'eq', value: ticket.revisionId }]
++			}
++		});
++		return (
++			isCurrent() &&
++			canConsult(ctx) &&
++			result.items.some((record) => matches(ticket, record, ctx.model.revisions.trashDays))
++		);
++	} catch {
++		return false;
++	}
++}
++
++/** Devuelve false al cambiar sesión: la ruta no navega ni emite datos de la cuenta anterior. */
++export async function deleteRecordWithFeedback(
++	ctx: VegaAppContext,
++	collection: string,
++	id: RecordId,
++	label: string
++): Promise<boolean> {
++	const port = ctx.port;
++	const { token, user } = ctx.session;
++	const userId = user.id;
++	const isCurrent = () =>
++		ctx.port === port && ctx.session?.user.id === userId && ctx.session.token === token;
++	let ticket: DeleteRecoveryTicket | null;
++	try {
++		ticket = await deleteWithRecovery(port, collection, id);
++	} catch (error) {
++		if (!isCurrent()) return false;
++		throw error;
++	}
++	if (!isCurrent()) return false;
++	const recoverable = ticket !== null && (await confirmedRecovery(ctx, port, ticket, isCurrent));
++	if (!isCurrent()) return false;
++	ctx.feedback.toast(
++		[
++			ctx.t('list.delete.success', { label }),
++			recoverable ? ctx.t('revisions.trash.savedVersion') : null
++		]
++			.filter(Boolean)
++			.join(' '),
++		{
++			kind: 'success',
++			...(recoverable
++				? {
++						action: {
++							label: ctx.t('revisions.trash.viewSaved'),
++							isCurrent,
++							invoke: () => {
++								if (isCurrent()) ctx.nav.toTrash();
++							}
++						}
++					}
++				: {})
++		}
++	);
++	return true;
++}
+diff --git a/src/lib/revisions/with-revisions.test.ts b/src/lib/revisions/with-revisions.test.ts
+index e1ae9c3..3570962 100644
+--- a/src/lib/revisions/with-revisions.test.ts
++++ b/src/lib/revisions/with-revisions.test.ts
+@@ -29,7 +29,12 @@ import type {
+ import { VegaConflictError, VegaError } from '$lib/backend/errors';
+ import { createMemoryBackend } from '$lib/backend/adapters/memory';
+ import { VEGA_REVISIONS_COLLECTION } from './revisions-collection';
+-import { pruneTrashRevisions, resetRevisionsLatch, withRevisions } from './with-revisions';
++import {
++	deleteWithRecovery,
++	pruneTrashRevisions,
++	resetRevisionsLatch,
++	withRevisions
++} from './with-revisions';
+ 
+ interface FakePortOptions {
+ 	/** `values.manifest.revisions` del registro `vega` — `undefined` = sin registro `vega` (list
+@@ -811,3 +816,45 @@ describe('withRevisions — delete (Fase B2, §8·B2)', () => {
+ 		await Promise.resolve();
+ 	});
+ });
++
++describe('deleteWithRecovery — ticket por operación sin cambiar BackendPort', () => {
++	test('dos borrados concurrentes devuelven sus propios IDs de revisión', async () => {
++		const { port } = buildFakePort();
++		vi.mocked(port.create).mockImplementation(async (type, input) => {
++			await Promise.resolve();
++			return { id: `revision-${input.recordId}`, type, values: input } as VegaRecord;
++		});
++		const wrapped = withRevisions(port);
++		const results = await Promise.all([
++			deleteWithRecovery(wrapped, 'posts', 'p1'),
++			deleteWithRecovery({ ...wrapped }, 'posts', 'p2')
++		]);
++		expect(results).toEqual([
++			{ revisionId: 'revision-p1', collection: 'posts', recordId: 'p1' },
++			{ revisionId: 'revision-p2', collection: 'posts', recordId: 'p2' }
++		]);
++		expect(await wrapped.delete('posts', 'p3')).toBeUndefined();
++	});
++	test('un snapshot fallido sigue borrando sin ofrecer ticket', async () => {
++		const { port } = buildFakePort({ revisionsCollectionMissing: true });
++		expect(await deleteWithRecovery(withRevisions(port), 'posts', 'p1')).toBeNull();
++		expect(port.delete).toHaveBeenCalledWith('posts', 'p1');
++	});
++	test('un wrapper que sustituye delete se ejecuta sin saltarlo ni inventar ticket', async () => {
++		const { port } = buildFakePort();
++		const wrapped = withRevisions(port);
++		const deleteFn = vi.fn(async () => {});
++		expect(await deleteWithRecovery({ ...wrapped, delete: deleteFn }, 'posts', 'p1')).toBeNull();
++		expect(deleteFn).toHaveBeenCalledOnce();
++		expect(port.delete).not.toHaveBeenCalled();
++	});
++	test('delete fallido conserva el error original y compensa el snapshot', async () => {
++		const { port } = buildFakePort();
++		const error = VegaError.network();
++		vi.mocked(port.delete).mockImplementation(async (type) => {
++			if (type === 'posts') throw error;
++		});
++		await expect(deleteWithRecovery(withRevisions(port), 'posts', 'p1')).rejects.toBe(error);
++		expect(port.delete).toHaveBeenCalledWith('vega_revisions', 'newid');
++	});
++});
+diff --git a/src/lib/revisions/with-revisions.ts b/src/lib/revisions/with-revisions.ts
+index 836f2cf..f1aff6d 100644
+--- a/src/lib/revisions/with-revisions.ts
++++ b/src/lib/revisions/with-revisions.ts
+@@ -156,6 +156,34 @@ async function fetchRevisionsConfig(port: BackendPort): Promise<RevisionsManifes
+  *  lanzar por un detalle de mantenimiento). */
+ const resetHooks = new WeakMap<BackendPort, () => void>();
+ 
++/** Resultado privado de ESTA operación; la identidad de delete sobrevive al spread de preview.
++ *  No se guarda un último ticket compartido ni se amplía el contrato destructivo del puerto. */
++const deleteRecoveryHandlers = new WeakMap<
++	BackendPort['delete'],
++	(type: string, id: RecordId) => Promise<RecordId | null>
++>();
++
++export interface DeleteRecoveryTicket {
++	revisionId: RecordId;
++	collection: string;
++	recordId: RecordId;
++}
++
++/** Borrado habitual con el id de su snapshot, si se creó; todavía no prueba acceso ni vigencia. */
++export async function deleteWithRecovery(
++	port: BackendPort,
++	collection: string,
++	id: RecordId
++): Promise<DeleteRecoveryTicket | null> {
++	const perform = deleteRecoveryHandlers.get(port.delete);
++	if (!perform) {
++		await port.delete(collection, id);
++		return null;
++	}
++	const revisionId = await perform(collection, id);
++	return revisionId === null ? null : { revisionId, collection, recordId: id };
++}
++
+ export function resetRevisionsLatch(port: BackendPort): void {
+ 	resetHooks.get(port)?.();
+ }
+@@ -408,6 +436,21 @@ export function withRevisions(port: BackendPort): BackendPort {
+ 		return revisionId;
+ 	}
+ 
++	/** Misma compensación y best-effort para el void público y el resultado privado. */
++	async function performDelete(type: string, id: RecordId): Promise<RecordId | null> {
++		const revisionId = await snapshotBeforeDelete(type, id);
++		try {
++			await port.delete(type, id);
++			return revisionId;
++		} catch (err) {
++			// Si el borrado falla, retirar la entrada ficticia sin ocultar el error original.
++			if (revisionId !== null) {
++				await port.delete(VEGA_REVISIONS_COLLECTION.name, revisionId).catch(() => {});
++			}
++			throw err;
++		}
++	}
++
+ 	const wrapped: BackendPort = {
+ 		...port,
+ 		async update(type, id, data, opts) {
+@@ -428,20 +471,10 @@ export function withRevisions(port: BackendPort): BackendPort {
+ 			return saved;
+ 		},
+ 		async delete(type, id) {
+-			const revisionId = await snapshotBeforeDelete(type, id);
+-			try {
+-				return await port.delete(type, id);
+-			} catch (err) {
+-				// El borrado falló: el registro sigue vivo, así que su revisión de papelera sería una
+-				// mentira («Restaurar» fallaría contra un registro que nunca se fue). Se retira; si
+-				// esa compensación también falla, manda el error ORIGINAL del borrado.
+-				if (revisionId !== null) {
+-					await port.delete(VEGA_REVISIONS_COLLECTION.name, revisionId).catch(() => {});
+-				}
+-				throw err;
+-			}
++			await performDelete(type, id);
+ 		}
+ 	};
++	deleteRecoveryHandlers.set(wrapped.delete, performDelete);
+ 
+ 	resetHooks.set(wrapped, () => {
+ 		revisionsUnavailable = false;
+diff --git a/src/lib/session/backend-config.test.ts b/src/lib/session/backend-config.test.ts
+index 006e265..cb45524 100644
+--- a/src/lib/session/backend-config.test.ts
++++ b/src/lib/session/backend-config.test.ts
+@@ -1,5 +1,5 @@
+ import { describe, expect, test } from 'vitest';
+-import { resolveAuthApiBasePath } from './backend-config';
++import { backendInstallationIdentity, resolveAuthApiBasePath } from './backend-config';
+ 
+ describe('resolveAuthApiBasePath', () => {
+ 	test('es opt-in y normaliza la barra final', () => {
+@@ -14,3 +14,26 @@ describe('resolveAuthApiBasePath', () => {
+ 		expect(resolveAuthApiBasePath({ authApiBasePath: '//auth.example.com/api' })).toBeNull();
+ 	});
+ });
++
++describe('backendInstallationIdentity', () => {
++	test('no persiste credenciales ni query/hash y conserva el subpath', () => {
++		expect(
++			backendInstallationIdentity(
++				'https://user:secret@pb.example.com:8090/sitio///?token=secret#x',
++				' project '
++			)
++		).toBe(JSON.stringify(['https://pb.example.com:8090/sitio', 'project']));
++		expect(backendInstallationIdentity('https://pb.example.com/sitio', 'project')).not.toBe(
++			backendInstallationIdentity('https://pb.example.com/otro', 'project')
++		);
++	});
++	test('distingue proyectos del mismo backend y normaliza el default real', () => {
++		expect(backendInstallationIdentity('https://pb.example.com/', ' ')).toBe(
++			backendInstallationIdentity('https://pb.example.com', 'default')
++		);
++		expect(backendInstallationIdentity('https://pb.example.com', 'a')).not.toBe(
++			backendInstallationIdentity('https://pb.example.com', 'b')
++		);
++		expect(backendInstallationIdentity('invalid')).toBeNull();
++	});
++});
+diff --git a/src/lib/session/backend-config.ts b/src/lib/session/backend-config.ts
+index e12f317..5d3d057 100644
+--- a/src/lib/session/backend-config.ts
++++ b/src/lib/session/backend-config.ts
+@@ -7,6 +7,8 @@
+  * `window`/`localStorage`, trivialmente testeable con objetos planos.
+  */
+ 
++import { VEGA_PROJECT_KEY } from '$lib/backend/collections';
++
+ /**
+  * Forma de `static/vega.config.json` (D-P3.5-a): fichero opcional, leído en runtime (fetch,
+  * cero build), para apuntar a un PocketBase que NO es same-origin. Si el fichero no existe o
+@@ -130,3 +132,18 @@ export function resolveAuthApiBasePath(config: VegaConfig | null): string | null
+ 	if (!value || !value.startsWith('/') || value.startsWith('//')) return null;
+ 	return value;
+ }
++
++/** Identidad local de la instalación resuelta; excluye credenciales y conserva el subpath. */
++export function backendInstallationIdentity(url: string, manifestKey?: string): string | null {
++	if (!isAbsoluteUrl(url)) return null;
++	const canonical = new URL(url);
++	canonical.username = '';
++	canonical.password = '';
++	canonical.search = '';
++	canonical.hash = '';
++	canonical.pathname = canonical.pathname.replace(/\/+$/, '') || '/';
++	return JSON.stringify([
++		canonical.href.replace(/\/$/, ''),
++		manifestKey?.trim() || VEGA_PROJECT_KEY
++	]);
++}
+diff --git a/src/lib/session/backend.ts b/src/lib/session/backend.ts
+index 04a87ab..6a942b7 100644
+--- a/src/lib/session/backend.ts
++++ b/src/lib/session/backend.ts
+@@ -117,6 +117,7 @@ import { VegaError } from '$lib/backend';
+ import { createMemoryBackend } from '$lib/backend/adapters/memory';
+ import { createPocketBaseBackend } from '$lib/backend/adapters/pocketbase';
+ import {
++	backendInstallationIdentity,
+ 	isAbsoluteUrl,
+ 	resolveAuthApiBasePath,
+ 	resolveAuthCollection,
+@@ -249,6 +250,16 @@ interface DemoSessionMarker {
+ }
+ 
+ let instancePromise: Promise<BackendPort> | null = null;
++let installationKey: string | null = null;
++let demoInstallation = false;
++
++/** Metadatos de la instancia YA construida: no hacen fetch ni contienen la sesión. */
++export function backendInstallationKey(): string | null {
++	return installationKey;
++}
++export function backendIsDemo(): boolean {
++	return demoInstallation;
++}
+ 
+ /**
+  * Devuelve el `BackendPort` singleton (perezoso, memoizado): la primera llamada lo construye;
+@@ -271,7 +282,8 @@ async function createInstance(): Promise<BackendPort> {
+ 		// `pocketbase` (producción) nunca la descarga. `createInstance` ya era async.
+ 		const { DEMO_CREDENTIALS, DEMO_SEED, DEMO_SEED_WITH_MEDIA, SHOWCASE_SEED } =
+ 			await import('./demo-seed');
+-		const seed = useShowcaseSeed()
++		const showcase = useShowcaseSeed();
++		const seed = showcase
+ 			? SHOWCASE_SEED
+ 			: window.__VEGA_SEED_MEDIA__
+ 				? DEMO_SEED_WITH_MEDIA
+@@ -294,6 +306,12 @@ async function createInstance(): Promise<BackendPort> {
+ 		// producción salen del discovery, para que la suite e2e pueda alcanzar el editor visual.
+ 		// Se aplica al FINAL, sobre el puerto ya envuelto, porque las dos son campos de datos y no
+ 		// operaciones: ninguna envoltura anterior las lee ni las reescribe.
++		demoInstallation = true;
++		installationKey = JSON.stringify([
++			'memory',
++			showcase ? 'showcase' : window.__VEGA_SEED_MEDIA__ ? 'media' : 'demo',
++			withHistory.manifestKey
++		]);
+ 		return window.__VEGA_PREVIEW_API_URL__
+ 			? {
+ 					...withHistory,
+@@ -328,7 +346,7 @@ async function createInstance(): Promise<BackendPort> {
+ 	const authApiBasePath = resolveAuthApiBasePath(projectConfig);
+ 	// `#lote-integridad` Fase B (§3): la rama `pocketbase`, envuelta igual que la de `memory`
+ 	// arriba — las DOS ramas de `createInstance()`, ninguna excepción.
+-	return withRevisions(
++	const port = withRevisions(
+ 		withRecentEdits(
+ 			withSchemaSnapshotSync(
+ 				createPocketBaseBackend({
+@@ -349,6 +367,8 @@ async function createInstance(): Promise<BackendPort> {
+ 			noteSavedRecord
+ 		)
+ 	);
++	installationKey = backendInstallationIdentity(url, port.manifestKey);
++	return port;
+ }
+ 
+ /**
+diff --git a/src/lib/shell/ToastHost.svelte b/src/lib/shell/ToastHost.svelte
+index 92f117a..a067c43 100644
+--- a/src/lib/shell/ToastHost.svelte
++++ b/src/lib/shell/ToastHost.svelte
+@@ -31,8 +31,27 @@
+ 	{#if politeToasts.length > 0}
+ 		<div class="vega-toast-region" aria-live="polite">
+ 			{#each politeToasts as toastEntry (toastEntry.id)}
+-				<div class="vega-toast" data-kind={toastEntry.kind}>
++				<div
++					class="vega-toast"
++					data-kind={toastEntry.kind}
++					data-action={toastEntry.action ? true : undefined}
++				>
+ 					<span>{toastEntry.message}</span>
++					{#if toastEntry.action}
++						<button
++							type="button"
++							class="vega-toast-action"
++							onclick={() => toastStore.invokeAction(toastEntry.id)}
++							>{toastEntry.action.label}</button
++						>
++						<button
++							type="button"
++							class="vega-toast-dismiss"
++							aria-label={ctx.t('toast.dismiss')}
++							onclick={() => toastStore.dismiss(toastEntry.id)}
++							><Icon id="close" size={12} /></button
++						>
++					{/if}
+ 				</div>
+ 			{/each}
+ 		</div>
+@@ -127,6 +146,30 @@
+ 		background: var(--active);
+ 	}
+ 
++	.vega-toast[data-action] {
++		flex-wrap: wrap;
++	}
++	.vega-toast[data-action] span {
++		flex-basis: calc(100% - 44px - 0.6rem);
++	}
++	.vega-toast-action {
++		min-height: 44px;
++		padding: 0.5rem 0.75rem;
++		border: 1px solid var(--line);
++		border-radius: 6px;
++		background: var(--btn);
++		color: var(--ink);
++		font: inherit;
++		cursor: pointer;
++	}
++	.vega-toast-action:hover {
++		background: var(--active);
++	}
++	.vega-toast[data-action] .vega-toast-dismiss {
++		width: 44px;
++		height: 44px;
++	}
++
+ 	@media (prefers-reduced-motion: reduce) {
+ 		.vega-toast {
+ 			transition: none;
+diff --git a/src/lib/shell/toasts.svelte.test.ts b/src/lib/shell/toasts.svelte.test.ts
+new file mode 100644
+index 0000000..b1d4d0f
+--- /dev/null
++++ b/src/lib/shell/toasts.svelte.test.ts
+@@ -0,0 +1,44 @@
++import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
++import { toastStore } from './toasts.svelte';
++
++beforeEach(() => {
++	vi.useFakeTimers();
++});
++afterEach(() => {
++	for (const entry of toastStore.entries) toastStore.dismiss(entry.id);
++	vi.useRealTimers();
++});
++describe('acciones de avisos', () => {
++	test('el éxito normal sigue siendo efímero y el accionable permanece hasta descartarlo', () => {
++		toastStore.push('normal', { kind: 'success' });
++		toastStore.push('saved', {
++			kind: 'success',
++			timeoutMs: 1,
++			action: { label: 'Trash', isCurrent: () => true, invoke: vi.fn() }
++		});
++		vi.advanceTimersByTime(5000);
++		expect(toastStore.entries.map((entry) => entry.message)).toEqual(['saved']);
++		toastStore.dismiss(toastStore.entries[0].id);
++		expect(toastStore.entries).toHaveLength(0);
++	});
++	test('la acción se consume una sola vez y respeta la vigencia de sesión', () => {
++		const invoke = vi.fn();
++		toastStore.push('saved', { action: { label: 'Trash', isCurrent: () => true, invoke } });
++		const id = toastStore.entries[0].id;
++		toastStore.invokeAction(id);
++		toastStore.invokeAction(id);
++		expect(invoke).toHaveBeenCalledOnce();
++		toastStore.push('stale', { action: { label: 'Trash', isCurrent: () => false, invoke } });
++		toastStore.invokeAction(toastStore.entries[0].id);
++		expect(invoke).toHaveBeenCalledOnce();
++		expect(toastStore.entries).toHaveLength(0);
++	});
++	test('cambiar sesión retira las acciones de la cuenta anterior', () => {
++		toastStore.push('action', {
++			action: { label: 'Trash', isCurrent: () => true, invoke: vi.fn() }
++		});
++		toastStore.push('normal');
++		toastStore.dismissActions();
++		expect(toastStore.entries.map((entry) => entry.message)).toEqual(['normal']);
++	});
++});
+diff --git a/src/lib/shell/toasts.svelte.ts b/src/lib/shell/toasts.svelte.ts
+index b4d63b3..afa41b7 100644
+--- a/src/lib/shell/toasts.svelte.ts
++++ b/src/lib/shell/toasts.svelte.ts
+@@ -6,16 +6,20 @@
+  * necesita contexto de Svelte porque no hay nada que aislar entre árboles de componentes.
+  *
+  * - `success` / `info`: efímeros, se autodescartan tras `timeoutMs` (default por `kind`, §2.3).
++ * - Las acciones permanecen hasta pulsarlas o descartarlas; no se pierde su oportunidad.
+  * - `error`: persistente HASTA que el usuario lo descarta explícitamente (§2.3: nunca se pierde
+  *   un error sin que alguien lo haya visto y lo haya cerrado).
+  */
+ 
++import type { ToastAction } from '$lib/app-context';
++
+ type ToastKind = 'success' | 'error' | 'info';
+ 
+ interface ToastEntry {
+ 	readonly id: number;
+ 	readonly message: string;
+ 	readonly kind: ToastKind;
++	readonly action?: ToastAction;
+ }
+ 
+ /** `timeoutMs` por defecto según `kind` (§2.3). `null` = persistente (nunca se autodescarta). */
+@@ -45,12 +49,15 @@ function dismiss(id: number): void {
+ 	entries = entries.filter((entry) => entry.id !== id);
+ }
+ 
+-function push(message: string, opts?: { kind?: ToastKind; timeoutMs?: number }): void {
++function push(
++	message: string,
++	opts?: { kind?: ToastKind; timeoutMs?: number; action?: ToastAction }
++): void {
+ 	const kind = opts?.kind ?? 'info';
+ 	const id = nextId++;
+-	entries = [...entries, { id, message, kind }];
++	entries = [...entries, { id, message, kind, action: opts?.action }];
+ 
+-	const timeoutMs = opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS[kind];
++	const timeoutMs = opts?.action ? null : (opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS[kind]);
+ 	if (timeoutMs !== null) {
+ 		timers.set(
+ 			id,
+@@ -59,11 +66,25 @@ function push(message: string, opts?: { kind?: ToastKind; timeoutMs?: number }):
+ 	}
+ }
+ 
++/** Una acción se consume una sola vez y se descarta si su sesión dejó de ser válida. */
++function invokeAction(id: number): void {
++	const action = entries.find((entry) => entry.id === id)?.action;
++	dismiss(id);
++	if (action?.isCurrent()) action.invoke();
++}
++
++/** Al cerrar/cambiar sesión no se conserva información ni acciones de la cuenta anterior. */
++function dismissActions(): void {
++	for (const entry of entries) if (entry.action) dismiss(entry.id);
++}
++
+ /** Superficie que consumen `+layout.svelte` (escribe, vía `push`) y `ToastHost.svelte` (lee). */
+ export const toastStore = {
+ 	get entries(): readonly ToastEntry[] {
+ 		return entries;
+ 	},
+ 	push,
++	dismissActions,
++	invokeAction,
+ 	dismiss
+ };
+diff --git a/src/routes/+layout.svelte b/src/routes/+layout.svelte
+index 70cff85..3e035fb 100644
+--- a/src/routes/+layout.svelte
++++ b/src/routes/+layout.svelte
+@@ -42,7 +42,12 @@
+ 	import { loadContentModel } from '$lib/model/load';
+ 	import { getBackend } from '$lib/session/backend';
+ 	import { createSessionStore, setSessionContext } from '$lib/session/session.svelte';
+-	import { setVegaContext, type NavApi, type FeedbackApi } from '$lib/app-context';
++	import {
++		setVegaContext,
++		type NavApi,
++		type FeedbackApi,
++		type VegaAppContext
++	} from '$lib/app-context';
+ 	import { t as translate, resolveLocale, ensureLocaleLoaded, type Locale } from '$lib/i18n';
+ 	import { iconRegistry } from '$lib/icons/registry';
+ 	import { applyInitialTheme } from '$lib/theme/apply';
+@@ -296,6 +301,21 @@
+ 		document.documentElement.lang = locale;
+ 	});
+ 
++	let actionSession: { port: VegaAppContext['port']; token: string; userId: string } | null = null;
++	$effect(() => {
++		const session = sessionStore.session;
++		const current = session
++			? { port: sessionStore.port, token: session.token, userId: session.user.id }
++			: null;
++		if (
++			current?.port !== actionSession?.port ||
++			current?.token !== actionSession?.token ||
++			current?.userId !== actionSession?.userId
++		)
++			toastStore.dismissActions();
++		actionSession = current;
++	});
++
+ 	onMount(() => {
+ 		applyInitialTheme();
+ 		void sessionStore.restore();
+diff --git a/src/routes/+page.svelte b/src/routes/+page.svelte
+index d6b571a..a930205 100644
+--- a/src/routes/+page.svelte
++++ b/src/routes/+page.svelte
+@@ -32,6 +32,9 @@
+ 	import type { VegaError } from '$lib/backend/errors';
+ 	import Icon from '$lib/icons/Icon.svelte';
+ 	import { normalizeListError } from '$lib/list/list-load';
++	import RevisionsOnboarding from '$lib/home/RevisionsOnboarding.svelte';
++	import { isRevisionsOfferDismissed, shouldOfferRevisions } from '$lib/home/revisions-onboarding';
++	import { backendInstallationKey } from '$lib/session/backend';
+ 	import HomePending from '$lib/home/HomePending.svelte';
+ 	import HomeRecentTable from '$lib/home/HomeRecentTable.svelte';
+ 	import { creatableTypes } from '$lib/home/home-types';
+@@ -47,6 +50,8 @@
+ 	// quien puede preparar el sitio recibe la guía a Ajustes; quien edita, la de hablar con quien
+ 	// administra.
+ 	const isAdmin = ctx.port.capabilities.schemaBootstrap;
++	let offerDismissed = $state(isRevisionsOfferDismissed(backendInstallationKey()));
++	const hasRevisionsOffer = $derived(!offerDismissed && shouldOfferRevisions(ctx.model, isAdmin));
+ 
+ 	type RecentStatus =
+ 		| { kind: 'loading' }
+@@ -94,7 +99,14 @@
+ 		<h1>{ctx.t('nav.emptyTitle')}</h1>
+ 		{#if isAdmin}
+ 			<p>{ctx.t('nav.emptyBody')}</p>
+-			<button type="button" onclick={() => ctx.nav.toSettings()}>{ctx.t('nav.emptyCta')}</button>
++			{#if !hasRevisionsOffer}<button type="button" onclick={() => ctx.nav.toSettings()}
++					>{ctx.t('nav.emptyCta')}</button
++				>{/if}
++			<RevisionsOnboarding
++				onDismiss={() => {
++					offerDismissed = true;
++				}}
++			/>
+ 		{:else}
+ 			<p>{ctx.t('nav.emptyBodyEditor')}</p>
+ 		{/if}
+@@ -123,6 +135,7 @@
+ 			</section>
+ 		{/if}
+ 
++		<RevisionsOnboarding />
+ 		<HomePending />
+ 
+ 		<section class="vega-home-block" aria-labelledby="vega-home-recent-title">
+diff --git a/src/routes/c/[type]/+page.svelte b/src/routes/c/[type]/+page.svelte
+index 0a9fceb..0493b90 100644
+--- a/src/routes/c/[type]/+page.svelte
++++ b/src/routes/c/[type]/+page.svelte
+@@ -109,6 +109,7 @@
+ 	import { goto } from '$app/navigation';
+ 	import { page } from '$app/state';
+ 	import { canCreateManually } from '$lib/model/creation';
++	import { deleteRecordWithFeedback } from '$lib/revisions/delete-feedback';
+ 	import { getVegaContext } from '$lib/app-context';
+ 	import type { ResolvedContentType } from '$lib/model/types';
+ 	import type { VegaRecord } from '$lib/backend/types';
+@@ -329,8 +330,7 @@
+ 		const { record, label } = pendingDelete;
+ 		deleting = true;
+ 		try {
+-			await ctx.port.delete(contentType.name, record.id);
+-			ctx.feedback.toast(ctx.t('list.delete.success', { label }), { kind: 'success' });
++			if (!(await deleteRecordWithFeedback(ctx, contentType.name, record.id, label))) return;
+ 			pendingDelete = null;
+ 			listState.reload();
+ 		} catch (err) {
+diff --git a/src/routes/c/[type]/[id]/+page.svelte b/src/routes/c/[type]/[id]/+page.svelte
+index 81a279f..3b1e36b 100644
+--- a/src/routes/c/[type]/[id]/+page.svelte
++++ b/src/routes/c/[type]/[id]/+page.svelte
+@@ -48,6 +48,7 @@
+ 	 *   va siempre al registro que el formulario tiene delante.
+ 	 */
+ 	import { page } from '$app/state';
++	import { deleteRecordWithFeedback } from '$lib/revisions/delete-feedback';
+ 	import { getVegaContext } from '$lib/app-context';
+ 	import { resolveVisibleContentType } from '$lib/nav/content-type';
+ 	import { buildFormModel, type FormModel } from '$lib/form/form-model';
+@@ -186,11 +187,19 @@
+ 						}
+ 					: undefined}
+ 				onDelete={async (label) => {
+-					await ctx.port.delete(activeType.name, readyModel.recordId ?? idParam);
+-					ctx.feedback.toast(ctx.t('list.delete.success', { label }), { kind: 'success' });
++					const collection = activeType.name;
++					if (
++						!(await deleteRecordWithFeedback(
++							ctx,
++							collection,
++							readyModel.recordId ?? idParam,
++							label
++						))
++					)
++						return;
+ 					// Al listado también desde un singleton: si su ÚNICO registro se borra, `/c/[type]`
+ 					// resuelve solo el siguiente destino (crear uno nuevo, §3.3) — nunca al índice.
+-					ctx.nav.toList(activeType.name);
++					ctx.nav.toList(collection);
+ 				}}
+ 			/>
+ 		</div>

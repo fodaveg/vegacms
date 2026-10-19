@@ -1,0 +1,8 @@
+{
+  "seed": "showcase",
+  "landingPathname": "/c/entradas",
+  "heading": "Entradas",
+  "authenticated": true,
+  "fields": [],
+  "violations": []
+}

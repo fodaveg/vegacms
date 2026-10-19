@@ -1,0 +1,91 @@
+{
+  "cleanup": [
+    {
+      "exit": 0,
+      "resource": "filtered"
+    },
+    {
+      "exit": 0,
+      "resource": "control"
+    },
+    {
+      "exit": 0,
+      "resource": "network"
+    }
+  ],
+  "fragmentSHA256": "79cb9a1ac82ef4dda07c822794a8ca3e9091f3a0cab1a854ea8a20941492c441",
+  "image": "sha256:6b08c1b9858ca9a7d99c1da13c3695081e0e604c6cf214ca26a7ce0e2c4fd9b4",
+  "modes": {
+    "control": {
+      "cases": [
+        {
+          "case": "normal",
+          "markerInRecord": true,
+          "markerInRequestURI": true,
+          "pathPreserved": true,
+          "queryRedacted": false,
+          "refererRemoved": false,
+          "status": 502
+        }
+      ],
+      "recordCount": 1,
+      "syntheticLogSHA256": "bceea7cdb7e72fcad1fbe40c06b6a9f8363aadf493e1f9fc86c270d9d60fad4a"
+    },
+    "filtered": {
+      "cases": [
+        {
+          "case": "normal",
+          "markerInRecord": false,
+          "markerInRequestURI": false,
+          "pathPreserved": true,
+          "queryRedacted": true,
+          "refererRemoved": true,
+          "status": 502
+        },
+        {
+          "case": "encoded_key",
+          "markerInRecord": false,
+          "markerInRequestURI": false,
+          "pathPreserved": true,
+          "queryRedacted": true,
+          "refererRemoved": true,
+          "status": 502
+        },
+        {
+          "case": "repeated",
+          "markerInRecord": false,
+          "markerInRequestURI": false,
+          "pathPreserved": true,
+          "queryRedacted": true,
+          "refererRemoved": true,
+          "status": 502
+        },
+        {
+          "case": "malformed_percent",
+          "markerInRecord": false,
+          "markerInRequestURI": false,
+          "pathPreserved": true,
+          "queryRedacted": true,
+          "refererRemoved": true,
+          "status": 502
+        },
+        {
+          "case": "encoded_newline",
+          "markerInRecord": false,
+          "markerInRequestURI": false,
+          "pathPreserved": true,
+          "queryRedacted": true,
+          "refererRemoved": true,
+          "status": 502
+        }
+      ],
+      "recordCount": 5,
+      "syntheticLogSHA256": "afaf1bcf1476d725a6962df78ce81e58120314a13098efd368a24373b322268e"
+    }
+  },
+  "network": "owned_bridge",
+  "owner": "vega-default-stream-720fb1acaf71",
+  "port": "127.0.0.1:ephemeral",
+  "rawLogsPersisted": false,
+  "status": "LOCAL_STREAM_PASS"
+}

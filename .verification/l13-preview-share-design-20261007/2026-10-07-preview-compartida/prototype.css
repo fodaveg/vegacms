@@ -1,0 +1,303 @@
+/* Existing P7 roles and AdminDialog geometry. This composition is design-only. */
+* {
+	box-sizing: border-box;
+}
+html {
+	color-scheme: light dark;
+}
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--ink);
+	font:
+		14px/1.5 system-ui,
+		-apple-system,
+		'Segoe UI',
+		sans-serif;
+}
+[hidden] {
+	display: none !important;
+}
+button,
+input,
+select,
+textarea {
+	font: inherit;
+}
+button {
+	cursor: pointer;
+}
+:focus-visible {
+	outline: 2px solid var(--accent-text);
+	outline-offset: 2px;
+}
+.lab {
+	padding: 0.75rem 1rem;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+	background: var(--surface);
+	color: var(--ink-2);
+	border-bottom: 1px solid var(--line);
+}
+.lab small {
+	flex: 1 1 100%;
+}
+.lab select {
+	background: var(--surface);
+	color: var(--ink);
+	border: 1px solid var(--line);
+	border-radius: var(--r);
+	min-height: 44px;
+}
+.topbar {
+	height: 54px;
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	padding: 0 1rem;
+	background: var(--paper);
+	border-bottom: 1px solid var(--line);
+}
+.layout {
+	display: grid;
+	grid-template-columns: 236px minmax(0, 1fr);
+	min-height: 690px;
+}
+.sidebar {
+	padding: 1rem;
+	background: var(--sidebar);
+	border-right: 1px solid var(--line);
+}
+.sidebar p {
+	padding: 0.65rem 1rem;
+	margin: 0;
+}
+.active {
+	background: var(--active);
+	border-radius: var(--r);
+}
+main.workspace {
+	padding: 1.5rem;
+	min-width: 0;
+}
+.editbar {
+	display: flex;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+	align-items: center;
+	margin-bottom: 1.5rem;
+}
+.editbar h1 {
+	font-size: 1.3rem;
+	margin: 0;
+}
+.editbar .actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-left: auto;
+}
+.field-card {
+	padding: var(--pad-card);
+	background: var(--paper);
+	border: 1px solid var(--line);
+	border-radius: var(--r);
+	max-width: 60rem;
+}
+.field-card h2 {
+	font-size: 1.3rem;
+	margin: 0 0 1rem;
+}
+.field-card p {
+	color: var(--ink-2);
+}
+.backdrop {
+	position: fixed;
+	z-index: 70;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1rem;
+	background: rgb(15 17 21 / 55%);
+}
+.vega-admin-dialog {
+	max-height: calc(100dvh - 2rem);
+}
+.vega-admin-dialog-head h2 {
+	overflow-wrap: anywhere;
+}
+.vega-admin-icon-btn {
+	min-width: 44px;
+	min-height: 44px;
+}
+.vega-admin-input {
+	min-height: 44px;
+}
+.vega-admin-dialog-actions button,
+.vega-admin-dialog .vega-admin-btn {
+	height: auto;
+	min-height: 44px;
+	white-space: normal;
+	justify-content: center;
+}
+.context {
+	margin: 0;
+	font-size: 0.85rem;
+	color: var(--ink-2);
+	overflow-wrap: anywhere;
+}
+.note {
+	padding: 0.75rem;
+	border: 1px solid var(--line);
+	border-radius: var(--r);
+	background: var(--surface-2);
+	font-size: 0.85rem;
+	color: var(--ink-2);
+}
+.notice {
+	padding: 0.75rem;
+	background: var(--warning-soft);
+	color: var(--warning);
+	border-radius: var(--r);
+	font-size: 0.85rem;
+}
+.success {
+	padding: 0.75rem;
+	background: var(--success-soft);
+	color: var(--success);
+	border-radius: var(--r);
+	font-size: 0.85rem;
+}
+.error {
+	padding: 0.75rem;
+	background: var(--danger-soft);
+	color: var(--danger);
+	border-radius: var(--r);
+	font-size: 0.85rem;
+}
+.status {
+	font-size: 0.85rem;
+	color: var(--ink-2);
+	margin: 0;
+}
+.duration {
+	display: grid;
+	grid-template-columns: 1fr 1.2fr;
+	gap: 0.5rem;
+}
+.link-row {
+	padding: 1rem 0;
+	border-block: 1px solid var(--line);
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+.link-row h3 {
+	margin: 0;
+	font-size: 1rem;
+	overflow-wrap: anywhere;
+}
+.link-meta {
+	display: grid;
+	gap: 0.25rem;
+	font-size: 0.82rem;
+	color: var(--ink-2);
+}
+.row-foot {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 0.5rem;
+}
+.state-label {
+	font-size: 0.82rem;
+	font-weight: 650;
+	color: var(--success);
+}
+.state-label.expired {
+	color: var(--ink-2);
+}
+.url {
+	font-family: var(--mono);
+	font-size: 0.82rem;
+	resize: none;
+	overflow-wrap: anywhere;
+	width: 100%;
+	min-height: 7rem;
+}
+.actions-stack {
+	display: flex;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+}
+.empty {
+	padding: 1.5rem 0;
+	text-align: left;
+}
+.empty h3 {
+	font-size: 1rem;
+	margin: 0 0 0.5rem;
+}
+.close-note {
+	font-size: 0.85rem;
+	color: var(--ink-2);
+	margin: 0;
+}
+.view {
+	display: flex;
+	flex-direction: column;
+	gap: 0.9rem;
+}
+.vega-admin-field-error {
+	margin: 0.35rem 0 0;
+}
+@media (max-width: 768px) {
+	.layout {
+		display: block;
+	}
+	.sidebar {
+		display: none;
+	}
+	main.workspace {
+		padding: 1rem;
+	}
+	.editbar .actions {
+		margin-left: 0;
+	}
+	.editbar button {
+		min-height: 44px;
+	}
+	.field-card {
+		padding: 1.1rem;
+	}
+	.lab label {
+		display: grid;
+		width: 100%;
+		gap: 0.25rem;
+	}
+	.vega-admin-dialog-actions {
+		display: grid;
+		grid-template-columns: 1fr;
+	}
+	.vega-admin-dialog-actions .primary {
+		order: -1;
+	}
+	.vega-admin-dialog {
+		padding: 1.5rem;
+	}
+	.actions-stack {
+		display: grid;
+		grid-template-columns: 1fr;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation: none !important;
+		transition: none !important;
+	}
+}

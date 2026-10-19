@@ -1,0 +1,13 @@
+{
+  "bodyValuesStored": false,
+  "credentialsSent": false,
+  "peerShas": {
+    "fodaveg": "90b7d3f5775c33e5d1d3150496d0be8de251daa0deee44612bcdc8e1ebb5dc72",
+    "lumbre-admin-pb": "639adf8bd0396fe149ed56bb68729dfde3f2dcc3ec2518748874a7002d408487"
+  },
+  "service": "vega-pb",
+  "stage": "baseline",
+  "status": "CORS_BASELINE_CAPTURED",
+  "targetCorsSha": "309b120f3ec620f011672da31e8e4e5fa188fe37096cb92062b2ab633bbeece0",
+  "targetPathsSha": "e583de5186ecb6549517870c4fa559808058ff231b641f3ef9ac1df174ea6d51"
+}

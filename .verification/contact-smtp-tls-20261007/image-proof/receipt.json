@@ -1,0 +1,147 @@
+{
+  "status": "exact-local-linux-image-tls-negative-and-positive-passed",
+  "testBaseCommit": "57ad99221e174173f9575a36624ea219b49c24a5",
+  "testSourceTree": "ee5e4c00eda92d1204070225a7c8445f13164e5a",
+  "deltaFiles": [
+    "tests/contract/pb-harness/smtp-sink.ts",
+    "tests/contract/pb-harness/docker-server.ts",
+    "tests/contract/pocketbase.contact-notify-image.test.ts"
+  ],
+  "deltaPatchSha256": "f32755cd0b994871d0ff1140c17df08c7867b7f5772ea2ddb3f207c05041a614",
+  "productionSource": {
+    "path": "/private/tmp/vegacms-backlog-r2-20261007",
+    "commit": "d6df7619434e86035a9d3c133948b5d290dc7d2e",
+    "tree": "ff9985f7d18ecaaf6606f8efe5011d8923d28e9c",
+    "cleanBeforeAndAfter": true,
+    "dockerfileSha256": "287baaba8b8e52b556e6656afb8675f46e6644ace0252564b1ba74700b50368b",
+    "dockerignoreSha256": "c93df292ca4312753f59f72e126183326826a1a41e42a9f7d11faa65ac8aa6bd",
+    "edited": false
+  },
+  "build": {
+    "sessionId": 58483,
+    "exitCode": 0,
+    "log": "build.log",
+    "metadata": "build-metadata.json",
+    "driver": "docker-container",
+    "builder": "vega-contact-proof-20261007",
+    "sharedCacheUsed": false,
+    "imageTag": "vega-contact-image-proof:d6df761-20261007",
+    "imageId": "sha256:f59dc6354915b5716febbc933817a3f59aca135a32a8946f6be6d8d3a1f29a6b",
+    "manifestDigest": "sha256:8fccab314dc0cba05a2f029d6f7b68212a24dcbc9135f10d7f704cf8ce36bdc7",
+    "imageSizeBytes": 46845026,
+    "platform": "linux/amd64",
+    "nodeBase": "node:22.22.0-alpine3.23@sha256:e4bf2a82ad0a4037d28035ae71529873c069b13eb0455466ae0bc13363826e34",
+    "alpineBase": "alpine:3.23@sha256:fd791d74b68913cbb027c6546007b3f0d3bc45125f797758156952bc2d6daf40",
+    "pbZipSha256": "4c5a1aced62ebf658bfbcfeaa944c4bfa88b173dd9d598d3cab55ea63587b36b",
+    "zipChecksumSignal": "/tmp/pocketbase.zip: OK in build.log",
+    "buildkitVersion": "0.33.1",
+    "buildkitImageId": "sha256:f27f9c00a3aca2c219642d1500610eade3ddcb6b873ea8847852ab156663d32f",
+    "buildkitRepoDigest": "moby/buildkit@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea",
+    "dockerVersion": "29.8.2",
+    "buildxVersion": "0.37.2",
+    "pullInstall": "Authorized pulls and pnpm/apk/wget inside isolated Docker build; no global host installs"
+  },
+  "packagedBytes": {
+    "log": "packaged-bytes.log",
+    "uid": 10001,
+    "pbVersion": "0.39.9",
+    "binarySha256": "fd71a262c3e8e1b9622969fb76e34bc597d7f12cfcb5a42046b417d9c93bf62d",
+    "hookSha256": "1727a1229fb49e62a057eaae4a706f99b6b06a8f7e80811e033f9e23113548c4",
+    "hookPath": "/pb/pb_hooks/vega-contact-notify.pb.js",
+    "hostHookMounted": false,
+    "caPackage": "ca-certificates 20260909-r0 installed by recipe; Alpine package metadata confirmed"
+  },
+  "networkProbe": {
+    "log": "gateway-probe.log",
+    "exitCode": 0,
+    "signal": "Exact TCP marker from host bind127.0.0.1 received through container host.docker.internal",
+    "gatewayIp": "192.168.65.254",
+    "noAssumedNetworkHost": true
+  },
+  "runtime": {
+    "sessionId": 24350,
+    "exitCode": 0,
+    "log": "runtime.log",
+    "command": "Node22 node_modules/vitest/vitest.mjs run tests/contract/pocketbase.contact-notify-image.test.ts --project server; VEGA_CONTACT_TEST_IMAGE=immutable image ID above",
+    "durationSeconds": 3.54,
+    "passed": 2,
+    "skipped": 0,
+    "cases": [
+      "unknown CA + valid DNS: real TLS handshake rejected, no mail, pending; independent POST200",
+      "trusted process-only CA + gateway IP: real TLS hostname rejected, no mail, pending; change only SMTP host to valid DNS: same record sent and exactly one mail; TLS1.2/1.3; repeat cron no duplicate; independent POST200"
+    ],
+    "credentialTransport": "private fixture config mounted readonly for CLI; auth POST to local image PB; no credential values in Docker argv/log command",
+    "publicCa": "copy-only public CA file0644/public dir0755 readonly in image; host key parent0700 untouched",
+    "reviewTiming": "Focal started under original runner authorization before parent wait-review message arrived; already terminal0 when recovered. Parent accepted reuse after independent review completed unchanged tree."
+  },
+  "checks": {
+    "typecheck": {
+      "sessionId": 19570,
+      "exitCodes": [
+        0,
+        0
+      ],
+      "log": "check.log",
+      "result": "svelte-kit sync + svelte-check: 0 errors/0 warnings"
+    },
+    "eslintThreePaths": {
+      "exitCode": 0
+    },
+    "prettierThreePaths": {
+      "exitCode": 0
+    },
+    "diffCheck": {
+      "exitCode": 0
+    },
+    "review": "Root + independent reviewer read 3/3; no findings; tree ee5 unchanged"
+  },
+  "cleanup": {
+    "log": "cleanup.json",
+    "ownProcessesBeforeCleanup": "fresh global PS only its own inspection; no runners",
+    "ownTestContainers": "none after test finally",
+    "ownTempCaKeysData": "vega-smtp-tls-* /vega-pb-image-* inventory empty",
+    "builderRemovalExitCode": 0,
+    "builderContainerGoneCheckExitCode": 1,
+    "isolatedStateVolumeGoneCheckExitCode": 1,
+    "removedCache": "716.7MB as reported by own docker buildx du",
+    "sharedGCPrune": "none",
+    "retained": "immutable final image/tag, private source WT, canonical receipt/logs/patch; BuildKit tool image retained without pruning shared image store"
+  },
+  "disk": {
+    "budgetGiB": 2,
+    "dfStartGiB": 140,
+    "dfPreCleanupGiB": 141,
+    "dfPostCleanupGiB": 141,
+    "note": "Shared-machine rounded df; cache logical size is not asserted as physically recovered bytes."
+  },
+  "limits": [
+    "Local image + implicit TLS fixture only; no real provider SMTP credentials/routing/authentication tested",
+    "AUTH/STARTTLS not implemented by sink; provider validation remains external",
+    "No production NOTIFY_TO enabled, no global CA, no image publication or deployment",
+    "No product fullgate rerun; affected checks and exact real-image proof only",
+    "Task dafb stays wip pending provider criterion"
+  ],
+  "committed": true,
+  "privateCommit": {
+    "sha": "76a27a4fe4ec3efb1175111e59b5cc142bf6ec78",
+    "tree": "ee5e4c00eda92d1204070225a7c8445f13164e5a",
+    "metadata": "commit-fuller.txt",
+    "branch": "test/contact-smtp-tls-20261007",
+    "integrated": false,
+    "pushed": false,
+    "worktree": "clean tracked/untracked; ignored prerequisite APFS copies retained"
+  },
+  "rootVerification": {
+    "diff_files_read": 3,
+    "chmod_delta_read": true,
+    "independent_review_read": true,
+    "terminal_runtime_log_read": true,
+    "packaged_bytes_log_read": true,
+    "private_commit_fuller_read": true,
+    "private_worktree_clean_verified": true,
+    "production_context_worktree_clean_verified": true,
+    "lumbre_task": "notes updated freshly, visible reread, @wip preserved pending real provider",
+    "provider_input": "requested local configuration/credential path and explicit recipient for one test email; not received yet",
+    "root_df_observed_afterGiB": 140
+  }
+}

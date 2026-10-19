@@ -1,0 +1,66 @@
+{
+  "status": "offline-prepared-runtime-not-run",
+  "worktree": "/private/tmp/vegacms-contact-smtp-tls-20261007",
+  "branch": "test/contact-smtp-tls-20261007",
+  "base": "0cacf4cb8673369fcdec7b40ea676277cec5c331",
+  "candidateTree": "a9000fd5d230cd482dbbb425f21a64367e283e26",
+  "patchSha256": "f81eb6c12a35bc5e7dc7e79442143517c6bdffdd9f6108f76c618da6bad2c6ad",
+  "files": [
+    "tests/contract/pb-harness/smtp-sink.ts",
+    "tests/contract/pocketbase.contact-notify-hook.test.ts"
+  ],
+  "staticChecks": [
+    {
+      "command": "Node22 root Prettier CLI --config root/prettier.config.js --check two owned TS files",
+      "exitCode": 0,
+      "result": "All matched files use Prettier code style"
+    },
+    {
+      "command": "Node22 TypeScript transpileModule with reportDiagnostics=true on two owned TS files",
+      "exitCode": 0,
+      "result": "syntax OK; no semantic typecheck"
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0,
+      "result": "no whitespace errors"
+    }
+  ],
+  "review": "Author read diff for 2/2 files; independent review pending",
+  "runtime": {
+    "executed": false,
+    "reason": "Root runner reserved R7; offline preparation only",
+    "defaultCases": [
+      "untrusted CA: reject handshake, no mail, pending; independent POST"
+    ],
+    "optInCases": [
+      "trusted CA + wrong hostname: reject, pending; change only hostname to localhost: same record sent over TLS; no duplicate; independent POST"
+    ],
+    "optInEnv": "VEGA_CONTACT_SMTP_TLS_TRUST_TEST=1",
+    "positiveCurrentBinary": "not executed; skipped by default (Mach-O PB0.39.9 compiled Go1.26.5 ignores trust files on Darwin)"
+  },
+  "prerequisites": {
+    "node": "22.22.3 existing",
+    "openssl": "existing executable; not executed or installed",
+    "pb": "reuse root .pbbin by APFS clone before runtime",
+    "deps": "reuse root node_modules and .svelte-kit by APFS clone before runtime; no install"
+  },
+  "limits": [
+    "No suite, OpenSSL key generation, PB/SMTP server or Docker runtime executed",
+    "No semantic check/gate performed",
+    "Local sink does not accredit SMTP provider, authentication or STARTTLS",
+    "Image exact identity, packaged hook bytes and runtime remain unverified; plan contains unexecuted commands and loopback limitation",
+    "No NOTIFY_TO production authorization or Lumbre closure"
+  ],
+  "hookExpectedSha256": "1727a1229fb49e62a057eaae4a706f99b6b06a8f7e80811e033f9e23113548c4",
+  "disk": {
+    "budgetGiB": 0.3,
+    "dfInitialGiB": 144,
+    "dfDuringPreparationGiB": 145,
+    "dfFinalGiB": 143,
+    "worktreeApparentMiB": 14,
+    "note": "Shared machine; df change not attributed to own WT. No cleanup; source and evidence reserved."
+  },
+  "artifactExclusion": "Untracked intentional per root; explicit integration paths/patch only. No shared exclude or .gitignore edits.",
+  "committed": false
+}

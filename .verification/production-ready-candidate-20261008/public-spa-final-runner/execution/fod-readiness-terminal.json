@@ -1,0 +1,9 @@
+{
+  "argv": [
+    "python3",
+    "/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-final-runner/readiness.py",
+    "--bundle",
+    "fodaveg"
+  ],
+  "exit_code": 0
+}

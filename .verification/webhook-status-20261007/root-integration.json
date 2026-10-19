@@ -1,0 +1,13 @@
+{
+  "head": "72e71c3942258808247312e7e71e58b85021033d",
+  "tree": "a8342947758c32b13acc6f53db966480a0a2e73b",
+  "sourceAuthorCommits": [
+    "e08af15559079a8a19871d1dbc40b627bab83703",
+    "8da3b6aa1480ac4884de8521c1e0afe2cbac8dc8"
+  ],
+  "checksReused": "Exact seven source/test/doc file hashes match final author candidate; Go and component evidence retained; final combined gate awaits UI lot.",
+  "sourceFilesMatched": 7,
+  "mismatches": [],
+  "review": "review.md superseded by lifecycle-review.md; 7/7 initial and 2/2 delta, P2 closed.",
+  "privateOnly": true
+}

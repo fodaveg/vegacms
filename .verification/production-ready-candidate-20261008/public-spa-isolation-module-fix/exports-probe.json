@@ -1,0 +1,9 @@
+{
+  "exit_code": 0,
+  "testExtend": "function",
+  "expect": "function",
+  "networkRequests": 0,
+  "browser": false,
+  "node": "22.22.3",
+  "mechanism": "createRequire(fixture9165/package.json)(@playwright/test)"
+}

@@ -1,0 +1,8 @@
+["/Users/david/.nvm/versions/node/v22.22.3/bin/node", "node_modules/prettier/bin/prettier.cjs", "--check", "src/lib/visual/viewport.ts", "src/lib/visual/viewport.test.ts", "src/lib/visual/viewport-storage.dom.test.ts", "src/lib/visual/VisualEditorScreen.svelte", "src/lib/visual/VisualEditorScreen.svelte.test.ts", "src/lib/shell/AppShell.svelte", "src/lib/shell/AppShell.svelte.test.ts", "e2e/visual-editor.spec.ts", "docs/PROJECT-CONTRACT-v1.md"]
+Checking formatting...
+All matched files use Prettier code style!
+exit_code=0
+["/Users/david/.nvm/versions/node/v22.22.3/bin/node", "node_modules/eslint/bin/eslint.js", "src/lib/visual/viewport.ts", "src/lib/visual/viewport.test.ts", "src/lib/visual/viewport-storage.dom.test.ts", "src/lib/visual/VisualEditorScreen.svelte", "src/lib/visual/VisualEditorScreen.svelte.test.ts", "src/lib/shell/AppShell.svelte", "src/lib/shell/AppShell.svelte.test.ts", "e2e/visual-editor.spec.ts"]
+exit_code=0
+["git", "diff", "--check"]
+exit_code=0

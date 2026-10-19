@@ -1,0 +1,20 @@
+--- a/srv/edge/compose.yml
++++ b/srv/edge/compose.yml
+@@ -23,1 +23,4 @@
+-      - edge
++      - edge
++      - vega-edge
++      - lumbre-admin-edge
++      - fodaveg-admin-edge
+@@ -38,1 +41,10 @@
+-networks:
++networks:
++  vega-edge:
++    external: true
++    name: vega-edge
++  lumbre-admin-edge:
++    external: true
++    name: lumbre-admin-edge
++  fodaveg-admin-edge:
++    external: true
++    name: fodaveg-admin-edge

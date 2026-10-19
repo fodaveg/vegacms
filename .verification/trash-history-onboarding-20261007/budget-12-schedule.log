@@ -1,0 +1,26 @@
+
+ RUN  v4.1.10 /private/tmp/vegacms-trash-history-20261007
+
+ ❯ |component| src/lib/form/RecordForm.schedule.svelte.test.ts (33 tests | 1 failed) 2491ms
+   × schedule stays unloaded before intent; doubleclick loads once and blocks save shortcut during opening 8ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |component| src/lib/form/RecordForm.schedule.svelte.test.ts > schedule stays unloaded before intent; doubleclick loads once and blocks save shortcut during opening
+TypeError: Cannot set properties of null (setting 'value')
+ ❯ src/lib/form/RecordForm.schedule.svelte.test.ts:559:8
+    557|  expect(probe.loads()).toBe(0);
+    558|  const title = w.target.querySelector<HTMLInputElement>('[data-field="…
+    559|  title.value = 'Cambios pendientes';
+       |        ^
+    560|  title.dispatchEvent(new Event('input', { bubbles: true }));
+    561|  flushSync();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 32 passed (33)
+   Start at  07:05:06
+   Duration  5.52s (transform 2.08s, setup 0ms, import 2.34s, tests 2.49s, environment 584ms)
+

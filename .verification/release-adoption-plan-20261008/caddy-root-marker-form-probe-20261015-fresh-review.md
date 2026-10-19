@@ -1,0 +1,11 @@
+# Revisión independiente: segunda sonda Caddy (15 oct 2026)
+
+**Veredicto: APTO para una lectura clasificada de `/srv/edge/Caddyfile` en RAM bajo el alcance vigente; sin must-fix.** No valida todavía el candidato Caddy global logs ni autoriza aplicación activa.
+
+El candidato es `.verification/worktrees/caddy-referenced-env-20261008/.verification/caddy-root-marker-form-20261015/`, operación `fcbaf292-d28f-4a15-bcd2-84fd047123bb`, manifest SHA-256 `2d13b328559be92b21b9e797e612cd2141bc2302875c6add8377665496ef09ec`. El inventario `git diff --stat`/`--name-status` está vacío por ser artefactos sin seguimiento. Se leyeron los siete ficheros del manifest y se comparó el wrapper con la primera sonda; coincidieron 7/7 sellos y 2/2 dependencias, el validador `d980095b44a9d5c53940fea86dc4863619273bafed8c64798247516c5e37503f` y el fragmento `79cb9a1ac82ef4dda07c822794a8ca3e9091f3a0cab1a854ea8a20941492c441`. Ocho tests dirigidos constan PASS en `probe.log`; no se repitieron. Antes de esta review no existían approval ni marcador de intento.
+
+La primera sonda devolvió `SYNTAX_UNSUPPORTED / TOKEN_FORBIDDEN_MARKER / ROOT_NESTED` sin flags blanket. `remote_probe.py:81-140` reproduce el mismo merge sellado tras verificar hashes; después clasifica el primer token rechazado en backtick, BOM o ambos y una forma finita. `projection.py:3-39` no acepta contenido ni campos extra. `run_once.py` conserva el sello, scope de solo lectura, marcador O_EXCL y un intento; su delta frente a la primera sonda cambia solo modo y campo finito del recibo. No hay lectura Env, Docker, imports o logs ni escritura de configuración.
+
+El [lexer oficial de Caddy v2.11.4](https://github.com/caddyserver/caddy/blob/v2.11.4/caddyconfig/caddyfile/lexer.go) respalda la distinción: consume el BOM inicial al cargar, y abre raw quoting con backtick al comienzo de un token; un backtick interior bare sigue otra ruta. La sonda únicamente clasifica esa forma. La corrección posterior del parser debe comprobar el caso observado y conservar bytes/estructura del merge.
+
+**Límite:** esta review no ejecutó la sonda remota. El resultado previo no distingue todavía backtick de BOM. La clasificación nueva, aun si pasa, no acredita por sí sola un adapt/validate aislado ni seguridad de aplicación activa.

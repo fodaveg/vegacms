@@ -1,0 +1,11 @@
+["/Users/david/.nvm/versions/node/v22.22.3/bin/node", "scripts/check-pocketbase-binary.mjs"]
+[pb-guard] PocketBase 0.39.9 listo: la suite de contrato se ejecutará de verdad.
+exit_code=0
+["/Users/david/.nvm/versions/node/v22.22.3/bin/node", "node_modules/prettier/bin/prettier.cjs", "--check", "tests/contract/pocketbase.contract.test.ts"]
+Checking formatting...
+All matched files use Prettier code style!
+exit_code=0
+["/Users/david/.nvm/versions/node/v22.22.3/bin/node", "node_modules/eslint/bin/eslint.js", "tests/contract/pocketbase.contract.test.ts"]
+exit_code=0
+["git", "diff", "--check"]
+exit_code=0

@@ -1,0 +1,643 @@
+{
+  "candidate": "corrected-after-ff9985f7",
+  "tree": "ff9985f7d18ecaaf6606f8efe5011d8923d28e9c",
+  "astroCandidate": "1ff64d74a60ed5ed6ebf714eba0adc950c474e47",
+  "browser": "149.0.7827.55",
+  "initial": {
+    "browserPB": {
+      "count": 17,
+      "decodedBodyBytes": 172896,
+      "maxInFlight": 12,
+      "listIds": [],
+      "groups": {
+        "GET /api/vega/discovery": {
+          "count": 1,
+          "bytes": 311,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "POST /api/collections/vega_editors/auth-refresh": {
+          "count": 1,
+          "bytes": 433,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/vega/records": {
+          "count": 2,
+          "bytes": 33900,
+          "statuses": {
+            "200": 2
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/demo2/records": {
+          "count": 1,
+          "bytes": 250,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/demo3/records": {
+          "count": 1,
+          "bytes": 247,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/demo4/records": {
+          "count": 1,
+          "bytes": 574,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/demo5/records": {
+          "count": 1,
+          "bytes": 394,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/numeric_id_view/records": {
+          "count": 1,
+          "bytes": 169,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/view1/records": {
+          "count": 1,
+          "bytes": 619,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/view2/records": {
+          "count": 1,
+          "bytes": 313,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/pages/records": {
+          "count": 1,
+          "bytes": 66743,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/tags/records": {
+          "count": 1,
+          "bytes": 237,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/blocks/records": {
+          "count": 2,
+          "bytes": 1862,
+          "statuses": {
+            "200": 2
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/pages/records/:id": {
+          "count": 1,
+          "bytes": 66678,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "POST /api/vega-preview/token": {
+          "count": 1,
+          "bytes": 166,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        }
+      }
+    },
+    "browserSite": {
+      "count": 13,
+      "decodedBodyBytes": 441374,
+      "maxInFlight": 11,
+      "listIds": [],
+      "groups": {
+        "GET /preview/:collection/:id": {
+          "count": 1,
+          "bytes": 26753,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /@vite/client": {
+          "count": 1,
+          "bytes": 326430,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /@fs/private/tmp/vega-l9-sites-20261007/before/packages/astro/src/VegaBlocks.astro": {
+          "count": 1,
+          "bytes": 1017,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /src/styles/global.css": {
+          "count": 1,
+          "bytes": 6470,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /src/components/blocks/Cta.astro": {
+          "count": 1,
+          "bytes": 2403,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /src/components/blocks/Divider.astro": {
+          "count": 1,
+          "bytes": 1420,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /src/components/blocks/Gallery.astro": {
+          "count": 1,
+          "bytes": 2892,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /src/components/blocks/Hero.astro": {
+          "count": 1,
+          "bytes": 4272,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /src/components/blocks/ImageBlock.astro": {
+          "count": 1,
+          "bytes": 2556,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /src/components/blocks/RichText.astro": {
+          "count": 1,
+          "bytes": 2423,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /@fs/private/tmp/vega-l9-sites-20261007/before/packages/astro/src/VegaVisualBridgeScript.astro": {
+          "count": 1,
+          "bytes": 1724,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /@fs/private/tmp/vega-l9-sites-20261007/before/node_modules/.pnpm/vite@8.1.5_@types+node@26.1.2_esbuild@0.28.1_yaml@2.9.0/node_modules/vite/dist/client/env.mjs": {
+          "count": 1,
+          "bytes": 3478,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /@fs/private/tmp/vega-l9-sites-20261007/before/packages/astro/src/visual-bridge.ts": {
+          "count": 1,
+          "bytes": 59536,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        }
+      }
+    },
+    "serverPB": {
+      "count": 23,
+      "decodedBodyBytes": 241193,
+      "maxInFlight": 6,
+      "listIds": [
+        {
+          "count": 1,
+          "unique": 1
+        },
+        {
+          "count": 1,
+          "unique": 1
+        }
+      ],
+      "groups": {
+        "GET /api/vega/discovery": {
+          "count": 1,
+          "bytes": 311,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "OPTIONS /api/collections/vega_editors/auth-refresh": {
+          "count": 1,
+          "bytes": 0,
+          "statuses": {
+            "204": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "POST /api/collections/vega_editors/auth-refresh": {
+          "count": 1,
+          "bytes": 433,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/vega/records": {
+          "count": 2,
+          "bytes": 33900,
+          "statuses": {
+            "200": 2
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/demo2/records": {
+          "count": 1,
+          "bytes": 250,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/demo3/records": {
+          "count": 1,
+          "bytes": 247,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/demo4/records": {
+          "count": 1,
+          "bytes": 574,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/demo5/records": {
+          "count": 1,
+          "bytes": 394,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/numeric_id_view/records": {
+          "count": 1,
+          "bytes": 169,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/view1/records": {
+          "count": 1,
+          "bytes": 619,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "OPTIONS /api/collections/pages/records/:id": {
+          "count": 1,
+          "bytes": 0,
+          "statuses": {
+            "204": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/view2/records": {
+          "count": 1,
+          "bytes": 313,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/pages/records": {
+          "count": 2,
+          "bytes": 133486,
+          "statuses": {
+            "200": 2
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/tags/records": {
+          "count": 1,
+          "bytes": 237,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/blocks/records": {
+          "count": 3,
+          "bytes": 3416,
+          "statuses": {
+            "200": 3
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/pages/records/:id": {
+          "count": 1,
+          "bytes": 66678,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "OPTIONS /api/vega-preview/token": {
+          "count": 1,
+          "bytes": 0,
+          "statuses": {
+            "204": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "OPTIONS /api/collections/blocks/records": {
+          "count": 1,
+          "bytes": 0,
+          "statuses": {
+            "204": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "POST /api/vega-preview/token": {
+          "count": 1,
+          "bytes": 166,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        }
+      }
+    }
+  },
+  "renewal": {
+    "browserPB": {
+      "count": 1,
+      "decodedBodyBytes": 166,
+      "maxInFlight": 1,
+      "listIds": [],
+      "groups": {
+        "POST /api/vega-preview/token": {
+          "count": 1,
+          "bytes": 166,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        }
+      }
+    },
+    "browserSite": {
+      "count": 1,
+      "decodedBodyBytes": 26753,
+      "maxInFlight": 1,
+      "listIds": [],
+      "groups": {
+        "GET /preview/:collection/:id": {
+          "count": 1,
+          "bytes": 26753,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        }
+      }
+    },
+    "serverPB": {
+      "count": 4,
+      "decodedBodyBytes": 68463,
+      "maxInFlight": 1,
+      "listIds": [
+        {
+          "count": 1,
+          "unique": 1
+        }
+      ],
+      "groups": {
+        "OPTIONS /api/vega-preview/token": {
+          "count": 1,
+          "bytes": 0,
+          "statuses": {
+            "204": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "POST /api/vega-preview/token": {
+          "count": 1,
+          "bytes": 166,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/pages/records": {
+          "count": 1,
+          "bytes": 66743,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        },
+        "GET /api/collections/blocks/records": {
+          "count": 1,
+          "bytes": 1554,
+          "statuses": {
+            "200": 1
+          },
+          "fields": [
+            null
+          ]
+        }
+      }
+    },
+    "frameNavigationEvents": 0,
+    "documentRequests": 0,
+    "markerRetained": true,
+    "initialScroll": 200,
+    "scroll": 200
+  },
+  "reload": {
+    "status": 404,
+    "browserPB": {
+      "count": 0,
+      "decodedBodyBytes": 0,
+      "maxInFlight": 0,
+      "listIds": [],
+      "groups": {}
+    },
+    "browserSite": {
+      "count": 1,
+      "decodedBodyBytes": 46,
+      "maxInFlight": 1,
+      "listIds": [],
+      "groups": {
+        "GET /preview/:collection/:id": {
+          "count": 1,
+          "bytes": 46,
+          "statuses": {
+            "404": 1
+          },
+          "fields": [
+            null
+          ]
+        }
+      }
+    },
+    "serverPB": {
+      "count": 0,
+      "decodedBodyBytes": 0,
+      "maxInFlight": 0,
+      "listIds": [],
+      "groups": {}
+    }
+  },
+  "scope": "Real Go PocketBase v0.39.9 + real Astro SSR dev GET recipe + actual static admin build; no POST reload claim"
+}

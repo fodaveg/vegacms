@@ -1,0 +1,1759 @@
+$ pnpm check && pnpm lint && pnpm pb:download && pnpm check-pb-binary && pnpm test && pnpm test:go && pnpm build && VEGA_E2E_PREBUILT=1 pnpm test:e2e
+$ svelte-kit sync && svelte-check --tsconfig ./tsconfig.json
+Loading svelte-check in workspace: /private/tmp/vegacms-backlog-r2-20261007
+Getting Svelte diagnostics...
+
+svelte-check found 0 errors and 0 warnings
+$ prettier --check . && eslint . && pnpm themes:check-coverage && pnpm check-touch-targets
+Checking formatting...
+All matched files use Prettier code style!
+$ node scripts/check-theme-coverage.mjs
+✓ motor de temas sin regresiones: artefactos al día, 15 color(es) allowlisted.
+$ node scripts/check-touch-targets.mjs
+⚠ no medible: src/lib/visual/VisualEditorScreen.svelte: .vega-visual-back (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualEditorScreen.svelte: .vega-visual-screen-btn (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualEditorScreen.svelte: .vega-visual-zoom-btn (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualEditorScreen.svelte: .vega-visual-zoom-btn (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualEditorScreen.svelte: <button> sin clase (<button>) — anchura y altura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualBlockTree.svelte: .vega-tree-toggle (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualBlockTree.svelte: .vega-tree-backdrop (<button>) — anchura y altura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualBlockTree.svelte: .vega-tree-add (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualBlockTree.svelte: .vega-tree-row (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualOverlay.svelte: .vega-visual-overlay-insert-menu-item (<button>) — anchura y altura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualPalette.svelte: .vega-palette-item (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualInspector.svelte: .vega-texts-back (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/shell/GlobalBanner.svelte: .vega-global-banner-toggle (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/shell/GlobalBanner.svelte: <button> sin clase (<button>) — anchura y altura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/list/RecordTable.svelte: <a> sin clase (<a>) — anchura y altura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/list/ActionMenu.svelte: .vega-action-menu-trigger (<button>) — la clase condicional .vega-action-menu-trigger--button, .vega-action-menu-trigger--icon declara caja propia: ese ESTADO no se mide (solo se mide el reposo)
+⚠ no medible: src/routes/c/[type]/+page.svelte: .vega-list-export-button (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/routes/c/[type]/+page.svelte: .vega-list-import-button (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/routes/c/[type]/+page.svelte: .vega-list-clear-filters (<button>) — anchura y altura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/routes/c/[type]/+page.svelte: <button> sin clase (<button>) — anchura y altura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/routes/c/[type]/+page.svelte: <button> sin clase (<button>) — anchura y altura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/routes/c/[type]/+page.svelte: .vega-list-new-button (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/form/RecordForm.svelte: <button> sin clase (<button>) — anchura y altura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/publish-review/ReviewGroups.svelte: .vega-review-go (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/publish-review/ReviewGroups.svelte: .vega-review-go (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/publish-review/ReviewGroups.svelte: .vega-review-more (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/publish-review/ReviewGroups.svelte: .vega-review-more (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/publish-review/ReviewGroups.svelte: .vega-review-retry (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+✓ objetivos táctiles: 77 control(es) revisado(s) en 16 componente(s), 28 no medible(s).
+$ node scripts/download-pocketbase.mjs
+[pocketbase] ya disponible en /private/tmp/vegacms-backlog-r2-20261007/.pbbin/pocketbase (versión 0.39.9)
+$ node scripts/check-pocketbase-binary.mjs
+[pb-guard] PocketBase 0.39.9 listo: la suite de contrato se ejecutará de verdad.
+$ vitest run
+
+ RUN  v4.1.10 /private/tmp/vegacms-backlog-r2-20261007
+
+(node:22576) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:23198) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+ Test Files  299 passed | 1 skipped (300)
+      Tests  4826 passed | 12 skipped (4838)
+   Start at  07:30:54
+   Duration  68.01s (transform 72.17s, setup 0ms, import 134.96s, tests 177.27s, environment 109.85s)
+
+$ pnpm test:go:auth && pnpm test:go:build && pnpm test:go:preview && pnpm test:go:schedule
+$ cd extensions/vegaauth && go test ./...
+ok  	github.com/fodaveg/vegacms/extensions/vegaauth	(cached)
+$ cd extensions/vegabuild && go test ./...
+ok  	github.com/fodaveg/vegacms/extensions/vegabuild	(cached)
+$ cd extensions/vegapreview && go test ./...
+ok  	github.com/fodaveg/vegacms/extensions/vegapreview	(cached)
+$ cd extensions/vegaschedule && go test ./...
+ok  	github.com/fodaveg/vegacms/extensions/vegaschedule	(cached)
+$ pnpm themes:build
+$ node scripts/build-themes.mjs
+✓ 21 temas → themes.generated.css + themes.generated.ts
+$ vite build
+vite v8.1.5 building ssr environment for production...
+[2Ktransforming...✓ 620 modules transformed.
+rendering chunks...
+vite v8.1.5 building client environment for production...
+[2Ktransforming...✓ 703 modules transformed.
+rendering chunks...
+computing gzip size...
+.svelte-kit/output/client/_app/version.json                                          0.02 kB │ gzip:   0.04 kB
+.svelte-kit/output/client/.vite/manifest.json                                       34.98 kB │ gzip:   4.70 kB
+.svelte-kit/output/client/_app/immutable/assets/login-flow.C9mGYboB.css              0.05 kB │ gzip:   0.07 kB
+.svelte-kit/output/client/_app/immutable/assets/6.1YgHiyBh.css                       0.06 kB │ gzip:   0.08 kB
+.svelte-kit/output/client/_app/immutable/assets/AdminDialog.Ch22tHuT.css             0.18 kB │ gzip:   0.16 kB
+.svelte-kit/output/client/_app/immutable/assets/4.DUzvgADR.css                       0.36 kB │ gzip:   0.22 kB
+.svelte-kit/output/client/_app/immutable/assets/EditTopBar.BCAwa5pt.css              0.38 kB │ gzip:   0.24 kB
+.svelte-kit/output/client/_app/immutable/assets/RelationCreateDialog.CCg6DnMW.css    0.47 kB │ gzip:   0.22 kB
+.svelte-kit/output/client/_app/immutable/assets/12.CaY_BF_v.css                      0.62 kB │ gzip:   0.34 kB
+.svelte-kit/output/client/_app/immutable/assets/RouteState.gjgu6jRs.css              0.70 kB │ gzip:   0.31 kB
+.svelte-kit/output/client/_app/immutable/assets/Pagination.DYVREWZF.css              0.80 kB │ gzip:   0.36 kB
+.svelte-kit/output/client/_app/immutable/assets/UsedInPanel.DnFnIspj.css             1.05 kB │ gzip:   0.39 kB
+.svelte-kit/output/client/_app/immutable/assets/BackendUrlForm.DTNyOyD4.css          1.25 kB │ gzip:   0.40 kB
+.svelte-kit/output/client/_app/immutable/assets/PreviewShareDialog.qPk4h8s5.css      1.34 kB │ gzip:   0.48 kB
+.svelte-kit/output/client/_app/immutable/assets/ReferencesSummary.DOKCal7-.css       1.40 kB │ gzip:   0.44 kB
+.svelte-kit/output/client/_app/immutable/assets/DeleteConfirm.BgiCjSQ1.css           2.19 kB │ gzip:   0.64 kB
+.svelte-kit/output/client/_app/immutable/assets/PreviewPanel.C4SRd7TZ.css            2.44 kB │ gzip:   0.74 kB
+.svelte-kit/output/client/_app/immutable/assets/MediaPicker.BeFoePK-.css             2.52 kB │ gzip:   0.67 kB
+.svelte-kit/output/client/_app/immutable/assets/ReviewGroups.BpWApi98.css            3.19 kB │ gzip:   0.88 kB
+.svelte-kit/output/client/_app/immutable/assets/11.BFGtwjlH.css                      3.76 kB │ gzip:   0.84 kB
+.svelte-kit/output/client/_app/immutable/assets/MediaGrid.ra22VrN6.css               4.36 kB │ gzip:   1.21 kB
+.svelte-kit/output/client/_app/immutable/assets/VisualPublishControl.Co_c5Qh-.css    5.24 kB │ gzip:   1.24 kB
+.svelte-kit/output/client/_app/immutable/assets/14.Bgun80wc.css                      5.37 kB │ gzip:   1.21 kB
+.svelte-kit/output/client/_app/immutable/assets/9.DkumGZn_.css                       5.75 kB │ gzip:   1.48 kB
+.svelte-kit/output/client/_app/immutable/assets/2.DGlB0sA-.css                       9.34 kB │ gzip:   1.94 kB
+.svelte-kit/output/client/_app/immutable/assets/MediaDetail.DnFzAkG2.css             9.84 kB │ gzip:   1.69 kB
+.svelte-kit/output/client/_app/immutable/assets/10.CE4e08Xz.css                     10.49 kB │ gzip:   2.13 kB
+.svelte-kit/output/client/_app/immutable/assets/admin.C2GlnzKG.css                  12.13 kB │ gzip:   2.62 kB
+.svelte-kit/output/client/_app/immutable/assets/3.DQbiqCAm.css                      24.15 kB │ gzip:   3.77 kB
+.svelte-kit/output/client/_app/immutable/assets/5.BOmg0a-r.css                      24.20 kB │ gzip:   3.86 kB
+.svelte-kit/output/client/_app/immutable/assets/13.S03P6wVj.css                     25.55 kB │ gzip:   3.91 kB
+.svelte-kit/output/client/_app/immutable/assets/RecordForm.C4TKThUI.css             33.21 kB │ gzip:   4.97 kB
+.svelte-kit/output/client/_app/immutable/assets/ReviewMediaLoader.vpjea6br.css      37.45 kB │ gzip:   5.57 kB
+.svelte-kit/output/client/_app/immutable/assets/0.D6oMvBZg.css                      75.52 kB │ gzip:   7.18 kB
+.svelte-kit/output/client/_app/immutable/chunks/B9YK5A53.js                          0.02 kB │ gzip:   0.04 kB
+.svelte-kit/output/client/_app/immutable/chunks/CrS3RdXA2.js                         0.04 kB │ gzip:   0.06 kB
+.svelte-kit/output/client/_app/immutable/chunks/xihTtKlq.js                          0.06 kB │ gzip:   0.08 kB
+.svelte-kit/output/client/_app/immutable/chunks/Djc-eEeY2.js                         0.07 kB │ gzip:   0.08 kB
+.svelte-kit/output/client/_app/immutable/chunks/BGze3w87.js                          0.07 kB │ gzip:   0.09 kB
+.svelte-kit/output/client/_app/immutable/entry/start.C-c8EnvH.js                     0.08 kB │ gzip:   0.09 kB
+.svelte-kit/output/client/_app/immutable/chunks/B9TAY3R_.js                          0.08 kB │ gzip:   0.09 kB
+.svelte-kit/output/client/_app/immutable/chunks/BCZH65lg2.js                         0.13 kB │ gzip:   0.13 kB
+.svelte-kit/output/client/_app/immutable/chunks/BCWLMMb02.js                         0.21 kB │ gzip:   0.17 kB
+.svelte-kit/output/client/_app/immutable/chunks/DUOAhwMJ2.js                         0.24 kB │ gzip:   0.17 kB
+.svelte-kit/output/client/_app/immutable/chunks/DJXnhcxq2.js                         0.25 kB │ gzip:   0.19 kB
+.svelte-kit/output/client/_app/immutable/chunks/IePX_XID2.js                         0.26 kB │ gzip:   0.21 kB
+.svelte-kit/output/client/_app/immutable/chunks/Dl_RbBhE.js                          0.27 kB │ gzip:   0.22 kB
+.svelte-kit/output/client/_app/immutable/chunks/BCRXaxL32.js                         0.31 kB │ gzip:   0.23 kB
+.svelte-kit/output/client/_app/immutable/chunks/YagXSqo6.js                          0.33 kB │ gzip:   0.18 kB
+.svelte-kit/output/client/_app/immutable/chunks/ft0RG63U.js                          0.33 kB │ gzip:   0.23 kB
+.svelte-kit/output/client/_app/immutable/chunks/DFAzTwUg.js                          0.33 kB │ gzip:   0.24 kB
+.svelte-kit/output/client/_app/immutable/nodes/1.CMlZwdWr.js                         0.37 kB │ gzip:   0.26 kB
+.svelte-kit/output/client/_app/immutable/chunks/DBKvab95.js                          0.37 kB │ gzip:   0.21 kB
+.svelte-kit/output/client/_app/immutable/chunks/el5tUsy_.js                          0.41 kB │ gzip:   0.29 kB
+.svelte-kit/output/client/_app/immutable/chunks/CFsJzg-I2.js                         0.49 kB │ gzip:   0.26 kB
+.svelte-kit/output/client/_app/immutable/chunks/D9hbEZI62.js                         0.51 kB │ gzip:   0.33 kB
+.svelte-kit/output/client/_app/immutable/chunks/CbdgZb1h.js                          0.55 kB │ gzip:   0.35 kB
+.svelte-kit/output/client/_app/immutable/chunks/6Sx3wtqK2.js                         0.56 kB │ gzip:   0.28 kB
+.svelte-kit/output/client/_app/immutable/chunks/oZLQPJfx.js                          0.57 kB │ gzip:   0.39 kB
+.svelte-kit/output/client/_app/immutable/chunks/Dta4VhTF.js                          0.61 kB │ gzip:   0.39 kB
+.svelte-kit/output/client/_app/immutable/chunks/GebkBoYO.js                          0.62 kB │ gzip:   0.38 kB
+.svelte-kit/output/client/_app/immutable/chunks/D1WFwvCY.js                          0.63 kB │ gzip:   0.36 kB
+.svelte-kit/output/client/_app/immutable/chunks/DXoRoTVP.js                          0.77 kB │ gzip:   0.42 kB
+.svelte-kit/output/client/_app/immutable/chunks/Db6fgYvV2.js                         0.81 kB │ gzip:   0.40 kB
+.svelte-kit/output/client/_app/immutable/chunks/fuxa4LgX.js                          0.85 kB │ gzip:   0.38 kB
+.svelte-kit/output/client/_app/immutable/chunks/MsLES8C_.js                          0.98 kB │ gzip:   0.53 kB
+.svelte-kit/output/client/_app/immutable/chunks/CwyJJfjI2.js                         1.07 kB │ gzip:   0.57 kB
+.svelte-kit/output/client/_app/immutable/chunks/OWJLESbD.js                          1.09 kB │ gzip:   0.57 kB
+.svelte-kit/output/client/_app/immutable/chunks/DVmA3M9E.js                          1.10 kB │ gzip:   0.62 kB
+.svelte-kit/output/client/_app/immutable/chunks/D3myAW4u.js                          1.12 kB │ gzip:   0.67 kB
+.svelte-kit/output/client/_app/immutable/chunks/BKMj8Gu9.js                          1.19 kB │ gzip:   0.52 kB
+.svelte-kit/output/client/_app/immutable/chunks/HclGiUj8.js                          1.21 kB │ gzip:   0.67 kB
+.svelte-kit/output/client/_app/immutable/chunks/DwQZGhO6.js                          1.21 kB │ gzip:   0.59 kB
+.svelte-kit/output/client/_app/immutable/chunks/BzkZsU_h.js                          1.25 kB │ gzip:   0.65 kB
+.svelte-kit/output/client/_app/immutable/chunks/BKFeCj0l.js                          1.31 kB │ gzip:   0.72 kB
+.svelte-kit/output/client/_app/immutable/chunks/DI7udFVG2.js                         1.34 kB │ gzip:   0.62 kB
+.svelte-kit/output/client/_app/immutable/chunks/Bjy-W4x2.js                          1.36 kB │ gzip:   0.65 kB
+.svelte-kit/output/client/_app/immutable/chunks/DA21LPaX2.js                         1.38 kB │ gzip:   0.58 kB
+.svelte-kit/output/client/_app/immutable/chunks/n7QlkAOf.js                          1.41 kB │ gzip:   0.75 kB
+.svelte-kit/output/client/_app/immutable/chunks/D5bSxoNQ2.js                         1.45 kB │ gzip:   0.77 kB
+.svelte-kit/output/client/_app/immutable/chunks/BfzUAZ0_.js                          1.46 kB │ gzip:   0.68 kB
+.svelte-kit/output/client/_app/immutable/chunks/CfJcG0YK2.js                         1.54 kB │ gzip:   0.80 kB
+.svelte-kit/output/client/_app/immutable/chunks/BJd_-YGr.js                          1.62 kB │ gzip:   0.61 kB
+.svelte-kit/output/client/_app/immutable/chunks/CNoXxWWe.js                          1.83 kB │ gzip:   0.96 kB
+.svelte-kit/output/client/_app/immutable/chunks/sAM0drsw2.js                         1.93 kB │ gzip:   0.82 kB
+.svelte-kit/output/client/_app/immutable/chunks/Bq-3btBj.js                          2.00 kB │ gzip:   0.69 kB
+.svelte-kit/output/client/_app/immutable/chunks/Ck9GMiaV.js                          2.05 kB │ gzip:   0.86 kB
+.svelte-kit/output/client/_app/immutable/chunks/COl1ufwQ.js                          2.11 kB │ gzip:   0.98 kB
+.svelte-kit/output/client/_app/immutable/chunks/hLT2f7Zy2.js                         2.16 kB │ gzip:   1.06 kB
+.svelte-kit/output/client/_app/immutable/chunks/CEvIGd8a.js                          2.18 kB │ gzip:   1.01 kB
+.svelte-kit/output/client/_app/immutable/chunks/DvlBt7Hm.js                          2.28 kB │ gzip:   0.89 kB
+.svelte-kit/output/client/_app/immutable/nodes/6.DaG4QE8m.js                         2.38 kB │ gzip:   0.85 kB
+.svelte-kit/output/client/_app/immutable/chunks/Do1GUX32.js                          2.53 kB │ gzip:   1.16 kB
+.svelte-kit/output/client/_app/immutable/chunks/DU22ikpK.js                          2.56 kB │ gzip:   1.27 kB
+.svelte-kit/output/client/_app/immutable/chunks/DYvV9GkT.js                          2.62 kB │ gzip:   0.92 kB
+.svelte-kit/output/client/_app/immutable/chunks/Dgp8imXN.js                          2.73 kB │ gzip:   1.33 kB
+.svelte-kit/output/client/_app/immutable/chunks/BJVIJAi8.js                          2.86 kB │ gzip:   1.15 kB
+.svelte-kit/output/client/_app/immutable/chunks/BZKwMCAQ2.js                         3.10 kB │ gzip:   1.30 kB
+.svelte-kit/output/client/_app/immutable/chunks/DLTGRP1f2.js                         3.36 kB │ gzip:   1.37 kB
+.svelte-kit/output/client/_app/immutable/chunks/BpR_Xo7v.js                          3.61 kB │ gzip:   1.51 kB
+.svelte-kit/output/client/_app/immutable/chunks/B1yXvY0j.js                          3.64 kB │ gzip:   1.58 kB
+.svelte-kit/output/client/_app/immutable/nodes/4.B_0_usKW.js                         3.85 kB │ gzip:   1.56 kB
+.svelte-kit/output/client/_app/immutable/chunks/B5PESPKE.js                          3.87 kB │ gzip:   1.57 kB
+.svelte-kit/output/client/_app/immutable/chunks/CuMimHKc2.js                         4.01 kB │ gzip:   1.69 kB
+.svelte-kit/output/client/_app/immutable/chunks/DxQvXGqG2.js                         4.30 kB │ gzip:   1.77 kB
+.svelte-kit/output/client/_app/immutable/chunks/BvIVhhUP.js                          4.30 kB │ gzip:   1.70 kB
+.svelte-kit/output/client/_app/immutable/chunks/Bj_jrPd8.js                          4.58 kB │ gzip:   1.77 kB
+.svelte-kit/output/client/_app/immutable/chunks/CX7h73Hv.js                          4.71 kB │ gzip:   1.85 kB
+.svelte-kit/output/client/_app/immutable/chunks/DBalRjjs.js                          4.81 kB │ gzip:   1.88 kB
+.svelte-kit/output/client/_app/immutable/nodes/12.B6-raD4Z.js                        5.24 kB │ gzip:   1.92 kB
+.svelte-kit/output/client/_app/immutable/chunks/BGRgIk312.js                         5.50 kB │ gzip:   1.95 kB
+.svelte-kit/output/client/_app/immutable/chunks/BoLjNtCS.js                          5.56 kB │ gzip:   2.39 kB
+.svelte-kit/output/client/_app/immutable/chunks/Bizeui1F2.js                         6.04 kB │ gzip:   2.44 kB
+.svelte-kit/output/client/_app/immutable/chunks/Dapw0HAC2.js                         6.88 kB │ gzip:   2.91 kB
+.svelte-kit/output/client/_app/immutable/nodes/9.BzX2--m8.js                         6.97 kB │ gzip:   2.22 kB
+.svelte-kit/output/client/_app/immutable/chunks/C1dF3tTa2.js                         7.24 kB │ gzip:   2.85 kB
+.svelte-kit/output/client/_app/immutable/chunks/BgEIeo39.js                          7.58 kB │ gzip:   3.02 kB
+.svelte-kit/output/client/_app/immutable/entry/app.BZQOYLZ9.js                       8.46 kB │ gzip:   3.20 kB
+.svelte-kit/output/client/_app/immutable/nodes/14.B9QZRYrw.js                        9.52 kB │ gzip:   3.66 kB
+.svelte-kit/output/client/_app/immutable/nodes/11.BtobRFb2.js                       10.71 kB │ gzip:   3.56 kB
+.svelte-kit/output/client/_app/immutable/chunks/D1PtFWH_.js                         12.04 kB │ gzip:   4.00 kB
+.svelte-kit/output/client/_app/immutable/chunks/COE5JqXR2.js                        12.50 kB │ gzip:   3.83 kB
+.svelte-kit/output/client/_app/immutable/nodes/2.DGRcDBad.js                        14.55 kB │ gzip:   4.99 kB
+.svelte-kit/output/client/_app/immutable/chunks/Djod8m4U.js                         15.44 kB │ gzip:   5.56 kB
+.svelte-kit/output/client/_app/immutable/chunks/BC8WucgO.js                         16.88 kB │ gzip:   4.83 kB
+.svelte-kit/output/client/_app/immutable/chunks/ixyRH2zd.js                         19.74 kB │ gzip:   6.06 kB
+.svelte-kit/output/client/_app/immutable/nodes/10.DTpMNN78.js                       21.94 kB │ gzip:   7.15 kB
+.svelte-kit/output/client/_app/immutable/chunks/unUtYh8O2.js                        27.70 kB │ gzip:  10.83 kB
+.svelte-kit/output/client/_app/immutable/nodes/7.C1-pCSgA.js                        28.35 kB │ gzip:   7.62 kB
+.svelte-kit/output/client/_app/immutable/chunks/Dlkx_u4u2.js                        28.40 kB │ gzip:   7.43 kB
+.svelte-kit/output/client/_app/immutable/chunks/BytdYN7-.js                         28.70 kB │ gzip:  11.10 kB
+.svelte-kit/output/client/_app/immutable/nodes/8.BtzQ0iif.js                        36.80 kB │ gzip:   9.92 kB
+.svelte-kit/output/client/_app/immutable/chunks/DdfxnM3Z.js                         37.56 kB │ gzip:  10.51 kB
+.svelte-kit/output/client/_app/immutable/nodes/0.bvWMXM5i.js                        47.50 kB │ gzip:  15.45 kB
+.svelte-kit/output/client/_app/immutable/chunks/Clg8q-LI.js                         48.11 kB │ gzip:  13.39 kB
+.svelte-kit/output/client/_app/immutable/chunks/Do3MmloM.js                         52.20 kB │ gzip:  16.26 kB
+.svelte-kit/output/client/_app/immutable/chunks/BYmoIr6E.js                         55.65 kB │ gzip:  21.01 kB
+.svelte-kit/output/client/_app/immutable/nodes/5.JOA8wW8k.js                        57.59 kB │ gzip:  16.81 kB
+.svelte-kit/output/client/_app/immutable/chunks/BmFZJFyh2.js                        60.62 kB │ gzip:  18.44 kB
+.svelte-kit/output/client/_app/immutable/nodes/3.Ca2mqUd_.js                        63.57 kB │ gzip:  19.84 kB
+.svelte-kit/output/client/_app/immutable/chunks/BxEJhMkK.js                         72.47 kB │ gzip:  22.06 kB
+.svelte-kit/output/client/_app/immutable/chunks/Bz4es5NZ2.js                       100.79 kB │ gzip:  26.82 kB
+.svelte-kit/output/client/_app/immutable/chunks/CQwmsr4b.js                        110.24 kB │ gzip:  33.61 kB
+.svelte-kit/output/client/_app/immutable/chunks/BXZLl9qt.js                        110.97 kB │ gzip:  30.54 kB
+.svelte-kit/output/client/_app/immutable/nodes/13.KHq5lpUl.js                      130.30 kB │ gzip:  36.43 kB
+.svelte-kit/output/client/_app/immutable/chunks/C5mqQcda2.js                       191.36 kB │ gzip:  63.40 kB
+.svelte-kit/output/client/_app/immutable/chunks/BMQRHxO8.js                        352.19 kB │ gzip: 107.62 kB
+
+✓ built in 2.30s
+computing gzip size...
+.svelte-kit/output/server/.vite/manifest.json                                       28.56 kB │ gzip:  3.40 kB
+.svelte-kit/output/server/_app/immutable/assets/login-flow.C9mGYboB.css              0.05 kB │ gzip:  0.07 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.1YgHiyBh.css                   0.06 kB │ gzip:  0.08 kB
+.svelte-kit/output/server/_app/immutable/assets/AdminDialog.Ch22tHuT.css             0.18 kB │ gzip:  0.16 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.DUzvgADR.css                   0.36 kB │ gzip:  0.22 kB
+.svelte-kit/output/server/_app/immutable/assets/EditTopBar.BCAwa5pt.css              0.38 kB │ gzip:  0.24 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.CaY_BF_v.css                   0.62 kB │ gzip:  0.34 kB
+.svelte-kit/output/server/_app/immutable/assets/reorder-dnd.gjgu6jRs.css             0.70 kB │ gzip:  0.31 kB
+.svelte-kit/output/server/_app/immutable/assets/trash-availability.DYVREWZF.css      0.80 kB │ gzip:  0.36 kB
+.svelte-kit/output/server/_app/immutable/assets/UsedInPanel.DnFnIspj.css             1.05 kB │ gzip:  0.39 kB
+.svelte-kit/output/server/_app/immutable/assets/BackendUrlForm.DTNyOyD4.css          1.25 kB │ gzip:  0.40 kB
+.svelte-kit/output/server/_app/immutable/assets/ReferencesSummary.DOKCal7-.css       1.40 kB │ gzip:  0.44 kB
+.svelte-kit/output/server/_app/immutable/assets/DeleteConfirm.BgiCjSQ1.css           2.19 kB │ gzip:  0.64 kB
+.svelte-kit/output/server/_app/immutable/assets/ReviewGroups.-mV7MGXE.css            3.15 kB │ gzip:  0.87 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.BFGtwjlH.css                   3.76 kB │ gzip:  0.84 kB
+.svelte-kit/output/server/_app/immutable/assets/VisualPublishControl.Co_c5Qh-.css    5.24 kB │ gzip:  1.24 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.Bgun80wc.css                   5.37 kB │ gzip:  1.21 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.DkumGZn_.css                   5.75 kB │ gzip:  1.48 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.DGlB0sA-.css                   9.34 kB │ gzip:  1.94 kB
+.svelte-kit/output/server/_app/immutable/assets/admin.C2GlnzKG.css                  12.13 kB │ gzip:  2.62 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.DQbiqCAm.css                  24.15 kB │ gzip:  3.77 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.BOmg0a-r.css                  24.20 kB │ gzip:  3.86 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.wqcmMLOH.css                  24.37 kB │ gzip:  3.87 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.S03P6wVj.css                  25.55 kB │ gzip:  3.91 kB
+.svelte-kit/output/server/_app/immutable/assets/RecordForm.R7DKNvY0.css             32.23 kB │ gzip:  4.86 kB
+.svelte-kit/output/server/_app/immutable/assets/ReviewMediaLoader.CdbRcJmH.css      36.03 kB │ gzip:  5.36 kB
+.svelte-kit/output/server/_app/immutable/assets/_layout.CEoAAz0p.css                75.38 kB │ gzip:  7.14 kB
+.svelte-kit/output/server/chunks/navigation.js                                       0.03 kB │ gzip:  0.05 kB
+.svelte-kit/output/server/chunks/editor.js                                           0.08 kB │ gzip:  0.08 kB
+.svelte-kit/output/server/chunks/VisualPublishControl2.js                            0.11 kB │ gzip:  0.09 kB
+.svelte-kit/output/server/chunks/paths.js                                            0.12 kB │ gzip:  0.09 kB
+.svelte-kit/output/server/chunks/index-server2.js                                    0.18 kB │ gzip:  0.12 kB
+.svelte-kit/output/server/env.js                                                     0.22 kB │ gzip:  0.14 kB
+.svelte-kit/output/server/chunks/creation.js                                         0.28 kB │ gzip:  0.21 kB
+.svelte-kit/output/server/chunks/env.js                                              0.28 kB │ gzip:  0.17 kB
+.svelte-kit/output/server/internal.js                                                0.40 kB │ gzip:  0.19 kB
+.svelte-kit/output/server/chunks/vega-error-message.js                               0.51 kB │ gzip:  0.31 kB
+.svelte-kit/output/server/entries/fallbacks/error.svelte.js                          0.56 kB │ gzip:  0.35 kB
+.svelte-kit/output/server/chunks/server-settings-ui.js                               0.68 kB │ gzip:  0.40 kB
+.svelte-kit/output/server/chunks/is-plain-object.js                                  0.76 kB │ gzip:  0.49 kB
+.svelte-kit/output/server/chunks/shared-reads.js                                     0.77 kB │ gzip:  0.47 kB
+.svelte-kit/output/server/chunks/format.js                                           0.83 kB │ gzip:  0.49 kB
+.svelte-kit/output/server/chunks/internal.js                                         1.15 kB │ gzip:  0.47 kB
+.svelte-kit/output/server/chunks/trash-query.js                                      1.45 kB │ gzip:  0.84 kB
+.svelte-kit/output/server/entries/pages/_layout.ts.js                                1.57 kB │ gzip:  0.90 kB
+.svelte-kit/output/server/chunks/strong-auth-errors.js                               1.65 kB │ gzip:  0.79 kB
+.svelte-kit/output/server/chunks/version.js                                          1.67 kB │ gzip:  0.97 kB
+.svelte-kit/output/server/chunks/access.js                                           1.77 kB │ gzip:  0.84 kB
+.svelte-kit/output/server/chunks/AdminDialog.js                                      1.92 kB │ gzip:  0.72 kB
+.svelte-kit/output/server/chunks/app-context.js                                      2.02 kB │ gzip:  1.07 kB
+.svelte-kit/output/server/chunks/files.js                                            2.25 kB │ gzip:  1.14 kB
+.svelte-kit/output/server/chunks/markdown.js                                         2.48 kB │ gzip:  1.20 kB
+.svelte-kit/output/server/chunks/administration.js                                   2.70 kB │ gzip:  1.16 kB
+.svelte-kit/output/server/chunks/state.js                                            2.73 kB │ gzip:  1.14 kB
+.svelte-kit/output/server/chunks/editor-form.js                                      2.76 kB │ gzip:  0.95 kB
+.svelte-kit/output/server/chunks/list-load.js                                        2.79 kB │ gzip:  1.47 kB
+.svelte-kit/output/server/chunks/UsedInPanel.js                                      2.87 kB │ gzip:  1.42 kB
+.svelte-kit/output/server/chunks/preview-url.js                                      2.97 kB │ gzip:  1.32 kB
+.svelte-kit/output/server/chunks/backend2.js                                         3.65 kB │ gzip:  1.82 kB
+.svelte-kit/output/server/chunks/EditTopBar.js                                       3.71 kB │ gzip:  1.86 kB
+.svelte-kit/output/server/entries/pages/copias/_page.svelte.js                       3.85 kB │ gzip:  1.49 kB
+.svelte-kit/output/server/chunks/safe-uri.js                                         3.97 kB │ gzip:  2.07 kB
+.svelte-kit/output/server/chunks/delete-feedback.js                                  4.08 kB │ gzip:  1.54 kB
+.svelte-kit/output/server/chunks/revisions-collection.js                             4.28 kB │ gzip:  1.47 kB
+.svelte-kit/output/server/chunks/errors2.js                                          4.32 kB │ gzip:  2.01 kB
+.svelte-kit/output/server/chunks/editor2.js                                          4.40 kB │ gzip:  2.04 kB
+.svelte-kit/output/server/chunks/block-field-schema.js                               4.48 kB │ gzip:  1.56 kB
+.svelte-kit/output/server/chunks/relation-search.js                                  4.76 kB │ gzip:  2.22 kB
+.svelte-kit/output/server/entries/pages/c/_type_/new/_page.svelte.js                 4.84 kB │ gzip:  1.77 kB
+.svelte-kit/output/server/chunks/administration-rules.js                             4.94 kB │ gzip:  2.26 kB
+.svelte-kit/output/server/chunks/server-settings.js                                  4.94 kB │ gzip:  1.67 kB
+.svelte-kit/output/server/chunks/sanitize.js                                         5.14 kB │ gzip:  2.57 kB
+.svelte-kit/output/server/chunks/query.js                                            5.22 kB │ gzip:  1.90 kB
+.svelte-kit/output/server/chunks/server-settings2.js                                 5.29 kB │ gzip:  2.17 kB
+.svelte-kit/output/server/chunks/media-card.js                                       5.76 kB │ gzip:  2.73 kB
+.svelte-kit/output/server/chunks/trash-availability.js                               5.79 kB │ gzip:  2.64 kB
+.svelte-kit/output/server/chunks/administration2.js                                  5.90 kB │ gzip:  2.17 kB
+.svelte-kit/output/server/chunks/routing.js                                          6.15 kB │ gzip:  2.20 kB
+.svelte-kit/output/server/chunks/exports.js                                          6.19 kB │ gzip:  1.84 kB
+.svelte-kit/output/server/chunks/BackendUrlForm.js                                   6.27 kB │ gzip:  2.42 kB
+.svelte-kit/output/server/entries/pages/papelera/_page.svelte.js                     6.29 kB │ gzip:  2.77 kB
+.svelte-kit/output/server/chunks/errors.js                                           6.44 kB │ gzip:  2.67 kB
+.svelte-kit/output/server/chunks/build-client.js                                     6.69 kB │ gzip:  3.05 kB
+.svelte-kit/output/server/chunks/routes.js                                           6.92 kB │ gzip:  2.98 kB
+.svelte-kit/output/server/chunks/media-collection.js                                 7.70 kB │ gzip:  3.21 kB
+.svelte-kit/output/server/chunks/Icon.js                                             8.13 kB │ gzip:  2.56 kB
+.svelte-kit/output/server/entries/pages/restablecer/_page.svelte.js                  8.29 kB │ gzip:  3.08 kB
+.svelte-kit/output/server/chunks/search.js                                           8.35 kB │ gzip:  3.67 kB
+.svelte-kit/output/server/chunks/login-flow.svelte.js                                8.36 kB │ gzip:  2.76 kB
+.svelte-kit/output/server/entries/pages/c/_type_/_id_/_page.svelte.js                8.40 kB │ gzip:  3.30 kB
+.svelte-kit/output/server/entries/pages/login/_page.svelte.js                        9.05 kB │ gzip:  2.66 kB
+.svelte-kit/output/server/chunks/reorder-dnd.js                                      9.21 kB │ gzip:  3.69 kB
+.svelte-kit/output/server/chunks/administration3.js                                 10.89 kB │ gzip:  3.96 kB
+.svelte-kit/output/server/chunks/ReferencesSummary.js                               11.69 kB │ gzip:  4.31 kB
+.svelte-kit/output/server/chunks/collections.js                                     12.10 kB │ gzip:  4.71 kB
+.svelte-kit/output/server/chunks/cell.js                                            13.98 kB │ gzip:  5.71 kB
+.svelte-kit/output/server/entries/pages/editores/_page.svelte.js                    14.82 kB │ gzip:  3.66 kB
+.svelte-kit/output/server/chunks/uneval.js                                          15.46 kB │ gzip:  4.25 kB
+.svelte-kit/output/server/chunks/with-revisions.js                                  15.66 kB │ gzip:  5.95 kB
+.svelte-kit/output/server/chunks/shrink-image-browser.js                            17.71 kB │ gzip:  7.00 kB
+.svelte-kit/output/server/chunks/VisualPublishControl.js                            19.55 kB │ gzip:  4.87 kB
+.svelte-kit/output/server/chunks/update-banner.svelte.js                            20.32 kB │ gzip:  7.59 kB
+.svelte-kit/output/server/chunks/internal2.js                                       21.37 kB │ gzip:  6.58 kB
+.svelte-kit/output/server/entries/pages/_page.svelte.js                             23.46 kB │ gzip:  7.12 kB
+.svelte-kit/output/server/chunks/DeleteConfirm.js                                   24.60 kB │ gzip:  9.09 kB
+.svelte-kit/output/server/chunks/shared.js                                          25.54 kB │ gzip:  6.79 kB
+.svelte-kit/output/server/entries/pages/v/_view_/_page.svelte.js                    30.62 kB │ gzip: 10.81 kB
+.svelte-kit/output/server/chunks/ReviewGroups.js                                    37.39 kB │ gzip: 12.61 kB
+.svelte-kit/output/server/chunks/utils.js                                           37.42 kB │ gzip: 10.84 kB
+.svelte-kit/output/server/chunks/conventions.js                                     49.61 kB │ gzip: 13.58 kB
+.svelte-kit/output/server/chunks/client.js                                          53.45 kB │ gzip: 15.47 kB
+.svelte-kit/output/server/chunks/demo-seed.js                                       53.71 kB │ gzip: 14.61 kB
+.svelte-kit/output/server/remote-entry.js                                           55.43 kB │ gzip: 12.12 kB
+.svelte-kit/output/server/entries/pages/media/_page.svelte.js                       59.26 kB │ gzip: 18.39 kB
+.svelte-kit/output/server/entries/pages/c/_type_/_page.svelte.js                    82.57 kB │ gzip: 25.51 kB
+.svelte-kit/output/server/entries/pages/settings/_page.svelte.js                    94.46 kB │ gzip: 25.67 kB
+.svelte-kit/output/server/entries/pages/_layout.svelte.js                           97.04 kB │ gzip: 30.41 kB
+.svelte-kit/output/server/chunks/en.js                                             105.71 kB │ gzip: 27.29 kB
+.svelte-kit/output/server/chunks/i18n.js                                           114.06 kB │ gzip: 30.70 kB
+.svelte-kit/output/server/chunks/backend-override.js                               126.75 kB │ gzip: 32.95 kB
+.svelte-kit/output/server/chunks/backend.js                                        129.95 kB │ gzip: 37.62 kB
+.svelte-kit/output/server/index.js                                                 132.13 kB │ gzip: 33.23 kB
+.svelte-kit/output/server/chunks/index-server.js                                   136.38 kB │ gzip: 35.04 kB
+.svelte-kit/output/server/chunks/RecordForm.js                                     139.82 kB │ gzip: 41.20 kB
+.svelte-kit/output/server/entries/pages/c/_type_/_id_/visual/_page.svelte.js       173.73 kB │ gzip: 53.63 kB
+.svelte-kit/output/server/chunks/ReviewMediaLoader.js                              205.88 kB │ gzip: 58.89 kB
+
+[33m[PLUGIN_TIMINGS] [0mYour build spent significant time in plugins. Here is a breakdown:
+  - vite-plugin-sveltekit-guard (77%)
+  - vite-plugin-sveltekit-virtual-modules (11%)
+  - vite-plugin-svelte:compile (6%)
+See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+
+✓ built in 5.84s
+
+Run npm run preview to preview your production build locally.
+
+> Using @sveltejs/adapter-static
+  Wrote site to "build"
+  ✔ done
+$ playwright test
+[WebServer] (node:43041) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:43101) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 246 tests using 7 workers
+
+(node:43534) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:43538) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:43535) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:43536) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:43539) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:43540) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:43537) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓    2 [chromium] › e2e/a11y-smoke.spec.ts:31:1 › el elemento enfocado tiene un contorno de foco visible (1.5s)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓    7 [chromium] › e2e/appearance.spec.ts:43:1 › el selector presenta las pinturas especiales del catálogo de Lumbre (1.9s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓    1 [chromium] › e2e/a11y-smoke.spec.ts:59:1 › overlay móvil: la hamburguesa abre la sidebar con foco atrapado y Esc la cierra (2.2s)
+  ✓    5 [chromium] › e2e/a11y-smoke.spec.ts:7:1 › la sidebar es navegable por teclado y el item activo lleva aria-current (2.4s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓    6 [chromium] › e2e/appearance.spec.ts:56:1 › el toggle de modo cambia data-mode en la raíz y persiste tras recargar (2.3s)
+  ✓    3 [chromium] › e2e/appearance.spec.ts:14:1 › el selector de tema cambia data-theme en la raíz y persiste tras recargar (2.6s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓    9 [chromium] › e2e/concurrency.spec.ts:80:2 › edición concurrente (aviso de conflicto) › «Descartar mis cambios y recargar» deja el formulario en la versión del servidor (1.7s)
+  ✓   10 [chromium] › e2e/concurrency.spec.ts:100:2 › edición concurrente (aviso de conflicto) › si los dos tocasteis el mismo campo, la fila dice «Lo cambiasteis los dos» (1.5s)
+  ✓    8 [chromium] › e2e/concurrency.spec.ts:45:2 › edición concurrente (aviso de conflicto) › el guardado falla cerrado, enseña el diff y «Guardar igualmente» conserva lo del otro (1.9s)
+  ✓   12 [chromium] › e2e/delete.spec.ts:72:2 › borrar con confirmación (L-P4.11) › cancelar (botón "Cancelar") no borra nada (1.4s)
+  ✓   13 [chromium] › e2e/delete.spec.ts:88:2 › borrar con confirmación (L-P4.11) › cancelar con Esc tampoco borra nada (1.3s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓   11 [chromium] › e2e/delete.spec.ts:43:2 › borrar con confirmación (L-P4.11) › borrar un registro: desaparece de la tabla y muestra un toast de éxito (1.5s)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   16 [chromium] › e2e/delete.spec.ts:213:2 › tipo readonly: sin botón de borrar (L-P4.9) › pages (readonly) nunca ofrece un botón de borrado (780ms)
+  ✓   17 [chromium] › e2e/delete.spec.ts:231:2 › borrado que falla (afordance de test, L-P4.4/Audit H6) › un fallo de "port.delete" se reporta en el banner global y la fila sigue en la tabla (882ms)
+  ✓   14 [chromium] › e2e/delete.spec.ts:105:2 › borrar la última fila de una página > 1 retrocede (L-P4.13, reload()) › vaciar la página 2 de posts redirige a la página con datos (1.1s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   19 [chromium] › e2e/delete.spec.ts:315:2 › aviso de relaciones antes de borrar (fix de code-review contra PocketBase 0.39.6) › con una referencia SOLO por URL (vía "url" del motor): la línea de relaciones NO se pinta (1.2s)
+  ✓   21 [chromium] › e2e/density.spec.ts:54:1 › la densidad se puede cambiar con el teclado y en una pantalla estrecha (459ms)
+  ✓   20 [chromium] › e2e/density.spec.ts:9:1 › la densidad del menú de cuenta cambia data-density en la raíz y persiste tras recargar (751ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   18 [chromium] › e2e/delete.spec.ts:270:2 › aviso de relaciones antes de borrar (fix de code-review contra PocketBase 0.39.6) › con una referencia POR RELACIÓN: el diálogo avisa de que restaurar no la reconecta (1.7s)
+  ✓   22 [chromium] › e2e/editor-role.spec.ts:30:2 › nav de contenido + CRUD normal (rol editor) › la sidebar pinta las colecciones de contenido y un registro se puede editar/guardar (846ms)
+  ✓   23 [chromium] › e2e/editor-role.spec.ts:54:2 › /settings degradado (rol editor, sin schemaBootstrap) › el ManifestEditor NO se monta: aviso degradado en su lugar, "Backend"/"Acerca de" intactas (547ms)
+  ✓    4 [chromium] › e2e/block-header.spec.ts:77:1 › tipo y título largos siguen visibles y Borrar queda accesible a 390 y 1440 px (5.8s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   24 [chromium] › e2e/editor-role.spec.ts:81:2 › /media degradado (rol editor, collectionState "manual") › muestra "pide a un administrador", nunca el JSON de importación (740ms)
+  ✓   25 [chromium] › e2e/feedback.spec.ts:38:2 › toasts › un toast de error persiste hasta descartarlo (773ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓   28 [chromium] › e2e/feedback.spec.ts:118:2 › banner de red a mitad de sesión › regresión: un reintento que cae en auth-expired NO deja el banner ni la conexión colgados (754ms)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   15 [chromium] › e2e/delete.spec.ts:148:2 › estado "deleting" en vuelo (fix de code-review de 4e) › el trap de foco sigue intacto y una segunda petición de borrado se ignora (2.8s)
+  ✓   27 [chromium] › e2e/feedback.spec.ts:79:2 › banner de red a mitad de sesión › un fallo de red tras el arranque muestra el banner reintentable sin desmontar el shell (827ms)
+  ✓   29 [chromium] › e2e/feedback.spec.ts:157:2 › banner de red a mitad de sesión › el banner es descartable sin reintentar (681ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   26 [chromium] › e2e/feedback.spec.ts:62:2 › toasts › un toast de éxito se autodescarta (1.2s)
+  ✓   31 [chromium] › e2e/form.spec.ts:106:2 › crear (D-P5.11) › validación cliente (required) bloquea el envío sin navegar ni tocar la red (926ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓   30 [chromium] › e2e/form.spec.ts:76:2 › crear (D-P5.11) › crear un post navega a la edición del nuevo id, con el valor persistido (1.1s)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   32 [chromium] › e2e/form.spec.ts:120:2 › crear (D-P5.11) › validación de BACKEND (maxLength, que el cliente no comprueba) se pinta bajo el campo (793ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓   34 [chromium] › e2e/form.spec.ts:164:2 › foco al primer error (a11y de cierre, F5-g/L-P5.2) › error de BACKEND (maxLength, que el cliente no comprueba): el foco aterriza en el campo que lo devolvió (859ms)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   33 [chromium] › e2e/form.spec.ts:148:2 › foco al primer error (a11y de cierre, F5-g/L-P5.2) › required vacío (cliente): el foco aterriza en el campo con error, no se queda en "Guardar" (1.1s)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   35 [chromium] › e2e/form.spec.ts:190:2 › editar › editar un registro existente y guardar persiste el cambio (1.1s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   36 [chromium] › e2e/form.spec.ts:220:2 › guard de salida (D-P5.5) › editar→dirty→"Volver" pide confirmación; cancelar se queda, confirmar navega (974ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   37 [chromium] › e2e/form.spec.ts:250:2 › barra pegajosa del editor (R7 del rediseño C2 «Cabina») › el crumb muestra tipo+nombre+tag de estado, el dirty aparece/desaparece, y ⌘S guarda (886ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   39 [chromium] › e2e/form.spec.ts:294:2 › barra pegajosa del editor (R7 del rediseño C2 «Cabina») › "Ver en el sitio" está deshabilitado cuando el tipo no declara `previewUrl` (posts, demo) (1.1s)
+  ✓   40 [chromium] › e2e/form.spec.ts:305:2 › barra pegajosa del editor (R7 del rediseño C2 «Cabina») › en /new el crumb muestra "nuevo" y no hay tag de estado ni indicador de guardado (996ms)
+  ✓   38 [chromium] › e2e/form.spec.ts:285:2 › barra pegajosa del editor (R7 del rediseño C2 «Cabina») › ⌘S no hace nada sin cambios (sin dirty, sin roundtrip visible) (1.4s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   41 [chromium] › e2e/form.spec.ts:319:2 › not-found de registro (L-P5.7) › /c/posts/id-inexistente muestra not-found en contexto, con vuelta al listado (985ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   42 [chromium] › e2e/form.spec.ts:335:2 › campo number desde null (fix de code-review, GenericInput.svelte) › crear un metrics con Count numérico persiste como NÚMERO, no como texto (1.1s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   45 [chromium] › e2e/form.spec.ts:496:2 › widgets escalares dedicados (F5-b) › readonly de schema (authors.joinedAt): el widget datetime nunca acepta edición (912ms)
+  ✓   43 [chromium] › e2e/form.spec.ts:375:2 › widgets escalares dedicados (F5-b) › posts: text/textarea/select/chips/datetime/url/email/json pintan su control y persisten (1.5s)
+  ✓   46 [chromium] › e2e/form.spec.ts:519:2 › editores de texto largo: richtext TipTap y Markdown asistido (F5-d + L11) › richtext (content): el HTML hostil ya guardado se sanea al montar, nunca se ejecuta (927ms)
+  ✓   44 [chromium] › e2e/form.spec.ts:476:2 › widgets escalares dedicados (F5-b) › metrics: switch es un checkbox real y number un input numérico (1.5s)
+  ✓   47 [chromium] › e2e/form.spec.ts:537:2 › editores de texto largo: richtext TipTap y Markdown asistido (F5-d + L11) › markdown (summary): muestra el crudo byte-exacto y su prueba segura en vivo (908ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   48 [chromium] › e2e/form.spec.ts:551:2 › editores de texto largo: richtext TipTap y Markdown asistido (F5-d + L11) › markdown: cambia entre Escribir/Dividido/Vista sin alterar el contenido (1.2s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   49 [chromium] › e2e/form.spec.ts:576:2 › editores de texto largo: richtext TipTap y Markdown asistido (F5-d + L11) › markdown: rechaza una URI peligrosa antes de propagarla o guardarla (1.3s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   53 [chromium] › e2e/form.spec.ts:762:2 › widget relation (F5-e) › degradado sin titleField (relatedMetric): sin buscador, listado paginado por id (1.3s)
+  ✓   51 [chromium] › e2e/form.spec.ts:676:2 › widget relation (F5-e) › single (relatedPost): buscar por título → seleccionar → persistir → recargar y ver el título resuelto (1.5s)
+  ✓   50 [chromium] › e2e/form.spec.ts:610:2 › editores de texto largo: richtext TipTap y Markdown asistido (F5-d + L11) › crear un post: escribir en richtext (con negrita) y markdown, guardar, y que persista (1.6s)
+  ✓   54 [chromium] › e2e/form.spec.ts:793:2 › widget file (F5-f) › single (coverImage): sube una imagen válida, la previsualiza, guarda y persiste vía fileUrl (1.6s)
+  ✓   52 [chromium] › e2e/form.spec.ts:713:2 › widget relation (F5-e) › múltiple con maxSelect (relatedPosts): seleccionar 2 agota el límite, el 3º queda deshabilitado (1.7s)
+  ✓   55 [chromium] › e2e/form.spec.ts:834:2 › widget file (F5-f) › single (coverImage): maxSizeBytes/mimeTypes se rechazan en cliente, con mensaje legible y sin añadir el fichero (1.3s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   56 [chromium] › e2e/form.spec.ts:866:2 › widget file (F5-f) › múltiple con maxSelect (attachments): recorta el exceso que llega de golpe, quitar libera hueco, y persiste (1.4s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   57 [chromium] › e2e/form.spec.ts:921:2 › widget file (F5-f) › single (coverImage): quitar un FileRef YA PERSISTIDO lo borra de verdad (1.3s)
+  ✓   59 [chromium] › e2e/form.spec.ts:1035:2 › widget file (F5-f) › readonly de schema (posts.sourceFile): el widget file nunca acepta edición, aunque ya tenga contenido (1.2s)
+  ✓   62 [chromium] › e2e/form.spec.ts:1145:2 › widget file — texto alternativo y copia en Medios (lote 12, lámina 5) › elegida de la biblioteca: no se pide texto ni se copia otra vez (5.8) (1.0s)
+  ✓   58 [chromium] › e2e/form.spec.ts:976:2 › widget file (F5-f) › múltiple (attachments): quitar UN FileRef ya persistido borra solo ese, conserva el resto (1.3s)
+  ✓   60 [chromium] › e2e/form.spec.ts:1077:2 › widget file — texto alternativo y copia en Medios (lote 12, lámina 5) › crear: la imagen pide el texto con el foco puesto, avisa si falta, y al guardar aparece en Medios con ese texto (1.1s)
+  ✓   61 [chromium] › e2e/form.spec.ts:1119:2 › widget file — texto alternativo y copia en Medios (lote 12, lámina 5) › editar: tras guardar, la fila dice «En Medios, con texto alternativo» y la miniatura lleva ese texto (5.5) (1.3s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   63 [chromium] › e2e/global-search.spec.ts:17:1 › teclear encuentra registros de la colección y abrirlos navega a su edición (1.2s)
+  ✓   67 [chromium] › e2e/global-search.spec.ts:86:1 › por debajo del mínimo no se busca: se pide más texto (516ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   66 [chromium] › e2e/global-search.spec.ts:77:1 › un término sin coincidencias lo dice, en vez de un panel vacío (832ms)
+  ✓   64 [chromium] › e2e/global-search.spec.ts:40:1 › ↓ marca el resultado activo y Enter lo abre, sin sacar el foco de la caja (934ms)
+  ✓   65 [chromium] › e2e/global-search.spec.ts:61:1 › Escape cierra el panel; un segundo Escape vacía la caja (928ms)
+  ✓   69 [chromium] › e2e/global-search.spec.ts:118:1 › el buscador global no ofrece resultados de una colección que no se puede listar (716ms)
+  ✓   68 [chromium] › e2e/global-search.spec.ts:96:1 › los resultados se agrupan por colección y el grupo lleva al listado con la búsqueda puesta (977ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   70 [chromium] › e2e/list-actions-menu.spec.ts:21:2 › menú de acciones de fila (lámina 7) › una sola parada de tabulación por fila: Tab desde un título va al título de la fila siguiente (663ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   71 [chromium] › e2e/list-actions-menu.spec.ts:43:2 › menú de acciones de fila (lámina 7) › → desde el título lleva al botón de menú; Enter abre con el foco en «Duplicar»; Escape cierra y devuelve el foco (675ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   72 [chromium] › e2e/list-actions-menu.spec.ts:81:2 › menú de acciones de fila (lámina 7) › Espacio también abre el menú; «Borrar…» abre la confirmación de siempre y, al cancelar, el foco vuelve al disparador (827ms)
+  ✓   74 [chromium] › e2e/list-actions-menu.spec.ts:131:2 › menú de acciones de fila (lámina 7) › a 390 px el botón de menú se ve sin desplazar la tabla (celda pegada al borde derecho) (926ms)
+  ✓   75 [chromium] › e2e/list-actions-menu.spec.ts:154:2 › menú de acciones de fila (lámina 7) › en la última fila de la página el menú se abre hacia arriba si no cabe debajo (944ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   73 [chromium] › e2e/list-actions-menu.spec.ts:107:2 › menú de acciones de fila (lámina 7) › «Duplicar» crea una copia y la abre; el original sigue en la lista (1.2s)
+  ✓   76 [chromium] › e2e/list-actions-menu.spec.ts:182:2 › cabecera del listado en móvil (lámina 6) › a 390 px: «Crear» es el primero y Exportar e Importar están en «Más» (1.1s)
+  ✓   77 [chromium] › e2e/list-actions-menu.spec.ts:209:2 › cabecera del listado en móvil (lámina 6) › a 390 px: cada entrada de «Más» abre el mismo diálogo de hoy y al cerrarlo el foco vuelve a «Más» (1.2s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   78 [chromium] › e2e/list-actions-menu.spec.ts:234:2 › cabecera del listado en móvil (lámina 6) › a 390 px, colección de solo lectura: una sola acción (Exportar) como botón suelto, sin «Más» (1.2s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   79 [chromium] › e2e/list-actions-menu.spec.ts:247:2 › cabecera del listado en móvil (lámina 6) › a 1440 px no cambia nada: Exportar, Importar y «Crear», en ese orden, sin «Más» (1.1s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   83 [chromium] › e2e/list.spec.ts:76:2 › tabla poblada (posts, §4c) › la columna de estado pinta una insignia para los literales draft/published (D-P4.8) (1.2s)
+  ✓   80 [chromium] › e2e/list-actions-menu.spec.ts:264:2 › cabecera del listado en móvil (lámina 6) › al estrechar la ventana con la página abierta, la cabecera cambia de rama (matchMedia) (1.6s)
+  ✓   81 [chromium] › e2e/list.spec.ts:45:2 › tabla poblada (posts, §4c) › pinta las columnas y las filas reales, con la celda-título como enlace (1.5s)
+  ✓   82 [chromium] › e2e/list.spec.ts:68:2 › tabla poblada (posts, §4c) › el enlace de título abre el detalle (nav.toRecord) (1.4s)
+  ✓   85 [chromium] › e2e/list.spec.ts:111:2 › paginación (D-P4.5, L-P4.10/L-P4.13) › deep-link directo a /c/posts?page=2 reconstruye la vista tras recarga (L-P4.13) (923ms)
+  ✓   84 [chromium] › e2e/list.spec.ts:88:2 › paginación (D-P4.5, L-P4.10/L-P4.13) › Anterior/Siguiente navegan, reflejan la página en la URL y actualizan el rango "N–M de T" (1.2s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   86 [chromium] › e2e/list.spec.ts:125:2 › vacío-colección (§4c) › authors (normal, sin registros) muestra el vacío CON la CTA "Crear", que navega a .../new (1.1s)
+  ✓   89 [chromium] › e2e/list.spec.ts:162:2 › error de transporte en el listado (L-P4.4, Audit H2) › un fallo de red en list() se pinta EN CONTEXTO con "Reintentar", no en el banner global (831ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   90 [chromium] › e2e/list.spec.ts:209:2 › fila siempre abrible sin titleField (L-P4.15, fix de code-review) › metrics (sin campo título resoluble) igual abre el detalle desde su fila (955ms)
+  ✓   88 [chromium] › e2e/list.spec.ts:152:2 › vacío-colección (§4c) › posts (poblado) NO cae en el estado vacío-colección (1.0s)
+  ✓   91 [chromium] › e2e/list.spec.ts:231:2 › página fuera de rango (L-P4.13, fix de code-review) › un deep-link a ?page=99 redirige a la última página válida, no al vacío-colección (1.1s)
+  ✓   87 [chromium] › e2e/list.spec.ts:142:2 › vacío-colección (§4c) › pages (readonly, sin registros) muestra el vacío SIN invitar a crear (1.1s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   92 [chromium] › e2e/list.spec.ts:249:2 › búsqueda (D-P4.3, Fase 4d) › teclear en el buscador filtra las filas, actualiza el total y refleja ?q= en la URL (1.3s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   95 [chromium] › e2e/list.spec.ts:323:2 › vacío-búsqueda (L-P4.12, Fase 4d): distinto de vacío-colección › búsqueda + filtro de estado combinados a 0 resultados también cae en empty-search (947ms)
+  ✓   97 [chromium] › e2e/list.spec.ts:365:2 › cambiar filtro resetea a página 1 (D-P4.9, Fase 4d) › aplicar el filtro de estado desde la página 2 vuelve a la 1, sin arrastrar ?page=2 (859ms)
+  ✓   94 [chromium] › e2e/list.spec.ts:302:2 › vacío-búsqueda (L-P4.12, Fase 4d): distinto de vacío-colección › 0 resultados con búsqueda activa cae en empty-search (NO empty-collection), "Limpiar filtros" restaura la lista (1.3s)
+  ✓   96 [chromium] › e2e/list.spec.ts:334:2 › vacío-búsqueda (L-P4.12, Fase 4d): distinto de vacío-colección › carrera "Limpiar filtros" vs debounce pendiente: el timer viejo NO revive el q borrado (fix de code-review) (1.1s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓   93 [chromium] › e2e/list.spec.ts:269:2 › filtro de estado (D-P4.4, Fase 4d, chips ACTIVAS de M6, reabre R2) › el menú "Filtrar" aplica un valor, pinta un chip removible y refleja ?status= en la URL (1.7s)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   99 [chromium] › e2e/list.spec.ts:416:2 › orden por cabecera (D-P4.6, Fase 4d) › ordenar por una columna distinta arranca siempre en asc (D-P4.6(a), una sola columna a la vez) (792ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓   98 [chromium] › e2e/list.spec.ts:386:2 › orden por cabecera (D-P4.6, Fase 4d) › clic en la cabecera "Title" cicla asc → desc → sin-orden, reordena las filas y refleja ?sort=&dir= (1.2s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  100 [chromium] › e2e/list.spec.ts:436:2 › orden por cabecera (D-P4.6, Fase 4d) › la cabecera "Tags" (select múltiple, NO escalar) no ofrece ningún control de orden (715ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  106 [chromium] › e2e/login.spec.ts:61:2 › indicador de servidor (#l12-ux, item 1) › en modo demo (adaptador memory) no hay indicador: sin un PocketBase real que mostrar (455ms)
+  ✓  105 [chromium] › e2e/login.spec.ts:36:2 › login › sin red muestra un mensaje reintentable (508ms)
+  ✓  104 [chromium] › e2e/login.spec.ts:26:2 › login › credenciales incorrectas muestra mensaje neutro y se queda en /login (577ms)
+  ✓  103 [chromium] › e2e/login.spec.ts:8:2 › login › credenciales correctas entra y muestra el shell autenticado (603ms)
+  ✓  102 [chromium] › e2e/list.spec.ts:490:2 › responsive N columnas (L-P4.2, Audit H1, Fase 4f) › con más de 5 columnas (7, ver demo-seed) la tabla scrollea horizontal CONTENIDA, sin desbordar la página (692ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  107 [chromium] › e2e/login.spec.ts:75:2 › branding temático L10 › el login consume gradiente, halo y firma del tema activo (317ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓  101 [chromium] › e2e/list.spec.ts:451:2 › deep-link reconstruye la vista entera (L-P4.13, Fase 4d) › ?q=&status=&sort=&dir= reconstruyen la toolbar, la cabecera y la tabla tras recargar (1.1s)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  108 [chromium] › e2e/login.spec.ts:92:2 › branding temático L10 › en móvil oculta la escena decorativa y mantiene el formulario dentro del viewport (416ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓  109 [chromium] › e2e/login.spec.ts:109:2 › arranque sin red (casos límite §6.7) › backend caído al arrancar muestra pantalla honesta con Reintentar (502ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓  110 [chromium] › e2e/media-integrity.spec.ts:74:2 › "Se usa en" (UsedInPanel, vía url) › asset sin referencias: "Nadie le apunta todavía." (821ms)
+  ✓  111 [chromium] › e2e/media-integrity.spec.ts:63:2 › "Se usa en" (UsedInPanel, vía url) › carga a demanda: colapsado al abrir, nada de red hasta expandir (834ms)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  113 [chromium] › e2e/media-integrity.spec.ts:108:2 › aviso de referencias antes de borrar (MediaDeleteConfirm) › asset SIN referencias: "Borrar" funciona igual que siempre, sin fricción nueva (836ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  112 [chromium] › e2e/media-integrity.spec.ts:83:2 › "Se usa en" (UsedInPanel, vía url) › un post con la URL del fichero en su texto: aparece listado, con enlace de navegación real (1.2s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  116 [chromium] › e2e/media-integrity.spec.ts:191:2 › reemplazar el fichero (MediaReplaceConfirm) › cancelar no sube nada: el diálogo se cierra y el asset sigue igual (857ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  114 [chromium] › e2e/media-integrity.spec.ts:126:2 › aviso de referencias antes de borrar (MediaDeleteConfirm) › asset CON referencias: exige el checkbox antes de habilitar "Borrar" (1.2s)
+  ✓  115 [chromium] › e2e/media-integrity.spec.ts:154:2 › reemplazar el fichero (MediaReplaceConfirm) › confirmación: conserva identidad, avisa del cambio de URL y muestra quién usaba la vieja (1.2s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  117 [chromium] › e2e/media-integrity.spec.ts:209:2 › reemplazar el fichero (MediaReplaceConfirm) › fichero de tipo no admitido: rechazo inline, NUNCA abre la confirmación (829ms)
+  ✓  118 [chromium] › e2e/media.spec.ts:17:2 › /media bootstrap de "vega_media" (§9 del contrato P6, Fase 6a) › sin "vega_media": estado creatable → confirmar → biblioteca vacía (846ms)
+  ✓  120 [chromium] › e2e/media.spec.ts:81:2 › /media grid + detalle (contrato P6, Fase 6b) › el grid pinta los 3 assets sembrados, ordenados por "created" desc (480ms)
+  ✓  119 [chromium] › e2e/media.spec.ts:53:2 › /media bootstrap de "vega_media" (§9 del contrato P6, Fase 6a) › cancelar la confirmación no crea nada: sigue en creatable (661ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓  121 [chromium] › e2e/media.spec.ts:93:2 › /media grid + detalle (contrato P6, Fase 6b) › el pdf pinta un icono por tipo, nunca un <img> roto (674ms)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  123 [chromium] › e2e/media.spec.ts:112:2 › /media grid + detalle (contrato P6, Fase 6b) › abrir el detalle, editar "alt" y guardar persiste: reabrir lo confirma (574ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  122 [chromium] › e2e/media.spec.ts:102:2 › /media grid + detalle (contrato P6, Fase 6b) › la imagen sembrada degrada a <img> (memory: capabilities.thumbs === false) (817ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  126 [chromium] › e2e/media.spec.ts:213:2 › /media subida drag&drop (contrato P6, Fase 6c) › subir una imagen válida: aparece en el grid, arriba (created desc) (751ms)
+  ✓  124 [chromium] › e2e/media.spec.ts:133:2 › /media grid + detalle (contrato P6, Fase 6b) › cerrar sin guardar tras editar pide confirmar (mismo guard que RecordForm) (802ms)
+  ✓  125 [chromium] › e2e/media.spec.ts:152:2 › /media grid + detalle (contrato P6, Fase 6b) › un fallo de list("vega_media") pinta "Reintentar" EN CONTEXTO, no en el banner global (810ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  128 [chromium] › e2e/media.spec.ts:281:2 › /media subida drag&drop (contrato P6, Fase 6c) › un fallo de red/permiso en create() ABORTA el resto del lote (a diferencia de un rechazo de validación) (687ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  129 [chromium] › e2e/media.spec.ts:330:2 › /media subida drag&drop (contrato P6, Fase 6c) › la zona de subida es la CTA real del caso "biblioteca vacía" (antes un placeholder) (645ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  130 [chromium] › e2e/media.spec.ts:379:2 › /media borrado de un asset (contrato P6, Fase 6d) › el botón "Borrar" abre el aviso HONESTO (D-P6.5): cancelar no borra nada (665ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  131 [chromium] › e2e/media.spec.ts:413:2 › /media borrado de un asset (contrato P6, Fase 6d) › foco inicial en "Cancelar" al abrir el aviso (control SEGURO, nunca "Borrar") (649ms)
+  ✓  133 [chromium] › e2e/media.spec.ts:457:2 › /media borrado de un asset (contrato P6, Fase 6d) › Escape cierra SOLO el aviso: el detalle sigue abierto y no borra nada (655ms)
+  ✓  127 [chromium] › e2e/media.spec.ts:237:2 › /media subida drag&drop (contrato P6, Fase 6c) › mime no permitido / tamaño excedido: error POR FICHERO, el resto del lote sigue (1.5s)
+  ✓  132 [chromium] › e2e/media.spec.ts:427:2 › /media borrado de un asset (contrato P6, Fase 6d) › Tab cicla DENTRO del aviso, en las dos direcciones, sin escapar al detalle de detrás (788ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  135 [chromium] › e2e/media.spec.ts:515:2 › /media borrado de un asset (contrato P6, Fase 6d) › un fallo de "port.delete" se reporta en el banner global; el asset NUNCA se quita de forma optimista (727ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  134 [chromium] › e2e/media.spec.ts:480:2 › /media borrado de un asset (contrato P6, Fase 6d) › confirmar el borrado: desaparece del grid, con toast, y no reaparece al navegar fuera y volver (1.1s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  138 [chromium] › e2e/media.spec.ts:666:2 › widget file: picker de biblioteca (contrato P6, Fase P6·6e) › Cancelar no añade nada: el campo sigue vacío (1.5s)
+  ✓  136 [chromium] › e2e/media.spec.ts:571:2 › widget file: picker de biblioteca (contrato P6, Fase P6·6e) › single (coverImage, accept image/*): filtra el pdf; Insertar añade una COPIA con FileRef propio que sobrevive a borrar el original (1.7s)
+  ✓  140 [chromium] › e2e/media.spec.ts:720:2 › widget file: picker de biblioteca (contrato P6, Fase P6·6e) › navegar (SPA, browser back) con el picker abierto lo cierra solo: sin "dead click" flotando tras volver (fix de code-review 6e) (1.5s)
+  ✓  139 [chromium] › e2e/media.spec.ts:685:2 › widget file: picker de biblioteca (contrato P6, Fase P6·6e) › múltiple (attachments, sin accept): seleccionar 2 e insertar añade AMBOS ficheros nuevos (1.5s)
+  ✓  142 [chromium] › e2e/merged-view.spec.ts:21:1 › navega a la vista fusionada desde la sidebar y mezcla filas de las dos colecciones (1.0s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  137 [chromium] › e2e/media.spec.ts:638:2 › widget file: picker de biblioteca (contrato P6, Fase P6·6e) › single: elegir OTRO asset antes de "Insertar" reemplaza la selección (selección única) (2.3s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  141 [chromium] › e2e/media.spec.ts:758:2 › widget file: picker de biblioteca (contrato P6, Fase P6·6e) › buscador (server-side, alt/title): filtra a los assets que coinciden (2.5s)
+  ✓  145 [chromium] › e2e/merged-view.spec.ts:83:1 › arrastrar una fila reordena el conjunto mezclado cruzado y persiste en ambas colecciones (1.2s)
+  ✓  147 [chromium] › e2e/merged-view.spec.ts:153:1 › el arrastre pinta feedback visual: fila agarrada + indicador de destino (#l12-ux, item 2) (1.2s)
+  ✓  146 [chromium] › e2e/merged-view.spec.ts:127:1 › el asa admite teclado (ArrowDown) con el mismo resultado que el arrastre (1.3s)
+  ✓  144 [chromium] › e2e/merged-view.spec.ts:65:1 › un id de vista desconocido resuelve a not-found en contexto, sin redirigir a /login (1.3s)
+  ✓  143 [chromium] › e2e/merged-view.spec.ts:47:1 › un enlace de fila abre el editor real del registro correcto (1.5s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  148 [chromium] › e2e/nav.spec.ts:9:1 › pinta los grupos/items del manifiesto en el orden esperado, con el grupo anónimo primero (767ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  149 [chromium] › e2e/nav.spec.ts:56:1 › el item singleton sin icono propio lleva la afordancia de singleton (493ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  150 [chromium] › e2e/nav.spec.ts:48:1 › la colección reservada "vega" nunca aparece en la sidebar (567ms)
+  ✓  153 [chromium] › e2e/nav.spec.ts:104:1 › el recuento por item llega del backend (barato, `perPage: 1`) — nunca inventado (628ms)
+  ✓  151 [chromium] › e2e/nav.spec.ts:64:1 › el item readonly lleva la insignia "Solo lectura" (763ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  152 [chromium] › e2e/nav.spec.ts:78:1 › el item de nav activo lleva aria-current="page" y ningún otro (1.3s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  154 [chromium] › e2e/nav.spec.ts:133:1 › un grupo declarado vacío, oculto o sin permiso no se pinta; al asignar un tipo visible sí (1.4s)
+  ✓  157 [chromium] › e2e/permissions.spec.ts:55:1 › el editor de un registro sin permiso de actualización es de solo lectura y lo explica (1.4s)
+  ✓  155 [chromium] › e2e/permissions.spec.ts:16:1 › una colección sin permiso de creación no ofrece "Nueva" ni en la cabecera ni por atajo (1.8s)
+  ✓  156 [chromium] › e2e/permissions.spec.ts:39:1 › sin permiso de borrado ni de crear, la fila no tiene menú de acciones ni "Borrar" (1.5s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  158 [chromium] › e2e/permissions.spec.ts:72:1 › crear por URL directa en una colección sin permiso: estado "sin permiso", no un formulario (1.5s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  159 [chromium] › e2e/permissions.spec.ts:82:1 › una colección que no se puede listar no está en la navegación, y su ruta lo explica (1.5s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  161 [chromium] › e2e/permissions.spec.ts:149:2 › singleton hideCreate con registro existente=false conserva el destino y la edición (1.3s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  160 [chromium] › e2e/permissions.spec.ts:101:1 › hideCreate oculta altas manuales en escritorio, móvil, atajo, fila e Inicio y conserva Importar (2.0s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓  162 [chromium] › e2e/permissions.spec.ts:149:2 › singleton hideCreate con registro existente=true conserva el destino y la edición (1.5s)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓  164 [chromium] › e2e/preview-share.spec.ts:92:3 › crear/copiar/listar/anular, dirty intacto y sin overflow 390 dark (1.9s)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓  163 [chromium] › e2e/preview-share.spec.ts:92:3 › crear/copiar/listar/anular, dirty intacto y sin overflow 390 light (2.1s)
+  ✓  165 [chromium] › e2e/preview-share.spec.ts:92:3 › crear/copiar/listar/anular, dirty intacto y sin overflow 1440 light (2.0s)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  167 [chromium] › e2e/preview-share.spec.ts:156:2 › POST 400 conserva borrador y muestra categoría fija (1.5s)
+  ✓  166 [chromium] › e2e/preview-share.spec.ts:92:3 › crear/copiar/listar/anular, dirty intacto y sin overflow 1440 dark (2.2s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  168 [chromium] › e2e/preview-share.spec.ts:156:2 › POST 403 conserva borrador y muestra categoría fija (1.7s)
+  ✓  169 [chromium] › e2e/preview-share.spec.ts:156:2 › POST 404 conserva borrador y muestra categoría fija (1.7s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  171 [chromium] › e2e/preview-share.spec.ts:156:2 › POST 503 conserva borrador y muestra categoría fija (1.7s)
+  ✓  170 [chromium] › e2e/preview-share.spec.ts:156:2 › POST 409 conserva borrador y muestra categoría fija (1.8s)
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+  ✓  173 [chromium] › e2e/preview-share.spec.ts:181:1 › share habilitado sigue oculto en registro nuevo y permisos solo lectura (1.4s)
+  ✓  174 [chromium] › e2e/publish-review.spec.ts:31:2 › revisión antes de publicar — el formulario › la tarjeta cuenta los avisos; «ir al bloque» despliega el bloque y pone el foco en su campo (1.4s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓  176 [chromium] › e2e/relogin.spec.ts:38:1 › la sesión caducada muestra el overlay de re-login SOBRE la vista actual, sin navegar a /login (1.0s)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  172 [chromium] › e2e/preview-share.spec.ts:172:1 › sin opt-in, registro nuevo y tipo sin escritura no ofrecen compartir (2.1s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  175 [chromium] › e2e/publish-review.spec.ts:72:2 › revisión antes de publicar — el editor visual › «Marcar como publicada» con avisos pregunta, con el foco en Cancelar, y «Publicar igualmente» publica (1.3s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  178 [chromium] › e2e/relogin.spec.ts:81:1 › reautenticar con éxito descarta el overlay y conserva la vista (735ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓  179 [chromium] › e2e/relogin.spec.ts:100:1 › credenciales incorrectas en el overlay muestran el mismo mensaje neutro que /login (705ms)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  177 [chromium] › e2e/relogin.spec.ts:57:1 › el foco queda atrapado en el overlay y Esc NO lo cierra (940ms)
+  ✓  180 [chromium] › e2e/revisions.spec.ts:73:2 › Historial de versiones (Fase B1) › sin vega_revisions bootstrapeada: el panel dice "no está activado", nunca miente prometiendo historial (872ms)
+  ✓  182 [chromium] › e2e/revisions.spec.ts:135:2 › dos escritores del manifiesto en /settings no se pisan (fix de code-review) › editar el nombre del sitio y guardar la retención del historial: ninguno de los dos guardados pierde al otro (690ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓  183 [chromium] › e2e/routes.spec.ts:17:2 › singleton por deep-link (§7.B.12) › navegar por URL directa a /c/site_info resuelve a /c/site_info/new (0 registros) (704ms)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  184 [chromium] › e2e/routes.spec.ts:38:2 › índice por recarga directa (regresión P3-L9) › un hard-load directo a / con sesión válida pinta Inicio, no queda colgado en "Cargando…" (657ms)
+  ✓  181 [chromium] › e2e/revisions.spec.ts:85:2 › Historial de versiones (Fase B1) › editar → guardar → abrir historial → ver el diff → restaurar en el formulario (1.1s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  185 [chromium] › e2e/routes.spec.ts:62:2 › not-found (§7.B.14) › /c/no-existe muestra el estado not-found en contexto, sin redirigir a /login (698ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓  186 [chromium] › e2e/routes.spec.ts:84:2 › not-found (§7.B.14) › la colección reservada "vega" también resuelve a not-found por URL directa (700ms)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  189 [chromium] › e2e/schema-authoring.spec.ts:79:2 › SchemaAuthoringPanel: campo select en "Añadir campos" › opción repetida bloquea el envío con su mensaje en la fila (565ms)
+  ✓  187 [chromium] › e2e/routes.spec.ts:101:2 › forbidden › /c/pages/new muestra forbidden en contexto (pages es readonly) (833ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  188 [chromium] › e2e/schema-authoring.spec.ts:23:2 › SchemaAuthoringPanel: campo select en "Añadir campos" › añade un select con dos opciones reordenadas y "permitir varias opciones" (861ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓  192 [chromium] › e2e/session-restore.spec.ts:50:1 › logout vuelve a /login (502ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  191 [chromium] › e2e/session-restore.spec.ts:31:1 › recarga con el marcador de sesión caducado vuelve a /login (628ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  193 [chromium] › e2e/settings.spec.ts:33:2 › /settings monta el ManifestEditor de P2 (§7.B.13) › el editor se ve y guarda un manifiesto editado (collectionState "present") (707ms)
+  ✓  190 [chromium] › e2e/session-restore.spec.ts:18:1 › recarga con sesión válida mantiene autenticado (914ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  195 [chromium] › e2e/settings.spec.ts:90:2 › indicador de warnings (§3.5.1, L10) › el badge de la sidebar y la lista de /settings reflejan el warning sembrado (607ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  194 [chromium] › e2e/settings.spec.ts:74:2 › sección "Acerca de" (P8·F2 — versión + rango de servidor PB horneados) › muestra la versión de Vega y el rango de servidor PocketBase soportado (656ms)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  196 [chromium] › e2e/settings.spec.ts:110:2 › expiración durante edición en /settings (§7.B.10 — el test clave de esta fase) › el overlay de re-login aparece SOBRE /settings, el texto escrito sigue ahí, y reautenticar lo conserva (603ms)
+  ✓  199 [chromium] › e2e/strong-auth.spec.ts:3:1 › auth fuerte: passkey visible y password abre el segundo paso TOTP/recuperación (373ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  200 [chromium] › e2e/superuser.spec.ts:38:2 › /editores (superusuario) › listado: recuento, estado por cuenta y email largo recortado con su title (516ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  197 [chromium] › e2e/showcase-sort.spec.ts:18:1 › defaultSort desc: la cabecera ordenada sigue siendo alternable (asc al primer click) (897ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  198 [chromium] › e2e/smoke.spec.ts:36:2 › smoke: login → crear → editar → guardar → persiste › el flujo completo de contenido funciona de punta a punta (963ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  202 [chromium] › e2e/superuser.spec.ts:101:2 › /editores (superusuario) › cambiar contraseña: avisa de la sesión, valida al enviar y deja la cuenta activa (687ms)
+  ✓  201 [chromium] › e2e/superuser.spec.ts:54:2 › /editores (superusuario) › alta sin correo: solo contraseña, con su nota, validación al enviar y fila nueva activa (748ms)
+  ✓  203 [chromium] › e2e/superuser.spec.ts:134:2 › /editores (superusuario) › Esc cierra un diálogo sin guardar nada (613ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  204 [chromium] › e2e/superuser.spec.ts:144:2 › /editores (superusuario) › quitar acceso: confirmación con el foco en Cancelar y la fila desaparece (600ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  206 [chromium] › e2e/superuser.spec.ts:186:2 › /copias (superusuario) › descargar abre la descarga con el nombre de la copia (554ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  208 [chromium] › e2e/superuser.spec.ts:226:2 › /restablecer (pública, sin sesión) › sin token no ofrece el formulario; con un token que el backend no reconoce, «ya no sirve» (526ms)
+  ✓  207 [chromium] › e2e/superuser.spec.ts:197:2 › gate de editor (sin capabilities.administration) › la barra lateral no enseña Editores ni Copias, y por URL cada ruta enseña su puerta (647ms)
+  ✓  209 [chromium] › e2e/topbar.spec.ts:7:1 › el wordmark del sitio pinta el isotipo de Vega junto al nombre (515ms)
+  ✓  211 [chromium] › e2e/topbar.spec.ts:38:1 › el atajo "/" enfoca el buscador global salvo dentro de un campo editable (536ms)
+  ✓  210 [chromium] › e2e/topbar.spec.ts:19:1 › la marca de la barra es un enlace «Inicio» a la portada (lote 12, lámina 1, estado 1.7) (652ms)
+  ✓  212 [chromium] › e2e/topbar.spec.ts:58:1 › el avatar muestra la inicial de la sesión de demo (395ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  215 [chromium] › e2e/topbar.spec.ts:100:2 › chip de usuario → menú "Ajustes" (#l12-ux, item 3) › un click fuera del menú lo cierra (464ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓  213 [chromium] › e2e/topbar.spec.ts:67:2 › chip de usuario → menú "Ajustes" (#l12-ux, item 3) › cerrado por defecto; un click lo abre y navega a /settings al elegir "Ajustes" (502ms)
+  ✓  214 [chromium] › e2e/topbar.spec.ts:87:2 › chip de usuario → menú "Ajustes" (#l12-ux, item 3) › Escape cierra el menú y devuelve el foco al chip (489ms)
+  ✓  217 [chromium] › e2e/topbar.spec.ts:138:2 › chip de usuario → menú "Ajustes" (#l12-ux, item 3) › "Cerrar sesión" sigue siendo su propio botón, siempre visible (no se movió al menú) (419ms)
+  ✓  216 [chromium] › e2e/topbar.spec.ts:114:2 › chip de usuario → menú "Ajustes" (#l12-ux, item 3) › tabular fuera del menú lo cierra (el foco no queda colgado) (537ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  218 [chromium] › e2e/transfer.spec.ts:35:2 › gate por permissions.list › "avisos" (solo list permitido) ofrece "Exportar"; "privado" (list vedado) no llega a ofrecerlo (709ms)
+  ✓  205 [chromium] › e2e/superuser.spec.ts:165:2 › /copias (superusuario) › crear: fila en curso con el tiempo, aviso al terminar y la copia nueva arriba (1.9s)
+  ✓  219 [chromium] › e2e/transfer.spec.ts:50:2 › diálogo de exportar › sin filtro activo: "toda la colección" es la única opción real, la otra va deshabilitada (640ms)
+  ✓  220 [chromium] › e2e/transfer.spec.ts:67:2 › diálogo de exportar › con búsqueda activa: la opción "filtro actual" está habilitada y es la elegida por defecto (640ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  221 [chromium] › e2e/transfer.spec.ts:85:2 › diálogo de exportar › cancelar en la fase de elección cierra el diálogo sin descargar nada (660ms)
+  ✓  222 [chromium] › e2e/transfer.spec.ts:97:2 › diálogo de exportar › Escape en la fase de elección cierra el diálogo (656ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  223 [chromium] › e2e/transfer.spec.ts:109:2 › diálogo de exportar › navegar a OTRA colección con el diálogo abierto lo cierra (fix de code-review: el gate en todos los caminos) (791ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  224 [chromium] › e2e/transfer.spec.ts:129:2 › exportar de verdad › "toda la colección" descarga un .vega.json con el registro serializado y avisa con un toast (705ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  227 [chromium] › e2e/trash.spec.ts:40:2 › /papelera sin vega_revisions bootstrapeada › mensaje honesto ("no está activada") y CTA a Ajustes, nunca miente prometiendo papelera (585ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓  225 [chromium] › e2e/transfer.spec.ts:167:2 › importar — gate por permiso de escritura (`#lote-esquema`, Fase 2) › "metrics" (create+update permitidos) ofrece "Importar"; "avisos" (ambos vedados) no lo ofrece (772ms)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  229 [chromium] › e2e/trash.spec.ts:113:2 › un asset con "file" obligatorio en la papelera (fix de code-review: "Restaurar" no puede prometer lo que no cumple) › vega_media (D-P6.1: file required) aparece con "Restaurar" deshabilitado y el motivo dicho (881ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  226 [chromium] › e2e/transfer.spec.ts:181:2 › importar — ciclo completo (`#lote-esquema`, Fase 2) › exportar → editar el fichero a mano → importar: CREA un registro nuevo y PISA el existente, con confirmación aparte (1.1s)
+  ✓  228 [chromium] › e2e/trash.spec.ts:53:2 › borrar → papelera → restaurar (§8·B2, promesa central del lote) › el registro vuelve con su id; los ficheros adjuntos NO se restauran (1.1s)
+  ✓  230 [chromium] › e2e/trash.spec.ts:152:2 › borrar definitivamente y vaciar papelera › borrar definitivamente UNA entrada la quita de la papelera para siempre (930ms)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  233 [chromium] › e2e/visual-editor.spec.ts:201:2 › editor visual — protocolo vega-visual-1 contra un sitio cross-origin › pinta los contornos que reporta el sitio, con la geometría real de sus bloques (886ms)
+  ✓  231 [chromium] › e2e/trash.spec.ts:184:2 › borrar definitivamente y vaciar papelera › vaciar papelera borra TODAS las entradas actuales de una vez (1.2s)
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+  ✓  234 [chromium] › e2e/visual-editor.spec.ts:236:2 › editor visual — protocolo vega-visual-1 contra un sitio cross-origin › un clic DENTRO del segundo bloque en el marco abre ESE bloque en el inspector, no el primero (1.0s)
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+  ✓  236 [chromium] › e2e/visual-editor.spec.ts:317:2 › editor visual — protocolo vega-visual-1 contra un sitio cross-origin › guardar SIN refresco en vivo lo refleja recargando el iframe entero (1.2s)
+  ✓  237 [chromium] › e2e/visual-editor.spec.ts:350:2 › editor visual — protocolo vega-visual-1 contra un sitio cross-origin › mover una sección en el árbol persiste el nuevo orden en el backend, no solo en la lista (1.0s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓  232 [chromium] › e2e/visual-editor.spec.ts:109:2 › editor visual — protocolo vega-visual-1 contra un sitio cross-origin › escritorio 1280 con ajustar conserva media queries y overlay al redimensionar (1.7s)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+  ✓  235 [chromium] › e2e/visual-editor.spec.ts:274:2 › editor visual — protocolo vega-visual-1 contra un sitio cross-origin › guardar un texto con refresco en vivo lo refleja SIN recargar el iframe (no parpadea) (1.4s)
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+  ✓  238 [chromium] › e2e/visual-editor.spec.ts:398:2 › editor visual — protocolo vega-visual-1 contra un sitio cross-origin › con vocabulario de tipos, el "+" del lienzo abre un menú y crea con el tipo elegido (1.2s)
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+  ✓  239 [chromium] › e2e/visual-editor.spec.ts:460:2 › editor visual — paleta de bloques arrastrable, crear sobre el lienzo › arrastrar un tipo de la paleta sobre una página CON bloques inserta EN LA POSICIÓN correcta, no al final (1.2s)
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓  243 [chromium] › e2e/visual-editor.spec.ts:654:2 › editor visual — modo «solo textos» por debajo de 900 px › a 390 px: sin lienzo ni token; las tres secciones con sus textos, en orden y con su tipo (868ms)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+[WebServer] 
+[WebServer] [404] GET /vega.config.json
+  ✓  240 [chromium] › e2e/visual-editor.spec.ts:519:2 › editor visual — paleta de bloques arrastrable, crear sobre el lienzo › arrastrar un tipo de la paleta sobre una página VACÍA (0 bloques) la crea igual (1.2s)
+[WebServer] 
+[WebServer] [404] GET /api/vega/discovery
+  ✓  241 [chromium] › e2e/visual-editor.spec.ts:577:2 › editor visual — publicar y despublicar desde la cabecera › marcar como publicada y volver a borrador, con la etiqueta del servidor (1.0s)
+  ✓  242 [chromium] › e2e/visual-editor.spec.ts:602:2 › editor visual — publicar y despublicar desde la cabecera › con un bloque sin guardar, publicar pide confirmación en línea; Esc cierra (1.1s)
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+  ✓  244 [chromium] › e2e/visual-editor.spec.ts:699:2 › editor visual — modo «solo textos» por debajo de 900 px › a 390 px: corregir un titular y guardarlo lo relee el formulario con su propio `list()` (1.1s)
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+[WebServer] 
+[WebServer] [404] GET /patron-falda.png
+  ✓  245 [chromium] › e2e/visual-editor.spec.ts:727:2 › editor visual — modo «solo textos» por debajo de 900 px › el límite: a 899 px es «solo textos»; a 901 px vuelve el lienzo (854ms)
+  ✓  246 [chromium] › e2e/visual-editor.spec.ts:752:2 › editor visual — programar la publicación desde la cabecera › «Programar…» abre el diálogo y confirmar deja la página programada (935ms)
+
+  246 passed (42.3s)

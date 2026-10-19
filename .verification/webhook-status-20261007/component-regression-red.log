@@ -1,0 +1,33 @@
+
+ RUN  v4.1.10 /private/tmp/vegacms-webhook-status-20261007
+
+ ❯ |component| src/lib/shell/PublishButton.svelte.test.ts (16 tests | 1 failed | 15 skipped) 45ms
+     × un trigger rechazado consulta el estado fallido y muestra solo el detalle sanitizado 44ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |component| src/lib/shell/PublishButton.svelte.test.ts > PublishButton.svelte > un trigger rechazado consulta el estado fallido y muestra solo el detalle sanitizado
+AssertionError: expected undefined to be 'https://pb.test/api/vega-build/status' // Object.is equality
+
+- Expected:
+"https://pb.test/api/vega-build/status"
+
++ Received:
+undefined
+
+ ❯ src/lib/shell/PublishButton.svelte.test.ts:330:40
+    328|   await flush();
+    329|
+    330|   expect(fetchMock.mock.calls[2]?.[0]).toBe('https://pb.test/api/vega-…
+       |                                        ^
+    331|   expect(button?.getAttribute('data-state')).toBe('failed');
+    332|   expect(button?.disabled).toBe(false);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 15 skipped (16)
+   Start at  18:44:58
+   Duration  1.18s (transform 411ms, setup 0ms, import 500ms, tests 45ms, environment 554ms)
+

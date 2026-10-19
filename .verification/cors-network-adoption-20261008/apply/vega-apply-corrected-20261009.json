@@ -1,0 +1,14 @@
+{
+  "archiveBytes": 10361189,
+  "archiveSha": "504c6ab4e90d88e95e009a797453d16c5cf2c6515c88b688aec93b94a8b4067a",
+  "backupId": "vega-pb-20261008T222059Z-3539170",
+  "composeSha": "11593d1da51e580f988058bfac8288194eaeb7697ac7db2f6926815f8d14dcde",
+  "imageId": "sha256:dd978b8d23081d2e3c69ebf6ef8ff4599a1acdd3f38dc559ae6fa379e46449b4",
+  "newContainerId": "007b755b8de76195d857181ce985a9522fe71c5d2941a2c1597b310d12d56881",
+  "oldContainerId": "5f8fed3402b9be46851f6909ad0bb59b4d21ca27be1e385711e6c0985c6aaef7",
+  "remoteWrites": true,
+  "restoredBytes": 16305618,
+  "restoredFiles": 17,
+  "service": "vega-pb",
+  "status": "CORS_APPLIED_AWAITING_PUBLIC_SMOKE"
+}

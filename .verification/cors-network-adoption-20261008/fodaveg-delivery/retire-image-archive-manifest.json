@@ -1,0 +1,78 @@
+{
+  "captureSHA256": "d48e4a2705ebaac2d32720b38ebab1040fde26b3348a2aeeeb906702af4e9b01",
+  "files": {
+    "RETIRE_IMAGE_ARCHIVE.md": "b05f398d7b87130aa75fd160ebba44eec851c6378ba4ff0ec8c36b7f5d40bccf",
+    "retire-image-archive-run.py": "792c311a393e646a1b4a6ab2d7e7c3da0fe9cff7dbe7678de16a0602dc14d6fd",
+    "retire-image-archive-selftest.py": "3a1ebe56c8e74949b3382456781f5e629a1d15c08e200144b7e64b349b4f4129",
+    "retire-image-archive.py": "a143747fb74f0a7fef630adb11e45d9e477fe9cb357af9bad13a28e8ed8c9531"
+  },
+  "frozenImports": {
+    "cors_apply": {
+      "path": "remote_cutover_controlled.py",
+      "sha256": "43b68aba0c937deef45ff3a9e2e33f6d3933fb06949605fdc3b0d9448d31c7b4"
+    },
+    "image_helpers": {
+      "path": "../../image-only-delivery-20261008/remote_cutover.py",
+      "sha256": "5d4131c229d7aa88918c932dd517b0d33e024a3497aa4fcc4b9f0c9940467128"
+    },
+    "image_transport": {
+      "path": "remote_transport.py",
+      "sha256": "ad47c6a2c2ec238ef545ecbcd6f06e0bc53df838ab100dcbbcbf3f5b34a10cc5"
+    }
+  },
+  "mode": "fodaveg-owned-redundant-remote-image-archive-retirement",
+  "offline": {
+    "AST": "PASS",
+    "command": "python3 -B .verification/cors-network-adoption-20261008/fodaveg-delivery/retire-image-archive-selftest.py",
+    "exitCode": 0,
+    "tests": 8
+  },
+  "operationId": "836eb9dd-ec1b-4d81-a542-3c57a855b7de",
+  "priorEvidenceSHA256": {
+    "archive-chain-v2.json": "a6d4ab0344b4a3d8772fc8e36fc1db314a99e75c082921507058d380bddcb004",
+    "reprobe-memory-observation.json": "2a51ed1db079c4f09565123d97d05574b50fe65961eef72657e2379ff8d84f30",
+    "reprobe-storage-observation.json": "d556eb4b9673e6091820b4d7916de42d13760ca719c2b52c15a8db7cc2f94e7c",
+    "transport-load.json": "f12a7774f2a1a4315309caf0d75d03371ac50bb4af38018cb5e68e724f70b3da",
+    "transport-receive.json": "4edff0d7a0dd760b5ff6e2649911fbea41e07fa37f39bcd23da3bb6f8797c9e6"
+  },
+  "remoteExecuted": false,
+  "runtimeGrantCreated": false,
+  "scope": {
+    "archiveBytes": 488653312,
+    "archiveFullIdentityHashAndParentCASRequired": true,
+    "archiveMustShareAllocatorFilesystem": true,
+    "archiveSHA256": "abac0eb3feb7432880c7cc2a4a3d34444507347ff82c72967a4626a38a1bad8e",
+    "dataBackupModifyAllowed": false,
+    "dataOrVolumeCleanupAllowed": false,
+    "dockerRootDirScalarRAMAccessAllowed": true,
+    "envOrLogContentAllowed": false,
+    "filesystemMetadataAllowed": true,
+    "imageUnloadOrBuildAllowed": false,
+    "loadedImageChecks": 3,
+    "loadedImageFields": [
+      "Id",
+      "RootFS.Layers"
+    ],
+    "loadedImageId": "sha256:22cf0983980e3bf9562a0a518f258e6e69cdd58cb3d23a19516f1da60a6d403e",
+    "localArchiveMustRemainVerified": true,
+    "maxArchiveUnlinks": 1,
+    "maxSSHConnections": 1,
+    "oldRuntimeChecks": 3,
+    "oldRuntimeFields": [
+      "Id",
+      "Image",
+      "State.Running",
+      "State.Health.Status"
+    ],
+    "otherCleanupAllowed": false,
+    "outputLimitBytes": 4096,
+    "ownDataBackupStateMetadataAllowed": true,
+    "ownedBeforeAfterReceiptAllowed": true,
+    "productionControlAllowed": false,
+    "remoteArchive": "/srv/vega-image-rollout/fodaveg-cors-cc8f3b1-20261008.tar",
+    "retryAllowed": false,
+    "transportTimeoutSeconds": 180
+  },
+  "status": "OWN_REMOTE_IMAGE_ARCHIVE_RETIREMENT_REVIEW_PENDING",
+  "testOrCutoverAuthorized": false
+}

@@ -1,0 +1,33 @@
+
+Running 1 test using 1 worker
+
+
+(node:8978) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/1] scripts/l9-measure/admin.spec.ts:217:1 › seven admin surfaces: repeated first and warm visits
+  1) scripts/l9-measure/admin.spec.ts:217:1 › seven admin surfaces: repeated first and warm visits ─
+
+    TimeoutError: locator.setInputFiles: Timeout 10000ms exceeded.
+    Call log:
+      - waiting for getByRole('dialog').getByLabel('Elige un archivo .vega.json')
+
+
+      365 | 								]
+      366 | 							};
+    > 367 | 							await dialog.getByLabel('Elige un archivo .vega.json').setInputFiles({
+          | 							^
+      368 | 								name: 'measurement.vega.json',
+      369 | 								mimeType: 'application/json',
+      370 | 								buffer: Buffer.from(JSON.stringify(doc))
+        at /private/tmp/vegacms-l9-measure-20261007/scripts/l9-measure/admin.spec.ts:367:8
+        at measure (/private/tmp/vegacms-l9-measure-20261007/scripts/l9-measure/admin.spec.ts:170:23)
+        at /private/tmp/vegacms-l9-measure-20261007/scripts/l9-measure/admin.spec.ts:341:7
+
+    Error Context: ../vega-l9-measure-playwright/admin-seven-admin-surfaces-repeated-first-and-warm-visits/error-context.md
+
+    Error Context: ../vega-l9-measure-playwright/admin-seven-admin-surfaces-repeated-first-and-warm-visits/error-context.md
+
+
+  1 failed
+    scripts/l9-measure/admin.spec.ts:217:1 › seven admin surfaces: repeated first and warm visits ──

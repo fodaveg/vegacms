@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /private/tmp/vegacms-visual-desktop-20261007
+
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  20:56:48
+   Duration  779ms (transform 266ms, setup 0ms, import 326ms, tests 17ms, environment 372ms)
+

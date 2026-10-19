@@ -1,0 +1,358 @@
+--- remote_cutover.py
++++ remote_cutover_controlled.py
+@@ -14,6 +14,8 @@
+ import secrets
+ import stat
+ import sys
++import subprocess
++from contextlib import contextmanager
+ import time
+ 
+ import image_helpers as h
+@@ -338,6 +340,188 @@
+     h.write_new(path, data, 0o600)
+ 
+ 
++CHECKPOINTS = {"PRESTOP_IMAGE", "PRESTOP_RUNTIME", "PRESTOP_FILES", "STOP", "QUIESCENCE",
++               "BACKUP", "BACKUP_TAR", "BACKUP_TAR_VALIDATE", "ARCHIVE_VALIDATE",
++               "CLONE_IDENTITY", "CLONE_CREATE", "CLONE_LABELS", "RESTORE_TAR",
++               "RESTORE_BYTES", "CLONE_PB_BOOT", "CLONE_PB_HEALTH", "POSTBACKUP_FILES",
++               "STAGE_CONFIG", "INSTALL_COMPOSE", "CLONE_CLEANUP_STOP", "CLONE_CLEANUP_VOLUME",
++               "INSTALLED_RUNTIME_1", "INSTALLED_CONFIG", "INSTALLED_IMAGE",
++               "INSTALLED_RUNTIME_2", "INSTALLED_FILES", "CREATE",
++               "CREATED_SELECTION", "CREATED_RUNTIME", "PERSIST_CREATED",
++               "START_IMAGE", "START_SELECTION", "START_RUNTIME", "START_FILES",
++               "START", "HEALTH", "FINAL_FILES", "SUCCESS"}
++FAILURES = {"RuntimeImageDrift", "RuntimeProcessDrift", "PBArgvUnknown",
++            "ImageChangedBeforeStop", "VolumeStillInUse", "BackupMissing", "ArchiveShapeUnknown",
++            "ArchiveDuplicateOrTooMany", "ArchiveEmpty", "RestoreDirectoryMismatch",
++            "RestoreFileMismatch", "RestoreSizeMismatch", "RestoreByteMismatch", "RestoreScopeExceeded",
++            "RestoreEmpty", "CloneServeUnhealthy", "ProbeVolumeIdentityUnknown", "ProbeVolumeCollision",
++            "ProbeVolumeCreationUnknown", "FilesOrContainerChangedAfterBackup", "CommandExitNonzero", "RuntimeTopologyDrift", "RuntimeMountDrift", "RuntimeCommandDrift",
++            "RuntimePeerDrift", "ContainerIdentityDrift", "OtherVolumeWriter",
++            "RuntimeShapeUnknown", "ContainerIdUnknown", "CommandUnavailable",
++            "ForeignFileChange", "ImageChangedBeforeCreate", "ImageOrOldContainerDrift",
++            "CreatedSelectionUnknown", "CreatedContainerUnknown", "CreateExitNonzero",
++            "CreateUnavailable", "InstalledComposeDrift", "NewRuntimeUnhealthy"}
++
++
++def checkpoint(backup, record, label):
++    """Persist the next finite operation before it may change recoverability."""
++    if label not in CHECKPOINTS:
++        raise RuntimeError("CheckpointUnknown")
++    next_record = {**record, "checkpoint": label}
++    replace_metadata(backup / "state.json", next_record)
++    record.update(next_record)
++
++
++def baseline_comparison(name, spec, old_runtime, old_id):
++    """Project hash-only raw/canonical equality with the pre-stop PB snapshot."""
++    fields = {"mountRawSame": None, "mountCanonicalSame": None,
++              "aliasesRawSame": None, "aliasesCanonicalSame": None,
++              "networkRawSame": None, "portsStoppedEquivalent": None}
++    try:
++        if container_id(name) != old_id or h.is_running(name):
++            return fields
++        raw = inspect(name)
++        if not isinstance(raw["mounts"], list) or not isinstance(raw["networks"], list) or \
++                len(raw["networks"]) != 1 or len(old_runtime["networks"]) != 1:
++            return fields
++        def hashed(value):
++            return digest(json.dumps(value, sort_keys=True, separators=(",", ":")).encode())
++        def canonical(mounts):
++            result = sorted((m.get("type"), m.get("name") or None, m.get("dest"),
++                             m.get("rw"), digest(m.get("source", "").encode()))
++                            for m in mounts if isinstance(m, dict) and
++                            isinstance(m.get("source"), str))
++            return result if len(result) == len(mounts) else None
++        aliases = raw["networks"][0].get("aliases")
++        old_aliases = old_runtime["networks"][0].get("aliases")
++        fields.update({
++            "mountRawSame": hashed(raw["mounts"]) == hashed(old_runtime["mounts"]),
++            "mountCanonicalSame": canonical(raw["mounts"]) == canonical(old_runtime["mounts"]),
++            "aliasesRawSame": hashed(aliases) == hashed(old_aliases),
++            "aliasesCanonicalSame": sorted(aliases) == sorted(old_aliases),
++            "networkRawSame": hashed(raw["networks"]) == hashed(old_runtime["networks"]),
++            "portsStoppedEquivalent": raw["ports"] == old_runtime["ports"] or
++                (raw["ports"] == {} and old_runtime["ports"] ==
++                 {port: None for port in h.OLD_RUNTIME[name]["ports"]}),
++        })
++    except Exception:
++        pass
++    return fields
++
++
++def create_selected(spec):
++    """Keep a numeric Docker create exit without exporting its private output."""
++    argv = ["docker", "compose", "--project-directory", str(spec["compose"].parent),
++            "--env-file", str(spec["env"]), "--file", str(spec["compose"]),
++            "create", "--force-recreate", "--no-build", "--pull", "never",
++            spec["service"]]
++    try:
++        result = subprocess.run(argv, stdout=subprocess.DEVNULL,
++                                stderr=subprocess.DEVNULL, timeout=120, check=False)
++    except (OSError, subprocess.TimeoutExpired):
++        raise RuntimeError("CreateUnavailable") from None
++    if result.returncode != 0:
++        raise CreateExit(result.returncode)
++    return result.returncode
++
++
++class CreateExit(RuntimeError):
++    """Carry only Docker's numeric exit code, never its output."""
++
++    def __init__(self, code):
++        self.code = code if type(code) is int and 1 <= code <= 255 else None
++        super().__init__("CreateExitNonzero" if self.code is not None else "CreateUnavailable")
++
++
++
++class CommandExit(RuntimeError):
++    """Retain a bounded numeric exit; command output stays in remote RAM."""
++    def __init__(self, code):
++        self.code = code if type(code) is int and 1 <= code <= 255 else None
++        super().__init__("CommandExitNonzero" if self.code is not None else "CommandUnavailable")
++
++
++def controlled_command(argv, timeout=30):
++    """Same helper bounds and pull policy, with a numeric failure discriminator."""
++    try:
++        result = subprocess.run(argv, capture_output=True, timeout=timeout, check=False)
++    except (OSError, subprocess.TimeoutExpired):
++        raise RuntimeError("CommandUnavailable") from None
++    if len(result.stdout) > 1048576 or len(result.stderr) > 1048576:
++        raise RuntimeError("CommandUnavailable")
++    if result.returncode:
++        raise CommandExit(result.returncode)
++    return result.stdout
++
++
++_helper_run = controlled_command
++
++
++@contextmanager
++def probe_checkpoints(backup, record):
++    """Observe canonical helper operations without changing TEST cleanup or data."""
++    original_run, original_verify, original_validate = h.run, h.verify_restored, h.validate_archive
++
++    def observed_run(argv, timeout=30):
++        label = None
++        if argv[:3] == ["docker", "volume", "create"]:
++            label = "CLONE_CREATE"
++        elif argv[:3] == ["docker", "volume", "inspect"]:
++            label = "CLONE_LABELS"
++        elif argv[:2] == ["docker", "run"]:
++            if "/pb/fodaveg-pb" in argv:
++                label = "CLONE_PB_BOOT"
++            elif "-czf" in argv:
++                label = "BACKUP_TAR"
++            elif "-xzf" in argv:
++                label = "RESTORE_TAR"
++            elif argv[-1] == "tar -tzf /backup/data.tgz >/dev/null":
++                label = "BACKUP_TAR_VALIDATE"
++        elif argv[:2] == ["docker", "exec"]:
++            label = "CLONE_PB_HEALTH"
++        if label is not None:
++            checkpoint(backup, record, label)
++        # Cleanup stop/rm do not replace the checkpoint of the failed operation.
++        try:
++            return original_run(argv, timeout=timeout)
++        except Exception:
++            if argv[:2] == ["docker", "stop"] and len(argv) > 2 and argv[2].startswith("vega-image-serve-"):
++                checkpoint(backup, record, "CLONE_CLEANUP_STOP")
++            elif argv[:3] == ["docker", "volume", "rm"]:
++                checkpoint(backup, record, "CLONE_CLEANUP_VOLUME")
++            raise
++
++    def verify(*args):
++        checkpoint(backup, record, "RESTORE_BYTES")
++        return original_verify(*args)
++
++    def validate(*args):
++        checkpoint(backup, record, "ARCHIVE_VALIDATE")
++        return original_validate(*args)
++
++    h.run, h.verify_restored, h.validate_archive = observed_run, verify, validate
++    try:
++        yield
++    finally:
++        h.run, h.verify_restored, h.validate_archive = original_run, original_verify, original_validate
++
++
++def wait_owned_old(name, spec, state):
++    """Wait only for the same adopted OLD identity and unchanged BASE/env files."""
++    deadline = time.monotonic() + 60
++    while True:
++        gate_files(spec, spec["base"], state["composeIdentity"], state["envSha"], state["envIdentity"])
++        if container_id(name) != state["oldId"]:
++            raise RuntimeError("ContainerIdentityDrift")
++        try:
++            runtime(name, spec, False, expected_id=state["oldId"])
++            return True
++        except RuntimeError:
++            if time.monotonic() >= deadline:
++                return False
++            time.sleep(1)
++
++
+ def apply(name, spec):
+     state = preflight(name, spec)
+     h.BACKUP_ROOT = ROOT
+@@ -357,20 +541,29 @@
+     stopped = False
+     installed = False
+     try:
++        checkpoint(backup, record, "PRESTOP_IMAGE")
+         if h.image_id(spec["image"]) != spec["imageId"]:
+             raise RuntimeError("ImageChangedBeforeStop")
++        checkpoint(backup, record, "PRESTOP_RUNTIME")
+         runtime(name, spec, False, baseline=state["oldRuntime"],
+                 expected_id=state["oldId"])
++        checkpoint(backup, record, "PRESTOP_FILES")
++        checkpoint(backup, record, "STOP")
+         gate_files(spec, spec["base"], state["composeIdentity"],
+                    state["envSha"], state["envIdentity"])
+         h.run(["docker", "stop", state["oldId"]], timeout=60)
+         stopped = True
++        checkpoint(backup, record, "QUIESCENCE")
+         if h.is_running(name) or h.volume_running_containers(spec["volume"]):
+             raise RuntimeError("VolumeStillInUse")
+-        archive_sha, archive_size = h.backup_volume(spec["volume"], backup)
+-        files, restored_bytes = h.isolated_restore_probe(name, spec, backup)
++        with probe_checkpoints(backup, record):
++            checkpoint(backup, record, "BACKUP")
++            archive_sha, archive_size = h.backup_volume(spec["volume"], backup)
++            checkpoint(backup, record, "CLONE_IDENTITY")
++            files, restored_bytes = h.isolated_restore_probe(name, spec, backup)
+         if files < 1 or restored_bytes < 1:
+             raise RuntimeError("RestoreEmpty")
++        checkpoint(backup, record, "POSTBACKUP_FILES")
+         live_compose, live_compose_stat = read_file(spec["compose"])
+         live_env, live_env_stat = read_file(spec["env"])
+         if (container_id(name) != state["oldId"] or
+@@ -382,7 +575,9 @@
+         staged = backup / "compose.new"
+         h.write_backup(staged, state["candidate"])
+         os.chmod(staged, state["mode"])
++        checkpoint(backup, record, "STAGE_CONFIG")
+         compose_quiet(spec, staged)
++        checkpoint(backup, record, "INSTALL_COMPOSE")
+         installed_identity = replace_owned(spec["compose"], state["candidate"],
+                                            spec["base"], state["composeIdentity"])
+         installed = True
+@@ -397,39 +592,51 @@
+         replace_metadata(backup / "state.json", record)
+         # The staged config was validated before installation. Revalidate the
+         # selected config and all ownership guards immediately before start.
++        checkpoint(backup, record, "INSTALLED_RUNTIME_1")
+         if h.image_id(spec["image"]) != spec["imageId"] or h.is_running(name):
+             raise RuntimeError("ImageOrOldContainerDrift")
+         runtime(name, spec, False, baseline=state["oldRuntime"],
+                 expected_id=state["oldId"], require_healthy=False, volume_users=[])
++        checkpoint(backup, record, "INSTALLED_CONFIG")
+         compose_quiet(spec, spec["compose"])
++        checkpoint(backup, record, "INSTALLED_IMAGE")
+         if h.image_id(spec["image"]) != spec["imageId"]:
+             raise RuntimeError("ImageChangedBeforeCreate")
++        checkpoint(backup, record, "INSTALLED_RUNTIME_2")
+         runtime(name, spec, False, baseline=state["oldRuntime"],
+                 expected_id=state["oldId"], require_healthy=False, volume_users=[])
++        checkpoint(backup, record, "INSTALLED_FILES")
++        checkpoint(backup, record, "CREATE")
+         gate_files(spec, spec["target"], installed_identity,
+                    state["envSha"], state["envIdentity"])
+         # Create the selected container without starting it. Its ID is fixed
+         # and persisted before any start attempt, so a later unhealthy PB can
+         # be rolled back without adopting a merely similar foreign container.
+-        h.run(["docker", "compose", "--project-directory", str(spec["compose"].parent),
+-               "--env-file", str(spec["env"]), "--file", str(spec["compose"]),
+-               "create", "--force-recreate", "--no-build", "--pull", "never",
+-               spec["service"]], timeout=120)
++        create_selected(spec)
++        checkpoint(backup, record, "CREATED_SELECTION")
+         new_id = created_selection(name, spec)
+         if new_id == state["oldId"]:
+             raise RuntimeError("CreatedContainerUnknown")
++        checkpoint(backup, record, "CREATED_RUNTIME")
+         runtime(name, spec, True, baseline=state["oldRuntime"],
+                 expected_id=new_id, require_healthy=False, volume_users=[])
++        checkpoint(backup, record, "PERSIST_CREATED")
+         record.update({"status": "CREATED", "newContainerId": new_id})
+         replace_metadata(backup / "state.json", record)
++        checkpoint(backup, record, "START_IMAGE")
+         if h.image_id(spec["image"]) != spec["imageId"]:
+             raise RuntimeError("ImageChangedBeforeStart")
++        checkpoint(backup, record, "START_SELECTION")
+         created_selection(name, spec, expected_id=new_id)
++        checkpoint(backup, record, "START_RUNTIME")
+         runtime(name, spec, True, baseline=state["oldRuntime"],
+                 expected_id=new_id, require_healthy=False, volume_users=[])
++        checkpoint(backup, record, "START_FILES")
++        checkpoint(backup, record, "START")
+         gate_files(spec, spec["target"], installed_identity,
+                    state["envSha"], state["envIdentity"])
+         h.run(["docker", "start", new_id], timeout=60)
++        checkpoint(backup, record, "HEALTH")
+         deadline = time.monotonic() + 60
+         while True:
+             if container_id(name) != new_id:
+@@ -441,12 +648,14 @@
+                 if time.monotonic() >= deadline:
+                     raise RuntimeError("NewRuntimeUnhealthy") from None
+                 time.sleep(1)
++        checkpoint(backup, record, "FINAL_FILES")
+         gate_files(spec, spec["target"], installed_identity,
+                    state["envSha"], state["envIdentity"])
+         record.update({"status": "AWAITING_PUBLIC_SMOKE", "newContainerId": new_id,
+                        "archiveSha": archive_sha, "archiveBytes": archive_size,
+                        "restoredFiles": files, "restoredBytes": restored_bytes})
+         replace_metadata(backup / "state.json", record)
++        checkpoint(backup, record, "SUCCESS")
+         gate_files(spec, spec["target"], installed_identity,
+                    state["envSha"], state["envIdentity"])
+         return {"status": "CORS_APPLIED_AWAITING_PUBLIC_SMOKE", "service": name,
+@@ -455,9 +664,17 @@
+                 "composeSha": spec["target"], "imageId": spec["imageId"],
+                 "archiveSha": archive_sha, "archiveBytes": archive_size,
+                 "restoredFiles": files, "restoredBytes": restored_bytes}
+-    except Exception:
++    except Exception as failure:
+         # Safe recovery only while the old container and original files still belong to us.
+         recovered = False
++        failure_class = str(failure) if str(failure) in FAILURES else "OTHER_FAILURE"
++        create_exit = failure.code if isinstance(failure, CreateExit) else None
++        command_exit = failure.code if isinstance(failure, CommandExit) else None
++        comparison = {"mountRawSame": None, "mountCanonicalSame": None,
++                      "aliasesRawSame": None, "aliasesCanonicalSame": None,
++                      "networkRawSame": None, "portsStoppedEquivalent": None}
++        if installed and failure_class == "RuntimePeerDrift":
++            comparison = baseline_comparison(name, spec, state["oldRuntime"], state["oldId"])
+         if stopped and not installed:
+             try:
+                 old_compose, old_compose_stat = read_file(spec["compose"])
+@@ -473,13 +690,22 @@
+                     gate_files(spec, spec["base"], state["composeIdentity"],
+                                state["envSha"], state["envIdentity"])
+                     h.run(["docker", "start", state["oldId"]], timeout=60)
+-                    runtime(name, spec, False, expected_id=state["oldId"])
+-                    recovered = True
++                    recovered = wait_owned_old(name, spec, state)
++            except Exception:
++                pass
++        if installed and record["status"] == "INSTALLED" and \
++                record.get("newContainerId") is None:
++            try:
++                result = rollback(name, spec, backup.name)
++                recovered = (result["status"] == "CORS_ROLLED_BACK_AWAITING_PUBLIC_SMOKE" and
++                             result["containerId"] == state["oldId"])
+             except Exception:
+                 pass
+         return {"status": "STOP_OLD_RUNTIME_RESTORED" if recovered else "STOP_NEEDS_OPERATOR",
+                 "service": name, "remoteWrites": True,
+-                "backupId": backup.name}
++                "backupId": backup.name, "checkpoint": record.get("checkpoint"),
++                "failureClass": failure_class, "createExit": create_exit, "commandExit": command_exit,
++                "baselineFields": comparison}
+ 
+ 
+ def rollback(name, spec, backup_id):

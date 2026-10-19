@@ -1,0 +1,84 @@
+{
+  "status": "PASSED",
+  "cases": 14,
+  "rows": [
+    {
+      "category": "owned",
+      "continued": 1,
+      "aborted": 0
+    },
+    {
+      "category": "owned",
+      "continued": 1,
+      "aborted": 0
+    },
+    {
+      "category": "owned",
+      "continued": 1,
+      "aborted": 0
+    },
+    {
+      "category": "owned",
+      "continued": 1,
+      "aborted": 0
+    },
+    {
+      "category": "owned",
+      "continued": 1,
+      "aborted": 0
+    },
+    {
+      "category": "blocked",
+      "blocked": 1,
+      "continued": 0,
+      "aborted": 1,
+      "fetches": 0
+    },
+    {
+      "category": "blocked",
+      "blocked": 1,
+      "continued": 0,
+      "aborted": 1,
+      "fetches": 0
+    },
+    {
+      "category": "blocked",
+      "blocked": 1,
+      "continued": 0,
+      "aborted": 1,
+      "fetches": 0
+    },
+    {
+      "category": "blocked",
+      "blocked": 1,
+      "continued": 0,
+      "aborted": 1,
+      "fetches": 0
+    },
+    {
+      "category": "blocked",
+      "blocked": 1,
+      "continued": 0,
+      "aborted": 1,
+      "fetches": 0
+    },
+    {
+      "category": "blocked",
+      "blocked": 1,
+      "continued": 0,
+      "aborted": 1,
+      "fetches": 0
+    },
+    {
+      "category": "blocked",
+      "blocked": 1,
+      "continued": 0,
+      "aborted": 1,
+      "fetches": 0
+    }
+  ],
+  "unhandledSyntheticAborts": 1,
+  "ownedFetchRedirects": 0,
+  "realNetworkRequests": 0,
+  "browserStarted": false
+}

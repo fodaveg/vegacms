@@ -1,0 +1,18 @@
+feat(form): publish saved records and add chain and rocket icons
+
+Reuse the visual publication control in normal record editing. Save dirty
+content before changing status with the confirmed version, under one lock
+and one final notification. Preserve validation, history and retry behavior.
+Guard readonly status fields and reject unconfirmed backend transitions.
+
+Verified tree: ed22ce2b5c13371ab02157ad9a96151d33b44533
+Checks: targeted Prettier/ESLint and pnpm check exit 0; nine focal suites
+229/229; Chromium headless desktop/mobile light/dark 4/4, pageErrors 0.
+Independent review closes readonly P2, with no further confirmed findings.
+Environment: macOS, Node 22.22.3, existing dependencies, no install.
+Limits: Vite dev plus memory backend; no full gate/build, real PocketBase,
+physical accessibility QA, integration, push or deployment.
+Evidence: /Users/david/code/vegacms/.verification/ui-publish-icons-20261007/receipt.json
+Review: /Users/david/code/vegacms/.verification/ui-publish-icons-20261007/review-final.md
+This canonical local evidence is outside temporary storage; another machine
+may not retain it. The root session certifies the combined candidate.

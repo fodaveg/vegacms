@@ -1,0 +1,10 @@
+COMMAND: ['/Users/david/.nvm/versions/node/v22.22.3/bin/node', 'node_modules/@sveltejs/kit/svelte-kit.js', 'sync']
+EXIT_CODE=0
+COMMAND: ['/Users/david/.nvm/versions/node/v22.22.3/bin/node', 'node_modules/svelte-check/bin/svelte-check', '--tsconfig', './tsconfig.json']
+Loading svelte-check in workspace: /private/tmp/vegacms-contact-smtp-tls-20261007
+Getting Svelte diagnostics...
+
+svelte-check found 0 errors and 0 warnings
+EXIT_CODE=0
+COMMAND: ['/Users/david/.nvm/versions/node/v22.22.3/bin/node', 'node_modules/eslint/bin/eslint.js', 'tests/contract/pb-harness/smtp-sink.ts', 'tests/contract/pocketbase.contact-notify-hook.test.ts']
+EXIT_CODE=0

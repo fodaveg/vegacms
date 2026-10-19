@@ -1,0 +1,33 @@
+
+ RUN  v4.1.10 /private/tmp/vegacms-import-origins-20261007
+
+ ❯ |server| src/lib/transfer/import-collection.test.ts (36 tests | 1 failed) 112ms
+     × la fase de relaciones no reenvía ni descarga otra vez ficheros, y espera antes de completar progreso 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |server| src/lib/transfer/import-collection.test.ts > runImport: relaciones cíclicas en dos fases > la fase de relaciones no reenvía ni descarga otra vez ficheros, y espera antes de completar progreso
+AssertionError: expected 2 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ src/lib/transfer/import-collection.test.ts:844:21
+    842|   expect(await promise).toMatchObject({ createdCount: 1, failedCount: …
+    843|   expect(progress).toEqual([0, 1]);
+    844|   expect(downloads).toBe(1);
+       |                     ^
+    845|   expect(writes[0].data).toEqual({ cover: file });
+    846|   expect(writes[1].data).toEqual({ ref: 'x' });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 11 passed (12)
+      Tests  1 failed | 151 passed (152)
+   Start at  19:24:55
+   Duration  2.54s (transform 508ms, setup 0ms, import 702ms, tests 375ms, environment 734ms)
+

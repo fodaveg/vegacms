@@ -1,0 +1,47 @@
+[
+  {
+    "command": [
+      "docker",
+      "buildx",
+      "inspect",
+      "vega-contact-proof-20261007"
+    ],
+    "exitCode": 0,
+    "output": "Name:          vega-contact-proof-20261007\nDriver:        docker-container\nLast Activity: 2026-10-07 13:05:43 +0000 UTC\n\nNodes:\nName:                  vega-contact-proof-202610070\nEndpoint:              desktop-linux\nDriver Options:        image=\"moby/buildkit:buildx-stable-1\"\nStatus:                running\nBuildKit daemon flags: --allow-insecure-entitlement=network.host\nBuildKit version:      v0.33.1\nPlatforms:             linux/arm64, linux/amd64, linux/amd64/v2, linux/riscv64, linux/ppc64le, linux/s390x, linux/386, linux/arm/v7, linux/arm/v6\nLabels:\n org.mobyproject.buildkit.worker.executor:         oci\n org.mobyproject.buildkit.worker.hostname:         6ec993ce9351\n org.mobyproject.buildkit.worker.network:          host\n org.mobyproject.buildkit.worker.oci.process-mode: sandbox\n org.mobyproject.buildkit.worker.selinux.enabled:  false\n org.mobyproject.buildkit.worker.snapshotter:      overlayfs\nGC Policy rule#0:\n All:            false\n Filters:        type==source.local type==exec.cachemount type==source.git.checkout\n Keep Duration:  48h0m0s\n Max Used Space: 488.3MiB\nGC Policy rule#1:\n All:            false\n Keep Duration:  1440h0m0s\n Reserved Space: 5.588GiB\n Max Used Space: 43.77GiB\n Min Free Space: 11.18GiB\nGC Policy rule#2:\n All:            false\n Reserved Space: 5.588GiB\n Max Used Space: 43.77GiB\n Min Free Space: 11.18GiB\nGC Policy rule#3:\n All:            true\n Reserved Space: 5.588GiB\n Max Used Space: 43.77GiB\n Min Free Space: 11.18GiB\n"
+  },
+  {
+    "command": [
+      "docker",
+      "buildx",
+      "rm",
+      "--force",
+      "vega-contact-proof-20261007"
+    ],
+    "exitCode": 0,
+    "output": "vega-contact-proof-20261007 removed\n"
+  },
+  {
+    "command": [
+      "docker",
+      "container",
+      "inspect",
+      "buildx_buildkit_vega-contact-proof-202610070",
+      "--format",
+      "{{.Id}}"
+    ],
+    "exitCode": 1,
+    "output": "\nError response from daemon: No such container: buildx_buildkit_vega-contact-proof-202610070\n"
+  },
+  {
+    "command": [
+      "docker",
+      "volume",
+      "inspect",
+      "buildx_buildkit_vega-contact-proof-202610070_state",
+      "--format",
+      "{{.Name}}"
+    ],
+    "exitCode": 1,
+    "output": "\nError response from daemon: get buildx_buildkit_vega-contact-proof-202610070_state: no such volume\n"
+  }
+]

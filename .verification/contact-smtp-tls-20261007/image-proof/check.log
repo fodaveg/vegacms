@@ -1,0 +1,6 @@
+EXIT=0
+Loading svelte-check in workspace: /private/tmp/vegacms-contact-smtp-tls-20261007
+Getting Svelte diagnostics...
+
+svelte-check found 0 errors and 0 warnings
+EXIT=0

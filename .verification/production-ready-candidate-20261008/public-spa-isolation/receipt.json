@@ -1,0 +1,25 @@
+{
+  "status": "GUARD_SOURCE_AND_SYNTHETIC_PROBE_GREEN_RUNTIME_PENDING",
+  "probe": {
+    "exit_code": 0,
+    "cases": 14,
+    "realNetworkRequests": 0,
+    "browserStarted": false
+  },
+  "sourceFixtureSHA256": "4293d8731d7e26bdea6d29c8a4ef8a60226b31f96f82c33e343e805a4c6808f3",
+  "clonesFreezeSHA256": "ba54b306c32a164c663905e63c63b3083d50c935d8024487e64d9aeda5ed0f76",
+  "sourceProductChanges": false,
+  "prior237Modified": false,
+  "allowOwned": [
+    "http://localhost:4173\u20134177",
+    "http://127.0.0.1:4173\u20134177",
+    "http://[::1]:4173\u20134177"
+  ],
+  "syntheticMockOnly": [
+    "https://vega-visual-site.example"
+  ],
+  "routeFetchMaxRedirects": 0,
+  "genericFallback": true,
+  "contextGuardSurvivesPageUnroute": true,
+  "runtimeExecuted": false
+}

@@ -1,0 +1,349 @@
+diff --git a/tests/contract/pb-harness/docker-server.ts b/tests/contract/pb-harness/docker-server.ts
+new file mode 100644
+index 0000000..6de3910
+--- /dev/null
++++ b/tests/contract/pb-harness/docker-server.ts
+@@ -0,0 +1,158 @@
++/** PocketBase de una imagen local inmutable, con hook empaquetado y datos/CA solo de fixture. */
++import { execFile } from 'node:child_process';
++import { chmod, copyFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
++import { tmpdir } from 'node:os';
++import net from 'node:net';
++import path from 'node:path';
++import { randomUUID } from 'node:crypto';
++import { promisify } from 'node:util';
++import { ADMIN_EMAIL, ADMIN_PASSWORD, type RunningPocketBase } from './server';
++
++const exec = promisify(execFile);
++
++/** Resuelve el gateway desde la misma imagen; no supone que --network=host comparta localhost. */
++export async function imageGatewayIp(image: string): Promise<string> {
++	const { stdout } = await exec('docker', [
++		'run',
++		'--rm',
++		'--pull=never',
++		'--platform',
++		'linux/amd64',
++		'--read-only',
++		'--cap-drop',
++		'ALL',
++		'--entrypoint',
++		'/bin/busybox',
++		image,
++		'nslookup',
++		'host.docker.internal'
++	]);
++	const ip = stdout.match(/Name:\s*host\.docker\.internal\s*Address:\s*([\d.]+)/)?.[1];
++	if (!ip || !net.isIPv4(ip)) throw new Error('El gateway Docker no devolvió una IPv4 de fixture.');
++	return ip;
++}
++
++/** Solo monta datos efímeros y una COPIA de la CA pública; mantiene USER 10001 y el hook de imagen. */
++export async function startImagePocketBase(
++	image: string,
++	caFile?: string
++): Promise<RunningPocketBase> {
++	if (!/^sha256:[a-f0-9]{64}$/.test(image)) throw new Error('La prueba exige image ID inmutable.');
++	const dir = await mkdtemp(path.join(tmpdir(), 'vega-pb-image-'));
++	const data = path.join(dir, 'data');
++	const publicCa = path.join(dir, 'public-ca');
++	const name = `vega-contact-proof-${randomUUID()}`;
++	let started = false;
++	const stop = async () => {
++		try {
++			if (started) await exec('docker', ['rm', '--force', name]);
++		} finally {
++			await rm(dir, { recursive: true, force: true });
++		}
++	};
++	try {
++		// El padre sigue 0700 en host; el UID de imagen necesita escribir SOLO en el bind de datos.
++		await mkdir(data, { mode: 0o777 });
++		await chmod(data, 0o777);
++		await mkdir(path.join(data, 'migrations'), { mode: 0o777 });
++		await chmod(path.join(data, 'migrations'), 0o777);
++		const common = [
++			'--pull=never',
++			'--platform',
++			'linux/amd64',
++			'--read-only',
++			'--cap-drop',
++			'ALL',
++			'--security-opt=no-new-privileges',
++			'--tmpfs',
++			'/tmp:size=16m',
++			'--mount',
++			`type=bind,src=${data},dst=/test-data`
++		];
++		// Config privada bajo padre0700; el launcher Docker no lleva la contraseña en argv/logs.
++		const credentials = path.join(dir, 'credentials');
++		const quote = (value: string) => "'" + value.replaceAll("'", "'\"'\"'") + "'";
++		await writeFile(
++			credentials,
++			`email=${quote(ADMIN_EMAIL)}\npassword=${quote(ADMIN_PASSWORD)}\n`,
++			{ mode: 0o644 }
++		);
++		await chmod(credentials, 0o644);
++		try {
++			await exec('docker', [
++				'run',
++				'--rm',
++				...common,
++				'--mount',
++				`type=bind,src=${credentials},dst=/test-credentials,readonly`,
++				'--entrypoint',
++				'/bin/sh',
++				image,
++				'-c',
++				'. /test-credentials; exec /pb/pocketbase superuser upsert "$email" "$password" --dir=/test-data --migrationsDir=/test-data/migrations'
++			]);
++		} finally {
++			await rm(credentials, { force: true });
++		}
++		const server = net.createServer();
++		await new Promise<void>((resolve, reject) => {
++			server.once('error', reject);
++			server.listen(0, '127.0.0.1', resolve);
++		});
++		const port = (server.address() as net.AddressInfo).port;
++		await new Promise<void>((resolve) => server.close(() => resolve()));
++		const trust: string[] = [];
++		if (caFile) {
++			await mkdir(publicCa, { mode: 0o755 });
++			await mkdir(path.join(publicCa, 'empty'), { mode: 0o755 });
++			await chmod(publicCa, 0o755);
++			await chmod(path.join(publicCa, 'empty'), 0o755);
++			await copyFile(caFile, path.join(publicCa, 'ca.pem'));
++			await chmod(path.join(publicCa, 'ca.pem'), 0o644);
++			trust.push(
++				'--mount',
++				`type=bind,src=${publicCa},dst=/test-ca,readonly`,
++				'--env',
++				'SSL_CERT_FILE=/test-ca/ca.pem',
++				'--env',
++				'SSL_CERT_DIR=/test-ca/empty'
++			);
++		}
++		await exec('docker', [
++			'run',
++			'--detach',
++			'--name',
++			name,
++			...common,
++			...trust,
++			'--publish',
++			`127.0.0.1:${port}:8090`,
++			'--env',
++			'VEGA_CONTACT_NOTIFY_TO=editor@example.test',
++			image,
++			'serve',
++			'--http=0.0.0.0:8090',
++			'--dir=/test-data',
++			'--migrationsDir=/test-data/migrations',
++			'--hooksDir=/pb/pb_hooks',
++			'--publicDir=/pb/pb_public',
++			'--origins=https://admin.vegacms.com'
++		]);
++		started = true;
++		const url = `http://127.0.0.1:${port}`;
++		const deadline = Date.now() + 10_000;
++		while (true) {
++			try {
++				if ((await fetch(`${url}/api/health`)).ok) break;
++			} catch {
++				/* Arranque pendiente. */
++			}
++			if (Date.now() > deadline) throw new Error('PocketBase de imagen no respondió a health.');
++			await new Promise((resolve) => setTimeout(resolve, 100));
++		}
++		return { url, adminEmail: ADMIN_EMAIL, adminPassword: ADMIN_PASSWORD, stop };
++	} catch (error) {
++		await stop();
++		throw error;
++	}
++}
+diff --git a/tests/contract/pb-harness/smtp-sink.ts b/tests/contract/pb-harness/smtp-sink.ts
+index 49e4882..fc611fe 100644
+--- a/tests/contract/pb-harness/smtp-sink.ts
++++ b/tests/contract/pb-harness/smtp-sink.ts
+@@ -115,11 +115,12 @@ export interface TlsSmtpSink extends SmtpSink {
+ }
+ 
+ /**
+- * SMTP TLS implícito con CA efímera propia y certificado válido SOLO para localhost (no para IP).
++ * SMTP TLS implícito con CA efímera propia y certificado válido SOLO para el hostname (no para IP).
+  * Usa OpenSSL existente; el directorio privado y sus claves se retiran al parar o fallar el arranque.
+  * No simula validación: el cliente real debe confiar en la CA y verificar el hostname.
+  */
+-export async function startTlsSmtpSink(): Promise<TlsSmtpSink> {
++export async function startTlsSmtpSink(hostname = 'localhost'): Promise<TlsSmtpSink> {
++	if (!/^[a-zA-Z0-9.-]+$/.test(hostname)) throw new Error('Hostname de fixture TLS inválido.');
+ 	const dir = await mkdtemp(path.join(tmpdir(), 'vega-smtp-tls-'));
+ 	const file = (name: string) => path.join(dir, name);
+ 	const openssl = promisify(execFile);
+@@ -154,7 +155,7 @@ export async function startTlsSmtpSink(): Promise<TlsSmtpSink> {
+ 			'-nodes',
+ 			'-sha256',
+ 			'-subj',
+-			'/CN=localhost',
++			`/CN=${hostname}`,
+ 			'-keyout',
+ 			file('server.key'),
+ 			'-out',
+@@ -166,7 +167,7 @@ export async function startTlsSmtpSink(): Promise<TlsSmtpSink> {
+ 				'basicConstraints=critical,CA:FALSE',
+ 				'keyUsage=critical,digitalSignature,keyEncipherment',
+ 				'extendedKeyUsage=serverAuth',
+-				'subjectAltName=DNS:localhost'
++				`subjectAltName=DNS:${hostname}`
+ 			].join('\n')
+ 		);
+ 		await openssl('openssl', [
+diff --git a/tests/contract/pocketbase.contact-notify-image.test.ts b/tests/contract/pocketbase.contact-notify-image.test.ts
+new file mode 100644
+index 0000000..1ba4ac3
+--- /dev/null
++++ b/tests/contract/pocketbase.contact-notify-image.test.ts
+@@ -0,0 +1,142 @@
++/**
++ * Opt-in: VEGA_CONTACT_TEST_IMAGE=sha256:<image ID local acreditado>. Sin pulls ni binario host.
++ * PB Linux real, USER de imagen y /pb/pb_hooks empaquetado; CA pública montada solo en el proceso.
++ * El gateway Docker Desktop debe haber pasado la sonda TCP mínima antes de ejecutar este contrato.
++ * No acredita SMTP del proveedor, AUTH, STARTTLS ni habilita NOTIFY_TO en producción.
++ */
++import { afterEach, describe, expect, test } from 'vitest';
++import { startTlsSmtpSink, type TlsSmtpSink } from './pb-harness/smtp-sink';
++import { imageGatewayIp, startImagePocketBase } from './pb-harness/docker-server';
++import { type RunningPocketBase } from './pb-harness/server';
++
++const IMAGE = process.env.VEGA_CONTACT_TEST_IMAGE ?? '';
++const HOST = 'host.docker.internal';
++
++describe.skipIf(!IMAGE)('contacto TLS en imagen backend exacta', () => {
++	let sink: TlsSmtpSink | undefined;
++	let pb: RunningPocketBase | undefined;
++	let token = '';
++	afterEach(async () => {
++		try {
++			await pb?.stop();
++		} finally {
++			await sink?.stop();
++			pb = sink = undefined;
++		}
++	});
++	async function api(method: string, route: string, body?: object, auth = token) {
++		const response = await fetch(`${pb!.url}${route}`, {
++			method,
++			headers: { 'content-type': 'application/json', ...(auth ? { authorization: auth } : {}) },
++			body: body ? JSON.stringify(body) : undefined
++		});
++		const text = await response.text();
++		return {
++			status: response.status,
++			body: (text ? JSON.parse(text) : {}) as Record<string, unknown>
++		};
++	}
++	async function start(trust: boolean) {
++		sink = await startTlsSmtpSink(HOST);
++		pb = await startImagePocketBase(IMAGE, trust ? sink.trustEnv.SSL_CERT_FILE : undefined);
++		const login = await api(
++			'POST',
++			'/api/collections/_superusers/auth-with-password',
++			{
++				identity: pb.adminEmail,
++				password: pb.adminPassword
++			},
++			''
++		);
++		expect(login.status).toBe(200);
++		token = login.body.token as string;
++		expect(
++			(
++				await api('POST', '/api/collections', {
++					name: 'messages',
++					type: 'base',
++					createRule: '',
++					fields: [
++						{ name: 'name', type: 'text' },
++						{ name: 'email', type: 'email' },
++						{ name: 'message', type: 'text' },
++						{ name: 'read', type: 'bool' },
++						{ name: 'notifyState', type: 'text', max: 20, hidden: true },
++						{ name: 'created', type: 'autodate', onCreate: true, onUpdate: false }
++					]
++				})
++			).status
++		).toBe(200);
++	}
++	async function smtpHost(host: string) {
++		expect(
++			(
++				await api('PATCH', '/api/settings', {
++					smtp: { enabled: true, host, port: sink!.port, tls: true },
++					meta: { appName: 'TLS fixture', senderAddress: 'noreply@vega.test', senderName: 'Vega' }
++				})
++			).status
++		).toBe(200);
++	}
++	async function send() {
++		const start = Date.now();
++		const response = await api(
++			'POST',
++			'/api/collections/messages/records',
++			{
++				name: 'Ana fixture',
++				email: 'ana@example.test',
++				message: 'TLS fixture',
++				read: false
++			},
++			''
++		);
++		expect(response.status).toBe(200);
++		expect(Date.now() - start).toBeLessThan(3000);
++		return response.body.id as string;
++	}
++	const state = async (id: string) =>
++		(await api('GET', `/api/collections/messages/records/${id}`)).body.notifyState;
++	const cron = async () =>
++		expect((await api('POST', '/api/crons/vega-contact-notify')).status).toBe(204);
++	async function rejected(id: string) {
++		await cron();
++		await expect.poll(() => sink!.stats.rejected, { timeout: 10_000 }).toBeGreaterThanOrEqual(1);
++		await expect.poll(() => state(id), { timeout: 10_000 }).toBe('pending');
++		expect(sink!.stats.handshakes).toBe(0);
++		expect(sink!.messages).toHaveLength(0);
++	}
++
++	test('CA desconocida: handshake rechazado, cero correos, pending y POST independiente', async () => {
++		await start(false);
++		await smtpHost(HOST);
++		const id = await send();
++		expect(await state(id)).toBe('pending');
++		await rejected(id);
++		const second = await send();
++		expect(second).not.toBe(id);
++		expect(await state(second)).toBe('pending');
++	}, 40_000);
++
++	test('CA confiable solo en proceso: IP inválida → pending; hostname válido → mismo registro sent', async () => {
++		const gateway = await imageGatewayIp(IMAGE);
++		await start(true);
++		await smtpHost(gateway);
++		const id = await send();
++		await rejected(id);
++		await smtpHost(HOST);
++		await cron();
++		const [message] = await sink!.waitForMessages(1);
++		expect(message).toContain('To: editor@example.test');
++		await expect.poll(() => state(id), { timeout: 10_000 }).toBe('sent');
++		expect(sink!.stats.handshakes).toBeGreaterThanOrEqual(1);
++		expect(
++			sink!.stats.protocols.every((protocol) => ['TLSv1.2', 'TLSv1.3'].includes(protocol))
++		).toBe(true);
++		await cron();
++		await new Promise((resolve) => setTimeout(resolve, 600));
++		expect(sink!.messages).toHaveLength(1);
++		const second = await send();
++		expect(await state(second)).toBe('pending');
++	}, 40_000);
++});

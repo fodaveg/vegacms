@@ -1,0 +1,43 @@
+--- historical/spec
++++ version/spec
+@@ -82,7 +82,7 @@
+ }
+ async function login(page: Page, showcase = false): Promise<void> {
+ 	await loginAsDemo(page, { seedShowcase: showcase });
+-	await waitForHistoricalLanding(page);
++	await waitForHistoricalLanding(page, showcase);
+ }
+ 
+ const blocks = [
+@@ -179,7 +179,7 @@
+ }) => {
+ 	await login(page);
+ 	await page.goto('/c/posts/post_1');
+-	await page.getByRole('textbox', { name: 'Título', exact: true }).fill('CSP título guardado');
++	await page.getByRole('textbox', { name: 'Title', exact: true }).fill('CSP título guardado');
+ 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+ 	await page.getByRole('button', { name: 'Historial', exact: true }).click();
+ 	await expect(
+@@ -187,7 +187,7 @@
+ 	).toBeVisible();
+ 	await page.getByRole('link', { name: 'Entradas', exact: false }).click();
+ 	await page.getByRole('link', { name: 'CSP título guardado', exact: true }).click();
+-	await expect(page.getByRole('textbox', { name: 'Título', exact: true })).toHaveValue(
++	await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue(
+ 		'CSP título guardado'
+ 	);
+ 	await clean();
+@@ -196,11 +196,11 @@
+ test('source: new form creates a record and resolves its real memory ID', async ({ page }) => {
+ 	await login(page);
+ 	await page.goto('/c/posts/new');
+-	await page.getByRole('textbox', { name: 'Título', exact: true }).fill('CSP nueva entrada');
++	await page.getByRole('textbox', { name: 'Title', exact: true }).fill('CSP nueva entrada');
+ 	await page.getByLabel('Body').fill('Contenido de prueba CSP.');
+ 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+ 	await expect(page).toHaveURL(/\/c\/posts\/(?!new)[^/]+$/);
+-	await expect(page.getByRole('textbox', { name: 'Título', exact: true })).toHaveValue(
++	await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue(
+ 		'CSP nueva entrada'
+ 	);
+ 	await clean();

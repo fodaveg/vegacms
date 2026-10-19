@@ -1,0 +1,34 @@
+
+ RUN  v4.1.10 /private/tmp/vegacms-trash-history-20261007
+
+ ❯ |component| src/lib/form/RecordForm.publish.svelte.test.ts (23 tests | 1 failed) 2449ms
+   × preview discards a pending opening after unmount without a token request 1008ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |component| src/lib/form/RecordForm.publish.svelte.test.ts > preview discards a pending opening after unmount without a token request
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/lib/form/RecordForm.publish.svelte.test.ts:418:45
+    416|   const w = await setup({ preview: true });
+    417|   previewToggle(w).click();
+    418|   await settled(() => expect(probe.loads()).toBe(1));
+       |                                             ^
+    419|   if (boundary === 'logout') Object.defineProperty(w.ctx, 'session', {…
+    420|   if (boundary === 'port') Object.defineProperty(w.ctx, 'port', { get:…
+ ❯ src/lib/form/RecordForm.publish.svelte.test.ts:158:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 5 passed (6)
+      Tests  1 failed | 127 passed (128)
+   Start at  21:18:20
+   Duration  11.50s (transform 1.73s, setup 0ms, import 2.24s, tests 7.12s, environment 1.74s)
+

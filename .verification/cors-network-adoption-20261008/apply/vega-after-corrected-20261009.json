@@ -1,0 +1,20 @@
+{
+  "assetsChecked": 153,
+  "assetsMatched": 153,
+  "bodyValuesStored": false,
+  "canonicalIndexAlias": true,
+  "cors": {
+    "discoveryJsonAndCors": false,
+    "foreignDenied": true,
+    "methodHeaderPreflights": true,
+    "nullDenied": true,
+    "ownOrigin": true,
+    "withoutOrigin": true
+  },
+  "credentialsSent": false,
+  "pathsUnchanged": true,
+  "peersUnchanged": true,
+  "service": "vega-pb",
+  "stage": "after",
+  "status": "STOP_CORS_PUBLIC"
+}

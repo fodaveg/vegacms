@@ -1,0 +1,22 @@
+{
+  "actualServerOCIIdNotYetProved": true,
+  "buildReceiptSHA256": "f4c746d24169115b44c716d28aceb59ab96224c775fbdf313db4e2044ee0ce10",
+  "commit": "cc8f3b14dca9bf10e4a60502da9e17503362bbb8",
+  "image": {
+    "architecture": "amd64",
+    "command": null,
+    "entrypoint": [
+      "/usr/bin/tini",
+      "-g",
+      "--",
+      "./docker-entrypoint.sh"
+    ],
+    "id": "sha256:1b6436fee8c23615d7f7826cb4f87cb1d6e7e97d2d56150ff87a90571b951c40",
+    "os": "linux",
+    "size": 474336027
+  },
+  "metadataFieldsUnavailable": [],
+  "runtimeProved": false,
+  "status": "LOCAL_CANDIDATE_IMAGE_IDENTITY",
+  "tree": "693fc1ae70e8a28e64a87950e25883905a0de1d4"
+}

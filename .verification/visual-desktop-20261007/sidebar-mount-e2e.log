@@ -1,0 +1,8 @@
+
+Running 1 test using 1 worker
+
+(node:78090) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/visual-editor.spec.ts:109:2 › editor visual — protocolo vega-visual-1 contra un sitio cross-origin › escritorio 1280 con ajustar conserva media queries y overlay al redimensionar (1.4s)
+
+  1 passed (1.9s)

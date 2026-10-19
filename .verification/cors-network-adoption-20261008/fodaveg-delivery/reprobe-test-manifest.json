@@ -1,0 +1,121 @@
+{
+  "captureSHA256": "d48e4a2705ebaac2d32720b38ebab1040fde26b3348a2aeeeb906702af4e9b01",
+  "currentDiskBudgetPassed": false,
+  "currentMemoryBudgetPassed": false,
+  "files": {
+    "REPROBE_TEST.md": "9873a2180ad869ac3992450835a8a1f0979a79ebd614cd873c0001ae1cbb815b",
+    "reprobe-local-volume.py": "209d772063412eb93056065c03068299325dcd7395640e20ef9366453304f952",
+    "reprobe-test-core.py": "327dc1e88e6721eb68c19a6147176e0deb87ed361e65b340108818cb0840753f",
+    "reprobe-test-run.py": "fc1777a32ebcac6a447a444e8790a4a756c5b21281bfb5bde558d6cd03b87ebc",
+    "reprobe-test-selftest.py": "16de0bd6b22bb0651225653cb2ed858ce92856294675ba1d3ddcc77db230b332",
+    "reprobe-test-wrapper-selftest.py": "4ee39c92cbb4990e85c3c189aa9d367e8e2bca0a5bcff61b61637d02e6680c12"
+  },
+  "frozenImports": {
+    "cors_apply": {
+      "path": "remote_cutover_controlled.py",
+      "sha256": "43b68aba0c937deef45ff3a9e2e33f6d3933fb06949605fdc3b0d9448d31c7b4"
+    },
+    "image_helpers": {
+      "path": "../../image-only-delivery-20261008/remote_cutover.py",
+      "sha256": "5d4131c229d7aa88918c932dd517b0d33e024a3497aa4fcc4b9f0c9940467128"
+    }
+  },
+  "limits": [
+    "Mock native/clone boundary only; no real TEST yet.",
+    "Fresh full parent and actual mount budgets must pass; reserve512MiB unchanged.",
+    "New exact runtime grant and independent review required.",
+    "No production stop or datarestore; TEST proof does not adopt CORS."
+  ],
+  "mode": "fodaveg-owned-test-only-quiesced-archive-reprobe",
+  "offline": {
+    "AST": "PASS",
+    "commands": [
+      "python3 -B .verification/cors-network-adoption-20261008/fodaveg-delivery/reprobe-test-selftest.py",
+      "python3 -B .verification/cors-network-adoption-20261008/fodaveg-delivery/reprobe-test-wrapper-selftest.py"
+    ],
+    "exitCodes": [
+      0,
+      0
+    ],
+    "tests": [
+      9,
+      5
+    ],
+    "trailingWhitespace": "PASS"
+  },
+  "operationId": "b32e0d62-7fd7-4e86-bf21-7b3c17996802",
+  "priorEvidenceSHA256": {
+    "reprobe-archive-observation.json": "7ae682b544bd0efeb159b24557a4f84e794c958728f452caba442358d4ebe6b1",
+    "reprobe-memory-observation.json": "2a51ed1db079c4f09565123d97d05574b50fe65961eef72657e2379ff8d84f30",
+    "reprobe-storage-observation.json": "d556eb4b9673e6091820b4d7916de42d13760ca719c2b52c15a8db7cc2f94e7c"
+  },
+  "remoteExecuted": false,
+  "retirementExactUserConsentPending": true,
+  "runtimeApprovalCreated": false,
+  "scope": {
+    "actualMountpointBudgetBeforeExtractionRequired": true,
+    "archiveBytes": 110406535,
+    "archiveFiles": 71,
+    "archiveIdentity": [
+      2049,
+      433285,
+      0,
+      0,
+      384,
+      110406535,
+      1791501199906887961,
+      1791501200051887374
+    ],
+    "archiveSHA256": "3a78532b99aea0dd1a424039ea0fca0eed67b9ef4026d48049cfc0f89285bdde",
+    "backupId": "fodaveg-20261008T231304Z-3656162",
+    "composeOrDotenvAccessAllowed": false,
+    "configEnvOrLogContentAllowed": false,
+    "dockerRootDirScalarRAMOnly": true,
+    "driver": "local",
+    "driverOptionsAllowed": false,
+    "expandedBytes": 875290525,
+    "fullParentCloneBudgetBeforeAnyWritesRequired": true,
+    "initialFreeReserveKiB": 524288,
+    "initialOwnMetadataAllowanceKiB": 1024,
+    "maxOwnedContainers": 2,
+    "maxOwnedVolumes": 1,
+    "maxSSHConnections": 1,
+    "newImage": "sha256:22cf0983980e3bf9562a0a518f258e6e69cdd58cb3d23a19516f1da60a6d403e",
+    "oldId": "6bddffa88de1c2738bf9aee711425f512deac30365f6183bb3d2ad008a2ff452",
+    "oldUnrecordedTestCleanupAllowed": false,
+    "outputLimitBytes": 4096,
+    "ownContainerSelectedFields": [
+      "Id",
+      "Image",
+      "Name",
+      "State.Running",
+      "State.Status",
+      "State.ExitCode",
+      "HostConfig.NetworkMode",
+      "HostConfig.ReadonlyRootfs",
+      "HostConfig.PortBindingsEmpty",
+      "NetworkSettings.NetworkNames",
+      "Config.Entrypoint",
+      "Config.Cmd",
+      "TwoOwnLabels",
+      "Mounts.TypeNameDestinationRW"
+    ],
+    "ownRecordIdBoundInNewGrantAndPersistedLocallyBeforeSSH": true,
+    "ownVolumeSelectedFields": [
+      "Name",
+      "Driver",
+      "OptionsEmpty",
+      "MountpointRAM",
+      "CreatedAt",
+      "TwoOwnLabels"
+    ],
+    "pbHeadroomBeforeNativeKiB": 131072,
+    "privateArchiveRAMAndSameFDUseExplicit": true,
+    "productionDataRestoreAllowed": false,
+    "productionStopOrStartAllowed": false,
+    "pullOrBuildAllowed": false,
+    "retryAllowed": false,
+    "transportTimeoutSeconds": 900
+  },
+  "status": "OWNED_TEST_ONLY_REPROBE_REVIEW_PENDING_EXECUTION_BLOCKED_BY_SPACE"
+}

@@ -1,0 +1,10 @@
+7:56:23 PM [vite] (client) Re-optimizing dependencies because vite config has changed
+7:56:23 PM [vite] (ssr) Re-optimizing dependencies because vite config has changed
+
+  VITE v8.1.5  ready in 637 ms
+
+  ➜  Local:   http://127.0.0.1:4289/
+
+[1;31m[404] GET /vega.config.json[0m
+
+[1;31m[404] GET /api/vega/discovery[0m

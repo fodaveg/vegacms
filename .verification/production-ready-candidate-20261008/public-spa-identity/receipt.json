@@ -1,0 +1,29 @@
+{
+  "status": "PUBLIC_DISCRIMINANTS_NO_PROVEN_MANIFEST_MATCH",
+  "operation": {
+    "session_id": 10525,
+    "exit_code": 0,
+    "requests": 6,
+    "all151Downloaded": false
+  },
+  "referenceSHA256": {
+    ".verification/production-rollout-proposal-20261007/current-spa-proof-final-receipt.json": "67c4b43feafdc45c97b929a9876d62f750e6d056d1b376d2f49d434bddf734cb",
+    ".verification/local-consumer-runtime-20261008/vega-current-packaged-image/frontend-manifest.json": "d77470958c89fe263b155b3a885a988c435d0eb404b195a46d0b861af4e29472",
+    ".verification/production-security-real-20261007/receipt.json": "0ef24d597958f9e08da18145a50b53d017fdc1586f784f6b7ae06afd4fc3a05d"
+  },
+  "runnerReferenceSHA256": {
+    "/Users/david/code/vegacms/.verification/production-rollout-proposal-20261007/current-spa-proof.spec.ts": "ffa215347183bd4f11c43c14b143cfadb8bdd66846220f09c9616e4cf2c5a15c",
+    "/Users/david/code/vegacms/.verification/production-rollout-proposal-20261007/current-spa-proof.config.mjs": "1cb947ec5e2373002193abd5e0ccf58c61175ab69312a03e6e09ecf9fd96d05c"
+  },
+  "historicalFullF59ManifestAvailable": false,
+  "samePublicIndexVersionVegaLumbre": true,
+  "provenCSPReuse": false,
+  "servedCloneExecuted": false,
+  "heavyExecutionAuthorizedByThisReceipt": false,
+  "privateReads": false,
+  "productionWrites": false,
+  "sealedPriorSHA256": {
+    "freeze-manifest.json": "d2b4938650389701fb7240827a46b5e3433198e01c4a08feece19246dc6c833d",
+    "headers-panel-batch/freeze-manifest.json": "d6fa3f557b6c710f94d5cab551cf07da54521d597ae50ebb43a05298884b2a83"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "status": "private documentation delta verified",
+  "base": "810bb2a71778a4de7bad38d5068520534ea81767",
+  "tree": "f46bb6d2378023d5914a871aff199569c8df41e4",
+  "path": "docs/INSTALL.md",
+  "blob": "806c49b2c99c277d36e1d09ad48fc78d4f685443",
+  "change": "Replace superseded430KB single cap with actual200/80/1024KB budgets; CI checks after gate on same build",
+  "verification": {
+    "prettierExit": 0,
+    "log": "install-budget-doc-format.log",
+    "reference": "scripts/check-bundle-budget.mjs constants and .github/workflows/ci.yml postgate step read"
+  },
+  "limits": [
+    "Documentation only; root combined candidate gate pending",
+    "No change to caps, source logic or CI"
+  ]
+}

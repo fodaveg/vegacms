@@ -1,0 +1,96 @@
+{
+  "task_id": "db189d99-8768-48fd-bc0d-c22499623836",
+  "generated_at": "2026-10-07T16:47:01.347655+00:00",
+  "worktree": "/private/tmp/vegacms-webhook-status-20261007",
+  "branch": "codex/webhook-status-20261007",
+  "base_sha": "9ae8b57c3297f1c32b6f22a3d66a17a78579383b",
+  "verified_tree": "6226b85c5c83a79552ad842bf0ab42ff5899877b",
+  "scope": "Append only actual webhook HTTP 400..599 numeric status to sanitized trigger message/stored detail; refresh real run state after failed Publish click.",
+  "invariants": [
+    "No error.Error() read for editor-facing text.",
+    "Never expose webhook URL, headers, bodies, secrets, command paths or argv.",
+    "Transport/construction/start errors and statuses outside 400..599 keep fixed wording.",
+    "Use existing poller; stop on terminal state."
+  ],
+  "environment": {
+    "os": "macOS Darwin arm64",
+    "go": "go1.27.1",
+    "node": "v22.22.3",
+    "vitest": "4.1.10",
+    "bootstrap": "Existing Go cache and node_modules/.svelte-kit symlinks; no install.",
+    "concurrency": "Root reserved single slot; fresh ps confirmed no foreign heavy suite.",
+    "disk_budget": "<1 GiB; df before 133445884 KiB free, after 133200000 KiB free; machine-wide readings fluctuate."
+  },
+  "checks": [
+    {
+      "command": "go test -count=1 ./...",
+      "cwd": "/private/tmp/vegacms-webhook-status-20261007/extensions/vegabuild",
+      "exit_code": 0,
+      "result": "package passed, 2.980s",
+      "log": "go-test.log"
+    },
+    {
+      "command": "go vet ./...",
+      "cwd": "/private/tmp/vegacms-webhook-status-20261007/extensions/vegabuild",
+      "exit_code": 0,
+      "log": "go-vet.log"
+    },
+    {
+      "command": "node node_modules/vitest/vitest.mjs run --project component src/lib/shell/PublishButton.svelte.test.ts",
+      "exit_code": 0,
+      "result": "16/16 passed, 1.39s",
+      "log": "component-test.log"
+    },
+    {
+      "command": "prettier --check docs/PROJECT-CONTRACT-v1.md extensions/vegabuild/README.md src/lib/shell/PublishButton.svelte src/lib/shell/PublishButton.svelte.test.ts",
+      "exit_code": 0,
+      "log": "prettier.log"
+    },
+    {
+      "command": "eslint src/lib/shell/PublishButton.svelte src/lib/shell/PublishButton.svelte.test.ts",
+      "exit_code": 0,
+      "log": "eslint.log"
+    },
+    {
+      "command": "gofmt on changed Go files; git diff --cached --check",
+      "exit_code": 0
+    }
+  ],
+  "regression_controls": [
+    {
+      "command": "go test -count=1 -run ^TestWebhookStartFailureExposesOnlyHTTPStatus$ ./...",
+      "mutation": "fixed-only message/detail",
+      "expected_exit_code": 1,
+      "observed_exit_code": 1,
+      "result": "400/403/429/500/599 fail message assertions",
+      "log": "go-regression-red.log",
+      "restoration": "go-regression-red.json"
+    },
+    {
+      "command": "node node_modules/vitest/vitest.mjs run --project component src/lib/shell/PublishButton.svelte.test.ts --testNamePattern \"un trigger rechazado\"",
+      "mutation": "omit failed-trigger status refresh",
+      "expected_exit_code": 1,
+      "observed_exit_code": 1,
+      "result": "missing status request fails assertion",
+      "log": "component-regression-red.log",
+      "restoration": "component-regression-red.json"
+    }
+  ],
+  "files_sha256": {
+    "docs/PROJECT-CONTRACT-v1.md": "2c9b127029c2bbf36cf344e203b4693376f3d25fe8ca83088a7445c700a36442",
+    "extensions/vegabuild/README.md": "9063909901fd97459a9de3f4548a6c3c7b354196722a2f4070a0661a98e4f6cb",
+    "extensions/vegabuild/vegabuild.go": "73cde6f66528bc31301ce2a3c58d79b2c2d5602cf70ee35f21bae11bd8a9d170",
+    "extensions/vegabuild/vegabuild_test.go": "3ee5d032ff448428ff39dc01b268c16baddfe13032954c231bcd3d24744da4a0",
+    "extensions/vegabuild/webhook.go": "138c36b7081d45156e29e003168c2eda9636c52d6eeb52924a1cc6a5706493de",
+    "src/lib/shell/PublishButton.svelte": "4ea1769a58369ecb9368791152ad364eddca2a869395b0cab7f96b360b4bfd55",
+    "src/lib/shell/PublishButton.svelte.test.ts": "c5c411b9a60ff16afc02dbea8c672f300837636ae5c33647778e55e15f80f0af"
+  },
+  "limits": [
+    "No remote webhook, provider, production, push or deployment exercised.",
+    "Svelte component mounted under jsdom; E2E and combined gate remain with root.",
+    "Both controlled mutations restored exact verified bytes; no product edits followed.",
+    "Local canonical evidence may not survive on another machine."
+  ],
+  "decision_for_shared_memory": "Build-start errors retain sanitized fixed wording. Only actual WebhookRunner HTTP 400..599 responses append (HTTP N), never private response/request/Runner text. This refines previous fixed-only rule. Root owns reconciliation in Obsidian and Hebra.",
+  "commit_sha": "e08af15559079a8a19871d1dbc40b627bab83703"
+}

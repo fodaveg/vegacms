@@ -1,0 +1,10 @@
+{
+  "ownership": "/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/supplements/metadata-60727",
+  "files": {
+    "reconciliation.md": "f7d1a26ef2df33c61324fde6f8cb6364a1ecb7d0088912cb5b6415cb4023f46e",
+    "inputs.json": "2d1dfc765745b9cdbb76e9e615dd8571fa8906a1b58af40e2e51139b7ac779b8",
+    "destination-matrix.json": "089826a62848a6df9a43307c998d2f969dfb4adb8eddfc3cb90b5b2e4c30cf1a",
+    "receipt.json": "b91e9652639d5de32b41bec851889134fc50ff9b50866a6d80bdf541d77e8618"
+  },
+  "parent23Immutable": true
+}

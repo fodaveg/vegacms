@@ -1,0 +1,100 @@
+{
+  "candidate": "269a41ca981942a59a3acb28758e8a73497ba922",
+  "tree": "56a607f71a5ca76aa67e5ff786ec26220f1dcb38",
+  "cwd": "/private/tmp/vegacms-backlog-r2-20261007",
+  "start_utc": "2026-10-07T17:52:28.353923+00:00",
+  "space_budget_GiB": 2,
+  "imports_blobs": [
+    {
+      "path": "docs/DEPLOYMENT.md",
+      "author": "791f6035f2a78ee995fb7b5b858c7fbf50c82b03",
+      "root": "791f6035f2a78ee995fb7b5b858c7fbf50c82b03"
+    },
+    {
+      "path": "src/lib/i18n/en.ts",
+      "author": "00963f5d3df52ddf4357fb5fda74e8fb257ddf74",
+      "root": "00963f5d3df52ddf4357fb5fda74e8fb257ddf74"
+    },
+    {
+      "path": "src/lib/i18n/es.ts",
+      "author": "5a6cc2eb7ba0b1641c2567c5a18fa13d19b69271",
+      "root": "5a6cc2eb7ba0b1641c2567c5a18fa13d19b69271"
+    },
+    {
+      "path": "src/lib/transfer/ImportDialog.origins.svelte.test.ts",
+      "author": "82858735075ff0b0ac6de8a2c7c1472a5af3ccee",
+      "root": "82858735075ff0b0ac6de8a2c7c1472a5af3ccee"
+    },
+    {
+      "path": "src/lib/transfer/ImportDialog.svelte",
+      "author": "7281edd45bab2ddd4bfa60c3cbec9f5293d711fd",
+      "root": "7281edd45bab2ddd4bfa60c3cbec9f5293d711fd"
+    },
+    {
+      "path": "src/lib/transfer/ImportDialog.svelte.test.ts",
+      "author": "9f39372174e8326775510d8ed0408d2753c4fd48",
+      "root": "9f39372174e8326775510d8ed0408d2753c4fd48"
+    },
+    {
+      "path": "src/lib/transfer/export-collection.ts",
+      "author": "509c18573540a900ad3f0ab30eccfd771a4ae0a8",
+      "root": "509c18573540a900ad3f0ab30eccfd771a4ae0a8"
+    },
+    {
+      "path": "src/lib/transfer/import-collection.test.ts",
+      "author": "7fe3a64832005e9af0d2b80e26b7325e6b51fd0e",
+      "root": "7fe3a64832005e9af0d2b80e26b7325e6b51fd0e"
+    },
+    {
+      "path": "src/lib/transfer/import-collection.ts",
+      "author": "a2432c4d9cbba7aec6bd2c7f04de6554dcbace4a",
+      "root": "a2432c4d9cbba7aec6bd2c7f04de6554dcbace4a"
+    },
+    {
+      "path": "src/lib/transfer/import-media.test.ts",
+      "author": "54c7c4cc7be2046621a07aa45cba2e3e66496ba9",
+      "root": "54c7c4cc7be2046621a07aa45cba2e3e66496ba9"
+    },
+    {
+      "path": "src/lib/transfer/import-media.ts",
+      "author": "703383c3f2a2c17892ceb624e028c20d69e43a61",
+      "root": "703383c3f2a2c17892ceb624e028c20d69e43a61"
+    },
+    {
+      "path": "src/lib/transfer/import-preview.ts",
+      "author": "7cf296aeccd482346154018728d36f6e07b30a88",
+      "root": "7cf296aeccd482346154018728d36f6e07b30a88"
+    },
+    {
+      "path": "src/lib/transfer/record-deserializer.ts",
+      "author": "f1f4d8d450a78aa97f15b7680d54778da55f5ad6",
+      "root": "f1f4d8d450a78aa97f15b7680d54778da55f5ad6"
+    }
+  ],
+  "prior_gate": "9ae8b57 tree3d3d9849; not reused to certify new UI/imports/Go changes",
+  "environment": {
+    "Node": "22.22.3",
+    "CI": "1",
+    "GOFLAGS": "-race",
+    "COREPACK_ENABLE_NETWORK": "0",
+    "VEGA_ASTRO_SHARE_HARNESS": "/private/tmp/vega-astro-l13-share-20261007/scripts/share-preview-http-harness.mjs"
+  },
+  "command": "pnpm --config.verifyDepsBeforeRun=warn gate",
+  "gate": "failed at first pnpm check",
+  "budget": "pnpm --config.verifyDepsBeforeRun=warn check-bundle-budget after same build",
+  "session_id": 37237,
+  "df_before_available_KiB": 136225804,
+  "machinewide_heavy_slot": "root; author lanes have released directed tests and will not run heavy jobs",
+  "exit_code": 1,
+  "completed_utc": "2026-10-07T17:56:49.274181+00:00",
+  "failure": {
+    "stage": "svelte-check",
+    "errors": 2,
+    "warnings": 0,
+    "path": "src/lib/transfer/import-collection.ts",
+    "line": 225,
+    "cause": "file union not narrowed before .url read",
+    "tests_reached": false,
+    "author_fix": "requested minimal narrowing delta"
+  }
+}

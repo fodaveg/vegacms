@@ -1,0 +1,37 @@
+{
+  "acceptance": "No recovery or certification follows solely from public HTTP200; require stable owned phase/selection and interpret finite guard category.",
+  "backupId": "fodaveg-20261008T223938Z-3581680",
+  "forbidden": [
+    "control operations",
+    "logs",
+    "Config.Env",
+    "Caddy config",
+    "Health.Output",
+    "raw unknown arguments",
+    "data/archive restore"
+  ],
+  "frozenImports": {
+    "../../image-only-delivery-20261008/remote_cutover.py": "5d4131c229d7aa88918c932dd517b0d33e024a3497aa4fcc4b9f0c9940467128",
+    "remote_cutover.py": "de511d31f3c92c18ada597ac6de09f01112b125374eb6c1643ca0cdcce98168e"
+  },
+  "offline": {
+    "ast": "PASS",
+    "command": "python3 -B .verification/cors-network-adoption-20261008/fodaveg-delivery/diagnostic-selftest.py",
+    "exitCode": 0,
+    "tests": 5
+  },
+  "remoteExecution": false,
+  "schema": "fodaveg-cors-stop-readonly-v1",
+  "scope": [
+    "own state.json metadata in RAM",
+    "own Compose and dotenv bytes in RAM for digest and fullidentity only",
+    "selected container finite image/runtime/health classes with Health.Output excluded",
+    "known PB argv in RAM classified only; PB/node/tini comm counts",
+    "read-only runtime guard and final file/container rechecks"
+  ],
+  "sources": {
+    "diagnostic-read.py": "3922a46fe582162f48990291dec8e127afde3dc3da400aff6f2b7c98f2356b4b",
+    "diagnostic-run.py": "173efe7d84dc742e36c3e893567e647cdcc045110bcc73308011798bec491319",
+    "diagnostic-selftest.py": "d2021374e518fbd3698a4a71cdac89af60b339f2e18d81ceed57b9e0f469ef4b"
+  }
+}

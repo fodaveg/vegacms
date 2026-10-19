@@ -1,0 +1,120 @@
+{
+  "tree": "ed22ce2b5c13371ab02157ad9a96151d33b44533",
+  "results": [
+    {
+      "name": "prettier-recovery",
+      "argv": [
+        "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+        "node_modules/prettier/bin/prettier.cjs",
+        "--check",
+        "src/lib/form/RecordBlocks.svelte",
+        "src/lib/form/RecordForm.publish.svelte.test.ts",
+        "src/lib/form/RecordForm.review.svelte.test.ts",
+        "src/lib/form/RecordForm.schedule.svelte.test.ts",
+        "src/lib/form/RecordForm.svelte",
+        "src/lib/icons/Icon.svelte",
+        "src/lib/icons/registry.ts",
+        "src/lib/richtext/EditorToolbar.svelte",
+        "src/lib/shell/PublishButton.svelte",
+        "src/lib/visual/VisualPublishControl.svelte"
+      ],
+      "cwd": "/private/tmp/vegacms-ui-publish-icons-20261007",
+      "started": "2026-10-07T17:14:45.693Z",
+      "finished": "2026-10-07T17:14:46.419Z",
+      "exit_code": 0
+    },
+    {
+      "name": "eslint-recovery",
+      "argv": [
+        "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+        "node_modules/eslint/bin/eslint.js",
+        "src/lib/form/RecordBlocks.svelte",
+        "src/lib/form/RecordForm.publish.svelte.test.ts",
+        "src/lib/form/RecordForm.review.svelte.test.ts",
+        "src/lib/form/RecordForm.schedule.svelte.test.ts",
+        "src/lib/form/RecordForm.svelte",
+        "src/lib/icons/Icon.svelte",
+        "src/lib/icons/registry.ts",
+        "src/lib/richtext/EditorToolbar.svelte",
+        "src/lib/shell/PublishButton.svelte",
+        "src/lib/visual/VisualPublishControl.svelte"
+      ],
+      "cwd": "/private/tmp/vegacms-ui-publish-icons-20261007",
+      "started": "2026-10-07T17:14:46.419Z",
+      "finished": "2026-10-07T17:14:50.280Z",
+      "exit_code": 0
+    },
+    {
+      "name": "check-recovery",
+      "argv": [
+        "pnpm",
+        "--config.verifyDepsBeforeRun=warn",
+        "check"
+      ],
+      "cwd": "/private/tmp/vegacms-ui-publish-icons-20261007",
+      "started": "2026-10-07T17:14:50.280Z",
+      "finished": "2026-10-07T17:14:57.995Z",
+      "exit_code": 0
+    },
+    {
+      "name": "focal-recovery",
+      "argv": [
+        "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=2",
+        "--reporter=dot",
+        "src/lib/form/RecordForm.publish.svelte.test.ts",
+        "src/lib/form/RecordForm.schedule.svelte.test.ts",
+        "src/lib/form/RecordForm.review.svelte.test.ts",
+        "src/lib/visual/VisualPublishControl.svelte.test.ts",
+        "src/lib/form/RecordBlocks.svelte.test.ts",
+        "tests/shell/icons.test.ts",
+        "src/lib/revisions/with-revisions.test.ts",
+        "src/lib/form/widgets/richtext-link.test.ts",
+        "src/lib/form/widgets/markdown-commands.test.ts"
+      ],
+      "cwd": "/private/tmp/vegacms-ui-publish-icons-20261007",
+      "started": "2026-10-07T17:14:57.996Z",
+      "finished": "2026-10-07T17:15:04.499Z",
+      "exit_code": 0
+    }
+  ],
+  "base": "9ae8b57c3297f1c32b6f22a3d66a17a78579383b",
+  "worktree": "/private/tmp/vegacms-ui-publish-icons-20261007",
+  "branch": "feat/ui-publish-icons-20261007",
+  "browser": {
+    "argv": [
+      "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+      "/Users/david/code/vegacms/.verification/ui-publish-icons-20261007/browser-attempt2/browser-proof.mjs"
+    ],
+    "exit_code": 0,
+    "results": "browser-attempt2/browser-results.json",
+    "cleanup": "browser-attempt2/browser-cleanup.json",
+    "passed_cases": 4,
+    "page_errors": 0
+  },
+  "review": "review-final.md",
+  "source_files": 10,
+  "diff_check_exit_code": 0,
+  "limitations": [
+    "Node22 y dependencias existentes; pnpm detecta setting enableGlobalVirtualStore diferente, sin instalar ni cambiar lockfile.",
+    "Navegador sobre Vite dev y backend memory; no build, gate completo, backend PocketBase real ni QA física.",
+    "Raíz realizará gate del candidato conjunto; no integración main, push ni deploy."
+  ],
+  "red_evidence": {
+    "log": "readonly-red.log",
+    "valid_cases": "Readonly status limpio/sucio y backend que ignora status fallaron antes del fix.",
+    "invalid_premise": "El fallo adicional readonly publishAt asumía impedir publicación, pero resolvePublishAtField excluye ese campo: se conserva publicación normal y fecha sin modificar.",
+    "timestamp_failure": "readonly-green-final.log esperaba formato ISO sin milisegundos; ajustado al valor inicial normalizado. No bug de producto."
+  },
+  "cleanup": {
+    "free_initial_KiB": 136670288,
+    "free_final_KiB": 136400000,
+    "budget_GiB": 1,
+    "removed": "Solo runner temporal propio copiado a la evidencia canónica.",
+    "preserved": "Worktree y dependencias reservados hasta integración; logs, patch y capturas fuera de /private/tmp."
+  },
+  "commit": "64be058982b628717561ecca9dbced2a9ff936ac",
+  "worktree_clean": true
+}

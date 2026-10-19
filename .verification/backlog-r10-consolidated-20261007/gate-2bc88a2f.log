@@ -1,0 +1,123 @@
+$ pnpm check && pnpm lint && pnpm pb:download && pnpm check-pb-binary && pnpm test && pnpm test:go && pnpm build && VEGA_E2E_PREBUILT=1 pnpm test:e2e
+$ svelte-kit sync && svelte-check --tsconfig ./tsconfig.json
+Loading svelte-check in workspace: /private/tmp/vegacms-backlog-r2-20261007
+Getting Svelte diagnostics...
+
+svelte-check found 0 errors and 0 warnings
+$ prettier --check . && eslint . && pnpm themes:check-coverage && pnpm check-touch-targets
+Checking formatting...
+All matched files use Prettier code style!
+$ node scripts/check-theme-coverage.mjs
+✓ motor de temas sin regresiones: artefactos al día, 15 color(es) allowlisted.
+$ node scripts/check-touch-targets.mjs
+⚠ no medible: src/lib/visual/VisualEditorScreen.svelte: .vega-visual-back (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualEditorScreen.svelte: .vega-visual-screen-btn (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualEditorScreen.svelte: .vega-visual-zoom-btn (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualEditorScreen.svelte: .vega-visual-zoom-btn (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualEditorScreen.svelte: <button> sin clase (<button>) — anchura y altura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualBlockTree.svelte: .vega-tree-toggle (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualBlockTree.svelte: .vega-tree-backdrop (<button>) — anchura y altura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualBlockTree.svelte: .vega-tree-add (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualBlockTree.svelte: .vega-tree-row (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualOverlay.svelte: .vega-visual-overlay-insert-menu-item (<button>) — anchura y altura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualPalette.svelte: .vega-palette-item (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/visual/VisualInspector.svelte: .vega-texts-back (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/shell/GlobalBanner.svelte: .vega-global-banner-toggle (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/shell/GlobalBanner.svelte: <button> sin clase (<button>) — anchura y altura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/list/RecordTable.svelte: <a> sin clase (<a>) — anchura y altura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/list/ActionMenu.svelte: .vega-action-menu-trigger (<button>) — la clase condicional .vega-action-menu-trigger--button, .vega-action-menu-trigger--icon declara caja propia: ese ESTADO no se mide (solo se mide el reposo)
+⚠ no medible: src/routes/c/[type]/+page.svelte: .vega-list-export-button (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/routes/c/[type]/+page.svelte: .vega-list-import-button (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/routes/c/[type]/+page.svelte: .vega-list-clear-filters (<button>) — anchura y altura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/routes/c/[type]/+page.svelte: <button> sin clase (<button>) — anchura y altura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/routes/c/[type]/+page.svelte: <button> sin clase (<button>) — anchura y altura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/routes/c/[type]/+page.svelte: .vega-list-new-button (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/form/RecordForm.svelte: <button> sin clase (<button>) — anchura y altura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/publish-review/ReviewGroups.svelte: .vega-review-go (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/publish-review/ReviewGroups.svelte: .vega-review-go (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/publish-review/ReviewGroups.svelte: .vega-review-more (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/publish-review/ReviewGroups.svelte: .vega-review-more (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+⚠ no medible: src/lib/publish-review/ReviewGroups.svelte: .vega-review-retry (<button>) — anchura no sale de una clase propia bajo puntero basto, no se puede juzgar desde el CSS
+✓ objetivos táctiles: 77 control(es) revisado(s) en 16 componente(s), 28 no medible(s).
+$ node scripts/download-pocketbase.mjs
+[pocketbase] ya disponible en /private/tmp/vegacms-backlog-r2-20261007/.pbbin/pocketbase (versión 0.39.9)
+$ node scripts/check-pocketbase-binary.mjs
+[pb-guard] PocketBase 0.39.9 listo: la suite de contrato se ejecutará de verdad.
+$ vitest run
+
+ RUN  v4.1.10 /private/tmp/vegacms-backlog-r2-20261007
+
+ ❯ |component| src/routes/home-empty.svelte.test.ts (2 tests | 1 failed) 28ms
+     × administrador: guía a Ajustes con su botón 20ms
+(node:97498) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:97869) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ❯ |server| tests/contract/pocketbase.contract.test.ts (130 tests | 1 failed | 3 skipped) 41525ms
+       × exportar del origen → importar en un destino virgen: mismos ids, relación intacta, fichero traído de verdad 148ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |component| src/routes/home-empty.svelte.test.ts > /: portada vacía por rol > administrador: guía a Ajustes con su botón
+TypeError: Cannot read properties of undefined (reading 'enabled')
+
+	in <unknown>
+
+ ❯ shouldOfferRevisions src/lib/home/revisions-onboarding.ts:7:19
+      5|  return (
+      6|   schemaBootstrap &&
+      7|   model.revisions.enabled &&
+       |                   ^
+      8|   !model.types.some((type) => type.name === 'vega_revisions')
+      9|  );
+ ❯ src/routes/+page.svelte:54:56
+ ❯ src/routes/+page.svelte:183:36
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |server| tests/contract/pocketbase.contract.test.ts > BackendPort contract — pocketbase (binario real en .pbbin/) > importar — ciclo completo contra el binario real (Fase 2, pilar del contrato) > exportar del origen → importar en un destino virgen: mismos ids, relación intacta, fichero traído de verdad
+AssertionError: expected [ …(2) ] to deeply equal [ …(2) ]
+
+- Expected
++ Received
+
+@@ -4,9 +4,18 @@
+      "reasons": [],
+      "status": "create",
+    },
+    {
+      "id": "cbq3n6z7ba8qn76",
+-     "reasons": [],
+-     "status": "create",
++     "reasons": [
++       {
++         "block": {
++           "kind": "unapproved-origin",
++           "origin": "http://127.0.0.1:50540",
++         },
++         "field": "cover",
++         "kind": "file-origin-policy",
++       },
++     ],
++     "status": "blocked",
+    },
+  ]
+
+ ❯ tests/contract/pocketbase.contract.test.ts:843:59
+    841|     // El destino está VIRGEN: los dos ids son CREA, cero bloqueados (…
+    842|     // dentro del propio fichero, `import_probe_authors_dst` viaja en …
+    843|     expect(preview.collections.flatMap((c) => c.entries)).toEqual([
+       |                                                           ^
+    844|      { id: author.id, status: 'create', reasons: [] },
+    845|      { id: post.id, status: 'create', reasons: [] }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed | 296 passed | 1 skipped (299)
+      Tests  2 failed | 4796 passed | 12 skipped (4810)
+   Start at  20:21:36
+   Duration  52.40s (transform 34.07s, setup 0ms, import 65.70s, tests 131.98s, environment 50.46s)
+
+[ELIFECYCLE] Test failed. See above for more details.
+[ELIFECYCLE] Command failed with exit code 1.

@@ -1,0 +1,2 @@
+sha256:f27f9c00a3aca2c219642d1500610eade3ddcb6b873ea8847852ab156663d32f [{"Type":"volume","Name":"buildx_buildkit_vega-contact-proof-202610070_state","Source":"/var/lib/docker/volumes/buildx_buildkit_vega-contact-proof-202610070_state/_data","Destination":"/var/lib/buildkit","Driver":"local","Mode":"z","RW":true,"Propagation":""}]
+EXIT=0

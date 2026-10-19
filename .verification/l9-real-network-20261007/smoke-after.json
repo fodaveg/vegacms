@@ -1,0 +1,148 @@
+{
+  "candidate": "after-108ab234",
+  "tree": "8053577aef918fd0ddf8e444154fc22a3238a263",
+  "browserVersion": "149.0.7827.55",
+  "scope": "local real PocketBase HTTP + static admin build",
+  "results": [
+    {
+      "scenario": "smoke-open",
+      "iteration": 0,
+      "phase": "first",
+      "observations": {},
+      "browser": {
+        "count": 4,
+        "decodedBodyBytes": 732871,
+        "maxInFlight": 4,
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 66678,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 663717,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/tags/records": {
+            "count": 1,
+            "bytes": 2165,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              "id,name"
+            ]
+          },
+          "GET /api/collections/blocks/records": {
+            "count": 1,
+            "bytes": 311,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      },
+      "pocketbase": {
+        "count": 4,
+        "decodedBodyBytes": 732871,
+        "maxInFlight": 3,
+        "groups": {
+          "GET /api/collections/pages/records/:id": {
+            "count": 1,
+            "bytes": 66678,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/pages/records": {
+            "count": 1,
+            "bytes": 663717,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          },
+          "GET /api/collections/tags/records": {
+            "count": 1,
+            "bytes": 2165,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              "id,name"
+            ]
+          },
+          "GET /api/collections/blocks/records": {
+            "count": 1,
+            "bytes": 311,
+            "statuses": {
+              "200": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      }
+    },
+    {
+      "scenario": "instrumentation-negative",
+      "iteration": 0,
+      "phase": "first",
+      "observations": {},
+      "browser": {
+        "count": 1,
+        "decodedBodyBytes": 65,
+        "maxInFlight": 1,
+        "groups": {
+          "GET /api/collections/definitely_missing/records": {
+            "count": 1,
+            "bytes": 65,
+            "statuses": {
+              "404": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      },
+      "pocketbase": {
+        "count": 1,
+        "decodedBodyBytes": 65,
+        "maxInFlight": 1,
+        "groups": {
+          "GET /api/collections/definitely_missing/records": {
+            "count": 1,
+            "bytes": 65,
+            "statuses": {
+              "404": 1
+            },
+            "fields": [
+              null
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

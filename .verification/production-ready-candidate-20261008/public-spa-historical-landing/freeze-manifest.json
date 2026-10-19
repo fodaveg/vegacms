@@ -1,0 +1,15 @@
+{
+  "fixtures.ts": "e49dc5ed75e787e2f8a78a6c9b210852acf4c5c8ceaf33887cdad9665a0bbf24",
+  "fodaveg/current-spa-proof-runtime/identity.json": "730fcfbf8272dbdf18c067ee6a42b4836dcdb7561fc3ff4ef20952a6b3970fdd",
+  "fodaveg/current-spa-proof.config.mjs": "1cb947ec5e2373002193abd5e0ccf58c61175ab69312a03e6e09ecf9fd96d05c",
+  "fodaveg/current-spa-proof.spec.ts": "dbedadd5ea15e2f8aa1934945838533d48ab3547b2586877c65e64ac956d7eeb",
+  "fodaveg-spec-delta.patch": "47155b34c68c382bbf857d7eebf4ffd7b194fbffefd895eedce7007acf4f2872",
+  "helper-delta.patch": "5165f31c897ed05d1ed6bd0a1fbcf7596316b6dbcfd5ee96576174f6da2e2404",
+  "network-guard.mjs": "147df3141395b3d41055ab2afcbb87acf88f8af80137ac216339d384a0e63962",
+  "probe.mjs": "f53dbc0ead65ac5cf68fcf1772ba37ea6721eb7d4146bf71f7e5f48becaf73f8",
+  "receipt.json": "7c8b6c95566c6f958517de1a2e8dd38f0911240a8bec062406fc729f5b6e0c22",
+  "vega-lumbre/current-spa-proof-runtime/identity.json": "96ad2a5972d688aee180ded1a978d0e65cd2413df61ad1e0ddf8c654e55c370c",
+  "vega-lumbre/current-spa-proof.config.mjs": "1cb947ec5e2373002193abd5e0ccf58c61175ab69312a03e6e09ecf9fd96d05c",
+  "vega-lumbre/current-spa-proof.spec.ts": "dbedadd5ea15e2f8aa1934945838533d48ab3547b2586877c65e64ac956d7eeb",
+  "vega-lumbre-spec-delta.patch": "47155b34c68c382bbf857d7eebf4ffd7b194fbffefd895eedce7007acf4f2872"
+}

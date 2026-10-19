@@ -1,0 +1,14 @@
+{
+  "ownership": "/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/headers-panel-batch",
+  "files": {
+    "commands.md": "e8c4a4c79cd7ef56c5371d469bcd17ff1c861dcddb5655e3d669697875c70415",
+    "batch.json": "0f2d188d76ec780f491e835f529cfb1d6c0786de7f529865fcd2b8d370f13dbb",
+    "proposal.md": "a78f23feb0f32ff3c40d7dc2873c427cb3b551c117b966cd593c548adca056de",
+    "patches/admin.vegacms.com.patch": "7e6c4e4b49cef5570e4c883ae58e0a0c480149094ae31ad13bd7c39a7b16d85a",
+    "patches/admin.fodaveg.net.patch": "7e543198b0b4325ac536b4220419a401b276e415841e4e509e90ae8dab14d315",
+    "patches/admin.lumbre.pro.patch": "ca3678b9d201031736896118d98063face9f710f9ef183cd7155ac4e4699e598",
+    "next-step.md": "d8d63b403551a90ca6bc808cd292e8e3289a54fb1d931a1b8c9b20bf5c685364",
+    "receipt.json": "9366a8e5fbe45006749f72ab10ad85475b79e46b066a80fcebce92f4d8b9a6ec"
+  },
+  "parent23Immutable": true
+}

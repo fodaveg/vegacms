@@ -1,0 +1,31 @@
+{
+  "status": "PREPARED_NOT_EXECUTED",
+  "candidate": "a51b8521e1eeef52a522d2a065b36a03578c0c3a",
+  "tree": "9cd0bf74ce59c78e3b0961c9a57c6010a84976c3",
+  "scope": "Three-image operational preflight and cutover plan; no SSH, remote read, backup, or cutover by this worker",
+  "files": {
+    "remote_preflight.py": "9efbe4c5ef9a9b7429106243365e39654cba0d51d6232e51b2b0de05f92d5a1f",
+    "run_preflight.py": "8695b778fb7f5fccbf655b3c9a32066452054b1e178876dded6c136140d3f2c2",
+    "selftest.py": "5099252d09bff94175986c0ca0483a123fe777c6920a1e8277adf381d32cfad2",
+    "PLAN.md": "2443d5f7f08024b573fe76cf89f1e2f24548d820c2ded969372471619eecc444",
+    "manifest.json": "7afaea48c2f822152b760c683022d5cd23b822fe02e973d81a1326017b478e06"
+  },
+  "checks": [
+    {"command": "python3 -B selftest.py", "result": "PASS 30 isolated probes", "exitCode": 0},
+    {"command": "ast.parse remote_preflight.py run_preflight.py selftest.py", "exitCode": 0},
+    {"command": "run_preflight.py --execute --script-sha256 000... --out should-not-exist.json", "result": "STOP before SSH; output absent", "exitCode": 1}
+  ],
+  "remoteReadCount": 0,
+  "remoteWriteCount": 0,
+  "knownFailureAvoided": "Historical docker top -eo comm,args returned exit 1 in all three containers; projector uses the previously successful filtered /proc comm/cmdline Docker exec path without repeating top.",
+  "independentReview": "APTO static read-only projector SHA256 9efbe4c5ef9a9b7429106243365e39654cba0d51d6232e51b2b0de05f92d5a1f; READY_FOR_REVIEW is not cutover approval.",
+  "localHeavyBuildCount": 0,
+  "freeDiskAfterGiBApprox": 127,
+  "removedOwnResidue": ["two bytecode files and their empty __pycache__ directory"],
+  "retained": ["plan, scripts, manifest and receipt for review"],
+  "limits": [
+    "Preflight script has not run against the actual VPS; historical runtime projection is not a fresh guard.",
+    "Fodaveg final receipt, native and packaged entrypoint checks, CSP, and local transport archive were subsequently verified by other owners.",
+    "Remote transport/load, production snapshots, selectors, Caddy and served-version proof are pending."
+  ]
+}

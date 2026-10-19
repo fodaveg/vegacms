@@ -1,0 +1,15 @@
+{
+  "configEnvRead": false,
+  "fileBodiesProjected": false,
+  "matches": {
+    "/srv/edge/Caddyfile": true,
+    "/srv/edge/compose.yml": true,
+    "/srv/edge/conf.d/admin-lumbre-pro.caddy": true,
+    "/srv/edge/conf.d/fodaveg.caddy": true,
+    "/srv/edge/conf.d/vega.caddy": true
+  },
+  "remoteWrites": false,
+  "schemaVersion": 1,
+  "status": "EDGE_UNCHANGED",
+  "targetFileCount": 5
+}

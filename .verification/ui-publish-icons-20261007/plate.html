@@ -1,0 +1,2346 @@
+<!doctype html><html lang="es" data-theme="aquelarre" data-mode="light"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Publicar desde el formulario — lámina previa</title><style>/* GENERADO por scripts/build-themes.mjs — NO EDITAR */
+
+:root {
+	--sans: -apple-system, 'Segoe UI', system-ui, sans-serif;
+	--mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+	--r: 8px;
+	--accent-grad: linear-gradient(115deg, var(--accent), var(--accent-hover));
+	--sheen: linear-gradient(100deg, var(--accent), var(--accent-text));
+	--accent-fill: var(--accent);
+	--halo: none;
+	--brand-a: var(--accent);
+	--brand-b: var(--accent);
+	--brand-c: var(--accent);
+	--brand-edge-opacity: 0.35;
+}
+:root {
+	--row-h: 44px;
+	--cell-x: 1.1rem;
+	--fs-base: 14px;
+	--pad-field: 1.1rem;
+	--gap-field: 1.75rem;
+	--pad-card: 1.5rem;
+	--sidebar-item-h: 40px;
+	--topbar-h: 54px;
+}
+[data-density='compact'] {
+	--row-h: 36px;
+	--cell-x: 0.8rem;
+	--fs-base: 13px;
+	--pad-field: 0.8rem;
+	--gap-field: 1.2rem;
+	--pad-card: 1rem;
+	--sidebar-item-h: 32px;
+	--topbar-h: 44px;
+}
+[data-mode='light'] {
+	--shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 3px 12px rgb(0 0 0 / 0.04);
+	--success: #045a26;
+	--success-soft: color-mix(in oklab, #045a26 10%, var(--paper));
+	--danger: #a91408;
+	--danger-soft: color-mix(in oklab, #a91408 10%, var(--paper));
+	--warning: #684800;
+	--warning-soft: color-mix(in oklab, #684800 10%, var(--paper));
+	--info: #07517d;
+	--info-soft: color-mix(in oklab, #07517d 10%, var(--paper));
+}
+[data-mode='dark'] {
+	--shadow-card: 0 1px 3px rgb(0 0 0 / 0.4), 0 5px 16px rgb(0 0 0 / 0.28);
+	--success: #5cbd8e;
+	--success-soft: color-mix(in oklab, #5cbd8e 17%, var(--paper));
+	--danger: #ef8078;
+	--danger-soft: color-mix(in oklab, #ef8078 15%, var(--paper));
+	--warning: #dfae4d;
+	--warning-soft: color-mix(in oklab, #dfae4d 15%, var(--paper));
+	--info: #74b6d6;
+	--info-soft: color-mix(in oklab, #74b6d6 15%, var(--paper));
+}
+
+[data-theme='brasa'] {
+	--tint: #e8763a;
+	--accent: #e8763a;
+	--accent-ink: #1f1206;
+}
+[data-theme='brasa'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='brasa'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='faro'] {
+	--tint: #d1642f;
+	--accent: #d1642f;
+	--accent-ink: #2a1408;
+}
+[data-theme='faro'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='faro'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='rescoldo'] {
+	--tint: #4a4a52;
+	--accent: #f0842f;
+	--accent-ink: #201206;
+	--accent-grad: linear-gradient(115deg, #f6a63b 0%, #f0842f 42%, #e4583c 75%, #dd4f52 100%);
+	--brand-edge-opacity: 0.7;
+}
+[data-theme='rescoldo'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='rescoldo'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='miel'] {
+	--tint: #d59a2e;
+	--accent: #d59a2e;
+	--accent-ink: #241905;
+}
+[data-theme='miel'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='miel'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='halloween'] {
+	--tint: #7a3fa0;
+	--accent: #ef7a26;
+	--accent-ink: #201206;
+	--accent-grad: linear-gradient(115deg, #f7b13a 0%, #ef7a26 42%, #e2542f 75%, #dd4f52 100%);
+	--accent-fill: var(--accent-grad);
+	--halo:
+		radial-gradient(
+			125% 72% at 86% -14%,
+			color-mix(in oklab, #f6a63b 26%, transparent),
+			transparent 48%
+		),
+		radial-gradient(
+			110% 66% at -12% 112%,
+			color-mix(in oklab, #9558cc 20%, transparent),
+			transparent 46%
+		),
+		radial-gradient(
+			90% 50% at 50% 128%,
+			color-mix(in oklab, #c9342a 13%, transparent),
+			transparent 42%
+		);
+	--brand-a: #f7b13a;
+	--brand-b: #e04f28;
+	--brand-c: #c9342a;
+	--brand-edge-opacity: 0.7;
+}
+[data-theme='halloween'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, #f6a63b 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, #ef7a26 52%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 9%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 9%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 9%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='halloween'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, #f6a63b 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, #ef7a26 52%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 21%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 21%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 21%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='aquelarre'] {
+	--tint: #6e3fb5;
+	--accent: #f0842f;
+	--accent-ink: #201206;
+	--accent-grad: linear-gradient(115deg, #f6a63b 0%, #f0842f 42%, #e4583c 75%, #dd4f52 100%);
+	--sheen: linear-gradient(100deg, #7ac943 0%, #3fbf8f 38%, #8a7ae0 74%, #b05fd6 100%);
+	--accent-fill: var(--accent-grad);
+	--halo:
+		radial-gradient(
+			125% 72% at 86% -14%,
+			color-mix(in oklab, #f6a63b 24%, transparent),
+			transparent 48%
+		),
+		radial-gradient(
+			110% 66% at -12% 112%,
+			color-mix(in oklab, #9a7ae8 17%, transparent),
+			transparent 46%
+		),
+		radial-gradient(
+			90% 50% at 50% 128%,
+			color-mix(in oklab, #e4583c 12%, transparent),
+			transparent 42%
+		);
+	--brand-a: #f6a63b;
+	--brand-b: #e4583c;
+	--brand-c: #dd4f52;
+	--brand-edge-opacity: 0.7;
+}
+[data-theme='aquelarre'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, #f6a63b 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, #f0842f 52%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 13%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 13%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 13%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: #605a57;
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='aquelarre'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, #f6a63b 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, #f0842f 52%, var(--line));
+	--bg: #0d0913;
+	--sidebar: #100c17;
+	--paper: #17121f;
+	--surface: #2a2034;
+	--surface-2: #221a2d;
+	--btn: #2e2136;
+	--active: #382845;
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='cereza'] {
+	--tint: #c0466b;
+	--accent: #c0466b;
+	--accent-ink: #ffffff;
+}
+[data-theme='cereza'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='cereza'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='tinta'] {
+	--tint: #6ea3f0;
+	--accent: #6ea3f0;
+	--accent-ink: #0e1a2e;
+}
+[data-theme='tinta'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='tinta'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+:where(:root),
+[data-theme='niebla'] {
+	--tint: #4f6bd6;
+	--accent: #4f6bd6;
+	--accent-ink: #ffffff;
+}
+:where(:root)[data-mode='light'],
+[data-theme='niebla'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+:where(:root)[data-mode='dark'],
+[data-theme='niebla'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='marea'] {
+	--tint: #147885;
+	--accent: #147885;
+	--accent-ink: #ffffff;
+}
+[data-theme='marea'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='marea'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='sea-wingnow'] {
+	--tint: #58a6d8;
+	--accent: #58a6d8;
+	--accent-ink: #0c1c29;
+}
+[data-theme='sea-wingnow'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='sea-wingnow'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='bosque'] {
+	--tint: #8bbf5a;
+	--accent: #8bbf5a;
+	--accent-ink: #16240c;
+}
+[data-theme='bosque'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='bosque'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='menta'] {
+	--tint: #2f9e73;
+	--accent: #2f9e73;
+	--accent-ink: #08201a;
+}
+[data-theme='menta'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='menta'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='salvia'] {
+	--tint: #7a9b78;
+	--accent: #7a9b78;
+	--accent-ink: #16210f;
+}
+[data-theme='salvia'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='salvia'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='lavanda'] {
+	--tint: #8f84cf;
+	--accent: #8f84cf;
+	--accent-ink: #1a1630;
+}
+[data-theme='lavanda'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='lavanda'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='ciruela'] {
+	--tint: #7d4a9c;
+	--accent: #7d4a9c;
+	--accent-ink: #ffffff;
+}
+[data-theme='ciruela'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='ciruela'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='carbon'] {
+	--tint: #4a4a52;
+	--accent: #4a4a52;
+	--accent-ink: #ffffff;
+}
+[data-theme='carbon'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='carbon'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='colibri'] {
+	--tint: #527d8f;
+	--accent: #2f8f96;
+	--accent-ink: #0a1d1f;
+	--sheen: linear-gradient(100deg, #2f8f96 0%, #8a7ad9 55%, #c9a24e 100%);
+	--halo:
+		radial-gradient(
+			120% 68% at 84% -12%,
+			color-mix(in oklab, #2f8f96 11%, transparent),
+			transparent 46%
+		),
+		radial-gradient(
+			100% 60% at -10% 110%,
+			color-mix(in oklab, #8a7ad9 8%, transparent),
+			transparent 44%
+		);
+	--brand-a: #2f8f96;
+	--brand-b: #8a7ad9;
+	--brand-c: #c9a24e;
+	--brand-edge-opacity: 0.3;
+}
+[data-theme='colibri'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='colibri'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='tornasol'] {
+	--tint: #5b5f8f;
+	--accent: #2f9a94;
+	--accent-ink: #14102a;
+	--accent-grad: linear-gradient(115deg, #2fb7a8 0%, #8d7bf0 42%, #d16bb2 72%, #dda63f 100%);
+	--accent-fill: var(--accent-grad);
+	--halo:
+		radial-gradient(
+			120% 68% at 84% -12%,
+			color-mix(in oklab, #2fb7a8 13%, transparent),
+			transparent 46%
+		),
+		radial-gradient(
+			100% 60% at -10% 110%,
+			color-mix(in oklab, #d16bb2 9%, transparent),
+			transparent 44%
+		);
+	--brand-a: #2fb7a8;
+	--brand-b: #8d7bf0;
+	--brand-c: #dda63f;
+	--brand-edge-opacity: 0.5;
+}
+[data-theme='tornasol'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 10%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 10%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 10%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='tornasol'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 20%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 20%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 20%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='pizarra'] {
+	--tint: #5d6d83;
+	--accent: #5d6d83;
+	--accent-ink: #ffffff;
+}
+[data-theme='pizarra'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='pizarra'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+
+[data-theme='terracota'] {
+	--tint: #bd430f;
+	--accent: #bd430f;
+	--accent-ink: #ffffff;
+}
+[data-theme='terracota'][data-mode='light'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+}
+[data-theme='terracota'][data-mode='dark'] {
+	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+}
+/**
+ * `base.css` (Fase F7w-b, "purificar los consumidores al vocabulario §3"): tras F7w-a (que
+ * encendió los temas con un SHIM de alias `--vega-color-*`/`--vega-size-topbar`/`--vega-size-row`
+ * → tokens §3), esta fase sustituyó cada consumidor por su token §3 exacto (`var(--surface)`,
+ * `var(--ink)`, `var(--accent)`, …, definidos en `themes.generated.css`, motor P7, importado ANTES
+ * que este fichero en `+layout.svelte`). El shim de color ya no hace falta y se ha borrado entero:
+ * ningún `.svelte`/`.ts` de la app pinta con `--vega-color-*`.
+ *
+ * Lo que queda aquí son solo dos cosas:
+ * 1. Dos tamaños SIN equivalente en el vocabulario §3 porque no son de rol: el ANCHO del sidebar
+ *    (§3 solo tiene `sidebar-item-h`, el alto de un item) y un "gutter" genérico (§3 no define
+ *    espaciados de layout, solo paddings/gaps de campo). Huecos reales del contrato — se
+ *    mantienen como valores literales por densidad (candidatos a reabrir el vocabulario §3 en una
+ *    v2 si se decide que sí son de rol).
+ * 2. Las reglas base transversales del documento (`body`, foco visible, `color-scheme`,
+ *    `prefers-reduced-motion`) que no son alias de nada.
+ */
+
+:root {
+	color-scheme: light dark;
+}
+
+/* Huecos del vocabulario §3 (ver cabecera): sin equivalente de rol, valores literales por
+   densidad, igual que antes de F7w-a. */
+html[data-density='comfortable'] {
+	--vega-size-sidebar: 236px;
+	--vega-space-gutter: 1rem;
+}
+
+html[data-density='compact'] {
+	--vega-size-sidebar: 200px;
+	--vega-space-gutter: 0.65rem;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	/* El lienzo usa `--bg` directamente (tono más "exterior" que `--surface`, ver §3 "papel/
+	   fondos"): es el único sitio que lo pinta. */
+	background: var(--bg);
+	color: var(--ink);
+	font-family:
+		system-ui,
+		-apple-system,
+		'Segoe UI',
+		sans-serif;
+}
+
+/* El atributo `hidden` tiene que ocultar SIEMPRE, y por eso lleva `!important`.
+   La regla que lo oculta (`[hidden] { display: none }`) es del NAVEGADOR, y cualquier regla de
+   autor le gana, por poca especificidad que tenga: basta con que un componente ponga
+   `display: flex` (o grid, o block) en la clase de ese mismo elemento para que `hidden` deje de
+   ocultar nada, EN SILENCIO. Pasó de verdad: la ficha del editor visual monta todos los bloques a
+   la vez y oculta los no elegidos con `hidden`; como su clase traía `display: flex`, se veían
+   TODOS apilados y la ficha parecía no seguir a la selección. No lo caza ningún test unitario,
+   porque en jsdom los tests miran el atributo en el DOM (`:not([hidden])`), que estaba puesto y
+   correcto. Comprobado en Chromium: con `display: flex` el `getComputedStyle` sale `flex`, no
+   `none`. `!important` es la única forma de que la regla base gane a la del componente, y es lo
+   que hacen los reset de siempre (normalize.css) por este mismo motivo. Si algún día un elemento
+   necesita estar `hidden` y verse, eso es una contradicción: que no lleve `hidden`. */
+[hidden] {
+	display: none !important;
+}
+
+/* A11y transversal (§4.3 del checklist): foco visible en todo interactivo. */
+:focus-visible {
+	outline: 2px solid var(--ring);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.001ms !important;
+	}
+}
+
+	.vega-record-form--relation .vega-fgroup-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.vega-relation-form-fields {
+		display: flex;
+		flex-direction: column;
+		gap: var(--gap-field);
+	}
+	/* El formulario modal tiene su propio lienzo: no hereda los márgenes a sangre de la página. */
+	.vega-record-form.vega-record-form--relation {
+		margin: var(--gap-field) 0 0;
+		gap: var(--gap-field);
+	}
+	.vega-relation-form-section {
+		display: flex;
+		flex-direction: column;
+		gap: var(--gap-field);
+	}
+	.vega-relation-form-section h3 {
+		margin: 0;
+		font-size: 0.95rem;
+	}
+	/* El editor va A SANGRE (mockup final, ver cabecera): `.vega-main` (AppShell) pinta el papel
+	   con `padding: 1.75rem 2rem 2.5rem` para TODAS las rutas, y aquí se cancela con márgenes
+	   negativos para que la hairline de la barra pegajosa y el fondo lleguen de borde a borde —
+	   igual que en el mockup, donde el lienzo del editor no tiene padding y quien lo repone es la
+	   propia rejilla (`.vega-editor-grid`). Es el ÚNICO punto del repo que replica ese valor: si
+	   cambia en `AppShell.svelte`, hay que cambiarlo aquí. */
+	.vega-record-form {
+		display: flex;
+		flex-direction: column;
+		margin: -1.75rem -2rem -2.5rem;
+		/* Casos límite de contenido real (F5-g): sin esto, el formulario es un flex-item cuyo
+		   `min-width` por defecto es el de su contenido — un label/valor kilométrico (una sola
+		   palabra sin espacios) podría forzar overflow horizontal de la página entera. */
+		min-width: 0;
+	}
+
+	/* Rejilla maestro-detalle (mockup `.detail-grid`): raíl | tarjetas | aside. `align-items:
+	   start` es lo que permite que las dos columnas laterales sean pegajosas (si se estiraran a la
+	   altura de la fila, no habría nada que "pegar"). */
+	.vega-editor-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: calc(var(--vega-space-gutter) * 1.25);
+		align-items: start;
+		padding: calc(var(--vega-space-gutter) * 1.25) calc(var(--vega-space-gutter) * 1.5);
+	}
+
+	.vega-editor-grid--rail {
+		grid-template-columns: 264px minmax(0, 1fr);
+	}
+
+	.vega-editor-grid--aside {
+		grid-template-columns: minmax(0, 1fr) 296px;
+	}
+
+	.vega-editor-grid--rail.vega-editor-grid--aside {
+		grid-template-columns: 264px minmax(0, 1fr) 296px;
+	}
+
+	.vega-editor-main {
+		display: flex;
+		flex-direction: column;
+		gap: var(--vega-space-gutter);
+		min-width: 0;
+	}
+
+	/* Columna lateral (mockup `.aside`): tarjetas compactas apiladas, pegajosa bajo la barra. */
+	.vega-editor-aside {
+		display: flex;
+		flex-direction: column;
+		gap: var(--vega-space-gutter);
+		position: sticky;
+		/* Mismo offset (y mismo motivo) que `.vega-rail` en `EditorRail.svelte`: el scroll es el de
+		   `.vega-main`, así que solo hay que descontar el alto de la barra pegajosa del editor. */
+		/* `- 1.75rem`: la barra se pega al borde de `.vega-main` (ver `EditTopBar`), el aside sube lo
+		   mismo para conservar su hueco con ella. */
+		top: calc(58px - 1.75rem);
+		min-width: 0;
+	}
+
+	/* Responsive del mockup, punto por punto. 1180px: se va el raíl (lo primero que sobra: es una
+	   ayuda de navegación, no contenido) y la rejilla queda en dos columnas. */
+	@media (max-width: 1180px) {
+		.vega-editor-grid--rail {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.vega-editor-grid--rail.vega-editor-grid--aside {
+			grid-template-columns: minmax(0, 1fr) 296px;
+		}
+
+		/* `:global` DELIBERADO (mismo patrón que `FieldRow` con `.vega-widget-text`): el raíl es un
+		   componente hijo con su propio CSS scoped, pero quién sobra y a qué ancho es una decisión
+		   de ESTA rejilla, no suya. Se oculta el hijo directo, no se envuelve en un `<div>`: un
+		   envoltorio de altura ajustada dejaría su `position: sticky` sin recorrido. */
+		.vega-editor-grid--rail > .vega-rail {
+			display: none;
+		}
+	}
+
+	/* 900px: una sola columna y el aside deja de ser pegajoso (cae bajo el formulario, donde no
+	   tiene sentido que se quede clavado). Los selectores repiten la misma especificidad que el
+	   bloque de 1180px para poder ganarle por orden de cascada. */
+	@media (max-width: 900px) {
+		.vega-editor-grid,
+		.vega-editor-grid--rail,
+		.vega-editor-grid--aside,
+		.vega-editor-grid--rail.vega-editor-grid--aside {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.vega-editor-aside {
+			position: static;
+		}
+	}
+
+	.vega-form-content {
+		display: flex;
+		flex-direction: column;
+		gap: var(--vega-space-gutter);
+		min-width: 0;
+	}
+
+	.vega-locale-tabs {
+		display: flex;
+		width: fit-content;
+		max-width: 100%;
+		overflow-x: auto;
+		padding: 0.3rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--surface-2);
+		box-shadow: var(--shadow-card);
+		scrollbar-width: thin;
+	}
+
+	.vega-locale-tabs button {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.55rem;
+		flex: 0 0 auto;
+		min-height: 2.35rem;
+		padding: 0.45rem 0.85rem;
+		border: 1px solid transparent;
+		border-radius: calc(var(--r) - 2px);
+		background: transparent;
+		color: var(--ink-2);
+		font-family: var(--mono);
+		font-size: 0.75rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.vega-locale-tabs button:hover {
+		color: var(--ink);
+		background: var(--active);
+	}
+
+	.vega-locale-tabs button[aria-selected='true'] {
+		border-color: var(--line-strong);
+		background: var(--surface);
+		color: var(--ink-hi);
+		box-shadow: var(--shadow-card);
+	}
+
+	.vega-locale-tabs button:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.vega-locale-status {
+		width: 0.5rem;
+		height: 0.5rem;
+		border-radius: 999px;
+		background: var(--success);
+	}
+
+	.vega-locale-tabs button[data-status='missing'] .vega-locale-status {
+		background: var(--ink-3);
+	}
+
+	.vega-locale-tabs button[data-status='dirty'] .vega-locale-status {
+		background: var(--warning);
+	}
+
+	.vega-locale-tabs button[data-status='error'] .vega-locale-status {
+		background: var(--danger);
+	}
+
+	/* Técnica WCAG estándar de "visualmente oculto" (ver cabecera del módulo): 1×1px, invisible a
+	   simple vista, presente en el árbol de accesibilidad (Playwright/lectores de pantalla SÍ lo
+	   ven). NUNCA `display:none`/`visibility:hidden`, que lo sacarían del árbol por completo. */
+	.vega-visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
+	/* Enlace-atrás de la barra (mockup `.back`): chevron + label del tipo, tenue hasta el hover. */
+	.vega-editor-back {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		flex-shrink: 0;
+		padding: 0.25rem 0.5rem;
+		border: 0;
+		border-radius: var(--r);
+		background: none;
+		color: var(--ink-2);
+		font: inherit;
+		font-size: 0.9em;
+		line-height: 1.2; /* explícito: el `line-height` heredado no viaja a un componente Svelte */
+		cursor: pointer;
+	}
+
+	.vega-editor-back:hover:not(:disabled) {
+		background: var(--active);
+		color: var(--ink-hi);
+	}
+
+	.vega-editor-back:disabled {
+		cursor: not-allowed;
+		opacity: 0.5;
+	}
+
+	/* El chevron del set apunta a la derecha (ver el marcado): se espeja para señalar "atrás". */
+	.vega-editor-back svg {
+		transform: scaleX(-1);
+	}
+
+	/* Título del documento + indicadores (mockup `.doc`). `min-width: 0` para que la elipsis del
+	   título funcione dentro del flex de la barra. */
+	.vega-editor-doc {
+		display: flex;
+		align-items: center;
+		gap: 0.55rem;
+		min-width: 0;
+	}
+
+	/* Mockup `.doc-title`: el título del registro, acotado a 30ch con elipsis — un título
+	   kilométrico no puede empujar las acciones fuera de la barra (eje 5, contenido real). */
+	.vega-editor-crumb-name {
+		font-weight: 650;
+		color: var(--ink-hi);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 30ch;
+	}
+
+	.vega-editor-readonly-badge {
+		flex-shrink: 0;
+		padding: 0.1rem 0.4rem;
+		border: 1px solid var(--line);
+		border-radius: 999px;
+		font-size: 0.7rem;
+		line-height: 1.4;
+		white-space: nowrap;
+		color: var(--ink-2);
+	}
+
+	/* Tag de estado (mockup final `.status`): la MISMA píldora que la insignia de la tabla
+	   (`.vega-status-badge` en `RecordTable.svelte`) — alto fijo 24px, punto de 6px + palabra, sin
+	   borde, fondo semántico `-soft`. SANS, nunca `--mono`: una etiqueta de estado es un RÓTULO, no
+	   un valor canónico. `line-height` explícito (el heredado no viaja a un componente Svelte: sin
+	   él la palabra queda baja dentro de la píldora). */
+	.vega-editor-tag {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		flex-shrink: 0;
+		height: 24px;
+		padding: 0 0.65rem;
+		border-radius: 999px;
+		font-size: 0.82em;
+		font-weight: 600;
+		line-height: 24px;
+		white-space: nowrap;
+	}
+
+	.vega-editor-tag::before {
+		content: '';
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: currentColor;
+		flex-shrink: 0;
+	}
+
+	.vega-editor-tag[data-status-kind='pub'] {
+		color: var(--success);
+		background: var(--success-soft);
+	}
+
+	.vega-editor-tag[data-status-kind='draft'] {
+		color: var(--ink-2);
+		background: var(--btn);
+	}
+
+	.vega-editor-tag[data-status-kind='other'] {
+		color: var(--info);
+		background: var(--info-soft);
+	}
+
+	.vega-editor-tag[data-status-kind='scheduled'] {
+		color: var(--accent-text);
+		background: var(--accent-soft);
+	}
+
+	.vega-editor-tag[data-status-kind='overdue'] {
+		color: var(--warning);
+		background: var(--warning-soft);
+	}
+
+	/* Punto "sin guardar" (mockup `.dirty-dot`): 8px en `--warning`. El texto va dentro,
+	   visualmente oculto (ver cabecera) — de ahí `overflow: hidden`, para que el clip del texto no
+	   estire el punto. */
+	.vega-editor-dirty {
+		display: inline-block;
+		flex-shrink: 0;
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--warning);
+		overflow: hidden;
+	}
+
+	/* Estado de guardado (mockup `.save-state`): tenue; con `⟳` en `--info` mientras se guarda. */
+	.vega-editor-saved-at {
+		font-family: var(--mono);
+		font-size: 0.72rem;
+		color: var(--ink-2);
+		white-space: nowrap;
+	}
+
+	.vega-editor-saved-at--saving::before {
+		content: '⟳ ';
+		color: var(--info);
+	}
+
+	/* Aviso de edición concurrente abierto (lámina p1): solo cambia color y prefijo. */
+	.vega-editor-saved-at--conflict {
+		color: var(--warning);
+	}
+
+	.vega-editor-saved-at--conflict::before {
+		content: '⚠ ';
+	}
+
+	/* Botones de la barra (mockup `.btn`/`.btn-primary`): namespaced a este componente (mismo
+	   criterio que el resto de la app — cada marco define su propio botón, ver
+	   `.vega-list-new-button` de `/c/[type]/+page.svelte`). */
+	.vega-editor-preview-link {
+		display: inline-flex;
+		align-items: center;
+		height: 34px;
+		padding: 0 0.9rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--btn);
+		color: var(--ink);
+		font-size: 0.8125rem;
+		font-weight: 550;
+		line-height: 34px;
+		text-decoration: none;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	a.vega-editor-preview-link:hover {
+		border-color: var(--line-strong);
+	}
+
+	button.vega-editor-preview-link:disabled {
+		cursor: not-allowed;
+		opacity: 0.5; /* mockup `.btn:disabled { opacity: 0.5 }` */
+	}
+
+	/* Botón "Vista previa" (lote "publicación" fase B, ver cabecera): MISMO tamaño/forma que
+	   "Ver en el sitio", con estado `--active` cuando el panel está abierto (mismo lenguaje de
+	   "pulsado" que un toggle, no un color nuevo). */
+	.vega-editor-preview-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		height: 34px;
+		padding: 0 0.9rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--btn);
+		color: var(--ink);
+		font-size: 0.8125rem;
+		font-weight: 550;
+		line-height: 1.2;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	.vega-editor-preview-toggle:hover {
+		border-color: var(--line-strong);
+	}
+
+	.vega-editor-preview-toggle--active {
+		border-color: var(--accent-line);
+		color: var(--accent-text);
+		background: var(--active);
+	}
+
+	/* Botón "Editor visual" (tarea "pantalla del editor visual"): MISMO tamaño/forma que "Vista
+	   previa"/"Ver en el sitio" — sin estado `--active` propio, a diferencia del toggle: este
+	   botón NAVEGA (sustituye la pantalla entera), no alterna un panel sobre el propio formulario. */
+	.vega-editor-visual-button {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		height: 34px;
+		padding: 0 0.9rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--btn);
+		color: var(--ink);
+		font-size: 0.8125rem;
+		font-weight: 550;
+		line-height: 1.2;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	.vega-editor-visual-button:hover {
+		border-color: var(--line-strong);
+	}
+
+	.vega-editor-duplicate-button {
+		display: inline-flex;
+		align-items: center;
+		height: 34px;
+		padding: 0 0.9rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--btn);
+		color: var(--ink);
+		font-size: 0.8125rem;
+		font-weight: 550;
+		line-height: 1.2;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	.vega-editor-duplicate-button:hover:not(:disabled) {
+		border-color: var(--line-strong);
+	}
+
+	.vega-editor-duplicate-button:disabled {
+		cursor: not-allowed;
+		opacity: 0.5;
+	}
+
+	/* Mismo breakpoint que `PreviewPanel.svelte` se oculta por completo (ver su cabecera,
+	   "Responsive"): sin panel que abrir, el botón que lo abriría sobraría. */
+	@media (max-width: 900px) {
+		.vega-editor-preview-toggle:not(.vega-editor-share-toggle) {
+			display: none;
+		}
+	}
+
+	/* Objetivo táctil de 44×44 (`scripts/check-touch-targets.mjs`): la barra del editor (atrás,
+	   Editor visual, Vista previa, Duplicar, Guardar), las acciones inline y «Eliminar» miden 34 px
+	   con el dedo; con ratón nada cambia (densidad). `height` sigue en 34 y `min-height` manda. */
+	@media (pointer: coarse) {
+		.vega-editor-back,
+		.vega-editor-duplicate-button,
+		.vega-editor-visual-button,
+		.vega-editor-preview-toggle,
+		.vega-editor-preview-link,
+		.vega-editor-save-button,
+		.vega-editor-inline-button,
+		.vega-schedule-link,
+		.vega-editor-delete-button {
+			min-height: 44px;
+			min-width: 44px;
+		}
+	}
+
+	/* Acción inline junto a un control (mockup `.slug-row .btn`): el MISMO botón secundario de la
+	   barra, en el tamaño de un control de campo. */
+	.vega-editor-inline-button {
+		flex-shrink: 0;
+		height: 34px;
+		padding: 0 0.9rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--btn);
+		color: var(--ink);
+		font: inherit;
+		font-weight: 550;
+		line-height: 1.2;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	.vega-editor-inline-button:hover:not(:disabled) {
+		border-color: var(--line-strong);
+	}
+
+	.vega-editor-inline-button:disabled {
+		cursor: not-allowed;
+		opacity: 0.5;
+	}
+
+	/* Botón primario "Guardar" → --accent-fill (mockups aquelarre-*.html, firma de David: relleno
+	   de marca, gradiente en los temas ricos y acento sólido en los planos — nunca `--sheen`, que
+	   es solo trazo). Hover = anillo de `--accent-line` en vez de oscurecer el relleno (un
+	   `background` sólido de hover no tiene sentido sobre un gradiente). */
+	.vega-editor-save-button {
+		display: inline-flex;
+		align-items: center;
+		height: 34px; /* mockup `.btn`: los tres botones de la barra comparten alto */
+		padding: 0 0.9rem;
+		border: 1px solid transparent;
+		border-radius: var(--r);
+		background: var(--accent-fill);
+		color: var(--accent-ink);
+		font-size: 0.8125rem;
+		font-weight: 600;
+		line-height: 34px;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	.vega-editor-save-button:hover:not(:disabled) {
+		box-shadow: 0 0 0 1.5px var(--accent-line);
+	}
+
+	/* Mismo "kbd sobre botón de acento" que `.vega-list-new-button kbd` (R2 de lote-2): el mockup
+	   usa un halo `color-mix(...)` que `check-theme-coverage.mjs` prohíbe fuera de
+	   `src/lib/themes/` (ver `GlobalSearch.svelte`, mismo motivo) — este es el sustituto ya
+	   establecido: borde neutro `--line-strong` + `opacity` en vez de mezclar color. */
+	.vega-editor-save-button kbd {
+		margin-left: 0.4rem;
+		font-family: var(--mono);
+		font-size: 0.6875rem;
+		/* El `kbd` es item flex del botón (se blockifica) y heredaba `line-height: 34px` del botón:
+		   su caja medía 34 px + padding + borde y sobresalía. Con su propio interlineado, la caja
+		   es la de la etiqueta y `align-items: center` del botón la centra. */
+		line-height: 1.2;
+		border: 1px solid var(--line-strong);
+		border-bottom-width: 2px;
+		border-radius: 4px;
+		padding: 0.08rem 0.35rem;
+		color: var(--accent-ink);
+		opacity: 0.75;
+	}
+
+	/* Con puntero táctil no hay teclado al que anunciar el atajo, y en móvil desbordaba el botón. */
+	@media (pointer: coarse) {
+		.vega-editor-save-button kbd {
+			display: none;
+		}
+	}
+
+	.vega-editor-save-button:disabled {
+		cursor: not-allowed;
+		opacity: 0.45; /* mockup `.btn:disabled { opacity: 0.45 }` — mismo valor que el manifiesto */
+	}
+
+	/* Tarjeta de campos (mockup final `.card`): papel elevado + borde + sombra, con el padding de
+	   densidad `--pad-card`. `--paper` y no `--surface`: en el vocabulario del rediseño `--paper` es
+	   la superficie de TARJETA y `--surface` la de los CONTROLES que van dentro (inputs, botones);
+	   una tarjeta en `--surface` haría desaparecer sus propios campos. */
+	.vega-fsection {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--paper);
+		box-shadow: var(--shadow-card);
+		padding: var(--pad-card);
+		min-width: 0;
+	}
+
+	/* Rótulo de tarjeta (mockup `.aside h2`, usado también en las de la columna central para que el
+	   editor tenga UN solo criterio de cabecera): versalita tenue, sin barra de fondo. */
+	.vega-fsection h2 {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		margin: 0;
+		font-size: 0.76em;
+		font-weight: 650;
+		letter-spacing: 0.09em;
+		text-transform: uppercase;
+		color: var(--ink-2);
+		overflow-wrap: anywhere;
+	}
+
+	/* Tarjetas del aside (mockup `.aside .card`): mismo lenguaje, tres cuartos de padding. */
+	.vega-fsection--aside {
+		padding: calc(var(--pad-card) * 0.75);
+	}
+
+	/* Pila de campos de una sección (mockup `.fields`): la separación entre campos es este `gap`
+	   —`--gap-field`, el token de densidad P7— y no un borde por fila, como en el mockup. */
+	.vega-fields {
+		display: flex;
+		flex-direction: column;
+		gap: var(--gap-field);
+		min-width: 0;
+	}
+
+	/* «Programar…» (lote 12, lámina 2). Línea de estado de la programación bajo el campo Estado:
+	   tipografía de `.vega-field-help`. */
+	.vega-schedule-summary {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.25rem 0.75rem;
+		margin: 0.35rem 0 0;
+		font-size: 0.82em;
+		color: var(--ink-2);
+		overflow-wrap: anywhere;
+	}
+
+	.vega-schedule-summary b {
+		color: var(--ink);
+		font-weight: 600;
+	}
+
+	/* Acción de texto: el botón-enlace de `.vega-file-remove` (FileInput). */
+	.vega-schedule-link {
+		padding: 0;
+		border: 0;
+		background: transparent;
+		color: var(--ink-2);
+		font: inherit;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+		cursor: pointer;
+	}
+
+	.vega-schedule-link:hover:not(:disabled) {
+		color: var(--ink-hi);
+	}
+
+	.vega-schedule-link:disabled {
+		cursor: not-allowed;
+		opacity: 0.5;
+	}
+
+	/* Aviso de «no se publicó»: la caja de `.vega-field-notice` (de `FieldRow`) con sus acciones debajo. */
+	.vega-schedule-overdue {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.vega-schedule-overdue p {
+		margin: 0;
+	}
+
+	.vega-schedule-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	/* En el aside (296 px) el control y su acción no caben en una línea: la acción baja. */
+	.vega-fsection--aside .vega-field-inline {
+		flex-wrap: wrap;
+	}
+
+	.vega-fsection--aside .vega-field-inline-widget {
+		flex-basis: 6rem;
+	}
+
+	/* En el aside los campos van más juntos (mockup `.aside .field + .field { margin-top: .9rem }`):
+	   son tarjetas estrechas de metadatos, no el cuerpo del documento. */
+	.vega-fsection--aside .vega-fields {
+		gap: 0.9rem;
+	}
+
+	/* Rejilla de columnas de un grupo (§4.9b, ver cabecera del módulo): 2 columnas por defecto,
+	   `--3` para el máximo del schema (1-3). `gap` reutiliza `--gap-field` (mismo token de
+	   densidad P7 que ya separa los campos entre sí) en vez de un valor nuevo — nada hardcodeado. */
+	.vega-fgroup-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: var(--gap-field);
+	}
+
+	.vega-fgroup-grid--3 {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+
+	/* Mismo breakpoint que el colapso de `.manif` en `ManifestEditor` (940px): grupo de columnas y
+	   manifiesto rompen a 1 columna juntos. */
+	@media (max-width: 940px) {
+		.vega-fgroup-grid,
+		.vega-fgroup-grid--3 {
+			grid-template-columns: 1fr;
+			gap: 0.9rem;
+		}
+	}
+
+	/* Tarjeta "Registro" (mockup `.kv`): pares clave/valor a lado y lado. El `id` en `--mono`
+	   (VALOR canónico); las fechas en tabular para que no bailen al actualizarse. */
+	.vega-editor-kv {
+		display: flex;
+		flex-direction: column;
+		margin: 0;
+	}
+
+	.vega-editor-kv > div {
+		display: flex;
+		justify-content: space-between;
+		gap: 0.75rem;
+		padding: 0.25rem 0;
+		font-size: 0.86em;
+		color: var(--ink-2);
+	}
+
+	.vega-editor-kv dd {
+		margin: 0;
+		color: var(--ink);
+		font-variant-numeric: tabular-nums;
+		overflow-wrap: anywhere;
+	}
+
+	.vega-editor-kv-mono {
+		font-family: var(--mono);
+		font-size: 0.92em;
+	}
+
+	/* Zona de peligro (mockup `.danger-zone`/`.btn-danger`): el borde de la tarjeta avisa antes de
+	   leer nada, y el botón ocupa todo el ancho para que no se confunda con una acción menor. */
+	.vega-editor-danger {
+		border-color: var(--danger-soft);
+	}
+
+	.vega-editor-delete-button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 34px;
+		padding: 0 0.9rem;
+		border: 1px solid transparent;
+		border-radius: var(--r);
+		background: var(--danger-soft);
+		color: var(--danger);
+		font: inherit;
+		font-size: 0.8125rem;
+		font-weight: 550;
+		line-height: 1.2;
+		cursor: pointer;
+	}
+
+	.vega-editor-delete-button:hover {
+		box-shadow: 0 0 0 1.5px var(--danger);
+	}
+
+	.vega-record-form-notice {
+		margin: 0;
+		padding: 0.6rem 0.9rem;
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		background: var(--surface-2);
+		color: var(--ink-2);
+		font-size: 0.85rem;
+	}
+
+	.vega-record-form-banner {
+		margin: 0;
+		padding: 0.6rem 0.9rem;
+		border: 1px solid var(--danger);
+		border-radius: 6px;
+		background: var(--danger-soft);
+		color: var(--danger);
+		font-size: 0.9rem;
+		overflow-wrap: anywhere;
+	}
+
+	/* Agrupa etiqueta y botón; el filete a la izquierda lo separa de las migas (lámina p2). */
+	.vega-visual-publish {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		padding-left: 0.75rem;
+		border-left: 1px solid var(--line);
+	}
+
+	/* Misma píldora que `.vega-editor-tag` de `RecordForm.svelte` (el CSS con ámbito no cruza). */
+	.vega-visual-publish-tag {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		flex-shrink: 0;
+		height: 24px;
+		padding: 0 0.65rem;
+		border-radius: 999px;
+		font-size: 0.75rem;
+		font-weight: 600;
+		line-height: 24px;
+		white-space: nowrap;
+	}
+
+	.vega-visual-publish-tag::before {
+		content: '';
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: currentColor;
+		flex-shrink: 0;
+	}
+
+	.vega-visual-publish-tag[data-status-kind='pub'] {
+		color: var(--success);
+		background: var(--success-soft);
+	}
+
+	.vega-visual-publish-tag[data-status-kind='draft'] {
+		color: var(--ink-2);
+		background: var(--btn);
+	}
+
+	.vega-visual-publish-tag[data-status-kind='other'] {
+		color: var(--info);
+		background: var(--info-soft);
+	}
+
+	/* Programada: mismos tokens que `.vega-editor-tag` del formulario. */
+	.vega-visual-publish-tag[data-status-kind='scheduled'] {
+		color: var(--accent-text);
+		background: var(--accent-soft);
+	}
+
+	.vega-visual-publish-tag[data-status-kind='overdue'] {
+		color: var(--warning);
+		background: var(--warning-soft);
+	}
+
+	/* Botón neutro de la barra (`--btn`) a 30 px, como los grupos de la barra visual. */
+	.vega-visual-publish-btn {
+		display: inline-flex;
+		align-items: center;
+		height: 30px;
+		padding: 0 0.75rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--btn);
+		color: var(--ink);
+		font: inherit;
+		font-size: 0.8rem;
+		font-weight: 550;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	.vega-visual-publish-btn:hover:not([aria-disabled='true']) {
+		border-color: var(--line-strong);
+	}
+
+	/* Primario (`.vega-editor-save-button`): la acción que expone la página. */
+	.vega-visual-publish-btn--primary {
+		border-color: transparent;
+		background: var(--accent-fill);
+		color: var(--accent-ink);
+		font-weight: 600;
+	}
+
+	.vega-visual-publish-btn--primary:hover:not([aria-disabled='true']) {
+		border-color: transparent;
+		box-shadow: 0 0 0 1.5px var(--accent-line);
+	}
+
+	.vega-visual-publish-btn[aria-disabled='true'] {
+		cursor: not-allowed;
+		opacity: 0.5;
+	}
+
+	.vega-visual-publish-btn:focus-visible,
+	.vega-visual-publish-pop-btn:focus-visible {
+		outline: 2px solid var(--ring);
+		outline-offset: 2px;
+	}
+
+	.vega-visual-publish-error {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: var(--danger);
+	}
+
+	/* Confirmación en línea (`notice-confirm` de /papelera, tono `info`), desplegada bajo el botón. */
+	.vega-visual-publish-pop {
+		position: absolute;
+		top: calc(100% + 0.5rem);
+		left: 0;
+		z-index: 20;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		width: min(23rem, calc(100vw - 2rem));
+		padding: 0.75rem 1rem;
+		border: 1px solid var(--info);
+		border-radius: var(--r);
+		background: var(--info-soft);
+		color: var(--info);
+		box-shadow: var(--shadow-card);
+		box-sizing: border-box;
+	}
+
+	.vega-visual-publish-pop p {
+		margin: 0;
+	}
+
+	.vega-visual-publish-pop-title {
+		font-weight: 600;
+		color: var(--ink-hi);
+	}
+
+	.vega-visual-publish-pop ul {
+		margin: 0.1rem 0 0;
+		padding-left: 1.1rem;
+		color: var(--ink);
+		font-size: 0.85rem;
+	}
+
+	.vega-visual-publish-pop-body {
+		color: var(--ink);
+		font-size: 0.85rem;
+	}
+
+	.vega-visual-publish-pop-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.vega-visual-publish-pop-btn {
+		height: 30px;
+		padding: 0 0.75rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--btn);
+		color: var(--ink);
+		font: inherit;
+		font-size: 0.8rem;
+		font-weight: 550;
+		cursor: pointer;
+	}
+
+	.vega-visual-publish-pop-btn--primary {
+		border-color: transparent;
+		background: var(--accent-fill);
+		color: var(--accent-ink);
+		font-weight: 600;
+	}
+
+	/* Con avisos (lote 13): del tono `info` al tono `warning`, la misma pareja que
+	   `.vega-field-notice`. El tope de alto es para que una lista larga se desplace dentro. */
+	.vega-visual-publish-pop--review {
+		border-color: var(--warning);
+		background: var(--warning-soft);
+		color: var(--warning);
+		max-height: min(70vh, 34rem);
+	}
+
+	/* Sobre `--warning-soft` tres parejas de la tarjeta bajan de 4,5:1 (medido en los 21 temas en
+	   la lámina): `--ink-2` en claro, `--accent-text` en claro y `--danger` en oscuro. Dentro del
+	   popover pasan a `--ink` (≥ 9:1); la acción conserva el subrayado siempre, así que sigue
+	   leyéndose como enlace sin depender del color. `:global`: viven en `ReviewGroups.svelte`. */
+	.vega-visual-publish-pop--review .vega-review-group-head,
+	.vega-visual-publish-pop--review .vega-review-where,
+	.vega-visual-publish-pop--review .vega-review-more,
+	.vega-visual-publish-pop--review .vega-review-skipped,
+	.vega-visual-publish-pop--review .vega-review-error,
+	.vega-visual-publish-pop--review .vega-review-pop-head {
+		color: var(--ink);
+	}
+
+	.vega-visual-publish-pop--review .vega-review-go {
+		color: var(--ink);
+		text-decoration-color: currentColor;
+	}
+
+	/* Lo que puede crecer (bloques sin guardar + avisos) se desplaza; título y botones, no. Las dos
+	   hairlines (`--line`, la de `.vega-edit-top`) marcan dónde corta el desplazamiento: sin ellas,
+	   un aviso cortado por abajo parece un fallo de pintado y no algo que sigue. */
+	.vega-review-pop-scroll {
+		display: flex;
+		flex-direction: column;
+		gap: 0.65rem;
+		min-height: 0;
+		padding-block: 0.5rem;
+		border-block: 1px solid var(--line);
+		overflow-y: auto;
+		overscroll-behavior: contain;
+	}
+
+	.vega-review-pop-scroll--more {
+		border-bottom-color: var(--warning);
+		box-shadow: inset 0 -12px 10px -12px var(--warning);
+	}
+
+	.vega-review-pop-more {
+		color: var(--ink);
+		font-size: 0.75rem;
+	}
+
+	/* `.vega-visual-publish-pop ul` (lista de bloques sin guardar) sangra y pinta en `--ink`: las
+	   listas de la revisión no llevan viñeta, así que se anula la sangría solo en ellas. */
+	.vega-visual-publish-pop .vega-review-groups,
+	.vega-visual-publish-pop .vega-review-items {
+		margin: 0;
+		padding-left: 0;
+	}
+
+	.vega-review-pop-section {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+	}
+
+	/* Rótulo de sección dentro del popover: el de grupo de la tarjeta (`.vega-review-group-head`). */
+	.vega-review-pop-head {
+		margin: 0;
+		font-size: 0.82em;
+		font-weight: 650;
+		letter-spacing: 0.03em;
+		color: var(--ink-2);
+	}
+
+	/* Estrecho: el control baja a su propia línea (lámina p2). */
+	@media (max-width: 767px) {
+		.vega-visual-publish {
+			flex-basis: 100%;
+			order: 3;
+			padding-left: 0;
+			border-left: 0;
+		}
+
+		/* La barra visual puede ocupar varias líneas. Anclar la confirmación debajo de ella
+		   deja sus botones fuera de un viewport bajo (390 × 400), también con bloques sin revisión. */
+		.vega-visual-publish-pop {
+			position: fixed;
+			top: calc(var(--topbar-h) + 0.5rem);
+			left: 1rem;
+			width: calc(100vw - 2rem);
+			max-height: calc(100vh - var(--topbar-h) - 1rem);
+			max-height: calc(100dvh - var(--topbar-h) - 1rem);
+			/* Respaldo para una lista de bloques sola que no usa `.vega-review-pop-scroll`. */
+			overflow-y: auto;
+		}
+	}
+
+	@media (pointer: coarse) {
+		.vega-visual-publish-btn,
+		.vega-visual-publish-pop-btn {
+			min-width: 44px;
+			min-height: 44px;
+		}
+	}
+
+	.vega-edit-top {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 1rem;
+		padding: 0.4rem 0 1rem;
+		border-bottom: 1px solid var(--line);
+		/* Aire bajo la barra en el modo NO-a-sangre (`ManifestEditor`), donde el contenido que
+		   sigue no trae padding propio. A sangre lo pone la rejilla del editor (ver `--bleed`). */
+		margin-bottom: 1.5rem;
+		position: sticky;
+		/* Ver cabecera (por qué NO `var(--topbar-h)`): el scroll es el de `.vega-main`. `sticky` mide
+		   `top` desde el borde del CONTENIDO de `.vega-main`, que arranca 1.75rem (su `padding-top`,
+		   `AppShell.svelte`) por debajo del borde del scroll: con `top: 0` la barra se quedaba 28 px
+		   por debajo y el contenido que scrollea asomaba POR ENCIMA de ella. `-1.75rem` la pega al
+		   borde (en el modo a sangre, además, ya sube con margen negativo sobre ese padding; `RecordForm`
+		   y `EditorRail` descuentan lo mismo en su propio `top`). */
+		top: -1.75rem;
+		/* Ver cabecera: MISMO token que `.vega-main` (región de contenido que scrollea detrás). */
+		background: var(--paper);
+		/* Por encima de las tarjetas pegajosas del editor (raíl/aside), que no llevan z-index
+		   propio pero sí `position: sticky` — sin esto, un aside alto pasaría por delante. */
+		z-index: 9;
+	}
+
+	/* A sangre (mockup `.edit-topbar`, ver cabecera): padding propio arriba/abajo y a los lados, y
+	   SIN margen inferior — la separación con el contenido la pone ya el padding de la rejilla del
+	   editor, y un margen aquí abriría un hueco de `--paper` entre la hairline y las tarjetas. */
+	.vega-edit-top--bleed {
+		gap: 0.75rem;
+		padding: 0.6rem calc(var(--vega-space-gutter) * 1.5);
+		margin-bottom: 0;
+	}
+
+	.vega-edit-top-spacer {
+		flex: 1;
+	}
+body{margin:0;padding:24px;background:var(--surface);color:var(--ink)}section{margin-bottom:24px;padding:16px;border:1px solid var(--line-soft);border-radius:var(--radius)}h2{font:inherit;font-weight:650}.vega-editor-bar-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.vega-visual-publish-btn{display:inline-flex;align-items:center;gap:6px}button{min-height:44px}svg{vertical-align:middle}@media(max-width:600px){body{padding:12px}.vega-editor-bar-actions>b{width:100%}}</style><h1>Publicar desde el formulario</h1><p>Lámina previa · composición con tokens y componentes actuales, estados propuestos. Edición de registro existente.</p><section><h2>Borrador guardado</h2><header class="vega-editor-bar-actions"><b>Talleres de otoño: tejidos y estampación</b><span class="vega-editor-tag">Borrador</span><span class="vega-visual-publish"><button class="vega-visual-publish-btn vega-visual-publish-btn--primary" ><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16c-1-4 3-10 12-12 0 9-6 13-10 12l-2-2zM8 10H4l-2 5 6-1M14 16v4l-5 2 1-6M5 18l-2 3 4-1"/><circle cx="15" cy="9" r="2"/></svg>Publicar</button></span><button class="vega-editor-save-button">Guardar <kbd>⌘S</kbd></button></header></section><section><h2>Título modificado · guardar y después publicar</h2><header class="vega-editor-bar-actions"><b>Talleres de otoño: tejidos y estampación</b><span class="vega-editor-tag">Borrador</span><span class="vega-visual-publish"><button class="vega-visual-publish-btn vega-visual-publish-btn--primary" ><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16c-1-4 3-10 12-12 0 9-6 13-10 12l-2-2zM8 10H4l-2 5 6-1M14 16v4l-5 2 1-6M5 18l-2 3 4-1"/><circle cx="15" cy="9" r="2"/></svg>Publicar</button></span><button class="vega-editor-save-button">Guardar <kbd>⌘S</kbd></button></header></section><section><h2>Guardando contenido · botones bloqueados</h2><header class="vega-editor-bar-actions"><b>Talleres de otoño: tejidos y estampación</b><span class="vega-editor-tag">Borrador</span><span class="vega-visual-publish"><button class="vega-visual-publish-btn vega-visual-publish-btn--primary" aria-disabled="true"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16c-1-4 3-10 12-12 0 9-6 13-10 12l-2-2zM8 10H4l-2 5 6-1M14 16v4l-5 2 1-6M5 18l-2 3 4-1"/><circle cx="15" cy="9" r="2"/></svg>Publicando…</button></span><button class="vega-editor-save-button">Guardar <kbd>⌘S</kbd></button></header></section><section><h2>Contenido guardado · fallo de publicación</h2><header class="vega-editor-bar-actions"><b>Talleres de otoño: tejidos y estampación</b><span class="vega-editor-tag">Borrador</span><span class="vega-visual-publish"><button class="vega-visual-publish-btn vega-visual-publish-btn--primary" ><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16c-1-4 3-10 12-12 0 9-6 13-10 12l-2-2zM8 10H4l-2 5 6-1M14 16v4l-5 2 1-6M5 18l-2 3 4-1"/><circle cx="15" cy="9" r="2"/></svg>Publicar</button></span><button class="vega-editor-save-button">Guardar <kbd>⌘S</kbd></button></header><p role=alert>No se pudo publicar. El contenido guardado permanece en borrador.</p></section><section><h2>Publicado · volver a borrador</h2><header class="vega-editor-bar-actions"><b>Talleres de otoño: tejidos y estampación</b><span class="vega-editor-tag">Publicado</span><span class="vega-visual-publish"><button class="vega-visual-publish-btn vega-visual-publish-btn--primary" >Pasar a borrador</button></span><button class="vega-editor-save-button">Guardar <kbd>⌘S</kbd></button></header></section><section><h2>Revisión y bloques pendientes · patrón existente</h2><p>Una confirmación con Cancelar enfocado, avisos no bloqueantes e Ir al campo. No se autoguarda el bloque «Hero principal».</p><button>Cancelar</button><button class="vega-visual-publish-btn vega-visual-publish-btn--primary">Publicar igualmente</button></section><section><h2>Iconos semánticos · mismo trazo local</h2><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m10 14 4-4M8 16l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0M16 8l1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0"/></svg> Enlace <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16c-1-4 3-10 12-12 0 9-6 13-10 12l-2-2zM8 10H4l-2 5 6-1M14 16v4l-5 2 1-6M5 18l-2 3 4-1"/><circle cx="15" cy="9" r="2"/></svg> Publicar · Upload sigue subir ficheros.</section></html>

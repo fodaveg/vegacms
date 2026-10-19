@@ -1,0 +1,29 @@
+{
+  "binaryRawPersisted": false,
+  "caddyRead": false,
+  "configEnvRead": false,
+  "freeKiB": 7274392,
+  "mode": "custom-pb-buildinfo-and-volume-size",
+  "remoteWrites": false,
+  "schemaVersion": 1,
+  "status": "READY_FOR_REVIEW",
+  "versions": {
+    "fodaveg": {
+      "binaryBytes": 38443649,
+      "binarySha256": "c06001e9fb206f5b7832588bfaf999d05f4bb03509c8f543d45d88f02364b52f",
+      "matchesSourcePin": true,
+      "moduleVersion": "0.39.7"
+    },
+    "lumbre-admin-pb": {
+      "binaryBytes": 32104610,
+      "binarySha256": "54caa6d97178e3e303ac8f1eebb7c9bb1b74e5c4848425b60ca5d75edfb9048d",
+      "matchesSourcePin": true,
+      "moduleVersion": "0.39.9"
+    }
+  },
+  "volumesKiB": {
+    "fodaveg_fodaveg_pb": 913192,
+    "lumbre_admin_pb_data": 23840,
+    "vega_data": 20700
+  }
+}

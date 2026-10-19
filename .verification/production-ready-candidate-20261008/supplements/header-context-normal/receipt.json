@@ -1,0 +1,11 @@
+{
+  "status": "TWO_CONTEXTUAL_HEADER_PATCHES_NORMAL_LOCAL_PASSED",
+  "historical8Preserved": true,
+  "newTests": false,
+  "privateReads": false,
+  "applyReady": false,
+  "remoteWrites": false,
+  "headerCount": 2,
+  "fodContextualReady": false,
+  "exactFinalBytesReused": true
+}

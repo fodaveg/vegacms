@@ -1,0 +1,62 @@
+{
+  "candidate": "cc8f3b14dca9bf10e4a60502da9e17503362bbb8",
+  "chainReceipt": "archive-chain-v2.json",
+  "chainReceiptSHA256": "a6d4ab0344b4a3d8772fc8e36fc1db314a99e75c082921507058d380bddcb004",
+  "checks": [
+    "all 16 layer blobs hashed and uncompressed diff IDs matched",
+    "negative valid config hash with wrong diff ID rejected",
+    "OCI effective ID and descriptor + platform + layers required",
+    "LOAD command scope restricted to image inspect/load",
+    "file full identity and symlink parent failures preserve foreign bytes",
+    "foreign Compose changes block before stop/create/start",
+    "installed/created phases and unhealthy owned rollback tested",
+    "PB own-origin argv and PB1 Node1 tini1 exact",
+    "real discovery JSON rejects HTML and redirect",
+    "foreign wildcard response rejected",
+    "same verified archive FD fed by stdin; zero LOAD if path drifts during budget or priorinspect",
+    "stopped known two-port topology differs only in empty NetworkSettings.Ports; exposed ports/bindings and fixed identity required",
+    "canonical /index.html own-host alias counted only against exact sealed root bytes"
+  ],
+  "cleanup": "Own unittest TemporaryDirectory fixtures removed by cleanup; retained scripts, manifests and receipts; no shared deletion/build/cache changes.",
+  "commands": [
+    {
+      "command": "python3 -B .verification/cors-network-adoption-20261008/fodaveg-delivery/seal_selftest.py",
+      "exitCode": 0,
+      "tests": 4
+    },
+    {
+      "command": "python3 -B .verification/cors-network-adoption-20261008/fodaveg-delivery/transport_selftest.py",
+      "exitCode": 0,
+      "tests": 9
+    },
+    {
+      "command": "python3 -B .verification/cors-network-adoption-20261008/fodaveg-delivery/cutover_selftest.py",
+      "exitCode": 0,
+      "tests": 11
+    },
+    {
+      "command": "python3 -B .verification/cors-network-adoption-20261008/fodaveg-delivery/served_selftest.py",
+      "exitCode": 0,
+      "tests": 3
+    }
+  ],
+  "completedUTC": "2026-10-08T22:22:45.171079+00:00",
+  "diskAvailableKiBAfter": 124000000,
+  "knownLimit": "Offline simulation and reused native certification; no SSH/Docker/deployment by preparation agent. Root causal stopped-port and canonical-index observations reused; production cutover and forward require fresh owner execution and independent review.",
+  "reusedEvidence": "Seal4 unchanged byte-for-byte; transport/cutover/public affected suites rerun after their final source changes.",
+  "sources": {
+    "cutover_selftest.py": "a14eddfca0837cc2d188fd444ec8e6ebc15b5117fcf8112fa59897e277520fb2",
+    "remote_cutover.py": "de511d31f3c92c18ada597ac6de09f01112b125374eb6c1643ca0cdcce98168e",
+    "remote_transport.py": "ad47c6a2c2ec238ef545ecbcd6f06e0bc53df838ab100dcbbcbf3f5b34a10cc5",
+    "run_cutover.py": "6ff2e8a6eed8daf09779406f2aa2e06c461d72d6deeede31e930387f57c26c0b",
+    "run_transport.py": "f02218f204623f60f008b3f121745a7d53d9c38f1e6fa612776ad232d4e5e491",
+    "seal_archive.py": "14d98ad09b4b2425172a66e4ce64403f5b4b58b59fda6808a448ee99fa74d3ae",
+    "seal_selftest.py": "0e652a8465e2ef5e5be14aad71b3f9945eb6687470bf0cefefcbefbd2f3658bc",
+    "served_selftest.py": "d0c5df1ca2ea293880fca53c9fb08e5aa8cb5db6b4239b6789f2c42ee13c47c7",
+    "served_smoke.py": "6d6028c7a0e5437121d126ec22b616a1d2ccbeec2bc22c3c366bbddf8a9924af",
+    "transport_selftest.py": "0f7cf6f5f62e6faf1c893ab5d710d2a491f2be15548a417ac65d28444fc70af4"
+  },
+  "status": "OFFLINE_CAUSAL_FIX_TESTS_PASSED_REMOTE_NOT_EXECUTED",
+  "testCount": 27,
+  "tree": "693fc1ae70e8a28e64a87950e25883905a0de1d4"
+}

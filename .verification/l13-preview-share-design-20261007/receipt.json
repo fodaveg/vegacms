@@ -1,0 +1,88 @@
+{
+  "kind": "L13 visual design only; not product QA",
+  "base": "0cacf4cb8673369fcdec7b40ea676277cec5c331",
+  "tree": "7e6883bb6df16dae0b78abaf070f1806f5505b5c",
+  "worktree": "/private/tmp/vegacms-share-design-20261007",
+  "owner": "design/mockups/2026-10-07-preview-compartida",
+  "node": "22.22.3",
+  "commands": [
+    "node design/mockups/2026-10-07-preview-compartida/generate.mjs",
+    "node --check design/mockups/2026-10-07-preview-compartida/prototype.js",
+    "node design/mockups/2026-10-07-preview-compartida/capture.mjs"
+  ],
+  "headless": {
+    "exit": 0,
+    "checks": 41,
+    "failed": 0,
+    "errors": [],
+    "resourcesClosed": true,
+    "log": "/private/tmp/vega-l13-preview-share-headless-authorized.log",
+    "results": "/private/tmp/vega-l13-preview-share-captures-20261007/results.json",
+    "contrastMinForMeasuredText": 5.329426952523954
+  },
+  "regeneration": {
+    "exact": true,
+    "hashes": {
+      "01-enlaces.html": "47ca719e5e66cb92defa174103ab654bbc05c8e9f71129af0cd07d095c82e846",
+      "02-crear.html": "bf295d5af85949725ae895366ff499710b1697d9aa70955a940fea514968b0cd",
+      "03-copiar.html": "0915a9f3af6ef512535afb09b80d87526d0ae7e2c631864708dc55b322db32fc",
+      "lamina.html": "26258be42403a29b100899276ba27cedebd1ccfb78c3ef49856d3b731b5f1c99"
+    },
+    "note": "Source formatting followed headless run; no behavior/style declarations changed. Final four files regenerated twice byte-identically."
+  },
+  "files": {
+    "design/mockups/2026-10-07-preview-compartida/01-enlaces.html": "47ca719e5e66cb92defa174103ab654bbc05c8e9f71129af0cd07d095c82e846",
+    "design/mockups/2026-10-07-preview-compartida/02-crear.html": "bf295d5af85949725ae895366ff499710b1697d9aa70955a940fea514968b0cd",
+    "design/mockups/2026-10-07-preview-compartida/03-copiar.html": "0915a9f3af6ef512535afb09b80d87526d0ae7e2c631864708dc55b322db32fc",
+    "design/mockups/2026-10-07-preview-compartida/README.md": "a89212ebeba10d57b01daded55dd248fef66b6ed368b0687ce53a7c36df3222a",
+    "design/mockups/2026-10-07-preview-compartida/board.html.tpl": "f4db54ab647d504fb335ea0bf4cd3f9c239c32e82c5d62baea3bc959c0a95260",
+    "design/mockups/2026-10-07-preview-compartida/browser-summary.json": "29adc4a2965007531c909b7a01f4c7aaea62b211f56017da6dbc201f3537ee58",
+    "design/mockups/2026-10-07-preview-compartida/capture.mjs": "05b7abe05cb0ce56cf13494b39e165c7c55504d4e80ff4b31144a0fc2dddfcf0",
+    "design/mockups/2026-10-07-preview-compartida/generate.mjs": "6d91dc9d1e1cd2f558cf47f590d43ac8c954f71a65c7520f1f9db45f77c753d5",
+    "design/mockups/2026-10-07-preview-compartida/lamina.html": "26258be42403a29b100899276ba27cedebd1ccfb78c3ef49856d3b731b5f1c99",
+    "design/mockups/2026-10-07-preview-compartida/prototype.css": "23dc39b9922637d70affb47bbc29b14a3f599f7d471b6b782895aff59951279d",
+    "design/mockups/2026-10-07-preview-compartida/prototype.html.tpl": "0c256391b5c014dae9835c116187b8264fed03ec1dc8ef1980f97993d0b7e5c3",
+    "design/mockups/2026-10-07-preview-compartida/prototype.js": "d139b86fe63e3cfb16412f1593cf7094685e09756969f3691cb5cb05c2741436"
+  },
+  "captures": {
+    "/private/tmp/vega-l13-preview-share-captures-20261007/01-enlaces-1440-claro.png": "dd258ee78b5935c8da9be047b18d16b42e0849497a9191f0896c6f1189dd411f",
+    "/private/tmp/vega-l13-preview-share-captures-20261007/02-crear-390-sin-guardar.png": "83d818c4290a2b2e19fc34356d7364634b00a82f6f2ce71369c269092188c415",
+    "/private/tmp/vega-l13-preview-share-captures-20261007/03-copiar-390-dark-en.png": "b92b45564f9cc60b5514c89d5f203c8abbf815d1656f1478a1278b8132ceb3ef",
+    "/private/tmp/vega-l13-preview-share-captures-20261007/04-anular-1440-dark-en.png": "182f7bc59af93ad599fdfaf3bc5efe40de3d81188203a8d9d056af73c8fae3c5",
+    "/private/tmp/vega-l13-preview-share-captures-20261007/05-caducado-390.png": "4e979a47da4c0ba44b41a29e6563a47ca36c1254a542072b745b591851d0abfd",
+    "/private/tmp/vega-l13-preview-share-captures-20261007/06-error-1440-dark.png": "5ef28a69bd8940e3f8596f6f89f2fd5a5a1e0ae302ad3ea62c93b13fb85fda05"
+  },
+  "limits": [
+    "No Svelte/backend/PocketBase/HTTP/site QA; no OS clipboard mutation",
+    "Browser first sandbox attempt denied MachPort; authorized rerun exit0",
+    "Prettier-only source formatting after browser; regenerated output verified byte-identical on two final generations; no behavioral edits after run",
+    "No persistent expired/revoked history; fixture data only"
+  ],
+  "disk": {
+    "budgetGiB": 0.5,
+    "beforeGiB": 145,
+    "afterGiB": 144,
+    "ownDesignKiB": 692,
+    "capturesKiB": 384,
+    "note": "Global df delta not attributable to this subagent; no shared cleanup. Own browser temp resources closed; source/screens retained for review."
+  },
+  "commit": "9cb49522be1f6a5f2cefb18d6ec3f8eed923c45f",
+  "root_review": {
+    "board_shown": true,
+    "explicit_human_approval": false,
+    "technical_direction_accepted": true,
+    "selected_captures_visually_checked": [
+      "01-enlaces-1440-claro.png",
+      "02-crear-390-sin-guardar.png",
+      "03-copiar-390-dark-en.png"
+    ],
+    "all_source_review_complete": true,
+    "files_accounted_for": 12,
+    "generated_evidence": "Four generated HTML covered by exact regeneration receipt for same tree; readable generator/templates/CSS/JS, capture script, README and results reviewed"
+  },
+  "private_integration": {
+    "commit": "894eade0ef68a90721e6a2ba6c7f9ea5a1f7f467",
+    "tree": "7e6883bb6df16dae0b78abaf070f1806f5505b5c",
+    "main_changed": false
+  }
+}

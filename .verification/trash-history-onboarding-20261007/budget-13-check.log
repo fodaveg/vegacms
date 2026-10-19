@@ -1,0 +1,11 @@
+Loading svelte-check in workspace: /private/tmp/vegacms-trash-history-20261007
+Getting Svelte diagnostics...
+
+/private/tmp/vegacms-trash-history-20261007/src/lib/form/RecordForm.svelte:1722:4
+Error: This comparison appears to be unintentional because the types '"draft" | "scheduled" | "overdue"' and '"none"' have no overlap. (ts)
+			!submitBlocked &&
+			scheduleControl.kind !== 'none' &&
+			currentEditorIdentity(identity);
+
+====================================
+svelte-check found 1 error and 0 warnings in 1 file

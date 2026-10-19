@@ -1,0 +1,75 @@
+{
+  "sourceReferences": {
+    "private-runtime-metadata-read-ready-20261008/local-contextual-patches-20261008/receipt.json": "b04bf37702de451e105227a4948169ea54d6e3f36d6b8c757739adddc5119b1e",
+    "private-runtime-metadata-read-ready-20261008/local-contextual-patches-20261008/manifest.json": "187fd8d90668fa2d62c280bfbcb28b41e90b8615f9a69fe8f97cad9e68514288",
+    "private-runtime-metadata-read-ready-20261008/local-contextual-patches-20261008/result.json": "4e2cfea2c0204f1badd2f818924fcfae4874d60ce52796d8c5bdc6bf7eb26a1d",
+    "private-runtime-metadata-read-ready-20261008/local-contextual-patches-20261008/independent-review.md": "cb4540a74017af599e27c3d8bf4d7b8b88a744e9b2ff0582668e4195d2425d74"
+  },
+  "twoHeaders": [
+    {
+      "patch": "admin.vegacms.com.patch",
+      "frozenPatchSHA256": "7e6c4e4b49cef5570e4c883ae58e0a0c480149094ae31ad13bd7c39a7b16d85a",
+      "contextualPatchSHA256": "7d0c76b56ec0f73db4f3ab5beee8c5d4cca11bdfd57e4e51f5ca043aa8b8b174",
+      "beforeSHA256": "772440180332741a8716b440cc699dfe117f1fe716ab7a38458a9e7eea9c7b06",
+      "afterSHA256": "f1079c0743c4ed1ef4cbcdb49970f4ca7b7ff913f0bdbf195ef7e973797d6f10",
+      "sameSemanticResultAsFrozenProof": true,
+      "contextLines": 3,
+      "strictOriginalLineAnchors": true,
+      "commands": [
+        {
+          "argv": [
+            "git",
+            "apply",
+            "--check",
+            "/Users/david/code/vegacms/.verification/private-runtime-metadata-read-ready-20261008/local-contextual-patches-20261008/patches/admin.vegacms.com.patch"
+          ],
+          "exit_code": 0,
+          "diagnostic": ""
+        },
+        {
+          "argv": [
+            "git",
+            "apply",
+            "/Users/david/code/vegacms/.verification/private-runtime-metadata-read-ready-20261008/local-contextual-patches-20261008/patches/admin.vegacms.com.patch"
+          ],
+          "exit_code": 0,
+          "diagnostic": ""
+        }
+      ]
+    },
+    {
+      "patch": "admin.lumbre.pro.patch",
+      "frozenPatchSHA256": "ca3678b9d201031736896118d98063face9f710f9ef183cd7155ac4e4699e598",
+      "contextualPatchSHA256": "5c6bf87d16711b066d2bd1d02a846c3ad52fe7f258cd42e8a298804b8d16920d",
+      "beforeSHA256": "9a3322ce14562e20bfb5bdc10eac6a63c077120a327aafcf4a222492cc0c1f53",
+      "afterSHA256": "c1442b2563baf4be47304522f31d2f3fb0d9b6c71e76b6b5b96e342d44ee50ec",
+      "sameSemanticResultAsFrozenProof": true,
+      "contextLines": 3,
+      "strictOriginalLineAnchors": true,
+      "commands": [
+        {
+          "argv": [
+            "git",
+            "apply",
+            "--check",
+            "/Users/david/code/vegacms/.verification/private-runtime-metadata-read-ready-20261008/local-contextual-patches-20261008/patches/admin.lumbre.pro.patch"
+          ],
+          "exit_code": 0,
+          "diagnostic": ""
+        },
+        {
+          "argv": [
+            "git",
+            "apply",
+            "/Users/david/code/vegacms/.verification/private-runtime-metadata-read-ready-20261008/local-contextual-patches-20261008/patches/admin.lumbre.pro.patch"
+          ],
+          "exit_code": 0,
+          "diagnostic": ""
+        }
+      ]
+    }
+  ],
+  "historicalZeroContextNormalChecksFailed": true,
+  "newNormalChecksPassed": true,
+  "validationReusedOnlyForExactFinalBytes": true
+}

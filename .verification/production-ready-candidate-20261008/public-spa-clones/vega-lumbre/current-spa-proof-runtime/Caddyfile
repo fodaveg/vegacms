@@ -1,0 +1,434 @@
+{
+	admin off
+	auto_https off
+}
+
+http://:4173 {
+	encode zstd gzip
+
+	request_body {
+		max_size 25MB
+	}
+
+	# Cierra el panel público sin alcanzar los assets SvelteKit de `/_app/`.
+	@pocketbasePanel path /_ /_/*
+	respond @pocketbasePanel 404
+
+	# El encoder de los logs se configura en el sink existente del borde; ver README.
+	reverse_proxy csp-pb:8090 {
+		header_up X-Real-IP {remote_host}
+		transport http {
+			read_timeout 360s
+		}
+	}
+
+	# Este bloque va DIFERIDO (Caddy difiere las operaciones de un `header` en cuanto hay un
+	# borrado, aquí `-Server`): cada cabecera se fija al escribir la respuesta y SUSTITUYE la que
+	# traiga PocketBase. Por eso la CSP no va aquí, ver más abajo.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Content-Security-Policy de la SPA de Vega (auditoría 30 sep 2026). Solo para lo que sirve la
+	# SPA, NO para:
+	# - `/api/*`: PocketBase pone su propia política, más estricta, a los ficheros subidos
+	#   (`default-src 'none'; …; sandbox`, leído en PocketBase 0.39.9): un HTML o SVG subido como
+	#   medio no debe ejecutarse en este origen. Esta regla no la toca.
+	# - `/_` y `/_/*`: el panel de superusuario se cierra con 404 antes del proxy.
+	#
+	# Va en su propio `header`, sin borrados, para que NO se difiera: si algún día PocketBase manda
+	# una CSP en estas rutas, el navegador aplica las dos (la intersección), nunca solo la de aquí.
+	#
+	# Cada directiva, y por qué no es más estrecha. Validada en local con una sonda de navegador
+	# que parte de la política estricta (`default-src 'self'`) y afloja solo con una violación
+	# MEDIDA delante; el detalle está en `infra/production/README.md`, «CSP del admin»:
+	# - `default-src 'self'`: todo lo no listado (fuentes, manifest, workers, media) sale de este
+	#   origen. La sonda no midió ninguna violación de esas clases.
+	# - `script-src 'self' 'unsafe-inline'`: AFLOJADA. El `index.html` que genera SvelteKit arranca
+	#   la app con un `<script>` EN LÍNEA (script-src-elem, medido) cuyo texto lleva los nombres
+	#   con hash de los chunks y cambia en cada build: aquí no cabe un hash fijo. Sin
+	#   `'unsafe-inline'` la app no arranca. Sigue bloqueando scripts de otro origen y `eval`.
+	#   Quitarlo pasa por `csp: { mode: 'hash' }` de SvelteKit (README, «Quitar unsafe-inline»).
+	# - `script-src-attr 'none'`: ESTRECHADA. Ningún `onclick=`/`onerror=` en línea: la app no usa
+	#   ninguno (0 violaciones medidas) y, sin esta línea, un `<img onerror=…>` inyectado en el
+	#   HTML se ejecutaría gracias al `'unsafe-inline'` de arriba.
+	# - `style-src 'self' 'unsafe-inline'`: AFLOJADA. Violaciones medidas: `style-src-attr` por el
+	#   `<div style="display: contents">` de `src/app.html` y por los `style=` que Svelte escribe
+	#   en tiempo de ejecución, y `style-src-elem` por la hoja `<style>` que inyecta TipTap/
+	#   ProseMirror al montar un campo de texto enriquecido.
+	# - `img-src 'self' data: blob: https:`: AFLOJADA. `data:` lo exige el favicon que Vite
+	#   incrusta como `data:image/svg+xml` (`src/routes/+layout.svelte:399`; los `data:` de Medios
+	#   que vio la sonda son del adaptador demo en memoria, no de PocketBase); `blob:` la vista previa local
+	#   de un fichero antes de subirlo; `https:` una imagen externa en un campo Markdown o de
+	#   texto enriquecido (medido: sin `https:` su vista previa sale rota). Sin `http:`.
+	# - `connect-src 'self' https:`: AFLOJADA. La API y el realtime (SSE) de PocketBase son mismo
+	#   origen. `https:` lo exige el `POST {sitio}/api/vega-preview/token` del editor visual y de
+	#   la vista previa (medido: bloqueado sin él, el editor no conecta) y, por lectura del
+	#   código, el aviso de versión opt-in (`api.github.com`) y la importación de una colección,
+	#   que descarga los medios del servidor de ORIGEN. En una instancia con un sitio fijo y sin
+	#   importaciones, sustituye `https:` por ese origen exacto y `https://api.github.com`.
+	# - `frame-src 'self' https:`: AFLOJADA. La vista previa y el editor visual cargan el SITIO
+	#   del proyecto en un `<iframe>` de otro origen, que sale del servidor (extensión
+	#   `vegapreview`), no de este fichero. Con un sitio fijo, sustituye `https:` por su origen. El
+	#   puente del editor visual es `postMessage`, que la CSP no restringe.
+	# - `frame-ancestors 'none'`: nadie puede enmarcar el admin (clickjacking).
+	# - `object-src 'none'` y `base-uri 'self'`: sin plugins y sin `<base>` que redirija las rutas.
+	# - Sin `form-action` a propósito: la vista previa envía su token con un `<form>` POST al
+	#   sitio del proyecto (otro origen), y esa directiva no hereda de `default-src`.
+	@vegaSpa {
+		not path /api/* /_ /_/*
+	}
+	header @vegaSpa Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:; frame-src 'self' https:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+
+	# Cabeceras de caché del admin (auditoría 23 sep 2026 p2): ni PocketBase (`apis.Static`) ni
+	# este Caddy ponían `Cache-Control`, así que el navegador decide por su cuenta (heurística
+	# HTTP normal) tanto para los assets con hash como para el HTML — el peor reparto posible: el
+	# HTML puede quedar cacheado de más (un despliegue nuevo tarda en verse) y los assets con hash
+	# no se aprovechan del todo (podrían cachearse para siempre, nunca cambian de contenido bajo
+	# el mismo nombre).
+	#
+	# `/_app/immutable/*` (nombre de fichero = hash de su contenido, Vite/SvelteKit): un año +
+	# `immutable`, no hay nada que revalidar nunca — si el contenido cambia, cambia el nombre.
+	@vegaImmutable path /_app/immutable/*
+	header @vegaImmutable Cache-Control "public, max-age=31536000, immutable"
+
+	# Todo lo demás que sirve la SPA de Vega (`index.html`, el fallback SPA de cualquier ruta de
+	# cliente — `/c/…`, `/media`, `/settings`… todas sirven el MISMO `index.html`, ver
+	# `adapter-static({ fallback: 'index.html' })` en `vite.config.ts` — y `vega.config.json`, si
+	# existe) es CONTENIDO sin hash en el nombre: nunca debe quedar cacheado sin revalidar, o un
+	# despliegue nuevo tardaría en verse en clientes con caché fría. Excluye EXPLÍCITAMENTE
+	# `/api/*` (las extensiones Go fijan su propio `Cache-Control` — `vegapreview.go` pone
+	# `no-store` en credenciales de preview — y esta regla NO debe pisarlo) y `/_` / `/_/*`
+	# (el panel de superusuario cerrado con 404).
+	@vegaContent {
+		not path /_app/immutable/* /api/* /_ /_/*
+	}
+	header @vegaContent Cache-Control "no-cache"
+}
+
+http://:4174 {
+	header -X-Frame-Options
+	encode zstd gzip
+
+	request_body {
+		max_size 25MB
+	}
+
+	# Cierra el panel público sin alcanzar los assets SvelteKit de `/_app/`.
+	@pocketbasePanel path /_ /_/*
+	respond @pocketbasePanel 404
+
+	# El encoder de los logs se configura en el sink existente del borde; ver README.
+	reverse_proxy csp-pb:8090 {
+		header_up X-Real-IP {remote_host}
+		transport http {
+			read_timeout 360s
+		}
+	}
+
+	# Este bloque va DIFERIDO (Caddy difiere las operaciones de un `header` en cuanto hay un
+	# borrado, aquí `-Server`): cada cabecera se fija al escribir la respuesta y SUSTITUYE la que
+	# traiga PocketBase. Por eso la CSP no va aquí, ver más abajo.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Content-Security-Policy de la SPA de Vega (auditoría 30 sep 2026). Solo para lo que sirve la
+	# SPA, NO para:
+	# - `/api/*`: PocketBase pone su propia política, más estricta, a los ficheros subidos
+	#   (`default-src 'none'; …; sandbox`, leído en PocketBase 0.39.9): un HTML o SVG subido como
+	#   medio no debe ejecutarse en este origen. Esta regla no la toca.
+	# - `/_` y `/_/*`: el panel de superusuario se cierra con 404 antes del proxy.
+	#
+	# Va en su propio `header`, sin borrados, para que NO se difiera: si algún día PocketBase manda
+	# una CSP en estas rutas, el navegador aplica las dos (la intersección), nunca solo la de aquí.
+	#
+	# Cada directiva, y por qué no es más estrecha. Validada en local con una sonda de navegador
+	# que parte de la política estricta (`default-src 'self'`) y afloja solo con una violación
+	# MEDIDA delante; el detalle está en `infra/production/README.md`, «CSP del admin»:
+	# - `default-src 'self'`: todo lo no listado (fuentes, manifest, workers, media) sale de este
+	#   origen. La sonda no midió ninguna violación de esas clases.
+	# - `script-src 'self' 'unsafe-inline'`: AFLOJADA. El `index.html` que genera SvelteKit arranca
+	#   la app con un `<script>` EN LÍNEA (script-src-elem, medido) cuyo texto lleva los nombres
+	#   con hash de los chunks y cambia en cada build: aquí no cabe un hash fijo. Sin
+	#   `'unsafe-inline'` la app no arranca. Sigue bloqueando scripts de otro origen y `eval`.
+	#   Quitarlo pasa por `csp: { mode: 'hash' }` de SvelteKit (README, «Quitar unsafe-inline»).
+	# - `script-src-attr 'none'`: ESTRECHADA. Ningún `onclick=`/`onerror=` en línea: la app no usa
+	#   ninguno (0 violaciones medidas) y, sin esta línea, un `<img onerror=…>` inyectado en el
+	#   HTML se ejecutaría gracias al `'unsafe-inline'` de arriba.
+	# - `style-src 'self' 'unsafe-inline'`: AFLOJADA. Violaciones medidas: `style-src-attr` por el
+	#   `<div style="display: contents">` de `src/app.html` y por los `style=` que Svelte escribe
+	#   en tiempo de ejecución, y `style-src-elem` por la hoja `<style>` que inyecta TipTap/
+	#   ProseMirror al montar un campo de texto enriquecido.
+	# - `img-src 'self' data: blob: https:`: AFLOJADA. `data:` lo exige el favicon que Vite
+	#   incrusta como `data:image/svg+xml` (`src/routes/+layout.svelte:399`; los `data:` de Medios
+	#   que vio la sonda son del adaptador demo en memoria, no de PocketBase); `blob:` la vista previa local
+	#   de un fichero antes de subirlo; `https:` una imagen externa en un campo Markdown o de
+	#   texto enriquecido (medido: sin `https:` su vista previa sale rota). Sin `http:`.
+	# - `connect-src 'self' https:`: AFLOJADA. La API y el realtime (SSE) de PocketBase son mismo
+	#   origen. `https:` lo exige el `POST {sitio}/api/vega-preview/token` del editor visual y de
+	#   la vista previa (medido: bloqueado sin él, el editor no conecta) y, por lectura del
+	#   código, el aviso de versión opt-in (`api.github.com`) y la importación de una colección,
+	#   que descarga los medios del servidor de ORIGEN. En una instancia con un sitio fijo y sin
+	#   importaciones, sustituye `https:` por ese origen exacto y `https://api.github.com`.
+	# - `frame-src 'self' https:`: AFLOJADA. La vista previa y el editor visual cargan el SITIO
+	#   del proyecto en un `<iframe>` de otro origen, que sale del servidor (extensión
+	#   `vegapreview`), no de este fichero. Con un sitio fijo, sustituye `https:` por su origen. El
+	#   puente del editor visual es `postMessage`, que la CSP no restringe.
+	# - `frame-ancestors 'none'`: nadie puede enmarcar el admin (clickjacking).
+	# - `object-src 'none'` y `base-uri 'self'`: sin plugins y sin `<base>` que redirija las rutas.
+	# - Sin `form-action` a propósito: la vista previa envía su token con un `<form>` POST al
+	#   sitio del proyecto (otro origen), y esa directiva no hereda de `default-src`.
+	@vegaSpa {
+		not path /api/* /_ /_/*
+	}
+	header @vegaSpa Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:; frame-src 'self' https:; object-src 'none'; base-uri 'self'"
+
+	# Cabeceras de caché del admin (auditoría 23 sep 2026 p2): ni PocketBase (`apis.Static`) ni
+	# este Caddy ponían `Cache-Control`, así que el navegador decide por su cuenta (heurística
+	# HTTP normal) tanto para los assets con hash como para el HTML — el peor reparto posible: el
+	# HTML puede quedar cacheado de más (un despliegue nuevo tarda en verse) y los assets con hash
+	# no se aprovechan del todo (podrían cachearse para siempre, nunca cambian de contenido bajo
+	# el mismo nombre).
+	#
+	# `/_app/immutable/*` (nombre de fichero = hash de su contenido, Vite/SvelteKit): un año +
+	# `immutable`, no hay nada que revalidar nunca — si el contenido cambia, cambia el nombre.
+	@vegaImmutable path /_app/immutable/*
+	header @vegaImmutable Cache-Control "public, max-age=31536000, immutable"
+
+	# Todo lo demás que sirve la SPA de Vega (`index.html`, el fallback SPA de cualquier ruta de
+	# cliente — `/c/…`, `/media`, `/settings`… todas sirven el MISMO `index.html`, ver
+	# `adapter-static({ fallback: 'index.html' })` en `vite.config.ts` — y `vega.config.json`, si
+	# existe) es CONTENIDO sin hash en el nombre: nunca debe quedar cacheado sin revalidar, o un
+	# despliegue nuevo tardaría en verse en clientes con caché fría. Excluye EXPLÍCITAMENTE
+	# `/api/*` (las extensiones Go fijan su propio `Cache-Control` — `vegapreview.go` pone
+	# `no-store` en credenciales de preview — y esta regla NO debe pisarlo) y `/_` / `/_/*`
+	# (el panel de superusuario cerrado con 404).
+	@vegaContent {
+		not path /_app/immutable/* /api/* /_ /_/*
+	}
+	header @vegaContent Cache-Control "no-cache"
+}
+
+http://:4175 {
+	encode zstd gzip
+
+	request_body {
+		max_size 25MB
+	}
+
+	# Cierra el panel público sin alcanzar los assets SvelteKit de `/_app/`.
+	@pocketbasePanel path /_ /_/*
+	respond @pocketbasePanel 404
+
+	# El encoder de los logs se configura en el sink existente del borde; ver README.
+	reverse_proxy csp-pb:8090 {
+		header_up X-Real-IP {remote_host}
+		transport http {
+			read_timeout 360s
+		}
+	}
+
+	# Este bloque va DIFERIDO (Caddy difiere las operaciones de un `header` en cuanto hay un
+	# borrado, aquí `-Server`): cada cabecera se fija al escribir la respuesta y SUSTITUYE la que
+	# traiga PocketBase. Por eso la CSP no va aquí, ver más abajo.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Content-Security-Policy de la SPA de Vega (auditoría 30 sep 2026). Solo para lo que sirve la
+	# SPA, NO para:
+	# - `/api/*`: PocketBase pone su propia política, más estricta, a los ficheros subidos
+	#   (`default-src 'none'; …; sandbox`, leído en PocketBase 0.39.9): un HTML o SVG subido como
+	#   medio no debe ejecutarse en este origen. Esta regla no la toca.
+	# - `/_` y `/_/*`: el panel de superusuario se cierra con 404 antes del proxy.
+	#
+	# Va en su propio `header`, sin borrados, para que NO se difiera: si algún día PocketBase manda
+	# una CSP en estas rutas, el navegador aplica las dos (la intersección), nunca solo la de aquí.
+	#
+	# Cada directiva, y por qué no es más estrecha. Validada en local con una sonda de navegador
+	# que parte de la política estricta (`default-src 'self'`) y afloja solo con una violación
+	# MEDIDA delante; el detalle está en `infra/production/README.md`, «CSP del admin»:
+	# - `default-src 'self'`: todo lo no listado (fuentes, manifest, workers, media) sale de este
+	#   origen. La sonda no midió ninguna violación de esas clases.
+	# - `script-src 'self' 'unsafe-inline'`: AFLOJADA. El `index.html` que genera SvelteKit arranca
+	#   la app con un `<script>` EN LÍNEA (script-src-elem, medido) cuyo texto lleva los nombres
+	#   con hash de los chunks y cambia en cada build: aquí no cabe un hash fijo. Sin
+	#   `'unsafe-inline'` la app no arranca. Sigue bloqueando scripts de otro origen y `eval`.
+	#   Quitarlo pasa por `csp: { mode: 'hash' }` de SvelteKit (README, «Quitar unsafe-inline»).
+	# - `script-src-attr 'none'`: ESTRECHADA. Ningún `onclick=`/`onerror=` en línea: la app no usa
+	#   ninguno (0 violaciones medidas) y, sin esta línea, un `<img onerror=…>` inyectado en el
+	#   HTML se ejecutaría gracias al `'unsafe-inline'` de arriba.
+	# - `style-src 'self' 'unsafe-inline'`: AFLOJADA. Violaciones medidas: `style-src-attr` por el
+	#   `<div style="display: contents">` de `src/app.html` y por los `style=` que Svelte escribe
+	#   en tiempo de ejecución, y `style-src-elem` por la hoja `<style>` que inyecta TipTap/
+	#   ProseMirror al montar un campo de texto enriquecido.
+	# - `img-src 'self' data: blob: https:`: AFLOJADA. `data:` lo exige el favicon que Vite
+	#   incrusta como `data:image/svg+xml` (`src/routes/+layout.svelte:399`; los `data:` de Medios
+	#   que vio la sonda son del adaptador demo en memoria, no de PocketBase); `blob:` la vista previa local
+	#   de un fichero antes de subirlo; `https:` una imagen externa en un campo Markdown o de
+	#   texto enriquecido (medido: sin `https:` su vista previa sale rota). Sin `http:`.
+	# - `connect-src 'self' https:`: AFLOJADA. La API y el realtime (SSE) de PocketBase son mismo
+	#   origen. `https:` lo exige el `POST {sitio}/api/vega-preview/token` del editor visual y de
+	#   la vista previa (medido: bloqueado sin él, el editor no conecta) y, por lectura del
+	#   código, el aviso de versión opt-in (`api.github.com`) y la importación de una colección,
+	#   que descarga los medios del servidor de ORIGEN. En una instancia con un sitio fijo y sin
+	#   importaciones, sustituye `https:` por ese origen exacto y `https://api.github.com`.
+	# - `frame-src 'self' https:`: AFLOJADA. La vista previa y el editor visual cargan el SITIO
+	#   del proyecto en un `<iframe>` de otro origen, que sale del servidor (extensión
+	#   `vegapreview`), no de este fichero. Con un sitio fijo, sustituye `https:` por su origen. El
+	#   puente del editor visual es `postMessage`, que la CSP no restringe.
+	# - `frame-ancestors 'none'`: nadie puede enmarcar el admin (clickjacking).
+	# - `object-src 'none'` y `base-uri 'self'`: sin plugins y sin `<base>` que redirija las rutas.
+	# - Sin `form-action` a propósito: la vista previa envía su token con un `<form>` POST al
+	#   sitio del proyecto (otro origen), y esa directiva no hereda de `default-src`.
+	@vegaSpa {
+		not path /api/* /_ /_/*
+	}
+	header @vegaSpa Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self'; frame-src 'self' https:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+
+	# Cabeceras de caché del admin (auditoría 23 sep 2026 p2): ni PocketBase (`apis.Static`) ni
+	# este Caddy ponían `Cache-Control`, así que el navegador decide por su cuenta (heurística
+	# HTTP normal) tanto para los assets con hash como para el HTML — el peor reparto posible: el
+	# HTML puede quedar cacheado de más (un despliegue nuevo tarda en verse) y los assets con hash
+	# no se aprovechan del todo (podrían cachearse para siempre, nunca cambian de contenido bajo
+	# el mismo nombre).
+	#
+	# `/_app/immutable/*` (nombre de fichero = hash de su contenido, Vite/SvelteKit): un año +
+	# `immutable`, no hay nada que revalidar nunca — si el contenido cambia, cambia el nombre.
+	@vegaImmutable path /_app/immutable/*
+	header @vegaImmutable Cache-Control "public, max-age=31536000, immutable"
+
+	# Todo lo demás que sirve la SPA de Vega (`index.html`, el fallback SPA de cualquier ruta de
+	# cliente — `/c/…`, `/media`, `/settings`… todas sirven el MISMO `index.html`, ver
+	# `adapter-static({ fallback: 'index.html' })` en `vite.config.ts` — y `vega.config.json`, si
+	# existe) es CONTENIDO sin hash en el nombre: nunca debe quedar cacheado sin revalidar, o un
+	# despliegue nuevo tardaría en verse en clientes con caché fría. Excluye EXPLÍCITAMENTE
+	# `/api/*` (las extensiones Go fijan su propio `Cache-Control` — `vegapreview.go` pone
+	# `no-store` en credenciales de preview — y esta regla NO debe pisarlo) y `/_` / `/_/*`
+	# (el panel de superusuario cerrado con 404).
+	@vegaContent {
+		not path /_app/immutable/* /api/* /_ /_/*
+	}
+	header @vegaContent Cache-Control "no-cache"
+}
+
+http://:4176 {
+	encode zstd gzip
+
+	request_body {
+		max_size 25MB
+	}
+
+	# Cierra el panel público sin alcanzar los assets SvelteKit de `/_app/`.
+	@pocketbasePanel path /_ /_/*
+	respond @pocketbasePanel 404
+
+	# El encoder de los logs se configura en el sink existente del borde; ver README.
+	reverse_proxy csp-pb:8090 {
+		header_up X-Real-IP {remote_host}
+		transport http {
+			read_timeout 360s
+		}
+	}
+
+	# Este bloque va DIFERIDO (Caddy difiere las operaciones de un `header` en cuanto hay un
+	# borrado, aquí `-Server`): cada cabecera se fija al escribir la respuesta y SUSTITUYE la que
+	# traiga PocketBase. Por eso la CSP no va aquí, ver más abajo.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Content-Security-Policy de la SPA de Vega (auditoría 30 sep 2026). Solo para lo que sirve la
+	# SPA, NO para:
+	# - `/api/*`: PocketBase pone su propia política, más estricta, a los ficheros subidos
+	#   (`default-src 'none'; …; sandbox`, leído en PocketBase 0.39.9): un HTML o SVG subido como
+	#   medio no debe ejecutarse en este origen. Esta regla no la toca.
+	# - `/_` y `/_/*`: el panel de superusuario se cierra con 404 antes del proxy.
+	#
+	# Va en su propio `header`, sin borrados, para que NO se difiera: si algún día PocketBase manda
+	# una CSP en estas rutas, el navegador aplica las dos (la intersección), nunca solo la de aquí.
+	#
+	# Cada directiva, y por qué no es más estrecha. Validada en local con una sonda de navegador
+	# que parte de la política estricta (`default-src 'self'`) y afloja solo con una violación
+	# MEDIDA delante; el detalle está en `infra/production/README.md`, «CSP del admin»:
+	# - `default-src 'self'`: todo lo no listado (fuentes, manifest, workers, media) sale de este
+	#   origen. La sonda no midió ninguna violación de esas clases.
+	# - `script-src 'self' 'unsafe-inline'`: AFLOJADA. El `index.html` que genera SvelteKit arranca
+	#   la app con un `<script>` EN LÍNEA (script-src-elem, medido) cuyo texto lleva los nombres
+	#   con hash de los chunks y cambia en cada build: aquí no cabe un hash fijo. Sin
+	#   `'unsafe-inline'` la app no arranca. Sigue bloqueando scripts de otro origen y `eval`.
+	#   Quitarlo pasa por `csp: { mode: 'hash' }` de SvelteKit (README, «Quitar unsafe-inline»).
+	# - `script-src-attr 'none'`: ESTRECHADA. Ningún `onclick=`/`onerror=` en línea: la app no usa
+	#   ninguno (0 violaciones medidas) y, sin esta línea, un `<img onerror=…>` inyectado en el
+	#   HTML se ejecutaría gracias al `'unsafe-inline'` de arriba.
+	# - `style-src 'self' 'unsafe-inline'`: AFLOJADA. Violaciones medidas: `style-src-attr` por el
+	#   `<div style="display: contents">` de `src/app.html` y por los `style=` que Svelte escribe
+	#   en tiempo de ejecución, y `style-src-elem` por la hoja `<style>` que inyecta TipTap/
+	#   ProseMirror al montar un campo de texto enriquecido.
+	# - `img-src 'self' data: blob: https:`: AFLOJADA. `data:` lo exige el favicon que Vite
+	#   incrusta como `data:image/svg+xml` (`src/routes/+layout.svelte:399`; los `data:` de Medios
+	#   que vio la sonda son del adaptador demo en memoria, no de PocketBase); `blob:` la vista previa local
+	#   de un fichero antes de subirlo; `https:` una imagen externa en un campo Markdown o de
+	#   texto enriquecido (medido: sin `https:` su vista previa sale rota). Sin `http:`.
+	# - `connect-src 'self' https:`: AFLOJADA. La API y el realtime (SSE) de PocketBase son mismo
+	#   origen. `https:` lo exige el `POST {sitio}/api/vega-preview/token` del editor visual y de
+	#   la vista previa (medido: bloqueado sin él, el editor no conecta) y, por lectura del
+	#   código, el aviso de versión opt-in (`api.github.com`) y la importación de una colección,
+	#   que descarga los medios del servidor de ORIGEN. En una instancia con un sitio fijo y sin
+	#   importaciones, sustituye `https:` por ese origen exacto y `https://api.github.com`.
+	# - `frame-src 'self' https:`: AFLOJADA. La vista previa y el editor visual cargan el SITIO
+	#   del proyecto en un `<iframe>` de otro origen, que sale del servidor (extensión
+	#   `vegapreview`), no de este fichero. Con un sitio fijo, sustituye `https:` por su origen. El
+	#   puente del editor visual es `postMessage`, que la CSP no restringe.
+	# - `frame-ancestors 'none'`: nadie puede enmarcar el admin (clickjacking).
+	# - `object-src 'none'` y `base-uri 'self'`: sin plugins y sin `<base>` que redirija las rutas.
+	# - Sin `form-action` a propósito: la vista previa envía su token con un `<form>` POST al
+	#   sitio del proyecto (otro origen), y esa directiva no hereda de `default-src`.
+	@vegaSpa {
+		not path /api/* /_ /_/*
+	}
+	header @vegaSpa Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:; frame-src 'self' https:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+
+	# Cabeceras de caché del admin (auditoría 23 sep 2026 p2): ni PocketBase (`apis.Static`) ni
+	# este Caddy ponían `Cache-Control`, así que el navegador decide por su cuenta (heurística
+	# HTTP normal) tanto para los assets con hash como para el HTML — el peor reparto posible: el
+	# HTML puede quedar cacheado de más (un despliegue nuevo tarda en verse) y los assets con hash
+	# no se aprovechan del todo (podrían cachearse para siempre, nunca cambian de contenido bajo
+	# el mismo nombre).
+	#
+	# `/_app/immutable/*` (nombre de fichero = hash de su contenido, Vite/SvelteKit): un año +
+	# `immutable`, no hay nada que revalidar nunca — si el contenido cambia, cambia el nombre.
+	@vegaImmutable path /_app/immutable/*
+	header @vegaImmutable Cache-Control "public, max-age=31536000, immutable"
+
+	# Todo lo demás que sirve la SPA de Vega (`index.html`, el fallback SPA de cualquier ruta de
+	# cliente — `/c/…`, `/media`, `/settings`… todas sirven el MISMO `index.html`, ver
+	# `adapter-static({ fallback: 'index.html' })` en `vite.config.ts` — y `vega.config.json`, si
+	# existe) es CONTENIDO sin hash en el nombre: nunca debe quedar cacheado sin revalidar, o un
+	# despliegue nuevo tardaría en verse en clientes con caché fría. Excluye EXPLÍCITAMENTE
+	# `/api/*` (las extensiones Go fijan su propio `Cache-Control` — `vegapreview.go` pone
+	# `no-store` en credenciales de preview — y esta regla NO debe pisarlo) y `/_` / `/_/*`
+	# (el panel de superusuario cerrado con 404).
+	@vegaContent {
+		not path /_app/immutable/* /api/* /_ /_/*
+	}
+	header @vegaContent Cache-Control "no-cache"
+}
+
+http://:4177 {
+	header Content-Type "text/html; charset=utf-8"
+	respond /csp-parent "<!doctype html><iframe id='target' style='width:90vw;height:80vh'></iframe>" 200
+}

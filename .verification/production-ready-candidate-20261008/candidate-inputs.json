@@ -1,0 +1,143 @@
+{
+  "status": "LOCAL_VERIFIED_INPUTS_PRODUCTION_CONDITIONAL",
+  "preparedUTC": "2026-10-08T09:48:49.225705+00:00",
+  "ownership": "/Users/david/code/vegacms/.verification/production-ready-candidate-20261008",
+  "stockVega": {
+    "localImageID": "sha256:be13075b6a2040dbfe20713b79ef715c89fbeee7990118ec6605f3de799948fd",
+    "sourceCommit": "9165fb964b8743d4be5cf65621a687acc7534e1e",
+    "sourceTree": "1b24a844a33898bc98158534f1a78becf208e938",
+    "entrypoint": [
+      "/pb/pocketbase"
+    ],
+    "imageCMD": [
+      "serve",
+      "--http=0.0.0.0:8090",
+      "--dir=/pb/pb_data",
+      "--publicDir=/pb/pb_public",
+      "--origins=https://admin.vegacms.com"
+    ],
+    "originsFlag": [
+      "https://admin.vegacms.com"
+    ],
+    "frontendAssets": 151,
+    "frontendManifestSHA256": "d77470958c89fe263b155b3a885a988c435d0eb404b195a46d0b861af4e29472",
+    "nativeSyntheticCases": 18,
+    "CSPCases": 13,
+    "budgetKB": {
+      "initial": 150.82,
+      "screen": 79.93,
+      "total": 647.59
+    },
+    "distributionReference": null
+  },
+  "lumbreAdmin": {
+    "localImageID": "sha256:c883afc9fe40001bab71f8d6ef0863372e5fea6e2b4db7a01ab2b465183047a8",
+    "nativeSource": {
+      "worktree": "/Users/david/code/vegacms/.verification/worktrees/lumbre-admin-log-redaction-20261008",
+      "commit": "b48b3c53ac76a188dfd82bf7df0fd78aeb08c89e",
+      "tree": "96bbc766c0b9e85fed225d8a8f369904ef204107",
+      "status": ""
+    },
+    "entrypoint": [
+      "/pb/lumbre-admin"
+    ],
+    "imageCMD": [
+      "serve",
+      "--http=0.0.0.0:8090",
+      "--dir=/pb/pb_data",
+      "--publicDir=/pb/pb_public"
+    ],
+    "originsFlag": null,
+    "imageCMDHasOrigins": false,
+    "compiler": "go1.26.5",
+    "PBVersion": "0.39.9",
+    "binarySHA256": "54caa6d97178e3e303ac8f1eebb7c9bb1b74e5c4848425b60ca5d75edfb9048d",
+    "hookSHA256": "c11c225c49511ba2578572689be1a49a5c9b54bd083ef3f0be791d124b6f462a",
+    "frontendSourceCommit": "9165fb964b8743d4be5cf65621a687acc7534e1e",
+    "frontendSourceTree": "1b24a844a33898bc98158534f1a78becf208e938",
+    "frontendInputImage": "sha256:be13075b6a2040dbfe20713b79ef715c89fbeee7990118ec6605f3de799948fd",
+    "frontendAssets": 151,
+    "frontendManifestSHA256": "d77470958c89fe263b155b3a885a988c435d0eb404b195a46d0b861af4e29472",
+    "nativeSyntheticCases": 18,
+    "CSPCases": 13,
+    "distributionReference": null
+  },
+  "fodaveg": {
+    "localImageID": "sha256:0095df745a6e7de4b4cd5bcf7b4cb0bad3ad7620b2df8d28b198c08557c4b1ad",
+    "nativeSource": {
+      "head": "f657d48dcb2e0ea863f67c788ef419b36ca9a893",
+      "tree": "943096e975e05b01bb0e0bbdbce31e4b39b3999f",
+      "status": ""
+    },
+    "entrypoint": [
+      "/usr/bin/tini",
+      "-g",
+      "--",
+      "./docker-entrypoint.sh"
+    ],
+    "DockerCMD": null,
+    "DockerCMDKnown": false,
+    "liveChildPBArgvKnown": false,
+    "liveOriginsKnown": false,
+    "L15AddedOrigins": false,
+    "entrypointSHA256": "17ca1bafb11ba117e1f864707345a8753e2c8423f3bb5191f939347bfc6bace5",
+    "compiler": "go1.26.8",
+    "PBVersion": "0.39.7",
+    "nativeSyntheticCases": 18,
+    "nativeProofUsesPBEntrypointOverride": true,
+    "originalTiniNodePBStartupReopenCases": 17,
+    "originalEntrypointProofDataMountOnly": true,
+    "NodeProofResponse": 404,
+    "Node404IsRenderedPageQA": false,
+    "frontendProvenance": "existing Fod Astro59be vendor, not Lumbre4469 and not stock151 identity",
+    "productionAdminSPAMountKnown": false,
+    "loopbackNodePBMustBePreserved": true,
+    "distributionReference": null
+  },
+  "lumbrePublicAstroL13SeparateIntegration": {
+    "sourceCommit": "ba36191ff7b53b2bd3f82316c7edf9b45b386343",
+    "sourceTree": "ac37a53b6f5d4e1fc3c8fc9896376b194854e5f3",
+    "upstreamCommit": "4469e482c69571b54605c31e29360b82dbff0f75",
+    "upstreamTree": "e012dd1608de0d908ef8d7929f7b460949ac6b5a",
+    "tarballSHA256": "4c56287e8414c54421830f5f81482c91db9abf3190bad2d9b725d67682b2c0ac",
+    "version": "0.2.0",
+    "consumerCases": 25,
+    "notTheAdminSPAImage": true,
+    "notAssumedIntegratedWithNativeRuntime": true
+  },
+  "knownAccessLogging": {
+    "hosts": [
+      "admin.vegacms.com",
+      "admin.lumbre.pro",
+      "admin.fodaveg.net"
+    ],
+    "hostSkipped": true,
+    "writerOrRotationKnown": false,
+    "preserveExclusion": true,
+    "activateConditionalFragments": false
+  },
+  "referenceArtifactsSHA256": {
+    ".verification/production-rollout-proposal-20261007/freeze-manifest.json": "cb40b668fbe17b5366b1c8415c18800b0e7715c5eb8465daf3e9bdd994d31b9a",
+    ".verification/production-rollout-proposal-20261007/root-review.json": "693da5b3ebe8dbd8d59a694071eb592d720d99ec16ad10de88f083c57aade2e0",
+    ".verification/production-rollout-proposal-20261007/remaining-prerequisites-20261008.md": "922700a786ccd8b2b0533b1213cb631ff3519116240952bbae92fdedf8c73a4a",
+    ".verification/local-network-peer-inventory-20261008/review.md": "1105e4309169de48ac79fbcb08dbc9de19cc4c19c8a2776aae68c169924b1947",
+    ".verification/local-consumer-runtime-20261008/vega-current-packaged-image/receipt.json": "4bdf9c6a8685aa807b3a86446c241eae848f6046c33781a48204c6aa43e69a8e",
+    ".verification/local-consumer-runtime-20261008/vega-current-packaged-image/independent-review.md": "98fede743131e95d2d32873299dbd9b17ffb43f97a40bc51aeefd4306ce7417f",
+    ".verification/vega-current-image-csp-20261008/receipt.json": "7ac0673b323319af023c8b46d89742bc97c6bcca20d8e3875e8e7fadccb1378b",
+    ".verification/vega-current-image-csp-20261008/final-review.md": "b7c99b7afee883bc3d926a72249600a0f7d23ad296e384a5ec0b9fb24c9b0982",
+    ".verification/local-consumer-runtime-20261008/lumbre-current-spa-packaged-image/receipt.json": "e36483ee81e649936514dd230e27ad3e3a122102058cb22e60f24493b5566490",
+    ".verification/local-consumer-runtime-20261008/lumbre-current-spa-packaged-image/independent-review.md": "555de4653ebdd3cde7169ae80687091ad50345183e32514c3f29ce4f574487fa",
+    ".verification/lumbre-current-image-csp-20261008/receipt.json": "9d936dcd776cd02cceb944caebbfd97c508fead025350cf4e07797f133eb7057",
+    ".verification/lumbre-current-image-csp-20261008/final-review.md": "d8716b57389df79aeb05b3b798dbff3aada504ea793fc1caf4fa716e4625bf7b",
+    ".verification/local-consumer-runtime-20261008/fodaveg-packaged-image/receipt.json": "6c1d5659d6cbb94ea873522af2ed6eedf0a053674cbd9c1b1efd428f17b14916",
+    ".verification/local-consumer-runtime-20261008/fodaveg-packaged-image/independent-review.md": "366b7cfb9b2f4f714cca37d661136004a915291c82709cd0714416590291d029",
+    ".verification/lumbre-web-astro-l13-20261008/receipt.json": "fc51d9e778bd311c3c94aa428acf5c184b90d080c2c339e730d7db663e15737d",
+    ".verification/lumbre-web-astro-l13-20261008/delivery-review.md": "64847e112a39ce2b6adcd7f140a845886d954dcb32253c2849658fe845ad02ee",
+    ".verification/caddy-approved-logger-mapping-20261008/terminal-receipt.json": "bb3250122d41ceab713b1c13f2318ba0115013d1635592506b2f25ee26d02d69",
+    ".verification/caddy-approved-logger-mapping-20261008/projection.json": "748054e034d3af1df062833732ad24e1336df8e873f30fc463049942b58e2b98",
+    ".verification/caddy-approved-logger-mapping-20261008/final-review.md": "72d71f9966d338c25887f609619a3f2661a987a3498484b65e16e3643212a1dd"
+  },
+  "baseline31FilesVerified": 31,
+  "baselineHashMismatches": [],
+  "noPrivateReadNoGateNoMutation": true
+}

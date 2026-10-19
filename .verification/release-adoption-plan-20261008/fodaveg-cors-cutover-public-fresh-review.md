@@ -1,0 +1,24 @@
+# Fod CORS cutover y smoke — APTO estático
+
+| Archivo | SHA-256 |
+|---|---|
+| remote_cutover.py | de511d31f3c92c18ada597ac6de09f01112b125374eb6c1643ca0cdcce98168e |
+| run_cutover.py | 6ff2e8a6eed8daf09779406f2aa2e06c461d72d6deeede31e930387f57c26c0b |
+| served_smoke.py | 6d6028c7a0e5437121d126ec22b616a1d2ccbeec2bc22c3c366bbddf8a9924af |
+| cutover_selftest.py | a14eddfca0837cc2d188fd444ec8e6ebc15b5117fcf8112fa59897e277520fb2 |
+| served_selftest.py | d0c5df1ca2ea293880fca53c9fb08e5aa8cb5db6b4239b6789f2c42ee13c47c7 |
+| manifest-v2.json | 35b196c7deaaa24adf8b93831f6047c3020a21538047fc2461e3a54a155c19ce |
+
+Inventario stat/name-status contra /dev/null y lectura completa por bloques de los cinco archivos686/146/298/390/79líneas, más manifest-v2(84), offline-receipt-v2(62), OPERATE(78) y prueba canónica de peers. Hashes de fuentes y evidencia verificados. Ningún SSH, Docker, build ni test ejecutado por revisor. Reutiliza revisión independiente del transporte ad47/f022 y cadena14d98/a6d4; no los reejecuta. Contexto adicional helper5d413 y su snapshot/tar/clone/PBboot/cleanup, causalruntime079f y publicaliasb26 ya revisados, source/contract/CORSconsumer y pruebas native acreditadas por root por mismo candidato cc8f3b14/tree693fc.
+
+Sin must-fix encontrados en este sello. Solo image-line cambia Compose a OCI22cf; oldImage0e0ef563 adoptada y nueva22cf se acreditan por separado. Mantiene dotenv SHA6c673031 e identidad privados, ENTRY/CMD null y mounts/edge/aliases/puertos exactos. No confunde config1b6436 con ID efectivo OCI22cf. Los reads privados permanecen en servidor RAM/copias0700/0600 sin Config.Env, logs, Health.Test/Output ni Caddy privado. Wrapper transmite buffers SHA exactos y solo exporta JSON cerrado.
+
+Snapshot nuevo quiescido antes de instalar, presupuesto real /srv+Docker filesystem, tar links/traversal rechazados, clone TEST con comparación byte exacta y PB binario nuevo iniciado sobre ese clone sin red; helpers docker run incorporan pull-never. No se restaura data de producción. Stop/start por ID acreditado; Compose fullidentity y parentFD NOFOLLOW/temporal inode propio, gate último justo antes de create/start y después health. INSTALLED/CREATED durables antes de actividad runtime. Create no-build/pull-never. Nuevo runtime exige PB1/Node1/tini1 y argv PB exacto origen propio; running exige ambos puertos8090/4321 no publicados. `{}` se acepta únicamente detenido+require_healthy=False con ExposedPorts exactos8090+4321 y HostBindings inexistentes; baseline normaliza únicamente esa representación acreditada.
+
+Rollback acredita fase/ownCompose/env/ID nuevo aun unhealthy y selector fijo; restaura exclusivamente Compose propio y la imagen adoptada0e, con guard viejo previo/create detenido/ID persistido/strict healthy final. Nunca imagen anterior a adopción, restore de datos ni adopción ambigua por labels/fecha. Cambios ajenos permanecen; fallo ambiguo detiene para operador y no permite replay automático. Rama INSTALLED con ID antiguo aún detenido recupera ese mismo ID. Guard serial bajo exclusividad de root, no transacción Docker/filesystem.
+
+Public smoke:155assets bytes/MIME exactos; root/deep index SHA/HTML; health; JSON discovery acotado<=8192 como objeto (no certifica todos sus campos), own/foreign/null GET y preflight health/discovery con métodos y authorization/content-type; sin Origin sigue PB; peers y fodaveg.net200HTML/política contra baseline fresco capturado DESPUÉS de cortes stock/Lumbre. NoRedirect/NoProxy. Única excepción lógica index: solo único failedPath index.html, raíz200 con SHA esperado, petición fija fresca301/308 cuyo Location resuelve exactoHTTPSsamehost/ sin query/userinfo, nunca follow. peer-canonical-index-proof cee2dc145fa1bddf28819d9bdd09c390b375a8901c0bdddb8fdd15211a2eba0f acredita antiguo Fod root174f2e6... y alias301; no se usa como serving actual de nueva imagen.
+
+Owner acredita11cutover+3public+9transport y4seal reutilizados=27; tests leídos, sin rerun. Negativos: argv/origin/trío/ID/volume writer, puertos expuestos/bindings/running versus detenido, foreign Compose antes stop/create/start, inode ajeno con mismos bytes, rollback own-ID unhealthy, HTMLdiscovery/redirect desconocido/foreignACAO/indexroot SHA distinto. Local native123aserciones64responses+18boot/reopen se reutiliza por config/bin/hook/155assets acreditados root; GETdiscovery native era solo status, este smoke añade JSON real sin afirmar QA auth/UI.
+
+OPERATE11935ec89b81e392c974ce7d3e8240935dd0293201af9b2525b428ef8705cd11 y offline-receipt-v2 38fc01a9c07d6c1c23936704db19fd21229a1e8627ad48570d32c935ea16331e coinciden con sello final. APTO es revisión, no runtime grant ni deploy ni aceptación pública. Root único operador exige LOADchain actual, check fresco, snapshot quiescido, resultado terminal y forward155/CORS/site/peers más edge/global. No se certifica auth/UI, SMTP, activación de opt-ins ni aislamiento de redes con este lote.

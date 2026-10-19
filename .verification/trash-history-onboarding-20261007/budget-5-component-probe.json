@@ -1,0 +1,20 @@
+[
+  {
+    "name": "PreviewPanel",
+    "sourceBytes": 16787,
+    "compiledUnminifiedGzipBytes": 5827,
+    "limit": "Compiler output only; no bundling/minification/deduplication, not expected route savings."
+  },
+  {
+    "name": "ScheduleDialog",
+    "sourceBytes": 6760,
+    "compiledUnminifiedGzipBytes": 3528,
+    "limit": "Compiler output only; no bundling/minification/deduplication, not expected route savings."
+  },
+  {
+    "name": "FormPublishControl",
+    "sourceBytes": 5996,
+    "compiledUnminifiedGzipBytes": 2256,
+    "limit": "Compiler output only; no bundling/minification/deduplication, not expected route savings."
+  }
+]

@@ -1,0 +1,54 @@
+
+Running 13 tests using 1 worker
+
+(node:51542) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-version-fixture/vega-lumbre/current-spa-proof.spec.ts:146:1 › source: exact current index bytes and source CSP served by isolated Caddy (681ms)
+  ✓   2 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-version-fixture/vega-lumbre/current-spa-proof.spec.ts:159:1 › source: login reaches exact historical landing and exposes content navigation (976ms)
+  ✓   3 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-version-fixture/vega-lumbre/current-spa-proof.spec.ts:169:1 › source: list search actually filters seeded content (631ms)
+  ✓   4 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-version-fixture/vega-lumbre/current-spa-proof.spec.ts:177:1 › source: edit form writes and reopens saved title via SPA; history panel opens (1.1s)
+  ✓   5 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-version-fixture/vega-lumbre/current-spa-proof.spec.ts:196:1 › source: new form creates a record and resolves its real memory ID (811ms)
+  ✘   6 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-version-fixture/vega-lumbre/current-spa-proof.spec.ts:209:1 › source: visual editor fetches HTTPS token, completes bridge and selects real block (5.6s)
+(node:55683) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   7 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-version-fixture/vega-lumbre/current-spa-proof.spec.ts:233:2 › source: preview panel uses actual external GET document transport (912ms)
+  ✓   8 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-version-fixture/vega-lumbre/current-spa-proof.spec.ts:233:2 › source: preview panel uses actual external POST document transport (497ms)
+  ✓   9 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-version-fixture/vega-lumbre/current-spa-proof.spec.ts:255:1 › source: media bootstrap and settings change run real UI handlers (501ms)
+  ✓  10 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-version-fixture/vega-lumbre/current-spa-proof.spec.ts:272:1 › source: trash exposes actual fallback and navigates its CTA (426ms)
+  ✓  11 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-version-fixture/vega-lumbre/current-spa-proof.spec.ts:281:1 › ancestor control: same built app embeds without ancestor rule; source actually blocks it (618ms)
+  ✓  12 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-version-fixture/vega-lumbre/current-spa-proof.spec.ts:385:2 › connect negative › removing only https connect permission blocks actual preview fetch before endpoint (754ms)
+  ✓  13 ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-version-fixture/vega-lumbre/current-spa-proof.spec.ts:402:2 › form negative › adding form-action self blocks actual panel POST while token fetch still succeeds (849ms)
+
+
+  1) ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-version-fixture/vega-lumbre/current-spa-proof.spec.ts:209:1 › source: visual editor fetches HTTPS token, completes bridge and selects real block 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  locator('.vega-visual-status-text')
+    Expected: "Conectado al sitio: 3 bloques en la página."
+    Received: "Conectado al sitio: 3 bloque(s) en la página."
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveText" with timeout 5000ms
+      - waiting for locator('.vega-visual-status-text')
+        - locator resolved to <span class="vega-visual-status-text svelte-1qlb7bj">Conectando con el sitio…</span>
+        - unexpected value "Conectando con el sitio…"
+        12 × locator resolved to <span class="vega-visual-status-text svelte-1qlb7bj">Conectado al sitio: 3 bloque(s) en la página.</span>
+           - unexpected value "Conectado al sitio: 3 bloque(s) en la página."
+
+
+      213 | 	await login(page, true);
+      214 | 	await page.goto('/c/paginas/pagina_1/visual');
+    > 215 | 	await expect(page.locator('.vega-visual-status-text')).toHaveText(
+          | 	                                                       ^
+      216 | 		'Conectado al sitio: 3 bloques en la página.'
+      217 | 	);
+      218 | 	await expect.poll(() => counts.tokenPosts).toBeGreaterThan(0);
+        at /Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-version-fixture/vega-lumbre/current-spa-proof.spec.ts:215:57
+
+    Error Context: ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-version-fixture/vega-lumbre/current-spa-proof-runtime/test-results/current-spa-proof-source-v-bafd7-idge-and-selects-real-block/error-context.md
+
+  1 failed
+    ../../../Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-version-fixture/vega-lumbre/current-spa-proof.spec.ts:209:1 › source: visual editor fetches HTTPS token, completes bridge and selects real block 
+  12 passed (18.0s)

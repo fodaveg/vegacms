@@ -1,0 +1,355 @@
+{
+  "kind": "local mockup only; not Vega QA",
+  "node": "v22.22.3",
+  "browser": "149.0.7827.55",
+  "checks": [
+    {
+      "name": "01-search-desktop:layout",
+      "ok": true,
+      "detail": {
+        "overflow": false,
+        "modalOverflow": false,
+        "dialogVisible": false,
+        "mode": "light",
+        "lang": "es",
+        "actionHeights": []
+      }
+    },
+    {
+      "name": "01-search-desktop:touch",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "01-search-desktop:theme-lang",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "02-create-desktop:layout",
+      "ok": true,
+      "detail": {
+        "overflow": false,
+        "modalOverflow": false,
+        "dialogVisible": true,
+        "mode": "light",
+        "lang": "es",
+        "actionHeights": [
+          44,
+          44
+        ]
+      }
+    },
+    {
+      "name": "02-create-desktop:touch",
+      "ok": true,
+      "detail": [
+        44,
+        44
+      ]
+    },
+    {
+      "name": "02-create-desktop:theme-lang",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "03-selected-dark-en:layout",
+      "ok": true,
+      "detail": {
+        "overflow": false,
+        "modalOverflow": false,
+        "dialogVisible": false,
+        "mode": "dark",
+        "lang": "en",
+        "actionHeights": []
+      }
+    },
+    {
+      "name": "03-selected-dark-en:touch",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "03-selected-dark-en:theme-lang",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "04-long-mobile-en:layout",
+      "ok": true,
+      "detail": {
+        "overflow": false,
+        "modalOverflow": false,
+        "dialogVisible": true,
+        "mode": "dark",
+        "lang": "en",
+        "actionHeights": [
+          44,
+          44
+        ]
+      }
+    },
+    {
+      "name": "04-long-mobile-en:touch",
+      "ok": true,
+      "detail": [
+        44,
+        44
+      ]
+    },
+    {
+      "name": "04-long-mobile-en:theme-lang",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "05-duplicate-mobile:layout",
+      "ok": true,
+      "detail": {
+        "overflow": false,
+        "modalOverflow": false,
+        "dialogVisible": true,
+        "mode": "light",
+        "lang": "es",
+        "actionHeights": [
+          44,
+          44
+        ]
+      }
+    },
+    {
+      "name": "05-duplicate-mobile:touch",
+      "ok": true,
+      "detail": [
+        44,
+        44
+      ]
+    },
+    {
+      "name": "05-duplicate-mobile:theme-lang",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "06-network-mobile:layout",
+      "ok": true,
+      "detail": {
+        "overflow": false,
+        "modalOverflow": false,
+        "dialogVisible": true,
+        "mode": "light",
+        "lang": "es",
+        "actionHeights": [
+          44,
+          44
+        ]
+      }
+    },
+    {
+      "name": "06-network-mobile:touch",
+      "ok": true,
+      "detail": [
+        44,
+        44
+      ]
+    },
+    {
+      "name": "06-network-mobile:theme-lang",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "search-enter-does-not-create",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "dialog-name-focus",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "parent-inert",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "success-selects-local-record",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "parent-draft-kept",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "parent-dirty-kept",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "success-focus-chip",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "dirty-child-cancel-confirms",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "cancel-focus-safe",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "keep-editing-child-value",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "discard-keeps-parent",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "cancel-focus-opener",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "creation-affordance:readonly",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "lookup-kept:readonly",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "creation-affordance:denied",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "lookup-kept:denied",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "creation-affordance:hidden",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "lookup-kept:hidden",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "creation-affordance:limit",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "lookup-kept:limit",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "required-error-focus",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "required-prevents-create",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "busy-escape-keeps-dialog",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "busy-fields-readonly",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "busy-actions-aria-disabled",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "existing-selection-closes-dialog",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "existing-not-created-copy",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-three-frames:1440",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-overflow:1440",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-overflow:1440",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-overflow:1440",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-three-frames:390",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-overflow:390",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-overflow:390",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "board-frame-overflow:390",
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "captures": [
+    "01-search-desktop.png",
+    "02-create-desktop.png",
+    "03-selected-dark-en.png",
+    "04-long-mobile-en.png",
+    "05-duplicate-mobile.png",
+    "06-network-mobile.png",
+    "lamina-1440.png",
+    "lamina-390.png"
+  ],
+  "errors": [],
+  "summary": {
+    "checks": 53,
+    "failures": 0,
+    "captures": 8,
+    "pageErrors": 0
+  }
+}

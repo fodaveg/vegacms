@@ -1,0 +1,26 @@
+{
+  "assetsChecked": 153,
+  "assetsMatched": 153,
+  "bodyValuesStored": false,
+  "canonicalIndexAlias": true,
+  "cors": {
+    "discoveryAndCors": true,
+    "foreignDenied": true,
+    "methodHeaderPreflights": true,
+    "normalApiAndCors": true,
+    "nullDenied": true,
+    "ownOrigin": true,
+    "withoutOrigin": true
+  },
+  "credentialsSent": false,
+  "discoveryMode": "LEGACY_SPA_FALLBACK",
+  "observedAt": "2026-10-15T02:09:37.907336+00:00",
+  "pathsVerified": true,
+  "scope": "Current public verification only; no fresh pre-cutover baseline claimed",
+  "service": "vega-pb",
+  "sourceHashes": {
+    "cors": "43d537d35b6dff7435908abfd65b2999067c5d5edae5238bfffb670ff3e177d4",
+    "smoke": "04be908ba8eae67ce42db644ad98efc9ef1c3aa2d46b5e1921e9e5d6f88e7e23"
+  },
+  "status": "CORS_CURRENT_PUBLIC_OK"
+}

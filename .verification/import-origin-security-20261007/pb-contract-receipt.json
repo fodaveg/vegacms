@@ -1,0 +1,89 @@
+{
+  "task": "16864548-279d-4305-9229-1acbafe79aa5",
+  "worktree": "/private/tmp/vegacms-import-origins-20261007",
+  "branch": "codex/import-origins-20261007",
+  "base": "2abd32a3eab62a08a5055e1780d50fdff77e35f9",
+  "verifiedTree": "f9a1251aa547402f91e7208faf290474d4f3a08a",
+  "sourceBlobs": {
+    "tests/contract/pocketbase.contract.test.ts": "bfb0020edfc2345a3ce8b59410e7b4c7d7a5012d"
+  },
+  "scope": "Test consumer only; explicit trusted harness origin consent, shared preview/write policy+cache; no product policy edits",
+  "environment": {
+    "node": "22.22.3",
+    "vitest": "4.1.10",
+    "PB": "0.39.9 real binary",
+    "deps": "existing shared node_modules symlink",
+    "binary": "existing .pbbin symlink to root worktree, no download",
+    "network": "ephemeral loopback fixture only; escalated runner authorized for bind/spawn",
+    "diskFreeBefore": "134 GiB",
+    "budget": "<1 GiB",
+    "installs": false
+  },
+  "checks": [
+    {
+      "argv": [
+        "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/contract/pocketbase.contract.test.ts",
+        "--maxWorkers=1",
+        "-t",
+        "exportar del origen \u2192 importar en un destino virgen"
+      ],
+      "session": 83238,
+      "exit": 0,
+      "files": 1,
+      "testsPassed": 1,
+      "testsFilteredSkipped": 129,
+      "log": "/Users/david/code/vegacms/.verification/import-origin-security-20261007/pb-contract-final.log"
+    },
+    {
+      "argv": [
+        [
+          "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+          "scripts/check-pocketbase-binary.mjs"
+        ],
+        [
+          "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+          "node_modules/prettier/bin/prettier.cjs",
+          "--check",
+          "tests/contract/pocketbase.contract.test.ts"
+        ],
+        [
+          "/Users/david/.nvm/versions/node/v22.22.3/bin/node",
+          "node_modules/eslint/bin/eslint.js",
+          "tests/contract/pocketbase.contract.test.ts"
+        ],
+        [
+          "git",
+          "diff",
+          "--check"
+        ]
+      ],
+      "exit": 0,
+      "log": "/Users/david/code/vegacms/.verification/import-origin-security-20261007/pb-contract-static.log"
+    }
+  ],
+  "coverage": "No-consent preview blocks file despite JSON backend declaration; destination remains empty. Explicit exact generated fixture origin is authorized outside JSON; same cached fetcher used before/write, one media download. Existing real IDs, relation and non-empty exact binary content assertions retained.",
+  "limitations": [
+    "Only selected PB contract case executed, not130-test full file.129 skipped by name filter.",
+    "No full gate/typecheck/build/headless/deploy/push. Root combined gate remains pending.",
+    "Production rollout proposal paused; no production reads or writes during this fixture fix."
+  ],
+  "review": {
+    "verdict": "ready for merge, no findings",
+    "path": "/Users/david/code/vegacms/.verification/import-origin-security-20261007/pb-contract-review.md",
+    "tree": "f9a1251aa547402f91e7208faf290474d4f3a08a"
+  },
+  "commit": "3c577f07c6169b8b51b6295973e5832121e984d6",
+  "commitVerification": {
+    "commands": [
+      "git show --no-patch --format=fuller HEAD",
+      "git status --short",
+      "git rev-parse HEAD^{tree}"
+    ],
+    "exit": 0,
+    "worktree": "clean",
+    "tree": "f9a1251aa547402f91e7208faf290474d4f3a08a"
+  }
+}

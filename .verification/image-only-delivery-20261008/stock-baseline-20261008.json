@@ -1,0 +1,309 @@
+{
+  "bodyValuesStored": false,
+  "credentialsSent": false,
+  "hosts": {
+    "fodaveg": {
+      "cors": {
+        "getForeign": {
+          "bodySha256": "76686c64231f7a2501c9e357ad2432fa6d22ddbe3f0eff6c2e1e0234b634ac35",
+          "contentType": "application/json",
+          "cors": "*",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": true,
+          "referrerPolicySha256": null,
+          "status": 200
+        },
+        "getOwn": {
+          "bodySha256": "76686c64231f7a2501c9e357ad2432fa6d22ddbe3f0eff6c2e1e0234b634ac35",
+          "contentType": "application/json",
+          "cors": "*",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": true,
+          "referrerPolicySha256": null,
+          "status": 200
+        },
+        "optionsForeign": {
+          "bodySha256": null,
+          "contentType": "",
+          "cors": "*",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": false,
+          "referrerPolicySha256": null,
+          "status": 204
+        },
+        "optionsOwn": {
+          "bodySha256": null,
+          "contentType": "",
+          "cors": "*",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": false,
+          "referrerPolicySha256": null,
+          "status": 204
+        }
+      },
+      "paths": {
+        "deep": {
+          "bodySha256": "4cdfa4a5ca28b5376273e4b7db055fafce90f56dedd5d1844518d82f1a57ef86",
+          "contentType": "text/html",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": true,
+          "referrerPolicySha256": null,
+          "status": 200
+        },
+        "health": {
+          "bodySha256": "76686c64231f7a2501c9e357ad2432fa6d22ddbe3f0eff6c2e1e0234b634ac35",
+          "contentType": "application/json",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": true,
+          "referrerPolicySha256": null,
+          "status": 200
+        },
+        "missing": {
+          "bodySha256": "4cdfa4a5ca28b5376273e4b7db055fafce90f56dedd5d1844518d82f1a57ef86",
+          "contentType": "text/html",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": true,
+          "referrerPolicySha256": null,
+          "status": 200
+        },
+        "panel": {
+          "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "contentType": "",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": false,
+          "referrerPolicySha256": null,
+          "status": 404
+        },
+        "root": {
+          "bodySha256": "4cdfa4a5ca28b5376273e4b7db055fafce90f56dedd5d1844518d82f1a57ef86",
+          "contentType": "text/html",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": true,
+          "referrerPolicySha256": null,
+          "status": 200
+        }
+      }
+    },
+    "lumbre-admin-pb": {
+      "cors": {
+        "getForeign": {
+          "bodySha256": "76686c64231f7a2501c9e357ad2432fa6d22ddbe3f0eff6c2e1e0234b634ac35",
+          "contentType": "application/json",
+          "cors": "*",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": true,
+          "referrerPolicySha256": null,
+          "status": 200
+        },
+        "getOwn": {
+          "bodySha256": "76686c64231f7a2501c9e357ad2432fa6d22ddbe3f0eff6c2e1e0234b634ac35",
+          "contentType": "application/json",
+          "cors": "*",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": true,
+          "referrerPolicySha256": null,
+          "status": 200
+        },
+        "optionsForeign": {
+          "bodySha256": null,
+          "contentType": "",
+          "cors": "*",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": false,
+          "referrerPolicySha256": null,
+          "status": 204
+        },
+        "optionsOwn": {
+          "bodySha256": null,
+          "contentType": "",
+          "cors": "*",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": false,
+          "referrerPolicySha256": null,
+          "status": 204
+        }
+      },
+      "paths": {
+        "deep": {
+          "bodySha256": "92696276c1727cdc6fdc33a711be36e1bf0a890a6ed8c0f20610fc9b16953d0c",
+          "contentType": "text/html",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": true,
+          "referrerPolicySha256": null,
+          "status": 200
+        },
+        "health": {
+          "bodySha256": "76686c64231f7a2501c9e357ad2432fa6d22ddbe3f0eff6c2e1e0234b634ac35",
+          "contentType": "application/json",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": true,
+          "referrerPolicySha256": null,
+          "status": 200
+        },
+        "missing": {
+          "bodySha256": "92696276c1727cdc6fdc33a711be36e1bf0a890a6ed8c0f20610fc9b16953d0c",
+          "contentType": "text/html",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": true,
+          "referrerPolicySha256": null,
+          "status": 200
+        },
+        "panel": {
+          "bodySha256": "148a9ccffdd3e5d39c8687bc879430917f870d32550d163ff5f8c27219c9d4f6",
+          "contentType": "text/html",
+          "cspSha256": "dbb7810c20c19cbfe646e8e157410dfd4ae2ec78e617ab2be0f8dc48ec1b7e7e",
+          "hsts": true,
+          "networkError": false,
+          "nosniff": true,
+          "referrerPolicySha256": null,
+          "status": 200
+        },
+        "root": {
+          "bodySha256": "92696276c1727cdc6fdc33a711be36e1bf0a890a6ed8c0f20610fc9b16953d0c",
+          "contentType": "text/html",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": true,
+          "referrerPolicySha256": null,
+          "status": 200
+        }
+      }
+    },
+    "vega-pb": {
+      "cors": {
+        "getForeign": {
+          "bodySha256": "76686c64231f7a2501c9e357ad2432fa6d22ddbe3f0eff6c2e1e0234b634ac35",
+          "contentType": "application/json",
+          "cors": "*",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": true,
+          "referrerPolicySha256": null,
+          "status": 200
+        },
+        "getOwn": {
+          "bodySha256": "76686c64231f7a2501c9e357ad2432fa6d22ddbe3f0eff6c2e1e0234b634ac35",
+          "contentType": "application/json",
+          "cors": "*",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": true,
+          "referrerPolicySha256": null,
+          "status": 200
+        },
+        "optionsForeign": {
+          "bodySha256": null,
+          "contentType": "",
+          "cors": "*",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": false,
+          "referrerPolicySha256": null,
+          "status": 204
+        },
+        "optionsOwn": {
+          "bodySha256": null,
+          "contentType": "",
+          "cors": "*",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": false,
+          "referrerPolicySha256": null,
+          "status": 204
+        }
+      },
+      "paths": {
+        "deep": {
+          "bodySha256": "92696276c1727cdc6fdc33a711be36e1bf0a890a6ed8c0f20610fc9b16953d0c",
+          "contentType": "text/html",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": true,
+          "referrerPolicySha256": null,
+          "status": 200
+        },
+        "health": {
+          "bodySha256": "76686c64231f7a2501c9e357ad2432fa6d22ddbe3f0eff6c2e1e0234b634ac35",
+          "contentType": "application/json",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": true,
+          "referrerPolicySha256": null,
+          "status": 200
+        },
+        "missing": {
+          "bodySha256": "92696276c1727cdc6fdc33a711be36e1bf0a890a6ed8c0f20610fc9b16953d0c",
+          "contentType": "text/html",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": true,
+          "referrerPolicySha256": null,
+          "status": 200
+        },
+        "panel": {
+          "bodySha256": "148a9ccffdd3e5d39c8687bc879430917f870d32550d163ff5f8c27219c9d4f6",
+          "contentType": "text/html",
+          "cspSha256": "dbb7810c20c19cbfe646e8e157410dfd4ae2ec78e617ab2be0f8dc48ec1b7e7e",
+          "hsts": true,
+          "networkError": false,
+          "nosniff": true,
+          "referrerPolicySha256": null,
+          "status": 200
+        },
+        "root": {
+          "bodySha256": "92696276c1727cdc6fdc33a711be36e1bf0a890a6ed8c0f20610fc9b16953d0c",
+          "contentType": "text/html",
+          "cspSha256": null,
+          "hsts": true,
+          "networkError": false,
+          "nosniff": true,
+          "referrerPolicySha256": null,
+          "status": 200
+        }
+      }
+    }
+  },
+  "service": "vega-pb",
+  "stage": "baseline",
+  "status": "BASELINE_CAPTURED"
+}

@@ -1,0 +1,10 @@
+[WARN] Your node_modules are out of sync with your lockfile. The value of the enableGlobalVirtualStore setting has changed
+
+ RUN  v4.1.10 /private/tmp/vegacms-ui-publish-icons-20261007
+
+
+ Test Files  9 passed (9)
+      Tests  209 passed (209)
+   Start at  18:57:18
+   Duration  5.99s (transform 8.99s, setup 0ms, import 10.86s, tests 7.85s, environment 4.56s)
+

@@ -1,0 +1,64 @@
+{
+  "task": "7d91bb57-ed2f-475c-a90d-3bfbbae6364c",
+  "kind": "design-proposal-not-product-implementation",
+  "baseline": "8a10f7f61da35a777b51d6cd8b3290e136660636",
+  "tree": "f8d85273cf8e2c3b219a77761ffd7788faa0fae9",
+  "worktree": "/private/tmp/vegacms-ink2-design-20261007",
+  "node": "v26.10.0",
+  "platform": "Darwin",
+  "scope": "design/mockups/2026-10-07-contraste-ink-2",
+  "checks": {
+    "prettier": "passed",
+    "eslint_generator": "passed",
+    "reproduction_8_artifacts": "byte-identical",
+    "source_product_diff": "empty",
+    "proposed_pairs": 210,
+    "proposed_pairs_below_AA": 0,
+    "dark_identical_pairs": 105
+  },
+  "metrics": {
+    "before": {
+      "light": {
+        "pairs": 105,
+        "fail": 24,
+        "min": 4.10920656602214,
+        "max": 5.722321629013982
+      },
+      "dark": {
+        "pairs": 105,
+        "fail": 0,
+        "min": 5.2481847910165405,
+        "max": 7.511781328053032
+      }
+    },
+    "after": {
+      "light": {
+        "pairs": 105,
+        "fail": 0,
+        "min": 4.644480019229373,
+        "max": 6.467722671651236
+      },
+      "dark": {
+        "pairs": 105,
+        "fail": 0,
+        "min": 5.2481847910165405,
+        "max": 7.511781328053032
+      }
+    }
+  },
+  "pending": [
+    "David approval",
+    "Coordinated headless render/captures 390/1440",
+    "Browser computed-color measurement",
+    "Any future product implementation and gate"
+  ],
+  "space": {
+    "budget": "0.5 GiB",
+    "artifacts": "884 KiB",
+    "df_before": "148 GiB",
+    "df_after": "149 GiB",
+    "cleaned": "none; worktree retained for review, dependencies symlink only"
+  },
+  "canonical_evidence": "design/mockups/2026-10-07-contraste-ink-2/README.md and measurements.json",
+  "receipt_location_limit": "This external /private/tmp receipt is local and ephemeral. Canonical evidence is committed with the design."
+}

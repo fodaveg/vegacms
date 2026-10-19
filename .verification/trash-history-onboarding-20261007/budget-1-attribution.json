@@ -1,0 +1,198 @@
+{
+  "candidateTree": "939bec8f",
+  "recordForm": "_BIpZ_Fog.js",
+  "directImports": [
+    {
+      "key": "_CXn3WWNK.js",
+      "name": "index-client"
+    },
+    {
+      "key": "_BhvIsWTK.js",
+      "name": "client"
+    },
+    {
+      "key": "_HclGiUj8.js",
+      "name": "preload-helper"
+    },
+    {
+      "key": "_xihTtKlq.js",
+      "name": "disclose-version"
+    },
+    {
+      "key": "_lQE37Zxe.js",
+      "name": "navigation"
+    },
+    {
+      "key": "_Ck9GMiaV.js",
+      "name": "errors"
+    },
+    {
+      "key": "_GebkBoYO.js",
+      "name": "preview-url"
+    },
+    {
+      "key": "_BJd_-YGr.js",
+      "name": "revisions-collection"
+    },
+    {
+      "key": "_D7ZXhbeY2.js",
+      "name": "app-context"
+    },
+    {
+      "key": "_SPbrOrjo2.js",
+      "name": "Icon"
+    },
+    {
+      "key": "_Cnn1W4oE2.js",
+      "name": "routes"
+    },
+    {
+      "key": "_BCRXaxL32.js",
+      "name": "list-load"
+    },
+    {
+      "key": "_DLTGRP1f2.js",
+      "name": "cell"
+    },
+    {
+      "key": "_DI7udFVG2.js",
+      "name": "search"
+    },
+    {
+      "key": "_DUOAhwMJ2.js",
+      "name": "vega-error-message"
+    },
+    {
+      "key": "_6Sx3wtqK2.js",
+      "name": "revision"
+    },
+    {
+      "key": "_BzkZsU_h.js",
+      "name": "reorder-dnd"
+    },
+    {
+      "key": "_DBXSqFzp.js",
+      "name": "DeleteConfirm"
+    },
+    {
+      "key": "_DXoRoTVP.js",
+      "name": "trash-availability"
+    },
+    {
+      "key": "_BMU_bkuP.js",
+      "name": "ReviewMediaLoader"
+    },
+    {
+      "key": "_DBalRjjs.js",
+      "name": "preview-share-state"
+    },
+    {
+      "key": "_BH8rzmfw.js",
+      "name": "EditTopBar"
+    },
+    {
+      "key": "_Q1RywDiy.js",
+      "name": "UsedInPanel"
+    },
+    {
+      "key": "_DFAzTwUg.js",
+      "name": "revision-label"
+    }
+  ],
+  "largestStatic": [
+    {
+      "key": "_BMU_bkuP.js",
+      "name": "ReviewMediaLoader",
+      "file": "_app/immutable/chunks/BMU_bkuP.js",
+      "gzipBytes": 43023
+    },
+    {
+      "key": "_BIpZ_Fog.js",
+      "name": "RecordForm",
+      "file": "_app/immutable/chunks/BIpZ_Fog.js",
+      "gzipBytes": 21583
+    },
+    {
+      "key": "_CXn3WWNK.js",
+      "name": "index-client",
+      "file": "_app/immutable/chunks/CXn3WWNK.js",
+      "gzipBytes": 20567
+    },
+    {
+      "key": "_BhvIsWTK.js",
+      "name": "client",
+      "file": "_app/immutable/chunks/BhvIsWTK.js",
+      "gzipBytes": 10984
+    },
+    {
+      "key": "_BC8WucgO.js",
+      "name": "conventions",
+      "file": "_app/immutable/chunks/BC8WucgO.js",
+      "gzipBytes": 4804
+    },
+    {
+      "key": "_DBXSqFzp.js",
+      "name": "DeleteConfirm",
+      "file": "_app/immutable/chunks/DBXSqFzp.js",
+      "gzipBytes": 3033
+    },
+    {
+      "key": "_SPbrOrjo2.js",
+      "name": "Icon",
+      "file": "_app/immutable/chunks/SPbrOrjo2.js",
+      "gzipBytes": 1953
+    },
+    {
+      "key": "_DN2gCaIj.js",
+      "name": "ReferencesSummary",
+      "file": "_app/immutable/chunks/DN2gCaIj.js",
+      "gzipBytes": 1884
+    },
+    {
+      "key": "_DBalRjjs.js",
+      "name": "preview-share-state",
+      "file": "_app/immutable/chunks/DBalRjjs.js",
+      "gzipBytes": 1875
+    },
+    {
+      "key": "_BpR_Xo7v.js",
+      "name": "collections",
+      "file": "_app/immutable/chunks/BpR_Xo7v.js",
+      "gzipBytes": 1513
+    },
+    {
+      "key": "_DLTGRP1f2.js",
+      "name": "cell",
+      "file": "_app/immutable/chunks/DLTGRP1f2.js",
+      "gzipBytes": 1374
+    },
+    {
+      "key": "_Dcd0nHxQ.js",
+      "name": "AdminDialog",
+      "file": "_app/immutable/chunks/Dcd0nHxQ.js",
+      "gzipBytes": 1275
+    },
+    {
+      "key": "_Do1GUX32.js",
+      "name": "shrink-image-browser",
+      "file": "_app/immutable/chunks/Do1GUX32.js",
+      "gzipBytes": 1158
+    },
+    {
+      "key": "_Q1RywDiy.js",
+      "name": "UsedInPanel",
+      "file": "_app/immutable/chunks/Q1RywDiy.js",
+      "gzipBytes": 1039
+    },
+    {
+      "key": "_COl1ufwQ.js",
+      "name": "media-thumb",
+      "file": "_app/immutable/chunks/COl1ufwQ.js",
+      "gzipBytes": 978
+    }
+  ],
+  "dynamicImports": [
+    "src/lib/form/PreviewShareDialog.svelte"
+  ],
+  "limit": "Read-only manifest attribution; not evidence of causal delta vs base build."
+}

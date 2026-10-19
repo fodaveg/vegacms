@@ -1,0 +1,43 @@
+{
+  "status": "LOCAL_CANDIDATE_REVIEW_PENDING",
+  "service": "lumbre-admin-pb",
+  "scope": "CORS command-only cutover with finite failure classification and guarded same-old recovery",
+  "productTargetComposeSha256": "56caa1a1273feaa3c56b34db7724177c448190d1c28d723d53a5b62fbe110ae9",
+  "requiredBaseComposeSha256": "7ed9a9e225790a4e15ccef3ce4c110b8d3b22e0fef53e6c1840d286181ebb8dd",
+  "requiredOldContainerId": "6241f7d6b8d1a2dda326770a318a1d3b94d84b032cc5df050527f9631e75f7d6",
+  "requiredImageId": "sha256:40df6a9bbcfd4edbc93680b0f45946d0be7c50c4e5c470167e33646fe499c1b7",
+  "sources": {
+    "remote_apply_lumbre_controlled.py": "4416eb5b9b23c23cf596d028e1f0ecc8ce983b43b29d6af7625b16c1b9ae5926",
+    "run_lumbre_controlled.py": "19c1d2dafa1e0e62db45e90c4859cd6f91368bf0618d1e919bd785eb9842a84d",
+    "selftest_lumbre_controlled.py": "83917fc01efaea0fb89e423a599fa25437b4079ffa8f9ee1203c5d062d6041a8",
+    "OPERATE-LUMBRE-CONTROLLED.md": "250a56e68a08b19ea14f18b6f40f3259753fe4cf10acfd80437613897edf44bd",
+    "reused_image_helper": "5d4131c229d7aa88918c932dd517b0d33e024a3497aa4fcc4b9f0c9940467128"
+  },
+  "localVerification": {
+    "command": "python3 -B .verification/cors-network-adoption-20261008/apply/selftest_lumbre_controlled.py",
+    "exitCode": 0,
+    "testMethodsPassed": 4,
+    "fullFlowSubcasesPassed": 8
+  },
+  "historicalRuntimeEvidence": {
+    "recoveredBaseProbe": "lumbre-base-probe-20261009.json",
+    "phase": "ROLLED_BACK",
+    "runtimeWithoutBaseline": "PASS_WITHOUT_BASELINE",
+    "targetConfig": "PASS",
+    "targetModel": "EXPECTED",
+    "targetCreateDryRun": "PASS",
+    "fiveRawOrderSamplesChanged": false
+  },
+  "execution": {
+    "remoteCandidateExecuted": false,
+    "publicAfterSmokePassed": false,
+    "sourceReviewApproved": false,
+    "requiresNewPublicBaselineAfterFod": true,
+    "requiresFreshCheckBeforeApply": true
+  },
+  "limits": [
+    "No historical failure cause established: oldRuntime was not persisted in the first apply.",
+    "A new remote apply and public smoke require root execution after independent review.",
+    "Network isolation and browser override behavior are outside this candidate."
+  ]
+}

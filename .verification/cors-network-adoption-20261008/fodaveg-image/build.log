@@ -1,0 +1,135 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 3.43kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/node:22-bookworm
+#2 DONE 0.8s
+
+#3 [internal] load metadata for docker.io/library/golang:1.26-bookworm
+#3 DONE 0.8s
+
+#4 [internal] load metadata for docker.io/library/node:22-bookworm-slim
+#4 DONE 0.8s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 464B done
+#5 DONE 0.0s
+
+#6 [build 1/8] FROM docker.io/library/node:22-bookworm@sha256:0e5f906573693feaa1e21057ebdcfdb5bd5021f050b2dc7c9deceb629c7da2a8
+#6 DONE 0.0s
+
+#7 [runtime  1/12] FROM docker.io/library/node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392
+#7 DONE 0.0s
+
+#8 [pb-build 1/6] FROM docker.io/library/golang:1.26-bookworm@sha256:d9c68c2c51161e12fd77e4c6320687c9cd86e1af1e3ad6e6cd63ff970641453c
+#8 DONE 0.0s
+
+#9 [internal] load build context
+#9 transferring context: 10.15MB 0.3s done
+#9 DONE 0.3s
+
+#10 [build 2/8] WORKDIR /app
+#10 CACHED
+
+#11 [build 3/8] RUN corepack enable
+#11 CACHED
+
+#12 [build 4/8] COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+#12 CACHED
+
+#13 [build 5/8] COPY vendor ./vendor
+#13 CACHED
+
+#14 [build 6/8] RUN pnpm install --frozen-lockfile
+#14 CACHED
+
+#15 [build 7/8] COPY . .
+#15 DONE 0.7s
+
+#16 [build 8/8] RUN pnpm build
+#16 2.264 $ astro build
+#16 4.397 ▶ Astro collects anonymous usage data.
+#16 4.397   This information helps us improve Astro.
+#16 4.397   Run "astro telemetry disable" to opt-out.
+#16 4.397   https://astro.build/telemetry
+#16 4.397 
+#16 5.565 21:45:49 [@astrojs/node] Enabling sessions with filesystem storage
+#16 6.922 21:45:51 [vite] [optimizer] bundling dependencies...
+#16 7.149 21:45:51 [types] Generated 1.45s
+#16 7.150 21:45:51 [build] output: "server"
+#16 7.150 21:45:51 [build] mode: "server"
+#16 7.150 21:45:51 [build] directory: /app/dist/
+#16 7.150 21:45:51 [build] adapter: @astrojs/node
+#16 7.150 21:45:51 [build] Collecting build info...
+#16 7.152 21:45:51 [build] ✓ Completed in 1.61s.
+#16 7.156 21:45:51 [build] Building server entrypoints...
+#16 8.620 21:45:52 [vite] ✓ built in 1.42s
+#16 10.40 21:45:54 [vite] ✓ built in 1.77s
+#16 10.56 21:45:54 [vite] ✓ built in 151ms
+#16 10.58 21:45:54 [build] Rearranging server assets...
+#16 10.59 21:45:54 [build] ✓ Completed in 3.43s.
+#16 10.59 21:45:54 [build] Server built in 5.05s
+#16 10.59 21:45:54 [build] Complete!
+#16 DONE 10.7s
+
+#17 [runtime  2/12] WORKDIR /app
+#17 CACHED
+
+#18 [runtime  3/12] RUN apt-get update && apt-get install -y --no-install-recommends tini wget   && rm -rf /var/lib/apt/lists/*
+#18 CACHED
+
+#19 [deps 6/6] RUN pnpm install --prod --frozen-lockfile
+#19 CACHED
+
+#20 [runtime  4/12] COPY --from=deps     /app/node_modules ./node_modules
+#20 CACHED
+
+#21 [pb-build 3/6] COPY pb/go.mod pb/go.sum ./
+#21 CACHED
+
+#22 [pb-build 4/6] RUN go mod download
+#22 CACHED
+
+#23 [pb-build 5/6] COPY pb/ ./
+#23 CACHED
+
+#24 [pb-build 2/6] WORKDIR /src
+#24 CACHED
+
+#25 [pb-build 6/6] RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64     go build -trimpath -o /out/fodaveg-pb .
+#25 CACHED
+
+#26 [runtime  5/12] COPY --from=build    /app/dist ./dist
+#26 DONE 0.1s
+
+#27 [runtime  6/12] COPY --from=build    /app/public ./public
+#27 DONE 0.1s
+
+#28 [runtime  7/12] COPY --from=pb-build /out/fodaveg-pb /pb/fodaveg-pb
+#28 DONE 0.5s
+
+#29 [runtime  8/12] COPY pb/pb_public /pb/pb_public
+#29 DONE 0.1s
+
+#30 [runtime  9/12] COPY pb/pb_hooks /pb/pb_hooks
+#30 DONE 0.0s
+
+#31 [runtime 10/12] COPY package.json ./
+#31 DONE 0.0s
+
+#32 [runtime 11/12] COPY docker-entrypoint.sh ./
+#32 DONE 0.0s
+
+#33 [runtime 12/12] RUN chmod +x docker-entrypoint.sh /pb/fodaveg-pb
+#33 DONE 0.3s
+
+#34 exporting to image
+#34 exporting layers 0.1s done
+#34 writing image sha256:1b6436fee8c23615d7f7826cb4f87cb1d6e7e97d2d56150ff87a90571b951c40 done
+#34 naming to docker.io/library/fodaveg-cors:cc8f3b1-candidate done
+#34 DONE 0.2s
+
+#35 resolving provenance for metadata file
+#35 DONE 0.0s

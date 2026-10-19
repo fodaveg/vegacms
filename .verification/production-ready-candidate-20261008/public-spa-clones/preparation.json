@@ -1,0 +1,38 @@
+{
+  "status": "PREPARED_NOT_EXECUTED",
+  "prepared": {
+    "vega-lumbre": {
+      "files": 109,
+      "publicManifestSHA256": "de9791dd8b1ba06907c1f03f77d7ea748680e10b31d333a79fd63fd091c20dcf",
+      "identitySHA256": "96ad2a5972d688aee180ded1a978d0e65cd2413df61ad1e0ddf8c654e55c370c",
+      "composeSHA256": "148d51cbfe22940d21a87e9bd5ef469301b33b0ba131c90a8cc05ed1a7889da5",
+      "harnessSHA256": {
+        "current-spa-proof.spec.ts": "ffa215347183bd4f11c43c14b143cfadb8bdd66846220f09c9616e4cf2c5a15c",
+        "current-spa-proof.config.mjs": "1cb947ec5e2373002193abd5e0ccf58c61175ab69312a03e6e09ecf9fd96d05c"
+      },
+      "CaddyfileSHA256": "808ed1b170733f6407d89eb83b342a67e5987944dcf3940e0cd900147c558d48"
+    },
+    "fodaveg": {
+      "files": 109,
+      "publicManifestSHA256": "8adea0994196b9dd7f3c002cc09c4e2d0f0c81add671e6ad4ec760dcbc14e860",
+      "identitySHA256": "730fcfbf8272dbdf18c067ee6a42b4836dcdb7561fc3ff4ef20952a6b3970fdd",
+      "composeSHA256": "dcd9401b6e0cdb9456ff5f22ab6aeac198b5b9ec6f27afe1f073c6c0919a6490",
+      "harnessSHA256": {
+        "current-spa-proof.spec.ts": "ffa215347183bd4f11c43c14b143cfadb8bdd66846220f09c9616e4cf2c5a15c",
+        "current-spa-proof.config.mjs": "1cb947ec5e2373002193abd5e0ccf58c61175ab69312a03e6e09ecf9fd96d05c"
+      },
+      "CaddyfileSHA256": "808ed1b170733f6407d89eb83b342a67e5987944dcf3940e0cd900147c558d48"
+    }
+  },
+  "sourceCSPReceiptSHA256": "7ac0673b323319af023c8b46d89742bc97c6bcca20d8e3875e8e7fadccb1378b",
+  "captureResultSHA256": "5a77a4fa68b30909a4d17d2094a2d1e3aed84eb71a5ba455c05b0782cbdce9fc",
+  "controls": [
+    "frame-ancestors vs real parent4177 and control without XFO",
+    "connect-src removes HTTPS",
+    "form-action self blocks real POST"
+  ],
+  "priorPlanCorrection": "The third negative is form-action, not frame-src. Source policy and existing13 harness unchanged.",
+  "processesStarted": false,
+  "fullDynamicDependencyClosureProven": false,
+  "rootRuntimeReviewSlotRequired": true
+}

@@ -1,0 +1,40 @@
+
+Running 1 test using 1 worker
+
+
+(node:30338) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/1] scripts/l9-measure/admin.spec.ts:217:1 › seven admin surfaces: repeated first and warm visits
+  1) scripts/l9-measure/admin.spec.ts:217:1 › seven admin surfaces: repeated first and warm visits ─
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Se han importado 2 elementos.')
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 15000ms
+      - waiting for getByText('Se han importado 2 elementos.')
+
+
+      374 | 							).toBeEnabled();
+      375 | 							await dialog.getByRole('button', { name: 'Importar', exact: true }).click();
+    > 376 | 							await expect(page.getByText('Se han importado 2 elementos.')).toBeVisible();
+          | 							                                                              ^
+      377 | 							await page.keyboard.press('Escape');
+      378 | 						});
+      379 | 					} else if (surface === 'trash') {
+        at /private/tmp/vegacms-l9-measure-20261007/scripts/l9-measure/admin.spec.ts:376:70
+        at measure (/private/tmp/vegacms-l9-measure-20261007/scripts/l9-measure/admin.spec.ts:170:23)
+        at /private/tmp/vegacms-l9-measure-20261007/scripts/l9-measure/admin.spec.ts:341:7
+
+    Error Context: ../vega-l9-measure-playwright/admin-seven-admin-surfaces-repeated-first-and-warm-visits/error-context.md
+
+    Error Context: ../vega-l9-measure-playwright/admin-seven-admin-surfaces-repeated-first-and-warm-visits/error-context.md
+
+
+  1 failed
+    scripts/l9-measure/admin.spec.ts:217:1 › seven admin surfaces: repeated first and warm visits ──

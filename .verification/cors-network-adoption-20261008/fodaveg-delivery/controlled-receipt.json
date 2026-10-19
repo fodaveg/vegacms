@@ -1,0 +1,55 @@
+{
+  "discriminator": {
+    "exactSpecCanonicalRestoreAndFodServeBoundary": "PASS_WITH_OFFLINE_DOCKER_SIMULATION",
+    "missingFieldCauseProved": false,
+    "productionStopCauseProved": false,
+    "requiredSpecFields": [
+      "newTag"
+    ]
+  },
+  "donor": {
+    "path": "../apply/remote_apply_lumbre_controlled.py",
+    "sha256": "4416eb5b9b23c23cf596d028e1f0ecc8ce983b43b29d6af7625b16c1b9ae5926"
+  },
+  "frozenBase": {
+    "path": "remote_cutover.py",
+    "sha256": "de511d31f3c92c18ada597ac6de09f01112b125374eb6c1643ca0cdcce98168e"
+  },
+  "helper": {
+    "path": "../../image-only-delivery-20261008/remote_cutover.py",
+    "sha256": "5d4131c229d7aa88918c932dd517b0d33e024a3497aa4fcc4b9f0c9940467128"
+  },
+  "limits": [
+    "No SSH, Docker, HTTP, image build or production mutation performed",
+    "Old failed backup/archive preserved; new apply requires root review and authorization",
+    "Public HTTP200 does not certify selected CORS image; exact served smoke remains required"
+  ],
+  "observation": {
+    "oldRuntimeHealthy": true,
+    "path": "diagnostic-observation.json",
+    "phase": "PREPARED",
+    "sha256": "c74fbcc1e689dfa1ac794c392a97bdf542a523ca1fa98588dabd6d66d385636f",
+    "snapshotStable": true
+  },
+  "scope": [
+    "finite checkpoints before stop, tar, archive validation, clone creation/labels/extraction/byte compare and native PB clone boot/health",
+    "numeric create/command failure exits; no private errors/stdout/stderr exported",
+    "fresh fullidentity guards after checkpoints before recreate/start",
+    "preinstalled recovery only same adopted OLD fixedID and unchanged BASE/env; wait healthy up to60s",
+    "installed failure uses canonical guarded rollback only own metadata/images/files; never data restore"
+  ],
+  "sources": {
+    "controlled_selftest.py": "b206e571aeec95ee3b45217903b2458bd5f9d2ac72b99193adffa828c616e00f",
+    "remote_cutover_controlled.py": "43b68aba0c937deef45ff3a9e2e33f6d3933fb06949605fdc3b0d9448d31c7b4",
+    "run_cutover_controlled.py": "1441c511a1bbcc6ef728ddfb145ba08a1de87c5cb93847fb2720e2d5d6dd080d"
+  },
+  "status": "CONTROLLED_FOD_CANDIDATE_OFFLINE_VERIFIED_REVIEW_PENDING",
+  "verification": {
+    "AST": "PASS",
+    "exitCode": 0,
+    "flowSubcases": 12,
+    "frozenGuardsSelectorsCASRollbackEqual": true,
+    "targetedCommand": "python3 -B .verification/cors-network-adoption-20261008/fodaveg-delivery/controlled_selftest.py",
+    "tests": 7
+  }
+}

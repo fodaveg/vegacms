@@ -1,0 +1,64 @@
+[WARN] Your node_modules are out of sync with your lockfile. The value of the enableGlobalVirtualStore setting has changed
+
+ RUN  v4.1.10 /private/tmp/vegacms-ui-publish-icons-20261007
+
+ ❯ |component| src/lib/form/RecordForm.publish.svelte.test.ts (16 tests | 1 failed) 794ms
+     × readonly publishAt vencido no ofrece acción que requiera vaciar esa fecha 8ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |component| src/lib/form/RecordForm.publish.svelte.test.ts > RecordForm — publicar > readonly publishAt vencido no ofrece acción que requiera vaciar esa fecha
+AssertionError: expected <button type="button" …(2)>…(1)</button> to be null
+
+- Expected:
+null
+
++ Received:
+<button
+  class="vega-visual-publish-btn svelte-a7cl90 vega-visual-publish-btn--primary"
+  data-status-target="published"
+  type="button"
+>
+  <svg
+    aria-hidden="true"
+    fill="none"
+    focusable="false"
+    height="16"
+    role="presentation"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="2"
+    viewBox="0 0 24 24"
+    width="16"
+  >
+    <path
+      d="M8 16c-1-4 3-10 12-12 0 9-6 13-10 12l-2-2zM8 10H4l-2 5 6-1M14 16v4l-5 2 1-6M5 18l-2 3 4-1"
+    />
+    <circle
+      cx="15"
+      cy="9"
+      r="2"
+    />
+    <!---->
+  </svg>
+  <!---->
+   Marcar como publicada
+</button>
+
+ ❯ src/lib/form/RecordForm.publish.svelte.test.ts:324:22
+    322|  test('readonly publishAt vencido no ofrece acción que requiera vaciar…
+    323|   const w = await setup({ dateReadonly: true });
+    324|   expect(publish(w)).toBeNull();
+       |                      ^
+    325|   expect(
+    326|    [...w.target.querySelectorAll('button')].some(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 54 passed (55)
+   Start at  19:06:22
+   Duration  5.73s (transform 4.99s, setup 0ms, import 5.73s, tests 4.59s, environment 1.57s)
+

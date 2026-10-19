@@ -1,0 +1,64 @@
+
+ RUN  v4.1.10 /private/tmp/vegacms-trash-history-20261007
+
+ ❯ |component| src/lib/form/RecordForm.review.svelte.test.ts (15 tests | 1 failed) 3057ms
+     × publicar reúne revisión y bloque sin guardar; cancelar conserva borrador y confirmar no autoguarda el bloque 145ms
+ ❯ |component| src/lib/form/FormPublishControl.svelte.test.ts (8 tests | 1 failed) 1403ms
+   × double activation while loading delegates once and keeps focus on the real action 1083ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |component| src/lib/form/FormPublishControl.svelte.test.ts > double activation while loading delegates once and keeps focus on the real action
+AssertionError: expected "vi.fn()" to be called 1 times, but got 0 times
+ ❯ src/lib/form/FormPublishControl.svelte.test.ts:105:41
+    103|  release();
+    104|  await first;
+    105|  await settled(() => expect(w.onChange).toHaveBeenCalledTimes(1));
+       |                                         ^
+    106|  expect(w.onChange).toHaveBeenCalledWith({ status: 'published' });
+    107|  expect(document.activeElement).toBe(w.target.querySelector('[data-sta…
+ ❯ src/lib/form/FormPublishControl.svelte.test.ts:85:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |component| src/lib/form/RecordForm.review.svelte.test.ts > RecordForm — la revisión con lecturas lentas o fallidas > publicar reúne revisión y bloque sin guardar; cancelar conserva borrador y confirmar no autoguarda el bloque
+AssertionError: expected null not to be null
+ ❯ src/lib/form/RecordForm.review.svelte.test.ts:482:22
+    480|   await tick();
+    481|   const dialog = m.target.querySelector<HTMLElement>('[role="alertdial…
+    482|   expect(dialog).not.toBeNull();
+       |                      ^
+    483|   expect(dialog.querySelectorAll('.vega-review-pop-section')).toHaveLe…
+    484|   expect(dialog.querySelector('ul')!.textContent?.trim()).not.toBe('');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯⎯ Uncaught Exception ⎯⎯⎯⎯⎯
+Error: getVegaContext() llamado fuera de un árbol con setVegaContext() (falta el layout de Vega).
+
+	in <unknown>
+	in FormPublishControl.svelte
+	in undefined
+
+ ❯ getVegaContext src/lib/app-context.ts:153:9
+ ❯ VisualPublishControl src/lib/visual/VisualPublishControl.svelte:118:14
+ ❯ src/lib/form/FormPublishControl.svelte:121:3
+
+This error originated in "src/lib/form/FormPublishControl.svelte.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "double activation while loading delegates once and keeps focus on the real action". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  2 failed | 3 passed (5)
+      Tests  2 failed | 102 passed (104)
+     Errors  1 error
+   Start at  21:02:30
+   Duration  9.95s (transform 1.59s, setup 0ms, import 2.04s, tests 6.10s, environment 1.46s)
+

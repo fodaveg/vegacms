@@ -1,0 +1,25 @@
+{
+  "checks": {
+    "adaptExit": 0,
+    "defaultWriterOmitted": true,
+    "imageExact": true,
+    "negativeValidateExit": 1,
+    "refererDeleteExact": true,
+    "regexpFieldExact": true,
+    "validateExit": 0,
+    "versionExact": true,
+    "versionExit": 0,
+    "wrappedFormatOmitted": true
+  },
+  "containerOwner": "vega-default-regexp-local-f5ad9e862b67",
+  "dockerRunCount": 4,
+  "fixtureSHA256": "0662a343763deed39540728706542b65a1cb0be391c8360e86027694445306e6",
+  "fragmentSHA256": "79cb9a1ac82ef4dda07c822794a8ca3e9091f3a0cab1a854ea8a20941492c441",
+  "hostMounts": 0,
+  "hostPorts": 0,
+  "imageExpected": "sha256:6b08c1b9858ca9a7d99c1da13c3695081e0e604c6cf214ca26a7ce0e2c4fd9b4",
+  "network": "none",
+  "pull": "never",
+  "readOnly": true,
+  "status": "LOCAL_SYNTAX_DISCRIMINATOR_PASSED"
+}

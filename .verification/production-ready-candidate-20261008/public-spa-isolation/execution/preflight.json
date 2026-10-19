@@ -1,0 +1,8 @@
+{
+  "heavyCLI": [],
+  "dfAvailableKiB": 140400000,
+  "reservedBudgetBytes": 1073741824,
+  "rootRuntimeAuthorized": true,
+  "guardReviewSHA256": "89af8eab143917c0b71e5dfb28e50b4332d829b6e58ed3f2ad40a960621b565e",
+  "installsBuildsPulls": false
+}

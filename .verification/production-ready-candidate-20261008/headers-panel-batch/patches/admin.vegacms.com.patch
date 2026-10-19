@@ -1,0 +1,17 @@
+--- a/srv/edge/conf.d/vega.caddy
++++ b/srv/edge/conf.d/vega.caddy
+@@ -1,2 +1,8 @@
+ admin.vegacms.com {
+-	encode zstd gzip
++	encode zstd gzip
++	@pocketbasePanel path /_ /_/*
++	respond @pocketbasePanel 404
++	@vegaSpa {
++		not path /api/* /_ /_/*
++	}
++	header @vegaSpa Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:; frame-src 'self' https:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+@@ -15,1 +21,3 @@
+-	header {
++	header {
++		X-Content-Type-Options "nosniff"
++		Referrer-Policy "strict-origin-when-cross-origin"

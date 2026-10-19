@@ -1,0 +1,8 @@
+{
+  "backupId": "vega-pb-20261008T220737Z-3510397",
+  "composeSha": "bae812ef0031b5e6aeb65f4678905e65d74cfadf62a5e78fe156250166377f7e",
+  "containerId": "5f8fed3402b9be46851f6909ad0bb59b4d21ca27be1e385711e6c0985c6aaef7",
+  "remoteWrites": true,
+  "service": "vega-pb",
+  "status": "CORS_ROLLED_BACK_AWAITING_PUBLIC_SMOKE"
+}

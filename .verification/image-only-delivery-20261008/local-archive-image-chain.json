@@ -1,0 +1,77 @@
+{
+  "archiveBytes": 606022656,
+  "archiveSha256": "34a1780fe31f9c1b50a5e47435fa6183cdd53d956ce00ddab82a247ae8e1ee0a",
+  "configEnvProjected": false,
+  "identityChainVerified": true,
+  "images": {
+    "fodaveg:f92bac858e904817ffc4cf6bf6307a6de0190c32": {
+      "architecture": "amd64",
+      "blobHashesVerified": true,
+      "configId": "sha256:fbb072fe3a1a80f8c5ee87104e470fb71729c07d3e158b696c020eaf9ce7f223",
+      "layers": [
+        "sha256:e58989146fcec76699871403b9897b5c014af1ccd85f5a9300a215e7975525d7",
+        "sha256:4990a62cab1587a2ed690c9d4f41675b9216d68120e99033d664b558662e90c8",
+        "sha256:3714bbaf32038e259cddcddea09e13fc9aaa1a86a644274a6c6e263b00972240",
+        "sha256:f6becc1249c39a0f6d687460220dcfcf9f2a46d01770a70fc0a8ed4c98a6fd49",
+        "sha256:cae24708e29a74f04cc1ec51fc52e2d283c35f243ab21912e036095a2b50dbde",
+        "sha256:9fbe3aed5e5205c4ab3b69a51833c2ed91345e401b8835595aa4a28150e74151",
+        "sha256:bff9a32ad7a1a82ad6c69b1e8edcc8055ccd317642b192bd59ea081c12fa54c1",
+        "sha256:d5fa04c4862406391ac76687c229121096e1796e1685c9d35e9ef85b673520e5",
+        "sha256:4a50254673a5881eb455cf1ec6ee7091da5e3bc127b095f51dc3f560412cf520",
+        "sha256:dc4123db6f80c598d027d3ae6ff48cc6222176c1580d5fe3638e5eab1565d219",
+        "sha256:113e65c68871a9950c783dde0dfad2c6e661be169dd59fddea4ee77a2b945386",
+        "sha256:dac1971ccbb1062c37b55aaea49a6d981d2ebccd298b84fa43a8ad4d31261685",
+        "sha256:c137db3412f0ed3887c0b62cefe8c0211ce3ac3f0e6e24b936b8eee674f4c913",
+        "sha256:ba222ff116a158e9a48ae6653e8d5bc04fc41957cec95c8ed901436e310f5460",
+        "sha256:a74e62f8897e2f165d3c0c08d701e69d83c448c30f2b899ca7fe8b109eaae600",
+        "sha256:ae80465081413d0ec30377108df996271978fc1fc5d384b07bb1888b9a921b1e"
+      ],
+      "ociCompressedLayersMatchDockerManifest": true,
+      "ociConfigDigestMatchesDockerConfig": true,
+      "ociManifestDigest": "sha256:0e0ef56341d677366cfc00d91e2ead83da0ebcc4372f7ba627f575be682ee51f",
+      "ociMediaType": "application/vnd.oci.image.manifest.v1+json",
+      "os": "linux",
+      "revision": null
+    },
+    "lumbre-admin-pb:a598bfe-vega-a51b852": {
+      "architecture": "amd64",
+      "blobHashesVerified": true,
+      "configId": "sha256:7465d6b88612beff8a68d6f9b727935e76898fd4d4a76e200459bea2eeeebfe4",
+      "layers": [
+        "sha256:31ad4a471c6852bfec14d757cc75a566c82a9769f12c3918cf6bf52cc0eeb3d0",
+        "sha256:b1d70167d346157493ffa62bf79363bbed7de4d4cda011be58a9558e22bc5241",
+        "sha256:ee3269ef416a8dc61716a34732f04c230a12f8f3b7f23abef2190fe7cad0086e",
+        "sha256:5bb8b992a3c49144cd79aac081c28400d133d296cbb0b76cd5827733d2f5fe57",
+        "sha256:e79cf96b7e75e6ffd24282ffa93249e9752a2e99d5b5b274f123018e13c2b8c3",
+        "sha256:64e180de2d4b379d606bdf83449a46e5782ebeb4612d02a1e4863aed8500a0ec",
+        "sha256:4cc715630ec75266e0ccfd2d894b32a2b2ac2502c01b18084a0617c3f05f13d7",
+        "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+      ],
+      "ociCompressedLayersMatchDockerManifest": true,
+      "ociConfigDigestMatchesDockerConfig": true,
+      "ociManifestDigest": "sha256:40df6a9bbcfd4edbc93680b0f45946d0be7c50c4e5c470167e33646fe499c1b7",
+      "ociMediaType": "application/vnd.oci.image.manifest.v1+json",
+      "os": "linux",
+      "revision": null
+    },
+    "vegacms:a51b8521e1eeef52a522d2a065b36a03578c0c3a": {
+      "architecture": "amd64",
+      "blobHashesVerified": true,
+      "configId": "sha256:9cd8aaaee3b486b8d9bc3f19de89ecab2e5d67a62717f2b492e7a20dfd428adc",
+      "layers": [
+        "sha256:31ad4a471c6852bfec14d757cc75a566c82a9769f12c3918cf6bf52cc0eeb3d0",
+        "sha256:fb0c41290f33977f602e904be109e25de13f149436fffae9d99589f69dfe74cf",
+        "sha256:492262e512fd8c0bd62e2c96e4d627c0c61670426dad8fa50aa14f9d202b1daa",
+        "sha256:aaafd167ab6e85973d56e8595698391617cc5f89246b60bc84139dea8936717b",
+        "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+      ],
+      "ociCompressedLayersMatchDockerManifest": true,
+      "ociConfigDigestMatchesDockerConfig": true,
+      "ociManifestDigest": "sha256:dd978b8d23081d2e3c69ebf6ef8ff4599a1acdd3f38dc559ae6fa379e46449b4",
+      "ociMediaType": "application/vnd.oci.image.manifest.v1+json",
+      "os": "linux",
+      "revision": "a51b8521e1eeef52a522d2a065b36a03578c0c3a"
+    }
+  },
+  "status": "LOCAL_ARCHIVE_IDENTITY_PROJECTED"
+}

@@ -1,0 +1,11 @@
+{
+  "archiveBytes": 606022656,
+  "archiveSha256": "34a1780fe31f9c1b50a5e47435fa6183cdd53d956ce00ddab82a247ae8e1ee0a",
+  "freeDockerKiB": 7274228,
+  "freeSrvKiB": 7274228,
+  "remoteWrites": true,
+  "requiredDockerKiB": 1116107,
+  "requiredSrvKiB": 1116107,
+  "sameFilesystem": true,
+  "status": "ARCHIVE_SEALED"
+}

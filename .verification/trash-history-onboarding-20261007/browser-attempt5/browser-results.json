@@ -1,0 +1,402 @@
+{
+  "passed": true,
+  "tree": "e0adf41389a61c213bdd6f70f6eeae94bfdc84ca",
+  "source": "Vite dev candidate, seeded memory; no build/live PocketBase",
+  "results": [
+    {
+      "width": 1440,
+      "mode": "light",
+      "singleOffer": true,
+      "explicitBootstrap": true,
+      "dismissalSurvivesReload": true,
+      "noSnapshotNoAction": true,
+      "confirmedSnapshotAction": true,
+      "actionPersistent": true,
+      "keyboardAction": true,
+      "actionTarget": {
+        "x": 1085.796875,
+        "y": 929.40625,
+        "width": 129.75,
+        "height": 44
+      },
+      "closeTarget": {
+        "x": 1225.140625,
+        "y": 929.40625,
+        "width": 44,
+        "height": 44
+      },
+      "overflow": false,
+      "effectiveTheme": [
+        {
+          "scene": "home",
+          "mode": "light",
+          "theme": "aquelarre",
+          "colorScheme": "light",
+          "paper": "color-mix(in oklab, #6e3fb5 13%, #f7f6f4)",
+          "ink": "color-mix(in oklab, #6e3fb5 5%, #2c2a24)",
+          "ink1": "",
+          "paperComputed": "oklab(0.910131 0.0110392 -0.0179863)",
+          "inkComputed": "oklab(0.295126 0.00384238 0.00260393)",
+          "paperRGBA": [
+            227,
+            222,
+            237,
+            255
+          ],
+          "inkRGBA": [
+            47,
+            44,
+            43,
+            255
+          ],
+          "bodyBackground": "oklab(0.876968 0.0121773 -0.0151832)"
+        },
+        {
+          "scene": "deleted",
+          "mode": "light",
+          "theme": "aquelarre",
+          "colorScheme": "light",
+          "paper": "color-mix(in oklab, #6e3fb5 13%, #f7f6f4)",
+          "ink": "color-mix(in oklab, #6e3fb5 5%, #2c2a24)",
+          "ink1": "",
+          "paperComputed": "oklab(0.910131 0.0110392 -0.0179863)",
+          "inkComputed": "oklab(0.295126 0.00384238 0.00260393)",
+          "paperRGBA": [
+            227,
+            222,
+            237,
+            255
+          ],
+          "inkRGBA": [
+            47,
+            44,
+            43,
+            255
+          ],
+          "bodyBackground": "oklab(0.876968 0.0121773 -0.0151832)"
+        },
+        {
+          "scene": "trash",
+          "mode": "light",
+          "theme": "aquelarre",
+          "colorScheme": "light",
+          "paper": "color-mix(in oklab, #6e3fb5 13%, #f7f6f4)",
+          "ink": "color-mix(in oklab, #6e3fb5 5%, #2c2a24)",
+          "ink1": "",
+          "paperComputed": "oklab(0.910131 0.0110392 -0.0179863)",
+          "inkComputed": "oklab(0.295126 0.00384238 0.00260393)",
+          "paperRGBA": [
+            227,
+            222,
+            237,
+            255
+          ],
+          "inkRGBA": [
+            47,
+            44,
+            43,
+            255
+          ],
+          "bodyBackground": "oklab(0.876968 0.0121773 -0.0151832)"
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "singleOffer": true,
+      "explicitBootstrap": true,
+      "dismissalSurvivesReload": true,
+      "noSnapshotNoAction": true,
+      "confirmedSnapshotAction": true,
+      "actionPersistent": true,
+      "keyboardAction": true,
+      "actionTarget": {
+        "x": 1085.796875,
+        "y": 929.40625,
+        "width": 129.75,
+        "height": 44
+      },
+      "closeTarget": {
+        "x": 1225.140625,
+        "y": 929.40625,
+        "width": 44,
+        "height": 44
+      },
+      "overflow": false,
+      "effectiveTheme": [
+        {
+          "scene": "home",
+          "mode": "dark",
+          "theme": "aquelarre",
+          "colorScheme": "dark",
+          "paper": "#17121f",
+          "ink": "color-mix(in oklab, #6e3fb5 8%, #eaeaef)",
+          "ink1": "",
+          "paperComputed": "rgb(23, 18, 31)",
+          "inkComputed": "oklab(0.902361 0.00838768 -0.0184963)",
+          "paperRGBA": [
+            23,
+            18,
+            31,
+            255
+          ],
+          "inkRGBA": [
+            223,
+            220,
+            235,
+            255
+          ],
+          "bodyBackground": "rgb(13, 9, 19)"
+        },
+        {
+          "scene": "deleted",
+          "mode": "dark",
+          "theme": "aquelarre",
+          "colorScheme": "dark",
+          "paper": "#17121f",
+          "ink": "color-mix(in oklab, #6e3fb5 8%, #eaeaef)",
+          "ink1": "",
+          "paperComputed": "rgb(23, 18, 31)",
+          "inkComputed": "oklab(0.902361 0.00838768 -0.0184963)",
+          "paperRGBA": [
+            23,
+            18,
+            31,
+            255
+          ],
+          "inkRGBA": [
+            223,
+            220,
+            235,
+            255
+          ],
+          "bodyBackground": "rgb(13, 9, 19)"
+        },
+        {
+          "scene": "trash",
+          "mode": "dark",
+          "theme": "aquelarre",
+          "colorScheme": "dark",
+          "paper": "#17121f",
+          "ink": "color-mix(in oklab, #6e3fb5 8%, #eaeaef)",
+          "ink1": "",
+          "paperComputed": "rgb(23, 18, 31)",
+          "inkComputed": "oklab(0.902361 0.00838768 -0.0184963)",
+          "paperRGBA": [
+            23,
+            18,
+            31,
+            255
+          ],
+          "inkRGBA": [
+            223,
+            220,
+            235,
+            255
+          ],
+          "bodyBackground": "rgb(13, 9, 19)"
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "mode": "light",
+      "singleOffer": true,
+      "explicitBootstrap": true,
+      "dismissalSurvivesReload": true,
+      "noSnapshotNoAction": true,
+      "confirmedSnapshotAction": true,
+      "actionPersistent": true,
+      "keyboardAction": true,
+      "actionTarget": {
+        "x": 35.796875,
+        "y": 929.40625,
+        "width": 129.75,
+        "height": 44
+      },
+      "closeTarget": {
+        "x": 175.140625,
+        "y": 929.40625,
+        "width": 44,
+        "height": 44
+      },
+      "overflow": false,
+      "effectiveTheme": [
+        {
+          "scene": "home",
+          "mode": "light",
+          "theme": "aquelarre",
+          "colorScheme": "light",
+          "paper": "color-mix(in oklab, #6e3fb5 13%, #f7f6f4)",
+          "ink": "color-mix(in oklab, #6e3fb5 5%, #2c2a24)",
+          "ink1": "",
+          "paperComputed": "oklab(0.910131 0.0110392 -0.0179863)",
+          "inkComputed": "oklab(0.295126 0.00384238 0.00260393)",
+          "paperRGBA": [
+            227,
+            222,
+            237,
+            255
+          ],
+          "inkRGBA": [
+            47,
+            44,
+            43,
+            255
+          ],
+          "bodyBackground": "oklab(0.876968 0.0121773 -0.0151832)"
+        },
+        {
+          "scene": "deleted",
+          "mode": "light",
+          "theme": "aquelarre",
+          "colorScheme": "light",
+          "paper": "color-mix(in oklab, #6e3fb5 13%, #f7f6f4)",
+          "ink": "color-mix(in oklab, #6e3fb5 5%, #2c2a24)",
+          "ink1": "",
+          "paperComputed": "oklab(0.910131 0.0110392 -0.0179863)",
+          "inkComputed": "oklab(0.295126 0.00384238 0.00260393)",
+          "paperRGBA": [
+            227,
+            222,
+            237,
+            255
+          ],
+          "inkRGBA": [
+            47,
+            44,
+            43,
+            255
+          ],
+          "bodyBackground": "oklab(0.876968 0.0121773 -0.0151832)"
+        },
+        {
+          "scene": "trash",
+          "mode": "light",
+          "theme": "aquelarre",
+          "colorScheme": "light",
+          "paper": "color-mix(in oklab, #6e3fb5 13%, #f7f6f4)",
+          "ink": "color-mix(in oklab, #6e3fb5 5%, #2c2a24)",
+          "ink1": "",
+          "paperComputed": "oklab(0.910131 0.0110392 -0.0179863)",
+          "inkComputed": "oklab(0.295126 0.00384238 0.00260393)",
+          "paperRGBA": [
+            227,
+            222,
+            237,
+            255
+          ],
+          "inkRGBA": [
+            47,
+            44,
+            43,
+            255
+          ],
+          "bodyBackground": "oklab(0.876968 0.0121773 -0.0151832)"
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "singleOffer": true,
+      "explicitBootstrap": true,
+      "dismissalSurvivesReload": true,
+      "noSnapshotNoAction": true,
+      "confirmedSnapshotAction": true,
+      "actionPersistent": true,
+      "keyboardAction": true,
+      "actionTarget": {
+        "x": 35.796875,
+        "y": 929.40625,
+        "width": 129.75,
+        "height": 44
+      },
+      "closeTarget": {
+        "x": 175.140625,
+        "y": 929.40625,
+        "width": 44,
+        "height": 44
+      },
+      "overflow": false,
+      "effectiveTheme": [
+        {
+          "scene": "home",
+          "mode": "dark",
+          "theme": "aquelarre",
+          "colorScheme": "dark",
+          "paper": "#17121f",
+          "ink": "color-mix(in oklab, #6e3fb5 8%, #eaeaef)",
+          "ink1": "",
+          "paperComputed": "rgb(23, 18, 31)",
+          "inkComputed": "oklab(0.902361 0.00838768 -0.0184963)",
+          "paperRGBA": [
+            23,
+            18,
+            31,
+            255
+          ],
+          "inkRGBA": [
+            223,
+            220,
+            235,
+            255
+          ],
+          "bodyBackground": "rgb(13, 9, 19)"
+        },
+        {
+          "scene": "deleted",
+          "mode": "dark",
+          "theme": "aquelarre",
+          "colorScheme": "dark",
+          "paper": "#17121f",
+          "ink": "color-mix(in oklab, #6e3fb5 8%, #eaeaef)",
+          "ink1": "",
+          "paperComputed": "rgb(23, 18, 31)",
+          "inkComputed": "oklab(0.902361 0.00838768 -0.0184963)",
+          "paperRGBA": [
+            23,
+            18,
+            31,
+            255
+          ],
+          "inkRGBA": [
+            223,
+            220,
+            235,
+            255
+          ],
+          "bodyBackground": "rgb(13, 9, 19)"
+        },
+        {
+          "scene": "trash",
+          "mode": "dark",
+          "theme": "aquelarre",
+          "colorScheme": "dark",
+          "paper": "#17121f",
+          "ink": "color-mix(in oklab, #6e3fb5 8%, #eaeaef)",
+          "ink1": "",
+          "paperComputed": "rgb(23, 18, 31)",
+          "inkComputed": "oklab(0.902361 0.00838768 -0.0184963)",
+          "paperRGBA": [
+            23,
+            18,
+            31,
+            255
+          ],
+          "inkRGBA": [
+            223,
+            220,
+            235,
+            255
+          ],
+          "bodyBackground": "rgb(13, 9, 19)"
+        }
+      ]
+    }
+  ],
+  "pageErrors": [],
+  "lightDarkDistinct": true,
+  "themeEvidence": "Persistent actual P3/P7 preferences; measured attrs and computed paper/ink RGBA before every screenshot. --ink1 is absent in current vocabulary."
+}

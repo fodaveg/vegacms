@@ -1,0 +1,11 @@
+# Revisión de discriminantes públicos de SPA
+
+Aceptada evidencia de identidad parcial, sin certificado CSP reutilizable para los bytes servidos. Scope5/5 nuevos artefactos completos: probe/discriminantes/receipt/result/plan. Freeze78b008/receipt006a29, cincoSHA y referenciasprimarias/runner exactas. Sesión10525 salida0, seisGET públicos200/index+version de3hosts, no redirects/cookies/credenciales/query/retries/rawbodies retenidos. Reviewer no hizo GET. No151descargados ni inferencia de commit/binarydesde timestamp.
+
+Vega/Lumbre comparten index92696276/version422166a9; Fodindex4cdfa4a5/version9ecb8534 difieren. Ningún index/version coincide con manifest151histórico/currentoindexf59. El viejoCSP montaba buildcandidate sobre f59; no prueba SPAempaquetadaf59, por ello no transferir certificado. Hash de discriminante diferente sólo descarta identidadexacta, no demuestra incompatibilidadfuncional. Dosbundles públicos son plan útil independiente de privateconfig oimagenupdate.
+
+Plan propone captura acotada<=50MiB/300assets porhost, dependencias sóloestáticas allowlist, noAPI/backendconfig/sourcemaps/externos/queries/redirects, hashcadarespuesta ydiscriminantesantesdespués, fail ante unresolveddynamic/missing/outside. Esto debe acreditarse en el cloner/conjunto real antes de suite; no certifica aúnclosure/identidadcompleta. SharingVega/Lumbre debe exigir evidencia equivalente delscopeclonado y no sólo asumir todos los chunks por index/version iguales; divergencia detiene reuso.
+
+Precisión conocida del plan sellado: menciona tercer negativo frame-src/frame; el arnés final real contiene form-action self contra POST. Autor ya notificó corregirlo en nueva preparación fuera del sello5; mantener negativasactualesframe-ancestors/connect-src/form-action y no atribuir prueba frame-src inexistente. Los13 casos no se debilitan por features/selector ausentes en SPAhistórica: registrar fallo ybaseline sinCSP sólo con permiso para distinguircausa. Nuevasidentidades/compose/readiness yprovenance publicclone requierenreview antesrootheavy, sin gatefabricado ni transferir be130identityalclone.
+
+Cierre de esta evidencia no ejecuta ni autoriza aún13, no fullTLS/backendcryptoauth/CORS/sharedCaddyQA. Headersparcheados sólolocalmente enprueba; no apply/reload oproducción. Archivo fuerafreeze5.

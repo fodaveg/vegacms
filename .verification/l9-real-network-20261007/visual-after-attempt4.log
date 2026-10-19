@@ -1,0 +1,26 @@
+
+Running 1 test using 1 worker
+
+
+(node:79923) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/1] scripts/l9-measure/visual.spec.ts:35:1 › visual renewal and reload: real Go and Astro consumers
+  1) scripts/l9-measure/visual.spec.ts:35:1 › visual renewal and reload: real Go and Astro consumers 
+
+    Error: Astro fixture origin differs from signed origin
+
+      131 | 		]);
+      132 | 		if (!actual.ready || actual.port !== port)
+    > 133 | 			throw new Error('Astro fixture origin differs from signed origin');
+          | 			      ^
+      134 | 		context = await browser.newContext({
+      135 | 			locale: 'es-ES',
+      136 | 			viewport: { width: 1440, height: 1000 }
+        at /private/tmp/vegacms-l9-measure-20261007/scripts/l9-measure/visual.spec.ts:133:10
+
+    Error Context: ../vega-l9-measure-playwright/visual-visual-renewal-and-reload-real-Go-and-Astro-consumers/error-context.md
+
+
+  1 failed
+    scripts/l9-measure/visual.spec.ts:35:1 › visual renewal and reload: real Go and Astro consumers 

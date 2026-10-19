@@ -1,0 +1,12 @@
+--- a/srv/edge/compose.yml
++++ b/srv/edge/compose.yml
+@@ -23,1 +23,2 @@
+-      - edge
++      - edge
++      - vega-edge
+@@ -38,1 +39,4 @@
+-networks:
++networks:
++  vega-edge:
++    external: true
++    name: vega-edge

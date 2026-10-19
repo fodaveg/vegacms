@@ -1,0 +1,19 @@
+{
+  "cache": {
+    "aboveOperationalTarget": true,
+    "prunePerformed": false,
+    "reportedGiB": 18.33
+  },
+  "candidate": "cc8f3b14dca9bf10e4a60502da9e17503362bbb8",
+  "limitations": [
+    "Cache hits are unproved until build result; Astro COPY . . may trigger SSR build.",
+    "No production apply/serving proof from this local build."
+  ],
+  "localFreeKiBBefore": 126400000,
+  "oneHeavyBuildSlot": "root only; other agents currently offline scripts/review",
+  "owner": "root",
+  "platform": "linux/amd64",
+  "sourceReview": ".verification/release-adoption-plan-20261008/cors-three-consumers-source-fresh-review.md",
+  "tree": "693fc1ae70e8a28e64a87950e25883905a0de1d4",
+  "workingBudgetGiB": 4
+}

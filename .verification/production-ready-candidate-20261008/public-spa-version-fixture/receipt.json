@@ -1,0 +1,31 @@
+{
+  "status": "GROUPED_VERSION_FIXTURE_REVIEW_PENDING",
+  "seedProbe": {
+    "session_id": 78721,
+    "exit_code": 0,
+    "passed": 2,
+    "demo": {
+      "path": "/c/site_info/new",
+      "heading": "Crear \u00abInformaci\u00f3n del sitio\u00bb"
+    },
+    "showcase": {
+      "path": "/c/entradas",
+      "heading": "Entradas"
+    },
+    "titleLabel": "Title",
+    "titleInputID": "vega-field-title",
+    "violations": 0
+  },
+  "prior13": {
+    "session_id": 67402,
+    "exit_code": 1,
+    "passed": 6,
+    "failed": 7,
+    "failureGroups": {
+      "titleLabelMismatch": 2,
+      "showcaseLandingMismatch": 5
+    }
+  },
+  "noPolicyNegativeOrGuardChanges": true,
+  "noSkipsAssertionsOmitted": true
+}

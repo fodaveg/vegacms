@@ -1,0 +1,11 @@
+--- frozen/current-spa-proof.spec.ts
++++ isolation/current-spa-proof.spec.ts
+@@ -12,7 +12,7 @@
+ );
+ if (identity.candidateRoot !== candidateRoot) throw new Error('Prepared identity/root mismatch');
+ const { test, expect, loginAsDemo, waitForHome } = await import(
+-	pathToFileURL(join(candidateRoot, 'e2e/fixtures.ts')).href
++	new URL('../fixtures.ts', import.meta.url).href
+ );
+ const { createVisualSite, SITE_ORIGIN } = await import(
+ 	pathToFileURL(join(candidateRoot, 'e2e/visual-site.ts')).href

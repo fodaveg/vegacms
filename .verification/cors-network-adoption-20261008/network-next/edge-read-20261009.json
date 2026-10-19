@@ -1,0 +1,18 @@
+{
+  "candidateSha256": "6c527267ca840d9889b20766ff272cef477834045ccbf29387beab19ae70a977",
+  "composeBaseMatches": true,
+  "composeMode": 436,
+  "composeRegular": true,
+  "composeSourceClass": "EXACT",
+  "edgeMember": true,
+  "gitSourceClass": "TRACKED",
+  "idMatches": true,
+  "imageMatches": true,
+  "networkClass": "UNAVAILABLE",
+  "otherNetworkCount": 0,
+  "privateValuesExported": false,
+  "remoteWrites": false,
+  "running": true,
+  "status": "PROJECTED",
+  "vegaEdgeMember": false
+}

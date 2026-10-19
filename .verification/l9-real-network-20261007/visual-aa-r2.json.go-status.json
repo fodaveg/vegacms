@@ -1,0 +1,14 @@
+{
+  "exitCode": 0,
+  "signal": null,
+  "astroExit": 0,
+  "astroPhases": [
+    "config",
+    "imported",
+    "recipe",
+    "ready"
+  ],
+  "panic": false,
+  "fatalConcurrentMap": false,
+  "stack": []
+}

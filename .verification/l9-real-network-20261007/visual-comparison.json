@@ -1,0 +1,668 @@
+[
+  {
+    "combination": "ba",
+    "repetition": 1,
+    "file": "visual-ba-r1.json",
+    "candidate": "before-dae1c8c",
+    "tree": "4537fbdcf63dfccde590ab2e38eb30eb9aebaea8",
+    "astroCandidate": "4469e482c69571b54605c31e29360b82dbff0f75",
+    "initial": {
+      "browserPB": {
+        "applicationRequests": 18,
+        "preflights": 0,
+        "rawRequests": 18,
+        "decodedBodyBytes": 172896
+      },
+      "browserSite": {
+        "applicationRequests": 13,
+        "preflights": 0,
+        "rawRequests": 13,
+        "decodedBodyBytes": 467667
+      },
+      "serverPB": {
+        "applicationRequests": 21,
+        "preflights": 5,
+        "rawRequests": 26,
+        "decodedBodyBytes": 241888
+      }
+    },
+    "renewal": {
+      "browserPB": {
+        "applicationRequests": 1,
+        "preflights": 0,
+        "rawRequests": 1,
+        "decodedBodyBytes": 166
+      },
+      "browserSite": {
+        "applicationRequests": 13,
+        "preflights": 0,
+        "rawRequests": 13,
+        "decodedBodyBytes": 27254
+      },
+      "serverPB": {
+        "applicationRequests": 3,
+        "preflights": 1,
+        "rawRequests": 4,
+        "decodedBodyBytes": 68463
+      }
+    },
+    "documentRequests": 1,
+    "frameNavigationEvents": 1,
+    "markerRetained": false,
+    "initialScroll": 200,
+    "scroll": 0,
+    "reload": {
+      "status": 200,
+      "browserPB": {
+        "applicationRequests": 0,
+        "preflights": 0,
+        "rawRequests": 0,
+        "decodedBodyBytes": 0
+      },
+      "browserSite": {
+        "applicationRequests": 13,
+        "preflights": 0,
+        "rawRequests": 13,
+        "decodedBodyBytes": 467667
+      },
+      "serverPB": {
+        "applicationRequests": 2,
+        "preflights": 0,
+        "rawRequests": 2,
+        "decodedBodyBytes": 68297
+      }
+    }
+  },
+  {
+    "combination": "ba",
+    "repetition": 2,
+    "file": "visual-ba-r2.json",
+    "candidate": "before-dae1c8c",
+    "tree": "4537fbdcf63dfccde590ab2e38eb30eb9aebaea8",
+    "astroCandidate": "4469e482c69571b54605c31e29360b82dbff0f75",
+    "initial": {
+      "browserPB": {
+        "applicationRequests": 18,
+        "preflights": 0,
+        "rawRequests": 18,
+        "decodedBodyBytes": 172896
+      },
+      "browserSite": {
+        "applicationRequests": 13,
+        "preflights": 0,
+        "rawRequests": 13,
+        "decodedBodyBytes": 467655
+      },
+      "serverPB": {
+        "applicationRequests": 21,
+        "preflights": 5,
+        "rawRequests": 26,
+        "decodedBodyBytes": 241888
+      }
+    },
+    "renewal": {
+      "browserPB": {
+        "applicationRequests": 1,
+        "preflights": 0,
+        "rawRequests": 1,
+        "decodedBodyBytes": 166
+      },
+      "browserSite": {
+        "applicationRequests": 13,
+        "preflights": 0,
+        "rawRequests": 13,
+        "decodedBodyBytes": 27254
+      },
+      "serverPB": {
+        "applicationRequests": 3,
+        "preflights": 1,
+        "rawRequests": 4,
+        "decodedBodyBytes": 68463
+      }
+    },
+    "documentRequests": 1,
+    "frameNavigationEvents": 1,
+    "markerRetained": false,
+    "initialScroll": 200,
+    "scroll": 0,
+    "reload": {
+      "status": 200,
+      "browserPB": {
+        "applicationRequests": 0,
+        "preflights": 0,
+        "rawRequests": 0,
+        "decodedBodyBytes": 0
+      },
+      "browserSite": {
+        "applicationRequests": 13,
+        "preflights": 0,
+        "rawRequests": 13,
+        "decodedBodyBytes": 27254
+      },
+      "serverPB": {
+        "applicationRequests": 2,
+        "preflights": 0,
+        "rawRequests": 2,
+        "decodedBodyBytes": 68297
+      }
+    }
+  },
+  {
+    "combination": "ba",
+    "repetition": 3,
+    "file": "visual-ba-r3.json",
+    "candidate": "before-dae1c8c",
+    "tree": "4537fbdcf63dfccde590ab2e38eb30eb9aebaea8",
+    "astroCandidate": "4469e482c69571b54605c31e29360b82dbff0f75",
+    "initial": {
+      "browserPB": {
+        "applicationRequests": 18,
+        "preflights": 0,
+        "rawRequests": 18,
+        "decodedBodyBytes": 172894
+      },
+      "browserSite": {
+        "applicationRequests": 13,
+        "preflights": 0,
+        "rawRequests": 13,
+        "decodedBodyBytes": 467655
+      },
+      "serverPB": {
+        "applicationRequests": 21,
+        "preflights": 5,
+        "rawRequests": 26,
+        "decodedBodyBytes": 241886
+      }
+    },
+    "renewal": {
+      "browserPB": {
+        "applicationRequests": 1,
+        "preflights": 0,
+        "rawRequests": 1,
+        "decodedBodyBytes": 166
+      },
+      "browserSite": {
+        "applicationRequests": 13,
+        "preflights": 0,
+        "rawRequests": 13,
+        "decodedBodyBytes": 27254
+      },
+      "serverPB": {
+        "applicationRequests": 3,
+        "preflights": 1,
+        "rawRequests": 4,
+        "decodedBodyBytes": 68463
+      }
+    },
+    "documentRequests": 1,
+    "frameNavigationEvents": 1,
+    "markerRetained": false,
+    "initialScroll": 200,
+    "scroll": 0,
+    "reload": {
+      "status": 200,
+      "browserPB": {
+        "applicationRequests": 0,
+        "preflights": 0,
+        "rawRequests": 0,
+        "decodedBodyBytes": 0
+      },
+      "browserSite": {
+        "applicationRequests": 13,
+        "preflights": 0,
+        "rawRequests": 13,
+        "decodedBodyBytes": 467655
+      },
+      "serverPB": {
+        "applicationRequests": 2,
+        "preflights": 0,
+        "rawRequests": 2,
+        "decodedBodyBytes": 68297
+      }
+    }
+  },
+  {
+    "combination": "ab",
+    "repetition": 1,
+    "file": "visual-ab-r1.json",
+    "candidate": "corrected-after-ff9985f7",
+    "tree": "ff9985f7d18ecaaf6606f8efe5011d8923d28e9c",
+    "astroCandidate": "1ff64d74a60ed5ed6ebf714eba0adc950c474e47",
+    "initial": {
+      "browserPB": {
+        "applicationRequests": 17,
+        "preflights": 0,
+        "rawRequests": 17,
+        "decodedBodyBytes": 172896
+      },
+      "browserSite": {
+        "applicationRequests": 13,
+        "preflights": 0,
+        "rawRequests": 13,
+        "decodedBodyBytes": 441374
+      },
+      "serverPB": {
+        "applicationRequests": 19,
+        "preflights": 4,
+        "rawRequests": 23,
+        "decodedBodyBytes": 241193
+      }
+    },
+    "renewal": {
+      "browserPB": {
+        "applicationRequests": 1,
+        "preflights": 0,
+        "rawRequests": 1,
+        "decodedBodyBytes": 166
+      },
+      "browserSite": {
+        "applicationRequests": 1,
+        "preflights": 0,
+        "rawRequests": 1,
+        "decodedBodyBytes": 26753
+      },
+      "serverPB": {
+        "applicationRequests": 3,
+        "preflights": 1,
+        "rawRequests": 4,
+        "decodedBodyBytes": 68463
+      }
+    },
+    "documentRequests": 0,
+    "frameNavigationEvents": 0,
+    "markerRetained": true,
+    "initialScroll": 200,
+    "scroll": 200,
+    "reload": {
+      "status": 404,
+      "browserPB": {
+        "applicationRequests": 0,
+        "preflights": 0,
+        "rawRequests": 0,
+        "decodedBodyBytes": 0
+      },
+      "browserSite": {
+        "applicationRequests": 1,
+        "preflights": 0,
+        "rawRequests": 1,
+        "decodedBodyBytes": 46
+      },
+      "serverPB": {
+        "applicationRequests": 0,
+        "preflights": 0,
+        "rawRequests": 0,
+        "decodedBodyBytes": 0
+      }
+    }
+  },
+  {
+    "combination": "ab",
+    "repetition": 2,
+    "file": "visual-ab-r2.json",
+    "candidate": "corrected-after-ff9985f7",
+    "tree": "ff9985f7d18ecaaf6606f8efe5011d8923d28e9c",
+    "astroCandidate": "1ff64d74a60ed5ed6ebf714eba0adc950c474e47",
+    "initial": {
+      "browserPB": {
+        "applicationRequests": 17,
+        "preflights": 0,
+        "rawRequests": 17,
+        "decodedBodyBytes": 172896
+      },
+      "browserSite": {
+        "applicationRequests": 13,
+        "preflights": 0,
+        "rawRequests": 13,
+        "decodedBodyBytes": 441374
+      },
+      "serverPB": {
+        "applicationRequests": 19,
+        "preflights": 4,
+        "rawRequests": 23,
+        "decodedBodyBytes": 241193
+      }
+    },
+    "renewal": {
+      "browserPB": {
+        "applicationRequests": 1,
+        "preflights": 0,
+        "rawRequests": 1,
+        "decodedBodyBytes": 166
+      },
+      "browserSite": {
+        "applicationRequests": 1,
+        "preflights": 0,
+        "rawRequests": 1,
+        "decodedBodyBytes": 26753
+      },
+      "serverPB": {
+        "applicationRequests": 3,
+        "preflights": 1,
+        "rawRequests": 4,
+        "decodedBodyBytes": 68463
+      }
+    },
+    "documentRequests": 0,
+    "frameNavigationEvents": 0,
+    "markerRetained": true,
+    "initialScroll": 200,
+    "scroll": 200,
+    "reload": {
+      "status": 404,
+      "browserPB": {
+        "applicationRequests": 0,
+        "preflights": 0,
+        "rawRequests": 0,
+        "decodedBodyBytes": 0
+      },
+      "browserSite": {
+        "applicationRequests": 1,
+        "preflights": 0,
+        "rawRequests": 1,
+        "decodedBodyBytes": 46
+      },
+      "serverPB": {
+        "applicationRequests": 0,
+        "preflights": 0,
+        "rawRequests": 0,
+        "decodedBodyBytes": 0
+      }
+    }
+  },
+  {
+    "combination": "ab",
+    "repetition": 3,
+    "file": "visual-ab-r3.json",
+    "candidate": "corrected-after-ff9985f7",
+    "tree": "ff9985f7d18ecaaf6606f8efe5011d8923d28e9c",
+    "astroCandidate": "1ff64d74a60ed5ed6ebf714eba0adc950c474e47",
+    "initial": {
+      "browserPB": {
+        "applicationRequests": 17,
+        "preflights": 0,
+        "rawRequests": 17,
+        "decodedBodyBytes": 172896
+      },
+      "browserSite": {
+        "applicationRequests": 13,
+        "preflights": 0,
+        "rawRequests": 13,
+        "decodedBodyBytes": 441374
+      },
+      "serverPB": {
+        "applicationRequests": 19,
+        "preflights": 4,
+        "rawRequests": 23,
+        "decodedBodyBytes": 241193
+      }
+    },
+    "renewal": {
+      "browserPB": {
+        "applicationRequests": 1,
+        "preflights": 0,
+        "rawRequests": 1,
+        "decodedBodyBytes": 166
+      },
+      "browserSite": {
+        "applicationRequests": 1,
+        "preflights": 0,
+        "rawRequests": 1,
+        "decodedBodyBytes": 26753
+      },
+      "serverPB": {
+        "applicationRequests": 3,
+        "preflights": 1,
+        "rawRequests": 4,
+        "decodedBodyBytes": 68463
+      }
+    },
+    "documentRequests": 0,
+    "frameNavigationEvents": 0,
+    "markerRetained": true,
+    "initialScroll": 200,
+    "scroll": 200,
+    "reload": {
+      "status": 404,
+      "browserPB": {
+        "applicationRequests": 0,
+        "preflights": 0,
+        "rawRequests": 0,
+        "decodedBodyBytes": 0
+      },
+      "browserSite": {
+        "applicationRequests": 1,
+        "preflights": 0,
+        "rawRequests": 1,
+        "decodedBodyBytes": 46
+      },
+      "serverPB": {
+        "applicationRequests": 0,
+        "preflights": 0,
+        "rawRequests": 0,
+        "decodedBodyBytes": 0
+      }
+    }
+  },
+  {
+    "combination": "aa",
+    "repetition": 1,
+    "file": "visual-aa-r1.json",
+    "candidate": "corrected-after-ff9985f7",
+    "tree": "ff9985f7d18ecaaf6606f8efe5011d8923d28e9c",
+    "astroCandidate": "4469e482c69571b54605c31e29360b82dbff0f75",
+    "initial": {
+      "browserPB": {
+        "applicationRequests": 17,
+        "preflights": 0,
+        "rawRequests": 17,
+        "decodedBodyBytes": 172896
+      },
+      "browserSite": {
+        "applicationRequests": 13,
+        "preflights": 0,
+        "rawRequests": 13,
+        "decodedBodyBytes": 467655
+      },
+      "serverPB": {
+        "applicationRequests": 24,
+        "preflights": 4,
+        "rawRequests": 28,
+        "decodedBodyBytes": 242451
+      }
+    },
+    "renewal": {
+      "browserPB": {
+        "applicationRequests": 1,
+        "preflights": 0,
+        "rawRequests": 1,
+        "decodedBodyBytes": 166
+      },
+      "browserSite": {
+        "applicationRequests": 1,
+        "preflights": 0,
+        "rawRequests": 1,
+        "decodedBodyBytes": 27254
+      },
+      "serverPB": {
+        "applicationRequests": 3,
+        "preflights": 1,
+        "rawRequests": 4,
+        "decodedBodyBytes": 68463
+      }
+    },
+    "documentRequests": 0,
+    "frameNavigationEvents": 1,
+    "markerRetained": true,
+    "initialScroll": 200,
+    "scroll": 200,
+    "reload": {
+      "status": 200,
+      "browserPB": {
+        "applicationRequests": 0,
+        "preflights": 0,
+        "rawRequests": 0,
+        "decodedBodyBytes": 0
+      },
+      "browserSite": {
+        "applicationRequests": 13,
+        "preflights": 0,
+        "rawRequests": 13,
+        "decodedBodyBytes": 467655
+      },
+      "serverPB": {
+        "applicationRequests": 2,
+        "preflights": 0,
+        "rawRequests": 2,
+        "decodedBodyBytes": 68297
+      }
+    }
+  },
+  {
+    "combination": "aa",
+    "repetition": 2,
+    "file": "visual-aa-r2.json",
+    "candidate": "corrected-after-ff9985f7",
+    "tree": "ff9985f7d18ecaaf6606f8efe5011d8923d28e9c",
+    "astroCandidate": "4469e482c69571b54605c31e29360b82dbff0f75",
+    "initial": {
+      "browserPB": {
+        "applicationRequests": 17,
+        "preflights": 0,
+        "rawRequests": 17,
+        "decodedBodyBytes": 172896
+      },
+      "browserSite": {
+        "applicationRequests": 13,
+        "preflights": 0,
+        "rawRequests": 13,
+        "decodedBodyBytes": 467667
+      },
+      "serverPB": {
+        "applicationRequests": 20,
+        "preflights": 4,
+        "rawRequests": 24,
+        "decodedBodyBytes": 241262
+      }
+    },
+    "renewal": {
+      "browserPB": {
+        "applicationRequests": 1,
+        "preflights": 0,
+        "rawRequests": 1,
+        "decodedBodyBytes": 166
+      },
+      "browserSite": {
+        "applicationRequests": 1,
+        "preflights": 0,
+        "rawRequests": 1,
+        "decodedBodyBytes": 27254
+      },
+      "serverPB": {
+        "applicationRequests": 3,
+        "preflights": 1,
+        "rawRequests": 4,
+        "decodedBodyBytes": 68463
+      }
+    },
+    "documentRequests": 0,
+    "frameNavigationEvents": 1,
+    "markerRetained": true,
+    "initialScroll": 200,
+    "scroll": 200,
+    "reload": {
+      "status": 200,
+      "browserPB": {
+        "applicationRequests": 0,
+        "preflights": 0,
+        "rawRequests": 0,
+        "decodedBodyBytes": 0
+      },
+      "browserSite": {
+        "applicationRequests": 13,
+        "preflights": 0,
+        "rawRequests": 13,
+        "decodedBodyBytes": 467667
+      },
+      "serverPB": {
+        "applicationRequests": 2,
+        "preflights": 0,
+        "rawRequests": 2,
+        "decodedBodyBytes": 68297
+      }
+    }
+  },
+  {
+    "combination": "aa",
+    "repetition": 3,
+    "file": "visual-aa-r3.json",
+    "candidate": "corrected-after-ff9985f7",
+    "tree": "ff9985f7d18ecaaf6606f8efe5011d8923d28e9c",
+    "astroCandidate": "4469e482c69571b54605c31e29360b82dbff0f75",
+    "initial": {
+      "browserPB": {
+        "applicationRequests": 17,
+        "preflights": 0,
+        "rawRequests": 17,
+        "decodedBodyBytes": 172896
+      },
+      "browserSite": {
+        "applicationRequests": 13,
+        "preflights": 0,
+        "rawRequests": 13,
+        "decodedBodyBytes": 467667
+      },
+      "serverPB": {
+        "applicationRequests": 24,
+        "preflights": 4,
+        "rawRequests": 28,
+        "decodedBodyBytes": 242451
+      }
+    },
+    "renewal": {
+      "browserPB": {
+        "applicationRequests": 1,
+        "preflights": 0,
+        "rawRequests": 1,
+        "decodedBodyBytes": 166
+      },
+      "browserSite": {
+        "applicationRequests": 1,
+        "preflights": 0,
+        "rawRequests": 1,
+        "decodedBodyBytes": 27254
+      },
+      "serverPB": {
+        "applicationRequests": 3,
+        "preflights": 1,
+        "rawRequests": 4,
+        "decodedBodyBytes": 68463
+      }
+    },
+    "documentRequests": 0,
+    "frameNavigationEvents": 1,
+    "markerRetained": true,
+    "initialScroll": 200,
+    "scroll": 200,
+    "reload": {
+      "status": 200,
+      "browserPB": {
+        "applicationRequests": 0,
+        "preflights": 0,
+        "rawRequests": 0,
+        "decodedBodyBytes": 0
+      },
+      "browserSite": {
+        "applicationRequests": 13,
+        "preflights": 0,
+        "rawRequests": 13,
+        "decodedBodyBytes": 467667
+      },
+      "serverPB": {
+        "applicationRequests": 2,
+        "preflights": 0,
+        "rawRequests": 2,
+        "decodedBodyBytes": 68297
+      }
+    }
+  }
+]

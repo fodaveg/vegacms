@@ -1,0 +1,321 @@
+{
+	"baseline": "fb5ebe6e946b624d87c1cca91dafdd862c19c93a",
+	"method": "existing pure theme engine; accent solid pair only, not gradient rasterization",
+	"pairs": 54,
+	"min": 4.765645030162199,
+	"failures": [],
+	"samples": [
+		{ "theme": "niebla", "mode": "light", "fg": "ink", "bg": "paper", "ratio": 11.721748993719943 },
+		{
+			"theme": "niebla",
+			"mode": "light",
+			"fg": "ink",
+			"bg": "surface",
+			"ratio": 13.12608991070805
+		},
+		{
+			"theme": "niebla",
+			"mode": "light",
+			"fg": "ink-2",
+			"bg": "paper",
+			"ratio": 5.476650172677199
+		},
+		{
+			"theme": "niebla",
+			"mode": "light",
+			"fg": "ink-2",
+			"bg": "surface",
+			"ratio": 6.132788086024529
+		},
+		{
+			"theme": "niebla",
+			"mode": "light",
+			"fg": "ink-hi",
+			"bg": "paper",
+			"ratio": 12.712673786514841
+		},
+		{
+			"theme": "niebla",
+			"mode": "light",
+			"fg": "accentInk",
+			"bg": "accent",
+			"ratio": 4.765645030162199
+		},
+		{
+			"theme": "niebla",
+			"mode": "light",
+			"fg": "danger",
+			"bg": "surface",
+			"ratio": 7.259433336742375
+		},
+		{
+			"theme": "niebla",
+			"mode": "light",
+			"fg": "success",
+			"bg": "success-soft",
+			"ratio": 6.194217679090359
+		},
+		{
+			"theme": "niebla",
+			"mode": "light",
+			"fg": "warning",
+			"bg": "warning-soft",
+			"ratio": 6.108425523343999
+		},
+		{ "theme": "niebla", "mode": "dark", "fg": "ink", "bg": "paper", "ratio": 12.343800219487369 },
+		{
+			"theme": "niebla",
+			"mode": "dark",
+			"fg": "ink",
+			"bg": "surface",
+			"ratio": 10.565869008386573
+		},
+		{ "theme": "niebla", "mode": "dark", "fg": "ink-2", "bg": "paper", "ratio": 6.327233814003742 },
+		{
+			"theme": "niebla",
+			"mode": "dark",
+			"fg": "ink-2",
+			"bg": "surface",
+			"ratio": 5.415894819705213
+		},
+		{
+			"theme": "niebla",
+			"mode": "dark",
+			"fg": "ink-hi",
+			"bg": "paper",
+			"ratio": 13.400610142292402
+		},
+		{
+			"theme": "niebla",
+			"mode": "dark",
+			"fg": "accentInk",
+			"bg": "accent",
+			"ratio": 4.765645030162199
+		},
+		{
+			"theme": "niebla",
+			"mode": "dark",
+			"fg": "danger",
+			"bg": "surface",
+			"ratio": 5.311629705318286
+		},
+		{
+			"theme": "niebla",
+			"mode": "dark",
+			"fg": "success",
+			"bg": "success-soft",
+			"ratio": 5.3071538284748945
+		},
+		{
+			"theme": "niebla",
+			"mode": "dark",
+			"fg": "warning",
+			"bg": "warning-soft",
+			"ratio": 6.073196499100709
+		},
+		{ "theme": "miel", "mode": "light", "fg": "ink", "bg": "paper", "ratio": 11.833043856725137 },
+		{ "theme": "miel", "mode": "light", "fg": "ink", "bg": "surface", "ratio": 13.016894302427271 },
+		{ "theme": "miel", "mode": "light", "fg": "ink-2", "bg": "paper", "ratio": 5.44911677990253 },
+		{
+			"theme": "miel",
+			"mode": "light",
+			"fg": "ink-2",
+			"bg": "surface",
+			"ratio": 5.994279918540294
+		},
+		{
+			"theme": "miel",
+			"mode": "light",
+			"fg": "ink-hi",
+			"bg": "paper",
+			"ratio": 12.809174417462245
+		},
+		{
+			"theme": "miel",
+			"mode": "light",
+			"fg": "accentInk",
+			"bg": "accent",
+			"ratio": 6.981185879742251
+		},
+		{
+			"theme": "miel",
+			"mode": "light",
+			"fg": "danger",
+			"bg": "surface",
+			"ratio": 7.348399786476714
+		},
+		{
+			"theme": "miel",
+			"mode": "light",
+			"fg": "success",
+			"bg": "success-soft",
+			"ratio": 6.3417994127603246
+		},
+		{
+			"theme": "miel",
+			"mode": "light",
+			"fg": "warning",
+			"bg": "warning-soft",
+			"ratio": 6.300909508501372
+		},
+		{ "theme": "miel", "mode": "dark", "fg": "ink", "bg": "paper", "ratio": 12.127921289774033 },
+		{ "theme": "miel", "mode": "dark", "fg": "ink", "bg": "surface", "ratio": 10.302777526762029 },
+		{ "theme": "miel", "mode": "dark", "fg": "ink-2", "bg": "paper", "ratio": 6.273538415433912 },
+		{ "theme": "miel", "mode": "dark", "fg": "ink-2", "bg": "surface", "ratio": 5.329426952523952 },
+		{ "theme": "miel", "mode": "dark", "fg": "ink-hi", "bg": "paper", "ratio": 13.159691585865223 },
+		{
+			"theme": "miel",
+			"mode": "dark",
+			"fg": "accentInk",
+			"bg": "accent",
+			"ratio": 6.981185879742251
+		},
+		{
+			"theme": "miel",
+			"mode": "dark",
+			"fg": "danger",
+			"bg": "surface",
+			"ratio": 4.968442307314653
+		},
+		{
+			"theme": "miel",
+			"mode": "dark",
+			"fg": "success",
+			"bg": "success-soft",
+			"ratio": 5.008366916879295
+		},
+		{
+			"theme": "miel",
+			"mode": "dark",
+			"fg": "warning",
+			"bg": "warning-soft",
+			"ratio": 5.743978885528509
+		},
+		{
+			"theme": "aquelarre",
+			"mode": "light",
+			"fg": "ink",
+			"bg": "paper",
+			"ratio": 10.512745343632824
+		},
+		{
+			"theme": "aquelarre",
+			"mode": "light",
+			"fg": "ink",
+			"bg": "surface",
+			"ratio": 13.214461935123767
+		},
+		{
+			"theme": "aquelarre",
+			"mode": "light",
+			"fg": "ink-2",
+			"bg": "paper",
+			"ratio": 5.145387056553896
+		},
+		{
+			"theme": "aquelarre",
+			"mode": "light",
+			"fg": "ink-2",
+			"bg": "surface",
+			"ratio": 6.467722671651236
+		},
+		{
+			"theme": "aquelarre",
+			"mode": "light",
+			"fg": "ink-hi",
+			"bg": "paper",
+			"ratio": 11.38791209622361
+		},
+		{
+			"theme": "aquelarre",
+			"mode": "light",
+			"fg": "accentInk",
+			"bg": "accent",
+			"ratio": 6.993597444469922
+		},
+		{
+			"theme": "aquelarre",
+			"mode": "light",
+			"fg": "danger",
+			"bg": "surface",
+			"ratio": 7.178973229050939
+		},
+		{
+			"theme": "aquelarre",
+			"mode": "light",
+			"fg": "success",
+			"bg": "success-soft",
+			"ratio": 5.464897050600022
+		},
+		{
+			"theme": "aquelarre",
+			"mode": "light",
+			"fg": "warning",
+			"bg": "warning-soft",
+			"ratio": 5.429715190426945
+		},
+		{
+			"theme": "aquelarre",
+			"mode": "dark",
+			"fg": "ink",
+			"bg": "paper",
+			"ratio": 13.629090420890885
+		},
+		{
+			"theme": "aquelarre",
+			"mode": "dark",
+			"fg": "ink",
+			"bg": "surface",
+			"ratio": 11.497159365334559
+		},
+		{
+			"theme": "aquelarre",
+			"mode": "dark",
+			"fg": "ink-2",
+			"bg": "paper",
+			"ratio": 7.004646485548647
+		},
+		{
+			"theme": "aquelarre",
+			"mode": "dark",
+			"fg": "ink-2",
+			"bg": "surface",
+			"ratio": 5.9089443576322855
+		},
+		{
+			"theme": "aquelarre",
+			"mode": "dark",
+			"fg": "ink-hi",
+			"bg": "paper",
+			"ratio": 14.915116211097333
+		},
+		{
+			"theme": "aquelarre",
+			"mode": "dark",
+			"fg": "accentInk",
+			"bg": "accent",
+			"ratio": 6.993597444469922
+		},
+		{
+			"theme": "aquelarre",
+			"mode": "dark",
+			"fg": "danger",
+			"bg": "surface",
+			"ratio": 5.9270573949119
+		},
+		{
+			"theme": "aquelarre",
+			"mode": "dark",
+			"fg": "success",
+			"bg": "success-soft",
+			"ratio": 6.228826988282823
+		},
+		{
+			"theme": "aquelarre",
+			"mode": "dark",
+			"fg": "warning",
+			"bg": "warning-soft",
+			"ratio": 7.113173179289884
+		}
+	]
+}

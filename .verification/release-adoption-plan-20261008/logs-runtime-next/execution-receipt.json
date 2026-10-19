@@ -1,0 +1,25 @@
+{
+  "operationId": "e544677b-b75b-4734-bdf7-cda99e4f013a",
+  "result": {
+    "configEnvRead": false,
+    "defaultLogger": {
+      "customProducerMessageSafetyProved": false,
+      "effectiveTokenSafetyProved": false,
+      "encoderTypes": [
+        "OMITTED_EFFECTIVE_DEFAULT_UNRESOLVED"
+      ],
+      "namedLoggerCoverageProved": false,
+      "tokenFilterRules": [],
+      "writerType": "OMITTED_EFFECTIVE_DEFAULT_UNRESOLVED"
+    },
+    "endpoint": "/config/logging/logs/default/",
+    "logsRead": false,
+    "rawConfigPersisted": false,
+    "remoteWrites": false,
+    "requestAttempts": 1,
+    "status": "DEFAULT_CONFIG_TYPES_AND_TOKEN_RULES_PROJECTED",
+    "taskClosureProved": false
+  },
+  "status": "DEFAULT_CONFIG_TYPES_AND_TOKEN_RULES_PROJECTED",
+  "transportExit": 0
+}

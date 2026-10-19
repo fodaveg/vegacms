@@ -1,0 +1,8 @@
+{
+  "backupId": "lumbre-admin-pb-20261008T223304Z-3566962",
+  "composeSha": "7ed9a9e225790a4e15ccef3ce4c110b8d3b22e0fef53e6c1840d286181ebb8dd",
+  "containerId": "6241f7d6b8d1a2dda326770a318a1d3b94d84b032cc5df050527f9631e75f7d6",
+  "remoteWrites": true,
+  "service": "lumbre-admin-pb",
+  "status": "CORS_ROLLED_BACK_AWAITING_PUBLIC_SMOKE"
+}

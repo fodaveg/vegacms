@@ -1,0 +1,15 @@
+--- a/infra/production/admin-compose.yml
++++ b/infra/production/admin-compose.yml
+@@ -52,6 +52,12 @@
+       # y espera. Quien construye es la unidad `vega-publish` del host, al otro lado de este
+       # directorio. Ver `infra/production/publish/`.
+       - /srv/lumbre-admin/publish:/pb/publish
++    command:
++      - serve
++      - --http=0.0.0.0:8090
++      - --dir=/pb/pb_data
++      - --publicDir=/pb/pb_public
++      - --origins=https://admin.lumbre.pro
+     networks:
+       edge:
+         aliases:

@@ -1,0 +1,58 @@
+{
+  "candidate": "cc8f3b14dca9bf10e4a60502da9e17503362bbb8",
+  "chainReceipt": "archive-chain-v2.json",
+  "chainReceiptSHA256": "a6d4ab0344b4a3d8772fc8e36fc1db314a99e75c082921507058d380bddcb004",
+  "checks": [
+    "all 16 layer blobs hashed and uncompressed diff IDs matched",
+    "negative valid config hash with wrong diff ID rejected",
+    "OCI effective ID and descriptor + platform + layers required",
+    "LOAD command scope restricted to image inspect/load",
+    "file full identity and symlink parent failures preserve foreign bytes",
+    "foreign Compose changes block before stop/create/start",
+    "installed/created phases and unhealthy owned rollback tested",
+    "PB own-origin argv and PB1 Node1 tini1 exact",
+    "real discovery JSON rejects HTML and redirect",
+    "foreign wildcard response rejected"
+  ],
+  "cleanup": "Own unittest TemporaryDirectory fixtures removed by cleanup; retained scripts, manifests and receipts; no shared deletion/build/cache changes.",
+  "commands": [
+    {
+      "command": "python3 -B .verification/cors-network-adoption-20261008/fodaveg-delivery/seal_selftest.py",
+      "exitCode": 0,
+      "tests": 4
+    },
+    {
+      "command": "python3 -B .verification/cors-network-adoption-20261008/fodaveg-delivery/transport_selftest.py",
+      "exitCode": 0,
+      "tests": 4
+    },
+    {
+      "command": "python3 -B .verification/cors-network-adoption-20261008/fodaveg-delivery/cutover_selftest.py",
+      "exitCode": 0,
+      "tests": 10
+    },
+    {
+      "command": "python3 -B .verification/cors-network-adoption-20261008/fodaveg-delivery/served_selftest.py",
+      "exitCode": 0,
+      "tests": 2
+    }
+  ],
+  "completedUTC": "2026-10-08T22:11:27.903518+00:00",
+  "diskAvailableKiBAfter": 124000000,
+  "knownLimit": "Root Vega production STOP under diagnosis; shared stopped-runtime guard not yet cleared for Fodaveg deployment.",
+  "sources": {
+    "cutover_selftest.py": "ff28ddd51db9e2a5dce8abc5b151ac25b6b86d6d0e23324be487a9beaaee6994",
+    "remote_cutover.py": "7a9168fd35017f3bfe6d32f984b209d7e805d81cfed93e09709813faec2f4576",
+    "remote_transport.py": "898ec8df867c48cd2a020d4aed4c89adeeafb94307e7466bbe8fcd11efdf3d3a",
+    "run_cutover.py": "6ff2e8a6eed8daf09779406f2aa2e06c461d72d6deeede31e930387f57c26c0b",
+    "run_transport.py": "75a08c3e49d439b0c1afa6522b6a3f7682b82f0fc0318c2120359288453522e0",
+    "seal_archive.py": "14d98ad09b4b2425172a66e4ce64403f5b4b58b59fda6808a448ee99fa74d3ae",
+    "seal_selftest.py": "0e652a8465e2ef5e5be14aad71b3f9945eb6687470bf0cefefcbefbd2f3658bc",
+    "served_selftest.py": "f8622315b8e6683a301b67c4a4404765e0245cd5f2feaf7bc07f456b9aaba989",
+    "served_smoke.py": "2e7d90a57665a9868d6eeadbdbf726f8f0d1becfaffde0f7cc330c902bc2d1d3",
+    "transport_selftest.py": "41c58b0a74da8eb9690bdac5802d1f584415d08f3507148c77dd555d148221ed"
+  },
+  "status": "OFFLINE_TESTS_PASSED_REMOTE_EXECUTION_NOT_ATTEMPTED",
+  "testCount": 20,
+  "tree": "693fc1ae70e8a28e64a87950e25883905a0de1d4"
+}

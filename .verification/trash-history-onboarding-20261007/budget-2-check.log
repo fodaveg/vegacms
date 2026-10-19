@@ -1,0 +1,23 @@
+Loading svelte-check in workspace: /private/tmp/vegacms-trash-history-20261007
+Getting Svelte diagnostics...
+
+/private/tmp/vegacms-trash-history-20261007/src/lib/form/FormPublishControl.svelte:101:13
+Error: Property 'focus' does not exist on type 'never'. (ts)
+			if (!current()) return;
+			control?.focus();
+			await control?.requestChange();
+
+/private/tmp/vegacms-trash-history-20261007/src/lib/form/FormPublishControl.svelte:102:19
+Error: Property 'requestChange' does not exist on type 'never'. (ts)
+			control?.focus();
+			await control?.requestChange();
+		} catch {
+
+/private/tmp/vegacms-trash-history-20261007/src/lib/form/FormPublishControl.svelte.test.ts:117:34
+Error: Cannot assign to 'port' because it is a read-only property. 
+		if (boundary === 'token') w.ctx.session.token = 'other';
+		if (boundary === 'port') w.ctx.port = {} as VegaAppContext['port'];
+		if (boundary === 'disabled') w.props.disabled = true;
+
+====================================
+svelte-check found 3 errors and 0 warnings in 2 files

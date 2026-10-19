@@ -1,0 +1,187 @@
+{
+  "status": "author-verified-reviewed",
+  "base": "87f4680f2d53911be0180b71990ca7e319ee7b25",
+  "tree": "80757b27437d67e33d5fe68cda2d6b3a53077ca6",
+  "worktree": "/private/tmp/vegacms-trash-history-20261007",
+  "paths": [
+    "src/lib/form/FormPublishControl.svelte",
+    "src/lib/form/FormPublishControl.svelte.test.ts",
+    "src/lib/form/RecordForm.svelte",
+    "src/lib/form/RecordForm.publish.svelte.test.ts",
+    "src/lib/form/RecordForm.review.svelte.test.ts",
+    "src/lib/form/RecordForm.schedule.svelte.test.ts",
+    "src/lib/form/deferred-editor-identity.ts"
+  ],
+  "checks": [
+    {
+      "name": "focal",
+      "log": "budget-15-focal.log",
+      "sessionId": 11874,
+      "exitCode": 0,
+      "sha256": "ec2fdcdc7e1fcf48eeb4b680ca1364211d9888c9f6de2ab2dd332ec3b9ed18e1"
+    },
+    {
+      "name": "check",
+      "log": "budget-15-check.log",
+      "sessionId": 71274,
+      "exitCode": 0,
+      "sha256": "788c8433ff80f1aaa4c91e5ba324dbbba10b741293c70ceb3272109ad605501b"
+    },
+    {
+      "name": "eslint",
+      "log": "budget-15-eslint-all.log",
+      "sessionId": null,
+      "exitCode": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "prettier",
+      "log": "budget-15-prettier.log",
+      "sessionId": null,
+      "exitCode": 0,
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    {
+      "name": "themes",
+      "log": "budget-15-themes.log",
+      "sessionId": 27217,
+      "exitCode": 0,
+      "sha256": "816a4994196b923e25c0c77c7cfd1d980ba5c5990ea52999cf3fda479fe7b60b"
+    },
+    {
+      "name": "build",
+      "log": "budget-15-build.log",
+      "sessionId": 27217,
+      "exitCode": 0,
+      "sha256": "700b801ceb03e9deeef548fa989d1dad4d266eb4116d10f884f4166fd7d11803"
+    },
+    {
+      "name": "budget",
+      "log": "budget-15-budget.log",
+      "sessionId": null,
+      "exitCode": 0,
+      "sha256": "b432a8646e94845178fc77d1f2c103111659ccd6fbe60b406c135339d78a48b3"
+    }
+  ],
+  "focal": {
+    "files": 6,
+    "passed": 137,
+    "maxWorkers": 1,
+    "argv": [
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "src/lib/form/FormPublishControl.svelte.test.ts",
+      "src/lib/form/RecordForm.publish.svelte.test.ts",
+      "src/lib/form/RecordForm.schedule.svelte.test.ts",
+      "src/lib/form/RecordForm.review.svelte.test.ts",
+      "src/lib/visual/VisualPublishControl.svelte.test.ts",
+      "src/lib/form/PreviewPanel.svelte.test.ts",
+      "--maxWorkers=1"
+    ]
+  },
+  "review": "budget-review.md",
+  "patch": "budget-15-candidate.patch",
+  "delta": "budget-15-delta.patch",
+  "buildAttempts": [
+    {
+      "tree": "50a32ac7f9c48a4027c023c0132ff5b4ad7d4816",
+      "sessionId": 41750,
+      "exitCode": 0,
+      "budgetExit": 1,
+      "routeKB": 82.27,
+      "log": "budget-4-build.log"
+    },
+    {
+      "tree": "d70667727a7c869bc6ba2704935273bf291a4a8c",
+      "sessionId": 10226,
+      "exitCode": 0,
+      "budgetExit": 1,
+      "routeKB": 81.04,
+      "log": "budget-11-build.log"
+    },
+    {
+      "tree": "39f06c5f2f64f727ea5e7f1cf837f33ca3fa1d1f",
+      "sessionId": 48788,
+      "exitCode": 0,
+      "budgetExit": 1,
+      "routeKB": 80.21,
+      "log": "budget-14-build.log",
+      "concurrency": "Foreign Claude Hebra Playwright probe observed before build; result retained, coexistence disclosed."
+    },
+    {
+      "tree": "80757b27437d67e33d5fe68cda2d6b3a53077ca6",
+      "sessionId": 27217,
+      "exitCode": 0,
+      "budgetExit": 0,
+      "routeKB": 79.92,
+      "log": "budget-15-build.log",
+      "budgetLog": "budget-15-budget.log"
+    }
+  ],
+  "environment": "Darwin; Node22.22.3; existing dependencies; no install; build budget <=1GiB.",
+  "limits": [
+    "Budget passed only this exact author tree with 0.08KB route margin; root combined build/budget gate remains pending.",
+    "Engine VisualPublishControl, PreviewPanel and ScheduleDialog remain byte-identical to base.",
+    "Retry fixture proves another attempt when loader is available; no real browser JS/CSS chunk recovery or cache guarantee.",
+    "Root owns combined integration gate; this author worktree does not include final sidebar/viewport changes.",
+    "Compiler probes are unminified component output, not route savings.",
+    "No author fullgate, browser, push, deploy or remote writes."
+  ],
+  "budgetKB": {
+    "initial": 150.26,
+    "initialCap": 200,
+    "route": 79.92,
+    "routeCap": 80,
+    "routeMargin": 0.08,
+    "visual": 79.01,
+    "newRecord": 78.01,
+    "total": 644.83,
+    "totalCap": 1024
+  },
+  "manifest": {
+    "path": "budget-15-client-manifest.json",
+    "sha256": "47342669bee57421f7ca8dfc373e7b2cba48157b181934a41342891929beb60c"
+  },
+  "buildIdentity": {
+    "path": "budget-15-build-identity.json",
+    "sha256": "355731bcee0ae03dd4d29ac1bbe38b9a0ab77882ae634ca54c7db2d02a36a3ea"
+  },
+  "engineIdentity": [
+    {
+      "path": "src/lib/visual/VisualPublishControl.svelte",
+      "baseAndCurrentSHA256": "61deb50c1de0ac4d9fca2ad9360543498149dfbcaba2afab944caabd304e81ff"
+    },
+    {
+      "path": "src/lib/form/PreviewPanel.svelte",
+      "baseAndCurrentSHA256": "f212e2517166c2b9b56822f8df013021551fc04973e8580bfb9541b8c3823abb"
+    },
+    {
+      "path": "src/lib/form/ScheduleDialog.svelte",
+      "baseAndCurrentSHA256": "850c2d264a8482ca4970023cb60cc1e011d371c688774ebe5aedd6da21e38b02"
+    }
+  ],
+  "sourceBlobs": [
+    "100644 30ab8e342b92746816e465c0b42470119247bfa2 0\tsrc/lib/form/FormPublishControl.svelte",
+    "100644 d585d7bc831d01f514ec86befb7b33e349d844a7 0\tsrc/lib/form/FormPublishControl.svelte.test.ts",
+    "100644 236e894c53607ad5a5f2b629c1d50e1248a75e45 0\tsrc/lib/form/RecordForm.publish.svelte.test.ts",
+    "100644 ab54beda865957cba4f9fd544d3762d5ff0aae70 0\tsrc/lib/form/RecordForm.review.svelte.test.ts",
+    "100644 f83ffc3d431b1b060ef8afe2ed8c2e1c4f524efe 0\tsrc/lib/form/RecordForm.schedule.svelte.test.ts",
+    "100644 548029753c42e3c875486af82418a0a5cc963a7d 0\tsrc/lib/form/RecordForm.svelte",
+    "100644 0865645f6d489259e4d4e610ec61be52e319cdcc 0\tsrc/lib/form/deferred-editor-identity.ts"
+  ],
+  "buildCommands": [
+    "node scripts/build-themes.mjs",
+    "node node_modules/vite/bin/vite.js build",
+    "node scripts/check-bundle-budget.mjs"
+  ],
+  "scheduling": {
+    "preflight": "budget-15-preflight.json",
+    "decision": "Root authorized build after scoped ps/lsof showed observed browser processes absent. Six focal Vitest files alone were not classified as heavy; no further circular census. Root started no other heavy suite.",
+    "dfBeforeKiB": 145427104,
+    "dfAfterKiB": 145200000,
+    "budgetGiB": 1
+  },
+  "cleanup": "No artifacts removed: root integration and production CSP proof need the stable build; reserved private worktree and canonical evidence retained.",
+  "reviewVerdict": "Source 7/7 and exact-tree local evidence ready for private integration; root combined gate pending.",
+  "commit": "c3244ba11595de860031805d9cd271e3bec70a18"
+}

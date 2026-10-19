@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "docker",
+    "--config",
+    "/Users/david/code/vegacms/.verification/local-consumer-runtime-20261008/vega-current-packaged-image/anonymous-docker-config",
+    "compose",
+    "--env-file",
+    "/dev/null",
+    "-f",
+    "/Users/david/code/vegacms/.verification/production-ready-candidate-20261008/public-spa-clones/fodaveg/current-spa-proof-runtime/compose.json",
+    "up",
+    "-d",
+    "--pull",
+    "never"
+  ],
+  "exit_code": 0
+}

@@ -1,0 +1,42 @@
+{
+  "scope": "image metadata only; no Env/Cmd printed or stored",
+  "initialFormatAttempt": "Labels absent; formatter adjusted without Env/raw metadata exposure",
+  "images": [
+    {
+      "id": "sha256:2f2eafc859501d9e198db10c9fdd8fb028aa8f46c1ee7165c4b681d72effc6b8",
+      "os": "linux",
+      "architecture": "amd64",
+      "tags": [
+        "fodaveg:2be1119b15c0516d16f89316d6c356e49ec93ef1"
+      ],
+      "digests": [],
+      "created": "2026-10-04T09:21:23.450684344Z",
+      "sizeBytes": 452789155,
+      "entrypoint": [
+        "/usr/bin/tini",
+        "-g",
+        "--",
+        "./docker-entrypoint.sh"
+      ],
+      "oci": null
+    },
+    {
+      "id": "sha256:0821a5b31fe8cd98e8045d1827d5adefcb84107143875a19083db78b4bf8ab99",
+      "os": "linux",
+      "architecture": "amd64",
+      "tags": [
+        "fodaveg:3bdc5da7c6f7877609d08cf40c8bc5e2fe956965"
+      ],
+      "digests": [],
+      "created": "2026-10-04T09:13:00.756974709Z",
+      "sizeBytes": 452625319,
+      "entrypoint": [
+        "/usr/bin/tini",
+        "-g",
+        "--",
+        "./docker-entrypoint.sh"
+      ],
+      "oci": null
+    }
+  ]
+}

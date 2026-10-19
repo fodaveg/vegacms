@@ -1,0 +1,22 @@
+{
+  "assetsChecked": 153,
+  "assetsMatched": 153,
+  "bodyValuesStored": false,
+  "canonicalIndexAlias": true,
+  "cors": {
+    "discoveryAndCors": true,
+    "foreignDenied": true,
+    "methodHeaderPreflights": true,
+    "normalApiAndCors": true,
+    "nullDenied": true,
+    "ownOrigin": true,
+    "withoutOrigin": true
+  },
+  "credentialsSent": false,
+  "discoveryMode": "LEGACY_SPA_FALLBACK",
+  "pathsUnchanged": true,
+  "peersUnchanged": true,
+  "service": "vega-pb",
+  "stage": "after",
+  "status": "CORS_PUBLIC_OK"
+}
