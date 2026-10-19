@@ -103,7 +103,7 @@ export const ALLOWLIST_RAW_COLOR = [
 	{
 		// Diálogo modal de verdad (backdrop + centrado, mismo patrón que `ExportDialog.svelte`), no
 		// un cajón overlay: panel de ayuda de atajos del editor visual (tarea "el acabado").
-		file: 'src/lib/visual/VisualEditorScreen.svelte',
+		file: 'src/lib/visual/VisualHelpDialog.svelte',
 		snippet: 'rgb(15 17 21 / 55%)'
 	},
 	{

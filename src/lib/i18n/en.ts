@@ -529,6 +529,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// ————— The finishing touches (screen sizes, zoom, shortcuts, save status): see the header of
 	// `VisualEditorScreen.svelte` for why —————
 	'editor.visual.breadcrumbs.label': 'Where you are',
+	'editor.visual.preview.label': 'Preview',
+	'editor.visual.view.label': 'View',
+	'editor.visual.zoom.fitWithLevel': 'Fit · {percent} %',
 	'editor.visual.screen.groupLabel': 'Screen size',
 	'editor.visual.screen.mobile': 'Mobile',
 	'editor.visual.screen.tablet': 'Tablet',
@@ -538,6 +541,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.zoom.level': '{percent} %',
 	'editor.visual.zoom.fit': 'Fit',
 	'editor.visual.help.toggle': 'Keyboard shortcuts',
+	'editor.visual.help.loadError':
+		'Help could not be loaded. Save your changes before reloading the editor.',
 	'editor.visual.help.title': 'Keyboard shortcuts',
 	'editor.visual.help.deselect': 'Deselect the block',
 	'editor.visual.help.move': 'Move the selected block up/down',
@@ -654,6 +659,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'The “{name}” type no longer exists in the manifest. This block is read-only so its data stays intact.',
 	'editor.blocks.form.noType':
 		'This block has no type. It stays read-only until the model says how to edit it.',
+	'editor.blocks.form.reviewFields': 'Review the highlighted fields.',
 	'editor.blocks.form.invalidData':
 		'The “{field}” column does not contain a JSON object. Saving would replace the existing value, so Vega has blocked this block.',
 	'editor.blocks.form.rawData': 'Raw value of “{field}”',

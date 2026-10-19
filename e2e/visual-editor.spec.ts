@@ -147,10 +147,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 			const painted = await iframe.boundingBox();
 			return !!painted && Math.abs(canvasWidth - painted.width) < 2;
 		};
-		await expect(page.getByRole('button', { name: 'Ajustar', exact: true })).toHaveAttribute(
-			'aria-pressed',
-			'true'
-		);
+		await expect(page.getByRole('combobox', { name: 'Zoom', exact: true })).toHaveValue('fit');
 		await expect(page.locator('#vega-sidebar')).toHaveClass(/vega-sidebar-collapsed/);
 		await expect.poll(siteViewport).toEqual({ width: 1280, desktop: true, layout: 'desktop' });
 		await expect.poll(fitFillsCanvas).toBe(true);
@@ -161,23 +158,19 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		await expect.poll(siteViewport).toEqual({ width: 1280, desktop: true, layout: 'desktop' });
 		await expect.poll(fitFillsCanvas).toBe(true);
 		await expect.poll(alignedOverlay).toBe(true);
-		for (const [name, width] of [
-			['Móvil', 390],
-			['Tableta', 834]
-		] as const) {
-			await page.getByRole('button', { name, exact: true }).click();
+		for (const width of [390, 834] as const) {
+			await page
+				.getByRole('combobox', { name: 'Vista', exact: true })
+				.selectOption(width === 390 ? 'mobile' : 'tablet');
 			await expect.poll(siteViewport).toEqual({ width, desktop: false, layout: 'narrow' });
 			await expect.poll(alignedOverlay).toBe(true);
 		}
-		await page.getByRole('button', { name: '50 %', exact: true }).click();
-		await page.getByRole('button', { name: 'Escritorio', exact: true }).click();
-		await expect(page.getByRole('button', { name: '50 %', exact: true })).toHaveAttribute(
-			'aria-pressed',
-			'true'
-		);
+		await page.getByRole('combobox', { name: 'Zoom', exact: true }).selectOption('50');
+		await page.getByRole('combobox', { name: 'Vista', exact: true }).selectOption('desktop');
+		await expect(page.getByRole('combobox', { name: 'Zoom', exact: true })).toHaveValue('50');
 		await expect.poll(siteViewport).toEqual({ width: 1280, desktop: true, layout: 'desktop' });
 		await expect.poll(alignedOverlay).toBe(true);
-		await page.getByRole('button', { name: 'Ajustar', exact: true }).click();
+		await page.getByRole('combobox', { name: 'Zoom', exact: true }).selectOption('fit');
 		await expect.poll(fitFillsCanvas).toBe(true);
 		// Ventanas pequeñas conservan el modo de textos; el nuevo preset no habilita el lienzo allí.
 		for (const width of [834, 390]) {
@@ -253,7 +246,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 			page.locator('.vega-visual-overlay-box[data-vega-block-id="seccion_2"]')
 		).toHaveClass(/vega-visual-overlay-box--selected/);
 
-		await expect(visibleInspectorBody(page).locator('.vega-inspector-block-title')).toHaveText(
+		await expect(visibleInspectorBody(page).locator('.vega-block-context-title')).toHaveText(
 			'Tu contenido, en tu servidor'
 		);
 		await expect(headingInput(page)).toHaveValue('Tu contenido, en tu servidor');
@@ -835,4 +828,495 @@ test('UX03: abrir y guardar el bloque pendiente desbloquea la paleta', async ({
 		'Segundo borrador pendiente'
 	);
 	expect(await page.locator('body').evaluate((body) => body.scrollWidth <= innerWidth)).toBe(true);
+});
+
+/** UX01: identidad documental estable y precisión del sitio en los controles secundarios. */
+test('UX01: título largo, controles de vista y error del puente conservan las acciones documentales', async ({
+	page
+}, testInfo) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openVisualEditor(page, site, 'pagina_1');
+	await waitConnected(page, 3);
+	await page.getByRole('button', { name: 'Volver al formulario', exact: true }).click();
+	const longTitle =
+		'Una página con un título largo para editar sin perder el contexto del documento';
+	await page
+		.locator('.vega-record-form')
+		.getByRole('textbox', { name: 'Título', exact: true })
+		.fill(longTitle);
+	const save = page.locator('.vega-edit-top').getByRole('button', { name: 'Guardar', exact: true });
+	await save.click();
+	await expect(page.locator('.vega-editor-dirty')).toHaveCount(0);
+	await expect(
+		page.locator('.vega-editor-saved-at:not(.vega-editor-saved-at--saving)')
+	).toBeVisible();
+	await page.getByRole('button', { name: 'Editor visual', exact: true }).click();
+	await waitConnected(page, 3);
+	await expect(page.getByRole('heading', { name: longTitle, level: 1, exact: true })).toBeVisible();
+	const preview = page.getByRole('region', { name: 'Vista previa', exact: true });
+	const view = preview.getByRole('combobox', { name: 'Vista', exact: true });
+	await view.focus();
+	await view.press('ArrowUp');
+	await view.press('Enter');
+	await expect(view).toHaveValue('tablet');
+	const frame = await (await page
+		.locator('iframe.vega-visual-frame')
+		.elementHandle())!.contentFrame();
+	if (!frame) throw new Error('El marco conectado debe existir');
+	await expect.poll(() => frame.evaluate(() => innerWidth)).toBe(834);
+	await view.selectOption('desktop');
+	await preview.getByRole('combobox', { name: 'Zoom', exact: true }).selectOption('50');
+	await expect.poll(() => frame.evaluate(() => innerWidth)).toBe(1280);
+	await expect(page.locator('.vega-visual-stage')).toHaveCSS(
+		'transform',
+		'matrix(0.5, 0, 0, 0.5, 0, 0)'
+	);
+	await page.setViewportSize({ width: 901, height: 900 });
+	await frame.evaluate(() =>
+		parent.postMessage(
+			{
+				vega: 'vega-visual-1',
+				type: 'error',
+				code: 'render-unavailable',
+				detail: 'Test: bridge rendering failed'
+			},
+			'http://localhost:4173'
+		)
+	);
+	const retry = preview.getByRole('button', { name: 'Reintentar', exact: true });
+	await expect(retry).toBeVisible();
+	await expect(
+		statusGroup(page).getByRole('button', { name: 'Marcar como publicada', exact: true })
+	).toBeVisible();
+	await expect(page.getByRole('heading', { name: longTitle, level: 1, exact: true })).toBeVisible();
+	await page.screenshot({ path: testInfo.outputPath('ux01-long-title-901-bridge-error.png') });
+	await retry.focus();
+	await retry.press('Enter');
+	await waitConnected(page, 3);
+	await expect(page.getByRole('heading', { name: longTitle, level: 1, exact: true })).toBeVisible();
+});
+
+/** Las teclas nativas del selector no son gestos sobre la sección seleccionada. */
+test('UX01: los selectores conservan el bloque al usar teclas nativas y CtrlS guarda su borrador', async ({
+	page
+}) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openVisualEditor(page, site, 'pagina_1');
+	await waitConnected(page, 3);
+	await page.locator('[data-vega-tree-row="seccion_1"]').click();
+	const originalOrder = await page.locator('.vega-tree-row').allTextContents();
+	for (const name of ['Vista', 'Zoom']) {
+		const select = page.getByRole('combobox', { name, exact: true });
+		await select.focus();
+		await select.press('Alt+ArrowDown');
+		await select.press('Escape');
+		for (const key of ['Delete', 'Backspace', 'Escape']) await select.press(key);
+		await expect(page.locator('[data-vega-tree-row="seccion_1"]')).toHaveClass(
+			/vega-tree-row--selected/
+		);
+		await expect(page.locator('.vega-delete-confirm')).toHaveCount(0);
+		await expect(page.locator('.vega-tree-row')).toHaveText(originalOrder);
+	}
+	await headingInput(page).fill('Borrador guardado desde el selector');
+	await page.getByRole('combobox', { name: 'Vista', exact: true }).focus();
+	await page.keyboard.press('Control+s');
+	await expect(page.locator('.vega-visual-pending')).toHaveCount(0);
+	await page.getByRole('button', { name: 'Volver al formulario', exact: true }).click();
+	await expect(page.locator('.vega-block-title').first()).toHaveText(
+		'Borrador guardado desde el selector'
+	);
+});
+
+/** Datos largos configurados por la UI real; mismos campos en inspector y Solo textos. */
+async function openLongBlockForm(page: Page, site: VisualSite): Promise<void> {
+	await openVisualEditor(page, site, 'pagina_1');
+	await waitConnected(page, 3);
+	await page.getByRole('button', { name: 'Volver al formulario', exact: true }).click();
+	await page.getByRole('link', { name: 'Ajustes', exact: true }).click();
+	const editor = page.getByRole('textbox', { name: 'JSON del manifiesto' });
+	const manifest = JSON.parse(await editor.inputValue());
+	const fields = Array.from({ length: 8 }, (_, index) => ({
+		name: `detalle_${index + 1}`,
+		label: `Detalle editorial ${index + 1}`,
+		widget: 'textarea',
+		source: 'data',
+		required: index === 0
+	}));
+	for (const block of Object.values(manifest.blockTypes) as { fields: unknown[] }[]) {
+		block.fields.push(...fields);
+	}
+	// Los otros dos bloques prueban destinos que no son inputs de texto: cuerpo real de TipTap
+	// antes de su toolbar, y la primera acción habilitada del selector de relación.
+	const textFields = manifest.blockTypes.texto.fields;
+	textFields.unshift(
+		textFields.splice(
+			textFields.findIndex((f: { name: string }) => f.name === 'cuerpo'),
+			1
+		)[0]
+	);
+	const galleryFields = manifest.blockTypes.galeria.fields;
+	galleryFields.unshift(
+		galleryFields.splice(
+			galleryFields.findIndex((f: { name: string }) => f.name === 'imagenes'),
+			1
+		)[0]
+	);
+	await editor.fill(JSON.stringify(manifest, null, 2));
+	await page
+		.locator('.manifest-editor')
+		.getByRole('button', { name: 'Guardar', exact: true })
+		.click();
+	await page.locator('a[href="/c/paginas"]').first().click();
+	await page.locator('a[href="/c/paginas/pagina_1"]').click();
+	await page.getByRole('button', { name: 'Editor visual', exact: true }).click();
+	await waitConnected(page, 3);
+}
+
+test('UX02: contexto y Guardar siguen accesibles al recorrer un formulario largo y reflow', async ({
+	page
+}, testInfo) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openLongBlockForm(page, site);
+	await page.locator('[data-vega-tree-row="seccion_1"]').click();
+	const first = page.locator('.vega-inspector-body[data-block-id="seccion_1"]');
+	const heading = first.locator('[data-field="heading"] input');
+	const longName =
+		'Guía editorial de una página con un nombre largo para reconocer el bloque al recorrer todos sus campos';
+	await heading.fill(longName);
+	for (const [index, field] of (await first.locator('textarea').all()).entries()) {
+		await field.fill(
+			`Texto editorial ${index + 1} que permanece al cambiar de bloque.\n`.repeat(6)
+		);
+	}
+	const save = first.getByRole('button', { name: 'Guardar', exact: true });
+	await save.click();
+	await expect(save).toBeDisabled();
+	await first.locator('textarea').first().fill('');
+	await save.click();
+	const error = first.locator('.vega-field-error').first();
+	await expect(error).toBeVisible();
+	const retainedError = await error.textContent();
+	await page.locator('[data-vega-tree-row="seccion_2"]').click();
+	await headingInput(page).fill('Borrador B retenido');
+	await page
+		.getByRole('region', { name: 'Cambios sin guardar', exact: true })
+		.getByRole('button', { name: `Abrir bloque: ${longName}`, exact: true })
+		.click();
+	await expect(heading).toBeFocused();
+	await expect(error).toHaveText(retainedError!);
+	await expect(first.locator('textarea').first()).toHaveValue('');
+	await expect(
+		page.locator('[data-block-id="seccion_2"] [data-field="heading"] input')
+	).toHaveValue('Borrador B retenido');
+	await expect(first.locator('.vega-block-context-title')).toHaveText(longName);
+	await expect(first.locator('.vega-block-context-state')).toHaveText(
+		'Revisa los campos señalados.'
+	);
+	await expect(first.getByRole('button', { name: 'Guardar', exact: true })).toHaveCount(1);
+	const panel = page.locator('.vega-inspector-panel');
+	for (const size of [
+		{ width: 1440, height: 900 },
+		{ width: 901, height: 900 },
+		{ width: 390, height: 844 },
+		{ width: 720, height: 500 }
+	]) {
+		// 720×500 comprueba el espacio CSS de reflow de 1440×1000 al 200%; no simula zoom nativo.
+		await page.setViewportSize(size);
+		if (size.width < 901) {
+			const close = page.locator('.vega-sidebar-open .vega-sidebar-close');
+			if (await close.count()) await close.click();
+			await expect(page.locator('iframe.vega-visual-frame')).toHaveCount(0);
+		}
+		await panel.evaluate((el) => {
+			el.scrollTop = el.querySelector<HTMLElement>('[data-block-id="seccion_1"]')!.offsetTop + 500;
+		});
+		await expect
+			.poll(async () => {
+				const container = (await panel.boundingBox())!;
+				const button = (await save.boundingBox())!;
+				return (
+					button.y >= container.y && button.y + button.height <= container.y + container.height
+				);
+			})
+			.toBe(true);
+		await expect(first.locator('.vega-block-context-title')).toBeVisible();
+		expect(await page.locator('body').evaluate((el) => el.scrollWidth <= innerWidth)).toBe(true);
+		await page.screenshot({
+			path: testInfo.outputPath(`ux02-${size.width}-long-error-scroll.png`)
+		});
+		await page
+			.getByRole('region', { name: 'Cambios sin guardar', exact: true })
+			.getByRole('button', { name: `Abrir bloque: ${longName}`, exact: true })
+			.click();
+		await expect(heading).toBeFocused();
+		const contextBox = (await first.locator('.vega-block-context').boundingBox())!;
+		const fieldBox = (await heading.boundingBox())!;
+		expect(fieldBox.y).toBeGreaterThanOrEqual(contextBox.y + contextBox.height);
+	}
+	// Al entrar en B la cabecera A sale con SU ficha, en lugar de apilarse encima de B.
+	const second = page.locator('.vega-inspector-body[data-block-id="seccion_2"]');
+	await panel.evaluate((el) => {
+		el.scrollTop = el.querySelector<HTMLElement>('[data-block-id="seccion_2"]')!.offsetTop + 400;
+	});
+	await expect
+		.poll(
+			async () =>
+				(await first.locator('.vega-block-context').boundingBox())!.y +
+					(await first.locator('.vega-block-context').boundingBox())!.height <=
+				(await panel.boundingBox())!.y
+		)
+		.toBe(true);
+	const secondHeader = (await second.locator('.vega-block-context').boundingBox())!;
+	expect(secondHeader.y).toBeGreaterThanOrEqual((await panel.boundingBox())!.y);
+	// UX03 puede abrir cualquier borrador, aunque su ficha esté completamente fuera del panel.
+	for (const size of [
+		{ width: 390, height: 844 },
+		{ width: 720, height: 500 }
+	]) {
+		await page.setViewportSize(size);
+		await panel.evaluate((el) => {
+			el.scrollTop = 0;
+		});
+		expect((await second.boundingBox())!.y).toBeGreaterThan(
+			(await panel.boundingBox())!.y + (await panel.boundingBox())!.height
+		);
+		await page
+			.getByRole('region', { name: 'Cambios sin guardar', exact: true })
+			.getByRole('button', { name: `Abrir bloque: ${SECCIONES[1].text}`, exact: true })
+			.click();
+		const secondInput = second.locator('[data-field="heading"] input');
+		await expect(secondInput).toBeFocused();
+		await page.evaluate(
+			() =>
+				new Promise<void>((resolve) =>
+					requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+				)
+		);
+		const field = (await secondInput.boundingBox())!,
+			header = (await second.locator('.vega-block-context').boundingBox())!,
+			viewport = (await panel.boundingBox())!;
+		expect(field.y).toBeGreaterThanOrEqual(header.y + header.height);
+
+		expect(field.y - 3).toBeGreaterThanOrEqual(header.y + header.height - 1);
+		expect(field.y + field.height + 3).toBeLessThanOrEqual(viewport.y + viewport.height + 1);
+		await page
+			.getByRole('region', { name: 'Cambios sin guardar', exact: true })
+			.getByRole('button', { name: `Abrir bloque: ${longName}`, exact: true })
+			.click();
+		await expect(heading).toBeFocused();
+		await page.evaluate(
+			() =>
+				new Promise<void>((resolve) =>
+					requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+				)
+		);
+		const firstField = (await heading.boundingBox())!,
+			firstHeader = (await first.locator('.vega-block-context').boundingBox())!;
+		expect(firstField.y).toBeGreaterThanOrEqual(firstHeader.y + firstHeader.height);
+		expect(firstField.y - 3).toBeGreaterThanOrEqual(firstHeader.y + firstHeader.height - 1);
+		expect(firstField.y + firstField.height + 3).toBeLessThanOrEqual(
+			viewport.y + viewport.height + 1
+		);
+		if (size.width === 720)
+			await page.screenshot({
+				path: testInfo.outputPath('ux02-720x500-two-drafts-focused-field.png')
+			});
+	}
+});
+
+for (const empty of [false, true]) {
+	test(`UX02: abrir pendiente enfoca richtext ${empty ? 'vacío' : 'largo'} y relación reales antes que Guardar`, async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: 1440, height: 900 });
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+		await openLongBlockForm(page, site);
+		await page.locator('[data-vega-tree-row="seccion_2"]').click();
+		const richtext = page.locator(
+			'[data-block-id="seccion_2"] [data-field="cuerpo"] [contenteditable="true"]'
+		);
+		await richtext.fill(
+			empty ? '' : 'Borrador enriquecido con muchas líneas para un panel corto.\n'.repeat(30)
+		);
+		await page.locator('[data-vega-tree-row="seccion_3"]').click();
+		await headingInput(page).fill('Borrador galería');
+		const pending = page.getByRole('region', { name: 'Cambios sin guardar', exact: true });
+		await pending
+			.getByRole('button', { name: `Abrir bloque: ${SECCIONES[1].text}`, exact: true })
+			.click();
+		await expect(richtext).toBeFocused();
+		await page.setViewportSize({ width: 1440, height: 500 });
+		await pending
+			.getByRole('button', { name: `Abrir bloque: ${SECCIONES[1].text}`, exact: true })
+			.click();
+		await expect(richtext).toBeFocused();
+		// TipTap restaura su caret después de pintar: el rect del control completo puede empezar
+		// fuera del panel si es muy alto; lo que debe seguir visible es la posición editable actual.
+		await page.evaluate(
+			() =>
+				new Promise<void>((resolve) =>
+					requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+				)
+		);
+		const caret = await richtext.evaluate((el) => {
+			const selection = document.getSelection()!;
+			const range = selection.getRangeAt(0);
+			return {
+				inside: el.contains(range.startContainer),
+				collapsed: selection.isCollapsed,
+				rect: range.getBoundingClientRect().height
+					? range.getBoundingClientRect().toJSON()
+					: el.getBoundingClientRect().toJSON()
+			};
+		});
+		const headerBox = (await page
+			.locator('[data-block-id="seccion_2"] .vega-block-context')
+			.boundingBox())!;
+		const panelBox = (await page.locator('.vega-inspector-panel').boundingBox())!;
+		if (!empty) expect((await richtext.boundingBox())!.height).toBeGreaterThan(panelBox.height);
+		expect(caret.inside && caret.collapsed).toBe(true);
+		expect(caret.rect.top).toBeGreaterThanOrEqual(headerBox.y + headerBox.height);
+		expect(caret.rect.bottom).toBeLessThanOrEqual(panelBox.y + panelBox.height);
+
+		await pending
+			.getByRole('button', { name: `Abrir bloque: ${SECCIONES[2].text}`, exact: true })
+			.click();
+		const relation = page.locator('[data-block-id="seccion_3"] [data-field="imagenes"]');
+		await expect
+			.poll(() => relation.evaluate((el) => el.contains(document.activeElement)))
+			.toBe(true);
+		await expect(
+			page.locator('[data-block-id="seccion_3"] .vega-block-save-button')
+		).not.toBeFocused();
+	});
+}
+
+/** URL con hash de la distribución real, sin acoplar la prueba al nombre de un chunk. */
+async function visualHelpChunkPath(): Promise<string> {
+	const { readFile } = await import('node:fs/promises');
+	const manifest = JSON.parse(
+		await readFile('.svelte-kit/output/client/.vite/manifest.json', 'utf8')
+	);
+	const entry = Object.entries(manifest).find(([name]) =>
+		name.endsWith('/VisualHelpDialog.svelte')
+	);
+	expect(entry, 'La ayuda tiene una entrada diferida propia en la build').toBeDefined();
+	return `/${(entry![1] as { file: string }).file}`;
+}
+
+test('UX02: ayuda se descarga solo al pedirla; cerrar durante carga no abre tarde y restaura foco', async ({
+	page
+}) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	const chunk = await visualHelpChunkPath();
+	let release!: () => void;
+	const held = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	let requests = 0;
+	await page.route(`**${chunk}`, async (route) => {
+		requests++;
+		await held;
+		await route.continue();
+	});
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openVisualEditor(page, site, 'pagina_1');
+	await waitConnected(page, 3);
+	expect(requests).toBe(0);
+	const opener = page.getByRole('button', { name: 'Atajos de teclado', exact: true });
+	await opener.focus();
+	await opener.press('?');
+	const loading = page.locator('.vega-visual-help-loading');
+	await expect(loading.getByRole('status')).toHaveText('Cargando…');
+	await expect(loading.getByRole('button', { name: 'Cerrar', exact: true })).toBeFocused();
+	expect(requests).toBe(1);
+	await page.keyboard.press('Escape');
+	await expect(loading).toHaveCount(0);
+	await expect(opener).toBeFocused();
+	const response = page.waitForResponse((r) => r.url().endsWith(chunk));
+	release();
+	await response;
+	await page.evaluate(
+		() =>
+			new Promise<void>((resolve) =>
+				requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+			)
+	);
+	await expect(page.getByRole('dialog')).toHaveCount(0);
+	await opener.click();
+	const dialog = page.getByRole('dialog', { name: 'Atajos de teclado', exact: true });
+	await expect(dialog).toBeVisible();
+	const close = dialog.getByRole('button', { name: 'Cerrar', exact: true });
+	await expect(close).toBeFocused();
+	await close.press('Tab');
+	await expect(close).toBeFocused();
+	await close.press('Shift+Tab');
+	await expect(close).toBeFocused();
+	await page.keyboard.press('Escape');
+	await expect(dialog).toHaveCount(0);
+	await expect(opener).toBeFocused();
+});
+
+test('UX02: fallo de descarga de ayuda permite cerrar y guardar sin perder borradores', async ({
+	page
+}, testInfo) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	const chunk = await visualHelpChunkPath();
+	let requests = 0;
+	await page.route(`**${chunk}`, async (route) => {
+		requests++;
+		if (requests === 1) await route.abort('failed');
+		else await route.continue();
+	});
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openVisualEditor(page, site, 'pagina_1');
+	await waitConnected(page, 3);
+	await page.locator('[data-vega-tree-row="seccion_1"]').click();
+	await headingInput(page).fill('Borrador conservado durante la descarga');
+	await page.getByRole('button', { name: 'Atajos de teclado', exact: true }).click();
+	const loading = page.locator('.vega-visual-help-loading');
+	await expect(loading.getByRole('alert')).toContainText('No se ha podido cargar la ayuda');
+	await page.screenshot({ path: testInfo.outputPath('ux02-help-load-error.png') });
+	await expect(loading).toContainText('Guarda tus cambios antes de recargar el editor');
+	await expect(loading.getByRole('button', { name: 'Reintentar', exact: true })).toHaveCount(0);
+	await loading.getByRole('button', { name: 'Cerrar', exact: true }).click();
+	await expect(page.getByRole('button', { name: 'Atajos de teclado', exact: true })).toBeFocused();
+	await expect(headingInput(page)).toHaveValue('Borrador conservado durante la descarga');
+	await headingInput(page).fill('Borrador corregido después del fallo de ayuda');
+	await visibleInspectorBody(page).getByRole('button', { name: 'Guardar', exact: true }).click();
+	await expect(page.getByRole('region', { name: 'Cambios sin guardar', exact: true })).toHaveCount(
+		0
+	);
+	await expect(headingInput(page)).toHaveValue('Borrador corregido después del fallo de ayuda');
+	expect(requests).toBe(1);
+});
+
+test('UX02: desmontar mientras carga ayuda no abre ni enfoca el diálogo después', async ({
+	page
+}) => {
+	const chunk = await visualHelpChunkPath();
+	let release!: () => void;
+	const held = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	await page.route(`**${chunk}`, async (route) => {
+		await held;
+		await route.continue();
+	});
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openVisualEditor(page, site, 'pagina_1');
+	await waitConnected(page, 3);
+	await page.getByRole('button', { name: 'Atajos de teclado', exact: true }).click();
+	await expect(page.locator('.vega-visual-help-loading')).toBeVisible();
+	await page.getByRole('button', { name: 'Volver al formulario', exact: true }).click();
+	await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
+	const response = page.waitForResponse((r) => r.url().endsWith(chunk));
+	release();
+	await response;
+	await expect(page.getByRole('dialog')).toHaveCount(0);
+	await expect(page.locator('.vega-visual-help-loading')).toHaveCount(0);
+	await expect(page.locator('.vega-record-form')).toBeVisible();
 });

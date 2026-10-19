@@ -583,6 +583,9 @@ export const es = {
 	// ————— El acabado (tamaños de pantalla, zoom, atajos y estado de guardado): ver la cabecera
 	// de `VisualEditorScreen.svelte` para el porqué de cada pieza —————
 	'editor.visual.breadcrumbs.label': 'Dónde estás',
+	'editor.visual.preview.label': 'Vista previa',
+	'editor.visual.view.label': 'Vista',
+	'editor.visual.zoom.fitWithLevel': 'Ajustar · {percent} %',
 	'editor.visual.screen.groupLabel': 'Tamaño de pantalla',
 	'editor.visual.screen.mobile': 'Móvil',
 	'editor.visual.screen.tablet': 'Tableta',
@@ -592,6 +595,8 @@ export const es = {
 	'editor.visual.zoom.level': '{percent} %',
 	'editor.visual.zoom.fit': 'Ajustar',
 	'editor.visual.help.toggle': 'Atajos de teclado',
+	'editor.visual.help.loadError':
+		'No se ha podido cargar la ayuda. Guarda tus cambios antes de recargar el editor.',
 	'editor.visual.help.title': 'Atajos de teclado',
 	'editor.visual.help.deselect': 'Deseleccionar el bloque',
 	'editor.visual.help.move': 'Mover el bloque seleccionado arriba/abajo',
@@ -710,6 +715,7 @@ export const es = {
 		'El tipo «{name}» ya no existe en el manifiesto. Este bloque queda en solo lectura para conservar sus datos.',
 	'editor.blocks.form.noType':
 		'Este bloque no tiene tipo. Queda en solo lectura hasta que el modelo indique cómo editarlo.',
+	'editor.blocks.form.reviewFields': 'Revisa los campos señalados.',
 	'editor.blocks.form.invalidData':
 		'La columna «{field}» no contiene un objeto JSON. Guardar sustituiría el valor existente, así que Vega ha bloqueado este bloque.',
 	'editor.blocks.form.rawData': 'Valor crudo de «{field}»',

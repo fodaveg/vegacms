@@ -10,7 +10,8 @@ type VisualKeyboardAction =
 	| 'delete'
 	| null;
 
-/** Decide el gesto antes de tocar estado; guardar es el único atajo activo dentro de un campo. */
+/** Decide el gesto antes de tocar estado; guardar es el único atajo activo dentro de un campo.
+ *  Los selects de Vista/Zoom conservan sus teclas nativas, también Alt+flechas y Escape. */
 export function visualKeyboardAction(
 	event: KeyboardEvent,
 	canvasActive: boolean,
@@ -21,6 +22,7 @@ export function visualKeyboardAction(
 		event.preventDefault();
 		return 'save';
 	}
+	if (event.target instanceof HTMLElement && event.target.closest('select')) return null;
 	if (isEditableTarget(event.target)) return null;
 	if (event.key === 'Escape') return helpOpen ? 'close-help' : 'clear-selection';
 	if (event.key === '?') {
