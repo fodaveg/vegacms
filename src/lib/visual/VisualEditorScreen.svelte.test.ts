@@ -544,29 +544,43 @@ describe('VisualEditorScreen.svelte', () => {
 		expect(mounted.target.querySelector('.vega-visual-status')?.textContent?.trim()).toBe('');
 	});
 
-	test('"bad-preview-url" es el único error del puente SIN botón de reintentar', async () => {
-		// Un `data:` da origen opaco, así que el cliente no tiene contra qué validar y falla cerrado
-		// (`bridge-client.ts#originOf`). Reintentar no puede arreglarlo: la URL se fija al crear.
-		vi.stubGlobal(
-			'fetch',
-			vi.fn().mockResolvedValue(
-				jsonResponse({
-					url: 'data:text/html,<p>hola',
-					expiresAt: new Date(Date.now() + 3_600_000).toISOString()
-				})
-			)
+	test('un token con URL no web se rechaza antes de montar el marco o iniciar el puente', async () => {
+		// El parser rechaza `data:` antes de embeberlo: el error pertenece a la petición del token,
+		// y el puente no debe recibir una URL con origen opaco ni llegar a anunciar conexión.
+		const fetchMock = vi.fn().mockResolvedValue(
+			jsonResponse({
+				url: 'data:text/html,<p>hola',
+				expiresAt: new Date(Date.now() + 3_600_000).toISOString()
+			})
 		);
+		vi.stubGlobal('fetch', fetchMock);
 		const { ctx, type } = await setup();
 		mounted = mountScreen(ctx, type);
 		await flush();
 
-		mounted.target.querySelector('.vega-visual-frame')?.dispatchEvent(new Event('load'));
-		await tick();
-
-		expect(mounted.target.querySelector('.vega-visual-status')?.textContent).toContain(
-			translate('es', 'editor.visual.error.badPreviewUrl.title')
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(mounted.target.querySelector('iframe')).toBeNull();
+		const error = mounted.target.querySelector('.vega-visual-overlay--error');
+		expect(error?.getAttribute('role')).toBe('alert');
+		expect(error?.textContent).toContain(
+			translate('es', 'editor.visual.token.error', {
+				message: 'El endpoint de preview no devolvió una vista previa con forma válida.'
+			})
 		);
+		expect(error?.querySelector('button')?.textContent).toContain(translate('es', 'common.retry'));
+		expect(mounted.target.querySelector('.vega-visual-status')?.textContent?.trim()).toBe('');
 		expect(mounted.target.querySelector('.vega-visual-retry')).toBeNull();
+
+		// Sin un marco válido no se acepta tampoco un saludo del sitio que llegara por la ventana.
+		sendSiteMessage({
+			vega: 'vega-visual-1',
+			type: 'ready',
+			collection: 'post',
+			id: 'rec-1',
+			blocks: []
+		});
+		await tick();
+		expect(mounted.target.querySelector('.vega-visual-status')?.textContent?.trim()).toBe('');
 	});
 
 	// ————— Modo «solo textos» (Lote 12, lámina 8): por debajo de 900px —————
