@@ -896,3 +896,35 @@ test('UX01: título largo, controles de vista y error del puente conservan las a
 	await waitConnected(page, 3);
 	await expect(page.getByRole('heading', { name: longTitle, level: 1, exact: true })).toBeVisible();
 });
+
+/** Las teclas nativas del selector no son gestos sobre la sección seleccionada. */
+test('UX01: los selectores conservan el bloque al usar teclas nativas y CtrlS guarda su borrador', async ({
+	page
+}) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openVisualEditor(page, site, 'pagina_1');
+	await waitConnected(page, 3);
+	await page.locator('[data-vega-tree-row="seccion_1"]').click();
+	const originalOrder = await page.locator('.vega-tree-row').allTextContents();
+	for (const name of ['Vista', 'Zoom']) {
+		const select = page.getByRole('combobox', { name, exact: true });
+		await select.focus();
+		await select.press('Alt+ArrowDown');
+		await select.press('Escape');
+		for (const key of ['Delete', 'Backspace', 'Escape']) await select.press(key);
+		await expect(page.locator('[data-vega-tree-row="seccion_1"]')).toHaveClass(
+			/vega-tree-row--selected/
+		);
+		await expect(page.locator('.vega-delete-confirm')).toHaveCount(0);
+		await expect(page.locator('.vega-tree-row')).toHaveText(originalOrder);
+	}
+	await headingInput(page).fill('Borrador guardado desde el selector');
+	await page.getByRole('combobox', { name: 'Vista', exact: true }).focus();
+	await page.keyboard.press('Control+s');
+	await expect(page.locator('.vega-visual-pending')).toHaveCount(0);
+	await page.getByRole('button', { name: 'Volver al formulario', exact: true }).click();
+	await expect(page.locator('.vega-block-title').first()).toHaveText(
+		'Borrador guardado desde el selector'
+	);
+});

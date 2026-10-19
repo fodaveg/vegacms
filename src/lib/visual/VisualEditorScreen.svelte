@@ -777,6 +777,8 @@
 	const frameWidth = $derived(frameWidthFor(screenPreset));
 	/** Factor de `transform: scale()` del "escenario" (ver cabecera). */
 	const zoomFactor = $derived(resolveZoomFactor(zoomPreference, canvasSize.width, frameWidth));
+	/** Ajuste disponible en el menú, incluso cuando la escala activa es un nivel manual. */
+	const fitZoomFactor = $derived(resolveZoomFactor('fit', canvasSize.width, frameWidth));
 	/** Alto propio del escenario, para que al escalarlo llene el lienzo exacto (ver `viewport.ts`). */
 	const stageHeightPx = $derived(stageHeightFor(canvasSize.height, zoomFactor));
 
@@ -1145,7 +1147,7 @@
 						>
 							<option value="fit"
 								>{ctx.t('editor.visual.zoom.fitWithLevel', {
-									percent: Math.round(zoomFactor * 100)
+									percent: Math.round(fitZoomFactor * 100)
 								})}</option
 							>
 							{#each ZOOM_LEVELS as level (level)}

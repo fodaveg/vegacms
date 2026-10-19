@@ -2086,6 +2086,14 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		expect(stage.style.width).toBe('1280px');
 		expect(stage.style.transform).toBe('scale(0.5)');
 		expect(zoom.value).toBe('50');
+		// La opción Ajustar ofrece el ajuste DISPONIBLE, independiente del nivel manual activo.
+		for (const level of ['50', '75', '100']) {
+			zoom.value = level;
+			zoom.dispatchEvent(new Event('change', { bubbles: true }));
+			await tick();
+			expect(zoom.querySelector('option[value="fit"]')?.textContent).toBe('Ajustar · 55 %');
+			expect(stage.style.transform).toBe(`scale(${Number(level) / 100})`);
+		}
 
 		zoom.value = 'fit';
 		zoom.dispatchEvent(new Event('change', { bubbles: true }));
@@ -2267,6 +2275,58 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		await tick();
 		expect(mounted.target.querySelector('[role="dialog"]')).toBeNull(); // tampoco el panel
 	});
+
+	test.each(['.vega-visual-view-select', '.vega-visual-zoom-select'])(
+		'los selectores nativos conservan selección y estructura; CtrlS sigue guardando (%s)',
+		async (selector) => {
+			vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+			const { ctx, type, port } = await setup([
+				{ id: 'b1', heading: 'Hero', sort: 0 },
+				{ id: 'b2', heading: 'Features', sort: 1 }
+			]);
+			mounted = mountScreen(ctx, type);
+			await flush();
+			await connectBridge(mounted.target, [
+				{ id: 'b1', type: 'hero' },
+				{ id: 'b2', type: 'gallery' }
+			]);
+			sendSiteMessage({ vega: 'vega-visual-1', type: 'select', blockId: 'b1' });
+			await tick();
+			const select = mounted.target.querySelector<HTMLSelectElement>(selector)!;
+			select.focus();
+			for (const key of ['ArrowDown', 'ArrowUp', 'Delete', 'Backspace', 'Escape', '?']) {
+				const event = new KeyboardEvent('keydown', {
+					key,
+					altKey: key.startsWith('Arrow'),
+					bubbles: true,
+					cancelable: true
+				});
+				select.dispatchEvent(event);
+				await flush();
+				expect(event.defaultPrevented).toBe(false); // el control conserva su gesto nativo
+				expect(
+					mounted.target
+						.querySelector('[data-vega-tree-row="b1"]')
+						?.classList.contains('vega-tree-row--selected')
+				).toBe(true);
+				expect(mounted.target.querySelector('.vega-delete-confirm')).toBeNull();
+				expect(mounted.target.querySelector('[role="dialog"]')).toBeNull();
+			}
+			const rows = await port.list('post_block', {
+				sort: [{ field: 'sort', dir: 'asc' }],
+				perPage: 50
+			});
+			expect(rows.items.map((r) => r.id)).toEqual(['b1', 'b2']);
+			await editHeading(mounted.target, 'Guardado desde selector');
+			select.focus();
+			select.dispatchEvent(
+				new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true, cancelable: true })
+			);
+			await flush();
+			expect((await port.get('post_block', 'b1')).values.heading).toBe('Guardado desde selector');
+			expect(mounted.target.querySelector('.vega-visual-pending')).toBeNull();
+		}
+	);
 
 	test('⌘S SÍ guarda con el foco DENTRO de un campo de texto (la única excepción)', async () => {
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
