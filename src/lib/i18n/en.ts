@@ -657,6 +657,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'The “{name}” type no longer exists in the manifest. This block is read-only so its data stays intact.',
 	'editor.blocks.form.noType':
 		'This block has no type. It stays read-only until the model says how to edit it.',
+	'editor.blocks.form.reviewFields': 'Review the highlighted fields.',
 	'editor.blocks.form.invalidData':
 		'The “{field}” column does not contain a JSON object. Saving would replace the existing value, so Vega has blocked this block.',
 	'editor.blocks.form.rawData': 'Raw value of “{field}”',

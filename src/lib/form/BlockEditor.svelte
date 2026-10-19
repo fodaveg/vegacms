@@ -44,7 +44,7 @@
 	 * padre («clonando página») y deja el botón visible pero inerte. Son dos motivos distintos para
 	 * no poder escribir, y el autor merece distinguir «ahora no» de «tú no».
 	 */
-	import { tick, untrack } from 'svelte';
+	import { tick, untrack, type Snippet } from 'svelte';
 	import type {
 		ResolvedBlockField,
 		ResolvedBlockType,
@@ -113,6 +113,10 @@
 		textsOnly?: boolean;
 		/** Sin permiso de editar (ver cabecera): campos deshabilitados y sin «Guardar». */
 		locked?: boolean;
+		/** Inspector visual: una sola cabecera con nombre/estado y el mismo Guardar, persistente
+		 *  dentro de la ficha. El consumidor aporta presentación, nunca otro dueño del guardado.
+		 *  Sin snippet, el formulario clásico conserva su acción al pie. */
+		contextualHeader?: Snippet<[name: string, state: string, save: Snippet | undefined]>;
 	}
 
 	let {
@@ -130,7 +134,8 @@
 		disabled = false,
 		onBusyChange = () => {},
 		textsOnly = false,
-		locked = false
+		locked = false,
+		contextualHeader
 	}: Props = $props();
 
 	const ctx = getVegaContext();
@@ -549,7 +554,33 @@
 	}
 </script>
 
+{#snippet saveButton()}
+	<button
+		type="button"
+		class="vega-block-save-button"
+		disabled={inert || !dirty || (typed && blockType === null)}
+		onclick={handleSave}
+	>
+		{saving ? ctx.t('editor.saving') : ctx.t('editor.save')}
+	</button>
+{/snippet}
+
 <div class="vega-block-fields">
+	{#if contextualHeader}
+		{@render contextualHeader(
+			name ?? blockType?.label ?? childType.label,
+			saving
+				? ctx.t('editor.saving')
+				: conflict
+					? ctx.t('editor.conflict.topbar')
+					: errors.record || Object.keys(errors.byField).length > 0
+						? ctx.t('editor.blocks.form.reviewFields')
+						: dirty
+							? ctx.t('editor.visual.pending.title')
+							: ctx.t('topbar.publish.noChanges'),
+			hasTexts && !locked && (!typed || blockType !== null) ? saveButton : undefined
+		)}
+	{/if}
 	{#if typed && blockType === null}
 		<section class="vega-block-readonly" role="status">
 			<p>
@@ -686,17 +717,8 @@
 			</p>
 		{/if}
 
-		{#if hasTexts && !locked}
-			<div class="vega-block-actions">
-				<button
-					type="button"
-					class="vega-block-save-button"
-					disabled={inert || !dirty || (typed && blockType === null)}
-					onclick={handleSave}
-				>
-					{saving ? ctx.t('editor.saving') : ctx.t('editor.save')}
-				</button>
-			</div>
+		{#if hasTexts && !locked && !contextualHeader}
+			<div class="vega-block-actions">{@render saveButton()}</div>
 		{/if}
 	{/if}
 </div>

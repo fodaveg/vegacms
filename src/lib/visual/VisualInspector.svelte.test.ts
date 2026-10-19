@@ -345,6 +345,111 @@ describe('VisualInspector.svelte', () => {
 		expect(onBlockSaved).toHaveBeenCalledTimes(1);
 	});
 
+	test('la cabecera mantiene borrador y errores de A al cambiar A→B→A, sin guardar al seleccionar', async () => {
+		const requiredChild = {
+			...childType,
+			fields: childType.fields.map((field) =>
+				field.name === 'heading' ? { ...field, schema: { ...field.schema, required: true } } : field
+			)
+		};
+		const update = vi.fn();
+		const blocks = fakeBlocksState(
+			{ records: [record('b1', 'Nombre largo de A '.repeat(12)), record('b2', 'B')] },
+			requiredChild,
+			structuralFields
+		);
+		const reactive = mountInspectorReactive(blocks, 'b1', fakeCtx(update));
+		mounted = reactive;
+		await settleFocus();
+		const bodies = reactive.target.querySelectorAll<HTMLElement>('.vega-inspector-body');
+		const inputA = bodies[0].querySelector<HTMLInputElement>('input[type="text"]')!;
+		inputA.value = '';
+		inputA.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		bodies[0].querySelector<HTMLButtonElement>('.vega-block-save-button')!.click();
+		await settleFocus();
+		expect(bodies[0].querySelector('.vega-block-context-state')?.textContent).toContain(
+			'Revisa los campos señalados.'
+		);
+		const errorText = bodies[0].querySelector('.vega-field-error')?.textContent;
+		expect(errorText).toBeTruthy();
+		reactive.props.selectedId = 'b2';
+		await settleFocus();
+		const inputB = bodies[1].querySelector<HTMLInputElement>('input[type="text"]')!;
+		inputB.value = 'Borrador B';
+		inputB.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		reactive.props.selectedId = 'b1';
+		await settleFocus();
+		expect(bodies[0].querySelector('input[type="text"]')).toBe(inputA);
+		expect(inputA.value).toBe('');
+		expect(inputB.value).toBe('Borrador B');
+		expect(bodies[0].querySelector('.vega-field-error')?.textContent).toBe(errorText);
+		expect(bodies[0].querySelector('.vega-block-context-state')?.textContent).toContain(
+			'Revisa los campos señalados.'
+		);
+		expect(bodies[0].querySelectorAll('.vega-block-save-button')).toHaveLength(1);
+		expect(update).not.toHaveBeenCalled();
+	});
+
+	test('la misma acción contextual pasa por guardando y solo el éxito confirmado retira el borrador', async () => {
+		let finish!: (record: VegaRecord) => void;
+		const update = vi.fn(
+			() =>
+				new Promise<VegaRecord>((resolve) => {
+					finish = resolve;
+				})
+		);
+		const blocks = fakeBlocksState(
+			{ records: [record('b1', 'Hero')] },
+			childType,
+			structuralFields
+		);
+		mounted = mountInspector(blocks, 'b1', fakeCtx(update));
+		await settleFocus();
+		const input = mounted.target.querySelector<HTMLInputElement>('input[type="text"]')!;
+		const save = mounted.target.querySelector<HTMLButtonElement>('.vega-block-save-button')!;
+		input.value = 'Hero editado';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		expect(mounted.target.querySelector('.vega-block-context-state')?.textContent).toContain(
+			'Cambios sin guardar'
+		);
+		save.click();
+		await tick();
+		expect(save.disabled).toBe(true);
+		expect(mounted.target.querySelector('.vega-block-context-state')?.textContent).toContain(
+			'Guardando'
+		);
+		finish(record('b1', 'Hero editado'));
+		await settleFocus();
+		expect(mounted.target.querySelectorAll('.vega-block-save-button')).toHaveLength(1);
+		expect(save.disabled).toBe(true);
+		expect(mounted.target.querySelector('.vega-block-context-state')?.textContent).toContain(
+			'Sin cambios'
+		);
+		expect(update).toHaveBeenCalledTimes(1);
+	});
+
+	test('abrir un bloque sin campos habilitados enfoca su sección contextual, nunca Guardar', async () => {
+		const lockedChild = {
+			...childType,
+			permissions: { ...childType.permissions, update: false }
+		};
+		const blocks = fakeBlocksState(
+			{ records: [record('b1', 'Bloque sin permiso')] },
+			lockedChild,
+			structuralFields
+		);
+		mounted = mountInspector(blocks, 'b1', fakeCtx(vi.fn()));
+		await settleFocus();
+		(mounted.instance as unknown as { focusBlock: (id: string) => void }).focusBlock('b1');
+		const section = mounted.target.querySelector('.vega-inspector-body');
+		expect(document.activeElement).toBe(section);
+		expect(section?.getAttribute('aria-label')).toBe('Bloque sin permiso');
+		expect(mounted.target.querySelector('.vega-block-save-button')).toBeNull();
+	});
+
 	// ————— D1 (encargo de accesibilidad): el foco NO puede caer a `<body>` al cambiar de bloque —————
 	describe('D1 — el foco sigue a la selección, y nunca se lo roba a otra superficie', () => {
 		let reactive: {

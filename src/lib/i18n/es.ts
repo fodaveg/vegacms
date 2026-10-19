@@ -713,6 +713,7 @@ export const es = {
 		'El tipo «{name}» ya no existe en el manifiesto. Este bloque queda en solo lectura para conservar sus datos.',
 	'editor.blocks.form.noType':
 		'Este bloque no tiene tipo. Queda en solo lectura hasta que el modelo indique cómo editarlo.',
+	'editor.blocks.form.reviewFields': 'Revisa los campos señalados.',
 	'editor.blocks.form.invalidData':
 		'La columna «{field}» no contiene un objeto JSON. Guardar sustituiría el valor existente, así que Vega ha bloqueado este bloque.',
 	'editor.blocks.form.rawData': 'Valor crudo de «{field}»',

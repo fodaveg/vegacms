@@ -246,7 +246,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 			page.locator('.vega-visual-overlay-box[data-vega-block-id="seccion_2"]')
 		).toHaveClass(/vega-visual-overlay-box--selected/);
 
-		await expect(visibleInspectorBody(page).locator('.vega-inspector-block-title')).toHaveText(
+		await expect(visibleInspectorBody(page).locator('.vega-block-context-title')).toHaveText(
 			'Tu contenido, en tu servidor'
 		);
 		await expect(headingInput(page)).toHaveValue('Tu contenido, en tu servidor');
@@ -927,4 +927,191 @@ test('UX01: los selectores conservan el bloque al usar teclas nativas y CtrlS gu
 	await expect(page.locator('.vega-block-title').first()).toHaveText(
 		'Borrador guardado desde el selector'
 	);
+});
+
+/** Datos largos configurados por la UI real; mismos campos en inspector y Solo textos. */
+async function openLongBlockForm(page: Page, site: VisualSite): Promise<void> {
+	await openVisualEditor(page, site, 'pagina_1');
+	await waitConnected(page, 3);
+	await page.getByRole('button', { name: 'Volver al formulario', exact: true }).click();
+	await page.getByRole('link', { name: 'Ajustes', exact: true }).click();
+	const editor = page.getByRole('textbox', { name: 'JSON del manifiesto' });
+	const manifest = JSON.parse(await editor.inputValue());
+	const fields = Array.from({ length: 8 }, (_, index) => ({
+		name: `detalle_${index + 1}`,
+		label: `Detalle editorial ${index + 1}`,
+		widget: 'textarea',
+		source: 'data',
+		required: index === 0
+	}));
+	for (const block of Object.values(manifest.blockTypes) as { fields: unknown[] }[]) {
+		block.fields.push(...fields);
+	}
+	// Los otros dos bloques prueban destinos que no son inputs de texto: cuerpo real de TipTap
+	// antes de su toolbar, y la primera acción habilitada del selector de relación.
+	const textFields = manifest.blockTypes.texto.fields;
+	textFields.unshift(
+		textFields.splice(
+			textFields.findIndex((f: { name: string }) => f.name === 'cuerpo'),
+			1
+		)[0]
+	);
+	const galleryFields = manifest.blockTypes.galeria.fields;
+	galleryFields.unshift(
+		galleryFields.splice(
+			galleryFields.findIndex((f: { name: string }) => f.name === 'imagenes'),
+			1
+		)[0]
+	);
+	await editor.fill(JSON.stringify(manifest, null, 2));
+	await page
+		.locator('.manifest-editor')
+		.getByRole('button', { name: 'Guardar', exact: true })
+		.click();
+	await page.locator('a[href="/c/paginas"]').first().click();
+	await page.locator('a[href="/c/paginas/pagina_1"]').click();
+	await page.getByRole('button', { name: 'Editor visual', exact: true }).click();
+	await waitConnected(page, 3);
+}
+
+test('UX02: contexto y Guardar siguen accesibles al recorrer un formulario largo y reflow', async ({
+	page
+}, testInfo) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openLongBlockForm(page, site);
+	await page.locator('[data-vega-tree-row="seccion_1"]').click();
+	const first = page.locator('.vega-inspector-body[data-block-id="seccion_1"]');
+	const heading = first.locator('[data-field="heading"] input');
+	const longName =
+		'Guía editorial de una página con un nombre largo para reconocer el bloque al recorrer todos sus campos';
+	await heading.fill(longName);
+	for (const [index, field] of (await first.locator('textarea').all()).entries()) {
+		await field.fill(
+			`Texto editorial ${index + 1} que permanece al cambiar de bloque.\n`.repeat(6)
+		);
+	}
+	const save = first.getByRole('button', { name: 'Guardar', exact: true });
+	await save.click();
+	await expect(save).toBeDisabled();
+	await first.locator('textarea').first().fill('');
+	await save.click();
+	const error = first.locator('.vega-field-error').first();
+	await expect(error).toBeVisible();
+	const retainedError = await error.textContent();
+	await page.locator('[data-vega-tree-row="seccion_2"]').click();
+	await headingInput(page).fill('Borrador B retenido');
+	await page
+		.getByRole('region', { name: 'Cambios sin guardar', exact: true })
+		.getByRole('button', { name: `Abrir bloque: ${longName}`, exact: true })
+		.click();
+	await expect(heading).toBeFocused();
+	await expect(error).toHaveText(retainedError!);
+	await expect(first.locator('textarea').first()).toHaveValue('');
+	await expect(
+		page.locator('[data-block-id="seccion_2"] [data-field="heading"] input')
+	).toHaveValue('Borrador B retenido');
+	await expect(first.locator('.vega-block-context-title')).toHaveText(longName);
+	await expect(first.locator('.vega-block-context-state')).toHaveText(
+		'Revisa los campos señalados.'
+	);
+	await expect(first.getByRole('button', { name: 'Guardar', exact: true })).toHaveCount(1);
+	const panel = page.locator('.vega-inspector-panel');
+	for (const size of [
+		{ width: 1440, height: 900 },
+		{ width: 901, height: 900 },
+		{ width: 390, height: 844 },
+		{ width: 720, height: 500 }
+	]) {
+		// 720×500 comprueba el espacio CSS de reflow de 1440×1000 al 200%; no simula zoom nativo.
+		await page.setViewportSize(size);
+		if (size.width < 901) {
+			const close = page.locator('.vega-sidebar-open .vega-sidebar-close');
+			if (await close.count()) await close.click();
+			await expect(page.locator('iframe.vega-visual-frame')).toHaveCount(0);
+		}
+		await panel.evaluate((el) => {
+			el.scrollTop = el.querySelector<HTMLElement>('[data-block-id="seccion_1"]')!.offsetTop + 500;
+		});
+		await expect
+			.poll(async () => {
+				const container = (await panel.boundingBox())!;
+				const button = (await save.boundingBox())!;
+				return (
+					button.y >= container.y && button.y + button.height <= container.y + container.height
+				);
+			})
+			.toBe(true);
+		await expect(first.locator('.vega-block-context-title')).toBeVisible();
+		expect(await page.locator('body').evaluate((el) => el.scrollWidth <= innerWidth)).toBe(true);
+		await page.screenshot({
+			path: testInfo.outputPath(`ux02-${size.width}-long-error-scroll.png`)
+		});
+		await page
+			.getByRole('region', { name: 'Cambios sin guardar', exact: true })
+			.getByRole('button', { name: `Abrir bloque: ${longName}`, exact: true })
+			.click();
+		await expect(heading).toBeFocused();
+		const contextBox = (await first.locator('.vega-block-context').boundingBox())!;
+		const fieldBox = (await heading.boundingBox())!;
+		expect(fieldBox.y).toBeGreaterThanOrEqual(contextBox.y + contextBox.height);
+	}
+	// Al entrar en B la cabecera A sale con SU ficha, en lugar de apilarse encima de B.
+	const second = page.locator('.vega-inspector-body[data-block-id="seccion_2"]');
+	await panel.evaluate((el) => {
+		el.scrollTop = el.querySelector<HTMLElement>('[data-block-id="seccion_2"]')!.offsetTop + 400;
+	});
+	await expect
+		.poll(
+			async () =>
+				(await first.locator('.vega-block-context').boundingBox())!.y +
+					(await first.locator('.vega-block-context').boundingBox())!.height <=
+				(await panel.boundingBox())!.y
+		)
+		.toBe(true);
+	const secondHeader = (await second.locator('.vega-block-context').boundingBox())!;
+	expect(secondHeader.y).toBeGreaterThanOrEqual((await panel.boundingBox())!.y);
+});
+
+test('UX02: abrir pendiente enfoca el richtext y la relación reales antes que Guardar', async ({
+	page
+}) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openLongBlockForm(page, site);
+	await page.locator('[data-vega-tree-row="seccion_2"]').click();
+	const richtext = page.locator(
+		'[data-block-id="seccion_2"] [data-field="cuerpo"] [contenteditable="true"]'
+	);
+	await richtext.fill('Borrador enriquecido con muchas líneas para un panel corto.\n'.repeat(30));
+	await page.locator('[data-vega-tree-row="seccion_3"]').click();
+	await headingInput(page).fill('Borrador galería');
+	const pending = page.getByRole('region', { name: 'Cambios sin guardar', exact: true });
+	await pending
+		.getByRole('button', { name: `Abrir bloque: ${SECCIONES[1].text}`, exact: true })
+		.click();
+	await expect(richtext).toBeFocused();
+	await page.setViewportSize({ width: 1440, height: 500 });
+	await pending
+		.getByRole('button', { name: `Abrir bloque: ${SECCIONES[1].text}`, exact: true })
+		.click();
+	await expect(richtext).toBeFocused();
+	const editorBox = (await richtext.boundingBox())!;
+	const headerBox = (await page
+		.locator('[data-block-id="seccion_2"] .vega-block-context')
+		.boundingBox())!;
+	const panelBox = (await page.locator('.vega-inspector-panel').boundingBox())!;
+	expect(editorBox.height).toBeGreaterThan(panelBox.height);
+	expect(editorBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height);
+	expect(editorBox.y).toBeLessThan(panelBox.y + panelBox.height);
+	await pending
+		.getByRole('button', { name: `Abrir bloque: ${SECCIONES[2].text}`, exact: true })
+		.click();
+	const relation = page.locator('[data-block-id="seccion_3"] [data-field="imagenes"]');
+	await expect
+		.poll(() => relation.evaluate((el) => el.contains(document.activeElement)))
+		.toBe(true);
+	await expect(
+		page.locator('[data-block-id="seccion_3"] .vega-block-save-button')
+	).not.toBeFocused();
 });

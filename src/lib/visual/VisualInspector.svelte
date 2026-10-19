@@ -122,11 +122,12 @@
 	 * `headingEl`): si tras el cambio no hay ninguna ficha visible (deselección, id fantasma, lista
 	 * vacía) o la ficha visible no tiene NINGÚN enfocable, el foco aterriza ahí en vez de perderse.
 	 */
-	import { tick } from 'svelte';
+	import { tick, type Snippet } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
 	import BlockEditor from '$lib/form/BlockEditor.svelte';
 	import type { BlocksState } from '$lib/form/blocks-state.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
+	import { resolveFocusTarget } from '$lib/form/focus-target';
 	import { focusables } from './a11y-audit';
 
 	interface Props {
@@ -177,16 +178,39 @@
 			panelEl?.querySelectorAll<HTMLElement>('.vega-inspector-body:not([hidden])') ?? []
 		).find((section) => section.dataset.blockId === id);
 		if (!body) return;
-		const target = focusables(body).find((control) => !control.closest('[hidden]'));
-		(target ?? body).focus();
+		const target = firstFieldControl(body);
+		focusContext(target ?? body);
+	}
+
+	/** El navegador no descuenta la cabecera sticky al enfocar. Se alinea el comienzo del
+	 *  control debajo de ella (también si el richtext supera el alto del panel), sin animación
+	 *  ni scroll de otra superficie. La sección sin controles vuelve a su contexto superior. */
+	function focusContext(target: HTMLElement | undefined): void {
+		if (!target || !panelEl) return;
+		target.focus({ preventScroll: true });
+		const section = target.closest('.vega-inspector-body');
+		const header = section?.querySelector('.vega-block-context');
+		const inset = target === section ? 0 : (header?.getBoundingClientRect().height ?? 0) + 12;
+		panelEl.scrollTop +=
+			target.getBoundingClientRect().top - panelEl.getBoundingClientRect().top - inset;
+	}
+
+	/** La acción persistente precede a los campos en el DOM; «Abrir bloque» sigue llevando al
+	 *  primer campo, nunca al nuevo Guardar. Se excluye también cualquier control oculto. */
+	function firstFieldControl(body: HTMLElement): HTMLElement | undefined {
+		for (const row of body.querySelectorAll<HTMLElement>('.vega-field-row[data-field]')) {
+			const target = resolveFocusTarget(body, row.dataset.field!, body.dataset.blockId ?? null);
+			if (target && !target.closest('[hidden]')) return target;
+		}
+		return focusables(body).find((control) => !control.closest('[hidden], .vega-block-context'));
 	}
 
 	/** Primer enfocable de la ficha VISIBLE de `panelEl` (la que no lleva `hidden`), o `null` si no
-	 *  hay ninguna ficha visible o está vacía de controles. Reusa `focusables()` (ver cabecera de
-	 *  `a11y-audit.ts`) en vez de reinventar el criterio de "qué es enfocable". */
+	 *  hay ninguna ficha visible o está vacía de controles. Reusa el mismo resolver por campo
+	 *  que el acceso explícito desde el aviso de borradores. */
 	function firstFocusableInVisibleBody(): HTMLElement | null {
 		const visible = panelEl?.querySelector<HTMLElement>('.vega-inspector-body:not([hidden])');
-		return visible ? (focusables(visible)[0] ?? null) : null;
+		return visible ? (firstFieldControl(visible) ?? null) : null;
 	}
 
 	/** `$effect.pre` (ver cabecera): corre ANTES de que Svelte aplique el `hidden` nuevo al DOM, así
@@ -208,7 +232,7 @@
 		if (!focusWasInsidePanel) return; // nunca robar el foco a quien teclea en OTRA superficie
 		void tick().then(() => {
 			const target = id === null ? null : firstFocusableInVisibleBody();
-			(target ?? headingEl)?.focus();
+			focusContext(target ?? headingEl);
 		});
 	});
 
@@ -218,6 +242,16 @@
 		return blocks.blockTypeOf(record)?.label ?? blocks.blockTitle(record);
 	}
 </script>
+
+{#snippet blockHeader(name: string, state: string, save: Snippet | undefined)}
+	<header class="vega-block-context">
+		<div class="vega-block-context-name">
+			<p class="vega-block-context-title" title={name}>{name}</p>
+			<p class="vega-block-context-state" role="status">{state}</p>
+		</div>
+		{#if save}{@render save()}{/if}
+	</header>
+{/snippet}
 
 <div
 	class="vega-inspector-panel"
@@ -299,8 +333,6 @@
 							</span>
 						{/if}
 					</div>
-				{:else}
-					<p class="vega-inspector-block-title">{blocks.blockTitle(record)}</p>
 				{/if}
 				<BlockEditor
 					bind:this={editorRefs[record.id]}
@@ -320,6 +352,7 @@
 					onDraftChange={(draft) => blocks.handleBlockDraftChange(record.id, draft)}
 					onBusyChange={(saving) => blocks.setSaving(record.id, saving)}
 					textsOnly={texts}
+					contextualHeader={blockHeader}
 					{locked}
 				/>
 			</section>
@@ -328,6 +361,56 @@
 </div>
 
 <style>
+	/* Cada cabecera queda limitada por SU ficha: en Solo textos la siguiente sección desplaza
+	   a la anterior, sin varios pies flotando sobre los campos. No hay un segundo Guardar. */
+	.vega-block-context {
+		position: sticky;
+		top: 0;
+		z-index: 2;
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.75rem 0;
+		border-bottom: 1px solid var(--line);
+		background: var(--paper);
+	}
+
+	.vega-block-context-name {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.vega-block-context-title {
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		overflow: hidden;
+		overflow-wrap: anywhere;
+		margin: 0;
+		color: var(--ink-hi);
+		font-size: 0.95em;
+		font-weight: 650;
+	}
+
+	.vega-block-context-state {
+		margin: 0.25rem 0 0;
+		color: var(--ink-2);
+		font-size: 0.8em;
+		overflow-wrap: anywhere;
+	}
+
+	.vega-block-context :global(.vega-block-save-button) {
+		flex-shrink: 0;
+		min-width: 44px;
+		min-height: 44px;
+		white-space: nowrap;
+	}
+
+	.vega-block-context :global(.vega-block-save-button:focus-visible) {
+		outline-color: var(--ink);
+	}
+
 	/* Misma nota que `.vega-tree-panel` (`VisualBlockTree.svelte`): sin `position: sticky`, la
 	   rejilla del padre (`.vega-visual-grid--inspector`) ya reparte el alto EXACTO del viewport y
 	   `stretch` (su `align-items` por defecto) hace que esta celda llene esa altura sola. */
@@ -433,14 +516,6 @@
 		background: var(--paper);
 		box-shadow: var(--shadow-card);
 		min-width: 0;
-	}
-
-	.vega-inspector-block-title {
-		margin: 0;
-		overflow-wrap: anywhere;
-		font-size: 0.95em;
-		font-weight: 650;
-		color: var(--ink-hi);
 	}
 
 	/* Cabecera de sección (lámina 8, `.vega-visual-texts-head`): rótulo de tarjeta (`.vega-fsection
